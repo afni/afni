@@ -1265,7 +1265,6 @@ SUMA_Boolean SUMA_getoffsets2 (  int n, SUMA_SurfaceObject *SO,
    LayInd = 1;  /* index of next layer to build */
    AllDone = NOPE;
    while (!AllDone && LayInd <= MaxLay) {
-      
       AllDone = YUP; /* assume that this would be the last layer */
       for (il=0; il < OffS->layers[LayInd - 1].N_NodesInLayer; ++il) { 
                                  /* go over all nodes in previous layer */
@@ -1396,14 +1395,17 @@ SUMA_OFFSET_LL_DATUM *SUMA_New_Offset_ll_Datum(int n, int layer)
    if (m_dat->ni != n_jne) Elm = NULL;  \
    else Elm = m_Elm; \
 }
-DList * SUMA_getoffsets_ll (int n, SUMA_SurfaceObject *SO, float lim, int *CoverThisNode, int N_CoverThisNode) 
+DList * SUMA_getoffsets_ll (  int n, SUMA_SurfaceObject *SO, float lim, 
+                              int *CoverThisNode, int N_CoverThisNode) 
 {
    static char FuncName[]={"SUMA_getoffsets_ll"};
-   int LayInd, il, n_il, n_jne, k, n_prec = -1, n_k, jne, iseg=0;
-   float Off_tmp, Seg, *a, *b, minSeg, SegPres; /*! *** SegPres added Jul 08 04, ZSS bug before ... */
+   int LayInd, il, n_il, n_jne, k, n_prec = -1, n_k, jne, iseg=0, MaxLay=0;
+   float Off_tmp, Seg, *a, *b, minSeg, SegPres; 
+      /*! *** SegPres added Jul 08 04, ZSS bug before ... */
    SUMA_Boolean Visit = NOPE;
    SUMA_Boolean AllDone = NOPE;
-   SUMA_OFFSET_LL_DATUM * n_dat = NULL, *dat = NULL, *dat_nk = NULL, *dat_prec = NULL, *dat_ne=NULL;
+   SUMA_OFFSET_LL_DATUM * n_dat = NULL, *dat = NULL, *dat_nk = NULL, 
+                        *dat_prec = NULL, *dat_ne=NULL;
    DList *list = NULL;
    DListElmt *elm = NULL, *elm_prec = NULL, *elm_ne=NULL, *elm_nk=NULL;
    static SUMA_Boolean LocalHead = NOPE;
@@ -1415,6 +1417,11 @@ DList * SUMA_getoffsets_ll (int n, SUMA_SurfaceObject *SO, float lim, int *Cover
    SUMA_LH("Initializing list ...");
    list = (DList *)SUMA_malloc(sizeof(DList));
    dlist_init(list, SUMA_Free_Offset_ll_Datum);
+   
+   if (lim < 0) { /* Secret code for stopping based on layer number */
+      MaxLay = (int) -lim; /* Maximum layer */
+      lim = 100000.0;   /* Hayuge */
+   } else MaxLay = SO->N_Node; /* a very large number */
    
    /* setup 0th layer */
    SUMA_LH("New OffsetDatum");
@@ -1429,7 +1436,7 @@ DList * SUMA_getoffsets_ll (int n, SUMA_SurfaceObject *SO, float lim, int *Cover
    }
    LayInd = 1;  /* index of next layer to build */
    AllDone = NOPE;
-   while (!AllDone) {
+   while (!AllDone && LayInd <= MaxLay) {
       AllDone = YUP; /* assume that this would be the last layer */
       elm = NULL;
          do {
@@ -1442,18 +1449,23 @@ DList * SUMA_getoffsets_ll (int n, SUMA_SurfaceObject *SO, float lim, int *Cover
             dat = (SUMA_OFFSET_LL_DATUM *)elm->data;
             if (dat->layer == LayInd -1) {
                n_il = dat->ni;
-               for (jne=0; jne < SO->FN->N_Neighb[n_il]; ++jne) { /* go over all the neighbours of node n_il */
-                  n_jne = SO->FN->FirstNeighb[n_il][jne];        /* node that is an immediate neighbor to n_il */
+               for (jne=0; jne < SO->FN->N_Neighb[n_il]; ++jne) { 
+                        /* go over all the neighbours of node n_il */
+                  n_jne = SO->FN->FirstNeighb[n_il][jne];        
+                        /* node that is an immediate neighbor to n_il */
                   SUMA_FIND_ELMENT_FOR_NODE(list, n_jne, elm_ne);
                   if (!elm_ne) { /* node not in any layer */
-                     dat_ne = SUMA_New_Offset_ll_Datum(n_jne, LayInd); /* create an element for it */
+                     dat_ne = SUMA_New_Offset_ll_Datum(n_jne, LayInd); 
+                           /* create an element for it */
                      dat_ne->off = 0.0;
                      dlist_ins_next(list, dlist_tail(list), (void*)dat_ne);
                      minSeg = 100000.0;
                      n_prec = -1; 
                      Seg = 0.0;
                      SegPres = 0.0;
-                     for (k=0; k < SO->FN->N_Neighb[n_jne]; ++k) { /* calculate shortest distance of node to any precursor */  
+                     for (k=0; k < SO->FN->N_Neighb[n_jne]; ++k) { 
+                           /* calculate shortest distance of node to 
+                              any precursor */  
                         n_k = SO->FN->FirstNeighb[n_jne][k];
                         SUMA_FIND_ELMENT_FOR_NODE(list, n_k, elm_nk); 
                         if (n_prec < 0 && elm_nk) { 
@@ -1462,12 +1474,17 @@ DList * SUMA_getoffsets_ll (int n, SUMA_SurfaceObject *SO, float lim, int *Cover
                         }
                         if (elm_nk) {
                            dat_nk = (SUMA_OFFSET_LL_DATUM *)elm_nk->data;
-                           if (dat_nk->layer == LayInd - 1) { /* this neighbor is a part of the previous layer, good */
-                              a = &(SO->NodeList[3*n_k]); b = &(SO->NodeList[3*n_jne]);
-                              /* this is the slow part, too many redundant computations. 
-                                 Computation time is cut by a factor > 2 if Seg was set to a constant
-                                 However, attempts at accessing pre-calculated segment lengths
-                                 proved to be slower. See Comments in function help*/
+                           if (dat_nk->layer == LayInd - 1) { 
+                                 /* this neighbor is a part of the 
+                                    previous layer, good */
+                              a = &(SO->NodeList[3*n_k]); 
+                              b = &(SO->NodeList[3*n_jne]);
+                                 /* this is the slow part, too many redundant 
+                                    computations. Computation time is cut by a 
+                                    factor > 2 if Seg was set to a constant
+                                    However, attempts at accessing pre-calculated
+                                    segment lengths proved to be slower. 
+                                    See Comments in function help*/
                               SUMA_SEG_LENGTH_SQ (a, b, Seg);                    
                               if (dat_prec->off + Seg < minSeg) {
                                  minSeg = Seg + dat_prec->off;
@@ -1483,9 +1500,11 @@ DList * SUMA_getoffsets_ll (int n, SUMA_SurfaceObject *SO, float lim, int *Cover
                         SUMA_SL_Crit("No precursor found for node.");
                         SUMA_RETURN(NULL);
                      } else {
-                        dat_ne->off = dat_prec->off + sqrt(SegPres); SegPres = 0.0;
+                        dat_ne->off = dat_prec->off + sqrt(SegPres); 
+                        SegPres = 0.0;
                         if (!CoverThisNode) {
-                           if (dat_ne->off < lim) { /* must go at least one more layer */
+                           if (dat_ne->off < lim) { 
+                              /* must go at least one more layer */
                               AllDone = NOPE;
                            }
                         } else {

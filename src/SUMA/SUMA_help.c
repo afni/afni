@@ -1508,7 +1508,8 @@ char * SUMA_help_message_Info(void)
       "                 They are a little inefficient to reproduce with\n"
       "                 each redraw. Complain if you need them.\n"
       "         Type 6: Another class of displayble objects is described in\n"
-      "                 the output of suma -nido and the demonstration script\n"
+      "                 the output of suma -help_nido and the demonstration\n"
+      "                  script\n"
       "                 @DO.examples. This new class allows for displaying \n"
       "                 text and figures in both screen and world space.\n"
       );

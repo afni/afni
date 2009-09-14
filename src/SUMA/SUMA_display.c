@@ -5660,12 +5660,15 @@ void SUMA_CreateDrawROIWindow(void)
    SUMA_UpdateAllViewerCursor(); 
    SUMAg_CF->X->DrawROI->DrawROImode_tb = XtVaCreateManagedWidget("Draw", 
       xmToggleButtonWidgetClass, rc, NULL);
-   XmToggleButtonSetState (SUMAg_CF->X->DrawROI->DrawROImode_tb, SUMAg_CF->ROI_mode, NOPE);
+   XmToggleButtonSetState (SUMAg_CF->X->DrawROI->DrawROImode_tb, 
+                           SUMAg_CF->ROI_mode, NOPE);
    XtAddCallback (SUMAg_CF->X->DrawROI->DrawROImode_tb, 
                   XmNvalueChangedCallback, SUMA_cb_DrawROImode_toggled, 
                   NULL);
-   MCW_register_help(SUMAg_CF->X->DrawROI->DrawROImode_tb , SUMA_DrawROI_DrawROIMode_help ) ;
-   MCW_register_hint(SUMAg_CF->X->DrawROI->DrawROImode_tb , "Toggles ROI drawing mode" ) ;
+   MCW_register_help(SUMAg_CF->X->DrawROI->DrawROImode_tb , 
+                     SUMA_DrawROI_DrawROIMode_help ) ;
+   MCW_register_hint(SUMAg_CF->X->DrawROI->DrawROImode_tb , 
+                     "Toggles ROI drawing mode" ) ;
 
    /* set the toggle button's select color */
    SUMA_SET_SELECT_COLOR(SUMAg_CF->X->DrawROI->DrawROImode_tb);
@@ -5806,17 +5809,22 @@ void SUMA_CreateDrawROIWindow(void)
    SUMAg_CF->X->DrawROI->Join_pb = XtVaCreateWidget ("Join", 
       xmPushButtonWidgetClass, rc_ur, 
       NULL);
-   XtAddCallback (SUMAg_CF->X->DrawROI->Join_pb, XmNactivateCallback, SUMA_cb_DrawROI_Join, NULL);
+   XtAddCallback (SUMAg_CF->X->DrawROI->Join_pb, 
+                  XmNactivateCallback, SUMA_cb_DrawROI_Join, NULL);
    MCW_register_help(SUMAg_CF->X->DrawROI->Join_pb , SUMA_DrawROI_Join_help ) ;
-   MCW_register_hint(SUMAg_CF->X->DrawROI->Join_pb , "Join the first node of the path to the last" ) ;
+   MCW_register_hint(SUMAg_CF->X->DrawROI->Join_pb , 
+                     "Join the first node of the path to the last" ) ;
    XtManageChild (SUMAg_CF->X->DrawROI->Join_pb);
                                  
    SUMAg_CF->X->DrawROI->Finish_pb = XtVaCreateWidget ("Finish", 
       xmPushButtonWidgetClass, rc_ur, 
       NULL);
-   XtAddCallback (SUMAg_CF->X->DrawROI->Finish_pb, XmNactivateCallback, SUMA_cb_DrawROI_Finish, NULL);
-   MCW_register_help(SUMAg_CF->X->DrawROI->Finish_pb , SUMA_DrawROI_Finish_help ) ;
-   MCW_register_hint(SUMAg_CF->X->DrawROI->Finish_pb , "Label ROI as finished." ) ;
+   XtAddCallback (SUMAg_CF->X->DrawROI->Finish_pb, 
+                  XmNactivateCallback, SUMA_cb_DrawROI_Finish, NULL);
+   MCW_register_help(SUMAg_CF->X->DrawROI->Finish_pb , 
+                     SUMA_DrawROI_Finish_help ) ;
+   MCW_register_hint(SUMAg_CF->X->DrawROI->Finish_pb , 
+                     "Label ROI as finished." ) ;
    XtManageChild (SUMAg_CF->X->DrawROI->Finish_pb);
    
                                  
@@ -5871,10 +5879,15 @@ void SUMA_CreateDrawROIWindow(void)
    SUMAg_CF->X->DrawROI->Delete_pb = XtVaCreateWidget ("delete ROI", 
       xmPushButtonWidgetClass, rc_switch, 
       NULL);
-   XtAddCallback (SUMAg_CF->X->DrawROI->Delete_pb, XmNactivateCallback, SUMA_cb_DrawROI_Delete, NULL);
-   MCW_register_hint( SUMAg_CF->X->DrawROI->Delete_pb , "Click twice in 5 seconds to delete ROI. No Undo for this action." ) ;
-   MCW_register_help( SUMAg_CF->X->DrawROI->Delete_pb , SUMA_DrawROI_DeleteROI_help);
-   MCW_set_widget_bg( SUMAg_CF->X->DrawROI->Delete_pb , MCW_hotcolor(SUMAg_CF->X->DrawROI->Delete_pb) , 0 ) ;
+   XtAddCallback (SUMAg_CF->X->DrawROI->Delete_pb, 
+                  XmNactivateCallback, SUMA_cb_DrawROI_Delete, NULL);
+   MCW_register_hint(   SUMAg_CF->X->DrawROI->Delete_pb , 
+                        "Click twice in 5 seconds to delete ROI. "
+                        "No Undo for this action." ) ;
+   MCW_register_help( SUMAg_CF->X->DrawROI->Delete_pb , 
+                      SUMA_DrawROI_DeleteROI_help);
+   MCW_set_widget_bg( SUMAg_CF->X->DrawROI->Delete_pb , 
+                      MCW_hotcolor(SUMAg_CF->X->DrawROI->Delete_pb) , 0 ) ;
 
    XtManageChild (SUMAg_CF->X->DrawROI->Delete_pb); 
 
@@ -5897,9 +5910,11 @@ void SUMA_CreateDrawROIWindow(void)
    SUMAg_CF->X->DrawROI->Save_pb = XtVaCreateWidget ("Save", 
       xmPushButtonWidgetClass, rc_save, 
       NULL);
-   XtAddCallback (SUMAg_CF->X->DrawROI->Save_pb, XmNactivateCallback, SUMA_cb_DrawROI_Save, NULL);
+   XtAddCallback (SUMAg_CF->X->DrawROI->Save_pb, 
+                  XmNactivateCallback, SUMA_cb_DrawROI_Save, NULL);
    MCW_register_help(SUMAg_CF->X->DrawROI->Save_pb , SUMA_DrawROI_Save_help ) ;
-   MCW_register_hint(SUMAg_CF->X->DrawROI->Save_pb , "Save the Drawn ROI to disk." ) ;
+   MCW_register_hint(SUMAg_CF->X->DrawROI->Save_pb , 
+                     "Save the Drawn ROI to disk." ) ;
    XtManageChild (SUMAg_CF->X->DrawROI->Save_pb);
 
    /* Saving Mode */
@@ -5917,7 +5932,8 @@ void SUMA_CreateDrawROIWindow(void)
    SUMA_BuildMenuReset(0);
    SUMA_BuildMenu (rc_save, XmMENU_OPTION, 
                                "", '\0', YUP, DrawROI_SaveWhat_Menu, 
-                               "What", "Which ROIs to save?", SUMA_DrawROI_SaveWhat_help,   
+                               "What", "Which ROIs to save?", 
+                               SUMA_DrawROI_SaveWhat_help,   
                                SUMAg_CF->X->DrawROI->SaveWhatMenu);
    XtManageChild (SUMAg_CF->X->DrawROI->SaveWhatMenu[SW_DrawROI_SaveWhat]);
       
@@ -5931,14 +5947,17 @@ void SUMA_CreateDrawROIWindow(void)
       NULL);
    XtAddCallback (pb, XmNactivateCallback, MCW_click_help_CB, NULL);  
    MCW_register_help(pb , SUMA_help_help ) ;
-   MCW_register_hint(pb , "Press this button then click on a button/label/menu for more help." ) ;
+   MCW_register_hint(pb , 
+         "Press this button then click on a button/label/menu for more help." ) ;
    XtManageChild (pb);
     
    SUMAg_CF->X->DrawROI->Close_pb = XtVaCreateWidget ("Close", 
       xmPushButtonWidgetClass, rc_save, 
       NULL);   
-   XtAddCallback (SUMAg_CF->X->DrawROI->Close_pb, XmNactivateCallback, SUMA_cb_CloseDrawROIWindow, NULL);
-   MCW_register_hint(SUMAg_CF->X->DrawROI->Close_pb  , "Close Draw ROI window" ) ;
+   XtAddCallback (SUMAg_CF->X->DrawROI->Close_pb, XmNactivateCallback, 
+                  SUMA_cb_CloseDrawROIWindow, NULL);
+   MCW_register_hint(SUMAg_CF->X->DrawROI->Close_pb  , 
+                     "Close Draw ROI window" ) ;
    MCW_register_help(SUMAg_CF->X->DrawROI->Close_pb  , SUMA_closeDrawROI_help ) ;
    XtManageChild (SUMAg_CF->X->DrawROI->Close_pb);  
    
@@ -7861,18 +7880,27 @@ void SUMA_cb_CloseDrawROIWindow(Widget w, XtPointer data, XtPointer call_data)
    /* Close the ROIlist window if it is open */
    SUMA_IS_DRAW_ROI_SWITCH_ROI_SHADED(Shaded);
    if (!Shaded) {
-      if (LocalHead) fprintf (SUMA_STDERR, "%s: Closing switch ROI window ...\n", FuncName);
-      SUMA_cb_CloseSwitchROI(NULL, (XtPointer) SUMAg_CF->X->DrawROI->SwitchROIlst, NULL);
+      if (LocalHead) 
+         fprintf (SUMA_STDERR, "%s: Closing switch ROI window ...\n", FuncName);
+      SUMA_cb_CloseSwitchROI(NULL, 
+                           (XtPointer) SUMAg_CF->X->DrawROI->SwitchROIlst, NULL);
    }
    
+   /* Turn off Draw Mode, if it is ON */
+   if (SUMAg_CF->ROI_mode) {
+      XmToggleButtonSetState (SUMAg_CF->X->DrawROI->DrawROImode_tb, 
+                              NOPE, YUP);
+   }
    #if defined SUMA_USE_WITHDRAW 
-      if (LocalHead) fprintf (SUMA_STDERR,"%s: Withdrawing DrawROI window...\n", FuncName);
+      if (LocalHead) 
+         fprintf (SUMA_STDERR,"%s: Withdrawing DrawROI window...\n", FuncName);
       
       XWithdrawWindow(SUMAg_CF->X->DPY_controller1, 
          XtWindow(SUMAg_CF->X->DrawROI->AppShell),
          XScreenNumberOfScreen(XtScreen(SUMAg_CF->X->DrawROI->AppShell)));
    #elif defined SUMA_USE_DESTROY 
-      if (LocalHead) fprintf (SUMA_STDERR,"%s: Destroying DrawROI window...\n", FuncName);
+      if (LocalHead) 
+         fprintf (SUMA_STDERR,"%s: Destroying DrawROI window...\n", FuncName);
       XtDestroyWidget(SUMAg_CF->X->DrawROI->AppShell);
       SUMAg_CF->X->DrawROI->AppShell = NULL;
    #endif
@@ -9367,7 +9395,12 @@ void SUMA_cb_ToolsDrawROI (Widget w, XtPointer client_data, XtPointer call_data)
    }
    
    SUMA_OpenDrawROIController((&SUMAg_SVv[isv]));
-   
+   /* Turn on Draw Mode, if it is OFF */
+   if (!SUMAg_CF->ROI_mode) {
+      XmToggleButtonSetState (SUMAg_CF->X->DrawROI->DrawROImode_tb, 
+                              YUP, YUP);
+   }
+
    SUMA_RETURNe;
 }
 

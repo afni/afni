@@ -65,6 +65,16 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 14 , SEP , 2009 , ZSS , "SurfClust" , MINOR , TYPE_NEW_OPT ,
+   "Allow specifying rmm in number of edges connecting nodes.",
+   NULL
+ } ,
+
+ { 9 , SEP , 2009 , ZSS , "@fast_roi" , MINOR , TYPE_NEW_OPT ,
+   "Allow @fast_roi to accept existing TLRC transformed anatomy",
+   NULL
+ } ,
+
  { 16 , JUL , 2009 , ZSS , "afni" , MINOR , TYPE_NEW_OPT ,
    "Added option to force autoscale on the graphing window",
    "The option is accessible by pressing 'A' in the graph window\n"
