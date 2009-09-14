@@ -272,7 +272,7 @@ if (0), %fails with NIFTI names including paths,
       end
       BrikName = obrik(1).name;
    end
-else, %Greg Stark's fix for cases with directory names 
+else, %Craig Stark's fix for cases with directory names 
    if (isNIFTI)
       [St, xtr] = RemoveNiftiExtension(BrikName); 
       NiftiPref = St;          
@@ -282,7 +282,7 @@ else, %Greg Stark's fix for cases with directory names
          dir_pos = strfind(St,'/');
          dir_pos = dir_pos(length(dir_pos)); % Get the last /
          subdir = St(1:dir_pos);
-         otmp = sprintf('./%s____tmp_%s',subdir,St((dir_pos+1):length(St)));
+         otmp = sprintf('%s____tmp_%s',subdir,St((dir_pos+1):length(St)));
       else
          otmp = sprintf('./____tmp_%s', St);
       end
