@@ -54,6 +54,10 @@ void usage_SUMA_SurfClust ()
 "     -rmm rad: Maximum distance between an activated node\n"
 "               and the cluster to which it belongs.\n"
 "               Distance is measured on the surface's graph (mesh).\n"
+"               If you want the distance to be in number of edges,\n"
+"               set rad to -N for an N edge max distance.\n"
+"               For example -rmm -2 means that nodes connected\n"
+"               by 1 or two edges are in a cluster.\n"
 "\n"
 "  Optional Parameters:\n"
 "     -thresh_col tcolind: Index of thresholding column.\n"
@@ -205,7 +209,7 @@ SUMA_SURFCLUST_OPTIONS *SUMA_SurfClust_ParseInput (char *argv[], int argc)
    Opt->oform = SUMA_ASCII_NIML;
    Opt->sv_name = NULL;
    Opt->N_surf = -1;
-   Opt->DistLim = -1.0;
+   Opt->DistLim = -1.5;
    Opt->AreaLim = -1.0;
    Opt->in_name = NULL;
    Opt->nodecol = -1;
@@ -307,9 +311,11 @@ SUMA_SURFCLUST_OPTIONS *SUMA_SurfClust_ParseInput (char *argv[], int argc)
 			}
 			ind = argv[kar][6] - 'A';
          if (ind < 0 || ind >= SURFCLUST_MAX_SURF) {
-            fprintf (SUMA_STDERR, "-surf_X SURF_NAME option is out of range.\n"
-                                    "Only %d surfaces are allowed. \n"
-                                    "Must start with surf_A for first surface.\n", SURFCLUST_MAX_SURF);
+            fprintf (SUMA_STDERR, 
+                     "-surf_X SURF_NAME option is out of range.\n"
+                     "Only %d surfaces are allowed. \n"
+                     "Must start with surf_A for first surface.\n", 
+                     SURFCLUST_MAX_SURF);
 				exit (1);
          }
          kar ++;
@@ -416,7 +422,10 @@ SUMA_SURFCLUST_OPTIONS *SUMA_SurfClust_ParseInput (char *argv[], int argc)
       }
       
       if (!brk) {
-			fprintf (SUMA_STDERR,"Error %s:\nOption %s not understood. Try -help for usage\n", FuncName, argv[kar]);
+			fprintf (SUMA_STDERR,
+                  "Error %s:\n"
+                  "Option %s not understood.\n"
+                  "Try -help for usage\n", FuncName, argv[kar]);
 			exit (1);
 		} else {	
 			brk = NOPE;
@@ -425,19 +434,22 @@ SUMA_SURFCLUST_OPTIONS *SUMA_SurfClust_ParseInput (char *argv[], int argc)
    }
 
    /* sanitorium */
-   if (Opt->DistLim < 0) {
-      fprintf (SUMA_STDERR, "must use options -rmm  \n");
+   if (Opt->DistLim == -1.5f) {
+      fprintf (SUMA_STDERR, "must use option -rmm  \n");
       exit(1);
    }
    if (!Opt->out_prefix) {
-      Opt->out_prefix = SUMA_RemoveDsetExtension_s(Opt->in_name, SUMA_NO_DSET_FORMAT);
+      Opt->out_prefix = 
+         SUMA_RemoveDsetExtension_s(Opt->in_name, SUMA_NO_DSET_FORMAT);
    }
    
-   if (Opt->SortMode == SUMA_SORT_CLUST_NOT_SET) { Opt->SortMode = SUMA_SORT_CLUST_BY_AREA; }
+   if (Opt->SortMode == SUMA_SORT_CLUST_NOT_SET) { 
+      Opt->SortMode = SUMA_SORT_CLUST_BY_AREA; }
 
    if (BuildMethod == SUMA_OFFSETS2) { SUMA_S_Note("Using Offsets2"); }
    else if (BuildMethod == SUMA_OFFSETS_LL) { SUMA_S_Note("Using Offsets_ll"); } 
-   else if (BuildMethod == SUMA_OFFSETS2_NO_REC) { if (LocalHead) SUMA_S_Note("Using no recursion"); }
+   else if (BuildMethod == SUMA_OFFSETS2_NO_REC) { 
+      if (LocalHead) SUMA_S_Note("Using no recursion"); }
    else {
       SUMA_SL_Err("Bad BuildMethod");
       exit(1);
@@ -446,7 +458,8 @@ SUMA_SURFCLUST_OPTIONS *SUMA_SurfClust_ParseInput (char *argv[], int argc)
    SUMA_SurfClust_Set_Method(BuildMethod);
    
    if (Opt->FullROIList && !(Opt->OutROI || Opt->OutClustDset)) {
-      SUMA_SL_Err("-out_fulllist must be used in conjunction with -out_ROIdset or -out_clusterdset");
+      SUMA_SL_Err("-out_fulllist must be used in conjunction "
+                  "with -out_ROIdset or -out_clusterdset");
       exit(1);
    }   
    SUMA_RETURN(Opt);
@@ -486,9 +499,16 @@ int main (int argc,char *argv[])
    Opt = SUMA_SurfClust_ParseInput (argv, argc);
    
    if (Opt->WriteFile) {
-      if (Opt->AreaLim < 0) sprintf(stmp,"_ClstTable_r%.1f.1D", Opt->DistLim);
-      else sprintf(  stmp,"_ClstTable_r%.1f_a%.1f.1D", 
-                     Opt->DistLim, Opt->AreaLim);
+      if (Opt->DistLim >= 0.0) {
+         if (Opt->AreaLim < 0) sprintf(stmp,"_ClstTable_r%.1f.1D", Opt->DistLim);
+         else sprintf(  stmp,"_ClstTable_r%.1f_a%.1f.1D", 
+                        Opt->DistLim, Opt->AreaLim);
+      } else {
+         if (Opt->AreaLim < 0) 
+            sprintf(stmp,"_ClstTable_e%d.1D", -(int)Opt->DistLim);
+         else sprintf(  stmp,"_ClstTable_e%d_a%.1f.1D", 
+                        -(int)Opt->DistLim, Opt->AreaLim);
+      }
       ClustOutName = SUMA_append_string(Opt->out_prefix, stmp);   
       if (SUMA_filexists(ClustOutName) && !THD_ok_overwrite()) {
          fprintf (SUMA_STDERR,
@@ -647,8 +667,14 @@ int main (int argc,char *argv[])
       SUMA_DSET *dset_roi = NULL;
       char *ROIprefix = NULL;
       char *NameOut = NULL;
-      if (Opt->AreaLim < 0) sprintf(stmp,"_ClstMsk_r%.1f", Opt->DistLim);
-      else sprintf(stmp,"_ClstMsk_r%.1f_a%.1f", Opt->DistLim, Opt->AreaLim);
+      if (Opt->DistLim >= 0.0) {
+         if (Opt->AreaLim < 0) sprintf(stmp,"_ClstMsk_r%.1f", Opt->DistLim);
+         else sprintf(stmp,"_ClstMsk_r%.1f_a%.1f", Opt->DistLim, Opt->AreaLim);
+      } else {
+         if (Opt->AreaLim < 0) sprintf(stmp,"_ClstMsk_e%d", -(int)Opt->DistLim);
+         else sprintf(stmp,"_ClstMsk_e%d_a%.1f", 
+                           -(int)Opt->DistLim, Opt->AreaLim);
+      }
       ROIprefix = SUMA_append_string(Opt->out_prefix, stmp);
       /* Call this function, write out the resultant dset to disk 
          then cleanup */
@@ -680,8 +706,15 @@ int main (int argc,char *argv[])
       SUMA_DSET *dset_clust = NULL;
       char *Clustprefix = NULL;
       char *NameOut = NULL;
-      if (Opt->AreaLim < 0) sprintf(stmp,"_Clustered_r%.1f", Opt->DistLim);
-      else sprintf(stmp,"_Clustered_r%.1f_a%.1f", Opt->DistLim, Opt->AreaLim);
+      if (Opt->DistLim >= 0.0) {
+         if (Opt->AreaLim < 0) sprintf(stmp,"_Clustered_r%.1f", Opt->DistLim);
+         else sprintf(stmp,"_Clustered_r%.1f_a%.1f", Opt->DistLim, Opt->AreaLim);
+      } else {
+         if (Opt->AreaLim < 0) 
+            sprintf(stmp,"_Clustered_e%d", -(int)Opt->DistLim);
+         else sprintf(stmp,"_Clustered_e%d_a%.1f", 
+                           -(int)Opt->DistLim, Opt->AreaLim);
+      }
       Clustprefix = SUMA_append_string(Opt->out_prefix, stmp);
       /* Call this function, write out the resultant dset to disk 
          then cleanup */

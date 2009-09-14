@@ -6,27 +6,39 @@ goto PARSE
 DEED:
 set inpref = `@GetAfniPrefix $input`
 
-if ($ShowTime) echo "Stripping Anat at `date '+%H:%M:%S'`"
-if (`@CheckForAfniDset nosk.${inpref}+orig` < 2) then
-   3dSkullStrip -no_pushout -no_use_edge \
-                     -prefix nosk.${inpref}  -perc_int 0.1 \
-                     -overwrite  \
-                     -input ${inpref}+orig   >>& log.tlrc.${prefix}
+if (`@CheckForAfniDset ${inpref}+tlrc` > 0) then 
+   set ttpref = ${inpref}
+   echo "Have TLRC anat in ${inpref}+tlrc"
+   goto CALC_DEED
+endif
+ 
+if ($has_skull) then
+   if ($ShowTime) echo "Stripping Anat at `date '+%H:%M:%S'`"
+   if (`@CheckForAfniDset nosk.${inpref}+orig` < 2) then
+      3dSkullStrip -no_pushout -no_use_edge \
+                        -prefix nosk.${inpref}  -perc_int 0.1 \
+                        -overwrite  \
+                        -input ${inpref}+orig   >>& log.tlrc.${prefix}
+   else
+      echo "Reusing nosk.${inpref}+orig.HEAD"
+   endif
+   set sspref = nosk.${inpref}
 else
-   echo "Reusing nosk.${inpref}+orig.HEAD"
+   set sspref = ${inpref}
+   echo "Have SkullStripped anat in ${sspref}+orig"
 endif
 
 #Now tlrc
 if ($ShowTime) echo "TLRC transformation at `date '+%H:%M:%S'`"
-if (`@CheckForAfniDset nosk.${inpref}+tlrc` < 2) then
+if (`@CheckForAfniDset ${sspref}+tlrc` < 2) then
    @auto_tlrc -base $basetlrc \
-                  -input nosk.${inpref}+orig. \
+                  -input ${sspref}+orig. \
                   -no_ss $npass -suffix NONE >>& log.tlrc.${prefix}
 else
-   echo "Reusing nosk.${inpref}+tlrc.HEAD"
+   echo "Reusing ${sspref}+tlrc.HEAD"
 endif
 
-if ( `@CheckForAfniDset nosk.${inpref}+tlrc` != 2 ) then
+if ( `@CheckForAfniDset ${sspref}+tlrc` != 2 ) then
    echo "Error: Failed to create tlrc anat"
    echo "       see log.tlrc.${prefix} for details"
    echo "If failure is due to lack of convergence, try"
@@ -34,6 +46,7 @@ if ( `@CheckForAfniDset nosk.${inpref}+tlrc` != 2 ) then
    echo ""
    goto END
 endif 
+set ttpref = ${sspref}
 
 CALC_DEED:
 #Now create a mask of a particular region (see whereami -help for details):
@@ -49,7 +62,7 @@ if ($ShowTime) echo "Orig mask generation at `date '+%H:%M:%S'`"
 3dfractionize -template $mask_grid  \
                      -input ROIt.${prefix}+tlrc   \
                      -prefix ROI.${prefix}  \
-                     -warp  nosk.${inpref}+tlrc  \
+                     -warp  ${ttpref}+tlrc  \
                      -preserve -overwrite \
                      -clip 0.5 >>& log.tlrc.${prefix}
 
@@ -82,6 +95,13 @@ HELP:
    echo  "                 to specify a mask of numerous regions."
    echo  "                 Each region is assigned a power of 2 integer"
    echo  "                 in the output mask"
+   echo  "  -anat ANAT: Anat is the volume to be put in std space. It does not"
+   echo  "              need to be a T1 weighted volume but you need to choose"
+   echo  "              a similarly weighted TLRC_BASE."
+   echo  "              If ANAT is already in TLRC space then there is no need"
+   echo  "              for -base option below."
+   echo  "  -anat_ns ANAT: Same as above, but it indicates that the skull"
+   echo  "                 has been removed already."
    echo  "  -base TLRC_BASE:  Name of reference TLRC volume. See @auto_tlrc"
    echo  "                    for more details on this option. Note that"
    echo  "                    for the purposes of speeding up the process,"
@@ -93,9 +113,6 @@ HELP:
    echo  "                       -input `@GetAfniBin`/TT_N27+tlrc. "
    echo  "                    where TT_N27+tlrc is usually in the directory "
    echo  "                    under which afni resides."
-   echo  "  -anat ANAT: Anat is the volume to be put in std space. It does not"
-   echo  "              need to be a T1 weighted volume but you need to choose"
-   echo  "              a similarly weighted TLRC_BASE."
    echo  "  -roi_grid GRID: The volume that defines the final ROI's grid."
    echo  "  -prefix PREFIX: PREFIX is used to tag the names the ROIs output."
    echo  "  -time: A flag to make the script output elapsed time reports."
@@ -145,6 +162,7 @@ PARSE:
    set valregionlist = ()
    set eq = (" (0 ") 
    set ShowTime = 0
+   set has_skull = 1 
    if ("$1" == '') goto HELP
    while ($cnt <= $Narg)
       set donext = 1;
@@ -195,6 +213,18 @@ PARSE:
          else
             @ cnt ++
             set input = "$argv[$cnt]"
+            set donext = 0   
+         endif   
+      endif
+      if ($donext && "$argv[$cnt]" == "-anat_ns") then
+         set pLoc = $cnt      
+         if ($pLoc == $Narg) then
+            echo "Need volume after -anat_ns"
+            goto END
+         else
+            @ cnt ++
+            set input = "$argv[$cnt]"
+            set has_skull = 0
             set donext = 0   
          endif   
       endif
