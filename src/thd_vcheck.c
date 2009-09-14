@@ -1,6 +1,36 @@
 #include "afni.h"
 #include <sys/utsname.h>
 
+/*------------------------------------------------------------------------*/
+
+#include <sys/time.h>
+#include <signal.h>
+
+void THD_death_now_now_now(int sig)
+{
+  fprintf(stderr,"\n** program exits via safety timer **\n") ; _exit(0) ;
+}
+
+void THD_death_setup( int msec )
+{
+   struct itimerval itval ;
+   struct timeval tva, tvb ;
+
+   if( msec <= 0 ) return ;
+   tva.tv_sec  = msec/1000 ;
+   tva.tv_usec = (msec%1000)*1000 ;
+   tvb.tv_sec  = tvb.tv_usec = 0 ;
+
+   itval.it_interval = tvb ;
+   itval.it_value    = tva ;
+
+   signal(SIGALRM,THD_death_now_now_now) ;
+   (void)setitimer( ITIMER_REAL , &itval , NULL ) ;
+   return ;
+}
+
+/*------------------------------------------------------------------------*/
+
 #define VERSION_URL  "http://afni.nimh.nih.gov/pub/dist/AFNI.version"
 #define VERSION_FILE "/Volumes/afni/var/www/html/pub/dist/AFNI.version"
 
@@ -71,6 +101,8 @@ void THD_check_AFNI_version( char *pname )
    ppp = fork() ; if( ppp != 0 ) _exit(0) ;
 
    /* grandchild process continues to do the actual work */
+
+   THD_death_setup( 12345 ) ; /* die in 12.345 seconds, no matter what */
 
    /*-- setup the "User-agent:" header for HTTP --*/
 
