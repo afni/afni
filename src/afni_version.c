@@ -174,6 +174,8 @@ void AFNI_start_version_check(void)
 
      /* send the request */
 
+     THD_death_setup( 34567 ) ;  /* die if 34.567 seconds passes away */
+
      nbuf = read_URL( VERSION_URL , &vbuf ) ;  /* may take a while */
 
      set_HTTP_10( 0 ) ;
