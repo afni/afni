@@ -6,10 +6,18 @@
 #include <sys/time.h>
 #include <signal.h>
 
-void THD_death_now_now_now(int sig)
+static void THD_death_now_now_now(int sig)
 {
   fprintf(stderr,"\n** program exits via safety timer **\n") ; _exit(0) ;
 }
+
+/***-------------------------------------------------------------------***/
+/*!  This function is intended to be called from within a fork()-ed
+     off child, and it will cause the child process to die after so
+     many milliseconds have passed -- the intention is to prevent
+     any zombies from hanging around, in case the child fails to
+     complete itself properly for some hideously grotesque reason.
+*//*-------------------------------------------------------------------***/
 
 void THD_death_setup( int msec )
 {
@@ -24,7 +32,7 @@ void THD_death_setup( int msec )
    itval.it_interval = tvb ;
    itval.it_value    = tva ;
 
-   signal(SIGALRM,THD_death_now_now_now) ;
+   signal(SIGALRM,THD_death_now_now_now) ;  /* invoked when timer ends */
    (void)setitimer( ITIMER_REAL , &itval , NULL ) ;
    return ;
 }
