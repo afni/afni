@@ -39,9 +39,11 @@ int main( int argc , char * argv[] )
    /* read input file */
 
    inim = mri_read_1D( argv[1] ) ;
-   if( inim == NULL ){
-     fprintf(stderr,"** Can't read input file!\n"); exit(1);
-   }
+   if( inim == NULL ) ERROR_exit("Can't read input file '%s'",argv[1]) ;
+
+#if 0
+INFO_message("nx=%d ny=%d",inim->nx,inim->ny) ;
+#endif
 
    mri_write_ascii( (argc>2) ? argv[2] : "-" , inim ) ;
    exit(0) ;

@@ -413,6 +413,13 @@ void DT_Syntax(void)
     "dataset, and when given a 1D file, knows that the row direction is\n"
     "time -- so it must be transposed.  I'm sorry if this is confusing,\n"
     "but that's the way it is.\n"
+    "\n"
+    "NOTE: to have the output file appear so that time is in the column\n"
+    "      direction, you'll have to add the option '-DAFNI_1D_TRANOUT=YES'\n"
+    "      to the command line, as in\n"
+    "\n"
+    "  3dDetrend -DAFNI_1D_TRANOUT=YES -prefix - -vector G1.1D -polort 3 G5.1D\\' > Q.1D\n"
+    "\n"
    ) ;
 
    PRINT_COMPILE_DATE ; exit(0) ;
