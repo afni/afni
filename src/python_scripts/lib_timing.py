@@ -81,6 +81,10 @@ class AfniTiming:
          if row is non-negative, return a string for the given row, else
          return a string of all rows"""
 
+      if self.verb > 2:
+         print '++ make_data_string: row = %d, nplaces = %d, flag_empty = %d' \
+               % (row, nplaces, flag_empty)
+
       if row >=0:
          return self.make_single_row_string(row, nplaces, flag_empty)
 
@@ -243,6 +247,24 @@ class AfniTiming:
       for row in self.data:
          for ind in range(len(row)):
             row[ind] += val
+
+      return 0
+
+   def scale_val(self, val):
+      """multiply the given value into each element"""
+      if not self.ready: return 1
+
+      if type(val) == type('hi'):
+         try: val = float(val)
+         except:
+            print "** invalid value to scale into timing: '%s'" % val
+            return 1
+
+      if self.verb > 1: print '-- Timing: scaling data by %f ...' % val
+
+      for row in self.data:
+         for ind in range(len(row)):
+            row[ind] *= val
 
       return 0
 
