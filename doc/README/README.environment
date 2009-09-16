@@ -2420,6 +2420,11 @@ which will force a re-reading of the datasets and so force an elicitation
 of the NIfTI debug messages (for .nii files, that is).
 
 --------------------------
+Variable: AFNI_DEBUG_PLUG_VOL2SURF
+--------------------------
+Use this variable to initialize debug level in plug_vol2surf {0..5}.
+
+--------------------------
 Variable: AFNI_NIFTI_NOEXT
 --------------------------
 When writing a '.nii' (or '.nii.gz') file from an AFNI program, normally
