@@ -1110,7 +1110,7 @@ C.......................................................................
 C.......................................................................
          ELSEIF( CNCODE .EQ. 'NOTZERO' )THEN
             R8_EVAL(NEVAL) = BOOL( R8_EVAL(NEVAL) )
-         ELSEIF( CNCODE .EQ. 'ISZERO' )THEN
+         ELSEIF( CNCODE .EQ. 'ISZERO' .OR. CNCODE .EQ. 'NOT' )THEN
             R8_EVAL(NEVAL) = 1.D+0 - BOOL( R8_EVAL(NEVAL) )
          ELSEIF( CNCODE .EQ. 'EQUALS' )THEN
             NEVAL = NEVAL - 1
@@ -1953,7 +1953,7 @@ C.......................................................................
             DO IV=IVBOT,IVTOP
               R8_EVAL(IV-IBV,NEVAL) = BOOL( R8_EVAL(IV-IBV,NEVAL) )
             ENDDO
-         ELSEIF( CNCODE .EQ. 'ISZERO' )THEN
+         ELSEIF( CNCODE .EQ. 'ISZERO' .OR. CNCODE .EQ. 'NOT' )THEN
             DO IV=IVBOT,IVTOP
               R8_EVAL(IV-IBV,NEVAL) = 1.D+0-BOOL(R8_EVAL(IV-IBV,NEVAL))
             ENDDO

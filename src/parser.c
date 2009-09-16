@@ -9,30 +9,30 @@
 
 static integer c__3 = 3;
 static integer c__1 = 1;
-static doublereal c_b406 = 0.;
-static doublereal c_b420 = 1.;
-static doublereal c_b421 = 2.;
-static doublereal c_b422 = 3.;
-static doublereal c_b423 = 4.;
-static doublereal c_b424 = 5.;
-static doublereal c_b425 = 6.;
-static doublereal c_b426 = 7.;
-static doublereal c_b427 = 8.;
-static doublereal c_b428 = 9.;
-static doublereal c_b429 = 10.;
-static doublereal c_b430 = 11.;
-static doublereal c_b431 = 12.;
+static doublereal c_b408 = 0.;
+static doublereal c_b422 = 1.;
+static doublereal c_b423 = 2.;
+static doublereal c_b424 = 3.;
+static doublereal c_b425 = 4.;
+static doublereal c_b426 = 5.;
+static doublereal c_b427 = 6.;
+static doublereal c_b428 = 7.;
+static doublereal c_b429 = 8.;
+static doublereal c_b430 = 9.;
+static doublereal c_b431 = 10.;
+static doublereal c_b432 = 11.;
+static doublereal c_b433 = 12.;
 
 /* Subroutine */ int parser_(char *c_expr__, logical *l_print__, integer *
 	num_code__, char *c_code__, ftnlen c_expr_len, ftnlen c_code_len)
 {
     /* Initialized data */
 
-    static integer n_funcargs__[109] = { 1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,
+    static integer n_funcargs__[110] = { 1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,
 	    1,2,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,2,1,1,1,
 	    -1,4,4,4,2,2,2,3,3,3,1,1,1,2,2,2,3,3,3,3,3,3,3,3,3,2,2,2,1,-1,-1,
 	    2,1,1,1,1,-1,1,-1,-1,-1,1,1,2,1,1,-1,-1,-1,2,5,5,-1,-1,-1,1,3,2,2,
-	    1 };
+	    1,1 };
 
     /* Format strings */
     static char fmt_9001[] = "(\002 PARSER error\002,i4,\002: \002,a/1x,a/80"
@@ -616,7 +616,7 @@ L9000:
 {
     /* Initialized data */
 
-    static char c_funcname__[32*110] = "SIN                             " 
+    static char c_funcname__[32*111] = "SIN                             " 
 	    "COS                             " "TAN                         "
 	    "    " "ASIN                            " "ACOS                  "
 	    "          " "ATAN                            " "ATAN2           "
@@ -675,8 +675,8 @@ L9000:
 	    "    " "PAIRMIN                         " "AMONGST               "
 	    "          " "CBRT                            " "RHDDC2          "
 	    "                " "HRFBK4                          " "HRFBK5    "
-	    "                      " "POSVAL                          " "DUMM"
-	    "Y                           ";
+	    "                      " "POSVAL                          " "NOT "
+	    "                            " "DUMMY                           ";
 
     /* Builtin functions */
     /* Subroutine */ int s_copy(char *, char *, ftnlen, ftnlen);
@@ -771,7 +771,7 @@ L8000:
 {
     /* Initialized data */
 
-    static char c_funcname__[32*110] = "SIN                             " 
+    static char c_funcname__[32*111] = "SIN                             " 
 	    "COS                             " "TAN                         "
 	    "    " "ASIN                            " "ACOS                  "
 	    "          " "ATAN                            " "ATAN2           "
@@ -830,8 +830,8 @@ L8000:
 	    "    " "PAIRMIN                         " "AMONGST               "
 	    "          " "CBRT                            " "RHDDC2          "
 	    "                " "HRFBK4                          " "HRFBK5    "
-	    "                      " "POSVAL                          " "DUMM"
-	    "Y                           ";
+	    "                      " "POSVAL                          " "NOT "
+	    "                            " "DUMMY                           ";
 
     /* Format strings */
     static char fmt_5501[] = "(\002(F\002,i1,\002.0)\002)";
@@ -987,7 +987,7 @@ L120:
 */
 
 	ifunc = 1;
-	s_copy(c_funcname__ + 3488, c_id__, 32L, 32L);
+	s_copy(c_funcname__ + 3520, c_id__, 32L, 32L);
 L210:
 	if (! (s_cmp(c_id__, c_funcname__ + (ifunc - 1 << 5), 32L, 32L) != 0))
 		 {
@@ -996,7 +996,7 @@ L210:
 	++ifunc;
 	goto L210;
 L220:
-	if (ifunc <= 109) {
+	if (ifunc <= 110) {
 /* !it is a function */
 	    *ntype = 1008;
 	    *value = (doublereal) ifunc;
@@ -1679,7 +1679,8 @@ L1000:
 .... */
     } else if (s_cmp(cncode, "NOTZERO", 8L, 7L) == 0) {
 	r8_eval__[neval - 1] = bool_(&r8_eval__[neval - 1]);
-    } else if (s_cmp(cncode, "ISZERO", 8L, 6L) == 0) {
+    } else if (s_cmp(cncode, "ISZERO", 8L, 6L) == 0 || s_cmp(cncode, "NOT", 
+	    8L, 3L) == 0) {
 	r8_eval__[neval - 1] = 1. - bool_(&r8_eval__[neval - 1]);
     } else if (s_cmp(cncode, "EQUALS", 8L, 6L) == 0) {
 	--neval;
@@ -2904,7 +2905,8 @@ L1000:
 		r8_eval__[iv - ibv + (neval << 6) - 65] = bool_(&r8_eval__[iv 
 			- ibv + (neval << 6) - 65]);
 	    }
-	} else if (s_cmp(cncode, "ISZERO", 8L, 6L) == 0) {
+	} else if (s_cmp(cncode, "ISZERO", 8L, 6L) == 0 || s_cmp(cncode, 
+		"NOT", 8L, 3L) == 0) {
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		r8_eval__[iv - ibv + (neval << 6) - 65] = 1. - bool_(&
@@ -3530,7 +3532,7 @@ doublereal iran_(doublereal *top)
 /*  Return an integer uniformly distributed among 0..TOP */
 /* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  */
-    d__1 = (*top + 1.) * unif_(&c_b406);
+    d__1 = (*top + 1.) * unif_(&c_b408);
     ret_val = d_int(&d__1);
     return ret_val;
 } /* iran_ */
@@ -3555,7 +3557,7 @@ doublereal eran_(doublereal *top)
 /* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  */
 L100:
-    u1 = unif_(&c_b406);
+    u1 = unif_(&c_b408);
     if (u1 <= 0.) {
 	goto L100;
     }
@@ -3583,7 +3585,7 @@ doublereal lran_(doublereal *top)
 /* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  */
 L100:
-    u1 = unif_(&c_b406);
+    u1 = unif_(&c_b408);
     if (u1 <= 0. || u1 >= 1.) {
 	goto L100;
     }
@@ -3607,7 +3609,7 @@ doublereal uran_(doublereal *x)
 /* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  */
 
-    ret_val = *x * unif_(&c_b406);
+    ret_val = *x * unif_(&c_b408);
     return ret_val;
 } /* uran_ */
 
@@ -3639,11 +3641,11 @@ doublereal gran2_(doublereal *b, doublereal *s)
 
     if (ip == 0) {
 L100:
-	u1 = unif_(&c_b406);
+	u1 = unif_(&c_b408);
 	if (u1 <= 0.) {
 	    goto L100;
 	}
-	u2 = unif_(&c_b406);
+	u2 = unif_(&c_b408);
 	ret_val = *b + *s * sqrt(log(u1) * -2.) * sin(u2 * 6.2831853);
 	ip = 1;
     } else {
@@ -3668,10 +3670,10 @@ doublereal gran1_(doublereal *b, doublereal *s)
 /* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  */
 
-    g = unif_(&c_b420) - 6. + unif_(&c_b421) + unif_(&c_b422) + unif_(&c_b423)
-	     + unif_(&c_b424) + unif_(&c_b425) + unif_(&c_b426) + unif_(&
-	    c_b427) + unif_(&c_b428) + unif_(&c_b429) + unif_(&c_b430) + 
-	    unif_(&c_b431);
+    g = unif_(&c_b422) - 6. + unif_(&c_b423) + unif_(&c_b424) + unif_(&c_b425)
+	     + unif_(&c_b426) + unif_(&c_b427) + unif_(&c_b428) + unif_(&
+	    c_b429) + unif_(&c_b430) + unif_(&c_b431) + unif_(&c_b432) + 
+	    unif_(&c_b433);
     ret_val = *b + *s * g;
     return ret_val;
 } /* gran1_ */
@@ -3692,7 +3694,7 @@ doublereal gran_(doublereal *b, doublereal *s)
 /* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  */
 
-    uu = unif_(&c_b406);
+    uu = unif_(&c_b408);
     if (uu <= .5) {
 	ret_val = gran1_(b, s);
     } else {
