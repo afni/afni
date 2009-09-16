@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 16 , SEP , 2009 , RWC , "parser,f" , MICRO , TYPE_MODIFY ,
+   "Add 'NOT' function as a synonym for 'ISZERO'" ,
+   NULL } ,
+
  { 9 , SEP , 2009 , RWC , "3dmaskave" , MICRO , TYPE_NEW_OPT ,
    "Add box and ball options to this program, per Kyle Simmons" ,
    NULL } ,

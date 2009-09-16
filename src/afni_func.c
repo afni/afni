@@ -2615,22 +2615,23 @@ ENTRY("AFNI_finalize_dataset_CB") ;
    /*- beep & flash viewing control box if view type changes -*/
 
    if( old_view != new_view ){
-     static int first=1 ;
+     static int nwarn=0 ;
      MCW_set_bbox( im3d->vwid->view->view_bbox , 1 << new_view ) ;
      UNCLUSTERIZE(im3d) ;  /* 14 Feb 2008 */
 
      /* this stuff is for Adam Thomas -- 18 Oct 2006 */
 
-     WARNING_message("Forced switch from '%s' to '%s'\a",
-                     VIEW_typestr[old_view] , VIEW_typestr[new_view] ) ;
-     if( first && wcall != NULL ){
-       char str[256] ; first = 0 ;
+     if( nwarn < 3 )
+       WARNING_message("Forced switch from '%s' to '%s'\a",
+                       VIEW_typestr[old_view] , VIEW_typestr[new_view] ) ;
+     if( nwarn==0 && wcall != NULL ){
+       char str[256] ;
        sprintf(str," \nForced switch from\n  '%s'\nto\n  '%s'\n ",
                    VIEW_typestr[old_view] , VIEW_typestr[new_view] ) ;
-       (void) MCW_popup_message( wcall, str, MCW_USER_KILL | MCW_TIMER_KILL ) ;
+       (void)MCW_popup_message( wcall, str, MCW_USER_KILL | MCW_TIMER_KILL ) ;
      }
 
-     if( wcall != NULL && !AFNI_noenv("AFNI_FLASH_VIEWSWITCH") ){
+     if( wcall != NULL && AFNI_yesenv("AFNI_FLASH_VIEWSWITCH") ){
        for( ii=0 ; ii < 6 ; ii++ ){
          MCW_invert_widget(im3d->vwid->view->view_bbox->wframe ); RWC_sleep(32);
          MCW_invert_widget(im3d->vwid->view->view_bbox->wrowcol); RWC_sleep(32);
@@ -2640,6 +2641,7 @@ ENTRY("AFNI_finalize_dataset_CB") ;
          MCW_invert_widget(wcall) ;
        }
      }
+     nwarn++ ;  /* 16 Sep 2009 */
    }
 
    /*----- actually do the switch -----*/
