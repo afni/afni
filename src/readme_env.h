@@ -905,9 +905,11 @@ static char * readme_env[] = {
    "AFNI_REALTIME_Registration = \"None\", \"2D:_realtime\", \"2D:_at_end\",\n" ,
    "                             \"3D:_realtime\", \"3D:_at_end\",\n" ,
    "                             or \"3D:_estimate\"\n" ,
-   "AFNI_REALTIME_Base_Image   = an integer from 0 to 59\n" ,
    "AFNI_REALTIME_Resampling   = \"Cubic\", \"Quintic\", \"Heptic\", \"Fourier\",\n" ,
    "                             or \"Hept+Four\"\n" ,
+   "AFNI_REALTIME_Reg_Base_Mode= \"Current_Run\", \"Current_Run_Keep\", or\n" ,
+   "                             \"External_Dataset\"\n" ,
+   "AFNI_REALTIME_Base_Image   = an integer from 0 to 9999\n" ,
    "AFNI_REALTIME_Graph        = \"No\", \"Yes\", or \"Realtime\"\n" ,
    "AFNI_REALTIME_NR           = an integer from 5 to 9999\n" ,
    "AFNI_REALTIME_YR           = a floating point number from 0.1 to 10.0\n" ,
@@ -2700,9 +2702,11 @@ static char * readme_env[] = {
    "If you switch sessions, underlay, or overlay, it can happen that the\n" ,
    "coordinate system might be forced to switch from +orig to +tlrc\n" ,
    "(for example) because there is no dataset to view in the +orig system.\n" ,
-   "Normally, AFNI flashes the view switch buttons on and off a few times\n" ,
-   "to let you know this is happening (this is the Adam Thomas feature).\n" ,
-   "You can turn this feature off, by setting this variable to NO.\n" ,
+   "If you set this variable to YES, AFNI flashes the view switch buttons\n" ,
+   "on and off a few times to let you know this is happening\n" ,
+   "(this is the Adam Thomas feature).\n" ,
+   "  ** Formerly, this feature was on by default, but now you have **\n" ,
+   "  ** to explicitly turn it on (this is the Ziad Saad fixup).    **\n" ,
    "\n" ,
    "-------------------------\n" ,
    "Variable: AFNI_SHELL_GLOB\n" ,
@@ -2978,4 +2982,4 @@ static char * readme_env[] = {
    "behavior, set this variable to YES.\n" ,
    "\n" ,
    NULL } ;
-#define NUM_readme_env 2978
+#define NUM_readme_env 2982
