@@ -215,6 +215,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 {
     PLUGIN_interface * plint;
     void             * void_vpo;
+    int                ival;
 
 ENTRY("vol2surf: PLUGIN_init");
 
@@ -324,10 +325,10 @@ ENTRY("vol2surf: PLUGIN_init");
     PLUTO_add_string( plint, "outfile.niml", 0, NULL, 14 );
     PLUTO_add_hint  ( plint, "name for niml output file - will overwrite!" );
 
-    /* debugging level */
+    /* debugging level (0 if not set) */
     PLUTO_add_option( plint, "debug level", "debug level", FALSE );
     PLUTO_add_hint  ( plint, "choose debug level (and debug node)" );
-    PLUTO_add_number( plint, "level", 0, 5, 0, 0, 1 );
+    PLUTO_add_number( plint, "level", 0, 5, 0, globs.vpo->sopt.debug, 1 );
     PLUTO_add_hint  ( plint, "debug level - how much to print to terminal" );
     PLUTO_add_number( plint, "node", 0, 0, 0, -1, 1 );
     PLUTO_add_hint  ( plint, "particular node to print debug infomation for" );
@@ -356,6 +357,7 @@ ENTRY("PV2S_main");
 /* base defaults to local and duplicate to global */
 static int PV2S_init_plugin_opts(pv2s_globals * g)
 {
+    int ival;
 ENTRY("PV2S_init_plugin_opts");
     memset(g->vpo, 0, sizeof(*g->vpo));
 
@@ -372,6 +374,13 @@ ENTRY("PV2S_init_plugin_opts");
     g->vpo->label[0] = gv2s_no_label;
 
     g->vpo->sopt.gp_index      = -1;
+
+    /* maybe init debug from env                16 Sep 2009 [rickr] */
+    ival = (int)AFNI_numenv("AFNI_DEBUG_PLUG_VOL2SURF") ;
+    if( ival < 0 ) ival = 0;
+    if( ival > 5 ) ival = 5;     /* limit to plugin range */
+    g->vpo->sopt.debug         = ival;
+
     g->vpo->sopt.dnode         = -1;
     g->vpo->sopt.outfile_1D    = NULL;
     g->vpo->sopt.outfile_niml  = NULL;
