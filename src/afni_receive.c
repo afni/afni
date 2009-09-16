@@ -12,8 +12,17 @@
 #define STAMPER(ar,ww) (ar)->last_when[(ww)-RECEIVE_BASEVAL] = NI_clock_time()
 
 #undef  STAMPCHECK
+#if 1
 #define STAMPCHECK(ar,ww) \
- ( (ar) != NULL && NI_clock_time() != (ar)->last_when[(ww)-RECEIVE_BASEVAL] )
+ ( (ar) != NULL && NI_clock_time() > (ar)->last_when[(ww)-RECEIVE_BASEVAL]+33 )
+#else
+#define STAMPCHECK(ar,ww) ((ar) != NULL)
+#endif
+
+#undef  STAMPSHOW
+#define STAMPSHOW(iq,ar,ww)               \
+ INFO_message("%d: last_when[%d] = %d",   \
+              (iq),(ww)-RECEIVE_BASEVAL,(ar)->last_when[(ww)-RECEIVE_BASEVAL])
 
 /*---------------------------------------------------------------------------*/
 /*! Set up to have AFNI send data to a receiver (callback function):
@@ -548,6 +557,12 @@ ENTRY("AFNI_process_viewpoint") ;
    if( !IM3D_VALID(im3d) || im3d->vinfo->receiver == NULL  ||
                             im3d->vinfo->num_receiver == 0   ) EXRETURN ;
 
+#if 0
+if( AFNI_yesenv("BOBCOX") ){
+  INFO_message("AFNI_process_viewpoint"); DBG_traceback();
+}
+#endif
+
    ijk[0] = im3d->vinfo->i1 ;
    ijk[1] = im3d->vinfo->j2 ;
    ijk[2] = im3d->vinfo->k3 ;
@@ -555,6 +570,10 @@ ENTRY("AFNI_process_viewpoint") ;
    for( ir=0 ; ir < im3d->vinfo->num_receiver ; ir++ ){
       if( STAMPCHECK(im3d->vinfo->receiver[ir],RECEIVE_VIEWPOINT) &&
           (im3d->vinfo->receiver[ir]->receiver_mask & RECEIVE_VIEWPOINT_MASK) ){
+
+#if 0
+if( AFNI_yesenv("BOBCOX") ) STAMPSHOW(ir,im3d->vinfo->receiver[ir],RECEIVE_FUNCDISPLAY) ;
+#endif
 
 STATUS(im3d->vinfo->receiver[ir]->receiver_funcname) ;
 #if 0
@@ -568,6 +587,10 @@ STATUS(im3d->vinfo->receiver[ir]->receiver_funcname) ;
                               void *,im3d->vinfo->receiver[ir]->receiver_data ) ;
 #endif
          STAMPER(im3d->vinfo->receiver[ir],RECEIVE_VIEWPOINT) ;
+
+#if 0
+if( AFNI_yesenv("BOBCOX") ) STAMPSHOW(ir,im3d->vinfo->receiver[ir],RECEIVE_VIEWPOINT) ;
+#endif
       }
    }
 
@@ -657,11 +680,19 @@ ENTRY("AFNI_process_funcdisplay") ;
    if( !IM3D_VALID(im3d) || im3d->vinfo->receiver == NULL  ||
                             im3d->vinfo->num_receiver == 0   ) EXRETURN ;
 
-if( AFNI_yesenv("BOBCOX") ) INFO_message("AFNI_process_funcdisplay") ;
+#if 0
+if( AFNI_yesenv("BOBCOX") ){
+  INFO_message("AFNI_process_funcdisplay"); DBG_traceback();
+}
+#endif
 
    for( ir=0 ; ir < im3d->vinfo->num_receiver ; ir++ ){
       if( STAMPCHECK(im3d->vinfo->receiver[ir],RECEIVE_FUNCDISPLAY) &&
           (im3d->vinfo->receiver[ir]->receiver_mask & RECEIVE_FUNCDISPLAY_MASK) ){
+
+#if 0
+if( AFNI_yesenv("BOBCOX") ) STAMPSHOW(ir,im3d->vinfo->receiver[ir],RECEIVE_FUNCDISPLAY) ;
+#endif
 
 STATUS(im3d->vinfo->receiver[ir]->receiver_funcname) ;
 #if 0
@@ -675,6 +706,10 @@ STATUS(im3d->vinfo->receiver[ir]->receiver_funcname) ;
                               void *,im3d->vinfo->receiver[ir]->receiver_data ) ;
 #endif
          STAMPER(im3d->vinfo->receiver[ir],RECEIVE_FUNCDISPLAY) ;
+
+#if 0
+if( AFNI_yesenv("BOBCOX") ) STAMPSHOW(ir,im3d->vinfo->receiver[ir],RECEIVE_FUNCDISPLAY) ;
+#endif
       }
    }
 

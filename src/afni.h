@@ -951,14 +951,17 @@ typedef struct {
 /*! Turn clusterized display off in this viewer */
 
 #define UNCLUSTERIZE(iq)                                                   \
- do{ AFNI_vedit_clear((iq)->fim_now); VEDIT_clear_label((iq));             \
+ do{ int redis=0 ;                                                         \
+     AFNI_vedit_clear((iq)->fim_now); VEDIT_clear_label((iq));             \
      AFNI_cluster_dispkill((iq));                                          \
      if( (iq)->vwid->func->clu_rep != NULL ){                              \
-       free((iq)->vwid->func->clu_rep); (iq)->vwid->func->clu_rep = NULL;  \
+       free((iq)->vwid->func->clu_rep) ;                                   \
+       (iq)->vwid->func->clu_rep = NULL ; redis++ ;                        \
      }                                                                     \
      DESTROY_CLARR((iq)->vwid->func->clu_list);                            \
+     if( (iq)->vedset.code ) redis++ ;                                     \
      (iq)->vedset.flags = (iq)->vedset.code = 0; AFNI_set_thr_pval((iq));  \
-     if( (iq)->vinfo->func_visible ) AFNI_redisplay_func((iq)) ;           \
+     if( (iq)->vinfo->func_visible && redis ) AFNI_redisplay_func((iq)) ;  \
  } while(0) ;
 
 #define STOP_COLOR "#770000"
