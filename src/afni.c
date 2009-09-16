@@ -5811,10 +5811,12 @@ ENTRY("AFNI_viewbut_EV") ;
 
 void AFNI_redisplay_func( Three_D_View *im3d )  /* 05 Mar 2002 */
 {
+ENTRY("AFNI_redisplay_func") ;
    if( IM3D_OPEN(im3d) && IM3D_IMAGIZED(im3d) ){
      AFNI_set_viewpoint( im3d , -1,-1,-1 , REDISPLAY_OVERLAY ) ;
      AFNI_process_funcdisplay( im3d ) ;
    }
+   EXRETURN ;
 }
 
 /*------------------------------------------------------------------------*/
@@ -5823,7 +5825,9 @@ void AFNI_do_bkgd_lab( Three_D_View *im3d )
 {
    char str[256] ;
 
-   if( !IM3D_OPEN(im3d) || !im3d->vwid->imag->do_bkgd_lab ) return ;
+ENTRY("AFNI_do_bkgd_lab") ;
+
+   if( !IM3D_OPEN(im3d) || !im3d->vwid->imag->do_bkgd_lab ) EXRETURN ;
 
 #define VSTR(x) ( ((x)[0] == '\0') ? ("?") : (x) )
 
@@ -5839,6 +5843,7 @@ void AFNI_do_bkgd_lab( Three_D_View *im3d )
    MCW_set_widget_label( im3d->vwid->func->bkgd_lab , str ) ;
    XtManageChild( im3d->vwid->func->bkgd_lab ) ;
    FIX_SCALE_SIZE(im3d) ;
+   EXRETURN ;
 }
 
 /*------------------------------------------------------------------------*/
@@ -5914,7 +5919,9 @@ void AFNI_view_setter( Three_D_View *im3d , MCW_imseq *seq )
    MCW_imseq *sxyz, *syzx, *szxy ;
    int val=-1 ;
 
-   if( !IM3D_OPEN(im3d) ) return ;
+ENTRY("AFNI_view_setter") ;
+
+   if( !IM3D_OPEN(im3d) ) EXRETURN ;
 
    sxyz = im3d->s123 ; syzx = im3d->s231 ; szxy = im3d->s312 ;
 
@@ -5932,7 +5939,7 @@ void AFNI_view_setter( Three_D_View *im3d , MCW_imseq *seq )
    }
 
    im3d->vinfo->view_setter = val ;
-   return ;
+   EXRETURN ;
 }
 
 /*------------------------------------------------------------------------*/
@@ -5951,7 +5958,7 @@ void AFNI_set_viewpoint( Three_D_View *im3d ,
 #undef  EXRR
 #define EXRR do{ recurse-- ; EXRETURN ; } while(0)
    static int recurse=0 ;
-   if( recurse > 3 ) return ;
+   if( recurse > 1 ) return ;  /* changed from 3 to 1 [16 Sep 2009] */
    recurse++ ;
 
 ENTRY("AFNI_set_viewpoint") ;
