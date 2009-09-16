@@ -2422,7 +2422,8 @@ of the NIfTI debug messages (for .nii files, that is).
 --------------------------
 Variable: AFNI_DEBUG_PLUG_VOL2SURF
 --------------------------
-Use this variable to initialize debug level in plug_vol2surf {0..5}.
+Use this interger variable to initialize the debug level in plug_vol2surf.
+The current set of acceptable values is {0..5}.
 
 --------------------------
 Variable: AFNI_NIFTI_NOEXT
