@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 16, SEP, 2009, RCR, "timing_tool.py", MICRO, TYPE_NEW_OPT,
+   "added -scale_data for J Meltzer",
+   NULL
+ } ,
+
  { 16, SEP, 2009, RCR, "plug_vol2surf", MICRO, TYPE_NEW_OPT,
    "can init debug level via AFNI_DEBUG_PLUG_VOL2SURF",
    NULL
