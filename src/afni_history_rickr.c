@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 16, SEP, 2009, RCR, "3ddot", MICRO, TYPE_BUG_FIX,
+   "de-meaning data causes permission-based seg fault, apply means upon read",
+   "Found by Giuseppe Pagnoni."
+ } ,
+
  {  8, SEP, 2009, RCR, "realtime_receiver.py", MICRO, TYPE_MODIFY,
    "bind to open host, so a /etc/hosts entry is not required",
    NULL

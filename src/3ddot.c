@@ -177,6 +177,7 @@ double DSET_cor( THD_3dim_dataset *xset,
                  double *xxbar, double *yybar, double *xybar , int *npt )
 {
    double sumxx , sumyy , sumxy , tx,ty , dxy ;
+   double meanx=0.0 , meany=0.0 ;
    void  *xar , *yar ;
    float *fxar , *fyar ;
    int ii , nxyz , ivx,ivy , itypx,itypy , fxar_new,fyar_new , nnn ;
@@ -221,18 +222,31 @@ double DSET_cor( THD_3dim_dataset *xset,
    if( nnn < 5 ) return 0.0 ;             /* ERROR */
    sumxx /= nnn ; sumyy /= nnn ;
    ASSIF(xbar,sumxx) ; ASSIF(ybar,sumyy) ; ASSIF(npt,nnn) ;
+   meanx = sumxx ; meany = sumyy ;        /* save for later */
+
+   /* modifying dset data causes a segmentation fault based on permission
+      (seen on Fedora Core 5 and FreeBSD 7.2):
+         Process terminating with default action of signal 11 (SIGSEGV)
+          Bad permissions for mapped region at address 0x5055B74
+            at 0x407642: DSET_cor (3ddot.c:238)
+            by 0x4068D9: main (3ddot.c:146)
+      
+      --> leave the data as is; apply means upon read   16 Sep 2009 [rickr] */
+#if 0
    if( dm ){
      for( ii=0 ; ii < nxyz ; ii++ ){
        if( mmm == NULL || mmm[ii] ){ fxar[ii] -= sumxx; fyar[ii] -= sumyy; }
      }
    }
+#endif
 
    /* compute sums */
 
    sumxx = sumyy = sumxy = 0.0 ;
    for( ii=0 ; ii < nxyz ; ii++ ){
      if( mmm == NULL || mmm[ii] ){
-       tx = fxar[ii] ; ty = fyar[ii] ;
+       if( dm ) { tx = fxar[ii]-meanx ; ty = fyar[ii]-meany ; }
+       else     { tx = fxar[ii] ;       ty = fyar[ii] ; }
        sumxx += tx * tx ; sumyy += ty * ty ; sumxy += tx * ty ;
      }
    }
