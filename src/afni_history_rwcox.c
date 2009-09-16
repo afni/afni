@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 16 , SEP , 2009 , RWC , "afni" , MICRO , TYPE_MODIFY ,
+   "Make the AFNI_FLASH_VIEWSWITCH variable default to NO, not YES" ,
+   "Sorry, Adam, but Ziad matters more to me than you do." } ,
+
  { 16 , SEP , 2009 , RWC , "parser,f" , MICRO , TYPE_MODIFY ,
    "Add 'NOT' function as a synonym for 'ISZERO'" ,
    NULL } ,
