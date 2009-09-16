@@ -44,6 +44,15 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 16 , SEP , 2009 , RWC , "All" , MICRO , TYPE_GENERAL ,
+   "Oh, and did I mention that Ziad Saad is Trouble?" ,
+   "Rasmus Birn isn't far behind, either." } ,
+
+ { 16 , SEP , 2009 , RWC , "afni" , MICRO , TYPE_GENERAL ,
+   "FIx recursive calls to AFNI_set_viewpoint()" ,
+   "Caused by the UNCLUSTERIZE macro, which now checks to see if the\n"
+   "function redisplay is really needed." } ,
+
  { 16 , SEP , 2009 , RWC , "afni" , MICRO , TYPE_MODIFY ,
    "Make the AFNI_FLASH_VIEWSWITCH variable default to NO, not YES" ,
    "Sorry, Adam, but Ziad matters more to me than you do." } ,
