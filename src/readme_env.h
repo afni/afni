@@ -2421,6 +2421,12 @@ static char * readme_env[] = {
    "of the NIfTI debug messages (for .nii files, that is).\n" ,
    "\n" ,
    "--------------------------\n" ,
+   "Variable: AFNI_DEBUG_PLUG_VOL2SURF\n" ,
+   "--------------------------\n" ,
+   "Use this interger variable to initialize the debug level in plug_vol2surf.\n" ,
+   "The current set of acceptable values is {0..5}.\n" ,
+   "\n" ,
+   "--------------------------\n" ,
    "Variable: AFNI_NIFTI_NOEXT\n" ,
    "--------------------------\n" ,
    "When writing a '.nii' (or '.nii.gz') file from an AFNI program, normally\n" ,
@@ -2982,4 +2988,4 @@ static char * readme_env[] = {
    "behavior, set this variable to YES.\n" ,
    "\n" ,
    NULL } ;
-#define NUM_readme_env 2982
+#define NUM_readme_env 2988
