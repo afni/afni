@@ -74,7 +74,7 @@ examples:
                         -write_timing stimesB1_offset12.1D
 
    2b. Similar to 2, but scale times (multiply) by 0.975, perhaps to account
-      for a different stimulus or TR duration.
+      for a different TR or stimulus duration.
 
          timing_tool.py -timing stimesB_01_houses.1D         \\
                         -scale_data 0.975                    \\
