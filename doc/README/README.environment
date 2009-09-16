@@ -2701,9 +2701,11 @@ Variable: AFNI_FLASH_VIEWSWITCH
 If you switch sessions, underlay, or overlay, it can happen that the
 coordinate system might be forced to switch from +orig to +tlrc
 (for example) because there is no dataset to view in the +orig system.
-Normally, AFNI flashes the view switch buttons on and off a few times
-to let you know this is happening (this is the Adam Thomas feature).
-You can turn this feature off, by setting this variable to NO.
+If you set this variable to YES, AFNI flashes the view switch buttons
+on and off a few times to let you know this is happening
+(this is the Adam Thomas feature).
+  ** Formerly, this feature was on by default, but now you have **
+  ** to explicitly turn it on (this is the Ziad Saad fixup).    **
 
 -------------------------
 Variable: AFNI_SHELL_GLOB
