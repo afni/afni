@@ -3300,6 +3300,8 @@ STATUS("making func->rowcol") ;
    func->clu_rep = NULL; func->clu_list = NULL; func->clu_index = -1;
    func->clu_det = NULL; func->clu_num  = 0 ;
 
+   func->iwid = NULL ;  /* 17 Sep 2009 */
+
    /*-- 26 Mar 2007: rowcol for clustering stuff --*/
 
    func->ulaclu_rowcol =

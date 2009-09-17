@@ -499,9 +499,9 @@ ENTRY("AFNI_clus_make_widgets") ;
    rc = XtVaCreateWidget(
           "menu" , xmRowColumnWidgetClass , cwid->rowcol ,
              XmNpacking      , XmPACK_TIGHT ,
-             XmNorientation  , XmHORIZONTAL   ,
+             XmNorientation  , XmHORIZONTAL ,
              XmNadjustMargin , True ,
-             XmNtraversalOn , True  ,
+             XmNtraversalOn  , True ,
           NULL ) ;
 
    /* row #1: index label */

@@ -409,6 +409,8 @@ typedef struct {
 
 /*---*/
 
+struct Three_D_View ;  /* incomplete type definition */
+
 typedef struct {
   Widget wtop, rowcol;      /* containers */
   Widget top_lab;           /* overall report text */
@@ -439,6 +441,34 @@ typedef struct {
   float hbot,htop ;
   float fwhm ;
 } AFNI_clu_widgets ;      /** not yet used **/
+
+/*---*/
+
+typedef struct {
+  Widget        rc ;
+  MCW_bbox     *tog_bbox ;
+  MCW_arrowval *menu_av ;
+  Widget        chooser_pb ;
+  Widget        chooser_lab ;
+  Widget        string_lab ;
+  Widget        string_text ;
+} ICALC_widget_row ;
+
+typedef struct {
+  Widget wtop, rowcol ;  /* top level containers */
+
+  Widget actar ;         /* action area holding control buttons */
+
+  /** Widget ulay_expr ; **/
+  Widget olay_expr ;
+  /** Widget thr_expr  ; **/
+
+  ICALC_widget_row  war[26] ;
+  void             *var[26] ;
+
+  int is_open ;
+  struct Three_D_View *im3d ;
+} ICALC_widget_set ;
 
 /*---*/
 
@@ -595,6 +625,8 @@ typedef struct {
       int                 clu_index;
       int                 clu_num ;
       mri_cluster_detail *clu_det ;
+
+      ICALC_widget_set   *iwid ;       /* 17 Sep 2009 */
 } AFNI_function_widgets ;
 
 extern void AFNI_func_autothresh_CB(Widget,XtPointer,XtPointer) ; /* 25 Jul 2007 */
@@ -900,7 +932,7 @@ typedef struct {
 #define AFNI_IGNORE_REDRAWS    1
 #define AFNI_IGNORE_EVERYTHING 2
 
-typedef struct {
+typedef struct Three_D_View {
       int type , opened ;
       MCW_DC *dc ;
 
