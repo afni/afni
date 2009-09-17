@@ -743,28 +743,32 @@ runRMA <- function(inData, nGrp, n, p, xMat, outData, mema, lapMod, KHtest, nNon
          outData[6] <- outData[6]/resList$scl[3]
       }
    
-   if(resZout==0) {
-   outData[nBrick-3] <- resList$QE[1]
-   outData[nBrick-2]   <- resList$QE[2]
-   outData[nBrick-1] <- ifelse(resList$tau2[2] > tol, resList$tau2[1]/resList$tau2[2], 0)
-   outData[nBrick]   <- ifelse(resList$tau2[1] > tol, resList$tau2[2]/resList$tau2[1], 0)
-   } else {
+      if(resZout==0) {
+         outData[nBrick-5] <- resList$tau2[1]
+         outData[nBrick-3]   <- resList$tau2[2]
+         outData[nBrick-4] <- resList$QE[1]
+         outData[nBrick-2]   <- resList$QE[2]
+         outData[nBrick-1] <- ifelse(resList$tau2[2] > tol, resList$tau2[1]/resList$tau2[2], 0)
+         outData[nBrick]   <- ifelse(resList$tau2[1] > tol, resList$tau2[2]/resList$tau2[1], 0)
+      } else {
    
-   outData[nBrick-2*n[2]-3] <- resList$QE[1]
-   outData[nBrick-2*n[2]-2]   <- resList$QE[2]
-   outData[nBrick-2*n[2]-1] <- ifelse(resList$tau2[2] > tol, resList$tau2[1]/resList$tau2[2], 0)
-   outData[nBrick-2*n[2]]   <- ifelse(resList$tau2[1] > tol, resList$tau2[2]/resList$tau2[1], 0)
+      outData[nBrick-2*n[2]-5] <- resList$tau2[1]
+      outData[nBrick-2*n[2]-3]   <- resList$tau2[2]
+      outData[nBrick-2*n[2]-4] <- resList$QE[1]
+      outData[nBrick-2*n[2]-2]   <- resList$QE[2]
+      outData[nBrick-2*n[2]-1] <- ifelse(resList$tau2[2] > tol, resList$tau2[1]/resList$tau2[2], 0)
+      outData[nBrick-2*n[2]]   <- ifelse(resList$tau2[1] > tol, resList$tau2[2]/resList$tau2[1], 0)
    
-   for(ii in 1:n[1]) {
-      outData[nBrick-2*(n[2]-ii)-1] <- resList$lamc[ii]   # lamda = 1-I^2
-      outData[nBrick-2*(n[2]-ii)]   <- resList$resZ[ii]    # Z-score for residuals
-   } # from nBrick-2*n[2]+1 to nBrick-2*(n[2]-n[1])
+      for(ii in 1:n[1]) {
+         outData[nBrick-2*(n[2]-ii)-1] <- resList$lamc[ii]   # lamda = 1-I^2
+         outData[nBrick-2*(n[2]-ii)]   <- resList$resZ[ii]    # Z-score for residuals
+      } # from nBrick-2*n[2]+1 to nBrick-2*(n[2]-n[1])
    
-   for(ii in 1:(n[2]-n[1])) {
-      outData[nBrick-2*(n[2]-n[1]-ii)-1] <- resList$lamc[ii+n[1]]   # lamda = 1-I^2
-      outData[nBrick-2*(n[2]-n[1]-ii)]   <- resList$resZ[ii+n[1]]    # Z-score for residuals
-   } # from nBrick-2*(n[2]-n[1])+1 to nBrick
-   } # if(resZout==0)
+      for(ii in 1:(n[2]-n[1])) {
+         outData[nBrick-2*(n[2]-n[1]-ii)-1] <- resList$lamc[ii+n[1]]   # lamda = 1-I^2
+         outData[nBrick-2*(n[2]-n[1]-ii)]   <- resList$resZ[ii+n[1]]    # Z-score for residuals
+      } # from nBrick-2*(n[2]-n[1])+1 to nBrick
+      } # if(resZout==0)
    } else {  # not anaType==4
    if(resZout==0) {
       outData[nBrick-1] <- resList$tau2
@@ -1036,7 +1040,7 @@ nGrp <- as.integer(readline("Number of groups (1 or 2)? "))
    
    nBrick0 <- 4*nGrp+(anyCov)*2*nCov   # no. sub-bricks in the main output
    nBrick <- 4*nGrp+(anyCov)*2*nCov+2*sum(nSubj)*resZout  # total sub-bricks in all output
-   if(anaType==4) {nBrick0 <- nBrick0+2; nBrick <- nBrick+2}  # two more for anaType==4
+   if(anaType==4) {nBrick0 <- nBrick0+4; nBrick <- nBrick+4}  # two more for anaType==4
       
    if(anaType==1 | anaType==2 | anaType==4) comArr <- array(c(unlist(c(bList)), unlist(c(varList))), dim=c(myDim[1:3], sum(nFiles)))
    if(anaType==3) comArr <- array(c(unlist(c(contrBList)), unlist(c(contrVarList))), dim=c(myDim[1:3], sum(nFiles)))
@@ -1125,7 +1129,7 @@ nGrp <- as.integer(readline("Number of groups (1 or 2)? "))
    if(anaType==4) {for(ii in 1:nGrp) {
       #outLabel <- append(outLabel, "tau1^2")
       #outLabel <- append(outLabel, "tau2^2")
-      #outLabel <- append(outLabel, sprintf("%s:tau^2", grpLab[[ii]]))
+      outLabel <- append(outLabel, sprintf("%s:tau^2", grpLab[[ii]]))
       outLabel <- append(outLabel, sprintf("%s:QE", grpLab[[ii]]))
       }
       outLabel <- append(outLabel, "tau1^2>tau2^2")
@@ -1158,8 +1162,8 @@ nGrp <- as.integer(readline("Number of groups (1 or 2)? "))
       for(ii in 1:nCov) statpar <- paste(statpar, " -substatpar ", nBrick0-3-2*(nCov-ii), " fizt")
    
    if(anaType==4) {
-      statpar <- paste(statpar, " -substatpar ", nBrick0-3, " fict ", nSubj[1]-nCov) # Chi-sq for QE: group 1
-      statpar <- paste(statpar, " -substatpar ", nBrick0-2, " fict ", nSubj[2]-nCov) # Chi-sq for QE: group 2
+      statpar <- paste(statpar, " -substatpar ", nBrick0-5, " fict ", nSubj[1]-nCov) # Chi-sq for QE: group 1
+      statpar <- paste(statpar, " -substatpar ", nBrick0-3, " fict ", nSubj[2]-nCov) # Chi-sq for QE: group 2
    } else statpar <- paste(statpar, " -substatpar ", nBrick0-1, " fict ", nDF)
    
    # last brick: QE with chi-sq
