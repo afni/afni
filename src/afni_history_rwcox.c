@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 17 , SEP , 2009 , RWC , "afni" , MICRO , TYPE_MODIFY ,
+   "Started writing InstaCalc" ,
+   NULL } ,
+
  { 16 , SEP , 2009 , RWC , "All" , MICRO , TYPE_GENERAL ,
    "Oh, and did I mention that Ziad Saad is Trouble?" ,
    "Rasmus Birn isn't far behind, either." } ,
