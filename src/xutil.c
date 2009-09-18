@@ -193,6 +193,12 @@ void MCW_set_widget_bg( Widget w , char *cname , Pixel pix )
    XmChangeColor( w , bg_pix ) ;
 #endif
 
+   if( XmIsToggleButton(w) ){   /* 18 Sep 2009 */
+     Pixel  fg_pix=0 ;
+     XtVaGetValues( w , XmNforeground , &fg_pix , NULL ) ;
+     XtVaSetValues( w , XmNselectColor,  fg_pix , NULL ) ;
+   }
+
    return ;
 }
 
