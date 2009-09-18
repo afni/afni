@@ -3267,13 +3267,14 @@ STATUS("making func->rowcol") ;
          NULL ) ;
 
 #define VEDIT_COLOR "#000088"
-   { static char *options_vedit_label[2] = { "Clusters" , "InstaCorr" } ;
+#define VEDIT_NOPT  3
+   { static char *options_vedit_label[] = { "Clusters" , "InstaCorr" , "InstaCalc" } ;
      func->options_vedit_av = new_MCW_arrowval(
                                func->options_top_rowcol , /* parent Widget */
                                NULL ,                     /* label */
                                MCW_AV_optmenu ,           /* option menu style */
                                0 ,                        /* first option */
-                               1 ,                        /* last option */
+                               VEDIT_NOPT-1 ,             /* last option */
                                0 ,                        /* initial selection */
                                MCW_AV_readtext ,          /* ignored but needed */
                                0 ,                        /* ditto */
@@ -3466,6 +3467,47 @@ STATUS("making func->rowcol") ;
    MCW_set_widget_bg(func->icor_label,STOP_COLOR,0) ;
 
    im3d->iset = NULL ;
+
+   /*--- 18 Sep 2009: InstaCalc stuff ---*/
+
+   func->icalc_rowcol =
+      XtVaCreateWidget(
+         "dialog" , xmRowColumnWidgetClass , func->vedit_frame ,
+            XmNorientation , XmVERTICAL ,
+            XmNpacking , XmPACK_TIGHT ,
+            XmNmarginHeight, 0 ,
+            XmNmarginWidth , 0 ,
+            XmNspacing     , 0 ,
+            XmNtraversalOn , True  ,
+            XmNinitialResourcesPersistent , False ,
+         NULL ) ;
+
+   func->icalc_pb =
+         XtVaCreateManagedWidget(
+            "dialog" , xmPushButtonWidgetClass , func->icalc_rowcol ,
+               LABEL_ARG("Setup ICalc") ,
+               XmNmarginHeight , 0 ,
+               XmNtraversalOn , True  ,
+               XmNinitialResourcesPersistent , False ,
+            NULL ) ;
+   MCW_set_widget_bg( func->icalc_pb , VEDIT_COLOR , 0 ) ;
+   XtAddCallback( func->icalc_pb , XmNactivateCallback , AFNI_misc_CB , im3d ) ;
+   MCW_register_hint( func->icalc_pb , "Control InstaCalc calculations" ) ;
+
+   xstr = XmStringCreateLtoR( "*NOT Ready*" , XmFONTLIST_DEFAULT_TAG ) ;
+   func->icalc_label =
+      XtVaCreateManagedWidget(
+         "dialog" , xmLabelWidgetClass , func->icalc_rowcol ,
+            XmNrecomputeSize , False ,
+            XmNlabelString , xstr ,
+            XmNalignment , XmALIGNMENT_CENTER ,
+            XmNtraversalOn , True  ,
+            XmNinitialResourcesPersistent , False ,
+         NULL ) ;
+   XmStringFree(xstr) ;
+   MCW_set_widget_bg(func->icalc_label,STOP_COLOR,0) ;
+
+   im3d->icalc_setup = NULL ;
 
    /*--- 30 Nov 1997: bucket managers ---*/
 
@@ -6281,15 +6323,27 @@ ENTRY("AFNI_vedit_CB") ;
      case 0:
        DISABLE_INSTACORR(im3d) ;                          /* InstaCorr off */
        DESTROY_ICOR_setup(im3d->iset) ;
-       XtManageChild  ( im3d->vwid->func->clu_rowcol  ) ;
+       XtUnmanageChild( im3d->vwid->func->icalc_rowcol) ;
        XtUnmanageChild( im3d->vwid->func->icor_rowcol ) ;
+       XtManageChild  ( im3d->vwid->func->clu_rowcol  ) ;
      break ;
 
      /* switch to InstaCorr */
      case 1:
        UNCLUSTERIZE(im3d) ;                               /* Clusters off */
        XtManageChild  ( im3d->vwid->func->icor_rowcol ) ;
+       XtUnmanageChild( im3d->vwid->func->icalc_rowcol) ;
        XtUnmanageChild( im3d->vwid->func->clu_rowcol  ) ;
+     break ;
+
+     /* switch to InstaCalc [18 Sep 2009] */
+     case 2:
+       UNCLUSTERIZE(im3d) ;                               /* Clusters off */
+       DISABLE_INSTACORR(im3d) ;                          /* InstaCorr off */
+       DESTROY_ICOR_setup(im3d->iset) ;
+       XtUnmanageChild( im3d->vwid->func->clu_rowcol  ) ;
+       XtUnmanageChild( im3d->vwid->func->icor_rowcol ) ;
+       XtManageChild  ( im3d->vwid->func->icalc_rowcol) ;
      break ;
    }
    XtManageChild( im3d->vwid->func->vedit_frame ) ;
