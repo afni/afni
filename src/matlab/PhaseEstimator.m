@@ -55,7 +55,7 @@ else, %phase based on amplitude
          inp = 2;
       end
       R(icol).phz_pol = zeros(size(R(icol).v));
-      %add a fake point to tptrace and tntrace to avoid upgly if statements
+      %add a fake point to tptrace and tntrace to avoid ugly if statements
       R(icol).tptrace = [R(icol).tptrace R(icol).t(end)];
       R(icol).tntrace = [R(icol).tntrace R(icol).t(end)];
       while(i <= length(R(icol).v)),
@@ -70,12 +70,14 @@ else, %phase based on amplitude
       end
       R(icol).tptrace = [R(icol).tptrace(1:end-1)];
       R(icol).tntrace = [R(icol).tntrace(1:end-1)];
+      if(Opt.ShowGraphs),
       clf;
       plot (R(icol).t, gR,'b'); hold on
       ip = find(R(icol).phz_pol>0);
       plot (R(icol).t(ip), 0.55.*mxamp,'r.');
       in = find(R(icol).phz_pol<0);
       plot (R(icol).t(in),0.45.*mxamp,'g.');
+      end
       %Now that we have the polarity, without computing sign(dR/dt) 
       % as in Glover et al 2000, calculate the phase per eq. 3 of that paper
       %first the sum in the numerator
@@ -109,7 +111,7 @@ for (icol=1:1:length(R)),
       R(icol).phz_slc_reg(:,4, isl) = cos(2.*R(icol).phz_slc(:,isl));
    end
 
-   if (~Opt.Quiet),
+   if (~Opt.Quiet && Opt.ShowGraphs),
       fprintf(2,[ '--> Calculated phase\n',...
                   '\n']);
 

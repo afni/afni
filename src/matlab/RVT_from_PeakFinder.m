@@ -79,7 +79,7 @@ function R = RVT_from_PeakFinder(R, Opt)
          R(icol).RVTRS_slc(:,i) = rvt_shf;
       end
 
-      if (~Opt.Quiet),
+      if (~Opt.Quiet & Opt.ShowGraphs),
          fprintf(2,[ '--> Calculated RVT \n',...
                      '--> Created RVT regressors\n',...
                      '\n']);
