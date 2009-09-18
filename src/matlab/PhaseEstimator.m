@@ -38,7 +38,9 @@ else, %phase based on amplitude
       gR = zscale(R(icol).v, mxamp, 0); %scale, per Glover 2000's paper
       bins = [1:1:100]./100.*mxamp;
       [hb,bbins] = hist(gR, bins);
-      bar (bins, hb);
+      if(Opt.ShowGraphs)
+          bar (bins, hb);
+      end
       %find the polarity of each time point in v
       i = 1; itp = 1; inp = 1;
       while (  i <= length(R(icol).v) & ...
@@ -71,12 +73,12 @@ else, %phase based on amplitude
       R(icol).tptrace = [R(icol).tptrace(1:end-1)];
       R(icol).tntrace = [R(icol).tntrace(1:end-1)];
       if(Opt.ShowGraphs),
-      clf;
-      plot (R(icol).t, gR,'b'); hold on
-      ip = find(R(icol).phz_pol>0);
-      plot (R(icol).t(ip), 0.55.*mxamp,'r.');
-      in = find(R(icol).phz_pol<0);
-      plot (R(icol).t(in),0.45.*mxamp,'g.');
+          clf;
+          plot (R(icol).t, gR,'b'); hold on
+          ip = find(R(icol).phz_pol>0);
+          plot (R(icol).t(ip), 0.55.*mxamp,'r.');
+          in = find(R(icol).phz_pol<0);
+          plot (R(icol).t(in),0.45.*mxamp,'g.');
       end
       %Now that we have the polarity, without computing sign(dR/dt) 
       % as in Glover et al 2000, calculate the phase per eq. 3 of that paper
