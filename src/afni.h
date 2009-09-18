@@ -459,9 +459,9 @@ typedef struct {
 
   Widget actar ;         /* action area holding control buttons */
 
-  /** Widget ulay_expr ; **/
-  Widget olay_expr ;
-  /** Widget thr_expr  ; **/
+  Widget ulay_expr_text ;
+  Widget olay_expr_text ;
+  Widget thr_expr_text  ;
 
   ICALC_widget_row  war[26] ;
   void             *var[26] ;
@@ -469,6 +469,38 @@ typedef struct {
   int is_open ;
   struct Three_D_View *im3d ;
 } ICALC_widget_set ;
+
+#define ICALC_INVALID    -666
+#define ICALC_DSET_VALUE 0
+#define ICALC_DSET_STAT  1
+#define ICALC_1DFILE     2
+#define ICALC_CONSTANT   3
+
+typedef struct {
+   int   is_good ;
+   char  *ulay_expr , *olay_expr , *thr_expr ;
+   int   var_typ[26] ;
+   void *var_val[26] ;
+   char *var_str[26] ;
+} ICALC_setup ;
+
+#undef  INIT_ICALC_setup
+#define INIT_ICALC_setup(ics)                                          \
+ do{ int qx ;                                                          \
+     (ics) = (ICALC_setup *)calloc(1,sizeof(ICALC_setup)) ;            \
+     for( qx=0 ; qx < 26 ; qx++ ) (ics)->var_typ[qx] = ICALC_INVALID ; \
+ } while(0)
+
+#undef  DESTROY_ICALC_setup
+#define DESTROY_ICALC_setup(ics)                                  \
+ do{ if( (ics) != NULL ){                                         \
+       int aa ;                                                   \
+       XtFree((ics)->ulay_expr) ;                                 \
+       XtFree((ics)->olay_expr) ;                                 \
+       XtFree((ics)->the_expr) ;                                  \
+       for( aa=0 ; aa < 26 ; aa++ ) XtFree((ics)->var_str[aa]) ;  \
+       free((ics)) ; (ics) = NULL ;                               \
+ }} while(0)
 
 /*---*/
 
@@ -600,6 +632,8 @@ typedef struct {
       Widget clu_rowcol, clu_clear_pb, clu_cluster_pb, clu_report_pb ;  /* 05 Sep 2006 */
 
       Widget icor_rowcol, icor_pb , icor_label ; /* 05 May 2009 */
+
+      Widget icalc_rowcol , icalc_pb , icalc_label ; /* 18 Sep 2009 */
 
       Widget         buck_frame , buck_rowcol ;
       MCW_arrowval * anat_buck_av , *fim_buck_av , *thr_buck_av ;  /* 30 Nov 1997 */
@@ -973,7 +1007,8 @@ typedef struct Three_D_View {
       char *vedlabel ;                          /* 27 Mar 2007 */
       int   vedskip ;
 
-      ICOR_setup *iset ;                        /* 05 May 2009 */
+      ICOR_setup  *iset ;                       /* 05 May 2009 */
+      ICALC_setup *icalc_setup ;                /* 18 Sep 2009 */
 } Three_D_View ;
 
 /*! Force re-volume-editing when this viewer is redisplayed */
@@ -1025,6 +1060,23 @@ typedef struct Three_D_View {
      INSTACORR_LABEL_OFF((iq)) ;                                              \
      (iq)->vinfo->i1_icor = (iq)->vinfo->j2_icor = (iq)->vinfo->k3_icor = -1; \
      AFNI_misc_CB((iq)->vwid->func->icor_pb,(XtPointer)(iq),NULL) ;           \
+ } while(0)
+
+/** InstaCalc stuff [18 Sep 2009] **/
+
+#define INSTACALC_LABEL_ON(iq)                                           \
+ do{ MCW_set_widget_label((iq)->vwid->func->icalc_label,"** Ready **") ; \
+     MCW_set_widget_bg   ((iq)->vwid->func->icalc_label,GO_COLOR,0   ) ; \
+ } while(0)
+
+#define INSTACALC_LABEL_OFF(iq)                                          \
+ do{ MCW_set_widget_label((iq)->vwid->func->icalc_label,"*NOT Ready*") ; \
+     MCW_set_widget_bg   ((iq)->vwid->func->icalc_label,STOP_COLOR,0 ) ; \
+ } while(0)
+
+#define DISABLE_INSTACALC(iq)                                            \
+ do{ INSTACALC_LABEL_OFF(iq) ;                                           \
+     if( (iq)->icalc_setup != NULL ) (iq)->icalc_setup->is_good = 0 ;    \
  } while(0)
 
 /*! Is any image viewer window open? */
@@ -1151,6 +1203,8 @@ extern "C" {
    extern PLUGIN_interface * F1D_init(void) ;            /* 08 Aug 2001 */
    extern PLUGIN_interface * ICOR_init(char *);          /* 29 Apr 2009 */
 #endif
+
+extern void ICALC_make_widgets( Three_D_View *im3d ) ;   /* 18 Sep 2009 */
 
 typedef struct {                /* windows and widgets */
    XtPointer_array *windows ;   /* allowed to interrupt */

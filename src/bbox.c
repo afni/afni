@@ -246,8 +246,8 @@ ENTRY("new_MCW_bbox_cbwrap") ;
    To do so, new_MCW_bbox always calls a wrapper callback named
    new_MCW_bbox_cbwrap. This callback will perform radio button management
    if necessary and then call the button's intended callbacks.
-   
 ---------------------------------------------------------------------------*/
+
 MCW_bbox * new_MCW_bbox( Widget parent ,
                          int num_but , char *label_but[] ,
                          int bb_type , int bb_frame ,

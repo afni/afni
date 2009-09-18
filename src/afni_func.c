@@ -5740,6 +5740,39 @@ STATUS("got func info") ;
 
    /*.........................................................*/
 
+   else if( w == im3d->vwid->func->icalc_pb ){ /* 18 Sep 2009 */
+     Widget wtop ;
+
+     if( im3d->vwid->func->iwid == NULL ){
+       ICALC_make_widgets(im3d) ;
+       if( im3d->vwid->func->iwid == NULL ){ BEEPIT; EXRETURN; }
+     }
+
+     if( im3d->icalc_setup == NULL )
+       INIT_ICALC_setup(im3d->icalc_setup) ;
+
+     INSTACALC_LABEL_OFF(im3d) ; im3d->icalc_setup->is_good = 0 ;
+
+     wtop =  im3d->vwid->func->iwid->wtop ;
+
+     if( cbs->event != NULL && cbs->event->type == ButtonRelease ){
+       XButtonEvent *xev = (XButtonEvent *)cbs->event ;
+       int xx=(int)xev->x_root , yy=(int)xev->y_root , ww,hh,sw,sh ;
+       MCW_widget_geom( wtop , &ww,&hh , NULL,NULL ) ;
+       sw = WidthOfScreen (XtScreen(wtop)) ;
+       sh = HeightOfScreen(XtScreen(wtop)) ;
+       if( xx+ww+3 >= sw && ww <= sw ) xx = sw-ww ;
+       if( yy+hh+3 >= sh && hh <= sh ) yy = sh-hh ;
+       XtVaSetValues( wtop , XmNx , xx , XmNy , yy , NULL ) ;
+     }
+
+     XtMapWidget(wtop) ; RWC_visibilize_widget( wtop ) ;
+     XRaiseWindow( XtDisplay(wtop) , XtWindow(wtop) ) ;
+     im3d->vwid->func->iwid->is_open = 1 ;
+   }
+
+   /*.........................................................*/
+
    else if( w == im3d->vwid->dmode->misc_plugout_pb ){ /* 07 Nov 2001 */
       AFNI_init_plugouts() ;
       XtSetSensitive(w,False) ;
