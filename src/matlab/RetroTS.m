@@ -186,6 +186,9 @@ else,
       for (i=2:2:Opt.Nslices),
          Opt.SliceOffset(i) = tt; tt = tt+dtt;
       end
+   end
+   if ( ~isfield(Opt,'ShowGraphs') | isempty(Opt.ShowGraphs)),
+      Opt.ShowGraphs = 1; % show graphs by default
    end   
 end
 
@@ -214,15 +217,21 @@ if (e), fprintf(2,'Died in PeakFinder\n'); return; end
 [E,e] = PeakFinder(Opt.Cardfile,OptE);
 if (e), fprintf(2,'Died in PeakFinder\n'); return; end
 %get the phase
+fprintf(2, 'Estimating phase for R and E\n');
 R = PhaseEstimator(R,OptR);
 E = PhaseEstimator(E,OptE);
 
 %Now do the RVT for Respiration
+fprintf(2,'Computing RVT from peaks\n');
 R = RVT_from_PeakFinder(R, OptR);
 
 %Show some results
-Show_RVT_Peak(R,1);
-Show_RVT_Peak(E,2);
+if(Opt.ShowGraphs)
+   fprintf(2, 'Showing RVT Peaks for R\n');
+   Show_RVT_Peak(R,1);
+   fprintf(2, 'Showing RVT Peaks for E\n');
+   Show_RVT_Peak(E,2);
+end
 
 if (0),
    %write retroicor regressors
