@@ -345,6 +345,8 @@ static void ICALC_chooser_CB( Widget w, XtPointer cd, XtPointer cbs )
    if( bb < 0 || bb >= ICALC_NUMTYPE ) return ;
 INFO_message("chooser %d:%d",aa,bb) ;
 
+   POPDOWN_strlist_chooser ;  /* death to the old regime */
+
    switch( bb ){
      case ICALC_DSET_VALUE:
      case ICALC_DSET_STAT:  ICALC_choose_dataset( iwid , aa ) ; break ;
@@ -437,6 +439,8 @@ ENTRY("ICALC_choose_dataset") ;
 
    if( num_dset == 0 ){ myXtFree(dsv) ; BEEPIT ; EXRETURN ; }
 
+   dsv->dset_count = num_dset ;
+
    POPDOWN_strlist_chooser ;  /* death to the old regime */
 
    /* fix the dataset titles to be more fun */
@@ -463,10 +467,13 @@ static void ICALC_finalize_dataset_CB( Widget w, XtPointer fd, MCW_choose_cbs *c
    int id = cbs->ival ;
    THD_3dim_dataset *dset ;
 
+INFO_message("id=%d dsv->dset_count=%d",id,dsv->dset_count) ;
+
    if( dsv == NULL || id < 0 || id >= dsv->dset_count ){ BEEPIT; return; }
+ININFO_message("  finding") ;
    dset = PLUTO_find_dset( &(dsv->dset_link[id].idcode) ) ;
    if( !ISVALID_DSET(dset) )                           { BEEPIT; return ;}
-
+ININFO_message("  setting") ;
    MCW_set_widget_label( iwid->war[dsa].chooser_lab ,
                          dset->dblk->diskptr->filecode ) ;
 
