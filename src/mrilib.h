@@ -204,6 +204,8 @@ static char * MRI_TYPE_name[9] =
     "fvect"
   } ;
 
+#define IS_REAL_TYPE(zkq) ((zkq)==MRI_byte || (zkq)==MRI_short || (zkq)==MRI_float)
+
 #define MRI_type_name MRI_TYPE_name  /* because I forget */
 
 #define MRI_TYPE_NAME(iimm) MRI_TYPE_name[(iimm)->kind]  /* 26 Apr 2005 */
