@@ -449,6 +449,7 @@ typedef struct {
   MCW_bbox     *tog_bbox ;
   MCW_arrowval *menu_av ;
   Widget        chooser_pb ;
+  MCW_arrowval *index_av ;
   Widget        chooser_lab ;
   Widget        string_lab ;
   Widget        string_text ;
@@ -479,27 +480,28 @@ typedef struct {
 typedef struct {
    int   is_good ;
    char  *ulay_expr , *olay_expr , *thr_expr ;
-   int   var_typ[26] ;
-   void *var_val[26] ;
-   char *var_str[26] ;
+   int               intyp[26] ;
+   THD_3dim_dataset *inset[26] ; int inidx[26] ;
+   MRI_IMAGE        *inim [26] ;
+   double            inval[26] ;
+   char             *instr[26] ;
 } ICALC_setup ;
 
 #undef  INIT_ICALC_setup
-#define INIT_ICALC_setup(ics)                                          \
- do{ int qx ;                                                          \
-     (ics) = (ICALC_setup *)calloc(1,sizeof(ICALC_setup)) ;            \
-     for( qx=0 ; qx < 26 ; qx++ ) (ics)->var_typ[qx] = ICALC_INVALID ; \
+#define INIT_ICALC_setup(qcs)                                        \
+ do{ int qx ;                                                        \
+     (qcs) = (ICALC_setup *)calloc(1,sizeof(ICALC_setup)) ;          \
+     for( qx=0 ; qx < 26 ; qx++ ) (qcs)->intyp[qx] = ICALC_INVALID ; \
  } while(0)
 
 #undef  DESTROY_ICALC_setup
-#define DESTROY_ICALC_setup(ics)                                  \
- do{ if( (ics) != NULL ){                                         \
+#define DESTROY_ICALC_setup(qcs)                                  \
+ do{ if( (qcs) != NULL ){                                         \
        int aa ;                                                   \
-       XtFree((ics)->ulay_expr) ;                                 \
-       XtFree((ics)->olay_expr) ;                                 \
-       XtFree((ics)->the_expr) ;                                  \
-       for( aa=0 ; aa < 26 ; aa++ ) XtFree((ics)->var_str[aa]) ;  \
-       free((ics)) ; (ics) = NULL ;                               \
+       XtFree((qcs)->ulay_expr) ;                                 \
+       XtFree((qcs)->olay_expr) ;                                 \
+       XtFree((qcs)->the_expr) ;                                  \
+       free((qcs)) ; (qcs) = NULL ;                               \
  }} while(0)
 
 /*---*/

@@ -51,6 +51,10 @@ static char *ICALC_nothing_chosen = "---nothing chosen---" ;
 static void ICALC_tog_bbox_CB( Widget , XtPointer , XtPointer ) ;
 static void ICALC_menu_av_CB ( MCW_arrowval * , XtPointer ) ;
 static void ICALC_chooser_CB ( Widget, XtPointer, XtPointer ) ;
+static void ICALC_index_av_CB( MCW_arrowval * , XtPointer ) ;
+
+static char * ICALC_index_lab_CB( MCW_arrowval * , XtPointer ) ;
+
 static void ICALC_quit_CB    ( Widget, XtPointer, XtPointer ) ;
 static void ICALC_apply_CB   ( Widget, XtPointer, XtPointer ) ;
 static void ICALC_help_CB    ( Widget, XtPointer, XtPointer ) ;
@@ -71,13 +75,14 @@ static MCW_action_item ICALC_act[] =
 /*--- macros to toggle a row of ICALC widgets on or off ---*/
 
 #undef  ICALC_toggle_row
-#define ICALC_toggle_row(rr,state)                            \
- do{ int qz = state && (rr).menu_av->ival != ICALC_CONSTANT ; \
-     AV_SENSITIZE((rr).menu_av,state) ;                       \
-     XtSetSensitive((rr).chooser_pb,qz) ;                     \
-     XtSetSensitive((rr).chooser_lab,qz) ;                    \
-     XtSetSensitive((rr).string_text,state) ;                 \
-     XtSetSensitive((rr).string_lab,state) ;                  \
+#define ICALC_toggle_row(rr,state)                                                          \
+ do{ int qz = state && (rr).menu_av->ival != ICALC_CONSTANT ;                               \
+     int wz = state &&                                                                      \
+        ((rr).menu_av->ival == ICALC_DSET_VALUE || (rr).menu_av->ival == ICALC_DSET_STAT) ; \
+     AV_SENSITIZE((rr).menu_av,state) ;                                                     \
+     XtSetSensitive((rr).chooser_pb,qz) ; AV_SENSITIZE((rr).index_av,wz) ;                  \
+     XtSetSensitive((rr).chooser_lab,qz) ;                                                  \
+     XtSetSensitive((rr).string_text,state) ; XtSetSensitive((rr).string_lab,state) ;       \
  } while(0)
 
 #undef  ICALC_row_off
@@ -125,6 +130,11 @@ static MCW_action_item ICALC_act[] =
      XtAddCallback( iwid->war[aa].chooser_pb , XmNactivateCallback , \
                     ICALC_chooser_CB , (XtPointer)iwid ) ;           \
      ICALC_userdata(iwid->war[aa].chooser_pb,aa+1) ;                 \
+     iwid->war[aa].index_av =                                        \
+        new_MCW_optmenu( rc , "[-]" , -1,0, -1,0,                    \
+                         ICALC_index_av_CB, (XtPointer)iwid ,        \
+                         ICALC_index_lab_CB,(XtPointer)iwid  ) ;     \
+     ICALC_userdata(iwid->war[aa].index_av->wrowcol,aa+1) ;          \
      VLINEE(iwid->war[aa].rc) ;                                      \
      iwid->war[aa].chooser_lab =                                     \
         XtVaCreateManagedWidget(                                     \
@@ -159,6 +169,7 @@ static MCW_action_item ICALC_act[] =
             NULL ) ;                                                 \
      if( !ee ){                                                      \
        MCW_set_widget_bg(iwid->war[aa].menu_av->wrowcol ,"black",0); \
+       MCW_set_widget_bg(iwid->war[aa].index_av->wrowcol,"black",0); \
        MCW_set_widget_bg(iwid->war[aa].tog_bbox->wbut[0],"black",0); \
        MCW_set_widget_bg(iwid->war[aa].string_lab       ,"black",0); \
        MCW_set_widget_bg(iwid->war[aa].chooser_pb       ,"black",0); \
@@ -176,13 +187,24 @@ void ICALC_make_widgets( Three_D_View *im3d )
    XmString xstr ;
    char str[32] , *eee ;
    int ii ;
+   ICALC_setup *ics ;
 
 ENTRY("ICALC_make_widgets") ;
 
-   if( !IM3D_OPEN(im3d) || im3d->vwid->func->iwid != NULL ) EXRETURN ; /* bad */
+   if( !IM3D_OPEN(im3d) ) EXRETURN ; /* bad */
+
+   if( im3d->vwid->func->iwid != NULL ){
+     XtMapWidget(iwid->wtop) ; iwid->is_open = 1 ;
+     WAIT_for_window( iwid->wtop ) ;
+     XRaiseWindow( XtDisplay(iwid->wtop) , XtWindow(iwid->wtop) ) ;
+   }
 
    im3d->vwid->func->iwid = iwid = myXtNew( ICALC_widget_set ) ;
    for( ii=0 ; ii < 26 ; ii++ ) iwid->var[ii] = NULL ;
+
+   if( im3d->icalc_setup == NULL )
+     INIT_ICALC_setup(im3d->icalc_setup) ;
+   ics = im3d->icalc_setup ;
 
    sprintf(str,"AFNI InstCalc %s",AFNI_controller_label(im3d)) ;
 
@@ -242,7 +264,7 @@ ENTRY("ICALC_make_widgets") ;
    /* OLay label */
 
    (void)XtVaCreateManagedWidget(
-            "menu"   , xmLabelWidgetClass , rc ,
+            "bigtext"   , xmLabelWidgetClass , rc ,
             LABEL_ARG("OLay Expr") ,
             XmNalignment , XmALIGNMENT_BEGINNING ,
             XmNrecomputeSize , False ,  XmNtraversalOn , True ,
@@ -251,11 +273,11 @@ ENTRY("ICALC_make_widgets") ;
    /* OLay expression text */
 
    iwid->olay_expr_text = XtVaCreateManagedWidget(
-                           "menu"  , xmTextFieldWidgetClass , rc ,
+                           "bigtext"  , xmTextFieldWidgetClass , rc ,
                              XmNvalue        , "\0" ,
-                             XmNcolumns      , 76 ,
+                             XmNcolumns      , 68 ,
                              XmNeditable     , True ,
-                             XmNmaxLength    , 180 ,
+                             XmNmaxLength    , 248 ,
                              XmNresizeWidth  , False ,
                              XmNmarginHeight , 1 ,
                              XmNmarginWidth  , 1 ,
@@ -305,6 +327,7 @@ static void ICALC_tog_bbox_CB( Widget w, XtPointer cd, XtPointer cbs )
 {
    ICALC_widget_set *iwid = (ICALC_widget_set *)cd ;
    Three_D_View     *im3d = iwid->im3d ;
+   ICALC_setup      *ics  = im3d->icalc_setup ;
    int                 aa = ICALC_find_index(iwid,w) ; Boolean bb ;
 
    if( aa < 0 ) return ;
@@ -318,40 +341,43 @@ static void ICALC_menu_av_CB( MCW_arrowval *av , XtPointer cd )
 {
    ICALC_widget_set *iwid = (ICALC_widget_set *)cd ;
    Three_D_View     *im3d = iwid->im3d ;
+   ICALC_setup      *ics  = im3d->icalc_setup ;
    int                 aa = ICALC_find_index(iwid,av->wrowcol) ;
-   int                 bb = av->ival , ss = (bb!=ICALC_CONSTANT) ;
+   int                 bb = av->ival ;
 
-INFO_message("menu %d:%d",aa,bb) ;
    if( aa < 0 || bb < 0 || bb >= ICALC_NUMTYPE ) return ;
    MCW_set_widget_label( iwid->war[aa].chooser_pb , ICALC_choosestr[bb]  ) ;
    MCW_set_widget_label( iwid->war[aa].chooser_lab, ICALC_nothing_chosen ) ;
    MCW_set_widget_label( iwid->war[aa].string_lab , ICALC_labelstr[bb]   ) ;
    XmTextFieldSetString( iwid->war[aa].string_text, "\0"                 ) ;
 
-   XtSetSensitive( iwid->war[aa].chooser_pb  , ss ) ;
-   XtSetSensitive( iwid->war[aa].chooser_lab , ss ) ;
+   ICALC_toggle_row(iwid->war[aa],True) ;
 }
 
 /*----------------------------------------------------------------------*/
+
+static PLUGIN_dsetval *dsv = NULL ;
+static int             dsa = -1 ;
 
 static void ICALC_chooser_CB( Widget w, XtPointer cd, XtPointer cbs )
 {
    ICALC_widget_set *iwid = (ICALC_widget_set *)cd ;
    Three_D_View     *im3d = iwid->im3d ;
+   ICALC_setup      *ics  = im3d->icalc_setup ;
    int                 aa = ICALC_find_index(iwid,w) , bb ;
 
    if( aa < 0 ) return ;
    bb = iwid->war[aa].menu_av->ival ;
    if( bb < 0 || bb >= ICALC_NUMTYPE ) return ;
-INFO_message("chooser %d:%d",aa,bb) ;
 
    POPDOWN_strlist_chooser ;  /* death to the old regime */
+   dsa = -1 ;
 
    switch( bb ){
      case ICALC_DSET_VALUE:
      case ICALC_DSET_STAT:  ICALC_choose_dataset( iwid , aa ) ; break ;
 
-     case ICALC_1DFILE:     break ;
+     case ICALC_1DFILE:     break ;  /* not implemented yet */
      case ICALC_CONSTANT:   break ;
    }
 }
@@ -361,6 +387,8 @@ INFO_message("chooser %d:%d",aa,bb) ;
 static void ICALC_quit_CB( Widget w, XtPointer cd, XtPointer cbs )
 {
    ICALC_widget_set *iwid = (ICALC_widget_set *)cd ;
+   Three_D_View *im3d     = iwid->im3d ;
+   ICALC_setup      *ics  = im3d->icalc_setup ;
    XtUnmapWidget(iwid->wtop) ; iwid->is_open = 0 ;
    DISABLE_INSTACALC(iwid->im3d) ;
 }
@@ -381,12 +409,10 @@ INFO_message("This software is beyond all hope or help") ;
 
 /*----------------------------------------------------------------------*/
 
-static PLUGIN_dsetval *dsv = NULL ;
-static int             dsa = -1 ;
-
 static void ICALC_choose_dataset( ICALC_widget_set *iwid , int aa )
 {
    Three_D_View *im3d = iwid->im3d ;
+   ICALC_setup  *ics  = im3d->icalc_setup ;
    THD_session *ss ;
    THD_3dim_dataset *dset ;
    int iss_bot , iss_top , iss , vv , kk ;
@@ -423,8 +449,8 @@ ENTRY("ICALC_choose_dataset") ;
       for( id=0 ; id < ss->num_dsset ; id++ ){
         dset = ss->dsset[id][vv] ; if( !ISVALID_DSET(dset)  ) continue ;
                                    if( !DSET_INMEMORY(dset) ) continue ;
-        kk = DSET_BRICK_TYPE(dset,0) ;
-        if( kk != MRI_byte && kk != MRI_short && kk != MRI_float ) continue ;
+           if( strncmp(DSET_PREFIX(dset)+1,"_ICALC",6) == 0 ) continue ;
+        kk = DSET_BRICK_TYPE(dset,0); if( !IS_REAL_TYPE(kk) ) continue ;
 
         /* if we get here, then this dataset is OK to choose! */
 
@@ -464,18 +490,52 @@ ENTRY("ICALC_choose_dataset") ;
 static void ICALC_finalize_dataset_CB( Widget w, XtPointer fd, MCW_choose_cbs *cbs )
 {
    ICALC_widget_set *iwid = (ICALC_widget_set *)fd ;
+   Three_D_View     *im3d = iwid->im3d ;
+   ICALC_setup      *ics  = im3d->icalc_setup ;
    int id = cbs->ival ;
    THD_3dim_dataset *dset ;
+   int inival , topval ;
 
-INFO_message("id=%d dsv->dset_count=%d",id,dsv->dset_count) ;
-
-   if( dsv == NULL || id < 0 || id >= dsv->dset_count ){ BEEPIT; return; }
-ININFO_message("  finding") ;
+   if( dsv == NULL || id < 0 || id >= dsv->dset_count || dsa < 0 ){ BEEPIT; return; }
    dset = PLUTO_find_dset( &(dsv->dset_link[id].idcode) ) ;
-   if( !ISVALID_DSET(dset) )                           { BEEPIT; return ;}
-ININFO_message("  setting") ;
+   if( !ISVALID_DSET(dset) )                                      { BEEPIT; return; }
    MCW_set_widget_label( iwid->war[dsa].chooser_lab ,
                          dset->dblk->diskptr->filecode ) ;
 
+   ics->inset[dsa] = dset ;
+   inival = iwid->war[dsa].index_av->ival ;
+   topval = DSET_NVALS(dset) - 1 ;
+   if( inival > topval ) inival = topval ;
+   refit_MCW_optmenu( iwid->war[dsa].index_av ,
+                      -1 , DSET_NVALS(dset)-1 , inival, 0 ,
+                      ICALC_index_lab_CB,(XtPointer)iwid  ) ;
    return ;
+}
+
+/*----------------------------------------------------------------------*/
+
+static void ICALC_index_av_CB( MCW_arrowval *av , XtPointer cd )
+{
+   ICALC_widget_set *iwid = (ICALC_widget_set *)cd ;
+   Three_D_View     *im3d = iwid->im3d ;
+   ICALC_setup      *ics  = im3d->icalc_setup ;
+   int                 aa = ICALC_find_index(iwid,av->wrowcol) ;
+   int                 bb = av->ival ;
+
+}
+
+/*----------------------------------------------------------------------*/
+
+static char * ICALC_index_lab_CB( MCW_arrowval *av , XtPointer cd )
+{
+   ICALC_widget_set *iwid = (ICALC_widget_set *)cd ;
+   Three_D_View     *im3d = iwid->im3d ;
+   ICALC_setup      *ics  = im3d->icalc_setup ;
+   int                 aa = ICALC_find_index(iwid,av->wrowcol) ;
+   int                 bb = av->ival ;
+   static char        str[16] ;
+
+   if( bb < 0 ) strcpy(str,"Index") ;
+   else         sprintf(str," %d",bb) ;
+   return str ;
 }
