@@ -255,14 +255,19 @@ SUMA_handleRedisplay(XtPointer closure)
    /* determine the surface viewer that the widget belongs to */
    SUMA_ANY_WIDGET2SV((Widget)closure, sv, isv);
    if (isv < 0) {
-      fprintf (SUMA_STDERR, "Error %s: Failed in macro SUMA_ANY_WIDGET2SV.\n", FuncName);
+      fprintf (SUMA_STDERR, 
+               "Error %s: Failed in macro SUMA_ANY_WIDGET2SV.\n", FuncName);
       SUMA_RETURN(NOPE);
    }
    
-   if (Last_isv >= 0) { /* first time function is called, no use for this variable yet */
+   if (Last_isv >= 0) {    /* first time function is called, 
+                              no use for this variable yet */
       if (isv != Last_isv) {/* need to call glXMakeCurrent */
          if (!sv->Open) {
-            if (LocalHead) fprintf (SUMA_STDERR, "%s: Redisplay request for a closed window. Skipping.\n", FuncName);
+            if (LocalHead) 
+               fprintf (SUMA_STDERR, 
+                        "%s: Redisplay request for a closed window. Skipping.\n",
+                        FuncName);
             SUMA_RETURN(NOPE);
          }else {
             PleaseDoMakeCurrent = YUP;
@@ -283,21 +288,29 @@ SUMA_handleRedisplay(XtPointer closure)
    
    Last_isv = isv; /* store last surface viewer to call display */
    /* call display for the proper surface viewer*/
-   if (LocalHead) fprintf (SUMA_STDERR, "%s: Calling SUMA_display with SV[%d], Pointer %p.\n", FuncName, isv, sv); 
+   if (LocalHead) 
+      fprintf (SUMA_STDERR, 
+               "%s: Calling SUMA_display with SV[%d], Pointer %p.\n", 
+               FuncName, isv, sv); 
    SUMA_display(sv, SUMAg_DOv);
    sv->X->REDISPLAYPENDING = 0;
    
    if (SUMAg_N_SVv > 1) {
-      if (LocalHead) fprintf (SUMA_STDERR, "%s: Forcing display to finish.\n", FuncName);
-      /* When multiple viewers are open, the picking does not work at times if you click around rapidly.
-      The problem seems to be caused by OpenGL being in a state corresponding to that of the last viewer 
-      visited before coming to the current viewer. Forcing gl to render after a redisplay pending for a 
-      certain viewer is placed seems to reduce this problem significantly so this fix will be adopted
-      until a better one comes along. This call does reduce the apparent speed of the display and might
-      cause momentum motion to be more blocky but the overload is minimal for regular use.*/
+      if (LocalHead) 
+         fprintf (SUMA_STDERR, "%s: Forcing display to finish.\n", FuncName);
+      /* When multiple viewers are open, the picking does not work at times 
+         if you click around rapidly.
+         The problem seems to be caused by OpenGL being in a state corresponding 
+         to that of the last viewer visited before coming to the current viewer. 
+         Forcing gl to render after a redisplay pending for a 
+         certain viewer is placed seems to reduce this problem significantly so
+         this fix will be adopted until a better one comes along. 
+         This call does reduce the apparent speed of the display and might
+         cause momentum motion to be more blocky but the overload is minimal for 
+         regular use.*/
       glFinish();
    }
-
+   
    SUMA_RETURN(YUP);
 }
 
@@ -1245,7 +1258,6 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
       SUMA_DUMP_TRACE("Trace At display call");
    }
 
-   
    /* now you need to set the clear_color since 
       it can be changed per viewer Thu Dec 12 2002 */
    glClearColor ( csv->clear_color[0], csv->clear_color[1], 
@@ -1618,7 +1630,8 @@ SUMA_graphicsInit(Widget w, XtPointer clientData, XtPointer call)
    /* determine the surface viewer that the widget belongs to */
    SUMA_ANY_WIDGET2SV((Widget)w, sv, isv);
    if (isv < 0) {
-      fprintf (SUMA_STDERR, "Error %s: Failed in macro SUMA_ANY_WIDGET2SV.\n", FuncName);
+      fprintf (SUMA_STDERR, 
+               "Error %s: Failed in macro SUMA_ANY_WIDGET2SV.\n", FuncName);
       SUMA_RETURNe;
    }
 
@@ -1722,7 +1735,8 @@ SUMA_resize(Widget w,
    /* determine the surface viewer that the widget belongs to */
    SUMA_ANY_WIDGET2SV(w, sv, isv);
    if (isv < 0) {
-      fprintf (SUMA_STDERR, "Error %s: Failed in macro SUMA_ANY_WIDGET2SV.\n", FuncName);
+      fprintf (SUMA_STDERR, 
+               "Error %s: Failed in macro SUMA_ANY_WIDGET2SV.\n", FuncName);
       SUMA_RETURNe;
    }
 
@@ -1739,10 +1753,14 @@ SUMA_resize(Widget w,
 
    glMatrixMode(GL_MODELVIEW);
    glLoadIdentity();
-   gluLookAt (   sv->GVS[sv->StdView].ViewFrom[0], sv->GVS[sv->StdView].ViewFrom[1], 
-               sv->GVS[sv->StdView].ViewFrom[2], sv->GVS[sv->StdView].ViewCenter[0], 
-               sv->GVS[sv->StdView].ViewCenter[1], sv->GVS[sv->StdView].ViewCenter[2], 
-               sv->GVS[sv->StdView].ViewCamUp[0], sv->GVS[sv->StdView].ViewCamUp[1], 
+   gluLookAt ( sv->GVS[sv->StdView].ViewFrom[0], 
+               sv->GVS[sv->StdView].ViewFrom[1], 
+               sv->GVS[sv->StdView].ViewFrom[2], 
+               sv->GVS[sv->StdView].ViewCenter[0], 
+               sv->GVS[sv->StdView].ViewCenter[1], 
+               sv->GVS[sv->StdView].ViewCenter[2], 
+               sv->GVS[sv->StdView].ViewCamUp[0], 
+               sv->GVS[sv->StdView].ViewCamUp[1], 
                sv->GVS[sv->StdView].ViewCamUp[2]);
    sv->Aspect = (GLfloat) callData->width/(GLfloat) callData->height;
    sv->WindWidth = callData->width; sv->WindHeight = callData->height;
@@ -2295,7 +2313,8 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
    if (CallNum == 0) { /* first call, initialize App */
       SUMAg_CF->N_OpenSV = 0;
       /*
-         SUMAg_SVv[ic].X->TOPLEVEL = XtAppInitialize(&SUMAg_CF->X->App, "SUMA", NULL, 0, &cargc, vargv,
+         SUMAg_SVv[ic].X->TOPLEVEL = XtAppInitialize(&SUMAg_CF->X->App, "SUMA", 
+                                                      NULL, 0, &cargc, vargv,
        SUMA_get_fallbackResources(), NULL, 0); Superseded by XtOpenApplication
       */
       SUMAg_SVv[ic].X->TOPLEVEL = 
@@ -2384,8 +2403,11 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
          /* see Kilgard's OpenGL Programming for the X window system */
          /* create main window */
          SUMA_LH("Creating Main Window");
-	 /* Next call Causes Seg. fault on Fedora Core 4. Not much I can do. Same happens with demo code paperplane.c by Kilgard */
-         mainw = XmCreateMainWindow (SUMAg_SVv[ic].X->TOPLEVEL, "mainw", NULL, 0); 
+	   /* Next call Causes Seg. fault on Fedora Core 4. 
+         Not much I can do. Same happens with demo code paperplane.c 
+         by Kilgard */
+         mainw = XmCreateMainWindow (  SUMAg_SVv[ic].X->TOPLEVEL, 
+                                       "mainw", NULL, 0); 
          SUMA_LH("Managing Main Window");
          XtManageChild (mainw);      
          /* create menu bar */
@@ -2420,7 +2442,8 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
                                  (void *)ic, NULL, NULL,  
                                  SUMAg_SVv[ic].X->HelpMenu );
          
-         XtVaSetValues (menubar, XmNmenuHelpWidget, SUMAg_SVv[ic].X->HelpMenu[SW_Help], NULL);
+         XtVaSetValues (menubar, XmNmenuHelpWidget, 
+                        SUMAg_SVv[ic].X->HelpMenu[SW_Help], NULL);
                                  
          /* set states of the some view menu widgets */
          XmToggleButtonSetState (SUMAg_SVv[ic].X->ViewMenu[SW_ViewCrossHair], 
@@ -2428,7 +2451,8 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
          
          XmToggleButtonSetState (SUMAg_SVv[ic].X->HelpMenu[SW_HelpMemTrace], 
             SUMAg_CF->MemTrace, NOPE);
-         if (SUMAg_CF->MemTrace) {  XtSetSensitive (SUMAg_SVv[ic].X->HelpMenu[SW_HelpMemTrace], 0); }
+         if (SUMAg_CF->MemTrace) {  
+            XtSetSensitive (SUMAg_SVv[ic].X->HelpMenu[SW_HelpMemTrace], 0); }
 
          XmToggleButtonSetState (SUMAg_SVv[ic].X->HelpMenu[SW_HelpIONotify], 
             SUMAg_CF->InOut_Notify, NOPE);
@@ -2462,14 +2486,19 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
 
           
       /* Step 7. */
-      XtAddCallback(SUMAg_SVv[ic].X->GLXAREA, GLwNginitCallback, SUMA_graphicsInit, NULL);
-      XtAddCallback(SUMAg_SVv[ic].X->GLXAREA, GLwNexposeCallback, SUMA_expose, NULL);
-      XtAddCallback(SUMAg_SVv[ic].X->GLXAREA, GLwNresizeCallback, SUMA_resize, NULL);
-      XtAddCallback(SUMAg_SVv[ic].X->GLXAREA, GLwNinputCallback, SUMA_input, NULL);
+      XtAddCallback( SUMAg_SVv[ic].X->GLXAREA, GLwNginitCallback, 
+                     SUMA_graphicsInit, NULL);
+      XtAddCallback( SUMAg_SVv[ic].X->GLXAREA, GLwNexposeCallback, 
+                     SUMA_expose, NULL);
+      XtAddCallback( SUMAg_SVv[ic].X->GLXAREA, GLwNresizeCallback, 
+                     SUMA_resize, NULL);
+      XtAddCallback( SUMAg_SVv[ic].X->GLXAREA, GLwNinputCallback, 
+                     SUMA_input, NULL);
 
       /* trap for window kill */
       
-      /* turn off default delete response. If you do not do that, you will suffer.*/
+      /* turn off default delete response. If you do not do that, 
+         you will suffer.*/
        XtVaSetValues( SUMAg_SVv[ic].X->TOPLEVEL,
            XmNdeleteResponse, XmDO_NOTHING,
            NULL);      
@@ -2484,8 +2513,10 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
       
       /* I will need a Graphics Context variable to draw into the window */
       {  
-         XGCValues gcv; /* see program drawing.c in Motif Programming Manual, Ch. 10 */
-         gcv.foreground = BlackPixelOfScreen (XtScreen (SUMAg_SVv[ic].X->GLXAREA));
+         XGCValues gcv; /* see program drawing.c in Motif Programming Manual, 
+                           Ch. 10 */
+         gcv.foreground = 
+            BlackPixelOfScreen (XtScreen (SUMAg_SVv[ic].X->GLXAREA));
          SUMAg_SVv[ic].X->gc = XCreateGC (SUMAg_SVv[ic].X->DPY,
                                           XtWindow (SUMAg_SVv[ic].X->GLXAREA), 
                                           GCForeground, &gcv);
@@ -2520,7 +2551,8 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
          }
       
       }       
-   } else { /* widget already set up, just undo whatever was done in SUMA_ButtClose_pushed */
+   } else {    /* widget already set up, just undo whatever 
+                  was done in SUMA_ButtClose_pushed */
       
       #ifdef SUMA_USE_WITHDRAW
          XMapRaised(SUMAg_SVv[ic].X->DPY, XtWindow(SUMAg_SVv[ic].X->TOPLEVEL));      
@@ -2548,7 +2580,8 @@ void SUMA_ButtOpen_pushed (Widget w, XtPointer cd1, XtPointer cd2)
    SUMA_ENTRY;
 
    if (!SUMA_X_SurfaceViewer_Create ()) {
-      fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_X_SurfaceViewer_Create.\n", FuncName);
+      fprintf (SUMA_STDERR,
+               "Error %s: Failed in SUMA_X_SurfaceViewer_Create.\n", FuncName);
    } 
    SUMA_RETURNe;
 }
@@ -2667,7 +2700,8 @@ void SUMA_cb_FileClose (Widget w, XtPointer data, XtPointer calldata)
    /* find the index of the viewer closed */
    SUMA_VIEWER_FROM_FILEMENU_CALLBACK(data, isv, widtype);
    if (widtype != SW_FileClose) {
-      fprintf (SUMA_STDERR, "Error %s: Something really bad has happened.\n", FuncName);
+      fprintf (SUMA_STDERR, 
+               "Error %s: Something really bad has happened.\n", FuncName);
       SUMA_RETURNe;
    }   
 
@@ -2696,15 +2730,22 @@ void SUMA_ButtClose_pushed (Widget w, XtPointer cd1, XtPointer cd2)
       #if 0 
       /*use once you have a close button with its widget*/
       if (SUMAg_SVv[ic].X->ButtClose == w) {
-         if (LocalHead) fprintf (SUMA_STDERR,"%s: Close order from button.\n", FuncName);
+         if (LocalHead) 
+            fprintf (SUMA_STDERR,"%s: Close order from button.\n", FuncName);
          Found = 1;
       }
       #endif
       if (SUMAg_SVv[ic].X->TOPLEVEL == w) {
-         if (LocalHead) fprintf (SUMA_STDERR,"%s: Close order from window manager.\n", FuncName);
+         if (LocalHead) 
+            fprintf (SUMA_STDERR,
+                     "%s: Close order from window manager for viewer %d.\n", 
+                     FuncName, ic);
          Found = 1;
       }else if (SUMAg_SVv[ic].X->GLXAREA == w) { 
-         if (LocalHead) fprintf (SUMA_STDERR,"%s: Close order from GLX area.\n", FuncName);
+         if (LocalHead) 
+            fprintf (SUMA_STDERR,
+                     "%s: Close order from GLX area for viewer %d.\n", 
+                     FuncName, ic);
          Found = 1;
       }
       
@@ -2712,13 +2753,19 @@ void SUMA_ButtClose_pushed (Widget w, XtPointer cd1, XtPointer cd2)
    }
    
    if (Found) {
-         if (LocalHead) fprintf (SUMA_STDERR,"%s: Widget Found\n", FuncName);
+         if (LocalHead) 
+            fprintf (SUMA_STDERR,"%s: Widget Found\n", FuncName);
          
-         /* Must turn off all workprocesses and timeouts for this surface viewer */
+         /* Must turn off all workprocesses and timeouts for 
+            this surface viewer */
          
-         if (LocalHead) fprintf (SUMA_STDERR,"%s: Turning off workprocesses and timeouts ...\n", FuncName);
+         if (LocalHead) 
+            fprintf (SUMA_STDERR,
+                     "%s: Turning off workprocesses and timeouts ...\n", 
+                     FuncName);
          if (SUMAg_SVv[ic].GVS[SUMAg_SVv[ic].StdView].ApplyMomentum) {
-            if (SUMAg_SVv[ic].X->MOMENTUMID) XtRemoveTimeOut(SUMAg_SVv[ic].X->MOMENTUMID); 
+            if (SUMAg_SVv[ic].X->MOMENTUMID) 
+               XtRemoveTimeOut(SUMAg_SVv[ic].X->MOMENTUMID); 
             SUMAg_SVv[ic].X->MOMENTUMID = 0;
          }
          
@@ -2734,7 +2781,8 @@ void SUMA_ButtClose_pushed (Widget w, XtPointer cd1, XtPointer cd2)
          /* done cleaning up, deal with windows ... */
          
          /** Fri Jan  3 09:51:35 EST 2003
-             XtUnrealizeWidget is not used anymore because it destroys windows associated with a widget and its descendants.
+             XtUnrealizeWidget is not used anymore because it destroys 
+             windows associated with a widget and its descendants.
             There's no need for that here. 
             Also, destroying widgets should not be used either because that would automatically destroy the SUMA controller which is a 
             child of one of the viewers. The code for destroy is left for historical reasons.*/
@@ -2765,7 +2813,8 @@ void SUMA_ButtClose_pushed (Widget w, XtPointer cd1, XtPointer cd2)
          SUMAg_SVv[ic].Open = NOPE;
          --SUMAg_CF->N_OpenSV;
          if (SUMAg_CF->N_OpenSV == 0) {
-            if (LocalHead) fprintf (SUMA_STDERR,"%s: No more viewers, exiting.\n", FuncName);
+            if (LocalHead) 
+               fprintf (SUMA_STDERR,"%s: No more viewers, exiting.\n", FuncName);
             /* not quite necessary but for completeness */
             if (SUMAg_CF->X->SumaCont->AppShell) {
                XtDestroyWidget(SUMAg_CF->X->SumaCont->AppShell);
@@ -3071,7 +3120,9 @@ SUMA_Boolean SUMA_RenderToPixMap (SUMA_SurfaceViewer *csv, SUMA_DO *dov)
    /*fprintf(SUMA_STDERR,"%s: Trying to use useless double buffering configuration.\n", FuncName);*/
     vi = glXChooseVisual(dpy, DefaultScreen(dpy), &configuration[0]);
     if (vi == NULL) {
-      fprintf(SUMA_STDERR,"Error %s: no appropriate RGB visual with depth buffer", FuncName);
+      fprintf( SUMA_STDERR,
+               "Error %s: no appropriate RGB visual with depth buffer", 
+               FuncName);
     }
    }
    #else
@@ -3084,7 +3135,8 @@ SUMA_Boolean SUMA_RenderToPixMap (SUMA_SurfaceViewer *csv, SUMA_DO *dov)
     NULL,               /* no sharing of display lists */
     False);             /* direct rendering if possible */
    if (cx == NULL)
-    fprintf(SUMA_STDERR,"Error %s: could not create rendering context", FuncName);
+    fprintf(SUMA_STDERR,
+            "Error %s: could not create rendering context", FuncName);
 
    pmap = XCreatePixmap(dpy, RootWindow(dpy, vi->screen),
     csv->X->WIDTH, csv->X->HEIGHT, vi->depth);
@@ -3899,7 +3951,8 @@ void SUMA_cb_viewSumaCont(Widget w, XtPointer data, XtPointer callData)
 
 /*! if calling this function from outside interface, set w to NULL 
 */
-int SUMA_viewSurfaceCont(Widget w, SUMA_SurfaceObject *SO, SUMA_SurfaceViewer *sv) 
+int SUMA_viewSurfaceCont(Widget w, SUMA_SurfaceObject *SO, 
+                         SUMA_SurfaceViewer *sv) 
 {
    static char FuncName[]={"SUMA_viewSurfaceCont"};
    SUMA_Boolean LocalHead = NOPE;
@@ -3911,26 +3964,36 @@ int SUMA_viewSurfaceCont(Widget w, SUMA_SurfaceObject *SO, SUMA_SurfaceViewer *s
    }
    
    if (!SO->SurfCont->TopLevelShell) {
-      if (LocalHead) fprintf (SUMA_STDERR,"%s: Calling SUMA_cb_createSurfaceCont.\n", FuncName);
+      if (LocalHead) 
+         fprintf (SUMA_STDERR,
+            "%s: Calling SUMA_cb_createSurfaceCont.\n", FuncName);
       if (w) SUMA_cb_createSurfaceCont( w, (XtPointer)SO, NULL);
       else SUMA_cb_createSurfaceCont( sv->X->TOPLEVEL, (XtPointer)SO, NULL);
    }else {
       /* controller already created, need to bring it up again */
       #ifdef SUMA_USE_WITHDRAW
-         if (LocalHead) fprintf (SUMA_STDERR,"%s: Controller already created, Raising it.\n", FuncName);
-         XMapRaised(SUMAg_CF->X->DPY_controller1, XtWindow(SO->SurfCont->TopLevelShell));      
+         if (LocalHead) 
+            fprintf (SUMA_STDERR,
+                     "%s: Controller already created, Raising it.\n", FuncName);
+         XMapRaised( SUMAg_CF->X->DPY_controller1, 
+                     XtWindow(SO->SurfCont->TopLevelShell));      
       #endif
 
    }
    
+   SUMA_LH("Init SurfParam");
    SUMA_Init_SurfCont_SurfParam(SO);
+   SUMA_LH("Init CrossHair");
    SUMA_Init_SurfCont_CrossHair(SO);
    
+   SUMA_LH("Init Position");
    if (SO->SurfCont->PosRef != sv->X->TOPLEVEL) {
       SO->SurfCont->PosRef = sv->X->TOPLEVEL;
-      SUMA_PositionWindowRelative (SO->SurfCont->TopLevelShell, SO->SurfCont->PosRef, SWP_TOP_RIGHT);   
+      SUMA_PositionWindowRelative ( SO->SurfCont->TopLevelShell, 
+                                    SO->SurfCont->PosRef, SWP_TOP_RIGHT);   
    }
    
+   SUMA_LH("Returning");
    SUMA_RETURN(1); 
 }
 
@@ -11607,11 +11670,14 @@ void SUMA_ShowAllVisuals (void)
 
    dpy = XOpenDisplay(NULL);
    if (!dpy) {
-      fprintf(SUMA_STDERR, "Error %s: Could not connect to %s.\n", FuncName, XDisplayName(NULL));
+      fprintf( SUMA_STDERR, 
+               "Error %s: Could not connect to %s.\n", 
+               FuncName, XDisplayName(NULL));
       SUMA_RETURNe;
    }
    if (glXQueryExtension(dpy, &errorBase, &eventBase) == False) {
-      fprintf(SUMA_STDERR, "Error %s: OpenGL not supported by X server.\n" ,FuncName);
+      fprintf(SUMA_STDERR, 
+              "Error %s: OpenGL not supported by X server.\n" ,FuncName);
       SUMA_RETURNe;
    }
 
@@ -11642,25 +11708,31 @@ void SUMA_ShowAllVisuals (void)
       visualToTry->visual, AllocNone);
       swa.colormap = colormap;
       swa.border_pixel = 0;
-      window = XCreateWindow(dpy, RootWindow(dpy, visualToTry->screen), 0, 0, 100, 100,
-      0, visualToTry->depth, InputOutput, visualToTry->visual,
-      CWBorderPixel | CWColormap, &swa);
+      window = XCreateWindow( dpy, RootWindow(dpy, visualToTry->screen), 
+                              0, 0, 100, 100, 0, visualToTry->depth, 
+                              InputOutput, visualToTry->visual,
+                              CWBorderPixel | CWColormap, &swa);
       glXMakeCurrent(dpy, window, context);
       fprintf(SUMA_STDERR, "\n");
       fprintf(SUMA_STDERR, "OpenGL vendor string: %s\n", glGetString(GL_VENDOR));
-      fprintf(SUMA_STDERR, "OpenGL renderer string: %s\n", glGetString(GL_RENDERER));
-      fprintf(SUMA_STDERR, "OpenGL version string: %s\n", glGetString(GL_VERSION));
+      fprintf(SUMA_STDERR, "OpenGL renderer string: %s\n", 
+                           glGetString(GL_RENDERER));
+      fprintf(SUMA_STDERR, "OpenGL version string: %s\n", 
+                           glGetString(GL_VERSION));
       if (glXIsDirect(dpy, context))
          fprintf(SUMA_STDERR, "direct rendering: supported\n");
    } else fprintf(SUMA_STDERR, "No GLX-capable visuals!\n");
    
    if (visualList) XFree(visualList);
 
-   /* which visual will be chosen by SUMA ? (based on Step 3 in SUMA_X_SurfaceViewer_Create) */
+   /* which visual will be chosen by SUMA ? 
+      (based on Step 3 in SUMA_X_SurfaceViewer_Create) */
    /* TopLevel = XtAppInitialize(&App, "SUMA", NULL, 0, &cargc, vargv,
-                              SUMA_get_fallbackResources(), NULL, 0); Superseded by XtOpenApplication*/
+                              SUMA_get_fallbackResources(), NULL, 0); 
+               Superseded by XtOpenApplication*/
    TopLevel = XtOpenApplication(&App, "SUMA", NULL, 0, &cargc, vargv,
-                              SUMA_get_fallbackResources(), topLevelShellWidgetClass, NULL, 0); 
+                                 SUMA_get_fallbackResources(), 
+                                 topLevelShellWidgetClass, NULL, 0); 
    dpy = XtDisplay(TopLevel);
 
    vi = glXChooseVisual(dpy, DefaultScreen(dpy), dblBuf);

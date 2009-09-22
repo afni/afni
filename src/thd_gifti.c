@@ -295,6 +295,8 @@ static gifti_image * NSD_to_gifti(NI_group * ngr, char * fname)
         if( GP->verb ) fprintf(stderr,"** NSD_to_gifti: missing SPARSE_DATA\n");
         RETURN(NULL);
     }
+    /* ZSS: ni_timestep should be in seconds.
+    Before Sep. 18/09 it may have been saved incorrectly in msec */
     timestr = NI_get_attribute(sdel, "ni_timestep");
 
     /* set basic gifti attributes */

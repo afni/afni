@@ -345,10 +345,10 @@ SUMA_SurfaceObject *SUMA_Cmap_To_SO (SUMA_COLOR_MAP *Cmap, float orig[3], float 
    SO->NodeDim = 3;
    SO->EmbedDim = 2;
    SO->FaceSetDim = 3;
-   SO->idcode_str = (char *)SUMA_malloc(SUMA_IDCODE_LENGTH * sizeof(char));
-   SO->NodeList = (float *)SUMA_malloc(SO->N_Node * 3*sizeof(float));
-   SO->FaceSetList = (int *)SUMA_malloc(SO->N_FaceSet * 3 * sizeof(int));
-   SO->PermCol = (GLfloat *)SUMA_malloc(SO->N_Node * 4*sizeof(GLfloat));
+   SO->idcode_str = (char *)SUMA_calloc(SUMA_IDCODE_LENGTH, sizeof(char));
+   SO->NodeList = (float *)SUMA_calloc(SO->N_Node * 3, sizeof(float));
+   SO->FaceSetList = (int *)SUMA_calloc(SO->N_FaceSet * 3,  sizeof(int));
+   SO->PermCol = (GLfloat *)SUMA_calloc(SO->N_Node * 4, sizeof(GLfloat));
    if (!SO->idcode_str || !SO->NodeList || !SO->FaceSetList || !SO->PermCol) { SUMA_SL_Crit("Failed to allocate"); SUMA_RETURN(NULL);}
    
    SUMA_LH("Filling up surface id.");
@@ -503,10 +503,10 @@ SUMA_SurfaceObject *SUMA_Cmap_To_SO_old (SUMA_COLOR_MAP *Cmap, float orig[3], fl
    SO->NodeDim = 3;
    SO->EmbedDim = 2;
    SO->FaceSetDim = 3;
-   SO->idcode_str = (char *)SUMA_malloc(SUMA_IDCODE_LENGTH * sizeof(char));
-   SO->NodeList = (float *)SUMA_malloc(SO->N_Node * 3*sizeof(float));
-   SO->FaceSetList = (int *)SUMA_malloc(SO->N_FaceSet * 3 * sizeof(int));
-   SO->PermCol = (GLfloat *)SUMA_malloc(SO->N_Node * 4*sizeof(GLfloat));
+   SO->idcode_str = (char *)SUMA_calloc(SUMA_IDCODE_LENGTH, sizeof(char));
+   SO->NodeList = (float *)SUMA_calloc(SO->N_Node * 3, sizeof(float));
+   SO->FaceSetList = (int *)SUMA_calloc(SO->N_FaceSet * 3,  sizeof(int));
+   SO->PermCol = (GLfloat *)SUMA_calloc(SO->N_Node * 4, sizeof(GLfloat));
    if (!SO->idcode_str || !SO->NodeList || !SO->FaceSetList || !SO->PermCol) { SUMA_SL_Crit("Failed to allocate"); SUMA_RETURN(NULL);}
    
    SUMA_LH("Filling up surface id.");
@@ -7686,8 +7686,10 @@ SUMA_Boolean SUMA_MergeAfniSO_In_SumaSO(NI_group **aSOp,
          memcpy(  SO->NodeNormList, nelnormals->vec[0], 
                   SO->NodeDim*SO->N_Node*sizeof(float));
          NI_remove_column(nelnormals,0);
+         SO->glar_NodeNormList = (GLfloat *) SO->NodeNormList; 
       } else {
          SO->NodeNormList = NULL;
+         SO->glar_NodeNormList = NULL;
       }
 
       SO->aSO = aSO;

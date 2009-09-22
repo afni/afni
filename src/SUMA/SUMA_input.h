@@ -3,11 +3,34 @@
 
 #define SUMA_BRUSH_BLOCK 500
 
+#define SUMA_APPLE_AltOptMask		(1<<13)     /* empirically determined,
+                                               no sign for it in X.h 
+                                               Would not work for catching
+                                               alt/option+character because
+                                               on mac, this combo maps to
+                                               new characters. See XK_e
+                                               for sample case */
+
 #define SUMA_APPLE_KEY(s) ( (SUMA_iswordin_ci(s,"apl")==1) ? 1:0 )
 #define SUMA_CTRL_KEY(s) ( (SUMA_iswordin_ci(s,"ctrl")==1) ? 1:0 )
 #define SUMA_ALT_KEY(s) ( (SUMA_iswordin_ci(s,"alt")==1) ? 1:0 )
 #define SUMA_AALT_KEY(s) ( (SUMA_APPLE_KEY(s) || SUMA_ALT_KEY(s) ) )
 #define SUMA_SHIFT_KEY(s) ( (SUMA_iswordin_ci(s,"shift")==1) ? 1:0 )
+#define SUMA_GL_ERRS {  \
+   int m_error, m_cnt = 0;  \
+   fprintf (SUMA_STDERR, \
+            "%s (via SUMA_GL_ERRS): Looking for OpenGL errors ...\n", \
+            FuncName); \
+   \
+   while ((m_error = glGetError()) != GL_NO_ERROR) { \
+      ++m_cnt;   \
+     fprintf ( SUMA_STDERR, "GL error %d: %s\n", \
+               m_cnt, gluErrorString(m_error));  \
+   }  \
+   if (!m_cnt) {  \
+      fprintf (SUMA_STDERR, "%s: No errors found.\n", FuncName);  \
+   }\
+}
 
 int SUMA_KeyPress(char *key, char *keyname); 
 int SUMA_bracketleft_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode);

@@ -546,8 +546,9 @@ DList *SUMA_FindClusters ( SUMA_SurfaceObject *SO, int *ni,
                               "%s: Cluster %p is finished, %d nodes\n",
                               FuncName, Clust, Clust->N_Node); 
       
-      if (Opt->AreaLim > 0 && Clust->totalarea < Opt->AreaLim) {
-         SUMA_LH("Cluster less than area limit");
+      if ( (Opt->AreaLim > 0 && Clust->totalarea < Opt->AreaLim)  || 
+           (Opt->NodeLim > 0 && Clust->N_Node < Opt->NodeLim) ) {
+         SUMA_LH("Cluster less than area (or node number) limit");
          SUMA_FreeClustDatum((void *)Clust); Clust = NULL;
       } else {
          mean = Clust->totalvalue/((float)Clust->N_Node);

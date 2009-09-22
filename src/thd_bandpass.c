@@ -10,11 +10,19 @@
 int THD_bandpass_OK( int nx , float dt , float fbot , float ftop , int verb )
 {
    int nfft , jbot,jtop ; float df ;
-
+   static byte wrn=1;
+   
    if( nx   <  9    ) return 0 ;
    if( dt   <= 0.0f ) dt   = 1.0f ;
    if( fbot <  0.0f ) fbot = 0.0f ;
    if( ftop <= fbot ){ ERROR_message("bad bandpass frequencies?"); return 0; }
+   if( wrn && dt   >  60 ) {
+      WARNING_message("Your dt (%f) is high.\n"
+                      "Make sure units are 'sec', not 'msec'.\n"
+                      "This warning will not be repeated.",
+                      dt);
+      wrn = 0;
+   } 
 
    nfft = csfft_nextup_one35(nx) ;
    df   = 1.0f / (nfft * dt) ;
@@ -30,7 +38,7 @@ int THD_bandpass_OK( int nx , float dt , float fbot , float ftop , int verb )
        "bandpass: ntime=%d nFFT=%d dt=%.6g dFreq=%.6g Nyquist=%.6g passband indexes=%d..%d",
        nx, nfft, dt, df, (nfft/2)*df, jbot, jtop) ;
    return 1 ;
-}
+} 
 
 /*--------------------------------------------------------------------------*/
 /*! Bandpass a set of vectors, optionally removing some orts as well.
@@ -48,16 +56,33 @@ int THD_bandpass_vectors( int nlen , int nvec   , float **vec ,
 {
    int nfft,nby2 , iv, jbot,jtop , ndof=0 ; register int jj ;
    float df ;
+   static byte wrn = 1;
    register float *xar, *yar=NULL ;
    register complex *zar ; complex Zero={0.0f,0.0f} ;
 
 ENTRY("THD_bandpass_vectors") ;
 
-   if( nlen < 9 || nvec < 1 || vec == NULL ){ ERROR_message("bad bandpass data?"); RETURN(ndof); }
+   if( nlen < 9 || nvec < 1 || vec == NULL ){ 
+      ERROR_message("bad bandpass data?"); 
+      RETURN(ndof); 
+   }
+   if( wrn && dt   >  60 ) {
+      WARNING_message("Your dt (%f) is high.\n"
+                      "Make sure units are 'sec', not 'msec'.\n"
+                      "This warning will not be repeated.",
+                      dt);
+      wrn = 0;
+   }
    if( dt   <= 0.0f ) dt   = 1.0f ;
    if( fbot <  0.0f ) fbot = 0.0f ;
-   if( ftop <= fbot ){ ERROR_message("bad bandpass frequencies?"); RETURN(ndof); }
-   if( nort >= nlen ){ ERROR_message("too many bandpass orts?")  ; RETURN(ndof); }
+   if( ftop <= fbot ){ 
+      ERROR_message("bad bandpass frequencies?"); 
+      RETURN(ndof); 
+   }
+   if( nort >= nlen ){ 
+      ERROR_message("too many bandpass orts?")  ; 
+      RETURN(ndof); 
+   }
 
    /** setup for FFT **/
 
@@ -69,7 +94,9 @@ ENTRY("THD_bandpass_vectors") ;
    jtop = (int)rint(ftop/df) ;   /* and to ftop */
    if( jtop >= nby2   ) jtop = nby2-1 ;
    if( jbot >= jtop+1 ){
-     ERROR_message("bandpass: fbot and ftop too close ==> jbot=%d jtop=%d",jbot,jtop) ;
+     ERROR_message("bandpass: fbot and ftop too close ==> "
+                   "jbot=%d jtop=%d (df=%f)",
+                   jbot,jtop, df) ;
      RETURN(ndof) ;
    }
 
