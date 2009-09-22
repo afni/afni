@@ -1791,6 +1791,7 @@ SUMA_FS_COLORTABLE *SUMA_CreateFS_ColorTable(int nbins, int len, SUMA_FS_COLORTA
       ct->fname = (char *)SUMA_malloc((len + 1)*sizeof(char));
       if (!ct->bins || !ct->fname) {
          SUMA_SL_Crit("Failed to allocate for ct fields");
+         SUMA_DUMP_TRACE(FuncName);
          if (ct->bins) SUMA_free(ct->bins);
          if (ct->fname) SUMA_free(ct->fname);
          SUMA_free(ct);
@@ -1894,7 +1895,8 @@ SUMA_Boolean SUMA_readFScolorLUT(char *f_name, SUMA_FS_COLORTABLE **ctp)
    else {
        char *eee = getenv("FREESURFER_HOME");
        if (eee) { 
-         colfile = SUMA_append_replace_string(eee,"FreeSurferColorLUT.txt", "/", 0);
+         colfile = 
+            SUMA_append_replace_string(eee,"FreeSurferColorLUT.txt", "/", 0);
        } else {
          SUMA_S_Err("FREESURFER_HOME environment variable not set");
          SUMA_RETURN(NOPE);
@@ -2055,7 +2057,9 @@ SUMA_COLOR_MAP *SUMA_FScolutToColorMap(char *fscolutname, int lbl1, int lbl2, in
    - If a colormap is found, it should be added to SUMAg_CF->scm
    - Based on code provided by Bruce Fischl
 */
-SUMA_Boolean SUMA_readFSannot (char *f_name, char *f_ROI, char *f_cmap, char *f_col, int Showct)
+SUMA_Boolean SUMA_readFSannot (char *f_name, 
+                               char *f_ROI, char *f_cmap, char *f_col, 
+                               int Showct, char *ctfile)
 {
    static char FuncName[]={"SUMA_readFSannot"};
    int n_labels = -1, ex, ni, chnk, j, annot, r, g, b, imap;
@@ -2074,14 +2078,28 @@ SUMA_Boolean SUMA_readFSannot (char *f_name, char *f_ROI, char *f_cmap, char *f_
    
    /* check for existence */
 	if (!SUMA_filexists(f_name)) {
-		fprintf(SUMA_STDERR,"Error %s: File %s does not exist or cannot be read.\n", FuncName, f_name);
+		fprintf(SUMA_STDERR,
+         "Error %s: File %s does not exist or cannot be read.\n", 
+         FuncName, f_name);
 		SUMA_RETURN (NOPE);
 	}else if (LocalHead) {
-		fprintf(SUMA_STDERR,"%s: File %s exists and will be read.\n", FuncName, f_name);
+		fprintf( SUMA_STDERR,
+               "%s: File %s exists and will be read.\n", 
+               FuncName, f_name);
 	}
+   
+   if (ctfile) {
+      if (!(SUMA_readFScolorLUT(ctfile, &ct))) {
+         SUMA_S_Errv("Failed to read FS color table %s\n", ctfile);
+         SUMA_RETURN (NOPE);
+      }
+   }
+   
    if (f_ROI) { /* check for existence of ROI file */
       if (SUMA_filexists(f_ROI)) { 
-         fprintf(SUMA_STDERR,"Error %s: File %s exists, will not overwrite.\n", FuncName, f_ROI);
+         fprintf( SUMA_STDERR,
+                  "Error %s: File %s exists, will not overwrite.\n", 
+                  FuncName, f_ROI);
 	      SUMA_RETURN (NOPE);
       }else {
          fr = fopen(f_ROI, "w");
@@ -2094,7 +2112,9 @@ SUMA_Boolean SUMA_readFSannot (char *f_name, char *f_ROI, char *f_cmap, char *f_
    
    if (f_cmap) { /* check for existence of ROI file */
       if (SUMA_filexists(f_cmap)) { 
-         fprintf(SUMA_STDERR,"Error %s: File %s exists, will not overwrite.\n", FuncName, f_cmap);
+         fprintf( SUMA_STDERR,
+                  "Error %s: File %s exists, will not overwrite.\n", 
+                  FuncName, f_cmap);
 	      SUMA_RETURN (NOPE);
       }else {
          fc = fopen(f_cmap, "w");
@@ -2107,7 +2127,9 @@ SUMA_Boolean SUMA_readFSannot (char *f_name, char *f_ROI, char *f_cmap, char *f_
    
    if (f_col) { /* check for existence of ROI file */
       if (SUMA_filexists(f_col)) { 
-         fprintf(SUMA_STDERR,"Error %s: File %s exists, will not overwrite.\n", FuncName, f_col);
+         fprintf(SUMA_STDERR,
+                 "Error %s: File %s exists, will not overwrite.\n", 
+                 FuncName, f_col);
 	      SUMA_RETURN (NOPE);
       }else {
          fo = fopen(f_col, "w");
@@ -2146,13 +2168,19 @@ SUMA_Boolean SUMA_readFSannot (char *f_name, char *f_ROI, char *f_cmap, char *f_
    }
 
    if (ex != EOF) {
-      if (LocalHead) fprintf(SUMA_STDERR,"%s:\n Expecting to read %d labels\n", FuncName, n_labels);
+      if (LocalHead) 
+         fprintf( SUMA_STDERR,
+                  "%s:\n Expecting to read %d labels\n", 
+                  FuncName, n_labels);
    }   
    SUMA_LH("Reading annotations...");
    for (j=0; j<n_labels; ++j) {
       SUMA_READ_INT (&ni, bs, fl, ex);
       if (ni < 0 || ni >= n_labels) {
-         fprintf(SUMA_STDERR,"Error %s:\n Read a node index of %d. Bad because  < 0 or > %d\n", FuncName, ni, n_labels);
+         fprintf(SUMA_STDERR,
+                 "Error %s:\n"
+                 " Read a node index of %d. Bad because  < 0 or > %d\n", 
+                 FuncName, ni, n_labels);
          SUMA_RETURN(NOPE);
       }
       SUMA_READ_INT (&annot, bs, fl, ex);
@@ -2167,50 +2195,67 @@ SUMA_Boolean SUMA_readFSannot (char *f_name, char *f_ROI, char *f_cmap, char *f_
       }
    }
    
-   SUMA_LH("Searching for colortables");
-   while (!feof(fl)) {
-      SUMA_READ_INT (&tg, bs, fl, ex);
-      SUMA_LHv("tg = %d (%d is FS_ANNOT_TAG_COLORTABLE)\n", tg,  SUMA_FS_ANNOT_TAG_COLORTABLE);
-      if (tg == SUMA_FS_ANNOT_TAG_COLORTABLE) {
-         if (ct) {
-            SUMA_S_Warn("Already have a color table\n"
-                        "ignoring second one in file.\n"
-                        "If you want it, post a message to\n"
-                        "AFNI's message board\n");
-            break;
+   if (!ct) {
+      SUMA_LH("Searching for colortables");
+      while (!feof(fl)) {
+         SUMA_READ_INT (&tg, bs, fl, ex);
+         SUMA_LHv("tg = %d (%d is FS_ANNOT_TAG_COLORTABLE)\n", 
+                   tg,  SUMA_FS_ANNOT_TAG_COLORTABLE);
+         if (tg == SUMA_FS_ANNOT_TAG_COLORTABLE) {
+            if (ct) {
+               SUMA_S_Warn("Already have a color table\n"
+                           "ignoring second one in file.\n"
+                           "If you want it, post a message to\n"
+                           "AFNI's message board\n");
+               break;
+            }
+            SUMA_READ_INT (&nbins, bs, fl, ex);
+            SUMA_READ_INT (&len, bs, fl, ex);
+            SUMA_LHv("Found color table (nbins %d, len %d)\n", nbins, len);
+            if (  nbins <= 0  || nbins > 500 || 
+                  len <= 0 || len > 500 ) { /* upper limit is just a guess ... */
+               SUMA_S_Warnv("bad nbins (%d) or len (%d).\n"
+                           "Color table will not be created, \n"
+                           "and annotation values will be used instead \n"
+                           "of indices into a colormap.\n"
+                           "You can use -FScmap option to specify\n"
+                           "a colormap in an external file.\n",
+                           nbins, len);
+               break;
+            }
+            ct = SUMA_CreateFS_ColorTable(nbins, len, NULL);
+            fread(ct->fname, sizeof(char), len, fl) ;
+            SUMA_LHv("fname: %s\n", ct->fname);
+            for (i = 0 ; i < nbins ; i++)
+            {
+                   cte = &ct->bins[i] ; cte->i = i;
+                   SUMA_READ_INT (&len, bs, fl, ex);
+                   if (len < 0 || len > SUMA_FS_STRLEN ) {
+                        SUMA_SL_Err("Too long a name");
+                        SUMA_RETURN(NOPE);
+                   }
+                   fread(cte->name, sizeof(char), len, fl) ;
+                   SUMA_READ_INT (&(cte->r), bs, fl, ex);
+                   SUMA_READ_INT (&(cte->g), bs, fl, ex);
+                   SUMA_READ_INT (&(cte->b), bs, fl, ex);
+                   SUMA_READ_INT (&(cte->flag), bs, fl, ex);
+                   SUMA_LHv("name: %s, r,g,b,f = %d %d %d %d\n", 
+                        cte->name, cte->r, cte->g, cte->b, cte->flag);
+            }
+
          }
-         SUMA_LH("Found color table");
-         SUMA_READ_INT (&nbins, bs, fl, ex);
-         SUMA_READ_INT (&len, bs, fl, ex);
-         ct = SUMA_CreateFS_ColorTable(nbins, len, NULL);
-         fread(ct->fname, sizeof(char), len, fl) ;
-         SUMA_LHv("fname: %s\n", ct->fname);
-         for (i = 0 ; i < nbins ; i++)
-         {
-                cte = &ct->bins[i] ; cte->i = i;
-                SUMA_READ_INT (&len, bs, fl, ex);
-                if (len < 0 || len > SUMA_FS_STRLEN ) {
-                     SUMA_SL_Err("Too long a name");
-                     SUMA_RETURN(NOPE);
-                }
-                fread(cte->name, sizeof(char), len, fl) ;
-                SUMA_READ_INT (&(cte->r), bs, fl, ex);
-                SUMA_READ_INT (&(cte->g), bs, fl, ex);
-                SUMA_READ_INT (&(cte->b), bs, fl, ex);
-                SUMA_READ_INT (&(cte->flag), bs, fl, ex);
-                SUMA_LHv("name: %s, r,g,b,f = %d %d %d %d\n", 
-                     cte->name, cte->r, cte->g, cte->b, cte->flag);
-         }
-         
+         /* reset flag values, on mac for some reason feof seems 
+            to fail even if on linux say feof(fl) would return true 
+            at that point. When that happens,
+            tg keeps its last value and a new colortable of junk gets built
+            */
+         tg = -1;  nbins = -1;
       }
-      /* reset flag values, on mac for some reason feof seems to fail even if on 
-         linux say feof(fl) would return true at that point. When that happens,
-         tg keeps its last value and a new colortable of junk gets built
-         */
-      tg = -1;  nbins = -1;
+   } else {
+      SUMA_LHv("Using colortable from %s\n", ctfile);
    }             
    
-   if (fc) { /* write the colormap to a file */
+   if (fc && ct) { /* write the colormap to a file */
       fprintf(fc, "#name\n#bin  r  g  b  flag \n");
       for (i=0; i<ct->nbins; ++i) {
          fprintf(fc, "#%s\n", ct->bins[i].name);
@@ -2222,7 +2267,12 @@ SUMA_Boolean SUMA_readFSannot (char *f_name, char *f_ROI, char *f_cmap, char *f_
    
    if (fr) { /* write the annotation, ROI style  */
       if (ct) {
-         fprintf(fr, "#NodeID  ROI(indexed into labels cmap)  r  g  b \n");
+         if (ctfile) {
+            fprintf(fr, "#NodeID  ROI(indexed into labels cmap %s)  r  g  b \n", 
+                        ctfile);
+         } else {
+            fprintf(fr, "#NodeID  ROI(indexed into labels cmap)  r  g  b \n");
+         }
          for (i=0; i < n_labels; ++i) {
                j = 0;
                imap = -1;
@@ -2237,18 +2287,24 @@ SUMA_Boolean SUMA_readFSannot (char *f_name, char *f_ROI, char *f_cmap, char *f_
                if (imap < 0) {
                   static int iwarn;
                   if (!iwarn) {
-                     SUMA_SL_Warn("Node Color (label) not found in cmap.\nMarking with annotation value.\nFurther occurences will not be reported.");
+                     SUMA_SL_Warn("Node Color (label) not found in cmap.\n"
+                                  "Marking with annotation value.\n"
+                                  "Further occurences will not be reported.");
                      ++iwarn;
                   }
                   imap = anv[i];
                }
                fprintf(fr, "%d  %d  %f %f %f   \n",
-                        niv[i], imap, (float)rv[i]/255.0, (float)gv[i]/255.0, (float)bv[i]/255.0);
+                        niv[i], imap, 
+                        (float)rv[i]/255.0, 
+                        (float)gv[i]/255.0, (float)bv[i]/255.0);
          }
       } else { /* no color map */
-         fprintf(fr, "#NodeID  Annotation\n");
+         fprintf(fr, "#NodeID  Annotation  r  g  b \n");
          for (i=0; i < n_labels; ++i) {
-            fprintf(fr, "%d  %d \n", niv[i], anv[i]);
+            fprintf(fr, "%d  %d  %f %f %f   \n", niv[i], anv[i], 
+                        (float)rv[i]/255.0, 
+                        (float)gv[i]/255.0, (float)bv[i]/255.0);
          }
       }
    }
@@ -2258,12 +2314,16 @@ SUMA_Boolean SUMA_readFSannot (char *f_name, char *f_ROI, char *f_cmap, char *f_
          fprintf(fo, "#NodeID  r  g  b \n");
          for (i=0; i < n_labels; ++i) {
                fprintf(fo, "%d  %f %f %f   \n",
-                        niv[i], (float)rv[i]/255.0, (float)gv[i]/255.0, (float)bv[i]/255.0);
+                        niv[i], (float)rv[i]/255.0, 
+                        (float)gv[i]/255.0, (float)bv[i]/255.0);
          }
       } else { /* no color map */
-         fprintf(fo, "#NodeID  Annotation\n");
+         fprintf(fo, "#NodeID  r  g  b \n");
          for (i=0; i < n_labels; ++i) {
-            fprintf(fo, "%d  %d \n", niv[i], anv[i]);
+            /* fprintf(fo, "%d  %d \n", niv[i], anv[i]); */
+            fprintf(fo, "%d  %f %f %f   \n",
+                        niv[i], (float)rv[i]/255.0, 
+                        (float)gv[i]/255.0, (float)bv[i]/255.0);
          }
       }
    }

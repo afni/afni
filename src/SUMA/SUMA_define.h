@@ -1066,10 +1066,12 @@ typedef struct{
    int cell_modified; /*!< set to 1D index (column major) of cell_value edited, 
                            i = cell_modified % Ni, j = cell_modified / Ni 
                            cell_modified = j * Ni + i */
+   SUMA_NUMERICAL_UNITS num_units;
 } SUMA_TABLE_FIELD;
 
 typedef struct {
    Widget cmap_wid;  /*! GLXAREA widget for displaying colormap */
+   int CrappyDrawable;
    float FOV;  /*! FOV for viewing colormap */
    GLXContext cmap_context;   /* graphic context for cmap */
    float translateVec[3];
@@ -1220,7 +1222,7 @@ typedef struct {
    Colormap CMAP;
    Bool DOUBLEBUFFER;
    char *Title; 
-   int REDISPLAYPENDING;
+   int REDISPLAYPENDING, CrappyDrawable;
    int WIDTH, HEIGHT;
    XtWorkProcId REDISPLAYID;
    XtIntervalId MOMENTUMID;

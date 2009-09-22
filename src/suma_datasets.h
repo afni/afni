@@ -77,6 +77,14 @@ typedef struct {
 #define YUP 1
 /* typedef enum { NOPE, YUP} SUMA_Boolean;     make sure SUMA_Boolean is byte */ 
 
+typedef enum { SUMA_NO_NUM_UNITS = 0, 
+               SUMA_MM_UNITS,
+               SUMA_P_VALUE_UNITS,
+               SUMA_Q_VALUE_UNITS,
+               
+               SUMA_N_NUMERICAL_UNITS
+               } SUMA_NUMERICAL_UNITS;
+
 typedef enum { SUMA_notypeset = -1, 
                SUMA_byte = NI_BYTE, 
                SUMA_short = NI_SHORT, 
@@ -1422,6 +1430,7 @@ SUMA_Boolean SUMA_isExtension(char *filename, char *ext);
 char * SUMA_CropExtension(char *filename, char *ext);
 void *SUMA_Free_Parsed_Name(SUMA_PARSED_NAME *Test);
 char *SUMA_FnameGet(char *Fname, char *sel, char *cwd);
+int SUMA_NumStringUnits (char *s, int marktip); 
 int SUMA_StringToNum (char *s, void *vv, int N, int p);
 int SUMA_isNumString (char *s, void *p);
 int SUMA_CleanNumString (char *s, void *p);

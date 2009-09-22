@@ -471,6 +471,7 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
       SV->X->REDISPLAYID = SV->X->MOMENTUMID = 0;
       SV->X->CMAP = 0;
       SV->X->GLXCONTEXT=NULL;
+      SV->X->CrappyDrawable = 0;
       SV->X->gc=NULL;
       SV->X->ToggleCrossHair_View_tglbtn=NULL;
       for (iii=0; iii<SW_N_Tools; ++iii) {
@@ -2367,6 +2368,7 @@ SUMA_X_SurfCont *SUMA_CreateSurfContStruct (char *idcode_str)
    SurfCont->PosRef = NULL;
    SurfCont->cmp_ren = 
       (SUMA_CMAP_RENDER_AREA *)SUMA_calloc(1, sizeof(SUMA_CMAP_RENDER_AREA));
+   SurfCont->cmp_ren->CrappyDrawable = 0;
    SurfCont->cmp_ren->cmap_wid = NULL;
    SurfCont->cmp_ren->FOV = SUMA_CMAP_FOV_INITIAL;
    SurfCont->cmp_ren->cmap_context = NULL;

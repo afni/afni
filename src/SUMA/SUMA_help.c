@@ -1249,7 +1249,10 @@ char * SUMA_help_message_Info(void)
    SS = SUMA_StringAppend (SS, s); SUMA_free(s); s = NULL;
    
    SS = SUMA_StringAppend (SS, 
-      "\nKeyboard Controls (substitute Alt with Apple key on MACs)\n");
+      "\nKeyboard Controls\n"
+      "   Note: On MACs, Alt is the Apple/Command key.\n"
+      "   If it is commandeered by OS, and you can't get it back, then\n"
+      "   try the alt/option key instead.\n");
    SS = SUMA_StringAppend (SS, 
       "     a: attenuation by background, toggle.\n\n");
    SS = SUMA_StringAppend (SS, 

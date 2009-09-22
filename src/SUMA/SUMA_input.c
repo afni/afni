@@ -2475,8 +2475,12 @@ int SUMA_Right_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
 
    SUMA_RETURN(1);
 }
-/*! Mouse and Keyboard input handler function for SUMA's viewer*/
 
+#define SUMA_ALTHELL ( (Kev.state & Mod1Mask) || \
+                       (Kev.state & Mod2Mask) ||  \
+                       (Kev.state & SUMA_APPLE_AltOptMask) )
+                       
+/*! Mouse and Keyboard input handler function for SUMA's viewer*/
 void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 {
    static char FuncName[]= {"SUMA_input"};
@@ -2551,13 +2555,16 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
       if (Kev.state & Mod5Mask){
          fprintf (SUMA_STDERR,"%s: Mod5 down\n", FuncName);
       }
-      fprintf (SUMA_STDERR,"\n\n");
+      if (Kev.state & SUMA_APPLE_AltOptMask){
+         fprintf (SUMA_STDERR,"%s: Apple Alt/Opt down\n", FuncName);
+      }
+      fprintf (SUMA_STDERR,"state %d\n\n", Kev.state);
    #endif
    
   switch (Kev.type) { /* switch event type */
   case KeyPress:
       xls = XLookupString((XKeyEvent *) cd->event, buffer, 8, &keysym, NULL);
-      
+
       /* XK_* are found in keysymdef.h */ 
       switch (keysym) { /* keysym */
          case XK_bracketleft: /* The left bracket */
@@ -2692,7 +2699,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             break;            
 
          case XK_C:
-            if (SUMAg_CF->Dev && (Kev.state & Mod1Mask || Kev.state & Mod2Mask)){
+            if (SUMAg_CF->Dev && (SUMA_ALTHELL)){
                SUMAg_CF->X->ClipObj_prmpt = SUMA_CreatePromptDialogStruct (SUMA_OK_APPLY_CLEAR_CANCEL, "Enter object clip plane parameters (a,b,c,d)", 
                                                       "A: 0,0,1,0",
                                                       sv->X->TOPLEVEL, YUP,
@@ -2783,7 +2790,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             
          case XK_D:
             if (SUMAg_CF->Dev) {
-               if (Kev.state & Mod1Mask || Kev.state & Mod2Mask){ 
+               if (SUMA_ALTHELL){ 
                   /*  Mod1Mask is alt in linux, Mod2Mask is the apple on mac*/
                } else {
                   if (!SUMA_D_Key(sv,"D", "interactive")) {
@@ -2795,7 +2802,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             
          case XK_d:
             if (SUMAg_CF->Dev) {
-               if (Kev.state & Mod1Mask || Kev.state & Mod2Mask){ 
+               if (SUMA_ALTHELL){ 
                   /*  Mod1Mask is alt in linux, Mod2Mask is the apple on mac*/
                } else {
                   if (!SUMA_D_Key(sv,"d", "interactive")) {
@@ -2804,19 +2811,14 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                }
             }
             break;
-
+            
          case XK_e:
+         case XK_dead_acute:  /* that is alt/option+e on macs 
+                               XK_dead_acute is 0xfe51 or decimal 65105 */
             if (SUMAg_CF->Dev) {
-               if (Kev.state & Mod1Mask || Kev.state & Mod2Mask){ /*  Mod1Mask is alt in linux, Mod2Mask is the apple on mac*/
-                  int error, cnt = 0;
-                  fprintf (SUMA_STDERR, "%s: Looking for OpenGL errors ...\n", FuncName);
-                  while ((error = glGetError()) != GL_NO_ERROR) {
-                     ++cnt;
-                    fprintf (SUMA_STDERR, "GL error %d: %s\n", cnt, gluErrorString(error)); 
-                  }
-                  if (!cnt) {
-                     fprintf (SUMA_STDERR, "%s: No errors found.\n", FuncName);
-                  }
+               if (SUMA_ALTHELL){ /* Mod1Mask is alt in linux, 
+                                     Mod2Mask is the apple on mac*/
+                  SUMA_GL_ERRS;
                }
             }
             break;
@@ -2824,7 +2826,8 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
          case XK_F:
             /* flip light position */
             if (!list) list = SUMA_CreateList(); 
-            SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_FlipLight0Pos, SES_Suma, sv);
+            SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_FlipLight0Pos, 
+                                                SES_Suma, sv);
             SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Redisplay, SES_Suma, sv);
 
             if (!SUMA_Engine (&list)) {
@@ -2893,7 +2896,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                }
             }
             break;
-
+         
          case XK_j:
                #if 0
                if (Kev.state & ControlMask){     
@@ -2910,7 +2913,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                
                   sv->X->JumpXYZ_prmpt = SUMA_CreatePromptDialog(sv->X->Title, sv->X->JumpXYZ_prmpt);  
 
-               } else if (Kev.state & Mod1Mask || Kev.state & Mod2Mask){     
+               } else if (SUMA_ALTHELL){     
                   sv->X->JumpFocusNode_prmpt = SUMA_CreatePromptDialogStruct (SUMA_OK_APPLY_CLEAR_CANCEL, 
                                                       "Enter index of focus node\nCross hair's XYZ will not be affected:", 
                                                       "",
@@ -2943,7 +2946,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   if (!SUMA_J_Key(sv, "ctrl+j", "interactive", NULL)) {
                      SUMA_S_Err("Failed in key func.");
                   }
-               } else if (Kev.state & Mod1Mask || Kev.state & Mod2Mask){
+               } else if (SUMA_ALTHELL){
                   if (!SUMA_J_Key(sv, "alt+j", "interactive", NULL)) {
                      SUMA_S_Err("Failed in key func.");
                   }
@@ -2993,7 +2996,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                      fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
                   }
                }
-            } if (Kev.state & Mod1Mask  || Kev.state & Mod2Mask){ /* alt + l */
+            } if (SUMA_ALTHELL){ /* alt + l */
                /* register cross hair XYZ with ED */
                if (!list) list = SUMA_CreateList();
                ED = SUMA_InitializeEngineListData (SE_SetLookAt);
@@ -3075,7 +3078,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             break;
          
          case XK_M:
-            if ((Kev.state & Mod1Mask || Kev.state & Mod2Mask) && (Kev.state & ControlMask) ){
+            if ((SUMA_ALTHELL) && (Kev.state & ControlMask) ){
                   if (!SUMA_M_Key(sv, "alt+ctrl+M", "interactive")) {
                      SUMA_S_Err("Failed in key func.");
                   }
@@ -3123,7 +3126,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             break;
          
          case XK_r:
-            if (SUMAg_CF->Dev && (Kev.state & Mod1Mask || Kev.state & Mod2Mask)) {
+            if (SUMAg_CF->Dev && (SUMA_ALTHELL)) {
                if (!SUMA_R_Key(sv, "alt+r", "interactive")) {
                   SUMA_S_Err("Failed in key func.");
                }
@@ -3158,7 +3161,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                break;
             }
          case XK_s:
-            if ((Kev.state & Mod1Mask || Kev.state & Mod2Mask) && (Kev.state & ControlMask) ){
+            if ((SUMA_ALTHELL) && (Kev.state & ControlMask) ){
                if (!list) list = SUMA_CreateList();
                ED = SUMA_InitializeEngineListData (SE_LoadSegDO);
                if (!SUMA_RegisterEngineListCommand (  list, ED,
@@ -3171,7 +3174,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                      fprintf(SUMA_STDERR, "Error %s: SUMA_Engine call failed.\n", FuncName);
                }               
    
-            } else if (Kev.state & Mod1Mask || Kev.state & Mod2Mask){
+            } else if (SUMA_ALTHELL){
                /* swap buttons 1 and 3 */
                SUMAg_CF->SwapButtons_1_3 = !SUMAg_CF->SwapButtons_1_3;
                if (SUMAg_CF->SwapButtons_1_3) {
@@ -3636,8 +3639,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   SUMA_S_Err("Error in key func.");
                   break;
                }   
-            }else if (Kev.state & Mod1Mask  || 
-                      Kev.state & Mod2Mask) {
+            }else if (SUMA_ALTHELL) {
                if (!SUMA_Left_Key(sv, "alt+left", "interactive")) {
                   SUMA_S_Err("Error in key func.");
                   break;
@@ -3668,7 +3670,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   SUMA_S_Err("Error in key func.");
                   break;
                }  
-            }else if (Kev.state & Mod1Mask || Kev.state & Mod2Mask) {
+            }else if (SUMA_ALTHELL) {
                if (!SUMA_Right_Key(sv, "alt+right", "interactive")) {
                   SUMA_S_Err("Error in key func.");
                   break;
@@ -3698,7 +3700,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   SUMA_S_Err("Error in key func.");
                   break;
                } 
-            }else if (Kev.state & Mod1Mask || Kev.state & Mod2Mask) {
+            }else if (SUMA_ALTHELL) {
                if (!SUMA_Down_Key(sv, "alt+down", "interactive")) {
                   SUMA_S_Err("Error in key func.");
                   break;
@@ -3729,7 +3731,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   SUMA_S_Err("Error in key func.");
                   break;
                }
-            }else if (Kev.state & Mod1Mask || Kev.state & Mod2Mask) {
+            }else if (SUMA_ALTHELL) {
                if (!SUMA_Up_Key(sv, "alt+up", "interactive")) {
                   SUMA_S_Err("Error in key func.");
                   break;

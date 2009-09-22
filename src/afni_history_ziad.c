@@ -65,6 +65,16 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 18 , SEP , 2009 , ZSS , "FSread_annot" , MINOR , TYPE_NEW_OPT ,
+   "Allow specifying external FreeSurfer color table.",
+   NULL
+ } ,
+
+ { 18 , SEP , 2009 , ZSS , "SurfClust" , MINOR , TYPE_NEW_OPT ,
+   "Added option -n minnodes",
+   NULL
+ } ,
+
  { 14 , SEP , 2009 , ZSS , "SurfClust" , MINOR , TYPE_NEW_OPT ,
    "Allow specifying rmm in number of edges connecting nodes.",
    NULL
