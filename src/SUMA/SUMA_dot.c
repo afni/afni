@@ -169,7 +169,7 @@ NI_element *SUMA_set_dotopts(NI_element *dotopt, int ts_len,
    }
                            
    /* get the filtering option */
-   NI_GET_FLOAT(dotopt, "fliter_above", ftop);
+   NI_GET_FLOAT(dotopt, "filter_above", ftop);
    if (!NI_GOT) ftop = 99999999.9; /* Hz, what elese did you expect? */
    NI_GET_FLOAT(dotopt, "filter_below", fbot);
    if (!NI_GOT) fbot = 0;
@@ -177,8 +177,10 @@ NI_element *SUMA_set_dotopts(NI_element *dotopt, int ts_len,
    /* initialize pending to nothing */
    NI_set_attribute(dotopt, "pending", "");
 
+   if (LocalHead) {
+      SUMA_ShowNel(dotopt);
+   }
    SUMA_RETURN(dotopt);
-     
 }
 
 int SUMA_DotXform_GetRecomputeForDset (NI_element *dotopts, char *id)
@@ -337,6 +339,7 @@ double *SUMA_DotPreProcessTimeSeries(float *fv, int N_ts,
    float **ort=NULL, ftop=9999999.9, fbot=0.0;
    double *ts=NULL;
    int ii =0;
+   SUMA_Boolean LocalHead = YUP;
    
    SUMA_ENTRY;
    
@@ -347,7 +350,7 @@ double *SUMA_DotPreProcessTimeSeries(float *fv, int N_ts,
       if (dotopts->vec_num) { /* something to ort */
          if (dotopts->vec_len != N_ts) {
             SUMA_S_Err("bad dotopts->vec_len");
-            SUMA_RETURNe;
+            SUMA_RETURN(NULL);
          }
          ort = (float **)SUMA_calloc(dotopts->vec_num, sizeof(float *));
          for (ii=0; ii<dotopts->vec_num; ++ii) 
@@ -355,13 +358,21 @@ double *SUMA_DotPreProcessTimeSeries(float *fv, int N_ts,
       } else {
          ort = NULL;
       }
-      NI_GET_FLOAT(dotopts, "fliter_above", ftop);
+      NI_GET_FLOAT(dotopts, "filter_above", ftop);
       if (!NI_GOT) ftop = 99999999.9; /* Hz, what elese did you expect? */
       NI_GET_FLOAT(dotopts, "filter_below", fbot);
       if (!NI_GOT) fbot = 0.0;
-      THD_bandpass_vectors( N_ts , 1   , &fv ,
-                            (float)TR , fbot ,  ftop  ,
-                            0 , dotopts->vec_num   , ort  );
+      
+      SUMA_LHv("HERE: fbot: %f\tftop: %f\n", fbot, ftop);
+      /* SUMA_ShowNel(dotopts); */
+      
+      if (!THD_bandpass_vectors( N_ts , 1   , &fv ,
+                                 (float)TR , fbot ,  ftop  ,
+                                 0 , dotopts->vec_num   , ort  )) {
+         SUMA_S_Err("Bad bandpass call");
+         SUMA_RETURN(NULL);                           
+      }
+      SUMA_LH("Back from purgatorium");
       if (ort) free(ort); ort = NULL;
     }  
     
@@ -373,7 +384,7 @@ double *SUMA_DotPreProcessTimeSeries(float *fv, int N_ts,
    for (ii=0; ii<N_ts; ++ii)  {
       ts[ii] = (double)fv[ii];
    }
-   RETURN(ts);
+   SUMA_RETURN(ts);
 }
 
 void SUMA_dot_product_CB( void *params) 
@@ -635,6 +646,10 @@ SUMA_DSET *SUMA_DotDetrendDset(  SUMA_DSET *in_dset,
    nnort = THD_bandpass_vectors (SDSET_VECNUM(in_dset), SDSET_VECLEN(in_dset), 
                                  fvec, (float)TR, fbot, ftop, qdet, nref, 
                                  refvec);
+   if (!nnort) {
+      SUMA_S_Err("Bad bandpass call, going to hell now.");
+      SUMA_RETURN(NULL);
+   }
    if (num_ort) *num_ort = nnort;
    
    /* normalize */

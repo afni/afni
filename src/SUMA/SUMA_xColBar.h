@@ -57,9 +57,10 @@
    This one below does not work, all three three strings have the same value
    sprintf(str,"%s, %s, %s", \
       MV_format_fval2(v[0], 7),  MV_format_fval2(v[1], 7),  MV_format_fval2(v[2], 7)); */\
-   sprintf(str,"%s", MV_format_fval2(v[0], 7)); \
-   sprintf(str,"%s, %s", str, MV_format_fval2(v[1], 7)); \
-   sprintf(str,"%s, %s", str, MV_format_fval2(v[2], 7)); \
+   sprintf(str,"%s, ", MV_format_fval2(v[0], 7)); \
+   strcat(str, MV_format_fval2(v[1], 7)); \
+   strcat(str, ", ");   \
+   strcat(str,MV_format_fval2(v[2], 7)); \
 }
 
 #define SUMA_INSERT_CELL_STRING(TF, i, j, strng)   {  \
@@ -367,8 +368,11 @@ void SUMA_UpdatePvalueField (SUMA_SurfaceObject *SO, float thresh);
    "Switch between datasets."
 
 #define SUMA_SurfContHelp_SetThreshTblr0   \
-   "Set the threshold."
-
+   "Set the threshold.\n"  \
+   "For statistical parameters, you can \n"  \
+   "append a 'p' to set by the p value.\n" \
+   "For example 0.001p\n"
+   
 #define SUMA_SurfContHelp_DsetLoad  \
    "Load a new dataset (Dset).\n"   \
    "Datasets can be of 2 formats:\n"   \

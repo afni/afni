@@ -17,6 +17,7 @@ typedef struct {
    char *out_prefix;   /* this one's dynamically allocated so you'll have to free it yourself */
    float DistLim;
    float AreaLim;
+   int NodeLim;
    int DoThreshold;
    float Thresh;
    int tind;

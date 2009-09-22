@@ -33,6 +33,7 @@ void usage_SUMA_SurfClust ()
 "            <-input inData.1D dcol_index> \n"
 "            <-rmm rad>\n"
 "            [-amm2 minarea]\n"
+"            [-n minnodes]\n"
 "            [-prefix OUTPREF]  \n"
 "            [-out_clusterdset] [-out_roidset] \n"
 "            [-out_fulllist]\n"
@@ -66,8 +67,10 @@ void usage_SUMA_SurfClust ()
 "                   A node n is considered if thresh_col[n] > tval.\n"
 "     -athresh tval: Apply absolute thresholding prior to clustering.\n"
 "                    A node n is considered if | thresh_col[n] | > tval.\n" 
-"     -amm2 minarea: Do not output resutls for clusters having\n"
+"     -amm2 minarea: Do not output results for clusters having\n"
 "                    an area less than minarea.\n"
+"     -n  minnodes: Do not output results for clusters having\n"
+"                    less nodes than minnodes.\n" 
 "     -prefix OUTPREF: Prefix for output.\n"
 "                      Default is the prefix of \n"
 "                      the input dataset.\n"
@@ -211,6 +214,7 @@ SUMA_SURFCLUST_OPTIONS *SUMA_SurfClust_ParseInput (char *argv[], int argc)
    Opt->N_surf = -1;
    Opt->DistLim = -1.5;
    Opt->AreaLim = -1.0;
+   Opt->NodeLim = -1;
    Opt->in_name = NULL;
    Opt->nodecol = -1;
    Opt->labelcol = -1;
@@ -286,7 +290,9 @@ SUMA_SURFCLUST_OPTIONS *SUMA_SurfClust_ParseInput (char *argv[], int argc)
 			}
 			Opt->update = atof(argv[kar]);
          if (Opt->update < 1 || Opt->update > 100) {
-            fprintf (SUMA_STDERR, "-update needs a parameter between 1 and 50 (I have %.1f)\n", Opt->update);
+            fprintf (SUMA_STDERR, 
+                     "-update needs a parameter between "
+                     "1 and 50 (I have %.1f)\n", Opt->update);
          }
 			brk = YUP;
 		}
@@ -387,6 +393,16 @@ SUMA_SURFCLUST_OPTIONS *SUMA_SurfClust_ParseInput (char *argv[], int argc)
 			Opt->AreaLim = atof(argv[kar]);
 			brk = YUP;
 		}
+
+      if (!brk && (strcmp(argv[kar], "-n") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need argument after -n \n");
+				exit (1);
+			}
+			Opt->NodeLim = atoi(argv[kar]);
+			brk = YUP;
+		}
       
       if (!brk && (strcmp(argv[kar], "-out_roidset") == 0)) {
          Opt->OutROI = YUP;
@@ -481,6 +497,7 @@ int main (int argc,char *argv[])
    float *NodeArea = NULL;
    FILE *clustout=NULL;
    char *ClustOutName = NULL, *params=NULL, stmp[200];
+   char sapa[32]={""}, sapd[32]={""}, sapn[32]={""}, sap[100]={""};
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_STANDALONE_INIT;
@@ -498,17 +515,26 @@ int main (int argc,char *argv[])
    
    Opt = SUMA_SurfClust_ParseInput (argv, argc);
    
+   if (Opt->DistLim >= 0.0) {
+      sprintf(sapd, "_r%.1f", Opt->DistLim);
+   } else {
+      sprintf(sapd, "_e%d", -(int)Opt->DistLim);
+   }
+   if (Opt->AreaLim < 0) {
+      sapa[0]='\0';
+   } else {
+      sprintf(sapa, "_a%.1f", Opt->AreaLim);
+   }
+   if (Opt->NodeLim < 0) {
+      sapn[0]='\0';
+   } else {
+      sprintf(sapn, "_n%d", Opt->NodeLim);
+   }
+   sprintf(sap, "%s%s%s", sapd, sapa, sapn);
+   
    if (Opt->WriteFile) {
-      if (Opt->DistLim >= 0.0) {
-         if (Opt->AreaLim < 0) sprintf(stmp,"_ClstTable_r%.1f.1D", Opt->DistLim);
-         else sprintf(  stmp,"_ClstTable_r%.1f_a%.1f.1D", 
-                        Opt->DistLim, Opt->AreaLim);
-      } else {
-         if (Opt->AreaLim < 0) 
-            sprintf(stmp,"_ClstTable_e%d.1D", -(int)Opt->DistLim);
-         else sprintf(  stmp,"_ClstTable_e%d_a%.1f.1D", 
-                        -(int)Opt->DistLim, Opt->AreaLim);
-      }
+      sprintf(stmp,"_ClstTable%s.1D", sap);
+      
       ClustOutName = SUMA_append_string(Opt->out_prefix, stmp);   
       if (SUMA_filexists(ClustOutName) && !THD_ok_overwrite()) {
          fprintf (SUMA_STDERR,
@@ -667,14 +693,8 @@ int main (int argc,char *argv[])
       SUMA_DSET *dset_roi = NULL;
       char *ROIprefix = NULL;
       char *NameOut = NULL;
-      if (Opt->DistLim >= 0.0) {
-         if (Opt->AreaLim < 0) sprintf(stmp,"_ClstMsk_r%.1f", Opt->DistLim);
-         else sprintf(stmp,"_ClstMsk_r%.1f_a%.1f", Opt->DistLim, Opt->AreaLim);
-      } else {
-         if (Opt->AreaLim < 0) sprintf(stmp,"_ClstMsk_e%d", -(int)Opt->DistLim);
-         else sprintf(stmp,"_ClstMsk_e%d_a%.1f", 
-                           -(int)Opt->DistLim, Opt->AreaLim);
-      }
+      
+      sprintf(stmp,"_ClstMsk%s", sap);
       ROIprefix = SUMA_append_string(Opt->out_prefix, stmp);
       /* Call this function, write out the resultant dset to disk 
          then cleanup */
@@ -706,15 +726,8 @@ int main (int argc,char *argv[])
       SUMA_DSET *dset_clust = NULL;
       char *Clustprefix = NULL;
       char *NameOut = NULL;
-      if (Opt->DistLim >= 0.0) {
-         if (Opt->AreaLim < 0) sprintf(stmp,"_Clustered_r%.1f", Opt->DistLim);
-         else sprintf(stmp,"_Clustered_r%.1f_a%.1f", Opt->DistLim, Opt->AreaLim);
-      } else {
-         if (Opt->AreaLim < 0) 
-            sprintf(stmp,"_Clustered_e%d", -(int)Opt->DistLim);
-         else sprintf(stmp,"_Clustered_e%d_a%.1f", 
-                           -(int)Opt->DistLim, Opt->AreaLim);
-      }
+
+      sprintf(stmp,"_Clustered%s", sap);
       Clustprefix = SUMA_append_string(Opt->out_prefix, stmp);
       /* Call this function, write out the resultant dset to disk 
          then cleanup */

@@ -102,13 +102,18 @@ void SUMA_cmap_wid_graphicsInit (Widget w, XtPointer clientData, XtPointer call)
    if (!SO) { SUMA_SL_Err("NULL SO"); SUMA_RETURNe; }
    
    XtVaGetValues(w, GLwNvisualInfo, &SUMAg_cVISINFO, NULL);
-   SO->SurfCont->cmp_ren->cmap_context = glXCreateContext(XtDisplay(w), SUMAg_cVISINFO,
-            0,                  /* No sharing. */
-            True);              /* Direct rendering if possible. */
+   SO->SurfCont->cmp_ren->cmap_context = 
+      glXCreateContext( XtDisplay(w), SUMAg_cVISINFO,
+                        0,                  /* No sharing. */
+                        True);              /* Direct rendering if possible. */
    
    /* Setup OpenGL state. */
-   if (!glXMakeCurrent(XtDisplay(w), XtWindow(w), SO->SurfCont->cmp_ren->cmap_context)) {
-      fprintf (SUMA_STDERR, "Error %s: Failed in glXMakeCurrent.\n \tContinuing ...\n", FuncName);
+   if (!glXMakeCurrent( XtDisplay(w), XtWindow(w), 
+                        SO->SurfCont->cmp_ren->cmap_context)) {
+      fprintf (SUMA_STDERR, 
+               "Error %s: Failed in glXMakeCurrent.\n \tContinuing ...\n", 
+               FuncName);
+      SUMA_GL_ERRS;
    }
    
    /* call context_Init to setup colors and lighting */   
@@ -205,7 +210,7 @@ void SUMA_DrawCmap(SUMA_COLOR_MAP *Cmap)
    /* initialize the context to be safe; 
    sometimes there is conflict with the viewer's context 
    and that causes the colormaps to be absent...   ZSS Nov. 28 06
-   But that is too radical and kils translation toys ZSS Mar. 06 08*/
+   But that is too radical and kills translation toys ZSS Mar. 06 08*/
    /* Turned off, may no longer cause trouble...  ZSS Mar. 07 08*/
    /* SUMA_cmap_context_Init(Cmap->SO); */
  
@@ -299,6 +304,7 @@ void SUMA_cmap_wid_display(SUMA_SurfaceObject *SO)
    glTranslatef (-RotaCenter[0], -RotaCenter[1], -RotaCenter[2]);
    }
    
+   
    /* find out what colormap is to be displayed */
    if (SO->SurfCont->curColPlane) {
       /* what's the Cmap for that plane ? */
@@ -310,7 +316,13 @@ void SUMA_cmap_wid_display(SUMA_SurfaceObject *SO)
    glPopMatrix();   
 
    if (LocalHead) 
-      fprintf (SUMA_STDOUT,"%s: Flushing or swapping ...\n", FuncName);
+      fprintf (SUMA_STDERR,
+               "%s: Flushing or swapping ...\n"
+               "cmp_ren %p, cmap_wid %p\n", 
+               FuncName,
+               SO->SurfCont ? SO->SurfCont->cmp_ren : NULL, 
+               (SO->SurfCont && SO->SurfCont->cmp_ren ) ? 
+                  SO->SurfCont->cmp_ren->cmap_wid : NULL );
    
    if (SUMAg_SVv[0].X->DOUBLEBUFFER)
       glXSwapBuffers(XtDisplay(SO->SurfCont->cmp_ren->cmap_wid), 
@@ -319,9 +331,14 @@ void SUMA_cmap_wid_display(SUMA_SurfaceObject *SO)
       glFlush();
 
    /* Avoid indirect rendering latency from queuing. */
+   
    if (!glXIsDirect( XtDisplay(SO->SurfCont->cmp_ren->cmap_wid), 
-                     SO->SurfCont->cmp_ren->cmap_context))
+                     SO->SurfCont->cmp_ren->cmap_context)) {
+      SUMA_LH("GLfinish time");
       glFinish();
+   } else {
+      SUMA_LH("No finish call");
+   }
 
    SUMA_RETURNe;
 }
@@ -343,9 +360,8 @@ Boolean SUMA_cmap_wid_handleRedisplay(XtPointer clientData)
    if (!glXMakeCurrent( XtDisplay(SO->SurfCont->cmp_ren->cmap_wid), 
                         XtWindow(SO->SurfCont->cmp_ren->cmap_wid), 
                         SO->SurfCont->cmp_ren->cmap_context)) {
-      fprintf (SUMA_STDERR, 
-               "Error %s: Failed in glXMakeCurrent.\n \tContinuing ...\n", 
-               FuncName);
+      SUMA_GL_ERRS;
+      SUMA_S_Err("Failed in glXMakeCurrent.\n \tContinuing ...");
    }
    
    SUMA_cmap_wid_display(SO);
@@ -2128,6 +2144,7 @@ void SUMA_CreateTable(  Widget parent,
    TF->CellEVHandler = CellEVHandler;
    TF->CellEVHandlerData = CellEVHandlerData;
    TF->type = type;
+   TF->num_units = SUMA_NO_NUM_UNITS;
    switch (TF->type) {
       case SUMA_int:
       case SUMA_float:
@@ -2343,10 +2360,25 @@ void SUMA_CreateTable(  Widget parent,
                   XtVaSetValues( TF->cells[n], 
                                  XmNfontList, 
                                  SUMAg_CF->X->TableTextFontList, NULL);
-               if (col_help || col_hint || row_help || row_hint)  
-                  MCW_register_help( TF->cells[n], "Hints and help messages\n"
-                                                   "are attached to table's\n"
-                                                   "column and row titles."  ) ;
+               if (col_help || col_hint || row_help || row_hint)  {
+                  if (!row_tit && !col_tit && Ni == 1 && Nj == 1) {
+                     if (col_help) 
+                        MCW_register_help( TF->cells[n], col_help[0]) ;
+                     else if (row_help) 
+                        MCW_register_help( TF->cells[n], row_help[0]) ;
+                     if (col_hint) 
+                        MCW_register_hint( TF->cells[n], col_hint[0]) ;
+                     else if (row_hint) 
+                        MCW_register_hint( TF->cells[n], row_hint[0]) ;
+                  } else {
+                     MCW_register_help( TF->cells[n], "Hints and help messages\n"
+                                                      "are attached to table's\n"
+                                                      "column and row titles.") ;
+                     MCW_register_hint( TF->cells[n], "Hints and help messages\n"
+                                                      "are attached to table's\n"
+                                                      "column and row titles.") ;
+                  }
+               } 
                if (TF->cwidth[j] > 0) {  
                   XtVaSetValues(TF->cells[n], XmNcolumns, TF->cwidth[j], NULL); 
                }
@@ -2427,13 +2459,17 @@ void SUMA_leave_TableField( Widget w , XtPointer client_data ,
    \brief This function is called when the label field is activated by the user
 
 */
-void SUMA_TableF_cb_label_change (Widget w, XtPointer client_data, XtPointer call_data)
+void SUMA_TableF_cb_label_change (  Widget w, XtPointer client_data, 
+                                    XtPointer call_data)
 {
    static char FuncName[]={"SUMA_TableF_cb_label_change"};
    SUMA_TABLE_FIELD *TF=NULL;
    float val;
+   int N_words = 0;
    XmAnyCallbackStruct *cbs = (XmAnyCallbackStruct *) call_data;
    void *n=NULL;
+   char *cs=NULL;
+   int unt = SUMA_NO_NUM_UNITS;
    SUMA_Boolean DoCallBacks;
    SUMA_Boolean LocalHead = NOPE;
 
@@ -2444,9 +2480,11 @@ void SUMA_TableF_cb_label_change (Widget w, XtPointer client_data, XtPointer cal
    TF = (SUMA_TABLE_FIELD *)client_data;
    
    DoCallBacks = NOPE;
-   if (call_data) { /* do the call backs if carriage return even if nothing is modified */
+   if (call_data) { 
+      /* do the call backs if carriage return even if nothing is modified */
       if (LocalHead) 
-         fprintf (SUMA_STDERR,"%s: cbs->reason = %d (CR=%d)\n", FuncName, cbs->reason, XmCR_ACTIVATE);
+         fprintf (SUMA_STDERR,"%s: cbs->reason = %d (CR=%d)\n", 
+                              FuncName, cbs->reason, XmCR_ACTIVATE);
       if (cbs->reason == XmCR_ACTIVATE) { 
          DoCallBacks = YUP;
       }
@@ -2455,40 +2493,29 @@ void SUMA_TableF_cb_label_change (Widget w, XtPointer client_data, XtPointer cal
    if (TF->cell_modified >= 0) {
       DoCallBacks = YUP;   /* do the callbacks even if no carriage return ... */
       if (TF->type == SUMA_int || TF->type == SUMA_float) {
-         /* Check if the string is numerical */
+         /* Check if the string is numerical, and get unit */
          XtVaGetValues (w, XmNvalue, &n, NULL);
-         #if 0
-         /* Don't use that, returns 0 if bad syntax is used */ 
-         val = strtod ((char *)n, NULL); 
-         if (errno) {
-            /* bad syntax, reset value*/
-            if (LocalHead) fprintf (SUMA_STDERR, "%s: Bad syntax.\n", FuncName);
-            SUMA_RegisterMessage (SUMAg_CF->MessageList, "Bad value in text field", FuncName, SMT_Error, SMA_Log);
-            SUMA_TableF_SetString (TF);
-         }else {
-            if (TF->type == SUMA_int) {
-               if (TF->num_value[TF->cell_modified] == (int)val) { 
-                  SUMA_LH("Same value"); 
-                  TF->cell_modified = -1;
-                  SUMA_RETURNe; 
-               }
-               TF->num_value[TF->cell_modified] = (int)val;
-            } else if (TF->type == SUMA_float) {
-               if (TF->num_value[TF->cell_modified] == val) { 
-                  SUMA_LH("Same value"); 
-                  TF->cell_modified = -1;
-                  SUMA_RETURNe; 
-               }
-               TF->num_value[TF->cell_modified] = val;
+         cs = (char *)n;
+         if (!cs || !strlen(cs)) {/* empty cell, leave it alone */ 
+            TF->cell_modified = -1;
+            SUMA_LHv("empty %s", cs);
+            SUMA_RETURNe;
+         } else  {
+            SUMA_COUNT_WORDS(cs, NULL, N_words);
+            if (!N_words) { /* no harm, go back */ 
+               TF->cell_modified = -1;
+               SUMA_LHv("spacy %s", cs);
+               SUMA_RETURNe; 
             }
-            SUMA_TableF_SetString (TF);
          }
-         #else
-         if (SUMA_StringToNum((char *)n, (void *)&val, 1, 1) != 1) {
+         unt = SUMA_NumStringUnits(cs, 0);
+         if (SUMA_StringToNum(cs, (void *)&val, 1, 1) != 1) {
             SUMA_BEEP;
             /* bad syntax, reset value*/
             if (LocalHead) fprintf (SUMA_STDERR, "%s: Bad syntax.\n", FuncName);
-            SUMA_RegisterMessage (SUMAg_CF->MessageList, "Bad value in text field", FuncName, SMT_Error, SMA_Log);
+            SUMA_RegisterMessage (SUMAg_CF->MessageList, 
+                                  "Bad value in text field", FuncName, 
+                                  SMT_Error, SMA_Log);
             SUMA_TableF_SetString (TF);
          }else {
             if (TF->type == SUMA_int) {
@@ -2506,9 +2533,10 @@ void SUMA_TableF_cb_label_change (Widget w, XtPointer client_data, XtPointer cal
                }
                TF->num_value[TF->cell_modified] = val;
             }
+            SUMA_LH("Going to set string");
+            TF->num_units = unt;
             SUMA_TableF_SetString (TF);
          }
-         #endif  
       }
    } else {
       SUMA_LH("no cells modified");
@@ -2525,7 +2553,8 @@ void SUMA_TableF_cb_label_change (Widget w, XtPointer client_data, XtPointer cal
          if (TF->NewValueCallback) TF->NewValueCallback((void*)TF);
       } else {
          SUMA_LH("Callback data.");
-         if (TF->NewValueCallback) TF->NewValueCallback(TF->NewValueCallbackData);
+         if (TF->NewValueCallback) 
+            TF->NewValueCallback(TF->NewValueCallbackData);
       }
    }
    
@@ -2583,6 +2612,52 @@ int SUMA_ThreshVal2ScalePos(SUMA_SurfaceObject *SO, float *val)
    SUMA_RETURN(cv);
 }
 
+double SUMA_Pval2ThreshVal (SUMA_SurfaceObject *SO, double pval) {
+   static char FuncName[]={"SUMA_Pval2ThreshVal"};
+   float p[3], zval = -1.0;
+   int statcode;
+   double val = 0.0;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!SO) { 
+      SUMA_SL_Err("NULL SO");
+      SUMA_RETURNe; 
+   }  
+   if (!SO->SurfCont || 
+       !SO->SurfCont->thr_sc ||
+       !SO->SurfCont->curColPlane ||
+       !SO->SurfCont->curColPlane->dset_link) { 
+      SUMA_SL_Err("NULL SurfCont");
+      SUMA_RETURNe; 
+   }
+     
+   /* see if you can get the stat codes */
+   if (!SUMA_GetDsetColStatAttr(  
+            SO->SurfCont->curColPlane->dset_link, 
+            SO->SurfCont->curColPlane->OptScl->tind, 
+            &statcode,
+            p, (p+1), (p+2))) {
+      SUMA_LH("Error");        
+   }else if (statcode) {
+      SUMA_LHv("Have stats at sb %d\n"
+               "statcode %d: %f %f %f\n", 
+               SO->SurfCont->curColPlane->OptScl->tind,
+               statcode, p[0], p[1], p[2]);
+      SO->SurfCont->curColPlane->OptScl->ThreshStats[0] = pval;
+      val = THD_pval_to_stat( pval , statcode , p  ) ;
+      SUMA_LHv("Have pval of %f\n"
+               "      val of %f\n", 
+               SO->SurfCont->curColPlane->OptScl->ThreshStats[0],val);
+   } else {
+      /* no stats */
+      SO->SurfCont->curColPlane->OptScl->ThreshStats[0] = -1.0;
+      SO->SurfCont->curColPlane->OptScl->ThreshStats[1] = -1.0;
+   }
+
+   SUMA_RETURN(val);
+}
 /*!
    set the threshold bar when a new value is entered
 */
@@ -2591,7 +2666,7 @@ void SUMA_SetScaleThr(void *data)
    static char FuncName[]={"SUMA_SetScaleThr"};
    SUMA_SurfaceObject *SO=(SUMA_SurfaceObject *)data, *curSO = NULL;
    SUMA_TABLE_FIELD *TF=NULL;
-   int cv, max_v, min_v;
+   int cv, max_v, min_v, cell_mod = -1;
    float val;
    SUMA_Boolean LocalHead = NOPE;
    
@@ -2603,27 +2678,60 @@ void SUMA_SetScaleThr(void *data)
    if (TF->cell_modified<0) SUMA_RETURNe;
    val = TF->num_value[TF->cell_modified];
    
-   cv = SUMA_ThreshVal2ScalePos (SO, &val );
-
-   if (LocalHead) fprintf(SUMA_STDERR,"%s:\nChecksums, new value is %f, cv to be set to %d\n", 
-      FuncName, TF->num_value[TF->cell_modified], cv);   
-
-   /* check on value */
-   if (TF->num_value[TF->cell_modified] != val) { /* a change in value (plateau effect) */
-      TF->num_value[TF->cell_modified] = val;
-      SUMA_INSERT_CELL_VALUE(TF, 0, 0, TF->num_value[TF->cell_modified]);
+   switch (TF->num_units) {
+      case SUMA_P_VALUE_UNITS:
+         if (LocalHead) 
+               fprintf( SUMA_STDERR,
+                        "%s:\nUnits in p value, transforming %f\n",
+                        FuncName, val);
+         /* transform value from P to threshold value */
+         val = (float)SUMA_Pval2ThreshVal (SO, (double)val);
+         if (LocalHead) 
+               fprintf( SUMA_STDERR,
+                        "   to %f\n",
+                        val);
+         /* reset the units of the table to reflect new value, 
+            string containing new val is reset later on*/
+         TF->num_units = SUMA_NO_NUM_UNITS;
+         break;
+      default:
+         break;
    }
    
-   if (LocalHead) fprintf(SUMA_STDERR,"%s:\nSet thresholdiation, new value is %f\n", FuncName, TF->num_value[TF->cell_modified]);
+   cv = SUMA_ThreshVal2ScalePos (SO, &val );
+
+   if (LocalHead) 
+      fprintf(SUMA_STDERR,
+              "%s:\nChecksums, new value is %f, cv to be set to %d\n"
+              "val now %f\n", 
+              FuncName, TF->num_value[TF->cell_modified], cv, val);   
+
+   cell_mod = TF->cell_modified; /* TF->cell_modifed might get reset
+                                    in macro below */
+   /* check on value */
+   if (TF->num_value[cell_mod] != val) { 
+      /* a change in value (plateau effect) */
+      TF->num_value[cell_mod] = val;
+      SUMA_INSERT_CELL_VALUE(TF, 0, 0, TF->num_value[cell_mod]);
+      /* WARNING: TF->cell_modified reset to -1 in previous macro */
+   }
+   
+   if (LocalHead) 
+      fprintf( SUMA_STDERR,
+               "%s:\nSet thresholdiation, new value is %f\n", 
+               FuncName, TF->num_value[cell_mod]);
    /* if value OK, set threshold bar*/
-   SO->SurfCont->curColPlane->OptScl->ThreshRange[0] = TF->num_value[TF->cell_modified];
+   SO->SurfCont->curColPlane->OptScl->ThreshRange[0] = 
+                                 TF->num_value[cell_mod];
    XtVaSetValues(SO->SurfCont->thr_sc,  
             XmNvalue, cv, 
             NULL);   
 
    SUMA_LH("Colorize if necessary");
    /* colorize if necessary */
-   if (!SO->SurfCont->curColPlane->OptScl->UseThr) { SUMA_RETURNe; } /* nothing else to do */
+   if (!SO->SurfCont->curColPlane->OptScl->UseThr) { 
+      SUMA_RETURNe; 
+   } /* nothing else to do */
 
    if (!SUMA_ColorizePlane (SO->SurfCont->curColPlane)) {
          SUMA_SLP_Err("Failed to colorize plane.\n");
@@ -2993,7 +3101,8 @@ void SUMA_TableF_SetString (SUMA_TABLE_FIELD * TF)
       sprintf (buf, "%-4d", (int)TF->num_value[TF->cell_modified]);
    }else if (TF->type == SUMA_float) {
       sprintf (buf, "%s", 
-         MV_format_fval2(TF->num_value[TF->cell_modified], TF->cwidth[TF->cell_modified / TF->Ni]));
+               MV_format_fval2(  TF->num_value[TF->cell_modified], 
+                                 TF->cwidth[TF->cell_modified / TF->Ni]));
    }else {
       /* fair enough, must be stringy */
    }
@@ -4791,7 +4900,7 @@ void SUMA_CreateCmapWidgets(Widget parent, SUMA_SurfaceObject *SO)
       #else
       { 
          int colw[]={6};
-         char *lhint[]={ "Threshold Value", NULL};
+         char *lhint[]={ "Threshold Value (append p to set by p value)", NULL};
          char *lhelp[]={ SUMA_SurfContHelp_SetThreshTblr0, NULL};
          if (!SO->SurfCont->SetThrScaleTable->cells) {
             SUMA_CreateTable( rct,
@@ -5468,9 +5577,11 @@ SUMA_Boolean SUMA_UpdateNodeNodeField(SUMA_SurfaceObject *SO)
    sprintf(str, "%d", SO->SelectedNode);
    SO->SurfCont->NodeTable->num_value[1] = SO->SelectedNode;
    XtVaSetValues(SO->SurfCont->NodeTable->cells[1], XmNvalue, str, NULL);
-   sprintf(str, "%s",          MV_format_fval2(SO->NodeList[3*SO->SelectedNode], 7));
-   sprintf(str, "%s, %s", str, MV_format_fval2(SO->NodeList[3*SO->SelectedNode+1], 7));
-   sprintf(str, "%s, %s", str, MV_format_fval2(SO->NodeList[3*SO->SelectedNode+2], 7) );
+   sprintf(str, "%s, ", 
+               MV_format_fval2(SO->NodeList[3*SO->SelectedNode], 7));
+   strcat(str, MV_format_fval2(SO->NodeList[3*SO->SelectedNode+1], 7));
+   strcat(str, ", ");
+   strcat(str, MV_format_fval2(SO->NodeList[3*SO->SelectedNode+2], 7) );
    XtVaSetValues(SO->SurfCont->NodeTable->cells[2], XmNvalue, str, NULL);
 
    SUMA_RETURN(YUP);

@@ -114,7 +114,7 @@
    do { \
       m_ops = m_opn; SUMA_GET_BETWEEN_BLANKS(m_ops,eop,m_opn); \
       if (m_opn > m_ops) ++N_word;  \
-   } while (m_opn < eop && m_ops != m_opn);   \
+   } while (*m_opn != '\0' && m_opn != eop && m_ops != m_opn);   \
 }
    
 /*!

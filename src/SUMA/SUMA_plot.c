@@ -630,7 +630,7 @@ SUMA_Boolean SUMA_OverlayGraphAtNode(SUMA_OVERLAYS *Sover,
                "column index");
    } else {
       snprintf(xlabel_str, 100*sizeof(char), 
-               "TR (%.2fms) step", TR);
+               "TR (%.2fs) step", TR);
    }
    
    if (!res) SUMA_RETURN(0);

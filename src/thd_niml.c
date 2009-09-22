@@ -1421,7 +1421,8 @@ int set_sparse_data_attribs(NI_element * nel, THD_3dim_dataset * dset,
                             int nodes_from_dset)
 {
     char str[32];
-
+    float TR=0.0;
+    
 ENTRY("set_sparse_data_attribs");
 
     if( !nel || !dset ) RETURN(1);
@@ -1431,7 +1432,9 @@ ENTRY("set_sparse_data_attribs");
     /* check for need of the ni_timestep attribute */
     if( DSET_NUM_TIMES(dset) > 1 )  /* then it is time dependent */
     {
-        strcpy(str, MV_format_fval(DSET_TIMESTEP(dset)));
+        TR = DSET_TIMESTEP(dset);
+        if( DSET_TIMEUNITS(dset) == UNITS_MSEC_TYPE ) TR *= 0.001;
+        strcpy(str, MV_format_fval(TR));
         NI_set_attribute(nel, "ni_timestep", str);
         if(gni.debug > 1) fprintf(stderr,"+d setting ni_timestep = %s\n", str);
     }

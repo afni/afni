@@ -9884,6 +9884,14 @@ int SUMA_is_TimeSeries_dset(SUMA_DSET *dset, double *TRp)
    mm = NI_get_attribute(dset->dnel, "ni_timestep");
    if ( !mm ) SUMA_RETURN(0); 
    TR = atol(mm);
+   if (TR > 100) { /* likely a bug in dsets prior to Sep 19 09 */
+      SUMA_S_Warn("ni_timestep may be incorrectly specified in msec.\n"
+                  "Time units should be in sec.");
+      if (TR > 360) { /* just cut the damned thing down */            
+         SUMA_S_Warn("TR > 360, reduced it by a factor of 1000.\n");
+         TR *= 0.001;
+      }
+   }
    if (TRp) *TRp = TR;
    if ( mm && TR >= 0.0) SUMA_RETURN(1); 
    
@@ -11170,34 +11178,42 @@ int SUMA_ParseInput_basics_eng (char *argv[], int argc)
 
    kar = 1;
    brk = 0;
-   while (kar < argc) { /* loop accross tracing and debugging command line options */
+   while (kar < argc) { /* loop accross tracing and debugging 
+                           command line options */
 		if ((strcmp(argv[kar], "-memdbg") == 0) ||
           (strcmp(argv[kar], "-yesmall") == 0) ) {
-			fprintf(SUMA_STDOUT,"Warning %s:  running in memory trace mode.\n", FuncName);
+			fprintf(SUMA_STDOUT,"Warning %s:  running in memory trace mode.\n", 
+                  FuncName);
 			set_Domemtrace(1);
          brk = 1;
 		}
       
       if (!brk && (strcmp(argv[kar], "-nomall") == 0)) {
-			fprintf(SUMA_STDOUT,"Warning %s:  turning off memory trace mode.\n", FuncName);
+			fprintf(SUMA_STDOUT,"Warning %s:  turning off memory trace mode.\n", 
+                  FuncName);
 			set_Domemtrace(0);
 			brk = 1;
 		}
 
       if (!brk && ( (strcmp(argv[kar], "-trace") == 0) ||
                    (strcmp(argv[kar], "-iodbg") == 0)) ){
-			fprintf(SUMA_STDERR,"Warning %s: SUMA running in I/O trace mode.\n", FuncName);
+			fprintf( SUMA_STDERR,
+                  "Warning %s: SUMA running in I/O trace mode.\n", FuncName);
 			set_Doiotrace(1);
          brk = 1;
 		}
       
       if (!brk && (strcmp(argv[kar], "-TRACE") == 0)) {
-			fprintf(SUMA_STDERR,"Warning %s: SUMA running in detailed I/O trace mode.\n", FuncName);
+			fprintf( SUMA_STDERR,
+                  "Warning %s: SUMA running in detailed I/O trace mode.\n", 
+                  FuncName);
 			set_Doiotrace(2);
          brk = 1;
 		}
       
-      if (!brk && (strcmp(argv[kar], "-novolreg") == 0 || strcmp(argv[kar], "-noxform") == 0)) {
+      if (!brk && 
+            (  strcmp(argv[kar], "-novolreg") == 0 || 
+               strcmp(argv[kar], "-noxform") == 0)) {
 			set_IgnoreXforms(1);
          brk = 1;
 		}
@@ -12257,6 +12273,59 @@ char *SUMA_ReplaceChars(char *s1, char *ca, char *es)
    SUMA_RETURN(ses);
 } 
 
+int SUMA_NumStringUnits (char *s, int marktip) 
+{
+   static char FuncName[]={"SUMA_NumStringUnits"};
+   int unt = SUMA_NO_NUM_UNITS;
+   int FoundTip = 0, nd = 0, ndm=0;
+   int LocalHead = 0;
+   
+   SUMA_ENTRY;
+   
+   if (!s) SUMA_RETURN(unt);
+   
+   /* go back until you hit the tip of the number */
+   FoundTip = 0;
+   ndm = strlen(s);
+   nd=ndm-1;
+   while ( nd >=0 && !FoundTip) {
+      if (isdigit(s[nd]) || s[nd] == '.' || s[nd] == '-' || s[nd] == '+') {
+         FoundTip = 1;
+      } else {
+         --nd;
+      }
+   }
+   if (!FoundTip) SUMA_RETURN(unt);
+   
+   if (marktip) s[nd] = '\0';
+   
+   
+   /* now move forward, skipping blanks, commas, parenthesis */
+   SUMA_LH("Got tip, goind forward");
+   ++nd;
+   FoundTip = 0;
+   while (nd < ndm && !FoundTip) {
+      if (  isspace(s[nd]) || s[nd] == ',' || 
+            s[nd] == '[' || s[nd] == '(' || s[nd] == '{') {
+         ++nd;
+      } else {
+         FoundTip = 1;
+      }
+   }
+ 
+   /* now look for unit string */
+   SUMA_LH((s+nd));
+   unt = SUMA_NO_NUM_UNITS;
+   if (0) ; /* order of following else ifs matters */
+   else if (!strncmp((s+nd), "mm", 2)) 
+                              SUMA_RETURN(SUMA_MM_UNITS);
+   else if (!strncmp((s+nd), "p", 1)) 
+                              SUMA_RETURN(SUMA_P_VALUE_UNITS);
+   else if (!strncmp((s+nd), "q",1)) 
+                              SUMA_RETURN(SUMA_Q_VALUE_UNITS);
+   SUMA_RETURN(unt);
+}
+
 /*!
    \brief function that parses a string of numbers into a float vector
    
@@ -12273,6 +12342,7 @@ char *SUMA_ReplaceChars(char *s1, char *ca, char *es)
    \sa SUMA_CleanNumString
    \sa SUMA_strtol_vec
    \sa SUMA_AdvancePastNumbers
+   \sa SUMA_NumStringUnits
 */
 int SUMA_StringToNum (char *s, void *vv, int N, int prec)
 {

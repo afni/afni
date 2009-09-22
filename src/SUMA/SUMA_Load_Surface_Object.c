@@ -3037,8 +3037,8 @@ SUMA_Boolean SUMA_PrepAddmappableSO(SUMA_SurfaceObject *SO, SUMA_DO *dov,
       previously, register it */
    if (SurfIn) {
       sprintf(DoThis,"Convexity");
-      if (!SO->EL || !SO->FN) sprintf(DoThis,"%s, EdgeList", DoThis);
-      if (!SO->MF) sprintf(DoThis,"%s, MemberFace", DoThis);
+      if (!SO->EL || !SO->FN) strcat(DoThis,", EdgeList");
+      if (!SO->MF) strcat(DoThis,", MemberFace");
       if (!SUMA_SurfaceMetrics_eng (SO, DoThis, NULL, debug, DsetList)) {
          fprintf (SUMA_STDERR,
                   "Error %s: Failed in SUMA_SurfaceMetrics.\n", FuncName);

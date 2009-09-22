@@ -2743,12 +2743,15 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             }
             
             if (NI_get_attribute(EngineData->ngr, "View_Surf_Cont")) {
-               if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "View_Surf_Cont", "y")) {
+               if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, 
+                                        "View_Surf_Cont", "y")) {
                   if (!SUMA_viewSurfaceCont(NULL, SO, sv)) {
                      SUMA_S_Err("Failed open surfcont");
                      break;  
                   }
-               } else if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "View_Surf_Cont", "n")) {
+               } else if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, 
+                                               "View_Surf_Cont", "n")) {
+                  SUMA_LH("Closing surface controller");
                   SUMA_cb_closeSurfaceCont(NULL, (XtPointer) SO, NULL);
                }
             }
@@ -3274,16 +3277,30 @@ void *SUMA_nimlEngine2Engine(NI_group *ngr)
          }
          if (!SO->SurfCont->TopLevelShell) { /* better have a controller 
                                                 before going crazy */
-            ED = SUMA_InitializeEngineListData (SE_OpenSurfCont);
-            if (!SUMA_RegisterEngineListCommand (  list, ED,
-                                                   SEF_vp, (void *)SO,
-                                                   SES_SumaFromAny, (void *)sv, 
-                                                   NOPE,
-                                                   SEI_Head, NULL)) {
-               fprintf (SUMA_STDERR, 
-                        "Error %s: Failed to register command.\n", FuncName);
+            if (0) { /* this option or the next behave in the same way */
+               if (!SUMA_viewSurfaceCont(NULL, SO, sv)) {
+                        SUMA_S_Err("Failed open surfcont");
+                        break;  
+               }
+            } else {
+               ED = SUMA_InitializeEngineListData (SE_OpenSurfCont);
+               if (!SUMA_RegisterEngineListCommand (  
+                           list, ED,
+                           SEF_vp, (void *)SO,
+                           SES_SumaFromAny, (void *)sv, 
+                           NOPE,
+                           SEI_Head, NULL)) {
+                  fprintf (SUMA_STDERR, 
+                           "Error %s: Failed to register command.\n", FuncName);
+               }
             }
+            
             /* make sure that business is closed if user does not control it */
+            /* IF you close the window quickly, the colormap does not render
+            and you can get into trouble then, this also happens if
+            Drive SUMA orders an immediate surface controller closing after
+            a dset load ... */
+            
             if (!NI_get_attribute(ngr, "View_Surf_Cont"))  
                NI_set_attribute(ngr, "View_Surf_Cont", "n");      
          }
