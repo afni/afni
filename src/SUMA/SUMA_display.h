@@ -1,6 +1,36 @@
 #ifndef SUMA_DISPLAY_INCLUDED
 #define SUMA_DISPLAY_INCLUDED
 
+/* 
+
+   Historical Note from Fri Jan  3 10:21:52 EST 2003:
+   the method for hiding a surface viewer (and other controllers), used to have     three options prior to Fri Jan  3 10:21:52 EST 2003
+   Now only SUMA_WITHDRAW and NOT SUMA_DESTROY should be used.
+
+   As of Wed Sep 23 14:45:59 EDT 2009
+   ----------------------------------
+   On Mac OS X 10.5, and at least early 10.6, using XWithdrawWindow,
+   followed by XMapRaised, SUMA would crash with a GLX_BadDrawable error.
+   One way around this is to go back to XtUnrealizeWidget/XtRealizeWidget pair.
+   It appears that GLX implementation is full of uninitialzation errors, 
+   according to Valgrind. 
+   
+   So now one can choose between three closing modes. For widgers with GLX drawables (Viewers, and SurfaceControllers) use SUMA_UNREALIZE.
+   For other, stick with SUMA_WITHDRAW as previously done.
+*/
+
+#define SUMA_DESTROY    1
+#define SUMA_WITHDRAW   2
+#define SUMA_UNREALIZE  3
+
+#define SUMA_CLOSE_MODE       SUMA_WITHDRAW
+#define SUMA_GL_CLOSE_MODE    SUMA_UNREALIZE
+
+#define NO_FLUSH        1  /* 1 = Avoid flushing/Buffer swapping, at close time 
+                                  Part of the effort to keep suma from crashing
+                                  on OS X 10.5 , when closing a widget with an 
+                                  OpenGL drawable */
+                                  
 typedef struct suma_menu_item {
     char        *label;         /*!< the label for the item */
     WidgetClass *class;         /*!< pushbutton, label, separator... */

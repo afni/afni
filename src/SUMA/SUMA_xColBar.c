@@ -27,10 +27,6 @@ extern int SUMAg_N_SVv;
 extern int SUMAg_N_DOv;  
 #endif
 
-/* the method for hiding a surface viewer (and other controllers), used to have three options prior to Fri Jan  3 10:21:52 EST 2003
-Now only SUMA_USE_WITHDRAW and NOT SUMA_USE_DESTROY should be used*/
-#define SUMA_USE_WITHDRAW
-
 /*!
    \brief Reads a ppm image and turns i into an rgba vector for ease of
    use with OpenGL. 
@@ -4334,23 +4330,30 @@ void SUMA_cb_CloseSwitchLst (Widget w, XtPointer client_data, XtPointer call)
 
    LW = (SUMA_LIST_WIDGET *)client_data;
    
-   #if defined SUMA_USE_WITHDRAW 
-      if (LocalHead) 
-         fprintf (SUMA_STDERR,
-                  "%s: Withdrawing list widget %s...\n", 
-                  FuncName, LW->Label);
-      
-      XWithdrawWindow(SUMAg_CF->X->DPY_controller1, 
-         XtWindow(LW->toplevel),
-         XScreenNumberOfScreen(XtScreen(LW->toplevel)));
-   #elif defined SUMA_USE_DESTROY 
+   switch (SUMA_CLOSE_MODE)   {/* No open GL drawables in this widget*/
+      case SUMA_WITHDRAW:
+         if (LocalHead) 
+            fprintf (SUMA_STDERR,
+                     "%s: Withdrawing list widget %s...\n", 
+                     FuncName, LW->Label);
+
+         XWithdrawWindow(SUMAg_CF->X->DPY_controller1, 
+            XtWindow(LW->toplevel),
+            XScreenNumberOfScreen(XtScreen(LW->toplevel)));
+         break;
+      case SUMA_DESTROY: 
          if (LocalHead) 
             fprintf (SUMA_STDERR,
                      "%s: Destroying list widget %s...\n", 
                      FuncName, LW->Label);
          XtDestroyWidget(LW->toplevel);
          LW->toplevel = NULL;
-   #endif
+         break;
+      default:
+         SUMA_S_Err("Not ready for this type of closing");
+         SUMA_RETURNe;
+         break;
+   }
    
    LW->isShaded = YUP; 
    
@@ -4609,20 +4612,29 @@ void SUMA_cb_CloseSwitchCmap (Widget w, XtPointer client_data, XtPointer call)
    /* Pre May 2009 */
    LW = (SUMA_LIST_WIDGET *)client_data;
    
-   #if defined SUMA_USE_WITHDRAW 
-      if (LocalHead) 
-         fprintf (SUMA_STDERR,
-                  "%s: Withdrawing list widget %s...\n", 
-                  FuncName, LW->Label);
-      
-      XWithdrawWindow(SUMAg_CF->X->DPY_controller1, 
-         XtWindow(LW->toplevel),
-         XScreenNumberOfScreen(XtScreen(LW->toplevel)));
-   #elif defined SUMA_USE_DESTROY 
-         if (LocalHead) fprintf (SUMA_STDERR,"%s: Destroying list widget %s...\n", FuncName, LW->Label);
+   switch (SUMA_CLOSE_MODE)   {/* No open GL drawables in this widget*/
+      case SUMA_WITHDRAW:
+         if (LocalHead) 
+            fprintf (SUMA_STDERR,
+                     "%s: Withdrawing list widget %s...\n", 
+                     FuncName, LW->Label);
+
+         XWithdrawWindow(SUMAg_CF->X->DPY_controller1, 
+            XtWindow(LW->toplevel),
+            XScreenNumberOfScreen(XtScreen(LW->toplevel)));
+         break;
+      case SUMA_DESTROY: 
+         if (LocalHead) 
+            fprintf (SUMA_STDERR,
+                     "%s: Destroying list widget %s...\n", FuncName, LW->Label);
          XtDestroyWidget(LW->toplevel);
          LW->toplevel = NULL;
-   #endif
+         break;
+      default:
+         SUMA_S_Err("Not setup to deal with this closing type");
+         SUMA_RETURNe;
+         break;
+   }
    
    LW->isShaded = YUP; 
    
