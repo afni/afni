@@ -2,10 +2,6 @@
 #include "coxplot.h"
 #include "SUMA_plot.h"
  
-/* the method for hiding a surface viewer (and other controllers), used to have three options prior to Fri Jan  3 10:21:52 EST 2003
-Now only SUMA_USE_WITHDRAW and NOT SUMA_USE_DESTROY should be used*/
-#define SUMA_USE_WITHDRAW
-
 extern SUMA_SurfaceViewer *SUMAg_SVv; /*!< Global pointer to the vector containing the various Surface Viewer Structures 
                                     SUMAg_SVv contains SUMA_MAX_SURF_VIEWERS structures */
 extern int SUMAg_N_SVv; /*!< Number of SVs realized by X  */
@@ -2304,8 +2300,8 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
    char *vargv[1]={ "[A] SUMA" };
    int cargc = 1;
    SUMA_Boolean NewCreation = NOPE, Found=NOPE, Inherit = NOPE;
-   SUMA_Boolean LocalHead = NOPE;
    char slabel[20]="\0"; 
+   SUMA_Boolean LocalHead = NOPE;
        
    SUMA_ENTRY;
 
@@ -2554,17 +2550,30 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
    } else {    /* widget already set up, just undo whatever 
                   was done in SUMA_ButtClose_pushed */
       
-      #ifdef SUMA_USE_WITHDRAW
-         XMapRaised(SUMAg_SVv[ic].X->DPY, XtWindow(SUMAg_SVv[ic].X->TOPLEVEL));      
-      #endif
-      
+      switch (SUMA_GL_CLOSE_MODE) {
+         case SUMA_WITHDRAW:
+            XMapRaised( SUMAg_SVv[ic].X->DPY, 
+                        XtWindow(SUMAg_SVv[ic].X->TOPLEVEL)); 
+            break;
+         case SUMA_UNREALIZE:
+            SUMA_LH("Realizing");
+            XtRealizeWidget(SUMAg_SVv[ic].X->TOPLEVEL);
+            XSync(SUMAg_SVv[ic].X->DPY, 1);  /* Don't know if this helps for sure
+                                                Part of the OS X 10.5 GLX crash 
+                                                from hell */
+            break;
+         default:
+            SUMA_S_Err("Not set up for this closing mode");
+            SUMA_RETURNe;
+            break;
+      }
       /* add the workprocess again */
       SUMA_register_workproc( SUMA_handleRedisplay, SUMAg_SVv[ic].X->GLXAREA );
       SUMAg_SVv[ic].X->REDISPLAYPENDING = 0;
    }
 
    SUMAg_SVv[ic].Open = YUP;
-   ++SUMAg_CF->N_OpenSV;
+   ++SUMAg_CF->N_OpenSV; 
    ++CallNum;
    
    SUMA_UpdateViewerCursor (&(SUMAg_SVv[ic]));
@@ -2772,43 +2781,68 @@ void SUMA_ButtClose_pushed (Widget w, XtPointer cd1, XtPointer cd2)
          /* remove Redisplay workprocess*/
          SUMA_remove_workproc2( SUMA_handleRedisplay, SUMAg_SVv[ic].X->GLXAREA );
          
+         #if NO_FLUSH    /* STILL crashing on OS X 10.5, at least on eomer...*/
+         SUMA_LH("Flushing meadows");
          /* flush display */
-         if (SUMAg_SVv[ic].X->DOUBLEBUFFER)
-             glXSwapBuffers(SUMAg_SVv[ic].X->DPY, XtWindow(SUMAg_SVv[ic].X->GLXAREA));
-          else
+         if (SUMAg_SVv[ic].X->DOUBLEBUFFER) {
+             glXSwapBuffers(SUMAg_SVv[ic].X->DPY,  
+                            XtWindow(SUMAg_SVv[ic].X->GLXAREA));
+         } else {
             glFlush();
+         }
+         #else
+         /* Not sure I need to do anything here ...*/
+         #endif
          
          /* done cleaning up, deal with windows ... */
          
-         /** Fri Jan  3 09:51:35 EST 2003
+         /** 
+            SEE UPDATED NOTE IN SUMA_display.h 
+            ==================================
+         Fri Jan  3 09:51:35 EST 2003
              XtUnrealizeWidget is not used anymore because it destroys 
              windows associated with a widget and its descendants.
             There's no need for that here. 
-            Also, destroying widgets should not be used either because that would automatically destroy the SUMA controller which is a 
-            child of one of the viewers. The code for destroy is left for historical reasons.*/
-         #ifdef SUMA_USE_WITHDRAW 
-            if (LocalHead) fprintf (SUMA_STDERR,"%s: Withdrawing it.\n", FuncName);
-            XWithdrawWindow(SUMAg_SVv[ic].X->DPY, 
-               XtWindow(SUMAg_SVv[ic].X->TOPLEVEL), 
-               XScreenNumberOfScreen(XtScreen(SUMAg_SVv[ic].X->TOPLEVEL)));
-            if (SUMAg_SVv[ic].X->ViewCont->TopLevelShell) {
-               XWithdrawWindow(SUMAg_SVv[ic].X->DPY, 
-               XtWindow(SUMAg_SVv[ic].X->ViewCont->TopLevelShell),
-               XScreenNumberOfScreen(XtScreen(SUMAg_SVv[ic].X->ViewCont->TopLevelShell)));
-            }
-         #endif
-         #ifdef SUMA_USE_DESTROY 
-            if (LocalHead) fprintf (SUMA_STDERR,"%s: Destroying it.\n", FuncName);
-            XtDestroyWidget(SUMAg_SVv[ic].X->TOPLEVEL);
-            SUMAg_SVv[ic].X->TOPLEVEL = NULL;      
-            
-            /* no need to destroy viewer controller */
-            SUMAg_SVv[ic].X->ViewCont->TopLevelShell = NULL;
-            
-            /* update the count */
-            SUMAg_N_SVv -= 1;
+            Also, destroying widgets should not be used either because that would
+            automatically destroy the SUMA controller which is a 
+            child of one of the viewers. The code for destroy is left for
+            historical reasons.*/
+         switch (SUMA_GL_CLOSE_MODE) {
+            case SUMA_WITHDRAW: 
+               if (LocalHead) 
+                  fprintf (SUMA_STDERR,"%s: Withdrawing it.\n", FuncName);
 
-         #endif
+               XWithdrawWindow(SUMAg_SVv[ic].X->DPY, 
+                  XtWindow(SUMAg_SVv[ic].X->TOPLEVEL), 
+                  XScreenNumberOfScreen(XtScreen(SUMAg_SVv[ic].X->TOPLEVEL)));
+               if (SUMAg_SVv[ic].X->ViewCont->TopLevelShell) {
+                  XWithdrawWindow(SUMAg_SVv[ic].X->DPY, 
+                  XtWindow(SUMAg_SVv[ic].X->ViewCont->TopLevelShell),
+                  XScreenNumberOfScreen(XtScreen(
+                                    SUMAg_SVv[ic].X->ViewCont->TopLevelShell)));
+               }
+               break;
+            case SUMA_UNREALIZE:
+               if (LocalHead) 
+                  fprintf (SUMA_STDERR,"%s: Unrealizing it.\n", FuncName);
+               XtUnrealizeWidget(SUMAg_SVv[ic].X->TOPLEVEL);
+               break;
+            case SUMA_DESTROY: 
+               if (LocalHead) 
+                  fprintf (SUMA_STDERR,"%s: Destroying it.\n", FuncName);
+               XtDestroyWidget(SUMAg_SVv[ic].X->TOPLEVEL);
+               SUMAg_SVv[ic].X->TOPLEVEL = NULL;      
+            
+               /* no need to destroy viewer controller */
+               SUMAg_SVv[ic].X->ViewCont->TopLevelShell = NULL;
+            
+               /* update the count */
+               SUMAg_N_SVv -= 1;
+               break;
+            default:
+               SUMA_S_Err("Not set to deal with this closing mode");
+               SUMA_RETURNe;
+         }
 
          SUMAg_SVv[ic].Open = NOPE;
          --SUMAg_CF->N_OpenSV;
@@ -3940,10 +3974,18 @@ void SUMA_cb_viewSumaCont(Widget w, XtPointer data, XtPointer callData)
       SUMA_cb_createSumaCont( w, data, callData);
    }else {
       /* controller already created, need to bring it up again */
-      #ifdef SUMA_USE_WITHDRAW
-         if (LocalHead) fprintf (SUMA_STDERR,"%s: raising SUMA controller \n", FuncName);
-         XMapRaised(SUMAg_CF->X->DPY_controller1, XtWindow(SUMAg_CF->X->SumaCont->AppShell));
-      #endif
+      switch (SUMA_CLOSE_MODE)   {/* No open GL drawables in this widget*/
+         case SUMA_WITHDRAW:
+            if (LocalHead) 
+               fprintf (SUMA_STDERR,"%s: raising SUMA controller \n", FuncName);
+            XMapRaised(SUMAg_CF->X->DPY_controller1, 
+                        XtWindow(SUMAg_CF->X->SumaCont->AppShell));
+            break;
+         default:
+            SUMA_S_Err("Not ready to deal with this closing mode");
+            SUMA_RETURNe;
+            break;
+      }
    }
 
    SUMA_RETURNe;
@@ -3971,13 +4013,27 @@ int SUMA_viewSurfaceCont(Widget w, SUMA_SurfaceObject *SO,
       else SUMA_cb_createSurfaceCont( sv->X->TOPLEVEL, (XtPointer)SO, NULL);
    }else {
       /* controller already created, need to bring it up again */
-      #ifdef SUMA_USE_WITHDRAW
-         if (LocalHead) 
-            fprintf (SUMA_STDERR,
-                     "%s: Controller already created, Raising it.\n", FuncName);
-         XMapRaised( SUMAg_CF->X->DPY_controller1, 
-                     XtWindow(SO->SurfCont->TopLevelShell));      
-      #endif
+      switch (SUMA_GL_CLOSE_MODE)   {/* open GL drawables in this widget*/
+         case SUMA_WITHDRAW:
+            if (LocalHead) 
+               fprintf (SUMA_STDERR,
+                        "%s: Controller already created, Raising it.\n", 
+                        FuncName);
+            XMapRaised( SUMAg_CF->X->DPY_controller1, 
+                        XtWindow(SO->SurfCont->TopLevelShell));
+            break;
+         case SUMA_UNREALIZE:
+            if (LocalHead) 
+               fprintf (SUMA_STDERR,
+                        "%s: Controller already created, realizing it.\n", 
+                        FuncName);
+            XtRealizeWidget( SO->SurfCont->TopLevelShell); 
+            break;
+         default:
+            SUMA_S_Err("No setup for this close mode");
+            SUMA_RETURNe;
+            break;     
+      }
 
    }
    
@@ -4052,15 +4108,25 @@ void SUMA_cb_viewViewerCont(Widget w, XtPointer data, XtPointer callData)
    sv = &SUMAg_SVv[isv];
 
    if (!sv->X->ViewCont->TopLevelShell) {
-      if (LocalHead) fprintf (SUMA_STDERR,"%s: Calling SUMA_cb_createViewerCont.\n", FuncName);
+      if (LocalHead) 
+         fprintf (SUMA_STDERR,
+                  "%s: Calling SUMA_cb_createViewerCont.\n", FuncName);
       SUMA_cb_createViewerCont( w, sv, callData);
    }else {
       /* controller already created, need to bring it up again */
       
-      #ifdef SUMA_USE_WITHDRAW
-         if (LocalHead) fprintf (SUMA_STDERR,"%s: Controller already created, Raising it.\n", FuncName);
-         XMapRaised(sv->X->DPY, XtWindow(sv->X->ViewCont->TopLevelShell));      
-      #endif
+      switch (SUMA_CLOSE_MODE)   {/* No open GL drawables in this widget*/
+         case SUMA_WITHDRAW:
+            if (LocalHead) 
+               fprintf (SUMA_STDERR,
+                        "%s: Controller already created, Raising it.\n", 
+                        FuncName);
+            XMapRaised(sv->X->DPY, XtWindow(sv->X->ViewCont->TopLevelShell));                 break;
+         default:
+            SUMA_S_Err("Not set to deal with this close mode");
+            SUMA_RETURNe;
+            break;
+      }
 
    }
    
@@ -4479,20 +4545,28 @@ void SUMA_cb_closeViewerCont(Widget w, XtPointer data, XtPointer callData)
    
    if (!sv->X->ViewCont->TopLevelShell) SUMA_RETURNe;
 
-   #ifdef SUMA_USE_WITHDRAW 
-      if (LocalHead) fprintf (SUMA_STDERR,"%s: Withdrawing Viewer Controller...\n", FuncName);
-      
-      XWithdrawWindow(sv->X->DPY, 
-         XtWindow(sv->X->ViewCont->TopLevelShell),
-         XScreenNumberOfScreen(XtScreen(sv->X->ViewCont->TopLevelShell)));
-   #endif
-   #ifdef SUMA_USE_DESTROY 
-      if (LocalHead) fprintf (SUMA_STDERR,"%s: Destroying Viewer Controller...\n", FuncName);
-      XtDestroyWidget(sv->X->ViewCont->TopLevelShell);
-      sv->X->ViewCont->TopLevelShell = NULL;
-   #endif
+   switch (SUMA_CLOSE_MODE)   {/* No open GL drawables in this widget*/
+      case SUMA_WITHDRAW:
+         if (LocalHead) 
+            fprintf (SUMA_STDERR,
+                     "%s: Withdrawing Viewer Controller...\n", FuncName);
+         XWithdrawWindow(sv->X->DPY, 
+            XtWindow(sv->X->ViewCont->TopLevelShell),
+            XScreenNumberOfScreen(XtScreen(sv->X->ViewCont->TopLevelShell)));
+         break;
+      case SUMA_DESTROY:
+         if (LocalHead) 
+            fprintf (SUMA_STDERR,
+                     "%s: Destroying Viewer Controller...\n", FuncName);
+         XtDestroyWidget(sv->X->ViewCont->TopLevelShell);
+         sv->X->ViewCont->TopLevelShell = NULL;
+         break;
+      default:
+         SUMA_S_Err("Not ready to deal with this closing mode\n");
+         break;
+         SUMA_RETURNe;
+   }
 
-    
    SUMA_RETURNe;
 
 }
@@ -5225,18 +5299,33 @@ void SUMA_cb_closeSurfaceCont(Widget w, XtPointer data, XtPointer callData)
    
    if (!SO->SurfCont->TopLevelShell) SUMA_RETURNe;
 
-   #ifdef SUMA_USE_WITHDRAW 
-      if (LocalHead) fprintf (SUMA_STDERR,"%s: Withdrawing Surface Controller...\n", FuncName);
-      
-      XWithdrawWindow(SUMAg_CF->X->DPY_controller1, 
-         XtWindow(SO->SurfCont->TopLevelShell),
-         XScreenNumberOfScreen(XtScreen(SO->SurfCont->TopLevelShell)));
-   #endif
-   #ifdef SUMA_USE_DESTROY 
-      if (LocalHead) fprintf (SUMA_STDERR,"%s: Destroying Surface Controller...\n", FuncName);
-      XtDestroyWidget(SO->SurfCont->TopLevelShell);
-      SO->SurfCont->TopLevelShell = NULL;
-   #endif
+   switch (SUMA_GL_CLOSE_MODE)   {/* No open GL drawables in this widget*/
+      case SUMA_WITHDRAW:
+         if (LocalHead) 
+            fprintf (SUMA_STDERR,
+                     "%s: Withdrawing Surface Controller...\n", FuncName);
+         XWithdrawWindow(SUMAg_CF->X->DPY_controller1, 
+            XtWindow(SO->SurfCont->TopLevelShell),
+            XScreenNumberOfScreen(XtScreen(SO->SurfCont->TopLevelShell)));
+         break;
+      case SUMA_DESTROY: 
+         if (LocalHead) 
+            fprintf (SUMA_STDERR,
+                     "%s: Destroying Surface Controller...\n", FuncName);
+         XtDestroyWidget(SO->SurfCont->TopLevelShell);
+         SO->SurfCont->TopLevelShell = NULL;
+         break;
+      case SUMA_UNREALIZE:
+         if (LocalHead) 
+            fprintf (SUMA_STDERR,
+                     "%s: Unrealizing Surface Controller...\n", FuncName);
+         XtUnrealizeWidget(SO->SurfCont->TopLevelShell);
+         break;
+      default: 
+         SUMA_S_Err("Not set up to deal with this closure mode");
+         SUMA_RETURNe;
+         break;
+   }
 
     
    SUMA_RETURNe;
@@ -5373,10 +5462,18 @@ SUMA_Boolean SUMA_OpenDrawROIWindow (SUMA_DRAWN_ROI *DrawnROI)
       SUMA_CreateDrawROIWindow ();
    } else {/* just needs raising */
       /* controller already created, need to bring it up again */
-      #ifdef SUMA_USE_WITHDRAW
-         if (LocalHead) fprintf (SUMA_STDERR,"%s: raising DrawROI window \n", FuncName);
-         XMapRaised(SUMAg_CF->X->DPY_controller1, XtWindow(SUMAg_CF->X->DrawROI->AppShell));
-      #endif
+      switch (SUMA_CLOSE_MODE)   {/* No open GL drawables in this widget*/
+         case SUMA_WITHDRAW:
+            if (LocalHead) 
+               fprintf (SUMA_STDERR,"%s: raising DrawROI window \n", FuncName);
+            XMapRaised(SUMAg_CF->X->DPY_controller1, 
+                        XtWindow(SUMAg_CF->X->DrawROI->AppShell));
+            break;
+         default:
+            SUMA_S_Err("Not setup for this close mode");
+            SUMA_RETURN(NOPE);
+            break;
+      }
    }
    
    if (DrawnROI) {
@@ -7682,17 +7779,28 @@ void SUMA_cb_CloseSwitchColPlane(Widget w, XtPointer data, XtPointer call_data)
 
    LW = (SUMA_LIST_WIDGET *)data;
    
-   #if defined SUMA_USE_WITHDRAW 
-      if (LocalHead) fprintf (SUMA_STDERR,"%s: Withdrawing list widget %s...\n", FuncName, LW->Label);
-      
-      XWithdrawWindow(SUMAg_CF->X->DPY_controller1, 
-         XtWindow(LW->toplevel),
-         XScreenNumberOfScreen(XtScreen(LW->toplevel)));
-   #elif defined SUMA_USE_DESTROY 
-         if (LocalHead) fprintf (SUMA_STDERR,"%s: Destroying list widget %s...\n", FuncName, LW->Label);
+   switch (SUMA_CLOSE_MODE)   {/* No open GL drawables in this widget*/
+      case SUMA_WITHDRAW:
+         if (LocalHead) 
+            fprintf (SUMA_STDERR,
+                     "%s: Withdrawing list widget %s...\n", 
+                     FuncName, LW->Label);
+         XWithdrawWindow(SUMAg_CF->X->DPY_controller1, 
+            XtWindow(LW->toplevel),
+            XScreenNumberOfScreen(XtScreen(LW->toplevel)));
+         break;
+      case SUMA_DESTROY: 
+         if (LocalHead) 
+            fprintf (SUMA_STDERR,
+                     "%s: Destroying list widget %s...\n", FuncName, LW->Label);
          XtDestroyWidget(LW->toplevel);
          LW->toplevel = NULL;
-   #endif
+         break;
+      default:
+         SUMA_S_Err("Not setup to deal with this closing mode");
+         SUMA_RETURNe;
+         break;
+   }
    
    LW->isShaded = YUP; 
 
@@ -7802,17 +7910,27 @@ void SUMA_cb_CloseSwitchGroup(Widget w, XtPointer data, XtPointer call_data)
    
    LW = sv->X->ViewCont->SwitchGrouplst;
    
-   #if defined SUMA_USE_WITHDRAW 
-      if (LocalHead) fprintf (SUMA_STDERR,"%s: Withdrawing list widget %s...\n", FuncName, LW->Label);
-      
-      XWithdrawWindow(SUMAg_CF->X->DPY_controller1, 
-         XtWindow(LW->toplevel),
-         XScreenNumberOfScreen(XtScreen(LW->toplevel)));
-   #elif defined SUMA_USE_DESTROY 
-         if (LocalHead) fprintf (SUMA_STDERR,"%s: Destroying list widget %s...\n", FuncName, LW->Label);
+   switch (SUMA_CLOSE_MODE)   {/* No open GL drawables in this widget*/
+      case SUMA_WITHDRAW:
+         if (LocalHead) 
+            fprintf (SUMA_STDERR,
+                     "%s: Withdrawing list widget %s...\n", FuncName, LW->Label);
+         XWithdrawWindow(SUMAg_CF->X->DPY_controller1, 
+            XtWindow(LW->toplevel),
+            XScreenNumberOfScreen(XtScreen(LW->toplevel)));
+         break;
+      case SUMA_DESTROY: 
+         if (LocalHead) 
+            fprintf (SUMA_STDERR,
+                     "%s: Destroying list widget %s...\n", FuncName, LW->Label);
          XtDestroyWidget(LW->toplevel);
          LW->toplevel = NULL;
-   #endif
+         break;
+      default:
+         SUMA_S_Err("Not setup to deal with this closing mode");
+         SUMA_RETURNe;
+         break;
+   }
    
    LW->isShaded = YUP; 
 
@@ -7911,17 +8029,27 @@ void SUMA_cb_CloseSwitchROI(Widget w, XtPointer data, XtPointer call_data)
 
    LW = (SUMA_LIST_WIDGET *)data;
    
-   #if defined SUMA_USE_WITHDRAW 
-      if (LocalHead) fprintf (SUMA_STDERR,"%s: Withdrawing list widget %s...\n", FuncName, LW->Label);
-      
-      XWithdrawWindow(SUMAg_CF->X->DPY_controller1, 
-         XtWindow(LW->toplevel),
-         XScreenNumberOfScreen(XtScreen(LW->toplevel)));
-   #elif defined SUMA_USE_DESTROY 
-         if (LocalHead) fprintf (SUMA_STDERR,"%s: Destroying list widget %s...\n", FuncName, LW->Label);
+   switch (SUMA_CLOSE_MODE)   {/* No open GL drawables in this widget*/
+      case SUMA_WITHDRAW:
+         if (LocalHead) 
+            fprintf (SUMA_STDERR,
+                     "%s: Withdrawing list widget %s...\n", FuncName, LW->Label);
+         XWithdrawWindow(SUMAg_CF->X->DPY_controller1, 
+            XtWindow(LW->toplevel),
+            XScreenNumberOfScreen(XtScreen(LW->toplevel)));
+         break;
+      case SUMA_DESTROY:
+         if (LocalHead) 
+            fprintf (SUMA_STDERR,
+                     "%s: Destroying list widget %s...\n", FuncName, LW->Label);
          XtDestroyWidget(LW->toplevel);
          LW->toplevel = NULL;
-   #endif
+         break;
+      default:
+         SUMA_S_Err("Not setup to deal with this mode");
+         SUMA_RETURNe;
+         break;
+   }
    
    LW->isShaded = YUP; 
 
@@ -7954,19 +8082,26 @@ void SUMA_cb_CloseDrawROIWindow(Widget w, XtPointer data, XtPointer call_data)
       XmToggleButtonSetState (SUMAg_CF->X->DrawROI->DrawROImode_tb, 
                               NOPE, YUP);
    }
-   #if defined SUMA_USE_WITHDRAW 
-      if (LocalHead) 
-         fprintf (SUMA_STDERR,"%s: Withdrawing DrawROI window...\n", FuncName);
-      
-      XWithdrawWindow(SUMAg_CF->X->DPY_controller1, 
-         XtWindow(SUMAg_CF->X->DrawROI->AppShell),
-         XScreenNumberOfScreen(XtScreen(SUMAg_CF->X->DrawROI->AppShell)));
-   #elif defined SUMA_USE_DESTROY 
-      if (LocalHead) 
-         fprintf (SUMA_STDERR,"%s: Destroying DrawROI window...\n", FuncName);
-      XtDestroyWidget(SUMAg_CF->X->DrawROI->AppShell);
-      SUMAg_CF->X->DrawROI->AppShell = NULL;
-   #endif
+   switch (SUMA_CLOSE_MODE)   {/* No open GL drawables in this widget*/
+      case SUMA_WITHDRAW:
+         if (LocalHead) 
+            fprintf (SUMA_STDERR,
+                     "%s: Withdrawing DrawROI window...\n", FuncName);
+         XWithdrawWindow(SUMAg_CF->X->DPY_controller1, 
+            XtWindow(SUMAg_CF->X->DrawROI->AppShell),
+            XScreenNumberOfScreen(XtScreen(SUMAg_CF->X->DrawROI->AppShell)));
+         break;
+      case SUMA_DESTROY :
+         if (LocalHead) 
+            fprintf (SUMA_STDERR,"%s: Destroying DrawROI window...\n", FuncName);
+         XtDestroyWidget(SUMAg_CF->X->DrawROI->AppShell);
+         SUMAg_CF->X->DrawROI->AppShell = NULL;
+         break;
+      default:
+         SUMA_S_Err("Not setup to deal with this mode of closure");
+         SUMA_RETURNe;
+         break;
+   }
    
    SUMA_RETURNe;
 }
@@ -8438,18 +8573,27 @@ void SUMA_cb_closeSumaCont(Widget w, XtPointer data, XtPointer callData)
    
    if (!SUMAg_CF->X->SumaCont->AppShell) SUMA_RETURNe;
    
-   #ifdef SUMA_USE_WITHDRAW 
-      if (LocalHead) fprintf (SUMA_STDERR,"%s: Withdrawing Suma Controller...\n", FuncName);
-      
-      XWithdrawWindow(SUMAg_CF->X->DPY_controller1, 
-         XtWindow(SUMAg_CF->X->SumaCont->AppShell),
-         XScreenNumberOfScreen(XtScreen(SUMAg_CF->X->SumaCont->AppShell)));
-   #endif
-   #ifdef SUMA_USE_DESTROY 
-      if (LocalHead) fprintf (SUMA_STDERR,"%s: Destroying Suma Controller...\n", FuncName);
-      XtDestroyWidget(SUMAg_CF->X->SumaCont->AppShell);
-      SUMAg_CF->X->SumaCont->AppShell = NULL;
-   #endif
+   switch (SUMA_CLOSE_MODE)   {/* NO open GL drawables in this widget*/
+      case SUMA_WITHDRAW:
+         if (LocalHead) 
+            fprintf (SUMA_STDERR,
+                     "%s: Withdrawing Suma Controller...\n", FuncName);
+         XWithdrawWindow(SUMAg_CF->X->DPY_controller1, 
+            XtWindow(SUMAg_CF->X->SumaCont->AppShell),
+            XScreenNumberOfScreen(XtScreen(SUMAg_CF->X->SumaCont->AppShell)));
+         break;
+      case SUMA_DESTROY: 
+         if (LocalHead) 
+            fprintf (SUMA_STDERR,
+                     "%s: Destroying Suma Controller...\n", FuncName);
+         XtDestroyWidget(SUMAg_CF->X->SumaCont->AppShell);
+         SUMAg_CF->X->SumaCont->AppShell = NULL;
+         break;
+      default:
+         SUMA_S_Err("Not setup to deal with this closing mode");
+         SUMA_RETURNe;
+         break;
+   }
    
    SUMA_RETURNe;
 

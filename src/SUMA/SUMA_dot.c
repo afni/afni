@@ -339,7 +339,7 @@ double *SUMA_DotPreProcessTimeSeries(float *fv, int N_ts,
    float **ort=NULL, ftop=9999999.9, fbot=0.0;
    double *ts=NULL;
    int ii =0;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
