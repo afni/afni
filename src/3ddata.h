@@ -2933,6 +2933,11 @@ extern int    THD_deconflict_prefix( THD_3dim_dataset * ) ;          /* 23 Mar 2
 
 #define DSET_ixyz_to_index(ds,ix,jy,kz) ((ix)+((jy)+(kz)*(ds)->daxes->nyy)*(ds)->daxes->nxx)
 
+#define DAXES_index_to_ix(da,ii)         (  (ii) % (da)->nxx)
+#define DAXES_index_to_jy(da,ii)         ( ((ii) / (da)->nxx) % (da)->nyy )
+#define DAXES_index_to_kz(da,ii)         (  (ii) /((da)->nxx * (da)->nyy ))
+#define DAXES_ixyz_to_index(da,ix,jy,kz) ((ix)+((jy)+(kz)*(da)->nyy)*(da)->nxx)
+
 /*! Determine if dataset ds has cubical voxels */
 
 #define DSET_CUBICAL(ds) ( fabs((ds)->daxes->xxdel) == fabs((ds)->daxes->yydel) && \
