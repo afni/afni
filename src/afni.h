@@ -460,9 +460,7 @@ typedef struct {
 
   Widget actar ;         /* action area holding control buttons */
 
-  Widget ulay_expr_text ;
   Widget olay_expr_text ;
-  Widget thr_expr_text  ;
 
   ICALC_widget_row  war[26] ;
   void             *var[26] ;
@@ -477,14 +475,39 @@ typedef struct {
 #define ICALC_1DFILE     2
 #define ICALC_CONSTANT   3
 
+#define ICALC_DSHIFT_MODE_STOP  0
+#define ICALC_DSHIFT_MODE_WRAP  1
+#define ICALC_DSHIFT_MODE_ZERO  2
+
+#define ICALC_HAS_I(q)  (q)->has_sym[ 8]
+#define ICALC_HAS_J(q)  (q)->has_sym[ 9]
+#define ICALC_HAS_K(q)  (q)->has_sym[10]
+#define ICALC_HAS_L(q)  (q)->has_sym[11]
+#define ICALC_HAS_T(q)  (q)->has_sym[19]
+#define ICALC_HAS_X(q)  (q)->has_sym[23]
+#define ICALC_HAS_Y(q)  (q)->has_sym[24]
+#define ICALC_HAS_Z(q)  (q)->has_sym[25]
+
 typedef struct {
-   int   is_good ;
-   char  *ulay_expr , *olay_expr , *thr_expr ;
+   int is_good ;
+
+   char        *olay_expr ;
+   void        *olay_code ;
+   THD_dataxes *daxes ;
+
    int               intyp[26] ;
    THD_3dim_dataset *inset[26] ; int inidx[26] ;
    MRI_IMAGE        *inim [26] ;
    double            inval[26] ;
    char             *instr[26] ;
+
+   int dshift_mode , cxcode ;
+   int dshift  [26] ;
+   int dshift_i[26] ;
+   int dshift_j[26] ;
+   int dshift_k[26] ;
+   int dshift_l[26] ;
+   int has_sym[26] , has_predefined, has_xyz, mangle_xyz ;
 } ICALC_setup ;
 
 #undef  INIT_ICALC_setup

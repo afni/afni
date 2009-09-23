@@ -1,4 +1,5 @@
 #include "afni.h"
+#include "parser.h"
 
 /*--- macros for drawing lines ---*/
 
@@ -539,3 +540,391 @@ static char * ICALC_index_lab_CB( MCW_arrowval *av , XtPointer cd )
    else         sprintf(str," %d",bb) ;
    return str ;
 }
+
+/*-------------------------------------------------------------------------*/
+/*------------------------ the actual computations ------------------------*/
+
+#define DSHIFT_MODE_STOP  0
+#define DSHIFT_MODE_WRAP  1
+#define DSHIFT_MODE_ZERO  2
+
+#define HAS_I(q)  (q)->has_sym[ 8]
+#define HAS_J(q)  (q)->has_sym[ 9]
+#define HAS_K(q)  (q)->has_sym[10]
+#define HAS_L(q)  (q)->has_sym[11]
+#define HAS_T(q)  (q)->has_sym[19]
+#define HAS_X(q)  (q)->has_sym[23]
+#define HAS_Y(q)  (q)->has_sym[24]
+#define HAS_Z(q)  (q)->has_sym[25]
+
+static char abet[] = "abcdefghijklmnopqrstuvwxyz" ;
+
+#define PREDEFINED_MASK ((1<< 8)|(1<< 9)|(1<<10)|(1<<11)| \
+                         (1<<19)|(1<<23)|(1<<24)|(1<<25) )
+
+#define MANGLE_NONE 0
+#define MANGLE_RAI  1
+#define MANGLE_LPI  2
+
+#define Rfac = 0.299f ;
+#define Gfac = 0.587f ;
+#define Bfac = 0.114f ;
+
+#define CX_REALPART  0               /* 10 Mar 2006: complex to real methods */
+#define CX_IMAGPART  1
+#define CX_MAGNITUDE 2
+#define CX_PHASE     3
+
+/*------------------------------------------------------------------*/
+
+#define VSIZE 1024  /* vector size for PARSER computations */
+
+#if 0
+MRI_IMAGE * ICALC_compute( ICALC_setup *ics )
+{
+   double  temp[VSIZE];
+   double *atoz[26] ;
+   int ii , ids , jj, kk, kt, ll, jbot, jtop ;
+   float  *buf; MRI_IMAGE *bim ;
+   int     nbad ;      /* 09 Aug 2000: check for bad results */
+
+   THD_ivec3 iv ;
+   THD_fvec3 fv ;
+   float xxx[VSIZE], yyy[VSIZE], zzz[VSIZE] ;
+   int   iii,jjj,kkk , nx,nxy ;
+   THD_dataxes *daxes ; THD_3dim_dataset *qset ;
+   byte *bar; short *sar; float *sar; complex *car; void *var;
+   int dtyp , kts ; float ffac ;
+
+ENTRY("ICALC_compute") ;
+
+   /* workspace vector for each alphabetic symbol, used or unused */
+
+   for (ids=0; ids<26; ids++)
+     atoz[ids] = (double *)calloc( sizeof(double) , VSIZE ) ;
+
+   /* dimensions */
+
+   nx = daxes->nxx; ny = daxes->nyy; nz = daxes->nzz; nxy = nx*ny; nxyz = nxy*nz;
+
+   /* malloc output image space */
+
+   bim = mri_new_vol( nx,ny,nz , MRI_float ) ; buf = MRI_FLOAT_PTR(bim) ;
+
+   /* fake dataset */
+
+   qset = EDT_empty_copy(NULL) ;
+   *(qset->daxes) = *daxes ; qset->daxes->parent = (XtPointer)qset ;
+
+   /***----- loop over voxels, do VSIZE voxels at time -----***/
+
+   for( ii = 0 ; ii < nxyz ; ii += VSIZE ){
+
+     jbot = ii ; jtop = MIN( ii + VSIZE , nxyz ) ;  /* do voxels jj..jtop-1 */
+
+     /* load (x,y,z) coords of these voxels into arrays, if needed */
+
+     if( ics->has_xyz ){
+       for( jj=jbot ; jj < jtop ; jj++ ){
+         LOAD_IVEC3( iv , jj%nx , (jj%nxy)/nx , jj/nxy ) ;
+         fv = THD_3dind_to_3dmm( qset , iv ) ;
+         if( ics->mangle_xyz ) fv = THD_3dmm_to_dicomm(qset,fv) ;
+         UNLOAD_FVEC3(fv,xxx[jj-jbot],yyy[jj-jbot],zzz[jj-jbot]) ;
+         if( ics->mangle_xyz == MANGLE_LPI ){
+           xxx[jj-jbot] = -xxx[jj-jbot] ; yyy[jj-jbot] = -yyy[jj-jbot] ;
+         }
+       }
+     }
+
+     /* loop over datasets or other symbol definitions */
+
+     for (ids = 0 ; ids < 26 ; ids ++ ){  /* the whole alphabet */
+
+       switch( ics->intyp[ids] ){
+
+         /* this is real easy */
+
+         case ICALC_DSET_STAT:
+         case ICALC_CONSTANT:
+           for (jj =jbot ; jj < jtop ; jj ++ ) atoz[ids][jj-ii] = ics->inval[ids] ;
+         break ;
+
+         /* however, this is not so easy */
+
+         case ICALC_DSET_VALUE:{
+           THD_3dim_dataset *dset ;
+
+           if( ics->dshift[ids] >= 0 ){   /* differential subscripted dataset */
+             int jds = ics->dshift[ids] ;     /* actual dataset index */
+             int jjs , ix,jy,kz ;
+             int id=ics->dshift_i[ids] , jd=ics->dshift_j[ids] ,
+                 kd=ics->dshift_k[ids] , ld=ics->dshift_l[ids] ;
+             int ijkd = ((id!=0) || (jd!=0) || (kd!=0)) ;
+             int dsx=nx-1 , dsy=ny-1 , dsz=nz-1 , dst ;
+             int mode=ics->dshift_mode , dun=0 ;  /* dun == 'are we done yet?' */
+
+             dset = ics->inset[jds] ;
+             dst  = DSET_NVALS(dset) - 1 ;
+
+             kts = ics->inidx[jds] + ld ;    /* t shift */
+             if( kts < 0 || kts > dst ){
+                switch( mode ){
+                  case DSHIFT_MODE_ZERO:
+                    for( jj=jbot ; jj < jtop ; jj++ ) atoz[ids][jj-ii] = 0.0 ;
+                    dun = 1 ;
+                  break ;
+                  default:
+                  case DSHIFT_MODE_STOP:
+                         if( kts <  0  ) kts = 0   ;
+                    else if( kts > dst ) kts = dst ;
+                  break ;
+                  case DSHIFT_MODE_WRAP:
+                    while( kts <  0  ) kts += (dst+1) ;
+                    while( kts > dst ) kts -= (dst+1) ;
+                  break ;
+                }
+             }
+
+             if( !dun ){   /* must get some actual data */
+               dtyp = DSET_BRICK_TYPE  (dset,kts);
+               var  = DSET_ARRAY       (dset,kts);
+               ffac = DSET_BRICK_FACTOR(dset,kts); if( ffac==0.0f ) ffac = 1.0f;
+               switch(dtyp){
+                 case MRI_rgb:
+                 case MRI_byte:    bar = (byte *   )var ; break ;
+                 case MRI_short:   sar = (short *  )var ; break ;
+                 case MRI_float:   far = (float *  )var ; break ;
+                 case MRI_complex: car = (complex *)var ; break ;
+               }
+               for( dun=0,jj=jbot ; jj < jtop ; jj++ ){ /* loop over voxels */
+                 jjs = jj ;                  /* nominal voxel spatial index */
+                 if( ijkd ){                 /* if spatial shift is ordered */
+                   ix = DAXES_index_to_ix(daxes,jj) ;
+                   jy = DAXES_index_to_jy(daxes,jj) ;
+                   kz = DAXES_index_to_kz(daxes,jj) ;
+
+                   ix += id ;                  /* x shift */
+                   if( ix < 0 || ix > dsx ){
+                     switch( mode ){
+                       case DSHIFT_MODE_ZERO:
+                         atoz[ids][jj-ii] = 0.0 ; dun = 1 ;
+                       break ;
+                       default:
+                       case DSHIFT_MODE_STOP:
+                              if( ix <  0  ) ix = 0   ;
+                         else if( ix > dsx ) ix = dsx ;
+                       break ;
+                       case DSHIFT_MODE_WRAP:
+                         while( ix <  0  ) ix += (dsx+1) ;
+                         while( ix > dsx ) ix -= (dsx+1) ;
+                       break ;
+                     }
+                   }
+                   if( dun ){ dun=0; continue; } /* go to next jj */
+
+                   jy += jd ;                  /* y shift */
+                   if( jy < 0 || jy > dsy ){
+                     switch( mode ){
+                       case DSHIFT_MODE_ZERO:
+                         atoz[ids][jj-ii] = 0.0 ; dun = 1 ;
+                       break ;
+                       default:
+                       case DSHIFT_MODE_STOP:
+                              if( jy <  0  ) jy = 0   ;
+                         else if( jy > dsy ) jy = dsy ;
+                       break ;
+                       case DSHIFT_MODE_WRAP:
+                         while( jy <  0  ) jy += (dsy+1) ;
+                         while( jy > dsy ) jy -= (dsy+1) ;
+                       break ;
+                     }
+                   }
+                   if( dun ){ dun=0; continue; } /* go to next jj */
+
+                   kz += kd ;                  /* z shift */
+                   if( kz < 0 || kz > dsz ){
+                     switch( mode ){
+                       case DSHIFT_MODE_ZERO:
+                         atoz[ids][jj-ii] = 0.0 ; dun = 1 ;
+                       break ;
+                       default:
+                       case DSHIFT_MODE_STOP:
+                              if( kz <  0  ) kz = 0   ;
+                         else if( kz > dsz ) kz = dsz ;
+                       break ;
+                       case DSHIFT_MODE_WRAP:
+                         while( kz <  0  ) kz += (dsz+1) ;
+                         while( kz > dsz ) kz -= (dsz+1) ;
+                       break ;
+                     }
+                   }
+                   if( dun ){ dun=0; continue; } /* go to next jj */
+
+                   jjs = DSET_ixyz_to_index(daxes,ix,jy,kz) ;
+                 } /* end of spatial shift index calculation */
+
+                 switch( dtyp ) {  /* extract data */
+                   case MRI_short:
+                     atoz[ids][jj-ii] = sar[jjs] * ffac ;
+                   break ;
+                   case MRI_float:
+                     atoz[ids][jj-ii] = far[jjs] * ffac ;
+                   break ;
+                   case MRI_byte:
+                     atoz[ids][jj-ii] = bar[jjs] * ffac ;
+                   break ;
+                   case MRI_rgb:
+                     atoz[ids][jj-ii] = Rfac*bar[3*jjs]+Gfac*bar[3*jjs+1]+Bfac*bar[3*jjs+2] ;
+                   break ;
+                   case MRI_complex:{                        /* 10 Mar 2006 */
+                     complex cv=car[jjs] ; float xx=cv.r, yy=cv.i , vv ;
+                     switch( ics->cxcode ){
+                       case CX_REALPART:  vv = xx ;                    break ;
+                       case CX_IMAGPART:  vv = yy ;                    break ;
+                       case CX_PHASE:     vv = (xx==0.0f && yy==0.0f)
+                                               ? 0.0f : atan2(yy,xx) ; break ;
+                       default:
+                       case CX_MAGNITUDE: vv = complex_abs(cv) ;       break ;
+                     }
+                     atoz[ids][jj-ii] = vv ;
+                   }
+                 } /* end of data type extraction switch */
+               } /* end of loop over voxels */
+             } /* end of getting actual data */
+           } /* end of differential subscripted input */
+
+           else if( ISVALID_DSET(ics->inset[ids]) ) {  /* the "normal" dataset case */
+             kts  = ics->inidx[ids] ;
+             dset = ics->inset[ids] ;
+             dtyp = DSET_BRICK_TYPE  (dset,kts);
+             var  = DSET_ARRAY       (dset,kts);
+             ffac = DSET_BRICK_FACTOR(dset,kts); if( ffac==0.0f ) ffac = 1.0f;
+             switch(dtyp){
+               case MRI_rgb:
+               case MRI_byte:    bar = (byte *   )var ; break ;
+               case MRI_short:   sar = (short *  )var ; break ;
+               case MRI_float:   far = (float *  )var ; break ;
+               case MRI_complex: car = (complex *)var ; break ;
+             }
+
+             switch( dtyp ) {  /* extract data */
+               case MRI_short:
+                 for (jj =jbot ; jj < jtop ; jj ++ )
+                   atoz[ids][jj-ii] = sar[jj] * ffac ;
+               break ;
+               case MRI_float:
+                 for (jj =jbot ; jj < jtop ; jj ++ )
+                   atoz[ids][jj-ii] = far[jj] * ffac ;
+               break ;
+               case MRI_byte:
+                 for (jj =jbot ; jj < jtop ; jj ++ )
+                   atoz[ids][jj-ii] = bar[jj] * ffac ;
+               break ;
+               case MRI_rgb:
+                 for (jj =jbot ; jj < jtop ; jj ++ )
+                   atoz[ids][jj-ii] = Rfac*bar[3*jj]+Gfac*bar[3*jj+1]+Bfac*bar[3*jj+2] ;
+               break ;
+               case MRI_complex:{                        /* 10 Mar 2006 */
+                 complex cv ; float xx, yy, vv ;
+                 for (jj =jbot ; jj < jtop ; jj ++ ){
+                   cv=car[jj] ; xx=cv.r ; yy=cv.i ;
+                   switch( ics->cxcode ){
+                     case CX_REALPART:  vv = xx ;                    break ;
+                     case CX_IMAGPART:  vv = yy ;                    break ;
+                     case CX_PHASE:     vv = (xx==0.0f && yy==0.0f)
+                                             ? 0.0f : atan2(yy,xx) ; break ;
+                     default:
+                     case CX_MAGNITUDE: vv = complex_abs(cv) ;       break ;
+                   }
+                   atoz[ids][jj-ii] = vv ;
+                 }
+               }
+               break ;
+             } /* end of data type extraction switch */
+
+          } /** end of 3D dataset **/
+
+          /* the case of a voxel (x,y,z) or (i,j,k) coordinate */
+
+          else if( ics->has_predefined ) {
+
+            switch( ids ){
+               case 23:     /* x */
+                 if( HAS_X(ics) )
+                   for( jj=jbot ; jj < jtop ; jj++ )
+                     atoz[ids][jj-ii] = xxx[jj-ii] ;
+               break ;
+
+               case 24:     /* y */
+                 if( HAS_Y(ics) )
+                   for( jj=jbot ; jj < jtop ; jj++ )
+                     atoz[ids][jj-ii] = yyy[jj-ii] ;
+               break ;
+
+               case 25:     /* z */
+                 if( HAS_Z(ics) )
+                   for( jj=jbot ; jj < jtop ; jj++ )
+                     atoz[ids][jj-ii] = zzz[jj-ii] ;
+               break ;
+
+               case 8:     /* i */
+                 if( HAS_I(ics) )
+                   for( jj=jbot ; jj < jtop ; jj++ )
+                     atoz[ids][jj-ii] = (jj%nx) ;
+               break ;
+
+               case 9:     /* j */
+                 if( HAS_J(ics) )
+                   for( jj=jbot ; jj < jtop ; jj++ )
+                     atoz[ids][jj-ii] = ((jj%nxy)/nx) ;
+               break ;
+
+               case 10:    /* k */
+                 if( HAS_K(ics) )
+                   for( jj=jbot ; jj < jtop ; jj++ )
+                     atoz[ids][jj-ii] = (jj/nxy) ;
+               break ;
+
+               case 19:    /* t */
+                 if( HAS_T(ics) )
+                   for( jj=jbot ; jj < jtop ; jj++ )
+                     atoz[ids][jj-ii] = THD_timeof_vox(kt,jj,new_dset) ;
+               break ;
+
+               case 11:    /* l */
+                 if( HAS_L(ics) )
+                   for( jj=jbot ; jj < jtop ; jj++ )
+                     atoz[ids][jj-ii] = kt ;
+               break ;
+             } /* end of switch on symbol subscript */
+
+           } /* end of choice over data type (if-else cascade) */
+         }
+         break ; /* end of dataset value case */
+
+       } /* end of switch over ICALC mode for this symbol */
+
+     } /* end of loop over datasets/symbols */
+
+     /**** actually do the calculation work! ****/
+
+     PARSER_evaluate_vector(CALC_code, atoz, jtop-jbot, temp);
+
+     /**** put results into output image array ****/
+
+     for ( jj = jbot ; jj < jtop ; jj ++ ) buf[jj] = temp[jj-ii];
+
+   } /*---------- end of loop over space (voxels) ----------*/
+
+   /* check results for validity */
+
+   nbad = thd_floatscan( nxyz , buf ) ;
+   if( nbad > 0 )
+     WARNING_message("%d bad floats replaced by 0 in ICALC_compute",nbad) ;
+
+   for( ids=0; ids<26; ids++ ) free(atoz[ids]) ;  /* toss the trash */
+   DSET_delete(qset) ;
+
+   RETURN(bim) ;
+}
+#endif
