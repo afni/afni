@@ -1584,7 +1584,9 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
       
    glPopMatrix();   
    
-   if (LocalHead) fprintf (SUMA_STDOUT,"%s: Flushing or swapping ...\n", FuncName);
+   if (LocalHead) 
+      fprintf (SUMA_STDOUT,
+               "%s: Flushing or swapping ...\n", FuncName);
    if (csv->X->DOUBLEBUFFER)
     glXSwapBuffers(csv->X->DPY, XtWindow(csv->X->GLXAREA));
    else
@@ -4070,6 +4072,23 @@ int SUMA_viewSurfaceCont(Widget w, SUMA_SurfaceObject *SO,
    }
    
    SUMA_LH("Returning");
+   
+   /* insist on a glXMakeCurrent for surface viewer,
+   Otherwise you get a crash on OS X 10.5 if
+   you do the following:
+      Open the surface controller with View-->Surface Controller
+      Close the controller
+      Open it again in the same way and then you get one of these:
+         X Error of failed request:  GLXBadCurrentWindow
+         Major opcode of failed request:  149 (GLX)
+         Minor opcode of failed request:  11 (X_GLXSwapBuffers)
+         Serial number of failed request:  7046
+         Current serial number in output stream:  7046
+
+      */
+   SUMA_LH("Making sv's GLXAREA current\n");
+   SUMA_SiSi_I_Insist();
+
    SUMA_RETURN(1); 
 }
 
