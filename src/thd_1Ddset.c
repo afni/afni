@@ -231,6 +231,7 @@ void THD_write_1D( char *sname, char *pname , THD_3dim_dataset *dset )
    int iv,nv , nx,ny,nz,nxyz,ii,jj,kk , qq ;
    FILE *fp=NULL ;
    int binflag=0 ; char shp ; float val[1] ;
+   complex cval[1] ; int do_complex=0 ; char *dstr ;
 
 ENTRY("THD_write_1D") ;
 
@@ -245,7 +246,7 @@ ENTRY("THD_write_1D") ;
 
    cpt = DSET_PREFIX(dset) ;
    if( (pname != NULL && *pname == '-') ||          /* 12 Jul 2005: to stdout */
-       (pname == NULL && (*cpt   == '-' || strncmp(cpt,"stdout",6)==0)) ){
+       (pname == NULL && (*cpt  == '-' || strncmp(cpt,"stdout",6)==0)) ){
      fp = stdout ; strcpy(fname,"stdout") ; binflag = 0 ;
    }
 
@@ -262,6 +263,12 @@ ENTRY("THD_write_1D") ;
    /* back to normal 3D mode of writing */
 
    if( sname == NULL ) sname = DSET_DIRNAME(dset) ;
+
+   do_complex = fp != stdout              &&
+                DSET_datum_constant(dset) &&              /* 24 Sep 2009: for LRF: */
+                DSET_BRICK_TYPE(dset,0) == MRI_complex ;  /* allow complex output */
+
+   dstr = (do_complex) ? "complex" : "float" ;
 
    if( fp == NULL ){
      if( pname != NULL ){                       /* have input prefix */
@@ -313,7 +320,7 @@ ENTRY("THD_write_1D") ;
      fprintf(fp,
                 "%c <AFNI_3D_dataset\n"
                 "%c  self_idcode = \"%s\"\n"
-                "%c  ni_type     = \"%d*float\"\n"    /* all columns are floats! */
+                "%c  ni_type     = \"%d*%s\"\n"    /* all columns are same type! */
                 "%c  ni_dimen    = \"%d,%d,%d\"\n"
                 "%c  ni_delta    = \"%g,%g,%g\"\n"
                 "%c  ni_origin   = \"%g,%g,%g\"\n"
@@ -321,7 +328,7 @@ ENTRY("THD_write_1D") ;
              ,
                 shp ,
                 shp , dset->idcode.str ,
-                shp , nv ,
+                shp , nv , dstr ,
                 shp , nx,ny,nz ,
                 shp , DSET_DX(dset)  , DSET_DY(dset)  , DSET_DZ(dset)  ,
                 shp , DSET_XORG(dset), DSET_YORG(dset), DSET_ZORG(dset),
@@ -406,7 +413,8 @@ ENTRY("THD_write_1D") ;
 
           case MRI_complex:{
             complex *bar = DSET_ARRAY(dset,iv) ;
-            val[0] = CABS(bar[ii]) ;
+            if( do_complex ) cval[0] = bar[ii] ;
+            else              val[0] = CABS(bar[ii]) ;
           }
           break ;
 
@@ -417,12 +425,16 @@ ENTRY("THD_write_1D") ;
           break ;
        } /* end of switch on sub-brick data type */
 
-       if( binflag ) qq = fwrite( val , sizeof(float) , 1 , fp ) ;
-       else          qq = fprintf( fp , " %g" , val[0] ) ;
+       if( do_complex ){
+         if( binflag ) qq = fwrite( cval , sizeof(complex) , 1 , fp ) ;
+         else          qq = fprintf( fp , " %g %g" , cval[0].r , cval[0].i ) ;
+       } else {
+         if( binflag ) qq = fwrite( val , sizeof(float) , 1 , fp ) ;
+         else          qq = fprintf( fp , " %g" , val[0] ) ;
+       }
 
        if( qq <= 0 ){   /* check for output error */
-         ERROR_message("THD_write_1D('%s') failure!",fname) ;
-         goto DONE ;
+         ERROR_message("THD_write_1D('%s') failure!",fname) ; goto DONE ;
        }
 
      } /* end of loop over sub-bricks */
