@@ -469,37 +469,16 @@ typedef struct {
   struct Three_D_View *im3d ;
 } ICALC_widget_set ;
 
-#define ICALC_INVALID    -666
-#define ICALC_DSET_VALUE 0
-#define ICALC_DSET_STAT  1
-#define ICALC_1DFILE     2
-#define ICALC_CONSTANT   3
-
-#define ICALC_DSHIFT_MODE_STOP  0
-#define ICALC_DSHIFT_MODE_WRAP  1
-#define ICALC_DSHIFT_MODE_ZERO  2
-
-#define ICALC_HAS_I(q)  (q)->has_sym[ 8]
-#define ICALC_HAS_J(q)  (q)->has_sym[ 9]
-#define ICALC_HAS_K(q)  (q)->has_sym[10]
-#define ICALC_HAS_L(q)  (q)->has_sym[11]
-#define ICALC_HAS_T(q)  (q)->has_sym[19]
-#define ICALC_HAS_X(q)  (q)->has_sym[23]
-#define ICALC_HAS_Y(q)  (q)->has_sym[24]
-#define ICALC_HAS_Z(q)  (q)->has_sym[25]
-
 typedef struct {
    int is_good ;
 
-   char        *olay_expr ;
-   void        *olay_code ;
-   THD_dataxes *daxes ;
+   char *olay_expr ;
+   void *olay_code ;
+   THD_3dim_dataset *dset_master ;
 
    int               intyp[26] ;
    THD_3dim_dataset *inset[26] ; int inidx[26] ;
-   MRI_IMAGE        *inim [26] ;
    double            inval[26] ;
-   char             *instr[26] ;
 
    int dshift_mode , cxcode ;
    int dshift  [26] ;
@@ -511,10 +490,10 @@ typedef struct {
 } ICALC_setup ;
 
 #undef  INIT_ICALC_setup
-#define INIT_ICALC_setup(qcs)                                        \
- do{ int qx ;                                                        \
-     (qcs) = (ICALC_setup *)calloc(1,sizeof(ICALC_setup)) ;          \
-     for( qx=0 ; qx < 26 ; qx++ ) (qcs)->intyp[qx] = ICALC_INVALID ; \
+#define INIT_ICALC_setup(qcs)                                \
+ do{ int qx ;                                                \
+     (qcs) = (ICALC_setup *)calloc(1,sizeof(ICALC_setup)) ;  \
+     for( qx=0 ; qx < 26 ; qx++ ) (qcs)->intyp[qx] = -666 ;  \
  } while(0)
 
 #undef  DESTROY_ICALC_setup

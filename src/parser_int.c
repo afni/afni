@@ -258,12 +258,12 @@ double PARSER_strtod( char *expr )
    double atoz[26] , val ;
    int ii ;
 
-   if( expr == NULL ) return 0 ;                 /* bad */
+   if( expr == NULL || *expr == '\0' ) return 0.0 ; /* bad */
 
-   pcode = PARSER_generate_code( expr ) ;        /* compile */
-   if( pcode == NULL ) return 0 ;                /* bad news */
+   pcode = PARSER_generate_code( expr ) ;           /* compile */
+   if( pcode == NULL ) return 0.0 ;                 /* bad news */
 
-   for( ii=0 ; ii < 26 ; ii++ ) atoz[ii] = 0.0 ; /* initialize */
+   for( ii=0 ; ii < 26 ; ii++ ) atoz[ii] = 0.0 ;    /* initialize */
 
    val = PARSER_evaluate_one( pcode , atoz ) ;
 
