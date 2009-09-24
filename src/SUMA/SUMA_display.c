@@ -2558,7 +2558,7 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
          case SUMA_UNREALIZE:
             SUMA_LH("Realizing");
             XtRealizeWidget(SUMAg_SVv[ic].X->TOPLEVEL);
-            XSync(SUMAg_SVv[ic].X->DPY, 1);  /* Don't know if this helps for sure
+            XSync(SUMAg_SVv[ic].X->DPY, 0);  /* Don't know if this helps for sure
                                                 Part of the OS X 10.5 GLX crash 
                                                 from hell */
             break;
@@ -4027,7 +4027,8 @@ int SUMA_viewSurfaceCont(Widget w, SUMA_SurfaceObject *SO,
                fprintf (SUMA_STDERR,
                         "%s: Controller already created, realizing it.\n", 
                         FuncName);
-            XtRealizeWidget( SO->SurfCont->TopLevelShell); 
+            XtRealizeWidget( SO->SurfCont->TopLevelShell);
+            XSync(SUMAg_CF->X->DPY_controller1, 0);
             break;
          default:
             SUMA_S_Err("No setup for this close mode");
