@@ -26,10 +26,13 @@
 #define SUMA_CLOSE_MODE       SUMA_WITHDRAW
 #define SUMA_GL_CLOSE_MODE    SUMA_UNREALIZE
 
-#define NO_FLUSH        1  /* 1 = Avoid flushing/Buffer swapping, at close time 
+#define DO_FLUSH        0  /* 0 = Avoid flushing/Buffer swapping, at close time 
                                   Part of the effort to keep suma from crashing
                                   on OS X 10.5 , when closing a widget with an 
-                                  OpenGL drawable */
+                                  OpenGL drawable.
+                                  Keep it at 0, at least for OS X 10.5 and 
+                                  early 10.6 . 
+                                  Perhaps it should be kept off forever */
                                   
 typedef struct suma_menu_item {
     char        *label;         /*!< the label for the item */
