@@ -65,6 +65,11 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 24 , SEP , 2009 , ZSS , "suma" , MAJOR , TYPE_BUG_FIX ,
+   "Fixed crashes on OS X 10.5 caused by OS X's buggy GLX implementation",
+   NULL
+ } ,
+
  { 18 , SEP , 2009 , ZSS , "FSread_annot" , MINOR , TYPE_NEW_OPT ,
    "Allow specifying external FreeSurfer color table.",
    NULL
