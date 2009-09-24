@@ -451,8 +451,10 @@ SUMA_Boolean SUMA_display_edge_striplist(DList *striplist, SUMA_SurfaceViewer *s
    
    if (SUMA_iswordin_ci(DispOptions, "ShowEdges") == 1) {
       if (N_allEpath) {
-         SUMA_LHv("Building SDO of %d edges from %d strips\n", N_allEpath, dlist_size(striplist));
-         if ((SDO = SUMA_Alloc_SegmentDO (N_allEpath, "SUMA_SPI_to_EdgeStrips_segs", 0, NULL, 0, LS_type))) {
+         SUMA_LHv("Building SDO of %d edges from %d strips\n", 
+                  N_allEpath, dlist_size(striplist));
+         if ((SDO = SUMA_Alloc_SegmentDO (N_allEpath, 
+                        "SUMA_SPI_to_EdgeStrips_segs", 0, NULL, 0, LS_type))) {
             SDO->do_type = LS_type;
             SDO->colv = (GLfloat *)SUMA_malloc(4*sizeof(GLfloat)*SDO->N_n);
             SDO->LineWidth = 4;
@@ -465,32 +467,48 @@ SUMA_Boolean SUMA_display_edge_striplist(DList *striplist, SUMA_SurfaceViewer *s
                N_Epath = dlist_size(strip->Edges);
                isclosed = SUMA_isEdgeStripClosed(strip->Edges, SO);
                if (isclosed) { 
-                  col_first[0] = col_first[3] = 1.0; col_first[1] = col_first[2] = 0.0;
-                  col_middle[1] = col_middle[3] = 1.0; col_middle[0] = col_middle[2] = 0.0;
-                  col_last[0] = col_last[1] = 0.0;  col_last[2] = col_last[3] = 1.0;
+                  col_first[0] = col_first[3] = 1.0; 
+                     col_first[1] = col_first[2] = 0.0;
+                  col_middle[1] = col_middle[3] = 1.0; 
+                     col_middle[0] = col_middle[2] = 0.0;
+                  col_last[0] = col_last[1] = 0.0;  
+                     col_last[2] = col_last[3] = 1.0;
                } else {
-                  col_first[0] = col_first[3] = 1.0; col_first[1] = col_first[2] = 0.0;
-                  col_middle[0] = col_middle[1] = col_middle[3] = 1.0; col_middle[2] = 0.0;
-                  col_last[0] = col_last[1] = 0.0;  col_last[2] = col_last[3] = 1.0;
+                  col_first[0] = col_first[3] = 1.0; 
+                     col_first[1] = col_first[2] = 0.0;
+                  col_middle[0] = col_middle[1] = col_middle[3] = 1.0; 
+                     col_middle[2] = 0.0;
+                  col_last[0] = col_last[1] = 0.0;  
+                     col_last[2] = col_last[3] = 1.0;
                }
-               SUMA_LHv("   SDO's strip #%d of %d edges (isclosed = %d)\n", kstrip, N_Epath, isclosed);
+               SUMA_LHv("   SDO's strip #%d of %d edges (isclosed = %d)\n", 
+                        kstrip, N_Epath, isclosed);
                elm=NULL;
                do{
                   if (!elm) elm = dlist_head(strip->Edges);
                   else elm = dlist_next(elm);
-                  if (elm==dlist_head(strip->Edges)) { SUMA_COPY_VEC(col_first, &(SDO->colv[4*ke]), 4, float, GLfloat);  }
-                  else if (elm==dlist_tail(strip->Edges)) { SUMA_COPY_VEC(col_last, &(SDO->colv[4*ke]), 4, float, GLfloat); }
-                  else { SUMA_COPY_VEC(col_middle, &(SDO->colv[4*ke]), 4, float, GLfloat); }
+                  if (elm==dlist_head(strip->Edges)) { 
+                     SUMA_COPY_VEC( col_first, 
+                                    &(SDO->colv[4*ke]), 4, float, GLfloat);  
+                  } else if (elm==dlist_tail(strip->Edges)) { 
+                     SUMA_COPY_VEC( col_last, 
+                                    &(SDO->colv[4*ke]), 4, float, GLfloat); 
+                  } else { 
+                     SUMA_COPY_VEC( col_middle, 
+                                    &(SDO->colv[4*ke]), 4, float, GLfloat); }
                   for (j=0; j<3;++j) {
-                     SDO->n0[3*ke+j] = SO->NodeList[3*SO->EL->EL[(int)elm->data][0]+j];
-                     SDO->n1[3*ke+j] = SO->NodeList[3*SO->EL->EL[(int)elm->data][1]+j]; 
+                     SDO->n0[3*ke+j] = 
+                           SO->NodeList[3*SO->EL->EL[(int)elm->data][0]+j];
+                     SDO->n1[3*ke+j] = 
+                           SO->NodeList[3*SO->EL->EL[(int)elm->data][1]+j]; 
                   }
                   ++ke;
                } while (elm != dlist_tail(strip->Edges));
                ++kstrip;
             }  while (elmlist != dlist_tail(striplist)); 
             /* addDO */
-            if (!SUMA_AddDO(SUMAg_DOv, &SUMAg_N_DOv, (void *)SDO, LS_type, SUMA_WORLD)) {
+            if (!SUMA_AddDO(  SUMAg_DOv, &SUMAg_N_DOv, 
+                              (void *)SDO, LS_type, SUMA_WORLD)) {
                fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_AddDO.\n", FuncName);
                SUMA_RETURNe;
             }
@@ -2781,7 +2799,8 @@ void SUMA_ButtClose_pushed (Widget w, XtPointer cd1, XtPointer cd2)
          /* remove Redisplay workprocess*/
          SUMA_remove_workproc2( SUMA_handleRedisplay, SUMAg_SVv[ic].X->GLXAREA );
          
-         #if NO_FLUSH    /* STILL crashing on OS X 10.5, at least on eomer...*/
+         #if DO_FLUSH    /* Going in causes crashing on OS X 10.5, 
+                              at least on eomer...*/
          SUMA_LH("Flushing meadows");
          /* flush display */
          if (SUMAg_SVv[ic].X->DOUBLEBUFFER) {
