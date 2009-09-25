@@ -96,6 +96,7 @@ void SUMA_JumpFocusNode (char *s, void *data);
 void SUMA_JumpFocusFace (char *s, void *data);
 void SUMA_HighlightBox (char *s, void *data);
 void SUMA_SetNumForeSmoothing (char *s, void *data);
+void SUMA_SetNumFinalSmoothing (char *s, void *data);
 void SUMA_SetRotCenter (char *s, void *data);
 
 /*!

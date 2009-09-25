@@ -4336,17 +4336,23 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4(SUMA_SurfaceObject *SO,
             if (LocalHead)   
                fprintf (SUMA_STDERR,
                         "%s: Mixing Foreground colors ....\n", FuncName);
-            if (!SUMA_MixOverlays (Overlays, N_Overlays, ShowOverLays_sort, NshowOverlays, glcolar_Fore, N_Node, isColored_Fore, NOPE)) {
-               fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_MixOverlays.\n", FuncName);
+            if (!SUMA_MixOverlays ( Overlays, N_Overlays, ShowOverLays_sort, 
+                                    NshowOverlays, glcolar_Fore, N_Node, 
+                                    isColored_Fore, NOPE)) {
+               fprintf (SUMA_STDERR,
+                        "Error %s: Failed in SUMA_MixOverlays.\n", FuncName);
                SUMA_RETURN (NOPE);
             }
             if (SUMAg_CF->X->NumForeSmoothing > 0) { 
                glcolar_Fore_tmp = NULL;
-               glcolar_Fore_tmp = SUMA_SmoothAttr_Neighb_Rec (glcolar_Fore, 4*SO->N_Node, NULL, SO->FN, 4, SUMAg_CF->X->NumForeSmoothing); 
+               glcolar_Fore_tmp = SUMA_SmoothAttr_Neighb_Rec (glcolar_Fore, 
+                                       4*SO->N_Node, NULL, SO->FN, 4, 
+                                       SUMAg_CF->X->NumForeSmoothing); 
                if (!glcolar_Fore_tmp) {
                   SUMA_SL_Err("Smoothing failed.\n");
                } else {
-                  SUMA_free(glcolar_Fore); glcolar_Fore = glcolar_Fore_tmp; glcolar_Fore_tmp = NULL;
+                  SUMA_free(glcolar_Fore); 
+                  glcolar_Fore = glcolar_Fore_tmp; glcolar_Fore_tmp = NULL;
                }
             }
       } else {
@@ -4359,18 +4365,23 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4(SUMA_SurfaceObject *SO,
 
    /* time to modulate the mixed colors with the average brightness */
    if (NshowOverlays && NshowOverlays_Back) {
-      if (LocalHead)   fprintf (SUMA_STDERR,"%s: Modulating Brightness of Foreground colors ...\n", FuncName);
+      if (LocalHead)   
+         fprintf (SUMA_STDERR,
+                  "%s: Modulating Brightness of Foreground colors ...\n", 
+                  FuncName);
 
       for (i=0; i < N_Node; ++i) {
          avgfact = Back_Modfact / 3.0;
-         if (isColored_Fore[i] && isColored_Back[i]) { /* colors from both sides, adjust brightness */
+         if (isColored_Fore[i] && isColored_Back[i]) { 
+                     /* colors from both sides, adjust brightness */
             i4_0 = 4 * i; i4_1 = i4_0 + 1; i4_2 = i4_0 + 2; 
             if (!Back_Modfact) {
                glcolar[i4_0] = glcolar_Fore[i4_0];
                glcolar[i4_1] = glcolar_Fore[i4_1];
                glcolar[i4_2] = glcolar_Fore[i4_2];
             } else {
-               avg_Back = (glcolar_Back[i4_0] + glcolar_Back[i4_1] + glcolar_Back[i4_2]) * avgfact ;   
+               avg_Back = (glcolar_Back[i4_0] + glcolar_Back[i4_1] + 
+                           glcolar_Back[i4_2]) * avgfact ;   
                glcolar[i4_0] = avg_Back * glcolar_Fore[i4_0];
                glcolar[i4_1] = avg_Back * glcolar_Fore[i4_1];
                glcolar[i4_2] = avg_Back * glcolar_Fore[i4_2];
@@ -4403,10 +4414,14 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4(SUMA_SurfaceObject *SO,
          }
       }
       
-      if (LocalHead)   fprintf (SUMA_STDERR,"%s: Done Modulating Brightness of overlay colors.\n", FuncName);
+      if (LocalHead)   
+         fprintf (SUMA_STDERR,
+                  "%s: Done Modulating Brightness of overlay colors.\n", 
+                  FuncName);
    } 
    if (NshowOverlays && !NshowOverlays_Back) {
-      if (LocalHead)   fprintf (SUMA_STDERR,"%s: Only Foreground colors.\n", FuncName);
+      if (LocalHead)   
+         fprintf (SUMA_STDERR,"%s: Only Foreground colors.\n", FuncName);
          for (i=0; i < N_Node; ++i) {
             if (isColored_Fore[i]) {
                i4 = 4 * i;
@@ -4426,7 +4441,8 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4(SUMA_SurfaceObject *SO,
    }
    
    if (!NshowOverlays && NshowOverlays_Back) {
-      if (LocalHead)   fprintf (SUMA_STDERR,"%s: Only Background colors.\n", FuncName);
+      if (LocalHead)   
+         fprintf (SUMA_STDERR,"%s: Only Background colors.\n", FuncName);
          for (i=0; i < N_Node; ++i) {
             if (isColored_Back[i]) {
                i4 = 4 * i;
@@ -4451,6 +4467,20 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4(SUMA_SurfaceObject *SO,
          glcolar[i4] = SUMA_GRAY_NODE_COLOR; ++i4;
          glcolar[i4] = SUMA_GRAY_NODE_COLOR; ++i4;
          glcolar[i4] = SUMA_GRAY_NODE_COLOR; ++i4;
+      }
+   } else {
+      /* any final airbrushing ? */
+      if (SUMAg_CF->X->NumFinalSmoothing > 0) { 
+         glcolar_Fore_tmp = NULL;
+         glcolar_Fore_tmp = SUMA_SmoothAttr_Neighb_Rec (glcolar, 
+                                 4*SO->N_Node, NULL, SO->FN, 4, 
+                                 SUMAg_CF->X->NumFinalSmoothing); 
+         if (!glcolar_Fore_tmp) {
+            SUMA_SL_Err("Smoothing failed.\n");
+         } else {
+            memcpy(glcolar,glcolar_Fore_tmp, 4*SO->N_Node*sizeof(GLfloat));
+            SUMA_free(glcolar_Fore_tmp); 
+         }
       }
    }
    
