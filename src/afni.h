@@ -470,10 +470,10 @@ typedef struct {
 } ICALC_widget_set ;
 
 typedef struct {
-   int is_good ;
+   int is_good ; char *prefix ;
 
    char *olay_expr ;
-   void *olay_code ;
+   void *olay_pcode ;
    THD_3dim_dataset *dset_master ;
 
    int               intyp[26] ;
