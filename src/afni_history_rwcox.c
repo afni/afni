@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 25 , SEP , 2009 , RWC , "afni" , MICRO , TYPE_GENERAL ,
+   "InstaCalc is starting to work! Sort of. Crudely." ,
+   NULL } ,
+
  { 24 , SEP , 2009 , RWC , "thd_1Ddset.c" , MICRO , TYPE_GENERAL ,
    "Allow writing of 1D complex datasets instead of convert to float" ,
    "For Larry Frank, who I love like a brother.  Or a second cousin once\n"
