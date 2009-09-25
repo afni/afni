@@ -49,6 +49,10 @@ static ENV_SPEC envlist[] = {
       " before mixing with background",
       "SUMA_NumForeSmoothing",
       "0" },
+   {  "Number of smoothing operations to run on final set of mixed colors.\n"
+      " This would be the mixed foreground and background colors",
+      "SUMA_NumFinalSmoothing",
+      "0" },
    {  "Setup the color mixing mode (ORIG, MOD1) ",
       "SUMA_ColorMixingMode",
       "ORIG" },
@@ -259,7 +263,8 @@ char * SUMA_New_Additions (int ver, SUMA_Boolean StampOnly)
       }
    }
    
-   /* add the CVS tag */
+   /* add the CVS tag            ZSS: Looks like nobody likes tags. 
+                                      Compile Date is enough*/
    SS = SUMA_StringAppend_va (SS, "\nCVS tag:\n   %s\n", SUMA_VERSION_LABEL);
    
    /* add the compile date */

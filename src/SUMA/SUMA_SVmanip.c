@@ -1943,6 +1943,7 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
    cf->X->Log_TextShell = NULL;
    cf->X->FileSelectDlg = NULL;
    cf->X->N_ForeSmooth_prmpt = NULL;
+   cf->X->N_FinalSmooth_prmpt = NULL;
    cf->X->Clip_prmpt = NULL;
    cf->X->ClipObj_prmpt = NULL;
    cf->X->TableTextFontList = NULL;   
@@ -1959,6 +1960,21 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
             cf->X->NumForeSmoothing = 0;
          }
       } else cf->X->NumForeSmoothing = 0;
+   }
+   
+   {
+      char *eee = getenv("SUMA_NumFinalSmoothing");
+      if (eee) {
+         int rotval = (int)strtod(eee, NULL);
+         if (rotval >= 0) cf->X->NumFinalSmoothing = rotval;
+         else {
+            fprintf (SUMA_STDERR,   
+               "Warning %s:\n"
+               "Bad value for environment variable SUMA_NumFinalSmoothing\n"
+               "Assuming default of 0", FuncName);
+            cf->X->NumFinalSmoothing = 0;
+         }
+      } else cf->X->NumFinalSmoothing = 0;
    }
    
    {
@@ -2471,15 +2487,32 @@ SUMA_Boolean SUMA_Free_CommonFields (SUMA_CommonFields *cf)
    if (cf->ROI_CM) SUMA_Free_ColorMap(cf->ROI_CM); /* free the colormap */ 
    #endif
    cf->ROI_CM = NULL;
-   if (cf->X->FileSelectDlg) SUMA_FreeFileSelectionDialogStruct(cf->X->FileSelectDlg); cf->X->FileSelectDlg = NULL;
-   if (cf->X->SumaCont) SUMA_FreeSumaContStruct (cf->X->SumaCont); cf->X->SumaCont = NULL;
-   if (cf->X->DrawROI) SUMA_FreeDrawROIStruct (cf->X->DrawROI); cf->X->DrawROI = NULL;
-   if (cf->X->N_ForeSmooth_prmpt) SUMA_FreePromptDialogStruct (cf->X->N_ForeSmooth_prmpt); cf->X->N_ForeSmooth_prmpt = NULL;
-   if (cf->X->Clip_prmpt) SUMA_FreePromptDialogStruct (cf->X->Clip_prmpt); cf->X->Clip_prmpt = NULL;
-   if (cf->X->ClipObj_prmpt) SUMA_FreePromptDialogStruct (cf->X->ClipObj_prmpt); cf->X->ClipObj_prmpt = NULL;
+   if (cf->X->FileSelectDlg) 
+      SUMA_FreeFileSelectionDialogStruct(cf->X->FileSelectDlg); 
+   cf->X->FileSelectDlg = NULL;
+   if (cf->X->SumaCont) 
+      SUMA_FreeSumaContStruct (cf->X->SumaCont); 
+   cf->X->SumaCont = NULL;
+   if (cf->X->DrawROI) 
+      SUMA_FreeDrawROIStruct (cf->X->DrawROI); 
+   cf->X->DrawROI = NULL;
+   if (cf->X->N_ForeSmooth_prmpt) 
+      SUMA_FreePromptDialogStruct (cf->X->N_ForeSmooth_prmpt); 
+   cf->X->N_ForeSmooth_prmpt = NULL;
+   if (cf->X->N_FinalSmooth_prmpt) 
+      SUMA_FreePromptDialogStruct (cf->X->N_FinalSmooth_prmpt); 
+   cf->X->N_FinalSmooth_prmpt = NULL;
+   if (cf->X->Clip_prmpt) 
+      SUMA_FreePromptDialogStruct (cf->X->Clip_prmpt); 
+   cf->X->Clip_prmpt = NULL;
+   if (cf->X->ClipObj_prmpt) 
+      SUMA_FreePromptDialogStruct (cf->X->ClipObj_prmpt); 
+   cf->X->ClipObj_prmpt = NULL;
    if (cf->X->SwitchCmapLst) SUMA_FreeScrolledList (cf->X->SwitchCmapLst);
    if (cf->X) free(cf->X); cf->X = NULL;
-   if (cf->MessageList) SUMA_EmptyDestroyList(cf->MessageList); cf->MessageList = NULL;
+   if (cf->MessageList) 
+      SUMA_EmptyDestroyList(cf->MessageList); 
+   cf->MessageList = NULL;
    if (cf->scm) cf->scm = SUMA_DestroyAfniColors (cf->scm); cf->scm = NULL;
    if (cf->DsetList) {
       dlist_destroy(cf->DsetList);  SUMA_free(cf->DsetList); 
