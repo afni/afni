@@ -1,7 +1,7 @@
 #include "afni.h"
 #include "parser.h"
 
-/*--- macros for drawing lines ---*/
+/*--------------------- macros for drawing lines -----------------------------*/
 
 #undef  VLINE
 #define VLINE(rr)                                                           \
@@ -26,7 +26,7 @@
                                       XmNseparatorType, XmSHADOW_ETCHED_IN, \
                                    NULL )
 
-/*--- various string constants ---*/
+/*------------------------- various string constants -------------------------*/
 
 #undef  ICALC_NUMTYPE
 #define ICALC_NUMTYPE 3
@@ -44,28 +44,29 @@ static char *ICALC_labelstr[]  = { "diffsub:" ,
 
 static char *ICALC_nothing_chosen = "---nothing chosen---" ;
 
-/*--- other macros ---*/
+/*--------------------------------- other macros -----------------------------*/
 
-#define ICALC_INVALID    -666
-#define ICALC_DSET_VALUE 0
-#define ICALC_DSET_STAT  1
-#define ICALC_CONSTANT   2
+static char abet[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ" ;  /* the alphabet! */
 
-#define ICALC_DSHIFT_MODE_STOP  0
-#define ICALC_DSHIFT_MODE_WRAP  1
-#define ICALC_DSHIFT_MODE_ZERO  2
+#define ICALC_INVALID     -666
+#define ICALC_DSET_VALUE  0
+#define ICALC_DSET_STAT   1
+#define ICALC_CONSTANT    2
 
-#define ICALC_HAS_I(q)  (q)->has_sym[ 8]
-#define ICALC_HAS_J(q)  (q)->has_sym[ 9]
-#define ICALC_HAS_K(q)  (q)->has_sym[10]
-#define ICALC_HAS_L(q)  (q)->has_sym[11]
-#define ICALC_HAS_T(q)  (q)->has_sym[19]
-#define ICALC_HAS_X(q)  (q)->has_sym[23]
-#define ICALC_HAS_Y(q)  (q)->has_sym[24]
-#define ICALC_HAS_Z(q)  (q)->has_sym[25]
+#define DSHIFT_MODE_STOP  0
+#define DSHIFT_MODE_WRAP  1
+#define DSHIFT_MODE_ZERO  2
 
+#define MANGLE_NONE       0
+#define MANGLE_RAI        1
+#define MANGLE_LPI        2
 
-/*--- prototypes ---*/
+#define CX_REALPART       0
+#define CX_IMAGPART       1
+#define CX_MAGNITUDE      2
+#define CX_PHASE          3
+
+/*---------------------------------- prototypes ------------------------------*/
 
 static void ICALC_tog_bbox_CB( Widget , XtPointer , XtPointer ) ;
 static void ICALC_menu_av_CB ( MCW_arrowval * , XtPointer ) ;
@@ -75,26 +76,26 @@ static void ICALC_index_av_CB( MCW_arrowval * , XtPointer ) ;
 static char * ICALC_index_lab_CB( MCW_arrowval * , XtPointer ) ;
 
 static void ICALC_quit_CB    ( Widget, XtPointer, XtPointer ) ;
-static void ICALC_apply_CB   ( Widget, XtPointer, XtPointer ) ;
+static void ICALC_compute_CB ( Widget, XtPointer, XtPointer ) ;
 static void ICALC_help_CB    ( Widget, XtPointer, XtPointer ) ;
 
 static void ICALC_choose_dataset( ICALC_widget_set *, int ) ;
 static void ICALC_finalize_dataset_CB( Widget, XtPointer, MCW_choose_cbs * ) ;
 
-static int         ICALC_finalize_setup( ICALC_widget_set *, ICALC_setup * ) ;
+static void        ICALC_finalize_setup( ICALC_widget_set *, ICALC_setup * ) ;
 static MRI_IMAGE * ICALC_compute( ICALC_setup * ) ;
 
-/*--- define action area ---*/
+/*------------------------------ define action area --------------------------*/
 
 #undef  ICALC_NUMACT
 #define ICALC_NUMACT 3
 static MCW_action_item ICALC_act[] =
- { { "Quit InstaCalc" , ICALC_quit_CB , NULL,NULL, "Shutdown InstaCalc operations", 0 },
-   { "Apply InstaCalc", ICALC_apply_CB, NULL,NULL, "Setup InstaCalc operations"   , 1 },
-   { "A Little Help"  , ICALC_help_CB , NULL,NULL, "from my friends"              , 0 }
+ { { "Quit InstaCalc"   , ICALC_quit_CB   , NULL,NULL, "Shutdown InstaCalc operations", 0 },
+   { "Compute InstaCalc", ICALC_compute_CB, NULL,NULL, "Recompute ?_ICALC dataset"    , 1 },
+   { "A Little Help"    , ICALC_help_CB   , NULL,NULL, "from my friends"              , 0 }
   } ;
 
-/*--- macros to toggle a row of ICALC widgets on or off ---*/
+/*------------- macros to toggle a row of ICALC widgets on or off ------------*/
 
 #undef  ICALC_toggle_row
 #define ICALC_toggle_row(rr,state)                                                          \
@@ -112,7 +113,7 @@ static MCW_action_item ICALC_act[] =
 #define ICALC_row_off(ic,aa) ICALC_toggle_row((ic)->war[aa],False)
 #define ICALC_row_on(ic,aa)  ICALC_toggle_row((ic)->war[aa],True)
 
-/*--- macro to make one row of ICALC widgets ---*/
+/*-------------- longish macro to make one row of ICALC widgets --------------*/
 
 #undef  ICALC_userdata
 #define ICALC_userdata(w,x) XtVaSetValues((w),XmNuserData,(XtPointer)(x),NULL)
@@ -132,7 +133,7 @@ static MCW_action_item ICALC_act[] =
              XmNtraversalOn , True ,                                 \
            NULL ) ;                                                  \
      if( !ee ) MCW_set_widget_bg(rc,"black",0) ;                     \
-     sss[0] = 'A' + (aa); sss[1] = '\0'; sp[0] = sss;                \
+     sss[0] = abet[aa] ; sss[1] = '\0'; sp[0] = sss;                 \
      iwid->war[aa].tog_bbox =                                        \
         new_MCW_bbox( rc, 1,sp, MCW_BB_check,MCW_BB_noframe,         \
                       ICALC_tog_bbox_CB , (XtPointer)iwid     ) ;    \
@@ -201,19 +202,22 @@ static MCW_action_item ICALC_act[] =
   } while(0)
 
 /*----------------------------------------------------------------------------*/
+/*----------------------------------------------------------------------------*/
 
 void ICALC_make_widgets( Three_D_View *im3d )
 {
    ICALC_widget_set *iwid ;
+   ICALC_setup      *ics ;
    Widget ww , rc , shtop , swtop ;
    XmString xstr ;
-   char str[32] , *eee ;
+   char str[32] , *eee , *cpt ;
    int ii ;
-   ICALC_setup *ics ;
 
 ENTRY("ICALC_make_widgets") ;
 
    if( !IM3D_OPEN(im3d) ) EXRETURN ; /* bad */
+
+   cpt =  AFNI_controller_label(im3d) ; sprintf(str,"AFNI InstCalc %s",cpt) ;
 
    if( im3d->vwid->func->iwid != NULL ){
      XtMapWidget(iwid->wtop) ; iwid->is_open = 1 ;
@@ -224,11 +228,13 @@ ENTRY("ICALC_make_widgets") ;
    im3d->vwid->func->iwid = iwid = myXtNew( ICALC_widget_set ) ;
    for( ii=0 ; ii < 26 ; ii++ ) iwid->var[ii] = NULL ;
 
-   if( im3d->icalc_setup == NULL )
+   if( im3d->icalc_setup == NULL ){
      INIT_ICALC_setup(im3d->icalc_setup) ;
-   ics = im3d->icalc_setup ;
+     im3d->icalc_setup->prefix = (char *)malloc(sizeof(char)*16) ;
+     sprintf(im3d->icalc_setup->prefix,"%c_ICALC",cpt[1]) ;
+   }
 
-   sprintf(str,"AFNI InstCalc %s",AFNI_controller_label(im3d)) ;
+   ics = im3d->icalc_setup ;
 
    iwid->wtop = XtVaAppCreateShell(
                   "AFNI" , "AFNI" ,
@@ -333,7 +339,7 @@ ENTRY("ICALC_make_widgets") ;
    EXRETURN ;
 }
 
-/*----------------------------------------------------------------------*/
+/*----------------------------------------------------------------------------*/
 
 static int ICALC_find_index( ICALC_widget_set *iwid , Widget ww )
 {
@@ -343,7 +349,7 @@ static int ICALC_find_index( ICALC_widget_set *iwid , Widget ww )
    return (int)(pp-1) ;
 }
 
-/*----------------------------------------------------------------------*/
+/*----------------------------------------------------------------------------*/
 
 static void ICALC_tog_bbox_CB( Widget w, XtPointer cd, XtPointer cbs )
 {
@@ -355,9 +361,10 @@ static void ICALC_tog_bbox_CB( Widget w, XtPointer cd, XtPointer cbs )
    if( aa < 0 ) return ;
    bb = MCW_val_bbox(iwid->war[aa].tog_bbox) ;
    ICALC_toggle_row(iwid->war[aa],bb) ;
+   return ;
 }
 
-/*----------------------------------------------------------------------*/
+/*----------------------------------------------------------------------------*/
 
 static void ICALC_menu_av_CB( MCW_arrowval *av , XtPointer cd )
 {
@@ -374,9 +381,11 @@ static void ICALC_menu_av_CB( MCW_arrowval *av , XtPointer cd )
    XmTextFieldSetString( iwid->war[aa].string_text, "\0"                 ) ;
 
    ICALC_toggle_row(iwid->war[aa],True) ;
+   ics->inset[aa] = NULL ;
+   return ;
 }
 
-/*----------------------------------------------------------------------*/
+/*----------------------------------------------------------------------------*/
 
 static PLUGIN_dsetval *dsv = NULL ;
 static int             dsa = -1 ;
@@ -399,36 +408,154 @@ static void ICALC_chooser_CB( Widget w, XtPointer cd, XtPointer cbs )
      case ICALC_DSET_VALUE:
      case ICALC_DSET_STAT:  ICALC_choose_dataset( iwid , aa ) ; break ;
 
-     case ICALC_CONSTANT:   break ;
+     case ICALC_CONSTANT:   break ;  /* nothing to do here */
    }
 }
 
-/*----------------------------------------------------------------------*/
+/*----------------------------------------------------------------------------*/
 
 static void ICALC_quit_CB( Widget w, XtPointer cd, XtPointer cbs )
 {
    ICALC_widget_set *iwid = (ICALC_widget_set *)cd ;
-   Three_D_View *im3d     = iwid->im3d ;
+   Three_D_View     *im3d = iwid->im3d ;
    ICALC_setup      *ics  = im3d->icalc_setup ;
    XtUnmapWidget(iwid->wtop) ; iwid->is_open = 0 ;
    DISABLE_INSTACALC(iwid->im3d) ;
+   return ;
 }
 
-/*----------------------------------------------------------------------*/
+/*----------------------------------------------------------------------------*/
 
-static void ICALC_apply_CB( Widget w, XtPointer cd, XtPointer cbs )
+static void ICALC_compute_CB( Widget w, XtPointer cd, XtPointer cbs )
 {
-INFO_message("apply") ;
+   ICALC_widget_set *iwid = (ICALC_widget_set *)cd ;
+   Three_D_View     *im3d = iwid->im3d ;
+   ICALC_setup      *ics  = im3d->icalc_setup ;
+   THD_slist_find    slf ;
+   MRI_IMAGE        *iim ;
+   float            *iar ;
+   THD_3dim_dataset *icaset ;
+   int               nds ;
+
+ENTRY("ICALC_compute_CB") ;
+
+INFO_message("call ICALC_finalize_setup") ;
+
+   ICALC_finalize_setup( iwid , ics ) ;
+   if( ics->is_good == 0 ) EXRETURN ;
+
+INFO_message("call ICALC_compute") ;
+
+   iim = ICALC_compute(ics) ;
+   if( iim == NULL ) EXRETURN ;
+
+INFO_message("add dataset") ;
+
+   /* find the output dataset */
+
+   slf = THD_dset_in_session( FIND_PREFIX , ics->prefix , im3d->ss_now ) ;
+
+ININFO_message("find completed") ;
+
+   /* if it doesn't exist, or is not the right grid, create it now */
+
+   if( !ISVALID_DSET (slf.dset) ||
+       !EQUIV_DATAXES(slf.dset->daxes,ics->dset_master->daxes) ){
+
+ININFO_message("create new dataset") ;
+     icaset = EDIT_empty_copy( ics->dset_master ) ;  /* make new dataset */
+     EDIT_dset_items( icaset ,
+                        ADN_prefix    , ics->prefix ,
+                        ADN_nvals     , 1 ,
+                        ADN_ntt       , 0 ,
+                        ADN_func_type , FUNC_BUCK_TYPE ,
+                        ADN_type      , HEAD_FUNC_TYPE ,
+                        ADN_datum_all , MRI_float ,
+                      ADN_none ) ;
+     DSET_superlock(icaset) ;
+
+     if( slf.dset != NULL ){       /* exists, but isn't right for us */
+
+       MCW_idcode old_idc = slf.dset->idcode ;
+ININFO_message("hollowing out old dataset") ;
+       THD_delete_3dim_dataset(slf.dset,True) ;  /* destroy the guts */
+       *slf.dset = *icaset ;      /* copy the guts, keep the pointer */
+       slf.dset->idcode = old_idc ;           /* and keep the idcode */
+       nds = slf.dset_index ;
+       INFO_message("trashed and re-used old dataset %s",ics->prefix) ;
+
+     } else {                                  /* add to the session */
+       int vv = icaset->view_type ;
+       nds = im3d->ss_now->num_dsset ;
+ININFO_message("adding to session: nds=%d",nds) ;
+       im3d->ss_now->dsset[nds][vv] = icaset ;
+       im3d->ss_now->num_dsset++ ;
+ININFO_message("force adoption") ;
+       AFNI_force_adoption( im3d->ss_now , False ) ;
+ININFO_message("make descendants") ;
+       AFNI_make_descendants( GLOBAL_library.sslist ) ;
+       INFO_message("created new dataset %s",ics->prefix) ;
+     }
+
+   /* just need to use existing dataset that matches */
+
+   } else {
+
+ININFO_message("recycling old dataset") ;
+     icaset = slf.dset ; nds = slf.dset_index ;
+
+   }
+   icaset->dblk->diskptr->allow_directwrite = 1 ;
+
+   /* save the result into the output dataset */
+
+ININFO_message("storing results into dataset: %d %d %d",iim->nx,iim->ny,iim->nz) ;
+   iar = MRI_FLOAT_PTR(iim) ;
+   EDIT_substitute_brick( icaset , 0 , MRI_float , iar ) ;
+   mri_clear_data_pointer(iim) ; mri_free(iim) ;
+ININFO_message("dataset statistics") ;
+   DSET_KILL_STATS(icaset) ; THD_load_statistics(icaset) ;
+
+ININFO_message("dataset label") ;
+   EDIT_BRICK_LABEL(icaset,0,"InstaCalc") ;
+
+   /* redisplay overlay */
+
+   if( im3d->fim_now != icaset ){  /* switch to this dataset */
+     MCW_choose_cbs cbs ; char cmd[32] , *cpt=AFNI_controller_label(im3d) ;
+ININFO_message("change fim_now") ;
+     cbs.ival = nds ;
+     AFNI_finalize_dataset_CB( im3d->vwid->view->choose_func_pb ,
+                               (XtPointer)im3d ,  &cbs           ) ;
+     AFNI_set_fim_index(im3d,0) ;
+     AFNI_set_thr_index(im3d,0) ;
+   }
+ININFO_message("reset func range") ;
+   AFNI_reset_func_range(im3d) ;
+
+   if( MCW_val_bbox(im3d->vwid->view->see_func_bbox) == 0 ){ /* overlay is off */
+     char cmd[32] , *cpt=AFNI_controller_label(im3d) ;
+     sprintf(cmd,"SEE_OVERLAY %c.+",cpt[1]) ;
+ININFO_message("turn overlay on") ;
+     AFNI_driver(cmd) ;
+   } else {                                                  /* overlay is on */
+ININFO_message("redisplay overlay") ;
+     AFNI_redisplay_func(im3d) ;
+   }
+   AFNI_process_drawnotice(im3d) ;
+
+ININFO_message("done") ;
+   EXRETURN ;
 }
 
-/*----------------------------------------------------------------------*/
+/*----------------------------------------------------------------------------*/
 
 static void ICALC_help_CB( Widget w, XtPointer cd, XtPointer cbs )
 {
 INFO_message("This software is beyond all hope or help") ;
 }
 
-/*----------------------------------------------------------------------*/
+/*----------------------------------------------------------------------------*/
 
 static void ICALC_choose_dataset( ICALC_widget_set *iwid , int aa )
 {
@@ -506,7 +633,7 @@ ENTRY("ICALC_choose_dataset") ;
    EXRETURN ;
 }
 
-/*----------------------------------------------------------------------*/
+/*----------------------------------------------------------------------------*/
 
 static void ICALC_finalize_dataset_CB( Widget w, XtPointer fd, MCW_choose_cbs *cbs )
 {
@@ -534,12 +661,12 @@ ENTRY("ICALC_finalize_dataset_CB") ;
    topval = DSET_NVALS(dset) - 1 ;
    if( inival > topval ) inival = topval ;
    refit_MCW_optmenu( iwid->war[dsa].index_av ,
-                      -1 , DSET_NVALS(dset)-1 , inival, 0 ,
+                      -1 , topval , inival, 0 ,
                       ICALC_index_lab_CB,(XtPointer)iwid  ) ;
    EXRETURN ;
 }
 
-/*----------------------------------------------------------------------*/
+/*----------------------------------------------------------------------------*/
 
 static void ICALC_index_av_CB( MCW_arrowval *av , XtPointer cd )
 {
@@ -549,9 +676,11 @@ static void ICALC_index_av_CB( MCW_arrowval *av , XtPointer cd )
    int                 aa = ICALC_find_index(iwid,av->wrowcol) ;
    int                 bb = av->ival ;
 
+   ics->inidx[aa] = bb ;
+   return ;
 }
 
-/*----------------------------------------------------------------------*/
+/*----------------------------------------------------------------------------*/
 
 static char * ICALC_index_lab_CB( MCW_arrowval *av , XtPointer cd )
 {
@@ -567,12 +696,9 @@ static char * ICALC_index_lab_CB( MCW_arrowval *av , XtPointer cd )
    return str ;
 }
 
-/*-------------------------------------------------------------------------*/
-/*------------------------ the actual computations ------------------------*/
-
-#define DSHIFT_MODE_STOP  0
-#define DSHIFT_MODE_WRAP  1
-#define DSHIFT_MODE_ZERO  2
+/*============================================================================*/
+/*------------------------ the actual computations ---------------------------*/
+/*============================================================================*/
 
 #define HAS_I(q)  (q)->has_sym[ 8]
 #define HAS_J(q)  (q)->has_sym[ 9]
@@ -583,25 +709,14 @@ static char * ICALC_index_lab_CB( MCW_arrowval *av , XtPointer cd )
 #define HAS_Y(q)  (q)->has_sym[24]
 #define HAS_Z(q)  (q)->has_sym[25]
 
-static char abet[] = "abcdefghijklmnopqrstuvwxyz" ;
-
 #define PREDEFINED_MASK ((1<< 8)|(1<< 9)|(1<<10)|(1<<11)| \
                          (1<<19)|(1<<23)|(1<<24)|(1<<25) )
 
-#define MANGLE_NONE  0
-#define MANGLE_RAI   1
-#define MANGLE_LPI   2
+#define Rfac  0.299f  /* for RGB input datasets */
+#define Gfac  0.587f
+#define Bfac  0.114f
 
-#define Rfac         0.299f
-#define Gfac         0.587f
-#define Bfac         0.114f
-
-#define CX_REALPART  0
-#define CX_IMAGPART  1
-#define CX_MAGNITUDE 2
-#define CX_PHASE     3
-
-#define VSIZE        1024  /* vector size for PARSER computations */
+#define VSIZE 1024    /* vector size for PARSER computations */
 
 #define FIRSTMESS                                                               \
  do{ if( first ){                                                               \
@@ -613,38 +728,39 @@ static char abet[] = "abcdefghijklmnopqrstuvwxyz" ;
     Returns 1 if the setup is OK, 0 if it is not.
 *//*--------------------------------------------------------------------------*/
 
-static int ICALC_finalize_setup( ICALC_widget_set *iwid , ICALC_setup *ics )
+static void ICALC_finalize_setup( ICALC_widget_set *iwid , ICALC_setup *ics )
 {
-   PARSER_code *pcode ;
+   PARSER_code *olay_pcode ;
    char *str ;
-   int ids , bb , first=1 , nbad=0 ;
+   int ids , bb , first=1 , nbad=0 , nxyz ;
+   THD_3dim_dataset *dset ;
 
 ENTRY("ICALC_finalize_setup") ;
 
-   if( iwid == NULL || !iwid->is_open || ics == NULL ){ BEEPIT; RETURN(0); }
+   if( iwid == NULL || !iwid->is_open || ics == NULL ){ BEEPIT; EXRETURN; }
 
    ics->is_good = 0 ;
 
    /*- get and parse the expression -*/
 
    str = XmTextFieldGetString( iwid->olay_expr_text ) ;
-   if( str == NULL || *str == '\0' ){ BEEPIT; RETURN(0); }
+   if( str == NULL || *str == '\0' ){ BEEPIT; EXRETURN; }
 
    if( ics->olay_expr != NULL ) free(ics->olay_expr) ;
    ics->olay_expr = strdup(str) ;
 
    PARSER_set_printout(1) ;
-   pcode = PARSER_generate_code(ics->olay_expr) ;
+   olay_pcode = PARSER_generate_code(ics->olay_expr) ;
    PARSER_set_printout(0) ;
 
-   if( pcode == NULL ){
+   if( olay_pcode == NULL ){
      (void)MCW_popup_message( iwid->olay_expr_text , "Invalid expression" ,
                               MCW_USER_KILL | MCW_TIMER_KILL ) ;
-     free(ics->olay_expr) ; ics->olay_expr = NULL ; BEEPIT ; RETURN(0) ;
+     free(ics->olay_expr) ; ics->olay_expr = NULL ; BEEPIT ; EXRETURN ;
    }
 
-   ics->olay_code = (void *)pcode ;
-   PARSER_mark_symbols( pcode , ics->has_sym ) ;  /* what symbols are used? */
+   ics->olay_pcode = (void *)olay_pcode ;
+   PARSER_mark_symbols( olay_pcode , ics->has_sym ) ;  /* what symbols are used? */
 
    /*------------- process each row of widgets [symbols] -------------*/
 
@@ -659,7 +775,6 @@ ENTRY("ICALC_finalize_setup") ;
 
      if( !bb ){                          /** off ==> mark as undefined **/
        ics->intyp[ids] = ICALC_INVALID ;
-       ics->inset[ids] = NULL ;
        ics->inval[ids] = 0.0 ;
        if( ics->has_sym[ids] && ((1<<ids) & PREDEFINED_MASK) == 0 ){
          FIRSTMESS ;
@@ -695,8 +810,8 @@ ENTRY("ICALC_finalize_setup") ;
 
        case ICALC_DSET_VALUE:
        case ICALC_DSET_STAT:{
-         THD_3dim_dataset *dset = ics->inset[ids] ;
          int idx = iwid->war[ids].index_av->ival ;
+         dset = ics->inset[ids] ;
          if( !ISVALID_DSET(dset) ){
            FIRSTMESS ;
            ERROR_message("Symbol '%s' has undefined dataset",abet[ids]) ;
@@ -714,11 +829,12 @@ ENTRY("ICALC_finalize_setup") ;
            /* differential subscript? */
 
            str = XmTextFieldGetString( iwid->war[ids].string_text) ;
-           if( str != NULL && *str != '\0' ){
-             int *ijkl ;
-             if( str[0] == '[' ){
+           if( PLUG_nonblank_len(str) > 0 ){
+             int *ijkl ; int ist ;
+             for( ist=0 ; isspace(ist) ; ist++ ) ; /*skip blanks*/
+             if( str[ist] == '[' ){
                MCW_intlist_allow_negative(1) ;
-               ijkl = MCW_get_intlist( 9999 , str ) ;
+               ijkl = MCW_get_intlist( 9999 , str+ist ) ;
                MCW_intlist_allow_negative(0) ;
                if( ijkl == NULL || ijkl[0] <= 0 ){
                  FIRSTMESS ; if( ijkl != NULL ) free(ijkl) ;
@@ -728,15 +844,15 @@ ENTRY("ICALC_finalize_setup") ;
              } else {
                ijkl = (int *) malloc( sizeof(int) * 5 ) ;
                ijkl[1] = ijkl[2] = ijkl[3] = ijkl[4] = 0 ; ijkl[0] = 4 ; /* initialize */
-               switch( str[1] ){
+               switch( str[ist+1] ){
                  default: FIRSTMESS ; nbad++ ;
                           ERROR_message("Bad diffsub for symbol '%s': expected +/- i/j/k/l",abet[ids]) ;
                  goto DSET_DONE ;
 
-                 case 'i': ijkl[1] = (str[0]=='+') ? 1 : -1 ; break ;
-                 case 'j': ijkl[2] = (str[0]=='+') ? 1 : -1 ; break ;
-                 case 'k': ijkl[3] = (str[0]=='+') ? 1 : -1 ; break ;
-                 case 'l': ijkl[4] = (str[0]=='+') ? 1 : -1 ; break ;
+                 case 'i': ijkl[1] = (str[ist]=='+') ? 1 : -1 ; break ;
+                 case 'j': ijkl[2] = (str[ist]=='+') ? 1 : -1 ; break ;
+                 case 'k': ijkl[3] = (str[ist]=='+') ? 1 : -1 ; break ;
+                 case 'l': ijkl[4] = (str[ist]=='+') ? 1 : -1 ; break ;
                }
              }
              if( ijkl[1]==0 && ijkl[2]==0 && ijkl[3]==0 && ijkl[4]==0 ){
@@ -752,22 +868,24 @@ ENTRY("ICALC_finalize_setup") ;
            } /* end of diffsub-ization */
 
          } else {  /*---------- statistics of dataset brick values ----------*/
+           int ist ;
 
            if( !DSET_VALID_BSTAT(dset,idx) ) THD_load_statistics(dset) ;
 
            str = XmTextFieldGetString( iwid->war[ids].string_text) ;
-           if( str == NULL || *str == '\0' ){
+           if( PLUG_nonblank_len(str) <= 0 ){
              FIRSTMESS ;
-             ERROR_message("No statistic entered for symbol '%s'",abet[ids]) ;
+             ERROR_message("No statistic string entered for symbol '%s'",abet[ids]) ;
              nbad++ ; goto DSET_DONE ;
            }
-           if( strncasecmp(str,"max",3) == 0 ){
+           for( ist=0 ; isspace(ist) ; ist++ ) ; /*skip blanks*/
+           if( strncasecmp(str+ist,"max",3) == 0 ){
              ics->inval[ids] = dset->stats->bstat[idx].max ;
-           } else if( strncasecmp(str,"min",3) == 0 ){
+           } else if( strncasecmp(str+ist,"min",3) == 0 ){
              ics->inval[ids] = dset->stats->bstat[idx].min ;
            } else {
              FIRSTMESS ;
-             ERROR_message("Unknown statistic entered for symbol '%s'",abet[ids]) ;
+             ERROR_message("Unknown statistic '%s' entered for symbol '%s'",str,abet[ids]) ;
              nbad++ ; goto DSET_DONE ;
            }
          } /* end of dataset statisick-ization */
@@ -779,18 +897,35 @@ ENTRY("ICALC_finalize_setup") ;
      } /* end of switch on symbol type */
    } /* end of loop over symbols */
 
+   /*-- if no master dataset set (all constants or predefined values) --*/
+
    if( ics->dset_master == NULL ){
      ics->dset_master = iwid->im3d->anat_now ;
      FIRSTMESS ;
      INFO_message("no 'Dataset: Value' chosen in symbol list") ;
    }
 
+   /*-- check all datasets against the master for compatibility --*/
+
+   nxyz = DSET_NVOX(ics->dset_master) ;
+   for( ids=0 ; ids < 26 ; ids++ ){
+     if( ics->intyp[ids] != ICALC_DSET_VALUE ) continue ;
+     dset = ics->inset[ids] ;
+     if( !ISVALID_DSET(dset) || dset == ics->dset_master ) continue ;
+     if( DSET_NVOX(dset) != nxyz ){
+       FIRSTMESS ;
+       ERROR_message("Dataset '%s' does not match all others in InstaCalc",abet[ids]) ;
+       nbad++ ;
+     }
+   }
+
    if( nbad > 0 ){
      ERROR_message("----- Cannot continue past the above error%s -----",
                    (nbad==1) ? "\0" : "s" ) ;
-     RETURN(0) ;
+     BEEPIT ; EXRETURN ;
    }
 
+   ics->is_good = 1 ; EXRETURN ;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -1131,7 +1266,7 @@ ENTRY("ICALC_compute") ;
 
      /****----- actually do the calculation work! -----****/
 
-     PARSER_evaluate_vector( (PARSER_code *)ics->olay_code ,
+     PARSER_evaluate_vector( (PARSER_code *)ics->olay_pcode ,
                               atoz , jtop-jbot , temp       );
 
      /****----- put results into output image array -----****/

@@ -1161,10 +1161,10 @@ int PLUG_nonblank_len( char *str )
 {
    int ii , ll ;
 
-   if( str == NULL ) return 0 ;
-   ll = strlen(str) ; if( ll == 0 ) return 0 ;
+   if( str == NULL || *str == '\0' ) return 0 ;
+   ll = strlen(str) ;
 
-   for( ii=ll-1 ; ii >= 0 ; ii-- ) if( str[ii] != ' ' ) break ;
+   for( ii=ll-1 ; ii >= 0 ; ii-- ) if( !isblank(str[ii]) ) break ;
 
    return (ii+1) ;
 }
@@ -1174,7 +1174,7 @@ int PLUG_nonblank_len( char *str )
   legality, then the list of all datasets is checked for duplicates.
 ----------------------------------------------------------------------------*/
 
-int PLUTO_prefix_ok( char * str )
+int PLUTO_prefix_ok( char *str )
 {
    int ll , ii ;
    THD_slist_find find ;
