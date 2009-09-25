@@ -1,5 +1,14 @@
 #!/bin/csh -f
 
+#Should use @update.afni.binaries
+echo ""
+echo "This script is obsolete. In its place use:"
+echo "   @update.afni.binaries "
+echo ""
+
+goto END
+
+OLD:
 if ("$1" == "-h" || $1 =~ "-help") then
 	goto USAGE
 endif
