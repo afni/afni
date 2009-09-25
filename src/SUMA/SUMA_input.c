@@ -3281,94 +3281,70 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             {
                char stmp[100];
                sprintf(stmp, "%d", SUMAg_CF->X->NumForeSmoothing);
-               SUMAg_CF->X->N_ForeSmooth_prmpt = SUMA_CreatePromptDialogStruct (SUMA_OK_APPLY_CLEAR_CANCEL, "Foreground smoothing iterations", 
-                                                         stmp,
-                                                         sv->X->TOPLEVEL, YUP,
-                                                         SUMA_APPLY_BUTTON,
-                                                         SUMA_SetNumForeSmoothing, (void *)sv,
-                                                         NULL, NULL,
-                                                         NULL, NULL,
-                                                         SUMA_CleanNumString, (void*)1,  
-                                                         SUMAg_CF->X->N_ForeSmooth_prmpt);
+               SUMAg_CF->X->N_ForeSmooth_prmpt = 
+                  SUMA_CreatePromptDialogStruct (SUMA_OK_APPLY_CLEAR_CANCEL, 
+                                       "Foreground smoothing iterations", 
+                                       stmp,
+                                       sv->X->TOPLEVEL, YUP,
+                                       SUMA_APPLY_BUTTON,
+                                       SUMA_SetNumForeSmoothing, (void *)sv,
+                                       NULL, NULL,
+                                       NULL, NULL,
+                                       SUMA_CleanNumString, (void*)1,
+                                       SUMAg_CF->X->N_ForeSmooth_prmpt);
 
-               SUMAg_CF->X->N_ForeSmooth_prmpt = SUMA_CreatePromptDialog("Foreground smoothing iterations", SUMAg_CF->X->N_ForeSmooth_prmpt);
+               SUMAg_CF->X->N_ForeSmooth_prmpt = 
+                     SUMA_CreatePromptDialog("Foreground smoothing iterations", 
+                                             SUMAg_CF->X->N_ForeSmooth_prmpt);
             }
             break;
             
          case XK_asterisk:
-            fprintf(SUMA_STDOUT, "%s: smoothing node attributes ...\n", FuncName);
             {
-               SUMA_SurfaceObject *SO;
-               float * attr_sm;
-               float *attrbuf;
-               int ic, cnt;
-               int allcols;
-               
-               SO = (SUMA_SurfaceObject *)SUMAg_DOv[sv->Focus_SO_ID].OP;
-               attrbuf = (float *)SUMA_calloc(SO->N_Node, sizeof(int));
-               if (attrbuf == NULL) {
-                  fprintf(stderr,"Error SUMA_input: Failed to allocate for attrbuf.\n");
-                  break;
-               }
+               char stmp[100];
+               sprintf(stmp, "%d", SUMAg_CF->X->NumFinalSmoothing);
+               SUMAg_CF->X->N_FinalSmooth_prmpt = 
+                  SUMA_CreatePromptDialogStruct (SUMA_OK_APPLY_CLEAR_CANCEL, 
+                                    "Final color smoothing iterations", 
+                                    stmp,
+                                    sv->X->TOPLEVEL, YUP,
+                                    SUMA_APPLY_BUTTON,
+                                    SUMA_SetNumFinalSmoothing, (void *)sv,
+                                    NULL, NULL,
+                                    NULL, NULL,
+                                    SUMA_CleanNumString, (void*)1,                                                    SUMAg_CF->X->N_FinalSmooth_prmpt);
 
-               allcols = 4 * SO->N_Node;
-               /* the colors are stored in glar_ColorList, RGBA */
-               glar_ColorList = SUMA_GetColorList (sv, SO->idcode_str);
-               if (!glar_ColorList) {
-                  fprintf(SUMA_STDERR, "Error %s: Null glar_ColorList.\n", FuncName);
-                  break;
-               }
-               for (ic=0; ic < 3; ++ic) { /* ic */
-                  ii = ic;
-                  cnt = 0;
-                  while (ii < allcols) {
-                     attrbuf[cnt] = glar_ColorList[ii];
-                     ii += 4;
-                     cnt += 1;
-                  } 
-
-                  attr_sm = SUMA_SmoothAttr_Neighb (attrbuf, SO->N_Node, NULL, SO->FN, 1, NULL, 1); 
-                  if (attr_sm == NULL) {
-                     fprintf(stderr,"Error SUMA_input: Failed in SUMA_SmoothAttr_Neighb\n");
-                     break;
-                  }
-
-                  /* copy results back into colorvector */
-                  ii = ic; 
-                  cnt = 0;
-                  while (ii < allcols) {
-                     glar_ColorList[ii] = attr_sm[cnt];
-                     ii += 4;
-                     cnt += 1;
-                  } 
-               } /* ic */   
-
-               SUMA_free(attr_sm);
-               SUMA_free(attrbuf);
-               /*fprintf(SUMA_STDOUT, "%s: Smoothing Done ...\n", FuncName);*/
-               SUMA_postRedisplay(w, clientData, callData);
+               SUMAg_CF->X->N_FinalSmooth_prmpt = 
+                     SUMA_CreatePromptDialog("Final color smoothing iterations", 
+                                             SUMAg_CF->X->N_FinalSmooth_prmpt);
             }
-
             break;
 
           case XK_at:
             if (SUMAg_CF->Dev) {
                /* calculate the curvature */
-               fprintf(SUMA_STDOUT, "%s: Calculating surface curvature ...\n", FuncName);
+               fprintf(SUMA_STDOUT, 
+                  "%s: Calculating surface curvature ...\n", FuncName);
                {
                   SUMA_SurfaceObject *SO;
                   SO = (SUMA_SurfaceObject *)SUMAg_DOv[sv->Focus_SO_ID].OP;
                   if (!SO->PolyArea) {
-                     fprintf(SUMA_STDOUT, "%s: Computing required mesh area.\n", FuncName);
+                     fprintf(SUMA_STDOUT, 
+                              "%s: Computing required mesh area.\n", FuncName);
                      if (!SUMA_SurfaceMetrics (SO, "PolyArea", NULL)) {
-                        fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_SurfaceMetrics.\n", FuncName);
+                        fprintf (SUMA_STDERR,
+                                 "Error %s: Failed in SUMA_SurfaceMetrics.\n", 
+                                 FuncName);
                         break;
                      }
                   }
-                  SO->SC = SUMA_Surface_Curvature (SO->NodeList, SO->N_Node, SO->NodeNormList, SO->PolyArea, 
-                                                   SO->N_FaceSet, SO->FN, SO->EL, "Curvs_c.txt", 1);
+                  SO->SC = SUMA_Surface_Curvature (SO->NodeList, SO->N_Node, 
+                              SO->NodeNormList, SO->PolyArea, 
+                              SO->N_FaceSet, SO->FN, SO->EL, "Curvs_c.txt", 1);
                   if (SO->SC == NULL) {
-                        fprintf(stderr,"Error %s: Failed in SUMA_Surface_Curvature\n", FuncName);
+                        fprintf( stderr,
+                                 "Error %s: Failed in SUMA_Surface_Curvature\n", 
+                                 FuncName);
                         break;
                      }               
                }   
@@ -6124,7 +6100,52 @@ void SUMA_SetNumForeSmoothing (char *s, void *data)
    
    /* register a redisplay for sv*/
    if (!list) list = SUMA_CreateList();
-   SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Redisplay_AllVisible, SES_Suma, sv);
+   SUMA_REGISTER_HEAD_COMMAND_NO_DATA( list, SE_Redisplay_AllVisible, 
+                                       SES_Suma, sv);
+   if (!SUMA_Engine (&list)) {
+      fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
+   }
+
+   SUMA_RETURNe;
+   
+}
+
+void SUMA_SetNumFinalSmoothing (char *s, void *data)
+{
+   static char FuncName[]={"SUMA_SetNumFinalSmoothing"};
+   DList *list=NULL;
+   SUMA_EngineData *ED = NULL;
+   SUMA_SurfaceViewer *sv = NULL;
+   float fv3[3];
+   SUMA_Boolean LocalHead = NOPE; 
+
+   SUMA_ENTRY;
+
+   if (!s) SUMA_RETURNe;
+
+   sv = (SUMA_SurfaceViewer *)data;
+
+   /* parse s */
+   if (SUMA_StringToNum (s, (void *)fv3, 1,1) != 1) {/*problem,beep and ignore */
+      XBell (XtDisplay (sv->X->TOPLEVEL), 50);
+      SUMA_RETURNe;
+   }
+
+   /* set sv */
+  
+   if ((int)fv3[0] < 0) {
+      SUMA_SLP_Err("Only positive integer\nvalues are valid.\n"); 
+      SUMA_RETURNe;
+   } 
+   SUMAg_CF->X->NumFinalSmoothing = (int)fv3[0];
+   
+   /* flag surfaces for remix */
+   SUMA_SetAllRemixFlag(SUMAg_SVv, SUMAg_N_SVv);
+   
+   /* register a redisplay for sv*/
+   if (!list) list = SUMA_CreateList();
+   SUMA_REGISTER_HEAD_COMMAND_NO_DATA( list, SE_Redisplay_AllVisible, 
+                                       SES_Suma, sv);
    if (!SUMA_Engine (&list)) {
       fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
    }

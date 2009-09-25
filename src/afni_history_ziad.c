@@ -65,6 +65,16 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 24 , SEP , 2009 , ZSS , "suma" , MINOR , TYPE_NEW_OPT ,
+   "Improved the 'star' blurring interface.",
+   NULL
+ } ,
+
+ { 24 , SEP , 2009 , ZSS , "suma" , MINOR , TYPE_NEW_ENV ,
+   "Setup final color blurring level.",
+   NULL
+ } ,
+
  { 24 , SEP , 2009 , ZSS , "suma" , MAJOR , TYPE_BUG_FIX ,
    "Fixed crashes on OS X 10.5 caused by OS X's buggy GLX implementation",
    NULL

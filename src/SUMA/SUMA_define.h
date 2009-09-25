@@ -1270,10 +1270,18 @@ typedef struct {
                               and options of a generic file selection dialog */
    SUMA_PROMPT_DIALOG_STRUCT *N_ForeSmooth_prmpt; /*!< structure for the number  
                            of foreground smoothing dialog */
+   SUMA_PROMPT_DIALOG_STRUCT *N_FinalSmooth_prmpt; /*!< structure for the number 
+                           of final smoothing dialog */
    int NumForeSmoothing;   /*!< Number of steps for smoothing the foreground  
                                 colors prior to mixing with background. Default 
                                 is set by environment variable 
                                 SUMA_NumForeSmoothing which 
+                                is set to 0 (No smoothing). */
+   int NumFinalSmoothing;   /*!< Number of steps for smoothing the blended  
+                                colors (after foreground is mixed with
+                                background). Default 
+                                is set by environment variable 
+                                SUMA_NumFinalSmoothing which 
                                 is set to 0 (No smoothing). */
    SUMA_Boolean WarnClose; /*!< Pops up a window to double check 
                                  before SUMA quits */
