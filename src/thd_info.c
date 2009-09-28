@@ -20,8 +20,6 @@
 #define ZMAX  8000
 #define SZMAX "%.8000s"   /* same as ZMAX */
 
-char * THD_zzprintf( char *sss , char *fmt , ... ) ;
-
 char * THD_dataset_info( THD_3dim_dataset *dset , int verbose )
 {
    THD_dataxes      *daxes ;

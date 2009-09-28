@@ -1,6 +1,8 @@
 #include "afni.h"
 #include "parser.h"
 
+static int DEBUG = 0 ;
+
 /*--------------------- macros for drawing lines -----------------------------*/
 
 #undef  VLINE
@@ -154,7 +156,7 @@ static MCW_action_item ICALC_act[] =
                     ICALC_chooser_CB , (XtPointer)iwid ) ;           \
      ICALC_userdata(iwid->war[aa].chooser_pb,aa+1) ;                 \
      iwid->war[aa].index_av =                                        \
-        new_MCW_optmenu( rc , "[-]" , -1,0, -1,0,                    \
+        new_MCW_optmenu( rc , "[-]" , -1,0, 0,0,                     \
                          ICALC_index_av_CB, (XtPointer)iwid ,        \
                          ICALC_index_lab_CB,(XtPointer)iwid  ) ;     \
      ICALC_userdata(iwid->war[aa].index_av->wrowcol,aa+1) ;          \
@@ -439,30 +441,33 @@ static void ICALC_compute_CB( Widget w, XtPointer cd, XtPointer cbs )
 
 ENTRY("ICALC_compute_CB") ;
 
-INFO_message("call ICALC_finalize_setup") ;
+   DEBUG = AFNI_yesenv("AFNI_INSTACALC_DEBUG") ;
 
+if(DEBUG) INFO_message("call ICALC_finalize_setup") ;
+
+   INSTACALC_LABEL_OFF(im3d) ;
    ICALC_finalize_setup( iwid , ics ) ;
    if( ics->is_good == 0 ) EXRETURN ;
 
-INFO_message("call ICALC_compute") ;
+if(DEBUG) INFO_message("call ICALC_compute") ;
 
    iim = ICALC_compute(ics) ;
    if( iim == NULL ) EXRETURN ;
 
-INFO_message("add dataset") ;
+if(DEBUG) INFO_message("add dataset") ;
 
    /* find the output dataset */
 
    slf = THD_dset_in_session( FIND_PREFIX , ics->prefix , im3d->ss_now ) ;
 
-ININFO_message("find completed") ;
+if(DEBUG) ININFO_message("find completed") ;
 
    /* if it doesn't exist, or is not the right grid, create it now */
 
    if( !ISVALID_DSET (slf.dset) ||
        !EQUIV_DATAXES(slf.dset->daxes,ics->dset_master->daxes) ){
 
-ININFO_message("create new dataset") ;
+if(DEBUG) ININFO_message("create new dataset") ;
      icaset = EDIT_empty_copy( ics->dset_master ) ;  /* make new dataset */
      EDIT_dset_items( icaset ,
                         ADN_prefix    , ics->prefix ,
@@ -477,7 +482,7 @@ ININFO_message("create new dataset") ;
      if( slf.dset != NULL ){       /* exists, but isn't right for us */
 
        MCW_idcode old_idc = slf.dset->idcode ;
-ININFO_message("hollowing out old dataset") ;
+if(DEBUG) ININFO_message("hollowing out old dataset") ;
        THD_delete_3dim_dataset(slf.dset,True) ;  /* destroy the guts */
        *slf.dset = *icaset ;      /* copy the guts, keep the pointer */
        slf.dset->idcode = old_idc ;           /* and keep the idcode */
@@ -487,12 +492,12 @@ ININFO_message("hollowing out old dataset") ;
      } else {                                  /* add to the session */
        int vv = icaset->view_type ;
        nds = im3d->ss_now->num_dsset ;
-ININFO_message("adding to session: nds=%d",nds) ;
+if(DEBUG) ININFO_message("adding to session: nds=%d",nds) ;
        im3d->ss_now->dsset[nds][vv] = icaset ;
        im3d->ss_now->num_dsset++ ;
-ININFO_message("force adoption") ;
+if(DEBUG) ININFO_message("force adoption") ;
        AFNI_force_adoption( im3d->ss_now , False ) ;
-ININFO_message("make descendants") ;
+if(DEBUG) ININFO_message("make descendants") ;
        AFNI_make_descendants( GLOBAL_library.sslist ) ;
        INFO_message("created new dataset %s",ics->prefix) ;
      }
@@ -501,7 +506,7 @@ ININFO_message("make descendants") ;
 
    } else {
 
-ININFO_message("recycling old dataset") ;
+if(DEBUG) ININFO_message("recycling old dataset") ;
      icaset = slf.dset ; nds = slf.dset_index ;
 
    }
@@ -509,50 +514,93 @@ ININFO_message("recycling old dataset") ;
 
    /* save the result into the output dataset */
 
-ININFO_message("storing results into dataset: %d %d %d",iim->nx,iim->ny,iim->nz) ;
+if(DEBUG) ININFO_message("storing results into dataset: %d %d %d",iim->nx,iim->ny,iim->nz) ;
    iar = MRI_FLOAT_PTR(iim) ;
    EDIT_substitute_brick( icaset , 0 , MRI_float , iar ) ;
    mri_clear_data_pointer(iim) ; mri_free(iim) ;
-ININFO_message("dataset statistics") ;
+if(DEBUG) ININFO_message("dataset statistics") ;
    DSET_KILL_STATS(icaset) ; THD_load_statistics(icaset) ;
 
-ININFO_message("dataset label") ;
+if(DEBUG) ININFO_message("dataset label") ;
    EDIT_BRICK_LABEL(icaset,0,"InstaCalc") ;
 
    /* redisplay overlay */
 
    if( im3d->fim_now != icaset ){  /* switch to this dataset */
      MCW_choose_cbs cbs ; char cmd[32] , *cpt=AFNI_controller_label(im3d) ;
-ININFO_message("change fim_now") ;
+if(DEBUG) ININFO_message("change fim_now") ;
      cbs.ival = nds ;
      AFNI_finalize_dataset_CB( im3d->vwid->view->choose_func_pb ,
                                (XtPointer)im3d ,  &cbs           ) ;
      AFNI_set_fim_index(im3d,0) ;
      AFNI_set_thr_index(im3d,0) ;
    }
-ININFO_message("reset func range") ;
+if(DEBUG) ININFO_message("reset func range") ;
    AFNI_reset_func_range(im3d) ;
 
    if( MCW_val_bbox(im3d->vwid->view->see_func_bbox) == 0 ){ /* overlay is off */
      char cmd[32] , *cpt=AFNI_controller_label(im3d) ;
      sprintf(cmd,"SEE_OVERLAY %c.+",cpt[1]) ;
-ININFO_message("turn overlay on") ;
+if(DEBUG) ININFO_message("turn overlay on") ;
      AFNI_driver(cmd) ;
    } else {                                                  /* overlay is on */
-ININFO_message("redisplay overlay") ;
+if(DEBUG) ININFO_message("redisplay overlay") ;
      AFNI_redisplay_func(im3d) ;
    }
+   INSTACALC_LABEL_ON(im3d) ;
    AFNI_process_drawnotice(im3d) ;
 
-ININFO_message("done") ;
+if(DEBUG) ININFO_message("done") ;
    EXRETURN ;
 }
 
 /*----------------------------------------------------------------------------*/
 
+static char *helpstring =
+   "\n"
+   "============================ AFNI InstaCalc ============================\n"
+   "\n"
+   "This module lets you compute a 3D volume from 1 or more other datasets,\n"
+   "much like 3dcalc does.\n"
+   "\n"
+   " (1) Enter the expression in the 'OLay Expr' text field.\n"
+   "\n"
+   " (2) Select datasets to corresponds to symbols A, B, ..., as desired,\n"
+   "     and then select a sub-brick index to use.\n"
+   "*OR* Choose a statistic (MIN or MAX) to use from a given dataset volume.\n"
+   "*OR* Set a given symbol to be a numeric constant.\n"
+   "\n"
+   " (3) Press the 'Compute InstaCalc' button to (re)calculate the output.\n"
+   "\n"
+   "The output is stored into a dataset named A_ICALC (for controller A),\n"
+   "which will be switched to be the new overlay dataset.\n"
+   "\n"
+   "If you make changes to the expression, or to the symbol definitions, you\n"
+   "must press 'Compute InstaCalc' again for the changes to be reflected in\n"
+   "the dataset.\n"
+   "\n"
+   "Simple Example: Dual Thresholding\n"
+   "   A = Overlay sub-brick of interest\n"
+   "   B = t-statistic for some effect\n"
+   "   C = t-statistic for some other effect\n"
+   "   Expression = 'A*astep(B,3.1)*astep(C,4.2)\n"
+   "The effect is to colorize A only where abs(B) > 3.1 AND abs(C) > 4.2.\n"
+   "\n"
+   "Author -- RW Cox -- Sep 2009\n"
+   "\n"
+   "DEBUGGING:\n"
+   "  This feature is very new.  If you can make it realiably crash, please\n"
+   "  re-run AFNI with the extra option '-DAFNI_INSTACALC_DEBUG=YES' and\n"
+   "  then make InstaCalc crash; this might help pinpoint the problem\n"
+   "  when you report it to me.\n"
+   " \n" ;
+
 static void ICALC_help_CB( Widget w, XtPointer cd, XtPointer cbs )
 {
-INFO_message("This software is beyond all hope or help") ;
+   ICALC_widget_set *iwid = (ICALC_widget_set *)cd ;
+   if( iwid == NULL || iwid->is_open == 0 ) return ;
+   (void)new_MCW_textwin( iwid->olay_expr_text , helpstring , TEXT_READONLY ) ;
+   return ;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -718,9 +766,11 @@ static char * ICALC_index_lab_CB( MCW_arrowval *av , XtPointer cd )
 
 #define VSIZE 1024    /* vector size for PARSER computations */
 
-#define FIRSTMESS                                                               \
- do{ if( first ){                                                               \
-       INFO_message("---------- InstaCalc setup messages ----------"); first=0; \
+#define FIRSTMESS                                                                         \
+ do{ if( first ){                                                                         \
+       INFO_message("-------------- InstaCalc setup messages --------------"); first=0;   \
+       errbuf=THD_zzprintf(errbuf,                                                        \
+                    "-------------- InstaCalc Setup Error Messages --------------\n\n") ; \
  }} while(0)
 
 /*----------------------------------------------------------------------------*/
@@ -731,24 +781,27 @@ static char * ICALC_index_lab_CB( MCW_arrowval *av , XtPointer cd )
 static void ICALC_finalize_setup( ICALC_widget_set *iwid , ICALC_setup *ics )
 {
    PARSER_code *olay_pcode ;
-   char *str ;
-   int ids , bb , first=1 , nbad=0 , nxyz ;
+   char *str , *errbuf=NULL ;
+   int ids,jds , bb , first=1 , nbad=0 , nxyz ;
    THD_3dim_dataset *dset ;
 
 ENTRY("ICALC_finalize_setup") ;
 
+if(DEBUG) INFO_message("----- finalizing setup -------------------------") ;
    if( iwid == NULL || !iwid->is_open || ics == NULL ){ BEEPIT; EXRETURN; }
 
    ics->is_good = 0 ;
 
    /*- get and parse the expression -*/
 
+if(DEBUG) ININFO_message("get expression") ;
    str = XmTextFieldGetString( iwid->olay_expr_text ) ;
    if( str == NULL || *str == '\0' ){ BEEPIT; EXRETURN; }
 
    if( ics->olay_expr != NULL ) free(ics->olay_expr) ;
    ics->olay_expr = strdup(str) ;
 
+if(DEBUG) ININFO_message("parse expression") ;
    PARSER_set_printout(1) ;
    olay_pcode = PARSER_generate_code(ics->olay_expr) ;
    PARSER_set_printout(0) ;
@@ -759,6 +812,7 @@ ENTRY("ICALC_finalize_setup") ;
      free(ics->olay_expr) ; ics->olay_expr = NULL ; BEEPIT ; EXRETURN ;
    }
 
+if(DEBUG) ININFO_message("mark symbols") ;
    ics->olay_pcode = (void *)olay_pcode ;
    PARSER_mark_symbols( olay_pcode , ics->has_sym ) ;  /* what symbols are used? */
 
@@ -776,20 +830,28 @@ ENTRY("ICALC_finalize_setup") ;
      if( !bb ){                          /** off ==> mark as undefined **/
        ics->intyp[ids] = ICALC_INVALID ;
        ics->inval[ids] = 0.0 ;
-       if( ics->has_sym[ids] && ((1<<ids) & PREDEFINED_MASK) == 0 ){
-         FIRSTMESS ;
-         WARNING_message("InstaCalc uses undefined symbol '%s'",abet[ids]) ;
-       } else {
-         ics->has_predefined++ ; if( ids >= 23 ) ics->has_xyz++ ;
+       if( ics->has_sym[ids] ){
+         if( ((1<<ids) & PREDEFINED_MASK) == 0 ){
+           FIRSTMESS ; nbad++ ;
+           ERROR_message("InstaCalc uses undefined symbol '%c'\n",abet[ids]) ;
+           errbuf = THD_zzprintf(errbuf,"InstaCalc uses undefined symbol '%c'\n",abet[ids]) ;
+         } else {
+           ics->has_predefined++ ; if( ids >= 23 ) ics->has_xyz++ ;
+           ics->inset[ids] = NULL ; ics->intyp[ids] = ICALC_DSET_VALUE ;
+if(DEBUG) ININFO_message("using predefined symbol '%c'",abet[ids]) ;
+         }
        }
        continue ;  /* skip to next symbol */
      }
 
+if(DEBUG) ININFO_message("** process row %c",abet[ids]) ;
+
      /**--- OK, this symbol is defined, so figure out what to do with it ---**/
 
      if( !ics->has_sym[ids] ){
+       ics->intyp[ids] = ICALC_INVALID ;
        FIRSTMESS ;
-       WARNING_message("InstaCalc defines symbol '%s' but doesn't use it",abet[ids]) ;
+       WARNING_message("InstaCalc defines symbol '%c' but doesn't use it",abet[ids]) ;
        continue ;  /* skip to next symbol */
      }
 
@@ -802,6 +864,7 @@ ENTRY("ICALC_finalize_setup") ;
        /* this case is REAL easy */
 
        case ICALC_CONSTANT:
+if(DEBUG) ININFO_message("  get constant string") ;
          str = XmTextFieldGetString( iwid->war[ids].string_text) ;
          ics->inval[ids] = PARSER_strtod(str) ;
        break ;
@@ -810,74 +873,98 @@ ENTRY("ICALC_finalize_setup") ;
 
        case ICALC_DSET_VALUE:
        case ICALC_DSET_STAT:{
-         int idx = iwid->war[ids].index_av->ival ;
-         dset = ics->inset[ids] ;
+         int idx      = iwid->war[ids].index_av->ival ;
+         char *difstr = XmTextFieldGetString( iwid->war[ids].string_text) ;
+if(DEBUG) ININFO_message("  get dataset pointer") ;
+         dset = ics->inset[ids] ; jds = ids ;
          if( !ISVALID_DSET(dset) ){
-           FIRSTMESS ;
-           ERROR_message("Symbol '%s' has undefined dataset",abet[ids]) ;
-           nbad++ ; goto DSET_DONE ;
+           if( difstr != NULL && isalpha(difstr[0]) ){  /* allow diffsub like 'a[0,3,1,0]' */
+             jds = toupper(difstr[0]) - 'A' ;
+if(DEBUG) ININFO_message("    diffsub dataset of '%c' is '%c'",abet[ids],abet[jds]) ;
+             dset = ics->inset[jds] ; idx = iwid->war[jds].index_av->ival ; difstr++ ;
+           }
+           if( !ISVALID_DSET(dset) ){
+             FIRSTMESS ; nbad++ ;
+             ERROR_message("Symbol '%c' has undefined dataset\n",abet[ids]) ;
+             errbuf = THD_zzprintf(errbuf,"Symbol '%c' has undefined dataset\n",abet[ids]) ;
+             goto DSET_DONE ;
+           }
          }
 
          if( idx < 0                 ) idx = iwid->im3d->vinfo->time_index ;
          if( idx >= DSET_NVALS(dset) ) idx = DSET_NVALS(dset)-1 ;
          ics->inidx[ids] = idx ;
+if(DEBUG) ININFO_message("  dataset idx = %d",idx) ;
 
          if( bb == ICALC_DSET_VALUE ){  /*---- actual dataset voxel values ----*/
 
-           if( ics->dset_master == NULL ) ics->dset_master = dset ;
+           if( ics->dset_master == NULL ){
+if(DEBUG) ININFO_message("  set dset_master") ;
+             ics->dset_master = dset ;
+           }
 
            /* differential subscript? */
 
-           str = XmTextFieldGetString( iwid->war[ids].string_text) ;
-           if( PLUG_nonblank_len(str) > 0 ){
+if(DEBUG) ININFO_message("  check diffsub") ;
+           if( PLUG_nonblank_len(difstr) > 0 ){
              int *ijkl ; int ist ;
+if(DEBUG) ININFO_message("  diffsub = %s",difstr) ;
              for( ist=0 ; isspace(ist) ; ist++ ) ; /*skip blanks*/
-             if( str[ist] == '[' ){
+             if( difstr[ist] == '[' ){
                MCW_intlist_allow_negative(1) ;
-               ijkl = MCW_get_intlist( 9999 , str+ist ) ;
+               ijkl = MCW_get_intlist( 9999 , difstr+ist ) ;
                MCW_intlist_allow_negative(0) ;
                if( ijkl == NULL || ijkl[0] <= 0 ){
                  FIRSTMESS ; if( ijkl != NULL ) free(ijkl) ;
-                 ERROR_message("Bad [..] diffsub for symbol '%s'",abet[ids]) ;
+                 ERROR_message("Bad [..] diffsub for symbol '%c'\n",abet[ids]) ;
+                 errbuf = THD_zzprintf(errbuf,"Bad [..] diffsub for symbol '%c'\n",abet[ids]) ;
                  nbad++ ; goto DSET_DONE ;
                }
              } else {
                ijkl = (int *) malloc( sizeof(int) * 5 ) ;
                ijkl[1] = ijkl[2] = ijkl[3] = ijkl[4] = 0 ; ijkl[0] = 4 ; /* initialize */
-               switch( str[ist+1] ){
+               switch( toupper(difstr[ist+1]) ){
                  default: FIRSTMESS ; nbad++ ;
-                          ERROR_message("Bad diffsub for symbol '%s': expected +/- i/j/k/l",abet[ids]) ;
+                          ERROR_message(
+                            "Bad diffsub for symbol '%c': expected +/- i/j/k/l; got %s\n",abet[ids],difstr+ist) ;
+                          errbuf=THD_zzprintf(errbuf,
+                            "Bad diffsub for symbol '%c': expected +/- i/j/k/l; got %s\n",abet[ids],difstr+ist) ;
                  goto DSET_DONE ;
 
-                 case 'i': ijkl[1] = (str[ist]=='+') ? 1 : -1 ; break ;
-                 case 'j': ijkl[2] = (str[ist]=='+') ? 1 : -1 ; break ;
-                 case 'k': ijkl[3] = (str[ist]=='+') ? 1 : -1 ; break ;
-                 case 'l': ijkl[4] = (str[ist]=='+') ? 1 : -1 ; break ;
+                 case 'I': ijkl[1] = (difstr[ist]=='+') ? 1 : -1 ; break ;
+                 case 'J': ijkl[2] = (difstr[ist]=='+') ? 1 : -1 ; break ;
+                 case 'K': ijkl[3] = (difstr[ist]=='+') ? 1 : -1 ; break ;
+                 case 'L': ijkl[4] = (difstr[ist]=='+') ? 1 : -1 ; break ;
                }
              }
              if( ijkl[1]==0 && ijkl[2]==0 && ijkl[3]==0 && ijkl[4]==0 ){
                FIRSTMESS ; free(ijkl) ;
-               WARNING_message("diffsub for symbol '%s' is all zero -- ignoring",abet[ids]) ;
+               WARNING_message("diffsub for symbol '%c' is all zero -- ignoring",abet[ids]) ;
                goto DSET_DONE ;
              }
-             ics->dshift  [ids] = ids ;
+             ics->dshift  [ids] = jds ;
              ics->dshift_i[ids] = (ijkl[0] >= 1) ? ijkl[1] : 0 ;
              ics->dshift_j[ids] = (ijkl[0] >= 2) ? ijkl[2] : 0 ;
              ics->dshift_k[ids] = (ijkl[0] >= 3) ? ijkl[3] : 0 ;
              ics->dshift_l[ids] = (ijkl[0] >= 4) ? ijkl[4] : 0 ; free(ijkl) ;
            } /* end of diffsub-ization */
+if(DEBUG) ININFO_message("  dataset finished") ;
 
          } else {  /*---------- statistics of dataset brick values ----------*/
            int ist ;
 
+if(DEBUG) ININFO_message("  dataset statistic") ;
            if( !DSET_VALID_BSTAT(dset,idx) ) THD_load_statistics(dset) ;
 
+if(DEBUG) ININFO_message("  get string") ;
            str = XmTextFieldGetString( iwid->war[ids].string_text) ;
            if( PLUG_nonblank_len(str) <= 0 ){
              FIRSTMESS ;
-             ERROR_message("No statistic string entered for symbol '%s'",abet[ids]) ;
+             ERROR_message("No statistic string entered for symbol '%c'\n",abet[ids]) ;
+             errbuf=THD_zzprintf(errbuf,"No statistic string entered for symbol '%c'\n",abet[ids]) ;
              nbad++ ; goto DSET_DONE ;
            }
+if(DEBUG) ININFO_message("  string = %s",str) ;
            for( ist=0 ; isspace(ist) ; ist++ ) ; /*skip blanks*/
            if( strncasecmp(str+ist,"max",3) == 0 ){
              ics->inval[ids] = dset->stats->bstat[idx].max ;
@@ -885,11 +972,13 @@ ENTRY("ICALC_finalize_setup") ;
              ics->inval[ids] = dset->stats->bstat[idx].min ;
            } else {
              FIRSTMESS ;
-             ERROR_message("Unknown statistic '%s' entered for symbol '%s'",str,abet[ids]) ;
+             ERROR_message("Unknown statistic '%s' entered for symbol '%c'\n",str,abet[ids]) ;
+             errbuf=THD_zzprintf(errbuf,"Unknown statistic '%s' entered for symbol '%c'\n",str,abet[ids]) ;
              nbad++ ; goto DSET_DONE ;
            }
          } /* end of dataset statisick-ization */
 
+if(DEBUG) ININFO_message("  completely done with dataset processing") ;
        DSET_DONE: /*nada*/ ;
        } /* end of processing the 2 dataset cases */
        break ;
@@ -907,6 +996,7 @@ ENTRY("ICALC_finalize_setup") ;
 
    /*-- check all datasets against the master for compatibility --*/
 
+if(DEBUG) ININFO_message("check datasets for compatibility") ;
    nxyz = DSET_NVOX(ics->dset_master) ;
    for( ids=0 ; ids < 26 ; ids++ ){
      if( ics->intyp[ids] != ICALC_DSET_VALUE ) continue ;
@@ -914,7 +1004,8 @@ ENTRY("ICALC_finalize_setup") ;
      if( !ISVALID_DSET(dset) || dset == ics->dset_master ) continue ;
      if( DSET_NVOX(dset) != nxyz ){
        FIRSTMESS ;
-       ERROR_message("Dataset '%s' does not match all others in InstaCalc",abet[ids]) ;
+       ERROR_message("Dataset '%c' does not grid-match all others in InstaCalc\n",abet[ids]) ;
+       errbuf=THD_zzprintf(errbuf,"Dataset '%c' does not grid-match all others in InstaCalc\n",abet[ids]) ;
        nbad++ ;
      }
    }
@@ -922,11 +1013,20 @@ ENTRY("ICALC_finalize_setup") ;
    if( nbad > 0 ){
      ERROR_message("----- Cannot continue past the above error%s -----",
                    (nbad==1) ? "\0" : "s" ) ;
+     errbuf=THD_zzprintf(errbuf,
+              "\n----------- Cannot continue past the above error%s ----------\n ",
+                   (nbad==1) ? "\0" : "s" ) ;
+     (void)MCW_popup_message( iwid->olay_expr_text , errbuf ,
+                              MCW_USER_KILL | MCW_TIMER_KILL ) ;
      BEEPIT ; EXRETURN ;
    }
 
+if(DEBUG) ININFO_message("finalized!") ;
+   if( errbuf != NULL ) free(errbuf) ;
    ics->is_good = 1 ; EXRETURN ;
 }
+
+#define CEBUG (DEBUG && ii==0)
 
 /*----------------------------------------------------------------------------*/
 /*! Compute a float-valued volume from the InstaCalc setup.
@@ -969,6 +1069,8 @@ ENTRY("ICALC_compute") ;
 
    /***----- loop over voxels, do VSIZE voxels at time -----***/
 
+if(DEBUG) INFO_message("Start computation loop") ;
+
    for( ii = 0 ; ii < nxyz ; ii += VSIZE ){
 
      jbot = ii ; jtop = MIN( ii + VSIZE , nxyz ) ;  /* do voxels jj..jtop-1 */
@@ -1006,6 +1108,8 @@ ENTRY("ICALC_compute") ;
          case ICALC_DSET_VALUE:{
            THD_3dim_dataset *dset ;
 
+if(CEBUG) ININFO_message("extracting from dataset '%c'",abet[ids]) ;
+
            if( ics->dshift[ids] >= 0 ){   /* differential subscripted dataset */
              int jds = ics->dshift[ids] ;     /* actual dataset index */
              int jjs , ix,jy,kz ;
@@ -1015,6 +1119,7 @@ ENTRY("ICALC_compute") ;
              int dsx=nx-1 , dsy=ny-1 , dsz=nz-1 , dst ;
              int mode=ics->dshift_mode , dun=0 ;   /* dun == are we done yet? */
 
+if(CEBUG) ININFO_message("  dshift: jds=%d  id=%d jd=%d kd=%d ld=%d",jds,id,jd,kd,ld) ;
              dset = ics->inset[jds] ;
              dst  = DSET_NVALS(dset) - 1 ;  /* last allowed time index */
 
@@ -1153,6 +1258,7 @@ ENTRY("ICALC_compute") ;
              var  = DSET_ARRAY       (dset,kts);
              ffac = DSET_BRICK_FACTOR(dset,kts); if( ffac==0.0f ) ffac = 1.0f;
              if( var == NULL ){ DSET_load(dset); var = DSET_ARRAY(dset,kts); }
+if(CEBUG) ININFO_message("  normal dataset: kts=%d",kts) ;
              switch(dtyp){
                case MRI_rgb:
                case MRI_byte:    bar = (byte *   )var ; break ;
@@ -1201,6 +1307,8 @@ ENTRY("ICALC_compute") ;
           /* the case of a voxel (x,y,z) or (i,j,k) coordinate */
 
           else if( ics->has_predefined ) {
+
+if(CEBUG) ININFO_message("  predefined value '%c'",abet[ids]) ;
 
             switch( ids ){
                case 23:     /* x */
@@ -1266,6 +1374,7 @@ ENTRY("ICALC_compute") ;
 
      /****----- actually do the calculation work! -----****/
 
+if(CEBUG) ININFO_message("-- evaluate!") ;
      PARSER_evaluate_vector( (PARSER_code *)ics->olay_pcode ,
                               atoz , jtop-jbot , temp       );
 

@@ -1069,7 +1069,7 @@ typedef struct Three_D_View {
 /** InstaCalc stuff [18 Sep 2009] **/
 
 #define INSTACALC_LABEL_ON(iq)                                           \
- do{ MCW_set_widget_label((iq)->vwid->func->icalc_label,"** Ready **") ; \
+ do{ MCW_set_widget_label((iq)->vwid->func->icalc_label,"*Computed!*") ; \
      MCW_set_widget_bg   ((iq)->vwid->func->icalc_label,GO_COLOR,0   ) ; \
  } while(0)
 

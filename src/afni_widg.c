@@ -6321,6 +6321,7 @@ ENTRY("AFNI_vedit_CB") ;
    switch( av->ival ){
      /* switch to Clusters */
      case 0:
+       DISABLE_INSTACALC(im3d) ;                          /* InstaCalc off */
        DISABLE_INSTACORR(im3d) ;                          /* InstaCorr off */
        DESTROY_ICOR_setup(im3d->iset) ;
        XtUnmanageChild( im3d->vwid->func->icalc_rowcol) ;
@@ -6330,6 +6331,7 @@ ENTRY("AFNI_vedit_CB") ;
 
      /* switch to InstaCorr */
      case 1:
+       DISABLE_INSTACALC(im3d) ;                          /* InstaCalc off */
        UNCLUSTERIZE(im3d) ;                               /* Clusters off */
        XtManageChild  ( im3d->vwid->func->icor_rowcol ) ;
        XtUnmanageChild( im3d->vwid->func->icalc_rowcol) ;

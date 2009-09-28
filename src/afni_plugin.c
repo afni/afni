@@ -1164,7 +1164,7 @@ int PLUG_nonblank_len( char *str )
    if( str == NULL || *str == '\0' ) return 0 ;
    ll = strlen(str) ;
 
-   for( ii=ll-1 ; ii >= 0 ; ii-- ) if( !isblank(str[ii]) ) break ;
+   for( ii=ll-1 ; ii >= 0 ; ii-- ) if( !isspace(str[ii]) ) break ;
 
    return (ii+1) ;
 }
