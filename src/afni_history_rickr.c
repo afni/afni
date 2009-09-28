@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 29, SEP, 2009, RCR, "@Reorder", MICRO, TYPE_BUG_FIX,
+   "defined isblank() in case of SOLARIS_OLD",
+   NULL
+ } ,
+
  { 29, SEP, 2009, RCR, "@Reorder", MINOR, TYPE_NEW_PROG,
    "script version of reorder plugin, for J. Bjork",
    NULL
