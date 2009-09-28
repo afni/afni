@@ -1951,9 +1951,12 @@ int SUMA_BuildMenu(  Widget parent, int menu_type, char *menu_title,
      str = XmStringCreateLocalized (menu_title);
      cascade = XtVaCreateManagedWidget (menu_title,
          xmCascadeButtonWidgetClass, parent,
-         XmNsubMenuId,   menu,
          XmNlabelString, str,
-         XmNmnemonic,    menu_mnemonic,
+         XmNmnemonic,    menu_mnemonic, /* this line causes a warning on 
+                                          OS X 10.6. Can't tell why...
+                                          
+                                          */
+         XmNsubMenuId,   menu,
          XmNmarginHeight, 0,
          XmNmarginTop, 0,
          XmNmarginBottom, 0,
