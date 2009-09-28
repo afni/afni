@@ -1,0 +1,173 @@
+#!/bin/tcsh
+
+# ======================================================================
+# init variables and parse options
+set input       = ""
+set mapfile     = ""
+set method      = "average"             # only choice for now
+set prefix      = ""
+set offset      = 0
+set save_work   = 0
+set test        = 0                     # do not create new dataset
+
+set help        = 0
+set workdir     = "reorder.work.dir"
+
+# if no args, plan to show help
+if ( $#argv == 0 ) set help = 1
+
+set ac = 1
+while ( $ac <= $#argv )
+    if ( "$argv[$ac]" == "-help" ) then
+        set help = 1
+    else if ( "$argv[$ac]" == "-input" ) then
+        @ ac ++
+        if ( $ac > $#argv ) then
+            echo "** missing parameter for option '-input'"
+            exit
+        endif
+        set input = $argv[$ac]
+    else if ( "$argv[$ac]" == "-mapfile" ) then
+        @ ac ++
+        if ( $ac > $#argv ) then
+            echo "** missing parameter for option '-mapfile'"
+            exit
+        endif
+        set mapfile = $argv[$ac]
+    else if ( "$argv[$ac]" == "-offset" ) then
+        @ ac ++
+        if ( $ac > $#argv ) then
+            echo "** missing parameter for option '-offset'"
+            exit
+        endif
+        echo "-- applying offset $argv[$ac]..."
+        @ offset = $offset + $argv[$ac]
+    else if ( "$argv[$ac]" == "-prefix" ) then
+        @ ac ++
+        if ( $ac > $#argv ) then
+            echo "** missing parameter for option '-prefix'"
+            exit
+        endif
+        set prefix = $argv[$ac]
+    else if ( "$argv[$ac]" == "-save_work" ) then
+        set save_work = 1
+    else if ( "$argv[$ac]" == "-test" ) then
+        set test = 1
+    else
+        echo "** unknown extra option: $argv[$ac]"
+        exit
+    endif
+    @ ac ++
+end
+
+# ----------------------------------------------------------------------
+# do we show help?
+if ( $help ) then
+cat << EOF
+
+    @Reorder    - like the Reorder plugin (only averages presently)
+
+        Please see the Help from the Reorder plugin for details.
+
+        This script does its work in a temporary directory
+
+    examples:
+
+        1. basic usage
+
+           @Reorder -input EPI+tlrc -mapfile events.txt -prefix EPI.reorder
+
+        2. shift all TRs by 3 (like adding 3 '-' lines to top of map file)
+
+           @Reorder -input EPI+tlrc -mapfile events.txt -prefix EPI.reorder \
+                    -offset 3
+
+    options:
+
+        -help           : show this help
+
+        -input INSET    : (REQUIRED) input dataset to reorder
+        -mapfile MFILE  : (REQUIRED) TR to event mapping
+                          - see Reorder plugin Help for example
+        -prefix PREFIX  : (REQUIRED) prefix for output dataset
+        -offset OFFSET  : offset mapfile TR indices by OFFSET (in TRs)
+        -save_work      : do not delete work directory (reorder.work.dir) at end
+        -test           : just report sub-bricks, do not create datasets
+
+    R Reynolds (for J Bjork) Sep 2009
+
+EOF
+exit
+endif
+
+# ----------------------------------------------------------------------
+# check for missing input
+set errs = 0
+if ( $input == "" ) then
+    echo "** missing -input dataset"
+    @ errs += 1
+endif
+if ( $mapfile == "" ) then
+    echo "** missing -mapfile"
+    @ errs += 1
+endif
+if ( $prefix == "" ) then
+    echo "** missing -prefix option"
+    @ errs += 1
+endif
+if ( $errs > 0 ) exit
+
+# ----------------------------------------------------------------------
+# check for existing work dir
+if ( -d $workdir ) then
+    echo "** work directory $workdir exists, will not proceed..."
+    exit
+endif
+
+# ======================================================================
+# start doing some work, be sure map file and dataset exist
+
+# get all of the labels (non-comment, non-dash)
+set labels = ( `grep -v '\-' $mapfile | grep -v '^#' | sort | uniq` )
+if ( $status ) then
+    echo "** failed to find mapfile or contained symbols, exiting..."
+    exit
+endif
+
+echo "-- mapping labels are: $labels"
+
+# create work dir, maybe nuking old
+if ( ! $test ) then
+    if ( -d $workdir ) then
+        echo "-- nuking old workdir..."
+        \rm -fr $workdir
+    endif
+
+    echo "++ creating workdir '$workdir'..."
+    mkdir $workdir
+    if ( ! -d $workdir ) then
+        echo "** failed to create work directory $workdir, no permission?"
+        exit
+    endif
+endif
+
+# grab each label average
+foreach index ( `count -digits 3 1 $#labels` )
+    set label = $labels[$index]
+    set ilist = `awk "/$label/ {print NR-1+$offset}" $mapfile`
+    set ilist = `echo $ilist | sed 's/ /,/g'`
+    echo "++ label = $label, TR list = $ilist"
+    if ( $#ilist == "" ) then
+        echo "** empty list for label $label"
+        continue
+    endif
+
+    if ( ! $test ) 3dTstat -mean -prefix $workdir/mean.$index $input"[$ilist]"
+end
+
+if ( ! $test ) 3dbucket -prefix ./$prefix $workdir/mean.*.HEAD
+
+if ( ! $test && ! $save_work ) then
+    echo "-- nuking old workdir..."
+    \rm -fr $workdir
+endif
