@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 29, SEP, 2009, RCR, "@Reorder", MINOR, TYPE_NEW_PROG,
+   "script version of reorder plugin, for J. Bjork",
+   NULL
+ } ,
+
  { 16, SEP, 2009, RCR, "timing_tool.py", MICRO, TYPE_NEW_OPT,
    "added -scale_data for J Meltzer",
    NULL
