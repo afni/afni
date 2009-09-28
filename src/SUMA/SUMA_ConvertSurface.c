@@ -162,7 +162,7 @@ int main (int argc,char *argv[])
    SUMA_PARSED_NAME *of_name_strip = NULL, *of_name2_strip = NULL;
    SUMA_SFname *SF_name = NULL;
    void *SO_name = NULL;
-   char orsurf[4], orcode[4];
+   char orsurf[6], orcode[6];
    THD_warp *warp=NULL ;
    THD_3dim_dataset *aset=NULL;
    SUMA_Boolean brk, Do_tlrc, Do_mni_RAI, Do_mni_LPI, Do_acpc, Docen;

@@ -873,7 +873,7 @@ void SUMA_Show_VolPar(SUMA_VOLPAR *VP, FILE *Out)
 SUMA_Boolean SUMA_Align_to_VolPar (SUMA_SurfaceObject *SO, void * S_Struct)
 {
    static char FuncName[]={"SUMA_Align_to_VolPar"};
-   char  orcode[3];
+   char  orcode[6];
    float xx, yy, zz;
    THD_coorder * cord_surf, *cord_RAI;
    int i, ND, id;
@@ -1063,7 +1063,7 @@ SUMA_Boolean SUMA_Align_to_VolPar (SUMA_SurfaceObject *SO, void * S_Struct)
 SUMA_Boolean SUMA_Delign_to_VolPar (SUMA_SurfaceObject *SO, void * S_Struct)
 {
    static char FuncName[]={"SUMA_Delign_to_VolPar"};
-   char  orcode[3];
+   char  orcode[6];
    float xx, yy, zz;
    THD_coorder * cord_surf, *cord_RAI;
    int i, ND, id;

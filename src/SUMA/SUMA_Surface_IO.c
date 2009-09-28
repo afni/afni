@@ -7083,7 +7083,7 @@ THD_3dim_dataset *SUMA_FormAfnidset (float *NodeList, float *vals, int N_vals, S
       orcode[2] = ORIENT_typestr[mset->daxes->zzorient][0] ;
       orcode[3] = '\0' ;
    } else if (Opt->orcode) {
-      orcode = malloc(4) ; orcode = strcpy(orcode, Opt->orcode);
+      orcode = malloc(6) ; orcode = strcpy(orcode, Opt->orcode);
    } else {
       SUMA_SL_Err("Huh?");
       if (mset) {  DSET_delete(mset); mset = NULL; }
