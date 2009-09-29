@@ -49,6 +49,19 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 29 , SEP , 2009 , DRG , "McRetroTS" , 
+    MINOR , TYPE_NEW_OPT, "Opt options available to compiled version",
+    "All options available through the Opt structure are now available\n"
+    "even with the compiled version of McRetroTS, making the compiled version\n"
+    "functionally equivalent to the RetroTS.m version"
+} ,
+
+{ 29 , SEP , 2009 , DRG , "RetroTS" , 
+    MINOR , TYPE_NEW_OPT, "Flexible slice timing options",
+    "SliceOrder option allows for standard slice timing order\n"
+    "  alt+z, alt-z, seq+z, seq-z, Custom and 1D text file input"
+} ,
+
 { 8 , SEP , 2009 , DRG , "align_epi_anat.py" , 
     MINOR , TYPE_BUG_FIX, "Properly allows post-transformation matrix"
 } ,
