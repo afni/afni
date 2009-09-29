@@ -1081,6 +1081,8 @@ typedef struct Three_D_View {
 #define DISABLE_INSTACALC(iq)                                            \
  do{ INSTACALC_LABEL_OFF(iq) ;                                           \
      if( (iq)->icalc_setup != NULL ) (iq)->icalc_setup->is_good = 0 ;    \
+     if( (iq)->vwid->func->iwid != NULL )                                \
+       XtUnmapWidget((iq)->vwid->func->iwid->wtop) ;                     \
  } while(0)
 
 /*! Is any image viewer window open? */
