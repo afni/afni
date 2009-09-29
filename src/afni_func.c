@@ -5751,7 +5751,8 @@ STATUS("got func info") ;
      if( im3d->icalc_setup == NULL )
        INIT_ICALC_setup(im3d->icalc_setup) ;
 
-     INSTACALC_LABEL_OFF(im3d) ; im3d->icalc_setup->is_good = 0 ;
+     if( !im3d->vwid->func->iwid->is_open ) INSTACALC_LABEL_OFF(im3d) ;
+     im3d->icalc_setup->is_good = 0 ;
 
      wtop =  im3d->vwid->func->iwid->wtop ;
 

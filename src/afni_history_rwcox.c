@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 29 , SEP , 2009 , RWC , "afni" , MAJOR , TYPE_MODIFY ,
+   "InstaCalc is more-or-less ready" ,
+   "At least, I let Mike Beauchamp test it for his cunning plans." } ,
+
  { 25 , SEP , 2009 , RWC , "afni" , MICRO , TYPE_GENERAL ,
    "InstaCalc is starting to work! Sort of. Crudely." ,
    NULL } ,
