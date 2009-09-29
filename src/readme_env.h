@@ -2752,6 +2752,17 @@ static char * readme_env[] = {
    "operation, the default (if this variable is not YES) is that FDR curves are\n" ,
    "NOT computed.\n" ,
    "\n" ,
+   "---------------------------------\n" ,
+   "Variable: AFNI_INSTACORR_SEEDBLUR\n" ,
+   "---------------------------------\n" ,
+   "The InstaCorr controls let you use extra spatial smoothing when selecting\n" ,
+   "the seed voxel time series.  By default, this extra smoothing is a flat\n" ,
+   "average over a sphere of the chosen radius: \"SeedRad\".  However, if this\n" ,
+   "environment variable is set to YES, then the extra smoothing is done\n" ,
+   "by Gaussian blurring with the chosen FWHM: \"SeedBlur\".  This variable\n" ,
+   "cannot be set interactively, but can be set on the AFNI command line\n" ,
+   "with the usual -DAFNI_INSTACORR_SEEDBLUR=YES method.\n" ,
+   "\n" ,
    "----------------------------------\n" ,
    "Variable: AFNI_BLUR_INTS_AS_OLD\n" ,
    "----------------------------------\n" ,
@@ -2988,4 +2999,4 @@ static char * readme_env[] = {
    "behavior, set this variable to YES.\n" ,
    "\n" ,
    NULL } ;
-#define NUM_readme_env 2988
+#define NUM_readme_env 2999

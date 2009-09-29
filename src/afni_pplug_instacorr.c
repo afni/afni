@@ -63,7 +63,7 @@ static char helpstring[] =
   "    Dataset  = time series dataset to auto-correlate\n"
   "                [this dataset does NOT have to be the Underlay]\n"
   "    Ignore   = number of initial time points to ignore\n"
-  "    Blur     = FWHM in mm of blurring to perform\n"
+  "    Blur     = FWHM in mm of Gaussian blurring to perform\n"
   "                [if a Mask is used, blurring is only inside the mask]\n"
   "\n"
   "* Mask:\n"
@@ -87,9 +87,15 @@ static char helpstring[] =
   "                [of the frequency components rejected by Bandpass.    ]\n"
   "\n"
   "* Misc Opts:\n"
-  "    SeedBlur = FWHM of extra blurring to apply when extracting the seed\n"
-  "               voxel time series.  As in the Time Series case, blurring\n"
-  "               will only be done inside the mask (if any).\n"
+  "  IF environment variable AFNI_INSTACORR_SEEDBLUR is YES\n"
+  "    SeedBlur = Extra radius about which to Gaussian blur when extracting\n"
+  "               the seed voxel time series.\n"
+  "  IF environment variable AFNI_INSTACORR_SEEDBLUR is NO or isn't set\n"
+  "    SeedRad  = Radius of sphere over which to average when extracting\n"
+  "               the seed voxel time series.\n"
+  "  These extra averages/blurs are done only inside the mask (if any), and\n"
+  "  are applied after the dataset is blurred (if Blur > 0).\n"
+  "\n"
   "OPERATION\n"
   "=========\n"
   "* Once you have set the controls the way you want, press one of the ''Setup'n"
@@ -121,6 +127,7 @@ PLUGIN_interface * ICOR_init( char *lab )
    PLUGIN_interface *plint ;     /* will be the output of this routine */
    static char *yn[2] = { "No" , "Yes" } ;
    char sk[32] , sc[32] ;
+   int gblur = AFNI_yesenv("AFNI_INSTACORR_SEEDBLUR") ;
 
    if( lab == NULL ) lab = "\0" ;
 
@@ -163,7 +170,7 @@ PLUGIN_interface * ICOR_init( char *lab )
 #endif
 
    PLUTO_add_option( plint , "Misc Opts" , "MiscOpts" , FALSE ) ;
-   PLUTO_add_number( plint , "SeedBlur" , 0,10,0,0,TRUE ) ;
+   PLUTO_add_number( plint , (gblur) ? "SeedBlur" : "SeedRad" , 0,10,0,0,TRUE ) ;
 
    return plint ;
 }
