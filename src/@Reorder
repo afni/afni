@@ -69,6 +69,9 @@ cat << EOF
 
         Please see the Help from the Reorder plugin for details.
 
+      * Note that labels are processed alphabetically.  So using labels
+        such as A1,...,A4, B1,...B4 works as one would expect.
+
         This script does its work in a temporary directory
 
     examples:
@@ -152,14 +155,24 @@ if ( ! $test ) then
 endif
 
 # grab each label average
+set length  = -1
+set mmcount = 0
 foreach index ( `count -digits 3 1 $#labels` )
     set label = $labels[$index]
-    set ilist = `awk "/$label/ {print NR-1+$offset}" $mapfile`
-    set ilist = `echo $ilist | sed 's/ /,/g'`
-    echo "++ label = $label, TR list = $ilist"
-    if ( $#ilist == "" ) then
+    set ilist = ( `awk "/$label/ {print NR-1+$offset}" $mapfile` )
+    set ilen  = $#ilist
+    if ( $ilen == 0 ) then
         echo "** empty list for label $label"
         continue
+    endif
+    set ilist = `echo $ilist | sed 's/ /,/g'`
+    echo "++ label = $label, length $ilen, TR list = $ilist"
+
+    if ( $length < 0 ) then
+        set length = $ilen
+    else if ( $ilen != $length ) then
+        echo "** warning: length mismatch between labels $labels[1] and $label"
+        @ mmcount += 1
     endif
 
     if ( ! $test ) 3dTstat -mean -prefix $workdir/mean.$index $input"[$ilist]"
@@ -170,4 +183,14 @@ if ( ! $test ) 3dbucket -prefix ./$prefix $workdir/mean.*.HEAD
 if ( ! $test && ! $save_work ) then
     echo "-- nuking old workdir..."
     \rm -fr $workdir
+endif
+
+if ( $mmcount > 0 ) then
+    echo ""
+    if ( $mmcount == 1 ) then
+        echo "** there was $mmcount mismatch from the first length $length"
+    else
+        echo "** there were $mmcount mismatches from the first length $length"
+    endif
+    echo ""
 endif
