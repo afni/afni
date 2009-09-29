@@ -3453,7 +3453,7 @@ STATUS("making func->rowcol") ;
    XtAddCallback( func->icor_pb , XmNactivateCallback , AFNI_misc_CB , im3d ) ;
    MCW_register_hint( func->icor_pb , "Control InstaCorr calculations" ) ;
 
-   xstr = XmStringCreateLtoR( "*NOT Ready*" , XmFONTLIST_DEFAULT_TAG ) ;
+   xstr = XmStringCreateLtoR( "*NOT Ready* " , XmFONTLIST_DEFAULT_TAG ) ;
    func->icor_label =
       XtVaCreateManagedWidget(
          "dialog" , xmLabelWidgetClass , func->icor_rowcol ,
@@ -3494,7 +3494,7 @@ STATUS("making func->rowcol") ;
    XtAddCallback( func->icalc_pb , XmNactivateCallback , AFNI_misc_CB , im3d ) ;
    MCW_register_hint( func->icalc_pb , "Control InstaCalc calculations" ) ;
 
-   xstr = XmStringCreateLtoR( "*NOT Ready*" , XmFONTLIST_DEFAULT_TAG ) ;
+   xstr = XmStringCreateLtoR( "*NOT Ready* " , XmFONTLIST_DEFAULT_TAG ) ;
    func->icalc_label =
       XtVaCreateManagedWidget(
          "dialog" , xmLabelWidgetClass , func->icalc_rowcol ,
