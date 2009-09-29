@@ -44,6 +44,11 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 29 , SEP , 2009 , RWC , "afni InstaCorr" , MICRO , TYPE_GENERAL ,
+   "Modify SeedBlur to SeedRad" ,
+   "Flat average over a sphere of given radius, instead of a Gaussian blur. \n"
+   "For Steve and Alex." } ,
+
  { 29 , SEP , 2009 , RWC , "afni" , MAJOR , TYPE_MODIFY ,
    "InstaCalc is more-or-less ready" ,
    "At least, I let Mike Beauchamp test it for his cunning plans." } ,
