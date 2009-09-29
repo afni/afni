@@ -25,11 +25,19 @@ function [Opt, R, E] = RetroTS(SN)
 %     ResamKernel: Resampling kernel. 
 %                 (default is 'linear', see help interp1 for more options)
 %     FIROrder: Order of FIR filter. (default is 40)
-%     Quiet: [1]/0  flag. (defaut is 1)
+%     Quiet: [1]/0  flag. (defaut is 1) Show talkative progress as the program runs
 %     Demo: [1]/0 flag. (default is 0)
 %     RVT_out: [1]/0 flag for writing RVT regressors
 %     Card_out: [1]/0 flag for writing Card regressors
 %     Resp_out: [1]/0 flag for writing Resp regressors
+%     SliceOrder: ['alt+z']/'alt-z'/'seq+z'/'seq-z'/'Custom'/filename.1D
+%                 Slice timing information in seconds. The default is
+%                 alt+z. See 3dTshift help for more info. 'Custom' allows
+%                 the program to use the values stored in the
+%                 Opt.SliceOffset array. If a value is placed into the
+%                 SliceOrder field other than these, it is assumed to be
+%                 the name of a 1D / text file containing the times for
+%                 each slice (also in seconds).
 %
 %Example:
 %
@@ -37,7 +45,7 @@ function [Opt, R, E] = RetroTS(SN)
 %  Opt.Cardfile = 'ECG_epiRT_scan_14.dat'
 %  Opt.VolTR = 2
 %  Opt.Nslices = 20;
-%  Opt.PhysFS = 1./0.02;   %20 msec sampling period
+%  Opt.PhysFS = 1./0.02;   %20 msec sampling period, 50 samples per second
 %  RetroTS(Opt);
 %
 
@@ -48,7 +56,7 @@ function [Opt, R, E] = RetroTS(SN)
 %      Many parameters' value are hard coded to defaults
 %
 % Output:
-%  Opt: Struture of options including default settings.
+%  Opt: Structure of options including default settings.
 % 
       
 % This option is not to be used because window width calculations do not use it
@@ -73,6 +81,7 @@ if (nargin < 1),
    fprintf(2,'Need some input.\n');
    return;
 end
+
 R = struct([]);
 E = struct([]);
 
@@ -177,15 +186,59 @@ else,
    if ( ~isfield(Opt,'SepDups') | isempty(Opt.SepDups)),
       Opt.SepDups = 0;
    end
-   if ( ~isfield(Opt,'SliceOffset') | isempty(Opt.SliceOffset)),
+
+   dtt = Opt.VolTR/Opt.Nslices; tt = 0.0;
+
+   % & ~isfield(Opt, 'SliceOffset') 
+   % & (Opt.SliceOrder ~= 'alt+z')
+
+      % default slice offset times are for alt+z (alternating slice timing)        
+   if ( ~isfield(Opt,'SliceOffset') | isempty(Opt.SliceOffset))
       Opt.SliceOffset=zeros(Opt.Nslices,1);
-      dtt = Opt.VolTR/Opt.Nslices; tt = 0.0;
-      for (i=1:2:Opt.Nslices),
-         Opt.SliceOffset(i) = tt; tt = tt+dtt;
+   end
+   if(~isfield(Opt,'SliceOrder'))
+      Opt.SliceOrder = 'alt+z'
+   end
+      
+   if (isfield(Opt,'SliceOrder'))
+      Opt.SliceOffset=zeros(Opt.Nslices,1);
+      if(strcmpi(Opt.SliceOrder,'alt+z'))
+         for (i=1:2:Opt.Nslices),
+            Opt.SliceOffset(i) = tt; tt = tt+dtt;
+         end
+         for (i=2:2:Opt.Nslices),
+            Opt.SliceOffset(i) = tt; tt = tt+dtt;
+         end
+      elseif(strcmpi(Opt.SliceOrder, 'seq+z'))
+         for (i=1:1:Opt.Nslices),
+            Opt.SliceOffset(i) = tt; tt = tt+dtt;
+         end
+      elseif(strcmpi(Opt.SliceOrder,'seq-z'))
+         for (i=Opt.Nslices:-1:1),
+            Opt.SliceOffset(i) = tt; tt = tt+dtt;
+         end
+      elseif(strcmpi(Opt.SliceOrder,'alt-z'))
+         for (i=Opt.Nslices:-2:1),
+            Opt.SliceOffset(i) = tt; tt = tt+dtt;
+         end
+         for (i=Opt.Nslices-1:-2:1),
+            Opt.SliceOffset(i) = tt; tt = tt+dtt;
+         end
+      elseif(strcmpi(Opt.SliceOrder,'Custom'))
+          % timing already set in Opt.SliceOffset, do nothing
+      else
+         % read in time offsets from a file (SliceOrder is actually a
+         % filename)
+         readopt.verb = 0;
+         [err, Opt.SliceOffset] = Read_1D(Opt.SliceOrder,readopt);
+         if(length(Opt.SliceOffset)~=Opt.Nslices)
+            fprintf('Could not read enough slice offsets from file');
+            exit(1);
+         end
       end
-      for (i=2:2:Opt.Nslices),
-         Opt.SliceOffset(i) = tt; tt = tt+dtt;
-      end
+   end
+   if(~Opt.Quiet) 
+      fprintf('Slice timing:'); Opt.SliceOffset
    end
    if ( ~isfield(Opt,'ShowGraphs') | isempty(Opt.ShowGraphs)),
       Opt.ShowGraphs = 1; % show graphs by default
