@@ -158,39 +158,44 @@ ENTRY("THD_instacorr") ;
    /** blur the ref time series, if ordered [15 May 2009] **/
 
    sblur = iset->sblur ;
+
    if( sblur > 0.0f ){
+     int gblur = AFNI_yesenv("AFNI_INSTACORR_SEEDBLUR") ;
+     int grad  = (gblur) ? 1.2345f*sblur : 1.0001f*sblur ;
+
      MCW_cluster *smask=MCW_spheremask( iset->mv->dx , iset->mv->dy ,
-                                        iset->mv->dz , 1.2345f*sblur ) ;
-     float wtsum=1.0f , fac ;
+                                        iset->mv->dz , grad ) ;
+     float wtsum=1.0f , fac , *qar ;
      float *sar=(float *)malloc(sizeof(float)*iset->mv->nvals)  ;
      int qi,qj,qk , ii,ij,ik , qjk,qq , nx,ny,nz,nxy ; register int tt ;
 
      nx = iset->mv->nx ; ny = iset->mv->ny ; nz = iset->mv->nz ; nxy = nx*ny ;
      ii = ijk % nx ; ik = ijk / nxy ; ij = (ijk-ik*nxy) / nx ;
 
-     fac = FWHM_TO_SIGMA(sblur) ; fac = 1.0 / (2.0f * fac*fac) ;
-     memcpy(sar,tsar,sizeof(float)*iset->mv->nvals) ;
+     fac = FWHM_TO_SIGMA(sblur); fac = 1.0 / (2.0f * fac*fac); /* for gblur */
 
-     for( kk=1 ; kk < smask->num_pt ; kk++ ){
+     memcpy(sar,tsar,sizeof(float)*iset->mv->nvals) ;  /* copy of seed */
+
+     for( kk=1 ; kk < smask->num_pt ; kk++ ){  /* add stuff to this copy */
        qi  = ii + smask->i[kk] ; if( qi < 0 || qi >= nx ) continue ;
        qj  = ij + smask->j[kk] ; if( qj < 0 || qj >= ny ) continue ;
        qk  = ik + smask->k[kk] ; if( qk < 0 || qk >= nz ) continue ;
        qjk = qi + qj*nx + qk*nxy ;
        qq  = THD_vectim_ifind( qjk , iset->mv ) ;
        if( qq >= 0 ){
-         register float wt , *qar ; float rad ;
-         rad = smask->mag[kk] ; wt = exp( -fac*rad*rad ) ; wtsum += wt ;
-         qar = VECTIM_PTR(iset->mv,qq) ;
-         for( tt=0 ; tt < iset->mv->nvals  ; tt++ ) sar[tt] += wt * qar[tt] ;
+         register float wt=1.0f ;
+         if( gblur ){ float rad=smask->mag[kk]; wt = exp(-fac*rad*rad); }
+          wtsum += wt ; qar = VECTIM_PTR(iset->mv,qq) ;
+          for( tt=0 ; tt < iset->mv->nvals  ; tt++ ) sar[tt] += wt * qar[tt] ;
+         }
        }
-     }
-     if( wtsum > 1.0f ){
-       fac = 1.0f / wtsum ;
-       for( tt=0 ; tt < iset->mv->nvals ; tt++ ) tsar[tt] = fac * sar[tt] ;
-     }
-     free(sar) ; KILL_CLUSTER(smask) ;
-     THD_normalize( iset->mv->nvals , tsar ) ;
-   }
+       if( wtsum > 1.0f ){
+         fac = 1.0f / wtsum ;
+         for( tt=0 ; tt < iset->mv->nvals ; tt++ ) tsar[tt] = fac * sar[tt] ;
+       }
+       free(sar) ; KILL_CLUSTER(smask) ;
+       THD_normalize( iset->mv->nvals , tsar ) ;
+   } /* end of seed blur */
 
    /** save seed in iset struct [15 May 2009] **/
 
