@@ -86,7 +86,7 @@ if (nargin < 1),
    fprintf(2,'  McRetroTS Resp_epiRT_scan_14.dat ECG_epiRT_scan_14.dat 2 20 50 0\n');
    fprintf(2,'The second method still allows for other options to be\n');
    fprintf(2,' passed on the command line in the method of the first\n');
-   fprintf(2,' usage, but they must follow the first 6 parameters');
+   fprintf(2,' usage, but they must follow the first 6 parameters\n');
    fprintf(2,'See RetroTS.m for more details\n\n');
    if(~isdeployed)
       fprintf(2,'\nMcRetroTS help: ********************************\n');
