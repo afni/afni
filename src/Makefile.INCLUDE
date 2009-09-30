@@ -2203,9 +2203,9 @@ mpegtoppm:
 djpeg: cjpeg
 
 cjpeg:
-	( cd jpeg-6b ; $(RM) Makefile jconfig.h ;              \
-          chmod ugo+x ./configure ; ./configure ;              \
-          $(MAKE) ; strip cjpeg djpeg ; $(MV) cjpeg djpeg .. ; \
+	( cd jpeg-6b ; $(RM) Makefile jconfig.h ;         \
+          chmod ugo+x ./configure ; ./configure ;    \
+          $(MAKE) ; $(MV) cjpeg djpeg .. ;           \
           $(MAKE) clean ; $(RM) Makefile jconfig.h )
 
 #######

@@ -1125,7 +1125,13 @@ void display_help_menu()
     "   a block starting at 30 s,                                           \n"
     "   with amplitude parameters 5 and 3,                                  \n"
     "   and with duration 12 s.                                             \n"
-    " The unmodulated peak response of dmBLOCK is set to 1.                 \n"
+    " The unmodulated peak response of dmBLOCK is normally set to 1.        \n"
+    " If you want the peak response to be a different value, use            \n"
+    "   dmBLOCK(p)                                                          \n"
+    " where p = the desired peak value.  As a special case, if you set      \n"
+    " p = 0, then the peak response will vary with the duration, as         \n"
+    " the simulated BOLD response accumulates.  Understand what you         \n"
+    " are doing in this case!                                               \n"
     " *N.B.: The maximum allowed dmBLOCK duration is 999 s.                 \n"
     " *N.B.: You can also use dmBLOCK with -stim_times_IM, in which case    \n"
     "        each time in the 'tname' file should have just ONE extra       \n"
@@ -3002,23 +3008,23 @@ void get_options
 
 float * read_time_series
 (
-  char * ts_filename,          /* time series file name (plus column index) */
-  int * ts_length              /* output value for time series length */
+  char *ts_filename,          /* time series file name (plus column index) */
+  int *ts_length              /* output value for time series length */
 )
 
 {
   char message[THD_MAX_NAME];    /* error message */
-  char * cpt;                    /* pointer to column suffix */
+  char *cpt;                     /* pointer to column suffix */
   char filename[THD_MAX_NAME];   /* time series file name w/o column index */
   char subv[THD_MAX_NAME];       /* string containing column index */
-  MRI_IMAGE * im, * flim;  /* pointers to image structures
+  MRI_IMAGE *im, *flim;  /* pointers to image structures
                         -- used to read 1D ASCII */
-  float * far;             /* pointer to MRI_IMAGE floating point data */
-  int nx;                  /* number of time points in time series */
-  int ny;                  /* number of columns in time series file */
-  int iy;                  /* time series file column index */
-  int ipt;                 /* time point index */
-  float * ts_data = NULL;  /* input time series data */
+  float *far;             /* pointer to MRI_IMAGE floating point data */
+  int nx;                 /* number of time points in time series */
+  int ny;                 /* number of columns in time series file */
+  int iy;                 /* time series file column index */
+  int ipt;                /* time point index */
+  float *ts_data = NULL;  /* input time series data */
 
 
 ENTRY("read_time_series") ;
@@ -3026,7 +3032,6 @@ ENTRY("read_time_series") ;
   /*----- First, check for empty filename -----*/
   if (ts_filename == NULL)
     DC_error ("Missing input time series file name");
-
 
   /*----- Read the time series file -----*/
   flim = mri_read_1D( ts_filename ) ;
@@ -3039,17 +3044,22 @@ ENTRY("read_time_series") ;
   nx = flim->nx;
   ny = flim->ny; iy = 0 ;
   if( ny > 1 ){
-    WARNING_message("time series file %s has %d columns",ts_filename,ny);
+    if( nx == 1 ){
+      MRI_IMAGE *tim = mri_transpose(flim) ;
+      mri_free(flim) ; flim = tim ;
+      far = MRI_FLOAT_PTR(flim); nx = flim->nx; ny = flim->ny;
+      INFO_message("1D time series file %s has %d rows and %d columns: tranposing it",ts_filename,nx,ny);
+    } else {
+      WARNING_message("1D time series file %s has %d rows and %d columns",ts_filename,nx,ny);
+    }
   }
-
 
   /*----- Save the time series data -----*/
   *ts_length = nx;
   ts_data = (float *) malloc (sizeof(float) * nx);
-  MTEST (ts_data);
+  MTEST(ts_data);
   for (ipt = 0;  ipt < nx;  ipt++)
     ts_data[ipt] = far[ipt + iy*nx];   /* N.B.: iy=0 */
-
 
   mri_free (flim);  flim = NULL;
 
@@ -10318,7 +10328,7 @@ basis_expansion * basis_parser( char *sym )
    /*--- dmBLOCKn for n=4 or 5 ; the first 'vfun' function [08 Dec 2008] ---*/
 
    } else if( strncmp(scp,"dmBLOCK",7) == 0 ){
-     int nb=4 ;
+     int nb=4 ; float peak=1.0f ;
 
      if( scp[7] != '\0' ){
        nb = strtol( scp+7 , NULL , 10 ) ;
@@ -10328,17 +10338,14 @@ basis_expansion * basis_parser( char *sym )
        }
      }
 
-     if( cpt != NULL ){
-       ERROR_message("'%s' should not have any parenthesized arguments!",scp) ;
-       free((void *)be); free(scp); return NULL;
-     }
+     if( cpt != NULL ) sscanf(cpt,"%f",&peak) ; /* 30 Sep 2009: get peak param */
 
      be->nfunc = 1 ;
      be->tbot  = 0.0f ; be->ttop = BASIS_MAX_DURATION+15.0f ;
      be->bfunc = (basis_func *)calloc(sizeof(basis_func),be->nfunc) ;
      be->bfunc[0].f = (nb==5) ? basis_block5 : basis_block4 ;
      be->bfunc[0].a = 1.0f;   /* duration; will come from timing file */
-     be->bfunc[0].b = 1.0f ;  /* fix peak value = 1 */
+     be->bfunc[0].b = peak ;
      be->bfunc[0].c = 0.0f ;
      be->vfun       = 1 ;     /* needs 1 param from timing file */
 
