@@ -44,6 +44,17 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 30 , SEP , 2009 , RWC , "3dDeconvolve" , MICRO , TYPE_MODIFY ,
+   "Let user modulate amplitude of dmBLOCK" ,
+   "In particular, dmBLOCK(0) means the program modulates the amplitude\n"
+   "based on duration." } ,
+
+ { 30 , SEP , 2009 , RWC , "3dDeconvolve" , MICRO , TYPE_MODIFY ,
+   "Transpose row-wise 1D file on input when user screws up" ,
+   "1D files input to 3dDeconvolve are expected to have 1 column and many\n"
+   "rows.  If the user gets this backwards, the program now transposes the\n"
+   "file internally, with an INFO message." } ,
+
  { 29 , SEP , 2009 , RWC , "afni InstaCorr" , MICRO , TYPE_GENERAL ,
    "Modify SeedBlur to SeedRad" ,
    "Flat average over a sphere of given radius, instead of a Gaussian blur. \n"
