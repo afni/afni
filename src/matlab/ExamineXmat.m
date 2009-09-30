@@ -41,6 +41,7 @@ if (nargin < 2),
    com = sprintf('3dSynthesize -dry_info -matrix %s -select all', fname);
    [s1, s2] = unix(com);
    cnt = 1;
+   imot = [];
    while (~isempty(s2)),
       [d,c,e,n] = sscanf(s2,'%s ',1);
       s2 = s2(n:length(s2));
@@ -58,6 +59,22 @@ if (nargin < 2),
          end 
          cs(cnt) = cellstr(d);
          cnt = cnt + 1;
+      elseif ( ~isempty(strfind(d,'roll#'))  ||...
+               ~isempty(strfind(d,'pitch#')) ||...
+               ~isempty(strfind(d,'yaw#'))   ||...
+               ~isempty(strfind(d,'dS#'))    ||...
+               ~isempty(strfind(d,'dL#'))    ||...
+               ~isempty(strfind(d,'dP#'))    ||...
+               ~isempty(strfind(d,'x-scale#'))||...
+               ~isempty(strfind(d,'y-scale#'))||...
+               ~isempty(strfind(d,'z-scale#'))||...
+               ~isempty(strfind(d,'yx-shear#'))||...
+               ~isempty(strfind(d,'zx-shear#'))||...
+               ~isempty(strfind(d,'zy-shear#'))),
+         [col,tt] = strread(d,'%d%s','delimiter',':'); 
+         imot = [imot col];
+         cs(cnt) = cellstr(d);
+         cnt = cnt + 1;
       elseif (~isempty(strfind(d,'#'))),
          if (strncmp(d([length(d):-1:1]),'0#',2)),
             cntstims = cntstims+1;
@@ -69,7 +86,7 @@ if (nargin < 2),
       end
    end
    nrun = nrun/(polort+1)+1;
-   nmot = 0;
+   nmot = length(imot);
 end
 if (polort < 0),
    polort = [];
@@ -216,43 +233,56 @@ while (~isempty(s)),
                        smpl2,...
                        smplcol,...
                        istim(1)-1, istim(2)-1);
-   if (~dogui),
-      s = zdeblank(input (sprompt, 's'));
-   else,
-      Opt.Resize='on';
-      Opt.WindowStyle='normal';
-      s = zdeblank(char(zinputdlg(cellstr(sprompt),...
-                                 'Select Regressors',...
-                                 1,...
-                                 cellstr(''),...
-                                 Opt)));
-   end 
-   if (isempty(s)), 
-      return;
-   else
-      if (isdigit(s(1)) | s(1) == '[' | s(1) == '(')
-         eval(sprintf('v=%s;', s)); 
-         if (0 & isempty(v)),
-            return;
-         end
-         v = v + 1;
+   bads = 1;
+   while (bads),
+      if (~dogui),
+         s = zdeblank(input (sprompt, 's'));
+      else,
+         Opt.Resize='on';
+         Opt.WindowStyle='normal';
+         s = zdeblank(char(zinputdlg(cellstr(sprompt),...
+                                    'Select Regressors',...
+                                    1,...
+                                    cellstr(''),...
+                                    Opt)));
+      end 
+      if (isempty(s)), 
+         return;
       else
-         v = [];
-         stmp = s;
-         while (~isempty(stmp)),
-            [d,c,e,n] = sscanf(stmp,'%s ',1);
-            stmp = stmp(n:length(stmp));
-            d = zdeblank(d);
-            for(i=1:1:length(cs)),
-               [col,tt] = strread(char(cs(i)),'%d%s','delimiter',':');
-               if (strncmp(tt,d, length(d))),
-                  v = [v i];
+         if (isdigit(s(1)) | s(1) == '[' | s(1) == '(')
+            eval(sprintf('v=%s;', s)); 
+            if (0 & isempty(v)),
+               return;
+            end
+            v = v + 1;
+         else
+            v = [];
+            stmp = s;
+            while (~isempty(stmp)),
+               [d,c,e,n] = sscanf(stmp,'%s ',1);
+               stmp = stmp(n:length(stmp));
+               d = zdeblank(d);
+               for(i=1:1:length(cs)),
+                  [col,tt] = strread(char(cs(i)),'%d%s','delimiter',':');
+                  if (strncmp(tt,d, length(d))),
+                     v = [v i];
+                  end
                end
             end
+            if (0 & isempty(v)),
+               return;
+            end
          end
-         if (0 & isempty(v)),
-            return;
+      end
+      if (length(v) && (min(v) < 1 || max(v) > size(Xabi,2))),
+         if (dogui),
+            warndlg(sprintf('Bad range for column selection:\nmin=%d, max=%d\nlimit is min=%d, max=%d\n', min(v), max(v), 1, size(Xabi,2)));
+         else
+            fprintf(2,'Bad range for column selection:\nmin=%d, max=%d\nlimit is min=%d, max=%d\n', min(v), max(v), 1, size(Xabi,2));
          end
+         bads = 1;
+      else
+         bads = 0;
       end
    end
 end
