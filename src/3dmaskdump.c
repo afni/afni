@@ -153,7 +153,7 @@ int main( int argc , char * argv[] )
  "                 voxels from what would have been the output.\n"
  "\n"
  "  -n_randseed SEED  Seed the random number generator with SEED,\n"
- "                    instead of the default seed of %d\n"
+ "                    instead of the default seed of %u\n"
  "\n"
  "  -niml name    Means to output data in the XML/NIML format that\n"
  "                  is compatible with input back to AFNI via\n"
@@ -347,12 +347,17 @@ int main( int argc , char * argv[] )
       }
 
       if( strcmp(argv[narg],"-n_randseed") == 0 ){
+         double temp ;
          if( narg+1 >= argc )
            ERROR_exit("-n_randseed option requires 1 argument!\n");
 #ifdef DARWIN
          NI_sleep(0) ;  /* to avoid a compiler error on OS X 10.3_G5 ? */
 #endif
-         nrandseed = (unsigned int)strtod( argv[++narg] , NULL ) ;
+         temp = strtod( argv[++narg] , NULL ) ;
+#ifdef DARWIN
+         NI_sleep(0) ;  /* to avoid a compiler error on OS X 10.3_G5 ? */
+#endif
+         nrandseed = temp ;
          narg++ ; continue ;
       }
 
@@ -622,8 +627,13 @@ int main( int argc , char * argv[] )
          INFO_message("Dumping %d randomly selected voxels \n"
                       "out of %d originally in the mask.\n",
                       ( (cnt<nrand) ? cnt : nrand ), cnt);
-
+#ifdef DARWIN
+         NI_sleep(0) ;  /* to avoid a compiler error on OS X 10.3_G5 ? */
+#endif
       ranorder = z_rand_order(0, cnt-1, nrandseed);
+#ifdef DARWIN
+         NI_sleep(0) ;  /* to avoid a compiler error on OS X 10.3_G5 ? */
+#endif
       if (mmm) free(mmm); mmm = (byte *)calloc(nvox, sizeof(byte));
       for (ii=0; ii < ( (cnt<nrand) ? cnt : nrand ); ++ii) {
          mmm[iok[ranorder[ii]]] = 1;
