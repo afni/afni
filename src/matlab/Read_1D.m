@@ -39,6 +39,9 @@ function [err, v, Info, Com] = Read_1D (fname, p1)
 %           2: use ConvertDset program to purify 1D file
 %              then read it into matlab.
 %              Complex 1D files should be treated as in method 1 
+%           3: use 1dcat to purify 1D file. Faster than 2
+%              Complex 1D files should be treated as in method 1
+%
 %      .chunk_size: number of rows to read at a time
 %                   (think number of voxels per slice)
 %                   set to zero to read entire dataset
@@ -106,7 +109,7 @@ err = 1;
 
 v = [];
 Info = [];
-if (Opt.method < 0 | Opt.method > 2),
+if (Opt.method < 0 | Opt.method > 3),
    fprintf(2,'Opt.method must be an integer between 0 and 2\n');
    return;
 end
@@ -302,6 +305,38 @@ elseif (Opt.method == 2),
    else ssel = '';
    end
    convcom = sprintf('ConvertDset -o_1dp -input %s%s -i_1D -prefix %s', fname, ssel, ftmp);
+   if (verb > 1) fprintf(2,'Command is:\n%s\n', convcom); end
+   unix(convcom);
+   v = load(ftmpout);
+   unix(rmcom); 
+   %slices? 
+   if (Opt.chunk_size > 0), 
+      strt = (Opt.chunk_size .*  Opt.chunk_index) + 1;
+      stp =   Opt.chunk_size .* (Opt.chunk_index+1);
+      if (strt > size(v,1)), 
+            fprintf(1,'Error %s:\nNothing left to read (strt = %d, nvec = %d)\n', FuncName, strt, size(v,1));
+            err = 1;
+            return;
+		   end         
+      if (stp > size(v,1)) stp = size(v,1); end
+      v = v (strt:stp,:);
+   end
+elseif (Opt.method == 3),
+   if (verb) fprintf(1,'Running 1dcat for purging 1D file of bells and whistles\n'); end
+   ftmp = sprintf('%s_Read_1D_tmp_', fname);
+   ftmpout = sprintf('%s.1D.dset', ftmp);
+   rmcom = sprintf('rm -f %s', ftmpout);
+   if (filexist(ftmpout)), 
+      unix(rmcom);% cleanup 
+   end 
+   % sub-bricks?
+   if (~isempty(Opt.col_index)),
+      ssel = sprintf('''[');
+      for (ii=1:1:length(Opt.col_index)-1) ssel = sprintf('%s %d,', ssel, Opt.col_index(ii)); end
+      ssel = sprintf('%s %d ]''', ssel, Opt.col_index(length(Opt.col_index)));
+   else ssel = '';
+   end
+   convcom = sprintf('1dcat %s%s > %s', fname, ssel, ftmpout);
    if (verb > 1) fprintf(2,'Command is:\n%s\n', convcom); end
    unix(convcom);
    v = load(ftmpout);
