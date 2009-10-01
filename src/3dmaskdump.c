@@ -34,7 +34,7 @@ int main( int argc , char * argv[] )
    int box_num=0 ; float *box_dat=NULL ;   /* 09 May 2003 - RWCox */
    int ball_num=0; float *ball_dat=NULL;   /* 09 Sep 2009 - RWCox */
    int nx,ny,nz,nxy,nxyz ;
-   unsigned int nrandseed = 1234u ;
+   unsigned int nrandseed ;
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
       printf(
@@ -193,6 +193,8 @@ int main( int argc , char * argv[] )
 
    mainENTRY("3dmaskdump main"); machdep() ;
 
+   nrandseed = 1234u ;
+
    { int new_argc ; char ** new_argv ;
      addto_args( argc , argv , &new_argc , &new_argv ) ;
      if( new_argv != NULL ){ argc = new_argc ; argv = new_argv ; }
@@ -350,13 +352,7 @@ int main( int argc , char * argv[] )
          double temp ;
          if( narg+1 >= argc )
            ERROR_exit("-n_randseed option requires 1 argument!\n");
-#ifdef DARWIN
-         NI_sleep(0) ;  /* to avoid a compiler error on OS X 10.3_G5 ? */
-#endif
          temp = strtod( argv[++narg] , NULL ) ;
-#ifdef DARWIN
-         NI_sleep(0) ;  /* to avoid a compiler error on OS X 10.3_G5 ? */
-#endif
          nrandseed = temp ;
          narg++ ; continue ;
       }
@@ -614,7 +610,7 @@ int main( int argc , char * argv[] )
    if (nrand > 0) {
       int *iok = (int *)calloc(nvox, sizeof(int));
       int *ranorder=NULL;
-      int cnt=0;
+      int cnt=0 , ccc ;
 
       cnt = 0;
       for( ii=0 ; ii < nvox ; ii++ ){
@@ -627,13 +623,8 @@ int main( int argc , char * argv[] )
          INFO_message("Dumping %d randomly selected voxels \n"
                       "out of %d originally in the mask.\n",
                       ( (cnt<nrand) ? cnt : nrand ), cnt);
-#ifdef DARWIN
-         NI_sleep(0) ;  /* to avoid a compiler error on OS X 10.3_G5 ? */
-#endif
-      ranorder = z_rand_order(0, cnt-1, nrandseed);
-#ifdef DARWIN
-         NI_sleep(0) ;  /* to avoid a compiler error on OS X 10.3_G5 ? */
-#endif
+      ccc = cnt-1 ;
+      ranorder = z_rand_order(0, ccc, nrandseed);
       if (mmm) free(mmm); mmm = (byte *)calloc(nvox, sizeof(byte));
       for (ii=0; ii < ( (cnt<nrand) ? cnt : nrand ); ++ii) {
          mmm[iok[ranorder[ii]]] = 1;
