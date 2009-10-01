@@ -1,3 +1,4 @@
+function GroupAna
 %GroupAna.m
 %
 %Purpose:
