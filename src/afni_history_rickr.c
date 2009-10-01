@@ -48,8 +48,15 @@
 
 afni_history_struct rickr_history[] = {
 
- { 29, SEP, 2009, RCR, "@Reorder", MICRO, TYPE_BUG_FIX,
-   "defined isblank() in case of SOLARIS_OLD",
+ { 1, OCT, 2009, RCR, "@Reorder", MICRO, TYPE_MODIFY,
+   "minor changes:",
+   "- changed warnings on varying incidence counts (JB's woriding)\n"
+   "- discard indices which are not valid sub-bricks\n"
+   "- do not call 3dTstat if only one sub-brick"
+ } ,
+
+ { 1, OCT, 2009, RCR, "afni-general", MICRO, TYPE_MODIFY,
+   "9/29, defined isblank() in case of SOLARIS_OLD ... and then removed it",
    NULL
  } ,
 

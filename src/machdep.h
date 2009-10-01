@@ -280,8 +280,6 @@ extern long   strtol() ;
 # define atanhf atanh         /* 27 Jul 2009 [rickr] */
 # define atan2f atan2         /* 24 Aug 2009 [RWCox] */
 
-  extern int isblank(int c);  /* 29 Sep 2009 [rickr] */
-
 #endif
 
 #endif
