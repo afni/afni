@@ -72,7 +72,14 @@ cat << EOF
       * Note that labels are processed alphabetically.  So using labels
         such as A1,...,A4, B1,...B4 works as one would expect.
 
-        This script does its work in a temporary directory
+        The number of each label should be the same (according to the plugin).
+        If not, this script will just issue WARNINGs.
+
+        Labels at indices outside the valid sub-brick range will be ignored
+        though whined about (SKIPPING).
+
+        This script does its work in a temporary directory, which will be
+        deleted unless the user supplies -save_work.
 
     examples:
 
@@ -122,7 +129,7 @@ if ( $errs > 0 ) exit
 
 # ----------------------------------------------------------------------
 # check for existing work dir
-if ( -d $workdir ) then
+if ( -d $workdir && ! $test ) then
     echo "** work directory $workdir exists, will not proceed..."
     exit
 endif
@@ -139,6 +146,13 @@ endif
 
 echo "-- mapping labels are: $labels"
 
+set nvals = `3dnvals $input`
+if ( $status || $nvals < 0 ) then
+    echo "** failed to extract number of sub-bricks from $input, exiting..."
+    exit
+endif
+@ nm1 = $nvals - 1
+
 # create work dir, maybe nuking old
 if ( ! $test ) then
     if ( -d $workdir ) then
@@ -152,45 +166,71 @@ if ( ! $test ) then
         echo "** failed to create work directory $workdir, no permission?"
         exit
     endif
+    set lenfile = $workdir/lenlist
+else
+    set lenfile = .reorder.lenlist
 endif
 
 # grab each label average
-set length  = -1
-set mmcount = 0
+set length1 = -1
+echo -n "" > $lenfile
 foreach index ( `count -digits 3 1 $#labels` )
     set label = $labels[$index]
     set ilist = ( `awk "/$label/ {print NR-1+$offset}" $mapfile` )
-    set ilen  = $#ilist
+
+    # check the range of values, nuke anything out of range
+    set newlist = ()
+    foreach val ( $ilist )
+        if ( $val < 0 || $val >= $nvals ) then
+            echo "** SKIPPING: label $label index $val, out of range [0,$nm1]"
+        else
+            set newlist = ( $newlist $val )
+        endif
+    end
+
+    # check the length
+    set ilen  = $#newlist
     if ( $ilen == 0 ) then
         echo "** empty list for label $label"
         continue
     endif
-    set ilist = `echo $ilist | sed 's/ /,/g'`
+
+    set ilist = `echo $newlist | sed 's/ /,/g'`
     echo "++ label = $label, length $ilen, TR list = $ilist"
 
-    if ( $length < 0 ) then
-        set length = $ilen
-    else if ( $ilen != $length ) then
-        echo "** warning: length mismatch between labels $labels[1] and $label"
-        @ mmcount += 1
+    # check and track the current length
+    if ( $length1 < 0 ) then
+        set length1 = $ilen
+    else if ( $ilen != $length1 ) then
+        echo "** WARNING: unequal incidence of events $labels[1] and $label"
     endif
+    echo $ilen >> $lenfile
 
-    if ( ! $test ) 3dTstat -mean -prefix $workdir/mean.$index $input"[$ilist]"
+    if ( ! $test ) then
+        if ( $ilen == 1 ) then
+            3dcalc -prefix $workdir/mean.$index -a $input"[$ilist]"     \
+                   -datum float -expr a
+        else
+            3dTstat -mean -prefix $workdir/mean.$index $input"[$ilist]"
+        endif
+    endif
 end
 
 if ( ! $test ) 3dbucket -prefix ./$prefix $workdir/mean.*.HEAD
 
+# note the number of different incident counts before deleting lenfile
+set incs = `cat $lenfile | sort | uniq`
+set ninc = $#incs
+if ( ! $save_work ) \rm -f $lenfile
+
+# maybe nuke the old dir
 if ( ! $test && ! $save_work ) then
     echo "-- nuking old workdir..."
     \rm -fr $workdir
 endif
 
-if ( $mmcount > 0 ) then
+if ( $ninc > 1 ) then
     echo ""
-    if ( $mmcount == 1 ) then
-        echo "** there was $mmcount mismatch from the first length $length"
-    else
-        echo "** there were $mmcount mismatches from the first length $length"
-    endif
+    echo "** WARNING: there were $ninc different label incidence counts: $incs"
     echo ""
 endif
