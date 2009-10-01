@@ -150,9 +150,3 @@ char * Random_Insult(void)
    return ins[ii] ;
 }
 
-/*-------------------------------------------------------------------------
-  Old Solaris machines may not have these functions...  28 Sep 2009 [rickr]
----------------------------------------------------------------------------*/
-#ifdef SOLARIS_OLD
-int isblank(int c) { return(c == ' ' || c == '\t'); }
-#endif /* SOLARIS_OLD */
