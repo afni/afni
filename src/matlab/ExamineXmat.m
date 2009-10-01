@@ -29,6 +29,8 @@ function ExamineXmat(fname, polort, dt, nrun, nmot)
 %
 
 % old use: ExamineXmat(fname, polort, dt, nrun, nmot)
+verb = 0;
+
 if (nargin < 1 | isempty(fname) | (ischar(fname) & ~filexist(fname))),
    fname = uigetfile('*.xmat.1D','Pick an Xmat');
 end
@@ -38,8 +40,10 @@ if (nargin < 2),
    nrun = 0;
    cntstims = 0;
    %get the info from 3dSynthesize
+   if (verb) fprintf(2,'Running 3dSynthesize...\n'); end
    com = sprintf('3dSynthesize -dry_info -matrix %s -select all', fname);
    [s1, s2] = unix(com);
+   if (verb) fprintf(2,'Parsing...\n'); end
    cnt = 1;
    imot = [];
    while (~isempty(s2)),
@@ -113,12 +117,14 @@ if (nmot < 0.0),
    end
 end
 
-Opt.verb=0;
+if (verb) fprintf(2,'Reading 1D...\n'); end
+Opt.verb=verb;
+Opt.method = 3;
 if (ischar(fname)) [e,Xabi] = Read_1D(fname, Opt);
 else Xabi = fname; fname = 'matrix in mem.';
 end
 
-s = 'ddd';
+s = '---';
 
 %remove baseline and, assuming motion is last, remove last 6 regressors
 %but we do not reliably know where motion lies, so for now, default is nmot = 0
@@ -133,6 +139,8 @@ mshow = Xabi;
 UseMult = 1;
 dogui = 1;
 
+if (verb) fprintf(2,'Display time...\n'); end
+
 v = [1:1:size(mshow,2)];
 t = 0:dt:(size(mshow,1)-1)*dt;
 while (~isempty(s)),
@@ -145,6 +153,8 @@ while (~isempty(s)),
       end
       v = [1:1:size(Xabi,2)];
    end
+   inz = [];
+   deltaoffs = 2;
    figure(1); clf
    if (length(v) < 10 & UseMult),
       for (i=1:1:length(v)),
@@ -154,9 +164,23 @@ while (~isempty(s)),
             subplot (length(v), 1, i);
          end
          if (length(v) < 7),
-            plot (t, mshow(:, v(i)), 'b-', t, mshow(:, v(i)), 'ro');
+            plot (t, mshow(:, v(i)), 'b-', t, mshow(:, v(i)), 'r*');
+            if (sum(abs(mshow(:,v(i)))) == 0),
+               plot (t(1:max([1,length(t)/20]):end),...
+                      mshow(1:max([1,length(t)/20]):end,v(i))+offs,...
+                       'bo'); hold on
+            end
+            ylabel(char(cs(v(i))), 'interpreter', 'none');
          else
             plot (t, mshow(:, v(i)), 'b-');
+            if (sum(abs(mshow(:,v(i)))) == 0),
+               plot (t(1:max([1,length(t)/20]):end),...
+                      mshow(1:max([1,length(t)/20]):end,v(i))+offs,...
+                       'bo'); hold on
+            else
+               inz = [inz v(i)];
+            end
+            ylabel(char(cs(v(i))), 'interpreter', 'none');
          end
          if (~isempty(cs) & length(v)<20),
             %ylabel(char(cs(v(i))), 'interpreter', 'none');
@@ -166,7 +190,13 @@ while (~isempty(s)),
             str = sprintf('R%d', v(i)+1);
          end
          ms = mshow(:,v(i));
-         offs = mean(ms(find(ms > 0)));
+         mpp = ms(find(ms > 0));
+         if (~isempty(mpp)),
+            deltaoffs = mean(mpp);
+            offs = offs+deltaoffs;
+         else
+            offs = offs+deltaoffs;
+         end
          if (length(v) < 35),
             xt = get(gca,'XTick');
             text( xt(1)-0.1.*xt(2), offs, char(cs(v(i))), ...
@@ -179,9 +209,23 @@ while (~isempty(s)),
       titplot = subplot (1,1,1);
       for (i=1:1:length(v)),
          ms = mshow(:,v(i));
-         offs = offs+mean(ms(find(ms > 0)));
-         plot (t, mshow(:,v(i))+offs, 'Color', ROIcol); hold on
-         if (length(v) < 35),
+         mpp = ms(find(ms > 0));
+         if (~isempty(mpp)),
+            deltaoffs = mean(mpp);
+            offs = offs+deltaoffs;
+         else
+            offs = offs+deltaoffs;
+         end
+         ccc = ROIcol;
+         plot (t, mshow(:,v(i))+offs, 'Color', ccc); hold on
+         if (sum(abs(mshow(:,v(i)))) == 0),
+            plot (t(1:max([1,length(t)/20]):end),...
+                   mshow(1:max([1,length(t)/20]):end,v(i))+offs,...
+                    'o', 'Color', ccc); hold on
+         else
+            inz = [inz v(i)];
+         end
+         if (length(v) < 60),
             xt = get(gca,'XTick');
             text( xt(1)-0.1.*xt(2), offs, char(cs(v(i))), ...
                   'HorizontalAlignment', 'right',...
@@ -192,13 +236,15 @@ while (~isempty(s)),
    end
    xlabel('time (sec)');
    subplot(titplot);
-   title(sprintf(['Xmat %s, TR %.3f \t'...
-                           'Condition #: '...
-                           'Full %d\t NoMot %g\t NoMotNoBase %g \t'...
-                           'Viewed %g\n'],...
-                            fname, dt, CondFull, CondNoMotion,...
-                            CondNoMotionNoBase, cond(mshow(:, [v]))),...
-                  'interpreter', 'none'); 
+   title(sprintf(['',...
+            'Xmat %s,   TR %.3f,    %d regressors in view,   query >> %s <<\n'...
+            'Condition #: '...
+            'Full %d\t NoMot %g\t NoMotNoBase %g \t'...
+            'Viewed %g, Viewed no zeros %g\n'],...
+             fname, dt, length(v), s, CondFull, CondNoMotion,...
+             CondNoMotionNoBase, cond(mshow(:, [v])),...
+             cond(mshow(:, [inz]))),...
+            'interpreter', 'none'); 
    
    smpl = char(csstims(1));
    if (length(csstims)>2),
@@ -246,6 +292,8 @@ while (~isempty(s)),
                                     cellstr(''),...
                                     Opt)));
       end 
+      ipunc = find (s == ',');
+      s(ipunc) = ' ';
       if (isempty(s)), 
          return;
       else
