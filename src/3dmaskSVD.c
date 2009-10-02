@@ -20,6 +20,7 @@ int main( int argc , char *argv[] )
    MRI_IMARR *imar=NULL ; int *ivox ; MRI_IMAGE *pim ;
    int do_vmean=0 , do_vnorm=0 , sval_itop=0 ;
    int polort=-1 ; float *ev ;
+   MRI_IMARR *ortar ; MRI_IMAGE *ortim ; int nyort=0 ;
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
      printf(
@@ -32,7 +33,7 @@ int main( int argc , char *argv[] )
        "     vectors are output.\n"
        "* The sign of the output vector is chosen so that the average\n"
        "    of arctanh(correlation coefficient) over all input data\n"
-       "    vectors (in the mask) is positive.\n"
+       "    vectors (from the mask) is positive.\n"
        "* The output vector is normalized: the sum of its components\n"
        "    squared is 1.\n"
        "* You probably want to use 3dDetrend (or something similar) first,\n"
@@ -55,6 +56,7 @@ int main( int argc , char *argv[] )
        "* Result vector goes to stdout.  Redirect per your pleasures and needs.\n"
        "* Also see program 3dLocalSVD if you want to compute the principal\n"
        "    singular time series vector from a neighborhood of EACH voxel.\n"
+       "  ++ (Which is a pretty slow operation!)\n"
        "* http://en.wikipedia.org/wiki/Singular_value_decomposition\n"
        "\n"
        "-------\n"
@@ -65,6 +67,9 @@ int main( int argc , char *argv[] )
        " -mask mset  = define the mask [default is entire dataset == slow!]\n"
        " -automask   = you'll have to guess what this option does\n"
        " -polort p   = if you are lazy and didn't run 3dDetrend (like Zhark)\n"
+       " -ort xx.1D  = time series to remove from the data before SVD-ization\n"
+       "               ++ You can give more than 1 '-ort' option\n"
+       "               ++ 'xx.1D' can contain more than 1 column\n"
        " -input ddd  = alternative way to give the input dataset name\n"
        "\n"
        "-------\n"
@@ -101,7 +106,22 @@ int main( int argc , char *argv[] )
 
    /*---- loop over options ----*/
 
+   INIT_IMARR(ortar) ;
+
    while( iarg < argc && argv[iarg][0] == '-' ){
+
+     if( strcmp(argv[iarg],"-ort") == 0 ){  /* 01 Oct 2009 */
+       int nx,ny ;
+       if( ++iarg >= argc ) ERROR_exit("Need argument after '-ort'") ;
+       ortim = mri_read_1D( argv[iarg] ) ;
+       if( ortim == NULL ) ERROR_exit("-ort '%s': Can't read 1D file",argv[iarg]) ;
+       nx = ortim->nx ; ny = ortim->ny ;
+       if( nx == 1 && ny > 1 ){
+         MRI_IMAGE *tim=mri_transpose(ortim); mri_free(ortim); ortim = tim; ny = 1;
+       }
+       ADDTO_IMARR(ortar,ortim) ; nyort += ny ;
+       iarg++ ; continue ;
+     }
 
      if( strcmp(argv[iarg],"-polort") == 0 ){
        if( ++iarg >= argc ) ERROR_exit("Need argument after '-polort'") ;
@@ -169,6 +189,8 @@ int main( int argc , char *argv[] )
    DSET_load(inset) ; CHECK_LOAD_ERROR(inset) ;
    nxyz = DSET_NVOX(inset) ;
 
+   /*--- deal with the masking ---*/
+
    if( mask != NULL ){
      if( mask_nx != DSET_NX(inset) ||
          mask_ny != DSET_NY(inset) ||
@@ -189,7 +211,7 @@ int main( int argc , char *argv[] )
      INFO_message("Using all %d voxels in dataset",nxyz) ;
    }
 
-   nev = MIN(nt,masknum) ;  /* max number of eigenvalues */
+   nev = MIN(nt,masknum) ;  /* max possible number of eigenvalues */
    if( sval_itop >= nev ){
      sval_itop = nev-1 ;
      WARNING_message("'-sval' reset to '%d'",sval_itop) ;
@@ -197,23 +219,54 @@ int main( int argc , char *argv[] )
    mri_principal_vector_params( 0 , do_vnorm , sval_itop ) ;
    mri_principal_setev(nev) ;
 
+   /*-- get data vectors --*/
+
    ivox = (int *)malloc(sizeof(int)*masknum) ;
    for( kk=ii=0 ; ii < nxyz ; ii++ ) if( mask[ii] ) ivox[kk++] = ii ;
    INFO_message("Extracting data vectors") ;
    imar = THD_extract_many_series( masknum, ivox, inset ) ; DSET_unload(inset) ;
    if( imar == NULL ) ERROR_exit("Can't get data vector?!") ;
 
-   if( polort >= 0 ){
-     float **polref = THD_build_polyref( polort+1 , nt ) ;
-     float *tsar ;
+   /*-- detrending --*/
+
+   if( polort >= 0 || nyort > 0 ){
+     float **polref=NULL ; float *tsar ;
+     int nort=IMARR_COUNT(ortar) , nref=0 ;
+
+     if( polort >= 0 ){  /* polynomials */
+       nref = polort+1 ; polref = THD_build_polyref(nref,nt) ;
+     }
+
+     if( nort > 0 ){     /* other orts */
+       float *oar , *par ; int nx,ny , qq,tt ;
+       for( kk=0 ; kk < nort ; kk++ ){  /* loop over input -ort files */
+         ortim = IMARR_SUBIM(imar,kk) ;
+         nx = ortim->nx ; ny = ortim->ny ;
+         if( nx < nt ) ERROR_exit("-ort '%s' is too short for dataset",ortim->fname) ;
+         polref = (float **)realloc(polref,(nref+ny)*sizeof(float *)) ;
+         oar    = MRI_FLOAT_PTR(ortim) ;
+         for( qq=0 ; qq < ny ; qq++,oar+=nx ){
+           par = polref[nref+qq] = (float *)malloc(sizeof(float)*nt) ;
+           for( tt=0 ; tt < nt ; tt++ ) par[tt] = oar[tt] ;
+                if( polort == 0 ) THD_const_detrend (nt,par,NULL) ;
+           else if( polort >  0 ) THD_linear_detrend(nt,par,NULL,NULL) ;
+         }
+         nref += ny ;
+       }
+       DESTROY_IMARR(ortar) ;
+     }
+
      INFO_message("Detrending data vectors") ;
      for( kk=0 ; kk < IMARR_COUNT(imar) ; kk++ ){
        tsar = MRI_FLOAT_PTR(IMARR_SUBIM(imar,kk)) ;
-       THD_generic_detrend_LSQ( nt , tsar , -1 , polort+1 , polref , NULL ) ;
+       THD_generic_detrend_LSQ( nt , tsar , -1 , nref , polref , NULL ) ;
      }
-     for( kk=0 ; kk <= polort ; kk++ ) free(polref[kk]) ;
+
+     for( kk=0 ; kk < nref; kk++ ) free(polref[kk]) ;
      free(polref) ;
-   }
+   } /* end of detrendization */
+
+   /*--- the actual work ---*/
 
    INFO_message("Computing SVD") ;
    pim  = mri_principal_vector( imar ) ; DESTROY_IMARR(imar) ;

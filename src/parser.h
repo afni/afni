@@ -105,14 +105,14 @@ extern "C" {                    /* care of Greg Balls    7 Aug 2006 [rickr] */
   "    J0   , J1   , Y0   , Y1    , erf   , erfc  , qginv, qg ,  \n"           \
   "    rect , step , astep, bool  , and   , or    , mofn ,       \n"           \
   "    sind , cosd , tand , median, lmode , hmode , mad  ,       \n"           \
-  "    gran , uran , iran , eran  , lran  , orstat,              \n"           \
+  "    gran , uran , iran , eran  , lran  , orstat, mod  ,       \n"           \
   "    mean , stdev, sem  , Pleg  , cbrt  , rhddc2, hrfbk4,hrfbk5\n"           \
   "\n"                                                                         \
-  " where:\n"                                                                  \
+  " where some of the less obvious funcions are:\n"                            \
   " * qg(x)    = reversed cdf of a standard normal distribution\n"             \
   " * qginv(x) = inverse function to qg\n"                                     \
   " * min, max, atan2 each take 2 arguments ONLY\n"                            \
-  " * J0, J1, Y0, Y1 are Bessel functions (see Watson)\n"                      \
+  " * J0, J1, Y0, Y1 are Bessel functions (see the holy book: Watson)\n"       \
   " * Pleg(m,x) is the m'th Legendre polynomial evaluated at x\n"              \
   " * erf, erfc are the error and complementary error functions\n"             \
   " * sind, cosd, tand take arguments in degrees (vs. radians)\n"              \
@@ -137,6 +137,7 @@ extern "C" {                    /* care of Greg Balls    7 Aug 2006 [rickr] */
   "               with parameter s; mean=s\n"                                  \
   " * lran(t)   returns a logistically distributed deviate\n"                  \
   "               with parameter t; mean=0, stdev=t*1.814\n"                   \
+  " * mod(a,b)  returns (a modulo b) = a - b*int(a/b)\n"                       \
   " * hrfbk4(t,L) and hrfbk5(t,L) are the BLOCK4 and BLOCK5 hemodynamic\n"     \
   "    response functions from 3dDeconvolve (L=stimulus duration in sec,\n"    \
   "    and t is the time in sec since start of stimulus); for example:\n"      \
@@ -158,11 +159,13 @@ extern "C" {                    /* care of Greg Balls    7 Aug 2006 [rickr] */
   "       bool(x)    = {1 if x != 0.0   , 0 if x == 0.0},\n"                   \
   "    notzero(x)    = bool(x),\n"                                             \
   "     iszero(x)    = 1-bool(x) = { 0 if x != 0.0, 1 if x == 0.0 },\n"        \
+  "        not(x)    = same as iszero(x)\n"                                    \
   "     equals(x,y)  = 1-bool(x-y) = { 1 if x == y , 0 if x != y },\n"         \
   "   ispositive(x)  = { 1 if x > 0; 0 if x <= 0 },\n"                         \
   "   isnegative(x)  = { 1 if x < 0; 0 if x >= 0 },\n"                         \
   "   and(a,b,...,c) = {1 if all arguments are nonzero, 0 if any are zero}\n"  \
   "    or(a,b,...,c) = {1 if any arguments are nonzero, 0 if all are zero}\n"  \
+  "        not(x)    = same as iszero(x) = Boolean negation\n"                 \
   "  mofn(m,a,...,c) = {1 if at least 'm' arguments are nonzero, else 0 }\n"   \
   "  argmax(a,b,...) = index of largest argument; = 0 if all args are 0\n"     \
   "  argnum(a,b,...) = number of nonzero arguments\n"                          \
@@ -181,8 +184,8 @@ extern "C" {                    /* care of Greg Balls    7 Aug 2006 [rickr] */
   "\n"                                                                         \
   "  [These last 8 functions take a variable number of arguments.]\n"          \
   "\n"                                                                         \
-  " The following 27 new [Mar 1999] functions are used for statistical\n"      \
-  " conversions, as in the program 'cdf':\n"                                   \
+  " The following 27 functions are used for statistical conversions,\n"        \
+  " as in the program 'cdf':\n"                                                \
   "   fico_t2p(t,a,b,c), fico_p2t(p,a,b,c), fico_t2z(t,a,b,c),\n"              \
   "   fitt_t2p(t,a)    , fitt_p2t(p,a)    , fitt_t2z(t,a)    ,\n"              \
   "   fift_t2p(t,a,b)  , fift_p2t(p,a,b)  , fift_t2z(t,a,b)  ,\n"              \
@@ -198,7 +201,13 @@ extern "C" {                    /* care of Greg Balls    7 Aug 2006 [rickr] */
   " NIfTI-1 statistical codes to map between statistical values and\n"         \
   " cumulative distribution values:\n"                                         \
   "   cdf2stat(val,code,p1,p2,3)\n"                                            \
-  "   stat2cdf(val,code,p1,p2,3)\n"
+  "   stat2cdf(val,code,p1,p2,3)\n"                                            \
+  "\n"                                                                         \
+  "Finally, note that the expression evaluator is designed not to crash, or\n" \
+  "to return NaN or Infinity.  Illegal operations, such as division by 0,\n"   \
+  "logarithm of negative value, etc., are intercepted and something else\n"    \
+  "will be returned.  To find out what that 'something else' is in any\n"      \
+  "specific problematic case, you should play with the ccalc program.\n"
 
 #ifdef  __cplusplus
 }
