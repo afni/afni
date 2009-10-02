@@ -61,6 +61,7 @@ class Afni1D:
 
       # computed variables
       self.cormat      = None   # correlation mat (normed xtx)
+      self.cosmat      = None   # cosine mat (scaled xtx)
       self.cormat_ready = 0     # correlation mat is set
 
       # initialize...
@@ -530,7 +531,9 @@ class Afni1D:
       del(self.goodlist)
       self.goodlist = None
       del(self.cormat)
+      del(self.cosmat)
       self.cormat = None
+      self.cosmat = None
       self.cormat_ready = 0
 
       return 0
@@ -583,13 +586,15 @@ class Afni1D:
       if self.verb > 3: print '-- Afni1D clear_cormat...'
       if not self.ready: return
       if self.cormat_ready:
-         if not update: return
          del(self.cormat)
+         del(self.cosmat)
          self.cormat = None
+         self.cosmat = None
          self.cormat_ready = 0
 
    def set_cormat(self, update=0):
       """set cormat (the correlation matrix) and cormat.ready
+         set cosmat (cosine matrix) as a follower
 
          Note that the (Pearson's) correlations are de-meaned, and so the
          constant baseline terms can be highly correlated.
@@ -600,10 +605,7 @@ class Afni1D:
       if not self.ready: return
       if self.cormat_ready:
          if not update: return
-         # otherwise, nuke the old stuff
-         del(self.cormat)
-         self.cormat = None
-         self.cormat_ready = 0
+         self.clear_cormat() # otherwise, nuke the old stuff and re-generate
 
       if self.nvec < 2 or self.nt < 2: return
 
@@ -633,10 +635,20 @@ class Afni1D:
       self.cormat =[[UTIL.dotprod(r1,r2) for r2 in cmat.mat] for r1 in cmat.mat]
       self.cormat_ready = 1
 
+      # and generate cosmat (dot product and scale)
+      cnorm = [ UTIL.euclidean_norm(v) for v in self.mat ]
+      cosmat = [[UTIL.dotprod(r1,r2) for r2 in self.mat] for r1 in self.mat]
+      for v1 in range(len(cosmat)):
+         for v2 in range(len(cosmat)):
+             prod = cnorm[v1]*cnorm[v2]
+             if prod != 0.0: cosmat[v1][v2] /= prod
+      self.cosmat = cosmat
+
       # nuke temporary (normalized) matrices
       del(cmat)
       del(means)
       del(norms)
+      del(cnorm)
 
    def make_cormat_warnings_string(self, cutoff=0.4, name=''):
       """make a string for any entires at or above cutoffs:
@@ -658,6 +670,7 @@ class Afni1D:
       cut1 = (1.0 + cutoff)/2.0
       cut2 = cutoff
 
+      # badlist holds cov, cos, row, col
       err, errstr, badlist = self.list_cormat_warnings(cutoff=cut2)
       if err: return err, errstr
 
@@ -677,34 +690,34 @@ class Afni1D:
       if nfound > 0: mstr += '\n'
 
       mstr = mstr +                                             \
-        '  severity   correlation   regressor pair\n'           \
-        '  --------   -----------   ' + 40*'-' + '\n'
+        '  severity   correlation   cosine  regressor pair\n'           \
+        '  --------   -----------   ------  ' + 40*'-' + '\n'
 
       cutstrs = [ '  IDENTICAL: ', '  high:      ', '  medium:    ' ]
 
       # note the maximum label length
       if self.labels:
-         mlab = max([len(self.labels[col]) for val, row, col in badlist])
+         mlab = max([len(self.labels[col]) for val, s, row, col in badlist])
 
-      for val, row, col in badlist:
+      for val, s, row, col in badlist:
          if   abs(val) >= cut0: cs = cutstrs[0]
          elif abs(val) >= cut1: cs = cutstrs[1]
          else:                  cs = cutstrs[2]
 
          # we have an appropriately evil entry...
          if self.labels:
-            mstr += '%s  %6.3f       (%2d vs. %2d)  %*s  vs.  %s\n' % \
-                    (cs, val, col, row,
+            mstr += '%s  %6.3f      %6.3f  (%2d vs. %2d)  %*s  vs.  %s\n' % \
+                    (cs, val, s, col, row,
                      mlab, self.labels[col], self.labels[row])
          else:
-            mstr += '%s  %6.3f       #%2d  vs.  #%2d\n' %        \
-                    (cs, val, col, row)
+            mstr += '%s  %6.3f      %6.3f  #%2d  vs.  #%2d\n' %        \
+                    (cs, val, s, col, row)
 
       return 0, mstr
 
    def list_cormat_warnings(self, cutoff=0.4):
-      """return an error code, error string and a list of corval, vec, index
-         for each cormat value with abs() > cutoff"""
+      """return an error code, error string and a list of corval, cosval,
+         vec, index for each cormat value with abs() > cutoff"""
 
       if self.verb > 3: print '-- Afni1D list_cormat_warnings, cut=%g'%cutoff
 
@@ -716,6 +729,7 @@ class Afni1D:
          return 1, '** cormat_warnings: failed to create cormat', None
 
       cmat = self.cormat
+      smat = self.cosmat
 
       basecols = self.cols_by_group_list([-1])
       motcols  = self.cols_by_group_list([0])
@@ -725,11 +739,11 @@ class Afni1D:
          print '-- LCP: len(base, mot, roi) = (%d, %d, %d), cut = %.2f' % \
               (len(basecols), len(motcols), len(roicols), cutoff)
 
-      # make a list of (abs(val),val,r,c) tuples in lower triangle
+      # make a list of (abs(val),val,cosine,r,c) tuples in lower triangle
       clist = []
-      for row in range(1,self.nvec):
-         for col in range(row):
-            clist.append((abs(cmat[row][col]), cmat[row][col], row, col))
+      for r in range(1,self.nvec):
+         for c in range(r):
+            clist.append((abs(cmat[r][c]), cmat[r][c], smat[r][c], r, c))
 
       # clist.sort(reverse=True) # fails on old versions
       clist.sort() # smallest to largest, so process from end
@@ -740,10 +754,10 @@ class Afni1D:
       # process list as smallest to largest, since old sort had no reverse
       clen = len(clist)
       for ind in range(clen):
-         aval, val, r, c = clist[clen-1-ind]
+         aval, val, s, r, c = clist[clen-1-ind]
 
          if aval == 1.0:
-            badlist.append((val, r, c)) # flag duplication
+            badlist.append((val, s, r, c)) # flag duplication
             continue
 
          # skip motion against either motion or baseline
@@ -757,7 +771,7 @@ class Afni1D:
 
          if aval < cutoff: break
 
-         badlist.append((val, r, c))       # so keep this one
+         badlist.append((val, s, r, c))       # so keep this one
 
       if self.verb > 1:
          print '-- LCP: badlist length = %d' % len(badlist)
