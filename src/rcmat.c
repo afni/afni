@@ -125,6 +125,36 @@ int rcmat_choleski( rcmat *rcm )
 }
 
 /*--------------------------------------------------------------------------*/
+
+void rcmat_lowert_vecmul( rcmat *rcm , double *vec )  /* 02 Oct 2009 */
+{
+   int nn , jbot ; LENTYP *len ; int ii,jj ;
+   double **rc ; double *rii , sum , *vv , *uu ;
+
+   if( !ISVALID_RCMAT(rcm) || vec == NULL ) return ;
+
+   nn  = rcm->nrc ;
+   rc  = rcm->rc ;
+   len = rcm->len ;
+   vv  = vec ;
+   uu  = (double *)malloc(sizeof(double)*nn) ;
+
+   for( ii=0 ; ii < nn ; ii++ ){
+     if( len[ii] == 1 ){
+       sum = rc[ii][0] * vv[ii] ;
+     } else {
+       jbot = ii - len[ii] + 1 ; rii = rc[ii] - jbot ; sum = 0.0 ;
+       for( jj=jbot ; jj <= ii ; jj++ ) sum += rii[jj]*vv[jj] ;
+     }
+     uu[ii] = sum ;
+   }
+
+   for( ii=0 ; ii < nn ; ii++ ) vv[ii] = uu[ii] ;
+   free(uu) ;
+   return ;
+}
+
+/*--------------------------------------------------------------------------*/
 #undef  RV
 #define RV(k) rii[k]*vv[k]
 

@@ -20,12 +20,13 @@ typedef struct {
   ( (rr) != NULL && (rr)->len != NULL && (rr)->len[0] == 1 &&  \
                     (rr)->rc  != NULL && (rr)->rc[0]  != NULL )
 
-extern rcmat * rcmat_init        ( int n ) ;
-extern void    rcmat_destroy     ( rcmat *rcm ) ;
-extern rcmat * rcmat_copy        ( rcmat *rcm ) ;
-extern int     rcmat_choleski    ( rcmat *rcm ) ;
-extern void    rcmat_lowert_solve( rcmat *rcm , double *vec ) ;
-extern void    rcmat_uppert_solve( rcmat *rcm , double *vec ) ;
+extern rcmat * rcmat_init         ( int n ) ;
+extern void    rcmat_destroy      ( rcmat *rcm ) ;
+extern rcmat * rcmat_copy         ( rcmat *rcm ) ;
+extern int     rcmat_choleski     ( rcmat *rcm ) ;
+extern void    rcmat_lowert_solve ( rcmat *rcm , double *vec ) ;
+extern void    rcmat_uppert_solve ( rcmat *rcm , double *vec ) ;
+extern void    rcmat_lowert_vecmul( rcmat *rcm , double *vec ) ; /* 02 Oct 2009 */
 
 extern void    rcmat_lowert_solve_unrolled( rcmat *rcm , double *vec ) ;
 extern float   rcmat_avglen( rcmat *rcm ) ;
