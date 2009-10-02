@@ -44,6 +44,14 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 2 , OCT , 2009 , RWC , "calc" , MICRO , TYPE_MODIFY ,
+   "Add mod(a,b) function to please RCR" ,
+   NULL } ,
+
+ { 2 , OCT , 2009 , RWC , "1dgenARMA11" , MICRO , TYPE_NEW_PROG ,
+   "Generates ARMA(1,1) correlated noise time series" ,
+   "For simulation purposes." } ,
+
  { 30 , SEP , 2009 , RWC , "3dDeconvolve" , MICRO , TYPE_MODIFY ,
    "Let user modulate amplitude of dmBLOCK" ,
    "In particular, dmBLOCK(0) means the program modulates the amplitude\n"

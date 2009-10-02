@@ -894,7 +894,7 @@ int main( int argc , char *argv[] )
       "                has no non-zero entries.  The calculations in this\n"
       "                program set correlations below a cutoff to zero.\n"
       "                The default cutoff is %.3f, but can be altered with\n"
-      "                this option.  The only reason to use this option is\n"
+      "                this option.  The usual reason to use this option is\n"
       "                to test the sensitivity of the results to the cutoff.\n"
       "\n"
       " -ABfile ff = Instead of estimating the ARMA(a,b) parameters from the\n"

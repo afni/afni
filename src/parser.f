@@ -819,7 +819,7 @@ C
       REAL*8 QG , QGINV , BELL2 , RECT , STEP , BOOL ,
      X       LAND,LOR,LMOFN,MEDIAN , ZTONE , HMODE,LMODE,
      X       GRAN,URAN,IRAN,ERAN,LRAN , ORSTAT , TENT, MAD ,
-     X       MEAN , STDEV , SEM , POSVAL
+     X       MEAN , STDEV , SEM , POSVAL , ZZMOD
       REAL*8 ARGMAX,ARGNUM , PAIRMX,PAIRMN , AMONGF
 C
 C  External library functions
@@ -969,6 +969,10 @@ C.......................................................................
          ELSEIF( CNCODE .EQ. 'GRAN')THEN
             NEVAL = NEVAL - 1
             R8_EVAL(NEVAL) = GRAN( R8_EVAL(NEVAL),R8_EVAL(NEVAL+1) )
+C.......................................................................
+         ELSEIF( CNCODE .EQ. 'MOD')THEN
+            NEVAL = NEVAL - 1
+            R8_EVAL(NEVAL) = ZZMOD( R8_EVAL(NEVAL),R8_EVAL(NEVAL+1) )
 C.......................................................................
          ELSEIF( CNCODE .EQ. 'URAN' )THEN
             R8_EVAL(NEVAL) = URAN( R8_EVAL(NEVAL) )
@@ -1349,7 +1353,7 @@ C
       REAL*8 QG , QGINV , BELL2 , RECT , STEP , BOOL , LAND,
      X       LOR, LMOFN , MEDIAN , ZTONE , HMODE , LMODE ,
      X       GRAN,URAN,IRAN,ERAN,LRAN , ORSTAT , TENT, MAD ,
-     X       MEAN , STDEV , SEM , POSVAL
+     X       MEAN , STDEV , SEM , POSVAL , ZZMOD
       REAL*8 ARGMAX,ARGNUM , PAIRMX,PAIRMN, AMONGF
 C
 C  External library functions
@@ -1729,6 +1733,13 @@ C.......................................................................
             DO IV=IVBOT,IVTOP
                R8_EVAL(IV-IBV,NEVAL) = GRAN( R8_EVAL(IV-IBV,NEVAL) ,
      X                                       R8_EVAL(IV-IBV,NEVAL+1) )
+            ENDDO
+C.......................................................................
+         ELSEIF( CNCODE .EQ. 'MOD')THEN
+            NEVAL = NEVAL - 1
+            DO IV=IVBOT,IVTOP
+               R8_EVAL(IV-IBV,NEVAL) = ZZMOD( R8_EVAL(IV-IBV,NEVAL) ,
+     X                                        R8_EVAL(IV-IBV,NEVAL+1) )
             ENDDO
 C.......................................................................
          ELSEIF( CNCODE .EQ. 'URAN')THEN
@@ -2503,6 +2514,20 @@ C
          GRAN = GRAN1(B,S)
       ELSE
          GRAN = GRAN2(B,S)
+      ENDIF
+      RETURN
+      END
+C
+C
+C
+      FUNCTION ZZMOD( A , B )
+      IMPLICIT REAL*8 (A-H,O-Z)
+C+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+C
+      IF( B .NE. 0.0D+00 )THEN
+        ZZMOD = A - B * DINT(A/B)
+      ELSE
+        ZZMOD = 0.0D+00
       ENDIF
       RETURN
       END
