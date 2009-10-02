@@ -106,7 +106,7 @@ rcmat * rcmat_arma11( int nt, int *tau, MTYPE rho, MTYPE lam )
 
 int main( int argc , char *argv[] )
 {
-   int nlen=0 , nvec=1 , iarg=1 , nbad=0 , kk,ii ;
+   int nlen=0 , nvec=1 , iarg=1 , nbad=0 , kk,ii , do_norm=0 ;
    double aa=-666.0, bb=-666.0 , lam=-666.0 , sig=1.0 ;
    double *rvec ;
    rcmat *rcm ;
@@ -133,6 +133,7 @@ int main( int argc , char *argv[] )
       " -b b     = Specify ARMA(1,1) parameter 'b' directly.\n"
       " -lam lam = Specify ARMA(1,1) parameter 'b' indirectly.\n"
       " -sig ss  = Set standard deviation of results [default=1].\n"
+      " -norm    = Normalize time series so sum of squares is 1.\n"
       " -seed dd = Set random number seed.\n"
       "\n"
       "  * The correlation coefficient r(k) of noise samples k units apart in time,\n"
@@ -165,6 +166,10 @@ int main( int argc , char *argv[] )
    }
 
    while( iarg < argc ){
+
+     if( strcmp(argv[iarg],"-norm") == 0 ){
+       do_norm = 1 ; iarg++ ; continue ;
+     }
 
      if( strcmp(argv[iarg],"-num") == 0 || strcmp(argv[iarg],"-len") == 0 ){
        iarg++ ;
@@ -266,6 +271,11 @@ int main( int argc , char *argv[] )
      for( ii=0 ; ii < nlen ; ii++ ) rvec[ii] = zgaussian() ;
      rcmat_lowert_vecmul( rcm , rvec ) ;
      vv = outar + kk*nlen ;
+     if( do_norm ){
+       sig = 0.0 ;
+       for( ii=0 ; ii < nlen ; ii++ ) sig += rvec[ii]*rvec[ii] ;
+       sig = 1.0 / sqrt(sig) ;
+     }
      for( ii=0 ; ii < nlen ; ii++ ) vv[ii] = sig * rvec[ii] ;
    }
 
