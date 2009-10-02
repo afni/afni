@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 2, OCT, 2009, RCR, "1d_tool.py", MICRO, TYPE_MODIFY,
+   "also output cosines with -show_cormat_warnings",
+   NULL
+ } ,
+
  { 1, OCT, 2009, RCR, "@Reorder", MICRO, TYPE_MODIFY,
    "minor changes:",
    "- changed warnings on varying incidence counts (JB's woriding)\n"

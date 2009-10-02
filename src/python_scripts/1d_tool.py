@@ -240,9 +240,10 @@ g_history = """
                 -extreme_mask, -set_tr, -write_censor, -write_CENSORTR
    0.10 Aug 21, 2009 - added -show_censor_count
    0.11 Aug 25, 2009 - with -censor_motion, also output PREFIX_enorm.1D
+   0.12 Oct  2, 2009 also output cosines with -show_cormat_warnings
 """
 
-g_version = "1d_tool.py version 0.11, Aug 25, 2009"
+g_version = "1d_tool.py version 0.12, Oct 2, 2009"
 
 
 class A1DInterface:
