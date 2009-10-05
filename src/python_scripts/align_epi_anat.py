@@ -1426,9 +1426,9 @@ class RegWrap:
 
             com = shell_com(  \
                   "3dAllineate -base %s -1Dmatrix_apply %s " \
-                  "-prefix %s -input %s  %s "   %  \
+                  "-prefix %s -input %s  %s %s"   %  \
                   ( e.input(), e2a_mat, o.out_prefix(), ps.anat_ns0.input(),\
-                    self.master_anat_3dAl_option ), ps.oexec)
+                    self.master_anat_3dAl_option, alopt ), ps.oexec)
 
             com.run()
       else:

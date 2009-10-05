@@ -33,6 +33,7 @@
                                   Keep it at 0, at least for OS X 10.5 and 
                                   early 10.6 . 
                                   Perhaps it should be kept off forever */
+#define SUMA_HOLD_IT  if (0) { SUMA_S_Note("Waiting...");glXWaitGL();glXWaitX(); SUMA_S_Note("Done.");}  
                                   
 typedef struct suma_menu_item {
     char        *label;         /*!< the label for the item */
@@ -42,20 +43,20 @@ typedef struct suma_menu_item {
     char        *accel_text;    /*!< to be converted to compound string */
     void       (*callback)();   /*!< routine to call; NULL if none */
     XtPointer    callback_data; /*!< client_data for callback(). 
-                                    This ends up being the index
-                                    of the widget in the menu, in addition
-                                    to being the callback value. 
-                                    Specify it even if callback is NULL 
-                                    because it is needed to index into 
-                                    the vector of widgets. The callback value
-                                    is actually a bit more complicated than what 
-                                    is stored in callback_data. The call back ends
-                                    up receiving a pointer to a structure of the 
-                                    type SUMA_MenuCallBackData. That structure contains
-                                    callback_data in a field of the same name, in addition
-                                    to an identifier of the controller containing that menu.
-                                    This way you can tell from which controller the menu
-                                    had been activated.*/
+                        This ends up being the index
+                        of the widget in the menu, in addition
+                        to being the callback value. 
+                        Specify it even if callback is NULL 
+                        because it is needed to index into 
+                        the vector of widgets. The callback value
+                        is actually a bit more complicated than what 
+                        is stored in callback_data. The call back ends
+                        up receiving a pointer to a structure of the 
+                        type SUMA_MenuCallBackData. That structure contains
+                        callback_data in a field of the same name, in addition
+                        to an identifier of the controller containing that menu.
+                        This way you can tell from which controller the menu
+                        had been activated.*/
     struct suma_menu_item *subitems; /*!< pullright menu items, if not NULL */
 } SUMA_MenuItem; /*!< Structure to hold descriptions of menu items. 
                   This structure is mostly based on the build_option.c example 
@@ -479,6 +480,8 @@ void SUMA_DotXform_NewOrtName(  SUMA_XFORM *xf,
                                char * ortname, 
                                int fromgui);
 void SUMA_OpenXformOrtFile (char *filename, void *data);
+SUMA_Boolean SUMA_WildcardChoice(int filetype, 
+                  SUMA_SurfaceObject *SO, char wild[]); 
 
 
 #define SUMA_XformOrtFile_Load_help   \

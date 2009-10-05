@@ -678,7 +678,7 @@ SUMA_Boolean SUMA_OverlayGraphAtNode(SUMA_OVERLAYS *Sover,
          SUMA_RETURN(1);
       }
       /* position plot */
-      sv = SUMA_OneViewerWithSOinFocus(SO);
+      sv = SUMA_BestViewerForSO(SO);
       if (sv) {
          SUMA_PositionWindowRelative(  Sover->rowgraph_mtd->top , 
                                        sv->X->TOPLEVEL, 

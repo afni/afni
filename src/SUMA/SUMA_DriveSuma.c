@@ -225,6 +225,7 @@ void usage_DriveSuma (SUMA_GENERIC_ARGV_PARSE *ps)
 "        -viewer_size WIDTH HEIGHT : Convenient combo of -viewer_width \n"
 "                                    and -viewer_height\n"
 "        -viewer_position X Y: Set position on the screen\n"
+"        -inout_notify y/n: Turn on or off function call tracing\n"
 "     + Example viewer_cont (assumes all previous examples have\n"
 "       been executed and suma is still running).\n"
 "        - a series of commands that should be obvious.\n"
@@ -950,6 +951,29 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          NI_set_attribute(ngr, "VVS_FileName", argt[++kar]);
          argt[kar][0] = '\0';
          brk = YUP;
+      }
+      
+      if (!brk && ( (strcmp(argt[kar], "-inout_notify") == 0) ) )
+      {
+         if (kar+1 >= argtc)
+         {
+            fprintf (SUMA_STDERR, "need a value after -inout_notify\n");
+            SUMA_RETURN(0);
+         }
+         
+         argt[kar][0] = '\0';
+         ++kar;
+         if (argt[kar][0] == 'y' || argt[kar][0] == 'Y')  
+            NI_set_attribute(ngr, "inout_notify", "y");
+         else if (argt[kar][0] == 'n' || argt[kar][0] == 'N')  
+            NI_set_attribute(ngr, "inout_notify", "n");
+         else {
+            fprintf (SUMA_STDERR, "need a 'y/n' after -view_surf \n");
+            SUMA_RETURN(0);
+         }
+         argt[kar][0] = '\0';
+         brk = YUP;
+         
       }
       
       if (!brk && ( (strcmp(argt[kar], "-load_do") == 0) ) )
