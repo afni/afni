@@ -5418,7 +5418,7 @@ void SUMA_cb_closeSurfaceCont(Widget w, XtPointer data, XtPointer callData)
    SUMA_ENTRY;
    
    SO = (SUMA_SurfaceObject *)data;
-   
+    
    if (!SO->SurfCont->TopLevelShell || !SO->SurfCont->Open) SUMA_RETURNe;
 
    switch (SUMA_GL_CLOSE_MODE)   {/* No open GL drawables in this widget*/
