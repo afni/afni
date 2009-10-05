@@ -247,35 +247,54 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             /* opens the open ROI file selection window. 
             Expects NULL in vp (to be used later and a position 
             reference widget typecast to ip, the latter can be null.*/
-            if (  EngineData->vp_Dest != NextComCode || 
-                  EngineData->ip_Dest != NextComCode ) {
-               fprintf (SUMA_STDERR,
-                        "Error %s: Data not destined correctly for %s (%d).\n", 
-                        FuncName, NextCom, NextComCode);
-               break;
-            }
-            /* open the ROI file */
-            if (!sv) sv = &(SUMAg_SVv[0]);
-            if (!EngineData->ip) {
+            {
+               char sbuf[128];
+               if (  EngineData->vp_Dest != NextComCode || 
+                     EngineData->ip_Dest != NextComCode ) {
+                  fprintf (SUMA_STDERR,
+                           "Error %s: "
+                           "Data not destined correctly for %s (%d).\n", 
+                           FuncName, NextCom, NextComCode);
+                  break;
+               }
+               /* wildcard selection 
+                 for a surface, just use the one in focus
+                 But it is only to select the wildcard
+                 SO assignment to an ROI is done in the ROI
+                 reading function*/
+               SO = (SUMA_SurfaceObject *)
+                           SUMAg_DOv[SUMAg_SVv[0].Focus_SO_ID].OP;
+               if (!SUMA_WildcardChoice(2, SO, sbuf)) {
+                  sprintf(sbuf, "*.roi");
+               }
+               /* open the ROI file */
+               if (!sv) sv = &(SUMAg_SVv[0]);
+               if (!EngineData->ip) {
+                  SUMAg_CF->X->FileSelectDlg = 
+                     SUMA_CreateFileSelectionDialogStruct (
+                        sv->X->TOPLEVEL, SUMA_FILE_OPEN, YUP,
+                        SUMA_OpenDrawnROI, (void *)EngineData->vp,
+                        NULL, NULL,
+                        sbuf,
+                        SUMAg_CF->X->FileSelectDlg);
+               } else {
+                  SUMAg_CF->X->FileSelectDlg = 
+                     SUMA_CreateFileSelectionDialogStruct (
+                        (Widget) EngineData->ip, SUMA_FILE_OPEN, YUP,
+                        SUMA_OpenDrawnROI, (void *)EngineData->vp,
+                        NULL, NULL,
+                        sbuf,
+                        SUMAg_CF->X->FileSelectDlg);
+               }
+               if (SO && SO->Side == SUMA_RIGHT) {
+                  sprintf(sbuf,"Select RH ROI File to Open");
+               } else if (SO && SO->Side == SUMA_LEFT) {
+                  sprintf(sbuf,"Select LH ROI File to Open");
+               } else sprintf(sbuf,"Select ROI File to Open");
                SUMAg_CF->X->FileSelectDlg = 
-                  SUMA_CreateFileSelectionDialogStruct (
-                     sv->X->TOPLEVEL, SUMA_FILE_OPEN, YUP,
-                     SUMA_OpenDrawnROI, (void *)EngineData->vp,
-                     NULL, NULL,
-                     "*.roi",
-                     SUMAg_CF->X->FileSelectDlg);
-            } else {
-               SUMAg_CF->X->FileSelectDlg = 
-                  SUMA_CreateFileSelectionDialogStruct (
-                     (Widget) EngineData->ip, SUMA_FILE_OPEN, YUP,
-                     SUMA_OpenDrawnROI, (void *)EngineData->vp,
-                     NULL, NULL,
-                     "*.roi",
-                     SUMAg_CF->X->FileSelectDlg);
+                  SUMA_CreateFileSelectionDialog ( sbuf, 
+                                                   &SUMAg_CF->X->FileSelectDlg);
             }
-            SUMAg_CF->X->FileSelectDlg = 
-               SUMA_CreateFileSelectionDialog ( "Select ROI File to Open", 
-                                                &SUMAg_CF->X->FileSelectDlg);
             break;
             
          case SE_OpenXformOrtFileFileSelection:
@@ -415,104 +434,133 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                SaveSO_data->sv = sv;
                
                if (!EngineData->ip) {
-                  SUMAg_CF->X->FileSelectDlg = SUMA_CreateFileSelectionDialogStruct (sv->X->TOPLEVEL, SUMA_FILE_SAVE, YUP,
-                                                           SUMA_SaveSOascii, (void *)SaveSO_data,
-                                                           NULL, NULL,
-                                                           "*.1D.xyz",
-                                                           SUMAg_CF->X->FileSelectDlg);
+                  SUMAg_CF->X->FileSelectDlg = 
+                     SUMA_CreateFileSelectionDialogStruct (
+                        sv->X->TOPLEVEL, SUMA_FILE_SAVE, YUP,
+                        SUMA_SaveSOascii, (void *)SaveSO_data,
+                        NULL, NULL,
+                        "*.1D.xyz",
+                        SUMAg_CF->X->FileSelectDlg);
                } else {
-                  SUMAg_CF->X->FileSelectDlg = SUMA_CreateFileSelectionDialogStruct ((Widget) EngineData->ip, SUMA_FILE_SAVE, YUP,
-                                                           SUMA_SaveSOascii, (void *)SaveSO_data,
-                                                           NULL, NULL,
-                                                           "*.1D.xyz",
-                                                           SUMAg_CF->X->FileSelectDlg);
+                  SUMAg_CF->X->FileSelectDlg = 
+                     SUMA_CreateFileSelectionDialogStruct (
+                        (Widget) EngineData->ip, SUMA_FILE_SAVE, YUP,
+                        SUMA_SaveSOascii, (void *)SaveSO_data,
+                        NULL, NULL, "*.1D.xyz",                                                           SUMAg_CF->X->FileSelectDlg);
                }
 
-               SUMAg_CF->X->FileSelectDlg = SUMA_CreateFileSelectionDialog ("Select SO file prefix.", &SUMAg_CF->X->FileSelectDlg);
+               SUMAg_CF->X->FileSelectDlg = 
+                  SUMA_CreateFileSelectionDialog (
+                     "Select SO file prefix.", &SUMAg_CF->X->FileSelectDlg);
             }
             break;
             
          case SE_LoadSegDO:
             if (EngineData->ip_Dest != NextComCode ) {
-               fprintf (SUMA_STDERR,"Error %s: Data not destined correctly for %s (%d).\n", \
-                  FuncName, NextCom, NextComCode);
+               fprintf (SUMA_STDERR,
+                        "Error %s: Data not destined correctly for %s (%d).\n",
+                        FuncName, NextCom, NextComCode);
                break;
             }
             if (!sv) sv = &(SUMAg_SVv[0]);
             if (!EngineData->ip) {
-               SUMAg_CF->X->FileSelectDlg = SUMA_CreateFileSelectionDialogStruct (sv->X->TOPLEVEL, SUMA_FILE_OPEN, YUP,
-                                                        SUMA_LoadSegDO, (void *)sv,
-                                                        NULL, NULL,
-                                                        "*.1D*",
-                                                        SUMAg_CF->X->FileSelectDlg);
+               SUMAg_CF->X->FileSelectDlg = 
+                  SUMA_CreateFileSelectionDialogStruct (
+                     sv->X->TOPLEVEL, SUMA_FILE_OPEN, YUP,
+                     SUMA_LoadSegDO, (void *)sv,
+                     NULL, NULL,
+                     "*.1D*",
+                     SUMAg_CF->X->FileSelectDlg);
             } else {
-               SUMAg_CF->X->FileSelectDlg = SUMA_CreateFileSelectionDialogStruct ((Widget) EngineData->ip, SUMA_FILE_OPEN, YUP,
-                                                        SUMA_LoadSegDO, (void *)sv,
-                                                        NULL, NULL,
-                                                        "*.1D*",
-                                                        SUMAg_CF->X->FileSelectDlg);
+               SUMAg_CF->X->FileSelectDlg = 
+                  SUMA_CreateFileSelectionDialogStruct (
+                     (Widget) EngineData->ip, SUMA_FILE_OPEN, YUP,
+                     SUMA_LoadSegDO, (void *)sv,
+                     NULL, NULL,
+                     "*.1D*",
+                     SUMAg_CF->X->FileSelectDlg);
             }
-            SUMAg_CF->X->FileSelectDlg = SUMA_CreateFileSelectionDialog ("Select Displayable Objects File", &SUMAg_CF->X->FileSelectDlg);
+            SUMAg_CF->X->FileSelectDlg = 
+               SUMA_CreateFileSelectionDialog (
+                  "Select Displayable Objects File", 
+                  &SUMAg_CF->X->FileSelectDlg);
             break;
             
          case SE_LoadViewFileSelection:
             /* opens the view file selection window.
-            Expects a position  reference widget typecast to ip, the latter can be null.*/
+            Expects a position  reference widget typecast to ip, 
+            the latter can be null.*/
             
             if (EngineData->ip_Dest != NextComCode ) {
-               fprintf (SUMA_STDERR,"Error %s: Data not destined correctly for %s (%d).\n", \
-                  FuncName, NextCom, NextComCode);
+               fprintf (SUMA_STDERR,
+                        "Error %s: Data not destined correctly for %s (%d).\n", 
+                        FuncName, NextCom, NextComCode);
                break;
             }
             if (!sv) sv = &(SUMAg_SVv[0]);
             if (!EngineData->ip) {
-               SUMAg_CF->X->FileSelectDlg = SUMA_CreateFileSelectionDialogStruct (sv->X->TOPLEVEL, SUMA_FILE_OPEN, YUP,
-                                                        SUMA_LoadVisualState, (void *)sv,
-                                                        NULL, NULL,
-                                                        "*.vvs",
-                                                        SUMAg_CF->X->FileSelectDlg);
+               SUMAg_CF->X->FileSelectDlg = 
+                  SUMA_CreateFileSelectionDialogStruct (
+                     sv->X->TOPLEVEL, SUMA_FILE_OPEN, YUP,
+                     SUMA_LoadVisualState, (void *)sv,
+                     NULL, NULL,
+                     "*.vvs",
+                     SUMAg_CF->X->FileSelectDlg);
             } else {
-               SUMAg_CF->X->FileSelectDlg = SUMA_CreateFileSelectionDialogStruct ((Widget) EngineData->ip, SUMA_FILE_OPEN, YUP,
-                                                        SUMA_LoadVisualState, (void *)sv,
-                                                        NULL, NULL,
-                                                        "*.vvs",
-                                                        SUMAg_CF->X->FileSelectDlg);
+               SUMAg_CF->X->FileSelectDlg = 
+                  SUMA_CreateFileSelectionDialogStruct (
+                     (Widget) EngineData->ip, SUMA_FILE_OPEN, YUP,
+                     SUMA_LoadVisualState, (void *)sv,
+                     NULL, NULL,
+                     "*.vvs",
+                     SUMAg_CF->X->FileSelectDlg);
             }
-            SUMAg_CF->X->FileSelectDlg = SUMA_CreateFileSelectionDialog ("Select Viewer Settings File", &SUMAg_CF->X->FileSelectDlg);
+            SUMAg_CF->X->FileSelectDlg = 
+               SUMA_CreateFileSelectionDialog (
+                  "Select Viewer Settings File", &SUMAg_CF->X->FileSelectDlg);
             break;
             
          case SE_SaveViewFileSelection:
             /* opens the view file selection window.
-            Expects a position  reference widget typecast to ip, the latter can be null.*/
+            Expects a position  reference widget typecast to ip, 
+            the latter can be null.*/
             
             if (EngineData->ip_Dest != NextComCode ) {
-               fprintf (SUMA_STDERR,"Error %s: Data not destined correctly for %s (%d).\n", \
-                  FuncName, NextCom, NextComCode);
+               fprintf (SUMA_STDERR,
+                        "Error %s: Data not destined correctly for %s (%d).\n", 
+                        FuncName, NextCom, NextComCode);
                break;
             }
             if (!sv) sv = &(SUMAg_SVv[0]);
             if (!EngineData->ip) {
-               SUMAg_CF->X->FileSelectDlg = SUMA_CreateFileSelectionDialogStruct (sv->X->TOPLEVEL, SUMA_FILE_SAVE, YUP,
-                                                        SUMA_SaveVisualState, (void *)sv,
-                                                        NULL, NULL,
-                                                        "*.vvs",
-                                                        SUMAg_CF->X->FileSelectDlg);
+               SUMAg_CF->X->FileSelectDlg = 
+                  SUMA_CreateFileSelectionDialogStruct (
+                       sv->X->TOPLEVEL, SUMA_FILE_SAVE, YUP,
+                       SUMA_SaveVisualState, (void *)sv,
+                       NULL, NULL,
+                       "*.vvs",
+                       SUMAg_CF->X->FileSelectDlg);
             } else {
-               SUMAg_CF->X->FileSelectDlg = SUMA_CreateFileSelectionDialogStruct ((Widget) EngineData->ip, SUMA_FILE_SAVE, YUP,
-                                                        SUMA_SaveVisualState, (void *)sv,
-                                                        NULL, NULL,
-                                                        "*.vvs",
-                                                        SUMAg_CF->X->FileSelectDlg);
+               SUMAg_CF->X->FileSelectDlg = 
+                  SUMA_CreateFileSelectionDialogStruct (
+                       (Widget) EngineData->ip, SUMA_FILE_SAVE, YUP,
+                       SUMA_SaveVisualState, (void *)sv,
+                       NULL, NULL,
+                       "*.vvs",
+                       SUMAg_CF->X->FileSelectDlg);
             }
-            SUMAg_CF->X->FileSelectDlg = SUMA_CreateFileSelectionDialog ("Select Viewer Settings File", &SUMAg_CF->X->FileSelectDlg);
+            SUMAg_CF->X->FileSelectDlg = 
+               SUMA_CreateFileSelectionDialog ("Select Viewer Settings File", 
+                                                &SUMAg_CF->X->FileSelectDlg);
             break;
             
          case SE_OpenSurfCont:
             /* opens the surface controller 
             Expects SO in vp */
             if (EngineData->vp_Dest != NextComCode ) {
-               fprintf (SUMA_STDERR,"Error %s: Data not destined correctly for %s (%d).\n", \
-                  FuncName, NextCom, NextComCode);
+               fprintf (SUMA_STDERR,
+                        "Error %s: Data not destined correctly for %s (%d).\n", 
+                        FuncName, NextCom, NextComCode);
                break;
             }
             if (!sv) sv = &(SUMAg_SVv[0]);
@@ -525,7 +573,8 @@ SUMA_Boolean SUMA_Engine (DList **listp)
          
          case SE_OneOnly:
             if (EngineData->vp_Dest != NextComCode ) {
-               fprintf (SUMA_STDERR,"Error %s: Data not destined correctly for %s (%d).\n", \
+               fprintf (SUMA_STDERR,
+                  "Error %s: Data not destined correctly for %s (%d).\n", 
                   FuncName, NextCom, NextComCode);
                break;
             }
@@ -538,47 +587,60 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             break;
             
          case SE_OpenDsetFileSelection:
-            /* opens the dataset file selection window. 
-               Expects SO in vp and a position reference 
-               widget typecast to ip, the latter can be null.*/
-            
-            if (  EngineData->vp_Dest != NextComCode || 
-                  EngineData->ip_Dest != NextComCode ) {
-               fprintf (SUMA_STDERR,
-                  "Error %s: Data not destined correctly for %s (%d).\n", 
-                  FuncName, NextCom, NextComCode);
-               break;
-            }
-            
-            /*Load data from file */
-            if (!sv) sv = &(SUMAg_SVv[0]);
-            if (!EngineData->ip) {
+             {
+               char sbuf[128];  
+               /* opens the dataset file selection window. 
+                  Expects SO in vp and a position reference 
+                  widget typecast to ip, the latter can be null.*/
+
+               if (  EngineData->vp_Dest != NextComCode || 
+                     EngineData->ip_Dest != NextComCode ) {
+                  fprintf (SUMA_STDERR,
+                     "Error %s: Data not destined correctly for %s (%d).\n", 
+                     FuncName, NextCom, NextComCode);
+                  break;
+               }
+
+               /* wildcard selection */
+               SO = (SUMA_SurfaceObject *)EngineData->vp;
+               if (!SUMA_WildcardChoice(1, SO, sbuf)) {
+                  sprintf(sbuf, "*.dset");
+               }
+
+               /*Load data from file */
+               if (!sv) sv = &(SUMAg_SVv[0]);
+               if (!EngineData->ip) {
+                  SUMAg_CF->X->FileSelectDlg = 
+                     SUMA_CreateFileSelectionDialogStruct ( 
+                        sv->X->TOPLEVEL,
+                        SUMA_FILE_OPEN, YUP,
+                        SUMA_LoadDsetFile,
+                        (void *)EngineData->vp,
+                        NULL, NULL,
+                        sbuf,
+                        SUMAg_CF->X->FileSelectDlg);
+               } else {
+                  SUMAg_CF->X->FileSelectDlg = 
+                     SUMA_CreateFileSelectionDialogStruct (
+                        (Widget) EngineData->ip, 
+                        SUMA_FILE_OPEN, YUP,
+                        SUMA_LoadDsetFile, 
+                        (void *)EngineData->vp,
+                        NULL, NULL,
+                        sbuf,
+                        SUMAg_CF->X->FileSelectDlg);
+               }
+               if (SO && SO->Side == SUMA_RIGHT) {
+                  sprintf(sbuf,"Select RH Dset File");
+               } else if (SO && SO->Side == SUMA_LEFT) {
+                  sprintf(sbuf,"Select LH Dset File");
+               } else sprintf(sbuf,"Select Dset File");
+
                SUMAg_CF->X->FileSelectDlg = 
-                  SUMA_CreateFileSelectionDialogStruct ( 
-                     sv->X->TOPLEVEL,
-                     SUMA_FILE_OPEN, YUP,
-                     SUMA_LoadDsetFile,
-                     (void *)EngineData->vp,
-                     NULL, NULL,
-                     "*.dset",
-                     SUMAg_CF->X->FileSelectDlg);
-            } else {
-               SUMAg_CF->X->FileSelectDlg = 
-                  SUMA_CreateFileSelectionDialogStruct (
-                     (Widget) EngineData->ip, 
-                     SUMA_FILE_OPEN, YUP,
-                     SUMA_LoadDsetFile, 
-                     (void *)EngineData->vp,
-                     NULL, NULL,
-                     "*.dset",
-                     SUMAg_CF->X->FileSelectDlg);
+                  SUMA_CreateFileSelectionDialog (
+                     sbuf, 
+                     &SUMAg_CF->X->FileSelectDlg);
             }
-            
-            SUMAg_CF->X->FileSelectDlg = 
-               SUMA_CreateFileSelectionDialog (
-                  "Select Dset File", 
-                  &SUMAg_CF->X->FileSelectDlg);
-            
             break;
             
          case SE_OpenDsetFile:
@@ -638,17 +700,21 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                      SUMAg_CF->X->FileSelectDlg);
             }
             
-            SUMAg_CF->X->FileSelectDlg = SUMA_CreateFileSelectionDialog ("Select Cmap File", &SUMAg_CF->X->FileSelectDlg);
+            SUMAg_CF->X->FileSelectDlg = 
+               SUMA_CreateFileSelectionDialog (
+                  "Select Cmap File", &SUMAg_CF->X->FileSelectDlg);
             
             break;
          case SE_OpenColFileSelection:
             /* opens the color file selection window. 
-            Expects SO in vp and a position reference widget typecast to ip, the latter can be null.*/
+            Expects SO in vp and a position reference widget typecast to ip, 
+            the latter can be null.*/
             
             if (EngineData->vp_Dest != NextComCode || 
                   EngineData->ip_Dest != NextComCode ) {
-               fprintf (SUMA_STDERR,"Error %s: Data not destined correctly for %s (%d).\n", \
-                  FuncName, NextCom, NextComCode);
+               fprintf (SUMA_STDERR,
+                        "Error %s: Data not destined correctly for %s (%d).\n", 
+                        FuncName, NextCom, NextComCode);
                break;
             }
             
@@ -2770,6 +2836,20 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                break;
             }
             SO = (SUMA_SurfaceObject *)EngineData->vp; 
+            if (NI_get_attribute(EngineData->ngr, "inout_notify")) {
+               if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "inout_notify", "y"))
+                  SUMA_setIO_notify(1); 
+               else if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, 
+                                             "inout_notify", "n"))
+                  SUMA_setIO_notify(0);
+               else { 
+                  SUMA_S_Errv("Bad value of %s for inout_notify, "
+                              "setting to 'n'\n", 
+                              NI_get_attribute(EngineData->ngr, "inout_notify"));
+                  SUMA_setIO_notify(0);
+               } 
+
+            }            
             /* search for the keys */
             if (NI_get_attribute(EngineData->ngr,"N_Key")) {
                char *stmp=NULL, nc, *vbuf=NULL, *strgval=NULL;
@@ -3519,7 +3599,8 @@ int SUMA_VisibleSOs (SUMA_SurfaceViewer *sv, SUMA_DO *dov, int *SO_IDs)
    \brief YUP if surface is visible in a viewer
    \sa SUMA_VisibleSOs 
 */
-SUMA_Boolean SUMA_isVisibleSO (SUMA_SurfaceViewer *sv, SUMA_DO *dov, SUMA_SurfaceObject *curSO)
+SUMA_Boolean SUMA_isVisibleSO (SUMA_SurfaceViewer *sv, 
+                               SUMA_DO *dov, SUMA_SurfaceObject *curSO)
 {
    static char FuncName[]={"SUMA_isVisibleSO"};
    SUMA_SurfaceObject *SO=NULL;
@@ -3548,6 +3629,27 @@ SUMA_Boolean SUMA_isVisibleSO (SUMA_SurfaceViewer *sv, SUMA_DO *dov, SUMA_Surfac
    SUMA_RETURN(NOPE);
    
 }
+SUMA_Boolean SUMA_isRegisteredSO (SUMA_SurfaceViewer *sv, 
+                                  SUMA_DO *dov, SUMA_SurfaceObject *curSO)
+{
+   static char FuncName[]={"SUMA_isRegisteredSO"};
+   SUMA_SurfaceObject *SO=NULL;
+   int i, k = 0;
+   
+   SUMA_ENTRY;
+   
+   for (i=0; i< sv->N_DO; ++i) {
+      if (1) {
+         SO = (SUMA_SurfaceObject *)dov[sv->RegisteredDO[i]].OP;
+         if (curSO == SO) {
+            SUMA_RETURN(YUP);
+         }
+      }
+   }
+   
+   SUMA_RETURN(NOPE);
+}
+
 /*! 
    nxtState = SUMA_NextState(sv);
 

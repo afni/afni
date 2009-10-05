@@ -223,19 +223,24 @@ void SUMA_DrawCmap(SUMA_COLOR_MAP *Cmap)
    glNormalPointer (GL_FLOAT, 0, Cmap->SO->glar_NodeNormList);
 
    SUMA_SET_GL_RENDER_MODE(SRM_Fill); 
-   glDrawElements (GL_TRIANGLES, (GLsizei)Cmap->SO->N_FaceSet*3, GL_UNSIGNED_INT, Cmap->SO->glar_FaceSetList);
+   glDrawElements (GL_TRIANGLES, (GLsizei)Cmap->SO->N_FaceSet*3, 
+                   GL_UNSIGNED_INT, Cmap->SO->glar_FaceSetList);
    
    /* Here you could draw a contour around the color cells. 
-   But you'll need to raise the contour over the filled polygons because they'll get
+   But you'll need to raise the contour over the filled polygons 
+   because they'll get
    covered otherwise */ 
    #if 0
    { 
       GLfloat *LineCol=NULL;   
       LineCol = (GLfloat *)SUMA_calloc(Cmap->SO->N_Node*4, sizeof(GLfloat));
-      for (i=0; i<Cmap->SO->N_Node; ++i) { LineCol[4*i] = LineCol[4*i+1] = LineCol[4*i+2] = 0.1; LineCol[4*i+3] = 1.0; }
+      for (i=0; i<Cmap->SO->N_Node; ++i) { 
+         LineCol[4*i] = LineCol[4*i+1] = LineCol[4*i+2] = 0.1; 
+         LineCol[4*i+3] = 1.0; }
       glColorPointer (4, GL_FLOAT, 0, LineCol);
       SUMA_SET_GL_RENDER_MODE(SRM_Line); 
-      glDrawElements (GL_TRIANGLES, (GLsizei)Cmap->SO->N_FaceSet*3, GL_UNSIGNED_INT, Cmap->SO->glar_FaceSetList);
+      glDrawElements (  GL_TRIANGLES, (GLsizei)Cmap->SO->N_FaceSet*3, 
+                        GL_UNSIGNED_INT, Cmap->SO->glar_FaceSetList);
       SUMA_free(LineCol); LineCol = NULL;
    }
    #endif
@@ -258,6 +263,15 @@ void SUMA_cmap_wid_display(SUMA_SurfaceObject *SO)
    
    SUMA_LH("in, lots of inefficiencies here, make sure you revisit");
    
+   /* is surface controller closed? */
+   if (!SO->SurfCont->Open) {
+      SUMA_LHv("SurfCont closed for %s, trying to open it\n", SO->Label);
+      if (!SUMA_viewSurfaceCont(NULL, SO, SUMA_BestViewerForSO(SO))) {
+         SUMA_S_Warn("No SurfCont");
+         SUMA_DUMP_TRACE("No SurfCont");
+         SUMA_RETURNe;
+      }
+   }
    /* now you need to set the clear_color since it can be 
       changed per viewer Thu Dec 12 2002 */
    glClearColor (clear_color[0], clear_color[1],clear_color[2],clear_color[3]);
@@ -5622,8 +5636,12 @@ SUMA_Boolean SUMA_UpdateNodeValField(SUMA_SurfaceObject *SO)
    }
    
    /* 1- Where is this node in the data set ? */
-   Found = SUMA_GetNodeRow_FromNodeIndex_s(  Sover->dset_link, 
+   if (SO->SelectedNode > -1) {
+      Found = SUMA_GetNodeRow_FromNodeIndex_s(  Sover->dset_link, 
                                              SO->SelectedNode, SO->N_Node);
+   } else {
+      Found = -1;
+   }
    if (LocalHead) {
       fprintf( SUMA_STDERR,
                "%s: Node index %d is at row %d in dset %p "

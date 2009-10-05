@@ -243,7 +243,8 @@ SUMA_handleRedisplay(XtPointer closure)
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
-
+   
+   
    if (LocalHead) {
       SUMA_REPORT_WICH_WIDGET_SV ((Widget)closure);
    }
@@ -270,14 +271,27 @@ SUMA_handleRedisplay(XtPointer closure)
          }
       }
    } 
-   
+   #if 0 /* trying to fix horrible freeze on 10.5 */
+   SUMA_S_Note("Forcing Current Making");
+   PleaseDoMakeCurrent = YUP;
+   #endif
    if (PleaseDoMakeCurrent) {
-      /* An OpenGL rendering context is a port through which all OpenGL commands pass. */
-      /* Before rendering, a rendering context must be bound to the desired drawable using glXMakeCurrent. OpenGL rendering commands implicitly use the current bound rendering context and one drawable. Just as a
-         program can create multiple windows, a program can create multiple OpenGL rendering contexts. But a thread can only be bound to one rendering context and drawable at a time. Once bound, OpenGL rendering can begin.
-         glXMakeCurrent can be called again to bind to a different window and/or rendering context. */
-      if (!glXMakeCurrent (sv->X->DPY, XtWindow((Widget)closure), sv->X->GLXCONTEXT)) {
-               fprintf (SUMA_STDERR, "Error %s: Failed in glXMakeCurrent.\n \tContinuing ...\n", FuncName);
+      /* An OpenGL rendering context is a port through which all OpenGL 
+         commands pass. */
+      /* Before rendering, a rendering context must be bound to the desired 
+      drawable using glXMakeCurrent. OpenGL rendering commands implicitly use the
+      current bound rendering context and one drawable. Just as a
+      program can create multiple windows, a program can create multiple OpenGL 
+      rendering contexts. But a thread can only be bound to one rendering context
+      and drawable at a time. Once bound, OpenGL rendering can begin.
+      glXMakeCurrent can be called again to bind to a different window and/or 
+      rendering context. */
+      SUMA_HOLD_IT;
+      if (!glXMakeCurrent (sv->X->DPY, XtWindow((Widget)closure), 
+                           sv->X->GLXCONTEXT)) {
+               fprintf (SUMA_STDERR, 
+                        "Error %s: Failed in glXMakeCurrent.\n"
+                        " \tContinuing ...\n", FuncName);
       }
       PleaseDoMakeCurrent = NOPE;
    }
@@ -1587,6 +1601,7 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
    if (LocalHead) 
       fprintf (SUMA_STDOUT,
                "%s: Flushing or swapping ...\n", FuncName);
+   SUMA_HOLD_IT;
    if (csv->X->DOUBLEBUFFER)
     glXSwapBuffers(csv->X->DPY, XtWindow(csv->X->GLXAREA));
    else
@@ -1653,13 +1668,17 @@ SUMA_graphicsInit(Widget w, XtPointer clientData, XtPointer call)
 
    /* Create OpenGL rendering context. */
    XtVaGetValues(w, GLwNvisualInfo, &SUMAg_cVISINFO, NULL);
-   sv->X->GLXCONTEXT = glXCreateContext(XtDisplay(w), SUMAg_cVISINFO,
-    0,                  /* No sharing. */
-    True);              /* Direct rendering if possible. */
+   sv->X->GLXCONTEXT = 
+      glXCreateContext(XtDisplay(w), SUMAg_cVISINFO,
+               0,                  /* No sharing. */
+               True);              /* Direct rendering if possible. */
 
    /* Setup OpenGL state. */
+   SUMA_HOLD_IT;
    if (!glXMakeCurrent(XtDisplay(w), XtWindow(w), sv->X->GLXCONTEXT)) {
-      fprintf (SUMA_STDERR, "Error %s: Failed in glXMakeCurrent.\n \tContinuing ...\n", FuncName);
+      fprintf (SUMA_STDERR, 
+               "Error %s: Failed in glXMakeCurrent.\n \tContinuing ...\n", 
+               FuncName);
    }
    
    /* call context_Init to setup colors and lighting */   
@@ -1758,10 +1777,16 @@ SUMA_resize(Widget w,
 
    /*   fprintf(stdout, "Resizn'...\n");*/
    callData = (GLwDrawingAreaCallbackStruct *) call;
+   SUMA_HOLD_IT;
+
    if (!glXMakeCurrent(XtDisplay(w), XtWindow(w), sv->X->GLXCONTEXT)) {
-      fprintf (SUMA_STDERR, "Error %s: Failed in glXMakeCurrent.\n \tContinuing ...\n", FuncName);
+      fprintf (SUMA_STDERR, 
+               "Error %s: Failed in glXMakeCurrent.\n \tContinuing ...\n", 
+               FuncName);
    }
 
+   SUMA_HOLD_IT;  
+   
    glXWaitX();
    sv->X->WIDTH = callData->width;
    sv->X->HEIGHT = callData->height;
@@ -3169,13 +3194,15 @@ SUMA_Boolean SUMA_RenderToPixMap (SUMA_SurfaceViewer *csv, SUMA_DO *dov)
     fprintf(SUMA_STDERR,"Error %s: could not open display", FuncName);
 
    if (!glXQueryExtension(dpy, NULL, NULL))
-    fprintf(SUMA_STDERR,"Error %s: X server has no OpenGL GLX extension", FuncName);
+    fprintf(SUMA_STDERR,
+            "Error %s: X server has no OpenGL GLX extension", FuncName);
 
    /* find an OpenGL-capable RGB visual with depth buffer */
    #if 1  /* use screen rendering Xvisual */
    vi = glXChooseVisual(dpy, DefaultScreen(dpy), &configuration[1]);
    if (vi == NULL) {
-   /*fprintf(SUMA_STDERR,"%s: Trying to use useless double buffering configuration.\n", FuncName);*/
+   /*fprintf(SUMA_STDERR,"%s: Trying to use useless double 
+               buffering configuration.\n", FuncName);*/
     vi = glXChooseVisual(dpy, DefaultScreen(dpy), &configuration[0]);
     if (vi == NULL) {
       fprintf( SUMA_STDERR,
@@ -3200,7 +3227,9 @@ SUMA_Boolean SUMA_RenderToPixMap (SUMA_SurfaceViewer *csv, SUMA_DO *dov)
     csv->X->WIDTH, csv->X->HEIGHT, vi->depth);
    glxpmap = glXCreateGLXPixmap(dpy, vi, pmap);
    if (!glXMakeCurrent(dpy, glxpmap, cx)) {
-      fprintf (SUMA_STDERR, "Error %s: Failed in glXMakeCurrent.\n \tContinuing ...\n", FuncName);
+      fprintf (SUMA_STDERR, 
+               "Error %s: Failed in glXMakeCurrent.\n \tContinuing ...\n", 
+               FuncName);
    }
 
    SUMA_context_Init(csv);
@@ -3254,8 +3283,12 @@ SUMA_Boolean SUMA_RenderToPixMap (SUMA_SurfaceViewer *csv, SUMA_DO *dov)
    }
 
    /* render to original context */
-   if (!glXMakeCurrent(XtDisplay(csv->X->GLXAREA), XtWindow(csv->X->GLXAREA),  csv->X->GLXCONTEXT)) {
-      fprintf (SUMA_STDERR, "Error %s: Failed in glXMakeCurrent.\n \tContinuing ...\n", FuncName);   
+   SUMA_HOLD_IT;
+   if (!glXMakeCurrent( XtDisplay(csv->X->GLXAREA), 
+                        XtWindow(csv->X->GLXAREA),  csv->X->GLXCONTEXT)) {
+      fprintf (SUMA_STDERR, 
+               "Error %s: Failed in glXMakeCurrent.\n \tContinuing ...\n", 
+               FuncName);   
    }
 
    SUMA_RETURN (YUP);
@@ -3940,7 +3973,8 @@ void SUMA_cb_helpIO_notify(Widget w, XtPointer data, XtPointer callData)
    for (ii=0; ii<SUMAg_N_SVv; ++ii) {
       if (!SUMAg_SVv[ii].isShaded && SUMAg_SVv[ii].X->TOPLEVEL) {
          /* you must check for both conditions because by default 
-         all viewers are initialized to isShaded = NOPE, even before they are ever opened */
+         all viewers are initialized to isShaded = NOPE, 
+         even before they are ever opened */
          if (w != SUMAg_SVv[ii].X->HelpMenu[SW_HelpIONotify]) {
             XmToggleButtonSetState (SUMAg_SVv[ii].X->HelpMenu[SW_HelpIONotify], 
                SUMAg_CF->InOut_Notify, NOPE);
@@ -3951,7 +3985,31 @@ void SUMA_cb_helpIO_notify(Widget w, XtPointer data, XtPointer callData)
     
    SUMA_RETURNe; 
 }
-
+void SUMA_setIO_notify(int val)
+{
+   static char FuncName[] = {"SUMA_setIO_notify"};
+   int ii;
+   
+   SUMA_ENTRY;
+   
+   if (val) {SUMA_INOUT_NOTIFY_ON;}
+   else { SUMA_INOUT_NOTIFY_OFF;} 
+   
+   /* must update the state of toggle buttons in otherviewers */
+   for (ii=0; ii<SUMAg_N_SVv; ++ii) {
+      if (!SUMAg_SVv[ii].isShaded && SUMAg_SVv[ii].X->TOPLEVEL) {
+         /* you must check for both conditions because by default 
+         all viewers are initialized to isShaded = NOPE, 
+         even before they are ever opened */
+         {
+            XmToggleButtonSetState (SUMAg_SVv[ii].X->HelpMenu[SW_HelpIONotify], 
+               SUMAg_CF->InOut_Notify, NOPE);
+         }
+      }
+   }
+   
+   SUMA_RETURNe;
+}
 /*!
  function to toggle the Memtrace debugging flag
  - expects nothing
@@ -4029,10 +4087,18 @@ int SUMA_viewSurfaceCont(Widget w, SUMA_SurfaceObject *SO,
       SUMA_RETURN(0);
    }
    
+   
+   if (!sv) {
+      SUMA_LHv("Got to get me an sv for %s\n", SO->Label);
+      if (!(sv = SUMA_BestViewerForSO(SO))) {
+         SUMA_RETURN(0);
+      }
+   }
+   SUMA_LHv("Working surface %s,\n sv %p,\n w  %p\n", SO->Label, w, sv);
+      
    if (!SO->SurfCont->TopLevelShell) {
       if (LocalHead) 
-         fprintf (SUMA_STDERR,
-            "%s: Calling SUMA_cb_createSurfaceCont.\n", FuncName);
+         SUMA_LH("Calling SUMA_cb_createSurfaceCont.");
       if (w) SUMA_cb_createSurfaceCont( w, (XtPointer)SO, NULL);
       else SUMA_cb_createSurfaceCont( sv->X->TOPLEVEL, (XtPointer)SO, NULL);
    }else {
@@ -4061,6 +4127,7 @@ int SUMA_viewSurfaceCont(Widget w, SUMA_SurfaceObject *SO,
       }
 
    }
+   SO->SurfCont->Open = 1;
    
    SUMA_LH("Init SurfParam");
    SUMA_Init_SurfCont_SurfParam(SO);
@@ -4114,7 +4181,10 @@ void SUMA_cb_viewSurfaceCont(Widget w, XtPointer data, XtPointer callData)
    
    SUMA_VIEWER_FROM_VIEWMENU_CALLBACK (data, isv, widtype);
    
-   if (LocalHead) fprintf (SUMA_STDERR,"%s: A call from viewer %d, widget %d.\n", FuncName, isv, widtype);
+   if (LocalHead) 
+      fprintf (SUMA_STDERR,
+               "%s: A call from viewer %d, widget %d.\n", 
+               FuncName, isv, widtype);
    
    sv = &SUMAg_SVv[isv];
    if (sv->Focus_SO_ID >= 0) {
@@ -4736,8 +4806,7 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
 
    #if SUMA_CONTROLLER_AS_DIALOG /* xmDialogShellWidgetClass, 
                                     topLevelShellWidgetClass*/
-   if (LocalHead) 
-      fprintf(SUMA_STDERR, "%s: Creating dialog shell.\n", FuncName);
+   SUMA_LH("Creating dialog shell.");
    
    SO->SurfCont->TopLevelShell = XtVaCreatePopupShell (sss,
       XmNtitle, slabel,
@@ -4746,8 +4815,7 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
       XmNdeleteResponse, XmDO_NOTHING,
       NULL);    
    #else
-   if (LocalHead) 
-      fprintf(SUMA_STDERR, "%s: Creating toplevel shell.\n", FuncName);
+   SUMA_LH("Creating toplevel shell.");
    /** Feb 03/03:    I was using XtVaCreatePopupShell to create a 
                      topLevelShellWidgetClass. 
                      XtVaCreatePopupShell is used to create dialog 
@@ -4772,6 +4840,7 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
       XmInternAtom( dpy , "WM_DELETE_WINDOW" , False ) ,
       SUMA_cb_closeSurfaceCont, (XtPointer) SO) ;
    
+   SUMA_LH("Widgets...");
    /* create a form widget, manage it at the end ...*/
    SO->SurfCont->Mainform = XtVaCreateWidget ("dialog", 
       xmFormWidgetClass, SO->SurfCont->TopLevelShell,
@@ -5265,6 +5334,8 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
                         "Close Surface controller", SUMA_closeSurfaceCont_help);
    }
    
+   SUMA_LH("Management...");
+
    XtManageChild (rc_right);
    XtManageChild (rc_left);
    XtManageChild (rc_mamma);
@@ -5272,7 +5343,8 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
 
    #if SUMA_CONTROLLER_AS_DIALOG    
    #else
-   /** Feb 03/03: pop it up if it is a topLevelShellWidgetClass, you should do the popping after all the widgets have been created.
+   /** Feb 03/03: pop it up if it is a topLevelShellWidgetClass, 
+   you should do the popping after all the widgets have been created.
    Otherwise, the window does not size itself correctly when open */
    XtPopup(SO->SurfCont->TopLevelShell, XtGrabNone);
    #endif
@@ -5281,6 +5353,10 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
    XtRealizeWidget (SO->SurfCont->TopLevelShell);
    
    SUMA_free (slabel);
+
+   /* Mark as open */
+   SO->SurfCont->Open = 1;
+   SUMA_LHv("Marked %s's controller as open.\n", SO->Label);
    
    /* initialize the left side 
       (no need here, that's done in SUMA_cb_viewSurfaceCont)*/
@@ -5291,8 +5367,7 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
    when parent widgets are being resized*/
    if (!SO->Overlays[0]) {
       SUMA_SurfaceObject *SOp=NULL;
-      if (LocalHead) fprintf(SUMA_STDERR,"%s:\n"
-                           "NO Overlays yet for this surface\n", FuncName);
+      SUMA_LH("NO Overlays yet for this surface\n");
       /* happens in very few instances when both child and parent 
       are in the first view and the child is selected before the surface
       controller for that family is ever opened! */
@@ -5308,21 +5383,26 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
    }
    
    if (SO->N_Overlays) {
+      SUMA_LH("Initializing ColPlaneShell");
       SUMA_InitializeColPlaneShell(SO, SO->Overlays[0]);
-      #ifdef DARWIN
+      #ifdef NONONO /* It looks like I do not need this anymore 
+                       Used to be #idef DARWIN */
       /* Sometimes color maps do not show up on mac when you first 
          open the surface controller */
+      SUMA_LH("Darwining");
       SUMA_SwitchColPlaneCmap(SO, SUMA_CmapOfPlane(SO->SurfCont->curColPlane));
       #endif
    }
 
    #if USING_LESSTIF
+   SUMA_LH("Less tif fix");
    /* A quick fix to ensure Dset_Mapping 
       gets displayed properly the first time */
    SUMA_cb_ToggleManagementColPlaneWidget(NULL, (XtPointer)(&SO), NULL);
    SUMA_cb_ToggleManagementColPlaneWidget(NULL, (XtPointer)(&SO), NULL);
    #endif
 
+   SUMA_LH("going home.");
    SUMA_RETURNe;
 }
 
@@ -5339,7 +5419,7 @@ void SUMA_cb_closeSurfaceCont(Widget w, XtPointer data, XtPointer callData)
    
    SO = (SUMA_SurfaceObject *)data;
    
-   if (!SO->SurfCont->TopLevelShell) SUMA_RETURNe;
+   if (!SO->SurfCont->TopLevelShell || !SO->SurfCont->Open) SUMA_RETURNe;
 
    switch (SUMA_GL_CLOSE_MODE)   {/* No open GL drawables in this widget*/
       case SUMA_WITHDRAW:
@@ -5369,6 +5449,7 @@ void SUMA_cb_closeSurfaceCont(Widget w, XtPointer data, XtPointer callData)
          break;
    }
 
+   SO->SurfCont->Open = 0;
     
    SUMA_RETURNe;
 
@@ -12079,16 +12160,15 @@ SUMA_Boolean SUMA_InitializeXformInterface (SUMA_XFORM *xf)
    
    SUMA_ENTRY;
    
+   if (LocalHead) SUMA_DUMP_TRACE("who's calling?");
+   
    if (!xf) {
       if (LocalHead) 
          fprintf (SUMA_STDERR, "%s: Initializing with NULL.\n", FuncName);
-      
    }else {
-      SUMA_S_Note("Need to set the title bar");
       if (LocalHead) 
          fprintf (SUMA_STDERR, 
                   "%s: Initializing with %p.\n", FuncName, xf);
-      
       
       /* generic stuff */
       XmToggleButtonSetState( xf->gui->Active_tb, xf->active, NOPE);
@@ -12113,6 +12193,8 @@ SUMA_Boolean SUMA_InitializeXformInterface (SUMA_XFORM *xf)
          }
          SUMA_SET_LABEL(xf->gui->ParentLabel_lb, sbuf);
          
+         if (LocalHead) SUMA_ShowNel(xf->XformOpts);
+         
          if ((dotopts = SUMA_FindNgrNamedElement(xf->XformOpts, "dotopts"))) {
             NI_GET_FLOAT(dotopts, "filter_below", (xf->gui->AF0->value));
             sprintf(sbuf, "%.3f", (xf->gui->AF0->value));
@@ -12123,7 +12205,8 @@ SUMA_Boolean SUMA_InitializeXformInterface (SUMA_XFORM *xf)
             NI_GET_INT(dotopts, "polort", (xf->gui->AF2->value));
             sprintf(sbuf, "%d", (int)(xf->gui->AF2->value));
             SUMA_SET_TEXT_FIELD(xf->gui->AF2->textfield,sbuf); 
-         }else {
+         } else {
+            SUMA_DUMP_TRACE("No dotopts");
             SUMA_S_Err("No dotopts!");
             SUMA_RETURNe;
          }
@@ -13059,6 +13142,65 @@ void SUMA_CreateXformInterface(SUMA_XFORM *xf)
    SUMA_RETURNe;
 
 }      
+/*!
+   \brief Supposed to suggest a good wildcard string
+   \param filetype: Not used now. It should be used to 
+                    tell whether the wildcard is for a dataset
+                    or a surface, etc.
+   \param SO
+   \param wild[]: a char string to contain the wildcard
+   Function needs lots of work
+*/
+SUMA_Boolean SUMA_WildcardChoice(int filetype, 
+                  SUMA_SurfaceObject *SO, char wild[]) 
+{
+   static char FuncName[]={"SUMA_WildcardChoice"};
+   char *eeel = NULL;
+   char *eeer = NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!SO) SUMA_RETURN(NOPE);
+   
+   /* default */
+   switch (filetype) {
+      case 1: /* dsets */
+         eeel = getenv("SUMA_LEFT_FILE_DSET_IDENTIFIER");
+         eeer = getenv("SUMA_RIGHT_FILE_DSET_IDENTIFIER");
+         snprintf(wild, sizeof(char)*64, "*.dset");
+         if (SO->Side == SUMA_LEFT ) {
+            if (eeel) snprintf(wild, sizeof(char)*64,"%s", eeel);
+         } else if (SO->Side == SUMA_RIGHT) {
+            if (eeer) snprintf(wild, sizeof(char)*64,"%s", eeer);
+         }
+         break;
+      case 2: /* rois */
+         eeel = getenv("SUMA_LEFT_FILE_ROI_IDENTIFIER");
+         eeer = getenv("SUMA_RIGHT_FILE_ROI_IDENTIFIER");
+         snprintf(wild, sizeof(char)*64,"*.roi");
+         if (SO->Side == SUMA_LEFT ) {
+            if (eeel) snprintf(wild, sizeof(char)*64,"%s", eeel);
+         } else if (SO->Side == SUMA_RIGHT) {
+            if (eeer) snprintf(wild, sizeof(char)*64,"%s", eeer);
+         }
+         break;
+      default: /* anything bloke */
+         eeel = getenv("SUMA_LEFT_FILE_OTHER_IDENTIFIER");
+         eeer = getenv("SUMA_RIGHT_FILE_OTHER_IDENTIFIER");
+         snprintf(wild, sizeof(char)*64,"*");
+         if (SO->Side == SUMA_LEFT ) {
+            if (eeel) snprintf(wild, sizeof(char)*64,"%s", eeel);
+         } else if (SO->Side == SUMA_RIGHT) {
+            if (eeer) snprintf(wild, sizeof(char)*64,"%s", eeer);
+         }
+         break;
+   }
+   
+   SUMA_LH(wild);
+   SUMA_RETURN(YUP); 
+
+}
 
 
 /*
