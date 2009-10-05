@@ -3064,9 +3064,11 @@ SUMA_CALLBACK *SUMA_NewCallback  (char *FunctionName,
    NI_element *nel=NULL;
    SUMA_CALLBACK *cb = NULL;
    char stmp[256];
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
+   SUMA_LH("Checks");
    if (!parent_idcode || !FunctionName ||
        strlen(FunctionName) > 125  ) SUMA_RETURN(cb);
    
@@ -3081,6 +3083,7 @@ SUMA_CALLBACK *SUMA_NewCallback  (char *FunctionName,
       SUMA_RETURN(cb);
    }
    
+   SUMA_LH("New callback");
    cb = (SUMA_CALLBACK *)calloc(1,sizeof(SUMA_CALLBACK));
    
    cb->event = event;
@@ -3090,10 +3093,13 @@ SUMA_CALLBACK *SUMA_NewCallback  (char *FunctionName,
    strcpy(cb->FunctionName, FunctionName); 
    cb->FunctionPtr = FunctionPtr;
    
+   SUMA_LH("Func input");
    cb->FunctionInput = NI_new_group_element();
-   snprintf(stmp,sizeof(char*)*64,"input.%s",FunctionName);
+   SUMA_LH(FunctionName);
+   snprintf(stmp,sizeof(char)*64,"input.%s",FunctionName);
    NI_rename_group(cb->FunctionInput, stmp);
    
+   SUMA_LH("defaults");
    /* Set defaults for generic parameters */
    nel = NI_new_data_element("event_parameters", 0); 
    NI_add_to_group(cb->FunctionInput, nel);
@@ -3101,7 +3107,7 @@ SUMA_CALLBACK *SUMA_NewCallback  (char *FunctionName,
    NI_set_attribute(nel, "event.SO_idcode", "");
    NI_set_attribute(nel,"event.overlay_name", "");
   
-   
+   SUMA_LH("Adding parent"); 
    if (!SUMA_AddCallbackParent(cb, parent_idcode, parent_domain)){
       SUMA_S_Err("Failed to add parent");
       SUMA_RETURN(NOPE);
