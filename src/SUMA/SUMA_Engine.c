@@ -49,7 +49,7 @@ extern int SUMAg_N_SVv;
 SUMA_Boolean SUMA_Engine (DList **listp)
 {
    static char FuncName[]={"SUMA_Engine"};
-   char tmpstr[100], sfield[100], sdestination[100];
+   char tmpstr[128], sfield[100], sdestination[100];
    const char *NextCom;
    int NextComCode, ii, i, id, ND, ip, NP, itmp=-1;
    SUMA_SurfaceObject *SO = NULL;
@@ -1586,14 +1586,19 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             }
          
          case SE_SetAfniThisSurf:
-            /* expects an idcode_str in EngineData->cp and what needs to be sent in EngineData->s for surface to be sent to AFNI */
+            /* expects an idcode_str in EngineData->cp and what needs to be sent 
+               in EngineData->s for surface to be sent to AFNI */
             {
                SUMA_IVEC ivec;
                if (EngineData->s_Dest != NextComCode || 
                   EngineData->cp_Dest != NextComCode || 
                   EngineData->i_Dest != NextComCode) {
-                  fprintf (SUMA_STDERR,"Error %s: Data not destined correctly for %s ((%d %d %d) %d).\n",
-                     FuncName, NextCom,  EngineData->s_Dest, EngineData->cp_Dest, EngineData->i_Dest, NextComCode);
+                  fprintf (SUMA_STDERR,
+                           "Error %s: Data not destined correctly for %s \n"
+                           "((%d %d %d) %d).\n",
+                     FuncName, NextCom,  
+                     EngineData->s_Dest, EngineData->cp_Dest, 
+                     EngineData->i_Dest, NextComCode);
                   break;
                }
                i = SUMA_findSO_inDOv(EngineData->cp, SUMAg_DOv, SUMAg_N_DOv);
@@ -1609,20 +1614,22 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                                                       SEF_ivec, (void *)(&ivec), 
                                                       SES_Suma, (void *)sv, NOPE, 
                                                       SEI_Tail, NULL))) {
-                  fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
+                  fprintf( SUMA_STDERR,
+                           "Error %s: Failed to register element\n", FuncName);
                   break;
                }
                if (!(LocElm = SUMA_RegisterEngineListCommand (  list, ED,
-                                                      SEF_s, (void *)(EngineData->s), 
-                                                      SES_Suma, (void *)sv, NOPE, 
-                                                      SEI_In, LocElm))) {
-                  fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
+                                                SEF_s, (void *)(EngineData->s), 
+                                                SES_Suma, (void *)sv, NOPE, 
+                                                SEI_In, LocElm))) {
+                  fprintf( SUMA_STDERR,
+                           "Error %s: Failed to register element\n", FuncName);
                   break;
                }
                if (!(LocElm = SUMA_RegisterEngineListCommand (  list, ED,
-                                                         SEF_i, (void *)&(EngineData->i), 
-                                                         SES_Suma, (void *)sv, NOPE, 
-                                                         SEI_In, LocElm))) {
+                                                SEF_i, (void *)&(EngineData->i), 
+                                                SES_Suma, (void *)sv, NOPE, 
+                                                SEI_In, LocElm))) {
                   fprintf(SUMA_STDERR,
                           "Error %s: Failed to register element\n", FuncName);
                   break;
@@ -1675,7 +1682,11 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             } else {
                /* ignore -1, used in initializations */
                if (EngineData->i != -1) { 
-                  SUMA_SLP_Err("Node index < 0 || > Number of nodes in surface");                }
+                  snprintf(tmpstr,80*sizeof(char), 
+                        "Node index (%d) < 0 || > Number of surface nodes (%d)",
+                        EngineData->i, SO->N_Node);
+                  SUMA_SLP_Err(tmpstr);                
+               }
                break;
             }
             
