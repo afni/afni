@@ -10315,16 +10315,20 @@ void SUMA_PositionWindowRelative (  Widget New, Widget Ref,
       case SWP_POINTER:
          {
             Window root, child, wind;
-            int root_x, root_y, win_x, win_y;
+            int root_x, root_y, win_x, win_y, isv;
             unsigned int keys_buttons;
             SUMA_LH("Pointer Query 1");
             if (!XtIsRealized(New)) {
                SUMA_LH("Need new wind");
-               if (!XtIsRealized(SUMAg_SVv[0].X->GLXAREA)) {
+               isv = 0;
+               while (isv < SUMAg_N_SVv &&
+                      !XtIsRealized(SUMAg_SVv[isv].X->GLXAREA)) ++isv;
+               if (isv < SUMAg_N_SVv) {
+                  wind = XtWindow(SUMAg_SVv[isv].X->GLXAREA);
+               } else {
                   SUMA_SL_Err("Nothing to work with here!");
                   SUMA_RETURNe;
                }
-               wind = XtWindow(SUMAg_SVv[0].X->GLXAREA);
             } else {
                wind = XtWindow(New);
             }

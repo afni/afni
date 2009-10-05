@@ -6560,7 +6560,8 @@ int SUMA_AFNI_Extract_Colors ( char *fname, SUMA_AFNI_COLORS *SAC )
    int    nbuf , nused , ii, ngood = -1;
    float rgb[3]={0.0, 0.0, 0.0};
    char * fbuf , * fptr ;
-   char str[SUMA_NSBUF]="\0" , left[SUMA_NSBUF]="\0" , middle[SUMA_NSBUF]="\0" , right[SUMA_NSBUF]="\0" ;
+   char str[SUMA_NSBUF]="\0" , left[SUMA_NSBUF]="\0" , 
+         middle[SUMA_NSBUF]="\0" , right[SUMA_NSBUF]="\0" ;
    SUMA_STRING *SS = NULL;
    SUMA_COLOR_MAP *CM=NULL;
    SUMA_Boolean LocalHead = NOPE;
@@ -6657,21 +6658,27 @@ int SUMA_AFNI_Extract_Colors ( char *fname, SUMA_AFNI_COLORS *SAC )
 
          while(1){
             SUMA_GETSTR ; if( SUMA_ISTARRED(str) ) goto SkipSection ;
-            if( fptr-fbuf >= nbuf ){ if (fbuf) free(fbuf) ; fbuf = NULL; SUMA_RETURN(-1) ; }
+            if( fptr-fbuf >= nbuf ){ 
+               if (fbuf) free(fbuf) ; fbuf = NULL; SUMA_RETURN(-1) ; 
+            }
 
             if( str[0] != '[' ){                     /* found a palette label */
                strcpy(label,str) ;
                if( !THD_filename_ok(label) ){
-                  fprintf(SUMA_STDERR,"Error %s: In setup file %s, bad palette label: %s.\n Ignoring palette.\n",
+                  fprintf( SUMA_STDERR,
+                           "Error %s: In setup file %s, bad palette label: %s.\n"
+                           " Ignoring palette.\n",
                           FuncName, fname,label) ;
                   if (fbuf) free(fbuf) ; fbuf = NULL; 
                   SUMA_RETURN(-1) ;
                }
                
                if (LocalHead) {
-                  fprintf (SUMA_STDERR,"%s: found palette label=%s. [len=%d label[0]=%d]\nnbuf=%d fptr-fbuf=%d\n", 
+                  fprintf (SUMA_STDERR,
+                           "%s: found palette label=%s. [len=%d label[0]=%d]\n"
+                           "nbuf=%d fptr-fbuf=%ld\n", 
                      FuncName, label,(int)strlen(label),(int)label[0],
-                     nbuf,fptr-fbuf);
+                     nbuf, fptr-fbuf);
                }
                
 
