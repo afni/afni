@@ -1065,7 +1065,7 @@ int SUMA_D_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                /* xform exists already, just flip toggle of all callbacks 
                   that claim it as a creator*/
                SUMA_SetXformActive(xf, -1*xf->active, 0);
-               
+
                if (callmode && strcmp(callmode, "interactive") == 0) {
                   if (xf->active > 0) {
                      SUMA_SLP_Note("Dot product callback active");
@@ -1254,11 +1254,12 @@ int SUMA_D_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                /* done with ts */
                SUMA_free(ts); ts = NULL;
                
+               /* add the dotoptions to the transform options group */
+               NI_add_to_group(xf->XformOpts, dotopts);
+
                /* activate xform */
                SUMA_SetXformActive(xf, 1, 0);
                
-               /* add the dotoptions to the transform options group */
-               NI_add_to_group(xf->XformOpts, dotopts);
                
                SUMA_LH("Add Callback ");
                /* generic parts */
@@ -3150,16 +3151,20 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
          case XK_S:
             if (SUMAg_CF->Dev) {
                int *do_id, n_do_id;
-               do_id = SUMA_GetDO_Type(SUMAg_DOv, SUMAg_N_DOv, SO_type, &n_do_id);
+               do_id = SUMA_GetDO_Type(SUMAg_DOv, SUMAg_N_DOv, 
+                                       SO_type, &n_do_id);
                if (n_do_id) {
                   while (n_do_id) {
-                     SUMA_Print_Surface_Object((SUMA_SurfaceObject *)SUMAg_DOv[do_id[n_do_id-1]].OP, stdout);
+                     SUMA_Print_Surface_Object(
+                        (SUMA_SurfaceObject *)SUMAg_DOv[do_id[n_do_id-1]].OP,
+                        stdout);
                      --n_do_id;
                   }
                   SUMA_free(do_id);
                }
                break;
             }
+            
          case XK_s:
             if ((SUMA_ALTHELL) && (Kev.state & ControlMask) ){
                if (!list) list = SUMA_CreateList();
@@ -3168,26 +3173,34 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                                           SEF_ip, sv->X->TOPLEVEL,
                                           SES_Suma, (void *)sv, NOPE,
                                           SEI_Head, NULL)) {
-                  fprintf (SUMA_STDERR, "Error %s: Failed to register command.\n", FuncName);
+                  fprintf (SUMA_STDERR, 
+                           "Error %s: Failed to register command.\n", FuncName);
                }
                if (!SUMA_Engine (&list)) {
-                     fprintf(SUMA_STDERR, "Error %s: SUMA_Engine call failed.\n", FuncName);
+                     fprintf( SUMA_STDERR, 
+                              "Error %s: SUMA_Engine call failed.\n", 
+                              FuncName);
                }               
    
             } else if (SUMA_ALTHELL){
                /* swap buttons 1 and 3 */
                SUMAg_CF->SwapButtons_1_3 = !SUMAg_CF->SwapButtons_1_3;
                if (SUMAg_CF->SwapButtons_1_3) {
-                  fprintf (SUMA_STDOUT,"%s: Buttons 1 and 3 are swapped.\n", FuncName);
+                  fprintf (SUMA_STDOUT,
+                           "%s: Buttons 1 and 3 are swapped.\n", FuncName);
                } else {
-                  fprintf (SUMA_STDOUT,"%s: Default functions for buttons 1 and 3.\n", FuncName);
+                  fprintf (SUMA_STDOUT,
+                           "%s: Default functions for buttons 1 and 3.\n", 
+                           FuncName);
                }               
             } else if (SUMAg_CF->Dev) {
                #if 0
                /** Feb 03/03 No longer in use.*/
                for (ii=0; ii< sv->N_DO; ++ii) {
-                  if (SUMA_isSO(SUMAg_DOv[sv->RegisteredDO[ii]])) 
-                     SUMA_Print_Surface_Object((SUMA_SurfaceObject*)SUMAg_DOv[sv->RegisteredDO[ii]].OP, stdout);
+                  if (SUMA_isSO(SUMAg_DOv[sv->RegisteredDO[ii]]))
+                     SUMA_Print_Surface_Object(
+                        (SUMA_SurfaceObject*)SUMAg_DOv[sv->RegisteredDO[ii]].OP,
+                        stdout);
                }
                #endif
             }
@@ -3232,29 +3245,37 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                                                    SEF_vp, (void *)SO,
                                                    SES_Suma, (void *)sv, NOPE,
                                                    SEI_Head, NULL))) {
-                     fprintf (SUMA_STDERR, "Error %s: Failed to register command.\n", FuncName);
+                     fprintf (SUMA_STDERR, 
+                              "Error %s: Failed to register command.\n", 
+                              FuncName);
                   }
             
                   if (!SUMA_RegisterEngineListCommand (  list, ED,
                                              SEF_ip, sv->X->TOPLEVEL,
                                              SES_Suma, (void *)sv, NOPE,
                                              SEI_In, NextElm)) {
-                     fprintf (SUMA_STDERR, "Error %s: Failed to register command.\n", FuncName);
+                     fprintf (SUMA_STDERR, 
+                              "Error %s: Failed to register command.\n", 
+                              FuncName);
                   }  
             
                   if (!SUMA_Engine (&list)) {
-                     fprintf(SUMA_STDERR, "Error %s: SUMA_Engine call failed.\n", FuncName);
+                     fprintf( SUMA_STDERR, 
+                              "Error %s: SUMA_Engine call failed.\n", FuncName);
                   }
                }
             }
             break;
 
          case XK_w:
-            SUMA_SLP_Warn("Option 'w' no longer supported.\nUse 'R' or 'r' instead.");
+            SUMA_SLP_Warn( "Option 'w' no longer supported.\n"
+                           "Use 'R' or 'r' instead.");
             #if 0
-               fprintf(SUMA_STDOUT,"%s: Began rendering to file. Please wait ...\n", FuncName);
+               fprintf(SUMA_STDOUT,
+                  "%s: Began rendering to file. Please wait ...\n", FuncName);
                if (!SUMA_RenderToPixMap (sv, SUMAg_DOv)) {
-                  fprintf(SUMA_STDERR, "Error %s: Failed to write image.\n", FuncName);
+                  fprintf(SUMA_STDERR, 
+                           "Error %s: Failed to write image.\n", FuncName);
                } 
             #endif
             break;

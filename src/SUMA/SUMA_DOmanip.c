@@ -2610,7 +2610,10 @@ SUMA_Boolean SUMA_SetXformActive(SUMA_XFORM *xf, int active, int fromgui)
                   XtWindow(xf->gui->AppShell));
    }
    
-   if (!fromgui) {
+   if (0 && !fromgui) { /* not sure why I have this here. 
+                           SUMA_InitializeXformInterface is called in SUMA_D_Key,
+                           which is the function called in both GUI and non GUI 
+                           modes... */
       /* initialize the gui */
       SUMA_InitializeXformInterface(xf);
    }

@@ -86,6 +86,7 @@ void WorkErrLog_ns(void)
    int LocalHead = 0;
    DListElmt *del=NULL;
    SUMA_ERRLOG *el=NULL;
+   char mmm[256];
    del = SUMA_PopErrLog(NULL);
    while (del) {
       el = (SUMA_ERRLOG *)del->data;
@@ -103,7 +104,8 @@ void WorkErrLog_ns(void)
       else if (!strcmp(el->macroname,"SL_Crit")) { SUMA_SL_Crit(el->msg); }
       else if (!strcmp(el->macroname,"SLP_Crit")) { SUMA_SLP_Crit(el->msg); }
       else {
-         sprintf(FuncName, "%s", "WorkErrLog_ns"); SUMA_S_Err("Bad macroname");
+         snprintf(mmm, 255*sizeof(char), "Bad macroname %s", el->macroname); 
+         sprintf(FuncName, "%s", "WorkErrLog_ns"); SUMA_S_Err(mmm);
       }
       del = SUMA_PopErrLog(del);
    }
@@ -5326,6 +5328,7 @@ int SUMA_GetNodeRow_FromNodeIndex_eng(SUMA_DSET *dset, int node, int N_Node)
    int Found = -1, i, *NodeDef=NULL;
    double dval=0.0;
    char *str=NULL;
+   char mmm[256];
    NI_element *nel = NULL;
    SUMA_Boolean LocalHead = NOPE;
    
@@ -5334,7 +5337,16 @@ int SUMA_GetNodeRow_FromNodeIndex_eng(SUMA_DSET *dset, int node, int N_Node)
    
    if (!dset || node < 0 || (N_Node >=0 && node >= N_Node)) {
       /* turn this warning off once you confirm that Shane's bug is gone */
-      if (LocalHead) SUMA_PushErrLog("S_Warn", "Strange input, returning -1.", FuncName);
+      /* Note that -1 is a flag for an unitialized node, so it is benign */
+      if (LocalHead) {
+         snprintf(mmm,
+                 255*sizeof(char),
+                  "Strange input, dset %p, node %d, N_Node %d. returning -1.",
+                 dset, node, N_Node);
+         
+         SUMA_PushErrLog("SL_Warn", mmm, FuncName);
+         SUMA_DUMP_TRACE("At the strange input");
+      }
       SUMA_RETURN(-1);
    }
    
@@ -5346,7 +5358,8 @@ int SUMA_GetNodeRow_FromNodeIndex_eng(SUMA_DSET *dset, int node, int N_Node)
    #if 0
    /* DO NOT DELETE, SEE BELOW */
    /* try the fast one */
-   /* This would fail if data are not ordered such that row(i) is the data for node i */
+   /* This would fail if data are not ordered such that row(i) is 
+      the data for node i */
    SUMA_LH( "Trying the fast one");
    if (nel->vec_len == nel->vec_filled && nel->vec_len == N_Node) {
       SUMA_RETURN(node);
@@ -5368,7 +5381,13 @@ int SUMA_GetNodeRow_FromNodeIndex_eng(SUMA_DSET *dset, int node, int N_Node)
       }
       /* explicit search */
       SUMA_LH("Explicit");
-      if (nel->vec_filled > N_Node) {
+      if (N_Node >= 0 && nel->vec_filled > N_Node) { 
+                                 /* Sometimes N_Node is not set (-1)*/
+         if (LocalHead) {
+            fprintf( SUMA_STDERR,
+                  "Error %s: nel->vec_filled (%d) > (%d) N_Node\n",
+                  FuncName, nel->vec_filled, N_Node); 
+         }
          SUMA_PushErrLog("SL_Err",
                          "Unexpected error nel->vec_filled > N_Node", 
                          FuncName);
@@ -5627,8 +5646,8 @@ void *SUMA_GetDsetAllNodeValsInCols2(SUMA_DSET *dset,
    
    if (!dset || !dset->dnel) { SUMA_SL_Err("NULL input"); SUMA_RETURN(resv); }
    noderow = SUMA_GetNodeRow_FromNodeIndex_eng (dset, node, iNodeMax);
-   if (noderow < 0) { /* SUMA_SL_Err("Bad node index"); 
-                        keep quiet, can happen*/ 
+   if (noderow < 0) {   SUMA_LH("Could not get node row\n"
+                                " This can happen in benign cases"); 
                         SUMA_RETURN(resv); }
    if ( tp != SUMA_float &&
         tp != SUMA_double &&

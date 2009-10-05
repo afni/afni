@@ -68,6 +68,14 @@ void SUMA_Show_Clip_Planes (SUMA_CommonFields *cf, FILE *out);
 float SUMA_sv_fov_original(SUMA_SurfaceViewer *sv);
 SUMA_SurfaceViewer *SUMA_OneViewerWithSOinFocus(
                               SUMA_SurfaceObject *curSO);
+SUMA_SurfaceViewer *SUMA_OneViewerWithSOVisible(
+                              SUMA_SurfaceObject *curSO);
+SUMA_SurfaceViewer *SUMA_OneViewerWithSORegistered(
+                              SUMA_SurfaceObject *curSO);
+SUMA_SurfaceViewer *SUMA_BestViewerForSO(
+                              SUMA_SurfaceObject *curSO);
+
+
 
 
 

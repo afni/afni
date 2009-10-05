@@ -31,9 +31,11 @@ void usage_AnalyzeTrace (SUMA_GENERIC_ARGV_PARSE *ps)
 "Optional Param:\n"
 "   -max_func_lines N: Set the maximum number of code lines before a function\n"
 "                      returns. Default is no limit.\n"
-"   -suma_c: FILE is a SUMA_*.c file. It is analyzed for functions that use SUMA_ RETURN \n"
+"   -suma_c: FILE is a SUMA_*.c file. It is analyzed for functions \n"
+"            that use SUMA_ RETURN \n"
 "            (typo on purpose to avoid being caught here) without ENTRY\n"
-"       Note: The file for this program has special strings (in comments at times)\n"
+"       Note: The file for this program has special strings \n"
+"            (in comments at times)\n"
 "            to avoid false alarms when processing it.\n"
 "            \n"
 "   -max_err MAX_ERR: Stop after encountering MAX_ERR errors\n"
@@ -64,6 +66,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_AnalyzeTrace_ParseInput(char *argv[], int
    Opt->N_it = 10000000;
    Opt->obj_type = 0;
    Opt->N_XYZ = 5;
+   Opt->debug = 0;
    kar = 1;
    brk = NOPE;
 	while (kar < argc) { /* loop accross command ine options */
@@ -155,7 +158,9 @@ void SUMA_ShowTraceStack(SUMA_TRACE_STRUCT *TS, int its, char *head) {
    }
    for (i=0; i<its; ++i) {
       for (j=0; j<i; ++j) { fprintf(SUMA_STDERR, "  "); }
-      fprintf(SUMA_STDERR, "func %s: file %s: line %d: level %d: io %d\n", TS[i].func, TS[i].file, TS[i].line, TS[i].level, TS[i].io);
+      fprintf(SUMA_STDERR, 
+               "func %s: file %s: line %d: level %d: io %d\n", 
+               TS[i].func, TS[i].file, TS[i].line, TS[i].level, TS[i].io);
    } 
    if (its==0) {
       fprintf(SUMA_STDERR, "Stack empty.\n");
@@ -166,7 +171,8 @@ void SUMA_ShowTraceStack(SUMA_TRACE_STRUCT *TS, int its, char *head) {
 }
 
 
-char *SUMA_NextEntry(char *ss, int *level, int *io, char *func, char *file, int *line, int *error) {
+char *SUMA_NextEntry(char *ss, int *level, int *io, char *func, 
+                     char *file, int *line, int *error) {
    static char FuncName[]={"SUMA_NextEntry"};
    char *ss_tmp = NULL;
    int cnt = 0, found = 0;
@@ -224,7 +230,8 @@ char *SUMA_NextEntry(char *ss, int *level, int *io, char *func, char *file, int 
       fprintf(SUMA_STDERR, "%s:\n"
                            "func is empty at:\n", FuncName);
       ss_tmp = ss_entry;
-      while (ss_tmp < ss_level) { fprintf(SUMA_STDERR, "%c", *ss_tmp); ++ss_tmp; }
+      while (ss_tmp < ss_level) { 
+         fprintf(SUMA_STDERR, "%c", *ss_tmp); ++ss_tmp; }
       fprintf(SUMA_STDERR, "\n");
    }
    
@@ -256,17 +263,16 @@ char *SUMA_NextEntry(char *ss, int *level, int *io, char *func, char *file, int 
       SUMA_RETURN(ss);
    }
    *line = (int)num;
-   if (LocalHead) {
-      fprintf(SUMA_STDERR, "%s:\n"
-                           "funcname: %s\n"
-                           "file: %s\n"
-                           "line: %d\n"
-                           "io: %d\n"
-                           "level: %d\n", FuncName, func, file, *line, *io, *level);
+   SUMA_LHv("funcname: %s\n"
+            "file: %s\n"
+            "line: %d\n"
+            "io: %d\n"
+            "level: %d\n", 
+            func, file, *line, *io, *level);
                           
-   }
    #if 0
-   /* skip the muck until next + or - that is preceeded by new line or followed by ENTRY or EXIT on the same line*/
+   /* skip the muck until next + or - that is preceeded by new 
+   line or followed by ENTRY or EXIT on the same line*/
    ss = ss_level;
    while (*ss != '\0') {
       if (*ss == '+' || *ss == '-') {
@@ -283,28 +289,40 @@ char *SUMA_NextEntry(char *ss, int *level, int *io, char *func, char *file, int 
       ++ss;
    }
    #else
-   /* skip the muck until next + or - that is followed with no sign reversal by ENTRY or EXIT on the same line */
+   /* skip the muck until next + or - that is followed with no sign 
+   reversal by ENTRY or EXIT on the same line */
    ss = ss_level;
    while (*ss != '\0') {
       if (*ss == '+' || *ss == '-') { /* pluging in */
          char *pti=ss, *pt=ss, sgn=*ss, *pti_retry; int fnd = 0, lll, good;
-         while (!SUMA_IS_LINE_END(*pt) && *pt != '\0') ++pt;   /* move till end of line */
-         SUMA_ADVANCE_PAST(pti, pt, "ENTRY", fnd, 1);             /* find entry? */
+         while (!SUMA_IS_LINE_END(*pt) && *pt != '\0') ++pt;   
+                                          /* move till end of line */
+         SUMA_ADVANCE_PAST(pti, pt, "ENTRY", fnd, 1);             
+                                          /* find entry? */
          if (!fnd) SUMA_ADVANCE_PAST(pti, pt, "EXIT", fnd, 1);    /* or EXIT ? */
-         if (fnd) { /* ENTRY or EXIT found on line, make sure there is no other sign ahead */
-            while(*pti != '[') --pti;  /* Now back from ENTRY of EXIT until square bracket is met */   
+         if (fnd) { /* ENTRY or EXIT found on line, make sure there is 
+                     no other sign ahead */
+            while(*pti != '[') --pti;  /* Now back from ENTRY of EXIT 
+                                          until square bracket is met */   
             SUMA_ADVANCE_PAST_INT(pti, lll, fnd); /* Now read the level */
             good = 0;
             do {
-               while(pti > ss_init && *pti != '+' && *pti != '-') --pti; /* go back to first sign */
+               while(pti > ss_init && *pti != '+' && *pti != '-') --pti; 
+                                                   /* go back to first sign */
                if (pti < ss_init) {
-                  SUMA_S_Err("Parsing error, number of consecutive + or - does not match level");
+                  SUMA_S_Err( "Parsing error, number of consecutive "
+                              "+ or - does not match level");
                   SUMA_RETURN(ss_init);
                }
-               pti_retry = pti-1; /* store location to continue from if sign is bad news */
-               /*fprintf(SUMA_STDERR,"Level %d, *pti = %c, *(pti-lll+1)=%c\n", lll, *pti, *(pti-lll+1)); */
-               if (*(pti-lll+1) == *pti) { ; /* if the sign level characters back the same, then accept it */
-                  ss = pti = pti-lll; /* put ss at beginning of sign and get out */
+               pti_retry = pti-1; 
+                        /* store location to continue from if sign is bad news */
+               if (LocalHead) fprintf(SUMA_STDERR,
+                                    "Level %d, *pti = %c, *(pti-lll+1)=%c\n", 
+                                     lll, *pti, *(pti-lll+1)); 
+               if (*(pti-lll+1) == *pti) { ; 
+                     /* if the sign level characters back the same, 
+                           then accept it */
+                  ss = pti = pti-lll; /*put ss at beginning of sign and get out*/
                   good = 1;
                   break;
                } else { /* sign we went back to is bad, go beyond it */
@@ -315,7 +333,7 @@ char *SUMA_NextEntry(char *ss, int *level, int *io, char *func, char *file, int 
             if (good) break; /* from outer while*/
          }        
       }
-      /* fprintf(SUMA_STDERR,"%c   ", *ss); */
+      if (LocalHead) fprintf(SUMA_STDERR,"%c   ", *ss); 
       ++ss;
    }
    #endif
@@ -325,11 +343,13 @@ char *SUMA_NextEntry(char *ss, int *level, int *io, char *func, char *file, int 
    if (strstr(ss_init,"Error")) *error = 1;
    else if (strstr(ss_init,"error")) *error = 1;
    else if (strstr(ss_init,"corruption")) *error = 1;
-   else if (strstr(ss_init,"Deallocation") && strstr(ss_init,"pointer") && strstr(ss_init,"not") && strstr(ss_init,"malloced")) *error = 1;
+   else if (strstr(ss_init,"Deallocation") && 
+            strstr(ss_init,"pointer") && strstr(ss_init,"not") && 
+            strstr(ss_init,"malloced")) *error = 1;
    else *error = 0;
    
    *ss = ctmp;
-   
+   SUMA_LHv("Returning with %p", ss);
    SUMA_RETURN(ss);
 }
 
@@ -376,6 +396,7 @@ int SUMA_AnalyzeTraceFunc(char *fname, SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt) {
    do {
       flc = fln; /* set current location */
       fln = SUMA_NextEntry(flc, &level, &io, func, file, &line, &error) ;
+      SUMA_S_Notev("flc=%p, fln=%p\n", flc, fln);
       if (fln == flc) {
          SUMA_S_Note("\nDone Checking.\n"
                      "Trace looks OK \n"
@@ -415,11 +436,16 @@ int SUMA_AnalyzeTraceFunc(char *fname, SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt) {
                TS[its].line = line;
                ++its;
                if (error) {
-                  sprintf(stmp,"\n"
-                               "Encountered %d%s error here in this chunk: %s:%d\n"
-                               "----------------------------------------\n", 
-                               N_error+1, SUMA_COUNTER_SUFFIX((N_error+1)), fname, SUMA_LineNumbersFromTo(fl, flc)+2);
+                  sprintf(stmp,
+                         "\n"
+                         "Encountered %d%s error here in this chunk: %s:%d\n"
+                         "------------------(%p-->%p) ----------------------\n", 
+                         N_error+1, SUMA_COUNTER_SUFFIX((N_error+1)), 
+                         fname, SUMA_LineNumbersFromTo(fl, flc)+2,
+                         flc, fln);
+                  SUMA_S_Note("Show begin");
                   SUMA_ShowFromTo(flc, fln, stmp);
+                  SUMA_S_Note("Show end");
                   SUMA_ShowTraceStack(TS, its,"Stack at error reported in log:\n");
                   fprintf(SUMA_STDERR, "\n\n");
                   ++N_error;

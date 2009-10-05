@@ -1537,7 +1537,7 @@ int SUMA_WhichSV (SUMA_SurfaceViewer *sv, SUMA_SurfaceViewer *SVv, int N_SVv)
 }
 
 /* return 1st viewer that is open and has a 
-   particular surface visible
+   particular surface visible AND in focus
 */
 SUMA_SurfaceViewer *SUMA_OneViewerWithSOinFocus(
                               SUMA_SurfaceObject *curSO)
@@ -1562,6 +1562,81 @@ SUMA_SurfaceViewer *SUMA_OneViewerWithSOinFocus(
       }
    }
 
+   SUMA_RETURN(sv);
+}
+
+SUMA_SurfaceViewer *SUMA_OneViewerWithSOVisible(
+                              SUMA_SurfaceObject *curSO)
+{  
+   static char FuncName[]={"SUMA_OneViewerWithSOVisible"};
+   int i=0;
+   SUMA_SurfaceViewer *sv=NULL;
+   
+   SUMA_ENTRY;
+
+   /* look for 1st viewer that is showing this 
+      surface and has this surface in focus*/
+   for (i=0; i<SUMAg_N_SVv; ++i) {
+      if (!SUMAg_SVv[i].isShaded && SUMAg_SVv[i].X->TOPLEVEL) {
+         /* is this viewer showing curSO ? */
+         if (SUMA_isVisibleSO(&(SUMAg_SVv[i]), SUMAg_DOv, curSO)) {
+            sv = &(SUMAg_SVv[i]);
+            SUMA_RETURN(sv);
+         }
+      }
+   }
+
+   SUMA_RETURN(sv);
+}
+
+SUMA_SurfaceViewer *SUMA_OneViewerWithSORegistered(
+                              SUMA_SurfaceObject *curSO)
+{  
+   static char FuncName[]={"SUMA_OneViewerWithSORegistered"};
+   int i=0;
+   SUMA_SurfaceViewer *sv=NULL;
+   
+   SUMA_ENTRY;
+
+   /* look for 1st viewer that is showing this 
+      surface and has this surface in focus*/
+   for (i=0; i<SUMAg_N_SVv; ++i) {
+      if (!SUMAg_SVv[i].isShaded && SUMAg_SVv[i].X->TOPLEVEL) {
+         /* is this viewer showing curSO ? */
+         if (SUMA_isRegisteredSO(&(SUMAg_SVv[i]), SUMAg_DOv, curSO)) {
+            sv = &(SUMAg_SVv[i]);
+            SUMA_RETURN(sv);
+         }
+      }
+   }
+
+   SUMA_RETURN(sv);
+}
+
+SUMA_SurfaceViewer *SUMA_BestViewerForSO(
+                              SUMA_SurfaceObject *curSO)
+{  
+   static char FuncName[]={"SUMA_BestViewerForSO"};
+   int i=0;
+   SUMA_SurfaceViewer *sv=NULL;
+   
+   SUMA_ENTRY;
+   
+   /* best bet, visible, and in focus */
+   if ((sv=SUMA_OneViewerWithSOinFocus(curSO))) {
+      SUMA_RETURN(sv);
+   }
+   /* just visible */
+   if ((sv=SUMA_OneViewerWithSOVisible(curSO))) {
+      SUMA_RETURN(sv);
+   }
+   /* registered */
+   if ((sv=SUMA_OneViewerWithSORegistered(curSO))) {
+      SUMA_RETURN(sv);
+   }
+   /* crap! */
+   sv = &(SUMAg_SVv[0]);
+   
    SUMA_RETURN(sv);
 }
 
@@ -2328,6 +2403,7 @@ SUMA_X_SurfCont *SUMA_CreateSurfContStruct (char *idcode_str)
    if (idcode_str) sprintf(SurfCont->owner_id, "%s", idcode_str);
    else SurfCont->owner_id[0] = '\0';
    SurfCont->N_links = 0;
+   SurfCont->Open = 0;
    SurfCont->LinkedPtrType = SUMA_LINKED_SURFCONT_TYPE;
    
    SurfCont->DsetMap_fr = NULL;
@@ -3148,7 +3224,9 @@ void SUMA_UpdateViewerTitle_old(SUMA_SurfaceViewer *sv)
    if (sv->GVS[sv->StdView].ApplyMomentum) sprintf(smoment,":M");
    else smoment[0] = '\0';
    
-   if (LocalHead) fprintf (SUMA_STDERR, "%s: Found %d surface models.\n", FuncName, N_SOlist);
+   if (LocalHead) 
+      fprintf (SUMA_STDERR, 
+               "%s: Found %d surface models.\n", FuncName, N_SOlist);
    
    i = 0; 
    if (N_SOlist >= 0) {   
@@ -3225,7 +3303,7 @@ void SUMA_UpdateViewerTitle(SUMA_SurfaceViewer *sv)
    
    SUMA_LH("Momentum");
    if (sv->GVS[sv->StdView].ApplyMomentum) SS = SUMA_StringAppend_va(SS,":M");
-   
+      
    SUMA_LH("Surf List");
    N_SOlist = SUMA_RegisteredSOs(sv, SUMAg_DOv, SOlist);   
    
