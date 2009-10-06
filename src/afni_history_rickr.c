@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 6, OCT, 2009, RCR, "1d_tool.py", MICRO, TYPE_MODIFY,
+   "added -set_run_lengths option, for varying run lengths",
+   "Added for motion censoring and run padding."
+ } ,
+
  { 2, OCT, 2009, RCR, "1d_tool.py", MICRO, TYPE_MODIFY,
    "also output cosines with -show_cormat_warnings",
    NULL

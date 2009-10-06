@@ -353,6 +353,31 @@ def get_dset_reps_tr(dset, verb=1):
 
     return 0, reps, tr
 
+def gaussian_width_to_fwhm(width, mode):
+    """convert the given 'width' of gaussian 'mode' to FWHM
+       (full width at half max)
+
+       mode can be one of: fwhm, rms, sigma
+
+            conversion based on valid mode is:
+                rms   = 0.42466090 * fwhm
+                sigma = 0.57735027 * rms
+
+            implying:
+                fwhm = 2.354820 * rms
+                fwhm = 4.078668 * sigma
+
+        return 0 on failure or error"""
+
+    if width <= 0.0: return 0.0
+    if mode == 'fwhm':  return width
+    if mode == 'rms':   return width * 2.354820
+    if mode == 'sigma': return width * 4.078668
+
+    print "** GW2F: illegal mode '%s'" % mode
+
+    return 0.0
+
 # ----------------------------------------------------------------------
 # begin matrix functions
 
@@ -427,6 +452,27 @@ def transpose(matrix):
             newrow.append(matrix[r][c])
         newmat.append(newrow)
     return newmat
+
+def derivative(vector, in_place=0):
+    """take the derivative of the vector, setting d(t=0) = 0
+
+        in_place: if set, the passed vector will be modified
+
+       return v[t]-v[t-1] for 1 in {1,..,len(v)-1}, d[0]=0"""
+
+    if type(vector) != type([]):
+        print "** cannot take derivative of non-vector '%s'" % vector
+        return None
+
+    if in_place: vec = vector    # reference original
+    else:        vec = vector[:] # start with copy
+    
+    # count from the end to allow memory overwrite
+    for t in range(len(vec)-1, 0, -1):
+        vec[t] -= vec[t-1]
+    vec[0] = 0
+
+    return vec
 
 def make_timing_string(data, nruns, tr, invert=0):
    """evaluating the data array as boolean (zero or non-zero), return
@@ -912,11 +958,42 @@ def vals_are_constant(vlist, cval=0):
    """determine whether every value in vlist is equal to cval
       (if cval == None, use vlist[0])"""
 
+   if vlist == None: return 1
+   if len(vlist) < 2: return 1
+
    if cval == None: cval = vlist[0]
 
    for val in vlist:
       if val != cval: return 0
    return 1
+
+def vals_are_positive(vlist):
+   """determine whether every value in vlist is positive"""
+   for val in vlist:
+      if val <= 0: return 0
+   return 1
+
+def vals_are_sorted(vlist, reverse=0):
+   """determine whether every value in vlist is positive"""
+   if vlist == None: return 1
+   if len(vlist) < 2: return 1
+
+   rval = 1
+   try:
+      for ind in range(len(vlist)-1):
+         if reverse:
+            if vlist[ind] < vlist[ind+1]:
+               rval = 0
+               break
+         else:
+            if vlist[ind] > vlist[ind+1]:
+               rval = 0
+               break
+   except:
+      print "** failed to detect sorting in list: %s" % vlist
+      rval = 0
+      
+   return rval
 
 def lists_are_same(list1, list2):
    """return 1 if the lists have identical values, else 0"""
