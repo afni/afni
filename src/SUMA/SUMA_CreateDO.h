@@ -161,7 +161,7 @@ char * SUMA_glutBitmapFontName(void * font);
 char *SUMA_CoordTypeName (SUMA_DO_CoordType tp);
 SUMA_DO_CoordType SUMA_CoordType (char *atr);
 int SUMA_NodeRange_DrawnROI (SUMA_DRAWN_ROI *ROI, int *min, int *max);
-
+int SUMA_NIDO_TexEnvMode(NI_element *nel, int def);
 /*!
    NO Guarantee that certain nodes might 
    get counted twice !

@@ -292,6 +292,9 @@ SUMA_handleRedisplay(XtPointer closure)
                fprintf (SUMA_STDERR, 
                         "Error %s: Failed in glXMakeCurrent.\n"
                         " \tContinuing ...\n", FuncName);
+               SUMA_GL_ERRS;
+
+               SUMA_RETURN(NOPE);
       }
       PleaseDoMakeCurrent = NOPE;
    }
@@ -402,7 +405,7 @@ SUMA_postRedisplay(Widget w,
                "Error %s: Failed in macro SUMA_ANY_WIDGET2SV.\n", FuncName);
       SUMA_RETURNe;
    } else {
-      if (LocalHead) 
+      if (LocalHead) {
          if (sv->X->REDISPLAYPENDING) {
             fprintf (SUMA_STDERR, 
                      "%s: Redisplay Pending. "
@@ -413,6 +416,7 @@ SUMA_postRedisplay(Widget w,
                      "%s: Redisplay Pending registered for viewer %d.\n",
                      FuncName, isv);
          }
+      }
    }
 
    if(!sv->X->REDISPLAYPENDING) {
@@ -438,7 +442,8 @@ SUMA_postRedisplay(Widget w,
                          not edges. They are meant to show how the intersected points form a strip(s)
    "ShowPoints" Just show the intersection points (which lie on intersected edges).
 */
-SUMA_Boolean SUMA_display_edge_striplist(DList *striplist, SUMA_SurfaceViewer *sv, SUMA_SurfaceObject *SO, char *DispOptions)
+SUMA_Boolean SUMA_display_edge_striplist(DList *striplist, 
+               SUMA_SurfaceViewer *sv, SUMA_SurfaceObject *SO, char *DispOptions)
 {
    static char FuncName[]={"SUMA_display_edge_striplist"};
    /* no need to worry about freeing the DOs. They go in SUMAg_DOv */
@@ -512,9 +517,9 @@ SUMA_Boolean SUMA_display_edge_striplist(DList *striplist, SUMA_SurfaceViewer *s
                                     &(SDO->colv[4*ke]), 4, float, GLfloat); }
                   for (j=0; j<3;++j) {
                      SDO->n0[3*ke+j] = 
-                           SO->NodeList[3*SO->EL->EL[(int)elm->data][0]+j];
+                           SO->NodeList[3*SO->EL->EL[(INT_CAST)elm->data][0]+j];
                      SDO->n1[3*ke+j] = 
-                           SO->NodeList[3*SO->EL->EL[(int)elm->data][1]+j]; 
+                           SO->NodeList[3*SO->EL->EL[(INT_CAST)elm->data][1]+j]; 
                   }
                   ++ke;
                } while (elm != dlist_tail(strip->Edges));
@@ -523,13 +528,15 @@ SUMA_Boolean SUMA_display_edge_striplist(DList *striplist, SUMA_SurfaceViewer *s
             /* addDO */
             if (!SUMA_AddDO(  SUMAg_DOv, &SUMAg_N_DOv, 
                               (void *)SDO, LS_type, SUMA_WORLD)) {
-               fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_AddDO.\n", FuncName);
-               SUMA_RETURNe;
+               fprintf(SUMA_STDERR,
+                        "Error %s: Failed in SUMA_AddDO.\n", FuncName);
+               SUMA_RETURN(NOPE);
             }
             /* register DO with viewer */
             if (!SUMA_RegisterDO(SUMAg_N_DOv-1, sv)) {
-               fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_RegisterDO.\n", FuncName);
-               SUMA_RETURNe;
+               fprintf(SUMA_STDERR,
+                        "Error %s: Failed in SUMA_RegisterDO.\n", FuncName);
+               SUMA_RETURN(NOPE);
             }
          }
       }
@@ -574,11 +581,17 @@ SUMA_Boolean SUMA_display_edge_striplist(DList *striplist, SUMA_SurfaceViewer *s
                do{
                   if (!elm) elm = dlist_head(strip->Points);
                   else elm = dlist_next(elm);
-                  if (elm==dlist_head(strip->Points)) { SUMA_COPY_VEC(col_first, &(SEDO->colv[4*ke]), 4, float, GLfloat);  }
-                  else if (elm==dlist_tail(strip->Points)) { SUMA_COPY_VEC(col_last, &(SEDO->colv[4*ke]), 4, float, GLfloat); }
-                  else { SUMA_COPY_VEC(col_middle, &(SEDO->colv[4*ke]), 4, float, GLfloat); }
-                  if (elm != dlist_tail(strip->Points)) elmn = dlist_next(elm);
-                  else {
+                  if (elm==dlist_head(strip->Points)) { 
+                     SUMA_COPY_VEC(col_first, &(SEDO->colv[4*ke]), 
+                                    4, float, GLfloat);  
+                  } else if (elm==dlist_tail(strip->Points)) { 
+                        SUMA_COPY_VEC(col_last, &(SEDO->colv[4*ke]), 
+                                       4, float, GLfloat); 
+                  } else { SUMA_COPY_VEC(col_middle, &(SEDO->colv[4*ke]), 
+                                       4, float, GLfloat); }
+                  if (elm != dlist_tail(strip->Points)) {
+                     elmn = dlist_next(elm);
+                  } else {
                      if (isclosed) elmn = dlist_head(strip->Points);
                      else elmn = elm;
                   }  
@@ -591,14 +604,17 @@ SUMA_Boolean SUMA_display_edge_striplist(DList *striplist, SUMA_SurfaceViewer *s
                ++kstrip;
             }  while (elmlist != dlist_tail(striplist)); 
             /* addDO */
-            if (!SUMA_AddDO(SUMAg_DOv, &SUMAg_N_DOv, (void *)SEDO, OLS_type, SUMA_WORLD)) {
-               fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_AddDO.\n", FuncName);
-               SUMA_RETURNe;
+            if (!SUMA_AddDO(SUMAg_DOv, &SUMAg_N_DOv, 
+                            (void *)SEDO, OLS_type, SUMA_WORLD)) {
+               fprintf(SUMA_STDERR,
+                        "Error %s: Failed in SUMA_AddDO.\n", FuncName);
+               SUMA_RETURN(NOPE);
             }
             /* register DO with viewer */
             if (!SUMA_RegisterDO(SUMAg_N_DOv-1, sv)) {
-               fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_RegisterDO.\n", FuncName);
-               SUMA_RETURNe;
+               fprintf(SUMA_STDERR,
+                        "Error %s: Failed in SUMA_RegisterDO.\n", FuncName);
+               SUMA_RETURN(NOPE);
             }
          }
       }
@@ -606,8 +622,10 @@ SUMA_Boolean SUMA_display_edge_striplist(DList *striplist, SUMA_SurfaceViewer *s
    
    if (SUMA_iswordin_ci(DispOptions, "ShowPoints") == 1) {
       if (N_allPpath) {
-         SUMA_LHv("Building SPDO of %d points from %d strips\n", N_allPpath, dlist_size(striplist));
-         if ((SPDO = SUMA_Alloc_SphereDO (N_allPpath, "SUMA_SPI_to_EdgeStrips_points", NULL, SP_type))) {
+         SUMA_LHv("Building SPDO of %d points from %d strips\n", 
+                  N_allPpath, dlist_size(striplist));
+         if ((SPDO = SUMA_Alloc_SphereDO (N_allPpath, 
+                        "SUMA_SPI_to_EdgeStrips_points", NULL, SP_type))) {
             SPDO->do_type = SP_type;
             SPDO->CommonRad = SO->EL->AvgLe/6.0;
             SPDO->colv = (GLfloat *)SUMA_malloc(4*sizeof(GLfloat)*SPDO->N_n);
@@ -621,22 +639,35 @@ SUMA_Boolean SUMA_display_edge_striplist(DList *striplist, SUMA_SurfaceViewer *s
                N_Ppath = dlist_size(strip->Points);
                isclosed = SUMA_isEdgeStripClosed(strip->Edges, SO);
                if (isclosed) { 
-                  col_first[0] = col_first[3] = 1.0; col_first[1] = col_first[2] = 0.0;
-                  col_middle[0] = col_middle[1] = col_middle[2] = col_middle[3] = 1.0;
-                  col_last[0] = col_last[1] = 0.0;  col_last[2] = col_last[3] = 1.0;
+                  col_first[0] = col_first[3] = 1.0; 
+                  col_first[1] = col_first[2] = 0.0;
+                  col_middle[0] = col_middle[1] = 
+                     col_middle[2] = col_middle[3] = 1.0;
+                  col_last[0] = col_last[1] = 0.0;  
+                  col_last[2] = col_last[3] = 1.0;
                } else {
-                  col_first[0] = col_first[3] = 1.0; col_first[1] = col_first[2] = 0.0;
-                  col_middle[0] = col_middle[2] = col_middle[3] = 1.0; col_middle[1] = 0.0;
-                  col_last[0] = col_last[1] = 0.0;  col_last[2] = col_last[3] = 1.0;
+                  col_first[0] = col_first[3] = 1.0; 
+                  col_first[1] = col_first[2] = 0.0;
+                  col_middle[0] = col_middle[2] = 
+                     col_middle[3] = 1.0; col_middle[1] = 0.0;
+                  col_last[0] = col_last[1] = 0.0;  
+                  col_last[2] = col_last[3] = 1.0;
                }
-               SUMA_LHv("   SPDO's strip #%d of %d points (isclosed=%d)\n", kstrip, N_Ppath, isclosed);
+               SUMA_LHv("   SPDO's strip #%d of %d points (isclosed=%d)\n", 
+                        kstrip, N_Ppath, isclosed);
                elm=NULL;
                do{
                   if (!elm) elm = dlist_head(strip->Points);
                   else elm = dlist_next(elm);
-                  if (elm==dlist_head(strip->Points)) { SUMA_COPY_VEC(col_first, &(SPDO->colv[4*ke]), 4, float, GLfloat);}
-                  else if (elm==dlist_tail(strip->Points)) { SUMA_COPY_VEC(col_last, &(SPDO->colv[4*ke]), 4, float, GLfloat);  }
-                  else {SUMA_COPY_VEC(col_middle, &(SPDO->colv[4*ke]), 4, float, GLfloat);  }
+                  if (elm==dlist_head(strip->Points)) { 
+                     SUMA_COPY_VEC(col_first, &(SPDO->colv[4*ke]), 
+                                    4, float, GLfloat);
+                  } else if (elm==dlist_tail(strip->Points)) { 
+                     SUMA_COPY_VEC(col_last, &(SPDO->colv[4*ke]), 
+                                    4, float, GLfloat);  
+                  } else {
+                     SUMA_COPY_VEC(col_middle, &(SPDO->colv[4*ke]), 
+                                    4, float, GLfloat);  }
                   SPDO->cxyz[3*ke  ] = ((float*)elm->data)[0];
                   SPDO->cxyz[3*ke+1] = ((float*)elm->data)[1];
                   SPDO->cxyz[3*ke+2] = ((float*)elm->data)[2]; 
@@ -645,15 +676,18 @@ SUMA_Boolean SUMA_display_edge_striplist(DList *striplist, SUMA_SurfaceViewer *s
                ++kstrip;
             } while (elmlist != dlist_tail(striplist)); 
             /* addDO */
-            if (!SUMA_AddDO(SUMAg_DOv, &SUMAg_N_DOv, (void *)SPDO, SP_type, SUMA_WORLD)) {
-               fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_AddDO.\n", FuncName);
-               SUMA_RETURNe;
+            if (!SUMA_AddDO(SUMAg_DOv, &SUMAg_N_DOv, 
+                           (void *)SPDO, SP_type, SUMA_WORLD)) {
+               fprintf(SUMA_STDERR,
+                        "Error %s: Failed in SUMA_AddDO.\n", FuncName);
+               SUMA_RETURN(NOPE);
             }
 
             /* register DO with viewer */
             if (!SUMA_RegisterDO(SUMAg_N_DOv-1, sv)) {
-               fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_RegisterDO.\n", FuncName);
-               SUMA_RETURNe;
+               fprintf(SUMA_STDERR,
+                        "Error %s: Failed in SUMA_RegisterDO.\n", FuncName);
+               SUMA_RETURN(NOPE);
             }
 
          }
@@ -1286,6 +1320,11 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
       SUMA_DUMP_TRACE("Trace At display call");
    }
 
+   if (!csv->Open) {
+      SUMA_S_Errv("Very weird to be here with Open flag = %d\n", csv->Open);
+      SUMA_RETURNe;
+   }
+
    /* now you need to set the clear_color since 
       it can be changed per viewer Thu Dec 12 2002 */
    glClearColor ( csv->clear_color[0], csv->clear_color[1], 
@@ -1414,6 +1453,11 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
             case ROIO_type:
                /* those are drawn by SUMA_DrawMesh */
                break;
+            case NBT_type:
+            case SBT_type:
+            case DBT_type:
+               /*  those types are not used  */
+               break;
             case ONBV_type:
             case NBV_type:
             case OLS_type:
@@ -1515,6 +1559,11 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
             case NBOLS_type:
                /* those are drawn by SUMA_DrawMesh */
                break;
+            case NBT_type:
+            case SBT_type:
+            case DBT_type:
+               /* those types are not used */
+               break;
             case OLS_type:
             case LS_type:
                if (!SUMA_DrawSegmentDO (
@@ -1583,10 +1632,12 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
       glEnable(GL_LINE_STIPPLE);
       glLineStipple (1, 0x1C47); /* dashed, see OpenGL Prog guide, page 55 */
       glBegin(GL_LINES);
-      glMaterialfv(GL_FRONT, GL_EMISSION, LineColor); /*turn on emissivity for axis*/
+      glMaterialfv(GL_FRONT, GL_EMISSION, LineColor); 
+         /*turn on emissivity for axis*/
       glVertex3f(csv->Pick0[0], csv->Pick0[1], csv->Pick0[2]);
       glVertex3f(csv->Pick1[0], csv->Pick1[1], csv->Pick1[2]);
-      glMaterialfv(GL_FRONT, GL_EMISSION, NoColor); /*turn off emissivity for axis*/
+      glMaterialfv(GL_FRONT, GL_EMISSION, NoColor); 
+         /*turn off emissivity for axis*/
       glEnd();
       glDisable(GL_LINE_STIPPLE);
    }
@@ -1594,7 +1645,7 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
  
    
    
-   FLUSH_AND_OUT:
+   /* FLUSH_AND_OUT: */
       
    glPopMatrix();   
    
@@ -1679,6 +1730,7 @@ SUMA_graphicsInit(Widget w, XtPointer clientData, XtPointer call)
       fprintf (SUMA_STDERR, 
                "Error %s: Failed in glXMakeCurrent.\n \tContinuing ...\n", 
                FuncName);
+      SUMA_RETURNe;
    }
    
    /* call context_Init to setup colors and lighting */   
@@ -1783,6 +1835,9 @@ SUMA_resize(Widget w,
       fprintf (SUMA_STDERR, 
                "Error %s: Failed in glXMakeCurrent.\n \tContinuing ...\n", 
                FuncName);
+      SUMA_GL_ERRS;
+
+      SUMA_RETURNe;
    }
 
    SUMA_HOLD_IT;  
@@ -2047,7 +2102,7 @@ int SUMA_BuildMenu(  Widget parent, int menu_type, char *menu_title,
          if (LocalHead) 
             fprintf (SUMA_STDERR, 
                      "%s: Creating widgets MenuWidgets[%d]\n", 
-                     FuncName, (int)items[i].callback_data);
+                     FuncName, (INT_CAST)items[i].callback_data);
          if (nchar > 0) {
             snprintf(nlabel, nchar*sizeof(char), "%s", items[i].label);
             MenuWidgets[i_wid] = XtVaCreateManagedWidget (nlabel,
@@ -2462,28 +2517,28 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
          SUMA_BuildMenuReset(0);
          SUMA_BuildMenu(menubar, XmMENU_PULLDOWN, 
                                  "File", 'F', YUP, File_menu, 
-                                 (void *)ic, NULL, NULL,  
+                                 (VOID_CAST)ic, NULL, NULL,  
                                  SUMAg_SVv[ic].X->FileMenu );
          
          /* create View Menu */
          SUMA_BuildMenuReset(0);
          SUMA_BuildMenu(menubar, XmMENU_PULLDOWN, 
                                  "View", 'V', YUP, View_menu, 
-                                 (void *)ic, NULL, NULL,  
+                                 (VOID_CAST)ic, NULL, NULL,  
                                  SUMAg_SVv[ic].X->ViewMenu );
          
          /* create Tools Menu */
          SUMA_BuildMenuReset(0);
          SUMA_BuildMenu(menubar, XmMENU_PULLDOWN, 
                                  "Tools", 'T', YUP, Tools_menu, 
-                                 (void *)ic, NULL, NULL,  
+                                 (VOID_CAST)ic, NULL, NULL,  
                                  SUMAg_SVv[ic].X->ToolsMenu );
          
          /* create Help Menu */
          SUMA_BuildMenuReset(0);
          SUMA_BuildMenu(menubar, XmMENU_PULLDOWN, 
                                  "Help", 'H', YUP, Help_menu,
-                                 (void *)ic, NULL, NULL,  
+                                 (VOID_CAST)ic, NULL, NULL,  
                                  SUMAg_SVv[ic].X->HelpMenu );
          
          XtVaSetValues (menubar, XmNmenuHelpWidget, 
@@ -2612,7 +2667,7 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
             break;
          default:
             SUMA_S_Err("Not set up for this closing mode");
-            SUMA_RETURNe;
+            SUMA_RETURN(NOPE);
             break;
       }
       /* add the workprocess again */
@@ -2676,10 +2731,11 @@ void SUMA_cb_FileSaveView (Widget w, XtPointer data, XtPointer calldata)
    /* find the index of the viewer closed */
    SUMA_VIEWER_FROM_FILEMENU_CALLBACK(data, isv, widtype);
    if (widtype != SW_FileSaveView) {
-      fprintf (SUMA_STDERR, "Error %s: Something really bad has happened.\n", FuncName);
+      fprintf (SUMA_STDERR, 
+         "Error %s: Something really bad has happened.\n", FuncName);
       SUMA_RETURNe;
    }   
-
+ 
    sv = &SUMAg_SVv[isv];
    
    if (!list) list = SUMA_CreateList();
@@ -2775,7 +2831,7 @@ void SUMA_cb_FileClose (Widget w, XtPointer data, XtPointer calldata)
 void SUMA_ButtClose_pushed (Widget w, XtPointer cd1, XtPointer cd2)
 {
    static char FuncName[]={"SUMA_ButtClose_pushed"};
-   int ic, Found;
+   int ic, Found, isv = 0;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -2811,11 +2867,15 @@ void SUMA_ButtClose_pushed (Widget w, XtPointer cd1, XtPointer cd2)
    
    if (Found) {
          if (LocalHead) 
-            fprintf (SUMA_STDERR,"%s: Widget Found\n", FuncName);
+            fprintf (SUMA_STDERR,"%s: Widget Found, ic = %d\n", FuncName, ic);
          
          /* Must turn off all workprocesses and timeouts for 
             this surface viewer */
          
+         if (!SUMAg_SVv[ic].Open) {
+            SUMA_S_Errv("Viewer %d already closed (%d)\n", 
+                       ic, SUMAg_SVv[ic].Open);
+         }
          if (LocalHead) 
             fprintf (SUMA_STDERR,
                      "%s: Turning off workprocesses and timeouts ...\n", 
@@ -2828,6 +2888,32 @@ void SUMA_ButtClose_pushed (Widget w, XtPointer cd1, XtPointer cd2)
          
          /* remove Redisplay workprocess*/
          SUMA_remove_workproc2( SUMA_handleRedisplay, SUMAg_SVv[ic].X->GLXAREA );
+         
+         #if 0
+         /* switch context: a likely futile attempt to rid myself 
+         of stupid errors on 10.6 ! 
+         DOES NOTHING ! */
+         isv = 0;
+         while (isv < SUMAg_N_SVv) {
+            if (  SUMAg_SVv[isv].X->TOPLEVEL && 
+                  SUMAg_SVv[isv].X->GLXAREA && 
+                  XtIsRealized(SUMAg_SVv[isv].X->GLXAREA) &&
+                  isv != ic) {
+               glXWaitGL();   
+               glXWaitX();
+               glFinish();
+               SUMA_LHv("Switching context to viewer %d\n",  isv);
+               if (!glXMakeCurrent( XtDisplay(SUMAg_SVv[isv].X->GLXAREA), 
+                        XtWindow(SUMAg_SVv[isv].X->GLXAREA),  
+                        SUMAg_SVv[isv].X->GLXCONTEXT)) {
+                  SUMA_S_Err("Misericorde!");
+                  SUMA_RETURNe;
+               }
+               glFinish();
+            }
+            ++isv;
+         }
+         #endif
          
          #if DO_FLUSH    /* Going in causes crashing on OS X 10.5, 
                               at least on eomer...*/
@@ -2846,7 +2932,8 @@ void SUMA_ButtClose_pushed (Widget w, XtPointer cd1, XtPointer cd2)
          /* done cleaning up, deal with windows ... */
          
          /** 
-            SEE UPDATED NOTE IN SUMA_display.h 
+            SEE UPDATED NOTE IN SUMA_display.h
+            The comment below is obsolete. 
             ==================================
          Fri Jan  3 09:51:35 EST 2003
              XtUnrealizeWidget is not used anymore because it destroys 
@@ -2872,8 +2959,19 @@ void SUMA_ButtClose_pushed (Widget w, XtPointer cd1, XtPointer cd2)
                }
                break;
             case SUMA_UNREALIZE:
-               if (LocalHead) 
-                  fprintf (SUMA_STDERR,"%s: Unrealizing it.\n", FuncName);
+               SUMA_LHv("Unrealizing viewer %d\n", ic);
+               /* Unrealizing on OS X 10.6 does not crash as it might on 10.5
+               However, you will get something like the following messages
+               right after unrealizing the widget. 
+               Don't know what to make of this at this time. ZSS: Oct 05 2009 
+               
+Mon Oct  5 17:48:12 eomer.nimh.nih.gov suma[4538] <Error>: kCGErrorIllegalArgument: CGSGetSurfaceBounds
+Mon Oct  5 17:48:12 eomer.nimh.nih.gov suma[4538] <Error>: kCGErrorIllegalArgument: CGSBindSurface: Invalid window 0xd1
+Mon Oct  5 17:48:12 eomer.nimh.nih.gov suma[4538] <Error>: kCGErrorIllegalArgument: CGSBindSurface: Invalid window 0xd1
+Mon Oct  5 17:48:12 eomer.nimh.nih.gov suma[4538] <Error>: kCGErrorIllegalArgument: CGSBindSurface: Invalid window 0xd1
+Mon Oct  5 17:48:12 eomer.nimh.nih.gov suma[4538] <Error>: kCGErrorIllegalArgument: CGSBindSurface: Invalid window 0xd1
+Mon Oct  5 17:48:12 eomer.nimh.nih.gov suma[4538] <Error>: unknown error code: invalid drawable    
+               */           
                XtUnrealizeWidget(SUMAg_SVv[ic].X->TOPLEVEL);
                break;
             case SUMA_DESTROY: 
@@ -3230,6 +3328,9 @@ SUMA_Boolean SUMA_RenderToPixMap (SUMA_SurfaceViewer *csv, SUMA_DO *dov)
       fprintf (SUMA_STDERR, 
                "Error %s: Failed in glXMakeCurrent.\n \tContinuing ...\n", 
                FuncName);
+      SUMA_GL_ERRS;
+
+      SUMA_RETURN(NOPE);
    }
 
    SUMA_context_Init(csv);
@@ -3288,7 +3389,10 @@ SUMA_Boolean SUMA_RenderToPixMap (SUMA_SurfaceViewer *csv, SUMA_DO *dov)
                         XtWindow(csv->X->GLXAREA),  csv->X->GLXCONTEXT)) {
       fprintf (SUMA_STDERR, 
                "Error %s: Failed in glXMakeCurrent.\n \tContinuing ...\n", 
-               FuncName);   
+               FuncName);
+      SUMA_GL_ERRS;
+
+      SUMA_RETURN (NOPE);   
    }
 
    SUMA_RETURN (YUP);
@@ -3886,9 +3990,10 @@ void SUMA_cb_helpViewerStruct (Widget w, XtPointer data, XtPointer callData)
    SUMA_ENTRY;
    
    datap = (SUMA_MenuCallBackData *)data;
-   sv = &(SUMAg_SVv[(int)datap->ContID]);
+   sv = &(SUMAg_SVv[(INT_CAST)datap->ContID]);
    
-   if (!sv->X->ViewCont->TopLevelShell) { /* see comments on similar section in SUMA_cb_helpSurfaceStruct */
+   if (!sv->X->ViewCont->TopLevelShell) { /* see comments on similar section in 
+                                             SUMA_cb_helpSurfaceStruct */
       SUMA_cb_createViewerCont( w, (XtPointer)sv, callData);
       SUMA_cb_closeViewerCont ( w, (XtPointer)sv, callData); 
    }
@@ -3914,7 +4019,7 @@ void SUMA_cb_helpSurfaceStruct (Widget w, XtPointer data, XtPointer callData)
    SUMA_ENTRY;
    
    datap = (SUMA_MenuCallBackData *)data;
-   sv = &(SUMAg_SVv[(int)datap->ContID]);
+   sv = &(SUMAg_SVv[(INT_CAST)datap->ContID]);
    if (sv->Focus_SO_ID >= 0) {
       SO = (SUMA_SurfaceObject *)SUMAg_DOv[sv->Focus_SO_ID].OP;
    }else {
@@ -4122,7 +4227,7 @@ int SUMA_viewSurfaceCont(Widget w, SUMA_SurfaceObject *SO,
             break;
          default:
             SUMA_S_Err("No setup for this close mode");
-            SUMA_RETURNe;
+            SUMA_RETURN(NOPE);
             break;     
       }
 
@@ -4753,7 +4858,7 @@ Widget SUMA_CloseBhelp_Frame( Widget parent,
    /* manage the frame and the fslabelorm */
    XtManageChild (DispFrame);
    
-   SUMA_RETURNe;
+   SUMA_RETURN(DispFrame);
 }
 
 /*!
@@ -5541,11 +5646,12 @@ SUMA_Boolean SUMA_Init_SurfCont_SurfParam(SUMA_SurfaceObject *SO)
             fprintf (SUMA_STDERR, "Error %s: Unexpected something.\n", FuncName);
             break;
       }
-      /* look for name of widget with imenu for call data. This is overkill but its fun */
+      /* look for name of widget with imenu for call data. 
+         This is overkill but its fun */
       i = 0;
       Name = NULL;
       while (&(RenderMode_Menu[i])) {
-         if ((int)RenderMode_Menu[i].callback_data == imenu) {
+         if ((INT_CAST)RenderMode_Menu[i].callback_data == imenu) {
             Name = RenderMode_Menu[i].label;
             if (LocalHead) fprintf (SUMA_STDERR,"Looking for %s\n", Name);
             /* now we know what the name of the button needed is, look for it*/
@@ -5834,7 +5940,7 @@ SUMA_Boolean SUMA_UpdateColPlaneShellAsNeeded(SUMA_SurfaceObject *SO)
 
 /*!
    \brief Creates the widgets for the DrawROI window
-*/
+*/ 
 void SUMA_CreateDrawROIWindow(void)
 {
    static char FuncName[] = {"SUMA_CreateDrawROIWindow"};
@@ -5846,7 +5952,7 @@ void SUMA_CreateDrawROIWindow(void)
    SUMA_ENTRY;
 
    if (SUMAg_CF->X->DrawROI->AppShell) {
-      fprintf (SUMA_STDERR,"Error %s: SUMAg_CF->X->DrawROI->AppShell!=NULL. Should not be here.\n", FuncName);
+      SUMA_S_Err("SUMAg_CF->X->DrawROI->AppShell!=NULL. Should not be here.\n");
       SUMA_RETURNe;
    }
    
@@ -5856,7 +5962,9 @@ void SUMA_CreateDrawROIWindow(void)
       sss = "font8";
    }
  
-   /* create as a separate application shell, you do not want a parent to this controller that
+   SUMA_LH("Create AppShell");
+   /* create as a separate application shell, 
+   you do not want a parent to this controller that
    can be closed or withdrawn temporarily */
    SUMAg_CF->X->DrawROI->AppShell = XtVaAppCreateShell(sss , "Suma" ,
       topLevelShellWidgetClass , SUMAg_CF->X->DPY_controller1 ,
@@ -5919,11 +6027,14 @@ void SUMA_CreateDrawROIWindow(void)
          NULL);
    
    /*put a label containing the ROI's parent surface name */
-   SUMAg_CF->X->DrawROI->ParentLabel_lb = XtVaCreateManagedWidget ("Parent: N/A", 
+   SUMAg_CF->X->DrawROI->ParentLabel_lb = 
+      XtVaCreateManagedWidget ("Parent: N/A", 
             xmLabelWidgetClass, rc,
             NULL);
-   MCW_register_help(SUMAg_CF->X->DrawROI->ParentLabel_lb , SUMA_DrawROI_ParentLabel_help ) ;
-   MCW_register_hint(SUMAg_CF->X->DrawROI->ParentLabel_lb , "Label of the ROI's parent surface" ) ;
+   MCW_register_help(SUMAg_CF->X->DrawROI->ParentLabel_lb , 
+                     SUMA_DrawROI_ParentLabel_help ) ;
+   MCW_register_hint(SUMAg_CF->X->DrawROI->ParentLabel_lb , 
+                     "Label of the ROI's parent surface" ) ;
    
    XtManageChild(rc);
    
@@ -5937,7 +6048,8 @@ void SUMA_CreateDrawROIWindow(void)
          NULL);
 
    /*put a toggle button for the DrawROI more */
-   /* Turn on the ROI drawing mode, since that is what the users want to do the first time they open this window */
+   /* Turn on the ROI drawing mode, since that is what 
+   the users want to do the first time they open this window */
    SUMAg_CF->ROI_mode = YUP;
    /* make a call to change the cursor */
    SUMA_UpdateAllViewerCursor(); 
@@ -5976,14 +6088,18 @@ void SUMA_CreateDrawROIWindow(void)
 
    
    /*put a toggle button for the Pen mode */
-   SUMAg_CF->X->DrawROI->Penmode_tb = XtVaCreateManagedWidget("Pen", 
-      xmToggleButtonWidgetClass, rc, NULL);
-   XmToggleButtonSetState (SUMAg_CF->X->DrawROI->Penmode_tb, SUMAg_CF->Pen_mode, NOPE);
+   SUMAg_CF->X->DrawROI->Penmode_tb = 
+      XtVaCreateManagedWidget("Pen", 
+                              xmToggleButtonWidgetClass, rc, NULL);
+   XmToggleButtonSetState (SUMAg_CF->X->DrawROI->Penmode_tb, 
+                           SUMAg_CF->Pen_mode, NOPE);
    XtAddCallback (SUMAg_CF->X->DrawROI->Penmode_tb, 
                   XmNvalueChangedCallback, SUMA_cb_DrawROIPen_toggled, 
                   NULL);
-   MCW_register_help(SUMAg_CF->X->DrawROI->Penmode_tb , SUMA_DrawROI_PenMode_help ) ;
-   MCW_register_hint(SUMAg_CF->X->DrawROI->Penmode_tb , "Toggles Pen drawing mode" ) ;
+   MCW_register_help(SUMAg_CF->X->DrawROI->Penmode_tb , 
+                     SUMA_DrawROI_PenMode_help ) ;
+   MCW_register_hint(SUMAg_CF->X->DrawROI->Penmode_tb , 
+                     "Toggles Pen drawing mode" ) ;
 
    /* set the toggle button's select color */
    SUMA_SET_SELECT_COLOR(SUMAg_CF->X->DrawROI->Penmode_tb);
@@ -6017,6 +6133,7 @@ void SUMA_CreateDrawROIWindow(void)
    /* set the toggle button's select color */
    SUMA_SET_SELECT_COLOR(SUMAg_CF->X->DrawROI->AfniLink_tb);
    
+   SUMA_LH("Building menu");
    /* put a menu for writing distance info */
    SUMA_BuildMenuReset(0);
    SUMA_BuildMenu (rc, XmMENU_OPTION, 
@@ -6072,17 +6189,21 @@ void SUMA_CreateDrawROIWindow(void)
    SUMAg_CF->X->DrawROI->Undo_pb = XtVaCreateWidget ("Undo", 
       xmPushButtonWidgetClass, rc_ur, 
       NULL);
-   XtAddCallback (SUMAg_CF->X->DrawROI->Undo_pb, XmNactivateCallback, SUMA_cb_DrawROI_Undo, NULL);   
+   XtAddCallback (SUMAg_CF->X->DrawROI->Undo_pb, 
+                  XmNactivateCallback, SUMA_cb_DrawROI_Undo, NULL);   
    MCW_register_help(SUMAg_CF->X->DrawROI->Undo_pb , SUMA_DrawROI_Undo_help ) ;
-   MCW_register_hint(SUMAg_CF->X->DrawROI->Undo_pb , "Undo the last action on the stack" ) ;
+   MCW_register_hint(SUMAg_CF->X->DrawROI->Undo_pb , 
+                     "Undo the last action on the stack" ) ;
    XtManageChild (SUMAg_CF->X->DrawROI->Undo_pb);
    
    SUMAg_CF->X->DrawROI->Redo_pb = XtVaCreateWidget ("Redo", 
       xmPushButtonWidgetClass, rc_ur, 
       NULL);
-   XtAddCallback (SUMAg_CF->X->DrawROI->Redo_pb, XmNactivateCallback, SUMA_cb_DrawROI_Redo, NULL);
+   XtAddCallback (SUMAg_CF->X->DrawROI->Redo_pb, 
+                  XmNactivateCallback, SUMA_cb_DrawROI_Redo, NULL);
    MCW_register_help(SUMAg_CF->X->DrawROI->Redo_pb , SUMA_DrawROI_Redo_help ) ;
-   MCW_register_hint(SUMAg_CF->X->DrawROI->Redo_pb , "Redo the last undone action" ) ;
+   MCW_register_hint(SUMAg_CF->X->DrawROI->Redo_pb , 
+                     "Redo the last undone action" ) ;
    XtManageChild (SUMAg_CF->X->DrawROI->Redo_pb);
    
    XtVaCreateManagedWidget (  "sep", 
@@ -6257,18 +6378,21 @@ void SUMA_CreateDrawROIWindow(void)
    XtManageChild (form);
 
    /* position the widget relative to the first open viewer */
+   SUMA_LHv("Position widgets (%d viewers)\n", SUMAg_N_SVv);
    i=0;
-   while (i < SUMAg_N_SVv && !SUMAg_SVv[i].X->ViewCont->TopLevelShell && SUMAg_SVv[i].isShaded) ++i; 
+   while (i < SUMAg_N_SVv && 
+         !SUMAg_SVv[i].X->ViewCont->TopLevelShell && SUMAg_SVv[i].isShaded) ++i; 
 
    if (i < SUMAg_N_SVv) {
       if (LocalHead) fprintf (SUMA_STDERR, "%s: i = %d\n", FuncName, i);
-      SUMA_PositionWindowRelative (SUMAg_CF->X->DrawROI->AppShell, SUMAg_SVv[i].X->TOPLEVEL, SWP_TOP_RIGHT);
+      SUMA_PositionWindowRelative ( SUMAg_CF->X->DrawROI->AppShell, 
+                                    SUMAg_SVv[i].X->TOPLEVEL, SWP_TOP_RIGHT);
    }
 
    /* realize the widget */
    XtRealizeWidget (SUMAg_CF->X->DrawROI->AppShell);
    
-   
+   SUMA_LH("All done");
    SUMA_RETURNe;
 }
 
@@ -7047,7 +7171,7 @@ void SUMA_ATF_cb_label_change (Widget w, XtPointer client_data, XtPointer call_d
 void SUMA_ATF_start_stop (Widget w, XtPointer client_data, XtPointer call_data)
 {
    static char FuncName[]={"SUMA_ATF_start_stop"};
-   int incr = (int) client_data;
+   int incr = (INT_CAST) client_data;
    SUMA_ARROW_TEXT_FIELD *AF = NULL;
    void *n = NULL;
    XmArrowButtonCallbackStruct *cbs = 
@@ -7464,17 +7588,23 @@ void SUMA_ATF_change_value(XtPointer client_data, XtIntervalId *id)
    if (AF->wrap) SUMA_WRAP_VALUE(AF->value, AF->min, AF->max);
    
    /* round to the tolerance */
-   if (LocalHead) fprintf (SUMA_STDERR, "%s: Pre Tolerance %f\n", FuncName, AF->value);
-   /* if no negs allowed, take absolute value. Round off errors can cause AF->value to show -0.00000001 or something ugly like that*/
+   if (LocalHead) 
+      fprintf (SUMA_STDERR, "%s: Pre Tolerance %f\n", FuncName, AF->value);
+   /* if no negs allowed, take absolute value. 
+      Round off errors can cause AF->value to show -0.00000001 
+      or something ugly like that*/
    if (AF->min >= 0.0 && AF->value < 0.0) AF->value = 0.0;
-   if (LocalHead) fprintf (SUMA_STDERR, "%s: Post Tolerance %f\n", FuncName, AF->value);
+   if (LocalHead) 
+      fprintf (SUMA_STDERR, "%s: Post Tolerance %f\n", FuncName, AF->value);
 
    SUMA_ATF_SetString (AF);
 
    AF->arrow_timer_id =
-     XtAppAddTimeOut (SUMAg_CF->X->App, (int)id==1? 500 : 100, SUMA_ATF_change_value, (XtPointer)AF);
+     XtAppAddTimeOut (SUMAg_CF->X->App, (INT_CAST)id==1? 500 : 100, 
+                        SUMA_ATF_change_value, (XtPointer)AF);
    
-   /* turn off the modified field because it should only be on when the user edits the field */
+   /* turn off the modified field because it should only be on 
+      when the user edits the field */
    SUMA_RETURNe;
 }
 
@@ -8332,28 +8462,35 @@ void SUMA_cb_createSumaCont(Widget w, XtPointer data, XtPointer callData)
       
       tmpfac = SUMAg_CF->X->SumaCont->Lock_rbg->N_but;
        
-      SUMAg_CF->X->SumaCont->Lock_rbg->tb[tmpfac*i] = XtVaCreateManagedWidget("-", 
-      xmToggleButtonWidgetClass, SUMAg_CF->X->SumaCont->Lock_rbg->rb[i], NULL);
+      SUMAg_CF->X->SumaCont->Lock_rbg->tb[tmpfac*i] = 
+         XtVaCreateManagedWidget("-", 
+            xmToggleButtonWidgetClass, 
+            SUMAg_CF->X->SumaCont->Lock_rbg->rb[i], NULL);
       XtAddCallback (SUMAg_CF->X->SumaCont->Lock_rbg->tb[tmpfac*i], 
                      XmNvalueChangedCallback, SUMA_cb_XHlock_toggled, 
-                     (XtPointer)(tmpfac*i));
+                     (XTP_CAST)(tmpfac*i));
        
-      SUMAg_CF->X->SumaCont->Lock_rbg->tb[tmpfac*i+1] = XtVaCreateManagedWidget("i", 
-      xmToggleButtonWidgetClass, SUMAg_CF->X->SumaCont->Lock_rbg->rb[i], NULL);
+      SUMAg_CF->X->SumaCont->Lock_rbg->tb[tmpfac*i+1] = 
+         XtVaCreateManagedWidget("i", 
+            xmToggleButtonWidgetClass, 
+            SUMAg_CF->X->SumaCont->Lock_rbg->rb[i], NULL);
       XtAddCallback (SUMAg_CF->X->SumaCont->Lock_rbg->tb[tmpfac*i+1], 
                      XmNvalueChangedCallback, SUMA_cb_XHlock_toggled,  
-                     (XtPointer)(tmpfac*i+1));
+                     (XTP_CAST)(tmpfac*i+1));
       
-      SUMAg_CF->X->SumaCont->Lock_rbg->tb[tmpfac*i+2] = XtVaCreateManagedWidget("c", 
-      xmToggleButtonWidgetClass, SUMAg_CF->X->SumaCont->Lock_rbg->rb[i], NULL);
+      SUMAg_CF->X->SumaCont->Lock_rbg->tb[tmpfac*i+2] = 
+         XtVaCreateManagedWidget("c", 
+            xmToggleButtonWidgetClass, 
+            SUMAg_CF->X->SumaCont->Lock_rbg->rb[i], NULL);
       XtAddCallback (SUMAg_CF->X->SumaCont->Lock_rbg->tb[tmpfac*i+2], 
                      XmNvalueChangedCallback, SUMA_cb_XHlock_toggled,  
-                     (XtPointer)(tmpfac*i+2));
+                     (XTP_CAST)(tmpfac*i+2));
       
       XtManageChild (SUMAg_CF->X->SumaCont->Lock_rbg->rb[i]);
       
       /* put some help on the radiobox and its children*/
-      MCW_reghelp_children( SUMAg_CF->X->SumaCont->Lock_rbg->rb[i] , SUMA_LockSumaCont_help );
+      MCW_reghelp_children( SUMAg_CF->X->SumaCont->Lock_rbg->rb[i] , 
+                              SUMA_LockSumaCont_help );
       
       /* initialize radio button created */
       SUMA_set_Lock_rb (SUMAg_CF->X->SumaCont->Lock_rbg, i, SUMAg_CF->Locked[i]);
@@ -8362,7 +8499,9 @@ void SUMA_cb_createSumaCont(Widget w, XtPointer data, XtPointer callData)
       
       SUMAg_CF->X->SumaCont->LockView_tbg[i] = XtVaCreateManagedWidget("v", 
          xmToggleButtonWidgetClass, rc_m, NULL);
-      XtAddCallback (SUMAg_CF->X->SumaCont->LockView_tbg[i], XmNvalueChangedCallback, SUMA_cb_XHviewlock_toggled, (XtPointer) i);
+      XtAddCallback (SUMAg_CF->X->SumaCont->LockView_tbg[i], 
+                     XmNvalueChangedCallback, SUMA_cb_XHviewlock_toggled, 
+                     (XTP_CAST) i);
 
       /* put some help on this buton*/
       MCW_reghelp_children( rc_m , SUMA_LockViewSumaCont_help );
@@ -8568,7 +8707,7 @@ void SUMA_cb_XHlock_toggled(Widget w, XtPointer client_data, XtPointer callData)
    SUMA_Boolean LocalHead = NOPE;
    int cd, i, j;
    
-   cd = (int) client_data;
+   cd = (INT_CAST) client_data;
    
    SUMA_ENTRY;
 
@@ -8583,7 +8722,8 @@ void SUMA_cb_XHlock_toggled(Widget w, XtPointer client_data, XtPointer callData)
    SUMA_RETURNe;
 }
 
-void SUMA_cb_XHalock_toggled (Widget w, XtPointer client_data, XtPointer callData)
+void SUMA_cb_XHalock_toggled (Widget w, XtPointer client_data, 
+                              XtPointer callData)
 {
    static char FuncName[] = {"SUMA_cb_XHalock_toggled"};
    int i;
@@ -8592,7 +8732,7 @@ void SUMA_cb_XHalock_toggled (Widget w, XtPointer client_data, XtPointer callDat
    
    SUMA_ENTRY;
  
-   i = (int) client_data;
+   i = (INT_CAST) client_data;
    
 
    list = SUMA_CreateList();
@@ -8612,7 +8752,8 @@ void SUMA_cb_XHalock_toggled (Widget w, XtPointer client_data, XtPointer callDat
    SUMA_RETURNe;
 }
 
-void SUMA_cb_XHaviewlock_toggled (Widget w, XtPointer client_data, XtPointer callData)
+void SUMA_cb_XHaviewlock_toggled (Widget w, XtPointer client_data, 
+                                  XtPointer callData)
 {
    static char FuncName[] = {"SUMA_cb_XHaviewlock_toggled"};
    DList *list=NULL;
@@ -8638,13 +8779,14 @@ void SUMA_cb_XHaviewlock_toggled (Widget w, XtPointer client_data, XtPointer cal
    
 }
 
-void SUMA_cb_XHviewlock_toggled(Widget w, XtPointer client_data, XtPointer callData)
+void SUMA_cb_XHviewlock_toggled(Widget w, XtPointer client_data, 
+                                 XtPointer callData)
 {
    static char FuncName[] = {"SUMA_cb_XHviewlock_toggled"};
    SUMA_Boolean LocalHead = NOPE;
    DList *list=NULL;
    SUMA_EngineData *ED = NULL;
-   int i = (int) client_data;
+   int i = (INT_CAST) client_data;
    
    SUMA_ENTRY;
    
@@ -9430,7 +9572,8 @@ void SUMA_cb_search_text(Widget widget, XtPointer client_data, XtPointer call_da
    - expects a SUMA_MenuCallBackData * in  client_data
    Nothing in client_data->ContID and Menubutton in client_data->callback_data
 */
-void SUMA_cb_SetDrawROI_SaveMode(Widget widget, XtPointer client_data, XtPointer call_data)
+void SUMA_cb_SetDrawROI_SaveMode(Widget widget, XtPointer client_data, 
+                                 XtPointer call_data)
 {
    static char FuncName[]={"SUMA_cb_SetDrawROI_SaveMode"};
    SUMA_MenuCallBackData *datap=NULL;
@@ -9440,8 +9583,10 @@ void SUMA_cb_SetDrawROI_SaveMode(Widget widget, XtPointer client_data, XtPointer
    
    datap = (SUMA_MenuCallBackData *)client_data;
    
-   if (LocalHead) fprintf(SUMA_STDERR,"%s: Setting SaveMode to %d\n", FuncName, (int)datap->callback_data);
-   SUMAg_CF->X->DrawROI->SaveMode = (int)datap->callback_data; 
+   if (LocalHead) 
+      fprintf(SUMA_STDERR,"%s: Setting SaveMode to %d\n", 
+               FuncName, (INT_CAST)datap->callback_data);
+   SUMAg_CF->X->DrawROI->SaveMode = (INT_CAST)datap->callback_data; 
    
    SUMA_RETURNe;
 }
@@ -9452,7 +9597,8 @@ void SUMA_cb_SetDrawROI_SaveMode(Widget widget, XtPointer client_data, XtPointer
    - expects a SUMA_MenuCallBackData * in  client_data
    Nothing in client_data->ContID and Menubutton in client_data->callback_data
 */
-void SUMA_cb_SetDrawROI_WhatDist(Widget widget, XtPointer client_data, XtPointer call_data)
+void SUMA_cb_SetDrawROI_WhatDist(Widget widget, XtPointer client_data, 
+                                 XtPointer call_data)
 {
    static char FuncName[]={"SUMA_cb_SetDrawROI_WhatDist"};
    SUMA_MenuCallBackData *datap=NULL;
@@ -9462,8 +9608,10 @@ void SUMA_cb_SetDrawROI_WhatDist(Widget widget, XtPointer client_data, XtPointer
    
    datap = (SUMA_MenuCallBackData *)client_data;
 
-   if (LocalHead) fprintf(SUMA_STDERR,"%s: Setting WhatDist to %d\n", FuncName, (int)datap->callback_data);
-   SUMAg_CF->X->DrawROI->WhatDist = (int)datap->callback_data; 
+   if (LocalHead) 
+      fprintf(SUMA_STDERR,"%s: Setting WhatDist to %d\n", 
+               FuncName, (INT_CAST)datap->callback_data);
+   SUMAg_CF->X->DrawROI->WhatDist = (INT_CAST)datap->callback_data; 
    
    SUMA_RETURNe;
 } 
@@ -9473,7 +9621,8 @@ void SUMA_cb_SetDrawROI_WhatDist(Widget widget, XtPointer client_data, XtPointer
    - expects a SUMA_MenuCallBackData * in  client_data
    Nothing in client_data->ContID and Menubutton in client_data->callback_data
 */
-void SUMA_cb_SetDrawROI_SaveWhat(Widget widget, XtPointer client_data, XtPointer call_data)
+void SUMA_cb_SetDrawROI_SaveWhat(Widget widget, XtPointer client_data, 
+                                    XtPointer call_data)
 {
    static char FuncName[]={"SUMA_cb_SetDrawROI_SaveWhat"};
    SUMA_MenuCallBackData *datap=NULL;
@@ -9483,8 +9632,10 @@ void SUMA_cb_SetDrawROI_SaveWhat(Widget widget, XtPointer client_data, XtPointer
    
    datap = (SUMA_MenuCallBackData *)client_data;
    
-   if (LocalHead) fprintf(SUMA_STDERR,"%s: Setting SaveWhat to %d\n", FuncName, (int)datap->callback_data);
-   SUMAg_CF->X->DrawROI->SaveWhat = (int)datap->callback_data; 
+   if (LocalHead) 
+      fprintf(SUMA_STDERR,"%s: Setting SaveWhat to %d\n", 
+               FuncName, (INT_CAST)datap->callback_data);
+   SUMAg_CF->X->DrawROI->SaveWhat = (INT_CAST)datap->callback_data; 
    
    SUMA_RETURNe;
 }
@@ -9495,7 +9646,8 @@ void SUMA_cb_SetDrawROI_SaveWhat(Widget widget, XtPointer client_data, XtPointer
    - expects a SUMA_MenuCallBackData * in  client_data
    with SO as client_data->ContID and Menubutton in client_data->callback_data
 */
-void SUMA_cb_SetRenderMode(Widget widget, XtPointer client_data, XtPointer call_data)
+void SUMA_cb_SetRenderMode(Widget widget, XtPointer client_data, 
+                           XtPointer call_data)
 {
    static char FuncName[]={"SUMA_cb_SetRenderMode"};
    DList *list = NULL;
@@ -9512,7 +9664,7 @@ void SUMA_cb_SetRenderMode(Widget widget, XtPointer client_data, XtPointer call_
    datap = (SUMA_MenuCallBackData *)client_data;
    curSOp = (void **)datap->ContID;
    SO = (SUMA_SurfaceObject *)(*curSOp);
-   imenu = (int)datap->callback_data; 
+   imenu = (INT_CAST)datap->callback_data; 
    
    switch (imenu) {
       case SW_SurfCont_RenderViewerDefault:
@@ -9538,7 +9690,8 @@ void SUMA_cb_SetRenderMode(Widget widget, XtPointer client_data, XtPointer call_
    
    /* make a call to SUMA_Engine */
    if (!list) list = SUMA_CreateList ();
-   SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Redisplay_AllVisible, SES_SumaWidget, NULL);   
+   SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Redisplay_AllVisible, 
+                                       SES_SumaWidget, NULL);   
    ED = SUMA_InitializeEngineListData (SE_SetRenderMode);
    Elmnt = SUMA_RegisterEngineListCommand ( list, ED,
                                          SEF_i, (void *)&imenu,
@@ -9718,7 +9871,7 @@ void SUMA_cb_ToolsDrawROI (Widget w, XtPointer client_data, XtPointer call_data)
 
    /* get the surface viewer that the command was made in */
    datap = (SUMA_MenuCallBackData *)client_data;
-   isv = (int)datap->ContID;
+   isv = (INT_CAST)datap->ContID;
    if (isv < 0 || isv >= SUMAg_N_SVv) {
       SUMA_S_Err("Bad baby");
       SUMA_RETURNe;
@@ -9750,14 +9903,16 @@ void SUMA_cb_DrawROI_Undo (Widget w, XtPointer data, XtPointer client_data)
    
    if (!SUMAg_CF->X->DrawROI->curDrawnROI) SUMA_RETURNe;
    
-   if (LocalHead) fprintf(SUMA_STDERR,"%s: Calling SUMA_UndoAction...\n", FuncName);
+   if (LocalHead) 
+      fprintf(SUMA_STDERR,"%s: Calling SUMA_UndoAction...\n", FuncName);
    
    if (!SUMAg_CF->X->DrawROI->curDrawnROI->StackPos) {
       SUMA_SLP_Err("Nothing to Undo.");
       SUMA_RETURNe;
    }
    
-   tmp = SUMA_UndoAction (SUMAg_CF->X->DrawROI->curDrawnROI->ActionStack, SUMAg_CF->X->DrawROI->curDrawnROI->StackPos);
+   tmp = SUMA_UndoAction (SUMAg_CF->X->DrawROI->curDrawnROI->ActionStack, 
+                           SUMAg_CF->X->DrawROI->curDrawnROI->StackPos);
    if (!tmp) {
       SUMA_S_Err("Failed to Undo.");
       SUMA_RETURNe;
@@ -9776,14 +9931,19 @@ void SUMA_cb_DrawROI_Undo (Widget w, XtPointer data, XtPointer client_data)
    
    /* do the paint thing */
    /* Now update the Paint job on the ROI plane */
-   if (!SUMA_Paint_SO_ROIplanes_w (SUMA_findSOp_inDOv(SUMAg_CF->X->DrawROI->curDrawnROI->Parent_idcode_str, SUMAg_DOv, SUMAg_N_DOv), SUMAg_DOv, SUMAg_N_DOv)) {
+   if (!SUMA_Paint_SO_ROIplanes_w ( 
+         SUMA_findSOp_inDOv(  
+              SUMAg_CF->X->DrawROI->curDrawnROI->Parent_idcode_str, 
+              SUMAg_DOv, SUMAg_N_DOv), 
+         SUMAg_DOv, SUMAg_N_DOv)) {
       SUMA_SLP_Err("Failed in SUMA_Paint_SO_ROIplanes_w.");
       SUMA_RETURNe;
    } 
 
    /* place a call to redisplay */
    if (!list) list = SUMA_CreateList ();
-   SUMA_REGISTER_TAIL_COMMAND_NO_DATA(list, SE_Redisplay_AllVisible, SES_Suma, NULL);
+   SUMA_REGISTER_TAIL_COMMAND_NO_DATA(list, SE_Redisplay_AllVisible, 
+                                       SES_Suma, NULL);
    if (!SUMA_Engine (&list)) {
       SUMA_SL_Err("Failed calling SUMA_Engine.");
    }
@@ -9804,14 +9964,17 @@ void SUMA_cb_DrawROI_Redo (Widget w, XtPointer data, XtPointer client_data)
    
    if (!SUMAg_CF->X->DrawROI->curDrawnROI) SUMA_RETURNe;
    
-   if (LocalHead) fprintf(SUMA_STDERR,"%s: Calling SUMA_RedoAction...\n", FuncName);
+   if (LocalHead) 
+      fprintf(SUMA_STDERR,"%s: Calling SUMA_RedoAction...\n", FuncName);
    
-   if (SUMAg_CF->X->DrawROI->curDrawnROI->StackPos == dlist_tail(SUMAg_CF->X->DrawROI->curDrawnROI->ActionStack)) {
+   if (SUMAg_CF->X->DrawROI->curDrawnROI->StackPos == 
+         dlist_tail(SUMAg_CF->X->DrawROI->curDrawnROI->ActionStack)) {
       SUMA_SLP_Err("Nothing to Redo.");
       SUMA_RETURNe;
    }
    
-   tmp = SUMA_RedoAction (SUMAg_CF->X->DrawROI->curDrawnROI->ActionStack, SUMAg_CF->X->DrawROI->curDrawnROI->StackPos);
+   tmp = SUMA_RedoAction (SUMAg_CF->X->DrawROI->curDrawnROI->ActionStack, 
+                           SUMAg_CF->X->DrawROI->curDrawnROI->StackPos);
    if (!tmp) {
       SUMA_S_Err("Failed to Redo.");
       SUMA_RETURNe;
@@ -9822,14 +9985,19 @@ void SUMA_cb_DrawROI_Redo (Widget w, XtPointer data, XtPointer client_data)
 
    /* do the paint thing */
    /* Now update the Paint job on the ROI plane */
-   if (!SUMA_Paint_SO_ROIplanes_w (SUMA_findSOp_inDOv(SUMAg_CF->X->DrawROI->curDrawnROI->Parent_idcode_str, SUMAg_DOv, SUMAg_N_DOv), SUMAg_DOv, SUMAg_N_DOv)) {
+   if (!SUMA_Paint_SO_ROIplanes_w ( 
+         SUMA_findSOp_inDOv(
+               SUMAg_CF->X->DrawROI->curDrawnROI->Parent_idcode_str, 
+               SUMAg_DOv, SUMAg_N_DOv), 
+         SUMAg_DOv, SUMAg_N_DOv)) {
       SUMA_SLP_Err("Failed in SUMA_Paint_SO_ROIplanes_w.");
       SUMA_RETURNe;
    } 
 
    /* place a call to redisplay */
    if (!list) list = SUMA_CreateList ();
-   SUMA_REGISTER_TAIL_COMMAND_NO_DATA(list, SE_Redisplay_AllVisible, SES_Suma, NULL);
+   SUMA_REGISTER_TAIL_COMMAND_NO_DATA(list, SE_Redisplay_AllVisible, 
+                                      SES_Suma, NULL);
    if (!SUMA_Engine (&list)) {
       SUMA_SL_Err("Failed calling SUMA_Engine.");
    }
@@ -12212,7 +12380,7 @@ SUMA_Boolean SUMA_InitializeXformInterface (SUMA_XFORM *xf)
          } else {
             SUMA_DUMP_TRACE("No dotopts");
             SUMA_S_Err("No dotopts!");
-            SUMA_RETURNe;
+            SUMA_RETURN(NOPE);
          }
          if (xf->gui->ShowPreProc_tb) 
             XmToggleButtonSetState( xf->gui->ShowPreProc_tb, 

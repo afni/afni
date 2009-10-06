@@ -169,7 +169,8 @@ typedef enum { type_not_set = -1,
                GO_type, LS_type, NBLS_type, OLS_type, NBOLS_type,
                NBV_type, ONBV_type, SP_type,
                NBSP_type, PL_type,
-               NBT_type, SBT_type, DBT_type,
+               NBT_type, SBT_type, DBT_type, /*!< Those three will 
+                                                   likely not be used */
                NIDO_type } SUMA_DO_Types;   
 
 /*!< Displayable Object Types 
@@ -1091,7 +1092,9 @@ typedef struct {
    int N_links;   /*!< Number of links to this pointer */
    char owner_id[SUMA_IDCODE_LENGTH];   /*!< The id of whoever created that pointer. Might never get used.... */
    
-   int Open; /*!< Flag indicating that controller is open */
+   int Open; /*!< Flag indicating that controller is open 
+                  This was introduced to help deal with crashes on 
+                  OS X 10.5 and 10.6*/
    Widget TopLevelShell;/*!< Top level shell for a Surface's controller */
    Widget PosRef; /*!< reference position widget */
    Widget Mainform; /*!< main form, child of TopLevelShell */
@@ -2469,7 +2472,7 @@ typedef struct {
    SUMA_Boolean InOut_Notify; /*!< prints to STDERR a notice when a function 
                                  is entered or exited */ 
    int InOut_Level; /*!< level of nested function calls */
-   
+   int PointerSize; /*!< size of void * */
    int N_OpenSV; /*!< Number of open (visible) surface viewers.
                      Do not confuse this with the number of surface viewers
                      created (SUMAg_N_SVv)*/

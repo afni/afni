@@ -44,6 +44,7 @@ int    SUMA_copy_spec_entries( SUMA_SurfSpecFile * spec0,
                                int i0, int i1, int debug);
 int    SUMA_unique_name_ind   ( SUMA_SurfSpecFile * spec, char * sname );
 int    swap_strings           ( char * s0, char * s1, char * save, int len );
+int copy_strings( char * s0, char * s1, int len );
 void SUMA_Show_IO_args(SUMA_GENERIC_ARGV_PARSE *ps);
 SUMA_SurfSpecFile *SUMA_SOGroup_2_Spec(SUMA_SurfaceObject **SOv, int N_SOv);
 SUMA_SurfSpecFile *SUMA_IO_args_2_spec(SUMA_GENERIC_ARGV_PARSE *ps, int *nspec);

@@ -1617,8 +1617,8 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
          switch( ngr->part_typ[ip] ){
             /*-- a sub-group ==> recursion! --*/
             case NI_GROUP_TYPE:
-               if (!SUMA_process_NIML_data( (void *)ngr->part_typ[ip] , sv)) { 
-                  NI_group *ngr2=(NI_group *)ngr->part_typ[ip];
+               if (!SUMA_process_NIML_data( (VOID_CAST)ngr->part_typ[ip] , sv)) {
+                  NI_group *ngr2=(NIGRP_CAST)ngr->part_typ[ip];
                   SUMA_S_Errv("Failed in SUMA_process_NIML_data for\n"
                               " group %s's subgroup %s\n", 
                               ngr->name, ngr2->name);

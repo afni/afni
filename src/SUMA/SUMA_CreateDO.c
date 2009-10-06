@@ -3173,12 +3173,12 @@ SUMA_Boolean SUMA_DrawImageNIDOnel( NI_element *nel,
    }
    
    /* texture's on? */
-   if (TexOn2D = glIsEnabled(GL_TEXTURE_2D)) { 
+   if ((TexOn2D = glIsEnabled(GL_TEXTURE_2D))) { 
       /* turn off or affect image drawing */
       glDisable(GL_TEXTURE_2D);
    }
-   if (TexOnGenT = glIsEnabled(GL_TEXTURE_GEN_T)) glDisable(GL_TEXTURE_GEN_T);
-   if (TexOnGenS = glIsEnabled(GL_TEXTURE_GEN_S))  glDisable(GL_TEXTURE_GEN_S);
+   if ((TexOnGenT = glIsEnabled(GL_TEXTURE_GEN_T))) glDisable(GL_TEXTURE_GEN_T);
+   if ((TexOnGenS = glIsEnabled(GL_TEXTURE_GEN_S)))  glDisable(GL_TEXTURE_GEN_S);
                   
    /* have image, go for it */
    SUMA_LH(  "Drawing the image.");
@@ -3497,7 +3497,7 @@ SUMA_Boolean SUMA_PrepForNIDOnelPlacement (  SUMA_SurfaceViewer *sv,
          SUMA_LHv("sz=[%d, %d, %d]\n", sz[0], sz[1], sz[2]);
          glGetIntegerv(GL_VIEWPORT, viewport);
          
-         if (atr = NI_get_attribute(nel,"h_align")) {
+         if ((atr = NI_get_attribute(nel,"h_align"))) {
             if (atr[0] == 'c' || atr[0] == 'C') { /* center */
                txloc[0] = txloc[0] - ((float)sz[0]/2.0 / (float)viewport[2]);
             } else if (atr[0] == 'r' || atr[0] == 'R') { /* right */
@@ -3505,7 +3505,7 @@ SUMA_Boolean SUMA_PrepForNIDOnelPlacement (  SUMA_SurfaceViewer *sv,
             }
          }
          if (nel->name[0] == 'T') { /* special treatment for text */
-            if (atr = NI_get_attribute(nel,"v_align")) {
+            if ((atr = NI_get_attribute(nel,"v_align"))) {
                hln = sz[1]/sz[2]; /* height of one line, recalculated!*/
                Ex = (1-sz[2])*hln;  /* shift for text of more than one line */
                if (atr[0] == 'c' || atr[0] == 'C') { /* center */
@@ -3521,7 +3521,7 @@ SUMA_Boolean SUMA_PrepForNIDOnelPlacement (  SUMA_SurfaceViewer *sv,
                }
             }
          } else {
-            if (atr = NI_get_attribute(nel,"v_align")) {
+            if ((atr = NI_get_attribute(nel,"v_align"))) {
                if (atr[0] == 'c' || atr[0] == 'C') { /* center */
                   txloc[1] = txloc[1] - ((float)sz[1]/2.0 / (float)viewport[3]);
                } else if (atr[0] == 't' || atr[0] == 'T') { /* top */
@@ -3629,7 +3629,7 @@ SUMA_Boolean SUMA_DrawTextNIDOnel(  NI_element *nel,
 
    SUMA_LHv(  "default_coord_units %d\n", default_coord_units);
     
-   if (atr = NI_get_attribute(nel, "font")) {
+   if ((atr = NI_get_attribute(nel, "font"))) {
       if (!(font = SUMA_glutBitmapFont(atr))) {
          SUMA_S_Errv("Bad font %s, using default for group\n", 
                      atr);
@@ -3871,7 +3871,7 @@ SUMA_Boolean SUMA_DrawNIDO (SUMA_NIDO *SDO, SUMA_SurfaceViewer *sv)
       SUMA_LH("Setting up other nido defaults:");
       
       /* set up group defaults */
-         if (atr = NI_get_attribute(ngr, "default_font")) {
+         if ((atr = NI_get_attribute(ngr, "default_font"))) {
             if (!(default_font = SUMA_glutBitmapFont(atr))) {
                SUMA_S_Errv("Bad font %s, using default %s", 
                            atr,
@@ -3887,7 +3887,7 @@ SUMA_Boolean SUMA_DrawNIDO (SUMA_NIDO *SDO, SUMA_SurfaceViewer *sv)
             default_color[2] = txcol[2]; 
             default_color[3] = txcol[3]; 
          }
-         if (atr = NI_get_attribute(ngr, "coord_type")) {
+         if ((atr = NI_get_attribute(ngr, "coord_type"))) {
             if ((coord_type = SUMA_CoordType(atr))
                  == SUMA_COORD_TYPE_ERROR) {
                SUMA_S_Errv("Bad coord_type %s,"
@@ -3983,14 +3983,14 @@ SUMA_Boolean SUMA_DrawNIDO (SUMA_NIDO *SDO, SUMA_SurfaceViewer *sv)
             if (nel->name[0] != '#') {
                SUMA_S_Errv("Not ready for nel->name %s\n", nel->name);
             } else {
-               if (LocalHead) SUMA_LHv("Skipping element %s\n", nel->name);  
+               if (LocalHead) 
+                  SUMA_LHv("Skipping element %s\n", nel->name);  
             }
          }      
       }
       
    }
    
-   GETOUT:
      
    SUMA_RETURN (YUP);
    
@@ -4565,6 +4565,8 @@ char *SUMA_CoordTypeName (SUMA_DO_CoordType tp)
          return("mobile");
       case SUMA_COORD_TYPE_ERROR:
          return("Bad coordinate type");
+      default:
+         return("What is this?");
    }
 }
 SUMA_DO_CoordType SUMA_CoordType (char *atr)
@@ -5617,7 +5619,7 @@ SUMA_Boolean SUMA_Paint_SO_ROIplanes ( SUMA_SurfaceObject *SO,
          SUMA_LH("New NextROIElm");
          if (!NextROIElm) NextROIElm = dlist_head(Plane->ROI_index_lst);
          else NextROIElm = NextROIElm->next;
-         i_D_ROI = (int)(NextROIElm->data);
+         i_D_ROI = (INT_CAST)(NextROIElm->data);
          if (LocalHead) fprintf (SUMA_STDERR, 
                                  "%s: Working with DO %d/%d.\n",
                                  FuncName,  i_D_ROI, N_do);  
@@ -5706,6 +5708,11 @@ SUMA_Boolean SUMA_Paint_SO_ROIplanes ( SUMA_SurfaceObject *SO,
          if (Nodes) {
             for (ii=0; ii < N_Nodes; ++ii) {
                inode = Nodes[ii];
+               if (inode >= SO->N_Node) {
+                  SUMA_S_Errv("Have node %d, SO->N_Node = %d\n",
+                              inode , SO->N_Node) ;
+                              SUMA_RETURN(NOPE);
+               }
                if (!N_ColHist[inode]) {
                   r[inode] = D_ROI->FillColor[0];
                   g[inode] = D_ROI->FillColor[1];
@@ -6134,7 +6141,7 @@ DList * SUMA_Addto_ROIplane_List (DList *ROIplaneListIn, SUMA_DO *dov, int idov)
    /* now put the ROI in question in that list, 
       easiest is to store its index into dov */
    dlist_ins_next(Plane->ROI_index_lst, 
-                  dlist_tail(Plane->ROI_index_lst), (void *)idov);
+                  dlist_tail(Plane->ROI_index_lst), (VOID_CAST)idov);
    
    /* OK, done, now return */
    SUMA_RETURN(ROIplaneList);
@@ -8813,10 +8820,11 @@ SUMA_ROI_DATUM * SUMA_FillToMask(SUMA_SurfaceObject *SO, int *ROI_Mask, int nsee
    - No DO/Undos possible in this format
 */
 
-SUMA_DRAWN_ROI * SUMA_1DROI_to_DrawnROI ( int *Node, int N_Node, int Value, char *Parent_idcode_str, 
-                                          char *Label, char *ColPlaneName, 
-                                          float *FillColor, float *EdgeColor, int EdgeThickness, 
-                                          SUMA_DO *dov, int N_dov, SUMA_Boolean ForDisplay)
+SUMA_DRAWN_ROI * SUMA_1DROI_to_DrawnROI ( 
+   int *Node, int N_Node, int Value, char *Parent_idcode_str, 
+   char *Label, char *ColPlaneName, 
+   float *FillColor, float *EdgeColor, int EdgeThickness, 
+   SUMA_DO *dov, int N_dov, SUMA_Boolean ForDisplay)
 {
    static char FuncName[]={"SUMA_1DROI_to_DrawnROI"};
    SUMA_ROI_DATUM *ROI_Datum = NULL;
@@ -8839,7 +8847,10 @@ SUMA_DRAWN_ROI * SUMA_1DROI_to_DrawnROI ( int *Node, int N_Node, int Value, char
    /* fill in the only ROI datum */
    ROI_Datum = SUMA_AllocROIDatum ();
    ROI_Datum->action = SUMA_BSA_Undefined;
-   if(LocalHead) fprintf (SUMA_STDERR,"%s: About to add %d nodes of value %d...\n", FuncName, N_Node, Value);
+   if(LocalHead) 
+      fprintf (SUMA_STDERR,
+               "%s: About to add %d nodes of value %d...\n", 
+               FuncName, N_Node, Value);
    
    ROI_Datum->nPath = SUMA_UniqueInt(Node, N_Node, &ROI_Datum->N_n, NOPE);
    if (!ROI_Datum->nPath) {
@@ -8850,25 +8861,37 @@ SUMA_DRAWN_ROI * SUMA_1DROI_to_DrawnROI ( int *Node, int N_Node, int Value, char
    
    SUMA_LH("Appending stroke");
    /* just append that baby */
-   dlist_ins_next(ROI->ROIstrokelist, dlist_tail(ROI->ROIstrokelist), (void *)ROI_Datum);
+   dlist_ins_next(ROI->ROIstrokelist, dlist_tail(ROI->ROIstrokelist), 
+                  (void *)ROI_Datum);
    
    if (ForDisplay) {
       /* You must find the contour by yourself. This is normally
       done when the status is set to SUMA_ROI_Finished via the 
       action stack functions */
       { 
-         int *cNodes, N_cNodes;
+         int *cNodes, N_cNodes, i=0;
          SUMA_Boolean Unique = NOPE;
-
+         SUMA_SurfaceObject *SO=NULL;
          SUMA_LH("Getting Contour ");
          N_cNodes = 0;
-         Unique = NOPE; /* Set to YUP if you have node indices listed more than once. 
+         Unique = NOPE; 
+            /* Set to YUP if you have node indices listed more than once. 
                            1D ROIs are uniquized in the reading functions*/
          cNodes = SUMA_NodesInROI (ROI, &N_cNodes, Unique);
          if (cNodes) {
+            if (!(SO = SUMA_findSOp_inDOv(ROI->Parent_idcode_str, dov, N_dov))) {
+               SUMA_SLP_Err("No surface found");
+               SUMA_RETURN(NOPE);
+            }
+            for (i=0; i<N_cNodes; ++i) {
+               if (cNodes[i] < 0 || cNodes[i] >= SO->N_Node) {
+                  SUMA_SLP_Err("Nodes in ROI negative, or >= SO->N_Node");
+                  SUMA_RETURN(NOPE);
+               }
+            }
             ROI->CE = SUMA_GetContour (
-                           SUMA_findSOp_inDOv(ROI->Parent_idcode_str, dov, N_dov), 
-                           cNodes, N_cNodes, &(ROI->N_CE), 0, NULL);
+                        SO, 
+                        cNodes, N_cNodes, &(ROI->N_CE), 0, NULL);
             if (!ROI->CE) { SUMA_LH("Null DrawnROI->CE"); }
             else { SUMA_LH("Good DrawnROI->CE"); }
             SUMA_free(cNodes);

@@ -15,7 +15,8 @@
       SUMA_process_environ(); \
          SUMAg_CF = SUMA_Create_CommonFields ();   \
 	      if (SUMAg_CF == NULL) { \
-		      fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_Create_CommonFields\n", FuncName); \
+		      fprintf(SUMA_STDERR,\
+                  "Error %s: Failed in SUMA_Create_CommonFields\n", FuncName); \
 		      exit(1); \
 	      }  \
          /* SUMAg_CF->scm = SUMA_Build_Color_maps();  require X connection*/\

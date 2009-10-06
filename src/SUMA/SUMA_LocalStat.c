@@ -365,10 +365,11 @@ SUMA_CLUST_DATUM * SUMA_Build_Cluster_From_Node_NoRec    (  int dothisnode,
    /* mark it as assigned, an reduce the number of nodes left to assign*/
    ToBeAssigned[dothisnode] = 0; --(*N_TobeAssigned);
    visited[dothisnode] = YUP;
-   dlist_ins_next(candlist, dlist_tail(candlist), (void *)dothisnode);
+   dlist_ins_next(candlist, dlist_tail(candlist), (VOID_CAST)dothisnode);
       while (*N_TobeAssigned && dlist_size(candlist)) {
          /* look in its vicinity */
-         dothiselm = dlist_head(candlist); dothisnode = (int) dothiselm->data;
+         dothiselm = dlist_head(candlist); 
+         dothisnode = (INT_CAST) dothiselm->data;
          SUMA_getoffsets2 (dothisnode, SO, Opt->DistLim, OffS, NULL, 0);
          /* remove node from candidate list */
          dlist_remove(candlist, dothiselm, (void*)&dtmp);
@@ -401,7 +402,7 @@ SUMA_CLUST_DATUM * SUMA_Build_Cluster_From_Node_NoRec    (  int dothisnode,
                         a candidate before */
                      if (!visited[neighb]) {
                         dlist_ins_next(candlist, dlist_tail(candlist), 
-                                       (void *)neighb);
+                                       (VOID_CAST)neighb);
                         visited[neighb] = YUP;   
                      }
                   }
@@ -433,7 +434,7 @@ SUMA_CLUST_DATUM * SUMA_Build_Cluster_From_Node_NoRec    (  int dothisnode,
                         a candidate before */
                      if (!visited[neighb]) {
                         dlist_ins_next(candlist, dlist_tail(candlist), 
-                                       (void *)neighb);
+                                       (VOID_CAST)neighb);
                         visited[neighb] = YUP;   
                      }
                   }

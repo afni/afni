@@ -4693,8 +4693,11 @@ SUMA_DSET * SUMA_CreateDsetPointer (
    if (!idcode) { /* No id is given yet */
       if (filename) {
          SUMA_NEW_ID(locid, filename);   /* form one from the filename */
-         if (LocalHead) fprintf(SUMA_STDERR,"%s: Using filename %s to create IDcode %s.\n", FuncName, filename, locid); 
-      } else {
+         if (LocalHead) 
+            fprintf(SUMA_STDERR,
+               "%s: Using filename %s to create IDcode %s.\n", 
+               FuncName, filename, locid); 
+      } else { 
          SUMA_NEW_ID(locid, NULL); 
       } 
    }else {
@@ -4702,7 +4705,8 @@ SUMA_DSET * SUMA_CreateDsetPointer (
    }
    
    dset = SUMA_NewDsetPointer();
-   if (!SUMA_NewDsetGrp (dset, tp, domain_idcode, domain_idcode, N_Alloc, filename, locid)) {
+   if (!SUMA_NewDsetGrp (dset, tp, domain_idcode, domain_idcode, 
+                         N_Alloc, filename, locid)) {
       SUMA_SL_Crit("Failed to create dset.\n");
       SUMA_RETURN(0);
    }
@@ -8998,7 +9002,7 @@ char *SUMA_RemoveDsetExtension_eng (char*Name, SUMA_DSET_FORMAT form)
    
    SUMA_RETURN(noex);
 }
-
+ 
 /*!
    \brief a function to turn the old dataset NI_element to the new
    dataset NI_group structure. Only essentials are preserved. Some
@@ -12144,7 +12148,11 @@ int SUMA_CleanNumString (char *s, void *p)
    
    if (!s) SUMA_RETURN(1); 
    
-   N = (int)p;
+   #if INT_MAX < LONG_MAX
+      N = (int)(long int)p;
+   #else 
+      N = (int)p;
+   #endif
    
    /* clean s by removing trailing junk then replacing non characters by space*/
    if (LocalHead) fprintf (stderr, "%s: string begins:%s:\n", FuncName, s);

@@ -3478,7 +3478,7 @@ void *SUMA_nimlEngine2Engine(NI_group *ngr)
             /* have something to do with viewer setup */
             if (!SUMA_ApplyVisualState((NI_element *)ngr, sv)) {
                SUMA_S_Err("Failed to apply state");
-               SUMA_RETURNe;
+               SUMA_RETURN(Ret);
             }
          }
          /* all the rest can be handled in one engine call */

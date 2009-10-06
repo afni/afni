@@ -3,6 +3,7 @@ for mapping data to color maps. Lots of functions from
 xim.c display.c and pbar.c*/
 
 #include "SUMA_suma.h"
+#include "SUMA_plot.h"
  
 #undef STAND_ALONE
 
@@ -110,6 +111,7 @@ void SUMA_cmap_wid_graphicsInit (Widget w, XtPointer clientData, XtPointer call)
                "Error %s: Failed in glXMakeCurrent.\n \tContinuing ...\n", 
                FuncName);
       SUMA_GL_ERRS;
+      SUMA_RETURNe;
    }
    
    /* call context_Init to setup colors and lighting */   
@@ -952,7 +954,7 @@ void SUMA_cb_SwitchIntensity(Widget w, XtPointer client_data, XtPointer call)
    /* get the surface object that the setting belongs to */
    datap = (SUMA_MenuCallBackData *)client_data;
    SO = (SUMA_SurfaceObject *)datap->ContID;
-   imenu = (int)datap->callback_data; 
+   imenu = (INT_CAST)datap->callback_data; 
    
    SUMA_SwitchColPlaneIntensity(SO, SO->SurfCont->curColPlane, imenu -1, 0);
    
@@ -968,7 +970,8 @@ int SUMA_SwitchColPlaneThreshold(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *colp, in
    
    SUMA_ENTRY;
    
-   if (!SO || !SO->SurfCont || !SO->SurfCont->curColPlane || !colp || ind < -1 || !colp->dset_link) { SUMA_RETURN(0); }
+   if (!SO || !SO->SurfCont || !SO->SurfCont->curColPlane || 
+       !colp || ind < -1 || !colp->dset_link) { SUMA_RETURN(0); }
    
    
    if (LocalHead) {
@@ -1039,7 +1042,7 @@ void SUMA_cb_SwitchThreshold(Widget w, XtPointer client_data, XtPointer call)
    /* get the surface object that the setting belongs to */
    datap = (SUMA_MenuCallBackData *)client_data;
    SO = (SUMA_SurfaceObject *)datap->ContID;
-   imenu = (int)datap->callback_data; 
+   imenu = (INT_CAST)datap->callback_data; 
    
    SUMA_SwitchColPlaneThreshold(SO, SO->SurfCont->curColPlane, imenu -1, 0);
    SUMA_RETURNe;
@@ -1133,10 +1136,12 @@ void SUMA_cb_SwitchBrightness(Widget w, XtPointer client_data, XtPointer call)
    /* get the surface object that the setting belongs to */
    datap = (SUMA_MenuCallBackData *)client_data;
    SO = (SUMA_SurfaceObject *)datap->ContID;
-   imenu = (int)datap->callback_data; 
+   imenu = (INT_CAST)datap->callback_data; 
    
    if (LocalHead) {
-      fprintf(SUMA_STDERR, "%s:\n request to switch brightness to col. %d\n", FuncName, imenu - 1);
+      fprintf( SUMA_STDERR, 
+               "%s:\n request to switch brightness to col. %d\n", 
+               FuncName, imenu - 1);
    }
    
    SO->SurfCont->curColPlane->OptScl->bind = imenu - 1;
@@ -1144,7 +1149,9 @@ void SUMA_cb_SwitchBrightness(Widget w, XtPointer client_data, XtPointer call)
    SUMA_InitRangeTable(SO, 1) ;
 
    SUMA_UpdateNodeValField(SO);
-   if (!SO->SurfCont->curColPlane->OptScl->UseBrt) { SUMA_RETURNe; } /* nothing else to do */
+   if (!SO->SurfCont->curColPlane->OptScl->UseBrt) { 
+      SUMA_RETURNe; 
+   } /* nothing else to do */
    
    if (!SUMA_ColorizePlane (SO->SurfCont->curColPlane)) {
          SUMA_SLP_Err("Failed to colorize plane.\n");
@@ -1494,7 +1501,8 @@ SUMA_MenuItem CmapMode_Menu[] = {
    - expects a SUMA_MenuCallBackData * in  client_data
    with SO as client_data->ContID and Menubutton in client_data->callback_data
 */
-void SUMA_cb_SetCmapMode(Widget widget, XtPointer client_data, XtPointer call_data)
+void SUMA_cb_SetCmapMode(Widget widget, XtPointer client_data, 
+                         XtPointer call_data)
 {
    static char FuncName[]={"SUMA_cb_SetCmapMode"};
    SUMA_MenuCallBackData *datap=NULL;
@@ -1508,7 +1516,7 @@ void SUMA_cb_SetCmapMode(Widget widget, XtPointer client_data, XtPointer call_da
    /* get the surface object that the setting belongs to */
    datap = (SUMA_MenuCallBackData *)client_data;
    SO = (SUMA_SurfaceObject *)datap->ContID;
-   imenu = (int)datap->callback_data; 
+   imenu = (INT_CAST)datap->callback_data; 
    NewDisp = NOPE;
    switch (imenu) {
       case SW_Interp:
@@ -1565,7 +1573,7 @@ void SUMA_cb_SetCoordBias(Widget widget, XtPointer client_data, XtPointer call_d
    /* get the surface object that the setting belongs to */
    datap = (SUMA_MenuCallBackData *)client_data;
    SO = (SUMA_SurfaceObject *)datap->ContID;
-   imenu = (int)datap->callback_data; 
+   imenu = (INT_CAST)datap->callback_data; 
    NewDisp = NOPE;
    switch (imenu) {
       case SW_CoordBias_None:
@@ -1577,29 +1585,37 @@ void SUMA_cb_SetCoordBias(Widget widget, XtPointer client_data, XtPointer call_d
          }
          break;
       case SW_CoordBias_X:
-         if (SO->SurfCont->curColPlane->OptScl->DoBias != SW_CoordBias_X) { /* something needs to be done */
-               /* bias other than on other dimension exists, transfer it to new dimension*/
+         if (SO->SurfCont->curColPlane->OptScl->DoBias != SW_CoordBias_X) { 
+               /* something needs to be done */
+               /* bias other than on other dimension exists, transfer it to 
+                  new dimension*/
                SUMA_TransferCoordBias(SO->SurfCont->curColPlane, SW_CoordBias_X);
             NewDisp = YUP;
          }
          break;
       case SW_CoordBias_Y:
-         if (SO->SurfCont->curColPlane->OptScl->DoBias != SW_CoordBias_Y) { /* something needs to be done */
-               /* bias other than on other dimension exists, transfer it to new dimension*/
+         if (SO->SurfCont->curColPlane->OptScl->DoBias != SW_CoordBias_Y) { 
+               /* something needs to be done */
+               /* bias other than on other dimension exists, transfer it to 
+               new dimension*/
                SUMA_TransferCoordBias(SO->SurfCont->curColPlane, SW_CoordBias_Y);
             NewDisp = YUP;
          }
          break;
       case SW_CoordBias_Z:
-         if (SO->SurfCont->curColPlane->OptScl->DoBias != SW_CoordBias_Z) { /* something needs to be done */
-               /* bias other than on other dimension exists, transfer it to new dimension*/
+         if (SO->SurfCont->curColPlane->OptScl->DoBias != SW_CoordBias_Z) { 
+               /* something needs to be done */
+               /* bias other than on other dimension exists, transfer it to 
+                  new dimension*/
                SUMA_TransferCoordBias(SO->SurfCont->curColPlane, SW_CoordBias_Z);
             NewDisp = YUP;
          }
          break;
       case SW_CoordBias_N:
-         if (SO->SurfCont->curColPlane->OptScl->DoBias != SW_CoordBias_N) { /* something needs to be done */
-               /* bias other than on other dimension exists, transfer it to new dimension*/
+         if (SO->SurfCont->curColPlane->OptScl->DoBias != SW_CoordBias_N) { 
+               /* something needs to be done */
+               /* bias other than on other dimension exists, transfer it to 
+                  new dimension*/
                SUMA_TransferCoordBias(SO->SurfCont->curColPlane, SW_CoordBias_N);
             NewDisp = YUP;
          }
@@ -2360,7 +2376,7 @@ void SUMA_CreateTable(  Widget parent,
                TF->cells[n] = XtVaCreateManagedWidget(
                               "entry",  
                               xmTextFieldWidgetClass, rcc,
-                              XmNuserData, (XtPointer)n,
+                              XmNuserData, (XTP_CAST)n,
                               XmNvalue, "-",
                               XmNmarginHeight, 0,
                               XmNmarginTop, 0,
@@ -2633,14 +2649,14 @@ double SUMA_Pval2ThreshVal (SUMA_SurfaceObject *SO, double pval) {
    
    if (!SO) { 
       SUMA_SL_Err("NULL SO");
-      SUMA_RETURNe; 
+      SUMA_RETURN(val); 
    }  
    if (!SO->SurfCont || 
        !SO->SurfCont->thr_sc ||
        !SO->SurfCont->curColPlane ||
        !SO->SurfCont->curColPlane->dset_link) { 
       SUMA_SL_Err("NULL SurfCont");
-      SUMA_RETURNe; 
+      SUMA_RETURN(val); 
    }
      
    /* see if you can get the stat codes */
@@ -3900,7 +3916,8 @@ SUMA_Boolean SUMA_InitRangeTable(SUMA_SurfaceObject *SO, int what)
    SUMA_RETURN(YUP);
 }
 
-SUMA_ASSEMBLE_LIST_STRUCT * SUMA_AssembleCmapList(SUMA_COLOR_MAP **CMv, int N_maps) 
+SUMA_ASSEMBLE_LIST_STRUCT * SUMA_AssembleCmapList(SUMA_COLOR_MAP **CMv, 
+                                                  int N_maps) 
 {
    static char FuncName[]={"SUMA_AssembleCmapList"};
    SUMA_ASSEMBLE_LIST_STRUCT *clist_str = NULL;  
@@ -3931,7 +3948,7 @@ SUMA_ASSEMBLE_LIST_STRUCT * SUMA_AssembleDsetColList(SUMA_DSET *dset)
    
    SUMA_ENTRY;
    
-   if (SDSET_VECNUM(dset) < 1) SUMA_RETURNe;
+   if (SDSET_VECNUM(dset) < 1) SUMA_RETURN(clist_str);
    
    clist_str = SUMA_CreateAssembleListStruct();
    clist_str->clist = (char **)SUMA_calloc(SDSET_VECNUM(dset), sizeof(char *));
@@ -3941,7 +3958,7 @@ SUMA_ASSEMBLE_LIST_STRUCT * SUMA_AssembleDsetColList(SUMA_DSET *dset)
    for (i=0; i<SDSET_VECNUM(dset); ++i) {
       clist_str->clist[SDSET_VECNUM(dset)-1-i] = 
                   SUMA_DsetColLabelCopy(dset,i, 1);
-      clist_str->oplist[SDSET_VECNUM(dset)-1-i] = (XtPointer)i;
+      clist_str->oplist[SDSET_VECNUM(dset)-1-i] = (XTP_CAST)i;
    }
    
    SUMA_RETURN(clist_str);
@@ -4291,27 +4308,27 @@ int SUMA_SelectSwitchDsetCol(
          if (LocalHead) 
             fprintf (SUMA_STDERR,
                      "%s: Retrieved Column indexed %d\n", 
-                     FuncName, (int)LW->ALS->oplist[ichoice]);
+                     FuncName, (INT_CAST)LW->ALS->oplist[ichoice]);
          
          switch (block){
             case 0:
                if (!SUMA_SwitchColPlaneIntensity
                      (SO, SO->SurfCont->curColPlane, 
-                      (int)LW->ALS->oplist[ichoice], 1)) {
+                      (INT_CAST)LW->ALS->oplist[ichoice], 1)) {
                   SUMA_SL_Err("Failed in SUMA_SwitchColPlaneIntensity");
                }
                break;
             case 1:
                if (!SUMA_SwitchColPlaneThreshold
                      (SO, SO->SurfCont->curColPlane, 
-                      (int)LW->ALS->oplist[ichoice], 1)) {
+                      (INT_CAST)LW->ALS->oplist[ichoice], 1)) {
                   SUMA_SL_Err("Failed in SUMA_SwitchColPlaneIntensity");
                }
                break;
             case 2:
                if (!SUMA_SwitchColPlaneBrightness
                      (SO, SO->SurfCont->curColPlane, 
-                      (int)LW->ALS->oplist[ichoice], 1)) {
+                      (INT_CAST)LW->ALS->oplist[ichoice], 1)) {
                   SUMA_SL_Err("Failed in SUMA_SwitchColPlaneIntensity");
                }
                break;
@@ -5118,17 +5135,19 @@ SUMA_MenuItem *SUMA_FormSwitchColMenuVector(SUMA_SurfaceObject *SO, int what, in
 
    /* fillup menu */
    for (i=0; i < nel->vec_num; ++i) {
-      menu[i].label = SUMA_DsetColLabelCopy(SO->SurfCont->curColPlane->dset_link, i, 1);
+      menu[i].label = 
+         SUMA_DsetColLabelCopy(SO->SurfCont->curColPlane->dset_link, i, 1);
       menu[i].class = &xmPushButtonWidgetClass;
       menu[i].mnemonic = '\0';
       menu[i].accelerator = NULL;
       menu[i].accel_text = NULL;
       menu[i].callback = callback;
-      menu[i].callback_data = (XtPointer)i+1; /* DO NOT USE THE zeroth item */
+      menu[i].callback_data = (XTP_CAST)i+1; /* DO NOT USE THE zeroth item */
       menu[i].subitems = NULL;
    }
    
-   /* add the stop sign. That's what SUMA_BuildMenu uses to figure out the number of elements */
+   /* add the stop sign. That's what SUMA_BuildMenu uses to figure out the 
+      number of elements */
    menu[nel->vec_num].label = NULL;
    
    *N_items = nel->vec_num;
@@ -5158,7 +5177,7 @@ void SUMA_DoForTheChildren(Widget w, int i, int lvl, int rec)
    static char FuncName[]={"SUMA_DoForTheChildren"};
    Widget * children = NULL;
    int  num_children=0, num_children2=0, ic , Nbutt=0, kk=0;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
@@ -5333,7 +5352,7 @@ void SUMA_UpdatePvalueField (SUMA_SurfaceObject *SO, float thresh)
           else           sprintf( buf , "p=%1d.-%2d"  , (int)rint(zval), dec ) ;
         }
       }
-      if( qval > 0.0f & qval < 0.9999 ){
+      if( qval > 0.0f && qval < 0.9999 ){
          char qbuf[16] ;
          if( qval >= 0.0010 ) sprintf(qbuf,"%5.4f",qval) ;
          else {
@@ -5413,7 +5432,8 @@ void SUMA_SetScaleRange(SUMA_SurfaceObject *SO, double range[2])
    }
    
    #if 0
-   /* make sure the current value is not less than the min or greater than the max */
+   /* make sure the current value is not less than the min or greater 
+      than the max */
    XtVaGetValues(w, XmNvalue, &cv, NULL);
    #else
    /* what was the slider's previous value in this dset ?*/
@@ -5422,15 +5442,21 @@ void SUMA_SetScaleRange(SUMA_SurfaceObject *SO, double range[2])
    else cv = (int) (dtmp-0.5);
    #endif
 
-   if (LocalHead) fprintf (SUMA_STDERR, "%s:\n min %d max %d scalemult %d decimals %d\nCurrent scale value %d\n", 
+   if (LocalHead) 
+      fprintf (SUMA_STDERR, 
+               "%s:\n"
+               " min %d max %d scalemult %d decimals %d\n"
+               "Current scale value %d\n", 
                   FuncName, min_v, max_v, scl, dec, cv);  
    if (cv < min_v) {
       cv = min_v;
       /* must update threshold value in options structure*/
-      SO->SurfCont->curColPlane->OptScl->ThreshRange[0] = (float)cv / pow(10.0, dec); 
+      SO->SurfCont->curColPlane->OptScl->ThreshRange[0] = 
+         (float)cv / pow(10.0, dec); 
    } else if (cv > max_v) {
       cv = max_v;
-      SO->SurfCont->curColPlane->OptScl->ThreshRange[0] = (float)cv / pow(10.0, dec); 
+      SO->SurfCont->curColPlane->OptScl->ThreshRange[0] = 
+         (float)cv / pow(10.0, dec); 
    }
    /* set the slider bar */
    XtVaSetValues(w,  
@@ -5439,7 +5465,7 @@ void SUMA_SetScaleRange(SUMA_SurfaceObject *SO, double range[2])
             XmNvalue, cv, 
             XmNscaleMultiple, scl,  
             XmNdecimalPoints , dec,
-            XmNuserData, (XtPointer)dec,   
+            XmNuserData, (XTP_CAST)dec,   
             NULL);   
             
    /* set the label on top */

@@ -15,7 +15,7 @@
    It appears that GLX implementation is full of uninitialzation errors, 
    according to Valgrind. 
    
-   So now one can choose between three closing modes. For widgers with GLX drawables (Viewers, and SurfaceControllers) use SUMA_UNREALIZE.
+   So now one can choose between three closing modes. For widgets with GLX drawables (Viewers, and SurfaceControllers) use SUMA_UNREALIZE.
    For other, stick with SUMA_WITHDRAW as previously done.
 */
 
@@ -77,15 +77,15 @@ activated.
 #define SUMA_VIEWER_FROM_FILEMENU_CALLBACK(data, isv, widtype) {\
          SUMA_MenuCallBackData *datap; \
          datap = (SUMA_MenuCallBackData *)data;  \
-         isv = (int)datap->ContID; \
-         widtype = (int)datap->callback_data; }
+         isv = (INT_CAST)datap->ContID; \
+         widtype = (INT_CAST)datap->callback_data; }
          
 
 #define SUMA_VIEWER_FROM_VIEWMENU_CALLBACK(data, isv, widtype) {\
          SUMA_MenuCallBackData *datap; \
          datap = (SUMA_MenuCallBackData *)data;  \
-         isv = (int)datap->ContID; \
-         widtype = (int)datap->callback_data; }
+         isv = (INT_CAST)datap->ContID; \
+         widtype = (INT_CAST)datap->callback_data; }
 /*!
 sets the select color of the widget to its foreground color */         
 #define SUMA_SET_SELECT_COLOR(m_w) {\
@@ -424,6 +424,7 @@ void SUMA_cb_XformPreProc_Save (Widget w, XtPointer data,
                              XtPointer client_data);
 void SUMA_cb_XformOpts_Apply (Widget w, XtPointer data, 
                              XtPointer client_data);
+void SUMA_setIO_notify(int val);
 
 #define SUMA_MAX_XFCB_OBJS 32       /*!< Max number of callbacks or xforms 
                                          that may act on dsets or SOs */
