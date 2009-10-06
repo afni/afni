@@ -270,6 +270,15 @@ SUMA_handleRedisplay(XtPointer closure)
             PleaseDoMakeCurrent = YUP;
          }
       }
+   } else {
+      if (!sv->Open) {
+            if (LocalHead) 
+               fprintf (SUMA_STDERR, 
+                        "%s: Redisplay request for a closed window. \n"
+                        "Not sure that is ever needed. Skipping.\n",
+                        FuncName);
+            SUMA_RETURN(NOPE);
+      }
    } 
    #if 0 /* trying to fix horrible freeze on 10.5 */
    SUMA_S_Note("Forcing Current Making");
