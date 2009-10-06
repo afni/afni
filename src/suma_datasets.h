@@ -7,10 +7,36 @@
 #define MAX_ERRLOG_MSG 1000
 #define MAX_ERRLOG_FUNCNAME 200
 
+/*! macro to avoid typecasting warnings when going from 
+    void * pointers (or XtPointer) to int and vice versa */
+   /* I use INT_MAX and LONG_MAX
+   to guess whether or not we have 64 bit pointers.
+   I need to guess with #if to do proper type casting and
+   avoid compiler warnings */
+#if INT_MAX < LONG_MAX
+   #define INT_CAST  int)(long int
+   #define VOID_CAST  void *)(long int
+   #define CVOID_CAST  const void *)(long int
+   #define XTP_CAST  XtPointer)(long int
+   #define NIGRP_CAST NI_group *)(long int
+#else 
+   #define INT_CAST int
+   #define VOID_CAST void *
+   #define CVOID_CAST const void *
+   #define XTP_CAST  XtPointer
+   #define NIGRP_CAST NI_group *
+#endif
+
+
 #ifdef USE_TRACING
-#define SUMA_DUMP_TRACE(head) { /* taken from dbtrace.h */\
-   int m_ii;   \
-   if (head) { SUMA_S_Note(head);} else {SUMA_S_Note("Dumping Trace:");}   \
+#define SUMA_DUMP_TRACE(ihead) { /* taken from dbtrace.h */\
+   int m_ii;  \
+   char *head=(char*)ihead; /* a trick to quiet compiler warnings about \
+               fixed length   strings addresses always evaluating to true */\
+   if (head) { \
+      SUMA_S_Note(head);\
+   } else {SUMA_S_Note("Dumping Trace:");\
+   }   \
    if( DBG_num >= 0 ){  \
       for( m_ii=DBG_num-1; m_ii >= 0 ; m_ii-- ) \
          fprintf(stderr,"%*.*s%s\n",m_ii+1,m_ii+1," ",DBG_rout[m_ii]) ; \
@@ -812,8 +838,9 @@ v is the array
 Nel is the total number of values
 m is the number of consecutive values to write per line 
 If you want to have some index before the entries, use SUMA_WRITE_IND_ARRAY_1D*/
-#define SUMA_WRITE_ARRAY_1D(v,Nel,m,name){  \
+#define SUMA_WRITE_ARRAY_1D(v,Nel,m,iname){  \
    int m_kkk; \
+   char *name=(char*)iname;   \
    FILE * m_fp=NULL;\
    m_fp = (name) ? fopen((name),"w"): fopen("yougavemenoname","w");  \
    if (m_fp) { \

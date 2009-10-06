@@ -374,7 +374,7 @@ if(PRINT_TRACING)
      if( zval > 0.0f ){
        float qval = 2.0*qg(zval) ;         /* convert z back to FDR q */
        im3d->vinfo->func_qval = qval ;
-       if( qval > 0.0f & qval < 0.9999 ){
+       if( qval > 0.0f && qval < 0.9999 ){   
          char qbuf[16] ;
          if( qval >= 0.0010 ) sprintf(qbuf,"%5.4f",qval) ;
          else {

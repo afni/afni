@@ -1,4 +1,5 @@
 #include "SUMA_suma.h"
+#include "SUMA_plot.h"
 
 /* extern SUMA_SurfaceViewer *SUMAg_cSV; */ /* no longer in use Tue Aug 13 15:55:29 EDT 2002 */
 extern int SUMAg_N_DOv; 

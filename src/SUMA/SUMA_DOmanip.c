@@ -237,12 +237,14 @@ SUMA_Boolean SUMA_Free_Displayable_Object (SUMA_DO *dov)
    switch (dov->ObjectType) {
       case SO_type:
          if (!SUMA_Free_Surface_Object ((SUMA_SurfaceObject *)dov->OP)) {
-            fprintf(SUMA_STDERR,"Error SUMA_Free_Displayable_Object, could not free surface\n");
+            fprintf(SUMA_STDERR,
+               "Error SUMA_Free_Displayable_Object, could not free surface\n");
          }
          break;
       case ROIdO_type:
          if (!SUMA_freeDrawnROI ((SUMA_DRAWN_ROI *)dov->OP)) {
-            fprintf(SUMA_STDERR,"Error SUMA_freeDrawnROI, could not free  ROI.\n");
+            fprintf(SUMA_STDERR,
+               "Error SUMA_freeDrawnROI, could not free  ROI.\n");
          }
          break;
       case ROIO_type:
@@ -254,17 +256,23 @@ SUMA_Boolean SUMA_Free_Displayable_Object (SUMA_DO *dov)
       case NBV_type:
       case OLS_type:
       case LS_type:
+      case NBLS_type:
+      case NBOLS_type:
          SUMA_free_SegmentDO ((SUMA_SegmentDO *)dov->OP);
          break;
       case AO_type:
          SUMA_Free_Axis((SUMA_Axis*)dov->OP);
          break;
       case GO_type:
-         fprintf(SUMA_STDERR,"Error SUMA_Free_Displayable_Object, Not trained to free GO objects\n");
+         fprintf(SUMA_STDERR,
+                  "Error SUMA_Free_Displayable_Object, "
+                  "Not trained to free GO objects\n");
          break;
       case type_not_set:
       case no_type:
-         fprintf(SUMA_STDERR,"Error SUMA_Free_Displayable_Object, no free no_type or type_not_set\n");
+         fprintf(SUMA_STDERR,
+                  "Error SUMA_Free_Displayable_Object, "
+                  "no free no_type or type_not_set\n");
          break;
       case NBSP_type:
       case SP_type:
@@ -275,7 +283,16 @@ SUMA_Boolean SUMA_Free_Displayable_Object (SUMA_DO *dov)
          break;
       case NIDO_type:
          SUMA_free_NIDO((SUMA_NIDO*)dov->OP);
-         
+         break;
+      case NBT_type:
+      case SBT_type:
+      case DBT_type:
+         /* those types are not used */
+         SUMA_S_Warnv("Type %d should not be in  use!\n", dov->ObjectType);
+         break;
+      default:
+         SUMA_S_Errv("Type %d not accounted for!\n", dov->ObjectType);
+         break;   
    }   
 
    SUMA_RETURN(YUP);
@@ -3213,7 +3230,7 @@ SUMA_Boolean SUMA_ExecuteCallback(SUMA_CALLBACK *cb,
                   targetSO = SO;
                } else {
                   SUMA_S_Err("Don't know what do do here");
-                  SUMA_RETURNe;
+                  SUMA_RETURN(NOPE);
                }
             }
             /* refresh overlay and SO for this callback */

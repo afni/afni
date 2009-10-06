@@ -24,7 +24,7 @@ makepow2(int val)
 #define CHECK_ERROR(str)                                           \
 {                                                                  \
     GLenum error;                                                  \
-    if(error = glGetError())                                       \
+    if((error = glGetError()))                                       \
        fprintf(stderr,"**************GL Error: %s (%s)\n", \
          gluErrorString(error), str);  \
 }

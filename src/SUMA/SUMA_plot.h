@@ -26,5 +26,8 @@ typedef struct {
                            when adding new fields here */
 SUMA_MEMPLOT_USERDATA * SUMA_clear_mpud_contents(SUMA_MEMPLOT_USERDATA *mpud); 
 
+SUMA_Boolean SUMA_OverlayGraphAtNode(SUMA_OVERLAYS *Sover,
+               SUMA_SurfaceObject *SO,
+               int inode);
 
 #endif

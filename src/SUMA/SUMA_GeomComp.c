@@ -622,7 +622,8 @@ int SUMA_VoxelNeighbors (int ijk, int ni, int nj, int nk, SUMA_VOX_NEIGHB_TYPES 
       1: for voxels inside mask
        
 */
-byte *SUMA_FillToVoxelMask(byte *ijkmask, int ijkseed, int ni, int nj, int nk, int *N_in, byte *usethisisin) 
+byte *SUMA_FillToVoxelMask(byte *ijkmask, int ijkseed, int ni, int nj, 
+                           int nk, int *N_in, byte *usethisisin) 
 {
    static char FuncName[]={"SUMA_FillToVoxelMask"};
    byte *isin = NULL, *visited=NULL;
@@ -677,40 +678,59 @@ byte *SUMA_FillToVoxelMask(byte *ijkmask, int ijkseed, int ni, int nj, int nk, i
    
    isin[dothisvoxel] = 1; ++(*N_in); /* Add voxel to cluster */
    visited[dothisvoxel] = 1;  
-   dlist_ins_next(candlist, dlist_tail(candlist), (const void *)dothisvoxel); /* Add voxel as next candidate*/
+   dlist_ins_next(candlist, dlist_tail(candlist), 
+                  (CVOID_CAST)dothisvoxel); /* Add voxel as next candidate*/
    
    while (dlist_size(candlist)) {
       /* find neighbors in its vicinity */
-      dothiselm = dlist_head(candlist); dothisvoxel = (int) dothiselm->data;
-      N_n = SUMA_VoxelNeighbors (dothisvoxel, ni, nj, nk, SUMA_VOX_NEIGHB_FACE, nl);
+      dothiselm = dlist_head(candlist); dothisvoxel = (INT_CAST) dothiselm->data;
+      N_n = SUMA_VoxelNeighbors (dothisvoxel, ni, nj, nk, 
+                                 SUMA_VOX_NEIGHB_FACE, nl);
       /*
          if (dothisvoxel == 5030 && LocalHead) {
-            for (in=0; in<N_n; ++in) {  fprintf(SUMA_STDERR,"%s: pre removal %d\n", FuncName, nl[in]); }    
+            for (in=0; in<N_n; ++in) {  
+               fprintf(SUMA_STDERR,"%s: pre removal %d\n", FuncName, nl[in]); 
+            }    
          }
       */
       /* remove node from candidate list */
-      dlist_remove(candlist, dothiselm, (void *)(&dtmp)); /* Make sure dtmp has enough space to hold a pointer! An int does not hold a pointer on 64 bit MCs */
+      dlist_remove(candlist, dothiselm, (void *)(&dtmp)); /* Make sure dtmp has 
+            enough space to hold a pointer! 
+            An int will not hold a pointer on 64 bit MCs */
       /*
          if (dothisvoxel == 5030 && LocalHead) {
-            for (in=0; in<N_n; ++in) {  fprintf(SUMA_STDERR,"%s: post removal %d\n", FuncName, nl[in]); }    
+            for (in=0; in<N_n; ++in) {  
+               fprintf(SUMA_STDERR,"%s: post removal %d\n", FuncName, nl[in]); 
+            }    
          }
       */
       /* search to see if any are to be assigned */
-      /* if (dothisvoxel == 5030 && LocalHead) fprintf(SUMA_STDERR,"%s: dothisvoxel = %d\n", FuncName, dothisvoxel);*/
+      /* if (dothisvoxel == 5030 && LocalHead) 
+         fprintf(SUMA_STDERR,"%s: dothisvoxel = %d\n", FuncName, dothisvoxel);*/
       for (in=0; in<N_n; ++in) { 
          neighb = nl[in];
-         /* if (dothisvoxel == 5030 && LocalHead) fprintf(SUMA_STDERR,"   Working neighb %d, ijkmask[neighb] = %d\n", neighb, ijkmask[neighb]);*/
+         /* if (dothisvoxel == 5030 && LocalHead) 
+               fprintf(SUMA_STDERR,
+                       "   Working neighb %d, ijkmask[neighb] = %d\n", 
+                       neighb, ijkmask[neighb]);*/
          if (!ijkmask[neighb]) {
-            /* if (dothisvoxel == 5030 && LocalHead) fprintf(SUMA_STDERR,"   neighb %d marked isin\n", neighb); */
+            /* if (dothisvoxel == 5030 && LocalHead) 
+               fprintf(SUMA_STDERR,"   neighb %d marked isin\n", neighb); */
             isin[neighb] = 1; ++(*N_in); /* Add voxel to cluster */
-            /* mark it as a candidate if it has not been visited as a candidate before */
+            /* mark it as a candidate if it has not been visited as a 
+               candidate before */
             if (!visited[neighb]) {
-               /* if (dothisvoxel == 5030 && LocalHead) fprintf(SUMA_STDERR,"   neighb %d added to candidate list\n", neighb); */
-               dlist_ins_next(candlist, dlist_tail(candlist), (const void *)neighb);
+               /* if (dothisvoxel == 5030 && LocalHead) 
+                  fprintf( SUMA_STDERR,
+                           "   neighb %d added to candidate list\n", neighb); */
+               dlist_ins_next(candlist, dlist_tail(candlist), 
+                              (CVOID_CAST)neighb);
                visited[neighb] = 1;   
             }
          } else {
-         /*   if (dothisvoxel == 5030 && LocalHead) fprintf(SUMA_STDERR,"   neighb %d already in mask\n", neighb); */
+         /*   if (dothisvoxel == 5030 && LocalHead) 
+                  fprintf(SUMA_STDERR,
+                           "   neighb %d already in mask\n", neighb); */
          }
       }
    }
@@ -4992,8 +5012,9 @@ SUMA_Boolean SUMA_Chung_Smooth_05_single_dset (SUMA_SurfaceObject *SO, float **w
       
    } /* for each col */
    
-   CLEANUP:
-   if (fin_orig) SUMA_free(fin_orig); fin_orig = NULL; /* just in case, this one's still alive from a GOTO */
+   /* CLEANUP: */
+   if (fin_orig) SUMA_free(fin_orig); fin_orig = NULL; 
+      /* just in case, this one's still alive from a GOTO */
    if (bfull) SUMA_free(bfull); bfull = NULL;
    if (fbuf) SUMA_free(fbuf); fbuf = NULL;
    if (fout_final) SUMA_free(fout_final); fout_final = NULL;
@@ -5457,7 +5478,7 @@ SUMA_Boolean SUMA_Chung_Smooth_07_dset (SUMA_SurfaceObject *SO, double **wgt,
    *N_iter = niter;
    *FWHMp = FWHM;
    
-   CLEANUP:
+   /* CLEANUP: */
    if (fwhmg) SUMA_free(fwhmg); fwhmg=NULL;
    if (fsend) SUMA_free(fsend); fsend=NULL;
    if (fin_orig) SUMA_free(fin_orig); fin_orig = NULL; 
@@ -5745,14 +5766,15 @@ SUMA_Boolean SUMA_Chung_Smooth_07_toFWHM_dset (
    *N_iter = niter;
    *FWHMp = FWHM;
    
-   CLEANUP:
+   /* CLEANUP: */
    if (fwhmv) SUMA_free(fwhmv); fwhmv = NULL;
    if (!fwhmgp) {
       if (fwhmg) SUMA_free(fwhmg); fwhmg=NULL;
    } else { /* save it for the trip back home */
       *fwhmgp = fwhmg; fwhmg = NULL;
    }
-   if (fin_float) SUMA_free(fin_float); fin_float = NULL; /* just in case, this one's still alive from a GOTO */
+   if (fin_float) SUMA_free(fin_float); fin_float = NULL; 
+      /* just in case, this one's still alive from a GOTO */
    if (bfull) SUMA_free(bfull); bfull = NULL;
    if (fout_final) SUMA_free(fout_final); fout_final = NULL;
    
@@ -6388,13 +6410,16 @@ float SUMA_estimate_slice_FWHM_1dif(
       if (!striplist_vec) { /* need to create your own */
          /* get the intersection strips, start alond the various directions */
          Eq[0] = Eq[1]=Eq[2]=Eq[3] = 0.0;
-         Eq[ipl] = 1.0; Eq[3] = -SO->Center[ipl];  /* 0==Saggittal, 1==Coronal, 2==Axial */
-         SUMA_LHv("Kill me!\nEq:[%f %f %f %f], step: %f\n", Eq[0], Eq[1], Eq[2], Eq[3], SO->EL->AvgLe);
+         Eq[ipl] = 1.0; Eq[3] = -SO->Center[ipl];  
+                        /* 0==Saggittal, 1==Coronal, 2==Axial */
+         SUMA_LHv("Kill me!\nEq:[%f %f %f %f], step: %f\n", 
+                  Eq[0], Eq[1], Eq[2], Eq[3], SO->EL->AvgLe);
          if (!(striplist = SUMA_SliceAlongPlane(SO, Eq, SO->EL->AvgLe))) {
             SUMA_S_Err("Failed to slice along plane");
             SUMA_RETURN(ssc);
          }
-         /*SUMA_display_edge_striplist(striplist, &(SUMAg_SVv[0]), SO, "ShowConnectedPoints"); */
+         /*SUMA_display_edge_striplist(striplist, &(SUMAg_SVv[0]), SO, 
+                                       "ShowConnectedPoints"); */
       } else {
          striplist = striplist_vec[ipl];
       }
@@ -6415,9 +6440,12 @@ float SUMA_estimate_slice_FWHM_1dif(
          loope = NULL;
          loopp = NULL;
          SUMA_LHv("Have a strip of %d points/edges\n", dlist_size(strip->Edges));
-         if (clsd = SUMA_isEdgeStripClosed(strip->Edges, SO)) { /* close list */
-            dlist_ins_next(strip->Edges, dlist_tail(strip->Edges), (dlist_head(strip->Edges))->data);
-            dlist_ins_next(strip->Points, dlist_tail(strip->Points), (dlist_head(strip->Points))->data);
+         if ((clsd = SUMA_isEdgeStripClosed(strip->Edges, SO))) { 
+                                                         /* close list */
+            dlist_ins_next(strip->Edges, dlist_tail(strip->Edges), 
+                           (dlist_head(strip->Edges))->data);
+            dlist_ins_next(strip->Points, dlist_tail(strip->Points), 
+                           (dlist_head(strip->Points))->data);
          }
          do {
             if (!loope) {
@@ -6427,13 +6455,15 @@ float SUMA_estimate_slice_FWHM_1dif(
             loope_n = dlist_next(loope);  /* the next point */
             loopp_n = dlist_next(loopp); 
             /* which nodes from the edge? */
-            in0 = SO->EL->EL[(int)loope->data][0];
-            in1 = SO->EL->EL[(int)loope->data][1];
-            in0_n = SO->EL->EL[(int)loope_n->data][0];
-            in1_n = SO->EL->EL[(int)loope_n->data][1];
-            if( !nmask || (nmask[in0]&& nmask[in1] && nmask[in0_n]&& nmask[in1_n])){
+            in0 = SO->EL->EL[(INT_CAST)loope->data][0];
+            in1 = SO->EL->EL[(INT_CAST)loope->data][1];
+            in0_n = SO->EL->EL[(INT_CAST)loope_n->data][0];
+            in1_n = SO->EL->EL[(INT_CAST)loope_n->data][1];
+            if( !nmask || (nmask[in0]&& nmask[in1] && 
+                           nmask[in0_n]&& nmask[in1_n])){
                p4 = (float*)loopp->data;
-               arg = p4[3]*fim[in0] + (1.0-p4[3])*fim[in1] ;   /* interpolated value at intersection point on edge */
+               arg = p4[3]*fim[in0] + (1.0-p4[3])*fim[in1] ;   
+                     /* interpolated value at intersection point on edge */
                p4_n = (float*)loopp_n->data;
                arg_n = p4_n[3]*fim[in0_n] + (1.0-p4_n[3])*fim[in1_n] ; 
                SUMA_UNIT_VEC(p4, p4_n, U, Un);
@@ -6442,7 +6472,8 @@ float SUMA_estimate_slice_FWHM_1dif(
                dfdssum += dfds; dfdssq += dfds*dfds; 
                #ifdef OK_FWHM_DBG
                   if (SUMA_GetDbgFWHM()) {
-                     fprintf(fdbg,"%5d %5d %5d %5d   %.3f  %.3f\n", in0, in1, in0_n, in1_n, Un, dfds);      
+                     fprintf(fdbg,"%5d %5d %5d %5d   %.3f  %.3f\n", 
+                              in0, in1, in0_n, in1_n, Un, dfds);      
                   }
                #endif
                counts++;
@@ -7069,11 +7100,17 @@ SUMA_PATCH * SUMA_getPatch (  int *NodesSelected, int N_Nodes,
    for (i=0; i < N_Nodes; ++i) {
       node = NodesSelected[i];
       for (j=0; j < Memb->N_Memb[node]; ++j) {
-         if (!BeenSelected[Memb->NodeMemberOfFaceSet[node][j]]) {
-            /* this faceset has not been selected, select it */
-            ++ Patch->N_FaceSet;
+         if (Memb->NodeMemberOfFaceSet[node][j] < N_Full_FaceSetList) {
+            if (!BeenSelected[Memb->NodeMemberOfFaceSet[node][j]]) {
+               /* this faceset has not been selected, select it */
+               ++ Patch->N_FaceSet;
+            }
+            ++ BeenSelected[Memb->NodeMemberOfFaceSet[node][j]];
+         } else {
+            SUMA_S_Warnv("Node %d >= %d\n", 
+                        Memb->NodeMemberOfFaceSet[node][j], 
+                         N_Full_FaceSetList);
          }
-         ++ BeenSelected[Memb->NodeMemberOfFaceSet[node][j]];
       }   
    }
    
@@ -7104,7 +7141,8 @@ SUMA_PATCH * SUMA_getPatch (  int *NodesSelected, int N_Nodes,
       }
    }
    
-   /* reset the numer of facesets because it might have changed given the MinHits condition,
+   /* reset the numer of facesets because it might have changed given the 
+   MinHits condition,
    It won't change if MinHits = 1.
    It's OK not to change the allocated space as long as you are using 1D arrays*/
    Patch->N_FaceSet = j;
@@ -7193,6 +7231,14 @@ SUMA_CONTOUR_EDGES * SUMA_GetContour (
       SUMA_RETURN(CE);
    }
    
+   if (LocalHead) {  /* only check in debugging mode. for efficiency */
+      for (i=0; i < N_Node; ++i) 
+         if (Nodes[i] >= SO->N_Node) {
+            SUMA_S_Errv("Nodes[%d]=%d >= SO->N_Node %d\n",
+                        i, Nodes[i], SO->N_Node);
+            SUMA_RETURN(CE);
+         }  
+   }
    for (i=0; i < N_Node; ++i) isNode[Nodes[i]] = YUP;
   
    if (UseThisPatch) {
@@ -7202,7 +7248,8 @@ SUMA_CONTOUR_EDGES * SUMA_GetContour (
       SUMA_LH("Creating patch");
       switch (ContourMode) {
          case 0:
-            Patch = SUMA_getPatch (Nodes, N_Node, SO->FaceSetList, SO->N_FaceSet, SO->MF, 2);
+            Patch = SUMA_getPatch (Nodes, N_Node, SO->FaceSetList, 
+                                    SO->N_FaceSet, SO->MF, 2);
             break;
          case 1:
             Patch = SUMA_getPatch (Nodes, N_Node, SO->FaceSetList, SO->N_FaceSet, SO->MF, 1);
@@ -8570,7 +8617,9 @@ SUMA_Boolean SUMA_Show_SPI (SUMA_SURF_PLANE_INTERSECT *SPI, FILE * Out, SUMA_Sur
    
    fprintf (Out,"Intersection Edges: %d\n[", SPI->N_IntersEdges);
    for (i=0; i < SPI->N_IntersEdges; ++i) {
-      fprintf (Out, "%d, %d\n", SO->EL->EL[SPI->IntersEdges[i]][0], SO->EL->EL[SPI->IntersEdges[i]][1]);
+      fprintf (Out, "%d, %d\n", 
+               SO->EL->EL[SPI->IntersEdges[i]][0], 
+               SO->EL->EL[SPI->IntersEdges[i]][1]);
    }
    fprintf (Out," ]\n");
    if (opref) {
@@ -8590,24 +8639,29 @@ SUMA_Boolean SUMA_Show_SPI (SUMA_SURF_PLANE_INTERSECT *SPI, FILE * Out, SUMA_Sur
    }
    if (sv) {
       SUMA_SegmentDO *SDO = NULL;
-      if ((SDO = SUMA_Alloc_SegmentDO (SPI->N_IntersEdges, "Show_SPI_segs", 0, NULL, 0, LS_type))) {
+      if ((SDO = SUMA_Alloc_SegmentDO (SPI->N_IntersEdges, 
+                                 "Show_SPI_segs", 0, NULL, 0, LS_type))) {
          SDO->do_type = LS_type;
          for (i=0; i < SPI->N_IntersEdges; ++i) {
             for (j=0; j<3;++j) {
-               SDO->n0[3*i+j] = SO->NodeList[3*SO->EL->EL[SPI->IntersEdges[i]][0]+j];
-               SDO->n1[3*i+j] = SO->NodeList[3*SO->EL->EL[SPI->IntersEdges[i]][1]+j];
+               SDO->n0[3*i+j] = 
+                  SO->NodeList[3*SO->EL->EL[SPI->IntersEdges[i]][0]+j];
+               SDO->n1[3*i+j] = 
+                  SO->NodeList[3*SO->EL->EL[SPI->IntersEdges[i]][1]+j];
             }
          }   
          /* addDO */
-         if (!SUMA_AddDO(SUMAg_DOv, &SUMAg_N_DOv, (void *)SDO, LS_type, SUMA_WORLD)) {
+         if (!SUMA_AddDO(  SUMAg_DOv, &SUMAg_N_DOv, 
+                           (void *)SDO, LS_type, SUMA_WORLD)) {
             fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_AddDO.\n", FuncName);
-            SUMA_RETURNe;
+            SUMA_RETURN(NOPE);
          }
 
          /* register DO with viewer */
          if (!SUMA_RegisterDO(SUMAg_N_DOv-1, sv)) {
-            fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_RegisterDO.\n", FuncName);
-            SUMA_RETURNe;
+            fprintf(SUMA_STDERR,
+                     "Error %s: Failed in SUMA_RegisterDO.\n", FuncName);
+            SUMA_RETURN(NOPE);
          }
 
          /* redisplay curent only*/
@@ -8618,7 +8672,11 @@ SUMA_Boolean SUMA_Show_SPI (SUMA_SURF_PLANE_INTERSECT *SPI, FILE * Out, SUMA_Sur
    
    fprintf (Out,"Intersection Nodes: %d\n[", SPI->N_IntersEdges);
    for (i=0; i < SO->EL->N_EL; ++i) {
-      if (SPI->isEdgeInters[i]) fprintf (Out, "%f, %f, %f, ", SPI->IntersNodes[3*i], SPI->IntersNodes[3*i+1], SPI->IntersNodes[3*i+2]);
+      if (SPI->isEdgeInters[i]) 
+         fprintf (Out, "%f, %f, %f, ", 
+                  SPI->IntersNodes[3*i], 
+                  SPI->IntersNodes[3*i+1], 
+                  SPI->IntersNodes[3*i+2]);
    }
    fprintf (Out," ]\n");
    if (opref) {
@@ -8627,13 +8685,17 @@ SUMA_Boolean SUMA_Show_SPI (SUMA_SURF_PLANE_INTERSECT *SPI, FILE * Out, SUMA_Sur
       fprintf (fout, "#spheres\n#locations of intersections\n");
       for (i=0; i < SO->EL->N_EL; ++i) {
          if (SPI->isEdgeInters[i]) 
-            fprintf (fout, "%f %f %f\n ", SPI->IntersNodes[3*i], SPI->IntersNodes[3*i+1], SPI->IntersNodes[3*i+2]);
+            fprintf (fout, "%f %f %f\n ", 
+                     SPI->IntersNodes[3*i], 
+                     SPI->IntersNodes[3*i+1], 
+                     SPI->IntersNodes[3*i+2]);
       }
       fclose(fout); fout = NULL; SUMA_free(fname); fname=NULL;   
    }
    if (sv) {
       SUMA_SphereDO *SDO = NULL;
-      if ((SDO = SUMA_Alloc_SphereDO (SPI->N_IntersEdges, "Show_SPI_interspoints", NULL, SP_type))) {
+      if ((SDO = SUMA_Alloc_SphereDO (SPI->N_IntersEdges, 
+                              "Show_SPI_interspoints", NULL, SP_type))) {
          SDO->do_type = SP_type;
          SDO->CommonRad = SO->EL->AvgLe/6.0;
          for (i=0; i < SPI->N_IntersEdges; ++i) {
@@ -8644,15 +8706,17 @@ SUMA_Boolean SUMA_Show_SPI (SUMA_SURF_PLANE_INTERSECT *SPI, FILE * Out, SUMA_Sur
             }
          }
          /* addDO */
-         if (!SUMA_AddDO(SUMAg_DOv, &SUMAg_N_DOv, (void *)SDO, SP_type, SUMA_WORLD)) {
+         if (!SUMA_AddDO(  SUMAg_DOv, &SUMAg_N_DOv, 
+                           (void *)SDO, SP_type, SUMA_WORLD)) {
             fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_AddDO.\n", FuncName);
-            SUMA_RETURNe;
+            SUMA_RETURN(NOPE);
          }
 
          /* register DO with viewer */
          if (!SUMA_RegisterDO(SUMAg_N_DOv-1, sv)) {
-            fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_RegisterDO.\n", FuncName);
-            SUMA_RETURNe;
+            fprintf(SUMA_STDERR,
+                     "Error %s: Failed in SUMA_RegisterDO.\n", FuncName);
+            SUMA_RETURN(NOPE);
          }
 
          /* redisplay curent only*/
@@ -9755,20 +9819,25 @@ SUMA_Boolean SUMA_MergeStrips(DList *striplist, SUMA_SurfaceObject *SO, char *Me
          if (!list_elm) { list_elm = listnext_elm = dlist_head(striplist); }
          else { list_elm = listnext_elm = dlist_next(list_elm); }
          strip = (SUMA_STRIP *)list_elm->data;
-         strip_first_edge = (int)(dlist_head(strip->Edges))->data;
-         strip_last_edge = (int)(dlist_tail(strip->Edges))->data;
+         strip_first_edge = (INT_CAST)(dlist_head(strip->Edges))->data;
+         strip_last_edge = (INT_CAST)(dlist_tail(strip->Edges))->data;
          repeat = 0;
          do {
             listnext_elm = dlist_next(listnext_elm);
             stripnext = (SUMA_STRIP *)listnext_elm->data;
-            stripnext_first_edge = (int)(dlist_head(stripnext->Edges))->data;
-            stripnext_last_edge = (int)(dlist_tail(stripnext->Edges))->data;
+            stripnext_first_edge = 
+               (INT_CAST)(dlist_head(stripnext->Edges))->data;
+            stripnext_last_edge = 
+               (INT_CAST)(dlist_tail(stripnext->Edges))->data;
 
-            SUMA_LHv( "Strip from edges %d to %d\n"
-                     "Stripnext  edges %d to %d\n", strip_first_edge, strip_last_edge,
-                                                    stripnext_first_edge, stripnext_last_edge);
+            SUMA_LHv("Strip from edges %d to %d\n"
+                     "Stripnext  edges %d to %d\n", 
+                     strip_first_edge, strip_last_edge,
+                     stripnext_first_edge, stripnext_last_edge);
             /* any reason to merge?*/
-            if (strip_last_edge == stripnext_first_edge || SUMA_whichTri_e (SO->EL, strip_last_edge, stripnext_first_edge, 1, !LocalHead)>=0) {
+            if (  strip_last_edge == stripnext_first_edge || 
+                  SUMA_whichTri_e ( SO->EL, strip_last_edge, 
+                                    stripnext_first_edge, 1, !LocalHead)>=0) {
                SUMA_S_Note("Merging beginning of next to end of 1");
                repeat = 1;
                SUMA_MergeLists_Beg2_End1(stripnext->Edges, strip->Edges);
@@ -9799,11 +9868,13 @@ SUMA_Boolean SUMA_MergeStrips(DList *striplist, SUMA_SurfaceObject *SO, char *Me
             }
             if (repeat) { /* merger done, remove next strip */
                /* remove listnext_elm */
-               dlist_remove(striplist, listnext_elm, (void*)&stripnext); SUMA_free_strip(stripnext);
+               dlist_remove(striplist, listnext_elm, (void*)&stripnext); 
+               SUMA_free_strip(stripnext);
             }
          } while (!repeat && listnext_elm != dlist_tail(striplist));
 
-         SUMA_LHv("Now list of %d strips (repeat=%d).\n", dlist_size(striplist), repeat);
+         SUMA_LHv("Now list of %d strips (repeat=%d).\n", 
+                  dlist_size(striplist), repeat);
 
       } while (!repeat && dlist_next(list_elm) != dlist_tail(striplist));
    } else { /* Merge by other list*/
@@ -9822,16 +9893,18 @@ SUMA_Boolean SUMA_isEdgeStripClosed(DList *edgestrip, SUMA_SurfaceObject *SO)
    SUMA_ENTRY;
    
    if (!edgestrip || !SO || !SO->EL) {
-      SUMA_S_Errv("Null input edgestrip %p or SO %p or SO->EL %p\n", edgestrip, SO, SO->EL);
+      SUMA_S_Errv("Null input edgestrip %p or SO %p or SO->EL %p\n", 
+                  edgestrip, SO, SO->EL);
       SUMA_RETURN(NOPE);
    }
    
    if (dlist_size(edgestrip) < 2) SUMA_RETURN(NOPE);
    
-   e0 = (int)((dlist_head(edgestrip))->data);
-   e1 = (int)((dlist_tail(edgestrip))->data);
+   e0 = (INT_CAST)((dlist_head(edgestrip))->data);
+   e1 = (INT_CAST)((dlist_tail(edgestrip))->data);
    if (e0 >= SO->EL->N_EL || e1 >= SO->EL->N_EL) {
-      SUMA_S_Errv("Edge %d or %d is >= than SO->EL->N_EL (%d)\n", e0, e1, SO->EL->N_EL);
+      SUMA_S_Errv("Edge %d or %d is >= than SO->EL->N_EL (%d)\n", 
+                  e0, e1, SO->EL->N_EL);
       SUMA_RETURN(NOPE);
    }
    if (  SO->EL->EL[e0][0] == SO->EL->EL[e1][0]   ||
@@ -9844,7 +9917,8 @@ SUMA_Boolean SUMA_isEdgeStripClosed(DList *edgestrip, SUMA_SurfaceObject *SO)
 }
 
 /*!
-   Given a SPI structure, return the various connected paths that are formed by the intersections
+   Given a SPI structure, return the various connected paths that are 
+   formed by the intersections
 */
 DList * SUMA_SPI_to_EdgeStrips(SUMA_SurfaceObject *SO, SUMA_SURF_PLANE_INTERSECT *SPI)
 {
@@ -9927,15 +10001,21 @@ DList * SUMA_SPI_to_EdgeStrips(SUMA_SurfaceObject *SO, SUMA_SURF_PLANE_INTERSECT
             E0 = -1;
             if (T0>=0) { /* have gun, will travel, find next edge */
                /* find the other interesected edge of this triangle*/
-               n0 = SO->FaceSetList[3*T0]; n1 = SO->FaceSetList[3*T0+1]; n2 = SO->FaceSetList[3*T0+2];   
-               SUMA_LHv("Working triangle %d, nodes: %d %d %d\n", T0, n0, n1, n2);
+               n0 = SO->FaceSetList[3*T0]; 
+               n1 = SO->FaceSetList[3*T0+1]; 
+               n2 = SO->FaceSetList[3*T0+2];   
+               SUMA_LHv("Working triangle %d, nodes: %d %d %d\n", 
+                        T0, n0, n1, n2);
                /* find the two intersected edges */
                Ec0 = SUMA_FindEdge (SO->EL, n0, n1); 
                Ec1 = SUMA_FindEdge (SO->EL, n0, n2); 
                Ec2 = SUMA_FindEdge (SO->EL, n1, n2); 
-               if (!Visited[Ec0] && SPI->isEdgeInters[Ec0]) { E0 = Ec0; /* have a new candidate */}
-               else if (!Visited[Ec1] && SPI->isEdgeInters[Ec1]) { E0 = Ec1; /* have a new candidate */} 
-               else if (!Visited[Ec2] && SPI->isEdgeInters[Ec2]) { E0 = Ec2; /* have a new candidate */} 
+               if (!Visited[Ec0] && SPI->isEdgeInters[Ec0]) { 
+                  E0 = Ec0; /* have a new candidate */}
+               else if (!Visited[Ec1] && SPI->isEdgeInters[Ec1]) { 
+                  E0 = Ec1; /* have a new candidate */} 
+               else if (!Visited[Ec2] && SPI->isEdgeInters[Ec2]) { 
+                  E0 = Ec2; /* have a new candidate */} 
                else {  /* no where to go */ }
             }
          }  
@@ -9948,17 +10028,22 @@ DList * SUMA_SPI_to_EdgeStrips(SUMA_SurfaceObject *SO, SUMA_SURF_PLANE_INTERSECT
          one_strp = SUMA_alloc_strip(SO->idcode_str);
          /* now add edge sequence to this list */ 
          for (i=0; i<N_Epath; ++i) {
-            dlist_ins_next(one_strp->Edges, dlist_tail(one_strp->Edges), (void *)Epath[i]);
+            dlist_ins_next(one_strp->Edges, dlist_tail(one_strp->Edges), 
+                           (VOID_CAST)Epath[i]);
             /* here you can add the Points (xyz of intersections), if you like */
             p4 = (float *)SUMA_malloc(sizeof(float)*4); 
-            p4[0] = SPI->IntersNodes[3*Epath[i]];  p4[1] = SPI->IntersNodes[3*Epath[i]+1]; p4[2] = SPI->IntersNodes[3*Epath[i]+2];    
-            /* Store the position of the point as a fraction of the edge length from the first node forming edge */
+            p4[0] = SPI->IntersNodes[3*Epath[i]];  
+            p4[1] = SPI->IntersNodes[3*Epath[i]+1]; 
+            p4[2] = SPI->IntersNodes[3*Epath[i]+2];    
+            /* Store the position of the point as a fraction of the edge 
+               length from the first node forming edge */
             n0 = SO->EL->EL[Epath[i]][0]; n1 = SO->EL->EL[Epath[i]][1];
             p0 = &(SO->NodeList[3*n0]); p1 = &(SO->NodeList[3*n1]);
             SUMA_UNIT_VEC(p0, p1, U, Un);
             SUMA_UNIT_VEC(p0, p4, U2, Un2);
-            p4[3] = Un2/Un;   /* Hide it here. Forgive me Lord for I have sinned */
-            dlist_ins_next(one_strp->Points, dlist_tail(one_strp->Points), (void *)p4);
+            p4[3] = Un2/Un; /* Hide it here. Forgive me Lord for I have sinned */
+            dlist_ins_next(one_strp->Points, dlist_tail(one_strp->Points), 
+                           (void *)p4);
          }
          /* add the stip to the striplist */
          dlist_ins_next(striplist, dlist_tail(striplist), (void *)one_strp);

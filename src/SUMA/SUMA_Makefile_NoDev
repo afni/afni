@@ -7,6 +7,7 @@ AFNILIB = -lmrix -lcoxplot -lmri -lf2c -l3DEdge
 MAINCODE = SUMA
 SUMALIBLIST = libSUMA.a libglut.a libply.a 
 GLWLIB = libGLws.a
+WARNOPT = -Wall -Wno-unused-variable
 
 ## 07 Dec 2005 -- Modify include path (RWCox)
 
@@ -100,7 +101,7 @@ ${SUMAGTSLIB} : libply.a libglut.a ${SUMALIB} ${SUMA_GTS_OBJS}
 mainobj: ${SUMALIB} ${SUMA_SRCS_OBJS}
 
 clean:
-	$(RM) *.o GLw_local/*.o
+	$(RM) ../suma_*.o *.o GLw_local/*.o
 
 .c.o:
 	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} ${SUMA_INPATH} -c $*.c 

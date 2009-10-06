@@ -1012,7 +1012,7 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (
          break;
       
       case SUMA_GIFTI:
-         if (!SUMA_GIFTI_Read ((char *)SO_FileName_vp, SO, 1, 1)) {
+         if (!SUMA_GIFTI_Read ((char *)SO_FileName_vp, SO, 1)) {
             fprintf (SUMA_STDERR,
                      "Error %s: Failed in SUMA_GIFTI_Read.\n", FuncName);
             SUMA_RETURN(NULL);
@@ -1154,7 +1154,7 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (
          }
          
          /* create the IDcode */
-         SUMA_NEW_ID(SO->idcode_str,SO_FileName_vp);
+         SUMA_NEW_ID(SO->idcode_str, (char *)SO_FileName_vp);
          if (LocalHead) 
             fprintf (SUMA_STDERR, 
                      "%s: Assigned idcode_str:%s:.\n", FuncName, SO->idcode_str);
@@ -1191,7 +1191,7 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (
          }
                   
          sprintf (stmp, "%s%s", SF_FileName->name_coord, SF_FileName->name_topo);
-         SUMA_NEW_ID(SO->idcode_str,stmp);
+         SUMA_NEW_ID(SO->idcode_str, stmp);
          
          /* change coordinates to align them with volparent data set, 
             if possible */

@@ -230,7 +230,7 @@ static void clonebut_CB( Widget w , XtPointer cd , XtPointer cb )
    data involves the use of malloc, it is the user's responsibility
    to free it in the call to kfun.
 --------------------------------------------------------------------*/
-
+extern void pm_decode_geom( char * geom , int *ww, int *hh , int *xx, int *yy );
 MEM_topshell_data * SUMA_memplot_to_topshell( Display *dpy,
                                          MEM_plotdata *mp, void_func *kfun )
 {

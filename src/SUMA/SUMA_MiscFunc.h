@@ -149,6 +149,8 @@ void SUMA_Show_Edge_List (SUMA_EDGE_LIST *SEL, FILE *Out);
 int SUMA_FindEdge (SUMA_EDGE_LIST *EL, int n1, int n2);
 int SUMA_FindEdgeInTri (SUMA_EDGE_LIST *EL, int n1, int n2, int Tri); 
 int SUMA_whichTri (SUMA_EDGE_LIST * EL, int n1, int n2, int n3, int IOtrace);
+int SUMA_whichTri_e (SUMA_EDGE_LIST * EL, int E1, int E2, int IOtrace, 
+                     byte quiet);
 SUMA_Boolean SUMA_Get_Incident(int n1, int n2, SUMA_EDGE_LIST *SEL, int *Incident, int *N_Incident, int IOtrace, byte quiet);
 SUMA_Boolean SUMA_Get_NodeIncident(int n1, SUMA_SurfaceObject *SO, int *Incident, int *N_Incident);
 SUMA_IRGB *SUMA_Free_IRGB(SUMA_IRGB *irgb);

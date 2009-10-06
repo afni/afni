@@ -1863,6 +1863,17 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
    cf->InOut_Notify = NOPE;
    cf->InOut_Level = 0;
    cf->MemTrace = NOPE;
+   
+   /* verify pointer size. I use INT_MAX and LONG_MAX
+   to guess whether or not we have 64 bit pointers.
+   I need to guess with #if to do proper type casting and
+   avoid compiler warnings */
+   cf->PointerSize = sizeof(void *);
+   if (INT_MAX < LONG_MAX && cf->PointerSize < 8) {
+      SUMA_S_Warn("Using INT_MAX and LONG_MAX fails to"
+                  "guess pointer size.");
+   }
+
    #ifdef USE_SUMA_MALLOC
    SUMA_SL_Err("NO LONGER SUPPORTED");
    return(NULL);
@@ -2734,6 +2745,7 @@ char * SUMA_CommonFieldsInfo (SUMA_CommonFields *cf, int detail)
       SS = SUMA_StringAppend_va(SS,"   InOut_Notify = %d\n", cf->InOut_Notify);
       SS = SUMA_StringAppend_va(SS,"   MemTrace = %d\n", cf->MemTrace);
    #endif
+      SS = SUMA_StringAppend_va(SS,"   PointerSize = %d\n", cf->PointerSize);
    
    /* add the displayable objects Info */
    s = SUMA_DOv_Info(SUMAg_DOv, SUMAg_N_DOv, 0);
