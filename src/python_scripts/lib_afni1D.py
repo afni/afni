@@ -48,13 +48,14 @@ class Afni1D:
       self.tr       = 1.0
       self.nrowfull = 0
       self.nruns    = 1
-      self.run_len  = 0
+      self.run_len  = [0]       # len(run_len) is number of runs
       self.nroi     = 1
 
-      # list variables
-      self.labels   = None      # label per vector
-      self.groups   = None      
-      self.goodlist = None      # good time points
+      # list variables (from attributes)
+      self.labels   = None      # label per vector       (from ColumnLabels)
+      self.groups   = None      # integral column groups (from ColumnGroups)
+      self.goodlist = None      # good time points       (from GoodList)
+      self.runstart = []        # start indices          (from RunStart)
 
       self.verb     = verb
       self.ready    = 0         # matrix is ready
@@ -117,6 +118,21 @@ class Afni1D:
 
       return 0
 
+   def run_info_is_consistent(self, whine=1):
+      """verify consistency of nruns/run_len/nt"""
+      if not self.ready:
+         if whine: print '** RIIC: not ready (to test consistency)'
+         return 0
+      if len(self.run_len) == 0:
+         if whine: print '** RIIC: ready be len(run_len) == 0!'
+         return 0
+      nt = sum(self.run_len)
+      if nt != self.nt:
+         if whine:
+            print '** RIIC: nt=%d != sum of run_len: %s'%(self.nt,self.run_len)
+         return 0
+      return 1
+
    def derivative(self):
       """change each value to its derivative (cur val - previous)
          new time[0] will always be 0
@@ -132,25 +148,21 @@ class Afni1D:
          return 1
 
       # verify nruns and run_len
-      if self.nruns > 0 and self.run_len > 0:
-         nruns = self.nruns
-         rlen = self.run_len
-         if nruns * rlen != self.nt:
-            print '** derivative over runs, nruns*rlen != nt (%d, %d, %d)' \
-                  % (nruns, rlen, self.nt)
-            return 1
-         if self.verb > 1:
-            print '-- derivative: over %d runs of len %d' % (nruns, rlen)
-      else:
-         nruns = 1
-         rlen = self.nt
+      if not self.run_info_is_consistent(whine=1):
+         if self.verb > 1: print '** runs inconsistent for derivative'
+         return 1
 
+      if self.verb > 1:
+          print "-- derivative: over %d runs of len's %s" \
+                % (self.nruns, self.run_len)
+
+      # apply derivative to each vector as one run, then clear run breaks
       for ind in range(self.nvec):
-         newvec = []
-         for rind in range(nruns):
-            vec = self.mat[ind][rind*rlen:(rind+1)*rlen]
-            newvec += [0] + [vec[t+1]-vec[t] for t in range(rlen-1)]
-         self.mat[ind] = newvec
+         UTIL.derivative(self.mat[ind], in_place=1)
+         offset = 0
+         for t in self.run_len:
+            self.mat[ind][offset] = 0
+            offset += t
 
       return 0
 
@@ -288,26 +300,55 @@ class Afni1D:
 
       return 0
 
-   def pad_into_many_runs(self, rindex, nruns):
-      """pad over time so that this is run #rindex out of nruns runs
-         (rindex should be 1-based)
+   def pad_into_many_runs(self, rindex1, nruns, rlengths=[]):
+      """pad over time so that this is run #rindex1 out of nruns runs
+         (rindex1 should be 1-based)
+
+         if rlengths is not set, assume all runs are of a set length
+         if rlengths IS set, nruns is ignored
      
+         Only one of nruns/rlengths is is applied.
+
          return 0 on success"""
 
-      if self.verb > 3: print '-- pad_into_many_runs: rindex=%d, nruns=%d' \
-                              % (rindex,nruns)
+      if self.verb > 3: print '-- pad_into_many_runs: rindex1=%d, nruns=%d' \
+                              % (rindex1,nruns)
 
       if not self.ready:
          print '** pad into runs: Afni1D is not ready'
          return 1
 
-      if nruns < 1:
-         print '** pad into runs: bad nruns (%d)' % nruns
-         return 1
-      if rindex < 1 or rindex > nruns:
+      # ---- set NR (nruns) and rlens (list of lengths)
+
+      # decide whether to use rlengths or nruns
+      if len(rlengths) > 0:
+         NR = len(rlengths)
+         rlens = rlengths
+      else:     # assume nruns runs of length self.nt
+         if nruns < 1:
+            print '** pad into runs: bad nruns (%d)' % nruns
+            return 1
+         NR = nruns
+         rlens = [self.nt for r in range(NR)]
+
+      # ---- check for consistency
+
+      # verify rindex1 (using 1-based run index)
+      if rindex1 < 1 or rindex1 > NR:
          print '** pad into runs: run index (%d) out of range [1,%d]' \
-               % (rindex, nruns)
+               % (rindex1, NR)
          return 1
+
+      # apply rind as 0-based run index
+      rind = rindex1-1
+
+      # if rlengths, verify match for run #rindex1
+      if self.nt != rlens[rind]:
+         print "** cannot pad into many runs, nt (%d) != rlens[%d] (%d)" \
+               % (self.nt, rind, rlens[rind])
+         return 1
+
+      # ---- and do the work
 
       # first just stick in a 0 at time t=0
       for row in range(self.nvec):
@@ -315,18 +356,21 @@ class Afni1D:
       self.nt += 1
 
       # now create a time list that sticks t0 in as padding
-      rlen = self.nt - 1
-      r0 = rindex-1   # 0-based
-      tlist = [0 for i in range(r0*rlen)]         # pad first rindex runs
-      tlist.extend([i+1 for i in range(rlen)])    # insert original run
-      tlist.extend([0 for i in range((nruns-rindex)*rlen)]) # finish
+      # (fill runs before rind, then rind, then after)
+      tlist = []
+      for run in range(rind):
+         tlist.extend([0 for t in range(rlens[run])])
+      tlist.extend([t+1 for t in range(rlens[rind])]) # skipping pad at t=0
+      for run in range(NR-1-rind):
+         tlist.extend([0 for t in range(rlens[run+rind+1])])
 
+      # and apply tlist
       if self.reduce_by_tlist(tlist): return 1
       
       # update run info
-      self.nruns   = nruns
-      self.run_len = rlen
-      self.nt      = rlen * nruns
+      self.nruns   = NR
+      self.run_len = rlens
+      self.nt      = sum(rlens)
 
       return 0
 
@@ -793,11 +837,15 @@ class Afni1D:
             self.nroi = max(self.groups)
             if self.nroi < 0: self.nroi = 0
 
-   def set_nruns(self, nruns=0):
-      """if nruns is positive, try to apply it, else:
+   def set_nruns(self, nruns=0, run_lens=[]):
+      """if nruns is positive, apply
+         else if len(run_lens) > 0, apply
+         else if have RunStart list, apply
+         else, try to apply from a single run:
             find the first column in group 0, verify that it looks like
             one run of 1s (with remaining 0s), and use it to set the length
-         return 0 on success
+
+         return 0 on success, 1 on error
       """
 
       if self.verb > 3: print '-- Afni1D set_nruns (new nruns = %d)' % nruns
@@ -807,18 +855,48 @@ class Afni1D:
          rlen = self.nt // nruns
          if rlen * nruns == self.nt:
              self.nruns = nruns
-             self.run_len = rlen
-             if self.verb > 1: print '++ successful update: nruns = %d' % nruns
+             self.run_len = [rlen for run in range(nruns)]
+             if self.verb > 1: print '++ set_nruns: nruns = %d' % nruns
          else:
              print '** nvalid nruns = %d (does not divide nt = %d)'  \
                    % (nruns, self.nt)
              return 1
          return 0
 
-      # rcr - also, test against new RunStart comment line
+      # next, try run_lens (if not set, try runstart data from RunStart label)
+      if type(run_lens) != type([]):
+         print "** set_runs: run_lens is not a list type: %s" % run_lens
+         return 1
 
+      # if no run_lens but have self.runstart, convert and apply same logic
+      if len(run_lens) == 0 and len(self.runstart) > 0:
+         rlens = self.runstart[:]
+         for ind in range(len(rlens)-1):
+             rlens[ind] = rlens[ind+1] - rlens[ind]
+         rlens[-1] = self.nt - rlens[-1]
+         if self.verb > 1:
+            print '++ setting run_len based on RunStart list:' , rlens
+      rlens = run_lens
+
+      if len(rlens) > 0:
+         if not UTIL.vals_are_positive(rlens):
+            print "** set_runs: non-positive run length in list: %s" % rlens
+            return 1
+         if sum(rlens) != self.nt:
+            print "** set_runs: sum of run lengths != nt (%d): %s" \
+                  % (self.nt, rlens)
+            return 1
+         self.run_len = rlens[:]     # make a copy, to be safe
+         self.nruns = len(rlens)
+         if self.verb > 1:
+            print '++ set_nruns: nruns = %d, run_len = %s' % (nruns, rlens)
+         return 0
+
+      # otherwise, init to 1 run and look for other labels
       self.nruns = 1
       if not self.groups or not self.nvec: return 0
+
+      # rcr : update use of baselines?
 
       try:
          base_ind = self.groups.index(-1)
@@ -853,7 +931,7 @@ class Afni1D:
 
          # success!
 
-         self.run_len = rlen
+         self.run_len = [rlen for i in range(nruns)]
          self.nruns   = nruns
          
       except:
@@ -888,7 +966,7 @@ class Afni1D:
              "++ tr       : %s\n" \
              "++ nrowfull : %d\n" \
              "++ nruns    : %d\n" \
-             "++ run_len  : %d\n" % \
+             "++ run_len  : %s\n" % \
              (self.name, rstr, self.fname, self.nvec, self.nt,
              self.labels, self.groups, self.goodlist, self.tr, self.nrowfull,
              self.nruns, self.run_len)
@@ -1035,6 +1113,13 @@ class Afni1D:
                self.nrowfull = int(data)
                if self.verb > verb_level:
                   print "-- label %s: nrowfull %s" % (label,self.nrowfull)
+            elif label == 'RunStart':
+               self.runstart = UTIL.decode_1D_ints(data)
+               if not UTIL.vals_are_sorted(self.runstart):
+                  print "** RunStart values not sorted?  data = %s" % data
+                  self.runstart = []
+               if self.verb > verb_level:
+                  print "-- label %s: runstart %s" % (label,self.runstart)
             elif self.verb > 2:
                print "** unknown comment label '%s'" % label
          except:
