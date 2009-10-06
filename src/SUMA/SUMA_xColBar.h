@@ -227,6 +227,7 @@ SUMA_Boolean SUMA_DsetColSelectList(
          int refresh, int bringup);
 SUMA_ASSEMBLE_LIST_STRUCT * SUMA_AssembleDsetColList(SUMA_DSET *dset); 
 void SUMA_UpdatePvalueField (SUMA_SurfaceObject *SO, float thresh);
+SUMA_Boolean SUMA_UpdateNodeField(SUMA_SurfaceObject *SO);
 
 /* the help strings */
 

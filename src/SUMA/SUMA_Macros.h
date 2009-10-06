@@ -18,6 +18,7 @@
 #define SQ_2PI 2.50662827463100024161
 #define iSQ_2PI 0.39894228040143270286
 
+
 /*! Return a random number from a gaussian distribution of mean m and std s 
     Based on parser.c and parser_int.c functions unif_ and gran_1*/
 #define SUMA_GRAN(m,s)  \
@@ -31,7 +32,10 @@
    Macro to create a new ID code at random (when strn = NULL) or a hash of a string
    written mostly to allow for the allocation of newcode with SUMA's functions
 */
-#define SUMA_NEW_ID(newcode, strn) { \
+#define SUMA_NEW_ID(newcode, istrn) { \
+   char *strn=(char*)istrn; /* a trick to quiet compiler warnings like  \
+   warning: the address of 'stmp' will always evaluate as 'true'\
+   when 'stmp' is a string of the type char [] */\
    if ((newcode)) { SUMA_S_Err("newcode pointer must be null"); } \
    else if (!(strn)) { (newcode) = (char*)SUMA_calloc(SUMA_IDCODE_LENGTH, sizeof(char)); UNIQ_idcode_fill((newcode)); } \
    else {   char *m_tmp; m_tmp = UNIQ_hashcode((strn)); (newcode) = SUMA_copy_string(m_tmp); free(m_tmp); m_tmp = NULL; }  \

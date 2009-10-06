@@ -352,7 +352,8 @@ Side effects :
    
    
 ***/
-SUMA_MEMBER_FACE_SETS *SUMA_MemberFaceSets (int Nind, int * FaceSetList, int nFr , int FaceDim, char *ownerid)
+SUMA_MEMBER_FACE_SETS *SUMA_MemberFaceSets (int Nind, int * FaceSetList, 
+                                          int nFr , int FaceDim, char *ownerid)
 {/*SUMA_MemberFaceSets*/
    static char FuncName[]={"SUMA_MemberFaceSets"}; 
    SUMA_MEMBER_FACE_SETS *RetStrct;
@@ -362,7 +363,8 @@ SUMA_MEMBER_FACE_SETS *SUMA_MemberFaceSets (int Nind, int * FaceSetList, int nFr
    SUMA_ENTRY;
 
    NP = FaceDim;
-   RetStrct = (SUMA_MEMBER_FACE_SETS *)SUMA_malloc(sizeof(SUMA_MEMBER_FACE_SETS));
+   RetStrct = (SUMA_MEMBER_FACE_SETS *)
+                  SUMA_malloc(sizeof(SUMA_MEMBER_FACE_SETS));
    RetStrct->idcode_str = NULL;
    SUMA_NEW_ID(RetStrct->idcode_str, NULL);
    RetStrct->N_links = 0;

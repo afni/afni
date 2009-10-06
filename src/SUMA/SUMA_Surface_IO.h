@@ -66,6 +66,12 @@ SUMA_Boolean SUMA_readFSannot (char *f_name,
 SUMA_COLOR_MAP *SUMA_FScolutToColorMap(char *fscolutname, int lbl1, int lbl2, int show); 
 SUMA_Boolean SUMA_isnimlSO(NI_group *ngr);
 void SUMA_free_ROI_Extract(void *dd);
+SUMA_Boolean SUMA_MNI_OBJ_Write(char * f_name_in, SUMA_SurfaceObject *SO);
+SUMA_Boolean SUMA_MNI_OBJ_Read(char * f_name, SUMA_SurfaceObject *SO);
+SUMA_Boolean SUMA_GIFTI_Read(char *f_name, SUMA_SurfaceObject *SO,
+                             int debug);
+SUMA_Boolean SUMA_GetSOCoordXform(SUMA_SurfaceObject *SO, double xform[4][4]);                          
+                             
 
 typedef struct {
    int label;

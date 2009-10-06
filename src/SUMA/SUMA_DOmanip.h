@@ -84,6 +84,8 @@ SUMA_Boolean SUMA_DeleteROI (SUMA_DRAWN_ROI *ROI);
 int SUMA_isTypicalSOforVolSurf (SUMA_SurfaceObject *SO);
 char *SUMA_DOv_Info (SUMA_DO *dov, int N_dov, int detail);
 int SUMA_BiggestLocalDomainParent(SUMA_DO *dov, int N_dov);
+SUMA_Boolean SUMA_SetXformShowPreProc(SUMA_XFORM *xf, int ShowPreProc, 
+                                      int fromgui);
 
 
 /*!

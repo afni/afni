@@ -5205,12 +5205,20 @@ SUMA_DRAWN_ROI ** SUMA_OpenDrawnROI_1D (char *filename, char *Parent_idcode_str,
          Label = SUMA_append_string(stmp,NewName->FileName_NoExt);
       }
       SUMA_LH("Transforming to Drawn ROIs...");
-      ROIv[i] = SUMA_1DROI_to_DrawnROI( Node, N_Node , 
+      if (!(ROIv[i] = SUMA_1DROI_to_DrawnROI( Node, N_Node , 
                                     Value, Parent_idcode_str,
                                     Label, NULL,
                                     fillcolor, edgecolor, edgethickness, 
                                     SUMAg_DOv, SUMAg_N_DOv,
-                                    ForDisplay);
+                                    ForDisplay))) {
+         int kkk = 0;
+         SUMA_SL_Err("Failed to transform to Drawn ROI");
+         for (kkk=0; kkk<i; ++kkk) {
+            if (ROIv[kkk]) SUMA_freeDrawnROI(ROIv[kkk]); 
+         }
+         SUMA_free(ROIv);ROIv=NULL;
+         SUMA_RETURN(NULL);
+      }
       if (nrow == 5 || nrow == 4) {
          SUMA_LH("Marking as color by fillcolor");
          ROIv[i]->ColorByLabel = NOPE;
