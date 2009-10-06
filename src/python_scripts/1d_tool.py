@@ -28,83 +28,111 @@ g_help_string = """
 ---------------------------------------------------------------------------
 examples (very basic for now):
 
-   1. Select by rows and columns, akin to 1dcat.
+   1.  Select by rows and columns, akin to 1dcat.
 
          1d_tool.py -infile 'data/X.xmat.1D[0..3]{0..5}' -write t1.1D
 
-   2. Compare with selection by separate options.
+   2.  Compare with selection by separate options.
 
          1d_tool.py -infile data/X.xmat.1D                  \\
                     -select_cols '0..3' -select_rows '0..5' \\
                     -write t2.1D
          diff t1.1D t2.1D
 
-   3. Transpose a dataset, akin to 1dtranspose.
+   3.  Transpose a dataset, akin to 1dtranspose.
 
          1d_tool.py -infile t3.1D -transpose -write ttr.1D
 
-   4. Pad a file of regressors for a single run (#2) with zeros, so
-      that it becomes run 2 of 7 (runs are 1-based).
+   4a. Pad a file of regressors for a single run (#2) with zeros, so
+       that it becomes run 2 of 7 (runs are 1-based).
 
          1d_tool.py -infile ricor_r02.1D -pad_into_many_runs 2 7 \\
                     -write ricor_r02_all.1D
 
-   5. Display rows and columns for a 1D dataset.
+   4b. Similar to 4a, but specify varying TRs per run.  The number of
+       runs must match the number of run_lengths parameters.
+
+         1d_tool.py -infile ricor_r02.1D -pad_into_many_runs 2 7 \\
+                    -set_run_lengths 64 61 67 61 67 61 67        \\
+                    -write ricor_r02_all.1D
+
+   5.  Display rows and columns for a 1D dataset.
 
          1d_tool.py -infile ricor_r02.1D -show_rows_cols
 
-   6. Show correlation matrix warnings for this matrix.
+   6.  Show correlation matrix warnings for this matrix.
 
          1d_tool.py -infile X.xmat.1D -show_cormat_warnings
 
-   7. Output temporal derivative of motion regressors.  There are 9 runs in
-      dfile.rall.1D, and derivatives are applied per run.
+   7a. Output temporal derivative of motion regressors.  There are 9 runs in
+       dfile.rall.1D, and derivatives are applied per run.
 
          1d_tool.py -infile dfile.rall.1D -set_nruns 9 \\
                     -derivative -write motion.deriv.1D
 
-   8. Verify whether labels show slice-major ordering (where all slice0
-      regressors come first, then all slice1 regressors, etc).  Either
-      show the labels and verify visually, or print whether it is true.
+   7b. Similar to 7a, but let the run lengths vary.  The sum of run lengths
+       should equal the number of time points.
+
+         1d_tool.py -infile dfile.rall.1D                       \\
+                    -set_run_lengths 64 64 64 64 64 64 64 64 64 \\
+                    -derivative -write motion.deriv.rlens.1D
+
+   8.  Verify whether labels show slice-major ordering (where all slice0
+       regressors come first, then all slice1 regressors, etc).  Either
+       show the labels and verify visually, or print whether it is true.
 
          1d_tool.py -infile scan_2.slibase.1D'[0..12]' -show_labels
          1d_tool.py -infile scan_2.slibase.1D -show_labels
          1d_tool.py -infile scan_2.slibase.1D -show_label_ordering
 
-   9. Given motion.1D, take the derivative (ignoring run breaks) and the
-      Euclidean Norm, and write as e.norm.1D.  This might be plotted to show
-      show sudden motion as a single time series.
+   9a. Given motion.1D, take the derivative (ignoring run breaks) and the
+       Euclidean Norm, and write as e.norm.1D.  This might be plotted to show
+       show sudden motion as a single time series.
 
          1d_tool.py -infile motion.1D -set_nruns 9              \\
                     -derivative  -collapse_cols euclidean_norm  \\
                     -write e.norm.1D
 
-  10. Given motion.1D, create censor files to use in 3dDeconvolve, where a
-      TR is censored if the derivative values have a Euclidean Norm above 1.2.
+   9b. Similar to 9a, but supposing the run lengths vary (still 576 TRs).
 
-      The file created by -write_censor can be used with 3dD's -censor option.
-      The file created by -write_CENSORTR can be used with -CENSORTR.  They
-      should have the same effect in 3dDeconvolve.  The CENSORTR file is more
-      readable, but the censor file is better for plotting against the data.
+         1d_tool.py -infile motion.1D                           \\
+                    -set_run_lengths 64 61 67 61 67 61 67 61 67 \\
+                    -derivative  -collapse_cols euclidean_norm  \\
+                    -write e.norm.rlens.1D
 
-         1d_tool.py -infile motion.1D -set_nruns 9 -set_tr 3.0     \\
-                    -derivative -collapse_cols euclidean_norm      \\
-                    -extreme_mask -1.2 1.2                         \\
-                    -show_censor_count                             \\
-                    -write_censor subjA_censor.1D                  \\
-                    -write_CENSORTR subjA_CENSORTR.txt
+  10.  Given motion.1D, create censor files to use in 3dDeconvolve, where a
+       TR is censored if the derivative values have a Euclidean Norm above 1.2.
 
-      The -censor_motion option is available, which implies '-derivative',
-      '-collapse_cols euclidean_norm', 'extreme_mask -LIMIT LIMIT', and the
-      prefix for '-write_censor' and '-write_CENSORTR' output files.  This
-      option will also result in subjA_enorm.1D being written, which is the
-      euclidean norm of the derivative, before the extreme mask is applied.
+       The file created by -write_censor can be used with 3dD's -censor option.
+       The file created by -write_CENSORTR can be used with -CENSORTR.  They
+       should have the same effect in 3dDeconvolve.  The CENSORTR file is more
+       readable, but the censor file is better for plotting against the data.
+ 
+       a. 1d_tool.py -infile motion.1D -set_nruns 9 -set_tr 3.0     \\
+                     -derivative -collapse_cols euclidean_norm      \\
+                     -extreme_mask -1.2 1.2                         \\
+                     -show_censor_count                             \\
+                     -write_censor subjA_censor.1D                  \\
+                     -write_CENSORTR subjA_CENSORTR.txt
 
-         1d_tool.py -infile motion.1D -set_nruns 9 -set_tr 3.0  \\
-                    -show_censor_count                          \\
-                    -censor_motion 1.2 subjA
+       The -censor_motion option is available, which implies '-derivative',
+       '-collapse_cols euclidean_norm', 'extreme_mask -LIMIT LIMIT', and the
+       prefix for '-write_censor' and '-write_CENSORTR' output files.  This
+       option will also result in subjA_enorm.1D being written, which is the
+       euclidean norm of the derivative, before the extreme mask is applied.
 
-      Consider also '-censor_prev_TR'.
+       b. 1d_tool.py -infile motion.1D -set_nruns 9 -set_tr 3.0  \\
+                     -show_censor_count                          \\
+                     -censor_motion 1.2 subjA
+
+       Or allow the run lengths to vary:
+
+       c. 1d_tool.py -infile motion.1D -set_tr 3.0               \\
+                     -set_run_lengths 64 61 67 61 67 61 67 61 67 \\
+                     -show_censor_count                          \\
+                     -censor_motion 1.2 subjA_rlens
+
+       Consider also '-censor_prev_TR'.
 
 ---------------------------------------------------------------------------
 basic informational options:
@@ -147,7 +175,8 @@ general options:
         subj123_CENSORTR.txt and subj123_enorm.1D).
 
         The other information necessary besides an input motion file (-infile)
-        is the number of runs (-set_nruns) and the TR (-set_tr).
+        is the number of runs (-set_nruns or -set_run_lengths) and the TR
+        (-set_tr).
 
         Consider also '-censor_prev_TR'.
         See example 10.
@@ -168,6 +197,17 @@ general options:
                                   e.g. '{5,0,7..21(2)}'
    -set_nruns NRUNS             : treat the input data as if it has nruns
                                   (applies to -derivative, for example)
+
+        See examples 7a, and 10a and b.
+
+   -set_run_lengths N1 N2 ...   : treat as if data has run lengths N1, N2, etc.
+                                  (applies to -derivative, for example)
+
+        Notes:  o  option -set_nruns is not allowed with -set_run_lengths
+                o  the sum of run lengths must equal NT
+
+        See examples 7b and 10c.
+
    -set_tr TR                   : set the TR (in seconds) for the data
    -show_censor_count           : display the total number of censored TRs
    -show_cormat_warnings        : display correlation matrix warnings
@@ -241,9 +281,10 @@ g_history = """
    0.10 Aug 21, 2009 - added -show_censor_count
    0.11 Aug 25, 2009 - with -censor_motion, also output PREFIX_enorm.1D
    0.12 Oct  2, 2009 also output cosines with -show_cormat_warnings
+   0.13 Oct  6, 2009 added -set_run_lengths option
 """
 
-g_version = "1d_tool.py version 0.12, Oct 2, 2009"
+g_version = "1d_tool.py version 0.13, Oct 6, 2009"
 
 
 class A1DInterface:
@@ -268,7 +309,8 @@ class A1DInterface:
       self.select_cols     = ''         # column selection string
       self.select_rows     = ''         # row selection string
       self.set_extremes    = 0          # apply extreme limits
-      self.set_nruns       = 0          # pretend the input is over N runs
+      self.set_nruns       = 0          # assume input is over N runs
+      self.set_run_lengths = []         # assume input has these run lengths
       self.set_tr          = 0          # set the TR of the data
 
       self.cormat_cutoff   = -1         # if > 0, apply to show_cormat_warns
@@ -384,6 +426,9 @@ class A1DInterface:
       self.valid_opts.add_opt('-set_nruns', 1, [], 
                       helpstr='specify the number of runs in the input')
 
+      self.valid_opts.add_opt('-set_run_lengths', -1, [], 
+                      helpstr='specify the lengths of all runs')
+
       self.valid_opts.add_opt('-set_tr', 1, [], 
                       helpstr='specify the TR (in seconds) of the data')
 
@@ -482,6 +527,17 @@ class A1DInterface:
             if val > 0: self.set_nruns = val
             else:
                print '** -set_nruns must be positive'
+               return 1
+            if len(self.set_run_lengths) > 0:
+               print '** cannot use both -set_nruns and -set_run_lengths'
+               return 1
+
+         elif opt.name == '-set_run_lengths':
+            val, err = uopts.get_type_list(int, '', opt=opt)
+            if err: return 1
+            self.set_run_lengths = val
+            if self.set_nruns > 0:
+               print '** cannot use both -set_nruns and -set_run_lengths'
                return 1
 
          elif opt.name == '-set_tr':
@@ -646,6 +702,10 @@ class A1DInterface:
       if self.set_nruns > 0:
          if self.adata.set_nruns(self.set_nruns): return 1
 
+      # pad_to_runs is special case, do not set run info
+      if len(self.set_run_lengths) > 0 and not self.pad_to_runs:
+         if self.adata.set_nruns(run_lens=self.set_run_lengths): return 1
+
       if self.set_tr > 0: self.adata.tr = self.set_tr
 
       if self.derivative:
@@ -663,7 +723,13 @@ class A1DInterface:
             print '** -transpose is illegal with -pad_into_many_runs'
             return 1
          val = self.pad_to_runs
-         if self.adata.pad_into_many_runs(val[0], val[1]): return 1
+         rlens = self.set_run_lengths # pass empty or not
+         # if run_len list, verify number of runs
+         if len(rlens) > 0 and len(rlens) != val[1]:
+            print '** -pad_into_many_runs: nruns=%d != length of run list: %s'\
+                  % (val[1], rlens)
+            return 1
+         if self.adata.pad_into_many_runs(val[0], val[1], rlens): return 1
 
       if self.transpose:
          if self.adata.transpose(): return 1
