@@ -8,6 +8,8 @@ MRI_IMAGE * mri_principal_vector( MRI_IMARR *imar ) ;
 float     * mri_principal_getev(void) ;
 void        mri_principal_setev(int n) ;
 
+static int mpv_sign_meth = 0 ;
+
 /*------------------------------------------------------------------------*/
 /* Adapted from 3dLocalSVD */
 
@@ -107,6 +109,8 @@ int main( int argc , char *argv[] )
    /*---- loop over options ----*/
 
    INIT_IMARR(ortar) ;
+
+   mpv_sign_meth = AFNI_yesenv("AFNI_3dmaskSVD_meansign") ;
 
    while( iarg < argc && argv[iarg][0] == '-' ){
 
@@ -337,11 +341,15 @@ MRI_IMAGE * mri_principal_vector( MRI_IMARR *imar )
    umat = (float *)malloc( sizeof(float)*nx*nev  ) ;
    sval = (float *)malloc( sizeof(float)*nev     ) ;
 
+   /* load data vectors into A */
+
    for( jj=0 ; jj < nvec ; jj++ ){
      tim = IMARR_SUBIM(imar,jj) ;
      far = MRI_FLOAT_PTR(tim) ;
      for( ii=0 ; ii < nx ; ii++ ) A(ii,jj) = far[ii] ;
    }
+
+   /* remove mean of each vector? */
 
    if( mpv_vmean ){
      for( jj=0 ; jj < nvec ; jj++ ){
@@ -351,6 +359,9 @@ MRI_IMAGE * mri_principal_vector( MRI_IMARR *imar )
        for( ii=0 ; ii < nx ; ii++ ) A(ii,jj) -= sum ;
      }
    }
+
+   /* normalize each vector? */
+
    if( mpv_vnorm ){
      for( jj=0 ; jj < nvec ; jj++ ){
        sum = 0.0f ;
@@ -361,6 +372,8 @@ MRI_IMAGE * mri_principal_vector( MRI_IMARR *imar )
        }
      }
    }
+
+   /* do the eigen-stuff */
 
    jj = first_principal_vectors( nx,nvec,amat , nev,sval,umat ) ;
    if( jj <= 0 ){ free(sval); free(umat); free(amat); return NULL; }
@@ -384,12 +397,20 @@ MRI_IMAGE * mri_principal_vector( MRI_IMARR *imar )
    for( kk=0 ; kk < nev ; kk++ ){  /* loop over multiple output vectors */
      tar = far + kk*nx ;
      qum = 0.0f ;
-     for( jj=0 ; jj < nvec ; jj++ ){
-       zum = sum = 0.0f ;
-       for( ii=0 ; ii < nx ; ii++ ){ sum += A(ii,jj)*tar[ii]; zum += A(ii,jj)*A(ii,jj); }
-       if( zum > 0.0f ){
-         sum = sum / zum ; sum = MIN(sum,0.9999f) ; sum = MAX(sum,-0.9999f) ;
-         qum += atanhf(sum) ;
+     if( mpv_sign_meth == 0 ){         /* mean of dot products with data vectors */
+       for( jj=0 ; jj < nvec ; jj++ ){
+         zum = sum = 0.0f ;
+         for( ii=0 ; ii < nx ; ii++ ){ sum += A(ii,jj)*tar[ii]; zum += A(ii,jj)*A(ii,jj); }
+         if( zum > 0.0f ){
+           sum = sum / zum ; sum = MIN(sum,0.9999f) ; sum = MAX(sum,-0.9999f) ;
+           qum += atanhf(sum) ;
+         }
+       }
+     } else {                          /* dot product with mean data vector */
+       for( ii=0 ; ii < nx ; ii++ ){
+         sum = 0.0f ;
+         for( jj=0 ; jj < nvec ; jj++ ) sum += A(ii,jj) ;  /* mean vec at time ii */
+         qum += sum * tar[ii] ;
        }
      }
      if( qum < 0.0f ){

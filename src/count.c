@@ -303,11 +303,11 @@ int ranco( int bot , int top , long int seed)
    double dr ;
 
    if( first ){
-      if (seed) srand48( seed);
-      else srand48( time(NULL) ) ;
+      if (seed) srand48(seed);
+      else      srand48((long)time(NULL)+(long)getpid()) ;
       dr = drand48() ;
       ir = (int)(dr*100) ;
-      for( ii=0 ; ii < ir ; ii++ ) dr = drand48() ;
+      for( ii=0 ; ii < ir ; ii++ ) dr = drand48() ;  /* warmup */
       first = 0 ;
    }
 

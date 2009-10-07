@@ -1450,7 +1450,7 @@ int main( int argc , char *argv[] )
    if( argc > 1 ) AFNI_logger("afni",argc,argv) ; /* 14 Aug 2001 */
 #endif
 
-   srand48((long)time(NULL)) ;  /* initialize random number generator */
+   srand48((long)time(NULL)+(long)getpid()) ;  /* initialize random number generator */
 
    REPORT_PROGRESS( "\n" ) ;
 

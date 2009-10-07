@@ -44,6 +44,14 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 7 , OCT , 2009 , RWC , "various" , MICRO , TYPE_MODIFY ,
+   "Modify srand48() init to use time()+getpid()" ,
+   "To make close-in-time runs have independent seeds." } ,
+
+ { 7 , OCT , 2009 , RWC , "3dBlurInMask" , MINOR , TYPE_NEW_OPT ,
+   "Add -Mmask option to allow multiple mask values" ,
+   "For independent blurring (e.g., blur WM and GM separately)." } ,
+
  { 2 , OCT , 2009 , RWC , "calc" , MICRO , TYPE_MODIFY ,
    "Add mod(a,b) function to please RCR" ,
    NULL } ,
