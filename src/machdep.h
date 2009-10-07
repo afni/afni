@@ -408,5 +408,7 @@ extern double lgamma(double) ;
 
 extern char * Random_Insult(void) ;
 extern void init_rand_seed( long int seed ) ; /* 15 Apr 2009 (cf machdep.c) */
+#undef  SET_RAND_SEED
+#define SET_RAND_SEED init_rand_seed(0)
 
 #endif /* _MCW_MACHDEP_ */

@@ -4,9 +4,11 @@
 #include <omp.h>
 #endif
 
-#define MASK_MIN 19
+#define MASK_MIN 9
 
 static int verb = 1 ;
+
+extern short * UniqueShort( short *y, int ysz, int *kunq, int Sorted ) ;
 
 /*----------------------------------------------------------------------------*/
 
@@ -16,9 +18,13 @@ int main( int argc , char *argv[] )
    THD_3dim_dataset *inset=NULL, *outset=NULL , *mset=NULL ;
    char *prefix="./blurinmask" ;
    float fwhm_goal=0.0f ; int fwhm_2D=0 ;
-   byte *mask=NULL ; int mask_nx=0,mask_ny=0,mask_nz=0 , automask=0 , nmask ;
+   byte *mask=NULL ; int mask_nx=0,mask_ny=0,mask_nz=0 , automask=0 , nmask=0 ;
    float dx,dy,dz=0.0f , *bar , val ;
    int floatize=0 ;    /* 18 May 2009 */
+
+   MRI_IMAGE *immask=NULL ;    /* 07 Oct 2009 */
+   short      *mmask=NULL ;
+   short      *unval_mmask=NULL ; int nuniq_mmask=0 ;
 
    /*------- help the pitifully ignorant luser? -------*/
 
@@ -33,13 +39,18 @@ int main( int argc , char *argv[] )
       "               that will be smoothed and output.\n"
       " -FWHM   f   = Add this amount of smoothness to the dataset.\n"
       "              **N.B.: This is also a required 'option'.\n"
-      " -prefix ppp = Prefix for output dataset will be 'ppp'.\n"
-      "              **N.B.: Output dataset is always in float format.\n"
       " -mask   mmm = Mask dataset, if desired.  Blurring will\n"
       "               occur only within the mask.  Voxels NOT in\n"
       "               the mask will be set to zero in the output.\n"
+      " -Mmask  mmm = Multi-mask dataset -- each distinct nonzero\n"
+      "               value in dataset 'mmm' will be treated as\n"
+      "               a separate mask for blurring purposes.\n"
+      "              **N.B.: 'mmm' must be byte- or short-valued!\n"
       " -automask   = Create an automask from the input dataset.\n"
-      "              **N.B.: -automask and -mask can't be combined.\n"
+      "              **N.B.: only 1 masking option can be used!\n"
+      " -prefix ppp = Prefix for output dataset will be 'ppp'.\n"
+      "              **N.B.: Output dataset is always in float format.\n"
+      " -quiet      = Don't be verbose with the progress reports.\n"
       " -float      = Save dataset as floats, no matter what the\n"
       "               input data type is.\n"
       "              **N.B.: If the input dataset is unscaled shorts, then\n"
@@ -90,11 +101,11 @@ int main( int argc , char *argv[] )
 
    while( iarg < argc && argv[iarg][0] == '-' ){
 
-     if( strncmp(argv[iarg],"-q",2) == 0 ){
+     if( strncmp(argv[iarg],"-qui",4) == 0 ){
        verb = 0 ; iarg++ ; continue ;
      }
-     if( strncmp(argv[iarg],"-verb",4) == 0 ){
-       verb = 1 ; iarg++ ; continue ;
+     if( strncmp(argv[iarg],"-ver",4) == 0 ){
+       verb++ ; iarg++ ; continue ;
      }
 
      if( strcmp(argv[iarg],"-input") == 0 || strcmp(argv[iarg],"-dset") == 0 ){
@@ -112,9 +123,36 @@ int main( int argc , char *argv[] )
        iarg++ ; continue ;
      }
 
+     if( strcmp(argv[iarg],"-Mmask") == 0 ){   /* 07 Oct 2009 */
+       if( ++iarg >= argc ) ERROR_exit("Need argument after '-Mmask'") ;
+       if( mmask != NULL || mask != NULL || automask ) ERROR_exit("Can't have two mask inputs") ;
+       mset = THD_open_dataset( argv[iarg] ) ;
+       CHECK_OPEN_ERROR(mset,argv[iarg]) ;
+       DSET_load(mset) ; CHECK_LOAD_ERROR(mset) ;
+       mask_nx = DSET_NX(mset); mask_ny = DSET_NY(mset); mask_nz = DSET_NZ(mset);
+#if 0
+       if( !MRI_IS_INT_TYPE(DSET_BRICK_TYPE(mset,0)) )
+         ERROR_exit("-Mmask dataset is not integer type!") ;
+#endif
+       immask = mri_to_short( 1.0 , DSET_BRICK(mset,0) ) ;
+       mmask  = MRI_SHORT_PTR(immask) ;
+       unval_mmask = UniqueShort( mmask, mask_nx*mask_ny*mask_nz, &nuniq_mmask, 0 ) ;
+       if( unval_mmask == NULL || nuniq_mmask == 0 )
+         ERROR_exit("-Mmask dataset cannot be processed!?") ;
+       if( nuniq_mmask == 1 && unval_mmask[0] == 0 )
+         ERROR_exit("-Mmask dataset is all zeros!?") ;
+       if( verb ){
+         int qq , ww ;
+         for( ii=qq=0 ; ii < nuniq_mmask ; ii++ ) if( unval_mmask[ii] != 0 ) qq++ ;
+         for( ii=ww=0 ; ii < immask->nvox ; ii++ ) if( mmask[ii] != 0 ) ww++ ;
+         INFO_message("%d unique nonzero values in -Mmask; %d nonzero voxels",qq,ww) ;
+       }
+       iarg++ ; continue ;
+     }
+
      if( strcmp(argv[iarg],"-mask") == 0 ){
        if( ++iarg >= argc ) ERROR_exit("Need argument after '-mask'") ;
-       if( mask != NULL || automask ) ERROR_exit("Can't have two mask inputs") ;
+       if( mmask != NULL || mask != NULL || automask ) ERROR_exit("Can't have two mask inputs") ;
        mset = THD_open_dataset( argv[iarg] ) ;
        CHECK_OPEN_ERROR(mset,argv[iarg]) ;
        DSET_load(mset) ; CHECK_LOAD_ERROR(mset) ;
@@ -122,7 +160,7 @@ int main( int argc , char *argv[] )
        mask = THD_makemask( mset , 0 , 0.5f, 0.0f ) ; DSET_unload(mset) ;
        if( mask == NULL ) ERROR_exit("Can't make mask from dataset '%s'",argv[iarg]) ;
        ii = THD_mask_remove_isolas( mask_nx,mask_ny,mask_nz , mask ) ;
-       if( ii > 0 ) INFO_message("Removed %d isola%s from mask dataset",ii,(ii==1)?"\0":"s") ;
+       if( verb && ii > 0 ) INFO_message("Removed %d isola%s from mask dataset",ii,(ii==1)?"\0":"s") ;
        nmask = THD_countmask( mask_nx*mask_ny*mask_nz , mask ) ;
        if( verb ) INFO_message("Number of voxels in mask = %d",nmask) ;
        if( nmask < MASK_MIN ) ERROR_exit("Mask is too small to process") ;
@@ -130,7 +168,7 @@ int main( int argc , char *argv[] )
      }
 
      if( strcmp(argv[iarg],"-automask") == 0 ){
-       if( mask != NULL ) ERROR_exit("Can't have -automask and -mask") ;
+       if( mmask != NULL || mask != NULL ) ERROR_exit("Can't have 2 mask inputs") ;
        automask = 1 ; iarg++ ; continue ;
      }
 
@@ -181,7 +219,7 @@ int main( int argc , char *argv[] )
      if( !THD_datum_constant(inset->dblk)     ||
          THD_need_brick_factor(inset)         ||
          DSET_BRICK_TYPE(inset,0) != MRI_short  ){
-       INFO_message("forcing output to be stored in float format") ;
+       if( verb ) INFO_message("forcing output to be stored in float format") ;
        floatize = 1 ;
      }
    }
@@ -199,7 +237,6 @@ int main( int argc , char *argv[] )
      if( mask_nx != DSET_NX(inset) ||
          mask_ny != DSET_NY(inset) ||
          mask_nz != DSET_NZ(inset)   )
-
        ERROR_exit("-mask dataset grid doesn't match input dataset") ;
 
    } else if( automask ){
@@ -209,6 +246,12 @@ int main( int argc , char *argv[] )
      nmask = THD_countmask( DSET_NVOX(inset) , mask ) ;
      if( verb ) INFO_message("Number of voxels in automask = %d",nmask);
      if( nmask < MASK_MIN ) ERROR_exit("Automask is too small to process") ;
+
+   } else if( mmask != NULL ){
+     if( mask_nx != DSET_NX(inset) ||
+         mask_ny != DSET_NY(inset) ||
+         mask_nz != DSET_NZ(inset)   )
+       ERROR_exit("-Mmask dataset grid doesn't match input dataset") ;
 
    } else {
      mask = (byte *)malloc(sizeof(byte)*nvox) ; nmask = nvox ;
@@ -227,22 +270,52 @@ int main( int argc , char *argv[] )
    tross_Make_History( "3dBlurInMask" , argc,argv , outset ) ;
 
    nvals = DSET_NVALS(inset) ;
-   verb  = verb && (nvals > 1) ;
-   if( verb ) fprintf(stderr,"sub_bricks: ") ;
 
 #pragma omp parallel if( nvals > 1 )
  {
-   MRI_IMAGE *dsim ; int ids ;
+   MRI_IMAGE *dsim ; int ids ; byte *qmask=NULL ;
+   MRI_IMAGE *qim=NULL, *qsim=NULL; float *qar, *dsar, *qsar;
  AFNI_OMP_START ;
+#pragma omp critical (MALLOC)
+   { if( mmask != NULL ){
+       qmask = (byte *)malloc(sizeof(byte)*nvox) ;
+       qim   = mri_new_conforming(immask,MRI_float); qar  = MRI_FLOAT_PTR(qim);
+       qsim  = mri_new_conforming(immask,MRI_float); qsar = MRI_FLOAT_PTR(qsim);
+       qim->dx = dx ; qim->dy = dy ; qim->dz = dz ;
+    }}
 #pragma omp for
    for( ids=0 ; ids < nvals ; ids++ ){
-     if( verb ) fprintf(stderr,"%d.",ids) ;
 #pragma omp critical (MALLOC)
      { dsim = mri_scale_to_float(DSET_BRICK_FACTOR(inset,ids),DSET_BRICK(inset,ids)); }
      DSET_unload_one(inset,ids) ;
-     dsim->dx = dx ; dsim->dy = dy ; dsim->dz = dz ;
+     dsim->dx = dx ; dsim->dy = dy ; dsim->dz = dz ; dsar = MRI_FLOAT_PTR(dsim) ;
 
-     mri_blur3D_addfwhm( dsim , mask , fwhm_goal ) ;  /** all the work **/
+     if( mmask != NULL ){         /* 07 Oct 2009: multiple masks */
+       int qq ; register int vv ; register short uval ;
+       for( vv=0 ; vv < nvox ; vv++ ) qsar[vv] = 0.0f ; /* initialize qsar */
+       for( qq=0 ; qq < nuniq_mmask ; qq++ ){
+         uval = unval_mmask[qq] ; if( uval == 0 ) continue ;
+         for( vv=0 ; vv < nvox ; vv++ ) qmask[vv] = (mmask[vv]==uval) ;
+         (void)THD_mask_remove_isolas( mask_nx,mask_ny,mask_nz , qmask ) ;
+         nmask = THD_countmask( nvox , qmask ) ;
+         if( verb && ids==0 ) INFO_message("voxels in Mmask[%d] = %d",uval,nmask) ;
+         if( nmask >= MASK_MIN ){
+           /* copy data from dataset to qar */
+           for( vv=0 ; vv < nvox ; vv++ ) if( qmask[vv] ) qar[vv] = dsar[vv] ;
+           /* blur qar */
+           mri_blur3D_addfwhm( qim , qmask , fwhm_goal ) ;  /** the real work **/
+           /* copy results back to qsar */
+           for( vv=0 ; vv < nvox ; vv++ ) if( qmask[vv] ) qsar[vv] = qar[vv] ;
+         }
+       }
+       /* copy combined results in qsar to dsar for output */
+       for( vv=0 ; vv < nvox ; vv++ ) dsar[vv] = qsar[vv] ;
+
+     } else {                      /* the olden way: 1 mask */
+
+       mri_blur3D_addfwhm( dsim , mask , fwhm_goal ) ;  /** all the work **/
+
+     }
 
      if( floatize ){
        EDIT_substitute_brick( outset , ids , MRI_float , MRI_FLOAT_PTR(dsim) ) ;
@@ -254,9 +327,12 @@ int main( int argc , char *argv[] )
        }
      }
    }
+#pragma omp critical (MALLOC)
+   { if( immask != NULL ){ free(qmask); mri_free(qim); mri_free(qsim); } }
  AFNI_OMP_END ;
  } /* end OpenMP */
-   if( verb ) fprintf(stderr,"\n") ;
+   if(   mask != NULL )     free(  mask) ;
+   if( immask != NULL ) mri_free(immask) ;
 
    DSET_unload(inset) ;
    DSET_write(outset) ;
