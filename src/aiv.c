@@ -292,7 +292,7 @@ int main( int argc , char *argv[] )
    MAIN_dc = MCW_new_DC( shell, 128,
                          DEFAULT_NCOLOVR, INIT_colovr, INIT_labovr, 1.0, 0 ) ;
 
-   srand48((long)time(NULL)) ;
+   srand48((long)time(NULL)+(long)getpid()) ;
 
    /* wait a little bit, then popup the image viewer window */
 
