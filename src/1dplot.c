@@ -30,7 +30,7 @@ static char *INIT_labovr[DEFAULT_NCOLOVR] = {
 static int nx,nts , sep=1, sepscl=0;
 static float **yar , *xar ;
 static MCW_DC *dc ;
-static char *title = NULL , *xlabel = NULL , *ylabel = NULL ;
+static char *title = NULL , *wintitle = NULL, *xlabel = NULL , *ylabel = NULL ;
 
 static char *dfile_nar[6] = {
          "Roll [\\degree]" , "Pitch [\\degree]" , "Yaw [\\degree]"    ,
@@ -118,6 +118,8 @@ int main( int argc , char *argv[] )
             "              versus\n"
             "        echo 2 4.5 -1 | 1dplot -plabel 'test\\_underscore' -stdin\n"
             " -title pp = Same as -plabel, but only works with -ps/-png/-jpg options.\n"
+            " -wintitle pp = Set string 'pp' as the title of the frame \n"
+            "                containing the plot. Default is based on input.\n"
 #if 0
             "             Use -plabel instead for full interoperability.\n"
             "             [In X11 mode, the X11 startup 'consumes' the '-title' ]\n"
@@ -396,6 +398,11 @@ int main( int argc , char *argv[] )
         iarg++ ; continue ;
      }
 
+     if( strcmp(argv[iarg],"-wintitle") == 0 ){
+        wintitle = argv[++iarg] ;
+        iarg++ ; continue ;
+     }
+     
      if( strcmp(argv[iarg],"-title") == 0 ){ /* normally eaten by XtVaAppInitialize */
 #if 0
         WARNING_message(                     /* unless  using -ps! So keep it here, */
@@ -492,6 +499,8 @@ int main( int argc , char *argv[] )
      int   nval ;
      float *val , fff ;
 
+     if (!wintitle) wintitle = "stdin";   /* ZSS Oct 7 09 */
+     
      lbuf = (char * )malloc(sizeof(char )*NLBUF) ;
      val  = (float *)malloc(sizeof(float)*NVMAX) ;
 
@@ -551,7 +560,11 @@ int main( int argc , char *argv[] )
      if( iarg >= argc )
        ERROR_exit("No input files on command line?!\n");  /* bad user?! */
 
+ 
      if( iarg == argc-1 ){                 /* only 1 input file */
+       
+       if (!wintitle) wintitle = argv[iarg];   /* ZSS Oct 7 09 */
+       
        inim = mri_read_1D( argv[iarg] ) ;
        if( inim == NULL )
          ERROR_exit("Can't read input file '%s'\n",argv[iarg]) ;
@@ -560,7 +573,13 @@ int main( int argc , char *argv[] )
        MRI_IMARR *imar ;                   /* read them & glue into 1 image */
        int iarg_first=iarg, nysum=0, ii,jj,nx=1 ;
        float *far,*iar ;
-
+       char stmp[256];
+       
+       if (!wintitle) {
+         snprintf(stmp,64*sizeof(char),"%s ...", argv[iarg] );
+         wintitle = stmp;
+       } 
+       
        INIT_IMARR(imar) ;
        for( ; iarg < argc ; iarg++ ){
          inim = mri_read_1D( argv[iarg] ) ;
@@ -659,6 +678,8 @@ int main( int argc , char *argv[] )
    /*--- start X11 ---*/
 
    if( !skip_x11 ){
+     set_wintitle_memplot(wintitle);  /* ZSS Oct. 7 2009 */
+
      (void) XtAppAddTimeOut( app , 123 , startup_timeout_CB , NULL ) ;
      XtAppMainLoop(app) ;   /* never returns */
    }

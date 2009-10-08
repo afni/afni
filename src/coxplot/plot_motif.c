@@ -12,6 +12,17 @@
 
 static char print_command[256] = "\0" ;
 static char *redcolor = NULL ;
+static char  wintitle[128] = {"AFNI"}; /* ZSS Oct 7 2009 */
+
+void set_wintitle_memplot( char *s )   /* ZSS Oct 7 2009 */
+{
+   if (s) {
+      snprintf(wintitle, 125*sizeof(char), "%s", s);
+   } else {
+      sprintf(wintitle,"AFNI");
+   }  
+   return;
+}
 
 #ifndef LABEL_ARG
 #define LABEL_ARG(str) \
@@ -495,9 +506,11 @@ MEM_topshell_data * memplot_to_topshell( Display *dpy,
                    XmNminWidth    , wmin , XmNwidth  , ww ,
                    XmNallowShellResize , False ,
                    XmNinitialResourcesPersistent , False ,
-                   XmNdeleteResponse   , XmDO_NOTHING ,   /* deletion handled below */
+                   XmNdeleteResponse   , XmDO_NOTHING , /* deletion handled 
+                                                            below */
                  NULL ) ;
-
+   XtVaSetValues(topshell, XmNtitle, wintitle, NULL); /* ZSS Oct 7 2009 */
+   
    XmAddWMProtocolCallback(
         topshell , XmInternAtom(dpy,"WM_DELETE_WINDOW",False) ,
         pm_donebut_CB , (XtPointer) mpcb ) ;
