@@ -7,7 +7,6 @@ AFNILIB = -lmrix -lcoxplot -lmri -lf2c -l3DEdge
 MAINCODE = SUMA
 SUMALIBLIST = libSUMA.a libglut.a libply.a 
 GLWLIB = libGLws.a
-WARNOPT = -Wall -Wno-unused-variable
 
 ## 07 Dec 2005 -- Modify include path (RWCox)
 
