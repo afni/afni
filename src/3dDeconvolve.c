@@ -462,7 +462,7 @@ typedef struct {
 #define BASIS_MODULATED_PAIR 3   /* mean and delta amplitude modulated IRF */
 #define BASIS_MODULATED_INDV 9   /* each stim gets own basis func [16 Jul 2007] */
 
-#define BASIS_MAX_VDIM      11   /* max number dimens in -stim_times_AM2 */
+#define BASIS_MAX_VDIM      21   /* max number dimens in -stim_times_AM2 */
 #define BASIS_MAX_VFUN       3   /* max number of nonlinear parameters */
 
 #define BASIS_MIN_DURATION    0.1f  /* min stimulus duration in seconds */
