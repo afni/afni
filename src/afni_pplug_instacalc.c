@@ -222,6 +222,7 @@ ENTRY("ICALC_make_widgets") ;
    cpt =  AFNI_controller_label(im3d) ; sprintf(str,"AFNI InstCalc %s",cpt) ;
 
    if( im3d->vwid->func->iwid != NULL ){
+     iwid = im3d->vwid->func->iwid ;
      XtMapWidget(iwid->wtop) ; iwid->is_open = 1 ;
      WAIT_for_window( iwid->wtop ) ;
      XRaiseWindow( XtDisplay(iwid->wtop) , XtWindow(iwid->wtop) ) ;
