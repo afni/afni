@@ -84,7 +84,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            1dFlagMotion 3dTsort 1dTsort 3dTfitter afni_history 1dUpsample       \
            3dLocalSVD  niml_feedme  3dErrtsCormat 3dUndump 3dREMLfit            \
            3dUpsample 3dTcorrMap 3dmatmult 3dABoverlap 3dmaskSVD 1dBandpass     \
-           3dBlurInMask 3dRank 3dFFT 1dgenARMA11                                \
+           3dBlurInMask 3dRank 3dFFT 1dgenARMA11 3dPeriodogram                  \
            $(EXTRAS)
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge      \
@@ -496,6 +496,10 @@ dsetdup:dsetdup.o
 3dTsort:3dTsort.o
 	$(RM) $@
 	$(CC) -o 3dTsort 3dTsort.o $(LFLAGS) $(LLIBS)
+
+3dPeriodogram:3dPeriodogram.o
+	$(RM) $@
+	$(CC) -o 3dPeriodogram 3dPeriodogram.o $(LFLAGS) $(LLIBS)
 
 3dLocalBistat:3dLocalBistat.o
 	$(RM) $@

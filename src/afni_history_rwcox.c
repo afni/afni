@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 8 , OCT , 2009 , RWC , "3dPeriodogram" , MICRO , TYPE_NEW_PROG ,
+   "Does what it sound like, more or less, I hope." ,
+   NULL } ,
+
  { 7 , OCT , 2009 , RWC , "various" , MICRO , TYPE_MODIFY ,
    "Modify srand48() init to use time()+getpid()" ,
    "To make close-in-time runs have independent seeds." } ,

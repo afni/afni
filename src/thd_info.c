@@ -276,7 +276,7 @@ ENTRY("THD_dataset_info") ;
 
       STATUS("timestep") ;
 
-      outbuf = THD_zzprintf(outbuf, "  Time step = %.3f%s  Origin = %.3f%s" ,
+      outbuf = THD_zzprintf(outbuf, "  Time step = %.5f%s  Origin = %.5f%s" ,
                  dset->taxis->ttdel ,
                  UNITS_TYPE_LABEL(dset->taxis->units_type) ,
                  dset->taxis->ttorg ,
