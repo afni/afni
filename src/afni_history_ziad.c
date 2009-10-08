@@ -65,6 +65,16 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 7 , OCT , 2009 , ZSS , "1dplot" , MICRO , TYPE_NEW_OPT ,
+   "1dplot's window frame now shows a title. See 1dplot -wintitle for details.",
+   NULL
+ } ,
+
+ { 6 , OCT , 2009 , ZSS , "suma" , MAJOR , TYPE_BUG_FIX ,
+   "More bug fixes related to ROI loading, and OSX's GLX problem",
+   NULL
+ } ,
+
  { 24 , SEP , 2009 , ZSS , "suma" , MINOR , TYPE_NEW_OPT ,
    "Improved the 'star' blurring interface.",
    NULL
