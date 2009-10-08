@@ -34,7 +34,7 @@ int main( int argc , char * argv[] )
    int box_num=0 ; float *box_dat=NULL ;   /* 09 May 2003 - RWCox */
    int ball_num=0; float *ball_dat=NULL;   /* 09 Sep 2009 - RWCox */
    int nx,ny,nz,nxy,nxyz ;
-   unsigned int nrandseed ;
+   unsigned int nrandseed = 1234u;
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
       printf(
@@ -193,7 +193,6 @@ int main( int argc , char * argv[] )
 
    mainENTRY("3dmaskdump main"); machdep() ;
 
-   nrandseed = 1234u ;
 
    { int new_argc ; char ** new_argv ;
      addto_args( argc , argv , &new_argc , &new_argv ) ;
