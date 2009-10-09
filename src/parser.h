@@ -200,8 +200,32 @@ extern "C" {                    /* care of Greg Balls    7 Aug 2006 [rickr] */
   " and arguments to these functions.  The two functions below use the\n"      \
   " NIfTI-1 statistical codes to map between statistical values and\n"         \
   " cumulative distribution values:\n"                                         \
-  "   cdf2stat(val,code,p1,p2,3)\n"                                            \
-  "   stat2cdf(val,code,p1,p2,3)\n"                                            \
+  "   cdf2stat(val,code,p1,p2,p3)\n"                                           \
+  "   stat2cdf(val,code,p1,p2,p3)\n"                                           \
+  " where code is\n"                                                           \
+  "   2 = correlation statistic     p1 = DOF\n"                                \
+  "   3 = t statistic (central)     p1 = DOF\n"                                \
+  "   4 = F statistic (central)     p1 = num DOF, p2 = den DOF\n"              \
+  "   5 = N(0,1) statistic          no parameters\n"                           \
+  "   6 = Chi-squared (central)     p1 = DOF\n"                                \
+  "   7 = Beta variable (central)   p1 = a , p2 = b\n"                         \
+  "   8 = Binomial variable         p1 = #trials, p2 = prob per trial\n"       \
+  "   9 = Gamma distribution        p1 = shape, p2 = scale\n"                  \
+  "  10 = Poisson distribution      p1 = mean\n"                               \
+  "  11 = N(mu,variance) normal     p1 = mean, p2 = scale\n"                   \
+  "  12 = noncentral F statistic    p1 = num DOF, p2 = den DOF, p3 = noncen\n" \
+  "  13 = noncentral chi-squared    p1 = DOF, p2 = noncentrality parameter\n"  \
+  "  14 = Logistic distribution     p1 = mean, p2 = scale\n"                   \
+  "  15 = Laplace distribution      p1 = mean, p2 = scale\n"                   \
+  "  16 = Uniform distribution      p1 = min, p2 = max\n"                      \
+  "  17 = noncentral t statistic    p1 = DOF, p2 = noncentrality parameter\n"  \
+  "  18 = Weibull distribution      p1 = location, p2 = scale, p3 = power\n"   \
+  "  19 = Chi statistic (central)   p1 = DOF\n"                                \
+  "  20 = inverse Gaussian variable p1 = mu, p2 = lambda\n"                    \
+  "  21 = Extreme value type I      p1 = location, p2 = scale\n"               \
+  "  22 = 'p-value'                 no parameters\n"                           \
+  "  23 = -ln(p)                    no parameters\n"                           \
+  "  24 = -log10(p)                 no parameters\n"                           \
   "\n"                                                                         \
   "Finally, note that the expression evaluator is designed not to crash, or\n" \
   "to return NaN or Infinity.  Illegal operations, such as division by 0,\n"   \
