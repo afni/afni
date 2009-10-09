@@ -67,7 +67,7 @@ ENTRY("THD_bstrap_corr") ;
 
    if( npt < 19 || xx == NULL || yy == NULL ) RETURN(0.0f) ;
 
-   if( nboot < 1000 ) nboot = 1000 ;
+   if( nboot < 1000 ) nboot = 2000 ;
 
    rboot = (float *)malloc(sizeof(float)*nboot) ;
    xb    = (float *)malloc(sizeof(float)*npt) ;
@@ -150,6 +150,6 @@ int main( int argc , char *argv[] )
    bim = mri_read_1D(argv[2]) ; if( bim == NULL ) ERROR_exit("Can't read bim") ;
    if( aim->nx != aim->nx ) ERROR_exit("nx not same") ;
 
-   (void)THD_bstrap_corr( aim->nx, MRI_FLOAT_PTR(aim), MRI_FLOAT_PTR(bim), 1.0f,0 ) ;
+   (void)THD_bstrap_corr( aim->nx, MRI_FLOAT_PTR(aim), MRI_FLOAT_PTR(bim), 3.3f,50000 ) ;
    exit(0) ;
 }
