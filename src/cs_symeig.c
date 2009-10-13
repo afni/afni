@@ -490,6 +490,10 @@ int symeig_irange( int n, double *a, double *e, int bb, int tt, int novec )
     The return value is the number of vectors computed.  If the return
     value is not positive, something bad happened.  Normally, the return
     value would be the same as nvec, but it cannot be larger than MIN(n,m).
+
+    If sval==NULL, then the output into sval is skipped.
+    If uval==NULL, then the output into uval is skipped.
+    If both are NULL, exactly why did you want to call this function?
 *//*--------------------------------------------------------------------------*/
 
 int first_principal_vectors( int n , int m , float *xx ,
@@ -505,40 +509,47 @@ int first_principal_vectors( int n , int m , float *xx ,
 
    if( nvec > nsym ) nvec = nsym ;  /* can't compute more vectors than nsym! */
 
-   asym  = (double *)malloc(sizeof(double)*nsym*nsym) ;  /* symmetric matrix */
-   deval = (double *)malloc(sizeof(double)*nsym) ;       /* its eigenvalues */
+#pragma omp critical (MALLOC)
+   { asym  = (double *)malloc(sizeof(double)*nsym*nsym) ;  /* symmetric matrix */
+     deval = (double *)malloc(sizeof(double)*nsym) ;       /* its eigenvalues */
+   }
 
    /** setup matrix to eigensolve: choose smaller of [X]'[X] and [X][X]' **/
    /**     since [X] is n x m, [X]'[X] is m x m and [X][X]' is n x n     **/
 
    if( nn > mm ){                       /* more rows than columns:  */
                                         /* so [A] = [X]'[X] = m x m */
+     int n1 = nn-1 ;
      for( jj=0 ; jj < mm ; jj++ ){
        xj = xx + jj*nn ;
        for( kk=0 ; kk <= jj ; kk++ ){
          sum = 0.0 ; xk = xx + kk*nn ;
-         for( ii=0 ; ii < nn ; ii++ ) sum += xj[ii]*xk[ii] ;
+         for( ii=0 ; ii < n1 ; ii+=2 ) sum += xj[ii]*xk[ii] + xj[ii+1]*xk[ii+1];
+         if( ii == n1 ) sum += xj[ii]*xk[ii] ;
          A(jj,kk) = sum ; if( kk < jj ) A(kk,jj) = sum ;
        }
      }
 
    } else {                             /* more columns than rows:  */
                                         /* so [A] = [X][X]' = n x n */
-
-     float *xt = (float *)malloc(sizeof(float)*nn*mm) ;
+     float *xt ; int m1=mm-1 ;
+#pragma omp critical (MALLOC)
+     xt = (float *)malloc(sizeof(float)*nn*mm) ;
      for( jj=0 ; jj < mm ; jj++ ){      /* form [X]' into array xt */
        for( ii=0 ; ii < nn ; ii++ ) xt[jj+ii*mm] = xx[ii+jj*nn] ;
      }
 
      for( jj=0 ; jj < nn ; jj++ ){
        xj = xt + jj*mm ;
-       for( kk=0 ; kk < nn ; kk++ ){
+       for( kk=0 ; kk <= jj ; kk++ ){
          sum = 0.0 ; xk = xt + kk*mm ;
-         for( ii=0 ; ii < mm ; ii++ ) sum += xj[ii]*xk[ii] ;
+         for( ii=0 ; ii < m1 ; ii+=2 ) sum += xj[ii]*xk[ii] + xj[ii+1]*xk[ii+1];
+         if( ii == m1 ) sum += xj[ii]*xk[ii] ;
          A(jj,kk) = sum ; if( kk < jj ) A(kk,jj) = sum ;
        }
      }
 
+#pragma omp critical (MALLOC)
      free(xt) ;  /* don't need this no more */
    }
 
@@ -548,7 +559,9 @@ int first_principal_vectors( int n , int m , float *xx ,
    ii = symeig_irange( nsym, asym, deval, nsym-nvec, nsym-1, (uvec==NULL) ) ;
 
    if( ii != 0 ){
-     free(deval) ; free(asym) ; return -33333 ;  /* eigensolver failed!? */
+#pragma omp critical (MALLOC)
+     { free(deval) ; free(asym) ; }
+     return -33333 ;  /* eigensolver failed!? */
    }
 
    /** Store singular values (sqrt of eigenvalues), if desired:
@@ -565,7 +578,9 @@ int first_principal_vectors( int n , int m , float *xx ,
    /** if no output vectors desired, we are done done done!!! **/
 
    if( uvec == NULL ){
-     free(deval) ; free(asym) ; return nvec ;
+#pragma omp critical (MALLOC)
+     { free(deval) ; free(asym) ; }
+     return nvec ;
    }
 
    /** SVD is [X] = [U] [S] [V]', where [U] = desired output vectors
@@ -610,7 +625,9 @@ int first_principal_vectors( int n , int m , float *xx ,
 
    /** free at last!!! **/
 
-   free(deval) ; free(asym) ; return nvec ;
+#pragma omp critical (MALLOC)
+   { free(deval) ; free(asym) ; }
+   return nvec ;
 }
 
 #undef A
