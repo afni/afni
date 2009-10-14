@@ -3307,6 +3307,10 @@ STATUS(str); }
       case '+':
         if( buf[0] == '-' ) scale_down( grapher ) ;
         else                scale_up  ( grapher ) ;
+        if (PLOT_FORCE_AUTOSCALE) { /* turn it off, user wants to change */
+         PLOT_FORCE_AUTOSCALE = !PLOT_FORCE_AUTOSCALE;
+         MCW_invert_widget(grapher->opt_scale_AUTO_pb);
+        }
         redraw_graph( grapher , 0 ) ;
       break;
 

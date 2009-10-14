@@ -6,6 +6,7 @@ void SUMA_mapStateChanged(Widget w, XtPointer clientData, XEvent * event, Boolea
 void SUMA_help(void);
 void SUMA_help_message(FILE *Out);
 char * SUMA_help_message_Info(void);
+char * SUMA_help_xform_dot_message_Info(void);
 char * SUMA_help_Cmap_message_Info(SUMA_COLOR_MAP *Cmp);
 char * SUMA_help_Plot_message_Info(void);
 void SUMA_Help_open (void *p);

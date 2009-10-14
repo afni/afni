@@ -4804,10 +4804,14 @@ Widget SUMA_CloseBhelp_Frame( Widget parent,
                               XtCallbackProc close_callback, 
                               XtPointer close_data,
                               char *close_hint,
-                              char *close_help)
+                              char *close_help,
+                              XtCallbackProc help_callback,
+                              XtPointer help_data,
+                              char *help_hint,
+                              char *help_help)
 {
    static char FuncName[]={"SUMA_CloseBhelp_Frame"};
-   Widget rc, pb_close, pb_bhelp, DispFrame;
+   Widget rc, pb_close, pb_bhelp, DispFrame, pb_help;
    
    SUMA_ENTRY;
       
@@ -4860,6 +4864,22 @@ Widget SUMA_CloseBhelp_Frame( Widget parent,
    XtManageChild (pb_bhelp); 
 
 
+   if (help_callback) {
+      XtVaCreateManagedWidget ("sep", 
+                        xmSeparatorGadgetClass, rc, 
+                        XmNorientation, XmVERTICAL,
+                        NULL);
+      pb_help = XtVaCreateWidget ("Help", 
+         xmPushButtonWidgetClass, rc, 
+         NULL);
+      XtAddCallback (pb_help, XmNactivateCallback, help_callback, help_data);
+      MCW_register_help(pb_help , help_hint ? 
+            help_hint : "Press this button to get help about this interface" ) ;
+      MCW_register_hint(pb_help , help_help ? 
+            help_help : "Help about this interface" );
+                     
+      XtManageChild (pb_help); 
+   }
 
    /* now start managing the row column widget */
    XtManageChild (rc);
@@ -5445,7 +5465,8 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
    } else {
       DispFrame = SUMA_CloseBhelp_Frame(rc_left,
                         SUMA_cb_closeSurfaceCont, (XtPointer) SO,
-                        "Close Surface controller", SUMA_closeSurfaceCont_help);
+                        "Close Surface controller", SUMA_closeSurfaceCont_help,
+                        NULL, NULL, NULL, NULL);
    }
    
    SUMA_LH("Management...");
@@ -9501,15 +9522,16 @@ void SUMA_cb_ToggleCaseSearch (Widget widget, XtPointer client_data, XtPointer c
       
    - Based on search_text() from "Motif Programming Manual"
 */
-void SUMA_cb_search_text(Widget widget, XtPointer client_data, XtPointer call_data)
+void SUMA_cb_search_text(Widget widget, 
+                  XtPointer client_data, XtPointer call_data)
 {
-   char *search_pat, *p, *string, buf[32];
+   char *search_pat, *p, *string, buf[65];
    XmTextPosition pos;
    int len, i;
    Boolean found = False;
-   SUMA_Boolean LocalHead = NOPE;
    SUMA_CREATE_TEXT_SHELL_STRUCT *TextShell;
    static char FuncName[]={"SUMA_cb_search_text"};
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
@@ -9523,9 +9545,11 @@ void SUMA_cb_search_text(Widget widget, XtPointer client_data, XtPointer call_da
      if (string) XtFree (string); /* may have been ""; free it */
      SUMA_RETURNe;
    }
+   SUMA_LHv("Looking for %s\n", string);
    len = strlen(string);
    if (!TextShell->case_sensitive) {
-      if (LocalHead) fprintf (SUMA_STDERR,"%s: Case insensitive search.\n", FuncName);
+      if (LocalHead) 
+         fprintf (SUMA_STDERR,"%s: Case insensitive search.\n", FuncName);
       /* turn string to lowercase */
       for (i=0; i < len; ++i) string[i] = tolower(string[i]);   
    }
@@ -9538,6 +9562,7 @@ void SUMA_cb_search_text(Widget widget, XtPointer client_data, XtPointer call_da
      SUMA_RETURNe;
    }
    len = strlen (search_pat);
+   SUMA_LHv("Pat %s\n", search_pat);
    
    if (!TextShell->case_sensitive) {
       /* turn search_pat to lowercase */
@@ -9546,6 +9571,7 @@ void SUMA_cb_search_text(Widget widget, XtPointer client_data, XtPointer call_da
    /* start searching at current cursor position + 1 to find
    * the -next- occurrance of string.  we may be sitting on it.
    */
+   SUMA_LH("Looking down");
    pos = XmTextGetCursorPosition (TextShell->text_w);
    for (p = &string[pos+1]; (p = index (p, *search_pat)); p++)
      if (!strncmp (p, search_pat, len)) {
@@ -9554,6 +9580,7 @@ void SUMA_cb_search_text(Widget widget, XtPointer client_data, XtPointer call_da
      }
    if (!found) { /* didn't find pattern? */
      /* search from beginning till we've passed "pos" */
+      SUMA_LH("Looking from top");
      for (p = string;
              (p = index (p, *search_pat)) && p - string <= pos; p++)
          if (!strncmp (p, search_pat, len)) {
@@ -9561,14 +9588,20 @@ void SUMA_cb_search_text(Widget widget, XtPointer client_data, XtPointer call_da
              break;
          }
    }
-   if (!found)
+   
+   if (!found) {
+      SUMA_LH("Got nothing");
      XmTextSetString (TextShell->text_output, "Pattern not found.");
-   else {
+   } else {
      pos = (XmTextPosition)(p - string);
-     sprintf (buf, "Pattern found at position %ld.", pos);
+     snprintf (buf,sizeof(char)*64, "Pattern found at position %ld.", pos);
+     SUMA_LH(buf);
      XmTextSetString (TextShell->text_output, buf);
+     SUMA_LH("insertion");
      XmTextSetInsertionPosition (TextShell->text_w, pos);
+     SUMA_LH("highlight");
      XmTextSetHighlight(TextShell->text_w, pos, pos+len, XmHIGHLIGHT_SELECTED);
+     SUMA_LH("freeatlast");
    }
    if (string) XtFree (string);
    if (search_pat) XtFree (search_pat);
@@ -12327,6 +12360,38 @@ void SUMA_cb_CloseXformInterface(Widget w, XtPointer data, XtPointer call_data)
    SUMA_RETURNe;
 }
 
+void SUMA_cb_helpXformInterface (Widget w, XtPointer data, XtPointer call_data)
+{
+   static char FuncName[] = {"SUMA_cb_helpXformInterface"};
+   SUMA_XFORM *xf=(SUMA_XFORM *)data;
+   SUMA_Boolean Shaded = NOPE;
+   DList *list = NULL;
+   SUMA_EngineData *ED = NULL;
+   DListElmt *NextElm = NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   
+   if (LocalHead) 
+      fprintf (SUMA_STDERR,"%s: help for xf window...\n", FuncName);
+
+   
+   if (!list) list = SUMA_CreateList();
+   ED = SUMA_InitializeEngineListData (SE_Help_Xform);
+   if (!(NextElm = SUMA_RegisterEngineListCommand (  list, ED,
+                                          SEF_vp, (void *)xf,
+                                          SES_Suma, NULL, NOPE,
+                                          SEI_Tail, NULL))) {
+      fprintf (SUMA_STDERR, "Error %s: Failed to register command.\n", FuncName);
+   }
+   if (!SUMA_Engine (&list)) {
+      fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
+   }
+
+   SUMA_RETURNe;
+}
+
 /*!
    \brief Sets the widgets in the DrawROI window based on the DrawnROI structure
 */
@@ -12700,6 +12765,7 @@ void SUMA_DotXform_NewPolort(  SUMA_XFORM *xf,
      
    SUMA_RETURNe;
 }
+
 void SUMA_DotXform_NewOrtName(  SUMA_XFORM *xf,
                                char * ortname, 
                                int fromgui)
@@ -13063,7 +13129,7 @@ void SUMA_CreateXformOptionsInterface(SUMA_XFORM *xf, Widget parent_frame)
                         SUMA_DotXform_AF0_help,
                         xf->gui->AF0);
       SUMA_CreateArrowField ( rc, "HF",
-                        fmax > 0.1 ? 0.1:fmax, 0.0, fmax, fstep,  
+                        fmax > 0.1 ? 0.1:fmax, 0.0, 1.0, fstep,  
                         6, SUMA_float,
                         NOPE,
                         SUMA_Xform_NewAF1, (void *)xf, 
@@ -13095,7 +13161,8 @@ void SUMA_CreateXformOptionsInterface(SUMA_XFORM *xf, Widget parent_frame)
                         SUMA_DotXform_AF2_help,
                         xf->gui->AF2);
       XtManageChild(rc);
-
+      XtSetSensitive(rc, 0);
+      
       rc = XtVaCreateWidget ("rowcolumn",
             xmRowColumnWidgetClass, rcv,
             XmNpacking, XmPACK_TIGHT, 
@@ -13104,7 +13171,7 @@ void SUMA_CreateXformOptionsInterface(SUMA_XFORM *xf, Widget parent_frame)
             XmNmarginWidth , 0 ,
             NULL);
       
-      xf->gui->LoadOrtFile_pb = XtVaCreateWidget ("Load", 
+      xf->gui->LoadOrtFile_pb = XtVaCreateWidget ("OrtFile", 
                                     xmPushButtonWidgetClass, rc, 
                                     NULL);
       XtAddCallback (xf->gui->LoadOrtFile_pb, 
@@ -13296,7 +13363,11 @@ void SUMA_CreateXformInterface(SUMA_XFORM *xf)
                               SUMA_cb_CloseXformInterface, 
                               (XtPointer) xf,
                               "Close Xform controller",
-                              SUMA_closeXformCont_help);
+                              SUMA_closeXformCont_help,
+                              SUMA_cb_helpXformInterface, 
+                              (XtPointer) xf,
+                              "Help on using this transform's interface",
+                              SUMA_helpXformCont_help);
    
    /* manage the frame rcv */
    XtManageChild (frame_rcv);

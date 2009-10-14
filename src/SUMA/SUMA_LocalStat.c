@@ -1227,7 +1227,8 @@ SUMA_DSET *SUMA_CalculateLocalStats(SUMA_SurfaceObject *SO, SUMA_DSET *din,
    SUMA_ENTRY;
       
    if (ncode <=0 || !din || rhood <= 0.0f || !code || !SO) {
-      SUMA_S_Errv("Bad input: SO=%p, din=%p, nmask=%p, rhood=%f, ncode=%d,code=%p, UseThisDout=%p\n", 
+      SUMA_S_Errv("Bad input: SO=%p, din=%p, nmask=%p, "
+                  "rhood=%f, ncode=%d,code=%p, UseThisDout=%p\n", 
             SO, din, nmask, rhood, ncode, code, UseThisDout);
       SUMA_RETURN(NULL);
    }
@@ -1254,16 +1255,23 @@ SUMA_DSET *SUMA_CalculateLocalStats(SUMA_SurfaceObject *SO, SUMA_DSET *din,
       if ((ind = SDSET_NODE_INDEX_COL(din))) {
          if (!masked_only) {
             /* preserve all rows */
-            ncoli = SUMA_Copy_Part_Column(ind, NI_rowtype_find_code(SUMA_ColType2TypeCast(SUMA_NODE_INDEX)), SDSET_VECLEN(din), NULL, masked_only, &n_incopy);
+            ncoli = 
+               SUMA_Copy_Part_Column(ind, 
+                  NI_rowtype_find_code(SUMA_ColType2TypeCast(SUMA_NODE_INDEX)), 
+                  SDSET_VECLEN(din), NULL, masked_only, &n_incopy);
          } else {
-            ncoli = SUMA_Copy_Part_Column(ind, NI_rowtype_find_code(SUMA_ColType2TypeCast(SUMA_NODE_INDEX)), SDSET_VECLEN(din), nmask, masked_only, &n_incopy);  
+            ncoli = 
+               SUMA_Copy_Part_Column(ind, 
+                  NI_rowtype_find_code(SUMA_ColType2TypeCast(SUMA_NODE_INDEX)), 
+                  SDSET_VECLEN(din), nmask, masked_only, &n_incopy);  
          }
          if (!ncoli) {
             SUMA_SL_Err("No index data got copied.");
             SUMA_RETURN(NULL);
          }
-         dout = SUMA_CreateDsetPointer("LocalStat", SUMA_NODE_BUCKET, NULL,  NI_get_attribute(din->ngr,"domain_parent_idcode"), n_incopy);
-         if (!SUMA_AddDsetNelCol (dout, NI_get_attribute(din->inel,"COLMS_LABS"), SUMA_NODE_INDEX, ncoli, NULL ,1)) {
+         dout = SUMA_CreateDsetPointer("LocalStat", SUMA_NODE_BUCKET, NULL,  
+                                       SDSET_IDMDOM(din), n_incopy);
+         if (!SUMA_AddDsetNelCol (dout, NI_get_attribute(din->inel,"COLMS_LABS"),                                    SUMA_NODE_INDEX, ncoli, NULL ,1)) {
             SUMA_SL_Crit("Failed in SUMA_AddDsetNelCol");
             SUMA_FreeDset((void*)dout); dout = NULL;
             SUMA_RETURN(NULL);
@@ -1271,7 +1279,8 @@ SUMA_DSET *SUMA_CalculateLocalStats(SUMA_SurfaceObject *SO, SUMA_DSET *din,
          if (lblcp) SUMA_free(lblcp); lblcp = NULL;
          if (ncoli) SUMA_free(ncoli); ncoli = NULL; 
       } else {
-         SUMA_S_Err("Do not have node indices in input dset! and could not create one.");
+         SUMA_S_Err( "Do not have node indices in input dset!\n"
+                     " and could not create one.");
          SUMA_RETURN(NULL);
       }
    }
@@ -1279,12 +1288,16 @@ SUMA_DSET *SUMA_CalculateLocalStats(SUMA_SurfaceObject *SO, SUMA_DSET *din,
    /* some checks? Some day? */
    if (dout == UseThisDout) {
       if (SDSET_VECLEN(dout) != SDSET_VECLEN(din)) {
-         SUMA_S_Errv("Mismatch in recycled dset (%d rows) and input dset (%d rows)\n", SDSET_VECLEN(dout),  SDSET_VECLEN(din));
+         SUMA_S_Errv("Mismatch in recycled dset (%d rows)"
+                     " and input dset (%d rows)\n", 
+                     SDSET_VECLEN(dout),  SDSET_VECLEN(din));
          SUMA_FreeDset((void*)dout); dout = NULL;
          SUMA_RETURN(NULL);
       }
       if (SDSET_VECNUM(dout) != SDSET_VECNUM(din)) {
-         SUMA_S_Errv("Mismatch in recycled dset (%d cols) and input dset (%d cols)\n", SDSET_VECNUM(dout),  SDSET_VECNUM(din));
+         SUMA_S_Errv("Mismatch in recycled dset (%d cols) "
+                     "and input dset (%d cols)\n", 
+                     SDSET_VECNUM(dout),  SDSET_VECNUM(din));
          SUMA_FreeDset((void*)dout); dout = NULL;
          SUMA_RETURN(NULL);
       }
@@ -1312,9 +1325,12 @@ SUMA_DSET *SUMA_CalculateLocalStats(SUMA_SurfaceObject *SO, SUMA_DSET *din,
          }
          /* make sure column is not sparse, one value per node */
          if (k==0) {
-            SUMA_LH( "Special case k = 0, going to SUMA_MakeSparseColumnFullSorted");
+            SUMA_LH( "Special case k = 0, going to"
+                     " SUMA_MakeSparseColumnFullSorted");
             bfull = NULL;
-            if (!SUMA_MakeSparseColumnFullSorted(&fin_orig, SDSET_VECFILLED(din), 0.0, &bfull, din, SO->N_Node)) {
+            if (!SUMA_MakeSparseColumnFullSorted(
+                     &fin_orig, SDSET_VECFILLED(din), 0.0, 
+                     &bfull, din, SO->N_Node)) {
                SUMA_S_Err("Failed to get full column vector");
                SUMA_RETURN(NOPE);
             }
