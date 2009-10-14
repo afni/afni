@@ -20,7 +20,8 @@ PARSE:
    set KeepTmp = 0
    set verb = 0
    set pd = $pd_default
-   set suf = "_at"
+   #set suf = "_at"
+   set suf = "NONE"
    set rmode = 'default'
    set xform_type = 'affine_general'
    set ss_opt = ''
@@ -1062,7 +1063,7 @@ echo "                     Default for 'Usage 1' is quintic"
 echo "                     Default for 'Usage 2' is quintic"
 echo "   -suffix    SUF :  Name the output dataset by append SUF "
 echo "                     to the prefix of the input data for the output."
-echo "                     Default for SUF is _at"
+echo "                     Default for SUF is NONE (see below)"
 echo "              NOTE:  You can now set SUF to 'none' or 'NONE' and enable"
 echo "                     afni's warp on demand features."                
 echo "   -keep_view     :  Do not mark output dataset as +tlrc"

@@ -419,7 +419,11 @@ Widget SUMA_CloseBhelp_Frame( Widget parent,
                               XtCallbackProc close_callback, 
                               XtPointer close_data,
                               char *close_hint,
-                              char *close_help);
+                              char *close_help,
+                              XtCallbackProc help_callback,
+                              XtPointer help_data,
+                              char *help_hint,
+                              char *help_help);
 void SUMA_cb_XformPreProc_Save (Widget w, XtPointer data, 
                              XtPointer client_data);
 void SUMA_cb_XformOpts_Apply (Widget w, XtPointer data, 
@@ -737,6 +741,10 @@ SUMA_Boolean SUMA_WildcardChoice(int filetype,
    "Close Xform controller window.\n"   \
    "Current settings are preserved\n"\
    "when controller is reopened.\n"
+
+#define SUMA_helpXformCont_help   \
+   "Open a searchable help window\n"   \
+   "about using this interface.\n"
 
 #define SUMA_closeViewerCont_help   \
    "Close Viewer controller window.\n"   \

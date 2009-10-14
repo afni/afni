@@ -799,8 +799,10 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                   char *s = NULL;
                   s = SUMA_BuildMessageLog (SUMAg_CF->MessageList);
                   SUMAg_CF->X->Log_TextShell->CursorAtBottom = YUP;
-                  (void) SUMA_CreateTextShell (s, "Message Log", SUMAg_CF->X->Log_TextShell);
-                  XRaiseWindow(SUMAg_CF->X->DPY_controller1, XtWindow(SUMAg_CF->X->Log_TextShell->toplevel));
+                  (void) SUMA_CreateTextShell (s, 
+                              "Message Log", SUMAg_CF->X->Log_TextShell);
+                  XRaiseWindow(SUMAg_CF->X->DPY_controller1, 
+                                 XtWindow(SUMAg_CF->X->Log_TextShell->toplevel));
                   if (s) SUMA_free(s);
                }
             }
@@ -811,18 +813,25 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             {
                char *s = NULL;
                if (SUMAg_CF->X->Log_TextShell) { /* just raise it */
-                  XRaiseWindow(SUMAg_CF->X->DPY_controller1, XtWindow(SUMAg_CF->X->Log_TextShell->toplevel));
+                  XRaiseWindow(  SUMAg_CF->X->DPY_controller1, 
+                                 XtWindow(SUMAg_CF->X->Log_TextShell->toplevel));
                   break;
                }else { /* create it */
                   s = SUMA_BuildMessageLog (SUMAg_CF->MessageList);
-                  if (LocalHead) fprintf (SUMA_STDERR,"%s: Message string:\n%s\n", FuncName, s);
-                  LogShell =  SUMA_CreateTextShellStruct (SUMA_Message_open, NULL, 
-                                                          SUMA_Message_destroyed, NULL);
+                  if (LocalHead) 
+                     fprintf (SUMA_STDERR,
+                              "%s: Message string:\n%s\n", FuncName, s);
+                  LogShell =  SUMA_CreateTextShellStruct (
+                                  SUMA_Message_open, NULL, 
+                                  SUMA_Message_destroyed, NULL);
                   if (!LogShell) {
-                     fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_CreateTextShellStruct.\n", FuncName);
+                     fprintf (SUMA_STDERR, 
+                            "Error %s: Failed in SUMA_CreateTextShellStruct.\n", 
+                            FuncName);
                      break;
                   }
-                  SUMAg_CF->X->Log_TextShell = SUMA_CreateTextShell(s, "SUMA log", LogShell);
+                  SUMAg_CF->X->Log_TextShell = 
+                     SUMA_CreateTextShell(s, "SUMA log", LogShell);
                   SUMA_free(s);
                }
             }
@@ -833,26 +842,87 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             {
                char *s = NULL;
                if (SUMAg_CF->X->Help_TextShell) { /* just raise it */
-                     XRaiseWindow(SUMAg_CF->X->DPY_controller1, XtWindow(SUMAg_CF->X->Help_TextShell->toplevel));
+                     XRaiseWindow(SUMAg_CF->X->DPY_controller1, 
+                              XtWindow(SUMAg_CF->X->Help_TextShell->toplevel));
+               } else {
+                  SUMAg_CF->X->Help_TextShell =  SUMA_CreateTextShellStruct (
+                                    SUMA_Help_open, NULL, 
+                                    SUMA_Help_destroyed, NULL);
+                  if (!SUMAg_CF->X->Help_TextShell) {
+                     fprintf (SUMA_STDERR, 
+                           "Error %s: Failed in SUMA_CreateTextShellStruct.\n", 
+                           FuncName);
                      break;
+                  }
                }
                   
                s = SUMA_help_message_Info();
                if (!s) {
-                  fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_help_message_Info.\n", FuncName);
+                  fprintf (SUMA_STDERR, 
+                           "Error %s: Failed in SUMA_help_message_Info.\n", 
+                           FuncName);
                   break;
                }else {
-                  TextShell =  SUMA_CreateTextShellStruct (SUMA_Help_open, NULL, 
-                                                           SUMA_Help_destroyed, NULL);
-                  if (!TextShell) {
-                     fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_CreateTextShellStruct.\n", FuncName);
-                     break;
-                  }
-                  SUMAg_CF->X->Help_TextShell = SUMA_CreateTextShell(s, "SUMA help", TextShell);
+                  SUMAg_CF->X->Help_TextShell = 
+                        SUMA_CreateTextShell(
+                              s, "SUMA help", SUMAg_CF->X->Help_TextShell);
                   SUMA_free(s);   
                }
             }
             break;
+            
+         case SE_Help_Xform: /* use same window as SUMA's help */
+            /* opens help window, needs xform struct in vp */
+            {
+               SUMA_XFORM *xf=NULL;
+               char *s = NULL;
+               if (EngineData->vp_Dest != NextComCode) {
+                  fprintf (SUMA_STDERR,
+                           "Error %s: "
+                           "Data not destined correctly for %s (%d).\n", 
+                     FuncName, NextCom, NextComCode);
+                  break;
+               } 
+               if (!(xf = (SUMA_XFORM *)EngineData->vp)) {
+                  SUMA_S_Err("NULL input");
+                  break;
+               }
+               if (SUMAg_CF->X->Help_TextShell) { /* just raise it */
+                     XRaiseWindow(SUMAg_CF->X->DPY_controller1, 
+                              XtWindow(SUMAg_CF->X->Help_TextShell->toplevel));
+               } else { /* make one */
+                  SUMAg_CF->X->Help_TextShell =  SUMA_CreateTextShellStruct (
+                                    SUMA_Help_open, NULL, 
+                                    SUMA_Help_destroyed, NULL);
+                  if (!SUMAg_CF->X->Help_TextShell) {
+                     fprintf (SUMA_STDERR, 
+                           "Error %s: Failed in SUMA_CreateTextShellStruct.\n", 
+                           FuncName);
+                     break;
+                  }
+               }
+               
+               if (!strcmp(xf->name,"Dot")) {
+                  s = SUMA_help_xform_dot_message_Info();
+               } else {
+                  s = SUMA_copy_string("aint no help for this xform honey");
+               }
+                  
+               if (!s) {
+                  fprintf (SUMA_STDERR, 
+                        "Error %s: Failed somehow.\n", 
+                        FuncName);
+                  break;
+               }else {
+                  SUMAg_CF->X->Help_TextShell = 
+                        SUMA_CreateTextShell(
+                              s, "SUMA Xform help", 
+                              SUMAg_CF->X->Help_TextShell);
+                  SUMA_free(s);   
+               }
+            }
+            break;
+         
          case SE_Help_Cmap:
             /* opens Cmap help window, needs Cmap in vp*/
             {
