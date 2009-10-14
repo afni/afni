@@ -65,6 +65,26 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 14 , OCT , 2009 , ZSS , "suma" , MINOR , TYPE_MODIFY ,
+   "Direct viewing of pre-processed datasets in Dot xform",
+   NULL
+ } ,
+
+ { 14 , OCT , 2009 , ZSS , "suma" , MINOR , TYPE_MODIFY ,
+   "New help window for Dot xform",
+   NULL
+ } ,
+
+ { 13 , OCT , 2009 , ZSS , "ConvertSurface" , MICRO , TYPE_NEW_OPT ,
+   "-xmat_1D allows for single row transform definition",
+   NULL
+ } ,
+
+ { 13 , OCT , 2009 , ZSS , "quickspec" , MICRO , TYPE_NEW_OPT ,
+   "-tsnad to allow for setting anatomical flag and local domain parent",
+   NULL
+ } ,
+
  { 7 , OCT , 2009 , ZSS , "1dplot" , MICRO , TYPE_NEW_OPT ,
    "1dplot's window frame now shows a title. See 1dplot -wintitle for details.",
    NULL

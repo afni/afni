@@ -1678,8 +1678,10 @@ char * SUMA_help_message_Info(void)
    SS = SUMA_StringAppend (SS, 
       "     Button 3-Press: picking \n");
    SS = SUMA_StringAppend (SS, 
-      "     shft+Button 3-Press: ROI drawing \n"
-      "                          (when in DrawROI mode)\n");
+      "     shft+Button 3-Press: Pick only\n"
+      "                       Does not draw to new node in DrawROI mode.\n"
+      "                       Does not apply transforms as in Dot xform mode\n"
+      );
    SS = SUMA_StringAppend (SS, 
       "    \n");
    SS = SUMA_StringAppend (SS, 
@@ -1737,6 +1739,91 @@ char * SUMA_help_message_Info(void)
    s = SUMA_New_Additions (0, 0);
    SS = SUMA_StringAppend (SS, s); SUMA_free(s); s = NULL;
 
+   /* clean SS */
+   SS = SUMA_StringAppend (SS, NULL);
+   /* copy s pointer and free SS */
+   s = SS->s;
+   SUMA_free(SS); 
+   
+   SUMA_RETURN (s);
+
+}
+char * SUMA_help_xform_dot_message_Info(void)
+{
+   static char FuncName[]={"SUMA_help_xform_dot_message_Info"};
+   char stmp[1000], *s = NULL;
+   SUMA_STRING *SS = NULL;
+   
+   SUMA_ENTRY;
+   
+   SS = SUMA_StringAppend (NULL, NULL);
+
+   SS = SUMA_StringAppend (SS, 
+"Interface for InstaCorr on the surface.\n"
+"Picking a node will initiate the computation\n"
+"of the cross correlation between the time series at that node\n"
+"and those on other nodes. The time series come from the dataset\n"
+"on which the xform is applied (see TS Parents below).\n"
+"\n"
+"This transform is applied to time series datasets. It is initiated\n"
+"by pressing 'D' on a 'parent' time series dataset. \n"
+"The result of the transform is one (or more) 'child' dataset that\n"
+"will initiate a new transform call with every new node selected.\n"
+"\n"  
+   ); 
+   
+   SS = SUMA_StringAppend (SS, 
+"xform block:\n"
+"------------\n"
+"Active: Activates/Deactivates transform. When active, selecting a node\n"
+"        (right click) on the child dataset, recomputes the correlation \n"
+"        using a reference time series from the parent timeseries dataset\n"
+"        at the selected node.\n"
+"        When toggled off, selecting a node does not cause a recalculation\n"
+"        Another way to select a node without initiating a new calculation is\n"
+"        to use 'Shift+Right Click\n"
+"\n"
+   );
+
+
+   SS = SUMA_StringAppend (SS, 
+"datasets block:\n"
+"------------\n"
+"TS Parents: Names of parent datasets. These would be the datasets providing\n"
+"            the time series for correlation calculations\n"
+"Preprocessed Dsets: \n"
+"  Save: Save parent datasets after they were preprocessed per the options \n"
+"        set in the 'options' block below. \n"
+"        Preprocessed data is maintained in memory, but it is accessible \n"
+"        to the user from the 'Switch Dset' button. By default, this dataset\n"
+"        is not displayed and is positioned below its parent timeseries.\n"
+"        You can change all these settings as you would for any datasets, and\n"
+"        you can graph the preprocessed time series with the 'g' key.\n"
+"\n"
+   );
+   
+   SS = SUMA_StringAppend (SS, 
+"options block:\n"
+"--------------\n"
+"Band Pass Range: Set the range of bandpass filtering.\n"
+"  LF: Low frequency in Hz. Default is 0.01 Hz\n"
+"      Use a value of 0.0 to have a low pass filter.\n"
+"  HF: High frequency in Hz. Default is the lowest of \n"
+"      0.1Hz and the Nyquist frequency. \n"
+"      Use a value of 1.0 to have a high pass filter.\n"
+"  Note that even if LF = 0.0 and HF = 1.0, the 0th and Nyquist\n"
+"      frequencies are always filtered. \n"
+"  polort: Always set to 2 for now, and always applied.\n"
+"  OrtFile: Load an extra set of regressors of no interest.\n"
+"  Options:\n"
+"     Save: Save options structure.\n"
+"     Apply: Apply changes to options structure.\n"
+"            Changes do not take effect unless 'Apply' is pressed.\n"             "Disp. Cont. block:\n"
+"------------------\n"
+"   Close: Close xform window. Settings are preserved.\n"
+"   BHelp: Try it.\n"
+"   Help: You're reading it.\n"
+   );
    /* clean SS */
    SS = SUMA_StringAppend (SS, NULL);
    /* copy s pointer and free SS */

@@ -301,16 +301,19 @@ SUMA_DSET *SUMA_GetDotPreprocessedDset(SUMA_DSET *in_dset,
       NI_GET_FLOAT(dotopt,"filter_below",fbot);
       NI_GET_FLOAT(dotopt,"filter_above",ftop);
 
-      SUMA_LHv("Detrending with %d orts and BP %f %f\n",
+      SUMA_LHv("Detrending with polort of 2, %d extra orts and BP %f %f\n",
                dotopt->vec_num,  fbot, ftop);
       pdset = SUMA_DotDetrendDset(in_dset, refvec, dotopt->vec_num, 
-                                  fbot, ftop, 0, &N_ort_param);
+                                  fbot, ftop, 1, &N_ort_param); 
+                  /* the '1' flag forces a second order detrending,
+                  in addition to orts and smoothing. This is done
+                  in keeping with AFNI's implementation */
       NI_SET_INT(dotopt,"num_ort_parameters", N_ort_param);
       NI_set_attribute(pdset->ngr, "self_idcode", ppid);
-      NI_set_attribute(pdset->ngr,"domain_parent_idcode",
-                       NI_get_attribute(in_dset,"domain_parent_idcode"));
+      NI_set_attribute(pdset->ngr,"domain_parent_idcode", 
+                        SDSET_IDMDOM(in_dset));
       NI_set_attribute(pdset->ngr,"geometry_parent_idcode", 
-                       NI_get_attribute(in_dset,"geometry_parent_idcode"));
+                        SDSET_IDGDOM(in_dset));
       SUMA_free(ppid); ppid = NULL;
       
       /* put the dset in the global list (allow for replace)*/
@@ -318,6 +321,74 @@ SUMA_DSET *SUMA_GetDotPreprocessedDset(SUMA_DSET *in_dset,
          SUMA_S_Err("Failed to insert pointer");
          goto BAIL;
       }
+      
+      
+      #if 1 /* make it displayable */
+      {  
+         SUMA_OVERLAYS *child=NULL;
+         SUMA_SurfaceObject *SO=NULL;
+         char *stmp=NULL;
+         SUMA_LIST_WIDGET *LW = NULL;
+         int OverInd=0;
+         
+         SUMA_LH("Create its overlay (child)");
+         
+         if (!(SO = 
+            SUMA_findSOp_inDOv(SDSET_IDMDOM(pdset), SUMAg_DOv, SUMAg_N_DOv))) {
+            SUMA_S_Errv("Failed to find domain surface '%s'\n", 
+                        SDSET_IDMDOM(pdset));
+            if (LocalHead) {
+               SUMA_ShowDset(pdset,   0, NULL);
+               SUMA_ShowDset(in_dset, 0, NULL);
+            }
+            goto BAIL;
+         }
+
+         if (!(child = SUMA_Fetch_OverlayPointerByDset (
+                    SO->Overlays, SO->N_Overlays, pdset, &OverInd))) {
+            /* need a new one */
+            if (!(SDSET_LABEL(pdset))) SUMA_LabelDset(pdset,NULL);
+            stmp = SUMA_append_string("dotprep.", SDSET_LABEL(pdset));         
+            child = SUMA_CreateOverlayPointer (
+                                         stmp, pdset, SO->idcode_str, NULL);
+            SUMA_free(stmp); stmp=NULL;
+            if (!child) {
+               SUMA_S_Err("Failed in CreateOverlayPointer." );
+               goto BAIL;
+            }
+            SUMA_LH("Add overlay to SO");
+            /* Add this plane to SO->Overlays */
+            if (!SUMA_AddNewPlane ( SO, child, 
+                                    SUMAg_DOv, SUMAg_N_DOv, 0)) {
+               SUMA_SL_Crit("Failed in SUMA_AddNewPlane");
+               SUMA_FreeOverlayPointer(child);
+               goto BAIL;
+            }
+
+            /* set the opacity, index column and the range */
+            child->GlobalOpacity = YUP;
+            child->Show = NOPE;
+            child->OptScl->BrightFact = 0.6;
+
+            child->OptScl->find = 0;
+            child->OptScl->tind = 0;
+            child->OptScl->bind = 0;
+
+            SUMA_LH("Refreshing Dset list");            
+            /*update the list widget if open */
+            LW = SO->SurfCont->SwitchDsetlst;
+            if (LW) {
+               if (!LW->isShaded) SUMA_RefreshDsetList (SO);  
+            }  
+
+            /* this chunk from SUMA_ColPlane_NewOrder */
+            if (!SUMA_MovePlaneDown(SO, child->Name)) {
+               SUMA_L_Err("Error in SUMA_MovePlaneUp.");
+               goto BAIL;
+            }
+         }
+      }
+      #endif
       
       SUMA_DotXform_SetPending (dotopt, 0, SDSET_ID(in_dset));
       
@@ -759,8 +830,8 @@ SUMA_Boolean SUMA_dot_product(SUMA_DSET *in_dset,
       SUMA_LHv("Creating new  dset (%s) with precision %d\n", sname, prec);
       if (!(dot = SUMA_CreateDsetPointer( 
                   sname, SUMA_NODE_BUCKET, NULL, 
-                   NI_get_attribute(in_dset->ngr,"domain_parent_idcode"),
-                   SDSET_VECLEN(in_dset)  ) ) ){
+                  SDSET_IDMDOM(in_dset),
+                  SDSET_VECLEN(in_dset)  ) ) ){
                    
       }
       SUMA_free(sname); sname=NULL;

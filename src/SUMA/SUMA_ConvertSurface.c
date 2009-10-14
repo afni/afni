@@ -124,6 +124,8 @@ void usage_SUMA_ConvertSurface (SUMA_GENERIC_ARGV_PARSE *ps)
 "                  r11 r12 r13 D1\n"
 "                  r21 r22 r23 D2\n"
 "                  r31 r32 r33 D3\n"
+"                  or\n"
+"                  r11 r12 r13 D1 r21 r22 r23 D2 r31 r32 r33 D3\n"
 "    -ixmat_1D mat: Same as xmat_1D except that mat is replaced by inv(mat)\n"
 "    -xcenter x y z: Use vector cen = [x y z]' for rotation center.\n"
 "                    Default is cen = [0 0 0]'\n"
@@ -496,7 +498,8 @@ int main (int argc,char *argv[])
       char *head = NULL, view[10];
       head = SUMA_AfniPrefix(sv_name, view, NULL, &volexists);
       if (!SUMA_AfniExistsView(volexists, view)) {
-         fprintf (SUMA_STDERR,"Error %s: volume %s not found.\n", FuncName, head);
+         fprintf (SUMA_STDERR,
+                  "Error %s: volume %s not found.\n", FuncName, head);
          exit(1);
       }
       if (head) SUMA_free(head); head = NULL;
@@ -504,13 +507,15 @@ int main (int argc,char *argv[])
    
   
    if ((Do_tlrc || Do_acpc) && (!sv_name)) {
-      fprintf (SUMA_STDERR,"Error %s: -tlrc must be used with -sv option.\n", FuncName);
+      fprintf (SUMA_STDERR,
+               "Error %s: -tlrc must be used with -sv option.\n", FuncName);
       exit(1);
    }
    
    if (vp_name) {
       if (!SUMA_filexists(vp_name)) {
-         fprintf (SUMA_STDERR,"Error %s: %s not found.\n", FuncName, vp_name);
+         fprintf (SUMA_STDERR,
+                  "Error %s: %s not found.\n", FuncName, vp_name);
          exit(1);
       }
    }
@@ -519,18 +524,24 @@ int main (int argc,char *argv[])
    if (of_name2) {
       SUMA_SFname *SFname;
 
-      SO_name = SUMA_2Prefix2SurfaceName (of_name, of_name2, NULL, vp_name, oType, &exists);
+      SO_name = SUMA_2Prefix2SurfaceName (of_name, of_name2, NULL, 
+                                          vp_name, oType, &exists);
       SFname = (SUMA_SFname *)SO_name;
       OF_name2 = SUMA_copy_string(SFname->name_topo);
       OF_name = SUMA_copy_string(SFname->name_coord);
    } else {
-      SO_name = SUMA_Prefix2SurfaceName (of_name, vp_name, NULL, oType, &exists);
+      SO_name = SUMA_Prefix2SurfaceName (of_name, NULL, vp_name, oType, &exists);
       OF_name = SUMA_copy_string((char *) SO_name);
    }
    
    if (exists && !THD_ok_overwrite()) {
-      if (OF_name2) fprintf (SUMA_STDERR,"Error %s: output file(s) %s and/or %s exist already.\n", FuncName, OF_name, OF_name2);
-      else fprintf (SUMA_STDERR,"Error %s: output file %s exists already.\n", FuncName, OF_name);
+      if (OF_name2) 
+         fprintf (SUMA_STDERR,
+                  "Error %s: output file(s) %s and/or %s exist already.\n", 
+                  FuncName, OF_name, OF_name2);
+      else fprintf ( SUMA_STDERR,
+                     "Error %s: output file %s exists already.\n", 
+                     FuncName, OF_name);
       exit(1);
    }
       
@@ -538,7 +549,7 @@ int main (int argc,char *argv[])
    if (Doxmat) {
       MRI_IMAGE *im = NULL;
       double *far=NULL;
-      int ncol, nrow;
+      int nrow, ncol;
       
       im = mri_read_double_1D (xmat_name);
    
@@ -547,38 +558,68 @@ int main (int argc,char *argv[])
          exit(1);
       }
       far = MRI_DOUBLE_PTR(im);
-      ncol = im->nx;
-      nrow = im->ny;
-      if (nrow < 4 ) {
-         SUMA_SL_Err("Mat file must have\n"
-                     "at least 4 columns.");
-         mri_free(im); im = NULL;   /* done with that baby */
-         exit(1);
+      nrow = im->nx;
+      ncol = im->ny;
+      if (nrow == 1) {
+         if (ncol != 12) { 
+            SUMA_SL_Err("Mat file must have\n"
+                        "one row of 12 columns.");
+            mri_free(im); im = NULL;   /* done with that baby */
+            exit(1);
+         }
+         i = 0;
+         while (i < 12) {
+            xform[i/4][0] = far[i]; ++i;
+            xform[i/4][1] = far[i]; ++i;
+            xform[i/4][2] = far[i]; ++i;
+            xform[i/4][3] = far[i]; ++i;
+         }
+         xform[3][0] = 0.0;  
+         xform[3][1] = 0.0;  
+         xform[3][2] = 0.0;  
+         xform[3][3] = 1.0;
+      } else {
+         if (ncol < 4 ) {
+            SUMA_SL_Err("Mat file must have\n"
+                        "at least 4 columns.");
+            mri_free(im); im = NULL;   /* done with that baby */
+            exit(1);
+         }
+         if (nrow < 3 ) {
+            SUMA_SL_Err("Mat file must have\n"
+                        "at least 3 rows.");
+            mri_free(im); im = NULL;   /* done with that baby */
+            exit(1);
+         }
+         if (ncol > 4) {
+            SUMA_SL_Warn(  "Ignoring entries beyond 4th \n"
+                           "column in transform file.");
+         }
+         if (nrow > 3) {
+            SUMA_SL_Warn(  "Ignoring entries beyond 3rd\n"
+                           "row in transform file.\n");
+         }
+         for (i=0; i < 3; ++i) {
+            xform[i][0] = far[i];
+            xform[i][1] = far[i+nrow];
+            xform[i][2] = far[i+2*nrow];
+            xform[i][3] = far[i+3*nrow];
+         }
+         xform[3][0] = 0.0;  
+         xform[3][1] = 0.0;  
+         xform[3][2] = 0.0;  
+         xform[3][3] = 1.0;
+      }  
+      
+      if (LocalHead) {
+         fprintf(SUMA_STDERR,"\n++ ConvertSurface xform:\n");
+         for (i=0; i < 4; ++i) {
+            fprintf(SUMA_STDERR," %+.5f\t%+.5f\t%+.5f\t%+.5f\n",
+                   xform[i][0], xform[i][1], 
+                   xform[i][2], xform[i][3]);  
+         }
+         fprintf(SUMA_STDERR,"\n");
       }
-      if (ncol < 3 ) {
-         SUMA_SL_Err("Mat file must have\n"
-                     "at least 3 rows.");
-         mri_free(im); im = NULL;   /* done with that baby */
-         exit(1);
-      }
-      if (nrow > 4) {
-         SUMA_SL_Warn(  "Ignoring entries beyond 4th \n"
-                        "column in transform file.");
-      }
-      if (ncol > 3) {
-         SUMA_SL_Warn(  "Ignoring entries beyond 3rd\n"
-                        "row in transform file.\n");
-      }
-      for (i=0; i < 3; ++i) {
-         xform[i][0] = far[i];
-         xform[i][1] = far[i+ncol];
-         xform[i][2] = far[i+2*ncol];
-         xform[i][3] = far[i+3*ncol];
-      }
-      xform[3][0] = 0.0;  
-      xform[3][1] = 0.0;  
-      xform[3][2] = 0.0;  
-      xform[3][3] = 1.0;  
       
       mri_free(im); im = NULL;
       
@@ -608,27 +649,38 @@ int main (int argc,char *argv[])
                det = polar_decomp(M, q,s);
                fprintf(fout,"#[M][D]: (D is the shift)\n");
                for (i=0;i<3; ++i)
-                  fprintf(fout,"#%.5f   %.5f  %.5f  %.5f\n", M[i][0], M[i][1], M[i][2], M[i][3]); 
+                  fprintf(fout,  "#%.5f   %.5f  %.5f  %.5f\n", 
+                                 M[i][0], M[i][1], M[i][2], M[i][3]); 
                fprintf(fout,"#Q:\n");
                for (i=0;i<3; ++i)
-                  fprintf(fout,"#%.5f   %.5f  %.5f  %.5f\n", q[i][0], q[i][1], q[i][2], q[i][3]); 
+                  fprintf(fout,  "#%.5f   %.5f  %.5f  %.5f\n", 
+                                 q[i][0], q[i][1], q[i][2], q[i][3]); 
                fprintf(fout,"#S:\n");
                for (i=0;i<3; ++i)
-                  fprintf(fout,"#%.5f   %.5f  %.5f  %.5f\n", s[i][0], s[i][1], s[i][2], s[i][3]);
+                  fprintf(fout,  "#%.5f   %.5f  %.5f  %.5f\n", 
+                                 s[i][0], s[i][1], s[i][2], s[i][3]);
                fprintf(fout,"#det: %f\n", det);
-               fprintf(fout,"#[Q][D]: A close xform to [M][D], without scaling.\n#M = Q*S\n");
+               fprintf(fout,  "#[Q][D]: A close xform to [M][D], "
+                              "without scaling.\n#M = Q*S\n");
                for (i=0;i<3; ++i)
-                  fprintf(fout,"%.5f   %.5f  %.5f  %.5f\n", q[i][0], q[i][1], q[i][2], M[i][3]);
+                  fprintf(fout,  "%.5f   %.5f  %.5f  %.5f\n", 
+                                 q[i][0], q[i][1], q[i][2], M[i][3]);
                fclose(fout); SUMA_free(stmp); stmp = NULL;
             }
             /* replace user's xform with orthogonal one: */
             fprintf(SUMA_STDOUT,"Replacing matrix:\n");
             for (i=0;i<3; ++i)
-                  fprintf(SUMA_STDOUT," %.5f   %.5f  %.5f  %.5f\n", M[i][0], M[i][1], M[i][2], M[i][3]); 
+                  fprintf( SUMA_STDOUT,
+                           " %.5f   %.5f  %.5f  %.5f\n", 
+                           M[i][0], M[i][1], M[i][2], M[i][3]); 
             fprintf(SUMA_STDOUT,"     with matrix:\n");
             for (i=0;i<3; ++i)
-                  fprintf(SUMA_STDOUT," %.5f   %.5f  %.5f  %.5f\n", q[i][0], q[i][1], q[i][2], M[i][3]);
-            for (i=0;i<3; ++i) { M[i][0] = q[i][0]; M[i][1] = q[i][1]; M[i][2] = q[i][2]; }
+                  fprintf(SUMA_STDOUT, 
+                           " %.5f   %.5f  %.5f  %.5f\n", 
+                           q[i][0], q[i][1], q[i][2], M[i][3]);
+            for (i=0;i<3; ++i) { 
+               M[i][0] = q[i][0]; M[i][1] = q[i][1]; M[i][2] = q[i][2]; 
+            }
             
          #else
             {/* use the NIFTI polar decomposition function 

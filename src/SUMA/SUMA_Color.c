@@ -6279,6 +6279,7 @@ void SUMA_LoadDsetFile (char *filename, void *data)
       }
       NI_set_attribute(dset->ngr,"domain_parent_idcode", SO->idcode_str);
       NI_set_attribute(dset->ngr,"geometry_parent_idcode", SO->idcode_str);
+      SUMA_ShowDset(dset, 0, NULL);
    } else {
       SUMA_SL_Note("dset has a mesh parent, Checking relationship");
       if (!SUMA_isDsetRelated(dset, SO)) {
