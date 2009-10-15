@@ -623,6 +623,15 @@ int main( int argc , char * argv[] )
                       "out of %d originally in the mask.\n",
                       ( (cnt<nrand) ? cnt : nrand ), cnt);
       ccc = cnt-1 ;
+      /* z_rand_order line causes a compiler error on macosx_10.3_G5
+       *
+       * 3dmaskdump.c: In function `main':
+       * 3dmaskdump.c:723: error: unrecognizable insn:
+       * ...
+       * 3dmaskdump.c:723: internal compiler error: in extract_insn,
+       *                   at recog.c:2175
+       * Old OS and system, no bug report filed.   15 Oct 2009 [rickr]
+       */
       ranorder = z_rand_order(0, ccc, nrandseed);
       if (mmm) free(mmm); mmm = (byte *)calloc(nvox, sizeof(byte));
       for (ii=0; ii < ( (cnt<nrand) ? cnt : nrand ); ++ii) {
