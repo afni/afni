@@ -133,6 +133,35 @@ class Afni1D:
          return 0
       return 1
 
+   def demean(self):
+      """demean each vector per run (mean of each run will be zero)
+
+         return 0 on success"""
+
+      if self.verb > 3: print '-- Afni1D demean...'
+
+      if not self.ready:
+         print '** demean: Afni1D is not ready'
+         return 1
+
+      # verify nruns and run_len
+      if not self.run_info_is_consistent(whine=1):
+         if self.verb > 1: print '** runs inconsistent for demean'
+         return 1
+
+      if self.verb > 1:
+          print "-- demean: over %d runs of lengths %s" \
+                % (self.nruns, self.run_len)
+
+      # foreach run of each vector, demean
+      for ind in range(self.nvec):
+         offset = 0
+         for t in self.run_len:
+            UTIL.demean(self.mat[ind], offset, offset+t-1)
+            offset += t
+
+      return 0
+
    def derivative(self):
       """change each value to its derivative (cur val - previous)
          new time[0] will always be 0
@@ -144,7 +173,7 @@ class Afni1D:
       if self.verb > 3: print '-- Afni1D derivative...'
 
       if not self.ready:
-         print '** append: Afni1D is not ready'
+         print '** derivative: Afni1D is not ready'
          return 1
 
       # verify nruns and run_len
@@ -153,7 +182,7 @@ class Afni1D:
          return 1
 
       if self.verb > 1:
-          print "-- derivative: over %d runs of len's %s" \
+          print "-- derivative: over %d runs of lengths %s" \
                 % (self.nruns, self.run_len)
 
       # apply derivative to each vector as one run, then clear run breaks
@@ -830,6 +859,8 @@ class Afni1D:
 
    def update_group_info(self):
       """if self.groups, try to set nruns and nroi"""
+
+      self.run_len = [self.nt]  # init to 1 run
 
       if self.groups:
          if self.nvec: self.set_nruns()
