@@ -48,12 +48,18 @@
 
 afni_history_struct rickr_history[] = {
 
- { 14, OCT, 2009, RCR, "3dTcat.py", MICRO, TYPE_MODIFY,
+ { 16, OCT, 2009, RCR, "1d_tool.py", MICRO, TYPE_NEW_OPT,
+   "added -demean, to demean motion parameters, for example",
+   "The polort 0 values should be more accurate baseline constants."
+   "Useful for creating a proper polort baseline w/3dSynthesize.\n"
+ } ,
+
+ { 14, OCT, 2009, RCR, "3dTcat", MICRO, TYPE_MODIFY,
    "allow creation of single volume dataset",
    "as requested by N Vack (among many others)"
  } ,
 
- { 6, OCT, 2009, RCR, "1d_tool.py", MICRO, TYPE_MODIFY,
+ { 6, OCT, 2009, RCR, "1d_tool.py", MICRO, TYPE_NEW_OPT,
    "added -set_run_lengths option, for varying run lengths",
    "Added for motion censoring and run padding."
  } ,
