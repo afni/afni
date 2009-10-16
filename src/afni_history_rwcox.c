@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 16 , OCT , 2009 , RWC , "cs_qmed.c" , MICRO , TYPE_GENERAL ,
+   "added function to compute biweight midvariance" ,
+   NULL } ,
+
  { 8 , OCT , 2009 , RWC , "3dPeriodogram" , MICRO , TYPE_NEW_PROG ,
    "Does what it sound like, more or less, I hope." ,
    NULL } ,
