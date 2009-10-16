@@ -36,6 +36,9 @@ extern float qmed_float     ( int , float * ) ;
 extern void  qmedmad_float  ( int,float *,float *,float * ) ; /* 08 Mar 2001 */
 extern void  meansigma_float( int,float *,float *,float * ) ; /* 07 Dec 2006 */
 
+extern void qmedmadbmv_float( int, float *, float *, float *, float * ) ;
+
+
 /***** Eigensolutions *****/
 
 extern void symeig_double( int , double * , double * ) ;

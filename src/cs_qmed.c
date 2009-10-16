@@ -144,6 +144,7 @@ void qmedmad_float( int n, float *ar, float *med, float *mad )
 
    if( (med == NULL && mad == NULL) || n <= 0 || ar == NULL ) return ;
 
+#pragma omp critical (MALLOC)
    q = (float *)malloc(sizeof(float)*n) ;  /* workspace */
 #pragma omp critical (MEMCPY)
    memcpy(q,ar,sizeof(float)*n) ;  /* duplicate input array */
@@ -155,10 +156,44 @@ void qmedmad_float( int n, float *ar, float *med, float *mad )
      ma = qmed_float( n , q ) ;    /* MAD = median absolute deviation */
    }
 
+#pragma omp critical (MALLOC)
    free(q) ;                       /* 05 Nov 2001 - oopsie */
 
    if( med != NULL ) *med = me ;   /* 19 Aug 2005 - assign only */
    if( mad != NULL ) *mad = ma ;   /*               if not NULL */
+   return ;
+}
+
+/*---------------------------------------------------------------*/
+/* Return median, MAD, and biweight midvariance. */
+
+#undef  BC
+#define BC 9.0f
+
+void qmedmadbmv_float( int n, float *ar, float *med, float *mad, float *bmv )
+{
+   register int ii ;
+   float lmed , lmad , nbmv , dbmv , xx , uu,u1 , fac ;
+
+   if( n <= 0 || ar == NULL || (med==NULL && mad==NULL && bmv==NULL) ) return;
+
+   qmedmad_float( n , ar , &lmed , &lmad ) ;
+   if( med != NULL ) *med = lmed ;
+   if( mad != NULL ) *mad = lmad ;
+   if( bmv == NULL || lmad <= 0.0f ) return ;
+
+   fac = 1.0f / ((BC*BC)*(lmad*lmad)) ;
+   nbmv = dbmv = 0.0f ;
+   for( ii=0 ; ii < n ; ii++ ){
+     xx = ar[ii] - lmed ; xx = xx*xx ; uu = xx*fac ;
+     if( uu < 1.0f ){
+       u1 = 1.0f - uu ;
+       nbmv += xx * (u1*u1)*(u1*u1) ;
+       dbmv += u1 * (1.0f-5.0f*uu) ;
+     }
+   }
+   if( dbmv != 0.0f ) dbmv = 0.989f * sqrtf(n*nbmv) / fabsf(dbmv) ;
+   *bmv = dbmv ;
    return ;
 }
 
@@ -388,6 +423,7 @@ void *Percentate (void *vec, byte *mm, int nxyz,
       /* make copy */
       switch (type) {
          case MRI_byte:
+#pragma omp critical (MALLOC)
             vvec = (void *)malloc(sizeof(byte)*nxyz);
             if (!vvec) {
                ERROR_message("Failed to allocate 1."); RETURN(NULL);
@@ -396,6 +432,7 @@ void *Percentate (void *vec, byte *mm, int nxyz,
             memcpy(vvec, vec, nxyz*sizeof(byte));
             break;
          case MRI_short:
+#pragma omp critical (MALLOC)
             vvec = (void *)malloc(sizeof(short)*nxyz);
             if (!vvec) {
                ERROR_message("Failed to allocate 2."); RETURN(NULL);
@@ -404,6 +441,7 @@ void *Percentate (void *vec, byte *mm, int nxyz,
             memcpy(vvec, vec, nxyz*sizeof(short));
             break;
          case MRI_int:
+#pragma omp critical (MALLOC)
             vvec = (void *)malloc(sizeof(int)*nxyz);
             if (!vvec) {
                ERROR_message("Failed to allocate 3."); RETURN(NULL);
@@ -412,6 +450,7 @@ void *Percentate (void *vec, byte *mm, int nxyz,
             memcpy(vvec, vec, nxyz*sizeof(int));
             break;
          case MRI_float:
+#pragma omp critical (MALLOC)
             vvec = (void *)malloc(sizeof(float)*nxyz);
             if (!vvec) {
                ERROR_message("Failed to allocate 4."); RETURN(NULL);
@@ -420,6 +459,7 @@ void *Percentate (void *vec, byte *mm, int nxyz,
             memcpy(vvec, vec, nxyz*sizeof(float));
             break;
          case MRI_double:
+#pragma omp critical (MALLOC)
             vvec = (void *)malloc(sizeof(double)*nxyz);
             if (!vvec) {
                ERROR_message("Failed to allocate 5."); RETURN(NULL);
@@ -440,6 +480,7 @@ void *Percentate (void *vec, byte *mm, int nxyz,
      doall = 1 ; /* 17 Jul 2009: avoid malloc of mmf in this case */
 
    } else if (zero_flag == 1 || positive_flag == 1 || negative_flag == 1) {
+#pragma omp critical (MALLOC)
       mmf = (byte *)calloc(nxyz, sizeof(byte));/* everything is rejected at first */
       if (!mmf) {
          ERROR_message("Failed to allocate for mmf -- O misery"); RETURN(NULL);
@@ -573,7 +614,8 @@ void *Percentate (void *vec, byte *mm, int nxyz,
       doall = 0 ;
    }
 
-   if( doall && mmf != NULL ){ free(mmf) ; mmf = NULL ; }  /* 17 Jul 2009 */
+#pragma omp critical (MALLOC)
+   { if( doall && mmf != NULL ){ free(mmf) ; mmf = NULL ; } } /* 17 Jul 2009 */
 
    /* mask vvec with final mask*/
    if (mmf) {
@@ -613,7 +655,8 @@ void *Percentate (void *vec, byte *mm, int nxyz,
             ERROR_message("Bad type! Should not be here hon.");
             RETURN(NULL);
       }
-      if (mmf != mm) free(mmf); mmf = NULL;
+#pragma omp critical (MALLOC)
+      { if (mmf != mm){ free(mmf); mmf = NULL; } }
    } else {
       mmvox = nxyz;
    }
