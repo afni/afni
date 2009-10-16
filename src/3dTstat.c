@@ -46,8 +46,10 @@
 
 #define METH_ACCUMULATE   25  /* RCR 04 Mar 2008 */
 
-#define METH_SUM_SQUARES  26  /* ZSS 17 12 2008 */
-#define MAX_NUM_OF_METHS  27
+#define METH_SUM_SQUARES  26  /* ZSS 17 Dec 2008 */
+
+#define METH_BMV          27  /* RWC 16 Oct 2009 */
+#define MAX_NUM_OF_METHS  28
 
 static int meth[MAX_NUM_OF_METHS]  = {METH_MEAN};
 static int nmeths                  = 0;
@@ -62,7 +64,7 @@ static char *meth_names[] = {
    "AutoReg"       , "Absolute Max" , "ArgMax"        , "ArgMin"      ,
    "ArgAbsMax"     , "Sum"          , "Duration"      , "Centroid"    ,
    "CentDuration"  , "Absolute Sum" , "Non-zero Mean" , "Onset"       ,
-   "Offset"        , "Accumulate" , "SS",
+   "Offset"        , "Accumulate"   , "SS"            , "BiwtMidv"
 };
 
 static void STATS_tsfunc( double tzero , double tdelta ,
@@ -112,11 +114,12 @@ int main( int argc , char *argv[] )
  "             -stdevNOD  and/or  -cvarNOD\n"
  "\n"
  " -MAD    = compute MAD (median absolute deviation) of\n"
- "             input voxels = median(|voxel-median(voxel)|)\n"
+ " or -mad     input voxels = median(|voxel-median(voxel)|)\n"
  "             [N.B.: the trend is NOT removed for this]\n"
  " -DW    = compute Durbin-Watson Statistic of input voxels\n"
  "             [N.B.: the trend IS removed for this]\n"
  " -median = compute median of input voxels  [undetrended]\n"
+ " -bmv    = compute biweight midvariance of input voxels [undetrended]\n"
  " -min    = compute minimum of input voxels [undetrended]\n"
  " -max    = compute maximum of input voxels [undetrended]\n"
  " -absmax    = compute absolute maximum of input voxels [undetrended]\n"
@@ -161,6 +164,15 @@ int main( int argc , char *argv[] )
  "The output is a bucket dataset.  The input dataset may\n"
  "use a sub-brick selection list, as in program 3dcalc.\n"
            ) ;
+
+ printf("\n"
+  "To process a 1D file and get statistics on each of its columns,\n"
+  "you can do something like this:\n"
+  "  3dTstat -stdev -bmv -prefix stdout: file.1D\\'\n"
+  "where the \\' means to transpose the file on input, since 1D files\n"
+  "read into 3d programs are interpreted as having the time direction\n"
+  "along each row rather than down the columns.\n"
+ ) ;
       PRINT_COMPILE_DATE ; exit(0) ;
    }
 
@@ -178,6 +190,12 @@ int main( int argc , char *argv[] )
 
       /*-- methods --*/
 
+      if( strcmp(argv[nopt],"-bmv") == 0 ){
+         meth[nmeths++] = METH_BMV ;
+         nbriks++ ;
+         nopt++ ; continue ;
+      }
+
       if( strcmp(argv[nopt],"-median") == 0 ){
          meth[nmeths++] = METH_MEDIAN ;
          nbriks++ ;
@@ -190,7 +208,7 @@ int main( int argc , char *argv[] )
          nopt++ ; continue ;
       }
 
-      if( strcmp(argv[nopt],"-MAD") == 0 ){
+      if( strcasecmp(argv[nopt],"-MAD") == 0 ){
          meth[nmeths++] = METH_MAD ;
          nbriks++ ;
          nopt++ ; continue ;
@@ -620,6 +638,13 @@ static void STATS_tsfunc( double tzero, double tdelta ,
          for( ii=0 ; ii < npts ; ii++ ) ts_copy[ii] = fabs(ts_copy[ii]-vm) ;
          val[out_index] = qmed_float( npts , ts_copy ) ;
          free(ts_copy);
+      }
+      break ;
+
+      case METH_BMV:{  /* 16 Oct 2009 */
+        float bmv ;
+        qmedmadbmv_float( npts , ts , NULL,NULL , &bmv ) ;
+        val[out_index] = bmv ;
       }
       break ;
 
