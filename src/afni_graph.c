@@ -2048,6 +2048,7 @@ STATUS("finding statistics of time series") ;
              grapher->ttop[ix][iy] = grapher->tstd[ix][iy] = 0.0 ;
            grapher->tmed[ix][iy] = grapher->tmad[ix][iy] = 0.0 ;  /* 08 Mar 2001 */
            grapher->sbot[ix][iy] = grapher->stop[ix][iy] = 0 ;    /* 19 Mar 2004 */
+           grapher->tbmv[ix][iy] = 0.0f ;                         /* 16 Oct 2009 */
            continue ;
          }
 
@@ -2058,6 +2059,7 @@ STATUS("finding statistics of time series") ;
            grapher->tmean[ix][iy] = grapher->tbot[ix][iy] =
              grapher->ttop[ix][iy] = grapher->tstd[ix][iy] = 0.0 ;
            grapher->tmed[ix][iy] = grapher->tmad[ix][iy] = 0.0 ;  /* 08 Mar 2001 */
+           grapher->tbmv[ix][iy] = 0.0f ;                         /* 16 Oct 2009 */
            continue ;  /* to next iy */
          }
 
@@ -2075,9 +2077,10 @@ STATUS("finding statistics of time series") ;
          qsumq = (qsumq - (itop-ibot) * qsum * qsum) / (itop-ibot-1.0) ;
          grapher->tstd[ix][iy] = (qsumq > 0.0) ? sqrt(qsumq) : 0.0 ;
 
-         qmedmad_float( itop-ibot , tsar+ibot ,        /* 08 Mar 2001 */
-                        &(grapher->tmed[ix][iy]) ,
-                        &(grapher->tmad[ix][iy]) ) ;
+         qmedmadbmv_float( itop-ibot , tsar+ibot ,        /* 08 Mar 2001 */
+                           &(grapher->tmed[ix][iy]) ,
+                           &(grapher->tmad[ix][iy]) ,
+                           &(grapher->tbmv[ix][iy])  ) ;  /* tbmv: 16 Oct 2009 */
 
          if( set_scale ){        /* 03 Feb 1998 */
 
@@ -3080,6 +3083,7 @@ STATUS("button press") ;
                XmString xstr ;
                char bmin[16],bmax[16],bmean[16],bstd[16] ;
                char bmed[16] , bmad[16] ; /* 08 Mar 2001 */
+               char bbmv[16] ;            /* 16 Oct 2009 */
                char *qstr , *eee ;        /* 07 Mar 2002 */
                int nlin , nltop=40 ;      /* 07 Mar 2002 */
 
@@ -3089,7 +3093,8 @@ STATUS("button press") ;
                AV_fval_to_char( grapher->tstd[ix][iy]  , bstd ) ;
 
                AV_fval_to_char( grapher->tmed[ix][iy]  , bmed ) ; /* 08 Mar 2001 */
-               AV_fval_to_char( grapher->tmad[ix][iy]  , bmad ) ;
+               AV_fval_to_char( 1.4826*grapher->tmad[ix][iy]  , bmad ) ;
+               AV_fval_to_char( grapher->tbmv[ix][iy]  , bbmv ) ; /* 16 Oct 2009 */
 
                if( grapher->tuser[ix][iy] == NULL )
                  qstr = AFMALL(char, 912) ;
@@ -3113,12 +3118,13 @@ STATUS("button press") ;
                               "Min     =%s\n"
                               "Max     =%s\n"
                               "Mean    =%s\n"
-                              "Sigma   =%s\n"
                               "Median  =%s\n"     /* 08 Mar 2001 */
-                              "MAD     =%s" ,
+                              "Sigma   =%s\n"
+                              "MAD*1.48=%s\n"
+                              "BiwtMidV=%s"  ,    /* 16 Oct 2009 */
                         grapher->sbot[ix][iy], grapher->stop[ix][iy], /* 19 Mar 2004 */
                         xd , yd , zd ,
-                        bmin,bmax,bmean,bstd,bmed,bmad ) ;
+                        bmin,bmax,bmean,bmed,bstd,bmad,bbmv ) ;
 
                 /** 22 Apr 1997: incorporate user string for this voxel **/
 

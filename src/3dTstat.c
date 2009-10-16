@@ -64,7 +64,7 @@ static char *meth_names[] = {
    "AutoReg"       , "Absolute Max" , "ArgMax"        , "ArgMin"      ,
    "ArgAbsMax"     , "Sum"          , "Duration"      , "Centroid"    ,
    "CentDuration"  , "Absolute Sum" , "Non-zero Mean" , "Onset"       ,
-   "Offset"        , "Accumulate"   , "SS"            , "BiwtMidv"
+   "Offset"        , "Accumulate"   , "SS"            , "BiwtMidV"
 };
 
 static void STATS_tsfunc( double tzero , double tdelta ,
@@ -89,7 +89,7 @@ int main( int argc , char *argv[] )
 
    /*----- Help the pitiful user? -----*/
 
-   if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
+   if( argc < 2 || strcasecmp(argv[1],"-help") == 0 ){
       printf(
 "Usage: 3dTstat [options] dataset\n"
  "Computes one or more voxel-wise statistics for a 3D+time dataset\n"
@@ -114,12 +114,14 @@ int main( int argc , char *argv[] )
  "             -stdevNOD  and/or  -cvarNOD\n"
  "\n"
  " -MAD    = compute MAD (median absolute deviation) of\n"
- " or -mad     input voxels = median(|voxel-median(voxel)|)\n"
+ "             input voxels = median(|voxel-median(voxel)|)\n"
  "             [N.B.: the trend is NOT removed for this]\n"
  " -DW    = compute Durbin-Watson Statistic of input voxels\n"
  "             [N.B.: the trend IS removed for this]\n"
  " -median = compute median of input voxels  [undetrended]\n"
  " -bmv    = compute biweight midvariance of input voxels [undetrended]\n"
+ "             [actually is 0.989*sqrt(biweight midvariance), to make]\n"
+ "             [the value comparable to the standard deviation output]\n"
  " -min    = compute minimum of input voxels [undetrended]\n"
  " -max    = compute maximum of input voxels [undetrended]\n"
  " -absmax    = compute absolute maximum of input voxels [undetrended]\n"
@@ -166,12 +168,17 @@ int main( int argc , char *argv[] )
            ) ;
 
  printf("\n"
-  "To process a 1D file and get statistics on each of its columns,\n"
+  "----------------- Processing 1D files with 3dTstat -----------------\n"
+  "To analyze a 1D file and get statistics on each of its columns,\n"
   "you can do something like this:\n"
   "  3dTstat -stdev -bmv -prefix stdout: file.1D\\'\n"
   "where the \\' means to transpose the file on input, since 1D files\n"
-  "read into 3d programs are interpreted as having the time direction\n"
-  "along each row rather than down the columns.\n"
+  "read into 3dXXX programs are interpreted as having the time direction\n"
+  "along the rows rather than down the columns.  In this example, the\n"
+  "output is written to the screen, which could be captured with '>'\n"
+  "redirection.  Note that if you don't give the '-prefix stdout:'\n"
+  "option, then the output will be written into a NIML-formatted 1D\n"
+  "dataset, which you might find slightly confusing (but still usable).\n"
  ) ;
       PRINT_COMPILE_DATE ; exit(0) ;
    }
@@ -190,19 +197,19 @@ int main( int argc , char *argv[] )
 
       /*-- methods --*/
 
-      if( strcmp(argv[nopt],"-bmv") == 0 ){
+      if( strcasecmp(argv[nopt],"-bmv") == 0 ){
          meth[nmeths++] = METH_BMV ;
          nbriks++ ;
          nopt++ ; continue ;
       }
 
-      if( strcmp(argv[nopt],"-median") == 0 ){
+      if( strcasecmp(argv[nopt],"-median") == 0 ){
          meth[nmeths++] = METH_MEDIAN ;
          nbriks++ ;
          nopt++ ; continue ;
       }
 
-      if( strcmp(argv[nopt],"-DW") == 0 ){
+      if( strcasecmp(argv[nopt],"-DW") == 0 ){
          meth[nmeths++] = METH_DW ;
          nbriks++ ;
          nopt++ ; continue ;
@@ -214,135 +221,135 @@ int main( int argc , char *argv[] )
          nopt++ ; continue ;
       }
 
-      if( strcmp(argv[nopt],"-mean") == 0 ){
+      if( strcasecmp(argv[nopt],"-mean") == 0 ){
          meth[nmeths++] = METH_MEAN ;
          nbriks++ ;
          nopt++ ; continue ;
       }
 
-      if( strcmp(argv[nopt],"-sum") == 0 ){
+      if( strcasecmp(argv[nopt],"-sum") == 0 ){
          meth[nmeths++] = METH_SUM ;
          nbriks++ ;
          nopt++ ; continue ;
       }
-      if( strcmp(argv[nopt],"-sos") == 0 ){
+      if( strcasecmp(argv[nopt],"-sos") == 0 ){
          meth[nmeths++] = METH_SUM_SQUARES ;
          nbriks++ ;
          nopt++ ; continue ;
       }
 
-      if( strcmp(argv[nopt],"-abssum") == 0 ){
+      if( strcasecmp(argv[nopt],"-abssum") == 0 ){
          meth[nmeths++] = METH_ABSSUM ;
          nbriks++ ;
          nopt++ ; continue ;
       }
 
-      if( strcmp(argv[nopt],"-slope") == 0 ){
+      if( strcasecmp(argv[nopt],"-slope") == 0 ){
          meth[nmeths++] = METH_SLOPE ;
          nbriks++ ;
          nopt++ ; continue ;
       }
 
-      if( strcmp(argv[nopt],"-stdev") == 0 ||
-          strcmp(argv[nopt],"-sigma") == 0   ){
+      if( strcasecmp(argv[nopt],"-stdev") == 0 ||
+          strcasecmp(argv[nopt],"-sigma") == 0   ){
 
          meth[nmeths++] = METH_SIGMA ;
          nbriks++ ;
          nopt++ ; continue ;
       }
 
-      if( strcmp(argv[nopt],"-cvar") == 0 ){
+      if( strcasecmp(argv[nopt],"-cvar") == 0 ){
          meth[nmeths++] = METH_CVAR ;
          nbriks++ ;
          nopt++ ; continue ;
       }
 
-      if( strcmp(argv[nopt],"-stdevNOD") == 0 ||
-          strcmp(argv[nopt],"-sigmaNOD") == 0   ){  /* 07 Dec 2001 */
+      if( strcasecmp(argv[nopt],"-stdevNOD") == 0 ||
+          strcasecmp(argv[nopt],"-sigmaNOD") == 0   ){  /* 07 Dec 2001 */
 
          meth[nmeths++] = METH_SIGMA_NOD ;
          nbriks++ ;
          nopt++ ; continue ;
       }
 
-      if( strcmp(argv[nopt],"-cvarNOD") == 0 ){     /* 07 Dec 2001 */
+      if( strcasecmp(argv[nopt],"-cvarNOD") == 0 ){     /* 07 Dec 2001 */
          meth[nmeths++] = METH_CVAR_NOD ;
          nbriks++ ;
          nopt++ ; continue ;
       }
 
-      if( strcmp(argv[nopt],"-min") == 0 ){
+      if( strcasecmp(argv[nopt],"-min") == 0 ){
          meth[nmeths++] = METH_MIN ;
          nbriks++ ;
          nopt++ ; continue ;
       }
 
-      if( strcmp(argv[nopt],"-max") == 0 ){
+      if( strcasecmp(argv[nopt],"-max") == 0 ){
          meth[nmeths++] = METH_MAX ;
          nbriks++ ;
          nopt++ ; continue ;
       }
 
-      if( strcmp(argv[nopt],"-absmax") == 0 ){
+      if( strcasecmp(argv[nopt],"-absmax") == 0 ){
          meth[nmeths++] = METH_ABSMAX ;
          nbriks++ ;
          nopt++ ; continue ;
       }
 
-      if( strcmp(argv[nopt],"-argmin") == 0 ){
+      if( strcasecmp(argv[nopt],"-argmin") == 0 ){
          meth[nmeths++] = METH_ARGMIN ;
          nbriks++ ;
          nopt++ ; continue ;
       }
 
-      if( strcmp(argv[nopt],"-argmax") == 0 ){
+      if( strcasecmp(argv[nopt],"-argmax") == 0 ){
          meth[nmeths++] = METH_ARGMAX ;
          nbriks++ ;
          nopt++ ; continue ;
       }
 
-      if( strcmp(argv[nopt],"-argabsmax") == 0 ){
+      if( strcasecmp(argv[nopt],"-argabsmax") == 0 ){
          meth[nmeths++] = METH_ARGABSMAX ;
          nbriks++ ;
          nopt++ ; continue ;
       }
 
-      if( strcmp(argv[nopt],"-duration") == 0 ){
+      if( strcasecmp(argv[nopt],"-duration") == 0 ){
          meth[nmeths++] = METH_DURATION ;
          nbriks++ ;
          nopt++ ; continue ;
       }
 
-      if( strcmp(argv[nopt],"-onset") == 0 ){
+      if( strcasecmp(argv[nopt],"-onset") == 0 ){
          meth[nmeths++] = METH_ONSET ;
          nbriks++ ;
          nopt++ ; continue ;
       }
 
-      if( strcmp(argv[nopt],"-offset") == 0 ){
+      if( strcasecmp(argv[nopt],"-offset") == 0 ){
          meth[nmeths++] = METH_OFFSET ;
          nbriks++ ;
          nopt++ ; continue ;
       }
 
-      if( strcmp(argv[nopt],"-centroid") == 0 ){
+      if( strcasecmp(argv[nopt],"-centroid") == 0 ){
          meth[nmeths++] = METH_CENTROID ;
          nbriks++ ;
          nopt++ ; continue ;
       }
-      if( strcmp(argv[nopt],"-centduration") == 0 ){
+      if( strcasecmp(argv[nopt],"-centduration") == 0 ){
          meth[nmeths++] = METH_CENTDURATION ;
          nbriks++ ;
          nopt++ ; continue ;
       }
 
-      if( strcmp(argv[nopt],"-nzmean") == 0 ){
+      if( strcasecmp(argv[nopt],"-nzmean") == 0 ){
          meth[nmeths++] = METH_NZMEAN ;
          nbriks++ ;
          nopt++ ; continue ;
       }
 
-      if( strcmp(argv[nopt],"-autocorr") == 0 ){
+      if( strcasecmp(argv[nopt],"-autocorr") == 0 ){
          meth[nmeths++] = METH_AUTOCORR ;
          if( ++nopt >= argc ) ERROR_exit("-autocorr needs an argument!\n");
          meth[nmeths++] = atoi(argv[nopt++]);
@@ -354,7 +361,7 @@ int main( int argc , char *argv[] )
          continue ;
       }
 
-      if( strcmp(argv[nopt],"-autoreg") == 0 ){
+      if( strcasecmp(argv[nopt],"-autoreg") == 0 ){
          meth[nmeths++] = METH_AUTOREGP ;
          if( ++nopt >= argc ) ERROR_exit("-autoreg needs an argument!\n");
          meth[nmeths++] = atoi(argv[nopt++]);
@@ -366,7 +373,7 @@ int main( int argc , char *argv[] )
          continue ;
       }
 
-      if( strcmp(argv[nopt],"-accumulate") == 0 ){  /* 4 Mar 2008 [rickr] */
+      if( strcasecmp(argv[nopt],"-accumulate") == 0 ){  /* 4 Mar 2008 [rickr] */
          meth[nmeths++] = METH_ACCUMULATE ;
          meth[nmeths++] = -1;   /* flag to add N (not N-1) output bricks */
          fullBriks++;
@@ -376,7 +383,7 @@ int main( int argc , char *argv[] )
 
       /*-- prefix --*/
 
-      if( strcmp(argv[nopt],"-prefix") == 0 ){
+      if( strcasecmp(argv[nopt],"-prefix") == 0 ){
          if( ++nopt >= argc ) ERROR_exit("-prefix needs an argument!\n");
          MCW_strncpy(prefix,argv[nopt],THD_MAX_PREFIX) ;
          if( !THD_filename_ok(prefix) )
@@ -386,13 +393,13 @@ int main( int argc , char *argv[] )
 
       /*-- datum --*/
 
-      if( strcmp(argv[nopt],"-datum") == 0 ){
+      if( strcasecmp(argv[nopt],"-datum") == 0 ){
          if( ++nopt >= argc ) ERROR_exit("-datum needs an argument!\n");
-         if( strcmp(argv[nopt],"short") == 0 ){
+         if( strcasecmp(argv[nopt],"short") == 0 ){
             datum = MRI_short ;
-         } else if( strcmp(argv[nopt],"float") == 0 ){
+         } else if( strcasecmp(argv[nopt],"float") == 0 ){
             datum = MRI_float ;
-         } else if( strcmp(argv[nopt],"byte") == 0 ){
+         } else if( strcasecmp(argv[nopt],"byte") == 0 ){
             datum = MRI_byte ;
          } else {
             ERROR_exit("-datum of type '%s' is not supported!\n",
@@ -402,7 +409,7 @@ int main( int argc , char *argv[] )
       }
 
      /* base percentage for duration calcs */
-     if (strcmp (argv[nopt], "-basepercent") == 0) {
+     if (strcasecmp (argv[nopt], "-basepercent") == 0) {
          if( ++nopt >= argc ) ERROR_exit("-basepercent needs an argument!\n");
          basepercent = strtod(argv[nopt], NULL);
          if(basepercent>1) basepercent /= 100.0;  /* assume integer percent if >1*/
