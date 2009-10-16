@@ -108,31 +108,56 @@ examples (very basic for now):
        should have the same effect in 3dDeconvolve.  The CENSORTR file is more
        readable, but the censor file is better for plotting against the data.
  
-       a. 1d_tool.py -infile motion.1D -set_nruns 9 -set_tr 3.0     \\
+       a. general example
+
+          1d_tool.py -infile motion.1D -set_nruns 9 -set_tr 3.0     \\
                      -derivative -collapse_cols euclidean_norm      \\
                      -extreme_mask -1.2 1.2                         \\
                      -show_censor_count                             \\
                      -write_censor subjA_censor.1D                  \\
                      -write_CENSORTR subjA_CENSORTR.txt
 
-       The -censor_motion option is available, which implies '-derivative',
-       '-collapse_cols euclidean_norm', 'extreme_mask -LIMIT LIMIT', and the
-       prefix for '-write_censor' and '-write_CENSORTR' output files.  This
-       option will also result in subjA_enorm.1D being written, which is the
-       euclidean norm of the derivative, before the extreme mask is applied.
+       b. using -censor_motion
 
-       b. 1d_tool.py -infile motion.1D -set_nruns 9 -set_tr 3.0  \\
+          The -censor_motion option is available, which implies '-derivative',
+          '-collapse_cols euclidean_norm', 'extreme_mask -LIMIT LIMIT', and the
+          prefix for '-write_censor' and '-write_CENSORTR' output files.  This
+          option will also result in subjA_enorm.1D being written, which is the
+          euclidean norm of the derivative, before the extreme mask is applied.
+
+          1d_tool.py -infile motion.1D -set_nruns 9 -set_tr 3.0  \\
                      -show_censor_count                          \\
                      -censor_motion 1.2 subjA
 
-       Or allow the run lengths to vary:
+       c. allow the run lengths to vary
 
-       c. 1d_tool.py -infile motion.1D -set_tr 3.0               \\
+          1d_tool.py -infile motion.1D -set_tr 3.0               \\
                      -set_run_lengths 64 61 67 61 67 61 67 61 67 \\
                      -show_censor_count                          \\
                      -censor_motion 1.2 subjA_rlens
 
        Consider also '-censor_prev_TR'.
+
+  11.  Demean the data.  Use motion parameters as an example.
+
+       The demean operation is done per run (default is 1 when 1d_tool.py
+       does not otherwise know).
+
+       a. across all runs (if runs are not known from input file)
+
+         1d_tool.py -infile dfile.rall.1D -demean -write motion.demean.a.1D
+
+       b. per run, over 9 runs of equal length
+
+         1d_tool.py -infile dfile.rall.1D -set_nruns 9      \\
+                -demean -write motion.demean.b.1D
+
+       c. per run, over 9 runs of varying length
+
+         1d_tool.py -infile dfile.rall.1D                   \\
+                -set_run_lengths 64 61 67 61 67 61 67 61 67 \\
+                -demean -write motion.demean.c.1D
+
 
 ---------------------------------------------------------------------------
 basic informational options:
@@ -183,6 +208,7 @@ general options:
 
    -censor_prev_TR              : for each censored TR, also censor previous
    -cormat_cutoff CUTOFF        : set cutoff for cormat warnings (in [0,1])
+   -demean                      : demean each run (new mean of each run = 0.0)
    -derivative                  : take the temporal derivative of each vector
    -extreme_mask MIN MAX        : mask extreme values
 
@@ -196,9 +222,9 @@ general options:
    -select_rows SELECTOR        : apply AFNI row selectors, {} is optional
                                   e.g. '{5,0,7..21(2)}'
    -set_nruns NRUNS             : treat the input data as if it has nruns
-                                  (applies to -derivative, for example)
+                                  (e.g. applies to -derivative and -demean)
 
-        See examples 7a, and 10a and b.
+        See examples 7a, 10a and b.
 
    -set_run_lengths N1 N2 ...   : treat as if data has run lengths N1, N2, etc.
                                   (applies to -derivative, for example)
@@ -282,9 +308,10 @@ g_history = """
    0.11 Aug 25, 2009 - with -censor_motion, also output PREFIX_enorm.1D
    0.12 Oct  2, 2009 also output cosines with -show_cormat_warnings
    0.13 Oct  6, 2009 added -set_run_lengths option
+   0.14 Oct 15, 2009 added -demean
 """
 
-g_version = "1d_tool.py version 0.13, Oct 6, 2009"
+g_version = "1d_tool.py version 0.14, Oct 15, 2009"
 
 
 class A1DInterface:
@@ -302,6 +329,7 @@ class A1DInterface:
       self.add_cols_file   = None       # filename to add cols from
       self.censor_prev_TR  = 0          # if censor, also censor previous TR
       self.collapse_method = ''         # method for collapsing columns
+      self.demean          = 0          # demean the data
       self.derivative      = 0          # take temporal derivative
       self.overwrite       = 0          # whether to allow overwriting
       self.pad_to_runs     = []         # pad as run #A out of #B runs
@@ -401,6 +429,9 @@ class A1DInterface:
 
       self.valid_opts.add_opt('-cormat_cutoff', 1, [], 
                       helpstr='set the cutoff for cormat warnings')
+
+      self.valid_opts.add_opt('-demean', 0, [], 
+                      helpstr='demean each run of each column')
 
       self.valid_opts.add_opt('-derivative', 0, [], 
                       helpstr='take temporal derivative of each column')
@@ -596,6 +627,9 @@ class A1DInterface:
                print '** -cormat_cutoff must be in [0,1)'
                return 1
 
+         elif opt.name == '-demean':
+            self.demean = 1
+
          elif opt.name == '-derivative':
             self.derivative = 1
 
@@ -710,6 +744,9 @@ class A1DInterface:
 
       if self.derivative:
          if self.adata.derivative(): return 1
+
+      if self.demean:
+         if self.adata.demean(): return 1
 
       if self.sort:
          self.adata.sort(reverse=self.reverse)  # steal any reverse option

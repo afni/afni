@@ -1126,6 +1126,64 @@ def dotprod(v1,v2):
       dsum = 0
    return dsum
 
+# almost identical to demean, but just return the mean
+def mean(vec, ibot=-1, itop=-1):
+    """return the vector mean, from index ibot to index itop
+
+        if ibot == -1, ibot will be 0
+        if itop == -1, itop will be len-1"""
+
+    if not vec: return 0.0
+    if ibot > itop:
+        print '** afni_util.mean: ibot (%d) > itop (%d)' % (ibot, itop)
+        return 0.0
+
+    vlen = len(vec)
+
+    if ibot < 0: ibot = 0
+    if ibot > vlen-1: ibot = vlen-1
+    if itop < 0: itop = vlen-1
+    if itop > vlen-1: itop = vlen-1
+
+    tot = 0.0
+    for ind in range(ibot,itop+1):
+       tot += vec[ind]
+
+    return tot/(itop-ibot+1)
+
+# almost identical to mean, but subtract the mean instead of returning it
+def demean(vec, ibot=-1, itop=-1):
+    """demean the vector (in place), from index ibot to index itop
+
+        if ibot == -1, ibot will be 0
+        if itop == -1, itop will be len-1
+    
+       return 0 on success, 1 on error"""
+
+    if not vec: return 0
+    if ibot > itop:
+        print '** afni_util.demean: ibot (%d) > itop (%d)' % (ibot, itop)
+        return 1
+
+    vlen = len(vec)
+
+    if ibot < 0: ibot = 0
+    if ibot > vlen-1: ibot = vlen-1
+    if itop < 0: itop = vlen-1
+    if itop > vlen-1: itop = vlen-1
+
+    # first compute the mean
+    tot = 0.0
+    for ind in range(ibot,itop+1):
+       tot += vec[ind]
+    mm = tot/(itop-ibot+1)
+
+    # now subract it
+    for ind in range(ibot,itop+1):
+       vec[ind] -= mm
+
+    return 0
+
 def min_mean_max_stdev(data):
     """return 4 values for data: min, mean, max, stdev (unbiased)"""
 
