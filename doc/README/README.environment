@@ -2026,6 +2026,13 @@ Variable: AFNI_1D_TIME_TR
 If this is set, and AFNI_1D_TIME is YES, then this determines the TR (in
 seconds) of a .1D file read in as an AFNI dataset.
 
+---------------------------
+Variable: AFNI_1D_ZERO_TEXT
+---------------------------
+If this is set to 'YES', then non-commented text gets set to 0
+instead of causing a read failure. The default setting is 'No'
+
+
 ------------------------
 Variable: AFNI_3D_BINARY
 ------------------------
