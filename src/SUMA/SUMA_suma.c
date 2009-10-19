@@ -20,6 +20,7 @@ SUMA_DO *SUMAg_DOv;	/*!< Global pointer to Displayable Object structure vector*/
 int SUMAg_N_DOv = 0; /*!< Number of DOs stored in DOv */
 SUMA_CommonFields *SUMAg_CF; /*!< Global pointer to structure containing info common to all viewers */
 
+
 #ifdef SUMA_DISASTER
 /*!
    a function to test debugging 

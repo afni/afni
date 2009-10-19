@@ -2404,6 +2404,49 @@ SUMA_MenuItem DrawROI_WhatDist_Menu[]= {
    {NULL},
 };      
 
+/* capture warnings from X and save them in Log
+Had to add it to deal with the stupid   
+   Illegal mnemonic character;  Could not convert X KEYSYM to a keycode
+that seem to have no effect...
+*/
+void SUMA_XtWarn_handler(char *msg){
+   static char FuncName[]={"SUMA_XtWarn_handler"};
+   static long unsigned int warn_count=0;
+   static int wrnstep=10;
+   char *wrn=NULL;
+   static char ibuf[256]={""};
+   sprintf(ibuf,"  X11 Warning %ld:", warn_count+1);
+   wrn = SUMA_append_string(ibuf,msg);
+   if (! ((warn_count) % wrnstep) ) {
+      SUMA_S_Notev("%s\n"
+                   "  Have %ld X11 warnings so far, "
+                   "see Help-->Message Log if curious.\n"
+                   "  This notice is shown once for each additional "
+                   "%d warnings.\n"
+                   "\n", 
+                   wrn, warn_count+1, wrnstep);
+   }
+   SUMA_L_Warn(wrn);
+   SUMA_free(wrn); wrn = NULL;
+   ++warn_count;
+   return ;
+}
+
+/* deal with fatal errors. Not used yet. */
+int SUMA_XtErr_handler( Display *d , XErrorEvent *x ){
+    static char FuncName[]={"SUMA_XtErr_handler"};
+    char buf[256] = "(null)" ;
+  
+    if( x != NULL && d != NULL ) {
+      XGetErrorText( d,x->error_code , buf,255 ) ;
+    }
+    SUMA_S_Errv( "Intercepted fatal X11 error: %s\n",buf) ;
+   
+   if( x != NULL) return (x->error_code);
+   else return (-1);
+}
+
+
 SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
 {
    static char FuncName[]={"SUMA_X_SurfaceViewer_Create"};
@@ -2431,6 +2474,10 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
                            SUMA_get_fallbackResources(), 
                            topLevelShellWidgetClass, NULL, 0); 
       SUMAg_SVv[ic].X->DPY = XtDisplay(SUMAg_SVv[ic].X->TOPLEVEL);
+      
+      /* catch some warnings that are not important */
+      XtAppSetWarningHandler(SUMAg_CF->X->App,SUMA_XtWarn_handler) ;
+      
       /* save DPY for first controller opened */
       SUMAg_CF->X->DPY_controller1 = SUMAg_SVv[ic].X->DPY;
       NewCreation = YUP;
