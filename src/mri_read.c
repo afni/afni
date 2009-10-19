@@ -2008,10 +2008,22 @@ static char * my_fgets( char *buf , int size , FILE *fts )
 
 /*--------------------------------------------------------------*/
 static float lbfill = 0.0f ;  /* 10 Aug 2004 */
-
+static int oktext = 0;
 /*--------------------------------------------------------------*/
-/*! Decode a line buffer into an array of floats.               */
 
+/* return a 1 if c is a not a valid first non-white char of a 
+   non-comment 1D line */
+byte iznogood_1D (char c) 
+{
+   if ( (c < '0' || c > '9')  &&
+         c != '+' && c != '-' && c != '.' && c != 'e' && 
+         c != 'i' && c != ',' && /* allow for complex input */
+         c != '@' && c != '*'    /* allow for special 1D trickery */ 
+      ) return 1;
+   else return 0;
+          
+}
+/*! Decode a line buffer into an array of floats.               */
 static floatvec * decode_linebuf( char *buf )  /* 20 Jul 2004 */
 {
    floatvec *fv=NULL ;
@@ -2020,7 +2032,7 @@ static floatvec * decode_linebuf( char *buf )  /* 20 Jul 2004 */
    int n_alloced = 0, slowmo = 0 ; /* ZSS speedups */
    char sep, vbuf[64] , *cpt, *ope=NULL;
    float val ;
-
+   
    if( buf == NULL || *buf == '\0' ) return fv ;
 
    blen = strlen(buf) ;
@@ -2062,6 +2074,10 @@ static floatvec * decode_linebuf( char *buf )  /* 20 Jul 2004 */
      val = 0.0 ; count = 1 ;
      if (slowmo) {   /* trickery */
         sscanf( buf+bpos , "%63s" , vbuf ) ;
+        
+        if (!oktext && iznogood_1D(vbuf[0])) 
+            break;   /* Morality Police Oct 16 09 */
+        
         if( vbuf[0] == '*' || isalpha(vbuf[0]) ){    /* 10 Aug 2004 */
           val = lbfill ;
         } else if( (cpt=strchr(vbuf,'@')) != NULL ){
@@ -2221,6 +2237,9 @@ MRI_IMAGE * mri_read_ascii( char *fname )
 
 ENTRY("mri_read_ascii") ;
 
+   if (AFNI_yesenv("AFNI_1D_ZERO_TEXT")) oktext = 1;  /* ZSS Oct 16 09 */
+   else oktext = 0;
+   
    if( fname == NULL || fname[0] == '\0' ) RETURN(NULL) ;
 
 STATUS(fname) ;  /* 16 Oct 2007 */
@@ -2268,7 +2287,7 @@ STATUS(fname) ;  /* 16 Oct 2007 */
 
    nrow = 0 ;
    while( 1 ){
-     ptr = my_fgets( buf , LBUF , fts ) ;  /* read */
+     ptr = my_fgets( buf , LBUF , fts ) ;  /* read, skipping comments*/
      if( ptr==NULL || *ptr=='\0' ) break ; /* failure --> end of data */
 
      fvec = decode_linebuf( buf ) ;
