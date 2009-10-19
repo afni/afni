@@ -312,7 +312,7 @@ void calcWithOffsets(SUMA_SurfaceObject *SO, SUMA_KUBATEST_OPTIONS* Opt)
 #ifdef SUMA_SampBias_STAND_ALONE
 int main (int argc,char *argv[])
 {/* Main */    
-   static char FuncName[]={"iotest"};
+   static char FuncName[]={"SampBias"};
    int SO_read = -1;
    int i;
    SUMA_SurfaceObject *SO = NULL;
