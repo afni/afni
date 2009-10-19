@@ -2075,8 +2075,13 @@ static floatvec * decode_linebuf( char *buf )  /* 20 Jul 2004 */
      if (slowmo) {   /* trickery */
         sscanf( buf+bpos , "%63s" , vbuf ) ;
         
-        if (!oktext && iznogood_1D(vbuf[0])) 
-            break;   /* Morality Police Oct 16 09 */
+        if (!oktext && iznogood_1D(vbuf[0])) {/* Morality Police Oct 16 09 */
+            fv->nar = 0; /* this will cause a clean up on the way out */
+                         /* If you do not do this, you would not get consistent*/
+                         /* behavior if there is text in a matrix and the env */
+                         /* AFNI_1D_ZERO_TEXT is not YES */
+            break;   
+        }
         
         if( vbuf[0] == '*' || isalpha(vbuf[0]) ){    /* 10 Aug 2004 */
           val = lbfill ;
