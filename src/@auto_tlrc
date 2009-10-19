@@ -21,7 +21,7 @@ PARSE:
    set verb = 0
    set pd = $pd_default
    #set suf = "_at"
-   set suf = "NONE"
+   set suf = ""
    set rmode = 'default'
    set xform_type = 'affine_general'
    set ss_opt = ''
