@@ -163,9 +163,14 @@ g_history = """
     2.10 Aug 26 2009 : explicitly nuke negatives in scale block
     2.11 Aug 27 2009 : added -regress_local_times/-regress_global_times
     2.12 Aug 27 2009 : fixed motion_ in '3dD -censor', found by B Bones
+    2.13 Oct 19 2009 :
+        - added -blur_in_mask, to apply 3dBlurInMask (a.o.t. 3dmerge)
+        - added -blur_in_automask and -blur_opts_BIM
+        - added -sep_char (which probably needs more work) for Jill Weisberg
+        - added -subj_curly (applied when -sep_char is '_')
 """
 
-g_version = "version 2.12, August 27, 2009"
+g_version = "version 2.13, October 19, 2009"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
@@ -200,6 +205,7 @@ class SubjProcSream:
         self.label      = label         # name for stream
         self.valid_opts = None          # list of possible user options
         self.user_opts  = None          # list of given user options
+        self.sep_char   = '.'           # filename separator character
 
         self.blocks     = []            # list of ProcessBlock elements
         self.dsets      = []            # list of afni_name elements
@@ -314,6 +320,10 @@ class SubjProcSream:
                         helpstr='overwrite existing processing script')
         self.valid_opts.add_opt('-script', 1, [],
                         helpstr='specify processing script to generate')
+        self.valid_opts.add_opt('-sep_char', 1, [],
+                        helpstr="output filename separator char, def='.'")
+        self.valid_opts.add_opt('-subj_curly', 0, [],
+                        helpstr="always use {} around $subj")
         self.valid_opts.add_opt('-subj_id', -1, [],
                         helpstr='subject ID, used in most filenames')
 
@@ -421,8 +431,15 @@ class SubjProcSream:
 
         self.valid_opts.add_opt('-blur_filter', 1, [],
                         helpstr='blurring filter option (def: -1blur_fwhm)')
+        self.valid_opts.add_opt('-blur_in_mask', 1, [],
+                        acplist=['yes','no'],
+                        helpstr='restrict blur to mask: yes/no')
+        self.valid_opts.add_opt('-blur_in_automask', 0, [],
+                        helpstr='applies -automask to 3dBlurInMask')
         self.valid_opts.add_opt('-blur_size', 1, [],
                         helpstr='size of blur kernel (def: 4)')
+        self.valid_opts.add_opt('-blur_opts_BIM', -1, [],
+                        helpstr='additional options directly for 3dBlurInMask')
         self.valid_opts.add_opt('-blur_opts_merge', -1, [],
                         helpstr='additional options directly for 3dmerge')
 
@@ -579,6 +596,14 @@ class SubjProcSream:
 
         opt = opt_list.find_opt('-out_dir')
         if opt != None: self.out_dir = opt.parlist[0]
+
+        opt = opt_list.find_opt('-sep_char') # -- in default output names
+        if opt != None:
+            self.sep_char = opt.parlist[0]
+            if self.sep_char == '_': self.subj_label = '${subj}'
+
+        # if sep_char changes, might need this
+        if opt_list.find_opt('-subj_curly'): self.subj_label = '${subj}'
 
         opt = opt_list.find_opt('-subj_id') # -- needs to be before script
         if opt != None: self.subj_id = opt.parlist[0]
@@ -1194,37 +1219,62 @@ class SubjProcSream:
     def prefix_form(self, block, run, view=0):
         if view: vstr = self.view
         else:    vstr = ''
-        return 'pb%02d.%s.r%02d.%s%s' %    \
+        if self.sep_char == '.': # default
+           return 'pb%02d.%s.r%02d.%s%s' %    \
                 (self.bindex, self.subj_label, run, block.label, vstr)
+        else:
+           s = self.sep_char
+           return 'pb%02d%s%s%sr%02d%s%s%s' %    \
+                (self.bindex, s, self.subj_label, s, run, s, block.label, vstr)
 
     # same, but leave run as a variable
     def prefix_form_run(self, block, view=0):
         if view: vstr = self.view
         else:    vstr = ''
-        return 'pb%02d.%s.r$run.%s%s' %    \
+        if self.sep_char == '.': # default
+           return 'pb%02d.%s.r$run.%s%s' %    \
                (self.bindex, self.subj_label, block.label, vstr)
+        else:
+           s = self.sep_char
+           return 'pb%02d%s%s%sr${run}%s%s%s' %    \
+               (self.bindex, s, self.subj_label, s, s, block.label, vstr)
 
     # same as prefix_form, but use previous block values (index and label)
     # (so we don't need the block)
     def prev_prefix_form(self, run, view=0):
         if view: vstr = self.view
         else:    vstr = ''
-        return 'pb%02d.%s.r%02d.%s%s' %    \
+        if self.sep_char == '.': # default
+           return 'pb%02d.%s.r%02d.%s%s' %    \
                 (self.bindex-1, self.subj_label, run, self.pblabel, vstr)
+        else:
+           s = self.sep_char
+           return 'pb%02d%s%s%sr%02d%s%s%s' %    \
+                (self.bindex-1, s, self.subj_label,s,run,s, self.pblabel, vstr)
 
     # same, but leave run as a variable
     def prev_prefix_form_run(self, view=0):
         if view: vstr = self.view
         else:    vstr = ''
-        return 'pb%02d.%s.r$run.%s%s' %    \
+        if self.sep_char == '.': # default
+           return 'pb%02d.%s.r$run.%s%s' %    \
                 (self.bindex-1, self.subj_label, self.pblabel, vstr)
+        else:
+           s = self.sep_char
+           return 'pb%02d%s%s%sr${run}%s%s%s' %    \
+                (self.bindex-1, s, self.subj_label, s, s, self.pblabel, vstr)
 
     # same, but leave run wild
     def prev_dset_form_wild(self, view=0):
         if view: vstr = self.view
         else:    vstr = ''
-        return 'pb%02d.%s.r??.%s%s.HEAD' %    \
+        if self.sep_char == '.': # default
+           return 'pb%02d.%s.r??.%s%s.HEAD' %    \
                 (self.bindex-1, self.subj_label, self.pblabel, self.view)
+        else:
+           s = self.sep_char
+           return 'pb%02d%s%s%sr??%s%s%s.HEAD' %    \
+                (self.bindex-1, s, self.subj_label,s,s,self.pblabel, self.view)
 
     # like prefix, but list the whole dset form, in wildcard format
     def dset_form_wild(self, blabel, view=None):
@@ -1233,8 +1283,13 @@ class SubjProcSream:
             print "** DFW: failed to find block for label '%s'" % blabel
             return ''
         if not view: view = self.view
-        return 'pb%02d.%s.r??.%s%s.HEAD' %      \
+        if self.sep_char == '.': # default
+           return 'pb%02d.%s.r??.%s%s.HEAD' %      \
                (bind, self.subj_label, blabel, view)
+        else:
+           s = self.sep_char
+           return 'pb%02d%s%s%sr??%s%s%s.HEAD' %      \
+               (bind, s, self.subj_label, s, s, blabel, view)
 
 class ProcessBlock:
     def __init__(self, label, proc):

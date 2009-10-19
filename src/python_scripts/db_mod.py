@@ -1,7 +1,15 @@
 #!/usr/bin/env python
 
+# whine about execution as a main program
+if __name__ == '__main__':
+   import sys
+   print '** %s: not a main program' % sys.argv[0].split('/')[-1]
+   sys.exit(1)
+
 import math, os
 import afni_base as BASE, afni_util as UTIL
+import option_list as OL
+
 
 WARP_EPI_TLRC_ADWARP    = 1
 WARP_EPI_TLRC_WARP      = 2
@@ -412,6 +420,7 @@ def ricor_process_across_runs(proc, block, polort, solver, nsliregs, rdatum):
 
     cmd = cmd +                                                 \
         "# regress out the detrended RETROICOR regressors\n"    \
+        "# (matrix from 3dD does not have slibase regressors)\n"\
         '3dREMLfit -input "$dsets" \\\n'                        \
         "    -matrix %s \\\n"                                   \
         "    -%sbeta %s.betas \\\n"                             \
@@ -421,7 +430,6 @@ def ricor_process_across_runs(proc, block, polort, solver, nsliregs, rdatum):
 
     cmd = cmd +                                                 \
         "# re-create polynomial baseline\n"                     \
-        "# (matrix from 3dD does not have slibase regressors)\n" \
         "3dSynthesize -matrix %s \\\n"                          \
         "    -cbucket %s.betas%s'[0..%d]' \\\n"                 \
         "    -select polort -prefix %s.polort\n\n"              \
@@ -437,7 +445,7 @@ def ricor_process_across_runs(proc, block, polort, solver, nsliregs, rdatum):
         "# (and separate back into individual runs)\n"          \
         "set volsperrun = %d\n"                                 \
         "set startind = 0\n"                                    \
-        "@   endind = $volsperrun - 1\n"                        \
+        "@ endind = $volsperrun - 1\n"                          \
         "foreach run ( $runs )\n"                               \
         '    3dcalc -a %s.errts%s"[$startind..$endind]" \\\n'   \
         '           -b %s.polort%s"[$startind..$endind]" \\\n'  \
@@ -974,6 +982,8 @@ def db_cmd_volreg(proc, block):
             "# (only 1 run, so just use 3dcopy to keep naming straight)\n"   \
             "3dcopy rm.epi.min.r01 %s\n\n" % (proc.mask_extents.prefix)
 
+        proc.mask_extents.created = 1  # so this mask 'exists' now
+
         cmd = cmd +                                             \
             "# and apply the extents mask to the EPI data \n"   \
             "# (delete any time series with missing data)\n"    \
@@ -1020,6 +1030,17 @@ def db_mod_blur(block, proc, user_opts):
     if uopt and bopt:
         bopt.parlist[0] = uopt.parlist[0]               # set filter
 
+    # check for option updates
+    uopt = user_opts.find_opt('-blur_in_mask')
+    bopt = block.opts.find_opt('-blur_in_mask')
+    if uopt:
+        if bopt: bopt.parlist[0] = uopt.parlist[0]
+        else: block.opts.add_opt('-blur_in_mask', 1, uopt.parlist, setpar=1)
+
+    uopt = user_opts.find_opt('-blur_in_automask')
+    bopt = block.opts.find_opt('-blur_in_automask')
+    if uopt and not bopt: block.opts.add_opt('-blur_in_automask', 0, [])
+
     uopt = user_opts.find_opt('-blur_size')
     bopt = block.opts.find_opt('-blur_size')
     if uopt and bopt:
@@ -1044,19 +1065,56 @@ def db_cmd_blur(proc, block):
     prefix = proc.prefix_form_run(block)
     prev   = proc.prev_prefix_form_run(view=1)
 
-    # maybe there are extra options to append to the command
-    opt = block.opts.find_opt('-blur_opts_merge')
-    if not opt or not opt.parlist: other_opts = ''
-    else: other_opts = '             %s \\\n' % ' '.join(opt.parlist)
+    other_opts = ''
 
-    cmd = cmd + "# %s\n"                                        \
-                "# blur each volume\n"                          \
-                "foreach run ( $runs )\n"                       \
-                "    3dmerge %s %s -doall -prefix %s \\\n"      \
-                "%s"                                            \
-                "            %s\n"                              \
-                "end\n\n" % (block_header('blur'), filter, str(size),
-                             prefix, other_opts, prev)
+    # if -blur_in_mask, use 3dBlurInMask (requires 1blur_fwhm)
+    if OL.opt_is_yes(block.opts.find_opt('-blur_in_mask')) or \
+        block.opts.find_opt('-blur_in_automask'):
+
+       # verify FWHM filter
+       if filter != '-1blur_fwhm' and filter != '-FWHM':
+          print "** error: 3dBlurInMask requires FWHM filter, have '%s'\n" \
+                "   (consider scale of 1.36 for RMS->FWHM)" % (filter)
+          return 1
+
+       # set any mask option
+       if block.opts.find_opt('-blur_in_automask'):
+           mopt = ' -automask'
+       else:
+          mopt = ''
+          mask = proc.mask
+          if not mask_created(mask): mask = proc.mask_extents
+          if mask_created(mask): mopt = ' -Mmask %s%s'%(mask.prefix, proc.view)
+          else:
+             print '** warning: no mask for -blur_in_mask, still proceeding...'
+
+       # any last request?
+       opt = block.opts.find_opt('-blur_opts_BIM')
+       if not opt or not opt.parlist: other_opts = ''
+       else: other_opts = '             %s \\\n' % ' '.join(opt.parlist)
+
+       # make command string
+       cstr = "    3dBlurInMask -preserve -FWHM %s%s \\\n"    \
+              "                 -prefix %s" % (str(size), mopt, prefix)
+       sstr = '                 '
+
+
+    else: # default: use 3dmerge for blur
+       # maybe there are extra options to append to the command
+       opt = block.opts.find_opt('-blur_opts_merge')
+       if not opt or not opt.parlist: other_opts = ''
+       else: other_opts = '             %s \\\n' % ' '.join(opt.parlist)
+
+       cstr = "    3dmerge %s %s -doall -prefix %s" % (filter,str(size),prefix)
+       sstr = '            '
+
+    cmd = cmd + "# %s\n"                                \
+                "# blur each volume of each run\n"      \
+                "foreach run ( $runs )\n"               \
+                "%s \\\n"                               \
+                "%s"                                    \
+                "%s%s\n"                                \
+                "end\n\n" % (block_header('blur'), cstr, sstr, other_opts, prev)
 
     proc.bindex += 1            # increment block index
     proc.pblabel = block.label  # set 'previous' block label
@@ -1090,10 +1148,24 @@ def db_mod_mask(block, proc, user_opts):
         if bopt: bopt.parlist = uopt.parlist
         else: block.opts.add_opt('-mask_apply', 1, uopt.parlist, setpar=1)
 
-    proc.mask_epi = BASE.afni_name('full_mask.$subj')
+    proc.mask_epi = BASE.afni_name('full_mask%s$subj' % proc.sep_char)
     proc.mask = proc.mask_epi   # default to referring to EPI mask
 
     block.valid = 1
+
+def mask_created(mask):
+    """check to see if the afni_name mask dataset was actually 'created'
+
+       For mask datasets, the test is whether there is a created attribute,
+       and it is set to 1.
+    """
+
+    if not isinstance(mask, BASE.afni_name): return 0
+
+    if not hasattr(mask, 'created'): return 0
+
+    # attribute exists
+    return mask.created
 
 # in this block, automatically make an EPI mask via 3dAutomask
 # if possible: also make a subject anatomical mask (resampled to EPI)
@@ -1140,6 +1212,7 @@ def db_cmd_mask(proc, block):
         cmd = cmd + "# only 1 run, so copy this to full_mask\n"              \
                     "3dcopy rm.mask_r01%s %s\n\n"                            \
                     % (proc.view, proc.mask_epi.prefix)
+    proc.mask_epi.created = 1  # so this mask 'exists' now
 
     # if possible make a subject anat mask, resampled to EPI
     if proc.warp_epi:
@@ -1225,6 +1298,8 @@ def group_mask_command(proc, block):
                 "3dcalc -a %s -expr 'ispositive(a)' -prefix %s\n\n" \
                 % (tanat.pv(), proc.mask_group.prefix)
 
+    proc.mask_group.created = 1  # so this mask 'exists' now
+
     return cmd
 
 # if possible make a subject anatomical mask (resampled to EPI)
@@ -1277,6 +1352,8 @@ def anat_mask_command(proc, block):
     cmd = cmd + "# convert resampled anat brain to binary mask\n"   \
                 "3dcalc -a %s -expr 'ispositive(a)' -prefix %s\n\n" \
                 % (tanat.pv(), proc.mask_anat.prefix)
+
+    proc.mask_anat.created = 1  # so this mask 'exists' now
 
     return cmd
 
@@ -1877,7 +1954,7 @@ def db_cmd_regress(proc, block):
         cmd = cmd + rcmd
 
     # create all_runs dataset
-    all_runs = 'all_runs.$subj'
+    all_runs = 'all_runs%s$subj' % proc.sep_char
     cmd = cmd + "# create an all_runs dataset to match the fitts, errts, etc.\n"
     cmd = cmd + "3dTcat -prefix %s %s\n\n" % \
                 (all_runs, proc.prev_dset_form_wild())
@@ -1963,7 +2040,8 @@ def db_cmd_blur_est(proc, block):
                 % (block_header('blur estimation'), blur_file)
 
     if aopt:
-        bstr = blur_est_loop_str(proc, 'all_runs.$subj%s' % proc.view, 
+        bstr = blur_est_loop_str(proc,
+                    'all_runs%s$subj%s' % (proc.sep_char, proc.view), 
                     '%s%s' % (proc.mask.prefix, proc.view), 'epits', blur_file)
         if not bstr: return
         cmd = cmd + bstr
@@ -2365,9 +2443,10 @@ g_help_string = """
                   - do not align EPI to anat
                   - do not warp to standard space
 
-        blur:     - blur data using a 4 mm FWHM filter
+        blur:     - blur data using a 4 mm FWHM filter with 3dmerge
                         (option: -blur_filter -1blur_fwhm)
                         (option: -blur_size 4)
+                        (option: -blur_in_mask no)
 
         mask:     - create a union of masks from 3dAutomask on each run
                   - not applied in regression without -regress_apply_mask
@@ -2525,7 +2604,9 @@ g_help_string = """
                         -regress_est_blur_epits                            \\
                         -regress_est_blur_errts
 
-        6. Align the EPI to the anatomy.  Also, process in standard space.
+        6. A modern example.  GOOD TO CONSIDER.
+
+           Align the EPI to the anatomy.  Also, process in standard space.
 
            For alignment in either direction, add the 'align' block, which
            aligns the anatomy to the EPI.  To then align the EPI to the anat,
@@ -2540,8 +2621,8 @@ g_help_string = """
            So add the 2 processing blocks and 2 extra volreg warps to #3 via
            '-do_block align tlrc', '-volreg_align_e2a', '-volreg_tlrc_warp'.
 
-            As an added bonus, censor TR pairs where the Euclidean Norm of the
-            motion derivative exceeds 1.0.
+           As an added bonus, censor TR pairs where the Euclidean Norm of the
+           motion derivative exceeds 1.0.
 
                 afni_proc.py -subj_id sb23.e6.align                        \\
                         -dsets sb23/epi_r??+orig.HEAD                      \\
@@ -2558,7 +2639,10 @@ g_help_string = """
                         -regress_basis 'BLOCK(30,1)'                       \\
                         -regress_censor_motion 1.0                         \\
                         -regress_est_blur_epits                            \\
-                        -regress_est_blur_errts
+                        -regress_est_blur_errts                            \\
+                        -regress_opts_3dD                                  \\
+                            -gltsym 'SYM: +eneg -fneg'                     \\
+                            -glt_label 1 eneg_vs_fneg                      \\
 
            To process in orig space, remove -volreg_tlrc_warp.
            To apply manual tlrc transformation, use -volreg_tlrc_adwarp.
@@ -2793,7 +2877,7 @@ g_help_string = """
             principle components) from all the ROIs in a dataset and apply
             them as regressors of interest or of no interest.
 
-        - with 3dBlurToFWHM, using an AlphaSim look-up table is possible
+        - with 3dBlurToFWHM, using an AlphaSim look-up table might be possible
 
             Since the blur and data grid could both be isotropic and integral,
             and since the transformation could depend on a known anatomy (such
@@ -3158,6 +3242,37 @@ g_help_string = """
 
             See also -script.
 
+        -sep_char CHAR          : apply as separation character in filenames
+
+                e.g. -sep_char _
+                default: .
+
+            The separation character is used in many output filenames, such as
+            the default '.' in:
+
+                pb04.Nancy.r07.scale+orig.BRIK
+
+            If (for some crazy reason) an underscore (_) character would be
+            preferable, the result would be:
+
+                pb04_Nancy_r07_scale+orig.BRIK
+
+            If "-sep_char _" is applied, so is -subj_curly.
+
+            See also -subj_curly.
+
+        -subj_curly             : apply $subj as ${subj}
+
+            The subject ID is used in dataset names is typically used without
+            curly brackets (i.e. $subj).  If something is done where this would
+            result in errors (e.g. "-sep_char _"), the curly brackets might be
+            useful to delimit the variable (i.e. ${subj}).
+
+            Note that this option is automatically applied in the case of
+            "-sep_char _".
+
+            See also -sep_char.
+
         -subj_id SUBJECT_ID     : specify the subject ID for the script
 
                 e.g. -subj_id elvis
@@ -3417,8 +3532,8 @@ g_help_string = """
 
             This user might want to align to an EPI volume that is not in the
             processing stream for the case where there is not sufficient EPI
-            contrast left after the magnitization has reached a steady state.
-            Perhaps volume 0 has sufficuent contrast for alignment, but is not
+            contrast left after the magnetization has reached a steady state.
+            Perhaps volume 0 has sufficient contrast for alignment, but is not
             appropriate for analysis.  In such a case, the user may elect to
             align to volume 0, while excluding it from the analysis as part of
             the first volumes removed in -tcat_remove_first_trs.
@@ -3523,7 +3638,7 @@ g_help_string = """
                 e.g. -volreg_interp -Fourier
                 default -cubic
 
-            Please see '3dTvolreg -help' for more information.
+            Please see '3dvolreg -help' for more information.
 
         -volreg_opts_vr OPTS ... : specify extra options for 3dvolreg
 
@@ -3660,17 +3775,49 @@ g_help_string = """
             Please see '3dmerge -help' for more information.
             See also -blur_size.
 
-        -blur_size SIZE_MM      : specify the size, in millimeters
+        -blur_in_automask       : apply 3dBlurInMask -automask
 
-                e.g. -blur_size 6.0
-                default: 4
+            This option forces use of 3dBlurInMask -automask, regardless of
+            whether other masks exist and are being applied.
 
-            This option allows the user to specify the size of the blur used
-            by 3dmerge.  It is applied as the 'bmm' parameter in the filter
-            option (such as -1blur_fwhm).
+            Note that one would not want to apply -automask via -blur_opts_BIM,
+            as that might result in failure because of multiple -mask options.
 
+            Note that -blur_in_automask implies '-blur_in_mask yes'.
+
+            Please see '3dBlurInMask -help' for more information.
+            See also -blur_in_mask, -blur_opts_BIM.
+
+        -blur_in_mask yes/no    : specify whether to restrict blur to a mask
+
+                e.g. -blur_in_mask yes
+                default: no
+
+            This option allows the user to specify whether to use 3dBlurInMask
+            instead of 3dmerge for blurring.
+
+            Note that the algorithms are a little different, and 3dmerge comes
+            out a little more blurred.
+
+            Note that 3dBlurInMask uses only FWHM kernel size units, so the
+            -blur_filter should be either -1blur_fwhm or -FWHM.
+
+            Please see '3dBlurInMask -help' for more information.
             Please see '3dmerge -help' for more information.
             See also -blur_filter.
+
+        -blur_opts_BIM OPTS ...  : specify extra options for 3dBlurInMask
+
+                e.g. -blur_opts_BIM -automask
+
+            This option allows the user to add extra options to the 3dBlurInMask
+            command.  Only one -blur_opts_BIM should be applied, which may be
+            used for multiple 3dBlurInMask options.
+
+            This option is only useful when '-blur_in_mask yes' is applied.
+
+            Please see '3dBlurInMask -help' for more information.
+            See also -blur_in_mask.
 
         -blur_opts_merge OPTS ... : specify extra options for 3dmerge
 
@@ -3681,6 +3828,23 @@ g_help_string = """
             which may be used for multiple 3dmerge options.
 
             Please see '3dmerge -help' for more information.
+
+        -blur_size SIZE_MM      : specify the size, in millimeters
+
+                e.g. -blur_size 6.0
+                default: 4
+
+            This option allows the user to specify the size of the blur used
+            by 3dmerge.  It is applied as the 'bmm' parameter in the filter
+            option (such as -1blur_fwhm).
+
+            Note the relationship between blur sizes, as used in 3dmerge:
+
+                sigma = 0.57735027 * rms = 0.42466090 * fwhm
+                (implying rms = 1.359556 * fwhm)
+
+            Please see '3dmerge -help' for more information.
+            See also -blur_filter.
 
         -mask_apply TYPE        : specify which mask to apply in regression
 
@@ -3856,7 +4020,7 @@ g_help_string = """
             Please see '1d_tool.py -help' for information on censoring motion.
             See also -regress_censor_prev.
 
-        -regress_censor_prev yes/no  : censor TR preceeding large motion
+        -regress_censor_prev yes/no  : censor TRs preceding large motion
 
                 default: -regress_censor_prev yes
 
@@ -3865,7 +4029,7 @@ g_help_string = """
             the earlier or later TR.  To error on the safe side, many users
             choose to censor both.
 
-            Use this option to specify whether to inculde the previous TR
+            Use this option to specify whether to include the previous TR
             when censoring.
 
             By default this option is applied as 'yes'.  Users may elect not
@@ -4302,10 +4466,4 @@ g_help_string = """
 """
 # end global help string
 # ----------------------------------------------------------------------
-
-
-# dummy main - should not be used
-if __name__ == '__main__':
-
-    print '** this file is not to be used as a main program **'
 
