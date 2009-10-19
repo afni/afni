@@ -48,10 +48,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 19, OCT, 2009, RCR, "afni_proc.py", MICRO, TYPE_NEW_OPT,
+   "added options for using 3dBlurInMask, instead of 3dmerge",
+   "- added -blur_in_mask, -blur_in_automask and -blur_opts_BIM\n"
+   "- added -sep_char and -subj_curly"
+ } ,
+
  { 16, OCT, 2009, RCR, "1d_tool.py", MICRO, TYPE_NEW_OPT,
    "added -demean, to demean motion parameters, for example",
-   "The polort 0 values should be more accurate baseline constants."
-   "Useful for creating a proper polort baseline w/3dSynthesize.\n"
+   "The polort 0 values should be more accurate baseline constants.\n"
+   "Useful for creating a proper polort baseline w/3dSynthesize."
  } ,
 
  { 14, OCT, 2009, RCR, "3dTcat", MICRO, TYPE_MODIFY,

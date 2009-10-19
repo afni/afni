@@ -7,6 +7,12 @@
 import sys
 import afni_base
 
+# whine about execution as a main program
+if __name__ == '__main__':
+   import sys
+   print '** %s: not a main program' % sys.argv[0].split('/')[-1]
+   sys.exit(1)
+
 # ---------------------------------------------------------------------------
 # history:              see: afni_history -program option_list.py
 #   
@@ -200,12 +206,12 @@ class OptionList:
         if '-optlist_verbose' in argv:
             ind = argv.index('-optlist_verbose')
             self.verb = 4
-            argv[ind:ind+1] = []
+            argv[ind:ind+1] = ''
             print '++ optlist: setting verb to %d' % self.verb
         if '-optlist_no_show_count' in argv:
             ind = argv.index('-optlist_no_show_count')
             self.show_count = 0
-            argv[ind:ind+1] = []
+            argv[ind:ind+1] = ''
             if self.verb>1: print '++ optlist: clearing show_count'
 
         if self.verb > 1:
@@ -354,6 +360,38 @@ def read_options(argv, oplist, verb = -1):
 
     return OL
 
+def opt_is_yes(opt):
+    """return 1 if and only if option has yes/Yes/YES for oplist[0]"""
+
+    rv = 0
+    try:
+        val = opt.parlist[0]
+        if val == 'yes' or val == 'Yes' or val == 'YES': rv = 1
+    except: pass
+
+    return rv
+
+def opt_is_no(opt):
+    """return 1 if and only if option has no/No/NO for oplist[0]"""
+
+    rv = 0
+    try:
+        val = opt.parlist[0]
+        if val == 'no' or val == 'No' or val == 'NO': rv = 1
+    except: pass
+
+    return rv
+
+def opt_is_val(opt, optval):
+    """return 1 if and only if opt.oplist[0] == optval"""
+
+    rv = 0
+    try:
+        if opt.parlist[0] == optval: rv = 1
+    except: pass
+
+    return rv
+
 def test_comopts():
 
     okopts = OptionList('for_input')
@@ -371,6 +409,6 @@ def test_comopts():
     
     if found_opts: found_opts.show('------ found options ------ ')
 
-if __name__ == '__main__':
-    test_comopts()
+# if __name__ == '__main__':
+#     test_comopts()
 
