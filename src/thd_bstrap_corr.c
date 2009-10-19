@@ -9,7 +9,7 @@ static int acorr_demean = 1 ;
 #define PHINV(x) qginv(1.0-(x))  /* inverse CDF of N(0,1) */
 
 /*----------------------------------------------------------------------------*/
-/*! Pearson correlation of x[] and y[] */
+/*! atanh() of Pearson correlation of x[] and y[] */
 
 static INLINE float acorrfun( int n, float *x, float *y )
 {
@@ -30,6 +30,8 @@ static INLINE float acorrfun( int n, float *x, float *y )
 }
 
 /*----------------------------------------------------------------------------*/
+/*! atanh() of Correlation of x[] and y[], omitting index qq.
+    For doing jackknife statistics on the correlation. */
 
 static INLINE float acorrfun_jack( int n, float *x, float *y, int qq )
 {
@@ -221,16 +223,18 @@ static void mean_vector( int n , int m , int xtyp , void *xp , float *uvec )
 /*----------------------------------------------------------------------------*/
 /*! Compute the principal singular vector of a set of m columns, each
     of length n, stored in array xx[i+j*n] for i=0..n-1, j=0..m-1.
-    The singular value is returned, and the vector is stored into uvec[].
-    If the return value is not positive, something bad happened.
+   * The singular value is returned, and the vector is stored into uvec[].
+   * tvec is a vector so that the sign of uvec dot tvec will be non-negative.
+   * If the return value is not positive, something bad happened.
 *//*--------------------------------------------------------------------------*/
 
-static float principal_vector( int n , int m , int xtyp , void *xp , float *uvec )
+static float principal_vector( int n , int m , int xtyp , void *xp ,
+                               float *uvec , float *tvec            )
 {
    int nn=n , mm=m , nsym , ii,jj,kk,qq ;
    double *asym , *deval ;
    register double sum , qsum ; register float *xj , *xk ;
-   float sval , fsum , *xx=NULL , **xar=NULL , *mvec ;
+   float sval , fsum , *xx=NULL , **xar=NULL ;
 
    nsym = MIN(nn,mm) ;  /* size of the symmetric matrix to create */
 
@@ -297,7 +301,7 @@ static float principal_vector( int n , int m , int xtyp , void *xp , float *uvec
      return -999.0f ;  /* eigensolver failed!? */
    }
 
-   /** Store singular value (sqrt of eigenvalues), **/
+   /** Store singular value (sqrt of eigenvalue) **/
 
    sval = (float)sqrt(deval[0]) ;
 
@@ -341,13 +345,8 @@ static float principal_vector( int n , int m , int xtyp , void *xp , float *uvec
 
    /** make it so that uvec dotted into the mean vector is positive **/
 
-#pragma omp critical (MALLOC)
-   { mvec = (float *)malloc(sizeof(float),nn) ; }
-
-   mean_vector( nn , mm , xtyp , xp , mvec ) ;
-
    fsum = 0.0f ;
-   for( ii=0 ; ii < nn ; ii++ ) fsum += mvec[ii]*uvec[ii] ;
+   for( ii=0 ; ii < nn ; ii++ ) fsum += tvec[ii]*uvec[ii] ;
    if( fsum < 0.0f ){
      for( ii=0 ; ii < nn ; ii++ ) uvec[ii] = -uvec[ii] ;
    }
@@ -355,7 +354,7 @@ static float principal_vector( int n , int m , int xtyp , void *xp , float *uvec
    /** free at last!!! **/
 
 #pragma omp critical (MALLOC)
-   { free(mvec) ; free(deval) ; free(asym) ; }
+   { free(deval) ; free(asym) ; }
 
    return sval ;
 }
@@ -363,26 +362,150 @@ static float principal_vector( int n , int m , int xtyp , void *xp , float *uvec
 #undef XPT
 #undef A
 
-/*--------------------------------------------------------------------*/
-
 /*----------------------------------------------------------------------------*/
 
 float_pair THD_bstrap_vectcorr( int nlen , int nboot ,
                                 int xnum , float *xx , int ynum , float *yy )
 {
    float_pair retval = {0.0f,0.0f} ;
+   float **xar, **yar, *rboot, *rjack, *xbar, *ybar, *uvec, *vvec, *zvec ;
+   float rxy , rjbar , anum,aden,ahat , val , z0hat ;
+   float rb_al1 , rb_al2 , rb_au1 , rb_au2 , sig1,sig2,sig , med ;
+   int kb,ii,jj , njack ;
 
 ENTRY("THD_bstrap_vectcorr") ;
 
    if( nlen < 3 || xnum < 1 || ynum < 1 || xx == NULL || yy == NULL )
      RETURN(retval) ;
 
-   if( xnum == 1 && ynum == 1 ){
-     retval = THD_bstrap_corr( nlen , xx , yy , 0.0f , 999 ) ;
+#pragma omp critical (MALLOC)
+   { xbar = (float *)malloc(sizeof(float)*nlen) ;
+     ybar = (float *)malloc(sizeof(float)*nlen) ; }
+
+   mean_vector( nlen , xnum , 0 , xx , xbar ) ;
+   mean_vector( nlen , ynum , 0 , yy , ybar ) ;
+
+   if( xnum < 7 || ynum < 7 ){
+     retval = THD_bstrap_corr( nlen , xbar , ybar , 0.0f , nboot ) ;
+#pragma omp critical (MALLOC)
+     { free(ybar) ; free(xbar) ; }
      RETURN(retval) ;
    }
 
-   /***/
+   if( nboot < 666 ) nboot = 666 ;
+   njack = xnum + ynum ;
+
+#pragma omp critical (MALLOC)
+   { xar   = (float **)malloc(sizeof(float *)*xnum ) ;
+     yar   = (float **)malloc(sizeof(float *)*ynum ) ;
+     rboot = (float * )malloc(sizeof(float)  *nboot) ;
+     rjack = (float * )malloc(sizeof(float)  *njack) ;
+     uvec  = (float * )malloc(sizeof(float)  *nlen ) ;
+     vvec  = (float * )malloc(sizeof(float)  *nlen ) ;
+     zvec  = (float * )malloc(sizeof(float)  *nlen ) ;
+   }
+
+   /* correlation with no resampling at all */
+
+   (void)principal_vector( nlen , xnum , 0 , xx , uvec , xbar ) ;
+   (void)principal_vector( nlen , ynum , 0 , yy , vvec , ybar ) ;
+   rxy = acorrfun( nlen , uvec , vvec ) ;
+
+   /* jackknife correlations */
+
+   for( kb=0 ; kb < xnum ; kb++ ){
+     for( jj=ii=0 ; ii < xnum ; ii++ ){
+       if( ii != kb ) xar[jj++] = xx + ii*nlen ;
+     }
+     (void)principal_vector( nlen , xnum-1 , 0 , xar , zvec , xbar ) ;
+     rjack[kb] = acorrfun( nlen , zvec , vvec ) ;
+   }
+   for( kb=0 ; kb < ynum ; kb++ ){
+     for( jj=ii=0 ; ii < ynum ; ii++ ){
+       if( ii != kb ) yar[jj++] = yy + ii*nlen ;
+     }
+     (void)principal_vector( nlen , ynum-1 , 0 , yar , zvec , xbar ) ;
+     rjack[kb+xnum] = acorrfun( nlen , uvec , zvec ) ;
+   }
+
+   /* compute acceleration parameter ahat */
+
+   rjbar = 0.0f ;
+   for( kb=0 ; kb < njack ; kb++ ) rjbar += rjack[kb] ;
+   rjbar /= njack ;
+   anum = aden = 0.0f ;
+   for( kb=0 ; kb < njack ; kb++ ){
+     val = rjbar - rjack[kb] ; anum += val*val*val ; aden += val*val ;
+   }
+   ahat = anum / (6.0f*aden*sqrtf(aden)) ;
+   if( ahat < -0.2f ) ahat = -0.2f ; else if( ahat > 0.2f ) ahat = 0.2f ;
+
+
+   /* bootstrap correlations */
+
+   for( kb=0 ; kb < nboot ; kb++ ){
+     for( ii=0 ; ii < xnum ; ii++ ){
+       jj = (lrand48() >> 3) % xnum ; xar[ii] = xx + jj*nlen ;
+     }
+     (void)principal_vector( nlen , xnum , 0 , xar , uvec , xbar ) ;
+     for( ii=0 ; ii < ynum ; ii++ ){
+       jj = (lrand48() >> 3) % ynum ; yar[ii] = yy + jj*nlen ;
+     }
+     (void)principal_vector( nlen , ynum , 0 , yar , vvec , ybar ) ;
+     rboot[kb] = acorrfun( nlen , uvec , vvec ) ;
+   }
+
+   /* find location of rxy in the sorted rboot array,
+      then use that to estimate the bias correction parameter z0hat */
+
+   qsort_float( nboot , rboot ) ;
+   for( kb=0 ; kb < nboot && rboot[kb] < rxy ; kb++ ) ; /*nada*/
+   z0hat = PHINV(kb/(double)nboot) ;  /* kb = number of rboot < rxy */
+   if( z0hat < -1.0f ) z0hat = -1.0f ; else if( z0hat > 1.0f ) z0hat = 1.0f ;
+   /* compute bootstrap value at alpha_1 level, adjusted */
+
+   val = z0hat + (z0hat + bca_alpha_1) / ( 1.0f - ahat*(z0hat + bca_alpha_1) ) ;
+   val = nboot * PHI(val) ; kb  = (int)val ; val = val-kb ;
+   rb_al1 = (1.0f-val)*rboot[kb] + val*rboot[kb+1] ;
+
+   /* compute bootstrap value at alpha_2 level, adjusted */
+
+   val = z0hat + (z0hat + bca_alpha_2) / ( 1.0f - ahat*(z0hat + bca_alpha_2) ) ;
+   val = nboot * PHI(val) ; kb  = (int)val ; val = val-kb ;
+   rb_al2 = (1.0f-val)*rboot[kb] + val*rboot[kb+1] ;
+
+   /* compute bootstrap value at 1-alpha_1 level, adjusted */
+
+   val = z0hat + (z0hat + 1.0f-bca_alpha_1) / ( 1.0f - ahat*(z0hat + 1.0f-bca_alpha_1) ) ;
+   val = nboot * PHI(val) ; kb  = (int)val ; val = val-kb ;
+   rb_au1 = (1.0f-val)*rboot[kb] + val*rboot[kb+1] ;
+
+   /* compute bootstrap value at 1-alpha_2 level, adjusted */
+
+   val = z0hat + (z0hat + 1.0f-bca_alpha_2) / ( 1.0f - ahat*(z0hat + 1.0f-bca_alpha_2) ) ;
+   val = nboot * PHI(val) ; kb  = (int)val ; val = val-kb ;
+   rb_au2 = (1.0f-val)*rboot[kb] + val*rboot[kb+1] ;
+
+   /* now estimate sigma both ways, then combine them */
+
+   sig1 = (rb_au1 - rb_al1) / (2.0f*bca_phial_1) ;
+   sig2 = (rb_au2 - rb_al2) / (2.0f*bca_phial_2) ;
+   sig  = 0.5f * (sig1+sig2) ;
+
+   /* and estimate middle of distribution */
+
+   val = z0hat + (z0hat + 0.5f) / ( 1.0f - ahat*(z0hat + 0.5f) ) ;
+   val = nboot * PHI(val) ; kb  = (int)val ; val = val-kb ;
+   med = (1.0f-val)*rboot[kb] + val*rboot[kb+1] ;
+
+   retval.a = med ; retval.b = sig ;
+
+   /* cleanup the trash */
+
+#pragma omp critical (MALLOC)
+   { free(zvec); free(vvec); free(uvec); free(rjack); free(rboot);
+     free(yar); free(xar);
+   }
 
    RETURN(retval) ;
 }
