@@ -25,6 +25,7 @@ int main( int argc , char *argv[] )
    MRI_IMAGE *immask=NULL ;    /* 07 Oct 2009 */
    short      *mmask=NULL ;
    short      *unval_mmask=NULL ; int nuniq_mmask=0 ;
+   int do_preserve=0 , use_qsar ;         /* 19 Oct 2009 */
 
    /*------- help the pitifully ignorant luser? -------*/
 
@@ -48,6 +49,10 @@ int main( int argc , char *argv[] )
       "              **N.B.: 'mmm' must be byte- or short-valued!\n"
       " -automask   = Create an automask from the input dataset.\n"
       "              **N.B.: only 1 masking option can be used!\n"
+      " -preserve   = Normally, voxels not in the mask will be\n"
+      "               set to zero in the output.  If you want the\n"
+      "               original values in the dataset to be preserved\n"
+      "               in the output, use this option.\n"
       " -prefix ppp = Prefix for output dataset will be 'ppp'.\n"
       "              **N.B.: Output dataset is always in float format.\n"
       " -quiet      = Don't be verbose with the progress reports.\n"
@@ -55,11 +60,11 @@ int main( int argc , char *argv[] )
       "               input data type is.\n"
       "              **N.B.: If the input dataset is unscaled shorts, then\n"
       "                      the default is to save the output in short\n"
-      "                      format as well.  In every other case, the\n"
-      "                      default is to save the output as floats.\n"
-      "                      Thus, the ONLY purpose of the '-float' option\n"
-      "                      is to force an all-shorts input dataset to be\n"
-      "                      saved as all-floats after blurring.\n"
+      "                      format as well.  In EVERY other case, the\n"
+      "                      program saves the output as floats. Thus,\n"
+      "                      the ONLY purpose of the '-float' option is to\n"
+      "                      force an all-shorts input dataset to be saved\n"
+      "                      as all-floats after blurring.\n"
       "\n"
       "NOTES\n"
       "-----\n"
@@ -100,6 +105,10 @@ int main( int argc , char *argv[] )
    /*---- loop over options ----*/
 
    while( iarg < argc && argv[iarg][0] == '-' ){
+
+     if( strncmp(argv[iarg],"-preserve",5) == 0 ){  /* 19 Oct 2009 */
+       do_preserve = 1 ; iarg++ ; continue ;
+     }
 
      if( strncmp(argv[iarg],"-qui",4) == 0 ){
        verb = 0 ; iarg++ ; continue ;
@@ -221,7 +230,11 @@ int main( int argc , char *argv[] )
          DSET_BRICK_TYPE(inset,0) != MRI_short  ){
        if( verb ) INFO_message("forcing output to be stored in float format") ;
        floatize = 1 ;
+     } else {
+       if( verb ) INFO_message("output dataset will be stored as shorts") ;
      }
+   } else {
+       if( verb ) INFO_message("output dataset will be stored as floats") ;
    }
 
 #if 0
@@ -271,66 +284,95 @@ int main( int argc , char *argv[] )
 
    nvals = DSET_NVALS(inset) ;
 
+   use_qsar = (do_preserve || mmask != NULL) ; /* 19 Oct 20090 */
+
 #pragma omp parallel if( nvals > 1 )
  {
-   MRI_IMAGE *dsim ; int ids ; byte *qmask=NULL ;
+   MRI_IMAGE *dsim ; int ids ; byte *qmask=NULL ; register int vv ;
    MRI_IMAGE *qim=NULL, *qsim=NULL; float *qar, *dsar, *qsar;
  AFNI_OMP_START ;
 #pragma omp critical (MALLOC)
-   { if( mmask != NULL ){
+   { if( use_qsar ){
+       qsim  = mri_new_conforming(DSET_BRICK(inset,0),MRI_float); qsar = MRI_FLOAT_PTR(qsim);
+     }
+     if( mmask != NULL ){
        qmask = (byte *)malloc(sizeof(byte)*nvox) ;
        qim   = mri_new_conforming(immask,MRI_float); qar  = MRI_FLOAT_PTR(qim);
-       qsim  = mri_new_conforming(immask,MRI_float); qsar = MRI_FLOAT_PTR(qsim);
        qim->dx = dx ; qim->dy = dy ; qim->dz = dz ;
-    }}
+     }
+   }
 #pragma omp for
    for( ids=0 ; ids < nvals ; ids++ ){
 #pragma omp critical (MALLOC)
-     { dsim = mri_scale_to_float(DSET_BRICK_FACTOR(inset,ids),DSET_BRICK(inset,ids)); }
-     DSET_unload_one(inset,ids) ;
+     { dsim = mri_scale_to_float(DSET_BRICK_FACTOR(inset,ids),DSET_BRICK(inset,ids));
+       DSET_unload_one(inset,ids) ;
+     }
      dsim->dx = dx ; dsim->dy = dy ; dsim->dz = dz ; dsar = MRI_FLOAT_PTR(dsim) ;
 
+     /* if needed, initialize qsar with data to be preserved in output */
+
+     if( do_preserve ){
+       for( vv=0 ; vv < nvox ; vv++ ) qsar[vv] = dsar[vv] ;
+     } else if( mmask != NULL ){
+       for( vv=0 ; vv < nvox ; vv++ ) qsar[vv] = 0.0f ;
+     }
+
      if( mmask != NULL ){         /* 07 Oct 2009: multiple masks */
-       int qq ; register int vv ; register short uval ;
-       for( vv=0 ; vv < nvox ; vv++ ) qsar[vv] = 0.0f ; /* initialize qsar */
+       int qq ; register short uval ;
        for( qq=0 ; qq < nuniq_mmask ; qq++ ){
          uval = unval_mmask[qq] ; if( uval == 0 ) continue ;
-         for( vv=0 ; vv < nvox ; vv++ ) qmask[vv] = (mmask[vv]==uval) ;
+         for( vv=0 ; vv < nvox ; vv++ ) qmask[vv] = (mmask[vv]==uval) ; /* make mask */
          (void)THD_mask_remove_isolas( mask_nx,mask_ny,mask_nz , qmask ) ;
          nmask = THD_countmask( nvox , qmask ) ;
-         if( verb && ids==0 ) INFO_message("voxels in Mmask[%d] = %d",uval,nmask) ;
+         if( verb && ids==0 ) ININFO_message("voxels in Mmask[%d] = %d",uval,nmask) ;
          if( nmask >= MASK_MIN ){
            /* copy data from dataset to qar */
            for( vv=0 ; vv < nvox ; vv++ ) if( qmask[vv] ) qar[vv] = dsar[vv] ;
-           /* blur qar */
+           /* blur qar (output will be zero where qmask==0) */
            mri_blur3D_addfwhm( qim , qmask , fwhm_goal ) ;  /** the real work **/
            /* copy results back to qsar */
            for( vv=0 ; vv < nvox ; vv++ ) if( qmask[vv] ) qsar[vv] = qar[vv] ;
          }
        }
-       /* copy combined results in qsar to dsar for output */
-       for( vv=0 ; vv < nvox ; vv++ ) dsar[vv] = qsar[vv] ;
 
      } else {                      /* the olden way: 1 mask */
 
        mri_blur3D_addfwhm( dsim , mask , fwhm_goal ) ;  /** all the work **/
 
+       /* dsim will be zero where mask==0;
+          if we want to preserve the input values, copy dsar into qsar now
+          at all mask!=0 voxels, since qsar contains the original data values */
+
+       if( do_preserve ){
+         for( vv=0 ; vv < nvox ; vv++ ) if( mask[vv] ) qsar[vv] = dsar[vv] ;
+       }
+
+     }
+
+     /* if necessary, copy combined results in qsar to dsar for output */
+
+     if( use_qsar ){
+       for( vv=0 ; vv < nvox ; vv++ ) dsar[vv] = qsar[vv] ;
      }
 
      if( floatize ){
-       EDIT_substitute_brick( outset , ids , MRI_float , MRI_FLOAT_PTR(dsim) ) ;
+       EDIT_substitute_brick( outset , ids , MRI_float , dsar ) ;
      } else {
 #pragma omp critical (MALLOC)
-       { EDIT_substscale_brick( outset , ids , MRI_float , MRI_FLOAT_PTR(dsim) ,
-                                               MRI_short , 1.0f ) ;
+       { EDIT_substscale_brick( outset , ids , MRI_float , dsar ,
+                                               MRI_short , 1.0f  ) ;
          mri_free(dsim) ;
        }
      }
-   }
+   } /* end of loop over sub-bricks */
+
 #pragma omp critical (MALLOC)
-   { if( immask != NULL ){ free(qmask); mri_free(qim); mri_free(qsim); } }
+   { if( qsim   != NULL ) mri_free(qsim);
+     if( immask != NULL ){ free(qmask); mri_free(qim); }
+   }
  AFNI_OMP_END ;
  } /* end OpenMP */
+
    if(   mask != NULL )     free(  mask) ;
    if( immask != NULL ) mri_free(immask) ;
 
