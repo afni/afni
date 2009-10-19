@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 19 , OCT , 2009 , RWC , "3dBlurInMask" , MICRO , TYPE_NEW_OPT ,
+   "add -preserve option, to keep Rick Reynolds from defecting to SPM" ,
+   NULL } ,
+
  { 16 , OCT , 2009 , RWC , "cs_qmed.c" , MICRO , TYPE_GENERAL ,
    "added function to compute biweight midvariance" ,
    NULL } ,
