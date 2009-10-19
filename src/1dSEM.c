@@ -193,6 +193,7 @@ main (int argc, char *argv[])
   machdep ();
   AFNI_logger ("1dSEM", argc, argv);
   PRINT_VERSION("1dSEM") ; AUTHOR("Daniel Glen, Gang Chen") ;
+  putenv("AFNI_1D_ZERO_TEXT=YES") ;
   nopt = 1;
   while (nopt < argc && argv[nopt][0] == '-')
     {

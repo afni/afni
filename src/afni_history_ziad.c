@@ -65,6 +65,22 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 16 , OCT , 2009 , ZSS , "afni" , MICRO , TYPE_MODIFY ,
+   "Turned off zeroing of uncommented text in .1D files",
+   "You can turn this behaviour back on by setting env\n"
+   "AFNI_1D_ZERO_TEXT to YES"
+ } ,
+
+ { 16 , OCT , 2009 , ZSS , "1dSEM" , MICRO , TYPE_MODIFY ,
+   "Setenv AFNI_1D_ZERO_TEXT to YES  ",
+   NULL
+ } ,
+
+ { 15 , OCT , 2009 , ZSS , "afni" , MICRO , TYPE_MODIFY ,
+   "Manual graph scaling forces AUTOSCALE [A] off",
+   NULL
+ } ,
+
  { 14 , OCT , 2009 , ZSS , "suma" , MINOR , TYPE_MODIFY ,
    "Direct viewing of pre-processed datasets in Dot xform",
    NULL
