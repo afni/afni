@@ -2265,7 +2265,34 @@ int SUMA_Read_2Ddfile (char *f_name, int **x, int n_rows, int n_cols)
 /*! 
 count the number of float values in a file
 -1 if the file could not be open
+1D reading based.
 */ 
+int SUMA_float_file_size_1D(char *f_name)
+{
+   static char FuncName[]={"SUMA_float_file_size_1D"};
+   int i=0, ncol = 0, nrow = 0;
+   MRI_IMAGE *im = NULL;
+   float *far=NULL;
+
+   SUMA_ENTRY;
+
+   im = mri_read_1D (f_name);
+   
+   if (!im) {
+      SUMA_SLP_Err("Failed to read 1D file");
+      SUMA_RETURN(-1);
+   }
+   
+   far = MRI_FLOAT_PTR(im);
+   ncol = im->nx;
+   nrow = im->ny;
+   
+   mri_free(im); im = NULL;   /* done with that baby */
+
+   SUMA_RETURN(ncol);
+}
+
+/* dumber version of SUMA_float_file_size_1D */
 int SUMA_float_file_size (char *f_name)
 { 
    int cnt=0,ex;

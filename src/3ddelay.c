@@ -865,7 +865,6 @@ MRI_IMAGE * read_time_series
 
 
   /*----- Read the time series file -----*/
-
   flim = mri_read_1D(ts_filename) ;
   if (flim == NULL)
     {
@@ -1152,7 +1151,8 @@ void check_for_valid_inputs
   int NLast;               /* last image from input 3d+time dataset to use */
   int N;                   /* number of usable time points */
 	int lncheck;
-
+   byte LocalHead = 0;
+   
   /*----- Initialize local variables -----*/
   if (option_data->input1D_filename != NULL)
     nt = fmri_length;
@@ -1205,6 +1205,7 @@ void check_for_valid_inputs
 	option_data->rvec = (float *)    malloc (sizeof(float) * option_data->ln+1);       MTEST (option_data->rvec);
 
   /*------- Load Reference Time Series ------------------*/
+if (LocalHead) fprintf(stderr,"Checking ref\n");
   lncheck = float_file_size (option_data->ideal_filename[0]);
   if (lncheck != nt)
   	{
@@ -1212,12 +1213,13 @@ void check_for_valid_inputs
 		exit (1);
 	}
   
+if (LocalHead) fprintf(stderr,"Checking ref2\n");
 	if (Read_part_file_delay (option_data->rvec, option_data->ideal_filename[0], option_data->NFirst,option_data->NLast) <= 0) {
       printf("Error: Reference filename could not be read or contain too few values.\n");
 		exit (1);
    }  
 
-	 
+if (LocalHead) fprintf(stderr,"Bucket names\n");	 
   /* --- decide on the bucket name ----*/ 
 	if (option_data->bucket_filename == NULL)
 	{
@@ -1254,6 +1256,7 @@ void check_for_valid_inputs
 	
  /* ------- Open files for writing -------------*/
  	
+if (LocalHead) fprintf(stderr,"Output files\n");	 
 	option_data->outlogfile = fopen (option_data->outnamelog,"w"); /* open log file regardless */
 	
 	if (option_data->out == YUP)									/* open outfile */
@@ -1348,6 +1351,9 @@ void initialize_program
 )
      
 {
+  byte LocalHead = 0;
+  
+   if (LocalHead) fprintf(stderr,"In init prog.\n");
   /*----- Allocate memory -----*/
   *option_data = (DELAY_options *) malloc (sizeof(DELAY_options));
 
@@ -1357,7 +1363,8 @@ void initialize_program
 
 
   /*----- Read input data -----*/
-  read_input_data (*option_data, dset_time, mask_dset, fmri_data, fmri_length,
+   if (LocalHead) fprintf(stderr,"Reading input\n");
+   read_input_data (*option_data, dset_time, mask_dset, fmri_data, fmri_length,
 		   ort_array, ort_list, ideal_array, ideal_list);
 
 
@@ -1367,9 +1374,11 @@ void initialize_program
   
 
   /*----- Allocate memory for output volumes -----*/
+   if (LocalHead) fprintf(stderr,"Allocation\n");
   if ((*option_data)->input1D_filename == NULL)
     allocate_memory (*option_data, *dset_time, fim_params_vol);
 
+   if (LocalHead) fprintf(stderr,"returning from init prog.\n");
 }
 
 
@@ -2342,7 +2351,7 @@ int main
 
   float ** fim_params_vol = NULL;
                                 /* array of volumes of fim output parameters */
-
+  byte LocalHead = 0;
   
   /*----- Identify software -----*/
 #if 0
@@ -2356,18 +2365,21 @@ int main
    PRINT_VERSION("3ddelay") ; AUTHOR(PROGRAM_AUTHOR) ; mainENTRY("3ddelay main") ; machdep() ;
 
   /*----- Program initialization -----*/
+  if (LocalHead) fprintf(stderr,"Initializing ...");
   initialize_program (argc, argv, &option_data, &dset_time, &mask_dset, 
 		      &fmri_data, &fmri_length, 
 		      ort_array, ort_list, ideal_array, ideal_list, 
 		      &fim_params_vol);
+  if (LocalHead) fprintf(stderr,"\n");
 
 
   /*----- Perform fim analysis -----*/
+  if (LocalHead) fprintf(stderr,"Calculating ...");
   calculate_results (option_data, dset_time, mask_dset, 
 		     fmri_data, fmri_length,
 		     ort_array, ort_list, ideal_array, ideal_list, 
 		     fim_params_vol);
-  
+  if (LocalHead) fprintf(stderr,"\n");
 
   /*----- Deallocate memory for input datasets -----*/   
   if (dset_time != NULL)  
@@ -2377,8 +2389,10 @@ int main
 
 
   /*----- Write requested output files -----*/
+  if (LocalHead) fprintf(stderr,"Writing results...");
   if (option_data->input1D_filename == NULL)
     output_results (argc, argv, option_data, fim_params_vol);
+  if (LocalHead) fprintf(stderr,"\n");
 
 
   /*----- Terminate program -----*/
