@@ -2074,16 +2074,24 @@ static floatvec * decode_linebuf( char *buf )  /* 20 Jul 2004 */
      val = 0.0 ; count = 1 ;
      if (slowmo) {   /* trickery */
         sscanf( buf+bpos , "%63s" , vbuf ) ;
-        
         if (!oktext && iznogood_1D(vbuf[0])) {/* Morality Police Oct 16 09 */
-            fv->nar = 0; /* this will cause a clean up on the way out */
-                         /* If you do not do this, you would not get consistent*/
-                         /* behavior if there is text in a matrix and the env */
-                         /* AFNI_1D_ZERO_TEXT is not YES */
+            if (vbuf[0] != '#') { /* not a comment, die */
+               fv->nar = 0; /* this will cause a clean up on the way out */
+                   /* By setting nar to 0, reading of 1D file will terminate*/
+                   /* at first row where text is encountered whenever  */
+                   /* AFNI_1D_ZERO_TEXT is not YES . This is more consistent */
+                   /* than the alternative. For example: */
+                   /* if nar is not set to 0, then a file that has */
+                   /*    1 a 3 
+                         4 b 6  comes out as a 1 column vector,
+                     but 
+                         1 2 3
+                         4 b 6  comes out as a 3x3 matrix            */
+            }
             break;   
         }
         
-        if( vbuf[0] == '*' || isalpha(vbuf[0]) ){    /* 10 Aug 2004 */
+        if( vbuf[0] == '*' || isalpha(vbuf[0]) ){  /* 10 Aug 2004 */
           val = lbfill ;
         } else if( (cpt=strchr(vbuf,'@')) != NULL ){
           sscanf( vbuf , "%d%c%f" , &count , &sep , &val ) ;
