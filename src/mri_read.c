@@ -2008,7 +2008,9 @@ static char * my_fgets( char *buf , int size , FILE *fts )
 
 /*--------------------------------------------------------------*/
 static float lbfill = 0.0f ;  /* 10 Aug 2004 */
-static int oktext = 0;
+static int oktext = 0;           /*   ZSS: Oct 16 2009 */
+static int linebufdied = 0;      /*   ZSS: Oct 19 2009 */
+static int doublelinebufdied = 0;/*   ZSS: Oct 19 2009 */
 /*--------------------------------------------------------------*/
 
 /* return a 1 if c is a not a valid first non-white char of a 
@@ -2037,7 +2039,8 @@ static floatvec * decode_linebuf( char *buf )  /* 20 Jul 2004 */
 
    blen = strlen(buf) ;
    ncol = 0 ;
-
+   linebufdied = 0;  
+   
    /* convert commas (or 'i' for complex numbers ZSS Oct 06) to blanks */
    /* note 'e' is commonly found in numeric files as in scientific notation*/
    for( ii=0 ; ii < blen ; ii++ ) {
@@ -2067,6 +2070,7 @@ static floatvec * decode_linebuf( char *buf )  /* 20 Jul 2004 */
 
    for( bpos=0 ; bpos < blen ; ){
      /* skip to next nonblank character */
+     
      for( ; bpos < blen && isspace(buf[bpos]) ; bpos++ ) ; /* nada */
      if( bpos == blen ) break ;    /* end of line */
 
@@ -2076,6 +2080,7 @@ static floatvec * decode_linebuf( char *buf )  /* 20 Jul 2004 */
         sscanf( buf+bpos , "%63s" , vbuf ) ;
         if (!oktext && iznogood_1D(vbuf[0])) {/* Morality Police Oct 16 09 */
             if (vbuf[0] != '#') { /* not a comment, die */
+               linebufdied = 1;
                fv->nar = 0; /* this will cause a clean up on the way out */
                    /* By setting nar to 0, reading of 1D file will terminate*/
                    /* at first row where text is encountered whenever  */
@@ -2137,6 +2142,7 @@ static doublevec * decode_double_linebuf( char *buf )  /* 20 Jul 2004 */
 
    blen = strlen(buf) ;
    ncol = 0 ;
+   doublelinebufdied = 0;  
 
    /* convert commas (or 'i' for complex numbers ZSS Oct 06) to blanks */
    /* note 'e' is commonly found in numeric files as in scientific notation*/
@@ -2175,7 +2181,15 @@ static doublevec * decode_double_linebuf( char *buf )  /* 20 Jul 2004 */
      val = 0.0 ; count = 1 ;
      if (slowmo) {   /* trickery */
         sscanf( buf+bpos , "%63s" , vbuf ) ;
-        if( vbuf[0] == '*' ){    /* 10 Aug 2004 */
+        if (!oktext && iznogood_1D(vbuf[0])) {/* Morality Police Oct 16 09 */
+            if (vbuf[0] != '#') { /* not a comment, die */
+               doublelinebufdied = 1;
+               dv->nar = 0; /* for comment, see same section in decode_linebuf */
+            }
+            break;   
+        }
+        
+        if( vbuf[0] == '*' || isalpha(vbuf[0]) ){    /* 10 Aug 2004 */
           val = (double)lbfill ;
         } else if( (cpt=strchr(vbuf,'@')) != NULL ){
           sscanf( vbuf , "%d%c%lf" , &count , &sep , &val ) ;
@@ -2279,6 +2293,10 @@ STATUS(fname) ;  /* 16 Oct 2007 */
 
    fvec = decode_linebuf( buf ) ;           /* 20 Jul 2004 */
    if( fvec == NULL || fvec->nar == 0 ){
+     if (linebufdied) {/* death?  ZSS: Oct 19 2009*/
+        fprintf(stderr,
+                "\n** Error: Failed parsing data row 0 of 1D file\n");
+     }
      if( fvec != NULL ) KILL_floatvec(fvec) ;
      FRB(buf); fclose(fts); RETURN(NULL);
    }
@@ -2329,6 +2347,14 @@ STATUS(fname) ;  /* 16 Oct 2007 */
    /* from <= 1 to < 1 (allow 1x1 image) 25 Jan 2006 [rickr] */
    if( used_tsar < 1 ){ FRB(buf); free(tsar); RETURN(NULL); }
 
+   if (linebufdied) {/* death? ZSS: Oct 19 2009 */
+      fprintf(stderr,
+                "\n** Error: Failed parsing data row %d of 1D file\n", nrow);
+      if (tsar) free(tsar); tsar = NULL;
+      FRB(buf);
+      RETURN(NULL); 
+   }
+   
    tsar = (float *) realloc( tsar , sizeof(float) * used_tsar ) ;
    if( tsar == NULL ){
       fprintf(stderr,"\n*** final realloc error in mri_read_ascii ***\n"); EXIT(1);
@@ -2359,6 +2385,9 @@ MRI_IMAGE * mri_read_double_ascii( char * fname )
 
 ENTRY("mri_read_double_ascii") ;
 
+   if (AFNI_yesenv("AFNI_1D_ZERO_TEXT")) oktext = 1;  /* ZSS Oct 16 09 */
+   else oktext = 0;
+   
    if( fname == NULL || fname[0] == '\0' ) RETURN(NULL) ;
 
    if( strncmp(fname,"1D:",3) == 0 ){         /* 28 Apr 2003 */
@@ -2385,6 +2414,10 @@ ENTRY("mri_read_double_ascii") ;
 
    dvec = decode_double_linebuf( buf ) ;           /* 20 Jul 2004 */
    if( dvec == NULL || dvec->nar == 0 ){
+     if (doublelinebufdied) {/* death? ZSS: Oct 19 2009 */
+        fprintf(stderr,
+                "\n** Error: Failed parsing data row 0 of 1D file\n");
+     }
      if( dvec != NULL ) KILL_doublevec(dvec) ;
      FRB(buf); fclose(fts); RETURN(NULL);
    }
@@ -2435,6 +2468,14 @@ ENTRY("mri_read_double_ascii") ;
    /* from <= 1 to < 1 (allow 1x1 image) 25 Jan 2006 [rickr] */
    if( used_tsar < 1 ){ FRB(buf); free(dtsar); RETURN(NULL); }
 
+   if (doublelinebufdied) {/* death? ZSS: Oct 19 2009 */
+      fprintf(stderr,
+                "\n** Error: Failed parsing data row %d of 1D file\n", nrow);
+      if (dtsar) free(dtsar); dtsar = NULL;
+      FRB(buf);
+      RETURN(NULL); 
+   }
+   
    dtsar = (double *) realloc( dtsar , sizeof(double) * used_tsar ) ;
    if( dtsar == NULL ){
       fprintf(stderr,"\n*** final realloc error in mri_read_double_ascii ***\n"); EXIT(1);
@@ -2493,6 +2534,10 @@ ENTRY("mri_read_complex_ascii") ;
 
    vec = decode_linebuf( buf ) ;           /* 20 Jul 2004 */
    if( vec == NULL || vec->nar == 0 ){
+     if (linebufdied) {/* death?  ZSS: Oct 19 2009*/
+        fprintf(stderr,
+                "\n** Error: Failed parsing data row 0 of 1D file\n");
+     }
      if( vec != NULL ) KILL_floatvec(vec) ;
      FRB(buf); fclose(fts); RETURN(NULL);
    }
@@ -2548,6 +2593,14 @@ ENTRY("mri_read_complex_ascii") ;
    /* from <= 1 to < 1 (allow 1x1 image) 25 Jan 2006 [rickr] */
    if( used_tsar < 1 ){ FRB(buf); free(tsar); RETURN(NULL); }
 
+   if (linebufdied) {/* death? ZSS: Oct 19 2009 */
+      fprintf(stderr,
+                "\n** Error: Failed parsing data row %d of 1D file\n", nrow);
+      if (tsar) free(tsar); tsar = NULL;
+      FRB(buf);
+      RETURN(NULL); 
+   }
+   
    tsar = (float *) realloc( tsar , sizeof(float) * used_tsar ) ;
    if( tsar == NULL ){
       fprintf(stderr,"\n*** final realloc error in mri_read_complex_ascii ***\n"); EXIT(1);
