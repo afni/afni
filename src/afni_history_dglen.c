@@ -49,6 +49,19 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 19 , OCT , 2009 , DRG , "align_epi_anat.py" , 
+    MAJOR , TYPE_NEW_OPT, "New master options, dset1/2 terminology",
+    "New master_nnn_dxyz options to specify output resolution\n"
+    "dset1 and dset2 for non-EPI/anat alignment with lpa cost function\n"
+    "and turns off preprocessing steps\n"
+    "giant_move option turns off resampling and changes master options\n"
+    "Expanded help - including fuller description of edge method\n"
+    "Removed volume registration (motion correction) for anat2epi option\n"
+    "by default.\n"
+    "AFNI dataset views (+orig/+acpc/+tlrc) are maintained in output\n"
+    "depending on BASE, SOURCE or external dataset names for all output\n"
+} ,
+
 { 29 , SEP , 2009 , DRG , "McRetroTS" , 
     MINOR , TYPE_NEW_OPT, "Opt options available to compiled version",
     "All options available through the Opt structure are now available\n"
