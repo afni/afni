@@ -175,7 +175,7 @@ SUMA_KUBATEST_OPTIONS *SUMA_SampBias_ParseInput (char *argv[], int argc, SUMA_KU
             fprintf (SUMA_STDERR, "need argument after -out \n");
             exit (1);
          }
-         Opt->outfile = argv[kar];
+         Opt->outfile = SUMA_copy_string(argv[kar]);
          brk = YUP;
       }
      
