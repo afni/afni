@@ -891,7 +891,8 @@ static int equal_strings (char *s1,char *s2)
 
 /*-----------------------------------------------------------------------------------*/	
 
-static int float_file_size (char *f_name)
+/* Fails miserably with commented .1D files */ 
+static int float_file_size_junk (char *f_name)
    
     { 
       
@@ -918,6 +919,31 @@ static int float_file_size (char *f_name)
       fclose (internal_file);
       return (cnt);                                                          
    }
+
+/* inefficient version but more robust */   
+static int float_file_size (char *f_name)
+   
+   { 
+      int i=0, ncol = 0, nrow = 0;
+      MRI_IMAGE *im = NULL;
+      float *far=NULL;
+
+      im = mri_read_1D (f_name);
+
+      if (!im) {
+         fprintf(stderr,"Failed to read 1D file\n");
+         return(-1);
+      }
+
+      far = MRI_FLOAT_PTR(im);
+      ncol = im->nx;
+      nrow = im->ny;
+
+      mri_free(im); im = NULL;  
+
+      return(ncol);
+   }
+
 
 /*-----------------------------------------------------------------------------------*/	
 
