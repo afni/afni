@@ -279,6 +279,7 @@ extern long   strtol() ;
 # define expf   exp
 # define atanhf atanh         /* 27 Jul 2009 [rickr] */
 # define atan2f atan2         /* 24 Aug 2009 [RWCox] */
+# define tanhf  tanh          /* 20 Oct 2009 [RWCox] */
 
 #endif
 
