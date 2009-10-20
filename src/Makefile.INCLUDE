@@ -1254,6 +1254,10 @@ afni_vcheck:afni_vcheck.o
 	$(RM) $@
 	$(CC) -o 1ddot 1ddot.o $(LFLAGS) -lmri -lf2c $(LLIBS)
 
+qtest:thd_bstrap_corr.o
+	$(RM) $@
+	$(CC) -o qtest thd_bstrap_corr.o $(LFLAGS) -lmri -lf2c $(LLIBS)
+
 1dcorr:1dcorr.o
 	$(RM) $@
 	$(CC) -o 1dcorr 1dcorr.o $(LFLAGS) -lmri -lf2c $(LLIBS)

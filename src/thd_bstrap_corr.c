@@ -74,9 +74,9 @@ void THD_bstrap_set_bca_alphas( float al1 , float al2 )
    and confidence intervals: M Mudelsee, Mathematical Geology 35:651-665.
 *//*--------------------------------------------------------------------------*/
 
-float_pair THD_bstrap_corr( int npt, float *xx, float *yy, float tau, int nboot )
+float_triple THD_bstrap_corr( int npt, float *xx, float *yy, float tau, int nboot )
 {
-   float_pair retval = {0.0f,0.0f} ;
+   float_triple retval = {0.0f,0.0f,0.0f} ;
    int kb , ii , qq ;
    float rxy , pboot , *rboot , *xb , *yb ; int qboot ;
    float rjbar , ahat , anum,aden , val , z0hat , alpha_b ;
@@ -130,8 +130,32 @@ ENTRY("THD_bstrap_corr") ;
    for( kb=0 ; kb < npt ; kb++ ){
      val = rjbar - xb[kb] ; anum += val*val*val ; aden += val*val ;
    }
-   ahat = anum / (6.0f*aden*sqrtf(aden)) ;
+   ahat = (aden > 0.0f ) ? anum / (6.0f*aden*sqrtf(aden)) : 0.0f ;
    if( ahat < -0.2f ) ahat = -0.2f ; else if( ahat > 0.2f ) ahat = 0.2f ;
+
+   /* compute bootstrap value at alpha_1 level, adjusted */
+
+   val = z0hat + (z0hat - bca_phial_1) / ( 1.0f - ahat*(z0hat - bca_phial_1) ) ;
+   val = nboot * PHI(val) ; kb  = (int)val ; val = val-kb ;
+   rb_al1 = (1.0f-val)*rboot[kb] + val*rboot[kb+1] ;
+
+   /* compute bootstrap value at alpha_2 level, adjusted */
+
+   val = z0hat + (z0hat - bca_phial_2) / ( 1.0f - ahat*(z0hat - bca_phial_2) ) ;
+   val = nboot * PHI(val) ; kb  = (int)val ; val = val-kb ;
+   rb_al2 = (1.0f-val)*rboot[kb] + val*rboot[kb+1] ;
+
+   /* compute bootstrap value at 1-alpha_2 level, adjusted */
+
+   val = z0hat + (z0hat + bca_phial_2) / ( 1.0f - ahat*(z0hat + bca_phial_2) ) ;
+   val = nboot * PHI(val) ; kb  = (int)val ; val = val-kb ;
+   rb_au2 = (1.0f-val)*rboot[kb] + val*rboot[kb+1] ;
+
+   /* compute bootstrap value at 1-alpha_1 level, adjusted */
+
+   val = z0hat + (z0hat + bca_phial_1) / ( 1.0f - ahat*(z0hat + bca_phial_1) ) ;
+   val = nboot * PHI(val) ; kb  = (int)val ; val = val-kb ;
+   rb_au1 = (1.0f-val)*rboot[kb] + val*rboot[kb+1] ;
 
    /* compute bootstrap value at alpha_1 level, adjusted */
 
@@ -169,7 +193,7 @@ ENTRY("THD_bstrap_corr") ;
    val = nboot * PHI(val) ; kb  = (int)val ; val = val-kb ;
    med = (1.0f-val)*rboot[kb] + val*rboot[kb+1] ;
 
-   retval.a = med ; retval.b = sig ;
+   retval.a = med ; retval.b = sig ; retval.c = rxy ;
 
 #if 0
    /* convert rboot into alpha values */
@@ -189,6 +213,7 @@ ENTRY("THD_bstrap_corr") ;
    { free(rboot) ; }
    RETURN(retval) ;
 }
+
 /*----------------------------------------------------------------------------*/
 
 #undef  A
@@ -363,13 +388,18 @@ static float principal_vector( int n , int m , int xtyp , void *xp ,
 #undef A
 
 /*----------------------------------------------------------------------------*/
+/* Return bootstrap BCa estimates for atanh(correlation) and stdev of that,
+   plus the un-corrected 'raw' correlation, in a triple of floats.
+*//*--------------------------------------------------------------------------*/
 
-float_pair THD_bstrap_vectcorr( int nlen , int nboot ,
-                                int xnum , float *xx , int ynum , float *yy )
+static int use_pca = 0 ;
+
+float_triple THD_bstrap_vectcorr( int nlen , int nboot ,
+                                  int xnum , float *xx , int ynum , float *yy )
 {
-   float_pair retval = {0.0f,0.0f} ;
+   float_triple retval = {0.0f,0.0f,0.0f} ;
    float **xar, **yar, *rboot, *rjack, *xbar, *ybar, *uvec, *vvec, *zvec ;
-   float rxy , rjbar , anum,aden,ahat , val , z0hat ;
+   float rxy , rjbar , anum,aden,ahat , val , z0hat , zval ;
    float rb_al1 , rb_al2 , rb_au1 , rb_au2 , sig1,sig2,sig , med ;
    int kb,ii,jj , njack ;
 
@@ -378,6 +408,15 @@ ENTRY("THD_bstrap_vectcorr") ;
    if( nlen < 3 || xnum < 1 || ynum < 1 || xx == NULL || yy == NULL )
      RETURN(retval) ;
 
+   /* trivial case */
+
+   if( xnum == 1 && ynum == 1 ){
+     retval = THD_bstrap_corr( nlen , xx , yy , 0.0f , nboot ) ;
+     RETURN(retval) ;
+   }
+
+   /* compute mean vectors */
+
 #pragma omp critical (MALLOC)
    { xbar = (float *)malloc(sizeof(float)*nlen) ;
      ybar = (float *)malloc(sizeof(float)*nlen) ; }
@@ -385,12 +424,16 @@ ENTRY("THD_bstrap_vectcorr") ;
    mean_vector( nlen , xnum , 0 , xx , xbar ) ;
    mean_vector( nlen , ynum , 0 , yy , ybar ) ;
 
+   /* almost trivial case */
+
    if( xnum < 7 || ynum < 7 ){
      retval = THD_bstrap_corr( nlen , xbar , ybar , 0.0f , nboot ) ;
 #pragma omp critical (MALLOC)
      { free(ybar) ; free(xbar) ; }
      RETURN(retval) ;
    }
+
+   /** allocate memory for bootstrapping **/
 
    if( nboot < 666 ) nboot = 666 ;
    njack = xnum + ynum ;
@@ -407,51 +450,81 @@ ENTRY("THD_bstrap_vectcorr") ;
 
    /* correlation with no resampling at all */
 
-   (void)principal_vector( nlen , xnum , 0 , xx , uvec , xbar ) ;
-   (void)principal_vector( nlen , ynum , 0 , yy , vvec , ybar ) ;
+   if( use_pca ){
+     (void)principal_vector( nlen , xnum , 0 , xx , uvec , xbar ) ;
+     (void)principal_vector( nlen , ynum , 0 , yy , vvec , ybar ) ;
+   } else {
+#pragma omp critical (MEMCPY)
+     { memcpy(uvec,xbar,sizeof(float)*nlen) ;
+       memcpy(vvec,ybar,sizeof(float)*nlen) ; }
+   }
    rxy = acorrfun( nlen , uvec , vvec ) ;
+INFO_message("rxy = %g",rxy) ;
 
-   /* jackknife correlations */
+   /* jackknife correlations: omit 1 vector at a time */
 
+INFO_message("jackknife %d times",njack) ;
    for( kb=0 ; kb < xnum ; kb++ ){
      for( jj=ii=0 ; ii < xnum ; ii++ ){
        if( ii != kb ) xar[jj++] = xx + ii*nlen ;
      }
-     (void)principal_vector( nlen , xnum-1 , 0 , xar , zvec , xbar ) ;
+     if( use_pca )
+       (void)principal_vector( nlen , xnum-1 , 1 , xar , zvec , xbar ) ;
+     else
+       mean_vector( nlen , xnum-1 , 1 , xar , zvec ) ;
      rjack[kb] = acorrfun( nlen , zvec , vvec ) ;
    }
    for( kb=0 ; kb < ynum ; kb++ ){
      for( jj=ii=0 ; ii < ynum ; ii++ ){
        if( ii != kb ) yar[jj++] = yy + ii*nlen ;
      }
-     (void)principal_vector( nlen , ynum-1 , 0 , yar , zvec , xbar ) ;
+     if( use_pca )
+       (void)principal_vector( nlen , ynum-1 , 1 , yar , zvec , ybar ) ;
+     else
+       mean_vector( nlen , ynum-1 , 1 , yar , zvec ) ;
      rjack[kb+xnum] = acorrfun( nlen , uvec , zvec ) ;
    }
 
-   /* compute acceleration parameter ahat */
+   /* compute acceleration parameter ahat from the jackknifed values */
 
    rjbar = 0.0f ;
-   for( kb=0 ; kb < njack ; kb++ ) rjbar += rjack[kb] ;
+   for( kb=0 ; kb < njack ; kb++ ) rjbar += rjack[kb] ;  /* mean */
    rjbar /= njack ;
    anum = aden = 0.0f ;
-   for( kb=0 ; kb < njack ; kb++ ){
+   for( kb=0 ; kb < njack ; kb++ ){  /* skewness */
      val = rjbar - rjack[kb] ; anum += val*val*val ; aden += val*val ;
    }
-   ahat = anum / (6.0f*aden*sqrtf(aden)) ;
+   ahat = (aden > 0.0f ) ? anum / (6.0f*aden*sqrtf(aden)) : 0.0f ;
    if( ahat < -0.2f ) ahat = -0.2f ; else if( ahat > 0.2f ) ahat = 0.2f ;
-
+ININFO_message("ahat=%g  anum=%g  aden=%g",ahat,anum,aden) ;
+ININFO_message("rjbar=%g rjcorr=%g rjsig=%g",rjbar,njack*rxy-(njack-1.0f)*rjbar,sqrtf(aden*(njack-1.0f)/njack)) ;
+#if 0
+   { float kappa , alpha ;
+     kappa = rxy / rjbar ; kappa *= kappa ;
+ININFO_message("  kappa = %g",kappa) ;
+     alpha = (1.0f-kappa) / (kappa - njack/(njack-1.0f)) ;
+ININFO_message("  alpha = %g",alpha) ;
+     if( alpha > 0.0f ) ININFO_message("  rjjjj = %g",rxy*sqrtf(1.0f+alpha));
+   }
+#endif
 
    /* bootstrap correlations */
 
+INFO_message("bootstrap %d times",nboot) ;
    for( kb=0 ; kb < nboot ; kb++ ){
-     for( ii=0 ; ii < xnum ; ii++ ){
+     for( ii=0 ; ii < xnum ; ii++ ){  /* resample xx vectors */
        jj = (lrand48() >> 3) % xnum ; xar[ii] = xx + jj*nlen ;
      }
-     (void)principal_vector( nlen , xnum , 0 , xar , uvec , xbar ) ;
-     for( ii=0 ; ii < ynum ; ii++ ){
+     for( ii=0 ; ii < ynum ; ii++ ){  /* resample yy vectors */
        jj = (lrand48() >> 3) % ynum ; yar[ii] = yy + jj*nlen ;
      }
-     (void)principal_vector( nlen , ynum , 0 , yar , vvec , ybar ) ;
+     if( use_pca ){
+       (void)principal_vector( nlen , xnum , 1 , xar , uvec , xbar ) ;
+       (void)principal_vector( nlen , ynum , 1 , yar , vvec , ybar ) ;
+     } else {
+       mean_vector( nlen , xnum , 1 , xar , uvec ) ;
+       mean_vector( nlen , ynum , 1 , yar , vvec ) ;
+     }
      rboot[kb] = acorrfun( nlen , uvec , vvec ) ;
    }
 
@@ -459,46 +532,57 @@ ENTRY("THD_bstrap_vectcorr") ;
       then use that to estimate the bias correction parameter z0hat */
 
    qsort_float( nboot , rboot ) ;
+#if 0
+for( kb=0 ; kb < nboot ; kb++ ) printf(" %g\n",rboot[kb]) ;
+#endif
    for( kb=0 ; kb < nboot && rboot[kb] < rxy ; kb++ ) ; /*nada*/
    z0hat = PHINV(kb/(double)nboot) ;  /* kb = number of rboot < rxy */
-   if( z0hat < -1.0f ) z0hat = -1.0f ; else if( z0hat > 1.0f ) z0hat = 1.0f ;
+        if( z0hat >  0.6f ) z0hat =  0.6f + 0.6f * tanhf(0.6f*(z0hat-0.6f)) ;
+   else if( z0hat < -0.6f ) z0hat = -0.6f + 0.6f * tanhf(0.6f*(z0hat+0.6f)) ;
+ININFO_message("kb=%d/%d z0hat=%g",kb,nboot,z0hat) ;
+
    /* compute bootstrap value at alpha_1 level, adjusted */
 
-   val = z0hat + (z0hat + bca_alpha_1) / ( 1.0f - ahat*(z0hat + bca_alpha_1) ) ;
-   val = nboot * PHI(val) ; kb  = (int)val ; val = val-kb ;
+   zval = z0hat + (z0hat - bca_phial_1) / ( 1.0f - ahat*(z0hat - bca_phial_1) ) ;
+   val = nboot * PHI(zval) ; kb  = (int)val ; val = val-kb ;
    rb_al1 = (1.0f-val)*rboot[kb] + val*rboot[kb+1] ;
+INFO_message("alpha=%g zval=%g bs=%g kb=%d",bca_alpha_1,zval,rb_al1,kb) ;
 
    /* compute bootstrap value at alpha_2 level, adjusted */
 
-   val = z0hat + (z0hat + bca_alpha_2) / ( 1.0f - ahat*(z0hat + bca_alpha_2) ) ;
-   val = nboot * PHI(val) ; kb  = (int)val ; val = val-kb ;
+   zval = z0hat + (z0hat - bca_phial_2) / ( 1.0f - ahat*(z0hat - bca_phial_2) ) ;
+   val = nboot * PHI(zval) ; kb  = (int)val ; val = val-kb ;
    rb_al2 = (1.0f-val)*rboot[kb] + val*rboot[kb+1] ;
-
-   /* compute bootstrap value at 1-alpha_1 level, adjusted */
-
-   val = z0hat + (z0hat + 1.0f-bca_alpha_1) / ( 1.0f - ahat*(z0hat + 1.0f-bca_alpha_1) ) ;
-   val = nboot * PHI(val) ; kb  = (int)val ; val = val-kb ;
-   rb_au1 = (1.0f-val)*rboot[kb] + val*rboot[kb+1] ;
+INFO_message("alpha=%g zval=%g bs=%g kb=%d",bca_alpha_2,zval,rb_al2,kb) ;
 
    /* compute bootstrap value at 1-alpha_2 level, adjusted */
 
-   val = z0hat + (z0hat + 1.0f-bca_alpha_2) / ( 1.0f - ahat*(z0hat + 1.0f-bca_alpha_2) ) ;
-   val = nboot * PHI(val) ; kb  = (int)val ; val = val-kb ;
-   rb_au2 = (1.0f-val)*rboot[kb] + val*rboot[kb+1] ;
+   zval = z0hat + (z0hat + bca_phial_2) / ( 1.0f - ahat*(z0hat + bca_phial_2) ) ;
+   val = nboot * PHI(zval) ; kb  = (int)val ; val = val-kb ;
+   rb_au2 = (1.0f-val)*rboot[kb] + val*rboot[kb+1] ; if( kb == nboot-1 ) val = 0.0f ;
+INFO_message("alpha=%g zval=%g bs=%g kb=%d",1.0f-bca_alpha_2,zval,rb_au2,kb) ;
 
-   /* now estimate sigma both ways, then combine them */
+   /* compute bootstrap value at 1-alpha_1 level, adjusted */
+
+   zval = z0hat + (z0hat + bca_phial_1) / ( 1.0f - ahat*(z0hat + bca_phial_1) ) ;
+   val = nboot * PHI(zval) ; kb  = (int)val ; val = val-kb ; if( kb == nboot-1 ) val = 0.0f ;
+   rb_au1 = (1.0f-val)*rboot[kb] + val*rboot[kb+1] ;
+INFO_message("alpha=%g zval=%g bs=%g kb=%d",1.0f-bca_alpha_1,zval,rb_au1,kb) ;
+
+   /* now estimate sigma both ways (from alpha_1 and alpha_2), then combine them */
 
    sig1 = (rb_au1 - rb_al1) / (2.0f*bca_phial_1) ;
    sig2 = (rb_au2 - rb_al2) / (2.0f*bca_phial_2) ;
    sig  = 0.5f * (sig1+sig2) ;
+INFO_message("sig1=%g sig2=%g sig=%g",sig1,sig2,sig) ;
 
-   /* and estimate middle of distribution */
+   /* and estimate middle of distribution (alpha=0.5 level; phi=0.0) */
 
-   val = z0hat + (z0hat + 0.5f) / ( 1.0f - ahat*(z0hat + 0.5f) ) ;
+   val = z0hat + (z0hat + 0.0f) / ( 1.0f - ahat*(z0hat + 0.0f) ) ;
+INFO_message("med: adjusted z=%g",val) ;
    val = nboot * PHI(val) ; kb  = (int)val ; val = val-kb ;
    med = (1.0f-val)*rboot[kb] + val*rboot[kb+1] ;
-
-   retval.a = med ; retval.b = sig ;
+INFO_message("med=%g",med) ;
 
    /* cleanup the trash */
 
@@ -506,6 +590,8 @@ ENTRY("THD_bstrap_vectcorr") ;
    { free(zvec); free(vvec); free(uvec); free(rjack); free(rboot);
      free(yar); free(xar);
    }
+
+   retval.a = med ; retval.b = sig ; retval.c = rxy ;
 
    RETURN(retval) ;
 }
@@ -517,16 +603,32 @@ int main( int argc , char *argv[] )
    int iarg=1 ;
    MRI_IMAGE *aim , *bim ;
    float *aar , *bar ;
+   float_triple rval ;
 
    if( argc < 3 ) ERROR_exit("need 2 file args") ;
 
    if( AFNI_yesenv("NO_DEMEAN") ) acorr_demean = 0 ;
    SET_RAND_SEED ;
+   THD_bstrap_set_bca_alphas( 0.1f , 0.2f ) ;
 
    aim = mri_read_1D(argv[1]) ; if( aim == NULL ) ERROR_exit("Can't read aim") ;
    bim = mri_read_1D(argv[2]) ; if( bim == NULL ) ERROR_exit("Can't read bim") ;
    if( aim->nx != aim->nx ) ERROR_exit("nx not same") ;
 
-   (void)THD_bstrap_corr( aim->nx, MRI_FLOAT_PTR(aim), MRI_FLOAT_PTR(bim), 3.3f,50000 ) ;
+   use_pca = 0 ;
+   fprintf(stderr,"----------- MEAN ---------\n") ;
+   rval = THD_bstrap_vectcorr( aim->nx , 5000 ,
+                               aim->ny , MRI_FLOAT_PTR(aim) ,
+                               bim->ny , MRI_FLOAT_PTR(bim)  ) ;
+   fprintf(stderr,"final = %.5f  %.5f  %.5f\n",rval.a,rval.b,rval.c) ;
+
+#if 1
+   fprintf(stderr,"----------- SVD ---------\n") ;
+   use_pca = 1 ;
+   rval = THD_bstrap_vectcorr( aim->nx , 5000 ,
+                               aim->ny , MRI_FLOAT_PTR(aim) ,
+                               bim->ny , MRI_FLOAT_PTR(bim)  ) ;
+   fprintf(stderr,"final = %.5f  %.5f  %.5f\n",rval.a,rval.b,rval.c) ;
+#endif
    exit(0) ;
 }
