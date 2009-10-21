@@ -2883,7 +2883,8 @@ SUMA_Boolean SUMA_AdoptGroup(SUMA_SurfaceViewer *csv, char *group)
    SUMA_RETURN(YUP);
 }
 
-SUMA_Boolean SUMA_SetViewerLightsForSO(SUMA_SurfaceViewer *cSV, SUMA_SurfaceObject *SO)
+SUMA_Boolean 
+   SUMA_SetViewerLightsForSO(SUMA_SurfaceViewer *cSV, SUMA_SurfaceObject *SO)
 {
    static char FuncName[]={"SUMA_SetViewerLightsForSO"};
    SUMA_Boolean LocalHead = NOPE;

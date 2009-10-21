@@ -921,16 +921,20 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (
          break;
       case SUMA_OPENDX_MESH:
          if (!SUMA_OpenDX_Read_SO ((char *)SO_FileName_vp, SO)) {
-            fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_OpenDX_Read_SO.\n", FuncName);
+            fprintf (SUMA_STDERR,
+                     "Error %s: Failed in SUMA_OpenDX_Read_SO.\n", FuncName);
             SUMA_RETURN(NULL);
          }
          SUMA_NEW_ID(SO->idcode_str,(char *)SO_FileName_vp); 
          
-         /* change coordinates to align them with volparent data set, if possible */
+         /* change coordinates to align them with volparent data set, 
+            if possible */
          if (VolParName != NULL) {
             SO->VolPar = SUMA_VolPar_Attr (VolParName);
             if (SO->VolPar == NULL) {
-               fprintf(SUMA_STDERR,"Error %s: Failed to load parent volume attributes.\n", FuncName);
+               fprintf(SUMA_STDERR,
+                        "Error %s: Failed to load parent volume attributes.\n", 
+                        FuncName);
             } else {
 
             if (!SUMA_Align_to_VolPar (SO, NULL)) SO->SUMA_VolPar_Aligned = NOPE;
@@ -1283,7 +1287,8 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (
          SF->FaceSetList = NULL;
          SO->FaceSetDim = 3; /*This must also be automated */
          
-         /* change coordinates to align them with volparent data set, if possible */
+         /* change coordinates to align them with volparent data set, 
+            if possible */
          if (VolParName != NULL && strlen(SF_FileName->name_param)) {
             SO->VolPar = SUMA_VolPar_Attr (VolParName);
             if (SO->VolPar == NULL) {
@@ -1325,10 +1330,21 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (
       SUMA_RETURN (NULL);
    }
 
+   /* A trick for Stephen Tyree, Pat Bellgowan, and other mad men */
+   if (AFNI_yesenv("SUMA_FLIP_X_COORD")) {
+      int i, id;
+      for (i=0; i < SO->N_Node; ++i) {
+            id = i * SO->NodeDim;
+            SO->NodeList[id] = -SO->NodeList[id];
+      }
+      SO->normdir = -SO->normdir;
+   }
+   
    if (SO->isSphere == SUMA_GEOM_NOT_SET) { 
       SUMA_SetSphereParams(SO, -0.1); 
    }  /* sets the spheriosity parameters */
 
+   
 
    if (!SUMA_PrepSO_GeomProp_GL (SO)) {
       SUMA_SL_Err("Failed to set surface's properties");
