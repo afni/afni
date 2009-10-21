@@ -531,14 +531,16 @@ INFO_message("bootstrap %d times",nboot) ;
    /* find location of rxy in the sorted rboot array,
       then use that to estimate the bias correction parameter z0hat */
 
+#define ZCUT 0.9f
+
    qsort_float( nboot , rboot ) ;
 #if 0
 for( kb=0 ; kb < nboot ; kb++ ) printf(" %g\n",rboot[kb]) ;
 #endif
    for( kb=0 ; kb < nboot && rboot[kb] < rxy ; kb++ ) ; /*nada*/
    z0hat = PHINV(kb/(double)nboot) ;  /* kb = number of rboot < rxy */
-        if( z0hat >  0.6f ) z0hat =  0.6f + 0.6f * tanhf(0.6f*(z0hat-0.6f)) ;
-   else if( z0hat < -0.6f ) z0hat = -0.6f + 0.6f * tanhf(0.6f*(z0hat+0.6f)) ;
+        if( z0hat >  ZCUT ) z0hat =  ZCUT + ZCUT * tanhf(0.5f*(z0hat-ZCUT)) ;
+   else if( z0hat < -ZCUT ) z0hat = -ZCUT + ZCUT * tanhf(0.5f*(z0hat+ZCUT)) ;
 ININFO_message("kb=%d/%d z0hat=%g",kb,nboot,z0hat) ;
 
    /* compute bootstrap value at alpha_1 level, adjusted */
@@ -600,7 +602,7 @@ INFO_message("med=%g",med) ;
 
 int main( int argc , char *argv[] )
 {
-   int iarg=1 ;
+   int iarg=1 , nboot=9999 ;
    MRI_IMAGE *aim , *bim ;
    float *aar , *bar ;
    float_triple rval ;
@@ -615,9 +617,14 @@ int main( int argc , char *argv[] )
    bim = mri_read_1D(argv[2]) ; if( bim == NULL ) ERROR_exit("Can't read bim") ;
    if( aim->nx != aim->nx ) ERROR_exit("nx not same") ;
 
+   if( argc > 3 ){
+     nboot = (int)strtod(argv[3],NULL) ;
+     if( nboot < 666 || nboot > 999999 ) nboot = 9999 ;
+   }
+
    use_pca = 0 ;
    fprintf(stderr,"----------- MEAN ---------\n") ;
-   rval = THD_bstrap_vectcorr( aim->nx , 5000 ,
+   rval = THD_bstrap_vectcorr( aim->nx , nboot,
                                aim->ny , MRI_FLOAT_PTR(aim) ,
                                bim->ny , MRI_FLOAT_PTR(bim)  ) ;
    fprintf(stderr,"final = %.5f  %.5f  %.5f\n",rval.a,rval.b,rval.c) ;
@@ -625,7 +632,7 @@ int main( int argc , char *argv[] )
 #if 1
    fprintf(stderr,"----------- SVD ---------\n") ;
    use_pca = 1 ;
-   rval = THD_bstrap_vectcorr( aim->nx , 5000 ,
+   rval = THD_bstrap_vectcorr( aim->nx , nboot,
                                aim->ny , MRI_FLOAT_PTR(aim) ,
                                bim->ny , MRI_FLOAT_PTR(bim)  ) ;
    fprintf(stderr,"final = %.5f  %.5f  %.5f\n",rval.a,rval.b,rval.c) ;

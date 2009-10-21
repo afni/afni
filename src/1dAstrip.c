@@ -5,7 +5,8 @@
 
 #define LBUF 262144
 
-#define ISGOOD(c) ( isdigit(c) || (c)=='+' || (c)=='-' || (c)=='.' )
+#define ISPMD(c)  ( (c)=='+' || (c)=='-' || (c)=='.' )
+#define ISGOOD(c) ( isdigit(c) || ISPMD(c) )
 
 int main( int argc , char **argv )
 {
@@ -30,8 +31,10 @@ int main( int argc , char **argv )
             "* Numeric characters, for the purpose of this\n"
             "  program, are defined as the digits '0'..'9',\n"
             "  and '.', '+', '-'.\n"
-            "* This help string is longer than the rest of\n"
-            "  the source code to the program!\n"
+            "* The program is simple and can easily end up leaving\n"
+            "  undesired junk characters in the output.  Sorry.\n"
+            "* This help string is longer than the rest of the\n"
+            "  source code to this program!\n"
       ) ;
       exit(0) ;
     }
@@ -41,11 +44,17 @@ int main( int argc , char **argv )
      if( nbuf == 0 ) exit(0) ;
      for( ii=0 ; ii < nbuf ; ii++ ){
        if( isspace(buf[ii]) ) continue ;
-       if( ISGOOD (buf[ii]) ) continue ;
+       if( isdigit(buf[ii]) ) continue ;
        if( buf[ii] == 'e' || buf[ii] == 'E' ){
          if( ii <  nbuf-1 && ii   > 0 && ISGOOD(buf[ii+1]) && ISGOOD(buf[ii-1]) ) continue ;
          if( ii == 0      && nbuf > 1 && ISGOOD(buf[ii+1]) ) continue ;
          if( ii == nbuf-1 && nbuf > 1 && ISGOOD(buf[ii-1]) ) continue ;
+       }
+       if( ISPMD(buf[ii]) ){
+         if( (ii < nbuf-1 && ii > 0)                    &&
+             (isspace(buf[ii-1]) || buf[ii-1]==buf[ii]) &&
+             (isspace(buf[ii+1]) || buf[ii+1]==buf[ii])   ) buf[ii] = ' ' ;
+         continue ;
        }
        buf[ii] = ' ' ;
      }
