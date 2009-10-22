@@ -2295,7 +2295,8 @@ STATUS(fname) ;  /* 16 Oct 2007 */
    if( fvec == NULL || fvec->nar == 0 ){
      if (linebufdied) {/* death?  ZSS: Oct 19 2009*/
         fprintf(stderr,
-                "\n** Error: Failed parsing data row 0 of 1D file\n");
+                "\n** Error: Failed parsing data row 0 of 1D file\n"
+                "          Check for illegal non-numeric characters\n");
      }
      if( fvec != NULL ) KILL_floatvec(fvec) ;
      FRB(buf); fclose(fts); RETURN(NULL);
@@ -2349,7 +2350,8 @@ STATUS(fname) ;  /* 16 Oct 2007 */
 
    if (linebufdied) {/* death? ZSS: Oct 19 2009 */
       fprintf(stderr,
-                "\n** Error: Failed parsing data row %d of 1D file\n", nrow);
+                "\n** Error: Failed parsing data row %d of 1D file\n"
+                "          Check for illegal non-numeric characters\n", nrow);
       if (tsar) free(tsar); tsar = NULL;
       FRB(buf);
       RETURN(NULL); 
@@ -2416,7 +2418,8 @@ ENTRY("mri_read_double_ascii") ;
    if( dvec == NULL || dvec->nar == 0 ){
      if (doublelinebufdied) {/* death? ZSS: Oct 19 2009 */
         fprintf(stderr,
-                "\n** Error: Failed parsing data row 0 of 1D file\n");
+                "\n** Error: Failed parsing data row 0 of 1D file\n"
+                "          Check for illegal non-numeric characters\n");
      }
      if( dvec != NULL ) KILL_doublevec(dvec) ;
      FRB(buf); fclose(fts); RETURN(NULL);
@@ -2470,7 +2473,8 @@ ENTRY("mri_read_double_ascii") ;
 
    if (doublelinebufdied) {/* death? ZSS: Oct 19 2009 */
       fprintf(stderr,
-                "\n** Error: Failed parsing data row %d of 1D file\n", nrow);
+                "\n** Error: Failed parsing data row %d of 1D file\n"
+                "          Check for illegal non-numeric characters\n", nrow);
       if (dtsar) free(dtsar); dtsar = NULL;
       FRB(buf);
       RETURN(NULL); 
@@ -2536,7 +2540,8 @@ ENTRY("mri_read_complex_ascii") ;
    if( vec == NULL || vec->nar == 0 ){
      if (linebufdied) {/* death?  ZSS: Oct 19 2009*/
         fprintf(stderr,
-                "\n** Error: Failed parsing data row 0 of 1D file\n");
+                "\n** Error: Failed parsing data row 0 of 1D file\n"
+                "          Check for illegal non-numeric characters\n");
      }
      if( vec != NULL ) KILL_floatvec(vec) ;
      FRB(buf); fclose(fts); RETURN(NULL);
@@ -2595,7 +2600,8 @@ ENTRY("mri_read_complex_ascii") ;
 
    if (linebufdied) {/* death? ZSS: Oct 19 2009 */
       fprintf(stderr,
-                "\n** Error: Failed parsing data row %d of 1D file\n", nrow);
+                "\n** Error: Failed parsing data row %d of 1D file\n"
+                "          Check for illegal non-numeric characters\n", nrow);
       if (tsar) free(tsar); tsar = NULL;
       FRB(buf);
       RETURN(NULL); 
