@@ -378,6 +378,17 @@ def gaussian_width_to_fwhm(width, mode):
 
     return 0.0
 
+def attr_equals_val(object, attr, val):
+    """return 1 of the object has attribute attr and it equals val"""
+
+    rv = 0
+    try:
+       oval = getattr(object, attr)
+       if oval == val: rv = 1
+    except: pass
+
+    return rv
+
 # ----------------------------------------------------------------------
 # begin matrix functions
 
@@ -619,7 +630,7 @@ def decode_1D_ints(istr, verb=1, max=-1):
     slist = newstr.split(',')
     if len(slist) == 0:
         if verb > 1: print "-- empty 1D_ints from string '%s'" % istr
-        return None
+        return []
     elif verb > 3: print "-- decoding stripped list '%s'" % newstr
     ilist = []                  # init return list
     for s in slist:
@@ -643,7 +654,7 @@ def decode_1D_ints(istr, verb=1, max=-1):
                    elif step < 0: inc = -1
                    else:
                         print "** decode: illegal step of 0 in '%s'" % istr
-                        return None
+                        return []
                    ilist.extend([i for i in range(v1, v2+inc, step)])
                 else:
                    [v1, v2] = [n for n in s.split('..')]
@@ -656,7 +667,7 @@ def decode_1D_ints(istr, verb=1, max=-1):
                 ilist.extend([int(s)])
         except:
             print "** cannot decode_1D '%s' in '%s'" % (s, istr)
-            return None
+            return []
     if verb > 3: print '++ ilist: %s' % ilist
     del(newstr)
     return ilist
@@ -974,7 +985,7 @@ def vals_are_positive(vlist):
    return 1
 
 def vals_are_sorted(vlist, reverse=0):
-   """determine whether every value in vlist is positive"""
+   """determine whether values non-decreasing (or non-inc if reverse)"""
    if vlist == None: return 1
    if len(vlist) < 2: return 1
 
