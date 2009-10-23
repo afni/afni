@@ -158,6 +158,19 @@ examples (very basic for now):
                 -set_run_lengths 64 61 67 61 67 61 67 61 67 \\
                 -demean -write motion.demean.c.1D
 
+  12.  "Uncensor" the data, zero-padding previously censored TRs.
+
+       Note that an X-matrix output by 3dDeconvolve contains censor
+       information in GoodList, which is the list of uncensored TRs.
+
+       a. if the input dataset has censor information
+
+         1d_tool.py -infile X.xmat.1D -censor_fill -write X.uncensored.1D
+
+       b. if censor information needs to come from a parent
+
+         1d_tool.py -infile sum.ideal.1D -censor_fill_parent X.xmat.1D \\
+                    -write sum.ideal.uncensored.1D
 
 ---------------------------------------------------------------------------
 basic informational options:
@@ -205,6 +218,20 @@ general options:
 
         Consider also '-censor_prev_TR'.
         See example 10.
+
+   -censor_fill                 : expand data, filling censored TRs with zeros
+   -censor_fill_parent PARENT   : similar, but get censor info from a parent
+
+        The output of these operation is a longer dataset.  Each TR that had
+        previously been censored is re-inserted as a zero.
+
+        The purpose of this is to make 1D time series data properly align
+        with the all_runs dataset, for example.  Otherwise, the ideal 1D data
+        might have missing TRs, and so will align worse with responses over
+        the duration of all runs (it might start aligned, but drift earlier
+        and earlier as more TRs are censored).
+
+        See example 12.
 
    -censor_prev_TR              : for each censored TR, also censor previous
    -cormat_cutoff CUTOFF        : set cutoff for cormat warnings (in [0,1])
@@ -309,9 +336,10 @@ g_history = """
    0.12 Oct  2, 2009 also output cosines with -show_cormat_warnings
    0.13 Oct  6, 2009 added -set_run_lengths option
    0.14 Oct 15, 2009 added -demean
+   0.15 Oct 23, 2009 added -censor_fill and -censor_fill_par
 """
 
-g_version = "1d_tool.py version 0.14, Oct 15, 2009"
+g_version = "1d_tool.py version 0.15, Oct 23, 2009"
 
 
 class A1DInterface:
@@ -327,6 +355,8 @@ class A1DInterface:
 
       # action variables
       self.add_cols_file   = None       # filename to add cols from
+      self.censor_fill     = 0          # zero-fill censored TRs
+      self.censor_fill_par = ''         # same, but via this parent dset
       self.censor_prev_TR  = 0          # if censor, also censor previous TR
       self.collapse_method = ''         # method for collapsing columns
       self.demean          = 0          # demean the data
@@ -388,13 +418,13 @@ class A1DInterface:
          return 1
       return self.adata.write(fname, overwrite=self.overwrite)
 
-   def write_timing(self, fname, invert=0):
+   def write_as_timing(self, fname, invert=0):
       """write the current 1D data out as a timing file, where a time
          is written if data at the current TR is set (non-zero)"""
       if not self.adata:
          print '** no 1D data to write as timing'
          return 1
-      return self.adata.write_timing(fname, invert=invert)
+      return self.adata.write_as_timing(fname, invert=invert)
 
    def init_options(self):
       self.valid_opts = OL.OptionList('valid opts')
@@ -416,6 +446,12 @@ class A1DInterface:
       # general options
       self.valid_opts.add_opt('-add_cols', 1, [],
                       helpstr='extend dataset with columns from new file')
+
+      self.valid_opts.add_opt('-censor_fill', 0, [], 
+                      helpstr='zero-fill previously censored TRs')
+
+      self.valid_opts.add_opt('-censor_fill_parent', 1, [], 
+                      helpstr='-censor_fill, but via this parent dataset')
 
       self.valid_opts.add_opt('-censor_motion', 2, [], 
                       helpstr='censor motion data with LIMIT and PREFIX')
@@ -578,6 +614,14 @@ class A1DInterface:
             else:
                print '** -set_tr must be positive'
                return 1
+
+         elif opt.name == '-censor_fill':
+            self.censor_fill = 1
+
+         elif opt.name == '-censor_fill_parent':
+            val, err = uopts.get_string_opt('', opt=opt)
+            if err: return 1
+            self.censor_fill_par = val
 
          elif opt.name == '-censor_motion':
             val, err = uopts.get_string_list('', opt=opt)
@@ -779,6 +823,13 @@ class A1DInterface:
       if self.set_extremes:
          if self.adata.extreme_mask(self.extreme_min, self.extreme_max):
             return 1
+
+      if self.censor_fill:
+         if self.adata.apply_goodlist(padbad=1): return 1
+
+      if self.censor_fill_par:
+         parent = LAD.Afni1D(self.censor_fill_par, verb=self.verb)
+         if self.adata.apply_goodlist(padbad=1, parent=parent): return 1
 
       if self.censor_prev_TR:
          if self.adata.mask_prior_TRs(): return 1

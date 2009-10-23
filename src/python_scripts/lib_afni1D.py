@@ -43,18 +43,19 @@ class Afni1D:
       self.aname   = None       # afni_name, if parsing is useful
 
       # .xmat.1D variables
-      self.nvec     = 0         # one vector per column in file
-      self.nt       = 0         # length of each column (# rows)
-      self.tr       = 1.0
-      self.nrowfull = 0
-      self.nruns    = 1
-      self.run_len  = [0]       # len(run_len) is number of runs
-      self.nroi     = 1
+      self.nvec      = 0        # one vector per column in file
+      self.nt        = 0        # length of each column (# rows)
+      self.tr        = 1.0
+      self.nrowfull  = 0
+      self.nruns     = 1
+      self.run_len   = [0]      # len(run_len) is number of runs
+      self.nroi      = 1
+      self.GLapplied = 0        # was goodlist applied (1=yes, 2=zero-padded)
 
       # list variables (from attributes)
-      self.labels   = None      # label per vector       (from ColumnLabels)
-      self.groups   = None      # integral column groups (from ColumnGroups)
-      self.goodlist = None      # good time points       (from GoodList)
+      self.labels   = []        # label per vector       (from ColumnLabels)
+      self.groups   = []        # integral column groups (from ColumnGroups)
+      self.goodlist = []        # good time points       (from GoodList)
       self.runstart = []        # start indices          (from RunStart)
 
       self.verb     = verb
@@ -481,7 +482,7 @@ class Afni1D:
 
       return 0
 
-   def write_timing(self, fname, invert=0, column=0):
+   def write_as_timing(self, fname, invert=0, column=0):
       """write set TRs to a timing file, one run per run, using '*' for
          empty runs (two for first run)
 
@@ -507,7 +508,9 @@ class Afni1D:
       try: fp = open(fname, 'r')
       except:
          print "** failed to open file '%s'" % fname
-         return 1
+         err = 1
+
+      if err: return 1
 
       fp.write(tstr)
       fp.close()
@@ -530,7 +533,7 @@ class Afni1D:
                               %(fname, invert, column)
 
       if not self.ready:
-         print "** Afni1D not ready for write_timing to '%s'" % fname
+         print "** Afni1D not ready for write_censortr to '%s'" % fname
          return 1
 
       err,cstr = UTIL.make_CENSORTR_string(self.mat[column],self.nruns,asopt=1)
@@ -540,7 +543,9 @@ class Afni1D:
       try: fp = open(fname, 'w')
       except:
          print "** failed to open file '%s'" % fname
-         return 1
+         err = 1
+
+      if err: return 1
 
       fp.write(cstr)
       fp.write('\n')    # add a newline
@@ -587,7 +592,7 @@ class Afni1D:
             empty = 0
       if empty:
          del(self.labels)
-         self.labels = None
+         self.labels = []
 
       # actual appending...
       for newdset in newmats:
@@ -600,9 +605,9 @@ class Afni1D:
 
       # nuke things that no longer apply
       del(self.groups)
-      self.groups = None
+      self.groups = []
       del(self.goodlist)
-      self.goodlist = None
+      self.goodlist = []
       del(self.cormat)
       del(self.cosmat)
       self.cormat = None
@@ -879,7 +884,10 @@ class Afni1D:
          return 0 on success, 1 on error
       """
 
-      if self.verb > 3: print '-- Afni1D set_nruns (new nruns = %d)' % nruns
+      if self.verb > 3:
+         print '-- LAD:set_nruns (nruns = %d, run_lens = %s)' % (nruns,run_lens)
+         print '       len(goodlist) = %d, runstart = %s' \
+               % (len(self.goodlist), self.runstart)
 
       # try to apply any passed nruns, first
       if nruns > 0:
@@ -901,12 +909,16 @@ class Afni1D:
 
       # if no run_lens but have self.runstart, convert and apply same logic
       if len(run_lens) == 0 and len(self.runstart) > 0:
-         rlens = self.runstart[:]
-         for ind in range(len(rlens)-1):
-             rlens[ind] = rlens[ind+1] - rlens[ind]
-         rlens[-1] = self.nt - rlens[-1]
-         if self.verb > 1:
-            print '++ setting run_len based on RunStart list:' , rlens
+         # first try to set run lengths taking goodlist into account
+         if not self.apply_goodlist(): return 0   # all is well
+         else:
+            rlens = self.runstart[:]
+            for ind in range(len(rlens)-1):
+                rlens[ind] = rlens[ind+1] - rlens[ind]
+            rlens[-1] = self.nt - rlens[-1]
+            if self.verb > 1:
+               print '++ setting run_len based on RunStart list:' , rlens
+
       rlens = run_lens
 
       if len(rlens) > 0:
@@ -927,8 +939,8 @@ class Afni1D:
       self.nruns = 1
       if not self.groups or not self.nvec: return 0
 
-      # rcr : update use of baselines?
-
+      # rcr : update poor use of baselines?
+      errs = 0
       try:
          base_ind = self.groups.index(-1)
          if base_ind < 0:
@@ -939,10 +951,9 @@ class Afni1D:
 
          # skip 0s, count 1s, rest must be 0s
          for val in b0:
-            if val != 0 or val != 1:
-               if self.verb > 1:
-                  print '-- baseline vals not just 0,1: %s' % val
-            return 1
+            if val != 0 and val != 1:
+               if self.verb > 1: print '-- baseline vals not just 0,1: %s' % val
+               return 1
 
          # looks good, find run length and the number of runs
          first = b0.index(1)              # find first 1
@@ -954,10 +965,18 @@ class Afni1D:
 
          # we have a run length
          rlen = next - first
-         nruns = self.nt//rlen          # integral division
+         if rlen > 0: nruns = self.nt//rlen          # integral division
+         else:
+            if self.verb > 1:
+               print '** failed to set rlen from baseline (%d,%d)'%(first,next)
+            return 1
          if rlen*nruns != self.nt:
-            print '** nruns failure: rlen = %d, nruns = %d, len = %d' % \
-                 (rlen, nruns, len(base0))
+            if self.verb>1:
+               print '** nruns failure: rlen %d, nruns %d, len %d' % \
+                     (rlen, nruns, len(b0))
+               if self.nrowfull > self.nt:
+                  print '++ nrowfull (%d) > nt (%d) ==> censored TRs' \
+                        % (self.nrowfull, self.nt)
             return 1
 
          # success!
@@ -966,7 +985,130 @@ class Afni1D:
          self.nruns   = nruns
          
       except:
+         if self.verb > 1: print '** unknown exception in LD:set_nruns'
+         errs = 1
+
+      return errs
+
+   def apply_goodlist(self, parent=None, padbad=0):
+      """try to apply goodlist, runstart, nt and nrowfull
+            -> set nruns and run_lens[]
+
+         if padbad is set, pad the data with zero over all TRs NOT
+            in goodlist (so run_lens should come from RunStart)
+
+         if parent is set (as an Afni1D instance),
+            use it for goodlist, runstart, nrowfull
+
+         return 0 on success"""
+
+      if isinstance(parent, Afni1D):
+         if self.verb > 2: print '-- apply_goodlist: run info from parent'
+         runstart = parent.runstart
+         goodlist = parent.goodlist
+         nrowfull = parent.nrowfull
+      else:
+         if self.verb > 2: print '-- apply_goodlist: run info from self'
+         runstart = self.runstart
+         goodlist = self.goodlist
+         nrowfull = self.nrowfull
+
+      # first see if we have the necessary fields
+      rv = 1
+      try:
+         if len(runstart) > 0 and len(goodlist) > 0 and \
+               self.nt > 0 and nrowfull > 0: rv = 0
+      except:
+         if self.verb > 1: print '** bad internals for apply_goodlist'
+
+      if rv == 1: return 1     # bail
+
+      # other tests
+      if not UTIL.vals_are_sorted(goodlist):
+         if self.verb > 1: print '** LAD: goodlist not sorted'
          return 1
+      if len(goodlist) != self.nt:
+         if self.verb > 1: print '** LAD: goodlist length (%d) != nt (%d)' \
+                                 % (len(goodlist), self.nt)
+         return 1
+      if not UTIL.vals_are_sorted(runstart):
+         if self.verb > 1: print '** LAD: runstart not sorted'
+         return 1
+      if goodlist[-1] >= nrowfull:
+         if self.verb > 1: print '** LAD: max goodlist value exceeds rowfull'
+         return 1
+      if goodlist[0] < 0:
+         if self.verb > 1: print '** LAD: goodlist has negative value'
+         return 1
+      if runstart[-1] >= nrowfull:
+         if self.verb > 1: print '** LAD: max runstart value exceeds rowfull'
+         return 1
+      if runstart[0] < 0:
+         if self.verb > 1: print '** LAD: runstart has negative value'
+         return 1
+
+      # ---- now try to sort things out ----
+
+      # if padding 'bad' TRs run_len is basic, but mat needs to be zero-filled
+      if padbad:
+         if self.GLapplied == 2:
+            if self.verb > 0: print '** padbad: run already padded!'
+            return 1
+
+         # first note the run lengths
+         rlens = runstart[:]
+         for ind in range(len(rlens)-1):
+             rlens[ind] = rlens[ind+1] - rlens[ind]
+         rlens[-1] = nrowfull - rlens[-1]
+
+         # then pad the data (create zero vectors, and copy good data)
+         for vind in range(len(self.mat)):
+            oldvec = self.mat[vind]
+            newvec = [0 for t in range(nrowfull)]
+            for gind in range(len(goodlist)):
+               newvec[goodlist[gind]] = oldvec[gind]
+            self.mat[vind] = newvec
+            del(oldvec)
+
+         self.nt        = nrowfull      # now the lists are full
+         self.nruns     = len(runstart) # 
+         self.run_len   = rlens         # steal reference
+         self.GLapplied = 2             # goodlist was applied
+
+         return 0
+
+      # --- not zero padding, so adjust run lengths ---
+
+      # set rnext list to be index *after* the current run
+      rnext = runstart[1:]
+      rnext.append(nrowfull)
+      if self.verb > 3: print '-- set rnext list to %s' % rnext
+      nruns = len(runstart)
+
+      # accumulate run counts over goodlist
+      run = 0
+      rcount = [0 for r in runstart]  # count entries per run
+      for gval in goodlist:
+         # maybe adjust the run index (note that rnext[-1] > goodlist vals)
+         while gval > rnext[run]: run += 1
+         rcount[run] += 1
+
+      # and verify that we have accounted for everything
+      gtot = UTIL.loc_sum(rcount)
+      glen = len(goodlist)
+      if gtot != glen:
+         print '** apply_goodlist: gtot error: %d != %d' % (gtot, glen)
+         return 1
+      if gtot != self.nt:
+         print '** apply_goodlist: nt (%d) != goodtot (%d)' % (self.nt, gtot)
+         return 1
+
+      if self.verb > 1:
+         print '++ from apply_goodlist: run_len[%d] = %s' % (nruns, rcount)
+
+      self.nruns = nruns
+      self.run_len = rcount     # steal reference
+      self.GLapplied = 1        # goodlist was applied
 
       return 0
 
@@ -1106,7 +1248,7 @@ class Afni1D:
                   print "** matrix vecs %d != %s cols %d" % \
                        (self.nvec, label, ncols)
             elif label == 'ni_dimen':
-               nrows = int(data)
+               nrows = int(data.split(',')[0])     # 3D datasets have commas
                if self.verb > verb_level:
                   print "-- label %s: rows = %d" % (label, nrows)
                if nrows != self.nt:
@@ -1119,10 +1261,10 @@ class Afni1D:
                if self.nvec != len(self.labels):
                   print "** %d ColumnLabels but %d columns" %    \
                        (len(self.labels), self.nvec)
-                  self.labels = None
+                  self.labels = []
             elif label == 'ColumnGroups':
                self.groups = UTIL.decode_1D_ints(data)
-               if self.groups != None:
+               if self.groups:
                   if len(self.groups) != self.nvec:
                      print "** ColumnGroups len %d != nvec %d" % \
                           (len(self.groups), self.nvec)
@@ -1134,7 +1276,7 @@ class Afni1D:
                   print "-- label %s: TR %s" % (label,self.tr)
             elif label == 'GoodList':
                self.goodlist = UTIL.decode_1D_ints(data)
-               if self.goodlist != None:
+               if self.goodlist:
                   if len(self.goodlist) != self.nt:
                      print "** GoodList missing %d rows" % \
                           self.nt-len(self.goodlist)
