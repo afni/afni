@@ -400,7 +400,7 @@ float_triple THD_bstrap_vectcorr( int nlen , int nboot ,
    float_triple retval = {0.0f,0.0f,0.0f} ;
    float **xar, **yar, *rboot, *rjack, *xbar, *ybar, *uvec, *vvec, *zvec ;
    float rxy , rjbar , anum,aden,ahat , val , z0hat , zval ;
-   float rb_al1 , rb_al2 , rb_au1 , rb_au2 , sig1,sig2,sig , med ;
+   float bmed , bsig , bcor ;
    int kb,ii,jj , njack ;
 
 ENTRY("THD_bstrap_vectcorr") ;
@@ -435,7 +435,7 @@ ENTRY("THD_bstrap_vectcorr") ;
 
    /** allocate memory for bootstrapping **/
 
-   if( nboot < 666 ) nboot = 666 ;
+   if( nboot < 66 ) nboot = 66 ;
    njack = xnum + ynum ;
 
 #pragma omp critical (MALLOC)
@@ -461,53 +461,6 @@ ENTRY("THD_bstrap_vectcorr") ;
    rxy = acorrfun( nlen , uvec , vvec ) ;
 INFO_message("rxy = %g",rxy) ;
 
-   /* jackknife correlations: omit 1 vector at a time */
-
-INFO_message("jackknife %d times",njack) ;
-   for( kb=0 ; kb < xnum ; kb++ ){
-     for( jj=ii=0 ; ii < xnum ; ii++ ){
-       if( ii != kb ) xar[jj++] = xx + ii*nlen ;
-     }
-     if( use_pca )
-       (void)principal_vector( nlen , xnum-1 , 1 , xar , zvec , xbar ) ;
-     else
-       mean_vector( nlen , xnum-1 , 1 , xar , zvec ) ;
-     rjack[kb] = acorrfun( nlen , zvec , vvec ) ;
-   }
-   for( kb=0 ; kb < ynum ; kb++ ){
-     for( jj=ii=0 ; ii < ynum ; ii++ ){
-       if( ii != kb ) yar[jj++] = yy + ii*nlen ;
-     }
-     if( use_pca )
-       (void)principal_vector( nlen , ynum-1 , 1 , yar , zvec , ybar ) ;
-     else
-       mean_vector( nlen , ynum-1 , 1 , yar , zvec ) ;
-     rjack[kb+xnum] = acorrfun( nlen , uvec , zvec ) ;
-   }
-
-   /* compute acceleration parameter ahat from the jackknifed values */
-
-   rjbar = 0.0f ;
-   for( kb=0 ; kb < njack ; kb++ ) rjbar += rjack[kb] ;  /* mean */
-   rjbar /= njack ;
-   anum = aden = 0.0f ;
-   for( kb=0 ; kb < njack ; kb++ ){  /* skewness */
-     val = rjbar - rjack[kb] ; anum += val*val*val ; aden += val*val ;
-   }
-   ahat = (aden > 0.0f ) ? anum / (6.0f*aden*sqrtf(aden)) : 0.0f ;
-   if( ahat < -0.2f ) ahat = -0.2f ; else if( ahat > 0.2f ) ahat = 0.2f ;
-ININFO_message("ahat=%g  anum=%g  aden=%g",ahat,anum,aden) ;
-ININFO_message("rjbar=%g rjcorr=%g rjsig=%g",rjbar,njack*rxy-(njack-1.0f)*rjbar,sqrtf(aden*(njack-1.0f)/njack)) ;
-#if 0
-   { float kappa , alpha ;
-     kappa = rxy / rjbar ; kappa *= kappa ;
-ININFO_message("  kappa = %g",kappa) ;
-     alpha = (1.0f-kappa) / (kappa - njack/(njack-1.0f)) ;
-ININFO_message("  alpha = %g",alpha) ;
-     if( alpha > 0.0f ) ININFO_message("  rjjjj = %g",rxy*sqrtf(1.0f+alpha));
-   }
-#endif
-
    /* bootstrap correlations */
 
 INFO_message("bootstrap %d times",nboot) ;
@@ -528,63 +481,15 @@ INFO_message("bootstrap %d times",nboot) ;
      rboot[kb] = acorrfun( nlen , uvec , vvec ) ;
    }
 
-   /* find location of rxy in the sorted rboot array,
-      then use that to estimate the bias correction parameter z0hat */
+   /* statistics */
 
-#define ZCUT 0.9f
+   qmedmadbmv_float( nboot , rboot , &bmed , NULL , &bsig ) ;
 
-   qsort_float( nboot , rboot ) ;
-#if 0
-for( kb=0 ; kb < nboot ; kb++ ) printf(" %g\n",rboot[kb]) ;
-#endif
-   for( kb=0 ; kb < nboot && rboot[kb] < rxy ; kb++ ) ; /*nada*/
-   z0hat = PHINV(kb/(double)nboot) ;  /* kb = number of rboot < rxy */
-        if( z0hat >  ZCUT ) z0hat =  ZCUT + ZCUT * tanhf(0.5f*(z0hat-ZCUT)) ;
-   else if( z0hat < -ZCUT ) z0hat = -ZCUT + ZCUT * tanhf(0.5f*(z0hat+ZCUT)) ;
-ININFO_message("kb=%d/%d z0hat=%g",kb,nboot,z0hat) ;
+   bcor = 2*rxy - bmed ;
 
-   /* compute bootstrap value at alpha_1 level, adjusted */
-
-   zval = z0hat + (z0hat - bca_phial_1) / ( 1.0f - ahat*(z0hat - bca_phial_1) ) ;
-   val = nboot * PHI(zval) ; kb  = (int)val ; val = val-kb ;
-   rb_al1 = (1.0f-val)*rboot[kb] + val*rboot[kb+1] ;
-INFO_message("alpha=%g zval=%g bs=%g kb=%d",bca_alpha_1,zval,rb_al1,kb) ;
-
-   /* compute bootstrap value at alpha_2 level, adjusted */
-
-   zval = z0hat + (z0hat - bca_phial_2) / ( 1.0f - ahat*(z0hat - bca_phial_2) ) ;
-   val = nboot * PHI(zval) ; kb  = (int)val ; val = val-kb ;
-   rb_al2 = (1.0f-val)*rboot[kb] + val*rboot[kb+1] ;
-INFO_message("alpha=%g zval=%g bs=%g kb=%d",bca_alpha_2,zval,rb_al2,kb) ;
-
-   /* compute bootstrap value at 1-alpha_2 level, adjusted */
-
-   zval = z0hat + (z0hat + bca_phial_2) / ( 1.0f - ahat*(z0hat + bca_phial_2) ) ;
-   val = nboot * PHI(zval) ; kb  = (int)val ; val = val-kb ;
-   rb_au2 = (1.0f-val)*rboot[kb] + val*rboot[kb+1] ; if( kb == nboot-1 ) val = 0.0f ;
-INFO_message("alpha=%g zval=%g bs=%g kb=%d",1.0f-bca_alpha_2,zval,rb_au2,kb) ;
-
-   /* compute bootstrap value at 1-alpha_1 level, adjusted */
-
-   zval = z0hat + (z0hat + bca_phial_1) / ( 1.0f - ahat*(z0hat + bca_phial_1) ) ;
-   val = nboot * PHI(zval) ; kb  = (int)val ; val = val-kb ; if( kb == nboot-1 ) val = 0.0f ;
-   rb_au1 = (1.0f-val)*rboot[kb] + val*rboot[kb+1] ;
-INFO_message("alpha=%g zval=%g bs=%g kb=%d",1.0f-bca_alpha_1,zval,rb_au1,kb) ;
-
-   /* now estimate sigma both ways (from alpha_1 and alpha_2), then combine them */
-
-   sig1 = (rb_au1 - rb_al1) / (2.0f*bca_phial_1) ;
-   sig2 = (rb_au2 - rb_al2) / (2.0f*bca_phial_2) ;
-   sig  = 0.5f * (sig1+sig2) ;
-INFO_message("sig1=%g sig2=%g sig=%g",sig1,sig2,sig) ;
-
-   /* and estimate middle of distribution (alpha=0.5 level; phi=0.0) */
-
-   val = z0hat + (z0hat + 0.0f) / ( 1.0f - ahat*(z0hat + 0.0f) ) ;
-INFO_message("med: adjusted z=%g",val) ;
-   val = nboot * PHI(val) ; kb  = (int)val ; val = val-kb ;
-   med = (1.0f-val)*rboot[kb] + val*rboot[kb+1] ;
-INFO_message("med=%g",med) ;
+   val  = fabsf(rxy)            ; if( val < 0.1f ) val = 0.1f ;
+   val  = fabsf(bcor-rxy) / val ; if( val > 1.0f ) val = 1.0f ;
+   bsig = bsig * sqrtf( 1.0f + 4.0f*val*val ) ;
 
    /* cleanup the trash */
 
@@ -593,7 +498,7 @@ INFO_message("med=%g",med) ;
      free(yar); free(xar);
    }
 
-   retval.a = med ; retval.b = sig ; retval.c = rxy ;
+   retval.a = bcor ; retval.b = bsig ; retval.c = rxy ;
 
    RETURN(retval) ;
 }
@@ -602,7 +507,7 @@ INFO_message("med=%g",med) ;
 
 int main( int argc , char *argv[] )
 {
-   int iarg=1 , nboot=9999 ;
+   int iarg=1 , nboot=666 ;
    MRI_IMAGE *aim , *bim ;
    float *aar , *bar ;
    float_triple rval ;
@@ -619,7 +524,7 @@ int main( int argc , char *argv[] )
 
    if( argc > 3 ){
      nboot = (int)strtod(argv[3],NULL) ;
-     if( nboot < 666 || nboot > 999999 ) nboot = 9999 ;
+     if( nboot < 66 || nboot > 999999 ) nboot = 666 ;
    }
 
    use_pca = 0 ;
