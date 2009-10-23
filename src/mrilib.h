@@ -1408,6 +1408,10 @@ extern double generic_dmat44_determinant( dmat44 P ) ;
 
 
 /*------------------------------------------------------------------------*/
+
+MRI_IMAGE * mri_genARMA11( int nlen, int nvec, float ap, float lm, float sg ) ;
+
+/*------------------------------------------------------------------------*/
 /* some of these clusterize prototypes require editvol.h */
 
 typedef struct {
