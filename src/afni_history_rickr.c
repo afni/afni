@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 27, OCT, 2009, RCR, "GIFTI", MINOR, TYPE_NEW_OPT,
+   "added support for optional LabelTable RGBA attributes",
+   NULL
+ } ,
+
  { 23, OCT, 2009, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
    "added -censor_fill and -censor_fill_par",
    "These options are to zero-pad TRs that were censored by 3dDeconvolve."
