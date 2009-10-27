@@ -111,10 +111,13 @@ static char * gifti_history[] =
   "     - separate diffs in DAs from those in gifti_image\n"
   "     - decode additional data types: INT8, UINT16, INT64\n"
   "     - add link flags to libgiftiio_la target\n"
-  "1.03 17 April, 2009 : allow DA size to vary over each external file\n"
+  "1.03 17 April, 2009 : allow DA size to vary over each external file\n",
+  "1.04 27 October, 2009 : added support for LabelTable RGBA attributes\n"
+  "     - valid LabelTable requires RGBA values in [0,1.0]\n"
+  "     - compare_labeltable requires equality of RGBA values (no approx.)\n"
 };
 
-static char gifti_version[] = "gifti library version 1.03, 17 April, 2009";
+static char gifti_version[] = "gifti library version 1.04, 27 October, 2009";
 
 /* ---------------------------------------------------------------------- */
 /*! global lists of XML strings */
@@ -469,7 +472,7 @@ int gifti_free_LabelTable( giiLabelTable * T )
     }
 
     if(G.verb > 3)
-        fprintf(stderr,"-- freeing %d giiLabelTables\n", T->length);
+        fprintf(stderr,"-- freeing %d giiLabelTable entries\n", T->length);
 
     if( T->index && T->label ) {
         for( c = 0; c < T->length; c++ )
@@ -479,6 +482,12 @@ int gifti_free_LabelTable( giiLabelTable * T )
         T->index = NULL;
         T->label = NULL;
     }
+
+    if( T->rgba ) {
+        free(T->rgba);
+        T->rgba = NULL;
+    }
+
     T->length = 0;
 
     return 0;
@@ -767,7 +776,8 @@ int gifti_valid_nvpairs(const nvpairs * nvp, int whine)
 *//*-------------------------------------------------------------------*/
 int gifti_valid_LabelTable(const giiLabelTable * T, int whine)
 {
-    int c;
+    float * rgba;
+    int     c, c2;
 
     if( !T ) {
         if(G.verb>2||whine) fprintf(stderr,"** invalid LabelTable pointer\n");
@@ -790,11 +800,22 @@ int gifti_valid_LabelTable(const giiLabelTable * T, int whine)
     }
 
     /* quit on first error */
+    rgba = T->rgba;
     for( c = 0; c < T->length; c++ ) {
         if( ! T->label[c] ) {
             if( G.verb > 3 || whine )
                 fprintf(stderr,"** invalid nvpair label[%d]\n", c);
             return 0;
+        }
+        if( rgba ) {
+            for( c2 = 0; c2 < 4; c2++ )
+                if( rgba[c2] < 0.0 || rgba[c2] > 1.0 ) {
+                    if( G.verb > 3 || whine )
+                        fprintf(stderr,"** RGBA values out of [0.0,1,0] at "
+                                       "Label[%d]\n", c);
+                    return 0;
+                }
+            rgba += 4; /* if list exists, go to next set */
         }
     }
 
@@ -1091,6 +1112,7 @@ int gifti_clear_LabelTable(giiLabelTable * p)
     p->length = 0;
     p->index = NULL;
     p->label = NULL;
+    p->rgba = NULL;
 
     return 0;
 }
@@ -1257,7 +1279,8 @@ int gifti_disp_nvpairs(const char * mesg, const nvpairs * p)
 *//*-------------------------------------------------------------------*/
 int gifti_disp_LabelTable(const char * mesg, const giiLabelTable * p)
 {
-    int c;
+    float * rgba;
+    int     c;
 
     if( mesg ) { fputs(mesg, stderr); fputc(' ', stderr); }
 
@@ -1265,9 +1288,17 @@ int gifti_disp_LabelTable(const char * mesg, const giiLabelTable * p)
 
     fprintf(stderr,"giiLabelTable struct, len = %d :\n", p->length);
 
-    for(c = 0; c < p->length; c++ )
-        fprintf(stderr,"    index %d, label '%s'\n",
-                p->index[c], G_CHECK_NULL_STR(p->label[c]));
+    rgba = p->rgba;
+    for(c = 0; c < p->length; c++ ) {
+        fprintf(stderr,"    index %d, ", p->index[c]);
+        if( rgba ) {
+            fprintf(stderr,"rgba (%5.3f, %5.3f, %5.3f, %5.3f), ",
+                    rgba[0], rgba[1], rgba[2], rgba[3]);
+            rgba += 4;
+        }
+        fprintf(stderr,"label '%s'\n", G_CHECK_NULL_STR(p->label[c]));
+    }
+
     if( p->length > 0 ) fputc('\n', stderr);
 
     return 0;
@@ -2187,26 +2218,27 @@ int gifti_copy_LabelTable(giiLabelTable * dest, const giiLabelTable * src)
     if( G.verb > 6 ) fprintf(stderr,"++ copy_LT\n");
 
     /* quick case: empty table */
-    if( src->length <= 0 ) {
-        dest->length = 0;
-        dest->index = NULL;
-        dest->label = NULL;
-        return 0;
-    }
+    if( src->length <= 0 ) return gifti_clear_LabelTable(dest);
 
     /* otherwise, allocate and copy lists */
     dest->length = src->length;
 
     dest->index = (int *)malloc(dest->length * sizeof(int));
     dest->label = (char **)malloc(dest->length * sizeof(char *));
+    if( src->rgba )
+        dest->rgba = (float *)malloc(dest->length * 4 * sizeof(float));
 
     /* check for failure */
-    if( !dest->index || !dest->label ) {
+    if( !dest->index || !dest->label || (src->rgba && !dest->rgba) ) {
         fprintf(stderr,"** failed to dup label arrays of length %d\n",
                 dest->length);
         gifti_free_LabelTable(dest);
         return 1;
     }
+
+    /* copy any rgba list */
+    if( dest->rgba )
+        memcpy(dest->rgba, src->rgba, dest->length * 4 * sizeof(float));
 
     /* copy indices */
     for( c = 0; c < dest->length; c++ )
@@ -2866,7 +2898,7 @@ int gifti_compare_labeltable(const giiLabelTable *t1, const giiLabelTable *t2,
                              int verb)
 {
     int lverb = verb;        /* possibly override passed verb */
-    int c, diffs = 0;
+    int c, roff, diffs = 0;
 
     if( G.verb > 3 ) lverb = 3;
 
@@ -2887,7 +2919,14 @@ int gifti_compare_labeltable(const giiLabelTable *t1, const giiLabelTable *t2,
         diffs++;
     }
 
+    /* exactly 1 RGBA list is a difference */
+    if( (t1->rgba && !t2->rgba) || (!t1->rgba && t2->rgba) ) {
+        if(lverb>2)printf("-- only 1 labeltable has RGBA list\n");
+        if(lverb<3) return 1;
+    }
+
     /* so lengths are positive and equal, find first difference */
+    roff = 0;
     for( c = 0; c < t1->length; c++ ) {
         if( t1->index[c] != t2->index[c] ||
             gifti_strdiff(t1->label[c], t2->label[c]) )
@@ -2895,6 +2934,14 @@ int gifti_compare_labeltable(const giiLabelTable *t1, const giiLabelTable *t2,
             if(lverb>2)printf("-- labeltable diff at index %d\n", c);
             if(lverb<3) return 1;
             diffs++;
+        }
+        if( t1->rgba && t2->rgba ) {
+            if( memcmp(t1->rgba+roff, t2->rgba+roff, 4 * sizeof(float)) ) {
+                if(lverb>2)printf("-- labeltable RGBA diff at index %d\n", c);
+                if(lverb<3) return 1;
+                diffs++;
+            }
+            roff += 4;
         }
     }
 
