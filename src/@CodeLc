@@ -1,0 +1,64 @@
+#!/bin/tcsh -f
+set ll = (  '*.[ch]'          'SUMA/*.[ch]'       \
+            'cox*/*.[ch]'     'rickr/*.[ch]'      \
+            'avovk/*.[ch]'    'gifti/*.[ch]' \
+            'matlab/*.m'      'python_scripts/*.py'  \
+            'R_scripts/*.R'   'niml/*.[ch]'    \
+            'svm/*.[ch]'      'nifti/*.[ch]' )
+            
+if ($1 =~ -h*) then
+   echo "Counts lines of code in AFNI distribution."
+   echo "Files counted include:"
+   set cnt = 1
+   while ($cnt <= $#ll)
+      printf "\t%s\n" "$ll[$cnt]"
+      @ cnt ++
+   end
+   printf "\n"
+   echo "Output is self explantory and 1Dish."
+   echo ""
+   echo "Script should be executed from the src/ directory"
+   echo ""
+   set stat = 0
+   goto END   
+endif
+
+if ( ! -f afni.c || ! -d SUMA || ! -d rickr ) then
+   echo "Looks like you are not in the AFNI src directory"
+   set stat = 1
+   goto END
+endif
+      
+set tblnk = ___blnk.1D
+set tn = ___nblnk.1D 
+rm $tblnk $tn
+
+
+#full count, with blanks
+foreach lll ($ll)
+   set fls = ($lll)
+   wc -l $fls >> $tblnk 
+end
+set N_blnkMC = `3dBrickStat -slow -mean -count $tblnk'[0]'`
+#full count, without blanks
+foreach lll ($ll)
+   set fls = ($lll)
+   foreach ff ($fls)
+      set numi = `cat $ff | sed '/^\s*$/d' | wc -l `
+      echo $numi $ff >> $tn
+   end
+end
+set N_nMC = `3dBrickStat -slow -mean -count $tn'[0]'`
+
+set N_blnk = `ccalc -i "$N_blnkMC[1] * $N_blnkMC[2]"`
+set N_n = `ccalc -i "$N_nMC[1] * $N_nMC[2]"`
+
+echo "$N_blnk #lines of code including blanks"
+echo "$N_n #lines of code without blanks"
+echo "$N_blnkMC[2] #Number of files counted"
+set stat = 0
+
+goto END
+
+END:
+exit $stat
