@@ -1422,7 +1422,7 @@ backup:
 afni_src.tgz:
 	$(MKDIR) afni_src
 	$(CP) -p *.c *.f *.inc *.h *.hhh Makefile.* *.xbm $(MINDOCS) $(MISC)     ./afni_src
-	$(CP) -pr coxplot volpack moveup moveAFNI* eispack                       ./afni_src
+	$(CP) -pr coxplot volpack moveup moveAFNI* eispack avovk                 ./afni_src
 	$(CP) -pr $(SCRIPTS) $(PY_DIR) $(R_DIR)                                  ./afni_src
 	$(CP) -pr gifsicledir qhulldir f2cdir mpeg_encodedir                     ./afni_src
 	$(CP) -pr 3DEdge netcdf-3.5.0 jpeg-6b niml Makefile_* nifti dlcompat     ./afni_src
