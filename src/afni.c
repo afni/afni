@@ -1281,26 +1281,26 @@ void AFNI_sigfunc_alrm(int sig)
 #undef  NMSG
 #define NMSG (sizeof(msg)/sizeof(char *))
    static char *msg[] = {
-     "Farewell, my friend"                                          ,
-     "We shall meet again, when the fields are white with daisies"  ,
-     "Parting is such sweet sorrow"                                 ,
-     "Gone, and a cloud in my heart"                                ,
-     "Happy trails to you"                                          ,
-     "Be well, do good work, and keep in touch"                     ,
-     "In the hope to meet shortly again"                            ,
-     "May the wind be ever at your back"                            ,
-     "Fare thee well, and if forever, still forever fare thee well" ,
-     "Don't cry because it's over; smile because it happened"       ,
-     "Farewell! Thou art too dear for my possessing"                ,
-     "Farewell, farewell, you old rhinoceros"                       ,
-     "Is that you, Jerzy? Do widzenia"                              ,
-     "A farewell is necessary before we can meet again"             ,
-     "Absent from thee I languish"                                  ,
-     "The return makes one love the farewell"                       ,
-     "Every goodbye makes the next hello closer"                    ,
-     "The song is ended, but the melody lingers on"                 ,
-     "A star will shine upon the hour of our next meeting"          ,
-     "Au revoir, Ciao, Sayonara, Hasta luego, Czesc, and Zai jian"
+     "Farewell, my friend"                                           ,
+     "We shall meet again, when the fields are white with daisies"   ,
+     "Parting is such sweet sorrow"                                  ,
+     "Gone, and a cloud in my heart"                                 ,
+     "Happy trails to you"                                           ,
+     "Be well, do good work, and keep in touch"                      ,
+     "In the hope to meet shortly again"                             ,
+     "May the wind be ever at your back"                             ,
+     "Fare thee well, and if forever, still forever fare thee well"  ,
+     "Don't cry because it's over; smile because it happened"        ,
+     "Farewell! Thou art too dear for my possessing"                 ,
+     "Farewell, farewell, you old rhinoceros"                        ,
+     "Is that you, Jerzy? Do widzenia"                               ,
+     "A farewell is necessary before we can meet again"              ,
+     "Absent from thee I languish"                                   ,
+     "The return makes one love the farewell"                        ,
+     "Every goodbye makes the next hello closer"                     ,
+     "The song is ended, but the melody lingers on"                  ,
+     "A star will shine upon the hour of our next meeting"           ,
+     "Au revoir, Ciao, Ma'alsalam, Hasta luego, Czesc, and Zai jian"
    } ;
    int nn = (lrand48()>>3) % NMSG ;
    if( !AFNI_yesenv("AFNI_NEVER_SAY_GOODBYE") )
@@ -8007,15 +8007,15 @@ STATUS(" -- turning time index control off") ;
    for some reason, the transform fails on the fim image.
    We have seen this happen when:
       1st volume in list is anat and has a +orig only.
-      2nd volume in list is anat2 and has a +orig and +tlrc 
+      2nd volume in list is anat2 and has a +orig and +tlrc
       3rd volume in list is a functional dset  (selected as overlay)
    You switch to anat2 and select TLRC view, BOOM.
    Our guess is that since the first dset has no tlrc xform,
    the third one, which is the overlay seems to get no TLRC daddy,
    even if the second anat has a tlrc xform .
-   Should be able to test this hypothesis by expressly setting the 
+   Should be able to test this hypothesis by expressly setting the
    anat parent of all volumes to that of the anat with the TLRC xform....
-   
+
       ZSS, RICKR, with no time to fix this quite yet.    July 28 2009 */
 
    /** 10 Aug 2009: the fix is below -- RWCox **/
