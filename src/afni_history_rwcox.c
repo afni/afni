@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 3 , NOV , 2009 , RWC , "3dREMLfit" , MICRO , TYPE_GENERAL ,
+   "Modify default -CORcut value from 0.0025 to 0.0011" ,
+   "To reduce likelihood of Choleski failure." } ,
+
  { 21 , OCT , 2009 , RWC , "1dAstrip" , MICRO , TYPE_NEW_PROG ,
    "To remove Alpha characters from 1D-like files." ,
    "For my own ill-conceived plans for global domination.  Cheap and not\n"
