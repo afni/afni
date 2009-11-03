@@ -91,7 +91,7 @@ typedef struct {
 #define IAB(rc,a,b) ( (int)rint( ((a)-(rc)->abot) / (rc)->da )  \
      + (1+(rc)->na) * (int)rint( ((b)-(rc)->bbot) / (rc)->db ) )
 
-static MTYPE corcut = 0.0025 ;
+static MTYPE corcut = 0.0011 ;  /* 03 Nov 2009: changed from 0.0025 to 0.0011 */
 
 #undef  TAU
 #define TAU(i) ((tau==NULL) ? (i) : tau[i])
