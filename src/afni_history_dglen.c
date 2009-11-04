@@ -49,6 +49,13 @@
 
 
 afni_history_struct dglen_history[] = {
+
+{ 04 , NOV , 2009 , DRG , "align_epi_anat.py" , 
+    MINOR , TYPE_NEW_OPT, " 3dAllineate option for motion correction" ,
+    "volreg_method allows 3dAllineate, which is useful for DTI data.\n"
+    "Bug fix for post-transformation matrix and dataset view\n"
+} ,
+
 { 19 , OCT , 2009 , DRG , "align_epi_anat.py" , 
     MAJOR , TYPE_NEW_OPT, "New master options, dset1/2 terminology",
     "New master_nnn_dxyz options to specify output resolution\n"

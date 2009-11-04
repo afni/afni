@@ -205,9 +205,11 @@ g_help_string = """
     -epi_strip methodname :  method to mask brain in EPI data 
                    ([3dSkullStrip]/3dAutomask/None)
     -volreg_method methodname: method to do time series volume registration
-                   of EPI data ([3dvolreg],3dWarpDrive). 
-                   3dvolreg is for 6 parameter (rigid-body), and
-                   3dWarpDrive is for 12 parameter.
+                   (motion correction) of EPI data 
+                   ([3dvolreg],3dWarpDrive,3dAllineate). 
+                   3dvolreg is for 6 parameter (rigid-body)
+                   3dWarpDrive is for 12 parameter (general affine)
+                   3dAllineate - also 12 parameter with LPA cost function
 
                    Note if aligning anat to epi, the volume registered EPI
                    dataset is **not** saved unless you use the -save_vr
@@ -510,7 +512,7 @@ g_help_string = """
 ## BEGIN common functions across scripts (loosely of course)
 class RegWrap:
    def __init__(self, label):
-      self.align_version = "1.25" # software version (update for changes)
+      self.align_version = "1.26" # software version (update for changes)
       self.label = label
       self.valid_opts = None
       self.user_opts = None
@@ -605,7 +607,7 @@ class RegWrap:
                       helpstr="Time series volume registration method\n"   \
                               "3dvolreg: rigid body least squares\n"       \
                               "3dWarpDrive: 12 parameter least squares\n"  \
-                              "3dAllineate: 12 parameter mutual info\n")
+                              "3dAllineate: 12 parameter LPA cost function\n")
       self.valid_opts.add_opt('-ex_mode', 1, ['script'],                   \
                               ['quiet', 'echo', 'dry_run', 'script'],      \
                               helpstr="Command execution mode.\n"          \
@@ -2121,8 +2123,6 @@ class RegWrap:
          if (ps.dry_run() or \
             ((not ps.dry_run() and dset_dims(e.input())[3] > 1))):
          # could be: if number choose bucket else use that as stat
-         # if((ps.epi_base=='median') or (ps.epi_base=='max') or \
-         # (ps.epi_base=='mean')):   
          # choose a statistic as representative
             self.info_msg("Creating representative %s sub-brick" % \
               ps.dset2_generic_name)
@@ -2134,9 +2134,16 @@ class RegWrap:
                "3dbucket -prefix %s %s'[%s]'" % \
                (o.out_prefix(), e.input(), ps.epi_base) , ps.oexec)
             else:          
-               com = shell_com(  \
-               "3dTstat -%s -prefix %s %s" % \
-               (ps.epi_base, o.out_prefix(), e.input()), ps.oexec)
+               if((ps.epi_base=='median') or (ps.epi_base=='max') or \
+               (ps.epi_base=='mean')):   
+                  com = shell_com(  \
+                  "3dTstat -%s -prefix %s %s" % \
+                  (ps.epi_base, o.out_prefix(), e.input()), ps.oexec)
+               else:
+                  self.info_msg(
+                    "using 0th sub-brick - assuming epi_base is dataset name" )
+                  com = shell_com( "3dbucket -prefix %s %s'[0]'" %  \
+                    (o.out_prefix(), e.input()), ps.oexec)
          else:   # choose a single sub-brick (sub-brick 0)
             self.info_msg("using 0th sub-brick because only one found")
             com = shell_com( "3dbucket -prefix %s %s'[0]'" %  \
@@ -2317,7 +2324,8 @@ class RegWrap:
 
          if (vrcom == '3dWarpDrive'):
             vrcom = '3dWarpDrive -affine_general'
-            
+         if (vrcom == '3dAllineate'):
+            vrcom = '3dAllineate -cost lpa -automask -source_automask'
          # find base for registration
          # could be: if number just use that as base
          # if((ps.volreg_base=='median') or (ps.volreg_base=='max') 
@@ -2328,6 +2336,8 @@ class RegWrap:
             base = "%s.'[%s]'"  %  (ps.epi.input(), ps.volreg_base)
          elif(ps.volreg_base.isdigit()):
             base = "%s" % ps.volreg_base
+            if(vrcom != '3dvolreg'):
+                 base = "%s.'[%s]'"  %  (ps.epi.input(), ps.volreg_base)
 
          # otherwise median, mean or max
          else:          
@@ -2355,6 +2365,8 @@ class RegWrap:
 
               ovr_alpha = e.new("%s_vr_tempalpha" % prefix)
 
+              if((vrcom != '3dvolreg') & (isdigit(volreg_base))):
+                 base = "%s.'[%s]'"  %  (ps.epi.input(), ps.volreg_base)
               com = shell_com(                                       \
                     "%s -prefix %s -base %s %s %s "  %               \
                 ( vrcom, ovr_alpha.out_prefix(), base,               \
