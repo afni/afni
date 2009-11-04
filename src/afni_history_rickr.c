@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  4, NOV, 2009, RCR, "Dimon", MICRO, TYPE_MODIFY,
+   "small change to check on sort problems",
+   NULL
+ } ,
+
  { 27, OCT, 2009, RCR, "GIFTI", MINOR, TYPE_NEW_OPT,
    "added support for optional LabelTable RGBA attributes",
    NULL
