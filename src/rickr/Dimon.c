@@ -44,6 +44,7 @@ static char * g_history[] =
     " 2.16 Sep  3, 2008 [rickr] - added -drive_wait option\n"
     " 2.17 Nov 24, 2008 [rickr] - added -infile_list and -show_sorted_list\n"
     " 2.18 Jun 25, 2009 [rickr] - fixed dz sent to RT plugin for oblique data\n"
+    " 2.19 Nov  4, 2009 [rickr] - small change to sort test\n"
     "----------------------------------------------------------------------\n"
 };
 
@@ -1542,7 +1543,7 @@ static int dicom_order_files( param_t * p )
     scount = 0;  /* (now) sort inversion counter */
     for( c = 0; c < dcount-1; c++ )
         if( compare_finfo((const void *)(flist+c),
-                          (const void *)(flist+c+1)) >= 0 )
+                          (const void *)(flist+c+1)) > 0 )
         {
             bad = 1;
             fprintf(stderr,"** flist sort failed for files %s, %s\n"
@@ -2511,7 +2512,7 @@ static int read_ge_image( char * pathname, finfo_t * fp,
    int  length , skip , swap=0 ;
    char orients[8] , str[8] ;
    int nx , ny , bpp , cflag , hdroff ;
-        float uv17 = -1.0;
+   float uv17 = -1.0;
         
    if( hi == NULL ) return -1;            /* bad */
    hi->good = 0 ;                       /* not good yet */
