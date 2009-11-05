@@ -329,8 +329,8 @@ ENTRY("GA_setup_2Dhistogram") ;
 #undef  CMAX
 #define CMAX 0.9999f
 
-/*----------------------------------------*/
-/*! LPC as described in the famous paper. */
+/*---------------------------------------------------------------------*/
+/*! LPC = Local Pearson Correlation, as described in the famous paper. */
 
 float GA_pearson_local( int npt , float *avm, float *bvm, float *wvm )
 {
@@ -403,6 +403,58 @@ float GA_pearson_local( int npt , float *avm, float *bvm, float *wvm )
      pcor = logf( (1.0f+pcor)/(1.0f-pcor) ) ;       /* 2*arctanh() */
      psum += ws * pcor * fabsf(pcor) ;              /* emphasize large values */
    }
+
+   return (0.25f*psum/wss);      /* averaged stretched emphasized correlation */
+}                                /* [0.25 to compensate for the 2*arctanh()] */
+
+/*------------------------------------------------------------*/
+/*! LSC = Local Spearman Correlation (not described anywhere) */
+
+float GA_spearman_local( int npt , float *avm, float *bvm, float *wvm )
+{
+   GA_BLOK_set *gbs ;
+   int nblok , nelm , *elm , dd , ii,jj ;
+   float wss , pcor , psum=0.0f ;
+   float *xt=NULL , *yt=NULL ; int nxt=0 ;
+
+   if( gstup->blokset == NULL ){
+     float rad=gstup->blokrad , mrad ;
+     if( gstup->smooth_code > 0 && gstup->smooth_radius_base > 0.0f )
+       rad = sqrt( rad*rad +SQR(gstup->smooth_radius_base) ) ;
+     mrad = 1.2345f*(gstup->base_di + gstup->base_dj + gstup->base_dk) ;
+     rad  = MAX(rad,mrad) ;
+     gstup->blokset = create_GA_BLOK_set(  /* cf. mri_genalign_util.c */
+                            gstup->bsim->nx, gstup->bsim->ny, gstup->bsim->nz,
+                            gstup->base_di , gstup->base_dj , gstup->base_dk ,
+                            gstup->npt_match ,
+                            gstup->im->ar , gstup->jm->ar , gstup->km->ar ,
+                            gstup->bloktype , rad , gstup->blokmin , 1.0f,verb ) ;
+     if( gstup->blokset == NULL )
+       ERROR_exit("Can't create GA_BLOK_set?!?") ;
+   }
+
+   gbs   = gstup->blokset ;
+   nblok = gbs->num ;
+   if( nblok < 1 ) ERROR_exit("LPC: Bad GA_BLOK_set?!") ;
+
+   for( wss=0.0001f,dd=0 ; dd < nblok ; dd++ ){
+     nelm = gbs->nelm[dd] ; if( nelm < 9 ) continue ;
+     elm = gbs->elm[dd] ;
+     if( nelm > nxt ){
+       xt = (float *)realloc(xt,sizeof(float)*nelm) ;
+       yt = (float *)realloc(yt,sizeof(float)*nelm) ; nxt = nelm ;
+     }
+     for( ii=0 ; ii < nelm ; ii++ ){
+       jj = elm[ii] ; xt[ii] = avm[jj] ; yt[ii] = bvm[jj] ;
+     }
+     pcor = THD_spearman_corr( nelm , xt , yt ) ;
+     pcor = 2.0f * sinf( 0.523599f * pcor ) ;  /* 0.523599 = PI/6 */
+     if( pcor > CMAX ) pcor = CMAX; else if( pcor < -CMAX ) pcor = -CMAX;
+     pcor = logf( (1.0f+pcor)/(1.0f-pcor) ) ;  /* 2*arctanh() */
+     psum += pcor * fabsf(pcor) ;              /* emphasize large values */
+     wss++ ;
+   }
+   if( xt != NULL ){ free(yt) ; free(xt) ; }
 
    return (0.25f*psum/wss);      /* averaged stretched emphasized correlation */
 }                                /* [0.25 to compensate for the 2*arctanh()] */
