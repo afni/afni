@@ -179,6 +179,29 @@ float THD_quadrant_corr( int n , float *x , float *y )
 /*--------------------------------------------------------------------------*/
 /*! Quadrant rank-order correlation of x[] and y[] (nondestructive).  */
 
+#if 1
+float THD_quadrant_corr_nd( int n , float *x , float *y )
+{
+   float *z ; register float xm,ym,qc ; register int ii ;
+
+   z = (float *)malloc(sizeof(float)*n) ;
+   memcpy( z , x , sizeof(float)*n ) ;
+   xm = qmed_float( n , z ) ;
+   z = (float *)malloc(sizeof(float)*n) ;
+   memcpy( z , y , sizeof(float)*n ) ;
+   ym = qmed_float( n , z ) ;
+   free(z) ;
+
+   qc = 0.0f ;
+   for( ii=0 ; ii < n ; ii++ )
+     qc += (x[ii] > xm) * (y[ii] > ym) ;
+   qc = (4.0f*qc) / n - 1.0f ;
+   if( qc < -1.0f ) qc = -1.0f; else if( qc > 1.0f ) qc = 1.0f;
+   qc = sinf(1.570796*qc) ;
+   return qc ;
+}
+#else
+/*--------------------------------------------------------------------------*/
 float THD_quadrant_corr_nd( int n , float *x , float *y )
 {
    float *qx, *qy , cv=0.0f ;
@@ -188,6 +211,7 @@ float THD_quadrant_corr_nd( int n , float *x , float *y )
    free((void *)qy); free((void *)qx);
    return cv ;
 }
+#endif
 
 /*----------------------------------------------------------------*/
 /*! Pearson correlation of x[] and y[] (x and y are NOT modified. */

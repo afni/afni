@@ -7,7 +7,7 @@
 #undef  MTYPE
 #define MTYPE double
 
-static MTYPE corcut = 0.0001 ;
+static MTYPE corcut = 0.00001 ;
 
 #undef  TAU
 #define TAU(i) ((tau==NULL) ? (i) : tau[i])
