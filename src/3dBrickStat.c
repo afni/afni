@@ -50,6 +50,7 @@ int main( int argc , char * argv[] )
              "  -min = print the minimum value in dataset\n"
              "  -max = print the minimum value in dataset (default)\n"
              "  -mean = print the mean value in dataset \n"
+             "  -sum = print the sum of values in the dataset\n"
              "  -var = print the variance in the dataset \n"
              "  -count = print the number of voxels included\n"
              "  -volume = print the volume of voxels included in microliters\n"
