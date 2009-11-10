@@ -22,6 +22,8 @@
  *     n_ntri		: number of included trianges for each node
  *     nodes            : node index
  *     node_vol		: between surface volume per node
+ *     node_volg		: between surface volume per node estimated with 
+ *                     Gauss' theorem
  *     norm_A		: vector of normal at node on first surface
  *     norm_B		: vector of normal at node on second surface
  *     thick            : thickness - length of node segment
@@ -33,6 +35,8 @@
  *     norms            : display norm averages
  *     thick            : display min/max thickness
  *     vol              : display total volume and areas
+ *     volg             : display total volume and areas estimated with 
+ *                        Gauss' theorem
  *
  * See "SurfMeasures -help" for more information.
  *
@@ -95,6 +99,9 @@ static char g_history[] =
     "1.12 March 10, 2008  [rickr]\n"
     "  - Averages did _not_ include any -cmask option (so were too small)\n"
     "    (noticed by M Beauchamp)\n"
+    "1.13 October 6, 2009 [ziad]\n"
+    "  - Added volume estimation with approach based on Gauss' theorem\n"
+    "\n"
     "----------------------------------------------------------------------\n";
 
 /*----------------------------------------------------------------------
@@ -120,24 +127,26 @@ SUMA_CommonFields  * SUMAg_CF = NULL;   /* info common to all viewers   */
 char * g_sm_names[] = { "none", "ang_norms", "ang_ns_A", "ang_ns_B",
 			"coord_A", "coord_B", "n_area_A", "n_area_B",
 			"n_avearea_A", "n_avearea_B", "n_ntri",
-			"node_vol", "nodes", "norm_A", "norm_B", "thick" };
+			"node_vol", "node_volg", "nodes", "norm_A", "norm_B", "thick" };
 
-char * g_sm_desc[] = { "invalid function",
-    		       "angular difference between normals",
-		       "angular diff between segment and first norm",
-		       "angular diff between segment and second norm",
-		       "xyz coordinates of node on first surface",
-		       "xyz coordinates of node on second surface",
-		       "associated node area on first surface",
-		       "associated node area on second surface",
-		       "for each node, average area of triangles (surf A)",
-		       "for each node, average area of triangles (surf B)",
-		       "for each node, number of associated triangles",
-		       "associated node volume between surfaces",
-		       "node number",
-		       "vector of normal at node on first surface",
-		       "vector of normal at node on second surface",
-		       "distance between surfaces along segment" };
+char * g_sm_desc[] = { 
+    "invalid function",
+ 	 "angular difference between normals",
+	 "angular diff between segment and first norm",
+	 "angular diff between segment and second norm",
+	 "xyz coordinates of node on first surface",
+	 "xyz coordinates of node on second surface",
+	 "associated node area on first surface",
+	 "associated node area on second surface",
+	 "for each node, average area of triangles (surf A)",
+	 "for each node, average area of triangles (surf B)",
+	 "for each node, number of associated triangles",
+	 "associated node volume between surfaces",
+	 "associated node volume between surfaces estimated with Gauss' theorem",
+	 "node number",
+	 "vector of normal at node on first surface",
+	 "vector of normal at node on second surface",
+	 "distance between surfaces along segment" };
 
 /*----------------------------------------------------------------------*/
 
@@ -202,7 +211,7 @@ int write_output( opts_t * opts, param_t * p )
     SUMA_SurfaceObject * so0, * so1;
 
     THD_fvec3   p0, p1;
-    double      tarea0, tarea1, tvolume;
+    double      tarea0, tarea1, tvolume, tvolumeg;
     double      dist, min_dist, max_dist, tdist;
     double      atn = 0.0, atna = 0.0, atnb = 0.0;  /* angle totals */
     float       fvn, fva, fvb;
@@ -240,10 +249,11 @@ ENTRY("write_output");
 
     fcodes = p->F->codes;	/* for convenience */
 
-    tdist   = 0.0;              /* for total distance over nodes */
-    tarea0  = 0.0;		/* for total area computation   */
-    tarea1  = 0.0;		/* for total area computation  */
-    tvolume = 0.0;		/* for total volume           */
+    tdist    = 0.0;              /* for total distance over nodes */
+    tarea0   = 0.0;		/* for total area computation   */
+    tarea1   = 0.0;		/* for total area computation  */
+    tvolume  = 0.0;		/* for total volume           */
+    tvolumeg = 0.0;		/* for total volume           */
 
     min_dist = 9999.0;
     max_dist = 0.0;
@@ -274,6 +284,9 @@ ENTRY("write_output");
 
 	if ( p->S.nvol )
 	    tvolume += p->S.nvol[node];
+	
+   if ( p->S.nvolg )
+	    tvolumeg += p->S.nvolg[node];
 
 	fputc(' ', p->outfp);
 
@@ -345,6 +358,10 @@ ENTRY("write_output");
 
 		case E_SM_NODE_VOL:
 		    fprintf(p->outfp,"  %10s", MV_format_fval(p->S.nvol[node]));
+		    break;
+
+		case E_SM_NODE_VOLG:
+		    fprintf(p->outfp,"  %10s", MV_format_fval(p->S.nvolg[node]));
 		    break;
 
 		case E_SM_NORM_A:
@@ -419,6 +436,14 @@ ENTRY("write_output");
     if ( (opts->info & ST_INFO_VOL) && p->S.nvol )
     {
 	printf("-- total volume = %.1f\n", tvolume);
+	if ( opts->debug > 1 )
+	    printf("-- ave dist * (area0, ave, area1) = (%.1f, %.1f, %.1f)\n",
+		ave_dist*tarea0, ave_dist*(tarea0+tarea1)/2, ave_dist*tarea1);
+    }
+
+    if ( (opts->info & ST_INFO_VOLG) && p->S.nvolg )
+    {
+	printf("-- total volume with Gauss Theorem = %.1f\n", tvolumeg);
 	if ( opts->debug > 1 )
 	    printf("-- ave dist * (area0, ave, area1) = (%.1f, %.1f, %.1f)\n",
 		ave_dist*tarea0, ave_dist*(tarea0+tarea1)/2, ave_dist*tarea1);
@@ -683,7 +708,8 @@ ENTRY("get_surf_measures");
     geta = getb = 0;
     debug = opts->debug > 2;
 
-    if ( opts->info & ST_INFO_VOL )
+    if ( (opts->info & ST_INFO_VOL) || 
+         (opts->info & ST_INFO_VOLG) )
     {
 	geta = getb = 1;
     }
@@ -701,6 +727,10 @@ ENTRY("get_surf_measures");
 	    else if ( fcodes[c] == E_SM_N_AVEAREA_B )
 		getb = 1;
 	    else if ( fcodes[c] == E_SM_NODE_VOL )
+	    {
+		geta = getb = 1;
+	    }
+       else if ( fcodes[c] == E_SM_NODE_VOLG )
 	    {
 		geta = getb = 1;
 	    }
@@ -746,6 +776,8 @@ ENTRY("get_surf_measures");
 	if ( compute_face_vols(opts, p) != 0 )
 	    RETURN(-1);
 	if ( compute_node_vols(opts, p) != 0 )
+	    RETURN(-1);
+   if ( compute_node_vols_G(opts, p) != 0 )
 	    RETURN(-1);
     }
 
@@ -1050,6 +1082,124 @@ ENTRY("compute_node_vols");
     RETURN(0);
 }
 
+/*---------------------------------------------------------------------------
+ * compute_node_vols_G			- get volume at each node via Gauss theorem. 
+ *
+ * Set each node's volume to one third of the chunk formed by the node and 
+ * its immediate neighbors
+ *---------------------------------------------------------------------------
+*/
+int compute_node_vols_G( opts_t * opts, param_t * p )
+{
+    SUMA_SurfaceObject     * so1, *so2, *sop;
+    double		            sum, xform[4][4];
+    float                  * nvols;
+    int                    prob, node, i, i3, t3, D, D3, N, on3;
+    int                    fn[1024];
+    char                   sdbg[1024];
+ENTRY("compute_node_vols_G");
+
+    so1 = p->S.slist[0];			/* just for ease of typing */
+    so2 = p->S.slist[1];			/* just for ease of typing */
+    if (so1->FN->N_Neighb_max >= 1024) {
+       fprintf(stderr,"** Lousy surface.\n");
+       RETURN(-1);
+    }
+    
+    nvols = (float *)malloc(p->S.nnodes*sizeof(float));
+    ALLOC_CHECK(nvols, "float", p->S.nnodes);
+    p->S.nvolg = nvols;
+
+    for ( node = 0; node < p->S.nnodes; node++ )
+    {
+   /* inefficient to allocate every time, 
+      but it is safe and plenty fast */
+   sop = SUMA_Alloc_SurfObject_Struct(1);
+   
+	if ( node == opts->dnode && opts->debug > 1 )
+	    fprintf(stderr,"-- dnode %d, facelist (%d) :\n        ",
+		    node, so1->MF->N_Memb[node]);
+   N = so1->FN->N_Neighb[node];/* number of node neighbors */
+   D = N + 1; /* number of nodes on either side of patch */
+   sop->N_Node = (N+1)*2;     /* number of nodes in patch */
+   sop->N_FaceSet = 4*N;      /* number of facesets in patch */
+   sop->NodeDim = 3;
+   sop->FaceSetDim = 3;
+   sop->NodeList = (float *)SUMA_calloc(sop->NodeDim*sop->N_Node, sizeof(float));
+   sop->FaceSetList = (int *)SUMA_calloc(sop->FaceSetDim*sop->N_FaceSet, 
+                                                                    sizeof(int));
+   /* fill node coords */
+   on3 = 3*node; D3 = 3*D;
+   sop->NodeList[0] = so1->NodeList[on3  ]; 
+   sop->NodeList[1] = so1->NodeList[on3+1]; 
+   sop->NodeList[2] = so1->NodeList[on3+2];
+   sop->NodeList[D3  ] = so2->NodeList[on3  ]; 
+   sop->NodeList[D3+1] = so2->NodeList[on3+1]; 
+   sop->NodeList[D3+2] = so2->NodeList[on3+2];
+   for (i=0; i<N; ++i) {
+      i3 = 3*(i+1); D3=3*(D+i+1);
+      on3 = 3*so1->FN->FirstNeighb[node][i];
+      sop->NodeList[i3  ] = so1->NodeList[on3  ]; 
+      sop->NodeList[i3+1] = so1->NodeList[on3+1]; 
+      sop->NodeList[i3+2] = so1->NodeList[on3+2];         
+      sop->NodeList[D3  ] = so2->NodeList[on3  ]; 
+      sop->NodeList[D3+1] = so2->NodeList[on3+1]; 
+      sop->NodeList[D3+2] = so2->NodeList[on3+2];            
+   }
+
+   /* fill triangles */
+   for (i=0; i<N; ++i) fn[i] = i+1;
+   fn[N] = 1;
+   t3 = 0;
+   for (i=0; i<N; ++i) {   /* for each neighbor of node */
+      sop->FaceSetList[t3] = 0      ;   ++t3;   /* top triangle */
+      sop->FaceSetList[t3] = fn[i  ];   ++t3;
+      sop->FaceSetList[t3] = fn[i+1];   ++t3;
+      
+      sop->FaceSetList[t3] =   fn[i  ]; ++t3;   /* first lateral */
+      sop->FaceSetList[t3] = D+fn[i  ]; ++t3;
+      sop->FaceSetList[t3] =   fn[i+1]; ++t3;
+      
+      sop->FaceSetList[t3] =   fn[i+1]; ++t3;   /* 2nd   lateral */
+      sop->FaceSetList[t3] = D+fn[i  ]; ++t3;
+      sop->FaceSetList[t3] = D+fn[i+1]; ++t3;   
+      
+      sop->FaceSetList[t3] = D        ; ++t3;   /* bottom triangle */
+      sop->FaceSetList[t3] = D+fn[i+1]; ++t3;
+      sop->FaceSetList[t3] = D+fn[i  ]; ++t3;
+   }
+   
+   SUMA_RECOMPUTE_NORMALS(sop);  /* For speed,
+      one could calculate the normals without, this macro.
+      Some come straight out of so1 and so2, but speed is not
+      a problem at all it seems. */
+   if ((sum = SUMA_Mesh_Volume(sop, NULL, -1, 0, &prob)) < 0) sum = -sum;
+   if (prob) { /* precision problem, wiggle surface and get back in there */
+      SUMA_FillRandXform(xform, 12345, 2);
+      SUMA_Apply_Coord_xform(sop->NodeList, sop->N_Node, sop->NodeDim,
+                             xform, 0, NULL);
+      SUMA_RECOMPUTE_NORMALS(sop);
+      if ((sum = SUMA_Mesh_Volume(sop, NULL, -1, 0, &prob)) < 0) sum = -sum;
+   }
+   nvols[node] = sum/3.0;
+
+	if ( node == opts->dnode && opts->debug > 0 ) {
+       sprintf(sdbg, "volpatch_%d", node);
+	    fprintf(stderr,"\n-- volumeG[%d] = %f, patch in %s\n", 
+                        node, nvols[node], sdbg);
+       SUMA_Save_Surface_Object_Wrap(sdbg, NULL, sop, 
+                                     SUMA_PLY, SUMA_ASCII, NULL);
+   }
+   
+   /* free surface to start anew */
+   SUMA_Free_Surface_Object(sop);
+   sop=NULL;
+  
+    }
+   
+
+    RETURN(0);
+}
 
 /*----------------------------------------------------------------------
  * compute_face_vols			- volume for each triangle face
@@ -1468,6 +1618,10 @@ ENTRY("init_options");
 	{
 	    opts->info |= ST_INFO_VOL;
 	}
+	else if ( ! strncmp(argv[ac], "-info_volg",9) )
+	{
+	    opts->info |= ST_INFO_VOLG;
+	}
 	else if ( ! strncmp(argv[ac], "-nodes_1D", 9) )
 	{
 	    CHECK_ARG_COUNT(ac,"option usage: -nodes_1D NODE_LIST_FILE\n");
@@ -1581,6 +1735,7 @@ ENTRY("validate_options");
     p->S.narea[0] = NULL;
     p->S.narea[1] = NULL;
     p->S.nvol     = NULL;
+    p->S.nvolg    = NULL;
     p->S.fvol     = NULL;
 
     p->F          = &opts->F;			/* point to struct */
@@ -1747,6 +1902,12 @@ ENTRY("validate_option_lists");
 	errs++;
     }
 
+    if ( (opts->info & ST_INFO_VOLG) && p->S.nsurf < 2 )
+    {
+	fprintf(stderr,"** -info_volg option requiers 2 surfaces\n");
+	errs++;
+    }
+
     /* verify all the functions in our list */
     fcodes = p->F->codes;	/* just for less typing */
     for ( c = 0; c < p->F->nused; c++ )
@@ -1792,6 +1953,7 @@ ENTRY("validate_option_lists");
 	    case E_SM_N_AREA_B:
 	    case E_SM_N_AVEAREA_B:
 	    case E_SM_NODE_VOL:
+	    case E_SM_NODE_VOLG:
 	    case E_SM_THICK:
 
 		SM_2SURF_TEST(c);
@@ -1900,13 +2062,13 @@ ENTRY("usage");
 	    "         o  node index\n"
 	    "         o  node's area from the first surface\n"
 	    "         o  node's area from the second surface\n"
-	    "         o  node's (approximate) resulting volume\n"
+	    "         o  node's resulting volume\n"
 	    "         o  thickness at that node (segment distance)\n"
 	    "         o  coordinates of the first segment node\n"
 	    "         o  coordinates of the second segment node\n"
 	    "\n"
 	    "         Additionally, display total surface areas, minimum and\n"
-	    "         maximum thicknesses, and approximate total volume for the\n"
+	    "         maximum thicknesses, and total volume for the\n"
 	    "         cortical ribbon (the sum of node volumes).\n"
 	    "\n"
 	    "        %s                                   \\\n"
@@ -1916,7 +2078,7 @@ ENTRY("usage");
 	    "            -surf_B     pial                           \\\n"
 	    "            -func       n_area_A                       \\\n"
 	    "            -func       n_area_B                       \\\n"
-	    "            -func       node_vol                       \\\n"
+	    "            -func       node_volg                      \\\n"
 	    "            -func       thick                          \\\n"
 	    "            -func       coord_A                        \\\n"
 	    "            -func       coord_B                        \\\n"
@@ -1960,7 +2122,7 @@ ENTRY("usage");
 	    "            -dnode      5000                           \\\n"
 	    "            -out_1D     fred2_norm_angles.1D             \n"
 	    "\n"
-	    "    5. For each node, output the  volume (approximate), thickness\n"
+	    "    5. For each node, output the  volume, thickness\n"
 	    "       and areas, but restrict the nodes to the list contained in\n"
 	    "       column 0 of file sdata.1D.  Furthermore, restrict those \n"
 	    "       nodes to the mask inferred by the given '-cmask' option.\n"
@@ -1970,7 +2132,7 @@ ENTRY("usage");
 	    "            -sv         fred_anat+orig                       \\\n"
 	    "            -surf_A     smoothwm                             \\\n"
 	    "            -surf_B     pial                                 \\\n"
-	    "            -func       node_vol                             \\\n"
+	    "            -func       node_volg                            \\\n"
 	    "            -func       thick                                \\\n"
 	    "            -func       n_area_A                             \\\n"
 	    "            -func       n_area_B                             \\\n"
@@ -2081,8 +2243,9 @@ ENTRY("usage");
 
 	printf(
 	    "\n"
-	    "          Note that the node volumes are approximations.  Places\n"
-	    "          where either normal points in the 'wrong' direction\n"
+	    "          Note that with node_vol, the node volumes can be a little\n"
+       "          biased. It is recommended you use -node_volg instead.\n" 
+	    /*"          Places where either normal points in the 'wrong' direction\n"
 	    "          will be incorrect, as will be the parts of the surface\n"
 	    "          that 'encompass' this region.  Maybe we could refer\n"
 	    "          to this as a mushroom effect...\n"
@@ -2090,7 +2253,7 @@ ENTRY("usage");
 	    "          Basically, expect the total volume to be around 10%%\n"
 	    "          too large.\n"
 	    "\n"
-	    "          ** for more accuracy, try 'SurfPatch -vol' **\n"
+	    "          ** for more accuracy, try 'SurfPatch -vol' **\n"*/
 	    "\n"
 	    "    -help                 : show this help menu\n"
 	    "\n"
@@ -2131,7 +2294,11 @@ ENTRY("usage");
 	    "        Note that this node-wise volume computation is an\n"
             "        approximation, and tends to run ~10 %% high.\n"
 	    "\n"
-	    "        ** for more accuracy, try 'SurfPatch -vol' **\n"
+	    "        ** for more accuracy, use -info_volg **\n"
+       "\n"
+	    "    -info_volg             : display info about the volume\n"
+	    "                             which is estimated with Gauss'\n"
+       "                             theorem.\n"
 	    "\n"
 	    "    -nodes_1D NODELIST.1D : request output for only these nodes\n"
 	    "\n"
@@ -2240,6 +2407,7 @@ ENTRY("final_cleanup");
     if ( p->S.narea[1] )  free(p->S.narea[1]);
     if ( p->S.slist    )  free(p->S.slist);
     if ( p->S.nvol     )  free(p->S.nvol);
+    if ( p->S.nvolg    )  free(p->S.nvolg);
     if ( p->S.fvol     )  free(p->S.fvol);
 
     if ( p->F->nalloc > 0 )
@@ -2344,16 +2512,16 @@ int disp_surf_t( char * info, surf_t * d )
 
     fprintf(stderr,
 	    "surf_t struct at %p:\n"
-	    "    spec N_Surfs   = %d\n"
-	    "    spec N_Groups  = %d\n"
-	    "    slist          = %p\n"
-	    "    narea[0,1]     = %p, %p\n"
-	    "    nvol, fvol     = %p, %p\n"
-	    "    nsurf, salloc  = %d, %d\n"
-	    "    nnodes, nfaces = %d, %d\n",
+	    "    spec N_Surfs      = %d\n"
+	    "    spec N_Groups     = %d\n"
+	    "    slist             = %p\n"
+	    "    narea[0,1]        = %p, %p\n"
+	    "    nvol, nvolg, fvol = %p, %p, %p\n"
+	    "    nsurf, salloc     = %d, %d\n"
+	    "    nnodes, nfaces    = %d, %d\n",
 	    d,
 	    d->spec.N_Surfs, d->spec.N_Groups, d->slist,
-	    d->narea[0], d->narea[1], d->nvol, d->fvol,
+	    d->narea[0], d->narea[1], d->nvol, d->nvolg, d->fvol,
 	    d->nsurf, d->salloc, d->nnodes, d->nfaces);
 
     return 0;

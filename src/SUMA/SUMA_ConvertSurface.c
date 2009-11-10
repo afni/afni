@@ -127,6 +127,13 @@ void usage_SUMA_ConvertSurface (SUMA_GENERIC_ARGV_PARSE *ps)
 "                  or\n"
 "                  r11 r12 r13 D1 r21 r22 r23 D2 r31 r32 r33 D3\n"
 "    -ixmat_1D mat: Same as xmat_1D except that mat is replaced by inv(mat)\n"
+"    -ixmat_1D mat: Same as xmat_1D except that mat is replaced by inv(mat)\n"
+"        NOTE: For both -xmat_1D and -ixmat_1D, you can replace mat with \n"
+"              one of the special strings:\n"
+"              'RandShift', 'RandRigid', or 'RandAffine' which would create\n"
+"              a transform on the fly. \n"
+"    -seed SEED: Use SEED to seed the random number generator for random\n"
+"                matrix generation\n"
 "    -xcenter x y z: Use vector cen = [x y z]' for rotation center.\n"
 "                    Default is cen = [0 0 0]'\n"
 "    -polar_decomp: Apply polar decomposition to mat and preserve\n"
@@ -145,7 +152,7 @@ void usage_SUMA_ConvertSurface (SUMA_GENERIC_ARGV_PARSE *ps)
 int main (int argc,char *argv[])
 {/* Main */
    static char FuncName[]={"ConvertSurface"}; 
-	int kar, volexists, i, Doinv;
+	int kar, volexists, i, Doinv, randseed;
    float DoR2S;
    double xcen[3];
    double xform[4][4];
@@ -192,6 +199,7 @@ int main (int argc,char *argv[])
    xcen[0] = 0.0; xcen[1] = 0.0; xcen[2] = 0.0;
 	brk = NOPE;
    orcode[0] = '\0'; 
+   randseed = 1234;
    sprintf(orsurf,"RAI");
    Docen = NOPE;
    Doxmat = NOPE;
@@ -217,7 +225,18 @@ int main (int argc,char *argv[])
       
       SUMA_TO_LOWER(argv[kar]);
 		      
-      if (!brk && (strcmp(argv[kar], "-xmat_1d") == 0)) {
+      if (!brk && (strcmp(argv[kar], "-seed") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need 1 integer after -seed\n");
+				exit (1);
+			}
+			randseed = atoi(argv[kar]); 
+			brk = YUP;
+		}
+      
+      if (!brk && ( (strcmp(argv[kar], "-xmat_1d") == 0) || 
+                    (strcmp(argv[kar], "-xmat_1D") == 0) ) ) {
          kar ++;
 			if (kar >= argc)  {
 		  		fprintf (SUMA_STDERR, "need 1 argument after -xmat_1D\n");
@@ -228,7 +247,8 @@ int main (int argc,char *argv[])
          Doinv = 0;
 			brk = YUP;
 		}
-      if (!brk && (strcmp(argv[kar], "-ixmat_1d") == 0)) {
+      if (!brk && ( (strcmp(argv[kar], "-ixmat_1d") == 0) || 
+                    (strcmp(argv[kar], "-ixmat_1D") == 0) ) ) {
          kar ++;
 			if (kar >= argc)  {
 		  		fprintf (SUMA_STDERR, "need 1 argument after -ixmat_1D\n");
@@ -550,65 +570,72 @@ int main (int argc,char *argv[])
       MRI_IMAGE *im = NULL;
       double *far=NULL;
       int nrow, ncol;
-      
-      im = mri_read_double_1D (xmat_name);
-   
-      if (!im) {
-         SUMA_SLP_Err("Failed to read 1D file");
-         exit(1);
-      }
-      far = MRI_DOUBLE_PTR(im);
-      nrow = im->nx;
-      ncol = im->ny;
-      if (nrow == 1) {
-         if (ncol != 12) { 
-            SUMA_SL_Err("Mat file must have\n"
-                        "one row of 12 columns.");
-            mri_free(im); im = NULL;   /* done with that baby */
-            exit(1);
-         }
-         i = 0;
-         while (i < 12) {
-            xform[i/4][0] = far[i]; ++i;
-            xform[i/4][1] = far[i]; ++i;
-            xform[i/4][2] = far[i]; ++i;
-            xform[i/4][3] = far[i]; ++i;
-         }
-         xform[3][0] = 0.0;  
-         xform[3][1] = 0.0;  
-         xform[3][2] = 0.0;  
-         xform[3][3] = 1.0;
+      if (!strcmp(xmat_name,"RandRigid")) {
+         SUMA_FillRandXform(xform, randseed, 2); 
+      } else if (!strcmp(xmat_name,"RandAffine")) {
+         SUMA_FillRandXform(xform, randseed, 3);
+      } else if (!strcmp(xmat_name,"RandShift")) {
+         SUMA_FillRandXform(xform, randseed, 1);
       } else {
-         if (ncol < 4 ) {
-            SUMA_SL_Err("Mat file must have\n"
-                        "at least 4 columns.");
-            mri_free(im); im = NULL;   /* done with that baby */
+         im = mri_read_double_1D (xmat_name);
+
+         if (!im) {
+            SUMA_SLP_Err("Failed to read 1D file");
             exit(1);
          }
-         if (nrow < 3 ) {
-            SUMA_SL_Err("Mat file must have\n"
-                        "at least 3 rows.");
-            mri_free(im); im = NULL;   /* done with that baby */
-            exit(1);
+         far = MRI_DOUBLE_PTR(im);
+         nrow = im->nx;
+         ncol = im->ny;
+         if (nrow == 1) {
+            if (ncol != 12) { 
+               SUMA_SL_Err("Mat file must have\n"
+                           "one row of 12 columns.");
+               mri_free(im); im = NULL;   /* done with that baby */
+               exit(1);
+            }
+            i = 0;
+            while (i < 12) {
+               xform[i/4][0] = far[i]; ++i;
+               xform[i/4][1] = far[i]; ++i;
+               xform[i/4][2] = far[i]; ++i;
+               xform[i/4][3] = far[i]; ++i;
+            }
+            xform[3][0] = 0.0;  
+            xform[3][1] = 0.0;  
+            xform[3][2] = 0.0;  
+            xform[3][3] = 1.0;
+         } else {
+            if (ncol < 4 ) {
+               SUMA_SL_Err("Mat file must have\n"
+                           "at least 4 columns.");
+               mri_free(im); im = NULL;   /* done with that baby */
+               exit(1);
+            }
+            if (nrow < 3 ) {
+               SUMA_SL_Err("Mat file must have\n"
+                           "at least 3 rows.");
+               mri_free(im); im = NULL;   /* done with that baby */
+               exit(1);
+            }
+            if (ncol > 4) {
+               SUMA_SL_Warn(  "Ignoring entries beyond 4th \n"
+                              "column in transform file.");
+            }
+            if (nrow > 3) {
+               SUMA_SL_Warn(  "Ignoring entries beyond 3rd\n"
+                              "row in transform file.\n");
+            }
+            for (i=0; i < 3; ++i) {
+               xform[i][0] = far[i];
+               xform[i][1] = far[i+nrow];
+               xform[i][2] = far[i+2*nrow];
+               xform[i][3] = far[i+3*nrow];
+            }
+            xform[3][0] = 0.0;  
+            xform[3][1] = 0.0;  
+            xform[3][2] = 0.0;  
+            xform[3][3] = 1.0;
          }
-         if (ncol > 4) {
-            SUMA_SL_Warn(  "Ignoring entries beyond 4th \n"
-                           "column in transform file.");
-         }
-         if (nrow > 3) {
-            SUMA_SL_Warn(  "Ignoring entries beyond 3rd\n"
-                           "row in transform file.\n");
-         }
-         for (i=0; i < 3; ++i) {
-            xform[i][0] = far[i];
-            xform[i][1] = far[i+nrow];
-            xform[i][2] = far[i+2*nrow];
-            xform[i][3] = far[i+3*nrow];
-         }
-         xform[3][0] = 0.0;  
-         xform[3][1] = 0.0;  
-         xform[3][2] = 0.0;  
-         xform[3][3] = 1.0;
       }  
       
       if (LocalHead) {
@@ -790,8 +817,11 @@ int main (int argc,char *argv[])
       fprintf (SUMA_STDOUT,"Performing acpc transform...\n");
 
       /* form the acpc version of the surface volume */
-      acpc_name = (char *) SUMA_calloc (strlen(SO->VolPar->dirname)+strlen(SO->VolPar->prefix)+60, sizeof(char));
-      sprintf (acpc_name, "%s%s+acpc.HEAD", SO->VolPar->dirname, SO->VolPar->prefix);
+      acpc_name = (char *) SUMA_calloc (strlen(SO->VolPar->dirname)+
+                                        strlen(SO->VolPar->prefix)+60, 
+                                        sizeof(char));
+      sprintf (acpc_name, 
+               "%s%s+acpc.HEAD", SO->VolPar->dirname, SO->VolPar->prefix);
       if (!SUMA_filexists(acpc_name)) {
          fprintf (SUMA_STDERR,"Error %s: %s not found.\n", FuncName, acpc_name);
          exit(1);
@@ -800,11 +830,15 @@ int main (int argc,char *argv[])
       /* read the acpc header */
       aset = THD_open_dataset(acpc_name) ;
       if( !ISVALID_DSET(aset) ){
-         fprintf (SUMA_STDERR,"Error %s: %s is not a valid data set.\n", FuncName, acpc_name) ;
+         fprintf (SUMA_STDERR,
+                  "Error %s: %s is not a valid data set.\n", 
+                  FuncName, acpc_name) ;
          exit(1);
       }
       if( aset->warp == NULL ){
-         fprintf (SUMA_STDERR,"Error %s: acpc_name does not contain an acpc transform.\n", FuncName);
+         fprintf (SUMA_STDERR,
+                  "Error %s: acpc_name does not contain an acpc transform.\n", 
+                  FuncName);
          exit(1);
       }
       
@@ -812,7 +846,8 @@ int main (int argc,char *argv[])
       
       /* now warp the coordinates, one node at a time */
       if (!SUMA_AFNI_forward_warp_xyz(warp, SO->NodeList, SO->N_Node)) {
-         fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_AFNI_forward_warp_xyz.\n", FuncName);
+         fprintf (SUMA_STDERR,
+                  "Error %s: Failed in SUMA_AFNI_forward_warp_xyz.\n", FuncName);
          exit(1);
       }
 
@@ -823,7 +858,8 @@ int main (int argc,char *argv[])
       fprintf (SUMA_STDOUT,"Performing MNI_RAI transform...\n");
       /* apply the mni warp */
       if (!SUMA_AFNItlrc_toMNI(SO->NodeList, SO->N_Node, "RAI")) {
-         fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_AFNItlrc_toMNI.\n", FuncName);
+         fprintf (SUMA_STDERR,
+                  "Error %s: Failed in SUMA_AFNItlrc_toMNI.\n", FuncName);
          exit(1);
       }
       sprintf(orsurf,"RAI");
@@ -833,7 +869,8 @@ int main (int argc,char *argv[])
       fprintf (SUMA_STDOUT,"Performing MNI_LPI transform...\n");
       /* apply the mni warp */
       if (!SUMA_AFNItlrc_toMNI(SO->NodeList, SO->N_Node, "LPI")) {
-         fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_AFNItlrc_toMNI.\n", FuncName);
+         fprintf (SUMA_STDERR,
+                  "Error %s: Failed in SUMA_AFNItlrc_toMNI.\n", FuncName);
          exit(1);
       }
       sprintf(orsurf,"LPI");
@@ -843,7 +880,9 @@ int main (int argc,char *argv[])
       fprintf (SUMA_STDOUT,"Performing affine transform...\n");
       if (LocalHead) {
          for (i=0; i<3 ; ++i) {
-            fprintf (SUMA_STDERR,"M[%d][:] = %f %f %f %f\n", i, xform[i][0], xform[i][1], xform[i][2], xform[i][3]);
+            fprintf (SUMA_STDERR,
+                     "M[%d][:] = %f %f %f %f\n", 
+                     i, xform[i][0], xform[i][1], xform[i][2], xform[i][3]);
          }
          fprintf (SUMA_STDERR,"Cen[:] %f %f %f\n", xcen[0], xcen[1], xcen[2]);
       }

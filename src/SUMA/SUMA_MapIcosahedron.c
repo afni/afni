@@ -1072,7 +1072,7 @@ int main (int argc, char *argv[])
          SO->FN = 
             SUMA_Build_FirstNeighb( SO->EL, 
                                     SO->N_Node, 
-                                    SO->idcode_str );
+                                    SO->idcode_str, verb );
       if ( SO->FN==NULL || SO->EL==NULL ) {
          fprintf( SUMA_STDERR, 
                   "Error %s: Failed in acquired Surface Metrics.\n", 

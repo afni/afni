@@ -759,3 +759,26 @@ void SUMA_rowgraph_mtdkill( MEM_topshell_data * mp )
    
    SUMA_RETURNe ;
 }
+
+#ifdef SUMA_USE_AFNI_GRAPH
+SUMA_Boolean SUMA_Afni_Graph(SUMA_OVERLAYS *Sover,
+               SUMA_SurfaceObject *SO)
+{
+   static char FuncName[]={"SUMA_Afni_Graph"};
+   SUMA_Boolean LocalHead = YUP;
+   
+   /* get yourself an im3d structure populated 
+   The im3d structure is initialized in AFNI's 
+      new_AFNI_controller function which is in afni_widg.c. 
+   new_AFNI_controller calls AFNI_make_widgets, which calls AFNI_make_wid1,
+   which finally sets up the widget that eventually executes callback 
+   AFNI_view_xyz_CB, itself a function to create graphs or slice viewers. 
+   Function AFNI_view_xyz_CB makes a series of drive_MCW_grapher to do the deed.
+   
+   Calling new_AFNI_controller directly from SUMA is not that trivial because it uses symbols defined in afni.o, which itself contains a main() function! So the plot thickens... Do I create im3d outside of AFNI's routines, and eventually call drive_MCW_grapher myself? I do not know yet...*/
+   
+   
+   SUMA_LH("Done");
+   SUMA_RETURN(YUP);
+}
+#endif

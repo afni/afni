@@ -65,6 +65,29 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 9 , NOV , 2009 , ZSS , "SurfMeasures" , MINOR , TYPE_NEW_OPT ,
+   "Added option for improved node volume estimation.",
+   "The new measure, called node_volg, uses Gauss' Theorem to estimate\n"
+   "the volume associated with a node in two isotopic surfaces. This option\n"
+   "is more robust to surface curvature variations.\n"
+ } ,
+
+ { 9 , NOV , 2009 , ZSS , "SurfPatch" , MINOR , TYPE_NEW_OPT ,
+   "Added options to check for, and correct 'bowties' in pathches.",
+   "Bowties in patches result in non 2-manifold stiched surfaces whose\n"
+   "volume cannot be caluclated. The *bowtie option deal with such cases.\n"
+ } ,
+
+ { 9 , NOV , 2009 , ZSS , "SurfPatch" , MINOR , TYPE_NEW_OPT ,
+   "Added options to shrink patch contours at nodes not in selected nodes.",
+   "See options -adjust_contour for details."
+ } ,
+
+ { 3 , NOV , 2009 , ZSS , "MapIcosahedron" , MICRO , TYPE_MODIFY ,
+   "Minor code change, EdgeList was computed twice for no reason.",
+   NULL
+ } ,
+
  { 16 , OCT , 2009 , ZSS , "afni" , MICRO , TYPE_MODIFY ,
    "Turned off zeroing of uncommented text in .1D files",
    "You can turn this behaviour back on by setting env\n"

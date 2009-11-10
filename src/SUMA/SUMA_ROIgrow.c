@@ -232,7 +232,8 @@ byte * SUMA_ROIgrow( SUMA_SurfaceObject *SO,
    nmask = (byte *)SUMA_calloc(SO->N_Node, sizeof(byte));
    if (useedge) { /* faster, perhaps, for larger ROIs*/
       SUMA_LH ("In edge growing mode!");
-      if (CE = SUMA_GetContour(SO, nodeind, N_nodeind, &N_CE, 0, NULL)) {
+      if ((CE = SUMA_GetContour( SO, nodeind, N_nodeind, &N_CE, 
+                                 0, NULL, NULL, 1))) {
          if (N_CE > 0) {
             /* replace nodeind by nodes forming edges only*/
             nodeindfast = (int *)SUMA_calloc(2*N_CE, sizeof(int));
@@ -411,7 +412,10 @@ int main (int argc,char *argv[])
    nodeind = NULL; N_nodeind = 0;
    if (Opt->in_nodeindices) {
       SUMA_DSET_FORMAT form=SUMA_NO_DSET_FORMAT;
-      inds_dset = SUMA_LoadDset_s(Opt->in_nodeindices, &form, 0);
+      if (!(inds_dset = SUMA_LoadDset_s(Opt->in_nodeindices, &form, 0))) {
+         SUMA_S_Errv("Could not read input '%s'\n", Opt->in_nodeindices);
+         exit(1);
+      }
       if (SDSET_VECNUM(inds_dset) != 1) {
          SUMA_S_Errv(
             "Node indices dset (%s) has more than one column.\n",

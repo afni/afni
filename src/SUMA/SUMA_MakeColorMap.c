@@ -402,13 +402,16 @@ int main (int argc,char *argv[])
    /* allocate for fiducials */
    if (Usage1) {
       if (N_Fid % 3) {
-         fprintf (SUMA_STDERR,"Error %s: Not all rows in %s appear to have RGB triplets.\n", FuncName, FidName);
+         fprintf (SUMA_STDERR,
+                  "Error %s: Not all rows in %s appear to have RGB triplets.\n", 
+                  FuncName, FidName);
          exit (1);
       }
 
       Fid = (float **) SUMA_allocate2D (N_Fid / 3, 3, sizeof(float));
       if (Fid == NULL) {
-         fprintf (SUMA_STDERR,"Error %s: Could not allocate for Fid.\n", FuncName);
+         fprintf (SUMA_STDERR,
+                  "Error %s: Could not allocate for Fid.\n", FuncName);
          exit(1);
       }
 
@@ -420,22 +423,26 @@ int main (int argc,char *argv[])
       
       mri_free(im); im = NULL; 
       /* now create the color map */
-      SM = SUMA_MakeColorMap (Fid, N_Fid/3, Ncols, SkipLast, FuncName);
+      SM = SUMA_MakeColorMap (Fid, N_Fid/3, 0, Ncols, SkipLast, FuncName);
       if (SM == NULL) {
-         fprintf (SUMA_STDERR,"Error %s: Error in SUMA_MakeColorMap.\n", FuncName);
+         fprintf (SUMA_STDERR,
+                  "Error %s: Error in SUMA_MakeColorMap.\n", FuncName);
          exit(1);
       }
    } 
    if (Usage2) { /* second usage */
       if (N_Fid % 4) {
-         fprintf (SUMA_STDERR,"Error %s: Not all rows in %s appear to have RGB N quadruplets.\n", FuncName, FidName);
+         fprintf (SUMA_STDERR,
+                  "Error %s: Not all rows in %s appear to have "
+                  "RGB N quadruplets.\n", FuncName, FidName);
          exit (1);
       }
 
       Fid = (float **) SUMA_allocate2D (N_Fid / 4, 3, sizeof(float));
       Nind = (int *) SUMA_calloc (N_Fid/4, sizeof(int));
       if (Fid == NULL || !Nind) {
-         fprintf (SUMA_STDERR,"Error %s: Could not allocate for Fid or Nind.\n", FuncName);
+         fprintf (SUMA_STDERR,
+                  "Error %s: Could not allocate for Fid or Nind.\n", FuncName);
          exit(1);
       }
       
@@ -449,12 +456,13 @@ int main (int argc,char *argv[])
       mri_free(im); im = NULL; 
       
       /* now create the color map */
-      SM = SUMA_MakeColorMap_v2 (Fid, N_Fid/4, Nind, SkipLast, FuncName); 
+      SM = SUMA_MakeColorMap_v2 (Fid, N_Fid/4, 0, Nind, SkipLast, FuncName); 
       if (SM == NULL) {
-         fprintf (SUMA_STDERR,"Error %s: Error in SUMA_MakeColorMap.\n", FuncName);
+         fprintf (SUMA_STDERR,
+                  "Error %s: Error in SUMA_MakeColorMap.\n", FuncName);
          exit(1);
       }
-      Ncols = SM->N_Col;
+      Ncols = SM->N_M[0];
    }
    
    if (Usage3) { /* third usage */
@@ -462,26 +470,32 @@ int main (int argc,char *argv[])
          SM = SUMA_FindNamedColMap (StdType);
          freesm = 0;
          if (SM == NULL) {
-            fprintf (SUMA_STDERR,"Error %s: Error in SUMA_MakeColorMap.\n", FuncName);
+            fprintf (SUMA_STDERR,
+                     "Error %s: Error in SUMA_MakeColorMap.\n", FuncName);
             exit(1);
          }
-         Ncols = SM->N_Col;
+         Ncols = SM->N_M[0];
       } else {
-         imap = SUMA_Find_ColorMap ( MapName, SUMAg_CF->scm->CMv, SUMAg_CF->scm->N_maps, -2);
+         imap = SUMA_Find_ColorMap ( MapName, SUMAg_CF->scm->CMv, 
+                                     SUMAg_CF->scm->N_maps, -2);
          if (imap < 0) {
-            fprintf (SUMA_STDERR,"Error %s: Could not find colormap %s.\n", FuncName, MapName);
+            fprintf (SUMA_STDERR,
+                     "Error %s: Could not find colormap %s.\n", 
+                     FuncName, MapName);
             exit (1); 
          }
-         SM = SUMAg_CF->scm->CMv[imap]; Ncols = SM->N_Col;
+         SM = SUMAg_CF->scm->CMv[imap]; 
+         Ncols = SM->N_M[0];
       }
    }
    
    if (Usage4) { /* 4th usage */
-      if (!(SM = SUMA_FScolutToColorMap(fscolutname, fsbl0, fsbl1, showfscolut))) {
+      if (!(SM = SUMA_FScolutToColorMap(fscolutname, fsbl0, 
+                                         fsbl1, showfscolut))) {
          SUMA_S_Err("Failed to get FreeSurfer colormap.");
          exit(1);
       }
-      Ncols = SM->N_Col;
+      Ncols = SM->N_M[0];
    }
    
    if (flipud) {
@@ -508,17 +522,21 @@ int main (int argc,char *argv[])
                for (i=0; i < Ncols; ++i) {
                   
                   /* Now create the hex form */
-                  r_sprintf_long_to_hex (h, (unsigned long)rint((M[i][0]*255)), 1, 0);
+                  r_sprintf_long_to_hex (h, 
+                        (unsigned long)rint((M[i][0]*255)), 1, 0);
                   fprintf (stdout, "#%s", h); 
 
-                  r_sprintf_long_to_hex (h, (unsigned long)rint((M[i][1]*255)), 1, 0);
+                  r_sprintf_long_to_hex (h, 
+                        (unsigned long)rint((M[i][1]*255)), 1, 0);
                   fprintf (stdout, "%s", h);
 
-                  r_sprintf_long_to_hex (h, (unsigned long)rint((M[i][2]*255)), 1, 0);
+                  r_sprintf_long_to_hex (h, 
+                        (unsigned long)rint((M[i][2]*255)), 1, 0);
                   fprintf (stdout, "%s \n", h);
                }
                 fprintf (stdout, "\n") ;
-            } else if (AfniHex == 2){  /* to go in the C code (see pbardef.h and pbar.c)*/
+            } else if (AfniHex == 2){  /* to go in the C code 
+                              (see pbardef.h and pbar.c)*/
                char *p2 = SUMA_copy_string(Prfx); 
                SUMA_TO_UPPER(p2);
                fprintf (stdout, "static char %s[] = {\n   \"%s \"\n   \"", 
@@ -529,13 +547,16 @@ int main (int argc,char *argv[])
                      else { fprintf (stdout, " "); }
                   }
                   /* Now create the hex form */
-                  r_sprintf_long_to_hex (h, (unsigned long)rint((M[i][0]*255)), 1, 0);
+                  r_sprintf_long_to_hex (h, 
+                        (unsigned long)rint((M[i][0]*255)), 1, 0);
                   fprintf (stdout, "#%s", h); 
 
-                  r_sprintf_long_to_hex (h, (unsigned long)rint((M[i][1]*255)), 1, 0);
+                  r_sprintf_long_to_hex (h, 
+                        (unsigned long)rint((M[i][1]*255)), 1, 0);
                   fprintf (stdout, "%s", h);
 
-                  r_sprintf_long_to_hex (h, (unsigned long)rint((M[i][2]*255)), 1, 0);
+                  r_sprintf_long_to_hex (h, 
+                        (unsigned long)rint((M[i][2]*255)), 1, 0);
                   fprintf (stdout, "%s", h);
                }
                 fprintf (stdout, " \"\n};\n") ;
@@ -548,27 +569,32 @@ int main (int argc,char *argv[])
 
             for (i=0; i < Ncols; ++i) {
                /* Now create the hex form */
-               r_sprintf_long_to_hex (h, (unsigned long)rint((M[i][0]*255)), 1, 0);
+               r_sprintf_long_to_hex (h, 
+                     (unsigned long)rint((M[i][0]*255)), 1, 0);
                if (i<10) fprintf (stdout, "%s_0%d = #%s", Prfx, i, h);
                   else fprintf (stdout, "%s_%d = #%s", Prfx, i, h); 
 
-               r_sprintf_long_to_hex (h, (unsigned long)rint((M[i][1]*255)), 1, 0);
+               r_sprintf_long_to_hex (h, 
+                     (unsigned long)rint((M[i][1]*255)), 1, 0);
                fprintf (stdout, "%s", h);
 
-               r_sprintf_long_to_hex (h, (unsigned long)rint((M[i][2]*255)), 1, 0);
+               r_sprintf_long_to_hex (h, 
+                     (unsigned long)rint((M[i][2]*255)), 1, 0);
                fprintf (stdout, "%s\n", h);
             }
 
             /* color map */
 
-            fprintf (stdout, "\n***PALETTES %s [%d]\n//1 to -1 range\n", Prfx, Ncols);
+            fprintf (stdout, "\n***PALETTES %s [%d]\n//1 to -1 range\n", 
+                     Prfx, Ncols);
             ifact = 2;
             for (i=0; i < Ncols; ++i) {
                fprintf (stdout, "%f -> ", 1.0 - (float)(ifact*i)/Ncols);
                if (i<10) fprintf (stdout, "%s_0%d\n", Prfx, i);
                   else fprintf (stdout, "%s_%d\n", Prfx, i); 
             }
-            fprintf (stdout, "\n***PALETTES %s [%d+]\n//1 to 0 range\n", Prfx, Ncols);
+            fprintf (stdout, 
+                     "\n***PALETTES %s [%d+]\n//1 to 0 range\n", Prfx, Ncols);
             ifact = 1;
             for (i=0; i < Ncols; ++i) {
                fprintf (stdout, "%f -> ", 1.0 - (float)(ifact*i)/Ncols);
@@ -587,7 +613,9 @@ int main (int argc,char *argv[])
    }
    
    if (SM && !MapName && freesm) SUMA_Free_ColorMap(SM);
-   if (!SUMA_Free_CommonFields(SUMAg_CF)) { SUMA_SL_Err("Failed to free commonfields."); }
+   if (!SUMA_Free_CommonFields(SUMAg_CF)) { 
+      SUMA_SL_Err("Failed to free commonfields."); 
+   }
    
    SUMA_RETURN (0);
 }   

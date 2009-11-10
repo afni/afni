@@ -44,7 +44,9 @@
 }  \
 
 int SUMA_a_good_col(char *name, int i, float *acol);
-SUMA_COLOR_MAP * SUMA_MakeColorMap (float **Fiducials, int Nfid, int Ncols, SUMA_Boolean SkipLast, char *Name);
+SUMA_COLOR_MAP * SUMA_MakeColorMap (float **Fiducials, int Nfid, byte rgba,
+                                    int Ncols, SUMA_Boolean SkipLast, 
+                                    char *Name);
 void SUMA_Free_ColorMap (SUMA_COLOR_MAP* SM);
 SUMA_SCALE_TO_MAP_OPT * SUMA_ScaleToMapOptInit(void);
 void SUMA_Free_ColorScaledVect (SUMA_COLOR_SCALED_VECT * S);
@@ -53,9 +55,14 @@ SUMA_Boolean SUMA_ScaleToMap (float *V, int N_V, float Vmin, float Vmax, SUMA_CO
 SUMA_COLOR_MAP * SUMA_MakeStandardMap (char *mapname);
 SUMA_COLOR_MAP *SUMA_FindNamedColMap(char *Name);
 SUMA_COLOR_MAP *SUMA_FindCodedColMap(int imap); 
-float * SUMA_PercRange (float *V, float *Vsort, int N_V, float *PercRange, float *PercRangeVal, int *iPercRange);
-double * SUMA_dPercRange (double *V, double *Vsort, int N_V, double *PercRange, double *PercRangeVal, int *iPercRangeVal);
-SUMA_COLOR_MAP* SUMA_MakeColorMap_v2 (float **Fiducials, int Nfid, int *Nint, SUMA_Boolean SkipLast, char *Name);
+float * SUMA_PercRange (float *V, float *Vsort, int N_V, 
+                        float *PercRange, float *PercRangeVal, int *iPercRange);
+double * SUMA_dPercRange ( double *V, double *Vsort, int N_V, 
+                           double *PercRange, double *PercRangeVal, 
+                           int *iPercRangeVal);
+SUMA_COLOR_MAP* SUMA_MakeColorMap_v2 ( float **Fiducials, int Nfid, byte rgba,
+                                       int *Nint, SUMA_Boolean SkipLast, 
+                                       char *Name);
 SUMA_OVERLAYS * SUMA_CreateOverlayPointer (const char *Name, SUMA_DSET *dset, char *owner_id, SUMA_OVERLAYS *Recycle);
 SUMA_Boolean SUMA_FreeOverlayPointerRecyclables (SUMA_OVERLAYS * Sover);
 SUMA_Boolean SUMA_FreeOverlayPointer (SUMA_OVERLAYS * Sover);
@@ -143,8 +150,30 @@ SUMA_Boolean  SUMA_isDsetRelated(SUMA_DSET *dset, SUMA_SurfaceObject *SO);
 
 
 
+/* A fast version of SUMA_ColMapKeyIndex 
+   key is set to the return value*/
+#define SUMA_COLMAPKEYTOINDEX(key,chd,hdbuf) { \
+   HASH_FIND_INT(chd, &key, hdbuf); \
+   if (hdbuf) key = hdbuf->colmapindex; else  key = -1; \
+}
 
+#define SUMA_COLMAP_INDEX_FROM_ID(id, ColMap, i0) {\
+   if (ColMap->chd) { \
+      i0 = id; SUMA_COLMAPKEYTOINDEX(i0, ColMap->chd, hdbuf); \
+      /* or the function call way, same but slower    \
+      i0 = SUMA_ColMapKeyIndex((int)id, ColMap); */  \
+   } else {\
+      i0 = (int)id;  /* handy if non int is passed */   \
+      if (i0 < 0) i0 = 0;  \
+      else if (i0 >= ColMap->N_M[0]) i0 = ColMap->N_M[0] -1;   \
+   }  \
+}
 
+int SUMA_ColMapKeyIndex(int key, SUMA_COLOR_MAP *CM);
+SUMA_Boolean SUMA_DestroyCmapHash(SUMA_COLOR_MAP *CM);
+SUMA_Boolean SUMA_CreateCmapHash(SUMA_COLOR_MAP *CM);
+NI_group *SUMA_CmapToNICmap(SUMA_COLOR_MAP *CM);
+SUMA_COLOR_MAP *SUMA_NICmapToCmap(NI_group *ngr);
 
 
 

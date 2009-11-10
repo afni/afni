@@ -8,5 +8,5 @@ void add_quats(float *q1, float *q2, float *dest);
 void inverse_quat(float q[4]);
 void SUMA_build_rotmatrix(float m[4][4], float q[4]);
 void axis_to_quat(float a[3], float phi, float q[4]);
-
+void normalize_quat(float q[4]);
 #endif

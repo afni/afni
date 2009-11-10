@@ -827,32 +827,47 @@ typedef struct {
    int ** EL; /*!< pointer to where the Edge List ( N_EL x 2 ) will be placed
                         each row is an edge, i1 i2 where i1 is always <= i2
                         EL is sorted by row */
-   int ** ELps; /*!< pointer to where the Edge List Property matrix ( N_EL x 3 )will be placed 
-                        1st column, row i = 1 means edge i: i1,i2 was encountered as i2->i1 in the triangle J (so it was flipped when stored in EL)
-                                          = -1 means edge i: i1,i2 was encountered as i1->i2 in the triangle J (so no flipping was done to store it in EL)
-                        2nd column, row i = J is the triangle ( FL[J] ) that the segment belongs to. 
-                        3rd column, row i = Numer of triangles that contain this edge. This number is positive for the first occurence
-                        of the edge in EL, it is -1 afterwards. A decent edge has 2 hosting triangles, an edge edge
-                        has 1 hosting triangle. Bad edges come in all other colors*/
+   int ** ELps; /*!< pointer to where the Edge List Property matrix 
+                     ( N_EL x 3 )will be placed 
+                  1st column, row i = 1 means edge i: i1,i2 was encountered as
+                     i2->i1 in the triangle J (so it was flipped when stored in
+                      EL) = -1 means edge i: i1,i2 was encountered as i1->i2 in 
+                      the triangle J (so no flipping was done to store it in EL)
+                  2nd column, row i = J is the triangle ( FL[J] ) that the 
+                        segment belongs to. 
+                  3rd column, row i = Numer of triangles that contain this edge. 
+                     This number is positive for the first occurence
+                     of the edge in EL, it is -1 afterwards. A decent edge has 2 
+                     hosting triangles, an edge edge
+                     has 1 hosting triangle. Bad edges come in all other colors*/
                         
-   int *ELloc; /*!< k x 1 vector that stores where each node's listing begins. 
+   int *ELloc; /*!< N_ELloc x 1 vector that stores where each node's 
+                     listing begins. 
                      ELloc is used to quickly find a certain edge in EL
                      to find the edge formed by nodes na-nb
                      find the minimum of na and nb (say it's nb)
-                     the first reference of an edge containing nb starts at EL(ELloc(nb),:)
-                     NOTE: ELloc contains an entry for each node in FaceSetList, except the 
+                     the first reference of an edge containing nb 
+                     starts at EL(ELloc(nb),:)
+                     NOTE: ELloc contains an entry for each node in
+                      FaceSetList, except the 
                      largest node index since that's never in the 
                      first column of EL */
+   int N_ELloc; /*! Contains the number of values in ELloc */
                      
    int N_EL; /*!< Number of segments = 3 * N_Facesets */
-   int N_Distinct_Edges; /*! Number of distinct edges (no multiple counts as in N_EL) */
-   int max_N_Hosts; /*!< Maximum number of triangle hosts any one edge has (max ( ELps(:,2) != -1 ) )*/
+   int N_Distinct_Edges; /*! Number of distinct edges 
+                              (no multiple counts as in N_EL) */
+   int max_N_Hosts; /*!< Maximum number of triangle hosts any one edge has 
+                        (max ( ELps(:,2) != -1 ) )*/
    int  min_N_Hosts; /*!< Minimum version of max_N_Hosts */
    
-   int **Tri_limb; /*!< each row j of Tri_limb contains the indices into EL (and ELps) of the edges that make it up */
-   float *Le; /*!< Vector N_EL elements long containing the length of each edge in EL */
+   int **Tri_limb; /*!< each row j of Tri_limb contains the indices into EL 
+                        (and ELps) of the edges that make it up */
+   float *Le; /*!< Vector N_EL elements long containing 
+                  the length of each edge in EL */
    float AvgLe; /*!< Average of Le (internodal distance).
-                     This is an approximate average lenght, since some edges may counted more than others  */
+                     This is an approximate average lenght, 
+                     since some edges may counted more than others  */
 } SUMA_EDGE_LIST;
 
 /*! structure that contains array pointers from function SUMA_isinbox */
@@ -2118,13 +2133,23 @@ typedef struct {
                      \sa SUMA_Load_Surface_Object in SUMA_Load_Surface_Object.c
                */  
                    
+/*! Structure for creating a hash of color ids */
+typedef struct {
+    int id;    /* keep it named 'id' to facilitate use of convenience
+                  macros in uthash . The integer id of a color*/
+    int colmapindex; /* the index into the colormap of id */
+    UT_hash_handle hh;  /* keep it named 'hh' for same reasons  */
+}  SUMA_COLOR_MAP_HASH_DATUM;
+
 /*! Structure containing a color map */
 typedef struct {
    float ** M; /*!< N_Col x 3 matrix of R G B values (0..1) */
    char **cname; /*!< N_Col pointers to strings containing name of 
                        each color. This can be NULL when no names are 
                        assigned*/
-   int N_Col; /*!< number of colors in the color map */
+   int N_M[2]; /*!< number of colors in the color map x number of columns in M
+                     Used to be N_Col, now N_Col = N_M[0] and the
+                     number of columns in M is N_M[1] */
    float *frac; /*!< N_col x 1 vector containing the fraction of scale 
                      assigned to each color, these are
                      the values shown on the right of the colorbar in 
@@ -2141,9 +2166,16 @@ typedef struct {
    
    SUMA_SurfaceObject *SO;    /*!< Surface object used to represent map */
    
-   float M0[3];   /*!< The very first color at Map creation, needed to reset
+   float M0[4];   /*!< The very first color at Map creation, needed to reset
                       when rotations are performed*/
    byte flipped;  /*!< if the colormap is flipped */
+   
+   /* Hashing needs */
+   int *idvec; /*!< N_Col vector containing the id of each of the colors in M 
+                     This vector is redundant if chd is used, but it is kept */
+   SUMA_COLOR_MAP_HASH_DATUM *chd;  /* This is a pointer to the hash table, and 
+                                       can always change during hash table 
+                                       operations*/
 } SUMA_COLOR_MAP;
 
 /*! structure containing a mapping of one surface to another*/
@@ -2260,17 +2292,19 @@ typedef enum { SUMA_AFNI_STREAM_INDEX = 0,
               
 /*! structure containing a surface patch */
 typedef struct {
-   int N_FaceSet; /*!< Number of Facesets forming patch */
-   int *FaceSetList; /*!< vector (was a matrix prior to SUMA 1.2) (N_FaceSet x 3) containing indices of nodes forming triangles making up the patch */
-   int *FaceSetIndex; /*!< vector (N_FaceSet x 1) containing indices of triangles in FaceSetList in the FaceSetList of the surface that the patch was taken from */
+   int N_FaceSet;    /*!< Number of Facesets forming patch */
+   int *FaceSetList; /*!< vector (was a matrix prior to SUMA 1.2) (N_FaceSet x 3)                           containing indices of nodes forming triangles making up                           the patch */
+   int *FaceSetIndex; /*!< vector (N_FaceSet x 1) containing indices of triangles                            in FaceSetList in the FaceSetList of the surface that 
+                           the patch was taken from */
    int *nHits; /*!< (N_FaceSet x 1) If patch is created from a set of nodes,
-                  nHits[i] is the number of nodes refering to this Faceset */
+                     nHits[i] is the number of nodes refering to this Faceset */
 } SUMA_PATCH; /*!< A surface patch, typically created from a set of nodes */
 
 /*! structure containing ClientData 
 This remains to be used somewhere ... */
 typedef struct {
-   SUMA_SurfaceViewer *sv; /*!< pointer to surface viewer from which the callback was made */
+   SUMA_SurfaceViewer *sv; /*!< pointer to surface viewer from which the 
+                                 callback was made */
    int svi; /*!< index of sv into SUMAg_SVv */
 }SUMA_CLIENT_DATA;
 

@@ -1,6 +1,23 @@
 #ifndef SUMA_SURFACE_IO_INCLUDED
 #define SUMA_SURFACE_IO_INCLUDED
 
+#define SUMA_FS_ANNOT_TAG_COLORTABLE   1
+#define SUMA_FS_STRLEN 50
+typedef struct {
+   int i;
+   int r;
+   int g;
+   int b;
+   int flag;
+   char name[SUMA_FS_STRLEN];
+} SUMA_FS_COLORTABLE_ENTRY;
+
+typedef struct {
+   char *fname;
+   int nbins;
+   SUMA_FS_COLORTABLE_ENTRY *bins;
+} SUMA_FS_COLORTABLE;
+
 
 SUMA_SurfaceObject *SUMA_Load_Surface_Object_Wrapper ( 
                         char *if_name, char *if_name2, char *vp_name, 
@@ -62,8 +79,12 @@ SUMA_Boolean SUMA_OpenDX_Read_SO(char *fname, SUMA_SurfaceObject *SO);
 char * SUMA_OpenDX_Read_CruiseVolHead(char *fname, THD_3dim_dataset *dset, int loaddata);
 SUMA_Boolean SUMA_readFSannot (char *f_name, 
                                char *f_ROI, char *f_cmap, char *f_col, 
-                               int Showct, char *ctfile);
-SUMA_COLOR_MAP *SUMA_FScolutToColorMap(char *fscolutname, int lbl1, int lbl2, int show); 
+                               int Showct, char *ctfile,
+                               SUMA_DSET **dset);
+SUMA_COLOR_MAP *SUMA_FScolutToColorMap(char *fscolutname, 
+                                       int lbl1, int lbl2, int show); 
+SUMA_COLOR_MAP *SUMA_FScolutToColorMap_eng(SUMA_FS_COLORTABLE *ct, 
+                                       int lbl1, int lbl2, int show); 
 SUMA_Boolean SUMA_isnimlSO(NI_group *ngr);
 void SUMA_free_ROI_Extract(void *dd);
 SUMA_Boolean SUMA_MNI_OBJ_Write(char * f_name_in, SUMA_SurfaceObject *SO);
