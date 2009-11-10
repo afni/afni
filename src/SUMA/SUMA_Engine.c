@@ -151,7 +151,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                   break;
                }
                
-               if (cmap->N_Col > 256) {
+               if (cmap->N_M[0] > 256) {
                   SUMA_SLP_Err(  "Cannot send more\n"
                                  "than 256 colors to\n"
                                  "AFNI.");
@@ -165,7 +165,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                stmp = SUMA_append_string("DEFINE_COLORSCALE ", cmap->Name);
                /* SEND COLORMAP In REVERSE ORDER TO AFNI,
                C'est la vie */
-               for (i=cmap->N_Col-1; i >= 0; --i) {
+               for (i=cmap->N_M[0]-1; i >= 0; --i) {
                   sprintf(sbuf,"rgbi:%f/%f/%f", 
                            cmap->M[i][0], cmap->M[i][1], cmap->M[i][2]);
                   stmp = SUMA_append_replace_string(stmp, sbuf, " ", 1);
@@ -226,7 +226,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                /* set the range of the colorbar */
                nel = NI_new_data_element("ni_do", 0);
                NI_set_attribute ( nel, "ni_verb", "DRIVE_AFNI");
-               sprintf(sbuf," %d", cmap->N_Col);
+               sprintf(sbuf," %d", cmap->N_M[0]);
                stmp = SUMA_append_string("SET_FUNC_RANGE A.", sbuf);
                NI_set_attribute ( nel, "ni_object", stmp);
                if (NI_write_element( SUMAg_CF->ns_v[SUMA_AFNI_STREAM_INDEX] , 

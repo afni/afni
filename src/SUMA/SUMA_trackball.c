@@ -16,7 +16,6 @@ extern SUMA_CommonFields *SUMAg_CF;
 #define TRACKBALLSIZE  (1)
 
 static float tb_project_to_sphere(float, float, float);
-static void normalize_quat(float[4]);
 
 void
 vzero(float *v)
@@ -238,7 +237,7 @@ add_quats(float q1[4], float q2[4], float dest[4])
 /* Quaternions always obey:  a^2 + b^2 + c^2 + d^2 = 1.0 If
    they don't add up to 1.0, dividing by their magnitude will
    renormalize them. */
-static void
+void
 normalize_quat(float q[4])
 {
   int i;

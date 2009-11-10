@@ -2417,25 +2417,38 @@ int main (int argc,char *argv[])
          memcpy((void *)SO->NodeList, (void*)Opt->Skull_Outer, SO->N_Node * 3 * sizeof(float));  
          if (Opt->debug) fprintf (SUMA_STDERR,"%s: Writing Skull Outer surface  ...\n", FuncName);
          if (!SUMA_Save_Surface_Object (SO_name_oskull, SO, Opt->SurfFileType, Opt->SurfFileFormat, NULL)) {
-            fprintf (SUMA_STDERR,"Error %s: Failed to write surface object.\n", FuncName);
+            fprintf (SUMA_STDERR,
+                     "Error %s: Failed to write surface object.\n", FuncName);
             exit (1);
          }
       }
       if (Opt->Skull_Inner) {
-         memcpy((void *)SO->NodeList, (void*)Opt->Skull_Inner, SO->N_Node * 3 * sizeof(float));  
-         if (Opt->debug) fprintf (SUMA_STDERR,"%s: Writing Skull Inner surface  ...\n", FuncName);
-         if (!SUMA_Save_Surface_Object (SO_name_iskull, SO, Opt->SurfFileType, Opt->SurfFileFormat, NULL)) {
-            fprintf (SUMA_STDERR,"Error %s: Failed to write surface object.\n", FuncName);
+         memcpy((void *)SO->NodeList, (void*)Opt->Skull_Inner, 
+                SO->N_Node * 3 * sizeof(float));  
+         if (Opt->debug) 
+            fprintf (SUMA_STDERR,
+                     "%s: Writing Skull Inner surface  ...\n", FuncName);
+         if (!SUMA_Save_Surface_Object (SO_name_iskull, SO, 
+                                        Opt->SurfFileType, Opt->SurfFileFormat, 
+                                        NULL)) {
+            fprintf (SUMA_STDERR,
+                     "Error %s: Failed to write surface object.\n", FuncName);
             exit (1);
          }
       }
       
-      /* leave this one at the end since the work afterwards will assume we are working with Brain_Contour in SO->NodeList */ 
+      /* leave this one at the end since the work afterwards 
+         will assume we are working with Brain_Contour in SO->NodeList */ 
       if (Opt->Brain_Contour) {
-         memcpy((void *)SO->NodeList, (void*)Opt->Brain_Contour, SO->N_Node * 3 * sizeof(float));  
-         if (Opt->debug) fprintf (SUMA_STDERR,"%s: Writing Brain Contour surface  ...\n", FuncName);
-         if (!SUMA_Save_Surface_Object (SO_name, SO, Opt->SurfFileType, Opt->SurfFileFormat, NULL)) {
-            fprintf (SUMA_STDERR,"Error %s: Failed to write surface object.\n", FuncName);
+         memcpy((void *)SO->NodeList, (void*)Opt->Brain_Contour, 
+                  SO->N_Node * 3 * sizeof(float));  
+         if (Opt->debug) 
+            fprintf (SUMA_STDERR,
+                     "%s: Writing Brain Contour surface  ...\n", FuncName);
+         if (!SUMA_Save_Surface_Object (SO_name, SO, Opt->SurfFileType, 
+                                        Opt->SurfFileFormat, NULL)) {
+            fprintf (SUMA_STDERR,
+                     "Error %s: Failed to write surface object.\n", FuncName);
             exit (1);
          }
       }
@@ -2446,9 +2459,10 @@ int main (int argc,char *argv[])
       int kkk;
       SUMA_LH("Rad Ratting");
 
-      vol = SUMA_Mesh_Volume(SO, NULL, -1);
+      vol = SUMA_Mesh_Volume(SO, NULL, -1, 1, NULL);
       rad = pow(3.0/4.0/SUMA_PI*vol, 1.0/3.0);
-      SUMA_MIN_MAX_SUM_VECMAT_COL(SO->NodeList, SO->N_Node, SO->NodeDim, SO->MinDims, SO->MaxDims, SO->Center);
+      SUMA_MIN_MAX_SUM_VECMAT_COL(SO->NodeList, SO->N_Node, SO->NodeDim, 
+                                  SO->MinDims, SO->MaxDims, SO->Center);
       SO->Center[0] /= (float)SO->N_Node; 
       SO->Center[1] /= (float)SO->N_Node; 
       SO->Center[2] /= (float)SO->N_Node; 
@@ -2464,8 +2478,11 @@ int main (int argc,char *argv[])
    
    if (Opt->UseSkull && SOhull) {
       fprintf (SUMA_STDERR,"%s: Writing skull surface  ...\n", FuncName);
-      if (!SUMA_Save_Surface_Object (SO_name_hull, SOhull, Opt->SurfFileType, Opt->SurfFileFormat, NULL)) {
-         fprintf (SUMA_STDERR,"Error %s: Failed to write surface object.\n", FuncName);
+      if (!SUMA_Save_Surface_Object (SO_name_hull, SOhull, 
+                                     Opt->SurfFileType, Opt->SurfFileFormat, 
+                                     NULL)) {
+         fprintf (SUMA_STDERR,
+                  "Error %s: Failed to write surface object.\n", FuncName);
          exit (1);
       }
    }

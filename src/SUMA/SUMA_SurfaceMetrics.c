@@ -154,6 +154,35 @@ void usage_SUMA_SurfaceMetrics (SUMA_GENERIC_ARGV_PARSE *ps)
 "   -prefix prefix: Use prefix for output files. \n"
 "                   (default is prefix of inSurf)\n"
 "\n"
+"   -quiet: Quiet\n"
+"\n"
+"    Options for applying arbitrary affine transform:\n"
+"    [xyz_new] = [Mr] * [xyz_old - cen] + D + cen\n"
+"    -xmat_1D mat: Apply transformation specified in 1D file mat.1D.\n"
+"                  to the surface's coordinates.\n"
+"                  [mat] = [Mr][D] is of the form:\n"
+"                  r11 r12 r13 D1\n"
+"                  r21 r22 r23 D2\n"
+"                  r31 r32 r33 D3\n"
+"                  or\n"
+"                  r11 r12 r13 D1 r21 r22 r23 D2 r31 r32 r33 D3\n"
+"    -ixmat_1D mat: Same as xmat_1D except that mat is replaced by inv(mat)\n"
+"\n"
+"        NOTE: For both -xmat_1D and -ixmat_1D, you can replace mat with \n"
+"              one of the special strings:\n"
+"              'RandShift', 'RandRigid', or 'RandAffine' which would create\n"
+"              a transform on the fly. \n"
+"    -seed SEED: Use SEED to seed the random number generator for random\n"
+"                matrix generation\n"
+"\n"
+"    -xcenter x y z: Use vector cen = [x y z]' for rotation center.\n"
+"                    Default is cen = [0 0 0]'\n"
+"    -polar_decomp: Apply polar decomposition to mat and preserve\n"
+"                   orthogonal component and shift only. \n"
+"                   For more information, see cat_matvec's -P option.\n"
+"                   This option can only be used in conjunction with\n"
+"                   -xmat_1D\n"
+"\n"
 "%s"
 "\n"
 "%s"
@@ -176,7 +205,9 @@ int main (int argc,char *argv[])
    float *Cx = NULL, sph_center[3], NormScale;
    SUMA_STRING *MetricList = NULL;
    int i, n1, n2, n1_3, n2_3, kar, nt, SO_read, N_Spec=0;
-   double edgeL2;
+   double edgeL2, xcen[3];
+   double xform[4][4];
+   char *xmat_name=NULL;
    FILE *fout=NULL;
    SUMA_SO_File_Type iType = SUMA_FT_NOT_SPECIFIED;
    SUMA_SurfaceObject *SO = NULL;   
@@ -188,12 +219,12 @@ int main (int argc,char *argv[])
    char *surf_names[SURFACEMETRICS_MAX_SURF];
    char *spec_file, *histnote;
    char *closest_to_xyz = NULL;
-   int insurf_method = 0, N_surf = 0, ind = 0;
+   int insurf_method = 0, N_surf = 0, ind = 0, quiet=0, randseed;
    SUMA_Boolean   brk, Do_tlrc, Do_conv, Do_curv, 
                   Do_area, Do_edges, Do_vol, Do_sph, NewCent, 
                   Do_cord, Do_TriNorm, Do_TriSine, Do_TriCosine,
-                  Do_TriCoSine, Do_TriAngles,
-                  Do_NodeAngles,
+                  Do_TriCoSine, Do_TriAngles, Do_PolDec,
+                  Do_NodeAngles, Do_cen, Do_xmat, Do_inv,
                   Do_NodeNorm, Do_en, Do_in, LocalHead = NOPE;  
    SUMA_GENERIC_ARGV_PARSE *ps=NULL;
    
@@ -215,6 +246,12 @@ int main (int argc,char *argv[])
    MetricList = SUMA_StringAppend (NULL, NULL);
    kar = 1;
 	brk = NOPE;
+   xmat_name = NULL;
+   xcen[0] = 0.0; xcen[1] = 0.0; xcen[2] = 0.0;
+   Do_cen = NOPE;
+   Do_xmat = NOPE;
+   Do_inv = 0;
+   Do_PolDec = 0;
    Do_cord = NOPE;
    Do_sph = NOPE;
    Do_vol = NOPE;
@@ -232,6 +269,8 @@ int main (int argc,char *argv[])
    Do_NodeAngles = NOPE;
    Do_en = NOPE;
    Do_in = NOPE;
+   quiet = 0;
+   randseed = 12345;
    closest_to_xyz = NULL;
    NormScale = 5.0;
    NewCent = NOPE;
@@ -260,6 +299,62 @@ int main (int argc,char *argv[])
          sph_center[2] = atof(argv[kar]);
          NewCent = YUP;
          Do_sph = YUP;
+			brk = YUP;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-seed") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need 1 integer after -seed\n");
+				exit (1);
+			}
+			randseed = atoi(argv[kar]); 
+			brk = YUP;
+		}
+      if (!brk && ( (strcmp(argv[kar], "-xmat_1d") == 0) ||
+                    (strcmp(argv[kar], "-xmat_1D") == 0) ) ) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need 1 argument after -xmat_1D\n");
+				exit (1);
+			}
+			xmat_name = argv[kar]; 
+         Do_xmat = YUP;
+         Do_inv = 0;
+			brk = YUP;
+		}
+      if (!brk && ( (strcmp(argv[kar], "-ixmat_1d") == 0) ||
+                    (strcmp(argv[kar], "-ixmat_1D") == 0) ) ) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need 1 argument after -ixmat_1D\n");
+				exit (1);
+			}
+			xmat_name = argv[kar]; 
+         Do_xmat = YUP;
+         Do_inv = 1;
+			brk = YUP;
+		}
+      if (!brk && (strcmp(argv[kar], "-polar_decomp") == 0)) {
+         Do_PolDec = YUP;
+			brk = YUP;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-xcenter") == 0)) {
+         kar ++;
+			if (kar+2>= argc)  {
+		  		fprintf (SUMA_STDERR, "need 3 arguments after -xcenter\n");
+				exit (1);
+			}
+			xcen[0] = atof(argv[kar]); ++kar;
+			xcen[1] = atof(argv[kar]); ++kar;
+			xcen[2] = atof(argv[kar]); 
+         Do_cen = YUP;
+			brk = YUP;
+		}
+
+      if (!brk && (strcmp(argv[kar], "-quiet") == 0)) {
+         quiet = YUP;
 			brk = YUP;
 		}
       
@@ -305,14 +400,17 @@ int main (int argc,char *argv[])
 		}
       
       if (!brk && (strcmp(argv[kar], "-sv") == 0)) {
-         if (0 && iType == SUMA_FT_NOT_SPECIFIED) {/* iType input no longer allowed */
-            fprintf (SUMA_STDERR, " -sv option must be preceeded by -i_TYPE option.");
+         if (0 && iType == SUMA_FT_NOT_SPECIFIED) {
+                              /* iType input no longer allowed */
+            fprintf (SUMA_STDERR, 
+                     " -sv option must be preceeded by -i_TYPE option.");
             exit(1);
          }
          kar ++;
 			if (iType == SUMA_SUREFIT) {
             if (kar+1 >= argc)  {
-		  		   fprintf (SUMA_STDERR, "need 2 argument after -sv (SurfaceVolume and VolumeParent)");
+		  		   fprintf (SUMA_STDERR, 
+                  "need 2 argument after -sv (SurfaceVolume and VolumeParent)");
 				   exit (1);
 			   }
             sv_name = argv[kar]; kar ++;
@@ -423,10 +521,24 @@ int main (int argc,char *argv[])
    }
    
    if (Do_tlrc && !ps->sv[0]) {
-      fprintf (SUMA_STDERR,"Error %s: -tlrc must be used with -sv option.\n", FuncName);
+      fprintf (SUMA_STDERR,
+               "Error %s: -tlrc must be used with -sv option.\n", FuncName);
       exit(1);
    }
 
+   if ((Do_xmat || Do_cen) && (Do_tlrc)) {
+      fprintf (SUMA_STDERR,
+               "Error %s: You can't do -tlrc or with -xmat_1D and -xcenter.\n", 
+               FuncName);
+      exit(1);
+   }
+   
+   if ((!Do_xmat && Do_cen)) {
+      fprintf (SUMA_STDERR,
+               "Error %s: You can't use -xcenter without -xmat_1D.\n", FuncName);
+      exit(1);
+   }
+   
    pSpec = SUMA_IO_args_2_spec(ps, &N_Spec);
    if (N_Spec == 0) {
       SUMA_S_Err("No surfaces found.");
@@ -439,13 +551,216 @@ int main (int argc,char *argv[])
       exit(1);
    }
    
+   if (Do_xmat) {
+      MRI_IMAGE *im = NULL;
+      double *far=NULL;
+      int nrow, ncol;
+      if (!strcmp(xmat_name,"RandRigid")) {
+         SUMA_FillRandXform(xform, randseed, 2);
+      } else if (!strcmp(xmat_name,"RandAffine")) {
+         SUMA_FillRandXform(xform, randseed, 3);
+      } else if (!strcmp(xmat_name,"RandShift")) {
+         SUMA_FillRandXform(xform, randseed, 1);
+      } else {
+         im = mri_read_double_1D (xmat_name);
+
+         if (!im) {
+            SUMA_SLP_Err("Failed to read 1D file");
+            exit(1);
+         }
+         far = MRI_DOUBLE_PTR(im);
+         nrow = im->nx;
+         ncol = im->ny;
+         if (nrow == 1) {
+            if (ncol != 12) { 
+               SUMA_SL_Err("Mat file must have\n"
+                           "one row of 12 columns.");
+               mri_free(im); im = NULL;   /* done with that baby */
+               exit(1);
+            }
+            i = 0;
+            while (i < 12) {
+               xform[i/4][0] = far[i]; ++i;
+               xform[i/4][1] = far[i]; ++i;
+               xform[i/4][2] = far[i]; ++i;
+               xform[i/4][3] = far[i]; ++i;
+            }
+            xform[3][0] = 0.0;  
+            xform[3][1] = 0.0;  
+            xform[3][2] = 0.0;  
+            xform[3][3] = 1.0;
+         } else {
+            if (ncol < 4 ) {
+               SUMA_SL_Err("Mat file must have\n"
+                           "at least 4 columns.");
+               mri_free(im); im = NULL;   /* done with that baby */
+               exit(1);
+            }
+            if (nrow < 3 ) {
+               SUMA_SL_Err("Mat file must have\n"
+                           "at least 3 rows.");
+               mri_free(im); im = NULL;   /* done with that baby */
+               exit(1);
+            }
+            if (ncol > 4) {
+               SUMA_SL_Warn(  "Ignoring entries beyond 4th \n"
+                              "column in transform file.");
+            }
+            if (nrow > 3) {
+               SUMA_SL_Warn(  "Ignoring entries beyond 3rd\n"
+                              "row in transform file.\n");
+            }
+            for (i=0; i < 3; ++i) {
+               xform[i][0] = far[i];
+               xform[i][1] = far[i+nrow];
+               xform[i][2] = far[i+2*nrow];
+               xform[i][3] = far[i+3*nrow];
+            }
+            xform[3][0] = 0.0;  
+            xform[3][1] = 0.0;  
+            xform[3][2] = 0.0;  
+            xform[3][3] = 1.0;
+         }  
+      }
+      if (1|| LocalHead) {
+         fprintf(SUMA_STDERR,"\n++ SurfaceMetrics xform:\n");
+         for (i=0; i < 4; ++i) {
+            fprintf(SUMA_STDERR," %+.5f\t%+.5f\t%+.5f\t%+.5f\n",
+                   xform[i][0], xform[i][1], 
+                   xform[i][2], xform[i][3]);  
+         }
+         fprintf(SUMA_STDERR,"\n");
+      }
+      
+      mri_free(im); im = NULL;
+      
+      if (Do_inv) {
+         mat44 A, A0;
+   
+         LOAD_MAT44( A0, \
+                  xform[0][0], xform[0][1], xform[0][2], xform[0][3],    \
+                  xform[1][0], xform[1][1], xform[1][2], xform[1][3],    \
+                  xform[2][0], xform[2][1], xform[2][2], xform[2][3]   );
+         A = nifti_mat44_inverse(A0);
+         UNLOAD_MAT44(A,   \
+                  xform[0][0], xform[0][1], xform[0][2], xform[0][3],    \
+                  xform[1][0], xform[1][1], xform[1][2], xform[1][3],    \
+                  xform[2][0], xform[2][1], xform[2][2], xform[2][3]   );
+      }            
+
+      
+      if (Do_PolDec) {
+         #ifdef USE_DECOMPOSE_SHOEMAKE
+            /* a little something to do a polar decomposition on M into M = Q*S*/
+            {
+               float det, m[4][4], q[4][4], s[4][4];
+               char *stmp = SUMA_append_string("QS_",xmat_name);
+               FILE *fout = fopen(stmp,"w"); SUMA_free(stmp); stmp = NULL;
+               SUMA_S_Note("FixMe! #include above and if(1) here ...");
+               det = polar_decomp(M, q,s);
+               fprintf(fout,"#[M][D]: (D is the shift)\n");
+               for (i=0;i<3; ++i)
+                  fprintf(fout,  "#%.5f   %.5f  %.5f  %.5f\n", 
+                                 M[i][0], M[i][1], M[i][2], M[i][3]); 
+               fprintf(fout,"#Q:\n");
+               for (i=0;i<3; ++i)
+                  fprintf(fout,  "#%.5f   %.5f  %.5f  %.5f\n", 
+                                 q[i][0], q[i][1], q[i][2], q[i][3]); 
+               fprintf(fout,"#S:\n");
+               for (i=0;i<3; ++i)
+                  fprintf(fout,  "#%.5f   %.5f  %.5f  %.5f\n", 
+                                 s[i][0], s[i][1], s[i][2], s[i][3]);
+               fprintf(fout,"#det: %f\n", det);
+               fprintf(fout,  "#[Q][D]: A close xform to [M][D], "
+                              "without scaling.\n#M = Q*S\n");
+               for (i=0;i<3; ++i)
+                  fprintf(fout,  "%.5f   %.5f  %.5f  %.5f\n", 
+                                 q[i][0], q[i][1], q[i][2], M[i][3]);
+               fclose(fout); SUMA_free(stmp); stmp = NULL;
+            }
+            /* replace user's xform with orthogonal one: */
+            if (!quiet) fprintf(SUMA_STDERR,"Replacing matrix:\n");
+            for (i=0;i<3 && !quiet; ++i)
+                  fprintf( SUMA_STDERR,
+                           " %.5f   %.5f  %.5f  %.5f\n", 
+                           M[i][0], M[i][1], M[i][2], M[i][3]); 
+            if (!quiet) fprintf(SUMA_STDERR,"     with matrix:\n");
+            for (i=0;i<3 && !quiet; ++i)
+                  fprintf(SUMA_STDOUT, 
+                           " %.5f   %.5f  %.5f  %.5f\n", 
+                           q[i][0], q[i][1], q[i][2], M[i][3]);
+            for (i=0;i<3; ++i) { 
+               M[i][0] = q[i][0]; M[i][1] = q[i][1]; M[i][2] = q[i][2]; 
+            }
+            
+         #else
+            {/* use the NIFTI polar decomposition function 
+               (same results as above)*/
+               mat33 Q, A;
+               for (i=0;i<3;++i) { 
+                  A.m[i][0] = xform[i][0]; 
+                  A.m[i][1] = xform[i][1]; 
+                  A.m[i][2] = xform[i][2]; 
+               }
+               Q = nifti_mat33_polar( A );
+               /* replace user's xform with orthogonal one: */
+               if (!quiet) fprintf(SUMA_STDERR,"Replacing matrix:\n");
+               for (i=0;i<3 && !quiet; ++i)
+                     fprintf( SUMA_STDERR,
+                              " %.5f   %.5f  %.5f  %.5f\n", 
+                              xform[i][0], xform[i][1], 
+                              xform[i][2], xform[i][3]); 
+               if (!quiet) fprintf(SUMA_STDERR,"     with matrix:\n");
+               for (i=0;i<3 && !quiet; ++i)
+                     fprintf( SUMA_STDERR,
+                              " %.5f   %.5f  %.5f  %.5f\n", 
+                              Q.m[i][0], Q.m[i][1], Q.m[i][2], xform[i][3]);
+               for (i=0;i<3; ++i) { 
+                  xform[i][0] = Q.m[i][0]; 
+                  xform[i][1] = Q.m[i][1]; 
+                  xform[i][2] = Q.m[i][2]; 
+               }
+                
+            }
+         #endif 
+      }
+   }
+   
    SUMA_LH("Loading surface...");
    SO = SUMA_Load_Spec_Surf(pSpec, 0, ps->sv[0], 1);
+
+   if (Do_xmat) {
+      if (!quiet) fprintf (SUMA_STDERR,"Performing affine transform...\n");
+      if (!quiet) {
+         for (i=0; i<3 ; ++i) {
+            fprintf (SUMA_STDERR,
+                     "M[%d][:] = %f %f %f %f\n", 
+                     i, xform[i][0], xform[i][1], xform[i][2], xform[i][3]);
+         }
+         fprintf (SUMA_STDERR,"Cen[:] %f %f %f\n", xcen[0], xcen[1], xcen[2]);
+      }
+      if (Do_cen) {
+         if (!SUMA_Apply_Coord_xform(  SO->NodeList, SO->N_Node, SO->NodeDim,
+                                       xform, 0, xcen)) { 
+            SUMA_SL_Err("Failed to xform coordinates"); exit(1); 
+         }
+      } else {
+         if (!SUMA_Apply_Coord_xform(  SO->NodeList, SO->N_Node, SO->NodeDim,
+                                       xform, 0, NULL)) { 
+            SUMA_SL_Err("Failed to xform coordinates"); exit(1); 
+         }
+      }
+      /* recalculate normals */
+      SUMA_RECOMPUTE_NORMALS(SO);
+   }
+   
    if (Do_tlrc) {
-      fprintf (SUMA_STDOUT,"Performing talairach transform...\n");
+      if (!quiet) fprintf (SUMA_STDERR,"Performing talairach transform...\n");
 
       /* form the tlrc version of the surface volume */
-      tlrc_name = (char *) SUMA_calloc (strlen(SO->VolPar->dirname)+strlen(SO->VolPar->prefix)+60, sizeof(char));
+      tlrc_name = (char *) SUMA_calloc (strlen(SO->VolPar->dirname)+
+                                        strlen(SO->VolPar->prefix)+60, 
+                                        sizeof(char));
       sprintf (tlrc_name, "%s%s+tlrc.HEAD", SO->VolPar->dirname, SO->VolPar->prefix);
       if (!SUMA_filexists(tlrc_name)) {
          fprintf (SUMA_STDERR,"Error %s: %s not found.\n", FuncName, tlrc_name);
@@ -1057,7 +1372,8 @@ int main (int argc,char *argv[])
       
       fout = fopen(OutName,"w");
       if (!fout) {
-         SUMA_S_Err("Failed to open file for writing.\nCheck your permissions.\n");
+         SUMA_S_Err( "Failed to open file for writing.\n"
+                     "Check your permissions.\n");
          exit(1);
       }  
       
@@ -1076,16 +1392,29 @@ int main (int argc,char *argv[])
    
    if (Do_vol) {
       float vol;
-      fprintf (SUMA_STDOUT,"Calculating surface volume...\n");
-      vol = SUMA_Mesh_Volume(SO, NULL, -1);
-      fprintf (SUMA_STDERR,   "Volume of closed surface is %f (units3).\n"
-                              "Signed volume is  %f (units3).\n", fabs(vol), vol); 
+      int prob;
+      if (!quiet) fprintf (SUMA_STDERR,"Calculating surface volume...\n");
+      vol = SUMA_Mesh_Volume(SO, NULL, -1, 1, &prob);
+      if (prob) {
+         SUMA_S_Warn("Precision problem calculating surface\n"
+                     "Repeat with a rotated version of surface");
+      }
+      if (!quiet) {
+         fprintf (SUMA_STDOUT,   
+               "Volume of closed surface is %f (units3).\n"
+               "Signed volume is  %f (units3).\n", fabs(vol), vol); 
+      } else {
+         fprintf (SUMA_STDOUT,   
+               "%f , %f \n", fabs(vol), vol); 
+      }
    }
    
    if (Do_en || Do_in) {
       byte *enmask = NULL;
-      if (Do_en) fprintf (SUMA_STDOUT,"finding boundary nodes...\n");
-      else fprintf (SUMA_STDOUT,"finding internal nodes...\n");
+      if (!quiet) {
+         if (Do_en) fprintf (SUMA_STDERR,"finding boundary nodes...\n");
+         else fprintf (SUMA_STDERR,"finding internal nodes...\n");
+      }
       enmask = (byte *)SUMA_calloc(SO->N_Node, sizeof(byte));  
       if (!enmask) {
          SUMA_S_Crit("Failed to allocate.");
@@ -1132,7 +1461,8 @@ int main (int argc,char *argv[])
       
       fout = fopen(OutName,"w");
       if (!fout) {
-         SUMA_S_Err("Failed to open file for writing.\nCheck your permissions.\n");
+         SUMA_S_Err("Failed to open file for writing.\n"
+                    "Check your permissions.\n");
          exit(1);
       }  
       

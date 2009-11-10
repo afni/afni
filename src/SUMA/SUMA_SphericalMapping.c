@@ -1176,19 +1176,15 @@ SUMA_SurfaceObject * SUMA_CreateIcosahedron (float r, int depth, float ctr[3], c
    SO->FaceNormList = SN.FaceNormList;
 
    /*create first neighbor list*/
-   if ( SO->EL && SO->N_Node )
-      firstNeighb = SUMA_Build_FirstNeighb( SO->EL, SO->N_Node, SO->idcode_str);
-
-   if (!DoWind) 
-         SO->EL = SUMA_Make_Edge_List (SO->FaceSetList, SO->N_FaceSet, 
-                                       SO->N_Node, SO->NodeList, SO->idcode_str);
-   SO->FN = SUMA_Build_FirstNeighb( SO->EL, SO->N_Node, SO->idcode_str);
+   if (!SO->EL) 
+      SO->EL = SUMA_Make_Edge_List (SO->FaceSetList, SO->N_FaceSet, 
+                                    SO->N_Node, SO->NodeList, SO->idcode_str);
+   
+   SO->FN = SUMA_Build_FirstNeighb( SO->EL, SO->N_Node, SO->idcode_str, 1);
    if(SO->FN==NULL) {
       fprintf(SUMA_STDERR, 
                "Error %s: Failed in creating neighb list.\n", FuncName);
-   } else {
    }
-   
    
    SUMA_RETURN (SO);
 }
@@ -2921,7 +2917,7 @@ int main (int argc, char *argv[])
    if ( surfaces_orig[1]->EL==NULL) 
       SUMA_SurfaceMetrics(surfaces_orig[1], "EdgeList", NULL);
    if ( surfaces_orig[1]->EL && surfaces_orig[1]->N_Node) 
-      surfaces_orig[1]->FN = SUMA_Build_FirstNeighb( surfaces_orig[1]->EL, surfaces_orig[1]->N_Node, surfaces_orig[1]->idcode_str);
+      surfaces_orig[1]->FN = SUMA_Build_FirstNeighb( surfaces_orig[1]->EL, surfaces_orig[1]->N_Node, surfaces_orig[1]->idcode_str, 1);
    if ( surfaces_orig[1]->FN==NULL || surfaces_orig[1]->EL==NULL ) {
       fprintf(SUMA_STDERR, "Error %s: Failed in acquired Surface Metrics.\n", FuncName);
       if (SUMAg_DOv) SUMA_Free_Displayable_Object_Vect (SUMAg_DOv, SUMAg_N_DOv);

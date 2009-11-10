@@ -20,7 +20,8 @@ int main( int argc , char * argv[] )
 {
    THD_3dim_dataset * old_dset , * new_dset ;  /* input and output datasets */
    int nopt, nbriks;
-   int slow_flag, quick_flag, min_flag, max_flag, mean_flag, automask,count_flag, sum_flag, var_flag;
+   int slow_flag, quick_flag, min_flag, max_flag, mean_flag, 
+       automask,count_flag, sum_flag, var_flag;
    int positive_flag, negative_flag, zero_flag, nan_flag, perc_flag, vol_flag;
    byte * mmm=NULL ;
    int    mmvox=0 ;
@@ -35,46 +36,48 @@ int main( int argc , char * argv[] )
 
    /*----- Read command line -----*/
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
-      printf("Usage: 3dBrickStat [options] dataset\n"
-             "Compute maximum and/or minimum voxel values of an input dataset\n"
-             "\n"
-             "The output is a number to the console.  The input dataset\n"
-             "may use a sub-brick selection list, as in program 3dcalc.\n"
-             "\n"
-             "Note: If you don't specify one sub-brick, the parameter you get\n"
-             "----- back is computed from all the sub-bricks in dataset.\n"
-             "Options :\n"
-             "  -quick = get the information from the header only (default)\n"
-             "  -slow = read the whole dataset to find the min and max values\n"
-             "         all other options except min and max imply slow\n"
-             "  -min = print the minimum value in dataset\n"
-             "  -max = print the minimum value in dataset (default)\n"
-             "  -mean = print the mean value in dataset \n"
-             "  -sum = print the sum of values in the dataset\n"
-             "  -var = print the variance in the dataset \n"
-             "  -count = print the number of voxels included\n"
-             "  -volume = print the volume of voxels included in microliters\n"
-             "  -positive = include only positive voxel values \n"
-             "  -negative = include only negative voxel values \n"
-             "  -zero = include only zero voxel values \n"
-             "  -non-positive = include only voxel values 0 or negative \n"
-             "  -non-negative = include only voxel values 0 or greater \n"
-             "  -non-zero = include only voxel values not equal to 0 \n"
-             "  -nan = include only voxel values that are not numbers (NaN, inf, -if,\n       implies slow)\n"
-             "  -nonan =exclude voxel values that are not numbers\n"
-             "  -mask dset = use dset as mask to include/exclude voxels\n"
-             "  -automask = automatically compute mask for dataset\n"
-             "    Can not be combined with -mask\n"
-	          "  -percentile p0 ps p1 write the percentile values starting\n"
-             "              at p0%% and ending at p1%% at a step of ps%%\n"
-             "              Output is of the form p%% value   p%% value ...\n"
-             "              Percentile values are output first. Only one sub-brick\n"
-             "              is accepted as input with this option.\n"
-             "              Write the author if you REALLY need this option\n"
-             "              to work with multiple sub-bricks.\n"
-             "  -median a shortcut for -percentile 50 1 50\n"
-        "  -ver = print author and version info\n"
-             "  -help = print this help screen\n"
+      printf(
+"Usage: 3dBrickStat [options] dataset\n"
+"Compute maximum and/or minimum voxel values of an input dataset\n"
+"\n"
+"The output is a number to the console.  The input dataset\n"
+"may use a sub-brick selection list, as in program 3dcalc.\n"
+"\n"
+"Note: If you don't specify one sub-brick, the parameter you get\n"
+"----- back is computed from all the sub-bricks in dataset.\n"
+"Options :\n"
+"  -quick = get the information from the header only (default)\n"
+"  -slow = read the whole dataset to find the min and max values\n"
+"         all other options except min and max imply slow\n"
+"  -min = print the minimum value in dataset\n"
+"  -max = print the maximum value in dataset (default)\n"
+"  -mean = print the mean value in dataset \n"
+"  -sum = print the sum of values in the dataset\n"
+"  -var = print the variance in the dataset \n"
+"  -count = print the number of voxels included\n"
+"  -volume = print the volume of voxels included in microliters\n"
+"  -positive = include only positive voxel values \n"
+"  -negative = include only negative voxel values \n"
+"  -zero = include only zero voxel values \n"
+"  -non-positive = include only voxel values 0 or negative \n"
+"  -non-negative = include only voxel values 0 or greater \n"
+"  -non-zero = include only voxel values not equal to 0 \n"
+"  -nan = include only voxel values that are finite numbers, \n"
+"         not NaN, or inf. -nan forces -slow mode.\n"
+"  -nonan =exclude voxel values that are not numbers\n"
+"  -mask dset = use dset as mask to include/exclude voxels\n"
+"  -automask = automatically compute mask for dataset\n"
+"    Can not be combined with -mask\n"
+"  -percentile p0 ps p1 write the percentile values starting\n"
+"              at p0%% and ending at p1%% at a step of ps%%\n"
+"              Output is of the form p%% value   p%% value ...\n"
+"              Percentile values are output first. \n"
+"              Only one sub-brick is accepted as input with this option.\n"
+"              Write the author if you REALLY need this option\n"
+"              to work with multiple sub-bricks.\n"
+"  -median a shortcut for -percentile 50 1 50\n"
+"  -ver = print author and version info\n"
+"  -help = print this help screen\n"
            ) ;
       printf("\n" MASTER_SHORTHELP_STRING ) ;
       PRINT_COMPILE_DATE ; exit(0) ;
@@ -489,7 +492,8 @@ THD_3dim_dataset * dset;
 	 }
       } 
       else {
-         WARNING_message("No valid statistics in header") ;
+         WARNING_message("No valid statistics in header. \n"
+                         "Use -slow option to generate a new one.") ;
          EXRETURN;
       }
    }

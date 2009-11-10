@@ -1427,6 +1427,12 @@ int SUMA_G_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
          }
          break;
       case XK_G:
+         if (SUMAg_CF->Dev ) {
+            #ifdef SUMA_USE_AFNI_GRAPH
+               /* an attempt at using AFNI's graphing interface */
+               SUMA_Afni_Graph(Sover, SO);
+            #endif
+         }
          break;
       default:
          SUMA_S_Err("Il ne faut pas etre ici");
@@ -2503,13 +2509,14 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
    int isv;
    SUMA_SurfaceViewer *sv, *svi = NULL;
    GLfloat *glar_ColorList = NULL;
-   static Time B1time = 0;
+   static Time B1time = 0, M1time=0, M1delta=0;
    static int pButton, mButton, rButton;
    SUMA_Boolean ROI_mode; 
    static SUMA_Boolean DoubleClick = NOPE;
    DList *list = NULL;
    DListElmt *NextElm= NULL;
-   float bevx, bevy, mevx, mevy, wwid, whei, zc_fac;
+   float bevx, bevy, mevx, mevy, wwid, whei, zc_fac, mvx_fac, mvy_fac;
+   static int mvxlast, mvylast, mvdeltax, mvdeltay;
    SUMA_PROMPT_DIALOG_STRUCT *prmpt=NULL; /* Use this only to create prompt that are not to be preserved */
    SUMA_Boolean LocalHead = NOPE; /* local debugging messages */
 
@@ -2524,13 +2531,18 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
    /* find out who's calling, only GLXAREA calls this function */
    SUMA_GLXAREA_WIDGET2SV(w, sv, isv);
    if (isv < 0) {
-      fprintf (SUMA_STDERR, "Error %s: Failed in macro SUMA_GLXAREA_WIDGET2SV.\n", FuncName);
+      fprintf (SUMA_STDERR, 
+               "Error %s: Failed in macro SUMA_GLXAREA_WIDGET2SV.\n", FuncName);
       SUMA_RETURNe;
    }
-   if (LocalHead) fprintf (SUMA_STDERR,"%s: A call from SUMA_SurfaceViewer[%d], Pointer %p\n", FuncName, isv, sv);
+   if (LocalHead) 
+      fprintf (SUMA_STDERR,
+               "%s: A call from SUMA_SurfaceViewer[%d], Pointer %p\n", 
+               FuncName, isv, sv);
    
 
-   Kev = *(XKeyEvent *) &cd->event->xkey; /* RickR's suggestion to comply with ANSI C, no type casting of structures  July 04*/
+   Kev = *(XKeyEvent *) &cd->event->xkey; /* RickR's suggestion to comply with 
+                                 ANSI C, no type casting of structures  July 04*/
    Bev = *(XButtonEvent *) &cd->event->xbutton;
    Mev = *(XMotionEvent *) &cd->event->xmotion;
    
@@ -3764,7 +3776,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
          DoubleClick = NOPE;
       }
       B1time = Bev.time; 
-            
+      M1time = 0;      
       switch (pButton) { /* switch type of button Press */
          case Button1:
             if (Bev.state & Button2Mask) {
@@ -3935,6 +3947,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
       break;
       
    case ButtonRelease:
+      M1time = 0;
       rButton = Bev.button;
       if (LocalHead) fprintf(SUMA_STDERR,"%s: In ButtonRelease Button %d\n", FuncName, rButton); 
       if (SUMAg_CF->SwapButtons_1_3 || (SUMAg_CF->ROI_mode && SUMAg_CF->Pen_mode)) {
@@ -3954,7 +3967,9 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   if (DoubleClick) BsA = SUMA_BSA_JoinEnds;
                   else BsA = SUMA_BSA_AppendStrokeOrFill;
                   if (!(DrawnROI = SUMA_ProcessBrushStroke (sv, BsA))) {
-                     if (LocalHead) fprintf (SUMA_STDERR, "%s: NULL DrawnROI returned.\n", FuncName);
+                     if (LocalHead) 
+                        fprintf (SUMA_STDERR, 
+                                 "%s: NULL DrawnROI returned.\n", FuncName);
                      SUMA_ClearBrushStroke (sv);
                      break;
                   }
@@ -3962,7 +3977,8 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   /* Showme the DrawnROI */
                   if (LocalHead) SUMA_ShowDrawnROI (DrawnROI, NULL, NOPE);
 
-                  /* do smething with the BrushStroke, then wipe it clean, OK to show even if empty*/
+                  /* do smething with the BrushStroke, then wipe it clean, 
+                     OK to show even if empty*/
                   if (LocalHead) SUMA_ShowBrushStroke (sv, NULL);
 
                   /* SUMA_DrawBrushStroke (sv, YUP); */
@@ -3970,10 +3986,13 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 
                   /* redisplay all others */
                   if (!list) list = SUMA_CreateList ();
-                  SUMA_REGISTER_TAIL_COMMAND_NO_DATA(list, SE_RedisplayNow_AllOtherVisible, SES_SumaWidget, sv);
+                  SUMA_REGISTER_TAIL_COMMAND_NO_DATA(list, 
+                           SE_RedisplayNow_AllOtherVisible, SES_SumaWidget, sv);
                   SUMA_Engine (&list);
                
-                  /* redisplay . DO NOT REDISPLAY WITH SE_Redisplay_AllVisible or you will have GL state synchronization problems */
+                  /* redisplay . 
+                     DO NOT REDISPLAY WITH SE_Redisplay_AllVisible or 
+                     you will have GL state synchronization problems */
                   sv->ResetGLStateVariables = YUP;
                   SUMA_handleRedisplay((XtPointer)sv->X->GLXAREA);
 
@@ -3993,8 +4012,10 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
          else if (Mev.state & Button4MotionMask) fprintf(stdout,"   B4 mot\n");
          else if (Mev.state & Button5MotionMask) fprintf(stdout,"   B5 mot\n");
       }
-      if (SUMAg_CF->SwapButtons_1_3 || (SUMAg_CF->ROI_mode && SUMAg_CF->Pen_mode)) {
-        if (((Mev.state & Button3MotionMask) && (Mev.state & Button2MotionMask)) || ((Mev.state & Button2MotionMask) && (Mev.state & ShiftMask))) {
+      if (  SUMAg_CF->SwapButtons_1_3 || 
+            (SUMAg_CF->ROI_mode && SUMAg_CF->Pen_mode)) {
+        if (((Mev.state & Button3MotionMask) && (Mev.state & Button2MotionMask)) 
+         || ((Mev.state & Button2MotionMask) && (Mev.state & ShiftMask))) {
             mButton = SUMA_Button_12_Motion;
          } else if(Mev.state & Button3MotionMask) {
             mButton = SUMA_Button_1_Motion;
@@ -4006,7 +4027,8 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             break;
          } 
       } else {
-         if (((Mev.state & Button1MotionMask) && (Mev.state & Button2MotionMask)) || ((Mev.state & Button2MotionMask) && (Mev.state & ShiftMask))) {
+         if (((Mev.state & Button1MotionMask) && (Mev.state & Button2MotionMask))
+          || ((Mev.state & Button2MotionMask) && (Mev.state & ShiftMask))) {
             mButton = SUMA_Button_12_Motion;
          } else if(Mev.state & Button1MotionMask) {
             mButton = SUMA_Button_1_Motion;
@@ -4023,19 +4045,30 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
          case SUMA_Button_12_Motion:
          case SUMA_Button_2_Shift_Motion:
             /*fprintf(SUMA_STDERR,"%s: In motion, Butt1 & Butt2\n", FuncName);*/
-            sv->GVS[sv->StdView].zoomDelta = 1.0 + (float)((int)Mev.y - sv->GVS[sv->StdView].zoomBegin)/MOUSE_ZOOM_FACT;
-            if (sv->GVS[sv->StdView].zoomDelta > 2.0) sv->GVS[sv->StdView].zoomDelta = 2.0;
-            else if (sv->GVS[sv->StdView].zoomDelta < 0.5) sv->GVS[sv->StdView].zoomDelta = 0.5;
+            sv->GVS[sv->StdView].zoomDelta = 1.0 + 
+                                             (float)((int)Mev.y - 
+                                 sv->GVS[sv->StdView].zoomBegin)/MOUSE_ZOOM_FACT;
+            if (sv->GVS[sv->StdView].zoomDelta > 2.0) 
+               sv->GVS[sv->StdView].zoomDelta = 2.0;
+            else if (sv->GVS[sv->StdView].zoomDelta < 0.5) 
+               sv->GVS[sv->StdView].zoomDelta = 0.5;
             sv->FOV[sv->iState] /= sv->GVS[sv->StdView].zoomDelta;
             if (sv->FOV[sv->iState] < FOV_MIN) sv->FOV[sv->iState] = FOV_MIN;
-            else if (sv->FOV[sv->iState] > FOV_MAX) sv->FOV[sv->iState] = FOV_MAX;
-               sv->GVS[sv->StdView].zoomBegin = (float)(int)Mev.y;
-               /*fprintf(stdout, "FOV zoom Delta = %f=n", sv->GVS[sv->StdView].zoomDelta);*/
+            else if (sv->FOV[sv->iState] > FOV_MAX) 
+               sv->FOV[sv->iState] = FOV_MAX;
+            sv->GVS[sv->StdView].zoomBegin = (float)(int)Mev.y;
+            /*fprintf(stdout, "FOV zoom Delta = %f=n", 
+                              sv->GVS[sv->StdView].zoomDelta);*/
             /* Now update the zoom compensation variable */
             if (sv->ZoomCompensate) {
-               sv->ZoomCompensate = sv->FOV[sv->iState] / SUMA_sv_fov_original(sv);
-               if (sv->ZoomCompensate > 1) sv->ZoomCompensate = 1.0; /* no need to compensate at low zooms */
-               else if (sv->ZoomCompensate < 0.005) sv->ZoomCompensate = 0.005; /* no need to go lower */ 
+               sv->ZoomCompensate = sqrt(sv->FOV[sv->iState] / 
+                                    SUMA_sv_fov_original(sv));
+                     /* slow down compensation, with sqrt*/
+               if (sv->ZoomCompensate > 1) 
+                  sv->ZoomCompensate = 1.0; 
+                        /* no need to compensate at low zooms */
+               else if (sv->ZoomCompensate < 0.05) 
+                  sv->ZoomCompensate = 0.05; /* no need to go lower */ 
             }
             ii = SUMA_WhichSV (sv, SUMAg_SVv, SUMAg_N_SVv);
             SUMA_postRedisplay(w, clientData, callData);    
@@ -4053,36 +4086,78 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             }else {
                zc_fac = 1.0;
             }            
-            sv->GVS[sv->StdView].spinDeltaX = (mevx - sv->GVS[sv->StdView].spinBeginX);
-            sv->GVS[sv->StdView].spinDeltaY = (mevy - sv->GVS[sv->StdView].spinBeginY);
+            sv->GVS[sv->StdView].spinDeltaX = 
+               (mevx - sv->GVS[sv->StdView].spinBeginX);
+            sv->GVS[sv->StdView].spinDeltaY = 
+               (mevy - sv->GVS[sv->StdView].spinBeginY);
+            if (M1time) {
+               M1delta = Mev.time - M1time;
+               mvdeltax = Mev.x - mvxlast;
+               mvdeltay = Mev.y - mvylast;
+            } else {
+               M1delta = 0;
+               mvdeltax = 0;
+               mvdeltay = 0;
+            }
+            M1time = Mev.time;
+            mvxlast= Mev.x;
+            mvylast= Mev.y;
             
-            /* fprintf(stdout,"\n"
+            /* compute move rate in pixels per milliseconds,
+            You could use this to add a gain on the amount of rotation,
+            but before you could use those factors, you'll need to scale
+            the results to something appropriate */
+            mvx_fac = ((SUMA_ABS((float)mvdeltax)/(M1delta+0.01))); 
+            mvy_fac = ((SUMA_ABS((float)mvdeltay)/(M1delta+0.01))); 
+            
+            #if 0
+            fprintf(stdout,"\n"
                            "spinBeginX %f \n"
                            "spinBeginY %f \n"
                            "spinDeltaX %f \n"
                            "spinDeltaY %f \n"
                            "WindWidth %d  \n"
                            "WindHeight %d\n"
-                           "ZoomCompensate %f\n", 
-                        sv->GVS[sv->StdView].spinBeginX, sv->GVS[sv->StdView].spinBeginY, 
-                        sv->GVS[sv->StdView].spinDeltaX, sv->GVS[sv->StdView].spinDeltaY, 
-                        sv->WindWidth, sv->WindHeight, sv->ZoomCompensate); */
-            if (sv->GVS[sv->StdView].spinDeltaX || sv->GVS[sv->StdView].spinDeltaY){
+                           "ZoomCompensate %f\n"
+                           "MoveRatePixelsPerms [%f %f]\n"
+                           , 
+                        sv->GVS[sv->StdView].spinBeginX, 
+                        sv->GVS[sv->StdView].spinBeginY, 
+                        sv->GVS[sv->StdView].spinDeltaX, 
+                        sv->GVS[sv->StdView].spinDeltaY, 
+                        sv->WindWidth, sv->WindHeight, sv->ZoomCompensate,
+                        mvx_fac, mvy_fac
+                        );
+            #else
+            /* fprintf(stdout,"%f %f; ", mvx_fac, mvy_fac); */
+            #endif
+            /* do not use movement rate before you scale it properly */
+            mvx_fac = mvy_fac = 1.0;
+            
+            if (sv->GVS[sv->StdView].spinDeltaX || 
+                sv->GVS[sv->StdView].spinDeltaY){
                trackball(  sv->GVS[sv->StdView].deltaQuat, 
-                           (2*sv->GVS[sv->StdView].spinBeginX - wwid)/wwid*zc_fac, 
-                           (whei - 2*sv->GVS[sv->StdView].spinBeginY)/whei*zc_fac,
-                           (2*mevx - wwid)/wwid*zc_fac, 
-                           (whei - 2*mevy)/whei*zc_fac); /* comput the increment Quat */
+                           (2*sv->GVS[sv->StdView].spinBeginX - wwid) /
+                           wwid*zc_fac*mvx_fac, 
+                           (whei - 2*sv->GVS[sv->StdView].spinBeginY) / 
+                           whei*zc_fac*mvy_fac,
+                           (2*mevx - wwid)/wwid*zc_fac*mvx_fac, 
+                           (whei - 2*mevy)/whei*zc_fac*mvy_fac); 
+                                 /* comput the increment Quat */
                sv->GVS[sv->StdView].spinBeginX = mevx;
                sv->GVS[sv->StdView].spinBeginY = mevy;
-               add_quats (sv->GVS[sv->StdView].deltaQuat, sv->GVS[sv->StdView].currentQuat, sv->GVS[sv->StdView].currentQuat);
+               add_quats ( sv->GVS[sv->StdView].deltaQuat, 
+                           sv->GVS[sv->StdView].currentQuat, 
+                           sv->GVS[sv->StdView].currentQuat);
                
                ii = SUMA_WhichSV(sv, SUMAg_SVv, SUMAg_N_SVv);
                if (ii < 0) {
-                  fprintf (SUMA_STDERR,"Error %s: Failed to find index of sv.\n", FuncName);
+                  fprintf (SUMA_STDERR,
+                           "Error %s: Failed to find index of sv.\n", FuncName);
                   break;
                }
-               if (!SUMAg_CF->ViewLocked[ii]) { /* No locking, just redisplay current viewer */
+               if (!SUMAg_CF->ViewLocked[ii]) { /* No locking, 
+                                                just redisplay current viewer */
                   SUMA_postRedisplay(w, clientData, callData);    
                } else { /* locking, update and redisplay those locked */
                   DList *list = NULL;
@@ -4099,23 +4174,32 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   for (it=0; it < SUMAg_N_SVv; ++it) {
                      svi = &SUMAg_SVv[it];
                      ed_svi = SUMA_BestStandardView(svi, SUMAg_DOv, SUMAg_N_DOv);
-                     if (it != ii && SUMAg_CF->ViewLocked[it] && ed_svi == ed_sv) {
+                     if (  it != ii && 
+                           SUMAg_CF->ViewLocked[it] && ed_svi == ed_sv) {
                         /* copy quaternions */
-                        svi->GVS[svi->StdView].spinBeginX = sv->GVS[sv->StdView].spinBeginX;
-                        svi->GVS[svi->StdView].spinBeginY = sv->GVS[sv->StdView].spinBeginY;
-                        SUMA_COPY_VEC(sv->GVS[sv->StdView].deltaQuat, svi->GVS[svi->StdView].deltaQuat, 4, float, float);
-                        SUMA_COPY_VEC(sv->GVS[sv->StdView].currentQuat, svi->GVS[svi->StdView].currentQuat, 4, float, float);
+                        svi->GVS[svi->StdView].spinBeginX = 
+                           sv->GVS[sv->StdView].spinBeginX;
+                        svi->GVS[svi->StdView].spinBeginY = 
+                           sv->GVS[sv->StdView].spinBeginY;
+                        SUMA_COPY_VEC( sv->GVS[sv->StdView].deltaQuat, 
+                                       svi->GVS[svi->StdView].deltaQuat, 
+                                       4, float, float);
+                        SUMA_COPY_VEC( sv->GVS[sv->StdView].currentQuat, 
+                                       svi->GVS[svi->StdView].currentQuat, 
+                                       4, float, float);
                        
                         /* add a redisplay now */
                         ED = SUMA_InitializeEngineListData (SE_RedisplayNow);
                         SUMA_RegisterEngineListCommand ( list, ED,
-                                                         SEF_Empty, NULL,
-                                                         SES_Suma, (void *)svi, NOPE,
-                                                         SEI_Head, NULL); 
+                                                SEF_Empty, NULL,
+                                                SES_Suma, (void *)svi, NOPE,
+                                                SEI_Head, NULL); 
                      }
                   }
                   if (!SUMA_Engine (&list)) {
-                     fprintf (SUMA_STDERR, "Error %s: Failed calling SUMA_Engine.\n", FuncName);
+                     fprintf (SUMA_STDERR, 
+                              "Error %s: Failed calling SUMA_Engine.\n", 
+                              FuncName);
                      break;
                   }
                }
@@ -4131,12 +4215,19 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             }else {
                zc_fac = 1.0;
             }
-            sv->GVS[sv->StdView].translateDeltaX =  (mevx - sv->GVS[sv->StdView].translateBeginX)/(float)sv->WindWidth*sv->GVS[sv->StdView].TranslateGain;
-            sv->GVS[sv->StdView].translateDeltaY = -(mevy - sv->GVS[sv->StdView].translateBeginY)/(float)sv->WindHeight*sv->GVS[sv->StdView].TranslateGain;
+            sv->GVS[sv->StdView].translateDeltaX =  
+               (mevx - sv->GVS[sv->StdView].translateBeginX) /
+               (float)sv->WindWidth*sv->GVS[sv->StdView].TranslateGain;
+            sv->GVS[sv->StdView].translateDeltaY = 
+               -(mevy - sv->GVS[sv->StdView].translateBeginY) /
+                (float)sv->WindHeight*sv->GVS[sv->StdView].TranslateGain;
             
-            if (sv->GVS[sv->StdView].translateDeltaX || sv->GVS[sv->StdView].translateDeltaY){
-               sv->GVS[sv->StdView].translateVec[0] += (GLfloat)sv->GVS[sv->StdView].translateDeltaX * zc_fac;
-               sv->GVS[sv->StdView].translateVec[1] += (GLfloat)sv->GVS[sv->StdView].translateDeltaY * zc_fac;
+            if (  sv->GVS[sv->StdView].translateDeltaX || 
+                  sv->GVS[sv->StdView].translateDeltaY){
+               sv->GVS[sv->StdView].translateVec[0] += 
+                  (GLfloat)sv->GVS[sv->StdView].translateDeltaX * zc_fac;
+               sv->GVS[sv->StdView].translateVec[1] += 
+                  (GLfloat)sv->GVS[sv->StdView].translateDeltaY * zc_fac;
                sv->GVS[sv->StdView].translateBeginX = mevx;
                sv->GVS[sv->StdView].translateBeginY = mevy;
                SUMA_postRedisplay(w, clientData, callData);
@@ -4144,7 +4235,8 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             break;
          
          case SUMA_Button_3_Motion:
-            if (LocalHead) fprintf(SUMA_STDERR,"%s: In motion, Butt3 \n", FuncName); 
+            if (LocalHead) 
+               fprintf(SUMA_STDERR,"%s: In motion, Butt3 \n", FuncName); 
             
             if (SUMAg_CF->ROI_mode && sv->Focus_SO_ID >= 0 && sv->BS) {
                /* ROI drawing mode */
@@ -4154,7 +4246,9 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                }
 
 
-               if (!SUMA_GetSelectionLine (sv, (int)Mev.x, (int)Mev.y, sv->Pick0, sv->Pick1, 0, NULL, NULL, NULL)) {
+               if (!SUMA_GetSelectionLine(sv, 
+                     (int)Mev.x, (int)Mev.y, sv->Pick0, sv->Pick1, 
+                     0, NULL, NULL, NULL)) {
                   fprintf (SUMA_STDERR, "Error %s: Failed in "
                                        "SUMA_GetSelectionLine.\n", FuncName);
                   break;
@@ -5822,11 +5916,13 @@ SUMA_ACTION_RESULT SUMA_FinishedROI (void *data, SUMA_ACTION_POLARITY Pol)
    switch (Pol) {
       case SAP_Do:
       case SAP_Redo:
-         if (LocalHead) fprintf (SUMA_STDERR, "%s: Marking as finished...\n", FuncName);
+         if (LocalHead) 
+            fprintf (SUMA_STDERR, "%s: Marking as finished...\n", FuncName);
          /* set the drawing status */
          ROIA->DrawnROI->DrawStatus = SUMA_ROI_Finished;
          
-         SOparent = SUMA_findSOp_inDOv(ROIA->DrawnROI->Parent_idcode_str, SUMAg_DOv, SUMAg_N_DOv);
+         SOparent = SUMA_findSOp_inDOv(ROIA->DrawnROI->Parent_idcode_str, 
+                                       SUMAg_DOv, SUMAg_N_DOv);
          if (!SOparent) {
             SUMA_SLP_Warn( "Parent surface\n"
                            "not found for ROI\n"
@@ -5834,7 +5930,6 @@ SUMA_ACTION_RESULT SUMA_FinishedROI (void *data, SUMA_ACTION_POLARITY Pol)
                            "be determined." );
             SUMA_RETURN(SAR_Succeed);
          }else {
-               
             /* calculate the contours */
             if (!ROIA->DrawnROI->CE) { /* must create contour */
                int *Nodes, N_Nodes;
@@ -5842,12 +5937,14 @@ SUMA_ACTION_RESULT SUMA_FinishedROI (void *data, SUMA_ACTION_POLARITY Pol)
 
                SUMA_LH("Getting Contour ");
                N_Nodes = 0;
-               Unique = YUP; /* Set to YUP if you have node indices listed more than once. */
+               Unique = YUP; /* Set to YUP if you have node 
+                                 indices listed more than once. */
                Nodes = SUMA_NodesInROI (ROIA->DrawnROI, &N_Nodes, Unique);
                if (Nodes) {
                   ROIA->DrawnROI->CE = SUMA_GetContour (
                                  SOparent, 
-                                 Nodes, N_Nodes, &(ROIA->DrawnROI->N_CE), 0, NULL);
+                                 Nodes, N_Nodes, &(ROIA->DrawnROI->N_CE), 
+                                 0, NULL, NULL, 1);
                   if (!ROIA->DrawnROI->CE) { SUMA_LH("Null DrawnROI->CE"); }
                   else { SUMA_LH("Good DrawnROI->CE"); }
                   SUMA_free(Nodes);
@@ -5860,7 +5957,8 @@ SUMA_ACTION_RESULT SUMA_FinishedROI (void *data, SUMA_ACTION_POLARITY Pol)
 
          break;
       case SAP_Undo:
-         if (LocalHead) fprintf (SUMA_STDERR, "%s: Marking as InCreation...\n", FuncName);
+         if (LocalHead) 
+            fprintf (SUMA_STDERR, "%s: Marking as InCreation...\n", FuncName);
          ROIA->DrawnROI->DrawStatus = SUMA_ROI_InCreation;
          /* remove any contour if present */
          if (ROIA->DrawnROI->CE) SUMA_free(ROIA->DrawnROI->CE); ROIA->DrawnROI->CE = NULL;

@@ -3726,7 +3726,7 @@ SUMA_Boolean SUMA_SurfaceMetrics_eng (
                            FuncName); 
                } else {
                   SO->FN = SUMA_Build_FirstNeighb (SO->EL, SO->N_Node, 
-                                                   SO->idcode_str);   
+                                                   SO->idcode_str, debug);   
                   if (SO->FN == NULL) {
                      fprintf( SUMA_STDERR, 
                               "Error %s: Failed in SUMA_Build_FirstNeighb.\n", 
@@ -5213,6 +5213,11 @@ SUMA_SurfSpecFile *SUMA_IO_args_2_spec(SUMA_GENERIC_ARGV_PARSE *ps, int *nspec)
             n_read = SUMA_spec_select_surfs( &(spec[0+ispec0]), 
                                              ps->s_surfnames, 
                                              ps->s_N_surfnames, 0);
+            if (n_read < 1) {
+               SUMA_S_Err("Failed to find surfaces in spec file");
+               SUMA_free(spec); spec = NULL; *nspec = 0; 
+               SUMA_RETURN(spec);            
+            }
             if (LocalHead) {
                fprintf( SUMA_STDERR,
                         "%s (%s:%d): Read in %d surfaces\n", 

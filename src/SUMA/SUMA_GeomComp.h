@@ -62,7 +62,8 @@ SUMA_Boolean SUMA_VoxelsInBox(int *voxelsijk, int *N_in, float *c1, float *c2);
 SUMA_SurfaceObject *SUMA_Patch2Surf(float *NodeList, int N_NodeList, int *PatchFaces, int N_PatchFaces, int PatchDim);
 SUMA_PATCH * SUMA_getPatch (  int *NodesSelected, int N_Nodes, 
                               int *Full_FaceSetList, int N_Full_FaceSetList, 
-                              SUMA_MEMBER_FACE_SETS *Memb, int MinHits);
+                              SUMA_MEMBER_FACE_SETS *Memb, int MinHits,
+                              int FixBowTie, int verb);
 SUMA_Boolean SUMA_freePatch (SUMA_PATCH *Patch);
 byte *SUMA_MaskOfNodesInPatch(SUMA_SurfaceObject *SO, int *N_NodesUsedInPatch);
 SUMA_BRANCH * SUMA_FindBranch (int ** InterMat, int N_InterMat, float ** InterNodes, int ** NodeLoc_in_InterMat, int verbose,  int * WBsz);
@@ -89,7 +90,10 @@ int *SUMA_NodePath_to_TriPath_Inters ( SUMA_SurfaceObject *SO, SUMA_SURF_PLANE_I
 int * SUMA_IntersectionStrip (SUMA_SurfaceObject *SO, SUMA_SURF_PLANE_INTERSECT *SPI,  int *nPath, int N_nPath, float *dinters, float dmax, int *N_tPath);
 SUMA_Boolean SUMA_FromIntEdgeToIntEdge (int Tri, int E1, int E2, SUMA_EDGE_LIST *EL, SUMA_SURF_PLANE_INTERSECT *SPI, int Ny, SUMA_Boolean *Visited, float *d, float dmax, int *tPath, int *N_tPath);
 SUMA_Boolean SUMA_isSameEdge (SUMA_EDGE_LIST *EL, int E1, int E2);
-SUMA_CONTOUR_EDGES *SUMA_GetContour (SUMA_SurfaceObject *SO, int *Nodes, int N_Node, int *N_ContEdges, int mode, SUMA_PATCH *UseThisPatch);
+SUMA_CONTOUR_EDGES *SUMA_GetContour (SUMA_SurfaceObject *SO, int *Nodes, 
+                                     int N_Node, int *N_ContEdges, int mode, 
+                                     SUMA_PATCH *UseThisPatch, 
+                                     byte **isNodeInNodes, int verb);
 SUMA_Boolean SUMA_ShowPatch (SUMA_PATCH *Patch, FILE *Out) ;
 void SUMA_Set_OffsetDebugNode (int d);
 SUMA_Boolean SUMA_getoffsets  (int n, SUMA_SurfaceObject *SO, float *Off, float lim);
@@ -177,9 +181,14 @@ float *SUMA_NN_GeomSmooth( SUMA_SurfaceObject *SO, int Niter, float *fin_orig,
 SUMA_Boolean SUMA_EquateSurfaceSize(SUMA_SurfaceObject *SO, SUMA_SurfaceObject *SOref, float max_off, SUMA_COMM_STRUCT *cs);
 SUMA_Boolean SUMA_EquateSurfaceVolumes(SUMA_SurfaceObject *SO, SUMA_SurfaceObject *SOref, float perc_tol, SUMA_COMM_STRUCT *cs);
 SUMA_Boolean SUMA_EquateSurfaceAreas(SUMA_SurfaceObject *SO, SUMA_SurfaceObject *SOref, float perc_tol, SUMA_COMM_STRUCT *cs);
-double SUMA_Mesh_Volume(SUMA_SurfaceObject *SO, int *FSI, int N_FaceSet) ;
+double SUMA_Mesh_Volume(SUMA_SurfaceObject *SO, int *FSI, int N_FaceSet, 
+                        int verb, int *prec_prob) ;
 double SUMA_Mesh_Area(SUMA_SurfaceObject *SO, int *FSI, int N_FaceSet) ;
-double SUMA_Pattie_Volume (SUMA_SurfaceObject *SO1, SUMA_SurfaceObject *SO2, int *Nodes, int N_Node, SUMA_SurfaceObject *UseThisSO, int minhits);
+double SUMA_Pattie_Volume (SUMA_SurfaceObject *SO1, SUMA_SurfaceObject *SO2, 
+                           int *Nodes, int N_Node, 
+                           SUMA_SurfaceObject *UseThisSO, 
+                           int minhits, int FixBowTie, int adjust_contour,
+                           byte *adj_N, int verb);
 double SUMA_NewAreaAtRadius(SUMA_SurfaceObject *SO, double r, double Rref, float *tmpList);
 SUMA_Boolean SUMA_ProjectSurfaceToSphere(SUMA_SurfaceObject *SO, SUMA_SurfaceObject *SOref, float radius, SUMA_COMM_STRUCT *cs);
 SUMA_OFFSET_STRUCT *SUMA_FormNeighbOffset ( SUMA_SurfaceObject *SO, float OffsetLim, const char *opts, byte *nmask, float FWHM);
@@ -250,6 +259,8 @@ int SUMA_qhull_wrap( int npt , float * xyz , int ** ijk , int fliporient);
 DList *SUMA_SliceAlongPlane(SUMA_SurfaceObject *SO, float *Eq, float step);
 
 SUMA_DSET *SUMA_RandomDset(int N_Node, int nc, unsigned int seed, float scale, byte norm); 
+
+SUMA_Boolean SUMA_FillRandXform(double xform[][4], int seed, int type); 
 
 /*!
    Macros to merge / join two lists together

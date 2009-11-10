@@ -42,7 +42,7 @@ int main(int argc, char *argv[])
     THD_3dim_dataset *mask_dset = NULL, *input_dset = NULL ;
     int mask_subbrik = 0;
     int sigma = 0, nzmean = 0, nzcount = 0, debug = 0, quiet = 0, summary = 0;
-    int minmax = 0, nzminmax = 0;		/* 07 July, 2004 [rickr] */
+    int minmax = 0, nzminmax = 0, donzsum = 0;		/* 07 July, 2004 [rickr] */
     short *mask_data;
     int nvox, i, brik;
     int num_ROI, ROI, mask_f2s = 0;
@@ -65,92 +65,93 @@ int main(int argc, char *argv[])
     
     if (argc < 3 || strcmp(argv[1], "-help") == 0) {
 	printf("Usage: 3dROIstats -mask[n] mset [options] datasets\n"
-	       "\n"
-	       "   Display statistics over masked regions.  The default statistic\n"
-	       "   is the mean.\n"
-	       "\n"
-	       "   There will be one line of output for every sub-brick of every\n"
-	       "   input dataset.  Across each line will be every statistic for\n"
-	       "   every mask value.  For instance, if there 3 mask values (1,2,3),\n"
-	       "   then the columns Mean_1, Mean_2 and Mean_3 will refer to the\n"
-	       "   means across each mask value, respectively.  If 4 statistics are\n"
-	       "   requested, then there will be 12 stats displayed on each line\n"
-	       "   (4 for each mask region), besides the file and sub-brick number.\n"
-	       "\n"
-	       "Examples:\n"
-	       "\n"
-	       "   3dROIstats -mask mask+orig. 'func_slim+orig[1,3,5]'\n"
-	       "\n"
-	       "   3dROIstats -minmax -sigma -mask mask+orig. 'func_slim+orig[1,3,5]'\n"
-	       "\n"
-	       "Options:\n"
-	   "  -mask[n] mset Means to use the dataset 'mset' as a mask:\n"
-	"                 If n is present, it specifies which sub-brick\n"
-	       "                 in mset to use a la 3dcalc.  Note: do not include\n"
-	       "                 the brackets if specifying a sub-brick, they are\n"
-	       "                 there to indicate that they are optional.  If not\n"
-	       "                 present, 0 is assumed\n"
-	"                 Voxels with the same nonzero values in 'mset'\n"
-	       "                 will be statisticized from 'dataset'.  This will\n"
-	       "                 be repeated for all the different values in mset.\n"
-	       "                 I.e. all of the 1s in mset are one ROI, as are all\n"
-	       "                 of the 2s, etc.\n"
-	       "                 Note that the mask dataset and the input dataset\n"
-	       "                 must have the same number of voxels and that mset\n"
-	       "                 must be BYTE or SHORT (i.e., float masks won't work\n"
-	       "                 without the -mask_f2short option).\n"
-	       "                 \n"
-	       "  -mask_f2short  Tells the program to convert a float mask to short\n"
-	       "                 integers, by simple rounding.  This option is needed\n"
-	       "                 when the mask dataset is a 1D file, for instance\n"
-               "                 (since 1D files are read as floats).\n"
-	       "\n"
-	       "                 Be careful with this, it may not be appropriate to do!\n"
-	       "\n"
-	       "  -numROI n     Forces the assumption that the mask dataset's ROIs are\n"
-	       "                 denoted by 1 to n inclusive.  Normally, the program\n"
-	       "                 figures out the ROIs on its own.  This option is \n"
-	       "                 useful if a) you are certain that the mask dataset\n"
-	       "                 has no values outside the range [0 n], b) there may \n"
-	       "                 be some ROIs missing between [1 n] in the mask data-\n"
-	       "                 set and c) you want those columns in the output any-\n"
-	       "                 way so the output lines up with the output from other\n"
-	       "                 invocations of 3dROIstats.  Confused?  Then don't use\n"
-	       "                 this option!\n"
-          "  -zerofill ZF   For ROI labels not found, use 'ZF' instead of a blank\n"
-          "                 in the output file. This option is useless without -numROI\n"
-	       "\n"
-          "  -roisel SEL.1D Only considers ROIs denoted by values found in SEL.1D\n"
-          "                 Note that the order of the ROIs as specified in SEL.1D\n"
-          "                 is not preserved. So an SEL.1D of '2 8 20' produces the\n"
-          "                 same output as '8 20 2'\n" 
-          "\n"
-	       "  -debug        Print out debugging information\n"
-	       "  -quiet        Do not print out labels for columns or rows\n"
-          "  -nobriklab    Do not print the sub-brick label next to its index\n"
-          "  -1Dformat     Output results in a 1D format that includes \n"
-          "                commented labels\n"
-	       "\n"
-	       "The following options specify what stats are computed.  By default\n"
-	       "the mean is always computed.\n"
-	       "\n"
-	       "  -nzmean       Compute the mean using only non_zero voxels.  Implies\n"
-	       "                 the opposite for the normal mean computed\n"
-	       "  -nzvoxels     Compute the number of non_zero voxels\n"
-	       "  -minmax       Compute the min/max of all voxels\n"
-	       "  -nzminmax     Compute the min/max of non_zero voxels\n"
-	       "  -sigma        Means to compute the standard deviation as well\n"
-	       "                 as the mean.\n"
-          "  -median       Compute the median of all voxels.\n"
-          "  -nzmedian     Compute the median of non_zero voxels.\n"
-	       "  -summary      Only output a summary line with the grand mean across all briks\n"
-	       "                 in the input dataset. \n"
-	       "\n"
-	   "The output is printed to stdout (the terminal), and can be\n"
-	   "saved to a file using the usual redirection operation '>'.\n"
-	       "\n"
-	       "N.B.: The input datasets and the mask dataset can use sub-brick\n"
-	  "      selectors, as detailed in the output of 3dcalc -help.\n"
+"\n"
+"   Display statistics over masked regions.  The default statistic\n"
+"   is the mean.\n"
+"\n"
+"   There will be one line of output for every sub-brick of every\n"
+"   input dataset.  Across each line will be every statistic for\n"
+"   every mask value.  For instance, if there 3 mask values (1,2,3),\n"
+"   then the columns Mean_1, Mean_2 and Mean_3 will refer to the\n"
+"   means across each mask value, respectively.  If 4 statistics are\n"
+"   requested, then there will be 12 stats displayed on each line\n"
+"   (4 for each mask region), besides the file and sub-brick number.\n"
+"\n"
+"Examples:\n"
+"\n"
+"   3dROIstats -mask mask+orig. 'func_slim+orig[1,3,5]'\n"
+"\n"
+"   3dROIstats -minmax -sigma -mask mask+orig. 'func_slim+orig[1,3,5]'\n"
+"\n"
+"Options:\n"
+"  -mask[n] mset Means to use the dataset 'mset' as a mask:\n"
+"                 If n is present, it specifies which sub-brick\n"
+"                 in mset to use a la 3dcalc.  Note: do not include\n"
+"                 the brackets if specifying a sub-brick, they are\n"
+"                 there to indicate that they are optional.  If not\n"
+"                 present, 0 is assumed\n"
+"                 Voxels with the same nonzero values in 'mset'\n"
+"                 will be statisticized from 'dataset'.  This will\n"
+"                 be repeated for all the different values in mset.\n"
+"                 I.e. all of the 1s in mset are one ROI, as are all\n"
+"                 of the 2s, etc.\n"
+"                 Note that the mask dataset and the input dataset\n"
+"                 must have the same number of voxels and that mset\n"
+"                 must be BYTE or SHORT (i.e., float masks won't work\n"
+"                 without the -mask_f2short option).\n"
+"                 \n"
+"  -mask_f2short  Tells the program to convert a float mask to short\n"
+"                 integers, by simple rounding.  This option is needed\n"
+"                 when the mask dataset is a 1D file, for instance\n"
+   "                 (since 1D files are read as floats).\n"
+"\n"
+"                 Be careful with this, it may not be appropriate to do!\n"
+"\n"
+"  -numROI n     Forces the assumption that the mask dataset's ROIs are\n"
+"                 denoted by 1 to n inclusive.  Normally, the program\n"
+"                 figures out the ROIs on its own.  This option is \n"
+"                 useful if a) you are certain that the mask dataset\n"
+"                 has no values outside the range [0 n], b) there may \n"
+"                 be some ROIs missing between [1 n] in the mask data-\n"
+"                 set and c) you want those columns in the output any-\n"
+"                 way so the output lines up with the output from other\n"
+"                 invocations of 3dROIstats.  Confused?  Then don't use\n"
+"                 this option!\n"
+"  -zerofill ZF   For ROI labels not found, use 'ZF' instead of a blank\n"
+"                 in the output file. This option is useless without -numROI\n"
+"\n"
+"  -roisel SEL.1D Only considers ROIs denoted by values found in SEL.1D\n"
+"                 Note that the order of the ROIs as specified in SEL.1D\n"
+"                 is not preserved. So an SEL.1D of '2 8 20' produces the\n"
+"                 same output as '8 20 2'\n" 
+"\n"
+"  -debug        Print out debugging information\n"
+"  -quiet        Do not print out labels for columns or rows\n"
+"  -nobriklab    Do not print the sub-brick label next to its index\n"
+"  -1Dformat     Output results in a 1D format that includes \n"
+"                commented labels\n"
+"\n"
+"The following options specify what stats are computed.  By default\n"
+"the mean is always computed.\n"
+"\n"
+"  -nzmean       Compute the mean using only non_zero voxels.  Implies\n"
+"                 the opposite for the normal mean computed\n"
+"  -nzsum        Compute the sum using only non_zero voxels.  \n"
+"  -nzvoxels     Compute the number of non_zero voxels\n"
+"  -minmax       Compute the min/max of all voxels\n"
+"  -nzminmax     Compute the min/max of non_zero voxels\n"
+"  -sigma        Means to compute the standard deviation as well\n"
+"                 as the mean.\n"
+"  -median       Compute the median of all voxels.\n"
+"  -nzmedian     Compute the median of non_zero voxels.\n"
+"  -summary      Only output a summary line with the grand mean \n"
+"                across all briks in the input dataset. \n"
+"\n"
+"The output is printed to stdout (the terminal), and can be\n"
+"saved to a file using the usual redirection operation '>'.\n"
+"\n"
+"N.B.: The input datasets and the mask dataset can use sub-brick\n"
+"      selectors, as detailed in the output of 3dcalc -help.\n"
 	    );
 
 	printf("\n" MASTER_SHORTHELP_STRING);
@@ -263,6 +264,11 @@ int main(int argc, char *argv[])
 	}
 	if (strncmp(argv[narg], "-nzmean", 7) == 0) {
 	    nzmean = 1;
+	    narg++;
+	    continue;
+	}
+	if (strncmp(argv[narg], "-nzsum", 6) == 0) {
+	    donzsum = 1;
 	    narg++;
 	    continue;
 	}
@@ -452,6 +458,9 @@ int main(int argc, char *argv[])
       if (nzperc) {
          fprintf(stdout, "\tNZMed_%d ", i - 32768);
       }
+      if (donzsum) {
+         fprintf(stdout, "\tNZSum_%d ", i - 32768);
+      }
 	    }
 	}
     /* load the non_zero array if the numROI option used - 5/00 */
@@ -480,6 +489,9 @@ int main(int argc, char *argv[])
       if (nzperc) {
          fprintf(stdout, "\tNZMed_%d ", i );
       }
+      if (donzsum) {
+         fprintf(stdout, "\tNZSum_%d ", i );
+      }
 	    }
 	}
 	num_ROI = force_num_ROI;
@@ -498,7 +510,7 @@ int main(int argc, char *argv[])
 	 Error_Exit("Memory allocation error");
     if ((voxels = (long *) malloc(num_ROI * sizeof(long))) == NULL)
 	 Error_Exit("Memory allocation error");
-    if (nzmean || nzcount || nzminmax) {
+    if (nzmean || nzcount || nzminmax || donzsum) {
 	if ((nzsum = (double *) malloc(num_ROI * sizeof(double))) == NULL)
 	     Error_Exit("Memory allocation error");
 	if ((nzvoxels = (long *) malloc(num_ROI * sizeof(long))) == NULL)
@@ -523,7 +535,6 @@ int main(int argc, char *argv[])
 	     Error_Exit("Memory allocation error");
 
     /* Now, loop over datasets and sub-bricks and compute away */
-
     for (; narg < argc; narg++) {
 
 	input_dset = THD_open_dataset(argv[narg]);	/* 16 Sep 1999 */
@@ -551,7 +562,7 @@ int main(int argc, char *argv[])
 	    for (i = 0; i < num_ROI; i++) {
 		sum[i] = 0;
 		voxels[i] = 0;
-		if (nzmean || nzcount) {
+		if (nzmean || nzcount || donzsum) {
 		    nzsum[i] = 0;
 		    nzvoxels[i] = 0;
 		}
@@ -630,7 +641,7 @@ int main(int argc, char *argv[])
 
 		    sum[ROI] += (double) input_data[i];
 		    voxels[ROI]++;
-		    if (nzmean || nzcount || nzminmax) {
+		    if (nzmean || nzcount || nzminmax || donzsum) {
 			if (input_data[i] != 0.0) {
 			    nzsum[ROI] += (double) input_data[i];
 			    nzvoxels[ROI]++;
@@ -684,9 +695,9 @@ int main(int argc, char *argv[])
 	    if (!summary) {
 		for (i = 0; i < num_ROI; i++) {
 		    if (voxels[i]) {	/* possible if the numROI option is used - 5/00 */
-			fprintf(stdout, "\t%f", (float) (sum[i] / (double) voxels[i]));
+			fprintf(stdout, "\t%f", (sum[i] / (double) voxels[i]));
 			if (nzmean)
-			    fprintf(stdout, "\t%f", nzvoxels[i] ? (float) (nzsum[i] / (double) nzvoxels[i]) : 0.0);
+			    fprintf(stdout, "\t%f", nzvoxels[i] ? (nzsum[i] / (double) nzvoxels[i]) : 0.0);
 			if (nzcount)
 			    fprintf(stdout, "\t%ld", nzvoxels[i]);
 			if (sigma) {
@@ -696,7 +707,7 @@ int main(int argc, char *argv[])
 				sig = 1e30;	/* a really big number */
 			    else
 				sig = sqrt((voxels[i] / (voxels[i] - 1)) * (sumsq[i] - mean * mean));
-			    fprintf(stdout, "\t%f", (float) sig);
+			    fprintf(stdout, "\t%f", sig);
 			}
 			if (minmax) {
 			    fprintf(stdout, "\t%f", min[i] );
@@ -709,7 +720,10 @@ int main(int argc, char *argv[])
          if (perc || nzperc) {
 			    fprintf(stdout, "\t%f", percentile[i] );
 			}
-		    } else {	/* no voxels, so just leave blanks */
+         if (donzsum) {
+             fprintf(stdout, "\t%f", nzsum[i]);
+		   }
+          } else {	/* no voxels, so just leave blanks */
 			fprintf(stdout, "\t%s", zerofill);
 			if (nzmean)
 			    fprintf(stdout, "\t%s", zerofill);
@@ -727,6 +741,8 @@ int main(int argc, char *argv[])
 			}
          if (perc || nzperc)
 			    fprintf(stdout, "\t%s", zerofill);
+         if (donzsum)
+             fprintf(stdout, "\t%s", zerofill);
 		    }
 		}		/* loop over ROI for print */
 
@@ -757,7 +773,7 @@ int main(int argc, char *argv[])
 		fprintf(stdout, "%ld\t", nzmean ? nzvoxels[i] : voxels[i]);
 	    fprintf(stdout, "\nValue\t");
 	    for (i = 0; i < num_ROI; i++)
-		fprintf(stdout, "%f\t", (float) (sumallbriks[i] / (double) DSET_NVALS(input_dset)));
+		fprintf(stdout, "%f\t", (sumallbriks[i] / (double) DSET_NVALS(input_dset)));
 	    fprintf(stdout, "\n");
 	}
 	DSET_unload(input_dset);
@@ -770,7 +786,7 @@ int main(int argc, char *argv[])
 
     free(sum);
     free(voxels);
-    if (nzmean || nzcount) {
+    if (nzmean || nzcount || donzsum) {
 	free(nzsum);
 	free(nzvoxels);
     }

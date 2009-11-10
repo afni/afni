@@ -20,11 +20,13 @@ extern int SUMAg_N_DOv;
 This function creates an RGB colormap containing Ncols that vary linearily 
    from the first color in Fiducials to the last.
    
-   SM = SUMA_MakeColorMap (Fiducials, N , N_cols, SkipLast, Name)
+   SM = SUMA_MakeColorMap (Fiducials, N , isRGBA, N_cols, SkipLast, Name)
    
-   \param Fiducials (float **) N x 3 matrix containing RGB values (range 0..1) 
+   \param Fiducials (float **) N x 3, or 4 matrix containing RGB or RGBA 
+               values (range 0..1) 
           of fiducial colours which will be equally spaced on the color map
    \param N (int) number of fiducial colors in Fiducials
+   \param isRGBA if 1 then Fiducials are RGBA else RGB
    \param Ncols (int) total number of colors in the map.
          You are somewhat restricted in the total number of 
          colours you choose. You must choose a number that
@@ -44,20 +46,31 @@ This function creates an RGB colormap containing Ncols that vary linearily
    \sa SUMA_MakeColorMap_v2
    
 */
-SUMA_COLOR_MAP* SUMA_MakeColorMap (float **Fiducials, int Nfid, int Ncols, SUMA_Boolean SkipLast, char *Name)
+SUMA_COLOR_MAP* SUMA_MakeColorMap ( float **Fiducials, int Nfid, byte isRGBA, 
+                                    int Ncols, 
+                                    SUMA_Boolean SkipLast, char *Name)
 {
    static char FuncName[]={"SUMA_MakeColorMap"};
-   float **M, dFid[3];
+   float **M, dFid[4];
    int i, j, Ninter, Ngap, im, Ncolsgood, Npergap;
+   int Nrows;
    SUMA_COLOR_MAP * SM;
    
    SUMA_ENTRY;
    
+   if (isRGBA == 1) Nrows = 4;
+   else if (isRGBA == 0)  Nrows = 3;
+   else {
+      SUMA_S_Errv("Not too good there %d\n", (int)isRGBA);
+      SUMA_RETURN (NULL);
+   }
    /* check for bad input */
    for (i=0; i < Nfid; ++i) {
-      for (j=0; j < 3; ++j) {
+      for (j=0; j < Nrows; ++j) {
          if (Fiducials[i][j] < 0 || Fiducials[i][j] > 1) {
-            fprintf (SUMA_STDERR,"Error %s: Fiducial colors must be between 0 & 1 (found %f)\n", FuncName, Fiducials[i][j]);
+            fprintf (SUMA_STDERR,
+                     "Error %s: Fiducial colors must be between 0 & 1 "
+                     "(found %f)\n", FuncName, Fiducials[i][j]);
             SUMA_RETURN (NULL);
          }
       }
@@ -71,16 +84,19 @@ SUMA_COLOR_MAP* SUMA_MakeColorMap (float **Fiducials, int Nfid, int Ncols, SUMA_
    /* you must have an equal number of colours in each gap */ 
    if (Ninter % Ngap) {
       /* bad, sugeest a better number */
-      if (SkipLast) Ncolsgood = (int)(rint((float)Ninter/Ngap) * Ngap + Nfid + 1);
+      if (SkipLast) 
+         Ncolsgood = (int)(rint((float)Ninter/Ngap) * Ngap + Nfid + 1);
       else Ncolsgood = (int)(rint((float)Ninter/Ngap) * Ngap + Nfid);
       
-      fprintf (SUMA_STDERR,"Error %s: The choice of Ncols does not work with the number\nof fiducial colours.\nTry Ncols = %d\n", \
-      FuncName, Ncolsgood); 
+      fprintf (SUMA_STDERR,
+               "Error %s: The choice of Ncols does not work with the number\n"
+               "of fiducial colours.\nTry Ncols = %d\n", 
+               FuncName, Ncolsgood); 
       SUMA_RETURN (NULL);
    }
    
    /* allocate for M */
-   M = (float **)SUMA_allocate2D (Ncols, 3, sizeof(float));
+   M = (float **)SUMA_allocate2D (Ncols, 4, sizeof(float));
    if (M == NULL) {
       fprintf (SUMA_STDERR,"Error %s: Failed to allocate for M.\n", FuncName);
       SUMA_RETURN (NULL);
@@ -94,7 +110,11 @@ SUMA_COLOR_MAP* SUMA_MakeColorMap (float **Fiducials, int Nfid, int Ncols, SUMA_
       dFid[0] = (Fiducials[i+1][0] - Fiducials[i][0])/(Npergap+1);
       dFid[1] = (Fiducials[i+1][1] - Fiducials[i][1])/(Npergap+1);
       dFid[2] = (Fiducials[i+1][2] - Fiducials[i][2])/(Npergap+1);
-      /*fprintf (SUMA_STDERR,"%s:  dFid = %f %f %f\n", FuncName, dFid[0], dFid[1] , dFid[2]);*/
+      if (Nrows == 4) {
+      dFid[3] = (Fiducials[i+1][3] - Fiducials[i][3])/(Npergap+1);
+      } else dFid[3] = 1.0;
+      /*fprintf (SUMA_STDERR,"%s:  dFid = %f %f %f %f\n", 
+         FuncName, dFid[0], dFid[1] , dFid[2], dFid[3]);*/
       
       for (j=0; j < Npergap+1; ++ j) {
 
@@ -102,7 +122,11 @@ SUMA_COLOR_MAP* SUMA_MakeColorMap (float **Fiducials, int Nfid, int Ncols, SUMA_
             M[im][0] = Fiducials[i][0] + j*dFid[0];
             M[im][1] = Fiducials[i][1] + j*dFid[1];
             M[im][2] = Fiducials[i][2] + j*dFid[2];
-            /*fprintf (SUMA_STDERR,"%s: M[%d][:] = %f %f %f\n", FuncName, im, M[im][0], M[im][1], M[im][2]); */
+            if (Nrows == 4) {
+            M[im][3] = Fiducials[i][3] + j*dFid[3];
+            } else M[im][3] = 1.0;
+            /*fprintf (SUMA_STDERR,"%s: M[%d][:] = %f %f %f %f\n", 
+                        FuncName, im, M[im][0], M[im][1], M[im][2], M[im][3]); */
          }
                
          ++im;
@@ -115,6 +139,9 @@ SUMA_COLOR_MAP* SUMA_MakeColorMap (float **Fiducials, int Nfid, int Ncols, SUMA_
          M[im][0] = Fiducials[Ngap][0];
          M[im][1] = Fiducials[Ngap][1];
          M[im][2] = Fiducials[Ngap][2];
+         if (Nrows == 4) {
+         M[im][3] = Fiducials[Ngap][3];
+         } else M[im][3] = 1.0;
       }
    }
 
@@ -125,20 +152,24 @@ SUMA_COLOR_MAP* SUMA_MakeColorMap (float **Fiducials, int Nfid, int Ncols, SUMA_
       SUMA_RETURN (NULL);
    }
    memset(SM, 0, sizeof(SUMA_COLOR_MAP));
+   SM->chd = NULL;
+   SM->idvec = NULL;
    SM->top_frac = 0.0f;
    SM->Name = (char *)SUMA_calloc(strlen(Name)+1, sizeof(char));
    if (SM->Name == NULL) {
-      fprintf (SUMA_STDERR,"Error %s: Failed to allocate for SM->Name.\n", FuncName);
+      fprintf (SUMA_STDERR,"Error %s: Failed to allocate for SM->Name.\n", 
+               FuncName);
       SUMA_RETURN (NULL);
    }
    sprintf(SM->Name, "%s",Name); 
    SM->M = M;
-   SM->M0[0] = SM->M[0][0]; SM->M0[1] = SM->M[0][1]; SM->M0[2] = SM->M[0][2]; 
-   SM->N_Col = Ncols;
-
+   for (j=0; j< 4; ++j) SM->M0[j] = SM->M[0][j];  
+   SM->N_M[0] = Ncols;
+   SM->N_M[1] = 4;
    SM->frac = NULL; /* a linear map */
    SM->cname = NULL;
-   SM->Sgn = 0; /* setup for linear maps with no signing, mapping a la old ScaleToMap*/
+   SM->Sgn = 0; /* setup for linear maps with no signing, 
+                  mapping a la old ScaleToMap*/
    SM->SO = NULL; /* created when needed */
 
    SUMA_RETURN (SM);
@@ -148,12 +179,15 @@ SUMA_COLOR_MAP* SUMA_MakeColorMap (float **Fiducials, int Nfid, int Ncols, SUMA_
 This function creates an RGB colormap containing Ncols that vary linearily 
    from the first color in Fiducials to the last.
    
-   SM = SUMA_MakeColorMap_v2 (Fiducials, NFid, Nin , SkipLast, Name)
+   SM = SUMA_MakeColorMap_v2 (Fiducials, NFid, isRGBA, Nin , SkipLast, Name)
    
-   \param Fiducials (float **) NFid x 3 matrix containing RGB values (range 0..1) 
+   \param Fiducials (float **) NFid x 3 (or 4) matrix containing RGB 
+               (or RGBA) values (range 0..1) 
           of fiducial colours which will be equally spaced on the color map
    \param NFid (int) number of fiducial colors
-   \param Nin (int*) NFid x 1 vector indicating the number of interpolations to perform
+   \param isRGBA if 1 then Fiducials are RGBA else RGB
+   \param Nin (int*) NFid x 1 vector indicating the number of interpolations 
+          to perform
            between successive colors e.g.:
               Fiducials   Nin
             1 0 0         2
@@ -172,24 +206,37 @@ This function creates an RGB colormap containing Ncols that vary linearily
    \sa SUMA_MakeColorMap
 */
 
-SUMA_COLOR_MAP* SUMA_MakeColorMap_v2 (float **Fiducials, int Nfid, int *Nint, SUMA_Boolean SkipLast, char *Name)
+SUMA_COLOR_MAP* SUMA_MakeColorMap_v2 (float **Fiducials, int Nfid, byte isRGBA, 
+                                      int *Nint, SUMA_Boolean SkipLast, 
+                                      char *Name)
 {
    static char FuncName[]={"SUMA_MakeColorMap_v2"};
-   float **M, dFid[3];
-   int i, j, im, Ncols;
+   float **M, dFid[4]={1.0, 1.0, 1.0, 1.0};
+   int i, j, im, Ncols, Nrows;
    SUMA_COLOR_MAP * SM;
    
    SUMA_ENTRY;
-
+   
+   if (isRGBA == 1) Nrows = 4;
+   else if (isRGBA == 0)  Nrows = 3;
+   else {
+      SUMA_S_Errv("Not too good there %d\n", (int)isRGBA);
+      SUMA_RETURN (NULL);
+   }
+   
    /* check for bad input and calculate the total number of colors*/
    if (Nint[0]) {
-      fprintf (SUMA_STDERR,"Error %s: The index of the first color (%d) must be 0, indexing starts at 0 not 1.\n", FuncName, Nint[0]);
+      fprintf (SUMA_STDERR,
+         "Error %s: The index of the first color (%d) must be 0, \n"
+         "indexing starts at 0 not 1.\n", FuncName, Nint[0]);
       SUMA_RETURN (NULL);
    }
    for (i=0; i < Nfid; ++i) {
-      for (j=0; j < 3; ++j) {
+      for (j=0; j < Nrows; ++j) {
          if (Fiducials[i][j] < 0 || Fiducials[i][j] > 1) {
-            fprintf (SUMA_STDERR,"Error %s: Fiducial colors must be between 0 & 1 (found %f)\n", FuncName, Fiducials[i][j]);
+            fprintf (SUMA_STDERR,
+               "Error %s: Fiducial colors must be between 0 & 1 (found %f)\n", 
+                  FuncName, Fiducials[i][j]);
             SUMA_RETURN (NULL);
          }
       }
@@ -200,7 +247,7 @@ SUMA_COLOR_MAP* SUMA_MakeColorMap_v2 (float **Fiducials, int Nfid, int *Nint, SU
    if (SkipLast) Ncols = Ncols - 1;
       
    /* allocate for M */
-   M = (float **)SUMA_allocate2D (Ncols, 3, sizeof(float));
+   M = (float **)SUMA_allocate2D (Ncols, 4, sizeof(float));
    if (M == NULL) {
       fprintf (SUMA_STDERR,"Error %s: Failed to allocate for M.\n", FuncName);
       SUMA_RETURN (NULL);
@@ -212,15 +259,21 @@ SUMA_COLOR_MAP* SUMA_MakeColorMap_v2 (float **Fiducials, int Nfid, int *Nint, SU
          dFid[0] = (Fiducials[i+1][0] - Fiducials[i][0])/(Nint[i+1]-Nint[i]);
          dFid[1] = (Fiducials[i+1][1] - Fiducials[i][1])/(Nint[i+1]-Nint[i]);
          dFid[2] = (Fiducials[i+1][2] - Fiducials[i][2])/(Nint[i+1]-Nint[i]);
-         /*fprintf (SUMA_STDERR,"%s:  dFid = %f %f %f\n", FuncName, dFid[0], dFid[1] , dFid[2]);*/
+         if (Nrows==4) {
+         dFid[2] = (Fiducials[i+1][3] - Fiducials[i][3])/(Nint[i+1]-Nint[i]);
+         } else dFid[3] = 1.0;
+         /*fprintf (SUMA_STDERR,"%s:  dFid = %f %f %f %f\n", 
+                     FuncName, dFid[0], dFid[1] , dFid[2], dFid[3]);*/
 
          for (j=0; j < (Nint[i+1]- Nint[i]); ++ j) {
-
                M[im][0] = Fiducials[i][0] + j*dFid[0];
                M[im][1] = Fiducials[i][1] + j*dFid[1];
                M[im][2] = Fiducials[i][2] + j*dFid[2];
-               /*fprintf (SUMA_STDERR,"%s: M[%d][:] = %f %f %f\n", FuncName, im, M[im][0], M[im][1], M[im][2]); */
-
+               if (Nrows==4) {
+               M[im][3] = Fiducials[i][3] + j*dFid[3];
+               } else M[im][3] = 1.0;
+               /*fprintf (SUMA_STDERR,"%s: M[%d][:] = %f %f %f %f\n", 
+                       FuncName, im, M[im][0], M[im][1], M[im][2], M[im][3]); */
             ++im;
          }
    }
@@ -229,6 +282,9 @@ SUMA_COLOR_MAP* SUMA_MakeColorMap_v2 (float **Fiducials, int Nfid, int *Nint, SU
       M[im][0] = Fiducials[Nfid-1][0];
       M[im][1] = Fiducials[Nfid-1][1];
       M[im][2] = Fiducials[Nfid-1][2];
+      if (Nrows==4) {
+      M[im][3] = Fiducials[Nfid-1][3];
+      } else M[im][3] = 1.0;
    }
    
    /* package the resutls */
@@ -238,20 +294,25 @@ SUMA_COLOR_MAP* SUMA_MakeColorMap_v2 (float **Fiducials, int Nfid, int *Nint, SU
       SUMA_RETURN (NULL);
    }
    memset(SM, 0, sizeof(SUMA_COLOR_MAP));
+   SM->idvec = NULL;
+   SM->chd = NULL;
    SM->top_frac = 0.0f;
    SM->Name = (char *)SUMA_calloc(strlen(Name)+1, sizeof(char));
    if (SM->Name == NULL) {
-      fprintf (SUMA_STDERR,"Error %s: Failed to allocate for SM->Name.\n", FuncName);
+      fprintf (SUMA_STDERR,
+               "Error %s: Failed to allocate for SM->Name.\n", FuncName);
       SUMA_RETURN (NULL);
    }
    sprintf(SM->Name, "%s",Name); 
    SM->M = M;
-   SM->M0[0] = SM->M[0][0]; SM->M0[1] = SM->M[0][1]; SM->M0[2] = SM->M[0][2]; 
-   SM->N_Col = Ncols;
+   for (j=0; j< 4; ++j) SM->M0[j] = SM->M[0][j]; 
+   SM->N_M[0] = Ncols;
+   SM->N_M[1] = 4;
    
    SM->frac = NULL; /* a linear map */
    SM->cname = NULL;
-   SM->Sgn = 0; /* setup for linear maps with no signing, mapping a la old ScaleToMap*/
+   SM->Sgn = 0; /* setup for linear maps with no signing, 
+                     mapping a la old ScaleToMap*/
    SM->SO = NULL; /* created when needed */
    SUMA_RETURN (SM);
 }
@@ -265,14 +326,15 @@ void SUMA_Free_ColorMap (SUMA_COLOR_MAP* SM)
    SUMA_ENTRY;
 
    if (SM->Name) SUMA_free(SM->Name);
-   if (SM->M) SUMA_free2D((char **)SM->M, SM->N_Col);
+   if (SM->M) SUMA_free2D((char **)SM->M, SM->N_M[0]);
    if (SM->cname) {
-      for (i=0; i<SM->N_Col; ++i) { if (SM->cname[i]) SUMA_free(SM->cname[i]); }
+      for (i=0; i<SM->N_M[0]; ++i) { if (SM->cname[i]) SUMA_free(SM->cname[i]); }
       SUMA_free(SM->cname);
    }
    if (SM->frac) SUMA_free(SM->frac);
    if (SM->SO) SUMA_Free_Surface_Object(SM->SO); 
-   
+   if (SM->idvec) SUMA_free(SM->idvec);
+   if (SM->chd) SUMA_DestroyCmapHash(SM);
    if (SM) SUMA_free(SM);
 
    SUMA_RETURNe;
@@ -297,14 +359,17 @@ SUMA_COLOR_MAP * SUMA_pbardef_to_CM(char *cmd)
       SUMA_RETURN(NULL);
    }
    memset(CM, 0, sizeof(SUMA_COLOR_MAP));
+   CM->idvec = NULL;
+   CM->chd = NULL;
    CM->top_frac = 0.0f;
    CM->SO = NULL; 
    CM->cname = NULL;
-   CM->N_Col = NPANE_BIG; 
+   CM->N_M[0] = NPANE_BIG; 
+   CM->N_M[1] = 4;
    CM->Sgn = 0;
       
    CM->frac = NULL;
-   CM->M = (float**)SUMA_allocate2D (CM->N_Col, 3, sizeof(float));
+   CM->M = (float**)SUMA_allocate2D (CM->N_M[0], CM->N_M[1], sizeof(float));
    if (  CM->M == NULL  ) {
       SUMA_SL_Crit ("Failed to allocate for fields of CM.");
       SUMA_RETURN (NULL);
@@ -339,6 +404,7 @@ SUMA_COLOR_MAP * SUMA_pbardef_to_CM(char *cmd)
                CM->M[NPANE_BIG-(kkk+1)][0] = bm[iii][kkk].r / 255.0f ; 
                CM->M[NPANE_BIG-(kkk+1)][1] = bm[iii][kkk].g / 255.0f ; 
                CM->M[NPANE_BIG-(kkk+1)][2] = bm[iii][kkk].b / 255.0f ;
+               CM->M[NPANE_BIG-(kkk+1)][3] = 1.0;
             }
             found = 1;
          }
@@ -356,7 +422,8 @@ SUMA_COLOR_MAP * SUMA_pbardef_to_CM(char *cmd)
       if (found) {
          CM->M0[0] = CM->M[0][0]; 
          CM->M0[1] = CM->M[0][1]; 
-         CM->M0[2] = CM->M[0][2]; 
+         CM->M0[2] = CM->M[0][2];
+         CM->M0[3] = CM->M[0][3]; 
          SUMA_RETURN(CM);
       } else{
          SUMA_S_Err("Bad deal. No bigmap constructed.");
@@ -393,6 +460,7 @@ SUMA_COLOR_MAP * SUMA_pbardef_to_CM(char *cmd)
          CM->M[neq][0] = rgb[0];
          CM->M[neq][1] = rgb[1];
          CM->M[neq][2] = rgb[2];
+         CM->M[neq][3] = 1.0;
          neq++;
       }
       SUMA_LHv("Map %s, neq = %d\n", name, neq);
@@ -403,20 +471,21 @@ SUMA_COLOR_MAP * SUMA_pbardef_to_CM(char *cmd)
       if (neq <= 20) { /* an arbitrary number, really */
          SUMA_COLOR_MAP *CMn=NULL;   
          /* now do the interpolation to NPANE_BIG */
-         CMn = SUMA_MakeColorMap(CM->M, neq, NPANE_BIG+1, 0, CM->Name);
+         CMn = SUMA_MakeColorMap(CM->M, neq, 0, NPANE_BIG+1, 0, CM->Name);
          SUMA_Free_ColorMap(CM); CM=CMn; CMn=NULL;
       } else { /* leave it like it is */
          SUMA_LHv("Leaving map %s at %d colors\n", CM->Name, neq);
          /* realloc */
          N_Col = neq;
-         M = (float**)SUMA_allocate2D (N_Col, 3, sizeof(float));
+         M = (float**)SUMA_allocate2D (N_Col, 4, sizeof(float));
          for (ii=0; ii<N_Col; ++ii) { 
             M[ii][0] = CM->M[ii][0];
             M[ii][1] = CM->M[ii][1];
             M[ii][2] = CM->M[ii][2];
+            M[ii][3] = CM->M[ii][3];
          }
-         SUMA_free2D((char**)CM->M, CM->N_Col); CM->M = M; M = NULL;
-         CM->N_Col = N_Col; 
+         SUMA_free2D((char**)CM->M, CM->N_M[0]); CM->M = M; M = NULL;
+         CM->N_M[0] = N_Col; CM->N_M[1] = 4;
       }
    }
    SUMA_RETURN(CM);
@@ -475,10 +544,14 @@ SUMA_AFNI_COLORS *SUMA_Get_AFNI_Default_Color_Maps ()
    /* get the rgb, floats of each color defined DEFAULT_NCOLOVR */
    for (i=0; i<DEFAULT_NCOLOVR; ++i) {
       if (!SUMA_Interpret_AFNIColor (INIT_def_colovr[i], rgb)) {
-         fprintf(SUMA_STDERR,"Error %s: Failed to interpret color %s : %s\n", FuncName, INIT_def_labovr[i], INIT_def_colovr[i]);
+         fprintf(SUMA_STDERR,
+                  "Error %s: Failed to interpret color %s : %s\n", 
+                  FuncName, INIT_def_labovr[i], INIT_def_colovr[i]);
       } else {
-         if (LocalHead_Detail) fprintf(SUMA_STDERR,"%s: Adding color %s : %s [%.3f %.3f %.3f]\n", 
-                     FuncName, INIT_def_labovr[i], INIT_def_colovr[i], rgb[0], rgb[1], rgb[2]); 
+         if (LocalHead_Detail) 
+            fprintf(SUMA_STDERR,"%s: Adding color %s : %s [%.3f %.3f %.3f]\n", 
+                    FuncName, INIT_def_labovr[i], INIT_def_colovr[i], 
+                    rgb[0], rgb[1], rgb[2]); 
          Cv = SUMA_Add_Color (INIT_def_labovr[i], 
                            rgb[0], rgb[1], rgb[2], 1.0, 
                            Cv, &N_cols);
@@ -488,7 +561,8 @@ SUMA_AFNI_COLORS *SUMA_Get_AFNI_Default_Color_Maps ()
       /* causes crash on Fedora Core 7 and core 6, not worth it */
       SUMA_Interpret_AFNIColor (NULL, rgb);
    #endif
-   /* Now create the afni color maps with more than 10 panes (excerpts from afni.c)*/
+   /* Now create the afni color maps with more than 10 
+      panes (excerpts from afni.c)*/
    
    /* start with positive panes */
    for( ii=NPANE_INIT+1 ; ii <= NPANE_MAX ; ii++ ){
@@ -531,14 +605,18 @@ SUMA_AFNI_COLORS *SUMA_Get_AFNI_Default_Color_Maps ()
       }
       memset(CMp, 0, sizeof(SUMA_COLOR_MAP));
       memset(CMn, 0, sizeof(SUMA_COLOR_MAP));
+      CMp->idvec = NULL;
+      CMn->idvec = NULL;
+      CMp->chd = NULL;
+      CMn->chd = NULL;
       CMp->top_frac = 0.0f;
       CMn->top_frac = 0.0f;
       CMp->SO = NULL; 
       CMn->SO = NULL; 
       CMp->cname = NULL;
       CMn->cname = NULL;
-      CMp->N_Col = i; 
-      CMn->N_Col = i;
+      CMp->N_M[0] = i; CMp->N_M[1] = 4;
+      CMn->N_M[0] = i; CMn->N_M[1] = 4;
       CMp->Sgn = 1;
       CMn->Sgn = -1;
       
@@ -546,8 +624,8 @@ SUMA_AFNI_COLORS *SUMA_Get_AFNI_Default_Color_Maps ()
       CMn->Name = (char *)SUMA_calloc(25, sizeof(char));
       CMp->frac = (float *)SUMA_calloc(i, sizeof(float));
       CMn->frac = (float *)SUMA_calloc(i, sizeof(float));
-      CMp->M = (float**)SUMA_allocate2D (CMp->N_Col, 3, sizeof(float));
-      CMn->M = (float**)SUMA_allocate2D (CMn->N_Col, 3, sizeof(float));
+      CMp->M = (float**)SUMA_allocate2D (CMp->N_M[0],CMp->N_M[1],sizeof(float));
+      CMn->M = (float**)SUMA_allocate2D (CMn->N_M[0],CMn->N_M[1],sizeof(float));
       if (  CMp->frac == NULL || CMn->frac == NULL 
          || CMp->M == NULL || CMn->M == NULL 
          || CMp->Name == NULL || CMn->Name == NULL ) {
@@ -558,7 +636,9 @@ SUMA_AFNI_COLORS *SUMA_Get_AFNI_Default_Color_Maps ()
       sprintf(CMp->Name,   "afni_p%d",i); 
       sprintf(CMn->Name, "afni_n%d",i);
       
-      if (LocalHead_Detail) fprintf (SUMA_STDERR,"%s: Building colormap POS #%d (%s)\n", FuncName, i, CMp->Name);
+      if (LocalHead_Detail) 
+         fprintf (SUMA_STDERR,"%s: Building colormap POS #%d (%s)\n", 
+                  FuncName, i, CMp->Name);
       
       for ( j = 0; j < i; ++j) {
          if (!INIT_ovin_pos[i][j]) {
@@ -567,34 +647,44 @@ SUMA_AFNI_COLORS *SUMA_Get_AFNI_Default_Color_Maps ()
                               INIT_ovin_pos[i][j], 
                               INIT_pval_pos[i][j]);   
             }
-            CMp->M[i - j - 1][0] = CMp->M[i - j - 1][1] = CMp->M[i - j - 1][2] = -1.0; 
+            CMp->M[i - j - 1][0] = CMp->M[i - j - 1][1] = 
+            CMp->M[i - j - 1][2] = -1.0; 
+            CMp->M[i - j - 1][3] = 0.0;
          } else {
             if (LocalHead_Detail) {
                fprintf (SUMA_STDERR,"\t[i%d] %s\t%f\n", 
                               INIT_ovin_pos[i][j], 
-                              INIT_def_labovr[INIT_ovin_pos[i][j]-1], INIT_pval_pos[i][j]);
+                              INIT_def_labovr[INIT_ovin_pos[i][j]-1], 
+                              INIT_pval_pos[i][j]);
             }
             /* find out which color this is */
-            icol = SUMA_Find_Color (INIT_def_labovr[INIT_ovin_pos[i][j]-1], Cv, N_cols);
+            icol = SUMA_Find_Color (INIT_def_labovr[INIT_ovin_pos[i][j]-1], 
+                                    Cv, N_cols);
             if (icol < 0) {
-               fprintf (SUMA_STDERR,"Error%s: Failed to find color %s\nUsing no-color in its place\n", 
-                                       FuncName, INIT_def_labovr[INIT_ovin_pos[i][j]-1]);
-               CMp->M[i - j - 1][0] = CMp->M[i - j - 1][1] = CMp->M[i - j - 1][2] = -1.0; 
+               fprintf (SUMA_STDERR,
+                        "Error%s: Failed to find color %s\n"
+                        "Using no-color in its place\n", 
+                         FuncName, INIT_def_labovr[INIT_ovin_pos[i][j]-1]);
+               CMp->M[i - j - 1][0] = CMp->M[i - j - 1][1] = 
+               CMp->M[i - j - 1][2] = -1.0; 
+               CMp->M[i - j - 1][3] = 0.0;
             } else {
                CMp->M[i - j - 1][0] = Cv[icol].r;
                CMp->M[i - j - 1][1] = Cv[icol].g;
                CMp->M[i - j - 1][2] = Cv[icol].b;
+               CMp->M[i - j - 1][3] = 1.0;
             }
          }
          CMp->frac[i - j - 1] = INIT_pval_pos[i][j];
       }
-      if (CMp->frac[CMp->N_Col-1] != 1.0f) {
+      if (CMp->frac[CMp->N_M[0]-1] != 1.0f) {
          SUMA_LH("top_frac not 1 for positive map");
-         CMp->top_frac = CMp->frac[CMp->N_Col-1];
+         CMp->top_frac = CMp->frac[CMp->N_M[0]-1];
       }
       CMp->M0[0] = CMp->M[0][0]; 
       CMp->M0[1] = CMp->M[0][1]; 
-      CMp->M0[2] = CMp->M[0][2]; 
+      CMp->M0[2] = CMp->M[0][2];
+      CMp->M0[3] = CMp->M[0][3]; 
 
       /* add the positive map to the list */
       CMv = SUMA_Add_ColorMap (CMp, CMv, &N_maps);
@@ -603,7 +693,9 @@ SUMA_AFNI_COLORS *SUMA_Get_AFNI_Default_Color_Maps ()
          SUMA_RETURN(NULL);
       }
       
-      if (LocalHead_Detail) fprintf (SUMA_STDERR,"%s: Building colormap SGN #%d (%s)\n", FuncName, i, CMn->Name);
+      if (LocalHead_Detail) 
+         fprintf (SUMA_STDERR,"%s: Building colormap SGN #%d (%s)\n", 
+                  FuncName, i, CMn->Name);
       
       for ( j = 0; j < i; ++j) {
          if (!INIT_ovin_sgn[i][j]) {
@@ -612,33 +704,43 @@ SUMA_AFNI_COLORS *SUMA_Get_AFNI_Default_Color_Maps ()
                               INIT_ovin_sgn[i][j], 
                               INIT_pval_sgn[i][j]);
             }
-            CMn->M[i - j - 1][0] = CMn->M[i - j - 1][1] = CMn->M[i - j - 1][2] = -1.0;
+            CMn->M[i - j - 1][0] = CMn->M[i - j - 1][1] = 
+            CMn->M[i - j - 1][2] = -1.0;
+            CMn->M[i - j - 1][3] = 0.0;
          } else {
             if (LocalHead_Detail) {
                fprintf (SUMA_STDERR,"\t[i%d] %s\t%f\n", 
                               INIT_ovin_sgn[i][j], 
-                              INIT_def_labovr[INIT_ovin_sgn[i][j]-1], INIT_pval_sgn[i][j]);
+                              INIT_def_labovr[INIT_ovin_sgn[i][j]-1], 
+                              INIT_pval_sgn[i][j]);
             }
-            icol = SUMA_Find_Color (INIT_def_labovr[INIT_ovin_sgn[i][j]-1], Cv, N_cols);
+            icol = SUMA_Find_Color (INIT_def_labovr[INIT_ovin_sgn[i][j]-1], 
+                                    Cv, N_cols);
             if (icol < 0) {
-               fprintf (SUMA_STDERR,"Error%s: Failed to find color %s\nUsing no-color in its place", 
-                                    FuncName, INIT_def_labovr[INIT_ovin_sgn[i][j]-1]);
-               CMn->M[i - j - 1][0] = CMn->M[i - j - 1][1] = CMn->M[i - j - 1][2] = -1.0;
+               fprintf (SUMA_STDERR,
+                        "Error%s: Failed to find color %s\n"
+                        "Using no-color in its place", 
+                        FuncName, INIT_def_labovr[INIT_ovin_sgn[i][j]-1]);
+               CMn->M[i - j - 1][0] = CMn->M[i - j - 1][1] = 
+               CMn->M[i - j - 1][2] = -1.0;
+               CMn->M[i - j - 1][3] = 0.0;
             } else {
                CMn->M[i - j - 1][0] = Cv[icol].r;
                CMn->M[i - j - 1][1] = Cv[icol].g;
                CMn->M[i - j - 1][2] = Cv[icol].b;
+               CMn->M[i - j - 1][3] = 1.0;
             }
          }
          CMn->frac[i - j - 1] = INIT_pval_sgn[i][j];
       }
-      if (CMn->frac[CMn->N_Col-1] != 1.0f) {
+      if (CMn->frac[CMn->N_M[0]-1] != 1.0f) {
          SUMA_LH("top_frac not 1 for negative map");
-         CMn->top_frac = CMn->frac[CMp->N_Col-1];
+         CMn->top_frac = CMn->frac[CMp->N_M[0]-1];
       }
       CMn->M0[0] = CMn->M[0][0]; 
       CMn->M0[1] = CMn->M[0][1]; 
       CMn->M0[2] = CMn->M[0][2]; 
+      CMn->M0[3] = CMn->M[0][3]; 
       /* add the negative map to the list */
       CMv = SUMA_Add_ColorMap (CMn, CMv, &N_maps);
       if (!CMv) {
@@ -693,9 +795,12 @@ SUMA_AFNI_COLORS *SUMA_Get_AFNI_Default_Color_Maps ()
    if (!homeenv) sumarc = SUMA_copy_string(".afnirc");
    else sumarc = SUMA_append_string (homeenv, "/.afnirc");
    if (stat(sumarc, &stbuf) != -1) {
-      if (LocalHead) fprintf (SUMA_STDERR,"%s: Loading %s ...\n", FuncName, sumarc);
+      if (LocalHead) 
+         fprintf (SUMA_STDERR,"%s: Loading %s ...\n", FuncName, sumarc);
       if (SUMA_AFNI_Extract_Colors ( sumarc, SAC ) < 0) {
-         fprintf(SUMA_STDERR,"Error %s: Failed scanning .afnirc for colors and colormaps.\nProceeding ...\n", FuncName);
+         fprintf(SUMA_STDERR,
+                  "Error %s: Failed scanning .afnirc for colors and colormaps.\n"
+                  "Proceeding ...\n", FuncName);
       } 
    } else {
       if (LocalHead) fprintf (SUMA_STDERR,"%s: No rc files found.\n", FuncName);
@@ -889,7 +994,8 @@ SUMA_COLOR_MAP ** SUMA_Add_ColorMap (SUMA_COLOR_MAP *CM, SUMA_COLOR_MAP **OldCMv
    /* a new map altogether */
    SUMA_LH("Adding new color map");
    *N_maps += 1;
-   NewCMv = (SUMA_COLOR_MAP **) SUMA_realloc(OldCMv, *N_maps * sizeof(SUMA_COLOR_MAP *));
+   NewCMv = (SUMA_COLOR_MAP **) SUMA_realloc( OldCMv, *N_maps * 
+                                              sizeof(SUMA_COLOR_MAP *));
    NewCMv[*N_maps - 1] = CM;
    
    SUMA_RETURN(NewCMv);
@@ -945,11 +1051,13 @@ char *SUMA_ColorVec_Info (SUMA_RGB_NAME *Cv, int N_cols)
       for (i=0; i < N_cols; ++i) {
          if (Cv[i].r == -1) {
             sprintf (stmp, "%d/%d: color(%d) No Color(%s): [%f %f %f %f]\n", 
-                           i+1, N_cols, i, Cv[i].Name, Cv[i].r, Cv[i].g, Cv[i].b, Cv[i].a);
+                           i+1, N_cols, i, 
+                           Cv[i].Name, Cv[i].r, Cv[i].g, Cv[i].b, Cv[i].a);
             SS = SUMA_StringAppend (SS, stmp);
          } else {
             sprintf (stmp, "%d/%d: color(%d) %s: [%f %f %f %f]\n", 
-                           i+1, N_cols, i, Cv[i].Name, Cv[i].r, Cv[i].g, Cv[i].b, Cv[i].a);
+                           i+1, N_cols, i, 
+                           Cv[i].Name, Cv[i].r, Cv[i].g, Cv[i].b, Cv[i].a);
             SS = SUMA_StringAppend (SS, stmp);
          }
       }
@@ -986,13 +1094,16 @@ int SUMA_a_good_col(char *name, int i, float *acol)
       SUMA_RETURN(0);
    }
 
-   if (!name || !(SUMAg_CF && SUMAg_CF->scm && SUMAg_CF->scm->CMv && SUMAg_CF->scm->N_maps)) {
+   if (!name || !(SUMAg_CF && SUMAg_CF->scm && SUMAg_CF->scm->CMv && 
+                  SUMAg_CF->scm->N_maps)) {
       dorand = 1;   
    } else {
       /* have colormaps, get me something decent */
-      icmap = SUMA_Find_ColorMap(name, SUMAg_CF->scm->CMv, SUMAg_CF->scm->N_maps,-2);
+      icmap = SUMA_Find_ColorMap(name, SUMAg_CF->scm->CMv, 
+                                 SUMAg_CF->scm->N_maps,-2);
       if (icmap < 0) {
-         SUMA_S_Warnv("No colormap named %s was found, returning random colors.\n", name);
+         SUMA_S_Warnv("No colormap named %s was found, "
+                      "returning random colors.\n", name);
          dorand = 1;
       }
    }
@@ -1007,11 +1118,12 @@ int SUMA_a_good_col(char *name, int i, float *acol)
       SUMA_RETURN(1);
    } else {
       CM = SUMAg_CF->scm->CMv[icmap];
-      ic = i % CM->N_Col;
+      ic = i % CM->N_M[0];
       acol[0] = CM->M[ic][0];
       acol[1] = CM->M[ic][1];
       acol[2] = CM->M[ic][2];
-      acol[3] = 1.0;
+      if (CM->N_M[1]==4) acol[3] = CM->M[ic][3];
+      else acol[3] = 1.0;
    }
 
    SUMA_RETURN(1);
@@ -1050,39 +1162,60 @@ char *SUMA_ColorMapVec_Info (SUMA_COLOR_MAP **CMv, int N_maps, int detail)
          } else {
             switch (CMv[i]->Sgn) {
                case 0:
-                  sprintf (stmp, "%d/%d: cmap(%d) %s(.), %d cols.", i+1, N_maps, i, CMv[i]->Name,  CMv[i]->N_Col);
+                  sprintf (stmp, "%d/%d: cmap(%d) %s(.), %d (%d)cols.", 
+                           i+1, N_maps, i, CMv[i]->Name,  
+                           CMv[i]->N_M[0], CMv[i]->N_M[1]);
                   break;
                case 1:
-                  sprintf (stmp, "%d/%d: cmap(%d) %s(+), %d cols.", i+1, N_maps, i, CMv[i]->Name,  CMv[i]->N_Col);
+                  sprintf (stmp, "%d/%d: cmap(%d) %s(+), %d (%d)cols.", 
+                           i+1, N_maps, i, CMv[i]->Name,  
+                           CMv[i]->N_M[0], CMv[i]->N_M[1]);
                   break;
                case -1:
-                  sprintf (stmp, "%d/%d: cmap(%d) %s(-), %d cols.", i+1, N_maps, i, CMv[i]->Name,  CMv[i]->N_Col);
+                  sprintf (stmp, "%d/%d: cmap(%d) %s(-), %d (%d)cols.", 
+                           i+1, N_maps, i, CMv[i]->Name,  
+                           CMv[i]->N_M[0], CMv[i]->N_M[1]);
                   break;
                default:   
-                  sprintf (stmp, "%d/%d: cmap(%d) %s(?), %d cols.\n\tSgn field of colormap is not acceptable (%d)\n", 
-                     i+1, N_maps, i, CMv[i]->Name,  CMv[i]->N_Col, CMv[i]->Sgn);
+                  sprintf (stmp, 
+                           "%d/%d: cmap(%d) %s(?), %d (%d)cols.\n"
+                           "\tSgn field of colormap is not acceptable (%d)\n", 
+                     i+1, N_maps, i, CMv[i]->Name,  
+                     CMv[i]->N_M[0], CMv[i]->N_M[1], CMv[i]->Sgn);
                   break;
             }
             SS = SUMA_StringAppend (SS, stmp);
             if (CMv[i]->frac) {
-               SS = SUMA_StringAppend (SS, "   Possibly non-linear\n");
+               SS = SUMA_StringAppend (SS, "   Possibly non-linear.");
             } else {
-               SS = SUMA_StringAppend (SS, "   Linear\n");
+               SS = SUMA_StringAppend (SS, "   Linear.");
             }
+            if (CMv[i]->idvec) {
+               SS = SUMA_StringAppend (SS, "   Has idvec.");
+            } else {
+               SS = SUMA_StringAppend (SS, "   NULL idvec.");
+            }
+            if (CMv[i]->chd) {
+               SS = SUMA_StringAppend (SS, "   Has chd.");
+            } else {
+               SS = SUMA_StringAppend (SS, "   NULL chd.");
+            }
+            
+            SS = SUMA_StringAppend (SS, "\n");
             switch (detail) {
                case 0:
                   jmax = 0;
                   break;
                case 1:
-                  if (CMv[i]->N_Col < 5) jmax = CMv[i]->N_Col;
+                  if (CMv[i]->N_M[0] < 5) jmax = CMv[i]->N_M[0];
                   else jmax = 5;
                   break;
                case 2:
-                  jmax = CMv[i]->N_Col;
+                  jmax = CMv[i]->N_M[0];
                   break;
                default:
                   SUMA_SL_Err("Bad detail value\nUsing detail = 2");
-                  jmax = CMv[i]->N_Col;
+                  jmax = CMv[i]->N_M[0];
                   break;
             }
             
@@ -1090,33 +1223,85 @@ char *SUMA_ColorMapVec_Info (SUMA_COLOR_MAP **CMv, int N_maps, int detail)
                for (j=jmax-1; j >= 0; --j) {
                   if (CMv[i]->frac) {
                      if (j == jmax -1) {
-                        sprintf (stmp, "rank (i)[R    \tG    \tB    \t\tf]\n");
+                        sprintf (stmp, 
+                           "rank (i):\tid\t[R    \tG    \tB    \t\tf]\tName\n");
                         SS = SUMA_StringAppend (SS,stmp);    
                      }
-                     sprintf (stmp, "%03d:\t[% .3f\t% .3f\t% .3f\t\t% .3f]\n", 
-                                    j, CMv[i]->M[j][0], CMv[i]->M[j][1],  CMv[i]->M[j][2], CMv[i]->frac[j]);
+                     if (CMv[i]->N_M[1] == 4) 
+                        sprintf (stmp, 
+                    "%03d:\t%6d\t [% .3f\t% .3f\t% .3f\t% .3f\t\t% .3f]\t%s\n",
+                                 j, CMv[i]->idvec ? CMv[i]->idvec[j] : -1,
+                                    CMv[i]->M[j][0], CMv[i]->M[j][1], 
+                                    CMv[i]->M[j][2], CMv[i]->M[j][3], 
+                                    CMv[i]->frac[j], 
+                                 CMv[i]->cname ? CMv[i]->cname[j] : "anonimo");
+                     else
+                        sprintf (stmp, 
+                             "%03d:\t%6d\t [% .3f\t% .3f\t% .3f\t\t% .3f]\t%s\n",
+                                 j, CMv[i]->idvec ? CMv[i]->idvec[j] : -1,
+                                    CMv[i]->M[j][0], CMv[i]->M[j][1], 
+                                    CMv[i]->M[j][2], CMv[i]->frac[j],
+                                 CMv[i]->cname ? CMv[i]->cname[j] : "anonimo");
                   } else {
                      if (j == jmax - 1) {
-                        sprintf (stmp, "rank (i):[R    \tG    \tB    ]\n");
+                        sprintf (stmp, "rank (i):\tid\t[R    \tG    \tB    ]\n");
                         SS = SUMA_StringAppend (SS,stmp);    
                      }
-                     sprintf (stmp, "%03d:\t[% .3f\t% .3f\t% .3f]\n", 
-                                    j, CMv[i]->M[j][0], CMv[i]->M[j][1],  CMv[i]->M[j][2]);
+                     if (CMv[i]->N_M[1] == 4) 
+                        sprintf (stmp, 
+                           "%03d:\t%6d\t [% .3f\t% .3f\t% .3f\t% .3f]\t%s\n", 
+                                 j, CMv[i]->idvec ? CMv[i]->idvec[j] : -1,
+                                    CMv[i]->M[j][0], CMv[i]->M[j][1], 
+                                    CMv[i]->M[j][2], CMv[i]->M[j][3],
+                                 CMv[i]->cname ? CMv[i]->cname[j] : "anonimo");
+                     else
+                        sprintf (stmp, 
+                           "%03d:\t%6d\t [% .3f\t% .3f\t% .3f]\t%s\n", 
+                                 j, CMv[i]->idvec ? CMv[i]->idvec[j] : -1,
+                                    CMv[i]->M[j][0], CMv[i]->M[j][1], 
+                                    CMv[i]->M[j][2],
+                                 CMv[i]->cname ? CMv[i]->cname[j] : "anonimo");
                   }
                   SS = SUMA_StringAppend (SS,stmp); 
                }
-               if (jmax < CMv[i]->N_Col - 1) { 
-                  if (CMv[i]->frac) SS = SUMA_StringAppend (SS,"..:\t [.....\t....\t....\t\t....]\n");
+               if (jmax < CMv[i]->N_M[0] - 1) { 
+                  if (CMv[i]->frac) 
+                     SS = SUMA_StringAppend (SS,
+                                       "..:\t [.....\t....\t....\t\t....]\n");
                   else SS = SUMA_StringAppend (SS,"..:\t [.....\t....\t....]\n");
                }
-               if (jmax < CMv[i]->N_Col) { 
-                  j = CMv[i]->N_Col - 1;
+               if (jmax < CMv[i]->N_M[0]) { 
+                  j = CMv[i]->N_M[0] - 1;
                   if (CMv[i]->frac) {
-                     sprintf (stmp, "%03d:\t [% .3f\t% .3f\t% .3f\t\t% .3f]\n", 
-                                    j, CMv[i]->M[j][0], CMv[i]->M[j][1],  CMv[i]->M[j][2], CMv[i]->frac[j]);
+                     if (CMv[i]->N_M[1] == 4) 
+                        sprintf (stmp, 
+                     "%03d:\t%6d\t [% .3f\t% .3f\t% .3f\t\t% .3f\t\t% .3f]%s\n",
+                              j, CMv[i]->idvec ? CMv[i]->idvec[j] : -1,
+                              CMv[i]->M[j][0], CMv[i]->M[j][1],
+                              CMv[i]->M[j][2], CMv[i]->M[j][3], CMv[i]->frac[j],
+                              CMv[i]->cname ? CMv[i]->cname[j] : "anonimo");
+                     else
+                        sprintf (stmp, 
+                           "%03d:\t%6d\t [% .3f\t% .3f\t% .3f\t\t% .3f]\t%s\n", 
+                              j, CMv[i]->idvec ? CMv[i]->idvec[j] : -1,
+                              CMv[i]->M[j][0], CMv[i]->M[j][1],
+                              CMv[i]->M[j][2], CMv[i]->frac[j], 
+                              CMv[i]->cname ? CMv[i]->cname[j] : "anonimo");
                   } else {
-                     sprintf (stmp, "%03d:\t [% .3f\t% .3f\t% .3f]\n", 
-                                    j, CMv[i]->M[j][0], CMv[i]->M[j][1],  CMv[i]->M[j][2]);
+                     if (CMv[i]->N_M[1] == 4) 
+                        sprintf (stmp, 
+                           "%03d:\t%6d\t [% .3f\t% .3f\t% .3f\t% .3f]\t%s\n", 
+                                 j, CMv[i]->idvec ? CMv[i]->idvec[j] : -1,
+                              CMv[i]->M[j][0], CMv[i]->M[j][1],  
+                              CMv[i]->M[j][2], CMv[i]->M[j][3],
+                              CMv[i]->cname ? CMv[i]->cname[j] : "anonimo");
+                     else
+                        sprintf (stmp, 
+                           "%03d:\t%6d\t [% .3f\t% .3f\t% .3f]\t%s\n", 
+                                 j, CMv[i]->idvec ? CMv[i]->idvec[j] : -1,
+                              CMv[i]->M[j][0], CMv[i]->M[j][1],  
+                              CMv[i]->M[j][2], 
+                              CMv[i]->cname ? CMv[i]->cname[j] : "anonimo");
                   }
                   SS = SUMA_StringAppend (SS,stmp); 
                }
@@ -1168,7 +1353,8 @@ void SUMA_Show_ColorVec (SUMA_RGB_NAME *CMv, int N_maps, FILE *Out)
    \brief Shows the contents of the colormaps vector
    \sa SUMA_ColorMapVec_Info
 */
-void SUMA_Show_ColorMapVec (SUMA_COLOR_MAP **CMv, int N_maps, FILE *Out, int detail) 
+void SUMA_Show_ColorMapVec (SUMA_COLOR_MAP **CMv, int N_maps, 
+                            FILE *Out, int detail) 
 {
    static char FuncName[]={"SUMA_Show_ColorMapVec"};
    char *s;
@@ -1185,7 +1371,8 @@ void SUMA_Show_ColorMapVec (SUMA_COLOR_MAP **CMv, int N_maps, FILE *Out, int det
       fprintf (Out, "%s", s);
       SUMA_free(s);
    }else {
-      fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_ColorMapVec_Info.\n", FuncName);
+      fprintf (SUMA_STDERR, 
+               "Error %s: Failed in SUMA_ColorMapVec_Info.\n", FuncName);
    }   
    
 
@@ -1348,10 +1535,13 @@ SUMA_COLOR_MAP *SUMA_Read_Color_Map_1D (char *Name)
    
    /* allocate for SM */
    SM = (SUMA_COLOR_MAP*) SUMA_calloc(1,sizeof(SUMA_COLOR_MAP));
+   SM->idvec = NULL;
+   SM->chd = NULL;
    SM->top_frac = 0.0f;
    SM->SO = NULL; 
    SM->cname = NULL;
-   SM->N_Col = im->nx;
+   SM->N_M[0] = im->nx;
+   SM->N_M[1] = 4;
    SM->Name = (char *)SUMA_calloc((strlen(Name)+1),sizeof(char));
    sprintf(SM->Name, "%s", Name);
    if (im->ny == 4) {
@@ -1360,7 +1550,7 @@ SUMA_COLOR_MAP *SUMA_Read_Color_Map_1D (char *Name)
       SM->frac = NULL;
    }
    
-   SM->M = (float**)SUMA_allocate2D (SM->N_Col, 3, sizeof(float));
+   SM->M = (float**)SUMA_allocate2D (SM->N_M[0], 4, sizeof(float));
    
    
    far = MRI_FLOAT_PTR(im);
@@ -1369,34 +1559,43 @@ SUMA_COLOR_MAP *SUMA_Read_Color_Map_1D (char *Name)
    if (im->ny == 4) {
       SM->Sgn = 1;
       for (i=0; i < im->nx; ++i) {
-         SM->M[SM->N_Col - i - 1][0] = far[i]; ColSum += far[i];
-         SM->M[SM->N_Col - i - 1][1] = far[i+im->nx]; ColSum += far[i+im->nx];
-         SM->M[SM->N_Col - i - 1][2] = far[i+2*im->nx]; ColSum += far[i+2*im->nx];
-         SM->frac[SM->N_Col - i - 1] = far[i+3*im->nx];
-         if (SM->frac[SM->N_Col - i - 1] < 0.0) SM->Sgn = -1;
+         SM->M[SM->N_M[0] - i - 1][0] = far[i]; 
+            ColSum += far[i];
+         SM->M[SM->N_M[0] - i - 1][1] = far[i+im->nx]; 
+            ColSum += far[i+im->nx];
+         SM->M[SM->N_M[0] - i - 1][2] = far[i+2*im->nx]; 
+            ColSum += far[i+2*im->nx];
+         SM->M[SM->N_M[0] - i - 1][3] = 1.0;
+         SM->frac[SM->N_M[0] - i - 1] = far[i+3*im->nx];
+         if (SM->frac[SM->N_M[0] - i - 1] < 0.0) SM->Sgn = -1;
       }
    } else {
       SM->Sgn = 0;
       for (i=0; i < im->nx; ++i) {
-         SM->M[SM->N_Col - i - 1][0] = far[i]; ColSum += far[i];
-         SM->M[SM->N_Col - i - 1][1] = far[i+im->nx]; ColSum += far[i+im->nx];
-         SM->M[SM->N_Col - i - 1][2] = far[i+2*im->nx]; ColSum += far[i+2*im->nx];
+         SM->M[SM->N_M[0] - i - 1][0] = far[i]; 
+            ColSum += far[i];
+         SM->M[SM->N_M[0] - i - 1][1] = far[i+im->nx]; 
+            ColSum += far[i+im->nx];
+         SM->M[SM->N_M[0] - i - 1][2] = far[i+2*im->nx]; 
+            ColSum += far[i+2*im->nx];
+         SM->M[SM->N_M[0] - i - 1][3] = 1.0;
       }
    }
    
-   ColSum = ColSum / (3.0 *  SM->N_Col);
+   ColSum = ColSum / (3.0 *  SM->N_M[0]);
    if (ColSum > 1) {
       /* looks like colormap values are between 0 and 255 */
-      for (i=0; i < SM->N_Col; ++i) {
+      for (i=0; i < SM->N_M[0]; ++i) {
          SM->M[i][0] /= 255.0; SM->M[i][1] /= 255.0;  SM->M[i][2] /= 255.0;
       }
    }
    
    /* check on craziness in frac */
-   if (SM->frac && SM->N_Col > 1) {
+   if (SM->frac && SM->N_M[0] > 1) {
       for (i=0; i < im->nx-1; ++i) {
          if (SM->frac[i] > SM->frac[i+1]) {
-            SUMA_S_Err("Fractions must be specified in monotonic\n descending order from the top to the bottom of the column");
+            SUMA_S_Err( "Fractions must be specified in monotonic\n"
+                   " descending order from the top to the bottom of the column");
             SUMA_Free_ColorMap (SM); mri_free(im);
             SUMA_RETURN(NULL);
          }
@@ -1408,15 +1607,17 @@ SUMA_COLOR_MAP *SUMA_Read_Color_Map_1D (char *Name)
    if (LocalHead) {
       fprintf (SUMA_STDERR,"%s: Colormap read:\n", FuncName);
       if (SM->frac) {
-         for (i=0; i < SM->N_Col; ++i) {
-            fprintf (SUMA_STDOUT,"%f\t%f\t%f\t%f\n", SM->M[i][0], SM->M[i][1], SM->M[i][2], SM->frac[i]);
+         for (i=0; i < SM->N_M[0]; ++i) {
+            fprintf (SUMA_STDOUT,"%f\t%f\t%f\t%f\t%f\n", 
+               SM->M[i][0], SM->M[i][1], SM->M[i][2], SM->M[i][3], SM->frac[i]);
          }
-      } else SUMA_disp_mat (SM->M, SM->N_Col, 3, 1);
+      } else SUMA_disp_mat (SM->M, SM->N_M[0], SM->N_M[1], 1);
    }
    
    SM->M0[0] = SM->M[0][0]; 
    SM->M0[1] = SM->M[0][1]; 
    SM->M0[2] = SM->M[0][2]; 
+   SM->M0[3] = SM->M[0][3]; 
 
    SUMA_RETURN (SM);
 }
@@ -1451,6 +1652,10 @@ SUMA_COLOR_MAP *SUMA_Linearize_Color_Map (SUMA_COLOR_MAP* SM, int N_lin)
       SUMA_RETURN(LSM);
    }
    
+   if (SM->chd || SM->idvec) {
+      SUMA_S_Err("No hash, and no idvecs please.");
+      SUMA_RETURN(LSM);
+   }
    if (N_lin < 0) N_lin = 2048;     /* 2048 set default linear map length */
    
    if (!N_lin) {
@@ -1470,58 +1675,86 @@ SUMA_COLOR_MAP *SUMA_Linearize_Color_Map (SUMA_COLOR_MAP* SM, int N_lin)
    
    LSM->Name = (char *)SUMA_calloc(strlen(SM->Name)+10, sizeof(char));
    if (LSM->Name == NULL) {
-      fprintf (SUMA_STDERR,"Error %s: Failed to allocate for LSM->Name.\n", FuncName);
+      fprintf (SUMA_STDERR,
+               "Error %s: Failed to allocate for LSM->Name.\n", FuncName);
       SUMA_free(LSM);
       SUMA_RETURN (NULL);
    }
    sprintf(LSM->Name, "%s_lin",SM->Name); 
-   LSM->N_Col = N_lin;
+   LSM->N_M[0] = N_lin; LSM->N_M[1] = SM->N_M[1];
    LSM->frac = NULL;
    LSM->cname = NULL;
    LSM->Sgn = SM->Sgn;
                                        
-   SUMA_LHv("Allocating for %d cols\n", LSM->N_Col);
-   LSM->M = (float **)SUMA_allocate2D (LSM->N_Col, 3, sizeof(float));
+   SUMA_LHv("Allocating for %d (%d)cols\n", LSM->N_M[0], LSM->N_M[1]);
+   LSM->M = (float **)SUMA_allocate2D (LSM->N_M[0], LSM->N_M[1], sizeof(float));
    if (LSM->M == NULL) {
-      fprintf (SUMA_STDERR,"Error %s: Failed to allocate for LSM->M.\n", FuncName);
+      fprintf (SUMA_STDERR,
+               "Error %s: Failed to allocate for LSM->M.\n", FuncName);
       SUMA_free(LSM->Name);
       SUMA_free(LSM);
       SUMA_RETURN (NULL);
    }
    
-   if (SM->frac[SM->N_Col-1] != 1.0f) {
-      LSM->top_frac = SM->frac[SM->N_Col-1];
+   if (SM->frac[SM->N_M[0]-1] != 1.0f) {
+      LSM->top_frac = SM->frac[SM->N_M[0]-1];
    }
    
    ilin = 0;
-   for (i=0; i < SM->N_Col; ++i) {
-      SUMA_LHv("SM->frac[%d]=%f, tf = %f , [%f %f %f]", i, SM->frac[i], SM->frac[SM->N_Col-1], SM->M[i][0], SM->M[i][1], SM->M[i][2]);
-      if (LSM->Sgn >= 0) {
-         ilin_stp = (int)(ceil((double)(SM->frac[i]/SM->frac[SM->N_Col-1]) * (double)LSM->N_Col)) - 1;
+   for (i=0; i < SM->N_M[0]; ++i) {
+      if (SM->N_M[1] == 4) {   
+         SUMA_LHv("SM->frac[%d]=%f, tf = %f , [%f %f %f %f]", 
+                  i, SM->frac[i], SM->frac[SM->N_M[0]-1], SM->M[i][0], 
+                  SM->M[i][1], SM->M[i][2], SM->M[i][3]);
       } else {
-         ilin_stp = (int)(ceil( (1.0 + (double)(SM->frac[i]/SM->frac[SM->N_Col-1])) * (double)LSM->N_Col/2 ) ) - 1;
+         SUMA_LHv("SM->frac[%d]=%f, tf = %f , [%f %f %f]", 
+                  i, SM->frac[i], SM->frac[SM->N_M[0]-1], SM->M[i][0], 
+                  SM->M[i][1], SM->M[i][2]);
       }
-      while (ilin < ilin_stp  && ilin < LSM->N_Col) {
+      if (LSM->Sgn >= 0) {
+         ilin_stp = (int)( ceil((double)(SM->frac[i]/SM->frac[SM->N_M[0]-1]) * 
+                                (double)LSM->N_M[0]) ) - 1;
+      } else {
+         ilin_stp = (int)(ceil((1.0 + 
+                                (double)(SM->frac[i]/SM->frac[SM->N_M[0]-1])) * 
+                                (double)LSM->N_M[0]/2) ) - 1;
+      }
+      while (ilin < ilin_stp  && ilin < LSM->N_M[0]) {
          LSM->M[ilin][0] = SM->M[i][0];
          LSM->M[ilin][1] = SM->M[i][1];
          LSM->M[ilin][2] = SM->M[i][2];
+         if (LSM->N_M[1] == 4) {
+            LSM->M[ilin][3] = SM->M[i][3];
+         } 
          ++ilin; 
       }
    }
    
    /* copy last value */
-   LSM->M[LSM->N_Col-1][0] = SM->M[SM->N_Col-1][0];
-   LSM->M[LSM->N_Col-1][1] = SM->M[SM->N_Col-1][1];
-   LSM->M[LSM->N_Col-1][2] = SM->M[SM->N_Col-1][2];
-
+   LSM->M[LSM->N_M[0]-1][0] = SM->M[SM->N_M[0]-1][0];
+   LSM->M[LSM->N_M[0]-1][1] = SM->M[SM->N_M[0]-1][1];
+   LSM->M[LSM->N_M[0]-1][2] = SM->M[SM->N_M[0]-1][2];
+   if (LSM->N_M[1] == 4) {
+   LSM->M[LSM->N_M[0]-1][3] = SM->M[SM->N_M[0]-1][3];
+   }
    LSM->M0[0] = LSM->M[0][0]; 
    LSM->M0[1] = LSM->M[0][1]; 
    LSM->M0[2] = LSM->M[0][2]; 
-   
+   if (LSM->N_M[1] == 4) 
+   LSM->M0[3] = LSM->M[0][3]; 
+   else
+   LSM->M0[3] = 1.0;
    
    if (LocalHead) {
-      for (i=0; i < LSM->N_Col; ++i) {
-         fprintf (SUMA_STDOUT,"%d:\t%f\t%f\t%f\n", i, LSM->M[i][0], LSM->M[i][1], LSM->M[i][2]); 
+      for (i=0; i < LSM->N_M[0]; ++i) {
+         if (LSM->N_M[1] == 4) 
+            fprintf (SUMA_STDOUT,
+                     "%d:\t%f\t%f\t%f\t%f\n", 
+                     i, LSM->M[i][0], LSM->M[i][1], LSM->M[i][2], LSM->M[i][3]); 
+         else
+            fprintf (SUMA_STDOUT,
+                     "%d:\t%f\t%f\t%f\n", 
+                     i, LSM->M[i][0], LSM->M[i][1], LSM->M[i][2]); 
       }
       fprintf (SUMA_STDOUT,"%s: ilin_stp = %d\n", FuncName, ilin_stp); 
    }
@@ -1542,7 +1775,10 @@ SUMA_COLOR_MAP *SUMA_CmapOfPlane (SUMA_OVERLAYS *Sover )
    SUMA_ENTRY;
    
    if (!Sover) { SUMA_SL_Err("NULL Sover"); SUMA_RETURN(ColMap); }
-   if (!Sover->cmapname) { SUMA_SL_Err("NULL Colormap name"); SUMA_RETURN(ColMap); }
+   if (!Sover->cmapname) { 
+      SUMA_SL_Err("NULL Colormap name"); 
+      SUMA_RETURN(ColMap); 
+   }
    
    if (strcmp(Sover->cmapname, "explicit") == 0) {
       SUMA_RETURN(NULL);
@@ -1555,7 +1791,8 @@ SUMA_COLOR_MAP *SUMA_CmapOfPlane (SUMA_OVERLAYS *Sover )
          SUMA_RETURN(ColMap); 
       }
    }   
-   icmap = SUMA_Find_ColorMap ( Sover->cmapname, SUMAg_CF->scm->CMv, SUMAg_CF->scm->N_maps, -2 );
+   icmap = SUMA_Find_ColorMap ( Sover->cmapname, SUMAg_CF->scm->CMv, 
+                                SUMAg_CF->scm->N_maps, -2 );
    if (icmap < 0) { SUMA_SL_Err("Failed to find ColMap"); SUMA_RETURN(ColMap); }
    ColMap = SUMAg_CF->scm->CMv[icmap];
    
@@ -1610,9 +1847,12 @@ SUMA_Boolean SUMA_RemoveSO_CoordBias(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *ovr)
             for (i=0; i < ovr->N_NodeDef; ++i) {
                i3 = 3*ovr->NodeDef[i];
                if (i3 < x_i3) {
-                  SO->NodeList[i3] -= ovr->OptScl->BiasVect[i] * SO->NodeNormList[i3]; ++i3; 
-                  SO->NodeList[i3] -= ovr->OptScl->BiasVect[i] * SO->NodeNormList[i3]; ++i3; 
-                  SO->NodeList[i3] -= ovr->OptScl->BiasVect[i] * SO->NodeNormList[i3];  
+                  SO->NodeList[i3] -=  ovr->OptScl->BiasVect[i] * 
+                                       SO->NodeNormList[i3]; ++i3; 
+                  SO->NodeList[i3] -=  ovr->OptScl->BiasVect[i] * 
+                                       SO->NodeNormList[i3]; ++i3; 
+                  SO->NodeList[i3] -=  ovr->OptScl->BiasVect[i] * 
+                                       SO->NodeNormList[i3];  
                }
             }
             break;
@@ -1635,7 +1875,8 @@ SUMA_Boolean SUMA_RemoveSO_CoordBias(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *ovr)
    Add same bias to BiasDim dimension
    sets OptScl->DoBias to BiasDim
 */
-SUMA_Boolean SUMA_TransferCoordBias(SUMA_OVERLAYS *ovr, SUMA_WIDGET_INDEX_COORDBIAS BiasDim)
+SUMA_Boolean SUMA_TransferCoordBias(SUMA_OVERLAYS *ovr, 
+                                    SUMA_WIDGET_INDEX_COORDBIAS BiasDim)
 {
    static char FuncName[]={"SUMA_TransferCoordBias"};
    SUMA_SurfaceObject *SO=NULL;
@@ -1664,7 +1905,8 @@ SUMA_Boolean SUMA_TransferCoordBias(SUMA_OVERLAYS *ovr, SUMA_WIDGET_INDEX_COORDB
 /*!
    Single surface version of SUMA_TransferCoordBias DO NOT CALL THIS FUNCTION OUTSIDE OF SUMA_TransferCoordBias
 */
-SUMA_Boolean SUMA_TransferSO_CoordBias(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *ovr, SUMA_WIDGET_INDEX_COORDBIAS BiasDim)
+SUMA_Boolean SUMA_TransferSO_CoordBias(SUMA_SurfaceObject *SO, 
+                     SUMA_OVERLAYS *ovr, SUMA_WIDGET_INDEX_COORDBIAS BiasDim)
 {
    static char FuncName[]={"SUMA_TransferSO_CoordBias"};
    SUMA_Boolean LocalHead = NOPE;
@@ -1704,9 +1946,12 @@ SUMA_Boolean SUMA_TransferSO_CoordBias(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *ov
             /* Remove Normal bias */
             for (i=0; i < ovr->N_NodeDef; ++i) {
                i3 = 3*ovr->NodeDef[i];
-               SO->NodeList[i3] -= ovr->OptScl->BiasVect[i] * SO->NodeNormList[i3]; ++i3; 
-               SO->NodeList[i3] -= ovr->OptScl->BiasVect[i] * SO->NodeNormList[i3]; ++i3; 
-               SO->NodeList[i3] -= ovr->OptScl->BiasVect[i] * SO->NodeNormList[i3];  
+               SO->NodeList[i3] -=  ovr->OptScl->BiasVect[i] * 
+                                    SO->NodeNormList[i3]; ++i3; 
+               SO->NodeList[i3] -=  ovr->OptScl->BiasVect[i] * 
+                                    SO->NodeNormList[i3]; ++i3; 
+               SO->NodeList[i3] -=  ovr->OptScl->BiasVect[i] * 
+                                    SO->NodeNormList[i3];  
             }
             break;
          default:
@@ -1743,9 +1988,12 @@ SUMA_Boolean SUMA_TransferSO_CoordBias(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *ov
             /* Add Normal bias */
             for (i=0; i < ovr->N_NodeDef; ++i) {
                i3 = 3*ovr->NodeDef[i];
-               SO->NodeList[i3] += ovr->OptScl->BiasVect[i] * SO->NodeNormList[i3]; ++i3; 
-               SO->NodeList[i3] += ovr->OptScl->BiasVect[i] * SO->NodeNormList[i3]; ++i3; 
-               SO->NodeList[i3] += ovr->OptScl->BiasVect[i] * SO->NodeNormList[i3];  
+               SO->NodeList[i3] +=  ovr->OptScl->BiasVect[i] * 
+                                    SO->NodeNormList[i3]; ++i3; 
+               SO->NodeList[i3] +=  ovr->OptScl->BiasVect[i] * 
+                                    SO->NodeNormList[i3]; ++i3; 
+               SO->NodeList[i3] +=  ovr->OptScl->BiasVect[i] *    
+                                    SO->NodeNormList[i3];  
             }
             break;
          default:
@@ -1997,7 +2245,8 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
       }
    }
    SUMA_LH("Finding ColorMap");   
-   icmap = SUMA_Find_ColorMap ( Sover->cmapname, SUMAg_CF->scm->CMv, SUMAg_CF->scm->N_maps, -2 );
+   icmap = SUMA_Find_ColorMap (  Sover->cmapname, 
+                                 SUMAg_CF->scm->CMv, SUMAg_CF->scm->N_maps, -2 );
    if (icmap < 0) { SUMA_SL_Err("Failed to find ColMap"); SUMA_RETURN(NOPE); }
    ColMap = SUMAg_CF->scm->CMv[icmap];
    
@@ -2066,7 +2315,7 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
       /* a la AFNI */
       SUMA_LH("Scaling a la AFNI");
       if (!SUMA_ScaleToMap_alaAFNI (V, SDSET_VECFILLED(Sover->dset_link),
-                                    SUMA_LARG_ABS(Opt->IntRange[0], Opt->IntRange[1]), 
+                              SUMA_LARG_ABS(Opt->IntRange[0], Opt->IntRange[1]), 
                                     ColMap, Opt,
                                     SV) ) {
          SUMA_SL_Err("Failed in SUMA_ScaleToMap_alaAFNI");
@@ -2102,7 +2351,10 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
             }
          }
       } else {
-         if (!SUMA_GetDsetColRange(Sover->dset_link, Opt->bind, Range, loc)) { SUMA_SL_Err("Failed to get ColRange!"); SUMA_RETURN(NOPE); }
+         if (!SUMA_GetDsetColRange(Sover->dset_link, Opt->bind, Range, loc)) { 
+            SUMA_SL_Err("Failed to get ColRange!"); 
+            SUMA_RETURN(NOPE); 
+         }
          minB = Range[0]; maxB = Range[1];
       }
       /* Now scale B and modulate colors in SV*/
@@ -2121,8 +2373,13 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
    }
    
    /* remove any bias before NodeDef is modified */
-   HoldBiasOpt = Opt->DoBias; /* This field gets wiped (by SUMA_RemoveCoordBias) from Opt (which is inside Sover) */
-   if (Opt->DoBias == SW_CoordBias_X || Opt->DoBias == SW_CoordBias_Y || Opt->DoBias == SW_CoordBias_Z || Opt->DoBias == SW_CoordBias_N ) {
+   HoldBiasOpt = Opt->DoBias; 
+      /* This field gets wiped (by SUMA_RemoveCoordBias) from Opt 
+         (which is inside Sover) */
+   if (  Opt->DoBias == SW_CoordBias_X || 
+         Opt->DoBias == SW_CoordBias_Y || 
+         Opt->DoBias == SW_CoordBias_Z || 
+         Opt->DoBias == SW_CoordBias_N ) {
       SUMA_RemoveCoordBias(Sover); 
    }
    
@@ -2138,7 +2395,9 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
             Sover->ColVec[cnt3   ] = SV->cV[i3   ];
             Sover->ColVec[cnt3 +1] = SV->cV[i3 +1];
             Sover->ColVec[cnt3 +2] = SV->cV[i3 +2]; 
-            if (SV->BiasCoordVec) SV->BiasCoordVec[cnt] = SV->BiasCoordVec[i]; /* a compression of BiasCoordVec vector to match NodeDef */ 
+            if (SV->BiasCoordVec) 
+               SV->BiasCoordVec[cnt] = SV->BiasCoordVec[i]; 
+                  /* a compression of BiasCoordVec vector to match NodeDef */ 
             ++cnt;
          }
       }
@@ -2151,7 +2410,9 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
             Sover->ColVec[cnt3   ] = SV->cV[i3   ];
             Sover->ColVec[cnt3 +1] = SV->cV[i3 +1];
             Sover->ColVec[cnt3 +2] = SV->cV[i3 +2];
-            if (SV->BiasCoordVec) SV->BiasCoordVec[cnt] = SV->BiasCoordVec[i]; /* a compression of BiasCoordVec vector to match NodeDef */ 
+            if (SV->BiasCoordVec) 
+               SV->BiasCoordVec[cnt] = SV->BiasCoordVec[i]; 
+                  /* a compression of BiasCoordVec vector to match NodeDef */ 
             ++cnt;
          }
       }
@@ -2165,22 +2426,26 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
       case SW_CoordBias_X:
          SUMA_LH("Bias X");
          SUMA_SetCoordBias(Sover, SV->BiasCoordVec, SW_CoordBias_X);
-         SV->BiasCoordVec = NULL; /* set SV->BiasCoordVec to NULL to keep it from getting freed below */
+         SV->BiasCoordVec = NULL; 
+            /* set SV->BiasCoordVec to NULL to keep it from being freed below */
          break;
       case SW_CoordBias_Y:
          SUMA_LH("Bias Y");
          SUMA_SetCoordBias(Sover, SV->BiasCoordVec, SW_CoordBias_Y);
-         SV->BiasCoordVec = NULL; /* set SV->BiasCoordVec to NULL to keep it from getting freed below */
+         SV->BiasCoordVec = NULL; 
+            /* set SV->BiasCoordVec to NULL to keep it from being freed below */
          break;
       case SW_CoordBias_Z:
          SUMA_LH("Bias Z");
          SUMA_SetCoordBias(Sover, SV->BiasCoordVec, SW_CoordBias_Z);
-         SV->BiasCoordVec = NULL; /* set SV->BiasCoordVec to NULL to keep it from getting freed below */
+         SV->BiasCoordVec = NULL; 
+            /* set SV->BiasCoordVec to NULL to keep it from being freed below */
          break;
       case SW_CoordBias_N:
          SUMA_LH("Bias N");
          SUMA_SetCoordBias(Sover, SV->BiasCoordVec, SW_CoordBias_N);
-         SV->BiasCoordVec = NULL; /* set SV->BiasCoordVec to NULL to keep it from getting freed below */
+         SV->BiasCoordVec = NULL; 
+            /* set SV->BiasCoordVec to NULL to keep it from being freed below */
          break;
       default:
          SUMA_LH("Bias None");
@@ -2247,12 +2512,14 @@ SUMA_Boolean SUMA_ScaleToMap_alaAFNI ( float *V, int N_V,
       if (Opt->MaskZero) {
          /* mask zeros and values in range */
          for (i=0; i < N_V; ++i) {
-            if (!V[i] || (V[i] >= Opt->MaskRange[0] && V[i] <= Opt->MaskRange[1]) ) SV->isMasked[i] = YUP;
+            if (!V[i] || ( V[i] >= Opt->MaskRange[0] && 
+                           V[i] <= Opt->MaskRange[1]) ) SV->isMasked[i] = YUP;
          } 
       } else {
          /* don't mask zeros, just range */
          for (i=0; i < N_V; ++i) {
-            if (V[i] >= Opt->MaskRange[0] && V[i] <= Opt->MaskRange[1]) SV->isMasked[i] = YUP;
+            if (V[i] >= Opt->MaskRange[0] && V[i] <= Opt->MaskRange[1]) 
+                              SV->isMasked[i] = YUP;
          } 
       }
    } else {
@@ -2304,12 +2571,21 @@ SUMA_Boolean SUMA_ScaleToMap_alaAFNI ( float *V, int N_V,
             SUMA_LH("Linearized map written to ./lincmap.1D");
             /* use simple format to allow for easy read in matlab */
             /* SUMA_Show_ColorMapVec (&ColMap, 1, lincmap, 2); */
-            for (ii=ColMap->N_Col-1; ii >=0; --ii) {
-               fprintf (lincmap, "%d\t%f\t%f\t%f\n", ii, ColMap->M[ii][0], ColMap->M[ii][1],ColMap->M[ii][2]);
+            for (ii=ColMap->N_M[0]-1; ii >=0; --ii) {
+               if (ColMap->N_M[1] == 4) 
+                  fprintf (lincmap, 
+                     "%d\t%f\t%f\t%f\t%f\n", 
+                     ii, ColMap->M[ii][0], ColMap->M[ii][1],
+                         ColMap->M[ii][2], ColMap->M[ii][3]);
+               else
+                  fprintf (lincmap, 
+                     "%d\t%f\t%f\t%f\n", 
+                     ii, ColMap->M[ii][0], ColMap->M[ii][1],ColMap->M[ii][2]);
             }
             fclose (lincmap); lincmap = NULL;
          }else {
-            SUMA_SL_Err("Failed to write linearized colormap to file.\nProceeding...");
+            SUMA_SL_Err("Failed to write linearized colormap to file.\n"
+                        "Proceeding...");
          }
       }
       
@@ -2321,53 +2597,76 @@ SUMA_Boolean SUMA_ScaleToMap_alaAFNI ( float *V, int N_V,
    /* if brightness factor is given, apply it to color map and mask color */
    Mbuf = NULL;
    if (Opt->BrightFact <= 0 || Opt->BrightFact > 1) {
-      fprintf (SUMA_STDERR,"Error %s: Opt->BrightFact must be between ]0 1]\n", FuncName);
+      fprintf (SUMA_STDERR,
+               "Error %s: Opt->BrightFact must be between ]0 1]\n", FuncName);
       SUMA_RETURN (NOPE);
    }else {
       if (Opt->BrightFact != 1) { 
          Mbuf = ColMap->M; /* save pointer */
-         ColMap->M = (float **)SUMA_allocate2D(ColMap->N_Col, 3, sizeof(float));
-         for (i=0; i < ColMap->N_Col; ++i) {
+         ColMap->M = (float **)SUMA_allocate2D( ColMap->N_M[0], 
+                                                ColMap->N_M[1], sizeof(float));
+         for (i=0; i < ColMap->N_M[0]; ++i) {
             ColMap->M[i][0] = Mbuf[i][0] * Opt->BrightFact;
             ColMap->M[i][1] = Mbuf[i][1] * Opt->BrightFact;
             ColMap->M[i][2] = Mbuf[i][2] * Opt->BrightFact;
+            if (ColMap->N_M[1] == 4) {
+            ColMap->M[i][3] = Mbuf[i][3] * Opt->BrightFact;
+            }
          }
          /* now for the mask color */
          Opt->MaskColor[0] *= Opt->BrightFact;
          Opt->MaskColor[1] *= Opt->BrightFact;
          Opt->MaskColor[2] *= Opt->BrightFact;
+         if (ColMap->N_M[1] == 4) {
+         Opt->MaskColor[3] *= Opt->BrightFact;
+         }
       }
    }
    
-   if (Opt->interpmode != SUMA_DIRECT && Opt->interpmode != SUMA_NO_INTERP && Opt->interpmode != SUMA_INTERP) {
-      fprintf (SUMA_STDERR,"Error %s: Opt->interpmode is incorrectly specifed (%d).\n", FuncName, Opt->interpmode);
+   if (  Opt->interpmode != SUMA_DIRECT && 
+         Opt->interpmode != SUMA_NO_INTERP && Opt->interpmode != SUMA_INTERP) {
+      fprintf (SUMA_STDERR,
+               "Error %s: Opt->interpmode is incorrectly specifed (%d).\n", 
+               FuncName, Opt->interpmode);
       SUMA_RETURN(NOPE);
    }
    
    if (Opt->interpmode == SUMA_INTERP || Opt->interpmode == SUMA_NO_INTERP) {
       /* Now go through values and interpolate onto index of colormap */
-      MinCol = 0.0; MaxCol = (float)ColMap->N_Col; 
+      MinCol = 0.0; MaxCol = (float)ColMap->N_M[0]; 
       Vrange = Vmax - Vmin; 
-      if (LocalHead) fprintf(SUMA_STDERR,"%s: [Vrange, Vmax, Vmin] = [%f, %f, %f]\nInterpMode=%d\n", 
-                                          FuncName, Vrange, Vmax, Vmin, Opt->interpmode);
+      if (LocalHead) 
+         fprintf(SUMA_STDERR,
+                 "%s: [Vrange, Vmax, Vmin] = [%f, %f, %f]\nInterpMode=%d\n", 
+                 FuncName, Vrange, Vmax, Vmin, Opt->interpmode);
       if (Vrange < 0) {
-         fprintf (SUMA_STDERR,"Error %s: Vmax (%f)< Vmin(%f).\n", FuncName, Vmax, Vmin);
+         fprintf (SUMA_STDERR,
+                  "Error %s: Vmax (%f)< Vmin(%f).\n", FuncName, Vmax, Vmin);
          SUMA_RETURN (NOPE);
       }
 
       if (Vrange > 0) {
-         mxColindex = ColMap->N_Col -1; 
+         mxColindex = ColMap->N_M[0] -1; 
          if (Opt->interpmode == SUMA_NO_INTERP) {
                SUMA_LH("No_Interp mode");
                for (i=0; i < N_V; ++i) {
                   i3 = 3*i;
                   if (!SV->isMasked[i]) {
-                     Vscl = (V[i] - Vmin) / Vrange * ColMap->N_Col; /* used mxColindex instead of N_Col (wrong!) prior to Oct 22, 03 */
-                     if (Vscl < 0) Vscl = 0; if (Vscl > ColMap->N_Col) Vscl = ColMap->N_Col; /* This happens when your Min--Max are within the boundaries of the data's (V[i]) min to max */
+                     Vscl = (V[i] - Vmin) / Vrange * ColMap->N_M[0]; 
+                        /* used mxColindex instead of N_M[0] (wrong!) 
+                           prior to Oct 22, 03 */
+                     if (Vscl < 0) Vscl = 0; 
+                     if (Vscl > ColMap->N_M[0]) Vscl = ColMap->N_M[0]; 
+                        /* This happens when your Min--Max are within the 
+                           boundaries of the data's (V[i]) min to max */
                      i0 = (int)(Vscl); 
-                     if (i0 > mxColindex) i0 = mxColindex;  /* No need, Vscl's clipping takes care of that: if (i0 < 0) i0 = 0; */
+                     if (i0 > mxColindex) i0 = mxColindex;  
+                        /* No need, Vscl's clipping takes care of that: 
+                           if (i0 < 0) i0 = 0; */
                      if (LocalHead) {
-                        fprintf(SUMA_STDERR,"%s: %f-->%f: Colmap index is %d\n", FuncName, V[i], Vscl, i0);
+                        fprintf(SUMA_STDERR,
+                                "%s: %f-->%f: Colmap index is %d\n", 
+                                FuncName, V[i], Vscl, i0);
                      }
                      if (ColMap->M[i0][0] >= 0) { /* good color */
                         SV->cV[i3  ] = ColMap->M[i0][0];
@@ -2375,13 +2674,19 @@ SUMA_Boolean SUMA_ScaleToMap_alaAFNI ( float *V, int N_V,
                         SV->cV[i3+2] = ColMap->M[i0][2];
                      } else { /* mask color */
                         SV->isMasked[i] = YUP;
-                        SV->cV[i3  ] = Opt->MaskColor[0]; SV->cV[i3+1] = Opt->MaskColor[1]; SV->cV[i3+2] = Opt->MaskColor[2];
+                        SV->cV[i3  ] = Opt->MaskColor[0]; 
+                        SV->cV[i3+1] = Opt->MaskColor[1]; 
+                        SV->cV[i3+2] = Opt->MaskColor[2];
                      }
                   } else {
-                     SV->cV[i3  ] = Opt->MaskColor[0]; SV->cV[i3+1] = Opt->MaskColor[1]; SV->cV[i3+2] = Opt->MaskColor[2]; 
+                     SV->cV[i3  ] = Opt->MaskColor[0]; 
+                     SV->cV[i3+1] = Opt->MaskColor[1]; 
+                     SV->cV[i3+2] = Opt->MaskColor[2]; 
                   }
                   if (LocalHead) {
-                        fprintf(SUMA_STDERR,"%s: %f-->[%f %f %f]\n", FuncName, V[i], SV->cV[i3  ], SV->cV[i3+1], SV->cV[i3+2]);
+                        fprintf(SUMA_STDERR,
+                               "%s: %f-->[%f %f %f]\n", FuncName, 
+                               V[i], SV->cV[i3  ], SV->cV[i3+1], SV->cV[i3+2]);
                   }
                }
             } else { 
@@ -2389,22 +2694,35 @@ SUMA_Boolean SUMA_ScaleToMap_alaAFNI ( float *V, int N_V,
                for (i=0; i < N_V; ++i) {
                   i3 = 3*i;
                   if (!SV->isMasked[i]) {
-                     Vscl = (V[i] - Vmin) / Vrange * ColMap->N_Col; /* used mxColindex instead of N_Col (wrong!) prior to Oct 22, 03 */ 
-                     if (Vscl < 0) Vscl = 0; if (Vscl > ColMap->N_Col) Vscl = ColMap->N_Col; /* This happens when your Min--Max are within the boundaries of the data's (V[i]) min to max */
-                     /*now linearly interpolate between the two closest colors in the color map */
+                     Vscl = (V[i] - Vmin) / Vrange * ColMap->N_M[0]; 
+                           /* used mxColindex instead of N_M[0] (wrong!) 
+                              prior to Oct 22, 03 */ 
+                     if (Vscl < 0) Vscl = 0; 
+                     if (Vscl > ColMap->N_M[0]) Vscl = ColMap->N_M[0]; 
+                           /* This happens when your Min--Max are within the 
+                              boundaries of the data's (V[i]) min to max */
+                     /*now linearly interpolate between the two closest colors 
+                     in the color map */
                      i0 = (int)(Vscl); 
-                     if (i0 > mxColindex) i0 = mxColindex;  /* No need, Vscl's clipping takes care of that: if (i0 < 0) i0 = 0; */
+                     if (i0 > mxColindex) i0 = mxColindex;  
+                           /* No need, Vscl's clipping takes care of that: 
+                              if (i0 < 0) i0 = 0; */
                      i1=i0+1;
 
                      if (ColMap->M[i0][0] >= 0) { /* good color */
-                        if (i1 < ColMap->N_Col) {
+                        if (i1 < ColMap->N_M[0]) {
                            r = Vscl - i0; 
-                           /*fprintf (SUMA_STDERR,"i0 = %d, i1 = %d, Vscl = %f, r= %f Col[i0] = %f %f %f\n", \
-                              i0, i1, Vscl, r, ColMap->M[i0][0], ColMap->M[i0][1], ColMap->M[i0][2]);*/
+                           /*fprintf (SUMA_STDERR,
+                     "i0 = %d, i1 = %d, Vscl = %f, r= %f Col[i0] = %f %f %f\n", 
+                                       i0, i1, Vscl, r, ColMap->M[i0][0], 
+                                       ColMap->M[i0][1], ColMap->M[i0][2]);*/
 
-                           SV->cV[i3  ] = ColMap->M[i0][0] + r * (ColMap->M[i1][0] - ColMap->M[i0][0]);
-                           SV->cV[i3+1] = ColMap->M[i0][1] + r * (ColMap->M[i1][1] - ColMap->M[i0][1]);
-                           SV->cV[i3+2] = ColMap->M[i0][2] + r * (ColMap->M[i1][2] - ColMap->M[i0][2]);
+                           SV->cV[i3  ] = ColMap->M[i0][0] + r * 
+                                          (ColMap->M[i1][0] - ColMap->M[i0][0]);
+                           SV->cV[i3+1] = ColMap->M[i0][1] + r * 
+                                          (ColMap->M[i1][1] - ColMap->M[i0][1]);
+                           SV->cV[i3+2] = ColMap->M[i0][2] + r * 
+                                          (ColMap->M[i1][2] - ColMap->M[i0][2]);
                         } else {
                            SV->cV[i3  ] = ColMap->M[i0][0];
                            SV->cV[i3+1] = ColMap->M[i0][1];
@@ -2412,16 +2730,23 @@ SUMA_Boolean SUMA_ScaleToMap_alaAFNI ( float *V, int N_V,
                         }
                      } else { /* mask color */
                         SV->isMasked[i] = YUP;
-                        SV->cV[i3  ] = Opt->MaskColor[0]; SV->cV[i3+1] = Opt->MaskColor[1]; SV->cV[i3+2] = Opt->MaskColor[2];
+                        SV->cV[i3  ] = Opt->MaskColor[0]; 
+                        SV->cV[i3+1] = Opt->MaskColor[1]; 
+                        SV->cV[i3+2] = Opt->MaskColor[2];
                      }
                   } else {
-                     SV->cV[i3  ] = Opt->MaskColor[0]; SV->cV[i3+1] = Opt->MaskColor[1]; SV->cV[i3+2] = Opt->MaskColor[2]; 
+                     SV->cV[i3  ] = Opt->MaskColor[0]; 
+                     SV->cV[i3+1] = Opt->MaskColor[1]; 
+                     SV->cV[i3+2] = Opt->MaskColor[2]; 
                   }
                }
             }
       } else { /* all values are equal, use the middle color in the colormap */
-         if (LocalHead) fprintf (SUMA_STDOUT,"Warning %s: Node value range is 0, using middle color in colormap.\n", FuncName);
-         i0 = (ColMap->N_Col - 1)/2;
+         if (LocalHead) 
+            fprintf (SUMA_STDOUT,
+                     "Warning %s: Node value range is 0,"
+                     " using middle color in colormap.\n", FuncName);
+         i0 = (ColMap->N_M[0] - 1)/2;
          for (i=0; i < N_V; ++i) {
             i3 = 3*i;
             if (!SV->isMasked[i]) {
@@ -2431,10 +2756,14 @@ SUMA_Boolean SUMA_ScaleToMap_alaAFNI ( float *V, int N_V,
                   SV->cV[i3+2] = ColMap->M[i0][2];
                } else {
                   SV->isMasked[i] = YUP;
-                  SV->cV[i3  ] = Opt->MaskColor[0]; SV->cV[i3+1] = Opt->MaskColor[1]; SV->cV[i3+2] = Opt->MaskColor[2]; 
+                  SV->cV[i3  ] = Opt->MaskColor[0]; 
+                  SV->cV[i3+1] = Opt->MaskColor[1]; 
+                  SV->cV[i3+2] = Opt->MaskColor[2]; 
                }
             } else {
-               SV->cV[i3  ] = Opt->MaskColor[0]; SV->cV[i3+1] = Opt->MaskColor[1]; SV->cV[i3+2] = Opt->MaskColor[2]; 
+               SV->cV[i3  ] = Opt->MaskColor[0]; 
+               SV->cV[i3+1] = Opt->MaskColor[1]; 
+               SV->cV[i3+2] = Opt->MaskColor[2]; 
             }
          }
       }
@@ -2442,7 +2771,9 @@ SUMA_Boolean SUMA_ScaleToMap_alaAFNI ( float *V, int N_V,
       /* direct color mapping */
       SUMA_LH("Direct colormapping");
       if (Opt->interpmode != SUMA_DIRECT) {
-         fprintf (SUMA_STDOUT,"Error %s: Logic error, should never get here with Opt->interpmode != SUMA_DIRECT\n", FuncName);
+         fprintf (SUMA_STDOUT,
+                  "Error %s: Logic error, should never get here with"
+                  " Opt->interpmode != SUMA_DIRECT\n", FuncName);
          SUMA_RETURN(NOPE);
       }
       for (i=0; i < N_V; ++i) {
@@ -2450,24 +2781,28 @@ SUMA_Boolean SUMA_ScaleToMap_alaAFNI ( float *V, int N_V,
          if (!SV->isMasked[i]) {
             i0 = (int)V[i]; 
             if (i0 < 0) i0 = 0;
-            else if (i0 >= ColMap->N_Col) i0 = ColMap->N_Col -1;
+            else if (i0 >= ColMap->N_M[0]) i0 = ColMap->N_M[0] -1;
             if (ColMap->M[i0][0] >= 0) {
                SV->cV[i3  ] = ColMap->M[i0][0];
                SV->cV[i3+1] = ColMap->M[i0][1];
                SV->cV[i3+2] = ColMap->M[i0][2];
             } else {
                SV->isMasked[i] = YUP;
-               SV->cV[i3  ] = Opt->MaskColor[0]; SV->cV[i3+1] = Opt->MaskColor[1]; SV->cV[i3+2] = Opt->MaskColor[2];
+               SV->cV[i3  ] = Opt->MaskColor[0]; 
+               SV->cV[i3+1] = Opt->MaskColor[1]; 
+               SV->cV[i3+2] = Opt->MaskColor[2];
             }
          } else {
-            SV->cV[i3  ] = Opt->MaskColor[0]; SV->cV[i3+1] = Opt->MaskColor[1]; SV->cV[i3+2] = Opt->MaskColor[2]; 
+            SV->cV[i3  ] = Opt->MaskColor[0]; 
+            SV->cV[i3+1] = Opt->MaskColor[1]; 
+            SV->cV[i3+2] = Opt->MaskColor[2]; 
          }
 
       }
    }
    if (Mbuf) {
       /* free what is in ColMap->M */
-      SUMA_free2D((char **)ColMap->M, ColMap->N_Col);
+      SUMA_free2D((char **)ColMap->M, ColMap->N_M[0]);
       ColMap->M = Mbuf; Mbuf = NULL;
    }
    if (NewMap) {
@@ -2478,6 +2813,278 @@ SUMA_Boolean SUMA_ScaleToMap_alaAFNI ( float *V, int N_V,
    SUMA_RETURN (YUP);
    
 }
+
+/* Change a colormap to NIML format */
+NI_group *SUMA_CmapToNICmap(SUMA_COLOR_MAP *CM)
+{
+   static char FuncName[]={"SUMA_CmapToNICmap"};
+   NI_group *ngr=NULL;
+   NI_element *nel = NULL;
+   SUMA_DSET *dset=NULL;
+   float *fbuf=NULL;
+   int *ibuf = NULL;
+   int i;
+   SUMA_PARSED_NAME *sname = NULL;
+   SUMA_Boolean LocalHead = NOPE;
+      
+   SUMA_ENTRY;
+   
+   if (!CM) SUMA_RETURN(ngr);
+   
+   /* bufer space */
+   fbuf = (float *)SUMA_calloc(CM->N_M[0],sizeof(float));
+   ibuf = (int *)SUMA_calloc(CM->N_M[0],sizeof(int));
+   
+   /* create group and name it */
+   sname = SUMA_ParseFname(CM->Name, NULL);
+   dset = SUMA_CreateDsetPointer(sname->FileName, SUMA_COLMAP_OBJECT, 
+                                 NULL, NULL, CM->N_M[0]);
+   
+   /* Go for it */
+   for (i=0; i<CM->N_M[0]; ++i) fbuf[i] = CM->M[i][0];
+   if (!SUMA_AddDsetNelCol(dset, "R", SUMA_NODE_R, (void *)fbuf, NULL, 1)) {
+      SUMA_S_Err("Failed to add R");
+      SUMA_FreeDset(dset); dset = NULL;
+      goto CLEANUP;
+   }
+   
+   for (i=0; i<CM->N_M[0]; ++i) fbuf[i] = CM->M[i][1];
+   if (!SUMA_AddDsetNelCol(dset, "G", SUMA_NODE_G, (void *)fbuf, NULL, 1)) {
+      SUMA_S_Err("Failed to add G");
+      SUMA_FreeDset(dset); dset = NULL;
+      goto CLEANUP;
+   }
+   
+   for (i=0; i<CM->N_M[0]; ++i) fbuf[i] = CM->M[i][2];
+   if (!SUMA_AddDsetNelCol(dset, "B", SUMA_NODE_B, (void *)fbuf, NULL, 1)) {
+      SUMA_S_Err("Failed to add B");
+      SUMA_FreeDset(dset); dset = NULL;
+      goto CLEANUP;
+   }
+
+   if (CM->N_M[1] == 4) {
+      for (i=0; i<CM->N_M[0]; ++i) fbuf[i] = CM->M[i][3];
+      if (!SUMA_AddDsetNelCol(dset, "A", SUMA_NODE_A, (void *)fbuf, NULL, 1)) {
+         SUMA_S_Err("Failed to add A");
+         SUMA_FreeDset(dset); dset = NULL;
+         goto CLEANUP;
+      }
+   }
+   
+   if (CM->idvec) {
+      if (!SUMA_AddDsetNelCol(dset, "key", SUMA_NODE_ILABEL, 
+                              (void *)CM->idvec, NULL, 1)) {
+         SUMA_S_Err("Failed to add idvec");
+         SUMA_FreeDset(dset); dset = NULL;
+         goto CLEANUP;
+      }
+   }
+   
+   if (CM->cname) {
+      if (!SUMA_AddDsetNelCol(dset, "name", SUMA_NODE_SLABEL, 
+                              (void *)CM->cname, NULL, 1)) {
+         SUMA_S_Err("Failed to add cname");
+         SUMA_FreeDset(dset); dset = NULL;
+         goto CLEANUP;
+      }
+   }
+   
+   if (CM->frac) {
+      if (!SUMA_AddDsetNelCol(dset, "fraction", SUMA_NODE_FLOAT, 
+                              (void *)CM->frac, NULL, 1)) {
+         SUMA_S_Err("Failed to add frac");
+         SUMA_FreeDset(dset); dset = NULL;
+         goto CLEANUP;
+      }
+   }   
+   
+   /* the little people */
+   NI_SET_INT(dset->ngr, "flipped", (int)CM->flipped);
+   NI_SET_INT(dset->ngr, "Sgn", CM->Sgn);
+   NI_SET_FLOAT(dset->ngr, "top_frac", CM->top_frac);
+   NI_SET_FLOATv(dset->ngr, "M0", CM->M0, CM->N_M[1]);
+   NI_set_attribute(dset->ngr, "Name", sname->FileName_NoExt);
+   
+   /* So this is not really a dset, but it was nice to make use of
+   dset utility functions. Now cleanup a little */
+   /* remove ugly inel */
+   NI_remove_from_group(dset->ngr, dset->inel);
+   
+   /* grab ngr from dset, it is all we need */
+   ngr = dset->ngr; dset->ngr = NULL; 
+   /* change name from AFNI_dataset to AFNI_colormap */
+   NI_rename_group(ngr, "AFNI_colormap");
+   /* get rid of dset */
+   dset->dnel = NULL; SUMA_FreeDset(dset); dset=NULL;
+   
+   
+   CLEANUP:
+   if (fbuf) SUMA_free(fbuf);
+   if (ibuf) SUMA_free(ibuf);
+   if (sname) sname = SUMA_Free_Parsed_Name(sname);
+   
+   SUMA_RETURN(ngr);
+}   
+
+SUMA_COLOR_MAP *SUMA_NICmapToCmap(NI_group *ngr)
+{
+   static char FuncName[]={"SUMA_NICmapToCmap"};
+   int i, *id=NULL;
+   float *r=NULL, *g=NULL, *b=NULL, *a=NULL;
+   char **s=NULL;
+   SUMA_COLOR_MAP *CM=NULL;
+   SUMA_DSET dset;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!ngr) SUMA_RETURN(CM);
+   
+   /* shoehorn into dset struct */
+   dset.ngr = ngr;
+   dset.inel = dset.dnel = NULL;
+   dset.dnel = SUMA_FindDsetDataElement(&dset);
+   
+   if (SDSET_TYPE((&dset)) != SUMA_COLMAP_OBJECT) {
+      SUMA_S_Err("Not a colormap object");
+      SUMA_RETURN(CM);
+   }
+   SUMA_LH("Alloc");
+   CM = (SUMA_COLOR_MAP *)SUMA_calloc(1,sizeof(SUMA_COLOR_MAP));
+   CM->N_M[0] = dset.dnel->vec_len;
+   CM->N_M[1] = 0; /* don't know yet */
+   SUMA_LH("locate");
+   for (i=0; i<dset.dnel->vec_num; ++i) {
+      switch (SUMA_TypeOfDsetColNumb(&dset, i)) {
+         case SUMA_NODE_R:
+            r = (float*)dset.dnel->vec[i];
+            break;
+         case SUMA_NODE_G:
+            g = (float*)dset.dnel->vec[i];
+            break;
+         case SUMA_NODE_B:
+            b = (float*)dset.dnel->vec[i];
+            break;
+         case SUMA_NODE_A:
+            a = (float*)dset.dnel->vec[i];
+            break;
+         case SUMA_NODE_ILABEL:
+            id = (int *)dset.dnel->vec[i];
+            break;
+         case SUMA_NODE_SLABEL:
+            s = (char **)dset.dnel->vec[i];
+            break;
+         default:
+            SUMA_S_Errv("Bad column (#%d) type %d for colormap\n", 
+                        i, SUMA_TypeOfDsetColNumb(&dset, i));
+            SUMA_Free_ColorMap(CM); CM = NULL;
+            SUMA_RETURN(CM);
+      }
+   }
+   if (a) CM->N_M[1] = 4;  /*rgba*/
+   else CM->N_M[1] = 3;    /*rgb*/
+   if (!r || !g || !b) {
+      SUMA_S_Err("Missing columns");
+      SUMA_Free_ColorMap(CM); CM = NULL;
+      SUMA_RETURN(CM);
+   }
+   
+   SUMA_LH("Fill");
+   CM->M = (float **)SUMA_allocate2D(CM->N_M[0], CM->N_M[1], sizeof(float));
+   for (i=0; i<CM->N_M[0]; ++i) {
+      CM->M[i][0] = r[i];
+      CM->M[i][1] = g[i];
+      CM->M[i][2] = b[i];
+   }
+   if (a) {
+      for (i=0; i<CM->N_M[0]; ++i) CM->M[i][3] = a[i];
+   }
+   if (s) {
+      CM->cname = (char **)SUMA_calloc(CM->N_M[0], sizeof(char *));
+      for (i=0; i<CM->N_M[0]; ++i) CM->cname[i] = SUMA_copy_string(s[i]);
+   }
+   if (id) {
+      CM->idvec = (int *)SUMA_calloc(CM->N_M[0], sizeof(int));
+      for (i=0; i<CM->N_M[0]; ++i) CM->idvec[i] = id[i];
+   }
+   
+   NI_GET_INT(ngr, "flipped", i); CM->flipped = (byte)i;
+   NI_GET_INT(ngr, "Sgn", CM->Sgn);
+   NI_GET_FLOAT(ngr, "top_frac", CM->top_frac);
+   NI_GET_FLOATv(ngr, "M0", CM->M0, CM->N_M[1], 1);
+   
+   CM->Name = SUMA_copy_string(NI_get_attribute(ngr,"Name"));
+   
+   SUMA_RETURN(CM);
+}
+/*!
+   \brief Return the index into a colormap's color array
+   given a color's key (or id).
+   This function will be called a trillion times, do not
+   put fancy stuff in it, or just use macro
+   \sa faster macro SUMA_COLMAPKEYTOINDEX
+   */
+int SUMA_ColMapKeyIndex(int key, SUMA_COLOR_MAP *CM)
+{
+   static char FuncName[]={"SUMA_ColMapKeyIndex"};
+   SUMA_COLOR_MAP_HASH_DATUM *hd=NULL;
+   SUMA_ENTRY;
+   
+   if (!CM || !CM->chd) SUMA_RETURN(-1);
+   
+   SUMA_COLMAPKEYTOINDEX(key, CM->chd, hd);
+   
+   SUMA_RETURN(key);
+}
+/* destroy the hash table of the colormap */
+SUMA_Boolean SUMA_DestroyCmapHash(SUMA_COLOR_MAP *SM)
+{
+   static char FuncName[]={"SUMA_DestroyCmapHash"};
+   SUMA_COLOR_MAP_HASH_DATUM *hd=NULL;
+   
+   SUMA_ENTRY;
+   
+   if (!SM || !SM->chd) SUMA_RETURN(YUP);
+   
+   /* destroy all of the hash table */
+   while (SM->chd) {
+      hd = SM->chd;  /* will delete the head of the hash table list */
+      HASH_DEL( SM->chd, hd); /* remove the head from the list, after
+                                 this macro, SM->chd points to the next
+                                 item in the list; the new head */ 
+      SUMA_free(hd); hd = NULL; /* free hd, no longer needed */
+   }
+      
+   SUMA_RETURN(YUP);
+}
+/* create a new or recreate a colormap's hashtable */  
+SUMA_Boolean SUMA_CreateCmapHash(SUMA_COLOR_MAP *SM)
+{
+   static char FuncName[]={"SUMA_CreateCmapHash"};
+   SUMA_COLOR_MAP_HASH_DATUM *hd=NULL;
+   int ism = 0;
+   
+   SUMA_ENTRY;
+   
+   if (!SM || !SM->idvec) {
+      SUMA_S_Err("Null colormap or no id vector");
+      SUMA_RETURN(NOPE);
+   }
+   
+   /* destroy old hash */
+   SUMA_DestroyCmapHash(SM);
+   
+   /* create new hash table */
+   for (ism=0; ism < SM->N_M[0]; ++ism) {
+         hd = (SUMA_COLOR_MAP_HASH_DATUM *)
+                  SUMA_calloc(1, sizeof(SUMA_COLOR_MAP_HASH_DATUM));
+         hd->id = SM->idvec[ism];
+         hd->colmapindex = ism;
+         HASH_ADD_INT(SM->chd, id, hd); 
+   }
+   
+   SUMA_RETURN(YUP);
+}  
 
 /*!
    This function maps the values in a vector to colors on a color map
@@ -2515,6 +3122,7 @@ SUMA_Boolean SUMA_ScaleToMap (float *V, int N_V,
    int i,j, i0, i1, mxColindex, i3=0;
    float MinCol, MaxCol, Vrange, Vscl, r, **Mbuf= NULL, top_frac;
    static int nwarn = 0;
+   SUMA_COLOR_MAP_HASH_DATUM *hdbuf=NULL;
    SUMA_Boolean NewMap = NOPE;
    SUMA_Boolean LocalHead = NOPE;
    
@@ -2539,9 +3147,12 @@ SUMA_Boolean SUMA_ScaleToMap (float *V, int N_V,
    
    /* No negative colormaps here */
    if (ColMap->Sgn < 0) {
-      /* proceed, in SUMA options were given to the user to make the range symmetric about 0.
-      They can shoot themselves in the foot if they want to */
-      SUMA_LH("Colormap is split into positive and negative.\n Make sure your range is from -a to + a to have the mapping resemble AFNI's");
+      /* proceed, in SUMA options were given to the user to make 
+         the range symmetric about 0.
+         They can shoot themselves in the foot if they want to */
+      SUMA_LH( "Colormap is split into positive and negative.\n "
+               "Make sure your range is from -a to + a to have "
+               "the mapping resemble AFNI's");
    }
    
    /* find the values to be masked out */
@@ -2550,12 +3161,14 @@ SUMA_Boolean SUMA_ScaleToMap (float *V, int N_V,
       if (Opt->MaskZero) {
          /* mask zeros and values in range */
          for (i=0; i < N_V; ++i) {
-            if (!V[i] || (V[i] >= Opt->MaskRange[0] && V[i] <= Opt->MaskRange[1]))  SV->isMasked[i] = YUP;
+            if (  !V[i] || (V[i] >= Opt->MaskRange[0] && 
+                  V[i] <= Opt->MaskRange[1]))  SV->isMasked[i] = YUP;
          }
       } else {
          /* don't mask zeros, just range */
          for (i=0; i < N_V; ++i) {
-            if (V[i] >= Opt->MaskRange[0] && V[i] <= Opt->MaskRange[1])  SV->isMasked[i] = YUP;
+            if (V[i] >= Opt->MaskRange[0] && V[i] <= Opt->MaskRange[1]) 
+               SV->isMasked[i] = YUP;
          }
       }
    }else {
@@ -2568,8 +3181,10 @@ SUMA_Boolean SUMA_ScaleToMap (float *V, int N_V,
       }
    }
    
-   /* refuse to deal with top_frac here, SUMA does not allow for colormaps to have a top != 1 
-      First pass at implementing top != 1 does exist below but is now turned off. I don't feel
+   /* refuse to deal with top_frac here, SUMA does not allow for 
+      colormaps to have a top != 1 
+      First pass at implementing top != 1 does exist below but is 
+      now turned off. I don't feel
       like testing it... */
    top_frac = ColMap->top_frac;
    if (top_frac > 0.0f) {
@@ -2628,16 +3243,21 @@ SUMA_Boolean SUMA_ScaleToMap (float *V, int N_V,
          Vmin *= top_frac;
          Vmax *= top_frac;
       }
-      SUMA_LHv("No Clip, Opt->IntRange ignored.\nVmin..Vmax= %f..%f", Vmin, Vmax);
+      SUMA_LHv("No Clip, Opt->IntRange ignored.\nVmin..Vmax= %f..%f", 
+               Vmin, Vmax);
    }
    
    /* Add any coord bias ? */
-   if (Opt->DoBias == SW_CoordBias_X || Opt->DoBias == SW_CoordBias_Y || Opt->DoBias == SW_CoordBias_Z || Opt->DoBias == SW_CoordBias_N) {
+   if (  Opt->DoBias == SW_CoordBias_X || 
+         Opt->DoBias == SW_CoordBias_Y || 
+         Opt->DoBias == SW_CoordBias_Z || 
+         Opt->DoBias == SW_CoordBias_N) {
       SUMA_LH("Coord Bias requested");
       if (!SV->BiasCoordVec) {
          SUMA_LH("Allocating for BiasCoordVec");
          SV->BiasCoordVec = (float *)SUMA_calloc(N_V, sizeof(float));
-         if (!SV->BiasCoordVec) { SUMA_SL_Crit("Failed to allocate"); SUMA_RETURN(NOPE); }
+         if (!SV->BiasCoordVec) { 
+            SUMA_SL_Crit("Failed to allocate"); SUMA_RETURN(NOPE); }
       }else {
          SUMA_SL_Err("Do not expect this not to be null here ... ");
          SUMA_RETURN(NOPE);
@@ -2678,17 +3298,22 @@ SUMA_Boolean SUMA_ScaleToMap (float *V, int N_V,
    /* if brightness factor is given, apply it to color map and mask color */
    Mbuf = NULL;
    if (Opt->BrightFact <= 0 || Opt->BrightFact > 1) {
-      fprintf (SUMA_STDERR,"Error %s: Opt->BrightFact must be between ]0 1]\n", FuncName);
+      fprintf (SUMA_STDERR,
+               "Error %s: Opt->BrightFact must be between ]0 1]\n", FuncName);
       SUMA_RETURN (NOPE);
    }else {
       if (Opt->BrightFact != 1) {
          SUMA_LH("Modulating brightness of map");
          Mbuf = ColMap->M; /* save pointer */
-         ColMap->M = (float **)SUMA_allocate2D(ColMap->N_Col, 3, sizeof(float));
-         for (i=0; i < ColMap->N_Col; ++i) {
+         ColMap->M = (float **)
+               SUMA_allocate2D(ColMap->N_M[0], ColMap->N_M[1], sizeof(float));
+         for (i=0; i < ColMap->N_M[0]; ++i) {
             ColMap->M[i][0] = Mbuf[i][0] * Opt->BrightFact;
             ColMap->M[i][1] = Mbuf[i][1] * Opt->BrightFact;
             ColMap->M[i][2] = Mbuf[i][2] * Opt->BrightFact;
+            if (ColMap->N_M[1] == 4) {
+            ColMap->M[i][3] = Mbuf[i][3] * Opt->BrightFact;
+            }
          }
          /* now for the mask color */
          Opt->MaskColor[0] *= Opt->BrightFact;
@@ -2698,31 +3323,44 @@ SUMA_Boolean SUMA_ScaleToMap (float *V, int N_V,
    }
    
    
-   if (Opt->interpmode != SUMA_DIRECT && Opt->interpmode != SUMA_NO_INTERP && Opt->interpmode != SUMA_INTERP) {
-      fprintf (SUMA_STDERR,"Error %s: Opt->interpmode is incorrectly specifed (%d).\n", FuncName, Opt->interpmode);
+   if (  Opt->interpmode != SUMA_DIRECT && 
+         Opt->interpmode != SUMA_NO_INTERP && 
+         Opt->interpmode != SUMA_INTERP) {
+      fprintf (SUMA_STDERR,
+               "Error %s: Opt->interpmode is incorrectly specifed (%d).\n", 
+               FuncName, Opt->interpmode);
       SUMA_RETURN(NOPE);
    }
    
    if (Opt->interpmode == SUMA_NO_INTERP || Opt->interpmode == SUMA_INTERP) {
       /* Now go through values and interpolate onto index of colormap */
-      MinCol = 0.0; MaxCol = (float)ColMap->N_Col; 
+      MinCol = 0.0; MaxCol = (float)ColMap->N_M[0]; 
       Vrange = Vmax - Vmin; 
       if (Vrange < 0) {
-         fprintf (SUMA_STDERR,"Error %s: Vmax (%f)< Vmin(%f).\n", FuncName, Vmax, Vmin);
+         fprintf (SUMA_STDERR,
+                  "Error %s: Vmax (%f)< Vmin(%f).\n", FuncName, Vmax, Vmin);
          SUMA_RETURN (NOPE);
       }
 
       if (Vrange > 0) {
-         mxColindex = ColMap->N_Col -1; 
-         if (Opt->interpmode == SUMA_NO_INTERP) { /* no interpolation between colours */
+         mxColindex = ColMap->N_M[0] -1; 
+         if (Opt->interpmode == SUMA_NO_INTERP) { 
+            /* no interpolation between colours */
             SUMA_LH("No Interp Mode");
             for (i=0; i < N_V; ++i) {
                i3 = 3*i;
                if (!SV->isMasked[i]) {
-                  Vscl = (V[i] - Vmin) / Vrange * ColMap->N_Col; /* used mxColindex instead of N_Col (wrong!) prior to Oct 22, 03 */
-                  if (Vscl < 0) Vscl = 0; if (Vscl > ColMap->N_Col) Vscl = ColMap->N_Col; /* This happens when your Min--Max are within the boundaries of the data's (V[i]) min to max */
+                  Vscl = (V[i] - Vmin) / Vrange * ColMap->N_M[0]; 
+                        /* used mxColindex instead of N_M[0] (wrong!) 
+                           prior to Oct 22, 03 */
+                  if (Vscl < 0) Vscl = 0; 
+                  if (Vscl > ColMap->N_M[0]) Vscl = ColMap->N_M[0]; 
+                        /* This happens when your Min--Max are within the 
+                           boundaries of the data's (V[i]) min to max */
                   i0 = (int)(Vscl); 
-                  if (i0 > mxColindex) i0 = mxColindex; /* No need, Vscl's clipping takes care of that: if (i0 < 0) i0 = 0; */
+                  if (i0 > mxColindex) i0 = mxColindex; 
+                        /* No need, Vscl's clipping takes care of that: 
+                           if (i0 < 0) i0 = 0; */
                   if (SV->BiasCoordVec) SV->BiasCoordVec[i] = Vscl;
                   if (ColMap->M[i0][0] >= 0) { /* good color */
                      SV->cV[i3  ] = ColMap->M[i0][0];
@@ -2730,10 +3368,14 @@ SUMA_Boolean SUMA_ScaleToMap (float *V, int N_V,
                      SV->cV[i3+2] = ColMap->M[i0][2];
                   } else { /* mask color */
                      SV->isMasked[i] = YUP;
-                     SV->cV[i3  ] = Opt->MaskColor[0]; SV->cV[i3+1] = Opt->MaskColor[1]; SV->cV[i3+2] = Opt->MaskColor[2];
+                     SV->cV[i3  ] = Opt->MaskColor[0]; 
+                     SV->cV[i3+1] = Opt->MaskColor[1]; 
+                     SV->cV[i3+2] = Opt->MaskColor[2];
                   }
                } else {
-                  SV->cV[i3  ] = Opt->MaskColor[0]; SV->cV[i3+1] = Opt->MaskColor[1]; SV->cV[i3+2] = Opt->MaskColor[2]; 
+                  SV->cV[i3  ] = Opt->MaskColor[0]; 
+                  SV->cV[i3+1] = Opt->MaskColor[1]; 
+                  SV->cV[i3+2] = Opt->MaskColor[2]; 
                }
             }
          } else { /* interpolation mode */
@@ -2741,22 +3383,33 @@ SUMA_Boolean SUMA_ScaleToMap (float *V, int N_V,
             for (i=0; i < N_V; ++i) {
                i3 = 3*i;
                if (!SV->isMasked[i]) {
-                  Vscl = (V[i] - Vmin) / Vrange * ColMap->N_Col; /* used mxColindex instead of N_Col (wrong!) prior to Oct 22, 03 */ 
-                  if (Vscl < 0) Vscl = 0; if (Vscl > ColMap->N_Col) Vscl = ColMap->N_Col; /* This happens when your Min--Max are within the boundaries of the data's (V[i]) min to max */
-                  /*now linearly interpolate between the two closest colors in the color map */
+                  Vscl = (V[i] - Vmin) / Vrange * ColMap->N_M[0]; 
+                     /* used mxColindex instead of N_M[0] (wrong!) 
+                        prior to Oct 22, 03 */ 
+                  if (Vscl < 0) Vscl = 0; 
+                  if (Vscl > ColMap->N_M[0]) Vscl = ColMap->N_M[0]; 
+                     /* This happens when your Min--Max are within the 
+                        boundaries of the data's (V[i]) min to max */
+                  /*now linearly interpolate between the two closest 
+                     colors in the color map */
                   i0 = (int)(Vscl); 
-                  if (i0 > mxColindex) i0 = mxColindex; /* No need, Vscl's clipping takes care of that: if (i0 < 0) i0 = 0; */
+                  if (i0 > mxColindex) i0 = mxColindex; 
+                     /* No need, Vscl's clipping takes care of that: 
+                        if (i0 < 0) i0 = 0; */
                   i1=i0+1;
                   if (SV->BiasCoordVec) { 
                      SV->BiasCoordVec[i] = Vscl; 
                   }
 
                   if (ColMap->M[i0][0] >= 0) { /* good color */
-                     if (i1 < ColMap->N_Col) {
+                     if (i1 < ColMap->N_M[0]) {
                         r = Vscl - i0; 
-                        SV->cV[i3  ] = ColMap->M[i0][0] + r * (ColMap->M[i1][0] - ColMap->M[i0][0]);
-                        SV->cV[i3+1] = ColMap->M[i0][1] + r * (ColMap->M[i1][1] - ColMap->M[i0][1]);
-                        SV->cV[i3+2] = ColMap->M[i0][2] + r * (ColMap->M[i1][2] - ColMap->M[i0][2]);
+                        SV->cV[i3  ] = ColMap->M[i0][0] + r * 
+                                       (ColMap->M[i1][0] - ColMap->M[i0][0]);
+                        SV->cV[i3+1] = ColMap->M[i0][1] + r * 
+                                       (ColMap->M[i1][1] - ColMap->M[i0][1]);
+                        SV->cV[i3+2] = ColMap->M[i0][2] + r *
+                                       (ColMap->M[i1][2] - ColMap->M[i0][2]);
                      } else {
                         SV->cV[i3  ] = ColMap->M[i0][0];
                         SV->cV[i3+1] = ColMap->M[i0][1];
@@ -2764,16 +3417,23 @@ SUMA_Boolean SUMA_ScaleToMap (float *V, int N_V,
                      }
                   } else { /* mask color */
                      SV->isMasked[i] = YUP;
-                     SV->cV[i3  ] = Opt->MaskColor[0]; SV->cV[i3+1] = Opt->MaskColor[1]; SV->cV[i3+2] = Opt->MaskColor[2];
+                     SV->cV[i3  ] = Opt->MaskColor[0]; 
+                     SV->cV[i3+1] = Opt->MaskColor[1]; 
+                     SV->cV[i3+2] = Opt->MaskColor[2];
                   }
                } else {
-                  SV->cV[i3  ] = Opt->MaskColor[0]; SV->cV[i3+1] = Opt->MaskColor[1]; SV->cV[i3+2] = Opt->MaskColor[2]; 
+                  SV->cV[i3  ] = Opt->MaskColor[0]; 
+                  SV->cV[i3+1] = Opt->MaskColor[1]; 
+                  SV->cV[i3+2] = Opt->MaskColor[2]; 
                }
             }
          }
       }else { /* all values are equal, use the middle color in the colormap */
-         if (LocalHead) fprintf (SUMA_STDOUT,"Warning %s: Node value range is 0, using middle color in colormap.\n", FuncName);
-         i0 = (ColMap->N_Col - 1)/2;
+         if (LocalHead) 
+            fprintf (SUMA_STDOUT,
+                     "Warning %s: Node value range is 0, using middle color "
+                     "in colormap.\n", FuncName);
+         i0 = (ColMap->N_M[0] - 1)/2;
          for (i=0; i < N_V; ++i) {
             i3 = 3 * i;
             if (!SV->isMasked[i]) {
@@ -2782,7 +3442,9 @@ SUMA_Boolean SUMA_ScaleToMap (float *V, int N_V,
                SV->cV[i3+1] = ColMap->M[i0][1];
                SV->cV[i3+2] = ColMap->M[i0][2];
             } else {
-               SV->cV[i3  ] = Opt->MaskColor[0]; SV->cV[i3+1] = Opt->MaskColor[1]; SV->cV[i3+2] = Opt->MaskColor[2]; 
+               SV->cV[i3  ] = Opt->MaskColor[0]; 
+               SV->cV[i3+1] = Opt->MaskColor[1]; 
+               SV->cV[i3+2] = Opt->MaskColor[2]; 
             }
          }
       }
@@ -2792,15 +3454,15 @@ SUMA_Boolean SUMA_ScaleToMap (float *V, int N_V,
                "Opt->IntRange values are \n"
                "meaningless" );
       if (Opt->interpmode != SUMA_DIRECT) {
-         fprintf (SUMA_STDOUT,"Error %s: Logic error, should never get here with Opt->interpmode != SUMA_DIRECT\n", FuncName);
+         fprintf (SUMA_STDOUT,
+                  "Error %s: Logic error, should never get here with"
+                  " Opt->interpmode != SUMA_DIRECT\n", FuncName);
          SUMA_RETURN(NOPE);
       }
       for (i=0; i < N_V; ++i) {
          i3 = 3*i;
          if (!SV->isMasked[i]) {
-            i0 = (int)V[i]; 
-            if (i0 < 0) i0 = 0;
-            else if (i0 >= ColMap->N_Col) i0 = ColMap->N_Col -1;
+            SUMA_COLMAP_INDEX_FROM_ID(V[i], ColMap, i0); 
             if (ColMap->M[i0][0] >= 0) {
                SV->cV[i3  ] = ColMap->M[i0][0];
                SV->cV[i3+1] = ColMap->M[i0][1];
@@ -2808,10 +3470,14 @@ SUMA_Boolean SUMA_ScaleToMap (float *V, int N_V,
                if (SV->BiasCoordVec) SV->BiasCoordVec[i] = i0;
             } else {
                SV->isMasked[i] = YUP;
-               SV->cV[i3  ] = Opt->MaskColor[0]; SV->cV[i3+1] = Opt->MaskColor[1]; SV->cV[i3+2] = Opt->MaskColor[2];
+               SV->cV[i3  ] = Opt->MaskColor[0]; 
+               SV->cV[i3+1] = Opt->MaskColor[1]; 
+               SV->cV[i3+2] = Opt->MaskColor[2];
             }
          } else {
-            SV->cV[i3  ] = Opt->MaskColor[0]; SV->cV[i3+1] = Opt->MaskColor[1]; SV->cV[i3+2] = Opt->MaskColor[2]; 
+            SV->cV[i3  ] = Opt->MaskColor[0]; 
+            SV->cV[i3+1] = Opt->MaskColor[1]; 
+            SV->cV[i3+2] = Opt->MaskColor[2]; 
          }
 
       }
@@ -2819,20 +3485,23 @@ SUMA_Boolean SUMA_ScaleToMap (float *V, int N_V,
    }
    
    /* change range for coord bias */
-   Vrange = (Opt->CoordBiasRange[1] - Opt->CoordBiasRange[0]) / ColMap->N_Col;
+   Vrange = (Opt->CoordBiasRange[1] - Opt->CoordBiasRange[0]) / ColMap->N_M[0];
    if (SV->BiasCoordVec) {
       SUMA_LH("Adding the CoordBias");
       for (i=0; i < N_V; ++i) {
             if (!SV->isMasked[i]) {
-               SV->BiasCoordVec[i] = Opt->CoordBiasRange[0] + SV->BiasCoordVec[i] * Vrange;
-               /* if (LocalHead) fprintf(SUMA_STDERR,"%s: %f\n", FuncName, SV->BiasCoordVec[i]); */
+               SV->BiasCoordVec[i] = Opt->CoordBiasRange[0] + 
+                                     SV->BiasCoordVec[i] * Vrange;
+               /* if (LocalHead) 
+                     fprintf( SUMA_STDERR,
+                              "%s: %f\n", FuncName, SV->BiasCoordVec[i]); */
             } else SV->BiasCoordVec[i] = 0.0;
       }
    }
    
    if (Mbuf) {
       /* free what is in ColMap->M */
-      SUMA_free2D((char **)ColMap->M, ColMap->N_Col);
+      SUMA_free2D((char **)ColMap->M, ColMap->N_M[0]);
       ColMap->M = Mbuf; Mbuf = NULL;
    }
    if (NewMap) {
@@ -3102,7 +3771,7 @@ char *SUMA_StandardMapName (int mapcode, int *N_col)
    
    if (!SUMAg_CF->scm) SUMA_RETURN(NULL);  
    if (mapcode < 0 || mapcode >SUMAg_CF->scm->N_maps-1) SUMA_RETURN(NULL);
-   *N_col = SUMAg_CF->scm->CMv[mapcode]->N_Col;
+   *N_col = SUMAg_CF->scm->CMv[mapcode]->N_M[0];
    SUMA_RETURN(SUMAg_CF->scm->CMv[mapcode]->Name);
 }
 #endif
@@ -3181,19 +3850,25 @@ SUMA_COLOR_MAP * SUMA_MakeStandardMap (char *mapname)
       if (!strcmp(mapname,"rgybr20")) {
          Fiducials = (float **)SUMA_allocate2D(5, 3, sizeof(float));
          if (!Fiducials) {
-            fprintf (SUMA_STDERR,"Error %s: Failed to allocate for Fiducials.\n", FuncName);
+            fprintf (SUMA_STDERR,
+                     "Error %s: Failed to allocate for Fiducials.\n", FuncName);
             SUMA_RETURN (NULL);
          }
          /* create the fiducial colors */
          k = 0;
-         Fiducials[k][0] = 1.0; Fiducials[k][1] = 0.0; Fiducials[k][2] = 0.0; ++k;/* Red */
-         Fiducials[k][0] = 0.0; Fiducials[k][1] = 1.0; Fiducials[k][2] = 0.0; ++k;/* Green */
-         Fiducials[k][0] = 0.0; Fiducials[k][1] = 0.0; Fiducials[k][2] = 1.0; ++k;/* Blue */
-         Fiducials[k][0] = 1.0; Fiducials[k][1] = 1.0; Fiducials[k][2] = 0.0; ++k;/* Yellow */
-         Fiducials[k][0] = 1.0; Fiducials[k][1] = 0.0; Fiducials[k][2] = 0.0; ++k;/* Red */
+         Fiducials[k][0] = 1.0; Fiducials[k][1] = 0.0; Fiducials[k][2] = 0.0; 
+            ++k;/* Red */
+         Fiducials[k][0] = 0.0; Fiducials[k][1] = 1.0; Fiducials[k][2] = 0.0; 
+            ++k;/* Green */
+         Fiducials[k][0] = 0.0; Fiducials[k][1] = 0.0; Fiducials[k][2] = 1.0; 
+            ++k;/* Blue */
+         Fiducials[k][0] = 1.0; Fiducials[k][1] = 1.0; Fiducials[k][2] = 0.0; 
+            ++k;/* Yellow */
+         Fiducials[k][0] = 1.0; Fiducials[k][1] = 0.0; Fiducials[k][2] = 0.0; 
+            ++k;/* Red */
 
          /* generate 20 colors colormap */
-         CM = SUMA_MakeColorMap (Fiducials, k, 20, YUP, mapname);
+         CM = SUMA_MakeColorMap (Fiducials, k, 0, 20, YUP, mapname);
          /* free Fiducials */
          SUMA_free2D((char **)Fiducials, k);
 
@@ -3204,18 +3879,23 @@ SUMA_COLOR_MAP * SUMA_MakeStandardMap (char *mapname)
       }else if (!strcmp(mapname,"bgyr19")) {
          Fiducials = (float **)SUMA_allocate2D(4, 3, sizeof(float));
          if (!Fiducials) {
-            fprintf (SUMA_STDERR,"Error %s: Failed to allocate for Fiducials.\n", FuncName);
+            fprintf (SUMA_STDERR,
+                     "Error %s: Failed to allocate for Fiducials.\n", FuncName);
             SUMA_RETURN (NULL);
          }
          /* create the fiducial colors */
          k = 0;
-         Fiducials[k][0] = 0.0; Fiducials[k][1] = 0.0; Fiducials[k][2] = 1.0; ++k;/* Blue */
-         Fiducials[k][0] = 0.0; Fiducials[k][1] = 1.0; Fiducials[k][2] = 0.0; ++k;/* Green */
-         Fiducials[k][0] = 1.0; Fiducials[k][1] = 1.0; Fiducials[k][2] = 0.0; ++k;/* Yellow */
-         Fiducials[k][0] = 1.0; Fiducials[k][1] = 0.0; Fiducials[k][2] = 0.0; ++k;/* Red */
+         Fiducials[k][0] = 0.0; Fiducials[k][1] = 0.0; Fiducials[k][2] = 1.0; 
+            ++k;/* Blue */
+         Fiducials[k][0] = 0.0; Fiducials[k][1] = 1.0; Fiducials[k][2] = 0.0; 
+            ++k;/* Green */
+         Fiducials[k][0] = 1.0; Fiducials[k][1] = 1.0; Fiducials[k][2] = 0.0; 
+            ++k;/* Yellow */
+         Fiducials[k][0] = 1.0; Fiducials[k][1] = 0.0; Fiducials[k][2] = 0.0; 
+            ++k;/* Red */
 
          /* generate 20 colors colormap */
-         CM = SUMA_MakeColorMap (Fiducials, k, 19, NOPE, mapname);
+         CM = SUMA_MakeColorMap (Fiducials, k, 0, 19, NOPE, mapname);
          
          /* free Fiducials */
          SUMA_free2D((char **)Fiducials, k);
@@ -3227,16 +3907,19 @@ SUMA_COLOR_MAP * SUMA_MakeStandardMap (char *mapname)
       }else if (!strcmp(mapname,"gray02")) {
          Fiducials = (float **)SUMA_allocate2D(2, 3, sizeof(float));
          if (!Fiducials) {
-            fprintf (SUMA_STDERR,"Error %s: Failed to allocate for Fiducials.\n", FuncName);
+            fprintf (SUMA_STDERR,
+                     "Error %s: Failed to allocate for Fiducials.\n", FuncName);
             SUMA_RETURN (NULL);
          }
          /* create the fiducial colors */
          k = 0;
-         Fiducials[k][0] = Fiducials[k][1] = Fiducials[k][2] = 0.4; ++k;/* 0.4 gray */
-         Fiducials[k][0] = Fiducials[k][1] = Fiducials[k][2] = 0.7; ++k;/* 0.8 gray */
+         Fiducials[k][0] = Fiducials[k][1] = Fiducials[k][2] = 0.4; 
+            ++k;/* 0.4 gray */
+         Fiducials[k][0] = Fiducials[k][1] = Fiducials[k][2] = 0.7; 
+            ++k;/* 0.8 gray */
 
          /* generate 2 colors colormap */
-         CM = SUMA_MakeColorMap (Fiducials, k, 2, NOPE, mapname);
+         CM = SUMA_MakeColorMap (Fiducials, k, 0, 2, NOPE, mapname);
          /* free Fiducials */
          SUMA_free2D((char **)Fiducials, k);
 
@@ -3247,7 +3930,8 @@ SUMA_COLOR_MAP * SUMA_MakeStandardMap (char *mapname)
       }else if (!strcmp(mapname,"gray_i02")) {   
          Fiducials = (float **)SUMA_allocate2D(2, 3, sizeof(float));
          if (!Fiducials) {
-            fprintf (SUMA_STDERR,"Error %s: Failed to allocate for Fiducials.\n", FuncName);
+            fprintf (SUMA_STDERR,
+                     "Error %s: Failed to allocate for Fiducials.\n", FuncName);
             SUMA_RETURN (NULL);
          }
          /* create the fiducial colors */
@@ -3256,7 +3940,7 @@ SUMA_COLOR_MAP * SUMA_MakeStandardMap (char *mapname)
          Fiducials[k][0] = Fiducials[k][1] = Fiducials[k][2] = 0.4; ++k;
 
          /* generate 2 colors colormap */
-         CM = SUMA_MakeColorMap (Fiducials, k, 2, NOPE, mapname);
+         CM = SUMA_MakeColorMap (Fiducials, k, 0, 2, NOPE, mapname);
          /* free Fiducials */
          SUMA_free2D((char **)Fiducials, k);
 
@@ -3267,16 +3951,19 @@ SUMA_COLOR_MAP * SUMA_MakeStandardMap (char *mapname)
       }else if (!strcmp(mapname,"gray20")) {  
          Fiducials = (float **)SUMA_allocate2D(2, 3, sizeof(float));
          if (!Fiducials) {
-            fprintf (SUMA_STDERR,"Error %s: Failed to allocate for Fiducials.\n", FuncName);
+            fprintf (SUMA_STDERR,
+                     "Error %s: Failed to allocate for Fiducials.\n", FuncName);
             SUMA_RETURN (NULL);
          }
          /* create the fiducial colors */
          k = 0;
-         Fiducials[k][0] = Fiducials[k][1] = Fiducials[k][2] = 0.3; ++k;/* 0.3 gray */
-         Fiducials[k][0] = Fiducials[k][1] = Fiducials[k][2] = 0.8; ++k;/* 0.8 gray */
+         Fiducials[k][0] = Fiducials[k][1] = Fiducials[k][2] = 0.3; 
+            ++k;/* 0.3 gray */
+         Fiducials[k][0] = Fiducials[k][1] = Fiducials[k][2] = 0.8; 
+            ++k;/* 0.8 gray */
 
          /* generate 20 colors colormap */
-         CM = SUMA_MakeColorMap (Fiducials, k, 20, NOPE, mapname);
+         CM = SUMA_MakeColorMap (Fiducials, k, 0, 20, NOPE, mapname);
          /* free Fiducials */
          SUMA_free2D((char **)Fiducials, k);
 
@@ -3287,16 +3974,19 @@ SUMA_COLOR_MAP * SUMA_MakeStandardMap (char *mapname)
       }else if (!strcmp(mapname,"ngray20")) {
          Fiducials = (float **)SUMA_allocate2D(2, 3, sizeof(float));
          if (!Fiducials) {
-            fprintf (SUMA_STDERR,"Error %s: Failed to allocate for Fiducials.\n", FuncName);
+            fprintf (SUMA_STDERR,
+                     "Error %s: Failed to allocate for Fiducials.\n", FuncName);
             SUMA_RETURN (NULL);
          }
          /* create the fiducial colors */
          k = 0;
-         Fiducials[k][0] = Fiducials[k][1] = Fiducials[k][2] = 0.3; ++k;/* 0.3 gray */
-         Fiducials[k][0] = Fiducials[k][1] = Fiducials[k][2] = 0.8; ++k;/* 0.8 gray */
+         Fiducials[k][0] = Fiducials[k][1] = Fiducials[k][2] = 0.3; 
+            ++k;/* 0.3 gray */
+         Fiducials[k][0] = Fiducials[k][1] = Fiducials[k][2] = 0.8; 
+            ++k;/* 0.8 gray */
 
          /* generate 20 colors colormap */
-         CM = SUMA_MakeColorMap (Fiducials, k, 20, NOPE, mapname);
+         CM = SUMA_MakeColorMap (Fiducials, k, 0, 20, NOPE, mapname);
          /* free Fiducials */
          SUMA_free2D((char **)Fiducials, k);
 
@@ -3307,16 +3997,19 @@ SUMA_COLOR_MAP * SUMA_MakeStandardMap (char *mapname)
       }else if (!strcmp(mapname,"bw20")) {
          Fiducials = (float **)SUMA_allocate2D(2, 3, sizeof(float));
          if (!Fiducials) {
-            fprintf (SUMA_STDERR,"Error %s: Failed to allocate for Fiducials.\n", FuncName);
+            fprintf (SUMA_STDERR,
+               "Error %s: Failed to allocate for Fiducials.\n", FuncName);
             SUMA_RETURN (NULL);
          }
          /* create the fiducial colors */
          k = 0;
-         Fiducials[k][0] = Fiducials[k][1] = Fiducials[k][2] = 0.0; ++k;/* black  */
-         Fiducials[k][0] = Fiducials[k][1] = Fiducials[k][2] = 1.0; ++k;/* white */
+         Fiducials[k][0] = Fiducials[k][1] = Fiducials[k][2] = 0.0; 
+            ++k;/* black  */
+         Fiducials[k][0] = Fiducials[k][1] = Fiducials[k][2] = 1.0; 
+            ++k;/* white */
 
          /* generate 20 colors colormap */
-         CM = SUMA_MakeColorMap (Fiducials, k, 20, NOPE, mapname);
+         CM = SUMA_MakeColorMap (Fiducials, k, 0, 20, NOPE, mapname);
          /* free Fiducials */
          SUMA_free2D((char **)Fiducials, k);
 
@@ -3334,25 +4027,37 @@ SUMA_COLOR_MAP * SUMA_MakeStandardMap (char *mapname)
          Nind = (int *) SUMA_calloc (NFid, sizeof (int));
 
          if (!Fiducials || !Nind) {
-            fprintf (SUMA_STDERR,"Error %s: Failed to allocate for Fiducials or Nind.\n", FuncName);
+            fprintf (SUMA_STDERR,
+                     "Error %s: Failed to allocate for Fiducials or Nind.\n", 
+                     FuncName);
             SUMA_RETURN (NULL);
          }
 
          /* create the fiducial colors */
          k = 0;
-         Fiducials[k][0] = 0.0; Fiducials[k][1] = 0.0; Fiducials[k][2] = 0.5625; Nind[k] = 0; ++k; 
-         Fiducials[k][0] = 0.0; Fiducials[k][1] = 0.0; Fiducials[k][2] = 1.0; Nind[k] = 7; ++k;
-         Fiducials[k][0] = 0.0; Fiducials[k][1] = 0.5; Fiducials[k][2] = 1.0; Nind[k] = 15; ++k;
-         Fiducials[k][0] = 0.0; Fiducials[k][1] = 1.0; Fiducials[k][2] = 1.0; Nind[k] = 23; ++k;
-         Fiducials[k][0] = 0.5; Fiducials[k][1] = 1.0; Fiducials[k][2] = 0.5625; Nind[k] = 31; ++k;
-         Fiducials[k][0] = 0.5625; Fiducials[k][1] = 1.0; Fiducials[k][2] = 0.5; Nind[k] = 32; ++k;
-         Fiducials[k][0] = 1.0; Fiducials[k][1] = 1.0; Fiducials[k][2] = 0.0; Nind[k] = 40; ++k;
-         Fiducials[k][0] = 1.0; Fiducials[k][1] = 0.5; Fiducials[k][2] = 0.0; Nind[k] = 48; ++k;
-         Fiducials[k][0] = 1.0; Fiducials[k][1] = 0.0; Fiducials[k][2] = 0.0; Nind[k] = 56; ++k;
-         Fiducials[k][0] = 0.5625; Fiducials[k][1] = 0.0; Fiducials[k][2] = 0.0; Nind[k] = 63; ++k;
+         Fiducials[k][0] = 0.0; Fiducials[k][1] = 0.0; Fiducials[k][2] = 0.5625; 
+            Nind[k] = 0; ++k; 
+         Fiducials[k][0] = 0.0; Fiducials[k][1] = 0.0; Fiducials[k][2] = 1.0; 
+            Nind[k] = 7; ++k;
+         Fiducials[k][0] = 0.0; Fiducials[k][1] = 0.5; Fiducials[k][2] = 1.0; 
+            Nind[k] = 15; ++k;
+         Fiducials[k][0] = 0.0; Fiducials[k][1] = 1.0; Fiducials[k][2] = 1.0; 
+            Nind[k] = 23; ++k;
+         Fiducials[k][0] = 0.5; Fiducials[k][1] = 1.0; Fiducials[k][2] = 0.5625; 
+            Nind[k] = 31; ++k;
+         Fiducials[k][0] = 0.5625; Fiducials[k][1] = 1.0; Fiducials[k][2] = 0.5; 
+            Nind[k] = 32; ++k;
+         Fiducials[k][0] = 1.0; Fiducials[k][1] = 1.0; Fiducials[k][2] = 0.0; 
+            Nind[k] = 40; ++k;
+         Fiducials[k][0] = 1.0; Fiducials[k][1] = 0.5; Fiducials[k][2] = 0.0; 
+            Nind[k] = 48; ++k;
+         Fiducials[k][0] = 1.0; Fiducials[k][1] = 0.0; Fiducials[k][2] = 0.0;    
+            Nind[k] = 56; ++k;
+         Fiducials[k][0] = 0.5625; Fiducials[k][1] = 0.0; Fiducials[k][2] = 0.0;
+            Nind[k] = 63; ++k;
 
          /* generate 20 colors colormap */
-         CM = SUMA_MakeColorMap_v2 (Fiducials, k, Nind, NOPE, mapname);
+         CM = SUMA_MakeColorMap_v2 (Fiducials, k, 0, Nind, NOPE, mapname);
 
          /* free Fiducials & Nind*/
          SUMA_free2D((char **)Fiducials, k);
@@ -3371,25 +4076,37 @@ SUMA_COLOR_MAP * SUMA_MakeStandardMap (char *mapname)
          Nind = (int *) SUMA_calloc (NFid, sizeof (int));
 
          if (!Fiducials || !Nind) {
-            fprintf (SUMA_STDERR,"Error %s: Failed to allocate for Fiducials or Nind.\n", FuncName);
+            fprintf (SUMA_STDERR,
+                     "Error %s: Failed to allocate for Fiducials or Nind.\n", 
+                     FuncName);
             SUMA_RETURN (NULL);
          }
 
          /* create the fiducial colors */
          k = 0;
-         Fiducials[k][0] = 0.0; Fiducials[k][1] = 0.0; Fiducials[k][2] = 0.5625; Nind[k] = 0; ++k; 
-         Fiducials[k][0] = 0.0; Fiducials[k][1] = 0.0; Fiducials[k][2] = 1.0; Nind[k] = 7; ++k;
-         Fiducials[k][0] = 0.0; Fiducials[k][1] = 0.5; Fiducials[k][2] = 1.0; Nind[k] = 15; ++k;
-         Fiducials[k][0] = 0.0; Fiducials[k][1] = 1.0; Fiducials[k][2] = 1.0; Nind[k] = 18; ++k;
-         Fiducials[k][0] = 0.0; Fiducials[k][1] = 0.5; Fiducials[k][2] = 0.0; Nind[k] = 24; ++k;
-         Fiducials[k][0] = 0.0; Fiducials[k][1] = 1.0; Fiducials[k][2] = 0.0; Nind[k] = 32; ++k;
-         Fiducials[k][0] = 1.0; Fiducials[k][1] = 1.0; Fiducials[k][2] = 0.0; Nind[k] = 43; ++k;
-         Fiducials[k][0] = 1.0; Fiducials[k][1] = 0.5; Fiducials[k][2] = 0.0; Nind[k] = 48; ++k;
-         Fiducials[k][0] = 1.0; Fiducials[k][1] = 0.0; Fiducials[k][2] = 0.0; Nind[k] = 56; ++k;
-         Fiducials[k][0] = 0.5625; Fiducials[k][1] = 0.0; Fiducials[k][2] = 0.0; Nind[k] = 63; ++k;
+         Fiducials[k][0] = 0.0; Fiducials[k][1] = 0.0; Fiducials[k][2] = 0.5625; 
+            Nind[k] = 0; ++k; 
+         Fiducials[k][0] = 0.0; Fiducials[k][1] = 0.0; Fiducials[k][2] = 1.0; 
+            Nind[k] = 7; ++k;
+         Fiducials[k][0] = 0.0; Fiducials[k][1] = 0.5; Fiducials[k][2] = 1.0; 
+            Nind[k] = 15; ++k;
+         Fiducials[k][0] = 0.0; Fiducials[k][1] = 1.0; Fiducials[k][2] = 1.0; 
+            Nind[k] = 18; ++k;
+         Fiducials[k][0] = 0.0; Fiducials[k][1] = 0.5; Fiducials[k][2] = 0.0; 
+            Nind[k] = 24; ++k;
+         Fiducials[k][0] = 0.0; Fiducials[k][1] = 1.0; Fiducials[k][2] = 0.0; 
+            Nind[k] = 32; ++k;
+         Fiducials[k][0] = 1.0; Fiducials[k][1] = 1.0; Fiducials[k][2] = 0.0; 
+            Nind[k] = 43; ++k;
+         Fiducials[k][0] = 1.0; Fiducials[k][1] = 0.5; Fiducials[k][2] = 0.0; 
+            Nind[k] = 48; ++k;
+         Fiducials[k][0] = 1.0; Fiducials[k][1] = 0.0; Fiducials[k][2] = 0.0; 
+            Nind[k] = 56; ++k;
+         Fiducials[k][0] = 0.5625; Fiducials[k][1] = 0.0; Fiducials[k][2] = 0.0; 
+            Nind[k] = 63; ++k;
 
          /* generate 64 colors colormap */
-         CM = SUMA_MakeColorMap_v2 (Fiducials, k, Nind, NOPE, mapname);
+         CM = SUMA_MakeColorMap_v2 (Fiducials, k, 0, Nind, NOPE, mapname);
 
          /* free Fiducials & Nind*/
          SUMA_free2D((char **)Fiducials, k);
@@ -3408,22 +4125,30 @@ SUMA_COLOR_MAP * SUMA_MakeStandardMap (char *mapname)
          Nind = (int *) SUMA_calloc (NFid, sizeof (int));
 
          if (!Fiducials || !Nind) {
-            fprintf (SUMA_STDERR,"Error %s: Failed to allocate for Fiducials or Nind.\n", FuncName);
+            fprintf (SUMA_STDERR,
+                     "Error %s: Failed to allocate for Fiducials or Nind.\n", 
+                     FuncName);
             SUMA_RETURN (NULL);
          }
 
          /* create the fiducial colors */
          k = 0;
-         Fiducials[k][0] = 1.0; Fiducials[k][1] = 1.0; Fiducials[k][2] = 0; Nind[k] = 0; ++k; 
-         Fiducials[k][0] = 0.0; Fiducials[k][1] = 1.0; Fiducials[k][2] = 0; Nind[k] = 50; ++k;
-         Fiducials[k][0] = 0.0; Fiducials[k][1] = 0; Fiducials[k][2] = 1.0; Nind[k] = 100; ++k;
-         Fiducials[k][0] = 1.0; Fiducials[k][1] = 0.0; Fiducials[k][2] = 0.0; Nind[k] = 150; ++k;
-         Fiducials[k][0] = 0; Fiducials[k][1] = 1.0; Fiducials[k][2] = 1; Nind[k] = 200; ++k;
-         Fiducials[k][0] = 1; Fiducials[k][1] = 0; Fiducials[k][2] = 1; Nind[k] = 255; ++k;
+         Fiducials[k][0] = 1.0; Fiducials[k][1] = 1.0; Fiducials[k][2] = 0; 
+            Nind[k] = 0; ++k; 
+         Fiducials[k][0] = 0.0; Fiducials[k][1] = 1.0; Fiducials[k][2] = 0; 
+            Nind[k] = 50; ++k;
+         Fiducials[k][0] = 0.0; Fiducials[k][1] = 0; Fiducials[k][2] = 1.0; 
+            Nind[k] = 100; ++k;
+         Fiducials[k][0] = 1.0; Fiducials[k][1] = 0.0; Fiducials[k][2] = 0.0; 
+            Nind[k] = 150; ++k;
+         Fiducials[k][0] = 0; Fiducials[k][1] = 1.0; Fiducials[k][2] = 1; 
+            Nind[k] = 200; ++k;
+         Fiducials[k][0] = 1; Fiducials[k][1] = 0; Fiducials[k][2] = 1; 
+            Nind[k] = 255; ++k;
 
 
          /* generate colormap */
-         CM = SUMA_MakeColorMap_v2 (Fiducials, k, Nind, NOPE, mapname);
+         CM = SUMA_MakeColorMap_v2 (Fiducials, k, 0, Nind, NOPE, mapname);
 
          /* free Fiducials & Nind*/
          SUMA_free2D((char **)Fiducials, k);
@@ -3442,22 +4167,30 @@ SUMA_COLOR_MAP * SUMA_MakeStandardMap (char *mapname)
          Nind = (int *) SUMA_calloc (NFid, sizeof (int));
 
          if (!Fiducials || !Nind) {
-            fprintf (SUMA_STDERR,"Error %s: Failed to allocate for Fiducials or Nind.\n", FuncName);
+            fprintf (SUMA_STDERR,
+                     "Error %s: Failed to allocate for Fiducials or Nind.\n", 
+                     FuncName);
             SUMA_RETURN (NULL);
          }
 
          /* create the fiducial colors */
          k = 0;
-         Fiducials[k][0] = 1.0; Fiducials[k][1] = 1.0; Fiducials[k][2] = 0; Nind[k] = 0; ++k; 
-         Fiducials[k][0] = 0.0; Fiducials[k][1] = 1.0; Fiducials[k][2] = 0; Nind[k] = 25; ++k;
-         Fiducials[k][0] = 0.0; Fiducials[k][1] = 0; Fiducials[k][2] = 1.0; Nind[k] = 50; ++k;
-         Fiducials[k][0] = 1.0; Fiducials[k][1] = 0.0; Fiducials[k][2] = 0.0; Nind[k] = 75; ++k;
-         Fiducials[k][0] = 0; Fiducials[k][1] = 1.0; Fiducials[k][2] = 1; Nind[k] = 100; ++k;
-         Fiducials[k][0] = 1; Fiducials[k][1] = 0; Fiducials[k][2] = 1; Nind[k] = 127; ++k;
+         Fiducials[k][0] = 1.0; Fiducials[k][1] = 1.0; Fiducials[k][2] = 0; 
+            Nind[k] = 0; ++k; 
+         Fiducials[k][0] = 0.0; Fiducials[k][1] = 1.0; Fiducials[k][2] = 0; 
+            Nind[k] = 25; ++k;
+         Fiducials[k][0] = 0.0; Fiducials[k][1] = 0; Fiducials[k][2] = 1.0; 
+            Nind[k] = 50; ++k;
+         Fiducials[k][0] = 1.0; Fiducials[k][1] = 0.0; Fiducials[k][2] = 0.0; 
+            Nind[k] = 75; ++k;
+         Fiducials[k][0] = 0; Fiducials[k][1] = 1.0; Fiducials[k][2] = 1; 
+            Nind[k] = 100; ++k;
+         Fiducials[k][0] = 1; Fiducials[k][1] = 0; Fiducials[k][2] = 1; 
+            Nind[k] = 127; ++k;
 
 
          /* generate colormap */
-         CM = SUMA_MakeColorMap_v2 (Fiducials, k, Nind, NOPE, mapname);
+         CM = SUMA_MakeColorMap_v2 (Fiducials, k, 0, Nind, NOPE, mapname);
 
          /* free Fiducials & Nind*/
          SUMA_free2D((char **)Fiducials, k);
@@ -3476,22 +4209,30 @@ SUMA_COLOR_MAP * SUMA_MakeStandardMap (char *mapname)
          Nind = (int *) SUMA_calloc (NFid, sizeof (int));
 
          if (!Fiducials || !Nind) {
-            fprintf (SUMA_STDERR,"Error %s: Failed to allocate for Fiducials or Nind.\n", FuncName);
+            fprintf (SUMA_STDERR,
+                     "Error %s: Failed to allocate for Fiducials or Nind.\n", 
+                     FuncName);
             SUMA_RETURN (NULL);
          }
 
          /* create the fiducial colors */
          k = 0;
-         Fiducials[k][0] = 1.0; Fiducials[k][1] = 1.0; Fiducials[k][2] = 0; Nind[k] = 0; ++k; 
-         Fiducials[k][0] = 0.0; Fiducials[k][1] = 1.0; Fiducials[k][2] = 0; Nind[k] = 12; ++k;
-         Fiducials[k][0] = 0.0; Fiducials[k][1] = 0; Fiducials[k][2] = 1.0; Nind[k] = 25; ++k;
-         Fiducials[k][0] = 1.0; Fiducials[k][1] = 0.0; Fiducials[k][2] = 0.0; Nind[k] = 33; ++k;
-         Fiducials[k][0] = 0; Fiducials[k][1] = 1.0; Fiducials[k][2] = 1; Nind[k] = 50; ++k;
-         Fiducials[k][0] = 1; Fiducials[k][1] = 0; Fiducials[k][2] = 1; Nind[k] = 63; ++k;
+         Fiducials[k][0] = 1.0; Fiducials[k][1] = 1.0; Fiducials[k][2] = 0; 
+            Nind[k] = 0; ++k; 
+         Fiducials[k][0] = 0.0; Fiducials[k][1] = 1.0; Fiducials[k][2] = 0; 
+            Nind[k] = 12; ++k;
+         Fiducials[k][0] = 0.0; Fiducials[k][1] = 0; Fiducials[k][2] = 1.0; 
+            Nind[k] = 25; ++k;
+         Fiducials[k][0] = 1.0; Fiducials[k][1] = 0.0; Fiducials[k][2] = 0.0; 
+            Nind[k] = 33; ++k;
+         Fiducials[k][0] = 0; Fiducials[k][1] = 1.0; Fiducials[k][2] = 1; 
+            Nind[k] = 50; ++k;
+         Fiducials[k][0] = 1; Fiducials[k][1] = 0; Fiducials[k][2] = 1; 
+            Nind[k] = 63; ++k;
 
 
          /* generate colormap */
-         CM = SUMA_MakeColorMap_v2 (Fiducials, k, Nind, NOPE, mapname);
+         CM = SUMA_MakeColorMap_v2 (Fiducials, k, 0, Nind, NOPE, mapname);
 
          /* free Fiducials & Nind*/
          SUMA_free2D((char **)Fiducials, k);
@@ -3502,7 +4243,8 @@ SUMA_COLOR_MAP * SUMA_MakeStandardMap (char *mapname)
             SUMA_RETURN (NULL);   
          }
       }else {
-         fprintf (SUMA_STDERR,"Error %s: Unrecognized color map name.\n", FuncName);
+         fprintf (SUMA_STDERR,
+                  "Error %s: Unrecognized color map name.\n", FuncName);
          SUMA_RETURN (NULL);
       
       }
@@ -3531,11 +4273,11 @@ void SUMA_Flip_Color_Map (SUMA_COLOR_MAP *CM)
    
    if (!CM->M) SUMA_RETURNe;
    
-   lim = CM->N_Col/2;
-   for (j=0; j < 3; ++j) {  /* loop accross R,G,B columns */
+   lim = CM->N_M[0]/2;
+   for (j=0; j < CM->N_M[1]; ++j) {  /* loop accross R,G,B columns */
       for (i=0; i < lim; ++i) {
          t = CM->M[i][j];           /* store color at i to be flipped */
-         c = CM->N_Col - i - 1;     /* index of color to replace one at i */
+         c = CM->N_M[0] - i - 1;     /* index of color to replace one at i */
          CM->M[i][j] = CM->M[c][j]; /* replace color at i */
          CM->M[c][j] = t;           /* put old color of i ar c */
       } 
@@ -3548,9 +4290,8 @@ void SUMA_Flip_Color_Map (SUMA_COLOR_MAP *CM)
    
    #if 0 /* not sure you want to do that. If you flip
             after rotation, you'll be lost */
-   CM->M0[0] = CM->M[CM->N_Col-1][0]; 
-   CM->M0[1] = CM->M[CM->N_Col-1][1]; 
-   CM->M0[2] = CM->M[CM->N_Col-1][2]; 
+   for (j=0; j < CM->N_M[1]; ++j)
+      CM->M0[j] = CM->M[CM->N_M[0]-1][j]; 
    #endif
    
    CM->flipped = !CM->flipped;
@@ -3582,9 +4323,9 @@ int SUMA_Rotate_Color_Map (SUMA_COLOR_MAP *CM, float frac)
    if (!CM->M) SUMA_RETURN(0);
    
    /* make copy */
-   orig_cols = (float **)SUMA_allocate2D (CM->N_Col, 3, sizeof(float));
-   for (j=0; j < 3; ++j) { 
-      for (i=0; i < CM->N_Col; ++i) {
+   orig_cols = (float **)SUMA_allocate2D (CM->N_M[0], CM->N_M[1], sizeof(float));
+   for (j=0; j < CM->N_M[1]; ++j) { 
+      for (i=0; i < CM->N_M[0]; ++i) {
          orig_cols[i][j] = CM->M[i][j];  
       }
    }
@@ -3593,9 +4334,9 @@ int SUMA_Rotate_Color_Map (SUMA_COLOR_MAP *CM, float frac)
    if (frac == 0.0f) {  /* come back baby */
       tdistmin = 1000;
       dmin = 900;
-      for (i=0; i < CM->N_Col; ++i) {
+      for (i=0; i < CM->N_M[0]; ++i) {
          tdist = 0.0;
-         for (j=0; j<3; ++j) {
+         for (j=0; j< CM->N_M[1]; ++j) {
             tdist += SUMA_POW2(CM->M[i][j]-CM->M0[j]); 
          }
          if (tdist <= tdistmin) {
@@ -3608,29 +4349,29 @@ int SUMA_Rotate_Color_Map (SUMA_COLOR_MAP *CM, float frac)
    } else if (SUMA_ABS(frac) == 1.0f) {   /* one color at a time */
       di = 1;
    } else {
-      di = SUMA_ROUND(SUMA_ABS(frac*CM->N_Col));
-      if (di > CM->N_Col/2) di = CM->N_Col/2;
+      di = SUMA_ROUND(SUMA_ABS(frac*CM->N_M[0]));
+      if (di > CM->N_M[0]/2) di = CM->N_M[0]/2;
       if (di < 1) di = 1;
    }
-   SUMA_LHv("A shift of %d colors (frac %f, N_Col %d)...\n",
-            di, frac, CM->N_Col); 
+   SUMA_LHv("A shift of %d colors (frac %f, N_M[0,1] [%d, %d])...\n",
+            di, frac, CM->N_M[0], CM->N_M[1]); 
    if (frac > 0) {
-      for (i=0; i < CM->N_Col; ++i)  {
-         ic = (i+di) % CM->N_Col;
-         for (j=0; j < 3; ++j) {
+      for (i=0; i < CM->N_M[0]; ++i)  {
+         ic = (i+di) % CM->N_M[0];
+         for (j=0; j < CM->N_M[1]; ++j) {
             CM->M[ic][j] = orig_cols[i][j];
          }
       }
    } else {
-      for (i=0; i < CM->N_Col; ++i)  {
-         ic = (i+di) % CM->N_Col;
-         for (j=0; j < 3; ++j) {
+      for (i=0; i < CM->N_M[0]; ++i)  {
+         ic = (i+di) % CM->N_M[0];
+         for (j=0; j < CM->N_M[1]; ++j) {
             CM->M[i][j] = orig_cols[ic][j];
          }
       }
    }
    
-   SUMA_free2D((char **)orig_cols, CM->N_Col); orig_cols = NULL;
+   SUMA_free2D((char **)orig_cols, CM->N_M[0]); orig_cols = NULL;
       
    if (CM->SO) { /* Free it, and recreate it here or suffer
                   from asynchronous display related problems if you
@@ -5571,7 +6312,8 @@ SUMA_Boolean SUMA_iRGB_to_OverlayPointer (SUMA_SurfaceObject *SO,
 {
    static char FuncName[]={"SUMA_iRGB_to_OverlayPointer"}, stmp[500];
    char *DsetName_tmp=NULL;
-   int i, OverInd = -1, i_max, wrn_cnt = 0, i3 = 0, N_NodeDef = -1, *NodeDef = NULL;
+   int i, OverInd = -1, i_max, wrn_cnt = 0, i3 = 0, 
+         N_NodeDef = -1, *NodeDef = NULL;
    SUMA_SurfaceObject *SO2 = NULL;
    SUMA_OVERLAYS *Overlay=NULL;
    SUMA_DSET *dset = NULL;
@@ -5581,12 +6323,14 @@ SUMA_Boolean SUMA_iRGB_to_OverlayPointer (SUMA_SurfaceObject *SO,
 
       SUMA_LH("Fetching Overlay Pointer");
       /* if plane exists use it, else create a new one on the mappable surface */
-      if (!SUMA_Fetch_OverlayPointer (SO->Overlays, SO->N_Overlays, Name, &OverInd)) {
+      if (!SUMA_Fetch_OverlayPointer (SO->Overlays, SO->N_Overlays, 
+                                       Name, &OverInd)) {
          SUMA_LH("pointer not found");
          /* overlay plane not found, create a new one on the mappable surface*/
          if (!SUMA_isLocalDomainParent(SO)) {
             if (sopd->Source == SES_Afni) {
-               /* unexpected, surfaces coming from AFNI with a map should be a local domain parent */
+               /* unexpected, surfaces coming from AFNI with a map 
+               should be a local domain parent */
                fprintf(SUMA_STDERR,"Error %s: Surface %s (ID: %s) received from AFNI is not a local domain parent.\n", FuncName, SO->Label, SO->idcode_str);
                SUMA_RETURN(NOPE);
             } else {
@@ -5638,7 +6382,10 @@ SUMA_Boolean SUMA_iRGB_to_OverlayPointer (SUMA_SurfaceObject *SO,
          SUMA_LH("Pointer found");
       }
       
-      if (LocalHead) fprintf (SUMA_STDERR, "%s: OverInd = %d, Loading colors to Overlay Plane...\n", FuncName, OverInd);
+      if (LocalHead) 
+         fprintf (SUMA_STDERR, 
+                  "%s: OverInd = %d, Loading colors to Overlay Plane...\n", 
+                  FuncName, OverInd);
       if (sopd->N > SO->N_Node) {
          sprintf(stmp,"Number of nodes in colorplane (%d)\n" \
                       "is larger than number of nodes in surface (%d)\n" \
@@ -5652,29 +6399,37 @@ SUMA_Boolean SUMA_iRGB_to_OverlayPointer (SUMA_SurfaceObject *SO,
       }
       
       SO->Overlays[OverInd]->DimFact = sopd->DimFact;
-      SO->Overlays[OverInd]->cmapname = SUMA_copy_string("explicit"); /* explict color definition in data */
-      SO->Overlays[OverInd]->FullList = 0; /*!< This type of planes is not usually a full list because it has the nodes defined*/
+      SO->Overlays[OverInd]->cmapname = SUMA_copy_string("explicit"); 
+                                 /* explict color definition in data */
+      SO->Overlays[OverInd]->FullList = 0; /*!< This type of planes is not 
+               usually a full list because it has the nodes defined*/
       
       /* Now put the colors in the overlay plane */
       if (LocalHead) fprintf (SUMA_STDERR,
                               "%s: %d node colors are to be inserted.\n",
                               FuncName, i_max);
                                     
-      COLP_N_NODEDEF(SO->Overlays[OverInd]) = i_max; /* set the number of nodes filled IN THE OVERLAY PLANE*/
-      SDSET_VECFILLED(SO->Overlays[OverInd]->dset_link) = i_max; /* set the number of nodes filled IN THE DSET, For this
-                                                      type of dsets, the N_NodeDef is the same for both OVERLAY
-                                                      and DSET*/
+      COLP_N_NODEDEF(SO->Overlays[OverInd]) = i_max; /* set the number of nodes 
+                                       filled IN THE OVERLAY PLANE*/
+      SDSET_VECFILLED(SO->Overlays[OverInd]->dset_link) = i_max; /* set the 
+                     number of nodes filled IN THE DSET, For this
+                     type of dsets, the N_NodeDef is the same for 
+                     both OVERLAY and for DSET*/
       if (COLP_N_NODEDEF(SO->Overlays[OverInd])) {
          int *iv, N_i,*Nv; 
          float *Rv, *Gv, *Bv; 
          SUMA_DSET *dset;
          dset = SO->Overlays[OverInd]->dset_link;
-         /* find the columns you need to fill. You can't use SUMA_FillNelCol directly because
-         columns (vectors) are of different types */
-         if (!(Nv = SUMA_GetNodeDef(dset))) { SUMA_SL_Err("Failed to find node indices."); SUMA_RETURN(NOPE); }
+         /* find the columns you need to fill. 
+          You can't use SUMA_FillNelCol directly because
+          columns (vectors) are of different types */
+         if (!(Nv = SUMA_GetNodeDef(dset))) { 
+            SUMA_SL_Err("Failed to find node indices."); SUMA_RETURN(NOPE); }
          if (LocalHead) SUMA_ShowDset(dset, 0, NULL);
          iv = SUMA_GetDsetColIndex (dset, SUMA_NODE_R, &N_i);
-         if (N_i != 1) { SUMA_SL_Err("Failed to find one column."); SUMA_free(iv); SUMA_RETURN(NOPE); }
+         if (N_i != 1) { 
+            SUMA_SL_Err("Failed to find one column."); 
+            SUMA_free(iv); SUMA_RETURN(NOPE); }
          Rv = (float *)dset->dnel->vec[iv[0]];SUMA_free(iv); iv = NULL; 
          iv = SUMA_GetDsetColIndex (dset, SUMA_NODE_G, &N_i);
          if (N_i != 1) { SUMA_SL_Err("Failed to find one column."); SUMA_free(iv); SUMA_RETURN(NOPE); }
@@ -6441,7 +7196,9 @@ void SUMA_LoadColorPlaneFile (char *filename, void *data)
    SO = (SUMA_SurfaceObject *)data;
    
    if (LocalHead) {
-      fprintf (SUMA_STDERR,"%s: Received request to load %s for surface %s.\n", FuncName, filename, SO->Label);
+      fprintf (SUMA_STDERR,
+               "%s: Received request to load %s for surface %s.\n", 
+               FuncName, filename, SO->Label);
    }
 
    /* find out if file exists and how many values it contains */
@@ -6462,7 +7219,8 @@ void SUMA_LoadColorPlaneFile (char *filename, void *data)
    sopd.GlobalOpacity = 0.3;
    sopd.isBackGrnd = NOPE;
    sopd.Show = YUP;
-   /* dim colors from maximum intensity to preserve surface shape highlights, division by 255 is to scale color values between 1 and 0 */
+   /* dim colors from maximum intensity to preserve surface shape 
+      highlights, division by 255 is to scale color values between 1 and 0 */
    sopd.DimFact = 0.5;
    sopd.i = (void *)irgb->i;
    sopd.r = (void *)irgb->r;
@@ -6471,7 +7229,8 @@ void SUMA_LoadColorPlaneFile (char *filename, void *data)
    sopd.a = NULL;
 
    if (!SUMA_iRGB_to_OverlayPointer (  SO, filename, &sopd, &OverInd, 
-                                       SUMAg_DOv, SUMAg_N_DOv, SUMAg_CF->DsetList)) {
+                                       SUMAg_DOv, SUMAg_N_DOv, 
+                                       SUMAg_CF->DsetList)) {
       SUMA_SLP_Err("Failed to fetch or create overlay pointer.");
       SUMA_RETURNe;
    }
@@ -6493,8 +7252,10 @@ void SUMA_LoadColorPlaneFile (char *filename, void *data)
       if (!LW->isShaded) SUMA_RefreshDsetList (SO);  
    }  
    
-   if (LocalHead) fprintf (SUMA_STDERR,"%s: Updating color plane frame, OverInd=%d\n", 
-      FuncName, OverInd);
+   if (LocalHead) 
+      fprintf (SUMA_STDERR,
+               "%s: Updating color plane frame, OverInd=%d\n", 
+               FuncName, OverInd);
    /* update the color plane frame */
    if (OverInd >= 0)        
       SUMA_InitializeColPlaneShell(SO, SO->Overlays[OverInd]);
@@ -6611,7 +7372,7 @@ int SUMA_AFNI_Extract_Colors ( char *fname, SUMA_AFNI_COLORS *SAC )
          char label[SUMA_NSBUF]="\0" , defn[SUMA_NSBUF]="\0" ;
 
          if (LocalHead) fprintf (SUMA_STDERR,"%s: Found ***COLORS\n", FuncName);
-         while(1){                          /* loop, looking for 'label = color' */
+         while(1){                      /* loop, looking for 'label = color' */
             SUMA_GETEQN ;
             
             if (LocalHead) {
@@ -6627,7 +7388,9 @@ int SUMA_AFNI_Extract_Colors ( char *fname, SUMA_AFNI_COLORS *SAC )
                rgb[0] = rgb[1] = rgb[2] =-1.0;
             } else {
                if (!SUMA_Interpret_AFNIColor (right, rgb)) {
-                  fprintf(SUMA_STDERR,"Error %s: Failed to interpret color %s\n", FuncName, right);
+                  fprintf( SUMA_STDERR,
+                           "Error %s: Failed to interpret color %s\n", 
+                           FuncName, right);
                   SUMA_RETURN(-1);
                }
             }
@@ -6689,26 +7452,32 @@ int SUMA_AFNI_Extract_Colors ( char *fname, SUMA_AFNI_COLORS *SAC )
 
 
             if( str[0] != '[' ){                    /* bad news! */
-               fprintf(SUMA_STDERR,"Error %s: In setup file %s, expected palette '[n]' here: %s.\n",
-                              FuncName, fname , str ) ;
+               fprintf(SUMA_STDERR,
+                        "Error %s: In setup file %s, expected palette "
+                        "'[n]' here: %s.\n",
+                        FuncName, fname , str ) ;
                SUMA_RETURN(-1) ;
             }
 
             /* decide how big the new palette is to be, and what mode  */
             ii = sscanf( str , "[%d%c" , &npane , &ccc ) ;
             if( ii < 2 ){
-               fprintf(SUMA_STDERR,"%s: In setup file %s, can't interpret palette %s\n",
-                              FuncName, fname , str ) ;
+               fprintf( SUMA_STDERR,
+                        "%s: In setup file %s, can't interpret palette %s\n",
+                        FuncName, fname , str ) ;
                SUMA_RETURN(-1) ;
             } else if( npane < NPANE_MIN || npane > NPANE_MAX ){
-               fprintf(SUMA_STDERR,"%s: In setup file %s, illegal palette count %s.\n",
-                              FuncName, fname , str ) ;
+               fprintf(SUMA_STDERR,
+                        "%s: In setup file %s, illegal palette count %s.\n",
+                        FuncName, fname , str ) ;
                SUMA_RETURN(-1) ;
             }
 
             /* at this point, now loop to read parameters for new palette */
             if (LocalHead) {
-               fprintf(SUMA_STDERR,"%s: About to read %d panes.\n", FuncName, npane);
+               fprintf( SUMA_STDERR,
+                        "%s: About to read %d panes.\n", 
+                        FuncName, npane);
             }
             
             /* prepare the colormap */
@@ -6717,9 +7486,11 @@ int SUMA_AFNI_Extract_Colors ( char *fname, SUMA_AFNI_COLORS *SAC )
                SUMA_SL_Crit ("Failed to allocate for CM");
                SUMA_RETURN(-1);
             }
+            CM->idvec = NULL;
+            CM->chd = NULL;
             CM->top_frac = 0.0f;
             CM->SO = NULL;
-            CM->N_Col = npane;
+            CM->N_M[0] = npane; CM->N_M[1] = 4;
             CM->cname = NULL;
  
             if (ccc == '+') CM->Sgn = 1;
@@ -6727,41 +7498,51 @@ int SUMA_AFNI_Extract_Colors ( char *fname, SUMA_AFNI_COLORS *SAC )
             
             
             CM->Name = (char *)SUMA_calloc(strlen(label)+10, sizeof(char));
-            CM->frac = (float *)SUMA_calloc(CM->N_Col, sizeof(float));
-            CM->M = (float**)SUMA_allocate2D (CM->N_Col, 3, sizeof(float));
+            CM->frac = (float *)SUMA_calloc(CM->N_M[0], sizeof(float));
+            CM->M = (float**)
+                        SUMA_allocate2D (CM->N_M[0], CM->N_M[1], sizeof(float));
             if (  CM->frac == NULL || CM->M == NULL || CM->Name == NULL ) {
                SUMA_SL_Crit ("Failed to allocate for fields of CM.");
                SUMA_RETURN (-1);
             }
-            if (CM->Sgn == 1) sprintf(CM->Name, "%s_p%d", label, CM->N_Col);
-            else sprintf(CM->Name, "%s_n%d", label, CM->N_Col);
+            if (CM->Sgn == 1) sprintf(CM->Name, "%s_p%d", label, CM->N_M[0]);
+            else sprintf(CM->Name, "%s_n%d", label, CM->N_M[0]);
             
             for( ii=0 ; ii < npane ; ii++ ){
                SUMA_GETEQN ;
 
                if (LocalHead) {
-                  fprintf(SUMA_STDERR,"%s: SUMA_GETEQN: %s %s %s\n",FuncName, left,middle,right) ;
+                  fprintf(SUMA_STDERR,
+                           "%s: SUMA_GETEQN: %s %s %s\n",
+                           FuncName, left,middle,right) ;
                }
                
                /* find that color */
                icol = SUMA_Find_Color (right, SAC->Cv, SAC->N_cols);
                if (icol < 0) {
-                  fprintf(SUMA_STDERR,"Error %s: Color %s not found in dbase.\nUsing no-color in its place\n", FuncName, right);
-                  CM->M[npane - ii - 1][0] = CM->M[npane - ii - 1][1] = CM->M[npane - ii - 1][2] = -1.0; 
+                  fprintf( SUMA_STDERR,
+                           "Error %s: Color %s not found in dbase.\n"
+                           "Using no-color in its place\n", FuncName, right);
+                  CM->M[npane - ii - 1][0] = 
+                  CM->M[npane - ii - 1][1] = 
+                  CM->M[npane - ii - 1][2] = -1.0;
+                  CM->M[npane - ii - 1][3] = 0.0; 
                } else {
                   CM->M[npane - ii - 1][0] = SAC->Cv[icol].r;
                   CM->M[npane - ii - 1][1] = SAC->Cv[icol].g;
                   CM->M[npane - ii - 1][2] = SAC->Cv[icol].b;
+                  CM->M[npane - ii - 1][3] = 1.0;
                }
                CM->frac[npane - ii - 1] = atof(left);
             }
-            if (CM->frac[CM->N_Col-1] != 1.0f) {
-               CM->top_frac = CM->frac[CM->N_Col-1];
+            if (CM->frac[CM->N_M[0]-1] != 1.0f) {
+               CM->top_frac = CM->frac[CM->N_M[0]-1];
             }
             
             CM->M0[0] = CM->M[0][0]; 
             CM->M0[1] = CM->M[0][1]; 
             CM->M0[2] = CM->M[0][2]; 
+            CM->M0[3] = CM->M[0][3]; 
 
             /* add the map to the list */
             SAC->CMv = SUMA_Add_ColorMap (CM, SAC->CMv, &(SAC->N_maps));  
@@ -6910,28 +7691,48 @@ int SUMA_ColorizePlane (SUMA_OVERLAYS *cp)
       SUMA_Show_ColorOverlayPlanes ( &cp, 1, 0);
    }
    if (!cp) { SUMA_SL_Err("NULL cp"); SUMA_RETURN(NOPE); }
-   if (!cp->dset_link) { SUMA_SL_Err("Where's your dset_link?"); SUMA_RETURN(NOPE); }
-   if (!cp->cmapname) { SUMA_SL_Err("Where's your cmapname?"); SUMA_RETURN(NOPE); }
+   if (!cp->dset_link) { 
+      SUMA_SL_Err("Where's your dset_link?"); 
+      SUMA_RETURN(NOPE); 
+   }
+   if (!cp->cmapname) { 
+      SUMA_SL_Err("Where's your cmapname?"); 
+      SUMA_RETURN(NOPE); 
+   }
    if (!cp->ColVec) { SUMA_SL_Err("NULL cV"); SUMA_RETURN(NOPE); }
    
    /* is the coloring direct ? */
    if (strcmp(cp->cmapname, "explicit") == 0) {
-      
       SUMA_LH("Explicit color specification");
       /* make sure dataset is of type NODE_RGB */
       if (SDSET_TYPE(cp->dset_link) != SUMA_NODE_RGB) {
          SUMA_SL_Err("Direct mapping is only supported for SUMA_NODE_RGB types");
          SUMA_RETURN(NOPE);
       }
-      if (!(Nv = SUMA_GetNodeDef(cp->dset_link))) { SUMA_SL_Err("Failed to find index column."); SUMA_RETURN(NOPE); }
+      if (!(Nv = SUMA_GetNodeDef(cp->dset_link))) { 
+         SUMA_SL_Err("Failed to find index column."); 
+         SUMA_RETURN(NOPE); 
+      }
       iv = SUMA_GetDsetColIndex (cp->dset_link, SUMA_NODE_R, &N_i);
-      if (N_i != 1) { SUMA_SL_Err("Failed to find red column."); SUMA_free(iv); SUMA_RETURN(NOPE); }
+      if (N_i != 1) { 
+         SUMA_SL_Err("Failed to find red column."); 
+         SUMA_free(iv); 
+         SUMA_RETURN(NOPE); 
+      }
       Rv = (float *)cp->dset_link->dnel->vec[iv[0]];SUMA_free(iv); iv = NULL;
       iv = SUMA_GetDsetColIndex (cp->dset_link, SUMA_NODE_G, &N_i);
-      if (N_i != 1) { SUMA_SL_Err("Failed to find green column."); SUMA_free(iv); SUMA_RETURN(NOPE); }
+      if (N_i != 1) { 
+         SUMA_SL_Err("Failed to find green column."); 
+         SUMA_free(iv); 
+         SUMA_RETURN(NOPE); 
+      }
       Gv = (float *)cp->dset_link->dnel->vec[iv[0]];SUMA_free(iv); iv = NULL;
       iv = SUMA_GetDsetColIndex (cp->dset_link, SUMA_NODE_B, &N_i);
-      if (N_i != 1) { SUMA_SL_Err("Failed to find blue column."); SUMA_free(iv); SUMA_RETURN(NOPE); }
+      if (N_i != 1) { 
+         SUMA_SL_Err("Failed to find blue column."); 
+         SUMA_free(iv); 
+         SUMA_RETURN(NOPE); 
+      }
       Bv = (float *)cp->dset_link->dnel->vec[iv[0]];SUMA_free(iv); iv = NULL;
       /* go ahead and populate cV */
       
@@ -6959,6 +7760,8 @@ int SUMA_ColorizePlane (SUMA_OVERLAYS *cp)
          }
       }
       cp->N_NodeDef = SDSET_VECFILLED(cp->dset_link);
+   } if (strcmp(cp->cmapname, "hashish") == 0) {
+      SUMA_S_Note("Not ready freddy");
    } else {
       /* indirect mapping */
       if (!SUMA_ScaleToMap_Interactive (cp)) {
