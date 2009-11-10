@@ -6851,7 +6851,7 @@ SUMA_Boolean SUMA_OKassign(SUMA_DSET *dset, SUMA_SurfaceObject *SO)
    
    if (!dset) SUMA_RETURN(NOPE);
    if (!SO) SUMA_RETURN(NOPE);
-   
+
    /* does dset have a mesh parent ? */
    np = SDSET_IDMDOM(dset); if (np) lnp = strlen(np); else lnp = 0; 
    if (np && lnp) { 
@@ -6884,11 +6884,12 @@ SUMA_Boolean SUMA_OKassign(SUMA_DSET *dset, SUMA_SurfaceObject *SO)
                SUMA_RETURN(YUP);
             }
          }else {
-            SUMA_LH( "Looks like a full list of values\n"
-                     "Techincally, there's no need for explicit node column.\n"
-                     "But at times, the data are not ordered by ascending node \n"
-                     "index which causes trouble.\nSo now I add a node index column"
-                     " always which would help point to the problem if it arises");
+            SUMA_LH( 
+               "Looks like a full list of values\n"
+               "Techincally, there's no need for explicit node column.\n"
+               "But at times, the data are not ordered by ascending node \n"
+               "index which causes trouble.\nSo now I add a node index column"
+               " always which would help point to the problem if it arises");
             /* Sept 21 04, call SUMA_AddNodeIndexColumn, it is good for you. Might add an unecessary index column when none exit but makes things clear*/
             if (!SUMA_AddNodeIndexColumn(dset, SO->N_Node)) {
                 SUMA_LH(" Failed to add a node index column");
@@ -7034,7 +7035,7 @@ void SUMA_LoadDsetFile (char *filename, void *data)
       }
       NI_set_attribute(dset->ngr,"domain_parent_idcode", SO->idcode_str);
       NI_set_attribute(dset->ngr,"geometry_parent_idcode", SO->idcode_str);
-      SUMA_ShowDset(dset, 0, NULL);
+      if (LocalHead) SUMA_ShowDset(dset, 0, NULL);
    } else {
       SUMA_SL_Note("dset has a mesh parent, Checking relationship");
       if (!SUMA_isDsetRelated(dset, SO)) {
