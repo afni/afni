@@ -142,7 +142,7 @@ char * g_sm_desc[] = {
 	 "for each node, average area of triangles (surf B)",
 	 "for each node, number of associated triangles",
 	 "associated node volume between surfaces",
-	 "associated node volume between surfaces estimated with Gauss' theorem",
+	 "associated node volume between surfaces via Gauss' theorem",
 	 "node number",
 	 "vector of normal at node on first surface",
 	 "vector of normal at node on second surface",
@@ -1128,21 +1128,21 @@ ENTRY("compute_node_vols_G");
    sop->NodeList = (float *)SUMA_calloc(sop->NodeDim*sop->N_Node, sizeof(float));
    sop->FaceSetList = (int *)SUMA_calloc(sop->FaceSetDim*sop->N_FaceSet, 
                                                                     sizeof(int));
-   /* fill node coords */
+   /* fill node coords See ZSS' Labbook NIH-5, pp63 */
    on3 = 3*node; D3 = 3*D;
-   sop->NodeList[0] = so1->NodeList[on3  ]; 
+   sop->NodeList[0] = so1->NodeList[on3  ]; /* Node O (oh)*/
    sop->NodeList[1] = so1->NodeList[on3+1]; 
    sop->NodeList[2] = so1->NodeList[on3+2];
-   sop->NodeList[D3  ] = so2->NodeList[on3  ]; 
+   sop->NodeList[D3  ] = so2->NodeList[on3  ]; /* Node D */
    sop->NodeList[D3+1] = so2->NodeList[on3+1]; 
    sop->NodeList[D3+2] = so2->NodeList[on3+2];
    for (i=0; i<N; ++i) {
       i3 = 3*(i+1); D3=3*(D+i+1);
       on3 = 3*so1->FN->FirstNeighb[node][i];
-      sop->NodeList[i3  ] = so1->NodeList[on3  ]; 
+      sop->NodeList[i3  ] = so1->NodeList[on3  ]; /* Node 1 */
       sop->NodeList[i3+1] = so1->NodeList[on3+1]; 
       sop->NodeList[i3+2] = so1->NodeList[on3+2];         
-      sop->NodeList[D3  ] = so2->NodeList[on3  ]; 
+      sop->NodeList[D3  ] = so2->NodeList[on3  ]; /* Node D+1 */
       sop->NodeList[D3+1] = so2->NodeList[on3+1]; 
       sop->NodeList[D3+2] = so2->NodeList[on3+2];            
    }
