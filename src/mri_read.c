@@ -2293,10 +2293,14 @@ STATUS(fname) ;  /* 16 Oct 2007 */
 
    fvec = decode_linebuf( buf ) ;           /* 20 Jul 2004 */
    if( fvec == NULL || fvec->nar == 0 ){
+     if (strlen(buf) > 64) { 
+        buf[64]='\0'; buf[63]='.'; buf[62]='.'; buf[61]='.'; buf[60]=' ';
+     }
      if (linebufdied) {/* death?  ZSS: Oct 19 2009*/
         fprintf(stderr,
                 "\n** Error: Failed parsing data row 0 of 1D file\n"
-                "          Check for illegal non-numeric characters\n");
+                "          Check for illegal non-numeric characters in:\n"
+                "          '%s'\n", buf);
      }
      if( fvec != NULL ) KILL_floatvec(fvec) ;
      FRB(buf); fclose(fts); RETURN(NULL);
@@ -2345,18 +2349,22 @@ STATUS(fname) ;  /* 16 Oct 2007 */
    fclose( fts ) ; /* finished with this file! */
    (void) my_fgets( NULL , 0 , NULL ) ;  /* reset [20 Jul 2004] */
 
-   /* from <= 1 to < 1 (allow 1x1 image) 25 Jan 2006 [rickr] */
-   if( used_tsar < 1 ){ FRB(buf); free(tsar); RETURN(NULL); }
-
    if (linebufdied) {/* death? ZSS: Oct 19 2009 */
+      if (strlen(buf) > 64) { 
+         buf[64]='\0'; buf[63]='.'; buf[62]='.'; buf[61]='.'; buf[60]=' ';
+      }
       fprintf(stderr,
                 "\n** Error: Failed parsing data row %d of 1D file\n"
-                "          Check for illegal non-numeric characters\n", nrow);
+                "          Check for illegal non-numeric characters in:\n"
+                "          '%s'\n", nrow, buf);
       if (tsar) free(tsar); tsar = NULL;
       FRB(buf);
       RETURN(NULL); 
    }
    
+   /* from <= 1 to < 1 (allow 1x1 image) 25 Jan 2006 [rickr] */
+   if( used_tsar < 1 ){ FRB(buf); free(tsar); RETURN(NULL); }
+
    tsar = (float *) realloc( tsar , sizeof(float) * used_tsar ) ;
    if( tsar == NULL ){
       fprintf(stderr,"\n*** final realloc error in mri_read_ascii ***\n"); EXIT(1);
@@ -2416,10 +2424,14 @@ ENTRY("mri_read_double_ascii") ;
 
    dvec = decode_double_linebuf( buf ) ;           /* 20 Jul 2004 */
    if( dvec == NULL || dvec->nar == 0 ){
+     if (strlen(buf) > 64) { 
+        buf[64]='\0'; buf[63]='.'; buf[62]='.'; buf[61]='.'; buf[60]=' ';
+     }
      if (doublelinebufdied) {/* death? ZSS: Oct 19 2009 */
         fprintf(stderr,
                 "\n** Error: Failed parsing data row 0 of 1D file\n"
-                "          Check for illegal non-numeric characters\n");
+                "          Check for illegal non-numeric characters in:\n"
+                "          '%s'\n", buf);
      }
      if( dvec != NULL ) KILL_doublevec(dvec) ;
      FRB(buf); fclose(fts); RETURN(NULL);
@@ -2468,18 +2480,22 @@ ENTRY("mri_read_double_ascii") ;
    fclose( fts ) ; /* finished with this file! */
    (void) my_fgets( NULL , 0 , NULL ) ;  /* reset [20 Jul 2004] */
 
-   /* from <= 1 to < 1 (allow 1x1 image) 25 Jan 2006 [rickr] */
-   if( used_tsar < 1 ){ FRB(buf); free(dtsar); RETURN(NULL); }
-
    if (doublelinebufdied) {/* death? ZSS: Oct 19 2009 */
+      if (strlen(buf) > 64) { 
+         buf[64]='\0'; buf[63]='.'; buf[62]='.'; buf[61]='.'; buf[60]=' ';
+      }
       fprintf(stderr,
                 "\n** Error: Failed parsing data row %d of 1D file\n"
-                "          Check for illegal non-numeric characters\n", nrow);
+                "          Check for illegal non-numeric characters in:\n"
+                "          '%s'\n", nrow, buf);
       if (dtsar) free(dtsar); dtsar = NULL;
       FRB(buf);
       RETURN(NULL); 
    }
    
+   /* from <= 1 to < 1 (allow 1x1 image) 25 Jan 2006 [rickr] */
+   if( used_tsar < 1 ){ FRB(buf); free(dtsar); RETURN(NULL); }
+
    dtsar = (double *) realloc( dtsar , sizeof(double) * used_tsar ) ;
    if( dtsar == NULL ){
       fprintf(stderr,"\n*** final realloc error in mri_read_double_ascii ***\n"); EXIT(1);
@@ -2538,10 +2554,14 @@ ENTRY("mri_read_complex_ascii") ;
 
    vec = decode_linebuf( buf ) ;           /* 20 Jul 2004 */
    if( vec == NULL || vec->nar == 0 ){
+     if (strlen(buf) > 64) { 
+        buf[64]='\0'; buf[63]='.'; buf[62]='.'; buf[61]='.'; buf[60]=' ';
+     }
      if (linebufdied) {/* death?  ZSS: Oct 19 2009*/
         fprintf(stderr,
                 "\n** Error: Failed parsing data row 0 of 1D file\n"
-                "          Check for illegal non-numeric characters\n");
+                "          Check for illegal non-numeric characters in:\n"
+                "          '%s'\n", buf);
      }
      if( vec != NULL ) KILL_floatvec(vec) ;
      FRB(buf); fclose(fts); RETURN(NULL);
@@ -2595,18 +2615,22 @@ ENTRY("mri_read_complex_ascii") ;
    fclose( fts ) ; /* finished with this file! */
    (void) my_fgets( NULL , 0 , NULL ) ;  /* reset [20 Jul 2004] */
 
-   /* from <= 1 to < 1 (allow 1x1 image) 25 Jan 2006 [rickr] */
-   if( used_tsar < 1 ){ FRB(buf); free(tsar); RETURN(NULL); }
-
    if (linebufdied) {/* death? ZSS: Oct 19 2009 */
+      if (strlen(buf) > 64) { 
+         buf[64]='\0'; buf[63]='.'; buf[62]='.'; buf[61]='.'; buf[60]=' ';
+      }
       fprintf(stderr,
                 "\n** Error: Failed parsing data row %d of 1D file\n"
-                "          Check for illegal non-numeric characters\n", nrow);
+                "          Check for illegal non-numeric characters in:\n"
+                "          '%s'\n", nrow, buf);
       if (tsar) free(tsar); tsar = NULL;
       FRB(buf);
       RETURN(NULL); 
    }
    
+   /* from <= 1 to < 1 (allow 1x1 image) 25 Jan 2006 [rickr] */
+   if( used_tsar < 1 ){ FRB(buf); free(tsar); RETURN(NULL); }
+
    tsar = (float *) realloc( tsar , sizeof(float) * used_tsar ) ;
    if( tsar == NULL ){
       fprintf(stderr,"\n*** final realloc error in mri_read_complex_ascii ***\n"); EXIT(1);

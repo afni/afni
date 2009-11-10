@@ -6644,12 +6644,18 @@ void SUMA_Show_Edge_List (SUMA_EDGE_LIST *EL, FILE *Out)
    if (EL->idcode_str) fprintf(Out,"IDcode: %s\n", EL->idcode_str);
    else fprintf(Out,"IDcode: NULL\n");
    
-   fprintf(Out,"Average InterNodal Distance: %f\n", EL->AvgLe);
-   fprintf(Out,"i-\t[EL[i][0] EL[i][1]]\t[ELps[i][0] ELps[i][1] ELps[i][2]]\tLe[i]\n");
+   fprintf(Out,"Average InterNodal Distance: %f\n"
+               "EL->EL = %p, EL->ELps=%p, EL->Le=%p\n", 
+               EL->AvgLe, EL->EL, EL->ELps, EL->Le);
+   fprintf(Out,"i-\t[EL[i][0] EL[i][1]]\t"
+               "[ELps[i][0] ELps[i][1] ELps[i][2]]\tLe[i]\n");
    for (i=0; i < EL->N_EL; ++i) {
-      fprintf(Out,"%d-\t[%d %d]\t[%d %d %d]\t%f\n", 
-               i, EL->EL[i][0], EL->EL[i][1], EL->ELps[i][0], EL->ELps[i][1], EL->ELps[i][2], EL->Le[i]);
-   
+      fprintf(Out,"%d-\t[%d %d]\t", 
+               i, EL->EL[i][0], EL->EL[i][1]);
+      fprintf(Out,"[%d %d %d]\t", 
+               EL->ELps[i][0], EL->ELps[i][1], EL->ELps[i][2]);
+      fprintf(Out,"%f\t", EL->Le[i]);
+      fprintf(Out,"\n");
    }
    fprintf(Out,"\nTriLimb contents:\n");
    fprintf(Out,"ti-\t[Edge1 Edge2 Edge3]\n");
@@ -6735,13 +6741,14 @@ SUMA_EDGE_LIST * SUMA_Make_Edge_List_eng (
 {
    static char FuncName[]={"SUMA_Make_Edge_List_eng"};
    int i, ie, ip, *isort_EL=NULL, **ELp=NULL, lu, ht, 
-       *iTri_limb=NULL, icur, in1, in2;
+       *iTri_limb=NULL, icur, in1, in2, N_Node_Alloc;
    float dx, dy, dz;
    SUMA_EDGE_LIST *SEL=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
 
+   if (debug > 1) LocalHead = YUP;
    if (!FL) {
       SUMA_SL_Err("Null FL");
       SUMA_RETURN(NULL);
@@ -6764,25 +6771,37 @@ SUMA_EDGE_LIST * SUMA_Make_Edge_List_eng (
    if (ownerid) sprintf(SEL->owner_id, "%s", ownerid);
    else SEL->owner_id[0] = '\0';
    SEL->LinkedPtrType = SUMA_LINKED_OVERLAY_TYPE;
-
+   
+   N_Node_Alloc = FL[0];
+   for (i=1; i<3*N_FL; ++i) if (N_Node_Alloc < FL[i]) N_Node_Alloc=FL[i]; 
+   ++N_Node_Alloc;
+   
    SEL->AvgLe = 0.0;
    SEL->N_EL = 3 * N_FL;
    SUMA_LHv("N-EL = %d\n", SEL->N_EL);
-   SEL->EL = (int **) SUMA_allocate2D (SEL->N_EL, 2, sizeof(int)); /* edge list */
-   SEL->ELloc = (int *)SUMA_calloc(N_Node, sizeof(int));
-   SEL->Le = (float *) SUMA_calloc (SEL->N_EL, sizeof(float)); /* length of each edge */
-   ELp = (int **) SUMA_allocate2D (SEL->N_EL, 2, sizeof(int)); /* edge property list */
-                                                         /* 1st column, 1 = is flipped from orientation in triangle, -1 as present in triangle 
-                                                              2nd column, index of triangle (FaceSet) that edge is a part of */    
-   SEL->ELps = (int **) SUMA_allocate2D (SEL->N_EL, 3, sizeof(int)); /*sorted edge property list */
+   SEL->EL = (int **) SUMA_allocate2D (SEL->N_EL, 2, sizeof(int)); 
+                                          /* edge list */
+   SEL->ELloc = (int *)SUMA_calloc(N_Node_Alloc, sizeof(int));
+   SEL->N_ELloc = N_Node_Alloc;
    
+   SEL->Le = (float *) SUMA_calloc (SEL->N_EL, sizeof(float)); 
+                                          /* length of each edge */
+   ELp = (int **) SUMA_allocate2D (SEL->N_EL, 2, sizeof(int)); 
+                          /* edge property list */
+            /* 1st column, 1 = is flipped from orientation in triangle, 
+                           -1 as present in triangle 
+               2nd column, index of triangle (FaceSet) that edge is a part of */    
+   SEL->ELps = (int **) SUMA_allocate2D (SEL->N_EL, 3, sizeof(int)); 
+                           /*sorted edge property list */
    /*fprintf(SUMA_STDERR, "%s: SEL->NEL %d\n", FuncName, SEL->N_EL/3);*/
    
    SEL->Tri_limb = (int **) SUMA_allocate2D (SEL->N_EL/3, 3, sizeof(int)); 
    iTri_limb = (int *)SUMA_calloc (SEL->N_EL/3,sizeof(int)); 
    
-   if (SEL == NULL || SEL->EL == NULL || ELp == NULL || SEL->ELps == NULL || SEL->Tri_limb == NULL || iTri_limb== NULL || SEL->ELloc == NULL) {
-      fprintf(SUMA_STDERR, "Error %s: Failed to allocate for EL, ELp.\n", FuncName);
+   if (SEL == NULL || SEL->EL == NULL || ELp == NULL || SEL->ELps == NULL || 
+       SEL->Tri_limb == NULL || iTri_limb== NULL || SEL->ELloc == NULL) {
+      fprintf(SUMA_STDERR, "Error %s: Failed to allocate for EL, ELp.\n", 
+                           FuncName);
       SUMA_RETURN (NULL);
    }
 
@@ -6843,10 +6862,14 @@ SUMA_EDGE_LIST * SUMA_Make_Edge_List_eng (
    
    
    #if 0
+   if (LocalHead) {   
       fprintf(SUMA_STDERR,"%s: Node1 Node2 | FlipVal Triangle\n", FuncName); 
       for (i=0; i < SEL->N_EL; ++i) {
-         fprintf (SUMA_STDERR, "%d %d | %d %d\n", SEL->EL[i][0], SEL->EL[i][1], ELp[i][0], ELp[i][1]);
+         fprintf (SUMA_STDERR, 
+                  "%d %d | %d %d\n", 
+                  SEL->EL[i][0], SEL->EL[i][1], ELp[i][0], ELp[i][1]);
       }
+   }
    #endif
 
    /* now sort the Edge list */
@@ -6858,32 +6881,43 @@ SUMA_EDGE_LIST * SUMA_Make_Edge_List_eng (
       SEL->ELps[i][0] = ELp[isort_EL[i]][0];
       SEL->ELps[i][1] = ELp[isort_EL[i]][1];
    }
-   
    SUMA_LH("Sorting edge list done.");
    
    if (isort_EL) SUMA_free(isort_EL);
    isort_EL = NULL;
    
    
-   #if 0
+   #if 1
+   if (LocalHead) {   
       fprintf(SUMA_STDERR,"%s: Node1 Node2 | FlipVal Triangle\n", FuncName); 
       for (i=0; i < SEL->N_EL; ++i) {
-         fprintf (SUMA_STDERR, "%d %d | %d %d\n", SEL->EL[i][0], SEL->EL[i][1], SEL->ELps[i][0], SEL->ELps[i][1]);
+         fprintf (SUMA_STDERR, 
+                  "%d %d | %d %d\n", 
+                  SEL->EL[i][0], SEL->EL[i][1], 
+                  SEL->ELps[i][0], SEL->ELps[i][1]);
       }
+   }
    #endif
    
    /* calculate the length of each edge */
    SEL->AvgLe = 0.0;
-   for (ie=0; ie < SEL->N_EL; ++ie) {
-      in1 = 3 * SEL->EL[ie][0]; in2 = 3 * SEL->EL[ie][1];
-      dx = (NodeList[in2] - NodeList[in1]);
-      dy = (NodeList[in2+1] - NodeList[in1+1]);
-      dz = (NodeList[in2+2] - NodeList[in1+2]);
-      SEL->Le[ie] = (float) sqrt (  dx * dx + dy * dy + dz * dz );
-      SEL->AvgLe += SEL->Le[ie];
+   if (NodeList) {
+      SUMA_LHv("Calculating average length of %d edges\n", SEL->N_EL);
+      for (ie=0; ie < SEL->N_EL; ++ie) {
+         in1 = 3 * SEL->EL[ie][0]; in2 = 3 * SEL->EL[ie][1];
+         dx = (NodeList[in2] - NodeList[in1]);
+         dy = (NodeList[in2+1] - NodeList[in1+1]);
+         dz = (NodeList[in2+2] - NodeList[in1+2]);
+         SEL->Le[ie] = (float) sqrt (  dx * dx + dy * dy + dz * dz );
+         SEL->AvgLe += SEL->Le[ie];
+      }
+      SEL->AvgLe = SEL->AvgLe / (float)SEL->N_EL; 
+         /* This is an approximate average 
+                   lenght, since some edges may counted more than others */
+      SUMA_LHv("Average segment length of %f\n", SEL->AvgLe);
+   } else {
+      SUMA_LH("Null NodeList, no distances computed");
    }
-   SEL->AvgLe = SEL->AvgLe / (float)SEL->N_EL; /* This is an approximate average lenght, since some edges may counted more than others */
-   
    /* free unsorted ELp */
    if (ELp) SUMA_free2D((char **)ELp, SEL->N_EL);
    ELp = NULL;
@@ -6904,9 +6938,11 @@ SUMA_EDGE_LIST * SUMA_Make_Edge_List_eng (
       SEL->ELps[i][2] = 1; /* number of triangles hosting edge */
       lu = 1; 
       while (i+lu < SEL->N_EL) {
-         if (SEL->EL[i+lu][0] == SEL->EL[i][0] && SEL->EL[i+lu][1] == SEL->EL[i][1]) {/* found matching edge */
+         if (  SEL->EL[i+lu][0] == SEL->EL[i][0] && 
+               SEL->EL[i+lu][1] == SEL->EL[i][1]) {/* found matching edge */
             SEL->ELps[i][2] += 1; /* number of triangles hosting edge */
-            SEL->ELps[i+lu][2] = -1; /* flag to mean that this edge is a duplicte in the list */
+            SEL->ELps[i+lu][2] = -1; 
+               /* flag to mean that this edge is a duplicte in the list */
 
             /* store the location of this edge for the triangle hosting it */
             ht = SEL->ELps[i+lu][1]; /* host triangle index */
@@ -6924,7 +6960,8 @@ SUMA_EDGE_LIST * SUMA_Make_Edge_List_eng (
    SUMA_LH("Do adjust your radio.\nNo funk here");
    
    if (SEL->max_N_Hosts == -1 || SEL->min_N_Hosts == 1000) {
-      SUMA_SL_Crit("Bad bad news.\nCould not calculate max_N_Hosts &/| min_N_Hosts");
+      SUMA_SL_Crit("Bad bad news.\n"
+                   "Could not calculate max_N_Hosts &/| min_N_Hosts");
       SUMA_free_Edge_List(SEL); SEL = NULL;
       SUMA_RETURN(SEL);
    }
@@ -6933,36 +6970,56 @@ SUMA_EDGE_LIST * SUMA_Make_Edge_List_eng (
       int winedonce = 0;
       if (debug && (SEL->min_N_Hosts == 1 || SEL->max_N_Hosts == 1)) {
          winedonce = 1;
-         fprintf(SUMA_STDERR,"Warning %s:\n Min/Max number of edge hosting triangles: [%d/%d] \n", FuncName, SEL->min_N_Hosts, SEL->max_N_Hosts);
-         fprintf(SUMA_STDERR," You have edges that form a border in the surface.\n");
+         fprintf(SUMA_STDERR,
+                  "Warning %s:\n" 
+                  "Min/Max number of edge hosting triangles: [%d/%d] \n", 
+                   FuncName, SEL->min_N_Hosts, SEL->max_N_Hosts);
+         fprintf(SUMA_STDERR,
+                  " You have edges that form a border in the surface.\n");
       }
       if (SEL->min_N_Hosts > 2 || SEL->max_N_Hosts > 2) {
          winedonce = 1;
-         fprintf(SUMA_STDERR, "Warning %s:\n"
-                              "Min/Max number of edge hosting triangles: [%d/%d] \n", FuncName, SEL->min_N_Hosts, SEL->max_N_Hosts);
-         fprintf(SUMA_STDERR, "Warning %s:\n"
-                              " You have edges that belong to more than two triangles.\n"
-                              " Bad for analysis assuming surface is a 2-manifold.\n", FuncName);
+         fprintf(SUMA_STDERR, 
+                  "Warning %s:\n"
+                  "Min/Max number of edge hosting triangles: [%d/%d] \n", 
+                  FuncName, SEL->min_N_Hosts, SEL->max_N_Hosts);
+         fprintf(SUMA_STDERR, 
+                  "Warning %s:\n"
+                  " You have edges that belong to more than two triangles.\n"
+                  " Bad for analysis assuming surface is a 2-manifold.\n", 
+                  FuncName);
          if (debug) {
             int iii=0;
-            fprintf(SUMA_STDERR, " These edges are formed by the following nodes:\n");
+            fprintf(SUMA_STDERR, 
+                     " These edges are formed by the following nodes:\n");
             for (iii = 0; iii < SEL->N_EL; ++iii) { 
-               if (SEL->ELps[iii][2] > 2) fprintf (SUMA_STDERR," %d: Edge [%d %d] shared by %d triangles.\n", 
-                                                iii+1, SEL->EL[iii][0], SEL->EL[iii][1] , SEL->ELps[iii][2] );
+               if (SEL->ELps[iii][2] > 2) 
+                  fprintf (SUMA_STDERR,
+                           " %d: Edge [%d %d] shared by %d triangles.\n", 
+                           iii+1, SEL->EL[iii][0], 
+                           SEL->EL[iii][1] , SEL->ELps[iii][2] );
             }
          }
       }
       if (debug && !winedonce) 
-         fprintf(SUMA_STDERR,"%s: Min/Max number of edge hosting triangles: [%d/%d] \n", FuncName, SEL->min_N_Hosts, SEL->max_N_Hosts);
+         fprintf( SUMA_STDERR,
+                  "%s: Min/Max number of edge hosting triangles: [%d/%d] \n", 
+                  FuncName, SEL->min_N_Hosts, SEL->max_N_Hosts);
    }
    #if 0
-      fprintf(SUMA_STDERR,"%s:(ELindex) Node1 Node2 | FlipVal Triangle N_hosts\n", FuncName); 
+      fprintf(SUMA_STDERR,
+               "%s:(ELindex) Node1 Node2 | FlipVal Triangle N_hosts\n", 
+               FuncName); 
       for (i=0; i < SEL->N_EL; ++i) {
-         fprintf (SUMA_STDERR, "(%d) %d %d | %d %d %d\n", i, SEL->EL[i][0], SEL->EL[i][1], SEL->ELps[i][0], SEL->ELps[i][1], SEL->ELps[i][2]);
+         fprintf (SUMA_STDERR, 
+                  "(%d) %d %d | %d %d %d\n", 
+                  i, SEL->EL[i][0], SEL->EL[i][1], 
+                  SEL->ELps[i][0], SEL->ELps[i][1], SEL->ELps[i][2]);
       }
       fprintf(SUMA_STDERR,"%s:Tri_limb\n", FuncName); 
       for (i=0; i < SEL->N_EL/3; ++i) {
-         fprintf (SUMA_STDERR, "%d %d %d\n", SEL->Tri_limb[i][0], SEL->Tri_limb[i][1], SEL->Tri_limb[i][2]);
+         fprintf (SUMA_STDERR, "%d %d %d\n", 
+                  SEL->Tri_limb[i][0], SEL->Tri_limb[i][1], SEL->Tri_limb[i][2]);
       }
    #endif
    
@@ -6971,11 +7028,12 @@ SUMA_EDGE_LIST * SUMA_Make_Edge_List_eng (
    to find the edge formed by nodes na-nb
    find the minimum of na and nb (say it's nb)
    the first reference of an edge containing nb starts at EL(ELloc(nb),:)
-   NOTE: ELloc contains an entry for each node in FaceSetList, except the largest node index since that's never in the 
+   NOTE: ELloc contains an entry for each node in FaceSetList, 
+   except the largest node index since that's never in the 
    first column of EL */
    
    SUMA_LH("storing locations ...");
-   for (i=0; i < N_Node; ++i) SEL->ELloc[i] = -1;
+   for (i=0; i < SEL->N_ELloc; ++i) SEL->ELloc[i] = -1;
    i = 0;
    icur = SEL->EL[0][0];
    SEL->ELloc[icur] = i; 
@@ -7067,7 +7125,9 @@ int SUMA_FindEdge (SUMA_EDGE_LIST *EL, int n1, int n2)
    /* from there on, look for first occurence of n2 */
    done = 0;
    do {
-      /* if (LocalHead) fprintf (SUMA_STDERR,"%s: eloc %d, N_EL %d\n", FuncName, eloc, EL->N_EL);*/
+      /* if (LocalHead) fprintf (SUMA_STDERR,
+                                 "%s: eloc %d, N_EL %d\n", 
+                                 FuncName, eloc, EL->N_EL);*/
       if (EL->EL[eloc][1] == n2) SUMA_RETURN (eloc);
       ++eloc;
       if (eloc < EL->N_EL) {
@@ -7143,15 +7203,19 @@ SUMA_Boolean SUMA_Get_NodeIncident(int n1, SUMA_SurfaceObject *SO, int *Incident
    \param n1 (int) node 1
    \param n2 (int) node 2
    \param SEL (SUMA_EDGE_LIST *) Edge List structure
-   \param Incident (int *) a pre-allocated vector where incident triangle indices will be stored. MAKE SURE you allocate enough
-   \param N_Incident (int *) pointer where the number of incident triangles is stored
+   \param Incident (int *) a pre-allocated vector where incident triangle 
+                     indices will be stored. MAKE SURE you allocate enough
+   \param N_Incident (int *) pointer where the number of incident triangles 
+                     is stored
    \param IOtrace (int) if 1 then allows the use of SUMA_ENTRY and SUMA_RETURN
    \ret ans (SUMA_Boolean) YUP/NOPE
    
    \sa SUMA_Make_Edge_List
    \sa SUMA_Get_NodeIncident
 */
-SUMA_Boolean SUMA_Get_Incident(int n1, int n2, SUMA_EDGE_LIST *SEL, int *Incident, int *N_Incident, int IOtrace, byte quiet)
+SUMA_Boolean SUMA_Get_Incident(int n1, int n2, SUMA_EDGE_LIST *SEL, 
+                               int *Incident, int *N_Incident, 
+                               int IOtrace, byte quiet)
 {
    static char FuncName[] = {"SUMA_Get_Incident"};
    int nt, in1, iseek, m_N_EL;
@@ -7167,26 +7231,44 @@ SUMA_Boolean SUMA_Get_Incident(int n1, int n2, SUMA_EDGE_LIST *SEL, int *Inciden
    }
    
    /* find the location of the first edge with n1 */
-   in1 = SEL->ELloc[n1];
+   *N_Incident = 0;
+   if (n1<SEL->N_ELloc) {
+      if ((in1 = SEL->ELloc[n1]) < 0) {
+         if (!quiet) {
+            SUMA_S_Errv("Node %d is not in EL\n", n1);
+         }
+         if (IOtrace) { SUMA_RETURN(YUP); }
+         else return(YUP);   
+      }
+   } else {
+      if (!quiet) {
+         SUMA_S_Errv("Node %d is beyond ELloc's size of %d\n", n1, SEL->N_ELloc);
+      }
+      if (IOtrace) { SUMA_RETURN(YUP); }
+      else return(YUP);   
+   }
    iseek = in1;
    m_N_EL = SEL->N_EL -1;
-   *N_Incident = 0;
+   /* fprintf(SUMA_STDERR,"%s: iseek = %d\n", FuncName, iseek); */
    while (SEL->EL[iseek][0] == n1) {
       if (SEL->EL[iseek][1] == n2) {
-         Incident[*N_Incident] = SEL->ELps[iseek][1]; /* store the faceset index containing the edge */
+         Incident[*N_Incident] = SEL->ELps[iseek][1]; 
+            /* store the faceset index containing the edge */
          *N_Incident = *N_Incident + 1;
       }
       ++iseek;
       if (iseek > m_N_EL) {
-         if (!quiet && !*N_Incident) { SUMA_S_Warnv("No edge found for nodes %d and %d\n", n1, n2); }
+         if (!quiet && !*N_Incident) { 
+            SUMA_S_Warnv("No edge found for nodes %d and %d\n", n1, n2); 
+         }
          if (IOtrace) { SUMA_RETURN (YUP); }
          else return(YUP);
       }
       
    }
    if (!quiet && !*N_Incident) {
-                     SUMA_S_Warnv(  "No incident triangle found for edge simliar to %d\n"
-                                    "   and formed by nodes %d and %d\n", in1, n1, n2);
+      SUMA_S_Warnv(  "No incident triangle found for edge simliar to %d\n"
+                     "   and formed by nodes %d and %d\n", in1, n1, n2);
    }
    /*fprintf(SUMA_STDERR,"Leaving %s.\n", FuncName);*/
    if (IOtrace) { SUMA_RETURN(YUP); }
@@ -7735,30 +7817,37 @@ float * SUMA_SmoothAttr_Neighb_Rec (float *attr, int N_attr, float *attr_sm_orig
    build the node neighbor structure. Nodes are neighbors is they share an edge
    ans =  SUMA_Build_FirstNeighb (EL, N_Node)
 
-   \param EL (SUMA_EDGE_LIST *) pointer to the EdgeList structure (usually SO->EL)
+   \param EL (SUMA_EDGE_LIST *) pointer to the EdgeList structure 
+                                 (usually SO->EL)
    \param N_Node (int) total number of nodes (usually SO->N_Node)
    \ret FN (SUMA_NODE_FIRST_NEIGHB *) pointer to the neighbor list structure
 
 */
-SUMA_NODE_FIRST_NEIGHB * SUMA_Build_FirstNeighb (SUMA_EDGE_LIST *el, int N_Node, char *ownerid)
+SUMA_NODE_FIRST_NEIGHB * SUMA_Build_FirstNeighb (SUMA_EDGE_LIST *el, 
+                                                 int N_Node, char *ownerid,
+                                                 int verb)
 {
    static char FuncName[]={"SUMA_Build_FirstNeighb"};
    int i, j, n1, n2,  **FirstNeighb, N_ELm1, jj, tmp, TessErr_Cnt=0, IOtrace = 0;
-   SUMA_Boolean skp;
+   SUMA_Boolean skp, LocalHead = NOPE;
    SUMA_NODE_FIRST_NEIGHB *FN;
    
    SUMA_ENTRY;
 
    if (DBG_trace > 1) IOtrace = 1;
-   
+   if (verb > 1) LocalHead = YUP;
+    
    if (el == NULL || N_Node == 0) {
-      fprintf(SUMA_STDERR, "Error %s: el == NULL or N_Node == 0, nothing to do.\n", FuncName);
+      fprintf( SUMA_STDERR, 
+               "Error %s: el == NULL or N_Node == 0, nothing to do.\n", 
+               FuncName);
       SUMA_RETURN (NULL);
    }   
    
    FN = (SUMA_NODE_FIRST_NEIGHB *)SUMA_malloc(sizeof(SUMA_NODE_FIRST_NEIGHB));
    if (FN == NULL) {
-      fprintf(SUMA_STDERR, "Error %s: Could not allocate space for FN\n", FuncName);
+      fprintf(SUMA_STDERR, 
+               "Error %s: Could not allocate space for FN\n", FuncName);
       SUMA_RETURN (NULL);
    }
    
@@ -7771,15 +7860,34 @@ SUMA_NODE_FIRST_NEIGHB * SUMA_Build_FirstNeighb (SUMA_EDGE_LIST *el, int N_Node,
    SUMA_NEW_ID(FN->idcode_str, NULL);
    
    /* allocate space for FN's matrices */
-   FN->N_Node = N_Node;
+   FN->N_Node = N_Node; /*  That works for regular surfaces,
+                                 But in rare cases when working on
+                                 chunks of surfaces, N_Node is not
+                                 the highest node index in EL 
+                                 So check for this ...*/ 
+   --N_Node;
+   for (j=0; j < el->N_EL; ++j) {
+      if (el->EL[j][0] > N_Node) N_Node = el->EL[j][0];
+      if (el->EL[j][1] > N_Node) N_Node = el->EL[j][1];
+   }
+   ++N_Node;
+   if (N_Node > FN->N_Node) {
+      SUMA_LHv("N_Node %d too small for nodes in EL.\n"
+                 "Had to allocate for a max of %d\n",
+                   FN->N_Node, N_Node);
+      FN->N_Node = N_Node;
+   } 
    FN->N_Neighb_max = 0;
    
-   FN->FirstNeighb = (int **) SUMA_allocate2D(FN->N_Node, SUMA_MAX_NUMBER_NODE_NEIGHB+1, sizeof (int));
+   FN->FirstNeighb = (int **) SUMA_allocate2D(FN->N_Node, 
+                                 SUMA_MAX_NUMBER_NODE_NEIGHB+1, sizeof (int));
    FN->N_Neighb = (int *) SUMA_calloc (FN->N_Node, sizeof(int));
    FN->NodeId = (int *) SUMA_calloc (FN->N_Node, sizeof(int));
    
    if (FN->FirstNeighb == NULL || FN->N_Neighb == NULL || FN->NodeId == NULL ){
-      fprintf(SUMA_STDERR, "Error %s: Could not allocate space forFN->FirstNeighb &/| FN->N_Neighb &/| FN->NodeId.\n", FuncName);
+      fprintf(SUMA_STDERR, 
+             "Error %s: Could not allocate space forFN->FirstNeighb &/|\n" 
+             "FN->N_Neighb &/| FN->NodeId.\n", FuncName);
       SUMA_RETURN (NULL);
    } 
    
@@ -7792,20 +7900,20 @@ SUMA_NODE_FIRST_NEIGHB * SUMA_Build_FirstNeighb (SUMA_EDGE_LIST *el, int N_Node,
    {
       n1 = el->EL[j][0];
       n2 = el->EL[j][1];
-      
-      if (  n1 < 0 || n2 < 0 || 
+      if (  n1 < 0 || n2 < 0 || /*n1 >= FN->N_Node || n2 >= FN->N_Node ||*/
             FN->N_Neighb[n1] > SUMA_MAX_NUMBER_NODE_NEIGHB || 
             FN->N_Neighb[n2] > SUMA_MAX_NUMBER_NODE_NEIGHB) {
          fprintf(SUMA_STDERR, 
-            "Critical Error %s\a:"
-            "Bad node index! %d and/or %d\n"
-            "Maximum number of node neighbors for node %d or node %d exceeds %d"
-            " (SUMA_MAX_NUMBER_NODE_NEIGHB)\n "
-            "SUMA will try to launch but some functions may not work properly.\n", 
+      "Critical Error %s\a:"
+      "Bad node index! %d and/or %d\n"
+      "Maximum number of node neighbors for node %d or node %d exceeds %d"
+      " (SUMA_MAX_NUMBER_NODE_NEIGHB)\n "
+      "SUMA will try to launch but some functions may not work properly.\n", 
             FuncName, n1, n2, n1, n2, SUMA_MAX_NUMBER_NODE_NEIGHB);
       }else {
          /*register the neighbors for both nodes*/
-         FN->NodeId[n1] = n1; /* this field may come in handy when operations need to be performed on subsets of the nodes making up the surface */
+         FN->NodeId[n1] = n1; /* this field may come in handy when operations 
+            need to be performed on subsets of the nodes making up the surface */
          FN->NodeId[n2] = n2;
          FN->FirstNeighb[n1][FN->N_Neighb[n1]] = n2;
          FN->FirstNeighb[n2][FN->N_Neighb[n2]] = n1;
@@ -7814,14 +7922,17 @@ SUMA_NODE_FIRST_NEIGHB * SUMA_Build_FirstNeighb (SUMA_EDGE_LIST *el, int N_Node,
          FN->N_Neighb[n1] += 1;
          FN->N_Neighb[n2] += 1;
 
-         if (FN->N_Neighb[n1] > FN->N_Neighb_max) FN->N_Neighb_max = FN->N_Neighb[n1];
-         if (FN->N_Neighb[n2] > FN->N_Neighb_max) FN->N_Neighb_max = FN->N_Neighb[n2];
+         if (FN->N_Neighb[n1] > FN->N_Neighb_max) 
+            FN->N_Neighb_max = FN->N_Neighb[n1];
+         if (FN->N_Neighb[n2] > FN->N_Neighb_max) 
+            FN->N_Neighb_max = FN->N_Neighb[n2];
 
          /* skip duplicate edges */
          if (j < N_ELm1) {
             skp = NOPE;
             do {
-               if (el->EL[j+1][0] == el->EL[j][0] && el->EL[j+1][1] == el->EL[j][1]) {
+               if (  el->EL[j+1][0] == el->EL[j][0] && 
+                     el->EL[j+1][1] == el->EL[j][1]) {
                   ++j;
                } else {
                   skp = YUP;
@@ -7834,15 +7945,17 @@ SUMA_NODE_FIRST_NEIGHB * SUMA_Build_FirstNeighb (SUMA_EDGE_LIST *el, int N_Node,
    }/* for j */
 
    /* now SUMA_reallocate for final FirstNeighb */
-   FirstNeighb = (int **) SUMA_allocate2D(FN->N_Node, FN->N_Neighb_max, sizeof (int));
+   FirstNeighb = (int **) SUMA_allocate2D(FN->N_Node, 
+                              FN->N_Neighb_max, sizeof (int));
    if (FirstNeighb == NULL){
-      fprintf(SUMA_STDERR, "Error %s: Could not allocate space for FirstNeighb\n", FuncName);
+      fprintf(SUMA_STDERR, 
+         "Error %s: Could not allocate space for FirstNeighb\n", FuncName);
       SUMA_Free_FirstNeighb (FN);
       SUMA_RETURN (NULL);
    } 
 
    /* crop left over allocated space and rearrange neighboring nodes in order */
-   for (i=0; i < N_Node; ++i) {
+   for (i=0; i < FN->N_Node; ++i) {
       #ifdef NoOrder
       for (j=0; j < FN->N_Neighb[i]; ++j) {
           FirstNeighb[i][j] = FN->FirstNeighb[i][j];
@@ -7853,7 +7966,8 @@ SUMA_NODE_FIRST_NEIGHB * SUMA_Build_FirstNeighb (SUMA_EDGE_LIST *el, int N_Node,
         j = 1;
         jj = 1;
         while (j < FN->N_Neighb[i]) {
-            if (SUMA_whichTri (el, i, FirstNeighb[i][jj-1], FN->FirstNeighb[i][j], IOtrace) >= 0) {
+            if (SUMA_whichTri (el, i, FirstNeighb[i][jj-1], 
+                               FN->FirstNeighb[i][j], IOtrace) >= 0) {
                FirstNeighb[i][jj] = FN->FirstNeighb[i][j];
                /* now swap in FN->FirstNeighb[i] the positions of jj and j */
                tmp =  FN->FirstNeighb[i][jj];
@@ -7865,18 +7979,24 @@ SUMA_NODE_FIRST_NEIGHB * SUMA_Build_FirstNeighb (SUMA_EDGE_LIST *el, int N_Node,
                ++j;
             }
         }
-        if (jj != FN->N_Neighb[i]) {
+        if (jj != FN->N_Neighb[i] &&
+            FN->N_Neighb[i]) {      /* The FN->N_Neighb[i] condition was added
+                                       because with patches you can have nodes 
+                                       that are not in the edge list, and 
+                                       therefore are neighborless. Do not whine
+                                       when that happens */
             if (!TessErr_Cnt) {
-               if ( !(el->min_N_Hosts == 1 && el->max_N_Hosts == 2) ) {/* do not complain if surface is open */
-                  fprintf (SUMA_STDERR,"Warning %s: (Ignore warning for open surfaces)\n"
-                                       " Failed in copying neighbor list.\n"
-                                       " If surface is closed, there is likely \n"
-                                       " a tessellation error. One or more edges may not \n"
-                                       " be part of 2 and only 2 triangles. \n"
-                                       " Neighbor list for node %d will not be ordered as \n"
-                                       " connected vertices (jj=%d, FN->N_Neighb[%d]=%d). \n"
-                                       " Further occurences of this error will not be reported.\n"
-                                       ,  FuncName, i, jj, i, FN->N_Neighb[i]);
+               if (verb && !(el->min_N_Hosts == 1 && el->max_N_Hosts == 2) ) {
+                                       /* do not complain if surface is open */
+                  SUMA_S_Notev("(Ignore notice for open surfaces)\n"
+                     " Failed in copying neighbor list.\n"
+                     " If surface is closed, there is likely \n"
+                     " a tessellation error. One or more edges may not \n"
+                     " be part of 2 and only 2 triangles. \n"
+                     " Neighbor list for node %d will not be ordered as \n"
+                     " connected vertices (jj=%d, FN->N_Neighb[%d]=%d). \n"
+                     " Further occurences of this error will not be reported.\n"
+                                          , i, jj, i, FN->N_Neighb[i]);
                   }
             }
             ++TessErr_Cnt;
@@ -7887,7 +8007,7 @@ SUMA_NODE_FIRST_NEIGHB * SUMA_Build_FirstNeighb (SUMA_EDGE_LIST *el, int N_Node,
         }    
       #endif
    }
-   if (TessErr_Cnt) {
+   if (TessErr_Cnt && verb) {
       if ( !(el->min_N_Hosts == 1 && el->max_N_Hosts == 2) ) {
          if (TessErr_Cnt > 1) fprintf (SUMA_STDERR, 
             " %d similar occurences were found in this mesh.\n", 
@@ -7897,7 +8017,7 @@ SUMA_NODE_FIRST_NEIGHB * SUMA_Build_FirstNeighb (SUMA_EDGE_LIST *el, int N_Node,
             TessErr_Cnt);
       }
    }
-   SUMA_free2D((char **)FN->FirstNeighb, N_Node);
+   SUMA_free2D((char **)FN->FirstNeighb, FN->N_Node);
    FN->FirstNeighb = FirstNeighb;
    /* SUMA_disp_dmat (FN->FirstNeighb, N_Node, FN->N_Neighb_max, 0); */
    SUMA_RETURN (FN);

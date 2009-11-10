@@ -1801,7 +1801,8 @@ int *z_iqsort (float *x , int nx )
       }
 
    /* sort the structure by it's field value */
-   qsort(Z_Q_fStrct, nx, sizeof(Z_QSORT_FLOAT), (int(*) (const void *, const void *)) compare_Z_IQSORT_FLOAT);
+   qsort(Z_Q_fStrct, nx, sizeof(Z_QSORT_FLOAT), 
+         (int(*) (const void *, const void *)) compare_Z_IQSORT_FLOAT);
 
    /* recover the index table */
    for (k=0; k < nx; ++k) /* copy the data into a structure */

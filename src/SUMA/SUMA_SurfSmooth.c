@@ -2587,26 +2587,32 @@ int main (int argc,char *argv[])
       }
       if (LocalHead) {
          etime_GetOffset = SUMA_etime(&start_time,1);
-         fprintf(SUMA_STDERR, "%s: Total processing took %f seconds for %d nodes.\n"
-                              "Projected time per 100000 nodes is: %f minutes\n", 
-                                 FuncName, etime_GetOffset, SO->N_Node, 
-                                 etime_GetOffset * 100000 / 60.0 / (SO->N_Node));
+         fprintf(SUMA_STDERR, 
+                  "%s: Total processing took %f seconds for %d nodes.\n"
+                  "Projected time per 100000 nodes is: %f minutes\n", 
+                     FuncName, etime_GetOffset, SO->N_Node, 
+                     etime_GetOffset * 100000 / 60.0 / (SO->N_Node));
       }
 
    }
-   /* write out the filtered geometry. Should not be executed for data smoothing */
+   /* write out the filtered geometry. 
+      Should not be executed for data smoothing */
    if (Opt->surf_out) {
       SUMA_SO_File_Type ft=SUMA_FT_NOT_SPECIFIED;
       SUMA_SO_File_Type ff=SUMA_FF_NOT_SPECIFIED;
       if (!dsmooth) {
-         SUMA_SL_Err("NULL dsmooth for geometry smoothing. Either failed to smooth or logical error.");
+         SUMA_SL_Err("NULL dsmooth for geometry smoothing.\n"
+                     "Either failed to smooth or logical error.");
          exit(1);
       }
-      if ((ft = SUMA_guess_surftype_argv(Opt->surf_out)) <= SUMA_FT_NOT_SPECIFIED) ft = SO->FileType;
-      SUMA_free(SO->NodeList); SO->NodeList = dsmooth; dsmooth = NULL; /* replace NodeList */
+      if ((ft = SUMA_guess_surftype_argv(Opt->surf_out)) <= 
+          SUMA_FT_NOT_SPECIFIED) ft = SO->FileType;
+      SUMA_free(SO->NodeList); 
+      SO->NodeList = dsmooth; dsmooth = NULL;  /* replace NodeList */
       if (!(SUMA_Save_Surface_Object_Wrap ( Opt->surf_out, NULL,
                                             SO, ft, ff, NULL))) {
-         fprintf (SUMA_STDERR,"Error %s: Failed to write surface object.\n", FuncName);
+         fprintf (SUMA_STDERR,
+                  "Error %s: Failed to write surface object.\n", FuncName);
          exit (1);
       } 
    } else {

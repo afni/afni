@@ -123,9 +123,13 @@ int SUMA_isTriLinked (int*T, int *t, int *cn);
 SUMA_FACESET_FIRST_EDGE_NEIGHB *SUMA_allocate_FaceSet_Edge_Neighb (int N_FaceSet);
 SUMA_FACESET_FIRST_EDGE_NEIGHB *SUMA_FaceSet_Edge_Neighb (int **EL, int **ELps, int N_EL);
 float * SUMA_SmoothAttr_Neighb (float *attr,  int N_attr, float *attr_sm, SUMA_NODE_FIRST_NEIGHB *fn, int nr, byte *nmask, byte strict_mask);
-float * SUMA_SmoothAttr_Neighb_Rec (float *attr, int N_attr, float *attr_sm_orig, 
-                                    SUMA_NODE_FIRST_NEIGHB *fn, int nr, int N_rep);
-SUMA_NODE_FIRST_NEIGHB * SUMA_Build_FirstNeighb (SUMA_EDGE_LIST *el, int N_Node, char *ownerid);
+float * SUMA_SmoothAttr_Neighb_Rec (float *attr, int N_attr, 
+                                    float *attr_sm_orig, 
+                                    SUMA_NODE_FIRST_NEIGHB *fn, 
+                                    int nr, int N_rep);
+SUMA_NODE_FIRST_NEIGHB * SUMA_Build_FirstNeighb (
+                           SUMA_EDGE_LIST *el, int N_Node, 
+                           char *ownerid, int verb);
 SUMA_Boolean SUMA_Free_FirstNeighb (SUMA_NODE_FIRST_NEIGHB *FN);
 float * SUMA_PolySurf3 (float *NodeList, int N_Node, int *FaceSetList, int N_FaceSet, int PolyDim, float *FaceNormList, SUMA_Boolean SignedArea);
 float SUMA_TriSurf3 (float *n0, float *n1, float *n2);

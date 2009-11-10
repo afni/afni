@@ -24,6 +24,21 @@ SUMA_SRCS = SUMA_trackball.c SUMA_SVmanip.c SUMA_input.c \
 		 SUMA_SurfaceToSurface.c SUMA_LocalStat.c SUMA_spharm.c SUMA_dot.c\
 		 SUMA_plot.c SUMA_volume_render.c
 
+SUMA_EXECS = CreateIcosahedron SUMA_Map_SurfacetoSurface MapIcosahedron       \
+	SUMA_SureFit SUMA_Load_Surface_Object SUMA_Read_SpecFile	      \
+	SUMA_FreeSurfer ScaleToMap MakeColorMap CompareSurfaces		      \
+	SUMA_inflate_compare SUMA_Ply_Read SUMA_ParseName ConvertSurface      \
+	3dVol2Surf 3dSurf2Vol SurfMeasures SurfaceMetrics    \
+	ROI2dataset SurfSmooth SurfPatch SurfQual inspec quickspec \
+	FScurv_to_1D FSread_annot	suma \
+   SUMA_TestDsetIO ConvertDset ShowCmap SurfClust IsoSurface 3dSkullStrip \
+   3dCRUISEtoAFNI	3dBRAIN_VOYAGERtoAFNI 3dSurfMask Surf2VolCoord \
+	SurfToSurf ROIgrow\
+   NikoMap SurfDsetInfo SurfInfo AnalyzeTrace DriveSuma SurfLocalstat SurfFWHM \
+   SpharmDeco SpharmReco SurfDist SumaProgramTemplate 
+   
+ 
+
 GLW_SRCS = GLwMDrawA.c GLwDrawA.c 
 
 GLw_local/GLwMDrawA.o: GLw_local/GLwMDrawA.c
@@ -100,7 +115,7 @@ ${SUMAGTSLIB} : libply.a libglut.a ${SUMALIB} ${SUMA_GTS_OBJS}
 mainobj: ${SUMALIB} ${SUMA_SRCS_OBJS}
 
 clean:
-	$(RM) ../suma_*.o *.o GLw_local/*.o
+	$(RM) ../suma_*.o *.o GLw_local/*.o ${SUMA_EXECS}
 
 .c.o:
 	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} ${SUMA_INPATH} -c $*.c 
@@ -693,18 +708,8 @@ packbins:
 all: libGLws.a libmri.a libSUMA.a mainobj suma install 
 allgts: libGLws.a libmri.a libSUMA.a libgts.a mainobj suma SurfMesh install 
 
-standalones: CreateIcosahedron SUMA_Map_SurfacetoSurface MapIcosahedron       \
-	SUMA_SureFit SUMA_Load_Surface_Object SUMA_Read_SpecFile	      \
-	SUMA_FreeSurfer ScaleToMap MakeColorMap CompareSurfaces		      \
-	SUMA_inflate_compare SUMA_Ply_Read SUMA_ParseName ConvertSurface      \
-	3dVol2Surf 3dSurf2Vol SurfMeasures SurfaceMetrics    \
-	ROI2dataset SurfSmooth SurfPatch SurfQual inspec quickspec FScurv_to_1D FSread_annot	\
-   SUMA_TestDsetIO ConvertDset ShowCmap SurfClust IsoSurface 3dSkullStrip \
-   3dCRUISEtoAFNI	3dBRAIN_VOYAGERtoAFNI 3dSurfMask Surf2VolCoord SurfToSurf ROIgrow\
-   NikoMap SurfDsetInfo SurfInfo AnalyzeTrace DriveSuma SurfLocalstat SurfFWHM \
-   SpharmDeco SpharmReco SurfDist SumaProgramTemplate 
-   
- 
+standalones: ${SUMA_EXECS}
+
 anew: clean libSUMA.a mainobj suma standalones  install 
 
 testGL: SUMA_glxdino SUMA_paperplane SUMA_pixmap2eps

@@ -212,6 +212,7 @@ typedef enum {
    SUMA_NODE_RGBb,
    SUMA_NODE_RGBA,
    SUMA_NODE_RGBAb,
+   SUMA_NODE_LABEL,
    SUMA_NODE_XYZ,
    SUMA_NEW_NODE_XYZ,
    SUMA_NODE_CONVEXITY,
@@ -223,6 +224,7 @@ typedef enum {
    SUMA_SURFACE_OBJECT,
    SUMA_ENGINE_INSTRUCTION,
    SUMA_SEGMENT_OBJECT,
+   SUMA_COLMAP_OBJECT,
    SUMA_N_DSET_TYPES
 } SUMA_DSET_TYPE; /*!<  Type of data set ( should be called Object, not DSET ) 
                         When you add a new element, modify functions
@@ -265,6 +267,7 @@ typedef enum {
    SUMA_NODE_INT,    /*!< Generic integer */
    SUMA_NODE_INDEX,  /*!< index of a node to locate it in its domain */
    SUMA_NODE_ILABEL, /*!< An integer coding for a label */
+   SUMA_NODE_SLABEL, /*!< An integer coding for a string label */
    SUMA_NODE_FLOAT,  /*!< Generic float */ 
    SUMA_NODE_CX,     /*!< Node convexity */
    SUMA_NODE_X,      /*!< Node X coordinate */
@@ -863,15 +866,20 @@ If you want to have some index before the entries, use SUMA_WRITE_IND_ARRAY_1D*/
 to add at the beginning of each line.
 If ind is NULL, then the index will be the line number.
 */
-#define SUMA_WRITE_IND_ARRAY_1D(v,ind,Nel,m,name){  \
-   int m_kkk; \
+#define SUMA_WRITE_IND_ARRAY_1D(v,m_ind,Nel,m,name){  \
+   int m_kkk, *ind = (int *)m_ind;  \
    FILE * m_fp = (name) ? fopen((name),"w"): fopen("yougavemenoidly","w");  \
    if (m_fp) { \
-      fprintf(m_fp,"# Output from %s, index followed by %d values (%d per line).\n", FuncName, Nel, 1);  \
+      fprintf(m_fp,  "# Output from %s, index followed by %d values "\
+                     "(%d per line).\n", FuncName, Nel, 1);  \
       if (!ind) {  \
-         for (m_kkk=0; m_kkk<Nel; ++m_kkk) { if (!(m_kkk % m)) fprintf(m_fp,"\n%d   ", m_kkk/m); fprintf(m_fp,"%f   ", (double)v[m_kkk]); }\
+         for (m_kkk=0; m_kkk<Nel; ++m_kkk) { \
+            if (!(m_kkk % m)) fprintf(m_fp,"\n%d   ", m_kkk/m); \
+            fprintf(m_fp,"%f   ", (double)v[m_kkk]); }\
       } else {\
-         for (m_kkk=0; m_kkk<Nel; ++m_kkk) { if (!(m_kkk % m)) fprintf(m_fp,"\n%d   ", ind[m_kkk/m]); fprintf(m_fp,"%f   ", (double)v[m_kkk]); }\
+         for (m_kkk=0; m_kkk<Nel; ++m_kkk) { \
+            if (!(m_kkk % m)) fprintf(m_fp,"\n%d   ", ind[m_kkk/m]); \
+            fprintf(m_fp,"%f   ", (double)v[m_kkk]); }\
       }  \
       fclose(m_fp); \
    }  \
@@ -1016,7 +1024,8 @@ If ind is NULL, then the index will be the line number.
             for (m_ind=0; m_ind<dset->dnel->vec_num; ++m_ind) { \
                for (m_ival=0; m_ival<dset->dnel->vec_len; ++m_ival) { \
                fprintf(m_fid,"%d   ", m_n[m_ival]); \
-                  fprintf(m_fid,"%f   ", SUMA_GetDsetValInCol2(dset, m_ind, m_ival));  \
+                  fprintf(m_fid,"%f   ", \
+                           SUMA_GetDsetValInCol2(dset, m_ind, m_ival));  \
                }  \
                fprintf(m_fid,"\n"); \
             }  \
@@ -1031,7 +1040,9 @@ If ind is NULL, then the index will be the line number.
    int m_tt = NI_element_type((void*)nel) ; \
    int m_allnum;  \
    suc = 1; \
-   if (m_tt == NI_GROUP_TYPE) { m_allnum = 0; SUMA_SL_Err ("Group, use DSET_WRITE_1D_PURE"); }/* SHOULD USE DSET_WRITE_1D */   \
+   if (m_tt == NI_GROUP_TYPE) { \
+      m_allnum = 0; \
+      SUMA_SL_Err ("Group, use DSET_WRITE_1D_PURE"); }/* USE DSET_WRITE_1D */   \
    else m_allnum = SUMA_is_AllNumeric_nel(nel);   \
    if (!m_allnum) { \
       SUMA_SL_Err ("Element cannont be written to 1D format");    \
@@ -1043,7 +1054,8 @@ If ind is NULL, then the index will be the line number.
          suc = 0; \
       } else { \
          /* write out the element */   \
-         if (NI_write_element( m_ns , nel , NI_TEXT_MODE | NI_HEADERSHARP_FLAG) < 0) { \
+         if (NI_write_element( m_ns , nel , \
+                               NI_TEXT_MODE | NI_HEADERSHARP_FLAG) < 0) { \
             SUMA_SL_Err ("Failed to write element");  \
             suc = 0; \
          }  \
@@ -1062,7 +1074,9 @@ If ind is NULL, then the index will be the line number.
    int m_tt = NI_element_type((void*)nel) ; \
    int m_allnum;  \
    suc = 1; \
-   if (m_tt == NI_GROUP_TYPE) { m_allnum = 0;  SUMA_SL_Err ("Group, use DSET_WRITE_1D_PURE"); }   /* SHOULD USE DSET_WRITE_1D */  \
+   if (m_tt == NI_GROUP_TYPE) { \
+      m_allnum = 0;  \
+      SUMA_SL_Err ("Group, use DSET_WRITE_1D_PURE"); } /* USE DSET_WRITE_1D */  \
    else m_allnum = SUMA_is_AllNumeric_nel(nel);   \
    if (!m_allnum) { \
       SUMA_SL_Err ("Element cannont be written to 1D format");    \
@@ -1315,6 +1329,8 @@ int * SUMA_DsetCol2Int (SUMA_DSET *dset, int ind, int FilledOnly);
 float * SUMA_DsetCol2Float (SUMA_DSET *dset, int ind, int FilledOnly);
 double * SUMA_DsetCol2Double (SUMA_DSET *dset, int ind, int FilledOnly);
 float * SUMA_Col2Float (NI_element *nel, int ind, int FilledOnly);
+SUMA_Boolean SUMA_SetUniqueValsAttr(SUMA_DSET *dset, int icol, byte replace);
+NI_element * SUMA_GetUniqueValsAttr(SUMA_DSET *dset, int icol);
 int SUMA_GetDsetColRange(SUMA_DSET *dset, int col_index, 
                          double range[2], int loc[2]);
 int SUMA_GetDsetNodeIndexColRange(SUMA_DSET *dset, 
@@ -1345,6 +1361,7 @@ SUMA_DSET * SUMA_far2dset_ns( char *FullName, char *dset_id, char *dom_id,
                                  float **farp, int vec_len, int vec_num, 
                                  int ptr_cpy);
 int SUMA_is_AllNumeric_dset(SUMA_DSET *dset);
+int SUMA_is_Label_dset(SUMA_DSET *dset, NI_group **NIcmap); 
 int SUMA_is_AllConsistentNumeric_dset(SUMA_DSET *dset, SUMA_VARTYPE *vtpp);
 int SUMA_is_AllNumeric_ngr(NI_group *ngr) ;
 int SUMA_is_AllNumeric_nel(NI_element *nel);
@@ -1418,6 +1435,7 @@ int SUMA_GetDsetColStatAttr(  SUMA_DSET *dset, int col_index,
                               int *statcode,
                               float *p1, float *p2, float *p3);
 float SUMA_fdrcurve_zval( SUMA_DSET *dset , int iv , float thresh );
+NI_group *SUMA_NI_Cmap_of_Label_dset(SUMA_DSET *dset);
 
 
 /*********************** BEGIN Miscellaneous support functions **************************** */

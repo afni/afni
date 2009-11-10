@@ -291,15 +291,19 @@ int main (int argc,char *argv[])
     P1[0] = Points[0][0];
     P1[1] = Points[0][1];
     P1[2] = Points[0][2];
-    if (!FullOnly) { /* trying to speed up intersection computations by restricting it to nodes within a box */
+    if (!FullOnly) { /* trying to speed up intersection computations 
+                     by restricting it to nodes within a box */
       TryFull = NOPE;
       /* search for nodes on surface 2 within xx mm of P0 */
       isin = SUMA_isinbox (SO2->NodeList, SO2->N_Node, P0, B_dim, 0);
       if (isin.nIsIn) {
 	/* find the patch of surface 2 that is formed by those intersection nodes */
-	Patch = SUMA_getPatch (isin.IsIn, isin.nIsIn, SO2->FaceSetList, SO2->N_FaceSet, Memb, 1);
+	Patch = SUMA_getPatch ( isin.IsIn, isin.nIsIn, 
+                           SO2->FaceSetList, SO2->N_FaceSet, 
+                           Memb, 1, 0, 1);
 	if (Patch == NULL) {
-	  fprintf(SUMA_STDERR, "Error %s: Null returned from SUMA_getPatch.\n", FuncName);
+	  fprintf(SUMA_STDERR, 
+             "Error %s: Null returned from SUMA_getPatch.\n", FuncName);
 	  exit (1);
 	}
 	
@@ -307,7 +311,9 @@ int main (int argc,char *argv[])
 	FaceSet_tmp = Patch->FaceSetList;
 	N_FaceSet_tmp = Patch->N_FaceSet;
       }else {
-	fprintf (SUMA_STDOUT, "%s: No nodes in box about node %d. Trying for full surface intersection.\n", FuncName, i);
+	fprintf (SUMA_STDOUT, 
+            "%s: No nodes in box about node %d. \n"
+            "Trying for full surface intersection.\n", FuncName, i);
 	TryFull = YUP; /* flag to send it to full intersection */
       }
     } 

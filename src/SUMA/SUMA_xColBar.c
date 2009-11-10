@@ -605,7 +605,7 @@ void SUMA_cmap_wid_input(Widget w, XtPointer clientData, XtPointer callData)
             SO->SurfCont->cmp_ren->translateVec[2] = 0.0;
             {
                SUMA_COLOR_MAP *CM = SUMA_CmapOfPlane(SO->SurfCont->curColPlane);
-               if (SUMA_Rotate_Color_Map(CM, 0) % CM->N_Col) { 
+               if (SUMA_Rotate_Color_Map(CM, 0) % CM->N_M[0]) { 
                   SUMA_LH("Got color map modification to do");
                   SUMA_SwitchColPlaneCmap(SO,
                      SUMA_CmapOfPlane(SO->SurfCont->curColPlane));
@@ -709,7 +709,8 @@ void SUMA_cmap_wid_input(Widget w, XtPointer clientData, XtPointer callData)
    case ButtonPress:
       if (LocalHead) fprintf(stdout,"In ButtonPress\n");      
       pButton = Bev.button;
-      if (SUMAg_CF->SwapButtons_1_3 || (SUMAg_CF->ROI_mode && SUMAg_CF->Pen_mode)) {
+      if (SUMAg_CF->SwapButtons_1_3 || 
+          (SUMAg_CF->ROI_mode && SUMAg_CF->Pen_mode)) {
          if (pButton == Button1) pButton = Button3;
          else if (pButton == Button3) pButton = Button1;
       }
@@ -734,7 +735,8 @@ void SUMA_cmap_wid_input(Widget w, XtPointer clientData, XtPointer callData)
    case ButtonRelease:
       if (LocalHead) fprintf(SUMA_STDERR,"%s: In ButtonRelease\n", FuncName); 
       rButton = Bev.button;
-      if (SUMAg_CF->SwapButtons_1_3 || (SUMAg_CF->ROI_mode && SUMAg_CF->Pen_mode)) {
+      if (SUMAg_CF->SwapButtons_1_3 || 
+          (SUMAg_CF->ROI_mode && SUMAg_CF->Pen_mode) ) {
          if (rButton == Button1) rButton = Button3;
          else if (rButton == Button3) rButton = Button1;
       }
@@ -748,8 +750,10 @@ void SUMA_cmap_wid_input(Widget w, XtPointer clientData, XtPointer callData)
       
    case MotionNotify:
       if (LocalHead) fprintf(stdout,"In MotionNotify\n"); 
-      if (SUMAg_CF->SwapButtons_1_3 || (SUMAg_CF->ROI_mode && SUMAg_CF->Pen_mode)) {
-        if (((Mev.state & Button3MotionMask) && (Mev.state & Button2MotionMask)) || ((Mev.state & Button2MotionMask) && (Mev.state & ShiftMask))) {
+      if (SUMAg_CF->SwapButtons_1_3 || 
+          (SUMAg_CF->ROI_mode && SUMAg_CF->Pen_mode)) {
+        if (((Mev.state & Button3MotionMask) && (Mev.state & Button2MotionMask)) 
+         || ((Mev.state & Button2MotionMask) && (Mev.state & ShiftMask))) {
             mButton = SUMA_Button_12_Motion;
          } else if(Mev.state & Button3MotionMask) {
             mButton = SUMA_Button_1_Motion;
@@ -6087,13 +6091,13 @@ XImage *SUMA_cmap_to_XImage (Widget wid, SUMA_COLOR_MAP *cm)
    } 
    
    /* create XImage*/
-   par = (Pixel *) calloc(cm->N_Col,sizeof(Pixel)); 
+   par = (Pixel *) calloc(cm->N_M[0],sizeof(Pixel)); 
    if( par == NULL ) {
       SUMA_SL_Err("Failed to allocate");
       SUMA_RETURN(NULL) ;
    }
    SUMA_LH("rgb to pixel");
-   for( ii=0 ; ii < cm->N_Col ; ii++ ) {
+   for( ii=0 ; ii < cm->N_M[0] ; ii++ ) {
      par[ii] = SUMA_tc_rgb_to_pixel(  cmapdc , 
                                  (byte)(cm->M[ii][0]/255.0),
                                  (byte)(cm->M[ii][1]/255.0),
@@ -6102,7 +6106,7 @@ XImage *SUMA_cmap_to_XImage (Widget wid, SUMA_COLOR_MAP *cm)
    }
    
    SUMA_LH("pixar_to_XImage");
-   xim = pixar_to_XImage( cmapdc , cm->N_Col , 1 , par ) ;
+   xim = pixar_to_XImage( cmapdc , cm->N_M[0] , 1 , par ) ;
    
    free(par);   
    SUMA_RETURN(xim);
