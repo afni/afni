@@ -1200,8 +1200,11 @@ void display_help_menu()
     "   Normalize all basis functions for '-stim_times' to have             \n"
     "   amplitude 'a' (must have a > 0).  The peak absolute value           \n"
     "   of each basis function will be scaled to be 'a'.                    \n"
-    "   NOTE: -basis_normall only affect -stim_times options that           \n"
-    "         appear LATER on the command line                              \n"
+    "   NOTES:                                                              \n"
+    "    * -basis_normall only affect -stim_times options that              \n"
+    "        appear LATER on the command line                               \n"
+    "    * The main use for this option is for use with the                 \n"
+    "        'EXPR' basis functions.                                        \n"
 #if 0
     "                                                                       \n"
     "[-slice_base k sname]                                                  \n"
