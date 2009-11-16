@@ -1393,7 +1393,7 @@ def db_cmd_scale(proc, block):
     # check for max scale value 
     opt = block.opts.find_opt('-scale_max_val')
     max = opt.parlist[0]
-    if max > 100: valstr = 'min(%d, a/b*100)*step(a)' % max
+    if max > 100: valstr = 'max(0, min(%d, a/b*100))' % max
     else:         valstr = 'a/b*100*step(a)'
 
     if proc.mask and proc.regmask:
@@ -1403,7 +1403,7 @@ def db_cmd_scale(proc, block):
         mask_dset = ''
         expr      = valstr
 
-    if max > 100: maxstr = '# (subject to maximum value of %d)\n' % max
+    if max > 100: maxstr = '# (subject to a range of [0,%d])\n' % max
     else        : maxstr = ''
 
     prev = proc.prev_prefix_form_run(view=1)

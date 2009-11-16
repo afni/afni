@@ -50,7 +50,7 @@ afni_history_struct rickr_history[] = {
 
  { 16, NOV, 2009, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
    "allow motion censoring with varying run lengths",
-   NULL
+   "Also, if a max is applied in scaling, explicitly limit to [0,max].\n"
  } ,
 
  { 16, NOV, 2009, RCR, "1d_tool.py", MINOR, TYPE_MODIFY,
