@@ -958,10 +958,20 @@ def db_cmd_volreg(proc, block):
     if not proc.user_opts.find_opt('-regress_censor_motion'):
         cmd = cmd +                                                         \
             "# compute motion magnitude time series: the Euclidean norm\n"  \
-            "# (sqrt(sum squares)) of the motion parameter derivatives\n"   \
-            "1d_tool.py -infile dfile.rall.1D -set_nruns %d \\\n"           \
-            "           -derivative  -collapse_cols euclidean_norm \\\n"    \
-            "           -write motion_${subj}_enorm.1D\n\n" % proc.runs
+            "# (sqrt(sum squares)) of the motion parameter derivatives\n"
+
+        if proc.reps_vary :     # use -set_run_lengths aot -set_nruns
+           cmd = cmd +                                                      \
+               "1d_tool.py -infile dfile.rall.1D \\\n"                      \
+               "           -set_run_lengths %s \\\n"                        \
+               "           -derivative  -collapse_cols euclidean_norm \\\n" \
+               "           -write motion_${subj}_enorm.1D\n\n"              \
+               % UTIL.int_list_string(proc.reps_all)
+        else:                   # stick with -set_nruns
+           cmd = cmd +                                                      \
+               "1d_tool.py -infile dfile.rall.1D -set_nruns %d \\\n"        \
+               "           -derivative  -collapse_cols euclidean_norm \\\n" \
+               "           -write motion_${subj}_enorm.1D\n\n" % proc.runs
 
     if do_extents:
         proc.mask_extents = BASE.afni_name('mask_epi_extents' + proc.view)
@@ -2167,10 +2177,7 @@ def db_cmd_regress_censor_motion(proc, block):
             return 1, ''
     else: return 0, ''
 
-    # check that the run lengths are consistent
-    if proc.reps_vary:
-        print '** currently not able to censor motion with varying run lengths'
-        return 1, ''
+    # run lengths may now vary  16 Nov, 2009
 
     if len(proc.mot_files) == 0: return 0, ''
     elif len(proc.mot_files) > 1:       # okay if -volreg_regress_per_run
@@ -2192,15 +2199,23 @@ def db_cmd_regress_censor_motion(proc, block):
     if proc.verb > 1:
         print '-- creating motion censor command, file = %s' % mot_file
 
+    # save string to apply in 3dDeconvolve
     mot_prefix = 'motion_${subj}'
     proc.regress_censor_file = '%s_censor.1D' % mot_prefix
     cmd = '\n# create censor file %s, for censoring motion \n' \
           % proc.regress_censor_file
                 
-    cmd = cmd + '1d_tool.py -infile %s -set_nruns %d -set_tr %g \\\n'   \
-                '    -show_censor_count %s\\\n'                         \
-                '    -censor_motion %g %s\n\n' \
-                % (mot_file, proc.runs, proc.tr, prev_str, limit, mot_prefix)
+    # make command string to create censor file
+    if proc.reps_vary :     # use -set_run_lengths aot -set_nruns
+        cmd = cmd + '1d_tool.py -infile %s -set_run_lengths %s \\\n' \
+                    % (mot_file, UTIL.int_list_string(proc.reps_all))
+    else:
+        cmd = cmd + '1d_tool.py -infile %s -set_nruns %d \\\n'       \
+                    % (mot_file, proc.runs)
+
+    cmd = cmd + '    -set_tr %g -show_censor_count %s\\\n'     \
+                '    -censor_motion %g %s\n\n'                 \
+                % (proc.tr, prev_str, limit, mot_prefix)
 
     return 0, cmd
 
@@ -2973,6 +2988,8 @@ g_help_string = """
      *  -regress_use_stim_files This may fail, as make_stim_times.py is not
                                 currently prepared to handle runs of different
                                 lengths.
+
+        -regress_censor_motion  OK, as of version 2.14
 
      * probably will be fixed (please let me know of interest)
 

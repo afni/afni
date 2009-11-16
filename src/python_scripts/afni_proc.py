@@ -168,9 +168,10 @@ g_history = """
         - added -blur_in_automask and -blur_opts_BIM
         - added -sep_char (which probably needs more work) for Jill Weisberg
         - added -subj_curly (applied when -sep_char is '_')
+    2.14 Nov 16 2009 : allow motion censoring with varying run lengths
 """
 
-g_version = "version 2.13, October 19, 2009"
+g_version = "version 2.14, November 16, 2009"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions

@@ -536,7 +536,10 @@ class Afni1D:
          print "** Afni1D not ready for write_censortr to '%s'" % fname
          return 1
 
-      err,cstr = UTIL.make_CENSORTR_string(self.mat[column],self.nruns,asopt=1)
+      if not self.run_info_is_consistent(whine=1): return 1
+
+      err,cstr = UTIL.make_CENSORTR_string(self.mat[column],
+                               rlens=self.run_len, asopt=1, verb=self.verb)
 
       if err: return 1
 
