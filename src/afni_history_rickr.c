@@ -48,6 +48,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 16, NOV, 2009, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
+   "allow motion censoring with varying run lengths",
+   NULL
+ } ,
+
+ { 16, NOV, 2009, RCR, "1d_tool.py", MINOR, TYPE_MODIFY,
+   "allow motion censoring with varying run lengths",
+   NULL
+ } ,
+
  {  4, NOV, 2009, RCR, "Dimon", MICRO, TYPE_MODIFY,
    "small change to check on sort problems",
    NULL

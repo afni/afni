@@ -534,12 +534,14 @@ def make_timing_string(data, nruns, tr, invert=0):
 
    return 0, rstr
 
-def make_CENSORTR_string(data, nruns, invert=0, asopt=0):
+def make_CENSORTR_string(data, nruns=0, rlens=[], invert=0, asopt=0, verb=1):
    """evaluating the data array as boolean (zero or non-zero), return
       non-zero entries in CENSORTR format
 
       data      : single vector (length must be multiple of nruns)
       nruns     : number of runs (must divide len(data))
+                  (ignored if rlens is provided)
+      rlens     : run lengths (required if run lengths vary)
       asopt     : if set, return as complete -CENSORTR option
 
       invert    : (optional) invert the boolean logic (write 0 TRs)
@@ -554,18 +556,36 @@ def make_CENSORTR_string(data, nruns, invert=0, asopt=0):
       return 1, ''
 
    nvals = len(data)
-   rlen  = nvals // nruns
 
-   if nruns * rlen != nvals:
-      print "** CENSORTR_str: nruns %d does not divide nvals %d"%(rlen,nvals)
+   # we must have either nruns or a valid rlens list
+   if nruns <= 0 and len(rlens) < 1:
+      print '** make_CENSORTR_string: neither nruns nor rlens'
+      return 1, ''
+
+   if rlens:
+      rlist = rlens
+      runs  = len(rlist)
+   else:
+      rlist = [(nvals//nruns) for run in range(nruns)]
+      runs  = nruns
+
+   if verb > 1:
+      print '-- CENSORTR: applying run lengths (%d) : %s' % (runs, rlist)
+
+   if loc_sum(rlist) != nvals:
+      print "** CENSORTR_str: sum of run lengths %d != nvals %d" \
+            % (loc_sum(rlist),nvals)
       return 1, ''
 
    rstr = ''
 
-   for run in range(nruns):
-      bot = run*rlen
+   bot = 0
+   for run in range(runs):
+      rlen = rlist[run]
       if invert: rvals = [1*(data[i] == 0) for i in range(bot,bot+rlen)]
       else:      rvals = [1*(data[i] != 0) for i in range(bot,bot+rlen)]
+      bot += rlen  # adjust bottom index for next run
+
       # if the run is empty, print 1 or 2 '*'
       nzero = rvals.count(0)
       if nzero == rlen: continue

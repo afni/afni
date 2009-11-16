@@ -333,13 +333,14 @@ g_history = """
                 -extreme_mask, -set_tr, -write_censor, -write_CENSORTR
    0.10 Aug 21, 2009 - added -show_censor_count
    0.11 Aug 25, 2009 - with -censor_motion, also output PREFIX_enorm.1D
-   0.12 Oct  2, 2009 also output cosines with -show_cormat_warnings
-   0.13 Oct  6, 2009 added -set_run_lengths option
-   0.14 Oct 15, 2009 added -demean
-   0.15 Oct 23, 2009 added -censor_fill and -censor_fill_par
+   0.12 Oct  2, 2009 - also output cosines with -show_cormat_warnings
+   0.13 Oct  6, 2009 - added -set_run_lengths option
+   0.14 Oct 15, 2009 - added -demean
+   0.15 Oct 23, 2009 - added -censor_fill and -censor_fill_par
+   0.16 Nov 16, 2009 - allow motion censoring with varying run lengths
 """
 
-g_version = "1d_tool.py version 0.15, Oct 23, 2009"
+g_version = "1d_tool.py version 0.16, Nov 16, 2009"
 
 
 class A1DInterface:
