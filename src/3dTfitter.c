@@ -749,6 +749,9 @@ int main( int argc , char *argv[] )
            DSET_NY(fal_set) != ny || DSET_NZ(fal_set) != nz )
         ERROR_exit("-FALTUNG dataset and RHS dataset don't match in grid size");
      }
+     if( fal_klen >= ntime )
+       ERROR_exit("-FALTUNG kernel size %d must be shorter than dataset %d",
+                       fal_klen , ntime ) ;
      if( fal_klen >= ntime/2 )
        WARNING_message("-FALTUNG kernel size %d longer than 1/2 dataset %d",
                        fal_klen , ntime/2 ) ;
