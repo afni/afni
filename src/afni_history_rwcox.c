@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 17 , NOV , 2009 , RWC , "3dTfitter" , MICRO , TYPE_GENERAL ,
+   "Let FALTUNG kernel be longer that N/2" ,
+   "Also add synonyms '-L2' and '-L1'" } ,
+
  { 3 , NOV , 2009 , RWC , "3dREMLfit" , MICRO , TYPE_GENERAL ,
    "Modify default -CORcut value from 0.0025 to 0.0011" ,
    "To reduce likelihood of Choleski failure." } ,
