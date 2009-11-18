@@ -189,9 +189,10 @@ int main( int argc , char *argv[] )
        "  -automask = Create a mask from the input dataset.\n"
        "\n"
        "-- This purely experimental program is somewhat slow.\n"
+       "   (Of course, it's doing a LOT of calculations.)\n"
        "-- For Kyle, AKA the new Pat (if such a thing were possible).\n"
        "-- For Steve, AKA the new Kyle (which makes him the newest Pat).\n"
-       "-- RWCox - August 2008.\n"
+       "-- RWCox - August 2008 et cetera.\n"
       ) ;
 
       PRINT_AFNI_OMP_USAGE("3dTcorrMap",NULL) ;
