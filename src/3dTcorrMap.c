@@ -50,6 +50,7 @@ static void vstep_print(void)
 int main( int argc , char *argv[] )
 {
    THD_3dim_dataset *xset=NULL ;
+   THD_3dim_dataset *bset=NULL ;
    int nopt=1 , do_automask=0 ;
    int nvox , nvals , ii,jj,kk , polort=1 , ntime ;
    float *xsar ; float acc,cc,csum,Mcsum,Zcsum,Qcsum , Tcount ;
@@ -57,7 +58,7 @@ int main( int argc , char *argv[] )
    int nref=0 , iv=0, N_iv=0, Tbone=0;
    float **ref=NULL, t0=0.0, t1=0.0, ti=0.0;
    MRI_IMAGE *ortim=NULL ; float *ortar=NULL ;
-   int *indx=NULL ; MRI_IMARR *timar=NULL ;
+   int *indx=NULL ; MRI_IMARR *timar=NULL ; MRI_IMARR *bimar=NULL ;
    char *Mprefix=NULL ; THD_3dim_dataset *Mset=NULL ; float *Mar=NULL ;
    char *Zprefix=NULL ; THD_3dim_dataset *Zset=NULL ; float *Zar=NULL ;
    char *Qprefix=NULL ; THD_3dim_dataset *Qset=NULL ; float *Qar=NULL ;
@@ -80,6 +81,13 @@ int main( int argc , char *argv[] )
    char *Eprefix=NULL ; THD_3dim_dataset *Eset=NULL ; float *Ear=NULL ;
    double *atoz[26] ;
    double *eear=NULL ; float Esum ; int nEsum ;
+   int expr_has_z=0 , expr_has_r=0 ;
+
+   char *HHprefix=NULL ; THD_3dim_dataset *HHset=NULL ;
+   int   HHnum=0 ; short *HHist=NULL ; float HHdel=0.0f , HHdin=0.0f ;
+
+   float bpass_L=0.0f , bpass_H=0.0f , dtime ; int do_bpass=0 ;
+   double ctime ;
 
    /*----*/
 
@@ -93,6 +101,20 @@ int main( int argc , char *argv[] )
        "\n"
        "Options:\n"
        "  -input dd = Read 3D+time dataset 'dd' (a mandatory option).\n"
+       "\n"
+       "  -base bb  = Read 3D+time dataset 'bb'.\n"
+       "             * If you use this option, for each voxel in the\n"
+       "                '-base' dataset, its time series is correlated\n"
+       "                with every voxel in the '-input' dataset, and\n"
+       "                then that collection of correlations is processed\n"
+       "                to produce the output for that '-base' voxel.\n"
+       "             * If you don't use '-base', then the '-input' dataset\n"
+       "                is the '-base' dataset.\n"
+       "             * The '-base' and '-input' datasets must have the\n"
+       "                same number of time points and the same number\n"
+       "                of voxels.\n"
+       "             * Unlike the '-input' dataset, the '-base' dataset is\n"
+       "                not preprocessed (i.e., no detrending or bandpass).\n"
        "\n"
        "  -Mean pp  = Save average correlations into dataset prefix 'pp'\n"
        "  -Zmean pp = Save tanh of mean arctanh(correlation) into 'pp'\n"
@@ -134,26 +156,43 @@ int main( int argc , char *argv[] )
        "              coefficients larger than 0.3.\n"
        "           ** N.B.: At most one '-?expr' option can be used in\n"
        "                    the same run of the program!\n"
-       "           ** N.B.: Only the symbol 'r' has any meaning in the\n"
-       "                    expression; all other symbols will be treated\n"
-       "                    as zeroes.\n"
+       "           ** N.B.: Only the symbols 'r' and 'z' [=atanh(r)] have any\n"
+       "                    meaning in the expression; all other symbols will\n"
+       "                    be treated as zeroes.\n"
+       "\n"
+       "  -Hist N ppp\n"
+       "            = For each voxel, save a histogram of the correlation\n"
+       "              coefficients into dataset ppp.\n"
+       "           ** N values will be saved per voxel, with the i'th\n"
+       "              sub-brick containing the count for the range\n"
+       "                -1+i*D <= r < -1+(i+1)*D  with D=2/N and i=0..N-1\n"
+       "           ** N must be at least 20, and at most 1000\n"
+       "           ** The output dataset is short format; thus, the maximum\n"
+       "              count in any bin will be 32767.\n"
        "\n"
        "  *** At least one of the above output options must be given!!! ***\n"
        "\n"
-       "  -polort m = Remove polynomical trend of order 'm', for m=-1..19.\n"
-       "               [default is m=1; removal is by least squares].\n"
-       "               Using m=-1 means no detrending; this is only useful\n"
-       "               for data/information that has been pre-processed.\n"
-       "  -ort rr   = 1D file with other time series to be removed\n"
-       "               (via least squares regression) before correlation.\n"
+       "  -polort m  = Remove polynomial trend of order 'm', for m=-1..19.\n"
+       "                [default is m=1; removal is by least squares].\n"
+       "                Using m=-1 means no detrending; this is only useful\n"
+       "                for data/information that has been pre-processed.\n"
+       "\n"
+       "  -bpass L H = Bandpass the data between frequencies L and H (in Hz).\n"
+       "             ** -bpass and -polort are mutually exclusive!\n"
+       "             ** If the input dataset does not have a time step defined,\n"
+       "                then TR = 1 s will be assumed for this purpose.\n"
+       "\n"
+       "  -ort rr    = 1D file with other time series to be removed\n"
+       "                (via least squares regression) before correlation.\n"
        "\n"
        "  -mask mm  = Read dataset 'mm' as a voxel mask.\n"
        "  -automask = Create a mask from the input dataset.\n"
        "\n"
        "-- This purely experimental program is somewhat slow.\n"
        "-- For Kyle, AKA the new Pat (if such a thing were possible).\n"
+       "-- For Steve, AKA the new Kyle (which makes him the newest Pat).\n"
        "-- RWCox - August 2008.\n"
-            ) ;
+      ) ;
 
       PRINT_AFNI_OMP_USAGE("3dTcorrMap",NULL) ;
       PRINT_COMPILE_DATE ; exit(0) ;
@@ -264,12 +303,26 @@ int main( int argc , char *argv[] )
         expr_code   = PARSER_generate_code( expr_string ) ;
         if( expr_code == NULL )
           ERROR_exit("Illegal expression in option '%s'",argv[nopt-1]) ;
-        if( !PARSER_has_symbol("r",expr_code) )
-          ERROR_exit("Expression doesn't contain 'r' symbol!") ;
+        expr_has_r = PARSER_has_symbol("r",expr_code ) ;
+        expr_has_z = PARSER_has_symbol("z",expr_code ) ;
+        if( !expr_has_r && !expr_has_z )
+          ERROR_exit("Expression doesn't have 'r' and/or 'z' symbol!") ;
         Eprefix = argv[++nopt] ; nout++ ;
         if( !THD_filename_ok(Eprefix) )
           ERROR_exit("Illegal prefix after '%s'",argv[nopt-2]) ;
-        for( ii=0 ; ii < 26 ; ii++ ) atoz[ii] = NULL ;
+        nopt++ ; continue ;
+      }
+
+      if( strcasecmp(argv[nopt],"-Hist") == 0 ){
+        if( nopt+2 >= argc ) ERROR_exit("need 2 args after -Hist") ;
+        HHnum = (int)strtod(argv[++nopt],NULL) ;
+             if( HHnum <   20 ) ERROR_exit("-Hist count must be at least 20") ;
+        else if( HHnum > 1000 ) ERROR_exit("-Hist count must be at most 1000");
+        HHist = (short *)malloc(sizeof(short)*(HHnum+1)) ;
+        HHprefix = argv[++nopt] ; nout++ ;
+        HHdel = 2.0f / HHnum ; HHdin = HHnum / 2.0f ;
+        if( !THD_filename_ok(HHprefix) )
+          ERROR_exit("Illegal prefix after '%s'",argv[nopt-2]) ;
         nopt++ ; continue ;
       }
 
@@ -281,9 +334,24 @@ int main( int argc , char *argv[] )
          polort = val ; nopt++ ; continue ;
       }
 
+      if( strcasecmp(argv[nopt],"-bpass") == 0 ){
+        if( nopt+2 >= argc ) ERROR_exit("need 2 args after -bpass") ;
+        bpass_L = (float)PARSER_strtod(argv[++nopt]) ;
+        bpass_H = (float)PARSER_strtod(argv[++nopt]) ;
+        if( bpass_L < 0.0f || bpass_H <= bpass_L )
+          ERROR_exit("Illegal values after -bpass") ;
+        nopt++ ; continue ;
+      }
+
       if( strcasecmp(argv[nopt],"-input") == 0 ){
         if( xset != NULL ) ERROR_exit("Can't use -input twice!") ;
         xset = THD_open_dataset(argv[++nopt]); CHECK_OPEN_ERROR(xset,argv[nopt]);
+        nopt++ ; continue ;
+      }
+
+      if( strcasecmp(argv[nopt],"-base") == 0 ){
+        if( bset != NULL ) ERROR_exit("Can't use -base twice!") ;
+        bset = THD_open_dataset(argv[++nopt]); CHECK_OPEN_ERROR(bset,argv[nopt]);
         nopt++ ; continue ;
       }
 
@@ -323,6 +391,25 @@ int main( int argc , char *argv[] )
    if( ortim != NULL && ortim->nx < ntime )
      ERROR_exit("-ort file is shorter than input dataset!") ;
 
+   DSET_UNMSEC(xset) ;
+   dtime = DSET_TR(xset) ;
+   if( dtime <= 0.0f ) dtime = 1.0f ;
+   do_bpass = (bpass_L < bpass_H) ;
+   if( do_bpass ){
+     kk = THD_bandpass_OK( ntime , dtime , bpass_L , bpass_H , 1 ) ;
+     if( kk <= 0 ) ERROR_exit("Can't continue since -bpass setup is illegal") ;
+     polort = -1 ;
+   }
+
+   if( bset != NULL ){
+     if( DSET_NVALS(bset) != ntime )
+       ERROR_exit("-base dataset time series length %d doesn't match -input %d",
+                  DSET_NVALS(bset) , ntime ) ;
+
+     if( DSET_NVOX(bset) != DSET_NVOX(xset) )
+       ERROR_exit("-base dataset doesn't match -input dataset in space") ;
+   }
+
    /*-- compute references, if any --*/
 
    if( polort >= 0 ){
@@ -341,21 +428,21 @@ int main( int argc , char *argv[] )
    nvox = DSET_NVOX(xset) ;
 
    if( do_automask ){
-      mask  = THD_automask( xset ) ;
-      nmask = THD_countmask( nvox , mask ) ;
-      if( nmask > 9 )
-        INFO_message("%d voxels survive -automask",nmask) ;
-      else
-        ERROR_exit("only %d voxels survive -automask",nmask) ;
+     mask  = THD_automask( xset ) ;
+     nmask = THD_countmask( nvox , mask ) ;
+     if( nmask > 9 )
+       INFO_message("%d voxels survive -automask",nmask) ;
+     else
+       ERROR_exit("only %d voxels survive -automask",nmask) ;
    } else if( mask != NULL ){
-      if( nxmask != DSET_NX(xset) ||
-          nymask != DSET_NY(xset) || nzmask != DSET_NZ(xset) )
-        ERROR_exit("-mask and -input datasets differ in voxel grids!") ;
+     if( nxmask != DSET_NX(xset) ||
+         nymask != DSET_NY(xset) || nzmask != DSET_NZ(xset) )
+       ERROR_exit("-mask and -input datasets differ in voxel grids!") ;
    } else {
-      nmask = nvox ;
-      mask  = (byte *)malloc(sizeof(byte)*nmask) ;
-      memset( mask  , 1 , sizeof(byte)*nmask ) ;
-      INFO_message("computing for all %d voxels!",nmask) ;
+     nmask = nvox ;
+     mask  = (byte *)malloc(sizeof(byte)*nmask) ;
+     memset( mask  , 1 , sizeof(byte)*nmask ) ;
+     INFO_message("computing for all %d voxels!",nmask) ;
    }
 
    /*-- create output datasets --*/
@@ -500,14 +587,38 @@ int main( int argc , char *argv[] )
      tross_Make_History( "3dTcorrMap" , argc,argv , Tvset ) ;
    }
 
+   if( HHprefix != NULL ){
+     HHset = EDIT_empty_copy( xset ) ;
+     EDIT_dset_items( HHset ,
+                        ADN_prefix    , HHprefix       ,
+                        ADN_nvals     , HHnum          ,
+                        ADN_ntt       , 0              ,
+                        ADN_brick_fac , NULL           ,
+                        ADN_type      , HEAD_FUNC_TYPE ,
+                        ADN_func_type , FUNC_BUCK_TYPE ,
+                      ADN_none ) ;
+     for( iv=0 ; iv < HHnum ; iv++ ){
+       EDIT_substitute_brick( HHset , iv , MRI_short , NULL ) ;
+       EDIT_BRICK_TO_NOSTAT(HHset,iv) ;
+       sprintf(stmp,"%+6.3f:%+6.3f",-1.0+iv*HHdel,-1.0+(iv+1)*HHdel) ;
+       EDIT_BRICK_LABEL(HHset,iv,stmp) ;
+     }
+     if( THD_deathcon() && THD_is_file(DSET_HEADNAME(HHset)) )
+       ERROR_exit("Output dataset %s already exists!",
+                  DSET_HEADNAME(HHset)) ;
+     tross_Make_History( "3dTcorrMap" , argc,argv , HHset ) ;
+   }
+
    /*--- load input data and pre-process it ---*/
 
-   INFO_message("Loading input dataset") ;
-   DSET_load(xset) ; CHECK_LOAD_ERROR(xset) ;
+   if( !DSET_LOADED(xset) ){
+     INFO_message("Loading input dataset") ;
+     DSET_load(xset) ; CHECK_LOAD_ERROR(xset) ;
+   }
 
-   /* remove trends now */
+   /* remove trends now (if not bandpassing) */
 
-   if( nref > 0 ){
+   if( nref > 0 && !do_bpass ){
      THD_3dim_dataset *yset ;
      ININFO_message("Detrending input dataset with %d references",nref) ;
      yset = THD_detrend_dataset( xset , nref,ref , 2,0 , mask , NULL ) ;
@@ -539,8 +650,34 @@ int main( int argc , char *argv[] )
    for( ii=jj=0 ; ii < nvox ; ii++ ) if( mask[ii] ) indx[jj++] = ii ;
    ININFO_message("extracting mask-ed time series") ;
    timar = THD_extract_many_series( nmask , indx , xset ) ;
-   if( timar == NULL ) ERROR_exit("extraction failed!?") ;
-   DSET_delete(xset) ; free(mask) ;
+   if( timar == NULL ) ERROR_exit("-input extraction failed!?") ;
+   DSET_delete(xset) ;
+
+   if( bset != NULL ){
+     DSET_load(bset) ; CHECK_LOAD_ERROR(bset) ;
+     bimar = THD_extract_many_series( nmask , indx , bset ) ;
+     if( bimar == NULL ) ERROR_exit("-base extraction failed!?") ;
+     DSET_delete(bset) ;
+   }
+
+   free(mask) ;
+
+   /* do bandpass now, if so desired */
+
+   if( do_bpass ){
+     float **vec = (float **)malloc(sizeof(float *)*nmask) ;
+     ININFO_message("Bandpassing input dataset") ;
+     for( kk=0 ; kk < nmask ; kk++ )
+       vec[kk] = MRI_FLOAT_PTR( IMARR_SUBIM(timar,kk) ) ;
+
+     kk = THD_bandpass_vectors( ntime , nmask   , vec     ,
+                                dtime , bpass_L , bpass_H ,
+                                1     , nref    , ref      ) ;
+     if( kk <= 0 )
+       ERROR_exit("Bandpass failed for some reason?") ;
+     else
+       ININFO_message("Bandpass projected out %d dimensions",kk) ;
+   }
 
    /* normalize so sum of squares is 1, for speed in computing correlations */
 
@@ -554,17 +691,32 @@ int main( int argc , char *argv[] )
        for( jj=0 ; jj < ntime ; jj++ ) xsar[jj] *= csum ;
      }
    }
+   if( bimar != NULL ){
+     for( ii=0 ; ii < nmask ; ii++ ){
+       xsar = MRI_FLOAT_PTR( IMARR_SUBIM(bimar,ii) ) ;
+       csum = 0.0f ;
+       for( jj=0 ; jj < ntime ; jj++ ) csum += xsar[jj]*xsar[jj] ;
+       if( csum > 0.0f ){  /* should always be true */
+         csum = 1.0f / sqrtf(csum) ;
+         for( jj=0 ; jj < ntime ; jj++ ) xsar[jj] *= csum ;
+       }
+     }
+   }
 
-   /*--- loop over voxels, correlate (lots of CPU time now) ---*/
+   /*--- loop over voxels, correlate (lots and lots of CPU time now) ---*/
 
    vstep = (nmask > 999) ? nmask/50 : 0 ;
 
    isodd = (ntime%2 == 1) ;
    ccar = (float *)malloc(sizeof(float)*nmask) ;  /* 29 Apr 2009 */
 
+   for( ii=0 ; ii < 26 ; ii++ ) atoz[ii] = NULL ;
    if( expr_type != '\0' ){  /* 23 Jun 2009 */
-     atoz[17] = (double *)malloc(sizeof(double)*nmask) ;
-     eear     = (double *)malloc(sizeof(double)*nmask) ;
+     eear = (double *)malloc(sizeof(double)*nmask) ;
+     if( expr_has_r )
+       atoz[17] = (double *)malloc(sizeof(double)*nmask) ;
+     if( expr_has_z )
+       atoz[25] = (double *)malloc(sizeof(double)*nmask) ;
    }
 
    /* initialize timer */
@@ -576,7 +728,8 @@ int main( int argc , char *argv[] )
 #pragma omp parallel
  {
   if( omp_get_thread_num() == 0 )
-    INFO_message("Starting long loop: OpenMP thread count = %d",omp_get_num_threads()) ;
+    INFO_message("Starting long long loop: OpenMP thread count = %d" ,
+                 omp_get_num_threads() ) ;
  }
 #else
  INFO_message("Starting the long long loop through all voxels") ;
@@ -588,15 +741,18 @@ int main( int argc , char *argv[] )
      if( vstep && ii%vstep == vstep-1 ){
        if( ii < vstep ){
          dtt = etime(&tt,1) ;
-         ININFO_message("Single loop duration: %.3f mins\n"
-                     "   Remaining time estim: %.3f mins = %.3f hrs\n",
+         ININFO_message("Single loop duration: %.1f mins\n"
+                     "   Remaining time estim: %.1f mins = %.2f hrs\n",
                         dtt/60.0, dtt/60.0*49.0 , dtt/3600.0*49.0 ) ;
          fprintf(stderr,"++ Voxel loop: ") ;
        }
        vstep_print() ;
      }
 
-     xsar = MRI_FLOAT_PTR( IMARR_SUBIM(timar,ii) ) ;  /* ii-th time series */
+     if( bimar != NULL )                                /* get ii-th time series */
+       xsar = MRI_FLOAT_PTR( IMARR_SUBIM(bimar,ii) ) ;
+     else
+       xsar = MRI_FLOAT_PTR( IMARR_SUBIM(timar,ii) ) ;
 
 #pragma omp parallel
  { int vv,uu ; float *ysar ; float qcc ;
@@ -659,7 +815,12 @@ int main( int argc , char *argv[] )
        Par[indx[ii]] = Pcsum / MAX(1,nPcsum) ;
 
      if( expr_type != '\0' ){  /* 23 Jun 2009 */
-       for( jj=0 ; jj < nmask ; jj++ ) atoz[17][jj] = (double)ccar[jj] ;
+       if( expr_has_r ){
+         for( jj=0 ; jj < nmask ; jj++ ) atoz[17][jj] = (double)ccar[jj] ;
+       }
+       if( expr_has_z ){
+         for( jj=0 ; jj < nmask ; jj++ ) atoz[25][jj] = atanhf(ccar[jj]) ;
+       }
        PARSER_evaluate_vector( expr_code , atoz , nmask, eear ) ;
        Esum = 0.0f ; nEsum = 0.0f ;
        for( jj=0 ; jj < nmask ; jj++ ){
@@ -671,6 +832,16 @@ int main( int argc , char *argv[] )
          case 'C': Ear[indx[ii]] = Esum / MAX(1,nEsum) ; break ;
          case 'S': Ear[indx[ii]] = Esum ;                break ;
        }
+     }
+
+     if( HHist != NULL ){
+       memset( HHist , 0 , sizeof(short)*(HHnum+1) ) ;
+       for( jj=0 ; jj < nmask ; jj++ ){
+         if( jj == ii ) continue ;
+         kk = (1.0f + ccar[jj])*HHdin ;
+         if( HHist[kk] < MRI_maxshort ) HHist[kk]++ ;
+       }
+       THD_insert_series( indx[ii], HHset, HHnum, MRI_short, HHist, 1 ) ;
      }
 
    } /* end of outer loop over voxels (ii) */
@@ -699,10 +870,15 @@ int main( int argc , char *argv[] )
    /*--- finito ---*/
 
    free(indx) ; DESTROY_IMARR(timar) ; free(ccar) ;
+   if( bimar != NULL ) DESTROY_IMARR(bimar) ;
 
-   if (Tvar) free(Tvar); Tvar = NULL;
-   if (Threshv) free(Threshv); Threshv=NULL;
-   if (Tvcount) free(Tvcount); Tvcount=NULL;
+   if( atoz[17] ) free(atoz[17]) ;
+   if( atoz[25] ) free(atoz[25]) ;
+   if( eear     ) free(eear)     ;
+   if( HHist    ) free(HHist)    ;
+   if( Tvar     ) free(Tvar)     ;
+   if( Threshv  ) free(Threshv)  ;
+   if( Tvcount  ) free(Tvcount)  ;
 
    if( Mset != NULL ){
      DSET_write(Mset) ; WROTE_DSET(Mset) ; DSET_delete(Mset) ;
@@ -724,6 +900,9 @@ int main( int argc , char *argv[] )
    }
    if( Eset != NULL ){
      DSET_write(Eset) ; WROTE_DSET(Eset) ; DSET_delete(Eset) ;
+   }
+   if( HHset != NULL ){
+     DSET_write(HHset) ; WROTE_DSET(HHset) ; DSET_delete(HHset) ;
    }
 
    INFO_message("total CPU time = %.2f s",COX_cpu_time()) ; exit(0) ;
