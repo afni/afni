@@ -44,6 +44,12 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 18 , NOV , 2009 , RWC , "mri_read.c" , MICRO , TYPE_GENERAL ,
+   "Fix Ziad's stupid error printout in reading .1D files" ,
+   "To indicate which file is causing the trouble.\n"
+   "To limit the number of such Failure messages to a reasonable level.\n"
+   "Sheesh." } ,
+
  { 17 , NOV , 2009 , RWC , "3dTfitter" , MICRO , TYPE_GENERAL ,
    "Let FALTUNG kernel be longer that N/2" ,
    "Also add synonyms '-L2' and '-L1'" } ,
