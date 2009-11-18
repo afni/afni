@@ -107,6 +107,8 @@ int PARSER_has_symbol( char *sym , PARSER_code *pc )
    return hh ;
 }
 
+/*------------------------------------------------------------------*/
+
 void PARSER_mark_symbols( PARSER_code *pc , int *sl )
 {
    int ii ;
