@@ -13,10 +13,10 @@
 ------------------------------------------------------------------*/
 
 THD_3dim_dataset_array *
-   THD_array_3dim_from_block( THD_datablock_array * blk_arr )
+   THD_array_3dim_from_block( THD_datablock_array *blk_arr )
 {
-   THD_3dim_dataset_array * dset_arr ;
-   THD_3dim_dataset *       dset ;
+   THD_3dim_dataset_array *dset_arr ;
+   THD_3dim_dataset       *dset ;
    int id ;
    Boolean dset_ok = True , all_anat , all_func ;
 
@@ -48,7 +48,8 @@ ENTRY("THD_array_3dim_from_block") ;
       all_func  = all_func && ISFUNC(dset) ;
    }
    if( !all_anat && !all_func )
-      DSET_ERR("image type conflicts (ANAT and FUNC mixed)") ;
+     WARNING_message("dataset %s: mixed ANAT and FUNC? in different views?",
+                     DSET_HEADNAME(dset_arr->ar[0]) ) ;
 
    SORT_3DARR( dset_arr ) ;
 
@@ -60,10 +61,10 @@ ENTRY("THD_array_3dim_from_block") ;
    /*-- 3.  If all images are func .... --*/
 
    if( all_func ){
-      THD_3dim_dataset * dset0 ;
+#if 0
+      THD_3dim_dataset *dset0 ;
       int jd ;
 
-#if 0
       /* check for anat parents (should all have one) */
 
       for( id=0 ; id < dset_arr->num ; id++ ){  /* check for anat parent */

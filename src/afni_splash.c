@@ -245,7 +245,7 @@ ENTRY("AFNI_splashup") ;
       imspl = SPLASH_decodexx( NX_blank, NY_blank, NLINE_blank, NC_blank,
                                RMAP_blank,GMAP_blank,BMAP_blank, BAR_blank ) ;
 
-      if( ncall==0 ){                           /* initialize random */
+      if( ncall == 0 ){                         /* initialize random */
         nov  =    (lrand48() >> 8) % NOVER  ;   /* sub-image overlay */
         dnov = 2*((lrand48() >> 8) % 2) - 1 ;   /* index & direction */
       }
@@ -355,7 +355,7 @@ ENTRY("AFNI_splashup") ;
 
       ppp = (PLUGIN_impopper *)handle ;
 
-      if( ncall==0 ){ dd = MWM_DECOR_BORDER ;
+      if( ncall==-1){ dd = MWM_DECOR_BORDER ;
                       ee = 0 ;
       } else        { dd = MWM_DECOR_BORDER | MWM_DECOR_TITLE | MWM_DECOR_MENU ;
                       ee = MWM_FUNC_MOVE | MWM_FUNC_CLOSE ;
@@ -1517,8 +1517,8 @@ STATUS("no ***LAYOUT found") ;
          /* change the graph matrix (i.e., how many sub-graphs)? */
 
          if( graph_matrix[cc][ww] > 0 ){
-            drive_MCW_grapher( gra , graDR_setmatrix , (XtPointer) graph_matrix[cc][ww] ) ;
-            if(goslow || PRINT_TRACING) sleep(1);
+           drive_MCW_grapher( gra, graDR_setmatrix, (XtPointer)graph_matrix[cc][ww] );
+           if(goslow || PRINT_TRACING) sleep(1);
          }
 
          /* make the graph length pinned? */
@@ -1535,7 +1535,7 @@ STATUS("no ***LAYOUT found") ;
             if( gxx >= 0 && gyy >= 0 )
                XtVaSetValues( gra->fdw_graph , XmNx , gxx , XmNy , gyy , NULL ) ;
             if( gww > 0 && ghh > 0 )
-               XtVaSetValues( gra->fdw_graph , XmNwidth , gww , XmNheight , ghh , NULL ) ;
+               XtVaSetValues( gra->fdw_graph, XmNwidth, gww, XmNheight, ghh, NULL ) ;
             if(goslow || PRINT_TRACING) sleep(1);
          }
 
