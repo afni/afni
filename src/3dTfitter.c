@@ -344,6 +344,8 @@ int main( int argc , char *argv[] )
       "                          this value (e.g., to count it more)\n"
       " AFNI_TFITTER_P2SCALE  =  number > 0 will scale the P2 penalty by\n"
       "                          this value\n"
+      " You could set these values on the command line using the AFNI standard\n"
+      " '-Dvariablename=value' command line option.\n"
       "\n"
       "------------\n"
       "NON-Options:\n"
