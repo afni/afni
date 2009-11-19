@@ -551,7 +551,8 @@ int main (int argc,char *argv[])
       
       SUMA_LH("Doing Metrics...");
       if (!SUMA_SurfaceMetrics (SOv[ipart], "Convexity, EdgeList, MemberFace", NULL)) {
-         fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_SurfaceMetrics.\n", FuncName);
+         fprintf (SUMA_STDERR,
+                  "Error %s: Failed in SUMA_SurfaceMetrics.\n", FuncName);
          SUMA_Free_Surface_Object (SOv[ipart]);
          SUMA_RETURN (1);
       }
@@ -560,13 +561,17 @@ int main (int argc,char *argv[])
                SUMA_DSET *dset=NULL;/* create the color plane for Convexity*/
              
              /* create an overlay plane */
-               if (!(dset = (SUMA_DSET *)SUMA_GetCx(SOv[ipart]->idcode_str, SUMAg_CF->DsetList, 1))) {
+               if (!(dset = (SUMA_DSET *)SUMA_GetCx(SOv[ipart]->idcode_str, 
+                                                      SUMAg_CF->DsetList, 1))) {
                   SUMA_SL_Err("Failed to find dset!");
                   SUMA_RETURN (NOPE);
                }
-               NewColPlane = SUMA_CreateOverlayPointer ("Convexity", dset, SOv[ipart]->idcode_str, NULL);
+               NewColPlane = SUMA_CreateOverlayPointer ("Convexity", dset, 
+                                                   SOv[ipart]->idcode_str, NULL);
                if (!NewColPlane) {
-                  fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_CreateOverlayPointer.\n", FuncName);
+                  fprintf (SUMA_STDERR, 
+                           "Error %s: Failed in SUMA_CreateOverlayPointer.\n", 
+                           FuncName);
                   SUMA_RETURN (NOPE);
                } 
                
@@ -584,12 +589,19 @@ int main (int argc,char *argv[])
                      SUMA_RETURN (NOPE);
                   }
                }
-               if (!SUMA_SetConvexityPlaneDefaults(SOv[ipart], SUMAg_CF->DsetList)) {
-                  SUMA_SL_Err("Failed to set plane defaults."); SUMA_RETURN(NOPE);
+               if (!SUMA_SetConvexityPlaneDefaults(SOv[ipart], 
+                                                SUMAg_CF->DsetList)) {
+                  SUMA_SL_Err("Failed to set plane defaults."); 
+                  SUMA_RETURN(NOPE);
                }
 
                /* colorize the plane */
                SUMA_ColorizePlane(NewColPlane);
+               
+               if (SOv[ipart]->SurfCont && !SOv[ipart]->SurfCont->curColPlane) {
+                  SOv[ipart]->SurfCont->curColPlane = NewColPlane;
+               }
+
             }
 
       /* all the previous stuff is nice and dandy but it takes a lot more to
@@ -597,7 +609,8 @@ int main (int argc,char *argv[])
       /* Write out the surfaces in PLY format and create a dummy spec file */
       if (!SUMA_Save_Surface_Object (  fName, SOv[ipart], 
                                        SUMA_PLY, SUMA_FF_NOT_SPECIFIED, NULL)) {
-         fprintf (SUMA_STDERR,"Error %s: Failed to write surface object.\n", FuncName);
+         fprintf (SUMA_STDERR,"Error %s: Failed to write surface object.\n", 
+                              FuncName);
          exit (1);
       }
 

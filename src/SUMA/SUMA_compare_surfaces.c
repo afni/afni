@@ -407,7 +407,11 @@ int main (int argc,char *argv[])
 
     if (!(i%100)) {
       delta_t = SUMA_etime(&tt, 1);
-      fprintf (SUMA_STDERR, " [%d]/[%d] %.2f/100%% completed. Dt = %.2f min done of %.2f min total\r" ,  i, num_nodes1, (float)i / num_nodes1 * 100, delta_t/60, delta_t/i * num_nodes1/60);
+      fprintf (SUMA_STDERR, 
+               " [%d]/[%d] %.2f/100%% completed. "
+               "Dt = %.2f min done of %.2f min total\r" ,  
+               i, num_nodes1, (float)i / num_nodes1 * 100, delta_t/60, 
+               delta_t/i * num_nodes1/60);
     }
    
    if (Partial) {
@@ -435,10 +439,11 @@ int main (int argc,char *argv[])
      /* output this distance as a color file */
      MyColMap = SUMA_FindNamedColMap("byr64");
      MyOpt = SUMA_ScaleToMapOptInit();
-     MySV = SUMA_Create_ColorScaledVect(num_nodes1);
+     MySV = SUMA_Create_ColorScaledVect(num_nodes1, 0);
      mindistance = minimum(num_nodes1, distance);
      maxdistance = maximum(num_nodes1, distance);
-     SUMA_ScaleToMap(distance,num_nodes1,mindistance, maxdistance, MyColMap,MyOpt,MySV);
+     SUMA_ScaleToMap(distance,num_nodes1,mindistance, maxdistance, 
+                     MyColMap,MyOpt,MySV);
 
 
      /* write out the distance color file */
@@ -448,7 +453,8 @@ int main (int argc,char *argv[])
      }
      else {
        for (i=0; i < num_nodes1; ++i) {
-         fprintf (colorfile,"%d\t%f\t%f\t%f\n", i, MySV->cV[3*i  ], MySV->cV[3*i+1], MySV->cV[3*i+2]);
+         fprintf (colorfile,"%d\t%f\t%f\t%f\n", 
+                  i, MySV->cV[3*i  ], MySV->cV[3*i+1], MySV->cV[3*i+2]);
        }
        fclose (colorfile);
      }

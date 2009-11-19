@@ -727,15 +727,19 @@ int main (int argc,char *argv[])
    /* get the options for creating the scaled color mapping */
    OptScl = SUMA_ScaleToMapOptInit();
    if (!OptScl) {
-      fprintf (SUMA_STDERR,"Error %s: Could not get scaling option structure.\n", FuncName);
+      fprintf (SUMA_STDERR,
+               "Error %s: Could not get scaling option structure.\n", FuncName);
       exit (1); 
    }
    
    /* work the options a bit */
    if (ApplyMask) {
       OptScl->ApplyMask = ApplyMask;
-      OptScl->MaskRange[0] = MaskRange[0]; OptScl->MaskRange[1] = MaskRange[1]; 
-      OptScl->MaskColor[0] = MaskColor[0]; OptScl->MaskColor[1] = MaskColor[1]; OptScl->MaskColor[2] = MaskColor[2];
+      OptScl->MaskRange[0] = MaskRange[0]; 
+      OptScl->MaskRange[1] = MaskRange[1]; 
+      OptScl->MaskColor[0] = MaskColor[0]; 
+      OptScl->MaskColor[1] = MaskColor[1]; 
+      OptScl->MaskColor[2] = MaskColor[2];
    }
    
    if (ApplyClip) {
@@ -751,16 +755,18 @@ int main (int argc,char *argv[])
       
    /* map the values in V to the colormap */
       /* allocate space for the result */
-      SV = SUMA_Create_ColorScaledVect(N_V);
+      SV = SUMA_Create_ColorScaledVect(N_V, 0);
       if (!SV) {
-         fprintf (SUMA_STDERR,"Error %s: Could not allocate for SV.\n", FuncName);
+         fprintf (SUMA_STDERR,
+                  "Error %s: Could not allocate for SV.\n", FuncName);
          exit(1);
       }
       
       /* finally ! */
       if (alaAFNI) {
          if (LocalHead) {
-            fprintf (SUMA_STDERR,"%s: Calling SUMA_ScaleToMap_alaAFNI\n", FuncName);
+            fprintf (SUMA_STDERR,
+                     "%s: Calling SUMA_ScaleToMap_alaAFNI\n", FuncName);
             fprintf (SUMA_STDERR,"%s: arange = %f\n",  FuncName, arange);
          }
          if (CM->frac) {

@@ -246,6 +246,7 @@ int SUMA_CommandCode(char *Scom)
    if (!strcmp(Scom,"surf_cont")) SUMA_RETURN(SE_SetSurfCont);
    if (!strcmp(Scom,"viewer_cont")) SUMA_RETURN(SE_SetViewerCont);
    if (!strcmp(Scom,"recorder_cont")) SUMA_RETURN(SE_SetRecorderCont);
+   if (!strcmp(Scom,"SetDsetViewMode")) SUMA_RETURN(SE_SetDsetViewMode);
    /*if (!strcmp(Scom,"")) SUMA_RETURN(SE_);*/
    
    /* Last one is Bad Code */
@@ -475,6 +476,8 @@ const char *SUMA_CommandString (SUMA_ENGINE_CODE code)
          SUMA_RETURN("viewer_cont"); 
       case SE_SetRecorderCont:
          SUMA_RETURN("recorder_cont"); 
+      case SE_SetDsetViewMode:
+         SUMA_RETURN("SetDsetViewMode");
       /*case SE_:
          SUMA_RETURN("");      */
       default:        

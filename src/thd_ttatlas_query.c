@@ -1849,7 +1849,8 @@ int * UniqueInt (int *y, int ysz, int *kunq, int Sorted )
          }
       for (k=0; k < ysz; ++k)
          x[k] = y[k];
-      qsort(x,ysz,sizeof(int), (int(*) (const void *, const void *)) compare_int);
+      qsort(x,ysz,sizeof(int), 
+            (int(*) (const void *, const void *)) compare_int);
    }
    else
       x = y;

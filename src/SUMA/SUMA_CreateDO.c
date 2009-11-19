@@ -752,6 +752,9 @@ SUMA_DO_Types SUMA_Guess_DO_Type(char *s)
    SUMA_RETURN(dotp);
 }
 
+/* 
+   If idcode_str is NULL, NIDO's idcode is a hash of the label
+*/
 SUMA_NIDO * SUMA_Alloc_NIDO ( char *idcode_str, char *Label, 
                               char *Parent_idcode_str)
 {
@@ -958,6 +961,32 @@ void SUMA_free_SegmentDO (SUMA_SegmentDO * SDO)
    SUMA_RETURNe;
 }
 
+/* Create a blank NIDO header 
+   If idcode_str is NULL, the Label, determines the
+   idcode_str. */
+SUMA_NIDO *SUMA_BlankNIDO (char *idcode_str, char *Label, 
+                           char *parent_so_id, char *coord_type,
+                           char *font_name)
+{
+   static char FuncName[]={"SUMA_BlankNIDO"};
+   SUMA_NIDO *nido = NULL;
+   
+   SUMA_ENTRY;
+   
+   nido = SUMA_Alloc_NIDO(idcode_str, Label, parent_so_id);
+   
+   if (parent_so_id) {
+      NI_set_attribute(nido->ngr, "bond", "surface");
+   }
+   NI_set_attribute( nido->ngr, "coord_type", 
+                     SUMA_CoordTypeName(SUMA_CoordType(coord_type)));
+   NI_set_attribute(nido->ngr, "default_font", 
+                    SUMA_glutBitmapFontName(SUMA_glutBitmapFont(font_name)));
+   NI_set_attribute(nido->ngr, "default_color", 
+                    "1.0 1.0 1.0 1.0"); 
+   
+   SUMA_RETURN(nido);                 
+}
 
 SUMA_NIDO *SUMA_ReadNIDO (char *fname, char *parent_so_id)
 {
@@ -2556,9 +2585,12 @@ SUMA_Boolean SUMA_CreatePlaneQuads(SUMA_PlaneDO *SDO)
       SDO->NodeNormList[3*(n  )  ] = eqn[0]; SDO->NodeNormList[3*(n  )+1] = eqn[1]; SDO->NodeNormList[3*(n  )+2] = eqn[2];
       SDO->NodeNormList[3*(n+1)  ] = eqn[0]; SDO->NodeNormList[3*(n+1)+1] = eqn[1]; SDO->NodeNormList[3*(n+1)+2] = eqn[2];
       SDO->NodeNormList[3*(n+2)  ] = eqn[0]; SDO->NodeNormList[3*(n+2)+1] = eqn[1]; SDO->NodeNormList[3*(n+2)+2] = eqn[2];
-      SDO->NodeNormList[3*(n+3)  ] = eqn[0]; SDO->NodeNormList[3*(n+3)+1] = eqn[1]; SDO->NodeNormList[3*(n+3)+2] = eqn[2];
+      SDO->NodeNormList[3*(n+3)  ] = eqn[0]; 
+      SDO->NodeNormList[3*(n+3)+1] = eqn[1]; 
+      SDO->NodeNormList[3*(n+3)+2] = eqn[2];
           
-      /* Each quad representing a plane would be formed by nodes n, n+1, n+2 and n+3 */
+      /* Each quad representing a plane would be formed by nodes 
+         n, n+1, n+2 and n+3 */
       SDO->FaceSetList[4*i  ] = i  ; 
       SDO->FaceSetList[4*i+1] = i+1; 
       SDO->FaceSetList[4*i+2] = i+2; 
@@ -2599,7 +2631,9 @@ SUMA_Boolean SUMA_DrawPlaneDO (SUMA_PlaneDO *SDO, SUMA_SurfaceViewer *sv)
       fprintf(stderr,"Error %s: NULL pointer.\n", FuncName);
       SUMA_RETURN (NOPE);
    }
-   if (SDO->PolyMode == SRM_Hide || sv->PolyMode == SRM_Hide) { SUMA_RETURN(YUP); }
+   if (SDO->PolyMode == SRM_Hide || sv->PolyMode == SRM_Hide) { 
+      SUMA_RETURN(YUP); 
+   }
    /* check on rendering mode */
    if (SDO->PolyMode != SRM_ViewerDefault) {
      /* not the default, do the deed */
@@ -4955,7 +4989,8 @@ SUMA_DRAWN_ROI **SUMA_Find_ROIonSO (SUMA_SurfaceObject *SO, SUMA_DO* dov, int N_
 
    \sa SUMA_Find_ROIonSO
 */
-SUMA_DRAWN_ROI **SUMA_Find_ROIrelatedtoSO (SUMA_SurfaceObject *SO, SUMA_DO* dov, int N_do, int *N_ROI)
+SUMA_DRAWN_ROI **SUMA_Find_ROIrelatedtoSO (SUMA_SurfaceObject *SO, SUMA_DO* dov, 
+                                           int N_do, int *N_ROI)
 {
    static char FuncName[]={"SUMA_Find_ROIrelatedtoSO"};
    SUMA_DRAWN_ROI **ROIv=NULL;
@@ -4990,7 +5025,8 @@ SUMA_DRAWN_ROI **SUMA_Find_ROIrelatedtoSO (SUMA_SurfaceObject *SO, SUMA_DO* dov,
    }
    
    /* realloc */
-   ROIv = (SUMA_DRAWN_ROI **)SUMA_realloc(ROIv, sizeof(SUMA_DRAWN_ROI *)*roi_cnt);
+   ROIv = (SUMA_DRAWN_ROI **)SUMA_realloc(ROIv, 
+                                          sizeof(SUMA_DRAWN_ROI *)*roi_cnt);
    if (!ROIv) {
       SUMA_SL_Crit("Failed to reallocate for ROIv");
       SUMA_RETURN(NULL);
@@ -5099,6 +5135,175 @@ SUMA_Boolean SUMA_Draw_SO_NIDO (  SUMA_SurfaceObject *SO, SUMA_DO* dov,
    SUMA_RETURN(YUP);
 }
 
+SUMA_Boolean SUMA_Draw_SO_Dset_Contours(SUMA_SurfaceObject *SO, 
+                               SUMA_SurfaceViewer *sv)
+{
+   static char FuncName[]={"SUMA_Draw_SO_Dset_Contours"};
+   SUMA_DSET *dd=NULL;
+   SUMA_OVERLAYS *colplane=NULL;
+   DListElmt *el=NULL;
+   SUMA_DRAWN_ROI *D_ROI=NULL;
+   int OverInd = -1, id2cont=0, id1cont=0, icont=0, ic, i2last=0;
+   float off[3];
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   el = dlist_head(SUMAg_CF->DsetList);
+   while (el) {
+      dd = (SUMA_DSET*)el->data;
+      if (SUMA_isDsetRelated(dd,SO)) {
+         SUMA_LHv("Have Dset %s related to SO\n", SDSET_LABEL(dd));
+         if (!(colplane = SUMA_Fetch_OverlayPointerByDset (
+                           SO->Overlays, SO->N_Overlays, dd, &OverInd))) {
+               SUMA_S_Err("Failed to fetch existing dset's overlay pointer");
+               SUMA_RETURN(NOPE);
+         }
+         /* any contours? */
+         if ( (colplane->ShowMode == SW_SurfCont_DsetViewCon || 
+               colplane->ShowMode == SW_SurfCont_DsetViewCaC ) && 
+              colplane->Contours && colplane->N_Contours) {
+            /* draw them */
+            for (ic=0; ic<colplane->N_Contours; ++ic) {
+               D_ROI = (SUMA_DRAWN_ROI *)colplane->Contours[ic];
+               SUMA_LHv("Dset Contouring %d\n", ic);
+               
+               if (D_ROI->CE && D_ROI->N_CE) {
+                  /* Draw the contour */
+                  if (!SO->patchNodeMask) {
+                     glLineWidth(6);
+                     glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, 
+                                  D_ROI->FillColor);
+                     SUMA_LH("Drawing contour ...");
+                     
+                     #if 1 /* Should be a little faster */
+                     /* initialize first point down */
+                     glBegin(GL_LINE_STRIP);
+                     id1cont = 3 * D_ROI->CE[0].n1;
+                     glVertex3f(SO->NodeList[id1cont], 
+                                SO->NodeList[id1cont+1], 
+                                SO->NodeList[id1cont+2]);
+                     i2last = D_ROI->CE[0].n1;
+                     for (icont = 0; icont < D_ROI->N_CE; ++icont) {
+                        id2cont = 3 * D_ROI->CE[icont].n2;
+                        if (i2last != D_ROI->CE[icont].n1) {
+                           /* break in loop*/
+                           glEnd(); /* end lines */
+                           glBegin(GL_LINE_STRIP); /* begin again */
+                           id1cont = 3 * D_ROI->CE[icont].n1;
+                           glVertex3f(SO->NodeList[id1cont], 
+                                      SO->NodeList[id1cont+1], 
+                                      SO->NodeList[id1cont+2]);
+                        }
+                        /* put down next vertex */
+                        glVertex3f(SO->NodeList[id2cont], 
+                                   SO->NodeList[id2cont+1],    
+                                   SO->NodeList[id2cont+2]);
+                        i2last = D_ROI->CE[icont].n2;
+                     }
+                     glEnd();
+                     #else /* old simpler way */
+                     for (icont = 0; icont < D_ROI->N_CE; ++icont) {
+                        id1cont = 3 * D_ROI->CE[icont].n1;
+                        id2cont = 3 * D_ROI->CE[icont].n2;
+                        glBegin(GL_LINES);
+                        glVertex3f(SO->NodeList[id1cont], 
+                                   SO->NodeList[id1cont+1], 
+                                   SO->NodeList[id1cont+2]);
+                        glVertex3f(SO->NodeList[id2cont], 
+                                   SO->NodeList[id2cont+1],    
+                                   SO->NodeList[id2cont+2]);
+                        glEnd();
+
+                     }
+                     #endif
+                  } else {
+                     if (SO->EmbedDim == 2) {
+                        glLineWidth(1);
+                        glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, 
+                                     D_ROI->FillColor);
+                     } else {
+                        glLineWidth(3);
+                        glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, 
+                                     D_ROI->FillColor);   
+                     }
+                     SUMA_LHv("Drawing contour on patch (%p)...", 
+                              SO->NodeNormList);
+                              /* set default offset to nothing*/
+                     off[0]=0.0; off[1]=0.0; off[2]=0.0; 
+                     if (SO->EmbedDim == 2) {
+                        if (SO->NodeNormList && D_ROI->CE) {
+                           /* just take a node in the ROI */
+                           id2cont = 3 * D_ROI->CE[0].n2;
+                           off[0] = 3*SO->NodeNormList[id2cont];
+                           off[1] = 3*SO->NodeNormList[id2cont+1];
+                           off[2] = 3*SO->NodeNormList[id2cont+2];
+                        }
+                     }
+                     #if 1 /* faster but more complicated */
+                     icont = 0;
+                     while (icont < D_ROI->N_CE &&
+                            !SO->patchNodeMask[D_ROI->CE[icont].n1] &&
+                            !SO->patchNodeMask[D_ROI->CE[icont].n2] ) ++icont;
+                     if (icont < D_ROI->N_CE) {
+                        glBegin(GL_LINE_STRIP);
+                        id1cont = 3 * D_ROI->CE[icont].n1;
+                        glVertex3f(SO->NodeList[id1cont]+off[0], 
+                                   SO->NodeList[id1cont+1]+off[1], 
+                                   SO->NodeList[id1cont+2]+off[2]);
+                        i2last = D_ROI->CE[icont].n1;
+                        while (icont < D_ROI->N_CE) {
+                           if (SO->patchNodeMask[D_ROI->CE[icont].n1] &&
+                               SO->patchNodeMask[D_ROI->CE[icont].n2] ) {
+                              id2cont = 3 * D_ROI->CE[icont].n2;
+                              if (i2last != D_ROI->CE[icont].n1) {
+                                 /* break in loop*/
+                                 glEnd(); /* end lines */
+                                 glBegin(GL_LINE_STRIP); /* begin again */
+                                 id1cont = 3 * D_ROI->CE[icont].n1;
+                                 glVertex3f(SO->NodeList[id1cont]+off[0], 
+                                            SO->NodeList[id1cont+1]+off[1], 
+                                            SO->NodeList[id1cont+2]+off[2]);
+                              }
+                              /* put down next vertex */
+                              glVertex3f(SO->NodeList[id2cont]+off[0], 
+                                         SO->NodeList[id2cont+1]+off[1],    
+                                         SO->NodeList[id2cont+2]+off[2]);
+                              i2last = D_ROI->CE[icont].n2;
+                           }
+                           ++icont;
+                        }
+                        glEnd();
+                     }
+                     #else /* slower way */
+                     for (icont = 0; icont < D_ROI->N_CE; ++icont) {
+                        id1cont = 3 * D_ROI->CE[icont].n1;
+                        id2cont = 3 * D_ROI->CE[icont].n2;
+                        if (SO->patchNodeMask[D_ROI->CE[icont].n1] && 
+                            SO->patchNodeMask[D_ROI->CE[icont].n2]) {
+
+                           glBegin(GL_LINES);
+                           glVertex3f(SO->NodeList[id2cont]+off[0], 
+                                      SO->NodeList[id2cont+1]+off[1],    
+                                      SO->NodeList[id2cont+2]+off[2]);
+                           glVertex3f(SO->NodeList[id1cont]+off[0], 
+                                      SO->NodeList[id1cont+1]+off[1], 
+                                      SO->NodeList[id1cont+2]+off[2]); 
+                           glEnd();
+                        }
+                     }
+                     #endif
+                  }
+               }
+
+            }
+         }
+      }
+      el = dlist_next(el);
+   }
+     
+   SUMA_RETURN(YUP);
+}
 
 /*! Create the ROIs for a particular surface */
 SUMA_Boolean SUMA_Draw_SO_ROI (SUMA_SurfaceObject *SO, 
@@ -5357,7 +5562,8 @@ SUMA_Boolean SUMA_Draw_SO_ROI (SUMA_SurfaceObject *SO,
                            "%s: Drawing ROI %s \n", FuncName, ROI->Label);
                switch (ROI->Type) { /* ROI types */
                   case SUMA_ROI_EdgeGroup:
-                     glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, ROI_EdgeGroup);
+                     glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, 
+                                  ROI_EdgeGroup);
                      for (ii=0; ii < ROI->N_ElInd; ++ii) {
                         EdgeIndex = ROI->ElInd[ii];
                         Node1 = SO->EL->EL[EdgeIndex][0];
@@ -5368,23 +5574,31 @@ SUMA_Boolean SUMA_Draw_SO_ROI (SUMA_SurfaceObject *SO,
                         glLineWidth(3);
                         
                         glBegin(GL_LINES);
-                        glVertex3f(SO->NodeList[id2], SO->NodeList[id2+1], SO->NodeList[id2+2]);
-                        glVertex3f(SO->NodeList[id], SO->NodeList[id+1], SO->NodeList[id+2]); 
+                        glVertex3f( SO->NodeList[id2], SO->NodeList[id2+1], 
+                                    SO->NodeList[id2+2]);
+                        glVertex3f( SO->NodeList[id], SO->NodeList[id+1], 
+                                    SO->NodeList[id+2]); 
                         glEnd();
                      }
                      break;
                   case SUMA_ROI_NodeGroup:
-                     glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, ROI_NodeGroup);
+                     glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, 
+                                  ROI_NodeGroup);
                      for (ii=0; ii < ROI->N_ElInd; ++ii) {
                         id = 3 * ROI->ElInd[ii];
-                        glTranslatef (SO->NodeList[id], SO->NodeList[id+1], SO->NodeList[id+2]);
-                        gluSphere(SO->NodeMarker->sphobj, SO->NodeMarker->sphrad*SUMA_MAX_PAIR(sv->ZoomCompensate, 0.06), 
+                        glTranslatef (SO->NodeList[id], SO->NodeList[id+1], 
+                                      SO->NodeList[id+2]);
+                        gluSphere(SO->NodeMarker->sphobj, 
+                                    SO->NodeMarker->sphrad*
+                                    SUMA_MAX_PAIR(sv->ZoomCompensate, 0.06), 
                            SO->NodeMarker->slices, SO->NodeMarker->stacks);
-                        glTranslatef (-SO->NodeList[id], -SO->NodeList[id+1], -SO->NodeList[id+2]);
+                        glTranslatef (-SO->NodeList[id], -SO->NodeList[id+1], 
+                                      -SO->NodeList[id+2]);
                      }
                      break;
                   case SUMA_ROI_FaceGroup:   
-                     glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, ROI_FaceGroup);
+                     glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, 
+                                  ROI_FaceGroup);
                      for (ii=0; ii < ROI->N_ElInd; ++ii) {
                            FaceIndex = ROI->ElInd[ii];
                            id = FaceIndex * 3;
@@ -5401,35 +5615,57 @@ SUMA_Boolean SUMA_Draw_SO_ROI (SUMA_SurfaceObject *SO,
                            
                            #if 0 /* no need for that one, most likely */
                               
-                              dx = SUMA_SELECTED_FACESET_OFFSET_FACTOR * SO->FaceNormList[id];
-                              dy = SUMA_SELECTED_FACESET_OFFSET_FACTOR * SO->FaceNormList[id+1];
-                              dz = SUMA_SELECTED_FACESET_OFFSET_FACTOR * SO->FaceNormList[id+2];
+                              dx = SUMA_SELECTED_FACESET_OFFSET_FACTOR * 
+                                    SO->FaceNormList[id];
+                              dy = SUMA_SELECTED_FACESET_OFFSET_FACTOR * 
+                                    SO->FaceNormList[id+1];
+                              dz = SUMA_SELECTED_FACESET_OFFSET_FACTOR * 
+                                    SO->FaceNormList[id+2];
 
 
                               glBegin(GL_LINE_LOOP);
-                                 glVertex3f(SO->NodeList[id1]+dx, SO->NodeList[id1+1]+dy, SO->NodeList[id1+2]+dz);
-                                 glVertex3f(SO->NodeList[id2]+dx, SO->NodeList[id2+1]+dy, SO->NodeList[id2+2]+dz);
-                                 glVertex3f(SO->NodeList[id3]+dx, SO->NodeList[id3+1]+dy, SO->NodeList[id3+2]+dz);
+                                 glVertex3f( SO->NodeList[id1]+dx, 
+                                             SO->NodeList[id1+1]+dy, 
+                                             SO->NodeList[id1+2]+dz);
+                                 glVertex3f( SO->NodeList[id2]+dx, 
+                                             SO->NodeList[id2+1]+dy, 
+                                             SO->NodeList[id2+2]+dz);
+                                 glVertex3f( SO->NodeList[id3]+dx, 
+                                             SO->NodeList[id3+1]+dy, 
+                                             SO->NodeList[id3+2]+dz);
                               glEnd();
 
 
                               glBegin(GL_LINE_LOOP);
-                                 glVertex3f(SO->NodeList[id1]-dx, SO->NodeList[id1+1]-dy, SO->NodeList[id1+2]-dz);
-                                 glVertex3f(SO->NodeList[id2]-dx, SO->NodeList[id2+1]-dy, SO->NodeList[id2+2]-dz);
-                                 glVertex3f(SO->NodeList[id3]-dx, SO->NodeList[id3+1]-dy, SO->NodeList[id3+2]-dz);
+                                 glVertex3f( SO->NodeList[id1]-dx, 
+                                             SO->NodeList[id1+1]-dy, 
+                                             SO->NodeList[id1+2]-dz);
+                                 glVertex3f( SO->NodeList[id2]-dx, 
+                                             SO->NodeList[id2+1]-dy,    
+                                             SO->NodeList[id2+2]-dz);
+                                 glVertex3f( SO->NodeList[id3]-dx, 
+                                             SO->NodeList[id3+1]-dy, 
+                                             SO->NodeList[id3+2]-dz);
                               glEnd();
                            #endif
                            
                            glBegin(GL_LINE_LOOP);
-                              glVertex3f(SO->NodeList[id1], SO->NodeList[id1+1], SO->NodeList[id1+2]);
-                              glVertex3f(SO->NodeList[id2], SO->NodeList[id2+1], SO->NodeList[id2+2]);
-                              glVertex3f(SO->NodeList[id3], SO->NodeList[id3+1], SO->NodeList[id3+2]);
+                              glVertex3f( SO->NodeList[id1], 
+                                          SO->NodeList[id1+1], 
+                                          SO->NodeList[id1+2]);
+                              glVertex3f( SO->NodeList[id2], 
+                                          SO->NodeList[id2+1], 
+                                          SO->NodeList[id2+2]);
+                              glVertex3f( SO->NodeList[id3], 
+                                          SO->NodeList[id3+1], 
+                                          SO->NodeList[id3+2]);
                            glEnd();
 
                      }
                      break;
                   default:
-                     fprintf(SUMA_STDERR, "Error %s: Not ready to drawn this type of ROI.\n", FuncName);
+                     fprintf( SUMA_STDERR, 
+                              "Error %s: Not ready to drawn this type of ROI.\n",                               FuncName);
                      break;
                } /* ROI types */
             } /* draw it */
@@ -5473,7 +5709,8 @@ SUMA_Boolean SUMA_Paint_SO_ROIplanes_w (SUMA_SurfaceObject *SO,
       /* it was turned off in the function */
       SUMAg_CF->ROI2afni = CreateNel;
       if (SUMAg_CF->X->DrawROI) {
-         XmToggleButtonSetState (SUMAg_CF->X->DrawROI->AfniLink_tb, SUMAg_CF->ROI2afni, NOPE);
+         XmToggleButtonSetState (SUMAg_CF->X->DrawROI->AfniLink_tb, 
+                                 SUMAg_CF->ROI2afni, NOPE);
       }
    }
    
@@ -5486,7 +5723,8 @@ SUMA_Boolean SUMA_Paint_SO_ROIplanes_w (SUMA_SurfaceObject *SO,
             /* Here you should write elements to SUMA_TO_MATLAB_STREAM
             Also, you should have a variable saying how encoding should
             be done for each of the streams */
-            if (NI_write_element( SUMAg_CF->ns_v[SUMA_AFNI_STREAM_INDEX] , nelv[ii] , NI_BINARY_MODE ) < 0) {
+            if (NI_write_element( SUMAg_CF->ns_v[SUMA_AFNI_STREAM_INDEX] , 
+                                  nelv[ii] , NI_BINARY_MODE ) < 0) {
                SUMA_SLP_Err("NI_write_element failed.");
             }
             SUMA_LH("Free this nel.");
@@ -5525,7 +5763,7 @@ SUMA_Boolean SUMA_Paint_SO_ROIplanes ( SUMA_SurfaceObject *SO,
    SUMA_ROI_PLANE *Plane = NULL;
    int *N_ColHist = NULL, *ivect = NULL, *Nodes=NULL, *ilab=NULL, *labvect=NULL;
    float *r=NULL, *g=NULL, *b=NULL, *rvect=NULL, *gvect=NULL, *bvect=NULL;
-   float FillColor[3]={0.0, 0.0, 0.0};
+   float FillColor[4]={0.0, 0.0, 0.0, 1.0};
    int i= 0, ii= 0, N_NewNode = 0, istore= 0, OverInd=-1, 
       inode= 0, i_D_ROI= 0, LastOfPreSeg= 0, N_Nodes=0;
    SUMA_OVERLAY_PLANE_DATA sopd;
@@ -5563,7 +5801,7 @@ SUMA_Boolean SUMA_Paint_SO_ROIplanes ( SUMA_SurfaceObject *SO,
             if (!iwarn) SUMA_S_Note( "roi64 colormap is now ROI_64\n"
                            "To use old roi64, use ygbrp64"); 
             ++iwarn;   
-         }else if (SUMA_StandardMapCode(eee) >= 0) {
+         }else if (SUMA_StandardMapIndex(eee) >= 0) {
             mapname = eee;
          } else {
             mapname = "ROI_64";
@@ -5583,10 +5821,10 @@ SUMA_Boolean SUMA_Paint_SO_ROIplanes ( SUMA_SurfaceObject *SO,
    if (LocalHead) {
       int N_tmp;
       char *nm_tmp = 
-         SUMA_StandardMapName (SUMA_StandardMapCode(mapname), &N_tmp);
+         SUMA_StandardMapName (SUMA_StandardMapIndex(mapname), &N_tmp);
          fprintf(SUMA_STDERR,
             "%s: mapcode = %d, named %s %d cols\n", 
-            FuncName, SUMA_StandardMapCode(mapname), nm_tmp, N_tmp);
+            FuncName, SUMA_StandardMapIndex(mapname), nm_tmp, N_tmp);
    }
    /* intilialize list */
    ROIPlaneList = SUMA_Addto_ROIplane_List (NULL, NULL, 0);
@@ -5682,6 +5920,9 @@ SUMA_Boolean SUMA_Paint_SO_ROIplanes ( SUMA_SurfaceObject *SO,
          
          /* Set the fillcolor */
          if (D_ROI->ColorByLabel) {
+            SUMA_LHv("Color by label %d (iLabel=%d)\n", 
+                     D_ROI->ColorByLabel, D_ROI->iLabel);
+
             if (!SUMAg_CF->ROI_CM) {
                if (!(SUMAg_CF->ROI_CM = SUMA_FindNamedColMap (mapname))) {
                   SUMA_SLP_Err( "Failed to create\n"
@@ -5692,7 +5933,7 @@ SUMA_Boolean SUMA_Paint_SO_ROIplanes ( SUMA_SurfaceObject *SO,
                if (LocalHead) {
                   fprintf (SUMA_STDERR,
                            "%s:\nHave colormap of code %d, %dx%d colors.\n",
-                           FuncName, SUMA_StandardMapCode(mapname),
+                           FuncName, SUMA_StandardMapIndex(mapname),
                            SUMAg_CF->ROI_CM->N_M[0], SUMAg_CF->ROI_CM->N_M[1]);
                }
                
@@ -5703,7 +5944,7 @@ SUMA_Boolean SUMA_Paint_SO_ROIplanes ( SUMA_SurfaceObject *SO,
                   int mapcode = -1;
                   list = SUMA_CreateList();
                   ED = SUMA_InitializeEngineListData (SE_SendColorMapToAfni);
-                  mapcode = SUMA_StandardMapCode(mapname);
+                  mapcode = SUMA_StandardMapIndex(mapname);
                   if (!SUMA_RegisterEngineListCommand (  
                                                    list, ED, 
                                                    SEF_i, (void*)&mapcode, 
@@ -5723,6 +5964,9 @@ SUMA_Boolean SUMA_Paint_SO_ROIplanes ( SUMA_SurfaceObject *SO,
                   
                }
             }
+         } else {
+            SUMA_LHv("Not color by label %d (iLabel=%d)\n", 
+                     D_ROI->ColorByLabel, D_ROI->iLabel);
          } 
          
          /* make sure Color ByLabel is possible */
@@ -5748,8 +5992,11 @@ SUMA_Boolean SUMA_Paint_SO_ROIplanes ( SUMA_SurfaceObject *SO,
             D_ROI->FillColor[0] = SUMAg_CF->ROI_CM->M[D_ROI->iLabel][0];
             D_ROI->FillColor[1] = SUMAg_CF->ROI_CM->M[D_ROI->iLabel][1];
             D_ROI->FillColor[2] = SUMAg_CF->ROI_CM->M[D_ROI->iLabel][2];
+            if (SUMAg_CF->ROI_CM->N_M[1] == 4) 
+               D_ROI->FillColor[3] = SUMAg_CF->ROI_CM->M[D_ROI->iLabel][3];
+            else D_ROI->FillColor[4] = 1.0;
          } else {
-            SUMA_COPY_VEC (D_ROI->FillColor, FillColor, 3,float, float);
+            SUMA_COPY_VEC (D_ROI->FillColor, FillColor, 4,float, float);
          }
          
          /* now for each node in the DrawnROI, add its color */
@@ -5769,16 +6016,16 @@ SUMA_Boolean SUMA_Paint_SO_ROIplanes ( SUMA_SurfaceObject *SO,
                               SUMA_RETURN(NOPE);
                }
                if (!N_ColHist[inode]) {
-                  r[inode] = D_ROI->FillColor[0];
-                  g[inode] = D_ROI->FillColor[1];
-                  b[inode] = D_ROI->FillColor[2];
+                  r[inode] = D_ROI->FillColor[0]*D_ROI->FillColor[3];
+                  g[inode] = D_ROI->FillColor[1]*D_ROI->FillColor[3];
+                  b[inode] = D_ROI->FillColor[2]*D_ROI->FillColor[3];
                   if (*CreateNel) ilab[inode] = D_ROI->iLabel;
                   ++N_NewNode;
                } else { /* already used up color, add new color */
                   SUMA_LH("Revisiting Color");
-                  r[inode] = r[inode] + D_ROI->FillColor[0];
-                  g[inode] = g[inode] + D_ROI->FillColor[1];
-                  b[inode] = b[inode] + D_ROI->FillColor[2];
+                  r[inode] = r[inode] + D_ROI->FillColor[0]*D_ROI->FillColor[3];
+                  g[inode] = g[inode] + D_ROI->FillColor[1]*D_ROI->FillColor[3];
+                  b[inode] = b[inode] + D_ROI->FillColor[2]*D_ROI->FillColor[3];
                   if (*CreateNel) {
                      /* IGNORE repeats for the same node for now */
                   }
@@ -6390,7 +6637,8 @@ SUMA_CrossHair* SUMA_Alloc_CrossHair (void)
       gluQuadricNormals (Ch->sphobj , GLU_NONE);
    #endif
    
-   Ch->sphcol[0] = 1.0; Ch->sphcol[1] = 1.0; Ch->sphcol[2] = 0.0; Ch->sphcol[3] = 0.0;
+   Ch->sphcol[0] = 1.0; Ch->sphcol[1] = 1.0; 
+   Ch->sphcol[2] = 0.0; Ch->sphcol[3] = 0.0;
    Ch->sphrad = SUMA_CROSS_HAIR_SPHERE_RADIUS;
    Ch->slices = 10;
    Ch->stacks = 10;
@@ -6702,6 +6950,13 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
          
          glDisable(GL_COLOR_MATERIAL);
          
+         /* draw dset contours (only label dset for now) */
+         SUMA_LH("Dset contours ");
+         if (!SUMA_Draw_SO_Dset_Contours (SurfObj,  sv)) {
+            fprintf (SUMA_STDERR, 
+                     "Error %s: Failed in drawing Dset Contour objects.\n", 
+                     FuncName);
+         }
          /* draw surface ROIs */
          SUMA_LH("ROIs");
          if (!SUMA_Draw_SO_ROI (SurfObj, SUMAg_DOv, SUMAg_N_DOv, sv)) {
@@ -6989,7 +7244,8 @@ char *SUMA_SurfaceObject_Info (SUMA_SurfaceObject *SO, DList *DsetList)
       }
       
       /* SO->AnatCorrect */
-      if (SO->AnatCorrect) SS = SUMA_StringAppend (SS,"Anatomically correct = YES\n");
+      if (SO->AnatCorrect) 
+         SS = SUMA_StringAppend (SS,"Anatomically correct = YES\n");
       else SS = SUMA_StringAppend (SS,"Anatomically correct = NO\n");
       
       switch (SO->Side) {
@@ -7566,7 +7822,8 @@ void SUMA_Print_Surface_Object (SUMA_SurfaceObject *SO, FILE *Out)
       fprintf (Out, "%s", s);
       SUMA_free(s);
    }else {
-      fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_SurfaceObject_Info.\n", FuncName);
+      fprintf (SUMA_STDERR, 
+               "Error %s: Failed in SUMA_SurfaceObject_Info.\n", FuncName);
    }   
    
    SUMA_RETURNe;
@@ -7946,7 +8203,8 @@ SUMA_SurfaceObject *SUMA_Alloc_SurfObject_Struct(int N)
       SO[i].Name_topo.FileName = NULL;
       SO[i].SUMA_VolPar_Aligned = NOPE;
       SO[i].APPLIED_A2Exp_XFORM = NO_WARP;
-      SO[i].SurfCont = NULL; /* This is now handled in SUMA_LoadSpec_eng (used to be SUMA_CreateSurfContStruct();) */
+      SO[i].SurfCont = NULL; /* This is now handled in SUMA_LoadSpec_eng 
+                              (used to be SUMA_CreateSurfContStruct();) */
       SO[i].PolyMode = SRM_ViewerDefault;
       SO[i].Show = YUP;
       SO[i].Side = SUMA_NO_SIDE;
@@ -8172,9 +8430,11 @@ SUMA_DRAWN_ROI *SUMA_AllocateDrawnROI (
    D_ROI->FillColor[0] = 1.0; 
    D_ROI->FillColor[1] = 0.0; 
    D_ROI->FillColor[2] = 0.0;
+   D_ROI->FillColor[3] = 1.0;
    D_ROI->EdgeColor[0] = 0.0; 
    D_ROI->EdgeColor[1] = 0.0; 
    D_ROI->EdgeColor[2] = 1.0;
+   D_ROI->EdgeColor[3] = 1.0;
    D_ROI->EdgeThickness = 2;
    D_ROI->ROIstrokelist = (DList *)SUMA_calloc(1,sizeof(DList));
    dlist_init(D_ROI->ROIstrokelist, SUMA_FreeROIDatum);
@@ -8864,8 +9124,8 @@ SUMA_ROI_DATUM * SUMA_FillToMask(SUMA_SurfaceObject *SO, int *ROI_Mask, int nsee
          ROI->Parent_idcode_str
    \param Label (char *) to get copied into ROI->Label
    \param ColPlaneName (char *) to get copied into ROI->ColPlaneName 
-   \param FillColor (float[3])
-   \param EdgeColor (float[3])
+   \param FillColor (float[4])
+   \param EdgeColor (float[4])
    \param EdgeThickness (int)
    \param ForDisplay (SUMA_Boolean) YUP: Prepare ROI for display
                                     (creates the contour for the ROI,
@@ -8895,8 +9155,8 @@ SUMA_DRAWN_ROI * SUMA_1DROI_to_DrawnROI (
                                SUMA_ROI_Collection,  Label,  Value);
    
    /* add the colors */
-   SUMA_COPY_VEC(EdgeColor, ROI->EdgeColor, 3, float, float);
-   SUMA_COPY_VEC(FillColor, ROI->FillColor, 3, float, float);
+   SUMA_COPY_VEC(EdgeColor, ROI->EdgeColor, 4, float, float);
+   SUMA_COPY_VEC(FillColor, ROI->FillColor, 4, float, float);
    ROI->EdgeThickness = EdgeThickness;
    
    /* fill in the only ROI datum */

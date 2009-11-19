@@ -219,6 +219,7 @@ void SUMA_cb_ShowZero_tb_toggled (Widget w, XtPointer data, XtPointer client_dat
 void SUMA_cb_SetCmapMode(Widget widget, XtPointer client_data, XtPointer call_data);
 void SUMA_cb_Cmap_Load(Widget w, XtPointer data, XtPointer client_data);
 void SUMA_LoadCmapFile (char *filename, void *data);
+SUMA_Boolean  SUMA_Insert_Cmap_of_Dset(SUMA_DSET *dset);
 void SUMA_CreateUpdatableCmapMenu(SUMA_SurfaceObject *SO);
 int SUMA_ThreshVal2ScalePos(SUMA_SurfaceObject *SO, float *val);
 void SUMA_SetScaleThr(void *data);
@@ -245,6 +246,15 @@ SUMA_Boolean SUMA_UpdateNodeField(SUMA_SurfaceObject *SO);
    "   Fill:   Shaded rendering mode.\n"  \
    "   Line:   Mesh rendering mode.\n"    \
    "   Points: Points rendering mode."   
+
+#define  SUMA_SurfContHelp_DsetViewMode  \
+   "Choose the viewing mode for this dataset.\n" \
+   "   Col: Colours, only.\n"  \
+   "   Con: Contours (slower), only.\n"  \
+   "   C&C: Colours and Contours (slower), only.\n"    \
+   "   XXX: Unfortunately nothing, only.\n"  \
+   " Contours are not created if colormap has panes\n"   \
+   " of unequal sizes.\n"   
 
 #define SUMA_SurfContHelp_Dsets  \
    "Show/Hide Dataset (previously Color Plane) controllers"

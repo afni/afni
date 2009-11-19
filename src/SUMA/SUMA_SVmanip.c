@@ -992,7 +992,8 @@ SUMA_Boolean SUMA_SetAllRemixFlag (SUMA_SurfaceViewer *SVv, int N_SVv)
    
    /* search all viewers */
    for (i=0; i < N_SVv; ++i) {
-      if (LocalHead) fprintf (SUMA_STDERR,"%s: Searching viewer %d.\n", FuncName, i);
+      if (LocalHead) 
+         fprintf (SUMA_STDERR,"%s: Searching viewer %d.\n", FuncName, i);
       sv = &(SVv[i]);
       for (kk = 0; kk < sv->N_ColList; ++kk) sv->ColList[kk].Remix = YUP;
    }
@@ -2438,8 +2439,8 @@ SUMA_X_SurfCont *SUMA_CreateSurfContStruct (char *idcode_str)
    SurfCont->FaceTable = SUMA_AllocTableField();
    SurfCont->DataTable = SUMA_AllocTableField();
    SurfCont->LabelTable = SUMA_AllocTableField();
-   SurfCont->ColPlaneShow_tb = NULL;
-   SurfCont->ColPlaneShowOne_tb = NULL;
+   /* SurfCont->ColPlaneShow_tb = NULL; Obsolete */
+   SurfCont->ColPlaneShowOneFore_tb = NULL;
    SurfCont->SymIrange_tb = NULL;
    SurfCont->AbsThresh_tb = NULL;
    SurfCont->ShowZero_tb = NULL;
@@ -2450,10 +2451,10 @@ SUMA_X_SurfCont *SUMA_CreateSurfContStruct (char *idcode_str)
       char *eee = getenv("SUMA_ShowOneOnly");
       if (eee) {
          SUMA_TO_LOWER(eee);
-         if (strcmp (eee, "yes") == 0) SurfCont->ShowCurOnly = YUP; 
-            else SurfCont->ShowCurOnly = NOPE;
+         if (strcmp (eee, "yes") == 0) SurfCont->ShowCurForeOnly = YUP; 
+            else SurfCont->ShowCurForeOnly = NOPE;
       } else {
-         SurfCont->ShowCurOnly = YUP;
+         SurfCont->ShowCurForeOnly = YUP;
       }
    }
    {
@@ -2542,13 +2543,23 @@ void *SUMA_FreeSurfContStruct (SUMA_X_SurfCont *SurfCont)
    if (SurfCont->FaceTable) SUMA_FreeTableField (SurfCont->FaceTable);
    if (SurfCont->DataTable) SUMA_FreeTableField (SurfCont->DataTable);
    if (SurfCont->LabelTable) SUMA_FreeTableField (SurfCont->LabelTable); 
-   if (SurfCont->ColPlaneLabelTable) SUMA_FreeTableField (SurfCont->ColPlaneLabelTable); 
+   if (SurfCont->ColPlaneLabelTable) 
+      SUMA_FreeTableField (SurfCont->ColPlaneLabelTable); 
    if (SurfCont->SwitchDsetlst) SUMA_FreeScrolledList (SurfCont->SwitchDsetlst);
-   if (SurfCont->SurfInfo_TextShell) { SUMA_SL_Warn("SurfCont->SurfInfo_TextShell is not being freed") };
-   if (SurfCont->SwitchIntMenu) { XtDestroyWidget(SurfCont->SwitchIntMenu[0]); SUMA_free(SurfCont->SwitchIntMenu); }
-   if (SurfCont->SwitchThrMenu) { XtDestroyWidget(SurfCont->SwitchThrMenu[0]); SUMA_free(SurfCont->SwitchThrMenu); }
-   if (SurfCont->SwitchBrtMenu) { XtDestroyWidget(SurfCont->SwitchBrtMenu[0]); SUMA_free(SurfCont->SwitchBrtMenu); }
-   if (SurfCont->SwitchCmapMenu) { XtDestroyWidget(SurfCont->SwitchCmapMenu[0]); SUMA_free(SurfCont->SwitchCmapMenu); }
+   if (SurfCont->SurfInfo_TextShell) { 
+      SUMA_SL_Warn("SurfCont->SurfInfo_TextShell is not being freed") };
+   if (SurfCont->SwitchIntMenu) { 
+      XtDestroyWidget(SurfCont->SwitchIntMenu[0]); 
+      SUMA_free(SurfCont->SwitchIntMenu); }
+   if (SurfCont->SwitchThrMenu) { 
+      XtDestroyWidget(SurfCont->SwitchThrMenu[0]); 
+      SUMA_free(SurfCont->SwitchThrMenu); }
+   if (SurfCont->SwitchBrtMenu) { 
+      XtDestroyWidget(SurfCont->SwitchBrtMenu[0]); 
+      SUMA_free(SurfCont->SwitchBrtMenu); }
+   if (SurfCont->SwitchCmapMenu) { 
+      XtDestroyWidget(SurfCont->SwitchCmapMenu[0]); 
+      SUMA_free(SurfCont->SwitchCmapMenu); }
    if (SurfCont->curSOp) free(SurfCont->curSOp);
    if (SurfCont->cmp_ren) free(SurfCont->cmp_ren);
    if (SurfCont) free(SurfCont);

@@ -226,7 +226,7 @@ SUMA_SPHERE_QUALITY SUMA_SphereQuality(SUMA_SurfaceObject *SO,
    
    
    /* Colorize results */
-   SV = SUMA_Create_ColorScaledVect(SO->N_Node);
+   SV = SUMA_Create_ColorScaledVect(SO->N_Node, 0);
    if (!SV) {
       fprintf (SUMA_STDERR,"Error %s: Could not allocate for SV.\n", FuncName);
       if (dist) SUMA_free(dist);
@@ -344,7 +344,8 @@ SUMA_SPHERE_QUALITY SUMA_SphereQuality(SUMA_SurfaceObject *SO,
    bad_dot = (float *)SUMA_realloc(bad_dot, ibad * sizeof(float));
    
       fname = SUMA_append_string(Froot, "_dotprod.1D.dset");
-      if (LocalHead) fprintf (SUMA_STDERR,"%s:\nWriting %s...\n", FuncName, fname);
+      if (LocalHead) 
+         fprintf (SUMA_STDERR,"%s:\nWriting %s...\n", FuncName, fname);
       fid = fopen(fname, "w");
       fprintf(fid,"#Cosine of node normal angles with radial direction\n"
                   "#col 0: Node Index\n"
@@ -356,9 +357,10 @@ SUMA_SPHERE_QUALITY SUMA_SphereQuality(SUMA_SurfaceObject *SO,
       SUMA_free(fname); fname = NULL;
       
       /* write the colorized data */
-      SV = SUMA_Create_ColorScaledVect(SO->N_Node);
+      SV = SUMA_Create_ColorScaledVect(SO->N_Node, 0);
       if (!SV) {
-         fprintf (SUMA_STDERR,"Error %s: Could not allocate for SV.\n", FuncName);
+         fprintf (SUMA_STDERR,
+                  "Error %s: Could not allocate for SV.\n", FuncName);
          if (dot) SUMA_free(dot);
          if (bad_dot) SUMA_free(bad_dot);
          if (bad_ind) SUMA_free(bad_ind);
@@ -369,40 +371,48 @@ SUMA_SPHERE_QUALITY SUMA_SphereQuality(SUMA_SurfaceObject *SO,
       }
 
       if (!SUMA_ScaleToMap (dot, SO->N_Node, -1.0, 1.0, CM, OptScl, SV)) {
-         fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_ScaleToMap.\n", FuncName);
+         fprintf (SUMA_STDERR,
+                  "Error %s: Failed in SUMA_ScaleToMap.\n", FuncName);
          exit(1);
       }
       fname = SUMA_append_string(Froot, "_dotprod.1D.col");
-      if (LocalHead) fprintf (SUMA_STDERR,"%s:\nWriting %s...\n", FuncName, fname);
+      if (LocalHead) 
+         fprintf (SUMA_STDERR,"%s:\nWriting %s...\n", FuncName, fname);
       fid = fopen(fname, "w");
-      fprintf(fid,"#Color file of cosine of node normal angles with radial direction\n"
-                  "#col 0: Node Index\n"
-                  "#col 1: R\n"
-                  "#col 2: G\n"
-                  "#col 3: B\n"
+      fprintf(fid,
+         "#Color file of cosine of node normal angles with radial direction\n"
+         "#col 0: Node Index\n"
+         "#col 1: R\n"
+         "#col 2: G\n"
+         "#col 3: B\n"
                   ); 
       if (shist) fprintf(fid,"#History:%s\n", shist);
-      for (i=0; i<SO->N_Node; ++i) fprintf(fid,"%d\t%f\t%f\t%f\n", i, SV->cV[3*i  ], SV->cV[3*i+1], SV->cV[3*i+2]);
+      for (i=0; i<SO->N_Node; ++i) 
+         fprintf(fid,"%d\t%f\t%f\t%f\n", 
+                     i, SV->cV[3*i  ], SV->cV[3*i+1], SV->cV[3*i+2]);
       fclose(fid);
       SUMA_free(fname); fname = NULL;
       if (SV) SUMA_Free_ColorScaledVect (SV);
       
       fname = SUMA_append_string(Froot, "_BadNodes.1D.dset");
-      if (LocalHead) fprintf (SUMA_STDERR,"%s:\nWriting %s...\n", FuncName, fname);
+      if (LocalHead) 
+         fprintf (SUMA_STDERR,"%s:\nWriting %s...\n", FuncName, fname);
       fid = fopen(fname, "w");
-      fprintf(fid,"#Nodes with normals at angle with radial direction: abs(dot product < 0.9)\n"
-                  "#col 0: Node Index\n"
-                  "#col 1: cos(angle)\n"
-                  ); 
+      fprintf(fid,
+   "#Nodes with normals at angle with radial direction: abs(dot product < 0.9)\n"
+   "#col 0: Node Index\n"
+   "#col 1: cos(angle)\n"
+               ); 
       if (shist) fprintf(fid,"#History:%s\n", shist);
       for (i=0; i<ibad; ++i) fprintf(fid,"%d\t%f\n", bad_ind[i], bad_dot[i]);
       fclose(fid);
       SUMA_free(fname); fname = NULL;
       
       /* write the colorized data */
-      SV = SUMA_Create_ColorScaledVect(ibad);
+      SV = SUMA_Create_ColorScaledVect(ibad, 0);
       if (!SV) {
-         fprintf (SUMA_STDERR,"Error %s: Could not allocate for SV.\n", FuncName);
+         fprintf (SUMA_STDERR,
+                  "Error %s: Could not allocate for SV.\n", FuncName);
          if (dot) SUMA_free(dot);
          if (bad_dot) SUMA_free(bad_dot);
          if (bad_ind) SUMA_free(bad_ind);
@@ -413,7 +423,8 @@ SUMA_SPHERE_QUALITY SUMA_SphereQuality(SUMA_SurfaceObject *SO,
       }
 
       if (!SUMA_ScaleToMap (bad_dot, ibad, -1.0, 1.0, CM, OptScl, SV)) {
-         fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_ScaleToMap.\n", FuncName);
+         fprintf (SUMA_STDERR,
+                  "Error %s: Failed in SUMA_ScaleToMap.\n", FuncName);
          if (dot) SUMA_free(dot);
          if (bad_dot) SUMA_free(bad_dot);
          if (bad_ind) SUMA_free(bad_ind);

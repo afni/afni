@@ -54,9 +54,24 @@ SUMA_1D_DRAWN_ROI * SUMA_Free_1DDrawROI (SUMA_1D_DRAWN_ROI *ROI1D);
 SUMA_Boolean SUMA_Write_DrawnROI_1D (SUMA_DRAWN_ROI **ROIv, int N_ROI, char *filename); 
 SUMA_1D_DRAWN_ROI * SUMA_DrawnROI_to_1DDrawROI (SUMA_DRAWN_ROI *ROI);
 SUMA_DRAWN_ROI ** SUMA_OpenDrawnROI_NIML (char *filename, int *N_ROI, SUMA_Boolean ForDisplay);
-SUMA_DRAWN_ROI ** SUMA_OpenDrawnROI_1D(char *filename, char *Parent_idcode_str, int *N_ROI, SUMA_Boolean ForDisplay);
+SUMA_DRAWN_ROI ** SUMA_OpenDrawnROI_1D(char *filename, char *Parent_idcode_str, 
+                                       int *N_ROI, SUMA_Boolean ForDisplay);
+SUMA_DRAWN_ROI **SUMA_MultiColumnsToDrawnROI( 
+         int N_Nodes, 
+         void *ind, SUMA_VARTYPE ind_type,
+         void *col0, SUMA_VARTYPE col0_type,
+         void *col1, SUMA_VARTYPE col1_type,
+         void *col2, SUMA_VARTYPE col2_type,
+         void *col3, SUMA_VARTYPE col3_type,
+         SUMA_COLOR_MAP *cmap,
+         int edges_only, 
+         char *name, char *Parent_idcode_str,
+         int *N_ROI, SUMA_Boolean ForDisplay,
+         SUMA_Boolean kkk);
 void SUMA_OpenDrawnROI (char *filename, void *data);
-SUMA_DSET *SUMA_ROIv2Grpdataset (SUMA_DRAWN_ROI** ROIv, int N_ROIv, char *Parent_idcode_str, int Pad_to, int Pad_val) ;
+SUMA_DSET *SUMA_ROIv2Grpdataset (SUMA_DRAWN_ROI** ROIv, int N_ROIv, 
+                                 char *Parent_idcode_str, int Pad_to, 
+                                 int Pad_val, SUMA_COLOR_MAP **cm) ;
 NI_element *SUMA_ROIv2dataset (SUMA_DRAWN_ROI** ROIv, int N_ROIv, char *Parent_idcode_str, int pad_to, int pad_val);
 DList *SUMA_ROIv2NodeLists (SUMA_DRAWN_ROI** ROIv, int N_ROIv, int purgedups) ; 
 void SUMA_SaveSOascii (char *filename, void *data);

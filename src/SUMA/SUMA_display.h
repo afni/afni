@@ -267,7 +267,10 @@ void SUMA_cb_helpMessageLog (Widget w, XtPointer data, XtPointer callData);
 void SUMA_cb_helpSUMAGlobal (Widget w, XtPointer data, XtPointer callData);
 void SUMA_cb_helpViewerStruct (Widget w, XtPointer data, XtPointer callData);
 void SUMA_cb_helpSurfaceStruct (Widget w, XtPointer data, XtPointer callData);
-void SUMA_cb_SetRenderMode(Widget widget, XtPointer client_data, XtPointer call_data);
+void SUMA_cb_SetRenderMode(Widget widget, XtPointer client_data, 
+                           XtPointer call_data);
+void SUMA_cb_SetDsetViewMode(Widget widget, XtPointer client_data, 
+                              XtPointer call_data);
 void SUMA_cb_ToolsDrawROI (Widget w, XtPointer client_data, XtPointer call_data);
 void SUMA_cb_CloseDrawROIWindow(Widget w, XtPointer client_data, XtPointer call_data);
 void SUMA_CreateDrawROIWindow(void);
@@ -369,8 +372,8 @@ void SUMA_ColPlane_NewOrder (void *data);
 void SUMA_ColPlane_NewOpacity (void *data);
 void SUMA_ColPlane_NewDimFact (void *data);
 void SUMA_cb_ColPlaneShow_toggled (Widget w, XtPointer data, XtPointer client_data);
-void SUMA_cb_ColPlaneShowOne_toggled (Widget w, XtPointer data, XtPointer client_data);
-int SUMA_ColPlaneShowOne_Set (SUMA_SurfaceObject *SO, SUMA_Boolean state);
+void SUMA_cb_ColPlaneShowOneFore_toggled (Widget w, XtPointer data, XtPointer client_data);
+int SUMA_ColPlaneShowOneFore_Set (SUMA_SurfaceObject *SO, SUMA_Boolean state);
 void SUMA_cb_ColPlane_Delete(Widget w, XtPointer data, XtPointer client_data);
 void SUMA_cb_ColPlane_Load(Widget w, XtPointer data, XtPointer client_data);
 void SUMA_cb_Dset_Load(Widget w, XtPointer data, XtPointer client_data);
@@ -429,6 +432,7 @@ void SUMA_cb_XformPreProc_Save (Widget w, XtPointer data,
 void SUMA_cb_XformOpts_Apply (Widget w, XtPointer data, 
                              XtPointer client_data);
 void SUMA_setIO_notify(int val);
+int SUMA_ShowMode2ShowModeMenuItem(int Mode);
 
 #define SUMA_MAX_XFCB_OBJS 32       /*!< Max number of callbacks or xforms 
                                          that may act on dsets or SOs */
@@ -488,7 +492,14 @@ void SUMA_OpenXformOrtFile (char *filename, void *data);
 SUMA_Boolean SUMA_WildcardChoice(int filetype, 
                   SUMA_SurfaceObject *SO, char wild[]); 
 
-
+/*! \brief Sets the GUI menu selection to the ith selection
+           for a menu created by SUMA_BuildMenu. i starts at 1 */
+#define SUMA_SET_MENU(men,i) {   \
+   if (i<1) { SUMA_S_Err("i must be >=1");    } \
+   if (!men || !men[i]) { SUMA_S_Err("Empty widgets");    } \
+   XtVaSetValues(  men[0], XmNmenuHistory ,  men[i], NULL); \
+}
+      
 #define SUMA_XformOrtFile_Load_help   \
    "Load an ort file"
 

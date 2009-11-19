@@ -1202,7 +1202,7 @@ int SUMA_D_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                   ChildOverInd = SO->N_Overlays-1;
                   /* set the opacity, index column and the range */
                   child->GlobalOpacity = YUP;
-                  child->Show = YUP;
+                  child->ShowMode = SW_SurfCont_DsetViewCol;
                   child->OptScl->BrightFact = 0.8;
 
                   child->OptScl->find = 0;
@@ -3411,46 +3411,63 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                /* smooth estimate twice */
                attr_sm = SUMA_SmoothAttr_Neighb (Cx, SO->N_Node, NULL, SO->FN, 1, NULL, 1);
                if (attr_sm == NULL) {
-                     fprintf(stderr,"Error %s: Failed in SUMA_SmoothAttr_Neighb\n", FuncName);
+                     fprintf(stderr,
+                             "Error %s: Failed in SUMA_SmoothAttr_Neighb\n", 
+                             FuncName);
                      break;
                }   
-               Cx = SUMA_SmoothAttr_Neighb (attr_sm, SO->N_Node, Cx, SO->FN, 1, NULL, 1);
+               Cx = SUMA_SmoothAttr_Neighb (attr_sm, SO->N_Node, Cx, 
+                                            SO->FN, 1, NULL, 1);
                if (attr_sm) SUMA_free(attr_sm);
 
-               fprintf(SUMA_STDOUT, "%s: Use SUMA_ScaleToMap to colorize Conv.txt and display it on surface.\n", FuncName);
+               fprintf( SUMA_STDOUT, 
+                        "%s: Use SUMA_ScaleToMap to colorize Conv.txt "
+                        "and display it on surface.\n", FuncName);
                CM = SUMA_FindNamedColMap ("ngray20");
                if (CM == NULL) {
-                  fprintf (SUMA_STDERR,"Error %s: Could not get standard colormap.\n", FuncName);
+                  fprintf (SUMA_STDERR,
+                           "Error %s: Could not get standard colormap.\n", 
+                           FuncName);
                   exit (1); 
                }
 
                /* get the options for creating the scaled color mapping */
                OptScl = SUMA_ScaleToMapOptInit();
                if (!OptScl) {
-                  fprintf (SUMA_STDERR,"Error %s: Could not get scaling option structure.\n", FuncName);
+                  fprintf (SUMA_STDERR,
+                           "Error %s: Could not get scaling option structure.\n", 
+                           FuncName);
                   exit (1); 
                }
 
                /* work the options a bit */
                OptScl->ApplyClip = YUP;
                IntRange[0] = 5; IntRange[1] = 95; /* percentile clipping range*/ 
-               Vsort = SUMA_PercRange (Cx, NULL, SO->N_Node, IntRange, IntRange, NULL); 
-               OptScl->IntRange[0] = IntRange[0]; OptScl->IntRange[1] = IntRange[1];
+               Vsort = SUMA_PercRange (Cx, NULL, SO->N_Node, IntRange, IntRange, 
+                                       NULL); 
+               OptScl->IntRange[0] = IntRange[0]; 
+               OptScl->IntRange[1] = IntRange[1];
 
                OptScl->BrightFact = 0.4;
 
                /* map the values in SO->Cx to the colormap */
                   /* allocate space for the result */
-                  SV = SUMA_Create_ColorScaledVect(SO->N_Node);
+                  SV = SUMA_Create_ColorScaledVect(SO->N_Node, 0);
                   if (!SV) {
-                     fprintf (SUMA_STDERR,"Error %s: Could not allocate for SV.\n", FuncName);
+                     fprintf (SUMA_STDERR,
+                              "Error %s: Could not allocate for SV.\n", 
+                              FuncName);
                      exit(1);
                   }
 
                   /* finally ! */
-                  /*fprintf (SUMA_STDERR,"%s: 1st color in map %f %f %f\n", FuncName, CM->M[0][0], CM->M[0][1],CM->M[0][2]);*/
-                  if (!SUMA_ScaleToMap (Cx, SO->N_Node, Vsort[0], Vsort[SO->N_Node-1], CM, OptScl, SV)) {
-                     fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_ScaleToMap.\n", FuncName);
+                  /*fprintf ( SUMA_STDERR,"%s: 1st color in map %f %f %f\n", 
+                              FuncName, CM->M[0][0], CM->M[0][1],CM->M[0][2]);*/
+                  if (!SUMA_ScaleToMap (Cx, SO->N_Node, Vsort[0], 
+                                        Vsort[SO->N_Node-1], CM, OptScl, SV)) {
+                     fprintf (SUMA_STDERR,
+                              "Error %s: Failed in SUMA_ScaleToMap.\n", 
+                              FuncName);
                      exit(1);
                   }
 
