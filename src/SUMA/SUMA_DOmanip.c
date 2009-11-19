@@ -356,7 +356,8 @@ int SUMA_FindDOi_byID(SUMA_DO *dov, int N_dov, char *idcode_str)
 /*!
 Add a displayable object to dov
 */
-SUMA_Boolean SUMA_AddDO(SUMA_DO *dov, int *N_dov, void *op, SUMA_DO_Types DO_Type, SUMA_DO_CoordType DO_CoordType)
+SUMA_Boolean SUMA_AddDO(SUMA_DO *dov, int *N_dov, void *op, 
+                        SUMA_DO_Types DO_Type, SUMA_DO_CoordType DO_CoordType)
 {
    static char FuncName[] = {"SUMA_AddDO"};
    SUMA_ALL_DO *ado=NULL;
@@ -379,7 +380,8 @@ SUMA_Boolean SUMA_AddDO(SUMA_DO *dov, int *N_dov, void *op, SUMA_DO_Types DO_Typ
          SUMA_RETURN(NOPE);
       }
       if (!(nm % 300)) {
-         SUMA_SLP_Note("Object exists and will be replaced.\nMessage shown intermittently");
+         SUMA_SLP_Note( "Object exists and will be replaced.\n"
+                        "Message shown intermittently");
       }
       ++nm;
       /* free olde one */
@@ -474,7 +476,8 @@ SUMA_Boolean SUMA_RegisterDO(int dov_id, SUMA_SurfaceViewer *cSV)
    SUMA_ENTRY;
    
    if (LocalHead && SUMA_WhichSV(cSV, SUMAg_SVv, SUMA_MAX_SURF_VIEWERS) != 0) {
-      fprintf(SUMA_STDERR,"%s: Muted for viewer[%c]\n", FuncName, 65+SUMA_WhichSV(cSV, SUMAg_SVv, SUMA_MAX_SURF_VIEWERS) );
+      fprintf(SUMA_STDERR,"%s: Muted for viewer[%c]\n", 
+              FuncName, 65+SUMA_WhichSV(cSV, SUMAg_SVv, SUMA_MAX_SURF_VIEWERS) );
       /* turn off the LocalHead, too much output*/
       LocalHead = NOPE;
    }  
@@ -493,15 +496,18 @@ SUMA_Boolean SUMA_RegisterDO(int dov_id, SUMA_SurfaceViewer *cSV)
    
    /* Now add the ColorList, if DO is a surface object */
    if (SUMA_isSO(SUMAg_DOv[dov_id])) {
-      if (LocalHead) fprintf (SUMA_STDERR,"%s: Adding color list...\n", FuncName);
+      if (LocalHead) 
+         fprintf (SUMA_STDERR,"%s: Adding color list...\n", FuncName);
       /* add the ColorList */
-      if (!SUMA_FillColorList (cSV, (SUMA_SurfaceObject *)SUMAg_DOv[dov_id].OP)) {
-         fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_FillColorList.\n", FuncName);
+      if (!SUMA_FillColorList (cSV,(SUMA_SurfaceObject *)SUMAg_DOv[dov_id].OP)) {
+         fprintf(SUMA_STDERR,
+                 "Error %s: Failed in SUMA_FillColorList.\n", FuncName);
          SUMA_RETURN (NOPE);
       }
    }
    
-   if (LocalHead) fprintf (SUMA_STDERR, "%s: Back from SUMA_FillColorList. (%s/%d).\n", \
+   if (LocalHead) 
+      fprintf (SUMA_STDERR, "%s: Back from SUMA_FillColorList. (%s/%d).\n", 
          FuncName, cSV->ColList[0].idcode_str, cSV->N_ColList);
    
    if (LocalHead) {

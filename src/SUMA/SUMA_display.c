@@ -742,7 +742,8 @@ void SUMA_LoadSegDO (char *s, void *csvp )
       case ONBV_type:
       case NBV_type:
          if (!(SO = (SUMA_SurfaceObject *)SUMAg_DOv[sv->Focus_SO_ID].OP)) {
-            SUMA_SL_Err("No surface in focus to which the vector would be attached.\n");
+            SUMA_SL_Err("No surface in focus to which the vector "
+                        "would be attached.\n");
             SUMA_RETURNe;
          }
          if (dotp == NBV_type) {
@@ -2360,6 +2361,27 @@ SUMA_MenuItem RenderMode_Menu[] = {
    {  "Hide", &xmPushButtonWidgetClass, 
       '\0', NULL, NULL, 
       SUMA_cb_SetRenderMode, (XtPointer) SW_SurfCont_RenderHide, NULL},
+        
+   {NULL},
+};
+
+SUMA_MenuItem DsetViewMode_Menu[] = {
+   {  "Col", &xmPushButtonWidgetClass, 
+      '\0', NULL, NULL, 
+      SUMA_cb_SetDsetViewMode, 
+      (XtPointer) SW_SurfCont_DsetViewCol, NULL},
+      
+   {  "Con", &xmPushButtonWidgetClass, 
+      '\0', NULL, NULL, 
+      SUMA_cb_SetDsetViewMode, (XtPointer) SW_SurfCont_DsetViewCon, NULL},
+   
+   {  "C&C", &xmPushButtonWidgetClass, 
+      '\0', NULL, NULL, 
+      SUMA_cb_SetDsetViewMode, (XtPointer) SW_SurfCont_DsetViewCaC, NULL},
+    
+   {  "XXX", &xmPushButtonWidgetClass, 
+      '\0', NULL, NULL, 
+      SUMA_cb_SetDsetViewMode, (XtPointer) SW_SurfCont_DsetViewXXX, NULL},
         
    {NULL},
 };
@@ -4280,6 +4302,12 @@ int SUMA_viewSurfaceCont(Widget w, SUMA_SurfaceObject *SO,
                         FuncName);
             XtRealizeWidget( SO->SurfCont->TopLevelShell);
             XSync(SUMAg_CF->X->DPY_controller1, 0);
+            /* now do Raise, so that we can see the damned thing if it 
+               behind other windows, and hope it does not crash*/
+            SUMA_LH("Rise and do not crash");
+            XMapRaised( SUMAg_CF->X->DPY_controller1, 
+                        XtWindow(SO->SurfCont->TopLevelShell)); 
+
             break;
          default:
             SUMA_S_Err("No setup for this close mode");
@@ -5317,7 +5345,7 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
          XmNorientation , XmHORIZONTAL ,
          NULL);
    
-      SUMA_CreateArrowField ( rc, "Ord:",
+      SUMA_CreateArrowField ( rc, "Ord",
                            1, 0, 20, 1,
                            2, SUMA_int,
                            NOPE,
@@ -5326,7 +5354,7 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
                            SUMA_SurfContHelp_DsetOrd,
                            SO->SurfCont->ColPlaneOrder);
                              
-      SUMA_CreateArrowField ( rc, "Opa:",
+      SUMA_CreateArrowField ( rc, "Opa",
                            1, 0.0, 1.0, 0.1,
                            3, SUMA_float,
                            NOPE,
@@ -5345,7 +5373,7 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
          XmNorientation , XmHORIZONTAL ,
          NULL);
    
-      SUMA_CreateArrowField ( rc, "Dim:",
+      SUMA_CreateArrowField ( rc, "Dim",
                            1, 0.1, 1, 0.1,
                            3, SUMA_float,
                            YUP,
@@ -5354,31 +5382,45 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
                            SUMA_SurfContHelp_DsetDim,
                            SO->SurfCont->ColPlaneDimFact);
            
+      #if 0
       SO->SurfCont->ColPlaneShow_tb = XtVaCreateManagedWidget("view", 
             xmToggleButtonWidgetClass, rc, NULL);
       XmToggleButtonSetState (SO->SurfCont->ColPlaneShow_tb, YUP, NOPE);
       XtAddCallback (SO->SurfCont->ColPlaneShow_tb, 
                   XmNvalueChangedCallback, SUMA_cb_ColPlaneShow_toggled, SO);
-                  
       MCW_register_help(SO->SurfCont->ColPlaneShow_tb , 
                         SUMA_SurfContHelp_DsetView ) ;
       MCW_register_hint(SO->SurfCont->ColPlaneShow_tb , "Shows/Hides Dset." ) ;
       SUMA_SET_SELECT_COLOR(SO->SurfCont->ColPlaneShow_tb);
-      
-      SO->SurfCont->ColPlaneShowOne_tb = 
-         XtVaCreateManagedWidget("1 Only", 
+     #else
+      SUMA_BuildMenuReset(0);
+      SUMA_BuildMenu (rc, XmMENU_OPTION, 
+                      "Dsp", '\0', YUP, DsetViewMode_Menu, 
+                      (void *)(SO->SurfCont->curSOp), 
+                      "Choose the rendering mode for this dataset.",
+                      SUMA_SurfContHelp_DsetViewMode, 
+                      SO->SurfCont->DsetViewModeMenu );
+      XtManageChild (SO->SurfCont->DsetViewModeMenu[SW_SurfCont_DsetView]);
+      SUMA_SET_MENU(SO->SurfCont->DsetViewModeMenu,
+                    SUMA_ShowMode2ShowModeMenuItem(
+                                 SO->SurfCont->curColPlane->ShowMode));
+
+      #endif            
+
+      SO->SurfCont->ColPlaneShowOneFore_tb = 
+         XtVaCreateManagedWidget("1", 
                                  xmToggleButtonWidgetClass, rc, NULL);
-      XmToggleButtonSetState (SO->SurfCont->ColPlaneShowOne_tb, 
-                              SO->SurfCont->ShowCurOnly, NOPE);
-      XtAddCallback (SO->SurfCont->ColPlaneShowOne_tb, 
+      XmToggleButtonSetState (SO->SurfCont->ColPlaneShowOneFore_tb, 
+                              SO->SurfCont->ShowCurForeOnly, NOPE);
+      XtAddCallback (SO->SurfCont->ColPlaneShowOneFore_tb, 
                      XmNvalueChangedCallback, 
-                     SUMA_cb_ColPlaneShowOne_toggled, SO);
+                     SUMA_cb_ColPlaneShowOneFore_toggled, SO);
                   
-      MCW_register_help(SO->SurfCont->ColPlaneShowOne_tb , 
+      MCW_register_help(SO->SurfCont->ColPlaneShowOneFore_tb , 
                         SUMA_SurfContHelp_DsetViewOne ) ;
-      MCW_register_hint(SO->SurfCont->ColPlaneShowOne_tb , 
-                        "Shows ONLY selected Dset from foreground stack." ) ;
-      SUMA_SET_SELECT_COLOR(SO->SurfCont->ColPlaneShowOne_tb);
+      MCW_register_hint(SO->SurfCont->ColPlaneShowOneFore_tb , 
+             "Show ONLY ONE selected Dset. Foreground only. BHelp for more.\n") ;
+      SUMA_SET_SELECT_COLOR(SO->SurfCont->ColPlaneShowOneFore_tb);
            
       /* manage  rc */
       XtManageChild (rc);
@@ -5443,7 +5485,6 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
       
        
       XtManageChild (rc);
-      
       /* manage vertical row column */
       XtManageChild (rcv);
       
@@ -5930,24 +5971,43 @@ SUMA_Boolean SUMA_InitializeColPlaneShell (
       
    }
    
-   XmToggleButtonSetState (SO->SurfCont->ColPlaneShow_tb, ColPlane->Show, NOPE);
 
+   SUMA_SET_MENU(SO->SurfCont->DsetViewModeMenu,
+                 SUMA_ShowMode2ShowModeMenuItem(
+                              SO->SurfCont->curColPlane->ShowMode));
+   /* obsolete 
+   XmToggleButtonSetState (SO->SurfCont->ColPlaneShow_tb, ColPlane->Show, NOPE);
+   */
+   
    SO->SurfCont->curColPlane = ColPlane;
+   
+   /* Set 1 only sensitivity */
+   if (SO->SurfCont->ColPlaneShowOneFore_tb) {
+      if (SO->SurfCont->curColPlane->isBackGrnd) {
+         XtSetSensitive (SO->SurfCont->ColPlaneShowOneFore_tb, 0);
+      }  else {
+         XtSetSensitive (SO->SurfCont->ColPlaneShowOneFore_tb, 1);
+      }   
+   }
+   
+
       
    /* update the cross hair group */
    SUMA_Init_SurfCont_CrossHair(SO);
    
    /* set the colormap */
    if (SO->SurfCont->cmp_ren->cmap_context) {
-      if (strcmp(SO->SurfCont->curColPlane->cmapname, "explicit") == 0) {
+      if (strcmp(SO->SurfCont->curColPlane->cmapname, "explicit") == 0 ||
+          SUMA_is_Label_dset(SO->SurfCont->curColPlane->dset_link, NULL)) {
          if (XtIsManaged(SO->SurfCont->DsetMap_fr)) {
-            SUMA_LH("An RGB dset, no surface controls to be seen");
+            SUMA_LH("An RGB dset, or label dset no surface controls to be seen");
             XtUnmanageChild(SO->SurfCont->DsetMap_fr);
             XtUnmanageChild(XtParent(SO->SurfCont->DsetMap_fr));
          }
       } else {
          if (!XtIsManaged(SO->SurfCont->DsetMap_fr)) {
-            SUMA_LH( "A non RGB dset, surface controls need to be seen\n"
+            SUMA_LH( "A non RGB, and non label, dset \n"
+                     "surface controls need to be seen\n"
                      "But only when ColPlane_fr is also shown \n"
                      "(frame may be hidden by Dsets button action)");
             if (XtIsManaged(SO->SurfCont->ColPlane_fr)) {
@@ -7314,7 +7374,9 @@ void SUMA_DrawROI_NewValue (void *data)
       DrawnROI->iLabel = (int)AF->value;
       ErrCnt = 0;
    } else {
-      if (!ErrCnt) SUMA_SLP_Err ("ROI is marked as finished.\nNew value will not be applied.\n");
+      if (!ErrCnt) 
+         SUMA_SLP_Err ( "ROI is marked as finished.\n"
+                        "New value will not be applied.\n");
       ++ErrCnt;
       AF->value = (float)DrawnROI->iLabel;
       SUMA_ATF_SetString (AF); 
@@ -7324,7 +7386,8 @@ void SUMA_DrawROI_NewValue (void *data)
    if (DrawnROI->ColorByLabel) {
       SUMA_SurfaceObject *SO=NULL;
       /* Now update the Paint job on the ROI plane */
-      SO = SUMA_findSOp_inDOv (DrawnROI->Parent_idcode_str, SUMAg_DOv, SUMAg_N_DOv);
+      SO = SUMA_findSOp_inDOv (DrawnROI->Parent_idcode_str, 
+                               SUMAg_DOv, SUMAg_N_DOv);
       if (!SO) {
          SUMA_SLP_Err(  "Failed to find parent surface\n"
                         "No color for you!");
@@ -7336,7 +7399,8 @@ void SUMA_DrawROI_NewValue (void *data)
       }
 
       if (!list) list = SUMA_CreateList ();
-      SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Redisplay_AllVisible, SES_SumaWidget, NULL);
+      SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Redisplay_AllVisible, 
+                                          SES_SumaWidget, NULL);
       if (!SUMA_Engine (&list)) {
          fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_Engine.\n", FuncName);
          SUMA_RETURNe;    
@@ -7364,14 +7428,16 @@ void SUMA_ColPlane_NewOrder (void *data)
    SO = (SUMA_SurfaceObject *)data;
    
    /* make sure a new order is in order */
-   if (SO->SurfCont->curColPlane->PlaneOrder == (int)SO->SurfCont->ColPlaneOrder->value) SUMA_RETURNe;
+   if (SO->SurfCont->curColPlane->PlaneOrder == 
+         (int)SO->SurfCont->ColPlaneOrder->value) SUMA_RETURNe;
    
    /* Now show the new order */
    if (LocalHead) SUMA_Print_PlaneOrder(SO, NULL);
    
 
    /* Now figure out the direction of the arrow presses */
-   NetMove = (int)SO->SurfCont->ColPlaneOrder->value - SO->SurfCont->curColPlane->PlaneOrder ; 
+   NetMove = (int)SO->SurfCont->ColPlaneOrder->value - 
+                  SO->SurfCont->curColPlane->PlaneOrder ; 
    
    if (LocalHead) fprintf (SUMA_STDERR,"%s:  Net move %d\n", FuncName, NetMove);
    iMove = 0;
@@ -7531,7 +7597,8 @@ SUMA_Boolean SUMA_RemixRedisplay (SUMA_SurfaceObject *SO)
 
    /* redisplay */
    if (!list) list = SUMA_CreateList ();
-   SUMA_REGISTER_TAIL_COMMAND_NO_DATA(list, SE_RedisplayNow_AllVisible, SES_Suma, NULL); 
+   SUMA_REGISTER_TAIL_COMMAND_NO_DATA( list, SE_RedisplayNow_AllVisible, 
+                                       SES_Suma, NULL); 
    if (!SUMA_Engine(&list)) {
       SUMA_SLP_Err("Failed to redisplay.");
       SUMA_RETURN(NOPE);
@@ -7556,6 +7623,10 @@ void SUMA_cb_ColPlaneShow_toggled ( Widget w, XtPointer data,
    
    SUMA_LH("Called");
    
+   SUMA_S_Warn("Obsolete, do not call me!");
+   SUMA_RETURNe;
+   
+   #if 0
    SO = (SUMA_SurfaceObject *)data;
    
    if (!SO || !SO->SurfCont) SUMA_RETURNe;
@@ -7578,6 +7649,7 @@ void SUMA_cb_ColPlaneShow_toggled ( Widget w, XtPointer data,
    SUMA_UpdateNodeLblField(SO);
    
    SUMA_RETURNe;
+   #endif
 }
 
 /*!
@@ -7585,9 +7657,9 @@ void SUMA_cb_ColPlaneShow_toggled ( Widget w, XtPointer data,
    
    -expects SO in data
 */
-void SUMA_cb_ColPlaneShowOne_toggled (Widget w, XtPointer data, XtPointer client_data)
+void SUMA_cb_ColPlaneShowOneFore_toggled (Widget w, XtPointer data, XtPointer client_data)
 {
-   static char FuncName[]={"SUMA_cb_ColPlaneShowOne_toggled"};
+   static char FuncName[]={"SUMA_cb_ColPlaneShowOneFore_toggled"};
    SUMA_SurfaceObject *SO = NULL;
    SUMA_Boolean LocalHead = NOPE;
    
@@ -7599,7 +7671,8 @@ void SUMA_cb_ColPlaneShowOne_toggled (Widget w, XtPointer data, XtPointer client
    
    if (!SO->SurfCont->curColPlane) SUMA_RETURNe;
 
-   SO->SurfCont->ShowCurOnly = XmToggleButtonGetState (SO->SurfCont->ColPlaneShowOne_tb);
+   SO->SurfCont->ShowCurForeOnly = 
+      XmToggleButtonGetState (SO->SurfCont->ColPlaneShowOneFore_tb);
    
    SUMA_UpdateColPlaneShellAsNeeded(SO); /* update other open ColPlaneShells */
 
@@ -7609,17 +7682,17 @@ void SUMA_cb_ColPlaneShowOne_toggled (Widget w, XtPointer data, XtPointer client
    SUMA_RETURNe;
 }
 
-int SUMA_ColPlaneShowOne_Set (SUMA_SurfaceObject *SO, SUMA_Boolean state) 
+int SUMA_ColPlaneShowOneFore_Set (SUMA_SurfaceObject *SO, SUMA_Boolean state) 
 {
-   static char FuncName[]={"SUMA_ColPlaneShowOne_Set"};
+   static char FuncName[]={"SUMA_ColPlaneShowOneFore_Set"};
    
    SUMA_ENTRY;
 
    if (!SO->SurfCont) SUMA_RETURN(0);
    if (!SO->SurfCont->TopLevelShell) SUMA_RETURN(0);
    
-   SO->SurfCont->ShowCurOnly = state;
-   XmToggleButtonSetState (SO->SurfCont->ColPlaneShowOne_tb, SO->SurfCont->ShowCurOnly, NOPE);   
+   SO->SurfCont->ShowCurForeOnly = state;
+   XmToggleButtonSetState (SO->SurfCont->ColPlaneShowOneFore_tb, SO->SurfCont->ShowCurForeOnly, NOPE);   
    
    SUMA_UpdateColPlaneShellAsNeeded(SO); /* update other open ColPlaneShells */
 
@@ -7812,7 +7885,8 @@ void SUMA_cb_ViewerCont_SwitchGroup (Widget w, XtPointer data, XtPointer call_da
    \brief Callback for Group button
    -Expects sv in data
 */
-void SUMA_cb_ViewerCont_SwitchState (Widget w, XtPointer data, XtPointer call_data)
+void SUMA_cb_ViewerCont_SwitchState (Widget w, XtPointer data, 
+                                     XtPointer call_data)
 {
    static char FuncName[]={"SUMA_cb_ViewerCont_SwitchState"};
    SUMA_SurfaceViewer *sv=NULL;
@@ -7832,7 +7906,8 @@ void SUMA_cb_ViewerCont_SwitchState (Widget w, XtPointer data, XtPointer call_da
    \brief Callback for Switch Col Plane button
    -Expects SO in data
 */
-void SUMA_cb_SurfCont_SwitchColPlane (Widget w, XtPointer data, XtPointer call_data)
+void SUMA_cb_SurfCont_SwitchColPlane (Widget w, XtPointer data, 
+                                      XtPointer call_data)
 {
    static char FuncName[]={"SUMA_cb_SurfCont_SwitchColPlane"};
    SUMA_Boolean LocalHead = NOPE;
@@ -7976,7 +8051,8 @@ void SUMA_cb_AfniLink_toggled (Widget w, XtPointer data, XtPointer call_data)
       
       SUMA_SLP_Err(  "Cannot link to Afni.\n"
                      "No connection found.");
-      XmToggleButtonSetState (SUMAg_CF->X->DrawROI->AfniLink_tb, SUMAg_CF->ROI2afni, NOPE);
+      XmToggleButtonSetState (SUMAg_CF->X->DrawROI->AfniLink_tb, 
+                              SUMAg_CF->ROI2afni, NOPE);
    }
    
    if (SUMAg_CF->ROI2afni) {
@@ -7985,7 +8061,7 @@ void SUMA_cb_AfniLink_toggled (Widget w, XtPointer data, XtPointer call_data)
             FuncName,  SUMAg_CF->ROI_CM->Name);
             SUMA_LH("Sending colormap to afni ...");
          /* send the color map for ROI to afni */
-         cmap = SUMA_StandardMapCode (SUMAg_CF->ROI_CM->Name);
+         cmap = SUMA_StandardMapIndex (SUMAg_CF->ROI_CM->Name);
          if (LocalHead) fprintf (SUMA_STDERR,"%s: Sending cmap %d (%s)\n",
             FuncName, cmap, SUMAg_CF->ROI_CM->Name);
          list = SUMA_CreateList();
@@ -7994,7 +8070,8 @@ void SUMA_cb_AfniLink_toggled (Widget w, XtPointer data, XtPointer call_data)
                                                 SEF_i, (void*)&cmap, 
                                                 SES_SumaWidget, NULL, NOPE, 
                                                 SEI_Head, NULL )) {
-            fprintf(SUMA_STDERR,"Error %s: Failed to register command\n", FuncName);
+            fprintf( SUMA_STDERR,
+                     "Error %s: Failed to register command\n", FuncName);
             SUMA_RETURNe;
          }
          SUMA_LH("NOW!");
@@ -8079,7 +8156,7 @@ void SUMA_cb_SelectSwitchColPlane(Widget w, XtPointer data, XtPointer call_data)
          SUMA_InitializeColPlaneShell(SO, ColPlane);
          SUMA_UpdateColPlaneShellAsNeeded(SO); /* update other open ColPlaneShells */
          /* If you're viewing one plane at a time, do a remix */
-         if (SO->SurfCont->ShowCurOnly) SUMA_RemixRedisplay(SO);
+         if (SO->SurfCont->ShowCurForeOnly) SUMA_RemixRedisplay(SO);
 
       }
    } else {
@@ -9790,7 +9867,9 @@ void SUMA_cb_SetRenderMode(Widget widget, XtPointer client_data,
                                          SEF_vp, (void *)SO,
                                          SES_SumaWidget, NULL, NOPE,
                                          SEI_In, Elmnt)) {
-      fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_RegisterEngineListCommand.\n", FuncName);
+      fprintf (SUMA_STDERR, 
+               "Error %s: Failed in SUMA_RegisterEngineListCommand.\n", 
+               FuncName);
       SUMA_RETURNe;                                     
    }
    
@@ -9802,6 +9881,77 @@ void SUMA_cb_SetRenderMode(Widget widget, XtPointer client_data,
    
    SUMA_RETURNe;
 }
+
+int SUMA_ShowMode2ShowModeMenuItem(int Mode)
+{
+   static char FuncName[]={"SUMA_ShowMode2ShowModeMenuItem"};
+   
+   SUMA_ENTRY;
+   
+   if (SUMA_ABS(Mode) >= SW_N_SurfCont_DsetView || 
+       SUMA_ABS(Mode) <= SW_SurfCont_DsetView ) {
+      SUMA_S_Err("Bad mode, returning FULL");    
+      SUMA_RETURN(SW_SurfCont_DsetViewCol);
+   }
+   if (Mode < 0) {
+      SUMA_RETURN(SW_SurfCont_DsetViewXXX);
+   } 
+   
+   SUMA_RETURN(SW_SurfCont_DsetViewCol);
+}      
+
+/*!
+   \brief sets the dataset viewing mode of the current dset  
+   
+   - expects a SUMA_MenuCallBackData * in  client_data
+   with SO as client_data->ContID and Menubutton in client_data->callback_data
+*/
+void SUMA_cb_SetDsetViewMode(Widget widget, XtPointer client_data, 
+                           XtPointer call_data)
+{
+   static char FuncName[]={"SUMA_cb_SetDsetViewMode"};
+   DList *list = NULL;
+   DListElmt *Elmnt = NULL;
+   SUMA_EngineData *ED = NULL;
+   SUMA_MenuCallBackData *datap=NULL;
+   SUMA_SurfaceObject *SO = NULL;
+   void **curSOp;
+   int imenu = 0;
+   
+   SUMA_ENTRY;
+
+   /* get the surface object that the setting belongs to */
+   datap = (SUMA_MenuCallBackData *)client_data;
+   curSOp = (void **)datap->ContID;
+   SO = (SUMA_SurfaceObject *)(*curSOp);
+   imenu = (INT_CAST)datap->callback_data; 
+   
+   /* make a call to SUMA_Engine */
+   if (!list) list = SUMA_CreateList ();
+   ED = SUMA_InitializeEngineListData (SE_SetDsetViewMode);
+   Elmnt = SUMA_RegisterEngineListCommand ( list, ED,
+                                         SEF_i, (void *)&imenu,
+                                         SES_SumaWidget, NULL, NOPE,
+                                         SEI_Head, NULL);
+   if (!SUMA_RegisterEngineListCommand ( list, ED,
+                                         SEF_vp, (void *)SO,
+                                         SES_SumaWidget, NULL, NOPE,
+                                         SEI_In, Elmnt)) {
+      fprintf (SUMA_STDERR, 
+               "Error %s: Failed in SUMA_RegisterEngineListCommand.\n", 
+               FuncName);
+      SUMA_RETURNe;                                     
+   }
+   
+   
+   if (!SUMA_Engine (&list)) {
+      fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_Engine.\n", FuncName);
+      SUMA_RETURNe;    
+   }
+   
+   SUMA_RETURNe;
+}
+
 /*!
    \brief pops a SUMA message
 */
@@ -11647,7 +11797,8 @@ void  SUMA_cb_ToggleManagementColPlaneWidget(Widget w, XtPointer data,
       }
    } else {
       /* XtManageChild(XtParent(SO->SurfCont->ColPlane_fr)); May 25 04*/
-      if (strcmp(SO->SurfCont->curColPlane->cmapname, "explicit") != 0) { 
+      if ((strcmp(SO->SurfCont->curColPlane->cmapname, "explicit") != 0) &&
+          !SUMA_is_Label_dset(SO->SurfCont->curColPlane->dset_link, NULL)) { 
          SUMA_LHv("Not explicit, ncall = %d\n", ncall);
          /* not an RGB dset */
          if (!XtIsManaged(SO->SurfCont->DsetMap_fr)) {

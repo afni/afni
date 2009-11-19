@@ -865,7 +865,8 @@ double S_energy( MyCircleOpt *opt, SUMA_MX_VEC *VecX , SUMA_GENERIC_ARGV_PARSE *
    SUMA_RETURN(S_grad);
 }
 
-SUMA_SegmentDO *SUMA_G2SDO(vector G, SUMA_MX_VEC *ControlCurve, char *Label, double scl)
+SUMA_SegmentDO *SUMA_G2SDO(vector G, SUMA_MX_VEC *ControlCurve, 
+                           char *Label, double scl)
 {
    static char FuncName[]={"SUMA_G2SDO"};
    SUMA_SegmentDO *SDO=NULL;
@@ -894,16 +895,22 @@ SUMA_SegmentDO *SUMA_G2SDO(vector G, SUMA_MX_VEC *ControlCurve, char *Label, dou
    thickv = (float *) SUMA_malloc(sizeof(float)*N_n);
 
    
-   for(i=0; i<ControlCurve->dims[1]; ++i) {  /* ControlCurve->dims[1] = opt->N_ctrl_points */
-      SUMA_a_good_col("roi256", i+2, acol);/* get a decent colormap */  /* Add 2 to the color map index to avoid getting purple. */
-      for (m=0; m<ControlCurve->dims[2]-2; ++m) {     /* ControlCurve->dims[2] = opt->M_time_steps+1 */
+   for(i=0; i<ControlCurve->dims[1]; ++i) {  /* ControlCurve->dims[1] = 
+                                                opt->N_ctrl_points */
+      SUMA_a_good_col("ROI_256", i+2, acol);/* get a decent colormap */  
+               /* Add 2 to the color map index to avoid getting purple. */
+      for (m=0; m<ControlCurve->dims[2]-2; ++m) {     /* ControlCurve->dims[2] = 
+                                             opt->M_time_steps+1 */
          kcc = m*ControlCurve->dims[1]+i;
          if(1) {
             dp = mxvdp3(ControlCurve, 0, i, m+1);
             for (d=0;d<3;++d) {
                n0[3*kcc+d] = dp[d];
                n1[3*kcc+d] = dp[d]+scl * G.elts[3*kcc+d];
-               if (LocalHead) fprintf(SUMA_STDERR,"%d/%d\n", 3*kcc+d, 3*ControlCurve->dims[1] * (ControlCurve->dims[2]-2));
+               if (LocalHead) 
+                  fprintf( SUMA_STDERR,"%d/%d\n", 
+                           3*kcc+d, 
+                           3*ControlCurve->dims[1] * (ControlCurve->dims[2]-2));
             }
          }                             
          for (d=0;d<4;++d)   colv[4*kcc+d] = acol[d];

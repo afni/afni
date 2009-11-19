@@ -765,7 +765,7 @@ SUMA_Boolean SUMA_Afni_Graph(SUMA_OVERLAYS *Sover,
                SUMA_SurfaceObject *SO)
 {
    static char FuncName[]={"SUMA_Afni_Graph"};
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    /* get yourself an im3d structure populated 
    The im3d structure is initialized in AFNI's 
@@ -777,8 +777,10 @@ SUMA_Boolean SUMA_Afni_Graph(SUMA_OVERLAYS *Sover,
    
    Calling new_AFNI_controller directly from SUMA is not that trivial because it uses symbols defined in afni.o, which itself contains a main() function! So the plot thickens... Do I create im3d outside of AFNI's routines, and eventually call drive_MCW_grapher myself? I do not know yet...*/
    
+   SUMA_ENTRY;
    
    SUMA_LH("Done");
+   
    SUMA_RETURN(YUP);
 }
 #endif

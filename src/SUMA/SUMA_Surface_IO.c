@@ -5090,9 +5090,8 @@ SUMA_DRAWN_ROI ** SUMA_OpenDrawnROI_1D (char *filename, char *Parent_idcode_str,
 {
    static char FuncName[]={"SUMA_OpenDrawnROI_1D"};
    MRI_IMAGE *im = NULL;
-   int ncol, nrow, *iLabel=NULL, *iNode = NULL, *isort=NULL,
-      i, N_Labels = 0, *iStart=NULL, *iStop=NULL, cnt = 0;
-   float *far=NULL, *r=NULL, *g=NULL, *b=NULL, *RGB=NULL;
+   int ncol, nrow ;
+   float *far=NULL;
    SUMA_DRAWN_ROI **ROIv=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
@@ -5131,6 +5130,153 @@ SUMA_DRAWN_ROI ** SUMA_OpenDrawnROI_1D (char *filename, char *Parent_idcode_str,
    switch (nrow) {
       case 1:
          /* Node index only*/
+         ROIv= SUMA_MultiColumnsToDrawnROI(ncol, 
+                              (void*)far, SUMA_float,
+                              (void*)NULL, SUMA_float,
+                              (void*)NULL, SUMA_float, 
+                              (void*)NULL, SUMA_float, 
+                              (void*)NULL, SUMA_float,
+                              NULL, 0, filename,
+                              Parent_idcode_str, N_ROI, ForDisplay, 0);
+         break;
+      case 2:
+         /* Node index & Node Label */
+         ROIv= SUMA_MultiColumnsToDrawnROI(ncol, 
+                              (void*)far, SUMA_float,
+                              (void*)(far+ncol), SUMA_float,
+                              (void*)NULL, SUMA_float, 
+                              (void*)NULL, SUMA_float, 
+                              (void*)NULL, SUMA_float,
+                              NULL, 0, filename,
+                              Parent_idcode_str, N_ROI, ForDisplay, 0);
+         break;
+      case 4:
+         /* Node index & R G B */
+         ROIv= SUMA_MultiColumnsToDrawnROI(ncol, 
+                              (void*)far, SUMA_float,
+                              (void*)(far+ncol), SUMA_float,
+                              (void*)(far+2*ncol), SUMA_float, 
+                              (void*)(far+3*ncol), SUMA_float, 
+                              (void*)NULL, SUMA_float,
+                              NULL, 0, filename,
+                              Parent_idcode_str, N_ROI, ForDisplay, 0);
+         break;
+      case 5:
+         /* Node index, Node Label, R G B */
+         ROIv= SUMA_MultiColumnsToDrawnROI(ncol, 
+                              (void*)far, SUMA_float,
+                              (void*)(far+ncol), SUMA_float,
+                              (void*)(far+2*ncol), SUMA_float, 
+                              (void*)(far+3*ncol), SUMA_float, 
+                              (void*)(far+4*ncol), SUMA_float,
+                              NULL, 0, filename,
+                              Parent_idcode_str, N_ROI, ForDisplay, 0);
+         break;
+      default:
+         SUMA_S_Errv("Bad number of columns (%d) in %s\n"
+                     "Only 1, 2, 4, and 5 allowed\n",
+                     nrow, filename);
+         break;
+    }
+    mri_free(im); im = NULL;   /* done with that baby */
+    SUMA_RETURN(ROIv);
+}
+/*! \brief, given a set of vectors, turn them into a drawn ROI
+   The manner is which the columns are interpreted is detailed
+   in the help for SUMA_OpenDrawnROI_1D
+   
+   N_Nodes (int) Number of nodes in ind
+   
+   ind (void *) Node indices. A mandatory vector containing the
+                indices of nodes to include  in the ROI
+   ind_type (SUMA_VARTYPE) SUMA_int or SUMA_float. This is used
+               to type cast ind
+   
+   col0 (void *) Label attached to each node in ind
+   col0_type (SUMA_VARTYPE) type of col0
+   
+   col1 (void *)
+   col1_type 
+   
+   ...
+   
+   col3 (void *)
+   col3_type 
+   
+      if all of col* are NULL, then this is like a one column 1D file
+         input to SUMA_OpenDrawnROI_1D
+      if only col0 is set, then this is like a 2 column 1D file
+      if only col3 is NULL then this is like a 4 column 1D file
+      if none are NULL then that is the 5 column 1D file
+*/
+                            
+SUMA_DRAWN_ROI **SUMA_MultiColumnsToDrawnROI( 
+         int N_Nodes, 
+         void *ind, SUMA_VARTYPE ind_type,
+         void *col0, SUMA_VARTYPE col0_type,
+         void *col1, SUMA_VARTYPE col1_type,
+         void *col2, SUMA_VARTYPE col2_type,
+         void *col3, SUMA_VARTYPE col3_type,
+         SUMA_COLOR_MAP *cmap,
+         int edges_only, 
+         char *name, char *Parent_idcode_str,
+         int *N_ROI, SUMA_Boolean ForDisplay,
+         SUMA_Boolean LabelIsCmapIndex)
+         
+{   
+   static char FuncName[]={"SUMA_MultiColumnsToDrawnROI"};
+   int *iv=NULL;
+   float *fv=NULL;
+   int ncol=0, nc;
+   int nrow=0;
+   int *iLabel=NULL, *iNode = NULL, *isort=NULL,
+      i, N_Labels = 0, *iStart=NULL, *iStop=NULL, 
+      cnt = 0, ilmax = 0;
+   float *r=NULL, *g=NULL, *b=NULL, *RGB=NULL;
+   SUMA_DRAWN_ROI **ROIv=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+
+   SUMA_ENTRY;
+   
+   if (ind) ++nrow;
+   if (col0) ++nrow;
+   if (col1) ++nrow;
+   if (col2) ++nrow;
+   if (col3) ++nrow;
+   ncol = N_Nodes;
+
+   if (!ind || !N_Nodes) {
+      SUMA_S_Err("NULL index, or no nodes");
+      SUMA_RETURN(NULL);
+   }
+   if ( (ind_type != SUMA_float && ind_type != SUMA_int) ) {
+      SUMA_S_Err("Bad index type");
+      SUMA_RETURN(NULL);
+   }
+   if ( (col0 && col0_type != SUMA_float && col0_type != SUMA_int) ) {
+      SUMA_S_Err("Bad col0 type");
+      SUMA_RETURN(NULL);
+   }
+   if ( (col1 && col1_type != SUMA_float && col1_type != SUMA_int) ) {
+      SUMA_S_Err("Bad col1 type");
+      SUMA_RETURN(NULL);
+   }
+   if ( (col2 && col2_type != SUMA_float && col2_type != SUMA_int) ) {
+      SUMA_S_Err("Bad col2 type");
+      SUMA_RETURN(NULL);
+   }
+   if ( (col3 && col3_type != SUMA_float && col3_type != SUMA_int) ) {
+      SUMA_S_Err("Bad col3 type");
+      SUMA_RETURN(NULL);
+   }
+   if (nrow != 1 && nrow != 2 && nrow != 4 && nrow != 5) {
+      SUMA_S_Err("Bad number of input columns");
+      SUMA_RETURN(NULL);
+   }
+   
+   switch (nrow) {
+      case 1:
+         /* Node index only*/
          SUMA_LH ("1D format: i");
          iNode = (int *)SUMA_malloc(ncol*sizeof(int));
          iLabel = (int *)SUMA_malloc(1*sizeof(int));
@@ -5138,8 +5284,13 @@ SUMA_DRAWN_ROI ** SUMA_OpenDrawnROI_1D (char *filename, char *Parent_idcode_str,
             SUMA_SL_Err("Failed to allocate");
             SUMA_RETURN(NULL);
          }
-         for (i=0; i < ncol; ++i) iNode[i] = (int)far[i];
-         mri_free(im); im = NULL;   /* done with that baby */
+         if (ind_type == SUMA_float) {
+            fv = (float *)ind;
+            for (i=0; i < ncol; ++i) iNode[i] = (int)fv[i];
+         } else if (ind_type == SUMA_int) {
+            iv = (int *)ind;
+            for (i=0; i < ncol; ++i) iNode[i] = iv[i];
+         }
          
          iLabel[0] = 0;
          N_Labels = 1;
@@ -5160,12 +5311,22 @@ SUMA_DRAWN_ROI ** SUMA_OpenDrawnROI_1D (char *filename, char *Parent_idcode_str,
             SUMA_SL_Err("Failed to allocate");
             SUMA_RETURN(NULL);
          }
-         for (i=0; i < ncol; ++i) iLabel[i] = (int)far[i+ncol];
+         if (col0_type == SUMA_float) {
+            fv = (float*)col0;
+            for (i=0; i < ncol; ++i) iLabel[i] = (int)fv[i];
+         } else if (col0_type == SUMA_int) {
+            iv = (int *)col0;
+            for (i=0; i < ncol; ++i) iLabel[i] = (int)iv[i];
+         }
          /* sort the Labels and the iNode accordingly */
          isort = SUMA_z_dqsort( iLabel, ncol);
-         for (i=0; i < ncol; ++i) iNode[i] = (int)far[isort[i]];
-
-         mri_free(im); im = NULL;   /* done with that baby */
+         if (ind_type == SUMA_float) {
+            fv = (float *)ind;
+            for (i=0; i < ncol; ++i) iNode[i] = (int)fv[isort[i]];
+         } else if (ind_type == SUMA_int) {
+            iv = (int *)ind;
+            for (i=0; i < ncol; ++i) iNode[i] = iv[isort[i]];
+         }
 
          /* Count the number of distinct labels */
          N_Labels = 1;
@@ -5181,14 +5342,50 @@ SUMA_DRAWN_ROI ** SUMA_OpenDrawnROI_1D (char *filename, char *Parent_idcode_str,
          cnt = 0;
          iStart[cnt] = 0;
          iStop[cnt] = ncol -1;
-         RGB[3*cnt] = 1.0; RGB[3*cnt+1] = 1.0; RGB[3*cnt+2] = 0;
+         if (cmap) {
+            ilmax =  cmap->N_M[0]-1;
+            if (!LabelIsCmapIndex) {
+               nc = SUMA_ColMapKeyIndex(iLabel[0],cmap);
+            } else {
+               nc = SUMA_MIN_PAIR(iLabel[0], ilmax);
+            }
+            if (nc < 0) {
+               RGB[3*cnt] = -1.0; RGB[3*cnt+1] = -1.0; RGB[3*cnt+2] = -1.0;
+            } else {
+               RGB[3*cnt] = cmap->M[nc][0];
+               RGB[3*cnt+1] = cmap->M[nc][1];
+               RGB[3*cnt+2] = cmap->M[nc][2];
+            }
+            SUMA_LHv("cmap %p chd %p (%s), %d, ilabel %d at node %d,  \n"
+                     "           col %f %f %f\n",
+                     cmap, cmap->chd, cmap->Name,
+                     cnt, iLabel[0], iNode[0], 
+                     RGB[3*cnt], RGB[3*cnt+1], RGB[3*cnt+2]);
+         } else {
+            RGB[3*cnt] = 1.0; RGB[3*cnt+1] = 1.0; RGB[3*cnt+2] = 0;
+         }
          for (i=1; i < ncol; ++i) {
             if (iLabel[i] != iLabel[i-1]) {
                iStop[cnt] = i-1;
                ++cnt; 
                iStart[cnt] = i;
                iStop[cnt] = ncol -1;
-               RGB[3*cnt] = 1.0; RGB[3*cnt+1] = 1.0; RGB[3*cnt+2] = 0;
+               if (cmap) {
+                  if (!LabelIsCmapIndex) {
+                     nc = SUMA_ColMapKeyIndex(iLabel[i],cmap);
+                  } else {
+                     nc = SUMA_MIN_PAIR(iLabel[i], ilmax);
+                  }
+                  if ((nc) >= 0) {
+                     RGB[3*cnt] = cmap->M[nc][0];
+                     RGB[3*cnt+1] = cmap->M[nc][1];
+                     RGB[3*cnt+2] = cmap->M[nc][2];
+                  } else {
+                     RGB[3*cnt] = -1.0; RGB[3*cnt+1] = -1.0; RGB[3*cnt+2] = -1.0;
+                  }
+               } else {
+                  RGB[3*cnt] = 1.0; RGB[3*cnt+1] = 1.0; RGB[3*cnt+2] = 0;
+               }
             }
          }
          break;
@@ -5205,19 +5402,41 @@ SUMA_DRAWN_ROI ** SUMA_OpenDrawnROI_1D (char *filename, char *Parent_idcode_str,
             SUMA_RETURN(NULL);
          }
          
-         for (i=0; i < ncol; ++i) {
-            iNode[i] = (int)far[i];
-            r[i] = (float)far[i+ncol];
-            g[i] = (float)far[i+2*ncol];
-            b[i] = (float)far[i+3*ncol];
+         if (ind_type == SUMA_float) {
+            fv = (float *)ind;
+            for (i=0; i < ncol; ++i) iNode[i] = (int)fv[i];
+         } else if (ind_type == SUMA_int) {
+            iv = (int *)ind;
+            for (i=0; i < ncol; ++i) iNode[i] = iv[i];
          }
+         if (col0_type == SUMA_float) {
+            fv = (float *)col0;
+            for (i=0; i < ncol; ++i) r[i] = fv[i];
+         } else {
+            iv = (int *)col0;
+            for (i=0; i < ncol; ++i) r[i] = (float)iv[i];
+         }
+         if (col1_type == SUMA_float) {
+            fv = (float *)col1;
+            for (i=0; i < ncol; ++i) g[i] = fv[i];
+         } else {
+            iv = (int *)col1;
+            for (i=0; i < ncol; ++i) g[i] = (float)iv[i];
+         }
+         if (col2_type == SUMA_float) {
+            fv = (float *)col2;
+            for (i=0; i < ncol; ++i) b[i] = fv[i];
+         } else {
+            iv = (int *)col2;
+            for (i=0; i < ncol; ++i) b[i] = (float)iv[i];
+         }
+           
          
          iLabel[0] = 0;
          N_Labels = 1;
          iStart = (int *)SUMA_malloc(1*sizeof(int));
          iStop = (int *)SUMA_malloc(1*sizeof(int));
          RGB = (float *)SUMA_malloc(3*1*sizeof(float));
-         mri_free(im); im = NULL;   /* done with that baby */
         
          iStart[0] = 0;
          iStop[0] = ncol-1;
@@ -5236,16 +5455,48 @@ SUMA_DRAWN_ROI ** SUMA_OpenDrawnROI_1D (char *filename, char *Parent_idcode_str,
             SUMA_SL_Err("Failed to allocate");
             SUMA_RETURN(NULL);
          }
-         for (i=0; i < ncol; ++i) iLabel[i] = (int)far[i+ncol];
+         
+         
+         if (col0_type == SUMA_float) {
+            fv = (float*)col0;
+            for (i=0; i < ncol; ++i) iLabel[i] = (int)fv[i];
+         } else if (col0_type == SUMA_int) {
+            iv = (int *)col0;
+            for (i=0; i < ncol; ++i) iLabel[i] = (int)iv[i];
+         }
          /* sort the Labels and the iNode accordingly */
          isort = SUMA_z_dqsort( iLabel, ncol);
-         for (i=0; i < ncol; ++i) {
-            iNode[i] = (int)far[isort[i]];
-            r[i] = (float)far[isort[i]+2*ncol];
-            g[i] = (float)far[isort[i]+3*ncol];
-            b[i] = (float)far[isort[i]+4*ncol];
-         }     
-         mri_free(im); im = NULL;   /* done with that baby */
+         if (ind_type == SUMA_float) {
+            fv = (float *)ind;
+            for (i=0; i < ncol; ++i) iNode[i] = (int)fv[isort[i]];
+         } else if (ind_type == SUMA_int) {
+            iv = (int *)ind;
+            for (i=0; i < ncol; ++i) iNode[i] = iv[isort[i]];
+         }
+         
+         
+         if (col1_type == SUMA_float) {
+            fv = (float *)col1;
+            for (i=0; i < ncol; ++i) r[i] = fv[isort[i]];
+         } else {
+            iv = (int *)col1;
+            for (i=0; i < ncol; ++i) r[i] = (float)iv[isort[i]];
+         }
+         if (col2_type == SUMA_float) {
+            fv = (float *)col2;
+            for (i=0; i < ncol; ++i) g[i] = fv[isort[i]];
+         } else {
+            iv = (int *)col2;
+            for (i=0; i < ncol; ++i) g[i] = (float)iv[isort[i]];
+         }
+         if (col3_type == SUMA_float) {
+            fv = (float *)col3;
+            for (i=0; i < ncol; ++i) b[i] = fv[isort[i]];
+         } else {
+            iv = (int *)col3;
+            for (i=0; i < ncol; ++i) b[i] = (float)iv[isort[i]];
+         }
+
 
          /* Count the number of distinct labels */
          N_Labels = 1;
@@ -5273,8 +5524,8 @@ SUMA_DRAWN_ROI ** SUMA_OpenDrawnROI_1D (char *filename, char *Parent_idcode_str,
          }
          break;
       default:
-         SUMA_SLP_Err("Unrecognized 1D format");
-         mri_free(im); im = NULL;   /* done with that baby */
+         SUMA_S_Err("Bad function input. Have %d cols\n"
+                      "Accepting only 1, 2, 4, and 5\n");
          break;
    }
    
@@ -5298,14 +5549,14 @@ SUMA_DRAWN_ROI ** SUMA_OpenDrawnROI_1D (char *filename, char *Parent_idcode_str,
       Node = &(iNode[iStart[i]]); 
                      /* pointer to location of first index in this ROI */
       /* prepare a label for these ROIs */
-      NewName = SUMA_ParseFname (filename, NULL);
+      NewName = SUMA_ParseFname (name, NULL);
       if (!NewName) {
          Label = SUMA_copy_string("BadLabel");
       }else {
          sprintf(stmp,"(%d)", Value);
          Label = SUMA_append_string(stmp,NewName->FileName_NoExt);
       }
-      SUMA_LH("Transforming to Drawn ROIs...");
+      /* SUMA_LH("Transforming to Drawn ROIs..."); */
       if (!(ROIv[i] = SUMA_1DROI_to_DrawnROI( Node, N_Node , 
                                     Value, Parent_idcode_str,
                                     Label, NULL,
@@ -5320,13 +5571,21 @@ SUMA_DRAWN_ROI ** SUMA_OpenDrawnROI_1D (char *filename, char *Parent_idcode_str,
          SUMA_free(ROIv);ROIv=NULL;
          SUMA_RETURN(NULL);
       }
+      if (edges_only) { /* remove blob collection for less memory waste */
+         if (ROIv[i]->ROIstrokelist) 
+            SUMA_EmptyDestroyList(ROIv[i]->ROIstrokelist);
+         ROIv[i]->ROIstrokelist = NULL;
+         if (ROIv[i]->ActionStack) 
+            SUMA_EmptyDestroyActionStack(ROIv[i]->ActionStack);
+         ROIv[i]->ActionStack = NULL;
+      }
       if (nrow == 5 || nrow == 4) {
          SUMA_LH("Marking as color by fillcolor");
          ROIv[i]->ColorByLabel = NOPE;
       }
       if (Label) SUMA_free(Label); Label = NULL;
       if (NewName) SUMA_Free_Parsed_Name(NewName); NewName = NULL;
-      if (LocalHead) 
+      if (0 && LocalHead) 
          fprintf (SUMA_STDERR,   "%s: ROI->Parent_idcode_str %s\n", 
                                  FuncName, ROIv[i]->Parent_idcode_str);
 
@@ -5366,7 +5625,7 @@ SUMA_DRAWN_ROI ** SUMA_OpenDrawnROI_NIML (char *filename,
    NI_element *nel = NULL;
    NI_element **nelv=NULL;
    NI_stream ns ;
-   int n_read=0, idat, answer, inel, iDO, N_nel, iwarn=0;
+   int n_read=0, idat, answer, inel, iDO, N_nel, iwarn=0, ir=0;
    SUMA_NIML_ROI_DATUM *niml_ROI_datum_buff=NULL;
    SUMA_NIML_DRAWN_ROI * nimlROI=NULL;
    SUMA_DRAWN_ROI **ROIv=NULL;
@@ -5627,18 +5886,32 @@ SUMA_DRAWN_ROI ** SUMA_OpenDrawnROI_NIML (char *filename,
       nimlROI->N_ROI_datum = nel->vec_len;
       nimlROI->ColPlaneName = 
          SUMA_copy_string(NI_get_attribute( nel , "ColPlaneName"));
-      if (SUMA_StringToNum (NI_get_attribute( nel , "FillColor"), 
-                           (void*)nimlROI->FillColor, 3,1) < 0) {
+      
+      ir = SUMA_StringToNum (NI_get_attribute( nel , "FillColor"), 
+                           (void*)nimlROI->FillColor, 3,1);
+      nimlROI->FillColor[3] = 1.0;
+      if (ir < 3) {
          SUMA_SLP_Err("Failed in reading FillColor.");
          SUMA_free(nelv);
          SUMA_RETURN(NULL);
+      }else if (ir == 4) {
+         SUMA_StringToNum (NI_get_attribute( nel , "FillColor"), 
+                           (void*)nimlROI->FillColor, 4,1);
       }
-      if (SUMA_StringToNum (NI_get_attribute( nel , "EdgeColor"), 
-                           (void*)nimlROI->EdgeColor, 3,1) < 0) {
+      
+      ir = SUMA_StringToNum (NI_get_attribute( nel , "EdgeColor"), 
+                           (void*)nimlROI->EdgeColor, 3,1);
+      nimlROI->EdgeColor[3] = 1.0;
+      
+      if (ir  < 3) {
          SUMA_SLP_Err("Failed in reading EdgeColor.");
          SUMA_free(nelv);
          SUMA_RETURN(NULL);
+      }else if (ir == 4) {
+         SUMA_StringToNum (NI_get_attribute( nel , "EdgeColor"), 
+                           (void*)nimlROI->EdgeColor, 4,1);
       }
+      
       nimlROI->EdgeThickness = 
          (int)strtod(NI_get_attribute( nel , "EdgeThickness"), NULL);              
       
@@ -5747,18 +6020,23 @@ SUMA_DRAWN_ROI ** SUMA_OpenDrawnROI_NIML (char *filename,
    \param Pad_val (int) use this value (usually 0) to label a node being padded
                         as oppsed to a node being a part of an ROI. This option
                         is only useful with Pad_to
+   \param cmp (SUMA_COLOR_MAP **) if cmp, them the colormap for these ROIs is
+                                  returned in *cmp
    \return nel (NI_element *) structure to data set
                               NULL if failed
 */
 SUMA_DSET *SUMA_ROIv2Grpdataset (SUMA_DRAWN_ROI** ROIv, int N_ROIv, 
                                  char *Parent_idcode_str, 
-                                 int Pad_to, int Pad_val) 
+                                 int Pad_to, int Pad_val,
+                                 SUMA_COLOR_MAP **cmp) 
 {
    static char FuncName[]={"SUMA_ROIv2Grpdataset"};
    int ii, i, nn, cnt, N_NodesTotal = 0, MaxIndex = 0,
       *ip=NULL, *NodesTotal=NULL, *LabelsTotal=NULL,
-      *NodesTotal_p=NULL, *LabelsTotal_p=NULL;
+      *NodesTotal_p=NULL, *LabelsTotal_p=NULL, iicol=0, new_col = 0;
    SUMA_DSET *dset =NULL;
+   SUMA_COLOR_MAP_HASH_DATUM *hd=NULL;
+   SUMA_COLOR_MAP *cm = NULL;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -5784,6 +6062,23 @@ SUMA_DSET *SUMA_ROIv2Grpdataset (SUMA_DRAWN_ROI** ROIv, int N_ROIv,
       SUMA_RETURN(dset);
    }
 
+   /* allocate for a colormap */
+   if (cmp) {
+      cm = (SUMA_COLOR_MAP*) SUMA_calloc(1,sizeof(SUMA_COLOR_MAP));
+      cm->top_frac = 0.0f;
+      cm->SO = NULL; 
+      cm->N_M[0] = N_ROIv; cm->N_M[1] = 4;
+      cm->idvec = (int *)SUMA_calloc(cm->N_M[0], sizeof(int));;
+      cm->cname = (char **)SUMA_calloc(cm->N_M[0], sizeof(char*));
+      cm->M = (float**)SUMA_allocate2D (cm->N_M[0], cm->N_M[1], sizeof(float));
+      cm->Name = SUMA_copy_string("Funkhouser");
+      cm->Sgn = 0;
+      cm->frac = NULL;
+      iicol = 0;
+   } else {
+      cm = NULL;
+   }
+   
    cnt = 0;
    N_NodesTotal = 0;
    MaxIndex = -1;
@@ -5800,6 +6095,35 @@ SUMA_DSET *SUMA_ROIv2Grpdataset (SUMA_DRAWN_ROI** ROIv, int N_ROIv,
          fprintf (SUMA_STDERR,"%s: Nodes in ROI #%d\n", FuncName, ii);
          SUMA_disp_dvect (ip, nn);
       }
+
+      /* stick the color, label and key into a colormap */
+      if (cm) {
+         new_col = 0; 
+         if (!ii) {
+            new_col = 1;
+         } else {
+            HASH_FIND_INT(cm->chd, &(ROIv[ii]->iLabel), hd);
+            if (hd) { 
+               new_col = 0; /* exists already, do not add */
+            } else new_col = 1;
+         }
+         if (new_col) { /* add details */
+            hd = (SUMA_COLOR_MAP_HASH_DATUM *)
+                     SUMA_calloc(1, sizeof(SUMA_COLOR_MAP_HASH_DATUM));
+            hd->id = ROIv[ii]->iLabel;
+            hd->colmapindex = iicol;
+            HASH_ADD_INT(cm->chd, id, hd);
+
+            cm->M[iicol][0] = ROIv[ii]->FillColor[0];
+            cm->M[iicol][1] = ROIv[ii]->FillColor[1];
+            cm->M[iicol][2] = ROIv[ii]->FillColor[2];
+            cm->M[iicol][3] = ROIv[ii]->FillColor[3];
+            cm->idvec[iicol] = ROIv[ii]->iLabel;
+            cm->cname[iicol] = SUMA_copy_string(ROIv[ii]->Label);
+            ++iicol;
+         }
+      }
+         
       for (i=0; i < nn; ++i) {
          NodesTotal[cnt] = ip[i];
          LabelsTotal[cnt] = ROIv[ii]->iLabel;
@@ -5811,7 +6135,26 @@ SUMA_DSET *SUMA_ROIv2Grpdataset (SUMA_DRAWN_ROI** ROIv, int N_ROIv,
       SUMA_free(ip);ip=NULL;
    }
 
-   if (LocalHead) {
+   if (cm) {
+      SUMA_S_Notev("Have %d/%d new entries in colormap\n", iicol, N_ROIv);
+      /* now trim cm */
+      if (iicol < cm->N_M[0]) {
+         SUMA_LH("Trimming excess");
+         cm->idvec = (int *)SUMA_realloc(cm->idvec, iicol*sizeof(int));;
+         cm->cname = (char **)SUMA_realloc(cm->cname, iicol * sizeof(char*));
+         /* reallocating M is a pain in the behind */
+         pause_mcw_malloc();
+         for (i=iicol; i<cm->N_M[0]; ++i) {
+            if (cm->M[i]) free(cm->M[i]); cm->M[i]=NULL;
+         }
+         cm->M = (float **)SUMA_realloc(cm->M, iicol * sizeof(float*));
+         resume_mcw_malloc();
+         cm->N_M[0] = iicol;
+      }
+      *cmp = cm; cm = NULL;
+   }
+     
+   if (0 && LocalHead) {
       SUMA_disp_dvect (NodesTotal, N_NodesTotal);
    }
 
@@ -6699,11 +7042,11 @@ SUMA_Boolean SUMA_Write_DrawnROI_NIML (SUMA_DRAWN_ROI **ROIv, int N_ROI, char *f
       sprintf(stmp,"%d", niml_ROI->Type);
       NI_set_attribute (nel, "Type", stmp);
       NI_set_attribute (nel, "ColPlaneName", niml_ROI->ColPlaneName);
-      sprintf(stmp,"%f %f %f", niml_ROI->FillColor[0], niml_ROI->FillColor[1],
-                              niml_ROI->FillColor[2]);
+      sprintf(stmp,"%f %f %f %f", niml_ROI->FillColor[0], niml_ROI->FillColor[1],
+                              niml_ROI->FillColor[2], niml_ROI->FillColor[3]);
       NI_set_attribute (nel, "FillColor",stmp);
-      sprintf(stmp,"%f %f %f", niml_ROI->EdgeColor[0], niml_ROI->EdgeColor[1],
-                              niml_ROI->EdgeColor[2]);
+      sprintf(stmp,"%f %f %f %f", niml_ROI->EdgeColor[0], niml_ROI->EdgeColor[1],
+                              niml_ROI->EdgeColor[2], niml_ROI->EdgeColor[3]);
       NI_set_attribute (nel, "EdgeColor",stmp);
       sprintf(stmp,"%d", niml_ROI->EdgeThickness);
       NI_set_attribute (nel, "EdgeThickness", stmp);                   
