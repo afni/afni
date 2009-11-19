@@ -302,7 +302,8 @@ ENTRY("storage_mode_from_niml");
             atr = NI_get_attribute(ng, "dset_type");
             if( atr && 
                 ( !strcmp(atr, "Node_Bucket") ||
-                  !strcmp(atr, "Node_ROI")      )   ) /* then SUMA DSET */
+                  !strcmp(atr, "Node_ROI")    ||
+                  !strcmp(atr, "Node_Label")  )   ) /* then SUMA DSET */
                 RETURN(STORAGE_BY_NI_SURF_DSET);
             RETURN(STORAGE_BY_NIML);                 /* else assume AFNI */
         }
