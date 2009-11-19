@@ -367,7 +367,7 @@ SUMA_DSET *SUMA_GetDotPreprocessedDset(SUMA_DSET *in_dset,
 
             /* set the opacity, index column and the range */
             child->GlobalOpacity = YUP;
-            child->Show = NOPE;
+            child->ShowMode = SW_SurfCont_DsetViewCol;
             child->OptScl->BrightFact = 0.6;
 
             child->OptScl->find = 0;

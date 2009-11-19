@@ -1167,7 +1167,8 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (
    
    if (  Opt->Method != SUMA_LM && Opt->Method != SUMA_BRUTE_FORCE &&
          Opt->Method != SUMA_NN_GEOM ) {
-      exists = SUMA_WriteDset_NameCheck_s (Opt->out_name, NULL, Opt->oform, 0, &ooo);
+      exists = SUMA_WriteDset_NameCheck_s (Opt->out_name, NULL, 
+                                           Opt->oform, 0, &ooo);
       if (exists != 0 && !Opt->overwrite) {
          SUMA_S_Errv("Output dataset %s exists.\n", ooo);
          SUMA_free(ooo); ooo=NULL;

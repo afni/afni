@@ -29,9 +29,11 @@ void usage_ROI2dataset_Main ()
 "    notified when this occurs. \n"
 "\n"
 "Mandatory parameters:\n"
-"    -prefix dsetname: Prefix of output dataset.\n"
-"                      Program will not overwrite existing\n"
-"                      datasets.\n"
+"    -prefix     dsetname: Prefix of output dataset.\n"
+"                          Program will not overwrite existing\n"
+"                          datasets.\n"
+"                          See also -label_dset alternate below.\n"
+"\n"      
 " and/or\n"
 "    -nodelist        NL: Prefix for a set of .1D files\n"
 "    -nodelist.nodups NL: that contain a list of node indices\n"
@@ -55,8 +57,10 @@ void usage_ROI2dataset_Main ()
 "                          be the last one on command line.\n"
 "\n"
 "Optional parameters:\n"
-"(all optional parameters must be specified before the\n"
-" -input parameters.)\n"
+"    All optional parameters must be specified before the -input parameters.\n"
+"\n"
+"    -label_dset dsetname: Write a label dataset, instead of a simple dataset.\n"
+"                          Labeled datasets are treated differently in SUMA.\n"   "                          This option also sets the output format to NIML.\n"
 "    -h | -help: This help message\n"
 "    -of FORMAT: Output format of dataset. FORMAT is one of:\n"
 "                ni_bi: NIML binary\n"
@@ -104,7 +108,8 @@ int main (int argc,char *argv[])
    SUMA_ROI_EXTRACT *dd=NULL;
    DList *ddl=NULL;
    DListElmt *el=NULL;
-   int nodups=0;
+   int nodups=0, olabel = 0;
+   SUMA_COLOR_MAP *cmap=NULL;
    SUMA_Boolean LocalHead = NOPE;
 	
    SUMA_STANDALONE_INIT;
@@ -125,6 +130,7 @@ int main (int argc,char *argv[])
    pad_to = -1;
    pad_val = 0;
    nodelist=NULL;
+   olabel = 0;
    nodups = 0;
    while (kar < argc) { /* loop accross command ine options */
 		/* SUMA_LH("Parsing command line..."); */
@@ -143,6 +149,19 @@ int main (int argc,char *argv[])
 				exit (1);
 			}
 			prefix_name = argv[kar];
+         brk = YUP;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-label_dset") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need argument after -label_dset ");
+				exit (1);
+			}
+			prefix_name = argv[kar];
+         if (AFNI_yesenv("AFNI_NIML_TEXT_DATA")) Out_Format = SUMA_ASCII_NIML;
+         else Out_Format = SUMA_BINARY_NIML;
+         olabel = 1;
          brk = YUP;
 		}
       
@@ -166,7 +185,7 @@ int main (int argc,char *argv[])
 		  		fprintf (SUMA_STDERR, "need argument after -of ");
 				exit (1);
 			}
-			Out_Format = SUMA_NO_DSET_FORMAT;
+         Out_Format = SUMA_NO_DSET_FORMAT;
                      /* Can't use isOutputFormatFromArg because -of is not part
                      of the passed argument */
          if (!SUMA_isFormatFromArg(argv[kar], &Out_Format)) {
@@ -406,7 +425,8 @@ int main (int argc,char *argv[])
    if (out_name) { /* output dset required */
       if (!(dset = SUMA_ROIv2Grpdataset ( ROIv, N_ROIv, 
                                           Parent_idcode_str, 
-                                          pad_to, pad_val))) {
+                                          pad_to, pad_val, 
+                                          &cmap))) {
          SUMA_SL_Err("Failed in SUMA_ROIv2Grpdataset");
          exit(1);
       }
@@ -430,7 +450,13 @@ int main (int argc,char *argv[])
 
       }
 
-
+      if (olabel) {
+         if (!(SUMA_dset_to_Label_dset(dset, cmap))) {
+            SUMA_S_Err("Failed to make change");
+            exit(1);
+         }
+      }
+            
       /* write nel */
       switch (Out_Format) {
          case SUMA_ASCII_NIML:

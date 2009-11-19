@@ -580,7 +580,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             }
             if (!sv) sv = &(SUMAg_SVv[0]);
             SO = (SUMA_SurfaceObject *)EngineData->vp;
-            if (!SUMA_ColPlaneShowOne_Set (SO, YUP)) {
+            if (!SUMA_ColPlaneShowOneFore_Set (SO, YUP)) {
                SUMA_S_Err("Failed to set one only");
                break;  
             }
@@ -614,7 +614,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                      SUMA_CreateFileSelectionDialogStruct ( 
                         sv->X->TOPLEVEL,
                         SUMA_FILE_OPEN, YUP,
-                        SUMA_LoadDsetFile,
+                        SUMA_LoadDsetOntoSO,
                         (void *)EngineData->vp,
                         NULL, NULL,
                         sbuf,
@@ -624,7 +624,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                      SUMA_CreateFileSelectionDialogStruct (
                         (Widget) EngineData->ip, 
                         SUMA_FILE_OPEN, YUP,
-                        SUMA_LoadDsetFile, 
+                        SUMA_LoadDsetOntoSO, 
                         (void *)EngineData->vp,
                         NULL, NULL,
                         sbuf,
@@ -652,7 +652,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                         FuncName, NextCom, NextComCode);
                break;
             }
-            SUMA_LoadDsetFile(EngineData->cp, EngineData->vp);
+            SUMA_LoadDsetOntoSO(EngineData->cp, EngineData->vp);
             break;
 
          case SE_OpenColFile:
@@ -756,19 +756,23 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                   SUMA_RETURN(NOPE);
                }   
                
-               /* determine if there are ROIs being drawn on surfaces displayed here */
+               /* determine if there are ROIs being drawn on surfaces 
+                  displayed here */
                DrawnROI = NULL;
                /* start with the Focus_SO */
                if (sv->Focus_SO_ID >= 0) {
                   SO = (SUMA_SurfaceObject *)SUMAg_DOv[sv->Focus_SO_ID].OP;
-                  DrawnROI = SUMA_FetchROI_InCreation (SO, SUMAg_DOv,  SUMAg_N_DOv); 
+                  DrawnROI = SUMA_FetchROI_InCreation (SO, SUMAg_DOv,  
+                                                       SUMAg_N_DOv); 
                }
-               if (!DrawnROI) { /* none found on focus surface, check other surfaces in this viewer */
+               if (!DrawnROI) { /* none found on focus surface, check 
+                                 other surfaces in this viewer */
                   N_SOlist = SUMA_RegisteredSOs(sv, SUMAg_DOv, SOlist);
                   if (N_SOlist) {
                      it = 0;
                      do {
-                        DrawnROI = SUMA_FetchROI_InCreation (SO, SUMAg_DOv,  SUMAg_N_DOv);
+                        DrawnROI = SUMA_FetchROI_InCreation (SO, SUMAg_DOv,  
+                                                             SUMAg_N_DOv);
                         ++it;
                      } while (!DrawnROI && it < N_SOlist);
                   }
@@ -776,19 +780,74 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                
                /* call function to create ROI window */
                if (!SUMA_OpenDrawROIWindow (DrawnROI)) {
-                  SUMA_RegisterMessage (SUMAg_CF->MessageList, "Failed to open Draw ROI window", FuncName, 
-                                       SMT_Error, SMA_LogAndPopup);
+                  SUMA_RegisterMessage (SUMAg_CF->MessageList, 
+                                        "Failed to open Draw ROI window", 
+                                        FuncName, 
+                                        SMT_Error, SMA_LogAndPopup);
 
                }
                break;
             
             }
          case SE_SetRenderMode:
-            { /* sets the rendering mode of a surface, expects SO in vp and rendering mode in i*/
+            { /* sets the rendering mode of a surface, 
+               expects SO in vp and rendering mode in i*/
                SO = (SUMA_SurfaceObject *)EngineData->vp;
                SO->PolyMode = EngineData->i;     
                if (SO->PolyMode == SRM_Hide) SO->Show = NOPE;
                else SO->Show = YUP;             
+            }  
+            break;
+            
+         case SE_SetDsetViewMode:
+            { /* sets the viewing mode of a dset, 
+               expects SO in vp and rendering mode in i*/
+               SUMA_COLOR_MAP *cmp=NULL;
+               static int nwarn=0;
+               
+               SO = (SUMA_SurfaceObject *)EngineData->vp;
+               it = SUMA_ABS(SO->SurfCont->curColPlane->ShowMode);
+               if (EngineData->i == SW_SurfCont_DsetViewXXX) {
+                  SO->SurfCont->curColPlane->ShowMode = 
+                     -SUMA_ABS(SO->SurfCont->curColPlane->ShowMode);
+               } else {
+                  SO->SurfCont->curColPlane->ShowMode =  EngineData->i ;
+               }
+               /* Can we do contours? */
+               cmp = SUMA_FindNamedColMap(SO->SurfCont->curColPlane->cmapname);
+               if (!cmp) { SUMA_S_Err("Unexpected null colormap"); break;}
+               if (SUMA_NeedsLinearizing(cmp)) {
+                  if (EngineData->i == SW_SurfCont_DsetViewCon   ||
+                      EngineData->i == SW_SurfCont_DsetViewCaC ) {
+                     if (!nwarn) {
+                        SUMA_SLP_Note("Cannot do contouring with colormaps\n"
+                                      "that panes of unequal sizes.\n"
+                                      "Contouring turned off.\n"
+                                      "Notice shown once per session.");
+                        ++nwarn;
+                     }
+                     SO->SurfCont->curColPlane->ShowMode = it; /* get back */ 
+                     SUMA_SET_MENU( SO->SurfCont->DsetViewModeMenu,
+                        SUMA_ShowMode2ShowModeMenuItem(it));
+                     /* kill current contours, if any */
+                     SUMA_KillOverlayContours(SO->SurfCont->curColPlane);
+                  }
+               }
+               /* if new mode require contours, better regenerate them */
+               if ( (it != SW_SurfCont_DsetViewCon &&
+                     it != SW_SurfCont_DsetViewCaC ) &&
+                    (SO->SurfCont->curColPlane->ShowMode == 
+                              SW_SurfCont_DsetViewCon   ||
+                     SO->SurfCont->curColPlane->ShowMode == 
+                              SW_SurfCont_DsetViewCaC) ) {
+                  if (!SUMA_ColorizePlane(SO->SurfCont->curColPlane)) {
+                     SUMA_S_Err( "Police at the station - "
+                                 "and they don't look friendly.");
+                  }
+               }
+               if (!SUMA_RemixRedisplay (SO)) {
+                  SUMA_S_Err("Dunno what happened here");
+               }
             }  
             break;
             
@@ -2215,7 +2274,8 @@ SUMA_Boolean SUMA_Engine (DList **listp)
          case SE_RedisplayNow:
             /* expects nothing in EngineData */
             /*call handle redisplay immediately to one specific viewer*/
-            if (LocalHead) fprintf (SUMA_STDOUT,"%s: Redisplaying NOW ...", FuncName);
+            if (LocalHead) 
+               fprintf (SUMA_STDOUT,"%s: Redisplaying NOW ...", FuncName);
             sv->ResetGLStateVariables = YUP;
             SUMA_handleRedisplay((XtPointer)sv->X->GLXAREA);
             if (LocalHead) fprintf (SUMA_STDOUT," Done\n");
@@ -2225,11 +2285,16 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             /* expects nothing in EngineData */
             /* causes  an immediate redisplay to all visible viewers */
             for (ii=0; ii<SUMAg_N_SVv; ++ii) {
-               if (LocalHead) fprintf (SUMA_STDERR,"%s: Checking viewer %d.\n", FuncName, ii);
+               if (LocalHead) 
+                  fprintf (SUMA_STDERR,
+                           "%s: Checking viewer %d.\n", FuncName, ii);
                if (!SUMAg_SVv[ii].isShaded && SUMAg_SVv[ii].X->TOPLEVEL) {
                   /* you must check for both conditions because by default 
-                  all viewers are initialized to isShaded = NOPE, even before they are ever opened */
-                  if (LocalHead) fprintf (SUMA_STDERR,"%s: Redisplaying viewer %d.\n", FuncName, ii);
+                  all viewers are initialized to isShaded = NOPE, even before 
+                  they are ever opened */
+                  if (LocalHead) 
+                     fprintf (SUMA_STDERR,
+                              "%s: Redisplaying viewer %d.\n", FuncName, ii);
                   SUMAg_SVv[ii].ResetGLStateVariables = YUP;
                   SUMA_handleRedisplay((XtPointer)SUMAg_SVv[ii].X->GLXAREA);
                }
@@ -2276,7 +2341,9 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             }
             /* set the color remix flag */
             if (!SUMA_SetShownLocalRemixFlag (sv)) {
-               fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_SetShownLocalRemixFlag.\n", FuncName);
+               fprintf (SUMA_STDERR,
+                        "Error %s: Failed in SUMA_SetShownLocalRemixFlag.\n", 
+                        FuncName);
                break;
             }
             break;
@@ -2292,7 +2359,9 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             }
             /* set the color remix flag */
             if (!SUMA_SetShownLocalRemixFlag (sv)) {
-               fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_SetShownLocalRemixFlag.\n", FuncName);
+               fprintf (SUMA_STDERR,
+                        "Error %s: Failed in SUMA_SetShownLocalRemixFlag.\n", 
+                        FuncName);
                break;
             }
             break;
@@ -2642,7 +2711,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                   SUMA_UpdateColPlaneShellAsNeeded(SO); 
                                  /* update other open ColPlaneShells */
                   /* If you're viewing one plane at a time, do a remix */
-                  if (SO->SurfCont->ShowCurOnly) SUMA_RemixRedisplay(SO);
+                  if (SO->SurfCont->ShowCurForeOnly) SUMA_RemixRedisplay(SO);
                }
             }
             
@@ -2707,7 +2776,9 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                                  SO->SurfCont->curColPlane->OptScl->IntRange[0]);
                      SUMA_INSERT_CELL_VALUE(SO->SurfCont->SetRangeTable, 1, 2, 
                                  SO->SurfCont->curColPlane->OptScl->IntRange[1]);
-                     if (SO->SurfCont->curColPlane->Show) {
+                     if (SO->SurfCont->curColPlane->ShowMode > 0 &&
+                         SO->SurfCont->curColPlane->ShowMode < 
+                                             SW_SurfCont_DsetViewXXX ) {
                         if (!SUMA_ColorizePlane (SO->SurfCont->curColPlane)) {
                            SUMA_SLP_Err("Failed to colorize plane.\n"); 
                         } else {
@@ -2765,7 +2836,9 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                               SO->SurfCont->curColPlane->OptScl->BrightRange[0]);
                      SUMA_INSERT_CELL_VALUE(SO->SurfCont->SetRangeTable, 2, 2, 
                               SO->SurfCont->curColPlane->OptScl->BrightRange[1]);
-                     if (SO->SurfCont->curColPlane->Show) {
+                     if (SO->SurfCont->curColPlane->ShowMode > 0 &&
+                         SO->SurfCont->curColPlane->ShowMode  < 
+                                             SW_SurfCont_DsetViewXXX) {
                         if (!SUMA_ColorizePlane (SO->SurfCont->curColPlane)) {
                            SUMA_SLP_Err("Failed to colorize plane.\n"); 
                         } else {
@@ -2800,7 +2873,9 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                               SO->SurfCont->curColPlane->OptScl->BrightMap[0]);
                      SUMA_INSERT_CELL_VALUE(SO->SurfCont->SetRangeTable, 3, 2, 
                               SO->SurfCont->curColPlane->OptScl->BrightMap[1]);
-                     if (SO->SurfCont->curColPlane->Show) {
+                     if (SO->SurfCont->curColPlane->ShowMode > 0 &&
+                         SO->SurfCont->curColPlane->ShowMode < 
+                                             SW_SurfCont_DsetViewXXX) {
                         if (!SUMA_ColorizePlane (SO->SurfCont->curColPlane)) {
                            SUMA_SLP_Err("Failed to colorize plane.\n"); 
                         } else {
@@ -2841,17 +2916,23 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                SUMA_ColPlane_NewDimFact((void*)SO);
             }
             if (NI_get_attribute(EngineData->ngr, "view_dset")) {
-               if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "view_dset", "y")) 
-                  SO->SurfCont->curColPlane->Show = YUP;
-               else if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "view_dset", "n"))
-                  SO->SurfCont->curColPlane->Show = NOPE;
-               else { 
+               if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "view_dset", "y")) {
+                  if (SO->SurfCont->curColPlane->ShowMode < 0)
+                     SO->SurfCont->curColPlane->ShowMode = 
+                        -SO->SurfCont->curColPlane->ShowMode;
+               } else if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, 
+                                                "view_dset", "n")) {
+                  if (SO->SurfCont->curColPlane->ShowMode > 0)
+                     SO->SurfCont->curColPlane->ShowMode = 
+                                    -SO->SurfCont->curColPlane->ShowMode;
+               } else { 
                   SUMA_S_Errv("Bad value of %s for view_dset, setting to 'y'\n", 
                               NI_get_attribute(EngineData->ngr, "view_dset"));
-                  SO->SurfCont->curColPlane->Show = YUP;
+                  SO->SurfCont->curColPlane->ShowMode = SW_SurfCont_DsetViewCol;
                }
-               XmToggleButtonSetState ( SO->SurfCont->ColPlaneShow_tb, 
-                                        SO->SurfCont->curColPlane->Show, YUP);
+               SUMA_SET_MENU( SO->SurfCont->DsetViewModeMenu,
+                              SUMA_ShowMode2ShowModeMenuItem(
+                                 SO->SurfCont->curColPlane->ShowMode));
             }
             if (NI_get_attribute(EngineData->ngr, "view_surf")) {
                if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "view_surf", "y")) 
@@ -2883,7 +2964,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                               NI_get_attribute(EngineData->ngr, "1_only"));
                   itmp = YUP;
                }
-               if (!SUMA_ColPlaneShowOne_Set (SO, itmp)) {
+               if (!SUMA_ColPlaneShowOneFore_Set (SO, itmp)) {
                   SUMA_S_Err("Failed to set one only");
                   break;  
                }
@@ -4467,7 +4548,8 @@ matrix and the projection matrix without calling for a display the changes will 
 \sa SUMA_NewGeometryInViewer
 
 */
-SUMA_Boolean SUMA_OpenGLStateReset (SUMA_DO *dov, int N_dov, SUMA_SurfaceViewer *sv)
+SUMA_Boolean SUMA_OpenGLStateReset (SUMA_DO *dov, int N_dov, 
+                                    SUMA_SurfaceViewer *sv)
 {
    static char FuncName[]={"SUMA_OpenGLStateReset"};
    SUMA_Axis *EyeAxis;
@@ -4483,7 +4565,8 @@ SUMA_Boolean SUMA_OpenGLStateReset (SUMA_DO *dov, int N_dov, SUMA_SurfaceViewer 
    #if 0
    /* modify the rotation center */
    if (!SUMA_UpdateRotaCenter(sv, dov, N_dov)) {
-      fprintf (SUMA_STDERR,"Error %s: Failed to update center of rotation", FuncName);
+      fprintf (SUMA_STDERR,
+               "Error %s: Failed to update center of rotation", FuncName);
       SUMA_RETURN (NOPE);
    }
    
@@ -4494,7 +4577,8 @@ SUMA_Boolean SUMA_OpenGLStateReset (SUMA_DO *dov, int N_dov, SUMA_SurfaceViewer 
    }
    #endif
    
-   /* This is all that is needed, the others above do not need to be updated at this stage*/
+   /* This is all that is needed, the others above do not need to 
+      be updated at this stage*/
    
    /* Change the defaults of the eye axis to fit standard EyeAxis */
    EyeAxis_ID = SUMA_GetEyeAxis (sv, dov);
@@ -4544,7 +4628,8 @@ int SUMA_GetEyeAxis (SUMA_SurfaceViewer *sv, SUMA_DO *dov)
       }
    }
    if (cnt > 1) {
-      fprintf (SUMA_STDERR,"Error %s: Found more than one Eye Axis. \n", FuncName);
+      fprintf (SUMA_STDERR,
+               "Error %s: Found more than one Eye Axis. \n", FuncName);
       SUMA_RETURN (-1);
    }
    

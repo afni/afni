@@ -1164,7 +1164,7 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
                SUMA_UpdateColPlaneShellAsNeeded(SO); 
                               /* update other open ColPlaneShells */
                /* If you're viewing one plane at a time, do a remix */
-               if (SO->SurfCont->ShowCurOnly) SUMA_RemixRedisplay(SO);
+               if (SO->SurfCont->ShowCurForeOnly) SUMA_RemixRedisplay(SO);
             }
          }
          /* register a color remix request */
@@ -2180,9 +2180,11 @@ SUMA_NIML_DRAWN_ROI * SUMA_DrawnROI_to_NIMLDrawnROI (SUMA_DRAWN_ROI *ROI)
    nimlROI->FillColor[0] = ROI->FillColor[0];
    nimlROI->FillColor[1] = ROI->FillColor[1];
    nimlROI->FillColor[2] = ROI->FillColor[2];
+   nimlROI->FillColor[3] = ROI->FillColor[3];
    nimlROI->EdgeColor[0] = ROI->EdgeColor[0];
    nimlROI->EdgeColor[1] = ROI->EdgeColor[1];
    nimlROI->EdgeColor[2] = ROI->EdgeColor[2];
+   nimlROI->EdgeColor[3] = ROI->EdgeColor[3];
    nimlROI->EdgeThickness = ROI->EdgeThickness;
    if (!nimlROI->N_ROI_datum) {
       nimlROI->ROI_datum = NULL;
@@ -2277,9 +2279,11 @@ SUMA_DRAWN_ROI *SUMA_NIMLDrawnROI_to_DrawnROI (SUMA_NIML_DRAWN_ROI * nimlROI, SU
    ROI->FillColor[0] = nimlROI->FillColor[0];
    ROI->FillColor[1] = nimlROI->FillColor[1];
    ROI->FillColor[2] = nimlROI->FillColor[2];
+   ROI->FillColor[3] = nimlROI->FillColor[3];
    ROI->EdgeColor[0] = nimlROI->EdgeColor[0];
    ROI->EdgeColor[1] = nimlROI->EdgeColor[1];
    ROI->EdgeColor[2] = nimlROI->EdgeColor[2];
+   ROI->EdgeColor[3] = nimlROI->EdgeColor[3];
    ROI->EdgeThickness = nimlROI->EdgeThickness;
    ROI->CE = NULL;
    ROI->N_CE = -1;
@@ -3315,14 +3319,17 @@ NI_element * SUMA_NodeVal2irgba_nel (SUMA_SurfaceObject *SO, float *val, char *i
       /* create the color mapping of Cx (SUMA_CMAP_MATLAB_DEF_BYR64)*/
       CM = SUMA_FindNamedColMap ("byr64");
       if (CM == NULL) {
-         fprintf (SUMA_STDERR,"Error %s: Could not get standard colormap.\n", FuncName); 
+         fprintf (SUMA_STDERR,
+                  "Error %s: Could not get standard colormap.\n", FuncName); 
          SUMA_RETURN (NULL);
       }
 
       /* get the options for creating the scaled color mapping */
       OptScl = SUMA_ScaleToMapOptInit();
       if (!OptScl) {
-         fprintf (SUMA_STDERR,"Error %s: Could not get scaling option structure.\n", FuncName);
+         fprintf (SUMA_STDERR,
+                  "Error %s: Could not get scaling option structure.\n", 
+                  FuncName);
          SUMA_RETURN (NULL); 
       }
 
@@ -3343,9 +3350,10 @@ NI_element * SUMA_NodeVal2irgba_nel (SUMA_SurfaceObject *SO, float *val, char *i
       OptScl->BrightFact = 1.0;
 
       /* create structure to hold the colored values */
-      SV = SUMA_Create_ColorScaledVect(SO->N_Node);/* allocate space for the result */
+      SV = SUMA_Create_ColorScaledVect(SO->N_Node, 0);
       if (!SV) {
-         fprintf (SUMA_STDERR,"Error %s: Could not allocate for SV.\n", FuncName);
+         fprintf (SUMA_STDERR,
+                  "Error %s: Could not allocate for SV.\n", FuncName);
          SUMA_RETURN (NULL);
       }
       

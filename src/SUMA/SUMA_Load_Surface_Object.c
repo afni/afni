@@ -170,6 +170,11 @@ SUMA_Boolean SUMA_AllocSpecFields (SUMA_SurfSpecFile *Spec)
    if (!Spec->LocalDomainParent) { 
       SUMA_S_Err("Failed to allocate"); SUMA_RETURN(NOPE); 
    }
+   Spec->LabelDset = (char **)SUMA_allocate2D(SUMA_MAX_N_SURFACE_SPEC, 
+                        SUMA_MAX_FP_NAME_LENGTH , sizeof(char));       
+   if (!Spec->LabelDset) { 
+      SUMA_S_Err("Failed to allocate"); SUMA_RETURN(NOPE); 
+   }
    
 
    
@@ -270,6 +275,10 @@ SUMA_Boolean SUMA_FreeSpecFields (SUMA_SurfSpecFile *Spec)
    if (Spec->LocalDomainParent) { 
       SUMA_free2D((char **)Spec->LocalDomainParent, SUMA_MAX_N_SURFACE_SPEC);
       Spec->LocalDomainParent = NULL; }
+   
+   if (Spec->LabelDset) { 
+      SUMA_free2D((char **)Spec->LabelDset, SUMA_MAX_N_SURFACE_SPEC);
+      Spec->LabelDset = NULL; }
    
 
    Spec->N_Surfs = -2; /* flag for freeing */                                                         
@@ -1441,7 +1450,8 @@ SUMA_Boolean SUMA_Read_SpecFile (
                   OKread_SurfaceVolume, OKread_SurfaceLabel;
    SUMA_Boolean   OKread_AnatCorrect, OKread_Hemisphere,
                   OKread_DomainGrandParentID, OKread_OriginatorID;
-   SUMA_Boolean   OKread_LocalCurvatureParent, OKread_LocalDomainParent;
+   SUMA_Boolean   OKread_LocalCurvatureParent, OKread_LocalDomainParent,
+                  OKread_LabelDset;
    char DupWarn[]={  "Bad format in specfile "
                      "(you may need a NewSurface line). "
                      "Duplicate specification of"};
@@ -1525,7 +1535,8 @@ SUMA_Boolean SUMA_Read_SpecFile (
       OKread_SurfaceLabel = NOPE ;
    OKread_AnatCorrect = OKread_Hemisphere = OKread_DomainGrandParentID =
       OKread_OriginatorID = NOPE;
-   OKread_LocalCurvatureParent = OKread_LocalDomainParent = NOPE;
+   OKread_LocalCurvatureParent = OKread_LocalDomainParent = 
+      OKread_LabelDset = NOPE;
    
    Spec->StateList[0] = '\0';
    Spec->Group[0][0] = '\0';
@@ -1570,6 +1581,7 @@ SUMA_Boolean SUMA_Read_SpecFile (
                Spec->OriginatorID[Spec->N_Surfs-1][0] = '\0';
                Spec->LocalCurvatureParent[Spec->N_Surfs-1][0] = '\0'; 
                Spec->LocalDomainParent[Spec->N_Surfs-1][0] = '\0';
+               Spec->LabelDset[Spec->N_Surfs-1][0] = '\0';
             } else { 
                /* make sure important fields have been filled */
                if (Spec->SurfaceType[Spec->N_Surfs-2][0] == '\0') {
@@ -1614,6 +1626,7 @@ SUMA_Boolean SUMA_Read_SpecFile (
                Spec->OriginatorID[Spec->N_Surfs-1][0] = '\0';
                Spec->LocalCurvatureParent[Spec->N_Surfs-1][0] = '\0'; 
                Spec->LocalDomainParent[Spec->N_Surfs-1][0] = '\0';
+               Spec->LabelDset[Spec->N_Surfs-1][0] = '\0';
                /* only Spec->CoordFile, Spec->SurfaceFile MUST be 
                   specified with a new surface */
             } 
@@ -1625,7 +1638,8 @@ SUMA_Boolean SUMA_Read_SpecFile (
                OKread_SurfaceLabel = OKread_SurfaceVolume = YUP;
             OKread_AnatCorrect = OKread_Hemisphere = 
                OKread_DomainGrandParentID = OKread_OriginatorID = YUP;
-            OKread_LocalCurvatureParent = OKread_LocalDomainParent = YUP;
+            OKread_LocalCurvatureParent = OKread_LocalDomainParent = 
+               OKread_LabelDset = YUP;
             skp = 1;
          }
          
@@ -1845,6 +1859,28 @@ SUMA_Boolean SUMA_Read_SpecFile (
                SUMA_RETURN (NOPE);
             } else  {
                OKread_LocalDomainParent = NOPE;
+            }
+            skp = 1;
+         }
+
+         sprintf(stmp,"LabelDset");
+         if (!skp && SUMA_iswordin (s, stmp) == 1) {
+            /* found LabelDset  field, parse it */
+            if (!SUMA_ParseLHS_RHS (s, stmp, stmp2)) {
+               fprintf( SUMA_STDERR,
+                        "Error %s: Error in SUMA_ParseLHS_RHS.\n", FuncName);
+               SUMA_RETURN (NOPE);
+            }
+            
+            snprintf (Spec->LabelDset[Spec->N_Surfs-1], 
+                        SUMA_MAX_FP_NAME_LENGTH * sizeof(char),
+               "%s%s", Spec->SpecFilePath, stmp2);
+            
+            if (!OKread_LabelDset) {
+               fprintf(SUMA_STDERR,"Error %s: %s %s\n", FuncName, DupWarn, stmp);
+               SUMA_RETURN (NOPE);
+            } else  {
+               OKread_LabelDset = NOPE;
             }
             skp = 1;
          }
@@ -2375,7 +2411,14 @@ SUMA_Boolean SUMA_Write_SpecFile ( SUMA_SurfSpecFile * Spec,
             fprintf (outFile, 
                      "\tLocalDomainParent = SAME\n" );
          }
-         
+         if (Spec->LabelDset[i][0]) {
+            fprintf (outFile, 
+                     "\tLabelDset = %s\n", 
+                   Spec->LabelDset[i] );
+         } else {
+            fprintf (outFile, 
+                     "\tLabelDset = \n" );
+         }
          fprintf (outFile, "\tSurfaceState = %s\n"
                            "\tEmbedDimension = %d\n", 
                            Spec->State[i], Spec->EmbedDim[i]);
@@ -2497,7 +2540,7 @@ SUMA_Boolean SUMA_CheckOnSpecFile (SUMA_SurfSpecFile *Spec)
       }
       if ( strlen(Spec->LocalCurvatureParent[i]) ) {
          if ( ! strstr( Spec->LocalCurvatureParent[i], 
-                        Spec->LocalDomainParent[i]) ) {
+                         Spec->LocalDomainParent[i]) ) {
             SUMA_SL_Err("Fields LocalCurvatureParent and LocalDomainParent \n"
                         "must be identical.\n");
             SUMA_RETURN(NOPE);
@@ -2710,6 +2753,13 @@ char* SUMA_SpecStructInfo (SUMA_SurfSpecFile *Spec, int detail)
                                        Spec->LocalDomainParent[i]);
             } else SS = SUMA_StringAppend_va (SS, 
                                        "\tLocalDomainParent: (empty)\n");
+            
+            if (strlen(Spec->LabelDset[i])) {
+               SS = SUMA_StringAppend_va (SS, 
+                                       "\tLabelDset: %s\n", 
+                                       Spec->LabelDset[i]);
+            } else SS = SUMA_StringAppend_va (SS, 
+                                       "\tLabelDset: (empty)\n");
             
             /*
             if (strlen(Spec->[i])) {
@@ -3119,6 +3169,11 @@ SUMA_Boolean SUMA_PrepAddmappableSO(SUMA_SurfaceObject *SO, SUMA_DO *dov,
 
          /* colorize the plane */
          SUMA_ColorizePlane(NewColPlane);
+         
+         /* set current plane to it, if none are set */
+         if (SO->SurfCont && !SO->SurfCont->curColPlane) {
+            SO->SurfCont->curColPlane = NewColPlane;
+         }
       }
 
       /* Create a Mesh Axis for the surface */
@@ -3237,6 +3292,7 @@ SUMA_Boolean SUMA_LoadSpec_eng (
                fprintf(SUMA_STDERR,"Error %s: Error freeing SO.\n", FuncName);
                SUMA_RETURN (NOPE);
             }
+            SO = NULL;
             SurfIn = NOPE;
          } else {
             if (!SUMA_PrepAddmappableSO(SO, dov, N_dov, debug, DsetList)) {
@@ -3244,7 +3300,39 @@ SUMA_Boolean SUMA_LoadSpec_eng (
                SUMA_RETURN(NOPE);
             }
          }  
-            SurfIn = NOPE;
+         SurfIn = NOPE;
+         if (SO && Spec->LabelDset[i][0] != '\0') {
+            SUMA_LHv("Will need to load label dset %s for %s\n",
+                         Spec->LabelDset[i], SO->Label);
+            /* load it straight to SO */
+            if (!(SUMA_LoadDsetOntoSO_eng(Spec->LabelDset[i], (void *)SO,
+                                    -1, 0, 0, &NewColPlane))) {
+               SUMA_S_Errv("Failed to read %s\n", Spec->LabelDset[i]);
+               SUMA_RETURN(NOPE);
+            }
+            /* do some deeds on this overlay */
+            NewColPlane->GlobalOpacity = 
+                  SUMA_floatEnv("SUMA_LabelDsetOpacity", 0.2);
+            if (  SUMA_isEnv("SUMA_ShowLabelDsetAtStartup","col") ||
+                  SUMA_isEnv("SUMA_ShowLabelDsetAtStartup","yes"))
+               NewColPlane->ShowMode = SW_SurfCont_DsetViewCol;
+            else if (  SUMA_isEnv("SUMA_ShowLabelDsetAtStartup","con") ) {
+               NewColPlane->ShowMode = SW_SurfCont_DsetViewCon;
+            }else if (  SUMA_isEnv("SUMA_ShowLabelDsetAtStartup","c&c") ) {
+               NewColPlane->ShowMode = SW_SurfCont_DsetViewCaC;
+            }else if (  SUMA_isEnv("SUMA_ShowLabelDsetAtStartup","xxx") ||
+                  SUMA_isEnv("SUMA_ShowLabelDsetAtStartup","no")) {
+               NewColPlane->ShowMode = SW_SurfCont_DsetViewXXX;
+            }
+            /* create contours for this monster */
+            SUMA_ContourateDsetOverlay(NewColPlane, NULL);
+            
+            /* move that plane down the stack, nice to have convexity stay
+            on top */
+            SUMA_MovePlaneDown(SO, NewColPlane->Name);
+            
+            NewColPlane=NULL;          /* don't let anyone here use it */
+         }
       }/* Mappable surfaces */
    }/* first loop across mappable surfaces */
 
@@ -3442,9 +3530,13 @@ SUMA_Boolean SUMA_LoadSpec_eng (
                }
             }  
                
-            
-
             SurfIn = NOPE;
+         }
+         if (Spec->LabelDset[i][0] != '\0') { /* I do not think this should be */
+            SUMA_S_Notev("Label dsets should only be attached to \n"
+                         "surfaces with LocalDomainParent = SAME).\n"
+                         "LabelDset %s is ignored.\n",
+                         Spec->LabelDset[i]);
          }
       }/* Non Mappable surfaces */
 

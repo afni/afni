@@ -51,7 +51,10 @@ SUMA_DRAWN_ROI * SUMA_AllocateDrawnROI (char *Parent_idcode_str, SUMA_ROI_DRAWIN
 SUMA_ROI * SUMA_AllocateROI (char *Parent_idcode_str, SUMA_ROI_TYPE Type, char * label, int N_ElInd, int *ElInd);
 SUMA_Boolean SUMA_freeDrawnROI (SUMA_DRAWN_ROI *D_ROI); 
 SUMA_Boolean SUMA_freeROI (SUMA_ROI *ROI); 
-SUMA_Boolean SUMA_Draw_SO_ROI (SUMA_SurfaceObject *SO, SUMA_DO* dov, int N_dov, SUMA_SurfaceViewer *csv);
+SUMA_Boolean SUMA_Draw_SO_ROI (SUMA_SurfaceObject *SO, SUMA_DO* dov, int N_dov, 
+                               SUMA_SurfaceViewer *csv);
+SUMA_Boolean SUMA_Draw_SO_Dset_Contours(SUMA_SurfaceObject *SO, 
+                               SUMA_SurfaceViewer *sv);
 SUMA_DO_Types SUMA_Guess_DO_Type(char *s);
 SUMA_NIDO * SUMA_Alloc_NIDO (char *idcode_str, char *Label, 
                              char *Parent_idcode_str);
@@ -99,8 +102,13 @@ SUMA_SegmentDO * SUMA_ReadNBSegDO (char *s, int oriented, char *soid);
 SUMA_SphereDO * SUMA_ReadSphDO (char *s);
 SUMA_PlaneDO * SUMA_ReadPlaneDO (char *s);
 SUMA_NIDO *SUMA_ReadNIDO(char *s, char *soid);
-SUMA_SegmentDO *SUMA_CreateSegmentDO(  int N_n, int oriented, int NodeBased, int Stipple,
-                                       char *Label, char *idcode_str, char *Parent_idcode_str,
+SUMA_NIDO *SUMA_BlankNIDO (char *idcode_str, char *Label, 
+                           char *parent_so_id, char *coord_type,
+                           char *font_name);
+SUMA_SegmentDO *SUMA_CreateSegmentDO(  int N_n, int oriented, int NodeBased, 
+                                       int Stipple,
+                                       char *Label, char *idcode_str, 
+                                       char *Parent_idcode_str,
                                        float LineWidth, float *LineCol,
                                        int *NodeId, int *NodeId1,
                                        float *n0, float *n1,

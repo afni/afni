@@ -35,11 +35,11 @@
 #define SUMA_DIM_AFNI_COLOR_FACTOR 0.5 /*!< 0.4 works well, use higher factors for flashiness scaling factor (0..1) applied to afni's rgb colors, lower values help retain surface shape info */
 #define SUMA_AFNI_COLORPLANE_OPACITY 1
 #define SUMA_DIM_CONVEXITY_COLOR_FACTOR 0.5
-#define SUMA_CONVEXITY_COLORPLANE_OPACITY 1
-#define SUMA_BACKGROUND_MODULATION_FACTOR 3   /*!< 0 background does not modulate foreground, 
-                                                   Color = Fore * avg_Bright * AttenFactor (0 <= avg_Bright <=1)
-                                                   a good setting is such that SUMA_BACKGROUND_ATTENUATION_FACTOR * SUMA_DIM_AFNI_COLOR_FACTOR = 1
-                                                    Watch for saturation effects!*/
+#define SUMA_CONVEXITY_COLORPLANE_OPACITY 0.8
+#define SUMA_BACKGROUND_MODULATION_FACTOR 3   /*!< 0 background does not modulate         foreground, Color = Fore * avg_Bright * AttenFactor (0 <= avg_Bright <=1)
+        a good setting is such that 
+        SUMA_BACKGROUND_ATTENUATION_FACTOR * SUMA_DIM_AFNI_COLOR_FACTOR = 1
+        Watch for saturation effects!*/
 
 #define SUMA_MAT_SHININESS_INIT 0 /*!< Surface object shininess, 0 20, 50 .. 128*/
 #define SUMA_MAT_SPECULAR_INIT    0.0, 0.0, 0.0, 1.0 /*!< The specular color of the material, keep this and the exponent (that's MAT_SHININESS) 0 to keep shininess down*/
@@ -251,7 +251,9 @@ typedef enum { SE_Empty,
                SE_OpenDsetFileSelection, SE_OpenCmapFileSelection, SE_SetClip, 
                SE_OpenDsetFile, SE_OpenColFile, SE_OneOnly, SE_OpenSurfCont,
                SE_SetSurfCont, SE_SetViewerCont, SE_SetRecorderCont,
-               SE_BadCode} SUMA_ENGINE_CODE; /* DO not forget to modify SUMA_CommandCode */
+               SE_SetDsetViewMode,
+               SE_BadCode} SUMA_ENGINE_CODE; 
+                        /* DO not forget to modify SUMA_CommandCode */
 typedef enum { SE_niEmpty,
                SE_niSetSurfCont, SE_niSetViewerCont, SE_niSetRecorderCont, 
                SE_niKillSuma,
@@ -310,9 +312,18 @@ typedef enum { SW_Help,
                                                          with SW_N_View */                                                   
 typedef enum { SW_SurfCont_Render,
                SW_SurfCont_RenderViewerDefault, SW_SurfCont_RenderFill, 
-               SW_SurfCont_RenderLine, SW_SurfCont_RenderPoints, SW_SurfCont_RenderHide,
-               SW_N_SurfCont_Render } SUMA_WIDGET_INDEX_SURFCONT_RENDER; /*!< Indices to widgets in SurfaceController under
-                                                                           RenderMode */
+               SW_SurfCont_RenderLine, SW_SurfCont_RenderPoints, 
+               SW_SurfCont_RenderHide,
+               SW_N_SurfCont_Render } SUMA_WIDGET_INDEX_SURFCONT_RENDER; 
+                              /*!< Indices to widgets in SurfaceController under
+                                   RenderMode */
+typedef enum { SW_SurfCont_DsetView,
+               SW_SurfCont_DsetViewCol,
+               SW_SurfCont_DsetViewCon,
+               SW_SurfCont_DsetViewCaC,
+               SW_SurfCont_DsetViewXXX,   /* do not show, keep it last in list */
+               SW_N_SurfCont_DsetView } SUMA_WIDGET_INDEX_SURFCONT_DSETVIEW;
+               
 typedef enum { SW_DrawROI_SaveMode,
                SW_DrawROI_SaveMode1D, SW_DrawROI_SaveModeNIML, 
                SW_N_DrawROI_SaveMode } SUMA_WIDGET_INDEX_DRAWROI_SAVEMODE; /*!< Indices to widgets in DrawROI under
@@ -474,12 +485,16 @@ typedef struct {
 } SUMA_ROI_PLANE;
 
 typedef enum { SUMA_UNDEFINED_MODE, 
-               SUMA_DIRECT, /*!< no interpolation on the colormap, node value is typecast to int and directly used
-                                      to access color map */
-               SUMA_NO_INTERP,   /*!< no interpolation on the colormap (like in afni with paned colormaps) but ranging
-                                       is applied */  
-               SUMA_INTERP       /*!< interpolation on the colormap, SUMA's default */
-            } SUMA_COLORMAP_INTERP_MODE; /* keep parallel with enums of SUMA_WIDGET_CMAP_MODE */
+               SUMA_DIRECT, /*!< no interpolation on the colormap, node value is 
+                                 typecast to int and directly used
+                                 to access color map */
+               SUMA_NO_INTERP,   /*!< no interpolation on the colormap 
+                                     (like in afni with paned colormaps) but 
+                                     ranging is applied */  
+               SUMA_INTERP       /*!< interpolation on the colormap, 
+                                      SUMA's default */
+            } SUMA_COLORMAP_INTERP_MODE; /* keep parallel with enums of 
+                                            SUMA_WIDGET_CMAP_MODE */
                
 typedef enum {
                SUMA_LESS_THAN,   /*!< Mask if T[i] < Opt->ThreshRange[0] */
@@ -491,6 +506,140 @@ typedef enum {
 \sa SUMA_ScaleToMapOptInit to allocate and initialize such a structure 
 to free this structure use the free function
 */
+
+typedef enum { 
+   SUMA_BAD_MODE=-1, 
+   SUMA_ORIG_MIX_MODE,  /*!< The original mode for color overlaying: 
+                     if (Col1) Col = (1-opacity) Col1 + opacity Col2 */
+   SUMA_4AML,  /*!< A modified mixing mode to keep colors from getting dimmed 
+                  (as with opacity of 0.5 on Col1 = 0.3 0 0 and Col2 = 0 0.3 0)
+                  resultant is a very dim yellow 0.15 0.15 0 
+                  Named after the eminent A. M. L.*/
+   SUMA_MAX_MODES /*!< The limit, used for cycling */
+} SUMA_COL_MIX_MODE;
+
+/*! structure containing the color mapping of a vector */
+typedef struct {
+   /* float **cM; Prior to Mar 17 03*/
+            /*!< N_Node x 3 matrix containing the colors at each node*/
+   float *BiasCoordVec; /*!< A vector of coordinate bias */
+   float *cV; /*!< N_Node x 3 vector containing the colors at each node*/
+   int N_Node; /*!< obvious */
+   SUMA_Boolean *isMasked; /*!< if isMasked[i] then node i has a mask color 
+                                associated with it */ 
+   int N_VCont; /* Number of nodes not masked */
+   int *VCont; /* An N_VCont x 1 vector to hold a flag value to label this node*/
+} SUMA_COLOR_SCALED_VECT;
+
+
+
+
+/*! TRY TO MAKE DO WITHOUT THIS THING, IF POSSIBLE. 
+It is a pain to work with two types of ROI structues 
+structure to hold an ROI */
+typedef struct { 
+   SUMA_ROI_TYPE Type;   /*!< The type of ROI */
+   
+   char *idcode_str;    /*!< unique idcode for ROI */
+   char *Parent_idcode_str; /*!< idcode of parent surface */
+   char *Label; /*!< ascii label for ROI */
+
+   int *ElInd; /*!< pointer to vector containing indices into the parent surface (SO has Parent_idcode_str) of ROI elements.
+                           If Type is SUMA_ROI_NodeGroup then ElementIndex contains indices to SO->NodeList .
+                           If Type is SUMA_ROI_FaceGroup then ElementIndex contains indices to SO->FaceList.
+                           If Type is SUMA_ROI_EdgeGroup then ElementIndex contains indices to SO->EL->EL. */
+   int N_ElInd; /*!< Number of elements in ElementIndex */ 
+} SUMA_ROI; 
+
+
+
+typedef struct {
+   SUMA_ROI_TYPE Type; /*!< Type of ROI in datum */
+   int N_n; /*!< Number of elements in nPath */
+   int N_t; /*!< Number of elements in tPath */
+   int *nPath; /*!< Vector of N node indices. These nodes must be immediate 
+                     (linked) neighbours of each other */
+   int *tPath; /*!< Vector of N triangle indices. These triangles must 
+                     be connected to each other */
+   float tDistance; /*!< distance from the first node to the last 
+                        taken along the surface (geodesic)*/
+   float nDistance; /*!< distance from the first node to the last by summing the 
+                         length of segments between nodes */
+   SUMA_BRUSH_STROKE_ACTION action; /*!< a record of the action that went with 
+            this datum. 
+            This field is used to recreate the ROI drawing history from a saved
+            niml file */
+} SUMA_ROI_DATUM; /*!< elementary datum of a drawn ROI */
+
+
+#define SUMA_MAX_ROI_CTRL_NODES 100 /*!< Maximum number of control nodes in an ROI */
+#define SUMA_MAX_ROI_CTRL_NODES3 300 
+#define SUMA_MAX_ROI_ON_SURFACE 100 /*!< Maximum number of ROIs Drawn on a surface */
+
+typedef struct {   
+   int n1;  /*!<index of edge's first node */
+   int n2; /*!<index of edge's second node */
+} SUMA_CONTOUR_EDGES; /*<! structure defining an edge by the nodes forming it*/
+
+/*! structure to hold the drawing of an ROI */
+typedef struct {   
+   char *idcode_str;    /*!< unique idcode for ROI */
+   char *Label; /*!< ascii label for ROI */ 
+
+   SUMA_ROI_DRAWING_TYPE Type;   /*!< The type of ROI drawn, 
+                              that would be closed path, etc, etc, */
+
+   char *Parent_idcode_str; /*!< idcode of parent surface */
+   char *ColPlaneName;  /*!< Name of color plane that the ROI is painted in.
+                     If this field is set to NULL then the ROI will be painted
+                     in the generic ROI_Plane plane. 
+                     For the moment, NULL is the only
+                     option */
+   float FillColor[4];  /*!< RGB fill color */
+   float EdgeColor[4];  /*!< RGB edge color */
+   int EdgeThickness;   /*!< thickness of edge */
+   int iLabel; /*!< An integer value, another way to represent a Label */
+   SUMA_Boolean ColorByLabel; /*!< flag indicating that ROI node colors should
+                                   be based on the value in iLabel and not the 
+                                   one specified in FillColor */
+   SUMA_ROI_DRAWING_STATUS DrawStatus; /*!< Status of the ROI being drawn, 
+                                 finished, being drawn, being edited, etc. */
+
+   DList *ROIstrokelist;   /*!< a doubly linked list with the data element 
+                                 being a (void *)SUMA_ROI_DATUM * */
+
+   DList *ActionStack; /*!< a stack containing the various actions performed*/
+   DListElmt *StackPos; /*!< The element of ActionStack that represents 
+                             the current position */
+   
+   int N_CE; /*!< number of contour edges */
+   SUMA_CONTOUR_EDGES *CE; /*!< a vector of edges that form the contour 
+                                of the ROI */
+} SUMA_DRAWN_ROI;
+
+typedef struct {
+   int Type;         /*!< The final type of the DrawnROI, 
+                           see SUMA_ROI_DRAWING_TYPE*/
+   char *idcode_str;
+   char *Parent_idcode_str;
+   char *Label;
+   int *iNode; /*!< A node's index */
+   int *iLabel; /*!< A node's value */
+   int N; /*!< NUmber of elements in iNode and iLabel */
+} SUMA_1D_DRAWN_ROI; /*!< a version of SUMA_DRAWN_ROI struct that can 
+                     be used by 1D functions.
+                     Fields are a reflection of those in SUMA_DRAWN_ROI*/
+
+typedef struct {
+   SUMA_ROI_DATUM *ROId;
+   SUMA_DRAWN_ROI *DrawnROI;
+} SUMA_ROI_ACTION_STRUCT;  /*!< a structure packaging data for the 
+                                 routines acting on drawn ROIs */
+
+
+
+
+
 typedef struct {
    SUMA_Boolean ApplyMask; /*!< if YUP then values that fall in MaskRange 
                                  are assigned the color in MaskColor */
@@ -536,177 +685,86 @@ typedef struct {
                          of the mesh */
    int AutoIntRange;
    int AutoBrtRange;
+   int ColsContMode; /*!< a flag to indicate what to do about contours */
 } SUMA_SCALE_TO_MAP_OPT;
+
 
 /*! Structure containing one color overlay */
 typedef struct {
    int LinkedPtrType; /*!< Indicates the type of linked pointer */
    int N_links;   /*!< Number of links to this pointer */
-   char owner_id[SUMA_IDCODE_LENGTH];   /*!< The id of whoever created that pointer. Might never get used.... */
+   char owner_id[SUMA_IDCODE_LENGTH];   /*!< The id of whoever created 
+                                    that pointer. Might never get used.... */
 
-   SUMA_Boolean Show; /*!< if YUP then this overlay enters the composite color map */
-   char *Name; /*!< name of ovelay, CONVEXITY or Functional or areal boundaries perhaps. The Name can be a filename with path*/
+   int ShowMode; /*!< negative do not show, postive, 
+                  ShowMode can be +/-SW_SurfCont_DsetViewCol
+                  +/-SW_SurfCont_DsetViewCon, and +/-SW_SurfCont_DsetViewC&C 
+                  It cannot be +/-SW_SurfCont_DsetViewXXX
+                  see SUMA_WIDGET_INDEX_SURFCONT_DSETVIEW */
+   char *Name; /*!<  name of ovelay, CONVEXITY or Functional or areal boundaries 
+                     perhaps. The Name can be a filename with path*/
    char *Label; /*!< Usually the same as Name without any existing path */
       
-      /* These can't just come from dset_link because as you change the threshold, and other parameters 
-      some nodes may not get colored so the NodeDef list will differ from that in dset.
-      The macros COLP_NODEDEF, COLP_N_NODEDEF and COLP_N_ALLOC will be redefined
-      to point to fields inside the overlays structure                           Mon Mar 29 15:11:01 EST 2004*/
+      /* These can't just come from dset_link because as you change the 
+         threshold, and other parameters, some nodes may not get colored so the 
+         NodeDef list will differ from that in dset.
+         The macros COLP_NODEDEF, COLP_N_NODEDEF and COLP_N_ALLOC will be 
+         redefined to point to fields inside the overlays structure                           Mon Mar 29 15:11:01 EST 2004*/
    int *NodeDef; /*!< nodes over which the colors are defined*/
    int N_NodeDef; /*!< total number of nodes specified in NodeDef*/
    #if 0
       /* That one is still borrowed from dset structure */
-   int N_Alloc; /*!< You'd think this should be equal to NodeDef, but in instances where you may be receiving
-             varying numbers of colors to the same plane, it's a pain to have to free and realloc space.
-             So, while the juice is only up to N_NodeDef, the allocation is for N_Alloc */
-   
+   int N_Alloc; /*!< You'd think this should be equal to NodeDef, but in 
+                     instances where you may be receiving varying numbers of 
+                     colors to the same plane, it's a pain to have to free and 
+                     realloc space. So, while the juice is only up to N_NodeDef, 
+                     the allocation is for N_Alloc */
    #endif
-   int FullList; /*!< if 1 then it indicates that a full listing of node colors exists.
+   int FullList; /*!< if 1 then it indicates that a full listing of node 
+                     colors exists.
                      i.e. nodes need not be defined explicitly, in that case 
-                     NodeDef is stil explicitly defined. I have my reasons.*/
+                     NodeDef is still explicitly defined. I have my reasons.*/
                      
-   float *ColVec; /*!< N_NodeDef x 3 vector containing colors of nodes specified in NodeDef, Replaces ColMat, Wed Mar 17 04*/
-   float GlobalOpacity; /*!< Opacity factor between 0 and 1 to apply to all values in ColMat */
-   float *LocalOpacity; /*!< Opacity factor vector between 0 and 1 to apply to each individual node color */
-   int PlaneOrder; /*!< Order of the overlay plane, 1st plane is 0 and is farthest away from the top */  
-   SUMA_Boolean isBackGrnd; /*!< if YUP then colors overlaid on top of this plane have their 
-                              brightness modulated by the average intensity of the colors in that 
-                              plane see the function SUMA_Overlays_2_GLCOLAR4 for details. 
-                              In other obscure words, if YUP then plane is part of background.*/ 
+   float *ColVec; /*!< N_NodeDef x 3 vector containing colors of nodes 
+                       specified in NodeDef, Replaces ColMat, Wed Mar 17 04*/
+   float GlobalOpacity; /*!< Opacity factor between 0 and 1 to apply to 
+                           all values in ColMat */
+   float *LocalOpacity; /*!< Opacity factor vector between 0 and 1 to apply to 
+                             each individual node color */
+   int PlaneOrder; /*!< Order of the overlay plane, 1st plane is 0 and is 
+                        farthest away from the top */  
+   SUMA_Boolean isBackGrnd; /*!< if YUP then colors overlaid on top of this plane
+            have their brightness modulated by the average intensity of the 
+            colors in that plane see the function SUMA_Overlays_2_GLCOLAR4 for 
+            details. 
+            In other obscure words, if YUP then plane is part of background.*/ 
    float DimFact;    /*!< a scaling factor applied to the colors in ColVec 
                            This is overriden by BrightFact in OptScl which is
                            defined for non-explicitly colored planes*/
-   double ForceIntRange[2]; /*!< Use values here to set OptScl->IntRange instead of the true
-                                 range of values in the dataset.
-                                 The idea is to allow particular settings for the autoranging 
-                                 options that are not from the dset's min to max.
-                                 Usually, this field is not used and both values are set to 0.0
+   double ForceIntRange[2]; /*!< Use values here to set OptScl->IntRange instead 
+         of the true range of values in the dataset.
+         The idea is to allow particular settings for the autoranging 
+         options that are not from the dset's min to max.
+         Usually, this field is not used and both values are set to 0.0
                                  */
    /* New additions, Fri Feb 20 13:21:28 EST 2004 */
    SUMA_DSET *dset_link; /*!< A COPY OF THE POINTER to the dataset this plane is 
                               attached to. DO NOT FREE THIS POINTER MANUALLY.
-                              This is done in the functions for creating and destroying
+                              This is done in the functions for creating and 
+                              destroying
                               overlay planes */ 
    char *cmapname; /*!< name of colormap (must be in SUMAg_CF->scm)  */
-   SUMA_SCALE_TO_MAP_OPT *OptScl;   /* Options for mapping values in dset to colormap */
+   SUMA_SCALE_TO_MAP_OPT *OptScl;   /* Options for mapping values in 
+                                       dset to colormap */
    int SymIrange;
    
    MEM_topshell_data *rowgraph_mtd;
    int rowgraph_num;
    
+   int N_Contours;            /* Number of contours ROIs*/
+   SUMA_DRAWN_ROI **Contours; /* Using the ROI structure to store contours
+                                 which can be displayed along with color blobs */
 } SUMA_OVERLAYS;
-
-
-typedef enum { SUMA_BAD_MODE=-1, 
-               SUMA_ORIG_MIX_MODE,  /*!< The original mode for color overlaying: 
-                                 if (Col1) Col = (1-opacity) Col1 + opacity Col2 */
-               SUMA_4AML,  /*!< A modified mixing mode to keep colors from getting dimmed 
-                              (as with opacity of 0.5 on Col1 = 0.3 0 0 and Col2 = 0 0.3 0)
-                              resultant is a very dim yellow 0.15 0.15 0 
-                              Named after the eminent A. M. L.*/
-               SUMA_MAX_MODES /*!< The limit, used for cycling */
-               } SUMA_COL_MIX_MODE;
-
-/*! structure containing the color mapping of a vector */
-typedef struct {
-   /* float **cM; Prior to Mar 17 03*//*!< N_Node x 3 matrix containing the colors at each node*/
-   float *BiasCoordVec; /*!< A vector of coordinate bias */
-   float *cV; /*!< N_Node x 3 vector containing the colors at each node*/
-   int N_Node; /*!< obvious */
-   SUMA_Boolean *isMasked; /*!< if isMasked[i] then node i has a mask color associated with it */ 
-} SUMA_COLOR_SCALED_VECT;
-
-
-
-
-/*! TRY TO MAKE DO WITHOUT THIS THING, IF POSSIBLE. 
-It is a pain to work with two types of ROI structues 
-structure to hold an ROI */
-typedef struct { 
-   SUMA_ROI_TYPE Type;   /*!< The type of ROI */
-   
-   char *idcode_str;    /*!< unique idcode for ROI */
-   char *Parent_idcode_str; /*!< idcode of parent surface */
-   char *Label; /*!< ascii label for ROI */
-
-   int *ElInd; /*!< pointer to vector containing indices into the parent surface (SO has Parent_idcode_str) of ROI elements.
-                           If Type is SUMA_ROI_NodeGroup then ElementIndex contains indices to SO->NodeList .
-                           If Type is SUMA_ROI_FaceGroup then ElementIndex contains indices to SO->FaceList.
-                           If Type is SUMA_ROI_EdgeGroup then ElementIndex contains indices to SO->EL->EL. */
-   int N_ElInd; /*!< Number of elements in ElementIndex */ 
-} SUMA_ROI; 
-
-
-
-typedef struct {
-   SUMA_ROI_TYPE Type; /*!< Type of ROI in datum */
-   int N_n; /*!< Number of elements in nPath */
-   int N_t; /*!< Number of elements in tPath */
-   int *nPath; /*!< Vector of N node indices. These nodes must be immediate (linked) neighbours of each other */
-   int *tPath; /*!< Vector of N triangle indices. These triangles must be connected to each other */
-   float tDistance; /*!< distance from the first node to the last taken along the surface (geodesic)*/
-   float nDistance; /*!< distance from the first node to the last by summing the length of segments between nodes */
-   SUMA_BRUSH_STROKE_ACTION action; /*!< a record of the action that went with this datum. 
-                                       This field is used to recreate the ROI drawing history from a saved
-                                       niml file */
-} SUMA_ROI_DATUM; /*!< elementary datum of a drawn ROI */
-
-
-#define SUMA_MAX_ROI_CTRL_NODES 100 /*!< Maximum number of control nodes in an ROI */
-#define SUMA_MAX_ROI_CTRL_NODES3 300 
-#define SUMA_MAX_ROI_ON_SURFACE 100 /*!< Maximum number of ROIs Drawn on a surface */
-
-typedef struct {   
-   int n1;  /*!<index of edge's first node */
-   int n2; /*!<index of edge's second node */
-} SUMA_CONTOUR_EDGES; /*<! structure defining an edge by the nodes forming it*/
-
-/*! structure to hold the drawing of an ROI */
-typedef struct {   
-   char *idcode_str;    /*!< unique idcode for ROI */
-   char *Label; /*!< ascii label for ROI */ 
-
-   SUMA_ROI_DRAWING_TYPE Type;   /*!< The type of ROI drawn, that would be closed path, etc, etc, */
-
-   char *Parent_idcode_str; /*!< idcode of parent surface */
-   char *ColPlaneName;  /*!< Name of color plane that the ROI is painted in.
-                     If this field is set to NULL then the ROI will be painted
-                     in the generic ROI_Plane plane. For the moment, NULL is the only
-                     option */
-   float FillColor[3];  /*!< RGB fill color */
-   float EdgeColor[3];  /*!< RGB edge color */
-   int EdgeThickness;   /*!< thickness of edge */
-   int iLabel; /*!< An integer value, another way to represent a Label */
-   SUMA_Boolean ColorByLabel; /*!< flag indicating that ROI node colors should
-                                   be based on the value in iLabel and not the 
-                                   one specified in FillColor */
-   SUMA_ROI_DRAWING_STATUS DrawStatus; /*!< Status of the ROI being drawn, finished, being drawn, being edited, etc. */
-
-   DList *ROIstrokelist;   /*!< a doubly linked list with the data element being a (void *)SUMA_ROI_DATUM * */
-
-   DList *ActionStack; /*!< a stack containing the various actions performed*/
-   DListElmt *StackPos; /*!< The element of ActionStack that represents the current position */
-   
-   int N_CE; /*!< number of contour edges */
-   SUMA_CONTOUR_EDGES *CE; /*!< a vector of edges that form the contour of the ROI */
-} SUMA_DRAWN_ROI;
-
-typedef struct {
-   int Type;         /*!< The final type of the DrawnROI, see SUMA_ROI_DRAWING_TYPE*/
-   char *idcode_str;
-   char *Parent_idcode_str;
-   char *Label;
-   int *iNode; /*!< A node's index */
-   int *iLabel; /*!< A node's value */
-   int N; /*!< NUmber of elements in iNode and iLabel */
-} SUMA_1D_DRAWN_ROI; /*!< a version of SUMA_DRAWN_ROI struct that can be used by 1D functions.
-                     Fields are a reflection of those in SUMA_DRAWN_ROI*/
-
-typedef struct {
-   SUMA_ROI_DATUM *ROId;
-   SUMA_DRAWN_ROI *DrawnROI;
-} SUMA_ROI_ACTION_STRUCT;  /*!< a structure packaging data for the routines acting on drawn ROIs */
-
 
 
 
@@ -734,7 +792,7 @@ typedef struct {
    char **IDcode;      /*!< Unique identifier for the surface object */
    char **State;       /*!< Geometrical state of the surface. For example:
                             pial, white, inflated, spherical, etc... */
-                                                                           
+   char **LabelDset;    /*!< Name of a label dset, like the annotation file */                                                                        
    char **Group;        /*!< Some identifier, best thought of as the name of 
                              the subject */
    char **SurfaceLabel; /*!< A user defined "short" label to use in GUI */
@@ -1115,8 +1173,12 @@ typedef struct {
    Widget Mainform; /*!< main form, child of TopLevelShell */
    Widget SurfInfo_pb; /*!< More info push button */
    Widget SurfInfo_label; /*!< Le label */
-   SUMA_CREATE_TEXT_SHELL_STRUCT * SurfInfo_TextShell; /*!< structure containing widgets and options of the surface info text shell */
-   Widget RenderModeMenu[SW_N_SurfCont_Render]; /*!< vector of widgets controlling the rendering mode menu */
+   SUMA_CREATE_TEXT_SHELL_STRUCT * SurfInfo_TextShell; /*!< structure containing 
+                        widgets and options of the surface info text shell */
+   Widget RenderModeMenu[SW_N_SurfCont_Render]; /*!< vector of widgets 
+                                       controlling the rendering mode menu */
+   Widget DsetViewModeMenu[SW_N_SurfCont_DsetView]; /*!< vector of widgets 
+                                       controlling the dataset view mode menu */
    Widget ColPlane_fr; /*!< the frame controlling the colorplanes */
    Widget DsetMap_fr; /*!< the frame for mapping Dset to colormap */
    Widget Xhair_fr; /*!< The frame for cross hair Info and controls */ 
@@ -1131,16 +1193,18 @@ typedef struct {
    SUMA_TABLE_FIELD *DataTable;
    SUMA_TABLE_FIELD *LabelTable;
    SUMA_TABLE_FIELD *SetThrScaleTable; 
-   Widget ColPlaneShow_tb; /*!< show/hide color plane */
-   Widget ColPlaneShowOne_tb; /*!< show only one color plane at a time*/
+   /* Obsolete since Nov 09,
+      Replaced with DsetViewModeMenu 
+      Widget ColPlaneShow_tb; *//*!< show/hide color plane */
+   Widget ColPlaneShowOneFore_tb; /*!< show only one color plane at a time*/
    Widget SymIrange_tb; /*!< Symmetric intensity range */
    Widget AbsThresh_tb; /*!< absolute threshold */
    Widget ShowZero_tb; /*!< Show zero values */
    SUMA_LIST_WIDGET *SwitchDsetlst; /*!< a structure containing widgets and options for the switch color plane list */
    SUMA_TABLE_FIELD *ColPlaneLabelTable; 
    SUMA_OVERLAYS *curColPlane; /*!< a copy of the pointer to the selected color plane */
-   SUMA_Boolean ShowCurOnly; /*!< Show current plane only out of the entire stack */
-   SUMA_Boolean GraphHidden; /*!< Graph update even in ShowCurOnly */
+   SUMA_Boolean ShowCurForeOnly; /*!< Show current plane only out of the entire stack */
+   SUMA_Boolean GraphHidden; /*!< Graph update even in ShowCurForeOnly */
    void **curSOp; /*!< a copy of the pointer to the surface object for which the controller is open */
    SUMA_CMAP_RENDER_AREA *cmp_ren;   /* data for cmap rendering zone */
    Widget thr_sc;   /*! scale for threshold data */
@@ -1322,7 +1386,8 @@ typedef struct {
 
    GLfloat c[3]; /*!< Cross Hair center */
    GLfloat r; /*!< Cross Hair radius */
-   GLfloat g; /*!< 1/2 of gap between center and ray (should be less than radius/2) */
+   GLfloat g; /*!< 1/2 of gap between center and ray 
+                  (should be less than radius/2) */
    
    SUMA_Boolean ShowSphere; /*!< YUP/NOPE, starting to regret this. */
    GLUquadricObj *sphobj; /*!< quadric object, representing central sphere */
@@ -1331,8 +1396,11 @@ typedef struct {
    GLint slices; /*!< think pizza */
    GLint stacks; /*!< think lattitudes */
    
-   int SurfaceID; /*!< If the cross hair is tied to a surface, SurfaceID contains the index into SUMAg_DOv of that surface. -1 if that cross hair is wild and loose */
-   int NodeID; /*!< a node from SurfaceID can be associated with the cross hair (-1 for nothing) */
+   int SurfaceID; /*!<  If the cross hair is tied to a surface, SurfaceID 
+                        contains the index into SUMAg_DOv of that surface. 
+                        -1 if that cross hair is wild and loose */
+   int NodeID; /*!< a node from SurfaceID can be associated with the cross 
+                     hair (-1 for nothing) */   
 }SUMA_CrossHair;   
 
 typedef struct {      

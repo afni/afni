@@ -65,6 +65,53 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 17 , NOV , 2009 , ZSS , "@SUMA_Make_Spec_FS" , MINOR , TYPE_NEW_OPT ,
+   "Script now automatically sets up the spec file with labeled datasets",
+   "Labeled datasets are created from annotation files,\n"
+   "and are now rendered in a special manner in SUMA"
+ } ,
+ 
+ { 17 , NOV , 2009 , ZSS , "suma_general" , MINOR , TYPE_NEW_ENV ,
+   "SUMA_AlwaysAssignSurface (see suma -environment for details)",
+   NULL
+ } ,  
+ 
+ { 17 , NOV , 2009 , ZSS , "suma_general" , MINOR , TYPE_NEW_ENV ,
+   "SUMA_LabelDsetOpacity (see suma -environment for details)",
+   NULL
+ } ,  
+ 
+ { 17 , NOV , 2009 , ZSS , "suma_general" , MINOR , TYPE_NEW_ENV ,
+   "SUMA_ConvexityDsetOpacity (see suma -environment for details)",
+   NULL
+ } ,  
+ 
+ { 17 , NOV , 2009 , ZSS , "suma_general" , MINOR , TYPE_NEW_ENV ,
+   "SUMA_ShowLabelDsetAtStartup (see suma -environment for details)",
+   NULL
+ } ,  
+ 
+ { 17 , NOV , 2009 , ZSS , "ROI2dataset" , MINOR , TYPE_NEW_OPT ,
+   "Option -label_dset creates a labeled dataset from ROIs.",
+   "Labeled datasets are now rendered in a special manner in SUMA"
+ } ,
+
+ { 17 , NOV , 2009 , ZSS , "FSread_annot" , MINOR , TYPE_NEW_OPT ,
+   "Option -dset creates a labeled dataset from annotation file.",
+   "Labeled datasets are now rendered in a special manner in SUMA"
+ } ,
+
+ { 17 , NOV , 2009 , ZSS , "suma" , MAJOR , TYPE_NEW_OPT ,
+   "SUMA now handles labeled datatets in a special manner",
+   "An example of a labeled dataset would be FreeSurfer's annotation files.\n"
+   "If an annotation file is present in the spec file (@SUMA_Make_Spec_FS),\n"
+   "SUMA will display it as part of the background.\n"
+   "You can chose to display the labeled dataset in color, contours, or both.\n"
+   "Data from labeled datasets is now shown under the 'Lbl' field in the\n"
+   "surface controller's Xhair block.\n"
+ } ,
+
+
  { 9 , NOV , 2009 , ZSS , "SurfMeasures" , MINOR , TYPE_NEW_OPT ,
    "Added option for improved node volume estimation.",
    "The new measure, called node_volg, uses Gauss' Theorem to estimate\n"

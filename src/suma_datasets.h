@@ -54,6 +54,13 @@ typedef struct {
     char FuncName[MAX_ERRLOG_FUNCNAME];
 } SUMA_ERRLOG;
 
+typedef struct {
+   char *envhelp;
+   char *envname;
+   char *envval;  /* This is the default */
+}ENV_SPEC;
+
+
 #define SUMA_MAX_NAME_LENGTH 500   /*!< Maximum number of characters in a filename */
 #define SUMA_MAX_DIR_LENGTH 2000    /*!< Maximum number of characters in a directory name */
 #define SUMA_MAX_FILENAME_LENGTH (SUMA_MAX_NAME_LENGTH+SUMA_MAX_DIR_LENGTH+1)
@@ -224,7 +231,7 @@ typedef enum {
    SUMA_SURFACE_OBJECT,
    SUMA_ENGINE_INSTRUCTION,
    SUMA_SEGMENT_OBJECT,
-   SUMA_COLMAP_OBJECT,
+   SUMA_LABEL_TABLE_OBJECT,
    SUMA_N_DSET_TYPES
 } SUMA_DSET_TYPE; /*!<  Type of data set ( should be called Object, not DSET ) 
                         When you add a new element, modify functions
@@ -323,8 +330,8 @@ typedef struct {
    char *Parent_idcode_str;
    char *Label;
    char *ColPlaneName;
-   float FillColor[3];  /*!< RGB fill color */
-   float EdgeColor[3];  /*!< RGB edge color */
+   float FillColor[4];  /*!< RGB fill color */
+   float EdgeColor[4];  /*!< RGB edge color */
    int EdgeThickness;   /*!< thickness of edge */
    int iLabel;
    SUMA_NIML_ROI_DATUM *ROI_datum; /*!< a vector of ROI data 
@@ -1362,6 +1369,7 @@ SUMA_DSET * SUMA_far2dset_ns( char *FullName, char *dset_id, char *dom_id,
                                  int ptr_cpy);
 int SUMA_is_AllNumeric_dset(SUMA_DSET *dset);
 int SUMA_is_Label_dset(SUMA_DSET *dset, NI_group **NIcmap); 
+int * SUMA_UniqueValuesInLabelDset(SUMA_DSET *dset, int *N_unq);
 int SUMA_is_AllConsistentNumeric_dset(SUMA_DSET *dset, SUMA_VARTYPE *vtpp);
 int SUMA_is_AllNumeric_ngr(NI_group *ngr) ;
 int SUMA_is_AllNumeric_nel(NI_element *nel);
@@ -1435,7 +1443,7 @@ int SUMA_GetDsetColStatAttr(  SUMA_DSET *dset, int col_index,
                               int *statcode,
                               float *p1, float *p2, float *p3);
 float SUMA_fdrcurve_zval( SUMA_DSET *dset , int iv , float thresh );
-NI_group *SUMA_NI_Cmap_of_Label_dset(SUMA_DSET *dset);
+NI_group *SUMA_NI_Cmap_of_Dset(SUMA_DSET *dset);
 
 
 /*********************** BEGIN Miscellaneous support functions **************************** */
@@ -1544,7 +1552,10 @@ SUMA_Boolean SUMA_ShowParsedFname(SUMA_PARSED_NAME *pn, FILE *out);
 char *SUMA_EscapeChars(char *s1, char *ca, char *es);
 char *SUMA_ReplaceChars(char *s1, char *ca, char *es);
 char *SUMA_isEnv(char *env, char *sval);
-
+float SUMA_floatEnv(char *env, float defval);
+ENV_SPEC SUMA_envlistelement(int i);
+char * SUMA_EnvVal(char *env);
+ 
 /*********************** END Miscellaneous support functions **************************** */
 
 /******** BEGIN functions for surface structure  ******************** */
