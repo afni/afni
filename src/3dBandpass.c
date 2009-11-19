@@ -8,7 +8,7 @@ int main( int argc , char * argv[] )
    THD_3dim_dataset *inset=NULL ;
    char *prefix="bandpass" ;
    byte *mask=NULL ;
-   int mask_nx,mask_ny,mask_nz,nmask , verb=1 , nx,ny,nz,nvox ;
+   int mask_nx,mask_ny,mask_nz,nmask , verb=1 , nx,ny,nz,nvox , nfft=0 ;
 
    /*-- help? --*/
 
@@ -31,6 +31,7 @@ int main( int argc , char * argv[] )
             "\n"
             "Options:\n"
             "  -dt dd          = set time step to 'dd' sec [default=from dataset header]\n"
+            "  -nfft N         = set the FFT length to 'N' [must be a legal value]\n"
             "  -ort f.1D       = Also orthogonalize input to columns in f.1D\n"
             "                     [multiple '-ort' options are allowed].\n"
             "  -nodetrend      = Skip the quadratic detrending of the input that\n"
@@ -52,6 +53,14 @@ int main( int argc , char * argv[] )
 
    nopt = 1 ;
    while( nopt < argc && argv[nopt][0] == '-' ){
+
+     if( strcmp(argv[nopt],"-nfft") == 0 ){
+       if( ++nopt >= argc ) ERROR_exit("need an argument afater -nfft!") ;
+       nfft = (int)PARSER_strtod(argv[nopt]) ;
+       if( nfft < 16 || nfft != csfft_nextup_one35(nfft) )
+         ERROR_exit("value after -nfft is illegal!") ;
+       nopt++ ; continue ;
+     }
 
      if( strcmp(argv[nopt],"-blur") == 0 ){
        if( ++nopt >= argc ) ERROR_exit("need an argument after -blur!") ;
@@ -126,12 +135,13 @@ int main( int argc , char * argv[] )
 
      if( strncmp(argv[nopt],"-band",5) == 0 ){
        if( ++nopt >= argc-1 ) ERROR_exit("need 2 arguments after -band!") ;
+       if( have_freq ) WARNING_message("second -band option replaces first one!") ;
        fbot = (float)PARSER_strtod(argv[nopt++]) ;
        ftop = (float)PARSER_strtod(argv[nopt++]) ;
        have_freq = 1 ; continue ;
      }
 
-     fprintf(stderr,"** Unknown option: %s\n",argv[nopt]) ; exit(1) ;
+     ERROR_exit("Unknown option: '%s'",argv[nopt]) ;
    }
 
    /** check inputs for reasonablositiness **/
@@ -154,10 +164,18 @@ int main( int argc , char * argv[] )
    ntime = DSET_NVALS(inset) ;
    if( ntime < 9 ) ERROR_exit("Input dataset needs is too short!") ;
 
+   if( nfft <= 0 ){
+     nfft = csfft_nextup_one35(ntime) ;
+     if( verb ) INFO_message("Data length = %d  FFT length = %d",ntime,nfft) ;
+   } else if( nfft < ntime ){
+     ERROR_exit("-nfft %d is less than data length = %d",nfft,ntime) ;
+   }
+   THD_bandpass_set_nfft(nfft) ;
+
    if( dt <= 0.0f ){
      dt = DSET_TR(inset) ;
      if( dt <= 0.0f ){
-       INFO_message("Setting dt=1.0 since input dataset lacks a time axis!") ;
+       WARNING_message("Setting dt=1.0 since input dataset lacks a time axis!") ;
        dt = 1.0f ;
      }
    }
