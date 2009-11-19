@@ -3,6 +3,15 @@
 /*** bandpass functions: 30 Apr 2009 -- RWCox ***/
 
 /*--------------------------------------------------------------------------*/
+
+static int nfft_fixed = 0 ;
+
+void THD_bandpass_set_nfft( int n )
+{
+  nfft_fixed = (n >= 16) ? csfft_nextup_one35(n) : 0 ;
+}
+
+/*--------------------------------------------------------------------------*/
 /*! Check THD_bandpass_vectors() input parameters for OK-ness.
     Returns 1 if OK, 0 if not OK.  If verb!=0, prints an info message.
 *//*------------------------------------------------------------------------*/
@@ -24,7 +33,7 @@ int THD_bandpass_OK( int nx , float dt , float fbot , float ftop , int verb )
      wrn = 0;
    }
 
-   nfft = csfft_nextup_one35(nx) ;
+   nfft = (nfft_fixed > nx) ? nfft_fixed : csfft_nextup_one35(nx) ;
    df   = 1.0f / (nfft * dt) ;
    jbot = (int)rint(fbot/df) ;
    jtop = (int)rint(ftop/df) ;
@@ -84,7 +93,7 @@ ENTRY("THD_bandpass_vectors") ;
 
    /** setup for FFT **/
 
-   nfft = csfft_nextup_one35( nlen ) ;  /* length of actual FFT to do */
+   nfft = (nfft_fixed > nlen) ? nfft_fixed : csfft_nextup_one35(nlen) ;
    nby2 = nfft/2 ;
 
    df   = 1.0f / (nfft * dt) ;   /* frequency resolution */
