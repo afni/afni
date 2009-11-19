@@ -88,6 +88,7 @@ int main( int argc , char *argv[] )
 
    float bpass_L=0.0f , bpass_H=0.0f , dtime ; int do_bpass=0 ;
    double ctime ;
+   float blur=0.0f ;
 
    /*----*/
 
@@ -99,22 +100,29 @@ int main( int argc , char *argv[] )
        "to give a measure of how 'connected' each voxel is to the\n"
        "rest of the brain.  (As if life were that simple.)\n"
        "\n"
-       "Options:\n"
+       "WARNINGS:\n"
+       "** This program takes a LONG time to run.\n"
+       "** This program will use a LOT of memory.\n"
+       "\n"
+       "OPTIONS:\n"
        "  -input dd = Read 3D+time dataset 'dd' (a mandatory option).\n"
        "\n"
        "  -base bb  = Read 3D+time dataset 'bb'.\n"
        "             * If you use this option, for each voxel in the\n"
        "                '-base' dataset, its time series is correlated\n"
-       "                with every voxel in the '-input' dataset, and\n"
+       "                with every voxel in the -input dataset, and\n"
        "                then that collection of correlations is processed\n"
-       "                to produce the output for that '-base' voxel.\n"
-       "             * If you don't use '-base', then the '-input' dataset\n"
-       "                is the '-base' dataset.\n"
-       "             * The '-base' and '-input' datasets must have the\n"
+       "                to produce the output for that -base voxel.\n"
+       "             * If you don't use -base, then the -input dataset\n"
+       "                is the -base dataset.\n"
+       "             * The -base and -input datasets must have the\n"
        "                same number of time points and the same number\n"
        "                of voxels.\n"
-       "             * Unlike the '-input' dataset, the '-base' dataset is\n"
-       "                not preprocessed (i.e., no detrending or bandpass).\n"
+       "             * Unlike the -input dataset, the -base dataset is not\n"
+       "                preprocessed (i.e., no detrending/bandpass or blur).\n"
+       "                 (The main purpose of this -base option is to)\n"
+       "                 (allow you to preprocess the seed voxel time)\n"
+       "                 (series in some personalized and unique way.)\n"
        "\n"
        "  -Mean pp  = Save average correlations into dataset prefix 'pp'\n"
        "  -Zmean pp = Save tanh of mean arctanh(correlation) into 'pp'\n"
@@ -184,6 +192,10 @@ int main( int argc , char *argv[] )
        "\n"
        "  -ort rr    = 1D file with other time series to be removed\n"
        "                (via least squares regression) before correlation.\n"
+       "             ** -ort can be used with -polort and/or -bandpass.\n"
+       "\n"
+       "  -blur ff   = Gaussian blur the input dataset (inside the mask) with\n"
+       "                a kernel width of 'ff' mm.\n"
        "\n"
        "  -mask mm  = Read dataset 'mm' as a voxel mask.\n"
        "  -automask = Create a mask from the input dataset.\n"
@@ -208,6 +220,12 @@ int main( int argc , char *argv[] )
    /*-- option processing --*/
 
    while( nopt < argc && argv[nopt][0] == '-' ){
+
+      if( strcasecmp(argv[nopt],"-blur") == 0 ){
+        blur = (float)strtod( argv[++nopt] , NULL ) ;
+        if( blur < 0.0f ) ERROR_exit("Illegal value after -blur") ;
+        nopt++ ; continue ;
+      }
 
       if( strcasecmp(argv[nopt],"-ort") == 0 ){
         ortim = mri_read_1D( argv[++nopt] ) ;
@@ -617,6 +635,49 @@ int main( int argc , char *argv[] )
      DSET_load(xset) ; CHECK_LOAD_ERROR(xset) ;
    }
 
+   /* check for constant voxels, and remove them from the mask */
+
+   xsar = (float *)malloc( sizeof(float)*ntime ) ;
+   for( ii=0 ; ii < nvox ; ii++ ){
+     if( mask[ii] == 0 ) continue ;
+     (void)THD_extract_array( ii , xset , 0 , xsar ) ;
+     for( kk=1 ; kk < ntime && xsar[kk] == xsar[0] ; kk++ ) ; /*nada*/
+     if( kk == ntime ) mask[ii] = 0 ; /* xsar is constant */
+   }
+   free(xsar) ;
+   ii = THD_countmask( nvox , mask ) ;
+   if( ii < nmask ){
+     if( ii > 9 ) ININFO_message("only %d voxels in dataset are actually non-constant"  ,ii);
+     else         ERROR_exit    ("only %d voxels in dataset are actually non-constant!?",ii);
+     nmask = ii ;
+   }
+
+   /* blur inside the mask */
+
+   if( blur > 0.0f ){
+     float dx,dy,dz , fx,fy,fz ; int nrep=0 ;
+     MRI_IMAGE *bim ; float *bar ;
+
+     dx = fabsf(DSET_DX(xset)) ; if( DSET_NX(xset) == 1 ) dx = 0.0f ;
+     dy = fabsf(DSET_DY(xset)) ; if( DSET_NY(xset) == 1 ) dy = 0.0f ;
+     dz = fabsf(DSET_DZ(xset)) ; if( DSET_NZ(xset) == 1 ) dz = 0.0f ;
+
+     mri_blur3D_getfac( blur , dx,dy,dz , &nrep , &fx,&fy,&fz ) ;
+     if( nrep > 0 && fx > 0.0f && fy > 0.0f && fz >= 0.0f ){
+       ININFO_message("blurring parameters: #iter=%d fx=%.5f fy=%.5f fz=%.5f" ,
+                      nrep , fx , fy , fz ) ;
+       for( iv=0 ; iv < ntime ; iv++ ){
+         bim = THD_extract_float_brick( iv , xset ) ;
+         mri_blur3D_inmask( bim , mask , fx,fy,fz , nrep ) ;
+         EDIT_substitute_brick( xset , iv , MRI_float , MRI_FLOAT_PTR(bim) ) ;
+         EDIT_BRICK_FACTOR( xset,iv,0.0f ) ;
+         mri_clear_data_pointer(bim) ; mri_free(bim) ;
+       }
+     } else {
+       WARNING_message("Can't blur input dataset for some reason") ;
+     }
+   }
+
    /* remove trends now (if not bandpassing) */
 
    if( nref > 0 && !do_bpass ){
@@ -625,23 +686,6 @@ int main( int argc , char *argv[] )
      yset = THD_detrend_dataset( xset , nref,ref , 2,0 , mask , NULL ) ;
      if( yset == NULL ) ERROR_exit("Detrending fails!?") ;
      DSET_delete(xset) ; xset = yset ;
-   }
-
-   /* check for all zero voxels, and remove them from the mask */
-
-   for( ii=0 ; ii < nvox ; ii++ ){
-     xsar = (float *)malloc( sizeof(float)*ntime ) ;
-     if( mask[ii] == 0 ) continue ;
-     (void)THD_extract_array( ii , xset , 0 , xsar ) ;
-     for( kk=0 ; kk < ntime && xsar[kk] == 0.0f ; kk++ ) ; /*nada */
-     if( kk == ntime ) mask[ii] = 1 ; /* xsar is all 0 */
-     free(xsar) ;
-   }
-   ii = THD_countmask( nvox , mask ) ;
-   if( ii < nmask ){
-     if( ii > 9 ) ININFO_message("only %d voxels in dataset are actually non-zero"  ,ii);
-     else         ERROR_exit    ("only %d voxels in dataset are actually non-zero!?",ii);
-     nmask = ii ;
    }
 
    /* extract dataset time series into an array of
@@ -725,15 +769,25 @@ int main( int argc , char *argv[] )
 
    /* 29 Apr 2009: print # of threads message to amuse the user */
 
+   ctime = 2.0 * (double)nmask * (double)nmask * (double)ntime
+          + 100.0 * (double)nmask * (double)ntime ;
+   if( HHnum > 0 )
+     ctime += HHnum * (double)nmask * (double)nmask ;
+   if( expr_type != '\0' )
+     ctime += 111.0 * (double)nmask * (double)nmask ;
+   if( Threshv )
+     ctime += 2.0 * N_iv * (double)nmask * (double)nmask ;
+
 #ifdef USE_OMP
 #pragma omp parallel
  {
   if( omp_get_thread_num() == 0 )
-    INFO_message("Starting long long loop: OpenMP thread count = %d" ,
-                 omp_get_num_threads() ) ;
+    INFO_message("Starting long long loop: OpenMP threads=%d  %s Flops" ,
+                 omp_get_num_threads() , approximate_number_string(ctime) ) ;
  }
 #else
- INFO_message("Starting the long long loop through all voxels") ;
+ INFO_message("Starting long long loop through all voxels: %s Flops" ,
+              approximate_number_string(ctime) ) ;
 #endif
 
    for( ii=0 ; ii < nmask ; ii++ ){  /* outer loop over voxels: */
