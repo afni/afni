@@ -12933,10 +12933,12 @@ int SUMA_StringToNum (char *s, void *vv, int N, int prec)
    
    if (!s || prec < 1) SUMA_RETURN(0); 
      
+   if (LocalHead) fprintf (stderr, "%s: string was:%s:\n", FuncName, s);
    /* clean s by removing trailing junk then replacing non characters by space*/
    FoundTip = 0;
    for (nd=strlen(s)-1; nd >=0; --nd) {
-      if (!isdigit(s[nd]) && s[nd] != '.' && s[nd] != '-' && s[nd] != '+') {
+      if (!isdigit(s[nd]) && s[nd] != '.' && s[nd] != '-' && s[nd] != '+' && 
+                             s[nd] != 'e' && s[nd] != 'E') {
          if (!FoundTip) {
             s[nd]= '\0'; /* remove */
          } else {
@@ -12960,8 +12962,8 @@ int SUMA_StringToNum (char *s, void *vv, int N, int prec)
    while (!eos) {
       d = strtod(strtp, &endp);
       if (LocalHead) 
-         fprintf (stderr, "%s: value %f, ERANGE: %d, EDOM %d, errno %d\n", 
-                           FuncName, d, ERANGE, EDOM, errno); 
+         fprintf (stderr, "%s: %dth value %f, ERANGE: %d, EDOM %d, errno %d\n", 
+                           FuncName, nd, d, ERANGE, EDOM, errno); 
       
       if (endp == strtp && *endp=='\0') { 
          eos = 1;
