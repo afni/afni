@@ -159,6 +159,13 @@ int main (int argc,char *argv[])
 				exit (1);
 			}
 			prefix_name = argv[kar];
+         if (Out_Format != SUMA_NO_DSET_FORMAT &&
+             Out_Format != SUMA_ASCII_NIML &&
+             Out_Format != SUMA_BINARY_NIML) {
+            SUMA_S_Warn("Overriding output format to accommodate -label_dset.\n"
+                     "Format will be ni_as or ni_bi, depending on environment\n"
+                        "variable AFNI_NIML_TEXT_DATA");    
+         }
          if (AFNI_yesenv("AFNI_NIML_TEXT_DATA")) Out_Format = SUMA_ASCII_NIML;
          else Out_Format = SUMA_BINARY_NIML;
          olabel = 1;
@@ -185,6 +192,7 @@ int main (int argc,char *argv[])
 		  		fprintf (SUMA_STDERR, "need argument after -of ");
 				exit (1);
 			}
+         
          Out_Format = SUMA_NO_DSET_FORMAT;
                      /* Can't use isOutputFormatFromArg because -of is not part
                      of the passed argument */
@@ -193,6 +201,12 @@ int main (int argc,char *argv[])
                      "%s not a valid option with -of.\n", argv[kar]);
 				exit (1);
          }
+         if (olabel && 
+             Out_Format != SUMA_ASCII_NIML &&
+             Out_Format != SUMA_BINARY_NIML) {
+            SUMA_S_Err("Cannot specify non-niml format with -label_dset");
+            exit(1);
+         } 
          
          brk = YUP;
 		}
