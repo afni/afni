@@ -2,10 +2,13 @@
 
 #undef ALLOW_FILLIN  /* 28 May 2002 */
 
+THD_3dim_dataset *thd_apply_mask(THD_3dim_dataset * dset, byte *mask, char *prefix);
+
 int main( int argc , char * argv[] )
 {
-   THD_3dim_dataset *dset , *mset ;
-   char *prefix = "automask" ;
+   THD_3dim_dataset *dset , *mset, *masked_dset ;
+   char *amprefix = "automask" ;
+   char *prefix = NULL;
    byte *mask ;
    int iarg=1 , fillin=0 , nmask,nfill , dilate=0 , dd  , erode = 0;
    int dilate_flag = 0, erode_flag = 0;
@@ -14,6 +17,8 @@ int main( int argc , char * argv[] )
    int   verb=1 ;
    float clfrac=0.5 ;      /* 20 Mar 2006 */
    int peels=1, nbhrs=17 ; /* 24 Oct 2006 */
+   int apply_mask = 0;     /* 17 Nov 2009 */
+   char *apply_prefix = NULL;
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
       printf("Usage: 3dAutomask [options] dataset\n"
@@ -28,6 +33,10 @@ int main( int argc , char * argv[] )
              "Options:\n"
              "  -prefix ppp = Write mask into dataset with prefix 'ppp'.\n"
              "                 [Default == 'automask']\n"
+             "  -apply_prefix ppp = Apply mask to input dataset and save\n"
+             "                masked dataset. If an apply_prefix is given\n"
+             "                and not the usual prefix, the only output\n"
+             "                will be the applied dataset\n" 
              "  -clfrac cc  = Set the 'clip level fraction' to 'cc', which\n"
              "                 must be a number between 0.1 and 0.9.\n"
              "                 A small 'cc' means to make the initial threshold\n"
@@ -162,6 +171,14 @@ int main( int argc , char * argv[] )
          erode_flag = 1;
          if( erode < 0 )
            ERROR_exit("-erode %s is illegal!\n",argv[iarg]);
+         iarg++ ; continue ;
+      }
+
+      if( strcmp(argv[iarg],"-apply_prefix") == 0 ){
+         apply_prefix = argv[++iarg] ;
+         if( !THD_filename_ok(apply_prefix) )
+           ERROR_exit("-apply_prefix %s is illegal!\n",apply_prefix) ;
+         apply_mask = 1;
          iarg++ ; continue ;
       }
 
@@ -352,28 +369,147 @@ int main( int argc , char * argv[] )
      }
    }
 
-   DSET_unload( dset ) ;  /* don't need data any more */
 
    /* create output dataset */
+   if(prefix==NULL) {
+      if(apply_prefix == NULL)
+         prefix = amprefix;
+   }
 
-   mset = EDIT_empty_copy( dset ) ;
-   EDIT_dset_items( mset ,
-                      ADN_prefix     , prefix   ,
-                      ADN_datum_all  , MRI_byte ,
-                      ADN_nvals      , 1        ,
-                      ADN_ntt        , 0        ,
-                      ADN_type       , HEAD_FUNC_TYPE ,
-                      ADN_func_type  , FUNC_FIM_TYPE ,
-                    ADN_none ) ;
-   EDIT_substitute_brick( mset , 0 , MRI_byte , mask ) ;
+   if(prefix) {
+      mset = EDIT_empty_copy( dset ) ;
+      EDIT_dset_items( mset ,
+                         ADN_prefix     , prefix   ,
+                         ADN_datum_all  , MRI_byte ,
+                         ADN_nvals      , 1        ,
+                         ADN_ntt        , 0        ,
+                         ADN_type       , HEAD_FUNC_TYPE ,
+                         ADN_func_type  , FUNC_FIM_TYPE ,
+                       ADN_none ) ;
+      EDIT_substitute_brick( mset , 0 , MRI_byte , mask ) ;
 
-   /* 16 Apr 2002: make history */
+      /* 16 Apr 2002: make history */
 
-   tross_Copy_History( dset , mset ) ;
-   tross_Make_History( "3dAutomask", argc,argv, mset ) ;
+      tross_Copy_History( dset , mset ) ;
+      tross_Make_History( "3dAutomask", argc,argv, mset ) ;
 
-   DSET_write( mset ) ;
-   if( verb ) WROTE_DSET(mset) ;
+      DSET_write( mset ) ;
+      if( verb ) WROTE_DSET(mset) ;
+   }
+
+   if (apply_mask) {
+      if(verb) INFO_message("applying mask to original data\n");
+      masked_dset = thd_apply_mask(dset, mask, apply_prefix);
+      if(masked_dset){
+         if(verb) INFO_message("Writing masked data\n");
+         tross_Copy_History( dset , masked_dset ) ;
+         tross_Make_History( "3dAutomask", argc,argv, masked_dset ) ;
+         DSET_write(masked_dset);
+         if( verb ) WROTE_DSET(masked_dset) ;
+         DSET_unload( masked_dset ) ;  /* don't need data any more */
+      }
+      else {
+         ERROR_exit("Could not apply mask to dataset");
+      }
+   }
+
+   DSET_unload( dset ) ;  /* don't need data any more */
+
    if( verb ) INFO_message("CPU time = %f sec\n",COX_cpu_time()) ;
+
    exit(0) ;
+}
+
+/* apply a mask dataset to all voxels and across all sub-bricks of a dataset */
+THD_3dim_dataset *
+thd_apply_mask(THD_3dim_dataset * dset, byte *mask, char *prefix)
+{
+   THD_3dim_dataset *out_dset;
+
+   int i,j, nbriks, nvox;
+   float *data_fptr, *out_fptr;
+   byte *data_bptr, *out_bptr, *mask_ptr;
+   short *data_iptr, *out_iptr;
+   MRI_IMARR *fim_array;
+   MRI_IMAGE *fim, *data_im, *outdata_im;
+
+   nvox = DSET_NVOX(dset);
+   nbriks =   dset->dblk->nvals;
+   out_dset = EDIT_empty_copy(dset) ;
+   tross_Copy_History (dset, out_dset);
+   EDIT_dset_items( out_dset ,
+            ADN_malloc_type , DATABLOCK_MEM_MALLOC , /* store in memory */
+                        ADN_prefix , prefix ,
+                        ADN_label1 , prefix ,
+	                ADN_datum_all , DSET_BRICK_TYPE(dset,0) ,
+                        ADN_none ) ;
+   /* make new Image Array */
+   INIT_IMARR(fim_array);
+   for(i=0;i<nbriks;i++) {
+      fim = mri_new_conforming( DSET_BRICK(dset,i) , DSET_BRICK_TYPE(dset,i) ) ;
+      ADDTO_IMARR(fim_array, fim);
+   }
+   out_dset->dblk->brick = fim_array;   /* update pointer to data */
+
+
+   for(i=0;i<nbriks;i++) {
+      data_im = DSET_BRICK(dset, i);
+      outdata_im = DSET_BRICK(out_dset, i);
+      mask_ptr = mask;
+      switch(DSET_BRICK_TYPE(dset,i) ){
+         default:
+             return NULL;
+         case MRI_short:{
+            data_iptr = mri_data_pointer(data_im);
+            out_iptr =  mri_data_pointer(outdata_im);
+            for(j=0;j<nvox;j++) {
+               if(*mask_ptr++) {
+                  * out_iptr++ = *data_iptr++;
+                 }
+               else {
+                 *out_iptr++ = 0;
+                 data_iptr++;
+                 }
+            }
+         } 
+         break;
+
+         case MRI_float:{
+            data_fptr = (float *) mri_data_pointer(data_im);
+            out_fptr = (float *) mri_data_pointer(outdata_im);
+            for(j=0;j<nvox;j++) {
+              if(*mask_ptr++) {
+                  *out_fptr++ = *data_fptr++;
+                 }
+              else {
+                 *out_fptr++ = 0.0;
+                 data_fptr++;
+              }
+            }
+         }
+         break;
+
+         case MRI_byte:{
+            data_bptr = (byte *) mri_data_pointer(data_im);
+            out_bptr = (byte *) mri_data_pointer(outdata_im);
+            for(j=0;j<nvox;j++) {
+              if(*mask_ptr++) {
+                  *out_bptr++ = *data_bptr++;
+                 }
+              else {
+                 *out_bptr++ = 0;
+                 data_bptr++;
+              }
+            }
+         }
+         break;
+
+       }
+
+     DSET_BRICK_FACTOR(out_dset, i) = DSET_BRICK_FACTOR(dset,i) ;
+   }
+
+   THD_load_statistics( out_dset );
+   return(out_dset);
+
 }
