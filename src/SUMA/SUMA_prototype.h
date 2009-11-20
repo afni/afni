@@ -15,6 +15,8 @@ void SUMA_Help_Cmap_open (void *p);
 void SUMA_Help_Cmap_destroyed (void *p);
 void SUMA_Help_Plot_open (void *p);
 void SUMA_Help_Plot_destroyed (void *p);
+void SUMA_Whereami_open (void *p);
+void SUMA_Whereami_destroyed (void *p);
 void SUMA_Message_open (void *p);
 void SUMA_Message_destroyed (void *p);
 void SUMA_VolSurf_help (FILE *Out);
