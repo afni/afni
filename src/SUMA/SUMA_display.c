@@ -9480,26 +9480,23 @@ SUMA_CREATE_TEXT_SHELL_STRUCT * SUMA_CreateTextShell (
    static char FuncName[] = {"SUMA_CreateTextShell"};
    Widget rowcol_v, rowcol_h, close_w, form, frame, toggle_case_w;
    int n;
-   SUMA_Boolean LocalHead = NOPE;
    Pixel fg_pix = 0;
    Arg args[30];
    static XmTextScanType sarray[] = {  XmSELECT_POSITION, 
                                        XmSELECT_WORD, 
                                        XmSELECT_LINE, 
                                        XmSELECT_ALL };
+   SUMA_Boolean LocalHead = NOPE;
+   
    SUMA_ENTRY;
 
    if (TextShell->OpenCallBack) { /* do the opening callback */
-      if (LocalHead) fprintf (SUMA_STDERR, 
-                              "%s: Calling OpenCallBack.\n", 
-                              FuncName);
+      SUMA_LH("Calling OpenCallBack.\n");
       TextShell->OpenCallBack(TextShell->OpenData);
    }
    
    if (!TextShell->toplevel) { /* need to create window */
-      if (LocalHead) fprintf (SUMA_STDERR, 
-                              "%s: Creating new text shell window.\n",
-                              FuncName);
+      SUMA_LH("Creating new text shell window.\n");
       TextShell->toplevel = XtVaAppCreateShell (title, "Suma",
          topLevelShellWidgetClass, SUMAg_CF->X->DPY_controller1 ,        
          XmNdeleteResponse, XmDO_NOTHING,
@@ -9551,6 +9548,7 @@ SUMA_CREATE_TEXT_SHELL_STRUCT * SUMA_CreateTextShell (
 
       XtManageChild (rowcol_h);
       
+      SUMA_LH("Text output widget\n");
       TextShell->text_output = XtVaCreateManagedWidget ("text_output",
         xmTextWidgetClass, rowcol_v,
         XmNeditable, False,
@@ -9579,6 +9577,7 @@ SUMA_CREATE_TEXT_SHELL_STRUCT * SUMA_CreateTextShell (
       
       TextShell->text_w = XmCreateScrolledText (form, "text_w", args, n);
                                   
+      SUMA_LHv("String %s\n",s?s:"NULL");
       if (!s) {
          XmTextSetString (TextShell->text_w, "No Messages.\n---------------\n");
       } else {
@@ -9586,6 +9585,7 @@ SUMA_CREATE_TEXT_SHELL_STRUCT * SUMA_CreateTextShell (
       }   
       XtManageChild (TextShell->text_w);
       
+      SUMA_LH("Adding callback\n");
       XtAddCallback (TextShell->search_w, 
                      XmNactivateCallback, SUMA_cb_search_text, 
                      TextShell);
@@ -9608,12 +9608,15 @@ SUMA_CREATE_TEXT_SHELL_STRUCT * SUMA_CreateTextShell (
       XtPopup(TextShell->toplevel, XtGrabNone);   
 
       XtRealizeWidget (TextShell->toplevel);
-   } else { /* already created, just replace text and perhaps title (in the future)*/
-      if (LocalHead) fprintf (SUMA_STDERR, "%s: Setting string in previously created text shell window.\n", FuncName);
-      if (!s) XmTextSetString (TextShell->text_w, "No Messages.\n---------------\n");
+   } else { /* already created, just replace text and perhaps title 
+               (in the future)*/
+      SUMA_LH("Setting string in previously created text shell window.\n");
+      if (!s) XmTextSetString (TextShell->text_w, 
+                               "No Messages.\n---------------\n");
       else XmTextSetString (TextShell->text_w, s);
       if (TextShell->CursorAtBottom) {
-         XmTextSetInsertionPosition(TextShell->text_w, XmTextGetLastPosition (TextShell->text_w));
+         XmTextSetInsertionPosition(TextShell->text_w, 
+                                 XmTextGetLastPosition (TextShell->text_w));
       }
    }
    SUMA_RETURN(TextShell);
@@ -9759,7 +9762,7 @@ void SUMA_cb_SetDrawROI_SaveMode(Widget widget, XtPointer client_data,
 
 
 /*!
-   \brief sets the "saving what" parameter
+   \brief sets the " what distance" parameter
    - expects a SUMA_MenuCallBackData * in  client_data
    Nothing in client_data->ContID and Menubutton in client_data->callback_data
 */
@@ -9783,7 +9786,7 @@ void SUMA_cb_SetDrawROI_WhatDist(Widget widget, XtPointer client_data,
 } 
 
 /*!
-   \brief sets the " what distance" parameter
+   \brief sets the "saving what" parameter
    - expects a SUMA_MenuCallBackData * in  client_data
    Nothing in client_data->ContID and Menubutton in client_data->callback_data
 */

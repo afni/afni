@@ -239,7 +239,7 @@ typedef enum { SE_Empty,
                SE_ToggleLockAllCrossHair, SE_SetLockAllCrossHair, 
                SE_ToggleLockView, SE_ToggleLockAllViews, 
                SE_Load_Group, SE_Home_AllVisible, SE_Help, SE_Help_Cmap, 
-               SE_Help_Plot, SE_Help_Xform, SE_Log,
+               SE_Help_Plot, SE_Help_Xform, SE_Whereami, SE_Log,
                SE_UpdateLog, SE_SetRenderMode, SE_OpenDrawROI,
                SE_RedisplayNow_AllVisible, SE_RedisplayNow_AllOtherVisible,  
                SE_SetLight0Pos, SE_OpenColFileSelection,
@@ -267,11 +267,21 @@ typedef enum { SEF_Empty,
                SEF_BadCode} SUMA_ENGINE_FIELD_CODE; 
                
 typedef enum { SES_Empty,
-               SES_Afni,  /*!< command from Afni directly which practically means that Srcp in EngineData is not SUMA_SurfaceViewer * . In the future, some Afni related pointer might get passed here. */
-               SES_Suma,  /*!< command from Suma, which means that Srcp is a SUMA_SurfaceViewer * to the viewer making the command. */
-               SES_SumaWidget,  /*!< command from a widget in Suma. Usually means, do not try to update widget ... */
-               SES_SumaFromAfni,   /*!< command from Suma in response to a request from Afni. Srcp is still a SUMA_SurfaceViewer * but Afni, havin initiated the command should not receive the command back from Suma. Think cyclical cross hair setting... */
-               SES_SumaFromAny,  /*!< Same concept as SES_SumaFromAfni but from generic program. */
+               SES_Afni,  /*!< command from Afni directly which practically means                                that Srcp in EngineData is not SUMA_SurfaceViewer 
+                               * . In the future, some Afni related pointer might                                get passed here. */
+               SES_Suma,  /*!< command from Suma, which means that Srcp is a 
+                               SUMA_SurfaceViewer * to the viewer making the 
+                               command. */
+               SES_SumaWidget,  /*!< command from a widget in Suma. Usually 
+                                     means, do not try to update widget ... */
+               SES_SumaFromAfni,   /*!< command from Suma in response to a 
+                                        request from Afni. Srcp is still a 
+                                        SUMA_SurfaceViewer * but Afni, having 
+                                        initiated the command should not receive 
+                                        the command back from Suma. Think 
+                                        cyclical cross hair setting... */
+               SES_SumaFromAny,  /*!< Same concept as SES_SumaFromAfni but from 
+                                      generic program. */
                SES_Unknown} SUMA_ENGINE_SOURCE;
 
 typedef enum { SEI_WTSDS,  
@@ -280,8 +290,8 @@ typedef enum { SEI_WTSDS,
                
 typedef enum {    SOPT_ibbb,  /*!< int, byte, byte, byte, null */
                   SOPT_ifff   /*!< int, float, float, float, null */
-            } SUMA_OVERLAY_PLANE_TYPE; /*!< type of color plane data, letters code for 
-                                            index red green blue and alpha values */
+            } SUMA_OVERLAY_PLANE_TYPE; /*!< type of color plane data, letters 
+                               code for index red green blue and alpha values */
 
 
 
@@ -1347,6 +1357,7 @@ typedef struct {
    SUMA_CREATE_TEXT_SHELL_STRUCT *Help_Cmap_TextShell; /*!< structure containing
                                  widgets and options of colormap help window */
    SUMA_CREATE_TEXT_SHELL_STRUCT *Help_Plot_TextShell;
+   SUMA_CREATE_TEXT_SHELL_STRUCT *Whereami_TextShell;
    SUMA_CREATE_TEXT_SHELL_STRUCT *Log_TextShell; /*!<  structure containing
                                        widgets and options of SUMA_log window */
    SUMA_SELECTION_DIALOG_STRUCT *FileSelectDlg; /*!< structure containing widgets

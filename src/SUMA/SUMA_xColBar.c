@@ -945,6 +945,7 @@ int SUMA_SwitchColPlaneIntensity (
 
    SUMA_RETURN(1);
 }
+
 void SUMA_cb_SwitchIntensity(Widget w, XtPointer client_data, XtPointer call)
 {
    static char FuncName[]={"SUMA_cb_SwitchIntensity"};
@@ -5582,7 +5583,7 @@ SUMA_Boolean SUMA_UpdateNodeField(SUMA_SurfaceObject *SO)
    DListElmt *el=NULL;
    SUMA_SurfaceObject *curSO=NULL, *targetSO=NULL;
    SUMA_CALLBACK *cb=NULL;
-   char *targetSO_idcode=NULL, *targetSover_name=NULL;
+   char *targetSO_idcode=NULL, *targetSover_name=NULL, *lbls=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY; 
@@ -5617,10 +5618,15 @@ SUMA_Boolean SUMA_UpdateNodeField(SUMA_SurfaceObject *SO)
    } 
 
    if (curSO == SO) {
-      SUMA_LH("Updating GUI Node Fields");
+      SUMA_LH( "Updating GUI Node Fields, "
+               "whereami is handled in SUMA_UpdateNodeLblField");
       SUMA_UPDATE_ALL_NODE_GUI_FIELDS(SO);
    } else {
-      SUMA_LH("No GUI Node Field Updates");
+      SUMA_LH("No GUI Node Field Updates, but may use a whereami update");
+      if (SUMAg_CF->X->Whereami_TextShell) {
+         lbls = SUMA_GetLabelsAtNode(SO, SO->SelectedNode);
+         if (lbls) SUMA_free(lbls); lbls = NULL;
+      }
    }
 
    if (  !SO->SurfCont->ShowCurForeOnly || 
@@ -5760,11 +5766,14 @@ char *SUMA_GetLabelsAtNode(SUMA_SurfaceObject *SO, int node)
    SUMA_DSET *cdset=NULL, *dd=NULL;
    SUMA_OVERLAYS *colplane=NULL;
    SUMA_COLOR_MAP *CM=NULL;
-   DListElmt *el=NULL;
+   DListElmt *el=NULL, *NextElm=NULL;
+   DList *list=NULL;
+   SUMA_EngineData *ED;
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-
+   if (!SO) SUMA_RETURN(NOPE);
+   
    el = dlist_head(SUMAg_CF->DsetList);
    while (el) {
       dd = (SUMA_DSET*)el->data;
@@ -5797,6 +5806,33 @@ char *SUMA_GetLabelsAtNode(SUMA_SurfaceObject *SO, int node)
       el = dlist_next(el);
    }
 
+   /* Do we need to tell Santa? */
+   if (lbls && SUMAg_CF->X->Whereami_TextShell) {
+      if (!list) list = SUMA_CreateList();
+      ED = SUMA_InitializeEngineListData (SE_Whereami);
+      if (!(NextElm = SUMA_RegisterEngineListCommand (  list, ED,
+                                    SEF_vp, (void *)SO,
+                                    SES_Suma, NULL, NOPE,
+                                    SEI_Head, NULL))) {
+         fprintf (SUMA_STDERR, 
+                  "Error %s: Failed to register command.\n", 
+                  FuncName);
+      }
+      if (!(NextElm = SUMA_RegisterEngineListCommand (  list, ED,
+                                    SEF_s, (void *)lbls, /* Copy by value */
+                                    SES_Suma, NULL, NOPE,
+                                    SEI_In, NextElm))) {
+         fprintf (SUMA_STDERR, 
+                  "Error %s: Failed to add data.\n", 
+                  FuncName);
+      }
+                  
+      if (!SUMA_Engine (&list)) {
+         fprintf(stderr, 
+                  "Error %s: SUMA_Engine call failed.\n", FuncName);
+      }
+      SUMA_free(lbls); lbls = NULL; 
+   }
    SUMA_RETURN(lbls);
 }
 
@@ -5867,17 +5903,26 @@ SUMA_Boolean SUMA_UpdateNodeLblField(SUMA_SurfaceObject *SO)
 
    SUMA_ENTRY;
       
-   if (!SO || !SO->SurfCont) SUMA_RETURN(NOPE);
-
+   if (!SO || (!SO->SurfCont && !SUMAg_CF->X->Whereami_TextShell)) { 
+      /* absolutely nothing to do */
+      SUMA_RETURN(NOPE);
+   } 
+   
+   /* get labels from Label Datasets, and update whereami window if needed*/
+   lbls = SUMA_GetLabelsAtNode(SO, SO->SelectedNode);
+   SUMA_LHv("Label Dsets: %s\n", lbls);
+   
+   if (!SO->SurfCont) {
+      /* controller not open, nothing left to do */
+      if (lbls) SUMA_free(lbls); lbls = NULL;
+      SUMA_RETURN(YUP);
+   }
+   
    Sover = SO->SurfCont->curColPlane;
    if (!Sover) {
       SUMA_RETURN(NOPE);
    }
    
-   /* get labels from Label Datasets */
-   lbls = SUMA_GetLabelsAtNode(SO, SO->SelectedNode);
-   SUMA_LHv("Label Dsets: %s\n", lbls);
-
    if (!Sover->ShowMode > 0) {
       SUMA_LH("Col plane hidden");
       sprintf(str_col,"hidden color overlay");

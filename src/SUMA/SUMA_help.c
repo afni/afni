@@ -391,6 +391,32 @@ void SUMA_Help_Plot_destroyed (void *p)
 }
 
 /*!
+   \brief function called when whereami window is destroyed
+*/
+void SUMA_Whereami_destroyed (void *p)
+{
+   static char FuncName[]={"SUMA_Whereami_destroyed"};
+   
+   SUMA_ENTRY;
+
+   SUMAg_CF->X->Whereami_TextShell = NULL;
+   
+   SUMA_RETURNe;
+}
+
+/*!
+   \brief function called when whereami window is destroyed
+*/
+void SUMA_Whereami_open (void *p)
+{
+   static char FuncName[]={"SUMA_Whereami_open"};
+   
+   SUMA_ENTRY;
+   
+   SUMA_RETURNe;
+}
+
+/*!
    \brief function called when Message window is open
 */
 void SUMA_Message_open (void *p)

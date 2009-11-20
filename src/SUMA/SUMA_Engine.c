@@ -803,7 +803,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             { /* sets the viewing mode of a dset, 
                expects SO in vp and rendering mode in i*/
                SUMA_COLOR_MAP *cmp=NULL;
-               static int nwarn=0;
+               static int nwarn=0, nwarn2=0;
                
                SO = (SUMA_SurfaceObject *)EngineData->vp;
                it = SUMA_ABS(SO->SurfCont->curColPlane->ShowMode);
@@ -813,38 +813,58 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                } else {
                   SO->SurfCont->curColPlane->ShowMode =  EngineData->i ;
                }
-               /* Can we do contours? */
-               cmp = SUMA_FindNamedColMap(SO->SurfCont->curColPlane->cmapname);
-               if (!cmp) { SUMA_S_Err("Unexpected null colormap"); break;}
-               if (SUMA_NeedsLinearizing(cmp)) {
-                  if (EngineData->i == SW_SurfCont_DsetViewCon   ||
-                      EngineData->i == SW_SurfCont_DsetViewCaC ) {
-                     if (!nwarn) {
-                        SUMA_SLP_Note("Cannot do contouring with colormaps\n"
-                                      "that panes of unequal sizes.\n"
-                                      "Contouring turned off.\n"
-                                      "Notice shown once per session.");
-                        ++nwarn;
+               if (strcmp(SO->SurfCont->curColPlane->cmapname,"explicit")) {
+                  /* Can we do contours? */
+                  cmp = SUMA_FindNamedColMap(
+                                 SO->SurfCont->curColPlane->cmapname);
+                  if (!cmp) { SUMA_S_Err("Unexpected null colormap"); break;}
+                  if (SUMA_NeedsLinearizing(cmp)) {
+                     if (EngineData->i == SW_SurfCont_DsetViewCon   ||
+                         EngineData->i == SW_SurfCont_DsetViewCaC ) {
+                        if (!nwarn) {
+                           SUMA_SLP_Note("Cannot do contouring with colormaps\n"
+                                         "that panes of unequal sizes.\n"
+                                         "Contouring turned off.\n"
+                                         "Notice shown once per session.");
+                           ++nwarn;
+                        }
+                        SO->SurfCont->curColPlane->ShowMode = it; /* get back */ 
+                        SUMA_SET_MENU( SO->SurfCont->DsetViewModeMenu,
+                           SUMA_ShowMode2ShowModeMenuItem(it));
+                        /* kill current contours, if any */
+                        SUMA_KillOverlayContours(SO->SurfCont->curColPlane);
                      }
-                     SO->SurfCont->curColPlane->ShowMode = it; /* get back */ 
-                     SUMA_SET_MENU( SO->SurfCont->DsetViewModeMenu,
-                        SUMA_ShowMode2ShowModeMenuItem(it));
-                     /* kill current contours, if any */
-                     SUMA_KillOverlayContours(SO->SurfCont->curColPlane);
                   }
-               }
-               /* if new mode require contours, better regenerate them */
-               if ( (it != SW_SurfCont_DsetViewCon &&
-                     it != SW_SurfCont_DsetViewCaC ) &&
-                    (SO->SurfCont->curColPlane->ShowMode == 
-                              SW_SurfCont_DsetViewCon   ||
-                     SO->SurfCont->curColPlane->ShowMode == 
-                              SW_SurfCont_DsetViewCaC) ) {
-                  if (!SUMA_ColorizePlane(SO->SurfCont->curColPlane)) {
-                     SUMA_S_Err( "Police at the station - "
-                                 "and they don't look friendly.");
+                  /* if new mode require contours, better regenerate them */
+                  if ( (it != SW_SurfCont_DsetViewCon &&
+                        it != SW_SurfCont_DsetViewCaC ) &&
+                       (SO->SurfCont->curColPlane->ShowMode == 
+                                 SW_SurfCont_DsetViewCon   ||
+                        SO->SurfCont->curColPlane->ShowMode == 
+                                 SW_SurfCont_DsetViewCaC) ) {
+                     if (!SUMA_ColorizePlane(SO->SurfCont->curColPlane)) {
+                        SUMA_S_Err( "Police at the station - "
+                                    "and they don't look friendly.");
+                     }
                   }
-               }
+               } else {
+                  /* explicit colormap no need for all the complications above*/
+                     if (EngineData->i == SW_SurfCont_DsetViewCon   ||
+                         EngineData->i == SW_SurfCont_DsetViewCaC ) {
+                        if (!nwarn2) {
+                           SUMA_SLP_Note("Cannot do contouring with explicitly\n"
+                                         "colored datasets. \n"
+                                         "Notice shown once per session.");
+                           ++nwarn2;
+                        }
+                        SO->SurfCont->curColPlane->ShowMode = it; /* get back */ 
+                        SUMA_SET_MENU( SO->SurfCont->DsetViewModeMenu,
+                           SUMA_ShowMode2ShowModeMenuItem(it));
+                        /* kill current contours, if any . There should be none
+                           here but there is no harm */
+                        SUMA_KillOverlayContours(SO->SurfCont->curColPlane);
+                     }
+               }  
                if (!SUMA_RemixRedisplay (SO)) {
                   SUMA_S_Err("Dunno what happened here");
                }
@@ -1060,6 +1080,51 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                      SUMA_CreateTextShell(s, "SUMA Plot help", TextShell);
                   SUMA_free(s);   
                }
+            }
+            break;
+         
+         case SE_Whereami:
+            /* opens wheremi text window, 
+               Expects SO in vp, and a string for the whereami data
+               In the future, it should expect a list of whereami
+               data and it should build the report on its own.
+               Each whereami datum should contain atlas info, space, coordinate,
+               label, etc. */
+            {
+               char *s = NULL;
+               
+               if (EngineData->vp_Dest != NextComCode ||
+                   EngineData->s_Dest != NextComCode) {
+                  fprintf (SUMA_STDERR,
+                          "Error %s: Data not destined correctly for %s (%d).\n",
+                           FuncName, NextCom, NextComCode);
+                  break;
+               }
+               if (!sv) sv = &(SUMAg_SVv[0]);
+               if (!(SO = (SUMA_SurfaceObject *)EngineData->vp)) break;
+               if (!(s = (char*)EngineData->s)) break;
+               
+               if (!SUMAg_CF->X->Whereami_TextShell) {
+                  if (!(SUMAg_CF->X->Whereami_TextShell = 
+                           SUMA_CreateTextShellStruct (  SUMA_Whereami_open, 
+                                                   NULL, 
+                                                   SUMA_Whereami_destroyed,
+                                                   NULL))) {
+                     SUMA_S_Err("Failed to create TextShellStruct.");
+                     break;
+                  }
+               } 
+               
+               if (SUMAg_CF->X->Whereami_TextShell) { /* update */
+                     SUMAg_CF->X->Whereami_TextShell->CursorAtBottom = YUP;
+                     (void) SUMA_CreateTextShell (s, 
+                              "Where Thou Layeth", 
+                              SUMAg_CF->X->Whereami_TextShell);
+                     XRaiseWindow(
+                        SUMAg_CF->X->DPY_controller1, 
+                        XtWindow(SUMAg_CF->X->Whereami_TextShell->toplevel));
+                     
+               } 
             }
             break;
          case SE_Load_Group:
@@ -1691,21 +1756,25 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                                                   SES_Suma, (void *)sv, 
                                                   NOPE, 
                                                   SEI_Tail, NULL))) {
-                     fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
+                     fprintf(SUMA_STDERR,
+                             "Error %s: Failed to register element\n", FuncName);
+                     break;
+                  }
+                  if (!(LocElm = SUMA_RegisterEngineListCommand (  
+                        list, ED,
+                        SEF_s, (void *)("NodeList, FaceSetList, NodeNormList"), 
+                        SES_Suma, (void *)sv, NOPE, 
+                        SEI_In, LocElm))) {
+                     fprintf(SUMA_STDERR,
+                             "Error %s: Failed to register element\n", FuncName);
                      break;
                   }
                   if (!(LocElm = SUMA_RegisterEngineListCommand (  list, ED,
-                                                         SEF_s, (void *)("NodeList, FaceSetList, NodeNormList"), 
-                                                         SES_Suma, (void *)sv, NOPE, 
-                                                         SEI_In, LocElm))) {
-                     fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
-                     break;
-                  }
-                  if (!(LocElm = SUMA_RegisterEngineListCommand (  list, ED,
-                                                         SEF_i, (void *)&ti, 
-                                                         SES_Suma, (void *)sv, NOPE, 
-                                                         SEI_In, LocElm))) {
-                     fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
+                                                SEF_i, (void *)&ti, 
+                                                SES_Suma, (void *)sv, NOPE, 
+                                                SEI_In, LocElm))) {
+                     fprintf(SUMA_STDERR,
+                             "Error %s: Failed to register element\n", FuncName);
                      break;
                   }
                   if (SendList) SUMA_free(SendList); SendList = NULL;   
@@ -1741,7 +1810,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                ED = SUMA_InitializeEngineListData (SE_SetAfniSurfList);
                if (!(LocElm = SUMA_RegisterEngineListCommand (  list, ED,
                                                       SEF_ivec, (void *)(&ivec), 
-                                                      SES_Suma, (void *)sv, NOPE, 
+                                                      SES_Suma, (void *)sv, NOPE,
                                                       SEI_Tail, NULL))) {
                   fprintf( SUMA_STDERR,
                            "Error %s: Failed to register element\n", FuncName);
