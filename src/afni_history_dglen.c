@@ -49,6 +49,10 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 20 , NOV , 2009 , DRG , "3dAutomask" , 
+    MINOR , TYPE_NEW_OPT,   "apply_prefix option to save automasked input" ,
+    "avoids 3dcalc step that is usually used to apply an automask.\n"
+} ,
 
 { 04 , NOV , 2009 , DRG , "align_epi_anat.py" , 
     MINOR , TYPE_NEW_OPT, " 3dAllineate option for motion correction" ,
