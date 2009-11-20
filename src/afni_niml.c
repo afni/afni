@@ -933,7 +933,8 @@ static int slist_choose_surfs(LDP_list * ldp_list, THD_session * sess,
    ldp_surf_list * lsurf;
    int           * surfs, max_surf, ldp;
    int             first, surf;
-
+   static int      nwarn=0;
+   
 ENTRY("slist_choose_surfs");
 
    /* first, decide on how much memory we need for surfs */
@@ -965,16 +966,25 @@ ENTRY("slist_choose_surfs");
 
       /* if something is discarded and using defaults or debug */
       if ( (first < lsurf->nsurf) && (! lsurf->use_v2s || po->sopt.debug > 1) ){
-         fprintf(stderr,
-           "--------------------------------------------------\n"
-           "received too many surfaces for LDP '%s'\n",
-           lsurf->full_label_ldp[0] ? lsurf->full_label_ldp : lsurf->label_ldp);
-         for ( surf = 0; surf < first; surf++ )
-            fprintf(stderr,"    using    surf #%d : %s\n",
-                    surfs[surf], sess->su_surf[surfs[surf]]->label);
-         for ( surf = first; surf < lsurf->nsurf; surf++ )
-            fprintf(stderr,"    ignoring surf #%d : %s\n",
-                    surfs[surf], sess->su_surf[surfs[surf]]->label);
+         if (po->sopt.debug > 1 || nwarn < 2 || !(nwarn % 25)) {
+            fprintf(stderr,
+              "--------------------------------------------------\n"
+              "received too many surfaces for LDP '%s'\n",
+              lsurf->full_label_ldp[0] ? 
+                           lsurf->full_label_ldp : lsurf->label_ldp);
+            for ( surf = 0; surf < first; surf++ )
+               fprintf(stderr,"    using    surf #%d : %s\n",
+                       surfs[surf], sess->su_surf[surfs[surf]]->label);
+            for ( surf = first; surf < lsurf->nsurf; surf++ )
+               fprintf(stderr,"    ignoring surf #%d : %s\n",
+                       surfs[surf], sess->su_surf[surfs[surf]]->label);
+            fprintf(stderr,
+              "%s"
+              "--------------------------------------------------\n",
+              po->sopt.debug > 1 ? "" : 
+                  "             Warning shown intermittenlty.\n");
+         }
+         ++nwarn;
       }
    }
 

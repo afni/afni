@@ -1834,25 +1834,31 @@ int SUMA_R_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
    switch (k) {
       case XK_r:
          if ((SUMA_APPLE_KEY(key) || SUMA_ALT_KEY(key))) {
-            sv->X->SetRot_prmpt = SUMA_CreatePromptDialogStruct (SUMA_OK_APPLY_CLEAR_CANCEL, "Center of Rotation X,Y,Z:", 
-                                                   "0,0,0",
-                                                   sv->X->TOPLEVEL, YUP,
-                                                   SUMA_APPLY_BUTTON,
-                                                   SUMA_SetRotCenter, (void *)sv,
-                                                   NULL, NULL,
-                                                   NULL, NULL,
-                                                   NULL, NULL,  
-                                                   sv->X->SetRot_prmpt);
+            sv->X->SetRot_prmpt = SUMA_CreatePromptDialogStruct (
+                  SUMA_OK_APPLY_CLEAR_CANCEL, "Center of Rotation X,Y,Z:", 
+                  "0,0,0",
+                  sv->X->TOPLEVEL, YUP,
+                  SUMA_APPLY_BUTTON,
+                  SUMA_SetRotCenter, (void *)sv,
+                  NULL, NULL,
+                  NULL, NULL,
+                  NULL, NULL,  
+                  sv->X->SetRot_prmpt);
 
-            sv->X->SetRot_prmpt = SUMA_CreatePromptDialog(sv->X->Title, sv->X->SetRot_prmpt);
+            sv->X->SetRot_prmpt = SUMA_CreatePromptDialog(sv->X->Title, 
+                                                          sv->X->SetRot_prmpt);
 
          } else if (SUMA_CTRL_KEY(key)) {
-            SUMAg_CF->SUMA_SnapshotOverSampling = (SUMAg_CF->SUMA_SnapshotOverSampling +1)%5;
-            if (SUMAg_CF->SUMA_SnapshotOverSampling == 0) SUMAg_CF->SUMA_SnapshotOverSampling = 1;
+            SUMAg_CF->SUMA_SnapshotOverSampling = 
+                  (SUMAg_CF->SUMA_SnapshotOverSampling +1)%5;
+            if (SUMAg_CF->SUMA_SnapshotOverSampling == 0) 
+                     SUMAg_CF->SUMA_SnapshotOverSampling = 1;
             { 
-               sprintf(msg,"Oversampling now set to %d", SUMAg_CF->SUMA_SnapshotOverSampling);
-               if (callmode && strcmp(callmode, "interactive") == 0) { SUMA_SLP_Note (msg); }
-               else { SUMA_S_Note (msg); }
+               sprintf(msg,"Oversampling now set to %d", 
+                           SUMAg_CF->SUMA_SnapshotOverSampling);
+               if (callmode && strcmp(callmode, "interactive") == 0) { 
+                  SUMA_SLP_Note (msg); 
+               } else { SUMA_S_Note (msg); }
             }
          } else {
             GLvoid *pixels;
@@ -1861,17 +1867,23 @@ int SUMA_R_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
             /* Control for GL_MAX_VIEWPORT_DIMS */
             if (SUMAg_CF->SUMA_SnapshotOverSampling > 1) {
                glGetIntegerv(GL_MAX_VIEWPORT_DIMS,&k);
-               mm = SUMA_MAX_PAIR( SUMAg_CF->SUMA_SnapshotOverSampling*sv->X->HEIGHT,
-                                   SUMAg_CF->SUMA_SnapshotOverSampling*sv->X->WIDTH);
+               mm = SUMA_MAX_PAIR(
+                     SUMAg_CF->SUMA_SnapshotOverSampling*sv->X->HEIGHT,          
+                     SUMAg_CF->SUMA_SnapshotOverSampling*sv->X->WIDTH);
                if (mm > k) { /* too big, find best new dimesnions */
-                  rat = (double)mm/(double)k; /*window shrinking factor to allow for stitching*/
+                  rat = (double)mm/(double)k; 
+                     /*window shrinking factor to allow for stitching*/
                   SUMA_S_Notev(  "%d/%d (H/W) Too big for oversampling\n"
-                                 " reducing resolution by %f.\n", sv->X->HEIGHT, sv->X->WIDTH, rat);
+                                 " reducing resolution by %f.\n", 
+                                 sv->X->HEIGHT, sv->X->WIDTH, rat);
                   /* store original size */
                   ow = sv->X->WIDTH; oh = sv->X->HEIGHT;
-                  sv->WindHeight = sv->X->HEIGHT = (int)((double)sv->X->HEIGHT/rat)-1;
-                  sv->WindWidth = sv->X->WIDTH = (int)((double)sv->X->WIDTH/rat)-1;
-                  SUMA_WidgetResize (sv->X->TOPLEVEL , sv->X->WIDTH, sv->X->HEIGHT);
+                  sv->WindHeight = sv->X->HEIGHT = 
+                     (int)((double)sv->X->HEIGHT/rat)-1;
+                  sv->WindWidth = sv->X->WIDTH = 
+                     (int)((double)sv->X->WIDTH/rat)-1;
+                  SUMA_WidgetResize (sv->X->TOPLEVEL , 
+                                     sv->X->WIDTH, sv->X->HEIGHT);
                   sv->rdc = SUMA_RDC_X_RESIZE;
                   glViewport( 0, 0, 
                                  sv->X->WIDTH, sv->X->HEIGHT);  
@@ -1893,31 +1905,74 @@ int SUMA_R_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                                     " is then used to put the images together.\n"
                                     "(Have ViewPort GL_MAX_VIEWPORT_DIMS of %d\n"
                                     " and max dims needed of %d.)\n",
-                                    SUMAg_CF->SUMA_SnapshotOverSampling, 
-                                    SUMAg_CF->SUMA_SnapshotOverSampling*SUMAg_CF->SUMA_SnapshotOverSampling,
-                                    k,
-                                    SUMA_MAX_PAIR( SUMAg_CF->SUMA_SnapshotOverSampling*sv->X->HEIGHT,
-                                                   SUMAg_CF->SUMA_SnapshotOverSampling*sv->X->WIDTH)  );
+                           SUMAg_CF->SUMA_SnapshotOverSampling, 
+                           SUMAg_CF->SUMA_SnapshotOverSampling * 
+                              SUMAg_CF->SUMA_SnapshotOverSampling,
+                           k,
+                           SUMA_MAX_PAIR( SUMAg_CF->SUMA_SnapshotOverSampling * 
+                              sv->X->HEIGHT,
+                           SUMAg_CF->SUMA_SnapshotOverSampling*sv->X->WIDTH)  );
                      } else {
-                        /* sometimes you have repeated black areas when oversampling, allow that after very first 'tant' */
+                        /* sometimes you have repeated black areas when 
+                        oversampling, allow that after very first 'tant' */
                         SNAP_OkDuplicates();
                      }
-                     /* start from top left, move to right then go down one row (Row Major, starting on top left ) */
-                     glViewport(-ii*sv->X->WIDTH, -(SUMAg_CF->SUMA_SnapshotOverSampling - jj - 1)*sv->X->HEIGHT, 
-                                 SUMAg_CF->SUMA_SnapshotOverSampling*sv->X->WIDTH, SUMAg_CF->SUMA_SnapshotOverSampling*sv->X->HEIGHT);
+                     /* start from top left, move to right then go down 
+                        one row (Row Major, starting on top left ) */
+                     glViewport(-ii*sv->X->WIDTH,  
+                                -(SUMAg_CF->SUMA_SnapshotOverSampling - jj - 1) *
+                                  sv->X->HEIGHT, 
+                                SUMAg_CF->SUMA_SnapshotOverSampling*sv->X->WIDTH,
+                                SUMAg_CF->SUMA_SnapshotOverSampling * 
+                                 sv->X->HEIGHT);
                      SUMA_handleRedisplay((XtPointer)sv->X->GLXAREA);
+                  } else {
+                     /* ZSS   Nov 20 2009 
+                        If you do not redisplay here, you could strange cases of
+                        snapping the previous frame as reported by Colm Connolly.
+                        
+                     1. suma -spec N27_both_tlrc.spec -sv TT_N27+tlrc. &
+                     2. press F2 five times to cycle through the various axes 
+                        from none to all and back to none.
+                     3. press r to record
+
+                     The first image recorded has axes present even though none 
+                     are present in the viewer. Pressing r again produces an 
+                     image with no axes as expected.
+                     
+                     Actually, it seems this happens in many other cases, F1, F6,
+                     change state, etc. 
+                     
+                     This seems to be the same problem reported by Chunmao W. 
+                     a while back. 
+                     Same happens with R option. 
+                     
+                     Problem only happens under DARWIN it seems.
+                     
+                     I do not know why the call to SUMA_handleRedisplay does the 
+                     trick. Perhaps it is a buffer reading problem in double 
+                     buffer rendering. The fix is ugly, especially in continuous
+                     record mode (see SUMA_display function in 'if(csv->record)'
+                     block), but it works.
+                     */
+                     #ifdef DARWIN
+                     SUMA_handleRedisplay((XtPointer)sv->X->GLXAREA);
+                     #endif
                   }
                   pixels = SUMA_grabPixels(1, sv->X->WIDTH, sv->X->HEIGHT);
                   if (pixels) {
-                    ISQ_snapsave (sv->X->WIDTH, -sv->X->HEIGHT, (unsigned char *)pixels, sv->X->GLXAREA ); 
+                    ISQ_snapsave (sv->X->WIDTH, -sv->X->HEIGHT, 
+                                  (unsigned char *)pixels, sv->X->GLXAREA ); 
                     SUMA_free(pixels);
                   }else {
-                     if (callmode && strcmp(callmode, "interactive") == 0) {SUMA_SLP_Err("Failed to record image.");}
-                     else { SUMA_S_Err("Failed to record image.");}
+                     if (callmode && strcmp(callmode, "interactive") == 0) {
+                        SUMA_SLP_Err("Failed to record image.");
+                     } else { SUMA_S_Err("Failed to record image.");}
                   }
                }
             }
-            if (SUMAg_CF->SUMA_SnapshotOverSampling > 1) {  /* Now return the window to its previous size */
+            if (SUMAg_CF->SUMA_SnapshotOverSampling > 1) {  
+                        /* Now return the window to its previous size */
                if (ow > 0) {
                   sv->WindHeight = sv->X->HEIGHT = oh;
                   sv->WindWidth = sv->X->WIDTH = ow;
@@ -1932,12 +1987,15 @@ int SUMA_R_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
             else SNAP_OkDuplicates();
             if (SUMAg_CF->SUMA_SnapshotOverSampling > 1) {
                /* record the image to make life easy on user */
-               sprintf(msg,"Writing resultant image\n to HighRes_Suma_tmp.ppm ...");
-               if (callmode && strcmp(callmode, "interactive") == 0) { SUMA_SLP_Note (msg); }
-               else { SUMA_S_Note (msg); }
-               ISQ_snap_png_rng("HighRes_Photo___tmp", 
-                              -(SUMAg_CF->SUMA_SnapshotOverSampling*SUMAg_CF->SUMA_SnapshotOverSampling),
-                              0);
+               sprintf(msg,"Writing resultant image\n"
+                           " to HighRes_Suma_tmp.ppm ...");
+               if (callmode && strcmp(callmode, "interactive") == 0) { 
+                  SUMA_SLP_Note (msg); 
+               } else { SUMA_S_Note (msg); }
+               ISQ_snap_png_rng("HighRes_Photo___tmp",
+                                -(SUMAg_CF->SUMA_SnapshotOverSampling * 
+                                  SUMAg_CF->SUMA_SnapshotOverSampling),
+                                0);
                system(  "rm -f HighRes_Suma_tmp* >& /dev/null ; "
                         "imcat -prefix HighRes_Suma_tmp HighRes_Photo___tmp* ;"
                         "rm -f HighRes_Photo___tmp* >& /dev/null");
