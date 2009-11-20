@@ -175,7 +175,8 @@ int SUMA_CommandCode(char *Scom)
    if (!strcmp(Scom,"SetLookFrom")) SUMA_RETURN(SE_SetLookFrom);
    if (!strcmp(Scom,"Redisplay")) SUMA_RETURN(SE_Redisplay);
    if (!strcmp(Scom,"RedisplayNow")) SUMA_RETURN(SE_RedisplayNow);
-   if (!strcmp(Scom,"Redisplay_AllVisible")) SUMA_RETURN(SE_Redisplay_AllVisible);
+   if (!strcmp(Scom,"Redisplay_AllVisible")) 
+      SUMA_RETURN(SE_Redisplay_AllVisible);
    if (!strcmp(Scom,"SetNodeColor")) SUMA_RETURN (SE_SetNodeColor);
    if (!strcmp(Scom,"FlipLight0Pos"))   SUMA_RETURN(SE_FlipLight0Pos);
    if (!strcmp(Scom,"GetNearestNode"))   SUMA_RETURN (SE_GetNearestNode);
@@ -184,10 +185,12 @@ int SUMA_CommandCode(char *Scom)
    if (!strcmp(Scom,"SetCrossHair"))   SUMA_RETURN (SE_SetCrossHair);
    if (!strcmp(Scom,"ToggleCrossHair"))   SUMA_RETURN (SE_ToggleCrossHair);
    if (!strcmp(Scom,"HighlightNodes"))   SUMA_RETURN (SE_HighlightNodes);
-   if (!strcmp(Scom,"ToggleShowSelectedNode"))   SUMA_RETURN (SE_ToggleShowSelectedNode);
+   if (!strcmp(Scom,"ToggleShowSelectedNode"))   
+      SUMA_RETURN (SE_ToggleShowSelectedNode);
    if (!strcmp(Scom,"SetSelectedNode"))   SUMA_RETURN (SE_SetSelectedNode);
    if (!strcmp(Scom,"SetSelectedFaceSet"))   SUMA_RETURN (SE_SetSelectedFaceSet);
-   if (!strcmp(Scom,"ToggleShowSelectedFaceSet"))   SUMA_RETURN (SE_ToggleShowSelectedFaceSet);
+   if (!strcmp(Scom,"ToggleShowSelectedFaceSet"))   
+      SUMA_RETURN (SE_ToggleShowSelectedFaceSet);
    if (!strcmp(Scom,"ToggleConnected")) SUMA_RETURN (SE_ToggleConnected);
    if (!strcmp(Scom,"StartListening")) SUMA_RETURN(SE_StartListening);
    if (!strcmp(Scom,"SetAfniCrossHair")) SUMA_RETURN (SE_SetAfniCrossHair);
@@ -204,7 +207,8 @@ int SUMA_CommandCode(char *Scom)
    if (!strcmp(Scom,"LockCrossHair")) SUMA_RETURN(SE_LockCrossHair);
    if (!strcmp(Scom,"Home")) SUMA_RETURN (SE_Home);
    if (!strcmp(Scom,"Home_AllVisible")) SUMA_RETURN (SE_Home_AllVisible);
-   if (!strcmp(Scom,"ToggleLockAllCrossHair")) SUMA_RETURN(SE_ToggleLockAllCrossHair);
+   if (!strcmp(Scom,"ToggleLockAllCrossHair")) 
+      SUMA_RETURN(SE_ToggleLockAllCrossHair);
    if (!strcmp(Scom,"SetLockAllCrossHair")) SUMA_RETURN(SE_SetLockAllCrossHair);
    if (!strcmp(Scom,"ToggleLockView")) SUMA_RETURN(SE_ToggleLockView);
    if (!strcmp(Scom,"ToggleLockAllViews")) SUMA_RETURN(SE_ToggleLockAllViews);
@@ -213,15 +217,20 @@ int SUMA_CommandCode(char *Scom)
    if (!strcmp(Scom,"Help_Xform")) SUMA_RETURN(SE_Help_Xform);
    if (!strcmp(Scom,"Help_Cmap")) SUMA_RETURN(SE_Help_Cmap);
    if (!strcmp(Scom,"Help_Plot")) SUMA_RETURN(SE_Help_Plot);
+   if (!strcmp(Scom,"Whereami")) SUMA_RETURN(SE_Whereami);
    if (!strcmp(Scom,"UpdateLog")) SUMA_RETURN(SE_UpdateLog);
    if (!strcmp(Scom,"Log")) SUMA_RETURN(SE_Log);
    if (!strcmp(Scom,"SetRenderMode")) SUMA_RETURN(SE_SetRenderMode);
    if (!strcmp(Scom,"OpenDrawROI")) SUMA_RETURN(SE_OpenDrawROI);
-   if (!strcmp(Scom,"RedisplayNow_AllVisible")) SUMA_RETURN(SE_RedisplayNow_AllVisible);
-   if (!strcmp(Scom,"RedisplayNow_AllOtherVisible")) SUMA_RETURN(SE_RedisplayNow_AllOtherVisible);
+   if (!strcmp(Scom,"RedisplayNow_AllVisible")) 
+      SUMA_RETURN(SE_RedisplayNow_AllVisible);
+   if (!strcmp(Scom,"RedisplayNow_AllOtherVisible")) 
+      SUMA_RETURN(SE_RedisplayNow_AllOtherVisible);
    if (!strcmp(Scom,"SetLight0Pos")) SUMA_RETURN(SE_SetLight0Pos);
-   if (!strcmp(Scom,"OpenColFileSelection")) SUMA_RETURN(SE_OpenColFileSelection);
-   if (!strcmp(Scom,"OpenDsetFileSelection")) SUMA_RETURN(SE_OpenDsetFileSelection);
+   if (!strcmp(Scom,"OpenColFileSelection")) 
+      SUMA_RETURN(SE_OpenColFileSelection);
+   if (!strcmp(Scom,"OpenDsetFileSelection")) 
+      SUMA_RETURN(SE_OpenDsetFileSelection);
    if (!strcmp(Scom,"OpenCmapFileSelection")) 
       SUMA_RETURN(SE_OpenCmapFileSelection);
    if (!strcmp(Scom,"SaveDrawnROIFileSelection"))
@@ -424,6 +433,8 @@ const char *SUMA_CommandString (SUMA_ENGINE_CODE code)
          SUMA_RETURN("Help_Cmap");
       case SE_Help_Plot:
          SUMA_RETURN("Help_Plot");
+      case SE_Whereami:
+         SUMA_RETURN("Whereami");
       case SE_UpdateLog:
          SUMA_RETURN("UpdateLog"); 
       case SE_Log:
@@ -992,7 +1003,8 @@ SUMA_Boolean SUMA_RegisterMessage ( DList *list, char *Message,
    
    /* add element at end */
    if (dlist_ins_next (list, dlist_tail(list), (void *)MD) < 0) {
-       fprintf (SUMA_STDERR, "Error %s: Failed to insert message:\n%s from %s in list.\n", 
+       fprintf (SUMA_STDERR, 
+                "Error %s: Failed to insert message:\n%s from %s in list.\n", 
          FuncName, MD->Message, MD->Source);
        SUMA_RETURN(NOPE);
    }
@@ -1003,7 +1015,9 @@ SUMA_Boolean SUMA_RegisterMessage ( DList *list, char *Message,
       for (i=0; i < TrimTheFat; ++i) {
          /* remove the head */
          if (!SUMA_ReleaseMessageListElement (list, dlist_head(list))) {
-            fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_ReleaseMessageListElement.\n", FuncName);
+            fprintf (SUMA_STDERR, 
+                     "Error %s: Failed in SUMA_ReleaseMessageListElement.\n", 
+                     FuncName);
             SUMA_RETURN (NOPE);
          } 
       }
@@ -1454,8 +1468,11 @@ DListElmt * SUMA_RegisterEngineListCommand (DList *list, SUMA_EngineData * Engin
          break;
          
       case SEF_iv15:
-         if (EngineData->iv15_Dest != SEF_Empty) { /* Make sure the data in this field in not predestined */
-            fprintf(SUMA_STDERR, "Error %s: field %d has a preset destination (%d).\n", FuncName, Fld, EngineData->iv15_Dest);
+         if (EngineData->iv15_Dest != SEF_Empty) { /* Make sure the data in this 
+                                                      field in not predestined */
+            fprintf( SUMA_STDERR, 
+                     "Error %s: field %d has a preset destination (%d).\n", 
+                     FuncName, Fld, EngineData->iv15_Dest);
             SUMA_RETURN (NULL);
          }
          { /* assign by value */
@@ -1469,8 +1486,10 @@ DListElmt * SUMA_RegisterEngineListCommand (DList *list, SUMA_EngineData * Engin
          break;
 
       case SEF_iv200:
-         if (EngineData->iv200_Dest != SEF_Empty) { /* Make sure the data in this field in not predestined */
-            fprintf(SUMA_STDERR, "Error %s: field %d has a preset destination (%d).\n", FuncName, Fld, EngineData->iv200_Dest);
+         if (EngineData->iv200_Dest != SEF_Empty) { /* Make sure the data in this                                                      field in not predestined */
+            fprintf( SUMA_STDERR, 
+                     "Error %s: field %d has a preset destination (%d).\n", 
+                     FuncName, Fld, EngineData->iv200_Dest);
             SUMA_RETURN (NULL);
          }
          { /* assign by value */
@@ -1484,18 +1503,27 @@ DListElmt * SUMA_RegisterEngineListCommand (DList *list, SUMA_EngineData * Engin
          break;
      
      case SEF_s:
-         if (EngineData->s_Dest != SEF_Empty) { /* Make sure the data in this field in not predestined */
-            fprintf(SUMA_STDERR, "Error %s: field %d has a preset destination (%d).\n", FuncName, Fld, EngineData->s_Dest);
+         if (EngineData->s_Dest != SEF_Empty) { /* Make sure the data in this 
+                                                   field in not predestined */
+            fprintf( SUMA_STDERR, 
+                     "Error %s: field %d has a preset destination (%d).\n", 
+                     FuncName, Fld, EngineData->s_Dest);
             SUMA_RETURN (NULL);
          }
          { /* assign by value */
             char *st;
             st = (char*)FldValp;
-            if (strlen(st) < SUMA_MAX_STRING_LENGTH) {
-               sprintf(EngineData->s,"%s", st);
+            if (!st) {
+               EngineData->s[0]='\0'; 
             } else {
-               fprintf(SUMA_STDERR, "Error %s: string in FldValp is longer than SUMA_MAX_STRING_LENGTH.\n", FuncName);
-               SUMA_RETURN (NULL);
+               if (strlen(st) < SUMA_MAX_STRING_LENGTH) {
+                  sprintf(EngineData->s,"%s", st);
+               } else {
+                  fprintf(SUMA_STDERR, 
+         "Error %s: string in FldValp is longer than SUMA_MAX_STRING_LENGTH.\n", 
+                     FuncName);
+                  SUMA_RETURN (NULL);
+               }
             }
          }
          EngineData->s_Dest = Dest;
@@ -1896,11 +1924,17 @@ SUMA_Boolean SUMA_RegisterEngineData (SUMA_EngineData *ED, char *Fldname, void *
          { /* assign by value */
             char *st;
             st = (char*)FldValp;
-            if (strlen(st) < SUMA_MAX_STRING_LENGTH) {
-               sprintf(ED->s,"%s", st);
+            if (!st) {
+               ED->s[0]='\0'; 
             } else {
-               fprintf(SUMA_STDERR, "Error %s: string in FldValp is longer than SUMA_MAX_STRING_LENGTH.\n", FuncName);
-               SUMA_RETURN (NOPE);
+               if (strlen(st) < SUMA_MAX_STRING_LENGTH) {
+                  sprintf(ED->s,"%s", st);
+               } else {
+                  fprintf(SUMA_STDERR, 
+         "Error %s: string in FldValp is longer than SUMA_MAX_STRING_LENGTH.\n", 
+                          FuncName);
+                  SUMA_RETURN (NOPE);
+               }
             }
          }
          ED->s_Dest = Dest;

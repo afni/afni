@@ -194,7 +194,7 @@ end
 		   ntilda = length(find(Info.BRICK_LABS == '~'));
          if (ntilda ~= Info.DATASET_RANK(2)),
 			   %err = 1; ErrMessage = sprintf('Error %s: There has to be exactly %d ~ separated labels in BRICK_LABS', FuncName, Info.DATASET_RANK(2)); errordlg(ErrMessage); return;	
-            if (ntilda > 1),
+            if (ntilda ~= Info.DATASET_RANK(2)-1), %otherwise be quiet, it is OK
                fprintf(2, 'Warning %s: You have %d sub-bricks but %d ~ separated labels.\n', FuncName, Info.DATASET_RANK(2), ntilda); 
             end
          end	

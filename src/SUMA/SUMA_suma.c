@@ -153,7 +153,12 @@ void SUMA_usage (SUMA_GENERIC_ARGV_PARSE *ps)
 "                  Since it takes into consideration your own settings\n"
 "                  this command can be used to update your .sumarc \n"
 "                  regularly with a csh command like this:\n"
-"                  suma -environment > ~/sumarc && mv ~/sumarc ~/.sumarc\n" 
+"\n"
+"           suma -environment > ~/sumarc && \\\n"
+"             cp ~/.sumarc ~/.sumarc-bak ; \\\n"
+"             mv ~/sumarc ~/.sumarc\n" 
+"\n"
+"   [-update_env] Performs the set operations detailed under -environment\n"
 "   [-latest_news] Shows the latest news for the current \n"
 "                  version of the entire SUMA package.\n"
 "   [-all_latest_news] Shows the history of latest news.\n"
@@ -481,6 +486,24 @@ int main (int argc,char *argv[])
                   "%s\n", s); 
           SUMA_free(s); s = NULL;
           exit (0);
+		}
+      if (strcmp(argv[kar], "-update_env") == 0) {
+			 if (system("suma -environment > ___sumarc")) {
+            SUMA_S_Err("Failed to create env file.");
+            exit(1);
+          }
+          if (SUMA_filexists("~/.sumarc")) {
+            if (system("\\cp -f ~/.sumarc ~/.sumarc-bak")) {
+               SUMA_S_Err("Failed to backup ~/.sumarc to ~/.sumarc-bak.");
+               exit(1);
+            }
+          }
+          if (system("\\mv ___sumarc ~/.sumarc")) {
+            SUMA_S_Err("Failed to copy newrc (___sumarc) to ~/.sumarc");
+            exit(1); 
+          }
+          SUMA_S_Note("Environment update done.");
+          exit(0);
 		}
       
       if (strcmp(argv[kar], "-latest_news") == 0) {

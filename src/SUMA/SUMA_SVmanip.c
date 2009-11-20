@@ -2027,6 +2027,7 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
    cf->X->Help_TextShell = NULL;
    cf->X->Help_Cmap_TextShell = NULL;
    cf->X->Help_Plot_TextShell = NULL;
+   cf->X->Whereami_TextShell = NULL;
    cf->X->Log_TextShell = NULL;
    cf->X->FileSelectDlg = NULL;
    cf->X->N_ForeSmooth_prmpt = NULL;

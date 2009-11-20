@@ -375,6 +375,8 @@ if (Opt.Scale & isallslices & isallframes),
             M(istrt:istp) = M(istrt:istp) ./ Info.BRICK_FLOAT_FACS(j);
          end
       end
+elseif (Opt.Scale),
+   err = 1; ErrMessage = sprintf('Error %s: Cannot scale data when not writing all frames and all slices.\n', FuncName); errordlg(ErrMessage); return;
 end
 
 numpix=Info.DATASET_DIMENSIONS(1)*Info.DATASET_DIMENSIONS(2);
