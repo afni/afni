@@ -1659,6 +1659,10 @@ thd_rot3d_byte.o:thd_rot3d_byte.c
 	$(RM) $@
 	$(CCFAST) -c thd_rot3d_byte.c $(INFLAGS)
 
+thd_svdblur.o:thd_svdblur.c
+	$(RM) $@
+	$(CCFAST) -c thd_svdblur.c $(INFLAGS)
+
 cox_render.o:cox_render.h cox_render.c
 	$(RM) $@
 	$(CCFAST) -c cox_render.c $(INFLAGS)
@@ -1727,7 +1731,7 @@ THD_OBJS = thd_atr.o thd_dsetto1D.o thd_initalldir.o thd_reconpar.o \
            thd_brainormalize.o thd_opentcat.o thd_nimlatr.o thd_dsetatr.o \
            thd_logafni.o thd_dset_nbhd.o thd_vcheck.o thd_matdaxes.o      \
            thd_niml.o afni_vedit.o thd_fdrcurve.o thd_dset_to_vectim.o    \
-           thd_bandpass.o thd_instacorr.o
+           thd_bandpass.o thd_instacorr.o thd_svdblur.o
 
 # these are now included in NIML
 
