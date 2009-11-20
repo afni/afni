@@ -1688,7 +1688,17 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
          glFinish();
          glXWaitX();
       #ifdef DARWIN
+         
          { GLvoid *pixels;
+           int holdrdc = csv->rdc;
+           /* see justification for this SUMA_handleRedisplay in function
+               SUMA_R_Key(). You need to change rdc to avoid getting into
+               recorder when SUMA_handleRedisplay ends up calling this
+               function again. */
+           csv->rdc = SUMA_RDC_X_EXPOSE; /* any thing that avoids a record
+                                            operation ... */
+           SUMA_handleRedisplay((XtPointer)csv->X->GLXAREA);
+           csv->rdc=holdrdc;
            pixels = SUMA_grabPixels(1, csv->X->WIDTH, csv->X->HEIGHT);
            if (pixels) {
              ISQ_snapsave( csv->X->WIDTH, -csv->X->HEIGHT,
