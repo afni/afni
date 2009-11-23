@@ -1,9 +1,5 @@
 #include "mrilib.h"
 
-#define MEAN     1
-#define ZMEAN    2
-#define QMEAN    3
-
 #ifdef USE_OMP
 #include <omp.h>
 #endif
@@ -46,11 +42,45 @@ static void vstep_print(void)
 }
 
 /*----------------------------------------------------------------------------*/
+/* Binary search for tt in a sorted integer array. */
+
+static int mybsearch_int( int tt , int nar , int *ar )
+{
+   int targ , ii , jj , kk , nn ;
+
+   if( nar == 0 || ar == NULL ) return -1 ; /* bad inputs */
+
+   targ = tt ; ii = 0 ; jj = nar-1 ;      /* setup */
+
+        if( targ <  ar[0]  ) return -1 ;  /* not found */
+   else if( targ == ar[0]  ) return  0 ;  /* at start! */
+
+        if( targ >  ar[jj] ) return -1 ;  /* not found */
+   else if( targ == ar[jj] ) return jj ;  /* at end!   */
+
+   /* at the start of this loop, we've already checked
+      indexes ii and jj, so check the middle of them (kk),
+      and if that doesn't work, make the middle the
+      new ii or the new jj -- so again we will have
+      checked both ii and jj when the loop iterates back. */
+
+   while( jj-ii > 1 ){
+     kk = (ii+jj) / 2 ;         /* midpoint */
+     nn = ar[kk] - targ ;       /* sign of difference */
+     if( nn == 0 ) return kk ;  /* found it! */
+     if( nn <  0 ) ii = kk ;    /* must be above kk */
+     else          jj = kk ;    /* must be below kk */
+   }
+
+   return -1 ;
+}
+
+/*----------------------------------------------------------------------------*/
 
 int main( int argc , char *argv[] )
 {
-   THD_3dim_dataset *xset=NULL ;
-   THD_3dim_dataset *bset=NULL ;
+   THD_3dim_dataset *xset=NULL ; int nx,ny,nz,nxy ;
+   THD_3dim_dataset *sset=NULL ;
    int nopt=1 , do_automask=0 ;
    int nvox , nvals , ii,jj,kk , polort=1 , ntime ;
    float *xsar ; float acc,cc,csum,Mcsum,Zcsum,Qcsum , Tcount ;
@@ -58,7 +88,7 @@ int main( int argc , char *argv[] )
    int nref=0 , iv=0, N_iv=0, Tbone=0;
    float **ref=NULL, t0=0.0, t1=0.0, ti=0.0;
    MRI_IMAGE *ortim=NULL ; float *ortar=NULL ;
-   int *indx=NULL ; MRI_IMARR *timar=NULL ; MRI_IMARR *bimar=NULL ;
+   int *indx=NULL ; MRI_IMARR *timar=NULL ; MRI_IMARR *simar=NULL ;
    char *Mprefix=NULL ; THD_3dim_dataset *Mset=NULL ; float *Mar=NULL ;
    char *Zprefix=NULL ; THD_3dim_dataset *Zset=NULL ; float *Zar=NULL ;
    char *Qprefix=NULL ; THD_3dim_dataset *Qset=NULL ; float *Qar=NULL ;
@@ -88,42 +118,129 @@ int main( int argc , char *argv[] )
 
    float bpass_L=0.0f , bpass_H=0.0f , dtime ; int do_bpass=0 ;
    double ctime ;
-   float blur=0.0f ;
+   float gblur=0.0f ;
+   float Mseedr=0.0f , dx,dy,dz ; MCW_cluster *Mseed_nbhd=NULL ;
+   float *Mseedar=NULL ;
+
+   int PCortn=0 , PCnmask=0 ; byte *PCmask=NULL ; int PCnx=0, PCny=0, PCnz=0 ;
+   MRI_IMARR *PCimar=NULL ;
 
    /*----*/
 
    if( argc < 2 || strcasecmp(argv[1],"-help") == 0 ){
       printf(
        "Usage: 3dTcorrMap [options]\n"
-       "For each voxel, computes the correlation between it and all\n"
-       "other voxels, and averages these into the output.  Supposed\n"
-       "to give a measure of how 'connected' each voxel is to the\n"
-       "rest of the brain.  (As if life were that simple.)\n"
+       "For each voxel time series, computes the correlation between it\n"
+       "and all other voxels, and combines this set of values into the\n"
+       "output dataset(s) in some way.\n"
        "\n"
+       "Supposed to give a measure of how 'connected' each voxel is\n"
+       "to the rest of the brain.  [[As if life were that simple.]]\n"
+       "\n"
+       "---------\n"
        "WARNINGS:\n"
+       "---------\n"
        "** This program takes a LONG time to run.\n"
        "** This program will use a LOT of memory.\n"
+       "** Don't say I didn't warn you about these facts, and don't whine.\n"
        "\n"
-       "OPTIONS:\n"
+       "--------------\n"
+       "Input Options:\n"
+       "--------------\n"
        "  -input dd = Read 3D+time dataset 'dd' (a mandatory option).\n"
+       "               This provides the time series to be correlated\n"
+       "               en masse.\n"
        "\n"
-       "  -base bb  = Read 3D+time dataset 'bb'.\n"
+       "  -seed bb  = Read 3D+time dataset 'bb'.\n"
        "             * If you use this option, for each voxel in the\n"
-       "                '-base' dataset, its time series is correlated\n"
+       "                -seed dataset, its time series is correlated\n"
        "                with every voxel in the -input dataset, and\n"
        "                then that collection of correlations is processed\n"
-       "                to produce the output for that -base voxel.\n"
-       "             * If you don't use -base, then the -input dataset\n"
-       "                is the -base dataset.\n"
-       "             * The -base and -input datasets must have the\n"
+       "                to produce the output for that voxel.\n"
+       "             * If you don't use -seed, then the -input dataset\n"
+       "                is the -seed dataset.\n"
+       "             * The -seed and -input datasets must have the\n"
        "                same number of time points and the same number\n"
-       "                of voxels.\n"
-       "             * Unlike the -input dataset, the -base dataset is not\n"
+       "                of voxels!\n"
+       "             * Unlike the -input dataset, the -seed dataset is not\n"
        "                preprocessed (i.e., no detrending/bandpass or blur).\n"
-       "                 (The main purpose of this -base option is to)\n"
+       "                 (The main purpose of this -seed option is to)\n"
        "                 (allow you to preprocess the seed voxel time)\n"
        "                 (series in some personalized and unique way.)\n"
        "\n"
+       "  -mask mmm = Read dataset 'mmm' as a voxel mask.\n"
+       "\n"
+       "  -automask = Create a mask from the input dataset.\n"
+       "             * -mask and -automask are mutually exclusive!\n"
+       "             * If you don't use one of these masking options, then\n"
+       "               all voxels will be processed, and the program will\n"
+       "               probably run for a VERY long time.\n"
+       "\n"
+       "----------------------------------\n"
+       "Time Series Preprocessing Options: (applied only to -input, not to -seed)\n"
+       "----------------------------------\n"
+       "TEMPORAL FILTERING:\n"
+       "  -polort m  = Remove polynomial trend of order 'm', for m=-1..19.\n"
+       "                [default is m=1; removal is by least squares].\n"
+       "             ** Using m=-1 means no detrending; this is only useful\n"
+       "                for data/information that has been pre-processed.\n"
+       "\n"
+       "  -bpass L H = Bandpass the data between frequencies L and H (in Hz).\n"
+       "             ** If the input dataset does not have a time step defined,\n"
+       "                then TR = 1 s will be assumed for this purpose.\n"
+       "           **** -bpass and -polort are mutually exclusive!\n"
+       "\n"
+       "  -ort ref   = 1D file with other time series to be removed from -input\n"
+       "                (via least squares regression) before correlation.\n"
+       "             ** Each column in 'ref' will be regressed out of\n"
+       "                 each -input voxel time series.\n"
+       "             ** -ort can be used with -polort and/or -bandpass.\n"
+       "             ** You can use programs like 3dmaskave and 3dmaskSVD\n"
+       "                 to create reference files from regions of the\n"
+       "                 input dataset.\n"
+#if 0
+       "\n"
+       "  -PCort n mmm = From the -input dataset, extract the time series\n"
+       "                  from the mask 'mmm', then detrend them (as in\n"
+       "                  -polort/-bpass + -ort), then compute the first\n"
+       "                  'n' principal components (SVD eigenvectors)\n"
+       "                  and regress these out of the -input data as well.\n"
+       "               ** 'mmm' might be a white matter mask, for example.\n"
+       "               ** Similar to using program '3dmaskSVD -sval n' and\n"
+       "                   using that output with '-ort' in this program.\n"
+       "             **** This is the last preprocessing step before the\n"
+       "                   long long all-voxel-pairs correlation begins.\n"
+#endif
+       "\n"
+       "SPATIAL FILTERING:\n"
+       "  -Gblur ff  = Gaussian blur the -input dataset (inside the mask)\n"
+       "                using a kernel width of 'ff' mm.\n"
+       "            ** Uses the same approach as program 3dBlurInMask.\n"
+       "\n"
+       "  -Mseed rr  = When extracting the seed voxel time series from the\n"
+       "                (preprocessed) -input dataset, average it over a radius\n"
+       "                of 'rr' mm prior to doing the correlations with all\n"
+       "                the voxel time series from the -input dataset.\n"
+       "            ** This extra smoothing is said by some mystics to\n"
+       "                improve and enhance the results.  YMMV.\n"
+       "            ** Only voxels inside the mask will be used.\n"
+       "            ** A negative value for 'rr' means to treat the voxel\n"
+       "                dimensions as all equal to 1.0 mm; thus, '-Mseed -1.0'\n"
+       "                means to average a voxel with its 6 nearest\n"
+       "                neighbors in the -input dataset 3D grid.\n"
+       "            ** -Mseed and -seed are mutually exclusive!\n"
+       "               (It makes NO sense to use both options.)\n"
+#if 0
+       "\n"
+       "  -Pseed rr  = Similar to -Mseed, but instead of averaging, use the\n"
+       "                first principal component (first SVD eigenvector),\n"
+       "                instead of the mean vector.\n"
+       "          **** -Mseed and -Pseed are mutually exclusive!\n"
+#endif
+       "\n"
+       "---------------\n"
+       "Output Options: (at least one of these must be given!)\n"
+       "---------------\n"
        "  -Mean pp  = Save average correlations into dataset prefix 'pp'\n"
        "  -Zmean pp = Save tanh of mean arctanh(correlation) into 'pp'\n"
        "  -Qmean pp = Save RMS(correlation) into 'pp'\n"
@@ -174,35 +291,23 @@ int main( int argc , char *argv[] )
        "           ** N values will be saved per voxel, with the i'th\n"
        "              sub-brick containing the count for the range\n"
        "                -1+i*D <= r < -1+(i+1)*D  with D=2/N and i=0..N-1\n"
-       "           ** N must be at least 20, and at most 1000\n"
+       "           ** N must be at least 20, and at most 1000.\n"
+       "            * N=200 is good; then D=0.01, yielding a decent resolution.\n"
        "           ** The output dataset is short format; thus, the maximum\n"
        "              count in any bin will be 32767.\n"
+       "           ** The output from this option will probably require\n"
+       "              further processing before it can be useful -- but it is\n"
+       "              kind of fun to surf through these histograms in AFNI's\n"
+       "              graph viewer.\n"
        "\n"
-       "  *** At least one of the above output options must be given!!! ***\n"
-       "\n"
-       "  -polort m  = Remove polynomial trend of order 'm', for m=-1..19.\n"
-       "                [default is m=1; removal is by least squares].\n"
-       "                Using m=-1 means no detrending; this is only useful\n"
-       "                for data/information that has been pre-processed.\n"
-       "\n"
-       "  -bpass L H = Bandpass the data between frequencies L and H (in Hz).\n"
-       "             ** -bpass and -polort are mutually exclusive!\n"
-       "             ** If the input dataset does not have a time step defined,\n"
-       "                then TR = 1 s will be assumed for this purpose.\n"
-       "\n"
-       "  -ort rr    = 1D file with other time series to be removed\n"
-       "                (via least squares regression) before correlation.\n"
-       "             ** -ort can be used with -polort and/or -bandpass.\n"
-       "\n"
-       "  -blur ff   = Gaussian blur the input dataset (inside the mask) with\n"
-       "                a kernel width of 'ff' mm.\n"
-       "\n"
-       "  -mask mm  = Read dataset 'mm' as a voxel mask.\n"
-       "  -automask = Create a mask from the input dataset.\n"
-       "\n"
-       "-- This purely experimental program is somewhat slow.\n"
+       "----------------\n"
+       "Random Thoughts:\n"
+       "----------------\n"
+       "-- In all output calculations, the correlation of a voxel with\n"
+       "   itself is ignored.\n"
+       "-- This purely experimental program is somewhat time consuming.\n"
        "   (Of course, it's doing a LOT of calculations.)\n"
-       "-- For Kyle, AKA the new Pat (if such a thing were possible).\n"
+       "-- For Kyle, AKA the new Pat (assuming such a thing were possible).\n"
        "-- For Steve, AKA the new Kyle (which makes him the newest Pat).\n"
        "-- RWCox - August 2008 et cetera.\n"
       ) ;
@@ -221,17 +326,46 @@ int main( int argc , char *argv[] )
 
    while( nopt < argc && argv[nopt][0] == '-' ){
 
-      if( strcasecmp(argv[nopt],"-blur") == 0 ){
-        blur = (float)strtod( argv[++nopt] , NULL ) ;
-        if( blur < 0.0f ) ERROR_exit("Illegal value after -blur") ;
+      if( strcasecmp(argv[nopt],"-Mseed") == 0 ){
+        if( sset != NULL ) ERROR_exit("Can't use -Mseed with -seed!") ;
+        Mseedr = (float)strtod( argv[++nopt] , NULL ) ;
+        if( Mseedr == 0.0f ) ERROR_exit("Illegal value after -Mseed") ;
+        nopt++ ; continue ;
+      }
+
+      if( strcasecmp(argv[nopt],"-Gblur") == 0 ){
+        gblur = (float)strtod( argv[++nopt] , NULL ) ;
+        if( gblur < 0.0f ) ERROR_exit("Illegal value after -Gblur") ;
         nopt++ ; continue ;
       }
 
       if( strcasecmp(argv[nopt],"-ort") == 0 ){
+        if( ortim != NULL ) ERROR_exit("Can't have 2 -ort options!") ;
         ortim = mri_read_1D( argv[++nopt] ) ;
         if( ortim == NULL ) ERROR_exit("Can't read file after -ort") ;
         nopt++ ; continue ;
       }
+
+#if 0
+      if( strcasecmp(argv[nopt],"-PCort") == 0 ){
+        THD_3dim_dataset *mset ;
+        if( nopt+2 >= argc ) ERROR_exit("Need 2 arguments after '-PCort'") ;
+        if( PCortn > 0 ) ERROR_exit("Can't have 2 -PCort options") ;
+        PCortn = (int)strtod(argv[++nopt],NULL) ;
+        if( PCortn <= 0 ) ERROR_exit("Illegal 'n' after -PCort") ;
+
+        mset = THD_open_dataset( argv[++nopt] ); CHECK_OPEN_ERROR(mset,argv[nopt-1]);
+        DSET_load(mset) ; CHECK_LOAD_ERROR(mset) ;
+        PCnx = DSET_NX(mset); PCny = DSET_NY(mset); PCnz = DSET_NZ(mset);
+        PCmask = THD_makemask( mset , 0 , 0.5f, 0.0f ) ; DSET_delete(mset) ;
+        if( PCmask == NULL )
+          ERROR_exit("Can't make -PCort mask from dataset '%s'",argv[nopt]) ;
+        PCnmask = THD_countmask( PCnx*PCny*PCnz , PCmask ) ;
+        INFO_message("Number of voxels in -PCort mask = %d",PCnmask) ;
+        if( nmask < 9 ) ERROR_exit("-PCort mask is too small to process") ;
+        nopt++ ; continue ;
+      }
+#endif
 
       if( strcasecmp(argv[nopt],"-automask") == 0 ){
          if( mask != NULL ) ERROR_exit("Can't use -automask and -mask!") ;
@@ -355,8 +489,8 @@ int main( int argc , char *argv[] )
 
       if( strcasecmp(argv[nopt],"-bpass") == 0 ){
         if( nopt+2 >= argc ) ERROR_exit("need 2 args after -bpass") ;
-        bpass_L = (float)PARSER_strtod(argv[++nopt]) ;
-        bpass_H = (float)PARSER_strtod(argv[++nopt]) ;
+        bpass_L = (float)strtod(argv[++nopt],NULL) ;
+        bpass_H = (float)strtod(argv[++nopt],NULL) ;
         if( bpass_L < 0.0f || bpass_H <= bpass_L )
           ERROR_exit("Illegal values after -bpass") ;
         nopt++ ; continue ;
@@ -369,8 +503,9 @@ int main( int argc , char *argv[] )
       }
 
       if( strcasecmp(argv[nopt],"-base") == 0 ){
-        if( bset != NULL ) ERROR_exit("Can't use -base twice!") ;
-        bset = THD_open_dataset(argv[++nopt]); CHECK_OPEN_ERROR(bset,argv[nopt]);
+        if( sset != NULL ) ERROR_exit("Can't use -seed twice!") ;
+        if( Mseedr != 0.0f ) ERROR_exit("Can't use -seed with -Mseed!") ;
+        sset = THD_open_dataset(argv[++nopt]); CHECK_OPEN_ERROR(sset,argv[nopt]);
         nopt++ ; continue ;
       }
 
@@ -420,12 +555,12 @@ int main( int argc , char *argv[] )
      polort = -1 ;
    }
 
-   if( bset != NULL ){
-     if( DSET_NVALS(bset) != ntime )
+   if( sset != NULL ){
+     if( DSET_NVALS(sset) != ntime )
        ERROR_exit("-base dataset time series length %d doesn't match -input %d",
-                  DSET_NVALS(bset) , ntime ) ;
+                  DSET_NVALS(sset) , ntime ) ;
 
-     if( DSET_NVOX(bset) != DSET_NVOX(xset) )
+     if( DSET_NVOX(sset) != DSET_NVOX(xset) )
        ERROR_exit("-base dataset doesn't match -input dataset in space") ;
    }
 
@@ -444,7 +579,9 @@ int main( int argc , char *argv[] )
 
    /*-- compute mask array, if desired --*/
 
-   nvox = DSET_NVOX(xset) ;
+   nx = DSET_NX(xset) ;
+   ny = DSET_NY(xset) ; nxy = nx*ny ;
+   nz = DSET_NZ(xset) ; nvox = nxy*nz ;
 
    if( do_automask ){
      mask  = THD_automask( xset ) ;
@@ -454,14 +591,20 @@ int main( int argc , char *argv[] )
      else
        ERROR_exit("only %d voxels survive -automask",nmask) ;
    } else if( mask != NULL ){
-     if( nxmask != DSET_NX(xset) ||
-         nymask != DSET_NY(xset) || nzmask != DSET_NZ(xset) )
+     if( nxmask != nx || nymask != ny || nzmask != nz )
        ERROR_exit("-mask and -input datasets differ in voxel grids!") ;
    } else {
      nmask = nvox ;
      mask  = (byte *)malloc(sizeof(byte)*nmask) ;
      memset( mask  , 1 , sizeof(byte)*nmask ) ;
      INFO_message("computing for all %d voxels!",nmask) ;
+   }
+
+   /*-- check PCort mask (if any) for matchingness --*/
+
+   if( PCortn > 0 ){
+     if( PCnx != nx || PCny != ny || PCnz != nz )
+       ERROR_exit("-PCort mask doesn't match -input dataset voxel grid!") ;
    }
 
    /*-- create output datasets --*/
@@ -647,24 +790,45 @@ int main( int argc , char *argv[] )
    free(xsar) ;
    ii = THD_countmask( nvox , mask ) ;
    if( ii < nmask ){
-     if( ii > 9 ) ININFO_message("only %d voxels in dataset are actually non-constant"  ,ii);
-     else         ERROR_exit    ("only %d voxels in dataset are actually non-constant!?",ii);
+     if( ii > 9 ) ININFO_message("only %d voxels in dataset are non-constant"  ,ii);
+     else         ERROR_exit    ("only %d voxels in dataset are non-constant!?",ii);
      nmask = ii ;
    }
 
-   /* blur inside the mask */
+   /* make neighborhood mask for -Mseed, if needed */
 
-   if( blur > 0.0f ){
-     float dx,dy,dz , fx,fy,fz ; int nrep=0 ;
+   dx = fabsf(DSET_DX(xset)) ;
+   dy = fabsf(DSET_DY(xset)) ;
+   dz = fabsf(DSET_DZ(xset)) ;
+
+   if( Mseedr > 0.0f ){
+     Mseed_nbhd = MCW_spheremask( dx,dy,dz , Mseedr ) ;
+     if( Mseed_nbhd == NULL || Mseed_nbhd->num_pt < 2 )
+       ERROR_exit("Can't build -Mseed neighborhood mask!?") ;
+     ININFO_message("%d voxels in -Mseed neighborhood",Mseed_nbhd->num_pt) ;
+   } else if( Mseedr < 0.0f ){
+     Mseedr = -Mseedr ; if( Mseedr < 1.01f ) Mseedr = 1.01f ;
+     Mseed_nbhd = MCW_spheremask( 1.0f,1.0f,1.0f , Mseedr ) ;
+     if( Mseed_nbhd == NULL || Mseed_nbhd->num_pt < 2 )
+       ERROR_exit("Can't build -Mseed neighborhood mask!?") ;
+     ININFO_message("%d voxels in -Mseed neighborhood",Mseed_nbhd->num_pt) ;
+   }
+
+   if( Mseedr > 0.0f ) Mseedar = (float *)malloc(sizeof(float)*ntime) ;
+
+   /* Gblur inside the mask */
+
+   if( gblur > 0.0f ){
+     float fx,fy,fz ; int nrep=0 ;
      MRI_IMAGE *bim ; float *bar ;
 
-     dx = fabsf(DSET_DX(xset)) ; if( DSET_NX(xset) == 1 ) dx = 0.0f ;
-     dy = fabsf(DSET_DY(xset)) ; if( DSET_NY(xset) == 1 ) dy = 0.0f ;
-     dz = fabsf(DSET_DZ(xset)) ; if( DSET_NZ(xset) == 1 ) dz = 0.0f ;
+     if( nx == 1 ) dx = 0.0f ;
+     if( ny == 1 ) dy = 0.0f ;
+     if( nz == 1 ) dz = 0.0f ;
 
-     mri_blur3D_getfac( blur , dx,dy,dz , &nrep , &fx,&fy,&fz ) ;
+     mri_blur3D_getfac( gblur , dx,dy,dz , &nrep , &fx,&fy,&fz ) ;
      if( nrep > 0 && fx > 0.0f && fy > 0.0f && fz >= 0.0f ){
-       ININFO_message("blurring parameters: #iter=%d fx=%.5f fy=%.5f fz=%.5f" ,
+       ININFO_message("-Gblur-ing parameters: #iter=%d fx=%.5f fy=%.5f fz=%.5f" ,
                       nrep , fx , fy , fz ) ;
        for( iv=0 ; iv < ntime ; iv++ ){
          bim = THD_extract_float_brick( iv , xset ) ;
@@ -674,38 +838,67 @@ int main( int argc , char *argv[] )
          mri_clear_data_pointer(bim) ; mri_free(bim) ;
        }
      } else {
-       WARNING_message("Can't blur input dataset for some reason") ;
+       WARNING_message("Can't -Gblur input dataset for some reason") ;
      }
    }
 
-   /* remove trends now (if not bandpassing) */
+   /* remove trends (-polort and -ort) now (if not bandpassing later) */
 
    if( nref > 0 && !do_bpass ){
-     THD_3dim_dataset *yset ;
+     THD_3dim_dataset *yset ; byte *rmask=mask ;
      ININFO_message("Detrending input dataset with %d references",nref) ;
-     yset = THD_detrend_dataset( xset , nref,ref , 2,0 , mask , NULL ) ;
+     if( PCmask != NULL ){
+       rmask = (byte *)malloc(sizeof(byte)*nvox) ;
+       for( ii=0 ; ii < nvox ; ii++ ) rmask[ii] = (mask[ii] || PCmask[ii]) ;
+     }
+     yset = THD_detrend_dataset( xset , nref,ref , 2,0 , rmask , NULL ) ;
      if( yset == NULL ) ERROR_exit("Detrending fails!?") ;
      DSET_delete(xset) ; xset = yset ;
+     if( rmask != mask ) free(rmask) ;
    }
+
+   /* create indx[jj] = voxel index in dataset whence
+                        jj-th extracted time series came */
+
+   indx = (int *)malloc(sizeof(int)*nmask) ;
+   for( ii=jj=0 ; ii < nvox ; ii++ ) if( mask[ii] ) indx[jj++] = ii ;
 
    /* extract dataset time series into an array of
       time series vectors, for ease and speed of access */
 
-   indx = (int *)malloc(sizeof(int)*nmask) ;
-   for( ii=jj=0 ; ii < nvox ; ii++ ) if( mask[ii] ) indx[jj++] = ii ;
    ININFO_message("extracting mask-ed time series") ;
    timar = THD_extract_many_series( nmask , indx , xset ) ;
    if( timar == NULL ) ERROR_exit("-input extraction failed!?") ;
-   DSET_delete(xset) ;
 
-   if( bset != NULL ){
-     DSET_load(bset) ; CHECK_LOAD_ERROR(bset) ;
-     bimar = THD_extract_many_series( nmask , indx , bset ) ;
-     if( bimar == NULL ) ERROR_exit("-base extraction failed!?") ;
-     DSET_delete(bset) ;
+   /* extract PCmask time series from xset */
+   /* if -polort was invoked, then these will already be detrended above */
+
+   if( PCortn > 0 ){
+     int *pcdx = (int *)malloc(sizeof(int)*PCnmask) ;
+     for( ii=jj=0 ; ii < nvox ; ii++ ) if( PCmask[ii] ) pcdx[jj++] = ii ;
+     PCimar = THD_extract_many_series( PCnmask , pcdx , xset ) ;
+     if( PCimar == NULL )                               /* should not happen */
+       ERROR_exit("Can't get -PCort data from -input dataset!?") ;
+     free(pcdx) ;
    }
 
-   free(mask) ;
+   /* done with -input dataset */
+
+   DSET_delete(xset) ;
+
+   /* if -seed was given, get that set of time series as well */
+
+   if( sset != NULL ){
+     DSET_load(sset) ; CHECK_LOAD_ERROR(sset) ;
+     simar = THD_extract_many_series( nmask , indx , sset ) ;
+     if( simar == NULL ) ERROR_exit("-base extraction failed!?") ;
+     DSET_delete(sset) ;
+   }
+
+   /* only need the mask later if doing spatial
+      processing inside the voxel processing loop */
+
+   if( Mseedr == 0.0f ){ free(mask); mask = NULL; }
 
    /* do bandpass now, if so desired */
 
@@ -715,16 +908,60 @@ int main( int argc , char *argv[] )
      for( kk=0 ; kk < nmask ; kk++ )
        vec[kk] = MRI_FLOAT_PTR( IMARR_SUBIM(timar,kk) ) ;
 
-     kk = THD_bandpass_vectors( ntime , nmask   , vec     ,
-                                dtime , bpass_L , bpass_H ,
-                                1     , nref    , ref      ) ;
-     if( kk <= 0 )
-       ERROR_exit("Bandpass failed for some reason?") ;
-     else
-       ININFO_message("Bandpass projected out %d dimensions",kk) ;
+     (void)THD_bandpass_vectors( ntime , nmask   , vec     ,
+                                 dtime , bpass_L , bpass_H ,
+                                 1     , nref    , ref      ) ;
+
+     /* bandpass PCort vectors also */
+
+     if( PCortn > 0 ){
+       vec = (float **)realloc(vec,sizeof(float *)*PCnmask) ;
+       for( kk=0 ; kk < PCnmask ; kk++ )
+         vec[kk] = MRI_FLOAT_PTR( IMARR_SUBIM(PCimar,kk) ) ;
+
+       (void)THD_bandpass_vectors( ntime , PCnmask , vec     ,
+                                   dtime , bpass_L , bpass_H ,
+                                   1     , nref    , ref      ) ;
+     }
+
+     free(vec) ;
    }
 
-   /* normalize so sum of squares is 1, for speed in computing correlations */
+   /* Now remove PCort trends from timar */
+
+   if( PCortn > 0 ){
+     float *uvec = (float *)malloc(sizeof(float)*ntime*PCortn) ;
+     float *svec = (float *)malloc(sizeof(float)*PCortn) ;
+     int    nvec ; register float sum ; float *usar ;
+
+     nvec = mri_principal_vectors( PCimar , PCortn , svec,uvec ) ;
+     if( nvec <= 0 )
+       ERROR_exit("Can't compute -PCort SVD!?") ;
+     else if( nvec < PCortn )
+       WARNING_message("-PCort: only have %d components, not %d",nvec,PCortn) ;
+     DESTROY_IMARR(PCimar) ;
+
+     fprintf(stderr,"++ -PCort singular values:") ;
+     for( kk=0 ; kk < nvec ; kk++ ) fprintf(stderr," %.4g",svec[kk]) ;
+     fprintf(stderr,"\n") ; free(svec) ;
+
+     /* in the loop below, recall that the vectors [usar]
+        are L2-normalized and orthogonal, so they can be
+        projected out sequentially and by a simple dot product */
+
+     for( ii=0 ; ii < nmask ; ii++ ){
+       xsar = MRI_FLOAT_PTR( IMARR_SUBIM(timar,kk) ) ;
+       for( kk=0 ; kk < nvec ; kk++ ){
+         sum = 0.0f ; usar = uvec + kk*ntime ;
+         for( jj=0 ; jj < ntime ; jj++ ) sum += xsar[jj]*usar[jj] ;
+         for( jj=0 ; jj < ntime ; jj++ ) xsar[jj] -= sum*usar[jj] ;
+       }
+     }
+     free(uvec) ; free(PCmask) ;
+   }
+
+   /* normalize -input vectors so sum of squares is 1,
+      for speed in computing correlations (and we like speed) */
 
    ININFO_message("normalizing extracted time series") ;
    for( ii=0 ; ii < nmask ; ii++ ){
@@ -736,9 +973,9 @@ int main( int argc , char *argv[] )
        for( jj=0 ; jj < ntime ; jj++ ) xsar[jj] *= csum ;
      }
    }
-   if( bimar != NULL ){
+   if( simar != NULL ){               /* ditto for -seed vectors */
      for( ii=0 ; ii < nmask ; ii++ ){
-       xsar = MRI_FLOAT_PTR( IMARR_SUBIM(bimar,ii) ) ;
+       xsar = MRI_FLOAT_PTR( IMARR_SUBIM(simar,ii) ) ;
        csum = 0.0f ;
        for( jj=0 ; jj < ntime ; jj++ ) csum += xsar[jj]*xsar[jj] ;
        if( csum > 0.0f ){  /* should always be true */
@@ -748,6 +985,7 @@ int main( int argc , char *argv[] )
      }
    }
 
+   /*-------------------------------------------------------------------*/
    /*--- loop over voxels, correlate (lots and lots of CPU time now) ---*/
 
    vstep = (nmask > 999) ? nmask/50 : 0 ;
@@ -791,9 +1029,9 @@ int main( int argc , char *argv[] )
 #endif
 
    for( ii=0 ; ii < nmask ; ii++ ){  /* outer loop over voxels: */
-                                     /* time series to correlate with */
+                                     /* seed time series to correlate with */
 
-     if( vstep && ii%vstep == vstep-1 ){
+     if( vstep && ii%vstep == vstep-1 ){  /* palliate the user's pain */
        if( ii < vstep ){
          dtt = etime(&tt,1) ;
          ININFO_message("Single loop duration: %.1f mins\n"
@@ -804,16 +1042,40 @@ int main( int argc , char *argv[] )
        vstep_print() ;
      }
 
-     if( bimar != NULL )                                /* get ii-th time series */
-       xsar = MRI_FLOAT_PTR( IMARR_SUBIM(bimar,ii) ) ;
-     else
+     /* get the ii-th time series */
+
+     if( simar != NULL ){                              /* from -seed dataset */
+       xsar = MRI_FLOAT_PTR( IMARR_SUBIM(simar,ii) ) ;
+
+     } else if( Mseedr == 0.0f ){                     /* from -input dataset */
        xsar = MRI_FLOAT_PTR( IMARR_SUBIM(timar,ii) ) ;
+
+     } else {                          /* from -input dataset, then averaged */
+       int mm , xc,yc,zc , xm,ym,zm , uu , nuu ;
+       xsar = MRI_FLOAT_PTR( IMARR_SUBIM(timar,ii) ) ;      /* central voxel */
+       for( uu=0 ; uu < ntime ; uu++ ) Mseedar[uu] = xsar[uu] ;
+       IJK_TO_THREE(indx[ii],xc,yc,zc,nx,nxy) ; /* 3D index of central voxel */
+       for( nuu=mm=1 ; mm < Mseed_nbhd->num_pt ; mm++ ){
+         xm = xc + Mseed_nbhd->i[mm] ; if( xm < 0 || xm >= nx ) continue ;
+         ym = yc + Mseed_nbhd->j[mm] ; if( ym < 0 || ym >= ny ) continue ;
+         zm = zc + Mseed_nbhd->k[mm] ; if( zm < 0 || zm >= nz ) continue ;
+         jj = THREE_TO_IJK(xm,ym,zm,nx,nxy) ;    /* 3D index of offset voxel */
+         if( !mask[jj] ) continue ;               /* not in mask ==> skip it */
+         kk = mybsearch_int( jj , nmask , indx ) ;   /* find in indx[] array */
+         if( kk < 0 ) continue ;                        /* should not happen */
+         xsar = MRI_FLOAT_PTR( IMARR_SUBIM(timar,kk) ) ;    /* add add it in */
+         for( uu=0 ; uu < ntime ; uu++ ) Mseedar[uu] += xsar[uu] ;
+         nuu++ ;                      /* count of number of vectors added in */
+       }
+       if( nuu > 1 ) THD_normalize( ntime , Mseedar ) ;      /* L2 normalize */
+       xsar = Mseedar ;             /* assign computed array to seed pointer */
+     }
 
 #pragma omp parallel
  { int vv,uu ; float *ysar ; float qcc ;
  AFNI_OMP_START ;
 #pragma omp for
-     for( vv=0 ; vv < nmask ; vv++ ){ /* inner loop over voxels */
+     for( vv=0 ; vv < nmask ; vv++ ){ /*------- inner loop over voxels -------*/
 
        if( vv==ii ){ ccar[vv] = 0.0f ; continue ; }
        ysar = MRI_FLOAT_PTR( IMARR_SUBIM(timar,vv) ) ;
@@ -901,6 +1163,8 @@ int main( int argc , char *argv[] )
 
    } /* end of outer loop over voxels (ii) */
 
+   /*-------------------------------------------------------------------*/
+
    if (Tbone) { /* scale by expected number of voxels by chance */
       float p[3], sc, pval;
       p[0] = (float)ntime;
@@ -925,7 +1189,9 @@ int main( int argc , char *argv[] )
    /*--- finito ---*/
 
    free(indx) ; DESTROY_IMARR(timar) ; free(ccar) ;
-   if( bimar != NULL ) DESTROY_IMARR(bimar) ;
+   if( simar   != NULL ) DESTROY_IMARR(simar) ;
+   if( mask    != NULL ) free(mask) ;
+   if( Mseedar != NULL ) free(Mseedar) ;
 
    if( atoz[17] ) free(atoz[17]) ;
    if( atoz[25] ) free(atoz[25]) ;

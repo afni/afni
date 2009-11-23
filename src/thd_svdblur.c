@@ -1,11 +1,5 @@
 #include "mrilib.h"
 
-static MRI_IMARR * THD_get_dset_nbhd_array( THD_3dim_dataset *dset, byte *mask,
-                                            int xx, int yy, int zz, MCW_cluster *nbhd ) ;
-static int mri_principal_vectors( MRI_IMARR *imar ,
-                                  int nvec , float *sval , float *uvec ) ;
-static MRI_IMAGE * mri_svdproj( MRI_IMARR *imar , int nev ) ;
-
 /*---------------------------------------------------------------------------*/
 
 THD_3dim_dataset * THD_svdblur( THD_3dim_dataset *inset, byte *mask,
@@ -24,7 +18,6 @@ ENTRY("THD_svdblur") ;
    if( !ISVALID_DSET(inset)     ) RETURN(NULL) ;
    if( mask == NULL             ) RETURN(NULL) ;
    if( rad  == 0.0f             ) RETURN(NULL) ;
-   if( pdim <  1                ) RETURN(NULL) ;
    if( nort >  0 && ort == NULL ) RETURN(NULL) ;
 
    nt = DSET_NVALS(inset) ; if( nt < 9+nort ) RETURN(NULL) ;
@@ -37,7 +30,7 @@ ENTRY("THD_svdblur") ;
 
    DSET_load(inset) ; if( !DSET_LOADED(inset) ) RETURN(NULL) ;
 
-   /*---- create neighborhood (as a cluster) -----*/
+   /*---- create spherical neighborhood (as a cluster) -----*/
 
    if( rad < 0.0f ){ dx = dy = dz = 1.0f; rad = -rad; rad = MAX(rad,1.01f); }
    else            { dx = fabsf(DSET_DX(inset));
@@ -86,8 +79,8 @@ ENTRY("THD_svdblur") ;
 
 /*------------------------------------------------------------------------*/
 
-static MRI_IMARR * THD_get_dset_nbhd_array( THD_3dim_dataset *dset, byte *mask,
-                                            int xx, int yy, int zz, MCW_cluster *nbhd )
+MRI_IMARR * THD_get_dset_nbhd_array( THD_3dim_dataset *dset, byte *mask,
+                                     int xx, int yy, int zz, MCW_cluster *nbhd )
 {
    MRI_IMARR *imar ;
    int nvox, *ivox , nx,ny,nz , nxy,nxyz , npt, aa,bb,cc,kk,ii ;
@@ -104,7 +97,7 @@ static MRI_IMARR * THD_get_dset_nbhd_array( THD_3dim_dataset *dset, byte *mask,
      bb = yy + nbhd->j[ii] ; if( bb < 0 || bb >= ny ) continue ;
      cc = zz + nbhd->k[ii] ; if( cc < 0 || cc >= nz ) continue ;
      kk = aa + bb*nx + cc*nxy ;
-     if( INMASK(kk) ) ivox[nvox++] = kk ;
+     if( mask == NULL || mask[kk] ) ivox[nvox++] = kk ;
    }
    if( nvox == 0 ){ free(ivox) ; return(NULL) ; }  /* no voxels to extract */
 
@@ -113,10 +106,13 @@ static MRI_IMARR * THD_get_dset_nbhd_array( THD_3dim_dataset *dset, byte *mask,
 }
 
 /*------------------------------------------------------------------------*/
+/* Project the vectors in imar along the principal nev-dimensional
+   subspace; if nev <= 0, just return the first eigenvector instead.
+--------------------------------------------------------------------------*/
 
-static MRI_IMAGE * mri_svdproj( MRI_IMARR *imar , int nev )
+MRI_IMAGE * mri_svdproj( MRI_IMARR *imar , int nev )
 {
-   int nx , nvec , ii,jj , itop ;
+   int nx , nvec , ii,jj , itop , doproj=(nev > 0) ;
    float *far , *xar ; MRI_IMAGE *tim ;
    float *vnorm=NULL ;
    register float sum ;
@@ -127,13 +123,15 @@ static MRI_IMAGE * mri_svdproj( MRI_IMARR *imar , int nev )
    nx   = IMARR_SUBIM(imar,0)->nx ; if( nx   < 1 ) return(NULL) ;
 
    if( nvec == 1 ){  /* trivial case */
-     tim = mri_to_float( IMARR_SUBIM(imar,0) ) ; return(tim) ;
+     tim = mri_to_float( IMARR_SUBIM(imar,0) ) ;
+     if( nev <= 0 ) THD_normalize( tim->nx , MRI_FLOAT_PTR(tim) ) ;
+     return(tim) ;
    }
 
 #undef  U
 #define U(i,j) uvec[(i)+(j)*nx]     /* ditto */
 
-   if( nev <= 0 ) nev = 1 ;
+   if( !doproj ) nev = 1 ;
    uvec = (float *)malloc( sizeof(float)*nx*nev ) ;
 
    nev = mri_principal_vectors( imar , nev , NULL , uvec ) ;
@@ -142,15 +140,26 @@ static MRI_IMAGE * mri_svdproj( MRI_IMARR *imar , int nev )
    /** create output **/
 
    tim = mri_new( nx , 1 , MRI_float ) ;
-   far = MRI_FLOAT_PTR(tim) ;            /* zero filled */
-   xar = MRI_FLOAT_PTR(IMARR_SUBIM(imar,0)) ;
+   far = MRI_FLOAT_PTR(tim) ;                  /* zero filled */
+   xar = MRI_FLOAT_PTR(IMARR_SUBIM(imar,0)) ;  /* central vector */
 
-   /* project input time series (1st vector in imar) onto subspace */
+   if( doproj ){ /* project input time series (1st vector in imar) onto subspace */
 
-   for( jj=0 ; jj < nev ; jj++ ){
+     for( jj=0 ; jj < nev ; jj++ ){
+       sum = 0.0f ;
+       for( ii=0 ; ii < nx ; ii++ ) sum += U(ii,jj) * xar[ii] ;
+       for( ii=0 ; ii < nx ; ii++ ) far[ii] += sum * U(ii,jj) ;
+     }
+
+   } else {  /* just save first eigenvector */
+
      sum = 0.0f ;
-     for( ii=0 ; ii < nx ; ii++ ) sum += U(ii,jj) * xar[ii] ;
-     for( ii=0 ; ii < nx ; ii++ ) far[ii] += sum * U(ii,jj) ;
+     for( ii=0 ; ii < nx ; ii++ ) sum += U(ii,0) * xar[ii] ;
+     if( sum < 0.0f )
+       for( ii=0 ; ii < nx ; ii++ ) far[ii] = -U(ii,0) ;
+     else
+       for( ii=0 ; ii < nx ; ii++ ) far[ii] =  U(ii,0) ;
+
    }
 
    /** finito **/
@@ -159,10 +168,12 @@ static MRI_IMAGE * mri_svdproj( MRI_IMARR *imar , int nev )
 }
 #undef U
 
-/*----------------------------------------------------------------------------*/
+/*------------------------------------------------------------------------*/
 
-#undef  A
-#define A(i,j) asym[(i)+(j)*nsym]
+MRI_IMAGE * mri_first_principal_vector( MRI_IMARR *imar )
+{
+   return mri_svdproj( imar , 0 ) ;
+}
 
 /*----------------------------------------------------------------------------*/
 /*! Compute the nvec principal singular vectors of a set of m columns, each
@@ -170,7 +181,8 @@ static MRI_IMAGE * mri_svdproj( MRI_IMARR *imar , int nev )
 
     The singular values (largest to smallest) are stored in sval, and
     the left singular vectors [first nvec columns of U in X = U S V'] are
-    stored into uvec[i+j*n] for i=0..n-1, j=0..nvec-1.
+    stored into uvec[i+j*n] for i=0..n-1, j=0..nvec-1.  These columns
+    are L2-normalized and orthogonal.
 
     The return value is the number of vectors computed.  If the return
     value is not positive, something bad happened.  Normally, the return
@@ -181,8 +193,7 @@ static MRI_IMAGE * mri_svdproj( MRI_IMARR *imar , int nev )
     If both are NULL, exactly why did you want to call this function?
 *//*--------------------------------------------------------------------------*/
 
-static int mri_principal_vectors( MRI_IMARR *imar ,
-                                  int nvec , float *sval , float *uvec )
+int mri_principal_vectors( MRI_IMARR *imar, int nvec, float *sval, float *uvec )
 {
    int nn , mm , nsym , ii,jj,kk,qq ;
    double *asym , *deval ;
@@ -198,15 +209,23 @@ static int mri_principal_vectors( MRI_IMARR *imar ,
 
    if( nsym < 1 || (uvec == NULL && sval == NULL) ) return(-666) ;
 
+   /* pointers to each vector */
+
    xpt = (float **)malloc(sizeof(float *)*mm) ;
    for( kk=0 ; kk < mm ; kk++ ) xpt[kk] = MRI_FLOAT_PTR(IMARR_SUBIM(imar,kk)) ;
 
-   if( nvec > nsym ) nvec = nsym ;  /* can't compute more vectors than nsym! */
+   /* number of eigenpairs to compute */
+
+        if( nvec > nsym ) nvec = nsym ;  /* can't compute more vectors than nsym */
+   else if( nvec <= 0   ) nvec = 1 ;
 
 #pragma omp critical (MALLOC)
    { asym  = (double *)malloc(sizeof(double)*nsym*nsym) ;  /* symmetric matrix */
      deval = (double *)malloc(sizeof(double)*nsym) ;       /* its eigenvalues */
    }
+
+#undef  A
+#define A(i,j) asym[(i)+(j)*nsym]
 
    /** setup matrix to eigensolve: choose smaller of [X]'[X] and [X][X]' **/
    /**     since [X] is n x m, [X]'[X] is m x m and [X][X]' is n x n     **/
@@ -321,6 +340,39 @@ static int mri_principal_vectors( MRI_IMARR *imar ,
 
 #pragma omp critical (MALLOC)
    { free(deval) ; free(asym) ; free(xpt) ; }
+
    return(nvec) ;
 }
 #undef A
+
+/*----------------------------------------------------------------------------*/
+
+MRI_IMAGE * mri_average_vector( MRI_IMARR *imar )
+{
+   int nx , nvec , jj ;
+   float *far , *xar ; MRI_IMAGE *tim ;
+   register int ii ;
+
+   if( imar == NULL ) return NULL ;
+   nvec = IMARR_COUNT(imar) ;       if( nvec < 1 ) return NULL ;
+   nx   = IMARR_SUBIM(imar,0)->nx ; if( nx   < 1 ) return NULL ;
+
+   /** create output **/
+
+   tim = mri_new( nx , 1 , MRI_float ) ;
+   far = MRI_FLOAT_PTR(tim) ;            /* zero filled */
+
+   /** sum them up, then average **/
+
+   for( jj=0 ; jj < nvec ; jj++ ){
+     xar = MRI_FLOAT_PTR( IMARR_SUBIM(imar,jj) ) ;
+     for( ii=0 ; ii < nx ; ii++ ) far[ii] += xar[ii] ;
+   }
+   if( nvec > 1 ){
+     register fac ;
+     fac = 1.0f / nvec ;
+     for( ii=0 ; ii < nx ; ii++ ) far[ii] *= fac ;
+   }
+
+   return tim;
+}

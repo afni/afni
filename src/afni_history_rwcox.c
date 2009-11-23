@@ -44,6 +44,18 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 23 , NOV , 2009 , RWC , "3dTcorrMap" , MICRO , TYPE_NEW_OPT ,
+   "Add various options in the last few days" ,
+   "* -seed = a different dataset for the seed time series\n"
+   "* -bpass = instead of -polort\n"
+   "* -Gblur = blurring\n"
+   "* -Mseed = extra smoothing around the seed\n"
+   "* -Hist = output the histogram of the correlations" } ,
+
+ { 23 , NOV , 2009 , RWC , "3dmaskSVD" , MICRO , TYPE_NEW_OPT ,
+   "Add -bpass option" ,
+   NULL } ,
+
  { 18 , NOV , 2009 , RWC , "mri_read.c" , MICRO , TYPE_GENERAL ,
    "Fix Ziad's stupid error printout in reading .1D files" ,
    "To indicate which file is causing the trouble.\n"
