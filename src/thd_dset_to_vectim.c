@@ -171,7 +171,9 @@ int64_t THD_vectim_size( THD_3dim_dataset *dset , byte *mask )
 }
 
 /*-----------------------------------------------------------------------*/
-/*! Binary search in a sorted integer array. */
+/*! Binary search in a sorted integer array;
+    return index of tt in ar if found, return -1 if not found.
+*//*---------------------------------------------------------------------*/
 
 int bsearch_int( int tt , int nar , int *ar )
 {

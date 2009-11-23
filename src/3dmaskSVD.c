@@ -23,6 +23,7 @@ int main( int argc , char *argv[] )
    int do_vmean=0 , do_vnorm=0 , sval_itop=0 ;
    int polort=-1 ; float *ev ;
    MRI_IMARR *ortar ; MRI_IMAGE *ortim ; int nyort=0 ;
+   float bpass_L=0.0f , bpass_H=0.0f , dtime ; int do_bpass=0 ;
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
      printf(
@@ -69,6 +70,7 @@ int main( int argc , char *argv[] )
        " -mask mset  = define the mask [default is entire dataset == slow!]\n"
        " -automask   = you'll have to guess what this option does\n"
        " -polort p   = if you are lazy and didn't run 3dDetrend (like Zhark)\n"
+       " -bpass L H  = bandpass [mutually exclusive with -polort]\n"
        " -ort xx.1D  = time series to remove from the data before SVD-ization\n"
        "               ++ You can give more than 1 '-ort' option\n"
        "               ++ 'xx.1D' can contain more than 1 column\n"
@@ -113,6 +115,15 @@ int main( int argc , char *argv[] )
    mpv_sign_meth = AFNI_yesenv("AFNI_3dmaskSVD_meansign") ;
 
    while( iarg < argc && argv[iarg][0] == '-' ){
+
+     if( strcasecmp(argv[iarg],"-bpass") == 0 ){
+       if( iarg+2 >= argc ) ERROR_exit("need 2 args after -bpass") ;
+       bpass_L = (float)strtod(argv[++iarg],NULL) ;
+       bpass_H = (float)strtod(argv[++iarg],NULL) ;
+       if( bpass_L < 0.0f || bpass_H <= bpass_L )
+         ERROR_exit("Illegal values after -bpass: %g %g",bpass_L,bpass_H) ;
+       iarg++ ; continue ;
+     }
 
      if( strcmp(argv[iarg],"-ort") == 0 ){  /* 01 Oct 2009 */
        int nx,ny ;
@@ -193,6 +204,16 @@ int main( int argc , char *argv[] )
    DSET_load(inset) ; CHECK_LOAD_ERROR(inset) ;
    nxyz = DSET_NVOX(inset) ;
 
+   DSET_UNMSEC(inset) ;
+   dtime = DSET_TR(inset) ;
+   if( dtime <= 0.0f ) dtime = 1.0f ;
+   do_bpass = (bpass_L < bpass_H) ;
+   if( do_bpass ){
+     kk = THD_bandpass_OK( nt , dtime , bpass_L , bpass_H , 1 ) ;
+     if( kk <= 0 ) ERROR_exit("Can't continue since -bpass setup is illegal") ;
+     polort = -1 ;
+   }
+
    /*--- deal with the masking ---*/
 
    if( mask != NULL ){
@@ -233,7 +254,7 @@ int main( int argc , char *argv[] )
 
    /*-- detrending --*/
 
-   if( polort >= 0 || nyort > 0 ){
+   if( polort >= 0 || nyort > 0 || do_bpass ){
      float **polref=NULL ; float *tsar ;
      int nort=IMARR_COUNT(ortar) , nref=0 ;
 
@@ -260,10 +281,21 @@ int main( int argc , char *argv[] )
        DESTROY_IMARR(ortar) ;
      }
 
-     INFO_message("Detrending data vectors") ;
-     for( kk=0 ; kk < IMARR_COUNT(imar) ; kk++ ){
-       tsar = MRI_FLOAT_PTR(IMARR_SUBIM(imar,kk)) ;
-       THD_generic_detrend_LSQ( nt , tsar , -1 , nref , polref , NULL ) ;
+     if( !do_bpass ){
+       INFO_message("Detrending data vectors") ;
+       for( kk=0 ; kk < IMARR_COUNT(imar) ; kk++ ){
+         tsar = MRI_FLOAT_PTR(IMARR_SUBIM(imar,kk)) ;
+         THD_generic_detrend_LSQ( nt , tsar , -1 , nref , polref , NULL ) ;
+       }
+     } else {
+       INFO_message("Bandpassing data vectors") ;
+       float **vec = (float **)malloc(sizeof(float *)*IMARR_COUNT(imar)) ;
+       for( kk=0 ; kk < IMARR_COUNT(imar) ; kk++ )
+         vec[kk] = MRI_FLOAT_PTR(IMARR_SUBIM(imar,kk)) ;
+       (void)THD_bandpass_vectors( nt    , IMARR_COUNT(imar) , vec     ,
+                                   dtime , bpass_L           , bpass_H ,
+                                   1     , nref              , polref   ) ;
+       free(vec) ;
      }
 
      for( kk=0 ; kk < nref; kk++ ) free(polref[kk]) ;
