@@ -52,9 +52,19 @@ afni_history_struct gangc_history[] = {
 
   /* can copy to and change one of the examples here */
   
+  { 23 , NOV , 2009 , GC , "3dKS.R" , MINOR , TYPE_NEW_PROG ,
+    "Kolmogorov-Smirnov test",
+	 "This is an R program that runs Kolmogrov-Smirnov test between\n"
+    "two groups of subjects. It takes individual sub-brick files from\n"
+    "each subject as input and spills two sub-bricks in the output,\n"
+	 "first one being the Kolmogorov-Smirnov statistic D, while the 2nd\n"
+    "the corresponding Z-score." 
+  } ,
+  
+  
   { 20 , MAY , 2009 , GC , "3dMEMA.R" , SUPER , TYPE_NEW_PROG ,
     "Mixed-Effects Meta Analysis (MEMA)",
-	 "This is an R program that runs group analysis in a truly random/\n"
+	 "This is an R program that runs group analysis in a truly random\n"
     "mixed-effects sense by taking both beta and t-statistic as input\n"
 	 "instead of beta value only in the conventional method. See more \n"
     "details at http://afni.nimh.nih.gov/sscc/gangc/MEMA.html" 
