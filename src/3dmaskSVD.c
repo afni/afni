@@ -288,8 +288,8 @@ int main( int argc , char *argv[] )
          THD_generic_detrend_LSQ( nt , tsar , -1 , nref , polref , NULL ) ;
        }
      } else {
-       INFO_message("Bandpassing data vectors") ;
        float **vec = (float **)malloc(sizeof(float *)*IMARR_COUNT(imar)) ;
+       INFO_message("Bandpassing data vectors") ;
        for( kk=0 ; kk < IMARR_COUNT(imar) ; kk++ )
          vec[kk] = MRI_FLOAT_PTR(IMARR_SUBIM(imar,kk)) ;
        (void)THD_bandpass_vectors( nt    , IMARR_COUNT(imar) , vec     ,
