@@ -54,7 +54,7 @@ ENTRY("THD_write_atr") ;
    for( ia=0 ; ia < blk->natr ; ia++ ){
 
       atr_any = &(blk->atr[ia]) ;
-      if( atr_any == NULL ) continue ;
+      if( ATR_COUNT(atr_any) <= 0 ) continue ;
 
       code = SUCCESS ;
       switch( atr_any->type ){

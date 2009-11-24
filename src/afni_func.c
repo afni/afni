@@ -2287,14 +2287,17 @@ ENTRY("AFNI_choose_dataset_CB") ;
               strcat( strlist[ii] , "G" ) ;
 
          } else {
-#if 0
-THD_3dim_dataset *qset ;
-for( vv=FIRST_VIEW_TYPE ; vv <= LAST_VIEW_TYPE ; vv++ ){
- qset = im3d->ss_now->dsset[ii][vv] ;
- if( qset != NULL ){
-  INFO_message("BAD: type=%d view_type=%d ibk=%d bkt=%d",
-               qset->type , qset->view_type , qset->dblk != NULL , qset->dblk->type ) ;
+#if 1
+THD_3dim_dataset *qset ; static int first=1 ;
+if( first ){
+ for( vv=FIRST_VIEW_TYPE ; vv <= LAST_VIEW_TYPE ; vv++ ){
+  qset = im3d->ss_now->dsset[ii][vv] ;
+  if( qset != NULL ){
+   INFO_message("BAD dataset: type=%d view_type=%d ibk=%d bkt=%d",
+                qset->type , qset->view_type , qset->dblk != NULL , qset->dblk->type ) ;
+  }
  }
+ first=0 ;
 }
 #endif
             MCW_strncpy( strlist[ii] , "??*BAD*??" , THD_MAX_PREFIX ) ;
@@ -2378,6 +2381,19 @@ for( vv=FIRST_VIEW_TYPE ; vv <= LAST_VIEW_TYPE ; vv++ ){
            if( DSET_in_global_session(dset) ) strcat( strlist[nn] , "G" ) ;
 
          } else { /* should never happen */
+#if 1
+THD_3dim_dataset *qset ; static int first=1 ;
+if( first ){
+ for( vv=FIRST_VIEW_TYPE ; vv <= LAST_VIEW_TYPE ; vv++ ){
+  qset = im3d->ss_now->dsset[ii][vv] ;
+  if( qset != NULL ){
+   INFO_message("BAD dataset: type=%d view_type=%d ibk=%d bkt=%d",
+                qset->type , qset->view_type , qset->dblk != NULL , qset->dblk->type ) ;
+  }
+ }
+ first=0 ;
+}
+#endif
            MCW_strncpy( strlist[nn] , "**?BAD?**" , THD_MAX_PREFIX ) ;
          }
 
