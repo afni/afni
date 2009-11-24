@@ -11823,6 +11823,9 @@ static ENV_SPEC envlist[] = {
    {  "Initial Label Datasest opacity.",
       "SUMA_LabelDsetOpacity",
       "0.2" },
+   {  "Attempt to recover from AFNI <--> SUMA disconnection bug.\n",
+      "SUMA_AttemptTalkRecover",
+      "Yes" }, 
    {  NULL, NULL, NULL  }
 };
       
