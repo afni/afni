@@ -47,9 +47,13 @@ ENTRY("THD_array_3dim_from_block") ;
       all_anat  = all_anat && ISANAT(dset) ;
       all_func  = all_func && ISFUNC(dset) ;
    }
-   if( !all_anat && !all_func )
-     WARNING_message("dataset %s: mixed ANAT and FUNC? in different views?",
-                     DSET_HEADNAME(dset_arr->ar[0]) ) ;
+   if( !all_anat && !all_func ){  /* 24 Nov 2009 */
+     static int nwarn=0 ;
+     if( nwarn == 0 )
+       WARNING_message("dataset %s: mixed ANAT and FUNC? in different views?",
+                       DSET_HEADNAME(dset_arr->ar[0]) ) ;
+     nwarn++ ;
+   }
 
    SORT_3DARR( dset_arr ) ;
 
