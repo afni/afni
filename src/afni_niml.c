@@ -208,9 +208,16 @@ int AFNI_have_niml( void ){ return started ; }  /* 02 Feb 2007 */
 
 static void AFNI_niml_atexit( void )
 {
-#if 0              /*** this stuff now handled in niml/niml_stream.c ***/
    int cc ;
+   
 STATUS("called AFNI_niml_atexit") ;
+
+   if(ns_listen[NS_SUMA]) {/* be polite and tell suma */
+      NI_element *nel=NI_new_data_element("AuRevoir", 0);
+      NI_write_element( ns_listen[NS_SUMA] , nel , NI_BINARY_MODE ) ;
+   }
+
+#if 0              /*** this stuff now handled in niml/niml_stream.c ***/
    for( cc=0 ; cc < NUM_NIML ; cc++ )        /* close any open sockets */
      NI_stream_closenow( ns_listen[cc] ) ;
 #endif
@@ -230,7 +237,7 @@ ENTRY("AFNI_init_niml") ;
    if( started ) EXRETURN ;
 
    PLUTO_register_workproc( AFNI_niml_workproc , NULL ) ;
-#if 0
+#if 1 /* Turned back on to notify SUMA for a graceful exit ZSS Nov 09*/
    atexit( AFNI_niml_atexit ) ;
 #endif
 
