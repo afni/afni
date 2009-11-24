@@ -818,11 +818,16 @@ static int SHM_nattach( int shmid )
    int ii ;
    static struct shmid_ds buf ;
    char *eee = getenv( "NIML_DNAME" ) ;
-
+   static int nid=0;
+   
    if( shmid < 0 ) return -1 ;
    ii = shmctl( shmid , IPC_STAT , &buf ) ;
    if( ii < 0 ){
-     if( eee != NULL ) fprintf(stderr,"SHM_nattach: trying again!\n") ;
+     if( eee != NULL ) 
+      fprintf(stderr,
+  "SHM_nattach (%s): (shmid=%d, buf.shm_nattach %d, errno %d), trying again!\n"
+  "                     EACCES %d, EFAULT %d, EINVAL %d, EPERM %d\n",
+        eee, shmid, (int)buf.shm_nattch, errno, EACCES, EFAULT, EINVAL, EPERM) ;
      NI_sleep(9) ;
      ii = shmctl( shmid , IPC_STAT , &buf ) ;
    }
@@ -836,15 +841,21 @@ static int SHM_nattach( int shmid )
        ppp = strdup("SHM_nattach") ;
      }
      PERROR(ppp);
-     fprintf(stderr,"%s: called shmctl(%x,%x,%p), got %d\n",
+     fprintf(stderr,"%s: called shmctl(%x,%x,%p), got %d\n"
+                    "   (shmid=%d, buf.shm_nattach %d, errno %d)\n",
              ppp,(unsigned int)shmid, (unsigned int)IPC_STAT, (void *)&buf,
-             ii ) ;
+             ii,
+             shmid, (int)buf.shm_nattch, errno ) ;
+     nid = 0;
      free((void *)ppp); return -1;
    } else if( eee != NULL ){
-     fprintf(stderr,"SHM_nattach (%s): called shmctl(%x,%x,%p), got %d\n",
+     if (!nid) 
+      fprintf(stderr,"SHM_nattach (%s): called shmctl(%x,%x,%p), got %d\n"
+                     "  Similar messages muted until SHM_nattach fails again.\n",
              eee,
              (unsigned int)shmid, (unsigned int)IPC_STAT, (void *)&buf,
-             (int)buf.shm_nattch ) ;
+             (int)buf.shm_nattch ) ; 
+      ++nid;
    }
    return (int)buf.shm_nattch ;
 }

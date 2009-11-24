@@ -65,6 +65,29 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 24 , NOV , 2009 , ZSS , "afni-matlab" , MINOR , TYPE_BUG_FIX ,
+   "Stopped writing empty attributes which caused trouble in AFNI.",
+   "Empty attributes make AFNI halt the parsing of the header."
+ } ,
+ 
+ { 23 , NOV , 2009 , ZSS , "afni" , MICRO , TYPE_BUG_FIX ,
+   "A couple of small fixes to drive_switch functions.",
+   "The problem with with sscanf reading past string end"
+   "in certain cases."
+ } ,
+ 
+ { 23 , NOV , 2009 , ZSS , "suma" , MINOR , TYPE_BUG_FIX ,
+   "Workaround for connection drop between AFNI and SUMA in Shared Memory Mode.",
+   "Env SUMA_AttemptTalkRecover allows SUMA to recover from drop.\n"
+   "This ENV is set by default to No."
+ } ,
+ 
+ { 19 , NOV , 2009 , ZSS , "suma" , MINOR , TYPE_BUG_FIX ,
+   "Fixed recorder lag on OS X machines.",
+   "On OS X platforms, the 'r' or 'R' recording modes\n"
+   "used to record the previous image it seems. "
+ } ,
+ 
  { 17 , NOV , 2009 , ZSS , "@SUMA_Make_Spec_FS" , MINOR , TYPE_NEW_OPT ,
    "Script now automatically sets up the spec file with labeled datasets",
    "Labeled datasets are created from annotation files,\n"

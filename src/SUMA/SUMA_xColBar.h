@@ -254,6 +254,9 @@ char *SUMA_GetLabelsAtNode(SUMA_SurfaceObject *SO, int node);
    "   Con: Contours (slower), only.\n"  \
    "   C&C: Colours and Contours (slower), only.\n"    \
    "   XXX: Unfortunately nothing, only.\n"  \
+   " There is one contour created for each color \n"  \
+   " in the colormap. You'd want to use colormaps with \n"  \
+   " few colors to get a contour of use.\n" \
    " Contours are not created if colormap has panes\n"   \
    " of unequal sizes.\n"   
 

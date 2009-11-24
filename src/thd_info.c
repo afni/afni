@@ -406,7 +406,8 @@ ENTRY("THD_dataset_info") ;
      if( notecount != NULL ){
         num_notes = notecount->in[0] ;
         if( verbose == 0 && num_notes > 5 ) num_notes = 5 ;
-        mmm = (verbose > 0) ? ZMAX : 1200 ;         /* 400 it was! Come on Bob, have a heart! -ZSS */
+        mmm = (verbose > 0) ? ZMAX : 1200 ;   /* 400 it was! 
+                                          Come on Bob, have a heart! -ZSS */
         for (i=1; i<= num_notes; i++) {
            chn = tross_Get_Note( dset , i ) ;
            if( chn != NULL ){

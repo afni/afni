@@ -29,6 +29,7 @@ Boolean SUMA_niml_workproc( XtPointer thereiselvis )
    static char FuncName[]={"SUMA_niml_workproc"};
    int cc , nn, ngood = 0, id;
    void *nini ;
+   static int nwarn=0;
    char tmpcom[100], *nel_track;
    SUMA_SurfaceViewer *sv;
    NI_element *nel ;
@@ -107,13 +108,55 @@ Boolean SUMA_niml_workproc( XtPointer thereiselvis )
      
      /* check if stream has gone bad */
      nn = NI_stream_goodcheck( SUMAg_CF->ns_v[cc] , 1 ) ;
-
+     
+     if( nn < 0 && cc == SUMA_AFNI_STREAM_INDEX){
+         /* first check in case we are dealing with the 
+         intermittent AFNI disruption */
+         if (SUMA_isEnv("SUMA_AttemptTalkRecover","y")) {
+            NI_stream_close( SUMAg_CF->ns_v[cc] ) ;
+            SUMAg_CF->ns_v[cc] = NULL ;
+            /* try again, a way to get around the weird disruption in 
+               SHM connection*/
+            SUMA_S_Note("Attempting recovery...");
+            SUMAg_CF->Connected_v[SUMA_AFNI_STREAM_INDEX] = NOPE; 
+            if (!list) list = SUMA_CreateList();
+            SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_ToggleConnected, 
+                                            SES_Suma, sv);
+            if (!SUMA_Engine (&list)) {
+            fprintf (SUMA_STDERR,
+                     "Error %s: Failed in SUMA_Engine.\n\a", FuncName);
+            }
+            nn = NI_stream_goodcheck( SUMAg_CF->ns_v[cc] , 1 ) ;
+         } else {
+            if (!nwarn) {
+               SUMA_SLP_Note(
+                  "Afni connection stream gone bad.\n"
+                  "If Afni did not shutdown, and you \n"
+                  "did not close the connection, you \n"
+                  "can recover by pressing 't' twice in SUMA.\n"
+                  "The disconnection is a known bug with\n"
+                  "an as of yet unknown source. \n"
+                  "\n"
+                  "You can also turn on the automatic recovery mode,\n"
+                  "with the environment variable \n"
+                  "SUMA_AttemptTalkRecover set to yes (see \n"
+                  "suma -environment or the environment section in\n"
+                  "SUMA's ctrl+h help output for details.)\n"
+                  "\n"
+                  "Lastly, you can use -ah 127.0.0.1 to use sockets\n"
+                  "instead of shared memory. But that kind of connection\n"
+                  "is slow.\n"
+                  "\n"
+                  "This message is shown once per session.\n");
+            } 
+            ++ nwarn;
+         }  
+     }
+     
      if( nn < 0 ){                          /* is bad */
-       NI_stream_close( SUMAg_CF->ns_v[cc] ) ;
+       if (SUMAg_CF->ns_v[cc]) NI_stream_close( SUMAg_CF->ns_v[cc] ) ;
        SUMAg_CF->ns_v[cc] = NULL ; /* this will get checked next time */
-       fprintf(SUMA_STDERR,
-               "Error SUMA_niml_workproc: Stream %d gone bad. Stream closed. \n",
-               cc);
+       SUMA_S_Errv("Stream %d gone bad. Stream closed. \n", cc);
        
        /* close everything */
        if (!list) list = SUMA_CreateList();
@@ -351,7 +394,9 @@ SUMA_Boolean SUMA_niml_call ( SUMA_CommonFields *cf, int si,
       }else {   /* must open stream */              
          /* contact afni */
             SUMA_SetWriteCheckWaitMax(cf->ns_to[si]);
-            fprintf(SUMA_STDOUT,"%s: Contacting on %d, maximum wait %.3f sec: ", FuncName, si, (float)cf->ns_to[si]/1000.0);
+            fprintf( SUMA_STDOUT,
+                     "%s: Contacting on %d, maximum wait %.3f sec\n", 
+                     FuncName, si, (float)cf->ns_to[si]/1000.0);
             fflush(SUMA_STDOUT);
             cf->ns_v[si] =  NI_stream_open( cf->NimlStream_v[si] , "w" ) ;
             if (!cf->ns_v[si]) {
@@ -1203,6 +1248,32 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
 
       }/* SUMA_irgba */
 
+      if (!strcmp(nel->name,"AuRevoir")) {
+         int cc = SUMA_AFNI_STREAM_INDEX;
+         /* Afni's gone to sleep */
+         SUMAg_CF->Connected_v[cc] = NOPE;
+         if (SUMAg_CF->ns_v[cc]) 
+            NI_stream_close( SUMAg_CF->ns_v[cc] ) ;
+         SUMAg_CF->ns_v[cc] = NULL ; 
+         SUMA_S_Note("AFNI has bid us farewell");
+         if (!list) list = SUMA_CreateList();
+         ED = SUMA_InitializeEngineListData(SE_CloseStream4All);
+         if (!SUMA_RegisterEngineListCommand ( list, ED, 
+                                          SEF_i, (void*)&cc,  
+                                          SES_Suma, (void *)sv, NOPE,   
+                                          SEI_Head, NULL)) {  
+            fprintf (SUMA_STDERR, 
+                  "Error %s: Failed to register command.\n", FuncName);   
+         }
+
+         if (!SUMA_Engine (&list)) {
+            fprintf (SUMA_STDERR,
+                     "Error %s: Failed in SUMA_Engine.\n\a", FuncName);
+         }
+         
+         SUMA_RETURN(YUP) ;
+      }
+      
       /*** If here, then name of element didn't match anything ***/
 
       fprintf( SUMA_STDERR,"Error %s: Unknown NIML input: %s\n",
