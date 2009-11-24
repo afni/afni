@@ -44,6 +44,11 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 24 , NOV , 2009 , RWC , "thd_atr.c" , MICRO , TYPE_BUG_FIX ,
+   "Allow 'count = 0' in attributes" ,
+   "Formerly was a fatal error.  Now just skips to next attribute.  For\n"
+   "Ziad." } ,
+
  { 23 , NOV , 2009 , RWC , "3dTcorrMap" , MICRO , TYPE_NEW_OPT ,
    "Add various options in the last few days" ,
    "* -seed = a different dataset for the seed time series\n"

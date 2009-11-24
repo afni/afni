@@ -160,6 +160,8 @@ ENTRY("THD_read_all_atr") ;
                      " type = %s name = %s count = %d" ,
                      atypestr , aname , &acount ) ;
 
+      if( code == 3 && acount == 0 ) continue ;  /* 24 Nov 2009 */
+
       code = (code != 3 || acount < 1) ? FAIL : SUCCESS ;
       if( code == FAIL ) break ;  /* bad read */
 
@@ -500,6 +502,8 @@ ENTRY("THD_set_atr") ;
 
    if( acount < 0 || ar == NULL || aname == NULL )
      THD_FATAL_ERROR( "Illegal input data in THD_set_atr" ) ;
+
+   if( acount == 0 ) EXRETURN ;  /* 24 Nov 2009 */
 
    STATUS(aname) ;
 
