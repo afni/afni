@@ -138,22 +138,27 @@ for (i=1:1:Fld_num),
 			err = 1; ErrMessage = sprintf('Error %s: RulesType %d unknown.', FuncName, RulesType); errordlg(ErrMessage); return;
 	end			
 	%write them out
-	fprintf(fidout,'\ntype = %s\n', Fld_Type);
-	fprintf(fidout,'name = %s\n', Fld_Name);
-	fprintf(fidout,'count = %g\n', Fld_Count);
-	if(Fld_isstrn),
-		%string to write out, do what Bob seems to do
-		stmp = sprintf('''%s~',Fld_Val);
-		fprintf(fidout,'%s\n', stmp);
-	else
-		%write out five values per line, if field is a matrix, reshape it to a 
-		%Nx1 vector
-		nsz = size(Fld_Val); npts = nsz(1).*nsz(2);
-		Fld_Val = reshape(Fld_Val, npts, 1);
-		%print out 5 values per line
-		fprintf(fidout, '\t%g\t%g\t%g\t%g\t%g\n', Fld_Val);
-		if (rem(npts,5)), fprintf(fidout,'\n'); end
-	end
+	if (RulesType >=0 | Fld_Count > 0),
+      fprintf(fidout,'\ntype = %s\n', Fld_Type);
+	   fprintf(fidout,'name = %s\n', Fld_Name);
+	   fprintf(fidout,'count = %g\n', Fld_Count);
+	   if(Fld_isstrn),
+		   %string to write out, do what Bob seems to do
+		   stmp = sprintf('''%s~',Fld_Val);
+		   fprintf(fidout,'%s\n', stmp);
+	   else
+		   %write out five values per line, if field is a matrix, reshape it to a 
+		   %Nx1 vector
+		   nsz = size(Fld_Val); npts = nsz(1).*nsz(2);
+		   Fld_Val = reshape(Fld_Val, npts, 1);
+		   %print out 5 values per line
+		   fprintf(fidout, '\t%g\t%g\t%g\t%g\t%g\n', Fld_Val);
+		   if (rem(npts,5)), fprintf(fidout,'\n'); end
+	   end
+   else
+      %Skip those empty fields. Including empty WORSLEY_* attributes
+      %was causing scaling factors to be ignored ...
+   end
 end
 
 fclose (fidout);

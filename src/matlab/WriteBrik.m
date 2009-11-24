@@ -468,7 +468,9 @@ if Opt.Slices(1)==1 & Opt.Frames(1)==1
    
    %call for the function to write the header
    if (Opt.verbose), fprintf(1,'Writing %s to disk ...', FnameHEAD); end
+
    [err, ErrMessage] = WriteBrikHEAD (FnameHEAD, Info);
+
    if (err),
       err = 1; ErrMessage = sprintf('Error %s: An error occurred in WriteBrikHEAD.\n%s', FuncName, ErrMessage); errordlg(ErrMessage); return;   
    end
