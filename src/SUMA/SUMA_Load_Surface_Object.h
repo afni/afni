@@ -20,6 +20,10 @@ SUMA_Boolean SUMA_Write_SpecFile ( SUMA_SurfSpecFile * Spec,
                            char *program, 
                            char *histnote);
 SUMA_Boolean SUMA_CheckOnSpecFile (SUMA_SurfSpecFile *Spec);
+SUMA_Boolean SUMA_Merge_SpecFiles( SUMA_SurfSpecFile *lhs,
+                                   SUMA_SurfSpecFile *rhs,
+                                   SUMA_SurfSpecFile *bhs,
+                                   char *FileName);
 SUMA_Boolean SUMA_LoadSpec (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_dov, char *VolParName);
 SUMA_Boolean SUMA_LoadSpec_eng (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_dov, char *VolParName, int debug, DList *DsetList);
 SUMA_Boolean SUMA_SurfaceMetrics (SUMA_SurfaceObject *SO, const char *Metrics, SUMA_SurfaceObject *SOinh);

@@ -12,8 +12,9 @@ typedef struct {
 
 typedef struct {
   int* IDcode;
-  int N_Node;
-  int N_FaceSet;
+  int N_Node_std; /* used to be N_Node*/
+  int N_Node_orig;
+  int N_FaceSet_std; /* used to be N_FaceSet*/
   float *Weight;
   int *ClsNodes;
   int *FaceSetList;
@@ -66,6 +67,7 @@ void SUMA_triangulateRow( float *nodeList, int *triList, int *nCtr, int *tCtr, i
 void SUMA_addNode(float *nodeList, int *ctr, float x, float y, float z);
 void SUMA_addTri(int *triList, int *ctr, int n1, int n2, int n3);
 int SUMA_Bad_FacesetNorm_Dot_Radius(SUMA_SurfaceObject *SO, byte *FaceMask, double dot_cut, int *face_bad_ind, float *face_bad_dot, int CalcNorm);
+
 
 SUMA_SO_map *SUMA_Create_SO_map (void);
 SUMA_Boolean SUMA_Free_SO_map (SUMA_SO_map *SOM); 

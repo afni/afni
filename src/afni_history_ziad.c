@@ -65,6 +65,18 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 25 , NOV , 2009 , ZSS , "MapIcosahedron" , MAJOR , TYPE_NEW_OPT ,
+   "Added -NN_dset_map and -dset_map options to map dsets onto new meshes",
+   "The program now automatically warps LabelDsets specified in the spec\n"
+   "file, or any dataset specified on the command line."
+ } ,
+ 
+ { 24 , NOV , 2009 , ZSS , "1dmatcalc" , MINOR , TYPE_NEW_OPT ,
+   "Added &read4x4Xform to read in spatial affine transformations.",
+   "1dmatcalc can now take in spatial affine transforms in vector\n"
+   "or matrix form"
+ } ,
+ 
  { 24 , NOV , 2009 , ZSS , "afni-matlab" , MINOR , TYPE_BUG_FIX ,
    "Stopped writing empty attributes which caused trouble in AFNI.",
    "Empty attributes make AFNI halt the parsing of the header."
@@ -72,7 +84,7 @@ afni_history_struct ziad_history[] = {
  
  { 23 , NOV , 2009 , ZSS , "afni" , MICRO , TYPE_BUG_FIX ,
    "A couple of small fixes to drive_switch functions.",
-   "The problem with with sscanf reading past string end"
+   "The problem with with sscanf reading past string end\n"
    "in certain cases."
  } ,
  

@@ -2309,6 +2309,126 @@ SUMA_Boolean SUMA_Read_SpecFile (
 }/* SUMA_Read_SpecFile */
 
 /*!
+   \brief merge left and right side specfiles in a manner that suits AFNI
+*/
+#define SUMA_COPY_SPEC_FIELD(trgspec, cnt, srcspec, isurf, fld) {  \
+            if(srcspec->fld[isurf]) {\
+               snprintf(trgspec->fld[cnt],   \
+                     SUMA_MAX_FP_NAME_LENGTH * sizeof(char),\
+                     "%s", srcspec->fld[isurf]); \
+            } else { /* Should not happen */\
+               fprintf(SUMA_STDERR, "** Error %s\n"  \
+                                    "This should not be\n", FuncName);   \
+            }  \
+         }
+SUMA_Boolean SUMA_Merge_SpecFiles( SUMA_SurfSpecFile *lhs,
+                                   SUMA_SurfSpecFile *rhs,
+                                   SUMA_SurfSpecFile *bhs,
+                                   char *FileName)
+{
+   static char FuncName[]={"SUMA_Merge_SpecFiles"};
+   SUMA_SurfSpecFile *vs[20];
+   char *ss[20], *ns=NULL;
+   int i, c, k;
+   SUMA_Boolean LocalHead=NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!lhs || !rhs || !bhs ||
+       (!lhs->N_Surfs && !rhs->N_Surfs) ) SUMA_RETURN(NOPE);
+   
+   SUMA_LH("Init");
+   if (!SUMA_AllocSpecFields(bhs)) { 
+      SUMA_S_Err("Failed to init spec fields."); 
+      SUMA_RETURN(NOPE); 
+   }
+   
+   vs[0] = lhs;
+   ss[0] = "_lh";
+   vs[1] = rhs;
+   ss[1] = "_rh";
+   
+   SUMA_LH("Check");
+   /* checks */
+   for (k=1; k<2; ++k) {
+      if (strcmp(lhs->Group[0], rhs->Group[0])) {
+         SUMA_S_Err("Not ready to merge different groups");
+         SUMA_RETURN(NOPE);
+      }
+   }
+   
+   
+   /* loop accross states and relabel non-anatomically correct states */
+   c = 0;
+   for (k=0; k<2; ++k) {
+      for (i=0; i<vs[k]->N_Surfs; ++i) {
+         SUMA_LHv("Copy vs[%d,%d]-->%d\n",k,i,c);
+         SUMA_COPY_SPEC_FIELD(bhs, c, vs[k], i, SurfaceType);
+         SUMA_COPY_SPEC_FIELD(bhs, c, vs[k], i, SurfaceFormat);
+         SUMA_COPY_SPEC_FIELD(bhs, c, vs[k], i, TopoFile);
+         SUMA_COPY_SPEC_FIELD(bhs, c, vs[k], i, CoordFile);
+         SUMA_COPY_SPEC_FIELD(bhs, c, vs[k], i, MappingRef);
+         SUMA_COPY_SPEC_FIELD(bhs, c, vs[k], i, SureFitVolParam);
+         SUMA_COPY_SPEC_FIELD(bhs, c, vs[k], i, SurfaceFile);
+         SUMA_COPY_SPEC_FIELD(bhs, c, vs[k], i, VolParName);
+         bhs->IDcode[c] = vs[k]->IDcode[i];/* IDcode is a pointer copy */
+         if (vs[k]->AnatCorrect[i][0] == 'N') {
+            ns = SUMA_append_string(vs[k]->State[i],ss[k]);
+            snprintf(bhs->State[c], 
+                     SUMA_MAX_FP_NAME_LENGTH * sizeof(char),
+                     "%s", ns); SUMA_free(ns); ns = NULL; 
+         } else {
+            SUMA_COPY_SPEC_FIELD(bhs, c, vs[k], i, State);
+         } 
+         SUMA_COPY_SPEC_FIELD(bhs, c, vs[k], i, LabelDset);
+         SUMA_COPY_SPEC_FIELD(bhs, c, vs[k], i, Group);
+         if (strcmp(bhs->Group[0], vs[k]->Group[i])) {
+            SUMA_S_Warn("Unexpected Group mismatch!\n"
+                        "Assumption was that all surfs\n"
+                        "in spec file are of the same group\n"
+                        "Proceeding, beware.\n");
+         }
+         SUMA_COPY_SPEC_FIELD(bhs, c, vs[k], i, SurfaceLabel);
+         bhs->EmbedDim[c] = vs[k]->EmbedDim[i];
+         SUMA_COPY_SPEC_FIELD(bhs, c, vs[k], i, AnatCorrect);
+         SUMA_COPY_SPEC_FIELD(bhs, c, vs[k], i, Hemisphere);
+         SUMA_COPY_SPEC_FIELD(bhs, c, vs[k], i, DomainGrandParentID);
+         SUMA_COPY_SPEC_FIELD(bhs, c, vs[k], i, OriginatorID);
+         SUMA_COPY_SPEC_FIELD(bhs, c, vs[k], i, LocalCurvatureParent);
+         SUMA_COPY_SPEC_FIELD(bhs, c, vs[k], i, LocalDomainParent);
+         ++c;
+      }
+   }
+   
+   bhs->N_Surfs = c;   
+   bhs->N_Groups = 1;
+   
+   SUMA_LH("States");
+   /* do the states */
+   sprintf(bhs->StateList, "%s|", bhs->State[0]);
+   bhs->N_States = 1;
+   for (c=1; c<bhs->N_Surfs; ++c) {
+      SUMA_LHv("Is %s in %s\n", bhs->State[c], bhs->StateList);
+      if (!strstr(bhs->StateList, bhs->State[c])) {/* new one */
+         SUMA_LH("            No");
+         bhs->StateList =  SUMA_append_replace_string(bhs->StateList, "|", 
+                                                      bhs->State[c], 1);
+         bhs->N_States += 1;
+      }
+   }
+
+   snprintf(bhs->SpecFilePath,
+            SUMA_MAX_FP_NAME_LENGTH * sizeof(char),
+            "%s", SUMA_FnameGet(FileName,"Pa", SUMAg_CF->cwd));
+   snprintf(bhs->SpecFileName,
+            SUMA_MAX_FP_NAME_LENGTH * sizeof(char),
+            "%s", SUMA_FnameGet(FileName,"f", SUMAg_CF->cwd));
+   
+   
+   SUMA_RETURN(YUP);
+}            
+                       
+/*!
    \brief Write SUMA_SurfSpecFile  structure to disk
    \param Spec: Structure containing specfile
    \param specFileNm: Name of specfile. 
@@ -2416,8 +2536,6 @@ SUMA_Boolean SUMA_Write_SpecFile ( SUMA_SurfSpecFile * Spec,
                      "\tLabelDset = %s\n", 
                    Spec->LabelDset[i] );
          } else {
-            fprintf (outFile, 
-                     "\tLabelDset = \n" );
          }
          fprintf (outFile, "\tSurfaceState = %s\n"
                            "\tEmbedDimension = %d\n", 

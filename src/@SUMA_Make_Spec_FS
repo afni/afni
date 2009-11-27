@@ -65,6 +65,7 @@ L_INIT_VARS:
 			full.patch.3d		\
 			full.patch.flat	\
          full.flat.patch.3d \
+         flat.patch		\
 			sphere			\
          white          \
          sphere.reg     \
@@ -561,6 +562,15 @@ L_CREATE_SPEC:
 		set embed_ref = 3
 	    endif
 
+       # Anatomical flag
+       if ( $surf =~ *.white* ||\
+            $surf =~ *.smoothwm* ||\
+            $surf =~ *.pial*) then
+		set anatomical = Y
+	    else
+		set anatomical = N
+	    endif
+       
 	    echo "NewSurface"					>> $spec_file
 	    echo "        SurfaceFormat = ASCII"		>> $spec_file
 	    echo "        SurfaceType = FreeSurfer"		>> $spec_file
@@ -568,6 +578,7 @@ L_CREATE_SPEC:
 	    echo "        LocalDomainParent = $map_ref"		>> $spec_file
 	    echo "        SurfaceState = $s_state"		>> $spec_file
 	    echo "        EmbedDimension = $embed_ref"		>> $spec_file
+       echo "        Anatomical = $anatomical" >> $spec_file
 	      if ("$label_dset" != "") \
        echo "        LabelDset = $label_dset" >> $spec_file
        echo ""						>> $spec_file
@@ -652,6 +663,15 @@ L_CREATE_SPEC:
 		set embed_ref = 3
 	    endif
 
+       # Anatomical flag
+       if ( $surf =~ *.white* ||\
+            $surf =~ *.smoothwm* ||\
+            $surf =~ *.pial*) then
+		set anatomical = Y
+	    else
+		set anatomical = N
+	    endif
+
 	    echo "NewSurface"					>> $spec_file
 	    echo "        SurfaceFormat = ASCII"		>> $spec_file
 	    echo "        SurfaceType = FreeSurfer"		>> $spec_file
@@ -659,6 +679,7 @@ L_CREATE_SPEC:
 	    echo "        LocalDomainParent = $map_ref"		>> $spec_file
 	    echo "        SurfaceState = $s_state"		>> $spec_file
 	    echo "        EmbedDimension = $embed_ref"		>> $spec_file
+       echo "        Anatomical = $anatomical" >> $spec_file
 	      if ("$label_dset" != "") \
        echo "        LabelDset = $label_dset" >> $spec_file
 	    echo ""						>> $spec_file

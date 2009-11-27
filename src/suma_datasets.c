@@ -1083,7 +1083,78 @@ SUMA_Boolean SUMA_FindInAttrList(char **attrlist, char *attr,
    if (iattrlist == -1) SUMA_RETURN(YUP);
    else SUMA_RETURN(NOPE);
 }
+
+/*!
+   Makes a copy of a NI colormap */   
+NI_group *SUMA_NICmapToNICmap(NI_group *ngr)
+{
+   static char FuncName[]={"SUMA_NICmapToNICmap"};
+   int i;
+   char *colname=NULL;
+   NI_group *ngro=NULL;
+   SUMA_DSET dset, *odset=NULL;
+   SUMA_Boolean LocalHead = NOPE;
    
+   SUMA_ENTRY;
+   
+   SUMA_LH("In");
+   if (!ngr) SUMA_RETURN(ngro);
+   
+   /* shoehorn into dset struct */
+   dset.ngr = ngr;
+   dset.inel = dset.dnel = NULL;
+   dset.dnel = SUMA_FindDsetDataElement(&dset);
+   
+   if (SDSET_TYPE((&dset)) != SUMA_LABEL_TABLE_OBJECT) {
+      SUMA_S_Err("Not a colormap object");
+      SUMA_RETURN(ngro);
+   }
+   
+   /* make a copy of the meat */
+   odset = SUMA_CreateDsetPointer(NI_get_attribute(ngr,"Name"), 
+                                 SUMA_LABEL_TABLE_OBJECT, 
+                                 NULL, NULL, SDSET_VECLEN((&dset)));
+   
+   /* Go for it */
+   for (i=0; i<SDSET_VECNUM((&dset)); ++i) {
+      colname = SUMA_DsetColLabelCopy(&dset, i, 0);
+      if (!SUMA_AddDsetNelCol(odset, colname, SDSET_COLTYPE((&dset),i), 
+                              SDSET_VEC((&dset),i), NULL, 1)){
+            SUMA_S_Err("Failed to add R");
+            SUMA_FreeDset(odset); odset = NULL;
+            SUMA_RETURN(ngro);
+      }
+      if (colname) SUMA_free(colname); colname=NULL;
+   }   
+    
+   /* the little people */
+   NI_set_attribute(odset->ngr,"Name",
+                    NI_get_attribute(dset.ngr,"Name"));
+   NI_set_attribute(odset->ngr,"flipped",
+                    NI_get_attribute(dset.ngr,"flipped"));
+   NI_set_attribute(odset->ngr,"Sgn",
+                    NI_get_attribute(dset.ngr,"Sgn"));
+   NI_set_attribute(odset->ngr,"top_frac",
+                    NI_get_attribute(dset.ngr,"top_frac"));
+   NI_set_attribute(odset->ngr,"M0",
+                    NI_get_attribute(dset.ngr,"M0"));
+                    
+   /* So this is not really a dset, but it was nice to make use of
+   dset utility functions. Now cleanup a little */
+   /* remove ugly inel */
+   NI_remove_from_group(odset->ngr, odset->inel);
+   
+   /* grab ngr from dset, it is all we need */
+   ngro = odset->ngr; odset->ngr = NULL; 
+   
+   /* change name from AFNI_dataset to AFNI_labeltable */
+   NI_rename_group(ngro, "AFNI_labeltable");
+   /* get rid of dset */
+   odset->dnel = NULL; SUMA_FreeDset(odset); odset=NULL;
+   
+   SUMA_RETURN(ngro);
+}
+
 /*!
    Copies attributes from one dset to another
    src: Source dset
@@ -1105,11 +1176,11 @@ SUMA_Boolean SUMA_CopyDsetAttributes ( SUMA_DSET *src, SUMA_DSET *dest,
 {
    static char FuncName[]={"SUMA_CopyDsetAttributes"};
    NI_element *nel=NULL, **nelcp=NULL, *nelt=NULL;
-   NI_group *ngri=NULL, *ngro=NULL;
+   NI_group *ngri=NULL, *ngro=NULL, *nicmap=NULL;
    char *rs=NULL, nmbuf[256], nmbuf2[256],*nm=NULL, *src_string=NULL;
    int ip=0, iattrlist=-1, inelcp=-1, N_ip=-1, tp=-1, icolsrc=-1, ic=-1;
    SUMA_Boolean ans = NOPE;
-   SUMA_Boolean LocalHead = 0;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
@@ -1123,7 +1194,20 @@ SUMA_Boolean SUMA_CopyDsetAttributes ( SUMA_DSET *src, SUMA_DSET *dest,
    for( ip=0 ; ip < ngri->part_num ; ip++ ){ 
       switch( ngri->part_typ[ip] ){
          /*-- a sub-group ==> recursion! --*/
-         case NI_GROUP_TYPE:
+         case NI_GROUP_TYPE: /* not quite attributes, but oh well...*/
+            nicmap = (NI_group *)ngri->part[ip] ;
+            SUMA_LH("Have group named")
+            SUMA_LH(nicmap->name);
+            if (  !attrlist || 
+                  SUMA_FindInAttrList(attrlist,nicmap->name, isrc, &iattrlist)) {
+               SUMA_LH("Will copy it");
+               /* make a copy */
+               nicmap = SUMA_NICmapToNICmap(nicmap); 
+               if (LocalHead) {
+                  SUMA_ShowNel(nicmap);
+               }
+               NI_add_to_group(dest->ngr, nicmap);      
+            }
             break ;
          case NI_ELEMENT_TYPE:
             nel = (NI_element *)ngri->part[ip] ;
@@ -2738,30 +2822,38 @@ SUMA_DSET * SUMA_MaskedByOrderedNodeIndexCopyofDset(
    \brief creates a new dataset that has a copy of each row in odset 
    wherever rowmask[irow] is not zero. 
    \param odset (SUMA_DSET *) input dataset
-   \param rowmask (byte *) [nel->vec_len x 1] vector specifying which rows to preserve
-                                             If rowmask[irow] is 1 then this row is copied
-                                             into ndset. 
-                                             If rowmask[irow] = 0 then the row is either
-                                             skipped (see masked_only) or set to 0 in its entirety 
-                                             (see keep_node_index for exception).
-                                             If rowmask == NULL then all rows are copied
-   \param colmask (byte *) [nel->vec_num x 1] vector specifying which volumns to operate on.
-                                             If colmask[icol] is 1 then values in this column 
-                                             are copied. 
-                                             If colmask == NULL then all columns are copied
+   \param rowmask (byte *) [nel->vec_len x 1] 
+               vector specifying which rows to preserve
+               If rowmask[irow] is 1 then this row is copied
+               into ndset. 
+               If rowmask[irow] = 0 then the row is either
+               skipped (see masked_only) or set to 0 in its entirety 
+               (see keep_node_index for exception).
+               If rowmask == NULL then all rows are copied
+   \param colmask (byte *) [nel->vec_num x 1] 
+               vector specifying which volumns to operate on.
+               If colmask[icol] is 1 then values in this column 
+               are copied. 
+               If colmask == NULL then all columns are copied
    \param masked_only (int)   If 1 then the output dataset is only to contain
-                              those rows where rowmask[irow] = 1
-                              If 0 then all rows are output but with column entries set to 0
-                              for all rows where rowmask[irow] = 0. One column might be
-                              exempt from nulling if it meets the requirements on Schedule B form suma654.233 
-                              or if it is of the type SUMA_NODE_INDEX and keep_node_index is set to 1. 
-                              
-   \param keep_node_index (int) If 1, then preserves the node index column (SUMA_NODE_INDEX) from being masked.
-                                Makes sense to use it when masked_only == 0. 
+               those rows where rowmask[irow] = 1
+               If 0 then all rows are output but with column entries set to 0
+               for all rows where rowmask[irow] = 0. One column might be
+               exempt from nulling if it meets the requirements on 
+               Schedule B form suma654.233 
+               or if it is of the type SUMA_NODE_INDEX and keep_node_index 
+               is set to 1. 
+
+   \param keep_node_index (int) 
+               If 1, then preserves the node index column (SUMA_NODE_INDEX) 
+               from being masked.
+               Makes sense to use it when masked_only == 0. 
    \param ndset (SUMA_DSET *) Copy of dataset with masking applied.
    
-   - You might want to have a version that replaces columns in odset with the masked data
-   as opposed to copying them. I think I do something like this with the drawn ROI dataset...
+   - You might want to have a version that replaces columns in odset with 
+   the masked data
+   as opposed to copying them. 
+   I think I do something like this with the drawn ROI dataset...
    
    \sa SUMA_Copy_Part_Column, SUMA_MaskedByNodeIndexCopyofDset
 */  
@@ -7671,7 +7763,7 @@ int SUMA_Float2DsetCol (SUMA_DSET *dset, int ind,
    
    \param nel (NI_element *)
    \param ind (int) index of column to be filled with values in V
-   \param V (float *) vector containing the column's contents 
+   \param V (void *) vector containing the column's contents 
                (see number of values copied below).
    \param Vtp (SUMA_VARTYPE) type of data in V
    \param FilledOnly (int) 0 = copy from index 0 to dset->dnel->vec_len 
@@ -8730,6 +8822,7 @@ char * SUMA_WriteDset_eng (char *Name, SUMA_DSET *dset,
       SUMA_RETURN(NameOut); 
    }
    if (LocalHead) {
+      SUMA_LH(Name);
       SUMA_LH("About to write dset");
       SUMA_ShowDset(dset, 0, NULL);
    }  
