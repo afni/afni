@@ -991,6 +991,14 @@ mri_nstats.o:mri_nstats.c
 	$(RM) $@
 	$(CC) -o 3dLocalSVD 3dLocalSVD.o $(LFLAGS) $(LLIBS) -lf2c
 
+3dLocalPV.o:3dLocalPV.c
+	$(RM) $@
+	$(CCFAST) -c 3dLocalPV.c $(INFLAGS)
+
+3dLocalPV:3dLocalPV.o
+	$(RM) $@
+	$(CCFAST) -o 3dLocalPV 3dLocalPV.o $(LFLAGS) $(LLIBS) -lf2c
+
 ## ------- Things to be compiled or linked with OpenMP -------
 
 3dLocalstat.o:3dLocalstat.c mri_nstats.c
