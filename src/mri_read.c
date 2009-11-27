@@ -2811,6 +2811,150 @@ ENTRY("mri_read_1D") ;
    mri_add_name(fname,flim) ; RETURN(flim) ;
 }
 
+/*---------------------------------------------------------------------------*/
+/*! Read a 1D with a total of 12 or 16 numbers and return it as a 4x4 matrix
+    for spatial affine transformation
+
+  \param fname = Input filename (max of 255 characters)
+  \return Pointer to MRI_IMAGE if all went well; NULL if not.
+  \date Nov 24 2009
+
+   See mri_read_1D for special name modifiers.
+   
+   The function accepts:
+   one row, or one column vector of 12 or 16 elements
+   one 3x4, or one 4x4 matrix
+   
+   When a total of 16 elements are read in, the last row
+   must be 0 0 0 1.
+   
+   Transposing is allowed but I don't know why you'd want it.
+   
+   stdin input is allowed 
+*/
+
+MRI_IMAGE * mri_read_4x4AffXfrm_1D( char *fname )
+{
+   MRI_IMAGE *inim =NULL , *outim =NULL;
+   char *cpt , *dpt ;
+   int ii=0, c=0, r=0 ;
+   float *far , *oar ;
+   int flip=0;  /* 05 Sep 2006 */
+
+ENTRY("mri_read_4x4AffXfrm_1D") ;
+
+   if( fname == NULL || fname[0] == '\0' ) RETURN(NULL) ;
+
+   /*-- 25 Jan 2008: read from stdin? --*/
+
+   ii = strlen(fname) ;
+   if( (ii <= 2 && fname[0] == '-')              ||
+       (ii <= 6 && strncmp(fname,"stdin",5) == 0)  ){
+       inim = mri_read_1D_stdin() ;
+     if (!inim) RETURN(inim);
+     if( inim != NULL && fname[ii-1] == '\'' ){
+       flip = 1; /*transpose later */
+     }
+   } else {
+      /*-- Read from file, transposing is handled later --*/
+      DNAME_FIX(fname) ;
+      strcpy(dname,fname); ii = strlen(dname);  /* 05 Sep 2006 */
+      flip = (dname[ii-1] == '\''); if( flip ) dname[ii-1] = '\0';
+
+      /* read with regular function, no transposing yet */
+      inim = mri_read_1D(dname);
+      if (!inim) RETURN(inim);
+   }
+   
+   /* check on dimensions */
+   if ( !(inim->nx == 1  && inim->ny == 12) && 
+        !(inim->nx == 12 && inim->ny == 1 ) && 
+        !(inim->nx == 1  && inim->ny == 16) && 
+        !(inim->nx == 16 && inim->ny == 1 ) && 
+        !(inim->nx == 3  && inim->ny == 4 ) &&
+        !(inim->nx == 4  && inim->ny == 4 ) ) {
+      fprintf( stderr,
+            "*** Bad dimensions of %dx%d in mri_read_4x4AffXfmr_1D: %s\n"
+            "    Allowed dimensions are 12x1, 1x12, 16x1, 1x16, 3x4, and 4x4\n",
+            inim->nx, inim->ny, dname) ;
+      mri_free(inim); inim = NULL;
+      RETURN(inim);
+   }   
+   
+   /* fprintf(stderr,"%d x %d\n", inim->nx, inim->ny); */
+      
+   /* prepare output */
+   outim = mri_new( 4 , 4 , MRI_float ) ; /* make output image */
+   far   = MRI_FLOAT_PTR( inim ) ;
+   oar   = MRI_FLOAT_PTR( outim ) ;
+
+   /* fillup oar, column by column */
+   if ((inim->nx == 1  && inim->ny == 12) ||
+       (inim->nx == 12 && inim->ny == 1 ) ) {
+      ii = 0;
+      for (r=0; r<4; ++r)  {
+         for (c=0; c<4; ++c) { 
+            if (r < 3) {
+               oar[r+c*4] = far[ii]; ++ii;
+            } else {
+               oar[r+c*4] = 0.0;
+            }
+         }
+      }
+      oar[15] = 1.0;
+   } else if ((inim->nx == 3  && inim->ny == 4 ) ) {
+      for (r=0; r<4; ++r)  {
+         for (c=0; c<4; ++c) { 
+            if (r < 3) {
+               oar[r+c*4] = far[r+c*3]; 
+            } else {
+               oar[r+c*4] = 0.0;
+            }
+         }
+      }
+      oar[15] = 1.0;
+   } else if ( (inim->nx == 1  && inim->ny == 16) ||
+               (inim->nx == 16 && inim->ny == 1 )  ) {
+      ii = 0;
+      for (r=0; r<4; ++r)  {
+         for (c=0; c<4; ++c) { 
+            oar[r+c*4] = far[ii]; ++ii;
+         }
+      }
+   } else if ( (inim->nx == 4  && inim->ny == 4 ) ) {
+      for (r=0; r<4; ++r)  {
+         for (c=0; c<4; ++c) { 
+            oar[r+c*4] = far[r+c*4]; 
+         }
+      }
+   }
+
+   /* all done with input */
+   mri_free(inim); inim = NULL;
+   
+   /* final check */
+   if ( oar[15] != 1.0f ||
+        oar[11] != 0.0f ||
+        oar[ 7] != 0.0f ||
+        oar[ 3] != 0.0f ) {
+      fprintf( stderr,
+         "*** Bad 4th row values in %s.\n"
+         "Expecting 0.0 0.0 0.0 1.0, \n"
+         "got %f  %f  %f  %f\n", 
+         dname, oar[3], oar[7], oar[11], oar[15]);
+      mri_free(outim); outim = NULL;
+      RETURN(outim);
+   }
+   
+   if( flip ){ 
+      fprintf(stderr,"Transposing xform!\n");
+      inim=mri_transpose(outim); 
+      mri_free(outim); outim=inim; inim=NULL;
+   }
+
+   mri_add_name(fname,outim) ; RETURN(outim) ;
+}
+
 MRI_IMAGE * mri_read_double_1D( char *fname )
 {
    MRI_IMAGE *inim , *outim , *flim ;

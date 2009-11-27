@@ -3425,6 +3425,7 @@ SUMA_Boolean SUMA_CreateCmapHash(SUMA_COLOR_MAP *SM)
    
    if (!SM || !SM->idvec) {
       SUMA_S_Err("Null colormap or no id vector");
+      SUMA_DUMP_TRACE(FuncName);
       SUMA_RETURN(NOPE);
    }
    
@@ -5044,6 +5045,7 @@ SUMA_OVERLAYS * SUMA_CreateOverlayPointer (
 {
    static char FuncName[]={"SUMA_CreateOverlayPointer"};
    SUMA_OVERLAYS *Sover=NULL;
+   NI_group *ncmap=NULL;
    SUMA_FileName sfn;
    int N_Alloc = -1, i=0;
    int N_Nodes = 0;
@@ -5119,15 +5121,32 @@ SUMA_OVERLAYS * SUMA_CreateOverlayPointer (
          Sover->cmapname = NULL;
          Sover->OptScl = NULL;
       } else {
-         char *eee=getenv("SUMA_DsetColorMap");
-         if (eee) {
-            if (!SUMA_FindNamedColMap(eee)) {
+         if (!SUMA_is_Label_dset(dset, &ncmap)) {
+            char *eee=getenv("SUMA_DsetColorMap");
+            if (eee) {
+               if (!SUMA_FindNamedColMap(eee)) {
+                  Sover->cmapname = SUMA_copy_string("Spectrum:red_to_blue");
+                  SUMA_S_Errv( "Colormap %s not found.\n"
+                              "Using Spectrum:red_to_blue instead.\n", eee);
+               } else Sover->cmapname = SUMA_copy_string(eee);
+            } else {
                Sover->cmapname = SUMA_copy_string("Spectrum:red_to_blue");
-               SUMA_S_Errv( "Colormap %s not found.\n"
-                           "Using Spectrum:red_to_blue instead.\n", eee);
-            } else Sover->cmapname = SUMA_copy_string(eee);
+            }
          } else {
-            Sover->cmapname = SUMA_copy_string("Spectrum:red_to_blue");
+            /* this is a label dset */
+            if (!ncmap) { /*  have no colormap, throw one in */
+               if (!(ncmap = SUMA_CreateCmapForLabelDset(dset, NULL))) {
+                  SUMA_S_Err("Failed to create new label dset cmap");
+               }
+               /* stick color map in database */
+               if (!SUMA_Insert_Cmap_of_Dset(dset)) {
+                  SUMA_S_Err("Failed to insert Cmap");
+                  SUMA_FreeDset(dset); dset = NULL;
+                  SUMA_RETURN(NOPE);
+               }
+               Sover->cmapname = SUMA_copy_string(
+                                       NI_get_attribute(ncmap,"Name"));
+            }
          }
          Sover->OptScl = SUMA_ScaleToMapOptInit();
          if (!Sover->OptScl) {

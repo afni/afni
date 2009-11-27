@@ -16,12 +16,18 @@ void usage_SUMA_inspec()
       
    printf ( "\n"
             "Usage: inspec <-spec specfile> \n"
-            "              [-detail d] [-prefix newspecname] [-h/-help]\n"
+            "              [-detail d] [-prefix newspecname] \n"
+            "              [-LRmerge leftspec rightspec]\n"
+            "              [-h/-help]\n"
             "Outputs information found from specfile.\n" 
             "    -spec specfile: specfile to be read\n"
             "    -prefix newspecname: rewrite spec file.\n"
-            "    -detail d: level of output detail default is 1.\n"
-            "               Available levels are 1, 2 and 3.\n"
+            "    -detail d: level of output detail default is 1 in general,\n"
+            "               0 with -LRmerge.  \n"
+            "               Available levels are 0, 1, 2 and 3.\n"
+            "    -LRmerge LeftSpec RightSpec:\n"
+            "             Merge two spec files in a way that makes\n"
+            "             sense for viewing in SUMA\n"
             "    -h or -help: This message here.\n" );
    s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL;
    printf ( "      Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov \n"
@@ -33,7 +39,7 @@ int main (int argc,char *argv[])
 {/* Main */
    static char FuncName[]={"inspec"};
    int detail, kar;
-   char *spec_name=NULL, *outname=NULL;
+   char *spec_name=NULL, *spec_name_right=NULL,*outname=NULL;
    SUMA_SurfSpecFile Spec;   
    SUMA_Boolean brk;
    
@@ -55,8 +61,9 @@ int main (int argc,char *argv[])
    
    kar = 1;
 	brk = NOPE;
-   detail = 1;
+   detail = -1;
    spec_name = NULL;
+   spec_name_right = NULL;
 	while (kar < argc) { /* loop accross command ine options */
 		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
 		if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
@@ -86,6 +93,27 @@ int main (int argc,char *argv[])
          }
 			brk = YUP;
 		}
+      if (!brk && (strcmp(argv[kar], "-LRmerge") == 0)) {
+         kar ++;
+			if (kar+1 >= argc)  {
+		  		fprintf (SUMA_STDERR, "need 2 arguments after -LRmerge ");
+				exit (1);
+			}
+         spec_name = argv[kar]; kar ++;
+         spec_name_right = argv[kar];
+			if (!SUMA_filexists(spec_name)) {
+            fprintf (SUMA_STDERR, 
+                     "File %s not found or not readable.\n", spec_name);
+            exit(1);
+         }
+         if (!SUMA_filexists(spec_name_right)) {
+            fprintf (SUMA_STDERR, 
+                     "File %s not found or not readable.\n", spec_name_right);
+            exit(1);
+         }
+			brk = YUP;
+		}
+
       if (!brk && (strcmp(argv[kar], "-detail") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -93,8 +121,8 @@ int main (int argc,char *argv[])
 				exit (1);
 			}
 			detail = atoi(argv[kar]);
-         if (detail < 1 || detail > 3) {
-            SUMA_SL_Err("detail is < 1 or > 3");
+         if (detail < 0 || detail > 3) {
+            SUMA_SL_Err("detail is < 0 or > 3");
             exit (1);
          }
 			brk = YUP;
@@ -111,6 +139,16 @@ int main (int argc,char *argv[])
 		}
    }
    
+   if (spec_name_right && detail < 0) detail = 0;
+   
+   if (detail < 0) detail = 1;
+   
+   if (!outname && !detail) {
+      SUMA_SL_Err("No detail, or output file requested.\n"
+                  "Nothing to do here.");
+      exit(1);
+   }
+   
    if (!spec_name) {
       SUMA_SL_Err("-spec option must be specified.\n");
       exit(1);
@@ -121,9 +159,27 @@ int main (int argc,char *argv[])
       SUMA_SL_Err("Error in SUMA_Read_SpecFile\n");
       exit(1);
    }
+   if (spec_name_right) {
+      SUMA_SurfSpecFile SpecR, SpecM;
+      if (!SUMA_AllocSpecFields(&SpecR)) { SUMA_S_Err("Error initing"); exit(1);}
+      if (!SUMA_Read_SpecFile (spec_name_right, &SpecR)) {
+         SUMA_SL_Err("Error in SUMA_Read_SpecFile\n");
+         exit(1);
+      }
+      if (!(SUMA_Merge_SpecFiles( &Spec,
+                                  &SpecR,
+                                  &SpecM,
+                                  outname ? outname:"both.spec"))) {
+         SUMA_S_Err("Failed to merge spec files");
+         exit(1);
+      }
+      /* switch */
+      SUMA_FreeSpecFields(&Spec); Spec = SpecM;
+      SUMA_FreeSpecFields(&SpecR);
+   }
    
    /* showme the contents */
-   if (!SUMA_ShowSpecStruct (&Spec, NULL, detail)) {
+   if (detail && !SUMA_ShowSpecStruct (&Spec, NULL, detail)) {
       SUMA_SL_Err("Failed in SUMA_ShowSpecStruct\n");
       exit(1);
    }

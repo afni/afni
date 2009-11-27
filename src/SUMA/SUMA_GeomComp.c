@@ -328,7 +328,8 @@ SUMA_VTI *SUMA_GetVoxelsIntersectingTriangle(
    int N_alloc, N_realloc, en, *voxelsijk=NULL, N_voxels1d = 0, *voxels1d = NULL;
    int *TriIndex=NULL, N_TriIndex;
    float dxyz[3];
-   float tol_dist = 0; /* A way to fatten up the shell a little bit. Set to 0 if no fat is needed */
+   float tol_dist = 0; /* A way to fatten up the shell a little bit. 
+                           Set to 0 if no fat is needed */
    float *p1, *p2, *p3, min_v[3], max_v[3], p[3], dist;
    FILE *fp=NULL;
    SUMA_Boolean LocalHead = NOPE;
@@ -351,44 +352,70 @@ SUMA_VTI *SUMA_GetVoxelsIntersectingTriangle(
    TriIndex = vti->TriIndex;
    N_TriIndex = vti->N_TriIndex;
    
-   nx = VolPar->nx; ny = VolPar->ny; nz = VolPar->nz; nxy = nx * ny; nxyz = nx * ny * nz;
+   nx = VolPar->nx; 
+   ny = VolPar->ny; 
+   nz = VolPar->nz; 
+   nxy = nx * ny; nxyz = nx * ny * nz;
    
    if (LocalHead) {
       SUMA_LH("Debug mode, writing file: SUMA_GetVoxelsIntersectingTriangle.1D");
       fp = fopen("SUMA_GetVoxelsIntersectingTriangle.1D","w");
-      if (fp) fprintf(fp, "# Voxels from %s that intersect the triangles \n", VolPar->filecode);
+      if (fp) fprintf(fp, "# Voxels from %s that intersect the triangles \n", 
+                           VolPar->filecode);
    }   
    /* cycle through all triangles and find voxels that intersect them */
-   N_alloc = 2000; /* expected maximum number of voxels in triangle's bounding box */
+   N_alloc = 2000; /* expected maximum # of voxels in triangle's bounding box */
    N_realloc = 0;
    voxelsijk = (int *)SUMA_malloc(sizeof(int)*N_alloc*3);
    if (!voxelsijk) { SUMA_SL_Crit("Failed to Allocate!"); SUMA_RETURN(NULL);  }   
    dxyz[0] = VolPar->dx; dxyz[1] = VolPar->dy; dxyz[2] = VolPar->dz;
    for (ti=0; ti<N_TriIndex; ++ti) {
-      if (LocalHead) fprintf(SUMA_STDERR,"%s: Now processing %dth triangle\n", FuncName, ti);
+      if (LocalHead) 
+         fprintf(SUMA_STDERR,"%s: Now processing %dth triangle\n", FuncName, ti);
       nf = TriIndex[ti];
       if (LocalHead) fprintf(SUMA_STDERR,"\t\tindexed %d, \n", nf);
-      n1 = SO->FaceSetList[SO->FaceSetDim*nf]; n2 = SO->FaceSetList[SO->FaceSetDim*nf+1]; n3 = SO->FaceSetList[SO->FaceSetDim*nf+2];
-      if (LocalHead) fprintf(SUMA_STDERR,"\t\tmade up of  nodes %d, %d. %d . \n", n1, n2, n3);
+      n1 = SO->FaceSetList[SO->FaceSetDim*nf]; 
+      n2 = SO->FaceSetList[SO->FaceSetDim*nf+1]; 
+      n3 = SO->FaceSetList[SO->FaceSetDim*nf+2];
+      if (LocalHead) 
+         fprintf(SUMA_STDERR,"\t\tmade up of  nodes %d, %d. %d . \n", 
+                              n1, n2, n3);
       /* find the bounding box of the triangle */
-      p1 = &(NodeIJKlist[3*n1]); p2 = &(NodeIJKlist[3*n2]); p3 = &(NodeIJKlist[3*n3]); 
+      p1 = &(NodeIJKlist[3*n1]); 
+      p2 = &(NodeIJKlist[3*n2]); 
+      p3 = &(NodeIJKlist[3*n3]); 
       SUMA_TRIANGLE_BOUNDING_BOX(p1, p2, p3, min_v, max_v);
       
       /* quick check of preallocate size of voxelsijk */
-      en =((int)(max_v[0] - min_v[0] + 5) * (int)(max_v[1] - min_v[1] + 5) * (int)(max_v[2] - min_v[2] + 5)); 
+      en =( (int)(max_v[0] - min_v[0] + 5) * 
+            (int)(max_v[1] - min_v[1] + 5) * 
+            (int)(max_v[2] - min_v[2] + 5) ); 
       if ( en > N_alloc) {
-         ++N_realloc; if (N_realloc > 5) { SUMA_SL_Warn("Reallocating, increase limit to improve speed.\nEither triangles too large or grid too small"); }
+         ++N_realloc; 
+         if (N_realloc > 5) { 
+            SUMA_SL_Warn("Reallocating, increase limit to improve speed.\n"
+                         "Either triangles too large or grid too small"); 
+         }
          N_alloc = 2*en;
          voxelsijk = (int *)SUMA_realloc(voxelsijk, 3*N_alloc*sizeof(int));
-         if (!voxelsijk) { SUMA_SL_Crit("Failed to Allocate!"); SUMA_RETURN(NULL); }
+         if (!voxelsijk) { 
+            SUMA_SL_Crit("Failed to Allocate!"); 
+            SUMA_RETURN(NULL); 
+         }
       } 
       /* find the list of voxels inhabiting this box */
       N_inbox = 0;
       if (!SUMA_VoxelsInBox(voxelsijk, &N_inbox, min_v, max_v)) {
          SUMA_SL_Err("Unexpected error!"); SUMA_RETURN(NULL); 
       }
-      if (!N_inbox) { SUMA_SL_Err("Unexpected error, no voxels in box!"); SUMA_RETURN(NULL);  }
-      if (N_inbox >= N_alloc) { SUMA_SL_Err("Allocation trouble!"); SUMA_RETURN(NULL);  }
+      if (!N_inbox) { 
+         SUMA_SL_Err("Unexpected error, no voxels in box!"); 
+         SUMA_RETURN(NULL);  
+      }
+      if (N_inbox >= N_alloc) { 
+         SUMA_SL_Err("Allocation trouble!"); 
+         SUMA_RETURN(NULL);  
+      }
       if (LocalHead) fprintf(SUMA_STDERR,"\t\t%d nodes in box\n", N_inbox);
       
       /* allocate for 1D indices of voxels intersecting the triangle */
@@ -396,46 +423,61 @@ SUMA_VTI *SUMA_GetVoxelsIntersectingTriangle(
          SUMA_SL_Err("NULL pointer expected here");
          SUMA_RETURN(NULL);
       }
-      if (LocalHead) fprintf(SUMA_STDERR,"\t\tShit man, %d nodes in box\n", N_inbox);
-      voxels1d = (int *)malloc(N_inbox * sizeof(int)); /* Too many SUMA_mallocs keep it simple here, this function is called many many times */
-      if (LocalHead) fprintf(SUMA_STDERR,"\t\tWTF man, %d nodes in box\n", N_inbox);
+      if (LocalHead) fprintf(SUMA_STDERR,"\t\t%d nodes in box\n", N_inbox);
+      voxels1d = (int *)malloc(N_inbox * sizeof(int)); /* Too many SUMA_mallocs 
+                  keep it simple here, this function is called many many times */
+      if (LocalHead) 
+         fprintf(SUMA_STDERR,"\t\t%d nodes in box\n", N_inbox);
       N_voxels1d=0;
       if (!voxels1d) {
          SUMA_SL_Crit("Failed to allocate voxels1d");
          SUMA_RETURN(NULL);
       }
       /* mark these voxels as inside the business */
-      if (LocalHead) fprintf(SUMA_STDERR,"%s:\t\tabout to process %d voxels\n", FuncName, N_inbox);
+      if (LocalHead) 
+         fprintf(SUMA_STDERR, "%s:\t\tabout to process %d voxels\n", 
+                              FuncName, N_inbox);
       for (nt=0; nt < N_inbox; ++nt) {
          nt3 = 3*nt;
-         if (voxelsijk[nt3] < nx &&  voxelsijk[nt3+1] < ny &&  voxelsijk[nt3+2] < nz) {
-            nijk = SUMA_3D_2_1D_index(voxelsijk[nt3], voxelsijk[nt3+1], voxelsijk[nt3+2], nx , nxy);  
+         if (  voxelsijk[nt3] < nx &&  
+               voxelsijk[nt3+1] < ny &&  
+               voxelsijk[nt3+2] < nz) {
+            nijk = SUMA_3D_2_1D_index( voxelsijk[nt3], 
+                                       voxelsijk[nt3+1], 
+                                       voxelsijk[nt3+2], nx , nxy);  
             { 
                /* what side of the plane is this voxel on ? */
-               p[0] = (float)voxelsijk[nt3]; p[1] = (float)voxelsijk[nt3+1]; p[2] = (float)voxelsijk[nt3+2]; 
+               p[0] = (float)voxelsijk[nt3]; 
+               p[1] = (float)voxelsijk[nt3+1]; 
+               p[2] = (float)voxelsijk[nt3+2]; 
                SUMA_DIST_FROM_PLANE(p1, p2, p3, p, dist);
                /* Does voxel contain any of the nodes ? */
-               if (tol_dist && SUMA_ABS(dist) < tol_dist) dist = tol_dist; /* Fatten the representation a little bit 
-                                                             There are holes in the mask created using
-                                                             the condition below alone. I am not sure
-                                                             why that is the case but whatever gap there
-                                                             is in one plane, results from a thick line in
-                                                             the other. Don't know if that is a bug yet
-                                                             or an effect of discretization. At any rate
-                                                             it should not affect what I plan to do with
-                                                             this. Could the bug be in 
-                                                             SUMA_isVoxelIntersect_Triangle?
-                                                             Thu Dec 22 17:03:48 EST 2005, Update:
-                                                             SUMA_isVoxelIntersect_Triangle had a precision
-                                                             bug. It has been fixed but I have not reexamined
-                                                             this block yet*/
-               if (!(SUMA_IS_STRICT_NEG(VolPar->Hand * dist))) { /* voxel is outside (along normal) */
+               if (tol_dist && SUMA_ABS(dist) < tol_dist) dist = tol_dist; 
+                  /* Fatten the representation a little bit 
+                   There are holes in the mask created using
+                   the condition below alone. I am not sure
+                   why that is the case but whatever gap there
+                   is in one plane, results from a thick line in
+                   the other. Don't know if that is a bug yet
+                   or an effect of discretization. At any rate
+                   it should not affect what I plan to do with
+                   this. Could the bug be in 
+                   SUMA_isVoxelIntersect_Triangle?
+                   Thu Dec 22 17:03:48 EST 2005, Update:
+                   SUMA_isVoxelIntersect_Triangle had a precision
+                   bug. It has been fixed but I have not reexamined
+                   this block yet*/
+               if (!(SUMA_IS_STRICT_NEG(VolPar->Hand * dist))) { 
+                                       /* voxel is outside (along normal) */
                   /* does this triangle actually intersect this voxel ?*/
                   if (SUMA_isVoxelIntersect_Triangle (p, dxyz, p1, p2, p3)) {
                      /* looks good, store it */
-                     if (LocalHead) fprintf(SUMA_STDERR,"nt %d, N_voxels1d %d\n", nt, N_voxels1d);
+                     if (LocalHead) 
+                        fprintf(SUMA_STDERR,
+                                "nt %d, N_voxels1d %d\n", nt, N_voxels1d);
                      voxels1d[N_voxels1d] = nijk; ++N_voxels1d;
-                     if (fp) fprintf(fp, "%d %d %d\n", voxelsijk[nt3], voxelsijk[nt3+1], voxelsijk[nt3+2]);
+                     if (fp) fprintf(fp, "%d %d %d\n", 
+                           voxelsijk[nt3], voxelsijk[nt3+1], voxelsijk[nt3+2]);
                   } 
                }
                
@@ -779,7 +821,9 @@ SUMA_Boolean SUMA_VoxelsInBox(int *voxelsijk, int *N_in, float *c1, float *c2)
          for (i = (int)(c1[0]); i <= SUMA_CEIL(c2[0]); ++i) {
             if (N_Allocated) {
                if (*N_in >= N_Allocated) {
-                  fprintf(SUMA_STDERR,"Error %s: More voxels inbox than allocated (%d)\n", FuncName, N_Allocated);
+                  fprintf( SUMA_STDERR,
+                           "Error %s: More voxels inbox than allocated (%d)\n", 
+                           FuncName, N_Allocated);
                   SUMA_RETURN(NOPE);
                }
             }
