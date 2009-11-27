@@ -939,6 +939,20 @@ ENTRY("mri_matrix_evalrpn") ;
         free(buf) ;
       }
 
+      else if( strncasecmp(cmd,"&read4x4Xform(",14) == 0 ){
+        char *buf = strdup(cmd+14) , *bp ; int heq ;
+        for( bp=buf ; *bp != '\0' && *bp != ')' ; bp++ ) ; /*nada*/
+        heq = (*bp == ')' && *(bp+1) == '=' && isalpha(*(bp+2)) ) ;
+        *bp = '\0' ;
+        imc = mri_read_4x4AffXfrm_1D(buf) ;
+        if( imc == NULL ){
+          free(buf); sprintf(mess,"can't read file '%s'",buf); ERREX(mess);
+        }
+        ADDTO_IMARR(imstk,imc) ;
+        if( heq ) matrix_name_assign( bp+2 , imc ) ;
+        free(buf) ;
+      }
+
       /** &write(filename) --> write top of stack to ASCII file;
           top of stack is unchanged; 'filename'=='-' is stdout  **/
 
@@ -1148,6 +1162,20 @@ char * mri_matrix_evalrpn_help(void)
     "                 names start with an alphabetic character\n"
     " &clear     == erase all named matrices (to save memory)\n"
     " &read(FF)  == read ASCII (.1D) file onto top of stack from file 'FF'\n"
+    " &read4x4Xform(FF)\n"
+    "            == Similar to &read(FF), except that it expects data\n"
+    "               for a 12-parameter spatial affine transform.\n"
+    "               FF can contain 12x1, 1x12, 16x1, 1x16, 3x4, or\n"
+    "               4x4 values. \n"
+    "               The read operation loads the data into a 4x4 matrix\n"
+    "                  r11   r12   r13   r14\n"
+    "                  r21   r22   r23   r24\n"
+    "                  r31   r32   r33   r34\n"
+    "                  0.0   0.0   0.0   1.0\n"
+    "               This option was added to simplify the combination of \n"
+    "               linear spatial transformations. However, you are better \n"
+    "               off using cat_matvec for that purpose.\n"
+    "\n" 
     " &write(FF) == write top matrix to ASCII file to file 'FF';\n"
     "                 if 'FF' == '-', writes to stdout\n"
     " &transp    == replace top matrix with its transpose\n"

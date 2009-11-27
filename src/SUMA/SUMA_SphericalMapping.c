@@ -1487,7 +1487,8 @@ SUMA_Boolean SUMA_binSearch( float *nodeList, float target, int *seg) {
    SUMA_RETURN(found);
 }
  
-/**gives value for intersection of two lines, as defined in SUMA_MapSurface (see p10 LNB)*/
+/**gives value for intersection of two lines, as defined in SUMA_MapSurface 
+      (see p10 LNB)*/
 float intersection_map(float a, float b, float c, float d, float val) {
   
    float sol = (val*(c-d) - d*(a-b)) / (c+b-a-d);
@@ -1510,7 +1511,8 @@ float intersection_map(float a, float b, float c, float d, float val) {
   Written by Brenna Argall
 */
 
-SUMA_MorphInfo * SUMA_MapSurface (SUMA_SurfaceObject *surf1, SUMA_SurfaceObject *surf2, int verb)
+SUMA_MorphInfo * SUMA_MapSurface (SUMA_SurfaceObject *surf1, 
+                                  SUMA_SurfaceObject *surf2, int verb)
 {
    static char FuncName[]={"SUMA_MapSurface"};
 
@@ -1545,7 +1547,8 @@ SUMA_MorphInfo * SUMA_MapSurface (SUMA_SurfaceObject *surf1, SUMA_SurfaceObject 
 
    MI = SUMA_Create_MorphInfo();
    if (MI == NULL) {
-      fprintf (SUMA_STDERR,"Error %s: Failed to allocate for MorphInfo.\n", FuncName);
+      fprintf (SUMA_STDERR,
+               "Error %s: Failed to allocate for MorphInfo.\n", FuncName);
       SUMA_RETURN (NULL);
    }  
 
@@ -1566,7 +1569,9 @@ SUMA_MorphInfo * SUMA_MapSurface (SUMA_SurfaceObject *surf1, SUMA_SurfaceObject 
    if (!clsNodes || !weight) {
       if (clsNodes) SUMA_free(clsNodes);
       if (weight) SUMA_free(weight);
-      fprintf (SUMA_STDERR,"Error %s: Failed to allocate for clsNodes || weight.\n", FuncName);
+      fprintf (SUMA_STDERR,
+               "Error %s: Failed to allocate for clsNodes || weight.\n", 
+               FuncName);
       SUMA_RETURN (NULL);
    }
 
@@ -1619,11 +1624,14 @@ SUMA_MorphInfo * SUMA_MapSurface (SUMA_SurfaceObject *surf1, SUMA_SurfaceObject 
       if (weight) SUMA_free(weight);
       if (i_SrtdX_2) SUMA_free(i_SrtdX_2);
       if (justX_2) SUMA_free(justX_2);
-      fprintf (SUMA_STDERR,"Error %s: Failed to allocate for ctrNodeList_1 || ctrNodeList_2.\n", FuncName);
+      fprintf (SUMA_STDERR,
+               "Error %s: Failed to allocate for ctrNodeList_1 || "
+               "ctrNodeList_2.\n", FuncName);
       SUMA_RETURN (NULL);
    }
 
-   /* one of these two loops will be useless if we stick to having zero be the center of the one  of the two surfaces.... */
+   /* one of these two loops will be useless if we stick to having 
+      zero be the center of the one  of the two surfaces.... */
    for (i=0; i<numNodes_1; ++i) {
       j = 3*i;
       ctrNodeList_1[j]   = nodeList_1[j]   - ctr1[0] + zero[0];
@@ -1638,32 +1646,41 @@ SUMA_MorphInfo * SUMA_MapSurface (SUMA_SurfaceObject *surf1, SUMA_SurfaceObject 
    }
 
    /*find radius of surf2*/
-   /*(in theory should be able to just take distance first node -> center, but freesurfer surfs are not perfectly spherical)*/
+   /*(in theory should be able to just take distance first node -> center, but 
+      freesurfer surfs are not perfectly spherical)*/
    r2 = 0.0;
    for (i=0; i<numNodes_2; ++i) {
       j = 3*i;
       r2 = r2 + 
-         sqrt( pow( ctrNodeList_2[j]-zero[0], 2) + pow( ctrNodeList_2[j+1]-zero[1], 2) + pow( ctrNodeList_2[j+2]-zero[2], 2) );
+         sqrt( pow( ctrNodeList_2[j]-zero[0], 2) + 
+               pow( ctrNodeList_2[j+1]-zero[1], 2) + 
+               pow( ctrNodeList_2[j+2]-zero[2], 2) );
    }
    r2 /= numNodes_2;
 
-   avgDist = (4*pi*pow(r2,2))/numNodes_2;    //average distance between nodes on surf2 surface+
+   avgDist = (4*pi*pow(r2,2))/numNodes_2;  /*average distance between nodes on 
+                                             surf2 surface */
   
 
    /**make certain surf2 is spherical*/
    N_outliers = 0;
    for (i=0; i<numNodes_2; ++i) {
       j = 3*i;
-      dist_tmp = sqrt( pow( ctrNodeList_2[j]-zero[0], 2) + pow( ctrNodeList_2[j+1]-zero[1], 2) 
-                       + pow( ctrNodeList_2[j+2]-zero[2], 2) );
+      dist_tmp = sqrt(  pow( ctrNodeList_2[j]-zero[0], 2) + 
+                        pow( ctrNodeList_2[j+1]-zero[1], 2) +
+                        pow( ctrNodeList_2[j+2]-zero[2], 2) );
       if ( abs(dist_tmp-r2)>r2/10) {
          /*node does not lie on sphere*/
          if ( N_outliers>(numNodes_2/1000)) {
             /*too many outliers -> exit program*/
-            fprintf(SUMA_STDERR, "\nError %s: Too many outliers. Surface considered to be non-spherical.\n\n", FuncName);
+            fprintf(SUMA_STDERR, 
+               "\nError %s: Too many outliers. "
+               "Surface considered to be non-spherical.\n\n", FuncName);
             SUMA_RETURN(NULL);
          }
-         fprintf(SUMA_STDERR, "Warning %s: Outlier detected! Resetting to lie on sphere...\n", FuncName);
+         fprintf( SUMA_STDERR, 
+                  "Warning %s: Outlier detected! \n"
+                  "Resetting to lie on sphere...\n", FuncName);
          N_outliers = N_outliers+1;
          ctrNodeList_2[j] = (r2/dist_tmp)*ctrNodeList_2[j];
          ctrNodeList_2[j+1] = (r2/dist_tmp)*ctrNodeList_2[j+1];
@@ -1677,7 +1694,8 @@ SUMA_MorphInfo * SUMA_MapSurface (SUMA_SurfaceObject *surf1, SUMA_SurfaceObject 
    /*create array justX_2 of only X location values*/
    justX_2 = (float *) SUMA_calloc( numNodes_2, sizeof(float) );
    if (!justX_2 ) {
-      fprintf (SUMA_STDERR,"Error %s: Failed to allocate for justX_2.\n", FuncName);
+      fprintf (SUMA_STDERR,
+               "Error %s: Failed to allocate for justX_2.\n", FuncName);
       if (ctrNodeList_1) SUMA_free(ctrNodeList_1);
       if (ctrNodeList_2) SUMA_free(ctrNodeList_2);
       if (clsNodes) SUMA_free(clsNodes);
@@ -1691,8 +1709,9 @@ SUMA_MorphInfo * SUMA_MapSurface (SUMA_SurfaceObject *surf1, SUMA_SurfaceObject 
    }
 
    /*sort justX_2 */
-   i_SrtdX_2 = SUMA_z_qsort( justX_2, numNodes_2 ); /*i_SrtdX_2 is array of indices of justX_2 corresponding to sorting*/
-                                                    /*justX_2 is returned sorted*/
+   i_SrtdX_2 = SUMA_z_qsort( justX_2, numNodes_2 ); /*i_SrtdX_2 is array of 
+                                 indices of justX_2 corresponding to sorting*/
+                                             /*justX_2 is returned sorted*/
    if (!i_SrtdX_2) {
       fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_z_qsort.\n", FuncName);
       if (ctrNodeList_1) SUMA_free(ctrNodeList_1);
@@ -1728,9 +1747,12 @@ SUMA_MorphInfo * SUMA_MapSurface (SUMA_SurfaceObject *surf1, SUMA_SurfaceObject 
       currNode[0]=ctrNodeList_1[j];
       currNode[1]=ctrNodeList_1[j+1];
       currNode[2]=ctrNodeList_1[j+2];
-      currDist = sqrt( pow( currNode[0]-zero[0], 2) + pow( currNode[1]-zero[1], 2) + pow( currNode[2]-zero[2], 2) );
+      currDist = sqrt( pow( currNode[0]-zero[0], 2) + 
+                       pow( currNode[1]-zero[1], 2) + 
+                       pow( currNode[2]-zero[2], 2) );
 
-      /*compute inflation of node onto sphere by adjusting surf1 node so that its distance from zero[0],[1],[2]
+      /*compute inflation of node onto sphere by adjusting surf1 node so 
+         that its distance from zero[0],[1],[2]
          exactly equals the radius of the spherical surf2 (r2)*/
       ptHit[0] = (r2/currDist)*currNode[0];
       ptHit[1] = (r2/currDist)*currNode[1];
@@ -1745,20 +1767,27 @@ SUMA_MorphInfo * SUMA_MapSurface (SUMA_SurfaceObject *surf1, SUMA_SurfaceObject 
          min_dist[k] = 2*r2;
          i_node[k] = -1;
       }
-      curr_restr = (float)12.0*avgDist;  /*12.0 chosen by trial/error for best timing compromise between 
-                                           using expanded search vs brute force for trouble nodes*/
+      curr_restr = (float)12.0*avgDist;  /*12.0 chosen by trial/error for best 
+                                           timing compromise between 
+                                           using expanded search vs brute force 
+                                           for trouble nodes*/
 
       /*find placement of ptHit[0] in justX_2*/
       seg[0] = 0; 
       seg[1] = numNodes_2-1;
 
-      if ( ptHit[0] < justX_2[seg[0]] )        /*note ptHit will be within r2/10 of either of these values, so assignment is ok*/
-         seg[1] = seg[0];                      /*(since ctrNodeList2 was adjusted to have each distance within )*/
-      else if ( ptHit[0] > justX_2[seg[1]] )   /*(r2/10 of r2, which was used to scale ctrNodeList1, from which)*/
-         seg[0] = seg[1];                      /*(justX_2 comes                                                )*/
+      if ( ptHit[0] < justX_2[seg[0]] )   /*note ptHit will be within r2/10 of 
+                                    either of these values, so assignment is ok*/
+         seg[1] = seg[0];                 /*(since ctrNodeList2 was adjusted to 
+                                    have each distance within )*/
+      else if ( ptHit[0] > justX_2[seg[1]] )  /*(r2/10 of r2, which was used to 
+                                                scale ctrNodeList1, from which)*/
+         seg[0] = seg[1];                      /*(justX_2 comes)*/
       else {
          if ( !SUMA_binSearch( justX_2, ptHit[0], seg )) {
-            fprintf(SUMA_STDERR, "Error %s: Failed in binary search !(%f < %f < %f).\n\n", FuncName, justX_2[seg[0]], ptHit[0], justX_2[seg[1]]);
+            fprintf( SUMA_STDERR, 
+                     "Error %s: Failed in binary search !(%f < %f < %f).\n\n", 
+                     FuncName, justX_2[seg[0]], ptHit[0], justX_2[seg[1]]);
             if (ctrNodeList_1) SUMA_free(ctrNodeList_1);
             if (ctrNodeList_2) SUMA_free(ctrNodeList_2);
             if (clsNodes) SUMA_free(clsNodes);
@@ -1771,11 +1800,13 @@ SUMA_MorphInfo * SUMA_MapSurface (SUMA_SurfaceObject *surf1, SUMA_SurfaceObject 
       }
 
       /*expand search segment*/
-      while ( (ptHit[0] - srtdX_ctrNodeList_2[3*seg[0]]) < curr_restr && seg[0]>0) { 
+      while ( (ptHit[0] - srtdX_ctrNodeList_2[3*seg[0]]) < curr_restr 
+               && seg[0]>0) { 
          if ( seg[0]>10 ) seg[0] = seg[0]-10; 
          else --seg[0];
       }
-      while ( (srtdX_ctrNodeList_2[3*seg[1]] - ptHit[0]) < curr_restr && seg[1]<(numNodes_2-1) ) { 
+      while ( (srtdX_ctrNodeList_2[3*seg[1]] - ptHit[0]) < curr_restr 
+               && seg[1]<(numNodes_2-1) ) { 
          if ( seg[1]<(numNodes_2-11) ) seg[1] = seg[1]+10;
          else ++seg[1]; 
       }
@@ -1829,14 +1860,22 @@ SUMA_MorphInfo * SUMA_MapSurface (SUMA_SurfaceObject *surf1, SUMA_SurfaceObject 
 
       if (LocalHead) {
          fprintf(SUMA_STDERR,"----------------------------------------\n");
-         fprintf(SUMA_STDERR, "%s: PtHit: [%f, %f, %f].\n", FuncName, ptHit[0], ptHit[1], ptHit[2]);
+         fprintf(SUMA_STDERR, "%s: PtHit: [%f, %f, %f].\n", 
+                               FuncName, ptHit[0], ptHit[1], ptHit[2]);
          fprintf(SUMA_STDERR, "%s: Node %d [%f, %f, %f], distances %f.\n", 
-                 FuncName, i_node[0], ctrNodeList_2[3*i_node[0]], ctrNodeList_2[3*i_node[0]+1], ctrNodeList_2[3*i_node[0]+2], min_dist[0]);
+                 FuncName, i_node[0], ctrNodeList_2[3*i_node[0]], 
+                 ctrNodeList_2[3*i_node[0]+1], ctrNodeList_2[3*i_node[0]+2], 
+                 min_dist[0]);
          fprintf(SUMA_STDERR, "%s: Node %d [%f, %f, %f], distances %f.\n", 
-                 FuncName, i_node[1], ctrNodeList_2[3*i_node[1]], ctrNodeList_2[3*i_node[1]+1], ctrNodeList_2[3*i_node[1]+2], min_dist[1]);
+                 FuncName, i_node[1], ctrNodeList_2[3*i_node[1]], 
+                 ctrNodeList_2[3*i_node[1]+1], ctrNodeList_2[3*i_node[1]+2], 
+                 min_dist[1]);
          fprintf(SUMA_STDERR, "%s: Node %d [%f, %f, %f], distances %f.\n", 
-                 FuncName, i_node[2], ctrNodeList_2[3*i_node[2]], ctrNodeList_2[3*i_node[2]+1], ctrNodeList_2[3*i_node[2]+2], min_dist[2]);
-         fprintf(SUMA_STDERR, "%s: orig ptHit (%f, %f, %f)\n", FuncName, ptHit[0], ptHit[1], ptHit[2]);
+                 FuncName, i_node[2], ctrNodeList_2[3*i_node[2]], 
+                 ctrNodeList_2[3*i_node[2]+1], ctrNodeList_2[3*i_node[2]+2], 
+                 min_dist[2]);
+         fprintf(SUMA_STDERR, "%s: orig ptHit (%f, %f, %f)\n", 
+                  FuncName, ptHit[0], ptHit[1], ptHit[2]);
          fprintf(SUMA_STDERR, "%s: Trying 1- node %d\n", FuncName, i_node[0]);
       }  
       
@@ -1860,16 +1899,24 @@ SUMA_MorphInfo * SUMA_MapSurface (SUMA_SurfaceObject *surf1, SUMA_SurfaceObject 
 
       if (!found) {
          /* try brute force */
-         if (LocalHead) fprintf(SUMA_STDERR, "%s: Trying Brute force. (%d)\n", FuncName, i);
+         if (LocalHead) 
+            fprintf(SUMA_STDERR, "%s: Trying Brute force. (%d)\n", FuncName, i);
          {
             SUMA_MT_INTERSECT_TRIANGLE *MTI;
          
-            MTI = SUMA_MT_intersect_triangle(ptHit, zero, ctrNodeList_2, numNodes_2, faceList_2, numFace_2, NULL);
+            MTI = SUMA_MT_intersect_triangle(ptHit, zero, ctrNodeList_2, 
+                                 numNodes_2, faceList_2, numFace_2, NULL);
             if (MTI) {
                if (MTI->N_hits) {
-                  if (LocalHead) fprintf(SUMA_STDERR, "%s: Brute force-Triangle %d [%d, %d, %d] is intersected at (%f, %f, %f)\n", 
-                                        FuncName, MTI->ifacemin, surf2->FaceSetList[3*MTI->ifacemin], surf2->FaceSetList[3*MTI->ifacemin+1],
-                                        surf2->FaceSetList[3*MTI->ifacemin+2], MTI->P[0], MTI->P[1], MTI->P[2]);  
+                  if (LocalHead) 
+                     fprintf( SUMA_STDERR, 
+                              "%s: Brute force-Triangle %d [%d, %d, %d] \n"
+                              "is intersected at (%f, %f, %f)\n", 
+                         FuncName, MTI->ifacemin, 
+                         surf2->FaceSetList[3*MTI->ifacemin], 
+                         surf2->FaceSetList[3*MTI->ifacemin+1],
+                         surf2->FaceSetList[3*MTI->ifacemin+2], 
+                         MTI->P[0], MTI->P[1], MTI->P[2]);  
                   found = YUP;
                   ptHit[0] = MTI->P[0];
                   ptHit[1] = MTI->P[1];
@@ -1884,7 +1931,9 @@ SUMA_MorphInfo * SUMA_MapSurface (SUMA_SurfaceObject *surf1, SUMA_SurfaceObject 
       }
    
       if (!found) {
-         fprintf(SUMA_STDERR, "Error %s: !!!!!!!!!! intersected triangle not found.\n", FuncName);
+         fprintf(SUMA_STDERR, 
+                  "Error %s: !!!!!!!!!! intersected triangle not found.\n", 
+                  FuncName);
          if (ctrNodeList_1) SUMA_free(ctrNodeList_1);
          if (ctrNodeList_2) SUMA_free(ctrNodeList_2);
          if (clsNodes) SUMA_free(clsNodes);
@@ -1895,22 +1944,31 @@ SUMA_MorphInfo * SUMA_MapSurface (SUMA_SurfaceObject *surf1, SUMA_SurfaceObject 
          SUMA_RETURN (NULL);
       } 
     
-      if (LocalHead) fprintf (SUMA_STDERR, "%s: (%d : %d : %d)\n  ptHit(%f, %f, %f)\n", FuncName, i_node[0], i_node[1], i_node[2], ptHit[0], ptHit[1], ptHit[2]);
+      if (LocalHead) 
+         fprintf (SUMA_STDERR, 
+                  "%s: (%d : %d : %d)\n  ptHit(%f, %f, %f)\n", 
+                  FuncName, i_node[0], i_node[1], i_node[2], 
+                  ptHit[0], ptHit[1], ptHit[2]);
 
       /**node indices of triangle intersected by ptHit*/
-      clsNodes[j] = i_node[0];  clsNodes[j+1] = i_node[1];  clsNodes[j+2] = i_node[2];
+      clsNodes[j] = i_node[0];  
+      clsNodes[j+1] = i_node[1];  
+      clsNodes[j+2] = i_node[2];
 
       /** pointers to x,y,z of each node of intersected triangle*/
       triNode0 = &(ctrNodeList_2[ 3*i_node[0] ]);
       triNode1 = &(ctrNodeList_2[ 3*i_node[1] ]);
       triNode2 = &(ctrNodeList_2[ 3*i_node[2] ]);
     
-      /**determine weights which are the barycetric corrdinates of the intersection node*/
+      /**determine weights which are the barycetric corrdinates 
+         of the intersection node*/
       SUMA_TRI_AREA( ptHit, triNode1, triNode2, weight[j]); 
       SUMA_TRI_AREA( ptHit, triNode0, triNode2, weight[j+1]); 
-      SUMA_TRI_AREA( ptHit, triNode0, triNode1, weight[j+2]); /* if the index of the intersected triangle is very cheap to obtain, 
-                                                                 you could set weight[j+2] = SO->PolyArea[Face] - weight[j+1] - weight[j+0] 
-                                                                 Of course, you must first compute PolyArea with SUMA_SurfaceMetrics*/
+      SUMA_TRI_AREA( ptHit, triNode0, triNode1, weight[j+2]); 
+         /* if the index of the intersected triangle is very cheap to obtain, 
+            you could set 
+            weight[j+2] = SO->PolyArea[Face] - weight[j+1] - weight[j+0] 
+            Of course, you must first compute PolyArea with SUMA_SurfaceMetrics*/
 
       weight_tot = weight[j] + weight[j+1] + weight[j+2];
       if (weight_tot) {
@@ -1923,13 +1981,15 @@ SUMA_MorphInfo * SUMA_MapSurface (SUMA_SurfaceObject *surf1, SUMA_SurfaceObject 
 
    }
 
-   MI->N_Node = numNodes_1;
-   MI->N_FaceSet = numFace_1;
+   MI->N_Node_std = numNodes_1;
+   MI->N_Node_orig = numNodes_2;
+   MI->N_FaceSet_std = numFace_1;
    MI->Weight = weight;
    MI->ClsNodes = clsNodes;
    MI->FaceSetList = (int *) SUMA_calloc( 3*numFace_1, sizeof(int));
    if (!MI->FaceSetList) {
-      fprintf(SUMA_STDERR, "Error %s: Failed to allocate for MI->FaceSetList.\n", FuncName);
+      fprintf( SUMA_STDERR, 
+               "Error %s: Failed to allocate for MI->FaceSetList.\n", FuncName);
       if (ctrNodeList_1) SUMA_free(ctrNodeList_1);
       if (ctrNodeList_2) SUMA_free(ctrNodeList_2);
       if (clsNodes) SUMA_free(clsNodes);
@@ -2124,8 +2184,9 @@ SUMA_MorphInfo *SUMA_Create_MorphInfo (void)
    }
    
    MI->IDcode = NULL;
-   MI->N_Node = 0;
-   MI->N_FaceSet = 0;
+   MI->N_Node_std = 0;
+   MI->N_Node_orig = 0;
+   MI->N_FaceSet_std = 0;
    MI->Weight = NULL;
    MI->ClsNodes = NULL;
    MI->FaceSetList = NULL;
@@ -2156,8 +2217,9 @@ SUMA_Boolean SUMA_Free_MorphInfo (SUMA_MorphInfo *MI)
    SUMA_RETURN (YUP);
 }
 
+
 /*!
-  newNodeList = SUMA_morphToStd( nodeList, MI);
+  SO_new = SUMA_morphToStd( SO, MI, nodeChk);
 
   Function to morph surface to standard grid.
   \param SO (SurfaceObject *) surface being morphed
@@ -2167,8 +2229,9 @@ SUMA_Boolean SUMA_Free_MorphInfo (SUMA_MorphInfo *MI)
 
   Written by Brenna Argall
 */
-SUMA_SurfaceObject* SUMA_morphToStd (SUMA_SurfaceObject *SO, SUMA_MorphInfo *MI, SUMA_Boolean nodeChk) {
-
+SUMA_SurfaceObject* SUMA_morphToStd (SUMA_SurfaceObject *SO, SUMA_MorphInfo *MI, 
+                                     SUMA_Boolean nodeChk) 
+{
    static char FuncName[] = {"SUMA_morphToStd"};
    float *newNodeList = NULL;
    int *tmp_newFaceSetList = NULL, *newFaceSetList = NULL, *inclNodes=NULL;
@@ -2185,7 +2248,7 @@ SUMA_SurfaceObject* SUMA_morphToStd (SUMA_SurfaceObject *SO, SUMA_MorphInfo *MI,
       SUMA_RETURN (NULL);
    }  
 
-   newNodeList = (float *) SUMA_calloc( 3*MI->N_Node, sizeof(float));
+   newNodeList = (float *) SUMA_calloc( 3*MI->N_Node_std, sizeof(float));
    if (!newNodeList) {
       fprintf (SUMA_STDERR, "Error %s: Failed to allocate. \n", FuncName);
       SUMA_RETURN (NULL);
@@ -2200,7 +2263,7 @@ SUMA_SurfaceObject* SUMA_morphToStd (SUMA_SurfaceObject *SO, SUMA_MorphInfo *MI,
                " all nodes indicated in morphing to standard mesh.\n\n", 
               FuncName, SO->State);
  
-      for (i=0; i<(MI->N_Node); ++i){
+      for (i=0; i<(MI->N_Node_std); ++i){
          j = 3*i;
 
          newNodeList[j] = (MI->Weight[j])*SO->NodeList[3*(MI->ClsNodes[j])] +         //node0 x
@@ -2215,7 +2278,7 @@ SUMA_SurfaceObject* SUMA_morphToStd (SUMA_SurfaceObject *SO, SUMA_MorphInfo *MI,
       }
 
       newFaceSetList = MI->FaceSetList;
-      N_FaceSet = MI->N_FaceSet;
+      N_FaceSet = MI->N_FaceSet_std;
    }
 
    else {
@@ -2228,12 +2291,12 @@ SUMA_SurfaceObject* SUMA_morphToStd (SUMA_SurfaceObject *SO, SUMA_MorphInfo *MI,
       }
 
       /*keep track of included MI nodes; 1=>included, 0=>not*/
-      inclNodes = SUMA_calloc( MI->N_Node, sizeof(int));
-      for (i=0; i<MI->N_Node; ++i) {
+      inclNodes = SUMA_calloc( MI->N_Node_std, sizeof(int));
+      for (i=0; i<MI->N_Node_std; ++i) {
          inclNodes[i] = 0;
       }
 
-      for (i=0; i<(MI->N_Node); ++i) {
+      for (i=0; i<(MI->N_Node_std); ++i) {
          
          j = 3*i;
          if (  (MI->ClsNodes[j])  <(SO->N_Node) && 
@@ -2279,13 +2342,13 @@ SUMA_SurfaceObject* SUMA_morphToStd (SUMA_SurfaceObject *SO, SUMA_MorphInfo *MI,
       }
 
       /*create list of MI facesets for which all 3 nodes were morphed*/
-      tmp_newFaceSetList = SUMA_calloc( 3*MI->N_FaceSet, sizeof(int));
+      tmp_newFaceSetList = SUMA_calloc( 3*MI->N_FaceSet_std, sizeof(int));
       if (!tmp_newFaceSetList) {
          fprintf (SUMA_STDERR, "Error %s: Failed to allocate. \n", FuncName);
          SUMA_RETURN (NULL);
       }
 
-      for (i=0; i<MI->N_FaceSet; ++i) {
+      for (i=0; i<MI->N_FaceSet_std; ++i) {
          j = 3*i;
          if (  inclNodes[MI->FaceSetList[j]]==1 && 
                inclNodes[MI->FaceSetList[j+1]]==1 && 
@@ -2299,7 +2362,7 @@ SUMA_SurfaceObject* SUMA_morphToStd (SUMA_SurfaceObject *SO, SUMA_MorphInfo *MI,
       }
 
       /*create final new face list of correct length*/
-      if ( N_FaceSet == MI->N_FaceSet ) {
+      if ( N_FaceSet == MI->N_FaceSet_std ) {
          /*all facesets in MI->FaceSetList included*/
          newFaceSetList = tmp_newFaceSetList;
       }
@@ -2321,7 +2384,7 @@ SUMA_SurfaceObject* SUMA_morphToStd (SUMA_SurfaceObject *SO, SUMA_MorphInfo *MI,
    /* store in SO_new and get out */
    SO_new->NodeList = newNodeList;
    SO_new->FaceSetList = newFaceSetList;
-   SO_new->N_Node = MI->N_Node;
+   SO_new->N_Node = MI->N_Node_std;
    SO_new->N_FaceSet = N_FaceSet;
    SO_new->NodeDim = 3;
    SO_new->FaceSetDim = 3;
@@ -2667,7 +2730,8 @@ int main (int argc, char *argv[])
    char surfState_1[SUMA_MAX_FILENAME_LENGTH];
    char surfState_2[SUMA_MAX_FILENAME_LENGTH];
    SUMA_SurfSpecFile spec;  
-   char surfFileNm[SUMA_MAX_FILENAME_LENGTH], outSpecFileNm[SUMA_MAX_FILENAME_LENGTH];
+   char surfFileNm[SUMA_MAX_FILENAME_LENGTH], 
+         outSpecFileNm[SUMA_MAX_FILENAME_LENGTH];
  
    int kar, i, j, verb = 1;
    SUMA_SurfaceObject **surfaces_orig=NULL, *currSurf=NULL;

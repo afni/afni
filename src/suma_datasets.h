@@ -633,6 +633,10 @@ typedef struct {
    #define SDSET_IS_SORTED(dset) ( (!dset || !dset->inel || !NI_get_attribute(dset->inel,"sorted_node_def") || strcmp(NI_get_attribute(dset->inel,"sorted_node_def"), "Yes") != 0) ? 0 : 1 )
    #define SDSET_TYPE_NAME(dset) NI_get_attribute(dset->ngr,"dset_type")
    #define SDSET_TYPE(dset) SUMA_Dset_Type(NI_get_attribute(dset->ngr,"dset_type"))
+   #define SDSET_COLCAST(dset, i)   \
+      SUMA_ColType2TypeCast(SUMA_TypeOfDsetColNumb(dset, i))
+   #define SDSET_COLTYPE(dset, i)   \
+      SUMA_TypeOfDsetColNumb(dset, i)
    #define SDSET_VECLEN(dset) ( (!dset || !dset->dnel) ? -1:dset->dnel->vec_len)
    #define SDSET_NODEINDLEN(dset) dset->inel->vec_len
    #define SDSET_VECNUM(dset) dset->dnel->vec_num
@@ -1180,6 +1184,7 @@ If ind is NULL, then the index will be the line number.
 #define SUMA_COPY_DSETWIDE_ATTRIBUTES(odset, ndset) {   \
    char *m_ATR_LIST[64] = { \
       "TR",  \
+      "AFNI_labeltable",   \
        NULL }; \
    if (!SUMA_CopyDsetAttributes (odset, ndset, m_ATR_LIST, -1, -1)) {   \
       SUMA_S_Err("Failed to copy dset attributes");   \
@@ -1369,6 +1374,7 @@ SUMA_DSET * SUMA_far2dset_ns( char *FullName, char *dset_id, char *dom_id,
                                  int ptr_cpy);
 int SUMA_is_AllNumeric_dset(SUMA_DSET *dset);
 int SUMA_is_Label_dset(SUMA_DSET *dset, NI_group **NIcmap); 
+NI_group *SUMA_NICmapToNICmap(NI_group *NIcmap);
 int * SUMA_UniqueValuesInLabelDset(SUMA_DSET *dset, int *N_unq);
 int SUMA_is_AllConsistentNumeric_dset(SUMA_DSET *dset, SUMA_VARTYPE *vtpp);
 int SUMA_is_AllNumeric_ngr(NI_group *ngr) ;

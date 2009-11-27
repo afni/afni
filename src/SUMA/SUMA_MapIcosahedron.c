@@ -19,6 +19,8 @@ void SUMA_MapIcosahedron_usage ()
 "                      [-rd recDepth] [-ld linDepth] \n"
 "                      [-morph morphSurf] \n"
 "                      [-it numIt] [-prefix fout] \n"
+"                      [-NN_dset_map DSET]\n"
+"                      [-dset_map DSET]\n"
 "                      [-verb] [-help] [...]\n"
 "\n"
 "Creates new versions of the original-mesh surfaces using the mesh\n"
@@ -26,6 +28,15 @@ void SUMA_MapIcosahedron_usage ()
 "\n"
 "   -spec specFile: spec file containing original-mesh surfaces\n"
 "        including the spherical and warped spherical surfaces.\n"
+"\n"
+"        You cannot use a specfile that has surfaces from both hemispheres.\n"
+"        Such spec files are usually called *_both.spec\n"
+"        You will need to run MapIcosahedron separately on each hemisphere\n"
+"        then use the program inspec to merge the two new spec files.\n"
+"        Say MapIcosahedron produced std.LH.spec and std.RH.spec, \n"
+"        you can use the following to merge them:\n"
+"              inspec   -LRmerge std.LH_SPEC.spec std.RH_SPEC.spec \\\n"
+"                       -spec std.BOTH_SPEC.spec\n"
 "\n"
 "   -rd recDepth: recursive (binary) tesselation depth for icosahedron.\n"
 "        (optional, default:3) See CreateIcosahedron for more info.\n"
@@ -40,6 +51,13 @@ void SUMA_MapIcosahedron_usage ()
 "\n"
 "   -morph morphSurf: \n"
 "\n"
+"   -NN_dset_map DSET: Map DSET onto the new mesh. \n"
+"                      Use Nearest Neighbor interpolation\n"
+"   -dset_map DSET:  Same as NN_dset_map but with barycentric interpolation\n"
+"\n"
+"   *Note: You can use repeated instances of either -NN_dset_map or -dset_map\n"
+"          to process multiple datasets at once.\n"
+"\n"    
 "        Old Usage:\n"
 "        ----------\n"
 "        State name of spherical surface to which icosahedron \n"
@@ -184,12 +202,14 @@ int main (int argc, char *argv[])
    char bin[SUMA_MAX_FILENAME_LENGTH], *histnote=NULL;
    int numTriBin=0, numTriLin=0, numIt=0;
 
-   int kar, i, j, k, p, kspec=0, depth, found = 0;
+   int kar, i, j, k, p, kspec=0, depth, found = 0, ifound=-1, ii=0;
    char *brainSpecFile=NULL, *OutName = NULL, *morph_surf = NULL;
    SUMA_SurfSpecFile brainSpec;
    SUMA_SurfSpecFile *stdSpec = NULL;
   
-   int new_state=0;
+   int new_state=0, N_in_name=0;
+   char *in_name[100], *uname=NULL, *oname=NULL;
+   int in_mode[100];
    float r, ctrX, ctrY, ctrZ, ctr[3];
    SUMA_SurfaceObject   *icoSurf=NULL;
    SUMA_MorphInfo *MI=NULL;
@@ -204,6 +224,9 @@ int main (int argc, char *argv[])
    SUMA_Boolean UseCOM, CheckSphere, WriteMI;
    SUMA_SurfaceObject *SO=NULL, *SO_morph=NULL, *SOw=NULL;
    void *writeFile=NULL, *vbufp=NULL;
+   int oform=SUMA_ASCII_NIML, iform=SUMA_NO_DSET_FORMAT;
+   SUMA_DSET *dset=NULL, *dseto=NULL; 
+   SUMA_M2M_STRUCT *M2M=NULL;
    SUMA_Boolean LocalHead = NOPE;
 
    FILE *tmpFile=NULL;
@@ -245,6 +268,8 @@ int main (int argc, char *argv[])
    CheckSphere = NOPE;
    UseCOM = NOPE;
    WriteMI = YUP;
+   N_in_name = 0;
+   oform = SUMA_ASCII_NIML;
    while (kar < argc) { /* loop accross command line options */
       if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
          SUMA_MapIcosahedron_usage ();
@@ -304,6 +329,32 @@ int main (int argc, char *argv[])
          brk = YUP;
       }
       
+      if (!brk && (strcmp(argv[kar], "-NN_dset_map") == 0 ))
+         {
+            kar ++;
+            if (kar >= argc)  {
+               fprintf (SUMA_STDERR, "need 1argument after -NN_dset_map \n");
+               exit (1);
+            }
+            in_name[N_in_name] = argv[kar];
+            in_mode[N_in_name] = 1; /* nearest neighbor */
+            ++N_in_name;
+            brk = YUP;
+         }
+
+      if (!brk && (strcmp(argv[kar], "-dset_map") == 0 ))
+         {
+            kar ++;
+            if (kar >= argc)  {
+               fprintf (SUMA_STDERR, "need 1argument after -dset_map \n");
+               exit (1);
+            }
+            in_name[N_in_name] = argv[kar];
+            in_mode[N_in_name] = 0; /* barycentric */
+            ++N_in_name;
+            brk = YUP;
+         }
+         
       if (!brk && (strcmp(argv[kar], "-sphere_center") == 0 ))
          {
             kar ++;
@@ -506,7 +557,10 @@ int main (int argc, char *argv[])
          "All surfaces must have the same (or a subset of the) mesh\n"
          "or your morphSurf\n"
          "You should not a be using a spec file that combines surfaces\n"
-         "from both hemispheres.\n"
+         "from both hemispheres. Run MapIcosahedron twice separately,\n"
+         "then merge the resultant spec files with\n"
+         "   inspec  -LRmerge LH_SPEC.spec RH_SPEC.spec \\\n"
+         "           -spec BOTH_SPEC.spec\n"
          "\n" 
          "Program will proceed, assuming you know what you're doing. \n"
          "***********************************************************\n",
@@ -634,7 +688,37 @@ int main (int argc, char *argv[])
                   SUMA_FnameGet( brainSpec.LocalCurvatureParent[i], "f", 
                                  SUMAg_CF->cwd) );
       }
-      
+      /* deal with label dsets */
+      if (  brainSpec.LabelDset[i] &&
+            brainSpec.LabelDset[i][0] ) {
+         snprintf(stdSpec->LabelDset[stdSpec->N_Surfs -1],
+                  (SUMA_MAX_FP_NAME_LENGTH-1)*sizeof(char),
+                  "%s%s%s", 
+                  SUMA_FnameGet( brainSpec.LabelDset[i], "pa", 
+                                 SUMAg_CF->cwd),
+                  fout,
+                  SUMA_FnameGet( brainSpec.LabelDset[i], "f", 
+                                 SUMAg_CF->cwd) );
+         /* add to list of in_name to produce if not there */
+         ifound = -1;
+         ii=0;
+         while (ii<N_in_name && ifound < 0) {
+            if (!strcmp(SUMA_FnameGet(in_name[ii], "F", SUMAg_CF->cwd), 
+                        SUMA_FnameGet( brainSpec.LabelDset[i], "F", 
+                                                         SUMAg_CF->cwd)) ) {
+               ifound = ii;
+            }
+            ++ii;
+         }
+         if (ifound < 0) {
+            SUMA_S_Notev("Adding -NN_dset_map %s\n", brainSpec.LabelDset[i]);
+            in_name[N_in_name] = brainSpec.LabelDset[i];
+            in_mode[N_in_name] = 1;
+            ++N_in_name;
+         } else {
+            SUMA_S_Notev("dset %s already on list\n", brainSpec.LabelDset[i]);
+         }
+      }
       /* NOTICE: leave the IDcode untouched, it is a convenient way
       to refer to the precursor surface below. */
       
@@ -1039,15 +1123,19 @@ int main (int argc, char *argv[])
          SUMA_S_Err("Failed to open %s for writing.");
          exit (1);
       }
-      fprintf(fp, "# Col. 0: Std-mesh icosahedron's node index.\n"
-                  "# Col. 1..3: 1st..3rd closest nodes from original mesh (%s)\n"
-                  "# History:%s\n"
-                  "# %s\n"
+      fprintf(fp, 
+"# Col. 0: Std-mesh icosahedron's node index.\n"
+"# Col. 1..3: 1st..3rd closest nodes from original mesh (%s)\n"
+"# Col. 4..6: 4th..6th interpolation weight for each of the 3 closest nodes.\n"
+"# History:%s\n"
+"# %s\n"
                   , SO_morph->Label, histnote, snote);
-      for (i=0; i<MI->N_Node; ++i) {
-         fprintf(fp, "%6d   %6d %6d %6d\n", 
+      for (i=0; i<MI->N_Node_std; ++i) {
+         fprintf(fp, "%6d   %6d %6d %6d   %f %f %f\n", 
                      i, MI->ClsNodes[3*i], MI->ClsNodes[3*i+1], 
-                     MI->ClsNodes[3*i+2]  ); 
+                     MI->ClsNodes[3*i+2], 
+                     MI->Weight[3*i], MI->Weight[3*i+1], 
+                     MI->Weight[3*i+2]  ); 
       }
       SUMA_free(fname); fname=NULL; 
       fclose(fp); fp = NULL;   
@@ -1055,7 +1143,36 @@ int main (int argc, char *argv[])
    
    etime_MapSurface = SUMA_etime(&start_time,1);
 
-   
+   /* Map the datasets from orig to stdandard space */
+   if (N_in_name) {
+      if (!(M2M = SUMA_MorphInfo2M2M(MI))) { /* go to more generic struct */
+         SUMA_S_Err("Failed to create M2M");
+         exit(1);
+      }
+      for (i=0; i<N_in_name; ++i) {
+         if (verb) SUMA_S_Notev("Processing dset %s\n", in_name[i]);
+         iform = SUMA_NO_DSET_FORMAT;
+         if (!(dset = SUMA_LoadDset_s (in_name[i], &iform, 0))) {
+            SUMA_S_Errv("Failed to load %s\n", in_name[i]);
+            exit(1);
+         }
+         if (!(dseto = SUMA_morphDsetToStd (dset, M2M, in_mode[i]))) {
+            SUMA_S_Errv("Failed to map %s\n", in_name[i]);
+            exit(1);
+         }
+         uname = SUMA_append_replace_string(
+               SUMA_FnameGet(in_name[i],"pa", SUMAg_CF->cwd), 
+                             SUMA_FnameGet(in_name[i],"f",SUMAg_CF->cwd), 
+                             fout, 0);
+         oname = SUMA_WriteDset_s (uname, dseto, SUMA_ASCII_NIML, 1, 1); 
+         if (verb) SUMA_S_Notev("Wrote %s\n", oname);
+         if (oname) SUMA_free(oname); oname=NULL;
+         if (uname) SUMA_free(uname); oname=NULL;
+         if (dseto) SUMA_FreeDset(dseto); dseto = NULL;
+         if (dset) SUMA_FreeDset(dset); dset = NULL;
+      }
+      M2M = SUMA_FreeM2M(M2M);
+   }
    /**   morph surfaces backwards and write to file
          (using weighting from SUMA_MapSurfaces)      */
    

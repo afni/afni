@@ -278,7 +278,9 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfToSurf_ParseInput(char *argv[], int a
          brk = YUP;
       }
       if (!brk && !ps->arg_checked[kar]) {
-			fprintf (SUMA_STDERR,"Error %s:\nOption %s not understood. Try -help for usage\n", FuncName, argv[kar]);
+			fprintf (SUMA_STDERR,
+                  "Error %s:\n"
+                  "Option %s not understood. Try -help for usage\n", FuncName, argv[kar]);
 			exit (1);
 		} else {	
 			brk = NOPE;
@@ -472,23 +474,30 @@ int main (int argc,char *argv[])
    if (SO_name) {
       /* user is interpolating surface coords, check on other input insanity */
       if (nodeind) {
-         fprintf(SUMA_STDERR, "Error %s: You cannot combine option -o_TYPE with -node_indices", FuncName);
+         fprintf( SUMA_STDERR, 
+                  "Error %s: You cannot combine "
+                  "option -o_TYPE with -node_indices", FuncName);
          exit(1);
       }
       if (Opt->in_name) {
-         fprintf(SUMA_STDERR, "Error %s: You cannot combine option -o_TYPE with -data", FuncName);
+         fprintf(SUMA_STDERR, 
+                  "Error %s: You cannot combine option -o_TYPE with -data", 
+                  FuncName);
          exit(1);
       }
    } 
    /* a file containing data? */
    if (Opt->in_name) {
+      /* When you are ready to work with dsets, you should 
+      checkout the function morphDsetToStd. It uses M2M */
       im_data = mri_read_1D(Opt->in_name);
       if (!im_data) { SUMA_SL_Err("Failed to read 1D file of data"); exit(1);}
       far_data = MRI_FLOAT_PTR(im_data);
       nvec_data = im_data->nx;
       ncol_data = im_data->ny;
       if (nvec_data != SO2->N_Node) {
-         SUMA_SL_Err("Your data file must have one row for each node in surface 2.\n"); exit(1);
+         SUMA_SL_Err("Your data file must have one row "
+                     "for each node in surface 2.\n"); exit(1);
       }
       d_order = SUMA_COLUMN_MAJOR;
    } else { 
@@ -509,15 +518,21 @@ int main (int argc,char *argv[])
       s = SUMA_M2M_node_Info(M2M, Opt->NodeDbg);
       fprintf(SUMA_STDERR,"%s: Debug for node %d ([%f, %f, %f])of SO1:\n%s\n\n", 
                            FuncName, Opt->NodeDbg, 
-                           SO1->NodeList[3*Opt->NodeDbg], SO1->NodeList[3*Opt->NodeDbg+1], SO1->NodeList[3*Opt->NodeDbg+2],
+                           SO1->NodeList[3*Opt->NodeDbg], 
+                           SO1->NodeList[3*Opt->NodeDbg+1], 
+                           SO1->NodeList[3*Opt->NodeDbg+2],
                            s); 
       SUMA_free(s); s = NULL;
    }
    
    /* Now please do the interpolation */
    if (Opt->Data) {
-      if (Opt->NearestNode > 1) dt = SUMA_M2M_interpolate(M2M, far_data, ncol_data, nvec_data, d_order, 0 );
-      else if (Opt->NearestNode == 1) dt = SUMA_M2M_interpolate(M2M, far_data, ncol_data, nvec_data, d_order, 1 );
+      if (Opt->NearestNode > 1) 
+         dt = SUMA_M2M_interpolate( M2M, far_data, ncol_data, 
+                                    nvec_data, d_order, 0 );
+      else if (Opt->NearestNode == 1) 
+         dt = SUMA_M2M_interpolate( M2M, far_data, ncol_data, 
+                                    nvec_data, d_order, 1 );
       if (!dt) {
          SUMA_SL_Err("Failed to interpolate");
          exit(1);

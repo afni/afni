@@ -6,18 +6,91 @@ extern SUMA_SurfaceViewer *SUMAg_SVv;
 extern int SUMAg_N_SVv; 
 extern int SUMAg_N_DOv;  
 
+/*!
+   Change SUMA_MorphInfo for MapIcosahedron into
+   SUMA_M2M_STRUCT, populating just enough fields
+   that you can use the function SUMA_M2M_interpolate */
+SUMA_M2M_STRUCT *SUMA_MorphInfo2M2M(SUMA_MorphInfo *MI)
+{
+   static char FuncName[]={"SUMA_MorphInfo2M2M"};
+   SUMA_M2M_STRUCT *M2M=NULL;
+   int i=0;
+   
+   SUMA_ENTRY;
+   
+   M2M = (SUMA_M2M_STRUCT*)SUMA_calloc(1, sizeof(SUMA_M2M_STRUCT));
+   M2M->M1_N_Nodes = MI->N_Node_std;
+   M2M->M2_N_Nodes = MI->N_Node_orig;
+   M2M->M1Nn = MI->N_Node_std; /* number of nodes on std mesh */
+                           /* node indices on std mesh */
+   if (!(M2M->M1n = (int *)SUMA_calloc(MI->N_Node_std, sizeof(int)))) {
+      SUMA_S_Crit("Failed to allocate. Leaky return."); SUMA_RETURN(NULL);
+   }  
+   for (i=0;i<MI->N_Node_std; ++i) M2M->M1n[i]=i;
+   
+   M2M->M2t_M1n = NULL;    /* not needed by SUMA_M2M_interpolate */
+   M2M->M2pb_M1n = NULL;   /* not needed by SUMA_M2M_interpolate */
+   M2M->M2p_M1n = NULL;   /* not needed by SUMA_M2M_interpolate */
+   M2M->PD = NULL;   /* not needed by SUMA_M2M_interpolate */
+   
+   if (!(M2M->M2Nne_M1n = (int *)SUMA_calloc(MI->N_Node_std, sizeof(int)))) {
+      SUMA_S_Crit("Failed to allocate. Leaky return."); SUMA_RETURN(NULL);
+   }
+   if (!(M2M->M2ne_M1n = (int **)SUMA_calloc(MI->N_Node_std, sizeof(int*)))) {
+      SUMA_S_Crit("Failed to allocate. Leaky return."); SUMA_RETURN(NULL);
+   } 
+   for (i=0;i<MI->N_Node_std; ++i) 
+      M2M->M2ne_M1n[i] = (int *) SUMA_malloc(3*sizeof(int));
+   if (!(M2M->M2we_M1n = (double **)
+                     SUMA_calloc(MI->N_Node_std, sizeof(double*)))) {
+      SUMA_S_Crit("Failed to allocate. Leaky return."); SUMA_RETURN(NULL);
+   }
+   for (i=0;i<MI->N_Node_std; ++i) 
+      M2M->M2we_M1n[i] = (double *) SUMA_malloc(3*sizeof(double));
+   
+   for (i=0;i<MI->N_Node_std; ++i) {
+      M2M->M2Nne_M1n[i] = 3;
+      M2M->M2we_M1n[i][0] = (double)MI->Weight[3*i];
+      M2M->M2ne_M1n[i][0] = MI->ClsNodes[3*i];
+      
+      M2M->M2we_M1n[i][1] = (double)MI->Weight[3*i+1];
+      M2M->M2ne_M1n[i][1] = MI->ClsNodes[3*i+1];
+      if (M2M->M2we_M1n[i][1] > M2M->M2we_M1n[i][0]) { /* second is closer */
+         /* swap */
+         M2M->M2we_M1n[i][1] = M2M->M2we_M1n[i][0];
+         M2M->M2we_M1n[i][0] = (double)MI->Weight[3*i+1];
+         M2M->M2ne_M1n[i][1] = M2M->M2ne_M1n[i][0];
+         M2M->M2ne_M1n[i][0] = MI->ClsNodes[3*i+1];
+      }   
+      
+      M2M->M2we_M1n[i][2] = (double)MI->Weight[3*i+2];
+      M2M->M2ne_M1n[i][2] = MI->ClsNodes[3*i+2];
+      if (M2M->M2we_M1n[i][2] > M2M->M2we_M1n[i][0]) { /* third is closer */
+         /* swap */
+         M2M->M2we_M1n[i][2] = M2M->M2we_M1n[i][0];
+         M2M->M2we_M1n[i][0] = (double)MI->Weight[3*i+2];
+         M2M->M2ne_M1n[i][2] = M2M->M2ne_M1n[i][0];
+         M2M->M2ne_M1n[i][0] = MI->ClsNodes[3*i+2];
+      }      
+   }   
 
-SUMA_M2M_STRUCT *SUMA_NewM2M(char *SO1_id, int N_SO1_nodes, char *SO2_id)
+   SUMA_RETURN(M2M);
+}  
+
+SUMA_M2M_STRUCT *SUMA_NewM2M(char *SO1_id, int N_SO1_nodes, 
+                             char *SO2_id, int N_SO2_nodes)
 {
    static char FuncName[]={"SUMA_NewM2M"};
    SUMA_M2M_STRUCT *M2M=NULL;
    SUMA_ENTRY;
    
-   if (!SO1_id || !SO2_id) SUMA_RETURN(M2M);
+   /* if (!SO1_id || !SO2_id) SUMA_RETURN(M2M); */
    
    M2M = (SUMA_M2M_STRUCT*)SUMA_malloc(sizeof(SUMA_M2M_STRUCT));
    
    M2M->M1Nn = N_SO1_nodes;
+   M2M->M1_N_Nodes = N_SO1_nodes;
+   M2M->M2_N_Nodes = N_SO2_nodes;
    M2M->M1n = (int*)SUMA_calloc(M2M->M1Nn, sizeof(int));
    M2M->M2t_M1n = (int*)SUMA_calloc(M2M->M1Nn, sizeof(int));
    M2M->M2Nne_M1n = (int*)SUMA_calloc(M2M->M1Nn, sizeof(int));
@@ -26,13 +99,16 @@ SUMA_M2M_STRUCT *SUMA_NewM2M(char *SO1_id, int N_SO1_nodes, char *SO2_id)
    M2M->M2p_M1n = (float *)SUMA_calloc(3*M2M->M1Nn, sizeof(float));
    M2M->PD = (double *)SUMA_calloc(M2M->M1Nn, sizeof(double));
    M2M->M2we_M1n = (double**)SUMA_calloc(M2M->M1Nn, sizeof(double*));
-   if (!M2M->M1n || !M2M->M2t_M1n || !M2M->M2Nne_M1n || !M2M->M2ne_M1n || !M2M->M2we_M1n) {
+   if (!M2M->M1n || !M2M->M2t_M1n || 
+       !M2M->M2Nne_M1n || !M2M->M2ne_M1n || !M2M->M2we_M1n) {
       SUMA_SL_Crit("Failed to allocate");
       SUMA_RETURN(NULL);
    }
    
-   M2M->M1_IDcode = SUMA_copy_string(SO1_id);
-   M2M->M2_IDcode = SUMA_copy_string(SO2_id);
+   M2M->M1_IDcode = M2M->M2_IDcode = NULL;
+   
+   if (SO1_id) M2M->M1_IDcode = SUMA_copy_string(SO1_id);
+   if (SO2_id) M2M->M2_IDcode = SUMA_copy_string(SO2_id);
    
    
    SUMA_RETURN(M2M);
@@ -92,9 +168,11 @@ char *SUMA_M2M_node_Info (SUMA_M2M_STRUCT *M2M, int node)
       
    if (!M2M) { SS = SUMA_StringAppend(SS,"NULL M2M"); goto CLEAN_RETURN; }
    
-   if (M2M->M1_IDcode) { SS = SUMA_StringAppend_va(SS, "M1_IDcode %s\n", M2M->M1_IDcode); }
+   if (M2M->M1_IDcode) { 
+      SS = SUMA_StringAppend_va(SS, "M1_IDcode %s\n", M2M->M1_IDcode); }
    else { SS = SUMA_StringAppend_va(SS, "M1_IDcode is NULL\n"); }
-   if (M2M->M2_IDcode) { SS = SUMA_StringAppend_va(SS, "M2_IDcode %s\n", M2M->M2_IDcode); }
+   if (M2M->M2_IDcode) { 
+      SS = SUMA_StringAppend_va(SS, "M2_IDcode %s\n", M2M->M2_IDcode); }
    else { SS = SUMA_StringAppend_va(SS, "M2_IDcode is NULL\n"); }
   
    i = 0; found = 0;
@@ -104,10 +182,12 @@ char *SUMA_M2M_node_Info (SUMA_M2M_STRUCT *M2M, int node)
       } else ++i;
    }
    
-   if (!found) { SS = SUMA_StringAppend_va (SS, "Node %d not found in M2M->M1n", node); goto CLEAN_RETURN; }
+   if (!found) { 
+      SS = SUMA_StringAppend_va (SS, "Node %d not found in M2M->M1n", node); 
+      goto CLEAN_RETURN; }
    
-   SS = SUMA_StringAppend_va (SS, "Mapping results for node %d (n1) of mesh 1 (M1):\n", M2M->M1n[i]);
-   SS = SUMA_StringAppend_va (SS, "Index of triangle (t2) in mesh 2 (M2) hosting n1: %d\n", M2M->M2t_M1n[i]);
+   SS = SUMA_StringAppend_va (SS, "Mapping results for node %d (n1) of mesh 1 (M1 %d nodes):\n", M2M->M1n[i], M2M->M1_N_Nodes);
+   SS = SUMA_StringAppend_va (SS, "Index of triangle (t2) in mesh 2 (M2 %d nodes) hosting n1: %d\n", M2M->M2_N_Nodes, M2M->M2t_M1n[i]);
    SS = SUMA_StringAppend_va (SS, "Projection coordinates in t2 (%f,%f,%f)\n", M2M->M2p_M1n[3*i], M2M->M2p_M1n[3*i+1], M2M->M2p_M1n[3*i+2]);
    SS = SUMA_StringAppend_va (SS, "Projection barycentric coordinates in t2 (%g,%g)\n", M2M->M2pb_M1n[2*i], M2M->M2pb_M1n[2*i+1]);
    SS = SUMA_StringAppend_va (SS, "Projection distance of n1 onto t2 is: %g\n", M2M->PD[i]);
@@ -143,7 +223,8 @@ char *SUMA_M2M_node_Info (SUMA_M2M_STRUCT *M2M, int node)
                         If 0, then a default of 100.0 is used.
    \return M2M (SUMA_M2M_STRUCT *) Mesh to Mesh mapping structure, see SUMA_SurfaceToSurface.h for details
 */ 
-SUMA_M2M_STRUCT *SUMA_GetM2M_NN( SUMA_SurfaceObject *SO1, SUMA_SurfaceObject *SO2,
+SUMA_M2M_STRUCT *SUMA_GetM2M_NN( SUMA_SurfaceObject *SO1, 
+                                 SUMA_SurfaceObject *SO2,
                                  int *oNL_1, int N_NL_1, float *PD_1, float dlim, 
                                  int NodeDbg)
 {
@@ -169,7 +250,7 @@ SUMA_M2M_STRUCT *SUMA_GetM2M_NN( SUMA_SurfaceObject *SO1, SUMA_SurfaceObject *SO
    if (N_NL_1 < 1) { SUMA_SL_Err("No nodes to consider"); goto CLEAN_EXIT; }
    if (dlim <= 0) dlim = 100.0; 
    /* start filling M2M */
-   M2M = SUMA_NewM2M(SO1->idcode_str, N_NL_1, SO2->idcode_str);
+   M2M = SUMA_NewM2M(SO1->idcode_str, N_NL_1, SO2->idcode_str, SO2->N_Node);
    if (!M2M) { SUMA_SL_Crit("Failed to create M2M"); goto CLEAN_EXIT; }
    
    /* fill up M2M->M1n */
@@ -300,6 +381,119 @@ SUMA_M2M_STRUCT *SUMA_GetM2M_NN( SUMA_SurfaceObject *SO1, SUMA_SurfaceObject *SO
 }
 
 /*!
+   dseto = SUMA_morphDsetToStd (dset, M2M, imode);
+   Funtion to map dsets from one mesh to another per MI
+   \param dset (SUMA_DSET *) dset to morph
+   \param M2M (SUMA_M2M_STRUCT *)structure containing morph information
+   \param useclosest (int) 1: Nearest neighbor interpolation
+                           0: Barycentric
+   \ret dseto
+*/
+SUMA_DSET *SUMA_morphDsetToStd (SUMA_DSET *dset, SUMA_M2M_STRUCT *M2M, 
+                                int useclosest)
+{
+   static char FuncName[]={"SUMA_morphDsetToStd"};
+   SUMA_DSET *ndset=NULL;
+   byte *bfull=NULL;
+   int N_inmask=-1, i;
+   SUMA_VARTYPE vtp = SUMA_notypeset;
+   char *new_name=NULL;
+   float *fin=NULL, *fout=NULL;
+   char *s=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!dset || !M2M) {
+      SUMA_S_Err("NULL or bad input");
+      SUMA_RETURN(ndset);
+   } 
+   
+   if (!SUMA_is_AllConsistentNumeric_dset(dset, &vtp)) {
+      SUMA_S_Errv("Columns in %s not all numeric and of the same type\n",
+                  SDSET_LABEL(dset));
+      SUMA_RETURN(ndset);
+   }
+   
+   /* form new dset */
+   new_name = SUMA_append_string( "copy.",SDSET_FILENAME(dset));
+   ndset =  SUMA_CreateDsetPointer( 
+               new_name, 
+               SDSET_TYPE(dset), 
+               NULL, 
+               SDSET_IDMDOM(dset),
+               M2M->M1_N_Nodes );
+   SUMA_free(new_name); new_name=NULL;
+   
+   if (!SUMA_AddDsetNelCol ( ndset, "Node Index", 
+                             SUMA_NODE_INDEX, (void *)M2M->M1n, NULL, 1)) {
+      SUMA_S_Err("Failed to add node index column");
+      SUMA_FreeDset(ndset); ndset=NULL;
+      SUMA_RETURN(ndset);                                 
+   }
+   
+   SUMA_COPY_DSETWIDE_ATTRIBUTES(dset, ndset);
+   
+   /* do it the cautious way, one column at a time */
+   for (i=0; i<SDSET_VECNUM(dset); ++i) {
+      if (!(fin = SUMA_DsetCol2FloatFullSortedColumn(dset, i, &bfull, 
+                                                0.0, M2M->M2_N_Nodes,
+                                                &N_inmask, i==0?YUP:NOPE))){
+         SUMA_S_Err("Failed to extract");
+         SUMA_FreeDset(ndset); ndset=NULL;
+         if (bfull) SUMA_free(bfull); bfull=NULL;
+         SUMA_RETURN(ndset);
+      }
+      
+      if (LocalHead) {
+         s = SUMA_ShowMeSome(fin, SUMA_float, M2M->M2_N_Nodes, 10, NULL);
+         SUMA_LHv("fin:\n%s\n", s); SUMA_free(s);
+      }
+      if (!(fout = SUMA_M2M_interpolate(M2M, fin,
+                                  1, M2M->M2_N_Nodes,
+                                  SUMA_COLUMN_MAJOR, useclosest))) {
+         SUMA_S_Err("Failed to map");
+         SUMA_free(fin); fin = NULL;
+         if (bfull) SUMA_free(bfull); bfull=NULL;
+         SUMA_FreeDset(ndset); ndset=NULL;
+         SUMA_RETURN(ndset);
+      }
+      if (LocalHead) {
+         s = SUMA_ShowMeSome(fout, SUMA_float, M2M->M1_N_Nodes, 10, NULL);
+         SUMA_LHv("fout:\n%s\n", s); SUMA_free(s);
+      }
+      /* make place for fout */
+      new_name = SUMA_DsetColLabelCopy(dset,i, 0);
+      SUMA_LHv("Allocating for column %s\n", new_name);
+      if (!SUMA_InsertDsetNelCol (ndset, new_name, SDSET_COLTYPE(dset,i), 
+                                 NULL, NULL ,1, 0)) {
+         SUMA_S_Err("Failed to insert col");
+         SUMA_free(fin); fin = NULL; SUMA_free(fout); fout = NULL;
+         if (bfull) SUMA_free(bfull); bfull=NULL;
+         SUMA_FreeDset(ndset); ndset=NULL;
+         SUMA_RETURN(ndset);
+      }  
+      /* stick fout in output */
+      SUMA_LHv("Sticking column %d in dset\n", i);
+      if (!SUMA_Vec2DsetCol (ndset, i, (void *)fout, SUMA_float, 0, bfull)) {
+         SUMA_S_Err("Failed to store output");
+         SUMA_free(fin); fin = NULL; SUMA_free(fout); fout = NULL; 
+         if (bfull) SUMA_free(bfull); bfull=NULL;
+         SUMA_FreeDset(ndset); ndset=NULL;
+         SUMA_RETURN(ndset);
+     }
+     SUMA_free(fin); fin = NULL; SUMA_free(fout); fout = NULL; 
+   }
+   
+   if (bfull) SUMA_free(bfull); bfull=NULL;
+   
+   if (LocalHead) {
+      SUMA_ShowDset(ndset, 0, NULL);
+   }
+   SUMA_RETURN(ndset);
+}
+
+/*!
    \brief A function to interpolate data from one mesh onto another
    \param M2M (SUMA_M2M_STRUCT *) 
    \param far_data (float *) Data from mesh 2. The vector in far_data can 
@@ -315,7 +509,9 @@ SUMA_M2M_STRUCT *SUMA_GetM2M_NN( SUMA_SurfaceObject *SO1, SUMA_SurfaceObject *SO
    \return dt (float *) interpolation of far_data from mesh 2 (M2) onto nodes of M1
                         dt is ncol*M2M->M1Nn in the same order as d_order
 */
-float *SUMA_M2M_interpolate(SUMA_M2M_STRUCT *M2M, float *far_data, int ncol, int nrow, SUMA_INDEXING_ORDER d_order, int useClosest )
+float *SUMA_M2M_interpolate(SUMA_M2M_STRUCT *M2M, float *far_data, 
+                            int ncol, int nrow, SUMA_INDEXING_ORDER d_order, 
+                            int useClosest )
 {
    static char FuncName[]={"SUMA_M2M_interpolate"};
    int j, k, i, nk, nkid, njid, N_k, nj;
