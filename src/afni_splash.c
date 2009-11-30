@@ -577,13 +577,13 @@ static byte map26[26] =
   {  30,  50,  70,  90, 106, 118, 130, 140, 146, 152, 158, 164, 170,
     176, 182, 190, 198, 206, 212, 218, 224, 230, 236, 242, 248, 254 } ;
 
-static MRI_IMAGE * SPLASH_decode26( int nx, int ny , int nl , char ** im26 )
+static MRI_IMAGE * SPLASH_decode26( int nx, int ny , int nl , char **im26 )
 {
    return SPLASH_decodexx( nx, ny, nl, 26,map26,map26,map26,im26 ) ;
 }
 
 /*--------------------------------------------------------------------------
-  Decode the 'xx' data into an image
+  Decode the 'xx' data into an image (cf. program toxx.c to make the data).
 ----------------------------------------------------------------------------*/
 
 #define MMAX 82                                               /* max num colors */
@@ -593,7 +593,7 @@ static char alpha[MMAX] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"        /* codes for color
 
 static MRI_IMAGE * SPLASH_decodexx( int nx, int ny, int nl, int nmap,
                                     byte *rmap, byte *gmap, byte *bmap ,
-                                    char ** imxx )
+                                    char **imxx )
 {
    MRI_IMAGE *im ;
    byte *bim ;

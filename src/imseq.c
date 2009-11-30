@@ -638,7 +638,7 @@ static char * ISQ_form_help =
      "*                                              *\n"
      "* Copyright 1994, Medical College of Wisconsin *\n"
      "*          -2000  Milwaukee, WI 53226-0509     *\n"
-     "* Released under the GPL (v2)                  *\n"
+     "* Released under the GPL (v2 or later)         *\n"
      "*                                              *\n"
      "* Author:  Robert W Cox, PhD                   *\n"
      "************************************************"   ;
