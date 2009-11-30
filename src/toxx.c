@@ -7,8 +7,8 @@
 static byte rmap[MMAX], gmap[MMAX], bmap[MMAX] ;          /* color map */
 
 static char alpha[MMAX] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"    /* color codes */
-                          "abcdefghijklmnopqrstuvwxyz"
-                          ",<.>/?;:'[{]}|=+-_)(*&^%$#@!`~" ;
+                          "abcdefghijklmnopqrstuvwxyz"    /* do not use */
+                          ",<.>/?;:'[{]}|=+-_)(*&^%$#@!`~" ; /* digits */
 
 static char num[10] = "0123456789" ;                      /* number codes */
 
@@ -24,12 +24,15 @@ int main( int argc , char * argv[] )
    int ii,jj,nmap,kk , nn , qq , nlin=0 ;
    char out[NOUT+1] , zout[NOUT+1] , cc,nc , *nam ;
 
-   if( argc < 2 ){
+   if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
      printf("Usage: toxx NAME input.ppm > output.xx\n"
-            "  Probably get the input by\n"
-            "    ppmquant xx image.ppm > input.ppm\n"
-            "  where 'xx' is the number of colors to use.\n"
-            "  Max value of 'xx' is %d.\n\n" , MMAX
+            "Converts a PPM image to an 'xx' (C header) image\n"
+            "for use in afni_splash.c -- NAME is the string to\n"
+            "use in the output file variables defining the data.\n"
+            "Probably get the input by\n"
+            "  ppmquant xx image.ppm > input.ppm\n"
+            "where 'xx' is the number of colors to use.\n"
+            "Max value of 'xx' is %d.\n\n" , MMAX
            ) ;
      printf("Alternative usage:\n"
             "  toxx -splash > output.ppm\n"
@@ -39,14 +42,18 @@ int main( int argc , char * argv[] )
      exit(0);
    }
 
-   if( strcasecmp(argv[1],"-splash") == 0 ){
+   /*----- alternative usage -----*/
+
+   if( strcasecmp(argv[1],"-splash") == 0 ){  /* 30 Nov 2009 */
      MRI_IMAGE *imspl ;
      imspl = SPLASH_decodexx( NX_blank, NY_blank, NLINE_blank, NC_blank,
                               RMAP_blank,GMAP_blank,BMAP_blank, BAR_blank ) ;
      if( imspl == NULL ) ERROR_exit("Can't create splash image?!") ;
-     mri_write_pnm( "-" , imspl ) ;
+     mri_write_pnm( "-" , imspl ) ; /* to stdout */
      exit(0) ;
    }
+
+   /*----- normal usage -----*/
 
    nam = argv[1] ;
    im = mri_read( argv[2] ) ;
@@ -55,20 +62,20 @@ int main( int argc , char * argv[] )
    }
    switch( im->kind ){
      case MRI_rgb:
-       fprintf(stderr,"++ Input is color %dx%d\n",im->nx,im->ny) ;
+       INFO_message("Input is color %dx%d",im->nx,im->ny) ;
      break ;
      case MRI_byte:{
        MRI_IMAGE *qim = mri_to_rgb(im) ;
        mri_free(im) ; im = qim ;
-       fprintf(stderr,"++ Input is grayscale %dx%d\n",im->nx,im->ny) ;
+       INFO_message("Input is grayscale %dx%d",im->nx,im->ny) ;
      }
      break ;
      default:
-       fprintf(stderr,"** Input %s is wrong kind of image!\n",argv[2]); exit(1);
+       ERROR_exit("Input %s is wrong kind of image!",argv[2]) ;
    }
    bp = MRI_RGB_PTR(im) ;
 
-   /* build color map (MMAX or fewer entries allowed) */
+   /*--- build color map (MMAX or fewer entries allowed) ---*/
 
    rmap[0] = bp[0] ; gmap[0] = bp[1] ; bmap[0] = bp[2] ;
 
@@ -78,15 +85,16 @@ int main( int argc , char * argv[] )
        if( rr==rmap[kk] && gg==gmap[kk] && bb==bmap[kk] ) break ;
      }
      if( kk == nmap ){  /* new color */
-       if( nmap == MMAX ){
-         fprintf(stderr,"** Too many colors in input %s\n",argv[2]); exit(1);
-       }
+       if( nmap == MMAX )
+         ERROR_exit("Too many colors (> %d) in input %s\n",MMAX,argv[2]) ;
        rmap[nmap] = rr ; gmap[nmap] = gg ; bmap[nmap] = bb ;
        nmap++ ;
      }
    }
 
-   fprintf(stderr,"++ Input has %d distinct colors\n",nmap) ;
+   INFO_message("Input has %d distinct colors",nmap) ;
+
+   /*--- print header ---*/
 
    nn = 0 ; qq = 0 ;
    printf( "#define NX_%s %d\n",nam,im->nx) ;
@@ -105,21 +113,29 @@ int main( int argc , char * argv[] )
    for( kk=0 ; kk < nmap ; kk++ )
      printf("%d%s",(int)bmap[kk] , (kk==nmap-1) ? "};\n" : "," ) ;
 
+   /*--- print image data (BAR = byte array) ---*/
+
    printf( "static char *BAR_%s[] = {\n" , nam ) ;
    for( ii=0 ; ii < im->nvox ; ii++ ){
+
+      /* find color index kk of ii-th pixel */
+
       rr = bp[3*ii] ; gg = bp[3*ii+1] ; bb = bp[3*ii+2] ;
       for( kk=0 ; kk < nmap ; kk++ ){
         if( rr==rmap[kk] && gg==gmap[kk] && bb==bmap[kk] ) break ;
       }
 
-      out[nn++] = alpha[kk] ;
+      out[nn++] = alpha[kk] ;  /* save character code for this color */
+
+      /* when output line buffer is filled, write it */
 
       if( nn == NOUT && ii < im->nvox-1 ){  /* output line is full; RLE it */
         out[nn] = '\0' ;
-        cc = out[0] ; qq = 1 ; kk = 0 ;
+        cc = out[0] ;      /* first character in output line */
+        qq = 1 ; kk = 0 ;  /* qq = repetition count; kk = pos in zout buffer */
         for( jj=1 ; jj <= nn ; jj++ ){
-          nc = out[jj] ;
-          if( nc == cc ){  /* same character */
+          nc = out[jj] ;   /* next character (cc = last character) */
+          if( nc == cc ){  /* same character ==> store */
             if( qq == 9 ){ zout[kk++] = num[qq] ; zout[kk++] = cc ; qq = 0 ; }
             qq++ ;
           } else {         /* new character */
@@ -138,32 +154,17 @@ int main( int argc , char * argv[] )
       }
    }
 
-   /* put the last line out (no RLE here) */
+   /* put the last line out (no RLE here, because I'm lazy scum) */
 
    out[nn] = '\0' ;
    printf("   \"%s\"\n};\n",out) ; nlin++ ;
-   printf("#define NLINE_%s %d\n",nam,nlin) ;
+   printf("#define NLINE_%s %d\n",nam,nlin) ;  /* number of lines */
    exit(0) ;
 }
 
-
 /*--------------------------------------------------------------------------
-  Decode the 26 data into an image
+  Decode 'xx' data into an image.
 ----------------------------------------------------------------------------*/
-
-static byte map26[26] =
-  {  30,  50,  70,  90, 106, 118, 130, 140, 146, 152, 158, 164, 170,
-    176, 182, 190, 198, 206, 212, 218, 224, 230, 236, 242, 248, 254 } ;
-
-static MRI_IMAGE * SPLASH_decode26( int nx, int ny , int nl , char ** im26 )
-{
-   return SPLASH_decodexx( nx, ny, nl, 26,map26,map26,map26,im26 ) ;
-}
-
-/*--------------------------------------------------------------------------
-  Decode the 'xx' data into an image (cf. program toxx.c to make the data).
-----------------------------------------------------------------------------*/
-
 
 static MRI_IMAGE * SPLASH_decodexx( int nx, int ny, int nl, int nmap,
                                     byte *rmap, byte *gmap, byte *bmap ,
@@ -177,10 +178,7 @@ static MRI_IMAGE * SPLASH_decodexx( int nx, int ny, int nl, int nmap,
 
 ENTRY("SPLASH_decodexx") ;
 
-   if( nmap == 0 ){                /* defaults from old to26.c program */
-     nmap = 26 ;
-     rmap = bmap = gmap = map26 ;
-   }
+   if( nmap == 0 ) RETURN(NULL) ;
 
    if( nx < 3       || ny < 3       || nl < 3 ||
        rmap == NULL || gmap == NULL ||
