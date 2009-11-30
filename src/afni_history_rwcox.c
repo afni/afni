@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 30 , NOV , 2009 , RWC , "afni" , MICRO , TYPE_GENERAL ,
+   "Modify license to specify GPL v2 OR ANY LATER VERSION" ,
+   NULL } ,
+
  { 24 , NOV , 2009 , RWC , "thd_atr.c" , MICRO , TYPE_BUG_FIX ,
    "Allow 'count = 0' in attributes" ,
    "Formerly was a fatal error.  Now just skips to next attribute.  For\n"
