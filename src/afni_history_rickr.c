@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 30, NOV, 2009, RCR, "afni-general", MINOR, TYPE_BUG_FIX,
+   "afni crashes on short ANALYZE file from double fclose()",
+   NULL
+ } ,
+
  { 16, NOV, 2009, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
    "allow motion censoring with varying run lengths",
    "Also, if a max is applied in scaling, explicitly limit to [0,max].\n"
