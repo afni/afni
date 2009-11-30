@@ -12,6 +12,11 @@ static char alpha[MMAX] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"    /* color codes */
 
 static char num[10] = "0123456789" ;                      /* number codes */
 
+static MRI_IMAGE * SPLASH_decodexx( int , int , int , int ,
+                                    byte *, byte *, byte * , char ** ) ;
+
+#include "splash_blank_new.h"
+
 int main( int argc , char * argv[] )
 {
    MRI_IMAGE *im ;
@@ -21,12 +26,26 @@ int main( int argc , char * argv[] )
 
    if( argc < 2 ){
      printf("Usage: toxx NAME input.ppm > output.xx\n"
-            "Probably get the input by\n"
-            "  ppmquant xx image.ppm > input.ppm\n"
-            "where 'xx' is the number of colors to use.\n"
-            "Max value of 'xx' is %d.\n" , MMAX
+            "  Probably get the input by\n"
+            "    ppmquant xx image.ppm > input.ppm\n"
+            "  where 'xx' is the number of colors to use.\n"
+            "  Max value of 'xx' is %d.\n\n" , MMAX
+           ) ;
+     printf("Alternative usage:\n"
+            "  toxx -splash > output.ppm\n"
+            "Outputs the blank AFNI splash screen to a PPM image.\n"
+            "The .xx data for this is stored in splash_blank_new.h\n"
            ) ;
      exit(0);
+   }
+
+   if( strcasecmp(argv[1],"-splash") == 0 ){
+     MRI_IMAGE *imspl ;
+     imspl = SPLASH_decodexx( NX_blank, NY_blank, NLINE_blank, NC_blank,
+                              RMAP_blank,GMAP_blank,BMAP_blank, BAR_blank ) ;
+     if( imspl == NULL ) ERROR_exit("Can't create splash image?!") ;
+     mri_write_pnm( "-" , imspl ) ;
+     exit(0) ;
    }
 
    nam = argv[1] ;
@@ -125,4 +144,77 @@ int main( int argc , char * argv[] )
    printf("   \"%s\"\n};\n",out) ; nlin++ ;
    printf("#define NLINE_%s %d\n",nam,nlin) ;
    exit(0) ;
+}
+
+
+/*--------------------------------------------------------------------------
+  Decode the 26 data into an image
+----------------------------------------------------------------------------*/
+
+static byte map26[26] =
+  {  30,  50,  70,  90, 106, 118, 130, 140, 146, 152, 158, 164, 170,
+    176, 182, 190, 198, 206, 212, 218, 224, 230, 236, 242, 248, 254 } ;
+
+static MRI_IMAGE * SPLASH_decode26( int nx, int ny , int nl , char ** im26 )
+{
+   return SPLASH_decodexx( nx, ny, nl, 26,map26,map26,map26,im26 ) ;
+}
+
+/*--------------------------------------------------------------------------
+  Decode the 'xx' data into an image (cf. program toxx.c to make the data).
+----------------------------------------------------------------------------*/
+
+
+static MRI_IMAGE * SPLASH_decodexx( int nx, int ny, int nl, int nmap,
+                                    byte *rmap, byte *gmap, byte *bmap ,
+                                    char **imxx )
+{
+   MRI_IMAGE *im ;
+   byte *bim ;
+   int ii,jj , cc,qq , dd,ee , kk ;
+   char bb ;
+   static int first=1 , ainv[256] ;
+
+ENTRY("SPLASH_decodexx") ;
+
+   if( nmap == 0 ){                /* defaults from old to26.c program */
+     nmap = 26 ;
+     rmap = bmap = gmap = map26 ;
+   }
+
+   if( nx < 3       || ny < 3       || nl < 3 ||
+       rmap == NULL || gmap == NULL ||
+       bmap == NULL || imxx == NULL             ) RETURN(NULL) ;
+
+   if( first ){
+     for( ii=0 ; ii < 256 ; ii++ ) ainv[ii] = -1 ;
+     for( ii=0 ; ii < MMAX ; ii++ ){
+       bb = alpha[ii] ; ainv[bb] = ii ;
+     }
+     first = 0 ;
+   }
+
+   im  = mri_new( nx , ny , MRI_rgb ) ;
+   bim = MRI_RGB_PTR(im) ;
+
+   /* decode the RLE image data into a real image array */
+
+   cc = qq = 0 ;
+   for( ii=0 ; ii < 3*im->nvox && qq < nl ; ){
+     bb = imxx[qq][cc++] ; if( bb == '\0' ) break ;
+     jj = ainv[bb] ;
+     if( jj >= 0 ){
+       bim[ii++] = rmap[jj]; bim[ii++] = gmap[jj]; bim[ii++] = bmap[jj];
+     } else {
+       dd = bb - '0' ;
+       bb = imxx[qq][cc++] ; if( bb == '\0' ) break ;
+       jj = ainv[bb] ;
+       for( ee=0 ; ee < dd && ii < 3*im->nvox ; ee++ ){
+         bim[ii++] = rmap[jj]; bim[ii++] = gmap[jj]; bim[ii++] = bmap[jj];
+       }
+     }
+     if( imxx[qq][cc] == '\0' ){ cc = 0 ; qq++ ; }
+   }
+
+   RETURN(im) ;
 }

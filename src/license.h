@@ -1,4 +1,4 @@
-static char * license[] = {
+static char *license[] = {
    "\n" ,
    "  Major portions of this software are Copyright 1994-2000 by\n" ,
    "\n" ,
@@ -12,9 +12,10 @@ static char * license[] = {
    "  *** This software was designed to be used only for research purposes. ***\n" ,
    "  *** Clinical applications are not recommended, and this software has  ***\n" ,
    "  *** NOT been evaluated by the United States FDA for any clinical use. ***\n" ,
+   "  ***** There are no plans to EVER evaluate AFNI for clinical usage!! *****\n" ,
    "\n" ,
    "  Neither the Medical College of Wisconsin (MCW), the National Institutes\n" ,
-   "  of Health (NIH), nor any of the authors or their institutions make or\n" ,
+   "  of Health (NIH), nor any of the authors or their institutions, make or\n" ,
    "  imply any warranty of usefulness of this software for any particular\n" ,
    "  purpose, and do not assume any liability for damages, incidental or\n" ,
    "  otherwise, caused by the installation or use of this software.  If\n" ,
@@ -22,10 +23,12 @@ static char * license[] = {
    "  not enforceable by the laws of your jurisdiction, you do not have the\n" ,
    "  right use this software.\n" ,
    "\n" ,
-   "  The MCW-copyrighted part of this software is released to the public under\n" ,
-   "  the GNU General Public License, Version 2.  A copy of this License is\n" ,
-   "  appended.  The final reference copy of the software that was fully derived\n" ,
-   "  from MCW is in the tar/gzip archive file afni98_lastmcw.tgz.  (This does\n" ,
+   "  The MCW-copyrighted part of this software is released to the public\n" ,
+   "  under the GNU General Public License, Version 2 (or any later version).\n" ,
+   "  A copy of this License (GPL v2, that is to say) is appended.\n" ,
+   "\n" ,
+   "  The final reference copy of the software that was fully derived from\n" ,
+   "  MCW code is in the tar/gzip archive file afni98_lastmcw.tgz.  (This does\n" ,
    "  NOT mean that later code is not copyrighted by MCW - that depends on the\n" ,
    "  source file involved.  It simply means that some code developed later comes\n" ,
    "  from the NIH, and is not copyrighted.  Other parts developed or contributed\n" ,
@@ -89,7 +92,7 @@ static char * license[] = {
    "      T. Joachims, Making large-Scale SVM Learning Practical.\n" ,
    "        Advances in Kernel Methods - Support Vector Learning,\n" ,
    "        B. Scholkopf and C. Burges and A. Smola (ed.), MIT-Press, 1999. \n" ,
-   "  The SVM-light software is free only for non-commercial use. It must not be\n" ,
+   "  The SVM-light software is free ONLY for non-commercial use. It must not be\n" ,
    "  distributed without prior permission of the author. The author is not\n" ,
    "  responsible for implications from the use of this software.\n" ,
    "\n" ,
@@ -487,4 +490,3 @@ static char * license[] = {
    "     POSSIBILITY OF SUCH DAMAGES.\n" ,
    "\n" ,
    NULL } ;
-#define NUM_license 487
