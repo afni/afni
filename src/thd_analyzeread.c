@@ -223,7 +223,7 @@ ENTRY("THD_open_analyze") ;
        "ANALYZE file %s is %d bytes long but must be %d bytes long\n"
        "**      for nx=%d ny=%d nz=%d nt=%d and %d bytes/voxel\n",
        iname,length,ngood,nx,ny,nz,nt,datum_len ) ;
-     fclose(fp) ; RETURN( NULL );
+     RETURN( NULL );  /* file is already closed    30 Nov 2009 [rickr] */
    }
 
    /* check SPM originator field - 03 Nov 2003 */
