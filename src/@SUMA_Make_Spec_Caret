@@ -56,11 +56,22 @@ L_INIT_VARS:
     set endstr = "$prog_name ... finished"
     set debug     = 0
 
+    #Many FLAT types in Caret, look them up first, then add to list
+    set flats = ()
+    set cnt = 1
+    while ($#flats == 0 && $cnt < 10)
+      \ls *FLAT*coord | \cut -d '.' -f $cnt | \grep FLAT > ___flats
+      if ($status == 0) then 
+         set flats = `sort ___flats | uniq`
+      endif
+      @ cnt ++
+    end
+    rm ___flats
     set surf_attribs = (Fiducial		\
 			Raw \
          VeryInflated			\
 			Inflated		\
-			)
+			$flats )
 
 goto L_INIT_VARS_DONE
 
@@ -349,6 +360,7 @@ L_LOOK_FOR_SURF:
 		#get all the surfaces and ask user to identify one to use
 		set CHOOSE_LIST = `ls -t *.$Side.*Fiducial*.coord`
 		if ($#CHOOSE_LIST > 0) then
+         if ($#CHOOSE_LIST > 1) then
 				   echo "Choose final Fiducial surface (1st one is most likely since it was created last):"
 				   #vvvvvvvvvvvvvvvvvvvv   chooser block 
 				   #This cannot be used inside a loop with a goto statement.  	
@@ -365,12 +377,14 @@ L_LOOK_FOR_SURF:
 					   set CHOSEN_ITEM = $CHOOSE_LIST[$CHOOSE_LIST_select]
 					   set CHOSEN_ITEM_INDEX = $CHOOSE_LIST_select
 				   #^^^^^^^^^^^^^^^^^^   chooser block 
-
+         else
+            set CHOSEN_ITEM = $CHOOSE_LIST[1]
+            set CHOSEN_ITEM_INDEX = 1
+         endif
          set NoExt = $CHOSEN_ITEM:r #remove the .coord extension
 		   set NodeNumb = $NoExt:e	#extract the number before .coord
 		   foreach attrib ( $surf_attribs )
-			   set candidate = `ls *.$Side.$attrib.*$NodeNumb*.coord`
-
+            set candidate = `ls *.$Side.$attrib.*$NodeNumb*.coord`
 			   if ($#candidate != 1) then
 				   #Don't complain if a certain candidate is not found. ZSS My. 17th 
                #echo 'candidate surfaces= '
@@ -462,29 +476,47 @@ L_LOOK_FOR_TOPO:
 			set NoExt = $coord:r
 			set NodeNumb = $NoExt:e
 			
-			set candidate = `ls *.$Side.*$NodeNumb.topo`
+			set candidate_closed = `ls *.$Side.CLOSED.*$NodeNumb.topo`
+         set candidate_cut = `ls *.$Side.CUT.*$NodeNumb.topo`
+         if ($#candidate_closed != 1 || $#candidate_cut != 1) then
+            set candidate = `ls *.$Side.*$NodeNumb.topo`
+            set have_cc = 0
+         else 
+            set candidate = ( $candidate_closed $candidate_cut )
+            set have_cc = 1
+         endif   
 			if ($#candidate == 0) then
 				set endstr = "found no topo for $coord."
 				goto L_BAD_END
     		else
 				if ($#candidate > 1) then
-					echo "Choose topo file to go with $list file:"
-					set CHOOSE_LIST = ( $candidate )
-						#vvvvvvvvvvvvvvvvvvvv   chooser block 
-							 set CHOOSE_LIST_cnt = 1
-							 foreach CHOOSE_LIST_item ( $CHOOSE_LIST )
-	 							echo "$CHOOSE_LIST_cnt- $CHOOSE_LIST_item"
-								@ CHOOSE_LIST_cnt ++
-							 end
-							 set CHOOSE_LIST_select = 0
-							 while ($CHOOSE_LIST_select > $#CHOOSE_LIST || $CHOOSE_LIST_select < 1)
-	 							echo "Enter number of Choice:"
-	 							set CHOOSE_LIST_select = $<
-							 end
-							set CHOSEN_ITEM = $CHOOSE_LIST[$CHOOSE_LIST_select]
-							set CHOSEN_ITEM_INDEX = $CHOOSE_LIST_select
-						#^^^^^^^^^^^^^^^^^^   chooser block 
-					set candidate = $CHOSEN_ITEM
+               if ($have_cc == 0) then
+					   echo "Choose topo file to go with $coord file:"
+					   set CHOOSE_LIST = ( $candidate )
+						   #vvvvvvvvvvvvvvvvvvvv   chooser block 
+							    set CHOOSE_LIST_cnt = 1
+							    foreach CHOOSE_LIST_item ( $CHOOSE_LIST )
+	 							   echo "$CHOOSE_LIST_cnt- $CHOOSE_LIST_item"
+								   @ CHOOSE_LIST_cnt ++
+							    end
+							    set CHOOSE_LIST_select = 0
+							    while ($CHOOSE_LIST_select > $#CHOOSE_LIST || $CHOOSE_LIST_select < 1)
+	 							   echo "Enter number of Choice:"
+	 							   set CHOOSE_LIST_select = $<
+							    end
+							   set CHOSEN_ITEM = $CHOOSE_LIST[$CHOOSE_LIST_select]
+							   set CHOSEN_ITEM_INDEX = $CHOOSE_LIST_select
+						   #^^^^^^^^^^^^^^^^^^   chooser block 
+					   set candidate = $CHOSEN_ITEM
+               else
+                  #Choose cut one for flat surfaces 
+                  set mm = `echo $coord | \grep FLAT`
+                  if ($status) then
+                     set candidate = $candidate_closed
+                  else
+                     set candidate = $candidate_cut
+                  endif 
+               endif
 				endif
 			endif
 			set list_topo = ( $list_topo $candidate )
@@ -515,8 +547,17 @@ goto L_LOOK_FOR_TOPO_DONE
 L_LOOK_FOR_VOLPARAMS:
 	cd $vol_dir
 	
-	foreach Side (L R LR)
-		set candidate = `ls -t *.$Side.*.params`
+   set Vol_Param_lh = ()
+   set Vol_Param_rh = ()
+   set Vol_Param_lrh = ()
+   
+   set SideList = ()
+   if ($#list_lh > 0) set SideList = ($SideList L)
+   if ($#list_rh > 0) set SideList = ($SideList R)
+   if ($#list_lrh > 0) set SideList = ($SideList LR)
+	
+   foreach Side ($SideList)
+      set candidate = `ls -t *.$Side.*.params`
 		if ($#candidate == 0) then
          #Maybe names do not contain sides...
          set candidate = `ls -t *.params`
@@ -527,7 +568,7 @@ L_LOOK_FOR_VOLPARAMS:
 				#goto L_BAD_END
     	else
 			if ($#candidate > 1) then
-				echo "Choose .params file used in SureFit to create the surfaces:"
+				echo "Choose Caret's .params file for side $Side to create surfaces:"
 				set CHOOSE_LIST = ( $candidate )
 					#vvvvvvvvvvvvvvvvvvvv   chooser block 
 						 set CHOOSE_LIST_cnt = 1
@@ -733,7 +774,10 @@ goto L_CREATE_SPEC_DONE
 
 L_TEST_SURF_VOL:
 
-    set l = `\ls ${subj_id}_lh.spec ${subj_id}_rh.spec ${subj_id}_lrh.spec`
+    set l = ()
+    if ( -f ${subj_id}_lh.spec) set l = ($l ${subj_id}_lh.spec)
+    if ( -f ${subj_id}_rh.spec) set l = ($l ${subj_id}_rh.spec)
+    if ( -f ${subj_id}_lrh.spec) set l = ($l ${subj_id}_lrh.spec)
     if ($#l < 1) then
       set endstr = "Found no spec files!"
       echo "It is your fault Sarah"
