@@ -49,6 +49,7 @@ int main( int argc , char *argv[] )
        "* Computes the SVD of the time series from a neighborhood of each\n"
        "   voxel.  An inricate way of 'smoothing' 3D+time datasets,\n"
        "   in some sense, maybe.\n"
+       "* Also see program 3dLocalPV for something very similar, but faster.\n"
        "\n"
        "Options:\n"
        " -mask mset           = restrict operations to this mask\n"
