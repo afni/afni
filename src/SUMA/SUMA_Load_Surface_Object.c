@@ -1243,6 +1243,7 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (
          }
          SF->NodeList= NULL;
          SF->NodeId = NULL;
+         SF->allzerocoord = NULL;
          SF->Specs_mat = NULL;
          SF->FaceSetList = NULL;
          SF->FN.N_Neighb = NULL;
@@ -1256,8 +1257,10 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (
          SO->FileType = SO_FT;
          SO->FileFormat = SO_FF;
          SO->NodeDim = 3; /* This must be automated */
+         
          /*read the coordinate file */
-         if (!SUMA_SureFit_Read_Coord (SF_FileName->name_coord, SF)) {
+         if (!SUMA_SureFit_Read_Coord (SF_FileName->name_coord, 
+                                       SF)) {
             fprintf( SUMA_STDERR,
                      "Error %s: Failed in SUMA_SureFit_Read_Coord.\n", FuncName);
             SUMA_RETURN (NULL);
@@ -1268,6 +1271,7 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (
             clear what is left of SF structure at the end */
          SO->NodeList = SF->NodeList;
          SF->NodeList = NULL;
+
          
          /*read the topology file */
          if (!SUMA_SureFit_Read_Topo (SF_FileName->name_topo, SF)) {
@@ -1275,6 +1279,8 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (
                      "Error %s: Failed in SUMA_SureFit_Read_Topo.\n", FuncName);
             SUMA_RETURN (NULL);
          }
+         
+         
          /* read the param file */
          if (strlen(SF_FileName->name_param)){
             if (!SUMA_Read_SureFit_Param(SF_FileName->name_param, SF)) {

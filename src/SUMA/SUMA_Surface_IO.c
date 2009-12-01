@@ -614,12 +614,14 @@ Side effects :
    
    
 ***/
-SUMA_Boolean SUMA_SureFit_Read_Coord (char * f_name, SUMA_SureFit_struct *SF)
+SUMA_Boolean SUMA_SureFit_Read_Coord ( char * f_name, SUMA_SureFit_struct *SF)
 {/*SUMA_SureFit_Read_Coord*/
    static char FuncName[]={"SUMA_SureFit_Read_Coord"}; 
    FILE *sf_file;
 	int ex, EndHead, FoundHead, evl, cnt, skp, ND, id;
-	char stmp[100], head_strt[100], head_end[100], s[1000], delimstr[] = {' ', '\0'}, *st;
+	char stmp[100], head_strt[100], head_end[100], 
+        s[1000], delimstr[] = {' ', '\0'}, *st;
+   byte *isallzeros=NULL;
 	int LocalHead = 0;
    
 	SUMA_ENTRY;
@@ -727,9 +729,13 @@ SUMA_Boolean SUMA_SureFit_Read_Coord (char * f_name, SUMA_SureFit_struct *SF)
 	/* allocate space */
 	SF->NodeList = (float *)SUMA_calloc(SF->N_Node * ND, sizeof(float));
 	SF->NodeId = (int *)SUMA_calloc (SF->N_Node, sizeof(int));
+   SF->allzerocoord = (byte *)SUMA_calloc(SF->N_Node, sizeof(byte));
+   
 	
-	if (SF->NodeList == NULL || SF->NodeId == NULL) {
-		fprintf(SUMA_STDERR, "Error %s: Could not allocate space for NodeList &/| NodeId.\n", FuncName);
+	if (SF->NodeList == NULL || SF->NodeId == NULL || !SF->allzerocoord) {
+		fprintf(SUMA_STDERR, 
+               "Error %s: Could not allocate space for NodeList &/| NodeId.\n", 
+               FuncName);
 		SUMA_RETURN (NOPE);
 	}
 	
@@ -737,16 +743,30 @@ SUMA_Boolean SUMA_SureFit_Read_Coord (char * f_name, SUMA_SureFit_struct *SF)
 		cnt = 0;
 		while (ex != EOF && cnt < SF->N_Node)	{
 			id = cnt * ND;
-			ex = fscanf (sf_file,"%d %f %f %f",&(SF->NodeId[cnt]), \
-					&(SF->NodeList[id]), &(SF->NodeList[id+1]), &(SF->NodeList[id+2]));
-			++cnt;
+			ex = fscanf (sf_file,"%d %f %f %f",&(SF->NodeId[cnt]), 
+					&(SF->NodeList[id]), &(SF->NodeList[id+1]), 
+               &(SF->NodeList[id+2]));
+         #if 0
+         if (SF->NodeList[id] == 0.0f &&
+             SF->NodeList[id+1] == 0.0f &&
+             SF->NodeList[id+2] == 0.0f )  
+               SF->allzerocoord[cnt] = 1;
+         #else
+            /* looser test works, but not needed */
+         if (SUMA_ABS(SF->NodeList[id] -0.0f)   < 0.000001 &&
+             SUMA_ABS(SF->NodeList[id+1] -0.0f) < 0.000001 &&
+             SUMA_ABS(SF->NodeList[id+2] -0.0f) < 0.000001 )  
+               SF->allzerocoord[cnt] = 1;
+         #endif
+         ++cnt;
 		}
 	if (cnt != SF->N_Node) {
 		fprintf(SUMA_STDERR, "Error %s: Expecting %d Nodes, read %d.\n"
                            "First triplet: %f %f %f\n"
                            "Last triplet: %f %f %f\n", FuncName, SF->N_Node, cnt,
                            SF->NodeList[0], SF->NodeList[1], SF->NodeList[2],
-                           SF->NodeList[3*(cnt-1)], SF->NodeList[3*(cnt-1)+1], SF->NodeList[3*(cnt-1)+2]);
+                           SF->NodeList[3*(cnt-1)], SF->NodeList[3*(cnt-1)+1], 
+                           SF->NodeList[3*(cnt-1)+2]);
 		SUMA_RETURN (NOPE);
 	}
 	fclose (sf_file);
@@ -756,7 +776,8 @@ SUMA_Boolean SUMA_SureFit_Read_Coord (char * f_name, SUMA_SureFit_struct *SF)
 SUMA_Boolean SUMA_SureFit_Read_Topo (char * f_name, SUMA_SureFit_struct *SF)
 {/*SUMA_SureFit_Read_Topo*/
 	static char FuncName[]={"SUMA_SureFit_Read_Topo"}; 
-	int ex = 0, EndHead, FoundHead, evl, cnt, skp, jnk, i, ip, NP, nread=0;
+	int ex = 0, EndHead, FoundHead, evl, cnt, skp, jnk, 
+      i, ip, NP, nread=0, iwarn=0;
 	char stmp[100], head_strt[100], head_end[100], s[1000], 
          delimstr[] = {' ', '\0'}, *st, *eop, *fl0, *fl1, *op2, *fl,
          *fleh, *flns, *flbh;
@@ -887,11 +908,13 @@ SUMA_Boolean SUMA_SureFit_Read_Topo (char * f_name, SUMA_SureFit_struct *SF)
 	/* allocate for Node Specs Matrix and First_Neighb structure*/
 	SF->Specs_mat = (int **) SUMA_allocate2D(SF->N_Node_Specs, 6, sizeof(int));
 	/*assume maximum number of neighbors is SUMA_MAX_NUMBER_NODE_NEIGHB */
-	SF->FN.FirstNeighb = (int **) SUMA_allocate2D(SF->FN.N_Node, SUMA_MAX_NUMBER_NODE_NEIGHB, sizeof (int));
+	SF->FN.FirstNeighb = (int **) SUMA_allocate2D(SF->FN.N_Node, 
+                              SUMA_MAX_NUMBER_NODE_NEIGHB, sizeof (int));
 	SF->FN.N_Neighb = (int *) SUMA_calloc (SF->FN.N_Node, sizeof(int));
 	SF->FN.NodeId = (int *) SUMA_calloc (SF->FN.N_Node, sizeof(int));
 	
-	if (SF->Specs_mat == NULL || SF->FN.FirstNeighb == NULL || SF->FN.N_Neighb == NULL || SF->FN.NodeId == NULL ){
+	if (  SF->Specs_mat == NULL || SF->FN.FirstNeighb == NULL || 
+         SF->FN.N_Neighb == NULL || SF->FN.NodeId == NULL ){
 		fprintf(SUMA_STDERR, "Error %s: Could not allocate space for SF->Specs_mat &/| SF->FN.FirstNeighb &/| SF->FN.N_Neighb &/| SF->FN.NodeId.\n", FuncName);
 		SUMA_RETURN (NOPE);
 	} 
@@ -969,6 +992,31 @@ SUMA_Boolean SUMA_SureFit_Read_Topo (char * f_name, SUMA_SureFit_struct *SF)
       SUMA_RETURN (NOPE);
    }
 	
+   /* remove all zeros coords? */
+   i=0;
+   while(i<SF->N_FaceSet) {
+      if (SF->allzerocoord[SF->FaceSetList[NP*i]] ||
+          SF->allzerocoord[SF->FaceSetList[NP*i+1]] ||
+          SF->allzerocoord[SF->FaceSetList[NP*i+2]] ) {
+         if (!iwarn) {
+            SUMA_S_Notev("Triangle %d in %s has a node with all zero coords.\n"
+                      "Triangle removed from list.\n"
+                      "Similar messages will be muted.\n",
+                      i, f_name);
+         }
+         ++iwarn;
+         --SF->N_FaceSet;             
+         SF->FaceSetList[NP*i] = SF->FaceSetList[NP*SF->N_FaceSet];
+         SF->FaceSetList[NP*i+1] = SF->FaceSetList[NP*SF->N_FaceSet+1];
+         SF->FaceSetList[NP*i+2] = SF->FaceSetList[NP*SF->N_FaceSet+2];
+      } else {
+         ++i;
+      }
+   }
+   if (iwarn) {
+      SUMA_S_Notev("A total of %d triangles in %s with "
+                   "all zero coords were removed.\n", iwarn, f_name);
+   }
    SUMA_RETURN (YUP);
 }/*SUMA_SureFit_Read_Topo*/
 
@@ -1163,11 +1211,14 @@ void SUMA_Show_SureFit (SUMA_SureFit_struct *SF, FILE *Out)
 	if (!SF->NodeId) {
       fprintf (Out, "NULL NodeId:\n");
    }
+	if (!SF->allzerocoord) {
+      fprintf (Out, "NULL allzerocoord:\n");
+   }
    if (!SF->NodeList) {
       fprintf (Out, "NULL NodeList:\n");
    }
    if (SF->NodeId && SF->NodeList) {
-      fprintf (Out, "First 2 points [id] X Y Z:\n\t[%d] %f %f %f\n\t[%d] %f %f %f\n", \
+      fprintf (Out, "First 2 points [id] X Y Z:\n\t[%d] %f %f %f\n\t[%d] %f %f %f\n", 
 		   SF->NodeId[0], SF->NodeList[0], SF->NodeList[1], SF->NodeList[2],
 		   SF->NodeId[1], SF->NodeList[3], SF->NodeList[4], SF->NodeList[5]);
 	   if (SF->N_Node > 2) {
@@ -1404,6 +1455,7 @@ SUMA_Boolean SUMA_Free_SureFit (SUMA_SureFit_struct *SF)
    }
    if (SF->NodeList != NULL) SUMA_free(SF->NodeList);
 	if (SF->NodeId != NULL) SUMA_free(SF->NodeId);
+	if (SF->allzerocoord != NULL) SUMA_free(SF->allzerocoord);
 	if (SF->Specs_mat != NULL) 
       SUMA_free2D ((char **)SF->Specs_mat, SF->N_Node_Specs);
 	if (SF->FN.FirstNeighb != NULL) 

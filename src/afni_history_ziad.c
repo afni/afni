@@ -65,6 +65,18 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 1 , DEC , 2009 , ZSS , "suma-general" , MINOR , TYPE_BUG_FIX ,
+   "Ignore triangles from Caret with nodes that have all zero coords",
+   "Not doing so results in bad display of some flat meshes because\n"
+   "the .topo file contains triangles with nodes that appear masked by\n"
+   "0.0 0.0 0.0 in the .coord file"
+ } ,
+
+ { 1 , DEC , 2009 , ZSS , "@SUMA_Make_Spec_Caret" , MINOR , TYPE_BUG_FIX ,
+   "Improved script to make it pick up new naming convention.",
+   NULL
+ } ,
+ 
  { 25 , NOV , 2009 , ZSS , "MapIcosahedron" , MAJOR , TYPE_NEW_OPT ,
    "Added -NN_dset_map and -dset_map options to map dsets onto new meshes",
    "The program now automatically warps LabelDsets specified in the spec\n"
