@@ -5982,14 +5982,19 @@ SUMA_Boolean SUMA_InitializeColPlaneShell (
    }
    
 
+   SO->SurfCont->curColPlane = ColPlane;
+   
+   SUMA_LHv("Have ShowMode for %s of %d (widget %d)\n", 
+                SO->SurfCont->curColPlane->Label,
+                SO->SurfCont->curColPlane->ShowMode,
+                SUMA_ShowMode2ShowModeMenuItem(
+                              SO->SurfCont->curColPlane->ShowMode));
    SUMA_SET_MENU(SO->SurfCont->DsetViewModeMenu,
                  SUMA_ShowMode2ShowModeMenuItem(
                               SO->SurfCont->curColPlane->ShowMode));
    /* obsolete 
    XmToggleButtonSetState (SO->SurfCont->ColPlaneShow_tb, ColPlane->Show, NOPE);
    */
-   
-   SO->SurfCont->curColPlane = ColPlane;
    
    /* Set 1 only sensitivity */
    if (SO->SurfCont->ColPlaneShowOneFore_tb) {
@@ -8125,24 +8130,34 @@ void SUMA_cb_SelectSwitchColPlane(Widget w, XtPointer data, XtPointer call_data)
 
    #if 0
    if (cbs->reason == XmCR_SINGLE_SELECT) {
-      if (LocalHead) fprintf (SUMA_STDERR,"%s: Single selection, list widget %s... \n", FuncName, LW->Label);
+      if (LocalHead) 
+         fprintf (SUMA_STDERR,"%s: Single selection, list widget %s... \n", 
+                  FuncName, LW->Label);
    } else {
-      if (LocalHead) fprintf (SUMA_STDERR,"%s: Default selection, list widget %s... \n", FuncName, LW->Label);
+      if (LocalHead) 
+         fprintf (SUMA_STDERR,"%s: Default selection, list widget %s... \n", 
+                  FuncName, LW->Label);
       /*double click or enter on that one, close shop after selection */
       CloseShop = YUP;
    }
 
    XmStringGetLtoR (cbs->item, XmFONTLIST_DEFAULT_TAG, &choice);
    
-   if (LocalHead) fprintf (SUMA_STDERR,"%s: Selected item: %s {%s} (%d)\n", FuncName, choice, choice, cbs->item_position);
+   if (LocalHead) 
+      fprintf (SUMA_STDERR,"%s: Selected item: %s {%s} (%d)\n", 
+               FuncName, choice, choice, cbs->item_position);
    LW->lastitempos = cbs->item_position;   /* store for next opening */
    
-   /* because of sorting, choice cannot be used as an index into clist and oplist in ALS */
+   /* because of sorting, choice cannot be used as an index 
+      into clist and oplist in ALS */
    Found = NOPE;
    ichoice = 0;
    do {
-      if (LocalHead) fprintf (SUMA_STDERR,"%s: Comparing:\t>%s<\t>%s<", FuncName, LW->ALS->clist[ichoice], choice);
-      if (strncmp(LW->ALS->clist[ichoice], choice, strlen(LW->ALS->clist[ichoice])) == 0) Found = YUP; 
+      if (LocalHead) 
+         fprintf (SUMA_STDERR,"%s: Comparing:\t>%s<\t>%s<", 
+                  FuncName, LW->ALS->clist[ichoice], choice);
+      if (strncmp(LW->ALS->clist[ichoice], choice, 
+                  strlen(LW->ALS->clist[ichoice])) == 0) Found = YUP; 
       else ++ichoice;
    } while (ichoice < LW->ALS->N_clist && !Found);
    
@@ -8157,17 +8172,21 @@ void SUMA_cb_SelectSwitchColPlane(Widget w, XtPointer data, XtPointer call_data)
    /* the new way */
    ichoice = SUMA_GetListIchoice(cbs, LW, &CloseShop);
    #endif
-   /* now retrieve that choice from the SUMA_ASSEMBLE_LIST_STRUCT structure and initialize the drawing window */
+   /* now retrieve that choice from the SUMA_ASSEMBLE_LIST_STRUCT 
+      structure and initialize the drawing window */
    if (LW->ALS) {
-      if (LocalHead) fprintf (SUMA_STDERR,"%s: N_clist = %d\n", FuncName, LW->ALS->N_clist); 
+      if (LocalHead) 
+         fprintf (SUMA_STDERR,"%s: N_clist = %d\n", FuncName, LW->ALS->N_clist); 
       if (LW->ALS->N_clist > ichoice) {
          ColPlane = (SUMA_OVERLAYS *)LW->ALS->oplist[ichoice];
-         if (LocalHead) fprintf (SUMA_STDERR,"%s: Retrieved ColPlane named %s\n", FuncName, ColPlane->Name);
+         if (LocalHead) 
+            fprintf (SUMA_STDERR,"%s: Retrieved ColPlane named %s\n", 
+                     FuncName, ColPlane->Name);
          SUMA_InitializeColPlaneShell(SO, ColPlane);
-         SUMA_UpdateColPlaneShellAsNeeded(SO); /* update other open ColPlaneShells */
+         SUMA_UpdateColPlaneShellAsNeeded(SO); /* update other open 
+                                                   ColPlaneShells */
          /* If you're viewing one plane at a time, do a remix */
          if (SO->SurfCont->ShowCurForeOnly) SUMA_RemixRedisplay(SO);
-
       }
    } else {
       if (LocalHead) fprintf (SUMA_STDERR,"%s: NULL ALS\n", FuncName); 
@@ -9908,9 +9927,9 @@ int SUMA_ShowMode2ShowModeMenuItem(int Mode)
    }
    if (Mode < 0) {
       SUMA_RETURN(SW_SurfCont_DsetViewXXX);
-   } 
-   
-   SUMA_RETURN(SW_SurfCont_DsetViewCol);
+   } else {
+      SUMA_RETURN(Mode);
+   }
 }      
 
 /*!
