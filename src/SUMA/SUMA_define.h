@@ -1988,7 +1988,8 @@ typedef struct {
 
 typedef struct {
    SUMA_OVERLAYS *Overlay; /*!< pointer to color overlay structures */
-} SUMA_OVERLAY_LIST_DATUM;   /*!< a structure used to create linked lists of SO->Overlays and co */ 
+} SUMA_OVERLAY_LIST_DATUM;   /*!< a structure used to create linked lists 
+                                  of SO->Overlays and co */ 
 
 /*! structure defining a Surface Object */
 typedef struct {
