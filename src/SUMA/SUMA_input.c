@@ -2865,7 +2865,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             #endif 
             
          case XK_D:
-            if (SUMAg_CF->Dev) {
+            if (1) {
                if (SUMA_ALTHELL){ 
                   /*  Mod1Mask is alt in linux, Mod2Mask is the apple on mac*/
                } else {
