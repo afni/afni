@@ -25,7 +25,7 @@ static void vstep_print(void)
 #endif
 
 /*------------------------------------------------------------------------*/
-/* Adapted from 3dLocalSVD */
+/* Adapted from 3dLocalSVD, to be more efficient when #evals=1 */
 
 int main( int argc , char *argv[] )
 {
@@ -48,6 +48,10 @@ int main( int argc , char *argv[] )
        "* Computes the SVD of the time series from a neighborhood of each\n"
        "   voxel.  An inricate way of 'smoothing' 3D+time datasets,\n"
        "   in some sense, maybe.\n"
+       "* This is like 3dLocalSVD, except that the '-vproj' option doesn't\n"
+       "   allow anything but 1 dimensional projection.  This is because\n"
+       "   3dLocalPV uses a special fast method to compute just the first\n"
+       "   principal vector -- faster than 3dLocalSVD, but more specialized.\n"
        "\n"
        "Options:\n"
        " -mask mset           = restrict operations to this mask\n"
@@ -80,7 +84,7 @@ int main( int argc , char *argv[] )
    /*---- official startup ---*/
 
    PRINT_VERSION("3dLocalPV"); mainENTRY("3dLocalPV main"); machdep();
-   AFNI_logger("3dLocalPV",argc,argv); AUTHOR("Emperor Zhark the Singular");
+   AFNI_logger("3dLocalPV",argc,argv); AUTHOR("Emperor Zhark the Iterator");
 
    /*---- loop over options ----*/
 
@@ -303,7 +307,7 @@ int main( int argc , char *argv[] )
 
 #pragma omp parallel if( nmask > 666 )  /* parallelization 16 Jul 2009 [disabled] */
  { int kk , xx,yy,zz , vv,ii , mm ;
-   MRI_IMARR *imar ; MRI_IMAGE *pim ;
+   MRI_IMARR *imar ; MRI_IMAGE *zim ;
    float *tsar , *coef , **xar , *uvec ;
 
    if( rebase ) coef = (float *)malloc(sizeof(float)*(polort+1)) ;
@@ -327,10 +331,11 @@ int main( int argc , char *argv[] )
      mm = IMARR_COUNT(imar) ;
      for( vv=0 ; vv < mm ; vv++ ){
        xar[vv] = tsar = MRI_FLOAT_PTR(IMARR_SUBIM(imar,vv)) ;
-       if( polort >= 0 ){
+       if( polort >= 0 ) /* detrend extracted data in place */
          THD_generic_detrend_LSQ( nt , tsar , -1 , polort+1 , polyref ,
                                   (vv==0) ? coef : NULL ) ;
-       }
+       if( do_vproj && vv == 0 )
+         zim = mri_copy(IMARR_SUBIM(imar,0)) ;  /* before vnorm */
        if( do_vnorm ){
          register float sum ;
          for( sum=0.0f,ii=0 ; ii < nt ; ii++ ) sum += tsar[ii]*tsar[ii] ;
@@ -344,8 +349,8 @@ int main( int argc , char *argv[] )
      (void)principal_vector( nt, mm, 1, xar, uvec, (do_vproj) ? NULL : tsar ) ;
      DESTROY_IMARR(imar) ;
      if( do_vproj ){
-       register float sum ;
-       for( sum=0.0f,ii=0 ; ii < nt ; ii++ ) sum += tsar[ii]*uvec[ii] ;
+       register float sum ; float *zar = MRI_FLOAT_PTR(zim) ;
+       for( sum=0.0f,ii=0 ; ii < nt ; ii++ ) sum += zar[ii]*uvec[ii] ;
        for( ii=0 ; ii < nt ; ii++ ) uvec[ii] *= sum ;
      }
      if( polort >= 0 && rebase && coef != NULL ){
@@ -400,11 +405,9 @@ static MRI_IMARR * myTHD_get_dset_nbhd_array( THD_3dim_dataset *dset, byte *mask
    free(ivox) ; return imar ;
 }
 
-/*----------------------------------------------------------------------------*/
-
-static float symeig_sim1( int n     , float *asym , float *vec ) ;
-static void  symeig_2D  ( double *a , double *e   , int dovec  ) ;
-static void  symeig_3D  ( double *a , double *e   , int dovec  ) ;
+float symeig_sim1( int n     , float *asym , float *vec ) ;
+void  symeig_2D  ( double *a , double *e   , int dovec  ) ;
+void  symeig_3D  ( double *a , double *e   , int dovec  ) ;
 
 #undef  A
 #define A(i,j) asym[(i)+(j)*nsym]
@@ -418,10 +421,10 @@ static void  symeig_3D  ( double *a , double *e   , int dovec  ) ;
    * If xtyp > 0, the columns are stored in an array of arrays:
       ((float **)xp)[j][i]
    * The return value is the L2-norm of the vector, and the vector is
-     stored into uvec.
+     stored into uvec.  The output vector is NOT normalized.
 *//*--------------------------------------------------------------------------*/
 
-static float mean_vector( int n , int m , int xtyp , void *xp , float *uvec )
+float mean_vector( int n , int m , int xtyp , void *xp , float *uvec )
 {
    int nn=n , mm=m , jj ; register int ii ;
    register float *xj , fac,sum ; float *xx=NULL , **xar=NULL ;
@@ -443,6 +446,7 @@ static float mean_vector( int n , int m , int xtyp , void *xp , float *uvec )
    return sqrtf(sum) ;
 }
 
+#undef UNROLL  /* unrolling doesn't help on my Mac */
 /*----------------------------------------------------------------------------*/
 /*! Compute the principal singular vector of a set of m columns, each
     of length n.
@@ -455,24 +459,24 @@ static float mean_vector( int n , int m , int xtyp , void *xp , float *uvec )
    * If the return value is not positive, something ugly happened.
 *//*--------------------------------------------------------------------------*/
 
-static float principal_vector( int n , int m , int xtyp , void *xp ,
+float principal_vector( int n , int m , int xtyp , void *xp ,
                                float *uvec , float *tvec            )
 {
-   int nn=n , mm=m , nsym , ii,jj,kk,qq ;
+   int nn=n , mm=m , nsym , jj,kk,qq ;
    float *asym ;
-   register float sum,qsum ; register float *xj , *xk ;
+   register float sum,qsum ; register float *xj,*xk ; register int ii ;
    float sval , *xx=NULL , **xar=NULL ;
 
    nsym = MIN(nn,mm) ;  /* size of the symmetric matrix to create */
 
-   if( nsym < 1 || xp == NULL || uvec == NULL ) return -666.0f ;
+   if( nsym < 1 || xp == NULL || uvec == NULL ) return (-666.0f) ;
 
    if( xtyp <= 0 ) xx  = (float * )xp ;
    else            xar = (float **)xp ;
 
    if( nsym == 1 ){  /*----- trivial case -----*/
 
-     if( mm == 1 ){
+     if( mm == 1 ){  /* really trivial: only 1 vector */
        xj = XPT(0) ; qsum = sum = 0.0f ;
        for( ii=0; ii < nn; ii++ ){
          uvec[ii] = xj[ii] ; qsum += uvec[ii]*uvec[ii] ;
@@ -495,7 +499,7 @@ static float principal_vector( int n , int m , int xtyp , void *xp ,
        }
        sval = sqrtf(sval) ;
      }
-     return sval ;
+     return (sval) ;
 
    } /*----- end of trivial case -----*/
 
@@ -507,20 +511,29 @@ static float principal_vector( int n , int m , int xtyp , void *xp ,
 
    if( nn > mm ){                       /* more rows than columns:  */
                                         /* so [A] = [X]'[X] = m x m */
-     int n1 = nn-1 ;
+#ifdef UNROLL
+     int nodd = (nn%2)==1 ;
+#endif
      for( jj=0 ; jj < mm ; jj++ ){
        xj = XPT(jj) ;
        for( kk=0 ; kk <= jj ; kk++ ){
-         sum = 0.0 ; xk = XPT(kk) ;
-         for( ii=0 ; ii < n1 ; ii+=2 ) sum += xj[ii]*xk[ii] + xj[ii+1]*xk[ii+1];
-         if( ii == n1 ) sum += xj[ii]*xk[ii] ;
+         xk = XPT(kk) ;
+#ifdef UNROLL
+         sum = (nodd) ? xj[0]*xk[0] : 0.0f ;
+         for( ii=nodd ; ii < nn ; ii+=2 ) sum += xj[ii]*xk[ii] + xj[ii+1]*xk[ii+1];
+#else
+         for( sum=0.0f,ii=0 ; ii < nn ; ii++ ) sum += xj[ii]*xk[ii] ;
+#endif
          A(jj,kk) = sum ; if( kk < jj ) A(kk,jj) = sum ;
        }
      }
 
    } else {                             /* more columns than rows:  */
                                         /* so [A] = [X][X]' = n x n */
-     float *xt ; int m1=mm-1 ;
+     float *xt ;
+#ifdef UNROLL
+     int modd = (mm%2)==1 ;
+#endif
 #pragma omp critical (MALLOC)
      xt = (float *)malloc(sizeof(float)*nn*mm) ;
      for( jj=0 ; jj < mm ; jj++ ){      /* form [X]' into array xt */
@@ -533,9 +546,14 @@ static float principal_vector( int n , int m , int xtyp , void *xp ,
      for( jj=0 ; jj < nn ; jj++ ){
        xj = xt + jj*mm ;
        for( kk=0 ; kk <= jj ; kk++ ){
-         sum = 0.0 ; xk = xt + kk*mm ;
-         for( ii=0 ; ii < m1 ; ii+=2 ) sum += xj[ii]*xk[ii] + xj[ii+1]*xk[ii+1];
-         if( ii == m1 ) sum += xj[ii]*xk[ii] ;
+         xk = xt + kk*mm ;
+#ifdef UNROLL
+         sum = (modd) ? xj[0]*xk[0] : 0.0f ;
+         for( ii=modd ; ii < mm ; ii+=2 ) sum += xj[ii]*xk[ii] + xj[ii+1]*xk[ii+1];
+#else
+         sum = 0.0f ;
+         for( ii=0 ; ii < mm ; ii++ ) sum += xj[ii]*xk[ii] ;
+#endif
          A(jj,kk) = sum ; if( kk < jj ) A(kk,jj) = sum ;
        }
      }
@@ -570,7 +588,7 @@ static float principal_vector( int n , int m , int xtyp , void *xp ,
      float *qvec ;
 
 #pragma omp critical (MALLOC)
-     qvec = (float *)calloc(sizeof(float),nsym) ;
+     qvec = (float *)malloc(sizeof(float)*nsym) ;
      (void)mean_vector( nsym , nsym , 0 , asym , qvec ) ;
      sval = symeig_sim1( nsym , asym , qvec ) ;
      qsum = 0.0f ;
@@ -583,9 +601,8 @@ static float principal_vector( int n , int m , int xtyp , void *xp ,
        uvec[ii] = sum ; qsum += sum*sum ;
      }
      if( qsum > 0.0f ){       /* L2 normalize */
-       register float fac ;
-       fac = 1.0f/sqrtf(qsum) ;
-       for( ii=0 ; ii < nn ; ii++ ) uvec[ii] *= fac ;
+       sum = 1.0f / sqrtf(qsum) ;
+       for( ii=0 ; ii < nn ; ii++ ) uvec[ii] *= sum ;
      }
 #pragma omp critical (MALLOC)
      free(qvec) ;
@@ -606,7 +623,7 @@ static float principal_vector( int n , int m , int xtyp , void *xp ,
 #pragma omp critical (MALLOC)
    free(asym) ;
 
-   return sqrtf(sval) ;
+   return (sqrtf(sval)) ;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -625,7 +642,7 @@ static float principal_vector( int n , int m , int xtyp , void *xp ,
 #define DEPS  1.e-8
 #define DEPSQ 1.e-4   /* sqrt(DEPS) */
 
-static float symeig_sim1( int nn , float *asym , float *vec )
+float symeig_sim1( int nn , float *asym , float *vec )
 {
    float *u1,*u2,*u3 , *v1,*v2,*v3 , *aj ;
    float sum1,sum2,sum3 , q1,q2,q3 , r1,r2,r3 , s1,s2,s3 ;
@@ -633,18 +650,22 @@ static float symeig_sim1( int nn , float *asym , float *vec )
    double bb[9] , ev[3] , evold=0.0 ;
    double g11,g12,g13,g22,g23,g33 ;
    double h11,h12,h13,h22,h23,h33 ;
+#ifdef UNROLL
+   int nodd = (n%2 == 1) ;
+#endif
+   
 
-   if( nn < 1 || asym == NULL || vec == NULL ) return -666.0f ;
+   if( n < 1 || asym == NULL || vec == NULL ) return -666.0f ;
 
    /* special cases: 1x1 and 2x2 and 3x3 matrices */
 
-   if( nn == 1 ){
+   if( n == 1 ){
      vec[0] = 1 ; return asym[0] ;
-   } else if( nn == 2 ){
+   } else if( n == 2 ){
      for( ii=0 ; ii < 4 ; ii++ ) bb[ii] = asym[ii] ;
      symeig_2D( bb , ev , 1 ) ;
      vec[0] = bb[0] ; vec[1] = bb[1] ; return ev[0] ;
-   } else if( nn == 3 ){
+   } else if( n == 3 ){
      for( ii=0 ; ii < 9 ; ii++ ) bb[ii] = asym[ii] ;
      symeig_3D( bb , ev , 1 ) ;
      vec[0] = bb[0] ; vec[1] = bb[1] ; vec[2] = bb[2] ; return ev[0] ;
@@ -667,7 +688,7 @@ static float symeig_sim1( int nn , float *asym , float *vec )
    for( ii=0 ; ii < n ; ii++ ){
      u1[ii] = vec[ii] ; sum1 += u1[ii]*u1[ii] ;
    }
-   if( sum1 == 0.0f ){
+   if( sum1 == 0.0f ){  /* backup if input vector is all zero */
      for( ii=0 ; ii < n ; ii++ ){
        u1[ii] = drand48()-0.3 ; sum1 += u1[ii]*u1[ii] ;
      }
@@ -677,10 +698,13 @@ static float symeig_sim1( int nn , float *asym , float *vec )
 
    /* initialize u2, u3 by flipping signs in u1 */
 
+   sum1 = 0.02468f / n ;
    for( ii=0 ; ii < n ; ii++ ){
-     jj = (int)lrand48() ;
-     u2[ii] = (((jj >> 3)%2 == 0) ? u1[ii] : -u1[ii]) + 0.001f*drand48() ;
-     u3[ii] = (((jj >> 7)%2 == 0) ? u1[ii] : -u1[ii]) + 0.001f*drand48() ;
+     jj   = (int)lrand48() ;
+     sum2 = sum1 * ((jj >> 1)%4 - 1.5f) ;
+     sum3 = sum1 * ((jj >> 5)%4 - 1.5f) ;
+     u2[ii] = (((jj >> 3)%2 == 0) ? u1[ii] : -u1[ii]) + sum2 ;
+     u3[ii] = (((jj >> 7)%2 == 0) ? u1[ii] : -u1[ii]) + sum3 ;
    }
 
    /*----- iteration loop -----*/
@@ -701,8 +725,35 @@ static float symeig_sim1( int nn , float *asym , float *vec )
 
      /* form G = U' U   and   H = U' V */
 
-     g11 = g12 = g22 = g13 = g23 = g33 = 0.0f ;
-     h11 = h12 = h22 = h13 = h23 = h33 = 0.0f ;
+#ifdef UNROLL
+     if( nodd ){
+       g11 = u1[0] * u1[0] ; g12 = u1[0] * u2[0] ;
+       g22 = u2[0] * u2[0] ; g13 = u1[0] * u3[0] ;
+       g23 = u2[0] * u3[0] ; g33 = u3[0] * u3[0] ;
+       h11 = u1[0] * v1[0] ; h12 = u1[0] * v2[0] ;
+       h22 = u2[0] * v2[0] ; h13 = u1[0] * v3[0] ;
+       h23 = u2[0] * v3[0] ; h33 = u3[0] * v3[0] ;
+     } else {
+       g11 = g12 = g22 = g13 = g23 = g33 = 0.0 ;
+       h11 = h12 = h22 = h13 = h23 = h33 = 0.0 ;
+     }
+     for( ii=nodd ; ii < n ; ii+=2 ){
+       g11 += u1[ii] * u1[ii] + u1[ii+1] * u1[ii+1] ;
+       g12 += u1[ii] * u2[ii] + u1[ii+1] * u2[ii+1] ;
+       g22 += u2[ii] * u2[ii] + u2[ii+1] * u2[ii+1] ;
+       g13 += u1[ii] * u3[ii] + u1[ii+1] * u3[ii+1] ;
+       g23 += u2[ii] * u3[ii] + u2[ii+1] * u3[ii+1] ;
+       g33 += u3[ii] * u3[ii] + u3[ii+1] * u3[ii+1] ;
+       h11 += u1[ii] * v1[ii] + u1[ii+1] * v1[ii+1] ;
+       h12 += u1[ii] * v2[ii] + u1[ii+1] * v2[ii+1] ;
+       h22 += u2[ii] * v2[ii] + u2[ii+1] * v2[ii+1] ;
+       h13 += u1[ii] * v3[ii] + u1[ii+1] * v3[ii+1] ;
+       h23 += u2[ii] * v3[ii] + u2[ii+1] * v3[ii+1] ;
+       h33 += u3[ii] * v3[ii] + u3[ii+1] * v3[ii+1] ;
+     }
+#else
+     g11 = g12 = g22 = g13 = g23 = g33 = 0.0 ;
+     h11 = h12 = h22 = h13 = h23 = h33 = 0.0 ;
      for( ii=0 ; ii < n ; ii++ ){
        g11 += u1[ii] * u1[ii] ; g12 += u1[ii] * u2[ii] ;
        g22 += u2[ii] * u2[ii] ; g13 += u1[ii] * u3[ii] ;
@@ -710,6 +761,287 @@ static float symeig_sim1( int nn , float *asym , float *vec )
        h11 += u1[ii] * v1[ii] ; h12 += u1[ii] * v2[ii] ;
        h22 += u2[ii] * v2[ii] ; h13 += u1[ii] * v3[ii] ;
        h23 += u2[ii] * v3[ii] ; h33 += u3[ii] * v3[ii] ;
+     }
+#endif
+
+     /* Choleski-ize G = L L' (in place) */
+
+     g11 = (g11 <= 0.0) ? DEPSQ : sqrt(g11) ;
+     g12 = g12 / g11 ;
+     g22 = g22 - g12*g12 ; g22 = (g22 <= 0.0) ? DEPSQ : sqrt(g22) ;
+     g13 = g13 / g11 ;
+     g23 = (g23 - g12*g13) / g22 ;
+     g33 = g33 - g13*g13 * g23*g23 ; g33 = (g33 <= 0.0) ? DEPSQ : sqrt(g33) ;
+
+     /* invert lower triangular L (in place) */
+
+     g13 = ( g12*g23 - g22*g13 ) / (g11*g22*g33) ;
+     g11 = 1.0 / g11 ; g22 = 1.0 / g22 ; g33 = 1.0 / g33 ;
+     g23 = -g23 * g33 * g22 ;
+     g12 = -g12 * g11 * g22 ;
+
+     /* form B = inv[L] H inv[L]' (code from Maple 9.5) */
+
+    { double t1, t3, t5, t13, t18, t34, t42, t47 ;
+      t1  = g11 * g11 ; t3  = g11 * h11 ; t5  = g11 * h12 ;
+      t13 = g12 * g12 ; t18 = g22 * g22 ; t34 = g13 * g13 ;
+      t42 = g23 * g23 ; t47 = g33 * g33 ;
+      bb[0] = t1 * h11 ;
+      bb[4] = t13 * h11 + 2.0 * g12 * g22 * h12 + t18 * h22 ;
+      bb[8] = t34 * h11 + 2.0 * g13 * g23 * h12 + 2.0 * g13 * g33 * h13
+            + t42 * h22 + 2.0 * g23 * g33 * h23 + t47 * h33 ;
+      bb[1] = bb[3] = t3 * g12 + t5 * g22 ;
+      bb[2] = bb[6] = t3 * g13 + t5 * g23 + g11 * h13 * g33 ;
+      bb[5] = bb[7] = g13 * g12 * h11 + g13 * g22 * h12 + g23 * g12 * h12
+                    + g23 * g22 * h22 + g33 * g12 * h13 + g33 * g22 * h23 ;
+    }
+
+     /* eigensolve B P  = P D */
+
+     symeig_3D( bb , ev , 1 ) ;  /* P is in bb, D is in ev */
+
+#if 0
+fprintf(stderr,"nite=%d  ev=%.9g %.9g %.9g\n",nite,ev[0],ev[1],ev[2]) ;
+fprintf(stderr,"         bb=%.5g %.5g %.5g\n"
+               "            %.5g %.5g %.5g\n"
+               "            %.5g %.5g %.5g\n",
+        bb[0],bb[1],bb[2],bb[3],bb[4],bb[5],bb[6],bb[7],bb[8]) ;
+#endif
+
+     /* form Q = inv[L]' P */
+
+     q1 = g11*bb[0] + g12*bb[1] + g13*bb[2] ;
+     q2 =             g22*bb[1] + g23*bb[2] ;
+     q3 =                         g33*bb[2] ;
+
+     /* form U = V Q and normalize it */
+
+#ifdef UNROLL
+     if( nodd ){
+       u1[0] = q1 * v1[0] + q2 * v2[0] + q3 * v3[0] ; sum1 = u1[0]*u1[0] ;
+     } else {
+       sum1 = 0.0f ;
+     }
+     for( ii=nodd ; ii < n ; ii+=2 ){
+       u1[ii  ] = q1 * v1[ii  ] + q2 * v2[ii  ] + q3 * v3[ii  ] ;
+       u1[ii+1] = q1 * v1[ii+1] + q2 * v2[ii+1] + q3 * v3[ii+1] ;
+       sum1 += u1[ii]*u1[ii] + u1[ii+1]*u1[ii+1] ;
+     }
+     sum1 = 1.0f / sqrtf(sum1) ;
+     if( nodd ) u1[0] *= sum1 ;
+     for( ii=nodd ; ii < n ; ii+=2 ){ u1[ii] *= sum1 ; u1[ii+1] *= sum1 ; }
+#else
+     sum1 = 0.0f ;
+     for( ii=0 ; ii < n ; ii++ ){
+       u1[ii] = q1 * v1[ii] + q2 * v2[ii] + q3 * v3[ii]; sum1 += u1[ii]*u1[ii];
+     }
+     sum1 = 1.0f / sqrtf(sum1) ;
+     for( ii=0 ; ii < n ; ii++ ) u1[ii] *= sum1 ;
+#endif
+
+     /* check first eigenvalue in D for convergence */
+
+     if( nite > 99 ||
+         ( nite > 0 && fabs(ev[0]-evold) <= FEPS*(fabs(evold)+FEPS) ) ) break ;
+
+     /* not done yet ==> iterate */
+
+     nite++ ; evold = ev[0] ;
+
+     /* finish u2 and u3 vectors in U */
+
+     r1 = g11*bb[3] + g12*bb[4] + g13*bb[5] ;
+     r2 =             g22*bb[4] + g23*bb[5] ;
+     r3 =                         g33*bb[5] ;
+
+     s1 = g11*bb[6] + g12*bb[7] + g13*bb[8] ;
+     s2 =             g22*bb[7] + g23*bb[8] ;
+     s3 =                         g33*bb[8] ;
+
+#ifdef UNROLL
+     if( nodd ){
+       u2[0] = r1 * v1[0] + r2 * v2[0] + r3 * v3[0] ; sum2 = u2[0]*u2[0] ;
+       u3[0] = s1 * v1[0] + s2 * v2[0] + s3 * v3[0] ; sum3 = u3[0]*u3[0] ;
+     } else {
+       sum2 = sum3 = 0.0f ;
+     }
+     for( ii=nodd ; ii < n ; ii+=2 ){
+       u2[ii  ] = r1 * v1[ii  ] + r2 * v2[ii  ] + r3 * v3[ii  ] ;
+       u2[ii+1] = r1 * v1[ii+1] + r2 * v2[ii+1] + r3 * v3[ii+1] ;
+       u3[ii  ] = s1 * v1[ii  ] + s2 * v2[ii  ] + s3 * v3[ii  ] ;
+       u3[ii+1] = s1 * v1[ii+1] + s2 * v2[ii+1] + s3 * v3[ii+1] ;
+       sum2 += u2[ii]*u2[ii] + u2[ii+1]*u2[ii+1] ;
+       sum3 += u3[ii]*u3[ii] + u3[ii+1]*u3[ii+1] ;
+     }
+     sum2 = 1.0f / sqrtf(sum2) ;
+     sum3 = 1.0f / sqrtf(sum3) ;
+     if( nodd ){ u2[0] *= sum2 ; u3[0] *= sum3 ; }
+     for( ii=nodd ; ii < n ; ii+=2 ){
+       u2[ii] *= sum2 ; u2[ii+1] *= sum2 ; u3[ii] *= sum3 ; u3[ii+1] *= sum3 ;
+     }
+#else
+     sum2 = sum3 = 0.0f ;
+     for( ii=0 ; ii < n ; ii++ ){
+       u2[ii] = r1 * v1[ii] + r2 * v2[ii] + r3 * v3[ii]; sum2 += u2[ii]*u2[ii];
+       u3[ii] = s1 * v1[ii] + s2 * v2[ii] + s3 * v3[ii]; sum3 += u3[ii]*u3[ii];
+     }
+     sum2 = 1.0f / sqrtf(sum2) ; sum3 = 1.0f / sqrtf(sum3) ;
+     for( ii=0 ; ii < n ; ii++ ){ u2[ii] *= sum2 ; u3[ii] *= sum3 ; }
+#endif
+
+   } /*----- end of iteration loop -----*/
+
+   /* result vector is u1 */
+
+   for( ii=0 ; ii < n ; ii++ ) vec[ii] = u1[ii] ;
+
+   /* free work vectors */
+
+#pragma omp critical (MALLOC)
+   { free(v3); free(v2); free(v1); free(u3); free(u2); free(u1); }
+
+#if 0
+   { static int first=1 ;
+     if( first ){ fprintf(stderr,"nite=%d nsym=%d\n",nite,n) ; first=0 ; }
+   }
+#endif
+
+   return (float)ev[0] ;
+}
+
+/*----------------------------------------------------------------------*/
+
+#if 0
+static float simult_13( int n, int m, int xtyp, void *xp, float *vec )
+{
+   float *u1,*u2,*u3 , *v1,*v2,*v3 , *xi ;
+   float sum1,sum2,sum3 , q1,q2,q3 , r1,r2,r3 , s1,s2,s3 ;
+   int ii , jj , nite=0 , nn=n , mm=m ;
+   double bb[9] , ev[3] , evold=0.0 ;
+   double g11,g12,g13,g22,g23,g33 ;
+   double h11,h12,h13,h22,h23,h33 ;
+   float *xx=NULL , **xar=NULL ;
+
+   if( nn < 1 || mm < 1 || xp == NULL || vec == NULL ) return (-666.0f) ;
+
+   if( xtyp <= 0 ) xx  = (float * )xp ;
+   else            xar = (float **)xp ;
+
+   /*----- special cases: only 1, 2, or 3 columns -----*/
+
+   if( nn < 4 ){
+     float evout , *x1,*x2,*x3 ;
+
+     switch( nn ){
+       case 1:{          /* 1 vector ==> it is its own eigenvector */
+         x1 = XPT(0) ;
+         for( evout=0.0f,ii=0 ; ii < nn ; ii++ ){
+           vec[ii] = x1[ii] ; evout += vec[ii]*vec[ii] ;
+         }
+       }
+       break ;
+
+       case 2:{          /* form 2x2 symmetric matrix X'X and eigensolve */
+         x1 = XPT(0) ; x2 = XPT(1) ;
+         bb[0] = bb[1] = bb[3] = 0.0 ;
+         for( ii=0; ii < nn ; ii++ ){
+           bb[0] += x1[ii]*x1[ii] ;
+           bb[1] += x1[ii]*x2[ii] ;
+           bb[3] += x2[ii]*x2[ii] ;
+         }
+         bb[2] = bb[1] ;
+         symeig_2D( bb , ev , 1 ) ; evout = ev[0] ;
+         sum1 = bb[0] ; sum2 = bb[1] ;
+         for( ii=0 ; ii < nn ; ii++ )  /* multiply leading evector by X */
+           vec[ii] = x1[ii]*sum1 + x2[ii]*sum2 ;
+       }
+       break ;
+
+       case 3:{          /* form 3x3 symmetric matrix X'X and eigensolve */
+         x1 = XPT(0) ; x2 = XPT(1) ; x3 = XPT(2) ;
+         for( ii=0; ii < nn ; ii++ ){
+           bb[0] += x1[ii]*x1[ii] ; bb[1] += x1[ii]*x2[ii] ;
+           bb[2] += x1[ii]*x3[ii] ; bb[4] += x2[ii]*x2[ii] ;
+           bb[5] += x2[ii]*x3[ii] ; bb[8] += x3[ii]*x3[ii] ;
+         }
+         bb[3] = bb[1] ; bb[6] = bb[2] ; bb[7] = bb[5] ;
+         symeig_3D( bb , ev , 1 ) ; evout = ev[0] ;
+         sum1 = bb[0] ; sum2 = bb[1] ; sum2 = bb[2] ;
+         for( ii=0 ; ii < nn ; ii++ )  /* multiply leading evector by X */
+           vec[ii] = x1[ii]*sum1 + x2[ii]*sum2 + x3[ii]*sum3 ;
+       }
+       break ;
+     }
+
+     /* normalize output vector */
+
+     sum1 = 0.0f ;
+     for( ii=0 ; ii < nn ; ii++ ) sum1 += vec[ii]*vec[ii] ;
+     if( sum1 > 0.0f ){
+       sum1 = 1.0f / sqrtf(sum1) ;
+       for( ii=0 ; ii < nn ; ii++ ) vec[ii] *= sum1 ;
+     }
+     return (evout) ;
+
+   } /*----- end of special cases -----*/
+
+   /*----- allocate iteration vectors -----*/
+
+#pragma omp critical (MALLOC)
+   { u1 = (float *)malloc(sizeof(float)*nn) ; /* U = [u1 u2 u3] */
+     u2 = (float *)malloc(sizeof(float)*nn) ; /* n X 3 matrix   */
+     u3 = (float *)malloc(sizeof(float)*nn) ;
+     v1 = (float *)malloc(sizeof(float)*mm) ; /* V = [v1 v2 v3] */
+     v2 = (float *)malloc(sizeof(float)*mm) ; /* m X 3 matrix   */
+     v3 = (float *)malloc(sizeof(float)*mm) ;
+   }
+
+   /* initialize u1 from average of input columns */
+
+   sum1 = mean_vector( nn , mm , xtyp , xp , u1 ) ;
+   if( sum1 == 0.0f ){
+     for( ii=0 ; ii < nn ; ii++ ) u1[ii] = drand48()-0.3 ;
+     sum1 = 1.0f ;
+   }
+
+   /* initialize u2, u3 by flipping signs in u1 */
+
+   sum1 = 0.02468f * sum1 / nn ;
+   for( ii=0 ; ii < nn ; ii++ ){
+     jj   = (int)lrand48() ;
+     sum2 = sum1*(float)(drand48()-0.5) ;
+     sum3 = sum1*(float)(drand48()-0.5) ;
+     u2[ii] = (((jj >> 3)%2 == 0) ? u1[ii] : -u1[ii]) + sum2 ;
+     u3[ii] = (((jj >> 7)%2 == 0) ? u1[ii] : -u1[ii]) + sum3 ;
+   }
+
+   /*----- iteration loop -----*/
+
+   while(1){
+     /* form V = X' U */
+
+     for( ii=0 ; ii < mm ; ii++ ){
+       xi = XPT(ii) ; v1[ii] = v2[ii] = v3[ii] = 0.0f ;
+       for( jj=0 ; jj < nn ; jj++ ){
+         v1[ii] += xi[jj] * u1[jj] ;
+         v2[ii] += xi[jj] * u2[jj] ;
+         v3[ii] += xi[jj] * u3[jj] ;
+       }
+     }
+
+     /* form G = U' U   and   H = V' V */
+
+     g11 = g12 = g22 = g13 = g23 = g33 = 0.0 ;
+     for( ii=0 ; ii < nn ; ii++ ){
+       g11 += u1[ii] * u1[ii] ; g12 += u1[ii] * u2[ii] ;
+       g22 += u2[ii] * u2[ii] ; g13 += u1[ii] * u3[ii] ;
+       g23 += u2[ii] * u3[ii] ; g33 += u3[ii] * u3[ii] ;
+     }
+     h11 = h12 = h22 = h13 = h23 = h33 = 0.0 ;
+     for( ii=0 ; ii < mm ; ii++ ){
+       h11 += v1[ii] * v1[ii] ; h12 += v1[ii] * v2[ii] ;
+       h22 += v2[ii] * v2[ii] ; h13 += v1[ii] * v3[ii] ;
+       h23 += v2[ii] * v3[ii] ; h33 += v3[ii] * v3[ii] ;
      }
 
      /* Choleski-ize G = L L' (in place) */
@@ -770,12 +1102,24 @@ fprintf(stderr,"         bb=%.5g %.5g %.5g\n"
      s2 =             g22*bb[7] + g23*bb[8] ;
      s3 =                         g33*bb[8] ;
 
-     /* form U = V Q and normalize it */
+     /* form V Q , store back in V */
 
-     for( ii=0 ; ii < n ; ii++ ){
-       u1[ii] = q1 * v1[ii] + q2 * v2[ii] + q3 * v3[ii] ;
-       sum1 += u1[ii]*u1[ii] ;
+     for( ii=0 ; ii < mm ; ii++ ){
+       sum1 = q1*v1[ii] + q2*v2[ii] + q3*v3[ii] ;
+       sum2 = r1*v1[ii] + r2*v2[ii] + r3*v3[ii] ;
+       sum3 = s1*v1[ii] + s2*v2[ii] + s3*v3[ii] ;
+       v1[ii] = sum1 ; v2[ii] = sum2 ; v3[ii] = sum3 ;
      }
+
+     /* form U = X V and normalize it
+        [just do u1 now in case of convergence ==> don't need u2, u3] */
+
+     for( ii=0 ; ii < nn ; ii++ ) u1[ii] = 0.0 ;
+     for( ii=0 ; ii < mm ; ii++ ){
+       xi = XPT(ii) ; sum1 = v1[ii] ;
+       for( jj=0 ; jj < nn ; jj++ ) u1[jj] += xi[jj] * sum1 ;
+     }
+     for( sum1=0.0f,ii=0 ; ii < nn ; ii++ ) sum1 += u1[ii]*u1[ii] ;
      sum1 = 1.0f / sqrtf(sum1) ;
      for( ii=0 ; ii < n ; ii++ ) u1[ii] *= sum1 ;
 
@@ -790,16 +1134,19 @@ fprintf(stderr,"         bb=%.5g %.5g %.5g\n"
 
      /* finish u2 and u3 vectors in U */
 
-     sum2 = sum3 = 0.0f ;
-     for( ii=0 ; ii < n ; ii++ ){
-       u2[ii] = r1 * v1[ii] + r2 * v2[ii] + r3 * v3[ii] ;
-       sum2 += u2[ii]*u2[ii] ;
-       u3[ii] = s1 * v1[ii] + s2 * v2[ii] + s3 * v3[ii] ;
-       sum3 += u3[ii]*u3[ii] ;
+     for( ii=0 ; ii < nn ; ii++ ) u2[ii] = u3[ii] = 0.0 ;
+     for( ii=0 ; ii < mm ; ii++ ){
+       xi = XPT(ii) ; sum2 = v2[ii] ; sum3 = v3[ii] ;
+       for( jj=0 ; jj < nn ; jj++ ){
+         u2[jj] += xi[jj] * sum2 ; u3[jj] += xi[jj] * sum3 ;
+       }
      }
-     sum2 = 1.0f / sqrtf(sum2) ;
-     sum3 = 1.0f / sqrtf(sum3) ;
-     for( ii=0 ; ii < n ; ii++ ){ u2[ii] *= sum2 ; u3[ii] *= sum3 ; }
+
+     for( sum2=sum3=0.0f,ii=0 ; ii < nn ; ii++ ){
+       sum2 += u2[ii]*u2[ii] ; sum3 += u3[ii]*u3[ii] ;
+     }
+     sum2 = 1.0f / sqrtf(sum2) ; sum3 = 1.0f / sqrtf(sum3) ;
+     for( ii=0 ; ii < nn ; ii++ ){ u2[ii] *= sum2 ; u3[ii] *= sum3 ; }
 
    } /*----- end of iteration loop -----*/
 
@@ -812,8 +1159,9 @@ fprintf(stderr,"         bb=%.5g %.5g %.5g\n"
 #pragma omp critical (MALLOC)
    { free(v3); free(v2); free(v1); free(u3); free(u2); free(u1); }
 
-   return (float)ev[0] ;
+   return ((float)ev[0]) ;
 }
+#endif
 
 /*---------------------------------------------------------------------------*/
 
@@ -843,7 +1191,7 @@ fprintf(stderr,"         bb=%.5g %.5g %.5g\n"
                Vector #0 is in a[0..2] , #1 in a[3..5], #3 in a[6..8].
 *//*--------------------------------------------------------------------------*/
 
-static void symeig_3D( double *a , double *e , int dovec )
+void symeig_3D( double *a , double *e , int dovec )
 {
    double aa,bb,cc,dd,ee,ff ;
    double a1,a2,a3 , qq,rr, qs,th , lam1,lam2,lam3 ;
@@ -1064,7 +1412,7 @@ static void symeig_3D( double *a , double *e , int dovec )
 /*---------------------------------------------------------------------------*/
 /*! 2x2 symmetric eigenvalue/vector problem, like symeig_3D() above. */
 
-static void symeig_2D( double *a , double *e , int dovec )
+void symeig_2D( double *a , double *e , int dovec )
 {
    double sxx,sxy,syy , lam1,lam2 , ss,tt , x,y ;
 
