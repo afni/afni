@@ -2273,6 +2273,7 @@ typedef struct {
    int N_Node; /*!< Number of nodes */
    float *NodeList; /*!< N_Node x 3 vector containing node coordinates */
    int *NodeId; /*!< Node ID, that's normaly from 0..N_Nodes-1 but since it's in .coord file, I keep it anyway */
+   byte *allzerocoord;
    char encoding_coord[100];
    char configuration_id[100];
    char coordframe_id[100];
