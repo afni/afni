@@ -40,6 +40,7 @@ int main( int argc , char *argv[] )
    float na,nb,nc , dx,dy,dz ;
    int do_vnorm=0 , do_vproj=0 , polort=-1 ;
    float **polyref ; int rebase=0 , nmask=0 , domean=0 , use_nonmask=0 ;
+   float *evar=NULL , sval ;
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
      printf(
@@ -55,16 +56,19 @@ int main( int argc , char *argv[] )
        "   principal vector -- faster than 3dLocalSVD, but less general.\n"
        "\n"
        "Options:\n"
-       " -mask mset           = restrict operations to this mask\n"
-       " -automask            = create a mask from time series dataset\n"
-       " -prefix ppp          = save SVD vector result into this new dataset\n"
-       " -input inputdataset  = input time series dataset\n"
-       " -nbhd nnn            = e.g., 'SPHERE(5)' 'TOHD(7)' etc.\n"
-       " -polort p [+]        = detrending ['+' means to add trend back]\n"
-       " -vnorm               = normalize data vectors [strongly recommended]\n"
-       " -vproj               = project central data time series onto local SVD vector\n"
-       "                         [default: just output principal singular vector]\n"
-       "                         [for 'smoothing' purposes, '-vnorm -vproj' might be fun]\n"
+       " -mask mset          = restrict operations to this mask\n"
+       " -automask           = create a mask from time series dataset\n"
+       " -prefix ppp         = save SVD vector result into this new dataset\n"
+       "                        [default = 'LocalPV']\n"
+       " -evprefix ppp       = save singular value at each voxel into this dataset\n"
+       "                        [default = don't save]\n"
+       " -input inputdataset = input time series dataset\n"
+       " -nbhd nnn           = e.g., 'SPHERE(5)' 'TOHD(7)' etc.\n"
+       " -polort p [+]       = detrending ['+' means to add trend back]\n"
+       " -vnorm              = normalize data vectors [strongly recommended]\n"
+       " -vproj              = project central data time series onto local SVD vector\n"
+       "                        [default: just output principal singular vector]\n"
+       "                        [for 'smoothing' purposes, '-vnorm -vproj' is good]\n"
 #if 0
        "\n"
        " -use_nonmask         = Allow the computation of the local SVD time series\n"
@@ -125,6 +129,12 @@ int main( int argc , char *argv[] )
      if( strcmp(argv[iarg],"-prefix") == 0 ){
        if( ++iarg >= argc ) ERROR_exit("Need argument after '-prefix'") ;
        prefix = strdup(argv[iarg]) ;
+       iarg++ ; continue ;
+     }
+
+     if( strcmp(argv[iarg],"-evprefix") == 0 ){
+       if( ++iarg >= argc ) ERROR_exit("Need argument after '-evprefix'") ;
+       evprefix = strdup(argv[iarg]) ;
        iarg++ ; continue ;
      }
 
@@ -299,6 +309,16 @@ int main( int argc , char *argv[] )
    for( kk=0 ; kk < nt ; kk++ )                         /* create bricks */
      EDIT_substitute_brick( outset , kk , MRI_float , NULL ) ;
 
+   if( evprefix != NULL ){
+     evset = EDIT_empty_copy(inset) ;
+     EDIT_dset_items( evset , ADN_prefix,evprefix,
+                              ADN_brick_fac,NULL, ADN_nvals,1, ADN_none ) ;
+     tross_Copy_History( inset , evset ) ;
+     tross_Make_History( "3dLocalPV" , argc,argv , evset ) ;
+     EDIT_substitute_brick( evset , 0 , MRI_float , NULL ) ;
+     evar = DSET_ARRAY(evset,0) ;
+   }
+
 #ifndef USE_OMP
    vstep = (verb && nxyz > 999) ? nxyz/50 : 0 ;
    if( vstep ) fprintf(stderr,"++ voxel loop: ") ;
@@ -350,7 +370,7 @@ int main( int argc , char *argv[] )
        }
      }
      tsar = MRI_FLOAT_PTR(IMARR_SUBIM(imar,0)) ;
-     (void)principal_vector( nt, mm, 1, xar, uvec, (do_vproj) ? NULL : tsar ) ;
+     sval = principal_vector( nt, mm, 1, xar, uvec, (do_vproj) ? NULL : tsar ) ;
 #pragma omp critical (MALLOC)
      { DESTROY_IMARR(imar) ; }
      if( do_vproj ){
@@ -364,6 +384,7 @@ int main( int argc , char *argv[] )
        }
      }
      THD_insert_series( kk, outset, nt, MRI_float, uvec, 0 ) ;
+     if( evar != NULL ) evar[kk] = sval ;
    }
 
 #pragma omp critical (MALLOC)
@@ -379,6 +400,10 @@ int main( int argc , char *argv[] )
 
    DSET_delete(inset) ;
    DSET_write(outset) ; WROTE_DSET(outset) ; DSET_delete(outset) ;
+
+   if( evset != NULL ){
+     DSET_write(evset) ; WROTE_DSET(evset) ; DSET_delete(evset) ;
+   }
 
    exit(0) ;
 }

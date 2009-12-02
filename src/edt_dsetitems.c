@@ -569,6 +569,10 @@ fprintf(stderr,"EDIT_dset_items: iarg=%d flag_arg=%d\n",iarg,flag_arg) ;
    redo_bricks = ( new_datum_all || new_datum_array ||
                    new_nvals     || new_nxyz          ) ;
 
+   if( new_nvals && nvals == 1 ){  /* 02 Dec 2009 */
+     new_ntt = 1 ; ntt = 0 ;
+   }
+
    /*----- ye newe waye for ye axes change [19 Dec 2005] -----*/
 
    /* check for conflicts */
@@ -797,7 +801,7 @@ fprintf(stderr,"stataux_one:  iv=%d bso[0]=%g bso[1]=%g bso[2]=%g\n",
    }
 
    if( redo_taxis ){
-      THD_timeaxis * taxis = dset->taxis ;
+      THD_timeaxis *taxis = dset->taxis ;
 
       if( taxis == NULL ){
          taxis          = dset->taxis     = myXtNew( THD_timeaxis ) ;
