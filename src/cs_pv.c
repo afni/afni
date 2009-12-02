@@ -1,8 +1,14 @@
 #include "mrilib.h"
 
+/*----------------------------------------------------------------------------*/
+
 static float symeig_sim1( int n     , float *asym , float *vec ) ;
 static void  symeig_2D  ( double *a , double *e   , int dovec  ) ;
 static void  symeig_3D  ( double *a , double *e   , int dovec  ) ;
+
+static float_pair symeig_sim2( int nn, float *asym, float *vec, float *wec ) ;
+
+/*----------------------------------------------------------------------------*/
 
 #undef  A
 #define A(i,j) asym[(i)+(j)*nsym]
@@ -502,6 +508,203 @@ fprintf(stderr,"         bb=%.5g %.5g %.5g\n"
 #endif
 
    return (float)ev[0] ;
+}
+
+/*---------------------------------------------------------------------------*/
+/* Same as symeig_sim1() but converge to top TWO eigenvectors. */
+
+static float_pair symeig_sim2( int nn, float *asym, float *vec, float *wec )
+{
+   float *u1,*u2,*u3 , *v1,*v2,*v3 , *aj ;
+   float sum1,sum2,sum3 , q1,q2,q3 , r1,r2,r3 , s1,s2,s3 ;
+   int ii , jj , nite=0 , n=nn ;
+   double bb[9] , ev[3] , evold1=0.0 , evold2=0.0 ;
+   double g11,g12,g13,g22,g23,g33 ;
+   double h11,h12,h13,h22,h23,h33 ;
+   float_pair evout = {-666.0f,-666.0f} ;
+
+   if( n < 1 || asym == NULL || vec == NULL || wec == NULL ) return (evout) ;
+
+   /* special cases: 1x1 and 2x2 and 3x3 matrices */
+
+   if( n == 1 ){
+     vec[0] = 1.0f ; wec[0] = 0.0f ;
+     evout.a = asym[0] ; evout.b = 0.0f ; return (evout) ;
+   } else if( n == 2 ){
+     for( ii=0 ; ii < 4 ; ii++ ) bb[ii] = asym[ii] ;
+     symeig_2D( bb , ev , 1 ) ;
+     vec[0] = bb[0] ; vec[1] = bb[1] ;
+     wec[0] = bb[2] ; wec[1] = bb[3] ;
+     evout.a = (float)ev[0] ; evout.b = (float)ev[1] ; return (evout) ;
+   } else if( n == 3 ){
+     for( ii=0 ; ii < 9 ; ii++ ) bb[ii] = asym[ii] ;
+     symeig_3D( bb , ev , 1 ) ;
+     vec[0] = bb[0] ; vec[1] = bb[1] ; vec[2] = bb[2] ;
+     wec[0] = bb[3] ; wec[1] = bb[4] ; wec[2] = bb[5] ;
+     evout.a = (float)ev[0] ; evout.b = (float)ev[1] ; return (evout) ;
+   }
+
+   /* allocate iteration vectors */
+
+#pragma omp critical (MALLOC)
+   { u1 = (float *)malloc(sizeof(float)*n) ;
+     u2 = (float *)malloc(sizeof(float)*n) ;
+     u3 = (float *)malloc(sizeof(float)*n) ;
+     v1 = (float *)malloc(sizeof(float)*n) ;
+     v2 = (float *)malloc(sizeof(float)*n) ;
+     v3 = (float *)malloc(sizeof(float)*n) ;
+   }
+
+   /* initialize u1, u2 vectors from inputs vec,wec */
+
+   sum1 = sum2 = 0.0f ;
+   for( ii=0 ; ii < n ; ii++ ){
+     u1[ii] = vec[ii] ; sum1 += u1[ii]*u1[ii] ;
+     u2[ii] = wec[ii] ; sum2 += u2[ii]*u2[ii] ;
+   }
+   if( sum1 == 0.0f ){  /* backup if input vector is all zero */
+     for( ii=0 ; ii < n ; ii++ ){
+       u1[ii] = drand48()-0.3 ; sum1 += u1[ii]*u1[ii] ;
+     }
+   }
+   if( sum2 == 0.0f ){  /* backup if input vector is all zero */
+     for( ii=0 ; ii < n ; ii++ ){
+       u2[ii] = drand48()-0.3 ; sum2 += u2[ii]*u2[ii] ;
+     }
+   }
+   sum1 = 1.0f / sqrtf(sum1) ; sum2 = 1.0f / sqrtf(sum2) ;
+   for( ii=0 ; ii < n ; ii++ ){ u1[ii] *= sum1 ; u2[ii] *= sum2 ; }
+
+   /* initialize u3 by flipping signs in u1 */
+
+   sum1 = 0.02468f / n ;
+   for( ii=0 ; ii < n ; ii++ ){
+     jj   = (int)lrand48() ;
+     sum3 = sum1 * ((jj >> 5)%4 - 1.5f) ;
+     u3[ii] = (((jj >> 7)%2 == 0) ? u1[ii] : -u1[ii]) + sum3 ;
+   }
+
+   /*----- iteration loop -----*/
+
+   while(1){
+     /* form V = A U */
+
+     for( ii=0 ; ii < n ; ii++ ){ v1[ii] = v2[ii] = v3[ii] = 0.0f ; }
+     for( jj=0 ; jj < n ; jj++ ){
+       aj = asym + jj*n ;            /* ptr to jj-th column of asym */
+       sum1 = u1[jj] ; sum2 = u2[jj] ; sum3 = u3[jj] ;
+       for( ii=0 ; ii < n ; ii++ ){
+         v1[ii] += aj[ii] * sum1 ;
+         v2[ii] += aj[ii] * sum2 ;
+         v3[ii] += aj[ii] * sum3 ;
+       }
+     }
+
+     /* form G = U' U   and   H = U' V */
+
+     g11 = g12 = g22 = g13 = g23 = g33 = 0.0 ;
+     h11 = h12 = h22 = h13 = h23 = h33 = 0.0 ;
+     for( ii=0 ; ii < n ; ii++ ){
+       g11 += u1[ii] * u1[ii] ; g12 += u1[ii] * u2[ii] ;
+       g22 += u2[ii] * u2[ii] ; g13 += u1[ii] * u3[ii] ;
+       g23 += u2[ii] * u3[ii] ; g33 += u3[ii] * u3[ii] ;
+       h11 += u1[ii] * v1[ii] ; h12 += u1[ii] * v2[ii] ;
+       h22 += u2[ii] * v2[ii] ; h13 += u1[ii] * v3[ii] ;
+       h23 += u2[ii] * v3[ii] ; h33 += u3[ii] * v3[ii] ;
+     }
+
+     /* Choleski-ize G = L L' (in place) */
+
+     g11 = (g11 <= 0.0) ? DEPSQ : sqrt(g11) ;
+     g12 = g12 / g11 ;
+     g22 = g22 - g12*g12 ; g22 = (g22 <= 0.0) ? DEPSQ : sqrt(g22) ;
+     g13 = g13 / g11 ;
+     g23 = (g23 - g12*g13) / g22 ;
+     g33 = g33 - g13*g13 * g23*g23 ; g33 = (g33 <= 0.0) ? DEPSQ : sqrt(g33) ;
+
+     /* invert lower triangular L (in place) */
+
+     g13 = ( g12*g23 - g22*g13 ) / (g11*g22*g33) ;
+     g11 = 1.0 / g11 ; g22 = 1.0 / g22 ; g33 = 1.0 / g33 ;
+     g23 = -g23 * g33 * g22 ;
+     g12 = -g12 * g11 * g22 ;
+
+     /* form B = inv[L] H inv[L]' (code from Maple 9.5) */
+
+    { double t1, t3, t5, t13, t18, t34, t42, t47 ;
+      t1  = g11 * g11 ; t3  = g11 * h11 ; t5  = g11 * h12 ;
+      t13 = g12 * g12 ; t18 = g22 * g22 ; t34 = g13 * g13 ;
+      t42 = g23 * g23 ; t47 = g33 * g33 ;
+      bb[0] = t1 * h11 ;
+      bb[4] = t13 * h11 + 2.0 * g12 * g22 * h12 + t18 * h22 ;
+      bb[8] = t34 * h11 + 2.0 * g13 * g23 * h12 + 2.0 * g13 * g33 * h13
+            + t42 * h22 + 2.0 * g23 * g33 * h23 + t47 * h33 ;
+      bb[1] = bb[3] = t3 * g12 + t5 * g22 ;
+      bb[2] = bb[6] = t3 * g13 + t5 * g23 + g11 * h13 * g33 ;
+      bb[5] = bb[7] = g13 * g12 * h11 + g13 * g22 * h12 + g23 * g12 * h12
+                    + g23 * g22 * h22 + g33 * g12 * h13 + g33 * g22 * h23 ;
+    }
+
+     /* eigensolve B P  = P D */
+
+     symeig_3D( bb , ev , 1 ) ;  /* P is in bb, D is in ev */
+
+#if 0
+fprintf(stderr,"nite=%d  ev=%.9g %.9g %.9g\n",nite,ev[0],ev[1],ev[2]) ;
+fprintf(stderr,"         bb=%.5g %.5g %.5g\n"
+               "            %.5g %.5g %.5g\n"
+               "            %.5g %.5g %.5g\n",
+        bb[0],bb[1],bb[2],bb[3],bb[4],bb[5],bb[6],bb[7],bb[8]) ;
+#endif
+
+     /* form Q = inv[L]' P */
+
+     q1 = g11*bb[0] + g12*bb[1] + g13*bb[2] ;
+     q2 =             g22*bb[1] + g23*bb[2] ;
+     q3 =                         g33*bb[2] ;
+
+     r1 = g11*bb[3] + g12*bb[4] + g13*bb[5] ;
+     r2 =             g22*bb[4] + g23*bb[5] ;
+     r3 =                         g33*bb[5] ;
+
+     s1 = g11*bb[6] + g12*bb[7] + g13*bb[8] ;
+     s2 =             g22*bb[7] + g23*bb[8] ;
+     s3 =                         g33*bb[8] ;
+
+     /* form U = V Q and normalize it */
+
+     sum1 = sum2 = sum3 = 0.0f ;
+     for( ii=0 ; ii < n ; ii++ ){
+       u1[ii] = q1 * v1[ii] + q2 * v2[ii] + q3 * v3[ii]; sum1 += u1[ii]*u1[ii];
+       u2[ii] = r1 * v1[ii] + r2 * v2[ii] + r3 * v3[ii]; sum2 += u2[ii]*u2[ii];
+       u3[ii] = s1 * v1[ii] + s2 * v2[ii] + s3 * v3[ii]; sum3 += u3[ii]*u3[ii];
+     }
+     sum1 = 1.0f/sqrtf(sum1); sum2 = 1.0f/sqrtf(sum2); sum3 = 1.0f/sqrtf(sum3);
+     for( ii=0 ; ii < n ; ii++ ){ u1[ii] *= sum1; u2[ii] *= sum2; u3[ii] *= sum3; }
+
+     /* check first two eigenvalues in D for convergence */
+
+     if( nite > 99 ||
+         ( nite > 0                                       &&
+           fabs(ev[0]-evold1) <= FEPS*(fabs(evold1)+FEPS) &&
+           fabs(ev[1]-evold2) <= FEPS*(fabs(evold2)+FEPS)   ) ) break ;
+
+     /* not done yet ==> iterate */
+
+     nite++ ; evold1 = ev[0] ; evold2 = ev[1] ;
+
+   } /*----- end of iteration loop -----*/
+
+   /* result vectors are u1, u2 */
+
+   for( ii=0 ; ii < n ; ii++ ){ vec[ii] = u1[ii] ; wec[ii] = u2[ii] ; }
+
+   /* free work vectors */
+
+#pragma omp critical (MALLOC)
+   { free(v3); free(v2); free(v1); free(u3); free(u2); free(u1); }
+
+   evout.a = (float)ev[0] ; evout.b = (float)ev[1] ; return (evout) ;
 }
 
 /*---------------------------------------------------------------------------*/
