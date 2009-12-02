@@ -1,9 +1,5 @@
 #include "mrilib.h"
 
-#ifdef USE_OMP
-#include "omp.h"
-#endif
-
 static float symeig_sim1( int n     , float *asym , float *vec ) ;
 static void  symeig_2D  ( double *a , double *e   , int dovec  ) ;
 static void  symeig_3D  ( double *a , double *e   , int dovec  ) ;
@@ -612,12 +608,13 @@ static void symeig_3D( double *a , double *e , int dovec )
    rr = (2.0*a1*a1*a1 - 9.0*a1*a2 + 27.0*a3) / 54.0 ;
 
    if( qq <= 0.0 ){       /*** This should never happen!!! ***/
-#pragma omp critical (STDERR)
+#ifndef USE_OMP
      {
      static int nerr=0 ;
      if( ++nerr < 4 )
        fprintf(stderr,"** ERROR in symeig_3D: discrim=%g numer=%g\n",qq,rr) ;
      }
+#endif
      qs = qq = rr = 0.0 ;
    } else {
      qs = sqrt(qq) ; rr = rr / (qs*qq) ;
