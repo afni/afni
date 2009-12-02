@@ -466,7 +466,7 @@ SUMA_DSET *SUMA_morphDsetToStd (SUMA_DSET *dset, SUMA_M2M_STRUCT *M2M,
       new_name = SUMA_DsetColLabelCopy(dset,i, 0);
       SUMA_LHv("Allocating for column %s\n", new_name);
       if (!SUMA_InsertDsetNelCol (ndset, new_name, SDSET_COLTYPE(dset,i), 
-                                 NULL, NULL ,1, 0)) {
+                                 NULL, NULL ,1, i)) {
          SUMA_S_Err("Failed to insert col");
          SUMA_free(fin); fin = NULL; SUMA_free(fout); fout = NULL;
          if (bfull) SUMA_free(bfull); bfull=NULL;
@@ -474,7 +474,7 @@ SUMA_DSET *SUMA_morphDsetToStd (SUMA_DSET *dset, SUMA_M2M_STRUCT *M2M,
          SUMA_RETURN(ndset);
       }  
       /* stick fout in output */
-      SUMA_LHv("Sticking column %d in dset\n", i);
+      SUMA_LHv("Sticking column %d in dset (fout[0]=%f)\n", i, fout[0]);
       if (!SUMA_Vec2DsetCol (ndset, i, (void *)fout, SUMA_float, 0, bfull)) {
          SUMA_S_Err("Failed to store output");
          SUMA_free(fin); fin = NULL; SUMA_free(fout); fout = NULL; 
