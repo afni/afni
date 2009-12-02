@@ -298,6 +298,13 @@ int main (int argc, char *argv[])
                exit (1);
             }
             brainSpecFile = argv[kar];
+            if (strcmp(SUMA_FnameGet(brainSpecFile,"pa",SUMAg_CF->cwd), "./")) {
+               SUMA_S_Err(
+                 "No path allowed with spec file's name.\n"
+                 "MapIcosahedron should be run from directory \n"
+                 "containing spec file.");
+               exit(1);
+            }
             brk = YUP;
          }
       if (!brk && (strcmp(argv[kar], "-sphere_radius") == 0 ))
