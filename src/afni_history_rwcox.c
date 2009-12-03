@@ -44,6 +44,11 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 3 , DEC , 2009 , RWC , "afni" , MICRO , TYPE_GENERAL ,
+   "Modify GUI to add a Read session button next to the Switch button" ,
+   "Because of complaints that it's hard to figure out what to do if AFNI\n"
+   "doesn't start in the right directory." } ,
+
  { 30 , NOV , 2009 , RWC , "afni" , MICRO , TYPE_GENERAL ,
    "Modify license to specify GPL v2 OR ANY LATER VERSION" ,
    NULL } ,
