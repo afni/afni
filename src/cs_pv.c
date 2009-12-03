@@ -15,8 +15,6 @@ static float_pair symeig_sim2( int nn, float *asym, float *vec, float *wec ) ;
 #undef  XPT
 #define XPT(q) ( (xtyp<=0) ? xx+(q)*nn : xar[q] )
 
-#undef UNROLL  /* unrolling doesn't help on my Mac */
-
 /*----------------------------------------------------------------------------*/
 /*! Compute the mean vector of a set of m columns, each of length n.
    * If xtyp <=0, the columns are stored in one big array:
@@ -95,8 +93,7 @@ float principal_vector( int n , int m , int xtyp , void *xp ,
        }
      } else {  /* nn==1 and have mm > 1 such 'vectors' */
        uvec[0] = (tvec != NULL && tvec[0] < 0.0f) ? -1.0f : 1.0f ;
-       sval = 0.0f ;
-       for( ii=0 ; ii < mm ; ii++ ){
+       for( sval=0.0f,ii=0 ; ii < mm ; ii++ ){
          xj = XPT(jj) ; sval += xj[0]*xj[0] ;
        }
        sval = sqrtf(sval) ;
@@ -113,19 +110,11 @@ float principal_vector( int n , int m , int xtyp , void *xp ,
 
    if( nn > mm ){                       /* more rows than columns:  */
                                         /* so [A] = [X]'[X] = m x m */
-#ifdef UNROLL
-     int nodd = (nn%2)==1 ;
-#endif
      for( jj=0 ; jj < mm ; jj++ ){
        xj = XPT(jj) ;
        for( kk=0 ; kk <= jj ; kk++ ){
          xk = XPT(kk) ;
-#ifdef UNROLL
-         sum = (nodd) ? xj[0]*xk[0] : 0.0f ;
-         for( ii=nodd ; ii < nn ; ii+=2 ) sum += xj[ii]*xk[ii] + xj[ii+1]*xk[ii+1];
-#else
          for( sum=0.0f,ii=0 ; ii < nn ; ii++ ) sum += xj[ii]*xk[ii] ;
-#endif
          A(jj,kk) = sum ; if( kk < jj ) A(kk,jj) = sum ;
        }
      }
@@ -133,9 +122,6 @@ float principal_vector( int n , int m , int xtyp , void *xp ,
    } else {                             /* more columns than rows:  */
                                         /* so [A] = [X][X]' = n x n */
      float *xt ;
-#ifdef UNROLL
-     int modd = (mm%2)==1 ;
-#endif
 #pragma omp critical (MALLOC)
      xt = (float *)malloc(sizeof(float)*nn*mm) ;
      for( jj=0 ; jj < mm ; jj++ ){      /* form [X]' into array xt */
@@ -149,13 +135,7 @@ float principal_vector( int n , int m , int xtyp , void *xp ,
        xj = xt + jj*mm ;
        for( kk=0 ; kk <= jj ; kk++ ){
          xk = xt + kk*mm ;
-#ifdef UNROLL
-         sum = (modd) ? xj[0]*xk[0] : 0.0f ;
-         for( ii=modd ; ii < mm ; ii+=2 ) sum += xj[ii]*xk[ii] + xj[ii+1]*xk[ii+1];
-#else
-         sum = 0.0f ;
-         for( ii=0 ; ii < mm ; ii++ ) sum += xj[ii]*xk[ii] ;
-#endif
+         for( sum=0.0f,ii=0 ; ii < mm ; ii++ ) sum += xj[ii]*xk[ii] ;
          A(jj,kk) = sum ; if( kk < jj ) A(kk,jj) = sum ;
        }
      }
@@ -193,13 +173,11 @@ float principal_vector( int n , int m , int xtyp , void *xp ,
      qvec = (float *)malloc(sizeof(float)*nsym) ;
      (void)mean_vector( nsym , nsym , 0 , asym , qvec ) ;
      sval = symeig_sim1( nsym , asym , qvec ) ;
-     qsum = 0.0f ;
-     for( ii=0 ; ii < nn ; ii++ ){
-       sum = 0.0f ;
+     for( qsum=0.0f,ii=0 ; ii < nn ; ii++ ){
        if( xtyp <= 0 )
-         for( kk=0 ; kk < mm ; kk++ ) sum += xx[ii+kk*nn] * qvec[kk] ;
+         for( sum=0.0f,kk=0 ; kk < mm ; kk++ ) sum += xx[ii+kk*nn] * qvec[kk] ;
        else
-         for( kk=0 ; kk < mm ; kk++ ) sum += xar[kk][ii]  * qvec[kk] ;
+         for( sum=0.0f,kk=0 ; kk < mm ; kk++ ) sum += xar[kk][ii]  * qvec[kk] ;
        uvec[ii] = sum ; qsum += sum*sum ;
      }
      if( qsum > 0.0f ){       /* L2 normalize */
@@ -213,8 +191,7 @@ float principal_vector( int n , int m , int xtyp , void *xp ,
    /** make it so that uvec dotted into the mean vector is positive **/
 
    if( tvec != NULL ){
-     sum = 0.0f ;
-     for( ii=0 ; ii < nn ; ii++ ) sum += tvec[ii]*uvec[ii] ;
+     for( sum=0.0f,ii=0 ; ii < nn ; ii++ ) sum += tvec[ii]*uvec[ii] ;
      if( sum < 0.0f ){
        for( ii=0 ; ii < nn ; ii++ ) uvec[ii] = -uvec[ii] ;
      }
@@ -252,9 +229,6 @@ static float symeig_sim1( int nn , float *asym , float *vec )
    double bb[9] , ev[3] , evold=0.0 ;
    double g11,g12,g13,g22,g23,g33 ;
    double h11,h12,h13,h22,h23,h33 ;
-#ifdef UNROLL
-   int nodd = (n%2 == 1) ;
-#endif
 
    if( n < 1 || asym == NULL || vec == NULL ) return -666.0f ;
 
@@ -285,8 +259,7 @@ static float symeig_sim1( int nn , float *asym , float *vec )
 
    /* initialize u1 vector from input vec */
 
-   sum1 = 0.0f ;
-   for( ii=0 ; ii < n ; ii++ ){
+   for( sum1=0.0f,ii=0 ; ii < n ; ii++ ){
      u1[ii] = vec[ii] ; sum1 += u1[ii]*u1[ii] ;
    }
    if( sum1 == 0.0f ){  /* backup if input vector is all zero */
@@ -326,33 +299,6 @@ static float symeig_sim1( int nn , float *asym , float *vec )
 
      /* form G = U' U   and   H = U' V */
 
-#ifdef UNROLL
-     if( nodd ){
-       g11 = u1[0] * u1[0] ; g12 = u1[0] * u2[0] ;
-       g22 = u2[0] * u2[0] ; g13 = u1[0] * u3[0] ;
-       g23 = u2[0] * u3[0] ; g33 = u3[0] * u3[0] ;
-       h11 = u1[0] * v1[0] ; h12 = u1[0] * v2[0] ;
-       h22 = u2[0] * v2[0] ; h13 = u1[0] * v3[0] ;
-       h23 = u2[0] * v3[0] ; h33 = u3[0] * v3[0] ;
-     } else {
-       g11 = g12 = g22 = g13 = g23 = g33 = 0.0 ;
-       h11 = h12 = h22 = h13 = h23 = h33 = 0.0 ;
-     }
-     for( ii=nodd ; ii < n ; ii+=2 ){
-       g11 += u1[ii] * u1[ii] + u1[ii+1] * u1[ii+1] ;
-       g12 += u1[ii] * u2[ii] + u1[ii+1] * u2[ii+1] ;
-       g22 += u2[ii] * u2[ii] + u2[ii+1] * u2[ii+1] ;
-       g13 += u1[ii] * u3[ii] + u1[ii+1] * u3[ii+1] ;
-       g23 += u2[ii] * u3[ii] + u2[ii+1] * u3[ii+1] ;
-       g33 += u3[ii] * u3[ii] + u3[ii+1] * u3[ii+1] ;
-       h11 += u1[ii] * v1[ii] + u1[ii+1] * v1[ii+1] ;
-       h12 += u1[ii] * v2[ii] + u1[ii+1] * v2[ii+1] ;
-       h22 += u2[ii] * v2[ii] + u2[ii+1] * v2[ii+1] ;
-       h13 += u1[ii] * v3[ii] + u1[ii+1] * v3[ii+1] ;
-       h23 += u2[ii] * v3[ii] + u2[ii+1] * v3[ii+1] ;
-       h33 += u3[ii] * v3[ii] + u3[ii+1] * v3[ii+1] ;
-     }
-#else
      g11 = g12 = g22 = g13 = g23 = g33 = 0.0 ;
      h11 = h12 = h22 = h13 = h23 = h33 = 0.0 ;
      for( ii=0 ; ii < n ; ii++ ){
@@ -363,7 +309,6 @@ static float symeig_sim1( int nn , float *asym , float *vec )
        h22 += u2[ii] * v2[ii] ; h13 += u1[ii] * v3[ii] ;
        h23 += u2[ii] * v3[ii] ; h33 += u3[ii] * v3[ii] ;
      }
-#endif
 
      /* Choleski-ize G = L L' (in place) */
 
@@ -417,28 +362,11 @@ fprintf(stderr,"         bb=%.5g %.5g %.5g\n"
 
      /* form U = V Q and normalize it */
 
-#ifdef UNROLL
-     if( nodd ){
-       u1[0] = q1 * v1[0] + q2 * v2[0] + q3 * v3[0] ; sum1 = u1[0]*u1[0] ;
-     } else {
-       sum1 = 0.0f ;
-     }
-     for( ii=nodd ; ii < n ; ii+=2 ){
-       u1[ii  ] = q1 * v1[ii  ] + q2 * v2[ii  ] + q3 * v3[ii  ] ;
-       u1[ii+1] = q1 * v1[ii+1] + q2 * v2[ii+1] + q3 * v3[ii+1] ;
-       sum1 += u1[ii]*u1[ii] + u1[ii+1]*u1[ii+1] ;
-     }
-     sum1 = 1.0f / sqrtf(sum1) ;
-     if( nodd ) u1[0] *= sum1 ;
-     for( ii=nodd ; ii < n ; ii+=2 ){ u1[ii] *= sum1 ; u1[ii+1] *= sum1 ; }
-#else
-     sum1 = 0.0f ;
-     for( ii=0 ; ii < n ; ii++ ){
+     for( sum1=0.0f,ii=0 ; ii < n ; ii++ ){
        u1[ii] = q1 * v1[ii] + q2 * v2[ii] + q3 * v3[ii]; sum1 += u1[ii]*u1[ii];
      }
      sum1 = 1.0f / sqrtf(sum1) ;
      for( ii=0 ; ii < n ; ii++ ) u1[ii] *= sum1 ;
-#endif
 
      /* check first eigenvalue in D for convergence */
 
@@ -459,36 +387,12 @@ fprintf(stderr,"         bb=%.5g %.5g %.5g\n"
      s2 =             g22*bb[7] + g23*bb[8] ;
      s3 =                         g33*bb[8] ;
 
-#ifdef UNROLL
-     if( nodd ){
-       u2[0] = r1 * v1[0] + r2 * v2[0] + r3 * v3[0] ; sum2 = u2[0]*u2[0] ;
-       u3[0] = s1 * v1[0] + s2 * v2[0] + s3 * v3[0] ; sum3 = u3[0]*u3[0] ;
-     } else {
-       sum2 = sum3 = 0.0f ;
-     }
-     for( ii=nodd ; ii < n ; ii+=2 ){
-       u2[ii  ] = r1 * v1[ii  ] + r2 * v2[ii  ] + r3 * v3[ii  ] ;
-       u2[ii+1] = r1 * v1[ii+1] + r2 * v2[ii+1] + r3 * v3[ii+1] ;
-       u3[ii  ] = s1 * v1[ii  ] + s2 * v2[ii  ] + s3 * v3[ii  ] ;
-       u3[ii+1] = s1 * v1[ii+1] + s2 * v2[ii+1] + s3 * v3[ii+1] ;
-       sum2 += u2[ii]*u2[ii] + u2[ii+1]*u2[ii+1] ;
-       sum3 += u3[ii]*u3[ii] + u3[ii+1]*u3[ii+1] ;
-     }
-     sum2 = 1.0f / sqrtf(sum2) ;
-     sum3 = 1.0f / sqrtf(sum3) ;
-     if( nodd ){ u2[0] *= sum2 ; u3[0] *= sum3 ; }
-     for( ii=nodd ; ii < n ; ii+=2 ){
-       u2[ii] *= sum2 ; u2[ii+1] *= sum2 ; u3[ii] *= sum3 ; u3[ii+1] *= sum3 ;
-     }
-#else
-     sum2 = sum3 = 0.0f ;
-     for( ii=0 ; ii < n ; ii++ ){
+     for( sum2=sum3=0.0f,ii=0 ; ii < n ; ii++ ){
        u2[ii] = r1 * v1[ii] + r2 * v2[ii] + r3 * v3[ii]; sum2 += u2[ii]*u2[ii];
        u3[ii] = s1 * v1[ii] + s2 * v2[ii] + s3 * v3[ii]; sum3 += u3[ii]*u3[ii];
      }
      sum2 = 1.0f / sqrtf(sum2) ; sum3 = 1.0f / sqrtf(sum3) ;
      for( ii=0 ; ii < n ; ii++ ){ u2[ii] *= sum2 ; u3[ii] *= sum3 ; }
-#endif
 
    } /*----- end of iteration loop -----*/
 
@@ -508,6 +412,185 @@ fprintf(stderr,"         bb=%.5g %.5g %.5g\n"
 #endif
 
    return (float)ev[0] ;
+}
+
+/*----------------------------------------------------------------------------*/
+/*! Compute the first 2 principal singular vectors of a set of m columns,
+    each of length n.
+   * If xtyp <=0, the columns are stored in one big array:
+      ((float *)xp)[i+j*n] for i=0..n-1, j=0..m-1.
+   * If xtyp > 0, the columns are stored in an array of arrays:
+      ((float **)xp)[j][i]
+   * The singular value pair is returned, and the vectors are stored into
+       uvec[] and vvec[]
+   * tvec is a vector so that the sign of uvec dot tvec will be non-negative.
+   * If the return values are not positive, something ugly happened.
+*//*--------------------------------------------------------------------------*/
+
+float_pair principal_vector_pair( int n , int m , int xtyp , void *xp ,
+                                  float *uvec , float *vvec , float *tvec )
+{
+   int nn=n , mm=m , nsym , jj,kk,qq ;
+   float *asym ;
+   register float sum,qsum ; register float *xj,*xk ; register int ii ;
+   float sval , *xx=NULL , **xar=NULL ;
+   float_pair svout = {-666.0f,-666.0f} ;
+
+   nsym = MIN(nn,mm) ;  /* size of the symmetric matrix to create */
+
+   if( nsym < 1 || xp == NULL || uvec == NULL || vvec == NULL ) return (svout);
+
+   if( xtyp <= 0 ) xx  = (float * )xp ;
+   else            xar = (float **)xp ;
+
+   if( nsym == 1 ){  /*----- trivial case -----*/
+
+     for( ii=0 ; ii < nn ; ii++ ) vvec[ii] = 0.0f ; /* nothing to do */
+
+     if( mm == 1 ){  /* really trivial: only 1 vector */
+       xj = XPT(0) ; qsum = sum = 0.0f ;
+       for( ii=0; ii < nn; ii++ ){
+         uvec[ii] = xj[ii] ; qsum += uvec[ii]*uvec[ii] ;
+         if( tvec != NULL ) sum += tvec[ii]*uvec[ii] ;
+       }
+       sval = sqrtf(qsum) ;
+       if( sval > 0.0f ){
+         qsum = 1.0f / sval ; if( sum < 0.0f ) qsum = -qsum ;
+         for( ii=0 ; ii < nn ; ii++ ) uvec[ii] *= qsum ;
+       } else {
+         qsum = sqrtf(1.0f/nn) ;
+         for( ii=0 ; ii < nn ; ii++ ) uvec[ii] = qsum ;
+       }
+     } else {  /* nn==1 and have mm > 1 such 'vectors' */
+       uvec[0] = (tvec != NULL && tvec[0] < 0.0f) ? -1.0f : 1.0f ;
+       for( sval=0.0f,ii=0 ; ii < mm ; ii++ ){
+         xj = XPT(jj) ; sval += xj[0]*xj[0] ;
+       }
+       sval = sqrtf(sval) ;
+     }
+
+     svout.a = sval ; svout.b = 0.0f ; return (svout) ;
+
+   } /*----- end of trivial case -----*/
+
+#pragma omp critical (MALLOC)
+   asym = (float *)malloc(sizeof(float)*nsym*nsym) ;  /* symmetric matrix */
+
+   /** setup matrix to eigensolve: choose smaller of [X]'[X] and [X][X]' **/
+   /**     since [X] is n x m, [X]'[X] is m x m and [X][X]' is n x n     **/
+
+   if( nn > mm ){                       /* more rows than columns:  */
+                                        /* so [A] = [X]'[X] = m x m */
+     for( jj=0 ; jj < mm ; jj++ ){
+       xj = XPT(jj) ;
+       for( kk=0 ; kk <= jj ; kk++ ){
+         xk = XPT(kk) ;
+         for( sum=0.0f,ii=0 ; ii < nn ; ii++ ) sum += xj[ii]*xk[ii] ;
+         A(jj,kk) = sum ; if( kk < jj ) A(kk,jj) = sum ;
+       }
+     }
+
+   } else {                             /* more columns than rows:  */
+                                        /* so [A] = [X][X]' = n x n */
+     float *xt ;
+#pragma omp critical (MALLOC)
+     xt = (float *)malloc(sizeof(float)*nn*mm) ;
+     for( jj=0 ; jj < mm ; jj++ ){      /* form [X]' into array xt */
+       if( xtyp <= 0 )
+         for( ii=0 ; ii < nn ; ii++ ) xt[jj+ii*mm] = xx[ii+jj*nn] ;
+       else
+         for( ii=0 ; ii < nn ; ii++ ) xt[jj+ii*mm] = xar[jj][ii] ;
+     }
+
+     for( jj=0 ; jj < nn ; jj++ ){
+       xj = xt + jj*mm ;
+       for( kk=0 ; kk <= jj ; kk++ ){
+         xk = xt + kk*mm ;
+         for( sum=0.0f,ii=0 ; ii < mm ; ii++ ) sum += xj[ii]*xk[ii] ;
+         A(jj,kk) = sum ; if( kk < jj ) A(kk,jj) = sum ;
+       }
+     }
+
+#pragma omp critical (MALLOC)
+     free(xt) ;  /* don't need this no more */
+   }
+
+   /** SVD is [X] = [U] [S] [V]', where [U] = desired output vectors
+
+       case n <= m: [A] = [X][X]' = [U] [S][S]' [U]'
+                    so [A][U] = [U] [S][S]'
+                    so eigenvectors of [A] are just [U]
+
+       case n > m:  [A] = [X]'[X] = [V] [S]'[S] [V]'
+                    so [A][V] = [V] [S'][S]
+                    so eigenvectors of [A] are [V], but we want [U]
+                    note that [X][V] = [U] [S]
+                    so pre-multiplying each column vector in [V] by matrix [X]
+                    will give the corresponding column in [U], but scaled;
+                    below, just L2-normalize the column to get output vector **/
+
+   if( nn <= mm ){                    /* copy eigenvector into output directly */
+                                      /* (e.g., more vectors than time points) */
+
+     (void)mean_vector( nsym , nsym , 0 , asym , uvec ) ;
+     svout = symeig_sim2( nsym , asym , uvec , vvec ) ;
+
+   } else {  /* n > m: transform eigenvector to get left singular vector */
+             /* (e.g., more time points than vectors) */
+
+     float *qvec , *rvec , rsum , ssum ;
+
+#pragma omp critical (MALLOC)
+     qvec = (float *)malloc(sizeof(float)*nsym) ;
+     rvec = (float *)malloc(sizeof(float)*nsym) ;
+     (void)mean_vector( nsym , nsym , 0 , asym , qvec ) ;
+     svout = symeig_sim2( nsym , asym , qvec , rvec ) ;
+     for( rsum=qsum=0.0f,ii=0 ; ii < nn ; ii++ ){
+       ssum = sum = 0.0f ;
+       if( xtyp <= 0 ){
+         for( kk=0 ; kk < mm ; kk++ ){
+            sum += xx[ii+kk*nn] * qvec[kk] ;
+           ssum += xx[ii+kk*nn] * rvec[kk] ;
+         }
+       } else {
+         for( kk=0 ; kk < mm ; kk++ ){
+            sum += xar[kk][ii]  * qvec[kk] ;
+           ssum += xar[kk][ii]  * rvec[kk] ;
+         }
+       }
+       uvec[ii] = sum ; vvec[ii] = ssum ; qsum += sum*sum ; rsum += ssum*ssum ;
+     }
+     if( qsum > 0.0f ){       /* L2 normalize uvec */
+       sum = 1.0f / sqrtf(qsum) ;
+       for( ii=0 ; ii < nn ; ii++ ) uvec[ii] *= sum ;
+     }
+     if( rsum > 0.0f ){       /* L2 normalize vvec */
+       sum = 1.0f / sqrtf(rsum) ;
+       for( ii=0 ; ii < nn ; ii++ ) vvec[ii] *= sum ;
+     }
+#pragma omp critical (MALLOC)
+     { free(rvec) ; free(qvec) ; }
+   }
+
+   /** make it so that uvec dotted into the mean vector is positive **/
+
+   if( tvec != NULL ){
+     for( sum=0.0f,ii=0 ; ii < nn ; ii++ ) sum += tvec[ii]*uvec[ii] ;
+     if( sum < 0.0f ){
+       for( ii=0 ; ii < nn ; ii++ ) uvec[ii] = -uvec[ii] ;
+     }
+     for( sum=0.0f,ii=0 ; ii < nn ; ii++ ) sum += tvec[ii]*vvec[ii] ;
+     if( sum < 0.0f ){
+       for( ii=0 ; ii < nn ; ii++ ) vvec[ii] = -vvec[ii] ;
+     }
+   }
+
+   /** free at last!!! **/
+
+#pragma omp critical (MALLOC)
+   free(asym) ;
+
+   svout.a = sqrtf(svout.a) ; svout.b = sqrtf(svout.b) ; return (svout) ;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -555,32 +638,27 @@ static float_pair symeig_sim2( int nn, float *asym, float *vec, float *wec )
      v3 = (float *)malloc(sizeof(float)*n) ;
    }
 
-   /* initialize u1, u2 vectors from inputs vec,wec */
+   /* initialize u1 vector from input vec */
 
-   sum1 = sum2 = 0.0f ;
-   for( ii=0 ; ii < n ; ii++ ){
+   for( sum1=0.0f,ii=0 ; ii < n ; ii++ ){
      u1[ii] = vec[ii] ; sum1 += u1[ii]*u1[ii] ;
-     u2[ii] = wec[ii] ; sum2 += u2[ii]*u2[ii] ;
    }
    if( sum1 == 0.0f ){  /* backup if input vector is all zero */
      for( ii=0 ; ii < n ; ii++ ){
        u1[ii] = drand48()-0.3 ; sum1 += u1[ii]*u1[ii] ;
      }
    }
-   if( sum2 == 0.0f ){  /* backup if input vector is all zero */
-     for( ii=0 ; ii < n ; ii++ ){
-       u2[ii] = drand48()-0.3 ; sum2 += u2[ii]*u2[ii] ;
-     }
-   }
-   sum1 = 1.0f / sqrtf(sum1) ; sum2 = 1.0f / sqrtf(sum2) ;
-   for( ii=0 ; ii < n ; ii++ ){ u1[ii] *= sum1 ; u2[ii] *= sum2 ; }
+   sum1 = 1.0f / sqrtf(sum1) ;
+   for( ii=0 ; ii < n ; ii++ ) u1[ii] *= sum1 ;
 
-   /* initialize u3 by flipping signs in u1 */
+   /* initialize u2, u3 by flipping signs in u1 */
 
    sum1 = 0.02468f / n ;
    for( ii=0 ; ii < n ; ii++ ){
      jj   = (int)lrand48() ;
+     sum2 = sum1 * ((jj >> 1)%4 - 1.5f) ;
      sum3 = sum1 * ((jj >> 5)%4 - 1.5f) ;
+     u2[ii] = (((jj >> 3)%2 == 0) ? u1[ii] : -u1[ii]) + sum2 ;
      u3[ii] = (((jj >> 7)%2 == 0) ? u1[ii] : -u1[ii]) + sum3 ;
    }
 
@@ -673,8 +751,7 @@ fprintf(stderr,"         bb=%.5g %.5g %.5g\n"
 
      /* form U = V Q and normalize it */
 
-     sum1 = sum2 = sum3 = 0.0f ;
-     for( ii=0 ; ii < n ; ii++ ){
+     for( sum1=sum2=sum3=0.0f,ii=0 ; ii < n ; ii++ ){
        u1[ii] = q1 * v1[ii] + q2 * v2[ii] + q3 * v3[ii]; sum1 += u1[ii]*u1[ii];
        u2[ii] = r1 * v1[ii] + r2 * v2[ii] + r3 * v3[ii]; sum2 += u2[ii]*u2[ii];
        u3[ii] = s1 * v1[ii] + s2 * v2[ii] + s3 * v3[ii]; sum3 += u3[ii]*u3[ii];

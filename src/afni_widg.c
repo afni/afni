@@ -1792,7 +1792,7 @@ STATUS("making view->rowcol") ;
          "dialog" , xmPushButtonWidgetClass , view->session_rowcol ,
             LABEL_ARG("Switch") ,
             XmNmarginHeight , 0 ,
-            XmNmarginWidth  , 0 ,
+            XmNmarginWidth  , 1 ,
             XmNtraversalOn , True  ,
             XmNalignment , XmALIGNMENT_CENTER ,
             XmNinitialResourcesPersistent , False ,
