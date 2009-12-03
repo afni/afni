@@ -522,10 +522,12 @@ typedef struct {
 
       Widget     define_dmode_pb ;
 
-      Widget dataset_frame , dataset_rowcol ,
-             choose_sess_pb    , choose_anat_pb    , choose_func_pb   ,
+      Widget dataset_frame     , dataset_rowcol    ,
+             choose_anat_pb    , choose_func_pb    ,
              popchoose_sess_pb , popchoose_anat_pb , popchoose_func_pb ;
-      Widget choose_rowcol , rescan_pb , nimlpo_pb ;  /* 02 Feb 2007 */
+
+      Widget choose_rowcol , rescan_pb, nimlpo_pb ;                    /* 02 Feb 2007 */
+      Widget session_rowcol, sess_lab , choose_sess_pb, read_sess_pb ; /* 03 Dec 2009 */
 
       Boolean marks_pb_inverted , func_pb_inverted , dmode_pb_inverted ;
 

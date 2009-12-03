@@ -1753,28 +1753,83 @@ STATUS("making view->rowcol") ;
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
 
-   /*--- pushbuttons for dataset choice ---*/
+   /*-- 03 Dec 2009: move Session change stuff to a private rowcol --*/
+
+   view->session_rowcol =
+      XtVaCreateWidget(
+         "dialog" , xmRowColumnWidgetClass , view->dataset_rowcol ,
+            XmNpacking      , XmPACK_TIGHT ,
+            XmNorientation  , XmHORIZONTAL ,
+            XmNtraversalOn  , True  ,
+            XmNmarginHeight , 0 ,
+            XmNmarginWidth  , 0 ,
+            XmNspacing      , 0 ,
+            XmNadjustLast   , False ,
+            XmNisAligned    , False ,
+            XmNentryAlignment , XmALIGNMENT_CENTER ,
+            XmNinitialResourcesPersistent , False ,
+         NULL ) ;
+
+   /*--- pushbuttons for session choice ---*/
+
+   xstr = XmStringCreateLtoR("DataDir",XmFONTLIST_DEFAULT_TAG );
+   view->sess_lab =
+      XtVaCreateManagedWidget(
+         "dialog" , xmLabelWidgetClass , view->session_rowcol ,
+            XmNrecomputeSize , False ,
+            XmNlabelString , xstr ,
+            XmNtraversalOn , True  ,
+            XmNmarginHeight , 0 ,
+            XmNmarginWidth  , 0 ,
+            XmNadjustMargin , False ,
+            XmNinitialResourcesPersistent , False ,
+         NULL ) ;
+   XmStringFree( xstr ) ;
+   MCW_set_widget_bg( view->sess_lab , MCW_hotcolor(view->sess_lab) , 0 ) ;
 
    view->choose_sess_pb =
       XtVaCreateManagedWidget(
-         "dialog" , xmPushButtonWidgetClass , view->dataset_rowcol ,
-            LABEL_ARG("Switch Session") ,
-            XmNmarginHeight , 1 ,
+         "dialog" , xmPushButtonWidgetClass , view->session_rowcol ,
+            LABEL_ARG("Switch") ,
+            XmNmarginHeight , 0 ,
+            XmNmarginWidth  , 0 ,
             XmNtraversalOn , True  ,
             XmNalignment , XmALIGNMENT_CENTER ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
-
    XtAddCallback( view->choose_sess_pb , XmNactivateCallback ,
                   AFNI_choose_dataset_CB , im3d ) ;
-
    MCW_register_help( view->choose_sess_pb ,
      "Use this to choose from which\n"
      "session 3D datasets may be viewed." ) ;
    MCW_register_hint( view->choose_sess_pb ,
                       "Switch between session directories" ) ;
+   MCW_set_widget_bg( view->choose_sess_pb , "black"   , 0 ) ;
+   MCW_set_widget_fg( view->choose_sess_pb , "#ffddaa" ) ;
+
+   view->read_sess_pb =
+      XtVaCreateManagedWidget(
+         "dialog" , xmPushButtonWidgetClass , view->session_rowcol ,
+            LABEL_ARG("Read") ,
+            XmNmarginHeight , 0 ,
+            XmNmarginWidth  , 0 ,
+            XmNmarginLeft   , 0 ,
+            XmNmarginRight  , 0 ,
+            XmNtraversalOn , True  ,
+            XmNinitialResourcesPersistent , False ,
+         NULL ) ;
+   XtAddCallback( view->read_sess_pb , XmNactivateCallback ,
+                  AFNI_read_sess_CB , im3d ) ;
+   MCW_register_hint( view->read_sess_pb ,
+                      "Read in a new session directory" ) ;
+   MCW_set_widget_bg( view->read_sess_pb , "#ffddaa" , 0 ) ;
 
    view_count ++ ;
+
+   (void) XtVaCreateManagedWidget(
+            "dialog" , xmSeparatorWidgetClass , view->dataset_rowcol ,
+                XmNseparatorType , XmSHADOW_ETCHED_IN ,
+            NULL ) ;
 
    /*-- 02 Feb 2007: move Underlay and Overlay choosers into a rowcol --*/
 
@@ -1818,6 +1873,7 @@ STATUS("making view->rowcol") ;
    MCW_register_hint( view->choose_anat_pb ,                        \
                       "Switch datasets for underlay/graphs" ) ;     \
    MCW_set_widget_bg( view->choose_anat_pb , "black" , 0 ) ;        \
+   MCW_set_widget_fg( view->choose_anat_pb , "#ffddaa" ) ;          \
    view_count ++ ;                                                  \
  } while(0)
 
@@ -1842,6 +1898,7 @@ STATUS("making view->rowcol") ;
     ) ;                                                             \
    MCW_register_hint( view->choose_func_pb ,                        \
                       "Switch datasets for color overlay" ) ;       \
+   MCW_set_widget_bg( view->choose_func_pb , "#ffddaa" , 0 ) ;      \
    view_count ++ ;                                                  \
  } while(0)
 
@@ -2020,6 +2077,7 @@ STATUS("making view->rowcol") ;
 
    XtManageChild( view->marks_rowcol ) ;
    XtManageChild( view->func_rowcol ) ;
+   XtManageChild( view->session_rowcol ) ;
    XtManageChild( view->choose_rowcol ) ;
    XtManageChild( view->dataset_rowcol ) ;
    XtManageChild( view->rowcol ) ;
@@ -4361,10 +4419,8 @@ STATUS("making dmode->rowcol") ;
             XmNtraversalOn , True  ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
-
    XtAddCallback( dmode->read_sess_pb , XmNactivateCallback ,
                   AFNI_read_sess_CB , im3d ) ;
-
    MCW_register_hint( dmode->read_sess_pb ,
                       "Read in a new session directory" ) ;
 
