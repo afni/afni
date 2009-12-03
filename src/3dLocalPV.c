@@ -40,7 +40,7 @@ int main( int argc , char *argv[] )
    float na,nb,nc , dx,dy,dz ;
    int do_vnorm=0 , do_vproj=0 , polort=-1 ;
    float **polyref ; int rebase=0 , nmask=0 , domean=0 , use_nonmask=0 ;
-   float *evar=NULL , sval ;
+   float *evar=NULL,*fvar=NULL , sval,tval ;
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
      printf(
@@ -51,9 +51,9 @@ int main( int argc , char *argv[] )
        "* Computes the SVD of the time series from a neighborhood of each\n"
        "   voxel.  An inricate way of 'smoothing' 3D+time datasets, sort of.\n"
        "* This is like 3dLocalSVD, except that the '-vproj' option doesn't\n"
-       "   allow anything but 1 dimensional projection.  This is because\n"
-       "   3dLocalPV uses a special method to compute JUST the first\n"
-       "   principal vector -- faster than 3dLocalSVD, but less general.\n"
+       "   allow anything but 1 and 2 dimensional projection.  This is because\n"
+       "   3dLocalPV uses a special method to compute JUST the first 1 or 2\n"
+       "   principal vectors -- faster than 3dLocalSVD, but less general.\n"
        "\n"
        "Options:\n"
        " -mask mset          = restrict operations to this mask\n"
@@ -66,9 +66,12 @@ int main( int argc , char *argv[] )
        " -nbhd nnn           = e.g., 'SPHERE(5)' 'TOHD(7)' etc.\n"
        " -polort p [+]       = detrending ['+' means to add trend back]\n"
        " -vnorm              = normalize data vectors [strongly recommended]\n"
-       " -vproj              = project central data time series onto local SVD vector\n"
+       " -vproj [2]          = project central data time series onto local SVD vector;\n"
+       "                        if followed by '2', then the central data time series\n"
+       "                        will be projected on the the 2-dimensional subspace\n"
+       "                        spanned by the first 2 principal SVD vectors.\n"
        "                        [default: just output principal singular vector]\n"
-       "                        [for 'smoothing' purposes, '-vnorm -vproj' is good]\n"
+       "                        [for 'smoothing' purposes, '-vnorm -vproj' is an idea]\n"
 #if 0
        "\n"
        " -use_nonmask         = Allow the computation of the local SVD time series\n"
@@ -79,8 +82,13 @@ int main( int argc , char *argv[] )
        "                           SVD vector of local white matter time series, for\n"
        "                           example, even at non-WM voxels.\n"
        "                        * '-vproj' is not allowed with '-use_nonmask'!\n"
-       "\n"
 #endif
+       "\n"
+       "Notes:\n"
+       "* On my Mac Pro, about 30%% faster than 3dLocalSVD computing the same thing.\n"
+       "* If you're curious, the 'special method' used for the eigensolution is\n"
+       "  a variant of matrix power iteration, called 'simultaneous iteration'.\n"
+       "* By contrast, 3dLocalSVD uses EISPACK functions for eigensolution-izing.\n"
      ) ;
      /** PRINT_AFNI_OMP_USAGE("3dLocalPV",NULL) ; **/
      PRINT_COMPILE_DATE ; exit(0) ;
@@ -102,7 +110,13 @@ int main( int argc , char *argv[] )
        do_vnorm = 1 ; iarg++ ; continue ;
      }
      if( strcmp(argv[iarg],"-vproj") == 0 ){
-       do_vproj = 1 ;
+       if( iarg+1 < argc && isdigit(argv[iarg+1][0]) )
+         do_vproj = (int)strtod(argv[++iarg],NULL) ;
+       if( do_vproj < 1 ){
+         do_vproj = 1 ; WARNING_message("-vproj set to 1") ;
+       } else if( do_vproj > 2 ){
+         do_vproj = 2 ; WARNING_message("-vproj set to 2") ;
+       }
        iarg++ ; continue ;
      }
 
@@ -311,12 +325,17 @@ int main( int argc , char *argv[] )
 
    if( evprefix != NULL ){
      evset = EDIT_empty_copy(inset) ;
-     EDIT_dset_items( evset , ADN_prefix,evprefix,
-                              ADN_brick_fac,NULL, ADN_nvals,1, ADN_none ) ;
+     kk = (do_vproj <= 1) ? 1 : 2 ;
+     EDIT_dset_items( evset , ADN_prefix,evprefix, ADN_ntt,0 ,
+                              ADN_brick_fac,NULL, ADN_nvals,kk, ADN_none ) ;
      tross_Copy_History( inset , evset ) ;
      tross_Make_History( "3dLocalPV" , argc,argv , evset ) ;
      EDIT_substitute_brick( evset , 0 , MRI_float , NULL ) ;
      evar = DSET_ARRAY(evset,0) ;
+     if( kk == 2 ){
+       EDIT_substitute_brick( evset , 1 , MRI_float , NULL ) ;
+       fvar = DSET_ARRAY(evset,1) ;
+     }
    }
 
 #ifndef USE_OMP
@@ -328,14 +347,16 @@ int main( int argc , char *argv[] )
 
 #pragma omp parallel if( nmask > 666 )  /* parallelization 16 Jul 2009 [disabled] */
  { int kk , xx,yy,zz , vv,ii , mm ;
-   MRI_IMARR *imar ; MRI_IMAGE *zim ;
-   float *tsar , *coef , **xar , *uvec ;
+   MRI_IMARR *imar ; MRI_IMAGE *zim=NULL ;
+   float *tsar , *coef , **xar , *uvec , *vvec=NULL ;
 
 #pragma omp critical (MALLOC)
    { if( rebase ) coef = (float *)malloc(sizeof(float)*(polort+1)) ;
      else         coef = NULL ;
      xar = (float **)malloc(sizeof(float *)*nbhd->num_pt) ;
      uvec = (float *)malloc(sizeof(float)*nt) ;
+     if( do_vproj == 2 )
+       vvec = (float *)malloc(sizeof(float)*nt) ;
    }
 
  AFNI_OMP_START ;
@@ -370,13 +391,28 @@ int main( int argc , char *argv[] )
        }
      }
      tsar = MRI_FLOAT_PTR(IMARR_SUBIM(imar,0)) ;
-     sval = principal_vector( nt, mm, 1, xar, uvec, (do_vproj) ? NULL : tsar ) ;
-#pragma omp critical (MALLOC)
-     { DESTROY_IMARR(imar) ; }
-     if( do_vproj ){
-       register float sum ; float *zar = MRI_FLOAT_PTR(zim) ;
-       for( sum=0.0f,ii=0 ; ii < nt ; ii++ ) sum += zar[ii]*uvec[ii] ;
-       for( ii=0 ; ii < nt ; ii++ ) uvec[ii] *= sum ;
+     if( do_vproj <= 1 ){
+       sval = principal_vector( nt, mm, 1, xar, uvec, (do_vproj) ? NULL : tsar ) ;
+     } else {
+       float_pair spair ;
+       spair = principal_vector_pair( nt,mm , 1,xar , uvec,vvec , NULL ) ;
+       sval = spair.a ; tval = spair.b ;
+     }
+     switch( do_vproj ){
+       case 1:{
+         register float sum ; float *zar = MRI_FLOAT_PTR(zim) ;
+         for( sum=0.0f,ii=0 ; ii < nt ; ii++ ) sum += zar[ii]*uvec[ii] ;
+         for( ii=0 ; ii < nt ; ii++ ) uvec[ii] *= sum ;
+       }
+       break ;
+
+       case 2:{
+         register float sum ; float *zar = MRI_FLOAT_PTR(zim) ;
+         for( sum=0.0f,ii=0 ; ii < nt ; ii++ ) sum += zar[ii]*uvec[ii] ;
+         for( ii=0 ; ii < nt ; ii++ ) uvec[ii] *= sum ;
+         for( sum=0.0f,ii=0 ; ii < nt ; ii++ ) sum += zar[ii]*vvec[ii] ;
+         for( ii=0 ; ii < nt ; ii++ ) uvec[ii] += sum*vvec[ii] ;
+       }
      }
      if( polort >= 0 && rebase && coef != NULL ){
        for( vv=0 ; vv <= polort ; vv++ ){
@@ -385,10 +421,15 @@ int main( int argc , char *argv[] )
      }
      THD_insert_series( kk, outset, nt, MRI_float, uvec, 0 ) ;
      if( evar != NULL ) evar[kk] = sval ;
+     if( fvar != NULL ) fvar[kk] = tval ;
+#pragma omp critical (MALLOC)
+     { DESTROY_IMARR(imar); if( zim != NULL ) mri_free(zim); }
    }
 
 #pragma omp critical (MALLOC)
-   { free(uvec) ; free(xar) ; if( coef != NULL ) free(coef) ; }
+   { free(uvec) ; free(xar) ;
+     if( coef != NULL ) free(coef) ;
+     if( vvec != NULL ) free(vvec) ; }
  AFNI_OMP_END ;
  } /* end OpenMP */
 

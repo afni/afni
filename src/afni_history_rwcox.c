@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 3 , DEC , 2009 , RWC , "3dLocalPV" , MINOR , TYPE_NEW_PROG ,
+   "Speeded up version of 3dLocalSVD" ,
+   "Speed comes with some small limitations.  About 30% faster." } ,
+
  { 3 , DEC , 2009 , RWC , "afni" , MICRO , TYPE_GENERAL ,
    "Modify GUI to add a Read session button next to the Switch button" ,
    "Because of complaints that it's hard to figure out what to do if AFNI\n"
