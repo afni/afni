@@ -133,6 +133,13 @@ int main( int argc , char * argv[] )
   " 3dWarp -card2oblique oblique_epi+orig -prefix oblique_anat card_anat+orig\n"
   " 3dWarp -oblique2card -prefix card_epi_tshift -newgrid 3.5 epi_tshift+orig\n"
   "\n"
+  "Example of warping +tlrc results back to +orig space of some subject\n"
+  "(get xform matrix, apply it, tell dataset it is not in orig space):\n"
+  "\n"
+  "    cat_matvec subj1_anat+tlrc::WARP_DATA > tlrc_xform.1D\n"
+  "    3dWarp -matvec_out2in tlrc_xform.1D -prefix group_warped+tlrc \\\n"
+  "           -gridset subj1_epi+orig -cubic group_data+tlrc\n"
+  "    3drefit -view orig group_warped+tlrc\n"
 #if 0
             "\n"
             "  -matfile mname  = Read in the file 'mname', which consists\n"
