@@ -978,11 +978,13 @@ SUMA_Boolean SUMA_Align_to_VolPar (SUMA_SurfaceObject *SO, void * S_Struct)
                      SO->NodeList[0], SO->NodeList[1],SO->NodeList[2],
                      SF->CropMin[0], SF->CropMin[1], SF->CropMin[2],
                      SF->CropMax[0], SF->CropMax[1], SF->CropMax[2]); 
-            if (D[0] != 0.0 || D[1] != 0.0 ||D[2] != 0.0) {
+            if (  SUMA_ABS(D[0]) > 0.0000001 || 
+                  SUMA_ABS(D[1]) > 0.0000001 || 
+                  SUMA_ABS(D[2]) > 0.0000001 ) {
                SUMA_S_Notev("Shift Values: [%f, %f, %f]\n", 
                             D[0], D[1], D[2]);
-               SUMA_S_Note(  "If surface alignment is off"
-                              "Please notify authors and send sample data.\n");
+               SUMA_S_Note(  "If surface alignment is off,\n"
+                             "notify authors and send sample data.\n");
                 
             }
             /* Caret, just LPI baby, take it to RAI*/
@@ -1292,6 +1294,12 @@ SUMA_Boolean SUMA_Apply_VolReg_Trans (SUMA_SurfaceObject *SO)
       SUMAg_CF->IgnoreVolreg = YUP;
       SO->APPLIED_A2Exp_XFORM = NO_WARP;
       SUMA_RETURN (YUP);
+   }
+   
+   if (!SO || !SO->VolPar) {
+      SUMA_S_Errv("Bad params, SO=%p, SO->VolPar=%p\n", 
+                  SO, SO ? SO->VolPar:NULL);
+      SUMA_RETURN (NOPE);
    }
    
    if (SO->APPLIED_A2Exp_XFORM != 0) {

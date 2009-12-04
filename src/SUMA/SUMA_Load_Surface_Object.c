@@ -1290,9 +1290,8 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (
             }
          } else {
             if (VolParName != NULL) {
-               fprintf( SUMA_STDERR,
-                     "Error %s: Volume Parent specified without .param file.\n"
-                     "Parent Volume Alignment will not be done.", FuncName);
+               SUMA_S_Note("Volume Parent specified without .param file.\n"
+                     "Be sure surface and volume line up.");
             }
          }
          
@@ -1304,7 +1303,7 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (
          
          /* change coordinates to align them with volparent data set, 
             if possible */
-         if (VolParName != NULL && strlen(SF_FileName->name_param)) {
+         if (VolParName != NULL ) {
             SO->VolPar = SUMA_VolPar_Attr (VolParName);
             if (SO->VolPar == NULL) {
                fprintf( SUMA_STDERR,
@@ -1315,10 +1314,15 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (
 
                if (!SUMA_Align_to_VolPar (SO, (void *)SF)) 
                   SO->SUMA_VolPar_Aligned = NOPE;
-                  else SO->SUMA_VolPar_Aligned = YUP;
+               else 
+                  SO->SUMA_VolPar_Aligned = YUP;
             }
          } else { 
-            SO->SUMA_VolPar_Aligned = NOPE;
+            /* OK to go there with new caret files */
+            if (!SUMA_Align_to_VolPar (SO, (void *)SF)) 
+               SO->SUMA_VolPar_Aligned = NOPE;
+            else 
+               SO->SUMA_VolPar_Aligned = YUP;
          }
          
          /* free SF */

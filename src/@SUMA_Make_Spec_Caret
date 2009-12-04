@@ -383,9 +383,16 @@ L_LOOK_FOR_SURF:
          endif
          set NoExt = $CHOSEN_ITEM:r #remove the .coord extension
 		   set NodeNumb = $NoExt:e	#extract the number before .coord
+         set surf_map_ref = $CHOSEN_ITEM
 		   foreach attrib ( $surf_attribs )
-            set candidate = `ls *.$Side.$attrib.*$NodeNumb*.coord`
-			   if ($#candidate != 1) then
+            if ("$attrib" == "Fiducial") then
+               set candidate = $surf_map_ref
+            else
+               if ($debug) \
+                  echo "Looking for '*'.$Side.$attrib.'*'$NodeNumb'*'.coord"
+               set candidate = `ls *.$Side.$attrib.*$NodeNumb*.coord`
+			   endif
+            if ($#candidate != 1) then
 				   #Don't complain if a certain candidate is not found. ZSS My. 17th 
                #echo 'candidate surfaces= '
 				   #echo $candidate
@@ -424,7 +431,7 @@ L_LOOK_FOR_SURF:
     endif
 
     if ( $#list_lrh > 0 ) then
-		echo "-- found $#list_rh LRH surfaces"
+		echo "-- found $#list_lrh LRH surfaces"
 		if ( $debug ) echo "    --" $list_lrh
     endif
 
@@ -708,7 +715,9 @@ L_CREATE_SPEC:
           endif
           set s_head = $NoExt:r #store surface header, no state
 
-	       # check for SAME mapping ref
+	       echo $surf
+          echo $s_state
+          # check for SAME mapping ref
 	       if ( "$s_state" == "Fiducial" ) then
 		   set surf_map_ref = $surf
          set map_ref = SAME
@@ -729,15 +738,19 @@ L_CREATE_SPEC:
 	       echo "        SurfaceType = SureFit"		>> $spec_file
 	       echo "        SureFitCoord = $surf"	>> $spec_file
 	       echo "        SureFitTopo = $list_topo_cur[$cnt]" >> $spec_file
-		    echo "        SureFitVolParam = $Vol_Param_loc$Vol_Param"	>> $spec_file
-		    echo "        LocalDomainParent = $map_ref"		>> $spec_file
+          if ($#Vol_Param > 0 && $Vol_Param != "") then
+            echo "        SureFitVolParam = $Vol_Param_loc$Vol_Param"	\
+               >> $spec_file
+		    endif
+          echo "        LocalDomainParent = $map_ref"		>> $spec_file
 	       echo "        SurfaceState = $s_state"		>> $spec_file
 	       echo "        EmbedDimension = $embed_ref"		>> $spec_file
 	       echo ""						>> $spec_file
 
-          #if binary format and have caret_file_convert, do the danse
+          #if binary format and have caret_file_convert, do the dance
           set isbin = `file $surf | grep ' data'`
-          if ("$isbin" != '') then
+          set isbintopo = `file $list_topo_cur[$cnt] | grep ' data'`
+          if ("$isbin" != '' || "$isbintopo" != '') then
             echo "Surface file $surf is in binary format."
             if ($caret_convert != "") then
                echo "Running caret_file_convert -text $surf ..."

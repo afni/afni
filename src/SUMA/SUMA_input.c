@@ -387,7 +387,7 @@ int SUMA_comma_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
             ii = SUMA_WhichViewerInMomentum (SUMAg_SVv, SUMAg_N_SVv, sv);
             if (ii >= 0) {
                sprintf (stmp, "You cannot switch states while other viewers\n"
-                              "(like %c) are in momentum mode.\n", ii+65);
+                              "(like viewer %c) in momentum mode.\n", ii+65);
                SUMA_RegisterMessage (SUMAg_CF->MessageList, 
                                      stmp, FuncName, SMT_Error, SMA_LogAndPopup);
                SUMA_RETURN(0);
@@ -484,7 +484,7 @@ int SUMA_period_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
             ii = SUMA_WhichViewerInMomentum (SUMAg_SVv, SUMAg_N_SVv, sv);
             if (ii >= 0) {
                sprintf (stmp, "You cannot switch states while other viewers\n"
-                              "(like %c) are in momentum mode.\n", ii+65);
+                              "(like viewer %c) are in momentum mode.\n", ii+65);
                SUMA_RegisterMessage (SUMAg_CF->MessageList, 
                                      stmp, FuncName, SMT_Error, SMA_LogAndPopup);
                SUMA_RETURN(0);
@@ -3926,7 +3926,8 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                                                       SUMAg_N_SVv, NULL);
                      if (ii >= 0) {
                         sprintf (s, "You cannot select or draw while viewers\n"
-                                    "(like %c) are in momentum mode.\n", ii+65);
+                                    "(like viewer %c) are in momentum mode.\n", 
+                                    ii+65);
                         SUMA_RegisterMessage (SUMAg_CF->MessageList, 
                                               s, FuncName, SMT_Error, 
                                               SMA_LogAndPopup);
