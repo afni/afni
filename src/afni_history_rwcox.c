@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 4 , DEC , 2009 , RWC , "3dLocalPV" , MICRO , TYPE_MODIFY ,
+   "OpenMP changes.  Speedup about factor of 3 using 6 CPUs." ,
+   NULL } ,
+
  { 3 , DEC , 2009 , RWC , "3dLocalPV" , MINOR , TYPE_NEW_PROG ,
    "Speeded up version of 3dLocalSVD" ,
    "Speed comes with some small limitations.  About 30% faster." } ,
