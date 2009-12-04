@@ -7,8 +7,9 @@
 #undef  INMASK
 #define INMASK(i) ( mask == NULL || mask[i] != 0 )
 
-MRI_IMARR * myTHD_get_dset_nbhd_array( THD_3dim_dataset *dset, byte *mask,
-                                       int xx, int yy, int zz, MCW_cluster *nbhd ) ;
+static int myTHD_extract_nbhd( THD_3dim_dataset *dset, byte *mask,
+                               int xx, int yy, int zz, MCW_cluster *nbhd,
+                               int *ivar , float *tsar ) ;
 
 #ifdef USE_OMP
 #include "cs_pv.c"  /* to ensure it's OpenMP-ized as well */
@@ -39,8 +40,9 @@ int main( int argc , char *argv[] )
    int iarg=1 , verb=1 , ntype=0 , kk,nx,ny,nz,nxy,nxyz,nt , vstep=0 ;
    float na,nb,nc , dx,dy,dz ;
    int do_vnorm=0 , do_vproj=0 , polort=-1 ;
-   float **polyref ; int rebase=0 , nmask=0 , domean=0 , use_nonmask=0 ;
-   float *evar=NULL,*fvar=NULL , sval,tval ;
+   int nmask=0 , domean=0 , use_nonmask=0 ;
+   float *evar=NULL,*fvar=NULL ;
+   unsigned int gseed ;
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
      printf(
@@ -64,7 +66,7 @@ int main( int argc , char *argv[] )
        "                        [default = don't save]\n"
        " -input inputdataset = input time series dataset\n"
        " -nbhd nnn           = e.g., 'SPHERE(5)' 'TOHD(7)' etc.\n"
-       " -polort p [+]       = detrending ['+' means to add trend back]\n"
+       " -polort p           = detrending\n"
        " -vnorm              = normalize data vectors [strongly recommended]\n"
        " -vproj [2]          = project central data time series onto local SVD vector;\n"
        "                        if followed by '2', then the central data time series\n"
@@ -90,7 +92,7 @@ int main( int argc , char *argv[] )
        "  a variant of matrix power iteration, called 'simultaneous iteration'.\n"
        "* By contrast, 3dLocalSVD uses EISPACK functions for eigensolution-izing.\n"
      ) ;
-     /** PRINT_AFNI_OMP_USAGE("3dLocalPV",NULL) ; **/
+     PRINT_AFNI_OMP_USAGE("3dLocalPV",NULL) ;
      PRINT_COMPILE_DATE ; exit(0) ;
    }
 
@@ -98,6 +100,8 @@ int main( int argc , char *argv[] )
 
    PRINT_VERSION("3dLocalPV"); mainENTRY("3dLocalPV main"); machdep();
    AFNI_logger("3dLocalPV",argc,argv); AUTHOR("Emperor Zhark the Iterator");
+
+   gseed = ((unsigned int)time(NULL))<<2 + 7*(unsigned int)getpid() ;
 
    /*---- loop over options ----*/
 
@@ -113,7 +117,7 @@ int main( int argc , char *argv[] )
        if( iarg+1 < argc && isdigit(argv[iarg+1][0]) )
          do_vproj = (int)strtod(argv[++iarg],NULL) ;
        if( do_vproj < 1 ){
-         do_vproj = 1 ; WARNING_message("-vproj set to 1") ;
+         do_vproj = 1 ;
        } else if( do_vproj > 2 ){
          do_vproj = 2 ; WARNING_message("-vproj set to 2") ;
        }
@@ -124,11 +128,6 @@ int main( int argc , char *argv[] )
        char *cpt ;
        if( ++iarg >= argc ) ERROR_exit("Need argument after '-polort'") ;
        polort = (int)strtod(argv[iarg],&cpt) ;
-       if( *cpt == '+' ){
-         rebase = 1 ;
-       } else if( iarg+1 < argc && strcmp(argv[iarg+1],"+") == 0 ){
-         rebase = 1; iarg++;
-       }
        iarg++ ; continue ;
      }
 
@@ -220,16 +219,14 @@ int main( int argc , char *argv[] )
      inset = THD_open_dataset( argv[iarg] ) ;
      CHECK_OPEN_ERROR(inset,argv[iarg]) ;
    }
+   if( !IS_REAL_TYPE(DSET_BRICK_TYPE(inset,0)) )
+     ERROR_exit("Can only process real-valued datasets in this program!") ;
    nt = DSET_NVALS(inset) ;
    if( nt < 9 )
      ERROR_exit("Must have at least 9 values per voxel in time series dataset '%s'",
                 DSET_BRIKNAME(inset) ) ;
    if( polort+1 >= nt )
      ERROR_exit("'-polort %d' too big for time series length = %d",polort,nt) ;
-
-   if( polort >= 0 ){
-     polyref = THD_build_polyref( polort+1 , nt ) ;
-   }
 
    DSET_load(inset) ; CHECK_LOAD_ERROR(inset) ;
 
@@ -338,6 +335,15 @@ int main( int argc , char *argv[] )
      }
    }
 
+   if( polort >= 0 ){
+     float **polyref ; THD_3dim_dataset *qset ;
+     INFO_message("Detrending input dataset with %d basis functions",polort+1) ;
+     polyref = THD_build_polyref( polort+1 , nt ) ;
+     qset = THD_detrend_dataset( inset , polort+1,polyref , 2,0,mask,NULL ) ;
+     if( qset == NULL ) ERROR_exit("Detrending fails!?") ;
+     free(polyref) ; DSET_delete(inset) ; inset = qset ;
+   }
+
 #ifndef USE_OMP
    vstep = (verb && nxyz > 999) ? nxyz/50 : 0 ;
    if( vstep ) fprintf(stderr,"++ voxel loop: ") ;
@@ -345,96 +351,98 @@ int main( int argc , char *argv[] )
 
    /*** the real work now begins ***/
 
-#pragma omp parallel if( nmask > 666 )  /* parallelization 16 Jul 2009 [disabled] */
+#pragma omp parallel if( nmask > 666 )
  { int kk , xx,yy,zz , vv,ii , mm ;
-   MRI_IMARR *imar ; MRI_IMAGE *zim=NULL ;
-   float *tsar , *coef , **xar , *uvec , *vvec=NULL ;
-
-#pragma omp critical (MALLOC)
-   { if( rebase ) coef = (float *)malloc(sizeof(float)*(polort+1)) ;
-     else         coef = NULL ;
-     xar = (float **)malloc(sizeof(float *)*nbhd->num_pt) ;
-     uvec = (float *)malloc(sizeof(float)*nt) ;
-     if( do_vproj == 2 )
-       vvec = (float *)malloc(sizeof(float)*nt) ;
-   }
+   float *zar=NULL , *nbar ; int *ivar ;
+   float *tsar , *uvec , *vvec=NULL , *ws=NULL ;
+   unsigned short xran[3] ; int ithr=0 ; float sval,tval ;
 
  AFNI_OMP_START ;
+
+#ifdef USE_OMP
+  ithr = omp_get_thread_num() ;
+  if( ithr == 0 )
+    INFO_message("Starting voxel loop: OpenMP threads=%d",omp_get_num_threads());
+#endif
+
+#pragma omp critical (MALLOC)
+   { uvec = (float *)malloc(sizeof(float)*nt) ;
+     ws   = pv_get_workspace(nt,nbhd->num_pt) ;
+     nbar = (float *)malloc(sizeof(float)*nt*nbhd->num_pt) ;
+     ivar = (int *)malloc(sizeof(int)*nbhd->num_pt) ;
+     if( do_vproj == 2 )
+       vvec = (float *)malloc(sizeof(float)*nt) ;
+     if( do_vproj )
+       zar = (float *)malloc(sizeof(float)*nt) ;
+   }
+
+   xran[2] = ( gseed        & 0xffff) + (unsigned short)ithr ;
+   xran[1] = ((gseed >> 16) & 0xffff) - (unsigned short)ithr ;
+   xran[0] = 0x330e                   + (unsigned short)ithr ;
+
+#pragma omp for
    for( kk=0 ; kk < nxyz ; kk++ ){
 #ifndef USE_OMP
      if( vstep && kk%vstep==vstep-1 ) vstep_print() ;
 #endif
-     if( !use_nonmask && !INMASK(kk) ) continue ;
+     if( !INMASK(kk) ) continue ;
      IJK_TO_THREE( kk , xx,yy,zz , nx,nxy ) ;
-     imar = myTHD_get_dset_nbhd_array( inset , mask , xx,yy,zz , nbhd ) ;
-     if( imar == NULL ){
-       if( !use_nonmask ) ERROR_message("get failure #%d",kk);
-       continue;
+
+     mm = myTHD_extract_nbhd( inset , mask , xx,yy,zz , nbhd , ivar,nbar ) ;
+     if( mm <= 0 ) continue ;  /* no data? */
+     if( do_vproj ){
+       for( ii=0 ; ii < nt ; ii++ ) zar[ii] = nbar[ii] ;
      }
-     mm = IMARR_COUNT(imar) ;
-     for( vv=0 ; vv < mm ; vv++ ){
-       xar[vv] = tsar = MRI_FLOAT_PTR(IMARR_SUBIM(imar,vv)) ;
-#pragma omp critical (MALLOC)
-       { if( polort >= 0 ) /* detrend extracted data in place */
-           THD_generic_detrend_LSQ( nt , tsar , -1 , polort+1 , polyref ,
-                                    (vv==0) ? coef : NULL ) ;
-         if( do_vproj && vv == 0 )
-           zim = mri_copy(IMARR_SUBIM(imar,0)) ;  /* before vnorm */
-       }
-       if( do_vnorm ){
-         register float sum ;
+     if( do_vnorm ){
+       register float sum ;
+       for( vv=0 ; vv < mm ; vv++ ){
+         tsar = nbar + nt*vv ;
          for( sum=0.0f,ii=0 ; ii < nt ; ii++ ) sum += tsar[ii]*tsar[ii] ;
          if( sum > 0.0f ){
-           sum = 1.0f / sqrtf(sum) ;
-           for( ii=0 ; ii < nt ; ii++ ) tsar[ii] *= sum ;
+           for( sum=1.0f/sqrtf(sum),ii=0 ; ii < nt ; ii++ ) tsar[ii] *= sum ;
          }
        }
      }
-     tsar = MRI_FLOAT_PTR(IMARR_SUBIM(imar,0)) ;
+     tsar = nbar ;
      if( do_vproj <= 1 ){
-       sval = principal_vector( nt, mm, 1, xar, uvec, (do_vproj) ? NULL : tsar ) ;
+       sval = principal_vector( nt, mm, 0,nbar, uvec, (do_vproj) ? NULL : tsar, ws,xran ) ;
      } else {
        float_pair spair ;
-       spair = principal_vector_pair( nt,mm , 1,xar , uvec,vvec , NULL ) ;
+       spair = principal_vector_pair( nt,mm, 0,nbar, uvec,vvec, NULL, ws,xran ) ;
        sval = spair.a ; tval = spair.b ;
      }
      switch( do_vproj ){
        case 1:{
-         register float sum ; float *zar = MRI_FLOAT_PTR(zim) ;
+         register float sum ;
          for( sum=0.0f,ii=0 ; ii < nt ; ii++ ) sum += zar[ii]*uvec[ii] ;
          for( ii=0 ; ii < nt ; ii++ ) uvec[ii] *= sum ;
        }
        break ;
 
        case 2:{
-         register float sum ; float *zar = MRI_FLOAT_PTR(zim) ;
+         register float sum ;
          for( sum=0.0f,ii=0 ; ii < nt ; ii++ ) sum += zar[ii]*uvec[ii] ;
          for( ii=0 ; ii < nt ; ii++ ) uvec[ii] *= sum ;
          for( sum=0.0f,ii=0 ; ii < nt ; ii++ ) sum += zar[ii]*vvec[ii] ;
          for( ii=0 ; ii < nt ; ii++ ) uvec[ii] += sum*vvec[ii] ;
        }
      }
-     if( polort >= 0 && rebase && coef != NULL ){
-       for( vv=0 ; vv <= polort ; vv++ ){
-         for( ii=0 ; ii < nt ; ii++ ) uvec[ii] += coef[vv]*polyref[vv][ii] ;
-       }
-     }
      THD_insert_series( kk, outset, nt, MRI_float, uvec, 0 ) ;
      if( evar != NULL ) evar[kk] = sval ;
      if( fvar != NULL ) fvar[kk] = tval ;
-#pragma omp critical (MALLOC)
-     { DESTROY_IMARR(imar); if( zim != NULL ) mri_free(zim); }
    }
 
 #pragma omp critical (MALLOC)
-   { free(uvec) ; free(xar) ;
-     if( coef != NULL ) free(coef) ;
-     if( vvec != NULL ) free(vvec) ; }
+   { free(uvec) ; free(nbar) ; free(ws) ; free(ivar) ;
+     if( vvec != NULL ) free(vvec) ;
+     if( zar  != NULL ) free(zar) ; }
  AFNI_OMP_END ;
  } /* end OpenMP */
 
 #ifndef USE_OMP
    if( vstep ) fprintf(stderr,"\n") ;
+#else
+   ININFO_message("Voxel loop finished!") ;
 #endif
 
    /*** cleanup and exit ***/
@@ -451,32 +459,74 @@ int main( int argc , char *argv[] )
 
 /*------------------------------------------------------------------------*/
 
-MRI_IMARR * myTHD_get_dset_nbhd_array( THD_3dim_dataset *dset, byte *mask,
-                                       int xx, int yy, int zz, MCW_cluster *nbhd )
+#undef  TS
+#define TS(i,j) tsar[(i)+(j)*nv]
+
+static int myTHD_extract_nbhd( THD_3dim_dataset *dset, byte *mask,
+                               int xx, int yy, int zz, MCW_cluster *nbhd,
+                               int *ivar , float *tsar )
 {
-   MRI_IMARR *imar ;
-   int nvox, *ivox , nx,ny,nz , nxy,nxyz , npt, aa,bb,cc,kk,ii ;
+   int nv , ival , kk ;
+   int nvox , nx,ny,nz,nxy,nxyz , npt , aa,bb,cc , ii,vv ;
 
    nx = DSET_NX(dset) ;
    ny = DSET_NY(dset) ; nxy  = nx*ny  ;
    nz = DSET_NZ(dset) ; nxyz = nxy*nz ; npt = nbhd->num_pt ;
+   nv = dset->dblk->nvals ;
 
-   kk = xx + yy*nx + zz*nxy ; if( kk < 0 || kk >= nxyz ) return NULL ;
-
-#pragma omp critical (MALLOC)
-   ivox = (int *)malloc(sizeof(int)*npt) ;
    for( nvox=ii=0 ; ii < npt ; ii++ ){
      aa = xx + nbhd->i[ii] ; if( aa < 0 || aa >= nx ) continue ;
      bb = yy + nbhd->j[ii] ; if( bb < 0 || bb >= ny ) continue ;
      cc = zz + nbhd->k[ii] ; if( cc < 0 || cc >= nz ) continue ;
-     kk = aa + bb*nx + cc*nxy ;
-     if( INMASK(kk) ) ivox[nvox++] = kk ;
+     vv = aa + bb*nx + cc*nxy ;
+     if( mask == NULL || mask[vv] ) ivar[nvox++] = vv ;
    }
-   if( nvox == 0 ){ free(ivox) ; return NULL ; }  /* no voxels to extract */
+   if( nvox == 0 ) return 0 ;  /* nothing to extract */
 
-#pragma omp critical (MALLOC)
-   { imar = THD_extract_many_series( nvox, ivox, dset ) ;
-     free(ivox) ; }
+   /* fill the output */
 
-   return imar ;
+   switch( DSET_BRICK_TYPE(dset,0) ){
+
+      default:             /* don't know what to do --> return nada */
+        return 0 ;
+
+      case MRI_byte:{
+        byte *bar ;
+        for( ival=0 ; ival < nv ; ival++ ){
+          bar = (byte *)DSET_ARRAY(dset,ival) ;
+          for( kk=0 ; kk < nvox ; kk++ ) TS(ival,kk) = (float)bar[ivar[kk]] ;
+        }
+      }
+      break ;
+
+      case MRI_short:{
+        short *bar ;
+        for( ival=0 ; ival < nv ; ival++ ){
+          bar = (short *)DSET_ARRAY(dset,ival) ;
+          for( kk=0 ; kk < nvox ; kk++ ) TS(ival,kk) = (float)bar[ivar[kk]] ;
+        }
+      }
+      break ;
+
+      case MRI_float:{
+         float *bar ;
+         for( ival=0 ; ival < nv ; ival++ ){
+            bar = (float *) DSET_ARRAY(dset,ival) ;
+            for( kk=0 ; kk < nvox ; kk++ ) TS(ival,kk) = bar[ivar[kk]] ;
+         }
+      }
+      break ;
+   }
+
+   /* scale outputs, if needed */
+
+   if( THD_need_brick_factor(dset) ){
+      float fac ;
+      for( ival=0 ; ival < nv ; ival++ ){
+        fac = DSET_BRICK_FACTOR(dset,ival) ;
+        for( kk=0 ; kk < nvox ; kk++ ) TS(ival,kk) *= fac ;
+      }
+   }
+
+   return nvox ;
 }
