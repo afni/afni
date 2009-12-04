@@ -2,11 +2,29 @@
 
 /*----------------------------------------------------------------------------*/
 
-static float symeig_sim1( int n     , float *asym , float *vec ) ;
+static float symeig_sim1( int n  , float *asym , float *vec ,
+                          float *ws , unsigned short xran[] ) ;
 static void  symeig_2D  ( double *a , double *e   , int dovec  ) ;
 static void  symeig_3D  ( double *a , double *e   , int dovec  ) ;
 
-static float_pair symeig_sim2( int nn, float *asym, float *vec, float *wec ) ;
+static float_pair symeig_sim2( int nn, float *asym, float *vec, float *wec,
+                               float *ws , unsigned short xran[] ) ;
+
+/*----------------------------------------------------------------------------*/
+/* Create workspace for a principal_vector() job.  free() this when done.
+   The reason for doing it this way is to avoid a lot of malloc/free
+   cycles in 3dLocalPV.
+*//*--------------------------------------------------------------------------*/
+
+void * pv_get_workspace( int n , int m )
+{
+   int mmm , nb,nt ; void *ws ;
+
+   nb  = MIN(n,m) ; nt = MAX(n,m) ;
+   mmm = nb*nb + n*m + 16*nt ;
+   ws  = malloc( sizeof(float)*mmm ) ;
+   return (ws) ;
+}
 
 /*----------------------------------------------------------------------------*/
 
@@ -60,12 +78,14 @@ float mean_vector( int n , int m , int xtyp , void *xp , float *uvec )
 *//*--------------------------------------------------------------------------*/
 
 float principal_vector( int n , int m , int xtyp , void *xp ,
-                               float *uvec , float *tvec            )
+                               float *uvec , float *tvec ,
+                               float *ws , unsigned short xran[] )
 {
    int nn=n , mm=m , nsym , jj,kk,qq ;
    float *asym ;
    register float sum,qsum ; register float *xj,*xk ; register int ii ;
    float sval , *xx=NULL , **xar=NULL ;
+   float *wws=ws ; int nws=0 ;
 
    nsym = MIN(nn,mm) ;  /* size of the symmetric matrix to create */
 
@@ -102,8 +122,9 @@ float principal_vector( int n , int m , int xtyp , void *xp ,
 
    } /*----- end of trivial case -----*/
 
-#pragma omp critical (MALLOC)
-   asym = (float *)malloc(sizeof(float)*nsym*nsym) ;  /* symmetric matrix */
+   if( wws == NULL ) wws = pv_get_workspace(nn,mm) ;
+
+   asym = wws ; nws = nsym*nsym ;  /* symmetric matrix */
 
    /** setup matrix to eigensolve: choose smaller of [X]'[X] and [X][X]' **/
    /**     since [X] is n x m, [X]'[X] is m x m and [X][X]' is n x n     **/
@@ -121,9 +142,7 @@ float principal_vector( int n , int m , int xtyp , void *xp ,
 
    } else {                             /* more columns than rows:  */
                                         /* so [A] = [X][X]' = n x n */
-     float *xt ;
-#pragma omp critical (MALLOC)
-     xt = (float *)malloc(sizeof(float)*nn*mm) ;
+     float *xt = wws + nws ;
      for( jj=0 ; jj < mm ; jj++ ){      /* form [X]' into array xt */
        if( xtyp <= 0 )
          for( ii=0 ; ii < nn ; ii++ ) xt[jj+ii*mm] = xx[ii+jj*nn] ;
@@ -140,8 +159,6 @@ float principal_vector( int n , int m , int xtyp , void *xp ,
        }
      }
 
-#pragma omp critical (MALLOC)
-     free(xt) ;  /* don't need this no more */
    }
 
    /** SVD is [X] = [U] [S] [V]', where [U] = desired output vectors
@@ -162,17 +179,16 @@ float principal_vector( int n , int m , int xtyp , void *xp ,
                                       /* (e.g., more vectors than time points) */
 
      (void)mean_vector( nsym , nsym , 0 , asym , uvec ) ;
-     sval = symeig_sim1( nsym , asym , uvec ) ;
+     sval = symeig_sim1( nsym , asym , uvec , wws+nws , xran ) ;
 
    } else {  /* n > m: transform eigenvector to get left singular vector */
              /* (e.g., more time points than vectors) */
 
      float *qvec ;
 
-#pragma omp critical (MALLOC)
-     qvec = (float *)malloc(sizeof(float)*nsym) ;
+     qvec = wws + nws ; nws += nsym ;
      (void)mean_vector( nsym , nsym , 0 , asym , qvec ) ;
-     sval = symeig_sim1( nsym , asym , qvec ) ;
+     sval = symeig_sim1( nsym , asym , qvec , wws+nws , xran ) ;
      for( qsum=0.0f,ii=0 ; ii < nn ; ii++ ){
        if( xtyp <= 0 )
          for( sum=0.0f,kk=0 ; kk < mm ; kk++ ) sum += xx[ii+kk*nn] * qvec[kk] ;
@@ -184,8 +200,7 @@ float principal_vector( int n , int m , int xtyp , void *xp ,
        sum = 1.0f / sqrtf(qsum) ;
        for( ii=0 ; ii < nn ; ii++ ) uvec[ii] *= sum ;
      }
-#pragma omp critical (MALLOC)
-     free(qvec) ;
+     nws -= nsym ;
    }
 
    /** make it so that uvec dotted into the mean vector is positive **/
@@ -199,8 +214,7 @@ float principal_vector( int n , int m , int xtyp , void *xp ,
 
    /** free at last!!! **/
 
-#pragma omp critical (MALLOC)
-   free(asym) ;
+   if( wws != ws ) free(wws) ;
 
    return (sqrtf(sval)) ;
 }
@@ -221,7 +235,8 @@ float principal_vector( int n , int m , int xtyp , void *xp ,
 #define DEPS  1.e-8
 #define DEPSQ 1.e-4   /* sqrt(DEPS) */
 
-static float symeig_sim1( int nn , float *asym , float *vec )
+static float symeig_sim1( int nn , float *asym , float *vec , float *ws ,
+                          unsigned short xran[] )
 {
    float *u1,*u2,*u3 , *v1,*v2,*v3 , *aj ;
    float sum1,sum2,sum3 , q1,q2,q3 , r1,r2,r3 , s1,s2,s3 ;
@@ -248,14 +263,7 @@ static float symeig_sim1( int nn , float *asym , float *vec )
 
    /* allocate iteration vectors */
 
-#pragma omp critical (MALLOC)
-   { u1 = (float *)malloc(sizeof(float)*n) ;
-     u2 = (float *)malloc(sizeof(float)*n) ;
-     u3 = (float *)malloc(sizeof(float)*n) ;
-     v1 = (float *)malloc(sizeof(float)*n) ;
-     v2 = (float *)malloc(sizeof(float)*n) ;
-     v3 = (float *)malloc(sizeof(float)*n) ;
-   }
+   u1 = ws ; u2 = u1+n ; u3 = u2+n ; v1 = u3+n ; v2 = v1+n ; v3 = v2+n ;
 
    /* initialize u1 vector from input vec */
 
@@ -264,7 +272,7 @@ static float symeig_sim1( int nn , float *asym , float *vec )
    }
    if( sum1 == 0.0f ){  /* backup if input vector is all zero */
      for( ii=0 ; ii < n ; ii++ ){
-       u1[ii] = drand48()-0.3 ; sum1 += u1[ii]*u1[ii] ;
+       u1[ii] = erand48(xran)-0.3 ; sum1 += u1[ii]*u1[ii] ;
      }
    }
    sum1 = 1.0f / sqrtf(sum1) ;
@@ -274,7 +282,7 @@ static float symeig_sim1( int nn , float *asym , float *vec )
 
    sum1 = 0.02468f / n ;
    for( ii=0 ; ii < n ; ii++ ){
-     jj   = (int)lrand48() ;
+     jj   = (int)jrand48(xran) ;
      sum2 = sum1 * ((jj >> 1)%4 - 1.5f) ;
      sum3 = sum1 * ((jj >> 5)%4 - 1.5f) ;
      u2[ii] = (((jj >> 3)%2 == 0) ? u1[ii] : -u1[ii]) + sum2 ;
@@ -400,11 +408,6 @@ fprintf(stderr,"         bb=%.5g %.5g %.5g\n"
 
    for( ii=0 ; ii < n ; ii++ ) vec[ii] = u1[ii] ;
 
-   /* free work vectors */
-
-#pragma omp critical (MALLOC)
-   { free(v3); free(v2); free(v1); free(u3); free(u2); free(u1); }
-
 #if 0
    { static int first=1 ;
      if( first ){ fprintf(stderr,"nite=%d nsym=%d\n",nite,n) ; first=0 ; }
@@ -428,13 +431,15 @@ fprintf(stderr,"         bb=%.5g %.5g %.5g\n"
 *//*--------------------------------------------------------------------------*/
 
 float_pair principal_vector_pair( int n , int m , int xtyp , void *xp ,
-                                  float *uvec , float *vvec , float *tvec )
+                                  float *uvec, float *vvec, float *tvec,
+                                  float *ws , unsigned short xran[] )
 {
    int nn=n , mm=m , nsym , jj,kk,qq ;
    float *asym ;
    register float sum,qsum ; register float *xj,*xk ; register int ii ;
    float sval , *xx=NULL , **xar=NULL ;
    float_pair svout = {-666.0f,-666.0f} ;
+   float *wws=ws ; int nws=0 ;
 
    nsym = MIN(nn,mm) ;  /* size of the symmetric matrix to create */
 
@@ -473,8 +478,9 @@ float_pair principal_vector_pair( int n , int m , int xtyp , void *xp ,
 
    } /*----- end of trivial case -----*/
 
-#pragma omp critical (MALLOC)
-   asym = (float *)malloc(sizeof(float)*nsym*nsym) ;  /* symmetric matrix */
+   if( wws == NULL ) wws = pv_get_workspace(nn,mm) ;
+
+   asym = wws ; nws = nsym*nsym ;  /* symmetric matrix */
 
    /** setup matrix to eigensolve: choose smaller of [X]'[X] and [X][X]' **/
    /**     since [X] is n x m, [X]'[X] is m x m and [X][X]' is n x n     **/
@@ -492,9 +498,8 @@ float_pair principal_vector_pair( int n , int m , int xtyp , void *xp ,
 
    } else {                             /* more columns than rows:  */
                                         /* so [A] = [X][X]' = n x n */
-     float *xt ;
-#pragma omp critical (MALLOC)
-     xt = (float *)malloc(sizeof(float)*nn*mm) ;
+     float *xt = wws + nws ;
+
      for( jj=0 ; jj < mm ; jj++ ){      /* form [X]' into array xt */
        if( xtyp <= 0 )
          for( ii=0 ; ii < nn ; ii++ ) xt[jj+ii*mm] = xx[ii+jj*nn] ;
@@ -511,8 +516,6 @@ float_pair principal_vector_pair( int n , int m , int xtyp , void *xp ,
        }
      }
 
-#pragma omp critical (MALLOC)
-     free(xt) ;  /* don't need this no more */
    }
 
    /** SVD is [X] = [U] [S] [V]', where [U] = desired output vectors
@@ -533,18 +536,17 @@ float_pair principal_vector_pair( int n , int m , int xtyp , void *xp ,
                                       /* (e.g., more vectors than time points) */
 
      (void)mean_vector( nsym , nsym , 0 , asym , uvec ) ;
-     svout = symeig_sim2( nsym , asym , uvec , vvec ) ;
+     svout = symeig_sim2( nsym , asym , uvec , vvec , wws+nws , xran ) ;
 
    } else {  /* n > m: transform eigenvector to get left singular vector */
              /* (e.g., more time points than vectors) */
 
      float *qvec , *rvec , rsum , ssum ;
 
-#pragma omp critical (MALLOC)
-     qvec = (float *)malloc(sizeof(float)*nsym) ;
-     rvec = (float *)malloc(sizeof(float)*nsym) ;
+     qvec = wws + nws ; nws += nsym ;
+     rvec = wws + nws ; nws += nsym ;
      (void)mean_vector( nsym , nsym , 0 , asym , qvec ) ;
-     svout = symeig_sim2( nsym , asym , qvec , rvec ) ;
+     svout = symeig_sim2( nsym , asym , qvec , rvec , wws+nws , xran ) ;
      for( rsum=qsum=0.0f,ii=0 ; ii < nn ; ii++ ){
        ssum = sum = 0.0f ;
        if( xtyp <= 0 ){
@@ -568,8 +570,7 @@ float_pair principal_vector_pair( int n , int m , int xtyp , void *xp ,
        sum = 1.0f / sqrtf(rsum) ;
        for( ii=0 ; ii < nn ; ii++ ) vvec[ii] *= sum ;
      }
-#pragma omp critical (MALLOC)
-     { free(rvec) ; free(qvec) ; }
+     nws -= 2*nsym ;
    }
 
    /** make it so that uvec dotted into the mean vector is positive **/
@@ -587,8 +588,7 @@ float_pair principal_vector_pair( int n , int m , int xtyp , void *xp ,
 
    /** free at last!!! **/
 
-#pragma omp critical (MALLOC)
-   free(asym) ;
+   if( wws != ws ) free(wws) ;
 
    svout.a = sqrtf(svout.a) ; svout.b = sqrtf(svout.b) ; return (svout) ;
 }
@@ -596,7 +596,8 @@ float_pair principal_vector_pair( int n , int m , int xtyp , void *xp ,
 /*---------------------------------------------------------------------------*/
 /* Same as symeig_sim1() but converge to top TWO eigenvectors. */
 
-static float_pair symeig_sim2( int nn, float *asym, float *vec, float *wec )
+static float_pair symeig_sim2( int nn, float *asym, float *vec,
+                               float *wec, float *ws , unsigned short xran[] )
 {
    float *u1,*u2,*u3 , *v1,*v2,*v3 , *aj ;
    float sum1,sum2,sum3 , q1,q2,q3 , r1,r2,r3 , s1,s2,s3 ;
@@ -629,14 +630,7 @@ static float_pair symeig_sim2( int nn, float *asym, float *vec, float *wec )
 
    /* allocate iteration vectors */
 
-#pragma omp critical (MALLOC)
-   { u1 = (float *)malloc(sizeof(float)*n) ;
-     u2 = (float *)malloc(sizeof(float)*n) ;
-     u3 = (float *)malloc(sizeof(float)*n) ;
-     v1 = (float *)malloc(sizeof(float)*n) ;
-     v2 = (float *)malloc(sizeof(float)*n) ;
-     v3 = (float *)malloc(sizeof(float)*n) ;
-   }
+   u1 = ws ; u2 = u1+n ; u3 = u2+n ; v1 = u3+n ; v2 = v1+n ; v3 = v2+n ;
 
    /* initialize u1 vector from input vec */
 
@@ -645,7 +639,7 @@ static float_pair symeig_sim2( int nn, float *asym, float *vec, float *wec )
    }
    if( sum1 == 0.0f ){  /* backup if input vector is all zero */
      for( ii=0 ; ii < n ; ii++ ){
-       u1[ii] = drand48()-0.3 ; sum1 += u1[ii]*u1[ii] ;
+       u1[ii] = erand48(xran)-0.3 ; sum1 += u1[ii]*u1[ii] ;
      }
    }
    sum1 = 1.0f / sqrtf(sum1) ;
@@ -655,7 +649,7 @@ static float_pair symeig_sim2( int nn, float *asym, float *vec, float *wec )
 
    sum1 = 0.02468f / n ;
    for( ii=0 ; ii < n ; ii++ ){
-     jj   = (int)lrand48() ;
+     jj   = (int)jrand48(xran) ;
      sum2 = sum1 * ((jj >> 1)%4 - 1.5f) ;
      sum3 = sum1 * ((jj >> 5)%4 - 1.5f) ;
      u2[ii] = (((jj >> 3)%2 == 0) ? u1[ii] : -u1[ii]) + sum2 ;
@@ -775,11 +769,6 @@ fprintf(stderr,"         bb=%.5g %.5g %.5g\n"
    /* result vectors are u1, u2 */
 
    for( ii=0 ; ii < n ; ii++ ){ vec[ii] = u1[ii] ; wec[ii] = u2[ii] ; }
-
-   /* free work vectors */
-
-#pragma omp critical (MALLOC)
-   { free(v3); free(v2); free(v1); free(u3); free(u2); free(u1); }
 
    evout.a = (float)ev[0] ; evout.b = (float)ev[1] ; return (evout) ;
 }

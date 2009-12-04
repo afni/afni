@@ -57,8 +57,11 @@ extern int first_principal_vectors( int n, int m, float *xx,
                                     int nvec, float *sval, float *uvec ) ;
 
 extern float principal_vector( int n , int m , int xtyp , void *xp ,
-                               float *uvec , float *tvec            ) ;
+                               float *uvec , float *tvec ,
+                               float *ws , unsigned short xran[] ) ;
 extern float mean_vector( int n , int m , int xtyp , void *xp , float *uvec ) ;
+
+extern void * pv_get_workspace( int n , int m ) ;
 
 #ifndef TYPEDEF_float_pair
 #define TYPEDEF_float_pair
@@ -66,7 +69,8 @@ typedef struct { float a,b ; } float_pair ;
 #endif
 
 extern float_pair principal_vector_pair( int n, int m, int xtyp, void *xp,
-                                        float *uvec, float *vvec, float *tvec );
+                                        float *uvec, float *vvec, float *tvec,
+                                        float *ws , unsigned short xran[] ) ;
 
 /***** Argument list mangling *****/
 
@@ -132,12 +136,12 @@ extern int compare_float (float *a, float *b );
 extern int compare_int (int *a, int *b );
 extern int compare_short (short *a, short *b );
 extern int compare_char (char *a, char *b );
-                  
+
 /***** little things to format values for nice printing *****/
-typedef enum { 
+typedef enum {
    CCALC_NOT_SET = 0,
-   CCALC_DOUBLE = 1, 
-   CCALC_NICE, CCALC_INT, CCALC_FINT, CCALC_CINT, 
+   CCALC_DOUBLE = 1,
+   CCALC_NICE, CCALC_INT, CCALC_FINT, CCALC_CINT,
    CCALC_CUSTOM } FORMAT_VALUE;
 #define AFNI_EOL '\n'
 extern char *format_value_4print
