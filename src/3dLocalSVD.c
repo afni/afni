@@ -50,6 +50,9 @@ int main( int argc , char *argv[] )
        "   voxel.  An inricate way of 'smoothing' 3D+time datasets,\n"
        "   in some sense, maybe.\n"
        "* For most purposes, program 3dLocalPV does the same thing, but faster.\n"
+       "   The only reason to use 3dLocalSVD is if you are using -vproj\n"
+       "   with the projection dimension ndim > 2.\n"
+
        "\n"
        "Options:\n"
        " -mask mset           = restrict operations to this mask\n"
@@ -208,6 +211,9 @@ int main( int argc , char *argv[] )
        do_vproj = 0 ; WARNING_message("-use_nonmask disables -vproj") ;
      }
    }
+
+   if( do_vproj <= 2 )
+     WARNING_message("Program 3dLocalPV can do the same analysis, and faster.") ;
 
    /* send options to SVD routine below */
 
