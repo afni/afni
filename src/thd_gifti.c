@@ -42,12 +42,17 @@ static int append_vals(char ** str, int * len, char * sep,
                        float f1, float f2, int i1, int i2);
 static int nifti_get_min_max_posn(void * vdata, int nitype, int len,
                         double * dmin, int * imin, double * dmax, int * imax);
-static int gnsd_add_sparse_data(NI_group *ngr, gifti_image *gim, int add_data);
-static int nsd_add_gifti_colms_range(NI_group * ngr, gifti_image * gim);
-static int nsd_add_gifti_colms_type(NI_group * ngr, gifti_image * gim);
-static int nsd_add_gifti_index_list(NI_group * ngr, gifti_image * gim);
-static int nsd_add_gifti_stat_codes(NI_group * ngr, gifti_image * gim);
-static int nsd_are_sorted_ints(int * list, int len);
+static int     gnsd_add_gifti_labeltable(NI_group *ngr, gifti_image *gim);
+static int     gnsd_add_lt_sparse_data(NI_group *, giiLabelTable *, float *);
+static int     gnsd_add_sparse_data(NI_group *ngr, gifti_image *, int add_data);
+static float * gnsd_reformat_gifti_rgba(giiLabelTable * lt);
+static int     nsd_add_gifti_colms_range(NI_group * ngr, gifti_image * gim);
+static int     nsd_add_gifti_colms_type(NI_group * ngr, gifti_image * gim);
+static int     nsd_add_gifti_index_list(NI_group * ngr, gifti_image * gim);
+static int     nsd_add_gifti_stat_codes(NI_group * ngr, gifti_image * gim);
+static int     nsd_are_sorted_ints(int * list, int len);
+static int     nsdg_add_label_table(NI_group * ngr, gifti_image * gim);
+static float * nsdg_reformat_gifti_rgba(int length, void ** Vrgba);
 
 static char * gifti_DA_meta_concat(gifti_image * gim, char * name,
                                    char * def, char * sep);
@@ -330,12 +335,13 @@ static gifti_image * NSD_to_gifti(NI_group * ngr, char * fname)
     rhs = NI_get_attribute(ngr, "self_idcode");
     if( !rhs ) NI_get_attribute(ngr, "ni_idcode");
     if( !rhs ) { id = UNIQ_idcode(); rhs = id; }
+
     gifti_add_to_meta(&gim->meta, "UniqueID", rhs, 1);
     if( id ) free(id);
 
-    /* maybe set the AFNI_Timestep */
+    /* maybe set the TimeStep (from AFNI_Timestep 30 Nov 2009) */
     if( timestr && *timestr )
-        gifti_add_to_meta(&gim->meta, "AFNI_Timestep", timestr, 1);
+        gifti_add_to_meta(&gim->meta, "TimeStep", timestr, 1);
 
     /* range is not used, type was set from SPARSE_DATA */
 
@@ -344,11 +350,127 @@ static gifti_image * NSD_to_gifti(NI_group * ngr, char * fname)
     if( !rv ) rv = nsdg_set_history(ngr, gim);
     if( !rv ) rv = nsdg_add_data(sdel, gim);
     if( !rv ) rv = nsdg_add_index_list(ngr, gim);
+    if( !rv ) rv = nsdg_add_label_table(ngr, gim);
 
+/* possibly fill the LabelTable */
+rhs = NI_get_attribute(ngr, "dset_type");
+if( rhs && !strcmp(rhs, "Node_Label") )
+        
     /* on failure, nuke image */
     if( rv ) { gifti_free_image(gim); RETURN(NULL); }
 
     RETURN(gim);
+}
+
+/* fill the LabelTable structure, from AFNI_labeltable->SPARSE_DATA */
+static int nsdg_add_label_table(NI_group * ngr, gifti_image * gim)
+{
+    giiLabelTable  * lt;
+    NI_element     * nel, * tel;
+    NI_group       * ltg = NULL;
+    float          * rgba = NULL;
+    char           * cp;
+    void          ** elist = NULL;
+    int              ind, ncols, length, c;
+
+    ENTRY("nsdg_add_label_table");
+
+    if( !gim || !ngr ) RETURN(1);
+
+    /* find the SPARSE_DATA element of the AFNI_labeltable group */
+    ind = NI_search_group_shallow(ngr, "AFNI_labeltable", &elist);
+    if(ind > 0){ ltg = (NI_group *)elist[0]; NI_free(elist); elist = NULL; }
+    if( !ltg ) { /* not an error, but we are done */
+        if( GP->verb > 3 ) fprintf(stderr,"-- NSDG: no AFNI_labeltable\n");
+        RETURN(0);
+    }
+    ind = NI_search_group_shallow(ltg, "SPARSE_DATA", &elist);
+    if(ind > 0){ nel = (NI_element *)elist[0]; NI_free(elist); elist = NULL; }
+    if( !nel ) { /* probably an error */
+        if(GP->verb > 0)
+            fprintf(stderr,"-- NSDG: AFNI_labeltable: missing SPARSE_DATA\n");
+        RETURN(0);
+    }
+
+    ncols = nel->vec_num;
+    length = nel->vec_len;
+
+    /* verify either 2 or 6 columns */
+    if( ncols != 2 && ncols != 6 ) {
+        fprintf(stderr,"** NIML ALT SData, bad ncols = %d\n", ncols);
+        RETURN(1);
+    }
+    if( length <= 0 ) {
+        fprintf(stderr,"** NIML ALT SData, bad length = %d\n", length);
+        RETURN(1);
+    }
+
+    /* verify COLMS_LABS, if present (2 or 6 columns) */
+    tel = NI_find_element_by_aname(ltg,"AFNI_atr","atr_name","COLMS_LABS");
+    if( tel ) { /* then verify */
+        cp = ((char **)tel->vec[0])[0];
+        if( ncols == 6 ) {
+            if( strcmp(cp, "R;G;B;A;key;name") )
+               fprintf(stderr,"** have ALT CLABS '%s', should be '%s'\n",
+                              cp, "R;G;B;A;key;name");
+        } else if( ncols == 2 ) {
+            if( strcmp(cp, "key;name") )
+               fprintf(stderr,"** have ALT CLABS '%s', should be '%s'\n",
+                              cp, "key;name");
+        }
+        if(GP->verb>3) fprintf(stderr,"-- SData len %d, COLMS_LABS[%d]='%s'\n",
+                               length,ncols,cp);
+    }
+
+    /* verify types: require 4*float,int,String or just int,String */
+
+    ind = 0;
+    if( ncols == 6 ) {
+        if( nel->vec_typ[ind  ] != NI_FLOAT32 ||
+            nel->vec_typ[ind+1] != NI_FLOAT32 ||
+            nel->vec_typ[ind+2] != NI_FLOAT32 ||
+            nel->vec_typ[ind+3] != NI_FLOAT32 ) {
+            fprintf(stderr,"** bad types for NIML ALT RGBA\n");
+            RETURN(1);
+        }
+        ind += 4;
+    }
+    if( nel->vec_typ[ind] != NI_INT || nel->vec_typ[ind+1] != NI_STRING ) {
+        fprintf(stderr,"** bad types for NIML ALT key;name\n");
+        RETURN(1);
+    }
+
+    /* if there are colors, get them */
+    if( ncols == 6 ) rgba = nsdg_reformat_gifti_rgba(length, nel->vec);
+    else             rgba = NULL;
+
+    /* ready to go, fill the giiLabelTable */
+
+    lt = &gim->labeltable;      /* for convenience */
+    gifti_clear_LabelTable(lt);
+
+    /* do not steal pointers, but copy data */
+    lt->length = length;
+    lt->index = (int *)malloc(length*sizeof(int));
+    lt->label = (char **)malloc(length*sizeof(char *));
+    if( !lt->index || !lt->label ) {
+        fprintf(stderr,"** N2G: failed to copy LabelTable of len %d\n",length);
+        if( lt->index ) free(lt->index); lt->index = NULL;
+        if( lt->label ) free(lt->label); lt->label = NULL;
+        if( rgba )      free(rgba);
+    }
+    memcpy(lt->index, nel->vec[ind], length*sizeof(int));
+
+    /* and duplicate all of the labels */
+    for( c = 0; c < length; c++ )
+        lt->label[c] = nifti_strdup(((char **)nel->vec[ind+1])[c]);
+
+    lt->rgba = rgba;   /* already allocated */
+
+    if( GP->verb>2 )
+        fprintf(stderr,"++ ND2G: filled LT, len %d, ncols %d'\n",length,ncols);
+
+    RETURN(0);
 }
 
 /* add data to the gifti_image (do not allocate data, just steal pointers) */
@@ -618,12 +740,35 @@ static int nsdg_stat_to_intent(NI_group * ngr, gifti_image * gim)
     RETURN(0);
 }
 
-/* convert between dataset types: GIFTI to NI_SURF_DSET */
-/* note: we throw away the gifti data as it is copied   */
+/* ----------------------------------------------------------------------
+   convert between dataset types: GIFTI to NI_SURF_DSET
+   note: we throw away the gifti data as it is copied
+
+   NIML dset format:
+
+      <AFNI_dataset>: dset_type="Node_Bucket", self_idcode, filename
+                      ? label, ni_form
+         <AFNI_atr> COLMS_LABS, COLMS_RANGE, COLMS_TYPE, COLMS_STATSYM,
+                    HISTORY_NOTE
+         <INDEX_LIST>: sorted_node_def
+         <SPARSE_DATA>: data_type, ni_form, ni_timestep (AFNI_timestep meta)
+
+   NIML LabelTable format, (if there is a GIFTI LabelTable) same, except:
+
+      <AFNI_dataset>: dset_type="Node_Label"
+         <AFNI_labeltable>: dset_type="LabelTableObject"
+                                ?? self_idcode, filename, label, flipped,
+                                   Sgn, top_frac, M0, Name
+            <COLMS_RANGE>, COLMS_LABS, COLMS_TYPE, COLMS_STATSYM
+            <SPARSE_DATA> data_type="LabelTabelObject_data"
+         <SPARSE_DATA> data_type="Node_Label_data"
+
+   ---------------------------------------------------------------------- */
 static NI_group * gifti_to_NSD(gifti_image * gim, int copy_data)
 {
     NI_group * ngr;
     char     * cp, * id = NULL;
+    int        haslt = 0;
 
     ENTRY("gifti_to_NSD");
 
@@ -636,7 +781,11 @@ static NI_group * gifti_to_NSD(gifti_image * gim, int copy_data)
 
     ngr = NI_new_group_element();
     NI_rename_group(ngr, "AFNI_dataset");
-    NI_set_attribute(ngr, "dset_type", "Node_Bucket");
+    
+    /* if there is a labeltable, create a Node_Label dataset */
+    haslt = gim->labeltable.length > 0;
+    if( haslt ) NI_set_attribute(ngr, "dset_type", "Node_Label");
+    else        NI_set_attribute(ngr, "dset_type", "Node_Bucket");
 
     /* get or create an ID code */
     cp = gifti_get_meta_value(&gim->meta, "UniqueID");
@@ -659,6 +808,8 @@ static NI_group * gifti_to_NSD(gifti_image * gim, int copy_data)
     cp = gifti_get_meta_value(&gim->meta, "AFNI_History");
     if( cp ) add_string_attribute(ngr, "HISTORY_NOTE", cp);
 
+    if( haslt ) gnsd_add_gifti_labeltable(ngr, gim); /* if LT, add it */
+
     nsd_add_gifti_index_list(ngr, gim);
 
     gnsd_add_sparse_data(ngr, gim, copy_data);
@@ -667,6 +818,182 @@ static NI_group * gifti_to_NSD(gifti_image * gim, int copy_data)
 }
 
 /* ------------------------- static functions ------------------------ */
+
+/* add an AFNI_labeltable element from the gifti_image labeltable      */
+/* note: delete labeltable data as it is copied                        */
+static int gnsd_add_gifti_labeltable(NI_group * ngr, gifti_image * gim)
+{
+    giiLabelTable * lt;
+    NI_group      * lgr;
+    NI_element    * nel;
+    double          dmin = 0.0, dmax = 0.0;
+    float         * rgba;   /* rearranged to be all R, all G, all B and all A */
+    char          * str;
+    int             minp = 0, maxp = 0;
+    int             c, len;
+
+    ENTRY("gnsd_add_gifti_labeltable");
+
+    if( !ngr || !gim ) RETURN(1);
+    lt = &gim->labeltable;  /* for convenience */
+
+    if( lt->length <= 0 ) RETURN(0);
+
+    if( GP->verb > 2 ) fprintf(stderr,"++ gNSD: adding LabelTable element\n");
+
+    lgr = NI_new_group_element();
+    NI_rename_group(lgr, "AFNI_labeltable");
+    NI_set_attribute(lgr, "dset_type", "LabelTableObject");
+
+    /* get rearranged RGBA data first, for use in attributes */
+    rgba = gnsd_reformat_gifti_rgba(lt); /* all R, all G, etc. */
+    if( GP->verb > 3 )
+        fprintf(stderr,"-- have RGBA for LabelTable: %s\n", rgba?"yes":"no");
+
+    /* add COLMS_RANGE attribute */
+    str = NULL;  len = 0;
+    if( rgba )
+        for( c = 0; c < 4; c++ ){
+            nifti_get_min_max_posn(rgba+c*lt->length, NIFTI_TYPE_FLOAT32,
+                                   lt->length, &dmin, &minp, &dmax, &maxp);
+            if( append_vals(&str, &len, ";", dmin,dmax,minp,maxp) ) RETURN(1);
+        }
+    nifti_get_min_max_posn(lt->index, NIFTI_TYPE_INT32,
+                           lt->length, &dmin, &minp, &dmax, &maxp);
+    if( append_vals(&str, &len, ";", dmin,dmax,minp,maxp) ) RETURN(1);
+    if( append_vals(&str, &len, ";", 0.0, 0.0, -1, -1) ) RETURN(1);
+    add_string_attribute(lgr, "COLMS_RANGE", str);
+
+    /* and add basically useless LABS, TYPE and STATSYM */
+    if( rgba ) add_string_attribute(lgr, "COLMS_LABS", "R;G;B;A;key;name");
+    else       add_string_attribute(lgr, "COLMS_LABS", "key;name");
+
+    if( rgba ) add_string_attribute(lgr, "COLMS_TYPE",
+                 "R_col;G_col;B_col;A_col;Node_Index_Label;Node_String_Label");
+    else       add_string_attribute(lgr, "COLMS_TYPE",
+                                         "Node_Index_Label;Node_String_Label");
+
+    if( rgba ) add_string_attribute(lgr, "COLMS_STATSYM",
+                                         "none;none;none;none;none;none");
+    else       add_string_attribute(lgr, "COLMS_LABS", "none;none");
+
+    /* finally, add the LabelTable data */
+    (void)gnsd_add_lt_sparse_data(lgr, lt, rgba);
+
+    if( rgba ) free(rgba);
+    if( str  ) free(str);
+
+    NI_add_to_group(ngr, lgr);
+
+    if(GP->verb > 3) fprintf(stderr,"-- gNSD: added LabelTable group\n");
+
+    RETURN(0);
+}
+
+/* add sparse data to NIML labeltable */
+static int gnsd_add_lt_sparse_data(NI_group * ngr, giiLabelTable * lt, 
+                                   float * rgba)
+{
+    NI_element * nel;
+    int          length, nnew;
+
+    ENTRY("gnsd_add_lt_sparse_data");
+
+    if( !ngr || !lt || lt->length <= 0 || !lt->index || !lt->label ) {
+        if(GP->verb>3) fprintf(stderr,"++ gNSD: no LT sparse data to add\n");
+        RETURN(0);
+    } else if(GP->verb > 3) fprintf(stderr,"++ gNSD: adding LT sparse data\n");
+
+    length = lt->length;
+    nel = NI_new_data_element("SPARSE_DATA", length);
+    NI_set_attribute(nel, "data_type", "LabelTableObject_data");
+    nnew = 0; /* number of new columns (should be 2 or 6) */
+
+    if( rgba ) { /* add the 4 float RGBA columns */
+        NI_add_column(nel, NI_FLOAT32, rgba);
+        NI_add_column(nel, NI_FLOAT32, rgba + 1*length);
+        NI_add_column(nel, NI_FLOAT32, rgba + 2*length);
+        NI_add_column(nel, NI_FLOAT32, rgba + 3*length);
+        nnew += 4;
+    }
+
+    /* add index and labels */
+    NI_add_column(nel, NI_INT, lt->index);
+    NI_add_column(nel, NI_STRING, lt->label);
+    nnew += 2;
+
+    NI_add_to_group(ngr, nel);
+
+    if(GP->verb > 2)
+        fprintf(stderr,"-- gNSD: added %d cols of SPARSE_DATA to LT\n", nnew);
+
+    RETURN(0);
+}
+
+/* given 4 float pointers, return pointer to gifti RGBA tuple array */
+static float * nsdg_reformat_gifti_rgba(int length, void ** Vrgba)
+{
+    float * rgba, * dest, * src;
+    int     index, color;
+
+    ENTRY("nsdg_reformat_gifti_rgba");
+
+    /* if nothing to do, just return */
+    if( length <= 0 || !Vrgba ) RETURN(NULL);
+
+    rgba = (float *)malloc(4 * length * sizeof(float));
+    if( !rgba ) {
+        fprintf(stderr,"** gRG_rgba: failed alloc of %d floats\n", 4*length);
+        RETURN(NULL);
+    }
+
+    /* get one color at a time; try to be efficient */
+    for( color = 0; color < 4; color++ ) {
+        dest = rgba + color;
+        src  = (float *)Vrgba[color];
+        if( !src ) {
+            fprintf(stderr,"** gRG_rgba: only partial AFNI_labeltable\n");
+            free(rgba);
+            RETURN(NULL);
+        }
+        for( index = 0; index < length; index++ ) {
+            *dest = *src++;
+            dest += 4;
+        }
+    }
+
+    RETURN(rgba);
+}
+
+/* return gifti RGBA array with all R, then all G, etc. */
+static float * gnsd_reformat_gifti_rgba(giiLabelTable * lt)
+{
+    float * rgba, * dest, * src;
+    int     index, color;
+
+    ENTRY("gnsd_reformat_gifti_rgba");
+
+    /* if nothing to do, just return */
+    if( !lt || lt->length <= 0 || !lt->rgba ) RETURN(NULL);
+
+    rgba = (float *)malloc(4 * lt->length * sizeof(float));
+    if( !rgba ) {
+        fprintf(stderr,"** RG_rgba: failed alloc of %d floats\n", 4*lt->length);
+        RETURN(NULL);
+    }
+
+    /* get one color at a time; try to be efficient */
+    dest = rgba;
+    for( color = 0; color < 4; color++ ) {
+        src  = lt->rgba + color;
+        for( index = 0; index < lt->length; index++ ) {
+            *dest++ = *src;
+            src += 4;
+        }
+    }
+
+    RETURN(rgba);
+}
 
 /* add a SPARSE_DATA element from the gifti_image (skip INTENT_NODE_INDEX) */
 /* note: delete gifti data as it is copied                                 */
@@ -718,14 +1045,20 @@ static int gnsd_add_sparse_data(NI_group * ngr, gifti_image * gim, int add_data)
         free(da->data);  da->data = NULL;
     }
 
-    NI_set_attribute(nel, "data_type", "Node_Bucket_data");
+    /* the data_type attribute depends on whether there is a LabelTable */
+    if( gim->labeltable.length > 0 )
+        NI_set_attribute(nel, "data_type", "Node_Label_data");
+    else
+        NI_set_attribute(nel, "data_type", "Node_Bucket_data");
+
     nel->outmode = GP->write_mode;
     NI_set_attribute(nel, "ni_form", /* set the endian (data already swapped) */
                      gifti_get_this_endian()==GIFTI_ENDIAN_LITTLE ?
                          "lsbfirst" : "msbfirst");
 
-    /* if there is a Timestep, pass it along */
-    str = gifti_get_meta_value(&gim->meta, "AFNI_Timestep");
+    /* if there is a Timestep, pass it along (was AFNI_Timestep 30 Nov 2009) */
+    str = gifti_get_meta_value(&gim->meta, "TimeStep");
+    if( ! str ) str = gifti_get_meta_value(&gim->meta, "AFNI_TimeStep");
     if( str ) NI_set_attribute(nel, "ni_timestep", str);
 
     NI_add_to_group(ngr, nel);
@@ -970,7 +1303,7 @@ static int nsd_add_gifti_colms_range(NI_group * ngr, gifti_image * gim)
     len = 512;
     str = (char *)malloc(len * sizeof(char));
     if( !str ) {
-        fprintf(stderr,"** NADGR: failed allof of len %d string\n", len);
+        fprintf(stderr,"** NADGR: failed alloc of len %d string\n", len);
         RETURN(1);
     }
     str[0] = '\0';
@@ -1106,7 +1439,14 @@ static int append_vals(char ** str, int * len, char * sep,
 
     ENTRY("append_vals");
 
-    if( !str || !*str || !len || !sep ) RETURN(1);
+    if( !str || !len || (*len < 0) ) RETURN(1);
+    if( !*str && !*len ) { /* make an initial string */
+        *len = 256;
+        *str = (char *)malloc(*len * sizeof(char));
+        **str = '\0';
+    }
+
+    if( !*str || !sep ) RETURN(1);
     if( strlen(sep) > 32 )     RETURN(1);
 
     /* first, just stuff them in a sufficient buffer */

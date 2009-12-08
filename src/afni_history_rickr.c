@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  8, DEC, 2009, RCR, "GIFTI", MINOR, TYPE_NEW_OPT,
+   "added ability to read/write GIFTI LabelTables with colors in thd_gifti.c",
+   NULL
+ } ,
+
  {  4, DEC, 2009, RCR, "3dWarp", MICRO, TYPE_MODIFY,
    "add help example of going from +tlrc space to +orig space",
    NULL
