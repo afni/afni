@@ -352,10 +352,6 @@ static gifti_image * NSD_to_gifti(NI_group * ngr, char * fname)
     if( !rv ) rv = nsdg_add_index_list(ngr, gim);
     if( !rv ) rv = nsdg_add_label_table(ngr, gim);
 
-/* possibly fill the LabelTable */
-rhs = NI_get_attribute(ngr, "dset_type");
-if( rhs && !strcmp(rhs, "Node_Label") )
-        
     /* on failure, nuke image */
     if( rv ) { gifti_free_image(gim); RETURN(NULL); }
 
@@ -384,6 +380,7 @@ static int nsdg_add_label_table(NI_group * ngr, gifti_image * gim)
         if( GP->verb > 3 ) fprintf(stderr,"-- NSDG: no AFNI_labeltable\n");
         RETURN(0);
     }
+
     ind = NI_search_group_shallow(ltg, "SPARSE_DATA", &elist);
     if(ind > 0){ nel = (NI_element *)elist[0]; NI_free(elist); elist = NULL; }
     if( !nel ) { /* probably an error */
