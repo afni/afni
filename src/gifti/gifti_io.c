@@ -114,7 +114,8 @@ static char * gifti_history[] =
   "1.03 17 April, 2009 : allow DA size to vary over each external file\n",
   "1.04 27 October, 2009 : added support for LabelTable RGBA attributes\n"
   "     - valid LabelTable requires RGBA values in [0,1.0]\n"
-  "     - compare_labeltable requires equality of RGBA values (no approx.)\n"
+  "     - compare_labeltable requires equality of RGBA values (no approx.)\n",
+  "1.05 08 December, 2009: ignore invalid GIFTI attrs by default\n"
 };
 
 static char gifti_version[] = "gifti library version 1.04, 27 October, 2009";
@@ -290,7 +291,7 @@ int gifti_str2attr_gifti(gifti_image * gim, const char *attr, const char *val)
             return 1;
         }
     } else {
-        if( G.verb > 0 )
+        if( G.verb > 1 )
             fprintf(stderr,"** unknown GIFTI attrib, '%s'='%s'\n",attr,val);
         return 1;
     }
