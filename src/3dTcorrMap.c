@@ -610,8 +610,7 @@ int main( int argc , char *argv[] )
 
    if( do_automask ){
      if (!DSET_IS_VOL(xset)) {
-      ERROR_message("Can't use -automask with non-volumetric input datasets");
-      exit(1);
+      ERROR_exit("Can't use -automask with non-volumetric input datasets");
      }
      mask  = THD_automask( xset ) ;
      nmask = THD_countmask( nvox , mask ) ;
@@ -886,8 +885,7 @@ int main( int argc , char *argv[] )
 
    if ( (Mseedr > 0.0f || Mseedr < 0.0f) && 
         !DSET_IS_VOL(xset)) {
-      ERROR_message("Can't use -Mseed with non-volumetric input datasets");
-      exit(1);
+      ERROR_exit("Can't use -Mseed with non-volumetric input datasets");
    } 
    if( Mseedr > 0.0f){
      Mseed_nbhd = MCW_spheremask( dx,dy,dz , Mseedr ) ;
@@ -932,9 +930,8 @@ int main( int argc , char *argv[] )
         }
       } else {
          if (!DSET_IS_VOL(xset)) {
-            ERROR_message("Can't use -Gblur with non-volumetric "
+            ERROR_exit("Can't use -Gblur with non-volumetric "
                           "input datasets");
-            exit(1);
          }
       }
    }  
