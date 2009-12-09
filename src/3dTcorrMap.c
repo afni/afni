@@ -94,6 +94,7 @@ int main( int argc , char *argv[] )
    char *Qprefix=NULL ; THD_3dim_dataset *Qset=NULL ; float *Qar=NULL ;
    char *Tprefix=NULL ; THD_3dim_dataset *Tset=NULL ; float *Tar=NULL ;
    char *Pprefix=NULL ; THD_3dim_dataset *Pset=NULL ; float *Par=NULL ;
+   char *COprefix=NULL; THD_3dim_dataset *COset=NULL ; short *COar=NULL ;
       float Thresh=0.0f ;
    char *Tvprefix=NULL ; THD_3dim_dataset *Tvset=NULL ;
       float **Tvar=NULL ; float  *Threshv=NULL, *Tvcount=NULL ;
@@ -212,7 +213,7 @@ int main( int argc , char *argv[] )
        "                   long long all-voxel-pairs correlation begins.\n"
 #endif
        "\n"
-       "SPATIAL FILTERING:\n"
+       "SPATIAL FILTERING: (only for volumetric input datasets) \n"
        "  -Gblur ff  = Gaussian blur the -input dataset (inside the mask)\n"
        "                using a kernel width of 'ff' mm.\n"
        "            ** Uses the same approach as program 3dBlurInMask.\n"
@@ -262,6 +263,12 @@ int main( int argc , char *argv[] )
        "              from white noise timeseries.\n"
        "           ** N.B.: You can't use '-VarThresh' and '-VarThreshN'\n"
        "                    in the same run of the program!\n"
+       "  -CorrMap\n"
+       "         Output at each voxel the entire correlation map\n"
+       "         Essentially this does what 3dAutoTcorrelate would\n"
+       "         with some of the additional options offered here.\n"
+       "       ** N.B.: Output dataset will be huge in most cases.\n"
+       "\n"
        "\n"
        "  -Aexpr expr ppp\n"
        "            = For each correlation 'r', compute the calc-style\n"
@@ -445,6 +452,24 @@ int main( int argc , char *argv[] )
 
          nopt++ ; continue ;
       }
+      if( strcasecmp(argv[nopt],"-CorrMap") == 0 ){
+
+         if (nopt+1 >= argc) {
+            ERROR_exit("Need a prefix after -CorrMap");
+         }
+
+         COprefix = argv[++nopt] ; nout++ ;
+         if( !THD_filename_ok(COprefix) )
+            ERROR_exit("Illegal prefix after %s",argv[nopt-1]) ;
+         if( COprefix[0] == '-' )
+            WARNING_message(
+               "%s prefix '%s' starts with '-' :: is this a mistake?",
+               argv[nopt-1] , COprefix ) ;
+
+         INFO_message("CorrMap, this might take a long while...\n") ;
+
+         nopt++ ; continue ;
+      }
 
       if( strcasecmp(argv[nopt],"-Aexpr") == 0 ||
           strcasecmp(argv[nopt],"-Cexpr") == 0 ||
@@ -584,6 +609,10 @@ int main( int argc , char *argv[] )
    nz = DSET_NZ(xset) ; nvox = nxy*nz ;
 
    if( do_automask ){
+     if (!DSET_IS_VOL(xset)) {
+      ERROR_message("Can't use -automask with non-volumetric input datasets");
+      exit(1);
+     }
      mask  = THD_automask( xset ) ;
      nmask = THD_countmask( nvox , mask ) ;
      if( nmask > 9 )
@@ -626,6 +655,60 @@ int main( int argc , char *argv[] )
        ERROR_exit("Output dataset %s already exists!",
                   DSET_HEADNAME(Mset)) ;
      tross_Make_History( "3dTcorrMap" , argc,argv , Mset ) ;
+   }
+
+   if( COprefix != NULL ){
+     int iii, jjj, kkk, nxy, dig=0;
+     float *lesfac=(float*)calloc(DSET_NVOX(xset), sizeof(float));
+     for (ii=0; ii<DSET_NVOX(xset); ++ii) lesfac[ii]=1/10000.0; 
+     COset = EDIT_empty_copy( xset ) ;
+     EDIT_dset_items( COset ,
+                        ADN_prefix    , COprefix        ,
+                        ADN_nvals     , DSET_NVOX(xset),
+                        ADN_ntt       , 0,
+                        ADN_brick_fac , lesfac           ,
+                        ADN_type      , HEAD_FUNC_TYPE ,
+                        ADN_func_type , FUNC_BUCK_TYPE ,
+                      ADN_none ) ;
+     free(lesfac); lesfac = NULL;
+     dig = (int)ceil(log(DSET_NVOX(xset))/log(10));
+     nxy = DSET_NX(COset)*DSET_NY(COset);
+     for (ii=0; ii<DSET_NVOX(xset); ++ii) {
+      EDIT_substitute_brick( COset , ii , MRI_short , NULL ) ;
+      EDIT_BRICK_TO_NOSTAT(COset,ii) ;
+      if (!DSET_IS_VOL(xset)) {
+         switch (dig) {
+            case 6:
+               sprintf(stmp,"n%06d", ii);
+               break;
+            case 5:
+               sprintf(stmp,"n%05d", ii);
+               break;
+            case 4:
+               sprintf(stmp,"n%04d", ii);
+               break;
+            case 3:
+            case 2:
+            case 1:
+               sprintf(stmp,"n%03d", ii);
+               break;
+            default:
+               sprintf(stmp,"n%07d", ii);
+               break;
+         }
+      } else {
+         kkk = ii/nxy;
+         jjj = ii%nxy;
+         iii = jjj % DSET_NX(COset);
+         jjj = jjj / DSET_NX(COset);
+         sprintf(stmp,"v%03d%03d%03d",iii, jjj, kkk) ;
+      }
+      EDIT_BRICK_LABEL(COset,ii,stmp) ;
+     }
+     if( THD_deathcon() && THD_is_file(DSET_HEADNAME(COset)) )
+       ERROR_exit("Output dataset %s already exists!",
+                  DSET_HEADNAME(COset)) ;
+     tross_Make_History( "3dTcorrMap" , argc,argv , COset ) ;
    }
 
    if( Pprefix != NULL ){
@@ -801,7 +884,12 @@ int main( int argc , char *argv[] )
    dy = fabsf(DSET_DY(xset)) ;
    dz = fabsf(DSET_DZ(xset)) ;
 
-   if( Mseedr > 0.0f ){
+   if ( (Mseedr > 0.0f || Mseedr < 0.0f) && 
+        !DSET_IS_VOL(xset)) {
+      ERROR_message("Can't use -Mseed with non-volumetric input datasets");
+      exit(1);
+   } 
+   if( Mseedr > 0.0f){
      Mseed_nbhd = MCW_spheremask( dx,dy,dz , Mseedr ) ;
      if( Mseed_nbhd == NULL || Mseed_nbhd->num_pt < 2 )
        ERROR_exit("Can't build -Mseed neighborhood mask!?") ;
@@ -819,28 +907,37 @@ int main( int argc , char *argv[] )
    /* Gblur inside the mask */
 
    if( gblur > 0.0f ){
-     float fx,fy,fz ; int nrep=0 ;
-     MRI_IMAGE *bim ; float *bar ;
+      if (DSET_IS_VOL(xset)) {
+        float fx,fy,fz ; int nrep=0 ;
+        MRI_IMAGE *bim ; float *bar ;
 
-     if( nx == 1 ) dx = 0.0f ;
-     if( ny == 1 ) dy = 0.0f ;
-     if( nz == 1 ) dz = 0.0f ;
+        if( nx == 1 ) dx = 0.0f ;
+        if( ny == 1 ) dy = 0.0f ;
+        if( nz == 1 ) dz = 0.0f ;
 
-     mri_blur3D_getfac( gblur , dx,dy,dz , &nrep , &fx,&fy,&fz ) ;
-     if( nrep > 0 && fx > 0.0f && fy > 0.0f && fz >= 0.0f ){
-       ININFO_message("-Gblur-ing parameters: #iter=%d fx=%.5f fy=%.5f fz=%.5f" ,
-                      nrep , fx , fy , fz ) ;
-       for( iv=0 ; iv < ntime ; iv++ ){
-         bim = THD_extract_float_brick( iv , xset ) ;
-         mri_blur3D_inmask( bim , mask , fx,fy,fz , nrep ) ;
-         EDIT_substitute_brick( xset , iv , MRI_float , MRI_FLOAT_PTR(bim) ) ;
-         EDIT_BRICK_FACTOR( xset,iv,0.0f ) ;
-         mri_clear_data_pointer(bim) ; mri_free(bim) ;
-       }
-     } else {
-       WARNING_message("Can't -Gblur input dataset for some reason") ;
-     }
-   }
+        mri_blur3D_getfac( gblur , dx,dy,dz , &nrep , &fx,&fy,&fz ) ;
+        if( nrep > 0 && fx > 0.0f && fy > 0.0f && fz >= 0.0f ){
+          ININFO_message("-Gblur-ing parameters: "
+                         "#iter=%d fx=%.5f fy=%.5f fz=%.5f" ,
+                         nrep , fx , fy , fz ) ;
+          for( iv=0 ; iv < ntime ; iv++ ){
+            bim = THD_extract_float_brick( iv , xset ) ;
+            mri_blur3D_inmask( bim , mask , fx,fy,fz , nrep ) ;
+            EDIT_substitute_brick( xset , iv , MRI_float , MRI_FLOAT_PTR(bim) ) ;
+            EDIT_BRICK_FACTOR( xset,iv,0.0f ) ;
+            mri_clear_data_pointer(bim) ; mri_free(bim) ;
+          }
+        } else {
+          WARNING_message("Can't -Gblur input dataset for some reason") ;
+        }
+      } else {
+         if (!DSET_IS_VOL(xset)) {
+            ERROR_message("Can't use -Gblur with non-volumetric "
+                          "input datasets");
+            exit(1);
+         }
+      }
+   }  
 
    /* remove trends (-polort and -ort) now (if not bandpassing later) */
 
@@ -1099,6 +1196,14 @@ int main( int argc , char *argv[] )
      Tcount = Mcsum = Zcsum = Qcsum = 0.0f ;
      for( iv=0 ; iv < N_iv ; ++iv ) Tvcount[iv] = 0.0f ;
      Pcsum = 0.0f ; nPcsum = 0 ;
+     
+     if (COset) {
+         COar = DSET_ARRAY(COset,indx[ii]);
+         for( jj=0 ; jj < nmask ; jj++ ) {
+            cc = ccar[jj] * 10000.0;   /* scale up because output is short */
+            COar[indx[jj]] = cc < 0 ? (short)(cc-0.5):(short)(cc+0.5);
+         }
+     }
 
      for( jj=0 ; jj < nmask ; jj++ ){
        if( jj == ii ) continue ;
@@ -1225,6 +1330,8 @@ int main( int argc , char *argv[] )
    if( HHset != NULL ){
      DSET_write(HHset) ; WROTE_DSET(HHset) ; DSET_delete(HHset) ;
    }
-
+   if ( COset != NULL ) {
+      DSET_write(COset) ; WROTE_DSET(COset) ; DSET_delete(COset) ;
+   }
    INFO_message("total CPU time = %.2f s",COX_cpu_time()) ; exit(0) ;
 }
