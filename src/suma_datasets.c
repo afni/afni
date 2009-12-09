@@ -7874,7 +7874,7 @@ int SUMA_Vec2DsetCol (SUMA_DSET *dset, int ind,
   
    /* reset generic attributes */
    SUMA_AddGenDsetColAttr (dset, ctp, dset->dnel->vec[ind], 1, ind, 0);
-  
+   if (LocalHead) SUMA_ShowDset(dset, 0, NULL);
    SUMA_RETURN(1);
 }
 

@@ -2874,6 +2874,10 @@ extern int    THD_deconflict_prefix( THD_3dim_dataset * ) ;          /* 23 Mar 2
 
 #define DSET_DZ(ds) ((ds)->daxes->zzdel)
 
+/*! Return 1 if dset is on a volume grid, as opposed to 1D or surface-based */
+
+#define DSET_IS_VOL(ds) (((ds)->daxes->nzz == 1 && (ds)->daxes->nyy == 1) ? 0:1)
+
 /*! Return volume of a voxel */
 
 #define DSET_VOXVOL(ds) \
