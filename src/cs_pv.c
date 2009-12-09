@@ -114,7 +114,7 @@ float principal_vector( int n , int m , int xtyp , void *xp ,
      } else {  /* nn==1 and have mm > 1 such 'vectors' */
        uvec[0] = (tvec != NULL && tvec[0] < 0.0f) ? -1.0f : 1.0f ;
        for( sval=0.0f,ii=0 ; ii < mm ; ii++ ){
-         xj = XPT(jj) ; sval += xj[0]*xj[0] ;
+         xj = XPT(ii) ; sval += xj[0]*xj[0] ;
        }
        sval = sqrtf(sval) ;
      }
@@ -469,7 +469,7 @@ float_pair principal_vector_pair( int n , int m , int xtyp , void *xp ,
      } else {  /* nn==1 and have mm > 1 such 'vectors' */
        uvec[0] = (tvec != NULL && tvec[0] < 0.0f) ? -1.0f : 1.0f ;
        for( sval=0.0f,ii=0 ; ii < mm ; ii++ ){
-         xj = XPT(jj) ; sval += xj[0]*xj[0] ;
+         xj = XPT(ii) ; sval += xj[0]*xj[0] ;
        }
        sval = sqrtf(sval) ;
      }
