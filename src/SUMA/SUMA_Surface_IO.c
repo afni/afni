@@ -5277,6 +5277,7 @@ SUMA_DRAWN_ROI **SUMA_MultiColumnsToDrawnROI(
          
 {   
    static char FuncName[]={"SUMA_MultiColumnsToDrawnROI"};
+   char smapflag[32];
    int *iv=NULL;
    float *fv=NULL;
    int ncol=0, nc;
@@ -5284,7 +5285,7 @@ SUMA_DRAWN_ROI **SUMA_MultiColumnsToDrawnROI(
    int *iLabel=NULL, *iNode = NULL, *isort=NULL,
       i, N_Labels = 0, *iStart=NULL, *iStop=NULL, 
       cnt = 0, ilmax = 0;
-   float *r=NULL, *g=NULL, *b=NULL, *RGB=NULL;
+   float *r=NULL, *g=NULL, *b=NULL, *RGB=NULL, acol[4]={1.0, 0.0, 0.0, 1.0};
    SUMA_DRAWN_ROI **ROIv=NULL;
    SUMA_Boolean LocalHead = NOPE;
 
@@ -5383,6 +5384,7 @@ SUMA_DRAWN_ROI **SUMA_MultiColumnsToDrawnROI(
          /* Count the number of distinct labels */
          N_Labels = 1;
          for (i=1; i < ncol; ++i) if (iLabel[i] != iLabel[i-1]) ++N_Labels;
+         sprintf(smapflag, "%d", N_Labels);
          /* store where each label begins and ends */
          iStart = (int *)SUMA_malloc(N_Labels*sizeof(int));
          iStop = (int *)SUMA_malloc(N_Labels*sizeof(int));
@@ -5414,7 +5416,8 @@ SUMA_DRAWN_ROI **SUMA_MultiColumnsToDrawnROI(
                      cnt, iLabel[0], iNode[0], 
                      RGB[3*cnt], RGB[3*cnt+1], RGB[3*cnt+2]);
          } else {
-            RGB[3*cnt] = 1.0; RGB[3*cnt+1] = 1.0; RGB[3*cnt+2] = 0;
+            SUMA_a_good_col(smapflag,iLabel[0], acol);
+            RGB[3*cnt] = acol[0]; RGB[3*cnt+1] = acol[1]; RGB[3*cnt+2] = acol[2];
          }
          for (i=1; i < ncol; ++i) {
             if (iLabel[i] != iLabel[i-1]) {
@@ -5436,7 +5439,10 @@ SUMA_DRAWN_ROI **SUMA_MultiColumnsToDrawnROI(
                      RGB[3*cnt] = -1.0; RGB[3*cnt+1] = -1.0; RGB[3*cnt+2] = -1.0;
                   }
                } else {
-                  RGB[3*cnt] = 1.0; RGB[3*cnt+1] = 1.0; RGB[3*cnt+2] = 0;
+                  SUMA_a_good_col(smapflag, iLabel[i], acol);
+                  RGB[3*cnt] = acol[0]; RGB[3*cnt+1] = acol[1]; 
+                  RGB[3*cnt+2] = acol[2];
+
                }
             }
          }

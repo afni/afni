@@ -1084,7 +1084,7 @@ char *SUMA_ColorVec_Info (SUMA_RGB_NAME *Cv, int N_cols)
 int SUMA_a_good_col(char *name, int i, float *acol)
 {
    static char FuncName[]={"SUMA_a_good_col"};
-   int ic, icmap, dorand;
+   int ic, icmap=-1, dorand;
    SUMA_COLOR_MAP *CM;
 
    SUMA_ENTRY;
@@ -1095,6 +1095,12 @@ int SUMA_a_good_col(char *name, int i, float *acol)
       SUMA_RETURN(0);
    }
 
+   if (name && !(SUMAg_CF && SUMAg_CF->scm && SUMAg_CF->scm->CMv && 
+                  SUMAg_CF->scm->N_maps)) {
+      /* try building colormaps */
+      if (!SUMAg_CF->scm) SUMAg_CF->scm = SUMA_Build_Color_maps();
+   }
+   
    if (!name || !(SUMAg_CF && SUMAg_CF->scm && SUMAg_CF->scm->CMv && 
                   SUMAg_CF->scm->N_maps)) {
       dorand = 1;   
@@ -1103,12 +1109,35 @@ int SUMA_a_good_col(char *name, int i, float *acol)
       icmap = SUMA_Find_ColorMap(name, SUMAg_CF->scm->CMv, 
                                  SUMAg_CF->scm->N_maps,-2);
       if (icmap < 0) {
-         SUMA_S_Warnv("No colormap named %s was found, "
-                      "returning random colors.\n", name);
-         dorand = 1;
+         int d;
+         char *endp;
+         /* try again, maybe we just have an maximum number */
+         d = (int)strtod(name, &endp);
+         if (endp == name && d == 0) { /* no good */
+         } else {
+            if (d < 32) {
+               icmap = SUMA_Find_ColorMap("ROI_32", SUMAg_CF->scm->CMv, 
+                                 SUMAg_CF->scm->N_maps,-2);
+            }else if (d < 64) {
+               icmap = SUMA_Find_ColorMap("ROI_64", SUMAg_CF->scm->CMv, 
+                                 SUMAg_CF->scm->N_maps,-2);
+            }else if (d < 128) {
+               icmap = SUMA_Find_ColorMap("ROI_128", SUMAg_CF->scm->CMv, 
+                                 SUMAg_CF->scm->N_maps,-2);
+            }else if (d < 256) {
+               icmap = SUMA_Find_ColorMap("ROI_256", SUMAg_CF->scm->CMv, 
+                                 SUMAg_CF->scm->N_maps,-2);
+            }
+         }
       }
+      
    }
 
+   if (icmap < 0) {
+            SUMA_S_Warnv("No colormap named %s was found, "
+                         "returning random colors.\n", name);
+            dorand = 1;
+   }
    if (dorand) {
       /* GIMME SOME RANDOM */
       srand(i);

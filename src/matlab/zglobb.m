@@ -1,7 +1,8 @@
 function [err,ErrMessage, NameList] = zglobb (Identifiers, Opt)
 %
 %   [err, ErrMessage, List] = zglobb (Identifiers, [Opt])
-%
+%or
+%   [List] =  zglobb (Identifiers, [Opt])
 %Purpose:
 %  returns the list of files specified in Identifiers 
 %   
