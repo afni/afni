@@ -1732,7 +1732,7 @@ THD_OBJS = thd_atr.o thd_dsetto1D.o thd_initalldir.o thd_reconpar.o \
            thd_checkidc.o thd_floatscan.o thd_notes.o thd_makemask.o \
            thd_shift2.o thd_1Dtodset.o thd_detrend.o thd_fitter.o     \
            thd_winsor.o thd_zeropad.o thd_rot3d_byte.o thd_shear3d.o   \
-           thd_tmask.o thd_rotangles.o           thd_center.o           \
+           thd_tmask.o thd_rotangles.o thd_ttest.o thd_center.o         \
            thd_mismatch.o thd_read_vecmat.o thd_tshift.o thd_newprefix.o \
            thd_entropy16.o thd_dsetrow.o thd_rowfillin.o thd_fetchdset.o  \
            thd_getpathprogs.o thd_zfillin.o thd_ttatlas_query.o           \
@@ -2379,6 +2379,9 @@ extor.o:extor.c
 
 thd_detrend.o:thd_detrend.c
 	$(CCFAST) -c thd_detrend.c $(INFLAGS)
+
+thd_ttest.o:thd_ttest.c
+	$(CCFAST) -c thd_ttest.c $(INFLAGS)
 
 extor:extor.o
 	$(CC) -o extor extor.o $(INFLAGS) $(LFLAGS) $(LLIBS)
