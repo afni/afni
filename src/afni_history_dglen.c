@@ -49,6 +49,12 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 12 , DEC , 2009 , DRG , "1dSEM" , 
+    MINOR , TYPE_BUG_FIX,   "modify parsimonious fit index to be based on null model" ,
+    "Previous calculation used chi-square from minimum model without adjusting\n"
+    "for number of parameters in model.\n"
+} ,
+
 { 20 , NOV , 2009 , DRG , "3dAutomask" , 
     MINOR , TYPE_NEW_OPT,   "apply_prefix option to save automasked input" ,
     "avoids 3dcalc step that is usually used to apply an automask.\n"
