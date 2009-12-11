@@ -475,7 +475,7 @@ static void ModelSearch(int p, char **roilabels)
    double eta, temp, dfdt, d2fdt2, temp2;
    sqrmat *invsigma, *sigma, *Si_mat, *newsigma, *invsigmaexp;
    sqrmat *tempmat, *tempmat2, *tempmat3, *newinvsigma;
-   double maxMI, MI, cost, mincost, chisq0, chisq, chisq2, pfi, aic;
+   double maxMI, MI, cost, mincost, chisq0, chisq, pfi, aic;
    double *mat, *nat;
    
    ENTRY("ModelSearch");
@@ -503,16 +503,18 @@ static void ModelSearch(int p, char **roilabels)
       cost = ComputeThetawithPowell();  /* calculate connection coefficients - minimum model */
       INFO_message("cost = %g\n", cost);
       chisq0 = cost * (DF - 1.0);
-      chisq2 = chisq0 / 2.0;
       if(roilabels)
          DUMP_SQRMAT_LABELED("Connection coefficients - minimum model", kmat,roilabels);
       else
          DUMP_SQRMAT("Connection coefficients - minimum model", kmat);
+      INFO_message("Chi Square 0 = %f  for minimum model\n", chisq0);
+      INFO_message("-------------------------------------------------------------------------------\n\n");
+
    }
-   else {
-      chisq0 = Compute_chisq0(n);   /* compute chi square statistic for minimum fit */
-   }
-   INFO_message("Chi Square 0 = %f  for minimum fit\n", chisq0);
+
+   /* will use chisq0 for null model instead of minimum model */
+   chisq0 = Compute_chisq0(n);   /* compute chi square for null model too*/
+   INFO_message("Chi Square 0 = %f  for null model\n", chisq0);
    INFO_message("-------------------------------------------------------------------------------\n\n");
    for(i=0;(i<nmodels)&&(cost>stop_cost);i++) {     /* for all possible combinations or maximum */
       invsigma = ComputeInvSigma();  /* more efficient and safer to calculate inverse first */
@@ -581,7 +583,7 @@ static void ModelSearch(int p, char **roilabels)
          INFO_message(" %s -> %s\n", roilabels[max_j], roilabels[max_i]);
       INFO_message("   with new cost = %g, chisq = %g, ntheta = %d\n",
                        cost, chisq, ntheta);
-      
+
       pfi = 1.0 - (chisq/(kk-ntheta))*kk/chisq0;    /* parsimonious fit index */
       aic = chisq + (ntheta+ntheta);                /* Akaike's information criterion */
       INFO_message("parsimonious fit index = %g   Akaike's Information Criterion = %g\n", pfi, aic);
@@ -600,7 +602,7 @@ GrowAllModels(char **roilabels)
    double mincost, cost;
    int stopdepth, npts, notheta, maxdepth, depth, ntheta0;
    sqrmat *theta0_mat, *bestkmat;   
-   double chisq0, chisq, chisq2, pfi, aic;
+   double chisq0, chisq, pfi, aic;
    
    ENTRY("GrowAllModels");
 
@@ -613,16 +615,15 @@ GrowAllModels(char **roilabels)
       cost = ComputeThetawithPowell();  /* calculate connection coefficients - minimum model */
       INFO_message("cost = %g\n", cost);
       chisq0 = cost * (DF - 1.0);
-      chisq2 = chisq0 / 2.0;
       if(roilabels)
          DUMP_SQRMAT_LABELED("Connection coefficients", kmat,roilabels);
       else
          DUMP_SQRMAT("Connection coefficients", kmat);
+      INFO_message("Chi Square 0 = %f  for minimum model\n", chisq0);
    }
-   else {
-      chisq0 = Compute_chisq0(theta_init_mat->n);   /* compute chi square statistic for minimum fit */
-   }
-   INFO_message("Chi Square 0 = %f  for minimum fit\n", chisq0);
+
+   chisq0 = Compute_chisq0(theta_init_mat->n);   /* compute chi square for null model */
+   INFO_message("Chi Square 0 = %f  for null model\n", chisq0);
 
    theta0_mat = sm_copy(theta_init_mat);   /* create temporary copy of matrix */
    INIT_SQRMAT(bestkmat,kmat->n);       /* path coefficients - where final results go*/
