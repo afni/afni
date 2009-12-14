@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 14 , DEC , 2009 , RWC , "afni" , MICRO , TYPE_MODIFY ,
+   "New environment variable AFNI_RECENTER_VIEWING" ,
+   NULL } ,
+
  { 4 , DEC , 2009 , RWC , "3dLocalPV" , MICRO , TYPE_MODIFY ,
    "OpenMP changes.  Speedup about factor of 3 using 6 CPUs." ,
    NULL } ,
