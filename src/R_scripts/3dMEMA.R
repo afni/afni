@@ -889,8 +889,8 @@ nGrp <- as.integer(readline("Number of groups (1 or 2)? "))
          conLab[[ii]] <- readline(sprintf("Label for condition %i? ", ii))
          bFN[[ii]] <- vector('integer', nSubj[1]); tFN[[ii]] <- vector('integer', nSubj[1])
          for(jj in 1:nSubj[1]) {
-            bFN[[ii]][[jj]] <- readline(sprintf("No. %i subject file for beta or linear combination of betas with condition %s: ", jj, conLab[[ii]]))
-            tFN[[ii]][[jj]] <- readline(sprintf("~/3dMEMA/test/No. %i subject file for the corresponding t-statistic with condition %s: ", jj, conLab[[ii]]))
+            bFN[[ii]][[jj]] <- readline(sprintf("No. %i subject (%s) file for beta or linear combination of betas with condition %s: ", jj, subjLab[[1]][[jj]], conLab[[ii]]))
+            tFN[[ii]][[jj]] <- readline(sprintf("No. %i subject (%s) file for the corresponding t-statistic with condition %s: ", jj, subjLab[[1]][[jj]], conLab[[ii]]))
             print("-----------------")
          }
          bList[[ii]] <- lapply(bFN[[ii]], read.AFNI); tList[[ii]] <- lapply(tFN[[ii]], read.AFNI)
