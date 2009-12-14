@@ -7408,7 +7408,8 @@ STATUS("turning markers on") ;
    /* 27 Jan 2004: set coordinate to center of dataset
                    if we were formerly looking at the dummy dataset */
 
-   if( im3d->dummied && !GLOBAL_library.have_dummy_dataset ){
+   if( (im3d->dummied && !GLOBAL_library.have_dummy_dataset) ||
+       AFNI_yesenv("AFNI_RECENTER_VIEWING")                    ){
      im3d->dummied = 0 ;
      LOAD_IVEC3( iv , im3d->anat_now->daxes->nxx/2 ,
                       im3d->anat_now->daxes->nyy/2 ,
