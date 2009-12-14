@@ -766,6 +766,16 @@ will not always be open.
 AFNI so that they now default to the "YES" behavior.  If you don't
 want this, you have to explicitly set them to "NO" from this day forth.
 
+-------------------------------
+Variable: AFNI_RECENTER_VIEWING
+-------------------------------
+If this variable is set to YES, then AFNI's viewers will reset the
+crosshair coordinate to the center of the dataset whenever a new
+dataset or sub-brick is chosen.  The only real reason to use this
+feature is if you are scanning through a collection of datasets with
+wildly different coordinates, so that the usual method of matching
+(x,y,z) coordinates at such times gives useless results.
+
 ----------------
 Variable: TMPDIR
 ----------------
