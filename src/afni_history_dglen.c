@@ -49,21 +49,27 @@
 
 
 afni_history_struct dglen_history[] = {
+
+{ 14 , DEC , 2009 , DRG , "McRetroTS" , 
+    MINOR , TYPE_BUG_FIX,   "Variable Opt parameters were not parsed correctly" ,
+    "Options structure fields should be added correctly into Opt structure"
+} ,
+
 { 12 , DEC , 2009 , DRG , "1dSEM" , 
     MINOR , TYPE_BUG_FIX,   "modify parsimonious fit index to be based on null model" ,
     "Previous calculation used chi-square from minimum model without adjusting\n"
-    "for number of parameters in model.\n"
+    "for number of parameters in model."
 } ,
 
 { 20 , NOV , 2009 , DRG , "3dAutomask" , 
     MINOR , TYPE_NEW_OPT,   "apply_prefix option to save automasked input" ,
-    "avoids 3dcalc step that is usually used to apply an automask.\n"
+    "avoids 3dcalc step that is usually used to apply an automask."
 } ,
 
 { 04 , NOV , 2009 , DRG , "align_epi_anat.py" , 
-    MINOR , TYPE_NEW_OPT, " 3dAllineate option for motion correction" ,
+    MINOR , TYPE_NEW_OPT, "3dAllineate option for motion correction" ,
     "volreg_method allows 3dAllineate, which is useful for DTI data.\n"
-    "Bug fix for post-transformation matrix and dataset view\n"
+    "Bug fix for post-transformation matrix and dataset view"
 } ,
 
 { 19 , OCT , 2009 , DRG , "align_epi_anat.py" , 
@@ -76,7 +82,7 @@ afni_history_struct dglen_history[] = {
     "Removed volume registration (motion correction) for anat2epi option\n"
     "by default.\n"
     "AFNI dataset views (+orig/+acpc/+tlrc) are maintained in output\n"
-    "depending on BASE, SOURCE or external dataset names for all output\n"
+    "depending on BASE, SOURCE or external dataset names for all output"
 } ,
 
 { 29 , SEP , 2009 , DRG , "McRetroTS" , 

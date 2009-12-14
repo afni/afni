@@ -6,12 +6,21 @@ function [Opt] = Args_to_opts(Opt, autoconvert, varargin)
 % the compiled program should take a variable number of arguments
 % with the varargin argument as the last argument
 
-for(i=1:1:nargin-2)
+% number of variable arguments
+nargs = 0
+if(size(varargin,1)>0)
+   nargs = size(varargin{1},2)
+end
+if (nargs==0)
+    return;
+end
+
+for(i=1:1:nargs)
     % check if this argument is an option
-    if(strncmp(varargin{i},'Opt.',4))
+    str_opt = char(varargin{1}(i));
+    if(strncmp(str_opt,'Opt.',4))
         %Opt.something=xxxyyy
-        remain = varargin{i};
-        [chopped, remain] = strtok(remain, '.');
+        [chopped, remain] = strtok(str_opt, '.');
         [chopped, remain] = strtok(remain, '=');
         optname = chopped(2:length(chopped));
         optval = remain(2:length(remain));
