@@ -14,13 +14,13 @@ if nargin<2
     fn=1; 
 end
 
-if isstruct(fn) % allow for wrong order of arguments
+if isstruct(fn) || iscell(fn) % allow for wrong order of arguments; swap
     tmp=p;
     p=fn;
     fn=tmp;
 end
 
-% conversion
+% conversion to string
 s=afni_niml_print(p);
 
 % see if output is a file identifier
@@ -36,7 +36,10 @@ end
 
 c=fprintf(fid,s);
 
-fclose(fid);
+if fid>2 % we don't close standard input, output, or error
+    fclose(fid);
+end
+
 if c ~= numel(s)
     error('Something went wrong when writing %s\n', fn);
 else
