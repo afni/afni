@@ -462,7 +462,7 @@ int * MCW_get_labels_intlist (char **labels, int nvals, char *str)
    char *cpt ;
       
    /* Meaningless input? */
-   if( nvals < 1  || !labels) return NULL ;
+   if( nvals < 1 ) return NULL ;
 
    /* No selection list? */
 
