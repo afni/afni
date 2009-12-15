@@ -116,7 +116,7 @@ function p=derive_vec_type(data)
 %       evidence?
     nidefs=afni_ni_defs();
     if islogical(data)
-        data=data~=0; % convert to numeric
+        data=single(data); % convert to numeric
     end
     if isnumeric(data)
         size(data)

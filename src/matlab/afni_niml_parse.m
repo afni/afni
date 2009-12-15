@@ -123,7 +123,7 @@ function p =afni_nel_parse_nonnumeric(nel,data)
     if strcmp(nel.ni_type,'String')
         p=strtrim(data);
         if strcmp(p([1 end]),'""')
-            p=p(2:(end-1));
+            p=p(2:(end-1)); % remove surrounding quotes
         end
     else
         p=data; %do nothing
