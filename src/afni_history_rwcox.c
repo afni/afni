@@ -44,6 +44,12 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 15 , DEC , 2009 , RWC , "3dmaskSVD" , MINOR , TYPE_BUG_FIX ,
+   "Fixed 2 problems with -ort option" ,
+   "1) It didn't work, since the wrong array name was used :-(\n"
+   "2) It could fail, since the detrend routine didn't like collinear orts\n"
+   "-- replaced it with one that is happier with such things." } ,
+
  { 14 , DEC , 2009 , RWC , "afni" , MICRO , TYPE_MODIFY ,
    "New environment variable AFNI_RECENTER_VIEWING" ,
    NULL } ,
