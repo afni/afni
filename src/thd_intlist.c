@@ -340,22 +340,6 @@ int * MCW_get_intlist( int nvals , char *str )
    return subv ;
 }
 
-/* 
-   A utility function for is_in_labels
-*/
-char * skip_brick_label( char *lbl, int *iread)
-{
-   *iread = 0;
-   while (    lbl[*iread] != '\0'
-           && lbl[*iread] != ',' 
-           && lbl[*iread] != ']' 
-           && lbl[*iread] != '-' 
-           && !(lbl[*iread] == '.' && lbl[*iread+1] == '.') 
-         /*&& !isspace(lbl[*iread]) */ /* allowing space in labels */
-           ) ++(*iread);
-   return(lbl+*iread);
-}
-
 /*
    Check if lbl is one of the labels .
    
