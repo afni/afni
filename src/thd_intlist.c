@@ -174,6 +174,13 @@ int * get_count_intlist ( char *str , int *nret)
      - Example:  "[2,7..4,3..9(2)]" decodes to the list
          2 7 6 5 4 3 5 7 9
      - entries should be in the range 0..nvals-1
+     
+     See also MCW_get_thd_intlist, or MCW_get_labels_intlist,
+     which allow the use of sub-brick labels for selection.
+     
+     Do not update this function anymore, update MCW_get_labels_intlist
+     instead.       
+                                                      ZSS Dec 09
 -------------------------------------------------------------------*/
 
 int * MCW_get_intlist( int nvals , char *str )
@@ -183,6 +190,9 @@ int * MCW_get_intlist( int nvals , char *str )
    int ibot,itop,istep , nused ;
    char *cpt ;
 
+   /* Best to call new function to avoid redundancy  ZSS Dec 09 */
+   return(MCW_get_labels_intlist( NULL, nvals, str ));
+   
    /* Meaningless input? */
    if( nvals < 1 ) return NULL ;
 
@@ -283,6 +293,292 @@ int * MCW_get_intlist( int nvals , char *str )
            free(subv) ; return NULL ;
          }
          ipos += nused ;
+      }
+
+      /** set default loop step **/
+
+      istep = (ibot <= itop) ? 1 : -1 ;
+
+      while( isspace(str[ipos]) ) ipos++ ;                  /* skip blanks */
+
+      /** check if we have a non-default loop step **/
+
+      if( str[ipos] == '(' ){  /* decode an integer */
+         ipos++ ;
+         istep = strtol( str+ipos , &cpt , 10 ) ;
+         if( istep == 0 ){
+           fprintf(stderr,"** ERROR: selector loop step is 0!\n") ;
+           free(subv) ; return NULL ;
+         }
+         nused = (cpt-(str+ipos)) ;
+         ipos += nused ;
+         if( str[ipos] == ')' ) ipos++ ;
+         if( (ibot-itop)*istep > 0 ){
+           fprintf(  stderr,
+                     "** WARNING: selector count '%d..%d(%d)' means nothing!\n",
+                     ibot,itop,istep ) ;
+         }
+      }
+
+      /** add values to output **/
+
+      for( ii=ibot ; (ii-itop)*istep <= 0 ; ii += istep ){
+         nout++ ;
+         subv = (int *) realloc( (char *)subv , sizeof(int) * (nout+1) ) ;
+         subv[0]    = nout ;
+         subv[nout] = ii ;
+      }
+
+      /** check if we have a comma to skip over **/
+
+      while( isspace(str[ipos]) ) ipos++ ;                  /* skip blanks */
+      if( str[ipos] == ',' ) ipos++ ;                       /* skip commas */
+
+   }  /* end of loop through selector string */
+
+   if( subv[0] == 0 ){ free(subv); subv = NULL; }
+   return subv ;
+}
+
+/* 
+   A utility function for is_in_labels
+*/
+char * skip_brick_label( char *lbl, int *iread)
+{
+   *iread = 0;
+   while (    lbl[*iread] != '\0'
+           && lbl[*iread] != ',' 
+           && lbl[*iread] != ']' 
+           && lbl[*iread] != '-' 
+           && !(lbl[*iread] == '.' && lbl[*iread+1] == '.') 
+         /*&& !isspace(lbl[*iread]) */ /* allowing space in labels */
+           ) ++(*iread);
+   return(lbl+*iread);
+}
+
+/*
+   Check if lbl is one of the labels .
+   
+   lbl : Selector string. To specify labels with space
+         characters ' ' in the name, replace space with 
+         the '_' character.
+         On the first pass, the function will match the
+         string as is, but if nothing is found, a second
+         pass is attempted, replacing ' ' in DSET_LABEL with
+         '_' and matching again.
+         lbl should match one and only one label.
+   dset: dataset
+   isb : to be set to the index of the matching sub-brick
+         -1 if no match
+   returns nused, the number of characters used up in lbl
+           0 if no labels were found.
+           
+            ZSS Dec 09         
+*/
+int is_in_labels(char *lbl, char **labels, int N_labels, int *isb)
+{
+   char *lbln=NULL, sbuf[500], sbuf2[500], *slbl=NULL;
+   int nused = 0;
+   int ii, repeat = 0, check=0, jj=0;
+   
+   *isb = -1;
+   if (!labels || N_labels < 1) return(0);
+   
+   sbuf2[499] = '\0';
+   
+   lbln = skip_brick_label(lbl, &nused);
+
+   if (lbln == lbl) return(0);
+   
+   /* 
+   fprintf(stderr,"ZSS: lbln >%s<\n"
+                  "      lbl >%s<\n"
+                  "     nused %d\n"
+                  , lbln, lbl, nused);
+   */
+   snprintf(sbuf, (nused+1)*sizeof(char), "%s", lbl);
+   repeat = 0;
+   do {
+      for (ii=0; ii<N_labels; ++ii) {
+         check = 0;
+         if (repeat) {
+            strncpy(sbuf2, labels[ii], 498);
+            slbl = sbuf2;
+            /* second pass, check for space characters*/
+            for (jj=0; jj<strlen(sbuf2); ++jj) {
+               if (sbuf2[jj] == ' ') {
+                  sbuf2[jj]='_'; check = 1; /* RickR tip */
+               }
+            }   
+         } else {
+            check = 1;
+            slbl = labels[ii];
+         }
+         if (check && !(strcmp(sbuf, slbl))) {
+            /* 
+            fprintf(stderr,"ZSS: (rep %d) Checking against >%s< \n", 
+                           repeat, slbl);
+            */
+            *isb = ii;
+            return(nused);
+         }
+      }
+
+      repeat = !repeat;
+   } while (repeat);
+   
+   return(0);
+}
+
+/*
+   Return the sub-brick indices referenced in str
+   This is a new version of MCW_get_intlist, which allows
+   the use of sub-brick labels 
+   
+   See is_in_labels for details.
+   
+      ZSS Dec 09
+*/
+int * MCW_get_thd_intlist( THD_3dim_dataset *dset , char *str )
+{
+   return( (dset && dset->dblk && dset->dblk->brick_lab) ? 
+            MCW_get_labels_intlist (dset->dblk->brick_lab, 
+                                    DSET_NVALS(dset), str) : NULL );
+}
+
+/*
+   A slightly modified version of MCW_get_intlist, which 
+   can scan for label matching instead of just numbers.
+   If labels == NULL, then it functions just like 
+   MCW_get_intlist
+   
+                              ZSS Dec 09
+*/  
+int * MCW_get_labels_intlist (char **labels, int nvals, char *str)
+{   
+   int *subv = NULL ;
+   int ii , ipos , nout , slen ;
+   int ibot,itop,istep , nused ;
+   char *cpt ;
+      
+   /* Meaningless input? */
+   if( nvals < 1  || !labels) return NULL ;
+
+   /* No selection list? */
+
+   if( str == NULL || str[0] == '\0' ) return NULL ;
+
+   /* skip initial '[' or '{' or '#'*/
+
+   subv    = (int *) malloc( sizeof(int) * 2 ) ;
+   subv[0] = nout = 0 ;
+
+   ipos = 0 ;
+   if( str[ipos] == '[' || str[ipos] == '{' || str[ipos] == '#') ipos++ ;
+
+   /* do we have a count string in there ZSS ? */
+   if (strstr(str,"count ")) {
+      return(get_count_intlist ( str, &ii));
+   }
+     
+   /*** loop through each sub-selector until end of input ***/
+   slen = strlen(str) ;
+   while( ipos < slen && !ISEND(str[ipos]) ){
+      while( isspace(str[ipos]) ) ipos++ ;   /* skip blanks */
+      if( ISEND(str[ipos]) ) break ;         /* done */
+
+      /** get starting value **/
+
+      if( str[ipos] == '$' ){  /* special case */
+         ibot = nvals-1 ; ipos++ ;
+      } else if ( !labels || 
+                  !(nused = is_in_labels(str+ipos, labels, nvals, &ibot))){
+                                                      /* decode integer */
+         ibot = strtol( str+ipos , &cpt , 10 ) ;
+         if( ibot < 0 && !allow_negative ){
+           fprintf(stderr,
+                   "** ERROR: selector index %d is out of range 0..%d\n",
+                   ibot,nvals-1) ;
+           free(subv) ; return NULL ;
+         }
+         if( ibot >= nvals ){
+           fprintf(stderr,
+                   "** ERROR: selector index %d is out of range 0..%d\n",
+                   ibot,nvals-1) ;
+           free(subv) ; return NULL ;
+         }
+         nused = (cpt-(str+ipos)) ;
+         if( ibot == 0 && nused == 0 ){
+           fprintf(stderr,
+                   "** ERROR: selector syntax error '%s'\n",str+ipos) ;
+           free(subv) ; return NULL ;
+         }
+         ipos += nused ;
+      } else {
+         /* have a label */
+         /*
+         fprintf(stderr,"ZSS: Sub-brick %d, picked by label %s\n", 
+                        ibot, labels[ibot]);
+         */
+         ipos+=nused;
+      }
+
+      while( isspace(str[ipos]) ) ipos++ ;   /* skip blanks */
+
+      /** if that's it for this sub-selector, add one value to list **/
+
+      if( str[ipos] == ',' || ISEND(str[ipos]) ){
+         nout++ ;
+         subv = (int *) realloc( (char *)subv , sizeof(int) * (nout+1) ) ;
+         subv[0]    = nout ;
+         subv[nout] = ibot ;
+         if( ISEND(str[ipos]) ) break ; /* done */
+         ipos++ ; continue ;            /* re-start loop at next sub-selector */
+      }
+
+      /** otherwise, must have '..' or '-' as next inputs **/
+
+      if( str[ipos] == '-' ){
+         ipos++ ;
+      } else if( str[ipos] == '.' && str[ipos+1] == '.' ){
+         ipos++ ; ipos++ ;
+      } else {
+         fprintf(stderr,"** ERROR: selector selector syntax is bad: '%s'\n",
+                 str+ipos) ;
+         free(subv) ; return NULL ;
+      }
+
+      /** get ending value for loop now **/
+
+      if( str[ipos] == '$' ){  /* special case */
+         itop = nvals-1 ; ipos++ ;
+      } else if ( !labels ||
+                  !(nused = is_in_labels(str+ipos,labels, nvals, &itop))){  
+                                                      /* decode integer */
+         itop = strtol( str+ipos , &cpt , 10 ) ;
+         if( itop < 0 && !allow_negative ){
+           fprintf(stderr,"** ERROR: selector index %d is out of range 0..%d\n",
+                   itop,nvals-1) ;
+           free(subv) ; return NULL ;
+         }
+         if( itop >= nvals ){
+           fprintf(stderr,"** ERROR: selector index %d is out of range 0..%d\n",
+                   itop,nvals-1) ;
+           free(subv) ; return NULL ;
+         }
+         nused = (cpt-(str+ipos)) ;
+         if( itop == 0 && nused == 0 ){
+           fprintf(stderr,"** ERROR: selector syntax error '%s'\n",str+ipos) ;
+           free(subv) ; return NULL ;
+         }
+         ipos += nused ;
+      } else {
+         /* have a label */
+         /*
+         fprintf(stderr,"ZSS: Sub-brick %d, picked by label %s\n", 
+                        itop, labels[itop]);
+         */
+         ipos+=nused;
       }
 
       /** set default loop step **/

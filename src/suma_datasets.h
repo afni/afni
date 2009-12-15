@@ -1386,6 +1386,8 @@ SUMA_Boolean SUMA_NewDsetID2 (SUMA_DSET *dset, char *str);
 char *SUMA_DsetColStringAttrCopy(SUMA_DSET *dset, int i, 
                                  int addcolnum, char *attrname);
 char *SUMA_DsetColLabelCopy(SUMA_DSET *dset, int i, int addcolnum);
+char **SUMA_AllDsetColLabels(SUMA_DSET *dset);
+char **SUMA_FreeAllDsetColLabels(char **);
 char *SUMA_ColLabelCopy(NI_element *nel, int i, int addcolnum);
 SUMA_DSET * SUMA_PaddedCopyofDset ( SUMA_DSET *odset, int MaxNodeIndex );
 SUMA_DSET * SUMA_MaskedCopyofDset(SUMA_DSET *odset, byte *rowmask, byte *colmask, int masked_only, int keep_node_index);

@@ -465,7 +465,8 @@ ENTRY("THD_3dim_from_block") ; /* 29 Aug 2001 */
 
          } /* end of switch on warp type */
       } /* end of if on legal warp data */
-   } /* end of if on warp existing */   else { /* But perhaps there is a little something from auto talairaching ZSS, June 06 */
+   } /* end of if on warp existing */   else { /* But perhaps there is a 
+                        little something from auto talairaching ZSS, June 06 */
       if (dset->view_type == VIEW_TALAIRACH_TYPE) { /* something to do */
          atr_flo = THD_find_float_atr( blk , ATRNAME_WARP_DATA_3DWD_AF ) ; 
          if ( atr_flo == NULL ){

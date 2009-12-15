@@ -241,7 +241,8 @@ void BUCK_read_opts( int argc , char * argv[] )
       }
       ADDTO_3DARR(BUCK_dsar,dset) ;
 
-      svar = BUCK_get_subv( DSET_NVALS(dset) , subv ) ;
+      /* svar = BUCK_get_subv( DSET_NVALS(dset) , subv ) ; ZSS Dec 09 */
+      svar = MCW_get_thd_intlist (dset, subv);          /* ZSS Dec 09 */
       if( svar == NULL || svar[0] <= 0 ){
          fprintf(stderr,"can't decipher index codes from %s%s\n",dname,subv) ;
          exit(1) ;
