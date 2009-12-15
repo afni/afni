@@ -377,7 +377,7 @@ char * skip_brick_label( char *lbl, int *iread)
 */
 int is_in_labels(char *lbl, char **labels, int N_labels, int *isb)
 {
-   char *lbln=NULL, sbuf[500], sbuf2[500], *slbl=NULL;
+   char *lbln=NULL, sbuf2[500], *slbl=NULL;
    int nused = 0;
    int ii, repeat = 0, check=0, jj=0;
    
@@ -385,18 +385,13 @@ int is_in_labels(char *lbl, char **labels, int N_labels, int *isb)
    if (!labels || N_labels < 1) return(0);
    
    sbuf2[499] = '\0';
-   
-   lbln = skip_brick_label(lbl, &nused);
-
-   if (lbln == lbl) return(0);
-   
+      
    /* 
    fprintf(stderr,"ZSS: lbln >%s<\n"
                   "      lbl >%s<\n"
                   "     nused %d\n"
                   , lbln, lbl, nused);
    */
-   snprintf(sbuf, (nused+1)*sizeof(char), "%s", lbl);
    repeat = 0;
    do {
       for (ii=0; ii<N_labels; ++ii) {
@@ -414,7 +409,8 @@ int is_in_labels(char *lbl, char **labels, int N_labels, int *isb)
             check = 1;
             slbl = labels[ii];
          }
-         if (check && !(strcmp(sbuf, slbl))) {
+         nused = strlen(slbl);
+         if (check && !(strncmp(lbl, slbl, nused))) {
             /* 
             fprintf(stderr,"ZSS: (rep %d) Checking against >%s< \n", 
                            repeat, slbl);
