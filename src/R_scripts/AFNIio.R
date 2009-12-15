@@ -7,17 +7,68 @@
 read.AFNI <- function(filename) {
   fileparts <- strsplit(filename,"\\.")[[1]]
   ext <- tolower(fileparts[length(fileparts)])
-
+  
+  #deal with sub-brick and range selectors
+  selecs <- strsplit(ext,"\\[|\\{|<")[[1]];
+  
+  ext <- selecs[1];
+  brsel <- '';
+  rosel <- '';
+  rasel <- '';
+  for (ss in selecs[2:length(selecs)]) {
+   if (length(grep("]",ss))) {
+      brsel <- strsplit(ss,"\\]")[[1]][1];
+   } else if (length(grep("}",ss))) {
+      rosel <- strsplit(ss,"\\}")[[1]][1];
+   } else if (length(grep(">",ss))) {
+      rasel <- strsplit(ss,">")[[1]][1];
+   }
+  } 
+  
   if (ext == "head") {
-    filename.head <- filename
+    filename.head <- paste(c(fileparts[-length(fileparts)],"HEAD"),collapse=".")
     filename.brik <- paste(c(fileparts[-length(fileparts)],"BRIK"),collapse=".")
   } else if (ext == "brik") {
     filename.head <- paste(c(fileparts[-length(fileparts)],"HEAD"),collapse=".")
-    filename.brik <- filename
+    filename.brik <- paste(c(fileparts[-length(fileparts)],"BRIK"),collapse=".")
   } else {
     filename.head <- paste(filename,".HEAD",sep="")
     filename.brik <- paste(filename,".BRIK",sep="")
   }
+  
+  vp <- strsplit(filename.head, ".HEAD|\\+")[[1]];
+  filename.prefix <- vp[1];
+  filename.view   <- paste('+',vp[2],sep='');
+   
+  
+  if (0) {
+   cat ('ZSS:ext=', ext, '\n',
+        'ZSS:brsel=', brsel, '\n',
+        'ZSS:rosel=', rosel, '\n',
+        'ZSS:rasel=', rasel, '\n',
+        'ZSS:pref.=', filename.prefix, '\n',
+        'ZSS:view =', filename.view, '\n',
+        'ZSS:head =', filename.head, '\n');
+  }
+  
+  #If you have any selectors, use 3dbucket to get what you want, then read
+  #temp dset. This is an ugly fix for now, but will change it later if
+  #I/O is issue
+  rmtmp <- 0;
+  if (length(brsel) > 0 || length(rosel) > 0 ||  length(rasel) > 0) {
+    rmtmp <- 1;
+    com <- paste ('3dcalc -overwrite -prefix ___R.read.AFNI.' ,
+               filename.prefix, ' -a "', filename,'" -expr "a" >& /dev/null', 
+               sep = '');
+    if (try(system(com)) != 0) {
+      warning(paste("Failed to execute:\n   ", com),
+              immediate. = TRUE);
+      return(NULL);
+    }
+    filename.head <- paste('___R.read.AFNI.',filename.head, sep = '');
+    filename.brik <- paste('___R.read.AFNI.',filename.brik, sep = '');
+  }
+  
   
   conhead <- file(filename.head,"r")
   header <- readLines(conhead)
@@ -74,10 +125,16 @@ read.AFNI <- function(filename) {
   if (as.integer(size) == size) {
     conbrik <- file(filename.brik,"rb")
   # modified below by GC 12/2/2008
-  if (all(values$BRICK_TYPES==0) | all(values$BRICK_TYPES==1)) myttt<- readBin(conbrik, "int", n=dx*dy*dz*dt, size=size, signed=TRUE, endian=endian) # unsigned charater or short
-  if (all(values$BRICK_TYPES==3)) myttt<- readBin(conbrik, "numeric", n=dx*dy*dz*dt, size=size, signed=TRUE, endian=endian) # float        
-    close(conbrik)
-    dim(myttt) <- c(dx,dy,dz,dt)
+  if (all(values$BRICK_TYPES==0) | all(values$BRICK_TYPES==1)) {
+    myttt<- readBin( conbrik, "int", n=dx*dy*dz*dt, size=size, 
+                     signed=TRUE, endian=endian) # unsigned charater or short
+  }
+  if (all(values$BRICK_TYPES==3)) {
+    myttt<- readBin(conbrik, "numeric", n=dx*dy*dz*dt, size=size, 
+                    signed=TRUE, endian=endian) # float        
+  }
+  close(conbrik)
+  dim(myttt) <- c(dx,dy,dz,dt)
 #    for (k in 1:dt) {
 #      if (scale[k] != 0) {
 #        cat("scale",k,"with",scale[k],"\n")
@@ -86,22 +143,40 @@ read.AFNI <- function(filename) {
 #        cat(range(myttt[,,,k]),"\n")
 #      }
 #    }
-    for (k in 1:dt) if (scale[k] != 0) myttt[,,,k] <- scale[k] * myttt[,,,k]
+  for (k in 1:dt) if (scale[k] != 0) myttt[,,,k] <- scale[k] * myttt[,,,k]
 
   mask <- array(TRUE,c(dx,dy,dz))
   mask[myttt[,,,1] < quantile(myttt[,,,1],0.75)] <- FALSE
-    z <-
-      list(ttt=myttt,format="HEAD/BRIK",delta=values$DELTA,origin=values$ORIGIN,orient=values$ORIENT_SPECIFIC,dim=c(dx,dy,dz,dt),weights=weights, header=values,mask=mask)
-#      list(ttt=writeBin(as.numeric(myttt),raw(),4),format="HEAD/BRIK",delta=values$DELTA,origin=values$ORIGIN,orient=values$ORIENT_SPECIFIC,dim=c(dx,dy,dz,dt),weights=weights, header=values,mask=mask)
+  z <- list(ttt=myttt,format="HEAD/BRIK",delta=values$DELTA,
+            origin=values$ORIGIN,
+            orient=values$ORIENT_SPECIFIC,
+            dim=c(dx,dy,dz,dt),weights=weights, header=values,mask=mask)
+#      list(ttt=writeBin(as.numeric(myttt),raw(),4),
+#            format="HEAD/BRIK",delta=values$DELTA,origin=values$ORIGIN,
+#            orient=values$ORIENT_SPECIFIC,dim=c(dx,dy,dz,dt),weights=weights, 
+#            header=values,mask=mask)
 
   } else {
     warning("Error reading file: Could not detect size per voxel\n")
-    z <- list(ttt=NULL,format="HEAD/BRIK",delta=NULL,origin=NULL,orient=NULL,dim=NULL,weights=NULL,header=values,mask=NULL)    
+    z <- list(ttt=NULL,format="HEAD/BRIK",delta=NULL,
+              origin=NULL,orient=NULL,dim=NULL,weights=NULL,
+              header=values,mask=NULL)    
   }
 
   class(z) <- "fmridata"
   attr(z,"file") <- paste(filename,".HEAD/BRIK",sep="")
   invisible(z)
+  
+  if (rmtmp == 1) {
+   if (0) {
+      cat ('ZSS: Will remove tmp files\n');
+   }
+   system('\\rm -f ___R.read.AFNI.* >& /dev/null');
+  }else{
+   if (0) {
+      cat ('ZSS: No temps to remove\n');
+   }
+  }
 }
 
 write.AFNI <- function(filename, ttt, label, note="", origin=c(0,0,0), delta=c(4,4,4), idcode="WIAS_noid") {
