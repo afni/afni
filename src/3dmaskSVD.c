@@ -134,7 +134,7 @@ int main( int argc , char *argv[] )
        if( nx == 1 && ny > 1 ){
          MRI_IMAGE *tim=mri_transpose(ortim); mri_free(ortim); ortim = tim; ny = 1;
        }
-       ADDTO_IMARR(ortar,ortim) ; nyort += ny ;
+       mri_add_name(argv[iarg],ortim) ; ADDTO_IMARR(ortar,ortim) ; nyort += ny ;
        iarg++ ; continue ;
      }
 
@@ -265,9 +265,11 @@ int main( int argc , char *argv[] )
      if( nort > 0 ){     /* other orts */
        float *oar , *par ; int nx,ny , qq,tt ;
        for( kk=0 ; kk < nort ; kk++ ){  /* loop over input -ort files */
-         ortim = IMARR_SUBIM(imar,kk) ;
+         ortim = IMARR_SUBIM(ortar,kk) ;
          nx = ortim->nx ; ny = ortim->ny ;
-         if( nx < nt ) ERROR_exit("-ort '%s' is too short for dataset",ortim->fname) ;
+         if( nx < nt )
+           ERROR_exit("-ort '%s' length %d shorter than dataset length %d" ,
+                      ortim->name , nx , nt ) ;
          polref = (float **)realloc(polref,(nref+ny)*sizeof(float *)) ;
          oar    = MRI_FLOAT_PTR(ortim) ;
          for( qq=0 ; qq < ny ; qq++,oar+=nx ){
@@ -281,13 +283,28 @@ int main( int argc , char *argv[] )
        DESTROY_IMARR(ortar) ;
      }
 
-     if( !do_bpass ){
+     if( !do_bpass ){            /* old style ort-ification */
+
+       MRI_IMAGE *imq , *imp ; float *qar ;
        INFO_message("Detrending data vectors") ;
+#if 1
+       imq = mri_new( nt , nref , MRI_float) ; qar = MRI_FLOAT_PTR(imq) ;
+       for( kk=0 ; kk < nref ; kk++ )
+         memcpy( qar+kk*nt , polref[kk] , sizeof(float)*nt ) ;
+       imp = mri_matrix_psinv( imq , NULL , 1.e-8 ) ;
+       for( kk=0 ; kk < IMARR_COUNT(imar) ; kk++ ){
+         mri_matrix_detrend( IMARR_SUBIM(imar,kk) , imq , imp ) ;
+       }
+       mri_free(imp) ; mri_free(imq) ;
+#else
        for( kk=0 ; kk < IMARR_COUNT(imar) ; kk++ ){
          tsar = MRI_FLOAT_PTR(IMARR_SUBIM(imar,kk)) ;
          THD_generic_detrend_LSQ( nt , tsar , -1 , nref , polref , NULL ) ;
        }
-     } else {
+#endif
+
+     } else {                   /* bandpass plus (maybe) orts */
+
        float **vec = (float **)malloc(sizeof(float *)*IMARR_COUNT(imar)) ;
        INFO_message("Bandpassing data vectors") ;
        for( kk=0 ; kk < IMARR_COUNT(imar) ; kk++ )
