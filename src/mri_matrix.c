@@ -539,6 +539,46 @@ ENTRY("mri_matrix_ortproj") ;
 }
 
 /*----------------------------------------------------------------------------*/
+/*! imt = time series to detrend in place (can be more than 1 vector in here)
+    imq = array of orts to remove (imq->nx must equal imt->nx)
+    imp = mri_matrix_psinv(imq)   (imp is imq->ny X imq->nx)
+*//*--------------------------------------------------------------------------*/
+
+void mri_matrix_detrend( MRI_IMAGE *imt , MRI_IMAGE *imq , MRI_IMAGE *imp )
+{
+  int nlen , nort , nvec , kk,jj,iv ;
+  float *par , *qar , *tar , *xar , *rar , *pt , *qt , xt ;
+
+ENTRY("mri_matrix_detrend") ;
+
+  if( imt == NULL || imq == NULL || imp == NULL ) EXRETURN ;
+
+  nlen = imt->nx ; if( nlen != imq->nx ) EXRETURN ;
+  nort = imq->ny ; if( imp->nx != nort || imp->ny != nlen ) EXRETURN ;
+  nvec = imt->ny ;
+
+  tar = MRI_FLOAT_PTR(imt) ;  /* nlen X nvec */
+  qar = MRI_FLOAT_PTR(imq) ;  /* nlen X nort */
+  par = MRI_FLOAT_PTR(imp) ;  /* nort X nlen */
+  rar = (float *)malloc(sizeof(float)*nort) ;  /* workspace */
+
+  for( iv=0 ; iv < nvec ; iv++ ){  /* [xar] <- [xar] - [Q][P][xar] */
+    xar = tar + iv*nlen ;
+    for( jj=0 ; jj < nort ; jj++ ) rar[jj] = 0.0f ;
+    for( kk=0 ; kk < nlen ; kk++ ){           /* [rar] <- [P][xar] */
+      pt = par + kk*nort ; xt = xar[kk] ;
+      for( jj=0 ; jj < nort ;jj++ ) rar[jj] += pt[jj]*xt ;
+    }
+    for( jj=0 ; jj < nort ; jj++ ){           /* [xar] <- [Q][rar] */
+      qt = qar + jj*nlen ; xt = rar[jj] ;
+      for( kk=0 ; kk < nlen ; kk++ ) xar[kk] -= qt[kk]*xt ;
+    }
+  }
+
+  free(rar) ; EXRETURN ;
+}
+
+/*----------------------------------------------------------------------------*/
 /*! Return the average absolute value of the entries of the matrix. */
 
 float mri_matrix_size( MRI_IMAGE *imc )  /* 30 Jul 2007 */
@@ -1175,7 +1215,7 @@ char * mri_matrix_evalrpn_help(void)
     "               This option was added to simplify the combination of \n"
     "               linear spatial transformations. However, you are better \n"
     "               off using cat_matvec for that purpose.\n"
-    "\n" 
+    "\n"
     " &write(FF) == write top matrix to ASCII file to file 'FF';\n"
     "                 if 'FF' == '-', writes to stdout\n"
     " &transp    == replace top matrix with its transpose\n"
