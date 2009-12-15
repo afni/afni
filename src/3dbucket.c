@@ -240,9 +240,11 @@ void BUCK_read_opts( int argc , char * argv[] )
         WARNING_message("Dataset %s grid differs from first one",dname) ;
       }
       ADDTO_3DARR(BUCK_dsar,dset) ;
-
-      /* svar = BUCK_get_subv( DSET_NVALS(dset) , subv ) ; ZSS Dec 09 */
-      svar = MCW_get_thd_intlist (dset, subv);          /* ZSS Dec 09 */
+      if (subv == NULL || subv[0] == '\0') { /* lazy way for 3dbucket special */
+         svar = BUCK_get_subv( DSET_NVALS(dset) , subv ) ; /* ZSS Dec 09 */
+      } else {
+         svar = MCW_get_thd_intlist (dset, subv);          /* ZSS Dec 09 */
+      }
       if( svar == NULL || svar[0] <= 0 ){
          fprintf(stderr,"can't decipher index codes from %s%s\n",dname,subv) ;
          exit(1) ;
