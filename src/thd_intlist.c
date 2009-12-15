@@ -364,7 +364,7 @@ int is_in_labels(char *lbl, char **labels, int N_labels, int *isb)
    char *lbln=NULL, sbuf2[500], *slbl=NULL;
    int nused = 0;
    int ii, repeat = 0, check=0, jj=0;
-   
+
    *isb = -1;
    if (!labels || N_labels < 1) return(0);
    
