@@ -164,7 +164,6 @@ ENTRY("THD_open_one_dataset") ;
    }
 
    /*-- perhaps open the new-fangled way [22 May 2000] --*/
-
    if( getenv("AFNI_USE_THD_open_dataset") != NULL &&
        strstr(pathname,"[")                != NULL   ){
       dset = THD_open_dataset(pathname) ;
