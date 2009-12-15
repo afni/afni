@@ -736,6 +736,43 @@ char *SUMA_DsetColLabelCopy(SUMA_DSET *dset, int i, int addcolnum)
    if (addcolnum) SUMA_RETURN(SUMA_append_string(Name, "bone"));
    else  SUMA_RETURN(SUMA_copy_string("bone"));
 }
+
+/*!
+   Return a NULL terminated vector of strings containing a copy 
+   of all labels 
+   free with SUMA_FreeAllDsetColLabels
+*/
+char **SUMA_AllDsetColLabels(SUMA_DSET *dset)
+{
+   char ** AllLabels=NULL;
+   int ii;
+   
+   if (!dset) SUMA_RETURN(NULL);
+   
+   AllLabels = (char **)SUMA_calloc(SDSET_VECNUM(dset)+1,sizeof(char*));
+   
+   for (ii=0; ii<SDSET_VECNUM(dset); ++ii)
+      AllLabels[ii] = SUMA_DsetColLabelCopy(dset, ii, 0);
+      
+   AllLabels[SDSET_VECNUM(dset)] = NULL;
+   
+   return(AllLabels);
+}
+
+char **SUMA_FreeAllDsetColLabels(char **AllLabels)
+{
+   int ii=0;
+   
+   if (!AllLabels) return(NULL);
+   
+   while (AllLabels[ii]) {
+      SUMA_free(AllLabels[ii]); 
+      ++ii;
+   }
+   SUMA_free(AllLabels); 
+   return(NULL);
+}
+
 /*!
    \brief Returns A COPY of the label of a column in a NI_element
    NULL in case of error 
@@ -8576,8 +8613,9 @@ SUMA_DSET *SUMA_LoadDset_eng (char *iName, SUMA_DSET_FORMAT *form, int verb)
       if (!SUMA_GetDsetNodeIndexColRange(dset, range, loc, 1)) {
          SUMA_SL_Err("Can't get node index column range!");
          goto GOODBYE;   
-      } 
-      NodeSel = MCW_get_intlist( (int)range[1] , pn->NodeSelect ) ;
+      }
+      NodeSel = MCW_get_intlist( (int)range[1] , 
+                                  pn->NodeSelect ) ;
       if (!NodeSel || !NodeSel[0]) {
          SUMA_SL_Err("Failed to get node selection");
          SUMA_FreeDset(dset); dset = NULL;
@@ -8591,12 +8629,17 @@ SUMA_DSET *SUMA_LoadDset_eng (char *iName, SUMA_DSET_FORMAT *form, int verb)
       }
    }
    if (pn->ColSelect[0]!= '\0') {
+      char **AllLabels=NULL;
       if (pn->only_index) {
          SUMA_S_Err("Only index selection not allowed with column selection.");
          goto GOODBYE; 
       }
       /* go get the selector lists */
-      ColSel = MCW_get_intlist( SDSET_VECNUM(dset) , pn->ColSelect ) ;
+      AllLabels = SUMA_AllDsetColLabels(dset);
+      ColSel = MCW_get_labels_intlist( AllLabels, SDSET_VECNUM(dset) , 
+                                       pn->ColSelect ) ;
+      AllLabels = SUMA_FreeAllDsetColLabels(AllLabels);
+      
       if (!ColSel || !ColSel[0]) {
          SUMA_SL_Err("Failed to get column selection");
          SUMA_FreeDset(dset); dset = NULL;

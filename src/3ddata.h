@@ -3792,6 +3792,8 @@ extern void THD_set_storage_mode( THD_3dim_dataset *,int ); /* 21 Mar 2003 */
 
 extern int * get_count_intlist ( char *str , int *nret);
 extern int * MCW_get_intlist( int , char * ) ;
+extern int * MCW_get_labels_intlist( char ** , int,  char * ); /* ZSS Dec 09 */
+extern int * MCW_get_thd_intlist( THD_3dim_dataset * , char * ); /* ZSS Dec 09 */
 extern void MCW_intlist_allow_negative( int ) ;             /* 22 Nov 1999 */
 
 /* copy a dataset, given a list of sub-bricks          [rickr] 26 Jul 2004 */

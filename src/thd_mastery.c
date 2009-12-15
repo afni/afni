@@ -121,7 +121,6 @@ ENTRY("THD_open_dataset") ;
    }
 
    /* open the dataset */
-
    dset = THD_open_one_dataset( dname ) ;
    if( dset == NULL ) RETURN(NULL) ;
 
@@ -132,7 +131,7 @@ ENTRY("THD_open_dataset") ;
      subv = strdup(cpt);
      /* strcpy(subv,cpt) ;  don't assume length   8 May 2007 [rickr,dglen] */
      qpt = strstr(subv,"<") ; if( qpt != NULL ) *qpt = '\0' ;
-     ivlist = MCW_get_intlist( DSET_NVALS(dset) , subv ) ;
+     ivlist =  MCW_get_thd_intlist( dset , subv ); /* ZSS Dec 09 */
      free(subv) ;
    }
    if( ivlist == NULL ){
