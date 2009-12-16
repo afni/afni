@@ -280,6 +280,7 @@ extern long   strtol() ;
 # define atanhf atanh         /* 27 Jul 2009 [rickr] */
 # define atan2f atan2         /* 24 Aug 2009 [RWCox] */
 # define tanhf  tanh          /* 20 Oct 2009 [RWCox] */
+# define rintf  rint          /* 16 Dec 2009 [RWCox] */
 
 #endif
 

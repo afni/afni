@@ -824,6 +824,14 @@ qm:qm.o
 	$(RM) $@
 	$(CCFAST) -o 3dAcost 3dAcost.o $(LFLAGS) -lmri -lf2c $(LLIBS)
 
+3dSetupGroupInCorr.o:3dSetupGroupInCorr.c
+	$(RM) $@
+	$(CCFAST) -c 3dSetupGroupInCorr.c $(INFLAGS)
+
+3dSetupGroupInCorr:3dSetupGroupInCorr.o
+	$(RM) $@
+	$(CCFAST) -o 3dSetupGroupInCorr 3dSetupGroupInCorr.o $(LFLAGS) -lmri -lf2c $(LLIBS)
+
 rotcom:rotcom.o
 	$(RM) $@
 	$(CC) -o rotcom rotcom.o $(LFLAGS) -lmri -lf2c $(LLIBS)

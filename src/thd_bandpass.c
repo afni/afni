@@ -6,9 +6,10 @@
 
 static int nfft_fixed = 0 ;
 
-void THD_bandpass_set_nfft( int n )
+int THD_bandpass_set_nfft( int n )
 {
   nfft_fixed = (n >= 16) ? csfft_nextup_one35(n) : 0 ;
+  return nfft_fixed ;
 }
 
 /*--------------------------------------------------------------------------*/
