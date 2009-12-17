@@ -6,52 +6,81 @@ int main( int argc , char * argv[] )
    float dt=0.0f , fbot=0.0f,ftop=999999.9f , blur=0.0f ;
    MRI_IMARR *ortar=NULL ; MRI_IMAGE *ortim=NULL ;
    THD_3dim_dataset **ortset=NULL ; int nortset=0 ;
-   THD_3dim_dataset *inset=NULL ;
+   THD_3dim_dataset *inset=NULL , *outset ;
    char *prefix="bandpass" ;
    byte *mask=NULL ;
    int mask_nx,mask_ny,mask_nz,nmask , verb=1 , nx,ny,nz,nvox , nfft=0 , kk ;
+   float **vec , **ort=NULL ; int nort=0 , vv , nopt , ntime  ;
+   MRI_vectim *mrv ;
 
    /*-- help? --*/
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
-     printf("Usage: 3dBandpass [options] fbot ftop dataset\n"
-            "\n"
-            "* 'dataset' is a 3D+time sequence of volumes\n"
-            "* fbot = lowest frequency in the passband, in Hz\n"
-            "         [can be 0 if you want to do a lowpass filter only,]\n"
-            "         [but the mean and Nyquist freq are always removed!]\n"
-            "* ftop = highest frequency in the passband (must be > fbot)\n"
-            "         [if ftop > Nyquist freq, then we have a highpass filter only]\n"
-            "* You cannot construct a 'notch' filter with this program!\n"
-            "* Program will fail if fbot and ftop are too close for comfort.\n"
-            "* The actual FFT length used will be printed, and may be larger\n"
-            "   than the input time series length for the sake of efficiency.\n"
-            "   [The program will use a power-of-2, possibly multiplied by]\n"
-            "   [a single factor of 3 and/or a single factor of 5; e.g.,  ]
-            "   [240=16*3*5 would be chosen if there are 239 time points. ]
-            "\n"
-            "Options:\n"
-            " -dt dd          = set time step to 'dd' sec [default=from dataset header]\n"
-            " -nfft N         = set the FFT length to 'N' [must be a legal value]\n"
-            " -ort f.1D       = Also orthogonalize input to columns in f.1D\n"
-            "                    [multiple '-ort' options are allowed].\n"
-            " -dsort fset     = Orthogonalize each voxel to the corresponding\n"
-            "                    voxel time series in dataset 'fset' [which must\n"
-            "                    have the same spatial and temporal grid structure\n"
-            "                    as the main input dataset].\n"
-            " -nodetrend      = Skip the quadratic detrending of the input that\n"
-            "                    occurs before the FFT-based bandpassing.\n"
-            " -norm           = Make all output time series have L2 norm = 1.\n"
-            " -mask mset      = Mask dataset\n"
-            " -automask       = Create a mask from the input dataset\n"
-            " -blur fff       = Blur (inside the mask only) with a filter\n"
-            "                    width (FWHM) of 'fff' millimeters.\n"
-            " -input dataset  = Alternative way to specify input dataset.\n"
-            " -band fbot ftop = Alternative way to specify passband frequencies.\n"
-            " -prefix ppp     = Set prefix name of output dataset.\n"
-            " -quiet          = Turn off informative messages.\n"
-           ) ;
-      PRINT_COMPILE_DATE ; exit(0) ;
+     printf(
+       "Usage: 3dBandpass [options] fbot ftop dataset\n"
+       "\n"
+       "* 'dataset' is a 3D+time sequence of volumes\n"
+       "\n"
+       "* fbot = lowest frequency in the passband, in Hz\n"
+       "         ++ fbot can be 0 if you want to do a lowpass filter only,\n"
+       "            but the mean and Nyquist freq are always removed.\n"
+       "\n"
+       "* ftop = highest frequency in the passband (must be > fbot)\n"
+       "         ++ if ftop > Nyquist freq, then it's a highpass filter only.\n"
+       "\n"
+       "* One function of this program is to prepare datasets for input\n"
+       "   to 3dSetupGroupInCorr.\n"
+       "\n"
+       "* You cannot construct a 'notch' filter with this program!\n"
+       "  ++ You could use 3dBandpass followed by 3dcalc to get the same effect.\n"
+       "  ++ If you are understand what you are doing, that is.\n"
+       "  ++ Of course, that is the AFNI way -- if you don't want to\n"
+       "     understand what you are doing, use Some other PrograM, and\n"
+       "     you can still get Fine analysiS resulLts.\n"
+       "\n"
+       "* 3dBandpass will fail if fbot and ftop are too close for comfort.\n"
+       "  ++ Which means closer than one frequency grid step df,\n"
+       "     where df = 1 / (nfft * dt) [of course]\n"
+       "\n"
+       "* The actual FFT length used will be printed, and may be larger\n"
+       "   than the input time series length for the sake of efficiency.\n"
+       "  ++ The program will use a power-of-2, possibly multiplied by]\n"
+       "     a single factor of 3 and/or a single factor of 5; e.g.,\n"
+       "     240=16*3*5 would be chosen if there are 239 time points.\n"
+       "\n"
+       "* Note that the results of combining 3dDetrend and 3dBandpass will\n"
+       "   depend on the order in which you run these programs.  That's why\n"
+       "   3dBandpass has the '-ort' and '-dsort' options, so that the\n"
+       "   time series filtering can be done properly, in one place.\n"
+       "\n"
+       "* The output dataset is stored in float format.\n"
+       "\n"
+       "--------\n"
+       "OPTIONS:\n"
+       "--------\n"
+       " -ort f.1D       = Also orthogonalize input to columns in f.1D\n"
+       "                   ++ Multiple '-ort' options are allowed.\n"
+       " -dsort fset     = Orthogonalize each voxel to the corresponding\n"
+       "                    voxel time series in dataset 'fset', which must\n"
+       "                    have the same spatial and temporal grid structure\n"
+       "                    as the main input dataset.\n"
+       "                   ++ At present, only one '-dsort' option is allowed.\n"
+       " -nodetrend      = Skip the quadratic detrending of the input that\n"
+       "                    occurs before the FFT-based bandpassing.\n"
+       " -dt dd          = set time step to 'dd' sec [default=from dataset header]\n"
+       " -nfft N         = set the FFT length to 'N' [must be a legal value]\n"
+       " -norm           = Make all output time series have L2 norm = 1\n"
+       "                   ++ i.e., sum of squares = 1\n"
+       " -mask mset      = Mask dataset\n"
+       " -automask       = Create a mask from the input dataset\n"
+       " -blur fff       = Blur (inside the mask only) with a filter\n"
+       "                    width (FWHM) of 'fff' millimeters.\n"
+       " -input dataset  = Alternative way to specify input dataset.\n"
+       " -band fbot ftop = Alternative way to specify passband frequencies.\n"
+       " -prefix ppp     = Set prefix name of output dataset.\n"
+       " -quiet          = Turn off informative messages.\n"
+     ) ;
+     PRINT_COMPILE_DATE ; exit(0) ;
    }
 
    machdep() ;
@@ -60,7 +89,7 @@ int main( int argc , char * argv[] )
    while( nopt < argc && argv[nopt][0] == '-' ){
 
      if( strcmp(argv[nopt],"-nfft") == 0 ){
-       if( ++nopt >= argc ) ERROR_exit("need an argument afater -nfft!") ;
+       if( ++nopt >= argc ) ERROR_exit("need an argument after -nfft!") ;
        nfft = (int)PARSER_strtod(argv[nopt]) ;
        if( nfft < 16 || nfft != csfft_nextup_one35(nfft) )
          ERROR_exit("value after -nfft is illegal!") ;
@@ -115,6 +144,7 @@ int main( int argc , char * argv[] )
        if( ortar == NULL ) INIT_IMARR(ortar) ;
        ortim = mri_read_1D( argv[nopt] ) ;
        if( ortim == NULL ) ERROR_exit("can't read from -ort '%s'",argv[nopt]) ;
+       mri_add_name(argv[nopt],ortim) ;
        ADDTO_IMARR(ortar,ortim) ;
        nopt++ ; continue ;
      }
@@ -122,6 +152,7 @@ int main( int argc , char * argv[] )
      if( strcmp(argv[nopt],"-dsort") == 0 ){
        THD_3dim_dataset *qset ;
        if( ++nopt >= argc ) ERROR_exit("need an argument after -dsort!") ;
+       if( nortset > 0 ) ERROR_exit("only 1 -dsort option is allowed!") ;
        qset = THD_open_dataset(argv[nopt]) ;
        CHECK_OPEN_ERROR(qset,argv[nopt]) ;
        ortset = (THD_3dim_dataset **)realloc(ortset,
@@ -152,8 +183,8 @@ int main( int argc , char * argv[] )
      if( strncmp(argv[nopt],"-band",5) == 0 ){
        if( ++nopt >= argc-1 ) ERROR_exit("need 2 arguments after -band!") ;
        if( have_freq ) WARNING_message("second -band option replaces first one!") ;
-       fbot = (float)PARSER_strtod(argv[nopt++]) ;
-       ftop = (float)PARSER_strtod(argv[nopt++]) ;
+       fbot = strtod(argv[nopt++],NULL) ;
+       ftop = strtod(argv[nopt++],NULL) ;
        have_freq = 1 ; continue ;
      }
 
@@ -163,9 +194,10 @@ int main( int argc , char * argv[] )
    /** check inputs for reasonablositiness **/
 
    if( !have_freq ){
-     if( nopt+1 >= argc ) ERROR_exit("Need frequencies on command line after options!") ;
-     fbot = (float)PARSER_strtod(argv[nopt++]) ;
-     ftop = (float)PARSER_strtod(argv[nopt++]) ;
+     if( nopt+1 >= argc )
+       ERROR_exit("Need frequencies on command line after options!") ;
+     fbot = (float)strtod(argv[nopt++],NULL) ;
+     ftop = (float)strtod(argv[nopt++],NULL) ;
    }
 
    if( inset == NULL ){
@@ -174,9 +206,10 @@ int main( int argc , char * argv[] )
      inset = THD_open_dataset(argv[nopt]) ;
      CHECK_OPEN_ERROR(inset,argv[nopt]) ; nopt++ ;
    }
+   DSET_UNMSEC(inset) ;
 
    if( fbot < 0.0f  ) ERROR_exit("fbot value can't be negative!") ;
-   if( ftop <= fbot ) ERROR_exit("ftop value must be greater than fbot value!") ;
+   if( ftop <= fbot ) ERROR_exit("ftop value %g must be greater than fbot value %g!",ftop,fbot) ;
 
    ntime = DSET_NVALS(inset) ;
    if( ntime < 9 ) ERROR_exit("Input dataset is too short!") ;
@@ -205,11 +238,13 @@ int main( int argc , char * argv[] )
 
    nx = DSET_NX(inset); ny = DSET_NY(inset); nz = DSET_NZ(inset); nvox = nx*ny*nz;
 
+   /* check mask, or create it */
+
    if( mask != NULL ){
      if( mask_nx != nx || mask_ny != ny || mask_nz != nz )
        ERROR_exit("-mask dataset grid doesn't match input dataset") ;
 
-   } else if( automask ){
+   } else if( do_automask ){
      mask = THD_automask( inset ) ;
      if( mask == NULL )
        ERROR_message("Can't create -automask from input dataset?") ;
@@ -223,33 +258,83 @@ int main( int argc , char * argv[] )
      if( verb ) INFO_message("No mask ==> processing all %d voxels",nvox);
    }
 
-   ?????
+   /* check -dsort inputs for match to inset */
 
-   /* make list of pointers to start of each input vector */
+   for( kk=0 ; kk < nortset ; kk++ ){
+     if( DSET_NX(ortset[kk])    != nx ||
+         DSET_NY(ortset[kk])    != ny ||
+         DSET_NZ(ortset[kk])    != nz ||
+         DSET_NVALS(ortset[kk]) != ntime )
+       ERROR_exit("-dsort %s doesn't match input dataset grid" ,
+                  DSET_BRIKNAME(ortset[kk]) ) ;
+   }
 
-   vec = (float **)malloc(sizeof(float *)*ny) ;
-   for( iv=0 ; iv < ny ; iv++ ) vec[iv] = MRI_FLOAT_PTR(inim) + iv*nx ;
+   /* convert input dataset to a vectim, which is more fun */
+
+   if( verb ) INFO_message("Loading input dataset time series" ) ;
+   mrv = THD_dset_to_vectim( inset , mask , 0 ) ;
+   if( mrv == NULL ) ERROR_exit("Can't load time series data!?") ;
+   DSET_unload(inset) ;
 
    /* similarly for the ort vectors */
 
-   if( ortim != NULL ){
-     if( ortim->nx != nx )
-       ERROR_exit("-ort file and input 1D file differ in column lengths!") ;
-     nort = ortim->ny ;
-     ort  = (float **)malloc(sizeof(float)*nort) ;
-     for( iv=0 ; iv < nort ; iv++ ) ort[iv] = MRI_FLOAT_PTR(ortim) + iv*nx ;
+   if( ortar != NULL ){
+     for( kk=0 ; kk < IMARR_COUNT(ortar) ; kk++ ){
+       ortim = IMARR_SUBIM(ortar,kk) ;
+       if( ortim->nx < ntime )
+         ERROR_exit("-ort file %s is shorter than input dataset time series",
+                    ortim->name ) ;
+       ort  = (float **)realloc( ort , sizeof(float *)*(nort+ortim->ny) ) ;
+       for( vv=0 ; vv < ortim->ny ; vv++ )
+         ort[nort++] = MRI_FLOAT_PTR(ortim) + ortim->nx * vv ;
+     }
    }
 
    /* all the real work now */
 
-   (void)THD_bandpass_vectors( nx, ny, vec, dt, fbot,ftop, qdet, nort, ort ) ;
+   if( verb ) INFO_message("Bandpassing time series") ;
+   (void)THD_bandpass_vectim( mrv , dt,fbot,ftop , qdet , nort,ort ) ;
 
-   if( do_norm ){
-     for( iv=0 ; iv < ny ; iv++ ) THD_normalize( nx , vec[iv] ) ;
+   /* OK, maybe a little more work */
+
+   if( nortset == 1 ){
+     MRI_vectim *orv ;
+     orv = THD_dset_to_vectim( ortset[0] , mask , 0 ) ;
+     if( orv == NULL ){
+       ERROR_message("Can't load -dsort %s",DSET_BRIKNAME(ortset[0])) ;
+     } else {
+       float *dp , *mvv , *ovv , ff ;
+       if( verb ) INFO_message("Orthogonalizing to bandpassed -dsort") ;
+       (void)THD_bandpass_vectim( orv , dt,fbot,ftop , qdet , nort,ort ) ;
+       THD_vectim_normalize( orv ) ;
+       dp = malloc(sizeof(float)*mrv->nvec) ;
+       THD_vectim_vectim_dot( mrv , orv , dp ) ;
+       for( vv=0 ; vv < mrv->nvec ; vv++ ){
+         ff = dp[vv] ;
+         if( ff != 0.0f ){
+           mvv = VECTIM_PTR(mrv,vv) ; ovv = VECTIM_PTR(orv,vv) ;
+           for( kk=0 ; kk < ntime ; kk++ ) mvv[kk] -= ff*ovv[kk] ;
+         }
+       }
+       VECTIM_destroy(orv) ; free(dp) ;
+     }
    }
 
-   /* write to stdout */
+   if( do_norm ) THD_vectim_normalize( mrv ) ;
 
-   mri_write_1D( "-" , inim ) ;
+   /* create output dataset, populate it, write it, then quit */
+
+   outset = EDIT_empty_copy(inset) ;
+   EDIT_dset_items( outset , ADN_prefix,prefix , ADN_none ) ;
+   tross_Copy_History( inset , outset ) ;
+   tross_Make_History( "3dBandpass" , argc,argv , outset ) ;
+
+   for( kk=0 ; kk < ntime ; kk++ )
+     EDIT_substitute_brick( outset , kk , MRI_float , NULL ) ;
+
+   THD_vectim_to_dset( mrv , outset ) ;
+   VECTIM_destroy(mrv) ;
+   DSET_write(outset) ; if( verb ) WROTE_DSET(outset) ;
+
    exit(0) ;
 }

@@ -123,6 +123,25 @@ void THD_vectim_dotprod( MRI_vectim *mrv , float *vec , float *dp , int ata )
   return ;
 }
 
+/*-----------------------------------------------------------*/
+
+void THD_vectim_vectim_dot( MRI_vectim *arv, MRI_vectim *brv, float *dp )
+{
+   int nvec , nvals , iv , ii ; float *av , *bv , sum ;
+
+   if( arv == NULL || brv == NULL || dp == NULL ) return ;
+   if( arv->nvec != brv->nvec || arv->nvals != brv->nvals ) return ;
+
+   nvec = arv->nvec ; nvals = arv->nvals ;
+   for( iv=0 ; iv < nvec ; iv++ ){
+     av = VECTIM_PTR(arv,iv) ; bv = VECTIM_PTR(brv,iv) ;
+     for( sum=0.0f,ii=0 ; ii < nvals ; ii++ ) sum += av[ii]*bv[ii] ;
+     dp[iv] = sum ;
+   }
+
+   return ;
+}
+
 /*----------------------------------------------------------------------------*/
 
 int THD_vectim_subset_average( MRI_vectim *mrv, int nind, int *ind, float *ar )
