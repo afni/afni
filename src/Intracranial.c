@@ -801,8 +801,8 @@ void segment_envelope
   if (! quiet)  printf ("\nCreating envelope for segmented image \n");
 
 #ifndef AIZE
-  radius   = (float **) malloc(sizeof(float)*MAXLAT) ;
-  smradius = (float **) malloc(sizeof(float)*MAXLAT) ;
+  radius   = (float **) malloc(sizeof(float *)*MAXLAT) ;
+  smradius = (float **) malloc(sizeof(float *)*MAXLAT) ;
   for (ilat = 0;  ilat < MAXLAT;  ilat++){
       radius[ilat] = (float *)malloc(sizeof(float)*MAXLNG) ;
     smradius[ilat] = (float *)malloc(sizeof(float)*MAXLNG) ;

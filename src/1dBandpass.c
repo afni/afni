@@ -103,7 +103,7 @@ int main( int argc , char * argv[] )
      if( ortim->nx != nx )
        ERROR_exit("-ort file and input 1D file differ in column lengths!") ;
      nort = ortim->ny ;
-     ort  = (float **)malloc(sizeof(float)*nort) ;
+     ort  = (float **)malloc(sizeof(float *)*nort) ;
      for( iv=0 ; iv < nort ; iv++ ) ort[iv] = MRI_FLOAT_PTR(ortim) + iv*nx ;
    }
 

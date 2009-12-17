@@ -11,7 +11,7 @@ int main( int argc , char * argv[] )
    byte *mask=NULL ;
    int mask_nx,mask_ny,mask_nz,nmask , nx,ny,nz,nvox ;
    NI_element *nel ;
-   int nvec , *nvals , *ivec=NULL , iv,kk,nvv , nopt ;
+   int nvec , *nvals , *ivec=NULL , iv,kk,nvv , nopt , do_delete=0 ;
    float *fac , *fv , val,top ;
    NI_float_array *facar ; NI_int_array *nvar ;
    short *sv ; MRI_vectim *mv ; FILE *fp ; long long fsize ;
@@ -69,7 +69,22 @@ int main( int argc , char * argv[] )
        "OPTIONS\n"
        "-------\n"
        "  -mask mset     = Mask dataset [highly recommended!]\n"
+       "\n"
        "  -prefix PREFIX = Set prefix name of output dataset\n"
+       "\n"
+       "  -DELETE        = Delete input datasets from disk after\n"
+       "                   processing them one at a time into the\n"
+       "                   output data file -- this very highly\n"
+       "                   destructive option is intended to let\n"
+       "                   you save disk space, if absolutely\n"
+       "                   necessary.  *** BE CAREFUL OUT THERE! ***\n"
+       "                 ++ If you are setting up for 3dGroupInCorr\n"
+       "                    in a script that first uses 3dBandpass\n"
+       "                    to filter the datasets, then uses this\n"
+       "                    program to finish the setup, then you\n"
+       "                    COULD use '-DELETE' to remove the\n"
+       "                    temporary 3dBandpass outputs as soon\n"
+       "                    as they are no longer needed.\n"
      ) ;
      PRINT_COMPILE_DATE ; exit(0) ;
    }
@@ -78,6 +93,10 @@ int main( int argc , char * argv[] )
 
    nopt = 1 ;
    while( nopt < argc && argv[nopt][0] == '-' ){
+
+     if( strcmp(argv[nopt],"-DELETE") == 0 ){
+       do_delete = 1 ; nopt++ ; continue ;
+     }
 
      if( strcmp(argv[nopt],"-prefix") == 0 ){
        if( ++nopt >= argc ) ERROR_exit("need an argument after -prefix!") ;
@@ -179,7 +198,10 @@ int main( int argc , char * argv[] )
      if( mv == NULL ){
        fclose(fp) ; remove(dfname) ; ERROR_exit("Can't load dataset!?") ;
      }
-     DSET_delete( inset[ids] ) ;    /* no longer needed */
+
+     /* save memory by removing this input dataset */
+ 
+     THD_delete_3dim_dataset( inset[ids] , (Boolean)do_delete ) ;
 
      THD_vectim_normalize( mv ) ; /* L2 normalize each time series */
 

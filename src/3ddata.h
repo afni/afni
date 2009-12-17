@@ -4165,6 +4165,8 @@ extern void THD_vectim_dotprod( MRI_vectim *mrv, float *vec, float *dp, int ata 
 
 extern int THD_vectim_subset_average( MRI_vectim *mrv, int nind, int *ind, float *ar );
 
+extern void THD_vectim_vectim_dot( MRI_vectim *arv, MRI_vectim *brv, float *dp ) ;
+
 typedef struct {
   THD_3dim_dataset *dset , *mset ;
   byte *mmm ;
@@ -4520,6 +4522,10 @@ extern int THD_bandpass_vectors( int nlen, int nvec, float **vec, /* 30 Apr 2009
                                  int qdet, int nort, float **ort ) ;
 extern int THD_bandpass_OK( int nx, float dt, float fbot, float ftop, int verb ) ;
 extern int THD_bandpass_set_nfft( int n ) ;
+
+extern int THD_bandpass_vectim( MRI_vectim *mrv ,
+                                float dt , float fbot , float ftop  ,
+                                int qdet , int nort   , float **ort  ) ;
 
   /*-- see mri_3dalign.c for these routines --*/
 

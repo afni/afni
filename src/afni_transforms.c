@@ -138,11 +138,10 @@ void absfft_func( int num , double to,double dt, float *vec )
    int ii ;
 
    if( num < 2 ) return ;
-   if( num > numold ){
-      numold = num ;
-      ncx    = csfft_nextup(numold) ;
-      if( cx != NULL ) free(cx) ;
-      cx = (complex *) malloc(sizeof(complex)*ncx) ;
+   if( num != numold ){
+     numold = num ;
+     ncx    = csfft_nextup(numold) ;
+     cx     = (complex *)realloc(cx,sizeof(complex)*ncx) ;
    }
 
    get_linear_trend( num , vec , &f0,&f1 ) ;  /* thd_detrend.c */
