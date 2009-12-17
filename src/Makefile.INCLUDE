@@ -85,7 +85,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            3dLocalSVD  niml_feedme  3dErrtsCormat 3dUndump 3dREMLfit            \
            3dUpsample 3dTcorrMap 3dmatmult 3dABoverlap 3dmaskSVD 1dBandpass     \
            3dBlurInMask 3dRank 3dFFT 1dgenARMA11 3dPeriodogram 1dAstrip         \
-           3dLocalPV                                                            \
+           3dLocalPV 3dBandpass 3dSetupGroupInCorr                              \
            $(EXTRAS)
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge      \
@@ -1259,6 +1259,10 @@ afni_vcheck:afni_vcheck.o
 	$(RM) $@
 	$(CC) -o 1dBandpass 1dBandpass.o $(LFLAGS) $(LLIBS) -lf2c -lmri
 
+3dBandpass:3dBandpass.o
+	$(RM) $@
+	$(CC) -o 3dBandpass 3dBandpass.o $(LFLAGS) $(LLIBS) -lf2c -lmri
+
 1dcat:1dcat.o
 	$(RM) $@
 	$(CC) -o 1dcat 1dcat.o $(LFLAGS) $(LLIBS)
@@ -2387,6 +2391,12 @@ extor.o:extor.c
 
 thd_detrend.o:thd_detrend.c
 	$(CCFAST) -c thd_detrend.c $(INFLAGS)
+
+thd_bandpass.o:thd_bandpass.c
+	$(CCFAST) -c thd_bandpass.c $(INFLAGS)
+
+thd_dset_to_vectim.o:thd_dset_to_vectim.c
+	$(CCFAST) -c thd_dset_to_vectim.c $(INFLAGS)
 
 thd_ttest.o:thd_ttest.c
 	$(CCFAST) -c thd_ttest.c $(INFLAGS)

@@ -411,8 +411,8 @@ void LSQ_worker( int nt , double dt , float * vec , int dofit , char ** label )
       sprintf(sbuf,"Coef of 1 = %g\n" , fit[ir++] ) ;
       strcat(lbuf,sbuf) ;
 
-      for( ; ir <= polort ; ){
-         sprintf(sbuf,"Coef of t**%d = %g\n" , ir,fit[ir++] ) ;
+      for( ; ir <= polort ; ir++  ){
+         sprintf(sbuf,"Coef of t**%d = %g\n" , ir,fit[ir] ) ;
          strcat(lbuf,sbuf) ;
       }
 
