@@ -1,5 +1,5 @@
 print("#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-print("          ================== Welcome to 3dMetaAna.R ==================          ")
+print("          ================== Welcome to 3dMEMA.R ==================          ")
 print("AFNI Mixed-Effects Meta-Analysis Modeling Package!")
 print("#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
 print("Version 0.1.2,  Dec. 12, 2009")
@@ -11,7 +11,7 @@ print("#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 #########
 ##  Working version for handling covariates and residual statistics which are saved as 2 separate output file. 
 ##  type 4 (two groups with heteroskedasticity) should NOT be used when modeling with different slope across groups
-##  Outliers can be modeled now! 
+##  Outliers can be modeled now with EFS of Laplace assumption regarding cross-subjects variability! 
 #########
 
 
@@ -99,7 +99,7 @@ read.AFNI <- function(filename) {
     conbrik <- file(filename.brik,"rb")
   # modified below by GC 12/2/2008
   if (all(values$BRICK_TYPES==0) | all(values$BRICK_TYPES==1)) myttt<- readBin(conbrik, "int", n=dx*dy*dz*dt, size=size, signed=TRUE, endian=endian) # unsigned charater or short
-  if (all(values$BRICK_TYPES==3)) myttt<- readBin(conbrik, "numeric", n=dx*dy*dz, size=size, signed=TRUE, endian=endian) # float        
+  if (all(values$BRICK_TYPES==3)) myttt<- readBin(conbrik, "numeric", n=dx*dy*dz*dt, size=size, signed=TRUE, endian=endian) # float        
     close(conbrik)
     dim(myttt) <- c(dx,dy,dz,dt)
 #    for (k in 1:dt) {
