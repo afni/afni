@@ -1,5 +1,11 @@
 #include "mrilib.h"
 
+void THD_vectim_localpv( MRI_vectim *mrv , float rad ) ;
+int THD_vectim_subset_pv( MRI_vectim *mrv, int nind, int *ind,
+                                           float *ar, unsigned short xran[] ) ;
+
+/*----------------------------------------------------------------------------*/
+
 int main( int argc , char * argv[] )
 {
    int do_norm=0 , qdet=1 , have_freq=0 , do_automask=0 ;
@@ -12,6 +18,7 @@ int main( int argc , char * argv[] )
    int mask_nx,mask_ny,mask_nz,nmask , verb=1 , nx,ny,nz,nvox , nfft=0 , kk ;
    float **vec , **ort=NULL ; int nort=0 , vv , nopt , ntime  ;
    MRI_vectim *mrv ;
+   float pvrad=0.0f ;
 
    /*-- help? --*/
 
@@ -66,6 +73,7 @@ int main( int argc , char * argv[] )
        "  ++ Bandpass and de-orting of the -dsort dataset,\n"
        "      then detrending of the data with respect to -dsort\n"
        "  ++ Blurring inside the mask\n"
+       "  ++ Local PV calculation (this can be slow)\n"
        "  ++ L2 normalization\n"
        "\n"
        "--------\n"
@@ -88,10 +96,15 @@ int main( int argc , char * argv[] )
        " -automask       = Create a mask from the input dataset\n"
        " -blur fff       = Blur (inside the mask only) with a filter\n"
        "                    width (FWHM) of 'fff' millimeters.\n"
+       " -localPV rrr    = Replace each vector by the local Principal Vector\n"
+       "                    (AKA first singular vector) from a neighborhood\n"
+       "                    of radius 'rrr' millimiters.\n"
+       "                   ++ Note that the PV time series is L2 normalized.\n"
+       "                   ++ This option is for Bob Cox to have fun with.\n"
        " -input dataset  = Alternative way to specify input dataset.\n"
        " -band fbot ftop = Alternative way to specify passband frequencies.\n"
        " -prefix ppp     = Set prefix name of output dataset.\n"
-       " -quiet          = Turn off the fun and informative messages.\n"
+       " -quiet          = Turn off the fun and informative messages. (Why?)\n"
      ) ;
      PRINT_COMPILE_DATE ; exit(0) ;
    }
@@ -113,6 +126,13 @@ int main( int argc , char * argv[] )
        if( ++nopt >= argc ) ERROR_exit("need an argument after -blur!") ;
        blur = strtod(argv[nopt],NULL) ;
        if( blur <= 0.0f ) WARNING_message("non-positive blur?!") ;
+       nopt++ ; continue ;
+     }
+
+     if( strcmp(argv[nopt],"-localPV") == 0 ){
+       if( ++nopt >= argc ) ERROR_exit("need an argument after -localpv!") ;
+       pvrad = strtod(argv[nopt],NULL) ;
+       if( pvrad <= 0.0f ) WARNING_message("non-positive -localpv?!") ;
        nopt++ ; continue ;
      }
 
@@ -335,10 +355,15 @@ int main( int argc , char * argv[] )
 
    if( blur > 0.0f ){
      if( verb )
-       INFO_message("Blurring time series data spatially FWHM=%.2f",blur) ;
+       INFO_message("Blurring time series data spatially; FWHM=%.2f",blur) ;
      mri_blur3D_vectim( mrv , blur ) ;
    }
-   if( do_norm ){
+   if( pvrad > 0.0f ){
+     if( verb )
+       INFO_message("Local PV-ing time series data spatially; radius=%.2f",pvrad) ;
+     THD_vectim_localpv( mrv , pvrad ) ;
+   }
+   if( do_norm && pvrad <= 0.0f ){
      if( verb ) INFO_message("L2 normalizing time series data") ;
      THD_vectim_normalize( mrv ) ;
    }
@@ -358,4 +383,69 @@ int main( int argc , char * argv[] )
    DSET_write(outset) ; if( verb ) WROTE_DSET(outset) ;
 
    exit(0) ;
+}
+
+/*----------------------------------------------------------------------------*/
+
+void THD_vectim_localpv( MRI_vectim *mrv , float rad )
+{
+  unsigned short xran[3] = { 32701 , 22013 , 0x330e } ;
+  MCW_cluster *nbhd ;
+  int iv,kk,nn,nx,ny,nz,nxy , nind , *ind , xx,yy,zz , aa,bb,cc ;
+  float *pv , *fv ;
+
+  nbhd = MCW_spheremask( mrv->dx,mrv->dy,mrv->dz , rad ) ;
+  if( nbhd->num_pt <= 1 ){ THD_vectim_normalize(mrv); return; }
+  ind = (int *)malloc(sizeof(int)*nbhd->num_pt) ;
+  pv  = (float *)malloc(sizeof(float)*mrv->nvals) ;
+
+  nx = mrv->nx ; ny = mrv->ny ; nz = mrv->nz ; nxy = nx*ny ;
+  for( iv=0 ; iv < mrv->nvec ; iv++ ){
+    ind[0] = kk = mrv->ivec[iv] ; IJK_TO_THREE(kk,aa,bb,cc,nx,nxy) ;
+    for( nind=nn=1 ; nn < nbhd->num_pt ; nn++ ){
+      xx = aa + nbhd->i[nn] ; if( xx < 0 || xx >= nx ) continue ;
+      yy = bb + nbhd->j[nn] ; if( yy < 0 || yy >= ny ) continue ;
+      zz = cc + nbhd->k[nn] ; if( zz < 0 || zz >= nz ) continue ;
+      ind[nind] = THREE_TO_IJK(xx,yy,zz,nx,nxy) ; nind++ ;
+    }
+
+    nn = THD_vectim_subset_pv( mrv , nind,ind , pv , xran ) ;
+    fv = VECTIM_PTR(mrv,iv) ;
+    if( nn > 0 ){
+      for( kk=0 ; kk < mrv->nvals ; kk++ ) fv[kk] = pv[kk] ;
+    } else {                                             /* should not happen */
+      THD_normalize( mrv->nvals , fv ) ;
+    }
+  }
+
+  KILL_CLUSTER(nbhd) ; free(ind) ; free(pv) ; return ;
+}
+
+/*----------------------------------------------------------------------------*/
+
+int THD_vectim_subset_pv( MRI_vectim *mrv, int nind, int *ind,
+                                           float *ar, unsigned short xran[] )
+{
+   int nvals , jj,kk,nkk ; register int ii ; float *fv , **xvec ;
+
+   if( mrv == NULL || nind <= 0 || ind == NULL || ar == NULL ) return 0 ;
+
+   nvals = mrv->nvals ;
+   xvec  = (float **)malloc(sizeof(float *)*nind) ;
+
+   for( nkk=jj=0 ; jj < nind ; jj++ ){
+     kk = THD_vectim_ifind( ind[jj] , mrv ) ; if( kk < 0 ) continue ;
+     xvec[nkk] = VECTIM_PTR(mrv,kk) ; nkk++ ;
+   }
+
+   if( nkk == 0 ){ free(xvec) ; return 0 ; }
+
+   if( nkk == 1 ){
+     for( ii=0 ; ii < nvals ; ii++ ) ar[ii] = xvec[0][ii] ;
+     THD_normalize( nvals , ar ) ;
+     free(xvec) ; return 1 ;
+   }
+
+   (void)principal_vector( nvals,nkk , 1,xvec , ar , xvec[0] , NULL,xran ) ;
+   return nkk ;
 }
