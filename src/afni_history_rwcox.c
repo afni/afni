@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 18 , DEC , 2009 , RWC , "3dBandpass" , MICRO , TYPE_NEW_PROG ,
+   "Finally finished this!" ,
+   NULL } ,
+
  { 15 , DEC , 2009 , RWC , "3dmaskSVD" , MINOR , TYPE_BUG_FIX ,
    "Fixed 2 problems with -ort option" ,
    "1) It didn't work, since the wrong array name was used :-(\n"

@@ -19,24 +19,27 @@ int main( int argc , char * argv[] )
      printf(
        "Usage: 3dBandpass [options] fbot ftop dataset\n"
        "\n"
+       "* One function of this program is to prepare datasets for input\n"
+       "   to 3dSetupGroupInCorr.  Other uses are left to your imagination.\n"
+       "\n"
        "* 'dataset' is a 3D+time sequence of volumes\n"
        "\n"
        "* fbot = lowest frequency in the passband, in Hz\n"
-       "         ++ fbot can be 0 if you want to do a lowpass filter only,\n"
-       "            but the mean and Nyquist freq are always removed.\n"
+       "   ++ fbot can be 0 if you want to do a lowpass filter only,\n"
+       "       but the mean and Nyquist freq are always removed.\n"
        "\n"
        "* ftop = highest frequency in the passband (must be > fbot)\n"
-       "         ++ if ftop > Nyquist freq, then it's a highpass filter only.\n"
+       "   ++ if ftop > Nyquist freq, then it's a highpass filter only.\n"
        "\n"
-       "* One function of this program is to prepare datasets for input\n"
-       "   to 3dSetupGroupInCorr.\n"
+       "* Set fbot=0 and ftop=99999 to do an 'allpass' filter.\n"
+       "  ++ Except for removal of the 0 and Nyquist frequencies, that is.\n"
        "\n"
        "* You cannot construct a 'notch' filter with this program!\n"
        "  ++ You could use 3dBandpass followed by 3dcalc to get the same effect.\n"
        "  ++ If you are understand what you are doing, that is.\n"
        "  ++ Of course, that is the AFNI way -- if you don't want to\n"
        "     understand what you are doing, use Some other PrograM, and\n"
-       "     you can still get Fine analysiS resulLts.\n"
+       "     you can still get Fine StatisticaL maps.\n"
        "\n"
        "* 3dBandpass will fail if fbot and ftop are too close for comfort.\n"
        "  ++ Which means closer than one frequency grid step df,\n"
@@ -54,6 +57,16 @@ int main( int argc , char * argv[] )
        "   time series filtering can be done properly, in one place.\n"
        "\n"
        "* The output dataset is stored in float format.\n"
+       "\n"
+       "* The order of processing steps is the following:\n"
+       "  ++ Removal of a constant+linear+quadratic trend in each data time series\n"
+       "  ++ Bandpass of data time series\n"
+       "  ++ Bandpass of -ort time series, then detrending of data\n"
+       "      with respect to the -ort time series\n"
+       "  ++ Bandpass and de-orting of the -dsort dataset,\n"
+       "      then detrending of the data with respect to -dsort\n"
+       "  ++ Blurring inside the mask\n"
+       "  ++ L2 normalization\n"
        "\n"
        "--------\n"
        "OPTIONS:\n"
@@ -78,7 +91,7 @@ int main( int argc , char * argv[] )
        " -input dataset  = Alternative way to specify input dataset.\n"
        " -band fbot ftop = Alternative way to specify passband frequencies.\n"
        " -prefix ppp     = Set prefix name of output dataset.\n"
-       " -quiet          = Turn off informative messages.\n"
+       " -quiet          = Turn off the fun and informative messages.\n"
      ) ;
      PRINT_COMPILE_DATE ; exit(0) ;
    }
@@ -90,7 +103,7 @@ int main( int argc , char * argv[] )
 
      if( strcmp(argv[nopt],"-nfft") == 0 ){
        if( ++nopt >= argc ) ERROR_exit("need an argument after -nfft!") ;
-       nfft = (int)PARSER_strtod(argv[nopt]) ;
+       nfft = (int)strtod(argv[nopt],NULL) ;
        if( nfft < 16 || nfft != csfft_nextup_one35(nfft) )
          ERROR_exit("value after -nfft is illegal!") ;
        nopt++ ; continue ;
@@ -98,7 +111,7 @@ int main( int argc , char * argv[] )
 
      if( strcmp(argv[nopt],"-blur") == 0 ){
        if( ++nopt >= argc ) ERROR_exit("need an argument after -blur!") ;
-       blur = PARSER_strtod(argv[nopt]) ;
+       blur = strtod(argv[nopt],NULL) ;
        if( blur <= 0.0f ) WARNING_message("non-positive blur?!") ;
        nopt++ ; continue ;
      }
@@ -167,7 +180,7 @@ int main( int argc , char * argv[] )
 
      if( strcmp(argv[nopt],"-dt") == 0 ){
        if( ++nopt >= argc ) ERROR_exit("need an argument after -dt!") ;
-       dt = (float)PARSER_strtod(argv[nopt]) ;
+       dt = (float)strtod(argv[nopt],NULL) ;
        if( dt <= 0.0f ) WARNING_message("value after -dt illegal!") ;
        nopt++ ; continue ;
      }
@@ -292,7 +305,7 @@ int main( int argc , char * argv[] )
 
    /* all the real work now */
 
-   if( verb ) INFO_message("Bandpassing time series") ;
+   if( verb ) INFO_message("Bandpassing data time series") ;
    (void)THD_bandpass_vectim( mrv , dt,fbot,ftop , qdet , nort,ort ) ;
 
    /* OK, maybe a little more work */
@@ -320,7 +333,15 @@ int main( int argc , char * argv[] )
      }
    }
 
-   if( do_norm ) THD_vectim_normalize( mrv ) ;
+   if( blur > 0.0f ){
+     if( verb )
+       INFO_message("Blurring time series data spatially FWHM=%.2f",blur) ;
+     mri_blur3D_vectim( mrv , blur ) ;
+   }
+   if( do_norm ){
+     if( verb ) INFO_message("L2 normalizing time series data") ;
+     THD_vectim_normalize( mrv ) ;
+   }
 
    /* create output dataset, populate it, write it, then quit */
 
