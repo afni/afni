@@ -889,7 +889,7 @@ if(DEBUG) ININFO_message("** process row %c",abet[ids]) ;
        case ICALC_CONSTANT:
 if(DEBUG) ININFO_message("  get constant string") ;
          str = XmTextFieldGetString( iwid->war[ids].string_text) ;
-         ics->inval[ids] = PARSER_strtod(str) ;
+         ics->inval[ids] = strtod(str,NULL) ;
        break ;
 
        /* these cases aren't so easy */
