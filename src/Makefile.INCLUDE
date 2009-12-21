@@ -1000,6 +1000,16 @@ mri_nstats.o:mri_nstats.c
 	$(RM) $@
 	$(CC) -o 3dLocalSVD 3dLocalSVD.o $(LFLAGS) $(LLIBS) -lf2c
 
+## ------- Things to be compiled or linked with OpenMP -------
+
+3dGroupInCorr.o:3dGroupInCorr.c
+	$(RM) $@
+	$(CCOMP) -c 3dGroupInCorr.c $(INFLAGS)
+
+3dGroupInCorr:3dGroupInCorr.o
+	$(RM) $@
+	$(CCOMP) -o 3dGroupInCorr 3dGroupInCorr.o $(LFLAGS) $(LLIBS)
+
 3dLocalPV.o:3dLocalPV.c cs_pv.c
 	$(RM) $@
 	$(CCOMP) -c 3dLocalPV.c $(INFLAGS)
@@ -1007,8 +1017,6 @@ mri_nstats.o:mri_nstats.c
 3dLocalPV:3dLocalPV.o
 	$(RM) $@
 	$(CCOMP) -o 3dLocalPV 3dLocalPV.o $(LFLAGS) $(LLIBS) -lf2c
-
-## ------- Things to be compiled or linked with OpenMP -------
 
 3dLocalstat.o:3dLocalstat.c mri_nstats.c
 	$(RM) $@
