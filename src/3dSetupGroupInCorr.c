@@ -7,7 +7,7 @@ int main( int argc , char * argv[] )
    char *suffix_head = ".grpincorr.niml" ;
    char *suffix_data = ".grpincorr.data" ;
    char *hfname , *dfname ;
-   char atrib[2048] , *buf ;
+   char atrib[2048] , *buf , *gstr ;
    byte *mask=NULL ;
    int mask_nx,mask_ny,mask_nz,nmask , nx,ny,nz,nvox ;
    NI_element *nel ;
@@ -189,6 +189,8 @@ int main( int argc , char * argv[] )
 
    /*--- loop over datasets, convert to shorts, write out ---*/
 
+   gstr = strdup( EDIT_get_geometry_string(inset[0]) ) ;
+
    for( ids=0 ; ids < ndset ; ids++ ){
      INFO_message("GroupInCorr-izing dataset %s",DSET_BRIKNAME(inset[ids])) ;
 
@@ -202,6 +204,7 @@ int main( int argc , char * argv[] )
      /* save memory by removing this input dataset */
  
      THD_delete_3dim_dataset( inset[ids] , (Boolean)do_delete ) ;
+     inset[ids] = NULL ;
 
      THD_vectim_normalize( mv ) ; /* L2 normalize each time series */
 
@@ -269,8 +272,8 @@ int main( int argc , char * argv[] )
    buf = NI_encode_float_list( facar , "," ) ;
    NI_set_attribute( nel , "fac" , buf ) ;       /* scale factor per dataset */
 
-   buf = EDIT_get_geometry_string( inset[0] ) ;      /* describe 3D geometry */
-   NI_set_attribute( nel , "geometry" , buf ) ;       /* of what we're about */
+                                                     /* describe 3D geometry */
+   NI_set_attribute( nel , "geometry" , gstr ) ;      /* of what we're about */
 
    NI_set_attribute( nel , "datafile" , dfname ) ;         /* data file name */
 
