@@ -5336,10 +5336,13 @@ void AFNI_misc_CB( Widget w , XtPointer cd , XtPointer cbd )
 {
    Three_D_View *im3d = (Three_D_View *)cd ;
    XmAnyCallbackStruct *cbs = (XmAnyCallbackStruct *)cbd ;
+   int ic ;
 
 ENTRY("AFNI_misc_CB") ;
 
    if( !IM3D_OPEN(im3d) || w == NULL ) EXRETURN ;
+
+   ic = AFNI_controller_index(im3d) ;
 
    /*.........................................................*/
 
@@ -5697,7 +5700,6 @@ STATUS("got func info") ;
       static PLUGIN_interface *plint[MAX_CONTROLLERS] ; static int first=1 ;
       Widget wpop ;
       char title[64] , *lc=AFNI_controller_label(im3d) ;
-      int ic=AFNI_controller_index(im3d) ;
 
       if( first ){  /* initialize */
         int ii ;
@@ -5731,6 +5733,73 @@ STATUS("got func info") ;
       /*-- if possible, find where this popup should go --*/
 
       wpop = plint[ic]->wid->shell ;
+
+      if( cbs->event != NULL && cbs->event->type == ButtonRelease ){
+
+         XButtonEvent *xev = (XButtonEvent *)cbs->event ;
+         int xx = (int)xev->x_root , yy = (int)xev->y_root ;
+         int ww,hh , sw,sh ;
+
+         MCW_widget_geom( wpop , &ww,&hh , NULL,NULL ) ;
+         sw = WidthOfScreen (XtScreen(wpop)) ;
+         sh = HeightOfScreen(XtScreen(wpop)) ;
+
+         if( xx+ww+3 >= sw && ww <= sw ) xx = sw-ww ;
+         if( yy+hh+3 >= sh && hh <= sh ) yy = sh-hh ;
+
+         XtVaSetValues( wpop , XmNx , xx , XmNy , yy , NULL ) ;
+      }
+
+      /*-- popup widgets --*/
+
+      XtMapWidget( wpop ) ;  /* after this, is up to user */
+      RWC_visibilize_widget( wpop ) ;
+   }
+
+   /*.........................................................*/
+
+   else if( w == im3d->vwid->func->gicor_pb ){ /* 22 Dec 2009 */
+      static PLUGIN_interface *plint=NULL ;
+      Widget wpop ;
+      char title[64] , *lc=AFNI_controller_label(im3d) ;
+
+      if( im3d->giset == NULL || !im3d->giset->ready ){
+        if( cbs != NULL ){
+          XBell(im3d->dc->display,100) ;
+          (void)  MCW_popup_message( im3d->vwid->func->gicor_pb ,
+                                     "3dGroupInCorr\n"
+                                     " isn't ready!" ,
+                                      MCW_USER_KILL | MCW_TIMER_KILL ) ;
+        }
+        EXRETURN ;
+      }
+
+      /* first time in for this controller: create interface like a plugin */
+
+      if( plint == NULL ){
+         plint = GICOR_init(lc) ;
+         if( plint == NULL ){ XBell(im3d->dc->display,100); EXRETURN; }
+         PLUG_setup_widgets( plint , GLOBAL_library.dc ) ;
+         plint->im3d = im3d ;
+      }
+
+      if( cbs == NULL ){  /* synthetic call */
+         XtUnmapWidget(plint->wid->shell) ; EXRETURN ;
+      }
+
+      /* code below is from PLUG_startup_plugin_CB() in afni_plugin.c */
+
+      plint->im3d = im3d ;
+      sprintf(title,"%sAFNI Group InstaCorr Setup",lc) ;
+      XtVaSetValues( plint->wid->shell ,
+                      XmNtitle     , title       , /* top of window */
+                      XmNiconName  , "GrpInCorr" , /* label on icon */
+                     NULL ) ;
+      PLUTO_cursorize( plint->wid->shell ) ;
+
+      /*-- if possible, find where this popup should go --*/
+
+      wpop = plint->wid->shell ;
 
       if( cbs->event != NULL && cbs->event->type == ButtonRelease ){
 

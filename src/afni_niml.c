@@ -496,8 +496,8 @@ ENTRY("AFNI_niml_workproc") ;
 }
 
 /*----------------------------------------------------------------------*/
-/*! Process NIML data.  "chan" is the type of stream it came from;
-    this is currently not used.
+/*! Process NIML data.  "chan" is the index of the stream it came from;
+    this is currently not used [22 Dec 2009: it is now].
 ------------------------------------------------------------------------*/
 
 void AFNI_process_NIML_data( int chan, void *nini, int ct_start )
@@ -577,6 +577,10 @@ ENTRY("AFNI_process_NIML_data") ;
    } else if( strcmp(nel->name,"MRI_IMAGE") == 0 ){           /* 22 Mar 2005 */
 
      process_NIML_MRI_IMAGE( nel , ct_start ) ;       /* store as a .1D file */
+
+   } else if( strcmp(nel->name,"3dGroupInCorr_setup") == 0 ){ /* 22 Dec 2009 */
+
+     GICOR_setup_func( ns_listen[chan], nel ) ;
 
    } else {
      /*** If here, then name of element didn't match anything ***/
