@@ -1,10 +1,21 @@
 #include "afni.h"
 #ifndef ALLOW_PLUGINS
-IPLUGIN_interface *  ICOR_init(char *lab)
+PLUGIN_interface * ICOR_init(char *lab)
 {
   MCW_popup_message( THE_TOPSHELL ,
                      " \n"
                      " InstaCorr not available\n"
+                     " since this copy of AFNI\n"
+                     "  was compiled without\n"
+                     "  support for plugins!\n " , MCW_USER_KILL ) ;
+  return NULL ;
+}
+
+PLUGIN_interface * GICOR_init(char *lab)
+{
+  MCW_popup_message( THE_TOPSHELL ,
+                     " \n"
+                     " GrpInCorr not available\n"
                      " since this copy of AFNI\n"
                      "  was compiled without\n"
                      "  support for plugins!\n " , MCW_USER_KILL ) ;
@@ -20,7 +31,7 @@ static int ncall=0 ;
 
 /*--------------------- string to 'help' the user --------------------*/
 
-static char helpstring[] =
+static char i_helpstring[] =
   "Purpose: control AFNI InstaCorr operations\n"
   "\n"
   "===================  The Two Steps to Using InstaCorr  ===================\n"
@@ -136,7 +147,7 @@ PLUGIN_interface * ICOR_init( char *lab )
    sprintf(sk,"%sSetup InstaCorr",lab) ;
    plint = PLUTO_new_interface( "InstaCorr" ,
                                 sk ,
-                                helpstring ,
+                                i_helpstring ,
                                 PLUGIN_CALL_VIA_MENU ,
                                 (char *(*)())ICOR_main  ) ;
 
@@ -522,4 +533,141 @@ ENTRY("AFNI_icor_setref_locked") ;
    }
 
    busy = 0 ; EXRETURN ;
+}
+
+/****************************************************************************/
+/******* Group InstaCorr stuff below here! **********************************/
+/****************************************************************************/
+
+#define GIQUIT \
+ do { free(im3d->giset); im3d->giset = NULL; return; } while(0)
+
+void GICOR_setup_func( NI_stream nsg , NI_element *nel )
+{
+   GICOR_setup *giset ;
+   char *atr ;
+   Three_D_View *im3d = A_CONTROLLER ;
+
+   if( im3d->giset != NULL && im3d->giset->ready ) return ;
+
+   if( im3d->giset == NULL ){
+     im3d->giset = (GICOR_setup *)calloc(1,sizeof(GICOR_setup)) ;
+   }
+   giset = im3d->giset ;
+
+   giset->ns    = nsg ;
+   giset->ready = 0 ;
+
+   atr = NI_get_attribute( nel , "ndset_A" ) ;
+   if( atr == NULL ) GIQUIT ;
+   giset->ndset_A = (int)strtod(atr,NULL) ;
+   if( giset->ndset_A < 2 ) GIQUIT ;
+
+   atr = NI_get_attribute( nel , "ndset_B" ) ;
+   if( atr == NULL ) GIQUIT ;
+   giset->ndset_B = (int)strtod(atr,NULL) ;
+
+   atr = NI_get_attribute( nel , "nvec" ) ;
+   if( atr == NULL ) GIQUIT ;
+   giset->nvec = (int)strtod(atr,NULL) ;
+   if( giset->nvec < 2 ) GIQUIT ;
+
+   atr = NI_get_attribute( nel , "seedrad" ) ;
+   if( atr != NULL ){
+     giset->seedrad = (float)strtod(atr,NULL) ;
+   }
+
+   giset->ready = 1 ;
+   GRPINCORR_LABEL_ON(im3d) ;
+   return ;
+}
+
+/***********************************************************************
+   Set up the interface to the user
+************************************************************************/
+
+static char g_helpstring[] =
+  "Purpose: control AFNI Group InstaCorr operations\n"
+  "\n"
+  "Author -- RW Cox -- Dec 2009\n"
+;
+
+static char *topts[3] = { "pooled" , "unpooled" , "paired" } ;
+
+static char * GICOR_main( PLUGIN_interface * ) ;
+
+PLUGIN_interface * GICOR_init( char *lab )
+{
+   int ntops ;
+   PLUGIN_interface *plint ;     /* will be the output of this routine */
+   char sk[32] ;
+
+   if( lab == NULL ) lab = "\0" ;
+
+   if( !IM3D_OPEN(A_CONTROLLER) || A_CONTROLLER->giset == NULL || !A_CONTROLLER->giset->ready )
+     return NULL ;
+
+   /*---------------- set titles and call point ----------------*/
+
+   sprintf(sk,"%sSetup Group InstaCorr",lab) ;
+   plint = PLUTO_new_interface( "GrpInCorr" ,
+                                sk ,
+                                g_helpstring ,
+                                PLUGIN_CALL_VIA_MENU ,
+                                (char *(*)())GICOR_main  ) ;
+
+   PLUTO_set_runlabels( plint , "Setup+Keep" , "Setup+Close" ) ;
+
+   /*--------- make interface lines -----------*/
+
+   PLUTO_add_option ( plint , "Params" , "Params" , TRUE ) ;
+   PLUTO_add_number ( plint , "SeedRad" , 0,10,0,0, TRUE ) ;
+
+   ntops = (A_CONTROLLER->giset->ndset_A == A_CONTROLLER->giset->ndset_B) ? 3 : 2 ;
+   PLUTO_add_string ( plint , "t-test"  , ntops , topts , 0  ) ;
+
+   return plint ;
+}
+
+/***************************************************************************
+  Main routine for this plugin (will be called from AFNI).
+  If the return string is not NULL, some error transpired, and
+  AFNI will popup the return string in a message box.
+****************************************************************************/
+
+static char * GICOR_main( PLUGIN_interface *plint )
+{
+   Three_D_View *im3d = plint->im3d ;
+   float srad=0.0f ; int toption=0 ; char *tch ;
+   GICOR_setup *giset ;
+
+   if( !IM3D_OPEN(im3d)    ||
+       im3d->giset == NULL ||
+       !im3d->giset->ready   ){   /* should not happen */
+
+     GRPINCORR_LABEL_OFF(im3d) ;
+     if( im3d->giset != NULL ) im3d->giset->ready = 0 ;
+     XtUnmapWidget(plint->wid->shell) ;
+     return " ***** AFNI: ***** \n 3dGroupInCorr is no longer enabled!? \n " ;
+   }
+
+   giset = im3d->giset ;
+
+   /* if socket has gone bad, we're done */
+
+   if( NI_stream_goodcheck(giset->ns,1) < 1 ){
+     GRPINCORR_LABEL_OFF(im3d) ;
+     if( im3d->giset != NULL ) im3d->giset->ready = 0 ;
+     XtUnmapWidget(plint->wid->shell) ;
+     return " ***** AFNI: ***** \n 3dGroupInCorr is no longer connected! \n " ;
+   }
+
+   PLUTO_next_option(plint) ;
+   srad    = PLUTO_get_number(plint) ;
+   tch     = PLUTO_get_string(plint) ;
+   toption = PLUTO_string_index( tch , 3 , topts ) ;
+
+   /* do something with these changes */
+
+   return NULL ;
 }
