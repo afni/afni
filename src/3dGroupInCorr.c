@@ -236,6 +236,44 @@ void GRINCOR_many_dotprod( MRI_shindss *shd , float **vv , float **dp )
    return ;
 }
 
+/*-----------------------------------------------------------------------------*/
+
+#define AFNI_NIML_PORT 53212            /* TCP/IP port that AFNI uses */
+
+NI_stream GI_stream = (NI_stream)NULL ;
+
+/*=============================================================================*/
+
+void GI_exit(void)                   /* Function to be called to make sure */
+{                                    /* the AFNI data channel gets closed. */
+   if( GI_stream != (NI_stream)NULL ){
+     fprintf(stderr,"** 3dGroupInCorr exits: closing socket to AFNI\n") ;
+     NI_stream_close(GI_stream) ;
+   }
+   return ;
+}
+
+/*-----------------------------------------------------------------------------*/
+
+#include <signal.h>
+
+void GI_sigfunc(int sig)   /** signal handler for fatal errors **/
+{
+   char *sname ;
+   static volatile int fff=0 ;
+   if( fff ) _exit(1) ; else fff = 1 ;
+   switch(sig){
+      default:      sname = "unknown" ; break ;
+      case SIGINT:  sname = "SIGINT"  ; break ;
+      case SIGPIPE: sname = "SIGPIPE" ; break ;
+      case SIGSEGV: sname = "SIGSEGV" ; break ;
+      case SIGBUS:  sname = "SIGBUS"  ; break ;
+      case SIGTERM: sname = "SIGTERM" ; break ;
+   }
+   fprintf(stderr,"\n** 3dGroupInCorr: Fatal Signal %d (%s) received\n",sig,sname) ;
+   exit(1) ;
+}
+
 /*--------------------------------------------------------------------------*/
 
 static char *afnihost       = "localhost" ;
@@ -245,8 +283,13 @@ static int ttest_opcode     = -1   ;  /* 0=pooled, 1=pooled, 2=paired */
 
 int main( int argc , char *argv[] )
 {
-   int nopt ;
+   int nopt , kk , nn ;
    long long nbtot ;
+   char nsname[2048]  ; /* NIML socket name */
+   NI_element *nelset ; /* NIML element with dataset to send to AFNI */
+   NI_element *nelcmd ; /* NIML element with command from AFNI */
+   char buf[1024] ;
+   float seedrad=0.0f ;
 
    /*-- enlighten the ignorant and brutish sauvages? --*/
 
@@ -323,6 +366,11 @@ int main( int argc , char *argv[] )
       "               3dSetupGroupInCorr in the same relative order when each\n"
       "               collection was created. (Duh.)\n"
       "\n"
+      " -seedrad r = Before performing the correlations, average the seed voxel time\n"
+      "              series for a radius of 'r' millimeters.  This is in addition\n"
+      "              to any blurring done prior to 3dSetupGroupInCorr.  The default\n"
+      "              radius is 0, but the AFNI user can change this interactively.\n"
+      "\n"
       " -ah host  = Connect to AFNI on the computer named 'host', rather than on\n"
       "             the current computer system 'localhost'.\n"
       "            ++ This allows 3dGroupInCorr to run on a separate system than\n"
@@ -352,6 +400,16 @@ int main( int argc , char *argv[] )
 
    nopt = 1 ;
    while( nopt < argc ){
+
+     if( strcasecmp(argv[nopt],"-seedrad") == 0 ){
+       if( ++nopt >= argc ) ERROR_exit("need 1 argument after option '%s'",argv[nopt-1]) ;
+       seedrad = (float)strtod(argv[nopt],NULL) ;
+       if( seedrad < 0.0f ){
+         WARNING_message("Negative -seedrad being set back to zero!?") ;
+         seedrad = 0.0f ;
+       }
+       nopt++ ; continue ;
+     }
 
      if( strcasecmp(argv[nopt],"-ah") == 0 ){
        if( ++nopt >= argc ) ERROR_exit("need 1 argument after option '%s'",argv[nopt-1]) ;
@@ -410,11 +468,108 @@ int main( int argc , char *argv[] )
    INFO_message("total bytes read  = %lld (about %s)" ,
                 nbtot , approximate_number_string((double)nbtot) ) ;
 
-   INFO_message("Be sure to start afni with the '-niml' option") ;
+   INFO_message  ("Be sure to start afni with the '-niml' option"        ) ;
+   ININFO_message("(or press the 'NIML+PO' button if you forgot '-niml')") ;
 
-   /*-- at this point, should actually do some work --*/
+   /*-- Create VOLUME_DATA NIML element to hold the brick data --*/
 
-   ERROR_exit("This program doesn't do anything (yet) **") ;
+   nelset = NI_new_data_element( "VOLUME_DATA" , DSET_NVOX(shd_AAA->tdset) ) ;
+   NI_set_attribute( nelset , "geometry_string", shd_AAA->geometry_string  ) ;
+   NI_set_attribute( nelset , "target_name"    , "A_GRP_ICORR"             ) ;
+   NI_set_attribute( nelset , "view"           , "tlrc"                    ) ;
+   NI_set_attribute( nelset , "index"          , "0"                       ) ;
+   NI_set_attribute( nelset , "BRICK_STATSYM"  , "Zscore"                  ) ;
 
+   /*-- this stuff is one-time-only setup of the I/O to AFNI --*/
+
+   atexit(GI_exit) ;             /* call this when program ends */
+
+   signal(SIGINT ,GI_sigfunc) ;  /* setup signal handler */
+   signal(SIGBUS ,GI_sigfunc) ;  /* for fatal errors */
+   signal(SIGSEGV,GI_sigfunc) ;
+   signal(SIGTERM,GI_sigfunc) ;
+
+   /* name of NIML stream (socket) to open */
+
+   sprintf( nsname , "tcp:%s:%d" , afnihost , AFNI_NIML_PORT ) ;
+
+   /* open the socket (i.e., dial the telephone call) */
+
+   fprintf(stderr,"opening NIML stream '%s' to AFNI",nsname) ;
+   GI_stream = NI_stream_open( nsname , "w" ) ;
+
+   /* loop until AFNI connects (answers the call),
+      printing a '.' every so often to keep the user happy */
+
+   for( nn=0 ; nn < 333 ; nn++ ){
+     kk = NI_stream_writecheck( GI_stream , 999 ) ;
+     if( kk == 1 ){ fprintf(stderr," connected!\n") ; break ; }
+     if( kk <  0 ){ fprintf(stderr," ** connection fails :-(\n") ; exit(1) ; }
+     fprintf(stderr,".") ;
+   }
+   if( kk <= 0 ){ fprintf(stderr," ** connection times out :-(\n") ; exit(1) ; }
+
+   /** now send our setup info to AFNI */
+
+   nelcmd = NI_new_data_element( "3dGroupInCorr_setup" , 0 ) ;
+
+   sprintf(buf,"%d",shd_AAA->ndset) ;
+   NI_set_attribute( nelcmd , "ndset_A" , buf ) ;
+
+   sprintf(buf,"%d",(shd_BBB != NULL) ? shd_BBB->ndset : 0 ) ;
+   NI_set_attribute( nelcmd , "ndset_B" , buf ) ;
+
+   sprintf(buf,"%d",shd_AAA->nvec) ;
+   NI_set_attribute( nelcmd , "nvec" , buf ) ;
+
+   sprintf(buf,"%.2f",seedrad) ;
+   NI_set_attribute( nelcmd , "seedrad" , buf ) ;
+
+   NI_set_attribute( nelcmd , "geometry_string", shd_AAA->geometry_string  ) ;
+   NI_set_attribute( nelcmd , "target_name"    , "A_GRP_ICORR"             ) ;
+
+   nn = NI_write_element( GI_stream , nelcmd , NI_TEXT_MODE ) ;
+   if( nn < 0 ){
+     ERROR_exit("Can't send initialization data to AFNI!?") ;
+   }
+   NI_free_element(nelcmd) ;
+
+   /** now wait for commands from AFNI */
+
+   while(1){
+
+     nelcmd = NI_read_element( GI_stream , 999 ) ;  /* get command? */
+
+     if( nelcmd == NULL ){      /* nada?  check if something is bad */
+       kk = NI_stream_goodcheck( GI_stream , 1 ) ;
+       if( kk < 1 ){
+         NI_stream_close(GI_stream) ; GI_stream = (NI_stream)NULL ;
+         INFO_message("Connection to AFNI has gone bad") ; break ;
+       }
+       continue ; /* loop back */
+     }
+
+     if( NI_element_type(nelcmd) != NI_ELEMENT_TYPE ){  /* shouldn't happen */
+       WARNING_message("Badly formatted command from AFNI!") ;
+       NI_free_element(nelcmd) ; continue ;
+     }
+
+     /* do something with the command, based on the element name */
+
+     /* compute the result */
+
+     /* send the result back to AFNI */
+
+     kk = NI_write_element( GI_stream , nelset , NI_BINARY_MODE ) ;
+     if( kk <= 0 ){
+       ERROR_message("3dGroupInCorr: failure when writing to AFNI") ;
+     }
+
+     /* loop back for another command from AFNI */
+   }
+
+   /*-- bow out gracefully --*/
+
+   INFO_message("Exeunt 3dGroupInCorr and its data") ;
    exit(0) ;
 }

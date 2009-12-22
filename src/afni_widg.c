@@ -303,6 +303,8 @@ static   char       str[256] ;
 static   int        id , npane , last_color ,
                     view_count , view_height , sel_height ;
 
+static int FIRST_widcall = 1 ;  /* 22 Dec 2009 */
+
 void AFNI_make_wid1 (Three_D_View *) ;
 void AFNI_make_wid2 (Three_D_View *) ;
 void AFNI_make_wid3 (Three_D_View *) ;
@@ -329,7 +331,7 @@ ENTRY("AFNI_make_widgets") ;
    vwid->butx = vwid->buty = 9 ; /* 17 May 2005 */
 
 #ifdef USING_LESSTIF
-   /* In Lesstif, using form spacing, shifts the 
+   /* In Lesstif, using form spacing, shifts the
    top left corner in unsightly ways. Little
    spacing looks better    Lesstif Patrol Jan 09*/
    #define AFNI_FORM_SPACING 1
@@ -692,6 +694,7 @@ STATUS("creating control panels") ;
 
    XtManageChild( vwid->top_form ) ;
 
+   FIRST_widcall = 0 ;  /* 22 Dec 2009 */
    EXRETURN ;
 }
 
@@ -2664,7 +2667,7 @@ STATUS("making func->rowcol") ;
                           ) ;
 
    /* This --- Cancel --- label does not cause the hangup, so it is
-   left alone. See related comments in afni_graph.c            
+   left alone. See related comments in afni_graph.c
                            LessTif patrol, Jan 07 09 */
    (void) XtVaCreateManagedWidget(
             "dialog" , xmLabelWidgetClass , func->thr_menu ,
@@ -2680,7 +2683,7 @@ STATUS("making func->rowcol") ;
    func->thr_onoff_bbox = new_MCW_bbox( func->thr_menu ,
                                         1 , onofflabel ,
                                         MCW_BB_check , MCW_BB_noframe ,
-                                        AFNI_thronoff_change_CB , 
+                                        AFNI_thronoff_change_CB ,
                                         (XtPointer)im3d ) ;
    im3d->vinfo->thr_onoff = 1 ;
    MCW_set_bbox( func->thr_onoff_bbox , 1 ) ;
@@ -2944,7 +2947,7 @@ STATUS("making func->rowcol") ;
 #endif
 
    /* This --- Cancel --- label does not cause the hangup, so it is
-   left alone. See related comments in afni_graph.c            
+   left alone. See related comments in afni_graph.c
                            LessTif patrol, Jan 07 09 */
    (void) XtVaCreateManagedWidget(
             "dialog" , xmLabelWidgetClass , func->pbar_menu ,
@@ -3325,14 +3328,16 @@ STATUS("making func->rowcol") ;
          NULL ) ;
 
 #define VEDIT_COLOR "#000088"
-#define VEDIT_NOPT  3
-   { static char *options_vedit_label[] = { "Clusters" , "InstaCorr" , "InstaCalc" } ;
+#define VEDIT_NOPT  4
+   { static char *options_vedit_label[] =
+       { "Clusters" , "InstaCorr" , "InstaCalc" , "GrpInCorr" } ;
+     int nopt = (num_entry==1) ? VEDIT_NOPT : VEDIT_NOPT-1 ;
      func->options_vedit_av = new_MCW_arrowval(
                                func->options_top_rowcol , /* parent Widget */
                                NULL ,                     /* label */
                                MCW_AV_optmenu ,           /* option menu style */
                                0 ,                        /* first option */
-                               VEDIT_NOPT-1 ,             /* last option */
+                               nopt - 1 ,                 /* last option */
                                0 ,                        /* initial selection */
                                MCW_AV_readtext ,          /* ignored but needed */
                                0 ,                        /* ditto */
@@ -3566,6 +3571,55 @@ STATUS("making func->rowcol") ;
    MCW_set_widget_bg(func->icalc_label,STOP_COLOR,0) ;
 
    im3d->icalc_setup = NULL ;
+
+   /*--- 22 Dec 2009: Group InstaCorr stuff ---*/
+
+   if( num_entry == 1 ){  /* only in controller A */
+
+     func->gicor_rowcol =
+        XtVaCreateWidget(
+           "dialog" , xmRowColumnWidgetClass , func->vedit_frame ,
+              XmNorientation , XmVERTICAL ,
+              XmNpacking , XmPACK_TIGHT ,
+              XmNmarginHeight, 0 ,
+              XmNmarginWidth , 0 ,
+              XmNspacing     , 0 ,
+              XmNtraversalOn , True  ,
+              XmNinitialResourcesPersistent , False ,
+           NULL ) ;
+
+     func->gicor_pb =
+           XtVaCreateManagedWidget(
+              "dialog" , xmPushButtonWidgetClass , func->gicor_rowcol ,
+                 LABEL_ARG("Setup GICor") ,
+                 XmNmarginHeight , 0 ,
+                 XmNtraversalOn , True  ,
+                 XmNinitialResourcesPersistent , False ,
+              NULL ) ;
+     MCW_set_widget_bg( func->gicor_pb , VEDIT_COLOR , 0 ) ;
+     XtAddCallback( func->gicor_pb , XmNactivateCallback , AFNI_misc_CB , im3d ) ;
+     MCW_register_hint( func->gicor_pb , "Control Group InstaCorr calculations" ) ;
+
+     xstr = XmStringCreateLtoR( "*NOT Ready* " , XmFONTLIST_DEFAULT_TAG ) ;
+     func->gicor_label =
+        XtVaCreateManagedWidget(
+           "dialog" , xmLabelWidgetClass , func->gicor_rowcol ,
+              XmNrecomputeSize , False ,
+              XmNlabelString , xstr ,
+              XmNalignment , XmALIGNMENT_CENTER ,
+              XmNtraversalOn , True  ,
+              XmNinitialResourcesPersistent , False ,
+           NULL ) ;
+     XmStringFree(xstr) ;
+     MCW_set_widget_bg(func->gicor_label,STOP_COLOR,0) ;
+
+   } else {
+
+     func->gicor_rowcol = func->gicor_pb = func->gicor_label = NULL ;
+
+   }
+
+   im3d->giset = NULL ;
 
    /*--- 30 Nov 1997: bucket managers ---*/
 
@@ -5738,7 +5792,7 @@ ENTRY("AFNI_lock_button") ;
    /*** top of menu = a label to click on that does nothing at all ***/
 
    /* This --- Cancel --- label does not cause the hangup, so it is
-   left alone. See related comments in afni_graph.c            
+   left alone. See related comments in afni_graph.c
                            LessTif patrol, Jan 07 09 */
    xstr = XmStringCreateLtoR( "-- Cancel --" , XmFONTLIST_DEFAULT_TAG ) ;
    (void) XtVaCreateManagedWidget(
@@ -5946,7 +6000,7 @@ ENTRY("AFNI_misc_button") ;
    /*** top of menu = a label to click on that does nothing at all ***/
 
    /* This --- Cancel --- label does not cause the hangup, so it is
-   left alone. See related comments in afni_graph.c            
+   left alone. See related comments in afni_graph.c
                            LessTif patrol, Jan 07 09 */
    xstr = XmStringCreateLtoR( "-- Cancel --" , XmFONTLIST_DEFAULT_TAG ) ;
    (void) XtVaCreateManagedWidget(
@@ -6366,22 +6420,26 @@ void AFNI_vedit_CB( MCW_arrowval *av , XtPointer cd )
 ENTRY("AFNI_vedit_CB") ;
 
    if( ! IM3D_OPEN(im3d) ) EXRETURN ;
-   
+
    if( ! im3d->vwid->imag->pop_instacorr_pb ||
        ! im3d->vwid->imag->pop_icorrjump_pb ) {/*This happens when running afni
                                                  with -im option ZSS Aug 31 09*/
       EXRETURN ;
-   }                                                   
+   }
 
    XtUnmanageChild( im3d->vwid->func->vedit_frame ) ;
+
    switch( av->ival ){
      /* switch to Clusters */
      case 0:
        DISABLE_INSTACALC(im3d) ;                          /* InstaCalc off */
        DISABLE_INSTACORR(im3d) ;                          /* InstaCorr off */
        DESTROY_ICOR_setup(im3d->iset) ;
+       DISABLE_GRPINCORR(im3d) ;                          /* GrpInCorr off */
        XtUnmanageChild( im3d->vwid->func->icalc_rowcol) ;
        XtUnmanageChild( im3d->vwid->func->icor_rowcol ) ;
+       if( im3d->vwid->func->gicor_rowcol != NULL )
+         XtUnmanageChild( im3d->vwid->func->gicor_rowcol ) ;
        XtManageChild  ( im3d->vwid->func->clu_rowcol  ) ;
      break ;
 
@@ -6389,9 +6447,12 @@ ENTRY("AFNI_vedit_CB") ;
      case 1:
        DISABLE_INSTACALC(im3d) ;                          /* InstaCalc off */
        UNCLUSTERIZE(im3d) ;                               /* Clusters off */
-       XtManageChild  ( im3d->vwid->func->icor_rowcol ) ;
+       DISABLE_GRPINCORR(im3d) ;                          /* GrpInCorr off */
        XtUnmanageChild( im3d->vwid->func->icalc_rowcol) ;
        XtUnmanageChild( im3d->vwid->func->clu_rowcol  ) ;
+       if( im3d->vwid->func->gicor_rowcol != NULL )
+         XtUnmanageChild( im3d->vwid->func->gicor_rowcol ) ;
+       XtManageChild  ( im3d->vwid->func->icor_rowcol ) ;
      break ;
 
      /* switch to InstaCalc [18 Sep 2009] */
@@ -6399,9 +6460,26 @@ ENTRY("AFNI_vedit_CB") ;
        UNCLUSTERIZE(im3d) ;                               /* Clusters off */
        DISABLE_INSTACORR(im3d) ;                          /* InstaCorr off */
        DESTROY_ICOR_setup(im3d->iset) ;
+       DISABLE_GRPINCORR(im3d) ;                          /* GrpInCorr off */
        XtUnmanageChild( im3d->vwid->func->clu_rowcol  ) ;
        XtUnmanageChild( im3d->vwid->func->icor_rowcol ) ;
+       if( im3d->vwid->func->gicor_rowcol != NULL )
+         XtUnmanageChild( im3d->vwid->func->gicor_rowcol ) ;
        XtManageChild  ( im3d->vwid->func->icalc_rowcol) ;
+     break ;
+
+     /* switch to Group InstaCorr [22 Dec 2009] */
+     case 3:
+       if( im3d->vwid->func->gicor_rowcol != NULL ){
+         DISABLE_INSTACALC(im3d) ;                          /* InstaCalc off */
+         UNCLUSTERIZE(im3d) ;                               /* Clusters off */
+         DISABLE_INSTACORR(im3d) ;                          /* InstaCorr off */
+         DESTROY_ICOR_setup(im3d->iset) ;
+         XtUnmanageChild( im3d->vwid->func->clu_rowcol  ) ;
+         XtUnmanageChild( im3d->vwid->func->icor_rowcol ) ;
+         XtUnmanageChild( im3d->vwid->func->icalc_rowcol) ;
+         XtManageChild  ( im3d->vwid->func->gicor_rowcol ) ;
+       }
      break ;
    }
    XtManageChild( im3d->vwid->func->vedit_frame ) ;
