@@ -1771,6 +1771,8 @@ STATUS("call 12") ;
         if( GLOBAL_library.have_dummy_dataset && MAIN_im3d->type == AFNI_3DDATA_VIEW ){
           XtSetSensitive( MAIN_im3d->vwid->prog->clone_pb , False ) ;
           MAIN_im3d->dummied = 1 ;  /* 27 Jan 2004 */
+          MCW_set_widget_bg( MAIN_im3d->vwid->view->sess_lab ,
+                             MCW_hotcolor(MAIN_im3d->vwid->view->sess_lab) , 0 ) ;
         }
       }
       break ;
@@ -2199,7 +2201,16 @@ ENTRY("AFNI_startup_timeout_CB") ;
                               "++ NOTICE:                              ++\n"
                               "++ No data was found in './' directory, ++\n"
                               "++ so its subdirectories were searched  ++\n"
-                              "++ for dataset files.                   ++\n" ,
+                              "++ for dataset files.                   ++\n " ,
+                              MCW_USER_KILL | MCW_TIMER_KILL ) ;
+   else if( !ALLOW_realtime && GLOBAL_library.have_dummy_dataset ) /* 23 Dec 2009 */
+    (void) MCW_popup_message( MAIN_im3d->vwid->picture ,
+                              " \n"
+                              "++ NOTICE:                                 ++\n"
+                              "++ No valid datasets were found.           ++\n"
+                              "++ A 'dummy' dataset has been loaded.      ++\n"
+                              "++ To read in an actual data directory,    ++\n"
+                              "++ use the 'Switch' button near 'DataDir'. ++\n " ,
                               MCW_USER_KILL | MCW_TIMER_KILL ) ;
 
    /* 05 May 2009: make sure the Cluster widgets show up properly */
@@ -3616,8 +3627,8 @@ if(PRINT_TRACING)
 
                   if( xev->state&ShiftMask && xev->state&ControlMask ){
                     int qq = AFNI_icor_setref(im3d) ;
-                    if( qq == 0 ) BEEPIT ;
-                    else {
+                         if( qq < 0 ) BEEPIT ;
+                    else if( qq > 0 ){
                       im3d->vinfo->i1_icor = im3d->vinfo->i1 ;
                       im3d->vinfo->j2_icor = im3d->vinfo->j2 ;
                       im3d->vinfo->k3_icor = im3d->vinfo->k3 ;
@@ -8806,8 +8817,8 @@ ENTRY("AFNI_imag_pop_CB") ;
    else if( w == im3d->vwid->imag->pop_instacorr_pb && w != NULL ){
 
      int qq = AFNI_icor_setref(im3d) ;
-     if( qq == 0 ){ XBell( XtDisplay(w) , 100 ) ; }
-     else {
+          if( qq < 0 ) BEEPIT ;
+     else if( qq > 0 ){
        im3d->vinfo->i1_icor = im3d->vinfo->i1 ;
        im3d->vinfo->j2_icor = im3d->vinfo->j2 ;
        im3d->vinfo->k3_icor = im3d->vinfo->k3 ;

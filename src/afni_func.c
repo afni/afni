@@ -5767,8 +5767,10 @@ STATUS("got func info") ;
         if( cbs != NULL ){
           XBell(im3d->dc->display,100) ;
           (void)  MCW_popup_message( im3d->vwid->func->gicor_pb ,
-                                     "3dGroupInCorr\n"
-                                     " isn't ready!" ,
+                                     " \n"
+                                     " ***** AFNI: ***** \n"
+                                     "   3dGroupInCorr   \n"
+                                     " isn't connected!! \n " ,
                                       MCW_USER_KILL | MCW_TIMER_KILL ) ;
         }
         EXRETURN ;

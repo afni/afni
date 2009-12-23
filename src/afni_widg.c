@@ -1788,7 +1788,8 @@ STATUS("making view->rowcol") ;
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
    XmStringFree( xstr ) ;
-   MCW_set_widget_bg( view->sess_lab , MCW_hotcolor(view->sess_lab) , 0 ) ;
+   MCW_register_hint( view->sess_lab ,
+                      "Switch = change dataset directory; Read = open a new dataset directory" ) ;
 
    view->choose_sess_pb =
       XtVaCreateManagedWidget(
@@ -3598,7 +3599,7 @@ STATUS("making func->rowcol") ;
               NULL ) ;
      MCW_set_widget_bg( func->gicor_pb , VEDIT_COLOR , 0 ) ;
      XtAddCallback( func->gicor_pb , XmNactivateCallback , AFNI_misc_CB , im3d ) ;
-     MCW_register_hint( func->gicor_pb , "Control Group InstaCorr calculations" ) ;
+     MCW_register_hint( func->gicor_pb , "Control 3dGroupInCorr calculations" ) ;
 
      xstr = XmStringCreateLtoR( "*NOT Ready* " , XmFONTLIST_DEFAULT_TAG ) ;
      func->gicor_label =
@@ -3612,6 +3613,7 @@ STATUS("making func->rowcol") ;
            NULL ) ;
      XmStringFree(xstr) ;
      MCW_set_widget_bg(func->gicor_label,STOP_COLOR,0) ;
+     MCW_register_hint( func->gicor_label , "Will be ** Ready ** when 3dGroupInCorr is running" ) ;
 
    } else {
 
@@ -6478,7 +6480,11 @@ ENTRY("AFNI_vedit_CB") ;
          XtUnmanageChild( im3d->vwid->func->clu_rowcol  ) ;
          XtUnmanageChild( im3d->vwid->func->icor_rowcol ) ;
          XtUnmanageChild( im3d->vwid->func->icalc_rowcol) ;
-         XtManageChild  ( im3d->vwid->func->gicor_rowcol ) ;
+         XtManageChild  ( im3d->vwid->func->gicor_rowcol) ;
+         if( im3d->giset != NULL )
+           ENABLE_GRPINCORR(im3d) ;
+         else
+           DISABLE_GRPINCORR(im3d) ;
        }
      break ;
    }

@@ -497,13 +497,13 @@ typedef struct {
  } while(0)
 
 #undef  DESTROY_ICALC_setup
-#define DESTROY_ICALC_setup(qcs)                                  \
- do{ if( (qcs) != NULL ){                                         \
-       int aa ;                                                   \
-       XtFree((qcs)->ulay_expr) ;                                 \
-       XtFree((qcs)->olay_expr) ;                                 \
-       XtFree((qcs)->the_expr) ;                                  \
-       free((qcs)) ; (qcs) = NULL ;                               \
+#define DESTROY_ICALC_setup(qcs)     \
+ do{ if( (qcs) != NULL ){            \
+       int aa ;                      \
+       XtFree((qcs)->ulay_expr) ;    \
+       XtFree((qcs)->olay_expr) ;    \
+       XtFree((qcs)->the_expr) ;     \
+       free((qcs)) ; (qcs) = NULL ;  \
  }} while(0)
 
 /*---*/
@@ -514,10 +514,14 @@ typedef struct {
   int       ttest_opcode ;
   float     seedrad ;
   NI_stream ns ;
+  THD_session *session ; THD_3dim_dataset *dset ; int *ivec ;
 } GICOR_setup ;
 
-#define DISABLE_GICOR_setup(gi) \
-  do{ if( (gi) != NULL ){ (gi)->ready = 0 ; } } while(0)
+#define DESTROY_GICOR_setup(gi)                     \
+ do{ if( (gi) != NULL ){                            \
+       if( (gi)->ivec != NULL ) free((gi)->ivec) ;  \
+       free(gi) ; (gi) = NULL ;                     \
+     } } while(0)
 
 /*---*/
 
@@ -1066,19 +1070,24 @@ typedef struct Three_D_View {
      MCW_set_widget_bg   ((iq)->vwid->func->icor_label,STOP_COLOR,0 ) ; \
  } while(0)
 
+/*! Change InstaCorr popup buttons status */
+
+#define SENSITIZE_INSTACORR(iq,bb)                           \
+ do{ XtSetSensitive((iq)->vwid->imag->pop_instacorr_pb,bb) ; \
+     XtSetSensitive((iq)->vwid->imag->pop_icorrjump_pb,bb) ; \
+ } while(0)
+
 /*! Allow InstaCorr in this viewer */
 
-#define ENABLE_INSTACORR(iq)                                   \
- do{ XtSetSensitive((iq)->vwid->imag->pop_instacorr_pb,True) ; \
-     XtSetSensitive((iq)->vwid->imag->pop_icorrjump_pb,True) ; \
-     INSTACORR_LABEL_ON((iq)) ;                                \
+#define ENABLE_INSTACORR(iq)           \
+ do{ SENSITIZE_INSTACORR((iq),True) ;  \
+     INSTACORR_LABEL_ON((iq)) ;        \
  } while(0)
 
 /*! Turn InstaCorr off in this viewer */
 
 #define DISABLE_INSTACORR(iq)                                                 \
- do{ XtSetSensitive((iq)->vwid->imag->pop_instacorr_pb,False) ;               \
-     XtSetSensitive((iq)->vwid->imag->pop_icorrjump_pb,False) ;               \
+ do{ SENSITIZE_INSTACORR((iq),False) ;                                        \
      INSTACORR_LABEL_OFF((iq)) ;                                              \
      (iq)->vinfo->i1_icor = (iq)->vinfo->j2_icor = (iq)->vinfo->k3_icor = -1; \
      AFNI_misc_CB((iq)->vwid->func->icor_pb,(XtPointer)(iq),NULL) ;           \
@@ -1098,21 +1107,24 @@ typedef struct Three_D_View {
        MCW_set_widget_bg   ((iq)->vwid->func->gicor_label,STOP_COLOR,0 ) ; \
      } } while(0)
 
-#define ENABLE_GRPINCORR(iq)                                   \
- do{ XtSetSensitive((iq)->vwid->imag->pop_instacorr_pb,True) ; \
-     XtSetSensitive((iq)->vwid->imag->pop_icorrjump_pb,True) ; \
-     GRPINCORR_LABEL_ON((iq)) ;                                \
+#define ENABLE_GRPINCORR(iq)          \
+ do{ SENSITIZE_INSTACORR((iq),True) ; \
+     (iq)->giset->ready = 1 ;         \
+     GRPINCORR_LABEL_ON((iq)) ;       \
  } while(0)
 
-#define DISABLE_GRPINCORR(iq)                                                   \
- do{ if( (iq)->vwid->func->gicor_rowcol != NULL ){                              \
-       XtSetSensitive((iq)->vwid->imag->pop_instacorr_pb,False) ;               \
-       XtSetSensitive((iq)->vwid->imag->pop_icorrjump_pb,False) ;               \
-       DISABLE_GICOR_setup((iq)->giset) ;                                       \
-       GRPINCORR_LABEL_OFF((iq)) ;                                              \
-       (iq)->vinfo->i1_icor = (iq)->vinfo->j2_icor = (iq)->vinfo->k3_icor = -1; \
-       AFNI_misc_CB((iq)->vwid->func->gicor_pb,(XtPointer)(iq),NULL) ;          \
-     } } while(0)
+#define DISABLE_GRPINCORR(iq)                                                    \
+ do{ if( (iq)->vwid->func->gicor_rowcol != NULL ){                               \
+       SENSITIZE_INSTACORR((iq),False) ;                                         \
+       if( (iq)->giset != NULL ) (iq)->giset->ready = 0 ;                        \
+       GRPINCORR_LABEL_OFF((iq)) ;                                               \
+       (iq)->vinfo->i1_icor = (iq)->vinfo->j2_icor = (iq)->vinfo->k3_icor = -1;  \
+       AFNI_misc_CB((iq)->vwid->func->gicor_pb,(XtPointer)(iq),NULL) ;           \
+     }                                                                           \
+ } while(0)
+
+#define GRPINCORR_ready(iq) \
+ (IM3D_OPEN(iq) && (iq)->giset != NULL) ? (iq)->giset->ready : 0
 
 /** InstaCalc stuff [18 Sep 2009] **/
 
@@ -1259,7 +1271,8 @@ extern "C" {
    extern PLUGIN_interface * GICOR_init(char *);         /* 22 Dec 2009 */
 #endif
 
-extern void GICOR_setup_func(NI_stream, NI_element *) ;  /* 22 Dec 2009 */
+extern void GICOR_setup_func(NI_stream, NI_element *) ;        /* 22 Dec 2009 */
+extern void GICOR_process_dataset( NI_element *nel, int ct ) ; /* 23 Dec 2009 */
 
 extern void ICALC_make_widgets( Three_D_View *im3d ) ;   /* 18 Sep 2009 */
 
@@ -1611,6 +1624,8 @@ extern char * AFNI_bucket_label_CB( MCW_arrowval * , XtPointer ) ;
 extern void   AFNI_vedit_CB       ( MCW_arrowval * , XtPointer ) ; /* 05 May 2009 */
 extern int    AFNI_icor_setref    ( Three_D_View *im3d ) ;
 extern void   AFNI_icor_setref_locked( Three_D_View *im3d ) ;      /* 15 May 2009 */
+
+extern int    AFNI_gicor_setref   ( Three_D_View *im3d ) ;         /* 23 Dec 2009 */
 
 extern Boolean AFNI_refashion_dataset( Three_D_View * ,
                                        THD_3dim_dataset *, THD_dataxes * , int ) ;
