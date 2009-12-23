@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 23 , DEC , 2009 , RWC , "afni" , MICRO , TYPE_MODIFY ,
+   "Minor changes to 'DataDir' to appease DRG" ,
+   NULL } ,
+
  { 18 , DEC , 2009 , RWC , "3dBandpass" , MICRO , TYPE_NEW_PROG ,
    "Finally finished this!" ,
    NULL } ,

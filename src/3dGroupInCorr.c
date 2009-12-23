@@ -460,8 +460,12 @@ int main( int argc , char *argv[] )
    if( shd_BBB != NULL && strcmp(shd_AAA->dfname,shd_BBB->dfname) == 0 )
      ERROR_exit("-setA and -setB can't use the same datafile!") ;
 
-   if( shd_BBB == NULL && ttest_opcode >= 0 )
+   if( shd_BBB == NULL && ttest_opcode >= 0 ){
      WARNING_message("Specifying form of 2-sample t-test means nothing without '-setB'");
+     ttest_opcode = 0 ;
+   } else if( ttest_opcode < 0 ){
+     ttest_opcode = 0 ;
+   }
 
    nbtot = shd_AAA->nbytes ;
    if( shd_BBB != NULL ) nbtot += shd_BBB->nbytes ;
@@ -495,23 +499,28 @@ int main( int argc , char *argv[] )
 
    /* open the socket (i.e., dial the telephone call) */
 
-   fprintf(stderr,"opening NIML stream '%s' to AFNI",nsname) ;
+   fprintf(stderr,"++ Opening NIML stream '%s' to AFNI",nsname) ;
    GI_stream = NI_stream_open( nsname , "w" ) ;
 
    /* loop until AFNI connects (answers the call),
       printing a '.' every so often to keep the user happy */
 
-   for( nn=0 ; nn < 333 ; nn++ ){
-     kk = NI_stream_writecheck( GI_stream , 999 ) ;
-     if( kk == 1 ){ fprintf(stderr," connected!\n") ; break ; }
-     if( kk <  0 ){ fprintf(stderr," ** connection fails :-(\n") ; exit(1) ; }
+   for( nn=0 ; nn < 123 ; nn++ ){
      fprintf(stderr,".") ;
+     kk = NI_stream_writecheck( GI_stream , 999 ) ;
+     if( kk == 1 ){ fprintf(stderr," Connected!\n") ; break ; }
+     if( kk <  0 ){ fprintf(stderr," ** Connection fails :-(\n") ; exit(1) ; }
    }
-   if( kk <= 0 ){ fprintf(stderr," ** connection times out :-(\n") ; exit(1) ; }
+   if( kk <= 0 ){ fprintf(stderr," ** Connection times out :-(\n") ; exit(1) ; }
 
-   /** now send our setup info to AFNI */
+   /** now send our setup info to AFNI **/
 
-   nelcmd = NI_new_data_element( "3dGroupInCorr_setup" , 0 ) ;
+   if( shd_AAA->nvec == DSET_NVOX(shd_AAA->tdset) ){
+     nelcmd = NI_new_data_element( "3dGroupInCorr_setup" , 0) ;
+   } else {
+     nelcmd = NI_new_data_element( "3dGroupInCorr_setup" , shd_AAA->nvec ) ;
+     NI_add_column( nelcmd , NI_INT , shd_AAA->ivec ) ;
+   }
 
    sprintf(buf,"%d",shd_AAA->ndset) ;
    NI_set_attribute( nelcmd , "ndset_A" , buf ) ;
@@ -525,10 +534,13 @@ int main( int argc , char *argv[] )
    sprintf(buf,"%.2f",seedrad) ;
    NI_set_attribute( nelcmd , "seedrad" , buf ) ;
 
+   sprintf(buf,"%d",ttest_opcode) ;
+   NI_set_attribute( nelcmd , "ttest_opcode" , buf ) ;
+
    NI_set_attribute( nelcmd , "geometry_string", shd_AAA->geometry_string  ) ;
    NI_set_attribute( nelcmd , "target_name"    , "A_GRP_ICORR"             ) ;
 
-   nn = NI_write_element( GI_stream , nelcmd , NI_TEXT_MODE ) ;
+   nn = NI_write_element( GI_stream , nelcmd , NI_BINARY_MODE ) ;
    if( nn < 0 ){
      ERROR_exit("Can't send initialization data to AFNI!?") ;
    }
@@ -538,13 +550,13 @@ int main( int argc , char *argv[] )
 
    while(1){
 
-     nelcmd = NI_read_element( GI_stream , 999 ) ;  /* get command? */
+     nelcmd = NI_read_element( GI_stream , 333 ) ;  /* get command? */
 
      if( nelcmd == NULL ){      /* nada?  check if something is bad */
        kk = NI_stream_goodcheck( GI_stream , 1 ) ;
        if( kk < 1 ){
          NI_stream_close(GI_stream) ; GI_stream = (NI_stream)NULL ;
-         INFO_message("Connection to AFNI has gone bad") ; break ;
+         INFO_message("Connection to AFNI has broken") ; break ;
        }
        continue ; /* loop back */
      }
