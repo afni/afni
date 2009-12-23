@@ -496,8 +496,13 @@ ENTRY("AFNI_niml_workproc") ;
 }
 
 /*----------------------------------------------------------------------*/
-/*! Process NIML data.  "chan" is the index of the stream it came from;
-    this is currently not used [22 Dec 2009: it is now].
+/*! Process NIML data.
+    - chan is the ns_listen[] index of the stream it came from;
+      this is currently not used [22 Dec 2009: it is now].
+    - ct_start is the NI_clock_time() [msec] at the start of reading
+      this element; a function can use this info to print out some
+      timing information on how long it took to get the data and
+      do something useful with it
 ------------------------------------------------------------------------*/
 
 void AFNI_process_NIML_data( int chan, void *nini, int ct_start )
@@ -580,7 +585,11 @@ ENTRY("AFNI_process_NIML_data") ;
 
    } else if( strcmp(nel->name,"3dGroupInCorr_setup") == 0 ){ /* 22 Dec 2009 */
 
-     GICOR_setup_func( ns_listen[chan], nel ) ;
+     GICOR_setup_func( ns_listen[chan] , nel ) ;
+
+   } else if( strcmp(nel->name,"3dGroupInCorr_dataset") == 0 ){  /* 23 Dec 2009 */
+
+     GICOR_process_dataset( nel , ct_start ) ;
 
    } else {
      /*** If here, then name of element didn't match anything ***/
