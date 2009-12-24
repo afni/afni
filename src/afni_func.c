@@ -5763,6 +5763,10 @@ STATUS("got func info") ;
       Widget wpop ;
       char title[64] , *lc=AFNI_controller_label(im3d) ;
 
+      if( cbs == NULL && plint != NULL ){  /* synthetic call */
+         XtUnmapWidget(plint->wid->shell) ; EXRETURN ;
+      }
+
       if( im3d->giset == NULL || !im3d->giset->ready ){
         if( cbs != NULL ){
           XBell(im3d->dc->display,100) ;
@@ -5783,10 +5787,6 @@ STATUS("got func info") ;
          if( plint == NULL ){ XBell(im3d->dc->display,100); EXRETURN; }
          PLUG_setup_widgets( plint , GLOBAL_library.dc ) ;
          plint->im3d = im3d ;
-      }
-
-      if( cbs == NULL ){  /* synthetic call */
-         XtUnmapWidget(plint->wid->shell) ; EXRETURN ;
       }
 
       /* code below is from PLUG_startup_plugin_CB() in afni_plugin.c */

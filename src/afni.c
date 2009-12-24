@@ -7937,8 +7937,8 @@ STATUS(" -- managing tal_to button, etc") ;
    }
 
    if( im3d->vwid->imag->pop_instacorr_pb != NULL ){
-     if( ISVALID_ICOR_setup(im3d->iset) ) ENABLE_INSTACORR(im3d) ;
-     else                                 DISABLE_INSTACORR(im3d) ;
+     if( ISREADY_EITHER_ICOR(im3d) ) ENABLE_INSTACORR(im3d) ;
+     else                           DISABLE_INSTACORR(im3d) ;
    }
 
    /*--- 25 Jul 2001: sensitize 'See TT Atlas Regions' button ---*/
@@ -8829,7 +8829,7 @@ ENTRY("AFNI_imag_pop_CB") ;
    /*---- 08 May 2009: jump to InstaCorr point ----*/
 
    else if( w == im3d->vwid->imag->pop_icorrjump_pb &&
-            w != NULL && ISVALID_ICOR_setup(im3d->iset) ){
+            w != NULL && ISREADY_EITHER_ICOR(im3d) ){
      int ii,jj,kk ;
 
      ii = im3d->vinfo->i1_icor ;  /* extract icor place */

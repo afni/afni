@@ -669,15 +669,68 @@ INFO_message("DEBUG: GICOR_setup_func has ivec=[%d]",nn) ;
 
 void GICOR_process_dataset( NI_element *nel , int ct_start )
 {
-  INFO_message("DEBUG: GICOR_process_dataset called" ) ;
+  short *nelsar ;
+  nelsar = (short *)nel->vec[0] ;
+  INFO_message("DEBUG: GICOR_process_dataset called: nvec=%d sar[0]=%d",
+               nel->vec_len,nelsar[0] ) ;
 }
 
 /*--------------------------------------------------------------------------*/
 
 int AFNI_gicor_setref( Three_D_View *im3d )
 {
-  INFO_message("DEBUG: AFNI_gicor_setref called") ;
-  return 0 ;
+   NI_element *nel ;
+   char buf[256] ;
+   GICOR_setup *giset = im3d->giset ;
+   THD_fvec3 iv,jv; THD_ivec3 kv; int ijk;
+
+   if( !IM3D_OPEN(im3d)    ||
+       im3d->giset == NULL ||
+       !im3d->giset->ready   ){   /* should not happen */
+
+     GRPINCORR_LABEL_OFF(im3d) ; SENSITIZE_INSTACORR(im3d,False) ;
+     if( im3d->giset != NULL ) im3d->giset->ready = 0 ;
+     AFNI_misc_CB(im3d->vwid->func->gicor_pb,(XtPointer)im3d,NULL) ;
+     return -1 ;
+   }
+
+   /* if socket has gone bad, we're done */
+
+   if( NI_stream_goodcheck(giset->ns,1) < 1 ){
+     GRPINCORR_LABEL_OFF(im3d) ; SENSITIZE_INSTACORR(im3d,False) ;
+     if( im3d->giset != NULL ) im3d->giset->ready = 0 ;
+     AFNI_misc_CB(im3d->vwid->func->gicor_pb,(XtPointer)im3d,NULL) ;
+     return -1 ;
+   }
+
+   /* find where we are */
+
+   LOAD_FVEC3( iv , im3d->vinfo->xi,im3d->vinfo->yj,im3d->vinfo->zk ) ;
+   jv  = THD_dicomm_to_3dmm( giset->dset, iv ) ;
+
+   if( jv.xyz[0] < giset->dset->daxes->xxmin ||
+       jv.xyz[0] > giset->dset->daxes->xxmax ||
+       jv.xyz[1] < giset->dset->daxes->yymin ||
+       jv.xyz[1] > giset->dset->daxes->yymax ||
+       jv.xyz[2] < giset->dset->daxes->zzmin ||
+       jv.xyz[2] > giset->dset->daxes->zzmax   ){
+
+     WARNING_message("GrpInCorr set point outside dataset box") ;
+     return -1 ;
+   }
+
+   kv  = THD_3dmm_to_3dind_no_wod( giset->dset, jv ) ;
+   ijk = DSET_ixyz_to_index( giset->dset, kv.ijk[0],kv.ijk[1],kv.ijk[2] ) ;
+
+   INFO_message("DEBUG: AFNI_gicor_setref called: ijk=%d",ijk) ;
+
+   nel = NI_new_data_element( "SETREF_ijk" , 0 ) ;
+   sprintf( buf , "%d" , ijk ) ;
+   NI_set_attribute( nel , "vox_ijk" , buf ) ;
+
+   NI_write_element( giset->ns , nel , NI_TEXT_MODE ) ;
+   NI_free_element( nel ) ;
+   return 0 ;
 }
 
 /***********************************************************************
@@ -744,7 +797,7 @@ static char * GICOR_main( PLUGIN_interface *plint )
        im3d->giset == NULL ||
        !im3d->giset->ready   ){   /* should not happen */
 
-     GRPINCORR_LABEL_OFF(im3d) ;
+     GRPINCORR_LABEL_OFF(im3d) ; SENSITIZE_INSTACORR(im3d,False) ;
      if( im3d->giset != NULL ) im3d->giset->ready = 0 ;
      XtUnmapWidget(plint->wid->shell) ;
      return " ************ AFNI: ************ \n 3dGroupInCorr is no longer enabled!? \n " ;
@@ -755,7 +808,7 @@ static char * GICOR_main( PLUGIN_interface *plint )
    /* if socket has gone bad, we're done */
 
    if( NI_stream_goodcheck(giset->ns,1) < 1 ){
-     GRPINCORR_LABEL_OFF(im3d) ;
+     GRPINCORR_LABEL_OFF(im3d) ; SENSITIZE_INSTACORR(im3d,False) ;
      if( im3d->giset != NULL ) im3d->giset->ready = 0 ;
      XtUnmapWidget(plint->wid->shell) ;
      return " ************ AFNI: ************ \n 3dGroupInCorr is no longer connected! \n " ;
