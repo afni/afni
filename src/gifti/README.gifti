@@ -31,18 +31,12 @@ Speeds: (last checked in version 0.7)
 ----------------------------------------------------------------------
 
 todo:
+  - on alloc failure, propogate error up and return NULL
   - accessor functions
   - indexed reading
   - test doxygen comments
 
-  - add -no_updates option, not to update GIFTI element
-    else, update: (maybe have a higher level do this)
-        add gifticlib version?
-        date
-        Endian
-
   - #ifdef  __cplusplus
-  - data in external file(s)
   - select node list
   - display all valid attributes?  DTD?  valid attribute values given the name?
             known metadata?
@@ -50,12 +44,8 @@ todo:
   - gifti_remove_gim_metadata()
   - gifti_remove_DA_metadata()
   - gifti_remove_all_metadata()
-  - gifti_MD_find(char * name)
   - gifti_MD_delete(name)
-  - gifti_MD_add(name, value)
-  - gifti_MD_replace(name, value)
   - post XML read: validate gifti structure
         - check for UNKNOWN attributes
                 - done?? "invalid darray XX"
         - check that MD names are unique
-  - only print pointers on error
