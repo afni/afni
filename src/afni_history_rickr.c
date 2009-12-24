@@ -48,6 +48,18 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 24, DEC, 2009, RCR, "gifti_tool", MINOR, TYPE_NEW_OPT,
+   "added -approx_gifti option",
+   NULL
+ } ,
+
+ { 24, DEC, 2009, RCR, "GIFTI", MINOR, TYPE_NEW_OPT,
+   "added approximate difference functions",
+   "- added gifti_approx_gifti_images, DA_pair, labeltables, diff_offset\n"
+   "- added gifti_triangle_diff_offset\n"
+   "- gifti_compare_coordsys takes comp_data param"
+ } ,
+
  {  8, DEC, 2009, RCR, "GIFTI", MINOR, TYPE_NEW_OPT,
    "added ability to read/write GIFTI LabelTables with colors in thd_gifti.c",
    NULL
