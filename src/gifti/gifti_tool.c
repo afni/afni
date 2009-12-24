@@ -35,10 +35,11 @@ static char * g_history[] =
   "1.0  13 May, 2008: based on release library version 1.0\n",
   "     - added -set_extern_filelist\n"
   "1.1  02 Oct, 2008: mention NITRC web site in help\n"
-  "1.2  17 Apr, 2009: added -set_extern_filelist help and more examples\n"
+  "1.2  17 Apr, 2009: added -set_extern_filelist help and more examples\n",
+  "1.3  24 Dec, 2009: added -approx_gifti option\n"
 };
 
-static char g_version[] = "gifti_tool version 1.2, 17 April 2009";
+static char g_version[] = "gifti_tool version 1.3, 24 December 2009";
 
 /* globals: verbosity, for now */
 typedef struct { int verb; } gt_globs;
@@ -127,7 +128,10 @@ static int process_opts(int argc, char *argv[], gt_opts * opts)
         }
 
         /* now alphabetical */
-        else if( !strcmp(argv[ac], "-b64_check") ) {
+        else if( !strcmp(argv[ac], "-approx_gifti") ) {
+            opts->approx_gifti = 1;
+            opts->gt_compare = 1;
+        } else if( !strcmp(argv[ac], "-b64_check") ) {
             ac++;
             CHECK_NEXT_OPT(ac, argc, "-b64_check");
             if     ( !strcmp(argv[ac], "NONE" ) )
@@ -483,8 +487,13 @@ int gt_compare(gt_opts * opts)
     gimA = gt_read_dataset(opts, opts->infiles.list[0]);
     gimB = gt_read_dataset(opts, opts->infiles.list[1]);
 
-    if( !gimA || !gimB ) rv0 = -1;  /* if failure, make no comparison */
-    else {
+    if( !gimA || !gimB ) { /* if failure, make no comparison */
+        gifti_free_image(gimA);
+        gifti_free_image(gimB);
+        return -1;
+    }
+
+    if( opts->comp_gifti || opts->comp_data ) {
         if( opts->comp_gifti ) {
             rv0 = gifti_compare_gifti_images(gimA, gimB, 0, opts->comp_verb);
             if( !rv0 && opts->comp_verb > 0 )
@@ -497,6 +506,14 @@ int gt_compare(gt_opts * opts)
         }
 
         rv0 |= rv1;
+    } 
+
+    if( opts->approx_gifti ) {
+            /* return value of approx is opposite that of compare */
+            rv0 = gifti_approx_gifti_images(gimA, gimB, 1, opts->comp_verb);
+            if( rv0 && opts->comp_verb > 0 )
+                printf("++ gifti_images are approximately equal\n");
+        rv0 = !rv0;  /* invert return value for exit status */
     }
 
     gifti_free_image(gimA);
