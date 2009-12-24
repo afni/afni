@@ -363,16 +363,16 @@ typedef struct {
 
       Widget crosshair_menu, crosshair_dicom_pb, crosshair_spm_pb ; /* 12 Mar 2004 */
 
-      Widget         xhair_rowcol ;
-      MCW_arrowval * crosshair_av ;
-      MCW_bbox     * xhall_bbox ;
+      Widget        xhair_rowcol ;
+      MCW_arrowval *crosshair_av ;
+      MCW_bbox     *xhall_bbox ;
 
-      MCW_arrowval * crosshair_color_av ;
-      MCW_arrowval * time_index_av ;
+      MCW_arrowval *crosshair_color_av ;
+      MCW_arrowval *time_index_av ;
 
-      Widget         gap_wrap_rowcol ;
-      MCW_arrowval * crosshair_gap_av ;
-      MCW_bbox     * wrap_bbox ;
+      Widget        gap_wrap_rowcol ;
+      MCW_arrowval *crosshair_gap_av ;
+      MCW_bbox     *wrap_bbox ;
 
       Widget view_frame , view_rowcol ,
              xyz_rowcol   , yzx_rowcol   , zxy_rowcol   ,
@@ -383,7 +383,7 @@ typedef struct {
       Boolean do_bkgd_lab ;
 
       Widget pop_whereami_pb , pop_ttren_pb ;
-      MCW_textwin * pop_whereami_twin ;
+      MCW_textwin *pop_whereami_twin ;
 
       Widget pop_sumato_pb ;
       Widget pop_mnito_pb ;  /* 01 May 2002 */
@@ -1094,6 +1094,12 @@ typedef struct Three_D_View {
  } while(0)
 
 /*--- similar stuff for Group InstaCorr [22 Dec 2009] ---*/
+
+#define ISREADY_ICOR(iq)        ISVALID_ICOR_setup((iq)->iset)
+
+#define ISREADY_GICOR(iq)       ( (iq)->giset != NULL && (iq)->giset->ready )
+
+#define ISREADY_EITHER_ICOR(iq) ( ISREADY_ICOR(iq) || ISREADY_GICOR(iq) )
 
 #define GRPINCORR_LABEL_ON(iq)                                             \
  do{ if( (iq)->vwid->func->gicor_rowcol != NULL ){                         \
