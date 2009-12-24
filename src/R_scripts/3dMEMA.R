@@ -865,7 +865,6 @@ nGrp <- as.integer(readline("Number of groups (1 or 2)? "))
       if(ii==1) {myNote=bList[[1]][[1]]$header$HISTORY_NOTE; myOrig=bList[[1]][[1]]$origin; myDelta=bList[[1]][[1]]$delta; myDim <- bList[[1]][[1]]$dim}
       lapply(lapply(bList[[ii]], function(x) x$dim), function(x) if(!all(x==myDim)) stop("Dimension mismatch among the beta input files!"))
       lapply(lapply(tList[[ii]], function(x) x$dim), function(x) if(!all(x==myDim)) stop("Dimension mismatch between beta and t-statistic files!"))
-
    } # for(ii in 1:nGrp)
    } # if(anaType==1 | anaType==2 | anaType==4)
    
@@ -901,6 +900,9 @@ nGrp <- as.integer(readline("Number of groups (1 or 2)? "))
       } # for(ii in 1:nLevel)  
    
    } # if(anaType==3)
+   if(!identical(grep("orig", bFN[[1]][1]), integer(0))) dataView <- "orig"  # input files in orig view
+   if(!identical(grep("tlrc", bFN[[1]][1]), integer(0))) dataView <- "tlrc"  # input files in tlrc view
+   dataOrient <- system(sprintf("@GetAfniOrient %s", bFN[[1]][1]), intern = TRUE)
    
    #print("-----------------")
    print("There may have missing or zero t values at some voxels in some subjects.")
@@ -1178,7 +1180,8 @@ nGrp <- as.integer(readline("Number of groups (1 or 2)? "))
    #outArr[outArr[1:(2*sum(nSubj))]>tTop] <- tTop  # Avoid outflow!!!!
    #outArr[outArr[1:(2*sum(nSubj))] < (-tTop)] <- -tTop  # Avoid outflow!!!!
    write.AFNI(outFN, outArr[,,,1:nBrick0], outLabel, note=myNote, origin=myOrig, delta=myDelta, idcode="whatever")   
-   statpar <- paste(statpar, " -view tlrc -addFDR -newid ", outFN)  # assume tlrc space: wrong for monkey study, for example
+   if (dataView=="tlrc") statpar <- paste(statpar, " -view ", dataView)     
+   statpar <- paste(statpar, " -addFDR -newid -orient ", dataOrient, " ", outFN)
    system(statpar)
 
    #if(resZout==1) {
@@ -1190,8 +1193,9 @@ nGrp <- as.integer(readline("Number of groups (1 or 2)? "))
    if(resZout==1) {
       write.AFNI(icc_FN, outArr[,,,seq((nBrick0+1), nBrick, by=2)], iccLabel, note=myNote, origin=myOrig, delta=myDelta, idcode="whatever")
       write.AFNI(resZ_FN, outArr[,,,seq((nBrick0+2), nBrick, by=2)], resZLabel, note=myNote, origin=myOrig, delta=myDelta, idcode="whatever")
-      statparICC  <- paste(statparICC, " -view tlrc -newid ", icc_FN)
-      statparResZ <- paste(statparResZ, " -view tlrc -addFDR -newid ", resZ_FN)
+      if (dataView=="tlrc") {statparICC  <- paste(statparICC, " -view ", dataView); statparResZ <- paste(statparResZ, " -view ", dataView) } 
+      statparICC  <- paste(statparICC, " -newid -orient ", dataOrient, " ", icc_FN)
+      statparResZ <- paste(statparResZ, " -addFDR -newid ", dataOrient, " ", resZ_FN)
       system(statparICC)
       system(statparResZ)
    }
