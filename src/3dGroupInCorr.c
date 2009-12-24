@@ -7,6 +7,11 @@
 #include "thd_ttest.c"  /* to make sure it's compiled in with OpenMP */
 #endif
 
+/*--- prototypes ---*/
+
+double GIC_student_t2z( double tt, double dof ) ;
+float  ttest_toz( int numx, float *xar, int numy, float *yar, int opcode ) ;
+
 /*--------------------------------------------------------------------------*/
 
 typedef struct {
@@ -279,7 +284,7 @@ void GI_sigfunc(int sig)   /** signal handler for fatal errors **/
 static char *afnihost       = "localhost" ;
 static MRI_shindss *shd_AAA = NULL ;
 static MRI_shindss *shd_BBB = NULL ;
-static int ttest_opcode     = -1   ;  /* 0=pooled, 1=pooled, 2=paired */
+static int ttest_opcode     = -1   ;  /* 0=pooled, 1=unpooled, 2=paired */
 
 int main( int argc , char *argv[] )
 {
@@ -288,6 +293,7 @@ int main( int argc , char *argv[] )
    char nsname[2048]  ; /* NIML socket name */
    NI_element *nelset ; /* NIML element with dataset to send to AFNI */
    NI_element *nelcmd ; /* NIML element with command from AFNI */
+   short *nelsar ;
    char buf[1024] ;
    float seedrad=0.0f ;
 
@@ -477,12 +483,8 @@ int main( int argc , char *argv[] )
 
    /*-- Create VOLUME_DATA NIML element to hold the brick data --*/
 
-   nelset = NI_new_data_element( "VOLUME_DATA" , DSET_NVOX(shd_AAA->tdset) ) ;
-   NI_set_attribute( nelset , "geometry_string", shd_AAA->geometry_string  ) ;
-   NI_set_attribute( nelset , "target_name"    , "A_GRP_ICORR"             ) ;
-   NI_set_attribute( nelset , "view"           , "tlrc"                    ) ;
-   NI_set_attribute( nelset , "index"          , "0"                       ) ;
-   NI_set_attribute( nelset , "BRICK_STATSYM"  , "Zscore"                  ) ;
+   nelset = NI_new_data_element( "3dGroupInCorr_dataset" , shd_AAA->nvec ) ;
+   NI_add_column( nelset, NI_SHORT, NULL ); nelsar = (short *)nelset->vec[0];
 
    /*-- this stuff is one-time-only setup of the I/O to AFNI --*/
 
@@ -568,7 +570,12 @@ int main( int argc , char *argv[] )
 
      /* do something with the command, based on the element name */
 
+     INFO_message("Received command %s from AFNI",nelcmd->name) ;
+     NI_free_element( nelcmd ) ;
+
      /* compute the result */
+
+     nelsar[0] = (short)(NI_clock_time()/1000) ;
 
      /* send the result back to AFNI */
 
@@ -584,4 +591,282 @@ int main( int argc , char *argv[] )
 
    INFO_message("Exeunt 3dGroupInCorr and its data") ;
    exit(0) ;
+}
+
+/*=======================================================================*/
+/** The following routines are for the t-to-z conversion, and are
+    adapted from mri_stats.c to be parallelizable (no static data).
+=========================================================================*/
+
+static double GIC_qginv( double p )
+{
+   double dp , dx , dt , ddq , dq ;
+   int    newt ;                       /* not Gingrich, but Isaac */
+
+   dp = (p <= 0.5) ? (p) : (1.0-p) ;   /* make between 0 and 0.5 */
+
+   if( dp <= 1.e-37 ){
+      dx = 13.0 ;                      /* 13 sigma has p < 10**(-38) */
+      return ( (p <= 0.5) ? (dx) : (-dx) ) ;
+   }
+
+/**  Step 1:  use 26.2.23 from Abramowitz and Stegun **/
+
+   dt = sqrt( -2.0 * log(dp) ) ;
+   dx = dt
+        - ((.010328*dt + .802853)*dt + 2.515517)
+        /(((.001308*dt + .189269)*dt + 1.432788)*dt + 1.) ;
+
+/**  Step 2:  do 3 Newton steps to improve this
+              (uses the math library erfc function) **/
+
+   for( newt=0 ; newt < 3 ; newt++ ){
+     dq  = 0.5 * erfc( dx / 1.414213562373095 ) - dp ;
+     ddq = exp( -0.5 * dx * dx ) / 2.506628274631000 ;
+     dx  = dx + dq / ddq ;
+   }
+
+   if( dx > 13.0 ) dx = 13.0 ;
+   return ( (p <= 0.5) ? (dx) : (-dx) ) ;  /* return with correct sign */
+}
+
+#ifdef NO_GAMMA
+/*-----------------------------------------------------------------------*/
+/* If the system doesn't provide lgamma() for some primitive reason.
+-------------------------------------------------------------------------*/
+
+/**----- log of gamma, for argument between 1 and 2 -----**/
+
+static double gamma_12( double y )
+{
+   double x , g ;
+   x = y - 1.0 ;
+   g = ((((((( 0.035868343 * x - 0.193527818 ) * x
+                               + 0.482199394 ) * x
+                               - 0.756704078 ) * x
+                               + 0.918206857 ) * x
+                               - 0.897056937 ) * x
+                               + 0.988205891 ) * x
+                               - 0.577191652 ) * x + 1.0 ;
+   return log(g) ;
+}
+
+/**----- asymptotic expansion of ln(gamma(x)) for large positive x -----**/
+
+#define LNSQRT2PI 0.918938533204672  /* ln(sqrt(2*PI)) */
+
+static double gamma_asympt(double x)
+{
+   double sum ;
+
+   sum = (x-0.5)*log(x) - x + LNSQRT2PI + 1.0/(12.0*x) - 1./(360.0*x*x*x) ;
+   return sum ;
+}
+
+/**----- log of gamma, argument positive (not very efficient!) -----**/
+
+static double GIC_lgamma( double x )
+{
+   double w , g ;
+
+   if( x <= 0.0 ) return 0.0 ;  /* should not happen */
+
+   if( x <  1.0 ) return gamma_12( x+1.0 ) - log(x) ;
+   if( x <= 2.0 ) return gamma_12( x ) ;
+   if( x >= 6.0 ) return gamma_asympt(x) ;
+
+   g = 0 ; w = x ;
+   while( w > 2.0 ){ w -= 1.0 ; g += log(w) ; }
+   return ( gamma_12(w) + g ) ;
+}
+
+#define lgamma GIC_lgammma
+
+#endif  /*----- NO_GAMMA ------------------------------------------------*/
+
+/*----------------------------------------------------------------------*/
+
+static double GIC_lnbeta( double p , double q )
+{
+   return (lgamma(p) + lgamma(q) - lgamma(p+q)) ;
+}
+
+/*----------------------------------------------------------------------*/
+
+#define ZERO 0.0
+#define ONE  1.0
+#define ACU  1.0e-15
+
+static double GIC_incbeta( double x , double p , double q , double beta )
+{
+   double betain , psq , cx , xx,pp,qq , term,ai , temp , rx ;
+   int indx , ns ;
+
+   if( p <= ZERO || q <= ZERO ) return -1.0 ;  /* error! */
+
+   if( x <= ZERO ) return ZERO ;
+   if( x >= ONE  ) return ONE ;
+
+   /**  change tail if necessary and determine s **/
+
+   psq = p+q ;
+   cx  = ONE-x ;
+   if(  p < psq*x ){
+      xx   = cx ;
+      cx   = x ;
+      pp   = q ;
+      qq   = p ;
+      indx = 1 ;
+   } else {
+      xx   = x ;
+      pp   = p ;
+      qq   = q ;
+      indx = 0 ;
+   }
+
+   term   = ONE ;
+   ai     = ONE ;
+   betain = ONE ;
+   ns     = qq + cx*psq ;
+
+   /** use soper's reduction formulae **/
+
+      rx = xx/cx ;
+
+lab3:
+      temp = qq-ai ;
+      if(ns == 0) rx = xx ;
+
+lab4:
+      term   = term*temp*rx/(pp+ai) ;
+      betain = betain+term ;
+      temp   = fabs(term) ;
+      if(temp <= ACU && temp <= ACU*betain) goto lab5 ;
+
+      ai = ai+ONE ;
+      ns = ns-1 ;
+      if(ns >= 0) goto lab3 ;
+      temp = psq ;
+      psq  = psq+ONE ;
+      goto lab4 ;
+
+lab5:
+      betain = betain*exp(pp*log(xx)+(qq-ONE)*log(cx)-beta)/pp ;
+      if(indx) betain=ONE-betain ;
+
+   return betain ;
+}
+
+/*----------------------------------------------------------------------*/
+
+double GIC_student_t2z( double tt , double dof )
+{
+   double xx , pp , bb ;
+
+   bb = GIC_lnbeta( 0.5*dof , 0.5 ) ;
+
+   xx = dof/(dof + tt*tt) ;
+   pp = GIC_incbeta( xx , 0.5*dof , 0.5 , bb ) ;
+
+   if( tt > 0.0 ) pp = 1.0 - 0.5 * pp ;
+   else           pp = 0.5 * pp ;
+
+   xx = GIC_qginv(pp) ;
+   return -xx ;
+}
+
+/*=============================================================================*/
+
+/*----------------------------------------------------------------------------*/
+/*! Various sorts of t-tests; output = z-score.
+   - numx = number of points in the first sample (must be > 1)
+   - xar  = array with first sample
+   - numy = number of points in the second sample
+             - numy = 0 ==> a 1 sample test of first sample against mean=0
+  DISABLED   - numy = 1 ==> a 1 sample test of first sample against mean=yar[0]
+             - numy > 1 ==> a 2 sample test; opcode determines what kind
+   - opcode = 0 for unpaired test with pooled variance
+   - opcode = 1 for unpaired test with unpooled variance
+   - opcode = 2 for paired test (numx == numy is required)
+   - The return value is the z-score of the t-statistic.
+*//*--------------------------------------------------------------------------*/
+
+float ttest_toz( int numx , float *xar , int numy , float *yar , int opcode )
+{
+   float tstat , dof;
+   register int ii ; register float val ;
+   float avx,sdx , avy,sdy ;
+   int paired=(opcode==2) , pooled=(opcode==0) ;
+#if 0
+   float base=0.0f ;
+#endif
+
+#if 0
+   /* check inputs for stoopidities or other things that need to be changed */
+
+   tstat = 0.0f ;
+   if( numx < 2 || xar == NULL                 ) return tstat ; /* bad */
+   if( paired && (numy != numx || yar == NULL) ) return tstat ; /* bad */
+
+   if( numy == 1 && yar != NULL ){ base = yar[0] ; }
+   if( numy  < 2 || yar == NULL ){ numy = paired = pooled = 0 ; yar = NULL ; }
+#endif
+
+   if( paired ){   /* Case 1: paired t test */
+
+     avx = 0.0f ;
+     for( ii=0 ; ii < numx ; ii++ ) avx += xar[ii]-yar[ii] ;
+     avx /= numx ; sdx = 0.0f ;
+     for( ii=0 ; ii < numx ; ii++ ){ val = xar[ii]-yar[ii]-avx; sdx += val*val; }
+     val = (sdx > 0.0f) ?  val = avx / sqrtf( sdx/((numx-1.0f)*numx) ) : 0.0f ;
+     tstat = val ; dof = numx-1.0f ;  /* avx = difference in means */
+
+   } else if( numy == 0 ){  /* Case 2: 1 sample test against mean==base */
+
+     avx = 0.0f ;
+     for( ii=0 ; ii < numx ; ii++ ) avx += xar[ii] ;
+     avx /= numx ; sdx = 0.0f ;
+     for( ii=0 ; ii < numx ; ii++ ){ val = xar[ii]-avx ; sdx += val*val ; }
+#if 0
+     val = (sdx > 0.0f) ? (avx-base) / sqrtf( sdx/((numx-1.0f)*numx) ) : 0.0f ;
+#else
+     val = (sdx > 0.0f) ? (avx     ) / sqrtf( sdx/((numx-1.0f)*numx) ) : 0.0f ;
+#endif
+     tstat = val ; dof = numx-1.0f ; /* avx = mean */
+
+   } else {  /* Case 3: 2 sample test (pooled or unpooled) */
+
+     avx = 0.0f ;
+     for( ii=0 ; ii < numx ; ii++ ) avx += xar[ii] ;
+     avx /= numx ; sdx = 0.0f ;
+     for( ii=0 ; ii < numx ; ii++ ){ val = xar[ii] - avx ; sdx += val*val ; }
+
+     avy = 0.0f ;
+     for( ii=0 ; ii < numy ; ii++ ) avy += yar[ii] ;
+     avy /= numy ; sdy = 0.0f ;
+     for( ii=0 ; ii < numy ; ii++ ){ val = yar[ii] - avy ; sdy += val*val ; }
+
+     /* difference in means is in avx-avy */
+
+     if( sdx+sdy == 0.0f ){
+
+       tstat = 0.0f ; dof = numx+numy-2.0f ;
+
+     } else if( pooled ){  /* Case 3a: pooled variance estimate */
+
+       sdx = (sdx+sdy) / (numx+numy-2.0f) ;
+       val = (avx-avy) / sqrtf( sdx*(1.0f/numx+1.0f/numy) ) ;
+       tstat = val ; dof = numx+numy-2.0f ;
+
+     } else {       /* Case 3b: unpooled variance estimate */
+
+       sdx /= (numx-1.0f)*numx ; sdy /= (numy-1.0f)*numy ; val = sdx+sdy ;
+       tstat = (avx-avy) / sqrtf(val) ;
+       dof    = (val*val) / (sdx*sdx/(numx-1.0f) + sdy*sdy/(numy-1.0f) ) ;
+
+     }
+
+   } /* end of all possible cases */
+
+   return (float)GIC_student_t2z( (double)tstat , (double)dof ) ;
 }
