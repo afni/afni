@@ -109,7 +109,9 @@ int main( int argc , char * argv[] )
      PRINT_COMPILE_DATE ; exit(0) ;
    }
 
-   machdep() ;
+   mainENTRY("3dBandpass"); machdep();
+   AFNI_logger("3dBandpass",argc,argv);
+   PRINT_VERSION("3dBandpass"); AUTHOR("RW Cox");
 
    nopt = 1 ;
    while( nopt < argc && argv[nopt][0] == '-' ){

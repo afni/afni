@@ -197,19 +197,19 @@ void THD_cubic_detrend( int npt , float *far )  /* 15 Nov 1999 */
    Make a vector have L2 norm 1
 ---------------------------------------------------------------------------*/
 
-void THD_normalize( int npt , float *far )
+float THD_normalize( int npt , float *far )
 {
    register int ii ;
    register float fac ;
 
-   if( npt <= 0 || far == NULL ) return ;
+   if( npt <= 0 || far == NULL ) return 0.0f ;
 
    fac = 0.0f ;
    for( ii=0 ; ii < npt ; ii++ ) fac += far[ii]*far[ii] ;
-   if( fac == 0.0f ) return ;
+   if( fac == 0.0f ) return 0.0f ;
    fac = 1.0f / sqrtf(fac) ;
    for( ii=0 ; ii < npt ; ii++ ) far[ii] *= fac ;
-   return ;
+   return fac ;
 }
 
 /*-------------------------------------------------------------------------

@@ -1008,7 +1008,7 @@ mri_nstats.o:mri_nstats.c
 
 3dGroupInCorr:3dGroupInCorr.o
 	$(RM) $@
-	$(CCOMP) -o 3dGroupInCorr 3dGroupInCorr.o $(LFLAGS) $(LLIBS)
+	$(CCOMP) -o 3dGroupInCorr 3dGroupInCorr.o $(LFLAGS) $(LLIBS) -lf2c -lmri
 
 3dLocalPV.o:3dLocalPV.c cs_pv.c
 	$(RM) $@

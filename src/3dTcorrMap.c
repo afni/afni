@@ -48,7 +48,7 @@ static int mybsearch_int( int tt , int nar , int *ar )
 {
    int targ , ii , jj , kk , nn ;
 
-   if( nar == 0 || ar == NULL ) return -1 ; /* bad inputs */
+   if( nar <= 0 || ar == NULL ) return -1 ; /* bad inputs */
 
    targ = tt ; ii = 0 ; jj = nar-1 ;      /* setup */
 
