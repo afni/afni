@@ -548,7 +548,7 @@ ENTRY("AFNI_icor_setref_locked") ;
 #define GIQUIT \
  do { free(im3d->giset); im3d->giset = NULL; return; } while(0)
 
-/*--- Called when 3dGroupInCorr sends a setup NIML element ---*/
+/*--- Called (from afni_niml.c) when 3dGroupInCorr sends a setup NIML element ---*/
 
 void GICOR_setup_func( NI_stream nsg , NI_element *nel )
 {
@@ -617,8 +617,9 @@ void GICOR_setup_func( NI_stream nsg , NI_element *nel )
    EDIT_BRICK_LABEL     ( dset , 0 , "GIC_Zscore" ) ;
    EDIT_substitute_brick( dset , 0 , MRI_short , NULL ) ;
    DSET_superlock( dset ) ;
+   giset->nvox = DSET_NVOX(dset) ;
 
-   /* add dataset to current session */
+   /* add dataset to current session (change name if necessary) */
 
    sf = THD_dset_in_session( FIND_PREFIX , pre , ss ) ;
    if( sf.dset != NULL ){
@@ -634,11 +635,12 @@ void GICOR_setup_func( NI_stream nsg , NI_element *nel )
    }
 
    POPDOWN_strlist_chooser ;
+
    vv = dset->view_type ;
    if( vv < FIRST_VIEW_TYPE || vv > LAST_VIEW_TYPE ) vv = FIRST_VIEW_TYPE;
    for( qq=FIRST_VIEW_TYPE ; qq <= LAST_VIEW_TYPE ; qq++ )
      ss->dsset[qs][qq] = NULL ;
-   ss->dsset[qs][vv] = dset ; ss->num_dsset++ ;
+   ss->dsset[qs][vv] = dset ; ss->num_dsset++ ; giset->nds = qs ;
    INFO_message("Added 3dGroupInCorr dataset '%s' to controller %s",
                 DSET_FILECODE(dset), AFNI_controller_label(im3d) ) ;
    giset->session = ss ;
@@ -648,14 +650,14 @@ void GICOR_setup_func( NI_stream nsg , NI_element *nel )
    /* list of voxels to expect from each 3dGroupInCorr data */
 
    if( nel->vec_len == 0 || nel->vec_num == 0 || nel->vec == NULL ){  /* all */
-     giset->ivec = NULL ;
-INFO_message("DEBUG: GICOR_setup_func has ivec=NULL") ;
+     giset->ivec = NULL ; giset->nivec = 0 ;
+/* INFO_message("DEBUG: GICOR_setup_func has ivec=NULL") ; */
    } else {                                     /* make index list of voxels */
      int ii , nn , *iv=(int *)nel->vec[0] ;
      giset->ivec = (int *)calloc(sizeof(int),giset->nvec) ;
-     nn = MIN(giset->nvec,nel->vec_len) ;
+     nn = MIN(giset->nvec,nel->vec_len) ; giset->nivec = nn ;
      for( ii=0 ; ii < nn ; ii++ ) giset->ivec[ii] = iv[ii] ;
-INFO_message("DEBUG: GICOR_setup_func has ivec=[%d]",nn) ;
+/* INFO_message("DEBUG: GICOR_setup_func has ivec=int[%d]",nn) ; */
    }
 
    giset->ready = 1 ;
@@ -664,25 +666,84 @@ INFO_message("DEBUG: GICOR_setup_func has ivec=[%d]",nn) ;
    return ;
 }
 
-/*--------------------------------------------------------------------------*/
-/* Process the received dataset from 3dGroupInCorr */
+/*------------------------------------------------------------------------------*/
+/* Called (from afni_niml.c) to process the received dataset from 3dGroupInCorr */
 
 void GICOR_process_dataset( NI_element *nel , int ct_start )
 {
-  short *nelsar ;
-  nelsar = (short *)nel->vec[0] ;
-  INFO_message("DEBUG: GICOR_process_dataset called: nvec=%d sar[0]=%d",
-               nel->vec_len,nelsar[0] ) ;
+   Three_D_View *im3d = A_CONTROLLER ;
+   GICOR_setup *giset = im3d->giset ;
+   short *nelsar , *dsar ; int nvec,nn ;
+
+   nelsar = (short *)nel->vec[0] ;
+   nvec   = nel->vec_len ;
+
+   if( !IM3D_OPEN(im3d)    ||
+       im3d->giset == NULL ||
+       !im3d->giset->ready   ){   /* should not happen */
+
+     GRPINCORR_LABEL_OFF(im3d) ; SENSITIZE_INSTACORR(im3d,False) ;
+     if( im3d->giset != NULL ) im3d->giset->ready = 0 ;
+     AFNI_misc_CB(im3d->vwid->func->gicor_pb,(XtPointer)im3d,NULL) ;
+     (void) MCW_popup_message( im3d->vwid->picture ,
+                                 " \n"
+                                 " ******* AFNI: *********\n"
+                                 "  3dGrpInCorr sent data \n"
+                                 "  but setup isn't ready!\n " ,
+                               MCW_USER_KILL | MCW_TIMER_KILL ) ;
+     return ;
+   }
+
+   /* copy NIML data into dataset */
+
+   dsar = (short *)DSET_ARRAY(giset->dset,0) ;
+
+   if( giset->ivec == NULL ){  /* all voxels */
+     nn = MIN( giset->nvox , nvec ) ;
+     memcpy(dsar,nelsar,sizeof(short)*nn) ;
+   } else {
+     int *ivec=giset->ivec , kk ;
+     nn = MIN( giset->nivec , nvec ) ;
+     for( kk=0 ; kk < nn ; kk++ ) dsar[ivec[kk]] = nelsar[kk] ;
+   }
+
+   /* redisplay overlay */
+
+   if( im3d->fim_now != giset->dset ){  /* switch to this dataset */
+     MCW_choose_cbs cbs ; char cmd[32] , *cpt=AFNI_controller_label(im3d) ;
+     cbs.ival = giset->nds ;
+     AFNI_finalize_dataset_CB( im3d->vwid->view->choose_func_pb ,
+                               (XtPointer)im3d ,  &cbs           ) ;
+     AFNI_set_fim_index(im3d,0) ;
+     AFNI_set_thr_index(im3d,0) ;
+     sprintf(cmd,"SET_FUNC_RANGE %c.4.0",cpt[1]) ;
+     AFNI_driver(cmd) ;
+   }
+   AFNI_reset_func_range(im3d) ;
+
+   if( MCW_val_bbox(im3d->vwid->view->see_func_bbox) == 0 ){ /* overlay is off */
+     char cmd[32] , *cpt=AFNI_controller_label(im3d) ;
+     sprintf(cmd,"SEE_OVERLAY %c.+",cpt[1]) ;
+     AFNI_driver(cmd) ;
+   } else {                                                  /* overlay is on */
+     AFNI_redisplay_func(im3d) ;
+   }
+   AFNI_set_thr_pval(im3d) ; AFNI_process_drawnotice(im3d) ;
+
+   return ;
 }
 
 /*--------------------------------------------------------------------------*/
+/* Called to set the reference voxel,
+   and to start the calculations over in 3dGroupInCorr.
+*//*------------------------------------------------------------------------*/
 
 int AFNI_gicor_setref( Three_D_View *im3d )
 {
    NI_element *nel ;
    char buf[256] ;
    GICOR_setup *giset = im3d->giset ;
-   THD_fvec3 iv,jv; THD_ivec3 kv; int ijk;
+   THD_fvec3 iv,jv; THD_ivec3 kv; int ijk,ii ;
 
    if( !IM3D_OPEN(im3d)    ||
        im3d->giset == NULL ||
@@ -722,14 +783,36 @@ int AFNI_gicor_setref( Three_D_View *im3d )
    kv  = THD_3dmm_to_3dind_no_wod( giset->dset, jv ) ;
    ijk = DSET_ixyz_to_index( giset->dset, kv.ijk[0],kv.ijk[1],kv.ijk[2] ) ;
 
-   INFO_message("DEBUG: AFNI_gicor_setref called: ijk=%d",ijk) ;
+   /* INFO_message("DEBUG: AFNI_gicor_setref called: ijk=%d",ijk) ; */
+
+   if( giset->ivec != NULL ){
+     ii = bsearch_int( ijk , giset->nvec , giset->ivec ) ;
+     if( ii < 0 ){
+       WARNING_message("GrpInCorr set point not in mask from 3dGroupInCorr") ;
+       return -1 ;
+     }
+   }
+
+   /* send ijk node index to 3dGroupInCorr */
 
    nel = NI_new_data_element( "SETREF_ijk" , 0 ) ;
-   sprintf( buf , "%d" , ijk ) ;
-   NI_set_attribute( nel , "vox_ijk" , buf ) ;
 
-   NI_write_element( giset->ns , nel , NI_TEXT_MODE ) ;
+   sprintf( buf , "%d" , ijk ) ;
+   NI_set_attribute( nel , "index" , buf ) ;
+
+   sprintf( buf , "%g" , giset->seedrad ) ;
+   NI_set_attribute( nel , "seedrad" , buf ) ;
+
+   sprintf( buf , "%d" , giset->ttest_opcode ) ;
+   NI_set_attribute( nel , "ttest_opcode" , buf ) ;
+
+   ii = NI_write_element( giset->ns , nel , NI_TEXT_MODE ) ;
    NI_free_element( nel ) ;
+   if( ii <= 0 ){
+     ERROR_message("3dGroupInCorr connection has failed?!") ;
+     return -1 ;
+   }
+
    return 0 ;
 }
 
@@ -790,7 +873,7 @@ PLUGIN_interface * GICOR_init( char *lab )
 static char * GICOR_main( PLUGIN_interface *plint )
 {
    Three_D_View *im3d = plint->im3d ;
-   float srad=0.0f ; int toption=0 ; char *tch ;
+   float srad=0.0f ; int topcod=0 ; char *tch ;
    GICOR_setup *giset ;
 
    if( !IM3D_OPEN(im3d)    ||
@@ -815,13 +898,14 @@ static char * GICOR_main( PLUGIN_interface *plint )
    }
 
    PLUTO_next_option(plint) ;
-   srad    = PLUTO_get_number(plint) ;
-   tch     = PLUTO_get_string(plint) ;
-   toption = PLUTO_string_index( tch , 3 , topts ) ;
+   srad   = PLUTO_get_number(plint) ;
+   tch    = PLUTO_get_string(plint) ;
+   topcod = PLUTO_string_index( tch , 3 , topts ) ;
 
    /* do something with these changes */
 
-INFO_message("DEBUG: srad=%g toption=%d",srad,toption) ;
+   giset->seedrad      = srad ;
+   giset->ttest_opcode = topcod ;
 
    return NULL ;
 }

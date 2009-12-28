@@ -3627,12 +3627,12 @@ if(PRINT_TRACING)
 
                   if( xev->state&ShiftMask && xev->state&ControlMask ){
                     int qq = AFNI_icor_setref(im3d) ;
-                         if( qq < 0 ) BEEPIT ;
-                    else if( qq > 0 ){
+                    if( qq < 0 ) BEEPIT ;
+                    else {
                       im3d->vinfo->i1_icor = im3d->vinfo->i1 ;
                       im3d->vinfo->j2_icor = im3d->vinfo->j2 ;
                       im3d->vinfo->k3_icor = im3d->vinfo->k3 ;
-                      AFNI_icor_setref_locked(im3d) ;           /* 15 May 2009 */
+                      if( qq > 0 ) AFNI_icor_setref_locked(im3d) ; /* 15 May 2009 */
                     }
                   }
                }
@@ -8817,12 +8817,12 @@ ENTRY("AFNI_imag_pop_CB") ;
    else if( w == im3d->vwid->imag->pop_instacorr_pb && w != NULL ){
 
      int qq = AFNI_icor_setref(im3d) ;
-          if( qq < 0 ) BEEPIT ;
-     else if( qq > 0 ){
+     if( qq < 0 ) BEEPIT ;
+     else {
        im3d->vinfo->i1_icor = im3d->vinfo->i1 ;
        im3d->vinfo->j2_icor = im3d->vinfo->j2 ;
        im3d->vinfo->k3_icor = im3d->vinfo->k3 ;
-       AFNI_icor_setref_locked(im3d) ;           /* 15 May 2009 */
+       if( qq > 0 ) AFNI_icor_setref_locked(im3d) ; /* 15 May 2009 */
      }
    }
 

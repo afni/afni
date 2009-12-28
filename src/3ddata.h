@@ -4231,7 +4231,7 @@ extern void get_linear_trend     ( int, float *, float *, float * ) ;
 extern void THD_linear_detrend   ( int, float *, float *, float * ) ;
 extern void get_quadratic_trend  ( int, float *, float *, float *, float * ) ;
 extern void THD_quadratic_detrend( int, float *, float *, float *, float * ) ;
-extern void THD_normalize        ( int, float * ) ;
+extern float THD_normalize       ( int, float * ) ;
 extern void THD_normRMS          ( int, float * ) ;  /* 06 Jun 2008 */
 extern void THD_normmax          ( int, float * ) ;  /* 26 Mar 2008 */
 extern void THD_normL1           ( int, float * ) ;  /* 26 Mar 2008 */
