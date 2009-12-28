@@ -89,7 +89,9 @@ int main( int argc , char * argv[] )
      PRINT_COMPILE_DATE ; exit(0) ;
    }
 
-   machdep() ;
+   mainENTRY("3dSetupGroupInCorr"); machdep();
+   AFNI_logger("3dSetupGroupInCorr",argc,argv);
+   PRINT_VERSION("3dSetupGroupInCorr"); AUTHOR("RW Cox");
 
    nopt = 1 ;
    while( nopt < argc && argv[nopt][0] == '-' ){
@@ -192,7 +194,7 @@ int main( int argc , char * argv[] )
    gstr = strdup( EDIT_get_geometry_string(inset[0]) ) ;
 
    for( ids=0 ; ids < ndset ; ids++ ){
-     INFO_message("GroupInCorr-izing dataset %s",DSET_BRIKNAME(inset[ids])) ;
+     ININFO_message("GroupInCorr-izing dataset %s",DSET_BRIKNAME(inset[ids])) ;
 
      /* extract all time series in the mask, as floats */
 

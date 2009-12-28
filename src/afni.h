@@ -514,7 +514,8 @@ typedef struct {
   int       ttest_opcode ;
   float     seedrad ;
   NI_stream ns ;
-  THD_session *session ; THD_3dim_dataset *dset ; int *ivec ;
+  THD_session *session ; THD_3dim_dataset *dset ;
+  int nds,nvox,nivec,*ivec ;
 } GICOR_setup ;
 
 #define DESTROY_GICOR_setup(gi)                     \
