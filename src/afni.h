@@ -511,7 +511,7 @@ typedef struct {
 typedef struct {
   int       ready ;
   int       ndset_A , ndset_B , nvec ;
-  int       ttest_opcode ;
+  int       ttest_opcode , vmul ;
   float     seedrad ;
   NI_stream ns ;
   THD_session *session ; THD_3dim_dataset *dset ;

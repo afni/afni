@@ -282,13 +282,13 @@ void GRINCOR_dotprod( MRI_shindss *shd, int ids, float *vv, float *dp )
 
 void GRINCOR_many_dotprod( MRI_shindss *shd , float **vv , float **ddp )
 {
-   int ndset=shd->ndset ;
 
 #pragma omp parallel
- { int ids ;
+ { int ids , ndset=shd->ndset ;
    AFNI_OMP_START ;
 #pragma omp for
    for( ids=0 ; ids < ndset ; ids++ ){
+     if( verb > 2 ) fprintf(stderr," +   start correlation on dataset #%d\n",ids) ;
      GRINCOR_dotprod( shd , ids , vv[ids] , ddp[ids] ) ;
    }
    AFNI_OMP_END ;
@@ -518,6 +518,10 @@ int main( int argc , char *argv[] )
      PRINT_COMPILE_DATE ; exit(0) ;
    }
 
+   mainENTRY("3dGroupInCorr"); machdep();
+   AFNI_logger("3dGroupInCorr",argc,argv);
+   PRINT_VERSION("3dGroupInCorr"); AUTHOR("RW Cox");
+
    /*-- process command line options --*/
 
    nopt = 1 ;
@@ -526,8 +530,11 @@ int main( int argc , char *argv[] )
      if( strcasecmp(argv[nopt],"-quiet") == 0 ){
        verb = 0 ; nopt++ ; continue ;
      }
-     if( strcasecmp(argv[nopt],"-verb") == 0 ){
+     if( strcmp(argv[nopt],"-verb") == 0 ){
        verb++ ; nopt++ ; continue ;
+     }
+     if( strcmp(argv[nopt],"-VERB") == 0 ){
+       verb += 2 ; nopt++ ; continue ;
      }
 
      if( strcasecmp(argv[nopt],"-seedrad") == 0 ){
@@ -563,7 +570,7 @@ int main( int argc , char *argv[] )
        if( ++nopt >= argc ) ERROR_exit("need 1 argument after option '%s'",argv[nopt-1]) ;
        shd_AAA = GRINCOR_read_input( argv[nopt] ) ;
        if( shd_AAA == NULL ) ERROR_exit("Cannot continue after -setA input error") ;
-       if( verb ) INFO_message("-setA loaded, using %lld bytes",shd_AAA->nbytes) ;
+       if( verb > 1 ) INFO_message("-setA opened, using %lld bytes",shd_AAA->nbytes) ;
        nopt++ ; continue ;
      }
 
@@ -572,16 +579,12 @@ int main( int argc , char *argv[] )
        if( ++nopt >= argc ) ERROR_exit("need 1 argument after option '%s'",argv[nopt-1]) ;
        shd_BBB = GRINCOR_read_input( argv[nopt] ) ;
        if( shd_BBB == NULL ) ERROR_exit("Cannot continue after -setB input error") ;
-       if( verb ) INFO_message("-setB loaded, using %lld bytes",shd_BBB->nbytes) ;
+       if( verb > 1 ) INFO_message("-setB opened, using %lld bytes",shd_BBB->nbytes) ;
        nopt++ ; continue ;
      }
 
      ERROR_exit("Unknown option: '%s'",argv[nopt]) ;
    }
-
-   mainENTRY("3dGroupInCorr"); machdep();
-   AFNI_logger("3dGroupInCorr",argc,argv);
-   PRINT_VERSION("3dGroupInCorr"); AUTHOR("RW Cox");
 
    /*-- check inputs for OK-ness --*/
 
@@ -606,13 +609,29 @@ int main( int argc , char *argv[] )
    else if( shd_BBB->ndset != shd_AAA->ndset ) ttest_opcode_max = 1 ;
 
    if( ttest_opcode < 0 || ttest_opcode > ttest_opcode_max ){
-     if( verb ) INFO_message("Setting t-test option to default value of 'pooled'") ;
+     if( verb > 1 )
+       INFO_message("Setting t-test option to default value of 'pooled'") ;
      ttest_opcode = 0 ;
    }
 
    nbtot = shd_AAA->nbytes ;
    if( shd_BBB != NULL ) nbtot += shd_BBB->nbytes ;
-   if( verb ) INFO_message("total bytes read  = %lld (about %s)" ,
+
+   /* scan through all the data, which will make it be faulted
+      into RAM, which will make the correlation-izing process faster */
+
+   { long long ii ; byte *bv ; float sum=0.0f ;
+     if( verb > 1 ) INFO_message("loading data") ;
+     bv = (byte *)shd_AAA->sv[0] ;
+     for( ii=0 ; ii < shd_AAA->nbytes ; ii+=65536,bv+=65536 ) sum += *bv ;
+     if( shd_BBB != NULL ){
+       bv = (byte *)shd_BBB->sv[0] ;
+       for( ii=0 ; ii < shd_BBB->nbytes ; ii+=65536,bv+=65536 ) sum += *bv ;
+     }
+     if( verb == 666 ) INFO_message(" data sum = %g",sum) ; /* never */
+   }
+
+   if( verb ) INFO_message("total bytes input = %lld (about %s)" ,
                 nbtot , approximate_number_string((double)nbtot) ) ;
 
    if( verb ) INFO_message  ("Be sure to start afni with the '-niml' option"        ) ;
@@ -848,9 +867,9 @@ int main( int argc , char *argv[] )
    /*-- bow out gracefully --*/
 
 GetOutOfDodge :
-   NI_free_element(nelset) ;
+   /* NI_free_element(nelset) ; */
 
-   INFO_message("Exeunt 3dGroupInCorr and its data") ;
+   INFO_message("Exeunt 3dGroupInCorr and its data hoard") ;
    exit(0) ;
 }
 

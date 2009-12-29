@@ -6447,8 +6447,8 @@ ENTRY("AFNI_vedit_CB") ;
 
      /* switch to InstaCorr */
      case 1:
-       DISABLE_INSTACALC(im3d) ;                          /* InstaCalc off */
        UNCLUSTERIZE(im3d) ;                               /* Clusters off */
+       DISABLE_INSTACALC(im3d) ;                          /* InstaCalc off */
        DISABLE_GRPINCORR(im3d) ;                          /* GrpInCorr off */
        XtUnmanageChild( im3d->vwid->func->icalc_rowcol) ;
        XtUnmanageChild( im3d->vwid->func->clu_rowcol  ) ;
@@ -6474,17 +6474,15 @@ ENTRY("AFNI_vedit_CB") ;
      case 3:
        if( im3d->vwid->func->gicor_rowcol != NULL ){
          DISABLE_INSTACALC(im3d) ;                          /* InstaCalc off */
-         UNCLUSTERIZE(im3d) ;                               /* Clusters off */
          DISABLE_INSTACORR(im3d) ;                          /* InstaCorr off */
          DESTROY_ICOR_setup(im3d->iset) ;
+         UNCLUSTERIZE(im3d) ;                               /* Clusters off */
          XtUnmanageChild( im3d->vwid->func->clu_rowcol  ) ;
          XtUnmanageChild( im3d->vwid->func->icor_rowcol ) ;
          XtUnmanageChild( im3d->vwid->func->icalc_rowcol) ;
          XtManageChild  ( im3d->vwid->func->gicor_rowcol) ;
-         if( im3d->giset != NULL )
-           ENABLE_GRPINCORR(im3d) ;
-         else
-           DISABLE_GRPINCORR(im3d) ;
+         if( im3d->giset != NULL ) ENABLE_GRPINCORR(im3d) ;
+         else                      DISABLE_GRPINCORR(im3d) ;
        }
      break ;
    }

@@ -673,7 +673,7 @@ void GICOR_process_dataset( NI_element *nel , int ct_start )
 {
    Three_D_View *im3d = A_CONTROLLER ;
    GICOR_setup *giset = im3d->giset ;
-   short *nelsar , *dsar ; int nvec,nn ;
+   short *nelsar , *dsar ; int nvec,nn , vmul ; float thr ;
 
    nelsar = (short *)nel->vec[0] ;
    nvec   = nel->vec_len ;
@@ -705,6 +705,36 @@ void GICOR_process_dataset( NI_element *nel , int ct_start )
      int *ivec=giset->ivec , kk ;
      nn = MIN( giset->nivec , nvec ) ;
      for( kk=0 ; kk < nn ; kk++ ) dsar[ivec[kk]] = nelsar[kk] ;
+   }
+
+   /* self-threshold and clusterize? */
+
+#undef  THBOT
+#undef  THTOP
+#undef  THBIG
+#define THBIG    1.e+9f
+#define THBOT(t) ((thrsign==0 || thrsign==2) ? (-(t)) : (-THBIG))
+#define THTOP(t) ((thrsign==0 || thrsign==1) ? (t)    :  (THBIG))
+
+   vmul = giset->vmul ;
+   thr  = im3d->vinfo->func_threshold * im3d->vinfo->func_thresh_top ;
+   if( vmul > 0 && thr > 0.0f ){
+     MRI_IMAGE *dsim , *clim ;
+     int thrsign=im3d->vinfo->thr_sign , pfun=im3d->vinfo->use_posfunc ;
+     float thb,tht ;
+
+     if( DSET_BRICK_FACTOR(giset->dset,0) > 0.0f )
+       thr /= DSET_BRICK_FACTOR(giset->dset,0) ;
+
+     thb = THBOT(thr) ; tht = THTOP(thr) ;
+
+     dsim = DSET_BRICK(giset->dset,0) ;
+     clim = mri_clusterize( 0.0f , vmul , dsim , thb,tht,dsim , pfun ) ;
+     if( clim != NULL ){
+       short *csar = MRI_SHORT_PTR(clim) ;
+       memcpy(dsar,csar,sizeof(short)*clim->nvox) ;
+       mri_free(clim) ;
+     }
    }
 
    /* redisplay overlay */
@@ -861,6 +891,9 @@ PLUGIN_interface * GICOR_init( char *lab )
    ntops = (giset->ndset_A == giset->ndset_B) ? 3 : 2 ;
    PLUTO_add_string ( plint , "t-test"  , ntops , topts , giset->ttest_opcode ) ;
 
+   PLUTO_add_option ( plint , "Cluster" , "Cluster" , TRUE ) ;
+   PLUTO_add_number ( plint , "Voxels"  , 0,9999,0 , 0,TRUE ) ;
+
    return plint ;
 }
 
@@ -873,7 +906,7 @@ PLUGIN_interface * GICOR_init( char *lab )
 static char * GICOR_main( PLUGIN_interface *plint )
 {
    Three_D_View *im3d = plint->im3d ;
-   float srad=0.0f ; int topcod=0 ; char *tch ;
+   float srad=0.0f ; int topcod=0 , vmul=0 ; char *tch ;
    GICOR_setup *giset ;
 
    if( !IM3D_OPEN(im3d)    ||
@@ -902,10 +935,14 @@ static char * GICOR_main( PLUGIN_interface *plint )
    tch    = PLUTO_get_string(plint) ;
    topcod = PLUTO_string_index( tch , 3 , topts ) ;
 
+   PLUTO_next_option(plint) ;
+   vmul   = (int)PLUTO_get_number(plint) ;
+
    /* do something with these changes */
 
    giset->seedrad      = srad ;
    giset->ttest_opcode = topcod ;
+   giset->vmul         = vmul ;
 
    return NULL ;
 }
