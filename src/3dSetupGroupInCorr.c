@@ -85,6 +85,49 @@ int main( int argc , char * argv[] )
        "                    COULD use '-DELETE' to remove the\n"
        "                    temporary 3dBandpass outputs as soon\n"
        "                    as they are no longer needed.\n"
+       "\n"
+       "-------------\n"
+       "SAMPLE SCRIPT (csh syntax)\n"
+       "-------------\n"
+       "* Assume datasets are named in the following scheme (sub01, sub02, etc.)\n"
+       " ++ T1-weighted anatomical = sub01_anat+orig\n"
+       " ++ Resting state EPI      = sub01_rest+orig\n"
+       "\n"
+       "#!/bin/tcsh\n"
+       "\n"
+       "# MNI-ize each subject's anat, then EPIs (at 2 mm resolution)\n"
+       "\n"
+       "foreach fred ( *_anat+orig.HEAD )\n"
+       "  set sub = `basename $fred _anat+orig.HEAD`\n"
+       "  @auto_tlrc -base ~/abin/MNI_avg152T1+tlrc.HEAD -input $fred\n"
+       "  adwarp -apar ${sub}_anat+tlrc.HEAD -dpar ${sub}_rest+orig.HEAD -resam Cu -dxyz 2.0\n"
+       "  3dAutomask -dilate 1 -prefix ${sub}_amask ${sub}_rest+tlrc.HEAD\n"
+       "end\n"
+       "\n"
+       "# Combine individual EPI automasks into a group mask\n"
+       "\n"
+       "3dMean -sum -nscale -prefix ALL_amask *_amask+tlrc.HEAD\n"
+       "\n"
+       "# Bandpass and blur each dataset inside the group mask\n"
+       "# (skip first 4 time points, and also remove global signal)\n"
+       "\n"
+       "foreach fred ( *_rest+tlrc.HEAD )\n"
+       "  set sub = `basename $fred _rest+tlrc.HEAD`\n"
+       "  3dmaskave -mask ALL_amask+tlrc -quiet $fred'[4..$]' > ${sub}_GS.1D\n"
+       "  3dBandpass -mask ALL_amask+tlrc -blur 6.0 -band 0.01 0.10 -prefix ${sub}_BP \\\n"
+       "             -input $fred -ort ${sub}_GS.1D\n"
+       "end\n"
+       "\n"
+       "# Extract data for 3dGroupInCorr\n"
+       "\n"
+       "3dSetupGroupInCorr -mask ALL_amask -prefix ALL *_BP+tlrc.HEAD\n"
+       "\n"
+       "------------------\n"
+       "CREDITS (or blame)\n"
+       "------------------\n"
+       "* Written by RWCox, December 2009.\n"
+       "* With inputs from Alex Martin, Steve Gotts, and (as always) Ziad Saad.\n"
+       "\n"
      ) ;
      PRINT_COMPILE_DATE ; exit(0) ;
    }
@@ -236,6 +279,7 @@ int main( int argc , char * argv[] )
        ERROR_exit("Write to '%s' failed -- disk full? permission?",dfname) ;
      }
      free(sv) ;  /* toss this trash */
+     fflush(fp) ;
 
    } /* end of dataset loop */
 
