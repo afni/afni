@@ -562,6 +562,14 @@ libply.a:
 #	  automake -a ;	\
 #	  autoconf ;	\
 #	  ./configure	;	\
+#
+# might want :                                          30 Dec 2009 [rickr]
+#   ./configure --includedir /usr/local/netpbm
+#
+#   - to deal with pgm.h being moved from /usr/local to /usr/local/netpbm
+#     in netpbm-devel version 10.47
+#   - until then: "yum downgrade netpbm netpbm-devel" to go back to 10.35
+#   - or look for corresponding GTS update
 
 libgts.a:
 	( cd gts ;	\
