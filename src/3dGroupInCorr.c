@@ -9,10 +9,11 @@
 
 /*--- prototypes ---*/
 
-double GIC_student_t2z( double tt, double dof ) ;
-float  ttest_toz( int numx, float *xar, int numy, float *yar, int opcode ) ;
-void   GRINCOR_many_ttest( int nvec , int numx , float **xxar ,
-                                      int numy , float **yyar , short *zsh ) ;
+double      GIC_student_t2z( double tt, double dof ) ;
+float_pair  ttest_toz( int numx, float *xar, int numy, float *yar, int opcode );
+void        GRINCOR_many_ttest( int nvec , int numx , float **xxar ,
+                                int numy , float **yyar ,
+                                float *dar , float *zar  ) ;
 
 static int verb = 1 ;
 
@@ -265,7 +266,7 @@ MRI_shindss * GRINCOR_read_input( char *fname )
 void GRINCOR_dotprod( MRI_shindss *shd, int ids, float *vv, float *dp )
 {
    int nvec = shd->nvec , nvals = shd->nvals[ids] , iv,ii ;
-   float sum , fac = shd->fac[ids] , dtop=0.0f,val ;
+   float sum , fac = shd->fac[ids]*0.9999f , dtop=0.0f,val ;
    short *sv = shd->sv[ids] , *svv ;
 
    for( iv=0 ; iv < nvec ; iv++ ){
@@ -381,11 +382,10 @@ static int ttest_opcode_max =  2   ;
 int main( int argc , char *argv[] )
 {
    int nopt , kk , nn , ii,jj ;
-   long long nbtot ;
    char nsname[2048]  ; /* NIML socket name */
    NI_element *nelset ; /* NIML element with dataset to send to AFNI */
    NI_element *nelcmd ; /* NIML element with command from AFNI */
-   short *nelsar ;
+   float *neldar , *nelzar ;
    char buf[1024] ;
    float seedrad=0.0f , dx,dy,dz , dmin ; int nx,ny,nz,nxy ;
    MCW_cluster *nbhd=NULL ;
@@ -393,7 +393,7 @@ int main( int argc , char *argv[] )
    int nvec , ndset_AAA=0,ndset_BBB=0 , *nvals_AAA=NULL,*nvals_BBB=NULL ;
    float **seedvec_AAA=NULL , **dotprod_AAA=NULL ;
    float **seedvec_BBB=NULL , **dotprod_BBB=NULL ;
-   int ctim ;
+   int ctim,btim,atim , do_shm=1 ;
 
    /*-- enlighten the ignorant and brutish sauvages? --*/
 
@@ -510,9 +510,23 @@ int main( int argc , char *argv[] )
       "               IP addresses will probably work more reliably.\n"
       "            -- If you are very trusting, you can set NIML_COMPLETE_TRUST to YES\n"
       "               to allow NIML socket connections from anybody.\n"
+#ifndef DONT_USE_SHM
+      "\n"
+      " -NOshm = Do NOT reconnect to AFNI using shared memory, rather than TCP/IP,\n"
+      "          when using 'localhost' (e.g., AFNI and 3dGroupInCorr are running\n"
+      "          on the same system).\n"
+      "       ++ The default is to use shared memory for communication when\n"
+      "          possible, since this method of transferring large amounts of\n"
+      "          data between computers is much faster.\n"
+      "       ++ If you have a problem with the shared memory communication,\n"
+      "          use '-NOshm' to use TCP/IP for all communications.\n"
+      "       ++ If you use '-verb -verb', you will get a detailed progress report\n"
+      "          from 3dGroupInCorr as it computes, including elapsed times for\n"
+      "          each stage.\n"
+#endif
       "\n"
       " -quiet = Turn off the informational messages\n"
-      " -verb  = Print out more informational messages\n"
+      " -verb  = Print out extra informational messages\n"
      ) ;
      PRINT_AFNI_OMP_USAGE("3dGroupInCorr",NULL) ;
      PRINT_COMPILE_DATE ; exit(0) ;
@@ -526,6 +540,12 @@ int main( int argc , char *argv[] )
 
    nopt = 1 ;
    while( nopt < argc ){
+
+#ifndef DONT_USE_SHM
+     if( strcasecmp(argv[nopt],"-NOshm") == 0 ){
+       do_shm = 0 ; nopt++ ; continue ;
+     }
+#endif
 
      if( strcasecmp(argv[nopt],"-quiet") == 0 ){
        verb = 0 ; nopt++ ; continue ;
@@ -566,21 +586,33 @@ int main( int argc , char *argv[] )
      }
 
      if( strcasecmp(argv[nopt],"-setA") == 0 ){
+       char *fname ;
        if( shd_AAA != NULL ) ERROR_exit("can only use '-setA' once!") ;
-       if( ++nopt >= argc ) ERROR_exit("need 1 argument after option '%s'",argv[nopt-1]) ;
-       shd_AAA = GRINCOR_read_input( argv[nopt] ) ;
+       if( ++nopt >= argc ) ERROR_exit("need 1 argument after option '%s'",argv[nopt-1]);
+       fname = strdup(argv[nopt]) ;
+       if( STRING_HAS_SUFFIX(fname,".data") ){
+         strcpy(fname+strlen(fname)-5,".niml") ;
+         WARNING_message("Replaced '.data' with '.niml' in -setA filename") ;
+       }
+       shd_AAA = GRINCOR_read_input( fname ) ;
        if( shd_AAA == NULL ) ERROR_exit("Cannot continue after -setA input error") ;
-       if( verb > 1 ) INFO_message("-setA opened, using %lld bytes",shd_AAA->nbytes) ;
-       nopt++ ; continue ;
+       if( verb > 1 ) INFO_message("-setA opened, contains %lld bytes",shd_AAA->nbytes);
+       free(fname) ; nopt++ ; continue ;
      }
 
      if( strcasecmp(argv[nopt],"-setB") == 0 ){
+       char *fname ;
        if( shd_BBB != NULL ) ERROR_exit("can only use '-setB' once!") ;
        if( ++nopt >= argc ) ERROR_exit("need 1 argument after option '%s'",argv[nopt-1]) ;
-       shd_BBB = GRINCOR_read_input( argv[nopt] ) ;
+       fname = strdup(argv[nopt]) ;
+       if( STRING_HAS_SUFFIX(fname,".data") ){
+         strcpy(fname+strlen(fname)-5,".niml") ;
+         WARNING_message("Replaced '.data' with '.niml' in -setA filename") ;
+       }
+       shd_BBB = GRINCOR_read_input( fname ) ;
        if( shd_BBB == NULL ) ERROR_exit("Cannot continue after -setB input error") ;
-       if( verb > 1 ) INFO_message("-setB opened, using %lld bytes",shd_BBB->nbytes) ;
-       nopt++ ; continue ;
+       if( verb > 1 ) INFO_message("-setB opened, contains %lld bytes",shd_BBB->nbytes) ;
+       free(fname) ; nopt++ ; continue ;
      }
 
      ERROR_exit("Unknown option: '%s'",argv[nopt]) ;
@@ -614,25 +646,28 @@ int main( int argc , char *argv[] )
      ttest_opcode = 0 ;
    }
 
-   nbtot = shd_AAA->nbytes ;
-   if( shd_BBB != NULL ) nbtot += shd_BBB->nbytes ;
-
-   /* scan through all the data, which will make it be faulted
+   /* scan through all the data, which will make it be page faulted
       into RAM, which will make the correlation-izing process faster */
 
-   { long long ii ; byte *bv ; float sum=0.0f ;
-     if( verb > 1 ) INFO_message("loading data") ;
-     bv = (byte *)shd_AAA->sv[0] ;
-     for( ii=0 ; ii < shd_AAA->nbytes ; ii+=65536,bv+=65536 ) sum += *bv ;
+#undef  BSTEP
+#define BSTEP 32768
+   { long long pp ; char *bv ; float sum=0.0f ;
+     if( verb > 2 ) INFO_message("page faulting data into memory") ;
+     bv = (char *)shd_AAA->sv[0] ;
+     for( pp=0 ; pp < shd_AAA->nbytes ; pp+=BSTEP,bv+=BSTEP ) sum += *bv ;
      if( shd_BBB != NULL ){
-       bv = (byte *)shd_BBB->sv[0] ;
-       for( ii=0 ; ii < shd_BBB->nbytes ; ii+=65536,bv+=65536 ) sum += *bv ;
+       bv = (char *)shd_BBB->sv[0] ;
+       for( pp=0 ; pp < shd_BBB->nbytes ; pp+=BSTEP,bv+=BSTEP ) sum += *bv ;
      }
      if( verb == 666 ) INFO_message(" data sum = %g",sum) ; /* never */
    }
 
-   if( verb ) INFO_message("total bytes input = %lld (about %s)" ,
-                nbtot , approximate_number_string((double)nbtot) ) ;
+   if( verb ){
+     long long nbtot = shd_AAA->nbytes ;
+     if( shd_BBB != NULL ) nbtot += shd_BBB->nbytes ;
+     INFO_message("total bytes input = %lld (about %s)" ,
+                   nbtot , approximate_number_string((double)nbtot) ) ;
+   }
 
    if( verb ) INFO_message  ("Be sure to start afni with the '-niml' option"        ) ;
    if( verb ) ININFO_message("(or press the 'NIML+PO' button if you forgot '-niml')") ;
@@ -640,9 +675,12 @@ int main( int argc , char *argv[] )
    /*-- Create VOLUME_DATA NIML element to hold the brick data --*/
 
    nelset = NI_new_data_element( "3dGroupInCorr_dataset" , shd_AAA->nvec ) ;
-   NI_add_column( nelset, NI_SHORT, NULL );
-   nelsar = (short *)nelset->vec[0];  /* nelsar = short-ized Z-scores */
-   if( nelsar == NULL ) ERROR_exit("Can't setup output dataset?") ;
+   NI_add_column( nelset, NI_FLOAT, NULL );
+   NI_add_column( nelset, NI_FLOAT, NULL );
+   neldar = (float *)nelset->vec[0];  /* neldar = delta  sub-brick */
+   nelzar = (float *)nelset->vec[1];  /* nelzar = Zscore sub-brick */
+   if( neldar == NULL || nelzar == NULL )
+     ERROR_exit("Can't setup output dataset?") ; /* should never happen */
 
    /*-- this stuff is one-time-only setup of the I/O to AFNI --*/
 
@@ -707,9 +745,10 @@ int main( int argc , char *argv[] )
    NI_set_attribute( nelcmd , "geometry_string", shd_AAA->geometry_string  ) ;
    NI_set_attribute( nelcmd , "target_name"    , "A_GRP_ICORR"             ) ;
 
+   if( verb > 1 ) INFO_message("Sending setup information to AFNI") ;
    nn = NI_write_element( GI_stream , nelcmd , NI_BINARY_MODE ) ;
    if( nn < 0 ){
-     ERROR_exit("Can't send initialization data to AFNI!?") ;
+     ERROR_exit("Can't send setup data to AFNI!?") ;
    }
    NI_free_element(nelcmd) ;
 
@@ -761,7 +800,7 @@ int main( int argc , char *argv[] )
      /* do something with the command, based on the element name */
 
      if( verb > 1 ) INFO_message("Received command %s from AFNI",nelcmd->name) ;
-     ctim = NI_clock_time() ;
+     atim = btim = NI_clock_time() ;
 
      /** Command = set seed voxel index **/
 
@@ -824,42 +863,70 @@ int main( int argc , char *argv[] )
 
      /* step 1: for each dataset, get the seed voxel time series from voxind */
 
-     if( verb > 2 )
-       ININFO_message(" loading seed vectors: etime=%d ms",NI_clock_time()-ctim) ;
-
      GRINCOR_load_seedvec( shd_AAA , nbhd , voxijk , seedvec_AAA ) ;
      if( shd_BBB != NULL )
        GRINCOR_load_seedvec( shd_BBB , nbhd , voxijk , seedvec_BBB ) ;
 
-     /* step 2: a lot of correlation-izing */
+     if( verb > 2 ){
+       ctim = NI_clock_time() ;
+       ININFO_message(" loaded seed vectors: elapsed=%d ms",ctim-btim) ;
+       btim = ctim ;
+     }
 
-     if( verb > 2 )
-       ININFO_message(" correlation-izing: etime=%d ms",NI_clock_time()-ctim) ;
+     /* step 2: a lot of correlation-izing */
 
      GRINCOR_many_dotprod( shd_AAA , seedvec_AAA , dotprod_AAA ) ;
      if( shd_BBB != NULL )
        GRINCOR_many_dotprod( shd_BBB , seedvec_BBB , dotprod_BBB ) ;
 
+     if( verb > 2 ){
+       ctim = NI_clock_time() ;
+       ININFO_message(" finished correlation-izing: elapsed=%d ms",ctim-btim) ;
+       btim = ctim ;
+     }
+
      /* step 3: a lot of t-test-ification */
 
-     if( verb > 2 )
-       ININFO_message(" t-test-izing: etime=%d ms",NI_clock_time()-ctim) ;
-
      GRINCOR_many_ttest( nvec , ndset_AAA , dotprod_AAA ,
-                                ndset_BBB , dotprod_BBB , nelsar ) ;
+                                ndset_BBB , dotprod_BBB , neldar,nelzar ) ;
+
+     if( verb > 2 ){
+       ctim = NI_clock_time() ;
+       ININFO_message(" finished t-test-izing: elapsed=%d ms",ctim-btim) ;
+       btim = ctim ;
+     }
+
+   /** re-attach using shared memory? **/
+
+#ifndef DONT_USE_SHM
+   if( do_shm && strcmp(afnihost,"localhost") == 0 ){
+     int nmeg ;
+     nmeg = 1 + (nvec * sizeof(float) * 2 + 2048)/(1024*1024) ;
+     sprintf( nsname , "shm:GrpInCorr:%dM+10K" , nmeg ) ;
+     INFO_message("Reconnecting to AFNI with shared memory channel %s",nsname) ;
+     NI_sleep(1) ;
+     kk = NI_stream_reopen( GI_stream , nsname ) ;
+     if( kk == 0 ) ININFO_message(" reconnection *FAILED* ???") ;
+     else          ININFO_message(" reconnection *ACTIVE* !!!") ;
+     do_shm = 0 ;
+   }
+#endif
 
      /* send the result back to AFNI */
-
-     if( verb > 2 )
-       ININFO_message(" sending result to AFNI: etime=%d ms",NI_clock_time()-ctim) ;
 
      kk = NI_write_element( GI_stream , nelset , NI_BINARY_MODE ) ;
      if( kk <= 0 ){
        ERROR_message("3dGroupInCorr: failure when writing to AFNI") ;
      }
 
+     if( verb > 2 ){
+       ctim = NI_clock_time() ;
+       ININFO_message(" sent results to AFNI: elapsed=%d ms",ctim-btim) ;
+       btim = ctim ;
+     }
+
      if( verb > 1 )
-       ININFO_message(" Total elapsed time = %d msec",NI_clock_time()-ctim) ;
+       ININFO_message(" Total elapsed time = %d msec",ctim-atim) ;
 
    LoopBack: ; /* loop back for another command from AFNI */
    }
@@ -1058,15 +1125,16 @@ double GIC_student_t2z( double tt , double dof )
 /*=============================================================================*/
 
 #undef  ZMAX
-#define ZMAX (13.0f*FUNC_ZT_SCALE_SHORT)
+#define ZMAX 13.0f
 
 void GRINCOR_many_ttest( int nvec , int numx , float **xxar ,
-                                    int numy , float **yyar , short *zsh )
+                                    int numy , float **yyar ,
+                                    float *dar , float *zar  )
 {
    if( numy > 0 && yyar != NULL ){  /*--- 2 sample t-test ---*/
 
 #pragma omp parallel
- { int ii,kk ; float zscore , *xar,*yar ;
+ { int ii,kk ; float *xar,*yar ; float_pair delzsc ; float delta,zscore ;
    AFNI_OMP_START ;
    xar = (float *)malloc(sizeof(float)*numx) ;
    yar = (float *)malloc(sizeof(float)*numy) ;
@@ -1074,11 +1142,11 @@ void GRINCOR_many_ttest( int nvec , int numx , float **xxar ,
      for( kk=0 ; kk < nvec ; kk++ ){
        for( ii=0 ; ii < numx ; ii++ ) xar[ii] = xxar[ii][kk] ;
        for( ii=0 ; ii < numy ; ii++ ) yar[ii] = yyar[ii][kk] ;
-       zscore = FUNC_ZT_SCALE_SHORT *
-                ttest_toz( numx , xar , numy , yar , ttest_opcode ) ;
-            if( zscore >  ZMAX ) zscore =  ZMAX ;
-       else if( zscore < -ZMAX ) zscore = -ZMAX ;
-       zsh[kk] = (short)rintf(zscore) ;
+       delzsc  = ttest_toz( numx , xar , numy , yar , ttest_opcode ) ;
+       dar[kk] = delzsc.a ;
+       zscore  = delzsc.b ; if( zscore >  ZMAX ) zscore =  ZMAX ;
+                       else if( zscore < -ZMAX ) zscore = -ZMAX ;
+       zar[kk] = zscore ;
      }
    free(yar) ; free(xar) ;
    AFNI_OMP_END ;
@@ -1087,17 +1155,17 @@ void GRINCOR_many_ttest( int nvec , int numx , float **xxar ,
    } else {  /*--- 1 sample t-test ---*/
 
 #pragma omp parallel
- { int kk,ii ; float zscore , *xar ;
+ { int kk,ii ; float zscore,delta , *xar ; float_pair delzsc ;
    AFNI_OMP_START ;
    xar = (float *)malloc(sizeof(float)*numx) ;
 #pragma omp for
      for( kk=0 ; kk < nvec ; kk++ ){
        for( ii=0 ; ii < numx ; ii++ ) xar[ii] = xxar[ii][kk] ;
-       zscore = FUNC_ZT_SCALE_SHORT *
-                ttest_toz( numx , xar , 0 , NULL , ttest_opcode ) ;
-            if( zscore >  ZMAX ) zscore =  ZMAX ;
-       else if( zscore < -ZMAX ) zscore = -ZMAX ;
-       zsh[kk] = (short)rintf(zscore) ;
+       delzsc  = ttest_toz( numx , xar , 0 , NULL , ttest_opcode ) ;
+       dar[kk] = delzsc.a ;
+       zscore  = delzsc.b ; if( zscore >  ZMAX ) zscore =  ZMAX ;
+                       else if( zscore < -ZMAX ) zscore = -ZMAX ;
+       zar[kk] = zscore ;
      }
    AFNI_OMP_END ;
  }
@@ -1121,24 +1189,19 @@ void GRINCOR_many_ttest( int nvec , int numx , float **xxar ,
    - The return value is the z-score of the t-statistic.
 *//*--------------------------------------------------------------------------*/
 
-float ttest_toz( int numx , float *xar , int numy , float *yar , int opcode )
+float_pair ttest_toz( int numx, float *xar, int numy, float *yar, int opcode )
 {
-   float tstat , dof;
+   float_pair result = {0.0f,0.0f} ;
    register int ii ; register float val ;
-   float avx,sdx , avy,sdy ;
+   float avx,sdx , avy,sdy , dof , tstat=0.0f,delta=0.0f ;
    int paired=(opcode==2) , pooled=(opcode==0) ;
-#if 0
-   float base=0.0f ;
-#endif
 
 #if 0
    /* check inputs for stoopidities or other things that need to be changed */
 
-   tstat = 0.0f ;
-   if( numx < 2 || xar == NULL                 ) return tstat ; /* bad */
-   if( paired && (numy != numx || yar == NULL) ) return tstat ; /* bad */
+   if( numx < 2 || xar == NULL                 ) return result ; /* bad */
+   if( paired && (numy != numx || yar == NULL) ) return result ; /* bad */
 
-   if( numy == 1 && yar != NULL ){ base = yar[0] ; }
    if( numy  < 2 || yar == NULL ){ numy = paired = pooled = 0 ; yar = NULL ; }
 #endif
 
@@ -1148,21 +1211,23 @@ float ttest_toz( int numx , float *xar , int numy , float *yar , int opcode )
      for( ii=0 ; ii < numx ; ii++ ) avx += xar[ii]-yar[ii] ;
      avx /= numx ; sdx = 0.0f ;
      for( ii=0 ; ii < numx ; ii++ ){ val = xar[ii]-yar[ii]-avx; sdx += val*val; }
-     val = (sdx > 0.0f) ?  val = avx / sqrtf( sdx/((numx-1.0f)*numx) ) : 0.0f ;
-     tstat = val ; dof = numx-1.0f ;  /* avx = difference in means */
+     if( sdx > 0.0f )      tstat = avx / sqrtf( sdx/((numx-1.0f)*numx) ) ;
+     else if( avx > 0.0f ) tstat =  19.0f ;
+     else if( avx < 0.0f ) tstat = -19.0f ;
+     else                  tstat =   0.0f ;
+     dof = numx-1.0f ; delta = avx ;  /* delta = diff in means */
 
-   } else if( numy == 0 ){  /* Case 2: 1 sample test against mean==base */
+   } else if( numy == 0 ){  /* Case 2: 1 sample test against mean==0 */
 
      avx = 0.0f ;
      for( ii=0 ; ii < numx ; ii++ ) avx += xar[ii] ;
      avx /= numx ; sdx = 0.0f ;
      for( ii=0 ; ii < numx ; ii++ ){ val = xar[ii]-avx ; sdx += val*val ; }
-#if 0
-     val = (sdx > 0.0f) ? (avx-base) / sqrtf( sdx/((numx-1.0f)*numx) ) : 0.0f ;
-#else
-     val = (sdx > 0.0f) ? (avx     ) / sqrtf( sdx/((numx-1.0f)*numx) ) : 0.0f ;
-#endif
-     tstat = val ; dof = numx-1.0f ; /* avx = mean */
+     if( sdx > 0.0f )      tstat = avx / sqrtf( sdx/((numx-1.0f)*numx) ) ;
+     else if( avx > 0.0f ) tstat =  19.0f ;
+     else if( avx < 0.0f ) tstat = -19.0f ;
+     else                  tstat =   0.0f ;
+     dof = numx-1.0f ; delta = avx ; /* delta = mean */
 
    } else {  /* Case 3: 2 sample test (pooled or unpooled) */
 
@@ -1176,27 +1241,32 @@ float ttest_toz( int numx , float *xar , int numy , float *yar , int opcode )
      avy /= numy ; sdy = 0.0f ;
      for( ii=0 ; ii < numy ; ii++ ){ val = yar[ii] - avy ; sdy += val*val ; }
 
-     /* difference in means is in avx-avy */
+     delta = avx - avy ; /* difference in means */
 
      if( sdx+sdy == 0.0f ){
 
-       tstat = 0.0f ; dof = numx+numy-2.0f ;
+            if( delta > 0.0f ) tstat =  19.0f ;
+       else if( delta < 0.0f ) tstat = -19.0f ;
+       else                    tstat =   0.0f ;
+       dof = numx+numy-2.0f ;
 
      } else if( pooled ){  /* Case 3a: pooled variance estimate */
 
-       sdx = (sdx+sdy) / (numx+numy-2.0f) ;
-       val = (avx-avy) / sqrtf( sdx*(1.0f/numx+1.0f/numy) ) ;
-       tstat = val ; dof = numx+numy-2.0f ;
+       sdx   = (sdx+sdy) / (numx+numy-2.0f) ;
+       tstat = delta / sqrtf( sdx*(1.0f/numx+1.0f/numy) ) ;
+       dof   = numx+numy-2.0f ;
 
      } else {       /* Case 3b: unpooled variance estimate */
 
-       sdx /= (numx-1.0f)*numx ; sdy /= (numy-1.0f)*numy ; val = sdx+sdy ;
-       tstat = (avx-avy) / sqrtf(val) ;
-       dof    = (val*val) / (sdx*sdx/(numx-1.0f) + sdy*sdy/(numy-1.0f) ) ;
+       sdx  /= (numx-1.0f)*numx ; sdy /= (numy-1.0f)*numy ; val = sdx+sdy ;
+       tstat = delta / sqrtf(val) ;
+       dof   = (val*val) / (sdx*sdx/(numx-1.0f) + sdy*sdy/(numy-1.0f) ) ;
 
      }
 
    } /* end of all possible cases */
 
-   return (float)GIC_student_t2z( (double)tstat , (double)dof ) ;
+   result.a = delta ;
+   result.b = (float)GIC_student_t2z( (double)tstat , (double)dof ) ;
+   return result ;
 }
