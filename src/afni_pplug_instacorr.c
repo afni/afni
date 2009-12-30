@@ -609,13 +609,15 @@ void GICOR_setup_func( NI_stream nsg , NI_element *nel )
    if( pre == NULL || *pre == '\0' ) pre = "A_GRP_ICORR" ;
    dset = giset->dset = EDIT_geometry_constructor( atr , pre ) ;
                                                      if( dset == NULL ) GIQUIT;
-   EDIT_dset_items      ( dset , ADN_nvals , 1 ,
+   EDIT_dset_items      ( dset , ADN_nvals     , 2 ,
                                  ADN_view_type , VIEW_TALAIRACH_TYPE ,
+                                 ADN_brick_fac , NULL ,
                           ADN_none ) ;
-   EDIT_BRICK_TO_FIZT   ( dset , 0 ) ;
-   EDIT_BRICK_FACTOR    ( dset , 0 , 1.0f/FUNC_ZT_SCALE_SHORT ) ;
-   EDIT_BRICK_LABEL     ( dset , 0 , "GIC_Zscore" ) ;
-   EDIT_substitute_brick( dset , 0 , MRI_short , NULL ) ;
+   EDIT_BRICK_TO_FIZT   ( dset , 1 ) ;
+   EDIT_BRICK_LABEL     ( dset , 0 , "GIC_Delta"  ) ;
+   EDIT_BRICK_LABEL     ( dset , 1 , "GIC_Zscore" ) ;
+   EDIT_substitute_brick( dset , 0 , MRI_float , NULL ) ;  /* calloc-ize */
+   EDIT_substitute_brick( dset , 1 , MRI_float , NULL ) ;  /* sub-bricks */
    DSET_superlock( dset ) ;
    giset->nvox = DSET_NVOX(dset) ;
 
@@ -673,9 +675,16 @@ void GICOR_process_dataset( NI_element *nel , int ct_start )
 {
    Three_D_View *im3d = A_CONTROLLER ;
    GICOR_setup *giset = im3d->giset ;
-   short *nelsar , *dsar ; int nvec,nn , vmul ; float thr ;
+   float *neldar , *nelzar , *dsdar , *dszar ;
+   int nvec,nn , vmul ; float thr ;
 
-   nelsar = (short *)nel->vec[0] ;
+   if( nel == NULL || nel->vec_num < 2 ){  /* should never happen */
+     ERROR_message("badly formatted dataset from 3dGroupInCorr!") ;
+     return ;
+   }
+
+   neldar = (float *)nel->vec[0] ;  /* delta array */
+   nelzar = (float *)nel->vec[1] ;  /* zscore array */
    nvec   = nel->vec_len ;
 
    if( !IM3D_OPEN(im3d)    ||
@@ -696,15 +705,34 @@ void GICOR_process_dataset( NI_element *nel , int ct_start )
 
    /* copy NIML data into dataset */
 
-   dsar = (short *)DSET_ARRAY(giset->dset,0) ;
+   dsdar = (float *)DSET_ARRAY(giset->dset,0) ;
+   dszar = (float *)DSET_ARRAY(giset->dset,1) ;
 
    if( giset->ivec == NULL ){  /* all voxels */
      nn = MIN( giset->nvox , nvec ) ;
-     memcpy(dsar,nelsar,sizeof(short)*nn) ;
+     memcpy(dsdar,neldar,sizeof(float)*nn) ;
+     memcpy(dszar,nelzar,sizeof(float)*nn) ;
    } else {
      int *ivec=giset->ivec , kk ;
      nn = MIN( giset->nivec , nvec ) ;
-     for( kk=0 ; kk < nn ; kk++ ) dsar[ivec[kk]] = nelsar[kk] ;
+     for( kk=0 ; kk < nn ; kk++ ){
+       dsdar[ivec[kk]] = neldar[kk] ; dszar[ivec[kk]] = nelzar[kk] ;
+     }
+   }
+
+   /* switch to this dataset as overlay */
+
+   if( im3d->fim_now != giset->dset ){
+     MCW_choose_cbs cbs ; char cmd[32] , *cpt=AFNI_controller_label(im3d) ;
+     cbs.ival = giset->nds ;
+     AFNI_finalize_dataset_CB( im3d->vwid->view->choose_func_pb ,
+                               (XtPointer)im3d ,  &cbs           ) ;
+     AFNI_set_fim_index(im3d,0) ;
+     AFNI_set_thr_index(im3d,1) ;
+#if 1
+     sprintf(cmd,"SET_FUNC_RANGE %c 0.5"   ,cpt[1]) ; AFNI_driver(cmd) ;
+     sprintf(cmd,"SET_THRESHNEW %c 0.01 *p",cpt[1]) ; AFNI_driver(cmd) ;
+#endif
    }
 
    /* self-threshold and clusterize? */
@@ -719,43 +747,31 @@ void GICOR_process_dataset( NI_element *nel , int ct_start )
    vmul = giset->vmul ;
    thr  = im3d->vinfo->func_threshold * im3d->vinfo->func_thresh_top ;
    if( vmul > 0 && thr > 0.0f ){
-     MRI_IMAGE *dsim , *clim ;
+     MRI_IMAGE *dsim , *tsim , *clim ;
      int thrsign=im3d->vinfo->thr_sign , pfun=im3d->vinfo->use_posfunc ;
      float thb,tht ;
 
-     if( DSET_BRICK_FACTOR(giset->dset,0) > 0.0f )
-       thr /= DSET_BRICK_FACTOR(giset->dset,0) ;
-
      thb = THBOT(thr) ; tht = THTOP(thr) ;
 
-     dsim = DSET_BRICK(giset->dset,0) ;
-     clim = mri_clusterize( 0.0f , vmul , dsim , thb,tht,dsim , pfun ) ;
+     dsim = DSET_BRICK(giset->dset,im3d->vinfo->fim_index) ;
+     tsim = DSET_BRICK(giset->dset,im3d->vinfo->thr_index) ;
+     clim = mri_clusterize( 0.0f , vmul , dsim , thb,tht,tsim , pfun ) ;
      if( clim != NULL ){
-       short *csar = MRI_SHORT_PTR(clim) ;
-       memcpy(dsar,csar,sizeof(short)*clim->nvox) ;
+       float *csar = MRI_FLOAT_PTR(clim) ;
+       memcpy( MRI_FLOAT_PTR(dsim) , csar , sizeof(float)*clim->nvox ) ;
        mri_free(clim) ;
      }
    }
+   DSET_KILL_STATS(giset->dset) ; THD_load_statistics(giset->dset) ;
+   AFNI_reset_func_range(im3d) ;
 
    /* redisplay overlay */
 
-   if( im3d->fim_now != giset->dset ){  /* switch to this dataset */
-     MCW_choose_cbs cbs ; char cmd[32] , *cpt=AFNI_controller_label(im3d) ;
-     cbs.ival = giset->nds ;
-     AFNI_finalize_dataset_CB( im3d->vwid->view->choose_func_pb ,
-                               (XtPointer)im3d ,  &cbs           ) ;
-     AFNI_set_fim_index(im3d,0) ;
-     AFNI_set_thr_index(im3d,0) ;
-     sprintf(cmd,"SET_FUNC_RANGE %c.4.0",cpt[1]) ;
-     AFNI_driver(cmd) ;
-   }
-   AFNI_reset_func_range(im3d) ;
-
-   if( MCW_val_bbox(im3d->vwid->view->see_func_bbox) == 0 ){ /* overlay is off */
+   if( MCW_val_bbox(im3d->vwid->view->see_func_bbox) == 0 ){ /* overlay = off */
      char cmd[32] , *cpt=AFNI_controller_label(im3d) ;
      sprintf(cmd,"SEE_OVERLAY %c.+",cpt[1]) ;
      AFNI_driver(cmd) ;
-   } else {                                                  /* overlay is on */
+   } else {                                                  /* overlay = on */
      AFNI_redisplay_func(im3d) ;
    }
    AFNI_set_thr_pval(im3d) ; AFNI_process_drawnotice(im3d) ;
