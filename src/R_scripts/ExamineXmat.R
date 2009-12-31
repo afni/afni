@@ -399,6 +399,13 @@ main_loop <- function (fn) {
 }
 
 #main   
+   if (0) {
+      args = (commandArgs(TRUE))   
+      for (i in 1:length(args)) {
+         str(args[[i]]);
+      }
+   }
+   
    #begin windgetting
    fn <- tclvalue(   tkgetOpenFile( filetypes = 
                                     "{{Xmat Files} {.xmat.1D}} {{All files} *}",
