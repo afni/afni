@@ -138,6 +138,7 @@ int THD_extract_array( int ind, THD_3dim_dataset *dset, int raw, void *uar )
       }
       break ;
 
+#if 0
       case MRI_int:{
          int *ar = (int *)tar , *bar ;
          for( ival=0 ; ival < nv ; ival++ ){
@@ -161,6 +162,7 @@ int THD_extract_array( int ind, THD_3dim_dataset *dset, int raw, void *uar )
          }
       }
       break ;
+#endif
 
       case MRI_complex:{
          complex *ar = (complex *)tar , *bar ;
@@ -358,6 +360,7 @@ ENTRY("THD_extract_many_series") ;
       }
       break ;
 
+#if 0
       case MRI_int:{
          int * bar ;
          for( ival=0 ; ival < nv ; ival++ ){
@@ -383,6 +386,7 @@ ENTRY("THD_extract_many_series") ;
          }
       }
       break ;
+#endif
 
       case MRI_complex:{
          complex * bar ;
@@ -473,4 +477,103 @@ ENTRY("THD_dset_to_1D") ;
      THD_extract_array( ii , dset , 0 , far + ii*nx ) ;
 
    RETURN(im) ;
+}
+
+/*----------------------------------------------------------------------------*/
+
+void THD_extract_many_arrays( int ns , int *ind ,
+                              THD_3dim_dataset *dset , float *dsar )
+{
+   int nv , ival , kk ;
+   char *iar ;      /* brick in the input */
+   float **far ;    /* ptrs to output */
+   float fac ;
+
+ENTRY("THD_extract_many_arrays") ;
+
+   if( ns <= 0 || ind == NULL | dset == NULL || dsar == NULL ) EXRETURN ;
+
+   /* try to load dataset */
+
+   DSET_load(dset) ; if( !DSET_LOADED(dset) ) EXRETURN ;
+   nv = dset->dblk->nvals ;
+
+   far = (float **) malloc(sizeof(float *)*ns) ;  /* 27 Feb 2003 */
+   for( kk=0 ; kk < ns ; kk++ ) far[kk] = dsar + kk*nv ;
+
+   /* fill the output */
+
+   switch( DSET_BRICK_TYPE(dset,0) ){
+
+      default:             /* don't know what to do --> return nada */
+        free(far) ; EXRETURN ;
+
+      case MRI_byte:{
+        byte *bar ;
+        for( ival=0 ; ival < nv ; ival++ ){
+          bar = (byte *)DSET_ARRAY(dset,ival) ;
+          for( kk=0 ; kk < ns ; kk++ ) far[kk][ival] = (float)bar[ind[kk]] ;
+        }
+      }
+      break ;
+
+      case MRI_short:{
+        short *bar ;
+        for( ival=0 ; ival < nv ; ival++ ){
+          bar = (short *)DSET_ARRAY(dset,ival) ;
+          for( kk=0 ; kk < ns ; kk++ ) far[kk][ival] = (float)bar[ind[kk]] ;
+        }
+      }
+      break ;
+
+      case MRI_float:{
+        float *bar ;
+        for( ival=0 ; ival < nv ; ival++ ){
+          bar = (float *)DSET_ARRAY(dset,ival) ;
+          for( kk=0 ; kk < ns ; kk++ ) far[kk][ival] = bar[ind[kk]] ;
+        }
+      }
+      break ;
+
+#if 0
+      case MRI_int:{
+        int *bar ;
+        for( ival=0 ; ival < nv ; ival++ ){
+          bar = (int *)DSET_ARRAY(dset,ival) ;
+          for( kk=0 ; kk < ns ; kk++ ) far[kk][ival] = (float)bar[ind[kk]] ;
+        }
+      }
+      break ;
+
+      case MRI_double:{
+        double *bar ;
+        for( ival=0 ; ival < nv ; ival++ ){
+          bar = (double *)DSET_ARRAY(dset,ival) ;
+          for( kk=0 ; kk < ns ; kk++ ) far[kk][ival] = (float)bar[ind[kk]] ;
+        }
+      }
+      break ;
+#endif
+
+      case MRI_complex:{
+        complex *bar ;
+        for( ival=0 ; ival < nv ; ival++ ){
+          bar = (complex *)DSET_ARRAY(dset,ival) ;
+          for( kk=0 ; kk < ns ; kk++ ) far[kk][ival] = bar[ind[kk]].r ;
+        }
+      }
+      break ;
+
+   }
+
+   /* scale outputs, if needed */
+
+   for( ival=0 ; ival < nv ; ival++ ){
+     fac = DSET_BRICK_FACTOR(dset,ival) ;
+     if( fac > 0.0f && fac != 1.0f ){
+       for( kk=0 ; kk < ns ; kk++ ) far[kk][ival] *= fac ;
+     }
+   }
+
+   free(far) ; EXRETURN ;
 }
