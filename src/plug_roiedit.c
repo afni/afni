@@ -5110,7 +5110,7 @@ static void DRAW_finalize_dset_CB( Widget w, XtPointer fd, MCW_choose_cbs * cbs 
    DSET_mallocize(dset) ; DSET_lock(dset) ; DSET_load(dset) ;
 
    AFNI_receive_control( im3d, recv_key , mode_index , NULL ) ;
-   AFNI_receive_control( im3d, recv_key , DRAWING_OVCINDEX, (void *)color_index ) ;
+   AFNI_receive_control( im3d, recv_key , DRAWING_OVCINDEX, ITOP(color_index) ) ;
    recv_open = 1 ;
 
    undo_bufuse = 0 ; SENSITIZE(undo_pb,0) ;
@@ -5129,7 +5129,7 @@ static void DRAW_color_CB( MCW_arrowval * av , XtPointer cd )
    color_index = av->ival ;
 
    if( dset != NULL && recv_open )
-      AFNI_receive_control( im3d, recv_key, DRAWING_OVCINDEX, (void *)color_index ) ;
+     AFNI_receive_control( im3d, recv_key, DRAWING_OVCINDEX, ITOP(color_index) ) ;
 
    return ;
 }

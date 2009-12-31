@@ -1022,7 +1022,7 @@ ENTRY("new_MCW_optmenu_orig") ;
                   XmNmarginTop    , 0 ,
                   XmNmarginRight  , 0 ,
                   XmNmarginLeft   , 0 ,
-                  XmNuserData     , (XtPointer)ival ,    /* Who am I? */
+                  XmNuserData     , (XtPointer)ITOP(ival) , /* Who am I? */
                   XmNtraversalOn  , True  ,
                   XmNinitialResourcesPersistent , False ,
                 NULL ) ;
@@ -1240,7 +1240,7 @@ rcparent = XtVaCreateWidget ("rowcolumn",
                   XmNmarginTop    , 0 ,
                   XmNmarginRight  , 0 ,
                   XmNmarginLeft   , 0 ,
-                  XmNuserData     , (XtPointer)ival ,    /* Who am I? */
+                  XmNuserData     , (XtPointer)ITOP(ival) , /* Who am I? */
                   XmNtraversalOn  , True  ,
                   XmNinitialResourcesPersistent , False ,
                 NULL ) ;
@@ -1370,13 +1370,13 @@ ENTRY("refit_MCW_optmenu") ;
                            XmNlabelString , &xstr_old ,
                            XmNuserData    , &user_old ,
                         NULL ) ;
-         ival_old = (int) user_old ;
+         ival_old = PTOI(user_old) ;
 
          if( ival_old != ival || XmStringCompare(xstr_old,xstr) != True ){
             STATUS("setting label in recycled button") ;
             XtVaSetValues( wbut ,
-                              XmNlabelString , xstr ,             /* change label */
-                              XmNuserData    , (XtPointer) ival , /* Who am I? */
+                              XmNlabelString, xstr,               /* change label */
+                              XmNuserData   , (XtPointer)ITOP(ival), /* Who am I? */
                            NULL ) ;
          }
 #if 1
@@ -1396,7 +1396,7 @@ ENTRY("refit_MCW_optmenu") ;
                      XmNmarginTop    , 0 ,
                      XmNmarginRight  , 0 ,
                      XmNmarginLeft   , 0 ,
-                     XmNuserData     , (XtPointer) ival ,    /* Who am I? */
+                     XmNuserData     , (XtPointer)ITOP(ival) , /* Who am I? */
                      XmNtraversalOn , True  ,
                      XmNinitialResourcesPersistent , False ,
                    NULL ) ;
@@ -1712,7 +1712,7 @@ void AVOPT_press_CB( Widget wbut, XtPointer client_data, XtPointer call_data )
 ENTRY("AVOPT_press_CB");
 
    XtVaGetValues( wbut , XmNuserData , &xval , NULL ) ;
-   newval = (int) xval ;
+   newval = PTOI(xval) ;
 
    AV_assign_ival( av , newval ) ;  /* assign */
 

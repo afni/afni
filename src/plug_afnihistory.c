@@ -523,8 +523,8 @@ static void AHIST_save_CB( Widget w, XtPointer client_data, XtPointer call_data 
    int ilev=level_av->ival , ityp=type_av->ival ;
    struct tm *tod ; time_t ttt ; int slen ; char *sstr , *qstr,*zstr ;
    FILE *fp ;
-   int dontsave = ( histfilename       == NULL          ||
-                    ((int)client_data) == 1             ||
+   int dontsave = ( histfilename      == NULL           ||
+                    PTOI(client_data) == 1              ||
                     AFNI_yesenv("AFNI_HISTORY_DONTSAVE")  ) ;
 
    /*-- get the strings from the user and process them a little --*/

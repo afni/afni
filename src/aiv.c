@@ -492,7 +492,7 @@ ENTRY("AIVVV_imseq_send_CB") ;
      break ;
 
      case isqCR_newimage:{
-       drive_MCW_imseq( psq->seq, isqDR_display, (XtPointer)cbs->nim );
+       drive_MCW_imseq( psq->seq, isqDR_display, (XtPointer)ITOP(cbs->nim) );
      }
      break ;
    }
@@ -543,7 +543,7 @@ ENTRY("AIVVV_imseq_addto") ;
    if( ntot == 2 )
      drive_MCW_imseq( psq->seq , isqDR_onoffwid , (XtPointer) isqDR_onwid ) ;
 
-   drive_MCW_imseq( psq->seq , isqDR_reimage , (XtPointer)(ntot-1) ) ;
+   drive_MCW_imseq( psq->seq , isqDR_reimage , (XtPointer)ITOP(ntot-1) ) ;
    EXRETURN ;
 }
 

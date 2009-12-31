@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
 
 #include <X11/Xlib.h>
 #if defined(__vms)
@@ -273,7 +274,7 @@ probeDevices(void)
   }
   been_here = True;
   version = XGetExtensionVersion(__glutDisplay, "XInputExtension");
-  if (version == NULL || ((int) version) == NoSuchExtension) {
+  if (version == NULL || ((intptr_t)version) == NoSuchExtension) {
     support = 0;
     return support;
   }
