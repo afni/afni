@@ -4,6 +4,7 @@
 
 require('XML');
 
+
 ################################################################################
 # Function to read two xml files used to perform a group analysis,
 #  subjects contains the subjects' information
@@ -18,46 +19,64 @@ read.level2 <- function(subjects, test, verb=0) {
    #create an XMLNodeSet of subjects nodes (named <s>)
    sbs = xpathApply(nel, "//s");
    if (verb) cat ('Have ', length(sbs), 'subject nodes\n');
-   tbl = sbs2subjframe(sbs);
-   fr.show(tbl);
+   tbl <- NULL;
+   if (length(sbs)>0) {
+      tbl = sbs2subjframe(sbs);
+      cat (' Showing frame from <s> nodes\n');
+      fr.show(tbl);
+   }
    
    #Mode 2
    #create an XMLNodeSet of table form (named <table>)
    tbs = xpathApply(nel, "//table");
    if (verb) cat ('Have ', length(tbs), 'table nodes\n');
+   tbl2<-NULL;
    if (length(tbs)>0) {
       tbl2 = table2subjframe(tbs);
+      cat (' Showing frame from <table> node\n');
       fr.show(tbl2);
+      if (!is.null(tbl)) {
+         warning( paste("Have frame from <s> already. Ignoring this one"),
+                  immediate. = TRUE);
+      } else {
+         tbl <- tbl2;
+      }
    }
 
 #Now see what kind of test is wanted   
    nel <- xmlInternalTreeParse(test);
    tst = xpathApply(nel, "//test");
-   if (length(tst) != 1) {
+   if (length(tst) < 1) {
       warning(paste("Have no test element"),
               immediate. = TRUE);
       return(NULL);
    }
    
 #depending on the analysis method, perform some checks
-   #What method?
-   meth <- xpathApply(tst[[1]], "method");
-   if (match(str.deblank(xmlValue(meth[[1]])),"mema")==1) {
-      if (is.null(lvars <- setup.test.mema(tst,tbl))) {
-         warning(paste("Failed setting up for test"),
-              immediate. = TRUE);
+   llvars <- list();
+   #What method? 
+   for (it in 1:length(tst)) { #NOT ready to deal with more
+                               #than one test, tst below is 
+                               #assumed to be 1 element long
+      meth <- xpathApply(tst[[it]], "method");
+      if (match(str.deblank(xmlValue(meth[[1]])),"mema")==1) {
+         if (is.null(lvars <- setup.test.mema(tst[it],tbl))) {
+            warning(paste("Failed setting up for test"),
+                 immediate. = TRUE);
+            return(NULL);
+         }
+         cat('List of variables for use by 3dMEMA.R:\n');
+         str(lvars);
+         llvars <- c(llvars, lvars);
+      } else {
+         warning(paste("Don't know about method", xmlValue(meth)),
+                 immediate. = TRUE);
          return(NULL);
       }
-      cat('List of variables for use by 3dMEMA.R:\n');
-      str(lvars);
-   } else {
-      warning(paste("Don't know about method", xmlValue(meth)),
-              immediate. = TRUE);
-      return(NULL);
    }
    
    #return with variables list  
-   return(lvars);
+   return(llvars);
 }
 
 ################################################################################
@@ -185,7 +204,7 @@ get.dsets.mema <- function( fr, dsetcolname,
    s <- fr.col(fr, dsetcolname)[igrp];
    
    #Now add the conditions
-   if (is.na(cond)) {
+   if (length(cond)==1 && is.na(cond)) {#default
       cond <- fr$conditions;
    }
    sc <- vector('character', 0);
@@ -230,6 +249,29 @@ setup.test.mema <- function (tst,fr) {
          return(NULL);
    }
    
+   #Any b and t conditions (for NIFTI compatibility?)
+   lmema <- c( lmema, 
+               list("condition_betas" = 
+                        c(get.child.val(tst,"condition_betas"))));
+   lmema <- c( lmema, 
+               list("condition_tstats" = 
+                        c(get.child.val(tst,"condition_tstats"))));
+   if (length(lmema$condition_betas) == 1 && 
+       is.na(lmema$condition_betas) ) {
+      lmema$condition_betas <- vector(mode='character', 0)
+   }
+   if (length(lmema$condition_tstats) == 1 && 
+       is.na(lmema$condition_tstats) ) {
+      lmema$condition_tstats <- vector(mode='character', 0)
+   }
+
+   if ((length(lmema$condition_betas) != length(lmema$condition_tstats)) || 
+       (length(lmema$condition_betas) > 2)) {
+      warning(paste("Bad or mismatch in condition_betas and condition_tstats"),
+              immediate. = TRUE);
+      return(NULL);
+   }
+                    
    #Variance modeling
    lmema <- c( lmema, 
                list("variance" = c(get.child.val(tst,"variance","homo"))));
@@ -285,6 +327,7 @@ setup.test.mema <- function (tst,fr) {
    for ( ic in 1:length(cc)) {
       lmema$covariates[[ic]] <- fr.col(fr, cc[ic], numeric=TRUE)
    }
+   names(lmema$covariates) <- cc;
    
    #Model decision
    if (length(lmema$groups) == 2 &&
@@ -307,11 +350,18 @@ setup.test.mema <- function (tst,fr) {
          return(NULL);
    }  
    
+   
    #Get the datasets for each group
-   lmema$dsetsb = get.dsets.mema (fr,"reg_dset", 
+   if (length(lmema$condition_betas) == 0) {
+      lmema$dsetsb = get.dsets.mema (fr,"reg_dset", 
                                 lmema$groups, lmema$conditions,"_Coef");
-   lmema$dsetst = get.dsets.mema (fr,"reg_dset", 
-                                lmema$groups, lmema$conditions,"_Tstat");                  
+      lmema$dsetst = get.dsets.mema (fr,"reg_dset", 
+                                lmema$groups, lmema$conditions,"_Tstat");            } else {
+      lmema$dsetsb = get.dsets.mema (fr,"reg_dset", 
+                                lmema$groups, lmema$condition_betas,"");                
+      lmema$dsetst = get.dsets.mema (fr,"reg_dset", 
+                                lmema$groups, lmema$condition_tstats,"");                            
+   }      
 
    return(lmema)
 }
