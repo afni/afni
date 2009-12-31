@@ -1884,7 +1884,7 @@ STATUS("creation: widgets created") ;
      if( eee != NULL ){
        int opval = (int) strtod( eee , NULL ) ;
        if( opval > 0 && opval <= 9 )
-         drive_MCW_imseq( newseq , isqDR_setopacity , (XtPointer)opval ) ;
+         drive_MCW_imseq( newseq , isqDR_setopacity , (XtPointer)ITOP(opval) ) ;
      }
    }
 
@@ -7214,7 +7214,7 @@ printf("set top_clip=%g  redo_clip=%d zz=%d\n",seq->top_clip,seq->redo_clip,zz);
       /*--------- ignore redraws? [16 Aug 2002] -------------*/
 
       case isqDR_ignore_redraws:{
-         int dd = (int)drive_data ;
+         int dd = PTOI(drive_data) ;
          seq->ignore_redraws = dd ;
          RETURN( True ) ;
       }
@@ -7223,7 +7223,7 @@ printf("set top_clip=%g  redo_clip=%d zz=%d\n",seq->top_clip,seq->redo_clip,zz);
       /*--------- overlay plot stuff [20 Sep 2001] ----------*/
 
       case isqDR_plot_label:{
-         int dd = (int)drive_data ;
+         int dd = PTOI(drive_data) ;
 
          if( dd < 0 ){
             INVERT_manage( seq->wbar_label_av->wrowcol ) ;
@@ -7294,7 +7294,7 @@ printf("set top_clip=%g  redo_clip=%d zz=%d\n",seq->top_clip,seq->redo_clip,zz);
       /*.....................................................*/
 
       case isqDR_plot_plot:{
-         int dd = (int)drive_data ;
+         int dd = PTOI(drive_data) ;
 
          if( dd < 0 ){
             INVERT_manage( seq->wbar_plots_bbox->wrowcol ) ;
@@ -7460,7 +7460,7 @@ static unsigned char record_bits[] = {
       /*--------- opacity button [07 Mar 2001] ----------*/
 
       case isqDR_opacitybut:{
-         int val = (int) drive_data ;
+         int val = PTOI(drive_data) ;
          if( seq->ov_opacity_av == NULL ) RETURN( False ) ;
          if( val == 0 ){
             XtUnmanageChild( seq->ov_opacity_sep ) ;
@@ -7477,7 +7477,7 @@ static unsigned char record_bits[] = {
       /*--------- set opacity value [21 Jan 2003] ----------*/
 
       case isqDR_setopacity:{
-        int val = (int) drive_data ;
+        int val = PTOI(drive_data) ;
         if( seq->ov_opacity_av == NULL ) RETURN( False ) ;
         if( val < OPACITY_BOT || val > OPACITY_TOP ) RETURN( False ) ;
         AV_assign_ival( seq->ov_opacity_av , val ) ;
@@ -7537,7 +7537,7 @@ static unsigned char record_bits[] = {
       /*--------- zoom buttons [11 Mar 2002] ----------*/
 
       case isqDR_zoombut:{
-         int val = (int) drive_data ;
+         int val = PTOI(drive_data) ;
          if( val == 0 ){
             XtUnmanageChild( seq->zoom_sep ) ;
             XtUnmanageChild( seq->zoom_val_av->wrowcol ) ;
@@ -7556,7 +7556,7 @@ static unsigned char record_bits[] = {
       /*--------- pen bbox [18 Jul 2003] ----------*/
 
       case isqDR_penbbox:{
-         int val = (int) drive_data ;
+         int val = PTOI(drive_data) ;
          if( val == 0 )
            XtUnmanageChild( seq->pen_bbox->wrowcol ) ;
          else
@@ -7725,7 +7725,7 @@ static unsigned char record_bits[] = {
       /*------- send a simulated key press [18 Feb 2005] -------*/
 
       case isqDR_keypress:{
-        unsigned int key = (unsigned int)drive_data ;
+        unsigned int key = (unsigned int)PTOI(drive_data) ;
         (void )ISQ_handle_keypress( seq , key , 0 ) ;
         RETURN( True );
       }
@@ -7755,12 +7755,12 @@ static unsigned char record_bits[] = {
       }
 
       case isqDR_button2_mode:{
-         seq->button2_drawmode = (int) drive_data ;
+         seq->button2_drawmode = PTOI(drive_data) ;
          RETURN( True );
       }
 
       case isqDR_button2_width:{                  /* 08 Oct 2002 */
-         seq->button2_width = (int) drive_data ;
+         seq->button2_width = PTOI(drive_data) ;
          RETURN( True );
       }
 
@@ -7814,7 +7814,7 @@ static unsigned char record_bits[] = {
       /*------- montage stuff -------*/
 
       case isqDR_periodicmont:{
-        int per = ((int) drive_data) != 0 ;
+        int per = (PTOI(drive_data)) != 0 ;
 
         if( per != seq->mont_periodic ){
            seq->mont_periodic = per ;
@@ -7878,7 +7878,7 @@ static unsigned char record_bits[] = {
       /*------ widgets on or off -----*/
 
       case isqDR_onoffwid:{
-         int mode = (int) drive_data , turn_on ;
+         int mode = PTOI(drive_data) , turn_on ;
          int ww , hh ;
 
          switch( mode ){
@@ -8003,7 +8003,7 @@ static unsigned char record_bits[] = {
       case isqDR_reshow:
       case isqDR_overlay:
       case isqDR_display:{
-         int n = (int) drive_data ;
+         int n = PTOI(drive_data) ;
 
          if( ! seq->ignore_redraws )
             ISQ_redisplay( seq , n , drive_code ) ;
@@ -8023,7 +8023,7 @@ static unsigned char record_bits[] = {
       /*------- new cursor for image -------*/
 
       case isqDR_cursor:{
-         int cur = (int) drive_data ;
+         int cur = PTOI(drive_data) ;
 
          MCW_alter_widget_cursor( seq->wimage , cur , "yellow" , "blue" ) ;
          RETURN( True );
@@ -10612,7 +10612,7 @@ ENTRY("ISQ_record_open") ;
       drive_MCW_imseq( seq->record_imseq,isqDR_onoffwid,(XtPointer)isqDR_onwid );
 #endif
 
-   drive_MCW_imseq( seq->record_imseq , isqDR_reimage , (XtPointer) (ntot-1) ) ;
+   drive_MCW_imseq( seq->record_imseq , isqDR_reimage , (XtPointer)ITOP(ntot-1) ) ;
 
    ISQ_set_cursor_state( seq , -1 ) ;  /* 10 Mar 2003 */
    NORMAL_cursorize( seq->wbar ) ;
@@ -10642,12 +10642,12 @@ ENTRY("ISQ_record_update") ;
 
 #ifndef DONT_ONOFF_ONE
    if( ntot == 1 )
-      drive_MCW_imseq( seq->record_imseq,isqDR_onoffwid,(XtPointer)isqDR_offwid);
+      drive_MCW_imseq( seq->record_imseq,isqDR_onoffwid,(XtPointer)ITOP(isqDR_offwid));
    else
-      drive_MCW_imseq( seq->record_imseq,isqDR_onoffwid,(XtPointer)isqDR_onwid );
+      drive_MCW_imseq( seq->record_imseq,isqDR_onoffwid,(XtPointer)ITOP(isqDR_onwid) );
 #endif
 
-   drive_MCW_imseq( seq->record_imseq , isqDR_reimage , (XtPointer)npos ) ;
+   drive_MCW_imseq( seq->record_imseq , isqDR_reimage , (XtPointer)ITOP(npos) ) ;
 
    EXRETURN ;
 }

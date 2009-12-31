@@ -118,7 +118,7 @@ static MCW_action_item ICALC_act[] =
 /*-------------- longish macro to make one row of ICALC widgets --------------*/
 
 #undef  ICALC_userdata
-#define ICALC_userdata(w,x) XtVaSetValues((w),XmNuserData,(XtPointer)(x),NULL)
+#define ICALC_userdata(w,x) XtVaSetValues((w),XmNuserData,(XtPointer)ITOP((x)),NULL)
 
 #undef  MAKE_ICALC_ROW
 #define MAKE_ICALC_ROW(aa)                                           \
@@ -138,12 +138,12 @@ static MCW_action_item ICALC_act[] =
      sss[0] = abet[aa] ; sss[1] = '\0'; sp[0] = sss;                 \
      iwid->war[aa].tog_bbox =                                        \
         new_MCW_bbox( rc, 1,sp, MCW_BB_check,MCW_BB_noframe,         \
-                      ICALC_tog_bbox_CB , (XtPointer)iwid     ) ;    \
+                      ICALC_tog_bbox_CB , (XtPointer)ITOP(iwid) ) ;  \
      ICALC_userdata(iwid->war[aa].tog_bbox->wbut[0],aa+1) ;          \
      VLINE(iwid->war[aa].rc) ;                                       \
      iwid->war[aa].menu_av =                                         \
         new_MCW_optmenu( rc , "Type" , 0, ICALC_NUMTYPE-1, 0, 0,     \
-                         ICALC_menu_av_CB, (XtPointer)iwid ,         \
+                         ICALC_menu_av_CB, (XtPointer)ITOP(iwid) ,   \
                          MCW_av_substring_CB, ICALC_typestr ) ;      \
      ICALC_userdata(iwid->war[aa].menu_av->wrowcol,aa+1) ;           \
      VLINEE(iwid->war[aa].rc) ;                                      \
@@ -153,11 +153,11 @@ static MCW_action_item ICALC_act[] =
             LABEL_ARG(ICALC_choosestr[0]) , XmNtraversalOn , True ,  \
             XmNinitialResourcesPersistent , False , NULL ) ;         \
      XtAddCallback( iwid->war[aa].chooser_pb , XmNactivateCallback , \
-                    ICALC_chooser_CB , (XtPointer)iwid ) ;           \
+                    ICALC_chooser_CB , (XtPointer)ITOP(iwid) ) ;     \
      ICALC_userdata(iwid->war[aa].chooser_pb,aa+1) ;                 \
      iwid->war[aa].index_av =                                        \
         new_MCW_optmenu( rc , "[-]" , -1,0, 0,0,                     \
-                         ICALC_index_av_CB, (XtPointer)iwid ,        \
+                         ICALC_index_av_CB, (XtPointer)ITOP(iwid) ,  \
                          ICALC_index_lab_CB,(XtPointer)iwid  ) ;     \
      ICALC_userdata(iwid->war[aa].index_av->wrowcol,aa+1) ;          \
      VLINEE(iwid->war[aa].rc) ;                                      \
@@ -349,7 +349,7 @@ static int ICALC_find_index( ICALC_widget_set *iwid , Widget ww )
    int aa ; XtPointer pp=NULL ;
    XtVaGetValues( ww , XmNuserData , &pp , NULL ) ;
    if( pp == NULL ) return -1 ;
-   return (int)(pp-1) ;
+   aa = PTOI(pp) ; return (aa-1) ;
 }
 
 /*----------------------------------------------------------------------------*/

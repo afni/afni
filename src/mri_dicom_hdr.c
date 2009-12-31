@@ -83,6 +83,13 @@
 
 #endif
 
+/* cast int to pointer and vice-versa without warning messages */
+
+#include <stdint.h>
+#undef  ITOP
+#define ITOP(qw) ((void *)(intptr_t)(qw))
+#undef  PTOI
+#define PTOI(qw) ((int)(intptr_t)(qw))
 
 /****************************************************************/
 /***** Function and variables to set byte order of this CPU *****/
@@ -1757,12 +1764,12 @@ DCM_GetElementValue(DCM_OBJECT ** callerObject, DCM_ELEMENT * element,
 				       element->tag, "DCM_GetElementValue");
 
 	    p = *ctx;
-	    if ((U32) p > elementItem->element.length)
+	    if ((U32)PTOI(p) > elementItem->element.length)
 		return COND_PushCondition(DCM_ILLEGALCONTEXT,
 					  DCM_Message(DCM_ILLEGALCONTEXT),
 					  "DCM_GetElementValue");
 
-	    l = MIN(element->length, (elementItem->element.length - (U32) p));
+	    l = MIN(element->length, (elementItem->element.length - (U32)PTOI(p)));
 
 	    *rtnLength = l;
 	    {
@@ -1801,8 +1808,7 @@ DCM_GetElementValue(DCM_OBJECT ** callerObject, DCM_ELEMENT * element,
 		    }
 		} else {
 		    unsigned char *q;
-		    q = (unsigned char *) elementItem->element.d.ot +
-			(U32) p;
+		    q = (unsigned char *) elementItem->element.d.ot + (U32)PTOI(p);
 		    (void) memcpy(element->d.ot, q, l);
 		    if (elementItem->byteOrder == BYTEORDER_REVERSE) {
 			DCM_ELEMENT e;
@@ -1814,7 +1820,7 @@ DCM_GetElementValue(DCM_OBJECT ** callerObject, DCM_ELEMENT * element,
 		}
 		p += l;
 		*ctx = (void *) p;
-		if ((unsigned) p == elementItem->element.length)
+		if ((unsigned)PTOI(p) == elementItem->element.length)
 		    return DCM_NORMAL;
 		else
 		    return DCM_GETINCOMPLETE;
@@ -1945,7 +1951,7 @@ DCM_GetElementValueOffset(DCM_OBJECT ** callerObject, DCM_ELEMENT * element,
 				 element->tag, "DCM_GetElementValueOffset");
 
 	p = (unsigned char *) offset;;
-	if ((U32) p > elementItem->element.length)
+	if ((U32)PTOI(p) > elementItem->element.length)
 	    return COND_PushCondition(DCM_BADOFFSET,
 				      DCM_Message(DCM_BADOFFSET),
 				      (int) offset,
@@ -1995,8 +2001,7 @@ DCM_GetElementValueOffset(DCM_OBJECT ** callerObject, DCM_ELEMENT * element,
 		}
 	    } else {
 		unsigned char *q;
-		q = (unsigned char *) elementItem->element.d.ot +
-		    (U32) p;
+		q = (unsigned char *) elementItem->element.d.ot + (U32)PTOI(p);
 		(void) memcpy(element->d.ot, q, l);
 		if (elementItem->byteOrder == BYTEORDER_REVERSE) {
 		    DCM_ELEMENT e;
@@ -7507,12 +7512,11 @@ copyData(PRIVATE_OBJECT ** object, PRV_ELEMENT_ITEM * from,
 	}
     } else {
 	unsigned char *q;
-	q = (unsigned char *) from->element.d.ot +
-	    (U32) p;
+	q = (unsigned char *) from->element.d.ot + (U32)PTOI(p);
 	(void) memcpy(to->d.ot, q, l);
     }
     p += l;
-    if ((unsigned) p == from->element.length)
+    if ((unsigned)PTOI(p) == from->element.length)
 	return DCM_NORMAL;
     else
 	return DCM_GETINCOMPLETE;

@@ -707,7 +707,7 @@ extern void AFNI_func_fdr_CB    (Widget,XtPointer,XtPointer) ;    /* 29 Jan 2008
      do{ int sel_height ;  XtPointer sel_ptr=NULL ;                      \
          XtVaGetValues( (iqqq)->vwid->func->thr_scale ,                  \
                            XmNuserData , &sel_ptr , NULL ) ;             \
-         sel_height = (int) sel_ptr ;                                    \
+         sel_height = PTOI(sel_ptr) ;                                    \
          XtVaSetValues( (iqqq)->vwid->func->thr_scale ,                  \
                            XmNheight , sel_height , NULL ) ;             \
          XtManageChild((iqqq)->vwid->func->thr_scale) ;                  \

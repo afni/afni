@@ -4813,8 +4813,8 @@ void T3D_imseq_CB( MCW_imseq * seq , FD_brick * br , ISQ_cbs * cbs )
       break ;
 
       case isqCR_force_redisplay:{  /* 22 Aug 1998 */
-         drive_MCW_imseq( seq , isqDR_display , (XtPointer) seq->im_nr ) ;
-         drive_MCW_imseq( seq , isqDR_rebar   , (XtPointer) seq->im_nr ) ;
+         drive_MCW_imseq( seq , isqDR_display , (XtPointer)ITOP(seq->im_nr) ) ;
+         drive_MCW_imseq( seq , isqDR_rebar   , (XtPointer)ITOP(seq->im_nr) ) ;
       }
 
    }

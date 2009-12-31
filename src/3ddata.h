@@ -48,6 +48,14 @@
 #define myXtNew(type) ((type *) XtCalloc(1,(unsigned) sizeof(type)))
 #endif
 
+/* cast int to pointer and vice-versa without warning messages */
+
+#include <stdint.h>
+#undef  ITOP
+#define ITOP(qw) ((void *)(intptr_t)(qw))
+#undef  PTOI
+#define PTOI(qw) ((int)(intptr_t)(qw))
+
 struct THD_3dim_dataset ;  /* incomplete definition */
 
 #include "niml.h"          /* NIML */

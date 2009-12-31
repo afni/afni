@@ -208,7 +208,7 @@ char * STATS_main( PLUGIN_interface * plint )
                                ignore ,               /* ignore count */
                                1 ,                    /* detrend = ON */
                                STATS_tsfunc ,         /* timeseries processor */
-                               (void *) meth          /* data for tsfunc */
+                               ITOP(meth)             /* data for tsfunc */
                              ) ;
 
    PLUTO_add_dset( plint , new_dset , DSET_ACTION_MAKE_CURRENT ) ;
@@ -224,7 +224,7 @@ void STATS_tsfunc( double tzero , double tdelta ,
                    int npts , float ts[] , double ts_mean , double ts_slope ,
                    void * ud , float * val )
 {
-   int meth = (int) ud ;
+   int meth = PTOI(ud) ;
    static int nvox , ncall ;
 
    /** is this a "notification"? **/

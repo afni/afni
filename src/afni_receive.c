@@ -247,7 +247,7 @@ ENTRY("AFNI_receive_control") ;
       break ;
 
       case DRAWING_OVCINDEX:{
-         int ind = (int) arg ;
+         int ind = PTOI(arg) ;
 
          if( ind <= 0 || ind >= im3d->dc->ovc->ncol_ov ){
             RETURN(-1) ;
@@ -275,18 +275,18 @@ ENTRY("AFNI_receive_control") ;
       case DRAWING_POINTS:
       case DRAWING_NODRAW:{
          im3d->vinfo->drawing_mode = code ;
-         drive_MCW_imseq( im3d->s123, isqDR_button2_mode, (XtPointer)code ) ;
-         drive_MCW_imseq( im3d->s231, isqDR_button2_mode, (XtPointer)code ) ;
-         drive_MCW_imseq( im3d->s312, isqDR_button2_mode, (XtPointer)code ) ;
+         drive_MCW_imseq( im3d->s123, isqDR_button2_mode, (XtPointer)ITOP(code) ) ;
+         drive_MCW_imseq( im3d->s231, isqDR_button2_mode, (XtPointer)ITOP(code) ) ;
+         drive_MCW_imseq( im3d->s312, isqDR_button2_mode, (XtPointer)ITOP(code) ) ;
       }
       break ;
 
       case DRAWING_LINEWIDTH:{    /* 08 Oct 2002 */
-        int ww = (int) arg ;
+        int ww = PTOI(arg) ;
         if( ww >= 0 ){
-          drive_MCW_imseq( im3d->s123, isqDR_button2_width, (XtPointer)ww ) ;
-          drive_MCW_imseq( im3d->s231, isqDR_button2_width, (XtPointer)ww ) ;
-          drive_MCW_imseq( im3d->s312, isqDR_button2_width, (XtPointer)ww ) ;
+          drive_MCW_imseq( im3d->s123, isqDR_button2_width, (XtPointer)ITOP(ww) ) ;
+          drive_MCW_imseq( im3d->s231, isqDR_button2_width, (XtPointer)ITOP(ww) ) ;
+          drive_MCW_imseq( im3d->s312, isqDR_button2_width, (XtPointer)ITOP(ww) ) ;
         }
       }
       break ;
@@ -422,11 +422,11 @@ ENTRY("AFNI_toggle_drawing") ;
       }
 
       drive_MCW_imseq( im3d->s123, isqDR_button2_mode,
-                       (XtPointer)im3d->vinfo->drawing_mode ) ;
+                       (XtPointer)ITOP(im3d->vinfo->drawing_mode) ) ;
       drive_MCW_imseq( im3d->s231, isqDR_button2_mode,
-                       (XtPointer)im3d->vinfo->drawing_mode ) ;
+                       (XtPointer)ITOP(im3d->vinfo->drawing_mode) ) ;
       drive_MCW_imseq( im3d->s312, isqDR_button2_mode,
-                       (XtPointer)im3d->vinfo->drawing_mode ) ;
+                       (XtPointer)ITOP(im3d->vinfo->drawing_mode) ) ;
 
       drive_MCW_grapher( im3d->g123 , graDR_button2_enable , NULL ) ;
       drive_MCW_grapher( im3d->g231 , graDR_button2_enable , NULL ) ;

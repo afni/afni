@@ -1341,7 +1341,7 @@ ENTRY("mri_imcount_dicom") ;
    }
 
   if(debugprint) {
-    printf("str_sexinfo initially set to %d\n", (int) str_sexinfo);
+    printf("str_sexinfo initially set to %d\n", PTOI(str_sexinfo) );
     printf("length %d\n", (int) strlen(str_sexinfo));
   }
 
@@ -1363,7 +1363,7 @@ ENTRY("mri_imcount_dicom") ;
         sexi_end = strstr(sexi_start, "### ASCCONV END ###");
         if(debugprint)
            printf("sexi_start %d sexi_start2 %d sexi_end %d\n",
-                  (int) sexi_start, (int) sexi_start2,(int) sexi_end);
+                  PTOI(sexi_start), PTOI(sexi_start2),PTOI(sexi_end) );
         if (sexi_end != NULL) {
            char *sexi_tmp;
            int sexi_size;
@@ -1383,7 +1383,7 @@ ENTRY("mri_imcount_dicom") ;
 	   free(str_sexinfo);
 	   str_sexinfo = sexi_tmp;
 	   if(debugprint)  {
-	     printf("str_sexinfo now moved to %d\n", (int) str_sexinfo);
+	     printf("str_sexinfo now moved to %d\n", PTOI(str_sexinfo));
 	     printf("sexi_size %d\n", (int) sexi_size);
 	     printf("length %d\n", (int) strlen(str_sexinfo));
 	     }

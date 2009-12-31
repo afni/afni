@@ -4847,9 +4847,9 @@ void RT_set_grapher_pinnums( int pinnum )
     if( pinnum < MIN_PIN || pinnum > MAX_PIN || !IM3D_OPEN(plint->im3d) )
         return;
 
-    drive_MCW_grapher( plint->im3d->g123, graDR_setpinnum, (XtPointer)pinnum );
-    drive_MCW_grapher( plint->im3d->g231, graDR_setpinnum, (XtPointer)pinnum );
-    drive_MCW_grapher( plint->im3d->g312, graDR_setpinnum, (XtPointer)pinnum );
+    drive_MCW_grapher( plint->im3d->g123, graDR_setpinnum, (XtPointer)ITOP(pinnum) );
+    drive_MCW_grapher( plint->im3d->g231, graDR_setpinnum, (XtPointer)ITOP(pinnum) );
+    drive_MCW_grapher( plint->im3d->g312, graDR_setpinnum, (XtPointer)ITOP(pinnum) );
 }
 
 /*---------------------------------------------------------------------------
