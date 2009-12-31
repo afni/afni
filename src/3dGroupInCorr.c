@@ -1027,7 +1027,7 @@ static double GIC_lgamma( double x )
    return ( gamma_12(w) + g ) ;
 }
 
-#define lgamma GIC_lgammma
+#define lgamma GIC_lgamma
 
 #endif  /*----- NO_GAMMA ------------------------------------------------*/
 
