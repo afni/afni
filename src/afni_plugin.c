@@ -1541,7 +1541,7 @@ fprintf(stderr,"Option setup %s\n",opt->label) ;
               XmNmarginWidth      , 0  ,
 
               XmNlabelString , xstr ,
-              XmNuserData    , (XtPointer) zlen ,
+              XmNuserData    , (XtPointer)ITOP(zlen) ,
               XmNinitialResourcesPersistent , False ,
            NULL ) ;
       XmStringFree( xstr ) ;
@@ -4480,7 +4480,7 @@ void PLUTO_imseq_addto( void * handle , MRI_IMAGE * im )
       drive_MCW_imseq( psq->seq , isqDR_zoombut    , (XtPointer) 0 ) ; /* 12 Mar 2002 */
    }
 
-   drive_MCW_imseq( psq->seq , isqDR_reimage , (XtPointer)(ntot) ) ;
+   drive_MCW_imseq( psq->seq , isqDR_reimage , (XtPointer)ITOP(ntot) ) ;
 
    return ;
 }
@@ -4494,7 +4494,7 @@ void PLUTO_imseq_setim( void *handle , int n )    /* 17 Dec 2004 */
    if( psq == NULL || psq->seq == NULL ||
        n   <  0    || n        >= IMARR_COUNT(psq->imar) ) return ;
 
-   drive_MCW_imseq( psq->seq , isqDR_reimage , (XtPointer)(n) ) ;
+   drive_MCW_imseq( psq->seq , isqDR_reimage , (XtPointer)ITOP(n) ) ;
    return ;
 }
 

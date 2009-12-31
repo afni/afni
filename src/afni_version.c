@@ -63,7 +63,7 @@ void AFNI_start_version_check(void)
    }
 
 #undef  VDELAY
-#define VDELAY 429999  /* 429999 s = 5 days */
+#define VDELAY 1234567 /* about 2 weeks */
    /* check if we did this in the last VDELAY seconds */
 
    { char *home=getenv("HOME") , mname[VSIZE]="file:" ;

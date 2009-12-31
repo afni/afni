@@ -225,13 +225,13 @@ ENTRY("AFNI_fimmer_setignore") ;
    if( ! IM3D_VALID(im3d) || im3d->type != AFNI_3DDATA_VIEW ) EXRETURN ;
 
    if( im3d->g123 != NULL )
-      drive_MCW_grapher( im3d->g123 , graDR_setignore , (XtPointer) new_ignore ) ;
+      drive_MCW_grapher( im3d->g123 , graDR_setignore , (XtPointer)ITOP(new_ignore) ) ;
 
    if( im3d->g231 != NULL )
-      drive_MCW_grapher( im3d->g231 , graDR_setignore , (XtPointer) new_ignore ) ;
+      drive_MCW_grapher( im3d->g231 , graDR_setignore , (XtPointer)ITOP(new_ignore) ) ;
 
    if( im3d->g312 != NULL )
-      drive_MCW_grapher( im3d->g312 , graDR_setignore , (XtPointer) new_ignore ) ;
+      drive_MCW_grapher( im3d->g312 , graDR_setignore , (XtPointer)ITOP(new_ignore) ) ;
 
    im3d->fimdata->init_ignore = new_ignore ;
 
@@ -255,13 +255,13 @@ ENTRY("AFNI_fimmer_setpolort") ;
    if( ! IM3D_VALID(im3d) || im3d->type != AFNI_3DDATA_VIEW ) EXRETURN ;
 
    if( im3d->g123 != NULL )
-      drive_MCW_grapher( im3d->g123 , graDR_polort , (XtPointer) new_polort ) ;
+      drive_MCW_grapher( im3d->g123 , graDR_polort , (XtPointer)ITOP(new_polort) ) ;
 
    if( im3d->g231 != NULL )
-      drive_MCW_grapher( im3d->g231 , graDR_polort , (XtPointer) new_polort ) ;
+      drive_MCW_grapher( im3d->g231 , graDR_polort , (XtPointer)ITOP(new_polort) ) ;
 
    if( im3d->g312 != NULL )
-      drive_MCW_grapher( im3d->g312 , graDR_polort , (XtPointer) new_polort ) ;
+      drive_MCW_grapher( im3d->g312 , graDR_polort , (XtPointer)ITOP(new_polort) ) ;
 
    im3d->fimdata->polort = new_polort ;
 

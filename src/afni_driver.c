@@ -849,7 +849,7 @@ ENTRY("AFNI_drive_open_window") ;
       if( cpt != NULL ){
         int opaval = -1 ;
         sscanf( cpt+8 , "%d" , &opaval ) ;
-        drive_MCW_imseq( isq , isqDR_setopacity , (XtPointer)opaval ) ;
+        drive_MCW_imseq( isq , isqDR_setopacity , (XtPointer)ITOP(opaval) ) ;
       }
 
       /* crop [03 May 2007] */
@@ -920,7 +920,7 @@ ENTRY("AFNI_drive_open_window") ;
       if( cpt != NULL ){
         int mat = (int) strtod( cpt+7 , NULL ) ;
         if( mat > 0 )
-          drive_MCW_grapher( gra , graDR_setmatrix , (XtPointer)mat ) ;
+          drive_MCW_grapher( gra , graDR_setmatrix , (XtPointer)ITOP(mat) ) ;
       }
 
       /* pinnum OR pintop */
@@ -932,7 +932,7 @@ ENTRY("AFNI_drive_open_window") ;
       if( cpt != NULL ){
         int pn = (int) strtod( cpt+7 , NULL ) ;
         if( pn >= MIN_PIN )
-          drive_MCW_grapher( gra, graDR_setpinnum, (XtPointer)pn ) ;
+          drive_MCW_grapher( gra, graDR_setpinnum, (XtPointer)ITOP(pn) ) ;
       }
 
       /* pinbot [19 Mar 2004] */
@@ -942,7 +942,7 @@ ENTRY("AFNI_drive_open_window") ;
       if( cpt != NULL ){
         int pn = (int) strtod( cpt+7 , NULL ) ;
         if( pn > 0 )
-          drive_MCW_grapher( gra, graDR_setpinbot, (XtPointer)pn ) ;
+          drive_MCW_grapher( gra, graDR_setpinbot, (XtPointer)ITOP(pn) ) ;
       }
 
       /* iconify [06 Aug 2002] */

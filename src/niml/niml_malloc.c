@@ -170,7 +170,7 @@ static void qsort_intint( int, int *, int * ) ;
 
 static INLINE UINT mallkey( char *fred )
 {
-   UINT q = (UINT) fred ;
+   UINT q = (UINT)(intptr_t)fred ;
 
    q =   ((q & 0xf0f0f0f0) >> 4)   /* swap nibbles */
        | ((q & 0x0f0f0f0f) << 4) ;

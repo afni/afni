@@ -66,7 +66,7 @@ int mri_write_angif( char *fname , MRI_IMARR *imar )
 
    nim = IMARR_COUNT(imar) ;
 
-   sprintf(gt,"%x",(unsigned int)imar) ; gt[5] = '\0' ;
+   sprintf(gt,"%x",(unsigned int)PTOI(imar)) ; gt[5] = '\0' ;
 
    for( ii=0 ; ii < nim ; ii++ ){
       sprintf(gnam,"Elvis%s.%05d.gif",gt,ii) ;

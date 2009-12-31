@@ -222,6 +222,8 @@ double legendre( double x , int m )   /* Legendre polynomials over [-1,1] */
 
 /*---------------------------------------------------------------------------*/
 
+#undef IBOT
+#undef ITOP
 #ifdef USE_BASIS
 # define IBOT(ss) ((basis_stim[ss]!=NULL) ? 0                       : min_lag[ss])
 # define ITOP(ss) ((basis_stim[ss]!=NULL) ? basis_stim[ss]->nparm-1 : max_lag[ss])

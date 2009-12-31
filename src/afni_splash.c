@@ -1517,14 +1517,16 @@ STATUS("no ***LAYOUT found") ;
          /* change the graph matrix (i.e., how many sub-graphs)? */
 
          if( graph_matrix[cc][ww] > 0 ){
-           drive_MCW_grapher( gra, graDR_setmatrix, (XtPointer)graph_matrix[cc][ww] );
+           drive_MCW_grapher( gra, graDR_setmatrix,
+                             (XtPointer)ITOP(graph_matrix[cc][ww]) );
            if(goslow || PRINT_TRACING) sleep(1);
          }
 
          /* make the graph length pinned? */
 
          if( graph_pinnum[cc][ww] > 1 ){
-           drive_MCW_grapher( gra, graDR_setpinnum, (XtPointer)graph_pinnum[cc][ww] );
+           drive_MCW_grapher( gra, graDR_setpinnum,
+                              (XtPointer)ITOP(graph_pinnum[cc][ww]) );
            if(goslow || PRINT_TRACING) sleep(1);
          }
 

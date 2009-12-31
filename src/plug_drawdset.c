@@ -1775,7 +1775,7 @@ void DRAW_finalize_dset_CB( Widget w, XtPointer fd, MCW_choose_cbs *cbs )
    DSET_mallocize(dset) ; DSET_lock(dset) ; DSET_load(dset) ;
 
    AFNI_receive_control( im3d, recv_key,mode_index , NULL ) ;
-   AFNI_receive_control( im3d, recv_key,DRAWING_OVCINDEX, (void *)color_index ) ;
+   AFNI_receive_control( im3d, recv_key,DRAWING_OVCINDEX, ITOP(color_index) ) ;
    recv_open = 1 ;
 
    CLEAR_UNREDOBUF ;  /* 19 Nov 2003 */
@@ -1822,7 +1822,7 @@ void DRAW_color_CB( MCW_arrowval * av , XtPointer cd )
    color_index = av->ival ;
 
    if( dset != NULL && recv_open )
-      AFNI_receive_control( im3d, recv_key,DRAWING_OVCINDEX, (void *)color_index ) ;
+      AFNI_receive_control( im3d, recv_key,DRAWING_OVCINDEX, ITOP(color_index) ) ;
 
    return ;
 }
@@ -1842,7 +1842,7 @@ void DRAW_mode_CB( MCW_arrowval * av , XtPointer cd )
       /* 08 Oct 2002: set drawing line width */
 
       AFNI_receive_control( im3d, recv_key, DRAWING_LINEWIDTH ,
-                            (void *) mode_width[mode_ival]     ) ;
+                            ITOP(mode_width[mode_ival])      ) ;
    }
 
    /* 16 Oct 2002: turn rad_av (radius) on if mode needs it */

@@ -2932,7 +2932,7 @@ STATUS("button press") ;
                cbs.reason = graCR_setindex; cbs.key = tt; cbs.event = NULL;
                CALL_sendback( grapher , cbs ) ;
              } else {
-               (void) drive_MCW_grapher( grapher, graDR_setindex, (XtPointer)tt) ;
+               (void) drive_MCW_grapher( grapher, graDR_setindex, (XtPointer)ITOP(tt)) ;
              }
            }
            MCW_discard_events( w , ButtonPressMask ) ; EXRETURN;
@@ -3061,7 +3061,7 @@ STATUS("button press") ;
                CALL_sendback( grapher , cbs ) ;
 #endif
              } else {
-               (void) drive_MCW_grapher( grapher,graDR_setindex,(XtPointer)i );
+               (void) drive_MCW_grapher( grapher,graDR_setindex,(XtPointer)ITOP(i) );
              }
            }
          }
@@ -3450,7 +3450,7 @@ STATUS(str); }
              CALL_sendback( grapher , cbs ) ;
 #endif
            } else {
-             (void) drive_MCW_grapher( grapher, graDR_setindex, (XtPointer)ii) ;
+             (void) drive_MCW_grapher( grapher, graDR_setindex, (XtPointer)ITOP(ii)) ;
            }
          }
       break ;
@@ -3965,7 +3965,7 @@ ENTRY("GRA_pin_choose_CB") ;
    }
 
    ii = 100000*pt + pb ;
-   drive_MCW_grapher( grapher , graDR_setpins , (XtPointer)(ii) ) ;
+   drive_MCW_grapher( grapher , graDR_setpins , (XtPointer)ITOP(ii) ) ;
    EXRETURN ;
 }
 
@@ -4306,7 +4306,7 @@ ENTRY("drive_MCW_grapher") ;
       /*------ winaver [27 Jan 2004] -----*/
 
       case graDR_winaver:{
-        int vvv = (int)drive_data ;
+        int vvv = PTOI(drive_data) ;
         MCW_set_bbox( grapher->fmenu->fim_editref_winaver_bbox , vvv ) ;
         RETURN( True ) ;
       }
@@ -4314,7 +4314,7 @@ ENTRY("drive_MCW_grapher") ;
       /*------ setglobalbaseline [07 Aug 2001] -----*/
 
       case graDR_setglobalbaseline:{
-         float *vvv = (float *) drive_data ;   /* get value   */
+         float *vvv = (float *)drive_data ;    /* get value   */
          int ii = thd_floatscan( 1 , vvv ) ;   /* check value */
          MCW_choose_cbs cb ;
          if( ii != 0 ) RETURN( False ) ;       /* this is bad */
@@ -4327,7 +4327,7 @@ ENTRY("drive_MCW_grapher") ;
       /*------ setmatrix [22 Sep 2000] -----*/
 
       case graDR_setmatrix:{
-         int mm = (int) drive_data ;
+         int mm = PTOI(drive_data) ;
          if( mm < 0 ) RETURN( False ) ;
          grapher->mat = MIN( grapher->mat_max , mm ) ;
          init_mat    ( grapher ) ;
@@ -4339,7 +4339,7 @@ ENTRY("drive_MCW_grapher") ;
       /*------ setgrid [22 Sep 2000] -----*/
 
       case graDR_setgrid:{
-         int mm = (int) drive_data ;
+         int mm = PTOI(drive_data) ;
          if( mm < 2 ) RETURN( False ) ;
          grapher->grid_spacing = mm ;
          grapher->grid_fixed   = 1 ;  /* 02 Apr 2004 */
@@ -4350,7 +4350,7 @@ ENTRY("drive_MCW_grapher") ;
       /*------ mirroring (Jul 2000) -----*/
 
       case graDR_mirror:{
-         int ii = (int) drive_data ;
+         int ii = PTOI(drive_data) ;
 
          if( ii != grapher->mirror ){
            grapher->mirror = ii ;
@@ -4394,7 +4394,7 @@ ENTRY("drive_MCW_grapher") ;
       /*------ set time index -----*/
 
       case graDR_setindex:{
-         int new_index = (int) drive_data ;
+         int new_index = PTOI(drive_data) ;
 
          if( new_index < 0 || new_index >= grapher->status->num_series )
            RETURN( False ) ;
@@ -4413,7 +4413,7 @@ ENTRY("drive_MCW_grapher") ;
       /* (same as graDR_setpinnum and graDR_setpintop) */
 
       case graDR_newlength:{
-         int newtop=(int)drive_data ;
+         int newtop=PTOI(drive_data) ;
 
          if( newtop < MIN_PIN ) newtop = 0 ;
          if( newtop > MAX_PIN ) newtop = MAX_PIN ;
@@ -4431,7 +4431,7 @@ ENTRY("drive_MCW_grapher") ;
       /*------ reset bottom of time series plotting [17 Mar 2004] -----*/
 
       case graDR_setpinbot:{
-         int newbot=(int)drive_data ;
+         int newbot=PTOI(drive_data) ;
 
          if( newbot < 0               ) newbot = 0 ;
          if( newbot >= TTOP(grapher)  ) newbot = 0 ;
@@ -4448,7 +4448,7 @@ ENTRY("drive_MCW_grapher") ;
       /*------ reset bot and top of time series plotting [19 Mar 2004] -----*/
 
       case graDR_setpins:{
-         int ii=(int)drive_data , newbot,newtop ;
+         int ii=PTOI(drive_data) , newbot,newtop ;
 
          if( ii <= 0 ){
            newbot = newtop = 0 ;
@@ -4473,7 +4473,7 @@ ENTRY("drive_MCW_grapher") ;
       /*------ set ignore count -----*/
 
       case graDR_setignore:{
-         int new_ignore = (int) drive_data ;
+         int new_ignore = PTOI(drive_data) ;
 
          if( new_ignore >= 0 && new_ignore < TTOP(grapher)-1 ){
            grapher->init_ignore = new_ignore ;
@@ -4487,7 +4487,7 @@ ENTRY("drive_MCW_grapher") ;
       /*------- set polort [27 May 1999] --------*/
 
       case graDR_polort:{
-         int new_polort = (int) drive_data ;
+         int new_polort = PTOI(drive_data) ;
 
          if( new_polort >= 0 ){
             grapher->polort = new_polort ;
@@ -4647,7 +4647,7 @@ STATUS("replacing ort timeseries") ;
       /*------- new cursor for image -------*/
 
       case graDR_cursor:{
-         int cur = (int) drive_data ;
+         int cur = PTOI(drive_data) ;
 
          MCW_alter_widget_cursor( grapher->fdw_graph , cur , "yellow" , "blue" ) ;
          RETURN( True ) ;
@@ -6167,7 +6167,7 @@ ENTRY("GRA_timer_CB") ;
            CALL_sendback( grapher , cbs ) ;
 #endif
          } else {
-           (void) drive_MCW_grapher( grapher, graDR_setindex, (XtPointer)nn) ;
+           (void)drive_MCW_grapher( grapher, graDR_setindex, (XtPointer)ITOP(nn)) ;
          }
        }
      }
@@ -6194,7 +6194,7 @@ ENTRY("GRA_timer_CB") ;
            CALL_sendback( grapher , cbs ) ;
 #endif
          } else {
-           (void) drive_MCW_grapher( grapher, graDR_setindex, (XtPointer)nn) ;
+           (void)drive_MCW_grapher( grapher, graDR_setindex, (XtPointer)ITOP(nn)) ;
          }
        }
      }

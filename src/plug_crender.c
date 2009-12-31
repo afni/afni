@@ -698,7 +698,7 @@ static int reset_bigcolors( rgbyte * bcs );     /* v1.8 [rickr] */
          if( wfunc_thr_scale != NULL ){                         \
            XtVaGetValues( wfunc_thr_scale ,                     \
                              XmNuserData , &sel_ptr , NULL ) ;  \
-           sel_height = (int) sel_ptr ;                         \
+           sel_height = PTOI(sel_ptr) ;                         \
            XtVaSetValues( wfunc_thr_scale ,                     \
                              XmNheight , sel_height , NULL ) ;  \
            XtManageChild(wfunc_thr_scale) ;                     \
@@ -4008,7 +4008,7 @@ void RCREND_accum_lab_CB( Widget w , XtPointer fd , MCW_choose_cbs *cbs )
        if( nn >= 0 && nn < IMARR_COUNT(renderings) ){
          MRI_IMAGE *rim = IMARR_SUBIM(renderings,nn) ;
          mri_add_name( accum_label , rim ) ;
-         drive_MCW_imseq( imseq , isqDR_display , (XtPointer)nn ) ;
+         drive_MCW_imseq( imseq , isqDR_display , (XtPointer)ITOP(nn) ) ;
        }
      }
    }
@@ -4911,7 +4911,7 @@ ENTRY( "RCREND_open_imseq" );
       drive_MCW_imseq( imseq , isqDR_opacitybut , (XtPointer) 0 ) ; /* 07 Mar 2001 */
    }
 
-   drive_MCW_imseq( imseq , isqDR_reimage , (XtPointer) (ntot-1) ) ;
+   drive_MCW_imseq( imseq , isqDR_reimage , (XtPointer)ITOP(ntot-1) ) ;
 
 #ifndef DONT_INSTALL_ICONS
    if( afni48_good && afni48ren_pixmap == XmUNSPECIFIED_PIXMAP ){
@@ -4967,7 +4967,7 @@ ENTRY( "RCREND_update_imseq" );
       drive_MCW_imseq( imseq , isqDR_opacitybut , (XtPointer) 0 ) ; /* 07 Mar 2001 */
    }
 
-   drive_MCW_imseq( imseq , isqDR_reimage , (XtPointer)(ntot-1) ) ;
+   drive_MCW_imseq( imseq , isqDR_reimage , (XtPointer)ITOP(ntot-1) ) ;
 
    EXRETURN ;
 }
@@ -5438,7 +5438,7 @@ ENTRY( "RCREND_func_widgets" );
   }
 
 #ifdef FIX_SCALE_SIZE_PROBLEM
-   XtVaSetValues( wfunc_thr_scale , XmNuserData , (XtPointer) sel_height , NULL ) ;
+   XtVaSetValues( wfunc_thr_scale , XmNuserData , (XtPointer)ITOP(sel_height) , NULL ) ;
 #endif
 #ifdef USING_LESSTIF
    XtVaSetValues( wfunc_thr_scale , XmNscaleWidth,24 , NULL ) ;

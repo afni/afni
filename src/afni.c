@@ -5252,9 +5252,9 @@ ENTRY("AFNI_wrap_bbox_CB") ;
    im3d->vinfo->xhairs_periodic = (Boolean) bval ;
 
    if( w != NULL ){
-      drive_MCW_imseq( im3d->s123, isqDR_periodicmont, (XtPointer) bval );
-      drive_MCW_imseq( im3d->s231, isqDR_periodicmont, (XtPointer) bval );
-      drive_MCW_imseq( im3d->s312, isqDR_periodicmont, (XtPointer) bval );
+      drive_MCW_imseq( im3d->s123, isqDR_periodicmont, (XtPointer)ITOP(bval) );
+      drive_MCW_imseq( im3d->s231, isqDR_periodicmont, (XtPointer)ITOP(bval) );
+      drive_MCW_imseq( im3d->s312, isqDR_periodicmont, (XtPointer)ITOP(bval) );
    }
 
    RESET_AFNI_QUIT(im3d) ;
@@ -5592,7 +5592,7 @@ STATUS("realizing new image viewer") ;
       AFNI_sleep(17) ;                                                /* 17 Oct 2005 */
       drive_MCW_imseq( *snew, isqDR_title, (XtPointer) im3d->window_title ) ;
       drive_MCW_imseq( *snew, isqDR_periodicmont,
-                      (XtPointer)(int) im3d->vinfo->xhairs_periodic );
+                      (XtPointer)ITOP(im3d->vinfo->xhairs_periodic) );
 
       /* 09 Oct 1998: force L-R mirroring on axial and coronal images? */
       /* 04 Nov 2003: or min-to-max on grayscaling? */
@@ -5709,9 +5709,9 @@ STATUS("opening a graph window") ;
        gr = new_MCW_grapher( im3d->dc , AFNI_brick_to_mri , (XtPointer) brnew ) ;
        drive_MCW_grapher( gr, graDR_title, (XtPointer) im3d->window_title );
        drive_MCW_grapher( gr, graDR_addref_ts, (XtPointer) im3d->fimdata->fimref );
-       drive_MCW_grapher( gr, graDR_setignore, (XtPointer) im3d->fimdata->init_ignore );
-       drive_MCW_grapher( gr, graDR_polort, (XtPointer) im3d->fimdata->polort );
-       drive_MCW_grapher( gr, graDR_setindex , (XtPointer) im3d->vinfo->time_index );
+       drive_MCW_grapher( gr, graDR_setignore, (XtPointer)ITOP(im3d->fimdata->init_ignore) );
+       drive_MCW_grapher( gr, graDR_polort, (XtPointer)ITOP(im3d->fimdata->polort) );
+       drive_MCW_grapher( gr, graDR_setindex , (XtPointer)ITOP(im3d->vinfo->time_index) );
 
        if( im3d->type == AFNI_IMAGES_VIEW )
           drive_MCW_grapher( gr , graDR_fim_disable , NULL ) ; /* 19 Oct 1999 */
@@ -6092,7 +6092,7 @@ DUMP_IVEC3("             new_ib",new_ib) ;
 
       if( redisplay_option || old_ib.ijk[2] != new_ib.ijk[2] )
          drive_MCW_imseq( im3d->s123 ,
-                          isq_driver , (XtPointer) new_ib.ijk[2] ) ;
+                          isq_driver , (XtPointer)ITOP(new_ib.ijk[2]) ) ;
 
 
       xyzm[0] = new_ib.ijk[0] ; xyzm[1] = new_ib.ijk[1] ;
@@ -6117,7 +6117,7 @@ DUMP_IVEC3("             new_ib",new_ib) ;
 
       if( redisplay_option || old_ib.ijk[2] != new_ib.ijk[2] )
          drive_MCW_imseq( im3d->s231 ,
-                          isq_driver , (XtPointer) new_ib.ijk[2] ) ;
+                          isq_driver , (XtPointer)ITOP(new_ib.ijk[2]) ) ;
 
       xyzm[0] = new_ib.ijk[0] ; xyzm[1] = new_ib.ijk[1] ;
       xyzm[2] = new_ib.ijk[2] ; xyzm[3] = 0 ;
@@ -6141,7 +6141,7 @@ DUMP_IVEC3("             new_ib",new_ib) ;
 
       if( redisplay_option || old_ib.ijk[2] != new_ib.ijk[2] )
          drive_MCW_imseq( im3d->s312 ,
-                          isq_driver , (XtPointer) new_ib.ijk[2] ) ;
+                          isq_driver , (XtPointer)ITOP(new_ib.ijk[2]) ) ;
 
       xyzm[0] = new_ib.ijk[0] ; xyzm[1] = new_ib.ijk[1] ;
       xyzm[2] = new_ib.ijk[2] ; xyzm[3] = 0 ;
@@ -6170,9 +6170,9 @@ DUMP_IVEC3("             new_ib",new_ib) ;
       newti = im3d->vinfo->anat_index ;
 
    if( newti >= 0 ){
-     drive_MCW_grapher( im3d->g123, graDR_setindex, (XtPointer)newti );
-     drive_MCW_grapher( im3d->g231, graDR_setindex, (XtPointer)newti );
-     drive_MCW_grapher( im3d->g312, graDR_setindex, (XtPointer)newti );
+     drive_MCW_grapher( im3d->g123, graDR_setindex, (XtPointer)ITOP(newti) );
+     drive_MCW_grapher( im3d->g231, graDR_setindex, (XtPointer)ITOP(newti) );
+     drive_MCW_grapher( im3d->g312, graDR_setindex, (XtPointer)ITOP(newti) );
    }
 
    if( do_lock )                    /* 11 Nov 1996 */

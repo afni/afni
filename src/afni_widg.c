@@ -2797,7 +2797,7 @@ STATUS("making func->rowcol") ;
 
 #ifdef FIX_SCALE_SIZE_PROBLEM
    XtVaSetValues( func->thr_scale ,
-                    XmNuserData , (XtPointer)sel_height ,
+                    XmNuserData , (XtPointer)ITOP(sel_height) ,
                   NULL ) ;
 #endif
 
