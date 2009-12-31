@@ -7,6 +7,7 @@
 #include "parser.h"
 #include <ctype.h>
 #include "cs.h"
+#include <string.h>
 
 #undef USE_READLINE
 #ifdef USE_READLINE
