@@ -354,7 +354,7 @@ clean.args.string <- function(ss) {
    ss <- gsub('[[:space:]]*=[[:space:]]*','=',ss)
    return(ss)
 }
-
+ 
 as.num.vec <- function(ss, addcount=TRUE, sepstr='.', reset=FALSE) {
    if (is.list(ss) || length(ss) > 1) {
       warning(paste('Function only works on single strings', 
