@@ -4112,6 +4112,9 @@ extern MRI_IMAGE * THD_extract_series( int , THD_3dim_dataset * , int ) ;
 extern MRI_IMARR * THD_extract_many_series( int, int *, THD_3dim_dataset * );
 extern MRI_IMAGE * THD_dset_to_1Dmri( THD_3dim_dataset *dset ) ;
 
+extern void THD_extract_many_arrays( int ns , int *ind ,
+                                     THD_3dim_dataset *dset , float *dsar ) ;
+
 /*---------------------------------------------------------------------------*/
 
 typedef struct {

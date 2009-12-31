@@ -15,6 +15,7 @@ int main( int argc , char * argv[] )
    float *fac , *fv , val,top ;
    NI_float_array *facar ; NI_int_array *nvar ;
    short *sv ; MRI_vectim *mv ; FILE *fp ; long long fsize ;
+   int atim,btim,ctim ;
 
    /*-- help? --*/
 
@@ -41,11 +42,11 @@ int main( int argc , char * argv[] )
        "  '-mask' option, then all voxels will be processed -- not usually\n"
        "  a good idea, since non-brain voxels will use up a LOT of memory\n"
        "  and CPU time in 3dGroupInCorr.\n"
-       "   + If you use '-mask', you MUST use the same mask dataset\n"
+       "  ++ If you use '-mask', you MUST use the same mask dataset\n"
        "     in all runs of 3dSetupGroupInCorr that will be input\n"
        "     at the same time to 3dGroupInCorr -- otherwise, the\n"
        "     computations in that program will make no sense AT ALL!\n"
-       "   + This requirement is why there is no '-automask' option.\n"
+       "  ++ This requirement is why there is no '-automask' option.\n"
        "\n"
        "* However, the datasets do NOT all have to have the same number\n"
        "  of time points or time spacing.  But each dataset must have\n"
@@ -53,17 +54,21 @@ int main( int argc , char * argv[] )
        "\n"
        "* The only pre-processing herein for each time series is to L2\n"
        "  normalize it (sum of squares = 1) and scale it to 16 bit shorts.\n"
-       "   + You almost certainly want to use 3dBandpass or some other\n"
+       "  ++ You almost certainly want to use 3dBandpass and/or some other\n"
        "     code to pre-process the datasets BEFORE input to this program.\n"
+       "  ++ See the SAMPLE SCRIPT below for a semi-reasonable way to\n"
+       "     pre-process a collection of datasets for 3dGroupInCorr.\n"
        "\n"
        "* The outputs from this program are 2 files:\n"
-       "   + PREFIX.grpincorr.niml is a text file containing the header\n"
+       "  ++ PREFIX.grpincorr.niml is a text file containing the header\n"
        "     information that describes the data file.  This file is input\n"
        "     to 3dGroupInCorr to define one sample in the t-test.\n"
-       "   + PREFIX.grpincorr.data is the data file, which contains\n"
+       "  ++ PREFIX.grpincorr.data is the data file, which contains\n"
        "     all the time series (in the mask) from all the datasets.\n"
-       "   + The data file will usually be huge (gigabytes, perhaps).\n"
+       "  ++ The data file will usually be huge (gigabytes, perhaps).\n"
        "     You need to be sure you have enough disk space.\n"
+       "  ++ If the output files already exist when you run this program,\n"
+       "     then 3dSetupGroupInCorr will exit without processing the datasets!\n"
        "\n"
        "-------\n"
        "OPTIONS\n"
@@ -80,27 +85,29 @@ int main( int argc , char * argv[] )
        "                   necessary.  *** BE CAREFUL OUT THERE! ***\n"
        "                 ++ If you are setting up for 3dGroupInCorr\n"
        "                    in a script that first uses 3dBandpass\n"
-       "                    to filter the datasets, then uses this\n"
+       "                    to filter the datasets, and then uses this\n"
        "                    program to finish the setup, then you\n"
        "                    COULD use '-DELETE' to remove the\n"
        "                    temporary 3dBandpass outputs as soon\n"
        "                    as they are no longer needed.\n"
        "\n"
        "-------------\n"
-       "SAMPLE SCRIPT (csh syntax)\n"
+       "SAMPLE SCRIPT  (tcsh syntax)\n"
        "-------------\n"
-       "* Assume datasets are named in the following scheme (sub01, sub02, etc.)\n"
-       " ++ T1-weighted anatomical = sub01_anat+orig\n"
-       " ++ Resting state EPI      = sub01_rest+orig\n"
+       "* Assume datasets are named in the following scheme (sub01, sub02, ...)\n"
+       " ++ T1-weighted anatomical  = sub01_anat+orig\n"
+       " ++ Resting state EPI       = sub01_rest+orig\n"
+       " ++ Standard space template = ~/abin/MNI_avg152T1+tlrc\n"
        "\n"
        "#!/bin/tcsh\n"
        "\n"
        "# MNI-ize each subject's anat, then EPIs (at 2 mm resolution)\n"
        "\n"
-       "foreach fred ( *_anat+orig.HEAD )\n"
+       "foreach fred ( sub*_anat+orig.HEAD )\n"
        "  set sub = `basename $fred _anat+orig.HEAD`\n"
        "  @auto_tlrc -base ~/abin/MNI_avg152T1+tlrc.HEAD -input $fred\n"
-       "  adwarp -apar ${sub}_anat+tlrc.HEAD -dpar ${sub}_rest+orig.HEAD -resam Cu -dxyz 2.0\n"
+       "  adwarp -apar ${sub}_anat+tlrc.HEAD -dpar ${sub}_rest+orig.HEAD \\\n"
+       "         -resam Cu -dxyz 2.0\n"
        "  3dAutomask -dilate 1 -prefix ${sub}_amask ${sub}_rest+tlrc.HEAD\n"
        "end\n"
        "\n"
@@ -111,10 +118,10 @@ int main( int argc , char * argv[] )
        "# Bandpass and blur each dataset inside the group mask\n"
        "# (skip first 4 time points, and also remove global signal)\n"
        "\n"
-       "foreach fred ( *_rest+tlrc.HEAD )\n"
+       "foreach fred ( sub*_rest+tlrc.HEAD )\n"
        "  set sub = `basename $fred _rest+tlrc.HEAD`\n"
        "  3dmaskave -mask ALL_amask+tlrc -quiet $fred'[4..$]' > ${sub}_GS.1D\n"
-       "  3dBandpass -mask ALL_amask+tlrc -blur 6.0 -band 0.01 0.10 -prefix ${sub}_BP \\\n"
+       "  3dBandpass -mask ALL_amask+tlrc -blur 6.0 -band 0.01 0.10 -prefix ${sub}_BP\\\n"
        "             -input $fred -ort ${sub}_GS.1D\n"
        "end\n"
        "\n"
@@ -125,8 +132,9 @@ int main( int argc , char * argv[] )
        "------------------\n"
        "CREDITS (or blame)\n"
        "------------------\n"
-       "* Written by RWCox, December 2009.\n"
-       "* With inputs from Alex Martin, Steve Gotts, and (as always) Ziad Saad.\n"
+       "* Written by RWCox, 31 December 2009.\n"
+       "* With inputs from Alex Martin, Steve Gotts, and Ziad Saad.\n"
+       "* With encouragement from MMK.\n"
        "\n"
      ) ;
      PRINT_COMPILE_DATE ; exit(0) ;
@@ -236,8 +244,11 @@ int main( int argc , char * argv[] )
 
    gstr = strdup( EDIT_get_geometry_string(inset[0]) ) ;
 
+   atim = NI_clock_time() ;
+
    for( ids=0 ; ids < ndset ; ids++ ){
-     ININFO_message("GroupInCorr-izing dataset %s",DSET_BRIKNAME(inset[ids])) ;
+     fprintf(stderr,"++ Dataset %s:",DSET_BRIKNAME(inset[ids])) ;
+     btim = NI_clock_time() ;
 
      /* extract all time series in the mask, as floats */
 
@@ -245,6 +256,9 @@ int main( int argc , char * argv[] )
      if( mv == NULL ){
        fclose(fp) ; remove(dfname) ; ERROR_exit("Can't load dataset!?") ;
      }
+     ctim = NI_clock_time() ;
+     fprintf(stderr," input =%5d ms;",ctim-btim) ;
+     btim = ctim ;
 
      /* save memory by removing this input dataset */
  
@@ -271,6 +285,10 @@ int main( int argc , char * argv[] )
      for( kk=0 ; kk < nvv ; kk++ ) sv[kk] = (short)rintf(top*fv[kk]) ;
      VECTIM_destroy(mv) ;
 
+     ctim = NI_clock_time() ;
+     fprintf(stderr," normalize =%5d ms;",ctim-btim) ;
+     btim = ctim ;
+
      /* write output array */
 
      kk = fwrite( sv , sizeof(short) , nvv , fp ) ;
@@ -281,6 +299,9 @@ int main( int argc , char * argv[] )
      free(sv) ;  /* toss this trash */
      fflush(fp) ;
 
+     ctim = NI_clock_time() ;
+     fprintf(stderr," output =%5d ms\n",ctim-btim) ;
+
    } /* end of dataset loop */
 
    /*--- close data file, print some helpful info ---*/
@@ -289,6 +310,9 @@ int main( int argc , char * argv[] )
    fsize = THD_filesize(dfname) ;
    INFO_message("Wrote data file %s = %lld bytes (about %s)",
                 dfname , fsize , approximate_number_string((double)fsize) ) ;
+
+   ctim = NI_clock_time() - atim ;
+   ININFO_message("Total elapsed time = %d ms = %.2f min",ctim,ctim/(60000.0f)) ;
 
    /*--- create NIML data element to describe what's in the data file ---*/
 
