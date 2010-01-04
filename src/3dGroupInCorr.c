@@ -393,7 +393,7 @@ int main( int argc , char *argv[] )
    int nvec , ndset_AAA=0,ndset_BBB=0 , *nvals_AAA=NULL,*nvals_BBB=NULL ;
    float **seedvec_AAA=NULL , **dotprod_AAA=NULL ;
    float **seedvec_BBB=NULL , **dotprod_BBB=NULL ;
-   int ctim,btim,atim , do_shm=1 ;
+   int ctim,btim,atim , do_shm=1 , nsend=0 ;
 
    /*-- enlighten the ignorant and brutish sauvages? --*/
 
@@ -520,9 +520,9 @@ int main( int argc , char *argv[] )
       "          data between computers is much faster.\n"
       "       ++ If you have a problem with the shared memory communication,\n"
       "          use '-NOshm' to use TCP/IP for all communications.\n"
-      "       ++ If you use '-verb -verb', you will get a detailed progress report\n"
-      "          from 3dGroupInCorr as it computes, including elapsed times for\n"
-      "          each stage.\n"
+      "       ++ If you use '-verb -verb', you will get a very detailed progress\n"
+      "          report from 3dGroupInCorr as it computes, including elapsed times\n"
+      "          for each stage.\n"
 #endif
       "\n"
       " -quiet = Turn off the informational messages\n"
@@ -652,7 +652,7 @@ int main( int argc , char *argv[] )
 #undef  BSTEP
 #define BSTEP 32768
    { long long pp ; char *bv ; float sum=0.0f ;
-     if( verb > 2 ) INFO_message("page faulting data into memory") ;
+     if( verb ) INFO_message("page faulting data into memory") ;
      bv = (char *)shd_AAA->sv[0] ;
      for( pp=0 ; pp < shd_AAA->nbytes ; pp+=BSTEP,bv+=BSTEP ) sum += *bv ;
      if( shd_BBB != NULL ){
@@ -787,7 +787,16 @@ int main( int argc , char *argv[] )
        kk = NI_stream_goodcheck( GI_stream , 1 ) ;
        if( kk < 1 ){
          NI_stream_close(GI_stream) ; GI_stream = (NI_stream)NULL ;
-         WARNING_message("Connection to AFNI has broken") ; goto GetOutOfDodge ;
+         WARNING_message("Connection to AFNI broken - trying to restart") ;
+         NI_sleep(111) ;
+         GI_stream = NI_stream_open( nsname , "w" ) ;
+         kk = NI_stream_goodcheck( GI_stream , 3333 ) ;
+         if( kk == 1 ){
+           ININFO_message("Reconnection succeeded :-)") ; do_shm = 0 ;
+         } else {
+           ININFO_message("Reconnection failed :-(") ;
+           goto GetOutOfDodge ;  /* failed */
+         }
        }
        continue ; /* loop back */
      }
@@ -799,7 +808,15 @@ int main( int argc , char *argv[] )
 
      /* do something with the command, based on the element name */
 
-     if( verb > 1 ) INFO_message("Received command %s from AFNI",nelcmd->name) ;
+     /** Command = AFNI said Farewell **/
+
+     if( strcmp(nelcmd->name,"AuRevoir") == 0 ){
+       INFO_message("Message from AFNI: ** Au Revoir **") ;
+       goto GetOutOfDodge ;  /* failed */
+     }
+
+     if( verb > 1 || (verb==1 && nsend < 2) )
+       INFO_message("Received command %s from AFNI",nelcmd->name) ;
      atim = btim = NI_clock_time() ;
 
      /** Command = set seed voxel index **/
@@ -900,12 +917,12 @@ int main( int argc , char *argv[] )
 
 #ifndef DONT_USE_SHM
    if( do_shm && strcmp(afnihost,"localhost") == 0 ){
-     int nmeg ;
+     int nmeg ; char nsnew[2048] ;
      nmeg = 1 + (nvec * sizeof(float) * 2 + 2048)/(1024*1024) ;
-     sprintf( nsname , "shm:GrpInCorr:%dM+10K" , nmeg ) ;
-     INFO_message("Reconnecting to AFNI with shared memory channel %s",nsname) ;
+     sprintf( nsnew , "shm:GrpInCorr:%dM+10K" , nmeg ) ;
+     INFO_message("Reconnecting to AFNI with shared memory channel %s",nsnew) ;
      NI_sleep(1) ;
-     kk = NI_stream_reopen( GI_stream , nsname ) ;
+     kk = NI_stream_reopen( GI_stream , nsnew ) ;
      if( kk == 0 ) ININFO_message(" reconnection *FAILED* ???") ;
      else          ININFO_message(" reconnection *ACTIVE* !!!") ;
      do_shm = 0 ;
@@ -919,14 +936,14 @@ int main( int argc , char *argv[] )
        ERROR_message("3dGroupInCorr: failure when writing to AFNI") ;
      }
 
-     if( verb > 2 ){
-       ctim = NI_clock_time() ;
+     ctim = NI_clock_time() ;
+     if( verb > 2 )
        ININFO_message(" sent results to AFNI: elapsed=%d ms",ctim-btim) ;
-       btim = ctim ;
-     }
 
-     if( verb > 1 )
+     if( verb > 1 || (verb==1 && nsend < 2) )
        ININFO_message(" Total elapsed time = %d msec",ctim-atim) ;
+
+     nsend++ ;
 
    LoopBack: ; /* loop back for another command from AFNI */
    }

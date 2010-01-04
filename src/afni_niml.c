@@ -208,13 +208,15 @@ int AFNI_have_niml( void ){ return started ; }  /* 02 Feb 2007 */
 
 static void AFNI_niml_atexit( void )
 {
-   int cc ;
+   int cc ; NI_element *nel=NULL ;
    
 STATUS("called AFNI_niml_atexit") ;
 
-   if(ns_listen[NS_SUMA]) {/* be polite and tell suma */
-      NI_element *nel=NI_new_data_element("AuRevoir", 0);
-      NI_write_element( ns_listen[NS_SUMA] , nel , NI_BINARY_MODE ) ;
+   for( cc=0 ; cc < NUM_NIML ; cc++ ){
+     if( ns_listen[cc] ) {/* be polite and tell our customers */
+       if( nel == NULL ) nel = NI_new_data_element("AuRevoir", 0) ;
+       NI_write_element( ns_listen[cc] , nel , NI_BINARY_MODE ) ;
+     }
    }
 
 #if 0              /*** this stuff now handled in niml/niml_stream.c ***/
