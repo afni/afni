@@ -1,5 +1,16 @@
 /* Group InstaCorr == GrpInCorr */
 
+/***
+  Ideas for making this program more cromulently embiggened:
+   ++ 2-way case: produce 1-way result sub-bricks as well
+   ++ Rank or other robust analog to t-test
+   ++ Send sub-brick data as scaled shorts to reduce transmit time
+   ++ Fix shm: bug in AFNI libray
+   ++ Have non-server modes:
+    -- To output dataset to disk
+    -- 3dTcorrMap-like scan through whole brain as seed
+***/
+
 #include "mrilib.h"
 
 #ifdef USE_OMP
@@ -779,7 +790,7 @@ int main( int argc , char *argv[] )
 
    /** now wait for commands from AFNI */
 
-   while(1){
+   while(1){  /* loop forever? */
 
      nelcmd = NI_read_element( GI_stream , 333 ) ;  /* get command? */
 
@@ -788,11 +799,12 @@ int main( int argc , char *argv[] )
        if( kk < 1 ){
          NI_stream_close(GI_stream) ; GI_stream = (NI_stream)NULL ;
          WARNING_message("Connection to AFNI broken - trying to restart") ;
-         NI_sleep(111) ;
+         NI_sleep(111) ;                /* give AFNI a moment to do whatever */
          GI_stream = NI_stream_open( nsname , "w" ) ;
-         kk = NI_stream_goodcheck( GI_stream , 3333 ) ;
+         kk = NI_stream_goodcheck( GI_stream , 3333 ) ; /* wait a little bit */
          if( kk == 1 ){
-           ININFO_message("Reconnection succeeded :-)") ; do_shm = 0 ;
+           ININFO_message("TCP/IP reconnection succeeded :-)") ;
+           do_shm = 0 ;
          } else {
            ININFO_message("Reconnection failed :-(") ;
            goto GetOutOfDodge ;  /* failed */
@@ -808,15 +820,19 @@ int main( int argc , char *argv[] )
 
      /* do something with the command, based on the element name */
 
-     /** Command = AFNI said Farewell **/
+     /** Command = AFNI said 'TaTa for Now' **/
 
      if( strcmp(nelcmd->name,"AuRevoir") == 0 ){
        INFO_message("Message from AFNI: ** Au Revoir **") ;
+       NI_free_element(nelcmd) ;
        goto GetOutOfDodge ;  /* failed */
      }
 
+     /** start timer **/
+
      if( verb > 1 || (verb==1 && nsend < 2) )
        INFO_message("Received command %s from AFNI",nelcmd->name) ;
+
      atim = btim = NI_clock_time() ;
 
      /** Command = set seed voxel index **/
@@ -913,20 +929,20 @@ int main( int argc , char *argv[] )
        btim = ctim ;
      }
 
-   /** re-attach using shared memory? **/
+     /** re-attach to AFNI using shared memory? **/
 
 #ifndef DONT_USE_SHM
-   if( do_shm && strcmp(afnihost,"localhost") == 0 ){
-     int nmeg ; char nsnew[2048] ;
-     nmeg = 1 + (nvec * sizeof(float) * 2 + 2048)/(1024*1024) ;
-     sprintf( nsnew , "shm:GrpInCorr:%dM+10K" , nmeg ) ;
-     INFO_message("Reconnecting to AFNI with shared memory channel %s",nsnew) ;
-     NI_sleep(1) ;
-     kk = NI_stream_reopen( GI_stream , nsnew ) ;
-     if( kk == 0 ) ININFO_message(" reconnection *FAILED* ???") ;
-     else          ININFO_message(" reconnection *ACTIVE* !!!") ;
-     do_shm = 0 ;
-   }
+     if( do_shm && strcmp(afnihost,"localhost") == 0 ){
+       int nmeg ; char nsnew[2048] ;
+       nmeg = 1 + (nvec * sizeof(float) * 2 + 2048)/(1024*1024) ;
+       sprintf( nsnew , "shm:GrpInCorr:%dM+10K" , nmeg ) ;
+       INFO_message("Reconnecting to AFNI with shared memory channel %s",nsnew) ;
+       NI_sleep(1) ;
+       kk = NI_stream_reopen( GI_stream , nsnew ) ;
+       if( kk == 0 ) ININFO_message(" reconnection *FAILED* ???") ;
+       else          ININFO_message(" reconnection *ACTIVE* !!!") ;
+       do_shm = 0 ;
+     }
 #endif
 
      /* send the result back to AFNI */
@@ -945,7 +961,7 @@ int main( int argc , char *argv[] )
 
      nsend++ ;
 
-   LoopBack: ; /* loop back for another command from AFNI */
+  LoopBack: ; /* loop back for another command from AFNI */
    }
 
    /*-- bow out gracefully --*/
