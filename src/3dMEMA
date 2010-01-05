@@ -1,0 +1,4 @@
+#!/bin/tcsh -f
+set pp = $0:h
+#Run R in script more. Better than R CMD BATCH
+Rscript $pp/3dMEMA.R $*
