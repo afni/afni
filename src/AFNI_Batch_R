@@ -2,4 +2,16 @@
 
 setenv AFNI_R_DIR $0:h
 
-R CMD BATCH --no-restore  --vanilla  $1 
+echo $0
+
+# note the second to last index
+@ penult = $#argv
+
+if ( $#argv == 2 && $0:t == 3dMEMA.R) then
+   R --no-restore --save --no-readline < $argv[1] >& $argv[2]
+else
+   echo "R CMD BATCH --no-restore --save --no-readline --vanilla  $1 --args $argv[1-$penult]"
+   R CMD BATCH --no-restore --save --no-readline --vanilla "--args $argv[1-$penult]" $1      
+endif
+
+#R CMD BATCH --no-restore  --vanilla  $1 

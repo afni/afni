@@ -135,9 +135,13 @@ ENTRY("THD_open_dataset") ;
      free(subv) ;
    }
    if( ivlist == NULL ){
-     if( cpt != NULL )
-       WARNING_message("bad sub-brick selector => using [0..%d]",
-                       DSET_NVALS(dset)-1) ;
+     if( cpt != NULL ) {/* ZSS  Dec 09 */
+       /* The condition used to issue a warning and proceed.
+          Now it fails. */
+       ERROR_message("bad sub-brick selector %s => using [0..%d]",
+                       cpt, DSET_NVALS(dset)-1) ;
+       RETURN(NULL) ;
+     }
      ivlist = (int *) malloc(sizeof(int)*(DSET_NVALS(dset)+1)) ;
      ivlist[0] = DSET_NVALS(dset) ;
      for( kk=0 ; kk < ivlist[0] ; kk++ ) ivlist[kk+1] = kk ;
