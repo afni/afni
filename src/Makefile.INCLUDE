@@ -163,12 +163,11 @@ SCRIPTS = @4Daverage @CommandGlobb @GetAfniOrient @DTI_studio_reposition        
           @ShowDynamicRange AFNI_Batch_R @DO.examples demo.fixed.niml.do          \
           demo.mobile.niml.do @Spharm.examples @GetAfniBin @fast_roi              \
           @make_plug_diff @build_afni_Xlib @update.afni.binaries @ROI_Corr_Mat    \
-          @FS_roi_label @demo_prompt @ScriptCheck @NoPound @Reorder  
+          @FS_roi_label @demo_prompt @ScriptCheck @NoPound @Reorder 3dMEMA 
 
 PY_DIR = python_scripts
 PY_SCRIPTS = afni_base.py @DoPerRoi.py
 R_DIR = R_scripts
-R_SCRIPTS = 3dMEMA
 
 LIBHEADERS = mrilib.h mcw_glob.h 3ddata.h thd_maker.h thd_iochan.h            \
              editvol.h cs.h eispack.h killer.h vecmat.h machdep.h tagset.h    \
@@ -1487,7 +1486,7 @@ afni_doc.tgz:
 install: $(INSTALLDIR) $(INSTALL_PREREQ)
 	$(MV) $(PROGRAMS) $(INSTALLDIR)
 	$(CP) $(SCRIPTS)  $(INSTALLDIR)
-	$(CP) $(PY_DIR)/*.py  $(R_DIR)/*.R $(R_DIR)/$(R_SCRIPTS) $(INSTALLDIR)
+	$(CP) $(PY_DIR)/*.py  $(R_DIR)/*.R $(INSTALLDIR)
 	if [ -f README.environment ]; then $(CP) README.*    $(INSTALLDIR); fi;
 	if [ -f AFNI.afnirc        ]; then $(CP) AFNI.afnirc $(INSTALLDIR); fi;
 	if [ -f AFNI.sumarc        ]; then $(CP) AFNI.sumarc $(INSTALLDIR); fi;
@@ -1495,7 +1494,7 @@ install: $(INSTALLDIR) $(INSTALL_PREREQ)
 install_noplug: $(INSTALLDIR)
 	$(MV) $(PROGRAMS_NOPLUG) $(INSTALLDIR)
 	$(CP) $(SCRIPTS) $(INSTALLDIR)
-	$(CP) $(PY_DIR)/*.py $(R_DIR)/*.R $(R_DIR)/$(R_SCRIPTS) $(INSTALLDIR)
+	$(CP) $(PY_DIR)/*.py $(R_DIR)/*.R $(INSTALLDIR)
 
 install_lib: $(LIBDIR)
 	$(CP) libmri.a libmrix.a libf2c.a libcoxplot.a libvolpack.a $(LIBHEADERS) $(LIBDIR)
@@ -1507,7 +1506,7 @@ install_exe: $(INSTALLDIR)
              qq=`basename $$pp .exe`; $(MV) $${qq}.exe $(INSTALLDIR) ; \
           done )
 	$(CP) $(SCRIPTS) $(INSTALLDIR)
-	$(CP) $(PY_DIR)/*.py $(R_DIR)/*.R $(R_DIR)/$(R_SCRIPTS) $(INSTALLDIR)
+	$(CP) $(PY_DIR)/*.py $(R_DIR)/*.R $(INSTALLDIR)
 
 ###################################################################
 # some dependencies (not complete)
