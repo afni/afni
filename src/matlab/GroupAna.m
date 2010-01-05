@@ -1863,7 +1863,7 @@ for (sn = 1:1:slices),
 					case 4, Contr.ord2.df(i) = dfdenom(9) * (dsgn == 1 | dsgn == 2) + dfdenom(8) * (dsgn == 3 | dsgn == 4 | dsgn == 5);  % Less likely occur: MSBD	
 				end		   
 			case 3,   % Less likely occur
-			   switch Contr.ord2.cnt(i).idx2
+			   switch Contr.ord2.cnt(i).idx2MSE
 					case 4, Contr.ord2.df(i) = dfdenom(10) * (dsgn == 1 | dsgn == 2) + dfdenom(9)*(dsgn == 3 | dsgn == 4 | dsgn == 5); % Less likely occur: MSCD		
 		      end
 		   end
@@ -2053,7 +2053,7 @@ for (sn = 1:1:slices),
 					case 4, fprintf('\nSomething is wrong in the contrast coding!\n');
 	               fprintf(2,'Halted: Ctrl+c to exit'); pause;
 	         end % switch Contr.ord4.cnt(i).idx2
-				
+				MSE
 				case 2,
 				switch Contr.ord4.cnt(i).idx2
 				   case 3,
@@ -2206,14 +2206,20 @@ for (sn = 1:1:slices),
    if (isfield(Info,{'TAXIS_OFFSETS'})),
       Info = rmfield(Info, {'TAXIS_OFFSETS'});
    end
+   if (isfield(Info,{'BRICK_FLOAT_FACS'})),
+      Info = rmfield(Info, {'BRICK_FLOAT_FACS'});
+   end
+   
    
    Opt.Frames = [];  %Because it might have been set as the frame list in the case of input files with multiple subbriks during loading
 
 % Write output: reshape because the 3rd dimension is supposed to be Z in the normal situation.
+   OptW = Opt;
+   OptW.Scale = 0;
    if (data_type == 0),
-   	[err2, ErrMessage, NewInfo] = WriteBrik(reshape(M, D1, D2, 1, Info.DATASET_RANK(2)), Info, Opt); 
+      [err2, ErrMessage, NewInfo] = WriteBrik(reshape(M, D1, D2, 1, Info.DATASET_RANK(2)), Info, OptW); 
 	elseif (data_type == 1), % Collapse the 2nd dimsion, which is 1 for surface data.
-      [err2, ErrMessage, NewInfo] = WriteBrik(squeeze(reshape(M, D1, D2, 1, Info.DATASET_RANK(2))), Info, Opt); 
+      [err2, ErrMessage, NewInfo] = WriteBrik(squeeze(reshape(M, D1, D2, 1, Info.DATASET_RANK(2))), Info, OptW); 
 	end	
 	fprintf(1, 'done in %f seconds\n', toc);	
 	
