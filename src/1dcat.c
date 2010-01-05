@@ -14,6 +14,8 @@ int main( int argc , char * argv[] )
    float * far ;
    char *formatstr=NULL;
 
+   mainENTRY("1dcat:main");
+   
    /*-- help? --*/
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){

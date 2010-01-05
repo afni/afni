@@ -65,6 +65,11 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 15 , DEC , 2009 , ZSS , "afni" , MINOR , TYPE_NEW_OPT ,
+   "Allow label based sub-brick selection in AFNI and SUMA",
+   NULL
+ } ,
+
  { 1 , DEC , 2009 , ZSS , "suma-general" , MINOR , TYPE_BUG_FIX ,
    "Ignore triangles from Caret with nodes that have all zero coords",
    "Not doing so results in bad display of some flat meshes because\n"

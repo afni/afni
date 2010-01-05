@@ -314,6 +314,13 @@ int AFNI_prefilter_args( int *argc , char **argv )
        AFNI_setenv("AFNI_DECONFLICT=OVERWRITE") ; used[ii] = 1 ; continue ;
      }
 
+     /*** -ok_1D_text to set AFNI_1D_ZERO_TEXT ZSS Dec 09 ***/
+
+     if( strcmp(argv[ii],"-ok_1D_text") == 0 ){
+       if( ttt ) fprintf(stderr,"++ argv[%d] is -ok_1D_text\n",ii) ;
+       AFNI_setenv("AFNI_1D_ZERO_TEXT=YES") ; used[ii] = 1 ; continue ;
+     }
+
      /*** -skip_afnirc to avoid .afnirc file ***/
 
      if( strcmp(argv[ii],"-skip_afnirc") == 0 ){

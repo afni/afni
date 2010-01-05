@@ -2020,7 +2020,7 @@ byte iznogood_1D (char c)
    if ( (c < '0' || c > '9')  &&
          c != '+' && c != '-' && c != '.' && c != 'e' && 
          c != 'i' && c != ',' && /* allow for complex input */
-         c != '@' && c != '*'    /* allow for special 1D trickery */ 
+         c != '@' && c != '*'  /* allow for special 1D trickery */
       ) return 1;
    else return 0;
           

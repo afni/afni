@@ -1,3 +1,4 @@
+#!/usr/bin/env AFNI_Batch_R
 print("#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
 print("          ================== Welcome to 3dMEMA.R ==================          ")
 print("AFNI Mixed-Effects Meta-Analysis Modeling Package!")
@@ -14,6 +15,8 @@ print("#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ##  Outliers can be modeled now with EFS of Laplace assumption regarding cross-subjects variability! 
 #########
 
+#Clean up
+rm(list = ls())
 
 libLoad <- function(myLib) {
    sucLoad <- FALSE
@@ -26,173 +29,31 @@ libLoad <- function(myLib) {
    	}
 }
 
+
+######### Z modification here 
+first.in.path <- function(file) {
+   ff <- paste(strsplit(Sys.getenv('PATH'),':')[[1]],'/', file, sep='')
+   ff<-ff[lapply(ff,file.exists)==TRUE];
+   cat('Using ', ff[1],'\n');
+   return(gsub('//','/',ff[1], fixed=TRUE)) 
+}
+
+source(first.in.path('AFNIio.R'))
+
+
+#################################################################################
+################# Begin MEMA specific code ######################################
+#################################################################################
 #=============
 
-read.AFNI <- function(filename) {
-  fileparts <- strsplit(filename,"\\.")[[1]]
-  ext <- tolower(fileparts[length(fileparts)])
-
-  if (ext == "head") {
-    filename.head <- filename
-    filename.brik <- paste(c(fileparts[-length(fileparts)],"BRIK"),collapse=".")
-  } else if (ext == "brik") {
-    filename.head <- paste(c(fileparts[-length(fileparts)],"HEAD"),collapse=".")
-    filename.brik <- filename
-  } else {
-    filename.head <- paste(filename,".HEAD",sep="")
-    filename.brik <- paste(filename,".BRIK",sep="")
-  }
-  
-  conhead <- file(filename.head,"r")
-  header <- readLines(conhead)
-  close(conhead)
-
-  types <- NULL
-  args <- NULL
-  counts <- NULL
-  values <- NULL
-  
-  for (i in 1:length(header)) {
-    if (regexpr("^type *= *", header[i]) != -1) {
-      tmptype <- strsplit(header[i]," *= *")[[1]][2]
-      types <- c(types,tmptype)
-      args <- c(args,strsplit(header[i+1]," *= *")[[1]][2])
-      tmpcounts <- as.numeric(strsplit(header[i+2]," *= *")[[1]][2])
-      counts <- c(counts,tmpcounts)
-      i <- i+3
-      tmpvalue <- ""
-      while ((regexpr("^$", header[i]) == -1) && (i <= length(header))) {
-        tmpvalue <- paste(tmpvalue,header[i])
-        i <- i+1
-      }
-      tmpvalue <- sub("^ +","",tmpvalue)
-      if ((tmptype == "integer-attribute") || (tmptype == "float-attribute")) {
-        tmpvalue <- as.numeric(strsplit(tmpvalue," +")[[1]])
-      }
-      values <- c(values,list(value=tmpvalue))
-    }        
-  }
-
-  names(values) <- args
-
-  dx <- values$DATASET_DIMENSIONS[1]
-  dy <- values$DATASET_DIMENSIONS[2]
-  dz <- values$DATASET_DIMENSIONS[3]
-  dt <- values$DATASET_RANK[2]
-  scale <- values$BRICK_FLOAT_FACS
-  size <- file.info(filename.brik)$size/(dx*dy*dz*dt)
-
-  if (regexpr("MSB",values$BYTEORDER_STRING[1]) != -1) {
-    endian <- "big"
-  } else {
-    endian <- "little"
-  }
-
-  if (min(abs(values$DELTA)) != 0) {
-    weights <-
-      abs(values$DELTA/min(abs(values$DELTA)))
-  } else {
-    weights <- NULL
-  }
-#  browser()
-  if (as.integer(size) == size) {
-    conbrik <- file(filename.brik,"rb")
-  # modified below by GC 12/2/2008
-  if (all(values$BRICK_TYPES==0) | all(values$BRICK_TYPES==1)) myttt<- readBin(conbrik, "int", n=dx*dy*dz*dt, size=size, signed=TRUE, endian=endian) # unsigned charater or short
-  if (all(values$BRICK_TYPES==3)) myttt<- readBin(conbrik, "numeric", n=dx*dy*dz*dt, size=size, signed=TRUE, endian=endian) # float        
-    close(conbrik)
-    dim(myttt) <- c(dx,dy,dz,dt)
-#    for (k in 1:dt) {
-#      if (scale[k] != 0) {
-#        cat("scale",k,"with",scale[k],"\n")
-#        cat(range(myttt[,,,k]),"\n")
-#        myttt[,,,k] <- scale[k] * myttt[,,,k]
-#        cat(range(myttt[,,,k]),"\n")
-#      }
-#    }
-    for (k in 1:dt) if (scale[k] != 0) myttt[,,,k] <- scale[k] * myttt[,,,k]
-
-  mask <- array(TRUE,c(dx,dy,dz))
-  mask[myttt[,,,1] < quantile(myttt[,,,1],0.75)] <- FALSE
-    z <-
-      list(ttt=myttt,format="HEAD/BRIK",delta=values$DELTA,origin=values$ORIGIN,orient=values$ORIENT_SPECIFIC,dim=c(dx,dy,dz,dt),weights=weights, header=values,mask=mask)
-#      list(ttt=writeBin(as.numeric(myttt),raw(),4),format="HEAD/BRIK",delta=values$DELTA,origin=values$ORIGIN,orient=values$ORIENT_SPECIFIC,dim=c(dx,dy,dz,dt),weights=weights, header=values,mask=mask)
-
-  } else {
-    warning("Error reading file: Could not detect size per voxel\n")
-    z <- list(ttt=NULL,format="HEAD/BRIK",delta=NULL,origin=NULL,orient=NULL,dim=NULL,weights=NULL,header=values,mask=NULL)    
-  }
-
-  class(z) <- "fmridata"
-  attr(z,"file") <- paste(filename,".HEAD/BRIK",sep="")
-  invisible(z)
-}
-
-write.AFNI <- function(filename, ttt, label, note="", origin=c(0,0,0), delta=c(4,4,4), idcode="WIAS_noid") {
-  ## TODO:
-  ## 
-  ## create object oriented way!!!!
-  
-  AFNIheaderpart <- function(type, name, value) {
-    a <- "\n"
-    a <- paste(a, "type = ", type, "\n", sep="")
-    a <- paste(a, "name = ", name, "\n", sep="")
-    if (regexpr("string",type) == 1) {
-      value <- paste("'", value, "~", sep="")
-      a <- paste(a, "count = ", nchar(value) - 1, "\n", sep ="")
-      a <- paste(a, value, "\n", sep="")
-    } else {
-      a <- paste(a, "count = ", length(value), "\n", sep ="")
-      j <- 0
-      while (j<length(value)) {
-        left <- length(value) - j
-        if (left>4) left <- 5
-        a <- paste(a, paste(value[(j+1):(j+left)],collapse="  "), "\n", sep="  ")
-        j <- j+5
-      }
-    }
-    a
-  }
-  
-  conhead <- file(paste(filename, ".HEAD", sep=""), "w")
-  writeChar(AFNIheaderpart("string-attribute","HISTORY_NOTE",note),conhead,eos=NULL)
-  writeChar(AFNIheaderpart("string-attribute","TYPESTRING","3DIM_HEAD_FUNC"),conhead,eos=NULL)  
-  writeChar(AFNIheaderpart("string-attribute","IDCODE_STRING",idcode),conhead,eos=NULL)  
-  writeChar(AFNIheaderpart("string-attribute","IDCODE_DATE",date()),conhead,eos=NULL)  
-  writeChar(AFNIheaderpart("integer-attribute","SCENE_DATA",c(0,11,1,-999,-999,-999,-999,-999)),conhead,eos=NULL)  
-  writeChar(AFNIheaderpart("integer-attribute","ORIENT_SPECIFIC",c(0,3,4)),conhead,eos=NULL)  
-  writeChar(AFNIheaderpart("float-attribute","ORIGIN",origin),conhead,eos=NULL)  
-  writeChar(AFNIheaderpart("float-attribute","DELTA",delta),conhead,eos=NULL)  
-  minmax <- function(y) {r <- NULL;for (k in 1:dim(y)[4]) {r <- c(r,min(y[,,,k]),max(y[,,,k]))}; r}
-  mm <- minmax(ttt)
-  writeChar(AFNIheaderpart("float-attribute","BRICK_STATS",mm),conhead,eos=NULL)
-  writeChar(AFNIheaderpart("integer-attribute","DATASET_RANK",c(3,dim(ttt)[4],0,0,0,0,0,0)),conhead,eos=NULL)  
-  writeChar(AFNIheaderpart("integer-attribute","DATASET_DIMENSIONS",c(dim(ttt)[1:3],0,0)),conhead,eos=NULL)  
-  writeChar(AFNIheaderpart("integer-attribute","BRICK_TYPES",rep(1,dim(ttt)[4])),conhead,eos=NULL)  
-
-  scale <- rep(0,dim(ttt)[4])
-  for (k in 1:dim(ttt)[4]) {
-    scale[k] <- max(abs(mm[2*k-1]),abs(mm[2*k]))/32767
-    ttt[,,,k] <- ttt[,,,k] / scale[k]
-  }
-
-  writeChar(AFNIheaderpart("float-attribute","BRICK_FLOAT_FACS",scale),conhead,eos=NULL)  
-  writeChar(AFNIheaderpart("string-attribute","BRICK_LABS",paste(label,collapse="~")),conhead,eos=NULL)  
-  writeChar(AFNIheaderpart("string-attribute","BYTEORDER_STRING","MSB_FIRST"),conhead,eos=NULL)  
-  close(conhead)
-
-  conbrik <- file(paste(filename, ".BRIK", sep=""), "wb")
-  dim(ttt) <- NULL
-  writeBin(as.integer(ttt), conbrik,size=2, endian="big")
-  close(conbrik)
-}
 
 
 ### modified rma version 0.562 by Wolfgang Viechtbauer, Department of Methodology and Statistics, University of Maastricht
 # Further modifications
 
 # handles one group or two groups with homogeneity assumption
-rmaB <- function(yi, vi, n, p, X, resOut, lapMod, knha=FALSE, con=list(thr=10^-8, maxiter=50, thrZ=1.3)) {
+rmaB <- function( yi, vi, n, p, X, resOut, lapMod, 
+                  knha=FALSE, con=list(thr=10^-8, maxiter=50, thrZ=1.3)) {
 
 # yi: vector of dependent variable values
 # vi: corresponding variances of yi 
@@ -426,7 +287,8 @@ rmaB <- function(yi, vi, n, p, X, resOut, lapMod, knha=FALSE, con=list(thr=10^-8
 }
 
 # two groups with heterogeneity assumption
-rmaB2 <- function(yi, vi, n1, nT, p, X, resOut, lapMod, knha=FALSE, con=list(thr=10^-8, maxiter=50, thrZ=1.3)) {
+rmaB2 <- function(yi, vi, n1, nT, p, X, resOut, lapMod, 
+                  knha=FALSE, con=list(thr=10^-8, maxiter=50, thrZ=1.3)) {
 
 	Y <- as.matrix(yi)
    Y1 <- as.matrix(Y[1:n1,]); Y2 <- as.matrix(Y[(n1+1):nT,])
@@ -649,7 +511,10 @@ rmaB2 <- function(yi, vi, n1, nT, p, X, resOut, lapMod, knha=FALSE, con=list(thr
    } # if(lapMod==0)
    
    if(knha) { # scaling done in runRMA
-      scl <- c(sqrt((c( t(Y1) %*% P1 %*% Y1 ) / (n1-p+1))),
+      if (is.nan(pp1 <- sqrt((c( t(Y1) %*% P1 %*% Y1 ) / (n1-p+1))))) {
+         browser()
+      }
+      scl <- c(pp1,
          sqrt((c( t(Y2) %*% P2 %*% Y2 ) / (n2-p+1))))
       W <- diag(c(1/(v1 + tau2[1]), 1/(v2 + tau2[2])))
       tmp <- t(X) %*% W
@@ -693,7 +558,9 @@ readMultiFiles <- function(nFiles, dim, type) {
 }
 
 
-runRMA <- function(inData, nGrp, n, p, xMat, outData, mema, lapMod, KHtest, nNonzero, nCov, nBrick, anaType, resZout, tol) {  
+runRMA <- function(  inData, nGrp, n, p, xMat, outData, 
+                     mema, lapMod, KHtest, nNonzero, 
+                     nCov, nBrick, anaType, resZout, tol) {  
    
    # n[1]: # subjects in group1; n[2]: total # subjects in both groups; n[2]-n[1]: # subjects in group2   
    fullLen <- length(inData); halfLen <- fullLen/2  # remove this line by providing halfLen as function argument later?
@@ -787,6 +654,1059 @@ runRMA <- function(inData, nGrp, n, p, xMat, outData, mema, lapMod, KHtest, nNon
    return(outData)
 } # end of runRMA
 
+#A function to parse all interactive user input to computing function
+read.MEMA.opts.interactive <- function (verb = 0) {
+   lop <- list()  #List to hold all options from user input
+   lop$verb <- verb
+   
+   outFNexist <- TRUE
+   while (outFNexist) {
+      lop$outFN <- 
+         readline("Output file name (just prefix, no view+suffix needed, e.g., myOutput): ")
+      if(file.exists(paste(lop$outFN,"+orig.HEAD", sep="")) || 
+         file.exists(paste(lop$outFN,"+tlrc.HEAD", sep=""))) {
+         print("File exists! Try a different name.")
+         outFNexist <- TRUE
+      } else {
+         outFNexist <- FALSE 
+      }
+   }
+   lop$outFN <- 
+      paste(lop$outFN, "+orig", sep="") # write.AFNI doesn't handle tlrc yet
+
+
+   print("On a multi-processor machine, parallel computing will speed up the program significantly.")
+   print("Choose 1 for a single-processor computer.")
+   lop$nNodes <- 
+      as.integer(readline("Number of parallel jobs for the running (e.g., 2)? "))
+   
+   lop$nGrp <- as.integer(readline("Number of groups (1 or 2)? "))
+
+   lop$grpLab <- vector('list', lop$nGrp)
+   lop$nSubj <- vector('integer', lop$nGrp)
+   lop$nFiles <- vector('integer', lop$nGrp) 
+                        # number of input files for each group
+   
+   print("-----------------")
+   print("The following types of group analysis are currently available:")
+   print("1: one condition with one group;")
+   print("2: one condition across 2 groups with homoskedasticity (same variability);")
+   print("3: two conditions with one group;")
+   print("4: one condition across 2 groups with heteroskedasticity (different variability).")
+   lop$anaType <- as.integer(readline("Which analysis type (1, 2, 3, 4): "))
+   
+   if(lop$anaType==1 | lop$anaType==2 | lop$anaType==4) {
+      lop$bFN <- vector('list', lop$nGrp)
+      lop$tFN <- vector('list', lop$nGrp)
+      lop$subjLab <- vector('list', lop$nGrp)
+      lop$bList <- vector('list', lop$nGrp)
+      tList <- vector('list', lop$nGrp) 
+      lop$varList <- vector('list', lop$nGrp)
+   
+      for(ii in 1:lop$nGrp) {
+
+  	      if(lop$nGrp==1) 
+            lop$grpLab[[ii]] <- readline("Label for the test? ") 
+         else 
+            lop$grpLab[[ii]] <- readline(sprintf("Label for group %i? ", ii))
+  	   
+         lop$nSubj[ii] <- 
+            as.integer(readline(sprintf("Number of subjects in group %s (e.g., 12)? ", lop$grpLab[[ii]])))
+  	      lop$nFiles[ii] <- 2*lop$nSubj[ii]
+         lop$subjLab[[ii]] <- vector('list', lop$nSubj[ii])
+  	      lop$bFN[[ii]] <- vector('integer', lop$nSubj[ii]) 
+                                                # list of beta file names
+  	      lop$tFN[[ii]] <- vector('integer', lop$nSubj[ii]) 
+                                                # list of t-stat file names
+  	      #print("Provide beta or linear combination of betas files first. Only one sub-brick input files are accepted!")
+      
+         for(jj in 1:lop$nSubj[ii]) 
+            lop$subjLab[[ii]][[jj]] <- 
+               readline(sprintf("No. %i subject label in group %s: ", 
+                                 jj, lop$grpLab[[ii]]))
+      
+         for(jj in 1:lop$nSubj[ii]) {
+            lop$bFN[[ii]][[jj]] <- 
+               readline(sprintf("No. %i subject (%s) file for beta or linear combination of betas in group %s: ",
+                                jj, lop$subjLab[[ii]][[jj]], 
+                                lop$grpLab[[ii]]))
+            # print("Now provide the corresponding t-statistic files in SAME subject order as beta files. Only one sub-brick input files are accepted!")
+            lop$tFN[[ii]][[jj]] <- 
+               readline(sprintf("No. %i subject (%s) file for the corresponding t-statistic in group %s: ", 
+                                 jj, lop$subjLab[[ii]][[jj]], 
+                                 lop$grpLab[[ii]]))
+            print("-----------------")
+         }
+         lop$bList[[ii]] <- lapply(lop$bFN[[ii]], read.AFNI); 
+         lop$tList[[ii]] <- lapply(lop$tFN[[ii]], read.AFNI);
+         if(ii==1) { 
+            lop$myNote=lop$bList[[1]][[1]]$header$HISTORY_NOTE; 
+            lop$myOrig=lop$bList[[1]][[1]]$origin; 
+            lop$myDelta=lop$bList[[1]][[1]]$delta; 
+            lop$myDim <- lop$bList[[1]][[1]]$dim;
+         }
+         lapply(lapply(lop$bList[[ii]], function(x) x$dim), 
+                function(x) 
+                  if(!all(x==lop$myDim)) 
+                     stop("Dimension mismatch among the beta input files!") )
+         lapply(lapply(lop$tList[[ii]], function(x) x$dim), 
+                function(x) 
+                  if(!all(x==lop$myDim)) 
+                     stop("Dimension mismatch between beta and t-statistic files!"))
+
+      } # for(ii in 1:lop$nGrp)
+   } # if(lop$anaType==1 | lop$anaType==2 | lop$anaType==4)
+   
+   if(lop$anaType==3) {
+      lop$nLevel <- 2   
+      lop$bFN <- vector('list', lop$nLevel)
+      lop$tFN <- vector('list', lop$nLevel)
+      lop$conLab <- vector('list', lop$nLevel)
+      lop$subjLab <- vector('list', 1)
+      lop$bList <- vector('list', lop$nLevel)
+      lop$tList <- vector('list', lop$nLevel)
+      lop$varList <- vector('list', lop$nLevel)
+      print("Since the contrast between the 2 conditions will be the 1st minus the 2nd, choose")
+      print("an appropriate order between the 2 conditions to get the desirable contrast.")
+      lop$grpLab[[1]] <- readline("Label for the contrast? ")
+      lop$nSubj[1] <- as.integer(readline("Number of subjects: "))
+      lop$nFiles[1] <- 2*lop$nSubj[1]  
+                        # 2 because of 1 beta and 1 t-statistic
+      for(jj in 1:lop$nSubj[1]) 
+         lop$subjLab[[1]][[jj]] <- 
+            readline(sprintf("No. %i subject label: ", jj))      
+      for(ii in 1:lop$nLevel) {
+         lop$conLab[[ii]] <- readline(sprintf("Label for condition %i? ", ii))
+         lop$bFN[[ii]] <- vector('integer', lop$nSubj[1]); 
+         lop$tFN[[ii]] <- vector('integer', lop$nSubj[1]);
+         for(jj in 1:lop$nSubj[1]) {
+            lop$bFN[[ii]][[jj]] <- 
+               readline(sprintf("No. %i subject (%s) file for beta or linear combination of betas with condition %s: ", 
+                        jj, lop$subjLab[[1]][[jj]], lop$conLab[[ii]]))
+            lop$tFN[[ii]][[jj]] <- 
+               readline(sprintf("No. %i subject (%s) file for the corresponding t-statistic with condition %s: ", 
+                        jj, lop$subjLab[[1]][[jj]], lop$conLab[[ii]]))
+            print("-----------------")
+         }
+         lop$bList[[ii]] <- lapply(lop$bFN[[ii]], read.AFNI); 
+         lop$tList[[ii]] <- lapply(lop$tFN[[ii]], read.AFNI);
+         if(ii==1) {
+            lop$myNote=lop$bList[[1]][[1]]$header$HISTORY_NOTE; 
+            lop$myOrig=lop$bList[[1]][[1]]$origin; 
+            lop$myDelta=lop$bList[[1]][[1]]$delta; 
+            lop$myDim <- lop$bList[[1]][[1]]$dim
+         }
+         lapply(lapply(lop$bList[[ii]], function(x) x$dim), 
+                function(x) 
+                  if(!all(x==lop$myDim)) 
+                     stop("Dimension mismatch among the beta input files!"))
+         lapply(lapply(lop$tList[[ii]], function(x) x$dim), 
+               function(x) 
+                  if(!all(x==lop$myDim)) 
+                     stop("Dimension mismatch between beta and t-statistic files!"))
+
+      } # for(ii in 1:lop$nLevel)  
+   
+   } # if(lop$anaType==3)
+   
+   #print("-----------------")
+   print("There may have missing or zero t values at some voxels in some subjects.")
+   print("The following threshold would allow the program not to waste runtime on those")
+   print("voxels where most subjects have zero t-values. ")
+   lop$nNonzero <- 
+      as.integer(readline(
+                  sprintf("Minimum number of subjects with non-zero t-statistic? (0-%i, e.g., 3/4 of total subjects) ", 
+                           sum(lop$nSubj))))
+   # Hartung-Knapp method with t-test?
+   print("-----------------")
+   print("t-statistic is a little more conservative but also more appropriate for significance testing than Z")
+   print("especially when sample size, number of subjects, is relatively small.")
+   lop$KHtest <- 
+      as.logical(as.integer(
+                  readline("Z- or t-statistic for the output? (0: Z; 1: t) ")))
+   #lop$KHtest <- FALSE
+   
+   print("-----------------")
+   print("Masking is optional, but will alleviate unnecessary penalty on q values of FDR correction.")
+   masked <- as.integer(readline("Any mask (0: no; 1: yes)? "))
+   if(masked) {
+      lop$maskFN <- 
+         readline("Mask file name (suffix unnecessary, e.g., mask+tlrc): "); 
+         lop$maskData <- read.AFNI(lop$maskFN)$ttt
+   }else {
+      lop$maskFN <- NULL;
+   }
+   if(!is.null(lop$maskFN)) 
+      if(!all(dim(lop$maskData[,,,1])==lop$myDim[1:3])) 
+         stop("Mask dimensions don't match the input files!")
+
+   if(lop$nGrp==1) lop$xMat <- rep(1, sum(lop$nSubj))      
+   if(lop$nGrp==2) 
+      lop$xMat <- cbind(rep(1, sum(lop$nSubj)), 
+                    c(rep(0, lop$nSubj[1]), rep(1, lop$nSubj[2]))) 
+                                          # dummy variable for two groups
+   print("-----------------")   
+   print("Covariates are continuous variables (e.g., age, behavioral data) that can be partialled out in the model.")
+   anyCov <- as.logical(as.integer(readline("Any covariates (0: no; 1: yes)? ")))
+   if(anyCov) {
+      lop$nCov <- as.integer(readline("Number of covariates (e.g., 1)? "))
+      #print("Each subject is assumed to have one number per covariate. Covariates as input files can be")
+      #print("in multi-column or one-column format. Header with the 1st line as labels is optional in")
+      #print("multi-column files. The vertical sequence in each column has to follow the same subject order")
+      #print("as the beta/t-statistic input files listed above.")
+      print("Each subject is assumed to have one number per covariate. All covariates should be put into one")
+      print("file in one- or multi-column format. Header at the 1st line as labels is optional. The vertical")
+      print("sequence in each column has to follow exactly the same subject order as the beta/t-statistic")
+      print("input files listed above.")
+      #covForm <- as.integer(readline("Covariates data type (0: MULTIPLE one-column files; 1: ONE single/multi-column file)? "))
+      covForm <- 1
+      if (covForm) {
+         lop$covFN <- readline("Covariates file name: ")
+         covHeader <- 
+            as.integer(readline(
+      "Does this multi-column file have a header (0: no; 1: yes)? "))
+         if(covHeader == 1) {
+            lop$covData <- read.table(lop$covFN, header=TRUE) 
+         } else {
+            lop$covData <- read.table(lop$covFN, header=FALSE)
+            if(lop$nCov!=dim(lop$covData)[2]) {
+               stop(sprintf(
+         "Mismatch: file %s has %i column while you said %i covariate(s)!", 
+                     lop$covFN, dim(lop$covData)[2], lop$nCov)) 
+            } else {
+               for (ii in 1:lop$nCov) 
+                  names(lop$covData)[ii] <- 
+                     readline(sprintf("Name for covariate number %i? ", ii))
+            }
+         } # if(covHeader == 1)
+         lop$covName <- names(lop$covData)
+      } else {
+         lop$covData <- 
+            data.frame(matrix(data=NA, nrow=sum(lop$nSubj), 
+                              ncol=lop$nCov, dimnames = NULL))
+         lop$covData <- 
+            readMultiFiles(lop$nCov, 1, "covariate")  # 1: assuming no header  
+      }
+   str(lop$xMat)
+   str(lop$covData)
+
+      print("Each covariate should be centered around its mean or some other meaningful value so that group effect")
+      print("can be interpreted with the covariate being at the mean or other user-specified value. Otherwise")
+      print("the interpretation would be with the covariate being at 0!")
+      lop$centerType <- 
+         as.integer(readline(
+"What value will covariate(s) be centered around (0: mean; 1: other value)? "))
+      
+      if(lop$nGrp == 1) {
+         if(lop$centerType == 0) lop$covData <- apply(lop$covData, 2, scale, scale=F)  # center around mean for each covariate (column)
+         if(lop$centerType == 1) {  # center around a user-specified value
+            lop$centerVal <- vector(mode = "numeric", length = lop$nCov)
+            for(ii in 1:lop$nCov) lop$centerVal[ii] <- as.numeric(readline(sprintf("Centering value for covariate no. %i (%s): ? ", ii, names(lop$covData)[ii])))
+            lop$covData <- t(as.matrix(apply(lop$covData, 1, "-", 
+                                             lop$centerVal)))
+         }
+      } # if(lop$nGrp == 1)
+
+      if (lop$nGrp == 2) {
+         lop$centerType2 <- 
+            as.integer(readline("How to model covariate(s) across groups (0: same center & slope; 1: same center but different slope; 
+            2: different center but same slope; 3: different center & slope)? "))
+         if(lop$centerType2 == 0 | lop$centerType2 == 1) {   # same center 
+            if(lop$centerType == 0) 
+               lop$covData <- apply(lop$covData, 2, scale, scale=F)  
+                                 # center around mean for each covariate (column)
+            if(lop$centerType == 1) {  
+                        # center around other value for each covariate (column)
+               lop$centerVal <- vector(mode = "numeric", length = lop$nCov)
+               for(jj in 1:lop$nCov) lop$centerVal[jj] <- as.numeric(readline(sprintf(
+                  "Centering value for covariate no. %i (%s) for both groups: ? ", jj, names(lop$covData)[jj])))
+               lop$covData <- t(as.matrix(apply(lop$covData, 1, "-", 
+                                                lop$centerVal)))
+            }
+         } # if(lop$centerType2 == 0 | lop$centerType2 == 1)
+   str(lop$xMat)
+   str(lop$covData) 
+         if(lop$centerType2 == 2 | lop$centerType2 == 3) {  # different center 
+            if(lop$centerType == 0) lop$covData <- rbind(apply(as.matrix(lop$covData[1:lop$nSubj[1],]), 2, scale, scale=F), 
+               apply(as.matrix(lop$covData[(lop$nSubj[1]+1):(lop$nSubj[1]+lop$nSubj[2]),]), 2, scale, scale=F))
+            if(lop$centerType == 1) {
+               covList <- vector('list', lop$nGrp)               
+               for(ii in 1:lop$nGrp) {
+                  lop$centerVal <- vector(mode = "numeric", length = lop$nCov)
+                  for(jj in 1:lop$nCov)  {
+                     lop$centerVal[jj] <- 
+                        as.numeric(readline(sprintf(
+                "Centering value for covariate no. %i (%s) in group %i (%s): ? ",
+                                             jj, names(lop$covData)[jj], 
+                                             ii, lop$grpLab[[ii]])))
+                  }
+                  covList[[ii]] <- t(apply(as.matrix(lop$covData[((ii-1)*lop$nSubj[1]+1):(lop$nSubj[1]+(ii-1)*lop$nSubj[2]),]), 1, "-", lop$centerVal))
+               }
+               #browser()
+               #lop$covData <- rbind(t(covList[[1]]), t(covList[[2]]))
+               lop$covData <- rbind(covList[[1]], covList[[2]])
+            } # if(lop$centerType == 1)
+         } # if(lop$centerType2 == 3)
+         
+         if(lop$centerType2 == 1 | lop$centerType2 == 3) { # different slope
+            lop$covData <- cbind(lop$covData, lop$covData*lop$xMat[,2])  
+                                 # add one column per covariate for interaction
+            lop$nCov <- 2*lop$nCov 
+                              # double number of covariates due to interactions
+            lop$covName<-c(lop$covName, paste(lop$covName, "X", sep=''))  
+                              # add names for those interactions
+         }
+      }
+   str(lop$xMat)
+   str(lop$covData)
+      #browser()
+      lop$xMat <- as.matrix(cbind(lop$xMat, lop$covData))           
+   } else {lop$nCov <- 0; lop$xMat <- as.matrix(lop$xMat)}
+
+   print("-----------------")
+   print("If outliers exist at voxel/subject level, a special model can be adopted to account for outliers")
+   print("in the data, leading to increased statistical power at slightly higher computation cost.")
+   lop$lapMod <- as.integer(readline("Model outliers (0: no; 1: yes)? "))
+   print("-----------------")
+   print("The Z-score of residuals for a subject indicates the significance level the subject is an outlier at a voxel.")
+   print("Turn off this option and select 0 if memory allocation problem occurs later on.")
+   lop$resZout <- as.integer(readline("Want residuals Z-score for each subject (0: no; 1: yes)? "))
+   if(lop$resZout==1) {
+      lop$icc_FN  <- paste(strsplit(lop$outFN, "\\+")[[1]][1], 
+                           "_ICC+orig", sep="")
+      lop$resZ_FN <- paste(strsplit(lop$outFN, "\\+")[[1]][1], 
+                           "_resZ+orig", sep="") 
+                  # write.AFNI doesn't handle tlrc yet
+   }
+   
+   return(lop)
+}# end of read.MEMA.opts.interactive
+
+
+MEMA.parse.set <- function (lop, op) {
+   #length of op should be = 1 + Nsubj*3
+   if ((length(op)-1)%%3) {
+      warning(paste('Length of op must be 3*N+1\n',
+                    'Make sure what follows -set is of the form:\n',
+                    ' -set SETNAME <subj BetaDset TstatDset>',
+                    '<subj BetaDset TstatDset>, ...\n', 'What I have is:',
+                    paste(op, collapse=' ')),
+                immediate.=TRUE);
+      return(NULL);
+   }
+   
+   #file vector names
+   nn <- op[1];
+   
+   if (length(which(nn == names(lop$bFN)))) {
+      warning(paste('Repeat combination of ', nn, condname),
+               immediate.=TRUE);
+      return(NULL);
+   }
+
+   ii<-2
+   lop$bFN[[nn]] <- vector('character')
+   lop$tFN[[nn]] <- vector('character')
+   lop$subjLab[[nn]]<- vector('character')
+   while (ii < length(op)) {
+      lop$subjLab[[nn]] <- append(lop$subjLab[[nn]], op[ii]); ii<-ii+1;
+      lop$bFN[[nn]] <- append(lop$bFN[[nn]], op[ii]); ii<-ii+1;
+      lop$tFN[[nn]] <- append(lop$tFN[[nn]], op[ii]); ii<-ii+1;
+   }
+   return(lop);
+}
+
+MEMA.parse.covariates_center <- function (lop, op) {
+   if (is.character(op)) {
+      ss <- strsplit(op,' ')[[1]];
+      lop$centerType <- -1
+      lop$centerVal <- NULL
+      dd <- as.num.vec(paste(op, collapse=' '), addcount = FALSE)
+      if (is.null(dd)) {
+         if (length(ss) == 1) {
+            if (ss == 'mean' || ss == 'avg') {
+               lop$centerType <- 0
+            } else {
+               warning(paste('Bad value for -covariates_center',
+                             '  Have "', ss,'" \n',sep=''),
+                        immediate.=TRUE);
+               return(lop);
+            }
+         }
+      } else {
+         lop$centerVal <- dd
+         if (is.null(lop$centerVal)) {
+            warning(paste('Failed to get centerVal from ', ss, sep=''),
+                  immediate.=TRUE);
+            return(lop);
+         }
+         lop$centerType <- 1
+      }
+   } else { # already changed to numbers 
+      lop$centerVal <- op;
+      lop$centerType <- 1
+   }
+   str(lop$centerType)
+   str(lop$centerVal)
+   
+   return(lop);
+}
+
+MEMA.parse.covariates_model <- function (lop, op) {
+   lop$centerType2 <- -1
+   if (is.null(vv <- as.char.vec(paste(op,collapse=' ')))) return(lop);
+   if (is.na(slp <- vv['slope'])) {
+      warning(paste('Could not find "slope=" in -covariates_model option.\n',
+                    '  Have ', paste(op,collapse=' '), '\n'),
+            immediate.=TRUE);
+      return(lop);
+   }
+   if (is.na(cen <- vv['center'])) {
+      warning(paste('Could not find "center=" in -covariates_model option.\n',
+                    '  Have ', paste(op,collapse=' '), '\n'),
+            immediate.=TRUE);
+      return(lop);
+   }
+   
+   if (length(grep('sa', slp))) slp <- 1
+   else if (length(grep('dif',slp))) slp <- 0
+   else {
+      warning(paste('Bad value for "slope=" in -covariates_model option.\n',
+                    '  Have "', paste(slp,collapse=' '), '"\n',
+                    '  Use either "slope=same" or "slope=different"\n', sep=''),
+            immediate.=TRUE);
+      return(lop);
+      slp <- -1
+   }
+   
+   if (length(grep('sa', cen))) cen <- 1
+   else if (length(grep('dif',cen))) cen <- 0
+   else {
+      warning(paste('Bad value for "center=" in -covariates_model option.\n',
+                    '  Have "', paste(cen,collapse=' '), '"\n',
+                    '  Use either "center=same" or "center=different"\n', 
+                    sep=''),
+            immediate.=TRUE);
+      return(lop);
+      cen <- -1
+   }
+   
+   if (slp == 1 && cen == 1) lop$centerType2 <- 0
+   else if (slp == 0 && cen == 1) lop$centerType2 <- 1
+   else if (slp == 1 && cen == 0) lop$centerType2 <- 2
+   else if (slp == 0 && cen == 0) lop$centerType2 <- 3
+   else lop$centerType2 <- -1
+   
+   return(lop);
+}
+
+read.MEMA.opts.batch <- function (args=NULL, verb = 0) {
+   params <- list (
+      '-prefix' = apl(n = 1, d = NA,  h = paste(
+   "-prefix PREFIX: Output prefix (just prefix, no view+suffix needed) ",
+   "e.g., myOutput: " , sep='\n') ),
+      
+      '-jobs' = apl(n = 1, d = 1, h = paste(
+   "-jobs NJOBS: On a multi-processor machine, parallel computing will speed ",
+   "             up the program significantly.\n",
+   "             Choose 1 for a single-processor computer.", sep = '\n') ),
+      
+      '-groups' = apl(n = c(1,2), d = 'G1', h = paste(
+   "-groups GROUP1 [GROUP2]: Name of 1 or 2 groups") ),
+
+      '-set' = apl (n = c(4, Inf), d = NA, dup = TRUE, h = paste (
+   "-set SETNAME SUBJ_1 BETA_DSET T_DSET\n",
+   "             SUBJ_2 BETA_DSET T_DSET\n",
+   "              ...   ...       ...  \n",
+   "             SUBJ_N BETA_DSET T_DSET\n",
+   "     Specify the data for one of two test variables A & B. \n",
+   "     SETNAME is the name assigned to the set of . \n",
+   "     SUBJ_K is the label for the subject K whose datasets will be \n",
+   "            listed next\n",
+   "     BETA_DSET is the name of the dataset of the beta coefficient.\n",
+   "     T_DSET is the name of the dataset containing the Tstat \n", 
+   "            corresponding to BETA_DSET. \n",
+   "        To specify BETA_DSET, and T_DSET, you can use the standard AFNI \n",
+   "        notation, which now allows for the use of subbrik labels as\n",
+   "        selectors\n",
+   "     e.g: -set Placebo Jane pb05.Jane.Regression+tlrc'[face#0_Beta]' \\\n",
+   "                            pb05.Jane.Regression+tlrc'[face#0_Tstat]' \\\n") 
+                        ),
+      '-conditions' = apl(n = c(1,2)),
+      '-n_nonzero' = apl(n = 1), 
+      '-HKtest' = apl(0), 
+      '-no_HKtest' = apl(0),
+      '-mask' = apl(1),
+      '-model_outliers' = apl(0), 
+      '-no_model_outliers' = apl(0),
+      '-residual_Z' = apl(0), 
+      '-no_residual_Z' = apl(0),
+      '-unequal_variance' = apl(0), 
+      '-equal_variance' = apl(0), 
+      
+      '-covariates' = apl(n=1, d=NA, h=paste(
+   "-covariates COVAR_FILE: Specify the name of a file containing covariates.\n",
+   "                        Each column in the file is treated as a separate\n",
+   "                        covariate, and each row contains the values of \n",
+   "                        these covariates for each subject. \n",
+   "  To avoid confusion, it is best you format COVAR_FILE in this manner:\n",
+   "     subj  age   weight\n",
+   "     Jane   25   300\n",
+   "     Joe    22   313\n",
+   "     ...    ..   ...\n",
+   "  This way, there is no amiguity as to which values are attributed to\n",
+   "  which subject, nor to the label of the covariates. The word 'subj' must\n",
+   "  be the first word of the first row. You can still get at the values \n",
+   "  of the columns of such a file with AFNI's 1dcat -ok_text, which \n",
+   "  will treat the first row, and first column, as all 0s.\n",
+   "  Alternate, but less recommended ways to specify the covariates:\n",
+   "     age   weight\n",
+   "     25   300\n",    
+   "     22   313\n",
+   "     ..   ...\n",  
+   "  or\n",
+   "     25   300\n",    
+   "     22   313\n",
+   "     ..   ...\n" )
+                     ),
+      '-covariates_center' = apl(c(1,Inf)),
+      '-covariates_model' = apl(c(2)),
+      '-covariates_name' = apl(c(1,Inf)),
+      '-contrast_name' = apl(1),
+      '-verb' = apl(n=1, d = 0)
+                     );
+   ops <- parse.AFNI.args(args,  params,
+                          other_ok=FALSE
+                          )
+   if (verb) show.AFNI.args(ops);
+   if (is.null(ops)) {
+      warning('Error parsing',immediate. = TRUE);
+      return(NULL)
+   }
+   
+   #Parse dems options
+   #initialize with defaults
+      lop <- list ()
+      lop$nNodes <- 1
+      lop$nNonzero <- 0
+      lop$KHtest <- FALSE
+      lop$maskFN <- NULL
+      lop$covFN <- NULL
+      lop$lapMod <- 1
+      lop$resZout <- 0
+      lop$homo <- 1
+      lop$nLevel <- 0
+      lop$test <- NULL
+      lop$grpLab <- 'G1'
+      lop$conLab <- 'c1'
+      lop$nCov <- 0
+      lop$covFN <- NULL
+      lop$covMatrix <- NULL
+      lop$covData <- NULL
+      lop$covName <- NULL
+      lop$centerType <- 0
+      lop$centerVal <- NULL
+      lop$centerType <- 0
+      lop$centerType2 <- 0
+      lop$contrastName <- NULL
+      lop$verb <- 0
+   #Get user's input
+   for (i in 1:length(ops)) {
+      opname <- strsplit(names(ops)[i],'^-')[[1]];
+      opname <- opname[length(opname)];
+      switch(opname,
+             prefix = lop$outFN  <- ops[[i]],
+             jobs   = lop$nNodes <- ops[[i]],
+             groups = lop$grpLab <- ops[[i]],
+             conditions = lop$conLab <- ops[[i]],
+             set  = lop <- MEMA.parse.set(lop, ops[[i]]),
+             n_nonzero = lop$nNonzero <- ops[[i]],
+             HKtest = lop$KHtest <- TRUE,
+             no_HKtest = lop$KHtest <- FALSE,
+             mask = lop$maskFN <- ops[[i]],
+             model_outliers = lop$lapMod <- 1,
+             no_model_outliers = lop$lapMod <- 0,
+             residual_Z = lop$resZout <- 1,
+             no_residual_Z = lop$resZout <- 0,
+             unequal_variance = lop$homo <- 0,
+             equal_variance = lop$homo <- 1,
+             test = lop$test <- ops[[i]],
+             covariates = lop$covFN <- ops[[i]],
+             covariates_center = 
+                  lop <- MEMA.parse.covariates_center(lop, ops[[i]]),
+             covariates_model = 
+                  lop <- MEMA.parse.covariates_model(lop, ops[[i]]),
+             covariates_name = lop$covName <- ops[[i]],
+             contrast_name  = lop$contrastName <- ops[[i]],
+             verb = lop$verb <- ops[[i]]
+             )
+   }
+
+   #No figure out some other variables 
+   lop$nGrp <- length(lop$grpLab)
+   lop$nSubj <- vector('numeric')
+   for (ii in 1:lop$nGrp) {
+      lop$nSubj <- c(lop$nSubj,length(lop$subjLab[[ii]]))
+   } 
+   names(lop$nSubj) <- lop$grpLab
+   
+   if (lop$nGrp != 1 && lop$nGrp != 2) {
+     warning(paste('You must have either one or two groups'),
+               immediate.=TRUE);
+     return(NULL); 
+   }
+   if (lop$nGrp != 1 && lop$nGrp != 2) {
+     warning(paste('You must have either one or two groups'),
+               immediate.=TRUE);
+     return(NULL); 
+   }
+   lop$nLevel <- length(lop$conLab)
+   
+   lop$anaType <- -1
+   if (lop$nGrp == 1) {
+      if (lop$nLevel == 1) lop$anaType <- 1
+      else if (lop$nLevel == 2) {
+         for (i in 1:lop$nSubj) {
+            if (lop$subjLab[[1]][i] != lop$subjLab[[2]][i]) {
+               warning(paste( 'mismatch in subject labels for ',
+                              'within group test'),
+               immediate.=TRUE);
+               return(NULL); 
+            }
+         }
+         lop$anaType <- 3
+      }
+   } else if (lop$nGrp == 2) {
+      if (lop$nLevel == 1 && lop$homo)lop$anaType <- 2
+      else if (lop$nLevel == 1 && !lop$homo)lop$anaType <- 4
+   }
+   if (lop$anaType < 0) {
+      warning(paste('Could not set analysis type'),
+               immediate.=TRUE);
+     return(NULL); 
+   }
+   if (lop$centerType < 0 || lop$centerType2 < 0) {
+     warning(paste('Could not set covariates centering, or model'),
+               immediate.=TRUE);
+     return(NULL); 
+   }
+   #Get the covariates
+   if (!is.null(lop$covFN)) {
+      allsubj <- lop$subjLab[[1]]
+      if (length(lop$subjLab) > 1) {
+         for (i in 2:length(lop$subjLab)) allsubj <- c(allsubj, lop$subjLab[[i]])
+      }
+      allsubj <- unique(allsubj);
+      
+      ttt <- read.table(lop$covFN, colClasses='character');
+      if ( tolower(ttt$V1[1]) == 'name' || 
+           tolower(ttt$V1[1]) == 'subj' ) {
+         subjCol <- ttt$V1[2:dim(ttt)[1]]; 
+         covNames <- paste(ttt[1,2:dim(ttt)[2]]);
+         for (ii in 1:(dim(ttt)[2]-1)) { #Add one column at a time
+            if (ii==1) {
+               lop$covMatrix <- cbind(
+                  as.numeric(ttt[2:dim(ttt)[1],2:dim(ttt)[2]][[ii]]));
+            } else {
+               lop$covMatrix <- cbind(lop$covMatrix,
+                  as.numeric(ttt[2:dim(ttt)[1],2:dim(ttt)[2]][[ii]]));
+            }
+         }
+         #make sure all names in allsubj are represented here
+         dd <- allsubj[!(allsubj %in% subjCol)]
+         if (length(dd)) {
+            warning (paste('Subjects ', paste(dd,collapse=' '),
+                           ' do not a covariate entry.\n'),
+                     immediate.=TRUE);
+            return(NULL);
+         }
+      }  else {
+         if (is.na(as.numeric(ttt$V1[1]))) { #Just labels
+            covNames <- paste(ttt[1,1:dim(ttt)[2]]);
+            istrt<- 2
+         }else {
+            covNames <- paste('cov',c(1:dim(ttt)[2]),sep='');
+            istrt<- 1
+         }
+         for (ii in 1:(dim(ttt)[2])) { #Add one column at a time
+            if (ii==1) {
+               lop$covMatrix <- cbind(
+                  as.numeric(ttt[istrt:dim(ttt)[1],1:dim(ttt)[2]][[ii]]));
+            } else {
+               lop$covMatrix <- cbind(lop$covMatrix,
+                  as.numeric(ttt[istrt:dim(ttt)[1],1:dim(ttt)[2]][[ii]]));
+            }
+         }
+         if (dim(lop$covMatrix)[1] != length(allsubj)) {
+            warning (paste('Have ', length(allsubj), ' subjects, ',
+                           'but ', dim(lop$covMatrix)[1], ' covariate values.\n',
+                           'This does not float your boat\n', sep=''),
+                     immediate.=TRUE);
+            return(NULL);
+         } else {
+            warning(paste('Assuming covariate rows match this subject order\n',
+                          '   ', paste (allsubj,collapse=' '),sep=''), 
+                    immediate.=TRUE);
+         }
+         subjCol <- allsubj
+      } 
+      rownames(lop$covMatrix) <- subjCol;
+      colnames(lop$covMatrix) <- covNames;
+      #Now, to be safe, regenerate the covariates matrix based on
+      #the order of subjects as they occur in input, and make a data frame
+      #for 3dMEMA's liking
+      for (ii in 1:1:length(allsubj)) {
+         if (ii==1) {
+            mm <- rbind(lop$covMatrix[allsubj[ii],]);
+         } else {
+            mm <- rbind(mm, lop$covMatrix[allsubj[ii],]);
+         }
+      }
+      rownames(mm) <- allsubj
+      lop$covMatrix <- mm
+      if (is.null(lop$covName)) {
+         lop$covName <- colnames(lop$covMatrix);
+      } else {
+         if (length(lop$covName) != length(colnames(lop$covMatrix))) {
+            warning(paste( 'Mismatch between number of covariate names,\n',
+                           '  and number of columns in matrix'),
+                    immediate.=TRUE);
+            return(NULL);
+         }
+         colnames(lop$covMatrix) <- lop$covName
+      }
+      lop$nCov <- length(lop$covName)
+      #It would be better if all references to lop$covMatrix,
+      #lop$covName, and lop$nCov were obtained live from
+      #lop$covData beyond this point. If that were to be done
+      #them covMatrix, covName, and nCov would be local to thi
+      #function only. But that requires more changes to the interactive
+      #input function
+      lop$covData <- data.frame((lop$covMatrix)) 
+      
+      if (lop$centerType == 1) {
+         if ( (length(lop$covName) != length(lop$centerVal)) &&
+              (length(lop$covName)*lop$nGrp != length(lop$centerVal)) ) {
+            warning(paste( 'Mismatch between number of covariates "',
+                           paste(lop$covName, collapse=','), '"(',
+                           length(lop$covName),'*',lop$nGrp,
+                           ')and number of center values',
+                           length(lop$centerVal),'.'),
+                    immediate.=TRUE);
+            return(NULL); 
+         }
+         if (is.null(names(lop$centerVal))) {
+            warning(paste( 'Assuming following centers\n   ',
+                           paste(lop$centerVal,collapse=', '),
+                           '\n for covariates \n   ',
+                           paste(lop$covName, collapse=', '), sep=''),
+                     immediate.=TRUE);
+            if (length(lop$covName) < length(lop$centerVal)) {
+               ww <- vector('character');
+               for (i in 1:lop$covName) {
+                  ww <- c(ww, rep(lop$covName[i],lop$nGrp))
+               }
+               names(lop$centerVal) <- ww
+            } else {
+               names(lop$centerVal) <- lop$covName
+            }
+         } else {
+            #Make sure covariates center match covariate names
+            dd <- lop$covName[!(lop$covName %in% names(lop$centerVal))]
+            if (length(dd)) {
+               warning (paste('Covariates ', paste(dd,collapse=' '),
+                           ' do not a covariate centering entry.\n'),
+                     immediate.=TRUE);
+               return(NULL);
+            }
+         }   
+      } else if (lop$centerType == 0) {
+         warning('Covariates will be centered around their respective means',
+                  immediate.=TRUE);
+      }
+       
+   }
+
+   return(lop)
+}# end of read.MEMA.opts.batch
+
+#Apply options input by user
+process.MEMA.opts <- function (lop, verb = 0) {
+   if (file.exists(paste(lop$outFN,"+orig.HEAD", sep="")) || 
+         file.exists(paste(lop$outFN,"+tlrc.HEAD", sep=""))) {
+         warning((paste("File ", lop$outFN, "exists! Try a different name.\n")),
+                  immediate.=TRUE);
+         return(NULL);
+   }      
+   lop$outFN <- 
+      paste(lop$outFN, "+orig", sep="") # write.AFNI doesn't handle tlrc yet
+
+
+   if (lop$nNodes < 1) lop$nNodes <- 1
+    
+   if (lop$nGrp < 1) lop$nGrp <- 1
+   
+   if(lop$anaType==1 | lop$anaType==2 | lop$anaType==4) {
+      if (length(lop$grpLab) != lop$nGrp) {
+         stop ('bad length for grpLab');
+      }
+      if (length(lop$nSubj) != lop$nGrp) {
+         stop ('bad length for nSubj');
+      }
+      if (length(lop$subjLab) != lop$nGrp) {
+         stop ('bad length for subjLab');
+      }
+      lop$bList <- vector('list', lop$nGrp)
+      lop$tList <- vector('list', lop$nGrp) 
+      lop$varList <- vector('list', lop$nGrp)
+   
+      for(ii in 1:lop$nGrp) {
+
+  	      lop$nFiles[ii] <- 2*lop$nSubj[ii]
+         if (length(lop$subjLab[[ii]]) != lop$nSubj[ii]) {
+            stop (cat('bad length for subjLab for ', ii,'\n'));
+         }      
+         if (length(lop$bFN[[ii]]) != lop$nSubj[ii]) {
+            stop (cat('bad length for bFN for ', ii,'\n'));
+         }      
+         if (length(lop$tFN[[ii]]) != lop$nSubj[ii]) {
+            stop (cat('bad length for tFN for ', ii,'\n'));
+         }
+          
+         if (verb) {
+            cat ('Beta Filenames:', paste(lop$bFN[[ii]], collapse=''), '\n') 
+         }
+         lop$bList[[ii]] <- lapply(lop$bFN[[ii]], read.AFNI); 
+         lop$tList[[ii]] <- lapply(lop$tFN[[ii]], read.AFNI);
+         if(ii==1) { 
+            lop$myNote=lop$bList[[1]][[1]]$header$HISTORY_NOTE; 
+            lop$myOrig=lop$bList[[1]][[1]]$origin; 
+            lop$myDelta=lop$bList[[1]][[1]]$delta; 
+            lop$myDim <- lop$bList[[1]][[1]]$dim;
+         }
+         lapply(lapply(lop$bList[[ii]], function(x) x$dim), 
+                function(x) 
+                  if(!all(x==lop$myDim)) 
+                     stop("Dimension mismatch among the beta input files!") )
+         lapply(lapply(lop$tList[[ii]], function(x) x$dim), 
+                function(x) 
+                  if(!all(x==lop$myDim)) 
+                     stop("Dimension mismatch between beta ",
+                          " and t-statistic files!"))
+
+      } # for(ii in 1:lop$nGrp)
+   } else { # if(lop$anaType==1 | lop$anaType==2 | lop$anaType==4)
+      if (is.null(lop$contrastName)) {
+         lop$contrastName <- paste(lop$conLab[c(2,1)],collapse='-');
+      }
+   } # if(lop$anaType==3)
+   
+   if (!is.null(lop$covFN) && 
+       ( (lop$centerType2 == 1 || lop$centerType2 == 3) && !lop$homo) ) {
+      warning (paste('Cannot use -unequal_variance with slope=different \n',
+                     '  in -covariates_model'),
+                     immediate.=TRUE);
+      return(NULL); 
+   }
+
+   if (lop$centerType > 0) {
+      #Now be sure the orders match
+      init_centerVal <- lop$centerVal
+      lop$centerVal <- vector('numeric')
+      for (i in 1:length(lop$covName)) {#must do it like this
+                                        #Can have multiple values
+                                        #per covariates!
+         lop$centerVal <- c(lop$centerVal,                              
+               init_centerVal[lop$covName[i]==names(init_centerVal)])
+      }
+   }      
+
+   if(lop$anaType==3) {
+      lop$bList <- vector('list', lop$nLevel)
+      lop$tList <- vector('list', lop$nLevel)
+      lop$varList <- vector('list', lop$nLevel)
+
+      if (verb) {
+         cat ('Have grp Lab:', lop$grpLab[[1]],'\n');
+         cat ('Have nSubj:', lop$nSubj[1],'\n');
+      }
+      lop$nFiles[1] <- 2*lop$nSubj[1]  
+                        # 2 because of 1 beta and 1 t-statistic
+      for(jj in 1:lop$nSubj[1]) {
+         if (verb) {
+            cat ('Have lop$subjLab[[1]][[jj]]', lop$subjLab[[1]][[jj]], '\n')
+         }
+      }
+      for(ii in 1:lop$nLevel) {
+         if (verb) {
+            cat ('Have lop$conLab[[ii]]', lop$conLab[[ii]], '\n')
+         }
+         for(jj in 1:lop$nSubj[1]) {
+            if (verb) {
+               cat ('Have lop$bFN[[ii]][[jj]]', lop$bFN[[ii]][[jj]], '\n')
+               cat ('Have lop$tFN[[ii]][[jj]]', lop$bFN[[ii]][[jj]], '\n')
+            }
+         }
+         lop$bList[[ii]] <- lapply(lop$bFN[[ii]], read.AFNI); 
+         lop$tList[[ii]] <- lapply(lop$tFN[[ii]], read.AFNI);
+         if(ii==1) {
+            lop$myNote=lop$bList[[1]][[1]]$header$HISTORY_NOTE; 
+            lop$myOrig=lop$bList[[1]][[1]]$origin; 
+            lop$myDelta=lop$bList[[1]][[1]]$delta; 
+            lop$myDim <- lop$bList[[1]][[1]]$dim
+         }
+         lapply(lapply(lop$bList[[ii]], function(x) x$dim), 
+                function(x) 
+                  if(!all(x==lop$myDim)) 
+                     stop("Dimension mismatch among the beta input files!"))
+         lapply(lapply(lop$tList[[ii]], function(x) x$dim), 
+               function(x) 
+                  if(!all(x==lop$myDim)) 
+                     stop( "Dimension mismatch between beta ",
+                           "and t-statistic files!"))
+
+      } # for(ii in 1:lop$nLevel)  
+   
+   } # if(lop$anaType==3)
+
+   if (verb) {
+      cat ('Have lop$nNonzero', lop$nNonzero, '\n');
+   }
+   if (verb) {
+      cat ('Have lop$KHtest', lop$KHtest, '\n');
+   }
+   if (verb) {
+      cat ('have lop$maskFN', lop$maskFN, '\n');
+   }
+   if(!is.null(lop$maskFN)) {
+      if (verb) {
+         cat ("Will read ", lop$maskFN,'\n');
+      }
+      if (is.null(mm <- read.AFNI(lop$maskFN))) {
+         warning("Failed to read mask", immediate.=TRUE);
+         return(NULL);
+      }
+      lop$maskData <- mm$ttt
+      if (verb) cat ("Done read ", lop$maskFN,'\n');
+   }
+   if(!is.null(lop$maskFN)) 
+      if(!all(dim(lop$maskData[,,,1])==lop$myDim[1:3])) 
+         stop("Mask dimensions don't match the input files!")
+
+   if(lop$nGrp==1) lop$xMat <- rep(1, sum(lop$nSubj))      
+   if(lop$nGrp==2) 
+      lop$xMat <- cbind(rep(1, sum(lop$nSubj)), 
+                    c(rep(0, lop$nSubj[1]), rep(1, lop$nSubj[2]))) 
+                                          # dummy variable for two groups
+   if(!is.null(lop$covFN)) {
+      if (1) {
+         if (verb) {
+            cat ('have lop$covFN=', lop$covFN, lop$covName, '\n');
+         }
+      }
+      
+       cat ('Have lop$centerType', lop$centerType, '\n');
+      
+      if(lop$nGrp == 1) {
+         if(lop$centerType == 0) {
+            lop$covData <- apply(lop$covData, 2, scale, scale=F)  
+                     # center around mean for each covariate (column)
+         }
+         if(lop$centerType == 1) {  # center around a user-specified value
+            #centerVal <- vector(mode = "numeric", length = lop$nCov)
+            for(ii in 1:lop$nCov) {
+               cat ( 'Have lop$centerVal[ii]', lop$centerVal[ii], 
+                     'for', names(lop$covData)[ii], '\n');
+            }
+            lop$covData <- t(as.matrix(apply(lop$covData, 1, "-", 
+                                             lop$centerVal)))
+         }
+      } # if(lop$nGrp == 1)
+
+      if (lop$nGrp == 2) {
+         cat ('Have lop$centerType2', lop$centerType2, '\n');
+         if(lop$centerType2 == 0 | lop$centerType2 == 1) {   # same center 
+            if(lop$centerType == 0) 
+               lop$covData <- apply(lop$covData, 2, scale, scale=F)  
+                                 # center around mean for each covariate (column)
+            if(lop$centerType == 1) {  
+                        # center around other value for each covariate (column)
+               for(jj in 1:lop$nCov) {
+                  cat ('Have lop$centerVal[jj]', lop$centerVal[jj], '\n');
+               }
+               lop$covData <- t(as.matrix(
+                                 apply(lop$covData, 1, "-", lop$centerVal)))
+            }
+         } # if(lop$centerType2 == 0 | lop$centerType2 == 1)
+        
+         if(lop$centerType2 == 2 | lop$centerType2 == 3) {  # different center 
+            if(lop$centerType == 0) 
+               lop$covData <- 
+                        rbind(apply(as.matrix(lop$covData[1:lop$nSubj[1],]), 
+                                    2, scale, scale=F),
+                              apply(as.matrix(lop$covData[
+                                 (lop$nSubj[1]+1):(lop$nSubj[1]+lop$nSubj[2]),]),
+                                    2, scale, scale=F))
+            if(lop$centerType == 1) {
+               covList <- vector('list', lop$nGrp)               
+               for(ii in 1:lop$nGrp) {
+                  centerVal <- 
+                      lop$centerVal[seq(ii,length(lop$centerVal),lop$nGrp)]
+                  cat ('Have lop$centerVal', 
+                        paste(centerVal, collapse=','), 
+                        'for group ',ii,'\n');
+                  covList[[ii]] <- t(apply(as.matrix(
+                                 lop$covData[((ii-1)*lop$nSubj[1]+1):
+                                             (lop$nSubj[1]+(ii-1)*lop$nSubj[2]),]
+                                                      ), 1, "-", centerVal))
+               }
+               lop$covData <- rbind(covList[[1]], covList[[2]])
+            } # if(lop$centerType == 1)
+         } # if(lop$centerType2 == 3)
+         
+         if(lop$centerType2 == 1 | lop$centerType2 == 3) { # different slope
+            lop$covData <- cbind(lop$covData, lop$covData*lop$xMat[,2])  
+                                 # add one column per covariate for interaction
+            lop$nCov <- 2*lop$nCov 
+                              # double number of covariates due to interactions
+            lop$covName<-c(lop$covName, paste(lop$covName, "X", sep=''))  
+                              # add names for those interactions
+         }
+      }
+      #browser()
+      lop$xMat <- as.matrix(cbind(lop$xMat, lop$covData))           
+   } else {lop$nCov <- 0; lop$xMat <- as.matrix(lop$xMat)}
+
+
+   if (verb) cat ('Have lop$lapMod', lop$lapMod,'\n');
+   if (verb) cat ('Have lop$resZout', lop$resZout, '\n');
+   if(lop$resZout==1) {
+      lop$icc_FN  <- paste(strsplit(lop$outFN, "\\+")[[1]][1], 
+                           "_ICC+orig", sep="")
+      lop$resZ_FN <- paste(strsplit(lop$outFN, "\\+")[[1]][1], 
+                           "_resZ+orig", sep="") 
+                  # write.AFNI doesn't handle tlrc yet
+   }
+   
+   return(lop)
+}
+
+DOF.check.MEMA <- function (lop)  {
+   #str(dim(lop$xMat))
+   if (dim(lop$xMat)[1] <= dim(lop$xMat)[2]) {
+      warning (paste("Too few subjects for options selected."),
+               immediate.=TRUE);
+      return(FALSE);
+   } else if (dim(lop$xMat)[1] <= 2*dim(lop$xMat)[2]) {
+      warning (paste("Number of parameters to estimate is more than ",
+                     "half the number of subjects. Consider increasing",
+                     "the number of subjects.", sep='\n'),
+               immediate.=TRUE);
+      return(TRUE);
+   }
+   return(TRUE);
+}
+
 
 tolL <- 1e-7 # bottom tolerance for avoiding division by 0 and for avioding analyzing data with most 0's
 tolU <- 1e8  # upper tolerance for those variances of 0
@@ -807,332 +1727,247 @@ print("################################################################")
 
 print("Use CNTL-C on Unix or ESC on GUI version of R to stop at any moment.")
 
-outFNexist <- TRUE
-while (outFNexist) {
-   outFN <- readline("Output file name (just prefix, no view+suffix needed, e.g., myOutput): ")
-   if(file.exists(paste(outFN,"+orig.HEAD", sep="")) || file.exists(paste(outFN,"+tlrc.HEAD", sep=""))) {
-      print("File exsists! Try a different name.")
-      outFNexist <- TRUE
-   } else outFNexist <- FALSE }
-outFN <- paste(outFN, "+orig", sep="") # write.AFNI doesn't handle tlrc yet
-
-
-print("On a multi-processor machine, parallel computing will speed up the program significantly.")
-print("Choose 1 for a single-processor computer.")
-nNodes <- as.integer(readline("Number of parallel jobs for the running (e.g., 2)? "))
-nGrp <- as.integer(readline("Number of groups (1 or 2)? "))
-
-   grpLab <- vector('list', nGrp)
-   nSubj <- vector('integer', nGrp)
-   nFiles <- vector('integer', nGrp) # number of input files for each group
    
-   print("-----------------")
-   print("The following types of group analysis are currently available:")
-   print("1: one condition with one group;")
-   print("2: one condition across 2 groups with homoskedasticity (same variability);")
-   print("3: two conditions with one group;")
-   print("4: one condition across 2 groups with heteroskedasticity (different variability).")
-   anaType <- as.integer(readline("Which analysis type (1, 2, 3, 4): "))
-   
-   if(anaType==1 | anaType==2 | anaType==4) {
-      bFN <- vector('list', nGrp)
-      tFN <- vector('list', nGrp)
-      subjLab <- vector('list', nGrp)
-      bList <- vector('list', nGrp)
-      tList <- vector('list', nGrp) 
-      varList <- vector('list', nGrp)
-   
-      for(ii in 1:nGrp) {
-
-  	   if(nGrp==1) grpLab[[ii]] <- readline("Label for the test? ") else 
-         grpLab[[ii]] <- readline(sprintf("Label for group %i? ", ii))
-  	   nSubj[ii] <- as.integer(readline(sprintf("Number of subjects in group %s (e.g., 12)? ", grpLab[[ii]])))
-  	   nFiles[ii] <- 2*nSubj[ii]
-      subjLab[[ii]] <- vector('list', nSubj[ii])
-  	   bFN[[ii]] <- vector('integer', nSubj[ii]) # list of beta file names
-  	   tFN[[ii]] <- vector('integer', nSubj[ii]) # list of t-stat file names
-  	   #print("Provide beta or linear combination of betas files first. Only one sub-brick input files are accepted!")
-      
-      for(jj in 1:nSubj[ii]) subjLab[[ii]][[jj]] <- readline(sprintf("No. %i subject label in group %s: ", jj, grpLab[[ii]]))
-      
-      for(jj in 1:nSubj[ii]) {
-         bFN[[ii]][[jj]] <- readline(sprintf("No. %i subject (%s) file for beta or linear combination of betas in group %s: ", jj, subjLab[[ii]][[jj]], grpLab[[ii]]))
-      # print("Now provide the corresponding t-statistic files in SAME subject order as beta files. Only one sub-brick input files are accepted!")
-         tFN[[ii]][[jj]] <- readline(sprintf("No. %i subject (%s) file for the corresponding t-statistic in group %s: ", jj, subjLab[[ii]][[jj]], grpLab[[ii]]))
-      print("-----------------")
+   args = (commandArgs(TRUE))   
+   if (!length(args)) {
+      if (is.null(lop <- read.MEMA.opts.interactive())) {
+         stop('Error parsing interactive input');
       }
-      bList[[ii]] <- lapply(bFN[[ii]], read.AFNI); tList[[ii]] <- lapply(tFN[[ii]], read.AFNI)
-      if(ii==1) {myNote=bList[[1]][[1]]$header$HISTORY_NOTE; myOrig=bList[[1]][[1]]$origin; myDelta=bList[[1]][[1]]$delta; myDim <- bList[[1]][[1]]$dim}
-      lapply(lapply(bList[[ii]], function(x) x$dim), function(x) if(!all(x==myDim)) stop("Dimension mismatch among the beta input files!"))
-      lapply(lapply(tList[[ii]], function(x) x$dim), function(x) if(!all(x==myDim)) stop("Dimension mismatch between beta and t-statistic files!"))
-   } # for(ii in 1:nGrp)
-   } # if(anaType==1 | anaType==2 | anaType==4)
-   
-   if(anaType==3) {
-      
-      nLevel <- 2   
-      bFN <- vector('list', nLevel)
-      tFN <- vector('list', nLevel)
-      conLab <- vector('list', nLevel)
-      subjLab <- vector('list', 1)
-      bList <- vector('list', nLevel)
-      tList <- vector('list', nLevel)
-      varList <- vector('list', nLevel)
-      print("Since the contrast between the 2 conditions will be the 1st minus the 2nd, choose")
-      print("an appropriate order between the 2 conditions to get the desirable contrast.")
-      grpLab[[1]] <- readline("Label for the contrast? ")
-      nSubj[1] <- as.integer(readline("Number of subjects: "))
-      nFiles[1] <- 2*nSubj[1]  # 2 because of 1 beta and 1 t-statistic
-      for(jj in 1:nSubj[1]) subjLab[[1]][[jj]] <- readline(sprintf("No. %i subject label: ", jj))      
-      for(ii in 1:nLevel) {
-         conLab[[ii]] <- readline(sprintf("Label for condition %i? ", ii))
-         bFN[[ii]] <- vector('integer', nSubj[1]); tFN[[ii]] <- vector('integer', nSubj[1])
-         for(jj in 1:nSubj[1]) {
-            bFN[[ii]][[jj]] <- readline(sprintf("No. %i subject (%s) file for beta or linear combination of betas with condition %s: ", jj, subjLab[[1]][[jj]], conLab[[ii]]))
-            tFN[[ii]][[jj]] <- readline(sprintf("No. %i subject (%s) file for the corresponding t-statistic with condition %s: ", jj, subjLab[[1]][[jj]], conLab[[ii]]))
-            print("-----------------")
-         }
-         bList[[ii]] <- lapply(bFN[[ii]], read.AFNI); tList[[ii]] <- lapply(tFN[[ii]], read.AFNI)
-         if(ii==1) {myNote=bList[[1]][[1]]$header$HISTORY_NOTE; myOrig=bList[[1]][[1]]$origin; myDelta=bList[[1]][[1]]$delta; myDim <- bList[[1]][[1]]$dim}
-         lapply(lapply(bList[[ii]], function(x) x$dim), function(x) if(!all(x==myDim)) stop("Dimension mismatch among the beta input files!"))
-         lapply(lapply(tList[[ii]], function(x) x$dim), function(x) if(!all(x==myDim)) stop("Dimension mismatch between beta and t-statistic files!"))
-
-      } # for(ii in 1:nLevel)  
-   
-   } # if(anaType==3)
-   if(!identical(grep("orig", bFN[[1]][1]), integer(0))) dataView <- "orig"  # input files in orig view
-   if(!identical(grep("tlrc", bFN[[1]][1]), integer(0))) dataView <- "tlrc"  # input files in tlrc view
-   dataOrient <- system(sprintf("@GetAfniOrient %s", bFN[[1]][1]), intern = TRUE)
-   
-   #print("-----------------")
-   print("There may have missing or zero t values at some voxels in some subjects.")
-   print("The following threshold would allow the program not to waste runtime on those")
-   print("voxels where most subjects have zero t-values. ")
-   nNonzero <- as.integer(readline(sprintf("Minimum number of subjects with non-zero t-statistic? (0-%i, e.g., 3/4 of total subjects) ", sum(nSubj))))
-   # Hartung-Knapp method with t-test?
-   print("-----------------")
-   print("t-statistic is a little more conservative but also more appropriate for significance testing than Z")
-   print("especially when sample size, number of subjects, is relatively small.")
-   KHtest <- as.logical(as.integer(readline("Z- or t-statistic for the output? (0: Z; 1: t) ")))
-   #KHtest <- FALSE
-   
-   print("-----------------")
-   print("Masking is optional, but will alleviate unnecessary penalty on q values of FDR correction.")
-   masked <- as.integer(readline("Any mask (0: no; 1: yes)? "))
-   if(masked) {maskFN <- readline("Mask file name (suffix unnecessary, e.g., mask+tlrc): "); maskData <- read.AFNI(maskFN)$ttt}
-   if(masked) if(!all(dim(maskData[,,,1])==myDim[1:3])) stop("Mask dimensions don't match the input files!")
-
-   if(nGrp==1) xMat <- rep(1, sum(nSubj))      
-   if(nGrp==2) xMat <- cbind(rep(1, sum(nSubj)), c(rep(0, nSubj[1]), rep(1, nSubj[2]))) # dummy variable for two groups
-   print("-----------------")   
-   print("Covariates are continuous variables (e.g., age, behavioral data) that can be partialled out in the model.")
-   anyCov <- as.logical(as.integer(readline("Any covariates (0: no; 1: yes)? ")))
-   if(anyCov) {
-      nCov <- as.integer(readline("Number of covariates (e.g., 1)? "))
-      #print("Each subject is assumed to have one number per covariate. Covariates as input files can be")
-      #print("in multi-column or one-column format. Header with the 1st line as labels is optional in")
-      #print("multi-column files. The vertical sequence in each column has to follow the same subject order")
-      #print("as the beta/t-statistic input files listed above.")
-      print("Each subject is assumed to have one number per covariate. All covariates should be put into one")
-      print("file in one- or multi-column format. Header at the 1st line as labels is optional. The vertical")
-      print("sequence in each column has to follow exactly the same subject order as the beta/t-statistic")
-      print("input files listed above.")
-      #covForm <- as.integer(readline("Covariates data type (0: MULTIPLE one-column files; 1: ONE single/multi-column file)? "))
-      covForm <- 1
-      if (covForm) {
-         covFN <- readline("Covariates file name: ")
-         covHeader <- as.integer(readline("Does this multi-column file have a header (0: no; 1: yes)? "))
-         if(covHeader == 1) covData <- read.table(covFN, header=TRUE) else {
-            covData <- read.table(covFN, header=FALSE)
-            if(nCov!=dim(covData)[2]) stop(sprintf("Mismatch: file %s has %i column while you said %i covariate(s)!", covFN, dim(covData)[2], nCov)) else
-            for (ii in 1:nCov) names(covData)[ii] <- readline(sprintf("Name for covariate number %i? ", ii))
-         } # if(covHeader == 1)
-         covName <- names(covData)
-      } else {
-         covData <- data.frame(matrix(data=NA, nrow=sum(nSubj), ncol=nCov, dimnames = NULL))
-         covData <- readMultiFiles(nCov, 1, "covariate")  # 1: assuming no header   
+      if (0) { #Too much output, big dump of header structs of input dsets..
+         str(lop);
       }
-      print("Each covariate should be centered around its mean or some other meaningful value so that group effect")
-      print("can be interpreted with the covariate being at the mean or other user-specified value. Otherwise")
-      print("the interpretation would be with the covariate being at 0!")
-      centerType <- as.integer(readline("What value will covariate(s) be centered around (0: mean; 1: other value)? "))
-      
-      if(nGrp == 1) {
-         if(centerType == 0) covData <- apply(covData, 2, scale, scale=F)  # center around mean for each covariate (column)
-         if(centerType == 1) {  # center around a user-specified value
-            centerVal <- vector(mode = "numeric", length = nCov)
-            for(ii in 1:nCov) centerVal[ii] <- as.numeric(readline(sprintf("Centering value for covariate no. %i (%s): ? ", ii, names(covData)[ii])))
-            covData <- as.matrix(apply(covData, 1, "-", centerVal))
-         }
-      } # if(nGrp == 1)
-
-      if (nGrp == 2) {
-         centerType2 <- as.integer(readline("How to model covariate(s) across groups (0: same center & slope; 1: same center but different slope; 
-            2: different center but same slope; 3: different center & slope)? "))
-         if(centerType2 == 0 | centerType2 == 1) {   # same center 
-            if(centerType == 0) covData <- apply(covData, 2, scale, scale=F)  # center around mean for each covariate (column)
-            if(centerType == 1) {  # center around other value for each covariate (column)
-               centerVal <- vector(mode = "numeric", length = nCov)
-               for(jj in 1:nCov) centerVal[jj] <- as.numeric(readline(sprintf(
-                  "Centering value for covariate no. %i (%s) for both groups: ? ", jj, names(covData)[jj])))
-               covData <- as.matrix(apply(covData, 1, "-", centerVal))
-            }
-         } # if(centerType2 == 0 | centerType2 == 1)
-        
-         if(centerType2 == 2 | centerType2 == 3) {  # different center 
-            if(centerType == 0) covData <- rbind(apply(as.matrix(covData[1:nSubj[1],]), 2, scale, scale=F), 
-               apply(as.matrix(covData[(nSubj[1]+1):(nSubj[1]+nSubj[2]),]), 2, scale, scale=F))
-            if(centerType == 1) {
-               covList <- vector('list', nGrp)               
-               for(ii in 1:nGrp) {
-                  centerVal <- vector(mode = "numeric", length = nCov)
-                  for(jj in 1:nCov) centerVal[jj] <- as.numeric(readline(sprintf(
-                     "Centering value for covariate no. %i (%s) in group %i (%s): ? ", jj, names(covData)[jj], ii, grpLab[[ii]])))
-                  covList[[ii]] <- t(apply(as.matrix(covData[((ii-1)*nSubj[1]+1):(nSubj[1]+(ii-1)*nSubj[2]),]), 1, "-", centerVal))
-               }
-               covData <- rbind(t(covList[[1]]), t(covList[[2]]))
-            } # if(centerType == 1)
-         } # if(centerType2 == 3)
-         
-         if(centerType2 == 1 | centerType2 == 3) { # different slope
-            covData <- cbind(covData, covData*xMat[,2])  # add one column per covariate for interaction
-            nCov <- 2*nCov # double number of covariates due to interactions
-            covName<-c(covName, paste(covName, "X", sep=''))  # add names for those interactions
-         }
+   } else {
+      if (is.null(lop <- read.MEMA.opts.batch(args))) {
+         stop('Error parsing input');
       }
-      #browser()
-      xMat <- as.matrix(cbind(xMat, covData))           
-   } else {nCov <- 0; xMat <- as.matrix(xMat)}
-   print("-----------------")
-   print("If outliers exist at voxel/subject level, a special model can be adopted to account for outliers")
-   print("in the data, leading to increased statistical power at slightly higher computation cost.")
-   lapMod <- as.integer(readline("Model outliers (0: no; 1: yes)? "))
-   print("-----------------")
-   print("The Z-score of residuals for a subject indicates the significance level the subject is an outlier at a voxel.")
-   print("Turn off this option and select 0 if memory allocation problem occurs later on.")
-   resZout <- as.integer(readline("Want residuals Z-score for each subject (0: no; 1: yes)? "))
-   if(resZout==1) {
-      icc_FN  <- paste(strsplit(outFN, "\\+")[[1]][1], "_ICC+orig", sep="")
-      resZ_FN <- paste(strsplit(outFN, "\\+")[[1]][1], "_resZ+orig", sep="") # write.AFNI doesn't handle tlrc yet
+      #str(lop);
+      if (is.null(lop <- process.MEMA.opts(lop, verb = lop$verb))) {
+         stop('Error processing input');
+      }
    }
-
+   
+   if (lop$verb > 1) { 
+      #Too much output, big dump of header structs of input dsets..
+      str(lop);
+   }
+   
+   #dump xmat
+   if (lop$verb) {
+      xmout <- paste(prefix.AFNI.name(lop$outFN),".RxMat", sep='')
+      cat ('Writing xMat to', xmout, '\n')
+      write.table(lop$xMat,xmout);
+   }
+   
+   #Check on DOF problems
+   if (!DOF.check.MEMA(lop)) {
+      stop('');
+   }
+   
    exclude <- TRUE  # exclude those voxels with 0 variance
    
    # Maybe I should avoid doing this below part for those voxels in the mask!!!
-   if(anaType==1 | anaType==2 | anaType==4) for(ii in 1:nGrp) {
-      bList[[ii]] <- lapply(bList[[ii]], function(x) x$ttt); tList[[ii]] <- lapply(tList[[ii]], function(x) x$ttt)
-      varList[[ii]] <- mapply(function(x, y) ifelse((abs(x)<tolL) | (abs(y)<tolL), 0, (x/y)^2), bList[[ii]], tList[[ii]], SIMPLIFY = FALSE)  # variances
-      if(exclude) for (jj in 1:nSubj[ii]) varList[[ii]][[jj]][varList[[ii]][[jj]] < tolL] <- tolU  # replace those 0 variances with a big number
-   }
-   
-   if(anaType==3) {
-      for(ii in 1:nLevel) {
-      bList[[ii]] <- lapply(bList[[ii]], function(x) x$ttt); tList[[ii]] <- lapply(tList[[ii]], function(x) x$ttt)
-      varList[[ii]] <- mapply(function(x, y) ifelse((abs(x)<tolL) | (abs(y)<tolL), 0, (x/y)^2), bList[[ii]], tList[[ii]], SIMPLIFY = FALSE)  # variances
-      if(exclude) for (jj in 1:nSubj[1]) varList[[ii]][[jj]][varList[[ii]][[jj]] < tolL] <- tolU  # replace those 0 variances with a big number
+   if(lop$anaType==1 | lop$anaType==2 | lop$anaType==4) {
+      for(ii in 1:lop$nGrp) {
+         lop$bList[[ii]] <- lapply(lop$bList[[ii]], function(x) x$ttt); 
+         lop$tList[[ii]] <- lapply(lop$tList[[ii]], function(x) x$ttt)
+         lop$varList[[ii]] <- mapply(function(x, y) 
+               ifelse((abs(x)<tolL) | (abs(y)<tolL), 0, (x/y)^2), 
+               lop$bList[[ii]], lop$tList[[ii]], SIMPLIFY = FALSE)  # variances
+         if(exclude) {
+            for (jj in 1:lop$nSubj[ii]) { 
+               lop$varList[[ii]][[jj]][lop$varList[[ii]][[jj]] < tolL] <- tolU  
+                              # replace those 0 variances with a big number
+            }
+         }
       }
-      contrBList <- mapply("-", bList[[1]], bList[[2]], SIMPLIFY = FALSE)
-      contrVarList <- mapply("+", varList[[1]], varList[[2]], SIMPLIFY = FALSE)
    }
    
-   rm(tList)
+   if(lop$anaType==3) {
+      for(ii in 1:lop$nLevel) {
+         lop$bList[[ii]] <- lapply(lop$bList[[ii]], function(x) x$ttt); 
+         lop$tList[[ii]] <- lapply(lop$tList[[ii]], function(x) x$ttt)
+         lop$varList[[ii]] <- 
+            mapply(function(x, y) 
+                   ifelse((abs(x)<tolL) | (abs(y)<tolL), 0, (x/y)^2), 
+                   lop$bList[[ii]], lop$tList[[ii]], SIMPLIFY = FALSE)  
+                                                   # variances
+         if(exclude) {
+            for (jj in 1:lop$nSubj[1]) 
+               lop$varList[[ii]][[jj]][lop$varList[[ii]][[jj]] < tolL] <- tolU  
+                                    # replace those 0 variances with a big number
+         }
+      }
+      contrBList <- mapply("-", lop$bList[[1]], lop$bList[[2]], SIMPLIFY = FALSE)
+      contrVarList <- mapply("+", lop$varList[[1]], lop$varList[[2]], 
+                              SIMPLIFY = FALSE)
+   }
    
-   #if(anaType==4) nBrick  <- 4*nGrp+(anyCov)*2*nCov+2+2*sum(nSubj)*resZout else nBrick <- 4*nGrp+(anyCov)*2*nCov+2*sum(nSubj)*resZout
-   # each subject has two number: one for lambda, and the other, deviation, for outlier identificaiton - need to do the same for type 4
+   #rm(lop$tList)
+   lop$tList <- list();
    
-   nBrick0 <- 4*nGrp+(anyCov)*2*nCov   # no. sub-bricks in the main output
-   nBrick <- 4*nGrp+(anyCov)*2*nCov+2*sum(nSubj)*resZout  # total sub-bricks in all output
-   if(anaType==4) {nBrick0 <- nBrick0+4; nBrick <- nBrick+4}  # two more for anaType==4
-      
-   if(anaType==1 | anaType==2 | anaType==4) comArr <- array(c(unlist(c(bList)), unlist(c(varList))), dim=c(myDim[1:3], sum(nFiles)))
-   if(anaType==3) comArr <- array(c(unlist(c(contrBList)), unlist(c(contrVarList))), dim=c(myDim[1:3], sum(nFiles)))
+   if(!identical(grep("orig", lop$bFN[[1]][1]), integer(0))) 
+      dataView <- "orig"  # input files in orig view
+   if(!identical(grep("tlrc", lop$bFN[[1]][1]), integer(0))) 
+      dataView <- "tlrc"  # input files in tlrc view
+   dataOrient <- system(sprintf("@GetAfniOrient %s", lop$bFN[[1]][1]), 
+                        intern = TRUE)
 
-   rm(bList, varList)
+   anyCov <- !is.null(lop$covFN);
+   
+   # each subject has two number: one for lambda, and the other, deviation, 
+   # for outlier identificaiton - need to do the same for type 4
+   
+   nBrick0 <- 4*lop$nGrp+(anyCov)*2*lop$nCov   
+                        # no. sub-bricks in the main output
+   nBrick <- 4*lop$nGrp+(anyCov)*2*lop$nCov+2*sum(lop$nSubj)*lop$resZout  
+                        # total sub-bricks in all output
+   if(lop$anaType==4) {
+      nBrick0 <- nBrick0+4; nBrick <- nBrick+4
+   }  # two more for lop$anaType==4
+      
+   if(lop$anaType==1 | lop$anaType==2 | lop$anaType==4) {
+      comArr <- array(c(unlist(c(lop$bList)), unlist(c(lop$varList))), 
+                        dim=c(lop$myDim[1:3], sum(lop$nFiles)))
+   }
+   if(lop$anaType==3) {
+      comArr <- array(c(unlist(c(contrBList)), unlist(c(contrVarList))), 
+                        dim=c(lop$myDim[1:3], sum(lop$nFiles)))
+   }
+   
+   lop$bList <- list();
+   lop$varList <- list();
    
    # mask out the junk: one slice at a time due to potential memory issue  
-   if(as.logical(masked)) { for (kk in 1:myDim[3]) 
-      comArr[,,kk,] <- array(apply(comArr[,,kk,], 3, function(x) x*maskData[,,kk,1]), dim=c(myDim[1:2],sum(nFiles)))
-      rm(maskData)
+   if(!is.null(lop$maskFN)) { 
+      #str(lop$maskData)
+      #str(comArr)
+      for (kk in 1:lop$myDim[3]) {
+         comArr[,,kk,] <- 
+            array(apply(comArr[,,kk,], 3, 
+                        function(x) x*lop$maskData[,,kk,1]), 
+                        dim=c(lop$myDim[1:2],sum(lop$nFiles)))
+      }
+      #rm(lop$maskData)
+      lop$maskData <- list();
    }
 
-   outArr <- array(0, dim=c(myDim[1:3], nBrick))
-   #outArr <- array(0, dim=c(myDim[1:3], nBrick0)) 
-   #if(resZout==1) outArrRes <- array(0, dim=c(myDim[1:3], 2*sum(nSubj)))
-   outData<-vector(mode="numeric", length= nBrick)  # initialization for use in runRMA: 3 beta's + 3 z-scores
+   outArr <- array(0, dim=c(lop$myDim[1:3], nBrick))
+   outData<-vector(mode="numeric", length= nBrick)  
+                     # initialization for use in runRMA: 3 beta's + 3 z-scores
 
-   print("-----------------")
-#   oTh <- as.numeric(readline("Outlier definition: how much in unit of standard deviation (e.g., 1, 1.5, 2)? ")) 
-   
-   print(sprintf("Totally %i slices in the data.", myDim[3]))
-   print("-----------------")
-   print("Starting to analyze data slice by slice...")
+   if (lop$verb) {
+      print("-----------------")
+      print(sprintf("Totally %i slices in the data.", lop$myDim[3]))
+      print("-----------------")
+      print("Starting to analyze data slice by slice...")
+   }
+
    # single processor
    
-   if(anaType==4) {
-      if(nNodes==1) for (ii in 1:myDim[3]) {
-         outArr[,,ii,] <- aperm(apply(comArr[,,ii,], c(1,2), runRMA, nGrp=nGrp, n=c(nSubj[1], sum(nSubj)), p=dim(xMat)[2], xMat=xMat, outData=outData, 
-            mema=rmaB2, lapMod=lapMod, KHtest=KHtest, nNonzero=nNonzero, nCov=nCov, nBrick=nBrick, anaType=anaType, resZout=resZout, tol=tolL), c(2,3,1))
-         cat("Z slice #", ii, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
-      }
+   if(lop$anaType==4) {
+      if(lop$nNodes==1) 
+         for (ii in 1:lop$myDim[3]) {
+            outArr[,,ii,] <- aperm(apply(comArr[,,ii,], c(1,2), runRMA, 
+               nGrp=lop$nGrp, n=c(lop$nSubj[1], sum(lop$nSubj)), 
+               p=dim(lop$xMat)[2], xMat=lop$xMat, outData=outData, 
+               mema=rmaB2, lapMod=lop$lapMod, KHtest=lop$KHtest, 
+               nNonzero=lop$nNonzero, nCov=lop$nCov, nBrick=nBrick, 
+               anaType=lop$anaType, resZout=lop$resZout, tol=tolL), 
+               c(2,3,1))
+            cat(  "Z slice #", ii, "done: ", 
+                  format(Sys.time(), "%D %H:%M:%OS3"), "\n")
+         }
    
       # multi-processing
-      if(nNodes>1) {
+      if(lop$nNodes>1) {
          libLoad('snow')
-         cl <- makeCluster(nNodes, type = "SOCK")
-         for(ii in 1:myDim[3]) {
-            outArr[,,ii,] <- aperm(parApply(cl, comArr[,,ii,], c(1,2), runRMA, nGrp=nGrp, n=c(nSubj[1], sum(nSubj)), p=dim(xMat)[2], xMat=xMat, outData=outData, 
-               mema=rmaB2, lapMod=lapMod, KHtest=KHtest, nNonzero=nNonzero, nCov=nCov, nBrick=nBrick, anaType=anaType, resZout=resZout, tol=tolL), c(2,3,1))
-            cat("Z slice #", ii, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
+         cl <- makeCluster(lop$nNodes, type = "SOCK")
+         for(ii in 1:lop$myDim[3]) {
+            outArr[,,ii,] <- aperm(parApply(cl, comArr[,,ii,], c(1,2), 
+                  runRMA, nGrp=lop$nGrp, n=c(lop$nSubj[1], sum(lop$nSubj)), 
+                  p=dim(lop$xMat)[2], xMat=lop$xMat, outData=outData, 
+                  mema=rmaB2, lapMod=lop$lapMod, KHtest=lop$KHtest, 
+                  nNonzero=lop$nNonzero, nCov=lop$nCov, nBrick=nBrick, 
+                  anaType=lop$anaType, resZout=lop$resZout, tol=tolL), 
+                  c(2,3,1))
+            cat("Z slice #", ii, "done: ", 
+                  format(Sys.time(), "%D %H:%M:%OS3"), "\n")
          }
          stopCluster(cl)
-      }  # if(nNodes>1)
+      }  # if(lop$nNodes>1)
    } else {
-      if(nNodes==1) for (ii in 1:myDim[3]) {
-         outArr[,,ii,] <- aperm(apply(comArr[,,ii,], c(1,2), runRMA, nGrp=nGrp, n=sum(nSubj), p=dim(xMat)[2], xMat=xMat, outData=outData, 
-            mema=rmaB, lapMod=lapMod, KHtest=KHtest, nNonzero=nNonzero, nCov=nCov, nBrick=nBrick, anaType=anaType, resZout=resZout, tol=tolL), c(2,3,1))
-         cat("Z slice #", ii, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
+      if(lop$nNodes==1) for (ii in 1:lop$myDim[3]) {
+         outArr[,,ii,] <- aperm(apply(comArr[,,ii,], c(1,2), runRMA, 
+               nGrp=lop$nGrp, n=sum(lop$nSubj), 
+               p=dim(lop$xMat)[2], xMat=lop$xMat, 
+               outData=outData, mema=rmaB, lapMod=lop$lapMod, 
+               KHtest=lop$KHtest, nNonzero=lop$nNonzero, nCov=lop$nCov, 
+               nBrick=nBrick, anaType=lop$anaType, resZout=lop$resZout, 
+               tol=tolL), c(2,3,1))
+         cat("Z slice #", ii, "done: ", 
+               format(Sys.time(), "%D %H:%M:%OS3"), "\n")
       }
    
       # multi-processing
-      if(nNodes>1) {
+      if(lop$nNodes>1) {
          libLoad('snow')
-         cl <- makeCluster(nNodes, type = "SOCK")
-         for(ii in 1:myDim[3]) {
-            outArr[,,ii,] <- aperm(parApply(cl, comArr[,,ii,], c(1,2), runRMA, nGrp=nGrp, n=sum(nSubj), p=dim(xMat)[2], xMat=xMat, outData=outData, 
-               mema=rmaB, lapMod=lapMod, KHtest=KHtest, nNonzero=nNonzero, nCov=nCov, nBrick=nBrick, anaType=anaType, resZout=resZout, tol=tolL), c(2,3,1))
-            cat("Z slice #", ii, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
+         cl <- makeCluster(lop$nNodes, type = "SOCK")
+         for(ii in 1:lop$myDim[3]) {
+            outArr[,,ii,] <- aperm(parApply(cl, comArr[,,ii,], c(1,2), runRMA, 
+                  nGrp=lop$nGrp, n=sum(lop$nSubj), p=dim(lop$xMat)[2], 
+                  xMat=lop$xMat, 
+                  outData=outData, mema=rmaB, lapMod=lop$lapMod, 
+                  KHtest=lop$KHtest, nNonzero=lop$nNonzero, nCov=lop$nCov, 
+                  nBrick=nBrick, anaType=lop$anaType, resZout=lop$resZout, 
+                  tol=tolL), c(2,3,1))
+            cat("Z slice #", ii, "done: ", 
+                  format(Sys.time(), "%D %H:%M:%OS3"), "\n")
          }
          stopCluster(cl)
-      }  # if(nNodes>1)
-   } # if(anaType==4)
+      }  # if(lop$nNodes>1)
+   } # if(lop$anaType==4)
 
    print(sprintf("Analysis finished: %s", format(Sys.time(), "%D %H:%M:%OS3")))
    
    print("#++++++++++++++++++++++++++++++++++++++++++++")
 
-   for(ii in 1:nGrp) {
-      if(ii==1) outLabel <- paste(sprintf("%s:b", grpLab[[ii]])) else
-         outLabel <- append(outLabel, sprintf("%s:b", grpLab[[ii]]))
-      if(KHtest) outLabel <- append(outLabel, sprintf("%s:t", grpLab[[ii]])) else
-      outLabel <- append(outLabel, sprintf("%s:Z", grpLab[[ii]]))
+   for(ii in 1:lop$nGrp) {
+      if(ii==1) {
+         outLabel <- paste(sprintf("%s:b", lop$grpLab[[ii]])) 
+      } else {
+         outLabel <- append(outLabel, sprintf("%s:b", lop$grpLab[[ii]]))
+      }
+      if(lop$KHtest) {
+         outLabel <- append(outLabel, sprintf("%s:t", lop$grpLab[[ii]])) 
+      } else {
+         outLabel <- append(outLabel, sprintf("%s:Z", lop$grpLab[[ii]]))
+      }
    }
-   if (nGrp==2) {
-      outLabel <- append(outLabel, sprintf("%s-%s:b", grpLab[[2]],grpLab[[1]]))
-      if(KHtest) outLabel <- append(outLabel, sprintf("%s-%s:t", grpLab[[2]],grpLab[[1]])) else
-      outLabel <- append(outLabel, sprintf("%s-%s:Z", grpLab[[2]],grpLab[[1]]))
-   } # if (nGrp==2)
+   if (lop$nGrp==2) {
+      outLabel <- append(outLabel, sprintf("%s-%s:b", 
+                         lop$grpLab[[2]],lop$grpLab[[1]]))
+      if(lop$KHtest) {
+         outLabel <- append(outLabel, sprintf("%s-%s:t", 
+                            lop$grpLab[[2]],lop$grpLab[[1]])) 
+      } else {
+         outLabel <- append(outLabel, sprintf("%s-%s:Z", 
+                            lop$grpLab[[2]],lop$grpLab[[1]]))
+      }
+   } # if (lop$nGrp==2)
    
-   if(anyCov) for(ii in 1:nCov) {
-      outLabel <- append(outLabel, sprintf("%s:b", covName[ii]))
-      if(KHtest) outLabel <- append(outLabel, sprintf("%s:t", covName[ii])) else
-      outLabel <- append(outLabel, sprintf("%s:Z", covName[ii]))
+   if(anyCov) for(ii in 1:lop$nCov) {
+      outLabel <- append(outLabel, sprintf("%s:b", lop$covName[ii]))
+      if(lop$KHtest) {
+         outLabel <- append(outLabel, sprintf("%s:t", lop$covName[ii])) 
+      } else {
+         outLabel <- append(outLabel, sprintf("%s:Z", lop$covName[ii]))
+      }
    } 
    
-   if(anaType==4) {for(ii in 1:nGrp) {
-      #outLabel <- append(outLabel, "tau1^2")
-      #outLabel <- append(outLabel, "tau2^2")
-      outLabel <- append(outLabel, sprintf("%s:tau^2", grpLab[[ii]]))
-      outLabel <- append(outLabel, sprintf("%s:QE", grpLab[[ii]]))
+   if(lop$anaType==4) {
+      for(ii in 1:lop$nGrp) {
+         outLabel <- append(outLabel, sprintf("%s:tau^2", lop$grpLab[[ii]]))
+         outLabel <- append(outLabel, sprintf("%s:QE", lop$grpLab[[ii]]))
       }
       outLabel <- append(outLabel, "tau1^2>tau2^2")
       outLabel <- append(outLabel, "tau2^2>tau1^2")
@@ -1141,66 +1976,96 @@ nGrp <- as.integer(readline("Number of groups (1 or 2)? "))
       outLabel <- append(outLabel, "QE:Chisq")  
    }
    
-   if(resZout==1) for(ii in 1:nGrp) for(jj in 1:nSubj[ii]) {
+   if(lop$resZout==1) for(ii in 1:lop$nGrp) for(jj in 1:lop$nSubj[ii]) {
       if(ii==1 & jj==1) {
-         iccLabel  <- paste(sprintf("%s-lambda", subjLab[[ii]][[jj]])) 
-         resZLabel <- paste(sprintf("%s-Res:Z", subjLab[[ii]][[jj]]))
+         iccLabel  <- paste(sprintf("%s-lambda", lop$subjLab[[ii]][[jj]])) 
+         resZLabel <- paste(sprintf("%s-Res:Z", lop$subjLab[[ii]][[jj]]))
       } else {
-         iccLabel  <- append(iccLabel, sprintf("%s-lambda", subjLab[[ii]][[jj]]))
-         resZLabel <- append(resZLabel, sprintf("%s-Res:Z", subjLab[[ii]][[jj]]))
+         iccLabel  <- append(iccLabel, sprintf("%s-lambda", 
+                              lop$subjLab[[ii]][[jj]]))
+         resZLabel <- append(resZLabel, sprintf("%s-Res:Z", 
+                              lop$subjLab[[ii]][[jj]]))
       }  
    }   
 
    ############ NEED TO MODIFY HERE!!!!!!!!!!!!!!!!!!############################
-   # t and chi-sq for QE with df = sum(nFiles)/2 - nGrp (need changes later with more complicated models
+   # t and chi-sq for QE with df = sum(lop$nFiles)/2 - lop$nGrp 
+   # (need changes later with more complicated models
    
-   nDF <- sum(nFiles)/2-nGrp-nCov
+   nDF <- sum(lop$nFiles)/2-lop$nGrp-lop$nCov
    
    statpar <- "3drefit"
-   if (KHtest) for (ii in 1:(2*nGrp-1)) statpar <- paste(statpar, " -substatpar ", 2*(ii-1)+1, " fitt ", nDF) else
-      for (ii in 1:(2*nGrp-1)) statpar <- paste(statpar, " -substatpar ", 2*(ii-1)+1, " fizt")
-   
-   if(anyCov) if (KHtest) for(ii in 1:nCov) statpar <- paste(statpar, " -substatpar ", nBrick0-3-2*(nCov-ii), " fitt ", nDF) else
-      for(ii in 1:nCov) statpar <- paste(statpar, " -substatpar ", nBrick0-3-2*(nCov-ii), " fizt")
-   
-   if(anaType==4) {
-      statpar <- paste(statpar, " -substatpar ", nBrick0-5, " fict ", nSubj[1]-nCov) # Chi-sq for QE: group 1
-      statpar <- paste(statpar, " -substatpar ", nBrick0-3, " fict ", nSubj[2]-nCov) # Chi-sq for QE: group 2
-   } else statpar <- paste(statpar, " -substatpar ", nBrick0-1, " fict ", nDF)
+   if (lop$KHtest) {
+      for (ii in 1:(2*lop$nGrp-1)) 
+         statpar <- paste(statpar, " -substatpar ", 2*(ii-1)+1, " fitt ", nDF) 
+   } else {
+      for (ii in 1:(2*lop$nGrp-1)) 
+         statpar <- paste(statpar, " -substatpar ", 2*(ii-1)+1, " fizt")
+   }
+   if(anyCov) {
+      if (lop$KHtest) {
+         for(ii in 1:lop$nCov) 
+            statpar <- paste( statpar, " -substatpar ", 
+                              nBrick0-3-2*(lop$nCov-ii), " fitt ", nDF) 
+      } else {
+         for(ii in 1:lop$nCov) 
+            statpar <- paste(statpar, " -substatpar ", 
+                             nBrick0-3-2*(lop$nCov-ii), " fizt")
+      }
+   }
+   if(lop$anaType==4) {
+      statpar <- paste(statpar, " -substatpar ", nBrick0-5, " fict ", 
+                       lop$nSubj[1]-lop$nCov) # Chi-sq for QE: group 1
+      statpar <- paste(statpar, " -substatpar ", nBrick0-3, " fict ", 
+                       lop$nSubj[2]-lop$nCov) # Chi-sq for QE: group 2
+   } else {
+      statpar <- paste(statpar, " -substatpar ", nBrick0-1, " fict ", nDF)
+   }
    
    # last brick: QE with chi-sq
  
    # Z-score for residuals
-   if(resZout==1) {
-      statparICC <- "3drefit"; statparResZ <- "3drefit"
-      for(ii in 1:sum(nSubj)) statparResZ <- paste(statparResZ, " -substatpar ", ii-1, " fizt")
+   if(lop$resZout==1) {
+      statparICC <- "3drefit"; 
+      statparResZ <- "3drefit"
+      for(ii in 1:sum(lop$nSubj)) 
+         statparResZ <- paste(statparResZ, " -substatpar ", ii-1, " fizt")
    }
 
    #rm(comArr)
-   #outArr[outArr[1:(2*sum(nSubj))]>tTop] <- tTop  # Avoid outflow!!!!
-   #outArr[outArr[1:(2*sum(nSubj))] < (-tTop)] <- -tTop  # Avoid outflow!!!!
-   write.AFNI(outFN, outArr[,,,1:nBrick0], outLabel, note=myNote, origin=myOrig, delta=myDelta, idcode="whatever")   
+   #outArr[outArr[1:(2*sum(lop$nSubj))]>tTop] <- tTop  # Avoid outflow!!!!
+   #outArr[outArr[1:(2*sum(lop$nSubj))] < (-tTop)] <- -tTop  # Avoid outflow!!!!
+   if (lop$verb) cat ('outLabel', outLabel,'\n');
+   write.AFNI(lop$outFN, outArr[,,,1:nBrick0], 
+                  outLabel, note=lop$myNote, origin=lop$myOrig, 
+                  delta=lop$myDelta, idcode="whatever")
    if (dataView=="tlrc") statpar <- paste(statpar, " -view ", dataView)     
-   statpar <- paste(statpar, " -addFDR -newid -orient ", dataOrient, " ", outFN)
+   statpar <- paste( statpar, " -addFDR -newid -orient ", 
+                     dataOrient, " ", lop$outFN)                   
+   if (lop$verb) cat ('statpar', statpar, '\n')
    system(statpar)
 
-   #if(resZout==1) {
-   #   write.AFNI(resFN, outArr[,,,(nBrick0+1):nBrick], resLabel, note=myNote, origin=myOrig, delta=myDelta, idcode="whatever")
-   #   statparRes <- paste(statparRes, " -view tlrc -addFDR -newid ", resFN)
-   #   system(statparRes)
-   #}
-   
-   if(resZout==1) {
-      write.AFNI(icc_FN, outArr[,,,seq((nBrick0+1), nBrick, by=2)], iccLabel, note=myNote, origin=myOrig, delta=myDelta, idcode="whatever")
-      write.AFNI(resZ_FN, outArr[,,,seq((nBrick0+2), nBrick, by=2)], resZLabel, note=myNote, origin=myOrig, delta=myDelta, idcode="whatever")
-      if (dataView=="tlrc") {statparICC  <- paste(statparICC, " -view ", dataView); statparResZ <- paste(statparResZ, " -view ", dataView) } 
-      statparICC  <- paste(statparICC, " -newid -orient ", dataOrient, " ", icc_FN)
-      statparResZ <- paste(statparResZ, " -addFDR -newid ", dataOrient, " ", resZ_FN)
+   if(lop$resZout==1) {
+      write.AFNI(lop$icc_FN, outArr[,,,seq((nBrick0+1), nBrick, by=2)], iccLabel,
+                 note=lop$myNote, origin=lop$myOrig, delta=lop$myDelta, 
+                 idcode="whatever")
+      write.AFNI(lop$resZ_FN, outArr[,,,seq((nBrick0+2), nBrick, by=2)], 
+                 resZLabel, note=lop$myNote, origin=lop$myOrig, 
+                 delta=lop$myDelta, idcode="whatever")
+      if (dataView=="tlrc") {
+         statparICC  <- paste(statparICC, " -view ", dataView); 
+         statparResZ <- paste(statparResZ, " -view ", dataView) 
+      } 
+      statparICC  <- paste(statparICC, " -newid -orient ", 
+                           dataOrient, " ", lop$icc_FN)
+      statparResZ <- paste(statparResZ, " -addFDR -newid  -orient ", 
+                           dataOrient, " ", lop$resZ_FN)
       system(statparICC)
       system(statparResZ)
    }
-   
+
+      
    geterrmessage()
 
- 
-# } # if (nGrp==1)
+
+
