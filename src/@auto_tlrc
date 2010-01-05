@@ -825,6 +825,20 @@ APAR_MODE:
                -rmode ${resam}  
    if ( $KeepTmp == 0) rm -f ${tmppref}*+????.???? >& /dev/null
    
+   set DP_bug = 0
+   if ($DP_bug) then
+      #copy the WARPDRIVE_MATVEC_ fields to the zero unpadded dude
+      3drefit  -atrcopy ${ref_pref_nopad}${ref_view} \
+               WARPDRIVE_INPUT_IDCODE ${tt_pref}${ref_view}
+      3drefit  -atrcopy ${ref_pref_nopad}${ref_view} \
+               WARPDRIVE_INPUT_NAME ${tt_pref}${ref_view}
+      3drefit  -atrcopy ${ref_pref_nopad}${ref_view} \
+               WARPDRIVE_BASE_IDCODE ${tt_pref}${ref_view}
+      3drefit  -atrcopy ${ref_pref_nopad}${ref_view} \
+               WARPDRIVE_MATVEC_FOR_000000 ${tt_pref}${ref_view}
+      3drefit  -atrcopy ${ref_pref_nopad}${ref_view} \
+               WARPDRIVE_MATVEC_INV_000000 ${tt_pref}${ref_view}
+   endif
    3dNotes  -a "Dataset created via: `basename $0` $argv[*]" \
             -h "Dataset created via: `basename $0` $argv[*]" \
             ${tt_pref}${ref_view}

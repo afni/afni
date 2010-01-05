@@ -66,7 +66,7 @@ parse.AFNI.name <- function(filename, verb = 0) {
   return(an)
 }
 
-exists.AFNI <- function(an) {
+exists.AFNI.name <- function(an) {
    if (is.character(an)) an <- parse.AFNI.name(an);
    
    ans <- 0
@@ -76,6 +76,26 @@ exists.AFNI <- function(an) {
        file.exists(paste(an$brik,'.gz', sep='')) ||
        file.exists(paste(an$brik,'.Z', sep=''))) ans <- ans + 2;
    return(ans);
+}
+
+prefix.AFNI.name <- function(an) {
+   if (is.character(an)) an <- parse.AFNI.name(an);
+   return(an$prefix);
+}
+
+view.AFNI.name <- function(an) {
+   if (is.character(an)) an <- parse.AFNI.name(an);
+   return(an$view);
+}
+
+pv.AFNI.name <- function(an) {
+   if (is.character(an)) an <- parse.AFNI.name(an);
+   return(paste(an$prefix,an$view,sep=''));
+}
+
+head.AFNI.name <- function(an) {
+   if (is.character(an)) an <- parse.AFNI.name(an);
+   return(paste(an$head,an$view,sep=''));
 }
 
 uncompress.AFNI <- function(an, verb = 1) {
@@ -112,12 +132,24 @@ show.AFNI.name <- function(an) {
         'brsel=', an$brsel, '\n',
         'rosel=', an$rosel, '\n',
         'rasel=', an$rasel, '\n',
-        'exist=', exists.AFNI(an), '\n');
+        'exist=', exists.AFNI.name(an), '\n');
 }
 
 #------------------------------------------------------------------
 # Functions to parse command-line arguments
 #------------------------------------------------------------------
+value.AFNI.args <- function(name, ops) {
+   ifnd <- which(name == names(ops));
+   if (length(ifnd)) {
+      vv <- vector(typeof(ops[ifnd][[1]]));
+      for (i in 1:length(ifnd)) {
+         vv <- c (vv,ops[i][[1]])
+      }
+      return(vv);
+   } 
+   return(NULL);
+}
+
 show.AFNI.args <- function (ops) {
    if (is.null(ops)) {
       cat ('NULL options\n');
@@ -463,7 +495,7 @@ read.AFNI <- function(filename, verb = 0) {
     }
     an$head <- paste('___R.read.AFNI.',basename(an$head), sep = '');
     an$brik <- paste('___R.read.AFNI.',basename(an$brik), sep = '');
-    if (!(exists.AFNI(an$head))) {
+    if (!(exists.AFNI.name(an$head))) {
       warning(paste("Failed to create:   ", an$head, an$brik, '\n'),
               immediate. = TRUE);
       return(NULL);
@@ -471,7 +503,7 @@ read.AFNI <- function(filename, verb = 0) {
   }
   
   if (verb) { cat ('Checking existence\n'); }
-  if (!(exists.AFNI(an$head))) {
+  if (!(exists.AFNI.name(an$head))) {
     warning(paste("Failed to read:   ", an$head, an$brik, '\n'),
               immediate. = TRUE);
     return(NULL);
