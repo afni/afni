@@ -887,8 +887,6 @@ read.MEMA.opts.interactive <- function (verb = 0) {
          lop$covData <- 
             readMultiFiles(lop$nCov, 1, "covariate")  # 1: assuming no header  
       }
-   str(lop$xMat)
-   str(lop$covData)
 
       print("Each covariate should be centered around its mean or some other meaningful value so that group effect")
       print("can be interpreted with the covariate being at the mean or other user-specified value. Otherwise")
@@ -924,8 +922,7 @@ read.MEMA.opts.interactive <- function (verb = 0) {
                                                 lop$centerVal)))
             }
          } # if(lop$centerType2 == 0 | lop$centerType2 == 1)
-   str(lop$xMat)
-   str(lop$covData) 
+
          if(lop$centerType2 == 2 | lop$centerType2 == 3) {  # different center 
             if(lop$centerType == 0) lop$covData <- rbind(apply(as.matrix(lop$covData[1:lop$nSubj[1],]), 2, scale, scale=F), 
                apply(as.matrix(lop$covData[(lop$nSubj[1]+1):(lop$nSubj[1]+lop$nSubj[2]),]), 2, scale, scale=F))
@@ -957,8 +954,7 @@ read.MEMA.opts.interactive <- function (verb = 0) {
                               # add names for those interactions
          }
       }
-   str(lop$xMat)
-   str(lop$covData)
+
       #browser()
       lop$xMat <- as.matrix(cbind(lop$xMat, lop$covData))           
    } else {lop$nCov <- 0; lop$xMat <- as.matrix(lop$xMat)}
@@ -1046,8 +1042,6 @@ MEMA.parse.covariates_center <- function (lop, op) {
       lop$centerVal <- op;
       lop$centerType <- 1
    }
-   str(lop$centerType)
-   str(lop$centerVal)
    
    return(lop);
 }
