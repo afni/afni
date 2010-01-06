@@ -1,4 +1,21 @@
 #!/bin/tcsh -f
 set pp = $0:h
 #Run R in script more. Better than R CMD BATCH
-Rscript $pp/3dMEMA.R $*
+
+if ($#argv == 0) then
+   set arglist = (-help)
+else
+   set noglob
+   set arglist = ($*)
+   unset nogolb
+endif
+
+if ( -f  $pp/3dMEMA.R) then
+   Rscript $pp/3dMEMA.R $arglist
+else if ( -f  $pp/R_scripts/3dMEMA.R) then
+   Rscript $pp/R_scripts/3dMEMA.R $arglist
+else 
+   echo "** Error 3dMEMA:"
+   echo "3dMEMA.R not found in $pp or $pp/R_scripts"
+   echo ""
+endif
