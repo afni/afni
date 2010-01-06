@@ -17,6 +17,7 @@ PARSE:
    set ref_in = ''
    set anat_in = ''
    set apar_mode = 0
+   set apar_copyWarpinfo = 0
    set KeepTmp = 0
    set verb = 0
    set pd = $pd_default
@@ -183,6 +184,12 @@ PARSE:
             set donext = 0   
          endif   
       endif
+      
+      if ($donext && "$argv[$cnt]" == "-copy_warp") then
+         set apar_copyWarpinfo = 1
+         set donext = 0		
+      endif
+      
       if (  $donext && \
             (  "$argv[$cnt]" == "-pad_base" || \
                "$argv[$cnt]" == "-pad_input" ) ) then
@@ -713,21 +720,31 @@ AUTO_TLRC_MODE:
       endif
    end
    
-   #apply same warp for mask of dataset and 
-   #  use mask to get rid of edge artifacts
-   3dcalc   -a "${rs_pref}${anat_view}" \
-            -expr "step(a)*10000" -prefix ${tmppref}_reg_braintlrcstep
-   3dWarp   -matparent ${tmppref}_reg_warpdriveout${anat_view} \
-            -linear -prefix ${tmppref}_reg_braintlrcmask \
-            ${tmppref}_reg_braintlrcstep${anat_view} 
-   set tt_prefpad = ${tmppref}__pad${pd}_${tt_pref}
-   3dcalc   -a "${tmppref}_reg_braintlrcmask${anat_view}" \
-            -b "${tmppref}_reg_warpdriveout${anat_view}" \
-            -expr "step(a-5000)*b" -prefix ${tt_prefpad}
-   if ( `@CheckForAfniDset ${tt_prefpad}${anat_view}` != 2 ) then
-      echo "Error: Failed to create tlrced brain"
-      set estat = 1
-      goto END
+   
+   if (0) then
+      ##### HERE IS WHERE YOU SHOULD DO THE XFORM ORIG BUSINESS
+      # Apply padding to the original anatomy
+      
+      # Warp the padded anatomy, no masking necessary, use output
+      # file name to be ${tt_prefpad}${anat_view}
+      
+   else
+      #apply same warp for mask of dataset and 
+      #  use mask to get rid of edge artifacts
+      3dcalc   -a "${rs_pref}${anat_view}" \
+               -expr "step(a)*10000" -prefix ${tmppref}_reg_braintlrcstep
+      3dWarp   -matparent ${tmppref}_reg_warpdriveout${anat_view} \
+               -linear -prefix ${tmppref}_reg_braintlrcmask \
+               ${tmppref}_reg_braintlrcstep${anat_view} 
+      set tt_prefpad = ${tmppref}__pad${pd}_${tt_pref}
+      3dcalc   -a "${tmppref}_reg_braintlrcmask${anat_view}" \
+               -b "${tmppref}_reg_warpdriveout${anat_view}" \
+               -expr "step(a-5000)*b" -prefix ${tt_prefpad}
+      if ( `@CheckForAfniDset ${tt_prefpad}${anat_view}` != 2 ) then
+         echo "Error: Failed to create tlrced brain"
+         set estat = 1
+         goto END
+      endif
    endif
    
    UNPAD:
@@ -825,8 +842,17 @@ APAR_MODE:
                -rmode ${resam}  
    if ( $KeepTmp == 0) rm -f ${tmppref}*+????.???? >& /dev/null
    
-   set DP_bug = 0
-   if ($DP_bug) then
+   
+   if ($apar_copyWarpinfo) then
+      #If the tlrc dset with warp info is not the first in the directory,
+      #then AFNI may not be able to find appropriate warp and parent info
+      #This stuff here should help. 
+      #David Perlman got into this trouble with:
+      # @auto_tlrc -base TT_avg152T1+tlrc -input T1High+orig \
+      #             -ok_notice -suffix _ns
+      # followed by
+      # @auto_tlrc -apar T1High_ns+tlrc -input T1High+orig -suffix NONE
+      #
       #copy the WARPDRIVE_MATVEC_ fields to the zero unpadded dude
       3drefit  -atrcopy ${ref_pref_nopad}${ref_view} \
                WARPDRIVE_INPUT_IDCODE ${tt_pref}${ref_view}
@@ -838,7 +864,9 @@ APAR_MODE:
                WARPDRIVE_MATVEC_FOR_000000 ${tt_pref}${ref_view}
       3drefit  -atrcopy ${ref_pref_nopad}${ref_view} \
                WARPDRIVE_MATVEC_INV_000000 ${tt_pref}${ref_view}
+      3drefit -wpar ${ref_pref_nopad}${ref_view} ${tt_pref}${ref_view}
    endif
+   
    3dNotes  -a "Dataset created via: `basename $0` $argv[*]" \
             -h "Dataset created via: `basename $0` $argv[*]" \
             ${tt_pref}${ref_view}
