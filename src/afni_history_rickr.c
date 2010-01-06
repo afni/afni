@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 6, JAN, 2010, RCR, "thd_intlist.c", MINOR, TYPE_BUG_FIX,
+   "fixed sub-brick selection of datasets without labels (e.g. NIfTI)",
+   NULL
+ } ,
+
  { 24, DEC, 2009, RCR, "gifti_tool", MINOR, TYPE_NEW_OPT,
    "added -approx_gifti option",
    NULL

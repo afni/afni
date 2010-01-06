@@ -421,9 +421,17 @@ int is_in_labels(char *lbl, char **labels, int N_labels, int *isb)
 */
 int * MCW_get_thd_intlist( THD_3dim_dataset *dset , char *str )
 {
-   return( (dset && dset->dblk && dset->dblk->brick_lab) ? 
-            MCW_get_labels_intlist (dset->dblk->brick_lab, 
-                                    DSET_NVALS(dset), str) : NULL );
+   /* test for brick_lab is not needed, and breaks sub-brick selection
+      of NIfTI datasets                             6 Jan 2009 [rickr]
+
+      return( (dset && dset->dblk && dset->dblk->brick_lab) ? 
+               MCW_get_labels_intlist (dset->dblk->brick_lab, 
+                                       DSET_NVALS(dset), str) : NULL );
+   */
+
+   if( !dset || !dset->dblk ) return NULL;
+
+   return MCW_get_labels_intlist(dset->dblk->brick_lab, DSET_NVALS(dset), str);
 }
 
 /*
