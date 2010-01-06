@@ -18,6 +18,7 @@ PARSE:
    set anat_in = ''
    set apar_mode = 0
    set apar_copyWarpinfo = 0
+   set warp_orig_vol = 0;      
    set KeepTmp = 0
    set verb = 0
    set pd = $pd_default
@@ -26,6 +27,7 @@ PARSE:
    set rmode = 'default'
    set xform_type = 'affine_general'
    set ss_opt = ''
+   set user_res = 0
    set dxyz_list = ( 1 1 1 )
    set clpbelow = ''
    set maxite = ''
@@ -109,6 +111,7 @@ PARSE:
             set dxyz_list[1] = "$argv[$cnt]"
             set dxyz_list[2] = "$argv[$cnt]"
             set dxyz_list[3] = "$argv[$cnt]"
+            set user_res = 1
             set donext = 0   
          endif   
       endif
@@ -120,6 +123,7 @@ PARSE:
          else
             @ cnt ++
             set dxyz_list[1] = "$argv[$cnt]"
+            set user_res = 1
             set donext = 0   
          endif   
       endif
@@ -131,6 +135,7 @@ PARSE:
          else
             @ cnt ++
             set dxyz_list[2] = "$argv[$cnt]"
+            set user_res = 1
             set donext = 0   
          endif   
       endif
@@ -142,6 +147,7 @@ PARSE:
          else
             @ cnt ++
             set dxyz_list[3] = "$argv[$cnt]"
+            set user_res = 1
             set donext = 0   
          endif   
       endif
@@ -242,6 +248,10 @@ PARSE:
       endif
       if ($donext && "$argv[$cnt]" == "-no_ss") then
          set RemoveSkull = 0;      
+         set donext = 0      
+      endif
+      if ($donext && "$argv[$cnt]" == "-warp_orig_vol") then
+         set warp_orig_vol = 1;      
          set donext = 0      
       endif
       if ($donext && "$argv[$cnt]" == "-keep_view") then
@@ -721,13 +731,33 @@ AUTO_TLRC_MODE:
    end
    
    
-   if (0) then
-      ##### HERE IS WHERE YOU SHOULD DO THE XFORM ORIG BUSINESS
-      # Apply padding to the original anatomy
-      
-      # Warp the padded anatomy, no masking necessary, use output
-      # file name to be ${tt_prefpad}${anat_view}
-      
+   if ($warp_orig_vol) then
+      #Do not output the skull-stripped version, use
+      #input volume
+      if ($user_res) then
+         #force resampling of tmpgrid
+         3drename ${tmppref}_reg_warpdriveout${anat_view} \
+                  ${tmppref}_reg_warpdriveoutpreresamp${anat_view}
+         3dresample -dxyz ${dxyz_list[1]} ${dxyz_list[2]} ${dxyz_list[3]} \
+                    -inset ${tmppref}_reg_warpdriveoutpreresamp${anat_view}   \
+                    -prefix ${tmppref}_reg_warpdriveout  
+         #and copy the bloody attributes
+         3drefit  -atrcopy ${tmppref}_reg_warpdriveoutpreresamp${anat_view} \
+                  WARPDRIVE_INPUT_IDCODE ${tmppref}_reg_warpdriveout${anat_view}
+         3drefit  -atrcopy ${tmppref}_reg_warpdriveoutpreresamp${anat_view} \
+                  WARPDRIVE_INPUT_NAME ${tmppref}_reg_warpdriveout${anat_view}
+         3drefit  -atrcopy ${tmppref}_reg_warpdriveoutpreresamp${anat_view} \
+                  WARPDRIVE_BASE_IDCODE ${tmppref}_reg_warpdriveout${anat_view}
+         3drefit  -atrcopy ${tmppref}_reg_warpdriveoutpreresamp${anat_view} \
+            WARPDRIVE_MATVEC_FOR_000000 ${tmppref}_reg_warpdriveout${anat_view}
+         3drefit  -atrcopy ${tmppref}_reg_warpdriveoutpreresamp${anat_view} \
+            WARPDRIVE_MATVEC_INV_000000 ${tmppref}_reg_warpdriveout${anat_view}
+      endif
+      set tt_prefpad = ${tmppref}__pad${pd}_${tt_pref}
+      3dWarp   -matparent ${tmppref}_reg_warpdriveout${anat_view} \
+               -linear -prefix ${tt_prefpad} \
+               -gridset ${tmppref}_reg_warpdriveout${anat_view} \
+               ${anat_in} 
    else
       #apply same warp for mask of dataset and 
       #  use mask to get rid of edge artifacts
@@ -1002,6 +1032,23 @@ echo "         -no_ss means: Skull stripping should not be attempted on Dset"
 echo "         xxx means: Don't put anything, the script will strip Dset"
 echo "         No Cigar mean: Don't try that combination, it makes no sense."
 echo "               "
+echo "      -warp_orig_vol: Produce a TLRC version of the input volume, rather"
+echo "                      than a TLRC version of the skull-stripped input."
+echo "                      This option is useful if you want the skull to be "
+echo "                      preserved in the +tlrc output. "
+echo "                      The default is to produce the skull-stripped version"
+echo "                      of the input in +tlrc space."
+echo "      -dxyz MM          : Cubic voxel size of output DSET in TLRC"
+echo "                          space. Default is the resolution of the "
+echo "                          template. If you do not want your output"
+echo "                          voxels to be cubic, then use the "
+echo "                          -dx, -dy, -dz options below."
+echo "      -dx MX            : Size of voxel in the x direction"
+echo "                          (Right-Left). Default is 1mm."
+echo "      -dy MY            : Size of voxel in the y direction"
+echo "                          (Anterior-Posterior). Default is 1mm."
+echo "      -dz MZ            : Size of voxel in the z direction."
+echo "                          (Inferior-Superior). Default is 1mm."
 echo "      -pad_base  MM  :  Pad the base dset by MM mm in each directions."
 echo "                        That is needed to  make sure that datasets"
 echo "                        requiring wild rotations do not get cropped."
