@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 7, JAN, 2010, RCR, "afni-general", MICRO, TYPE_BUG_FIX,
+   "stdint.h should not be included on a SOLARIS_OLD system",
+   NULL
+ } ,
+
  { 6, JAN, 2010, RCR, "thd_intlist.c", MINOR, TYPE_BUG_FIX,
    "fixed sub-brick selection of datasets without labels (e.g. NIfTI)",
    NULL

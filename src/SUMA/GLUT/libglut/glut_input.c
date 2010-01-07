@@ -9,7 +9,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#ifndef SOLARIS_OLD
 #include <stdint.h>
+#endif
 
 #include <X11/Xlib.h>
 #if defined(__vms)
