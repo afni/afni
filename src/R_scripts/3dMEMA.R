@@ -10,7 +10,6 @@ print("SSCC/NIMH, National Institutes of Health, Bethesda MD 20892")
 print("#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
 
 #########
-##  Working version for handling covariates and residual statistics which are saved as 2 separate output file. 
 ##  type 4 (two groups with heteroskedasticity) should NOT be used when modeling with different slope across groups
 ##  Outliers can be modeled now with EFS of Laplace assumption regarding cross-subjects variability! 
 #########
@@ -565,7 +564,7 @@ runRMA <- function(  inData, nGrp, n, p, xMat, outData,
    # n[1]: # subjects in group1; n[2]: total # subjects in both groups; n[2]-n[1]: # subjects in group2   
    fullLen <- length(inData); halfLen <- fullLen/2  # remove this line by providing halfLen as function argument later?
    Y <- inData[1: halfLen]; V <- inData[(halfLen +1): fullLen]
-   if(sum(abs(Y)>tol)>nNonzero) {  # run only when there are more than 2 non-zeros in both Y and V
+   if(sum(abs(Y)>tol) >= nNonzero) {  # run only when there are more than 2 non-zeros in both Y and V
    tag <- TRUE
    if(anaType==4) try(resList <- mema(Y, V, n[1], n[2], p, X=xMat, resZout, lapMod, knha=KHtest), tag <- FALSE) else
       if(length(n)==1) try(resList <- mema(Y, V, n, p, X=xMat, resZout, lapMod, knha=KHtest), tag <- FALSE) else
@@ -634,7 +633,7 @@ runRMA <- function(  inData, nGrp, n, p, xMat, outData,
       for(ii in 1:(n[2]-n[1])) {
          outData[nBrick-2*(n[2]-n[1]-ii)-1] <- resList$lamc[ii+n[1]]   # lamda = 1-I^2
          outData[nBrick-2*(n[2]-n[1]-ii)]   <- resList$resZ[ii+n[1]]    # Z-score for residuals
-      } # from nBrick-2*(n[2]-n[1])+1 to nBrick
+      } # from nBrick-2*(nNonzeron[2]-n[1])+1 to nBrick
       } # if(resZout==0)
    } else {  # not anaType==4
    if(resZout==0) {
@@ -812,11 +811,11 @@ read.MEMA.opts.interactive <- function (verb = 0) {
    #print("-----------------")
    print("There may have missing or zero t values at some voxels in some subjects.")
    print("The following threshold would allow the program not to waste runtime on those")
-   print("voxels where most subjects have zero t-values. ")
+   print("voxels where most (e.g., 3/4 of total subjects) subjects have zero t-values. ")
    lop$nNonzero <- 
       as.integer(readline(
-                  sprintf("Minimum number of subjects with non-zero t-statistic? (0-%i, e.g., 3/4 of total subjects) ", 
-                           sum(lop$nSubj))))
+                  sprintf("Minimum number of subjects with non-zero t-statistic? (0-%i, e.g., %i) ", 
+                           sum(lop$nSubj), round(0.75*sum(lop$nSubj)) )))
    # Hartung-Knapp method with t-test?
    print("-----------------")
    print("t-statistic is a little more conservative but also more appropriate for significance testing than Z")
@@ -1849,12 +1848,13 @@ print("Use CNTL-C on Unix or ESC on GUI version of R to stop at any moment.")
    outData<-vector(mode="numeric", length= nBrick)  
                      # initialization for use in runRMA: 3 beta's + 3 z-scores
 
-   if (lop$verb) {
+#   if (lop$verb) {
       print("-----------------")
       print(sprintf("Totally %i slices in the data.", lop$myDim[3]))
       print("-----------------")
       print("Starting to analyze data slice by slice...")
-   }
+      print("-----------------")
+#   }
 
    # single processor
    
@@ -1982,9 +1982,6 @@ print("Use CNTL-C on Unix or ESC on GUI version of R to stop at any moment.")
       }  
    }   
 
-   ############ NEED TO MODIFY HERE!!!!!!!!!!!!!!!!!!############################
-   # t and chi-sq for QE with df = sum(lop$nFiles)/2 - lop$nGrp 
-   # (need changes later with more complicated models
    
    nDF <- sum(lop$nFiles)/2-lop$nGrp-lop$nCov
    
