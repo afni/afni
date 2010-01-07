@@ -150,7 +150,7 @@ value.AFNI.args <- function(name, ops) {
    return(NULL);
 }
 
-show.AFNI.args <- function (ops, verb=0) {
+show.AFNI.args <- function (ops, verb=0, adieu=FALSE) {
    if (is.null(ops)) {
       cat ('NULL options\n');
    } else {
@@ -171,6 +171,7 @@ show.AFNI.args <- function (ops, verb=0) {
          }
       }
    }
+   if (adieu) exit.AFNI(0)
 }
 
 check.AFNI.args <- function ( ops, params = NULL) {
@@ -239,7 +240,7 @@ parse.AFNI.args <- function ( args, params = NULL,
    #   cat (i, args[[i]],'\n');
    #}
    if (!is.null(params)) {
-      allowed_options <- names(params);
+      allowed_options <- sort(names(params));
       duplicate_okvec <- vector('character');
       for (i in 1:1:length(params)) {
          pl <- params[i][[1]];
