@@ -50,7 +50,9 @@
 
 /* cast int to pointer and vice-versa without warning messages */
 
+#ifndef SOLARIS_OLD
 #include <stdint.h>
+#endif
 #undef  ITOP
 #define ITOP(qw) ((void *)(intptr_t)(qw))
 #undef  PTOI
