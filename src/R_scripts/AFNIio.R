@@ -150,7 +150,7 @@ value.AFNI.args <- function(name, ops) {
    return(NULL);
 }
 
-show.AFNI.args <- function (ops) {
+show.AFNI.args <- function (ops, verb=0) {
    if (is.null(ops)) {
       cat ('NULL options\n');
    } else {
@@ -162,10 +162,12 @@ show.AFNI.args <- function (ops) {
       } else {
          cat ('whatever grinds your beans');
       }
-      cat ('User options:\n');
-      for (i in 1:length(ops)) {
-         if ((names(ops)[i] != 'allowed_options')) {
-            cat (' ', names(ops)[i], ': ', ops[[i]],'\n');
+      if (verb) {
+         cat ('User options:\n');
+         for (i in 1:length(ops)) {
+            if ((names(ops)[i] != 'allowed_options')) {
+               cat (' ', names(ops)[i], ': ', ops[[i]],'\n');
+            }
          }
       }
    }
@@ -331,11 +333,11 @@ parse.AFNI.args <- function ( args, params = NULL,
    
    if (!other_ok) {
       if (length(ops[['other']])) {
-         warning(paste('Illegal parameters on command line\n',
-                       ops['other'],'\n'),
-                       immediate. = TRUE);
-         show.AFNI.args(ops)
-         return(NULL); 
+         err.AFNI(paste('Illegal parameters on command line:\n',
+                        ops['other'],
+                        'Try -allowed_options or -help for details\n',
+                        '\n'));
+         exit.AFNI(1); 
       }
    }
    
@@ -350,6 +352,47 @@ parse.AFNI.args <- function ( args, params = NULL,
 #------------------------------------------------------------------
 #   Some utilities
 #------------------------------------------------------------------
+
+#print warnings a la AFNI
+who.called.me <- function () {
+   caller <- as.character(sys.call(-2))
+   callstr <- paste( caller[1],'(',
+                     paste(caller[2:length(caller)], collapse=','),
+                     ')', sep='')
+   return(callstr)
+}
+
+warn.AFNI <- function (str='Consider yourself warned',callstr=NULL) {
+   if (is.null(callstr)) callstr <- who.called.me()
+   cat(  '\n', 'oo Warning from: ',  callstr,':\n   ', 
+         paste(str, collapse=''),'\n', 
+       sep='');
+   invisible(caller)
+}
+
+err.AFNI <- function (str='Danger Danger Will Robinson',callstr=NULL) {
+   if (is.null(callstr)) callstr <- who.called.me()
+   cat(  '\n', '** Error from: ',  callstr,':\n   ', 
+         paste(str, collapse=''),'\n', 
+       sep='');
+}
+
+note.AFNI <- function (str='May I speak frankly?',callstr=NULL) {
+   if (is.null(callstr)) callstr <- who.called.me()
+   cat(  '\n', '** Note from: ',  callstr,':\n   ', 
+         paste(str, collapse=''),'\n', 
+       sep='');
+   invisible(caller)
+}
+
+errex.AFNI <- function (str='Alas this must end',callstr=NULL) {
+   err.AFNI(str,callstr=who.called.me())
+   exit.AFNI(stat=1)
+}
+
+exit.AFNI <- function(str='The piano has been drinking.', stat=0) {
+   quit(save='no', status = stat);
+}
 
 #return 1 if all strings in vector ss can be changed to numbers
 is.num.string <- function(ss) {
