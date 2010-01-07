@@ -854,7 +854,8 @@ read.MEMA.opts.batch <- function (args=NULL, verb = 0) {
              contrast_name  = lop$contrastName <- ops[[i]],
              verb = lop$verb <- ops[[i]],
              help = help.MEMA.opts(params, adieu=TRUE),
-             allowed_options = show.AFNI.args(ops, verb=0, adieu=TRUE)
+             allowed_options = show.AFNI.args(ops, verb=0, 
+                                              hstr="3dMEMA's",adieu=TRUE)
 
              )
    }
