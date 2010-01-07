@@ -150,11 +150,11 @@ value.AFNI.args <- function(name, ops) {
    return(NULL);
 }
 
-show.AFNI.args <- function (ops, verb=0, adieu=FALSE) {
+show.AFNI.args <- function (ops, verb=0, adieu=FALSE, hstr='') {
    if (is.null(ops)) {
       cat ('NULL options\n');
    } else {
-      cat ('Allowed Options:\n');
+      cat (hstr,'Allowed Options:\n');
       if (length(ops[['allowed_options']])) {
          for (i in 1:length(ops[['allowed_options']])) {
             cat (' ', ops[['allowed_options']][i], '\n');
@@ -163,7 +163,7 @@ show.AFNI.args <- function (ops, verb=0, adieu=FALSE) {
          cat ('whatever grinds your beans');
       }
       if (verb) {
-         cat ('User options:\n');
+         cat (hstr, 'User options:\n');
          for (i in 1:length(ops)) {
             if ((names(ops)[i] != 'allowed_options')) {
                cat (' ', names(ops)[i], ': ', ops[[i]],'\n');
