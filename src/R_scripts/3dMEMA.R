@@ -513,7 +513,7 @@ Please consider citing the following if this program is useful for you:
 
 
 #The help function for 3dMEMA batch (command line mode)
-help.MEMA.opts <- function (params, alpha = TRUE, itspace='   ') {
+help.MEMA.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
 
    intro <- 
 '
@@ -609,7 +609,7 @@ Example 1 --- One sample t-test:
    ss <- paste(ss, sep='\n');
    cat(intro, ex1, ex2, ex3, ss, reference.MEMA(), sep='\n');
    
-   exit.AFNI();
+   if (adieu) exit.AFNI();
 }
 
 #Change command line arguments into an options list
@@ -782,7 +782,9 @@ read.MEMA.opts.batch <- function (args=NULL, verb = 0) {
    "-verb VERB: VERB is an integer specifying verbosity level.\n",
    "            0 for quiet (Default). 1 or more: talkative.\n"
                         ) ),
-      '-help' = apl(n=0, h = '-help: this help message\n')
+      '-help' = apl(n=0, h = '-help: this help message\n'),
+      '-allowed_options' = apl(n=0, h=
+   "-allowed_options: list of allowed options\n" )
       
          );
                      
@@ -851,8 +853,8 @@ read.MEMA.opts.batch <- function (args=NULL, verb = 0) {
              covariates_name = lop$covName <- ops[[i]],
              contrast_name  = lop$contrastName <- ops[[i]],
              verb = lop$verb <- ops[[i]],
-             help = help.MEMA.opts(params),
-             allowed_options = show.AFNI.args(lop, verb=0)
+             help = help.MEMA.opts(params, adieu=TRUE),
+             allowed_options = show.AFNI.args(ops, verb=0, adieu=TRUE)
 
              )
    }
