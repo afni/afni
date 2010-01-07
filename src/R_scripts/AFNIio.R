@@ -334,8 +334,8 @@ parse.AFNI.args <- function ( args, params = NULL,
    if (!other_ok) {
       if (length(ops[['other']])) {
          err.AFNI(paste('Illegal parameters on command line:\n',
-                        ops['other'],
-                        'Try -allowed_options or -help for details\n',
+                        '      ', ops['other'],
+                        '\nTry -allowed_options, or -help for details\n',
                         '\n'));
          exit.AFNI(1); 
       }
