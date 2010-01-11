@@ -935,7 +935,7 @@ read.MEMA.opts.batch <- function (args=NULL, verb = 0) {
    #Get the covariates
    if (!is.null(lop$covFN)) {
       
-      lop$covMatrix <- read.AFNI.matrix(lop$covFN, , allsubj)
+      lop$covMatrix <- read.AFNI.matrix(lop$covFN, lop$covName, allsubj)
    
       #retrieve some components
       lop$covName <- colnames(lop$covMatrix)
@@ -979,7 +979,7 @@ read.MEMA.opts.batch <- function (args=NULL, verb = 0) {
             dd <- lop$covName[!(lop$covName %in% names(lop$centerVal))]
             if (length(dd)) {
                warning (paste('Covariates ', paste(dd,collapse=' '),
-                           ' do not a covariate centering entry.\n'),
+                           ' do not match a covariate centering entry.\n'),
                      immediate.=TRUE);
                return(NULL);
             }
