@@ -811,7 +811,7 @@ read.MEMA.opts.batch <- function (args=NULL, verb = 0) {
    ops <- parse.AFNI.args(args,  params,
                           other_ok=FALSE
                           )
-   if (verb) show.AFNI.args(ops, verb=1, hstr='crap');
+   if (verb) show.AFNI.args(ops, verb=0, hstr='');
    if (is.null(ops)) {
       errex.AFNI('Error parsing arguments. See 3dMEMA -help for details.');
    }
@@ -821,7 +821,7 @@ read.MEMA.opts.batch <- function (args=NULL, verb = 0) {
       lop <- list ()
       lop$nNodes <- 1
       lop$nNonzero <- -1
-      lop$nMaxzero <- 0
+      lop$nMaxzero <- -1
       lop$KHtest <- FALSE
       lop$maskFN <- NULL
       lop$covFN <- NULL
