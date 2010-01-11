@@ -506,6 +506,102 @@ as.char.vec <- function(ss) {
    names(nn) <- ww
    return(nn)
 }
+
+#------------------------------------------------------------------
+#   Functions to read 1D and other tables
+#------------------------------------------------------------------
+
+read.AFNI.matrix <- function (fname, 
+                              usercolnames=NULL, 
+                              userrownames=NULL,
+                              verb = 0) {
+   ttt <- read.table(fname, colClasses='character');
+   if ( tolower(ttt$V1[1]) == 'name' || 
+        tolower(ttt$V1[1]) == 'subj' ) {
+      subjCol <- ttt$V1[2:dim(ttt)[1]]; 
+      covNames <- paste(ttt[1,2:dim(ttt)[2]]);
+      for (ii in 1:(dim(ttt)[2]-1)) { #Add one column at a time
+         if (ii==1) {
+            covMatrix <- cbind(
+               as.numeric(ttt[2:dim(ttt)[1],2:dim(ttt)[2]][[ii]]));
+         } else {
+            covMatrix <- cbind(covMatrix,
+               as.numeric(ttt[2:dim(ttt)[1],2:dim(ttt)[2]][[ii]]));
+         }
+      }
+      #make sure all names in userrownames are represented here
+      if (!is.null(userrownames)) {
+         dd <- userrownames[!(userrownames %in% subjCol)]
+         if (length(dd)) {
+            warning (paste('Subjects ', paste(dd,collapse=' '),
+                           ' do not a covariate entry.\n'),
+                     immediate.=TRUE);
+            return(NULL);
+         }
+      }
+   }  else {
+      if (is.na(as.numeric(ttt$V1[1]))) { #Just labels
+         covNames <- paste(ttt[1,1:dim(ttt)[2]]);
+         istrt<- 2
+      }else {
+         covNames <- paste('cov',c(1:dim(ttt)[2]),sep='');
+         istrt<- 1
+      }
+      for (ii in 1:(dim(ttt)[2])) { #Add one column at a time
+         if (ii==1) {
+            covMatrix <- cbind(
+               as.numeric(ttt[istrt:dim(ttt)[1],1:dim(ttt)[2]][[ii]]));
+         } else {
+            covMatrix <- cbind(covMatrix,
+               as.numeric(ttt[istrt:dim(ttt)[1],1:dim(ttt)[2]][[ii]]));
+         }
+      }
+      if (!is.null(userrownames)) {
+         if (dim(covMatrix)[1] != length(userrownames)) {
+            warning (paste('Have ', length(userrownames), ' subjects, ',
+                           'but ', dim(covMatrix)[1], ' covariate values.\n',
+                           'This does not float your boat\n', sep=''),
+                     immediate.=TRUE);
+            return(NULL);
+         } else {
+            warn.AFNI(paste(
+                     'Assuming covariate rows match this subject order\n',
+                     '   ', paste (userrownames,collapse=' '),sep=''));
+         }
+         subjCol <- userrownames
+      }
+   } 
+   rownames(covMatrix) <- subjCol;
+   colnames(covMatrix) <- covNames;
+   #Now, to be safe, regenerate the covariates matrix based on
+   #the order of subjects as they occur in input, and make a data frame
+   #for 3dMEMA's liking
+   if (!is.null(userrownames)) {
+      for (ii in 1:1:length(userrownames)) {
+         if (ii==1) {
+            mm <- rbind(covMatrix[userrownames[ii],]);
+         } else {
+            mm <- rbind(mm, covMatrix[userrownames[ii],]);
+         }
+      }
+      rownames(mm) <- userrownames
+   }
+   covMatrix <- mm
+   if (is.null(usercolnames)) {
+      usercolnames <- colnames(covMatrix);
+   } else {
+      if (length(usercolnames) != length(colnames(covMatrix))) {
+         warning(paste( 'Mismatch between number of covariate names,\n',
+                        '  and number of columns in matrix'),
+                 immediate.=TRUE);
+         return(NULL);
+      }
+      colnames(covMatrix) <- usercolnames
+   }
+
+   return(covMatrix)
+}   
+
 #------------------------------------------------------------------
 # Extracted (and modified) from fmri library by Karsten Tabelow, 
 # tabelow@wias-berlin.de and Joerg Polzehl (polzehl@wias-berlin.de)
