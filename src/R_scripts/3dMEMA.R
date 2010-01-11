@@ -1944,7 +1944,7 @@ tTop <- 100   # upper bound for t-statistic
       if (is.null(lop <- read.MEMA.opts.batch(args, verb = 1))) {
          stop('Error parsing input');
       }
-      str(lop);
+      #str(lop);
       if (is.null(lop <- process.MEMA.opts(lop, verb = lop$verb))) {
          stop('Error processing input');
       }
