@@ -1941,7 +1941,7 @@ tTop <- 100   # upper bound for t-statistic
          str(lop);
       }
    } else {
-      if (is.null(lop <- read.MEMA.opts.batch(args, verb = 1))) {
+      if (is.null(lop <- read.MEMA.opts.batch(args, verb = 0))) {
          stop('Error parsing input');
       }
       #str(lop);
