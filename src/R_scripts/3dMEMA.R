@@ -493,7 +493,7 @@ greeting.MEMA <- function ()
           ================== Welcome to 3dMEMA.R ==================          
              AFNI Mixed-Effects Meta-Analysis Modeling Package!
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.1.2,  Dec. 12, 2009
+Version 0.1.3,  Jan. 8, 2010
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MEMA.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -519,61 +519,74 @@ help.MEMA.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
 '
 Usage:
 ------ 
- 3dMEMA is a program for performing T-tests with Mixed Effects Meta Analysis. 
- It allows the modeling of both within- and across- subjects variablity.'
+ 3dMEMA is a program for performing Mixed Effects Meta Analysis at group level 
+ that models both within- and across- subjects variablity, thereby requiring
+ both regression coefficients, or general linear contrasts among them, and the 
+ corresponding t-statistics from each subject as input. It\'s required to stall 
+ R (http://www.r-project.org/), plus \'snow\' package if parallel computing is
+ desirable. See more details at
+ 
+ http://afni.nimh.nih.gov/sscc/gangc/MEMA.html'
    
    ex1 <- 
 "
-Example 1 --- One sample t-test:
+Example 1 --- One-sample type (one regression coefficient or general linear 
+contrast from each subject in a group):
 --------------------------------
-      3dMEMA   -prefix ex1  \
-               -set  happy \
-                  ac   rs.ac_ctr_B+tlrc.BRIK   rs.ac_ctr_T+tlrc.BRIK \
-                  ejk  rs.ejk_ctr_B+tlrc.BRIK  rs.ejk_ctr_T+tlrc.BRIK \
-                  jcp  rs.jcp_ctr_B+tlrc.BRIK  rs.jcp_ctr_T+tlrc.BRIK \
-                  ss   rs.ss_DBD_B+tlrc.BRIK   rs.ss_DBD_T+tlrc.BRIK \n"
+      3dMEMA   -prefix ex1  \\
+               -jobs 4      \\
+               -set  happy  \\
+                  ac   ac+tlrc\'[14]\'   ac+tlrc\'[15]\'  \\
+                  ejk  ejk+tlrc\'[14]\'  ejk+tlrc\'[15]\' \\
+                  ...
+                  ss   ss+tlrc\'[14]\'   ss+tlrc\'[15]\' \n"
 
    ex2 <-
-"Example 2 --- Paired t-test:
+"Example 2 --- Paired type (two regression coefficients or general linear 
+contrasts from each subject in a group):
 ---------------------------------
-   3dMEMA   -prefix ex2  \
-            -conditions healthy sick \
-            -set   healthy_goats \
-                ac   rs.ac_ctr_B+tlrc.BRIK   rs.ac_ctr_T+tlrc.BRIK \
-                ejk  rs.ejk_ctr_B+tlrc.BRIK  rs.ejk_ctr_T+tlrc.BRIK \
-                jcp  rs.jcp_ctr_B+tlrc.BRIK  rs.jcp_ctr_T+tlrc.BRIK \
-                ss   rs.ss_DBD_B+tlrc.BRIK   rs.ss_DBD_T+tlrc.BRIK \
-            -set   sick_goats \
-                ac   rs.jp_ctr_B+tlrc.BRIK   rs.jp_ctr_T+tlrc.BRIK  \
-                ejk   rs.mb_ctr_B+tlrc.BRIK   rs.mb_ctr_T+tlrc.BRIK \
-                jcp  rs.trr_ctr_B+tlrc.BRIK  rs.trr_ctr_T+tlrc.BRIK \
-                ss rs.delb_DBD_B+tlrc.BRIK rs.delb_DBD_T+tlrc.BRIK \n"
+   3dMEMA   -prefix ex2  \\
+            -jobs 4      \\
+            -conditions happy sad \\
+            -set   happy \\
+                ac   ac_hap_B+tlrc   ac_hap_T+tlrc   \\
+                ejk  ejk_hap_B+tlrc  ejk_hap_T+tlrc  \\
+                ...
+                ss   ss_hap_B+tlrc   ss_hap_T+tlrc   \\
+            -set   sad   \\
+                ac   ac_sad_B+tlrc   ac_sad_T+tlrc   \\
+                ejk  ejk_sad_B+tlrc  ejk_sad_T+tlrc  \\
+                ...
+                ss   ss_sad_B+tlrc   ss_sad_T+tlrc \n"
    
    ex3 <- 
-"Example 3 --- Two sample t-test, heteroschedisticity, outlier modeling, covariates centering, no payment no interest till Memorial Day next year.
+"Example 3 --- Two-sample type (one regression coefficient or general linear
+contrast from each subject in two groups), homoskedasticity (different
+cross-subjects variability between the two groups), outlier modeling,
+covariates centering, no payment no interest till Memorial Day next year:
 -------------------------------------------------------------------------
-   3dMEMA   -prefix ex3  \
-            -jobs 1  \
-            -groups horses goats \
-            -unequal_variance \
-            -set   healthy_horses \
-                ac   rs.ac_ctr_B+tlrc.BRIK   rs.ac_ctr_T+tlrc.BRIK \
-                ejk  rs.ejk_ctr_B+tlrc.BRIK  rs.ejk_ctr_T+tlrc.BRIK \
-                jcp  rs.jcp_ctr_B+tlrc.BRIK  rs.jcp_ctr_T+tlrc.BRIK \
-                ss   rs.ss_DBD_B+tlrc.BRIK   rs.ss_DBD_T+tlrc.BRIK \
-            -set   healthy_goats \
-                jp   rs.jp_ctr_B+tlrc.BRIK   rs.jp_ctr_T+tlrc.BRIK  \
-                mb   rs.mb_ctr_B+tlrc.BRIK   rs.mb_ctr_T+tlrc.BRIK \
-                trr  rs.trr_ctr_B+tlrc.BRIK  rs.trr_ctr_T+tlrc.BRIK \
-                delb rs.delb_DBD_B+tlrc.BRIK rs.delb_DBD_T+tlrc.BRIK \
-         -HKtest  \
-         -model_outliers   \
-         -residual_Z    \
-         -covariates_file CovFile.txt \
-         -covariates_center age = 25 13 weight = 100 150 \
-         -covariates_model center=different slope=same   
+   3dMEMA   -prefix ex3  \\
+            -jobs 4      \\
+            -groups horses goats  \\
+            -unequal_variance     \\
+            -set   healthy_horses \\
+                ac   ac_sad_B+tlrc.BRIK   ac_sad_T+tlrc.BRIK  \\
+                ejk  ejk_sad_B+tlrc.BRIK  ejk_sad_T+tlrc.BRIK \\
+                ...
+                ss   ss_sad_B+tlrc.BRIK   ss_sad_T+tlrc.BRIK  \\
+            -set   healthy_goats \\
+                jp   jp_sad_B+tlrc.BRIK   jp_sad_T+tlrc.BRIK  \\
+                mb   mb_sad_B+tlrc.BRIK   mb_sad_T+tlrc.BRIK  \\
+                ...
+                trr  trr_sad_B+tlrc.BRIK  trr_sad_T+tlrc.BRIK \\
+            -HKtest         \\
+            -model_outliers \\
+            -residual_Z     \\
+            -covariates_file CovFile.txt \\
+            -covariates_center age = 25 13 weight = 100 150  \\
+            -covariates_model center=different slope=same   
    
-   where CovFile.txt looks something like this:  
+   where file CovFile.txt looks something like this:  
    
       name  age  weight
       ejk   93    117
@@ -631,40 +644,41 @@ read.MEMA.opts.batch <- function (args=NULL, verb = 0) {
                      ) ),
                      
       '-set' = apl (n = c(4, Inf), d = NA, dup = TRUE, h = paste (
-   "-set SETNAME                          \\\n",
+   "-set SETNAME                         \\\n",
    "              SUBJ_1 BETA_DSET T_DSET \\\n",
    "              SUBJ_2 BETA_DSET T_DSET \\\n",
    "              ...   ...       ...     \\\n",
    "              SUBJ_N BETA_DSET T_DSET \\\n",
-   "     Specify the data for one of two test variables A & B. \n",
-   "     SETNAME is the name assigned to the set of . \n",
+   "     Specify the data for one of two test variables (either group,\n",
+   "             conditions/tasks/GLTs) A & B. \n",
+   "     SETNAME is the name assigned to the set. \n",
    "     SUBJ_K is the label for the subject K whose datasets will be \n",
    "            listed next\n",
-   "     BETA_DSET is the name of the dataset of the beta coefficient.\n",
+   "     BETA_DSET is the name of the dataset of the beta coefficient or GLT.\n",
    "     T_DSET is the name of the dataset containing the Tstat \n", 
    "            corresponding to BETA_DSET. \n",
    "        To specify BETA_DSET, and T_DSET, you can use the standard AFNI \n",
-   "        notation, which now allows for the use of subbrik labels as\n",
-   "        selectors\n",
-   "     e.g: -set Placebo Jane pb05.Jane.Regression+tlrc'[face#0_Beta]' \\\n",
+   "        notation, which, in addition to sub-brick indices, now allows for\n",
+   "        the use of sub-brick labels as selectors\n",
+   "     e.g: -set Placebo Jane pb05.Jane.Regression+tlrc'[face#0_Beta]'  \\\n",
    "                            pb05.Jane.Regression+tlrc'[face#0_Tstat]' \\\n" 
                         ) ),
                         
       '-conditions' = apl(n = c(1,2), h = paste (
-   "-conditions COND1 [COND2]: Name of 1 or 2 conditions.\n",
+   "-conditions COND1 [COND2]: Name of 1 or 2 conditions, tasks, or GLTs.\n",
    "                           Default is one condition named 'c1'\n"   
                   ) ),
                   
       '-max_zeros' = apl(n = 1, d = 0, h = paste(
    "-max_zeros MM: Do not compute statistics at any voxel that has \n",
-   "               more than MM zero beta coefficients. Voxels around the\n",
+   "               more than MM zero beta coefficients or GLTs. Voxels around\n",
    "               the edges of the group brain will not have data from\n",
-   "               some of the subjects. Therefore, some of their beta\n",
-   "               and Tstats are masked with 0. 3dMEMA can handle missing\n",
-   "               data at those voxels but obviously too much missing data\n",
-   "               is not good. Setting -max_zeros to 0.25 means process\n",
-   "               data only at voxels where no more than 1/4 of the data is\n",
-   "               missing.\n",
+   "               some of the subjects. Therefore, some of their beta\'s or\n",
+   "               GLTs and t-stats are masked with 0. 3dMEMA can handle\n",
+   "               missing data at those voxels but obviously too much\n",
+   "               missing data is not good. Setting -max_zeros to 0.25\n",
+   "               means process data only at voxels where no more than 1/4\n",
+   "               of the data is missing.\n",
    "               The default value is 0 (no missing values allowed).\n",
    "               MM can be a positive integer less than the number of\n",
    "               subjects, or a fraction beteen 0 and 1.\n" 
@@ -673,20 +687,20 @@ read.MEMA.opts.batch <- function (args=NULL, verb = 0) {
       '-n_nonzero' = apl(n = 1, d = -1, h = paste(
    "-n_nonzero NN: Do not compute statistics at any voxel that has \n",
    "               less than NN non-zero beta values. This options is\n",
-   "               complimentary to -max_zeroes, and matches\n",
-   "               an option in the interactive 3dMEMA mode. NN is basically\n",
-   "               (number of unique subjects - MM). \n"
+   "               complimentary to -max_zeroes, and matches an option in\n",
+   "               the interactive 3dMEMA mode. NN is basically (number of\n",
+   "               unique subjects - MM). \n"
                            )),
                             
       '-HKtest' = apl(0 , d = NA, h = paste(
-   "-HKtest: Perform Hartung-Knapp method with t-test. \n",
+   "-HKtest: Perform Hartung-Knapp adjustment for the output t-statistic. \n",
    "         This approach is more robust when the number of subjects\n",
    "         is small. However it is a little more conservative.\n",
-   "         -no_KHtest is the default.\n"
+   "         -no_KHtest is the default with Z-score as statistic output.\n"
                      ) ),
                       
       '-no_HKtest' = apl(0, d=NA, h = paste(
-   "-no_HKtest: Do not use the Hartung-Knapp method (Default).\n"
+   "-no_HKtest: Do not make the Hartung-Knapp adjustment (Default).\n"
                      ) ),
                      
       '-mask' = apl(1, h = paste(
@@ -695,54 +709,61 @@ read.MEMA.opts.batch <- function (args=NULL, verb = 0) {
                      ) ),
                      
       '-model_outliers' = apl(0, h = paste(
-   "-model_outliers: Model outlier betas.\n",
+   "-model_outliers: Model outlier betas with a Laplace distribution of\n",
+   "                 of subject-specific error.\n",
    "                 Default is -no_model_outliers\n"
                      ) ),
                       
       '-no_model_outliers' = apl(0, h = paste(
-   "-no_model_outliers: No modeling of outlier betas (Default).\n"   
+   "-no_model_outliers: No modeling of outlier betas/GLTs (Default).\n"   
                      ) ),
                      
       '-residual_Z' = apl(0, h = paste(
-   "-residual_Z: Output residual Z values used in identifying outliers\n",
-   "                 Default is -no_residual_Z\n"
+   "-residual_Z: Output residuals and their Z values used in identifying\n",
+   "             outliers at voxel level.\n",
+   "             Default is -no_residual_Z\n"
                      ) ),
                       
       '-no_residual_Z' = apl(0, h = paste(
-   "-no_residual_Z: Do not output residual Z values (Default).\n"
+   "-no_residual_Z: Do not output residuals and their  Z values (Default).\n"
                      ) ),
                      
       '-unequal_variance' = apl(0, h = paste(
-   "-unequal_variance: Model variance difference between GROUP1 and GROUP2 \n",
-   "                   (heteroschedasticity). Default is -equal_variance\n"
+   "-unequal_variance: Model cross-subjects variability difference between\n",
+   "                   GROUP1 and GROUP2 (heteroskedasticity). Default is\n",
+   "                   -equal_variance (homoskedasticity).\n"
                      ) ),
                       
       '-equal_variance' = apl(0, h = paste(
-   "-equal_variance: Assume variance is same between GROUP1 and GROUP2\n",
-   "                   (homoschedasticity). (Default)\n"
+   "-equal_variance: Assume same cross-subjects variability between GROUP1\n",
+   "                 and GROUP2 (homoskedasticity). (Default)\n"
                      ) ), 
       
       '-covariates' = apl(n=1, d=NA, h=paste(
-   "-covariates COVAR_FILE: Specify the name of a file containing covariates.\n",
-   "                        Each column in the file is treated as a separate\n",
-   "                        covariate, and each row contains the values of \n",
-   "                        these covariates for each subject. \n",
-   "     To avoid confusion, it is best you format COVAR_FILE in this manner:\n",
+   "-covariates COVAR_FILE: Specify the name of a text file containing\n",
+   "                        a table for the covariate(s). Each column in the\n",
+   "                        file is treated as a separate covariate, and each\n",
+   "                        row contains the values of these covariates for\n",
+   "                        each subject. \n",
+   "     To avoid confusion, it is best you format COVAR_FILE in this manner\n",
+   "     with BOTH row and column names: \n",
    "        subj  age   weight\n",
    "        Jane   25   300\n",
    "        Joe    22   313\n",
    "        ...    ..   ...\n",
    "     This way, there is no amiguity as to which values are attributed to\n",
-   "     which subject, nor to the label of the covariates. The word 'subj'\n",
+   "     which subject, nor to the label of the covariate(s). The word 'subj'\n",
    "     must be the first word of the first row. You can still get at the  \n",
    "     values of the columns of such a file with AFNI's 1dcat -ok_text, \n",
    "     which will treat the first row, and first column, as all 0s.\n",
    "     Alternate, but less recommended ways to specify the covariates:\n",
+   "     (column names only)\n",
    "        age   weight\n",
    "        25   300\n",    
    "        22   313\n",
    "        ..   ...\n",  
    "     or\n",
+   "     (no row and column names)\n",
    "        25   300\n",    
    "        22   313\n",
    "        ..   ...\n" 
@@ -751,18 +772,17 @@ read.MEMA.opts.batch <- function (args=NULL, verb = 0) {
       '-covariates_center' = apl(c(1,Inf),  h = paste(
    "-covariates_center COV_1=CEN_1 [COV_2=CEN_2 ... ]: (for 1 group) \n",' ',
    "-covariates_center COV_1=CEN_1.A CEN_1.B [COV_2=CEN_2.A CEN_2.B ... ]: \n",
-   "                                                   (for 2 groups) \n",
-   "    where COV_K is the name assigned to the Kth covariate, \n",
+   "                                                    (for 2 groups) \n",
+   "    where COV_K is the name assigned to the K-th covariate, \n",
    "    either from the header of the covariates file, or from the option\n",
-   "    -covariates_name \n",
-   "    This which makes clear which center belongs to which covariate.\n",
-   "    When two groups are used, you need to specify a center for each \n",
-   "    of the groups (CEN_K.A, CEN_K.B).\n",
+   "    -covariates_name. This makes clear which center belongs to which\n",
+   "    covariate. When two groups are used, you need to specify a center for\n",
+   "    each of the groups (CEN_K.A, CEN_K.B).\n",
    "    Example: If you had covariates age, and weight, you would use:\n",
    "           -covariates_center age = 78 55 weight = 165 198\n",
    "    If you want all covariates centered about their own mean, \n",
-   "    just use -covariate_center mean \n",
-   "    Default is no centering.\n"
+   "    just use -covariate_center mean. Be alert: Default is no centering,\n",
+   "    which is NOT recommended unless you know what you're doing!!!\n"
                ) ),
                
       '-covariates_model' = apl(c(2),  h = paste(
@@ -777,21 +797,21 @@ read.MEMA.opts.batch <- function (args=NULL, verb = 0) {
    "             has no header. The default is to name the covariates\n",
    "             cov1, cov2, ... \n"
                ) ),
-      '-contrast_name' = apl(1),
+      '-contrast_name: ' = apl(1),
       '-verb' = apl(n=1, d = 0, h = paste(
    "-verb VERB: VERB is an integer specifying verbosity level.\n",
    "            0 for quiet (Default). 1 or more: talkative.\n"
                         ) ),
       '-help' = apl(n=0, h = '-help: this help message\n'),
-      '-allowed_options' = apl(n=0, h=
-   "-allowed_options: list of allowed options\n" )
+      '-show_allowed_options' = apl(n=0, h=
+   "-show_allowed_options: list of allowed options\n" )
       
          );
                      
    ops <- parse.AFNI.args(args,  params,
                           other_ok=FALSE
                           )
-   if (verb) show.AFNI.args(ops);
+   if (verb) show.AFNI.args(ops, verb=1, hstr='crap');
    if (is.null(ops)) {
       errex.AFNI('Error parsing arguments. See 3dMEMA -help for details.');
    }
@@ -854,7 +874,7 @@ read.MEMA.opts.batch <- function (args=NULL, verb = 0) {
              contrast_name  = lop$contrastName <- ops[[i]],
              verb = lop$verb <- ops[[i]],
              help = help.MEMA.opts(params, adieu=TRUE),
-             allowed_options = show.AFNI.args(ops, verb=0, 
+             show_allowed_options = show.AFNI.args(ops, verb=0, 
                                               hstr="3dMEMA's",adieu=TRUE)
 
              )
@@ -915,83 +935,10 @@ read.MEMA.opts.batch <- function (args=NULL, verb = 0) {
    #Get the covariates
    if (!is.null(lop$covFN)) {
       
-      ttt <- read.table(lop$covFN, colClasses='character');
-      if ( tolower(ttt$V1[1]) == 'name' || 
-           tolower(ttt$V1[1]) == 'subj' ) {
-         subjCol <- ttt$V1[2:dim(ttt)[1]]; 
-         covNames <- paste(ttt[1,2:dim(ttt)[2]]);
-         for (ii in 1:(dim(ttt)[2]-1)) { #Add one column at a time
-            if (ii==1) {
-               lop$covMatrix <- cbind(
-                  as.numeric(ttt[2:dim(ttt)[1],2:dim(ttt)[2]][[ii]]));
-            } else {
-               lop$covMatrix <- cbind(lop$covMatrix,
-                  as.numeric(ttt[2:dim(ttt)[1],2:dim(ttt)[2]][[ii]]));
-            }
-         }
-         #make sure all names in allsubj are represented here
-         dd <- allsubj[!(allsubj %in% subjCol)]
-         if (length(dd)) {
-            warning (paste('Subjects ', paste(dd,collapse=' '),
-                           ' do not a covariate entry.\n'),
-                     immediate.=TRUE);
-            return(NULL);
-         }
-      }  else {
-         if (is.na(as.numeric(ttt$V1[1]))) { #Just labels
-            covNames <- paste(ttt[1,1:dim(ttt)[2]]);
-            istrt<- 2
-         }else {
-            covNames <- paste('cov',c(1:dim(ttt)[2]),sep='');
-            istrt<- 1
-         }
-         for (ii in 1:(dim(ttt)[2])) { #Add one column at a time
-            if (ii==1) {
-               lop$covMatrix <- cbind(
-                  as.numeric(ttt[istrt:dim(ttt)[1],1:dim(ttt)[2]][[ii]]));
-            } else {
-               lop$covMatrix <- cbind(lop$covMatrix,
-                  as.numeric(ttt[istrt:dim(ttt)[1],1:dim(ttt)[2]][[ii]]));
-            }
-         }
-         if (dim(lop$covMatrix)[1] != length(allsubj)) {
-            warning (paste('Have ', length(allsubj), ' subjects, ',
-                           'but ', dim(lop$covMatrix)[1], ' covariate values.\n',
-                           'This does not float your boat\n', sep=''),
-                     immediate.=TRUE);
-            return(NULL);
-         } else {
-            warning(paste('Assuming covariate rows match this subject order\n',
-                          '   ', paste (allsubj,collapse=' '),sep=''), 
-                    immediate.=TRUE);
-         }
-         subjCol <- allsubj
-      } 
-      rownames(lop$covMatrix) <- subjCol;
-      colnames(lop$covMatrix) <- covNames;
-      #Now, to be safe, regenerate the covariates matrix based on
-      #the order of subjects as they occur in input, and make a data frame
-      #for 3dMEMA's liking
-      for (ii in 1:1:length(allsubj)) {
-         if (ii==1) {
-            mm <- rbind(lop$covMatrix[allsubj[ii],]);
-         } else {
-            mm <- rbind(mm, lop$covMatrix[allsubj[ii],]);
-         }
-      }
-      rownames(mm) <- allsubj
-      lop$covMatrix <- mm
-      if (is.null(lop$covName)) {
-         lop$covName <- colnames(lop$covMatrix);
-      } else {
-         if (length(lop$covName) != length(colnames(lop$covMatrix))) {
-            warning(paste( 'Mismatch between number of covariate names,\n',
-                           '  and number of columns in matrix'),
-                    immediate.=TRUE);
-            return(NULL);
-         }
-         colnames(lop$covMatrix) <- lop$covName
-      }
+      lop$covMatrix <- read.AFNI.matrix(lop$covFN, , allsubj)
+   
+      #retrieve some components
+      lop$covName <- colnames(lop$covMatrix)
       lop$nCov <- length(lop$covName)
       #It would be better if all references to lop$covMatrix,
       #lop$covName, and lop$nCov were obtained live from
@@ -1994,10 +1941,10 @@ tTop <- 100   # upper bound for t-statistic
          str(lop);
       }
    } else {
-      if (is.null(lop <- read.MEMA.opts.batch(args))) {
+      if (is.null(lop <- read.MEMA.opts.batch(args, verb = 1))) {
          stop('Error parsing input');
       }
-      #str(lop);
+      str(lop);
       if (is.null(lop <- process.MEMA.opts(lop, verb = lop$verb))) {
          stop('Error processing input');
       }
