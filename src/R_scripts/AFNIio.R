@@ -368,7 +368,6 @@ warn.AFNI <- function (str='Consider yourself warned',callstr=NULL) {
    cat(  '\n', 'oo Warning from: ',  callstr,':\n   ', 
          paste(str, collapse=''),'\n', 
        sep='');
-   invisible(caller)
 }
 
 err.AFNI <- function (str='Danger Danger Will Robinson',callstr=NULL) {
@@ -383,7 +382,6 @@ note.AFNI <- function (str='May I speak frankly?',callstr=NULL) {
    cat(  '\n', '** Note from: ',  callstr,':\n   ', 
          paste(str, collapse=''),'\n', 
        sep='');
-   invisible(caller)
 }
 
 errex.AFNI <- function (str='Alas this must end',callstr=NULL) {
