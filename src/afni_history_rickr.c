@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 12, JAN, 2010, RCR, "2dImReg", MICRO, TYPE_BUG_FIX,
+   "Fixed crash if ny > nx.  Go back to failure and ponder fix.",
+   NULL
+ } ,
+
  { 7, JAN, 2010, RCR, "afni-general", MICRO, TYPE_BUG_FIX,
    "stdint.h should not be included on a SOLARIS_OLD system",
    NULL

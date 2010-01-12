@@ -901,16 +901,14 @@ char * IMREG_main
    if( nx != ny || fabs(dx) != fabs(dy) ){
 
      /*     No need to quit, works fine.  ZSS 07
+      *     Only if nx >= ny (so fix might be easy).  12 Jan 2010 [rickr] */
      if (opt->debug)
-       fprintf(stderr,"\nIMREG: nx=%d ny=%d nz=%d  dx=%f dy=%f dz=%f\n",
+     fprintf(stderr,"\nNotice 2dImreg: nx=%d ny=%d nz=%d  dx=%f dy=%f dz=%f\n",
 	       nx,ny,nz,dx,dy,dz ) ;
 
       return "***********************************\n"
              "Dataset does not have square slices\n"
              "***********************************"  ;
-     */
-     fprintf(stderr,"\nNotice 2dImreg: nx=%d ny=%d nz=%d  dx=%f dy=%f dz=%f\n",
-	       nx,ny,nz,dx,dy,dz ) ;
    }
 
    new_prefix = opt->new_prefix;     /* get string item (the output prefix) */
