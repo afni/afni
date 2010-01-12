@@ -1277,7 +1277,7 @@ process.MEMA.opts <- function (lop, verb = 0) {
    if (lop$nNonzero < 0.75 * length(allsubj)) {
       warn.AFNI(c(
    'You are allowing computations at voxels which may be missing \n',
-   'more than 1 third of the data!') ) 
+   'more than 1/3 of the data!') ) 
    }
    
    if (verb) {
@@ -1331,13 +1331,19 @@ rmaB <- function( yi, vi, n, p, X, resOut, lapMod,
 
    W0     <- diag(1/vi)
    tmp0   <- t(X) %*% W0
-   P0     <- W0 - t(tmp0) %*% solve(tmp0 %*% X) %*% tmp0
+   #P0     <- W0 - t(tmp0) %*% solve(tmp0 %*% X) %*% tmp0
+   # catch the case when matrix tmp0 %*% X is singular 
+   continue <- TRUE
+   tryCatch(P0 <- W0 - t(tmp0) %*% solve(tmp0 %*% X) %*% tmp0, error = function(w) continue <<- FALSE)
+   
+   if(continue) {
    QE     <- t(Y) %*% P0 %*% Y   
    
    collect <- function(Y, vb, R, P, n, p, knha, con) {
-      if(knha) vb <- (c( t(Y) %*% P %*% Y ) / (n-p)) * vb
+      # force t(Y) %*% P %*% Y to be 0 in case it's numerically 0 but negative
+      if(knha) vb <- max((c( t(Y) %*% P %*% Y ) / (n-p)), 0) * vb      
       se <- sqrt(diag(vb))
-      b    <- R %*% Y
+       b    <- R %*% Y
       z <- ifelse(se>con$thr, b/se, 0)
       out <- list(se, b, z)
       names(out) <- c("se", "b", "z")
@@ -1545,6 +1551,7 @@ rmaB <- function( yi, vi, n, p, X, resOut, lapMod,
       names(res)  <- c("b", "se", "z", "tau2", "QE", "meth", "iter")
    }
    res
+   } else return(NULL) # if(continue)
 }
 
 # two groups with heterogeneity assumption
@@ -1563,12 +1570,20 @@ rmaB2 <- function(yi, vi, n1, nT, p, X, resOut, lapMod,
    W02    <- diag(1/v2)
    tmp01   <- t(X1) %*% W01
    tmp02   <- t(X2) %*% W02
-   P01    <- W01 - t(tmp01) %*% solve(tmp01 %*% X1) %*% tmp01
-   P02    <- W02 - t(tmp02) %*% solve(tmp02 %*% X2) %*% tmp02
+   #P01    <- W01 - t(tmp01) %*% solve(tmp01 %*% X1) %*% tmp01
+   #P02    <- W02 - t(tmp02) %*% solve(tmp02 %*% X2) %*% tmp02
+   # don't waste time on computing if tmp01 %*% X1 or tmp02 %*% X2 is singular 
+   continue <- TRUE
+   tryCatch(P01 <- W01 - t(tmp01) %*% solve(tmp01 %*% X1) %*% tmp01, error = function(w) continue <<- FALSE)
+   tryCatch(P02 <- W02 - t(tmp02) %*% solve(tmp02 %*% X2) %*% tmp02, error = function(w) continue <<- FALSE)
+   
+   if(continue) {
+   
    QE     <- c(t(Y1) %*% P01 %*% Y1, t(Y2) %*% P02 %*% Y2)
 
    collect <- function(Y, vb, R, P, n, p, knha, con) {
-      if(knha) vb <- (c( t(Y) %*% P %*% Y ) / (n-p)) * vb
+      # force t(Y) %*% P %*% Y to be 0 in case it's numerically 0 but negative
+      if(knha) vb <- max((c( t(Y) %*% P %*% Y ) / (n-p)), 0) * vb
       se <- sqrt(diag(vb))
       b    <- R %*% Y
       z <- ifelse(se>con$thr, b/se, 0)
@@ -1800,6 +1815,7 @@ rmaB2 <- function(yi, vi, n1, nT, p, X, resOut, lapMod,
       names(res)  <- c("b", "se", "z", "tau2", "QE", "scl", "meth", "iter")
    }
    res
+   } else return(NULL) # if(continue)
 }
 
 
@@ -1818,7 +1834,7 @@ readMultiFiles <- function(nFiles, dim, type) {
 	return(inData)
 }
 
-
+# for one group of subjects only
 runRMA <- function(  inData, nGrp, n, p, xMat, outData, 
                      mema, lapMod, KHtest, nNonzero, 
                      nCov, nBrick, anaType, resZout, tol) {  
@@ -1831,9 +1847,11 @@ runRMA <- function(  inData, nGrp, n, p, xMat, outData,
    if(anaType==4) try(resList <- mema(Y, V, n[1], n[2], p, X=xMat, resZout, lapMod, knha=KHtest), tag <- FALSE) else
       if(length(n)==1) try(resList <- mema(Y, V, n, p, X=xMat, resZout, lapMod, knha=KHtest), tag <- FALSE) else
       try(resList <- mema(Y, V, n[2], p, X=xMat, resZout, lapMod, knha=KHtest), tag <- FALSE)  # for the case of 2 groups with homoskedasticiy
-
-   if (tag) {
-   if (nGrp==1) {
+   
+   #if(is.null(resList)) tag <- FALSE  # stop here if singularity occurs
+    
+   if(tag & !is.null(resList)) {
+   if(nGrp==1) {
       outData[1] <- resList$b[1]  # beta of group1, intercept
       outData[2] <- resList$z[1]  # z score of group1
       
@@ -1842,7 +1860,7 @@ runRMA <- function(  inData, nGrp, n, p, xMat, outData,
          outData[2*ii+2] <- resList$z[ii+1]   
       } # for(ii in 1:nCov)
    } # if (nGrp==1)
-   if (anaType==2) {
+   if(anaType==2) {
       outData[1] <- resList$b[1]  # beta of group1, intercept
       outData[2] <- resList$z[1]  # z score of group1
       outData[5] <- resList$b[2]  # beta of group2-group1
@@ -1908,7 +1926,7 @@ runRMA <- function(  inData, nGrp, n, p, xMat, outData,
       outData[nBrick-2*(n-ii)-1] <- resList$lamc[ii]   # lamda = 1-I^2
       outData[nBrick-2*(n-ii)]   <- resList$resZ[ii]    # Z-score for residuals
    }
-   }
+   }  # if(resZout==0)
    }  # if(anaType==4)
    }  # if(tag)
    }  # not all 0's
