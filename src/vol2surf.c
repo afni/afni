@@ -605,7 +605,7 @@ static int set_output_labels(v2s_results * sd, v2s_param_t * p,
                              v2s_opts_t * sopt)
 {
     int  c, nl;
-    char str[32];
+    char str[32], label[32];
 
 ENTRY("set_output_labels");
 
@@ -613,15 +613,25 @@ ENTRY("set_output_labels");
 
     if( sopt->gp_index >= 0 || p->over_steps )  /* get one label */
     {
-        if(sd->nlab != 1) fprintf(stderr,"** SOL: too many labels\n");
+        if(sd->nlab != sd->max_vals)
+            fprintf(stderr,"** SOL: nlabel mis-match: %d vs %d\n",
+                    sd->nlab, sd->max_vals);
+
+	/* set label (prefix) from sub-brick, if possible */
         nl = sopt->gp_index >= 0 ? sopt->gp_index : 0;
-        if( !p->gpar->dblk->brick_lab || !p->gpar->dblk->brick_lab[nl] )
-        {
-            sprintf(str,"volume #%d\n",nl);
-            sd->labels[0] = strdup(str);
-        }
+        if( p->gpar->dblk->brick_lab && p->gpar->dblk->brick_lab[nl] )
+            MCW_strncpy(str, p->gpar->dblk->brick_lab[nl], 24);
         else
-            sd->labels[0] = strdup(p->gpar->dblk->brick_lab[nl]);
+	    sprintf(str, "vol %d\n", nl);
+
+	/* if one label use str, else index upto nlab */
+	if( sd->nlab == 1 ) sd->labels[0] = strdup(str);
+	else {
+	    for( c = 0; c < sd->nlab; c++ ) {
+		sprintf(label,"%s #%d", str, c);
+		sd->labels[c] = strdup(label);
+	    }
+	}
     }
     else /* use all sub-brick labels */
     {
@@ -1503,14 +1513,9 @@ ENTRY("allocate_output_mem");
         RETURN(NULL);
     }
 
-    /* allocate labels array */
-    if( sd->max_vals == 1 || p->over_steps )
-        { sd->nlab = 1;  sd->labels = (char **)malloc(sizeof(char *)); }
-    else
-    {
-        sd->nlab = sd->max_vals;
-        sd->labels = (char **)malloc(sd->nlab * sizeof(char *));
-    }
+    /* allocate labels array - always max_vals		13 Jan 2010 */
+    sd->nlab = sd->max_vals;
+    sd->labels = (char **)malloc(sd->nlab * sizeof(char *));
     if(!sd->labels){ fprintf(stderr,"** AOM malloc failure\n"); rv = 1; }
 
     sd->memory   = 0;
@@ -1961,9 +1966,11 @@ ENTRY("disp_v2s_results");
                     "    max_vals, memory = %d, %d\n"
                     "    nodes, volind    = %p, %p\n"
                     "    i, j, k          = %p, %p, %p\n"
-                    "    nvals, vals      = %p, %p\n",
+                    "    nvals, vals      = %p, %p\n"
+                    "    labels, nlab     = %p, %d\n",
                     d, d->nalloc, d->nused, d->max_vals, d->memory,
-                    d->nodes, d->volind, d->i, d->j, d->k, d->nvals, d->vals);
+                    d->nodes, d->volind, d->i, d->j, d->k, d->nvals, d->vals,
+                    d->labels, d->nlab);
 
     RETURN(0);
 }
