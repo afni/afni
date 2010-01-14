@@ -12,7 +12,7 @@
     Output = statistic's value.
 *//*------------------------------------------------------------------------*/
 
-float mri_nstat( int code , int npt , float *far )
+float mri_nstat( int code , int npt , float *far , float voxval)
 {
    register float outval ; float val ;
 
@@ -78,6 +78,32 @@ float mri_nstat( int code , int npt , float *far )
        }
      }
      break ;
+     
+     case NSTAT_RANK:{
+       register int ii ;
+       qsort_float(npt, far);
+       outval = 1.0 ;
+       for( ii=1 ; ii < npt ; ii++ ){
+         if (voxval > far[ii]) outval = ii;
+         else break ;
+       }
+     }
+     break ;
+     
+     case NSTAT_FRANK:{
+       register int ii ;
+       outval = 1.0 ;
+       if (npt) {
+          qsort_float(npt, far);
+          for( ii=1 ; ii < npt ; ii++ ){
+            if (voxval > far[ii]) outval = ii;
+            else break ;
+          }
+          outval /= npt;
+       }
+     }
+     break ;
+     
    }
 
    return outval ;
@@ -290,6 +316,7 @@ THD_3dim_dataset * THD_localstat( THD_3dim_dataset *dset , byte *mask ,
    float **aar ;
    MRI_IMAGE *dsim ;
    float dx,dy,dz , fac ;
+   float *brick=NULL, voxval=0.0;
 #ifndef USE_OMP
    int vstep ;
 #endif
@@ -345,6 +372,7 @@ ENTRY("THD_localstat") ;
 
      dsim = THD_extract_float_brick( iv , dset ) ;
      dsim->dx = dx ; dsim->dy = dy ; dsim->dz = dz ;
+     brick = MRI_FLOAT_PTR(dsim);
 
      /** loop over voxels **/
 
@@ -359,7 +387,7 @@ ENTRY("THD_localstat") ;
    THD_fvec3 fwv ;
    double perc[MAX_CODE_PARAMS], mpv[MAX_CODE_PARAMS] ;  /* no longer static */
    float *nbar ; int nbar_num ;
-
+   
  AFNI_OMP_START ;
 
    /* 17 Jul 2009: create workspace for neighborhood data */
@@ -432,7 +460,7 @@ ENTRY("THD_localstat") ;
 
          } else {   /* the "usual" (catchall) case */
 
-           aar[cc][ijk] = mri_nstat( code[cc] , nbar_num , nbar ) ;
+           aar[cc][ijk] = mri_nstat( code[cc] , nbar_num , nbar, brick[ijk] ) ;
 
          }
 

@@ -288,6 +288,8 @@ int main( int argc , char *argv[] )
        else if( strcasecmp(cpt,"absmax")== 0 ) code[ncode++] = NSTAT_ABSMAX;
        else if( strcasecmp(cpt,"num")   == 0 ) code[ncode++] = NSTAT_NUM   ;
        else if( strcasecmp(cpt,"sum")   == 0 ) code[ncode++] = NSTAT_SUM   ;
+       else if( strcasecmp(cpt,"rank")  == 0 ) code[ncode++] = NSTAT_RANK  ;
+       else if( strcasecmp(cpt,"frank") == 0 ) code[ncode++] = NSTAT_FRANK ;
        else if( strcasecmp(cpt,"fwhm")  == 0 ){code[ncode++] = NSTAT_FWHMx ;
                                                code[ncode++] = NSTAT_FWHMy ;
                                                code[ncode++] = NSTAT_FWHMz ;
@@ -332,6 +334,7 @@ int main( int argc , char *argv[] )
          code[ncode++] = NSTAT_SUM   ;
          code[ncode++] = NSTAT_FWHMx ; code[ncode++] = NSTAT_FWHMy ;
          code[ncode++] = NSTAT_FWHMz ; do_fwhm++ ;
+         code[ncode++] = NSTAT_RANK  ; code[ncode++] = NSTAT_FRANK ; 
        }
        else
          ERROR_exit("-stat '%s' is an unknown statistic type",argv[iarg]) ;
@@ -485,6 +488,8 @@ int main( int argc , char *argv[] )
      lcode[NSTAT_FWHMx]  = "FWHMx"; lcode[NSTAT_PERCENTILE] = "PERC";
      lcode[NSTAT_FWHMy]  = "FWHMy"; lcode[NSTAT_SUM]    = "SUM"    ;
      lcode[NSTAT_FWHMz]  = "FWHMz";
+     lcode[NSTAT_RANK]   = "RANK" ; lcode[NSTAT_FRANK]  = "FRANK";
+     
      if( DSET_NVALS(inset) == 1 ){
        ii=0;
        while(ii < DSET_NVALS(outset)) {
