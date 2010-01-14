@@ -219,9 +219,10 @@ static char g_history[] =
     "  - added -outcols_afni_NSD option\n"
     "\n"
     "6.8  Dec 15, 2006 [rickr] - added example for EPI -> surface in help\n"
+    "6.9  Jan 14, 2009 [rickr] - allow f_steps == 1\n"
     "---------------------------------------------------------------------\n";
 
-#define VERSION "version  6.7 (Aug 23, 2006)"
+#define VERSION "version  6.8 (Jan 14, 2009)"
 
 /*----------------------------------------------------------------------
  * todo:
@@ -822,7 +823,7 @@ ENTRY("set_smap_opts");
          (!strncmp(opts->f_index_str, "node", 4)) )
             sopt->f_index = V2S_INDEX_NODE;
 
-    if ( opts->f_steps <= V2S_M2_STEPS_DEFAULT )        /* default is 2    */
+    if ( opts->f_steps <= 0 )                /* default is 2    */
         sopt->f_steps = V2S_M2_STEPS_DEFAULT;
     else
         sopt->f_steps = opts->f_steps;

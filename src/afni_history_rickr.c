@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 14, JAN, 2010, RCR, "3dVol2Surf", MINOR, TYPE_BUG_FIX,
+   "Fixed crash w/labels on '-map_func seg_vals' -> NIML",
+   "Found by Swaroop at Dartmouth."
+ } ,
+
  { 12, JAN, 2010, RCR, "2dImReg", MICRO, TYPE_BUG_FIX,
    "Fixed crash if ny > nx.  Go back to failure and ponder fix.",
    NULL
