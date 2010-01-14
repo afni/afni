@@ -142,6 +142,8 @@ int main( int argc , char *argv[] )
       "                          Places where an output is -1 are locations\n"
       "                          where the FWHM value could not be computed\n"
       "                          (e.g., outside the mask).\n"
+      "               * rank   = rank of the voxel's instensity\n"
+      "               * frank  = rank / numer of voxels in neighborhood\n"
       "               * FWHMbar= Compute just the average of the 3 FWHM values\n"
       "                          (normally would NOT do this with FWHM also).\n"
       "               * perc:P0:P1:Pstep = \n"
