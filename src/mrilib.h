@@ -705,9 +705,11 @@ extern MRI_IMAGE ** mri_stat_seq( MRI_IMAGE * ) ;
 #define NSTAT_ABSMAX      13
 #define NSTAT_VAR         17
 #define NSTAT_NUM         18
-#define NSTAT_PERCENTILE 19
+#define NSTAT_PERCENTILE  19
+#define NSTAT_RANK        21      /* ZSS Jan 10 */
+#define NSTAT_FRANK       22      /* ZSS Jan 10 */
 
-#define NSTAT_FWHMx      63   /* these should be after all other NSTAT_* values */
+#define NSTAT_FWHMx      63   /*these should be after all other NSTAT_* values */
 #define NSTAT_FWHMy      64
 #define NSTAT_FWHMz      65
 #define NSTAT_FWHMbar    66
@@ -726,7 +728,7 @@ extern MRI_IMAGE ** mri_stat_seq( MRI_IMAGE * ) ;
 #define NBISTAT_NUM                66611
 #define NBISTAT_NCD                66612
 
-extern float mri_nstat  ( int , int , float * ) ;  /* 19 Aug 2005 */
+extern float mri_nstat  ( int , int , float * , float) ;  /* 19 Aug 2005 */
 extern float mri_nbistat( int , MRI_IMAGE *, MRI_IMAGE * ) ; /* 26 Oct 2006 */
 extern void mri_nbistat_setclip( float, float , float, float ) ;
 extern void mri_bistat_setweight( MRI_IMAGE *wm ) ;  /* 14 Aug 2007 */
