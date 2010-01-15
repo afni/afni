@@ -1432,6 +1432,7 @@ def db_mod_regress(block, proc, user_opts):
     if len(block.opts.olist) == 0: # then init
         block.opts.add_opt('-regress_basis', 1, ['GAM'], setpar=1)
         block.opts.add_opt('-regress_censor_prev', 1, ['yes'], setpar=1)
+        block.opts.add_opt('-regress_fout', 1, ['yes'], setpar=1)
         block.opts.add_opt('-regress_polort', 1, [-1], setpar=1)
         block.opts.add_opt('-regress_stim_files', -1, [])
         block.opts.add_opt('-regress_stim_labels', -1, [])
@@ -1604,6 +1605,14 @@ def db_mod_regress(block, proc, user_opts):
     if uopt:
         if bopt: bopt.parlist = uopt.parlist
         else: block.opts.add_opt('-regress_censor_prev', 1,
+                                 uopt.parlist, setpar=1)
+
+    # maybe we do not want the -fout option
+    uopt = user_opts.find_opt('-regress_fout')
+    bopt = block.opts.find_opt('-regress_fout')
+    if uopt:
+        if bopt: bopt.parlist = uopt.parlist
+        else: block.opts.add_opt('-regress_fout', 1,
                                  uopt.parlist, setpar=1)
 
     # check for EPI blur estimate
@@ -1941,10 +1950,15 @@ def db_cmd_regress(proc, block):
     if opt: stop_opt = '    -x1D_stop \\\n'
     else  : stop_opt = ''
 
+    # do we want F-stats
+    opt = block.opts.find_opt('-regress_fout')
+    if opt.parlist[0] == 'yes': fout_str = '-fout '
+    else:                       fout_str = ''
+
     # add misc options
     cmd = cmd + iresp
     cmd = cmd + other_opts
-    cmd = cmd + "    -fout -tout -x1D X.xmat.1D -xjpeg X.jpg \\\n"
+    cmd = cmd + "    %s-tout -x1D X.xmat.1D -xjpeg X.jpg \\\n" % fout_str
     cmd = cmd + fitts + errts + stop_opt
     cmd = cmd + "    -bucket stats.$subj\n\n\n"
 
