@@ -169,9 +169,10 @@ g_history = """
         - added -sep_char (which probably needs more work) for Jill Weisberg
         - added -subj_curly (applied when -sep_char is '_')
     2.14 Nov 16 2009 : allow motion censoring with varying run lengths
+    2.15 Jan 15 2010 : added -regress_fout yes/no option
 """
 
-g_version = "version 2.14, November 16, 2009"
+g_version = "version 2.15, January 15, 2010"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
@@ -471,6 +472,9 @@ class SubjProcSream:
         self.valid_opts.add_opt('-regress_censor_prev', 1, [],
                         acplist=['yes','no'],
                         helpstr="set whether to censor previous motion TR")
+        self.valid_opts.add_opt('-regress_fout', 1, [],
+                        acplist=['yes','no'],
+                        helpstr="output individual F-stats? (def: yes)")
         self.valid_opts.add_opt('-regress_polort', 1, [],
                         helpstr="baseline polynomial degree per run")
         self.valid_opts.add_opt('-regress_stim_files', -1, [],
