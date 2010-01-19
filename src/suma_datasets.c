@@ -1702,8 +1702,13 @@ int SUMA_AddDsetColAttr (  SUMA_DSET *dset, char *col_label,
                         NI_stat_encode(NI_STAT_CORREL, 
                                        pars[0], pars[1], pars[2]));
          }
-         break;  
+         break;
+      
+      case SUMA_NODE_ZSCORE:
+         attrstr = SUMA_copy_string( 
+                        NI_stat_encode(NI_STAT_ZSCORE, 0.0 , 0.0, 0.0));  
 
+         break;
    }
    
    SUMA_AddColAtt_CompString( nelb, col_index, attrstr, 
@@ -1944,6 +1949,37 @@ int SUMA_AddGenDsetColAttr (  SUMA_DSET *dset, SUMA_COL_TYPE ctp,
    if (LocalHead) SUMA_ShowNel((void*)nelb);
    SUMA_free(stmp); stmp = NULL;
    SUMA_RETURN(1);  
+}
+
+int SUMA_UpdateDsetColRange(SUMA_DSET *dset, int icol) 
+{
+   static char FuncName[]={"SUMA_UpdateDsetColRange"};
+   int ic=0, istrt=0, iend=0;
+   char *sbuf=NULL;
+   SUMA_Boolean LocalHead=NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!dset) SUMA_RETURN(0);
+   if (icol < 0) { istrt=0; iend=SDSET_VECNUM(dset); }
+   else { istrt = icol; iend=icol; }
+   if (istrt < 0 || istrt > SDSET_VECNUM(dset)) SUMA_RETURN(0);
+   if (iend  < 0 || iend > SDSET_VECNUM(dset)) SUMA_RETURN(0);
+   
+   for (ic=istrt; ic<iend; ++ic) {
+      if(!(sbuf = SUMA_CreateDsetColRangeCompString(dset, ic, 
+                              SUMA_TypeOfDsetColNumb(dset,ic)))) {
+         SUMA_S_Err("Failed to calculate range");
+         SUMA_RETURN(0);
+      }else {
+         NI_element *nelb = 
+            SUMA_FindDsetAttributeElement(dset, "COLMS_RANGE");
+         SUMA_LH(sbuf);
+         SUMA_AddColAtt_CompString(nelb, ic, sbuf, SUMA_NI_CSS,0);
+         SUMA_free(sbuf); sbuf=NULL;
+      }
+   }
+   SUMA_RETURN(1);
 }
 /*!
    \brief A special case of  SUMA_AddGenDsetColAttr for node indices
@@ -3712,6 +3748,7 @@ SUMA_VARTYPE SUMA_ColType2TypeCast (SUMA_COL_TYPE ctp)
       case SUMA_NODE_B:
       case SUMA_NODE_A:
       case SUMA_NODE_XCORR:
+      case SUMA_NODE_ZSCORE:
       case SUMA_NODE_3C:
          SUMA_RETURN(SUMA_float);      
          break;
@@ -4000,6 +4037,9 @@ char * SUMA_Col_Type_Name (SUMA_COL_TYPE tp)
       case SUMA_NODE_XCORR:
          SUMA_RETURN("Cross_Corr_Coeff");
          break;
+      case SUMA_NODE_ZSCORE:
+         SUMA_RETURN("Z_score");
+         break;
       default:
          SUMA_RETURN("Cowabonga-Jo");
          break;
@@ -4042,6 +4082,7 @@ SUMA_COL_TYPE SUMA_Col_Type (char *Name)
    if (!strcmp(Name,"Generic_Double")) SUMA_RETURN (SUMA_NODE_DOUBLE);
    if (!strcmp(Name,"Convexity")) SUMA_RETURN (SUMA_NODE_CX);
    if (!strcmp(Name,"Cross_Corr_Coeff")) SUMA_RETURN (SUMA_NODE_XCORR);
+   if (!strcmp(Name,"Z_score")) SUMA_RETURN (SUMA_NODE_ZSCORE);
    /* if (!strcmp(Name,"")) SUMA_RETURN (); */
    SUMA_RETURN (SUMA_ERROR_COL_TYPE);
 
@@ -4469,7 +4510,7 @@ SUMA_DSET * SUMA_FindDsetLoose (
                DList *DsetList, 
                char *criteria)
 {
-   static char FuncName[]={"SUMA_FindDsetLoose_eng"};
+   static char FuncName[]={"SUMA_FindDsetLoose"};
    SUMA_DSET *dsetf = NULL, *dset= NULL;
    int ifound=0, newmatch, totmatch, icrit;
    char *dsetid=NULL, *s=NULL;
@@ -5014,9 +5055,15 @@ int SUMA_InsertDsetPointer (SUMA_DSET **dsetp, DList *DsetList, int replace)
    if (!dsetp) { SUMA_SL_Err("dsetp is NULL"); SUMA_RETURN(0); }
    else dset = *dsetp;  /* dset is the new pointer */
    
-   if (!dset->dnel) { SUMA_SL_Err("dset->nel is NULL\nNothing to do"); SUMA_RETURN(0); }
+   if (!dset->dnel) { 
+      SUMA_SL_Err("dset->nel is NULL\nNothing to do"); 
+      SUMA_RETURN(0); 
+   }
 
-   s= SDSET_ID(dset); if (!s) { SUMA_SL_Err("dset has no idcode.\n"); SUMA_RETURN(0); }
+   if (!(s= SDSET_ID(dset))) { 
+      SUMA_SL_Err("dset has no idcode.\n"); 
+      SUMA_RETURN(0); 
+   }
    
    if ((dprev = SUMA_FindDset_ns (s,  DsetList))) {
       sprintf(stmp,  "Dset with similar idcode (%s)\n"

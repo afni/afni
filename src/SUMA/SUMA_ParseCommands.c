@@ -194,6 +194,7 @@ int SUMA_CommandCode(char *Scom)
    if (!strcmp(Scom,"ToggleConnected")) SUMA_RETURN (SE_ToggleConnected);
    if (!strcmp(Scom,"StartListening")) SUMA_RETURN(SE_StartListening);
    if (!strcmp(Scom,"SetAfniCrossHair")) SUMA_RETURN (SE_SetAfniCrossHair);
+   if (!strcmp(Scom,"SetGICORnode")) SUMA_RETURN (SE_SetGICORnode);
    if (!strcmp(Scom,"SetForceAfniSurf")) SUMA_RETURN (SE_SetForceAfniSurf);
    if (!strcmp(Scom,"CloseStream4All")) SUMA_RETURN (SE_CloseStream4All);
    if (!strcmp(Scom,"SetAfniSurf")) SUMA_RETURN (SE_SetAfniSurf);
@@ -387,6 +388,8 @@ const char *SUMA_CommandString (SUMA_ENGINE_CODE code)
          SUMA_RETURN("StartListening");
       case SE_SetAfniCrossHair:
          SUMA_RETURN("SetAfniCrossHair");      
+      case SE_SetGICORnode:
+         SUMA_RETURN("SetGICORnode");      
       case SE_SetForceAfniSurf:
          SUMA_RETURN("SetForceAfniSurf");      
       case SE_CloseStream4All:
@@ -3012,6 +3015,8 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT * SUMA_Alloc_Generic_Prog_Options_Struct(void)
    Opt->com = NULL;
    Opt->N_com = 0;
    
+   Opt->s = NULL;
+   
    Opt->ps = NULL; /* just a holder */
    SUMA_RETURN(Opt);
 }
@@ -3025,8 +3030,9 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT * SUMA_Free_Generic_Prog_Options_Struct(SUMA_GE
    if (!Opt) SUMA_RETURN(NULL);
    
    Opt->ps = NULL; /* DO NOT FREE THIS ONE HERE */
-   if (Opt->OrigSpatNormedSet && Opt->OrigSpatNormedSet != Opt->in_vol) { DSET_delete(Opt->OrigSpatNormedSet); Opt->OrigSpatNormedSet = NULL; }
-   else Opt->OrigSpatNormedSet = NULL;
+   if (Opt->OrigSpatNormedSet && Opt->OrigSpatNormedSet != Opt->in_vol) { 
+      DSET_delete(Opt->OrigSpatNormedSet); Opt->OrigSpatNormedSet = NULL; 
+   } else Opt->OrigSpatNormedSet = NULL;
 
    if (Opt->dbg_eyenodes) fclose(Opt->dbg_eyenodes); Opt->dbg_eyenodes = NULL;
    if (Opt->k98mask) SUMA_free(Opt->k98mask); Opt->k98mask = NULL;
@@ -3036,18 +3042,25 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT * SUMA_Free_Generic_Prog_Options_Struct(SUMA_GE
    if (Opt->mcdatav) {SUMA_free(Opt->mcdatav); Opt->mcdatav = NULL;} 
    if (Opt->in_vol) { DSET_delete( Opt->in_vol); Opt->in_vol = NULL;} 
    if (Opt->out_prefix) SUMA_free(Opt->out_prefix); Opt->out_prefix = NULL;
-   if (Opt->out_vol_prefix) SUMA_free(Opt->out_vol_prefix); Opt->out_vol_prefix = NULL;
-   if (Opt->in_vol_prefix) SUMA_free(Opt->in_vol_prefix); Opt->in_vol_prefix = NULL;
-   if (Opt->out_grid_prefix) SUMA_free(Opt->out_grid_prefix); Opt->out_grid_prefix = NULL;
+   if (Opt->out_vol_prefix) SUMA_free(Opt->out_vol_prefix); 
+                                                Opt->out_vol_prefix = NULL;
+   if (Opt->in_vol_prefix) SUMA_free(Opt->in_vol_prefix); 
+                                                   Opt->in_vol_prefix = NULL;
+   if (Opt->out_grid_prefix) SUMA_free(Opt->out_grid_prefix); 
+                                                Opt->out_grid_prefix = NULL;
    if (Opt->XYZ) SUMA_free(Opt->XYZ); Opt->XYZ = NULL;
    if (Opt->ztv) SUMA_free(Opt->ztv); Opt->ztv = NULL;
-   if (Opt->shrink_bias) SUMA_free(Opt->shrink_bias); Opt->shrink_bias = NULL;
-   if (Opt->shrink_bias_name) SUMA_free(Opt->shrink_bias_name); Opt->shrink_bias_name = NULL;
-   if (Opt->popt) Opt->popt = NULL; /* freeing, if needed for this structure should be done elsewhere*/
+   if (Opt->shrink_bias) SUMA_free(Opt->shrink_bias); 
+                                             Opt->shrink_bias = NULL;
+   if (Opt->shrink_bias_name) SUMA_free(Opt->shrink_bias_name); 
+                                             Opt->shrink_bias_name = NULL;
+   if (Opt->popt) Opt->popt = NULL; /* freeing, if needed for this structure 
+                                       should be done elsewhere*/
    if (Opt->emask) SUMA_free(Opt->emask); Opt->emask = NULL;
    if (Opt->fatemask) SUMA_free(Opt->fatemask); Opt->fatemask = NULL;
    if (Opt->nmask) SUMA_free(Opt->nmask); Opt->nmask = NULL;
-   if (Opt->Brain_Contour)  SUMA_free(Opt->Brain_Contour);  Opt->Brain_Contour= NULL;
+   if (Opt->Brain_Contour)  SUMA_free(Opt->Brain_Contour);  
+                                             Opt->Brain_Contour= NULL;
    if (Opt->Brain_Hull)  SUMA_free(Opt->Brain_Hull); Opt->Brain_Hull= NULL;
    if (Opt->Skull_Outer)  SUMA_free(Opt->Skull_Outer); Opt->Skull_Outer= NULL;
    if (Opt->Skull_Inner)  SUMA_free(Opt->Skull_Inner); Opt->Skull_Inner= NULL;
@@ -3055,6 +3068,9 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT * SUMA_Free_Generic_Prog_Options_Struct(SUMA_GE
       for (i=0; i<Opt->N_com; ++i) if (Opt->com[i]) SUMA_free(Opt->com[i]);
       SUMA_free(Opt->com);
    }
+   if (Opt->s) { 
+      SUMA_free(Opt->s); Opt->s=NULL;
+   }  
    if (Opt) SUMA_free(Opt);
 
    SUMA_RETURN(NULL);

@@ -210,6 +210,9 @@ SUMA_Boolean SUMA_GetSelectionLine (SUMA_SurfaceViewer *sv, int x, int y,
                                     GLdouble *Pick0, GLdouble *Pick1, 
                                     int N_List, int *xList, int *yList, 
                                     GLdouble *Pick0List);
+int SUMA_OpenCloseSurfaceCont(Widget w, 
+                              SUMA_SurfaceObject *SO, 
+                              SUMA_SurfaceViewer *sv);
 int SUMA_viewSurfaceCont(Widget w, SUMA_SurfaceObject *SO, SUMA_SurfaceViewer *sv);
 void SUMA_cb_viewSurfaceCont(Widget w, XtPointer data, XtPointer callData);
 void SUMA_cb_viewViewerCont(Widget w, XtPointer data, XtPointer callData);

@@ -1050,12 +1050,12 @@ int SUMA_D_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                }
                SUMA_RETURN(1);
             }
-            if (SDSET_VECNUM(in_dset) < 2) {
+            if (SDSET_VECNUM(in_dset) < 3) {
                if (callmode && strcmp(callmode, "interactive") == 0) {
-                  SUMA_SLP_Warn( "Need more than 1 value per node.\n"
+                  SUMA_SLP_Warn( "Need more than 3 values per node.\n"
                                  "Nothing to dot.");
                }else{
-                  SUMA_S_Warn("Need more than 1 value per node.\n"
+                  SUMA_S_Warn("Need more than 3 values per node.\n"
                               "Nothing to dot.");
                }     
                SUMA_RETURN(1);
@@ -4558,7 +4558,26 @@ int SUMA_MarkLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov)
          if (LocalHead) 
             fprintf(SUMA_STDERR,"%s: No Notification to AFNI.\n", FuncName);
       }
-
+      
+      /* put in a request for GICOR if need be */
+      if (  SUMAg_CF->Connected_v[SUMA_GICORR_LINE] && 
+            SUMAg_CF->giset) {
+         if (LocalHead) 
+            fprintf(SUMA_STDERR,
+                     "%s: Notifying GICOR of node selection\n", FuncName);
+         /* register a call to SetGICORnode */
+         if (!list) list = SUMA_CreateList();
+         SUMA_REGISTER_TAIL_COMMAND_NO_DATA( list, SE_SetGICORnode, 
+                                             SES_Suma, sv);
+         if (!SUMA_Engine (&list)) {
+            fprintf( SUMA_STDERR, 
+                     "Error %s: SUMA_Engine call failed.\n", FuncName);
+            SUMA_RETURN (-1);
+         }
+      }else {
+         if (LocalHead) 
+            fprintf(SUMA_STDERR,"%s: No Notification to GICOR.\n", FuncName);
+      }
       /* now put in a request for locking cross hair but you must do 
          this after the node selection has been executed 
          NOTE: You do not always have SetNodeElem because the list might 
@@ -6596,9 +6615,25 @@ void SUMA_JumpIndex (char *s, void *data)
    
    /* check to see if AFNI needs to be notified */
    if (SUMAg_CF->Connected_v[SUMA_AFNI_STREAM_INDEX] && sv->LinkAfniCrossHair) {
-      if (LocalHead) fprintf(SUMA_STDERR,"%s: Notifying Afni of CrossHair XYZ\n", FuncName);
+      if (LocalHead) 
+         fprintf(SUMA_STDERR,"%s: Notifying Afni of CrossHair XYZ\n", FuncName);
       /* register a call to SetAfniCrossHair */
-      SUMA_REGISTER_TAIL_COMMAND_NO_DATA(list, SE_SetAfniCrossHair, SES_Suma, sv);
+      SUMA_REGISTER_TAIL_COMMAND_NO_DATA(list, 
+                              SE_SetAfniCrossHair, SES_Suma, sv);
+   }
+
+   /* and if GICOR needs some love */
+   if (  SUMAg_CF->Connected_v[SUMA_GICORR_LINE] && 
+         SUMAg_CF->giset) {
+      if (LocalHead) 
+         fprintf(SUMA_STDERR,
+                  "%s: Notifying GICOR of node selection\n", FuncName);
+      /* register a call to SetGICORnode */
+      SUMA_REGISTER_TAIL_COMMAND_NO_DATA( list, SE_SetGICORnode, 
+                                          SES_Suma, sv);
+   }else {
+      SUMA_LHv("No Notification to GICOR. %d %p\n", 
+                  SUMAg_CF->Connected_v[SUMA_GICORR_LINE], SUMAg_CF->giset);
    }
 
    /* call with the list */
@@ -6677,9 +6712,11 @@ void SUMA_JumpXYZ (char *s, void *data)
    
    /* check to see if AFNI needs to be notified */
    if (SUMAg_CF->Connected_v[SUMA_AFNI_STREAM_INDEX] && sv->LinkAfniCrossHair) {
-      if (LocalHead) fprintf(SUMA_STDERR,"%s: Notifying Afni of CrossHair XYZ\n", FuncName);
+      if (LocalHead) 
+         fprintf(SUMA_STDERR,"%s: Notifying Afni of CrossHair XYZ\n", FuncName);
       /* register a call to SetAfniCrossHair */
-      SUMA_REGISTER_TAIL_COMMAND_NO_DATA(list, SE_SetAfniCrossHair, SES_Suma, sv);
+      SUMA_REGISTER_TAIL_COMMAND_NO_DATA(list, SE_SetAfniCrossHair, 
+                                         SES_Suma, sv);
    }
 
    /* call with the list */
@@ -6688,8 +6725,10 @@ void SUMA_JumpXYZ (char *s, void *data)
       SUMA_RETURNe;
    }
 
-   /* now put in a request for locking cross hair but you must do this after the node selection has been executed 
-   NOTE: You do not always have SetNodeElem because the list might get emptied in the call to AFNI notification.
+   /* now put in a request for locking cross hair but you must 
+   do this after the node selection has been executed 
+   NOTE: You do not always have SetNodeElem because the list might 
+   get emptied in the call to AFNI notification.
    You should just put the next call at the end of the list.*/
    /* NOTE2: Only viewers that are XYZ locked will be affected */
    if (!list) list = SUMA_CreateList();

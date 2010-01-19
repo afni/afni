@@ -9,6 +9,11 @@ typedef struct {
   NI_stream ns ;
   THD_session *session ; THD_3dim_dataset *dset ;
   int nds,nvox,nivec,*ivec ;
+  
+  char sdset_ID[2][50]; /* ZSS ID codes for surface dsets */
+  int  nnode_domain[2]; /* Number of node in domain for L, and R, surfs */
+  int  nnode_mask[2]; /* number of values on each of L and R surfs. 
+                         This is only needed when masking is done */ 
 } GICOR_setup ;
 
 #define DESTROY_GICOR_setup(gi)                     \

@@ -855,7 +855,8 @@ fprintf(stderr," -1zscore: retyping\n") ;
 
    /* turn dset to rank */
    if ( edopt->rank) {
-      if( verbose ) fprintf(stderr,"--- EDIT_one_dataset: Converting to rank value.\n");
+      if( verbose ) 
+         fprintf(stderr,"--- EDIT_one_dataset: Converting to rank value.\n");
       if (!(THD_unique_rank_edit(dset ,
                               iv_fim,
                               edopt->fmask,

@@ -4266,6 +4266,46 @@ void SUMA_cb_viewSumaCont(Widget w, XtPointer data, XtPointer callData)
    SUMA_RETURNe;
 }
 
+/* Many times you need the surface controller created but not for 
+display, create it if needed, then close it immediately afterwards*/
+int SUMA_OpenCloseSurfaceCont(Widget w, 
+                              SUMA_SurfaceObject *SO, 
+                              SUMA_SurfaceViewer *sv) 
+{
+   static char FuncName[]={"SUMA_OpenCloseSurfaceCont"};
+   SUMA_Boolean LocalHead=NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!SO || !SO->SurfCont || !SO->SurfCont->curColPlane) SUMA_RETURN(0);
+   
+   if (SO->SurfCont->TopLevelShell) SUMA_RETURN(1); /* nothing to do */
+   
+   if (w) {
+      SUMA_LH("nism");
+      SUMA_cb_createSurfaceCont( w, (XtPointer)SO, NULL);
+   } else {
+      if (!sv) {
+         if (!(sv = SUMA_BestViewerForSO(SO)) ||
+             !sv->X->TOPLEVEL) {
+            SUMA_LH("NULLity");
+            SUMA_RETURN(0);
+         }
+      }
+      SUMA_LH("Creationism");
+      SUMA_cb_createSurfaceCont( sv->X->TOPLEVEL, (XtPointer)SO, NULL);  
+   }
+   
+   SUMA_InitializeColPlaneShell(SO, SO->SurfCont->curColPlane);
+
+
+   /* Now close it quick. Maybe should put a delayed closing for nicer effect */
+   SUMA_LH("Destructurism")
+   SUMA_cb_closeSurfaceCont(NULL, (XtPointer) SO, NULL);
+   
+   SUMA_RETURN(1);
+}
+ 
 /*! if calling this function from outside interface, set w to NULL 
 */
 int SUMA_viewSurfaceCont(Widget w, SUMA_SurfaceObject *SO, 
@@ -4332,6 +4372,8 @@ int SUMA_viewSurfaceCont(Widget w, SUMA_SurfaceObject *SO,
    SUMA_Init_SurfCont_SurfParam(SO);
    SUMA_LH("Init CrossHair");
    SUMA_Init_SurfCont_CrossHair(SO);
+   SUMA_LH("Dset goodies");
+   SUMA_InitializeColPlaneShell(SO, SO->SurfCont->curColPlane);
    
    SUMA_LH("Init Position");
    if (SO->SurfCont->PosRef != sv->X->TOPLEVEL) {
@@ -5636,6 +5678,9 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
    #endif
 
    SUMA_LH("going home.");
+
+   SO->SurfCont->Open = 1;
+
    SUMA_RETURNe;
 }
 

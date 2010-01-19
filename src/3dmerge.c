@@ -557,7 +557,8 @@ DUMP1 ;
       char prefix[THD_MAX_PREFIX];
       FILENAME_TO_PREFIX(MRG_output_prefix, prefix);
       if (prefix[0] == '\0') strcpy(prefix, MRG_output_prefix);
-      /*fprintf(stderr,"Prefix >>>%s<<< >>>%s<<<\n", MRG_output_prefix, prefix); */
+      /*fprintf(stderr,"Prefix >>>%s<<< >>>%s<<<\n", 
+                       MRG_output_prefix, prefix); */
       if (PREFIX_IS_NIFTI(prefix)) {
          char *p2=NULL; 
          if (STRING_HAS_SUFFIX( prefix,".nii")) {
@@ -816,6 +817,9 @@ void MRG_Syntax(void)
     "     and set the colorbar range to 128.\n"
     "     The -1rank option also outputs a 1D file that contains \n"
     "     the mapping from the input dataset to the ranked output.\n"
+    "\n"
+    "     This option only works on integral valued data. Float values\n"
+    "     are typecast to int before being ranked.\n"
     "\n"
     "     See also program 3dRank\n" 
     "\n"

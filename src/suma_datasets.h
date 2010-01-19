@@ -293,7 +293,8 @@ typedef enum {
    SUMA_NODE_STRING,   /*!< Generic String */
    SUMA_NODE_SHORT,      /*!< Generic short */
    SUMA_NODE_DOUBLE,     /*!< Generic double */
-   SUMA_NODE_XCORR      /*!< Cross Correlation Coefficient */ 
+   SUMA_NODE_XCORR,      /*!< Cross Correlation Coefficient */ 
+   SUMA_NODE_ZSCORE      /*!< Zscore */
 }  SUMA_COL_TYPE; /*!<  Column types.
                         When you add a new element, you need to modify
                         SUMA_AddColAttr
@@ -1273,6 +1274,7 @@ SUMA_Boolean SUMA_isDsetwideColumnAttr(NI_element *nel);
 SUMA_Boolean SUMA_isDsetNelAttr(NI_element *nel);
 char * SUMA_CreateDsetColRangeCompString( SUMA_DSET *dset, int col_index, 
                                           SUMA_COL_TYPE ctp);
+int SUMA_UpdateDsetColRange(SUMA_DSET *dset, int icol);
 char * SUMA_GetDsetColStringAttr( SUMA_DSET *dset, int col_index, 
                                     char *attrname);
 char * SUMA_GetNgrColStringAttr( NI_group *ngr, int col_index, 
