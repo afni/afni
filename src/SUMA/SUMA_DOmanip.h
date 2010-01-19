@@ -52,7 +52,12 @@ SUMA_Boolean SUMA_existDO(char *idcode, SUMA_DO *dov, int N_dov);
 int SUMA_whichDO(char *idcode, SUMA_DO *dov, int N_dov);
 int SUMA_findSO_inDOv(char *idcode, SUMA_DO *dov, int N_dov);
 SUMA_SurfaceObject * SUMA_findSOp_inDOv(char *idcode, SUMA_DO *dov, int N_dov);
-SUMA_SurfaceObject * SUMA_find_named_SOp_inDOv(char *coordname, SUMA_DO *dov, int N_dov);
+SUMA_SurfaceObject * SUMA_find_named_SOp_inDOv(
+                        char *coordname, SUMA_DO *dov, int N_dov);
+SUMA_SurfaceObject *SUMA_FindSOp_inDOv_from_N_Node(
+                        int N_Node, SUMA_SO_SIDE side, 
+                        int check_unique, int return_parent,
+                        SUMA_DO *dov, int N_dov);
 SUMA_Boolean  SUMA_is_ID_4_SO(char *idcode, SUMA_SurfaceObject **SOp);
 char *SUMA_find_SOLabel_from_idcode (char *idcode, SUMA_DO *dov, int N_dov);
 char *SUMA_find_SOidcode_from_label (char *label, SUMA_DO *dov, int N_dov);

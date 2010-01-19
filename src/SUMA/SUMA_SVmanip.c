@@ -1901,10 +1901,9 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
    if (eee) {
       portn2 = atoi(eee);
       if (portn2 < 1024 ||  portn2 > 65535) {
-         fprintf (SUMA_STDERR, "Warning %s:\n"
-                               "Environment variable SUMA_AFNI_TCP_PORT2 %d is invalid.\n"
-                               "port must be between 1025 and 65534.\n"
-                               "Using default of %d\n", FuncName, portn2, portn+1);
+         SUMA_S_Warnv("Environment variable SUMA_AFNI_TCP_PORT2 %d is invalid.\n"
+                      "port must be between 1025 and 65534.\n"
+                      "Using default of %d\n", portn2, portn+1);
          portn2 = portn+1;
       } 
    } else {
@@ -1915,12 +1914,11 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
    if (eee) {
       portn3 = atoi(eee);
       if (portn3 < 1024 ||  portn3 > 65535) {
-         fprintf (SUMA_STDERR, 
-                "Warning %s:\n"
+         SUMA_S_Warnv( 
                 "Environment variable SUMA_MATLAB_LISTEN_PORT %d is invalid.\n"
                 "port must be between 1025 and 65534.\n"
                 "Using default of %d\n", 
-                FuncName, portn, SUMA_MATLAB_LISTEN_PORT);
+                portn, SUMA_MATLAB_LISTEN_PORT);
          portn3 = SUMA_MATLAB_LISTEN_PORT;
       } 
    } else {
@@ -1931,12 +1929,11 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
    if (eee) {
       dsmw = atof(eee);
       if (dsmw < 0 || dsmw > 60000) {
-         fprintf (SUMA_STDERR, 
-                "Warning %s:\n"
+         SUMA_S_Warnv( 
                 "Environment variable SUMA_DriveSumaMaxWait %f is invalid.\n"
                 "value must be between 0 and 60000 seconds.\n"
                 "Using default of %d\n", 
-                FuncName, dsmw, 5*60);
+                dsmw, 5*60);
          dsmw = (float)5*60;/* wait for 5 minutes */
       }
    } else {
@@ -1947,6 +1944,7 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
    for (i=0; i<SUMA_MAX_STREAMS; ++i) {
       cf->ns_v[i] = NULL;
       switch(i) {
+         case SUMA_GICORR_LINE:
          case SUMA_DRIVESUMA_LINE:
             cf->ns_to[i] = (int)(dsmw*1000);  
             break;
@@ -2218,6 +2216,8 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
    cf->callbacks = (DList *)SUMA_calloc(1,sizeof(DList));
    dlist_init (cf->callbacks, SUMA_FreeCallback);
    cf->HoldClickCallbacks = 0;
+   
+   cf->giset = NULL;
    
    return (cf);
 
@@ -2629,8 +2629,16 @@ SUMA_Boolean SUMA_Free_CommonFields (SUMA_CommonFields *cf)
    if (cf->Mem) SUMA_Free_MemTrace (cf->Mem); cf->Mem = NULL;/* always free this right before the end */
    #endif
    
+   
+   if (cf->giset) {
+      if (cf->giset->dset) {
+         SUMA_S_Warn("dset is not being freed");
+      }
+      DESTROY_GICOR_setup(cf->giset); cf->giset=NULL;
+   }
    /* if (cf) free(cf); */ /* don't free this stupid pointer since it is used
-                        when main returns with SUMA_ RETURN (typo on purpose to avoid upsetting AnalyzeTrace. 
+                        when main returns with SUMA_ RETURN 
+                        (typo on purpose to avoid upsetting AnalyzeTrace. 
                         It is not quite a leak since the OS will clean it up
                         after exit Thu Apr  8 2004*/
    
@@ -2799,6 +2807,9 @@ char * SUMA_CommonFieldsInfo (SUMA_CommonFields *cf, int detail)
    s = SUMA_Callbacks_Info(cf->callbacks, detail);
    SS = SUMA_StringAppend_va( SS, "%s\n",s); SUMA_free(s); s = NULL;
    
+   s = SUMA_GISET_Info(cf->giset, 0);
+   
+   SS = SUMA_StringAppend_va(SS, "%s\n",s); SUMA_free(s); s = NULL;
    
    /* clean up */
    SS = SUMA_StringAppend_va(SS, NULL);
@@ -3176,7 +3187,11 @@ void SUMA_UpdateViewerCursor(SUMA_SurfaceViewer *sv)
          MCW_set_widget_cursor( sv->X->GLXAREA  , -XC_pencil ) ;
       else  MCW_set_widget_cursor( sv->X->GLXAREA  , -XC_target ) ;
    } else {
-      MCW_set_widget_cursor( sv->X->GLXAREA  , -XC_top_left_arrow ) ;
+      if (0) {
+         MCW_set_widget_cursor( sv->X->GLXAREA  , -XC_dotbox);
+      } else {
+         MCW_set_widget_cursor( sv->X->GLXAREA  , -XC_top_left_arrow ) ;
+      }
    }
    SUMA_RETURNe;
 }

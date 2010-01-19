@@ -1023,6 +1023,80 @@ SUMA_SurfaceObject * SUMA_findSOp_inDOv(char *idcode, SUMA_DO *dov, int N_dov)
    }
    SUMA_RETURN(NULL);
 }
+/*!
+   
+  SO = SUMA_FindSOp_inDOv_from_N_Node(
+                        int N_Node, SUMA_SO_SIDE side, 
+                        int check_unique, int return_parent,
+                        SUMA_DO *dov, int N_dov)
+   searches all SO_type DO objects for a surface that best accommodates
+   a mesh with N_Node node .
+   
+   \param N_Node (int) Number of nodes forming the mesh
+   \param side (SUMA_SO_SIDE) surface must be of the same side as 'side'
+   \param check_unique (int): if 1, then be sure there is only one match
+   \param return_parent (int): return local domain parent for that surface
+   \param dov (SUMA_DO*) pointer to vector of Displayable Objects, 
+                         typically SUMAg_DOv
+   \param N_dov (int) number of DOs in dov
+   \return SO (SUMA_SurfaceObject *) pointer of SO with matching criteria
+   
+   Search logic:
+      For each surface found:
+         if SO->N_Node == N_Node && same side the return 
+       
+       NULL if not found
+   \sa SUMA_findSO_inDOv
+*/
+
+SUMA_SurfaceObject *SUMA_FindSOp_inDOv_from_N_Node(
+                        int N_Node, SUMA_SO_SIDE side, 
+                        int check_unique, int return_parent,
+                        SUMA_DO *dov, int N_dov) 
+{
+   static char FuncName[]={"SUMA_FindSOp_inDOv_from_N_Node"};
+   int nFound=0, i = 0;
+   SUMA_SurfaceObject *SO=NULL, *tSO=NULL;
+   
+   SUMA_ENTRY;
+   
+   i=0;
+   while ((!nFound || check_unique) && i < N_dov) {
+      if (dov[i].ObjectType == SO_type) {
+         tSO = (SUMA_SurfaceObject *)dov[i].OP;
+         if (return_parent && 
+             !SUMA_isLocalDomainParent(tSO)) { /* Need parent only */
+            if (!(tSO = SUMA_findSOp_inDOv(
+                           tSO->LocalDomainParentID, dov, N_dov))) {
+               goto NEXT;
+            }
+         }
+         if (  tSO != SO /* Happens often if you are picking parents */&&
+               tSO->N_Node == N_Node) { /* candidate */
+            if (side == SUMA_RIGHT || side == SUMA_LEFT || side == SUMA_LR) {
+               if (tSO->Side != side) {
+                  goto NEXT;
+               } 
+            }
+            /* Looks like we made it */
+            if (!SO) SO = tSO; /* only find the first */
+            ++nFound;
+         }
+      }
+      NEXT:
+      ++i;   
+   }
+   
+   if (check_unique && nFound > 1) {
+      if (check_unique > 0) { /* error */
+         SUMA_SLP_Err("More than 1 SO candidate found"); 
+      } else { /* warning */
+         SUMA_SLP_Warn("More than 1 SO candidate found. Returning first."); 
+      }
+   }
+   
+   SUMA_RETURN(SO);
+} 
 
 SUMA_Boolean  SUMA_is_ID_4_SO(char *idcode, SUMA_SurfaceObject **SOp)
 {
@@ -2633,6 +2707,7 @@ SUMA_Boolean SUMA_SetXformActive(SUMA_XFORM *xf, int active, int fromgui)
                   XtWindow(xf->gui->AppShell));
    }
    
+                                        
    if (0 && !fromgui) { /* not sure why I have this here. 
                            SUMA_InitializeXformInterface is called in SUMA_D_Key,
                            which is the function called in both GUI and non GUI 

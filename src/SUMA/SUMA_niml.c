@@ -185,8 +185,10 @@ Boolean SUMA_niml_workproc( XtPointer thereiselvis )
       
       if (SUMAg_CF->ns_flags_v[cc] & SUMA_FLAG_WAITING) {
          SUMAg_CF->ns_flags_v[cc] = SUMA_FLAG_CONNECTED;
-         fprintf(SUMA_STDERR, "%s: ++ NIML connection opened from %s\n",
-                  FuncName, NI_stream_name(SUMAg_CF->ns_v[cc])                ) ;
+         SUMA_S_Notev( 
+                  "++ NIML connection opened from %s on port %d (%dth steam)\n",
+                  NI_stream_name(SUMAg_CF->ns_v[cc]), 
+                  SUMAg_CF->TCP_port[cc], cc) ;
       }
    #if 0
       /* not good enough, checks socket only, not buffer */
@@ -307,7 +309,8 @@ int SUMA_which_stream_index (SUMA_CommonFields *cf, char *nel_stream_name)
    SUMA_RETURN(-1);
 }
 
-SUMA_Boolean SUMA_niml_hangup (SUMA_CommonFields *cf, char *nel_stream_name, SUMA_Boolean fromSUMA, SUMA_Boolean killit)
+SUMA_Boolean SUMA_niml_hangup (SUMA_CommonFields *cf, char *nel_stream_name, 
+                               SUMA_Boolean fromSUMA, SUMA_Boolean killit)
 {
    static char FuncName[]={"SUMA_niml_hangup"};
    int i;
@@ -461,7 +464,8 @@ SUMA_Boolean SUMA_niml_call ( SUMA_CommonFields *cf, int si,
             cf->ns_v[si] = NULL;
             cf->ns_flags_v[si] = 0; 
             cf->TrackingId_v[si] = 0;
-            fprintf(SUMA_STDERR,"Error %s: WriteCheck timed out (> %d ms).\n", FuncName, SUMA_WriteCheckWaitMax);
+            SUMA_S_Errv("WriteCheck timed out (> %d ms).\n", 
+                        SUMA_WriteCheckWaitMax);
             SUMA_RETURN(NOPE);
          }
       } 
@@ -1274,10 +1278,28 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
          SUMA_RETURN(YUP) ;
       }
       
+      if ( strcmp(nel->name,"3dGroupInCorr_setup") == 0 ){ 
+         SUMA_LH("Got me a 3dGroupInCorr_setup");
+         if (!SUMA_GICOR_setup_func( SUMAg_CF->ns_v[SUMA_GICORR_LINE], nel )) {
+            SUMA_S_Err("Catastropha!");
+            SUMA_RETURN(NOPE);
+         }
+         SUMAg_CF->Connected_v[SUMA_GICORR_LINE] = YUP;
+         SUMA_RETURN(YUP) ;
+      } 
+      
+      if( strcmp(nel->name,"3dGroupInCorr_dataset") == 0 ){  
+         SUMA_LH("Got me a 3dGroupInCorr_dataset");
+         if (!SUMA_GICOR_process_dataset( nel  ) ) {
+            SUMA_S_Err("Maledizione!");
+            SUMA_RETURN(NOPE);
+         }
+         SUMA_RETURN(YUP) ;
+      }
+      
       /*** If here, then name of element didn't match anything ***/
 
-      fprintf( SUMA_STDERR,"Error %s: Unknown NIML input: %s\n",
-               FuncName ,nel->name) ;
+      SUMA_S_Errv("Unknown NIML input: %s\n", nel->name) ;
       SUMA_RETURN(NOPE) ;
    } /* end parse nels */ else { /* is group */
       ngr = (NI_group *) nini ;

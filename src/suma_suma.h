@@ -38,7 +38,7 @@
 #include "xutil.h"
 #include "display.h"
 #include "xim.h"
-
+#include "gicor.h"
 
 
 /* SUMA's generic includes */

@@ -6967,12 +6967,9 @@ SUMA_Boolean SUMA_iRGB_to_OverlayPointer (SUMA_SurfaceObject *SO,
 
          Overlay = SUMA_CreateOverlayPointer (Name, dset, SO->idcode_str, NULL);
          if (!Overlay) {
-            fprintf (SUMA_STDERR, 
-                     "Error %s: Failed in SUMA_CreateOverlayPointer.\n", 
-                     FuncName);
+            SUMA_SL_Err("Failed in SUMA_CreateOverlayPointer.\n");
             SUMA_RETURN(NOPE);
          } 
-         
          
          /* set up some defaults for the overlap plane */
          if (sopd->Show) Overlay->ShowMode = SW_SurfCont_DsetViewCol;

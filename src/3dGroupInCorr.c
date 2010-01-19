@@ -81,6 +81,9 @@ typedef struct {
 
   long long nbytes ;
 
+   /* Surface stuff        ZSS Jan 09 */
+   int nnode[2];
+   int ninmask[2];   
 } MRI_shindss ;  /* short indexed datasets */
 
 /*----- pointer to iv-th vector in id-th dataset of shd -----*/
@@ -117,7 +120,7 @@ MRI_shindss * GRINCOR_read_input( char *fname )
 {
    NI_element *nel=NULL ;
    char *dfname=NULL , *atr ;
-   NI_float_array *facar ; NI_int_array *nvar ;
+   NI_float_array *facar ; NI_int_array *nvar, *nnode=NULL, *ninmask=NULL;
    MRI_shindss *shd ;
    long long nbytes_needed , nbytes_dfname ; int fdes ;
    void *var ; int ids ;
@@ -227,6 +230,14 @@ MRI_shindss * GRINCOR_read_input( char *fname )
      nel->vec[0] = NULL ;        /* NULL out in element so won't be free-ed */
    }
 
+   /* And stuff for LR surface pairs      ZSS Jan 09*/
+   if ((atr=NI_get_attribute(nel,"LRpair_nnode"))) {
+      nnode = NI_decode_int_list(atr,",") ;
+   }
+   if ((atr=NI_get_attribute(nel,"LRpair_ninmask"))) {
+      ninmask = NI_decode_int_list(atr,",") ;
+   }
+   
    NI_free_element(nel) ;  /* don't need this anymore */
 
    /* create output struct */
@@ -246,6 +257,24 @@ MRI_shindss * GRINCOR_read_input( char *fname )
    shd->ivec = ivec ;
    shd->fac  = fac  ;
 
+   /* and surface fields...      ZSS      Jan 09 */
+   if (nnode) {
+      if (nnode->num != 2) GQUIT("LRpair_nnode must have 2 values");
+      shd->nnode[0] = nnode->ar[0];
+      shd->nnode[1] = nnode->ar[1];
+      NI_delete_int_array(nnode); nnode=NULL;
+   } else {
+      shd->nnode[0] = shd->nnode[1] = -1;       
+   }
+   if (ninmask) {
+      if (ninmask->num != 2) GQUIT("LRpair_ninmask must have 2 values");
+      shd->ninmask[0] = ninmask->ar[0];
+      shd->ninmask[1] = ninmask->ar[1];
+      NI_delete_int_array(ninmask); ninmask=NULL;
+   } else {
+      shd->ninmask[0] = shd->ninmask[1] = -1;
+   }
+   
    /*--- now have to map data from disk ---*/
 
    var = mmap( 0 , (size_t)nbytes_needed ,
@@ -347,6 +376,7 @@ void GRINCOR_load_seedvec( MRI_shindss *shd , MCW_cluster *nbhd ,
 /*-----------------------------------------------------------------------------*/
 
 #define AFNI_NIML_PORT 53212            /* TCP/IP port that AFNI uses */
+#define SUMA_GICORR_PORT 53224          /* TCP/IP port that SUMA uses */
 
 NI_stream GI_stream = (NI_stream)NULL ;
 
@@ -392,7 +422,7 @@ static int ttest_opcode_max =  2   ;
 
 int main( int argc , char *argv[] )
 {
-   int nopt , kk , nn , ii,jj ;
+   int nopt , kk , nn , ii,jj, TalkToAfni=1;
    char nsname[2048]  ; /* NIML socket name */
    NI_element *nelset ; /* NIML element with dataset to send to AFNI */
    NI_element *nelcmd ; /* NIML element with command from AFNI */
@@ -568,6 +598,10 @@ int main( int argc , char *argv[] )
        verb += 2 ; nopt++ ; continue ;
      }
 
+     if( strcmp(argv[nopt],"-suma") == 0 ){
+       TalkToAfni = 0 ; nopt++ ; continue ;
+     }
+
      if( strcasecmp(argv[nopt],"-seedrad") == 0 ){
        if( ++nopt >= argc ) ERROR_exit("need 1 argument after option '%s'",argv[nopt-1]) ;
        seedrad = (float)strtod(argv[nopt],NULL) ;
@@ -704,8 +738,11 @@ int main( int argc , char *argv[] )
 
    /* name of NIML stream (socket) to open */
 
-   sprintf( nsname , "tcp:%s:%d" , afnihost , AFNI_NIML_PORT ) ;
-
+   if (TalkToAfni) {
+      sprintf( nsname , "tcp:%s:%d" , afnihost , AFNI_NIML_PORT ) ;
+   } else {
+      sprintf( nsname , "tcp:%s:%d" , afnihost , SUMA_GICORR_PORT ) ;
+   }
    /* open the socket (i.e., dial the telephone call) */
 
    fprintf(stderr,"++ Opening NIML socket '%s' to AFNI",nsname) ;
@@ -756,6 +793,15 @@ int main( int argc , char *argv[] )
    NI_set_attribute( nelcmd , "geometry_string", shd_AAA->geometry_string  ) ;
    NI_set_attribute( nelcmd , "target_name"    , "A_GRP_ICORR"             ) ;
 
+   if (shd_AAA->nnode[0] >= 0) {
+      sprintf(buf,"%d, %d", shd_AAA->nnode[0], shd_AAA->nnode[1]);
+      NI_set_attribute( nelcmd , "LRpair_nnode", buf);
+   }
+   if (shd_AAA->ninmask[0] >= 0) {
+      sprintf(buf,"%d, %d", shd_AAA->ninmask[0], shd_AAA->ninmask[1]);
+      NI_set_attribute( nelcmd , "LRpair_ninmask", buf);
+   }
+   
    if( verb > 1 ) INFO_message("Sending setup information to AFNI") ;
    nn = NI_write_element( GI_stream , nelcmd , NI_BINARY_MODE ) ;
    if( nn < 0 ){
@@ -919,10 +965,8 @@ int main( int argc , char *argv[] )
      }
 
      /* step 3: a lot of t-test-ification */
-
      GRINCOR_many_ttest( nvec , ndset_AAA , dotprod_AAA ,
                                 ndset_BBB , dotprod_BBB , neldar,nelzar ) ;
-
      if( verb > 2 ){
        ctim = NI_clock_time() ;
        ININFO_message(" finished t-test-izing: elapsed=%d ms",ctim-btim) ;

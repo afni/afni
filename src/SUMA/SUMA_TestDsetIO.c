@@ -148,13 +148,17 @@ int main (int argc,char *argv[])
       
       SUMA_LH("Adding stat other columns...");
          par[0] = 120; par[1] = 2; par[2] = 2;
-         if (!SUMA_AddDsetNelCol (dset, "XcorrCoef", SUMA_NODE_XCORR, (void *)xc, (void *)par ,1)) {
-            fprintf (stderr,"Error  %s:\nFailed in SUMA_AddDsetNelCol", FuncName);
+         if (!SUMA_AddDsetNelCol (dset, "XcorrCoef", 
+                                  SUMA_NODE_XCORR, (void *)xc, (void *)par ,1)) {
+            fprintf (stderr,
+                     "Error  %s:\nFailed in SUMA_AddDsetNelCol", FuncName);
             exit(1);
          }
 
-         if (!SUMA_AddDsetNelCol (dset, "Delay", SUMA_NODE_FLOAT, (void *)de, NULL ,1)) {
-            fprintf (stderr,"Error  %s:\nFailed in SUMA_AddDsetNelCol", FuncName);
+         if (!SUMA_AddDsetNelCol (dset, "Delay", 
+                                  SUMA_NODE_FLOAT, (void *)de, NULL ,1)) {
+            fprintf (stderr,
+                     "Error  %s:\nFailed in SUMA_AddDsetNelCol", FuncName);
             exit(1);
          }
 

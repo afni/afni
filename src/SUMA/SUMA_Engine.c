@@ -2300,8 +2300,22 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             
             NI_free_element(nel);
 
+            
             break;
-                  
+         
+         case SE_SetGICORnode:
+            /* expects nothing in EngineData */
+            /* sends the current node to Group Icor */
+            if (SUMAg_CF->giset && SUMAg_CF->Connected_v[SUMA_GICORR_LINE]) {
+               SUMA_LH("Sending notice to GICOR");
+               if (SUMA_AFNI_gicor_setref((SUMA_SurfaceObject *)
+                                          (SUMAg_DOv[sv->Focus_SO_ID].OP),
+                                          SO->SelectedNode) < 0) {
+                  SUMA_S_Err("Failed in SUMA_AFNI_gicor_setref");
+               } 
+            }
+            break;
+         
          case SE_SetLookAtNode:
             /* expects a center XYZ in EngineData->fv15[0 .. 2]
             expects a normal vector in EngineData->fv15[3 .. 5] */
