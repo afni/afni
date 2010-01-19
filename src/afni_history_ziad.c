@@ -65,6 +65,11 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 14 , JAN , 2010 , ZSS , "3dLocalstat" , MINOR , TYPE_NEW_OPT ,
+   "Added -rank and -frank options to 3dLocalstat",
+   NULL
+ } ,
+
  { 15 , DEC , 2009 , ZSS , "afni" , MINOR , TYPE_NEW_OPT ,
    "Allow label based sub-brick selection in AFNI and SUMA",
    NULL

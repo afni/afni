@@ -117,24 +117,29 @@ typedef struct {
    int N_surf;
    char *spec_file; /* do not free, argv[.] copy */
    char *in_name;    /* do not free, argv[.] copy */
-   char *in_namev[SUMA_GENERIC_PROG_MAX_IN_NAME]; /* a whole bunch of input files */
+   char *in_namev[SUMA_GENERIC_PROG_MAX_IN_NAME];/*a whole bunch of input files*/
    int n_in_namev;
    char *surftype; /* do not free, argv[.] copy */
-   char *out_prefix;   /* this one's dynamically allocated so you'll have to free it yourself */
-   char *out_vol_prefix; /* this one's dynamically allocated so you'll have to free it yourself */
+   char *out_prefix;   /* this one's dynamically allocated so 
+                          you'll have to free it yourself */
+   char *out_vol_prefix; /* this one's dynamically allocated so 
+                           you'll have to free it yourself */
    char out_vol_view[SUMA_VIEW_LENGTH];
    int out_vol_exists;
-   char *out_grid_prefix; /* this one's dynamically allocated so you'll have to free it yourself */
+   char *out_grid_prefix; /* this one's dynamically allocated so 
+                             you'll have to free it yourself */
    char out_grid_view[SUMA_VIEW_LENGTH];
    int out_grid_exists;
-   char *in_vol_prefix; /* this one's dynamically allocated so you'll have to free it yourself */
+   char *in_vol_prefix; /* this one's dynamically allocated 
+                           so you'll have to free it yourself */
    char in_vol_view[SUMA_VIEW_LENGTH];
    int in_vol_exists;
    int MaskMode;
    char *cmask;
    THD_3dim_dataset *in_vol;
    float VolCM[3];   /* input volume's center of mass */
-   double *mcdatav; /* the dataset that is passed to the marching cube algorithm */
+   double *mcdatav; /* the dataset that is passed to the 
+                        marching cube algorithm */
    int debug;
    int ninmask;
    int fix_winding;
@@ -150,11 +155,14 @@ typedef struct {
    SUMA_SO_File_Type SurfFileType;
    /* following fields are intended for use in ConvexHull only */
    char *in_1D;  /* name of 1D file containing XYZ coords */
-   float *XYZ; /* a 3*N_XYZ vector of XYZ coordinates. This vector should be freed at the end*/
+   float *XYZ; /* a 3*N_XYZ vector of XYZ coordinates. 
+                  This vector should be freed at the end*/
    int N_XYZ;  /* number of points in XYZ */
    /* following fields are intended for use in BrainWarp only */
-   float ExpFrac; /* a fraction (0.01) used to control the rate of expansion of the surface (see su3 variable in SUMA_StretchToFitLeCerveau ) */
-   float Zt; /* a fraction controlling the separation between brain and non brain, see variable tb in SUMA_StretchToFitLeCerveau ) */
+   float ExpFrac; /* a fraction (0.01) used to control the rate of expansion of 
+                 the surface (see su3 variable in SUMA_StretchToFitLeCerveau ) */
+   float Zt; /* a fraction controlling the separation between brain and non 
+               brain, see variable tb in SUMA_StretchToFitLeCerveau ) */
    int N_it; /* number of iterations */
    int Icold; /* number of Ico subdivisions */
    int NodeDbg; /* node to debug */
@@ -249,7 +257,9 @@ typedef struct {
    int match_area; 
    
    float xyz_scale;
-   SUMA_GENERIC_ARGV_PARSE *ps; /* just a holder for convenience, never free it here*/
+   SUMA_GENERIC_ARGV_PARSE *ps; /* just a holder for convenience, never free it*/
+   
+   char *s; /* just a string, gets freed in the end */
 } SUMA_GENERIC_PROG_OPTIONS_STRUCT; /* also edit defaults in 
                                  SUMA_Alloc_Generic_Prog_Options_Struct and in 
                                  SUMA_Free_Generic_Prog_Options_Struct */

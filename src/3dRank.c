@@ -13,6 +13,8 @@ void Rank_help(void) {
          "If you input one dataset, the output should be identical\n"
          "to the -1rank option in 3dmerge\n"
          "\n"
+         "This program only works on integral valued data. \n"
+         "\n"
          "  -input DATASET1 [DATASET2 ...]: Input datasets.\n"
          "                                  Acceptable data types are:\n"
          "                                  byte, short, and floats.\n"
@@ -41,7 +43,7 @@ void Rank_help(void) {
 /*! Replace a voxel's value by the value's rank in the entire set of input datasets */
 int main( int argc , char * argv[] )
 {
-   THD_3dim_dataset ** dsets_in = NULL;  /* input and output datasets */
+   THD_3dim_dataset ** dsets_in = NULL, *dset=NULL; /*input and output datasets*/
    int nopt=0, nbriks=0, nsubbriks=0, ib=0, isb=0;
    byte *cmask=NULL;
    int *all_uniques=NULL, **uniques=NULL, *final_unq=NULL, *N_uniques=NULL;
@@ -105,18 +107,15 @@ int main( int argc , char * argv[] )
    if (!nbriks) {
       ERROR_exit( " Error no volumes entered on command line?");
    }
+   
    /* some checks and inits*/
    nsubbriks = 0;
    for (ib = 0; ib<nbriks; ++ib) {
-      for (isb=0; isb<DSET_NVALS(dsets_in[ib]); ++isb) {
-         if (  DBLK_BRICK_TYPE( dsets_in[ib]->dblk, isb ) != MRI_byte ||
-               DBLK_BRICK_TYPE( dsets_in[ib]->dblk, isb ) != MRI_short ) {
-            /* do not complain, NIFTI int dsets are stored as float in AFNI
-            WARNING_message("One of the input dset is not of an integral"
-                            "data type.");       */
-         }
-         ++nsubbriks;
+      if (!is_integral_dset(dsets_in[ib])) {
+         ERROR_exit("Dset %s is not integral valued.", 
+                        DSET_PREFIX(dsets_in[ib]));
       }
+      nsubbriks += DSET_NVALS(dsets_in[ib]);
    }
    
    /* Now get unique arrays */
@@ -241,7 +240,7 @@ int main( int argc , char * argv[] )
 
          }
       }
-      
+
       /* update range, etc. */
       THD_load_statistics(dsets_in[ib]);
       
@@ -267,12 +266,25 @@ int main( int argc , char * argv[] )
       dsets_in[ib]->dblk->diskptr->storage_mode = STORAGE_BY_BRICK;
       
       tross_Make_History( "3dRank" , argc, argv , dsets_in[ib] ) ;
-      if (!THD_write_3dim_dataset( NULL, stmp, dsets_in[ib],True )) {
-         ERROR_message("Failed to write");
+      if (DSET_IS_MASTERED(dsets_in[ib])) {
+         /*  THD_write_3dim_dataset won't write a mastered dude */
+         dset = EDIT_full_copy(dsets_in[ib],stmp); 
+      } else {
+         dset = dsets_in[ib];
+      }
+      
+      /* New ID */
+      ZERO_IDCODE(dset->idcode);
+      dset->idcode = MCW_new_idcode() ;
+      
+      if (!THD_write_3dim_dataset( NULL, stmp, dset,True )) {
+         ERROR_message("Failed to write %s", stmp);
          exit(1);  
       } else {
          WROTE_DSET(dsets_in[ib]); 
+         if (dset != dsets_in[ib]) DSET_deletepp(dset);
          DSET_deletepp(dsets_in[ib]);
+         
       }
    }
 

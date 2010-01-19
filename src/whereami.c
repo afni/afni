@@ -979,14 +979,17 @@ int main(int argc, char **argv)
       
       /* are we in TLRC land? */
       if (mset_orig->view_type != VIEW_TALAIRACH_TYPE) {
-         fprintf(stderr,"** Error: Mask set %s is not of the Talairach persuasion.\n", bmsk);
+         fprintf( stderr,
+                  "** Error: Mask set %s is not of the Talairach persuasion.\n", 
+                  bmsk);
          return(1);
       }
       
       if (cmask) {
          if (ncmask != DSET_NVOX(mset_orig)) {
-            fprintf(stderr,"** Error: Voxel number mismatch between -bmask and -cmask input.\n"
-                           "Make sure both volumes have the same number of voxels.\n");
+            fprintf(stderr,
+             "** Error: Voxel number mismatch between -bmask and -cmask input.\n"
+             "Make sure both volumes have the same number of voxels.\n");
             
             return(1);
          }

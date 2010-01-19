@@ -4167,6 +4167,9 @@ typedef struct {
  } while(0)
 
 extern MRI_vectim * THD_dset_to_vectim( THD_3dim_dataset *dset, byte *mask, int ignore );
+MRI_vectim * THD_2dset_to_vectim( THD_3dim_dataset *dset1, byte *mask1 , 
+                                  THD_3dim_dataset *dset2, byte *mask2 , 
+                                  int ignore );
 extern int64_t THD_vectim_size( THD_3dim_dataset *dset , byte *mask ) ;
 extern int THD_vectim_ifind( int iv , MRI_vectim *mrv ) ;
 extern int bsearch_int( int tt , int nar , int *ar ) ;
@@ -4334,6 +4337,8 @@ extern byte * THD_makemask( THD_3dim_dataset *, int,float,float) ;
 extern int    THD_makedsetmask( THD_3dim_dataset *, int,float,float, byte* ) ;
 extern int *THD_unique_vals( THD_3dim_dataset *mask_dset, int miv,
                               int *n_unique, byte*cmask );
+int is_integral_dset ( THD_3dim_dataset *dset);
+int is_integral_sub_brick ( THD_3dim_dataset *dset, int isb);
 extern int THD_mask_remove_isolas( int nx, int ny, int nz , byte *mmm ) ;
 
 extern int    THD_countmask( int , byte * ) ;

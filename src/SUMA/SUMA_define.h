@@ -235,7 +235,7 @@ typedef enum { SE_Empty,
                SE_SetForceAfniSurf, SE_BindCrossHair, SE_ToggleForeground, 
                SE_ToggleBackground, SE_FOVreset, SE_CloseStream4All, 
                SE_Redisplay_AllVisible, SE_RedisplayNow, SE_ResetOpenGLState, 
-               SE_LockCrossHair,
+               SE_LockCrossHair, SE_SetGICORnode, 
                SE_ToggleLockAllCrossHair, SE_SetLockAllCrossHair, 
                SE_ToggleLockView, SE_ToggleLockAllViews, 
                SE_Load_Group, SE_Home_AllVisible, SE_Help, SE_Help_Cmap, 
@@ -2364,6 +2364,8 @@ typedef enum { SUMA_AFNI_STREAM_INDEX = 0,
                      /*!<  Using socket SUMA_TCP_LISTEN_PORT0 + 2*/
                SUMA_DRIVESUMA_LINE, 
                      /*!<  Using socket SUMA_TCP_LISTEN_PORT0 + 3*/
+               SUMA_GICORR_LINE,
+                     /*!<  Using socket SUMA_TCP_LISTEN_PORT0 + 4*/
                SUMA_MAX_STREAMS 
                      /*!< Maximum number of streams, KEEP AT END */
             } SUMA_STREAM_INDICES;
@@ -2709,6 +2711,9 @@ typedef struct {
                           surfaces */
    
    SUMA_Boolean HoldClickCallbacks;
+   
+   GICOR_setup *giset; /*!< parameters for group icorr setup */
+   
 } SUMA_CommonFields;
 
 

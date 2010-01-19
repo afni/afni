@@ -36,7 +36,7 @@ void SUMA_MapIcosahedron_usage ()
 "        Say MapIcosahedron produced std.LH.spec and std.RH.spec, \n"
 "        you can use the following to merge them:\n"
 "              inspec   -LRmerge std.LH_SPEC.spec std.RH_SPEC.spec \\\n"
-"                       -spec std.BOTH_SPEC.spec\n"
+"                       -prefix std.BOTH_SPEC.spec\n"
 "\n"
 "   -rd recDepth: recursive (binary) tesselation depth for icosahedron.\n"
 "        (optional, default:3) See CreateIcosahedron for more info.\n"
@@ -567,7 +567,7 @@ int main (int argc, char *argv[])
          "from both hemispheres. Run MapIcosahedron twice separately,\n"
          "then merge the resultant spec files with\n"
          "   inspec  -LRmerge LH_SPEC.spec RH_SPEC.spec \\\n"
-         "           -spec BOTH_SPEC.spec\n"
+         "           -prefix BOTH_SPEC.spec\n"
          "\n" 
          "Program will proceed, assuming you know what you're doing. \n"
          "***********************************************************\n",
@@ -903,7 +903,7 @@ int main (int argc, char *argv[])
                   "   than surface %s                (%d)\n"         
                   "Exiting.\n"
                   , FuncName, SO_morph->Label,
-                  SO->N_Node, 
+                  SO_morph->N_Node, 
                   SO->Label,
                   SO->N_Node);
          SCRUBIT;

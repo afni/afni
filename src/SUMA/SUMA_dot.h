@@ -24,4 +24,16 @@ int SUMA_DotXform_GetRecomputeForDset (NI_element *dotopts, char *id);
 SUMA_Boolean SUMA_DotXform_MakeOrts( NI_element *dotopt, int ts_len,
                                      int polort, char *ortname);
 
+#define SUMA_GIQUIT {   \
+   if (giset) SUMA_free(giset); SUMAg_CF->giset = NULL; SUMA_RETURN(NOPE); \
+}
+SUMA_Boolean SUMA_GICOR_setup_func( NI_stream nsg , NI_element *nel );
+void SUMA_Show_GISET(GICOR_setup *giset, FILE *out, int verb);
+char *SUMA_GISET_Info(GICOR_setup *giset, int verb);
+int SUMA_AFNI_gicor_setref( SUMA_SurfaceObject *SO, int node );
+SUMA_Boolean SUMA_GICOR_process_dataset( NI_element *nel  );
+
+
+
+
 #endif
