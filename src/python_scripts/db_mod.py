@@ -1393,7 +1393,7 @@ def db_cmd_scale(proc, block):
     # check for max scale value 
     opt = block.opts.find_opt('-scale_max_val')
     max = opt.parlist[0]
-    if max > 100: valstr = 'max(0, min(%d, a/b*100))' % max
+    if max > 100: valstr = 'min(%d, a/b*100)*step(a)*step(b)' % max
     else:         valstr = 'a/b*100*step(a)'
 
     if proc.mask and proc.regmask:
@@ -2261,6 +2261,12 @@ def db_mod_tlrc(block, proc, user_opts):
         bopt = block.opts.find_opt('-tlrc_base')
         bopt.parlist = uopt.parlist
 
+    uopt = user_opts.find_opt('-tlrc_opts_at')
+    bopt = block.opts.find_opt('-tlrc_opts_at')
+    if uopt :
+        if bopt: bopt.parlist = uopt.parlist
+        else:    block.opts.add_opt('-tlrc_opts_at', 0, uopt.parlist, setpar=1)
+
     uopt = user_opts.find_opt('-tlrc_no_ss')
     bopt = block.opts.find_opt('-tlrc_no_ss')
     if uopt and not bopt:
@@ -2296,6 +2302,12 @@ def db_cmd_tlrc(proc, block):
 
     proc.tlrc_base = BASE.afni_name(base)       # store for later
 
+    # add any user-specified options
+    opt = block.opts.find_opt('-tlrc_opts_at')
+    if opt and opt.parlist: extra_opts = " \\\n           %s" % \
+                            ' '.join(UTIL.quotize_list(opt.parlist, '', 1))
+    else:   extra_opts = ''
+
     opt = block.opts.find_opt('-tlrc_no_ss')
     if opt or not proc.tlrc_ss: ss = ' -no_ss'
     else:                       ss = ''
@@ -2319,9 +2331,11 @@ def db_cmd_tlrc(proc, block):
     # start with block separator
     cmd = "# %s\n" % block_header('tlrc')
 
-    cmd += "# warp anatomy to standard space\n"                          \
-           "@auto_tlrc -base %s -input %s%s%s%s\n\n"                     \
-           % (base, dname, ss, rmode, suffix)
+    cmd += "# warp anatomy to standard space\n"         \
+           "@auto_tlrc -base %s -input %s%s%s%s"        \
+           "%s"                                         \
+           "\n\n"                                       \
+           % (base, dname, ss, rmode, suffix, extra_opts)
 
     return cmd
 
@@ -3525,6 +3539,15 @@ g_help_string = """
 
             Please see '@auto_tlrc -help' for more information.
             See also -tlrc_anat, -tlrc_no_ss.
+
+        -tlrc_opts_at OPTS ...   : add additional options to @auto_tlrc
+
+                e.g. -tlrc_opts_at -OK_maxite
+
+            This option is used to add user-specified options to @auto_tlrc,
+            specifically those afni_proc.py is not otherwise set to handle.
+
+            Please see '@auto_tlrc -help' for more information.
 
         -tlrc_no_ss             : add the -no_ss option to @auto_tlrc
 
