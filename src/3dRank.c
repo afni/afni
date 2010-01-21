@@ -1,6 +1,15 @@
 /*********************** 3dRank.c **********************************************/
 /* Author: Ziad Saad May 2009 */
 #include "mrilib.h"
+#include "uthash.h"
+
+typedef struct {
+    int id;    /* keep it named 'id' to facilitate use of convenience
+                  macros in uthash . */
+    UT_hash_handle hh;  /* keep name for same reason  */
+    int index; 
+} INT_HASH_DATUM;
+
 
 extern int * UniqueInt (int *y, int ysz, int *kunq, int Sorted );
 
@@ -13,7 +22,7 @@ void Rank_help(void) {
          "If you input one dataset, the output should be identical\n"
          "to the -1rank option in 3dmerge\n"
          "\n"
-         "This program only works on integral valued data. \n"
+         "This program only works on data of integral type. \n"
          "\n"
          "  -input DATASET1 [DATASET2 ...]: Input datasets.\n"
          "                                  Acceptable data types are:\n"
@@ -48,8 +57,8 @@ int main( int argc , char * argv[] )
    byte *cmask=NULL;
    int *all_uniques=NULL, **uniques=NULL, *final_unq=NULL, *N_uniques=NULL;
    int N_final_unq=0, iun=0, total_unq=0;
-   int *rmap=NULL;
-   int imax=0, iunq=0, ii=0;
+   INT_HASH_DATUM *rmap=NULL, *hd=NULL;
+   int imax=0, iunq=0, ii=0, id = 0;
    long int off=0;
    char *prefix=NULL;
    char stmp[THD_MAX_PREFIX+1]={""}; 
@@ -111,8 +120,8 @@ int main( int argc , char * argv[] )
    /* some checks and inits*/
    nsubbriks = 0;
    for (ib = 0; ib<nbriks; ++ib) {
-      if (!is_integral_dset(dsets_in[ib])) {
-         ERROR_exit("Dset %s is not integral valued.", 
+      if (!is_integral_dset(dsets_in[ib], 0)) {
+         ERROR_exit("Dset %s is not of an integral data type.", 
                         DSET_PREFIX(dsets_in[ib]));
       }
       nsubbriks += DSET_NVALS(dsets_in[ib]);
@@ -155,12 +164,6 @@ int main( int argc , char * argv[] )
    }
    free(all_uniques); all_uniques=NULL;
   
-   /* get the maximum integer in the unique array */
-   imax = 0;
-   for (iunq=0; iunq<N_final_unq; ++iunq) {
-      if (final_unq[iunq] > imax) imax = final_unq[iunq]; 
-   }
-   
    if (prefix) {
       snprintf(stmp, sizeof(char)*THD_MAX_PREFIX, 
                "%s.rankmap.1D", prefix);
@@ -182,11 +185,18 @@ int main( int argc , char * argv[] )
       }
    } 
 
-   rmap = (int *)calloc(imax+1, sizeof(int));
+   
+   /* get the maximum integer in the unique array */
+   imax = 0;
    for (iunq=0; iunq<N_final_unq; ++iunq) {
-      rmap[final_unq[iunq]] = iunq; 
+      if (final_unq[iunq] > imax) imax = final_unq[iunq]; 
       if (fout) fprintf(fout, "%d   %d\n", iunq, final_unq[iunq]);
+      hd = (INT_HASH_DATUM*)calloc(1,sizeof(INT_HASH_DATUM));
+      hd->id = final_unq[iunq];
+      hd->index = iunq;
+      HASH_ADD_INT(rmap, id, hd); 
    }
+   
    fclose(fout); fout=NULL;
 
    /* now cycle over all dsets and replace their voxel values with rank */
@@ -210,9 +220,13 @@ int main( int argc , char * argv[] )
                                   imax, MRI_TYPE_maxval[MRI_short]);
                }
                for( ii=0 ; ii < DSET_NVOX(dsets_in[ib]) ; ii++ )
-                  if (!cmask || cmask[ii]) 
-                     mar[ii] = (short)(rmap[(int)mar[ii]]); 
-                  else mar[ii] = 0;
+                  if (!cmask || cmask[ii]) {
+                     id = (int)mar[ii];
+                     HASH_FIND_INT(rmap,&id ,hd);
+                     if (hd) mar[ii] = (short)(hd->index); 
+                     else 
+                       ERROR_exit("** Failed to find key %d in hash table\n",id);
+                  } else mar[ii] = 0;
             }
             break ;
             case MRI_byte:{
@@ -224,17 +238,25 @@ int main( int argc , char * argv[] )
                }
                mar = (byte *) DSET_ARRAY(dsets_in[ib],isb) ;
                for( ii=0 ; ii < DSET_NVOX(dsets_in[ib]) ; ii++ )
-                  if (!cmask || cmask[ii]) 
-                     mar[ii] = (byte)(rmap[(int)mar[ii]]); 
-                  else mar[ii] = 0;
+                  if (!cmask || cmask[ii]) {
+                     id = (int)mar[ii];
+                     HASH_FIND_INT(rmap,&id ,hd);
+                     if (hd) mar[ii] = (byte)(hd->index); 
+                     else 
+                       ERROR_exit("** Failed to find key %d in hash table\n",id);
+                  } else mar[ii] = 0;
             }
             break ;
             case MRI_float:{
                float *mar = (float *) DSET_ARRAY(dsets_in[ib],isb) ;
                for( ii=0 ; ii < DSET_NVOX(dsets_in[ib]) ; ii++ )
-                  if (!cmask || cmask[ii]) 
-                     mar[ii] = (float)(rmap[(int)mar[ii]]); 
-                  else mar[ii] = 0;
+                  if (!cmask || cmask[ii]) {
+                     id = (int)mar[ii]; /* Assuming float is integral valued */
+                     HASH_FIND_INT(rmap,&id ,hd);
+                     if (hd) mar[ii] = (float)(hd->index); 
+                     else 
+                       ERROR_exit("** Failed to find key %d in hash table\n",id);
+                  } else mar[ii] = 0;
             }
             break ;
 
@@ -287,8 +309,14 @@ int main( int argc , char * argv[] )
          
       }
    }
+   
+   /* destroy hash */
+   while (rmap) {
+      hd = rmap;
+      HASH_DEL(rmap,hd);
+      free(hd);
+   }
 
-   free(rmap); rmap=NULL;
    free(final_unq);  final_unq=NULL;
    
    exit(0);

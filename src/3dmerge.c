@@ -818,7 +818,7 @@ void MRG_Syntax(void)
     "     The -1rank option also outputs a 1D file that contains \n"
     "     the mapping from the input dataset to the ranked output.\n"
     "\n"
-    "     This option only works on integral valued data. Float values\n"
+    "     This option only works on datasets of integral types. Float values\n"
     "     are typecast to int before being ranked.\n"
     "\n"
     "     See also program 3dRank\n" 

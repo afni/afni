@@ -4337,8 +4337,8 @@ extern byte * THD_makemask( THD_3dim_dataset *, int,float,float) ;
 extern int    THD_makedsetmask( THD_3dim_dataset *, int,float,float, byte* ) ;
 extern int *THD_unique_vals( THD_3dim_dataset *mask_dset, int miv,
                               int *n_unique, byte*cmask );
-int is_integral_dset ( THD_3dim_dataset *dset);
-int is_integral_sub_brick ( THD_3dim_dataset *dset, int isb);
+int is_integral_dset ( THD_3dim_dataset *dset, int check_data);
+int is_integral_sub_brick ( THD_3dim_dataset *dset, int isb, int check_data);
 extern int THD_mask_remove_isolas( int nx, int ny, int nz , byte *mmm ) ;
 
 extern int    THD_countmask( int , byte * ) ;
