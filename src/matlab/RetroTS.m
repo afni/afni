@@ -123,12 +123,17 @@ if (~isstruct(SN)), %mode 1, toy mode
 else,
    Opt = SN; clear ('SN');
    Opt.err = 1; Opt.zerophaseoffset = 0;
-   if ( ~isfield(Opt,'Respfile') | isempty(Opt.Respfile)),
-      fprintf(2,'Missing field Respfile\n');
-      return;
+   if ( (~isfield(Opt,'Respfile') | isempty(Opt.Respfile))),
+      Opt.Respfile = '';
+      Opt.Resp_out = 0;
+      Opt.RVT_out = 0;
    end
-   if ( ~isfield(Opt,'Cardfile') | isempty(Opt.Cardfile)),
-      fprintf(2,'Missing field Cardfile\n');
+   if ( (~isfield(Opt,'Cardfile') | isempty(Opt.Cardfile))),
+      Opt.Cardfile = '';
+      Opt.Card_out = 0;
+   end
+   if ( (~isfield(Opt,'Respfile') | isempty(Opt.Respfile)) & (~isfield(Opt,'Cardfile') | isempty(Opt.Cardfile))),
+      fprintf(2,'No Respfile or Cardfile\n');
       return;
    end
    if ( ~isfield(Opt,'PhysFS') | isempty(Opt.PhysFS)),
@@ -265,25 +270,40 @@ end
    
 
 %Get the peaks for R and E
-[R,e]= PeakFinder(Opt.Respfile,OptR); 
-if (e), fprintf(2,'Died in PeakFinder\n'); return; end
-[E,e] = PeakFinder(Opt.Cardfile,OptE);
-if (e), fprintf(2,'Died in PeakFinder\n'); return; end
+if (~isempty(Opt.Respfile)),
+   [R,e]= PeakFinder(Opt.Respfile,OptR); 
+   if (e), fprintf(2,'Died in PeakFinder\n'); return; end
+else
+   R = struct([]);
+end
+if (~isempty(Opt.Cardfile)),
+   [E,e] = PeakFinder(Opt.Cardfile,OptE);
+   if (e), fprintf(2,'Died in PeakFinder\n'); return; end
+else
+   E = struct([]);
+end
 %get the phase
-fprintf(2, 'Estimating phase for R and E\n');
-R = PhaseEstimator(R,OptR);
-E = PhaseEstimator(E,OptE);
+if (~isempty(R)),
+   fprintf(2, 'Estimating phase for R\n');
+   R = PhaseEstimator(R,OptR);
+end
+if (~isempty(E)),
+   fprintf(2, 'Estimating phase for E\n');
+   E = PhaseEstimator(E,OptE);
+end
 
 %Now do the RVT for Respiration
-fprintf(2,'Computing RVT from peaks\n');
-R = RVT_from_PeakFinder(R, OptR);
+if (~isempty(R)),
+   fprintf(2,'Computing RVT from peaks\n');
+   R = RVT_from_PeakFinder(R, OptR);
+end
 
 %Show some results
 if(Opt.ShowGraphs)
-   fprintf(2, 'Showing RVT Peaks for R\n');
-   Show_RVT_Peak(R,1);
-   fprintf(2, 'Showing RVT Peaks for E\n');
-   Show_RVT_Peak(E,2);
+   if (~isempty(R)),
+      fprintf(2, 'Showing RVT Peaks for R\n');
+      Show_RVT_Peak(R,1);
+   end
 end
 
 if (0),
@@ -301,11 +321,23 @@ if (0),
 end
 
 %also generate files as 3dREMLfit likes them
-Opt.RemlOut = zeros(  length(R.tst),... 
+nn = 0;
+nRv = 0; nRp = 0; nE = 0;
+if (~isempty(R)),
+   nn = length(R.tst);
+   nRp = size(R.phz_slc_reg,2);
+   nRv = size(R.RVTRS_slc,2);
+end
+if (~isempty(E)), %must have E
+   nn = length(E.tst); %ok to overwrite length(R.tst), should be same.
+   nE = size(E.phz_slc_reg,2);
+end
+
+Opt.RemlOut = zeros(  nn,... 
                   Opt.Nslices .* ...
-                     (  (Opt.RVT_out~=0).*size(R.RVTRS_slc,2) + ...
-                        (Opt.Resp_out~=0).*size(R.phz_slc_reg,2) + ...
-                        (Opt.Card_out~=0).*size(E.phz_slc_reg,2) ) );
+                     (  (Opt.RVT_out~=0) .*nRv + ...
+                        (Opt.Resp_out~=0).*nRp + ...
+                        (Opt.Card_out~=0).*nE ) );
 cnt = 0;
 head = sprintf([ '# <RetroTSout\n',...
                   '# ni_type = "%d*double"\n'...
@@ -319,27 +351,33 @@ label = head;
 
 if (Opt.SliceMajor == 0), %old approach, not handy for 3dREMLfit
    %RVT
-   for (j=1:1:size(R.RVTRS_slc,2)),
-      for (i=1:1:Opt.Nslices),
-         cnt = cnt + 1;
-         Opt.RemlOut(:,cnt) = R.RVTRS_slc(:,j); %same for each slice 
-         label = sprintf('%s s%d.RVT%d ;', label, i-1, j-1);
-       end
+   if (Opt.RVT_out),
+      for (j=1:1:size(R.RVTRS_slc,2)),
+         for (i=1:1:Opt.Nslices),
+            cnt = cnt + 1;
+            Opt.RemlOut(:,cnt) = R.RVTRS_slc(:,j); %same for each slice 
+            label = sprintf('%s s%d.RVT%d ;', label, i-1, j-1);
+          end
+      end
    end
    %Resp
-   for (j=1:1:size(R.phz_slc_reg,2)),
-      for (i=1:1:Opt.Nslices),
-         cnt = cnt + 1;
-         Opt.RemlOut(:,cnt) = R.phz_slc_reg(:,j,i);
-         label = sprintf('%s s%d.Resp%d ;', label, i-1, j-1);
+   if (Opt.Resp_out),
+      for (j=1:1:size(R.phz_slc_reg,2)),
+         for (i=1:1:Opt.Nslices),
+            cnt = cnt + 1;
+            Opt.RemlOut(:,cnt) = R.phz_slc_reg(:,j,i);
+            label = sprintf('%s s%d.Resp%d ;', label, i-1, j-1);
+         end
       end
    end
    %Card
-   for (j=1:1:size(E.phz_slc_reg,2)),
-      for (i=1:1:Opt.Nslices),
-         cnt = cnt + 1;
-         Opt.RemlOut(:,cnt) = E.phz_slc_reg(:,j,i);
-         label = sprintf('%s s%d.Card%d ;', label, i-1, j-1);
+   if (Opt.Card_out),
+      for (j=1:1:size(E.phz_slc_reg,2)),
+         for (i=1:1:Opt.Nslices),
+            cnt = cnt + 1;
+            Opt.RemlOut(:,cnt) = E.phz_slc_reg(:,j,i);
+            label = sprintf('%s s%d.Card%d ;', label, i-1, j-1);
+         end
       end
    end
    fid = fopen(sprintf('%s.retrots.1D', Opt.Prefix),'w');
