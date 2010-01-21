@@ -333,6 +333,10 @@ if (~isempty(E)), %must have E
    nE = size(E.phz_slc_reg,2);
 end
 
+if ( ~Opt.Card_out & ~Opt.Resp_out & ~Opt.RVT_out ),
+   fprintf(2, 'Options Card_out, Resp_out, and RVT_out all 0.\nNo output required.\n');
+   return;
+end
 Opt.RemlOut = zeros(  nn,... 
                   Opt.Nslices .* ...
                      (  (Opt.RVT_out~=0) .*nRv + ...
