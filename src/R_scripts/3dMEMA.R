@@ -522,7 +522,7 @@ Usage:
  3dMEMA is a program for performing Mixed Effects Meta Analysis at group level 
  that models both within- and across- subjects variablity, thereby requiring
  both regression coefficients, or general linear contrasts among them, and the 
- corresponding t-statistics from each subject as input. It\'s required to stall 
+ corresponding t-statistics from each subject as input. It\'s required to install 
  R (http://www.r-project.org/), plus \'snow\' package if parallel computing is
  desirable. See more details at
  
