@@ -190,6 +190,27 @@ g_help_string = """
                   very large angles and shifts. May miss finding the solution
                   in the vastness of space, so use with caution
 
+    Notes on the big_move and giant_move options:
+        "big_move" allows for a two pass alignment in 3dAllineate.
+        The two-pass method is less likely to find a false minimum 
+        cost for alignment because it does a number of coarse (blurred,
+        rigid body) alignments first and then follows the best of these
+        coarse alignments to the fine alignment stage. The big_move 
+        option should be a relatively safe option, but it adds
+        processing time.
+
+        The giant_move option expands the search parameters in space
+        from 6 degrees and 10 mm to 45 degrees and 45 mm and adds in
+        a center of mass adjustment. The giant_move option will usually
+        work well too, but it adds significant time to the processing
+        and allows for the possibility of a very bad alignment.
+
+        If your data starts out fairly close (probably the typical case
+        for EPI and anatomical data), you can use the -big_move with 
+        little problem. All these methods when used with the default
+        lpc cost function require good contrast in the EPI image so that
+        the CSF can be roughly identifiable.
+        
     -partial_coverage: indicates that the EPI dataset covers only a part of 
                   the brain. Alignment will try to guess which direction should
                   not be shifted If EPI slices are known to be a specific 
@@ -512,7 +533,7 @@ g_help_string = """
 ## BEGIN common functions across scripts (loosely of course)
 class RegWrap:
    def __init__(self, label):
-      self.align_version = "1.26" # software version (update for changes)
+      self.align_version = "1.27" # software version (update for changes)
       self.label = label
       self.valid_opts = None
       self.user_opts = None
@@ -2069,6 +2090,7 @@ class RegWrap:
             else:
                tlrc_orig_dset = afni_name("%s_post%s" % (self.epi.out_prefix(), suf))
                tlrc_orig_dset.view = '+orig'
+               base_dset = a
                if(self.master_tlrc_dset=='SOURCE'):
                    tlrc_orig_dset.view = e.view
                else:
@@ -2077,6 +2099,7 @@ class RegWrap:
                    else:
                       mtlrc = afni_name(self.master_tlrc_dset)
                       tlrc_orig_dset.view = mtlrc.view
+                      base_dset = mtlrc
 
                if tlrc_orig_dset.exist():
                   tlrc_orig_dset.delete(ps.oexec)
@@ -2085,9 +2108,9 @@ class RegWrap:
                               ps.dset2_generic_name)
 
                com = shell_com( \
-                 "3dAllineate -1Dmatrix_apply %s " \
+                 "3dAllineate -base %s -1Dmatrix_apply %s " \
                  "-prefix %s -input %s -verb %s %s" % \
-                 ( epi_mat, atlrcpost.input(), e.input(),\
+                 ( base_dset.input(), epi_mat, atlrcpost.input(), e.input(),\
                    ps.master_tlrc_option, alopt), ps.oexec)
 
             com.run()
