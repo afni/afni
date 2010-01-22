@@ -539,7 +539,11 @@ contrast from each subject in a group):
                   ac   ac+tlrc\'[14]\'   ac+tlrc\'[15]\'  \\
                   ejk  ejk+tlrc\'[14]\'  ejk+tlrc\'[15]\' \\
                   ...
-                  ss   ss+tlrc\'[14]\'   ss+tlrc\'[15]\' \n"
+                  ss   ss+tlrc\'[14]\'   ss+tlrc\'[15]\' \\
+               -max_zeros 4    \\
+               -HKtest         \\        
+               -model_outliers \\        
+               -residual_Z     \\  \n"   
 
    ex2 <-
 "Example 2 --- Paired type (two regression coefficients or general linear 
@@ -557,7 +561,8 @@ contrasts from each subject in a group):
                 ac   ac_sad_B+tlrc   ac_sad_T+tlrc   \\
                 ejk  ejk_sad_B+tlrc  ejk_sad_T+tlrc  \\
                 ...
-                ss   ss_sad_B+tlrc   ss_sad_T+tlrc \n"
+                ss   ss_sad_B+tlrc   ss_sad_T+tlrc   \\
+            -n_nonzero 10  \n"
    
    ex3 <- 
 "Example 3 --- Two-sample type (one regression coefficient or general linear
@@ -579,6 +584,7 @@ covariates centering, no payment no interest till Memorial Day next year:
                 mb   mb_sad_B+tlrc.BRIK   mb_sad_T+tlrc.BRIK  \\
                 ...
                 trr  trr_sad_B+tlrc.BRIK  trr_sad_T+tlrc.BRIK \\
+            -max_zeros 6    \\
             -HKtest         \\
             -model_outliers \\
             -residual_Z     \\
