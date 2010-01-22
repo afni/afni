@@ -543,7 +543,7 @@ contrast from each subject in a group):
                -max_zeros 4    \\
                -HKtest         \\        
                -model_outliers \\        
-               -residual_Z     \\  \n"   
+               -residual_Z     \n"   
 
    ex2 <-
 "Example 2 --- Paired type (two regression coefficients or general linear 
