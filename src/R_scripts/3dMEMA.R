@@ -543,6 +543,18 @@ contrast from each subject in a group):
                -max_zeros 4    \\
                -HKtest         \\        
                -model_outliers \\        
+               -residual_Z        
+
+      3dMEMA   -prefix ex1  \\
+               -jobs 4      \\
+               -set  happy  \\
+                  ac   ac+tlrc\'[happy#0_Coef]\'   ac+tlrc\'[happy#0_Tstat]\'  \\
+                  ejk  ejk+tlrc\'[happy#0_Coef]\'  ejk+tlrc\'[happy#0_Tstat]\' \\
+                  ...
+                  ss   ss+tlrc\'[happy#0_Coef]\'   ss+tlrc\'[happy#0_Tstat]\' \\
+               -max_zeros 4    \\
+               -HKtest         \\        
+               -model_outliers \\        
                -residual_Z     \n"   
 
    ex2 <-
