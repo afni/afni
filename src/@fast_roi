@@ -50,22 +50,51 @@ set ttpref = ${sspref}
 
 CALC_DEED:
 #Now create a mask of a particular region (see whereami -help for details):
-if ($ShowTime) echo "TLRC mask generation at `date '+%H:%M:%S'`"
-set noglob
-3dcalc   $regionlist  \
-               -expr "$eq" \
-               -prefix ROIt.${prefix} -overwrite >>& log.tlrc.${prefix}
-unset noglob                  
-         
+if ( $symbolic_roi) then
+   if ($ShowTime) echo "TLRC mask generation at `date '+%H:%M:%S'`"
+   set noglob
+   3dcalc   $regionlist  \
+                  -expr "$eq" \
+                  -prefix ROIt.${prefix} -overwrite >>& log.tlrc.${prefix}
+   unset noglob                  
+endif         
+
 #Now put the mask in orig space 
 if ($ShowTime) echo "Orig mask generation at `date '+%H:%M:%S'`"
-3dfractionize -template $mask_grid  \
+if ( $symbolic_roi) then
+   3dfractionize -template $mask_grid  \
                      -input ROIt.${prefix}+tlrc   \
                      -prefix ROI.${prefix}  \
                      -warp  ${ttpref}+tlrc  \
                      -preserve -overwrite \
                      -clip 0.5 >>& log.tlrc.${prefix}
+   if ( $status ) then
+      echo "Failed running 3dfractionize. See log.tlrc.${prefix} for details."
+      goto END
+   endif
+endif
+if ( $drawn_roi != "") then
+   3dfractionize -template $mask_grid  \
+                     -input $drawn_roi   \
+                     -prefix ___ddd  \
+                     -warp  ${ttpref}+tlrc  \
+                     -preserve -overwrite \
+                     -clip 0.5 >>& log.tlrc.${prefix}
+   if ( $status ) then
+      echo "Failed running 3dfractionize. See log.tlrc.${prefix} for details."
+      goto END
+   endif
+   if (`@CheckForAfniDset ROI.${prefix}+orig` == 2 ) then
+      3drename ROI.${prefix}+orig ___tmp >>& log.tlrc.${prefix}
+      3dcalc   -a ___tmp+orig -b ___ddd+orig -expr 'a+b' \
+               -prefix ROI.${prefix} >>& log.tlrc.${prefix}
+   else
+      3drename ___ddd+orig ROI.${prefix} >>& log.tlrc.${prefix}
+   endif
+endif
 
+rm -f ___tmp* >& /dev/null
+rm -f ___ddd* >& /dev/null
 
 set eee2 = `date '+%H %M %S'`
 set etime = `ccalc "    ($eee2[1] - $eee[1])*3600 \
@@ -95,6 +124,9 @@ HELP:
    echo  "                 to specify a mask of numerous regions."
    echo  "                 Each region is assigned a power of 2 integer"
    echo  "                 in the output mask"
+   echo  "  -drawn_roi ROI+tlrc: A user drawn ROI in standard (tlrc) space."
+   echo  "                       This ROI gets added with the REGION roi."
+   echo  ""
    echo  "  -anat ANAT: Anat is the volume to be put in std space. It does not"
    echo  "              need to be a T1 weighted volume but you need to choose"
    echo  "              a similarly weighted TLRC_BASE."
@@ -156,13 +188,15 @@ PARSE:
    set region2 = 'CA_N27_ML::Hip'
    set mask_grid = "" 
    set Narg = $#
-   set prefix = "nosk"
+   set prefix = "fast_roi"
    set cnt = 1
    set regionlist = ()
    set valregionlist = ()
    set eq = (" (0 ") 
    set ShowTime = 0
-   set has_skull = 1 
+   set has_skull = 1
+   set symbolic_roi = 0
+   set drawn_roi = '' 
    if ("$1" == '') goto HELP
    while ($cnt <= $Narg)
       set donext = 1;
@@ -194,6 +228,18 @@ PARSE:
             set donext = 0   
          endif   
       endif
+      if ($donext && "$argv[$cnt]" == "-drawn_roi") then
+         set pLoc = $cnt      
+         if ($pLoc  == $Narg) then
+            echo "Need volume after -drawn_roi"
+            goto END
+         else
+            @ cnt ++
+            set drawn_roi = "$argv[$cnt]"
+            set donext = 0   
+         endif   
+      endif
+      
       if ($donext && "$argv[$cnt]" == "-roi_grid") then
          set pLoc = $cnt      
          if ($pLoc  == $Narg) then
@@ -235,6 +281,7 @@ PARSE:
             goto END
          else
             @ cnt ++
+            set symbolic_roi  = 1
             set cnum = `expr $cnum + 1`
             set varname = `printf "\$cnum" `
             set regionlist = ($regionlist `printf "%s\$cnum %s" '-' $argv[$cnt]`)
@@ -262,6 +309,15 @@ PARSE:
    end
    set eq = ("$eq )")
    #echo "$eq"
+   if ($drawn_roi == '' && $symbolic_roi == 0) then
+      echo "Error: No ROIs to create. Use -region or -drawn_roi options."
+      echo "See -help for details."
+      goto END
+   endif
+   if ($mask_grid == '') then
+      echo "Error: No -roid_grid specified. See -help for options."
+      goto END
+   endif
    goto DEED
 
 END:
