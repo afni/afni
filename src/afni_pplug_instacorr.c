@@ -720,6 +720,9 @@ void GICOR_process_dataset( NI_element *nel , int ct_start )
      }
    }
 
+   /* allow dset to be written out     ZSS Jan 2010 */
+   giset->dset->dblk->diskptr->allow_directwrite = 1 ;
+
    /* switch to this dataset as overlay */
 
    if( im3d->fim_now != giset->dset ){
@@ -735,6 +738,8 @@ void GICOR_process_dataset( NI_element *nel , int ct_start )
 #endif
    }
 
+   
+   
    /* self-threshold and clusterize? */
 
 #undef  THBOT
