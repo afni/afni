@@ -4079,6 +4079,7 @@ ENTRY("AFNI_write_many_dataset_CB") ;
 
       for( id=0 ; id < ss->num_dsset ; id++ ){
          dset = ss->dsset[id][vv] ;
+
          if( DSET_WRITEABLE(dset) ){
             num_dset++ ;
             idclist = (MCW_idcode *) XtRealloc( (char *) idclist ,
