@@ -528,7 +528,10 @@ int main( int argc , char *argv[] )
         nopt++ ; continue ;
       }
 
-      if( strcasecmp(argv[nopt],"-base") == 0 ){
+      if(   (strcasecmp(argv[nopt],"-base") == 0) || 
+            (strcasecmp(argv[nopt],"-seed") == 0)    ){ 
+                     /* Added -seed to fit with -help text. Don't know how -base
+                     got in here.      ZSS: Emergency patch. Jan 25 09 */
         if( sset != NULL ) ERROR_exit("Can't use -seed twice!") ;
         if( Mseedr != 0.0f ) ERROR_exit("Can't use -seed with -Mseed!") ;
         sset = THD_open_dataset(argv[++nopt]); CHECK_OPEN_ERROR(sset,argv[nopt]);
@@ -583,11 +586,11 @@ int main( int argc , char *argv[] )
 
    if( sset != NULL ){
      if( DSET_NVALS(sset) != ntime )
-       ERROR_exit("-base dataset time series length %d doesn't match -input %d",
+       ERROR_exit("-seed dataset time series length %d doesn't match -input %d",
                   DSET_NVALS(sset) , ntime ) ;
 
      if( DSET_NVOX(sset) != DSET_NVOX(xset) )
-       ERROR_exit("-base dataset doesn't match -input dataset in space") ;
+       ERROR_exit("-seed dataset doesn't match -input dataset in space") ;
    }
 
    /*-- compute references, if any --*/
@@ -986,7 +989,7 @@ int main( int argc , char *argv[] )
    if( sset != NULL ){
      DSET_load(sset) ; CHECK_LOAD_ERROR(sset) ;
      simar = THD_extract_many_series( nmask , indx , sset ) ;
-     if( simar == NULL ) ERROR_exit("-base extraction failed!?") ;
+     if( simar == NULL ) ERROR_exit("-seed extraction failed!?") ;
      DSET_delete(sset) ;
    }
 
