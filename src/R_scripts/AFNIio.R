@@ -827,11 +827,6 @@ minmax <- function(y) {
    return(r);
 }
 
-nnnn <- function(l) {
-   l <- newid.AFNI(1)
-   return(l)
-}
-
 newid.AFNI <- function(ext=0) {
    if (ext) { #in house
       return(
