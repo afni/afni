@@ -54,15 +54,19 @@ parse.AFNI.name <- function(filename, verb = 0) {
     an$head <- paste(c(fileparts[-length(fileparts)],"HEAD"),collapse=".")
     an$brik <- paste(c(fileparts[-length(fileparts)],bext),collapse=".")
   } else {
-    an$head <- paste(filename,".HEAD",sep="")
-    an$brik <- paste(filename,".BRIK",sep="")
+    
+    an$head <- paste(sub('\\.$','',filename),".HEAD",sep="")
+    an$brik <- paste(sub('\\.$','',filename),".BRIK",sep="")
   }
   
   
   vp <- strsplit(an$head, ".HEAD|\\+")[[1]];
   an$prefix <- vp[1];
-  an$view   <- paste('+',vp[2],sep='');
-  
+  if (length(vp) > 1) {
+   an$view   <- paste('+',vp[2],sep='');
+  } else {
+   an$view <- NA
+  }
   return(an)
 }
 
@@ -606,7 +610,34 @@ read.AFNI.matrix <- function (fname,
 #
 # Updates by ZSS & GC
 #------------------------------------------------------------------
-
+orcode.AFNI <- function(orstr) {
+   if (is.character(orstr)) {
+      orcode <- c (-1,-1,-1)
+      orstr <- strsplit(orstr,'')[[1]]
+      for (i in 1:3) {
+         switch (tolower(orstr[i]),
+                  r = orcode[i] <- 0,
+                  l = orcode[i] <- 1,          
+                  p = orcode[i] <- 2,          
+                  a = orcode[i] <- 3,          
+                  i = orcode[i] <- 4,          
+                  s = orcode[i] <- 5)
+         if (orcode[i] < 0) {
+            err.AFNI(paste('Bad orientation code ', orstr)); 
+            return(NULL)
+         }           
+      }  
+   } else {
+      for (i in 1:3) {
+         orcode <- orstr
+         if (length(orcode) != 3 || orcode[i] < 0 || orcode[i] > 5) {
+            err.AFNI(paste('Bad orientation code ', orstr)); 
+            return(NULL)
+         }
+      }
+   }
+   return(orcode);
+}
 read.AFNI <- function(filename, verb = 0) {
   an <- parse.AFNI.name(filename);
   
@@ -765,47 +796,127 @@ read.AFNI <- function(filename, verb = 0) {
   #return(z);
 }
 
-write.AFNI <- function(filename, ttt, label, note="", origin=c(0,0,0), delta=c(4,4,4), idcode="WIAS_noid") {
-  ## TODO:
-  ## 
-  ## create object oriented way!!!!
+#A funtion to create an AFNI header string 
+AFNIheaderpart <- function(type, name, value) {
+ a <- "\n"
+ a <- paste(a, "type = ", type, "\n", sep="")
+ a <- paste(a, "name = ", name, "\n", sep="")
+ if (regexpr("string",type) == 1) {
+   value <- paste("'", value, "~", sep="")
+   a <- paste(a, "count = ", nchar(value) - 1, "\n", sep ="")
+   a <- paste(a, value, "\n", sep="")
+ } else {
+   a <- paste(a, "count = ", length(value), "\n", sep ="")
+   j <- 0
+   while (j<length(value)) {
+     left <- length(value) - j
+     if (left>4) left <- 5
+     a <- paste(a, paste(value[(j+1):(j+left)],collapse="  "), "\n", sep="  ")
+     j <- j+5
+   }
+ }
+ return(a);
+}
+
+#Calculate the min, and max of BRIK data y
+minmax <- function(y) {
+   r <- NULL;
+   for (k in 1:dim(y)[4]) {
+      r <- c(r,min(y[,,,k]),max(y[,,,k]))
+   }; 
+   return(r);
+}
+
+write.AFNI <- function( filename, ttt=NULL, label=NULL, 
+                        note=NULL, origin=NULL, delta=NULL,
+                        orient=NULL, 
+                        idcode="", defhead=NULL) {
   
-  AFNIheaderpart <- function(type, name, value) {
-    a <- "\n"
-    a <- paste(a, "type = ", type, "\n", sep="")
-    a <- paste(a, "name = ", name, "\n", sep="")
-    if (regexpr("string",type) == 1) {
-      value <- paste("'", value, "~", sep="")
-      a <- paste(a, "count = ", nchar(value) - 1, "\n", sep ="")
-      a <- paste(a, value, "\n", sep="")
-    } else {
-      a <- paste(a, "count = ", length(value), "\n", sep ="")
-      j <- 0
-      while (j<length(value)) {
-        left <- length(value) - j
-        if (left>4) left <- 5
-        a <- paste(a, paste(value[(j+1):(j+left)],collapse="  "), "\n", sep="  ")
-        j <- j+5
+  #Set the defaults. 
+  if (is.null(defhead)) { # No default header
+     if (is.null(note)) note <- '';
+     if (is.null(label)) label <- paste(c(1:dim(ttt)[4]),collapse='~');
+     if (is.null(origin)) origin <- c(0,0,0)
+     if (is.null(delta)) delta <- c(4,4,4)
+     if (is.null(orient)) orient <- 'RAI'
+  } else {  #When possible, call on default header
+     if (is.null(note)) note <- '';
+     if (is.null(label)) {
+      if (!is.null(defhead$BRICK_LABS)) {
+         label <- defhead$BRICK_LABS;
+      } else {
+         label <- paste(c(1:dim(ttt)[4]),collapse='~');
       }
-    }
-    a
+     }
+     if (is.null(origin)) {
+      if (!is.null(defhead$ORIGIN)) {
+         origin <- defhead$ORIGIN;
+      } else {
+         origin <- c(0,0,0);
+      }
+     }
+     if (is.null(delta)) {
+      if (!is.null(defhead$DELTA)) {
+         delta <- defhead$DELTA;
+      } else {
+         delta <- c(4,4,4);
+      }
+     }
+     if (is.null(orient)) {
+      if (!is.null(defhead$ORIENT_SPECIFIC)) {
+         orient <- defhead$ORIENT_SPECIFIC;
+      } else {
+         orient <- 'RAI';
+      }
+     }
   }
+  if (is.null(ttt) || !is.numeric(ttt)) {
+   err.AFNI("data array improperly formatted");
+   return(0);
+  }      
+
+  # Write header first
+  an <- parse.AFNI.name(filename);
+  if (is.na(an$view)) {
+   err.AFNI('Bad filename');
+   return(0)
+  }
+  conhead <- file(an$head, "w")
+  writeChar(AFNIheaderpart("string-attribute","HISTORY_NOTE",note),
+            conhead,eos=NULL)
+  writeChar(AFNIheaderpart("string-attribute","TYPESTRING","3DIM_HEAD_FUNC"),
+            conhead,eos=NULL)  
+  writeChar(AFNIheaderpart("string-attribute","IDCODE_STRING",''),
+            conhead,eos=NULL)  
+  writeChar(AFNIheaderpart("string-attribute","IDCODE_DATE",date()),
+            conhead,eos=NULL)  
+  if (an$view == '+orig') { sv <- 0 }
+  else if (an$view == '+acpc') { sv <- 1 }
+  else if (an$view == '+tlrc') { sv <- 2 }
+  else { sv <- 0 }
   
-  conhead <- file(paste(filename, ".HEAD", sep=""), "w")
-  writeChar(AFNIheaderpart("string-attribute","HISTORY_NOTE",note),conhead,eos=NULL)
-  writeChar(AFNIheaderpart("string-attribute","TYPESTRING","3DIM_HEAD_FUNC"),conhead,eos=NULL)  
-  writeChar(AFNIheaderpart("string-attribute","IDCODE_STRING",idcode),conhead,eos=NULL)  
-  writeChar(AFNIheaderpart("string-attribute","IDCODE_DATE",date()),conhead,eos=NULL)  
-  writeChar(AFNIheaderpart("integer-attribute","SCENE_DATA",c(0,11,1,-999,-999,-999,-999,-999)),conhead,eos=NULL)  
-  writeChar(AFNIheaderpart("integer-attribute","ORIENT_SPECIFIC",c(0,3,4)),conhead,eos=NULL)  
-  writeChar(AFNIheaderpart("float-attribute","ORIGIN",origin),conhead,eos=NULL)  
-  writeChar(AFNIheaderpart("float-attribute","DELTA",delta),conhead,eos=NULL)  
-  minmax <- function(y) {r <- NULL;for (k in 1:dim(y)[4]) {r <- c(r,min(y[,,,k]),max(y[,,,k]))}; r}
+  writeChar(AFNIheaderpart("integer-attribute","SCENE_DATA",
+                            c(sv,11,1,-999,-999,-999,-999,-999)),
+            conhead,eos=NULL)  
+  writeChar(AFNIheaderpart("integer-attribute","ORIENT_SPECIFIC", 
+            orcode.AFNI(orient)),
+            conhead,eos=NULL)  
+  writeChar(AFNIheaderpart("float-attribute","ORIGIN",origin),
+            conhead,eos=NULL)  
+  writeChar(AFNIheaderpart("float-attribute","DELTA",delta),
+            conhead,eos=NULL)  
+  
   mm <- minmax(ttt)
-  writeChar(AFNIheaderpart("float-attribute","BRICK_STATS",mm),conhead,eos=NULL)
-  writeChar(AFNIheaderpart("integer-attribute","DATASET_RANK",c(3,dim(ttt)[4],0,0,0,0,0,0)),conhead,eos=NULL)  
-  writeChar(AFNIheaderpart("integer-attribute","DATASET_DIMENSIONS",c(dim(ttt)[1:3],0,0)),conhead,eos=NULL)  
-  writeChar(AFNIheaderpart("integer-attribute","BRICK_TYPES",rep(1,dim(ttt)[4])),conhead,eos=NULL)  
+  writeChar(AFNIheaderpart("float-attribute","BRICK_STATS",mm),
+            conhead,eos=NULL)
+  writeChar(AFNIheaderpart("integer-attribute","DATASET_RANK",
+                           c(3,dim(ttt)[4],0,0,0,0,0,0)),
+            conhead,eos=NULL)  
+  writeChar(AFNIheaderpart("integer-attribute","DATASET_DIMENSIONS",
+                           c(dim(ttt)[1:3],0,0)),
+            conhead,eos=NULL)  
+  writeChar(AFNIheaderpart("integer-attribute","BRICK_TYPES",rep(1,dim(ttt)[4])),
+            conhead,eos=NULL)  
 
   scale <- rep(0,dim(ttt)[4])
   for (k in 1:dim(ttt)[4]) {
@@ -813,15 +924,22 @@ write.AFNI <- function(filename, ttt, label, note="", origin=c(0,0,0), delta=c(4
     ttt[,,,k] <- ttt[,,,k] / scale[k]
   }
 
-  writeChar(AFNIheaderpart("float-attribute","BRICK_FLOAT_FACS",scale),conhead,eos=NULL)  
-  writeChar(AFNIheaderpart("string-attribute","BRICK_LABS",paste(label,collapse="~")),conhead,eos=NULL)  
-  writeChar(AFNIheaderpart("string-attribute","BYTEORDER_STRING","MSB_FIRST"),conhead,eos=NULL)  
+  writeChar(AFNIheaderpart("float-attribute","BRICK_FLOAT_FACS",scale),
+            conhead,eos=NULL)  
+  writeChar(AFNIheaderpart("string-attribute","BRICK_LABS",
+                           paste(label,collapse="~")),
+            conhead,eos=NULL)  
+  writeChar(AFNIheaderpart("string-attribute","BYTEORDER_STRING","MSB_FIRST"),
+            conhead,eos=NULL)  
   close(conhead)
 
-  conbrik <- file(paste(filename, ".BRIK", sep=""), "wb")
+  # Write BRIK
+  conbrik <- file(an$brik, "wb")
   dim(ttt) <- NULL
   writeBin(as.integer(ttt), conbrik,size=2, endian="big")
   close(conbrik)
+  
+  return(1);
 }
 
 read.NIFTI <- function(filename) {
