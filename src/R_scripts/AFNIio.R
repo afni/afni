@@ -827,20 +827,38 @@ minmax <- function(y) {
    return(r);
 }
 
+nnnn <- function(l) {
+   l <- newid.AFNI(1)
+   return(l)
+}
+
+newid.AFNI <- function(ext=0) {
+   if (ext) { #in house
+      return(
+         paste('GCR_',paste(
+                  sample(c(rep(0:9,each=5),LETTERS,letters),22,replace=TRUE),
+                  collapse=''),
+               sep='') )
+   } else { #Call AFNI program
+      return(system('3dnewid -fun', intern=TRUE) );
+   }
+}
+
 write.AFNI <- function( filename, ttt=NULL, label=NULL, 
                         note=NULL, origin=NULL, delta=NULL,
                         orient=NULL, 
-                        idcode="", defhead=NULL) {
+                        idcode=NULL, defhead=NULL) {
   
   #Set the defaults. 
+  if (is.null(note)) note <- '';
+  if (is.null(idcode)) idcode <- newid.AFNI(0);
+  
   if (is.null(defhead)) { # No default header
-     if (is.null(note)) note <- '';
      if (is.null(label)) label <- paste(c(1:dim(ttt)[4]),collapse='~');
      if (is.null(origin)) origin <- c(0,0,0)
      if (is.null(delta)) delta <- c(4,4,4)
      if (is.null(orient)) orient <- 'RAI'
   } else {  #When possible, call on default header
-     if (is.null(note)) note <- '';
      if (is.null(label)) {
       if (!is.null(defhead$BRICK_LABS)) {
          label <- defhead$BRICK_LABS;
