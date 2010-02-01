@@ -49,6 +49,15 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 28 , JAN , 2010 , DRG , "align_epi_anat.py" , 
+    MINOR , TYPE_NEW_OPT, 
+    "Options for multiple cost functionals,edge control" ,
+    "multi_cost option for trying out different cost functionals.\n"
+    "check_cost option for comparing for big differences among cost\n"
+    "functionals\n"
+    "edge_erodelevel option for adjusting the number of layers to erode\n"
+    "for edge option"
+} ,
 
 { 14 , DEC , 2009 , DRG , "McRetroTS" , 
     MINOR , TYPE_BUG_FIX,   "Variable Opt parameters were not parsed correctly" ,
