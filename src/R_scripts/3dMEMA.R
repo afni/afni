@@ -843,7 +843,7 @@ read.MEMA.opts.batch <- function (args=NULL, verb = 0) {
       lop$KHtest <- FALSE
       lop$maskFN <- NULL
       lop$covFN <- NULL
-      lop$lapMod <- 1
+      lop$lapMod <- 0
       lop$resZout <- 0
       lop$homo <- 1
       lop$nLevel <- 0
