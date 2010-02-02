@@ -1,29 +1,35 @@
 #include "mrilib.h"
 
+typedef signed char sbyte ;
+
+/*--------------------------------------------------------------------------*/
+
 char * get_surf_param(char *sname, char *parname) {
    char com[1024]={""};
    char buf[1024]={""};
    char *out=NULL;
-   
+
    FILE *output = NULL;
-      
+
    sprintf(com,"\\SurfInfo -quiet -sep ';' -%s -i %s", parname, sname);
-    
+
    if (!(output = popen (com, "r"))) {
       return(out);
    }
-   
-   out = fgets(buf, sizeof(buf), output); 
+
+   out = fgets(buf, sizeof(buf), output);
    pclose(output);
-   
+
    if (0) {
       fprintf(stderr,"Command: %s\n"
                      "ss: %s\n",
                      com, out?out:"NULL");
-   } 
-   
+   }
+
    return(out);
 }
+
+/*--------------------------------------------------------------------------*/
 
 int main( int argc , char * argv[] )
 {
@@ -39,10 +45,11 @@ int main( int argc , char * argv[] )
    int nvec , *nvals , *ivec=NULL , iv,kk,nvv , nopt , do_delete=0 ;
    float *fac , *fv , val,top ;
    NI_float_array *facar ; NI_int_array *nvar ;
-   short *sv ; MRI_vectim *mv ; FILE *fp ; long long fsize ;
+   short *sv ; sbyte *bv ; MRI_vectim *mv ; FILE *fp ; long long fsize ;
    int atim,btim,ctim ;
    int LRpairs = 0, Ns[2]={-1,-1}, Nv[2]={-1,-1}, Nm[2]={0, 0};
-   
+   int do_byte = 0 ;
+
    /*-- help? --*/
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
@@ -103,6 +110,9 @@ int main( int argc , char * argv[] )
  "\n"
  "  -prefix PREFIX = Set prefix name of output dataset\n"
  "\n"
+ "  -byte          = Store data as 8-bit bytes rather than 16-bit shorts.\n"
+ "  -short         = Store data as 16-bit shorts [the default]\n"
+ "\n"
  "  -DELETE        = Delete input datasets from disk after\n"
  "                   processing them one at a time into the\n"
  "                   output data file -- this very highly\n"
@@ -118,7 +128,7 @@ int main( int argc , char * argv[] )
  "                    as they are no longer needed.\n"
  "\n"
 "    Variations for surface-based data:\n"
-"    -------------------------------\n"
+"    ----------------------------------\n"
 "    If you are working with one surface, no special options are needed.\n"
 "    However, it is often the case that you want to perform correlations\n"
 "    on both hemispheres. So in that case, you'll want to provide volume\n"
@@ -129,12 +139,13 @@ int main( int argc , char * argv[] )
 "                               and right hemisphere surfaces, and \n"
 "                               indicates that the datasets to follow\n"
 "                               are arranged in (Left, Right) pairs.\n"
-/* No masking yet for surface-based 
+
+/* No masking yet for surface-based
 "                               This arrangement also applies to the mask\n"
 "                               option which would then take a (Left, Right)\n"
 "                               mask pair.\n"
-"                             
 */
+
  "-------------\n"
  "SAMPLE SCRIPT  (tcsh syntax)\n"
  "-------------\n"
@@ -191,6 +202,13 @@ int main( int argc , char * argv[] )
    nopt = 1 ;
    while( nopt < argc && argv[nopt][0] == '-' ){
 
+     if( strcmp(argv[nopt],"-byte") == 0 ){
+       do_byte = 1 ; nopt++ ; continue ;
+     }
+     if( strcmp(argv[nopt],"-short") == 0 ){
+       do_byte = 0 ; nopt++ ; continue ;
+     }
+
      if( strcmp(argv[nopt],"-DELETE") == 0 ){
        do_delete = 1 ; nopt++ ; continue ;
      }
@@ -211,14 +229,14 @@ int main( int argc , char * argv[] )
        DSET_load(mset) ; CHECK_LOAD_ERROR(mset) ;
        mask_nx = DSET_NX(mset); mask_ny = DSET_NY(mset); mask_nz = DSET_NZ(mset);
        mask = THD_makemask( mset , 0 , 0.5f, 0.0f ) ; DSET_delete(mset) ;
-       if( mask == NULL ) 
+       if( mask == NULL )
          ERROR_exit("Can't make mask from dataset '%s'",argv[nopt]) ;
        nmask = THD_countmask( mask_nx*mask_ny*mask_nz , mask ) ;
        INFO_message("Number of voxels in mask = %d",nmask) ;
        if( nmask < 1 ) ERROR_exit("Mask is too small to process") ;
        nopt++ ; continue ;
      }
-     
+
      if ( strcmp(argv[nopt],"-LRpairs") == 0 ){
        char *eo=NULL, *ss=NULL;
        int isrf=0;
@@ -229,23 +247,23 @@ int main( int argc , char * argv[] )
           if (eo == argv[nopt+isrf+1] || Ns[isrf] <= 0) {
             fprintf(stderr,"Have surface %s\n", argv[nopt+isrf+1]);
             if (!(ss = get_surf_param(argv[nopt+isrf+1], "N_Node"))) {
-               ERROR_exit("Failed to get info on '%s'",argv[nopt+isrf+1]); 
+               ERROR_exit("Failed to get info on '%s'",argv[nopt+isrf+1]);
             }
             Ns[isrf] = (int)strtod(ss, NULL);
           }
           fprintf(stderr,"Number of nodes in surf[%d]: %d\n", isrf, Ns[isrf]);
        }
-       fprintf(stderr,"Assuming full masks.\n"); 
+       fprintf(stderr,"Assuming full masks.\n");
        Nm[0] = Ns[0];
        Nm[1] = Ns[1];
 
        nopt += 2;
-       
+
        nopt++ ; continue ;
      }
      ERROR_exit("Unknown option: '%s'",argv[nopt]) ;
    }
-   
+
    if (LRpairs && mask) {
       ERROR_exit("Mask is not yet compatible with -LRpairs");
       /* You should get two masks in that case, pass both to
@@ -290,14 +308,14 @@ int main( int argc , char * argv[] )
       if( ids > 0 && !EQUIV_GRIDS(inset[ids%2],inset[ids]) )/*check for errors*/
          ERROR_exit("Dataset grid %s doesn't match %s" ,
                      argv[nopt+ids] , argv[nopt+ids%2]         ) ;
-     }   
+     }
      if( nvals[ids] < 9 )
        ERROR_exit("Dataset %s has only %d time points!?" ,
                   argv[nopt+ids] , nvals[ids] ) ;
    }
 
    if (!LRpairs) {
-      nx = DSET_NX(inset[0]) ; 
+      nx = DSET_NX(inset[0]) ;
    } else {
       nx = DSET_NX(inset[0]) + DSET_NX(inset[1]);
    }
@@ -305,7 +323,7 @@ int main( int argc , char * argv[] )
    ny = DSET_NY(inset[0]) ;
    nvox = nx*ny*nz ;
    if( nvox < 2 ) ERROR_exit("Only 1 voxel in datasets?!") ;
-   
+
    /*-- check or create mask --*/
 
    if( mask != NULL ){
@@ -342,6 +360,7 @@ int main( int argc , char * argv[] )
       gstr = strdup( EDIT_get_geometry_string(inset[0]) ) ;
       DSET_NX(inset[0]) = nxt;
    }
+
    atim = NI_clock_time() ;
 
    if (LRpairs) {
@@ -353,18 +372,18 @@ int main( int argc , char * argv[] )
          if (DSET_NVOX(inset[ids]) > Ns[ids%2] ) {
              fprintf(stderr,"\n** Error Dataset %s:\n"
                             "Nvox %d >  %d(max nodes in surf[%d])\n",
-                            DSET_BRIKNAME(inset[ids]), 
+                            DSET_BRIKNAME(inset[ids]),
                             DSET_NVOX(inset[ids]),Ns[ids%2], ids%2);
-            fclose(fp) ; remove(dfname) ; 
+            fclose(fp) ; remove(dfname) ;
             ERROR_exit("Mismatch between data and LRpairs parameters") ;
          }
          if (DSET_NVOX(inset[ids]) != Nv[ids%2]) {
              fprintf(stderr,"\n** Error Dataset %s:\n"
                             "Novx %d != %d Nvox in dataset %s\n",
-                            DSET_BRIKNAME(inset[ids]), 
-                            DSET_NVOX(inset[ids]), Nv[ids%2], 
+                            DSET_BRIKNAME(inset[ids]),
+                            DSET_NVOX(inset[ids]), Nv[ids%2],
                               argv[nopt+ids%2]);
-            fclose(fp) ; remove(dfname) ; 
+            fclose(fp) ; remove(dfname) ;
             ERROR_exit("Mismatch in input data") ;
          }
       }
@@ -375,11 +394,11 @@ int main( int argc , char * argv[] )
         btim = NI_clock_time() ;
 
         /* extract all time series in the mask, as floats */
-         
-        mv = THD_2dset_to_vectim( inset[ids], NULL , 
-                                  inset[ids+1], NULL , 
+
+        mv = THD_2dset_to_vectim( inset[ids], NULL ,
+                                  inset[ids+1], NULL ,
                                   0 );
-                                  
+
         if( mv == NULL ){
           fclose(fp) ; remove(dfname) ; ERROR_exit("Can't load dataset!?") ;
         }
@@ -408,9 +427,15 @@ int main( int argc , char * argv[] )
 
         /* scale to 16-bit shorts to save disk and memory space */
 
-        top = 32766.0f / top ; fac[ids/2] = 1.0f / top ;  /* save scale factor */
-        sv = (short *)malloc(sizeof(short)*nvv) ;       /* output array */
-        for( kk=0 ; kk < nvv ; kk++ ) sv[kk] = (short)rintf(top*fv[kk]) ;
+        if( do_byte ){
+          top = 127.0f / top ; fac[ids/2] = 1.0f / top ;  /* save scale factor */
+          bv = (sbyte *)malloc(sizeof(sbyte)*nvv) ;       /* output array */
+          for( kk=0 ; kk < nvv ; kk++ ) bv[kk] = (sbyte)rintf(top*fv[kk]) ;
+        } else {
+          top = 32766.0f / top ; fac[ids/2] = 1.0f / top ;  /* save scale factor */
+          sv = (short *)malloc(sizeof(short)*nvv) ;       /* output array */
+          for( kk=0 ; kk < nvv ; kk++ ) sv[kk] = (short)rintf(top*fv[kk]) ;
+        }
         VECTIM_destroy(mv) ;
 
         ctim = NI_clock_time() ;
@@ -419,17 +444,19 @@ int main( int argc , char * argv[] )
 
         /* write output array */
 
-        kk = fwrite( sv , sizeof(short) , nvv , fp ) ;
+        if( do_byte ) kk = fwrite( bv , sizeof(sbyte) , nvv , fp ) ;
+        else          kk = fwrite( sv , sizeof(short) , nvv , fp ) ;
         if( kk < nvv ){
           fclose(fp) ; remove(dfname) ;
           ERROR_exit("Write to '%s' failed -- disk full? permission?",dfname) ;
         }
-        free(sv) ;  /* toss this trash */
+        if( do_byte ) free(bv) ;
+        else          free(sv) ;  /* toss this trash */
         fflush(fp) ;
 
         ctim = NI_clock_time() ;
         fprintf(stderr," output =%5d ms\n",ctim-btim) ;
-        
+
         ids += 2;
       } /* end of dataset pairs loop */
       ndset /= 2;
@@ -467,9 +494,15 @@ int main( int argc , char * argv[] )
 
         /* scale to 16-bit shorts to save disk and memory space */
 
-        top = 32766.0f / top ; fac[ids] = 1.0f / top ;  /* save scale factor */
-        sv = (short *)malloc(sizeof(short)*nvv) ;       /* output array */
-        for( kk=0 ; kk < nvv ; kk++ ) sv[kk] = (short)rintf(top*fv[kk]) ;
+        if( do_byte ){
+          top = 127.0f / top ; fac[ids] = 1.0f / top ;  /* save scale factor */
+          bv = (sbyte *)malloc(sizeof(sbyte)*nvv) ;     /* output array */
+          for( kk=0 ; kk < nvv ; kk++ ) bv[kk] = (sbyte)rintf(top*fv[kk]) ;
+        } else {
+          top = 32766.0f / top ; fac[ids] = 1.0f / top ;  /* save scale factor */
+          sv = (short *)malloc(sizeof(short)*nvv) ;       /* output array */
+          for( kk=0 ; kk < nvv ; kk++ ) sv[kk] = (short)rintf(top*fv[kk]) ;
+        }
         VECTIM_destroy(mv) ;
 
         ctim = NI_clock_time() ;
@@ -478,12 +511,14 @@ int main( int argc , char * argv[] )
 
         /* write output array */
 
-        kk = fwrite( sv , sizeof(short) , nvv , fp ) ;
+        if( do_byte ) kk = fwrite( bv , sizeof(sbyte) , nvv , fp ) ;
+        else          kk = fwrite( sv , sizeof(short) , nvv , fp ) ;
         if( kk < nvv ){
           fclose(fp) ; remove(dfname) ;
           ERROR_exit("Write to '%s' failed -- disk full? permission?",dfname) ;
         }
-        free(sv) ;  /* toss this trash */
+        if( do_byte ) free(bv) ;
+        else          free(sv) ;  /* toss this trash */
         fflush(fp) ;
 
         ctim = NI_clock_time() ;
@@ -519,6 +554,9 @@ int main( int argc , char * argv[] )
    sprintf(atrib,"%d",ndset) ;
    NI_set_attribute( nel , "ndset" , atrib ) ;                 /* # datasets */
 
+   NI_set_attribute( nel , "datum" ,
+                     (do_byte) ? "byte" : "short" ) ; /* type of data stored */
+
    nvar = (NI_int_array *)malloc(sizeof(NI_int_array)) ;
    nvar->num = ndset ; nvar->ar = nvals ;
    buf = NI_encode_int_list( nvar , "," ) ;
@@ -536,17 +574,17 @@ int main( int argc , char * argv[] )
 
    if (LRpairs) {
       char ss[256]={""};
-      
+
       sprintf(ss,"%d, %d", Ns[0], Ns[1]);
       NI_set_attribute( nel, "LRpair_nnode", ss);
-      
+
       sprintf(ss,"%d, %d", Nm[0], Nm[1]);
       NI_set_attribute( nel, "LRpair_ninmask", ss);
    }
 
    /*--- write header file ---*/
 
-   kk = NI_write_element_tofile( hfname , nel , NI_TEXT_MODE ) ;
+   kk = NI_write_element_tofile( hfname , nel , NI_BINARY_MODE ) ;
    if( kk < 0 ){     /* should probably never happen */
      remove(dfname) ;
      ERROR_exit("Failed to write head file %s; deleted data file %s" ,
