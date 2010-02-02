@@ -239,9 +239,10 @@ while (tag == 1) {
 		tag<-0
 		tmpData <- cbind(inDataTS[ii, jj, kk,], sdTS)
 		try(fm <- VAR(tmpData, p=nLags, type="none", exogen=exMatMod), tag<-1)
-      if(tag == 0) try(summary(fm), tag<-1) # in case of running out of DFs
-		if (ii<dimx) ii<-ii+1 else break
-	} else if(ii<dimx) ii<-ii+1 else break	
+      if(tag == 0) try(summary(fm), tag<-1) # in case something goes awry (e.g., running out of DFs)
+#		if (ii<dimx) ii<-ii+1 else break
+	}
+   if(ii<dimx) ii<-ii+1 else break	
 }
 
 if (tag == 0)  {
