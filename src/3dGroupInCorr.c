@@ -74,16 +74,16 @@ typedef struct {
   THD_3dim_dataset *tdset ; /* template dataset */
   int nx,ny,nz,nvox ;       /* number of nodes in template */
 
-  char *dfname ; /* data file name */
+  char *dfname ;  /* data file name */
   int  *ivec   ;  /* ivec[i] = spatial index of i-th vector, i=0..nvec-1 */
   float *fac   ;  /* fac[i] = scale factor for i-th dataset, i=0..ndset-1 */
   short **sv   ;  /* sv[i] = array [nvals[i]*nvec] for i-th dataset */
 
   long long nbytes ;
 
-   /* Surface stuff        ZSS Jan 09 */
+   /* Surface stuff  ZSS Jan 09 2010 */
    int nnode[2];
-   int ninmask[2];   
+   int ninmask[2];
 } MRI_shindss ;  /* short indexed datasets */
 
 /*----- pointer to iv-th vector in id-th dataset of shd -----*/
@@ -237,7 +237,7 @@ MRI_shindss * GRINCOR_read_input( char *fname )
    if ((atr=NI_get_attribute(nel,"LRpair_ninmask"))) {
       ninmask = NI_decode_int_list(atr,",") ;
    }
-   
+
    NI_free_element(nel) ;  /* don't need this anymore */
 
    /* create output struct */
@@ -264,7 +264,7 @@ MRI_shindss * GRINCOR_read_input( char *fname )
       shd->nnode[1] = nnode->ar[1];
       NI_delete_int_array(nnode); nnode=NULL;
    } else {
-      shd->nnode[0] = shd->nnode[1] = -1;       
+      shd->nnode[0] = shd->nnode[1] = -1 ;
    }
    if (ninmask) {
       if (ninmask->num != 2) GQUIT("LRpair_ninmask must have 2 values");
@@ -272,9 +272,9 @@ MRI_shindss * GRINCOR_read_input( char *fname )
       shd->ninmask[1] = ninmask->ar[1];
       NI_delete_int_array(ninmask); ninmask=NULL;
    } else {
-      shd->ninmask[0] = shd->ninmask[1] = -1;
+      shd->ninmask[0] = shd->ninmask[1] = -1 ;
    }
-   
+
    /*--- now have to map data from disk ---*/
 
    var = mmap( 0 , (size_t)nbytes_needed ,
@@ -434,7 +434,7 @@ int main( int argc , char *argv[] )
    int nvec , ndset_AAA=0,ndset_BBB=0 , *nvals_AAA=NULL,*nvals_BBB=NULL ;
    float **seedvec_AAA=NULL , **dotprod_AAA=NULL ;
    float **seedvec_BBB=NULL , **dotprod_BBB=NULL ;
-   int ctim,btim,atim , do_shm=1 , nsend=0 ;
+   int ctim,btim,atim , do_shm=2 , nsend=0 ;
 
    /*-- enlighten the ignorant and brutish sauvages? --*/
 
@@ -801,7 +801,7 @@ int main( int argc , char *argv[] )
       sprintf(buf,"%d, %d", shd_AAA->ninmask[0], shd_AAA->ninmask[1]);
       NI_set_attribute( nelcmd , "LRpair_ninmask", buf);
    }
-   
+
    if( verb > 1 ) INFO_message("Sending setup information to AFNI") ;
    nn = NI_write_element( GI_stream , nelcmd , NI_BINARY_MODE ) ;
    if( nn < 0 ){
@@ -849,10 +849,9 @@ int main( int argc , char *argv[] )
          GI_stream = NI_stream_open( nsname , "w" ) ;
          kk = NI_stream_goodcheck( GI_stream , 3333 ) ; /* wait a little bit */
          if( kk == 1 ){
-           ININFO_message("TCP/IP reconnection succeeded :-)") ;
-           do_shm = 0 ;
+           ININFO_message("TCP/IP restart is good :-)") ;
          } else {
-           ININFO_message("Reconnection failed :-(") ;
+           ININFO_message("TCP/IP restart failed :-(") ;
            goto GetOutOfDodge ;  /* failed */
          }
        }
@@ -965,6 +964,7 @@ int main( int argc , char *argv[] )
      }
 
      /* step 3: a lot of t-test-ification */
+
      GRINCOR_many_ttest( nvec , ndset_AAA , dotprod_AAA ,
                                 ndset_BBB , dotprod_BBB , neldar,nelzar ) ;
      if( verb > 2 ){
@@ -976,16 +976,15 @@ int main( int argc , char *argv[] )
      /** re-attach to AFNI using shared memory? **/
 
 #ifndef DONT_USE_SHM
-     if( do_shm && strcmp(afnihost,"localhost") == 0 ){
+     if( do_shm > 0 && strcmp(afnihost,"localhost") == 0 ){
        int nmeg ; char nsnew[2048] ;
        nmeg = 1 + (nvec * sizeof(float) * 2 + 2048)/(1024*1024) ;
        sprintf( nsnew , "shm:GrpInCorr:%dM+10K" , nmeg ) ;
        INFO_message("Reconnecting to AFNI with shared memory channel %s",nsnew) ;
-       NI_sleep(1) ;
        kk = NI_stream_reopen( GI_stream , nsnew ) ;
-       if( kk == 0 ) ININFO_message(" reconnection *FAILED* ???") ;
-       else          ININFO_message(" reconnection *ACTIVE* !!!") ;
-       do_shm = 0 ;
+       if( kk == 0 ) ININFO_message(" SHM reconnection *FAILED* :-( ???") ;
+       else          ININFO_message(" SHM reconnection *ACTIVE* :-) !!!") ;
+       do_shm-- ;
      }
 #endif
 
