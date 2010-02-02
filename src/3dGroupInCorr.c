@@ -28,6 +28,8 @@ void        GRINCOR_many_ttest( int nvec , int numx , float **xxar ,
 
 static int verb = 1 ;
 
+typedef signed char sbyte ;  /* 02 Feb 2010 */
+
 /*----------------------------------------------------------------------------*/
 /* Binary search for tt in a sorted integer array. */
 
@@ -69,6 +71,7 @@ typedef struct {
   int nvec  ;  /* number of vectors in a dataset */
   int ndset ;  /* number of datasets */
   int *nvals ; /* nvals[i] = number of values in a vector in i-th dataset */
+  int datum ;  /* 1 for sbyte, 2 for short */
 
   char *geometry_string ;
   THD_3dim_dataset *tdset ; /* template dataset */
@@ -77,19 +80,17 @@ typedef struct {
   char *dfname ;  /* data file name */
   int  *ivec   ;  /* ivec[i] = spatial index of i-th vector, i=0..nvec-1 */
   float *fac   ;  /* fac[i] = scale factor for i-th dataset, i=0..ndset-1 */
-  short **sv   ;  /* sv[i] = array [nvals[i]*nvec] for i-th dataset */
+  short **sv   ;  /* sv[i] = short array [nvals[i]*nvec] for i-th dataset */
+  sbyte **bv   ;  /* bv[i] = sbyte array [nvals[i]*nvec] for i-th dataset */
 
-  long long nbytes ;
+  long long nbytes ;  /* number of bytes in the data array */
 
-   /* Surface stuff  ZSS Jan 09 2010 */
-   int nnode[2];
-   int ninmask[2];
-} MRI_shindss ;  /* short indexed datasets */
+  /* Surface stuff  ZSS Jan 09 2010 */
 
-/*----- pointer to iv-th vector in id-th dataset of shd -----*/
+  int nnode[2]   ;
+  int ninmask[2] ;
 
-#undef  SHVEC
-#define SHVEC(shd,id,iv) ( (shd)->sv[id] + (shd)->nvals[id]*(iv) )
+} MRI_shindss ;  /* short/sbyte indexed datasets */
 
 /*----- get index in array, given voxel ijk value -----*/
 
@@ -114,7 +115,7 @@ typedef struct {
 
 static const long long twogig = 2ll * 1024ll * 1024ll * 1024ll ;  /* 2 GB */
 
-/*----- read a .grpincorr.niml file into a struct -----*/
+/*----- read a PREFIX.grpincorr.niml file into a struct -----*/
 
 MRI_shindss * GRINCOR_read_input( char *fname )
 {
@@ -124,6 +125,7 @@ MRI_shindss * GRINCOR_read_input( char *fname )
    MRI_shindss *shd ;
    long long nbytes_needed , nbytes_dfname ; int fdes ;
    void *var ; int ids ;
+   int datum , datum_size ;
 
    char *geometry_string=NULL ;
    THD_3dim_dataset *tdset=NULL; int nvox;
@@ -168,14 +170,23 @@ MRI_shindss * GRINCOR_read_input( char *fname )
      GQUIT("nvals attribute doesn't match ndset") ;
    nvals = nvar->ar ; nvar->ar = NULL ; NI_delete_int_array(nvar) ;
 
+   /* datum of datasets */
+
+   atr = NI_get_attribute(nel,"datum") ;
+   if( atr != NULL && strcasecmp(atr,"byte") == 0 ){
+     datum = 1 ; datum_size = sizeof(sbyte) ;
+   } else {
+     datum = 2 ; datum_size = sizeof(short) ;
+   }
+
    /* number of bytes needed:
-        sizeof(short) * number of vectors per dataset
+        sizeof(datum) * number of vectors per dataset
                       * number of datasets
                       * sum of per dataset vector lengths */
 
    nbytes_needed = 0 ;
    for( ids=0 ; ids < ndset ; ids++ ) nbytes_needed += nvals[ids] ;
-   nbytes_needed *= ((long long)nvec) * sizeof(short) ;
+   nbytes_needed *= ((long long)nvec) * datum_size ;
 
    if( nbytes_needed >= twogig &&
        ( sizeof(void *) < 8 || sizeof(size_t) < 8 ) ) /* too much for 32-bit */
@@ -289,10 +300,21 @@ MRI_shindss * GRINCOR_read_input( char *fname )
 
    /*-- create array of pointers to each dataset's data array --*/
 
-   shd->sv    = (short **)malloc(sizeof(short *)*ndset) ;
-   shd->sv[0] = (short *)var ;
-   for( ids=1 ; ids < ndset ; ids++ )
-     shd->sv[ids] = shd->sv[ids-1] + nvals[ids-1]*nvec ;
+   shd->datum = datum ;
+
+   if( datum == 2 ){  /* shorts */
+     shd->sv    = (short **)malloc(sizeof(short *)*ndset) ;
+     shd->bv    = NULL ;
+     shd->sv[0] = (short *)var ;
+     for( ids=1 ; ids < ndset ; ids++ )
+       shd->sv[ids] = shd->sv[ids-1] + nvals[ids-1]*nvec ;
+   } else {           /* sbytes */
+     shd->sv    = NULL ;
+     shd->bv    = (sbyte **)malloc(sizeof(sbyte *)*ndset) ;
+     shd->bv[0] = (sbyte *)var ;
+     for( ids=1 ; ids < ndset ; ids++ )
+       shd->bv[ids] = shd->bv[ids-1] + nvals[ids-1]*nvec ;
+   }
 
    shd->nbytes = nbytes_needed ;
    return shd ;
@@ -303,7 +325,7 @@ MRI_shindss * GRINCOR_read_input( char *fname )
 /*--------------------------------------------------------------------------*/
 /* This cute little function consumes a lot of CPU time. */
 
-void GRINCOR_dotprod( MRI_shindss *shd, int ids, float *vv, float *dp )
+void GRINCOR_dotprod_short( MRI_shindss *shd, int ids, float *vv, float *dp )
 {
    int nvec = shd->nvec , nvals = shd->nvals[ids] , iv,ii ;
    float sum , fac = shd->fac[ids]*0.9999f , dtop=0.0f,val ;
@@ -317,6 +339,34 @@ void GRINCOR_dotprod( MRI_shindss *shd, int ids, float *vv, float *dp )
    }
 
    return ;
+}
+
+/*--------------------------------------------------------------------------*/
+/* This cute little function consumes a lot of CPU time. */
+
+void GRINCOR_dotprod_sbyte( MRI_shindss *shd, int ids, float *vv, float *dp )
+{
+   int nvec = shd->nvec , nvals = shd->nvals[ids] , iv,ii ;
+   float sum , fac = shd->fac[ids]*0.9999f , dtop=0.0f,val ;
+   sbyte *bv = shd->bv[ids] , *bvv ;
+
+   for( iv=0 ; iv < nvec ; iv++ ){
+     bvv = bv + iv*nvals ;
+     for( sum=0.0f,ii=0 ; ii < nvals ; ii++ ) sum += vv[ii]*bvv[ii] ;
+     dp[iv] = atanhf(sum*fac) ;
+     val = fabsf(dp[iv]) ; dtop = MAX(dtop,val) ;
+   }
+
+   return ;
+}
+
+/*--------------------------------------------------------------------------*/
+
+void GRINCOR_dotprod( MRI_shindss *shd, int ids, float *vv, float *dp )
+{
+  if( shd->datum == 1 ) GRINCOR_dotprod_sbyte( shd, ids, vv, dp ) ;
+  else                  GRINCOR_dotprod_short( shd, ids, vv, dp ) ;
+  return ;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -339,21 +389,27 @@ void GRINCOR_many_dotprod( MRI_shindss *shd , float **vv , float **ddp )
 }
 
 /*----------------------------------------------------------------------------*/
+/* Load the seed vectors from each dataset */
 
 void GRINCOR_load_seedvec( MRI_shindss *shd , MCW_cluster *nbhd ,
                            int voxijk       , float **seedvec    )
 {
    int nx,ny,nz,nxy, ndset,nvals, voxind,ii,jj,kk, aa,bb,cc,xx,yy,zz, qijk,qind ;
-   short *sv , *svv ; float *vv ;
+   short *sv=NULL , *svv=NULL ; float *vv ; sbyte *bv=NULL , *bvv=NULL ;
 
    nx = shd->nx; ny = shd->ny; nz = shd->nz; nxy = nx*ny; ndset = shd->ndset;
 
    IJK_TO_THREE(voxijk,aa,bb,cc,nx,nxy) ;
    voxind = IJK_TO_INDEX(shd,voxijk) ;
    for( kk=0 ; kk < ndset ; kk++ ){
-     nvals = shd->nvals[kk] ; sv = shd->sv[kk] ; svv = sv + voxind*nvals ;
+     nvals = shd->nvals[kk] ;
+     if( shd->datum == 1 ){ bv = shd->bv[kk] ; bvv = bv + voxind*nvals ; }
+     else                 { sv = shd->sv[kk] ; svv = sv + voxind*nvals ; }
      vv = seedvec[kk] ;
-     for( ii=0 ; ii < nvals ; ii++ ) vv[ii] = (float)svv[ii] ;
+     if( shd->datum == 1 )
+       for( ii=0 ; ii < nvals ; ii++ ) vv[ii] = (float)bvv[ii] ;
+     else
+       for( ii=0 ; ii < nvals ; ii++ ) vv[ii] = (float)svv[ii] ;
      if( nbhd != NULL ){  /* average in with nbhd */
        for( jj=1 ; jj < nbhd->num_pt ; jj++ ){
          xx = aa + nbhd->i[jj] ; if( xx < 0 || xx >= nx ) continue ;
@@ -362,8 +418,13 @@ void GRINCOR_load_seedvec( MRI_shindss *shd , MCW_cluster *nbhd ,
          qijk = THREE_TO_IJK(xx,yy,zz,nx,nxy) ;
          qind = IJK_TO_INDEX(shd,qijk) ;
          if( qind >= 0 ){
-           svv = sv + qind*nvals ;
-           for( ii=0 ; ii < nvals ; ii++ ) vv[ii] += (float)svv[ii] ;
+           if( shd->datum == 1 ){
+             bvv = bv + qind*nvals ;
+             for( ii=0 ; ii < nvals ; ii++ ) vv[ii] += (float)bvv[ii] ;
+           } else {
+             svv = sv + qind*nvals ;
+             for( ii=0 ; ii < nvals ; ii++ ) vv[ii] += (float)svv[ii] ;
+           }
          }
        }
      }
@@ -696,15 +757,17 @@ int main( int argc , char *argv[] )
 
 #undef  BSTEP
 #define BSTEP 32768
-   { long long pp ; char *bv ; float sum=0.0f ;
+   { long long pp ; char *qv ; float sum=0.0f ;
      if( verb ) INFO_message("page faulting data into memory") ;
-     bv = (char *)shd_AAA->sv[0] ;
-     for( pp=0 ; pp < shd_AAA->nbytes ; pp+=BSTEP,bv+=BSTEP ) sum += *bv ;
+     if( shd_AAA->datum == 1 ) qv = (char *)shd_AAA->bv[0] ;
+     else                      qv = (char *)shd_AAA->sv[0] ;
+     for( pp=0 ; pp < shd_AAA->nbytes ; pp+=BSTEP,qv+=BSTEP ) sum += *qv ;
      if( shd_BBB != NULL ){
-       bv = (char *)shd_BBB->sv[0] ;
-       for( pp=0 ; pp < shd_BBB->nbytes ; pp+=BSTEP,bv+=BSTEP ) sum += *bv ;
+       if( shd_BBB->datum == 1 ) qv = (char *)shd_BBB->bv[0] ;
+       else                      qv = (char *)shd_BBB->sv[0] ;
+       for( pp=0 ; pp < shd_BBB->nbytes ; pp+=BSTEP,qv+=BSTEP ) sum += *qv ;
      }
-     if( verb == 666 ) INFO_message(" data sum = %g",sum) ; /* never */
+     if( verb == 666 ) INFO_message(" data sum = %g",sum) ; /* e.g., never */
    }
 
    if( verb ){
