@@ -206,7 +206,7 @@ float THD_normalize( int npt , float *far )
 
    fac = 0.0f ;
    for( ii=0 ; ii < npt ; ii++ ) fac += far[ii]*far[ii] ;
-   if( fac == 0.0f ) return 0.0f ;
+   if( fac <= 0.0f ) return 0.0f ;
    fac = 1.0f / sqrtf(fac) ;
    for( ii=0 ; ii < npt ; ii++ ) far[ii] *= fac ;
    return fac ;
