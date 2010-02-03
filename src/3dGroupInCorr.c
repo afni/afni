@@ -26,9 +26,22 @@ void        GRINCOR_many_ttest( int nvec , int numx , float **xxar ,
                                 int numy , float **yyar ,
                                 float *dar , float *zar  ) ;
 
-static int verb = 1 ;
+static int verb  = 1 ;
+static int debug = 0 ;
 
 typedef signed char sbyte ;  /* 02 Feb 2010 */
+
+/*----------------------------------------------------------------------------*/
+
+static int vstep_n = 0 ;
+
+static void vstep_print(void)
+{
+   static char xx[10] = "0123456789" ;
+   fprintf(stderr , "%c" , xx[vstep_n%10] ) ;
+   if( vstep_n%10 == 9) fprintf(stderr,".") ;
+   vstep_n++ ;
+}
 
 /*----------------------------------------------------------------------------*/
 /* Binary search for tt in a sorted integer array. */
@@ -323,19 +336,24 @@ MRI_shindss * GRINCOR_read_input( char *fname )
 #undef GQUIT
 
 /*--------------------------------------------------------------------------*/
+
+#undef  MYatanh
+#define MYatanh(x) ( ((x)<-0.999329f) ? -4.0f                \
+                    :((x)>+0.999329f) ? +4.0f : atanhf(x) )
+
+/*--------------------------------------------------------------------------*/
 /* This cute little function consumes a lot of CPU time. */
 
 void GRINCOR_dotprod_short( MRI_shindss *shd, int ids, float *vv, float *dp )
 {
    int nvec = shd->nvec , nvals = shd->nvals[ids] , iv,ii ;
-   float sum , fac = shd->fac[ids]*0.9999f , dtop=0.0f,val ;
+   float sum , fac = shd->fac[ids]*0.9999f ;
    short *sv = shd->sv[ids] , *svv ;
 
    for( iv=0 ; iv < nvec ; iv++ ){
      svv = sv + iv*nvals ;
      for( sum=0.0f,ii=0 ; ii < nvals ; ii++ ) sum += vv[ii]*svv[ii] ;
-     dp[iv] = atanhf(sum*fac) ;
-     val = fabsf(dp[iv]) ; dtop = MAX(dtop,val) ;
+     sum *= fac ; dp[iv] = MYatanh(sum) ;
    }
 
    return ;
@@ -347,14 +365,13 @@ void GRINCOR_dotprod_short( MRI_shindss *shd, int ids, float *vv, float *dp )
 void GRINCOR_dotprod_sbyte( MRI_shindss *shd, int ids, float *vv, float *dp )
 {
    int nvec = shd->nvec , nvals = shd->nvals[ids] , iv,ii ;
-   float sum , fac = shd->fac[ids]*0.9999f , dtop=0.0f,val ;
+   float sum , fac = shd->fac[ids]*0.9999f ;
    sbyte *bv = shd->bv[ids] , *bvv ;
 
    for( iv=0 ; iv < nvec ; iv++ ){
      bvv = bv + iv*nvals ;
      for( sum=0.0f,ii=0 ; ii < nvals ; ii++ ) sum += vv[ii]*bvv[ii] ;
-     dp[iv] = atanhf(sum*fac) ;
-     val = fabsf(dp[iv]) ; dtop = MAX(dtop,val) ;
+     sum *= fac ; dp[iv] = MYatanh(sum) ;
    }
 
    return ;
@@ -379,11 +396,21 @@ void GRINCOR_many_dotprod( MRI_shindss *shd , float **vv , float **ddp )
    AFNI_OMP_START ;
 #pragma omp for
    for( ids=0 ; ids < ndset ; ids++ ){
-     if( verb > 2 ) fprintf(stderr," +   start correlation on dataset #%d\n",ids) ;
+     if( verb > 3 ) fprintf(stderr," +   start correlation on dataset #%d\n",ids) ;
      GRINCOR_dotprod( shd , ids , vv[ids] , ddp[ids] ) ;
    }
    AFNI_OMP_END ;
  }
+
+   if( debug ){
+     int nvec=shd->nvec , nbad , iv , ids ;
+     for( ids=0 ; ids < shd->ndset ; ids++ ){
+       for( nbad=iv=0 ; iv < nvec ; iv++ ){
+         if( !isfinite(ddp[ids][iv]) ){ ddp[ids][iv] = 0.0f; nbad++; }
+       }
+       if( nbad > 0 ) WARNING_message("%d bad correlations in dataset #%d",nbad,ids) ;
+     }
+   }
 
    return ;
 }
@@ -436,7 +463,7 @@ void GRINCOR_load_seedvec( MRI_shindss *shd , MCW_cluster *nbhd ,
 
 /*-----------------------------------------------------------------------------*/
 
-#define AFNI_NIML_PORT 53212            /* TCP/IP port that AFNI uses */
+#define AFNI_NIML_PORT   53212          /* TCP/IP port that AFNI uses */
 #define SUMA_GICORR_PORT 53224          /* TCP/IP port that SUMA uses */
 
 NI_stream GI_stream = (NI_stream)NULL ;
@@ -446,7 +473,7 @@ NI_stream GI_stream = (NI_stream)NULL ;
 void GI_exit(void)                   /* Function to be called to make sure */
 {                                    /* the AFNI data channel gets closed. */
    if( GI_stream != (NI_stream)NULL ){
-     fprintf(stderr,"** 3dGroupInCorr exits: closing socket to AFNI\n") ;
+     fprintf(stderr,"** 3dGroupInCorr exits: closing connection to AFNI\n") ;
      NI_stream_close(GI_stream) ;
    }
    return ;
@@ -495,7 +522,7 @@ int main( int argc , char *argv[] )
    int nvec , ndset_AAA=0,ndset_BBB=0 , *nvals_AAA=NULL,*nvals_BBB=NULL ;
    float **seedvec_AAA=NULL , **dotprod_AAA=NULL ;
    float **seedvec_BBB=NULL , **dotprod_BBB=NULL ;
-   int ctim,btim,atim , do_shm=2 , nsend=0 ;
+   int ctim,btim,atim , do_shm=2 , nsend=0 , shm_active=0 ;
 
    /*-- enlighten the ignorant and brutish sauvages? --*/
 
@@ -532,6 +559,11 @@ int main( int argc , char *argv[] )
       "   -- Actually, between the arctanh() of these maps (cf. RA Fisher).\n"
       " ++ The dataset returned to AFNI converts the t-statistic maps\n"
       "    to z-scores, for various reasons of convenience.\n"
+      "\n"
+      "* When the program starts up, it has to 'page fault' all the data\n"
+      "  into memory.  This can take up to a few minutes, if it is reading\n"
+      "  10 Gbytes of data from a slow disk.  After that, if your computer\n"
+      "  has enough RAM, then the program should run pretty quickly.\n"
 #ifdef USE_OMP
       "\n"
       "* One reason this program is a server (rather than being built in\n"
@@ -551,6 +583,8 @@ int main( int argc , char *argv[] )
       "  ++ This 'option' is mandatory (you have to input SOMETHING).\n"
       "  ++ Of course, 'AAA' should be replaced with the correct name of\n"
       "     your input dataset collection file!\n"
+      "  ++ 3dGroupInCorr can use byte-valued or short-valued data as\n"
+      "     produced by the '-byte' or '-short' options to 3dSetupGroupInCorr.\n"
       "\n"
       " -setB BBB.grpincorr.niml\n"
       "   = Give the setup file that describes the second dataset collection:\n"
@@ -629,6 +663,7 @@ int main( int argc , char *argv[] )
       "\n"
       " -quiet = Turn off the informational messages\n"
       " -verb  = Print out extra informational messages\n"
+      " -debug = Do some internal testing (slows things down)\n"
      ) ;
      PRINT_AFNI_OMP_USAGE("3dGroupInCorr",NULL) ;
      PRINT_COMPILE_DATE ; exit(0) ;
@@ -657,6 +692,9 @@ int main( int argc , char *argv[] )
      }
      if( strcmp(argv[nopt],"-VERB") == 0 ){
        verb += 2 ; nopt++ ; continue ;
+     }
+     if( strcmp(argv[nopt],"-debug") == 0 ){
+       debug++ ; nopt++ ; continue ;
      }
 
      if( strcmp(argv[nopt],"-suma") == 0 ){
@@ -756,16 +794,30 @@ int main( int argc , char *argv[] )
       into RAM, which will make the correlation-izing process faster */
 
 #undef  BSTEP
-#define BSTEP 32768
-   { long long pp ; char *qv ; float sum=0.0f ;
+#define BSTEP 4096
+   { long long pp , vstep=9 ; char *qv ; float sum=0.0f ;
      if( verb ) INFO_message("page faulting data into memory") ;
      if( shd_AAA->datum == 1 ) qv = (char *)shd_AAA->bv[0] ;
      else                      qv = (char *)shd_AAA->sv[0] ;
-     for( pp=0 ; pp < shd_AAA->nbytes ; pp+=BSTEP,qv+=BSTEP ) sum += *qv ;
+     if( verb ){
+       vstep = (shd_AAA->nbytes / BSTEP) / 50 ; fprintf(stderr," + setA:") ;
+     }
+     for( pp=0 ; pp < shd_AAA->nbytes ; pp+=BSTEP,qv+=BSTEP ){
+       sum += *qv ;
+       if( verb && pp%vstep == vstep-1 ) vstep_print() ;
+     }
+     if( verb ){ fprintf(stderr,"!\n") ; vstep_n = 0 ; }
      if( shd_BBB != NULL ){
        if( shd_BBB->datum == 1 ) qv = (char *)shd_BBB->bv[0] ;
        else                      qv = (char *)shd_BBB->sv[0] ;
-       for( pp=0 ; pp < shd_BBB->nbytes ; pp+=BSTEP,qv+=BSTEP ) sum += *qv ;
+       if( verb ){
+         vstep = (shd_BBB->nbytes / BSTEP) / 50 ; fprintf(stderr," + setB:") ;
+       }
+       for( pp=0 ; pp < shd_BBB->nbytes ; pp+=BSTEP,qv+=BSTEP ){
+         sum += *qv ;
+         if( verb && pp%vstep == vstep-1 ) vstep_print() ;
+       }
+       if( verb ){ fprintf(stderr,"!\n") ; vstep_n = 0 ; }
      }
      if( verb == 666 ) INFO_message(" data sum = %g",sum) ; /* e.g., never */
    }
@@ -897,6 +949,17 @@ int main( int argc , char *argv[] )
      }
    }
 
+   if( verb ){
+     INFO_message("3dGroupInCorr stands ready to do thy bidding!") ;
+#ifdef USE_OMP
+#pragma omp parallel
+ {
+  if( omp_get_thread_num() == 0 )
+    ININFO_message("OpenMP thread count = %d",omp_get_num_threads()) ;
+ }
+#endif
+   }
+
    /** now wait for commands from AFNI */
 
    while(1){  /* loop forever? */
@@ -912,7 +975,7 @@ int main( int argc , char *argv[] )
          GI_stream = NI_stream_open( nsname , "w" ) ;
          kk = NI_stream_goodcheck( GI_stream , 3333 ) ; /* wait a little bit */
          if( kk == 1 ){
-           ININFO_message("TCP/IP restart is good :-)") ;
+           ININFO_message("TCP/IP restart is good :-)") ; shm_active = 0 ;
          } else {
            ININFO_message("TCP/IP restart failed :-(") ;
            goto GetOutOfDodge ;  /* failed */
@@ -1039,14 +1102,18 @@ int main( int argc , char *argv[] )
      /** re-attach to AFNI using shared memory? **/
 
 #ifndef DONT_USE_SHM
-     if( do_shm > 0 && strcmp(afnihost,"localhost") == 0 ){
+     if( do_shm > 0 && strcmp(afnihost,"localhost") == 0 && !shm_active ){
        int nmeg ; char nsnew[2048] ;
        nmeg = 1 + (nvec * sizeof(float) * 2 + 2048)/(1024*1024) ;
        sprintf( nsnew , "shm:GrpInCorr:%dM+10K" , nmeg ) ;
        INFO_message("Reconnecting to AFNI with shared memory channel %s",nsnew) ;
        kk = NI_stream_reopen( GI_stream , nsnew ) ;
-       if( kk == 0 ) ININFO_message(" SHM reconnection *FAILED* :-( ???") ;
-       else          ININFO_message(" SHM reconnection *ACTIVE* :-) !!!") ;
+       if( kk == 0 ){
+         ININFO_message(" SHM reconnection *FAILED* :-( ???") ;
+       }
+       else {
+         ININFO_message(" SHM reconnection *ACTIVE* :-) !!!") ; shm_active = 1;
+       }
        do_shm-- ;
      }
 #endif

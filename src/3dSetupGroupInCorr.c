@@ -111,6 +111,13 @@ int main( int argc , char * argv[] )
  "  -prefix PREFIX = Set prefix name of output dataset\n"
  "\n"
  "  -byte          = Store data as 8-bit bytes rather than 16-bit shorts.\n"
+ "                 ++ This will save memory in 3dGroupInCorr (and disk space),\n"
+ "                    which can be important when using large collections of\n"
+ "                    datasets.  Results will be very slightly less accurate\n"
+ "                    than with '-short', but you'll have a hard time finding\n"
+ "                    any place where this matters.\n"
+ "                 ++ This may become the default in a little while.\n"
+ "\n"
  "  -short         = Store data as 16-bit shorts [the default]\n"
  "\n"
  "  -DELETE        = Delete input datasets from disk after\n"
@@ -168,21 +175,26 @@ int main( int argc , char * argv[] )
  "\n"
  "# Combine individual EPI automasks into a group mask\n"
  "\n"
- "3dMean -sum -nscale -prefix ALL_amask *_amask+tlrc.HEAD\n"
+ "3dMean -datum float -prefix ALL_amaskFULL *_amask+tlrc.HEAD\n"
+ "3dcalc -datum byte -prefix ALL_amask5050 -a ALL_amaskFULL+tlrc -expr 'step(a-0.499)'\n"
+ "/bin/rm *_amask+tlrc.*\n"
  "\n"
  "# Bandpass and blur each dataset inside the group mask\n"
  "# (skip first 4 time points, and also remove global signal)\n"
  "\n"
  "foreach fred ( sub*_rest+tlrc.HEAD )\n"
  "  set sub = `basename $fred _rest+tlrc.HEAD`\n"
- "  3dmaskave -mask ALL_amask+tlrc -quiet $fred'[4..$]' > ${sub}_GS.1D\n"
- "  3dBandpass -mask ALL_amask+tlrc -blur 6.0 -band 0.01 0.10 -prefix ${sub}_BP\\\n"
- "             -input $fred -ort ${sub}_GS.1D\n"
+ "  3dmaskave -mask ALL_amask5050+tlrc -quiet $fred'[4..$]' > ${sub}_GS.1D\n"
+ "  3dBandpass -mask ALL_amask5050+tlrc -blur 6.0 -band 0.01 0.10 -prefix ${sub}_BP\\\n"
+ "             -input $fred'[4..$]' -ort ${sub}_GS.1D\n"
  "end\n"
+ "/bin/rm -rf *_GS.1D\n"
  "\n"
  "# Extract data for 3dGroupInCorr\n"
  "\n"
- "3dSetupGroupInCorr -mask ALL_amask -prefix ALL *_BP+tlrc.HEAD\n"
+ "3dSetupGroupInCorr -mask ALL_amask5050 -prefix ALLshort *_BP+tlrc.HEAD\n"
+ "3dSetupGroupInCorr -mask ALL_amask5050 -prefix ALLbyte -byte *_BP+tlrc.HEAD\n"
+ "/bin/rm -rf *_BP+tlrc.*\n"
  "\n"
  "------------------\n"
  "CREDITS (or blame)\n"
@@ -428,7 +440,7 @@ int main( int argc , char * argv[] )
         /* scale to 16-bit shorts to save disk and memory space */
 
         if( do_byte ){
-          top = 127.0f / top ; fac[ids/2] = 1.0f / top ;  /* save scale factor */
+          top = 127.4f / top ; fac[ids/2] = 1.0f / top ;  /* save scale factor */
           bv = (sbyte *)malloc(sizeof(sbyte)*nvv) ;       /* output array */
           for( kk=0 ; kk < nvv ; kk++ ) bv[kk] = (sbyte)rintf(top*fv[kk]) ;
         } else {
@@ -495,7 +507,7 @@ int main( int argc , char * argv[] )
         /* scale to 16-bit shorts to save disk and memory space */
 
         if( do_byte ){
-          top = 127.0f / top ; fac[ids] = 1.0f / top ;  /* save scale factor */
+          top = 127.4f / top ; fac[ids] = 1.0f / top ;  /* save scale factor */
           bv = (sbyte *)malloc(sizeof(sbyte)*nvv) ;     /* output array */
           for( kk=0 ; kk < nvv ; kk++ ) bv[kk] = (sbyte)rintf(top*fv[kk]) ;
         } else {

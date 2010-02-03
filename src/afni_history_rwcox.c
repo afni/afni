@@ -44,6 +44,12 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 3 , FEB , 2010 , RWC , "Group InstaCorr" , MICRO , TYPE_GENERAL ,
+   "-byte option to save memory" ,
+   "3dSetupGroupInCorr and 3dGroupInCorr can now use bytes to store the huge\n"
+   "datasets, which will save disk space and memory.  Results are virtually\n"
+   "identical." } ,
+
  { 31 , DEC , 2009 , RWC , "many" , MICRO , TYPE_GENERAL ,
    "Remove 'cast ... different size' warnings" ,
    "Macros: ITOP and PTOI to cast without warnings.  For Z." } ,
