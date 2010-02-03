@@ -514,7 +514,9 @@ int main( int argc , char *argv[] )
    char nsname[2048]  ; /* NIML socket name */
    NI_element *nelset ; /* NIML element with dataset to send to AFNI */
    NI_element *nelcmd ; /* NIML element with command from AFNI */
-   float *neldar , *nelzar ;
+   float *neldar          , *nelzar          ;
+   float *neldar_AAA=NULL , *nelzar_AAA=NULL ;
+   float *neldar_BBB=NULL , *nelzar_BBB=NULL ; int dosix=0 , nosix=0 ;
    char buf[1024] ;
    float seedrad=0.0f , dx,dy,dz , dmin ; int nx,ny,nz,nxy ;
    MCW_cluster *nbhd=NULL ;
@@ -617,8 +619,13 @@ int main( int argc , char *argv[] )
       "               must be the same, and the datasets must have been input to\n"
       "               3dSetupGroupInCorr in the same relative order when each\n"
       "               collection was created. (Duh.)\n"
-      "            ++ None of these 3 options means anything for a 1-sample t-test\n"
-      "               (i.e., where you don't use -setB).\n"
+      " -nosix    = For a 2-sample situation, the program by default computes\n"
+      "             not only the t-test for the difference between the samples,\n"
+      "             but also the individual (setA and setB) 1-sample t-tests, giving\n"
+      "             6 sub-bricks that are sent to AFNI/SUMA.  If you don't want\n"
+      "             these 4 extra 1-sample sub-bricks, use the '-nosix' option.\n"
+      "   ++ None of these 4 options means anything for a 1-sample t-test\n"
+      "      (i.e., where you don't use -setB).\n"
       "\n"
       "*** Other Options ***\n"
       " -seedrad r = Before performing the correlations, average the seed voxel time\n"
@@ -701,6 +708,10 @@ int main( int argc , char *argv[] )
        TalkToAfni = 0 ; nopt++ ; continue ;
      }
 
+     if( strcasecmp(argv[nopt],"-nosix") == 0 ){
+       nosix = 1 ; nopt++ ; continue ;
+     }
+
      if( strcasecmp(argv[nopt],"-seedrad") == 0 ){
        if( ++nopt >= argc ) ERROR_exit("need 1 argument after option '%s'",argv[nopt-1]) ;
        seedrad = (float)strtod(argv[nopt],NULL) ;
@@ -770,9 +781,9 @@ int main( int argc , char *argv[] )
    ndset_AAA = shd_AAA->ndset ;
    nvals_AAA = shd_AAA->nvals ;
    if( shd_BBB != NULL ){
-     ndset_BBB = shd_BBB->ndset ; nvals_BBB = shd_BBB->nvals ;
+     ndset_BBB = shd_BBB->ndset ; nvals_BBB = shd_BBB->nvals ; dosix = !nosix ;
    } else {
-     ndset_BBB = 0 ; nvals_BBB = NULL ;
+     ndset_BBB = 0 ; nvals_BBB = NULL ; dosix = 0 ;
    }
 
    if( shd_BBB != NULL && shd_AAA->nvec != shd_BBB->nvec )
@@ -804,7 +815,7 @@ int main( int argc , char *argv[] )
      }
      for( pp=0 ; pp < shd_AAA->nbytes ; pp+=BSTEP,qv+=BSTEP ){
        sum += *qv ;
-       if( verb && pp%vstep == vstep-1 ) vstep_print() ;
+       if( verb && (pp/BSTEP)%vstep == vstep-1 ) vstep_print() ;
      }
      if( verb ){ fprintf(stderr,"!\n") ; vstep_n = 0 ; }
      if( shd_BBB != NULL ){
@@ -815,7 +826,7 @@ int main( int argc , char *argv[] )
        }
        for( pp=0 ; pp < shd_BBB->nbytes ; pp+=BSTEP,qv+=BSTEP ){
          sum += *qv ;
-         if( verb && pp%vstep == vstep-1 ) vstep_print() ;
+         if( verb && (pp/BSTEP)%vstep == vstep-1 ) vstep_print() ;
        }
        if( verb ){ fprintf(stderr,"!\n") ; vstep_n = 0 ; }
      }
@@ -841,6 +852,16 @@ int main( int argc , char *argv[] )
    nelzar = (float *)nelset->vec[1];  /* nelzar = Zscore sub-brick */
    if( neldar == NULL || nelzar == NULL )
      ERROR_exit("Can't setup output dataset?") ; /* should never happen */
+
+   if( dosix ){
+     NI_add_column( nelset, NI_FLOAT, NULL ); neldar_AAA = (float *)nelset->vec[2];
+     NI_add_column( nelset, NI_FLOAT, NULL ); nelzar_AAA = (float *)nelset->vec[3];
+     NI_add_column( nelset, NI_FLOAT, NULL ); neldar_BBB = (float *)nelset->vec[4];
+     NI_add_column( nelset, NI_FLOAT, NULL ); nelzar_BBB = (float *)nelset->vec[5];
+     if( neldar_AAA == NULL || nelzar_AAA == NULL ||
+         neldar_BBB == NULL || nelzar_BBB == NULL   )
+      ERROR_exit("Can't setup output dataset?") ; /* should never transpire */
+   }
 
    /*-- this stuff is one-time-only setup of the I/O to AFNI --*/
 
@@ -907,6 +928,7 @@ int main( int argc , char *argv[] )
 
    NI_set_attribute( nelcmd , "geometry_string", shd_AAA->geometry_string  ) ;
    NI_set_attribute( nelcmd , "target_name"    , "A_GRP_ICORR"             ) ;
+   NI_set_attribute( nelcmd , "target_nvals"   , dosix ? "6" : "2" ) ;
 
    if (shd_AAA->nnode[0] >= 0) {
       sprintf(buf,"%d, %d", shd_AAA->nnode[0], shd_AAA->nnode[1]);
@@ -1093,6 +1115,14 @@ int main( int argc , char *argv[] )
 
      GRINCOR_many_ttest( nvec , ndset_AAA , dotprod_AAA ,
                                 ndset_BBB , dotprod_BBB , neldar,nelzar ) ;
+
+     if( dosix ){
+       GRINCOR_many_ttest( nvec , ndset_AAA , dotprod_AAA ,
+                                  0         , NULL        , neldar_AAA,nelzar_AAA ) ;
+       GRINCOR_many_ttest( nvec , ndset_BBB , dotprod_BBB ,
+                                  0         , NULL        , neldar_BBB,nelzar_BBB ) ;
+     }
+
      if( verb > 2 ){
        ctim = NI_clock_time() ;
        ININFO_message(" finished t-test-izing: elapsed=%d ms",ctim-btim) ;
@@ -1103,9 +1133,7 @@ int main( int argc , char *argv[] )
 
 #ifndef DONT_USE_SHM
      if( do_shm > 0 && strcmp(afnihost,"localhost") == 0 && !shm_active ){
-       int nmeg ; char nsnew[2048] ;
-       nmeg = 1 + (nvec * sizeof(float) * 2 + 2048)/(1024*1024) ;
-       sprintf( nsnew , "shm:GrpInCorr:%dM+10K" , nmeg ) ;
+       char *nsnew = "shm:GrpInCorr:2M+10K" ;
        INFO_message("Reconnecting to AFNI with shared memory channel %s",nsnew) ;
        kk = NI_stream_reopen( GI_stream , nsnew ) ;
        if( kk == 0 ){

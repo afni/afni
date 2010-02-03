@@ -557,7 +557,10 @@ void GICOR_setup_func( NI_stream nsg , NI_element *nel )
    Three_D_View *im3d = A_CONTROLLER ;  /* global variable */
    THD_slist_find sf ;
    THD_session *ss = im3d->ss_now ; int qs = ss->num_dsset , vv,qq ;
-   THD_3dim_dataset *dset ;
+   THD_3dim_dataset *dset ; int nvals=2 ;
+   static char *blab[6] = { "GIC_Delta" , "GIC_Zscore" ,
+                            "AAA_Delta" , "AAA_Zscore" ,
+                            "BBB_Delta" , "BBB_Zscore"  } ;
 
    if( im3d->giset != NULL && im3d->giset->ready ) return ;
 
@@ -609,15 +612,18 @@ void GICOR_setup_func( NI_stream nsg , NI_element *nel )
    if( pre == NULL || *pre == '\0' ) pre = "A_GRP_ICORR" ;
    dset = giset->dset = EDIT_geometry_constructor( atr , pre ) ;
                                                      if( dset == NULL ) GIQUIT;
-   EDIT_dset_items      ( dset , ADN_nvals     , 2 ,
-                                 ADN_view_type , VIEW_TALAIRACH_TYPE ,
-                                 ADN_brick_fac , NULL ,
-                          ADN_none ) ;
-   EDIT_BRICK_TO_FIZT   ( dset , 1 ) ;
-   EDIT_BRICK_LABEL     ( dset , 0 , "GIC_Delta"  ) ;
-   EDIT_BRICK_LABEL     ( dset , 1 , "GIC_Zscore" ) ;
-   EDIT_substitute_brick( dset , 0 , MRI_float , NULL ) ;  /* calloc-ize */
-   EDIT_substitute_brick( dset , 1 , MRI_float , NULL ) ;  /* sub-bricks */
+
+   atr = NI_get_attribute( nel , "target_nvals" ) ;
+   if( atr != NULL ){ nvals = (int)strtod(atr,NULL); nvals = MAX(1,nvals); }
+   EDIT_dset_items( dset , ADN_nvals     , nvals ,
+                           ADN_view_type , VIEW_TALAIRACH_TYPE ,
+                           ADN_brick_fac , NULL ,
+                    ADN_none ) ;
+   for( vv=0 ; vv < nvals ; vv++ ){
+     if( vv%2 == 1 ) EDIT_BRICK_TO_FIZT( dset , vv ) ;
+     if( vv   <  6 ) EDIT_BRICK_LABEL  ( dset , vv , blab[vv] ) ;
+     EDIT_substitute_brick( dset , vv , MRI_float , NULL ) ;  /* calloc-ize sub-brick */
+   }
    DSET_superlock( dset ) ;
    giset->nvox = DSET_NVOX(dset) ;
 
@@ -673,19 +679,17 @@ void GICOR_setup_func( NI_stream nsg , NI_element *nel )
 
 void GICOR_process_dataset( NI_element *nel , int ct_start )
 {
-   Three_D_View *im3d = A_CONTROLLER ;
+   Three_D_View *im3d = A_CONTROLLER , *qq3d ;
    GICOR_setup *giset = im3d->giset ;
-   float *neldar , *nelzar , *dsdar , *dszar ;
-   int nvec,nn , vmul ; float thr ;
+   float *nelar , *dsdar ;
+   int nvec,nn,vv , vmul ; float thr ;
 
    if( nel == NULL || nel->vec_num < 2 ){  /* should never happen */
      ERROR_message("badly formatted dataset from 3dGroupInCorr!") ;
      return ;
    }
 
-   neldar = (float *)nel->vec[0] ;  /* delta array */
-   nelzar = (float *)nel->vec[1] ;  /* zscore array */
-   nvec   = nel->vec_len ;
+   nvec = nel->vec_len ;
 
    if( !IM3D_OPEN(im3d)    ||
        im3d->giset == NULL ||
@@ -705,22 +709,22 @@ void GICOR_process_dataset( NI_element *nel , int ct_start )
 
    /* copy NIML data into dataset */
 
-   dsdar = (float *)DSET_ARRAY(giset->dset,0) ;
-   dszar = (float *)DSET_ARRAY(giset->dset,1) ;
+   for( vv=0 ; vv < DSET_NVALS(giset->dset) ; vv++ ){
+     nelar = (float *)nel->vec[vv] ;                /* NIML array */
+     dsdar = (float *)DSET_ARRAY(giset->dset,vv) ;  /* dataset array */
 
-   if( giset->ivec == NULL ){  /* all voxels */
-     nn = MIN( giset->nvox , nvec ) ;
-     memcpy(dsdar,neldar,sizeof(float)*nn) ;
-     memcpy(dszar,nelzar,sizeof(float)*nn) ;
-   } else {
-     int *ivec=giset->ivec , kk ;
-     nn = MIN( giset->nivec , nvec ) ;
-     for( kk=0 ; kk < nn ; kk++ ){
-       dsdar[ivec[kk]] = neldar[kk] ; dszar[ivec[kk]] = nelzar[kk] ;
+     if( giset->ivec == NULL ){  /* all voxels */
+       nn = MIN( giset->nvox , nvec ) ;
+       memcpy(dsdar,nelar,sizeof(float)*nn) ;
+     } else {
+       int *ivec=giset->ivec , kk ;
+       nn = MIN( giset->nivec , nvec ) ;
+       for( kk=0 ; kk < nn ; kk++ ) dsdar[ivec[kk]] = nelar[kk] ;
      }
    }
 
-   /* allow dset to be written out     ZSS Jan 2010 */
+   /* allow dset to be written out [ZSS Jan 2010] */
+
    giset->dset->dblk->diskptr->allow_directwrite = 1 ;
 
    /* switch to this dataset as overlay */
@@ -738,8 +742,6 @@ void GICOR_process_dataset( NI_element *nel , int ct_start )
 #endif
    }
 
-   
-   
    /* self-threshold and clusterize? */
 
 #undef  THBOT
@@ -780,6 +782,14 @@ void GICOR_process_dataset( NI_element *nel , int ct_start )
      AFNI_redisplay_func(im3d) ;
    }
    AFNI_set_thr_pval(im3d) ; AFNI_process_drawnotice(im3d) ;
+
+   for( vv=1 ; vv < MAX_CONTROLLERS ; vv++ ){  /* other controllers need redisplay? */
+     qq3d = GLOBAL_library.controllers[vv] ;
+     if( !IM3D_OPEN(qq3d) ) continue ;
+     if( qq3d->fim_now == giset->dset && MCW_val_bbox(qq3d->vwid->view->see_func_bbox) ){
+       AFNI_reset_func_range(qq3d) ; AFNI_redisplay_func(qq3d) ;
+     }
+   }
 
    return ;
 }

@@ -44,6 +44,12 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 3 , FEB , 2010 , RWC , "Group InstaCorr" , MINOR , TYPE_GENERAL ,
+   "2-sample case now also sends back 1-sample results" ,
+   "With this, you can look at the 2-sample difference in controller A, and\n"
+   "the 2 1-sample results in controllers B and C.  This lets you see the\n"
+   "difference AND similarities at the same time." } ,
+
  { 3 , FEB , 2010 , RWC , "Group InstaCorr" , MICRO , TYPE_GENERAL ,
    "-byte option to save memory" ,
    "3dSetupGroupInCorr and 3dGroupInCorr can now use bytes to store the huge\n"
