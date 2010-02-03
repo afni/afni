@@ -2,7 +2,7 @@ print("#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 print("          ================== Welcome to 1dGC.R ==================          ")
 print("AFNI Vector (or Multivariate) Auto-Regressive (VAR or MAR) Modeling Package!")
 print("#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-print("Version 1.0.9,  April 14, 2009")
+print("Version 1.1.0,  Feb. 3, 2010")
 print("Author: Gang Chen (gangchen@mail.nih.gov)")
 print("Website: http://afni.nimh.nih.gov/sscc/gangc/VAR.html")
 print("SSCC/NIMH, National Institutes of Health, Bethesda MD 20892")
@@ -403,8 +403,6 @@ libLoad("vars")     # VAR modeling
 anotherAna <- 1
 while (anotherAna==1) {
 
-# Set most paratmers here
-maxLags <- 8
 
 nROIs <- as.integer(readline("Number of regions/nodes (e.g., 6)? "))     # number of ROIs
 print("Header with one line of labels is optional in multi-column files, but NOT allowed in one-column files.")
@@ -543,6 +541,8 @@ if (nPoly > -1) {
 } else exMat <- exData # if no baseline and trend, do nothing
 # plot out those polynomials here???
 
+maxLags <- as.integer(readline("Highest order (or number of lags) for the VAR model (1,2,...)? "))
+
 critSel <- VARselect(newData, lag.max = maxLags, type = "none", exogen=exMat)
 print(sprintf("Suggested orders for VAR:"))
 print(critSel$selection)
@@ -677,7 +677,7 @@ for (ii in 1:nLags) {
    print("-----------------")
 	print(sprintf("Matrix of t values with a lag of %i (direction goes from row to column):", ii))
    print(matrix(netMatT[ii,,], nrow = nROIs, ncol = nROIs, dimnames = list(names(myData), names(myData))))
-	print(sprintf("DFs = %i for Ho: a path coefficient = 0.", summary(fm)$varresult[[1]]$df[2]))
+	print(sprintf("DFs = %i for null hypothesis H_0: a path coefficient = 0.", summary(fm)$varresult[[1]]$df[2]))
 	saveMatT <- as.integer(readline("Save matrix of t values for group analysis (0: no; 1: yes)? "))
    if (saveMatT) {
       matName <- as.character(readline("File name prefix (e.g., TLag1Subj1)? "))
@@ -701,7 +701,7 @@ if (nLags>1) { # overall network with all lags collapsed
 	print(sprintf("Overall F matrix for ALL %i lags (direction goes from row to column):", nLags))
    print(netCMatF)
 	print(sprintf("Numerator DFs = %i, and Denominator DFs =%i", -ltTmp$Df[2], ltTmp$Res.Df[1]))
-	print(sprintf("Null hypothesis Ho: path coef from region i to j is 0 for all %i lags.", nLags))
+	print(sprintf("Null hypothesis H_0: path coef from region i to j is 0 for all %i lags.", nLags))
    saveCMatF <- as.integer(readline("Save above F matrix (0: no; 1: yes)? "))
    if (saveCMatF) {
       matCFName <- as.character(readline("File name prefix (e.g., FMatSubj1)? "))
@@ -711,7 +711,7 @@ if (nLags>1) { # overall network with all lags collapsed
 	print(sprintf("Overall p-value matrix for ALL %i lags (direction goes from row to column):", nLags))
    print(netCMatP)
 	print(sprintf("Numerator DFs = %i, and Denominator DFs =%i", -ltTmp$Df[2], ltTmp$Res.Df[1]))
-	print(sprintf("Null hypothesis Ho: path coef from region i to j is 0 for all %i lags.", nLags))
+	print(sprintf("Null hypothesis H_0: path coef from region i to j is 0 for all %i lags.", nLags))
    saveCMatP <- as.integer(readline("Save above p-value matrix (0: no; 1: yes)? "))
    if (saveCMatP) {
       matCPName <- as.character(readline("File name prefix (e.g., PMatSubj1)? "))
@@ -776,7 +776,7 @@ for (ii in 1:nROIs)
 print("#++++++++++++++++++++++++++++++++++++++++++++")
 # spill the matrices with those insignificant ones being masked: direction goes from rows to cols
 for (ii in 1:nLags) {
-   print(sprintf("Path matrix with a lag of %i with insignificant ones masked with NAs:", ii))
+   print(sprintf("Path coefficient matrix with a lag of %i with insignificant ones masked with NAs:", ii))
 #   print(matrix(netMatR[ii,,]*netMat[ii,,], nrow = nROIs, ncol = nROIs, dimnames = list(names(myData), names(myData))))
    print(matrix(mapply(function(x,y) ifelse(x, y, NA), netMat[ii,,], netMatR[ii,,]), nrow = nROIs, ncol = nROIs, 
       dimnames = list(names(myData), names(myData))))
@@ -785,7 +785,7 @@ for (ii in 1:nLags) {
 #   print(matrix(netMatT[ii,,]*netMat[ii,,], nrow = nROIs, ncol = nROIs, dimnames = list(names(myData), names(myData))))
    print(matrix(mapply(function(x,y) ifelse(x, y, NA), netMat[ii,,], netMatT[ii,,]), nrow = nROIs, ncol = nROIs, 
       dimnames = list(names(myData), names(myData))))
-	print(sprintf("DFs = %i for Ho: a path coefficient = 0.", summary(fm)$varresult[[1]]$df[2]))
+	print(sprintf("DFs = %i for null hypothesis H_0: a path coefficient = 0.", summary(fm)$varresult[[1]]$df[2]))
    print("-----------------")
 }
 
