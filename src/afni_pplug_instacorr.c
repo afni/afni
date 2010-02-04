@@ -561,6 +561,7 @@ void GICOR_setup_func( NI_stream nsg , NI_element *nel )
    static char *blab[6] = { "GIC_Delta" , "GIC_Zscore" ,
                             "AAA_Delta" , "AAA_Zscore" ,
                             "BBB_Delta" , "BBB_Zscore"  } ;
+   NI_str_array *labar=NULL ;
 
    if( im3d->giset != NULL && im3d->giset->ready ) return ;
 
@@ -619,10 +620,18 @@ void GICOR_setup_func( NI_stream nsg , NI_element *nel )
                            ADN_view_type , VIEW_TALAIRACH_TYPE ,
                            ADN_brick_fac , NULL ,
                     ADN_none ) ;
+
+   atr = NI_get_attribute( nel , "target_labels" ) ;
+   if( atr != NULL )
+     labar = NI_decode_string_list( atr , ";" ) ;
+
    for( vv=0 ; vv < nvals ; vv++ ){
-     if( vv%2 == 1 ) EDIT_BRICK_TO_FIZT( dset , vv ) ;
-     if( vv   <  6 ) EDIT_BRICK_LABEL  ( dset , vv , blab[vv] ) ;
-     EDIT_substitute_brick( dset , vv , MRI_float , NULL ) ;  /* calloc-ize sub-brick */
+     if( labar != NULL && vv < labar->num )
+       EDIT_BRICK_LABEL( dset , vv , labar->str[vv] ) ;
+     else if( vv < 6 )
+       EDIT_BRICK_LABEL( dset , vv , blab[vv] ) ;
+     EDIT_substitute_brick( dset, vv, MRI_float, NULL ) ; /* calloc sub-brick */
+     if( vv%2 == 1 ) EDIT_BRICK_TO_FIZT(dset,vv) ;   /* alternate ones are Z */
    }
    DSET_superlock( dset ) ;
    giset->nvox = DSET_NVOX(dset) ;
@@ -671,6 +680,17 @@ void GICOR_setup_func( NI_stream nsg , NI_element *nel )
    giset->ready = 1 ;
    GRPINCORR_LABEL_ON(im3d) ;
    SENSITIZE_INSTACORR(im3d,True) ;
+
+#undef  PUTENV
+#define PUTENV(nm,val) do{ if( getenv((nm)) == NULL ){           \
+                             char *str = (char *)malloc(256) ;   \
+                             strcpy(str,(nm)); strcat(str,"=");  \
+                             strcat(str,val);  putenv(str);      \
+                           }} while(0)
+
+   PUTENV("AFNI_THRESH_LOCK","VALUE") ;
+   PUTENV("AFNI_RANGE_LOCK" ,"YES"  ) ;
+
    return ;
 }
 

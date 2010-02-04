@@ -210,6 +210,37 @@ char * THD_trailname( char *fname , int lev )
 }
 
 /*----------------------------------------------------------------------*/
+
+int THD_character_ok( char c )  /* 04 Feb 2010 */
+{
+   if( iscntrl(c) || isspace(c) ||
+       c == ';'   ||
+       c == '*'   || c == '?'   ||
+       c == '&'   || c == '|'   ||
+       c == '"'   || c == '>'   ||
+       c == '<'   || c == '\''  ||
+       c == '['   || c == ']'   ||
+       c == '('   || c == ')'   ||
+       c == '{'   || c == '}'   ||
+       c == '!'   || (c & 128) != 0 ) return 0 ;
+   return 1 ;
+}
+
+/*----------------------------------------------------------------------*/
+
+int THD_filename_fix( char *name )  /* 04 Feb 2010 */
+{
+   int ll , ii , nfix ;
+
+   if( name == NULL ) return -1 ;
+   ll = strlen( name ) ; if( ll == 0 ) return -1 ;
+   for( nfix=ii=0 ; ii < ll ; ii++ ){
+     if( !THD_character_ok(name[ii]) ){ name[ii] = '_' ; nfix++ ; }
+   }
+   return nfix ;
+}
+
+/*----------------------------------------------------------------------*/
 /*! Check if a filename is OK - that is, has no crummy characters.
 
   The filename can have a '/' in it.  To insist that there be not '/',
