@@ -44,6 +44,12 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 4 , FEB , 2010 , RWC , "Group InstaCorr" , MICRO , TYPE_GENERAL ,
+   "Set more informative labels for results sub-brick" ,
+   "With the addition of the -label[AB] options to 3dGroupInCorr.c, the\n"
+   "sending of labels to AFNI, and the setting of labels in\n"
+   "afni_pplug_instacorr.c" } ,
+
  { 3 , FEB , 2010 , RWC , "Group InstaCorr" , MINOR , TYPE_GENERAL ,
    "2-sample case now also sends back 1-sample results" ,
    "With this, you can look at the 2-sample difference in controller A, and\n"

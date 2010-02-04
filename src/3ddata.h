@@ -4652,6 +4652,8 @@ extern float THD_stat_to_zscore( float thr , int statcode , float * stataux ) ;
 extern int THD_filename_ok( char * ) ;   /* 24 Apr 1997 */
 extern int THD_filename_pure( char * ) ; /* 28 Feb 2001 */
 extern int THD_freemegabytes( char * ) ; /* 28 Mar 2005 */
+extern int THD_character_ok( char ) ;    /* 04 Feb 2010 */
+extern int THD_filename_fix( char * ) ;  /* 04 Feb 2010 */
 
 extern THD_warp * AFNI_make_voxwarp( THD_warp * , THD_3dim_dataset * ,
                                                   THD_3dim_dataset *  ) ;
