@@ -2302,6 +2302,14 @@ static char * readme_env[] = {
    "coordinated.  Changes to one locked pbar will be reflected in the\n" ,
    "others immediately.\n" ,
    "\n" ,
+   "-------------------------\n" ,
+   "Variable: AFNI_RANGE_LOCK (editable)\n" ,
+   "-------------------------\n" ,
+   "If this variable is set to YES, then the OLay range values of\n" ,
+   "different AFNI controllers that are Lock-ed together will be\n" ,
+   "coordinated.  Changes in one controller will be reflected in\n" ,
+   "the others immediately.\n" ,
+   "\n" ,
    "----------------------------\n" ,
    "Variable: AFNI_IMAGE_ZOOM_NN (editable)\n" ,
    "----------------------------\n" ,
@@ -3016,4 +3024,4 @@ static char * readme_env[] = {
    "behavior, set this variable to YES.\n" ,
    "\n" ,
    NULL } ;
-#define NUM_readme_env 3016
+#define NUM_readme_env 3024

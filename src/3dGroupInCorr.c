@@ -510,6 +510,8 @@ static MRI_shindss *shd_BBB = NULL ;
 static int ttest_opcode     = -1   ;  /* 0=pooled, 1=unpooled, 2=paired */
 static int ttest_opcode_max =  2   ;
 
+#define MAX_LABEL_SIZE 12
+
 int main( int argc , char *argv[] )
 {
    int nopt , kk , nn , ii,jj, TalkToAfni=1;
@@ -527,6 +529,7 @@ int main( int argc , char *argv[] )
    float **seedvec_AAA=NULL , **dotprod_AAA=NULL ;
    float **seedvec_BBB=NULL , **dotprod_BBB=NULL ;
    int ctim,btim,atim , do_shm=2 , nsend=0 , shm_active=0 ;
+   char label_AAA[MAX_LABEL_SIZE]="AAA" , label_BBB[MAX_LABEL_SIZE]="BBB" ;
 
    /*-- enlighten the ignorant and brutish sauvages? --*/
 
@@ -607,6 +610,12 @@ int main( int argc , char *argv[] )
       "       (DOF) has the same p-value as a z-score [N(0,1) deviate] of 3.248705.\n"
       "    -- One reason for using z-scores is that the DOF parameter varies between\n"
       "       voxels when you choose the -unpooled option for a 2-sample t-test.\n"
+      "\n"
+      " -labelA aaa = Label to attach (in AFNI) to the sub-bricks corresponding to\n"
+      "               setA.  If you don't give this, the label used will be 'AAA'.\n"
+      " -labelB bbb = Label to attach (in AFNI) to the sub-bricks corresponding to\n"
+      "               setB.  If you don't give this, the label used will be 'BBB'.\n"
+      "              ++ At most the first 11 characters of each label will be used!\n"
       "\n"
       "*** Two-Sample Options ***\n"
       " -pooled   = For a two-sample un-paired t-test, use a pooled variance estimator\n"
@@ -740,6 +749,24 @@ int main( int argc , char *argv[] )
 
      if( strcasecmp(argv[nopt],"-paired") == 0 ){
        ttest_opcode = 2 ; nopt++ ; continue ;
+     }
+
+     if( strcasecmp(argv[nopt],"-labelA") == 0 || strcasecmp(argv[nopt],"-labA") == 0 ){
+       if( ++nopt >= argc ) ERROR_exit("need 1 argument after option '%s'",argv[nopt-1]);
+       if( argv[nopt][0] != '\0' ){
+         NI_strncpy(label_AAA,argv[nopt],MAX_LABEL_SIZE) ;
+         THD_filename_fix(label_AAA) ;
+       }
+       nopt++ ; continue ;
+     }
+
+     if( strcasecmp(argv[nopt],"-labelB") == 0 || strcasecmp(argv[nopt],"-labB") == 0 ){
+       if( ++nopt >= argc ) ERROR_exit("need 1 argument after option '%s'",argv[nopt-1]);
+       if( argv[nopt][0] != '\0' ){
+         NI_strncpy(label_BBB,argv[nopt],MAX_LABEL_SIZE) ;
+         THD_filename_fix(label_BBB) ;
+       }
+       nopt++ ; continue ;
      }
 
      if( strcasecmp(argv[nopt],"-setA") == 0 ){
@@ -931,6 +958,24 @@ int main( int argc , char *argv[] )
    NI_set_attribute( nelcmd , "geometry_string", shd_AAA->geometry_string  ) ;
    NI_set_attribute( nelcmd , "target_name"    , "A_GRP_ICORR"             ) ;
    NI_set_attribute( nelcmd , "target_nvals"   , dosix ? "6" : "2" ) ;
+
+   /* 04 Feb 2010: create sub-brick labels here, based on what we compute */
+
+   { char bricklabels[32*MAX_LABEL_SIZE+64] ;
+     if( shd_BBB == NULL ){  /* 1 sample */
+       sprintf( bricklabels , "%s_mean ; %s_Zscr" , label_AAA , label_AAA ) ;
+     } else {                /* 2 samples */
+       sprintf( bricklabels , "%s-%s_mean ; %s-%s_Zscr" ,
+                label_AAA , label_BBB , label_AAA , label_BBB ) ;
+       if( dosix )           /* plus the extras */
+         sprintf( bricklabels+strlen(bricklabels) ,
+                  " ; %s_mean ; %s_Zscr ; %s_mean ; %s_Zscr" ,
+                  label_AAA , label_AAA , label_BBB , label_BBB ) ;
+     }
+     NI_set_attribute( nelcmd , "target_labels" , bricklabels ) ;
+   }
+
+   /* ZSS: set surface attributes */
 
    if (shd_AAA->nnode[0] >= 0) {
       sprintf(buf,"%d, %d", shd_AAA->nnode[0], shd_AAA->nnode[1]);
