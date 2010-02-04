@@ -2301,6 +2301,14 @@ If this variable is set to YES, then the Define Overlay color bars
 coordinated.  Changes to one locked pbar will be reflected in the
 others immediately.
 
+-------------------------
+Variable: AFNI_RANGE_LOCK (editable)
+-------------------------
+If this variable is set to YES, then the OLay range values of
+different AFNI controllers that are Lock-ed together will be
+coordinated.  Changes in one controller will be reflected in
+the others immediately.
+
 ----------------------------
 Variable: AFNI_IMAGE_ZOOM_NN (editable)
 ----------------------------
