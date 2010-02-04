@@ -229,7 +229,7 @@ outData <- array(0, dim=c(dimx, dimy, dimz, nBrick))
 #	}
 #}
 
-ii<-dimx%/%3; jj<-dimy%/%3; kk<-dimz%/%3
+ii<-dimx%/%3; jj<-dimy%/%3; kk<-max(dimz%/%3, 1)
 
 tag <- 1
 while (tag == 1) {
