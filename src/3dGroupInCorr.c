@@ -402,6 +402,7 @@ void GRINCOR_many_dotprod( MRI_shindss *shd , float **vv , float **ddp )
    AFNI_OMP_END ;
  }
 
+#ifdef isfinite
    if( debug ){
      int nvec=shd->nvec , nbad , iv , ids ;
      for( ids=0 ; ids < shd->ndset ; ids++ ){
@@ -411,6 +412,7 @@ void GRINCOR_many_dotprod( MRI_shindss *shd , float **vv , float **ddp )
        if( nbad > 0 ) WARNING_message("%d bad correlations in dataset #%d",nbad,ids) ;
      }
    }
+#endif
 
    return ;
 }
