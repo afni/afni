@@ -472,10 +472,12 @@ NI_stream GI_stream = (NI_stream)NULL ;
 
 /*=============================================================================*/
 
+static char *pname = "AFNI" ;  /* name of partner program */
+
 void GI_exit(void)                   /* Function to be called to make sure */
 {                                    /* the AFNI data channel gets closed. */
    if( GI_stream != (NI_stream)NULL ){
-     fprintf(stderr,"** 3dGroupInCorr exits: closing connection to AFNI\n") ;
+     fprintf(stderr,"** 3dGroupInCorr exits: closing connection to %s\n",pname) ;
      NI_stream_close(GI_stream) ;
    }
    return ;
@@ -537,10 +539,19 @@ int main( int argc , char *argv[] )
      printf(
       "Usage: 3dGroupInCorr [options]\n"
       "\n"
+      "* Also see\n"
+      "  http://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/instastuff.pdf\n"
+      "\n"
       "* This program operates as a server for AFNI.  It reads in dataset\n"
       "  collections that have been prepared by 3dSetupGroupInCorr, and\n"
-      "  it connects to the AFNI GUI program (via TCP/IP).  Then it waits\n"
+      "  then connects to the AFNI GUI program (via TCP/IP).  Then it waits\n"
       "  for a command to be sent from AFNI before it actually does anything.\n"
+      "\n"
+      "* At the same time as you run 3dGroupInCorr, you also have to run the\n"
+      "  AFNI GUI program, with a command like 'afni -niml'.  3dGroupInCorr\n"
+      "  by itself will only do something when AFNI sends it a command, which\n"
+      "  you do by using the 'InstaCorr Set' button on the [A] image viewer\n"
+      "  right-click popup menu, after 3dGroupInCorr has connected to AFNI.\n"
       "\n"
       "* When AFNI sends a seed voxel command, 3dGroupInCorr will extract\n"
       "  that voxel times series from each input dataset, will compute the\n"
@@ -552,23 +563,23 @@ int main( int argc , char *argv[] )
       "* You must start AFNI with the '-niml' option to allow it to accept\n"
       "  incoming TCP/IP socket connections.\n"
       " ++ Or you can press the 'NIML+PO' button in the GUI, if you forgot\n"
-      "    to type the command line correctly.\n"
+      "    to type the AFNI command line correctly.\n"
       " ++ If you are running 3dGroupInCorr and AFNI on separate computers,\n"
       "    you also have to setup 'host trusting' correctly -- for details,\n"
       "    see the description of the '-ah' option, far below.\n"
       "\n"
-      "* More detailed outline of processing:\n"
+      "* More detailed outline of processing in 3dGroupInCorr:\n"
       " ++ For each 3D+time dataset in the input dataset collections:\n"
-      "   -- Extract the seed voxel time series\n"
-      "   -- Correlate it with all other voxels in the same dataset\n"
+      "   -- Extract the seed voxel time series (averaging locally per 'seedrad')\n"
+      "   -- Correlate it with all other voxel time series in the same dataset\n"
       "   -- Result is one 3D correlation map per input dataset\n"
-      " ++ Then carry out the t-test between these 3D correlation maps.\n"
+      " ++ Then carry out the t-test between/among these 3D correlation maps.\n"
       "   -- Actually, between the arctanh() of these maps (cf. RA Fisher).\n"
       " ++ The dataset returned to AFNI converts the t-statistic maps\n"
-      "    to z-scores, for various reasons of convenience.\n"
+      "    to Z-scores, for various reasons of convenience.\n"
       "\n"
-      "* When the program starts up, it has to 'page fault' all the data\n"
-      "  into memory.  This can take up to a few minutes, if it is reading\n"
+      "* When 3dGroupInCorr starts up, it has to 'page fault' all the data\n"
+      "  into memory.  This can take several minutes, if it is reading (say)\n"
       "  10 Gbytes of data from a slow disk.  After that, if your computer\n"
       "  has enough RAM, then the program should run pretty quickly.\n"
 #ifdef USE_OMP
@@ -577,13 +588,22 @@ int main( int argc , char *argv[] )
       "  to AFNI) is that it is compiled to use OpenMP, which will let\n"
       "  it make use of multiple CPU cores on the computer system.\n"
       " ++ For more information, see the end of this '-help' output.\n"
+#else
+      "\n"
+      "* One reason this program is a server (rather than being built in\n"
+      "  to AFNI) is that it can be compiled to use OpenMP, which will let\n"
+      "  it make use of multiple CPU cores on the computer system.\n"
+      " ++ However, this version is not compiled with OpenMP :-(\n"
+      " ++ OpenMP is supported in gcc 4.2 and above, and in some commercial\n"
+      "    C compilers.\n"
 #endif
       "\n"
-      "=======\n"
-      "OPTIONS\n"
-      "=======\n"
+      "====================\n"
+      "COMMAND LINE OPTIONS\n"
+      "====================\n"
       "\n"
       "*** Input Files ***\n"
+      "\n"
       " -setA AAA.grpincorr.niml\n"
       "   = Give the setup file (from 3dSetupGroupInCorr) that describes\n"
       "     the first dataset collection:\n"
@@ -598,8 +618,8 @@ int main( int argc , char *argv[] )
       "  ++ This option IS optional.\n"
       "  ++ If you use only -setA, then the program computes a one-sample t-test.\n"
       "  ++ If you use also -setB, then the program computes a two-sample t-test.\n"
-      "    -- The exact form of the t-test used is controlled by one of the following\n"
-      "       three options (which are mutually exclusive).\n"
+      "    -- The exact form of the 2-sample t-test used is controlled by one of the\n"
+      "       three options described below (which are mutually exclusive).\n"
       "  ++ The sign of a two sample t-test is 'A-B'; that is, a positive result\n"
       "     means that the A set of correlations average larger than the B set.\n"
       "  ++ The output t-statistics are converted to z-scores for transmission to AFNI,\n"
@@ -618,6 +638,7 @@ int main( int argc , char *argv[] )
       "              ++ At most the first 11 characters of each label will be used!\n"
       "\n"
       "*** Two-Sample Options ***\n"
+      "\n"
       " -pooled   = For a two-sample un-paired t-test, use a pooled variance estimator\n"
       "            ++ This is the default, but it can be changed from the AFNI GUI.\n"
       " -unpooled = For a two-sample un-paired t-test, use an unpooled variance estimator\n"
@@ -633,12 +654,13 @@ int main( int argc , char *argv[] )
       " -nosix    = For a 2-sample situation, the program by default computes\n"
       "             not only the t-test for the difference between the samples,\n"
       "             but also the individual (setA and setB) 1-sample t-tests, giving\n"
-      "             6 sub-bricks that are sent to AFNI/SUMA.  If you don't want\n"
+      "             6 sub-bricks that are sent to AFNI.  If you don't want\n"
       "             these 4 extra 1-sample sub-bricks, use the '-nosix' option.\n"
       "   ++ None of these 4 options means anything for a 1-sample t-test\n"
       "      (i.e., where you don't use -setB).\n"
       "\n"
       "*** Other Options ***\n"
+      "\n"
       " -seedrad r = Before performing the correlations, average the seed voxel time\n"
       "              series for a radius of 'r' millimeters.  This is in addition\n"
       "              to any blurring done prior to 3dSetupGroupInCorr.  The default\n"
@@ -646,24 +668,30 @@ int main( int argc , char *argv[] )
       "\n"
       " -ah host = Connect to AFNI on the computer named 'host', rather than on\n"
       "            the current computer system 'localhost'.\n"
-      "           ++ This allows 3dGroupInCorr to run on a separate system than\n"
-      "              the AFNI GUI.\n"
-      "             -- e.g., If your desktop is weak, but you have access to\n"
-      "                a strong and muscular multi-CPU server (and the network\n"
-      "                connection is fast).\n"
-      "           ++ Note that AFNI must be setup with the appropriate\n"
-      "              'AFNI_TRUSTHOST_xx' environment variable, so that it will\n"
-      "              allow the external socket connection (for the sake of security):\n"
-      "            -- Example: AFNI running on computer 137.168.0.3 and 3dGroupInCorr\n"
-      "               running on computer 137.168.0.7\n"
-      "            -- Start AFNI with a command like\n"
-      "                 afni -DAFNI_TRUSTHOST_01=137.168.0.7 -niml ...\n"
-      "            -- Start 3dGroupInCorr with a command like\n"
-      "                 3dGroupInCorr -ah 137.168.0.3 ...\n"
-      "            -- You may use hostnames in place of IP addresses, but numerical\n"
-      "               IP addresses will probably work more reliably.\n"
-      "            -- If you are very trusting, you can set NIML_COMPLETE_TRUST to YES\n"
-      "               to allow NIML socket connections from anybody.\n"
+      "     ++ This allows 3dGroupInCorr to run on a separate system than\n"
+      "        the AFNI GUI.\n"
+      "       -- e.g., If your desktop is weak and pitiful, but you have access\n"
+      "          to a strong and muscular multi-CPU server (and the network\n"
+      "          connection is fast).\n"
+      "     ++ Note that AFNI must be setup with the appropriate\n"
+      "        'AFNI_TRUSTHOST_xx' environment variable, so that it will\n"
+      "        allow the external socket connection (for the sake of security):\n"
+      "      -- Example: AFNI running on computer 137.168.0.3 and 3dGroupInCorr\n"
+      "         running on computer 137.168.0.7\n"
+      "      -- Start AFNI with a command like\n"
+      "           afni -DAFNI_TRUSTHOST_01=137.168.0.7 -niml ...\n"
+      "      -- Start 3dGroupInCorr with a command like\n"
+      "           3dGroupInCorr -ah 137.168.0.3 ...\n"
+      "      -- You may use hostnames in place of IP addresses, but numerical\n"
+      "         IP addresses may work more reliably.\n"
+      "      -- If you are very trusting, you can set NIML_COMPLETE_TRUST to YES\n"
+      "         to allow NIML socket connections from anybody. (This only affects\n"
+      "         AFNI programs, not any other software on your computer.)\n"
+      "      -- You might also need to adjust your firewall settings to allow\n"
+      "         the reception of TCP/IP socket connections from outside computers.\n"
+      "         Firewalls are a separate issue from setting up AFNI host 'trusting',\n"
+      "         and the mechanics of how you can setup your firewall permissions is\n"
+      "         not something about which we can give you advice.\n"
 #ifndef DONT_USE_SHM
       "\n"
       " -NOshm = Do NOT reconnect to AFNI using shared memory, rather than TCP/IP,\n"
@@ -671,17 +699,20 @@ int main( int argc , char *argv[] )
       "          on the same system).\n"
       "       ++ The default is to use shared memory for communication when\n"
       "          possible, since this method of transferring large amounts of\n"
-      "          data between computers is much faster.\n"
+      "          data between programs on the same computer is much faster.\n"
       "       ++ If you have a problem with the shared memory communication,\n"
       "          use '-NOshm' to use TCP/IP for all communications.\n"
-      "       ++ If you use '-verb -verb', you will get a very detailed progress\n"
-      "          report from 3dGroupInCorr as it computes, including elapsed times\n"
-      "          for each stage.\n"
+      "       ++ If you use '-VERB', you will get a very detailed progress report\n"
+      "          from 3dGroupInCorr as it computes, including elapsed times for\n"
+      "          each stage of the process.\n"
 #endif
       "\n"
-      " -quiet = Turn off the informational messages\n"
-      " -verb  = Print out extra informational messages\n"
-      " -debug = Do some internal testing (slows things down)\n"
+      " -quiet = Turn off the 'fun fun fun in the sun sun sun' informational messages\n"
+      " -verb  = Print out extra informational messages for more fun\n"
+      " -VERB  = Print out even more informational messages for even more fun!\n"
+#ifdef isfinite
+      " -debug = Do some internal testing (slows things down a little)\n"
+#endif
      ) ;
      PRINT_AFNI_OMP_USAGE("3dGroupInCorr",NULL) ;
      PRINT_COMPILE_DATE ; exit(0) ;
@@ -907,10 +938,11 @@ int main( int argc , char *argv[] )
       sprintf( nsname , "tcp:%s:%d" , afnihost , AFNI_NIML_PORT ) ;
    } else {
       sprintf( nsname , "tcp:%s:%d" , afnihost , SUMA_GICORR_PORT ) ;
+      pname = "SUMA" ;
    }
    /* open the socket (i.e., dial the telephone call) */
 
-   fprintf(stderr,"++ Opening NIML socket '%s' to AFNI",nsname) ;
+   fprintf(stderr,"++ Opening NIML socket '%s' to %s",nsname,pname) ;
    GI_stream = NI_stream_open( nsname , "w" ) ;
 
    /* loop until AFNI connects (answers the call),
@@ -986,10 +1018,10 @@ int main( int argc , char *argv[] )
       NI_set_attribute( nelcmd , "LRpair_ninmask", buf);
    }
 
-   if( verb > 1 ) INFO_message("Sending setup information to AFNI") ;
+   if( verb > 1 ) INFO_message("Sending setup information to %s",pname) ;
    nn = NI_write_element( GI_stream , nelcmd , NI_BINARY_MODE ) ;
    if( nn < 0 ){
-     ERROR_exit("Can't send setup data to AFNI!?") ;
+     ERROR_exit("Can't send setup data to %s!?",pname) ;
    }
    NI_free_element(nelcmd) ;
 
@@ -1039,7 +1071,7 @@ int main( int argc , char *argv[] )
        kk = NI_stream_goodcheck( GI_stream , 1 ) ;
        if( kk < 1 ){
          NI_stream_close(GI_stream) ; GI_stream = (NI_stream)NULL ;
-         WARNING_message("Connection to AFNI broken - trying to restart") ;
+         WARNING_message("Connection to %s broken - trying to restart",pname) ;
          NI_sleep(111) ;                /* give AFNI a moment to do whatever */
          GI_stream = NI_stream_open( nsname , "w" ) ;
          kk = NI_stream_goodcheck( GI_stream , 3333 ) ; /* wait a little bit */
@@ -1054,7 +1086,7 @@ int main( int argc , char *argv[] )
      }
 
      if( NI_element_type(nelcmd) != NI_ELEMENT_TYPE ){  /* shouldn't happen */
-       WARNING_message("Badly formatted command from AFNI!") ;
+       WARNING_message("Badly formatted command from %s!",pname) ;
        NI_free_element(nelcmd) ; continue ;
      }
 
@@ -1063,7 +1095,7 @@ int main( int argc , char *argv[] )
      /** Command = AFNI said 'TaTa for Now' **/
 
      if( strcmp(nelcmd->name,"AuRevoir") == 0 ){
-       INFO_message("Message from AFNI: ** Au Revoir **") ;
+       INFO_message("Message from %s: ** Au Revoir **",pname) ;
        NI_free_element(nelcmd) ;
        goto GetOutOfDodge ;  /* failed */
      }
@@ -1071,7 +1103,7 @@ int main( int argc , char *argv[] )
      /** start timer **/
 
      if( verb > 1 || (verb==1 && nsend < 2) )
-       INFO_message("Received command %s from AFNI",nelcmd->name) ;
+       INFO_message("Received command %s from %s",nelcmd->name,pname) ;
 
      atim = btim = NI_clock_time() ;
 
@@ -1181,7 +1213,7 @@ int main( int argc , char *argv[] )
 #ifndef DONT_USE_SHM
      if( do_shm > 0 && strcmp(afnihost,"localhost") == 0 && !shm_active ){
        char *nsnew = "shm:GrpInCorr:2M+10K" ;
-       INFO_message("Reconnecting to AFNI with shared memory channel %s",nsnew) ;
+       INFO_message("Reconnecting to %s with shared memory channel %s",pname,nsnew) ;
        kk = NI_stream_reopen( GI_stream , nsnew ) ;
        if( kk == 0 ){
          ININFO_message(" SHM reconnection *FAILED* :-( ???") ;
@@ -1197,12 +1229,12 @@ int main( int argc , char *argv[] )
 
      kk = NI_write_element( GI_stream , nelset , NI_BINARY_MODE ) ;
      if( kk <= 0 ){
-       ERROR_message("3dGroupInCorr: failure when writing to AFNI") ;
+       ERROR_message("3dGroupInCorr: failure when writing to %s",pname) ;
      }
 
      ctim = NI_clock_time() ;
      if( verb > 2 )
-       ININFO_message(" sent results to AFNI: elapsed=%d ms",ctim-btim) ;
+       ININFO_message(" sent results to %s: elapsed=%d ms",pname,ctim-btim) ;
 
      if( verb > 1 || (verb==1 && nsend < 2) )
        ININFO_message(" Total elapsed time = %d msec",ctim-atim) ;
