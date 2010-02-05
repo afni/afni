@@ -700,7 +700,7 @@ int main( int argc , char *argv[] )
 #ifndef DONT_USE_SHM
       "\n"
       " -NOshm = Do NOT reconnect to AFNI using shared memory, rather than TCP/IP,\n"
-      "          when using 'localhost' (e.g., AFNI and 3dGroupInCorr are running\n"
+      "          when using 'localhost' (i.e., AFNI and 3dGroupInCorr are running\n"
       "          on the same system).\n"
       "       ++ The default is to use shared memory for communication when\n"
       "          possible, since this method of transferring large amounts of\n"
