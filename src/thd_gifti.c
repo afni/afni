@@ -288,7 +288,7 @@ static gifti_image * NSD_to_gifti(NI_group * ngr, char * fname)
     void       ** elist = NULL;
     char        * rhs, * id = NULL, * timestr;
     int           numDA, intent, dtype, ndim, dims[GIFTI_DARRAY_DIM_LEN] = {0};
-    int           ind, rv;
+    int           ind, rv, has_lt = 0;
 
     ENTRY("NSD_to_gifti");
 
@@ -300,14 +300,22 @@ static gifti_image * NSD_to_gifti(NI_group * ngr, char * fname)
         if( GP->verb ) fprintf(stderr,"** NSD_to_gifti: missing SPARSE_DATA\n");
         RETURN(NULL);
     }
+
+    /* see if there is an AFNI_labeltable group */
+    if( NI_search_group_shallow(ngr, "AFNI_labeltable", &elist) > 0 ) {
+        has_lt = (elist[0] != NULL);
+        NI_free(elist); elist = NULL;
+    }
+
     /* ZSS: ni_timestep should be in seconds.
     Before Sep. 18/09 it may have been saved incorrectly in msec */
     timestr = NI_get_attribute(sdel, "ni_timestep");
 
     /* set basic gifti attributes */
     numDA   = sdel->vec_num;
-    intent  = (timestr && *timestr) ? NIFTI_INTENT_TIME_SERIES
-                                    : NIFTI_INTENT_NONE;
+    intent  = (timestr && *timestr) ? NIFTI_INTENT_TIME_SERIES :
+                has_lt              ? NIFTI_INTENT_LABEL       :
+                NIFTI_INTENT_NONE;
     dtype   = dtype_niml_to_nifti(sdel->vec_typ[0]);
     ndim    = 1;
     dims[0] = sdel->vec_len;
