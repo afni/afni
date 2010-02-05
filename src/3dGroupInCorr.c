@@ -26,8 +26,8 @@ void        GRINCOR_many_ttest( int nvec , int numx , float **xxar ,
                                 int numy , float **yyar ,
                                 float *dar , float *zar  ) ;
 
-static int verb  = 1 ;
-static int debug = 0 ;
+static int verb  = 1 ;  /* default verbosity level */
+static int debug = 0 ;  /* default non-debug mode */
 
 typedef signed char sbyte ;  /* 02 Feb 2010 */
 
@@ -571,10 +571,15 @@ int main( int argc , char *argv[] )
       "* More detailed outline of processing in 3dGroupInCorr:\n"
       " ++ For each 3D+time dataset in the input dataset collections:\n"
       "   -- Extract the seed voxel time series (averaging locally per 'seedrad')\n"
+      "        [you could do this manually with 3dmaskave]\n"
       "   -- Correlate it with all other voxel time series in the same dataset\n"
+      "       [you could do this manually with 3dDeconvolve or 3dfim]\n"
       "   -- Result is one 3D correlation map per input dataset\n"
       " ++ Then carry out the t-test between/among these 3D correlation maps.\n"
       "   -- Actually, between the arctanh() of these maps (cf. RA Fisher).\n"
+      "       [you could do the arctanh() conversion manually with 3dcalc]\n"
+      "       [and then do the t-test manually with 3dttest; then convert]\n"
+      "       [the t-statistics to Z-scores with another run of 3dcalc   ]\n"
       " ++ The dataset returned to AFNI converts the t-statistic maps\n"
       "    to Z-scores, for various reasons of convenience.\n"
       "\n"
@@ -862,7 +867,8 @@ int main( int argc , char *argv[] )
    }
 
    /* scan through all the data, which will make it be page faulted
-      into RAM, which will make the correlation-izing process faster */
+      into RAM, which will make the correlation-izing process faster;
+      the downside is that this may take quite a while, which is boring */
 
 #undef  BSTEP
 #define BSTEP 4096
@@ -892,6 +898,7 @@ int main( int argc , char *argv[] )
      }
      if( verb == 666 ) INFO_message(" data sum = %g",sum) ; /* e.g., never */
    }
+#undef BSTEP
 
    if( verb ){
      long long nbtot = shd_AAA->nbytes ;
@@ -912,6 +919,8 @@ int main( int argc , char *argv[] )
    nelzar = (float *)nelset->vec[1];  /* nelzar = Zscore sub-brick */
    if( neldar == NULL || nelzar == NULL )
      ERROR_exit("Can't setup output dataset?") ; /* should never happen */
+
+   /* for a 2-sample test, create arrays for the 1-sample results as well */
 
    if( dosix ){
      NI_add_column( nelset, NI_FLOAT, NULL ); neldar_AAA = (float *)nelset->vec[2];
@@ -966,11 +975,13 @@ int main( int argc , char *argv[] )
    /** now send our setup info to AFNI **/
 
    if( shd_AAA->nvec == shd_AAA->nvox ){
-     nelcmd = NI_new_data_element( "3dGroupInCorr_setup" , 0) ;
+     nelcmd = NI_new_data_element( "3dGroupInCorr_setup" , 0 ) ;  /* no data */
    } else {
      nelcmd = NI_new_data_element( "3dGroupInCorr_setup" , shd_AAA->nvec ) ;
-     NI_add_column( nelcmd , NI_INT , shd_AAA->ivec ) ;
+     NI_add_column( nelcmd , NI_INT , shd_AAA->ivec ) ;    /* data = indexes */
    }
+
+   /* set various attributes to let AFNI know what's up, doc */
 
    sprintf(buf,"%d",shd_AAA->ndset) ;
    NI_set_attribute( nelcmd , "ndset_A" , buf ) ;
@@ -1018,6 +1029,8 @@ int main( int argc , char *argv[] )
       NI_set_attribute( nelcmd , "LRpair_ninmask", buf);
    }
 
+   /* actually send the setup NIML element now */
+
    if( verb > 1 ) INFO_message("Sending setup information to %s",pname) ;
    nn = NI_write_element( GI_stream , nelcmd , NI_BINARY_MODE ) ;
    if( nn < 0 ){
@@ -1025,7 +1038,7 @@ int main( int argc , char *argv[] )
    }
    NI_free_element(nelcmd) ;
 
-   /** make neighborhood for seedrad usage **/
+   /** make neighborhood struct for seedrad usage **/
 
    if( seedrad >= dmin ){
      nbhd = MCW_spheremask( dx,dy,dz , seedrad ) ;
@@ -1051,7 +1064,7 @@ int main( int argc , char *argv[] )
    }
 
    if( verb ){
-     INFO_message("3dGroupInCorr stands ready to do thy bidding!") ;
+     INFO_message("3dGroupInCorr stands ready to do thy bidding :-) !!") ;
 #ifdef USE_OMP
 #pragma omp parallel
  {
@@ -1067,7 +1080,9 @@ int main( int argc , char *argv[] )
 
      nelcmd = NI_read_element( GI_stream , 333 ) ;  /* get command? */
 
-     if( nelcmd == NULL ){      /* nada?  check if something is bad */
+     /* nada?  check if something is bad */
+
+     if( nelcmd == NULL ){
        kk = NI_stream_goodcheck( GI_stream , 1 ) ;
        if( kk < 1 ){
          NI_stream_close(GI_stream) ; GI_stream = (NI_stream)NULL ;
@@ -1085,7 +1100,9 @@ int main( int argc , char *argv[] )
        continue ; /* loop back */
      }
 
-     if( NI_element_type(nelcmd) != NI_ELEMENT_TYPE ){  /* shouldn't happen */
+     /* the following should never happen */
+
+     if( NI_element_type(nelcmd) != NI_ELEMENT_TYPE ){
        WARNING_message("Badly formatted command from %s!",pname) ;
        NI_free_element(nelcmd) ; continue ;
      }
@@ -1111,6 +1128,8 @@ int main( int argc , char *argv[] )
 
      if( strcmp(nelcmd->name,"SETREF_ijk") == 0 ){
 
+       /* extract location of seed voxel from command */
+
                          atr = NI_get_attribute(nelcmd,"index") ;
        if( atr == NULL ) atr = NI_get_attribute(nelcmd,"node" ) ;
        if( atr == NULL ) atr = NI_get_attribute(nelcmd,"ijk"  ) ;
@@ -1127,6 +1146,8 @@ int main( int argc , char *argv[] )
          NI_free_element(nelcmd) ; goto LoopBack ;
        }
 
+       /* radius over which to average */
+
        atr = NI_get_attribute(nelcmd,"seedrad") ;
        if( atr != NULL ){
          float nsr = (float)strtod(atr,NULL) ;
@@ -1140,6 +1161,8 @@ int main( int argc , char *argv[] )
              ININFO_message(" seedrad set to %.2f mm",seedrad) ;
          }
        }
+
+       /* t-test method (for 2-sample case only) */
 
        atr = NI_get_attribute(nelcmd,"ttest_opcode") ;
        if( atr != NULL ){
@@ -1160,7 +1183,7 @@ int main( int argc , char *argv[] )
 
      }
 
-     /* get rid of the message from AFNI */
+     /** get rid of the message from AFNI **/
 
      NI_free_element( nelcmd ) ;
 
@@ -1172,28 +1195,30 @@ int main( int argc , char *argv[] )
      if( shd_BBB != NULL )
        GRINCOR_load_seedvec( shd_BBB , nbhd , voxijk , seedvec_BBB ) ;
 
-     if( verb > 2 ){
+     if( verb > 2 || (verb==1 && nsend < 2) ){
        ctim = NI_clock_time() ;
        ININFO_message(" loaded seed vectors: elapsed=%d ms",ctim-btim) ;
        btim = ctim ;
      }
 
-     /* step 2: a lot of correlation-izing */
+     /* step 2: lots and lots of correlation-ization */
 
      GRINCOR_many_dotprod( shd_AAA , seedvec_AAA , dotprod_AAA ) ;
      if( shd_BBB != NULL )
        GRINCOR_many_dotprod( shd_BBB , seedvec_BBB , dotprod_BBB ) ;
 
-     if( verb > 2 ){
+     if( verb > 2 || (verb==1 && nsend < 2) ){
        ctim = NI_clock_time() ;
        ININFO_message(" finished correlation-izing: elapsed=%d ms",ctim-btim) ;
        btim = ctim ;
      }
 
-     /* step 3: a lot of t-test-ification */
+     /* step 3: lots of t-test-ification */
 
      GRINCOR_many_ttest( nvec , ndset_AAA , dotprod_AAA ,
                                 ndset_BBB , dotprod_BBB , neldar,nelzar ) ;
+
+     /* 1-sample results for the 2-sample case? */
 
      if( dosix ){
        GRINCOR_many_ttest( nvec , ndset_AAA , dotprod_AAA ,
@@ -1202,7 +1227,7 @@ int main( int argc , char *argv[] )
                                   0         , NULL        , neldar_BBB,nelzar_BBB ) ;
      }
 
-     if( verb > 2 ){
+     if( verb > 2 || (verb==1 && nsend < 2) ){
        ctim = NI_clock_time() ;
        ININFO_message(" finished t-test-izing: elapsed=%d ms",ctim-btim) ;
        btim = ctim ;
@@ -1212,20 +1237,21 @@ int main( int argc , char *argv[] )
 
 #ifndef DONT_USE_SHM
      if( do_shm > 0 && strcmp(afnihost,"localhost") == 0 && !shm_active ){
-       char *nsnew = "shm:GrpInCorr:2M+10K" ;
+       char nsnew[128] ;
+       sprintf( nsnew , "shm:GrpInCorr:%dM+10K" , (dosix) ? 2 : 1 ) ;
        INFO_message("Reconnecting to %s with shared memory channel %s",pname,nsnew) ;
        kk = NI_stream_reopen( GI_stream , nsnew ) ;
        if( kk == 0 ){
          ININFO_message(" SHM reconnection *FAILED* :-( ???") ;
        }
        else {
-         ININFO_message(" SHM reconnection *ACTIVE* :-) !!!") ; shm_active = 1;
+         ININFO_message(" SHM reconnection *ACTIVE* :-) !!!") ; shm_active = 1 ;
        }
        do_shm-- ;
      }
 #endif
 
-     /* send the result back to AFNI */
+     /*** send the result to AFNI ***/
 
      kk = NI_write_element( GI_stream , nelset , NI_BINARY_MODE ) ;
      if( kk <= 0 ){
@@ -1233,13 +1259,13 @@ int main( int argc , char *argv[] )
      }
 
      ctim = NI_clock_time() ;
-     if( verb > 2 )
+     if( verb > 2 || (verb==1 && nsend < 2) )
        ININFO_message(" sent results to %s: elapsed=%d ms",pname,ctim-btim) ;
 
      if( verb > 1 || (verb==1 && nsend < 2) )
        ININFO_message(" Total elapsed time = %d msec",ctim-atim) ;
 
-     nsend++ ;
+     nsend++ ;  /* number of results sent back so far */
 
   LoopBack: ; /* loop back for another command from AFNI */
    }
