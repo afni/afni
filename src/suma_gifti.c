@@ -299,7 +299,8 @@ static  gifti_image *afni_surf_to_gifti_surf(NI_group *aSO)
    memcpy( da->data, (void *)nelijk->vec[0],
             sizeof(int)*da->dims[0]*da->dims[1]); 
 
-   
+#if 0   /* GIFTI standard now says no normals with nodes  5 Feb 2010 */
+
    /* and the normals */
    if( gifti_add_empty_darray(gim, 1) ) {
       fprintf( stderr,
@@ -327,7 +328,7 @@ static  gifti_image *afni_surf_to_gifti_surf(NI_group *aSO)
    }
    memcpy( da->data, nelnormals->vec[0],
             sizeof(float)*da->dims[0]*da->dims[1]); 
-
+#endif  /* end normals */
    
    /* and now for the grits */
    if (!afni_surf_meta_to_gifti_surf_meta(aSO, gim)) {

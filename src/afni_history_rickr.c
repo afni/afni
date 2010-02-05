@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 5, FEB, 2010, RCR, "GIFTI", MINOR, TYPE_MODIFY,
+   "thd_gifti: if LabelTable use INTENT_LABEL, suma_gifti.c: no normals",
+   "done with Ziad"
+ } ,
+
  { 21, JAN, 2010, RCR, "afni_proc.py", MICRO, TYPE_NEW_OPT,
    "added -tlrc_opts_at; made tiny mod to scaling operation",
    NULL
