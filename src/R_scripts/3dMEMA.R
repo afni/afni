@@ -200,11 +200,12 @@ read.MEMA.opts.interactive <- function (verb = 0) {
                            sum(lop$nSubj), round(0.75*sum(lop$nSubj)) )))
    # Hartung-Knapp method with t-test?
    print("-----------------")
-   print("t-statistic is a little more conservative but also more appropriate for significance testing than Z")
-   print("especially when sample size, number of subjects, is relatively small.")
+   print("The Hartung-Knapp adjustment makes the output t-statistic a little more")
+   print("conservative but may be more robust when the number of subjects is")
+   print("relatively small.")
    lop$KHtest <- 
       as.logical(as.integer(
-                  readline("Z- or t-statistic for the output? (0: Z; 1: t) ")))
+                  readline("Hartung-Knapp adjustment for  the output t-statistic? (0: No; 1: Yes) ")))
    #lop$KHtest <- FALSE
    
    print("-----------------")
@@ -493,7 +494,7 @@ greeting.MEMA <- function ()
           ================== Welcome to 3dMEMA.R ==================          
              AFNI Mixed-Effects Meta-Analysis Modeling Package!
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.1.4,  Feb. 3, 2010
+Version 0.1.5,  Feb. 5, 2010
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MEMA.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -524,7 +525,7 @@ Usage:
  both regression coefficients, or general linear contrasts among them, and the 
  corresponding t-statistics from each subject as input. It\'s required to install 
  R (http://www.r-project.org/), plus \'snow\' package if parallel computing is
- desirable. See more details at
+ desirable. Version 0.1.5 (Feb. 5, 2010). See more details at
  
  http://afni.nimh.nih.gov/sscc/gangc/MEMA.html'
    
@@ -541,7 +542,6 @@ contrast from each subject in a group):
                   ...
                   ss   ss+tlrc\'[14]\'   ss+tlrc\'[15]\' \\
                -max_zeros 4    \\
-               -HKtest         \\        
                -model_outliers \\        
                -residual_Z        
 
@@ -714,7 +714,7 @@ read.MEMA.opts.batch <- function (args=NULL, verb = 0) {
    "-HKtest: Perform Hartung-Knapp adjustment for the output t-statistic. \n",
    "         This approach is more robust when the number of subjects\n",
    "         is small. However it is a little more conservative.\n",
-   "         -no_KHtest is the default with Z-score as statistic output.\n"
+   "         -no_KHtest is the default with t-statistic output.\n"
                      ) ),
                       
       '-no_HKtest' = apl(0, d=NA, h = paste(
@@ -1986,7 +1986,7 @@ tTop <- 100   # upper bound for t-statistic
       }
    }
    
-   if (lop$verb > 1) { 
+   if (lop$verb > 1) { T240HD
       #Too much output, big dump of header structs of input dsets..
       str(lop);
    }
@@ -2173,36 +2173,37 @@ tTop <- 100   # upper bound for t-statistic
    print("#++++++++++++++++++++++++++++++++++++++++++++")
 
    for(ii in 1:lop$nGrp) {
-      if(ii==1) {
-         outLabel <- paste(sprintf("%s:b", lop$grpLab[[ii]])) 
-      } else {
+      if(ii==1) outLabel <- paste(sprintf("%s:b", lop$grpLab[[ii]])) else
          outLabel <- append(outLabel, sprintf("%s:b", lop$grpLab[[ii]]))
-      }
-      if(lop$KHtest) {
-         outLabel <- append(outLabel, sprintf("%s:t", lop$grpLab[[ii]])) 
-      } else {
-         outLabel <- append(outLabel, sprintf("%s:Z", lop$grpLab[[ii]]))
-      }
+      outLabel <- append(outLabel, sprintf("%s:t", lop$grpLab[[ii]]))    
+      #if(lop$KHtest) {
+      #   outLabel <- append(outLabel, sprintf("%s:t", lop$grpLab[[ii]])) 
+      #} else {
+      #  outLabel <- append(outLabel, sprintf("%s:Z", lop$grpLab[[ii]]))
+      #}
    }
    if (lop$nGrp==2) {
       outLabel <- append(outLabel, sprintf("%s-%s:b", 
                          lop$grpLab[[2]],lop$grpLab[[1]]))
-      if(lop$KHtest) {
-         outLabel <- append(outLabel, sprintf("%s-%s:t", 
-                            lop$grpLab[[2]],lop$grpLab[[1]])) 
-      } else {
-         outLabel <- append(outLabel, sprintf("%s-%s:Z", 
-                            lop$grpLab[[2]],lop$grpLab[[1]]))
-      }
+      outLabel <- append(outLabel, sprintf("%s-%s:t", lop$grpLab[[2]],
+                         lop$grpLab[[1]]))
+      #if(lop$KHtest) {
+      #   outLabel <- append(outLabel, sprintf("%s-%s:t", 
+      #                      lop$grpLab[[2]],lop$grpLab[[1]])) 
+      #} else {
+      #   outLabel <- append(outLabel, sprintf("%s-%s:Z", 
+      #                      lop$grpLab[[2]],lop$grpLab[[1]]))
+      #}
    } # if (lop$nGrp==2)
    
    if(anyCov) for(ii in 1:lop$nCov) {
       outLabel <- append(outLabel, sprintf("%s:b", lop$covName[ii]))
-      if(lop$KHtest) {
-         outLabel <- append(outLabel, sprintf("%s:t", lop$covName[ii])) 
-      } else {
-         outLabel <- append(outLabel, sprintf("%s:Z", lop$covName[ii]))
-      }
+      outLabel <- append(outLabel, sprintf("%s:t", lop$covName[ii]))
+      #if(lop$KHtest) {
+      #   outLabel <- append(outLabel, sprintf("%s:t", lop$covName[ii])) 
+      #} else {
+      #   outLabel <- append(outLabel, sprintf("%s:Z", lop$covName[ii]))
+      #}
    } 
    
    if(lop$anaType==4) {
@@ -2227,29 +2228,36 @@ tTop <- 100   # upper bound for t-statistic
          resZLabel <- append(resZLabel, sprintf("%s-Res:Z", 
                               lop$subjLab[[ii]][[jj]]))
       }  
-   }   
+   }
    
    nDF <- sum(lop$nFiles)/2-lop$nGrp-lop$nCov
    
+   #statpar <- "3drefit"
+   #if (lop$KHtest) {
+   #   for (ii in 1:(2*lop$nGrp-1)) 
+   #      statpar <- paste(statpar, " -substatpar ", 2*(ii-1)+1, " fitt ", nDF) 
+   #} else {
+   #   for (ii in 1:(2*lop$nGrp-1)) 
+   #      statpar <- paste(statpar, " -substatpar ", 2*(ii-1)+1, " fizt")
+   #}
+   
    statpar <- "3drefit"
-   if (lop$KHtest) {
-      for (ii in 1:(2*lop$nGrp-1)) 
-         statpar <- paste(statpar, " -substatpar ", 2*(ii-1)+1, " fitt ", nDF) 
-   } else {
-      for (ii in 1:(2*lop$nGrp-1)) 
-         statpar <- paste(statpar, " -substatpar ", 2*(ii-1)+1, " fizt")
-   }
-   if(anyCov) {
-      if (lop$KHtest) {
-         for(ii in 1:lop$nCov) 
-            statpar <- paste( statpar, " -substatpar ", 
-                              nBrick0-3-2*(lop$nCov-ii), " fitt ", nDF) 
-      } else {
-         for(ii in 1:lop$nCov) 
-            statpar <- paste(statpar, " -substatpar ", 
-                             nBrick0-3-2*(lop$nCov-ii), " fizt")
-      }
-   }
+   for (ii in 1:(2*lop$nGrp-1)) statpar <- paste(statpar, " -substatpar ",
+                                                 2*(ii-1)+1, " fitt ", nDF)
+   if(anyCov) for(ii in 1:lop$nCov) statpar <- paste( statpar, " -substatpar ",
+       nBrick0-3-2*(lop$nCov-ii), " fitt ", nDF)
+   
+   #if(anyCov) {
+   #   if (lop$KHtest) {
+   #      for(ii in 1:lop$nCov) 
+   #         statpar <- paste( statpar, " -substatpar ", 
+   #                           nBrick0-3-2*(lop$nCov-ii), " fitt ", nDF)
+   #   } else {
+   #      for(ii in 1:lop$nCov) 
+   #         statpar <- paste(statpar, " -substatpar ", 
+   #                          nBrick0-3-2*(lop$nCov-ii), " fizt")
+   #   }
+   #}
    if(lop$anaType==4) {
       statpar <- paste(statpar, " -substatpar ", nBrick0-5, " fict ", 
                        lop$nSubj[1]-lop$nCov) # Chi-sq for QE: group 1
