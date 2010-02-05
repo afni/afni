@@ -266,12 +266,13 @@ runVAR<-function(inDataTS, sdTS, exMatMod, nLags) {
    tmpData <- cbind(inDataTS, sdTS)  
    fm <- VAR(tmpData, p=nLags, type="none", exogen=exMatMod)
    for (mm in 1:nLags)  {
-	   outData[1+6*(mm-1)] <- coef(fm)[[1]][1,1]   # target to target
-	   outData[2+6*(mm-1)] <- coef(fm)[[1]][1,3]   # t
-	   outData[3+6*(mm-1)] <- coef(fm)[[1]][2,1]   # seed to target
-	   outData[4+6*(mm-1)] <- coef(fm)[[1]][2,3]   # t
-	   outData[5+6*(mm-1)] <- coef(fm)[[2]][1,1]   # target to seed
-	   outData[6+6*(mm-1)] <- coef(fm)[[2]][1,3]   # t
+	   outData[1+6*(mm-1)] <- coef(fm)[[1]][1+2*(mm-1),1]   # target to target
+	   outData[2+6*(mm-1)] <- coef(fm)[[1]][1+2*(mm-1),3]   # t
+	   outData[3+6*(mm-1)] <- coef(fm)[[1]][2+2*(mm-1),1]   # seed to target
+	   outData[4+6*(mm-1)] <- coef(fm)[[1]][2+2*(mm-1),3]   # t
+	   outData[5+6*(mm-1)] <- coef(fm)[[2]][1+2*(mm-1),1]   # target to seed
+	   outData[6+6*(mm-1)] <- coef(fm)[[2]][1+2*(mm-1),3]   # t
+      # I'm ignoring the seed to seed effect here because it's not practical to store it
 	}
 	}
    return(outData)
@@ -306,8 +307,9 @@ print("#++++++++++++++++++++++++++++++++++++++++++++")
 
 # spill out the original path matrix with direction going from rows to columns
 
+outLabel <- NULL
 for (ii in 1:nLags) {
-   outLabel <- paste(sprintf("self-effect lag %i", ii))
+   outLabel <- append(outLabel, sprintf("self-effect lag %i", ii))
    outLabel <- append(outLabel, sprintf("t for self-effect lag %i", ii))
    outLabel <- append(outLabel, sprintf("seed-to-target lag %i", ii))
    outLabel <- append(outLabel, sprintf("t for seed-to-target lag %i", ii))
