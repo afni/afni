@@ -41,6 +41,7 @@ float THD_saturation_check( THD_3dim_dataset *dset , byte *xmask )
      if( !mask[kk] ) continue ;
      (void)THD_extract_array( kk , dset , 0 , far ) ;
      qmedmad_float( nvals-nchek , far+nchek , &med , &mad ) ;
+     if( mad == 0.0f ) continue ;
      thp = med + 5.678f*mad ;
 #if 0
      thm = med - 9.876f*mad ;
