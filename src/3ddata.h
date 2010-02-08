@@ -4639,6 +4639,8 @@ extern void        mri_warp3D_align_cleanup( MRI_warp3D_align_basis * ) ;
 extern void THD_check_AFNI_version(char *) ;  /* 26 Aug 2005 */
 extern void THD_death_setup( int msec ) ;     /* 14 Sep 2009 */
 
+extern float THD_saturation_check( THD_3dim_dataset *, byte * ) ; /* 08 Feb 2010 */
+
 /*---------------------------------------------------------------------*/
 
 #if 0

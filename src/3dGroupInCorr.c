@@ -555,10 +555,10 @@ int main( int argc , char *argv[] )
       "\n"
       "* When AFNI sends a seed voxel command, 3dGroupInCorr will extract\n"
       "  that voxel times series from each input dataset, will compute the\n"
-      "  correlation map of each dataset with the appropriate seed time\n"
-      "  series, then will compute the t-test of that collection of\n"
-      "  correlation maps, and return the resulting 3D volumes to AFNI\n"
-      "  for display.\n"
+      "  correlation map of each dataset with the corresponding seed time\n"
+      "  series, then will compute the voxel-wise collection of t-tests of\n"
+      "  that bunch of correlation maps, and return the resulting 3D volumes\n"
+      "  to AFNI for display.\n"
       "\n"
       "* You must start AFNI with the '-niml' option to allow it to accept\n"
       "  incoming TCP/IP socket connections.\n"
@@ -582,6 +582,7 @@ int main( int argc , char *argv[] )
       "       [the t-statistics to Z-scores with another run of 3dcalc   ]\n"
       " ++ The dataset returned to AFNI converts the t-statistic maps\n"
       "    to Z-scores, for various reasons of convenience.\n"
+      "   -- The individual correlation maps that were t-test-ed are discarded.\n"
       "\n"
       "* When 3dGroupInCorr starts up, it has to 'page fault' all the data\n"
       "  into memory.  This can take several minutes, if it is reading (say)\n"
@@ -627,13 +628,13 @@ int main( int argc , char *argv[] )
       "       three options described below (which are mutually exclusive).\n"
       "  ++ The sign of a two sample t-test is 'A-B'; that is, a positive result\n"
       "     means that the A set of correlations average larger than the B set.\n"
-      "  ++ The output t-statistics are converted to z-scores for transmission to AFNI,\n"
+      "  ++ The output t-statistics are converted to Z-scores for transmission to AFNI,\n"
       "     using the same code as the 'fitt_t2z(t,d)' function in 3dcalc:\n"
       "    -- e.g, the output of the command\n"
       "          ccalc 'fitt_t2z(4,15)'\n"
       "       is 3.248705, showing that a t-statistic of 4 with 15 degrees-of-freedom\n"
-      "       (DOF) has the same p-value as a z-score [N(0,1) deviate] of 3.248705.\n"
-      "    -- One reason for using z-scores is that the DOF parameter varies between\n"
+      "       (DOF) has the same p-value as a Z-score [N(0,1) deviate] of 3.248705.\n"
+      "    -- One reason for using Z-scores is that the DOF parameter varies between\n"
       "       voxels when you choose the -unpooled option for a 2-sample t-test.\n"
       "\n"
       " -labelA aaa = Label to attach (in AFNI) to the sub-bricks corresponding to\n"
@@ -1515,7 +1516,7 @@ void GRINCOR_many_ttest( int nvec , int numx , float **xxar ,
 }
 
 /*----------------------------------------------------------------------------*/
-/*! Various sorts of t-tests; output = z-score.
+/*! Various sorts of t-tests; output = Z-score.
    - numx = number of points in the first sample (must be > 1)
    - xar  = array with first sample
    - numy = number of points in the second sample
@@ -1525,7 +1526,7 @@ void GRINCOR_many_ttest( int nvec , int numx , float **xxar ,
    - opcode = 0 for unpaired test with pooled variance
    - opcode = 1 for unpaired test with unpooled variance
    - opcode = 2 for paired test (numx == numy is required)
-   - The return value is the z-score of the t-statistic.
+   - The return value is the Z-score of the t-statistic.
 *//*--------------------------------------------------------------------------*/
 
 float_pair ttest_toz( int numx, float *xar, int numy, float *yar, int opcode )
