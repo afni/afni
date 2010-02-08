@@ -44,6 +44,13 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 8 , FEB , 2010 , RWC , "3dSatCheck" , MICRO , TYPE_NEW_PROG ,
+   "Program to check for initial transients" ,
+   "i.e., if the FMRI time series has non-saturated time points at the\n"
+   "beginning (on average) -- uses the code thd_satcheck.c for the real work\n"
+   "-- the same as used in 3dBandpass.  At this time, 3dSatCheck is not\n"
+   "compiled in the binary distributions of AFNI." } ,
+
  { 8 , FEB , 2010 , RWC , "3dBandpass" , MICRO , TYPE_MODIFY ,
    "Check for initial transients" ,
    "i.e., non-saturated MRI signal in the first few time points" } ,
