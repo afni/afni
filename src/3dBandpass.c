@@ -23,7 +23,7 @@ int main( int argc , char * argv[] )
    int mask_nx,mask_ny,mask_nz,nmask , verb=1 , nx,ny,nz,nvox , nfft=0 , kk ;
    float **vec , **ort=NULL ; int nort=0 , vv , nopt , ntime  ;
    MRI_vectim *mrv ;
-   float pvrad=0.0f ;
+   float pvrad=0.0f ; int nosat=0 ;
 
    /*-- help? --*/
 
@@ -110,6 +110,15 @@ int main( int argc , char * argv[] )
        " -band fbot ftop = Alternative way to specify passband frequencies.\n"
        " -prefix ppp     = Set prefix name of output dataset.\n"
        " -quiet          = Turn off the fun and informative messages. (Why?)\n"
+       " -notrans        = Don't check for initial transients in the time series:\n"
+       "                   ++ The test is a little slow, so skipping it is OK,\n"
+       "                      if you KNOW the data time series are transient-free.\n"
+       "                   ++ Initial transients won't be handled well by the\n"
+       "                      bandpassing algorithm, and in addition may seriously\n"
+       "                      contaminate any further processing, such as inter-voxel\n"
+       "                      correlations via InstaCorr.\n"
+       "                   ++ No other tests are made for non-stationary behavior in\n"
+       "                      the time series data. [yet]\n"
      ) ;
      PRINT_AFNI_OMP_USAGE(
        "3dBandpass" ,
@@ -184,6 +193,10 @@ int main( int argc , char * argv[] )
 
      if( strcmp(argv[nopt],"-quiet") == 0 ){
        verb = 0 ; nopt++ ; continue ;
+     }
+
+     if( strcmp(argv[nopt],"-notrans") == 0 || strcmp(argv[nopt],"-nosat") == 0 ){
+       nosat = 0 ; nopt++ ; continue ;
      }
 
      if( strcmp(argv[nopt],"-ort") == 0 ){
@@ -287,6 +300,9 @@ int main( int argc , char * argv[] )
 
    /* check mask, or create it */
 
+   if( verb ) INFO_message("Loading input dataset time series" ) ;
+   DSET_load(inset) ;
+
    if( mask != NULL ){
      if( mask_nx != nx || mask_ny != ny || mask_nz != nz )
        ERROR_exit("-mask dataset grid doesn't match input dataset") ;
@@ -307,13 +323,20 @@ int main( int argc , char * argv[] )
 
    /* A simple check of dataset quality [08 Feb 2010] */
 
-   { float val ;
-     INFO_message("Checking time series for initial transient") ;
+   if( !nosat ){
+     float val ;
+     INFO_message(
+      "Checking dataset for initial transients [use '-notrans' to skip this test]") ;
      val = THD_saturation_check(inset,mask) ; kk = (int)(val+0.55f) ;
      if( kk > 0 )
        ININFO_message(
-        "Looks like dataset %s has about %d non-steady-state initial time point%s" ,
-        DSET_HEADNAME(inset) , kk , (kk==1) ? " " : "s" ) ;
+        "Looks like there %s %d non-steady-state initial time point%s" ,
+        ((kk==1) ? "is" : "are") , kk , ((kk==1) ? " " : "s") ) ;
+     else if( val > 0.22f )
+       ININFO_message(
+        "MAYBE there's an initial transient of 1 point, but it's hard to tell\n") ;
+     else
+       ININFO_message("No initial transient detected") ;
    }
 
    /* check -dsort inputs for match to inset */
@@ -329,7 +352,6 @@ int main( int argc , char * argv[] )
 
    /* convert input dataset to a vectim, which is more fun */
 
-   if( verb ) INFO_message("Loading input dataset time series" ) ;
    mrv = THD_dset_to_vectim( inset , mask , 0 ) ;
    if( mrv == NULL ) ERROR_exit("Can't load time series data!?") ;
    DSET_unload(inset) ;

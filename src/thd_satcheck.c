@@ -4,6 +4,12 @@
 #include <omp.h>
 #endif
 
+/*--------------------------------------------------------------------------*/
+/* Check for initial positive transients.  Return value is average number
+   of "large" values at the start of dataset time series.  Purely for
+   informational purposes.  [08 Feb 2010]
+*//*------------------------------------------------------------------------*/
+
 float THD_saturation_check( THD_3dim_dataset *dset , byte *xmask )
 {
    byte *mask=xmask ;
@@ -35,7 +41,7 @@ float THD_saturation_check( THD_3dim_dataset *dset , byte *xmask )
      if( !mask[kk] ) continue ;
      (void)THD_extract_array( kk , dset , 0 , far ) ;
      qmedmad_float( nvals , far , &med , &mad ) ;
-     thr = med + 4.444f*mad ;
+     thr = med + 4.444f*mad ;  /* about 3 standard deviations too big */
      for( vv=0 ; vv < nchek && far[vv] > thr ; vv++ ) ; /*nada*/
      nbig[kk] = (byte)vv ;
    }
@@ -46,5 +52,6 @@ float THD_saturation_check( THD_3dim_dataset *dset , byte *xmask )
 
    if( mask != xmask ) free(mask) ;
    for( sum=0.0f,qq=0 ; qq < nvox ; qq++ ) sum += nbig[qq] ;
+   free(nbig) ;
    return (sum/nmask) ;
 }
