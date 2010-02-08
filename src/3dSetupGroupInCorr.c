@@ -1,10 +1,11 @@
 #include "mrilib.h"
 
-typedef signed char sbyte ;
+typedef signed char sbyte ;  /* for -byte */
 
 /*--------------------------------------------------------------------------*/
 
-char * get_surf_param(char *sname, char *parname) {
+char * get_surf_param(char *sname, char *parname)
+{
    char com[1024]={""};
    char buf[1024]={""};
    char *out=NULL;
@@ -48,7 +49,7 @@ int main( int argc , char * argv[] )
    short *sv ; sbyte *bv ; MRI_vectim *mv ; FILE *fp ; long long fsize ;
    int atim,btim,ctim ;
    int LRpairs = 0, Ns[2]={-1,-1}, Nv[2]={-1,-1}, Nm[2]={0, 0};
-   int do_byte = 0 ;
+   int do_byte = 1 ;
 
    /*-- help? --*/
 
@@ -86,8 +87,8 @@ int main( int argc , char * argv[] )
  "  at least 9 points along the time axis!\n"
  "\n"
  "* The only pre-processing herein for each time series is to L2\n"
- "  normalize it (sum of squares = 1) and scale it to 16-bit shorts\n"
- "  (or to 8-bit bytes).\n"
+ "  normalize it (sum of squares = 1) and scale it to 8-bit bytes\n"
+ "  (or to 16-bit shorts).\n"
  "  ++ You almost certainly want to use 3dBandpass and/or some other\n"
  "     code to pre-process the datasets BEFORE input to this program.\n"
  "  ++ See the SAMPLE SCRIPT below for a semi-reasonable way to\n"
@@ -117,15 +118,15 @@ int main( int argc , char * argv[] )
  "\n"
  "  -prefix PREFIX = Set prefix name of output dataset\n"
  "\n"
+ "  -short         = Store data as 16-bit shorts [used to be the default]\n"
+ "\n"
  "  -byte          = Store data as 8-bit bytes rather than 16-bit shorts.\n"
  "                 ++ This will save memory in 3dGroupInCorr (and disk space),\n"
  "                    which can be important when using large collections of\n"
  "                    datasets.  Results will be very slightly less accurate\n"
  "                    than with '-short', but you'll have a hard time finding\n"
  "                    any place where this matters.\n"
- "                 ++ This may become the default in a little while.\n"
- "\n"
- "  -short         = Store data as 16-bit shorts [the default]\n"
+ "                 ++ This is now the default [08 Feb 2010].\n"
  "\n"
  "  -DELETE        = Delete input datasets from disk after\n"
  "                   processing them one at a time into the\n"
@@ -200,7 +201,7 @@ int main( int argc , char * argv[] )
  "\n"
  "# Extract data for 3dGroupInCorr\n"
  "\n"
- "3dSetupGroupInCorr -mask ALL_amask5050 -prefix ALLshort *_BP+tlrc.HEAD\n"
+ "3dSetupGroupInCorr -mask ALL_amask5050 -prefix ALLshort -short *_BP+tlrc.HEAD\n"
  "\n"
  "# OR\n"
  "\n"
@@ -210,7 +211,7 @@ int main( int argc , char * argv[] )
  "\n"
  "### At this point you could run (in 2 separate terminal windows)\n"
  "###   afni -niml MNI_avg152T1+tlrc\n"
- "###   3dGroupInCorr -setA ALLshort.grpincorr.niml -verb\n"
+ "###   3dGroupInCorr -setA ALLbyte.grpincorr.niml -verb\n"
  "### And away we go ....\n"
  "\n"
  "------------------\n"
@@ -378,7 +379,7 @@ int main( int argc , char * argv[] )
    fp = fopen( dfname , "w" ) ;
    if( fp == NULL ) ERROR_exit("Can't open file '%s' for output",dfname) ;
 
-   /*--- loop over datasets, convert to shorts, write out ---*/
+   /*--- loop over datasets, convert to bytes/shorts, write out ---*/
 
    if (!LRpairs) {
       gstr = strdup( EDIT_get_geometry_string(inset[0]) ) ;
@@ -454,7 +455,7 @@ int main( int argc , char * argv[] )
           fclose(fp) ; remove(dfname) ; ERROR_exit("Dataset is all zero?!") ;
         }
 
-        /* scale to 16-bit shorts to save disk and memory space */
+        /* scale to bytes/shorts to save disk and memory space */
 
         if( do_byte ){
           top = 127.4f / top ; fac[ids/2] = 1.0f / top ;  /* save scale factor */
@@ -521,7 +522,7 @@ int main( int argc , char * argv[] )
           fclose(fp) ; remove(dfname) ; ERROR_exit("Dataset is all zero?!") ;
         }
 
-        /* scale to 16-bit shorts to save disk and memory space */
+        /* scale to bytes/shorts to save disk and memory space */
 
         if( do_byte ){
           top = 127.4f / top ; fac[ids] = 1.0f / top ;  /* save scale factor */
