@@ -1002,6 +1002,30 @@ mri_nstats.o:mri_nstats.c
 
 ## ------- Things to be compiled or linked with OpenMP -------
 
+3dSatCheck.o: 3dSatCheck.c thd_satcheck.c
+	$(RM) $@
+	$(CCOMP) -c 3dSatCheck.c $(INFLAGS)
+
+3dSatCheck:3dSatCheck.o
+	$(RM) $@
+	$(CCOMP) -o 3dSatCheck 3dSatCheck.o $(LFLAGS) $(LLIBS) -lf2c
+
+3dREMLfit.o: 3dREMLfit.c remla.c matrix.c rcmat.c
+	$(RM) $@
+	$(CCOMP) -c 3dREMLfit.c $(INFLAGS)
+
+3dREMLfit:3dREMLfit.o
+	$(RM) $@
+	$(CCOMP) -o 3dREMLfit 3dREMLfit.o $(LFLAGS) $(LLIBS) -lf2c
+
+3dBandpass.o: 3dBandpass.c mri_blur3d_variable.c
+	$(RM) $@
+	$(CCOMP) -c 3dBandpass.c $(INFLAGS)
+
+3dBandpass:3dBandpass.o
+	$(RM) $@
+	$(CCOMP) -o 3dBandpass 3dBandpass.o $(LFLAGS) $(LLIBS) -lf2c -lmri
+
 3dGroupInCorr.o:3dGroupInCorr.c
 	$(RM) $@
 	$(CCOMP) -c 3dGroupInCorr.c $(INFLAGS)
@@ -1219,14 +1243,6 @@ to3d:to3d.h $(T3OBJS) libcoxplot.a
 	$(RM) $@
 	$(CC) -o 1dREMLfit 1dREMLfit.o $(LFLAGS) $(LLIBS) -lf2c
 
-3dREMLfit.o: 3dREMLfit.c remla.c matrix.c rcmat.c
-	$(RM) $@
-	$(CCOMP) -c 3dREMLfit.c $(INFLAGS)
-
-3dREMLfit:3dREMLfit.o
-	$(RM) $@
-	$(CCOMP) -o 3dREMLfit 3dREMLfit.o $(LFLAGS) $(LLIBS) -lf2c
-
 mri_blur3d_variable.o:mri_blur3d_variable.c
 	$(RM) $@
 	$(CCFAST) -c mri_blur3d_variable.c $(INFLAGS)
@@ -1266,10 +1282,6 @@ afni_vcheck:afni_vcheck.o
 1dBandpass:1dBandpass.o
 	$(RM) $@
 	$(CC) -o 1dBandpass 1dBandpass.o $(LFLAGS) $(LLIBS) -lf2c -lmri
-
-3dBandpass:3dBandpass.o
-	$(RM) $@
-	$(CC) -o 3dBandpass 3dBandpass.o $(LFLAGS) $(LLIBS) -lf2c -lmri
 
 1dcat:1dcat.o
 	$(RM) $@
@@ -1764,7 +1776,7 @@ THD_OBJS = thd_atr.o thd_dsetto1D.o thd_initalldir.o thd_reconpar.o \
            thd_brainormalize.o thd_opentcat.o thd_nimlatr.o thd_dsetatr.o \
            thd_logafni.o thd_dset_nbhd.o thd_vcheck.o thd_matdaxes.o      \
            thd_niml.o afni_vedit.o thd_fdrcurve.o thd_dset_to_vectim.o    \
-           thd_bandpass.o thd_instacorr.o thd_svdblur.o
+           thd_bandpass.o thd_instacorr.o thd_svdblur.o thd_satcheck.o
 
 # these are now included in NIML
 

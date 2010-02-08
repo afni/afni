@@ -1,5 +1,10 @@
 #include "mrilib.h"
 
+#ifdef USE_OMP
+#include "mri_blur3d_variable.c"
+#include "thd_satcheck.c"
+#endif
+
 void THD_vectim_localpv( MRI_vectim *mrv , float rad ) ;
 int THD_vectim_subset_pv( MRI_vectim *mrv, int nind, int *ind,
                                            float *ar, unsigned short xran[] ) ;
@@ -106,8 +111,15 @@ int main( int argc , char * argv[] )
        " -prefix ppp     = Set prefix name of output dataset.\n"
        " -quiet          = Turn off the fun and informative messages. (Why?)\n"
      ) ;
+     PRINT_AFNI_OMP_USAGE(
+       "3dBandpass" ,
+       "* At present, the only part of 3dBandpass that is parallelized is the\n"
+       "  '-blur' option, which processes each sub-brick independently.\n"
+     ) ;
      PRINT_COMPILE_DATE ; exit(0) ;
    }
+
+   /*-- startup --*/
 
    mainENTRY("3dBandpass"); machdep();
    AFNI_logger("3dBandpass",argc,argv);
@@ -293,6 +305,17 @@ int main( int argc , char * argv[] )
      if( verb ) INFO_message("No mask ==> processing all %d voxels",nvox);
    }
 
+   /* A simple check of dataset quality [08 Feb 2010] */
+
+   { float val ;
+     INFO_message("Checking time series for initial transient") ;
+     val = THD_saturation_check(inset,mask) ; kk = (int)(val+0.55f) ;
+     if( kk > 0 )
+       ININFO_message(
+        "Looks like dataset %s has about %d non-steady-state initial time point%s" ,
+        DSET_HEADNAME(inset) , kk , (kk==1) ? " " : "s" ) ;
+   }
+
    /* check -dsort inputs for match to inset */
 
    for( kk=0 ; kk < nortset ; kk++ ){
@@ -372,15 +395,29 @@ int main( int argc , char * argv[] )
 
    /* create output dataset, populate it, write it, then quit */
 
+   if( verb ) INFO_message("Creating output dataset in memory") ;
    outset = EDIT_empty_copy(inset) ;
    EDIT_dset_items( outset , ADN_prefix,prefix , ADN_none ) ;
    tross_Copy_History( inset , outset ) ;
    tross_Make_History( "3dBandpass" , argc,argv , outset ) ;
 
-   for( kk=0 ; kk < ntime ; kk++ )
-     EDIT_substitute_brick( outset , kk , MRI_float , NULL ) ;
+   for( vv=0 ; vv < ntime ; vv++ )
+     EDIT_substitute_brick( outset , vv , MRI_float , NULL ) ;
 
+#if 1
    THD_vectim_to_dset( mrv , outset ) ;
+#else
+#pragma omp parallel
+ { float *far , *var ; int *ivec=mrv->ivec ; int vv,kk ;
+ AFNI_OMP_START ;
+#pragma omp for
+   for( vv=0 ; vv < ntime ; vv++ ){
+     far = DSET_BRICK_ARRAY(outset,vv) ; var = mrv->fvec + vv ;
+     for( kk=0 ; kk < nmask ; kk++ ) far[ivec[kk]] = var[kk*ntime] ;
+   }
+ AFNI_OMP_END ;
+ }
+#endif
    VECTIM_destroy(mrv) ;
    DSET_write(outset) ; if( verb ) WROTE_DSET(outset) ;
 
