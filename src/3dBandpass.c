@@ -110,15 +110,15 @@ int main( int argc , char * argv[] )
        " -band fbot ftop = Alternative way to specify passband frequencies.\n"
        " -prefix ppp     = Set prefix name of output dataset.\n"
        " -quiet          = Turn off the fun and informative messages. (Why?)\n"
-       " -notrans        = Don't check for initial transients in the time series:\n"
+       " -notrans        = Don't check for initial positive transients in the data:\n"
        "                   ++ The test is a little slow, so skipping it is OK,\n"
        "                      if you KNOW the data time series are transient-free.\n"
        "                   ++ Initial transients won't be handled well by the\n"
        "                      bandpassing algorithm, and in addition may seriously\n"
        "                      contaminate any further processing, such as inter-voxel\n"
        "                      correlations via InstaCorr.\n"
-       "                   ++ No other tests are made for non-stationary behavior in\n"
-       "                      the time series data. [yet]\n"
+       "                   ++ No other tests are made [yet] for non-stationary behavior\n"
+       "                      in the time series data.\n"
      ) ;
      PRINT_AFNI_OMP_USAGE(
        "3dBandpass" ,
@@ -327,16 +327,16 @@ int main( int argc , char * argv[] )
      float val ;
      INFO_message(
       "Checking dataset for initial transients [use '-notrans' to skip this test]") ;
-     val = THD_saturation_check(inset,mask) ; kk = (int)(val+0.55f) ;
+     val = THD_saturation_check(inset,mask) ; kk = (int)(val+0.54321f) ;
      if( kk > 0 )
        ININFO_message(
         "Looks like there %s %d non-steady-state initial time point%s" ,
         ((kk==1) ? "is" : "are") , kk , ((kk==1) ? " " : "s") ) ;
-     else if( val > 0.22f )
+     else if( val > 0.3210f )  /* don't ask where this threshold comes from! */
        ININFO_message(
         "MAYBE there's an initial transient of 1 point, but it's hard to tell\n") ;
      else
-       ININFO_message("No initial transient detected") ;
+       ININFO_message("No widespread initial transient detected :-)") ;
    }
 
    /* check -dsort inputs for match to inset */
@@ -417,7 +417,7 @@ int main( int argc , char * argv[] )
 
    /* create output dataset, populate it, write it, then quit */
 
-   if( verb ) INFO_message("Creating output dataset in memory") ;
+   if( verb ) INFO_message("Creating output dataset in memory, then writing it") ;
    outset = EDIT_empty_copy(inset) ;
    EDIT_dset_items( outset , ADN_prefix,prefix , ADN_none ) ;
    tross_Copy_History( inset , outset ) ;
