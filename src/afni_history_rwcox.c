@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 8 , FEB , 2010 , RWC , "3dSetupGroupInCorr" , MICRO , TYPE_MODIFY ,
+   "Change default storage to -byte from -short" ,
+   NULL } ,
+
  { 4 , FEB , 2010 , RWC , "Group InstaCorr" , MICRO , TYPE_GENERAL ,
    "Set more informative labels for results sub-brick" ,
    "With the addition of the -label[AB] options to 3dGroupInCorr.c, the\n"
