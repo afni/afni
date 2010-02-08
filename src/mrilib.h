@@ -93,7 +93,9 @@ extern AFD_dicom_header **MRILIB_dicom_header ;
     "* This binary version of %s is compiled using OpenMP, a semi-\n"              \
     "   automatic parallelizer software toolkit, which splits the work across\n"   \
     "   multiple CPUs/cores on the same shared memory computer.\n"                 \
-    "* For implementation details, please see\n"                                   \
+    "* OpenMP is NOT like MPI -- it does not work with CPUs connected only\n"      \
+    "   by a network (e.g., OpenMP doesn't work with 'cluster' setups).\n"         \
+    "* For implementation and compilation details, please see\n"                   \
     "   http://afni.nimh.nih.gov/pub/dist/doc/misc/OpenMP.html\n"                  \
     "* The number of CPU threads used will default to the maximum number on\n"     \
     "  your system.  You can control this value by setting environment variable\n" \
@@ -105,7 +107,7 @@ extern AFD_dicom_header **MRILIB_dicom_header ;
     "  -- you can't usefully set this variable in your ~/.afnirc file or on the\n" \
     "  command line with the '-D' option.\n"                                       \
     "* In my limited experience with OpenMP, using more than 4 threads doesn't\n"  \
-    "  give much gain, even on an 8 CPU system.\n"                                 \
+    "  often give much gain, even on an 8 CPU system -- but please experiment!\n"  \
     "* The number of CPUs on this particular computer system is %d.\n"             \
     "%s\n"                                                                         \
     , (pnam) , omp_get_num_procs() , (extra==NULL) ? "\0" : extra                  \

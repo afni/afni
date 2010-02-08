@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 8 , FEB , 2010 , RWC , "3dBandpass" , MICRO , TYPE_MODIFY ,
+   "OpenMP-ize the -blur option" ,
+   NULL } ,
+
  { 8 , FEB , 2010 , RWC , "3dSetupGroupInCorr" , MICRO , TYPE_MODIFY ,
    "Change default storage to -byte from -short" ,
    NULL } ,
