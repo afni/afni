@@ -45,6 +45,10 @@ afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
  { 8 , FEB , 2010 , RWC , "3dBandpass" , MICRO , TYPE_MODIFY ,
+   "Check for initial transients" ,
+   "i.e., non-saturated MRI signal in the first few time points" } ,
+
+ { 8 , FEB , 2010 , RWC , "3dBandpass" , MICRO , TYPE_MODIFY ,
    "OpenMP-ize the -blur option" ,
    NULL } ,
 
