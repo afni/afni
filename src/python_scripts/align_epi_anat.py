@@ -546,7 +546,7 @@ g_help_string = """
 ## BEGIN common functions across scripts (loosely of course)
 class RegWrap:
    def __init__(self, label):
-      self.align_version = "1.28" # software version (update for changes)
+      self.align_version = "1.29" # software version (update for changes)
       self.label = label
       self.valid_opts = None
       self.user_opts = None
@@ -2437,7 +2437,7 @@ class RegWrap:
 
               ovr_alpha = e.new("%s_vr_tempalpha" % prefix)
 
-              if((vrcom != '3dvolreg') & (isdigit(volreg_base))):
+              if((vrcom != '3dvolreg') and (ps.volreg_base.isdigit())):
                  base = "%s.'[%s]'"  %  (ps.epi.input(), ps.volreg_base)
               com = shell_com(                                       \
                     "%s -prefix %s -base %s %s %s "  %               \
