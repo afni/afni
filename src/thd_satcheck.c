@@ -13,12 +13,13 @@
 float THD_saturation_check( THD_3dim_dataset *dset , byte *xmask )
 {
    byte *mask=xmask ;
-   int nvals , nvox , nchek , nmask , qq ; byte *nbig ; float sum ;
+   int nvals, nuse, nvox, nchek, nmask, qq ; byte *nbig ; float sum ;
 
    if( !ISVALID_DSET(dset) ) return 0.0f ;
    nvals = DSET_NVALS(dset) ; if( nvals < 9 ) return 0.0f ;
    nvox  = DSET_NVOX(dset) ;
-   nchek = nvals / 8 ; nchek = MAX(nchek,3) ; nchek = MIN(nchek,32) ;
+   nchek = nvals / 8 ; nchek = MAX(nchek,3) ; nchek = MIN(nchek,16) ;
+   nuse  = MIN(nvals,100) - nchek ;
 
    if( mask == NULL ){
      THD_automask_set_cheapo(1) ;
@@ -42,7 +43,7 @@ float THD_saturation_check( THD_3dim_dataset *dset , byte *xmask )
    for( kk=0 ; kk < nvox ; kk++ ){
      if( !mask[kk] ) continue ;
      (void)THD_extract_array( kk , dset , 0 , far ) ;
-     qmedmad_float( nvals-nchek , far+nchek , &med , &mad ) ;
+     qmedmad_float( nuse , far+nchek , &med , &mad ) ;
      if( mad == 0.0f ) continue ;
      thp = med + 5.678f*mad ;
 #if 0

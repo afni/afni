@@ -330,13 +330,13 @@ int main( int argc , char * argv[] )
      val = THD_saturation_check(inset,mask) ; kk = (int)(val+0.54321f) ;
      if( kk > 0 )
        ININFO_message(
-        "Looks like there %s %d non-steady-state initial time point%s" ,
+        "Looks like there %s %d non-steady-state initial time point%s :-(" ,
         ((kk==1) ? "is" : "are") , kk , ((kk==1) ? " " : "s") ) ;
      else if( val > 0.3210f )  /* don't ask where this threshold comes from! */
        ININFO_message(
-        "MAYBE there's an initial transient of 1 point, but it's hard to tell\n") ;
+        "MAYBE there's an initial positive transient of 1 point, but it's hard to tell\n") ;
      else
-       ININFO_message("No widespread initial transient detected :-)") ;
+       ININFO_message("No widespread initial positive transient detected :-)") ;
    }
 
    /* check -dsort inputs for match to inset */
