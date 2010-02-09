@@ -49,6 +49,12 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 9 , FEB , 2010 , DRG , "align_epi_anat.py" , 
+    MINOR , TYPE_BUG_FIX, 
+    "Fixed silly bug introduced in previous version" ,
+    "isdigit() method not called properly (Thanks Rick)"
+} ,
+
 { 28 , JAN , 2010 , DRG , "align_epi_anat.py" , 
     MINOR , TYPE_NEW_OPT, 
     "Options for multiple cost functionals,edge control" ,
