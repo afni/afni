@@ -14,9 +14,10 @@ int main( int argc , char *argv[] )
    }
    for( aa=1 ; aa < argc ; aa++ ){
      dset = THD_open_dataset( argv[aa] ) ; CHECK_OPEN_ERROR(dset,argv[aa]) ;
+     if( DSET_NVALS(dset) < 9 ) continue ;
      DSET_load(dset) ; CHECK_LOAD_ERROR(dset) ;
      val = THD_saturation_check( dset , NULL ) ;
-     INFO_message("%.30s  satcheck = %.3f",argv[aa],val) ;
+     INFO_message("%40.40s  satcheck = %.3f",argv[aa],val) ;
      DSET_delete(dset) ;
    }
    exit(0) ;
