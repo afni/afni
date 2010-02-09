@@ -18,10 +18,12 @@ float THD_saturation_check( THD_3dim_dataset *dset , byte *xmask )
    if( !ISVALID_DSET(dset) ) return 0.0f ;
    nvals = DSET_NVALS(dset) ; if( nvals < 9 ) return 0.0f ;
    nvox  = DSET_NVOX(dset) ;
-   nchek = nvals / 4 ; nchek = MAX(nchek,3) ; nchek = MIN(nchek,255) ;
+   nchek = nvals / 8 ; nchek = MAX(nchek,3) ; nchek = MIN(nchek,32) ;
 
    if( mask == NULL ){
-     mask = THD_automask(dset) ; if( mask == NULL ) return 0.0f ;
+     THD_automask_set_cheapo(1) ;
+     mask = THD_automask(dset) ;
+     if( mask == NULL ) return 0.0f ;
    }
    nmask = THD_countmask( nvox , mask ) ;
    if( nmask <= 0 ){
