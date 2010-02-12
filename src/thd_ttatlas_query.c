@@ -916,12 +916,20 @@ char Atlas_Voxel_Side( THD_3dim_dataset *dset, int k1d, byte *lrmask)
    The string returned is malloc()-ed and should be free()-ed later.
    The string will end with a newline '\n' character.
 ------------------------------------------------------------------------*/
+
+#if 0
+#undef  SS
+#define SS(c) fprintf(stderr,"sp %c\n",(c))
+#else
+#define SS(c) /*nada*/
+#endif
+
 char * Atlas_Query_to_String (ATLAS_QUERY *wami,
                               ATLAS_COORD ac, WAMI_SORT_MODES mode)
 {
    char *rbuf = NULL;
-   char  xlab[5][24], ylab[5][24] , zlab[5][24],
-         clab[5][24], lbuf[500], tmps[128] ;
+   char  xlab[5][32], ylab[5][32] , zlab[5][32],
+         clab[5][32], lbuf[1024]  , tmps[1024] ;
    THD_fvec3 t, m;
    THD_string_array *sar =NULL;
    ATLAS_COORD acv[NUMBER_OF_SPC];
@@ -987,33 +995,33 @@ char * Atlas_Query_to_String (ATLAS_QUERY *wami,
 
    /* form the coordinate labels, all results in LPI */
       /* good olde tlrc */
-      sprintf(xlab[0],"%4.0f mm [%c]",-ac.x,(ac.x<0.0)?'R':'L') ;
-      sprintf(ylab[0],"%4.0f mm [%c]",-ac.y,(ac.y<0.0)?'A':'P') ;
-      sprintf(zlab[0],"%4.0f mm [%c]", ac.z,(ac.z<0.0)?'I':'S') ;
-      sprintf(clab[0],"{T-T Atlas}");
+      SS('a');sprintf(xlab[0],"%4.0f mm [%c]",-ac.x,(ac.x<0.0)?'R':'L') ;
+      SS('b');sprintf(ylab[0],"%4.0f mm [%c]",-ac.y,(ac.y<0.0)?'A':'P') ;
+      SS('c');sprintf(zlab[0],"%4.0f mm [%c]", ac.z,(ac.z<0.0)?'I':'S') ;
+      SS('d');sprintf(clab[0],"{T-T Atlas}");
       /* good olde MNI, via approximate equation */
       LOAD_FVEC3(m,ac.x,ac.y,ac.z);
       t = THD_tta_to_mni(m);
-      sprintf(xlab[1],"%4.0f mm [%c]",t.xyz[0],(t.xyz[0]>=0.0)?'R':'L') ;
-      sprintf(ylab[1],"%4.0f mm [%c]",t.xyz[1],(t.xyz[1]>=0.0)?'A':'P') ;
-      sprintf(zlab[1],"%4.0f mm [%c]",t.xyz[2],(t.xyz[2]< 0.0)?'I':'S') ;
-      sprintf(clab[1],"{MNI Brain}");
+      SS('e');sprintf(xlab[1],"%4.0f mm [%c]",t.xyz[0],(t.xyz[0]>=0.0)?'R':'L') ;
+      SS('f');sprintf(ylab[1],"%4.0f mm [%c]",t.xyz[1],(t.xyz[1]>=0.0)?'A':'P') ;
+      SS('g');sprintf(zlab[1],"%4.0f mm [%c]",t.xyz[2],(t.xyz[2]< 0.0)?'I':'S') ;
+      SS('h');sprintf(clab[1],"{MNI Brain}");
       t = THD_mni_to_tta(m);
       /* good olde MNI_Anatomical, a la Zilles */
       LOAD_FVEC3(m,ac.x,ac.y,ac.z);
       t = THD_tta_to_mnia_N27(m);
       /* find the LR, if possible from mask */
-      sprintf( xlab[2],
+      SS('i');sprintf( xlab[2],
                "%4.0f mm [%c]",-t.xyz[0], TO_UPPER(MNI_Anatomical_Side(ac))) ;
-      sprintf(ylab[2],"%4.0f mm [%c]",-t.xyz[1], (ac.y<0.0)?'A':'P') ;
-      sprintf(zlab[2],"%4.0f mm [%c]",t.xyz[2], (ac.z<0.0)?'I':'S') ;
-      sprintf(clab[2],"{MNI Anat.}");
+      SS('j');sprintf(ylab[2],"%4.0f mm [%c]",-t.xyz[1], (ac.y<0.0)?'A':'P') ;
+      SS('k');sprintf(zlab[2],"%4.0f mm [%c]",t.xyz[2], (ac.z<0.0)?'I':'S') ;
+      SS('l');sprintf(clab[2],"{MNI Anat.}");
 
    /* form the Focus point part */
    switch (mode) {
       case CLASSIC_WAMI_ATLAS_SORT:
       case CLASSIC_WAMI_ZONE_SORT:
-            sprintf(lbuf,"Focus point (LPI)=%c"
+            SS('m');sprintf(lbuf,"Focus point (LPI)=%c"
                          "   %s,%s,%s %s%c"
                          "   %s,%s,%s %s%c"
                          "   %s,%s,%s %s%c",
@@ -1026,7 +1034,7 @@ char * Atlas_Query_to_String (ATLAS_QUERY *wami,
       #if 0 /* ugly */
       case TAB1_WAMI_ATLAS_SORT:
       case TAB1_WAMI_ZONE_SORT:
-            sprintf(lbuf,"Focus point (LPI)=%c"
+            SS('n');sprintf(lbuf,"Focus point (LPI)=%c"
                          "   %s,%s,%s %s%c"
                          "   %s,%s,%s %s%c"
                          "   %s,%s,%s %s%c",
@@ -1041,11 +1049,11 @@ char * Atlas_Query_to_String (ATLAS_QUERY *wami,
       case TAB1_WAMI_ZONE_SORT:
       case TAB2_WAMI_ATLAS_SORT:
       case TAB2_WAMI_ZONE_SORT:
-            sprintf(lbuf,"%-36s\t%-12s", "Focus point (LPI)", "Coord.Space");
+            SS('o');sprintf(lbuf,"%-36s\t%-12s", "Focus point (LPI)", "Coord.Space");
             ADDTO_SARR(sar,lbuf);
             for (ii=0; ii<3; ++ii) {
-               sprintf(tmps,"%s,%s,%s", xlab[ii], ylab[ii], zlab[ii]);
-               sprintf(lbuf,"%-36s\t%-12s", tmps, clab[ii]);
+               SS('p');sprintf(tmps,"%s,%s,%s", xlab[ii], ylab[ii], zlab[ii]);
+               SS('q');sprintf(lbuf,"%-36s\t%-12s", tmps, clab[ii]);
                ADDTO_SARR(sar,lbuf);
             }
          break;
@@ -1065,25 +1073,25 @@ char * Atlas_Query_to_String (ATLAS_QUERY *wami,
                   for (il=0; il<wami->zone[iq]->N_label; ++il) { /* for each label in a zone il */
                      if (wami->zone[iq]->atcode[il] == atcode) {
                         if (!nfind_one) {
-                           sprintf(lbuf, "Atlas %s: %s", Atlas_Code_to_Atlas_Name(atcode), Atlas_Code_to_Atlas_Description (atcode));
+                           SS('r');sprintf(lbuf, "Atlas %s: %s", Atlas_Code_to_Atlas_Name(atcode), Atlas_Code_to_Atlas_Description (atcode));
                            ADDTO_SARR(sar,lbuf);
                         }
                         if (newzone) {
                            if (wami->zone[iq]->radius[il] == 0.0) {
-                              sprintf(lbuf, "   Focus point: %s",
+                              SS('s');sprintf(lbuf, "   Focus point: %s",
                                              Clean_Atlas_Label(wami->zone[iq]->label[il]));
                            } else {
-                              sprintf(lbuf, "   Within %1d mm: %s",
+                              SS('t');sprintf(lbuf, "   Within %1d mm: %s",
                                              (int)wami->zone[iq]->radius[il],
                                              Clean_Atlas_Label(wami->zone[iq]->label[il]));
                            }
                            newzone = 0;
                         } else {
-                           sprintf(lbuf, "          -AND- %s",
+                           SS('u');sprintf(lbuf, "          -AND- %s",
                                              Clean_Atlas_Label(wami->zone[iq]->label[il]));
                         }
                         if (wami->zone[iq]->prob[il] > 0.0) {
-                           sprintf(lbuf, "%s   (p = %s)", lbuf, Atlas_Prob_String(wami->zone[iq]->prob[il]));
+                           SS('v');sprintf(lbuf+strlen(lbuf), "   (p = %s)", Atlas_Prob_String(wami->zone[iq]->prob[il]));
                         }
                         ADDTO_SARR(sar,lbuf);
                         ++nfind; ++nfind_one;
@@ -1101,19 +1109,19 @@ char * Atlas_Query_to_String (ATLAS_QUERY *wami,
             nfind = 0;
             for (iq=0; iq<wami->N_zone; ++iq) { /* iq */
                if (wami->zone[iq]->level == 0) {
-                  sprintf(lbuf, "Focus point:");
+                  SS('w');sprintf(lbuf, "Focus point:");
                } else {
-                  sprintf(lbuf, "Within %1d mm:",
+                  SS('x');sprintf(lbuf, "Within %1d mm:",
                                  (int)wami->zone[iq]->level);
                }
                ADDTO_SARR(sar,lbuf);
                for (il=0; il<wami->zone[iq]->N_label; ++il) { /* il */
-                  sprintf(lbuf, "   %-32s, Atlas %-15s",
+                  SS('y');sprintf(lbuf, "   %-32s, Atlas %-15s",
                      Clean_Atlas_Label(wami->zone[iq]->label[il]),
                      Atlas_Code_to_Atlas_Name(wami->zone[iq]->atcode[il]));
 
                   if (wami->zone[iq]->prob[il] > 0.0) {
-                     sprintf(lbuf, "%s, prob. = %-3s", lbuf, Atlas_Prob_String(wami->zone[iq]->prob[il]));
+                     SS('z');sprintf(lbuf+strlen(lbuf), ", prob. = %-3s", Atlas_Prob_String(wami->zone[iq]->prob[il]));
                   }
                   ADDTO_SARR(sar,lbuf);
                   ++nfind;
@@ -1131,17 +1139,17 @@ char * Atlas_Query_to_String (ATLAS_QUERY *wami,
                   for (il=0; il<wami->zone[iq]->N_label; ++il) { /* il */
                      if (wami->zone[iq]->atcode[il] == atcode) {
                         if (wami->zone[iq]->radius[il] == 0.0) {
-                           sprintf(lbuf, "Atlas %s\tFocus point:\t%s",
+                           SS('A');sprintf(lbuf, "Atlas %s\tFocus point:\t%s",
                                           Atlas_Code_to_Atlas_Name(atcode),
                                           Clean_Atlas_Label(wami->zone[iq]->label[il]));
                         } else {
-                           sprintf(lbuf, "Atlas %s\tWithin %1d mm:\t%s",
+                           SS('B');sprintf(lbuf, "Atlas %s\tWithin %1d mm:\t%s",
                                           Atlas_Code_to_Atlas_Name(atcode),
                                           (int)wami->zone[iq]->radius[il],
                                           Clean_Atlas_Label(wami->zone[iq]->label[il]));
                         }
-                        sprintf(lbuf, "%s\tp = %s", lbuf, Atlas_Prob_String(wami->zone[iq]->prob[il]));
-                        sprintf(lbuf, "%s\tcode = %-3d", lbuf, wami->zone[iq]->code[il]);
+                        SS('C');sprintf(lbuf+strlen(lbuf), "\tp = %s", Atlas_Prob_String(wami->zone[iq]->prob[il]));
+                        SS('D');sprintf(lbuf+strlen(lbuf), "\tcode = %-3d", wami->zone[iq]->code[il]);
                         ADDTO_SARR(sar,lbuf);
                         ++nfind; ++nfind_one;
                      }
@@ -1155,14 +1163,14 @@ char * Atlas_Query_to_String (ATLAS_QUERY *wami,
       case TAB1_WAMI_ZONE_SORT:
       case TAB2_WAMI_ZONE_SORT:
          /*-- assemble output string(s) for each atlas --*/
-            sprintf(lbuf, "%-3s\t%-15s\t%-32s\t%-3s\t%-3s", "Within", "Atlas", "Label", "Prob.", "Code");
+            SS('E');sprintf(lbuf, "%-3s\t%-15s\t%-32s\t%-3s\t%-3s", "Within", "Atlas", "Label", "Prob.", "Code");
             ADDTO_SARR(sar,lbuf);
             nfind = 0;
                for (iq=0; iq<wami->N_zone; ++iq) { /* iq */
                   for (il=0; il<wami->zone[iq]->N_label; ++il) { /* il */
                      if (1) {
-                        sprintf(tmps, "%.1f", wami->zone[iq]->radius[il]);
-                        sprintf(lbuf, "%-3s\t%-15s\t%-32s\t%-3s\t%-3d",
+                        SS('F');sprintf(tmps, "%.1f", wami->zone[iq]->radius[il]);
+                        SS('G');sprintf(lbuf, "%-3s\t%-15s\t%-32s\t%-3s\t%-3d",
                                     tmps,
                                     Atlas_Code_to_Atlas_Name(wami->zone[iq]->atcode[il]),
                                     Clean_Atlas_Label(wami->zone[iq]->label[il]),
@@ -1178,7 +1186,7 @@ char * Atlas_Query_to_String (ATLAS_QUERY *wami,
       case TAB1_WAMI_ATLAS_SORT:
       case TAB2_WAMI_ATLAS_SORT: /* like TAB1_WAMI_ATLAS_SORT but more to my liking for easy spreadsheet use */
             /*-- assemble output string(s) for each atlas --*/
-            sprintf(lbuf, "%-15s\t%-3s\t%-32s\t%-3s\t%-3s", "Atlas", "Within", "Label", "Prob.", "Code");
+            SS('H');sprintf(lbuf, "%-15s\t%-3s\t%-32s\t%-3s\t%-3s", "Atlas", "Within", "Label", "Prob.", "Code");
             ADDTO_SARR(sar,lbuf);
             nfind = 0;
             for (atcode=UNKNOWN_ATLAS+1; atcode < NUMBER_OF_ATLASES; ++atcode) { /* atcode */
@@ -1186,8 +1194,8 @@ char * Atlas_Query_to_String (ATLAS_QUERY *wami,
                for (iq=0; iq<wami->N_zone; ++iq) { /* iq */
                   for (il=0; il<wami->zone[iq]->N_label; ++il) { /* il */
                      if (wami->zone[iq]->atcode[il] == atcode) {
-                        sprintf(tmps, "%.1f", wami->zone[iq]->radius[il]);
-                        sprintf(lbuf, "%-15s\t%-3s\t%-32s\t%-3s\t%-3d",
+                        SS('I');sprintf(tmps, "%.1f", wami->zone[iq]->radius[il]);
+                        SS('J');sprintf(lbuf, "%-15s\t%-3s\t%-32s\t%-3s\t%-3d",
                                     Atlas_Code_to_Atlas_Name(atcode),
                                     tmps,
                                     Clean_Atlas_Label(wami->zone[iq]->label[il]),
@@ -1214,7 +1222,7 @@ char * Atlas_Query_to_String (ATLAS_QUERY *wami,
    /*- if didn't make any label, must produce something -*/
 
    if( sar->num == 1 ){    /* shouldn't ever happen */
-      sprintf(lbuf,"Found %d marked but unlabeled regions???\n",nfind) ;
+      SS('K');sprintf(lbuf,"Found %d marked but unlabeled regions???\n",nfind) ;
       ADDTO_SARR(sar,lbuf) ;
    } else if( !AFNI_noenv("AFNI_TTATLAS_CAUTION") ){
       ADDTO_SARR(sar,WAMI_TAIL) ;  /* cautionary tail */
@@ -1236,6 +1244,7 @@ char * Atlas_Query_to_String (ATLAS_QUERY *wami,
 
    RETURN(rbuf);
 }
+#undef SS
 
 void TT_whereami_set_outmode(WAMI_SORT_MODES md)
 {

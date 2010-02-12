@@ -958,7 +958,7 @@ int main( int argc , char *argv[] )
    /* loop until AFNI connects (answers the call),
       printing a '.' every so often to keep the user happy */
 
-   for( nn=0 ; nn < 123 ; nn++ ){
+   for( nn=0 ; nn < 234 ; nn++ ){
      fprintf(stderr,".") ;
      kk = NI_stream_writecheck( GI_stream , 999 ) ;
      if( kk == 1 ){ fprintf(stderr," Connected!\n") ; break ; }
@@ -1090,7 +1090,7 @@ int main( int argc , char *argv[] )
          WARNING_message("Connection to %s broken - trying to restart",pname) ;
          NI_sleep(111) ;                /* give AFNI a moment to do whatever */
          GI_stream = NI_stream_open( nsname , "w" ) ;
-         kk = NI_stream_goodcheck( GI_stream , 3333 ) ; /* wait a little bit */
+         kk = NI_stream_goodcheck( GI_stream , 9999 ) ; /* wait a little bit */
          if( kk == 1 ){
            ININFO_message("TCP/IP restart is good :-)") ; shm_active = 0 ;
          } else {
