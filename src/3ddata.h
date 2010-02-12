@@ -4641,6 +4641,8 @@ extern void THD_death_setup( int msec ) ;     /* 14 Sep 2009 */
 
 extern float THD_saturation_check( THD_3dim_dataset *, byte * ) ; /* 08 Feb 2010 */
 
+extern THD_3dim_dataset * THD_dummy_N27(void) ;  /* 12 Feb 2010 */
+
 /*---------------------------------------------------------------------*/
 
 #if 0

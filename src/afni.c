@@ -2203,15 +2203,21 @@ ENTRY("AFNI_startup_timeout_CB") ;
                               "++ so its subdirectories were searched  ++\n"
                               "++ for dataset files.                   ++\n " ,
                               MCW_USER_KILL | MCW_TIMER_KILL ) ;
-   else if( !ALLOW_realtime && GLOBAL_library.have_dummy_dataset ) /* 23 Dec 2009 */
-    (void) MCW_popup_message( MAIN_im3d->vwid->picture ,
+   else if( !ALLOW_realtime && GLOBAL_library.have_dummy_dataset ){
+    (void) MCW_popup_message( MAIN_im3d->vwid->picture ,       /* 23 Dec 2009 */
                               " \n"
-                              "++ NOTICE:                                 ++\n"
-                              "++ No valid datasets were found.           ++\n"
-                              "++ A 'dummy' dataset has been loaded.      ++\n"
-                              "++ To read in an actual data directory,    ++\n"
-                              "++ use the 'Switch' button near 'DataDir'. ++\n " ,
+                              "++ NOTICE:                               ++\n"
+                              "++ No valid datasets were found.         ++\n"
+                              "++ A 'dummy' dataset has been loaded     ++\n"
+                              "++ for your viewing pleasure :-)         ++\n"
+                              "++ To read in an actual data directory,  ++\n"
+                              "++ use the 'Read' button near 'DataDir'. ++\n " ,
                               MCW_USER_KILL | MCW_TIMER_KILL ) ;
+     MCW_flash_widget_list( 9 , MAIN_im3d->vwid->view->sess_lab ,
+                                MAIN_im3d->vwid->view->choose_sess_pb ,
+                                MAIN_im3d->vwid->view->read_sess_pb ,
+                            NULL ) ;                           /* 12 Feb 2010 */
+   }
 
    /* 05 May 2009: make sure the Cluster widgets show up properly */
 
@@ -4541,7 +4547,7 @@ if(PRINT_TRACING)
              break ;                            /* exit the loop over id */
            }
          }
-         else {   /* 18 Feb 2007: do -R1 on "./" if no data found */
+         else {   /* 18 Feb 2007: do -R2 on "./" if no data found */
            if( qlist == dlist && elist != NULL ){
              fprintf(stderr,"\n** Searching subdirectories of './' for data") ;
              qlist = elist; goto RESTART_DIRECTORY_SCAN;
@@ -4587,10 +4593,6 @@ if(PRINT_TRACING)
 
       GLOBAL_library.have_dummy_dataset = 0 ;
 
-#define QQ_NXYZ 16
-#define QQ_NT   12
-#define QQ_FOV  240.0
-
       if( GLOBAL_library.sslist->num_sess <= 0 ){
          byte *bar ;  /* as opposed to a bite bar */
          int ii , nbar , jj ;
@@ -4617,6 +4619,17 @@ if(PRINT_TRACING)
          /** manufacture a minimal dataset **/
 
          new_ss->num_dsset   = 1 ;
+
+         if( !AFNI_yesenv("AFNI_OLD_DUMMY_DATASET") ){
+
+           new_ss->dsset[0][0] = THD_dummy_N27() ;  /* 12 Feb 2010 */
+
+         } else {  /* the old RWCOX dummy dataset */
+
+# define QQ_NXYZ 16
+# define QQ_NT   12
+# define QQ_FOV  240.0
+
          new_ss->dsset[0][0] = EDIT_empty_copy(NULL) ;
          nxyz.ijk[0] = nxyz.ijk[1] = nxyz.ijk[2] = QQ_NXYZ ;
          fxyz.xyz[0] = fxyz.xyz[1] = fxyz.xyz[2] = QQ_FOV / QQ_NXYZ ;
@@ -4645,11 +4658,10 @@ if(PRINT_TRACING)
            fprintf(stderr,"\n%d errors creating dummy dataset!\a\n",ii) ;
            exit(1) ;
          }
-         DSET_lock(new_ss->dsset[0][0]) ; /* lock into memory */
 
          nbar = DSET_BRICK_BYTES(new_ss->dsset[0][0],0) ;
 
-#ifdef NO_FRIVOLITIES
+# ifdef NO_FRIVOLITIES
          for( jj=0 ; jj < QQ_NT ; jj++ ){
             bar    = (byte *) malloc( nbar ) ;
             bar[0] = (byte) (lrand48()%127) ;
@@ -4657,7 +4669,7 @@ if(PRINT_TRACING)
                bar[ii] = bar[ii-1] + lrand48()%(jj+2) ;
             EDIT_substitute_brick( new_ss->dsset[0][0] , jj , MRI_byte , bar ) ;
          }
-#else
+# else
         { /* 11 Jun 1999: start of loading RWCOX images into dummy dataset */
           static byte rrr[QQ_NXYZ*QQ_NXYZ] = {
             0,0,0,0,10,94,135,135,135,135,135,135,135,135,135,135,
@@ -4777,8 +4789,11 @@ if(PRINT_TRACING)
                EDIT_substitute_brick( new_ss->dsset[0][0] , jj , MRI_byte , bar ) ;
             }
           } /* end of loading RWCOX */
-#endif
+# endif /* NO_FRIVOLITIES */
 
+         }
+
+         DSET_lock(new_ss->dsset[0][0]) ; /* lock into memory */
          PARENTIZE( new_ss->dsset[0][0] , NULL ) ;
 
       } else {  /* 04 Jan 2000: show total number of datasets */

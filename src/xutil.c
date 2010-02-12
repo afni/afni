@@ -142,6 +142,53 @@ void MCW_invert_widget( Widget w )
    return ;
 }
 
+/*---------------------------------------------------------------------*/
+
+void MCW_flash_widget( int ntime , Widget w )  /* 12 Feb 2010 */
+{
+   int ii ;
+
+   if( ! XtIsWidget(w) ) return ;
+   if( ntime < 1 ) ntime = 1 ;
+
+   for( ii=0 ; ii < ntime ; ii++ ){
+     MCW_invert_widget(w) ; RWC_sleep(100) ;
+     MCW_invert_widget(w) ; RWC_sleep(100) ;
+   }
+
+   return ;
+}
+
+/*---------------------------------------------------------------------*/
+
+void MCW_flash_widget_list( int ntime , ... )
+{
+   int ii,kk , nwid=0 ; Widget w , *war=NULL ;
+   va_list vararg_ptr ;
+
+   if( ntime < 1 ) ntime = 1 ;
+
+   va_start( vararg_ptr , ntime ) ;
+
+   while(1){
+     w = va_arg( vararg_ptr , Widget ) ;
+     if( w == (Widget)NULL ) break ;
+     war = (Widget *)realloc(war,sizeof(Widget)*(nwid+1)) ;
+     war[nwid++] = w ;
+   }
+   va_end( vararg_ptr ) ;
+   if( nwid < 1 ) return ;
+
+   for( ii=0 ; ii < ntime ; ii++ ){
+     for( kk=0 ; kk < nwid ; kk++ ) MCW_invert_widget(war[kk]) ;
+     RWC_sleep(100) ;
+     for( kk=0 ; kk < nwid ; kk++ ) MCW_invert_widget(war[kk]) ;
+     RWC_sleep(100) ;
+   }
+
+   free(war) ; return ;
+}
+
 /*---------------------------------------------------------------------
    set the background color of a widget; the other colors are
    altered to match, a la Motif;
