@@ -2809,6 +2809,16 @@ static char * readme_env[] = {
    "the image appears to move to the right.  (Mutatis mutandum for the\n" ,
    "other directions, of course.)\n" ,
    "\n" ,
+   "----------------------------\n" ,
+   "Variable: AFNI_DUMMY_DATASET\n" ,
+   "----------------------------\n" ,
+   "The old 'frivolous' AFNI dummy dataset was replaced with a low-resolution\n" ,
+   "edition of the N27 dataset on 12 Feb 2010.  If for some absurd reason you\n" ,
+   "want the old dummy dataset back, then set this variable to OLD.  (Recall\n" ,
+   "that the dummy dataset is only created if you start the AFNI GUI without\n" ,
+   "any input datasets at all -- AFNI is constructed so that it needs SOME\n" ,
+   "dataset present to be able to operate: hence, the dummy dataset concept.)\n" ,
+   "\n" ,
    "----------------------------------------------------------------------\n" ,
    "--- variables specific to NIML I/O\n" ,
    "----------------------------------------------------------------------\n" ,
@@ -3024,4 +3034,4 @@ static char * readme_env[] = {
    "behavior, set this variable to YES.\n" ,
    "\n" ,
    NULL } ;
-#define NUM_readme_env 3024
+#define NUM_readme_env 3034
