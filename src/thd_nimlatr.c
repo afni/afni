@@ -153,6 +153,8 @@ ENTRY("THD_dblkatr_from_niml") ;
          if( strcasecmp(nel->name,"AFNI_atr") == 0 &&    /* AFNI attribute?   */
              nel->vec_num == 1                     &&    /* with some data?   */
              nel->vec_len >  0                     &&    /* that is nonempty? */
+             nel->vec     != NULL                  &&    /* and has data? */
+             nel->vec[0]  != NULL                  &&
              rhs != NULL                           &&    /* and has a name?   */
             *rhs != '\0'                              ){ /* a nonempty name?  */
 
