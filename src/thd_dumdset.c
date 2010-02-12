@@ -7543,9 +7543,7 @@ static byte qqar[QQ_NX*QQ_NY*QQ_NZ] = {
 THD_3dim_dataset * THD_dummy_N27(void)
 {
    THD_3dim_dataset *dset ;
-   THD_ivec3 nxyz ;
-   THD_fvec3 fxyz , oxyz ;
-   byte *bar ;
+   THD_ivec3 nxyz ; THD_fvec3 fxyz , oxyz ;
 
 ENTRY("THD_dummy_N27") ;
    dset = EDIT_empty_copy(NULL) ;
@@ -7562,13 +7560,11 @@ ENTRY("THD_dummy_N27") ;
                       ADN_nvals         , 1                   ,
                       ADN_malloc_type   , DATABLOCK_MEM_MALLOC,
                       ADN_type          , HEAD_ANAT_TYPE      ,
-                      ADN_view_type     , VIEW_TALAIRACH_TYPE ,
+                      ADN_view_type     , VIEW_ORIGINAL_TYPE  ,
                       ADN_func_type     , ANAT_EPI_TYPE       ,
                     ADN_none ) ;
-   DSET_lock(dset) ;
    EDIT_substitute_brick( dset , 0 , MRI_byte , NULL ) ;
-   bar = (byte *)DSET_BRICK_ARRAY(dset,0) ;
-   memcpy( bar , qqar , sizeof(byte)*QQ_NX*QQ_NY*QQ_NZ ) ;
+   memcpy( DSET_BRICK_ARRAY(dset,0) , qqar , sizeof(byte)*QQ_NX*QQ_NY*QQ_NZ ) ;
 
    RETURN(dset) ;
 }

@@ -628,7 +628,9 @@ if(PRINT_TRACING){
 void THD_set_float_atr( THD_datablock *blk ,
                         char *name , int n , float *fl )
 {
+ENTRY("THD_set_float_atr") ;
    THD_set_atr( blk , name , ATR_FLOAT_TYPE , n , fl ) ;
+EXRETURN ;
 }
 
 /*-----------------------------------------------------------------------*/
@@ -636,7 +638,9 @@ void THD_set_float_atr( THD_datablock *blk ,
 void THD_set_int_atr( THD_datablock *blk ,
                       char *name , int n , int *in )
 {
+ENTRY("THD_set_int_atr") ;
    THD_set_atr( blk , name , ATR_INT_TYPE , n , in ) ;
+EXRETURN ;
 }
 
 /*-----------------------------------------------------------------------*/
@@ -644,7 +648,9 @@ void THD_set_int_atr( THD_datablock *blk ,
 void THD_set_char_atr( THD_datablock *blk ,
                        char *name , int n , char *str )
 {
+ENTRY("THD_set_char_atr") ;
    THD_set_atr( blk , name , ATR_STRING_TYPE , n , str ) ;
+EXRETURN ;
 }
 
 /*-----------------------------------------------------------------------*/
