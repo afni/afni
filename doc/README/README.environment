@@ -2808,15 +2808,15 @@ crop window to move in the opposite direction, so the visible part of
 the image appears to move to the right.  (Mutatis mutandum for the
 other directions, of course.)
 
---------------------------------
-Variable: AFNI_OLD_DUMMY_DATASET
---------------------------------
+----------------------------
+Variable: AFNI_DUMMY_DATASET
+----------------------------
 The old 'frivolous' AFNI dummy dataset was replaced with a low-resolution
 edition of the N27 dataset on 12 Feb 2010.  If for some absurd reason you
-want the old dummy dataset back, then set this variable to YES.  Note that
-the dummy dataset is only created if you start the AFNI GUI without any
-input datasets at all -- AFNI is constructed so that it needs SOME dataset
-present to be able to operate: hence, the dummy dataset.
+want the old dummy dataset back, then set this variable to OLD.  (Recall
+that the dummy dataset is only created if you start the AFNI GUI without
+any input datasets at all -- AFNI is constructed so that it needs SOME
+dataset present to be able to operate: hence, the dummy dataset concept.)
 
 ----------------------------------------------------------------------
 --- variables specific to NIML I/O
