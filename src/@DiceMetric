@@ -1,0 +1,230 @@
+#!/bin/tcsh -f
+
+if ("$1" == '' || "$1" == '-h' || "$1" == '-help' || "$2" == '') then
+	goto USAGE
+endif
+
+goto PARSE_COMMAND
+Ret_PARSE_COMMAND:
+
+set bparse = `@parse_afni_name $base`
+set vol1 = $bparse[1]/$bparse[2]
+set view = `@GetAfniView $base`
+set outlist = ()
+set idset = 1
+foreach dset ($dsets) 
+   set dparse = `@parse_afni_name $dset`
+   set vol2 = $dparse[1]/$dparse[2]
+   set iidset = `printf %02d $idset`
+   3dcalc   -datum short -overwrite \
+            -a $vol1${view} -b $vol2${view} -expr 'a*equals(a,b)' \
+            -prefix  ___aib   
+
+   if (1) then
+      3dROIstats -1Dformat -mask_f2short -numROI ${numROI} -zerofill 0\
+                  -nzvoxels -mask ___aib$view ___aib$view > ___aib.1D
+      3dROIstats -1Dformat -mask_f2short -numROI ${numROI} -zerofill 0\
+                  -nzvoxels -mask $vol1$view $vol1$view >> ___aib.1D
+      3dROIstats -1Dformat -mask_f2short -numROI ${numROI} -zerofill 0\
+                  -nzvoxels -mask $vol2$view $vol2$view >> ___aib.1D
+   else 
+      #Not convenient for parsing further down
+      3dclust -isomerge 0 0 ___aib$view > ___aib.1D
+      3dclust -isomerge 0 0  $vol1$view >> ___aib.1D
+      3dclust -isomerge 0 0  $vol2$view >> ___aib.1D
+   endif
+
+   set nvals = `3dnvals -all ___aib.1D`
+   set N_cl = `ccalc -i $nvals[4] / 2`
+
+   set cl = 1
+   set icl = 0
+   set dcar = ()
+   set clar = ()
+   while ($cl <= $N_cl)
+      set in = `ccalc -i "2*$icl"`
+      set cl_num = `1dcat ___aib.1D"[$in]" | uniq`
+      if ($#cl_num != 1 && $#cl_num != 0) then
+         echo "Bad table $cl_num"
+         goto END
+      endif
+      if ($cl_num != 0) then
+         set in = `ccalc -i "2*$icl+1"`
+         set nums = `1dcat ___aib.1D"[$in]"`
+         set dice = `ccalc "2*$nums[1]/($nums[2]+$nums[3])"`
+         set clar = ($clar $cl_num)
+         set dcar = ($dcar $dice)
+      endif 
+      @ cl ++
+      @ icl ++
+   end
+
+   if ($idset == 1) then
+      set outlist = ($outlist ___dice_${iidset}.1D)
+   else 
+      set outlist = ("$outlist" ___dice_${iidset}.1D'[1]')
+   endif
+   echo "#cl   #dice($vol2 VS $vol1)" > ___dice_${iidset}.1D
+   set cnt = 1
+   foreach cl ($clar)
+      echo "$cl   $dcar[$cnt]" >> ___dice_${iidset}.1D
+      @ cnt ++
+   end
+   cat ___dice_${iidset}.1D
+   @ idset ++
+end
+
+
+COMBINE:
+if ("$prefix" !~ "") then
+   echo "#Col.0 = ROI number in $base" > $prefix.1D
+   set cnt = 1
+   foreach dset ($dsets)
+      echo "#Col.$cnt = Dice(`@GetAfniPrefix $dset`)" >> $prefix.1D
+      @ cnt ++
+   end
+   set noglob
+   1dcat $outlist >> $prefix.1D
+   unset noglob
+endif 
+
+goto END
+
+PARSE_COMMAND:
+	
+   #continue parsing for new options
+   set numROI = 12
+   set dsets = ()
+   set base = ''
+   set prefix = ''
+   set cleanup = 1
+   set cnt = 1
+   set Narg = $#argv
+   while ($cnt <= $Narg)
+		set donext = 1;
+      if ($donext && "$argv[$cnt]" == "-max_N_roi") then
+         set pLoc = $cnt		
+		   if ($pLoc == $Narg) then
+				echo "Need integer after -max_N_roi"
+            goto END
+			else
+            @ cnt ++
+            set numROI = "$argv[$cnt]"
+            set donext = 0	
+         endif	
+      endif
+      if ($donext && "$argv[$cnt]" == "-prefix") then
+         set pLoc = $cnt		
+		   if ($pLoc == $Narg) then
+				echo "Need a string after -prefix"
+            goto END
+			else
+            @ cnt ++
+            #set prefix = `@GetAfniPrefix "$argv[$cnt]"`
+            set prefix = `@NoExt $argv[$cnt] 1D`
+            set donext = 0	
+         endif	
+      endif
+      if ($donext && "$argv[$cnt]" == "-base") then
+         set pLoc = $cnt		
+		   if ($pLoc == $Narg) then
+				echo "Need a volume after -base"
+            goto END
+			else
+            @ cnt ++
+            set base = "$argv[$cnt]"
+            set donext = 0	
+         endif	
+      endif      
+      if ($donext && "$argv[$cnt]" == "-dsets") then
+         set pLoc = $cnt		
+		   if ($pLoc == $Narg) then
+				echo "Need at least a volume after -dsets"
+            goto END
+			else
+            @ cnt ++
+            set dsets = ($argv[$cnt-])
+            foreach fol ($dsets)
+               set exx = `@CheckForAfniDset $fol`
+               if ( $status) then
+                  echo "Error follower dset $fol cannot be found"
+                  echo "Note that option -dsets must be "
+                  echo "the last one on the command line"
+                  goto END
+               endif
+               if ( $exx < 2) then
+                  echo "Error follower dset $fol appears not to be a dset"
+                  echo "Note that option -dsets must be "
+                  echo "the last one on the command line"
+                  goto END
+               endif
+            end
+            set cnt = `expr $cnt + $#dsets - 1`
+            set donext = 0	
+         endif	
+      endif
+      
+      
+      if ($donext && "$argv[$cnt]" == "-keep_tmp") then
+         set cleanup = 0;		
+         set donext = 0		
+      endif
+      
+      #ADD NO NEW OPTIONS BELOW THIS LINE
+      
+      if ($donext == 1 && $cnt == 1) then
+	      set base = "$argv[$cnt]"
+         set donext = 0
+      endif      
+      
+      if ($donext == 1 && $cnt == 2) then
+         set dsets = ("$argv[$cnt]")
+         set donext = 0
+      endif         
+
+      if ($donext == 1) then
+         echo "Error: Option or parameter '$argv[$cnt]' not understood"
+         goto END
+      endif
+      
+		@ cnt ++
+	end
+      
+	goto Ret_PARSE_COMMAND
+
+
+USAGE:
+echo ""
+echo "Usage: "
+echo "`basename $0` <-base BASE> <-dsets DSET1 [DSET2 ...]> "
+echo "              [max_N_roi MAX_ROI]  "
+echo "              [-keep_tmp]"
+echo ""
+echo "Computes Dice Metric between BASE, and each of DSET volumes"
+echo ""
+echo "Mandatory parameters:"
+echo "<-base BASE>: Name of base (reference) segmentation "
+echo "<-dsets DSET1 [DSET2 ...]>: Data sets for which the Dice Metric with "
+echo "                            BASE is computed."
+echo "                            This option is to be the last on the command "
+echo "                            line."
+echo ""
+echo "  NOTE: A lazy usage would be:"
+echo "  `basename $0` BASE DSET"
+echo ""
+echo "Optional parameters:"
+echo "   [-max_N_roi MAX_ROI]: The maximum possible roi index. Default is 12" echo "   [-prefix PREFIX]: Use PREFIX for the output table. "
+echo "                     Default is separate results for each dset to stdout"
+echo "   [-keep_tmp]: Keep temporary files for debugging. Note that you should"
+echo "                delete temporary files before rerunning the script."
+echo ""         
+echo ""
+echo "Ziad Saad (saadz@mail.nih.gov)"
+echo "SSCC/NIMH/ National Institutes of Health, Bethesda Maryland"
+echo ""
+	goto END
+
+END:
+if ($cleanup) then
+   rm -f ___dice_*.1D ___aib.1D ___aib+????.*
+endif
