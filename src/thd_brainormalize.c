@@ -1732,7 +1732,14 @@ ENTRY("mri_brainormalize") ;
    /* create a spat norm of the original volume ZSS */
    if (imout_origp) {
       mri_warp3D_method( MRI_LINEAR) ;
-      if (verb > 1) fprintf(stderr,"thd_brainormalize (ZSS):\n n: %d %d %d\n d: %f %f %f\n o: %f %f %f\n ", sim_nx, sim_ny, sim_nz, sim_dx, sim_dy, sim_dz, sim_xo, sim_yo, sim_zo);
+      if (verb > 1) {
+         fprintf(stderr,"thd_brainormalize (ZSS):\n"
+                        " n: %d %d %d\n d: %f %f %f\n"
+                        " o: %f %f %f\n ", 
+               sim_nx, sim_ny, sim_nz, 
+               sim_dx, sim_dy, sim_dz, 
+               sim_xo, sim_yo, sim_zo);
+      }
       imout_orig = mri_warp3D( tim, sim_nx, sim_ny, sim_nz, ijk_invwarp );
       imout_orig->dx = sim_dx; imout_orig->dy = sim_dy; imout_orig->dz = sim_dz; 
       imout_orig->xo = sim_xo; imout_orig->yo = sim_yo; imout_orig->zo = sim_zo; 
@@ -1747,7 +1754,8 @@ ENTRY("mri_brainormalize") ;
          MRI_IMAGE *imout_orig_NN;
          /* create a mask version now */
          mri_warp3D_method( MRI_LINEAR) ;
-         if (verb > 1) fprintf(stderr,"thd_brainormalize (ZSS):\n Masking \n ");
+         if (verb > 1) 
+            fprintf(stderr,"thd_brainormalize (ZSS):\n Masking \n ");
          tim_NN = MRI_SHORT_PTR(tim);
          for (ii = 0; ii<nxyz; ++ii) { if (tim_NN[ii]) tim_NN[ii] = maskval; }
          imout_orig_NN = mri_warp3D( tim, sim_nx, sim_ny, sim_nz, ijk_invwarp );
@@ -1768,8 +1776,10 @@ ENTRY("mri_brainormalize") ;
             } 
          }
          if (n_masked) meanmasked /= n_masked;
-         if (verb > 1) fprintf(stderr,"thd_brainormalize (ZSS):\n (N, mean, max, min) of values masked: (%d, %f, %d, %d)\n", 
-            n_masked, meanmasked, minmasked, maxmasked);
+         if (verb > 1) 
+            fprintf(stderr,"thd_brainormalize (ZSS):\n"
+                     " (N, mean, max, min) of values masked: (%d, %f, %d, %d)\n",
+                     n_masked, meanmasked, minmasked, maxmasked);
          mri_free(imout_orig_NN) ;
       }
       *imout_origp = imout_orig;

@@ -165,7 +165,7 @@ SUMA_Boolean  SUMA_isDsetRelated(SUMA_DSET *dset, SUMA_SurfaceObject *SO);
 NI_group * SUMA_CreateCmapForLabelDset(SUMA_DSET *dset, 
                                        SUMA_COLOR_MAP *ThisCmap) ;
 SUMA_Boolean SUMA_IsCmapOKForLabelDset(SUMA_DSET *dset, SUMA_COLOR_MAP *cmap);
-int SUMA_dset_to_Label_dset(SUMA_DSET *dset, SUMA_COLOR_MAP *cmap); 
+int SUMA_dset_to_Label_dset_cmap(SUMA_DSET *dset, SUMA_COLOR_MAP *cmap); 
 
 
 

@@ -6490,3 +6490,31 @@ ENTRY("AFNI_vedit_CB") ;
 
    FIX_SCALE_SIZE(im3d) ; FIX_SCALE_VALUE(im3d) ; EXRETURN ;
 }
+
+
+/* 
+   Set parameters for ROI colormaps
+   ZSS Feb 15 2010 
+*/
+int AFNI_set_func_range_nval(XtPointer *vp_im3d, float rval)
+{
+   Three_D_View *im3d=NULL;
+   
+   ENTRY("AFNI_set_func_range_val") ;
+
+   im3d = (Three_D_View *)vp_im3d;
+   MCW_set_bbox( im3d->vwid->func->range_bbox , 0 ) ;   /* autoRange box off */
+   im3d->vinfo->use_autorange = 0 ;
+
+   AV_SENSITIZE( im3d->vwid->func->range_av , 1 ) ;
+   AV_assign_fval( im3d->vwid->func->range_av , rval ) ;
+   AFNI_range_av_CB( im3d->vwid->func->range_av , im3d ) ;
+   
+   /* positive only */
+   MCW_set_bbox( im3d->vwid->func->inten_bbox , 1 ) ;
+   AFNI_inten_bbox_CB( im3d->vwid->func->inten_bbox->wbut[PBAR_MODEBUT] ,
+                       (XtPointer)im3d , NULL ) ;
+
+   
+   RETURN(0) ;
+}

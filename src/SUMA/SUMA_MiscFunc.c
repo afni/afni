@@ -6970,12 +6970,10 @@ SUMA_EDGE_LIST * SUMA_Make_Edge_List_eng (
       int winedonce = 0;
       if (debug && (SEL->min_N_Hosts == 1 || SEL->max_N_Hosts == 1)) {
          winedonce = 1;
-         fprintf(SUMA_STDERR,
-                  "Warning %s:\n" 
-                  "Min/Max number of edge hosting triangles: [%d/%d] \n", 
-                   FuncName, SEL->min_N_Hosts, SEL->max_N_Hosts);
-         fprintf(SUMA_STDERR,
-                  " You have edges that form a border in the surface.\n");
+         SUMA_S_Notev(
+                  "Min/Max number of edge hosting triangles: [%d/%d] \n"
+                  " You have edges that form a border in the surface.\n\n", 
+                  SEL->min_N_Hosts, SEL->max_N_Hosts);
       }
       if (SEL->min_N_Hosts > 2 || SEL->max_N_Hosts > 2) {
          winedonce = 1;

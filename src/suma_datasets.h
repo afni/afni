@@ -1375,6 +1375,7 @@ SUMA_DSET * SUMA_far2dset_ns( char *FullName, char *dset_id, char *dom_id,
                                  float **farp, int vec_len, int vec_num, 
                                  int ptr_cpy);
 int SUMA_is_AllNumeric_dset(SUMA_DSET *dset);
+int SUMA_dset_to_Label_dset(SUMA_DSET *dset); 
 int SUMA_is_Label_dset(SUMA_DSET *dset, NI_group **NIcmap); 
 NI_group *SUMA_NICmapToNICmap(NI_group *NIcmap);
 int * SUMA_UniqueValuesInLabelDset(SUMA_DSET *dset, int *N_unq);

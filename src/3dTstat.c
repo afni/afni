@@ -49,7 +49,12 @@
 #define METH_SUM_SQUARES  26  /* ZSS 17 Dec 2008 */
 
 #define METH_BMV          27  /* RWC 16 Oct 2009 */
-#define MAX_NUM_OF_METHS  28
+
+#define METH_ARGMIN1      28  /* ZSS Blizzard 2010 */
+#define METH_ARGMAX1      29  /* ZSS Blizzard 2010 */
+#define METH_ARGABSMAX1   30  /* ZSS Blizzard 2010 */
+
+#define MAX_NUM_OF_METHS  31
 
 static int meth[MAX_NUM_OF_METHS]  = {METH_MEAN};
 static int nmeths                  = 0;
@@ -64,7 +69,8 @@ static char *meth_names[] = {
    "AutoReg"       , "Absolute Max" , "ArgMax"        , "ArgMin"      ,
    "ArgAbsMax"     , "Sum"          , "Duration"      , "Centroid"    ,
    "CentDuration"  , "Absolute Sum" , "Non-zero Mean" , "Onset"       ,
-   "Offset"        , "Accumulate"   , "SS"            , "BiwtMidV"
+   "Offset"        , "Accumulate"   , "SS"            , "BiwtMidV"    ,
+   "ArgMin+1"      , "ArgMax+1"     , "ArgAbsMax+1"
 };
 
 static void STATS_tsfunc( double tzero , double tdelta ,
@@ -81,6 +87,11 @@ static float Calc_centroid(float *ts, int npts);
 int main( int argc , char *argv[] )
 {
    THD_3dim_dataset *old_dset , *new_dset ;  /* input and output datasets */
+   THD_3dim_dataset *mask_dset=NULL  ;
+   float mask_bot=666.0 , mask_top=-666.0 ;
+   byte *cmask=NULL ; int ncmask=0 ;
+   byte *mmm   = NULL ;
+   int mcount=0, verb=0;
    int nopt, nbriks, ii ;
    int addBriks = 0 ;   /* n-1 sub-bricks out */
    int fullBriks = 0 ;  /* n   sub-bricks out */
@@ -126,8 +137,11 @@ int main( int argc , char *argv[] )
  " -max    = compute maximum of input voxels [undetrended]\n"
  " -absmax    = compute absolute maximum of input voxels [undetrended]\n"
  " -argmin    = index of minimum of input voxels [undetrended]\n"
+ " -argmin1   = index + 1 of minimum of input voxels [undetrended]\n"
  " -argmax    = index of maximum of input voxels [undetrended]\n"
+ " -argmax1   = index + 1 of maximum of input voxels [undetrended]\n"
  " -argabsmax = index of absolute maximum of input voxels [undetrended]\n"
+ " -argabsmax1= index +1 of absolute maximum of input voxels [undetrended]\n"
  " -duration  = compute number of points around max above a threshold\n"
  "              Use basepercent option to set limits\n"
  " -onset     = beginning of duration around max where value\n"
@@ -159,7 +173,42 @@ int main( int argc , char *argv[] )
  "               of the output, where 'd' is one of\n"
  "               'byte', 'short', or 'float' [DEFAULT=float]\n"
  " -basepercent nn = percentage of maximum for duration calculation\n"
+ " -mask mset   Means to use the dataset 'mset' as a mask:\n"
+ "                 Only voxels with nonzero values in 'mset'\n"
+ "                 will be printed from 'dataset'.  Note\n"
+ "                 that the mask dataset and the input dataset\n"
+ "                 must have the same number of voxels.\n"
+ " -mrange a b  Means to further restrict the voxels from\n"
+ "                 'mset' so that only those mask values\n"
+ "                 between 'a' and 'b' (inclusive) will\n"
+ "                 be used.  If this option is not given,\n"
+ "                 all nonzero values from 'mset' are used.\n"
+ "                 Note that if a voxel is zero in 'mset', then\n"
+ "                 it won't be included, even if a < 0 < b.\n"
+ " -cmask 'opts' Means to execute the options enclosed in single\n"
+ "                  quotes as a 3dcalc-like program, and produce\n"
+ "                  produce a mask from the resulting 3D brick.\n"
+ "       Examples:\n"
+ "        -cmask '-a fred+orig[7] -b zork+orig[3] -expr step(a-b)'\n"
+ "                  produces a mask that is nonzero only where\n"
+ "                  the 7th sub-brick of fred+orig is larger than\n"
+ "                  the 3rd sub-brick of zork+orig.\n"
+ "        -cmask '-a fred+orig -expr 1-bool(k-7)'\n"
+ "                  produces a mask that is nonzero only in the\n"
+ "                  7th slice (k=7); combined with -mask, you\n"
+ "                  could use this to extract just selected voxels\n"
+ "                  from particular slice(s).\n"
+ "       Notes: * You can use both -mask and -cmask in the same\n"
+ "                  run - in this case, only voxels present in\n"
+ "                  both masks will be dumped.\n"
+ "              * Only single sub-brick calculations can be\n"
+ "                  used in the 3dcalc-like calculations -\n"
+ "                  if you input a multi-brick dataset here,\n"
+ "                  without using a sub-brick index, then only\n"
+ "                  its 0th sub-brick will be used.\n"
+ "              * Do not use quotes inside the 'opts' string!\n"
  "\n"
+"\n"
  "If you want statistics on a detrended dataset and the option\n"
  "doesn't allow that, you can use program 3dDetrend first.\n"
  "\n"
@@ -193,6 +242,7 @@ int main( int argc , char *argv[] )
    nopt = 1 ;
    nbriks = 0 ;
    nmeths = 0 ;
+   verb = 0;
    while( nopt < argc && argv[nopt][0] == '-' ){
 
       /*-- methods --*/
@@ -302,14 +352,32 @@ int main( int argc , char *argv[] )
          nopt++ ; continue ;
       }
 
+      if( strcasecmp(argv[nopt],"-argmin1") == 0 ){
+         meth[nmeths++] = METH_ARGMIN1 ;
+         nbriks++ ;
+         nopt++ ; continue ;
+      }
+
       if( strcasecmp(argv[nopt],"-argmax") == 0 ){
          meth[nmeths++] = METH_ARGMAX ;
          nbriks++ ;
          nopt++ ; continue ;
       }
 
+      if( strcasecmp(argv[nopt],"-argmax1") == 0 ){
+         meth[nmeths++] = METH_ARGMAX1 ;
+         nbriks++ ;
+         nopt++ ; continue ;
+      }
+
       if( strcasecmp(argv[nopt],"-argabsmax") == 0 ){
          meth[nmeths++] = METH_ARGABSMAX ;
+         nbriks++ ;
+         nopt++ ; continue ;
+      }
+
+      if( strcasecmp(argv[nopt],"-argabsmax1") == 0 ){
+         meth[nmeths++] = METH_ARGABSMAX1;
          nbriks++ ;
          nopt++ ; continue ;
       }
@@ -349,6 +417,37 @@ int main( int argc , char *argv[] )
          nopt++ ; continue ;
       }
 
+      if( strncmp(argv[nopt],"-mask",5) == 0 ){
+         if( mask_dset != NULL )
+           ERROR_exit("Cannot have two -mask options!\n") ;
+         if( nopt+1 >= argc )
+           ERROR_exit("-mask option requires a following argument!\n");
+         mask_dset = THD_open_dataset( argv[++nopt] ) ;
+         if( mask_dset == NULL )
+           ERROR_exit("Cannot open mask dataset!\n") ;
+         if( DSET_BRICK_TYPE(mask_dset,0) == MRI_complex )
+           ERROR_exit("Cannot deal with complex-valued mask dataset!\n");
+         nopt++ ; continue ;
+      }
+
+      if( strncmp(argv[nopt],"-mrange",5) == 0 ){
+         if( nopt+2 >= argc )
+           ERROR_exit("-mrange option requires 2 following arguments!\n");
+         mask_bot = strtod( argv[++nopt] , NULL ) ;
+         mask_top = strtod( argv[++nopt] , NULL ) ;
+         if( mask_top < mask_top )
+           ERROR_exit("-mrange inputs are illegal!\n") ;
+         nopt++ ; continue ;
+      }
+      
+      if( strcmp(argv[nopt],"-cmask") == 0 ){  /* 16 Mar 2000 */
+         if( nopt+1 >= argc )
+            ERROR_exit("-cmask option requires a following argument!\n");
+         cmask = EDT_calcmask( argv[++nopt] , &ncmask, 0 ) ;
+         if( cmask == NULL ) ERROR_exit("Can't compute -cmask!\n");
+         nopt++ ; continue ;
+      }
+      
       if( strcasecmp(argv[nopt],"-autocorr") == 0 ){
          meth[nmeths++] = METH_AUTOCORR ;
          if( ++nopt >= argc ) ERROR_exit("-autocorr needs an argument!\n");
@@ -457,6 +556,40 @@ int main( int argc , char *argv[] )
    nbriks += ((DSET_NVALS(old_dset)-1) * addBriks);
    nbriks += ((DSET_NVALS(old_dset)  ) * fullBriks);
 
+   /* ------------- Mask business -----------------*/
+   if( mask_dset == NULL ){
+      mmm = NULL ;
+      if( verb ) 
+         INFO_message("%d voxels in the entire dataset (no mask)\n",
+                     DSET_NVOX(old_dset)) ;
+   } else {
+      if( DSET_NVOX(mask_dset) != DSET_NVOX(old_dset) )
+        ERROR_exit("Input and mask datasets are not same dimensions!\n");
+      mmm = THD_makemask( mask_dset , 0 , mask_bot, mask_top ) ;
+      mcount = THD_countmask( DSET_NVOX(old_dset) , mmm ) ;
+      if( mcount <= 0 ) ERROR_exit("No voxels in the mask!\n") ;
+      if( verb ) INFO_message("%d voxels in the mask\n",mcount) ;
+      DSET_delete(mask_dset) ;
+   }
+
+   if( cmask != NULL ){
+      if( ncmask != DSET_NVOX(old_dset) )
+        ERROR_exit("Input and cmask datasets are not same dimensions!\n");
+      if( mmm != NULL ){
+         for( ii=0 ; ii < DSET_NVOX(old_dset) ; ii++ ) 
+            mmm[ii] = (mmm[ii] && cmask[ii]) ;
+         free(cmask) ;
+         mcount = THD_countmask( DSET_NVOX(old_dset) , mmm ) ;
+         if( mcount <= 0 ) ERROR_exit("No voxels in the mask+cmask!\n") ;
+         if( verb ) INFO_message("%d voxels in the mask+cmask\n",mcount) ;
+      } else {
+         mmm = cmask ;
+         mcount = THD_countmask( DSET_NVOX(old_dset) , mmm ) ;
+         if( mcount <= 0 ) ERROR_exit("No voxels in the cmask!\n") ;
+         if( verb ) INFO_message("%d voxels in the cmask\n",mcount) ;
+      }
+   }
+
    /*------------- ready to compute new dataset -----------*/
 
    new_dset = MAKER_4D_to_typed_fbuc(
@@ -467,7 +600,8 @@ int main( int argc , char *argv[] )
                  0 ,              /* can't detrend in maker function  KRH 12/02*/
                  nbriks ,               /* number of briks */
                  STATS_tsfunc ,         /* timeseries processor */
-                 NULL                   /* data for tsfunc */
+                 NULL,                  /* data for tsfunc */
+                 mmm
               ) ;
 
    if( new_dset != NULL ){
@@ -656,6 +790,7 @@ static void STATS_tsfunc( double tzero, double tdelta ,
       break ;
 
       case METH_ARGMIN:
+      case METH_ARGMIN1:
       case METH_MIN:{
          register int ii,outdex=0 ;
          register float vm=ts[0] ;
@@ -665,8 +800,10 @@ static void STATS_tsfunc( double tzero, double tdelta ,
          }
          if (meth[meth_index] == METH_MIN) {
            val[out_index] = vm ;
+         } else if (meth[meth_index] == METH_ARGMIN) {
+            val[out_index] = outdex ;
          } else {
-           val[out_index] = outdex ;
+            val[out_index] = outdex +1;
          }
       }
       break ;
@@ -693,13 +830,17 @@ static void STATS_tsfunc( double tzero, double tdelta ,
       case METH_DURATION:
       case METH_ABSMAX:
       case METH_ARGMAX:
+      case METH_ARGMAX1:
       case METH_ARGABSMAX:
+      case METH_ARGABSMAX1:
       case METH_MAX:
       case METH_CENTDURATION:
       case METH_CENTROID:{
          register int ii, outdex=0 ;
          register float vm=ts[0] ;
-         if ((meth[meth_index] == METH_ABSMAX) || (meth[meth_index] == METH_ARGABSMAX)) {
+         if ( (meth[meth_index] == METH_ABSMAX) || 
+               (meth[meth_index] == METH_ARGABSMAX) ||
+               (meth[meth_index] == METH_ARGABSMAX1)  ) {
            vm = fabs(vm) ;
            for( ii=1 ; ii < npts ; ii++ ) {
              if( fabs(ts[ii]) > vm ) {
@@ -738,6 +879,11 @@ static void STATS_tsfunc( double tzero, double tdelta ,
             case METH_ARGMAX:
             case METH_ARGABSMAX:
               val[out_index] = outdex ;
+            break;
+            
+            case METH_ARGMAX1:
+            case METH_ARGABSMAX1:
+              val[out_index] = outdex +1;
             break;
 
             case METH_CENTROID:

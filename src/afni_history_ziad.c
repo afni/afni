@@ -65,6 +65,36 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 15 , FEB , 2010 , ZSS , "afni" , MINOR , TYPE_MODIFY ,
+   "Automatically setup range and sign for ROI colorbars",
+   NULL
+ } ,
+
+ { 15 , FEB , 2010 , ZSS , "3dTstat" , MINOR , TYPE_NEW_OPT ,
+   "-arg*1 options to keep from getting 0 in arg* output",
+   NULL
+ } ,
+
+ { 15 , FEB , 2010 , ZSS , "3dTstat" , MINOR , TYPE_NEW_OPT ,
+   "-*mask options to allow masking",
+   NULL
+ } ,
+
+ { 12 , FEB , 2010 , ZSS , "MapIcosahedron" , MINOR , TYPE_NEW_OPT ,
+   "-*_cut_surfaces to deal with bad triangles on standard flat surfaces",
+   NULL
+ } ,
+
+ { 12 , FEB , 2010 , ZSS , "3dTstat" , MINOR , TYPE_NEW_OPT ,
+   "Added -argmin1, -argmax1, -argabsmax1 options to increment argument by 1",
+   NULL
+ } ,
+
+ { 12 , FEB , 2010 , ZSS , "suma" , MINOR , TYPE_MODIFY ,
+   "Better setup of left and right flat surfaces.",
+   NULL
+ } ,
+
  { 14 , JAN , 2010 , ZSS , "3dLocalstat" , MINOR , TYPE_NEW_OPT ,
    "Added -rank and -frank options to 3dLocalstat",
    NULL

@@ -3810,16 +3810,16 @@ SUMA_Boolean SUMA_SurfaceMetrics_eng (
                         "and First Neightbor.\n"
                         "Cause: idcode mismatch.\n"
                         "Independent lists will\n"
-                        "be created." );
+                        "be created.\n" );
          SOinh = NULL;
       }  else if (SO->N_Node != SOinh->N_Node || 
                   SO->N_FaceSet != SOinh->N_FaceSet) {
-         SUMA_SL_Warn(  "(IGNORE for surface patches)\n"
+         SUMA_SL_Note(  "(IGNORE for surface with cuts)\n"
                         "Cannot inherit Edge List\n"
                         "and First Neightbor.\n"
                         "Cause: Node number mismatch.\n"
                         "Independent lists will\n"
-                        "be created.");
+                        "be created.\n");
          SOinh = NULL;      
       }
    }
@@ -3829,7 +3829,7 @@ SUMA_Boolean SUMA_SurfaceMetrics_eng (
          SUMA_SL_Warn(  "Cannot inherit MemberFaceSet\n"
                         "Cause: idcode mismatch.\n"
                         "Independent lists will\n"
-                        "be created." );
+                        "be created.\n" );
          SOinh = NULL;
       } else if ( SO->N_Node != SOinh->N_Node || 
                   SO->N_FaceSet != SOinh->N_FaceSet) {
@@ -3837,7 +3837,7 @@ SUMA_Boolean SUMA_SurfaceMetrics_eng (
                         "Cannot inherit MemberFaceSet\n"
                         "Cause: Node number mismatch.\n"
                         "Independent lists will\n"
-                        "be created.");
+                        "be created.\n");
          SOinh = NULL;      
       }
    }

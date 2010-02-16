@@ -136,7 +136,8 @@ int main( int argc , char *argv[] )
                     1 ,                    /* detrend (yes) */
                     nbin ,                 /* number of briks in output */
                     PGRAM_tsfunc ,         /* timeseries processor function */
-                    NULL                   /* extra data for tsfunc */
+                    NULL,                  /* extra data for tsfunc */
+                    NULL                   /* mask */
                  ) ;
 
    if( new_dset != NULL ){
