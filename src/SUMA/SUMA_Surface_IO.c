@@ -4377,7 +4377,7 @@ SUMA_Boolean SUMA_Ply_Write (char * f_name_in, SUMA_SurfaceObject *SO)
    
    
    The function will not overwrite pre-existing.
-   Written by Brenna Bargall
+   Written by Brenna Argall
 */
 SUMA_Boolean SUMA_FS_Write (char *fileNm, SUMA_SurfaceObject *SO, char *firstLine) 
 {
@@ -4645,7 +4645,7 @@ SUMA_Boolean SUMA_GIFTI_Write (  char *fileNm, SUMA_SurfaceObject *SO,
    
    
    The function will not overwrite pre-existing.
-   Written by Brenna Bargall
+   Written by Brenna Argall
 */
 SUMA_Boolean SUMA_BYU_Write (char *fileNm, SUMA_SurfaceObject *SO, int base1) 
 {

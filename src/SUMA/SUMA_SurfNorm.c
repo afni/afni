@@ -218,12 +218,13 @@ SUMA_SURF_NORM SUMA_SurfNorm (float *NodeList, int N_NodeList, int *FaceSetList,
             }
          }
       if (NotMember) {
-         sprintf (stmp, "(IGNORE for surface patches\n"
+         sprintf (stmp, "(IGNORE for surfaces with cuts\n"
                         "%d nodes (%f%% of total) are\n"
                         "not members of any FaceSets.\n"
                         "Their normals are set to the\n"
-                        "unit vector.\n", NotMember, (float)NotMember/(float)N_NodeList*100.0);
-         SUMA_SL_Warn(stmp);
+                        "unit vector.\n", 
+                        NotMember, (float)NotMember/(float)N_NodeList*100.0);
+         SUMA_SL_Note(stmp);
       }
       
    if (N_Memb) SUMA_free(N_Memb);

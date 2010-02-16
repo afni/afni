@@ -94,7 +94,7 @@ THD_3dim_dataset * MAKER_4D_to_typed_fbuc( THD_3dim_dataset * old_dset ,
                                            char * new_prefix , int new_datum ,
                                            int ignore , int detrend ,
                                            int nbrik , generic_func * user_func ,
-                                           void * user_data )
+                                           void * user_data , byte *mmm)
 {
    THD_3dim_dataset * new_dset ;  /* output dataset */
 
@@ -385,12 +385,15 @@ THD_3dim_dataset * MAKER_4D_to_typed_fbuc( THD_3dim_dataset * old_dset ,
 
       for( iv=0 ; iv < nbrik ; iv++ ) val[iv] = 0.0 ;
 
+      if (!mmm || mmm[ii]) { /* not the most efficient place to
+                          mask, but it is the least obtrusive */
 #if 0
       user_func( tzero,tdelta, nuse,fxar,ts_mean,ts_slope, user_data, nbrik,val );
 #else
       ufunc( tzero,tdelta, nuse,fxar,ts_mean,ts_slope, user_data, nbrik,val );
 #endif
-
+      }
+      
       for( iv=0 ; iv < nbrik ; iv++ ) fout[iv][ii] = val[iv] ;
 
    } /* end of outer loop over 1 voxels at a time */

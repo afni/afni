@@ -13,7 +13,7 @@
   see matlab/MakeCytoArchColMaps.m
 */
 static char CYTOARCH_ROI_256_CMD[] = {  
-      "CytoArch_ROI_256 "
+      "CytoArch_ROI_i256 "
       "#84392e #018f67 #776b1b #01d9d4 #9f35b8 "
       "#f7d202 #2100cf #d494f6 #bbfa2d #fd2d74 "
       "#90c648 #c4516e #fe28fd #a83d26 #4fda69 "
@@ -68,7 +68,7 @@ static char CYTOARCH_ROI_256_CMD[] = {
       "#1a1a1a "
 };
 static char CYTOARCH_ROI_256_GAP_CMD[] = {  
-      "CytoArch_ROI_256_gap "
+      "CytoArch_ROI_i256_gap "
       "#84392e #018f67 #776b1b #01d9d4 #9f35b8 "
       "#f7d202 #2100cf #d494f6 #bbfa2d #fd2d74 "
       "#90c648 #c4516e #fe28fd #a83d26 #4fda69 "
@@ -126,7 +126,7 @@ static char CYTOARCH_ROI_256_GAP_CMD[] = {
    see matlab/MakeROIColMaps.m
 */
 static char ROI_256_CMD[] = {  
-      "ROI_256 "
+      "ROI_i256 "
       "#41a2b0 #0a32b6 #df70f8 #78f525 #d80475 "
       "#cf7c23 #fbb060 #5df345 #fc3820 #d97d98 "
       "#15b76c #fd8b14 #83b6ed #a544fa #adbd02 "
@@ -182,7 +182,7 @@ static char ROI_256_CMD[] = {
 };
 
 static char ROI_128_CMD[] = {  
-      "ROI_128 "
+      "ROI_i128 "
       "#ed2b3e #67a84b #cb7941 #7a2eb0 #39af94 "
       "#57fa28 #fb7dfd #a46b42 #13e94c #4b70f0 "
       "#c8cf33 #02e79a #fcae11 #96d7fb #42358b "
@@ -211,7 +211,7 @@ static char ROI_128_CMD[] = {
       "#3ed78e #872cde #df5146 "
 };
 static char ROI_128_256_CMD[] = {  
-      "ROI_128 "
+      "ROI_i128 "
       "#ed2b3e #ed2b3e #67a84b #67a84b #cb7941 "
       "#cb7941 #7a2eb0 #7a2eb0 #39af94 #39af94 "
       "#57fa28 #57fa28 #fb7dfd #fb7dfd #a46b42 "
@@ -267,7 +267,7 @@ static char ROI_128_256_CMD[] = {
 };
 
 static char ROI_64_CMD[] = {  
-      "ROI_64 "
+      "ROI_i64 "
       "#c636f6 #05b7c2 #ac3d02 #0d7e3d #534fb4 "
       "#ac7119 #ab0a85 #0667a5 #17b80f #494be9 "
       "#860b3b #85c323 #6ddedd #3d888c #d5956d "
@@ -283,7 +283,7 @@ static char ROI_64_CMD[] = {
       "#49ff00 #3ed78e #872cde #df5146 "
 };
 static char ROI_64_256_CMD[] = {  
-      "ROI_64 "
+      "ROI_i64 "
       "#c636f6 #c636f6 #c636f6 #c636f6 #05b7c2 "
       "#05b7c2 #05b7c2 #05b7c2 #ac3d02 #ac3d02 "
       "#ac3d02 #ac3d02 #0d7e3d #0d7e3d #0d7e3d "
@@ -339,7 +339,7 @@ static char ROI_64_256_CMD[] = {
 };
 
 static char ROI_32_CMD[] = {  
-      "ROI_32 "
+      "ROI_i32 "
       "#43d344 #b06dc9 #df4e04 #83d16f #04f025 "
       "#a2fee4 #e80153 #ffa6f8 #96f718 #5e83c0 "
       "#eb02f9 #bf0005 #cfa736 #0a7fdf #f685a0 "
@@ -350,7 +350,7 @@ static char ROI_32_CMD[] = {
 };
 
 static char ROI_32_256_CMD[] = {  
-      "ROI_32 "
+      "ROI_i32 "
       "#43d344 #43d344 #43d344 #43d344 #43d344 "
       "#43d344 #43d344 #43d344 #b06dc9 #b06dc9 "
       "#b06dc9 #b06dc9 #b06dc9 #b06dc9 #b06dc9 "
@@ -681,7 +681,7 @@ mapping needed )to var name and add
   entry in pbar.c
 */
 static char FREESURFER_SEG_255_CMD[]={
-   "FreeSurfer_Seg_255 "
+   "FreeSurfer_Seg_i255 "
    "#8B8B8B #8B8B8B #8B8B8B #8B8B8B "
    "#8B8B8B #8B8B8B #8B8B8B #8B8B8B "
    "#8B8B8B #8B8B8B #8B8B8B #8B8B8B "

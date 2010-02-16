@@ -20,7 +20,7 @@ void SUMA_MapIcosahedron_usage ()
 "                      [-morph morphSurf] \n"
 "                      [-it numIt] [-prefix fout] \n"
 "                      [-NN_dset_map DSET]\n"
-"                      [-dset_map DSET]\n"
+"                      [-dset_map DSET] [-fix_cut_surfaces]\n"
 "                      [-verb] [-help] [...]\n"
 "\n"
 "Creates new versions of the original-mesh surfaces using the mesh\n"
@@ -135,6 +135,12 @@ void SUMA_MapIcosahedron_usage ()
 "       and icosahedron in output spec file.\n"
 "       (optional, default does not include original-mesh surfaces)\n"
 "   -verb: verbose.\n"
+"   -fix_cut_surfaces: Check and fix standard-mesh surfaces with cuts for \n"
+"                      cross-cut connections.\n"
+"   -check_cut_surfaces: (default) Check standard-mesh surfaces with cuts for \n"
+"                      cross-cut connections.\n"
+"   -forget_cut_surface: Do not check standard-mesh surfaces with cuts for \n"
+"                      cross-cut connections.\n"
 "   -write_nodemap: (default) Write a file showing the mapping of each \n"
 "                   node in the icosahedron to the closest\n"
 "                   three nodes in the original mesh.\n"
@@ -225,6 +231,8 @@ int main (int argc, char *argv[])
    SUMA_SurfaceObject *SO=NULL, *SO_morph=NULL, *SOw=NULL;
    void *writeFile=NULL, *vbufp=NULL;
    int oform=SUMA_ASCII_NIML, iform=SUMA_NO_DSET_FORMAT;
+   int correct_cuts = 0;
+   float minimum_sine=0.03;
    SUMA_DSET *dset=NULL, *dseto=NULL; 
    SUMA_M2M_STRUCT *M2M=NULL;
    SUMA_Boolean LocalHead = NOPE;
@@ -253,6 +261,10 @@ int main (int argc, char *argv[])
    }
    
    /* read in the options */
+   correct_cuts=-1; /* -1 just check , 0 do not check, 1 check and fix*/
+   minimum_sine = 0.03; /* minimum acceptable sine of angle,
+                           a limit of 0.03 corresponds to an angle less
+                           than 1.7 degrees */
    UserCenter = -1;
    Uctr[0] = 0.0; Uctr[1] = 0.0; Uctr[2] = 0.0;
    UserRadius = -1.0;
@@ -465,6 +477,25 @@ int main (int argc, char *argv[])
             brk = YUP;
             
          } 
+      if (!brk && (strcmp(argv[kar], "-fix_cut_surfaces") == 0 ))
+         {
+            correct_cuts = 1;
+            brk = YUP;
+            
+         }
+      if (!brk && (strcmp(argv[kar], "-check_cut_surfaces") == 0 ))
+         {
+            correct_cuts = -1;
+            brk = YUP;
+            
+         }
+      if (!brk && (strcmp(argv[kar], "-forget_cut_surfaces") == 0 ))
+         {
+            correct_cuts = 0;
+            brk = YUP;
+            
+         }
+        
       if (!brk && strcmp(argv[kar], "-prefix") == 0)
          {
             kar ++;
@@ -718,12 +749,12 @@ int main (int argc, char *argv[])
             ++ii;
          }
          if (ifound < 0) {
-            SUMA_S_Notev("Adding -NN_dset_map %s\n", brainSpec.LabelDset[i]);
+            SUMA_S_Notev("Adding -NN_dset_map %s\n\n", brainSpec.LabelDset[i]);
             in_name[N_in_name] = brainSpec.LabelDset[i];
             in_mode[N_in_name] = 1;
             ++N_in_name;
          } else {
-            SUMA_S_Notev("dset %s already on list\n", brainSpec.LabelDset[i]);
+            SUMA_S_Notev("dset %s already on list\n\n", brainSpec.LabelDset[i]);
          }
       }
       /* NOTICE: leave the IDcode untouched, it is a convenient way
@@ -835,9 +866,10 @@ int main (int argc, char *argv[])
    
    /* calculate extras for SO_morph */
    if (SO_morph->EL==NULL) 
-      SUMA_SurfaceMetrics(SO_morph, "EdgeList", NULL);
+      SUMA_SurfaceMetrics_eng(SO_morph, "EdgeList", NULL, 0, SUMAg_CF->DsetList);
    if (SO_morph->MF==NULL) 
-      SUMA_SurfaceMetrics(SO_morph, "MemberFace", NULL);    
+      SUMA_SurfaceMetrics_eng(SO_morph, "MemberFace", NULL, 
+                              0, SUMAg_CF->DsetList);    
    if (!SO_morph->Label) {
       SO_morph->Label =  SUMA_SurfaceFileName(SO_morph, NOPE);
    }
@@ -1231,6 +1263,99 @@ int main (int argc, char *argv[])
          exit (1);
       }            
       SOw->FileType = SO->FileType;
+      
+      if (SO->FaceSetDim == 3 && correct_cuts) {
+         int n_fixes = 0, eu=0;
+         SUMA_EULER_SO(SOw, eu);
+         if (eu != 2) {/* check for bad triangles */
+            do {
+               int N_bounds;
+               int i, n1, n2, n3, *boundt=NULL, ilast=0;
+               float *p1, *p2, *p3;
+               double s[3], c[3], *a=NULL;
+
+               if (!(boundt = (int *)SUMA_calloc(SOw->N_FaceSet, sizeof(int)))) {
+                  SUMA_S_Err("Failed to allocate");
+                  if (icoSurf) SUMA_Free_Surface_Object(icoSurf);
+                  if (SOw) SUMA_free (SOw);
+                  SCRUBIT;
+                  exit (1);
+               }
+               /* get flag of boundary triangles */
+               N_bounds = SUMA_BoundaryTriangles (SOw, boundt, 1);
+               n_fixes = 0;
+               i=0;
+               while ( i<SOw->N_FaceSet) {
+                  if ( boundt[i] > 0) {
+                     n1 = SOw->FaceSetList[3*i]; 
+                     n2 = SOw->FaceSetList[3*i+1]; 
+                     n3 = SOw->FaceSetList[3*i+2];
+                     p1 = &(SOw->NodeList[3*n1]);
+                     p2 = &(SOw->NodeList[3*n2]);
+                     p3 = &(SOw->NodeList[3*n3]);
+                     if (!SUMA_TriTrig(p1, p2, p3, s, c, a)) {
+                        SUMA_S_Err("Failed in SUMA_TriTrig");
+                        exit(1);
+                     }
+                     if (SUMA_ABS(s[0]) < minimum_sine ||
+                         SUMA_ABS(s[1]) < minimum_sine ||
+                         SUMA_ABS(s[2]) < minimum_sine ) { 
+                        if (correct_cuts > 0) {
+                           /* mark triangle for removal  */
+                           SOw->FaceSetList[3*i] = -1;
+                           SOw->FaceSetList[3*i+1] = -2;
+                           SOw->FaceSetList[3*i+2] = -3; 
+                        }
+                        ++n_fixes;
+                     } 
+                  } 
+                  ++i;
+               }
+               if (n_fixes) {
+                  if (correct_cuts > 0) {
+                     i=0;
+                     while ( i<SOw->N_FaceSet) {
+                        if (SOw->FaceSetList[3*i  ] == -1 &&
+                            SOw->FaceSetList[3*i+1] == -2  &&
+                            SOw->FaceSetList[3*i+2] == -3 ) {
+                           ilast = SOw->N_FaceSet - 1;
+                           SOw->FaceSetList[3*i  ] = SOw->FaceSetList[3*ilast  ];
+                           SOw->FaceSetList[3*i+1] = SOw->FaceSetList[3*ilast+1];
+                           SOw->FaceSetList[3*i+2] = SOw->FaceSetList[3*ilast+2];
+                           --SOw->N_FaceSet;
+                        } else {
+                           ++i;
+                        }
+                     }
+                     /* Need to recompute EL, and FN, and try one more time */
+                     SUMA_free_Edge_List(SOw->EL); SOw->EL=NULL;
+                     SUMA_Free_FirstNeighb(SOw->FN); SOw->FN=NULL;
+                     SUMA_SurfaceMetrics_eng( SOw, "EdgeList", NULL, 
+                                              0, SUMAg_CF->DsetList );
+                     SUMA_S_Notev(
+                        "%d very obtuse boundary triangles were clipped\n"
+                        " from the standard mesh version of %s.\n"
+                        "    Repeating ...\n", 
+                        n_fixes, SO->Label);
+                  } else {
+                     /* just warn and leave */
+                     SUMA_S_Warnv("Standard mesh version of cut surface %s \n"
+                                  "may have edges linking nodes on either side\n"
+                              "of the cut. About %d triangles may be affected.\n"
+                                  "Consider using option -fix_cut_surfaces to\n"
+                                  "remove such links.\n\n", SO->Label, n_fixes);
+                     n_fixes = 0;
+                  }
+               } else {
+                  if (verb) {
+                     SUMA_S_Note("No baldly obtuse triangles found\n");
+                  }
+               }
+               if (boundt) SUMA_free(boundt); boundt=NULL;
+            } while (n_fixes);
+         } 
+      } 
+      
       /*smooth surface, if indicated*/
       /*(only for smwm, pial or white surfaces)*/
       if ( smooth && SO->AnatCorrect ) { 

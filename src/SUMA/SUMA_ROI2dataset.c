@@ -465,7 +465,7 @@ int main (int argc,char *argv[])
       }
 
       if (olabel) {
-         if (!(SUMA_dset_to_Label_dset(dset, cmap))) {
+         if (!(SUMA_dset_to_Label_dset_cmap(dset, cmap))) {
             SUMA_S_Err("Failed to make change");
             exit(1);
          }

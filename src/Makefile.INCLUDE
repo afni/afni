@@ -163,7 +163,8 @@ SCRIPTS = @4Daverage @CommandGlobb @GetAfniOrient @DTI_studio_reposition        
           @ShowDynamicRange AFNI_Batch_R @DO.examples demo.fixed.niml.do          \
           demo.mobile.niml.do @Spharm.examples @GetAfniBin @fast_roi              \
           @make_plug_diff @build_afni_Xlib @update.afni.binaries @ROI_Corr_Mat    \
-          @FS_roi_label @demo_prompt @ScriptCheck @NoPound @Reorder 3dMEMA 
+          @FS_roi_label @demo_prompt @ScriptCheck @NoPound @Reorder    \
+          3dMEMA @DiceMetric
 
 PY_DIR = python_scripts
 PY_SCRIPTS = afni_base.py @DoPerRoi.py
@@ -486,9 +487,10 @@ dsetdup:dsetdup.o
 	$(RM) $@
 	$(CC) -o 3dTshift 3dTshift.o $(LFLAGS) $(LLIBS) -lf2c -lmri
 
-3dTstat:3dTstat.o
+3dTstat:3dTstat.o parser.o parser_int.o
 	$(RM) $@
-	$(CC) -o 3dTstat 3dTstat.o $(LFLAGS) $(LLIBS)
+	$(CC) -o 3dTstat 3dTstat.o parser.o parser_int.o $(LFLAGS) \
+          -lmri -lf2c $(LLIBS)
 
 3dTfitter:3dTfitter.o
 	$(RM) $@
