@@ -22,6 +22,22 @@ parse.name <- function (filename, verb=0) {
 }
 
 parse.AFNI.name <- function(filename, verb = 0) {
+  if (filename == 'self_test') { #Secret testing flag
+      note.AFNI('Function running in test mode');
+      show.AFNI.name(parse.AFNI.name('DePath/DePrefix+acpc', verb))
+      show.AFNI.name(parse.AFNI.name('DePath/DePrefix+acpc.', verb))
+      show.AFNI.name(parse.AFNI.name('DePath/DePrefix+acpc.HEAD', verb))
+      show.AFNI.name(parse.AFNI.name('DePath/DePrefix+acpc.BRIK.gz', verb))
+      show.AFNI.name(parse.AFNI.name('DePath/DePrefix+acpc.HEAD[23]', verb))
+      show.AFNI.name(
+         parse.AFNI.name('DePath/DePrefix+acpc.HEAD[DeLabel]{DeRow}', verb))
+      show.AFNI.name(
+         parse.AFNI.name('DePath/DePrefix+acpc[DeLabel]{DeRow}', verb))
+      #This one fails now, not sure if it is a legal name anyway
+      show.AFNI.name(
+         parse.AFNI.name('DePath/DePrefix+acpc.[DeLabel]{DeRow}', verb))
+      return(NULL)
+  }
   an <- list()
   an$view <- NULL
   an$prefix <- NULL
@@ -54,7 +70,6 @@ parse.AFNI.name <- function(filename, verb = 0) {
   
   #deal with sub-brick and range selectors
   selecs <- strsplit(ext,"\\[|\\{|<")[[1]];
-  
   ext <- selecs[1];
   for (ss in selecs[2:length(selecs)]) {
    if (length(grep("]",ss))) {
@@ -67,17 +82,34 @@ parse.AFNI.name <- function(filename, verb = 0) {
   } 
 
   if (ext == "head") {
-    an$head <- paste(c(fileparts[-length(fileparts)],"HEAD"),collapse=".")
-    an$brik <- paste(c(fileparts[-length(fileparts)],bext),collapse=".")
-  } else if (ext == "brik") {
-    an$head <- paste(c(fileparts[-length(fileparts)],"HEAD"),collapse=".")
-    an$brik <- paste(c(fileparts[-length(fileparts)],bext),collapse=".")
+    if (an$compress == '') {
+      keeep <- c(1:(length(fileparts)-1))
+    } else {
+      keeep <- c(1:(length(fileparts)-2))
+    }
+      an$head <- paste(c(fileparts[keeep],"HEAD"),collapse=".")
+      an$brik <- paste(c(fileparts[keeep],bext),collapse=".")
+   } else if (ext == "brik") {
+    if (an$compress == '') {
+      keeep <- c(1:(length(fileparts)-1))
+    } else {
+      keeep <- c(1:(length(fileparts)-2))
+    }
+    an$head <- paste(c(fileparts[keeep],"HEAD"),collapse=".")
+    an$brik <- paste(c(fileparts[keeep],bext),collapse=".")
   } else {
-    
-    an$head <- paste(sub('\\.$','',filename),".HEAD",sep="")
-    an$brik <- paste(sub('\\.$','',filename),".BRIK",sep="")
+    if (ext == '') {
+      mm  <- filename
+    } else {
+      mm <- ext
+    }
+    an$head <- paste(sub('\\.$','',mm),".HEAD",sep="")
+    an$brik <- paste(sub('\\.$','',mm),".BRIK",sep="")
   }
   
+  if (verb > 2) {
+   browser()
+  }
   
   vp <- strsplit(an$head, ".HEAD|\\+")[[1]];
   an$prefix <- vp[1];
@@ -155,6 +187,7 @@ show.AFNI.name <- function(an) {
         'brsel=', an$brsel, '\n',
         'rosel=', an$rosel, '\n',
         'rasel=', an$rasel, '\n',
+        'compr=', an$compress, '\n',
         'exist=', exists.AFNI.name(an), '\n');
 }
 
