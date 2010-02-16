@@ -3243,9 +3243,9 @@ SUMA_Boolean SUMA_IsCmapOKForLabelDset(SUMA_DSET *dset, SUMA_COLOR_MAP *cmap)
 /* Change a dataset with one integer valued column to a 
   Label type dset. Note that dset itself is modified.
 */
-int SUMA_dset_to_Label_dset(SUMA_DSET *dset, SUMA_COLOR_MAP *cmap) 
+int SUMA_dset_to_Label_dset_cmap(SUMA_DSET *dset, SUMA_COLOR_MAP *cmap) 
 {
-   static char FuncName[]={"SUMA_dset_to_Label_dset"};
+   static char FuncName[]={"SUMA_dset_to_Label_dset_cmap"};
    int ctp, vtp, i, *unq=NULL, N_unq=0;
    NI_group *NIcmap=NULL, *ngr=NULL;
    char stmp[256], *lbli=NULL, *attname=NULL;
@@ -3253,53 +3253,8 @@ int SUMA_dset_to_Label_dset(SUMA_DSET *dset, SUMA_COLOR_MAP *cmap)
    
    SUMA_ENTRY;
    
-   if (!dset || !dset->dnel || !dset->inel) SUMA_RETURN(0);
-   
-   if (SDSET_VECNUM(dset) != 1) { 
-      SUMA_LH("Too many columns");
-      SUMA_RETURN(0); 
-   }
-   
-   if (SUMA_is_Label_dset(dset, NULL)) { 
-      SUMA_LH("is label already");
-   } else {
-      /* Must have one column that is an integer value */
-      for (i=0; i<1; ++i) {
-         ctp = SUMA_TypeOfDsetColNumb(dset, i); 
-         if (LocalHead) {
-            fprintf(SUMA_STDERR,"%s: ctp(%d) = %d (%d)\n",
-                  FuncName, i, ctp, SUMA_NODE_ILABEL);
-         }
-         if (ctp != SUMA_NODE_ILABEL) {
-            if (SUMA_ColType2TypeCast(ctp) != SUMA_int) {
-               SUMA_S_Err( "Cannot make the change. "
-                           "Only integer columns supported");
-               SUMA_RETURN(0);
-            }
-            /* change the column type */
-            lbli = SUMA_DsetColLabelCopy(dset, i, 0);
-            if (!SUMA_AddDsetColAttr ( dset, lbli , 
-                                 SUMA_NODE_ILABEL, NULL, 
-                                 i, 1)) {
-               SUMA_S_Err("Failed chaning attribute");
-               SUMA_RETURN(0);
-            }
-            if (lbli) SUMA_free(lbli); lbli = NULL;
-         }
-      }
-      /* and dset_type */
-      NI_set_attribute( dset->ngr,"dset_type", 
-                        SUMA_Dset_Type_Name(SUMA_NODE_LABEL));
-      attname = SUMA_append_string(SDSET_TYPE_NAME(dset),"_data");
-      NI_set_attribute( dset->dnel,"data_type",
-                        attname);
-      SUMA_free(attname); attname = NULL;
-      attname = SUMA_append_string(SDSET_TYPE_NAME(dset),"_node_indices");
-      NI_set_attribute( dset->inel,"data_type",
-                        attname);
-      SUMA_free(attname); attname = NULL;
-   }
-   
+   if (!SUMA_dset_to_Label_dset(dset)) { SUMA_RETURN(0); }
+         
    /* Prep the colormap. */
    {
       if (!(ngr = SUMA_CreateCmapForLabelDset(dset, cmap))) {

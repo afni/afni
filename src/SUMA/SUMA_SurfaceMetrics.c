@@ -134,6 +134,9 @@ void usage_SUMA_SurfaceMetrics (SUMA_GENERIC_ARGV_PARSE *ps)
 "      -boundary_nodes: Output nodes that form a boundary of a surface\n"
 "                   i.e. they form edges that belong to one and only\n"
 "                   one triangle.\n"
+"      -boundary_triangles: Output triangles that form a boundary of a surface\n"
+"                   i.e. they contain edges that belong to one and only\n"
+"                   one triangle.\n"
 "      -internal_nodes: Output nodes that are not a boundary.\n"
 "                   i.e. they form edges that belong to more than\n"
 "                   one triangle.\n"
@@ -225,7 +228,8 @@ int main (int argc,char *argv[])
                   Do_cord, Do_TriNorm, Do_TriSine, Do_TriCosine,
                   Do_TriCoSine, Do_TriAngles, Do_PolDec,
                   Do_NodeAngles, Do_cen, Do_xmat, Do_inv,
-                  Do_NodeNorm, Do_en, Do_in, LocalHead = NOPE;  
+                  Do_NodeNorm, Do_en, Do_in, Do_et; 
+   SUMA_Boolean   LocalHead = NOPE;  
    SUMA_GENERIC_ARGV_PARSE *ps=NULL;
    
 	SUMA_STANDALONE_INIT;
@@ -268,6 +272,7 @@ int main (int argc,char *argv[])
    Do_TriAngles = NOPE;
    Do_NodeAngles = NOPE;
    Do_en = NOPE;
+   Do_et = NOPE;
    Do_in = NOPE;
    quiet = 0;
    randseed = 12345;
@@ -490,6 +495,11 @@ int main (int argc,char *argv[])
          brk = YUP;
       }
       
+      if (!brk && (strcmp(argv[kar], "-boundary_triangles") == 0)) {
+         Do_et = YUP;
+         brk = YUP;
+      }
+      
       if (!brk && (strcmp(argv[kar], "-internal_nodes") == 0)) {
          Do_in = YUP;
          brk = YUP;
@@ -513,7 +523,7 @@ int main (int argc,char *argv[])
    if (!strlen(MetricList->s) && 
       !Do_vol && !Do_sph && !Do_cord && 
       !Do_TriNorm && !Do_NodeNorm && 
-      !Do_en && !Do_in && !closest_to_xyz &&
+      !Do_en && !Do_et && !Do_in && !closest_to_xyz &&
       !Do_TriSine && !Do_TriCosine && !Do_TriCoSine && 
       !Do_TriAngles && !Do_NodeAngles) {
       SUMA_S_Err("No Metrics specified.\nNothing to do.\n");
@@ -1486,6 +1496,36 @@ int main (int argc,char *argv[])
       }
       SUMA_free(enmask); enmask = NULL;
       
+      fclose(fout); fout = NULL;
+   }
+   
+   if (Do_et) {
+      int N_b, *boundt=(int*)SUMA_calloc(SO->N_FaceSet, sizeof(int));
+      
+      N_b = SUMA_BoundaryTriangles(SO, boundt, 0);
+      SUMA_S_Note("Writing edge triangles...");
+      
+      sprintf(OutName, "%s.boundary_triangles", OutPrefix);
+      if (!THD_ok_overwrite() && SUMA_filexists(OutName)) {
+         SUMA_S_Err("Area output file exists.\nWill not overwrite.");
+         exit(1);
+      }
+      
+      fout = fopen(OutName,"w");
+      if (!fout) {
+         SUMA_S_Err( "Failed to open file for writing.\n"
+                     "Check your permissions.\n");
+         exit(1);
+      }
+      
+      fprintf (fout,"#Boundary Triangles Area\n");
+      fprintf (fout,"#BT = Index of boundary triangle\n");
+      fprintf (fout,"#BT\n\n");
+      if (histnote) fprintf (fout,"#History:%s\n", histnote);
+      for (i=0; i < N_b; ++i) {
+         fprintf (fout,"%d\n",  boundt[i]);
+      }  
+      if (boundt) SUMA_free(boundt); boundt=NULL;
       fclose(fout); fout = NULL;
    }
    

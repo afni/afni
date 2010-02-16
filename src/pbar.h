@@ -116,6 +116,9 @@ char * PBAR_get_bigmap( MCW_pbar * ) ;                      /* 03 Feb 2003 */
 int PBAR_define_bigmap( char *cmd ) ;                       /* 07 Feb 2003 */
 void PBAR_flip( MCW_pbar * ) ;                              /* 07 Feb 2004 */
 
+extern int AFNI_set_func_range_nval( XtPointer *vp_im3d, float val);
+                                                            /* 15 Feb 2010 */
+
 #ifdef  __cplusplus
 }
 #endif

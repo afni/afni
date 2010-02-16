@@ -141,6 +141,7 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
    static char FuncName[]={"SUMA_Alloc_SurfaceViewer_Struct"};
    SUMA_SurfaceViewer *SV=NULL, *SVv=NULL;
    int i=-1, j=-1, n=-1, iii=-1;
+   float a[3];
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -200,11 +201,22 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
          memset(&(SV->GVS[j]), 0, sizeof(SUMA_GEOMVIEW_STRUCT));
          switch (j) {
             case SUMA_2D_Z0:
+            case SUMA_2D_Z0L:
+               /* Default top view, rotate by nothing */
+               #if 0 /* ZSS: Feb 2010 */
                SV->GVS[j].currentQuat[0] = 0.252199;
                SV->GVS[j].currentQuat[1] = -0.129341;
                SV->GVS[j].currentQuat[2] = -0.016295;
                SV->GVS[j].currentQuat[3] = 0.958854;
-
+               #else
+               if (j == SUMA_2D_Z0) {
+                  a[0] = 1.0; a[1] = 0.0; a[2] = 0.0;
+                  axis_to_quat(a, 0, SV->GVS[j].currentQuat);
+               } else {
+                  a[0] = 0.0; a[1] = 0.0; a[2] = 1.0;
+                  axis_to_quat(a, SUMA_PI, SV->GVS[j].currentQuat);
+               }
+               #endif
                SV->GVS[j].ApplyMomentum = False;
 
                SV->GVS[j].MinIdleDelta = 1;
@@ -261,7 +273,8 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
                SV->GVS[j].translateVec[1] = 0.0;
                break;
             default:
-               fprintf(SUMA_STDERR,"Error %s: Undefined viewing mode.\n", FuncName);
+               fprintf(SUMA_STDERR,
+                        "Error %s: Undefined viewing mode.\n", FuncName);
                SUMA_RETURN (NULL);
                
          }
@@ -1035,7 +1048,8 @@ SUMA_Boolean SUMA_UpdateViewPoint ( SUMA_SurfaceViewer *SV,
                if (!SUMA_IS_GEOM_SYMM(so_op->isSphere)) {
                   SUMA_COPY_VEC(so_op->Center, UsedCenter, 3, float, float); 
                } else {
-                  SUMA_COPY_VEC(so_op->SphereCenter, UsedCenter, 3, float, float); 
+                  SUMA_COPY_VEC( so_op->SphereCenter, UsedCenter, 3, 
+                                 float, float); 
                }
             }
             if (so_op->ViewCenterWeight) {
@@ -1056,20 +1070,28 @@ SUMA_Boolean SUMA_UpdateViewPoint ( SUMA_SurfaceViewer *SV,
       SV->GVS[SV->StdView].ViewCenter[2] = NewCenter[2]/(float)TotWeight;
       SV->GVS[SV->StdView].ViewFrom[0] = SV->GVS[SV->StdView].ViewCenter[0];
       SV->GVS[SV->StdView].ViewFrom[1] = SV->GVS[SV->StdView].ViewCenter[1];
-      SV->GVS[SV->StdView].ViewFrom[2] = SV->GVS[SV->StdView].ViewCenter[2]+SUMA_DEFAULT_VIEW_FROM;   
+      SV->GVS[SV->StdView].ViewFrom[2] = SV->GVS[SV->StdView].ViewCenter[2]+
+                                             SUMA_DEFAULT_VIEW_FROM;   
       SV->GVS[SV->StdView].ViewDistance = SUMA_DEFAULT_VIEW_FROM;   
       
    } else
    {/* default back to o.o, o.o, o.o */
-      SV->GVS[SV->StdView].ViewCenter[0] = SV->GVS[SV->StdView].ViewCenter[1] = SV->GVS[SV->StdView].ViewCenter[2] = 0.0;
-      SV->GVS[SV->StdView].ViewFrom[0] = SV->GVS[SV->StdView].ViewFrom[1] = 0.0; SV->GVS[SV->StdView].ViewFrom[2] = SUMA_DEFAULT_VIEW_FROM;
+      SV->GVS[SV->StdView].ViewCenter[0] = 
+      SV->GVS[SV->StdView].ViewCenter[1] = 
+      SV->GVS[SV->StdView].ViewCenter[2] = 0.0;
+      SV->GVS[SV->StdView].ViewFrom[0] = 
+      SV->GVS[SV->StdView].ViewFrom[1] = 0.0; 
+      SV->GVS[SV->StdView].ViewFrom[2] = SUMA_DEFAULT_VIEW_FROM;
       SV->GVS[SV->StdView].ViewDistance = SUMA_DEFAULT_VIEW_FROM;   
    }
    
       /* Store that info in case subjects change things */
-      SV->GVS[SV->StdView].ViewCenterOrig[0] = SV->GVS[SV->StdView].ViewCenter[0];
-      SV->GVS[SV->StdView].ViewCenterOrig[1] = SV->GVS[SV->StdView].ViewCenter[1];
-      SV->GVS[SV->StdView].ViewCenterOrig[2] = SV->GVS[SV->StdView].ViewCenter[2];
+      SV->GVS[SV->StdView].ViewCenterOrig[0] = 
+                              SV->GVS[SV->StdView].ViewCenter[0];
+      SV->GVS[SV->StdView].ViewCenterOrig[1] = 
+                              SV->GVS[SV->StdView].ViewCenter[1];
+      SV->GVS[SV->StdView].ViewCenterOrig[2] = 
+                              SV->GVS[SV->StdView].ViewCenter[2];
       SV->GVS[SV->StdView].ViewFromOrig[0] = SV->GVS[SV->StdView].ViewFrom[0];
       SV->GVS[SV->StdView].ViewFromOrig[1] = SV->GVS[SV->StdView].ViewFrom[1];
       SV->GVS[SV->StdView].ViewFromOrig[2] = SV->GVS[SV->StdView].ViewFrom[2];
@@ -2820,7 +2842,8 @@ char * SUMA_CommonFieldsInfo (SUMA_CommonFields *cf, int detail)
 
 /*!
    This function determines the most suitable standard view of a surface viewer
-   This is based on the surface objects being displayed and their embedding dimension.
+   This is based on the surface objects being displayed and 
+   their embedding dimension.
    The highest Embedding dimension of the lot determines what view to use 
    ans = SUMA_BestStandardView (SUMA_SurfaceViewer *sv, SUMA_DO *dov, int N_dov)
    
@@ -2830,38 +2853,48 @@ char * SUMA_CommonFieldsInfo (SUMA_CommonFields *cf, int detail)
    \ret ans (SUMA_STANDARD_VIEWS) recommended view
    
 */   
-SUMA_STANDARD_VIEWS SUMA_BestStandardView (SUMA_SurfaceViewer *sv, SUMA_DO *dov, int N_dov)
+SUMA_STANDARD_VIEWS SUMA_BestStandardView (  SUMA_SurfaceViewer *sv, 
+                                             SUMA_DO *dov, int N_dov)
 {
    static char FuncName[] = {"SUMA_BestStandardView"};
    SUMA_STANDARD_VIEWS ans;
    int i, maxdim = -1, is;
    SUMA_SurfaceObject *SO = NULL;
+   SUMA_SO_SIDE side=SUMA_NO_SIDE;
    
    SUMA_ENTRY;
 
    is = sv->iState;
    if (is < 0) {
       fprintf(SUMA_STDERR, "Error %s: sv->iState undefined.\n", FuncName);
-      SUMA_RETURN (SUMA_Dunno); 
+      SUMA_RETURN (SUMA_N_STANDARD_VIEWS); 
    }
    
+   side = SUMA_LEFT;
    for (i=0; i<sv->VSv[is].N_MembSOs; ++i) {   
       SO = (SUMA_SurfaceObject *)(dov[sv->VSv[is].MembSOs[i]].OP);
       if (SO == NULL) {
          fprintf(SUMA_STDERR,"Error %s: SO is null ???\n.", FuncName);
-         SUMA_RETURN (SUMA_Dunno);
+         SUMA_RETURN (SUMA_N_STANDARD_VIEWS);
       }
       if (SO->EmbedDim > maxdim) maxdim = SO->EmbedDim;
+      if (SO->Side != SUMA_LEFT) side = SUMA_RIGHT;
    }
    
    switch (maxdim) {
       case 2:
-         SUMA_RETURN (SUMA_2D_Z0);
+         if (side == SUMA_LEFT) { /* left flat maps*/
+            SUMA_RETURN (SUMA_2D_Z0L);
+         } else { /* default */
+            SUMA_RETURN (SUMA_2D_Z0);
+         }
       case 3:
          SUMA_RETURN(SUMA_3D);
       default:
-         fprintf(SUMA_STDERR,"Error %s: No provision for such a maximum embedding dimension of %d.\n", FuncName, maxdim);
-         SUMA_RETURN(SUMA_Dunno);
+         fprintf(SUMA_STDERR,
+            "Error %s: No provision for a maximum embedding dimension of %d.\n", 
+            FuncName, maxdim);
+         SUMA_RETURN(SUMA_N_STANDARD_VIEWS);
    }
 
 }
@@ -3072,7 +3105,8 @@ SUMA_Boolean SUMA_SetupSVforDOs (SUMA_SurfSpecFile Spec, SUMA_DO *DOv, int N_DOv
    if (LocalHead)   fprintf(SUMA_STDERR,"%s: Done.\n", FuncName);
 
    /* register all non SO objects */
-   if (LocalHead) fprintf(SUMA_STDERR,"%s: Registering All Non SO ...", FuncName);
+   if (LocalHead) 
+      fprintf(SUMA_STDERR,"%s: Registering All Non SO ...", FuncName);
       for (kar=0; kar < N_DOv; ++kar) {
          if (!SUMA_isSO(DOv[kar]))
          { 
@@ -3089,18 +3123,24 @@ SUMA_Boolean SUMA_SetupSVforDOs (SUMA_SurfSpecFile Spec, SUMA_DO *DOv, int N_DOv
    /* decide what the best state is */
    if (viewopt & UPDATE_STANDARD_VIEW_MASK) {
       cSV->StdView = SUMA_BestStandardView (cSV, DOv, N_DOv);
-      if (LocalHead) fprintf(SUMA_STDOUT,"%s: Standard View Now %d\n", FuncName, cSV->StdView);
-      if (cSV->StdView == SUMA_Dunno) {
-         fprintf(SUMA_STDERR,"Error %s: Could not determine the best standard view. Choosing default SUMA_3D\n", FuncName);
+      if (LocalHead) 
+         fprintf(SUMA_STDOUT,
+                  "%s: Standard View Now %d\n", FuncName, cSV->StdView);
+      if (cSV->StdView == SUMA_N_STANDARD_VIEWS) {
+         fprintf(SUMA_STDERR,
+                  "Error %s: Could not determine the best standard view. "
+                  "Choosing default SUMA_3D\n", FuncName);
          cSV->StdView = SUMA_3D;
       }
    }
    
    if (viewopt & UPDATE_ROT_MASK) {
       /* Set the Rotation Center  */
-      if (LocalHead) fprintf(SUMA_STDOUT,"%s: Setting the Rotation Center \n", FuncName);
+      if (LocalHead) 
+         fprintf(SUMA_STDOUT,"%s: Setting the Rotation Center \n", FuncName);
       if (!SUMA_UpdateRotaCenter(cSV, DOv, N_DOv)) {
-         fprintf (SUMA_STDERR,"Error %s: Failed to update center of rotation\n", FuncName);
+         fprintf (SUMA_STDERR,
+                  "Error %s: Failed to update center of rotation\n", FuncName);
          SUMA_RETURN(NOPE);
       }
    }

@@ -303,102 +303,102 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    /*---------------- set titles and call point ----------------*/
 
    plint = PLUTO_new_interface( "Hilbert Delay98" ,
-                                "Time delay between FMRI and reference time series" ,
-                                helpstring ,
-                                PLUGIN_CALL_VIA_MENU , DELAY_main  ) ;
+               "Time delay between FMRI and reference time series" ,
+               helpstring ,
+               PLUGIN_CALL_VIA_MENU , DELAY_main  ) ;
 
    global_plint = plint ;  /* make global copy */
 
    /*--------- 1st line: Input dataset ---------*/
 
    PLUTO_add_option( plint ,
-                     "Data" ,  /* label at left of input line */
-                     "Data" ,  /* tag to return to plugin */
-                     TRUE       /* is this mandatory? */
+    "Data" ,  /* label at left of input line */
+    "Data" ,  /* tag to return to plugin */
+    TRUE       /* is this mandatory? */
                    ) ;
 
    PLUTO_add_dataset(  plint ,
-                       "3D+time" ,        /* label next to button   */
-                       ANAT_ALL_MASK ,    /* take only EPI datasets */
-                       FUNC_ALL_MASK ,    /*  No fim funcs   */
-                       DIMEN_4D_MASK |    /* need 3D+time datasets  */
-                       BRICK_ALLREAL_MASK /* need real-valued datasets */
-                    ) ;
+      "3D+time" ,        /* label next to button   */
+      ANAT_ALL_MASK ,    /* take only EPI datasets */
+      FUNC_ALL_MASK ,    /*  No fim funcs   */
+      DIMEN_4D_MASK |    /* need 3D+time datasets  */
+      BRICK_ALLREAL_MASK /* need real-valued datasets */
+   ) ;
 						 
 	PLUTO_add_number( plint ,
-                    "Nort" ,  /* label next to chooser */
-                    1 ,         /* smallest possible value */
-                    100 ,        /* largest possible value (inactivated for now)*/
-                    0 ,         /* decimal shift (none in this case) */
-                    2 ,         /* default value */
-                    FALSE       /* allow user to edit value? */
+   "Nort" ,  /* label next to chooser */
+   1 ,         /* smallest possible value */
+   100 ,        /* largest possible value (inactivated for now)*/
+   0 ,         /* decimal shift (none in this case) */
+   2 ,         /* default value */
+   FALSE       /* allow user to edit value? */
                   ) ;
 	
    /*---------- 2nd line: Input time series ----------*/
    
    PLUTO_add_option( plint ,
-                     "Ref." ,  /* label at left of input line */
-                     "Ref." ,  /* tag to return to plugin */
-                     TRUE       /* is this mandatory? */
+    "Ref." ,  /* label at left of input line */
+    "Ref." ,  /* tag to return to plugin */
+    TRUE       /* is this mandatory? */
                    ) ;
 
    PLUTO_add_timeseries(plint,"Ref. Vect."); 
    
    PLUTO_add_number( plint ,
-                    "Ignore" ,  /* label next to chooser */
-                    0 ,         /* smallest possible value */
-                    50 ,        /* largest possible value (inactivated for now)*/
-                    0 ,         /* decimal shift (none in this case) */
-                    0 ,         /* default value */
-                    FALSE       /* allow user to edit value? */
+   "Ignore" ,  /* label next to chooser */
+   0 ,         /* smallest possible value */
+   50 ,        /* largest possible value (inactivated for now)*/
+   0 ,         /* decimal shift (none in this case) */
+   0 ,         /* default value */
+   FALSE       /* allow user to edit value? */
                   ) ;
 	
 	PLUTO_add_string( plint ,
-                     "Dsamp" ,  /*label next to textfield */
-                     2,yn_strings,  /*   strings to choose among */
-                     1          /* Default option */
+    "Dsamp" ,  /*label next to textfield */
+    2,yn_strings,  /*   strings to choose among */
+    1          /* Default option */
                    ) ; 
                    
    /*---------- 3rd line: sampling frequency ----------*/
 
    PLUTO_add_option( plint ,
-                     "Sig." ,  /* label at left of input line */
-                     "Sig." ,  /* tag to return to plugin */
-                     TRUE       /* is this mandatory? */
+    "Sig." ,  /* label at left of input line */
+    "Sig." ,  /* tag to return to plugin */
+    TRUE       /* is this mandatory? */
                    ) ;
 
    PLUTO_add_number( plint ,
-                    "fs in Hz" ,  /* label next to chooser */
-                    0 ,         /* smallest possible value */
-                    2000 ,        /* largest possible value */
-                    1 ,         /* decimal shift (none in this case) */
-                    5 ,         /* default value */
-                    TRUE       /* allow user to edit value? */
+   "fs in Hz" ,  /* label next to chooser */
+   0 ,         /* smallest possible value */
+   2000 ,        /* largest possible value */
+   1 ,         /* decimal shift (none in this case) */
+   5 ,         /* default value */
+   TRUE       /* allow user to edit value? */
                   ) ;
 	
 	PLUTO_add_number( plint ,
-                    "Tstim sec" ,  /* label next to chooser */
-                    0.0 ,         /* smallest possible value */
-                    500 ,        /* largest possible value */
-                    0 ,         /* decimal shift (none in this case) */
-                    40 ,         /* default value */
-                    TRUE       /* allow user to edit value? */
+   "Tstim sec" ,  /* label next to chooser */
+   0.0 ,         /* smallest possible value */
+   500 ,        /* largest possible value */
+   0 ,         /* decimal shift (none in this case) */
+   40 ,         /* default value */
+   TRUE       /* allow user to edit value? */
                   ) ;
 
 	PLUTO_add_number( plint ,
-                    "C-Off" ,  /* label next to chooser */
-                    -10 ,         /* smallest possible value */
-                    10 ,        /* largest possible value */
-                    1 ,         /* decimal shift  */
-                    5 ,         /* default value */
-                    TRUE       /* allow user to edit value? */
+   "C-Off" ,  /* label next to chooser */
+   -10 ,         /* smallest possible value */
+   10 ,        /* largest possible value */
+   1 ,         /* decimal shift  */
+   5 ,         /* default value */
+   TRUE       /* allow user to edit value? */
                   ) ;
    
    
    PLUTO_add_string( plint ,
-                     "No-bias" ,  /*label next to textfield */
-                     2,yn_strings,  /*   strings to choose among */
-                     1          /* Default option */
+    "No-bias" ,  /*label next to textfield */
+    2,yn_strings,  /*   strings to choose among */
+    1          /* Default option */
                    ) ; 
                   
 
@@ -406,69 +406,69 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    /*---------- 4th line: Delay Units ----------*/
 
    PLUTO_add_option( plint ,
-                     "Alg." ,  /* label at left of input line */
-                     "Alg." ,  /* tag to return to plugin */
-                     TRUE        /* is this mandatory? */
+    "Alg." ,  /* label at left of input line */
+    "Alg." ,  /* tag to return to plugin */
+    TRUE        /* is this mandatory? */
                    ) ;
 
    PLUTO_add_number( plint ,
-                    "N seg." ,  /* label next to chooser */
-                    1 ,         /* smallest possible value */
-                    1 ,        /* largest possible value (turned Off for the moment, supporting code is present)*/
-                    0 ,         /* decimal shift (none in this case) */
-                    1 ,         /* default value */
-                    FALSE       /* allow user to edit value? */
+   "N seg." ,  /* label next to chooser */
+   1 ,         /* smallest possible value */
+   1 ,        /* largest possible value (turned Off for the moment, supporting code is present)*/
+   0 ,         /* decimal shift (none in this case) */
+   1 ,         /* default value */
+   FALSE       /* allow user to edit value? */
                   ) ;
 	
 	PLUTO_add_number( plint ,
-                    "% ovrlp" ,  /* label next to chooser */
-                    0 ,         /* smallest possible value */
-                    0 ,        /* largest possible value (not implemented)*/
-                    0 ,         /* decimal shift (none in this case) */
-                    0 ,         /* default value */
-                    FALSE       /* allow user to edit value? */
+   "% ovrlp" ,  /* label next to chooser */
+   0 ,         /* smallest possible value */
+   0 ,        /* largest possible value (not implemented)*/
+   0 ,         /* decimal shift (none in this case) */
+   0 ,         /* default value */
+   FALSE       /* allow user to edit value? */
                   ) ;
 
 	
    PLUTO_add_string( plint ,
-                     "Units" ,  /* label next to textfield */
-                     3,method_strings,    /* strings to choose among */
-                     0          /* Default option */
+    "Units" ,  /* label next to textfield */
+    3,method_strings,    /* strings to choose among */
+    0          /* Default option */
                    ) ;
    
    PLUTO_add_string( plint ,
-                     "Phz Wrp" ,  /* label next to textfield */
-                     2,yn_strings,    /* strings to choose among */
-                     0          /* Default option */
+    "Phz Wrp" ,  /* label next to textfield */
+    2,yn_strings,    /* strings to choose among */
+    0          /* Default option */
                    ) ;
                   
 
    /*---------- 5th line: Output dataset ----------*/
 
    PLUTO_add_option( plint ,
-                     "Output" ,  /* label at left of input line */
-                     "Output" ,  /* tag to return to plugin */
-                     TRUE        /* is this mandatory? */
+    "Output" ,  /* label at left of input line */
+    "Output" ,  /* tag to return to plugin */
+    TRUE        /* is this mandatory? */
                    ) ;
 
    PLUTO_add_string( plint ,
-                     "AFNI Prfx" ,  /* label next to textfield */
-                     0,NULL ,    /* no fixed strings to choose among */
-                     19          /* 19 spaces for typing in value */
+    "AFNI Prfx" ,  /* label next to textfield */
+    0,NULL ,    /* no fixed strings to choose among */
+    19          /* 19 spaces for typing in value */
                    ) ;
 	
 	PLUTO_add_string( plint ,
-                     "Write" ,  /* label next to textfield */
-                     2,yn_strings ,    
-                     1          
+    "Write" ,  /* label next to textfield */
+    2,yn_strings ,    
+    1          
                    ) ;
                    
    PLUTO_add_string( plint , "Filename" , 0 , NULL , 19 ) ;
    
    PLUTO_add_string( plint ,
-                     "Write ts" ,  /* label next to textfield */
-                     2,yn_strings ,    
-                     1          
+    "Write ts" ,  /* label next to textfield */
+    2,yn_strings ,    
+    1          
                    ) ;
 
    /*--------- done with interface setup ---------*/
@@ -485,7 +485,7 @@ static char * DELAY_main( PLUGIN_interface * plint )
 {
    hilbert_data_V2 uda,*ud;
    MRI_IMAGE * tsim;
-   MCW_idcode * idc ;                          /* input dataset idcode */
+   MCW_idcode * idc ;         /* input dataset idcode */
    THD_3dim_dataset * old_dset , * new_dset ;  /* input and output datasets */
    char *tmpstr , * str , *nprfxstr;                 /* strings from user */
    int   ntime, nvec ,nprfx, i;
@@ -568,8 +568,8 @@ static char * DELAY_main( PLUGIN_interface * plint )
    
    str = PLUTO_get_string(plint) ;      						/* get string item (the method) */
    ud->unt = (int)PLUTO_string_index( str ,      				/* find it in list it is from */
-                              	 NUM_METHOD_STRINGS ,
-                              	 method_strings ) ;
+             	 NUM_METHOD_STRINGS ,
+             	 method_strings ) ;
 	
 	str = PLUTO_get_string(plint) ;  
 	ud->wrp = (int)PLUTO_string_index( str , NUM_YN_STRINGS , yn_strings ) ;
@@ -653,7 +653,7 @@ static char * DELAY_main( PLUGIN_interface * plint )
 					 "***********************\n";			/* wrp must be between 0 and 1*/
 	  	}
 	  
-	  if (ud->fs < 0.0) {                                         /* fs error Check */
+	  if (ud->fs < 0.0) {       /* fs error Check */
          ud->errcode = ERROR_FSVALUES;
          return "***********************\n"
          		 " internal error: (ziad)\n"
@@ -661,7 +661,7 @@ static char * DELAY_main( PLUGIN_interface * plint )
 					 "***********************\n";			/* fs must be >= 0*/
         }
 	  
-	  if (ud->T < 0.0) {                                          /* T error Check */
+	  if (ud->T < 0.0) {        /* T error Check */
          ud->errcode = ERROR_TVALUES;
          return "***********************\n"
          		 " internal error: (ziad)\n"
@@ -670,7 +670,7 @@ static char * DELAY_main( PLUGIN_interface * plint )
         }
         
            	
-     if ((ud->T == 0.0) && (ud->unt > 0))                                 /* unt error Check */
+     if ((ud->T == 0.0) && (ud->unt > 0))                /* unt error Check */
    	{
          ud->errcode = ERROR_TaUNITVALUES;
          return "***********************\n"
@@ -680,7 +680,7 @@ static char * DELAY_main( PLUGIN_interface * plint )
    	}
 
     
-    if ((ud->wrp == 1) && (ud->T == 0.0))                                   /* wrp error Check */
+    if ((ud->wrp == 1) && (ud->T == 0.0))                  /* wrp error Check */
         {
          ud->errcode = ERROR_TaWRAPVALUES;
          return "***********************\n"
@@ -737,14 +737,14 @@ static char * DELAY_main( PLUGIN_interface * plint )
    /*------------- ready to compute new dataset -----------*/
 
    new_dset = MAKER_4D_to_typed_fbuc ( old_dset ,             /* input dataset */
-                               ud->new_prefix ,           /* output prefix */
-                               -1,							/* negative value indicating data type is like original brick */
-                               ud->ignore ,               /* ignore count */
-                               1 ,                    /* detrend = ON Let BOB do it*/
-                               NBUCKETS,					/*Number of values at each voxel*/
-										 DELAY_tsfuncV2 ,         /* timeseries processor (bucket version)*/
-										 (void *)ud          /* data for tsfunc */
-										) ; 
+          ud->new_prefix ,           /* output prefix */
+          -1,	/* negative value indicating data type is like original brick */
+          ud->ignore ,               /* ignore count */
+          1 ,   /* detrend = ON Let BOB do it*/
+          NBUCKETS,					/*Number of values at each voxel*/
+			 DELAY_tsfuncV2 ,         /* timeseries processor (bucket version)*/
+			 (void *)ud,          /* data for tsfunc */
+			 NULL							) ; 
 										 
    /* Setup the label, keywords and types of subbricks */
 	i = 0;
@@ -833,8 +833,8 @@ static void DELAY_tsfuncV2( double T0 , double TR ,
       if( npts > 0 ){  /* the "start notification" */
 
          PLUTO_popup_meter( global_plint ) ;  /* progress meter  */
-         nvox  = npts ;                       /* keep track of   */
-         ncall = 0 ;                          /* number of calls */
+         nvox  = npts ;      /* keep track of   */
+         ncall = 0 ;         /* number of calls */
 			
       } else {  /* the "end notification" */
 			

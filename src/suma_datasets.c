@@ -4791,6 +4791,69 @@ SUMA_DSET * SUMA_NewDsetPointer(void)
    SUMA_RETURN(dset);
 }
 
+/* Change a dataset with one integer valued column to a 
+  Label type dset. Note that dset itself is modified.
+*/
+int SUMA_dset_to_Label_dset(SUMA_DSET *dset) 
+{
+   static char FuncName[]={"SUMA_dset_to_Label_dset"};
+   int ctp, vtp, i, *unq=NULL, N_unq=0;
+   NI_group *NIcmap=NULL, *ngr=NULL;
+   char stmp[256], *lbli=NULL, *attname=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!dset || !dset->dnel || !dset->inel) SUMA_RETURN(0);
+   
+   if (SDSET_VECNUM(dset) != 1) { 
+      SUMA_LH("Too many columns");
+      SUMA_RETURN(0); 
+   }
+   
+   if (SUMA_is_Label_dset(dset, NULL)) { 
+      SUMA_LH("is label already");
+   } else {
+      /* Must have one column that is an integer value */
+      for (i=0; i<1; ++i) {
+         ctp = SUMA_TypeOfDsetColNumb(dset, i); 
+         if (LocalHead) {
+            fprintf(SUMA_STDERR,"%s: ctp(%d) = %d (%d)\n",
+                  FuncName, i, ctp, SUMA_NODE_ILABEL);
+         }
+         if (ctp != SUMA_NODE_ILABEL) {
+            if (SUMA_ColType2TypeCast(ctp) != SUMA_int) {
+               SUMA_S_Err( "Cannot make the change. "
+                           "Only integer columns supported");
+               SUMA_RETURN(0);
+            }
+            /* change the column type */
+            lbli = SUMA_DsetColLabelCopy(dset, i, 0);
+            if (!SUMA_AddDsetColAttr ( dset, lbli , 
+                                 SUMA_NODE_ILABEL, NULL, 
+                                 i, 1)) {
+               SUMA_S_Err("Failed chaning attribute");
+               SUMA_RETURN(0);
+            }
+            if (lbli) SUMA_free(lbli); lbli = NULL;
+         }
+      }
+      /* and dset_type */
+      NI_set_attribute( dset->ngr,"dset_type", 
+                        SUMA_Dset_Type_Name(SUMA_NODE_LABEL));
+      attname = SUMA_append_string(SDSET_TYPE_NAME(dset),"_data");
+      NI_set_attribute( dset->dnel,"data_type",
+                        attname);
+      SUMA_free(attname); attname = NULL;
+      attname = SUMA_append_string(SDSET_TYPE_NAME(dset),"_node_indices");
+      NI_set_attribute( dset->inel,"data_type",
+                        attname);
+      SUMA_free(attname); attname = NULL;
+   }
+      
+   SUMA_RETURN(1);
+}
+
 /*!
    \brief a function to put a ni_group (ngr) element into a SUMA_DSET pointer
    To free dset along with the ngr in it use SUMA_FreeDset.
@@ -4839,7 +4902,13 @@ SUMA_DSET * SUMA_ngr_2_dset(NI_group *nini, int warn)
          NI_add_to_group(dset->ngr, dset->inel);
       }
    }
-      
+   
+   /* Got a label table ? */
+   if (SUMA_NI_Cmap_of_Dset(dset)) { /* make sure it is a label dset then */
+      if (!SUMA_dset_to_Label_dset(dset)) {
+         SUMA_S_Err("Failed to turn dset into a labeled one.");
+      }  
+   }
 
    SUMA_RETURN(dset);
 }  
@@ -5285,6 +5354,7 @@ char *SUMA_DsetInfo (SUMA_DSET *dset, int detail)
    SUMA_COL_TYPE ctp;
    char *s=NULL, stmp[200];
    SUMA_STRING *SS=NULL;
+   NI_group *ngr=NULL;
    
    SUMA_ENTRY;
    
@@ -5366,19 +5436,23 @@ char *SUMA_DsetInfo (SUMA_DSET *dset, int detail)
             sprintf(stmp,"attrCol_%d", i);
             s = SUMA_AttrOfDsetColNumb(dset, i);
             if (s && s[0] != '\0') {
-               SS = SUMA_StringAppend_va(SS, "\tColumn %d's attribute: %s\n", 
+               SS = SUMA_StringAppend_va(SS, 
+                                     "\tColumn %d's attribute: %s\n", 
                                        i, s ); 
             } else {
-               SS = SUMA_StringAppend_va(SS, "\tColumn %d's attribute does not exist.\n", 
+               SS = SUMA_StringAppend_va(SS, 
+                                    "\tColumn %d's attribute does not exist.\n", 
                                        i );
             }
             if (s) SUMA_free(s); s = NULL;
             s = SUMA_DsetColLabelCopy(dset, i, 0);
             if (s && s[0] != '\0') {
-               SS = SUMA_StringAppend_va(SS, "\tColumn %d's label: %s\n", 
+               SS = SUMA_StringAppend_va(SS, 
+                                       "\tColumn %d's label: %s\n", 
                                        i, s ); 
             } else {
-               SS = SUMA_StringAppend_va(SS, "\tColumn %d's label does not exist.\n", 
+               SS = SUMA_StringAppend_va(SS, 
+                                       "\tColumn %d's label does not exist.\n", 
                                        i );
             }
             if (s) SUMA_free(s); s = NULL;
@@ -5386,7 +5460,8 @@ char *SUMA_DsetInfo (SUMA_DSET *dset, int detail)
                s = SUMA_ShowMeSome((void*)(  dset->dnel->vec[i]), 
                                              SUMA_ColType2TypeCast (ctp) 
                                              , SDSET_VECLEN(dset), 5, NULL);
-               SS = SUMA_StringAppend_va(SS, "         %s\n", s); SUMA_free(s); s = NULL;
+               SS = SUMA_StringAppend_va(SS, "         %s\n", s); 
+               SUMA_free(s); s = NULL;
             } else SS = SUMA_StringAppend_va(SS, "         NULL\n");
             #endif
          }
@@ -5394,13 +5469,25 @@ char *SUMA_DsetInfo (SUMA_DSET *dset, int detail)
             NI_stream ns = NI_stream_open("str:", "w");
             NI_write_element(ns, dset->ngr, NI_TEXT_MODE);
             SS = SUMA_StringAppend(SS, "\n Full NI group in text mode:\n"); 
-            SS = SUMA_StringAppend(SS, NI_stream_getbuf(ns)); /* don't use StringAppend_va because it does not all 
-                                                                the concatenation of very long strings. */
+            SS = SUMA_StringAppend(SS, NI_stream_getbuf(ns)); 
+               /* don't use StringAppend_va because it does not 
+                  allow very long strings. */
             SS = SUMA_StringAppend(SS, "\n");
             NI_stream_close(ns);
          }
       } else {
          SS = SUMA_StringAppend(SS, "NULL dset->dnel.");
+      }
+      /* got cmap? */
+      if ((ngr = SUMA_NI_Cmap_of_Dset(dset))) {
+            NI_stream ns = NI_stream_open("str:", "w");
+            NI_write_element(ns, ngr, NI_TEXT_MODE);
+            SS = SUMA_StringAppend(SS, "\n Internal colormap info:\n"); 
+            SS = SUMA_StringAppend(SS, NI_stream_getbuf(ns)); 
+            SS = SUMA_StringAppend(SS, "\n");
+            NI_stream_close(ns);
+      } else {
+         SS = SUMA_StringAppend(SS, "No internal colormap.");
       }
    } else {
       SS = SUMA_StringAppend(SS, "NULL dset.");
@@ -9528,6 +9615,13 @@ SUMA_DSET *SUMA_LoadGIFTIDset (char *Name, int verb)
       if (verb)  { SUMA_SL_Err("Failed to read dset file."); }
       SUMA_RETURN(dset);
    }
+   
+   /* add filename and label */
+   if (!NI_get_attribute(ngr,"filename")) 
+      NI_set_attribute(ngr,"filename", FullName);
+   if (!NI_get_attribute(ngr,"label")) 
+      NI_set_attribute(ngr,"label", SUMA_FnameGet(FullName,"fne", NULL));
+   
    if (!(dset = SUMA_ngr_2_dset(ngr, 0))) {
       SUMA_SL_Err("Failed to go from ngr to dset");
       SUMA_RETURN(NULL);
@@ -10277,6 +10371,7 @@ NI_group *SUMA_NI_Cmap_of_Dset(SUMA_DSET *dset)
    static char FuncName[]={"SUMA_NI_Cmap_of_Dset"};
    NI_group *ngr=NULL;
    NI_element *nel=NULL;
+   char *s=NULL;
    int ip=0;
    SUMA_Boolean LocalHead = NOPE;
    
@@ -10293,7 +10388,13 @@ NI_group *SUMA_NI_Cmap_of_Dset(SUMA_DSET *dset)
                               "%s:  Looking for %s   in group %s \n",
                               FuncName, "AFNI_labeltable", ngr->name);
             }
-            if (!strcmp("AFNI_labeltable", ngr->name)) SUMA_RETURN(ngr);
+            if (!strcmp("AFNI_labeltable", ngr->name)) {
+               if (!NI_get_attribute(ngr,"Name")) {
+                  s = SUMA_append_string("LT_", SDSET_LABEL(dset));
+                  NI_set_attribute(ngr,"Name",s); SUMA_free(s); s= NULL; 
+               }  
+               SUMA_RETURN(ngr);
+            }
             break ;
          case NI_ELEMENT_TYPE:
             nel = (NI_element *)ngr->part[ip] ;

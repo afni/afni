@@ -523,6 +523,7 @@ int SUMA_period_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                         "Error %s: Failed in SUMA_SwitchState.\n", FuncName);
                break;
             }
+            SUMA_SET_AS_NEEDED_2D_VIEW_ANGLE(sv);
 
          } while (!SUMA_VisibleSOs (sv, SUMAg_DOv, NULL) && 
                   sv->iState != origState);
@@ -1719,10 +1720,14 @@ int SUMA_N_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
          break;
       case XK_n:
          if (SUMA_CTRL_KEY(key)) {   
-            if (LocalHead) fprintf(SUMA_STDOUT, "%s: Opening a new controller...\n", FuncName);
+            if (LocalHead) 
+               fprintf(SUMA_STDOUT, 
+                        "%s: Opening a new controller...\n", FuncName);
             /* open a new controller */
             if (!SUMA_X_SurfaceViewer_Create ()) {
-               fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_X_SurfaceViewer_Create.\n", FuncName);
+               fprintf (SUMA_STDERR,
+                        "Error %s: Failed in SUMA_X_SurfaceViewer_Create.\n", 
+                        FuncName);
                SUMA_RETURN(0);
             }
          } else {
@@ -2165,13 +2170,13 @@ int SUMA_Up_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
                axis_to_quat(a, SUMA_PI/2, sv->GVS[sv->StdView].currentQuat);
                SUMA_postRedisplay(w, NULL, NULL);
             }else if (SUMA_SHIFT_KEY(key)) {
-               /*fprintf (SUMA_STDERR,"%s: Shift down\n", FuncName);*/
+               /*fprintf (SUMA_STDERR,"%s: Shift up\n", FuncName);*/
                sv->GVS[sv->StdView].translateVec[1] += 
                 (GLfloat)sv->GVS[sv->StdView].ArrowtranslateDeltaY / 
                 (float)sv->WindHeight*sv->GVS[sv->StdView].TranslateGain;
                SUMA_postRedisplay(w, NULL, NULL);
             }else if (SUMA_CTRL_KEY(key)){
-               /*fprintf (SUMA_STDERR,"%s: Control down\n", FuncName);*/
+               /*fprintf (SUMA_STDERR,"%s: Control Up\n", FuncName);*/
                /* Top view ctrl+up*/
                float a[3];
                /* Default top view, rotate by nothing */
@@ -2238,7 +2243,8 @@ int SUMA_Up_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
                   fprintf(stdout,"\n");
                }
                sv->GVS[sv->StdView].spinDeltaX = 0;
-               sv->GVS[sv->StdView].spinDeltaY = 2.0*ArrowDeltaRot*sv->WindHeight;
+               sv->GVS[sv->StdView].spinDeltaY = 
+                                    2.0*ArrowDeltaRot*sv->WindHeight;
                SUMA_postRedisplay(w, NULL, NULL);
                   
             }
@@ -2558,7 +2564,8 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
    char buffer[10], cbuf = '\0', cbuf2='\0';
    KeySym keysym;
    int xls, ntot, id = 0, ND, ip, NP;
-   float ArrowDeltaRot = 0.05; /* The larger the value, the bigger the rotation increment */
+   float ArrowDeltaRot = 0.05; /* The larger the value, 
+                        the bigger the rotation increment */
    SUMA_EngineData *ED = NULL; 
    char CommString[SUMA_MAX_COMMAND_LENGTH];
    char s[SUMA_MAX_STRING_LENGTH], sfield[100], sdestination[100];
@@ -2579,7 +2586,8 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
    DListElmt *NextElm= NULL;
    float bevx, bevy, mevx, mevy, wwid, whei, zc_fac, mvx_fac, mvy_fac;
    static int mvxlast, mvylast, mvdeltax, mvdeltay;
-   SUMA_PROMPT_DIALOG_STRUCT *prmpt=NULL; /* Use this only to create prompt that are not to be preserved */
+   SUMA_PROMPT_DIALOG_STRUCT *prmpt=NULL; /* Use this only to create prompt 
+                                             that are not to be preserved */
    SUMA_Boolean LocalHead = NOPE; /* local debugging messages */
 
    /*float ft;
@@ -3660,7 +3668,8 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   SO = (SUMA_SurfaceObject *)SUMAg_DOv[Vis_IDs[0]].OP;
                   /* Axial plane */
                   Eq[0] = Eq[1] = 0.0; Eq[2] = 1.0; Eq[3] = -SO->Center[2];
-                  SUMA_S_Warnv("Kill me!\nEq:[%f %f %f %f], step: %f\n", Eq[0], Eq[1], Eq[2], Eq[3], SO->EL->AvgLe);
+                  SUMA_S_Warnv("Kill me!\nEq:[%f %f %f %f], step: %f\n", 
+                                 Eq[0], Eq[1], Eq[2], Eq[3], SO->EL->AvgLe);
                   striplist = SUMA_SliceAlongPlane(SO, Eq, SO->EL->AvgLe);
                   SUMA_display_edge_striplist(striplist, &(SUMAg_SVv[0]), SO, 
                                              "ShowConnectedPoints");
@@ -3675,7 +3684,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_FOVreset, SES_Suma, sv);
             SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Redisplay, SES_Suma, sv);
             if (!SUMA_Engine (&list)) {
-                  fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
+               fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
             }
             break;
          

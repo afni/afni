@@ -666,6 +666,20 @@ ENTRY("PBAR_bigmap_finalize") ;
    for( ii=0 ; ii < NPANE_BIG ; ii++ )
      pbar->bigcolor[ii] = bigmap[ind][ii] ;
 
+   /* If colormap is meant for ROI data, set range
+     parameters automatically          ZSS Feb 15 2010 */
+   if (strstr(pbar->bigname,"i32")) {
+      AFNI_set_func_range_nval(pbar->parent, 32.0);
+   } else if (strstr(pbar->bigname,"i64")) {
+      AFNI_set_func_range_nval(pbar->parent, 64.0);
+   } else if (strstr(pbar->bigname,"i128")) {
+      AFNI_set_func_range_nval(pbar->parent, 128.0);
+   } else if (strstr(pbar->bigname,"i255")) {
+      AFNI_set_func_range_nval(pbar->parent, 256.0);
+   } else if (strstr(pbar->bigname,"i255")) {
+      AFNI_set_func_range_nval(pbar->parent, 256.0);
+   }
+   
    MCW_kill_XImage(pbar->bigxim) ; pbar->bigxim = NULL ;
    PBAR_bigexpose_CB(NULL,pbar,NULL) ;
    if( XtIsRealized(pbar->panes[0]) )

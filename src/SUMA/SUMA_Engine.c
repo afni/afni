@@ -2082,13 +2082,18 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             /* expects index of viewer in i to toggle its lock view */
             /* toggles the lock view button */
             if (EngineData->i_Dest != NextComCode) {
-               fprintf (SUMA_STDERR,"Error %s: Data not destined correctly for %s (%d).\n",FuncName, NextCom, NextComCode);
+               fprintf (SUMA_STDERR,
+                  "Error %s: Data not destined correctly for %s (%d).\n",
+                        FuncName, NextCom, NextComCode);
                break;
             }
-            SUMAg_CF->ViewLocked[EngineData->i] = !SUMAg_CF->ViewLocked[EngineData->i];
+            SUMAg_CF->ViewLocked[EngineData->i] = 
+                        !SUMAg_CF->ViewLocked[EngineData->i];
             /* update button if needed*/
             if (EngineData->Src != SES_SumaWidget) {
-               XmToggleButtonSetState (SUMAg_CF->X->SumaCont->LockView_tbg[EngineData->i], SUMAg_CF->ViewLocked[EngineData->i], NOPE);
+               XmToggleButtonSetState (
+                        SUMAg_CF->X->SumaCont->LockView_tbg[EngineData->i], 
+                        SUMAg_CF->ViewLocked[EngineData->i], NOPE);
             }
             
             /* call function to update the AllLock button */
@@ -2102,9 +2107,12 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             /* get the current value of the button */
             {
                SUMA_Boolean CurState;
-               CurState = XmToggleButtonGetState (SUMAg_CF->X->SumaCont->LockAllView_tb);
-               for (ii=0; ii< SUMA_MAX_SURF_VIEWERS; ++ii) { /* set all buttons accrodingly */
-                  XmToggleButtonSetState (SUMAg_CF->X->SumaCont->LockView_tbg[ii], CurState, NOPE);
+               CurState = 
+                  XmToggleButtonGetState (SUMAg_CF->X->SumaCont->LockAllView_tb);
+               for (ii=0; ii< SUMA_MAX_SURF_VIEWERS; ++ii) { 
+                  /* set all buttons accrodingly */
+                  XmToggleButtonSetState (
+                     SUMAg_CF->X->SumaCont->LockView_tbg[ii], CurState, NOPE);
                   SUMAg_CF->ViewLocked[ii] = CurState;
                }
             }
@@ -2525,19 +2533,36 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                      
          case SE_Home:
             /* expects nothing in EngineData, needs sv */
-            sv->GVS[sv->StdView].translateVec[0]=0; sv->GVS[sv->StdView].translateVec[1]=0;
+            SUMA_SET_AS_NEEDED_2D_VIEW_ANGLE(sv);
+            sv->GVS[sv->StdView].translateVec[0]=0; 
+            sv->GVS[sv->StdView].translateVec[1]=0;
             glMatrixMode(GL_PROJECTION);
-            /* sv->FOV[sv->iState] = SUMA_sv_fov_original(sv); *//* Now done in SE_FOVreset *//* reset the zooming */
-            sv->GVS[sv->StdView].ViewFrom[0] = sv->GVS[sv->StdView].ViewFromOrig[0];
-            sv->GVS[sv->StdView].ViewFrom[1] = sv->GVS[sv->StdView].ViewFromOrig[1];
-            sv->GVS[sv->StdView].ViewFrom[2] = sv->GVS[sv->StdView].ViewFromOrig[2];
-            sv->GVS[sv->StdView].ViewCenter[0] = sv->GVS[sv->StdView].ViewCenterOrig[0];
-            sv->GVS[sv->StdView].ViewCenter[1] = sv->GVS[sv->StdView].ViewCenterOrig[1];
-            sv->GVS[sv->StdView].ViewCenter[2] = sv->GVS[sv->StdView].ViewCenterOrig[2];
+            /* sv->FOV[sv->iState] = SUMA_sv_fov_original(sv); */
+                  /* Now done in SE_FOVreset *//* reset the zooming */
+            sv->GVS[sv->StdView].ViewFrom[0] = 
+               sv->GVS[sv->StdView].ViewFromOrig[0];
+            sv->GVS[sv->StdView].ViewFrom[1] = 
+               sv->GVS[sv->StdView].ViewFromOrig[1];
+            sv->GVS[sv->StdView].ViewFrom[2] = 
+               sv->GVS[sv->StdView].ViewFromOrig[2];
+            sv->GVS[sv->StdView].ViewCenter[0] = 
+               sv->GVS[sv->StdView].ViewCenterOrig[0];
+            sv->GVS[sv->StdView].ViewCenter[1] = 
+               sv->GVS[sv->StdView].ViewCenterOrig[1];
+            sv->GVS[sv->StdView].ViewCenter[2] = 
+               sv->GVS[sv->StdView].ViewCenterOrig[2];
             
             glMatrixMode(GL_MODELVIEW);
             glLoadIdentity();
-            gluLookAt (sv->GVS[sv->StdView].ViewFrom[0], sv->GVS[sv->StdView].ViewFrom[1], sv->GVS[sv->StdView].ViewFrom[2], sv->GVS[sv->StdView].ViewCenter[0], sv->GVS[sv->StdView].ViewCenter[1], sv->GVS[sv->StdView].ViewCenter[2], sv->GVS[sv->StdView].ViewCamUp[0], sv->GVS[sv->StdView].ViewCamUp[1], sv->GVS[sv->StdView].ViewCamUp[2]);
+            gluLookAt ( sv->GVS[sv->StdView].ViewFrom[0], 
+                        sv->GVS[sv->StdView].ViewFrom[1], 
+                        sv->GVS[sv->StdView].ViewFrom[2], 
+                        sv->GVS[sv->StdView].ViewCenter[0], 
+                        sv->GVS[sv->StdView].ViewCenter[1], 
+                        sv->GVS[sv->StdView].ViewCenter[2], 
+                        sv->GVS[sv->StdView].ViewCamUp[0], 
+                        sv->GVS[sv->StdView].ViewCamUp[1], 
+                        sv->GVS[sv->StdView].ViewCamUp[2]);
             break;
          
          case SE_Home_AllVisible:
@@ -4567,7 +4592,7 @@ SUMA_Boolean SUMA_SwitchState (  SUMA_DO *dov, int N_dov,
    if (LocalHead) fprintf( SUMA_STDOUT,
                            "%s: Standard View Now %d\n", 
                            FuncName, sv->StdView);
-   if (sv->StdView == SUMA_Dunno) {
+   if (sv->StdView == SUMA_N_STANDARD_VIEWS) {
       fprintf( SUMA_STDERR,
                "Error %s: Could not determine the best standard view. "
                "Choosing default SUMA_3D\n", 
@@ -4641,9 +4666,12 @@ SUMA_Boolean SUMA_NewGeometryInViewer (SUMA_DO *dov, int N_dov, SUMA_SurfaceView
    
    /* decide what the best std view is */
    sv->StdView = SUMA_BestStandardView (sv,dov, N_dov);
-   if (LocalHead) fprintf(SUMA_STDOUT,"%s: Standard View Now %d\n", FuncName, sv->StdView);
-   if (sv->StdView == SUMA_Dunno) {
-      fprintf(SUMA_STDERR,"Error %s: Could not determine the best standard view. Choosing default SUMA_3D\n", FuncName);
+   if (LocalHead) 
+      fprintf(SUMA_STDOUT,"%s: Standard View Now %d\n", FuncName, sv->StdView);
+   if (sv->StdView == SUMA_N_STANDARD_VIEWS) {
+      fprintf(SUMA_STDERR,
+               "Error %s: Could not determine the best standard view."
+               " Choosing default SUMA_3D\n", FuncName);
       sv->StdView = SUMA_3D;
    }
    

@@ -1426,11 +1426,14 @@ char * SUMA_help_message_Info(void)
       "     (: Compute convexity of surface, \n"
       "        results written to disk.\n\n");
    SS = SUMA_StringAppend (SS, 
-      "     ,/. (think </>): Switch to next/previous view state.\n\n");
+      "     ,/. (think </>): Switch to next/previous view state.\n"
+      "                      Viewing angle is reset only when switching to\n"
+      "                      a state with flat surfaces.\n");
    SS = SUMA_StringAppend (SS, 
       "     SPACE: Toggle between Mapping Reference and\n"
-      "            Current view state.\n\n");
-
+      "            Current view state.\n"
+      "            Viewing angle is reset only when switching to\n"
+      "                      a state with flat surfaces.\n\n");
    SS = SUMA_StringAppend (SS, 
       "     L-R arrows: rotate about screen's Y axis\n");
    SS = SUMA_StringAppend (SS, 
@@ -1480,7 +1483,8 @@ char * SUMA_help_message_Info(void)
    SS = SUMA_StringAppend (SS, 
       "     F12: Time 20 scene renderings.\n\n");
    SS = SUMA_StringAppend (SS, 
-      "     HOME: reset view to startup\n\n");
+      "     HOME: reset zoom and recenter surfaces.\n"
+      "           rest view angle for flat surfaces only.\n\n");
    SS = SUMA_StringAppend (SS, 
       "     ESCAPE: close the surface viewer window.\n");
    SS = SUMA_StringAppend (SS, 

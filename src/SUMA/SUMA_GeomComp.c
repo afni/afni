@@ -26,6 +26,59 @@ extern int SUMAg_N_DOv;
 #endif
 
 /*!
+   \brief Find boundary triangles, 
+   those that have an edge that is shared by less than 2 triangles.
+   
+   \param SO
+   \param boundt if not NULL, it is a pre-allocated vector that will 
+                contain the boundary triangles on return
+                If bount_asmask then boundt should be SO->N_FaceSet long
+                and upon return, if bount[k] then triangle k is a boundary
+                triangle.
+                If ! boundt_asmask then boundt the 1st N_boundt values
+                of boundt contain indices to the boundary triangles.
+   \param boundt_asmask: Flag indicating how boundt is to be interpreted.
+   \return N_boundt: total number of boundary triangles 
+*/
+int SUMA_BoundaryTriangles (SUMA_SurfaceObject *SO, int *boundt,
+                            int boundt_asmask ) 
+{
+   static char FuncName[]={"SUMA_BoundaryTriangles"};
+   int k, N_boundt=0;
+   byte *visited=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!SO->EL) SUMA_SurfaceMetrics(SO, "EdgeList", NULL);
+   if (!(visited = (byte *)SUMA_calloc(SO->N_FaceSet, sizeof(byte)))) {
+      SUMA_S_Err("Failed to allocate");
+      SUMA_RETURN(0);
+   }
+   if (boundt) {
+      if (boundt_asmask) for (k=0; k<SO->N_FaceSet; ++k) boundt[k]=0;
+   }
+   N_boundt=0;
+   k=0;
+   while (k<SO->EL->N_EL) {
+      /* find edges that form boundaries */
+      if (SO->EL->ELps[k][2] == 1 && !visited[SO->EL->ELps[k][1]]) {
+         if (boundt) {
+            if (boundt_asmask) boundt[SO->EL->ELps[k][1]] = 1;
+            else  {
+               boundt[N_boundt] = SO->EL->ELps[k][1];
+            }
+         }
+         visited[SO->EL->ELps[k][1]]=1;
+         ++N_boundt; 
+      }
+      ++k;
+   }
+   if (visited) SUMA_free(visited); visited=NULL;
+   SUMA_RETURN(N_boundt);
+}
+
+/*!
    \brief Calculate the sine and cosines of angles in a triangle 
    return -2 where calculation fails
 */

@@ -151,8 +151,9 @@ int main( int argc , char *argv[] )
    if( originRAIfv.xyz[1] > fv2.xyz[1] ) { float tf; tf = originRAIfv.xyz[1]; originRAIfv.xyz[1] = fv2.xyz[1]; fv2.xyz[1] = tf; }
    if( originRAIfv.xyz[2] > fv2.xyz[2] ) { float tf; tf = originRAIfv.xyz[2]; originRAIfv.xyz[2] = fv2.xyz[2]; fv2.xyz[2] = tf; }
    
-   if (1 && verb) {
-      fprintf(stderr,"++3dSpatNorm (ZSS): RAI origin info: %f %f %f\n", originRAIfv.xyz[0], originRAIfv.xyz[1], originRAIfv.xyz[2]);
+   if (verb) {
+      fprintf(stderr,"++3dSpatNorm (ZSS): RAI origin info: %f %f %f\n", 
+                     originRAIfv.xyz[0], originRAIfv.xyz[1], originRAIfv.xyz[2]);
    }
    
    

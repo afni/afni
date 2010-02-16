@@ -442,7 +442,8 @@ int main( int argc , char * argv[] )
                  0 ,              /* can't detrend in maker function  KRH 12/02*/
                  nbriks ,               /* number of briks */
 		 Max_tsfunc ,         /* timeseries processor */
-                 NULL                   /* data for tsfunc */
+                 NULL,                   /* data for tsfunc */
+                 NULL  /* mask */
               ) ;
    if(min_flag)
      printf("%-13.6g ", minvalue); 

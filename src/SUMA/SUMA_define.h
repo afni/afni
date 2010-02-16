@@ -108,7 +108,6 @@
 #define SUMA_MAX_FACESET_EDGE_NEIGHB 3 /*!< Maximum number of adjoining FaceSets a triangular faceset can have.*/
 #define SUMA_MAX_DISPLAYABLE_OBJECTS 1000 /*!< Maximum number of displayable Objects */
 #define SUMA_MAX_SURF_VIEWERS 6 /*!< Maximum number of surface viewers allowed */
-#define SUMA_N_STANDARD_VIEWS 2/*!< Maximum number of standard views, see SUMA_STANDARD_VIEWS*/
 #define SUMA_DEFAULT_VIEW_FROM 300 /*!< default view from location on Z axis */
 #define SUMA_MAX_FP_NAME_LENGTH ( SUMA_MAX_DIR_LENGTH + SUMA_MAX_NAME_LENGTH )
 #define SUMA_MAX_COMMAND_LENGTH      2000/*!< Maximum number of characters in a command string */
@@ -429,12 +428,17 @@ typedef enum { SXR_default, SXR_Euro, SXR_Afni , SXR_Bonaire} SUMA_XRESOURCES;  
 
 typedef enum { SRM_ViewerDefault, SRM_Fill, SRM_Line, SRM_Points , SRM_Hide, SRM_N_RenderModes} SUMA_RENDER_MODES; /*!< flags for various rendering modes */
 
-#define SUMA_N_STANDARD_VIEWS  2 /*!< number of useful views enumerated in SUMA_STANDARD_VIEWS */
-typedef enum {   SUMA_2D_Z0, SUMA_3D, SUMA_Dunno} SUMA_STANDARD_VIEWS; /*!< Standard viewing modes. These are used to decide what viewing parameters to carry on when switching states 
-                                                                  SUMA_2D_Z0 2D views, with Z = 0 good for flat surfaces
-                                                                  SUMA_3D standard 3D view
-                                                                  SUMA_Dunno used to flag errors leave this at the end 
-                                                                  Keep in sync with SUMA_N_STANDARD_VIEWS*/
+   /*!< number of useful views enumerated in SUMA_STANDARD_VIEWS */
+typedef enum {    SUMA_2D_Z0, SUMA_2D_Z0L, 
+                  SUMA_3D, SUMA_N_STANDARD_VIEWS } SUMA_STANDARD_VIEWS; 
+                     /*!< Standard viewing modes. These are used to decide what 
+                     viewing parameters to carry on when switching states 
+                     SUMA_2D_Z0 2D views, with Z = 0 good for flat surfaces
+                     SUMA_2D_Z0L 2D views, with Z = 0 
+                                          good for left hemi flat surfaces
+                     SUMA_3D standard 3D view
+                     SUMA_N_STANDARD_VIEWS used to flag errors leave  at the end 
+                     */
 typedef enum {   SUMA_No_Lock, SUMA_I_Lock, SUMA_XYZ_Lock, SUMA_N_Lock_Types}  SUMA_LINK_TYPES; /*!< types of viewer linking. Keep SUMA_N_Lock_Types at the end, it is used to keep track of the number of types*/
                                                                  
 typedef enum {  SWP_DONT_CARE,

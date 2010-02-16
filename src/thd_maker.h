@@ -34,7 +34,7 @@ extern THD_3dim_dataset *
                             char * new_prefix , int new_datum ,
                             int ignore , int detrend ,
                             int nbrik , generic_func * user_func ,
-                            void * user_data ) ;
+                            void * user_data, byte *mmm ) ;
 
 #ifdef  __cplusplus
 }

@@ -67,9 +67,7 @@ int main( int argc , char * argv[] )
       
       /*- wsshappenin? -*/
       
-      fprintf(stderr,"** 3dAutobox: %s makes no sense here.\n"
-                     "I know you're John, \n"
-                     "stop pretending you have an accent!\n",
+      fprintf(stderr,"** 3dAutobox: option %s is not known.\n",
                      argv[iarg]) ; 
       exit(1) ;
    }
@@ -77,9 +75,7 @@ int main( int argc , char * argv[] )
    /* got input ? */
    if (iarg == argc-1) iname = argv[iarg];
    else if (iarg != argc) {
-      fprintf(stderr,"** 3dAutobox: %s is nonsense on the line \n"
-                     "I know you're John, \n"
-                     "stop pretending you have an accent!\n",
+      fprintf(stderr,"** 3dAutobox: %s is nonsense on the line \n",
                      argv[iarg]) ; 
       exit(1) ;
    }

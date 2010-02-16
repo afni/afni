@@ -1,6 +1,25 @@
 #------------------------------------------------------------------
 # Functions to deal with AFNI file names
 #------------------------------------------------------------------
+parse.name <- function (filename, verb=0) {
+   n <- list()
+   ff <- strsplit(filename, .Platform$file.sep)[[1]]
+   n$name <- ff[length(ff)]
+   n$path <- '.'
+   if (length(ff)>1) 
+      n$path <- paste(ff[1:length(ff)-1],collapse=.Platform$file.sep)
+   n$path <- paste(n$path, .Platform$file.sep, sep="")
+   
+   ff <- strsplit(n$name, '\\.')[[1]]
+   if (length(ff) > 1) {
+      n$ext = ff[length(ff)]
+      n$name_noext = paste(ff[1:length(ff)-1],collapse='.')
+   } else {
+      n$ext = ''
+      n$name_noext = n$name
+   } 
+   return(n)
+}
 
 parse.AFNI.name <- function(filename, verb = 0) {
   an <- list()
@@ -367,29 +386,37 @@ who.called.me <- function () {
    return(callstr)
 }
 
-warn.AFNI <- function (str='Consider yourself warned',callstr=NULL) {
+warn.AFNI <- function (str='Consider yourself warned',callstr=NULL, 
+                       newline=TRUE) {
    if (is.null(callstr)) callstr <- who.called.me()
+   nnn<-''
+   if (newline) nnn <- '\n'
    cat(  '\n', 'oo Warning from: ',  callstr,':\n   ', 
-         paste(str, collapse=''),'\n', 
+         paste(str, collapse=''), nnn, 
        sep='');
 }
 
-err.AFNI <- function (str='Danger Danger Will Robinson',callstr=NULL) {
+err.AFNI <- function (str='Danger Danger Will Robinson',callstr=NULL, 
+                      newline=TRUE) {
    if (is.null(callstr)) callstr <- who.called.me()
+   nnn<-''
+   if (newline) nnn <- '\n'
    cat(  '\n', '** Error from: ',  callstr,':\n   ', 
-         paste(str, collapse=''),'\n', 
+         paste(str, collapse=''), nnn, 
        sep='');
 }
 
-note.AFNI <- function (str='May I speak frankly?',callstr=NULL) {
+note.AFNI <- function (str='May I speak frankly?',callstr=NULL, newline=TRUE) {
    if (is.null(callstr)) callstr <- who.called.me()
+   nnn<-''
+   if (newline) nnn <- '\n'
    cat(  '\n', '** Note from: ',  callstr,':\n   ', 
-         paste(str, collapse=''),'\n', 
+         paste(str, collapse=''),nnn, 
        sep='');
 }
 
-errex.AFNI <- function (str='Alas this must end',callstr=NULL) {
-   err.AFNI(str,callstr=who.called.me())
+errex.AFNI <- function (str='Alas this must end',callstr=NULL, newline=TRUE) {
+   err.AFNI(str,callstr=who.called.me(), newline)
    exit.AFNI(stat=1)
 }
 
@@ -638,7 +665,7 @@ orcode.AFNI <- function(orstr) {
    }
    return(orcode);
 }
-read.AFNI <- function(filename, verb = 0) {
+read.AFNI <- function(filename, verb = 0, ApplyScale = 1, PercMask=0.0) {
   an <- parse.AFNI.name(filename);
   
   if (verb) {
@@ -673,8 +700,7 @@ read.AFNI <- function(filename, verb = 0) {
   
   if (verb) { cat ('Checking existence\n'); }
   if (!(exists.AFNI.name(an$head))) {
-    warning(paste("Failed to read:   ", an$head, an$brik, '\n'),
-              immediate. = TRUE);
+    err.AFNI(paste("Failed to read:   ", an$head, an$brik));
     return(NULL);
   }
   
@@ -734,43 +760,42 @@ read.AFNI <- function(filename, verb = 0) {
   } else {
     weights <- NULL
   }
-#  browser()
-  if (verb) { cat ('Reading Bin\n'); }
-  if (as.integer(size) == size) {
-    conbrik <- file(an$brik,"rb")
-  # modified below by GC 12/2/2008
-  if (all(values$BRICK_TYPES==0) | all(values$BRICK_TYPES==1)) {
-    myttt<- readBin( conbrik, "int", n=dx*dy*dz*dt, size=size, 
-                     signed=TRUE, endian=endian) # unsigned charater or short
-  }
-  if (all(values$BRICK_TYPES==3)) {
-    myttt<- readBin(conbrik, "numeric", n=dx*dy*dz*dt, size=size, 
-                    signed=TRUE, endian=endian) # float        
-  }
-  close(conbrik)
-  dim(myttt) <- c(dx,dy,dz,dt)
-#    for (k in 1:dt) {
-#      if (scale[k] != 0) {
-#        cat("scale",k,"with",scale[k],"\n")
-#        cat(range(myttt[,,,k]),"\n")
-#        myttt[,,,k] <- scale[k] * myttt[,,,k]
-#        cat(range(myttt[,,,k]),"\n")
-#      }
-#    }
-  if (verb) { cat ('Scaling\n'); }
-  for (k in 1:dt) if (scale[k] != 0) myttt[,,,k] <- scale[k] * myttt[,,,k]
 
-  mask <- array(TRUE,c(dx,dy,dz))
-  mask[myttt[,,,1] < quantile(myttt[,,,1],0.75)] <- FALSE
-  z <- list(ttt=myttt,format="HEAD/BRIK",delta=values$DELTA,
+#  browser()
+   if (verb) { cat ('Reading Bin\n'); }
+   if (as.integer(size) == size) {
+      conbrik <- file(an$brik,"rb")
+      # modified below by GC 12/2/2008
+      if (all(values$BRICK_TYPES==0) | all(values$BRICK_TYPES==1)) {
+         myttt<- readBin( conbrik, "int", n=dx*dy*dz*dt, size=size, 
+                          signed=TRUE, endian=endian) 
+      } else if (all(values$BRICK_TYPES==3)) {
+         myttt<- readBin(conbrik, "numeric", n=dx*dy*dz*dt, size=size, 
+                         signed=TRUE, endian=endian) # float        
+      } else {
+         err.AFNI("Cannot read datasets of multiple data types");
+         close(conbrik)
+         return(NULL);
+      }  
+      close(conbrik)
+      dim(myttt) <- c(dx,dy,dz,dt)
+
+      if (ApplyScale) {
+         if (verb) { cat ('Scaling\n'); }
+         #After this operation, size of mytt doubles if initially read as int
+         for (k in 1:dt) if (scale[k] != 0) myttt[,,,k] <- scale[k] * myttt[,,,k]
+      }
+
+      mask=NULL;
+      if (PercMask > 0.0) { #ZSS: Dunno what that is for. 
+                            #     0.75 was default for PercMask
+         mask <- array(TRUE,c(dx,dy,dz))
+         mask[myttt[,,,1] < quantile(myttt[,,,1],PercMask)] <- FALSE
+      } 
+      z <- list(ttt=myttt,format="HEAD/BRIK",delta=values$DELTA,
             origin=values$ORIGIN,
             orient=values$ORIENT_SPECIFIC,
             dim=c(dx,dy,dz,dt),weights=weights, header=values,mask=mask)
-#      list(ttt=writeBin(as.numeric(myttt),raw(),4),
-#            format="HEAD/BRIK",delta=values$DELTA,origin=values$ORIGIN,
-#            orient=values$ORIENT_SPECIFIC,dim=c(dx,dy,dz,dt),weights=weights, 
-#            header=values,mask=mask)
-
   } else {
     warning("Error reading file: Could not detect size per voxel\n")
     z <- list(ttt=NULL,format="HEAD/BRIK",delta=NULL,
@@ -793,7 +818,6 @@ read.AFNI <- function(filename, verb = 0) {
   }
 
   invisible(z);
-  #return(z);
 }
 
 #A funtion to create an AFNI header string 
@@ -827,6 +851,7 @@ minmax <- function(y) {
    return(r);
 }
 
+
 newid.AFNI <- function(ext=0) {
    if (ext) { #in house
       return(
@@ -842,7 +867,9 @@ newid.AFNI <- function(ext=0) {
 write.AFNI <- function( filename, ttt=NULL, label=NULL, 
                         note=NULL, origin=NULL, delta=NULL,
                         orient=NULL, 
-                        idcode=NULL, defhead=NULL) {
+                        idcode=NULL, defhead=NULL,
+                        verb = 0,
+                        maskinf=0) {
   
   #Set the defaults. 
   if (is.null(note)) note <- '';
@@ -856,7 +883,7 @@ write.AFNI <- function( filename, ttt=NULL, label=NULL,
   } else {  #When possible, call on default header
      if (is.null(label)) {
       if (!is.null(defhead$BRICK_LABS)) {
-         label <- defhead$BRICK_LABS;
+         label <- gsub("^'", '', defhead$BRICK_LABS);
       } else {
          label <- paste(c(1:dim(ttt)[4]),collapse='~');
       }
@@ -888,7 +915,9 @@ write.AFNI <- function( filename, ttt=NULL, label=NULL,
    return(0);
   }      
 
-  # Write header first
+  if (verb) {
+   note.AFNI("Writing header")
+  }
   an <- parse.AFNI.name(filename);
   if (is.na(an$view)) {
    err.AFNI('Bad filename');
@@ -919,6 +948,10 @@ write.AFNI <- function( filename, ttt=NULL, label=NULL,
   writeChar(AFNIheaderpart("float-attribute","DELTA",delta),
             conhead,eos=NULL)  
   
+  if (maskinf) {
+   ttt[!is.finite(ttt)]=0
+  }
+  
   mm <- minmax(ttt)
   writeChar(AFNIheaderpart("float-attribute","BRICK_STATS",mm),
             conhead,eos=NULL)
@@ -931,10 +964,12 @@ write.AFNI <- function( filename, ttt=NULL, label=NULL,
   writeChar(AFNIheaderpart("integer-attribute","BRICK_TYPES",rep(1,dim(ttt)[4])),
             conhead,eos=NULL)  
 
+  if (verb) {
+   note.AFNI("Computing scaling factors");
+  }
   scale <- rep(0,dim(ttt)[4])
   for (k in 1:dim(ttt)[4]) {
     scale[k] <- max(abs(mm[2*k-1]),abs(mm[2*k]))/32767
-    ttt[,,,k] <- ttt[,,,k] / scale[k]
   }
 
   writeChar(AFNIheaderpart("float-attribute","BRICK_FLOAT_FACS",scale),
@@ -948,9 +983,31 @@ write.AFNI <- function( filename, ttt=NULL, label=NULL,
 
   # Write BRIK
   conbrik <- file(an$brik, "wb")
-  dim(ttt) <- NULL
-  writeBin(as.integer(ttt), conbrik,size=2, endian="big")
-  close(conbrik)
+  if (0) { #ZSS: old method, 
+           # runs out of memory for large dsets
+           # when scaling. Code kept here for testing
+   if (verb) {
+      note.AFNI("Applying scaling ")
+     }
+   for (k in 1:dim(ttt)[4]) {
+      ttt[,,,k] <- ttt[,,,k] / scale[k]
+   }
+   dim(ttt) <- NULL  #Don't know why this was done here ....
+     if (verb) {
+      note.AFNI("Writing brik")
+     }
+     writeBin(as.integer(ttt), conbrik,size=2, endian="big")
+   } else {
+      if (verb) {
+      note.AFNI("Writing /Scaling, meth 2")
+     }
+     #Write on sub-brick at a time to reduce memory use. 
+     #      as.integer will allocate a new copy
+     for (k in 1:dim(ttt)[4]) {
+      writeBin(as.integer(ttt[,,,k] / scale[k]), conbrik,size=2, endian="big") 
+     }
+   }
+   close(conbrik)
   
   return(1);
 }
