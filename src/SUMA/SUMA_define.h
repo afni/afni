@@ -2585,13 +2585,15 @@ typedef enum {
    SUMA_SO1_is_SO2,           /*!< Surface1 is the same as Surface2 */
    SUMA_SO1_is_LDPSO2,        /*!< SO1 is the local domain parent of SO2 */
    SUMA_SO2_is_LDPSO1,        /*!< SO2 is the local domain parent of SO1 */
-   SUMA_LDPSO1_is_LDPSO2,     /*!< SO1 and SO2 have the same local domain parent */
+   SUMA_LDPSO1_is_LDPSO2,   /*!< SO1 and SO2 have the same local domain parent */
    SUMA_NUCELAR_FAMILY,       /*!< A flag to indicate limit of immediate kinship
                                   (Don't blame me, official syntax in use) 
                                   Above that flag, kinship is distant */
    SUMA_SO1_is_GPSO2,         /*!< SO1 is the granddaddy of SO2 */
    SUMA_SO2_is_GPSO1,         /*!< SO2 is the granddaddy of SO1 */
    SUMA_GPSO1_is_GPSO2,     /*!< SO1 and SO2 have the same  granddaddy*/
+   
+   SUMA_N_NODE_SAME,        /*! SO1 and SO2 have the same number of nodes */
 } SUMA_DOMAIN_KINSHIPS; /*!< The type of relationships between surfaces, modify 
                               function SUMA_DomainKinships_String; */
 typedef struct {
