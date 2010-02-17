@@ -301,7 +301,6 @@ if (nNodes>1)	 {
 }
 
 print(sprintf("Analysis finished: %s", format(Sys.time(), "%D %H:%M:%OS3")))
-rm(inDataTS)  # retrieve some memory
 
 print("#++++++++++++++++++++++++++++++++++++++++++++")
 
@@ -338,5 +337,6 @@ print("#++++++++++++++++++++++++++++++++++++++++++++")
 
 anotherAna <- as.integer(readline("Next (0: quit; 1: another individual analysis; 2: group analysis)? "))
 } # while (anotherAna==1)
+rm(inDataTS)  # retrieve some memory
 
 } # if (anaType==1)
