@@ -720,7 +720,9 @@ int main( int argc , char *argv[] )
       "                  at various points along the way.\n"
 #endif
 #ifdef USE_OMP
-      "              * '-usetemp' disables OpenMP multi-threading.\n"
+      "              * '-usetemp' disables OpenMP multi-CPU usage.\n"
+      "                  Only use this option if you need to, since OpenMP should\n"
+      "                  speed the program up significantly on multi-CPU computers.\n"
 #endif
       "\n"
       " -nodmbase   = By default, baseline columns added to the matrix\n"
@@ -742,6 +744,16 @@ int main( int argc , char *argv[] )
       "                 also contains the results of any GLT analysis requested\n"
       "                 in the 3dDeconvolve setup.\n"
       "                 [similar to the -bucket output from 3dDeconvolve]\n"
+      "               * If the matrix file from 3dDeconvolve does not contain\n"
+      "                 'Stim attributes' (which will happen if all inputs\n"
+      "                 to 3dDeconvolve were labeled as '-stim_base'), then\n"
+      "                 -Rbuck won't work, since it is designed to give the\n"
+      "                 statistics for the 'stimuli' and there aren't any matrix\n"
+      "                 columns labeled as being 'stimuli'.\n"
+      "               * In such a case, to get statistics on the coefficients,\n"
+      "                 you'll have to use '-gltsym' and '-Rglt'; for example,\n"
+      "                 to get t-statistics for all coefficients from #0 to #37:\n"
+      "                    -tout -Rglt Colstats -gltsym 'Col[[0..37]]' Col\n"
       " -Rglt  ppp  = dataset for beta + statistics from the REML estimation,\n"
       "                 but ONLY for the GLTs added on the 3dREMLfit command\n"
       "                 line itself via '-gltsym'; GLTs from 3dDeconvolve's\n"
@@ -1064,6 +1076,16 @@ int main( int argc , char *argv[] )
       "    Note that you CANNOT use options like '-bout', '-nocout', and\n"
       "    '-nofull_first' with 3dREMLfit -- the bucket datasets are ordered\n"
       "    the way they are and you'll just have to live with it.\n"
+      "* If the 3dDeconvolve matrix generation step did NOT have any non-base\n"
+      "    stimuli (i.e., everything was '-stim_base'), then there are no 'stimuli'\n"
+      "    in the matrix file.  In that case, since by default 3dREMLfit doesn't\n"
+      "    compute statistics of baseline parameters, to get statistics you will\n"
+      "    have to use the '-gltsym' option here, specifying the desired column\n"
+      "    indexes with the 'Col[]' notation, and then use '-Rglt' to get these\n"
+      "    values saved somewhere (since '-Rbuck' won't work if there are no\n"
+      "    'Stim attributes').\n"
+      " ++ Example to get t-statistics for all coefficients from #0 to #37:\n"
+      "      -tout -Rglt Colstats -gltsym 'Col[[0..37]]' Col\n"
       "* All output datasets are in float format [i.e., no '-short' option].\n"
       "    Internal calculations are done in double precision.\n"
       "* If the regression matrix (including any added columns from '-addbase'\n"
@@ -1122,7 +1144,7 @@ int main( int argc , char *argv[] )
          "* The GLSQ and OLSQ loops are not parallelized. They are usually much\n"
          "   faster than the REML voxel loop, and so I made no effort to speed\n"
          "   these up (yet).\n"
-         "* '-usetemp' disables OpenMP multi-threading, since the file I/O for\n"
+         "* '-usetemp' disables OpenMP multi-CPU usage, since the file I/O for\n"
          "   saving and restoring various matrices and results is not easily\n"
          "   parallelized.\n"
        ) ;
@@ -1476,10 +1498,10 @@ STATUS("options done") ;
    if( maxthr > 1 ){  /* disable threads for some options [16 Jun 2009] */
      if( usetemp ){
        maxthr = 1 ;
-       WARNING_message("-usetemp disables OpenMP multi-threading") ;
+       WARNING_message("-usetemp disables OpenMP multi-CPU usage") ;
      } else if( nvox < 999 ){
        maxthr = 1 ;
-       WARNING_message("only %d voxels: disables OpenMP multi-threading",nvox) ;
+       WARNING_message("only %d voxels: disables OpenMP multi-CPU usage",nvox) ;
      }
    }
 #if 0
@@ -2216,7 +2238,7 @@ STATUS("make GLTs from matrix file") ;
 #ifdef USE_OMP
    if( maxthr > 1 && nmask < 99*maxthr ){
      maxthr = 1 ;
-     WARNING_message("only %d voxels in mask: disables OpenMP multi-threading",nmask) ;
+     WARNING_message("only %d voxels in mask: disables OpenMP multi-CPU usage",nmask) ;
    }
 #endif
 
@@ -2304,7 +2326,7 @@ STATUS("make GLTs from matrix file") ;
 
      if( vstep ) fprintf(stderr,"++ REML voxel loop: ") ;
 
-  if( maxthr <= 1 ){             /**---- serial computation (no threads) ----**/
+  if( maxthr <= 1 ){   /**--------- serial computation (no threads) ---------**/
     int ss,rv,vv,ssold,ii,kbest ;
     int   na = RCsli[0]->na , nb = RCsli[0]->nb , nab = (na+1)*(nb+1) ;
     int   nws = nab + 7*(2*niv+32) + 32 ;
