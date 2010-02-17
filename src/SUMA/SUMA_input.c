@@ -2668,7 +2668,8 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                SUMA_S_Err("Failed in key func.");
             }
             break;
-            /* toggle between state containing mapping reference of SO in focus and other view */
+            /* toggle between state containing mapping reference 
+               of SO in focus and other view */
             {
                SUMA_SurfaceObject *SO = NULL, *SOmap = NULL;
                int curstateID = -1, nxtstateID = -1, dov_ID = -1;
@@ -2724,11 +2725,14 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             SUMA_postRedisplay(w, clientData, callData);
             break;
 
-         case XK_Escape: /* there's more:  XK_BackSpace XK_Tab XK_Linefeed XK_Return XK_Delete */
+         case XK_Escape: /* there's more:  
+                  XK_BackSpace XK_Tab XK_Linefeed XK_Return XK_Delete */
             /* control mask and escape is grabbed by gnome window manager .... */
             if (Kev.state & ShiftMask){/* kill all */
                if( SUMAg_CF->X->WarnClose) {
-                  if (SUMA_ForceUser_YesNo(sv->X->TOPLEVEL, "Close All Viewers?", SUMA_YES, SWP_DONT_CARE) != SUMA_YES) {
+                  if (SUMA_ForceUser_YesNo(sv->X->TOPLEVEL, 
+                           "Close All Viewers?", SUMA_YES, 
+                           SWP_DONT_CARE) != SUMA_YES) {
                      break;   
                   }
                } 
@@ -2738,16 +2742,18 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                if( SUMAg_CF->X->WarnClose) {
                   #ifdef DARWIN
                      if (SUMA_ForceUser_YesNo(sv->X->TOPLEVEL, 
-                                             "Close This Viewer?\n"
-                                             "OS-X users: If answering YES,\n"
-                                             "this prompt should not lie \n"
-                                             "over viewer to be closed.\n"
-                                             "Blame Bill Gates for this bug.",
-                                              SUMA_YES, SWP_TOP_RIGHT) != SUMA_YES) {
+                                 "Close This Viewer?\n"
+                                 "OS-X users: If answering YES,\n"
+                                 "this prompt should not lie \n"
+                                 "over viewer to be closed.\n"
+                                 "Blame Bill Gates for this bug.",
+                                  SUMA_YES, SWP_TOP_RIGHT) != SUMA_YES) {
                         break;   
                      }
                   #else
-                     if (SUMA_ForceUser_YesNo(sv->X->TOPLEVEL, "Close This Viewer?", SUMA_YES, SWP_DONT_CARE) != SUMA_YES) {
+                     if (SUMA_ForceUser_YesNo(sv->X->TOPLEVEL, 
+                                 "Close This Viewer?", SUMA_YES, 
+                                 SWP_DONT_CARE) != SUMA_YES) {
                         break;   
                      }
                   #endif
@@ -2784,29 +2790,39 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 
          case XK_C:
             if (SUMAg_CF->Dev && (SUMA_ALTHELL)){
-               SUMAg_CF->X->ClipObj_prmpt = SUMA_CreatePromptDialogStruct (SUMA_OK_APPLY_CLEAR_CANCEL, "Enter object clip plane parameters (a,b,c,d)", 
-                                                      "A: 0,0,1,0",
-                                                      sv->X->TOPLEVEL, YUP,
-                                                      SUMA_APPLY_BUTTON,
-                                                      SUMA_SetObjectClip, (void *)sv,
-                                                      NULL, NULL,
-                                                      NULL, NULL,
-                                                      NULL, NULL,  
-                                                      SUMAg_CF->X->ClipObj_prmpt);
+               SUMAg_CF->X->ClipObj_prmpt = 
+                  SUMA_CreatePromptDialogStruct (SUMA_OK_APPLY_CLEAR_CANCEL, 
+                              "Enter object clip plane parameters (a,b,c,d)", 
+                              "A: 0,0,1,0",
+                              sv->X->TOPLEVEL, YUP,
+                              SUMA_APPLY_BUTTON,
+                              SUMA_SetObjectClip, (void *)sv,
+                              NULL, NULL,
+                              NULL, NULL,
+                              NULL, NULL,  
+                              SUMAg_CF->X->ClipObj_prmpt);
                
-               SUMAg_CF->X->ClipObj_prmpt = SUMA_CreatePromptDialog("Enter object clip plane parameters (a,b,c,d)", SUMAg_CF->X->ClipObj_prmpt);
+               SUMAg_CF->X->ClipObj_prmpt = 
+                  SUMA_CreatePromptDialog(
+                     "Enter object clip plane parameters (a,b,c,d)", 
+                     SUMAg_CF->X->ClipObj_prmpt);
             } else if (SUMAg_CF->Dev && (Kev.state & ControlMask)){
-               SUMAg_CF->X->Clip_prmpt = SUMA_CreatePromptDialogStruct (SUMA_OK_APPLY_CLEAR_CANCEL, "Enter screen clip plane parameters (a,b,c,d)", 
-                                                      "A: 0,0,1,0",
-                                                      sv->X->TOPLEVEL, YUP,
-                                                      SUMA_APPLY_BUTTON,
-                                                      SUMA_SetScreenClip, (void *)sv,
-                                                      NULL, NULL,
-                                                      NULL, NULL,
-                                                      NULL, NULL,  
-                                                      SUMAg_CF->X->Clip_prmpt);
-               
-               SUMAg_CF->X->Clip_prmpt = SUMA_CreatePromptDialog("Enter screen clip plane parameters (a,b,c,d)", SUMAg_CF->X->Clip_prmpt);
+               SUMAg_CF->X->Clip_prmpt = 
+                  SUMA_CreatePromptDialogStruct (SUMA_OK_APPLY_CLEAR_CANCEL, 
+                     "Enter screen clip plane parameters (a,b,c,d)", 
+                     "A: 0,0,1,0",
+                     sv->X->TOPLEVEL, YUP,
+                     SUMA_APPLY_BUTTON,
+                     SUMA_SetScreenClip, (void *)sv,
+                     NULL, NULL,
+                     NULL, NULL,
+                     NULL, NULL,  
+                     SUMAg_CF->X->Clip_prmpt);
+
+               SUMAg_CF->X->Clip_prmpt = 
+                  SUMA_CreatePromptDialog(
+                     "Enter screen clip plane parameters (a,b,c,d)", 
+                     SUMAg_CF->X->Clip_prmpt);
             }
             break; 
          case XK_c:
@@ -2814,28 +2830,32 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                if (!list) list = SUMA_CreateList();
                ED = SUMA_InitializeEngineListData (SE_OpenColFileSelection);
                if (!(NextElm = SUMA_RegisterEngineListCommand (  list, ED,
-                                                      SEF_vp, (void *)(SUMAg_DOv[sv->Focus_SO_ID].OP),
-                                                      SES_Suma, (void *)sv, NOPE,
-                                                      SEI_Head, NULL))) {
-                  fprintf (SUMA_STDERR, "Error %s: Failed to register command.\n", FuncName);
+                                 SEF_vp, (void *)(SUMAg_DOv[sv->Focus_SO_ID].OP),
+                                 SES_Suma, (void *)sv, NOPE,
+                                 SEI_Head, NULL))) {
+                  fprintf (SUMA_STDERR, 
+                           "Error %s: Failed to register command.\n", FuncName);
                }
 
                if (!SUMA_RegisterEngineListCommand (  list, ED,
                                              SEF_ip, sv->X->TOPLEVEL,
                                              SES_Suma, (void *)sv, NOPE,
                                              SEI_In, NextElm)) {
-                  fprintf (SUMA_STDERR, "Error %s: Failed to register command.\n", FuncName);
+                  fprintf (SUMA_STDERR, 
+                           "Error %s: Failed to register command.\n", FuncName);
                }  
 
                if (!SUMA_Engine (&list)) {
-                  fprintf(SUMA_STDERR, "Error %s: SUMA_Engine call failed.\n", FuncName);
+                  fprintf(SUMA_STDERR, 
+                           "Error %s: SUMA_Engine call failed.\n", FuncName);
                }
             }
             
             break;
              
             #if 0
-            /* THE OLD WAY (part of it) FOR SETTING NODE COLORS DIRECTLY, Left here for documentation */
+            /* THE OLD WAY (part of it) FOR SETTING NODE COLORS DIRECTLY, 
+               Left here for documentation */
             /* allocate space */
             fm = (float **)SUMA_allocate2D (ntot/4, 4, sizeof(float));
             if (fm == NULL) {
@@ -3895,15 +3915,16 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             break;
             
          case Button3:
-               if (LocalHead) 
+               if (1 || LocalHead) 
                      fprintf( SUMA_STDERR,
                               "%s: Button 3 downplain jane, "
                               "viewer #%d : X=%f, Y = %f\n", 
                               FuncName, SUMA_WhichSV(sv, SUMAg_SVv, SUMAg_N_SVv),
                               (float)Bev.x, (float)Bev.y);
-               
+                              
                if (Bev.state & ShiftMask) {
                   SUMAg_CF->HoldClickCallbacks = 1;
+                  SUMA_S_Note("Holding back callbacks");
                }
                
                #if 0
@@ -3950,7 +3971,14 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                      break;
                   }
 
-
+                  #if 0
+                  /* If you are having OpenGLStateReset problems, 
+                  use this: */
+                  SUMA_S_Note("Blunt fix:");
+                  SUMA_OpenGLStateReset(SUMAg_DOv, SUMAg_N_DOv, sv);
+                  SUMA_handleRedisplay((XtPointer)sv->X->GLXAREA);
+                  #endif
+                  
                   if (!SUMA_GetSelectionLine (  sv, (int)Bev.x, (int)Bev.y, 
                                                 sv->Pick0, sv->Pick1, 0, 
                                                 NULL, NULL, NULL)) {
@@ -4006,14 +4034,18 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
    case ButtonRelease:
       M1time = 0;
       rButton = Bev.button;
-      if (LocalHead) fprintf(SUMA_STDERR,"%s: In ButtonRelease Button %d\n", FuncName, rButton); 
-      if (SUMAg_CF->SwapButtons_1_3 || (SUMAg_CF->ROI_mode && SUMAg_CF->Pen_mode)) {
+      if (LocalHead) 
+         fprintf(SUMA_STDERR,
+                  "%s: In ButtonRelease Button %d\n", FuncName, rButton); 
+      if (SUMAg_CF->SwapButtons_1_3 || 
+          (SUMAg_CF->ROI_mode && SUMAg_CF->Pen_mode)) {
          if (rButton == Button1) rButton = Button3;
          else if (rButton == Button3) rButton = Button1;
       }
       switch (rButton) { /* switch type of button Press */
          case Button3:
-            if (LocalHead) fprintf(SUMA_STDERR,"%s: In ButtonRelease3\n", FuncName); 
+            if (LocalHead) 
+               fprintf(SUMA_STDERR,"%s: In ButtonRelease3\n", FuncName); 
             if (SUMAg_CF->ROI_mode) {
                SUMA_DRAWN_ROI *DrawnROI = NULL;
                SUMA_SurfaceObject *SO = NULL;
@@ -4570,7 +4602,7 @@ int SUMA_MarkLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov)
       
       /* put in a request for GICOR if need be */
       if (  SUMAg_CF->Connected_v[SUMA_GICORR_LINE] && 
-            SUMAg_CF->giset) {
+            SUMAg_CF->giset && !SUMAg_CF->HoldClickCallbacks) {
          if (LocalHead) 
             fprintf(SUMA_STDERR,
                      "%s: Notifying GICOR of node selection\n", FuncName);
@@ -6633,7 +6665,7 @@ void SUMA_JumpIndex (char *s, void *data)
 
    /* and if GICOR needs some love */
    if (  SUMAg_CF->Connected_v[SUMA_GICORR_LINE] && 
-         SUMAg_CF->giset) {
+         SUMAg_CF->giset && !SUMAg_CF->HoldClickCallbacks) {
       if (LocalHead) 
          fprintf(SUMA_STDERR,
                   "%s: Notifying GICOR of node selection\n", FuncName);

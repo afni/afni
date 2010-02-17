@@ -1450,8 +1450,6 @@ SUMA_Boolean SUMA_GICOR_process_dataset( NI_element *nel  )
               !SOv[id]->SurfCont->SwitchDsetlst->isShaded ) {
              SUMA_RefreshDsetList (SOv[id]);       
          }
-         SUMA_LHv("Initializing %d\n", id);
-         SUMA_UpdateColPlaneShellAsNeeded(SOv[id]);
          SUMA_LHv("Colorizing %d\n", id);
          if (!SUMA_ColorizePlane (ov[id])) {
             SUMA_SLP_Err("Failed to colorize plane.\n");
@@ -1461,9 +1459,28 @@ SUMA_Boolean SUMA_GICOR_process_dataset( NI_element *nel  )
             SUMA_SLP_Err("Failed to remix redisplay.\n");
             SUMA_RETURN(NOPE);
          }
+         SUMA_LHv("Initializing %d\n", id);
+         SUMA_UpdateColPlaneShellAsNeeded(SOv[id]);
       }
    }
 
+   #if 0 /* This is no longer needed because of the modification
+            of SE_Redisplay*All* . The last controller to be 
+            redrawn is now the one in which the pointer last
+            resided. I leave this here in case the problem
+            resurfaces again ... */
+   /* if you have multiple controllers open, force a redisplay
+      in the one where the click occurred, to force a reset of 
+      GL's State variables. Otherwise you may have problems 
+      selecting nodes repeatedly without going in and out of the window */
+   if (SUMAg_CF->PointerLastInViewer >= 0 && SUMAg_N_SVv > 1) {
+      SUMA_SurfaceViewer *sv = &(SUMAg_SVv[SUMAg_CF->PointerLastInViewer]);
+      if (!sv->isShaded) { /* this should always be true ... */
+         SUMA_OpenGLStateReset(SUMAg_DOv, SUMAg_N_DOv, sv);
+         SUMA_handleRedisplay((XtPointer)sv->X->GLXAREA);
+      }
+   }
+   #endif
    if (LocalHead) {
       SUMA_ShowDset(sdsetv[0],0,NULL);
       SUMA_ShowDset(sdsetv[1],0,NULL);

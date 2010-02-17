@@ -3166,13 +3166,17 @@ void SUMA_SetcSV (Widget w, XtPointer clientData, XEvent * event, Boolean * cont
    if (LocalHead) fprintf(SUMA_STDERR,"%s:\n Called, w = %p\n", FuncName, w);
    
 
-   /* When using multiple viewers, you must reset the OpenGL state variables or risk having abrupt changes with the first click */
+   /* When using multiple viewers, you must reset the 
+      OpenGL state variables or risk having abrupt changes with the 
+      first click */
    SUMA_ANY_WIDGET2SV(w, sv, isv);
    if (isv < 0) {
-      fprintf (SUMA_STDERR, "Error %s: Failed in macro SUMA_ANY_WIDGET2SV.\n", FuncName);
+      fprintf (SUMA_STDERR, 
+               "Error %s: Failed in macro SUMA_ANY_WIDGET2SV.\n", FuncName);
       SUMA_RETURNe;
    }
-
+   SUMAg_CF->PointerLastInViewer = isv;
+   
    #ifdef DARWIN
       /* Set the focus manually.
       If you're not using motif widgets, window focus is not managed.
@@ -3198,7 +3202,8 @@ void SUMA_SetcSV (Widget w, XtPointer clientData, XEvent * event, Boolean * cont
 
    sv->rdc = SUMA_RDC_X_ENTER_WINDOW;
    
-   if (LocalHead) fprintf (SUMA_STDERR, "%s: in Surface Viewer #%d.\n", FuncName, isv);
+   if (LocalHead) 
+      fprintf (SUMA_STDERR, "%s: in Surface Viewer #%d.\n", FuncName, isv);
    sv->ResetGLStateVariables = YUP;  
 
    SUMA_postRedisplay(w, clientData, NULL);
@@ -3212,6 +3217,7 @@ void SUMA_unSetcSV (Widget w, XtPointer clientData, XEvent * event, Boolean * co
    static char FuncName[]={"SUMA_unSetcSV"};
    
    SUMA_ENTRY;
+   
    SUMA_RETURNe;
 }
 

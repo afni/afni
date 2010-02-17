@@ -1870,7 +1870,8 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
    float dsmw=5*60;
    SUMA_Boolean LocalHead = NOPE;
       
-   /* This is the function that creates the debugging flags, do not use them here */
+   /* This is the function that creates the debugging flags, 
+      do not use them here */
    cf = NULL;
    
    /* allocate */
@@ -1909,10 +1910,11 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
    if (eee) {
       portn = atoi(eee);
       if (portn < 1024 ||  portn > 65535) {
-         fprintf (SUMA_STDERR, "Warning %s:\n"
-                               "Environment variable SUMA_AFNI_TCP_PORT %d is invalid.\n"
-                               "port must be between 1025 and 65534.\n"
-                               "Using default of %d\n", FuncName, portn, SUMA_TCP_PORT);
+         fprintf (SUMA_STDERR, 
+                  "Warning %s:\n"
+                   "Environment variable SUMA_AFNI_TCP_PORT %d is invalid.\n"
+                   "port must be between 1025 and 65534.\n"
+                   "Using default of %d\n", FuncName, portn, SUMA_TCP_PORT);
          portn = SUMA_TCP_PORT;
       } 
    } else {
@@ -2102,7 +2104,8 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
       char *eee = getenv("SUMA_SnapshotOverSampling");
       if (eee) {
          cf->SUMA_SnapshotOverSampling = (int)strtod(eee, NULL);
-         if (cf->SUMA_SnapshotOverSampling < 1 || cf->SUMA_SnapshotOverSampling>10) {
+         if (  cf->SUMA_SnapshotOverSampling < 1 || 
+               cf->SUMA_SnapshotOverSampling>10) {
             fprintf (SUMA_STDERR,   "Warning %s:\n"
                                     "Bad value for environment variable\n"
                                     "SUMA_SnapshotOverSampling.\n"
@@ -2117,9 +2120,10 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
          if (strcmp(eee,"NO") == 0) cf->X->WarnClose = NOPE;
          else if (strcmp(eee,"YES") == 0) cf->X->WarnClose = YUP;
          else {
-            fprintf (SUMA_STDERR,   "Warning %s:\n"
-                                    "Bad value for environment variable SUMA_WarnBeforeClose\n"
-                                    "Assuming default of YES", FuncName);
+            fprintf (SUMA_STDERR,   
+                     "Warning %s:\n"
+                     "Bad value for environment variable SUMA_WarnBeforeClose\n"
+                     "Assuming default of YES", FuncName);
             cf->X->WarnClose = YUP;
          }
       } else cf->X->WarnClose = YUP;
@@ -2136,12 +2140,15 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
    cf->ROI_contmode = YUP;
    cf->Pen_mode = NOPE;
    
-   cf->nimlROI_Datum_type = NI_rowtype_define("SUMA_NIML_ROI_DATUM", "int,int,int,int[#3]");
+   cf->nimlROI_Datum_type = 
+      NI_rowtype_define("SUMA_NIML_ROI_DATUM", "int,int,int,int[#3]");
    if (cf->nimlROI_Datum_type < 0) {
       fprintf(SUMA_STDERR,"Error %s: Failed defining niml code.", FuncName);
       return(NULL);
    }
-   if (LocalHead) fprintf(SUMA_STDERR, "%s: roi_type code = %d\n", FuncName, cf->nimlROI_Datum_type) ;
+   if (LocalHead) 
+      fprintf(SUMA_STDERR, "%s: roi_type code = %d\n", 
+                  FuncName, cf->nimlROI_Datum_type) ;
    
    cf->ROI_CM = NULL;
    cf->ROI_FillMode = SUMA_ROI_FILL_TO_THISROI;
@@ -2155,7 +2162,9 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
          cf->ColMixMode = SUMA_4AML;
       } else {
          cf->ColMixMode = SUMA_ORIG_MIX_MODE;
-         fprintf(SUMA_STDERR,"%s:\nUnrecognized option %s for SUMA_ColorMixingMode.\nUsing default = ORIG\n", FuncName, eee);
+         fprintf(SUMA_STDERR,
+                  "%s:\nUnrecognized option %s for SUMA_ColorMixingMode.\n"
+                  "Using default = ORIG\n", FuncName, eee);
       } 
    } else {
       cf->ColMixMode = SUMA_ORIG_MIX_MODE;
@@ -2174,9 +2183,10 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
          if (strcmp(eee,"NO") == 0) cf->Allow_Dset_Replace = NOPE;
          else if (strcmp(eee,"YES") == 0) cf->Allow_Dset_Replace = YUP;
          else {
-            fprintf (SUMA_STDERR,   "Warning %s:\n"
-                                    "Bad value for environment variable SUMA_AllowDsetReplacement\n"
-                                    "Assuming default of NO", FuncName);
+            fprintf (SUMA_STDERR,   
+               "Warning %s:\n"
+               "Bad value for environment variable SUMA_AllowDsetReplacement\n"
+               "Assuming default of NO", FuncName);
             cf->Allow_Dset_Replace = NOPE;
          }
       } else cf->Allow_Dset_Replace = NOPE;
@@ -2187,7 +2197,10 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
    
    cf->N_ClipPlanes = 0;
    for (i=0; i<SUMA_MAX_N_CLIP_PLANES; ++i) {
-      cf->ClipPlanes[4*i] = cf->ClipPlanes[4*i+1] = cf->ClipPlanes[4*i+2] = cf->ClipPlanes[4*i+3]= 0.0;
+      cf->ClipPlanes[4*i] = 
+         cf->ClipPlanes[4*i+1] = 
+            cf->ClipPlanes[4*i+2] = 
+               cf->ClipPlanes[4*i+3]= 0.0;
       cf->ClipPlaneType[i] = SUMA_NO_CLIP_PLANE_TYPE;
       cf->ClipPlanesLabels[i][0]='\0';
    }
@@ -2212,9 +2225,10 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
          }
       } else cf->NoDuplicatesInRecorder = 1;
    }
-   /*if (SUMAg_CF->NoDuplicatesInRecorder) SNAP_NoDuplicates();
-   else SNAP_OkDuplicates();
-*/
+   /* if (SUMAg_CF->NoDuplicatesInRecorder) 
+            SNAP_NoDuplicates();
+      else SNAP_OkDuplicates();
+   */
    cf->cwd = SUMA_getcwd();
    
    {
@@ -2238,6 +2252,7 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
    cf->callbacks = (DList *)SUMA_calloc(1,sizeof(DList));
    dlist_init (cf->callbacks, SUMA_FreeCallback);
    cf->HoldClickCallbacks = 0;
+   cf->PointerLastInViewer = -1;
    
    cf->giset = NULL;
    
@@ -2828,6 +2843,9 @@ char * SUMA_CommonFieldsInfo (SUMA_CommonFields *cf, int detail)
    SS = SUMA_StringAppend_va( SS, "%s\n",s); SUMA_free(s); s = NULL;
    s = SUMA_Callbacks_Info(cf->callbacks, detail);
    SS = SUMA_StringAppend_va( SS, "%s\n",s); SUMA_free(s); s = NULL;
+   
+   SS = SUMA_StringAppend_va(SS, 
+                "Pointer last seen in viewer: %d\n", cf->PointerLastInViewer);
    
    s = SUMA_GISET_Info(cf->giset, 0);
    

@@ -1779,37 +1779,51 @@ typedef struct {
    SUMA_Boolean ShowBackground; /*!< Flag for showing/not showing background colors */   
    SUMA_Boolean UsePatchDims; /*!< Flag for using patch based dimensions (rather than entire nodelist) */
    
-   int Focus_SO_ID; /*!< index into SUMAg_DOv of the surface currently in focus, -1 for nothing*/
-   int Focus_DO_ID; /*!< index into SUMAg_DOv of the Displayabl Object currently in focus -1 for nothing*/
+   int Focus_SO_ID; /*!< index into SUMAg_DOv of the surface currently in focus, 
+                        -1 for nothing*/
+   int Focus_DO_ID; /*!< index into SUMAg_DOv of the Displayable Object 
+                           currently in focus -1 for nothing*/
    
-   GLdouble Pick0[3];   /*!< Click location in World coordinates, at z = 0 (near clip plane)*/
-   GLdouble Pick1[3];   /*!< Click location in World coordinates, at z = 1.0 (far clip plane)*/
-   GLdouble Pcenter_close[3];  /*!< Center of screen in World coordinates , at z = 0 (near clip plane)*/
-   GLdouble Pcenter_far[3];    /*!< Center of screen in World coordinates , at z = 1 (near far plane)*/
-   GLdouble Plist_close[3];    /*!< lists of points on screen in world coordinates  at z = 0 
-                                    it holds N/3 points where N is the array length
-                                    At the moment, all I need is one point, the lower left
-                                    Should more be needed, I will add them to the list and
-                                    document them here.*/
+   GLdouble Pick0[3];   /*!< Click location in World coordinates, at z = 0 
+                           (near clip plane)*/
+   GLdouble Pick1[3];   /*!< Click location in World coordinates, 
+                              at z = 1.0 (far clip plane)*/
+   GLdouble Pcenter_close[3];  /*!< Center of screen in World coordinates , 
+                                    at z = 0 (near clip plane)*/
+   GLdouble Pcenter_far[3];    /*!< Center of screen in World coordinates , 
+                                    at z = 1 (near far plane)*/
+   GLdouble Plist_close[3];   /*!< lists of points on screen in world coordinates
+                  at z = 0.
+                  it holds N/3 points where N is the array length
+                  At the moment, all I need is one point, the lower left
+                  Should more be needed, I will add them to the list and
+                  document them here.*/
    SUMA_CrossHair *Ch; /*!< Pointer to Cross Hair structure */
    SUMA_Axis *WAx;  /*!< Pointer to world axis */   
    
    SUMA_ViewState *VSv; /*!< Vector of Viewing State Structures */
    int N_VSv; /*!< Number of Viewing State structures */
-   char *State; /*!< The current state of the viewer. This variable should no be freed since it points to locations within VSv*/
+   char *State; /*!< The current state of the viewer. 
+      This variable should no be freed since it points to locations within VSv*/
    int iState; /*!< index into VSv corresponding to State */
-   int LastNonMapStateID; /*!< Index into the state in VSv from which a toggle to the mappable state was initiated */ 
+   int LastNonMapStateID; /*!< Index into the state in VSv from which a 
+                              toggle to the mappable state was initiated */ 
    
-   SUMA_Boolean isShaded; /*!< YUP if the window is minimized or shaded, NOPE if you can see its contents */
+   SUMA_Boolean isShaded; /*!< YUP if the window is minimized or shaded, 
+                              NOPE if you can see its contents */
 
-   SUMA_Boolean LinkAfniCrossHair; /*!< YUP if the cross hair location is to be sent (and accepted from AFNI, when the stream is open) */
-   SUMA_Boolean ResetGLStateVariables; /*!< YUP if you need to run the function that resets the Eye Axis before display. 
-                                          see functions SUMA_display and SUMA_OpenGLStateReset for more info */
-   SUMA_Boolean NewGeom;   /*!< YUP if viewer has new geometry in it and needs to have its default viewing settings updated */                                  
+   SUMA_Boolean LinkAfniCrossHair; /*!< YUP if the cross hair location is to be 
+                        sent (and accepted from AFNI, when the stream is open) */
+   SUMA_Boolean ResetGLStateVariables; /*!< YUP if you need to run the function 
+            that resets the Eye Axis before display. 
+            see functions SUMA_display and SUMA_OpenGLStateReset for more info */
+   SUMA_Boolean NewGeom; /*!< YUP if viewer has new geometry in it and 
+                           needs to have its default viewing settings updated */
    DList *BS; /*!< The new version of BrushStroke, in doubly linked list form */
    
    char *CurGroupName; /*!< current name of group */
-   int iCurGroup; /*!< index into GroupList (stored in SUMAg_CF) of current group of Surface Viewer */
+   int iCurGroup; /*!< index into GroupList (stored in SUMAg_CF) 
+                        of current group of Surface Viewer */
    SUMA_REDISPLAY_CAUSE rdc;  /*!< Why has a redisplay been requested */
    SUMA_BLEND_MODES Blend_Mode; /*!< blending mode */
    int FreezeZoomXstates; /*!< if 1, keep zoom constant across states */
@@ -2715,6 +2729,8 @@ typedef struct {
                           surfaces */
    
    SUMA_Boolean HoldClickCallbacks;
+   int PointerLastInViewer; /* index of latest viewer visited by mouse pointer
+                           -1 if unknown */
    
    GICOR_setup *giset; /*!< parameters for group icorr setup */
    
