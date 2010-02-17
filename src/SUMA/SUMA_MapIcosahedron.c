@@ -702,18 +702,39 @@ int main (int argc, char *argv[])
                   SUMA_FnameGet( brainSpec.LocalDomainParent[i], "f", 
                                  SUMAg_CF->cwd) );
       }
-      if (  brainSpec.DomainGrandParentID[i] && 
-            brainSpec.DomainGrandParentID[i][0] &&
-            !strstr(brainSpec.DomainGrandParentID[i], "SAME") ) {
-         snprintf(stdSpec->DomainGrandParentID[stdSpec->N_Surfs -1],
+      #if 0
+         /* You should not preserve domain grandparent! */
+         if (  brainSpec.DomainGrandParentID[i] && 
+               brainSpec.DomainGrandParentID[i][0] &&
+               !strstr(brainSpec.DomainGrandParentID[i], "SAME") ) {
+            snprintf(stdSpec->DomainGrandParentID[stdSpec->N_Surfs -1],
+                     (SUMA_MAX_FP_NAME_LENGTH-1)*sizeof(char),
+                     "%s%s%s", 
+                     SUMA_FnameGet( brainSpec.DomainGrandParentID[i], "pa",
+                                    SUMAg_CF->cwd),
+                     fout,
+                     SUMA_FnameGet( brainSpec.DomainGrandParentID[i], "f", 
+                                    SUMAg_CF->cwd) );
+         }
+      #elif 0 
+         /* Make the grand parent be the icosahedron.
+            Note however that left and right hemisphere node indices
+            do not reflect similar structures. So you can't use node indices 
+            across hemispheres to find corresponding locations.
+            So to be safe for now, I am turning this off, because 
+            one often assumes that same domain parent means same node index
+            implies same anatomical area...
+             */
+         if (bin[0] == 'y') {
+            snprintf(stdSpec->DomainGrandParentID[stdSpec->N_Surfs -1],
                   (SUMA_MAX_FP_NAME_LENGTH-1)*sizeof(char),
-                  "%s%s%s", 
-                  SUMA_FnameGet( brainSpec.DomainGrandParentID[i], "pa",
-                                 SUMAg_CF->cwd),
-                  fout,
-                  SUMA_FnameGet( brainSpec.DomainGrandParentID[i], "f", 
-                                 SUMAg_CF->cwd) );
-      }
+                  "ico.rd.%d",depth);
+         } else {
+            snprintf(stdSpec->DomainGrandParentID[stdSpec->N_Surfs -1],
+                  (SUMA_MAX_FP_NAME_LENGTH-1)*sizeof(char),
+                  "ico.ld.%d",depth);
+         }  
+      #endif
       if (  brainSpec.LocalCurvatureParent[i] && 
             brainSpec.LocalCurvatureParent[i][0] &&
             !strstr(brainSpec.LocalCurvatureParent[i], "SAME") ) {

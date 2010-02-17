@@ -1025,12 +1025,17 @@ SUMA_Boolean SUMA_GICOR_Dsets(SUMA_SurfaceObject *SOv[],
                               char *target_name,
                               DList *DsetList,
                               SUMA_DSET *sdsetv[],
-                              SUMA_OVERLAYS *ov[]) 
+                              SUMA_OVERLAYS *ov[],
+                              NI_element *nel) 
 {
    static char FuncName[]={"SUMA_GICOR_Dsets"};
    char *targetv[2]={NULL, NULL},
-        *dset_namev[2]={NULL, NULL};
-   int i, ii, *Ti=NULL, ovind = 0;
+        *dset_namev[2]={NULL, NULL}, *atr=NULL;
+   int i, ii, *Ti=NULL, ovind = 0, nvals=0, vv=0;
+   static char *blab[6] = { "GIC_Delta" , "GIC_Zscore" ,
+                            "AAA_Delta" , "AAA_Zscore" ,
+                            "BBB_Delta" , "BBB_Zscore"  } ;
+   NI_str_array *labar=NULL ;
    SUMA_Boolean LocalHead = YUP;
    
    SUMA_ENTRY;
@@ -1043,6 +1048,10 @@ SUMA_Boolean SUMA_GICOR_Dsets(SUMA_SurfaceObject *SOv[],
    }
    
    if (target_name) { /* Brand new init, search/create by name */
+      if (!nel) {
+         SUMA_S_Err("Need GICOR setup nel for creating new dsets");
+         SUMA_RETURN(NOPE);
+      }  
       /* Form the names of the dsets to be created */
       if (SOv[1]) { /* have two surfaces */
          targetv[0] = SUMA_append_string(target_name,".Left");
@@ -1075,10 +1084,31 @@ SUMA_Boolean SUMA_GICOR_Dsets(SUMA_SurfaceObject *SOv[],
             SUMA_AddDsetNelCol (sdsetv[i], "node index", 
                                 SUMA_NODE_INDEX, Ti, NULL, 1);
             SUMA_free(Ti); Ti=NULL;
-            SUMA_AddDsetNelCol (sdsetv[i], "GIC_Delta",
+            
+            atr = NI_get_attribute( nel , "target_nvals" ) ;  
+               if( atr == NULL )        SUMA_GIQUIT;
+            nvals = (int)strtod(atr,NULL) ;  nvals = MAX(1,nvals);     
+         
+            atr = NI_get_attribute( nel , "target_labels" ) ;
+            if( atr != NULL )
+               labar = NI_decode_string_list( atr , ";" ) ;
+            
+            for( vv=0 ; vv < nvals ; vv++ ){
+               if (labar != NULL && vv < labar->num) atr = labar->str[vv];
+               else if (vv < 6) {
+                  atr = blab[vv];
+               } else {
+                  atr = "What the hell is this?";
+               }
+               if (vv%2 == 0) { /* beta */
+                  SUMA_AddDsetNelCol (sdsetv[i], atr,
                                 SUMA_NODE_FLOAT, NULL, NULL, 1);
-            SUMA_AddDsetNelCol (sdsetv[i], "GIC_Zscore",
+               } else { /* zscore */
+                  SUMA_AddDsetNelCol (sdsetv[i], atr,
                                 SUMA_NODE_ZSCORE, NULL, NULL, 1);  
+               }
+            }
+            if (labar) SUMA_free_NI_str_array(labar); labar=NULL;
          }
          
          /* create overlays */
@@ -1099,8 +1129,8 @@ SUMA_Boolean SUMA_GICOR_Dsets(SUMA_SurfaceObject *SOv[],
          ov[i]->OptScl->UseThr = 1; /* turn on threshold use */
          ov[i]->SymIrange = 1;   /* Use symmetric range */
          ov[i]->OptScl->AutoIntRange = 0; /* Do not update range */
-         ov[i]->OptScl->IntRange[0] = -2.5;  /* set the range */
-         ov[i]->OptScl->IntRange[1] =  2.5;
+         ov[i]->OptScl->IntRange[0] = -0.5;  /* set the range */
+         ov[i]->OptScl->IntRange[1] =  0.5;
          ov[i]->OptScl->ThreshRange[0] = 2.0;
          ov[i]->OptScl->ThreshRange[1] = 0.0;
          
@@ -1290,7 +1320,7 @@ SUMA_Boolean SUMA_GICOR_setup_func( NI_stream nsg , NI_element *nel )
    
    /* Now create appropriate dsets */
    if (!SUMA_GICOR_Dsets(SOv, giset, pre, SUMAg_CF->DsetList, 
-                         sdsetv, ov)) {
+                         sdsetv, ov, nel)) {
       SUMA_S_Err("Failed to find/create dsets for giset");
       SUMA_RETURN(NOPE);
    }
@@ -1326,7 +1356,7 @@ SUMA_Boolean SUMA_GICOR_process_dataset( NI_element *nel  )
    char *sbuf=NULL;
    float *neldar , *nelzar , *dsdar , *dszar ;
    int nvec,nn , vmul ; float thr ;
-   int id=0, ic=0;
+   int id=0, ic=0, ipair=0;
    SUMA_SurfaceObject *SOv[2]={NULL,NULL};
    SUMA_DSET *sdsetv[2]={NULL, NULL};
    SUMA_OVERLAYS *ov[2]={NULL, NULL};
@@ -1338,11 +1368,11 @@ SUMA_Boolean SUMA_GICOR_process_dataset( NI_element *nel  )
      SUMA_RETURN(NOPE) ;
    }
 
-   neldar = (float *)nel->vec[0] ;  /* delta array */
-   nelzar = (float *)nel->vec[1] ;  /* zscore array */
-   nvec   = nel->vec_len ;
-
-
+   if (nel->vec_num % 2) {
+      SUMA_SLP_Err("Number of sub-bricks not multiple of two!");
+      SUMA_RETURN(NOPE) ;
+   }
+   
    if( giset == NULL ||
        !giset->ready   ){   /* should not happen */
 
@@ -1360,7 +1390,7 @@ SUMA_Boolean SUMA_GICOR_process_dataset( NI_element *nel  )
       SUMA_RETURN(NOPE);
    }
    if (!SUMA_GICOR_Dsets(SOv, giset, NULL, SUMAg_CF->DsetList, 
-                         sdsetv, ov)) {
+                         sdsetv, ov, NULL)) {
       SUMA_S_Err("Failed to find/create dsets for giset");
       SUMA_RETURN(NOPE);
    }
@@ -1370,67 +1400,76 @@ SUMA_Boolean SUMA_GICOR_process_dataset( NI_element *nel  )
    SUMA_LH("Populating the dset in question, redisplay, etc.");
    
    for (id=0; id < 2; ++id) {
-      if (giset->nnode_domain[id]) {
-         dsdar = (float *)SDSET_VEC(sdsetv[id],0) ;
-         dszar = (float *)SDSET_VEC(sdsetv[id],1) ;
-         if (LocalHead) {
-            sbuf=SUMA_ShowMeSome(dsdar,
-                        SUMA_float, SDSET_VECLEN(sdsetv[id]),10,"dsdar:\n");
-            SUMA_LHv("pre copy surf%d %s\n",id, sbuf); 
-            SUMA_free(sbuf); sbuf=NULL;
-         }
-      
-         if( giset->ivec == NULL ){  /* all nodes */
-            if (giset->nvox != nvec) {
-               SUMA_S_Errv( "nvox=%d, nvec=%d, ivec=NULL\n"
-                           "Did not expect that.\n",
-                           giset->nvox, nvec);
-               SUMA_RETURN(NOPE) ;
-            }
-            if (id == 0) {
-               nn = MAX(0, nvec-giset->nnode_domain[1]);
-               SUMA_LHv("Copying %d values from neldar, surf%d\n", 
-                        nn, id);
-               if (LocalHead) {   
-                  sbuf=SUMA_ShowMeSome(neldar,SUMA_float, nn,10,"neldar:\n");
-                  SUMA_LHv("from the tube surf%d: %s\n", id, sbuf); 
-                  SUMA_free(sbuf); sbuf=NULL;
-               }
-               memcpy(dsdar,neldar,sizeof(float)*nn) ;
-               memcpy(dszar,nelzar,sizeof(float)*nn) ;
-            } else {
-               nn = MAX(0, nvec-giset->nnode_domain[0]);
-               SUMA_LHv("Copying %d values from neldar+%d, surf%d\n", 
-                        nn, giset->nnode_domain[0], id);
-               if (LocalHead) {
-                  sbuf=SUMA_ShowMeSome((neldar+giset->nnode_domain[0]),
-                                       SUMA_float, nn, 10,"neldar:\n");
-                  SUMA_LHv("from the tube surf%d: %s\n", id, sbuf); 
-                  SUMA_free(sbuf); sbuf=NULL;
-               }
-               memcpy(dsdar,(neldar+giset->nnode_domain[0]),sizeof(float)*nn) ;
-               memcpy(dszar,(nelzar+giset->nnode_domain[0]),sizeof(float)*nn) ;
-            }
+      for (ipair=0; ipair < nel->vec_num/2; ++ipair) {
+         neldar = (float *)nel->vec[2*ipair+0] ;  /* delta array */
+         nelzar = (float *)nel->vec[2*ipair+1] ;  /* zscore array */
+         nvec   = nel->vec_len ;
+
+         if (giset->nnode_domain[id]) {
+            dsdar = (float *)SDSET_VEC(sdsetv[id],(2*ipair+0)) ;
+            dszar = (float *)SDSET_VEC(sdsetv[id],(2*ipair+1)) ;
             if (LocalHead) {
-               sbuf=SUMA_ShowMeSome(dsdar,SUMA_float, nn, 10,"dsdar:\n");
-               SUMA_LHv("post copy surf%d %s\n", id, sbuf); 
+               sbuf=SUMA_ShowMeSome(dsdar,
+                           SUMA_float, SDSET_VECLEN(sdsetv[id]),10,"dsdar:\n");
+               SUMA_LHv("pre copy surf%d %s\n",id, sbuf); 
                SUMA_free(sbuf); sbuf=NULL;
             }
-         } else { /* Have index vector */
-            int *ivec=giset->ivec , kk ;
-            nn = MIN( giset->nnode_mask[id] , nvec ) ;
-            if (id == 0) {
-               for( kk=0 ; kk < nn ; kk++ ){
-                  dsdar[ivec[kk]] = neldar[kk] ; dszar[ivec[kk]] = nelzar[kk] ;
+
+            if( giset->ivec == NULL ){  /* all nodes */
+               if (giset->nvox != nvec) {
+                  SUMA_S_Errv( "nvox=%d, nvec=%d, ivec=NULL\n"
+                              "Did not expect that.\n",
+                              giset->nvox, nvec);
+                  SUMA_RETURN(NOPE) ;
                }
-            } else {
-               for( kk=0 ; kk < nn ; kk++ ){
-                  dsdar[ivec[kk]-giset->nnode_domain[0]] = neldar[kk] ; 
-                  dszar[ivec[kk]-giset->nnode_domain[0]] = nelzar[kk] ;
+               if (id == 0) {
+                  nn = MAX(0, nvec-giset->nnode_domain[1]);
+                  SUMA_LHv("Copying %d values from neldar, surf%d\n", 
+                           nn, id);
+                  if (LocalHead) {   
+                     sbuf=SUMA_ShowMeSome(neldar,SUMA_float, nn,10,"neldar:\n");
+                     SUMA_LHv("from the tube surf%d: %s\n", id, sbuf); 
+                     SUMA_free(sbuf); sbuf=NULL;
+                  }
+                  memcpy(dsdar,neldar,sizeof(float)*nn) ;
+                  memcpy(dszar,nelzar,sizeof(float)*nn) ;
+               } else {
+                  nn = MAX(0, nvec-giset->nnode_domain[0]);
+                  SUMA_LHv("Copying %d values from neldar+%d, surf%d\n", 
+                           nn, giset->nnode_domain[0], id);
+                  if (LocalHead) {
+                     sbuf=SUMA_ShowMeSome((neldar+giset->nnode_domain[0]),
+                                          SUMA_float, nn, 10,"neldar:\n");
+                     SUMA_LHv("from the tube surf%d: %s\n", id, sbuf); 
+                     SUMA_free(sbuf); sbuf=NULL;
+                  }
+                  memcpy(dsdar,(neldar+giset->nnode_domain[0]),
+                           sizeof(float)*nn) ;
+                  memcpy(dszar,(nelzar+giset->nnode_domain[0]),
+                           sizeof(float)*nn) ;
+               }
+               if (LocalHead) {
+                  sbuf=SUMA_ShowMeSome(dsdar,SUMA_float, nn, 10,"dsdar:\n");
+                  SUMA_LHv("post copy surf%d %s\n", id, sbuf); 
+                  SUMA_free(sbuf); sbuf=NULL;
+               }
+            } else { /* Have index vector */
+               int *ivec=giset->ivec , kk ;
+               nn = MIN( giset->nnode_mask[id] , nvec ) ;
+               if (id == 0) {
+                  for( kk=0 ; kk < nn ; kk++ ){
+                     dsdar[ivec[kk]] = neldar[kk] ; 
+                     dszar[ivec[kk]] = nelzar[kk] ;
+                  }
+               } else {
+                  for( kk=0 ; kk < nn ; kk++ ){
+                     dsdar[ivec[kk]-giset->nnode_domain[0]] = neldar[kk] ; 
+                     dszar[ivec[kk]-giset->nnode_domain[0]] = nelzar[kk] ;
+                  }
                }
             }
-         }
-      }
+         } /* if (giset->nnode_domain[id]) */
+      } /* for (ipair ...) */
    }
 
    /* colorize and redisplay */
@@ -1481,11 +1520,44 @@ SUMA_Boolean SUMA_GICOR_process_dataset( NI_element *nel  )
       }
    }
    #endif
+   
    if (LocalHead) {
       SUMA_ShowDset(sdsetv[0],0,NULL);
       SUMA_ShowDset(sdsetv[1],0,NULL);
    }
 
+   #if 0
+      /* YOU CANNOT DO THIS: Although meshes are isotopic, 
+         a node index do not necessarily refer to a homologous 
+         anatomical region on both left and right surfaces. */ 
+   if (SUMAg_CF->Dev) {
+      if (SOv[0] && SOv[1] && 
+          SOv[0]->N_Node == SOv[1]->N_Node) {
+         static float *fv1=NULL, *fv0=NULL;
+         static double dot[12];
+         int ii=0;
+         
+         if (!fv0) fv0= (float *)SUMA_calloc(SOv[0]->N_Node, sizeof(float));
+         if (!fv1) fv1= (float *)SUMA_calloc(SOv[1]->N_Node, sizeof(float));
+         SUMA_S_Note (  "Cross correlation of left with right "
+                        "hemisphere patterns:\n");    
+         for (ipair=0; ipair < nel->vec_num/2; ++ipair) {
+            memcpy(fv0,(SDSET_VEC(sdsetv[0],ipair)),
+                              sizeof(float)*SDSET_VECLEN(sdsetv[0])) ;
+            memcpy(fv1,(SDSET_VEC(sdsetv[1],ipair)),
+                              sizeof(float)*SDSET_VECLEN(sdsetv[1])) ;
+            THD_normalize( SDSET_VECLEN(sdsetv[0]) , fv0 ) ;
+            THD_normalize( SDSET_VECLEN(sdsetv[1]) , fv1 ) ;
+            dot[ipair]=0.0;
+            for (ii=0; ii<SDSET_VECLEN(sdsetv[0]); ++ii) 
+               dot[ipair] += (double)fv0[ii]*(double)fv1[ii];
+            fprintf(SUMA_STDERR, "Pair %d: %f\t", ipair, dot[ipair]); 
+         }
+         fprintf(SUMA_STDERR, "\n");
+      }
+   }
+   #endif
+   
    SUMA_RETURN(YUP) ;
 }
 

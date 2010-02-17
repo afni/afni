@@ -1409,6 +1409,7 @@ SUMA_Boolean SUMA_isRelated ( SUMA_SurfaceObject *SO1,
 {
    static char FuncName[]={"SUMA_isRelated"};
    SUMA_DOMAIN_KINSHIPS kin;
+   static int iwarn=0;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -1423,15 +1424,19 @@ SUMA_Boolean SUMA_isRelated ( SUMA_SurfaceObject *SO1,
                if ( (SO1->Side == SO2->Side) ) {
                   SUMA_RETURN(YUP);
                } else {
-                  SUMA_S_Note( "Surfaces appear related at level 2 "
-                               "but sides are not the same.\n"                                                   "Kinship level is being ignored.\n");
-                  if (SO1->Side < SUMA_LR || SO2->Side < SUMA_LR) {
+                  if (!iwarn % 25) {
+                     SUMA_S_Note( "Surfaces appear related at level 2 "
+                               "but sides are not the same.\n"                                                   "Kinship level is being ignored.\n"
+                               "(Message shown intermittenly)\n");
+                  } 
+                  if ((SO1->Side < SUMA_LR || SO2->Side < SUMA_LR)) {
                      SUMA_S_Note("Surface sides are not clearly defined. "
                                  "If this is in error, consider adding \n"
                                  "Hemisphere = R  (or L or B) in the spec file\n"
                                  "to make sure surfaces sides are correctly "
                                  "labeled.\n");
                   }
+                  ++iwarn;
                }
          }
          break;
@@ -1653,6 +1658,11 @@ SUMA_DOMAIN_KINSHIPS SUMA_WhatAreYouToMe (SUMA_SurfaceObject *SO1,
          SUMA_LH(SUMA_DomainKinships_String (SUMA_GPSO1_is_GPSO2));
          SUMA_RETURN (SUMA_GPSO1_is_GPSO2);
       }
+   }
+   
+   if (SO1->N_Node == SO2->N_Node) {
+      SUMA_LH(SUMA_DomainKinships_String (SUMA_N_NODE_SAME));
+      SUMA_RETURN (SUMA_N_NODE_SAME);
    }
    
    SUMA_LH(SUMA_DomainKinships_String (SUMA_DOMAINS_NOT_RELATED));

@@ -3915,7 +3915,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             break;
             
          case Button3:
-               if (1 || LocalHead) 
+               if (LocalHead) 
                      fprintf( SUMA_STDERR,
                               "%s: Button 3 downplain jane, "
                               "viewer #%d : X=%f, Y = %f\n", 
@@ -3924,7 +3924,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                               
                if (Bev.state & ShiftMask) {
                   SUMAg_CF->HoldClickCallbacks = 1;
-                  SUMA_S_Note("Holding back callbacks");
+                  SUMA_LH("Holding back callbacks");
                }
                
                #if 0
@@ -3972,8 +3972,11 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   }
 
                   #if 0
-                  /* If you are having OpenGLStateReset problems, 
-                  use this: */
+                  /* Try this if you are having OpenGLStateReset problems at
+                     node selection time. It is inefficient, but helps point
+                     to the problem. 
+                     Look at recent updates to SE_Redisplay*All* for the more
+                     appropriate fix */
                   SUMA_S_Note("Blunt fix:");
                   SUMA_OpenGLStateReset(SUMAg_DOv, SUMAg_N_DOv, sv);
                   SUMA_handleRedisplay((XtPointer)sv->X->GLXAREA);
