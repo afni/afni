@@ -330,6 +330,10 @@ const char *SUMA_DomainKinships_String (SUMA_DOMAIN_KINSHIPS code)
          SUMA_RETURN("Surface 1 is the domain grandparent of Surface 2");
       case SUMA_SO2_is_GPSO1:
          SUMA_RETURN("Surface 2 is the domain grandparent of Surface 1");
+      case SUMA_GPSO1_is_GPSO2:
+         SUMA_RETURN("Surfaces have the same domain grandparent.");
+      case SUMA_N_NODE_SAME:
+         SUMA_RETURN("Surfaces have the same number of nodes.");
       default:
          SUMA_RETURN("Should not see this"); 
    }

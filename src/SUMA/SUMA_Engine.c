@@ -2123,17 +2123,22 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             {
                char LockName[100];
                SUMA_LockEnum_LockType (SUMAg_CF->Locked[0], LockName);
-               fprintf (SUMA_STDERR,"%s: Switching Locktype from %s", FuncName, LockName);
+               fprintf (SUMA_STDERR,
+                        "%s: Switching Locktype from %s", FuncName, LockName);
                /* change the locking type of viewer 0 */
-               SUMAg_CF->Locked[0] = (int)fmod(SUMAg_CF->Locked[0]+1, SUMA_N_Lock_Types);
+               SUMAg_CF->Locked[0] = (int)fmod(SUMAg_CF->Locked[0]+1, 
+                                          SUMA_N_Lock_Types);
                SUMA_LockEnum_LockType (SUMAg_CF->Locked[0], LockName);
                fprintf (SUMA_STDERR," %s\n", LockName);
                /* update the widget*/
-               SUMA_set_Lock_rb (SUMAg_CF->X->SumaCont->Lock_rbg, 0, SUMAg_CF->Locked[0]);
-               /* Change the locking type of all remaining viewers, including unopen ones */
+               SUMA_set_Lock_rb (SUMAg_CF->X->SumaCont->Lock_rbg, 0, 
+                                 SUMAg_CF->Locked[0]);
+               /* Change the locking type of all remaining viewers, 
+                  including unopen ones */
                for (ii=1; ii< SUMA_MAX_SURF_VIEWERS; ++ii) {
                   SUMAg_CF->Locked[ii] = SUMAg_CF->Locked[0];                  
-                  SUMA_set_Lock_rb (SUMAg_CF->X->SumaCont->Lock_rbg, ii, SUMAg_CF->Locked[ii]);
+                  SUMA_set_Lock_rb (SUMAg_CF->X->SumaCont->Lock_rbg, ii, 
+                                    SUMAg_CF->Locked[ii]);
                }
 
                /* now update the all lock keys */
@@ -2145,15 +2150,19 @@ SUMA_Boolean SUMA_Engine (DList **listp)
          case SE_SetLockAllCrossHair:
             /* expects a Lock value in i , sets the lock of all viewers */
             if (EngineData->i_Dest != NextComCode) {
-               fprintf (SUMA_STDERR,"Error %s: Data not destined correctly for %s (%d).\n",FuncName, NextCom, NextComCode);
+               fprintf (SUMA_STDERR,
+                  "Error %s: Data not destined correctly for %s (%d).\n",
+                  FuncName, NextCom, NextComCode);
                break;
             }
             {
                
-               /* Change the locking type of all remaining viewers, including unopen ones */
+               /* Change the locking type of all remaining viewers, 
+                     including unopen ones */
                for (ii=0; ii< SUMA_MAX_SURF_VIEWERS; ++ii) {
                   SUMAg_CF->Locked[ii] = EngineData->i;                  
-                  SUMA_set_Lock_rb (SUMAg_CF->X->SumaCont->Lock_rbg, ii, SUMAg_CF->Locked[ii]);
+                  SUMA_set_Lock_rb (SUMAg_CF->X->SumaCont->Lock_rbg, ii, 
+                                    SUMAg_CF->Locked[ii]);
                }
 
                /* now update the all lock keys */
@@ -2164,25 +2173,35 @@ SUMA_Boolean SUMA_Engine (DList **listp)
          case SE_LockCrossHair:
             /* expects nothing in EngineData */
 
-            /* calls other viewers and determine if the cross hair needs to be locked to the calling sv */
+            /* calls other viewers and determine if the cross hair 
+               needs to be locked to the calling sv */
 
             /* check to see if other viewers need to share the fate */
             ii = SUMA_WhichSV(sv, SUMAg_SVv, SUMAg_N_SVv);
             if (ii < 0) {
-               fprintf (SUMA_STDERR,"Error %s: Failed to find index of sv.\n", FuncName);
+               fprintf (SUMA_STDERR,
+                        "Error %s: Failed to find index of sv.\n", FuncName);
                break;
             }
-            if (SUMAg_CF->Locked[ii]) { /* This one's locked, find out which other viewers are locked to this one */
+            if (SUMAg_CF->Locked[ii]) { /* This one's locked, find out which 
+                                       other viewers are locked to this one */
                for (i=0; i < SUMAg_N_SVv; ++i) {
                   svi = &SUMAg_SVv[i];
                   if (i != ii) {
                      switch (SUMAg_CF->Locked[i]) { 
                         case SUMA_No_Lock:
-                           if (LocalHead) fprintf (SUMA_STDERR, "%s: No lock for viewer %d.\n", FuncName, i);
+                           if (LocalHead) 
+                              fprintf (SUMA_STDERR, 
+                                       "%s: No lock for viewer %d.\n", 
+                                       FuncName, i);
                            break;
                         case SUMA_XYZ_Lock:
-                           if (LocalHead) fprintf (SUMA_STDERR, "%s: Try to XYZ lock viewer %d.\n", FuncName, i);
-                           /* just set the XYZ, and free the binding to the surfaces */
+                           if (LocalHead) 
+                              fprintf (SUMA_STDERR, 
+                                       "%s: Try to XYZ lock viewer %d.\n", 
+                                       FuncName, i);
+                           /* just set the XYZ, and free the binding 
+                              to the surfaces */
                            svi->Ch->c[0] = sv->Ch->c[0];
                            svi->Ch->c[1] = sv->Ch->c[1];
                            svi->Ch->c[2] = sv->Ch->c[2];
@@ -2228,7 +2247,15 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                                  SO2 = (SUMA_SurfaceObject *)
                                              SUMAg_DOv[SOlist[it]].OP;
                                  if (SUMA_isRelated (SO1, SO2, 2)) { 
-                                       /* high level relationship is allowed */
+                                       /* high level relationship is allowed,
+                                          but with same-side enforcement.
+                                          A level 3 returns a match based on
+                                          the number of nodes only, but that
+                                          can cause trouble between left and 
+                                          right hemisphere surfaces where the 
+                                          same node index does not refer 
+                                          necessarily to the same anatomical 
+                                          areas.   */
                                     svi->Ch->SurfaceID = SOlist[it];
                                     if (sv->Ch->NodeID > SO2->N_Node) {
                                        fprintf (SUMA_STDERR,
