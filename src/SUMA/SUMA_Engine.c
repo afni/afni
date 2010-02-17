@@ -2314,7 +2314,8 @@ SUMA_Boolean SUMA_Engine (DList **listp)
          case SE_SetGICORnode:
             /* expects nothing in EngineData */
             /* sends the current node to Group Icor */
-            if (SUMAg_CF->giset && SUMAg_CF->Connected_v[SUMA_GICORR_LINE]) {
+            if (SUMAg_CF->giset && SUMAg_CF->Connected_v[SUMA_GICORR_LINE] 
+                && !SUMAg_CF->HoldClickCallbacks) {
                SUMA_LH("Sending notice to GICOR");
                if (SUMA_AFNI_gicor_setref((SUMA_SurfaceObject *)
                                           (SUMAg_DOv[sv->Focus_SO_ID].OP),
@@ -2409,20 +2410,39 @@ SUMA_Boolean SUMA_Engine (DList **listp)
 
          case SE_Redisplay_AllVisible:
             /* expects nothing in EngineData */
-            /* post a redisplay to all visible viewers */
-            for (ii=0; ii<SUMAg_N_SVv; ++ii) {
-               if (LocalHead) 
-                  fprintf (SUMA_STDERR,
-                           "%s: Checking viewer %d.\n", FuncName, ii);
-               if (!SUMAg_SVv[ii].isShaded && SUMAg_SVv[ii].X->TOPLEVEL) {
-                  /* you must check for both conditions because by default 
-                  all viewers are initialized to isShaded = NOPE, even before 
-                  they are ever opened */
+            /* post a redisplay to all visible viewers,
+               Do the one where pointer is last */
+            {
+               int viewerorder[SUMA_MAX_SURF_VIEWERS], np = 0;
+               /* set viewer order so that the one that 
+               last had the pointer gets displayed last */
+               for (ii=0; ii<SUMAg_N_SVv; ++ii) {
+                  if (ii != SUMAg_CF->PointerLastInViewer) {
+                     viewerorder[np] = ii; ++np;     
+                  }
+               }
+               if (np < SUMAg_N_SVv) {
+                  viewerorder[np] = SUMAg_CF->PointerLastInViewer;
+                  ++np;
+               }
+               if (np != SUMAg_N_SVv) {
+                  SUMA_S_Err("WTH?");
+               }
+               for (np=0; np<SUMAg_N_SVv; ++np) {
+                  ii = viewerorder[np];
                   if (LocalHead) 
                      fprintf (SUMA_STDERR,
-                              "%s: Redisplaying viewer %d.\n", FuncName, ii);
-                  SUMAg_SVv[ii].ResetGLStateVariables = YUP;
-                  SUMA_postRedisplay(SUMAg_SVv[ii].X->GLXAREA, NULL, NULL);
+                              "%s: Checking viewer %d.\n", FuncName, ii);
+                  if (!SUMAg_SVv[ii].isShaded && SUMAg_SVv[ii].X->TOPLEVEL) {
+                     /* you must check for both conditions because by default 
+                     all viewers are initialized to isShaded = NOPE, even before 
+                     they are ever opened */
+                     if (LocalHead) 
+                        fprintf (SUMA_STDERR,
+                                 "%s: Redisplaying viewer %d.\n", FuncName, ii);
+                     SUMAg_SVv[ii].ResetGLStateVariables = YUP;
+                     SUMA_postRedisplay(SUMAg_SVv[ii].X->GLXAREA, NULL, NULL);
+                  }
                }
             }
             break;
@@ -2448,20 +2468,41 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             
          case SE_RedisplayNow_AllVisible:
             /* expects nothing in EngineData */
-            /* causes  an immediate redisplay to all visible viewers */
-            for (ii=0; ii<SUMAg_N_SVv; ++ii) {
-               if (LocalHead) 
-                  fprintf (SUMA_STDERR,
-                           "%s: Checking viewer %d.\n", FuncName, ii);
-               if (!SUMAg_SVv[ii].isShaded && SUMAg_SVv[ii].X->TOPLEVEL) {
-                  /* you must check for both conditions because by default 
-                  all viewers are initialized to isShaded = NOPE, even before 
-                  they are ever opened */
+            /* causes  an immediate redisplay to all visible viewers 
+               The viewer that had the pointer last gets 
+               displayed last. This is similar in concept
+               to SE_RedisplayNow_AllOtherVisible */
+            {
+               int viewerorder[SUMA_MAX_SURF_VIEWERS], np = 0;
+               /* set viewer order so that the one that 
+               last had the pointer gets displayed last */
+               for (ii=0; ii<SUMAg_N_SVv; ++ii) {
+                  if (ii != SUMAg_CF->PointerLastInViewer) {
+                     viewerorder[np] = ii; ++np;     
+                  }
+               }
+               if (np < SUMAg_N_SVv) {
+                  viewerorder[np] = SUMAg_CF->PointerLastInViewer;
+                  ++np;
+               }
+               if (np != SUMAg_N_SVv) {
+                  SUMA_S_Err("WTH?");
+               }
+               for (np=0; np<SUMAg_N_SVv; ++np) {
+                  ii = viewerorder[np];
                   if (LocalHead) 
                      fprintf (SUMA_STDERR,
-                              "%s: Redisplaying viewer %d.\n", FuncName, ii);
-                  SUMAg_SVv[ii].ResetGLStateVariables = YUP;
-                  SUMA_handleRedisplay((XtPointer)SUMAg_SVv[ii].X->GLXAREA);
+                              "%s: Checking viewer %d.\n", FuncName, ii);
+                  if (!SUMAg_SVv[ii].isShaded && SUMAg_SVv[ii].X->TOPLEVEL) {
+                     /* you must check for both conditions because by default 
+                     all viewers are initialized to isShaded = NOPE, even before 
+                     they are ever opened */
+                     if (LocalHead) 
+                        fprintf (SUMA_STDERR,
+                                 "%s: Redisplaying viewer %d.\n", FuncName, ii);
+                     SUMAg_SVv[ii].ResetGLStateVariables = YUP;
+                     SUMA_handleRedisplay((XtPointer)SUMAg_SVv[ii].X->GLXAREA);
+                  }
                }
             }
             break;
@@ -4723,6 +4764,9 @@ unpredictable results the first time you do something in one viewer after you'd 
 in another. 
 This function is a stripped down version of SUMA_SwitchState and should 
 be followed by a call to SUMA_postRedisplay for all the changes to take effect.
+
+Note that SUMA_postRedisplay may not be good enough because it posts a display request which may not execute immediately. SUMA_handleRedisplay would be the harsher, but more effective method.
+
 Do not try executing all the commands in SUMA_display that affect the modelview 
 matrix and the projection matrix without calling for a display the changes will not take effect.
 
