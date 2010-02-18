@@ -62,10 +62,10 @@ parse.AFNI.name <- function(filename, verb = 0) {
    #bext <- paste("BRIK",ext,collapse='.') 
    bext <- 'BRIK'
    an$compress <- ext
-   ext <- tolower(fileparts[length(fileparts)-1])   
+   ext <- fileparts[length(fileparts)-1]   
   } else {
     bext <- 'BRIK'
-    ext <- tolower(ext)
+    
   }
   
   #deal with sub-brick and range selectors
@@ -81,7 +81,7 @@ parse.AFNI.name <- function(filename, verb = 0) {
    }
   } 
 
-  if (ext == "head") {
+  if (tolower(ext) == "head") {
     if (an$compress == '') {
       keeep <- c(1:(length(fileparts)-1))
     } else {
@@ -89,7 +89,7 @@ parse.AFNI.name <- function(filename, verb = 0) {
     }
       an$head <- paste(c(fileparts[keeep],"HEAD"),collapse=".")
       an$brik <- paste(c(fileparts[keeep],bext),collapse=".")
-   } else if (ext == "brik") {
+   } else if (tolower(ext) == "brik") {
     if (an$compress == '') {
       keeep <- c(1:(length(fileparts)-1))
     } else {
@@ -101,10 +101,15 @@ parse.AFNI.name <- function(filename, verb = 0) {
     if (ext == '') {
       mm  <- filename
     } else {
-      mm <- ext
+      pp <- parse.name(filename);
+      if (pp$path != './') 
+         mm <- paste(pp$path,ext,sep="")
+      else 
+         mm <- ext
     }
     an$head <- paste(sub('\\.$','',mm),".HEAD",sep="")
     an$brik <- paste(sub('\\.$','',mm),".BRIK",sep="")
+   
   }
   
   if (verb > 2) {
