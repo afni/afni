@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 18, FEB, 2010, RCR, "SUMA_Makefile_NoDev", MICRO, TYPE_MODIFY,
+   "added '--includedir /usr/local/netpbm' for libgts.a build on new Linux",
+   NULL
+ } ,
+
  { 5, FEB, 2010, RCR, "GIFTI", MINOR, TYPE_MODIFY,
    "thd_gifti: if LabelTable use INTENT_LABEL, suma_gifti.c: no normals",
    "done with Ziad"
