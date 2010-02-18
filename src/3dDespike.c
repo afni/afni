@@ -29,7 +29,7 @@ int main( int argc , char *argv[] )
 {
    THD_3dim_dataset *dset , *oset=NULL , *tset=NULL ;
    int nvals , iv , nxyz , ii,jj,kk , iarg , kz,kzold ;
-   float cut1=2.5,cut2=4.0 , sq2p , fq ;
+   float cut1=2.5,cut2=4.0 , sq2p,sfac , fq ;
    MRI_IMAGE *flim ;
    char *prefix="despike" , *tprefix=NULL ;
 
@@ -306,6 +306,7 @@ int main( int argc , char *argv[] )
    /*-- setup to find spikes --*/
 
    sq2p  = sqrt(0.5*PI) ;
+   sfac  = sq2p / 1.4826f ;
 
    /* make ref functions */
 
@@ -351,15 +352,21 @@ int main( int argc , char *argv[] )
 
    /*--- loop over voxels and do work ---*/
 
+#define Laplace_t2p(val) ( 1.0 - nifti_stat2cdf( (val), 15, 0.0, 1.4427 , 0.0 ) )
+
    if( verb ){
     if( !localedit ){
-      INFO_message("smash edit thresholds: %.1f .. %.1f standard deviations",cut1,cut2) ;
-      INFO_message("                      [ %.4f%% .. %.4f%% of normal distribution]",
-                     200.0*qg(cut1) , 200.0*qg(cut2) ) ;
+      INFO_message("smash edit thresholds: %.1f .. %.1f MADs",cut1*sq2p,cut2*sq2p) ;
+      ININFO_message("  [ %.3f%% .. %.3f%% of normal distribution]",
+                     200.0*qg(cut1*sfac) , 200.0*qg(cut2*sfac) ) ;
+      ININFO_message("  [ %.3f%% .. %.3f%% of Laplace distribution]" ,
+                   100.0*Laplace_t2p(cut1) , 100.0*Laplace_t2p(cut2) ) ;
     } else {
-      INFO_message("local edit threshold:  %.1f standard deviations",cut2) ;
-      INFO_message("                      [ %.4f%% of normal distribution]",
-                    200.0*qg(cut2) ) ;
+      INFO_message("local edit threshold:  %.1f MADS",cut2*sq2p) ;
+      ININFO_message("  [ %.3f%% of normal distribution]",
+                    200.0*qg(cut2*sfac) ) ;
+      ININFO_message("  [ %.3f%% of Laplace distribution]",
+                   100.0*Laplace_t2p(cut1) ) ;
     }
     INFO_message("%d slices to process",DSET_NZ(dset)) ;
    }
