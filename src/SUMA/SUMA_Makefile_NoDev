@@ -573,7 +573,7 @@ libply.a:
 
 libgts.a:
 	( cd gts ;	\
-	  ./configure	;	\
+	  ./configure --includedir /usr/local/netpbm ;	\
 	  $(MAKE) clean ; \
 	  $(MAKE) ; \
 	  $(RANLIB) src/.libs/$@ ;	\
