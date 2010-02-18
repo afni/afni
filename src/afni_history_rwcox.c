@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 18 , FEB , 2010 , RWC , "3dDespike" , MICRO , TYPE_MODIFY ,
+   "Add printout of Laplace distribution percentages" ,
+   "And fix normal CDF calculation" } ,
+
  { 8 , FEB , 2010 , RWC , "3dSatCheck" , MICRO , TYPE_NEW_PROG ,
    "Program to check for initial transients" ,
    "i.e., if the FMRI time series has non-saturated time points at the\n"
