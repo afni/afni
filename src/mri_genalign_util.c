@@ -126,6 +126,11 @@ void GA_interp_linear( MRI_IMAGE *fim ,
 {
 ENTRY("GA_interp_linear") ;
 
+#if 0
+  if( fim == NULL || ip == NULL || jp == NULL || kp == NULL || vv == NULL )
+    ERROR_message("NULL pointer on entry to GA_interp_linear :-(") ;
+#endif
+
 #pragma omp parallel if(npp > 9999)
  {
    int nx=fim->nx , ny=fim->ny , nz=fim->nz , nxy=nx*ny , pp ;

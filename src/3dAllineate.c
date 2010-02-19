@@ -432,7 +432,7 @@ int main( int argc , char *argv[] )
 "               You can also specify the cost functional using an option\n"
 "               of the form '-mi' rather than '-cost mi', if you like\n"
 "               to keep things terse and cryptic (as I do).\n"
-"               [Default == '-hel' (for no good reason).]\n"
+"               [Default == '-hel' (for no good reason, but it sounds nice).]\n"
 "\n"
 " -interp iii = Defines interpolation method to use during matching\n"
 "               process, where 'iii' is one of\n"
@@ -567,12 +567,13 @@ int main( int argc , char *argv[] )
 "               points to search for the starting point for the fine\n"
 "               pass.  If bb==0, then no search is made for the best\n"
 "               starting point, and the identity transformation is\n"
-"               used as the starting point.  [Default=4; min=0 max=7]\n"
+"               used as the starting point.  [Default=4; min=0 max=%d]\n"
 "       **N.B.: Setting bb=0 will make things run faster, but less reliably.\n"
 " -fineblur x = Set the blurring radius to use in the fine resolution\n"
 "               pass to 'x' mm.  A small amount (1-2 mm?) of blurring at\n"
 "               the fine step may help with convergence, if there is\n"
-"               some problem.  [Default == 0 mm]\n"
+"               some problem, especially if the base volume is very noisy.\n"
+"               [Default == 0 mm = no blurring at the final alignment pass]\n"
 "   **NOTES ON\n"
 "   **STRATEGY: * If you expect only small-ish (< 2 voxels?) image movement,\n"
 "                 then using '-onepass' or '-twobest 0' makes sense.\n"
@@ -585,6 +586,8 @@ int main( int argc , char *argv[] )
 "                 then the default '-twofirst' makes sense if you don't expect\n"
 "                 large movements WITHIN the source, but expect large motions\n"
 "                 between the source and base.\n"
+
+       , PARAM_MAXTRIAL  /* for -twobest */
       ) ;
 
       printf(
@@ -2280,7 +2283,7 @@ int main( int argc , char *argv[] )
    /* warn the stoopid lusers out there [01 Jun 2009] */
 
    if( (meth_code == GA_MATCH_PEARSON_LOCALS || meth_code == GA_MATCH_PEARSON_LOCALA)
-      && dset_weig == NULL ){
+      && dset_weig == NULL && !auto_weight ){
      WARNING_message(
       "A '-weight' volume is recommended when using the -lpc or -lpa cost functional;\n"
       "            For example, see the align_epi_anat.py script." ) ;
@@ -3365,8 +3368,11 @@ int main( int argc , char *argv[] )
            if( verb > 1 )
              INFO_message("Start refinement #%d on %d coarse parameter sets",rr+1,tfdone);
 
-           stup.smooth_radius_base *= 0.7071 ;  /* less smoothing */
-           stup.smooth_radius_targ *= 0.7071 ;
+           stup.smooth_radius_base *= 0.7777 ;  /* less smoothing */
+           stup.smooth_radius_targ *= 0.7777 ;
+           stup.smooth_radius_base = MAX(stup.smooth_radius_base,fine_rad) ;
+           stup.smooth_radius_targ = MAX(stup.smooth_radius_targ,fine_rad) ;
+    
            stup.npt_match          *= 1.5 ;     /* more points for matching */
            mri_genalign_scalar_setup( NULL,NULL,NULL , &stup ) ;
 
@@ -4353,8 +4359,9 @@ MRI_IMAGE * mri_weightize( MRI_IMAGE *im, int acod, int ndil, float aclip, float
        xp += BPAD ; if( xp > nx-2 ) xp = nx-2 ;
        yp += BPAD ; if( yp > ny-2 ) yp = ny-2 ;
        zp += BPAD ; if( zp > nz-2 ) zp = nz-2 ;
-       if( verb > 1 ) ININFO_message("Weightize: box=%d..%d X %d..%d X %d..%d",
-                                     xm,xp , ym,yp , zm,zp ) ;
+       if( verb > 1 )
+         ININFO_message("Weightize: box=%d..%d X %d..%d X %d..%d = %d voxels",
+                        xm,xp , ym,yp , zm,zp , (xp-xm+1)*(yp-ym+1)*(zp-zm+1) ) ;
        for( kk=zm ; kk <= zp ; kk++ )
         for( jj=ym ; jj <= yp ; jj++ )
          for( ii=xm ; ii <= xp ; ii++ ) WW(ii,jj,kk) = 1.0f ;
