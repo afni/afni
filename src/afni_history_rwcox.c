@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 19 , FEB , 2010 , RWC , "3dAllineate" , MICRO , TYPE_GENERAL ,
+   "Turn up -twoblur limit from 7 to 11." ,
+   NULL } ,
+
  { 18 , FEB , 2010 , RWC , "3dDespike" , MICRO , TYPE_MODIFY ,
    "Add printout of Laplace distribution percentages" ,
    "And fix normal CDF calculation" } ,
