@@ -16,6 +16,7 @@
 /* global access to setup parameters */
 
 static GA_setup *gstup = NULL ;
+static GA_setup *gstup_bk = NULL ;
 
 /*---------------------------------------------------------------------------*/
 static int verb = 0 ;
@@ -26,7 +27,7 @@ void mri_genalign_verbose(int v){ verb = v ; }
 
 static const unsigned long long MYa=62003 ;
 static const unsigned long long MYb=15485863 ;
-static unsigned long long MYx=15482917 ;
+static       unsigned long long MYx=15482917 ;
 INLINE float myunif(void)
 {
   MYx = MYa * MYx + MYb ;
@@ -339,17 +340,21 @@ float GA_pearson_local( int npt , float *avm, float *bvm, float *wvm )
    float xv,yv,xy,xm,ym,vv,ww,ws,wss , pcor , wt , psum=0.0f ;
    static int uwb=-1 ;
 
+ENTRY("GA_pearson_local") ;
+
    if( gstup->blokset == NULL ){
-     float rad=gstup->blokrad , mrad ;
+     float rad=gstup->blokrad , mrad ; float *ima=NULL,*jma=NULL,*kma=NULL ;
      if( gstup->smooth_code > 0 && gstup->smooth_radius_base > 0.0f )
        rad = sqrt( rad*rad +SQR(gstup->smooth_radius_base) ) ;
      mrad = 1.2345f*(gstup->base_di + gstup->base_dj + gstup->base_dk) ;
      rad  = MAX(rad,mrad) ;
+     if( gstup->im != NULL ) ima = gstup->im->ar ;  /* 19 Feb 2010: oopsie */
+     if( gstup->jm != NULL ) jma = gstup->jm->ar ;
+     if( gstup->km != NULL ) kma = gstup->km->ar ;
      gstup->blokset = create_GA_BLOK_set(  /* cf. mri_genalign_util.c */
                             gstup->bsim->nx, gstup->bsim->ny, gstup->bsim->nz,
                             gstup->base_di , gstup->base_dj , gstup->base_dk ,
-                            gstup->npt_match ,
-                            gstup->im->ar , gstup->jm->ar , gstup->km->ar ,
+                            gstup->npt_match , ima,jma,kma ,
                             gstup->bloktype , rad , gstup->blokmin , 1.0f,verb ) ;
      if( gstup->blokset == NULL )
        ERROR_exit("Can't create GA_BLOK_set?!?") ;
@@ -404,7 +409,7 @@ float GA_pearson_local( int npt , float *avm, float *bvm, float *wvm )
      psum += ws * pcor * fabsf(pcor) ;              /* emphasize large values */
    }
 
-   return (0.25f*psum/wss);      /* averaged stretched emphasized correlation */
+   RETURN(0.25f*psum/wss);      /* averaged stretched emphasized correlation */
 }                                /* [0.25 to compensate for the 2*arctanh()] */
 
 /*------------------------------------------------------------*/
@@ -418,16 +423,18 @@ float GA_spearman_local( int npt , float *avm, float *bvm, float *wvm )
    float *xt=NULL , *yt=NULL ; int nxt=0 ;
 
    if( gstup->blokset == NULL ){
-     float rad=gstup->blokrad , mrad ;
+     float rad=gstup->blokrad , mrad ; float *ima=NULL,*jma=NULL,*kma=NULL ;
      if( gstup->smooth_code > 0 && gstup->smooth_radius_base > 0.0f )
        rad = sqrt( rad*rad +SQR(gstup->smooth_radius_base) ) ;
      mrad = 1.2345f*(gstup->base_di + gstup->base_dj + gstup->base_dk) ;
      rad  = MAX(rad,mrad) ;
+     if( gstup->im != NULL ) ima = gstup->im->ar ;  /* 19 Feb 2010: oopsie */
+     if( gstup->jm != NULL ) jma = gstup->jm->ar ;
+     if( gstup->km != NULL ) kma = gstup->km->ar ;
      gstup->blokset = create_GA_BLOK_set(  /* cf. mri_genalign_util.c */
                             gstup->bsim->nx, gstup->bsim->ny, gstup->bsim->nz,
                             gstup->base_di , gstup->base_dj , gstup->base_dk ,
-                            gstup->npt_match ,
-                            gstup->im->ar , gstup->jm->ar , gstup->km->ar ,
+                            gstup->npt_match , ima,jma,kma ,
                             gstup->bloktype , rad , gstup->blokmin , 1.0f,verb ) ;
      if( gstup->blokset == NULL )
        ERROR_exit("Can't create GA_BLOK_set?!?") ;
@@ -787,7 +794,7 @@ ENTRY("mri_genalign_scalar_setup") ;
      mmm = MRI_BYTE_PTR (stup->ajmask) ;
      nvox = stup->ajmask->nvox ;
      if( verb > 2 ) ININFO_message("source mask: ubot=%g usiz=%g",ubot,usiz);
-     myunif_reset(12345678) ;
+     myunif_reset(1234567890) ;
      for( ii=0 ; ii < nvox ; ii++ ){  /* fill non-mask voxels with noise */
        if( !mmm[ii] ){
          u1 = myunif(); u2 = myunif(); af[ii] = ubot + usiz*(u1+u2);
@@ -891,7 +898,7 @@ ENTRY("mri_genalign_scalar_setup") ;
      MRI_IMAGE *bim ;
 
      stup->npt_match = nmatch ;
-     if( verb > 1 ) ININFO_message("- using %d points from base image",nmatch) ;
+     if( verb > 1 ) ININFO_message("- using %d points from base image [use_all=%d]",nmatch,use_all) ;
 
      if( use_all == 1 ){         /*------------- all points, no mask -----------*/
 
@@ -1118,6 +1125,7 @@ ENTRY("mri_genalign_scalar_optim") ;
    }
 
    gstup = stup ;  /* for global access, in other functions in this file */
+   gstup_bk = stup ;
 
    if( nstep <= 4*stup->wfunc_numfree+5 ) nstep = 6666 ;
 
@@ -1185,6 +1193,7 @@ ENTRY("mri_genalign_scalar_cost") ;
    }
 
    gstup = stup ;  /* for global access, in other functions in this file */
+   gstup_bk = stup ;
 
    val = GA_scalar_fitter( stup->wfunc_numfree , wpar ) ;
 
@@ -1226,6 +1235,7 @@ ENTRY("mri_genalign_scalar_allcosts") ;
    }
 
    gstup = stup ;
+   gstup_bk = stup ;
 
    avm = (float *)calloc(stup->npt_match,sizeof(float)) ; /* target points at */
    GA_get_warped_values( stup->wfunc_numfree,wpar,avm ) ; /* warped locations */
@@ -1251,7 +1261,7 @@ void mri_genalign_scalar_ransetup( GA_setup *stup , int nrand )
 {
    double *wpar, *spar , val , vbest , *bpar , *qpar,*cpar , dist ;
    int ii , qq , twof , ss , nfr , icod , nt=0 ;
-#define NKEEP 15
+#define NKEEP (2*PARAM_MAXTRIAL+1)
    double *kpar[NKEEP] , kval[NKEEP] ; int nk,kk,jj, ngrid,ngtot ;
    int ival[NKEEP] ; float fval[NKEEP] ;
 
@@ -1263,7 +1273,7 @@ ENTRY("mri_genalign_scalar_ransetup") ;
    }
    if( nrand < NKEEP ) nrand = 2*NKEEP ;
 
-   GA_param_setup(stup) ; gstup = stup ;
+   GA_param_setup(stup) ; gstup = stup ; gstup_bk = stup ;
    if( stup->wfunc_numfree <= 0 ) EXRETURN ;
 
    nfr = stup->wfunc_numfree ;    /* number of free parameters */
@@ -1301,7 +1311,8 @@ ENTRY("mri_genalign_scalar_ransetup") ;
 
    twof = 1 << nfr ;  /* 2^nfr */
 
-   if( verb ) fprintf(stderr," + - Testing %d*%d params:",nrand+ngtot,twof) ;
+   if( verb > 1 ) ININFO_message("- number of free params = %d",nfr) ;
+   if( verb )     fprintf(stderr," + - Testing %d*%d params:",nrand+ngtot,twof) ;
 
    myunif_reset(3456789) ;  /* 27 Aug 2008 */
 
@@ -1467,7 +1478,7 @@ ENTRY("mri_genalign_scalar_warpim") ;
      ERROR_message("Illegal call to mri_genalign_scalar_warpim()") ;
      RETURN(NULL) ;
    }
-   gstup = stup ;
+   gstup = stup ; gstup_bk = stup ;
 
    wim = mri_new_conforming( stup->bsim , MRI_float ) ;
    war = MRI_FLOAT_PTR(wim) ;
