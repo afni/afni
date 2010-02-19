@@ -154,7 +154,7 @@ int main( int argc , char *argv[] )
    GA_setup stup ;
    int iarg , ii,jj,kk , nmask=0 , nfunc , rr , ntask , ntmask=0 ;
    int   nx_base,ny_base,nz_base , nx_targ,ny_targ,nz_targ , nxy_base ;
-   float dx_base,dy_base,dz_base , dx_targ,dy_targ,dz_targ ;
+   float dx_base,dy_base,dz_base , dx_targ,dy_targ,dz_targ , dxyz_top ;
    int   nxyz_base[3] , nxyz_targ[3] , nxyz_dout[3] ;
    float dxyz_base[3] , dxyz_targ[3] , dxyz_dout[3] ;
    int nvox_base ;
@@ -217,7 +217,7 @@ int main( int argc , char *argv[] )
    int warp_freeze             = 0 ;            /* off by default */
    int nparopt                 = 0 ;
    MRI_IMAGE *matini           = NULL ;
-   int tbest                   = 4 ;            /* default=try best 4 */
+   int tbest                   = 5 ;            /* default=try best 5 */
    int num_rtb                 = 99 ;           /* 28 Aug 2008 */
    int nocast                  = 0 ;            /* 29 Aug 2008 */
    param_opt paropt[MAXPAR] ;
@@ -567,7 +567,7 @@ int main( int argc , char *argv[] )
 "               points to search for the starting point for the fine\n"
 "               pass.  If bb==0, then no search is made for the best\n"
 "               starting point, and the identity transformation is\n"
-"               used as the starting point.  [Default=4; min=0 max=%d]\n"
+"               used as the starting point.  [Default=%d; min=0 max=%d]\n"
 "       **N.B.: Setting bb=0 will make things run faster, but less reliably.\n"
 " -fineblur x = Set the blurring radius to use in the fine resolution\n"
 "               pass to 'x' mm.  A small amount (1-2 mm?) of blurring at\n"
@@ -587,7 +587,7 @@ int main( int argc , char *argv[] )
 "                 large movements WITHIN the source, but expect large motions\n"
 "                 between the source and base.\n"
 
-       , PARAM_MAXTRIAL  /* for -twobest */
+       , tbest , PARAM_MAXTRIAL  /* for -twobest */
       ) ;
 
       printf(
@@ -2475,6 +2475,11 @@ int main( int argc , char *argv[] )
    ny_base = im_base->ny ; nxy_base  = nx_base *ny_base ;
    nz_base = im_base->nz ; nvox_base = nxy_base*nz_base ;
 
+   dxyz_top = dx_base ;
+   dxyz_top = MAX(dxyz_top,dy_base) ; dxyz_top = MAX(dxyz_top,dz_base) ;
+   dxyz_top = MAX(dxyz_top,dx_targ) ;
+   dxyz_top = MAX(dxyz_top,dy_targ) ; dxyz_top = MAX(dxyz_top,dz_targ) ;
+
    /* find the autobbox, and setup zero-padding */
 
 #undef  MPAD
@@ -3146,7 +3151,7 @@ int main( int argc , char *argv[] )
 
    if( sm_rad == 0.0f &&
        ( meth_code == GA_MATCH_PEARSON_LOCALS ||
-         meth_code == GA_MATCH_PEARSON_LOCALA   ) ) sm_rad = 2.222f ;
+         meth_code == GA_MATCH_PEARSON_LOCALA   ) ) sm_rad = MAX(2.222f,dxyz_top) ;
 
    for( kk=0 ; kk < DSET_NVALS(dset_targ) ; kk++ ){
 
@@ -3289,7 +3294,7 @@ int main( int argc , char *argv[] )
 
      didtwo = 0 ;
      if( twopass && (!twofirst || !tfdone) ){
-       int tb , ib , ccode ;
+       int tb , ib , ccode , nrand ;
        if( verb ) INFO_message("Start coarse pass") ;
        ccode            = (interp_code == MRI_NN) ? MRI_NN : MRI_LINEAR ;
        stup.interp_code = ccode ;
@@ -3334,7 +3339,8 @@ int main( int argc , char *argv[] )
 
          if( verb > 1 ) ctim = COX_cpu_time() ;
 
-         mri_genalign_scalar_ransetup( &stup , 31 ) ;  /* the initial search! */
+         nrand = 17 + 4*tbest ; nrand = MAX(nrand,31) ;
+         mri_genalign_scalar_ransetup( &stup , nrand ) ;  /* the initial search! */
 
          if( verb > 1 ) ININFO_message("- Search CPU time = %.1f s",COX_cpu_time()-ctim);
 
