@@ -392,6 +392,39 @@ def attr_equals_val(object, attr, val):
 # ----------------------------------------------------------------------
 # begin matrix functions
 
+def write_1D_file(data, filename):
+    """data can be 1D or 2D array of floats, write one index per line
+       If 2D data, each element is treated as a column.
+
+       return 0 on success"""
+
+    try: fp = open(filename, 'w')
+    except:
+        print "** failed to open '%s' for writing 1D" % filename
+        return 1
+
+    if type(data) != type([]):
+        print "** write_1D_file, invalid type: %s" % type(data)
+        return 1
+
+    if type(data[0]) == type([]):       # multi-column
+        nt = len(data[0])
+        for col in data:
+            if len(col) != nt:
+                print '** write_1D_file: columns not of equal lengths'
+                return 1
+
+        for ind in range(nt):
+            fp.write( "%s\n" % ' '.join(["%g " % col[ind] for col in data]) )
+
+    else:                               # single column
+        for val in data:
+            fp.write('%g\n' % val)
+
+    fp.close()
+
+    return 0
+
 def read_1D_file(filename, nlines = -1, verb = 1):
     """read a simple 1D file into a float matrix, and return the matrix
        - skip leading '#', return a 2D array of floats"""
