@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 20, FEB, 2010, RCR, "timing_tool.py", MINOR, TYPE_NEW_OPT,
+   "added -timing_to_1D, -tr and -min_frac for PPI scripting (and B Argall)",
+   NULL
+ } ,
+
  { 18, FEB, 2010, RCR, "SUMA_Makefile_NoDev", MICRO, TYPE_MODIFY,
    "added '--includedir /usr/local/netpbm' for libgts.a build on new Linux",
    NULL
