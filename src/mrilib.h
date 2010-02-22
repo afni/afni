@@ -1695,6 +1695,9 @@ typedef struct {
   float hist_param ;           /* set by user */
   int need_hist_setup ;
 
+  int   ccount_do   , ccount_val  ;  /* 22 Feb 2010 */
+  float ccount_bthr , ccount_athr ;
+
 #if 0
                              /*** NOT USED YET ***/
   int kernel_code ;            /* set by user */
@@ -1757,6 +1760,7 @@ extern void GA_do_params(int) ;
 extern float mri_genalign_scalar_cost( GA_setup * , float *) ;
 extern void GA_set_outval( float ) ;
 extern float GA_get_outval(void) ;
+extern void GA_allow_ccount( int ) ; /* 22 Feb 2010 */
 
 /**------ these functions are now in mri_genalign_util.c [10 Dec 2008] ------**/
 
