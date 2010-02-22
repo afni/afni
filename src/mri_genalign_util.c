@@ -4,9 +4,6 @@
 #include <omp.h>
 #endif
 
-#undef  NPER
-#define NPER 131072  /* 512 Kbytes per float array */
-
 /*---------------------------------------------------------------------------*/
 
 int GA_gcd( int m , int n )    /* Euclid's Greatest Common Denominator */

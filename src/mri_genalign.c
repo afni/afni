@@ -55,7 +55,7 @@ static void myunif_reset(unsigned long long x){ MYx = x; return; }
 /* Max number of points to warp at a time */
 
 #undef  NPER
-#define NPER 131072  /* 512 Kbytes per float array */
+#define NPER 262144  /* 1 Mbyte per float array */
 
 /*--------------------------------------------------------------------*/
 /*! Interpolate target image to control points in base image space.
@@ -252,6 +252,33 @@ void GA_do_params( int x ){
    GA_reset_fit_callback( (x)?GA_fitter_params:NULL );
 }
 
+
+/*---------------------------------------------------------------------------*/
+
+static int allow_ccount = 0 ;
+void GA_allow_ccount( int aa ){ allow_ccount = aa ; }
+
+/*---------------------------------------------------------------------------*/
+
+static void GA_setup_ccount( GA_setup *stup , int doit )  /* 22 Feb 2010 */
+{
+   stup->ccount_do = (doit && allow_ccount) ;
+   if( stup->ccount_do ){
+     stup->ccount_bthr = THD_cliplevel( (stup->bsims != NULL) ? stup->bsims
+                                                              : stup->bsim , 0.444f ) ;
+     stup->ccount_athr = THD_cliplevel( (stup->ajims != NULL) ? stup->ajims
+                                                              : stup->ajim , 0.444f ) ;
+     if( stup->ccount_athr <= 0.0f || stup->ccount_bthr <= 0.0f )
+       stup->ccount_do = 0 ;
+     else if( verb > 1 )
+       ININFO_message(" - ccount thresholds: base=%f  source=%f",
+                      stup->ccount_bthr , stup->ccount_athr       ) ;
+   } else {
+     stup->ccount_athr = stup->ccount_bthr = 0.0f ;
+   }
+   stup->ccount_val = 0 ;
+   return ;
+}
 
 /*---------------------------------------------------------------------------*/
 
@@ -584,6 +611,14 @@ ENTRY("GA_scalar_fitter") ;
 
   val = GA_scalar_costfun( gstup->match_code, gstup->npt_match, avm,bvm,wvm ) ;
 
+  if( gstup->ccount_do ){  /* 22 Feb 2010 */
+    float bth=gstup->ccount_bthr , ath=gstup->ccount_athr ;
+    int cc , ii , nn=gstup->npt_match ;
+    for( cc=ii=0 ; ii < nn ; ii++ ) if( bvm[ii] >= bth && avm[ii] >= ath ) cc++;
+    gstup->ccount_val = cc ;
+    /*** if( verb > 2 ) ININFO_message(" ccount = %d",cc) ; ***/
+  }
+
   free((void *)avm) ;    /* toss the trash */
   RETURN(val);
 }
@@ -640,6 +675,8 @@ ENTRY("mri_genalign_scalar_setup") ;
 
    if( stup == NULL ) ERREX("stup is NULL") ;
    stup->setup = 0 ;  /* mark stup struct as not being ready yet */
+
+   GA_setup_ccount(stup,0) ;
 
    if( basim  == NULL && stup->bsim == NULL ) ERREX("basim is NULL") ;
    if( targim == NULL && stup->ajim == NULL ) ERREX("targim is NULL") ;
@@ -791,7 +828,7 @@ ENTRY("mri_genalign_scalar_setup") ;
      float *af ; byte *mmm ; int nvox ;
      if( stup->ajims != NULL ) af = MRI_FLOAT_PTR(stup->ajims) ;
      else                      af = MRI_FLOAT_PTR(stup->ajim ) ;
-     mmm = MRI_BYTE_PTR (stup->ajmask) ;
+     mmm = MRI_BYTE_PTR(stup->ajmask) ;
      nvox = stup->ajmask->nvox ;
      if( verb > 2 ) ININFO_message("source mask: ubot=%g usiz=%g",ubot,usiz);
      myunif_reset(1234567890) ;
@@ -1262,8 +1299,9 @@ void mri_genalign_scalar_ransetup( GA_setup *stup , int nrand )
    double *wpar, *spar , val , vbest , *bpar , *qpar,*cpar , dist ;
    int ii , qq , twof , ss , nfr , icod , nt=0 ;
 #define NKEEP (2*PARAM_MAXTRIAL+1)
-   double *kpar[NKEEP] , kval[NKEEP] ; int nk,kk,jj, ngrid,ngtot ;
-   int ival[NKEEP] ; float fval[NKEEP] ;
+   double *kpar[NKEEP] , kval[NKEEP] ; int nk,kk,jj, ngrid,ngtot , ccdo=0 ;
+   int ival[NKEEP] , rval[NKEEP] , ccval[NKEEP] ; float fval[NKEEP] , ccbest,cccut ;
+   char mrk[6]="*+-o." ;
 
 ENTRY("mri_genalign_scalar_ransetup") ;
 
@@ -1299,13 +1337,20 @@ ENTRY("mri_genalign_scalar_ransetup") ;
    for( kk=0 ; kk < NKEEP ; kk++ )                     /* keep best NKEEP */
      kpar[kk] = (double *)calloc(sizeof(double),nfr) ; /* parameters sets */
 
+   if( allow_ccount ){ GA_setup_ccount(stup,1); ccdo = stup->ccount_do; } /* 22 Feb 2010 */
+
    /* try the middle of the allowed parameter range, and save it */
 
    for( qq=0 ; qq < nfr ; qq++ ) wpar[qq] = 0.5 ;
    val = GA_scalar_fitter( nfr , wpar ) ;
    memcpy(kpar[0],wpar,sizeof(double)*nfr) ;           /* saved parameters */
-   kval[0] = val ;                                     /* saved cost function */
-   for( kk=1 ; kk < NKEEP ; kk++ ) kval[kk] = BIGVAL ; /* all these are worse */
+   kval[0]  = val ;                                    /* saved cost function */
+   rval[0]  = 0 ;                                      /* not random */
+   ccval[0] = stup->ccount_val ;                       /* 22 Feb 2010 */
+   ccbest   = ccval[0] ; cccut = 0.9f*ccbest ;
+   for( kk=1 ; kk < NKEEP ; kk++ ){
+     ccval[kk] = rval[kk] = 0 ; kval[kk] = BIGVAL ;   /* all these are worse */
+   }
 
    /* try some random places, keep the best NKEEP of them */
 
@@ -1323,6 +1368,7 @@ ENTRY("mri_genalign_scalar_ransetup") ;
          kk = ss % ngrid; ss = ss / ngrid; wpar[qq] = 0.5+(kk+1)*val;
        }
      } else {                              /* pseudo-random */
+       if( verb && ii == ngtot ) fprintf(stderr,"$") ;
        for( qq=0 ; qq < nfr ; qq++ ) wpar[qq] = 0.5*(1.05+0.90*myunif()) ;
      }
 
@@ -1331,36 +1377,48 @@ ENTRY("mri_genalign_scalar_ransetup") ;
          spar[qq] = (ss & (1<<qq)) ? 1.0-wpar[qq] : wpar[qq] ;
 
        val = GA_scalar_fitter( nfr , spar ) ;       /* get cost functional */
+       if( ccdo && stup->ccount_val < cccut ) continue ;    /* 22 Feb 2010 */
        for( kk=0 ; kk < NKEEP ; kk++ ){     /* find if this is better than */
          if( val < kval[kk] ){              /* something we've seen so far */
            for( jj=NKEEP-2 ; jj >= kk ; jj-- ){  /* push those above kk up */
              memcpy( kpar[jj+1] , kpar[jj] , sizeof(double)*nfr ) ;
-             kval[jj+1] = kval[jj] ;
+             kval[jj+1] = kval[jj]; rval[jj+1] = rval[jj]; ccval[jj+1] = ccval[jj];
            }
-           memcpy( kpar[kk] , spar , sizeof(double)*nfr ) ;  /* save what */
-           kval[kk] = val ;                              /* we just found */
-           if( verb && kk < 4 ) fprintf(stderr,(kk==0)?"*":".") ;
+           memcpy( kpar[kk] , spar , sizeof(double)*nfr ) ;   /* save what */
+           kval[kk]  = val ;                              /* we just found */
+           rval[kk]  = (ii >= ngtot) ;            /* is this a random set? */
+           ccval[kk] = stup->ccount_val ;                   /* 22 Feb 2010 */
+           if( ccdo && ccval[kk] > ccbest ){ ccbest = ccval[kk]; cccut = 0.9f*ccbest; }
+           if( verb && kk < 5 ) fprintf(stderr,"%c",mrk[kk]) ;
            break ;
          }
        }
-     }
+     } /* end of scan over parameter reflections */
    } /* end of initial scan; should have NKEEP best results in kpar & kval */
 
    for( kk=0 ; kk < NKEEP ; kk++ ){  /* make sure are in 0..1 range */
      for( ii=0 ; ii < nfr ; ii++ ) kpar[kk][ii] = PRED01(kpar[kk][ii]) ;
    }
 
+   if( ccdo ){
+     ccbest = ccval[0] ;
+     for( kk=1 ; kk < NKEEP ; kk++ ) ccbest = MAX(ccbest,ccval[kk]) ;
+   }
+
    if( verb ){                    /* print table of results? */
      fprintf(stderr,"\n") ;
      fprintf(stderr," + - best %d costs found:\n",NKEEP) ;
      for(kk=0;kk<NKEEP;kk++){
-      fprintf(stderr,"   %2d v=%.6f:",kk,kval[kk]);
+      fprintf(stderr,"   %2d v=% 9.6f:",kk,kval[kk]);
       for( ii=qq=0 ; qq < stup->wfunc_numpar ; qq++ ){
        if( !stup->wfunc_param[qq].fixed ){
         val = stup->wfunc_param[qq].min+stup->wfunc_param[qq].siz*kpar[kk][ii];
-        fprintf(stderr," %.2f",val) ; ii++ ;
+        fprintf(stderr," % 6.2f",val) ; ii++ ;
        }
       }
+      fprintf(stderr,"  [%s]" , rval[kk] ? "rand" : "grid" ) ;
+      if( ccdo )
+        fprintf(stderr," [%5.3f]" , ccval[kk]/ccbest ) ;
       fprintf(stderr,"\n") ;
      }
    }
@@ -1372,7 +1430,8 @@ ENTRY("mri_genalign_scalar_ransetup") ;
      if( kval[kk] >= BIGVAL ) continue ;  /* should not happen */
      (void)powell_newuoa( nfr , kpar[kk] ,
                           0.05 , 0.005 , 11*nfr+17 , GA_scalar_fitter ) ;
-     kval[kk] = GA_scalar_fitter( nfr , kpar[kk] ) ;
+     kval[kk]  = GA_scalar_fitter( nfr , kpar[kk] ) ;
+     ccval[kk] = stup->ccount_val ;            /* 22 Feb 2010 */
      if( kval[kk] < vbest ){ vbest = kval[kk]; jj = kk; }
    }
    stup->vbest = vbest ;  /* save for user's edification */
@@ -1380,18 +1439,27 @@ ENTRY("mri_genalign_scalar_ransetup") ;
    for( kk=0 ; kk < NKEEP ; kk++ )  /* make sure are in 0..1 range */
      for( ii=0 ; ii < nfr ; ii++ ) kpar[kk][ii] = PRED01(kpar[kk][ii]) ;
 
+   if( ccdo ){
+     ccbest = ccval[0] ;
+     for( kk=1 ; kk < NKEEP ; kk++ ) ccbest = MAX(ccbest,ccval[kk]) ;
+     cccut = 0.9f * ccbest ;
+   }
+
    /* at this point, smallest error is vbest and best index in kpar is jj */
 
    if( verb ){                    /* print out optimized results? */
      fprintf(stderr," + - costs of the above after a little optimization:\n") ;
      for(kk=0;kk<NKEEP;kk++){
-      fprintf(stderr,"  %c%2d v=%.6f:",(kk==jj)?'*':' ',kk,kval[kk]);
+      fprintf(stderr,"  %c%2d v=% 9.6f:",(kk==jj)?'*':' ',kk,kval[kk]);
       for( ii=qq=0 ; qq < stup->wfunc_numpar ; qq++ ){
        if( !stup->wfunc_param[qq].fixed ){
         val = stup->wfunc_param[qq].min+stup->wfunc_param[qq].siz*kpar[kk][ii];
-        fprintf(stderr," %.2f",val) ; ii++ ;
+        fprintf(stderr," % 6.2f",val) ; ii++ ;
        }
       }
+      fprintf(stderr,"  [%s]" , rval[kk] ? "rand" : "grid" ) ;
+      if( ccdo )
+        fprintf(stderr," [%5.3f]" , ccval[kk]/ccbest ) ;
       fprintf(stderr,"\n") ;
      }
    }
@@ -1424,6 +1492,11 @@ ENTRY("mri_genalign_scalar_ransetup") ;
    if( verb > 1 ) ININFO_message("- save #%2d for twobest",ival[0]) ;
    nt = 1 ;
    for( jj=1 ; jj < NKEEP && nt < PARAM_MAXTRIAL ; jj++ ){
+     if( ccdo && ccval[ival[jj]] < cccut ){
+       if( verb > 1 )
+         ININFO_message("- skip #%2d for twobest: too little overlap",ival[jj]) ;
+       goto NEXT_jj ;
+     }
      qpar = kpar[ival[jj]] ;                 /* the jj-th best param set */
      for( kk=0 ; kk < jj ; kk++ ){   /* loop over the previous best ones */
        cpar =  kpar[ival[kk]] ;
@@ -1458,7 +1531,7 @@ ENTRY("mri_genalign_scalar_ransetup") ;
    free((void *)wpar) ; free((void *)spar) ;
    for( kk=0 ; kk < NKEEP ; kk++ ) free((void *)kpar[kk]) ;
 
-   stup->interp_code = icod ; EXRETURN ;
+   stup->interp_code = icod ; GA_setup_ccount(stup,0) ; EXRETURN ;
 }
 
 /*---------------------------------------------------------------------------*/
