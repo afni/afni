@@ -214,6 +214,7 @@ int main( int argc , char *argv[] )
    int npt_match               = -47 ;          /* 47%, that is */
    int final_interp            = MRI_CUBIC ;
    int warp_code               = WARP_AFFINE ;
+   char warp_code_string[64]   = "\0" ;         /* 22 Feb 2010 */
    int warp_freeze             = 0 ;            /* off by default */
    int nparopt                 = 0 ;
    MRI_IMAGE *matini           = NULL ;
@@ -2449,6 +2450,8 @@ int main( int argc , char *argv[] )
                   nx_targ, ny_targ, nz_targ) ;
    }
 
+   GA_allow_ccount( (im_tmask == NULL) ) ;  /* 22 Feb 2010 */
+
    /*-- load base dataset if defined --*/
 
    if( dset_base != NULL ){
@@ -2723,10 +2726,10 @@ int main( int argc , char *argv[] )
    }
 
    switch( warp_code ){
-     case WARP_SHIFT:   stup.wfunc_numpar =  3 ; break ;
-     case WARP_ROTATE:  stup.wfunc_numpar =  6 ; break ;
-     case WARP_SCALE:   stup.wfunc_numpar =  9 ; break ;
-     case WARP_AFFINE:  stup.wfunc_numpar = 12 ; break ;
+     case WARP_SHIFT:  stup.wfunc_numpar =  3; strcpy(warp_code_string,"shift_only")        ; break;
+     case WARP_ROTATE: stup.wfunc_numpar =  6; strcpy(warp_code_string,"shift_rotate")      ; break;
+     case WARP_SCALE:  stup.wfunc_numpar =  9; strcpy(warp_code_string,"shift_rotate_scale"); break;
+     case WARP_AFFINE: stup.wfunc_numpar = 12; strcpy(warp_code_string,"affine_general")    ; break;
    }
 
    /*-- check if -1Dapply_param is giving us enough parameters for this warp --*/
@@ -3181,7 +3184,7 @@ int main( int argc , char *argv[] )
      /* make copy of target brick, and deal with that */
 
      if( verb )
-       INFO_message("========== sub-brick #%d ========== [total CPU=%.1f s]",
+       INFO_message("========== sub-brick #%d ========== [total CPU to here=%.1f s]",
                     kk , COX_cpu_time() ) ;
 
      im_targ = mri_scale_to_float( bfac , DSET_BRICK(dset_targ,kk) ) ;
@@ -3342,7 +3345,7 @@ int main( int argc , char *argv[] )
          nrand = 17 + 4*tbest ; nrand = MAX(nrand,31) ;
          mri_genalign_scalar_ransetup( &stup , nrand ) ;  /* the initial search! */
 
-         if( verb > 1 ) ININFO_message("- Search CPU time = %.1f s",COX_cpu_time()-ctim);
+         if( verb > 1 ) ININFO_message("- Coarse startup search CPU time = %.1f s",COX_cpu_time()-ctim);
 
          /* unfreeze those that were temporarily frozen above */
 
@@ -3378,7 +3381,7 @@ int main( int argc , char *argv[] )
            stup.smooth_radius_targ *= 0.7777 ;
            stup.smooth_radius_base = MAX(stup.smooth_radius_base,fine_rad) ;
            stup.smooth_radius_targ = MAX(stup.smooth_radius_targ,fine_rad) ;
-    
+
            stup.npt_match          *= 1.5 ;     /* more points for matching */
            mri_genalign_scalar_setup( NULL,NULL,NULL , &stup ) ;
 
@@ -3769,6 +3772,8 @@ int main( int argc , char *argv[] )
          }
          if( verb > 1 ) PAROUT("- Bilinear final") ;
 
+         strcpy(warp_code_string,"bilinear") ;
+
        } else {   /*----------------------- general nonlinear expansion -----*/
 
 #define GSIZ 3
@@ -4111,7 +4116,7 @@ DUMP_MAT44("aff12_ijk",qmat) ;
 
        /* 04 Apr 2007: save matrix into dataset header */
 
-       { static mat44 gam , gami ; char anam[64] ; float matar[12] ;
+       { static mat44 gam , gami ; char anam[64] ; float matar[12] , *psav ;
 
          if( matsave != NULL )
            gam = matsave[kk] ;
@@ -4129,6 +4134,19 @@ DUMP_MAT44("aff12_ijk",qmat) ;
            UNLOAD_MAT44_AR(gami,matar) ;
            THD_set_float_atr( dset_out->dblk , anam , 12 , matar ) ;
          }
+
+         /* 22 Feb 2010: save parameters as well */
+
+         if( kk == 0 && *warp_code_string != '\0' )
+           THD_set_string_atr( dset_out->dblk , "ALLINEATE_WARP_TYPE" , warp_code_string ) ;
+
+         psav = (float *)malloc(sizeof(float)*stup.wfunc_numpar) ;
+         for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )
+           psav[jj] = stup.wfunc_param[jj].val_out ;
+         sprintf(anam,"ALLINEATE_PARAMS_%06d",kk) ;
+         THD_set_float_atr( dset_out->dblk , anam , stup.wfunc_numpar , psav ) ;
+         free(psav) ;
+
        }
 
        /* save sub-brick without scaling factor */
