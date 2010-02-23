@@ -1654,6 +1654,8 @@ extern GA_BLOK_set * create_GA_BLOK_set( int   nx , int   ny , int   nz ,
 
 extern floatvec * GA_pearson_vector( GA_BLOK_set *, float *, float *, float * );
 
+extern void GA_pearson_ignore_zero_voxels(int) ; /* 23 Feb 2010 */
+
 /******* end of BLOK-ization stuff here -- also see mri_genalign_util.c *******/
 
  /* struct to control mri_genalign.c optimization */

@@ -2295,9 +2295,13 @@ int main( int argc , char *argv[] )
        case GA_MATCH_PEARSON_LOCALS:
        case GA_MATCH_PEARSON_LOCALA:
        case GA_MATCH_SPEARMAN_SCALAR:
-       case GA_MATCH_PEARSON_SCALAR:  hist_mode = 0 ; break ;
+       case GA_MATCH_PEARSON_SCALAR:
+         hist_mode = (do_allcost) ? GA_HIST_CLEQWD : 0 ;
+       break ;
 
-       default: hist_mode  = GA_HIST_CLEQWD ; break ;
+       default:
+         hist_mode  = GA_HIST_CLEQWD ;
+       break ;
      }
    }
 
@@ -2450,7 +2454,11 @@ int main( int argc , char *argv[] )
                   nx_targ, ny_targ, nz_targ) ;
    }
 
+#if 0
    GA_allow_ccount( (im_tmask == NULL) ) ;  /* 22 Feb 2010 */
+#else
+   GA_allow_ccount( 0 ) ;
+#endif
 
    /*-- load base dataset if defined --*/
 
