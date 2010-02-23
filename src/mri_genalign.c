@@ -357,13 +357,18 @@ ENTRY("GA_setup_2Dhistogram") ;
 #undef  CMAX
 #define CMAX 0.9999f
 
+static int lpczz = 0 ;
+void GA_pearson_ignore_zero_voxels(int z){ lpczz = z; }  /* 23 Feb 2010 */
+
+#undef USE_LPCZZ
+
 /*---------------------------------------------------------------------*/
 /*! LPC = Local Pearson Correlation, as described in the famous paper. */
 
 float GA_pearson_local( int npt , float *avm, float *bvm, float *wvm )
 {
    GA_BLOK_set *gbs ;
-   int nblok , nelm , *elm , dd , ii,jj , nm ;
+   int nblok , nelm , *elm , dd , ii,jj , nm , nnz ;
    float xv,yv,xy,xm,ym,vv,ww,ws,wss , pcor , wt , psum=0.0f ;
    static int uwb=-1 ;
 
@@ -391,35 +396,53 @@ ENTRY("GA_pearson_local") ;
    nblok = gbs->num ;
    if( nblok < 1 ) ERROR_exit("LPC: Bad GA_BLOK_set?!") ;
 
-   if( uwb < 0 ) uwb = AFNI_yesenv("AFNI_LPC_UNWTBLOK") ;  /* first time in */
+   if( uwb < 0 ){
+     uwb = AFNI_yesenv("AFNI_LPC_UNWTBLOK") ;  /* first time in */
+     lpczz = AFNI_yesenv("AFNI_LPC_ZIG") ;
+     /** INFO_message("GA_pearson_local: uwb=%d lpczz=%d",uwb,lpczz) ; **/
+   }
 
    for( wss=0.0f,dd=0 ; dd < nblok ; dd++ ){
-     nelm = gbs->nelm[dd] ; if( nelm < 9 ) continue ;
+     nelm = gbs->nelm[dd] ; if( nelm < 9 ) continue ;  /* skip this blok */
      elm = gbs->elm[dd] ;
 
      if( wvm == NULL ){   /*** unweighted correlation ***/
        xv=yv=xy=xm=ym=0.0f ; ws = 1.0f ;
-       for( ii=0 ; ii < nelm ; ii++ ){
+       for( nnz=ii=0 ; ii < nelm ; ii++ ){
          jj = elm[ii] ;
-         xm += avm[jj] ; ym += bvm[jj] ;
+#ifdef USE_LPCZZ
+         if( lpczz && avm[jj] == 0.0f && bvm[jj] == 0.0f ) continue ;
+#endif
+         xm += avm[jj] ; ym += bvm[jj] ; nnz++ ;
        }
-       xm /= nelm ; ym /= nelm ;
+       if( nnz < 7 ) continue ;  /* skip this blok */
+       xm /= nnz ; ym /= nnz ;
        for( ii=0 ; ii < nelm ; ii++ ){
          jj = elm[ii] ;
+#ifdef USE_LPCZZ
+         if( lpczz && avm[jj] == 0.0f && bvm[jj] == 0.0f ) continue ;
+#endif
          vv = avm[jj]-xm ; ww = bvm[jj]-ym ;
          xv += vv*vv ; yv += ww*ww ; xy += vv*ww ;
        }
 
      } else {             /*** weighted correlation ***/
        xv=yv=xy=xm=ym=ws=0.0f ;
-       for( ii=0 ; ii < nelm ; ii++ ){
+       for( nnz=ii=0 ; ii < nelm ; ii++ ){
          jj = elm[ii] ;
+#ifdef USE_LPCZZ
+         if( lpczz && avm[jj] == 0.0f && bvm[jj] == 0.0f ) continue ;
+#endif
          wt = wvm[jj] ; ws += wt ;
-         xm += avm[jj]*wt ; ym += bvm[jj]*wt ;
+         xm += avm[jj]*wt ; ym += bvm[jj]*wt ; nnz++ ;
        }
+       if( nnz < 7 ) continue ;  /* skip to next dd */
        xm /= ws ; ym /= ws ;
        for( ii=0 ; ii < nelm ; ii++ ){
          jj = elm[ii] ;
+#ifdef USE_LPCZZ
+         if( lpczz && avm[jj] == 0.0f && bvm[jj] == 0.0f ) continue ;
+#endif
          wt = wvm[jj] ; vv = avm[jj]-xm ; ww = bvm[jj]-ym ;
          xv += wt*vv*vv ; yv += wt*ww*ww ; xy += wt*vv*ww ;
        }
@@ -431,7 +454,8 @@ ENTRY("GA_pearson_local") ;
 
      if( xv <= 0.0f || yv <= 0.0f ) continue ;      /* skip this blok */
      pcor = xy/sqrtf(xv*yv) ;                       /* correlation */
-     if( pcor > CMAX ) pcor = CMAX; else if( pcor < -CMAX ) pcor = -CMAX;
+          if( pcor >  CMAX ) pcor =  CMAX ;         /* limit the range */
+     else if( pcor < -CMAX ) pcor = -CMAX ;
      pcor = logf( (1.0f+pcor)/(1.0f-pcor) ) ;       /* 2*arctanh() */
      psum += ws * pcor * fabsf(pcor) ;              /* emphasize large values */
    }
@@ -1297,19 +1321,22 @@ ENTRY("mri_genalign_scalar_allcosts") ;
 void mri_genalign_scalar_ransetup( GA_setup *stup , int nrand )
 {
    double *wpar, *spar , val , vbest , *bpar , *qpar,*cpar , dist ;
-   int ii , qq , twof , ss , nfr , icod , nt=0 ;
+   int ii , qq , twof , ss , nfr , icod , nt=0 , ngood ;
 #define NKEEP (2*PARAM_MAXTRIAL+1)
-   double *kpar[NKEEP] , kval[NKEEP] ; int nk,kk,jj, ngrid,ngtot , ccdo=0 ;
+   double *kpar[NKEEP] , kval[NKEEP] , qval[NKEEP] ;
+   int nk,kk,jj, ngrid,ngtot , ccdo=0 ;
    int ival[NKEEP] , rval[NKEEP] , ccval[NKEEP] ; float fval[NKEEP] , ccbest,cccut ;
-   char mrk[6]="*+-o." ;
+   char mrk[6]="*o+-." ;
 
 ENTRY("mri_genalign_scalar_ransetup") ;
+
+#define CCUT 0.85f
 
    if( stup == NULL || stup->setup != SMAGIC ){
      ERROR_message("Illegal call to mri_genalign_scalar_ransetup()") ;
      EXRETURN ;
    }
-   if( nrand < NKEEP ) nrand = 2*NKEEP ;
+   if( nrand < NKEEP ) nrand = NKEEP+13 ;
 
    GA_param_setup(stup) ; gstup = stup ; gstup_bk = stup ;
    if( stup->wfunc_numfree <= 0 ) EXRETURN ;
@@ -1347,7 +1374,7 @@ ENTRY("mri_genalign_scalar_ransetup") ;
    kval[0]  = val ;                                    /* saved cost function */
    rval[0]  = 0 ;                                      /* not random */
    ccval[0] = stup->ccount_val ;                       /* 22 Feb 2010 */
-   ccbest   = ccval[0] ; cccut = 0.9f*ccbest ;
+   ccbest   = ccval[0] ; cccut = CCUT*ccbest ;
    for( kk=1 ; kk < NKEEP ; kk++ ){
      ccval[kk] = rval[kk] = 0 ; kval[kk] = BIGVAL ;   /* all these are worse */
    }
@@ -1388,7 +1415,7 @@ ENTRY("mri_genalign_scalar_ransetup") ;
            kval[kk]  = val ;                              /* we just found */
            rval[kk]  = (ii >= ngtot) ;            /* is this a random set? */
            ccval[kk] = stup->ccount_val ;                   /* 22 Feb 2010 */
-           if( ccdo && ccval[kk] > ccbest ){ ccbest = ccval[kk]; cccut = 0.9f*ccbest; }
+           if( ccdo && ccval[kk] > ccbest ){ ccbest = ccval[kk]; cccut = CCUT*ccbest; }
            if( verb && kk < 5 ) fprintf(stderr,"%c",mrk[kk]) ;
            break ;
          }
@@ -1396,19 +1423,29 @@ ENTRY("mri_genalign_scalar_ransetup") ;
      } /* end of scan over parameter reflections */
    } /* end of initial scan; should have NKEEP best results in kpar & kval */
 
-   for( kk=0 ; kk < NKEEP ; kk++ ){  /* make sure are in 0..1 range */
+   /* 23 Feb 2010: check how many are actually good */
+
+   for( ngood=kk=0 ; kk < NKEEP && kval[kk] < BIGVAL ; kk++,ngood++ ) ; /*nada*/
+   if( ngood < 1 ){
+     ERROR_message("Can't find any good starting locations!?") ;
+     free((void *)wpar) ; free((void *)spar) ;
+     for( kk=0 ; kk < NKEEP ; kk++ ) free((void *)kpar[kk]) ;
+     EXRETURN ;
+   }
+
+   for( kk=0 ; kk < ngood ; kk++ ){  /* make sure are in 0..1 range */
      for( ii=0 ; ii < nfr ; ii++ ) kpar[kk][ii] = PRED01(kpar[kk][ii]) ;
    }
 
    if( ccdo ){
      ccbest = ccval[0] ;
-     for( kk=1 ; kk < NKEEP ; kk++ ) ccbest = MAX(ccbest,ccval[kk]) ;
+     for( kk=1 ; kk < ngood ; kk++ ) ccbest = MAX(ccbest,ccval[kk]) ;
    }
 
    if( verb ){                    /* print table of results? */
      fprintf(stderr,"\n") ;
-     fprintf(stderr," + - best %d costs found:\n",NKEEP) ;
-     for(kk=0;kk<NKEEP;kk++){
+     fprintf(stderr," + - best %d costs found:\n",ngood) ;
+     for(kk=0;kk<ngood;kk++){
       fprintf(stderr,"   %2d v=% 9.6f:",kk,kval[kk]);
       for( ii=qq=0 ; qq < stup->wfunc_numpar ; qq++ ){
        if( !stup->wfunc_param[qq].fixed ){
@@ -1426,7 +1463,7 @@ ENTRY("mri_genalign_scalar_ransetup") ;
    /* try a little optimization on each of these parameter sets */
 
    vbest = BIGVAL ; jj = 0 ; if( icod != MRI_NN ) stup->interp_code = MRI_LINEAR ;
-   for( kk=0 ; kk < NKEEP ; kk++ ){
+   for( kk=0 ; kk < ngood ; kk++ ){
      if( kval[kk] >= BIGVAL ) continue ;  /* should not happen */
      (void)powell_newuoa( nfr , kpar[kk] ,
                           0.05 , 0.005 , 11*nfr+17 , GA_scalar_fitter ) ;
@@ -1436,21 +1473,40 @@ ENTRY("mri_genalign_scalar_ransetup") ;
    }
    stup->vbest = vbest ;  /* save for user's edification */
 
-   for( kk=0 ; kk < NKEEP ; kk++ )  /* make sure are in 0..1 range */
+   for( kk=0 ; kk < ngood ; kk++ )  /* make sure are in 0..1 range */
      for( ii=0 ; ii < nfr ; ii++ ) kpar[kk][ii] = PRED01(kpar[kk][ii]) ;
+
+   /* 23 Feb 2010: cast out the bad overlap (coincidence count) guys */
+
+   for( kk=0 ; kk < ngood ; kk++ ) qval[kk] = kval[kk] ;
 
    if( ccdo ){
      ccbest = ccval[0] ;
-     for( kk=1 ; kk < NKEEP ; kk++ ) ccbest = MAX(ccbest,ccval[kk]) ;
-     cccut = 0.9f * ccbest ;
+     for( kk=1 ; kk < ngood ; kk++ ) ccbest = MAX(ccbest,ccval[kk]) ;
+     cccut = CCUT * ccbest ;
+     for( kk=0 ; kk < ngood ; kk++ ){
+       if( ccval[kk] < cccut ) kval[kk] = BIGVAL ;
+     }
+     vbest = BIGVAL ; jj = -1 ;
+     for( kk=0 ; kk < ngood ; kk++ ){
+       if( kval[kk] < vbest ){ vbest = kval[kk] ; jj = kk ; }
+     }
+     if( jj == -1 ){
+       ERROR_message(
+         "All starting locations wander into bad news territory :-(\n"
+         "    -- Suggestion: use -source_automask+1 and try again."   ) ;
+       free((void *)wpar) ; free((void *)spar) ;
+       for( kk=0 ; kk < NKEEP ; kk++ ) free((void *)kpar[kk]) ;
+       EXRETURN ;
+     }
    }
 
    /* at this point, smallest error is vbest and best index in kpar is jj */
 
    if( verb ){                    /* print out optimized results? */
      fprintf(stderr," + - costs of the above after a little optimization:\n") ;
-     for(kk=0;kk<NKEEP;kk++){
-      fprintf(stderr,"  %c%2d v=% 9.6f:",(kk==jj)?'*':' ',kk,kval[kk]);
+     for( kk=0 ; kk < ngood ; kk++ ){
+      fprintf(stderr,"  %c%2d v=% 9.6f:",(kk==jj)?'*':' ',kk,qval[kk]);
       for( ii=qq=0 ; qq < stup->wfunc_numpar ; qq++ ){
        if( !stup->wfunc_param[qq].fixed ){
         val = stup->wfunc_param[qq].min+stup->wfunc_param[qq].siz*kpar[kk][ii];
@@ -1459,7 +1515,8 @@ ENTRY("mri_genalign_scalar_ransetup") ;
       }
       fprintf(stderr,"  [%s]" , rval[kk] ? "rand" : "grid" ) ;
       if( ccdo )
-        fprintf(stderr," [%5.3f]" , ccval[kk]/ccbest ) ;
+        fprintf(stderr," [%5.3f] %s" , ccval[kk]/ccbest ,
+                                       (kval[kk] == BIGVAL) ? "BAD" : "\0" ) ;
       fprintf(stderr,"\n") ;
      }
    }
@@ -1481,8 +1538,8 @@ ENTRY("mri_genalign_scalar_ransetup") ;
 
 #undef  DTHRESH
 #define DTHRESH 0.05
-   for( ii=0 ; ii < NKEEP ; ii++ ){ fval[ii] = kval[ii]; ival[ii] = ii; }
-   qsort_floatint( NKEEP , fval , ival ) ;
+   for( ii=0 ; ii < ngood ; ii++ ){ fval[ii] = kval[ii]; ival[ii] = ii; }
+   qsort_floatint( ngood , fval , ival ) ;
    for( qq=0 ; qq < stup->wfunc_numpar ; qq++ ){ /** save best into trial #0 **/
      if( !stup->wfunc_param[qq].fixed )
        stup->wfunc_param[qq].val_trial[0] = stup->wfunc_param[qq].val_init ;
@@ -1491,8 +1548,8 @@ ENTRY("mri_genalign_scalar_ransetup") ;
    }
    if( verb > 1 ) ININFO_message("- save #%2d for twobest",ival[0]) ;
    nt = 1 ;
-   for( jj=1 ; jj < NKEEP && nt < PARAM_MAXTRIAL ; jj++ ){
-     if( ccdo && ccval[ival[jj]] < cccut ){
+   for( jj=1 ; jj < ngood && nt < PARAM_MAXTRIAL ; jj++ ){
+     if( (ccdo && ccval[ival[jj]] < cccut) || kval[ival[jj]] == BIGVAL ){
        if( verb > 1 )
          ININFO_message("- skip #%2d for twobest: too little overlap",ival[jj]) ;
        goto NEXT_jj ;
