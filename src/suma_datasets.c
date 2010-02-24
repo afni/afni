@@ -11941,7 +11941,7 @@ static ENV_SPEC envlist[] = {
       "0.0,0.0,0.0" },
    {  "ROI color map (bgyr64, roi64, roi128, roi256)",
       "SUMA_ROIColorMap",
-      "ROI_256" },
+      "ROI_i256" },
    {  "Number of smoothing operations to run on convexity data",
       "SUMA_NumConvSmooth",
       "5" },

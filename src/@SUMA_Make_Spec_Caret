@@ -67,10 +67,10 @@ L_INIT_VARS:
       @ cnt ++
     end
     rm ___flats
-    set surf_attribs = (Fiducial		\
-			Raw \
-         VeryInflated			\
-			Inflated		\
+    set surf_attribs = (Fiducial		FIDUCIAL \
+			Raw   RAW   \
+         VeryInflated		VERY-INFLATED	\
+			Inflated		   INFLATED \
 			$flats )
 
 goto L_INIT_VARS_DONE
@@ -358,7 +358,7 @@ L_LOOK_FOR_SURF:
     
 	 foreach Side ( 'L' 'R' 'LR')
 		#get all the surfaces and ask user to identify one to use
-		set CHOOSE_LIST = `ls -t *.$Side.*Fiducial*.coord`
+		set CHOOSE_LIST = `ls -t *.$Side.*Fiducial*.coord *.$Side.*FIDUCIAL*.coord`
 		if ($#CHOOSE_LIST > 0) then
          if ($#CHOOSE_LIST > 1) then
 				   echo "Choose final Fiducial surface (1st one is most likely since it was created last):"
@@ -385,7 +385,7 @@ L_LOOK_FOR_SURF:
 		   set NodeNumb = $NoExt:e	#extract the number before .coord
          set surf_map_ref = $CHOSEN_ITEM
 		   foreach attrib ( $surf_attribs )
-            if ("$attrib" == "Fiducial") then
+            if ("$attrib" == "Fiducial" || "$attrib" == "FIDUCIAL" ) then
                set candidate = $surf_map_ref
             else
                if ($debug) \
