@@ -23,7 +23,7 @@ p=afni_niml_parse(s);
 function s=simpleread(fn)
 fprintf('Reading %s\n', fn);
 fid=fopen(fn);
-if fid==0
+if fid==-1
     error('Error reading from file %s\n', fn);
 end
 s=fread(fid,inf,'char=>char');
@@ -55,7 +55,7 @@ end
 fwrite(fid,sb);
 fclose(fid);
 
-cmd=sprintf('ConvertDset -input %s -o_niml_asc -prefix %s', tmpfn1, tmpfn2);
+cmd=sprintf('source ~/.bash_profile; ConvertDset -input %s -o_niml_asc -prefix %s', tmpfn1, tmpfn2);
 fprintf('Running command: %s\n', cmd);
 [a,w]=unix(cmd);
 

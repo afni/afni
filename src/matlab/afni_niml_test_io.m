@@ -7,7 +7,7 @@ function afni_niml_test_io(fns)
 % contains a matrix with floats, then these are replaced by random numbers.
 %
 % AFNI_NIML_TEST_IO(FN), where FN is a single filename, is also allowed.
-% AFNI_NIML_TEST_IO() uses filenames as defined in the body of this
+% AFNI_NIML_TEST_IO() uses default filenames as defined in the body of this
 % function.
 %
 % Each file named in FNS should be in ASCII NIML format.
@@ -16,8 +16,9 @@ function afni_niml_test_io(fns)
 
 if nargin<1
     % set defaults
-    fns={'testfiles/test_ROI2.niml.dset', ...
-         'testfiles/you_look_marvellous.niml.dset'};
+    fns={'testfiles/you_look_marvellous.niml.dset',...
+        'testfiles/test_ROI2.niml.dset',...
+        'testfiles/moredata.niml.dset'};
 end
 
 if ischar(fns) % single filename
@@ -30,6 +31,9 @@ n=numel(fns);
 
 for k=1:n
     fn=fns{k};
+    fprintf('\n*** Processing %s ***\n\n',fn);
+    
+    
     
     [p,s]=afni_niml_read(fn);
 
@@ -54,31 +58,52 @@ for k=1:n
     
     fprintf('Good, data seems to match\n');
     
-    % make a new id code to keep suma happy
-    p.self_idcode=['XYZ_' char(rand(1,24)*26+65)];
+    % now read data as a 'simple' struct, that is one that we can
+    % manipulate easily
+    S=afni_niml_readsimple(fn);
     
-    % generate some random data, if there is a matrix with floats
-    % (we don't want to mess with node indices)
-    if isfield(p,'nodes')
-        for j=1:numel(p.nodes)
-            nk=p.nodes{j};
-            if ~isempty(strfind(nk.ni_type,'float'))
-                fprintf('Generating some random data\n');
-                
-                % ensure that we're in about the same range as the original
-                % dataset (with some overshoot because of gaussianness)
-                left=min(nk.data(:));
-                right=max(nk.data(:));
-                p.nodes{j}.data=left+(right-left)*randn(size(nk.data));
-            end
+    fprintf('Simple struct read:\n');
+    disp(S);
+    
+    % print the information for each column (a la AFNI SurfDsetinfo)
+    [nverts,ncols]=size(S.data);
+    fprintf('Found %d columns\n', ncols);
+    for j=1:ncols
+        fprintf('COlumn %d: label "%s" with stat value "%s"\n', j, S.labels{j}, S.stats{j});
+    end
+    
+    % for every odd colum, make values gaussian random 
+    fprintf('Put some random data in\n');
+    for j=1:2:ncols
+        d=S.data(:,j);
+        if isequal(d,round(d)) % if integers, ignore (probably ROI indices)
+            continue;
         end
+        S.data(:,j)=randn(nverts,1);
+        S.labels{j}=sprintf('rnd(%d)',j);
+        S.stats{j}='Zscore()';
     end
         
     % convert to string
-    [pth,f,e]=fileparts(fn);
-    newfn=[pth '/niml_io_test_' f  e];
+    [pth,f e]=fileparts(fn);
+    newfn=[pth '/niml_io_test_' f e];
    
-    afni_niml_write(newfn,p);
-    
+    afni_niml_writesimple(newfn,S);
 end
-    
+
+
+% Make a file from scratch
+myrootfn='testfiles/myfile';
+nverts=100002;
+S=struct();
+S.labels={'Hello','World'};
+S.stats={'Zscore()','none'};
+S.data=[randn(nverts,1) rand(nverts,1)];
+
+% write with all info
+afni_niml_writesimple(S,[myrootfn '_1.niml.dset']);
+
+% just write the data
+afni_niml_writesimple(S.data,[myrootfn '_2.niml.dset']);
+
+
