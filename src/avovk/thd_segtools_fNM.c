@@ -733,7 +733,9 @@ void example_kmeans( int nrows, int ncols,
    for (i = 0; i < ncols; i++) weight[i] = 1.0;
 
    
-   n = 1 + strlen(jobname) + strlen("_K_G") + strlen(".ext");
+   /* ZSS: Andrej, that n was too small. I added 512 to get
+           avoid the problem. */
+   n = 512 + strlen(jobname) + strlen("_K_G") + strlen(".ext");
 
    if (dist)
    { int dummy = nclusters;
