@@ -1,0 +1,47 @@
+#!/bin/tcsh -f
+
+if ($1 == '') then
+   set pp = `which afni`
+   set pp = `dirname $pp`
+   echo $pp
+   set rfiles = (`ls $pp/*.R`)
+   if ($#rfiles == 0) then
+      set rfiles = (`ls $pp/R_scripts/*.R`)
+   endif
+   if ($#rfiles == 0) then
+      echo "Could not find R files"
+      goto END
+   endif   
+else
+   if ("$1" == -h || "$1" == -help) then
+      goto HELP
+   endif
+   set rfiles = $1
+endif
+
+foreach rr ($rfiles) 
+   set funclist = (`\grep -n -w -e '<- *function' $rr | \
+                    \grep -v '^#' | \
+                    sed "s/ *//g" | sed "s/{.*//g" | \
+                     cut -f 1 -d '<'`)
+   if ($#funclist) then
+      echo $rr
+      foreach func ($funclist) 
+         echo "   $func"
+      end
+   endif
+end
+
+goto END
+
+HELP:
+   echo ""
+   echo "   `basename $0` [.Rfile(s)]"
+   echo ""
+   echo "A quick list of functions defined in AFNI's .R files"
+   echo "If no files .R filesare specified, all .R files in "
+   echo "   afni's bin directory are processed"
+   echo ""
+   goto END
+   
+END:
