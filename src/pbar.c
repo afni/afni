@@ -675,8 +675,8 @@ ENTRY("PBAR_bigmap_finalize") ;
    } else if (strstr(pbar->bigname,"i128")) {
       AFNI_set_func_range_nval(pbar->parent, 128.0);
    } else if (strstr(pbar->bigname,"i255")) {
-      AFNI_set_func_range_nval(pbar->parent, 256.0);
-   } else if (strstr(pbar->bigname,"i255")) {
+      AFNI_set_func_range_nval(pbar->parent, 255.0);
+   } else if (strstr(pbar->bigname,"i256")) {
       AFNI_set_func_range_nval(pbar->parent, 256.0);
    }
    

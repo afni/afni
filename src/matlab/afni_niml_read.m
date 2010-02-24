@@ -55,7 +55,7 @@ end
 fwrite(fid,sb);
 fclose(fid);
 
-cmd=sprintf('source ~/.bash_profile; ConvertDset -input %s -o_niml_asc -prefix %s', tmpfn1, tmpfn2);
+cmd=sprintf('ConvertDset -input %s -o_niml_asc -prefix %s', tmpfn1, tmpfn2);
 fprintf('Running command: %s\n', cmd);
 [a,w]=unix(cmd);
 
