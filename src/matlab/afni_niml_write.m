@@ -8,6 +8,9 @@ function afni_niml_write(p,fn)
 % assumed to be a file identifier. If P is omitted, output is written to
 % stdout.
 %
+% This function requires a tree-like structure similar to the NIML format.
+% To write a 'simple' struct, use AFNI_NIML_WRITESIMPLE.
+%
 % NNO Dec 2009 <n.oosterhof@bangor.ac.uk>
 
 if nargin<2
@@ -26,6 +29,7 @@ s=afni_niml_print(p);
 % see if output is a file identifier
 if isnumeric(fn) && round(fn)==fn
     fid=fn;
+    fn=sprintf('FID %d',fid);
 else
     fid=fopen(fn,'w');
 end
@@ -34,14 +38,10 @@ if fid==0
     error('Could not write to %s\n', fn);
 end
 
-c=fprintf(fid,s);
+fprintf(fid,s);
 
 if fid>2 % we don't close standard input, output, or error
     fclose(fid);
 end
 
-if c ~= numel(s)
-    error('Something went wrong when writing %s\n', fn);
-else
-    fprintf('Written NIML struct to %s\n', fn);
-end
+fprintf('Written NIML struct to %s\n', fn);
