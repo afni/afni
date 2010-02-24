@@ -44,6 +44,12 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 24 , FEB , 2010 , RWC , "3dAllineate" , MINOR , TYPE_NEW_OPT ,
+   "New cost functional -lpc+" ,
+   "Combination of lpc + hel + crA + nmi + mi.\n"
+   "Also some micro changes to allow more -twobest starting points and the\n"
+   "like." } ,
+
  { 19 , FEB , 2010 , RWC , "3dAllineate" , MICRO , TYPE_GENERAL ,
    "Turn up -twoblur limit from 7 to 11." ,
    NULL } ,
