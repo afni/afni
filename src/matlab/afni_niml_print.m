@@ -66,6 +66,7 @@ else
 end
     
 function s=afni_niml_print_body(p)
+
 format=get_print_format(p.vec_typ,p.data);
 if strcmp(format,'%s')
     around='"'; %surround by quotes if it is a string - CHECKME is that according to the standard?
@@ -119,7 +120,6 @@ function p=derive_vec_type(data)
         data=single(data); % convert to numeric
     end
     if isnumeric(data)
-        size(data)
         if isequal(round(data),data)
             tp=nidefs.NI_INT;
         else
@@ -144,9 +144,9 @@ function p=derive_vec_type(data)
     tps=strtrim(nidefs.type_name(tp+1,:)); % tricky base0 vs base1
     
     p.ni_type=[prefix tps];
-    p.ni_dimen=ln;
+    p.ni_dimen=sprintf('%d',ln); %NNO Jan 2010 fix
     
-    p.vec_typ=repmat(tp+1,1,nm); % tricky base0 vs base1
+    p.vec_typ=repmat(tp,1,nm); % tricky base0 vs base1 % Jan 2010: removed 'tp+1'
     p.vec_len=ln;
     p.vec_num=nm;
 
@@ -185,27 +185,10 @@ function f=get_print_format(vec_typ,data,nidefs)
             case {'byte','short','int'} % CHECKME don't know if this is ok for bytes and shorts...
                 f='%d';
             otherwise
-                precision=get_precision(data);
+                precision=get_required_precision(data);
                 f=sprintf('%%.%df',precision);
         end
     end
-    
-function p=get_precision(d,epsilon)
-% See how many decimal places we need to print a matrix of floats.
-% The optional epsilon parameters indicates how much the output is allowed
-% to be off 
-
-if nargin<2
-    epsilon=0; % we want high precision of course
-end
-
-% max precision is 7, because that seems more or less the limit of 32 bit
-% floats
-for p=0:7
-    if max(abs(rem(d(:),10^(-p))))<=epsilon
-        return
-    end
-end
     
 
         
