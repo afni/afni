@@ -518,6 +518,19 @@ float GA_spearman_local( int npt , float *avm, float *bvm, float *wvm )
 }                                /* [0.25 to compensate for the 2*arctanh()] */
 
 /*---------------------------------------------------------------------------*/
+
+static double micho_mi  = 0.1 ;  /* 24 Feb 2010 */
+static double micho_nmi = 0.1 ;
+static double micho_crA = 0.5 ;
+static double micho_hel = 0.3 ;
+static double micho_ov  = 0.0 ;
+
+void GA_setup_micho( double a, double b, double c, double d, double e )
+{
+   micho_hel = a; micho_mi = b; micho_nmi = c; micho_crA = d; micho_ov = e;
+}
+
+/*---------------------------------------------------------------------------*/
 /*! Compute a particular fit cost function
     - avm = target image values warped to base
     - bvm = base image values
@@ -606,6 +619,23 @@ ENTRY("GA_scalar_costfun") ;
       val = -THD_hellinger_scl( gstup->npt_match ,
                                 gstup->ajbot , gstup->ajclip , avm ,
                                 gstup->bsbot , gstup->bsclip , bvm , wvm ) ;
+    break ;
+
+    /* 24 Feb 2010: a combined method, using multiple functionals */
+
+    case GA_MATCH_LPC_MICHO_SCALAR:{
+      val = (double)GA_pearson_local( gstup->npt_match, avm, bvm,wvm ) ;
+
+      if( micho_hel != 0.0 || micho_mi  != 0.0 ||
+          micho_nmi != 0.0 || micho_crA != 0.0   ){
+        float_quad hmc ;
+        hmc = THD_helmicra_scl( gstup->npt_match ,
+                                gstup->ajbot , gstup->ajclip , avm ,
+                                gstup->bsbot , gstup->bsclip , bvm , wvm ) ;
+        val += -micho_hel * hmc.a - micho_mi  * hmc.b
+               +micho_nmi * hmc.c + micho_crA * (1.0-fabs(hmc.d)) ;
+      }
+    }
     break ;
   }
 
