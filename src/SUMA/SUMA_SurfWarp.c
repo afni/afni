@@ -897,7 +897,7 @@ SUMA_SegmentDO *SUMA_G2SDO(vector G, SUMA_MX_VEC *ControlCurve,
    
    for(i=0; i<ControlCurve->dims[1]; ++i) {  /* ControlCurve->dims[1] = 
                                                 opt->N_ctrl_points */
-      SUMA_a_good_col("ROI_256", i+2, acol);/* get a decent colormap */  
+      SUMA_a_good_col("ROI_i256", i+2, acol);/* get a decent colormap */  
                /* Add 2 to the color map index to avoid getting purple. */
       for (m=0; m<ControlCurve->dims[2]-2; ++m) {     /* ControlCurve->dims[2] = 
                                              opt->M_time_steps+1 */

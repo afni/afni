@@ -1116,16 +1116,16 @@ int SUMA_a_good_col(char *name, int i, float *acol)
          if (endp == name && d == 0) { /* no good */
          } else {
             if (d < 32) {
-               icmap = SUMA_Find_ColorMap("ROI_32", SUMAg_CF->scm->CMv, 
+               icmap = SUMA_Find_ColorMap("ROI_i32", SUMAg_CF->scm->CMv, 
                                  SUMAg_CF->scm->N_maps,-2);
             }else if (d < 64) {
-               icmap = SUMA_Find_ColorMap("ROI_64", SUMAg_CF->scm->CMv, 
+               icmap = SUMA_Find_ColorMap("ROI_i64", SUMAg_CF->scm->CMv, 
                                  SUMAg_CF->scm->N_maps,-2);
             }else if (d < 128) {
-               icmap = SUMA_Find_ColorMap("ROI_128", SUMAg_CF->scm->CMv, 
+               icmap = SUMA_Find_ColorMap("ROI_i128", SUMAg_CF->scm->CMv, 
                                  SUMAg_CF->scm->N_maps,-2);
             }else if (d < 256) {
-               icmap = SUMA_Find_ColorMap("ROI_256", SUMAg_CF->scm->CMv, 
+               icmap = SUMA_Find_ColorMap("ROI_i256", SUMAg_CF->scm->CMv, 
                                  SUMAg_CF->scm->N_maps,-2);
             }
          }
@@ -3112,8 +3112,8 @@ NI_group * SUMA_CreateCmapForLabelDset(SUMA_DSET *dset,
    if (!ThisCmap) {
       SUMA_LH("Producing uniques");
       unq = SUMA_UniqueValuesInLabelDset(dset, &N_unq);
-      if (!(cmap = SUMA_FindNamedColMap("ROI_256"))) {
-         SUMA_S_Errv("Found no colmap %s in %p\n", "ROI_256", SUMAg_CF->scm);
+      if (!(cmap = SUMA_FindNamedColMap("ROI_i256"))) {
+         SUMA_S_Errv("Found no colmap %s in %p\n", "ROI_i256", SUMAg_CF->scm);
          SUMA_Show_ColorMapVec (SUMAg_CF->scm->CMv, SUMAg_CF->scm->N_maps, 
                                 NULL, 1);
          SUMA_RETURN(NULL);
