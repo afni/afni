@@ -4864,9 +4864,9 @@ extern float THD_hellinger_scl( int, float,float,float *,      /* 26 Sep 2006 */
                                      float,float,float *, float * ) ;
 extern float THD_hellinger( int , float *, float * ) ;
 
-extern THD_fvec3 THD_helnmi_scl( int, float,float,float *,
-                                 float,float,float *, float * ) ;
-extern THD_fvec3 THD_helnmi( int , float *, float * ) ;
+extern float_quad THD_helmicra_scl( int, float,float,float *,
+                                    float,float,float *, float * ) ;
+extern float_quad THD_helmicra( int , float *, float * ) ;
 
 extern int retrieve_2Dhist   ( float **xyhist ) ;     /* 28 Sep 2006 */
 extern int retrieve_2Dhist1  ( float **, float ** ) ; /* 07 May 2007 */
