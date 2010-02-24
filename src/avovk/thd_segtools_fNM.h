@@ -50,6 +50,12 @@ typedef struct {
    unsigned int rand_seed;
 } OPT_KMEANS;
 
+int thd_Adist (  THD_3dim_dataset *in_set,
+                 byte *mask, 
+                 float *sigs, int nsigs,
+                 THD_3dim_dataset **dist_set,
+                 OPT_KMEANS oc);
+                 
 int thd_Acluster (  THD_3dim_dataset *in_set,
                   byte *mask, int nmask,
                   THD_3dim_dataset **clust_set,

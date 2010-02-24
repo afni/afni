@@ -443,7 +443,7 @@ void getvoxlclusterdist(int* count, float** cdata,
    }
 
 
-  n = 1 + strlen(jobname) + strlen("_K_G") + strlen(".ext");
+  n = 512 + strlen(jobname) + strlen("_K_G") + strlen(".ext");
   
   dummy = nclusters;
   do n++; while (dummy/=10);
@@ -572,7 +572,7 @@ void color_palette(int nclusters, char* jobname)
                                            I used 32 which is overkill but it is a nice number */
   sprintf (hexnumbers, "0123456789abcdef");
 
-  n = 1 + strlen(jobname) + strlen(".pal") + 2;
+  n = 512 + strlen(jobname) + strlen(".pal") + 2;
   filename = (char *)malloc(n*sizeof(char));
   sprintf (filename, "%s_K%d.pal", jobname,nclusters); 
   /* output file name not good ! */
