@@ -416,7 +416,7 @@ SUMA_SegmentDO *SUMA_ControlCurve2SDO(SUMA_MX_VEC *ControlCurve, char *Label)
 
    kcc = 0;
    for(i=0; i<ControlCurve->dims[1]; ++i) {
-      SUMA_a_good_col("ROI_256", i+2, acol);/* get a decent colormap */  
+      SUMA_a_good_col("ROI_i256", i+2, acol);/* get a decent colormap */  
                   /* Add 2 to the color map index to avoid getting purple. */
       for (m=0; m<ControlCurve->dims[2]; ++m) {
          if(m<ControlCurve->dims[2]-1) {

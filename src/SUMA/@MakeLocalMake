@@ -39,6 +39,14 @@ set l = `echo $grepres | cut -d : -f 1`
 
 sed "${l}d" $tmp > $mo
 
+#And remove Makefile.R.INCLUDE
+set grepres = `\grep -n 'include Makefile.R.INCLUDE' $mo`
+if ( "$grepres" != "") then
+   cp $mo $tmp
+   set l = `echo $grepres | cut -d : -f 1`
+   sed "${l}d" $tmp > $mo
+endif
+
 if ( ! -f $mo) then
    echo "They failed"
    goto END

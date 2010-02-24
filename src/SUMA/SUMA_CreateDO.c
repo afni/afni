@@ -5777,6 +5777,7 @@ SUMA_Boolean SUMA_Paint_SO_ROIplanes ( SUMA_SurfaceObject *SO,
    static int iwarn=0;
    SUMA_EngineData *ED = NULL;
    SUMA_Boolean Unique = NOPE;
+   static int iwarn2=0;
    SUMA_Boolean LocalHead = NOPE;
             
    SUMA_ENTRY;
@@ -5787,31 +5788,31 @@ SUMA_Boolean SUMA_Paint_SO_ROIplanes ( SUMA_SurfaceObject *SO,
       eee = getenv("SUMA_ROIColorMap");
       if (eee) {
          if (!strcmp(eee, "roi256")) {
-            mapname = "ROI_256";
-            if (!iwarn) SUMA_S_Note( "roi256 colormap is now ROI_256\n"
+            mapname = "ROI_i256";
+            if (!iwarn) SUMA_S_Note( "roi256 colormap is now ROI_i256\n"
                            "To use old roi256, use ygbrp256");
             ++iwarn;   
          }else if (!strcmp(eee, "roi128")) {
-            mapname = "ROI_128";
-            if (!iwarn) SUMA_S_Note( "roi128 colormap is now ROI_128\n"
+            mapname = "ROI_i128";
+            if (!iwarn) SUMA_S_Note( "roi128 colormap is now ROI_i128\n"
                            "To use old roi128, use ygbrp128"); 
             ++iwarn;   
          }else if (!strcmp(eee, "roi64")) {
-            mapname = "ROI_64";
-            if (!iwarn) SUMA_S_Note( "roi64 colormap is now ROI_64\n"
+            mapname = "ROI_i64";
+            if (!iwarn) SUMA_S_Note( "roi64 colormap is now ROI_i64\n"
                            "To use old roi64, use ygbrp64"); 
             ++iwarn;   
          }else if (SUMA_StandardMapIndex(eee) >= 0) {
             mapname = eee;
          } else {
-            mapname = "ROI_64";
+            mapname = "ROI_i64";
             if (LocalHead) 
                fprintf(SUMA_STDERR, "%s: Unrecognized colormap %s.\n"
                                     " Using %s instead.\n", 
                                     FuncName, eee, mapname);
          }
       } else {
-         mapname = "ROI_64";
+         mapname = "ROI_i64";
          if (LocalHead) 
             fprintf(SUMA_STDERR,
                "%s: Undefined environment. Using default ROI colormap %s\n", 
@@ -5925,9 +5926,12 @@ SUMA_Boolean SUMA_Paint_SO_ROIplanes ( SUMA_SurfaceObject *SO,
 
             if (!SUMAg_CF->ROI_CM) {
                if (!(SUMAg_CF->ROI_CM = SUMA_FindNamedColMap (mapname))) {
-                  SUMA_SLP_Err( "Failed to create\n"
+                  if (!iwarn2) {
+                     SUMA_SLP_Err( "Failed to create\n"
                                  "color map. Reverting\n"
-                                 "to FillColors");
+                                 "to FillColors\n This message is shown once.");
+                     ++iwarn2;
+                  }
                   D_ROI->ColorByLabel = NOPE;
                }
                if (LocalHead) {

@@ -1,7 +1,33 @@
 #------------------------------------------------------------------
 # Functions to deal with AFNI file names
 #------------------------------------------------------------------
-parse.name <- function (filename, verb=0) {
+strip.extension <- function (filename, extvec=NULL, verb=0) {
+   n <- list()
+   if (is.null(extvec)) {
+      ff <- strsplit(filename, '\\.')[[1]]
+      if (length(ff) > 1) {
+         n$ext <- ff[length(ff)]
+         n$name_noext <- paste(ff[1:length(ff)-1],collapse='.')
+      } else {
+         n$ext <- ''
+         n$name_noext <- filename
+      } 
+   } else {
+      n$ext <- ''
+      n$name_noext <- filename
+      for (ex in extvec) {
+         patt <- paste('\\',ex,'$',collapse='', sep='')
+         if (length(grep(patt, filename))) {
+            n$ext <- ex
+            n$name_noext <- sub(patt,'',filename)
+            return(n)
+         }
+      }
+   }   
+   return(n)
+}
+
+parse.name <- function (filename, extvec=NULL, verb=0) {
    n <- list()
    ff <- strsplit(filename, .Platform$file.sep)[[1]]
    n$name <- ff[length(ff)]
@@ -10,20 +36,51 @@ parse.name <- function (filename, verb=0) {
       n$path <- paste(ff[1:length(ff)-1],collapse=.Platform$file.sep)
    n$path <- paste(n$path, .Platform$file.sep, sep="")
    
-   ff <- strsplit(n$name, '\\.')[[1]]
-   if (length(ff) > 1) {
-      n$ext = ff[length(ff)]
-      n$name_noext = paste(ff[1:length(ff)-1],collapse='.')
-   } else {
-      n$ext = ''
-      n$name_noext = n$name
-   } 
+   n2 <- strip.extension(n$name, extvec, verb)
+   n$ext <- n2$ext
+   n$name_noext <- n2$name_noext   
+   
    return(n)
+}
+
+date.stamp <- function (fancy=FALSE) {
+   if (fancy) {
+      return(gsub(' ','_',date()))
+   } else {
+      return(format(Sys.time(), "%d%m%y-%H%M%S"))
+   }
+}
+
+parse.AFNI.name.selectors <- function(filename,verb=0) {
+   n <- list()
+   n$brsel<- NULL;
+   n$rosel<- NULL;
+   n$rasel<- NULL;
+   n$insel<- NULL;
+   
+   selecs <- strsplit(filename,"\\[|\\{|<|#")[[1]];
+   n$name <- selecs[1]
+   for (ss in selecs[2:length(selecs)]) {
+      if (length(grep("]",ss))) {
+         n$brsel <- strsplit(ss,"\\]")[[1]][1];
+      } else if (length(grep("}",ss))) {
+         n$rosel <- strsplit(ss,"\\}")[[1]][1];
+      } else if (length(grep(">",ss))) {
+         n$rasel <- strsplit(ss,">")[[1]][1];
+      } 
+   }
+   selecs <- strsplit(filename,"#")[[1]];
+   if (length(selecs) > 1) {
+      n$insel <- selecs[2]
+   }
+   
+   return(n)    
 }
 
 parse.AFNI.name <- function(filename, verb = 0) {
   if (filename == 'self_test') { #Secret testing flag
       note.AFNI('Function running in test mode');
+      show.AFNI.name(parse.AFNI.name('DePath/hello.DePrefix', verb))
       show.AFNI.name(parse.AFNI.name('DePath/DePrefix+acpc', verb))
       show.AFNI.name(parse.AFNI.name('DePath/DePrefix+acpc.', verb))
       show.AFNI.name(parse.AFNI.name('DePath/DePrefix+acpc.HEAD', verb))
@@ -33,96 +90,82 @@ parse.AFNI.name <- function(filename, verb = 0) {
          parse.AFNI.name('DePath/DePrefix+acpc.HEAD[DeLabel]{DeRow}', verb))
       show.AFNI.name(
          parse.AFNI.name('DePath/DePrefix+acpc[DeLabel]{DeRow}', verb))
-      #This one fails now, not sure if it is a legal name anyway
       show.AFNI.name(
          parse.AFNI.name('DePath/DePrefix+acpc.[DeLabel]{DeRow}', verb))
       return(NULL)
-  }
-  an <- list()
-  an$view <- NULL
-  an$prefix <- NULL
-  an$head <- NULL
-  an$brik <- NULL
-  an$compress <- ''
-  an$brsel <- NULL;
-  an$rosel <- NULL;
-  an$rasel <- NULL;
-  
-  if (verb) { cat ('Parsing >>',filename,'<<\n', sep=''); }
-  if (!is.character(filename)) {
-   warning(paste('filename >>', filename, '<< not a character string\n', sep=''),
-              immediate. = TRUE);
-   traceback();
-   return(NULL);
-  }  
-  fileparts <- strsplit(filename,"\\.")[[1]]
-  ext <- fileparts[length(fileparts)]
-  if (!is.na(match(ext,"Z")) ||
-      !is.na(match(ext,"gz")) ) {
-   #bext <- paste("BRIK",ext,collapse='.') 
-   bext <- 'BRIK'
-   an$compress <- ext
-   ext <- fileparts[length(fileparts)-1]   
-  } else {
-    bext <- 'BRIK'
-    
-  }
-  
-  #deal with sub-brick and range selectors
-  selecs <- strsplit(ext,"\\[|\\{|<")[[1]];
-  ext <- selecs[1];
-  for (ss in selecs[2:length(selecs)]) {
-   if (length(grep("]",ss))) {
-      an$brsel <- strsplit(ss,"\\]")[[1]][1];
-   } else if (length(grep("}",ss))) {
-      an$rosel <- strsplit(ss,"\\}")[[1]][1];
-   } else if (length(grep(">",ss))) {
-      an$rasel <- strsplit(ss,">")[[1]][1];
    }
-  } 
+   an <- list()
+   an$view <- NULL
+   an$prefix <- NULL
+   an$brsel <- NULL;
+   an$rosel <- NULL;
+   an$rasel <- NULL;
+   an$insel <- NULL;
+   an$type <- NULL;
+   an$path <- NULL;
+   an$orig_name <- filename;
 
-  if (tolower(ext) == "head") {
-    if (an$compress == '') {
-      keeep <- c(1:(length(fileparts)-1))
-    } else {
-      keeep <- c(1:(length(fileparts)-2))
-    }
-      an$head <- paste(c(fileparts[keeep],"HEAD"),collapse=".")
-      an$brik <- paste(c(fileparts[keeep],bext),collapse=".")
-   } else if (tolower(ext) == "brik") {
-    if (an$compress == '') {
-      keeep <- c(1:(length(fileparts)-1))
-    } else {
-      keeep <- c(1:(length(fileparts)-2))
-    }
-    an$head <- paste(c(fileparts[keeep],"HEAD"),collapse=".")
-    an$brik <- paste(c(fileparts[keeep],bext),collapse=".")
-  } else {
-    if (ext == '') {
-      mm  <- filename
-    } else {
-      pp <- parse.name(filename);
-      if (pp$path != './') 
-         mm <- paste(pp$path,ext,sep="")
-      else 
-         mm <- ext
-    }
-    an$head <- paste(sub('\\.$','',mm),".HEAD",sep="")
-    an$brik <- paste(sub('\\.$','',mm),".BRIK",sep="")
-   
-  }
-  
+   if (verb) { cat ('Parsing >>',filename,'<<\n', sep=''); }
+   if (!is.character(filename)) {
+      warning(paste('filename >>', 
+                     filename, '<< not a character string\n', sep=''),
+                 immediate. = TRUE);
+      traceback();
+      return(NULL);
+   }
+
+   #Deal with selectors
+   n <- parse.AFNI.name.selectors(filename, verb)
+   filename <- n$name
+   an$brsel <- n$brsel;
+   an$rosel <- n$rosel;
+   an$rasel <- n$rasel; 
+   an$insel <- n$insel;
+
+   #Remove last dot if there
+   filename <- sub('\\.$','',filename)
+
+   #NIFTI?
+   n <- strip.extension(filename, c('.nii', '.nii.gz'), verb)
+   if (n$ext != '') {
+      an$ext <- n$ext
+      an$type <- 'NIFTI'
+      an$prefix <- n$name_noext
+   } else {
+      #remove other extensions
+      n <- strip.extension(filename, c('.HEAD','.BRIK','.BRIK.gz',
+                                       '.BRIK.bz2','.BRIK.Z',
+                                       '.1D', '.1D.dset', 
+                                       '.niml.dset',
+                                       '.'  ),
+                           verb)
+      if (n$ext == '.1D' || n$ext == '.1D.dset') {
+         an$type <- '1D'
+      } else if (n$ext == '.niml.dset') {
+         an$type <- 'NIML'
+      } else {
+         an$type <- 'BRIK'
+      } 
+      
+      if (n$ext == '.') {
+         n$ext <- ''
+      }
+      an$ext <- n$ext
+      filename <- n$name_noext
+      
+      n <- strip.extension(filename, c('+orig','+tlrc','+acpc'), verb)
+      if (n$ext != '') {
+         an$view <- n$ext
+      } else {
+         an$view <- NA
+      }
+      an$prefix <- n$name_noext
+   }
+ 
   if (verb > 2) {
    browser()
   }
   
-  vp <- strsplit(an$head, ".HEAD|\\+")[[1]];
-  an$prefix <- vp[1];
-  if (length(vp) > 1) {
-   an$view   <- paste('+',vp[2],sep='');
-  } else {
-   an$view <- NA
-  }
   return(an)
 }
 
@@ -130,11 +173,11 @@ exists.AFNI.name <- function(an) {
    if (is.character(an)) an <- parse.AFNI.name(an);
    
    ans <- 0
-   if (file.exists(an$head)) ans <- ans + 1;
+   if (file.exists(head.AFNI.name(an))) ans <- ans + 1;
    
-   if (file.exists(an$brik) ||
-       file.exists(paste(an$brik,'.gz', sep='')) ||
-       file.exists(paste(an$brik,'.Z', sep=''))) ans <- ans + 2;
+   if (file.exists(brik.AFNI.name(an)) ||
+       file.exists(paste(brik.AFNI.name(an),'.gz', sep='')) ||
+       file.exists(paste(brik.AFNI.name(an),'.Z', sep=''))) ans <- ans + 2;
    return(ans);
 }
 
@@ -155,15 +198,41 @@ pv.AFNI.name <- function(an) {
 
 head.AFNI.name <- function(an) {
    if (is.character(an)) an <- parse.AFNI.name(an);
-   return(paste(an$head,an$view,sep=''));
+   if (an$type == 'BRIK' && !is.na(an$view)) {
+      return(paste(an$prefix,an$view,".HEAD",sep=''));
+   } else {
+      return((an$orig_name));
+   }
 }
 
+brik.AFNI.name <- function(an) {
+   if (is.character(an)) an <- parse.AFNI.name(an);
+   if (an$type == 'BRIK' && !is.na(an$view)) {
+      return(paste(an$prefix,an$view,".BRIK",sep=''));
+   } else {
+      return((an$orig_name));
+   }
+}
+
+compressed.AFNI.name <- function(an) {
+   if (is.character(an)) an <- parse.AFNI.name(an);
+   if (length(grep('\\.gz$', an$ext))) {
+      return('gz')
+   } else if (length(grep('\\.bz2$', an$ext))) {
+      return('bz2')
+   } else if (length(grep('\\.Z$', an$ext))) {
+      return('Z')
+   } else {
+      return('')
+   }
+
+}
 uncompress.AFNI <- function(an, verb = 1) {
    if (is.character(an)) an <- parse.AFNI.name(an);
    
    ans <- 0
    
-   zz <- paste(an$brik,'.Z', sep='');
+   zz <- paste(brik.AFNI.name(an),'.Z', sep='');
    if (file.exists(zz)) {
       if (verb) {
          cat ('Uncompressing', zz, '\n');
@@ -171,7 +240,7 @@ uncompress.AFNI <- function(an, verb = 1) {
       system(paste('uncompress', zz));
    }
 
-   zz <- paste(an$brik,'.gz', sep='');
+   zz <- paste(brik.AFNI.name(an),'.gz', sep='');
    if (file.exists(zz)) {
       if (verb) {
          cat ('gzip -d-ing', zz, '\n');
@@ -185,14 +254,17 @@ uncompress.AFNI <- function(an, verb = 1) {
   
 show.AFNI.name <- function(an) {
    cat ('\n',
+        'uname=', an$orig_name, '\n',
+        'type =', an$type,'\n',
         'pref.=', an$prefix, '\n',
         'view =', an$view, '\n',
-        'head =', an$head, '\n',
-        'brik =', an$brik, '\n',
+        'head =', head.AFNI.name(an), '\n',
+        'brik =', brik.AFNI.name(an), '\n',
         'brsel=', an$brsel, '\n',
         'rosel=', an$rosel, '\n',
         'rasel=', an$rasel, '\n',
-        'compr=', an$compress, '\n',
+        'insel=', an$insel, '\n',
+        'compr=', compressed.AFNI.name(an), '\n',
         'exist=', exists.AFNI.name(an), '\n');
 }
 
@@ -414,8 +486,58 @@ parse.AFNI.args <- function ( args, params = NULL,
 #------------------------------------------------------------------
 #   Some utilities
 #------------------------------------------------------------------
+#history and grep
+hgrep <- function (pattern=NULL){
+   if (is.null(pattern)) {
+      history()
+   } else {
+      history(max.show=Inf, pattern=pattern)
+   }
+} 
 
-#print warnings a la AFNI
+#Report objects using the most memory
+
+R.bit.version <- function () {
+  if (.Machine$sizeof.pointer == 4) return(32)
+  else if (.Machine$sizeof.pointer == 8) return(64)
+  else return(0)
+}
+
+memory.hogs <- function (n=10, test=FALSE) {
+   if (test) {
+      toy <- function() { g <- array(0,c(128,128,128,10)); 
+                           memory.hogs(test=FALSE) }
+      moy <- function() {k <- array(0,c(128, 128, 128, 3)); toy() }
+      moy()
+      return(NULL)
+   }
+   us <- 1024*1024
+   nfr <- sys.nframe()
+   z<- NULL
+   pp <- 0
+   while (nfr > 0) {
+      nfr <- nfr -1
+      pp <- pp+1
+      envir <- parent.frame(pp)
+      envfunc <- (as.character(sys.call(-(pp))))
+      if (!length(envfunc)) envfunc <- 'GLOBAL'
+      zs <- sapply(ls(envir), function(x)
+                    object.size(get(x, envir = envir)))
+      names(zs) <- paste(names(zs)," (in ",envfunc,")")
+      z <- c(z, zs)
+   }
+   m <- as.matrix(rev(sort(z))[1:n]/us)
+   colnames(m) <- c("Size(Mb)")
+   m <- rbind(m,'        total' = sum(m));
+   m <- rbind(m,'  Grand total' = sum(z)/us);
+   
+   cat( sprintf("Memory hogs check from function: %s\nR-%d bit version\n", 
+                     as.character(paste(sys.call(-1), collapse=' ')), 
+                     R.bit.version()) );
+   print(m, digits=2)
+   invisible(m)
+}
+
 who.called.me <- function () {
    caller <- as.character(sys.call(-2))
    callstr <- paste( caller[1],'(',
@@ -424,6 +546,7 @@ who.called.me <- function () {
    return(callstr)
 }
 
+#print warnings a la AFNI
 warn.AFNI <- function (str='Consider yourself warned',callstr=NULL, 
                        newline=TRUE) {
    if (is.null(callstr)) callstr <- who.called.me()
@@ -727,26 +850,27 @@ read.AFNI <- function(filename, verb = 0, ApplyScale = 1, PercMask=0.0) {
               immediate. = TRUE);
       return(NULL);
     }
-    an$head <- paste('___R.read.AFNI.',basename(an$head), sep = '');
-    an$brik <- paste('___R.read.AFNI.',basename(an$brik), sep = '');
-    if (!(exists.AFNI.name(an$head))) {
-      warning(paste("Failed to create:   ", an$head, an$brik, '\n'),
+    an$prefix <- paste('___R.read.AFNI.',basename(an$prefix), sep = '');
+    if (!(exists.AFNI.name(head.AFNI.name(an)))) {
+      warning(paste("Failed to create:   ", 
+                     head.AFNI.name(an), brik.AFNI.name(an), '\n'),
               immediate. = TRUE);
       return(NULL);
     }
   }
   
   if (verb) { cat ('Checking existence\n'); }
-  if (!(exists.AFNI.name(an$head))) {
-    err.AFNI(paste("Failed to read:   ", an$head, an$brik));
+  if (!(exists.AFNI.name(head.AFNI.name(an)))) {
+    err.AFNI(paste("Failed to read:   ", head.AFNI.name(an), 
+                                         brik.AFNI.name(an)));
     return(NULL);
   }
   
   #Cannot read compressed stuff (see size usage below)
   if (verb) { cat ('Uncompressing\n'); }
-  uncompress.AFNI(an$head);
+  uncompress.AFNI(head.AFNI.name(an));
   
-  conhead <- file(an$head,"r")
+  conhead <- file(head.AFNI.name(an),"r")
   header <- readLines(conhead)
   close(conhead)
 
@@ -784,7 +908,7 @@ read.AFNI <- function(filename, verb = 0, ApplyScale = 1, PercMask=0.0) {
   dt <- values$DATASET_RANK[2]
   scale <- values$BRICK_FLOAT_FACS
 
-  size <- file.info(an$brik)$size/(dx*dy*dz*dt)
+  size <- file.info(brik.AFNI.name(an))$size/(dx*dy*dz*dt)
 
   if (regexpr("MSB",values$BYTEORDER_STRING[1]) != -1) {
     endian <- "big"
@@ -802,7 +926,7 @@ read.AFNI <- function(filename, verb = 0, ApplyScale = 1, PercMask=0.0) {
 #  browser()
    if (verb) { cat ('Reading Bin\n'); }
    if (as.integer(size) == size) {
-      conbrik <- file(an$brik,"rb")
+      conbrik <- file(brik.AFNI.name(an),"rb")
       # modified below by GC 12/2/2008
       if (all(values$BRICK_TYPES==0) | all(values$BRICK_TYPES==1)) {
          myttt<- readBin( conbrik, "int", n=dx*dy*dz*dt, size=size, 
@@ -961,7 +1085,7 @@ write.AFNI <- function( filename, ttt=NULL, label=NULL,
    err.AFNI('Bad filename');
    return(0)
   }
-  conhead <- file(an$head, "w")
+  conhead <- file(head.AFNI.name(an), "w")
   writeChar(AFNIheaderpart("string-attribute","HISTORY_NOTE",note),
             conhead,eos=NULL)
   writeChar(AFNIheaderpart("string-attribute","TYPESTRING","3DIM_HEAD_FUNC"),
@@ -987,6 +1111,7 @@ write.AFNI <- function( filename, ttt=NULL, label=NULL,
             conhead,eos=NULL)  
   
   if (maskinf) {
+   if (verb) note.AFNI("Masking infs");
    ttt[!is.finite(ttt)]=0
   }
   
@@ -1020,7 +1145,7 @@ write.AFNI <- function( filename, ttt=NULL, label=NULL,
   close(conhead)
 
   # Write BRIK
-  conbrik <- file(an$brik, "wb")
+  conbrik <- file(brik.AFNI.name(an), "wb")
   if (0) { #ZSS: old method, 
            # runs out of memory for large dsets
            # when scaling. Code kept here for testing
