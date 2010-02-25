@@ -1680,7 +1680,7 @@ typedef struct {
 
   int old_sc ; float old_sr_base , old_sr_targ ;
 
-  MRI_IMAGE *bsim , *bsims ;
+  MRI_IMAGE *bsim , *bsims , *bsmask ;
   float bsbot,bstop , bsclip ;
   int dim_bvec    ;
   int   nmask     ;
@@ -1756,6 +1756,7 @@ extern void mri_genalign_bilinear( int, float *,
                                         float *, float *, float * ) ;
 
 void mri_genalign_set_targmask( MRI_IMAGE *, GA_setup * ) ; /* 07 Aug 2007 */
+void mri_genalign_set_basemask( MRI_IMAGE *, GA_setup * ) ; /* 25 Feb 2010 */
 
 extern void GA_reset_fit_callback( void (*fc)(int,double*) ) ;
 extern void GA_do_dots(int) ;
