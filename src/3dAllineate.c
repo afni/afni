@@ -301,9 +301,9 @@ int main( int argc , char *argv[] )
 "    if you know what you are doing (or just like to play around).\n"
 "\n"
 "====\n"
-"NOTE: If you want to align EPI volumes to a T1-weighted structural\n"
-"====  volume, the script align_epi_anat.py is recommended.  It will\n"
-"      use 3dAllineate in the recommended way for this type of problem.\n"
+"NOTE: For most 3D image registration purposes, we now recommend that you\n"
+"====  use Daniel Glen's script align_epi_anat.py (which, despite its name,\n"
+"      can do many more registration problems than EPI-to-T1-weighted).\n"
 " -->> In particular, using 3dAllineate with the 'lpc' cost functional\n"
 "      requires using a '-weight' volume to get good results, and the\n"
 "      align_epi_anat.py script will automagically generate such a\n"
@@ -312,10 +312,13 @@ int main( int argc , char *argv[] )
 "      as T1-weighted alignment between field strengths using the\n"
 "      '-lpa' cost functional.  Investigate align_epi_anat.py to\n"
 "      see if it will do what you need -- you might make your life\n"
-"      a little easier and nicer and happier.\n"
+"      a little easier and nicer and happier and more peaceful.\n"
+" -->> Also, if/when you ask for registration help on the AFNI\n"
+"      message board, we'll probably start by recommending that you\n"
+"      try align_epi_anat.py if you haven't already done so.\n"
 "\n"
-"OPTIONS:\n"
-"=======\n"
+"COMMAND LINE OPTIONS:\n"
+"====================\n"
 " -base bbb   = Set the base dataset to be the #0 sub-brick of 'bbb'.\n"
 "               If no -base option is given, then the base volume is\n"
 "               taken to be the #0 sub-brick of the source dataset.\n"
@@ -2765,9 +2768,9 @@ int main( int argc , char *argv[] )
 
    if( meth_code == GA_MATCH_LPC_MICHO_SCALAR ){
      if( verb )
-       INFO_message("-lpc+ parameters: hel=%.3f mi=%.3f nmi=%.3f crA=%.3f %s",
+       INFO_message("-lpc+ parameters: hel=%.2f mi=%.2f nmi=%.2f crA=%.2f %s",
                     micho_hel , micho_mi , micho_nmi , micho_crA ,
-                    micho_zfinal ? "[will be zeroed at Final iteration]" : "\0" ) ;
+                    micho_zfinal ? "[to be zeroed at Final iteration]" : "\0" ) ;
      GA_setup_micho( micho_hel , micho_mi , micho_nmi , micho_crA , 0.0 ) ;
    }
 
@@ -3738,7 +3741,7 @@ int main( int argc , char *argv[] )
          GA_setup_micho( 0.0 , 0.0 , 0.0 , 0.0 , 0.0 ) ;
          if( verb > 1 ) ININFO_message(" - Set lpc+ parameters back to pure lpc before Final") ;
        }
-       nfunc = mri_genalign_scalar_optim( &stup , 0.444f*rad, conv_rad,6666 );
+       nfunc = mri_genalign_scalar_optim( &stup , 0.666f*rad, conv_rad,6666 );
      }
 
      /*** if( powell_mm > 0.0f ) powell_set_mfac( 0.0f , 0.0f ) ; ***/

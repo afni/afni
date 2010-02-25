@@ -876,6 +876,7 @@ ENTRY("mri_genalign_scalar_setup") ;
    }
 
    /* 07 Aug 2007: deal with target mask, if any [moved here 28 Aug 2008] */
+   /* that is, add noise to non-mask parts of the image, AFTER smoothing */
 
    if( got_new_targ && stup->ajmask != NULL && stup->aj_usiz > 0.0f ){
      float ubot=stup->aj_ubot , usiz=stup->aj_usiz , u1,u2 ;
@@ -885,7 +886,7 @@ ENTRY("mri_genalign_scalar_setup") ;
      mmm = MRI_BYTE_PTR(stup->ajmask) ;
      nvox = stup->ajmask->nvox ;
      if( verb > 2 ) ININFO_message("source mask: ubot=%g usiz=%g",ubot,usiz);
-     myunif_reset(1234567890) ;
+     myunif_reset(1234567890) ;  /* to get the same numbers every time */
      for( ii=0 ; ii < nvox ; ii++ ){  /* fill non-mask voxels with noise */
        if( !mmm[ii] ){
          u1 = myunif(); u2 = myunif(); af[ii] = ubot + usiz*(u1+u2);
@@ -1133,6 +1134,38 @@ ENTRY("mri_genalign_set_targmask") ;
         "mri_genalign_set_targmask: mask has %d voxels out of %d total ==> ignored!",
         nmask , nvox ) ;
        mri_free(stup->ajmask) ; stup->ajmask = NULL ;
+     }
+   }
+   EXRETURN ;
+}
+
+/*---------------------------------------------------------------------------*/
+/*! Set the byte mask for the base (or unset it).
+    Should be done BEFORE mri_genalign_scalar_setup().  [25 Feb 2010] */
+
+void mri_genalign_set_basemask( MRI_IMAGE *im_bmask , GA_setup *stup )
+{
+   int nmask , nvox ;
+ENTRY("mri_genalign_set_basemask") ;
+   if( stup == NULL ) EXRETURN ;
+   if( stup->bsmask != NULL ){ mri_free(stup->bsmask); stup->bsmask = NULL; }
+   if( im_bmask != NULL ){
+     if( stup->ajim != NULL ){
+       if( im_bmask->nvox != stup->ajim->nvox ){
+         ERROR_message("mri_genalign_set_targmask: image mismatch!") ;
+         EXRETURN ;
+       } else {
+         WARNING_message("mri_genalign_set_targmask: called after setup()?!") ;
+       }
+     }
+     stup->bsmask = mri_to_byte(im_bmask) ;
+     nvox  = stup->bsmask->nvox ;
+     nmask = THD_countmask( nvox , MRI_BYTE_PTR(stup->bsmask) ) ;
+     if( nmask < 999 || nvox-nmask < 999 ){
+       WARNING_message(
+        "mri_genalign_set_basemask: mask has %d voxels out of %d total ==> ignored!",
+        nmask , nvox ) ;
+       mri_free(stup->bsmask) ; stup->bsmask = NULL ;
      }
    }
    EXRETURN ;
@@ -1414,7 +1447,7 @@ ENTRY("mri_genalign_scalar_ransetup") ;
    twof = 1 << nfr ;  /* 2^nfr */
 
    if( verb > 1 ) ININFO_message("- number of free params = %d",nfr) ;
-   if( verb )     fprintf(stderr," + - Testing %d*%d params:",nrand+ngtot,twof) ;
+   if( verb )     fprintf(stderr," + - Testing (%d+%d)*%d params:G",ngtot,nrand,twof) ;
 
    myunif_reset(3456789) ;  /* 27 Aug 2008 */
 
@@ -1425,7 +1458,7 @@ ENTRY("mri_genalign_scalar_ransetup") ;
          kk = ss % ngrid; ss = ss / ngrid; wpar[qq] = 0.5+(kk+1)*val;
        }
      } else {                              /* pseudo-random */
-       if( verb && ii == ngtot ) fprintf(stderr,"$") ;
+       if( verb && ii == ngtot ) fprintf(stderr,"R") ;
        for( qq=0 ; qq < nfr ; qq++ ) wpar[qq] = 0.5*(1.05+0.90*myunif()) ;
      }
 
