@@ -11,6 +11,8 @@
 
 static void display_help(void)
 { printf ("Clustering 4segmentation, command-line version.\n");
+  printf ("    Based on The C clustering library.\n");
+  printf ("    Copyright (C) 2002 Michiel Jan Laurens de Hoon.\n");
   printf ("USAGE: cluster [options]\n");
   printf ("options:\n");
   printf ("  -v, --version Version information\n");
@@ -19,6 +21,42 @@ static void display_help(void)
           "                and they will be catenated internally.\n"
           "         e.g: -f F1+orig F2+orig F3+orig ...\n"
           "           or -f F1+orig -f F2+orig -f F3+orig ...\n" );
+  printf(
+ " -mask mset   Means to use the dataset 'mset' as a mask:\n"
+ "                 Only voxels with nonzero values in 'mset'\n"
+ "                 will be printed from 'dataset'.  Note\n"
+ "                 that the mask dataset and the input dataset\n"
+ "                 must have the same number of voxels.\n"
+ " -mrange a b  Means to further restrict the voxels from\n"
+ "                 'mset' so that only those mask values\n"
+ "                 between 'a' and 'b' (inclusive) will\n"
+ "                 be used.  If this option is not given,\n"
+ "                 all nonzero values from 'mset' are used.\n"
+ "                 Note that if a voxel is zero in 'mset', then\n"
+ "                 it won't be included, even if a < 0 < b.\n"
+ " -cmask 'opts' Means to execute the options enclosed in single\n"
+ "                  quotes as a 3dcalc-like program, and produce\n"
+ "                  produce a mask from the resulting 3D brick.\n"
+ "       Examples:\n"
+ "        -cmask '-a fred+orig[7] -b zork+orig[3] -expr step(a-b)'\n"
+ "                  produces a mask that is nonzero only where\n"
+ "                  the 7th sub-brick of fred+orig is larger than\n"
+ "                  the 3rd sub-brick of zork+orig.\n"
+ "        -cmask '-a fred+orig -expr 1-bool(k-7)'\n"
+ "                  produces a mask that is nonzero only in the\n"
+ "                  7th slice (k=7); combined with -mask, you\n"
+ "                  could use this to extract just selected voxels\n"
+ "                  from particular slice(s).\n"
+ "       Notes: * You can use both -mask and -cmask in the same\n"
+ "                  run - in this case, only voxels present in\n"
+ "                  both masks will be dumped.\n"
+ "              * Only single sub-brick calculations can be\n"
+ "                  used in the 3dcalc-like calculations -\n"
+ "                  if you input a multi-brick dataset here,\n"
+ "                  without using a sub-brick index, then only\n"
+ "                  its 0th sub-brick will be used.\n"
+ "              * Do not use quotes inside the 'opts' string!\n"
+ "\n");
   printf ("  -cg a|m       Specifies whether to center each row\n"
           "                in the data\n"
           "                a: Subtract the mean of each row\n"
@@ -36,6 +74,8 @@ static void display_help(void)
   printf ("  -u jobname    Allows you to specify a different name for the \n"
           "                output files.\n"
           "                (default is derived from the input file name)\n");
+  printf ("  -prefix PREFIX Allows you to specify a prefix for the output \n"
+          "                 volumes. Default is the same as jobname\n");
   printf ("  -g [0..8]     Specifies distance measure for gene clustering\n" );
   printf ("                Note: Weight is a vector as long as the signatures\n"
           "                and used when computing distances. However for the\n"
@@ -123,12 +163,13 @@ int main(int argc, char **argv)
    int ng = 0;
    int na = 0;
    char *prefix = NULL;
-   char *maskname = NULL;
    char *signame=NULL;
    THD_3dim_dataset *in_set=NULL, *clust_set=NULL;
-   THD_3dim_dataset *mset =NULL, *dist_set=NULL;
+   THD_3dim_dataset *mask_dset=NULL, *dist_set=NULL;
+   byte *cmask=NULL ; int ncmask=0 ;
    byte *mask=NULL;
-   int nmask=-1, mnx=-1, mny=-1, mnz=-1, iset=0, N_iset=0;
+   int nmask=-1, mnx=-1, mny=-1, mnz=-1, iset=0, N_iset=0, mnxyz=-1;
+   float mask_bot=666.0 , mask_top=-666.0 ;
    OPT_KMEANS oc;
    float *dvec=NULL, **D=NULL;
    int n = 0, Ncoltot=0, nc0=0, nx=0, ny=0, nz=0;
@@ -242,15 +283,37 @@ int main(int argc, char **argv)
       continue;
     }
     
-   if(!strcmp(argument,"-mask"))
-    { if (i==argc)
-      { printf ("Error: Need name after -mask\n");
-        RETURN(1);
-      }
-      maskname = argv[i];
-      i++;
-      continue;
+    if( strncmp(argument,"-mask",5) == 0 ){
+       if( mask_dset != NULL )
+         ERROR_exit("Cannot have two -mask options!\n") ;
+       if( i >= argc )
+         ERROR_exit("-mask option requires a following argument!\n");
+       mask_dset = THD_open_dataset( argv[i] ) ;
+       if( mask_dset == NULL )
+         ERROR_exit("Cannot open mask dataset!\n") ;
+       if( DSET_BRICK_TYPE(mask_dset,0) == MRI_complex )
+         ERROR_exit("Cannot deal with complex-valued mask dataset!\n");
+       i++ ; continue ;
     }
+
+    if( strncmp(argument,"-mrange",5) == 0 ){
+      if( i+1 >= argc )
+        ERROR_exit("-mrange option requires 2 following arguments!\n");
+       mask_bot = strtod( argv[  i] , NULL ) ;
+       mask_top = strtod( argv[++i] , NULL ) ;
+       if( mask_top < mask_top )
+         ERROR_exit("-mrange inputs are illegal!\n") ;
+       i++ ; continue ;
+    }
+
+    if( strcmp(argument,"-cmask") == 0 ){  /* 16 Mar 2000 */
+       if( i >= argc )
+          ERROR_exit("-cmask option requires a following argument!\n");
+       cmask = EDT_calcmask( argv[i] , &ncmask, 0 ) ;
+       if( cmask == NULL ) ERROR_exit("Can't compute -cmask!\n");
+       i++ ; continue ;
+    }
+      
     if(!strcmp(argument,"-ng"))
     { ng = 1;
       continue;
@@ -380,21 +443,46 @@ int main(int argc, char **argv)
    /* load dsets and prepare array data for sending to clustering functions */
    
    if (!prefix) {
-      prefix = "clusty";
+      prefix = oc.jobname; /* used to be "clusty" */
       THD_force_ok_overwrite(1) ;   /* don't worry about overwriting */
    }
    
-   /* Read in mask */
-   if (maskname) {
-      mset = THD_open_dataset(maskname) ;
-      CHECK_OPEN_ERROR(mset,maskname) ;
-      mnx = DSET_NX(mset); mny = DSET_NY(mset); mnz = DSET_NZ(mset);
-      DSET_load(mset) ; CHECK_LOAD_ERROR(mset) ;
-      mask = THD_makemask( mset, 0, 1.0f,0.0f ); DSET_delete(mset);
+   /* ------------- Mask business -----------------*/
+   if( mask_dset == NULL ){
+      mask = NULL ;
+      if( oc.verb ) 
+         INFO_message("Using all voxels in the entire dataset (no mask)\n") ;
+   } else {
+      mnx = DSET_NX(mask_dset); 
+      mny = DSET_NY(mask_dset); 
+      mnz = DSET_NZ(mask_dset);
+      mnxyz = mnx*mny*mnz;
+      mask = THD_makemask( mask_dset , 0 , mask_bot, mask_top ) ;
       if( mask == NULL ) ERROR_exit("Can't make mask") ;
-      nmask = THD_countmask( mnx*mny*mnz , mask ) ;
-      INFO_message("%d voxels in the [%dx%dx%d] mask",nmask, mnx, mny, mnz) ;
-      if( nmask < 1 ) ERROR_exit("mask %s is empty?!", maskname) ;
+      nmask = THD_countmask( mnx*mny*mnz  , mask ) ;
+      if( oc.verb ) 
+         INFO_message("%d voxels in the [%dx%dx%d] mask",nmask, mnx, mny, mnz) ;
+      if( nmask <= 0 ) ERROR_exit("No voxels in the mask!\n") ;
+      DSET_delete(mask_dset) ;
+   }
+
+   if( cmask != NULL ){
+      if( mask != NULL ){
+         if (mnxyz != ncmask) ERROR_exit("Mask and cmask dimension mismatch") ;
+         for( ii=0 ; ii < mnxyz ; ii++ ) 
+            mask[ii] = (mask[ii] && cmask[ii]) ;
+         free(cmask) ;
+         nmask = THD_countmask( mnxyz , mask ) ;
+         if( nmask <= 0 ) ERROR_exit("No voxels in the mask+cmask!\n") ;
+         if( oc.verb ) INFO_message("%d voxels in the mask+cmask\n",nmask) ;
+      } else {
+         mnx = -1; mny = 11; mnz = -1; /* unknown */
+         mnxyz = ncmask;
+         mask = cmask ;
+         nmask = THD_countmask( mnxyz , mask ) ;
+         if( nmask <= 0 ) ERROR_exit("No voxels in the cmask!\n") ;
+         if( oc.verb ) INFO_message("%d voxels in the cmask\n",nmask) ;
+      }
    }
    
    if (signame) {
@@ -457,10 +545,11 @@ int main(int argc, char **argv)
             ncol = DSET_NVALS(in_set);
             nrow = DSET_NVOX(in_set);
             nx = DSET_NX(in_set); ny = DSET_NY(in_set); nz = DSET_NZ(in_set);
-            if (  mask &&
-                  (mnx != DSET_NX(in_set) || 
-                   mny != DSET_NY(in_set) || 
-                   mnz != DSET_NZ(in_set) ) ) {
+            if (  mask                                              &&
+                  ( ( (mnx >= 0 && mnx != DSET_NX(in_set)) || 
+                      (mny >= 0 && mny != DSET_NY(in_set)) || 
+                      (mnz >= 0 && mnz != DSET_NZ(in_set))  )    ||
+                    ( mnxyz != nx*ny*nz ) ) ) {
                ERROR_exit("Dimension mismatch between mask and input dset");      
             }
             if (!mask) nmask = DSET_NVOX(in_set);
