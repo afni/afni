@@ -90,12 +90,12 @@ Aclustering:Aclustering_floatNOMASK.c cluster_floatNOMASK.o
          ${AVOVK_INCLUDE_PATH} ${AVOVK_LINK_PATH} \
          ${AVOVKLIB} ${AVOVK_LINK_LIB} -lgsl -lgslcblas 
          
-3dAclustering_fNM:3dAclustering_floatNM.c ${AVOVKLIB}
+3dAclustering_fNM:3dAclustering_floatNM.c ${AFNI_3dOBJS} ${AVOVKLIB}
 	$(RM) $@
 	${CC} -o $@ 3dAclustering_floatNM.c \
-         ${CCOPT} ${WARNOPT} \
+         ${AFNI_3dOBJS} ${CCOPT} ${WARNOPT}   \
          ${AVOVK_INCLUDE_PATH} ${AVOVK_LINK_PATH} \
-         ${AVOVKLIB} ${AVOVK_LINK_LIB} -lgsl -lgslcblas 
+         ${AVOVKLIB} ${AVOVK_LINK_LIB} -lf2c -lgsl -lgslcblas 
 	
 
 progs: fit_onesign Aclustering 3dfit_onesign 3dAclustering_fNM  # 3dAclustering
