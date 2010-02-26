@@ -3,13 +3,26 @@ if ("$1" == '' || "$1" == '-h' || "$1" == '-help') then
 	goto USAGE
 endif
 
+set noglob
+
+set withpath=0
+set arlist=()
+foreach aa ($argv)
+   if ("$aa" == "-p") then
+      set withpath=1
+   else
+      set arlist = ($arlist "$aa")
+   endif
+end
+
 set PrefSuf = ''
-if ("$2" != '') then
-   set PrefSuf = $2
+if ($#arlist > 1) then
+   set PrefSuf = $arlist[2]
 endif
 
-set noglob
-set cln = `echo "$1" | cut -d \[ -f1`
+set cln = `echo "$arlist[1]" | cut -d \[ -f1`
+
+set pt = `dirname $cln`
 
 #remove path
 set Nom = $cln:t
@@ -53,7 +66,11 @@ set Nom = $Nom$PrefSuf
 goto ECHO
 
 ECHO:
-echo $Nom
+if ($withpath) then
+   echo $pt/$Nom
+else
+   echo $Nom
+endif
 unset noglob
 
 goto ENDALL

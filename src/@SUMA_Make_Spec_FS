@@ -807,6 +807,10 @@ L_CREATE_BRICK:
          @Align_Centers -base $afni_dataset -dset ${other:t:r}".nii" -no_cp
          if ( "${other:t:r}" == "aparc.a2005s+aseg") then
             3dmerge -1rank -prefix "${other:t:r}_rank.nii" ${other:t:r}".nii"
+            @FS_roi_label  -name ALL \
+                           -rankmap ${other:t:r}.nii.rankmap.1D \
+                           -labeltable ${other:t:r}_rank
+            3drefit -labeltable ${other:t:r}_rank.niml.lt "${other:t:r}_rank.nii"
          endif
          cd - 
        end

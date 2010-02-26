@@ -149,6 +149,9 @@ void Syntax(char *str)
 "\n"
 "  -label2 llll    Set the 'label2' field in a dataset .HEAD file to the\n"
 "                  string 'llll'.  (Can be used as in AFNI window titlebars.)\n"
+"  -labeltable TTT Inset the label table TTT in the .HEAD file.\n"
+"                  The label table format is described in README.environment\n"
+"                  under the heading: 'Variable: AFNI_VALUE_LABEL_DTABLE'\n"
 "\n"
 "  -denote         Means to remove all possibly-identifying notes from\n"
 "                  the header.  This includes the History Note, other text\n"
@@ -378,6 +381,7 @@ int main( int argc , char * argv[] )
    int copyaux        = 0 ;          /* 08 Jun 2004 */
    THD_3dim_dataset *auxset=NULL ;   /* 08 Jun 2004 */
    char *new_label2   = NULL ;       /* 21 Dec 2004 */
+   char *labeltable   = NULL;        /* 25 Feb 2010 ZSS */
    int denote         = 0 ;          /* 08 Jul 2005 */
    Boolean write_output ;            /* 20 Jun 2006 [rickr] */
    int keepcen        = 0 ;          /* 17 Jul 2006 [RWCox] */
@@ -1095,6 +1099,13 @@ int main( int argc , char * argv[] )
         iarg++ ; continue ;  /* go to next arg */
       }
 
+      /** -labeltable [25 Feb 2010 ZSS] **/
+
+      if( strcmp(argv[iarg],"-labeltable") == 0 ){
+        labeltable = argv[++iarg] ; new_stuff++ ;
+        iarg++ ; continue ;  /* go to next arg */
+      }
+
       /** -view code **/
 
       if( strncmp(argv[iarg],"-view",4) == 0 ){
@@ -1271,6 +1282,26 @@ int main( int argc , char * argv[] )
       if( new_label2 != NULL ){
         EDIT_dset_items( dset , ADN_label2 , new_label2 , ADN_none ) ;
         VINFO("setting label2") ;
+      }
+      
+      if(labeltable != NULL) {
+         char *str = NULL;
+         Dtable *vl_dtable=NULL ;
+         
+         if (dset->Label_Dtable) {
+            destroy_Dtable(dset->Label_Dtable); dset->Label_Dtable=NULL;
+         }  
+         /* read the table */
+         if (!(str = AFNI_suck_file( labeltable))) {
+            ERROR_exit("Failed to read %s", labeltable);
+         }
+         if (!(vl_dtable = Dtable_from_nimlstring(str))) {
+            ERROR_exit("Could not parse labeltable");
+         }
+         destroy_Dtable(vl_dtable); vl_dtable = NULL;
+         THD_set_string_atr( dset->dblk , "VALUE_LABEL_DTABLE" , str ) ;
+         VINFO("setting labeltable") ;
+         free(str); 
       }
 
       /* 14 Oct 1999: change anat parent */

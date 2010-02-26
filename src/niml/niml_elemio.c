@@ -1452,3 +1452,22 @@ void * NI_read_element_fromfile( char *fname )
    NI_stream_close( ns ) ;
    return nini ;
 }
+
+/*------------------------------------------------------------------------*/
+/*! Read one element from a string.  [26 Feb 2010 ZSS]
+--------------------------------------------------------------------------*/
+void * NI_read_element_fromstring( char *nstr )
+{
+   NI_stream_type *ns ;  void *nini ;
+   
+   if( nstr == NULL || *nstr == '\0' ) return (NULL) ;
+
+   /* convert string to a NIML element */
+
+   ns = NI_stream_open( "str:" , "r" ) ;
+   NI_stream_setbuf( ns , nstr ) ;
+   nini = NI_read_element( ns , 1 ) ;
+   NI_stream_close( ns ) ;
+   
+   return (nini) ;
+}

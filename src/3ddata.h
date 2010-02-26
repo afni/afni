@@ -2437,6 +2437,8 @@ typedef struct THD_3dim_dataset {
       int   tcat_num ;
       int  *tcat_len ;
 
+   /* 26 Feb 2010: Pointer to VALUE_LABEL_DTABLE */
+      void *Label_Dtable;
 } THD_3dim_dataset ;
 
 /*! A marker that defines a dataset that is about to be killed. */

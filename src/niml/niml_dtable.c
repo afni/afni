@@ -169,15 +169,9 @@ Dtable * Dtable_from_nimlstring( char *nstr )
    Dtable *dt ;
    char **la , **lb ;
 
-   if( nstr == NULL || *nstr == '\0' ) return NULL ;
-
-   /* convert string to a NIML element */
-
-   ns = NI_stream_open( "str:" , "r" ) ;
-   NI_stream_setbuf( ns , nstr ) ;
-   nel = (NI_element *)NI_read_element( ns , 1 ) ;
-   NI_stream_close( ns ) ;
-   if( nel == NULL ) return NULL ;
+   if (!(nel = (NI_element *)NI_read_element_fromstring(nstr))) {
+      return NULL;
+   }
 
    /* see if element is OK for this purpose */
 
