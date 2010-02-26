@@ -451,7 +451,8 @@ ENTRY("adwarp_follower_dataset") ;
   new_dset->anat_parent = anat_parent;            /* what else makes sense? */
 
   new_dset->tagset = NULL ;  /* Oct 1998 */
-
+  new_dset->Label_Dtable = NULL;                  /* ZSS Feb 26 2010 */
+  
   MCW_strncpy( new_dset->anat_parent_name ,
                anat_parent->self_name , THD_MAX_NAME ) ;
 

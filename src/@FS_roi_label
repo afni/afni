@@ -89,12 +89,18 @@ else
    endif
 endif
 
-
 if ($name != "") then
-   \grep -i $name   ${pplabels} > /tmp/___nm.txt
+   if ($name == "ALL") then
+      \grep -i '#[0123456789]'   ${pplabels} > /tmp/___nm.txt
+   else
+      \grep -i $name   ${pplabels} > /tmp/___nm.txt
+   endif
+   echo \grep -i "$name"   ${pplabels}
    cut -d' ' -f1 /tmp/___nm.txt > /tmp/___nmi.txt
    cut -d' ' -f2 /tmp/___nm.txt > /tmp/___nmn.txt
    if ($rankmap != "") then
+      set rankmax = 0
+      set cnt_lt = 0
       #purify 1D file
       1dcat $rankmap'[1]' > /tmp/___rmi.1D
       1dcat $rankmap > /tmp/___rmcl.1D
@@ -113,6 +119,9 @@ if ($name != "") then
             #and the rank is the first value
             set rank = $li[1]
             printf "%-6s   %-6s  %-8s \n" $rank $lab $nm
+            printf '"%d" "%s"\n' $rank $nm >> /tmp/___lt.txt
+            @ cnt_lt ++
+            if ($rank > $rankmax) set rankmax = $rank
          else  
             printf "%-6s   %-6s  %-8s \n" '#' $lab $nm
          endif
@@ -120,6 +129,14 @@ if ($name != "") then
       end
    else
       paste  /tmp/___nmi.txt /tmp/___nmn.txt
+   endif
+   if ($labeltable != "") then
+      printf '<VALUE_LABEL_DTABLE\n' > $labeltable
+      printf 'ni_type="2*String"\n' >> $labeltable
+      printf 'ni_dimen="%d"\n' $cnt_lt >> $labeltable
+      printf 'pbar_name="ROI_i32">\n' >> $labeltable
+      uniq /tmp/___lt.txt >> $labeltable
+      printf '</VALUE_LABEL_DTABLE>\n' >> $labeltable
    endif
    set stat = 0
    goto END 
@@ -164,6 +181,7 @@ PARSE:
 	set cnt = 1
    set SurfLabelFile = ""
    set Do_Surf = -1
+   set labeltable = ''
    while ($cnt <= $Narg)
 		if ("$argv[$cnt]" == "-surf_annot_cmap") then
          set SubLoc = $cnt		
@@ -206,6 +224,20 @@ PARSE:
             set NxtInd = $cnt
 			endif
       endif
+		
+      if ("$argv[$cnt]" == "-labeltable") then
+         set SubLoc = $cnt		
+		   if ($SubLoc == $Narg) then
+				echo "Need file after -labeltable"
+            goto END
+			else
+				@ cnt ++
+				set labeltable = `@NoExt "$argv[$cnt]" .niml .niml.lt`
+            set labeltable = $labeltable.niml.lt
+            set NxtInd = $cnt
+			endif
+      endif
+      
 		if ("$argv[$cnt]" == "-name") then
          set SubLoc = $cnt		
 		   if ($Do_Surf == 1) then
@@ -308,6 +340,13 @@ PARSE:
       echo "Need -rankmap with -rank"
       goto END
    endif
+   if ($labeltable != "" && $rankmap == "") then
+      echo "Need -rankmap with -labeltable"
+      goto END
+   endif
+   if ($labeltable != "" && name == "") then
+      set name = "ALL"
+   endif
    if ($rankmap != "" && $rank == "" &&  "$name" == "") then
       echo "-rankmap is useless without -rank or -name"
       goto END
@@ -366,6 +405,8 @@ HELP:
    echo "   Example: "
    echo "      @FS_roi_label  -name cerebra"
    echo ""
+   echo "   You can use ALL for NAME to get all entries in ${fsdb} "
+   echo ""
    echo " or "
    echo ""
    echo "Usage: `basename $0` <-name NAME> <-rankmap M.1D>"
@@ -374,6 +415,15 @@ HELP:
    echo "   Example: "
    echo "      @FS_roi_label  -name cerebra  \"
    echo "                     -rankmap SUMA/aparc.a2005s+aseg_rank.rankmap.1D"
+   echo ""
+   echo " or "
+   echo ""
+   echo "Usage: `basename $0` <-labeltable LABELTABLE> <-rankmap M.1D>"
+   echo "   Build a label table that can be atted to the ranked volume"
+   echo "   so that AFNI can display labels of parcellated volumes."
+   echo "   Use 3drefit -labeltable LABELTABLE DSET to add the table"
+   echo "   to the rank dataset DSET"
+   echo "   Example: 3drefit -labeltable LABELTABLE SUMA/aparc.a2005s+aseg_rank"
    echo ""
    echo "For Surface-Based FreeSurfer Annotations  :"
    echo "------------------------------------------"

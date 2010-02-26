@@ -214,6 +214,7 @@ THD_3dim_dataset * duplicate_dataset( THD_3dim_dataset * parent )
    new_dset->type      = parent->type ;
    new_dset->func_type = parent->func_type ;
    new_dset->view_type = parent->view_type ;
+   new_dset->Label_Dtable = NULL;                  /* ZSS Feb 26 2010 */
 
    new_dset->anat_parent         = NULL ;   /* no anat parent */
    new_dset->anat_parent_name[0] = '\0' ;

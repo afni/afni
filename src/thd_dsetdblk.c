@@ -81,6 +81,7 @@ ENTRY("THD_3dim_from_block") ; /* 29 Aug 2001 */
    dset->tcat_list   = NULL ;
    dset->tcat_num    = 0 ;
    dset->tcat_len    = NULL ;
+   dset->Label_Dtable = NULL;                  /* ZSS Feb 26 2010 */
 
    ADDTO_KILL(dset->kl,daxes) ;
 
@@ -717,6 +718,14 @@ ENTRY("THD_3dim_from_block") ; /* 29 Aug 2001 */
      THD_write_3dim_dataset( NULL , NULL , dset , False ) ;
    }
 #endif
-
+   
+   /* Create label table if any are present */
+   atr_str = THD_find_string_atr( blk , "VALUE_LABEL_DTABLE" ) ;
+   if (atr_str) {
+      dset->Label_Dtable = (void *)Dtable_from_nimlstring(atr_str->ch);
+   } else {
+      dset->Label_Dtable = NULL;
+   }
+   
    RETURN( dset );
 }

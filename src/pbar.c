@@ -690,6 +690,18 @@ ENTRY("PBAR_bigmap_finalize") ;
 
 /*--------------------------------------------------------------------*/
 
+int PBAR_get_bigmap_index ( char *bnam ) /* 26 Feb. 2010 ZSS */
+{
+   int ii;
+   
+   if (!bnam) return(-1);
+   
+   for( ii=0 ; ii < bigmap_num ; ii++ )
+     if( strcmp(bnam,bigmap_name[ii]) == 0 ) return(ii);
+   
+   return(-1);
+}
+
 void PBAR_set_bigmap( MCW_pbar *pbar , char *bnam )  /* 03 Feb 2003 */
 {
    int ii ;

@@ -4506,6 +4506,7 @@ printf("T3D_read_images: nvals set to %d\n",nvals) ;
    dkptr   = dblk->diskptr = myXtNew( THD_diskptr ) ;
 
    dset->tagset = NULL ;  /* Oct 1998 */
+   dset->Label_Dtable = NULL;                  /* ZSS Feb 26 2010 */
 
    INIT_KILL(dset->kl) ; INIT_KILL(dblk->kl) ;
 

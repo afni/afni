@@ -165,6 +165,10 @@ STATUS("destroy taxis") ;
    /*                                                5 Mar 2008 [rickr] */
    /* myXtFree( dset->vox_warp ) ;  * 23 Sep 2008                       */
 
+   if (dset->Label_Dtable) {  /* ZSS Feb 26 2010 */
+      destroy_Dtable(dset->Label_Dtable); dset->Label_Dtable=NULL;
+   }
+   
 STATUS("KILL_KILL") ;
    KILL_KILL( dset->kl ) ;
 
