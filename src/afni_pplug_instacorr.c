@@ -89,7 +89,7 @@ static char i_helpstring[] =
   "    Upper    = Largest frequency to allow (in Hz)   [must be > Lower]\n"
   "                [Even if Bandpass is turned off, each voxel time series]\n"
   "                [is detrended against a quadratic polynomial and then  ]\n"
-  "                [has the 0 and Nyquist frequencies removed.            ]\n"
+  "                [has the 0 and Nyquist frequencies removed; cf. Polort ]\n"
   "\n"
   "* Global Orts:\n"
   "    1D file  = Extra time series to remove from each voxel before\n"
@@ -105,11 +105,27 @@ static char i_helpstring[] =
   "    SeedRad  = Radius of sphere over which to average when extracting\n"
   "               the seed voxel time series.\n"
   "  These extra averages/blurs are done only inside the mask (if any), and\n"
-  "  are applied after the dataset is blurred (if Blur > 0).\n"
+  "  are applied AFTER the dataset is blurred (if Blur > 0).\n"
+  "\n"
+  "    Polort   = polynomial detrending level prior to Bandpass (if that's on);\n"
+  "                -1 == no detrending                               [for Ziad]\n"
+  "                 0 == mean removal  [if you don't like mean things, I guess]\n"
+  "                 1 == linear trend removal         [for nonlinear thinkers?]\n"
+  "                 2 == quadratic trend removal                  [the default]\n"
+  "               You should only change this option from '2' if you understand\n"
+  "               what you are doing.\n"
+  "            ** If Polort <= 0 AND if Bandpass is turned off, then the FFT\n"
+  "               filtering of the time series will not be done at all.\n"
+  "            ** There is essentially no reason I can think of to set Polort = -1\n"
+  "               AND to turn Bandpass on -- and the results won't be pleasant.\n"
+  "            ** If Polort > 0, then FFT filtering will be done even if Bandpass\n"
+  "               is off -- but only the 0 and Nyquist frequencies will be removed.\n"
+  "            ** To get NO preprocessing of the time series before correlation,\n"
+  "               set Polort = -1, turn Bandpass off, and don't input Global Orts.\n"
   "\n"
   "OPERATION\n"
   "=========\n"
-  "* Once you have set the controls the way you want, press one of the ''Setup'n"
+  "* Once you have set the controls the way you want, press one of the ''Setup'\n"
   "  buttons, and the program will process (filter & blur) the data time series.\n"
   "\n"
   "* When this processing is finished, you will be ready to use 'InstaCorr Set'\n"
@@ -166,9 +182,9 @@ PLUGIN_interface * ICOR_init( char *lab )
    PLUTO_add_string ( plint , "Automask"  , 2 , yn , 1 ) ;
    PLUTO_add_dataset( plint , "Dataset" ,
                       ANAT_ALL_MASK , FUNC_ALL_MASK , DIMEN_ALL_MASK | BRICK_ALLREAL_MASK ) ;
-   PLUTO_add_number ( plint , "Index" , 0,99999,0,0,TRUE ) ;
+   PLUTO_add_number ( plint , "Index" , 0,ICOR_MAX_FTOP,0,0,TRUE ) ;
 
-   PLUTO_add_option( plint , "Bandpass(Hz)" , "Bandpass" , FALSE ) ;
+   PLUTO_add_option( plint , "Bandpass(Hz)" , "Bandpass" , MAYBE ) ;
    PLUTO_add_number( plint , "Lower" , 0,1000,3, 10 , TRUE ) ;
    PLUTO_add_number( plint , "Upper" , 0,1000,3,100 , TRUE ) ;
 
@@ -182,9 +198,12 @@ PLUGIN_interface * ICOR_init( char *lab )
 
    PLUTO_add_option( plint , "Misc Opts" , "MiscOpts" , FALSE ) ;
    PLUTO_add_number( plint , (gblur) ? "SeedBlur" : "SeedRad" , 0,10,0,0,TRUE ) ;
+   PLUTO_add_number( plint , "Polort" , -1,2,0,2 , FALSE ) ;
 
    return plint ;
 }
+
+#define ICOR_BIG (9.999f*ICOR_MAX_FTOP)
 
 /***************************************************************************
   Main routine for this plugin (will be called from AFNI).
@@ -195,13 +214,14 @@ PLUGIN_interface * ICOR_init( char *lab )
 static char * ICOR_main( PLUGIN_interface *plint )
 {
    char *tag ;
-   float fbot=-1.0f , ftop=999999.9f ;
+   float fbot=-1.0f , ftop=ICOR_BIG ;
    MRI_IMAGE *gortim=NULL ;
    THD_3dim_dataset *dset=NULL , *mset=NULL ;
    int ignore=0 , mindex=0 , automask=0 , qq ; float blur=0.0f , sblur=0.0f ;
    ICOR_setup *iset ; char *cpt ;
    Three_D_View *im3d = plint->im3d ;
    double etim ;
+   int polort = 2 ; /* 26 Feb 2010 */
 
    ncall = 0 ;
 
@@ -262,7 +282,8 @@ static char * ICOR_main( PLUGIN_interface *plint )
      /** MiscOpts **/
 
      if( strcmp(tag,"MiscOpts") == 0 ){
-       sblur = PLUTO_get_number(plint) ;
+       sblur  = PLUTO_get_number(plint) ;
+       polort = PLUTO_get_number(plint) ;  /* 26 Feb 2010 */
        continue ;
      }
 
@@ -284,8 +305,11 @@ static char * ICOR_main( PLUGIN_interface *plint )
    if( gortim != NULL && gortim->nx < DSET_NVALS(dset)-ignore )
      return "** Global Orts file is too short for Time Series dataset **" ;
 
-   if( fbot >= ftop ){ fbot = 0.0f ; ftop = 999999.9f ; }
+   if( fbot >= ftop ){ fbot = 0.0f ; ftop = ICOR_BIG ; }
    if( fbot <  0.0f )  fbot = 0.0f ;
+
+   if( polort == -1 && (fbot > 0.0f || ftop < ICOR_MAX_FTOP) ) /* 26 Feb 2010 */
+     WARNING_message("Combining Polort=-1 and Bandpass may give peculiar results!") ;
 
    /** check if only thing changed is sblur -- don't need to re-prepare in that case **/
 
@@ -299,7 +323,8 @@ static char * ICOR_main( PLUGIN_interface *plint )
        im3d->iset->mindex   == mindex   &&
        im3d->iset->fbot     == fbot     &&
        im3d->iset->ftop     == ftop     &&
-       im3d->iset->blur     == blur        ){
+       im3d->iset->blur     == blur     &&
+       im3d->iset->polort   == polort      ){
 
      INFO_message("InstaCorr setup: minor changes accepted") ;
      im3d->iset->sblur = sblur ; return NULL ;
@@ -320,6 +345,7 @@ static char * ICOR_main( PLUGIN_interface *plint )
    iset->ftop     = ftop ;
    iset->blur     = blur ;
    iset->sblur    = sblur ;
+   iset->polort   = polort ;  /* 26 Feb 2010 */
    iset->prefix   = (char *)malloc(sizeof(char)*16) ;
    cpt = AFNI_controller_label(im3d); sprintf(iset->prefix,"%c_ICOR",cpt[1]);
 

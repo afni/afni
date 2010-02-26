@@ -612,6 +612,10 @@ static int MRI_mm ;
 #   define FALSE (0)
 #endif
 
+#ifndef MAYBE
+#   define MAYBE (-1)  /* 26 Feb 2010 */
+#endif
+
 #define MRI_BILINEAR  (1)   /* for the warping function */
 #define MRI_LINEAR    (1)
 #define MRI_BICUBIC   (2)

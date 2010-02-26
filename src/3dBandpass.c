@@ -13,7 +13,7 @@ int THD_vectim_subset_pv( MRI_vectim *mrv, int nind, int *ind,
 
 int main( int argc , char * argv[] )
 {
-   int do_norm=0 , qdet=1 , have_freq=0 , do_automask=0 ;
+   int do_norm=0 , qdet=2 , have_freq=0 , do_automask=0 ;
    float dt=0.0f , fbot=0.0f,ftop=999999.9f , blur=0.0f ;
    MRI_IMARR *ortar=NULL ; MRI_IMAGE *ortim=NULL ;
    THD_3dim_dataset **ortset=NULL ; int nortset=0 ;

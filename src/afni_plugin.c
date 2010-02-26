@@ -663,15 +663,16 @@ ENTRY("PLUTO_set_butcolor") ;
    EXRETURN ;
 }
 
-/*----------------------------------------------------------------------
+/*---------------------------------------------------------------------------
    Routine to add a new option line to a plugin interface menu.
 
    plint      = PLUGIN_interface * which will have the option added
    label     = C string to be displayed in the menu describing this option
    tag       = C string to be passed to the plugin when this option is used
-   mandatory = TRUE  (1) if this option is always passed to the plugin
-               FALSE (0) if the user may or may not select this option
-------------------------------------------------------------------------*/
+   mandatory = TRUE  (1)  if this option is always passed to the plugin
+               FALSE (0)  if the user may or may not select this option
+               MAYBE (-1) if it is to be turned on, but it can be turned off
+-----------------------------------------------------------------------------*/
 
 void add_option_to_PLUGIN_interface( PLUGIN_interface * plint ,
                                      char * label , char * tag , int mandatory )
@@ -1481,8 +1482,8 @@ ENTRY("PLUG_setup_widgets") ;
               XmNlabelType        , XmPIXMAP ,             /* No label attached */
               XmNlabelPixmap      , XmUNSPECIFIED_PIXMAP , /* Just the toggle!  */
 
-              XmNset              , (opt->mandatory) ? True  : False ,
-              XmNsensitive        , (opt->mandatory) ? False : True  ,
+              XmNset              , (opt->mandatory != FALSE) ? True  : False ,
+              XmNsensitive        , (opt->mandatory == TRUE ) ? False : True  ,
 
               XmNindicatorSize    , hh-1 ,
               XmNmarginHeight     , 0  ,
@@ -1504,7 +1505,7 @@ ENTRY("PLUG_setup_widgets") ;
                          "toggle this button off."
                        ) ;
 
-      if( opt->mandatory )
+      if( opt->mandatory == TRUE )
          MCW_register_hint( ow->toggle ,
                             "This input line is mandatory" ) ;
       else
@@ -1514,7 +1515,7 @@ ENTRY("PLUG_setup_widgets") ;
       /* this callback will change the appearance of the
          option's row of widgets when the toggle button is pressed */
 
-      if( ! opt->mandatory )
+      if( opt->mandatory != TRUE )
          XtAddCallback( ow->toggle , XmNvalueChangedCallback ,
                         PLUG_optional_toggle_CB , (XtPointer) ow ) ;
 
@@ -1545,7 +1546,7 @@ fprintf(stderr,"Option setup %s\n",opt->label) ;
               XmNinitialResourcesPersistent , False ,
            NULL ) ;
       XmStringFree( xstr ) ;
-      if( opt->mandatory && !zlen ){
+      if( opt->mandatory == TRUE && !zlen ){
          MCW_invert_widget( ow->label ) ;
          MCW_register_help( ow->label ,
                             "This label is inverted as a\n"
@@ -1938,7 +1939,7 @@ fprintf(stderr,"colormenu setup %s; opt->tag=%s.\n",sv->label,opt->tag) ;
                XmNtopWidget        , separator ,
             NULL ) ;
 
-         if( !opt->mandatory ) XtSetSensitive( ow->chtop[ib] , False ) ;
+         if( opt->mandatory == FALSE ) XtSetSensitive( ow->chtop[ib] , False ) ;
 
          if( sv->hint != NULL )
              MCW_reghint_children( ow->chtop[ib] , sv->hint ) ;
@@ -2097,7 +2098,7 @@ ENTRY("PLUTO_turnoff_options") ;
    /**** loop over options */
 
    for( kk=0 ; kk < plint->option_count ; kk++ ){
-      if( !plint->option[kk]->mandatory )
+      if( plint->option[kk]->mandatory != TRUE )
          XmToggleButtonSetState( plint->wid->opwid[kk]->toggle, False,True ) ;
    }
 
