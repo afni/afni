@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 26 , FEB , 2010 , RWC , "afni InstaCorr" , MICRO , TYPE_GENERAL ,
+   "Add polort option to InstaCorr setup" ,
+   "Beware the frumious Bandersnatch, Ziad." } ,
+
  { 24 , FEB , 2010 , RWC , "3dAllineate" , MINOR , TYPE_NEW_OPT ,
    "New cost functional -lpc+" ,
    "Combination of lpc + hel + crA + nmi + mi.\n"

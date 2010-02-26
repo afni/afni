@@ -42,8 +42,8 @@ ENTRY("THD_instacorr_prepare") ;
 
    if( iset->mmm == NULL && iset->mset != NULL ){
      if( DSET_NVOX(iset->mset) != DSET_NVOX(iset->dset) ){
-       ERROR_exit("Mask dataset '%s' doesn't match input dataset '%s'",
-                  DSET_BRIKNAME(iset->mset) , DSET_BRIKNAME(iset->dset) ) ;
+       ERROR_message("Mask dataset '%s' doesn't match input dataset '%s'",
+                     DSET_BRIKNAME(iset->mset) , DSET_BRIKNAME(iset->dset) ) ;
        RETURN(0) ;
      }
      mmm = THD_makemask( iset->mset , iset->mindex , 1.0f,-1.0f ) ;
@@ -101,7 +101,8 @@ ENTRY("THD_instacorr_prepare") ;
    (void)THD_bandpass_OK( ntime , iset->mv->dt , iset->fbot,iset->ftop , 1 ) ;
 
    iset->ndet = THD_bandpass_vectors( ntime, nmmm, dvec, iset->mv->dt,
-                                      iset->fbot, iset->ftop, 1, ngvec, gvec ) ;
+                                      iset->fbot, iset->ftop, iset->polort,
+                                      ngvec, gvec ) ;
 
 /** ININFO_message("Filtering removed %d DOF",iset->ndet) ; **/
 
