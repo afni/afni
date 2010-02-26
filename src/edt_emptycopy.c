@@ -36,6 +36,7 @@ ENTRY("EDIT_empty_copy") ; /* 29 Aug 2001 */
    new_dblk  = new_dset->dblk    = myXtNew( THD_datablock ) ;
    new_daxes = new_dset->daxes   = myXtNew( THD_dataxes ) ;
    new_dkptr = new_dblk->diskptr = myXtNew( THD_diskptr ) ;
+   new_dset->Label_Dtable = NULL;                  /* ZSS Feb 26 2010 */
 
    INIT_KILL(new_dset->kl) ; INIT_KILL(new_dblk->kl) ;
    ADDTO_KILL(new_dset->kl,new_dblk)  ;

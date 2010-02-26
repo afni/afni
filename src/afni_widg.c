@@ -6518,3 +6518,100 @@ int AFNI_set_func_range_nval(XtPointer *vp_im3d, float rval)
    
    RETURN(0) ;
 }
+
+int AFNI_set_dset_pbar(XtPointer *vp_im3d)
+{
+   Three_D_View *im3d=NULL;
+   MCW_pbar *pbar = NULL;
+   ATR_string *atr=NULL;
+   char *pbar_name=NULL;
+   byte switched = 0;
+   int icmap=-1;
+   NI_element *nel=NULL;
+   
+   ENTRY("AFNI_set_func_range_val") ;
+
+   if (!AFNI_yesenv("AFNI_CMAP_AUTO")) RETURN(0);
+   
+   im3d = (Three_D_View *)vp_im3d;
+
+   atr = THD_find_string_atr( im3d->fim_now->dblk , 
+                              "VALUE_LABEL_DTABLE" ) ;
+
+   if (atr) {
+      /* switch to an ROI colormap */
+      if (!(nel = NI_read_element_fromstring(atr->ch))) {
+         fprintf(stderr,"** WARNING: Poorly formatted VALUE_LABEL_DTABLE\n"); 
+         icmap = -1;
+      } else {
+         pbar_name = NI_get_attribute(nel,"pbar_name");
+         icmap = PBAR_get_bigmap_index(pbar_name);
+      }
+      if (icmap >=0 ) {
+         PBAR_set_bigmap( im3d->vwid->func->inten_pbar ,  pbar_name) ;
+      } else {
+         PBAR_set_bigmap( im3d->vwid->func->inten_pbar , "ROI_i256" ) ;
+      }
+      switched = 1;
+      /* Problem is that when you switch back to a non  ROI dset, 
+      you are stuck with the ROI deal. 
+      Perhaps one should bite the bullet and create a structure
+      that preserves the last colormap setup for a dset.
+      Hmmm, got to discuss this with Bob, Daniel, and Rick */
+   } else { 
+      /* 
+      Here one could guess at the moment (See is_integral_dset). 
+      But that can be 
+      time consuming if integer data are stored as float.
+      It is better to have the dataset flagged by a special type
+      in the header. 
+      */
+   }
+   
+   if (switched) {
+      AFNI_inten_pbar_CB( im3d->vwid->func->inten_pbar , im3d , 0 ) ;
+      POPUP_cursorize(im3d->vwid->func->inten_pbar->panew ) ;  
+   }
+   RETURN(0);
+}
+
+/*
+   Put the label associate with value val in string str 
+      (64 chars are copied into str)
+*/
+int AFNI_get_dset_val_label(THD_3dim_dataset *dset, double val, char *str)
+{
+   MCW_pbar *pbar = NULL;
+   ATR_string *atr=NULL;
+   char *pbar_name=NULL;
+   byte switched = 0;
+   int icmap=-1;
+   char *str_lab=NULL, sval[128]={""};
+   NI_element *nel=NULL;
+   
+   ENTRY("AFNI_get_dset_val_label") ;
+   
+   if (!str) RETURN(1);
+   
+   str[0]='\0';
+      
+   if (!dset) RETURN(1);
+
+   if (!dset->Label_Dtable && 
+       (atr = THD_find_string_atr( dset->dblk , 
+                              "VALUE_LABEL_DTABLE" ))) {
+      dset->Label_Dtable = Dtable_from_nimlstring(atr->ch);
+   }
+   
+   if (dset->Label_Dtable) {
+      /* Have hash, will travel */
+      sprintf(sval,"%d", (int)val);
+      str_lab = findin_Dtable_a(sval, 
+                                dset->Label_Dtable);
+      /* fprintf(stderr,"ZSS: Have label '%s' for value '%s'\n",
+                     str_lab ? str_lab:"NULL", sval); */
+      if (str_lab) snprintf(str,64, "(%s)",str_lab); 
+   }
+
+   RETURN(0);
+}

@@ -3355,6 +3355,7 @@ ENTRY("AFNI_read_images") ;
    dset->tcat_len      = NULL ;
    dset->taxis         = NULL ;
    dset->tagset        = NULL ;  /* Oct 1998 */
+   dset->Label_Dtable  = NULL;    /* ZSS Feb 26 2010 */
    ZERO_STAT_AUX( dset ) ;
 #ifdef ALLOW_DATASET_VLIST
    dset->pts           = NULL ;
@@ -5688,18 +5689,24 @@ ENTRY("AFNI_redisplay_func") ;
 void AFNI_do_bkgd_lab( Three_D_View *im3d )
 {
    char str[256] ;
-
+   char labstrf[256]={""}, labstra[256]={""};
+   
 ENTRY("AFNI_do_bkgd_lab") ;
 
    if( !IM3D_OPEN(im3d) || !im3d->vwid->imag->do_bkgd_lab ) EXRETURN ;
 
+   AFNI_get_dset_val_label(im3d->anat_now,         /* 26 Feb 2010 ZSS */
+                           strtod(im3d->vinfo->anat_val, NULL), labstra);
+   AFNI_get_dset_val_label(im3d->fim_now,         /* 26 Feb 2010 ZSS */
+                           strtod(im3d->vinfo->func_val, NULL), labstrf);
+   
 #define VSTR(x) ( ((x)[0] == '\0') ? ("?") : (x) )
 
-   sprintf(str,"ULay = %s\n"
-               "OLay = %s\n"
+   sprintf(str,"ULay = %s%s\n"
+               "OLay = %s%s\n"
                "Thr  = %s" ,
-           VSTR(im3d->vinfo->anat_val),
-           VSTR(im3d->vinfo->func_val),
+           VSTR(im3d->vinfo->anat_val), labstra,
+           VSTR(im3d->vinfo->func_val), labstrf,
            VSTR(im3d->vinfo->thr_val ) ) ;
 
 #undef VSTR
@@ -10014,6 +10021,7 @@ printf("  ==> new nx=%d ny=%d nz=%d\n",new_nx,new_ny,new_nz) ;
    new_daxes   = new_dset->daxes   = myXtNew( THD_dataxes ) ;
    new_markers = new_dset->markers = NULL ;                 /* later, dude */
    new_dkptr   = new_dblk->diskptr = myXtNew( THD_diskptr ) ;
+   new_dset->Label_Dtable = NULL;                  /* ZSS Feb 26 2010 */
 
    INIT_KILL(new_dset->kl) ; INIT_KILL(new_dblk->kl) ;
 
