@@ -1008,7 +1008,7 @@ int main( int argc , char *argv[] )
 
      (void)THD_bandpass_vectors( ntime , nmask   , vec     ,
                                  dtime , bpass_L , bpass_H ,
-                                 1     , nref    , ref      ) ;
+                                 2     , nref    , ref      ) ;
 
      /* bandpass PCort vectors also */
 
@@ -1019,7 +1019,7 @@ int main( int argc , char *argv[] )
 
        (void)THD_bandpass_vectors( ntime , PCnmask , vec     ,
                                    dtime , bpass_L , bpass_H ,
-                                   1     , nref    , ref      ) ;
+                                   2     , nref    , ref      ) ;
      }
 
      free(vec) ;

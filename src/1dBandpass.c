@@ -4,7 +4,7 @@ int main( int argc , char * argv[] )
 {
    MRI_IMAGE *inim , *ortim=NULL ;
    float **vec , **ort=NULL ; int iv , nx,ny , nopt, nort=0 , do_norm=0 ;
-   int qdet=1 ; float dt=1.0f , fbot,ftop ;
+   int qdet=2 ; float dt=1.0f , fbot,ftop ;
 
    /*-- help? --*/
 

@@ -4,6 +4,8 @@
 
 /*--------------------------------------------------------------------------*/
 
+static int bpwrn = 1 ;
+
 static int nfft_fixed = 0 ;
 
 int THD_bandpass_set_nfft( int n )
@@ -20,33 +22,36 @@ int THD_bandpass_set_nfft( int n )
 int THD_bandpass_OK( int nx , float dt , float fbot , float ftop , int verb )
 {
    int nfft , jbot,jtop ; float df ;
-   static int wrn=1;
+
+   if( ftop > ICOR_MAX_FTOP ) return 1 ;  /* 26 Feb 2010 */
 
    if( nx   <  9    ) return 0 ;
    if( dt   <= 0.0f ) dt   = 1.0f ;
    if( fbot <  0.0f ) fbot = 0.0f ;
    if( ftop <= fbot ){ ERROR_message("bad bandpass frequencies?"); return 0; }
-   if( wrn && dt > 60 ){
+   if( bpwrn && dt > 60.0f ){
      WARNING_message("Your bandpass timestep (%f) is high.\n"
                      "   Make sure units are 'sec', not 'msec'.\n"
                      "   This warning will not be repeated." ,
                      dt);
-     wrn = 0;
+     bpwrn = 0;
    }
 
    nfft = (nfft_fixed >= nx) ? nfft_fixed : csfft_nextup_one35(nx) ;
-   df   = 1.0f / (nfft * dt) ;
-   jbot = (int)rint(fbot/df) ;
-   jtop = (int)rint(ftop/df) ;
+   df   = 1.0f / (nfft * dt) ;  /* freq step */
+   jbot = (int)rint(fbot/df) ;  /* band bot index */
+   jtop = (int)rint(ftop/df) ;  /* band top index */
    if( jtop >= nfft/2 ) jtop = nfft/2-1 ;
    if( jbot+1 >= jtop ){
      ERROR_message("bandpass: fbot and ftop too close ==> jbot=%d jtop=%d",jbot,jtop) ;
      return 0 ;
    }
+
    if( verb )
      ININFO_message(
        "bandpass: ntime=%d nFFT=%d dt=%.6g dFreq=%.6g Nyquist=%.6g passband indexes=%d..%d",
        nx, nfft, dt, df, (nfft/2)*df, jbot, jtop) ;
+
    return 1 ;
 }
 
@@ -57,7 +62,7 @@ int THD_bandpass_OK( int nx , float dt , float fbot , float ftop , int verb )
      frequency (e.g., 999999.9).  To do a lowpass only, set fbot to 0.0.
    - However, the 0 and Nyquist frequencies are always removed.
    - Return value is the number of linear dimensions projected out.
-     If 0 is returned, something bad happened.
+     If 0 is returned, something funky happened.
 *//*------------------------------------------------------------------------*/
 
 int THD_bandpass_vectors( int nlen , int nvec   , float **vec ,
@@ -66,22 +71,24 @@ int THD_bandpass_vectors( int nlen , int nvec   , float **vec ,
 {
    int nfft,nby2 , iv, jbot,jtop , ndof=0 ; register int jj ;
    float df , tapr ;
-   static int wrn = 1;
    register float *xar, *yar=NULL ;
    register complex *zar ; complex Zero={0.0f,0.0f} ;
 
 ENTRY("THD_bandpass_vectors") ;
 
+   if( ftop > ICOR_MAX_FTOP && qdet < 0 && (nort <= 0 || ort == NULL) )
+     RETURN(ndof) ;   /* 26 Feb 2010: do nothing at all? */
+
    if( nlen < 9 || nvec < 1 || vec == NULL ){
      ERROR_message("bad bandpass data?");
      RETURN(ndof);
    }
-   if( wrn && dt > 60.0f ) {
+   if( bpwrn && dt > 60.0f ) {
      WARNING_message("Your bandpass timestep (%f) is high.\n"
                      "   Make sure units are 'sec', not 'msec'.\n"
                      "   This warning will not be repeated." ,
                      dt);
-     wrn = 0;
+     bpwrn = 0;
    }
    if( dt   <= 0.0f ) dt   = 1.0f ;
    if( fbot <  0.0f ) fbot = 0.0f ;
@@ -110,66 +117,83 @@ ENTRY("THD_bandpass_vectors") ;
 
    /** quadratic detrending first? (should normally be used) **/
 
-   if( qdet ){
-     ndof += 2 ;
-     for( iv=0 ; iv < nvec ; iv++ )
-       THD_quadratic_detrend( nlen, vec[iv], NULL,NULL,NULL ) ;
+   switch( qdet ){
+     case 2:
+       ndof += 2 ;
+       for( iv=0 ; iv < nvec ; iv++ )
+         THD_quadratic_detrend( nlen, vec[iv], NULL,NULL,NULL ) ;
+     break ;
+
+     case 1:
+       ndof += 1 ;
+       for( iv=0 ; iv < nvec ; iv++ )
+         THD_linear_detrend( nlen, vec[iv], NULL,NULL ) ;
+     break ;
+
+     case 0:
+       for( iv=0 ; iv < nvec ; iv++ )
+         THD_const_detrend( nlen, vec[iv], NULL ) ;
+     break ;
    }
 
-   zar = (complex *)malloc(sizeof(complex)*nfft) ;  /* work array */
-   csfft_scale_inverse(1) ;                         /* scale inverse FFT by 1/nfft */
+   if( qdet > 0 || jbot > 0 || jtop < nby2-1 ){  /* 26 Feb 2010: do the FFTs */
 
-   /** loop over vectors in pairs, FFT-ing and bandpassing **/
+     zar = (complex *)malloc(sizeof(complex)*nfft) ;  /* work array */
+     csfft_scale_inverse(1) ;                         /* scale inverse FFT by 1/nfft */
 
-   ndof += 2 ;  /* for 0 and Nyquist freqs */
+     /** loop over vectors in pairs, FFT-ing and bandpassing **/
 
-   if( jbot >= 1 ) ndof += 2*jbot - 1 ;  /* DOF for low freq */
-   ndof += 2*(nby2-jtop) - 1 ;           /* DOF for high freq */
+     ndof += 2 ;  /* for 0 and Nyquist freqs */
 
-   for( iv=0 ; iv < nvec ; iv+=2 ){
+     if( jbot >= 1 ) ndof += 2*jbot - 1 ;  /* DOF for low freq */
+     ndof += 2*(nby2-jtop) - 1 ;           /* DOF for high freq */
 
-     /* load a pair of vectors into zar to double up on FFTs of real data */
+     for( iv=0 ; iv < nvec ; iv+=2 ){
 
-     xar = vec[iv] ;
-     if( iv == nvec-1 ){  /* last one has nothing to pair with */
-       for( jj=0 ; jj < nlen ; jj++ ){ zar[jj].r = xar[jj] ; zar[jj].i = 0.0f ; }
-     } else {
-       yar = vec[iv+1] ;
-       for( jj=0 ; jj < nlen ; jj++ ){ zar[jj].r = xar[jj] ; zar[jj].i = yar[jj] ; }
-     }
-     for( jj=nlen ; jj < nfft ; jj++ ) zar[jj] = Zero ;  /* zero fill */
+       /* load a pair of vectors into zar to double up on FFTs of real data */
 
-     csfft_cox( -1 , nfft , zar ) ;  /*** the FFT ***/
+       xar = vec[iv] ;
+       if( iv == nvec-1 ){  /* last one has nothing to pair with */
+         for( jj=0 ; jj < nlen ; jj++ ){ zar[jj].r = xar[jj] ; zar[jj].i = 0.0f ; }
+       } else {
+         yar = vec[iv+1] ;
+         for( jj=0 ; jj < nlen ; jj++ ){ zar[jj].r = xar[jj] ; zar[jj].i = yar[jj] ; }
+       }
+       for( jj=nlen ; jj < nfft ; jj++ ) zar[jj] = Zero ;  /* zero fill */
 
-     /* delete unwanted frequencies */
+       csfft_cox( -1 , nfft , zar ) ;  /*** the FFT ***/
 
-     zar[0] = zar[nby2] = Zero ;
+       /* delete unwanted frequencies */
 
-     tapr = (nort > 0 && ort != NULL) ? 0.05f : 0.5f ;
+       zar[0] = zar[nby2] = Zero ;
 
-     if( jbot >= 1 ){
-       zar[jbot].r      *= tapr ; zar[jbot].i      *= tapr ;
-       zar[nfft-jbot].r *= tapr ; zar[nfft-jbot].i *= tapr ;
-       for( jj=1 ; jj < jbot ; jj++ ) zar[jj] = zar[nfft-jj] = Zero ;
-     }
+       tapr = (nort > 0 && ort != NULL) ? 0.05f : 0.5f ;
 
-     zar[jtop].r      *= tapr ; zar[jtop].i      *= tapr ;
-     zar[nfft-jtop].r *= tapr ; zar[nfft-jtop].i *= tapr ;
-     for( jj=jtop+1 ; jj < nby2 ; jj++ ) zar[jj] = zar[nfft-jj] = Zero ;
+       if( jbot >= 1 ){
+         zar[jbot].r      *= tapr ; zar[jbot].i      *= tapr ;
+         zar[nfft-jbot].r *= tapr ; zar[nfft-jbot].i *= tapr ;
+         for( jj=1 ; jj < jbot ; jj++ ) zar[jj] = zar[nfft-jj] = Zero ;
+       }
 
-     csfft_cox( 1 , nfft , zar ) ;  /*** inverse FFT ***/
+       zar[jtop].r      *= tapr ; zar[jtop].i      *= tapr ;
+       zar[nfft-jtop].r *= tapr ; zar[nfft-jtop].i *= tapr ;
+       for( jj=jtop+1 ; jj < nby2 ; jj++ ) zar[jj] = zar[nfft-jj] = Zero ;
 
-     /* unload vector pair back into original data arrays */
+       csfft_cox( 1 , nfft , zar ) ;  /*** inverse FFT ***/
 
-     if( iv == nvec-1 ){
-       for( jj=0 ; jj < nlen ; jj++ ) xar[jj] = zar[jj].r ;
-     } else {
-       for( jj=0 ; jj < nlen ; jj++ ){ xar[jj] = zar[jj].r ; yar[jj] = zar[jj].i ; }
-     }
+       /* unload vector pair back into original data arrays */
 
-   } /* end of loop over vector pairs: bandpassing now done */
+       if( iv == nvec-1 ){
+         for( jj=0 ; jj < nlen ; jj++ ) xar[jj] = zar[jj].r ;
+       } else {
+         for( jj=0 ; jj < nlen ; jj++ ){ xar[jj] = zar[jj].r ; yar[jj] = zar[jj].i ; }
+       }
 
-   free(zar) ; csfft_scale_inverse(0) ;
+     } /* end of loop over vector pairs: bandpassing now done */
+
+     free(zar) ; csfft_scale_inverse(0) ;
+
+   }  /* end of FFTs */
 
    /*** remove orts? ***/
 

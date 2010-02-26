@@ -311,7 +311,7 @@ int main( int argc , char *argv[] )
          vec[kk] = MRI_FLOAT_PTR(IMARR_SUBIM(imar,kk)) ;
        (void)THD_bandpass_vectors( nt    , IMARR_COUNT(imar) , vec     ,
                                    dtime , bpass_L           , bpass_H ,
-                                   1     , nref              , polref   ) ;
+                                   2     , nref              , polref   ) ;
        free(vec) ;
      }
 
