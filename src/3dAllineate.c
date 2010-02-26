@@ -1611,11 +1611,11 @@ int main( int argc , char *argv[] )
      if( strlen(argv[iarg]) > 6 && strncasecmp(argv[iarg],"-lpc+",5) == 0 ){
        char *cpt ;
        meth_code = GA_MATCH_LPC_MICHO_SCALAR ;
-       cpt = strcasestr(argv[iarg],"+hel*"); if( cpt != NULL ) micho_hel = strtod(cpt+5,NULL);
-       cpt = strcasestr(argv[iarg],"+mi*") ; if( cpt != NULL ) micho_mi  = strtod(cpt+4,NULL);
-       cpt = strcasestr(argv[iarg],"+nmi*"); if( cpt != NULL ) micho_nmi = strtod(cpt+5,NULL);
-       cpt = strcasestr(argv[iarg],"+crA*"); if( cpt != NULL ) micho_crA = strtod(cpt+5,NULL);
-       cpt = strcasestr(argv[iarg],"ZZ")   ; micho_zfinal = (cpt != NULL) ;
+       cpt = strstr(argv[iarg],"+hel*"); if( cpt != NULL ) micho_hel = strtod(cpt+5,NULL);
+       cpt = strstr(argv[iarg],"+mi*") ; if( cpt != NULL ) micho_mi  = strtod(cpt+4,NULL);
+       cpt = strstr(argv[iarg],"+nmi*"); if( cpt != NULL ) micho_nmi = strtod(cpt+5,NULL);
+       cpt = strstr(argv[iarg],"+crA*"); if( cpt != NULL ) micho_crA = strtod(cpt+5,NULL);
+       cpt = strstr(argv[iarg],"ZZ")   ; micho_zfinal = (cpt != NULL) ;
        iarg++ ; continue ;
      }
 
