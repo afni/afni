@@ -1765,7 +1765,8 @@ int main (int argc,char *argv[])
 	/* allocate space for CommonFields structure */
 	SUMAg_CF = SUMA_Create_CommonFields ();
 	if (SUMAg_CF == NULL) {
-		fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_Create_CommonFields\n", FuncName);
+		fprintf(SUMA_STDERR,
+               "Error %s: Failed in SUMA_Create_CommonFields\n", FuncName);
 		exit(1);
 	}
 	
@@ -1784,13 +1785,15 @@ int main (int argc,char *argv[])
    
 	sprintf(SF_name, "%s.coord", argv[1]);
 	if (!SUMA_SureFit_Read_Coord (SF_name, SF)) {
-		fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_SureFit_Read_Coord.\n", FuncName);
+		fprintf(SUMA_STDERR,
+              "Error %s: Failed in SUMA_SureFit_Read_Coord.\n", FuncName);
 		exit(1);
 	}
 	
 	sprintf(SF_name, "%s.topo", argv[2]);
 	if (!SUMA_SureFit_Read_Topo (SF_name, SF)) {
-		fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_SureFit_Read_Topo.\n", FuncName);
+		fprintf(SUMA_STDERR,
+              "Error %s: Failed in SUMA_SureFit_Read_Topo.\n", FuncName);
 		exit(1);
 	}
 	
@@ -1801,7 +1804,8 @@ int main (int argc,char *argv[])
 		exit(1);
 	}
 	
-	if (!SUMA_Free_CommonFields(SUMAg_CF)) SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);
+	if (!SUMA_Free_CommonFields(SUMAg_CF)) 
+      SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);
 
 	SUMA_RETURN (0);
 }/* Main */
@@ -1811,9 +1815,11 @@ int main (int argc,char *argv[])
 /*! Functions to read and manipulate FreeSurfer surfaces*/
 
 
-SUMA_FS_COLORTABLE *SUMA_CreateFS_ColorTable(int nbins, int len, SUMA_FS_COLORTABLE *cto)
+SUMA_FS_COLORTABLE *SUMA_CreateFS_ColorTable(int nbins, 
+                                    int len, SUMA_FS_COLORTABLE *cto)
 {
    static char FuncName[]={"SUMA_CreateFS_ColorTable"};
+   SUMA_COLOR_MAP_HASH_DATUM *hd=NULL;
    SUMA_FS_COLORTABLE *ct = NULL;
    
    SUMA_ENTRY;
@@ -1824,6 +1830,7 @@ SUMA_FS_COLORTABLE *SUMA_CreateFS_ColorTable(int nbins, int len, SUMA_FS_COLORTA
          SUMA_SL_Crit("Failed to allocate for ct");
          SUMA_RETURN(NULL);
       }
+      ct->chd = NULL;
       ct->nbins = nbins;
       ct->bins = (SUMA_FS_COLORTABLE_ENTRY *) 
                      SUMA_calloc(nbins, sizeof(SUMA_FS_COLORTABLE_ENTRY));
@@ -1843,6 +1850,15 @@ SUMA_FS_COLORTABLE *SUMA_CreateFS_ColorTable(int nbins, int len, SUMA_FS_COLORTA
       cto->bins = (SUMA_FS_COLORTABLE_ENTRY *) SUMA_realloc(cto->bins, nbins * 
                                              sizeof(SUMA_FS_COLORTABLE_ENTRY));
       cto->nbins = nbins;
+      if (cto->chd) {
+         SUMA_S_Note("Wiping out old hash");
+         while (cto->chd) {
+            hd = cto->chd; 
+            HASH_DEL( cto->chd, hd);  
+            SUMA_free(hd); hd = NULL; 
+         }
+         cto->chd=NULL;
+      }
       SUMA_RETURN(cto);
    }
 }
@@ -1850,6 +1866,7 @@ SUMA_FS_COLORTABLE *SUMA_CreateFS_ColorTable(int nbins, int len, SUMA_FS_COLORTA
 SUMA_FS_COLORTABLE *SUMA_FreeFS_ColorTable (SUMA_FS_COLORTABLE *ct)
 {
    static char FuncName[]={"SUMA_FreeFS_ColorTable"};
+   SUMA_COLOR_MAP_HASH_DATUM *hd=NULL;
    
    SUMA_ENTRY;
    
@@ -1858,6 +1875,16 @@ SUMA_FS_COLORTABLE *SUMA_FreeFS_ColorTable (SUMA_FS_COLORTABLE *ct)
    if (ct->bins) SUMA_free(ct->bins);
    if (ct->fname) SUMA_free(ct->fname);
    
+   /* destroy hash */
+   while (ct->chd) {
+      hd = ct->chd;  /* will delete the head of the hash table list */
+      HASH_DEL( ct->chd, hd); /* remove the head from the list, after
+                                 this macro, SM->chd points to the next
+                                 item in the list; the new head */ 
+      SUMA_free(hd); hd = NULL; /* free hd, no longer needed */
+   }
+   
+
    SUMA_free(ct);
    
    SUMA_RETURN(NULL);
@@ -1926,9 +1953,10 @@ SUMA_Boolean SUMA_readFScolorLUT(char *f_name, SUMA_FS_COLORTABLE **ctp)
    static char FuncName[]={"SUMA_readFScolorLUT"};
    SUMA_FS_COLORTABLE *ct=NULL;
    SUMA_FS_COLORTABLE_ENTRY *ce;
+   SUMA_COLOR_MAP_HASH_DATUM *hd=NULL;
    char *fl=NULL, *fl2=NULL, *colfile=NULL, *florig=NULL, *name=NULL, *fle=NULL;
    double dum;
-   int i, r, g, b, v, nalloc, nchar, ok, ans, cnt;
+   int i, r, g, b, v, nalloc, nchar, ok, ans, cnt, ism=0;
    SUMA_Boolean state = YUP;
    SUMA_Boolean LocalHead = NOPE;
    
@@ -2019,6 +2047,24 @@ SUMA_Boolean SUMA_readFScolorLUT(char *f_name, SUMA_FS_COLORTABLE **ctp)
       
    DONEREAD:
    ct = SUMA_CreateFS_ColorTable(cnt,  -1, ct);
+
+   /* Hash the colormap */
+   for (ism=0; ism<ct->nbins; ++ism) {
+      HASH_FIND_INT(ct->chd, &(ct->bins[ism].i), hd);
+      if (hd) {
+         SUMA_S_Errv("iLabel %d already in hash table!\n",
+                     ct->bins[ism].i);
+         state = NOPE; goto CLEANUP;
+      } else {
+         hd = (SUMA_COLOR_MAP_HASH_DATUM *)
+                  SUMA_calloc(1, sizeof(SUMA_COLOR_MAP_HASH_DATUM));
+         hd->id = ct->bins[ism].i;
+         hd->colmapindex = ism;
+
+         HASH_ADD_INT(ct->chd, id, hd);
+      }
+   }
+
    if (LocalHead) SUMA_Show_FS_ColorTable(ct, NULL);
 
    CLEANUP:
@@ -2051,6 +2097,7 @@ SUMA_COLOR_MAP *SUMA_FScolutToColorMap(char *fscolutname,
    SUMA_RETURN(SM);
    
 }
+
 SUMA_COLOR_MAP *SUMA_FScolutToColorMap_eng(SUMA_FS_COLORTABLE *ct, 
                                        int lbl1, int lbl2, int show) 
 {
@@ -2059,6 +2106,7 @@ SUMA_COLOR_MAP *SUMA_FScolutToColorMap_eng(SUMA_FS_COLORTABLE *ct,
    int cnt =0, cntmax = 0, ism = 0, suc= 0;
    char stmp[256]={""};
    NI_group *ngr = NULL;
+   SUMA_COLOR_MAP_HASH_DATUM *hd=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -2067,9 +2115,10 @@ SUMA_COLOR_MAP *SUMA_FScolutToColorMap_eng(SUMA_FS_COLORTABLE *ct,
       SUMA_S_Err("NULL input");
       SUMA_RETURN(SM);
    }
-   if (show) {
+   if (show || LocalHead) {
       SUMA_Show_FS_ColorTable(ct, NULL);
    }
+
    
    /* first find lbl1 */
    cnt = 0;
@@ -2077,28 +2126,30 @@ SUMA_COLOR_MAP *SUMA_FScolutToColorMap_eng(SUMA_FS_COLORTABLE *ct,
       /* begin at 1st one */
       lbl1 = ct->bins[cnt].i;
    } else {
-      while (cnt < ct->nbins && ct->bins[cnt].i != lbl1) ++cnt;
+      while (cnt < ct->nbins && ct->bins[cnt].i < lbl1) ++cnt;
    }
    if (cnt >= ct->nbins) {
       SUMA_S_Err("Could not find start");
       SUMA_RETURN(SM);
    }
    
-   cntmax = 0;
+   cntmax = cnt;
    if (lbl2 < 0) {
       /* stop at last */
       cntmax = ct->nbins;
       lbl2 = ct->bins[cntmax-1].i;
    } else {
-      while (cntmax < ct->nbins && ct->bins[cntmax].i != lbl2) ++cntmax;
+      while (cntmax < ct->nbins && ct->bins[cntmax].i < lbl2) ++cntmax;
       if (cntmax >= ct->nbins) {
-         SUMA_S_Errv("Failed to find lbl2 %d\n", lbl2);
-         SUMA_RETURN(SM);
-      } else { /* cntmax is a counter limit */
-         ++cntmax;
+         SUMA_LHv("Failed to find lbl2 %d, clipping at %d\n", 
+                  lbl2, ct->bins[ct->nbins-1].i);
+         lbl2 = ct->bins[ct->nbins-1].i;
       } 
    }
-    
+   
+   
+   SUMA_LHv("Creating colormap from ilabels [%d to %d] (%d) colors\n", 
+            lbl1, lbl2, lbl2-lbl1+1); 
    /* allocate for SM */
    SM = (SUMA_COLOR_MAP*) SUMA_calloc(1,sizeof(SUMA_COLOR_MAP));
    SM->top_frac = 0.0f;
@@ -2107,17 +2158,19 @@ SUMA_COLOR_MAP *SUMA_FScolutToColorMap_eng(SUMA_FS_COLORTABLE *ct,
    SM->idvec = (int *)SUMA_calloc(SM->N_M[0], sizeof(int));;
    SM->cname = (char **)SUMA_calloc(SM->N_M[0], sizeof(char*));
    SM->M = (float**)SUMA_allocate2D (SM->N_M[0], SM->N_M[1], sizeof(float));
-   SM->Name = SUMA_copy_string(ct->fname);
+   sprintf(stmp,"-%d_%d", lbl1, lbl2);
+   SM->Name = SUMA_append_string(SUMA_FnameGet(ct->fname,"fne", NULL), stmp);
    SM->Sgn = 0;
    SM->frac = NULL;
    
    
+   #if 0 /* worked for 2005 version. NOT for 2009 */
    if (ct->bins[cnt].i == lbl1) { 
                /* Found the starting point (redundant check)*/
       ism = 0;
       while (cnt < ct->nbins && ct->bins[cnt].i <= lbl2 && ism < SM->N_M[0]) {
-         SUMA_LHv("ct->bins[cnt].i %d <> lbl1+ism %d\n", 
-                  ct->bins[cnt].i, lbl1+ism);
+         SUMA_LHv("ct->bins[%d].i=%d <> lbl1+ism=%d\n", 
+                  cnt, ct->bins[cnt].i, lbl1+ism);
          if (ct->bins[cnt].i == lbl1+ism) {
             SM->M[ism][0] = (float)(ct->bins[cnt].r) / 255.0;
             SM->M[ism][1] = (float)(ct->bins[cnt].g) / 255.0;
@@ -2127,7 +2180,7 @@ SUMA_COLOR_MAP *SUMA_FScolutToColorMap_eng(SUMA_FS_COLORTABLE *ct,
             SM->idvec[ism] =  ct->bins[cnt].r | 
                               ct->bins[cnt].g << 8 | 
                               ct->bins[cnt].b << 16; 
-                        /* that's how annotation files encode a node's id */
+                        /* that's how annotation files encode a node's id  */
             SUMA_LHv("FSi %d --> SMi %d\n", ct->bins[cnt].i, ism);
             ++cnt;   
          } else {
@@ -2140,13 +2193,42 @@ SUMA_COLOR_MAP *SUMA_FScolutToColorMap_eng(SUMA_FS_COLORTABLE *ct,
          ++ism;
       }
    } 
-
+   #else /* March 1 2010 */
+   ism = 0;
+   while (lbl1 <= lbl2) {
+      HASH_FIND_INT(ct->chd, &(lbl1), hd);
+      if (hd) {
+         cnt = hd->colmapindex;
+         SM->M[ism][0] = (float)(ct->bins[cnt].r) / 255.0;
+         SM->M[ism][1] = (float)(ct->bins[cnt].g) / 255.0;
+         SM->M[ism][2] = (float)(ct->bins[cnt].b) / 255.0;
+         SM->M[ism][3] = 1.0;
+         SM->cname[ism] = SUMA_copy_string(ct->bins[cnt].name);
+         SM->idvec[ism] =  ct->bins[cnt].r | 
+                           ct->bins[cnt].g << 8 | 
+                           ct->bins[cnt].b << 16; 
+                     /* that's how annotation files encode a node's id,
+                     This annotation is OK for surfaces, Not
+                     for FreeSurfer's volumes*/
+         SUMA_LHv("FSi %d --> SMi %d\n", ct->bins[cnt].i, ism);
+         ++ism;
+      } else {
+         SM->M[ism][0] = SM->M[ism][1] = SM->M[ism][2] = SUMA_DUNNO_GRAY;
+         SM->M[ism][3] = 0.0;
+         SM->cname[ism] = SUMA_copy_string("undefined");
+         SM->idvec[ism] = 0; 
+         SUMA_LHv("iLabel %d not found in ct\n", lbl1);
+         ++ism;
+      }
+      ++lbl1;
+   }
+   #endif
+   
    SM->M0[0] = SM->M[0][0]; 
    SM->M0[1] = SM->M[0][1]; 
    SM->M0[2] = SM->M[0][2]; 
    SM->M0[3] = SM->M[0][3]; 
 
-   
    SUMA_RETURN(SM);
 }
 
@@ -2164,6 +2246,7 @@ SUMA_COLOR_MAP *SUMA_FScolutToColorMap_eng(SUMA_FS_COLORTABLE *ct,
 SUMA_Boolean SUMA_readFSannot (char *f_name, 
                                char *f_ROI, char *f_cmap, char *f_col, 
                                int Showct, char *ctfile,
+                               int lbl1, int lbl2,
                                SUMA_DSET **dsetp)
 {
    static char FuncName[]={"SUMA_readFSannot"};
@@ -2174,6 +2257,7 @@ SUMA_Boolean SUMA_readFSannot (char *f_name,
    FILE *fc=NULL;
    FILE *fo=NULL; 
    SUMA_FS_COLORTABLE *ct=NULL;
+   SUMA_COLOR_MAP_HASH_DATUM *hd=NULL;
    SUMA_FS_COLORTABLE_ENTRY *cte;
    SUMA_Boolean bs = NOPE;
    int *rv=NULL, *gv=NULL, *bv=NULL, *anv=NULL, *niv=NULL;
@@ -2298,7 +2382,7 @@ SUMA_Boolean SUMA_readFSannot (char *f_name,
       rv[j] = annot & 0x0000ff;
       gv[j] = (annot >> 8) & 0x0000ff;
       bv[j] = (annot >> 16) & 0x0000ff;
-      if (LocalHead && ( j < 5 || j > n_labels - 5)) {
+      if (LocalHead && (LocalHead > 1 || j < 5 || j > n_labels - 5)) {
          int recon = (rv[j]) | 
                      (gv[j] << 8) | 
                      (bv[j] << 16);
@@ -2364,14 +2448,42 @@ SUMA_Boolean SUMA_readFSannot (char *f_name,
             */
          tg = -1;  nbins = -1;
       }
+      lbl1=-1; lbl2=-1; /* use whole colormap */
+      /* Hash the colormap */
+      for (i=0; i<ct->nbins; ++i) {
+         HASH_FIND_INT(ct->chd, &(ct->bins[i].i), hd);
+         if (hd) {
+            SUMA_S_Errv("iLabel %d already in hash table!\n",
+                        ct->bins[i].i);
+         } else {
+            hd = (SUMA_COLOR_MAP_HASH_DATUM *)
+                     SUMA_calloc(1, sizeof(SUMA_COLOR_MAP_HASH_DATUM));
+            hd->id = ct->bins[i].i;
+            hd->colmapindex = i;
+
+            HASH_ADD_INT(ct->chd, id, hd);
+         }
+      }
+
    } else {
-      SUMA_LHv("Using colortable from %s\n", ctfile);
+      SUMA_LHv("Using colortable from %s between labels %d and %d\n", 
+                  ctfile, lbl1, lbl2);
    }             
    
    if (fc && ct) { /* write the colormap to a file */
-      fprintf(fc, "#name\n#bin  r  g  b  flag \n");
+      fprintf(fc, "#Cmap from %s.\n"
+                  "#Comment line content:\n"
+                  "  #name (ilabel) (r g b) (surf annotation)\n"
+                  "#Data line content:\n"
+                  "  #bin  r  g  b  flag \n",
+                  ctfile ? ctfile:"annotation file");
       for (i=0; i<ct->nbins; ++i) {
-         fprintf(fc, "#%s\n", ct->bins[i].name);
+         fprintf(fc, "#%s (%d) (%d %d %d) (%d)\n", ct->bins[i].name, 
+                              ct->bins[i].i, 
+                              ct->bins[i].r,ct->bins[i].g,ct->bins[i].b,
+                     (ct->bins[i].r) |  
+                     (ct->bins[i].g << 8) |  
+                     (ct->bins[i].b << 16) );
          fprintf(fc, "%d   %f %f %f %d\n", 
                      i, (float)ct->bins[i].r/255.0, (float)ct->bins[i].g/255.0, 
                      (float)ct->bins[i].b/255.0, ct->bins[i].flag );
@@ -2447,7 +2559,7 @@ SUMA_Boolean SUMA_readFSannot (char *f_name,
          First allocate for cmap then use SUMA_copy_string to fill it with 
          the names */
          SUMA_LH("Changing to SUMA format");
-         CM = SUMA_FScolutToColorMap_eng(ct, -1, -1, 0); 
+         CM = SUMA_FScolutToColorMap_eng(ct, lbl1, lbl2, 0); 
 
       /* 2- Create a vector from the labels and create a data set from it */ 
          dset = SUMA_CreateDsetPointer(FuncName, SUMA_NODE_LABEL, 

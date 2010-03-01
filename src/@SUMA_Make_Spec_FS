@@ -314,7 +314,7 @@ L_SET_SURF_DIRS:
     end
     
    set other_mgz = ()
-   set other_candidates = ( T1 aparc+aseg aparc.a2005s+aseg aseg.auto aseg brain.finalsurfs brain brainmask.auto brainmask norm nu nu_noneck lh.ribbon rh.ribbon wm.asegedit wm wm.seg )
+   set other_candidates = ( T1 aparc+aseg aparc.a2005s+aseg aparc.a2009s+aseg aseg.auto aseg brain.finalsurfs brain brainmask.auto brainmask norm nu nu_noneck lh.ribbon rh.ribbon wm.asegedit wm wm.seg )
    foreach candidate ($other_candidates)
       foreach dcand ($surf_dir/ $surf_dir/mri/ ./ mri/ ../ ../mri/ )
          if ( -f $dcand$candidate.mgz ) then 
@@ -485,6 +485,13 @@ L_CONVERT_SURFACES:
             -cmap_1D $start_dir/$suma_dir/${hand}.aparc.a2005s.annot.1D.cmap 
          endif
      endif
+     if ( -f ${hand}.aparc.a2009s.annot ) then
+         FSread_annot   -input ${hand}.aparc.a2009s.annot \
+            -roi_1D  $start_dir/$suma_dir/${hand}.aparc.a2009s.annot.1D.roi \
+            -dset    $start_dir/$suma_dir/${hand}.aparc.a2009s.annot.niml.dset \
+            -cmap_1D $start_dir/$suma_dir/${hand}.aparc.a2009s.annot.1D.cmap 
+         endif
+     endif
       end
       cd $start_dir
    endif
@@ -550,6 +557,9 @@ L_CREATE_SPEC:
 		set map_ref = SAME
          if ( -f ${hand}.aparc.a2005s.annot.niml.dset ) then
       set label_dset = ${hand}.aparc.a2005s.annot.niml.dset
+	      endif
+         if ( -f ${hand}.aparc.a2009s.annot.niml.dset ) then
+      set label_dset = ${hand}.aparc.a2009s.annot.niml.dset
 	      endif
        else
 		set map_ref = $s_head.smoothwm.asc
@@ -651,6 +661,9 @@ L_CREATE_SPEC:
 		set map_ref = SAME
          if ( -f ${hand}.aparc.a2005s.annot.niml.dset ) then
       set label_dset = ${hand}.aparc.a2005s.annot.niml.dset
+	      endif
+         if ( -f ${hand}.aparc.a2009s.annot.niml.dset ) then
+      set label_dset = ${hand}.aparc.a2009s.annot.niml.dset
 	      endif
 	    else
 		set map_ref = $s_head.smoothwm.asc
@@ -805,11 +818,15 @@ L_CREATE_BRICK:
          #Now shift the damned volumes to match the surface volumes
          cd $start_dir/$suma_dir/
          @Align_Centers -base $afni_dataset -dset ${other:t:r}".nii" -no_cp
-         if ( "${other:t:r}" == "aparc.a2005s+aseg") then
+         if ( "${other:t:r}" == "aparc.a2005s+aseg" ||   \
+              "${other:t:r}" == "aparc.a2009s+aseg" ) then
             3dmerge -1rank -prefix "${other:t:r}_rank.nii" ${other:t:r}".nii"
+            set kk = `echo ${other:t:r} | cut -f 1 -d '+'`
+            mv ${kk}.rankmap.1D ${other:t:r}.rankmap.1D 
             @FS_roi_label  -name ALL \
-                           -rankmap ${other:t:r}.nii.rankmap.1D \
-                           -labeltable ${other:t:r}_rank
+                           -rankmap ${other:t:r}.rankmap.1D \
+                           -labeltable ${other:t:r}_rank \
+                              > ${other:t:r}_rank.niml.lt.log
             3drefit -labeltable ${other:t:r}_rank.niml.lt "${other:t:r}_rank.nii"
          endif
          cd - 

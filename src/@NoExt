@@ -14,10 +14,7 @@ set Name = $1
 
 set cnt = 2
 while ($cnt <= $ComCnt)
-   set ext = $Name:e
-   if ("$ext" == "$argv[$cnt]") then
-		set Name = $Name:r
-	endif
+   set Name = `echo "$Name" | sed s/$argv[$cnt]'$'// | sed 's/\.$//'`
 	@ cnt ++
 end
 
@@ -33,6 +30,8 @@ USAGE:
 	echo "returns Hello"
 	echo "`basename $0` Hello.Jon HEAD BRIK"
 	echo "returns Hello.Jon"
+   echo "`basename $0` Hello.JonA Jon nA"
+	echo "returns Hello.Jo"
 	echo ""
    echo "Ziad Saad (saadz@mail.nih.gov)"
    echo "LBC/NIMH/ National Institutes of Health, Bethesda Maryland"
