@@ -5690,6 +5690,7 @@ void AFNI_do_bkgd_lab( Three_D_View *im3d )
 {
    char str[256] ;
    char labstrf[256]={""}, labstra[256]={""};
+   char strhint[256]={"Values at crosshairs voxel"};
    
 ENTRY("AFNI_do_bkgd_lab") ;
 
@@ -5711,6 +5712,16 @@ ENTRY("AFNI_do_bkgd_lab") ;
 
 #undef VSTR
 
+   if (labstra[0] != '\0' || labstrf[0] != '\0') { /* 26 Feb 2010 ZSS */
+      sprintf(strhint,"Values at crosshairs: "
+                      "%s%s%s%s",
+                      (labstra[0] == '\0') ? "OLay=":"ULay=",
+                      labstra,
+                      (labstra[0] != '\0' && labstrf[0] != '\0') ? ", OLay=":"",
+                      labstrf);
+      MCW_register_hint( im3d->vwid->func->bkgd_lab, strhint);
+   }
+   
    MCW_set_widget_label( im3d->vwid->func->bkgd_lab , str ) ;
    XtManageChild( im3d->vwid->func->bkgd_lab ) ;
    FIX_SCALE_SIZE(im3d) ;

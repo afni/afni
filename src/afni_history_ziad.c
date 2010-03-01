@@ -65,6 +65,43 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+
+ { 1 , MAR , 2010 , ZSS , "@SUMA_Make_Spec_FS" , MINOR , TYPE_MODIFY ,
+   "Script now deals with 2009, and 2005 parcellations.",
+   NULL
+ } ,
+
+ { 1 , MAR , 2010 , ZSS , "FSread_annot" , MINOR , TYPE_MODIFY ,
+   "Allow FSread_annot to work with 2009 parcellation results.",
+   NULL
+ } ,
+
+ { 1 , MAR , 2010 , ZSS , "FSread_annot" , MINOR , TYPE_NEW_OPT ,
+   "Added -FSversoin, -hemi, and -FScmap* options for 2009 parcellations",
+   NULL
+ } ,
+
+ { 1 , MAR , 2010 , ZSS , "@FS_roi_label" , MINOR , TYPE_NEW_OPT ,
+   "Modified -name to accept 'ALL' ",
+   NULL
+ } ,
+
+ { 26 , FEB , 2010 , ZSS , "afni" , MINOR , TYPE_MODIFY ,
+   "Insert Dtable structure (Label_Dtable) in dset",
+   "Inserted Dtable structure (dset->Label_Dtable) in THD_3dim_dataset.\n"
+   "The hash table is used to report on the label corresponding to a voxel's\n"
+   "integer value. Inserting a label table into the header can be done\n"
+   "with 3drefit.\n"
+   "Labels are reported in the ULay and OLay value fields in the bottom right\n"
+   "corner of AFNI's Define Overlay panel. The hint at that location also \n"
+   "shows the labels, which could be quite long."
+ } ,
+
+ { 26 , FEB , 2010 , ZSS , "3drefit" , MINOR , TYPE_NEW_OPT ,
+   "-labeltable option to add a label table to a dataset",
+   NULL
+ } ,
+
  { 15 , FEB , 2010 , ZSS , "afni" , MINOR , TYPE_MODIFY ,
    "Automatically setup range and sign for ROI colorbars",
    NULL

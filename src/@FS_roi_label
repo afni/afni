@@ -95,7 +95,7 @@ if ($name != "") then
    else
       \grep -i $name   ${pplabels} > /tmp/___nm.txt
    endif
-   echo \grep -i "$name"   ${pplabels}
+   #echo \grep -i "$name"   ${pplabels}
    cut -d' ' -f1 /tmp/___nm.txt > /tmp/___nmi.txt
    cut -d' ' -f2 /tmp/___nm.txt > /tmp/___nmn.txt
    if ($rankmap != "") then
@@ -121,7 +121,9 @@ if ($name != "") then
             printf "%-6s   %-6s  %-8s \n" $rank $lab $nm
             printf '"%d" "%s"\n' $rank $nm >> /tmp/___lt.txt
             @ cnt_lt ++
-            if ($rank > $rankmax) set rankmax = $rank
+            if ($rank > $rankmax) then
+               set rankmax = $rank
+            endif
          else  
             printf "%-6s   %-6s  %-8s \n" '#' $lab $nm
          endif
@@ -131,10 +133,20 @@ if ($name != "") then
       paste  /tmp/___nmi.txt /tmp/___nmn.txt
    endif
    if ($labeltable != "") then
+      #echo $rankmax
+      if ($rankmax < 32) then
+         set pbar = "ROI_i32"
+      else if ($rankmax < 64) then
+         set pbar = "ROI_i64"
+      else if ($rankmax < 128) then
+         set pbar = "ROI_i128"
+      else
+         set pbar = "ROI_i256"
+      endif
       printf '<VALUE_LABEL_DTABLE\n' > $labeltable
       printf 'ni_type="2*String"\n' >> $labeltable
       printf 'ni_dimen="%d"\n' $cnt_lt >> $labeltable
-      printf 'pbar_name="ROI_i32">\n' >> $labeltable
+      printf 'pbar_name="%s">\n' $pbar >> $labeltable
       uniq /tmp/___lt.txt >> $labeltable
       printf '</VALUE_LABEL_DTABLE>\n' >> $labeltable
    endif
@@ -418,7 +430,8 @@ HELP:
    echo ""
    echo " or "
    echo ""
-   echo "Usage: `basename $0` <-labeltable LABELTABLE> <-rankmap M.1D>"
+   echo "Usage: `basename $0` <-name ALL> \"
+   echo "                     <-labeltable LABELTABLE> <-rankmap M.1D>"
    echo "   Build a label table that can be atted to the ranked volume"
    echo "   so that AFNI can display labels of parcellated volumes."
    echo "   Use 3drefit -labeltable LABELTABLE DSET to add the table"

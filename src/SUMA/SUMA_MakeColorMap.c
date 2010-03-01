@@ -55,7 +55,8 @@ void SUMA_MakeColorMap_usage ()
  "   -fscolut lbl0 lbl1: Get colors indexed between\n"
  "                        lbl0 and lbl1, non existing\n"
  "                        integer labels are given a \n"
- "                        gray color.\n"
+ "                        gray color. Use -fscolut -1 -1 to\n"
+ "                        get all the colors and labels.\n"
  "   -fscolutfile FS_COL_LUT: Use color LUT file FS_COL_LUT\n"
  "                            Default is to use \n"
  "                            $FREESURFER_HOME/FreeSurferColorLUT.txt\n"
@@ -217,7 +218,7 @@ int main (int argc,char *argv[])
          }
          fsbl0 = atoi(argv[kar]); ++kar;
          fsbl1 = atoi(argv[kar]);
-         if (fsbl0 > fsbl1 || fsbl0 < 0 || fsbl1 > 10000) {
+         if (fsbl0 > fsbl1 || fsbl0 < -1 || fsbl1 > 10000) {
             SUMA_S_Errv("-fscolut values of %d and %d either\n"
                         "do not make sense or exceed range 0 to 10000\n",
                         fsbl0, fsbl1);
