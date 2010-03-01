@@ -4179,7 +4179,9 @@ extern void THD_vectim_to_dset( MRI_vectim *mrv , THD_3dim_dataset *dset ) ;
 
 extern void mri_blur3D_vectim( MRI_vectim *vim , float fwhm ) ;
 extern void THD_vectim_normalize( MRI_vectim *mrv ) ;
-extern void THD_vectim_dotprod( MRI_vectim *mrv, float *vec, float *dp, int ata ) ;
+extern void THD_vectim_dotprod ( MRI_vectim *mrv, float *vec, float *dp, int ata ) ;
+extern void THD_vectim_spearman( MRI_vectim *mrv, float *vec, float *dp ) ; /* 01 Mar 2010 */
+extern void THD_vectim_quadrant( MRI_vectim *mrv, float *vec, float *dp ) ; /* 01 Mar 2010 */
 
 extern int THD_vectim_subset_average( MRI_vectim *mrv, int nind, int *ind, float *ar );
 
@@ -4193,7 +4195,7 @@ typedef struct {
   MRI_IMAGE *gortim ;
   int ignore , automask , mindex ;
   float fbot , ftop , blur , sblur ;
-  int polort ;                        /* 26 Feb 2010 */
+  int polort , cmeth ;                     /* 26 Feb 2010 */
   MRI_vectim *mv ;
   char *prefix ; int ndet ;
   float *tseed ;

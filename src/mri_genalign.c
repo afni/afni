@@ -2458,3 +2458,69 @@ void mri_genalign_warpsum( int npar, float *wpar ,
    return ;
 }
 #endif
+
+/*--------------------------------------------------------------------*/
+#if 0
+int GA_get_warped_overlap( float *wpar )
+{
+   int    npar , ii,jj,kk,qq,pp,nqq,mm,nx,ny,nxy , nxt,nxyt , npt,nhit ;
+   float *imf, *jmf, *kmf, *imw, *jmw, *kmw , xx,yy,zz,nxh,nyh,nzh ;
+   byte *bsar, *tgar ;
+
+ENTRY("GA_get_warped_overlap") ;
+
+   if( gstup->bsmask == NULL || gstup->ajmask ==NULL ) RETURN(0) ;
+   bsar = MRI_BYTE_PTR(gstup->bsmask) ;
+   tgar = MRI_BYTE_PTR(gstup->ajmask) ;
+
+   npar = gstup->wfunc_numpar ;
+   npt  = gstup->bsmask->nvox ;
+   nqq  = gstup->nbsmask ;
+
+   nx = gstup->bsmask->nx; ny = gstup->bsmask->ny; nxy = nx*ny;
+   nxh = nx-0.501f ; nyh = ny-0.501f ; nzh = nz-0.501f ;
+
+   nxt = gstup->ajmask->nx ; nxyt = nxt * gstup->ajmask->ny ;
+
+   imf = (float *)malloc(sizeof(float)*nqq) ;
+   jmf = (float *)malloc(sizeof(float)*nqq) ;
+   kmf = (float *)malloc(sizeof(float)*nqq) ;
+   imw = (float *)malloc(sizeof(float)*nqq) ;
+   jmw = (float *)malloc(sizeof(float)*nqq) ;
+   kmw = (float *)malloc(sizeof(float)*nqq) ;
+
+   /* send parameters to warping function for its setup */
+
+   gstup->wfunc( npar , wpar , 0,NULL,NULL,NULL , NULL,NULL,NULL ) ;
+
+   /*--- do (up to) NPER points at a time ---*/
+
+   for( pp=qq=0 ; pp < npt ; pp++ ){
+     if( bsar[pp] ){
+       ii = pp % nx; kk = pp / nxy; pp = (mm-kk*nxy) / nx;
+       imf[qq] = (float)ii; jmf[qq] = (float)jj; kmf[qq] = (float)kk; qq++ ;
+     }
+   }
+
+   /****-- warp control points to new locations ---****/
+   /**** (warp does index-to-index transformation) ****/
+
+   gstup->wfunc( npar , NULL , nqq  , imf,jmf,kmf , imw,jmw,kmw ) ;
+
+   free(kmf); free(jmf); free(imf);
+
+   /* check target mask at warped points */
+
+   for( nhit=qq=0 ; qq < gstup->nbsmask ; qq++ ){
+     xx = imw[qq] ; if( xx < -0.499f || xx > nxh ) continue ;
+     yy = jmw[qq] ; if( yy < -0.499f || yy > nyh ) continue ;
+     zz = kmw[qq] ; if( zz < -0.499f || zz > nzh ) continue ;
+     ii = (int)(xx+0.5f) ; jj = (int)(yy+0.5f) ; kk = (int)(zz+0.5f) ;
+     if( tgar[ii+jj*nxt+kk*nxyt] ) nhit++ ;
+   }
+
+   free((void *)kmw); free((void *)jmw); free((void *)imw);
+
+   RETURN(nhit) ;
+}
+#endif
