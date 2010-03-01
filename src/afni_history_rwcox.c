@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 1 , MAR , 2010 , RWC , "InstaCorr" , MICRO , TYPE_NEW_OPT ,
+   "Add Spearman and Quadrant correlation options" ,
+   NULL } ,
+
  { 26 , FEB , 2010 , RWC , "afni InstaCorr" , MICRO , TYPE_GENERAL ,
    "Add polort option to InstaCorr setup" ,
    "Beware the frumious Bandersnatch, Ziad." } ,

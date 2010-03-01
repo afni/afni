@@ -4,11 +4,11 @@
 #include <omp.h>
 #endif
 
-/*-----------------------------------------------------------------*/
+/*--------------------------------------------------------------------------*/
 /*! Convert a dataset to the MRI_vectim format, where each time
     series is a contiguous set of values in an array, and the
     voxel indexes whence came the values are also stored.
-*//*---------------------------------------------------------------*/
+*//*------------------------------------------------------------------------*/
 
 MRI_vectim * THD_dset_to_vectim( THD_3dim_dataset *dset, byte *mask , int ignore )
 {
@@ -91,8 +91,8 @@ ENTRY("THD_dset_to_vectim") ;
    RETURN(mrv) ;
 }
 
-/*-----------------------------------------------------------*/
-/*--- Catenates two datasets into vectim     ZSS Jan 2010 ---*/
+/*---------------------------------------------------------------------*/
+/*-------- Catenates two datasets into vectim     ZSS Jan 2010 --------*/
 MRI_vectim * THD_2dset_to_vectim( THD_3dim_dataset *dset1, byte *mask1 , 
                                   THD_3dim_dataset *dset2, byte *mask2 , 
                                   int ignore )
@@ -233,7 +233,7 @@ ENTRY("THD_2dset_to_vectim") ;
    RETURN(mrv) ;
 }
 
-/*-----------------------------------------------------------*/
+/*---------------------------------------------------------------------*/
 
 void THD_vectim_normalize( MRI_vectim *mrv )
 {
@@ -245,7 +245,7 @@ void THD_vectim_normalize( MRI_vectim *mrv )
      THD_normalize( mrv->nvals , VECTIM_PTR(mrv,iv) ) ;
 }
 
-/*-----------------------------------------------------------*/
+/*---------------------------------------------------------------------*/
 
 void THD_vectim_dotprod( MRI_vectim *mrv , float *vec , float *dp , int ata )
 {
@@ -268,7 +268,7 @@ void THD_vectim_dotprod( MRI_vectim *mrv , float *vec , float *dp , int ata )
   return ;
 }
 
-/*-----------------------------------------------------------*/
+/*---------------------------------------------------------------------*/
 
 void THD_vectim_vectim_dot( MRI_vectim *arv, MRI_vectim *brv, float *dp )
 {
@@ -285,6 +285,56 @@ void THD_vectim_vectim_dot( MRI_vectim *arv, MRI_vectim *brv, float *dp )
    }
 
    return ;
+}
+
+/*---------------------------------------------------------------------*/
+/* 01 Mar 2010: Rank correlation. */
+
+void THD_vectim_spearman( MRI_vectim *mrv , float *vec , float *dp )
+{
+   float *av , *bv , sav ;
+   int nvec, nvals, iv ;
+
+   if( mrv == NULL || vec == NULL || dp == NULL ) return ;
+
+   nvec = mrv->nvec ; nvals = mrv->nvals ;
+   av   = (float *)malloc(sizeof(float)*nvals) ;
+   bv   = (float *)malloc(sizeof(float)*nvals) ;
+
+   memcpy( av , vec , sizeof(float)*nvals ) ;
+   sav = spearman_rank_prepare( nvals , av ) ; if( sav <= 0.0f ) sav = 1.e+9f ;
+
+   for( iv=0 ; iv < nvec ; iv++ ){
+     memcpy( bv , VECTIM_PTR(mrv,iv) , sizeof(float)*nvals ) ;
+     dp[iv] = spearman_rank_corr( nvals , bv , sav , av ) ;
+   }
+
+  return ;
+}
+
+/*---------------------------------------------------------------------*/
+/* 01 Mar 2010: Quadrant correlation. */
+
+void THD_vectim_quadrant( MRI_vectim *mrv , float *vec , float *dp )
+{
+   float *av , *bv , sav ;
+   int nvec, nvals, iv ;
+
+   if( mrv == NULL || vec == NULL || dp == NULL ) return ;
+
+   nvec = mrv->nvec ; nvals = mrv->nvals ;
+   av   = (float *)malloc(sizeof(float)*nvals) ;
+   bv   = (float *)malloc(sizeof(float)*nvals) ;
+
+   memcpy( av , vec , sizeof(float)*nvals ) ;
+   sav = quadrant_corr_prepare( nvals , av ) ; if( sav <= 0.0f ) sav = 1.e+9f ;
+
+   for( iv=0 ; iv < nvec ; iv++ ){
+     memcpy( bv , VECTIM_PTR(mrv,iv) , sizeof(float)*nvals ) ;
+     dp[iv] = quadrant_corr( nvals , bv , sav , av ) ;
+   }
+
+  return ;
 }
 
 /*----------------------------------------------------------------------------*/
