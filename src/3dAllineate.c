@@ -261,6 +261,7 @@ int main( int argc , char *argv[] )
    int auto_tdilation          = 0 ;            /* for -source_automask+N */
    int auto_tmask              = 0 ;
    char *auto_tstring          = NULL ;
+   int use_source_mask         = 0 ;
 
    int bloktype                = GA_BLOK_RHDD ; /* 20 Aug 2007 */
    float blokrad               = 6.54321f ;
@@ -1454,7 +1455,7 @@ int main( int argc , char *argv[] )
        if( ntmask < 666 )
          ERROR_exit("Too few (%d) voxels in -source_mask :-(",ntmask) ;
        if( verb ) INFO_message("%d voxels in -source_mask",ntmask) ;
-       iarg++ ; continue ;
+       iarg++ ; use_source_mask = 1 ; continue ;
      }
 
      if( strncmp(argv[iarg],"-source_automask",16) == 0 ){  /* 07 Aug 2007 */
@@ -1463,7 +1464,7 @@ int main( int argc , char *argv[] )
        auto_tmask = 1 ; auto_tstring = argv[iarg] ;
        if( auto_tstring[16] == '+' && auto_string[17] != '\0' )
          auto_tdilation = (int)strtod(auto_tstring+17,NULL) ;
-       iarg++ ; continue ;
+       iarg++ ; use_source_mask = 1 ; continue ;
      }
 
      /*-----*/
@@ -2490,7 +2491,7 @@ int main( int argc , char *argv[] )
 
    /*-- 07 Aug 2007: make target automask? --*/
 
-   if( auto_tmask ){
+   if( im_tmask == NULL && apply_1D == NULL ){  /* 01 Mar 2010: (almost) always make this mask */
 
      byte *mmm ; int ndil=auto_tdilation ;
      mmm = THD_automask( dset_targ ) ;
@@ -2505,7 +2506,7 @@ int main( int argc , char *argv[] )
        }
      }
      ntmask = THD_countmask( im_tmask->nvox , mmm ) ;
-     if( ntmask < 666 )
+     if( ntmask < 666 && auto_tmask )
        ERROR_exit("Too few (%d) voxels in %s :-(",ntmask,auto_tstring) ;
      if( verb )
        INFO_message("%d voxels in %s",ntmask,auto_tstring) ;
@@ -3232,6 +3233,7 @@ int main( int argc , char *argv[] )
    if( im_tmask != NULL ){
      mri_genalign_set_targmask( im_tmask , &stup ) ;  /* 07 Aug 2007 */
      mri_free(im_tmask) ; im_tmask = NULL ;           /* is copied inside */
+     if( use_source_mask ) stup.ajmask_ranfill = 1 ;  /* 01 Mar 2010 */
    }
 
    MEMORY_CHECK("about to start alignment loop") ;
