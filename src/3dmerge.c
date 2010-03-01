@@ -569,7 +569,8 @@ DUMP1 ;
             prefix[p2- prefix]='\0';
          } 
       } 
-      sprintf(MRG_edopt.rankmapname,"%s/%s.1D", MRG_output_session, prefix);
+      sprintf(MRG_edopt.rankmapname,"%s/%s.rankmap.1D", 
+                                 MRG_output_session, prefix);
    }
    
    return( nopt );

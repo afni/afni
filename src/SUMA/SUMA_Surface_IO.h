@@ -16,6 +16,7 @@ typedef struct {
    char *fname;
    int nbins;
    SUMA_FS_COLORTABLE_ENTRY *bins;
+   SUMA_COLOR_MAP_HASH_DATUM *chd;
 } SUMA_FS_COLORTABLE;
 
 
@@ -95,6 +96,7 @@ char * SUMA_OpenDX_Read_CruiseVolHead(char *fname, THD_3dim_dataset *dset, int l
 SUMA_Boolean SUMA_readFSannot (char *f_name, 
                                char *f_ROI, char *f_cmap, char *f_col, 
                                int Showct, char *ctfile,
+                               int lbl1, int lbl2,
                                SUMA_DSET **dset);
 SUMA_COLOR_MAP *SUMA_FScolutToColorMap(char *fscolutname, 
                                        int lbl1, int lbl2, int show); 

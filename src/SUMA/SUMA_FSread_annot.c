@@ -19,6 +19,8 @@ void usage_SUMA_FSread_annot_Main ()
 "Usage:  \n"
 "  FSread_annot   <-input ANNOTFILE>  \n"
 "                 [-FScmap CMAPFILE]   \n"
+"                 [-FScmaprange iMin iMax]\n"
+"                 [-FSversion VER]\n"
 "                 [-col_1D annot.1D.col]  \n"
 "                 [-roi_1D annot.1D.roi] \n"
 "                 [-cmap_1D annot.1D.cmap]\n"
@@ -37,6 +39,30 @@ void usage_SUMA_FSread_annot_Main ()
 "                       colormap file CMAPFILE.\n"
 "                       Colormaps inside the ANNOTFILE would be\n"
 "                       ignored. See also MakeColorMap's fscolut* options.\n"
+"                       With FSversion set to 2009, if FScmap is not set, \n"
+"                       the program will attempt to locate \n"
+"                       FreeSurferColorLUT.txt based on the environment\n"
+"                       variable $FREESURFER_HOME\n"
+"                       You can use FS_DEFAULT to force the program to load\n"
+"                       FreeSurfer's $FREESURFER_HOME/FreeSurferColorLUT.txt\n"
+"     -FScmaprange iMin iMax: CMAPFILE contains multiple types of labels\n"
+"                       The annotation values in ANNOTFILE can map to multiple\n"
+"                       labels if you do not restrict the range with \n"
+"                       iMin and iMax. That is because annotation values\n"
+"                       encode color in RGB which is used to lookup a name\n"
+"                       and integer label from CMAPFILE. The same color is \n"
+"                       used for multiple labels.\n"
+"                       When an external CMAPFILE is needed (a2009 versions), \n"
+"                       the programs uses a default of [13100 13199] for lh,\n"
+"                       [14100 14199] for rh surfaces.\n"
+"                       If CMAPFILE is set to FS_DEFAULT in a2005 versions,\n"
+"                       the programs uses a default of [3100 3199] for lh,\n"
+"                       [4100 4199] for rh surfaces.\n"
+"     -FSversion VER: VER is the annotation file vintage. Choose from 2009, \n"
+"                     or 2005. The program will attempt to guess from the name\n"
+"                     ANNOTFILE and would default to 2005.\n"
+"     -hemi HEMI: Specify hemisphere. HEMI is one of lh or rh.\n"
+"                 Program guesses by default\n"
 "     -col_1D annot.1D.col: Write a 4-column 1D color file. \n"
 "                           The first column is the node\n"
 "                           index followed by r g b values.\n"
@@ -82,9 +108,10 @@ int main (int argc,char *argv[])
    static char FuncName[]={"FSread_annot"};
    int kar, Showct, testmode;
    char *fname = NULL, *fcmap = NULL, *fdset = NULL, 
-         *froi = NULL, *fcol = NULL, *ctfile=NULL;
+         *froi = NULL, *fcol = NULL, *ctfile=NULL, sbuf[1024]={""};
    SUMA_Boolean SkipCoords = NOPE, brk;
    SUMA_DSET *dset=NULL;
+   int lbl1,lbl2, ver, hemi, FSdefault;
    SUMA_Boolean LocalHead = NOPE;	
    
    SUMA_STANDALONE_INIT;
@@ -108,6 +135,11 @@ int main (int argc,char *argv[])
    ctfile = NULL;
    Showct = 0;
    testmode = 0;
+   lbl1 = -1;
+   lbl2 = -1;
+   ver = -1;
+   FSdefault = 0;
+   hemi=0;
 	while (kar < argc) { /* loop accross command ine options */
 		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
 		if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
@@ -142,6 +174,71 @@ int main (int argc,char *argv[])
 				exit (1);
 			}
          ctfile = argv[kar];
+         if (!strcmp(ctfile,"FS_DEFAULT")) {
+            char *eee = getenv("FREESURFER_HOME");
+            if (!eee) {
+               SUMA_S_Err("Environment variable FREESURFER_HOME not set.\n"
+                          "Cannot locate FreeSurferColorLUT.txt\n");
+               exit (1);
+            } else {
+               sprintf(sbuf, "%s/FreeSurferColorLUT.txt", eee);
+               ctfile = sbuf;
+               FSdefault = 1;
+               SUMA_S_Notev("Using %s\n", ctfile);
+            }              
+         }
+			brk = YUP;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-FSversion") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need argument after -FSversion\n");
+				exit (1);
+			}
+         if (strstr(argv[kar],"2009")) ver = 2009;
+         else if (strstr(argv[kar],"2005")) ver = 2005;
+         else {
+            fprintf (SUMA_STDERR, 
+                  "Bad value for -FSversion of %s (looking for 2005 or 2009)\n",
+                  argv[kar]);
+				exit (1);
+         }
+			brk = YUP;
+		}
+
+      if (!brk && (strcmp(argv[kar], "-hemi") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need argument after -hemi\n");
+				exit (1);
+			}
+         if (strstr(argv[kar],"lh")) hemi = -1;
+         else if (strstr(argv[kar],"rh")) hemi = 1;
+         else {
+            fprintf (SUMA_STDERR, 
+                  "Bad value for -hemi of %s (looking for lh or rh)\n",
+                  argv[kar]);
+				exit (1);
+         }
+			brk = YUP;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-FScmaprange") == 0)) {
+         kar ++;
+			if (kar+1 >= argc)  {
+		  		fprintf (SUMA_STDERR, "need 2 argument after -FScmaprange\n");
+				exit (1);
+			}
+         lbl1 = atoi(argv[kar]); ++kar;
+         lbl2 = atoi(argv[kar]); 
+         
+         if (lbl1 > lbl2 || lbl1 < -1) {
+            fprintf (SUMA_STDERR, 
+                  "Bad value for -FScmaprange of [%d %d]\n",
+                  lbl1, lbl2);
+				exit (1);
+         }
 			brk = YUP;
 		}
       
@@ -198,6 +295,88 @@ int main (int argc,char *argv[])
 		}
    }
    
+   if (!fname) {
+      SUMA_SL_Err("No input file specified.");
+      exit(1);
+   }
+   
+   if (ver == -1) {
+      /* guess at version */
+      if (strstr(fname,"2009")) {
+         ver = 2009;
+         SUMA_S_Notev("Guessed FS annot version of %d\n", ver);
+      } else if (strstr(fname,"2005")) {
+         ver = 2005;
+         SUMA_S_Notev("Guessed FS annot version of %d\n", ver);
+      } else {
+         SUMA_S_Notev("Assuming FS annot version of %d\n", ver);
+      }
+   }
+   
+   if (hemi == 0) {
+      if (strstr(fname,"lh.")) {
+         hemi = -1;
+         SUMA_S_Note("Guessed left hemisphere");
+      } else if (strstr(fname,"rh.")) {
+         SUMA_S_Note("Guessed right hemisphere");
+         hemi = 1;
+      } else {
+         if (ver == 2009) {
+            hemi = -1;
+            SUMA_S_Note("Assuming left hemisphere.\n");
+         } else {
+            /* leave it not set */
+         }
+      }
+   }
+   
+   if (ver == 2009 && !ctfile) {
+      char *eee = getenv("FREESURFER_HOME");
+      if (!eee) {
+         SUMA_S_Warn("Environment variable FREESURFER_HOME not set.\n"
+                    "Cannot locate FreeSurferColorLUT.txt\n");
+      } else {
+         sprintf(sbuf, "%s/FreeSurferColorLUT.txt", eee);
+         ctfile = sbuf;
+         SUMA_S_Notev("Using %s\n", ctfile);
+      }  
+   }
+   
+   if (lbl1 < 0 && lbl2 < 0) {
+      /* need some setup */
+      if (ver == 2009) {
+         if (hemi == -1) {
+            lbl1 = 13100;
+            lbl2 = 13199;
+            SUMA_S_Notev("Setting -FScmaprange to [%d %d]\n",
+                        lbl1, lbl2);
+         } else if (hemi == 1) {
+            lbl1 = 14100;
+            lbl2 = 14199;
+            SUMA_S_Notev("Setting -FScmaprange to [%d %d]\n",
+                        lbl1, lbl2);
+         } else {
+            SUMA_S_Warn("-FScmaprange is not set.\n"
+                         "You may need to set it, check results.\n");
+         }
+      } else if (ver == 2005 && FSdefault) {
+         if (hemi == -1) {
+            lbl1 = 3100;
+            lbl2 = 3199;
+            SUMA_S_Notev("Setting -FScmaprange to [%d %d]\n",
+                        lbl1, lbl2);
+         } else if (hemi == 1) {
+            lbl1 = 4100;
+            lbl2 = 4199;
+            SUMA_S_Notev("Setting -FScmaprange to [%d %d]\n",
+                        lbl1, lbl2);
+         } else {
+            SUMA_S_Warn("-FScmaprange is not set.\n"
+                         "You may need to set it, check results.\n");
+         }
+      }
+   }
+   
    if (!fcmap && !froi && !fcol && !Showct && !fdset) {
       SUMA_SL_Err("Nothing to do.\n"
                   "Use either -cmap_1D or \n"
@@ -205,11 +384,7 @@ int main (int argc,char *argv[])
                   " -show_FScmap options.");
       exit(1);
    }
-   if (!fname) {
-      SUMA_SL_Err("No input file specified.");
-      exit(1);
-   }
-   
+
    if (fdset) {
       int exists = 0;
       char *ooo=NULL;
@@ -249,7 +424,8 @@ int main (int argc,char *argv[])
       }
    }
      
-   if (!SUMA_readFSannot (fname, froi, fcmap, fcol, Showct, ctfile, &dset)) {
+   if (!SUMA_readFSannot (fname, froi, fcmap, fcol, Showct, ctfile, 
+                          lbl1, lbl2, &dset)) {
       SUMA_S_Err("Failed reading annotation file (or output file exists)");
       exit(1);
    }

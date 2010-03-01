@@ -13743,7 +13743,8 @@ SUMA_STRING * SUMA_StringAppend_va (SUMA_STRING *SS, char *newstring, ... )
       va_start( vararg_ptr ,  newstring) ;
       if (strlen(newstring) >= MAX_APPEND -1 ) {
          SUMA_SL_Err("newstring too long.\nCannot use SUMA_StringAppend_va");
-         SUMA_RETURN(SUMA_StringAppend(SS,"Error SUMA_StringAppend_va: ***string too long to add ***"));
+         SUMA_RETURN(SUMA_StringAppend(SS,"Error SUMA_StringAppend_va: "
+                                          "***string too long to add ***"));
       }
       if (LocalHead) {
          SUMA_LH("Calling vsnprintf");
@@ -13754,7 +13755,9 @@ SUMA_STRING * SUMA_StringAppend_va (SUMA_STRING *SS, char *newstring, ... )
          }
       }
       nout = vsnprintf (sbuf, MAX_APPEND * sizeof(char), newstring, vararg_ptr); 
-      if (LocalHead) fprintf(SUMA_STDERR,"%s:\n Calling va_end, nout = %d\n", FuncName, nout);
+      if (LocalHead) 
+         fprintf(SUMA_STDERR,"%s:\n Calling va_end, nout = %d\n", 
+                  FuncName, nout);
       va_end(vararg_ptr);  /* cleanup */
       
       if (nout < 0) {
@@ -14475,7 +14478,7 @@ char * SUMA_file_suck( char *fname , int *nread )
    SUMA_ENTRY;
    
    *nread = 0;
-   if( fname == NULL || fname[0] == '\0') SUMA_RETURN(0) ;
+   if( fname == NULL || fname[0] == '\0') SUMA_RETURN(NULL) ;
 
    len = THD_filesize( fname ) ;
    if( len <= 0 ) SUMA_RETURN(buf) ;
