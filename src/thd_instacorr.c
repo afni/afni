@@ -203,10 +203,21 @@ ENTRY("THD_instacorr") ;
    iset->tseed = (float *)realloc( iset->tseed , sizeof(float)*iset->mv->nvals ) ;
    memcpy( iset->tseed , tsar , sizeof(float)*iset->mv->nvals ) ;
 
-   /** do the dot products **/
+   /** do the correlations **/
 
    dar = (float *)malloc(sizeof(float)*iset->mv->nvec) ;
-   THD_vectim_dotprod( iset->mv , tsar , dar , ata ) ;
+
+   switch( iset->cmeth ){
+     default:
+     case NBISTAT_PEARSON_CORR:
+       THD_vectim_dotprod ( iset->mv , tsar , dar , ata ) ; break ;
+
+     case NBISTAT_SPEARMAN_CORR:
+       THD_vectim_spearman( iset->mv , tsar , dar ) ; break ;
+
+     case NBISTAT_QUADRANT_CORR:
+       THD_vectim_quadrant( iset->mv , tsar , dar ) ; break ;
+   }
 
    /** put them into the output image **/
 

@@ -1689,6 +1689,7 @@ typedef struct {
   int dim_bvec    ;
   int   nmask     ;
   int   nvox_mask ;
+  int   nbsmask   ;
   byte *bmask     ;
   MRI_IMAGE *bwght ;
 

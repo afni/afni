@@ -123,6 +123,8 @@ static char i_helpstring[] =
   "            ** To get NO preprocessing of the time series before correlation,\n"
   "               set Polort = -1, turn Bandpass off, and don't input Global Orts.\n"
   "\n"
+  "    Method   = Pearson, Spearman, or Quadrant Correlation.\n"
+  "\n"
   "OPERATION\n"
   "=========\n"
   "* Once you have set the controls the way you want, press one of the ''Setup'\n"
@@ -153,6 +155,7 @@ PLUGIN_interface * ICOR_init( char *lab )
 {
    PLUGIN_interface *plint ;     /* will be the output of this routine */
    static char *yn[2] = { "No" , "Yes" } ;
+   static char *meth_string[3] = { "Pearson" , "Spearman" , "Quadrant" } ;
    char sk[32] , sc[32] ;
    int gblur = AFNI_yesenv("AFNI_INSTACORR_SEEDBLUR") ;
 
@@ -199,6 +202,7 @@ PLUGIN_interface * ICOR_init( char *lab )
    PLUTO_add_option( plint , "Misc Opts" , "MiscOpts" , FALSE ) ;
    PLUTO_add_number( plint , (gblur) ? "SeedBlur" : "SeedRad" , 0,10,0,0,TRUE ) ;
    PLUTO_add_number( plint , "Polort" , -1,2,0,2 , FALSE ) ;
+   PLUTO_add_string( plint , "Method" , 3 , meth_string , 0 ) ;
 
    return plint ;
 }
@@ -222,6 +226,7 @@ static char * ICOR_main( PLUGIN_interface *plint )
    Three_D_View *im3d = plint->im3d ;
    double etim ;
    int polort = 2 ; /* 26 Feb 2010 */
+   int cmeth  = NBISTAT_PEARSON_CORR ;
 
    ncall = 0 ;
 
@@ -282,8 +287,15 @@ static char * ICOR_main( PLUGIN_interface *plint )
      /** MiscOpts **/
 
      if( strcmp(tag,"MiscOpts") == 0 ){
+       char *cm ;
        sblur  = PLUTO_get_number(plint) ;
        polort = PLUTO_get_number(plint) ;  /* 26 Feb 2010 */
+       cm     = PLUTO_get_string(plint) ;
+       switch( cm[0] ){
+         default:  cmeth = NBISTAT_PEARSON_CORR  ; break ;
+         case 'S': cmeth = NBISTAT_SPEARMAN_CORR ; break ;
+         case 'Q': cmeth = NBISTAT_QUADRANT_CORR ; break ;
+       }
        continue ;
      }
 
@@ -327,7 +339,7 @@ static char * ICOR_main( PLUGIN_interface *plint )
        im3d->iset->polort   == polort      ){
 
      INFO_message("InstaCorr setup: minor changes accepted") ;
-     im3d->iset->sblur = sblur ; return NULL ;
+     im3d->iset->sblur = sblur ; im3d->iset->cmeth = cmeth ; return NULL ;
    }
 
    /** (re)create InstaCorr setup **/
@@ -346,6 +358,7 @@ static char * ICOR_main( PLUGIN_interface *plint )
    iset->blur     = blur ;
    iset->sblur    = sblur ;
    iset->polort   = polort ;  /* 26 Feb 2010 */
+   iset->cmeth    = cmeth ;   /* 01 Mar 2010 */
    iset->prefix   = (char *)malloc(sizeof(char)*16) ;
    cpt = AFNI_controller_label(im3d); sprintf(iset->prefix,"%c_ICOR",cpt[1]);
 
@@ -411,7 +424,7 @@ ENTRY("AFNI_icor_setref") ;
 
    etim = PLUTO_elapsed_time() ;
 
-   iim = THD_instacorr( im3d->iset , ijk , 0 ) ;
+   iim = THD_instacorr( im3d->iset , ijk , 0 ) ;  /* 0 == no arctanh */
 
    if( ncall <= 1 )
      ININFO_message(" InstaCorr elapsed time = %.2f sec: correlations",
