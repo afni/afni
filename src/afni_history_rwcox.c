@@ -45,6 +45,13 @@ afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
  { 2 , MAR , 2010 , RWC , "3dAllineate" , MICRO , TYPE_GENERAL ,
+   "moved weight sum in LPC" ,
+   "* Old way: count a BLOK even if it doesn't contribute to correlation sum\n"
+   "* New way: don't count it\n"
+   "* If'n you want the old way, setenv AFNI_LPC_OLDWSUM YES\n"
+   "* Also: used OpenMP to speedup coordinate transformations" } ,
+
+ { 2 , MAR , 2010 , RWC , "3dAllineate" , MICRO , TYPE_GENERAL ,
    "add overlap 'ov' to lpc+ functional" ,
    "Kind of slow -- OpenMP mabye?" } ,
 

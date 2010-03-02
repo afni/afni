@@ -1080,17 +1080,13 @@ AlphaSim:AlphaSim.o
 	$(RM) $@
 	$(CCOMP) -o 3dDespike 3dDespike.o $(LFLAGS) $(LLIBS)
 
-3dAllineate:3dAllineate.o mri_genalign.o mri_genalign_util.o thd_correlate.o
+3dAllineate:3dAllineate.o mri_genalign.c mri_genalign_util.c thd_correlate.c
 	$(RM) $@
 	$(CCOMP) -o 3dAllineate 3dAllineate.o $(LFLAGS) -lmri -lf2c $(LLIBS)
 
 3dRBFdset:3dRBFdset.o mri_rbfinterp.o
 	$(RM) $@
 	$(CCOMP) -o 3dRBFdset 3dRBFdset.o $(LFLAGS) $(LLIBS) -lf2c
-
-mri_genalign_util.o:mri_genalign_util.c
-	$(RM) $@
-	$(CCOMP) -c mri_genalign_util.c $(INFLAGS)
 
 mri_rbfinterp.o:mri_rbfinterp.c
 	$(RM) $@
@@ -1652,9 +1648,13 @@ powell_newuoa.o:powell_newuoa.c
 	$(RM) $@
 	$(CCFAST) -c powell_newuoa.c $(INFLAGS)
 
+mri_genalign_util.o:mri_genalign_util.c
+	$(RM) $@
+	$(CCFAST) -c mri_genalign_util.c $(INFLAGS)
+
 mri_genalign.o:mri_genalign.c
 	$(RM) $@
-	$(CC) -c mri_genalign.c $(INFLAGS)
+	$(CCFAST) -c mri_genalign.c $(INFLAGS)
 
 thd_correlate.o:thd_correlate.c
 	$(RM) $@
