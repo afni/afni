@@ -319,32 +319,47 @@ check.AFNI.args <- function ( ops, params = NULL) {
             opsvec <- ops[[i]];
             if (length(pp) == 1) { #exact number 
                if (length(opsvec) !=  pp) {
-                  warning(paste( 'Expecting ',pp, ' parameters for option "',
+                  msg <- paste( 'Expecting ',pp, ' parameters for option "',
                                  names(ops)[i], '".\n  Have ', 
                                  length(opsvec), ' parameter(s) in string "', 
                                  paste(opsvec, collapse = ' '),
-                                 '" instead.', sep = ''),
-                          immediate. = TRUE);
+                                 '" instead.', sep = '') 
+                  if (length(opsvec) > 0 && grep('^-[a-z,A-Z]', opsvec[1])) {
+                     msg <- paste( msg, '\n Also note that ', opsvec[1], 
+                                        ' is not a recognized option.',
+                                        collapse = '', sep = '' );  
+                  }
+                  err.AFNI(msg);
                   return(0);                  
                }
             } else if (length(pp) == 2) { #range
                if (length(opsvec) <  pp[1] || length(opsvec) >  pp[2]) {
                   if (pp[2] == Inf) {
-                     warning(paste( 'Expecting more than ',pp[1],  
+                     msg <- paste( 'Expecting more than ',pp[1],  
                                  ' parameters for option "',
                                  names(ops)[i], '".\n  Have ', 
                                  length(opsvec), ' parameter(s) in string "', 
                                  paste(opsvec, collapse = ' '),
-                                 '" instead.', sep = ''),
-                          immediate. = TRUE);
+                                 '" instead.', sep = '') 
+                     if (length(opsvec) > 0 && grep('^-[a-z,A-Z]', opsvec[1])) {
+                        msg <- paste( msg, '\n Also note that ', opsvec[1], 
+                                          ' is not a recognized option.',
+                                          collapse = '', sep = '' );  
+                     }
+                     err.AFNI(msg);
                   } else {
-                     warning(paste( 'Expecting ',pp[1], ' to ', pp[2], 
+                     msg <- paste( 'Expecting ',pp[1], ' to ', pp[2], 
                                  ' parameters for option "',
                                  names(ops)[i], '".\n  Have ', 
                                  length(opsvec), ' parameter(s) in string "', 
                                  paste(opsvec, collapse = ' '),
-                                 '" instead.', sep = ''),
-                          immediate. = TRUE);
+                                 '" instead.', sep = '');
+                     if (length(opsvec) > 0 && grep('^-[a-z,A-Z]', opsvec[1])) {
+                        msg <- paste( msg, '\n Also note that ', opsvec[1], 
+                                          ' is not a recognized option.',
+                                          collapse = '', sep = '' );  
+                     }
+                     err.AFNI(msg);
                   }
                   return(0);                  
                }
