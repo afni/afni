@@ -4615,6 +4615,12 @@ void AL_setup_warp_coords( int epi_targ , int epi_fe, int epi_pe, int epi_se,
    return ;
 }
 
+#ifdef USE_OMP
+#include "mri_genalign_util.c"
+#include "mri_genalign.c"
+#include "thd_correlate.c"
+#endif
+
 /*----------------------------------------------------------------------------*/
 #if 0
 #undef  MMM
