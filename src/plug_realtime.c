@@ -209,9 +209,6 @@ typedef struct {
    float *reg_tim , *reg_dx  ,
          *reg_dy  , *reg_phi  ;       /* estimated motion parameters */
 
-   THD_3dim_dataset *reg_basis_dset ; /* 02 Jul 2009 */
-   int              *reg_basis_nvol ;
-
    /*--  Oct 1998: more stuff for 3D registration --*/
 
    float *reg_dz , *reg_theta , *reg_psi , *reg_rep ;
@@ -1816,9 +1813,6 @@ RT_input * new_RT_input( IOCHAN *ioc_data )
    rtin->reg_2dbasis    = NULL ;
    rtin->reg_status     = 0 ;        /* AFNI knows nothing. NOTHING.     */
    rtin->reg_nvol       = 0 ;        /* number volumes registered so far */
-
-   rtin->reg_basis_dset = NULL ;     /* 02 Jul 2009 */
-   rtin->reg_basis_nvol = NULL ;
 
    rtin->reg_nest  = 0 ;
    rtin->reg_tim   = (float *) malloc( sizeof(float) ) ;
@@ -3592,18 +3586,6 @@ void RT_start_dataset( RT_input * rtin )
      if( rtin->num_note > 0 && rtin->note != NULL ){
        for( ii=0 ; ii < rtin->num_note ; ii++ )
          tross_Add_Note( rtin->mrg_dset , rtin->note[ii] ) ;
-     }
-   }
-
-   /*---- Make a dataset for registration, if need be ----*/
-
-   if( rtin->reg_mode != REGMODE_NONE ){       /* 02 Jul 2009 */
-     if( rtin->mrg_dset != NULL && RT_chmrg_datum == MRI_float ){
-       rtin->reg_basis_dset = rtin->mrg_dset ;
-       rtin->reg_basis_nvol = &(rtin->mrg_nvol) ;
-     } else {
-       rtin->reg_basis_dset = rtin->dset[0] ;
-       rtin->reg_basis_nvol = &(rtin->nvol[0]) ;
      }
    }
 

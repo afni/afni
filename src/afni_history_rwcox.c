@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 2 , MAR , 2010 , RWC , "3dAllineate" , MICRO , TYPE_GENERAL ,
+   "add overlap 'ov' to lpc+ functional" ,
+   "Kind of slow -- OpenMP mabye?" } ,
+
  { 1 , MAR , 2010 , RWC , "InstaCorr" , MICRO , TYPE_NEW_OPT ,
    "Add Spearman and Quadrant correlation options" ,
    NULL } ,

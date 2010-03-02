@@ -18,7 +18,7 @@
 static GA_setup *gstup = NULL ;
 static GA_setup *gstup_bk = NULL ;
 
-float GA_get_warped_overlap_fraction( float *wpar ) ; /* prototype */
+float GA_get_warped_overlap_fraction(void) ; /* prototype */
 
 /*---------------------------------------------------------------------------*/
 static int verb = 0 ;
@@ -630,12 +630,18 @@ ENTRY("GA_scalar_costfun") ;
 
       if( micho_hel != 0.0 || micho_mi  != 0.0 ||
           micho_nmi != 0.0 || micho_crA != 0.0   ){
-        float_quad hmc ;
+        float_quad hmc ; float ovv ;
         hmc = THD_helmicra_scl( gstup->npt_match ,
                                 gstup->ajbot , gstup->ajclip , avm ,
                                 gstup->bsbot , gstup->bsclip , bvm , wvm ) ;
         val += -micho_hel * hmc.a - micho_mi  * hmc.b
                +micho_nmi * hmc.c + micho_crA * (1.0-fabs(hmc.d)) ;
+
+        if( micho_ov != 0.0 && gstup->bsmask != NULL && gstup->ajmask != NULL ){
+          ovv = GA_get_warped_overlap_fraction() ;
+          ovv = MAX(0.0f,9.0f-10.0f*ovv) ;
+          val += micho_ov * ovv*ovv ;
+        }
       }
     }
     break ;
@@ -887,12 +893,10 @@ ENTRY("mri_genalign_scalar_setup") ;
      else                      af = MRI_FLOAT_PTR(stup->ajim ) ;
      mmm = MRI_BYTE_PTR(stup->ajmask) ;
      nvox = stup->ajmask->nvox ;
-     if( verb > 2 ) ININFO_message("source mask: ubot=%g usiz=%g",ubot,usiz);
+     if( verb > 2 ) ININFO_message("!source mask fill: ubot=%g usiz=%g",ubot,usiz);
      myunif_reset(1234567890) ;  /* to get the same numbers every time */
      for( ii=0 ; ii < nvox ; ii++ ){  /* fill non-mask voxels with noise */
-       if( !mmm[ii] ){
-         u1 = myunif(); u2 = myunif(); af[ii] = ubot + usiz*(u1+u2);
-       }
+       if( !mmm[ii] ){ u1 = myunif(); u2 = myunif(); af[ii] = ubot + usiz*(u1+u2); }
      }
    }
 
@@ -1137,6 +1141,8 @@ ENTRY("mri_genalign_set_targmask") ;
         "mri_genalign_set_targmask: mask has %d voxels out of %d total ==> ignored!",
         nmask , nvox ) ;
        mri_free(stup->ajmask) ; stup->ajmask = NULL ; stup->najmask = 0 ;
+     } else if( verb > 2 ) {
+       ININFO_message("source mask has %d [out of %d] voxels",nmask,nvox) ;
      }
    }
    EXRETURN ;
@@ -1170,6 +1176,8 @@ ENTRY("mri_genalign_set_basemask") ;
         "mri_genalign_set_basemask: mask has %d voxels out of %d total ==> ignored!",
         nmask , nvox ) ;
        mri_free(stup->bsmask) ; stup->bsmask = NULL ; stup->nbsmask = 0 ;
+     } else if( verb > 2 ) {
+       ININFO_message("base mask has %d [out of %d] voxels",nmask,nvox) ;
      }
    }
    EXRETURN ;
@@ -2464,8 +2472,9 @@ void mri_genalign_warpsum( int npar, float *wpar ,
 #endif
 
 /*----------------------------------------------------------------------------*/
+/* Note that the setup call to wfunc() must have been made before this call. */
 
-float GA_get_warped_overlap_fraction( float *wpar )
+float GA_get_warped_overlap_fraction(void)
 {
    int    npar , ii,jj,kk,qq,pp,nqq,mm,nx,nxy , nxt,nxyt , npt,nhit ;
    float *imf, *jmf, *kmf, *imw, *jmw, *kmw , xx,yy,zz,nxh,nyh,nzh , frac ;
@@ -2486,9 +2495,11 @@ ENTRY("GA_get_warped_overlap") ;
    nxt = gstup->ajmask->nx ; nxyt = nxt * gstup->ajmask->ny ;
    nxh = nxt-0.501f ; nyh = gstup->ajmask->ny-0.501f ; nzh = gstup->ajmask->nz-0.501f ;
 
+#if 0
    /* send parameters to warping function for its setup */
 
    gstup->wfunc( npar , wpar , 0,NULL,NULL,NULL , NULL,NULL,NULL ) ;
+#endif
 
    /*--- load 3D indexes to transform from base to target ---*/
 
@@ -2496,9 +2507,10 @@ ENTRY("GA_get_warped_overlap") ;
    jmf = (float *)malloc(sizeof(float)*nqq) ;
    kmf = (float *)malloc(sizeof(float)*nqq) ;
 
+STATUS("load index arrays") ;
    for( pp=qq=0 ; pp < npt ; pp++ ){
      if( bsar[pp] ){
-       ii = pp % nx ; kk = pp / nxy ; pp = (pp-kk*nxy) / nx ;
+       ii = pp % nx ; kk = pp / nxy ; jj = (pp-kk*nxy) / nx ;
        imf[qq] = (float)ii ; jmf[qq] = (float)jj ; kmf[qq] = (float)kk; qq++ ;
      }
    }
@@ -2509,12 +2521,14 @@ ENTRY("GA_get_warped_overlap") ;
    jmw = (float *)malloc(sizeof(float)*nqq) ;
    kmw = (float *)malloc(sizeof(float)*nqq) ;
 
-   gstup->wfunc( npar , NULL , nqq  , imf,jmf,kmf , imw,jmw,kmw ) ;
+STATUS("warp indexes") ;
+   gstup->wfunc( npar , NULL , nqq , imf,jmf,kmf , imw,jmw,kmw ) ;
 
    free(kmf); free(jmf); free(imf);
 
    /* check target mask at warped points */
 
+STATUS("count hits") ;
    for( nhit=qq=0 ; qq < nqq ; qq++ ){
      xx = imw[qq] ; if( xx < -0.499f || xx > nxh ) continue ;
      yy = jmw[qq] ; if( yy < -0.499f || yy > nyh ) continue ;
@@ -2525,8 +2539,12 @@ ENTRY("GA_get_warped_overlap") ;
 
    free((void *)kmw); free((void *)jmw); free((void *)imw);
 
-   xx = gstup->nbsmask * gstup->bsim->dx * gstup->bsim->dy * gstup->bsim->dz ;
-   yy = gstup->najmask * gstup->ajim->dx * gstup->ajim->dy * gstup->ajim->dz ;
+STATUS("scale result") ;
+   xx = gstup->nbsmask ;
+   yy = gstup->najmask * gstup->ajim->dx * gstup->ajim->dy * gstup->ajim->dz /
+                       ( gstup->bsim->dx * gstup->bsim->dy * gstup->bsim->dz ) ;
 
-   frac = nhit / MIN(xx,yy) ; RETURN(frac) ;
+   frac = nhit / MIN(xx,yy) ;
+/** ININFO_message("ovv = %f  nhit = %d",frac,nhit) ; **/
+   RETURN(frac) ;
 }
