@@ -748,24 +748,15 @@ read.AFNI.matrix <- function (fname,
             }
          }
       }
-      #make sure all names in userrownames are represented here
-      if (!is.null(userrownames)) {
-         dd <- userrownames[!(userrownames %in% subjCol)]
-         if (length(dd)) {
-            warning (paste('Subjects ', paste(dd,collapse=' '),
-                           ' do not a covariate entry.\n'),
-                     immediate.=TRUE);
-            return(NULL);
-         }
-      }
    }  else {
       if (is.na(as.numeric(ttt$V1[1]))) { #Just labels
          covNames <- paste(ttt[1,1:dim(ttt)[2]]);
          istrt<- 2
-      }else {
-         covNames <- paste('cov',c(1:dim(ttt)[2]),sep='');
+      }else {  #completely naked
+         covNames <- paste('col',sprintf('%02d',c(1:dim(ttt)[2])),sep='');
          istrt<- 1
       }
+      subjCol <- paste('row',sprintf('%02d',c(1:dim(ttt)[1])), sep='')
       if (dim(ttt)[2] == 1) {
          covMatrix <- as.matrix(ttt[istrt:dim(ttt)[1],1])
       } else {
@@ -779,30 +770,23 @@ read.AFNI.matrix <- function (fname,
             }
          }
       }
-      if (!is.null(userrownames)) {
-         if (dim(covMatrix)[1] != length(userrownames)) {
-            warning (paste('Have ', length(userrownames), ' subjects, ',
-                           'but ', dim(covMatrix)[1], ' covariate values.\n',
-                           'This does not float your boat\n', sep=''),
-                     immediate.=TRUE);
-            return(NULL);
-         } else {
-            warn.AFNI(paste(
-                     'Assuming covariate rows match this subject order\n',
-                     '   ', paste (userrownames,collapse=' '),sep=''));
-         }
-         subjCol <- userrownames
-      }else{
-         subjCol <- paste('s',sprintf('%02d',c(1:dim(ttt)[1])), sep='')
-      }
    } 
+
+
    #browser()
    rownames(covMatrix) <- subjCol;
    colnames(covMatrix) <- covNames;
-   #Now, to be safe, regenerate the covariates matrix based on
-   #the order of subjects as they occur in input, and make a data frame
-   #for 3dMEMA's liking
+   
+   #Now, reorder per user*names 
    if (!is.null(userrownames)) {
+      dd <- userrownames[!(userrownames %in% subjCol)]
+      if (length(dd)) {
+         warning (paste('Rows ', paste(dd,collapse=' '),
+                        ' do not have an entry.\n'),
+                  immediate.=TRUE);
+         return(NULL);
+      }
+      
       for (ii in 1:1:length(userrownames)) {
          if (ii==1) {
             mm <- rbind(covMatrix[userrownames[ii],]);
@@ -813,16 +797,24 @@ read.AFNI.matrix <- function (fname,
       rownames(mm) <- userrownames
       covMatrix <- mm
    }
-   if (is.null(usercolnames)) {
-      usercolnames <- colnames(covMatrix);
-   } else {
-      if (length(usercolnames) != length(colnames(covMatrix))) {
-         warning(paste( 'Mismatch between number of covariate names,\n',
-                        '  and number of columns in matrix'),
-                 immediate.=TRUE);
+   if (!is.null(usercolnames)) {
+      dd <- usercolnames[!(usercolnames %in% covNames)]
+      if (length(dd)) {
+         warning (paste('Columns ', paste(dd,collapse=' '),
+                        ' do not have an entry.\n'),
+                  immediate.=TRUE);
          return(NULL);
       }
-      colnames(covMatrix) <- usercolnames
+      
+      for (ii in 1:1:length(usercolnames)) {
+         if (ii==1) {
+            mm <- cbind(covMatrix[,usercolnames[ii]]);
+         } else {
+            mm <- cbind(mm, covMatrix[,usercolnames[ii]]);
+         }
+      }
+      colnames(mm) <- usercolnames
+      covMatrix <- mm
    }
 
    return(covMatrix)
