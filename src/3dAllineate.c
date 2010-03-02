@@ -3236,6 +3236,7 @@ int main( int argc , char *argv[] )
    im_bset = im_base ;  /* base image for first loop */
    im_wset = im_weig ;
 
+   stup.ajmask_ranfill = 0 ;                          /* 02 Mar 2010: oops */
    if( im_tmask != NULL ){
      mri_genalign_set_targmask( im_tmask , &stup ) ;  /* 07 Aug 2007 */
      mri_free(im_tmask) ; im_tmask = NULL ;           /* is copied inside */
