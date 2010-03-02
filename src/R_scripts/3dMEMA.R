@@ -1966,6 +1966,7 @@ tTop <- 100   # upper bound for t-statistic
    
    args = (commandArgs(TRUE))   
    if (!length(args)) {
+      BATCH_MODE <<- 0
       cat(greeting.MEMA(),
           reference.MEMA(),
       "Use CNTL-C on Unix or ESC on GUI version of R to stop at any moment.\n", 
@@ -1977,6 +1978,7 @@ tTop <- 100   # upper bound for t-statistic
          str(lop);
       }
    } else {
+      BATCH_MODE <<- 1
       if (is.null(lop <- read.MEMA.opts.batch(args, verb = 0))) {
          stop('Error parsing input');
       }

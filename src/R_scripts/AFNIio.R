@@ -1,4 +1,9 @@
 #------------------------------------------------------------------
+# Global Variables
+#------------------------------------------------------------------
+BATCH_MODE <<- 0  #Initialize batch mode flag to 0
+
+#------------------------------------------------------------------
 # Functions to deal with AFNI file names
 #------------------------------------------------------------------
 strip.extension <- function (filename, extvec=NULL, verb=0) {
@@ -567,9 +572,11 @@ warn.AFNI <- function (str='Consider yourself warned',callstr=NULL,
    if (is.null(callstr)) callstr <- who.called.me()
    nnn<-''
    if (newline) nnn <- '\n'
+   if (BATCH_MODE) ff <- stderr()
+   else ff <- ''
    cat(  '\n', 'oo Warning from: ',  callstr,':\n   ', 
          paste(str, collapse=''), nnn, 
-       sep='');
+       sep='', file = ff);
 }
 
 err.AFNI <- function (str='Danger Danger Will Robinson',callstr=NULL, 
@@ -577,18 +584,22 @@ err.AFNI <- function (str='Danger Danger Will Robinson',callstr=NULL,
    if (is.null(callstr)) callstr <- who.called.me()
    nnn<-''
    if (newline) nnn <- '\n'
+   if (BATCH_MODE) ff <- stderr()
+   else ff <- ''
    cat(  '\n', '** Error from: ',  callstr,':\n   ', 
          paste(str, collapse=''), nnn, 
-       sep='');
+       sep='', file = ff);
 }
 
 note.AFNI <- function (str='May I speak frankly?',callstr=NULL, newline=TRUE) {
    if (is.null(callstr)) callstr <- who.called.me()
    nnn<-''
    if (newline) nnn <- '\n'
+   if (BATCH_MODE) ff <- stderr()
+   else ff <- ''
    cat(  '\n', '** Note from: ',  callstr,':\n   ', 
          paste(str, collapse=''),nnn, 
-       sep='');
+       sep='', file = ff);
 }
 
 errex.AFNI <- function (str='Alas this must end',callstr=NULL, newline=TRUE) {
