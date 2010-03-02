@@ -124,7 +124,7 @@ static char *meth_costfunctional[NMETH] =  /* describe cost functional */
     "Pearson correlation coefficient between image pair"       ,
     "nonlinear average of Pearson cc over local neighborhoods" ,
     "1 - abs(lpc)"                                             ,
-    "lpc + hel + mi + nmi + crA"                               ,
+    "lpc + hel + mi + nmi + crA + overlap"                     ,
     "mutual compressibility (via zlib) -- doesn't work yet"
   } ;
 /*---------------------------------------------------------------------------*/
@@ -261,7 +261,7 @@ int main( int argc , char *argv[] )
    int auto_tdilation          = 0 ;            /* for -source_automask+N */
    int auto_tmask              = 0 ;
    char *auto_tstring          = NULL ;
-   int use_source_mask         = 0 ;
+   int fill_source_mask        = 0 ;
 
    int bloktype                = GA_BLOK_RHDD ; /* 20 Aug 2007 */
    float blokrad               = 6.54321f ;
@@ -281,7 +281,7 @@ int main( int argc , char *argv[] )
    double micho_nmi             = 0.2 ;
    double micho_crA             = 0.4 ;
    double micho_hel             = 0.4 ;
-   double micho_ov              = 0.0 ;          /* not used yet */
+   double micho_ov              = 0.4 ;          /* 02 Mar 2010 */
 
    /**----------------------------------------------------------------------*/
    /**----------------- Help the pitifully ignorant user? -----------------**/
@@ -1021,12 +1021,17 @@ int main( int argc , char *argv[] )
               "Notes for the new [Feb 2010] lpc+ cost functional:\n"
               "--------------------------------------------------\n"
               " * The cost functional named 'lpc+' is a combination of several others:\n"
-              "     lpc + hel*%.1f + crA*%.1f + nmi*%.1f + mi*%.1f\n"
+              "     lpc + hel*%.1f + crA*%.1f + nmi*%.1f + mi*%.1f + ov*%.1f\n"
+              "   ++ 'hel', 'crA', 'nmi', and 'mi' are the histogram-based cost\n"
+              "      functionals also available as standalone options.\n"
+              "   ++ 'ov' is a measure of the overlap of the automasks of the base and\n"
+              "      source volumes; ov is not available as a standalone option.\n"
               " * The purpose of lpc+ is to avoid situations where the pure lpc cost\n"
               "   goes wild; this especially happens if '-source_automask' isn't used.\n"
+              "   ++ Even with lpc+, you should use '-source_automask+2' (say) to be safe.\n"
               " * You can later the weighting of the extra functionals by giving the\n"
               "   option in the form (for example)\n"
-              "     '-lpc+hel*0.5+nmi*0+mi*0+crA*1.0'\n"
+              "     '-lpc+hel*0.5+nmi*0+mi*0+crA*1.0+ov*0.5'\n"
               " * The quotes are needed to prevent the shell from wild-card expanding\n"
               "   the '*' character.\n"
               " * Notice the weight factors FOLLOW the name of the extra functionals.\n"
@@ -1035,12 +1040,12 @@ int main( int argc , char *argv[] )
               "      default value.\n"
               "   ++ The order of the weight factor names is unimportant here:\n"
               "        '-lpc+hel*0.5+nmi*0.8' == '-lpc+nmi*0.8+hel*0.5'\n"
-              " * Only the 4 functionals listed here (hel,crA,nmi,mi) can be used in '-lpc+'.\n"
+              " * Only the 5 functionals listed (hel,crA,nmi,mi,ov) can be used in '-lpc+'.\n"
               " * In addition, if you want the initial alignments to be with '-lpc+' and\n"
               "   then finish the Final alignment with pure '-lpc', you can indicate this\n"
-              "   by putting 'ZZ' in the option string, as in '-lpc+ZZ'.\n"
+              "   by putting 'ZZ' somewhere in the option string, as in '-lpc+ZZ'.\n"
               " * This stuff should be considered really experimental at this moment!\n"
-             , micho_hel , micho_crA , micho_nmi , micho_mi
+             , micho_hel , micho_crA , micho_nmi , micho_mi , micho_ov
              ) ;
 
        printf("\n"
@@ -1455,7 +1460,7 @@ int main( int argc , char *argv[] )
        if( ntmask < 666 )
          ERROR_exit("Too few (%d) voxels in -source_mask :-(",ntmask) ;
        if( verb ) INFO_message("%d voxels in -source_mask",ntmask) ;
-       iarg++ ; use_source_mask = 1 ; continue ;
+       iarg++ ; fill_source_mask = 1 ; continue ;
      }
 
      if( strncmp(argv[iarg],"-source_automask",16) == 0 ){  /* 07 Aug 2007 */
@@ -1464,7 +1469,7 @@ int main( int argc , char *argv[] )
        auto_tmask = 1 ; auto_tstring = argv[iarg] ;
        if( auto_tstring[16] == '+' && auto_string[17] != '\0' )
          auto_tdilation = (int)strtod(auto_tstring+17,NULL) ;
-       iarg++ ; use_source_mask = 1 ; continue ;
+       iarg++ ; fill_source_mask = 1 ; continue ;
      }
 
      /*-----*/
@@ -1617,9 +1622,10 @@ int main( int argc , char *argv[] )
        char *cpt ;
        meth_code = GA_MATCH_LPC_MICHO_SCALAR ;
        cpt = strcasestr(argv[iarg],"+hel*"); if( cpt != NULL ) micho_hel = strtod(cpt+5,NULL);
-       cpt = strcasestr(argv[iarg],"+mi*") ; if( cpt != NULL ) micho_mi  = strtod(cpt+4,NULL);
+       cpt = strcasestr(argv[iarg],"+mi*" ); if( cpt != NULL ) micho_mi  = strtod(cpt+4,NULL);
        cpt = strcasestr(argv[iarg],"+nmi*"); if( cpt != NULL ) micho_nmi = strtod(cpt+5,NULL);
        cpt = strcasestr(argv[iarg],"+crA*"); if( cpt != NULL ) micho_crA = strtod(cpt+5,NULL);
+       cpt = strcasestr(argv[iarg],"+ov*" ); if( cpt != NULL ) micho_ov  = strtod(cpt+4,NULL);
        cpt = strcasestr(argv[iarg],"ZZ")   ; micho_zfinal = (cpt != NULL) ;
        iarg++ ; continue ;
      }
@@ -2355,7 +2361,7 @@ int main( int argc , char *argv[] )
 
      if( im_tmask == NULL && !auto_tmask )
        WARNING_message(
-        "-source_automask or -source_mask is recommended when using -lpc or -lpa") ;
+        "-source_automask is strongly recommended when using -lpc or -lpa") ;
    }
 
    if( !hist_setbyuser ){   /* 25 Jul 2007 */
@@ -2778,10 +2784,10 @@ int main( int argc , char *argv[] )
 
    if( meth_code == GA_MATCH_LPC_MICHO_SCALAR ){
      if( verb )
-       INFO_message("-lpc+ parameters: hel=%.2f mi=%.2f nmi=%.2f crA=%.2f %s",
-                    micho_hel , micho_mi , micho_nmi , micho_crA ,
+       INFO_message("-lpc+ parameters: hel=%.2f mi=%.2f nmi=%.2f crA=%.2f ov=%.2f %s",
+                    micho_hel , micho_mi , micho_nmi , micho_crA , micho_ov ,
                     micho_zfinal ? "[to be zeroed at Final iteration]" : "\0" ) ;
-     GA_setup_micho( micho_hel , micho_mi , micho_nmi , micho_crA , 0.0 ) ;
+     GA_setup_micho( micho_hel , micho_mi , micho_nmi , micho_crA , micho_ov ) ;
    }
 
    /* modify base_cmat to allow for zeropad? */
@@ -3233,7 +3239,24 @@ int main( int argc , char *argv[] )
    if( im_tmask != NULL ){
      mri_genalign_set_targmask( im_tmask , &stup ) ;  /* 07 Aug 2007 */
      mri_free(im_tmask) ; im_tmask = NULL ;           /* is copied inside */
-     if( use_source_mask ) stup.ajmask_ranfill = 1 ;  /* 01 Mar 2010 */
+     if( fill_source_mask ) stup.ajmask_ranfill = 1 ; /* 01 Mar 2010 */
+   }
+
+   if( micho_ov != 0.0 ){
+     byte *mmm ; int ndil=auto_tdilation ; MRI_IMAGE *bsm ;
+     mmm = mri_automask_image(im_base) ;
+     if( mmm != NULL ){
+       bsm = mri_new_vol_empty( nx_base,ny_base,nz_base , MRI_byte ) ;
+       mri_fix_data_pointer( mmm , bsm ) ;
+       if( ndil > 0 ){
+         for( ii=0 ; ii < ndil ; ii++ ){
+           THD_mask_dilate     ( nx_base,ny_base,nz_base , mmm , 3 ) ;
+           THD_mask_fillin_once( nx_base,ny_base,nz_base , mmm , 2 ) ;
+         }
+       }
+       mri_genalign_set_basemask( bsm , &stup ) ;
+       mri_free(bsm) ;
+     }
    }
 
    MEMORY_CHECK("about to start alignment loop") ;
@@ -3765,7 +3788,7 @@ int main( int argc , char *argv[] )
      if( save_hist != NULL ) SAVEHIST("final",1) ;
 
      if( meth_code == GA_MATCH_LPC_MICHO_SCALAR && micho_zfinal )  /* set them back */
-       GA_setup_micho( micho_hel , micho_mi , micho_nmi , micho_crA , 0.0 ) ;
+       GA_setup_micho( micho_hel , micho_mi , micho_nmi , micho_crA , micho_ov ) ;
 
      if( do_allcost != 0 ){  /*-- all costs at final affine solution? --*/
        PAR_CPY(val_out) ;    /* copy output parameters into allpar[] */
@@ -4337,6 +4360,10 @@ DUMP_MAT44("aff12_ijk",qmat) ;
      INFO_message("total CPU time = %.1f sec  Elapsed = %.1f\n",
                   COX_cpu_time() , COX_clock_time() ) ;
    MEMORY_CHECK("end of program (after final cleanup)") ;
+   if( verb && apply_1D == NULL ){
+    INFO_message("###########################################################");
+    INFO_message("### Please check results visually for alignment quality ###");
+   }
    if( verb )
     INFO_message("###########################################################");
 
