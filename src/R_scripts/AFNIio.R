@@ -736,7 +736,7 @@ read.AFNI.matrix <- function (fname,
       subjCol <- ttt$V1[2:dim(ttt)[1]]; 
       covNames <- paste(ttt[1,2:dim(ttt)[2]]);
       if (dim(ttt)[2]-1 == 1) {
-         covMatrix <- as.matrix(ttt[2:dim(ttt)[1],2])
+         covMatrix <- as.matrix(as.numeric(ttt[2:dim(ttt)[1],2]))
       } else {
          for (ii in 1:(dim(ttt)[2]-1)) { #Add one column at a time
             if (ii==1) {
@@ -758,7 +758,7 @@ read.AFNI.matrix <- function (fname,
       }
       subjCol <- paste('row',sprintf('%02d',c(1:dim(ttt)[1])), sep='')
       if (dim(ttt)[2] == 1) {
-         covMatrix <- as.matrix(ttt[istrt:dim(ttt)[1],1])
+         covMatrix <- as.matrix(as.numeric(ttt[istrt:dim(ttt)[1],1]))
       } else {
          for (ii in 1:(dim(ttt)[2])) { #Add one column at a time
             if (ii==1) {
