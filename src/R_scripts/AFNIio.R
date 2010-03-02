@@ -83,7 +83,7 @@ parse.AFNI.name.selectors <- function(filename,verb=0) {
 }
 
 parse.AFNI.name <- function(filename, verb = 0) {
-  if (filename == 'self_test') { #Secret testing flag
+  if (filename == '-self_test') { #Secret testing flag
       note.AFNI('Function running in test mode');
       show.AFNI.name(parse.AFNI.name('DePath/hello.DePrefix', verb))
       show.AFNI.name(parse.AFNI.name('DePath/DePrefix+acpc', verb))
@@ -726,7 +726,6 @@ as.char.vec <- function(ss) {
 #------------------------------------------------------------------
 #   Functions to read 1D and other tables
 #------------------------------------------------------------------
-
 read.AFNI.matrix <- function (fname, 
                               usercolnames=NULL, 
                               userrownames=NULL,
@@ -736,13 +735,17 @@ read.AFNI.matrix <- function (fname,
         tolower(ttt$V1[1]) == 'subj' ) {
       subjCol <- ttt$V1[2:dim(ttt)[1]]; 
       covNames <- paste(ttt[1,2:dim(ttt)[2]]);
-      for (ii in 1:(dim(ttt)[2]-1)) { #Add one column at a time
-         if (ii==1) {
-            covMatrix <- cbind(
-               as.numeric(ttt[2:dim(ttt)[1],2:dim(ttt)[2]][[ii]]));
-         } else {
-            covMatrix <- cbind(covMatrix,
-               as.numeric(ttt[2:dim(ttt)[1],2:dim(ttt)[2]][[ii]]));
+      if (dim(ttt)[2]-1 == 1) {
+         covMatrix <- as.matrix(ttt[2:dim(ttt)[1],2])
+      } else {
+         for (ii in 1:(dim(ttt)[2]-1)) { #Add one column at a time
+            if (ii==1) {
+               covMatrix <- cbind(
+                  as.numeric(ttt[2:dim(ttt)[1],2:dim(ttt)[2]][[ii]]));
+            } else {
+               covMatrix <- cbind(covMatrix,
+                  as.numeric(ttt[2:dim(ttt)[1],2:dim(ttt)[2]][[ii]]));
+            }
          }
       }
       #make sure all names in userrownames are represented here
@@ -763,13 +766,17 @@ read.AFNI.matrix <- function (fname,
          covNames <- paste('cov',c(1:dim(ttt)[2]),sep='');
          istrt<- 1
       }
-      for (ii in 1:(dim(ttt)[2])) { #Add one column at a time
-         if (ii==1) {
-            covMatrix <- cbind(
-               as.numeric(ttt[istrt:dim(ttt)[1],1:dim(ttt)[2]][[ii]]));
-         } else {
-            covMatrix <- cbind(covMatrix,
-               as.numeric(ttt[istrt:dim(ttt)[1],1:dim(ttt)[2]][[ii]]));
+      if (dim(ttt)[2] == 1) {
+         covMatrix <- as.matrix(ttt[istrt:dim(ttt)[1],1])
+      } else {
+         for (ii in 1:(dim(ttt)[2])) { #Add one column at a time
+            if (ii==1) {
+               covMatrix <- cbind(
+                  as.numeric(ttt[istrt:dim(ttt)[1],1:dim(ttt)[2]][[ii]]));
+            } else {
+               covMatrix <- cbind(covMatrix,
+                  as.numeric(ttt[istrt:dim(ttt)[1],1:dim(ttt)[2]][[ii]]));
+            }
          }
       }
       if (!is.null(userrownames)) {
@@ -785,8 +792,11 @@ read.AFNI.matrix <- function (fname,
                      '   ', paste (userrownames,collapse=' '),sep=''));
          }
          subjCol <- userrownames
+      }else{
+         subjCol <- paste('s',sprintf('%02d',c(1:dim(ttt)[1])), sep='')
       }
    } 
+   #browser()
    rownames(covMatrix) <- subjCol;
    colnames(covMatrix) <- covNames;
    #Now, to be safe, regenerate the covariates matrix based on
@@ -801,8 +811,8 @@ read.AFNI.matrix <- function (fname,
          }
       }
       rownames(mm) <- userrownames
+      covMatrix <- mm
    }
-   covMatrix <- mm
    if (is.null(usercolnames)) {
       usercolnames <- colnames(covMatrix);
    } else {
