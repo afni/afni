@@ -1740,6 +1740,7 @@ typedef struct {
        KILL_floatvec((st)->km); KILL_floatvec((st)->bvm);                   \
        KILL_floatvec((st)->wvm); IFREE((st)->wfunc_param) ;                 \
        mri_free((st)->ajmask); mri_free((st)->ajimor);                      \
+       mri_free((st)->bsmask);                                              \
      }                                                                      \
  } while(0)
 
