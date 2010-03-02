@@ -2,8 +2,6 @@
   #define _3DSVM_COMMON_H
 #endif
 
-#test CVS
-
 #include "afni.h"
 #include <stdio.h>
 #include <string.h>
