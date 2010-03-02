@@ -546,7 +546,7 @@ g_help_string = """
 ## BEGIN common functions across scripts (loosely of course)
 class RegWrap:
    def __init__(self, label):
-      self.align_version = "1.29" # software version (update for changes)
+      self.align_version = "1.30" # software version (update for changes)
       self.label = label
       self.valid_opts = None
       self.user_opts = None
@@ -571,7 +571,7 @@ class RegWrap:
       self.edge = 0        # don't use edges for alignment
       self.edgelevels = 5  # number of outer layers to remove in edge method
       self.cost = ''       # assign cost below
-     
+
       # options for saving temporary datasets permanently
       self.save_Al_in = 0  # don't save 3dAllineate input files
       self.save_tsh = 0    # don't save tshifted epi
@@ -1228,7 +1228,7 @@ class RegWrap:
          ps.AlOpt = "%s -twopass " % ps.AlOpt
          
       if(opt2):
-         ps.AlOpt = "-twopass -VERB -maxrot 45 -maxshf 40"
+         ps.AlOpt = "-twopass -VERB -maxrot 45 -maxshf 40 -source_mask+1"
          ps.cmass = "cmass"
          giant_move = 1
       else :
