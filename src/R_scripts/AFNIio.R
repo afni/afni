@@ -726,10 +726,104 @@ as.char.vec <- function(ss) {
 #------------------------------------------------------------------
 #   Functions to read 1D and other tables
 #------------------------------------------------------------------
+read.AFNI.matrix.test <- function(verb=1) {
+      cat ( 'Running read.AFNI.matrix in test mode\n',
+            'See read.AFNI.matrix.test for details' )
+      i <- 0
+         mm <- paste ( 'subj age weight height\n',
+                       'joe   13  299  123   \n',
+                       'jane  22  600   234   \n',
+                       'jim   2   188   23\n',
+                      sep='', collapse='');
+         fouts <- sprintf('___fout%02d.1D', i);
+         cat (mm,file=fouts);
+         
+         comm <- 'read.AFNI.matrix(fouts, verb=verb)'
+         note.AFNI(sprintf("Working with fouts=%s:\n   %s", fouts, comm))
+         print(eval(parse(text=comm)))
+         
+         comm <- paste("read.AFNI.matrix(fouts, verb=verb,", 
+                                         "userrownames=c('jim','jane'))",
+                        sep='', collapse='')
+         note.AFNI(sprintf("Working with fouts=%s:\n   %s", fouts, comm))
+         print(eval(parse(text=comm)))
+         
+         comm <- paste("read.AFNI.matrix(fouts, verb=verb, ", 
+                                         "userrownames=c('jim','jane'),", 
+                                         "usercolnames=c('weight','age'))",
+                        sep='', collapse='')
+         print(eval(parse(text=comm)))
+         
+      i<- i+1
+         mm <- paste ( ' age weight height\n',
+                       ' 13  299  123   \n',
+                       ' 22  600   234   \n',
+                       ' 2   188   23\n',
+                      sep='', collapse='');
+         fouts <- sprintf('___fout%02d.1D', i);
+         cat (mm,file=fouts);
+         note.AFNI(sprintf("Working with %s", fouts))
+         
+         comm <- 'read.AFNI.matrix(fouts, verb=verb)'
+         note.AFNI(sprintf("Working with fouts=%s:\n   %s", fouts, comm))
+         print(eval(parse(text=comm)))
+         
+         comm <- paste("read.AFNI.matrix(fouts, verb=verb,", 
+                                   "usercolnames=c('height','weight,','age'))",
+                        sep='', collapse='')
+         note.AFNI(sprintf("Working with fouts=%s:\n   %s", fouts, comm))
+         print(eval(parse(text=comm)))
+         
+      i<- i+1
+         mm <- paste ( ' 13  299  123   \n',
+                       ' 22  600   234   \n',
+                       ' 2   188   23\n',
+                      sep='', collapse='');
+      
+         fouts <- sprintf('___fout%02d.1D', i);
+         cat (mm,file=fouts);
+         note.AFNI(sprintf("Working with %s", fouts))
+         print(read.AFNI.matrix(fouts, verb=verb))
+         print(read.AFNI.matrix(fouts, verb=verb, usercolnames=c('col02'), 
+                                 userrownames=c('row03','row01','row01')))
+                                 
+      i<- i+1
+         mm <- paste ( '  heft   \n',
+                       '  299    \n',
+                       '  600     \n',
+                       '  188     \n',
+                      sep='', collapse='');
+         fouts <- sprintf('___fout%02d.1D', i);
+         cat (mm,file=fouts);
+         note.AFNI(sprintf("Working with %s", fouts))
+         print(read.AFNI.matrix(fouts, verb=verb))
+         print(read.AFNI.matrix(fouts, verb=verb, usercolnames=c('heft')))
+         
+      i<- i+1
+         mm <- paste ( '  299    \n',
+                       '  600     \n',
+                       '  188     \n',
+                      sep='', collapse='');
+         fouts <- sprintf('___fout%02d.1D', i);
+         note.AFNI(sprintf("Working with %s", fouts))
+         cat (mm,file=fouts);
+         print(read.AFNI.matrix(fouts, verb=verb))
+         
+      for (j in 0:i) {   
+         system(sprintf('\\rm -f ___fout%02d.1D', i));
+      }
+}
+
 read.AFNI.matrix <- function (fname, 
                               usercolnames=NULL, 
                               userrownames=NULL,
                               verb = 0) {
+   if (fname == '-self_test') {
+      read.AFNI.matrix.test()
+      return(NULL);
+   }
+   if (verb) print(who.called.me())
+   
    ttt <- read.table(fname, colClasses='character');
    if ( tolower(ttt$V1[1]) == 'name' || 
         tolower(ttt$V1[1]) == 'subj' ) {
@@ -749,14 +843,16 @@ read.AFNI.matrix <- function (fname,
          }
       }
    }  else {
-      if (is.na(as.numeric(ttt$V1[1]))) { #Just labels
+      flg <- tryCatch({as.numeric(ttt$V1[1])}, warning=function(aa) {});
+      if (is.null(flg)) { #Just labels
          covNames <- paste(ttt[1,1:dim(ttt)[2]]);
+         subjCol <- paste('row',sprintf('%02d',c(1:(dim(ttt)[1]-1))), sep='')
          istrt<- 2
       }else {  #completely naked
          covNames <- paste('col',sprintf('%02d',c(1:dim(ttt)[2])),sep='');
+         subjCol <- paste('row',sprintf('%02d',c(1:dim(ttt)[1])), sep='')
          istrt<- 1
       }
-      subjCol <- paste('row',sprintf('%02d',c(1:dim(ttt)[1])), sep='')
       if (dim(ttt)[2] == 1) {
          covMatrix <- as.matrix(as.numeric(ttt[istrt:dim(ttt)[1],1]))
       } else {
@@ -773,7 +869,9 @@ read.AFNI.matrix <- function (fname,
    } 
 
 
-   #browser()
+   if (verb>2) {
+      browser()
+   }
    rownames(covMatrix) <- subjCol;
    colnames(covMatrix) <- covNames;
    
@@ -781,8 +879,8 @@ read.AFNI.matrix <- function (fname,
    if (!is.null(userrownames)) {
       dd <- userrownames[!(userrownames %in% subjCol)]
       if (length(dd)) {
-         warning (paste('Rows ', paste(dd,collapse=' '),
-                        ' do not have an entry.\n'),
+         warning (paste('Row(s) "', paste(dd,collapse=' '),
+                        '" do(es) not have an entry.\n'),
                   immediate.=TRUE);
          return(NULL);
       }
@@ -800,8 +898,8 @@ read.AFNI.matrix <- function (fname,
    if (!is.null(usercolnames)) {
       dd <- usercolnames[!(usercolnames %in% covNames)]
       if (length(dd)) {
-         warning (paste('Columns ', paste(dd,collapse=' '),
-                        ' do not have an entry.\n'),
+         warning (paste('Column(s) "', paste(dd,collapse=' '),
+                        '" do(es) not have an entry.\n'),
                   immediate.=TRUE);
          return(NULL);
       }
