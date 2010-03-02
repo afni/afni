@@ -600,7 +600,7 @@ covariates centering, no payment no interest till Memorial Day next year:
             -HKtest         \\
             -model_outliers \\
             -residual_Z     \\
-            -covariates_file CovFile.txt \\
+            -covariates CovFile.txt \\
             -covariates_center age = 25 13 weight = 100 150  \\
             -covariates_model center=different slope=same   
    
