@@ -546,7 +546,7 @@ g_help_string = """
 ## BEGIN common functions across scripts (loosely of course)
 class RegWrap:
    def __init__(self, label):
-      self.align_version = "1.30" # software version (update for changes)
+      self.align_version = "1.31" # software version (update for changes)
       self.label = label
       self.valid_opts = None
       self.user_opts = None
@@ -1228,7 +1228,8 @@ class RegWrap:
          ps.AlOpt = "%s -twopass " % ps.AlOpt
          
       if(opt2):
-         ps.AlOpt = "-twopass -VERB -maxrot 45 -maxshf 40 -source_mask+1"
+         ps.AlOpt =  \
+          "-twobest 11 -twopass -VERB -maxrot 45 -maxshf 40 -fineblur 1 -source_automask+2"
          ps.cmass = "cmass"
          giant_move = 1
       else :
