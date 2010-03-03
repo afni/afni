@@ -1807,9 +1807,12 @@ def db_cmd_regress(proc, block):
     nmotion = len(proc.mot_labs) * len(proc.mot_files)
     total_nstim =  len(proc.stims) + len(proc.extra_stims) + \
                    nmotion + proc.ricor_nreg
+    
+    # maybe we will censor
     if proc.regress_censor_file:
         censor_str = '    -censor %s \\\n' % proc.regress_censor_file
     else: censor_str = ''
+
     cmd = cmd + '3dDeconvolve -input %s \\\n'           \
                 '%s'                                    \
                 '    -polort %d %s\\\n'                 \
@@ -1958,7 +1961,7 @@ def db_cmd_regress(proc, block):
     # add misc options
     cmd = cmd + iresp
     cmd = cmd + other_opts
-    cmd = cmd + "    %s-tout -x1D X.xmat.1D -xjpeg X.jpg \\\n" % fout_str
+    cmd = cmd + "    %s-tout -x1D %s -xjpeg X.jpg \\\n" % (fout_str, proc.xmat)
     cmd = cmd + fitts + errts + stop_opt
     cmd = cmd + "    -bucket stats.$subj\n\n\n"
 
@@ -1983,6 +1986,15 @@ def db_cmd_regress(proc, block):
     cmd = cmd + "3dTcat -prefix %s %s\n\n" % \
                 (all_runs, proc.prev_dset_form_wild())
 
+    # if censoring create an uncensored X-matrix file
+    if proc.regress_censor_file:
+        newmat = "X.uncensored.xmat.1D"
+        cmd = cmd +     \
+            "# in case of censoring, create uncensored X-matrix\n"      \
+            "1d_tool.py -infile %s -censor_fill -write %s\n\n"          \
+                % (proc.xmat, newmat)
+        proc.xmat = newmat
+
     # extract ideal regressors, and possibly make a sum
     opt = block.opts.find_opt('-regress_no_ideals')
     if not opt and UTIL.basis_has_known_response(basis):
@@ -1990,8 +2002,8 @@ def db_cmd_regress(proc, block):
         cmd = cmd + "# create ideal files for each stim type\n"
         first = (polort+1) * proc.runs
         for ind in range(len(labels)):
-            cmd = cmd + "1dcat X.xmat.1D'[%d]' > ideal_%s.1D\n" % \
-                        (first+ind, labels[ind])
+            cmd = cmd + "1dcat %s'[%d]' > ideal_%s.1D\n" % \
+                        (proc.xmat, first+ind, labels[ind])
         cmd = cmd + '\n'
 
     opt = block.opts.find_opt('-regress_make_ideal_sum')
@@ -1999,8 +2011,8 @@ def db_cmd_regress(proc, block):
         first = (polort+1) * proc.runs
         last = first + len(proc.stims) - 1
         cmd = cmd + "# create ideal file by adding ideal regressors\n"
-        cmd = cmd + "3dTstat -sum -prefix %s X.xmat.1D'[%d..%d]'\n\n" % \
-                    (opt.parlist[0], first, last)
+        cmd = cmd + "3dTstat -sum -prefix %s %s'[%d..%d]'\n\n" % \
+                    (opt.parlist[0], proc.xmat, first, last)
 
     # check for blur estimates
     bcmd = db_cmd_blur_est(proc, block)
