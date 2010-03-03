@@ -173,9 +173,10 @@ g_history = """
     2.16 Jan 21 2010 :
         - added -tlrc_opts_at for adding options to @auto_tlrc
         - changed max(0,...) to *step(a)*step(b) in scaling block
+    2.17 Mar 03 2010 : when censoring, create uncensored ideals and sum
 """
 
-g_version = "version 2.16, January 21, 2010"
+g_version = "version 2.17, March 3, 2010"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
@@ -272,6 +273,7 @@ class SubjProcSream:
         self.regmask    = 0             # apply any full_mask in regression
         self.origview   = '+orig'       # view could also be '+tlrc'
         self.view       = '+orig'       # (starting and 'current' views)
+        self.xmat       = 'X.xmat.1D'   # X-matrix file (might go uncensored)
 
         self.bindex     = 0             # current block index
         self.pblabel    = ''            # previous block label
