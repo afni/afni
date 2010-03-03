@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  3, MAR, 2010, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
+   "when censoring, create uncensored ideals and sum",
+   NULL
+ } ,
+
  { 20, FEB, 2010, RCR, "timing_tool.py", MINOR, TYPE_NEW_OPT,
    "added -timing_to_1D, -tr and -min_frac for PPI scripting (and B Benson)",
    NULL
