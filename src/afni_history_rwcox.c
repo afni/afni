@@ -44,6 +44,12 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 3 , MAR , 2010 , RWC , "afni" , MICRO , TYPE_GENERAL ,
+   "GroupInstaCorr dataset now can be +orig" ,
+   "If user sets environment variable AFNI_GROUPINCORR_ORIG to YES, as in\n"
+   "\n"
+   "  afni -niml -DAFNI_GROUPINCORR_ORIG=YES" } ,
+
  { 2 , MAR , 2010 , RWC , "3dAllineate" , MICRO , TYPE_GENERAL ,
    "moved weight sum in LPC" ,
    "* Old way: count a BLOK even if it doesn't contribute to correlation sum\n"
