@@ -2528,12 +2528,6 @@ int main( int argc , char *argv[] )
                   nx_targ, ny_targ, nz_targ) ;
    }
 
-#if 0
-   GA_allow_ccount( (im_tmask == NULL) ) ;  /* 22 Feb 2010 */
-#else
-   GA_allow_ccount( 0 ) ;
-#endif
-
    /*-- load base dataset if defined --*/
 
    if( dset_base != NULL ){

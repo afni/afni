@@ -719,6 +719,15 @@ int main( int argc , char *argv[] )
 #ifdef isfinite
       " -debug = Do some internal testing (slows things down a little)\n"
 #endif
+      "\n"
+      "-------============= Talairach (+trlc) vs. Original (+orig) =============-------\n"
+      "\n"
+      "Normally, AFNI assigns the dataset sent by 3dGroupInCorr to the +tlrc view.\n"
+      "However, you can tell AFNI to assign it to the +orig view instead.\n"
+      "To do this, set environment variable AFNI_GROUPINCORR_ORIG to YES when\n"
+      "starting AFNI; for example:\n"
+      "\n"
+      "  afni -DAFNI_GROUPINCORR_ORIG=YES -niml\n"
      ) ;
      PRINT_AFNI_OMP_USAGE("3dGroupInCorr",NULL) ;
      PRINT_COMPILE_DATE ; exit(0) ;
@@ -726,7 +735,7 @@ int main( int argc , char *argv[] )
 
    mainENTRY("3dGroupInCorr"); machdep();
    AFNI_logger("3dGroupInCorr",argc,argv);
-   PRINT_VERSION("3dGroupInCorr"); AUTHOR("RW Cox");
+   PRINT_VERSION("3dGroupInCorr"); AUTHOR("The Mad Correlator");
 
    /*-- process command line options --*/
 
@@ -944,11 +953,11 @@ int main( int argc , char *argv[] )
 
    /* name of NIML stream (socket) to open */
 
-   if (TalkToAfni) {
-      sprintf( nsname , "tcp:%s:%d" , afnihost , AFNI_NIML_PORT ) ;
+   if(TalkToAfni ){
+     sprintf( nsname , "tcp:%s:%d" , afnihost , AFNI_NIML_PORT ) ;
    } else {
-      sprintf( nsname , "tcp:%s:%d" , afnihost , SUMA_GICORR_PORT ) ;
-      pname = "SUMA" ;
+     sprintf( nsname , "tcp:%s:%d" , afnihost , SUMA_GICORR_PORT ) ;
+     pname = "SUMA" ;
    }
    /* open the socket (i.e., dial the telephone call) */
 
