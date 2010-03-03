@@ -661,8 +661,10 @@ void GICOR_setup_func( NI_stream nsg , NI_element *nel )
 
    atr = NI_get_attribute( nel , "target_nvals" ) ;
    if( atr != NULL ){ nvals = (int)strtod(atr,NULL); nvals = MAX(1,nvals); }
+   vv = AFNI_yesenv("AFNI_GROUPINCORR_ORIG") ;
    EDIT_dset_items( dset , ADN_nvals     , nvals ,
-                           ADN_view_type , VIEW_TALAIRACH_TYPE ,
+                           ADN_view_type , (vv) ? VIEW_ORIGINAL_TYPE
+                                                : VIEW_TALAIRACH_TYPE ,
                            ADN_brick_fac , NULL ,
                     ADN_none ) ;
 
