@@ -196,7 +196,7 @@ int main( int argc , char * argv[] )
      }
 
      if( strcmp(argv[nopt],"-notrans") == 0 || strcmp(argv[nopt],"-nosat") == 0 ){
-       nosat = 0 ; nopt++ ; continue ;
+       nosat = 1 ; nopt++ ; continue ;
      }
 
      if( strcmp(argv[nopt],"-ort") == 0 ){
