@@ -44,6 +44,11 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 4 , MAR , 2010 , RWC , "3dGroupInCorr" , MINOR , TYPE_BUG_FIX ,
+   "Fixed crash with paired t-test opcode" ,
+   "Didn't switch to 1-sample mode when opcode was for paired, but no second\n"
+   "data vector was passed in.  This, of course, is Mike Beauchamp's fault." } ,
+
  { 3 , MAR , 2010 , RWC , "afni" , MICRO , TYPE_GENERAL ,
    "GroupInstaCorr dataset now can be +orig" ,
    "If user sets environment variable AFNI_GROUPINCORR_ORIG to YES, as in\n"
