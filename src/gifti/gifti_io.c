@@ -120,9 +120,14 @@ static char * gifti_history[] =
   "     - added gifti_approx_gifti_images, DA_pair, labeltables, diff_offset\n"
   "     - added gifti_triangle_diff_offset\n"
   "     - gifti_compare_coordsys takes comp_data param\n"
+  "1.07 04 March, 2010: minor changes (also see NITRC IDs 4619 and 4644)\n",
+  "     - for integers, make default approx test to be equality\n"
+  "     - small changes to zlib failure strings\n"
+  "     - cast to avoid compile warning on some systems\n"
+  "     - gifti_xml.h: made NITRC gifti.dtd link that will not change\n"
 };
 
-static char gifti_version[] = "gifti library version 1.06, 24 December, 2009";
+static char gifti_version[] = "gifti library version 1.07, 4 March, 2010";
 
 /* ---------------------------------------------------------------------- */
 /*! global lists of XML strings */
@@ -3289,8 +3294,9 @@ int gifti_compare_coordsys(const giiCoordSystem *s1, const giiCoordSystem *s2,
 
     offset = gifti_compare_raw_data(s1->xform, s2->xform, sizeof(s1->xform));
     if( offset >= 0 ) {
-        if(lverb>2) printf("-- coordsys xform diff at offset %lld\n",
-                           offset/sizeof(double));
+        /* convert to index (to avoid printf warning)  2 Mar 2010 */
+        offset /= (long long)sizeof(double);
+        if(lverb>2) printf("-- coordsys xform diff at offset %lld\n", offset);
         if( lverb < 3 ) return 1;
         diffs++;
     }
@@ -3374,7 +3380,7 @@ long long gifti_approx_diff_offset(const void * p1, const void * p2,
 
         case NIFTI_TYPE_INT8: {
             char * d1 = (char *)p1, * d2 = (char *)p2;
-            if( llim >= 1.0 ) llim = 1e-2;
+            if( llim >= 1.0 ) llim = 0.0;       /* require equality for ints */
             for( posn = 0; posn < length; posn++, d1++, d2++ ) {
                 if( *d1 == *d2 ) continue;      /* fast check for equality */
                 if( llim == 0.0 ) break;        /* fast check for inequality */
@@ -3384,7 +3390,7 @@ long long gifti_approx_diff_offset(const void * p1, const void * p2,
         }
         case NIFTI_TYPE_INT16: {
             short * d1 = (short *)p1, * d2 = (short *)p2;
-            if( llim >= 1.0 ) llim = 1e-3;
+            if( llim >= 1.0 ) llim = 0.0;       /* require equality for ints */
             for( posn = 0; posn < length; posn++, d1++, d2++ ) {
                 if( *d1 == *d2 ) continue;      /* fast check for equality */
                 if( llim == 0.0 ) break;        /* fast check for inequality */
@@ -3394,7 +3400,7 @@ long long gifti_approx_diff_offset(const void * p1, const void * p2,
         }
         case NIFTI_TYPE_INT32: {
             int * d1 = (int *)p1, * d2 = (int *)p2;
-            if( llim >= 1.0 ) llim = 1e-9;
+            if( llim >= 1.0 ) llim = 0.0;       /* require equality for ints */
             for( posn = 0; posn < length; posn++, d1++, d2++ ) {
                 if( *d1 == *d2 ) continue;      /* fast check for equality */
                 if( llim == 0.0 ) break;        /* fast check for inequality */
@@ -3404,7 +3410,7 @@ long long gifti_approx_diff_offset(const void * p1, const void * p2,
         }
         case NIFTI_TYPE_INT64: {
             long long * d1 = (long long *)p1, * d2 = (long long *)p2;
-            if( llim >= 1.0 ) llim = 1e-18;
+            if( llim >= 1.0 ) llim = 0.0;       /* require equality for ints */
             for( posn = 0; posn < length; posn++, d1++, d2++ ) {
                 if( *d1 == *d2 ) continue;      /* fast check for equality */
                 if( llim == 0.0 ) break;        /* fast check for inequality */
@@ -3414,7 +3420,7 @@ long long gifti_approx_diff_offset(const void * p1, const void * p2,
         }
         case NIFTI_TYPE_UINT8: {
             unsigned char *d1 = (unsigned char *)p1, *d2 = (unsigned char *)p2;
-            if( llim >= 1.0 ) llim = 1e-2;
+            if( llim >= 1.0 ) llim = 0.0;       /* require equality for ints */
             for( posn = 0; posn < length; posn++, d1++, d2++ ) {
                 if( *d1 == *d2 ) continue;      /* fast check for equality */
                 if( llim == 0.0 ) break;        /* fast check for inequality */
@@ -3424,7 +3430,7 @@ long long gifti_approx_diff_offset(const void * p1, const void * p2,
         }
         case NIFTI_TYPE_UINT16: {
             unsigned short *d1=(unsigned short *)p1, *d2=(unsigned short *)p2;
-            if( llim >= 1.0 ) llim = 1e-4;
+            if( llim >= 1.0 ) llim = 0.0;       /* require equality for ints */
             for( posn = 0; posn < length; posn++, d1++, d2++ ) {
                 if( *d1 == *d2 ) continue;      /* fast check for equality */
                 if( llim == 0.0 ) break;        /* fast check for inequality */
@@ -3434,7 +3440,7 @@ long long gifti_approx_diff_offset(const void * p1, const void * p2,
         }
         case NIFTI_TYPE_UINT32: {
             unsigned int * d1 = (unsigned int *)p1, * d2 = (unsigned int *)p2;
-            if( llim >= 1.0 ) llim = 1e-9;
+            if( llim >= 1.0 ) llim = 0.0;       /* require equality for ints */
             for( posn = 0; posn < length; posn++, d1++, d2++ ) {
                 if( *d1 == *d2 ) continue;      /* fast check for equality */
                 if( llim == 0.0 ) break;        /* fast check for inequality */
@@ -3445,7 +3451,7 @@ long long gifti_approx_diff_offset(const void * p1, const void * p2,
         case NIFTI_TYPE_UINT64: {
             unsigned long long * d1 = (unsigned long long *)p1;
             unsigned long long * d2 = (unsigned long long *)p2;
-            if( llim >= 1.0 ) llim = 1e-18;
+            if( llim >= 1.0 ) llim = 0.0;       /* require equality for ints */
             for( posn = 0; posn < length; posn++, d1++, d2++ ) {
                 if( *d1 == *d2 ) continue;      /* fast check for equality */
                 if( llim == 0.0 ) break;        /* fast check for inequality */
@@ -3455,7 +3461,7 @@ long long gifti_approx_diff_offset(const void * p1, const void * p2,
         }
         case NIFTI_TYPE_FLOAT32: {
             float * d1 = (float *)p1, * d2 = (float *)p2;
-            if( llim >= 1.0 ) llim = 1e-6;
+            if( llim >= 1.0 ) llim = 1e-5;
             for( posn = 0; posn < length; posn++, d1++, d2++ ) {
                 if( *d1 == *d2 ) continue;      /* fast check for equality */
                 if( llim == 0.0 ) break;        /* fast check for inequality */

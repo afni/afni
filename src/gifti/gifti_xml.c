@@ -1158,18 +1158,23 @@ static int pop_darray(gxml_data * xd)
 
         /* unzip zdata to da->data */
 
+        if( xd->verb > 2 )
+            fprintf(stderr,"-- uncompressing %lld bytes into %lld\n",
+                           xd->dind, (long long)outlen);
+
         rv = uncompress(da->data, &outlen, (Bytef*)xd->zdata, xd->dind);
         olen = outlen;
+
         if( rv != Z_OK ) {
             fprintf(stderr,"** uncompress fails for DA[%d]\n",xd->gim->numDA-1);
             if( rv == Z_MEM_ERROR )
-                fprintf(stderr,"** zlib failure, not enough memory\n");
+                fprintf(stderr,"   (zlib failure, not enough memory)\n");
             else if ( rv == Z_BUF_ERROR )
-                fprintf(stderr,"** zlib failure, output buffer too short\n");
+                fprintf(stderr,"   (zlib failure, output buffer too short)\n");
             else if ( rv == Z_DATA_ERROR )
-                fprintf(stderr,"** zlib failure, corrupted data\n");
+                fprintf(stderr,"   (zlib failure, corrupted data)\n");
             else if ( rv != Z_OK )
-                fprintf(stderr,"** zlib failure, unknown error %d\n", rv);
+                fprintf(stderr,"   (zlib failure, unknown error %d)\n", rv);
         } else if ( xd->verb > 2 || (xd->verb > 1 && xd->gim->numDA == 1 ))
             fprintf(stderr,"-- uncompressed buffer (%.2f%% of %lld bytes)\n",
                     100.0*xd->dind/olen, olen);
@@ -2355,8 +2360,9 @@ static void XMLCALL cb_start_doctype(void *udata, const char * doctype,
     gxml_data * xd = (gxml_data *)udata;
     if( xd->verb > 2 ){
         show_depth(xd->depth, 1, stderr);
+        /* check for NULL in optional strings   4 Mar 2010 */
         fprintf(stderr, "start_doctype, dt='%s', sid='%s',pid='%s', sub=%d\n",
-               doctype, sysid, pubid, has_subset);
+               doctype, sysid?sysid:"NULL", pubid?pubid:"NULL", has_subset);
     }
 }
 
@@ -2730,17 +2736,18 @@ static int ewrite_data(gxml_data * xd, giiDataArray * da, FILE * fp)
 
             rv = compress2((Bytef *)xd->zdata, &blen, da->data,
                            da->nvals*da->nbyper, xd->zlevel);
+            if ( xd->verb > 2 )
+                fprintf(stderr,"-- compress buffer (%.2f%% of %lld bytes)...\n",
+                        100.0*blen/(da->nvals*da->nbyper),da->nvals*da->nbyper);
             if( rv != Z_OK ) {
-                if( rv == Z_MEM_ERROR )
-                    fprintf(stderr,"** zlibc failure, not enough memory\n");
-                if( rv == Z_BUF_ERROR )
-                    fprintf(stderr,"** zlibc failure, buffer too short\n");
-                else
-                    fprintf(stderr,"** zlibc failure, unknown error %d\n", rv);
+                fprintf(stderr,"** zlib compression failure: ");
+                if( rv == Z_MEM_ERROR ) fprintf(stderr,"not enough memory\n");
+                if( rv == Z_BUF_ERROR ) fprintf(stderr,"buffer too short\n");
+                else                    fprintf(stderr,"unknown error %d\n",rv);
                 errs++;
             } else if ( xd->verb > 2 )
-                fprintf(stderr,"-- compressed buffer (%.2f%% of %lld bytes)\n",
-                        100.0*blen/(da->nvals*da->nbyper),da->nvals*da->nbyper);
+                fprintf(stderr,"-- compression succeeded\n");
+
             gxml_disp_b64_data(NULL, xd->zdata, blen, fp);
 #else
             fprintf(stderr,"** ewrite_data: no ZLIB to compress with\n");
