@@ -1295,7 +1295,8 @@ int main( int argc , char *argv[] )
 GetOutOfDodge :
    /* NI_free_element(nelset) ; */
 
-   INFO_message("Exeunt 3dGroupInCorr and its trove of data") ;
+   INFO_message("Exeunt 3dGroupInCorr and its %s of data" ,
+                (nsend%2 == 0) ? "trove" : "hoard") ;
    exit(0) ;
 }
 
