@@ -479,6 +479,8 @@ void GI_exit(void)                   /* Function to be called to make sure */
    if( GI_stream != (NI_stream)NULL ){
      fprintf(stderr,"** 3dGroupInCorr exits: closing connection to %s\n",pname) ;
      NI_stream_close(GI_stream) ;
+   } else if( verb > 2 ){
+     fprintf(stderr,"** 3dGroupInCorr atexit() function invoked") ;
    }
    return ;
 }
@@ -1213,9 +1215,12 @@ int main( int argc , char *argv[] )
 
      /* step 2: lots and lots of correlation-ization */
 
+     if( verb > 3 ) ININFO_message(" start correlation-izing for %s",label_AAA) ;
      GRINCOR_many_dotprod( shd_AAA , seedvec_AAA , dotprod_AAA ) ;
-     if( shd_BBB != NULL )
+     if( shd_BBB != NULL ){
+       if( verb > 3 ) ININFO_message(" start correlation-izing for %s",label_BBB) ;
        GRINCOR_many_dotprod( shd_BBB , seedvec_BBB , dotprod_BBB ) ;
+     }
 
      if( verb > 2 || (verb==1 && nsend < 2) ){
        ctim = NI_clock_time() ;
@@ -1225,14 +1230,18 @@ int main( int argc , char *argv[] )
 
      /* step 3: lots of t-test-ification */
 
+     if( verb > 3 )
+       ININFO_message(" start %d-sample t-test-izing" , (ndset_BBB > 0) ? 2 : 1 ) ;
      GRINCOR_many_ttest( nvec , ndset_AAA , dotprod_AAA ,
                                 ndset_BBB , dotprod_BBB , neldar,nelzar ) ;
 
      /* 1-sample results for the 2-sample case? */
 
      if( dosix ){
+       if( verb > 3 ) ININFO_message(" start 1-sample t-test-izing for %s",label_AAA) ;
        GRINCOR_many_ttest( nvec , ndset_AAA , dotprod_AAA ,
                                   0         , NULL        , neldar_AAA,nelzar_AAA ) ;
+       if( verb > 3 ) ININFO_message(" start 1-sample t-test-izing for %s",label_BBB) ;
        GRINCOR_many_ttest( nvec , ndset_BBB , dotprod_BBB ,
                                   0         , NULL        , neldar_BBB,nelzar_BBB ) ;
      }
@@ -1263,6 +1272,7 @@ int main( int argc , char *argv[] )
 
      /*** send the result to AFNI ***/
 
+     if( verb > 3 ) ININFO_message(" sending results to AFNI") ;
      kk = NI_write_element( GI_stream , nelset , NI_BINARY_MODE ) ;
      if( kk <= 0 ){
        ERROR_message("3dGroupInCorr: failure when writing to %s",pname) ;
@@ -1285,7 +1295,7 @@ int main( int argc , char *argv[] )
 GetOutOfDodge :
    /* NI_free_element(nelset) ; */
 
-   INFO_message("Exeunt 3dGroupInCorr and its data hoard") ;
+   INFO_message("Exeunt 3dGroupInCorr and its trove of data") ;
    exit(0) ;
 }
 
@@ -1550,9 +1560,9 @@ float_pair ttest_toz( int numx, float *xar, int numy, float *yar, int opcode )
 
    if( numx < 2 || xar == NULL                 ) return result ; /* bad */
    if( paired && (numy != numx || yar == NULL) ) return result ; /* bad */
-
-   if( numy  < 2 || yar == NULL ){ numy = paired = pooled = 0 ; yar = NULL ; }
 #endif
+
+   if( numy < 2 || yar == NULL ){ numy = paired = pooled = 0 ; yar = NULL ; }
 
    if( paired ){   /* Case 1: paired t test */
 
