@@ -2737,9 +2737,14 @@ ENTRY("mri_read_1D") ;
 
    /*-- read file in, flip it sideways --*/
 
-   inim = mri_read_ascii(dname) ;
-   if( inim == NULL ) RETURN(NULL) ;
-   flim = mri_transpose(inim) ; mri_free(inim) ;
+   if( strcmp(dname,"stdin") != 0 ){
+     inim = mri_read_ascii(dname) ;
+     if( inim == NULL ) RETURN(NULL) ;
+     flim = mri_transpose(inim) ; mri_free(inim) ;
+   } else {
+     flim = mri_read_1D_stdin() ;  /* 05 Mar 2010 */
+     if( flim == NULL ) RETURN(NULL);
+   }
 
    /*-- get the subvector and subsampling lists, if any --*/
 
@@ -3165,6 +3170,21 @@ ENTRY("mri_read_complex_1D") ;
 }
 
 /*-----------------------------------------------------------------------------------*/
+
+static MRI_IMAGE *im_stdin = NULL ;
+
+MRI_IMAGE * mri_copy_1D_stdin(void)  /* 05 Mar 2010 */
+{
+  if( im_stdin == NULL ) im_stdin = mri_read_1D_stdin() ;
+  return mri_copy(im_stdin) ;
+}
+
+void mri_clear_1D_stdin(void)
+{
+  if( im_stdin != NULL ){ mri_free(im_stdin); im_stdin = NULL; }
+}
+
+/*-----------------------------------------------------------------------------------*/
 /* Read a 1D file from stdin; adapted from 1dplot.c */
 
 MRI_IMAGE * mri_read_1D_stdin(void)
@@ -3178,6 +3198,11 @@ MRI_IMAGE * mri_read_1D_stdin(void)
 
 ENTRY("mri_read_1D_stdin") ;
 
+   if( im_stdin != NULL ){
+INFO_message("copying im_stdin") ;
+ inim = mri_copy(im_stdin); RETURN(inim); }
+
+INFO_message("reading 1D_stdin") ;
    lbuf = (char * )malloc(sizeof(char )*SIN_NLBUF) ;
    val  = (float *)malloc(sizeof(float)*SIN_NVMAX) ;
 
@@ -3223,7 +3248,7 @@ ENTRY("mri_read_1D_stdin") ;
    } else {           /* only 1 row ==> am OK this way */
      inim = flim ;
    }
-   free((void *)val); free((void *)lbuf); RETURN(inim);
+   free((void *)val); free((void *)lbuf); im_stdin = mri_copy(inim); RETURN(inim);
 }
 
 /*-----------------------------------------------------------------------------------*/
