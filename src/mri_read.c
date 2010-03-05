@@ -2700,8 +2700,9 @@ ENTRY("mri_read_1D") ;
    /*-- 25 Jan 2008: read from stdin? --*/
 
    ii = strlen(fname) ;
-   if( (ii <= 2 && fname[0] == '-')              ||
-       (ii <= 6 && strncmp(fname,"stdin",5) == 0)  ){
+   if( (ii <= 2 && fname[0] == '-')                  ||
+       (ii <= 6 && strncmp(fname,"stdin"   ,5) == 0) ||
+       (ii <= 9 && strncmp(fname,"/dev/fd0",8) == 0)   ){
      inim = mri_read_1D_stdin() ;
      if( inim != NULL && fname[ii-1] == '\'' ){
        flim = mri_transpose(inim); mri_free(inim); inim = flim;
@@ -2737,7 +2738,7 @@ ENTRY("mri_read_1D") ;
 
    /*-- read file in, flip it sideways --*/
 
-   if( strcmp(dname,"stdin") != 0 ){
+   if( strcmp(dname,"stdin") != 0 && strncmp(dname,"/dev/fd0",8) != 0 ){
      inim = mri_read_ascii(dname) ;
      if( inim == NULL ) RETURN(NULL) ;
      flim = mri_transpose(inim) ; mri_free(inim) ;
@@ -2853,8 +2854,9 @@ ENTRY("mri_read_4x4AffXfrm_1D") ;
    /*-- 25 Jan 2008: read from stdin? --*/
 
    ii = strlen(fname) ;
-   if( (ii <= 2 && fname[0] == '-')              ||
-       (ii <= 6 && strncmp(fname,"stdin",5) == 0)  ){
+   if( (ii <= 2 && fname[0] == '-')                  ||
+       (ii <= 6 && strncmp(fname,"stdin"   ,5) == 0) ||
+       (ii <= 9 && strncmp(fname,"/dev/fd0",8) == 0)   ){
        inim = mri_read_1D_stdin() ;
      if (!inim) RETURN(inim);
      if( inim != NULL && fname[ii-1] == '\'' ){
