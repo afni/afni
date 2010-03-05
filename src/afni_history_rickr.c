@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  5, MAR, 2010, RCR, "thd_gifti.c", MICRO, TYPE_MODIFY,
+   "try to read gifti UINT32 as INT32 (for FreeSurfer aparc files)",
+   NULL
+ } ,
+
  {  4, MAR, 2010, RCR, "GIFTI", MINOR, TYPE_MODIFY,
    "minor changes (also see NITRC IDs 4619 and 4644)",
    " - for integers, make default approx test to be equality\n"
