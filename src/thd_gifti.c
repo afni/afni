@@ -69,6 +69,9 @@ static int set_gifti_encoding(int encoding);
 
 static gifti_image * NSD_to_gifti(NI_group * ngr, char * fname);
 
+/*--- misc routines ---*/
+static int has_negatives(void *data, long long nvals, int type);
+
 /*
  * - sub-brick selection in NI_read_gifti()?
  *
@@ -1033,13 +1036,24 @@ static int gnsd_add_sparse_data(NI_group * ngr, gifti_image * gim, int add_data)
         }
         ni_type = dtype_nifti_to_niml(da->datatype);
         if( ni_type < 0 ) {
-            fprintf(stderr,"** invalid type for NIML conversion: %d = %s\n",
-                    da->datatype, nifti_datatype_string(da->datatype));
-            NI_free_element(nel);
-            RETURN(1);
+            if( da->datatype == NIFTI_TYPE_UINT32 ) {
+                if( has_negatives(da->data, da->nvals, NIFTI_TYPE_INT32) ) {
+                    fprintf(stderr,"** read UINT32 as INT32, would overflow\n");
+                    NI_free_element(nel);
+                    RETURN(1);
+                }
+                if(GP->verb>1)fprintf(stderr,"-- reading UINT32 as INT32...\n");
+                ni_type = NI_INT;
+            }
+            else {
+                fprintf(stderr,"** invalid type for NIML conversion: %d = %s\n",
+                        da->datatype, nifti_datatype_string(da->datatype));
+                NI_free_element(nel);
+                RETURN(1);
+            }
         }
 
-        if( GP->verb > 4 )
+        if( 1 || GP->verb > 4 )
             fprintf(stderr,"++ adding col, type %d (from %d = %s)\n",
                     ni_type, da->datatype, nifti_datatype_string(da->datatype));
 
@@ -1070,6 +1084,40 @@ static int gnsd_add_sparse_data(NI_group * ngr, gifti_image * gim, int add_data)
 
     if( GP->verb > 2 )
         fprintf(stderr,"++ NSD: added %d columns in SPARSE_DATA\n", nnew);
+
+    RETURN(0);
+}
+
+/* check whether there are any negatives in the data      5 Mar 2010 [rickr]
+ * (add types as needed)                                  FS annot uses UINT32
+ *
+ * return 1 if negatives, 0 if not, -1 on error */
+static int has_negatives(void *data, long long nvals, int type)
+{
+    long long ind;
+
+    ENTRY("has_negatives");
+
+    if( !data || nvals < 0 ) {
+        fprintf(stderr,"** has_negatives, bad inputs (%p,%lld)\n", data, nvals);
+        RETURN(-1);
+    }
+
+    switch( type ) {
+        default: {
+            fprintf(stderr,"** cannot evaluate type %d for negatives\n", type);
+             RETURN(-1);
+        }
+        case( NIFTI_TYPE_INT32 ): {
+            int * dptr = (int *)data;
+            if( sizeof(int) != 4*sizeof(char) ) {
+                fprintf(stderr,"** int is not 32-bits, cannot eval for negs\n");
+                RETURN(-1);
+            }
+            for( ind = 0; ind < nvals; ind++, dptr++ )
+                if( *dptr < 0 ) RETURN(1);
+        }
+    }
 
     RETURN(0);
 }
@@ -1281,6 +1329,7 @@ static char * nifti2suma_typestring(int niftitype)
         case NIFTI_TYPE_INT8:    return "Generic_Byte";
         case NIFTI_TYPE_INT16:   return "Generic_Short";
         case NIFTI_TYPE_INT32:   return "Generic_Int";
+        case NIFTI_TYPE_UINT32:  return "Generic_Int"; /* pretend, 5 Mar 2010 */
         case NIFTI_TYPE_FLOAT32: return "Generic_Float";
         case NIFTI_TYPE_FLOAT64: return "Generic_Double";
     }
