@@ -205,7 +205,7 @@ read.MEMA.opts.interactive <- function (verb = 0) {
    print("relatively small.")
    lop$KHtest <- 
       as.logical(as.integer(
-                  readline("Hartung-Knapp adjustment for  the output t-statistic? (0: No; 1: Yes) ")))
+                  readline("Hartung-Knapp adjustment for the output t-statistic? (0: No; 1: Yes) ")))
    #lop$KHtest <- FALSE
    
    print("-----------------")
@@ -248,7 +248,11 @@ read.MEMA.opts.interactive <- function (verb = 0) {
             as.integer(readline(
       "Does this multi-column file have a header (0: no; 1: yes)? "))
          if(covHeader == 1) {
-            lop$covData <- read.table(lop$covFN, header=TRUE) 
+            #lop$covData <- read.table(lop$covFN, header=TRUE)
+            tmp <- read.table(lop$covFN, header=TRUE)
+            lop$covData <- cbind(tmp[,-1])
+            lop$covName <- colnames(tmp)[-1]
+            rm(tmp)
          } else {
             lop$covData <- read.table(lop$covFN, header=FALSE)
             if(lop$nCov!=dim(lop$covData)[2]) {
@@ -260,8 +264,9 @@ read.MEMA.opts.interactive <- function (verb = 0) {
                   names(lop$covData)[ii] <- 
                      readline(sprintf("Name for covariate number %i? ", ii))
             }
+            lop$covName <- names(lop$covData)
          } # if(covHeader == 1)
-         lop$covName <- names(lop$covData)
+         #lop$covName <- names(lop$covData)
       } else {
          lop$covData <- 
             data.frame(matrix(data=NA, nrow=sum(lop$nSubj), 
@@ -276,8 +281,9 @@ read.MEMA.opts.interactive <- function (verb = 0) {
       lop$centerType <- 
          as.integer(readline(
 "What value will covariate(s) be centered around (0: mean; 1: other value)? "))
-      
+      #browser()
       if(lop$nGrp == 1) {
+         #browser()
          if(lop$centerType == 0) lop$covData <- apply(lop$covData, 2, scale, scale=F)  # center around mean for each covariate (column)
          if(lop$centerType == 1) {  # center around a user-specified value
             lop$centerVal <- vector(mode = "numeric", length = lop$nCov)
@@ -291,6 +297,7 @@ read.MEMA.opts.interactive <- function (verb = 0) {
          lop$centerType2 <- 
             as.integer(readline("How to model covariate(s) across groups (0: same center & slope; 1: same center but different slope; 
             2: different center but same slope; 3: different center & slope)? "))
+         #browser()
          if(lop$centerType2 == 0 | lop$centerType2 == 1) {   # same center 
             if(lop$centerType == 0) 
                lop$covData <- apply(lop$covData, 2, scale, scale=F)  
@@ -1192,7 +1199,7 @@ process.MEMA.opts <- function (lop, verb = 0) {
       }
       
        cat ('Have lop$centerType', lop$centerType, '\n');
-      
+      #browser()
       if(lop$nGrp == 1) {
          if(lop$centerType == 0) {
             lop$covData <- apply(lop$covData, 2, scale, scale=F)  
@@ -1372,8 +1379,9 @@ rmaB <- function( yi, vi, n, p, X, resOut, lapMod,
       #RSS    <- t(Y) %*% P0 %*% Y
       tau2   <- ( QE - (n-p) ) / tr(P0)  # RSS = QE
       tau2 <- max(0, c(tau2))
-      W   <- diag(1/(vi + tau2))
+      W   <- diag(1/(vi + tau2))     
       tmp <- t(X) %*% W
+         
       vb  <- solve(tmp %*% X)
       R   <- vb %*% tmp  # projection of Y to space spanned by X
       P   <- W - t(tmp) %*% R  # projection of Y to space spanned by residuals
@@ -1395,7 +1403,7 @@ rmaB <- function( yi, vi, n, p, X, resOut, lapMod,
    nu       <- sqrt(max(0, var(Y) - mean(vi)))/sqrt(2)
    if(nu < 10^-10) nu <- sqrt(max(0, var(Y) - mean(vi)/3))
    W		   <- diag(1/(vi + 2*nu^2))  # need to deal with 0s' here?
-   tmp  <- t(X) %*% W
+   tmp  <- t(X) %*% W   
    b    <- solve(tmp %*% X) %*% tmp %*% Y
    visr <- sqrt(vi)
 
@@ -1805,15 +1813,17 @@ rmaB2 <- function(yi, vi, n1, nT, p, X, resOut, lapMod,
    } # if(lapMod==0)
    
    if(knha) { # scaling done in runRMA
-      if (is.nan(pp1 <- sqrt((c( t(Y1) %*% P1 %*% Y1 ) / (n1-p+1))))) {
-         browser()
-      }
-      scl <- c(pp1,
-         sqrt((c( t(Y2) %*% P2 %*% Y2 ) / (n2-p+1))))
+      if (is.nan(pp1 <- sqrt((c( t(Y1) %*% P1 %*% Y1 ) / (n1-p+1)))) | 
+                 pp2 <- sqrt((c( t(Y2) %*% P2 %*% Y2 ) / (n2-p+1)))) scl <- NA else {
+      #pp1 <- sqrt((c( t(Y1) %*% P1 %*% Y1 ) / (n1-p+1)))
+      #scl <- c(pp1,
+      #   sqrt((c( t(Y2) %*% P2 %*% Y2 ) / (n2-p+1))))
+      scl <- c(pp1, pp2)
       W <- diag(c(1/(v1 + tau2[1]), 1/(v2 + tau2[2])))
       tmp <- t(X) %*% W
       P <- W - t(tmp) %*% solve(tmp %*% X) %*% tmp
       scl <- c(scl, sqrt((c( t(Y) %*% P %*% Y ) / (nT-p))))
+      }
    } else scl <- NA
 
    if(resOut==1) {  # residual statistics requested
@@ -1872,6 +1882,8 @@ runRMA <- function(  inData, nGrp, n, p, xMat, outData,
    if(nGrp==1) {
       outData[1] <- resList$b[1]  # beta of group1, intercept
       outData[2] <- resList$z[1]  # z score of group1
+      
+      #if(abs(outData[2]) > 100) browser()
       
       if(nCov>0) for(ii in 1:nCov) {  # covariates
          outData[2*ii+1] <- resList$b[ii+1]
@@ -1964,7 +1976,8 @@ tTop <- 100   # upper bound for t-statistic
 #options(show.error.messages = FALSE)  # suppress error message when running with single processor
 
    
-   args = (commandArgs(TRUE))   
+   args = (commandArgs(TRUE))  
+   #save(args, file="junk.txt", ascii = TRUE) 
    if (!length(args)) {
       BATCH_MODE <<- 0
       cat(greeting.MEMA(),
@@ -1988,7 +2001,7 @@ tTop <- 100   # upper bound for t-statistic
       }
    }
    
-   if (lop$verb > 1) { T240HD
+   if (lop$verb > 1) { 
       #Too much output, big dump of header structs of input dsets..
       str(lop);
    }
@@ -2031,8 +2044,7 @@ tTop <- 100   # upper bound for t-statistic
          lop$varList[[ii]] <- 
             mapply(function(x, y) 
                    ifelse((abs(x)<tolL) | (abs(y)<tolL), 0, (x/y)^2), 
-                   lop$bList[[ii]], lop$tList[[ii]], SIMPLIFY = FALSE)  
-                                                   # variances
+                   lop$bList[[ii]], lop$tList[[ii]], SIMPLIFY = FALSE)  # variance
          if(exclude) {
             for (jj in 1:lop$nSubj[1]) 
                lop$varList[[ii]][[jj]][lop$varList[[ii]][[jj]] < tolL] <- tolU  
@@ -2043,6 +2055,11 @@ tTop <- 100   # upper bound for t-statistic
       contrBList <- mapply("-", lop$bList[[2]], lop$bList[[1]], SIMPLIFY = FALSE)
       contrVarList <- mapply("+", lop$varList[[1]], lop$varList[[2]], 
                               SIMPLIFY = FALSE)
+      
+      # if one of the 2 conditions has 0 t-value, force the contrast beta ZERO here
+      # even if the other beta is nonzerio since it's not worth considering a contrast for this voxel      
+      if(exclude) for (jj in 1:lop$nSubj[1])
+         contrBList[[jj]] <- ifelse(contrVarList[[jj]]>=tolU, 0, contrBList[[jj]])                     
    }
    
    #rm(lop$tList)
@@ -2281,8 +2298,8 @@ tTop <- 100   # upper bound for t-statistic
    }
 
    #rm(comArr)
-   outArr[outArr[1:nBrick] > tTop] <- tTop  # Avoid outflow!!!!
-   outArr[outArr[1:nBrick] < (-tTop)] <- -tTop  # Avoid outflow!!!!
+   outArr[outArr > tTop] <- tTop  # Avoid outflow!!!!
+   outArr[outArr < (-tTop)] <- -tTop  # Avoid outflow!!!!
    if (lop$verb) cat ('outLabel', outLabel,'\n');
    write.AFNI(lop$outFN, outArr[,,,1:nBrick0], 
                   outLabel, note=lop$myNote, origin=lop$myOrig, 
