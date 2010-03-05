@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 5 , MAR , 2010 , RWC , "mri_read" , MICRO , TYPE_MODIFY ,
+   "Modify to allow row and col selectors on stdin" ,
+   NULL } ,
+
  { 4 , MAR , 2010 , RWC , "3dGroupInCorr" , MINOR , TYPE_BUG_FIX ,
    "Fixed crash with paired t-test opcode" ,
    "Didn't switch to 1-sample mode when opcode was for paired, but no second\n"
