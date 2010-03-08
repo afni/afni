@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  8, MAR, 2010, RCR, "thd_gifti.c", MICRO, TYPE_MODIFY,
+   "corresponding update of lt->index to lt->key",
+   NULL
+ } ,
+
  {  8, MAR, 2010, RCR, "GIFTI", MINOR, TYPE_MODIFY,
    "GIfTI LabelTable format change: Index to Key",
    "modified gifti_xml.[ch], gifti_io.[ch]"
