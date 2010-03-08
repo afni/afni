@@ -369,7 +369,9 @@ static gifti_image * NSD_to_gifti(NI_group * ngr, char * fname)
     RETURN(gim);
 }
 
-/* fill the LabelTable structure, from AFNI_labeltable->SPARSE_DATA */
+/* fill the LabelTable structure, from AFNI_labeltable->SPARSE_DATA
+ *
+ * changed lt->label to lt->key, for format change    8 Mar 2008 [rickr] */
 static int nsdg_add_label_table(NI_group * ngr, gifti_image * gim)
 {
     giiLabelTable  * lt;
@@ -459,15 +461,15 @@ static int nsdg_add_label_table(NI_group * ngr, gifti_image * gim)
 
     /* do not steal pointers, but copy data */
     lt->length = length;
-    lt->index = (int *)malloc(length*sizeof(int));
+    lt->key = (int *)malloc(length*sizeof(int));
     lt->label = (char **)malloc(length*sizeof(char *));
-    if( !lt->index || !lt->label ) {
+    if( !lt->key || !lt->label ) {
         fprintf(stderr,"** N2G: failed to copy LabelTable of len %d\n",length);
-        if( lt->index ) free(lt->index); lt->index = NULL;
-        if( lt->label ) free(lt->label); lt->label = NULL;
-        if( rgba )      free(rgba);
+        if( lt->key )   { free(lt->key);   lt->key = NULL; }
+        if( lt->label ) { free(lt->label); lt->label = NULL; }
+        if( rgba )      { free(rgba); }
     }
-    memcpy(lt->index, nel->vec[ind], length*sizeof(int));
+    memcpy(lt->key, nel->vec[ind], length*sizeof(int));
 
     /* and duplicate all of the labels */
     for( c = 0; c < length; c++ )
@@ -866,7 +868,7 @@ static int gnsd_add_gifti_labeltable(NI_group * ngr, gifti_image * gim)
                                    lt->length, &dmin, &minp, &dmax, &maxp);
             if( append_vals(&str, &len, ";", dmin,dmax,minp,maxp) ) RETURN(1);
         }
-    nifti_get_min_max_posn(lt->index, NIFTI_TYPE_INT32,
+    nifti_get_min_max_posn(lt->key, NIFTI_TYPE_INT32,
                            lt->length, &dmin, &minp, &dmax, &maxp);
     if( append_vals(&str, &len, ";", dmin,dmax,minp,maxp) ) RETURN(1);
     if( append_vals(&str, &len, ";", 0.0, 0.0, -1, -1) ) RETURN(1);
@@ -907,7 +909,7 @@ static int gnsd_add_lt_sparse_data(NI_group * ngr, giiLabelTable * lt,
 
     ENTRY("gnsd_add_lt_sparse_data");
 
-    if( !ngr || !lt || lt->length <= 0 || !lt->index || !lt->label ) {
+    if( !ngr || !lt || lt->length <= 0 || !lt->key || !lt->label ) {
         if(GP->verb>3) fprintf(stderr,"++ gNSD: no LT sparse data to add\n");
         RETURN(0);
     } else if(GP->verb > 3) fprintf(stderr,"++ gNSD: adding LT sparse data\n");
@@ -925,8 +927,8 @@ static int gnsd_add_lt_sparse_data(NI_group * ngr, giiLabelTable * lt,
         nnew += 4;
     }
 
-    /* add index and labels */
-    NI_add_column(nel, NI_INT, lt->index);
+    /* add key and labels */
+    NI_add_column(nel, NI_INT, lt->key);
     NI_add_column(nel, NI_STRING, lt->label);
     nnew += 2;
 
