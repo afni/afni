@@ -5,7 +5,7 @@
 
 /*  basic format: 3-field date, user, program_name, impact_level,
                   short description without newline
-                  (optional) long descrption with intermediate newlines
+                  (optional) long description with intermediate newlines
   
     copy entire section: { ... } ,
   
@@ -27,7 +27,7 @@
                     TYPE_MODIFY     - a change (not new, not a fix)
 
            - PLEASE, stick to what fits on an 80 column terminal
-           - it may be nice to put the newest entires at the top
+           - it may be nice to put the newest entries at the top
            - leave the last "99, NULL" entry as it is
 
  -- examples (newest at top) --
@@ -47,6 +47,11 @@
 */
 
 afni_history_struct rickr_history[] = {
+
+ {  8, MAR, 2010, RCR, "GIFTI", MINOR, TYPE_MODIFY,
+   "GIfTI LabelTable format change: Index to Key",
+   "modified gifti_xml.[ch], gifti_io.[ch]"
+ } ,
 
  {  5, MAR, 2010, RCR, "thd_gifti.c", MICRO, TYPE_MODIFY,
    "try to read gifti UINT32 as INT32 (for FreeSurfer aparc files)",
@@ -357,7 +362,7 @@ afni_history_struct rickr_history[] = {
 
  { 27, JUL, 2009, RCR, "plug_realtime", MICRO, TYPE_NEW_OPT,
    "added Y/N AFNI_REALTIME_reset_output_index, to start each dset at 001",
-   "Also, changed prefix seperator to double underscore '__'.",
+   "Also, changed prefix separator to double underscore '__'.",
  } ,
 
  { 27, JUL, 2009, RCR, "afni-general", MICRO, TYPE_MODIFY,
@@ -375,7 +380,7 @@ afni_history_struct rickr_history[] = {
    NULL
  } ,
 
- { 22, JUL, 2009, RCR, "realtime_reaceiver.py", MAJOR, TYPE_NEW_PROG,
+ { 22, JUL, 2009, RCR, "realtime_receiver.py", MAJOR, TYPE_NEW_PROG,
    "python replacement for serial helper",
    "New 'data_choice' options can be added to compute_data_for_serial_port\n"
    "for sending results of a different computation to the serial port."
@@ -880,7 +885,7 @@ afni_history_struct rickr_history[] = {
  } ,
 
  { 3, MAR, 2009, RCR, "afni-general", MICRO, TYPE_MODIFY,
-   "modifed Makefile.linux_xorg7 and _64 for local X builds",
+   "modified Makefile.linux_xorg7 and _64 for local X builds",
    NULL
  } ,
 
@@ -1052,7 +1057,7 @@ afni_history_struct rickr_history[] = {
  } ,
 
  {  20, NOV, 2008, RCR, "plug_realtime", MINOR, TYPE_NEW_OPT,
-   "incorportated real-time volume writing from V. Roopchansingh of MCW",
+   "incorporated real-time volume writing from V. Roopchansingh of MCW",
    NULL
  } ,
 
@@ -1298,7 +1303,7 @@ afni_history_struct rickr_history[] = {
    "These variables can now be controlled through drive_afni 'SETENV'\n"
    "(either via 'plugout_drive' or 'Dimon -drive_afni'):\n"
    "    - AFNI_REALTIME_Mask_Vals  : specify what gets sent to serial_helper\n"
-   "    - AFNI_REALTIME_SHOW_TIMES : specify whether to show data timestampts\n"
+   "    - AFNI_REALTIME_SHOW_TIMES : specify whether to show data timestamps\n"
    "    - AFNI_REALTIME_SEND_VER   : specify whether to send comm version"
  } ,
 
@@ -1419,7 +1424,7 @@ afni_history_struct rickr_history[] = {
  } ,
 
  { 14, JUL, 2008, RCR, "afni_history", MINOR, TYPE_MODIFY,
-   "a single integer option is interpreted as with -past_entires",
+   "a single integer option is interpreted as with -past_entries",
    NULL
  } ,
 

@@ -125,9 +125,11 @@ static char * gifti_history[] =
   "     - small changes to zlib failure strings\n"
   "     - cast to avoid compile warning on some systems\n"
   "     - gifti_xml.h: made NITRC gifti.dtd link that will not change\n"
+  "1.08 08 March, 2010: GIfTI LabelTable format change: Index to Key\n",
+  "     - both Index and Key work on read, Key is written out\n"
 };
 
-static char gifti_version[] = "gifti library version 1.07, 4 March, 2010";
+static char gifti_version[] = "gifti library version 1.08, 8 March, 2010";
 
 /* ---------------------------------------------------------------------- */
 /*! global lists of XML strings */
@@ -303,6 +305,11 @@ int gifti_str2attr_gifti(gifti_image * gim, const char *attr, const char *val)
             gim->numDA = 0;
             return 1;
         }
+    } else if( !strcmp(attr, "xmlns:xsi") ||
+               !strcmp(attr, "xsi:noNamespaceSchemaLocation") ) {
+        if( G.verb > 1 )
+            fprintf(stderr,"-- have GIFTI attr, '%s'='%s'\n",attr,val);
+        return 1;
     } else {
         if( G.verb > 1 )
             fprintf(stderr,"** unknown GIFTI attrib, '%s'='%s'\n",attr,val);
@@ -488,12 +495,12 @@ int gifti_free_LabelTable( giiLabelTable * T )
     if(G.verb > 3)
         fprintf(stderr,"-- freeing %d giiLabelTable entries\n", T->length);
 
-    if( T->index && T->label ) {
+    if( T->key && T->label ) {
         for( c = 0; c < T->length; c++ )
             if( T->label[c] ) free(T->label[c]);
-        free(T->index);
+        free(T->key);
         free(T->label);
-        T->index = NULL;
+        T->key = NULL;
         T->label = NULL;
     }
 
@@ -806,10 +813,10 @@ int gifti_valid_LabelTable(const giiLabelTable * T, int whine)
 
     if( T->length == 0 ) return 1;    /* quick case: valid */
 
-    if( !T->index || !T->label ){
+    if( !T->key || !T->label ){
         if( G.verb > 3 || whine )
-            fprintf(stderr,"** invalid nvpair index, label = %p, %p\n",
-                    (void *)T->index, (void *)T->label);
+            fprintf(stderr,"** invalid nvpair key, label = %p, %p\n",
+                    (void *)T->key, (void *)T->label);
         return 0;
     }
 
@@ -1124,7 +1131,7 @@ int gifti_clear_LabelTable(giiLabelTable * p)
     if( !p ) return 1;
 
     p->length = 0;
-    p->index = NULL;
+    p->key = NULL;
     p->label = NULL;
     p->rgba = NULL;
 
@@ -1304,7 +1311,7 @@ int gifti_disp_LabelTable(const char * mesg, const giiLabelTable * p)
 
     rgba = p->rgba;
     for(c = 0; c < p->length; c++ ) {
-        fprintf(stderr,"    index %d, ", p->index[c]);
+        fprintf(stderr,"    key %d, ", p->key[c]);
         if( rgba ) {
             fprintf(stderr,"rgba (%5.3f, %5.3f, %5.3f, %5.3f), ",
                     rgba[0], rgba[1], rgba[2], rgba[3]);
@@ -2237,13 +2244,13 @@ int gifti_copy_LabelTable(giiLabelTable * dest, const giiLabelTable * src)
     /* otherwise, allocate and copy lists */
     dest->length = src->length;
 
-    dest->index = (int *)malloc(dest->length * sizeof(int));
+    dest->key = (int *)malloc(dest->length * sizeof(int));
     dest->label = (char **)malloc(dest->length * sizeof(char *));
     if( src->rgba )
         dest->rgba = (float *)malloc(dest->length * 4 * sizeof(float));
 
     /* check for failure */
-    if( !dest->index || !dest->label || (src->rgba && !dest->rgba) ) {
+    if( !dest->key || !dest->label || (src->rgba && !dest->rgba) ) {
         fprintf(stderr,"** failed to dup label arrays of length %d\n",
                 dest->length);
         gifti_free_LabelTable(dest);
@@ -2256,7 +2263,7 @@ int gifti_copy_LabelTable(giiLabelTable * dest, const giiLabelTable * src)
 
     /* copy indices */
     for( c = 0; c < dest->length; c++ )
-        dest->index[c] = src->index[c];
+        dest->key[c] = src->key[c];
 
     /* copy labels */
     for( c = 0; c < dest->length; c++ )
@@ -3193,10 +3200,10 @@ static int compare_labeltables(const giiLabelTable *t1, const giiLabelTable *t2,
     /* so lengths are positive and equal, compare index list and labels */
 
     /* set limit to 0.0 to compare indicies exactly */
-    offset = (int)gifti_approx_diff_offset(t1->index, t2->index,
+    offset = (int)gifti_approx_diff_offset(t1->key, t2->key,
                        t1->length, NIFTI_TYPE_INT32, approx?1.0:0.0);
     if( offset >= 0 ) {
-        if(lverb>2)printf("-- labeltable Index diff at index %d\n", offset);
+        if(lverb>2)printf("-- labeltable Key diff at index %d\n", offset);
         if(lverb<3) return 1;
         diffs++;
     }
