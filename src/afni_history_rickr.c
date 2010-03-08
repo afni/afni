@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  8, MAR, 2010, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
+   "modified option order in some help examples",
+   NULL
+ } ,
+
  {  8, MAR, 2010, RCR, "thd_gifti.c", MICRO, TYPE_MODIFY,
    "corresponding update of lt->index to lt->key",
    NULL
