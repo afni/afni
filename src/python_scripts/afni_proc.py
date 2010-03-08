@@ -174,9 +174,10 @@ g_history = """
         - added -tlrc_opts_at for adding options to @auto_tlrc
         - changed max(0,...) to *step(a)*step(b) in scaling block
     2.17 Mar 03 2010 : when censoring, create uncensored ideals and sum
+    2.18 Mar 08 2010 : minor: changed option order in some examples
 """
 
-g_version = "version 2.17, March 3, 2010"
+g_version = "version 2.18, March 8, 2010"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions

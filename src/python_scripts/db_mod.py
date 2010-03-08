@@ -2568,20 +2568,20 @@ g_help_string = """
                         -copy_anat sb23/sb23_mpra+orig                     \\
                         -tcat_remove_first_trs 3                           \\
                         -volreg_align_to last                              \\
-                        -regress_make_ideal_sum sum_ideal.1D               \\
                         -regress_stim_times sb23/stim_files/blk_times.*.1D \\
                         -regress_stim_labels tneg tpos tneu eneg epos      \\
                                              eneu fneg fpos fneu           \\
                         -regress_basis 'BLOCK(30,1)'                       \\
-                        -regress_est_blur_epits                            \\
-                        -regress_est_blur_errts                            \\
                         -regress_opts_3dD                                  \\
                             -gltsym 'SYM: +eneg -fneg'                     \\
                             -glt_label 1 eneg_vs_fneg                      \\
                             -gltsym 'SYM: 0.5*fneg 0.5*fpos -1.0*fneu'     \\
                             -glt_label 2 face_contrast                     \\
                             -gltsym 'SYM: tpos epos fpos -tneg -eneg -fneg'\\
-                            -glt_label 3 pos_vs_neg
+                            -glt_label 3 pos_vs_neg                        \\
+                        -regress_make_ideal_sum sum_ideal.1D               \\
+                        -regress_est_blur_epits                            \\
+                        -regress_est_blur_errts
 
         4. Similar to the class example, but specify the processing blocks,
            adding despike and tlrc, and removing tshift.  Note that the tlrc
@@ -2651,11 +2651,11 @@ g_help_string = """
                         -ricor_regs sb23/RICOR/r*.slibase.1D               \\
                         -ricor_regress_method 'across-runs'                \\
                         -volreg_align_to last                              \\
-                        -regress_make_ideal_sum sum_ideal.1D               \\
                         -regress_stim_times sb23/stim_files/blk_times.*.1D \\
                         -regress_stim_labels tneg tpos tneu eneg epos      \\
                                              eneu fneg fpos fneu           \\
                         -regress_basis 'BLOCK(30,1)'                       \\
+                        -regress_make_ideal_sum sum_ideal.1D               \\
                         -regress_est_blur_epits                            \\
                         -regress_est_blur_errts
 
@@ -2687,17 +2687,17 @@ g_help_string = """
                         -volreg_align_to last                              \\
                         -volreg_align_e2a                                  \\
                         -volreg_tlrc_warp                                  \\
-                        -regress_make_ideal_sum sum_ideal.1D               \\
                         -regress_stim_times sb23/stim_files/blk_times.*.1D \\
                         -regress_stim_labels tneg tpos tneu eneg epos      \\
                                              eneu fneg fpos fneu           \\
                         -regress_basis 'BLOCK(30,1)'                       \\
                         -regress_censor_motion 1.0                         \\
-                        -regress_est_blur_epits                            \\
-                        -regress_est_blur_errts                            \\
                         -regress_opts_3dD                                  \\
                             -gltsym 'SYM: +eneg -fneg'                     \\
                             -glt_label 1 eneg_vs_fneg                      \\
+                        -regress_make_ideal_sum sum_ideal.1D               \\
+                        -regress_est_blur_epits                            \\
+                        -regress_est_blur_errts
 
            To process in orig space, remove -volreg_tlrc_warp.
            To apply manual tlrc transformation, use -volreg_tlrc_adwarp.
