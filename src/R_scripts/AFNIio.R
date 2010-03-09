@@ -403,7 +403,7 @@ load.debug.AFNI.args <- function ( fnm = NULL) {
       note.AFNI(sprintf("Setting .DBG_args from args in %s", fnm));
       .DBG_args <<- args 
    } else {
-      err.AFNI(sprintf("Variable args not in %s"));
+      err.AFNI(sprintf("Variable args not in %s", fnm));
       return(FALSE)
    }
    return(TRUE)
