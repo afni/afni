@@ -375,7 +375,7 @@ static gifti_image * NSD_to_gifti(NI_group * ngr, char * fname)
 static int nsdg_add_label_table(NI_group * ngr, gifti_image * gim)
 {
     giiLabelTable  * lt;
-    NI_element     * nel, * tel;
+    NI_element     * nel = NULL, * tel;
     NI_group       * ltg = NULL;
     float          * rgba = NULL;
     char           * cp;
@@ -1055,7 +1055,7 @@ static int gnsd_add_sparse_data(NI_group * ngr, gifti_image * gim, int add_data)
             }
         }
 
-        if( 1 || GP->verb > 4 )
+        if( GP->verb > 4 )
             fprintf(stderr,"++ adding col, type %d (from %d = %s)\n",
                     ni_type, da->datatype, nifti_datatype_string(da->datatype));
 
