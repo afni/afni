@@ -48,6 +48,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  9, MAR, 2010, RCR, "3dNotes", MICRO, TYPE_MODIFY,
+   "send -help output to stderr (req by T Nycum)",
+   NULL
+ } ,
+
+ {  9, MAR, 2010, RCR, "thd_gifti.c", MICRO, TYPE_MODIFY,
+   "init ptr and clear accidental debug output",
+   NULL
+ } ,
+
  {  8, MAR, 2010, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
    "modified option order in some help examples",
    NULL

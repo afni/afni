@@ -23,7 +23,7 @@ void Error_Exit(char *message) {
 }
 
 void Show_Help(void) {
-   fprintf(stderr, 
+   fprintf(stdout, 
 "Program: 3dNotes \n"
 "Author:  T. Ross \n"
 "(c)1999 Medical College of Wisconsin \n"
@@ -129,7 +129,7 @@ int main (int argc, char * argv[]) {
    int narg = 1, i, curr_note=0, curr_del=0;
    char *notes[MAX_DSET_NOTES];
    char *history_note = NULL;
-   int delnotes[MAX_DSET_NOTES], delindex, delnum;
+   int delnotes[MAX_DSET_NOTES], delindex=0, delnum;
    int HH=0 ;  /* 09 Dec 2000 */
    int ShowString;
    Boolean write_output;  /* 21 Jun 2006 [dg] - similar to change in 3drefit by rickr */
