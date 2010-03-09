@@ -386,6 +386,29 @@ apl <- function ( n = 0, d=NA, h=NULL, dup=FALSE ) {
    return(list('count'=n, 'default'=d, help=h, duplicate_ok=dup));
 }
 
+load.debug.AFNI.args <- function ( fnm = NULL) {
+   if (is.null(fnm)) {
+      fnm <- system('ls .*.dbg.AFNI.args', ignore.stderr = TRUE, intern=TRUE)
+   }
+   if (length(fnm) > 1) {
+      err.AFNI(paste("More than one argument file found:", 
+                     paste(fnm, collapse=' ', sep=' ')));
+      return(FALSE);
+   }else if (length(fnm) == 0) {
+      err.AFNI("No files to load");
+      return(FASLE);
+   }
+   load(fnm)
+   if (exists('args')) {
+      note.AFNI(sprintf("Setting .DBG_args from args in %s", fnm));
+      .DBG_args <<- args 
+   } else {
+      err.AFNI(sprintf("Variable args not in %s"));
+      return(FALSE)
+   }
+   return(TRUE)
+}
+
 parse.AFNI.args <- function ( args, params = NULL, 
                               other_ok=TRUE,
                               verb = 0) {
@@ -826,7 +849,8 @@ read.AFNI.matrix <- function (fname,
    
    ttt <- read.table(fname, colClasses='character');
    if ( tolower(ttt$V1[1]) == 'name' || 
-        tolower(ttt$V1[1]) == 'subj' ) {
+        tolower(ttt$V1[1]) == 'subj' ||
+        tolower(ttt$V1[1]) == '#file') {
       subjCol <- ttt$V1[2:dim(ttt)[1]]; 
       covNames <- paste(ttt[1,2:dim(ttt)[2]]);
       if (dim(ttt)[2]-1 == 1) {
