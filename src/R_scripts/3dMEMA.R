@@ -254,10 +254,12 @@ read.MEMA.opts.interactive <- function (verb = 0) {
       "Does this multi-column file have a header (0: no; 1: yes)? "))
          if(covHeader == 1) {
             #lop$covData <- read.table(lop$covFN, header=TRUE)
-            tmp <- read.table(lop$covFN, header=TRUE)
-            lop$covData <- cbind(tmp[,-1])
-            lop$covName <- colnames(tmp)[-1]
-            rm(tmp)
+            lop$covData <- read.AFNI.matrix(lop$covFN, userrownames=unlist(lop$subjLab))
+            lop$covName <- colnames(lop$covData)            
+            #tmp <- read.table(lop$covFN, header=TRUE)
+            #lop$covData <- cbind(tmp[,-1])
+            #lop$covName <- colnames(tmp)[-1]
+            #rm(tmp)
          } else {
             lop$covData <- read.table(lop$covFN, header=FALSE)
             if(lop$nCov!=dim(lop$covData)[2]) {
@@ -507,7 +509,7 @@ greeting.MEMA <- function ()
           ================== Welcome to 3dMEMA.R ==================          
              AFNI Mixed-Effects Meta-Analysis Modeling Package!
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.1.5,  Feb. 5, 2010
+Version 0.1.6,  March 10, 2010
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MEMA.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -538,7 +540,7 @@ Usage:
  both regression coefficients, or general linear contrasts among them, and the 
  corresponding t-statistics from each subject as input. It\'s required to install 
  R (http://www.r-project.org/), plus \'snow\' package if parallel computing is
- desirable. Version 0.1.5 (Feb. 5, 2010). See more details at
+ desirable. Version 0.1.6 (March 10, 2010). See more details at
  
  http://afni.nimh.nih.gov/sscc/gangc/MEMA.html'
    
@@ -812,7 +814,7 @@ read.MEMA.opts.batch <- function (args=NULL, verb = 0) {
    "    Example: If you had covariates age, and weight, you would use:\n",
    "           -covariates_center age = 78 55 weight = 165 198\n",
    "    If you want all covariates centered about their own mean, \n",
-   "    just use -covariate_center mean. Be alert: Default is no centering,\n",
+   "    just use -covariates_center mean. Be alert: Default is no centering,\n",
    "    which is NOT recommended unless you know what you're doing!!!\n"
                ) ),
                
