@@ -48,6 +48,51 @@ parse.name <- function (filename, extvec=NULL, verb=0) {
    return(n)
 }
 
+eval.AFNI.1D.string <- function (t) {
+   
+   #remove 1D:
+   t <- sub("^1D:","",t)
+   #any transpose?
+   doTr = FALSE
+   if (length(grep("'$",t))) {
+      t<-sub("'$",'',t)
+      doTr = TRUE
+   }
+   vvf = vector(length = 0, mode="numeric")
+   #replace .. with : and split at ,
+   s = strsplit(sub("..",":",t, fixed=TRUE), ",")[[1]]
+
+   #Now loop and form vector of components
+   for (si in s) {
+      #cat ("working ", si, "\n")
+      if (length(grep(":",si))) {
+         vv = eval(parse(text=si))
+      } else if (length(grep("@",si))) {
+         ssi = as.numeric(strsplit(si,"@")[[1]])
+         #cat ("ssi = ", ssi, "\n")
+         vv = rep(ssi[2], ssi[1])
+      } else {
+         vv = as.numeric(si)
+      }
+      #cat(si," = ",vv, "\n")
+      vvf <- c(vvf, vv)
+      #cat("vvnow = ",vvf, "\n")
+   }
+   if (doTr) return(t(vvf))
+   else return(vvf)
+}
+
+eval.AFNI.R.string <- function (t) {
+   t <- sub("^R:","",t)
+   return(eval(parse(text=t)))
+}
+
+eval.AFNI.string <- function (t) {
+   if (length(grep('^1D:',t))) return(eval.AFNI.1D.string(t))
+   else if (length(grep('^R:',t))) return(eval.AFNI.R.string(t))
+   else return(NULL)
+}
+
 date.stamp <- function (fancy=FALSE) {
    if (fancy) {
       return(gsub(' ','_',date()))
@@ -312,12 +357,14 @@ show.AFNI.args <- function (ops, verb=0, adieu=FALSE, hstr='') {
    if (adieu) exit.AFNI(0)
 }
 
-check.AFNI.args <- function ( ops, params = NULL) {
+check.AFNI.args <- function ( ops, params = NULL, verb=0) {
    if (!is.null(params) && !is.null(ops)) {
       for (i in 1:length(ops)) {
-         #str(names(ops)[i])
-         #str(params[names(ops)[i]][[1]])
-         #cat('\nChecking on ', paste(ops[[i]],collapse=','),'\n');
+         if (verb) {
+            str(names(ops)[i])
+            str(params[names(ops)[i]][[1]])
+            cat('\nChecking on ', paste(ops[[i]],collapse=','),'\n');
+         }
          ipar <- which(names(ops)[i] == names(params));
          if (length(ipar)) {
             pp <- params[ipar[1]][[1]]['count'][[1]];
@@ -329,7 +376,8 @@ check.AFNI.args <- function ( ops, params = NULL) {
                                  length(opsvec), ' parameter(s) in string "', 
                                  paste(opsvec, collapse = ' '),
                                  '" instead.', sep = '') 
-                  if (length(opsvec) > 0 && grep('^-[a-z,A-Z]', opsvec[1])) {
+                  if (length(opsvec) > 0 && 
+                      length(grep('^-[a-z,A-Z]', opsvec[1]))) {
                      msg <- paste( msg, '\n Also note that ', opsvec[1], 
                                         ' is not a recognized option.',
                                         collapse = '', sep = '' );  
@@ -346,7 +394,8 @@ check.AFNI.args <- function ( ops, params = NULL) {
                                  length(opsvec), ' parameter(s) in string "', 
                                  paste(opsvec, collapse = ' '),
                                  '" instead.', sep = '') 
-                     if (length(opsvec) > 0 && grep('^-[a-z,A-Z]', opsvec[1])) {
+                     if (length(opsvec) > 0 && 
+                         length(grep('^-[a-z,A-Z]', opsvec[1]))) {
                         msg <- paste( msg, '\n Also note that ', opsvec[1], 
                                           ' is not a recognized option.',
                                           collapse = '', sep = '' );  
@@ -359,7 +408,8 @@ check.AFNI.args <- function ( ops, params = NULL) {
                                  length(opsvec), ' parameter(s) in string "', 
                                  paste(opsvec, collapse = ' '),
                                  '" instead.', sep = '');
-                     if (length(opsvec) > 0 && grep('^-[a-z,A-Z]', opsvec[1])) {
+                     if (length(opsvec) > 0 && 
+                         length(grep('^-[a-z,A-Z]', opsvec[1]))) {
                         msg <- paste( msg, '\n Also note that ', opsvec[1], 
                                           ' is not a recognized option.',
                                           collapse = '', sep = '' );  
@@ -415,6 +465,8 @@ parse.AFNI.args <- function ( args, params = NULL,
    #for (i in 1:length(args)) {
    #   cat (i, args[[i]],'\n');
    #}
+   if (is.null(args)) return(NULL)
+   
    if (!is.null(params)) {
       allowed_options <- sort(names(params));
       duplicate_okvec <- vector('character');
@@ -443,7 +495,7 @@ parse.AFNI.args <- function ( args, params = NULL,
       }     
    }
    
-   if (verb) paste(args[iflg])
+   if (verb) note.AFNI(paste(args[iflg]))
    
    ops = list()
    used <- vector('logical', length(args));
@@ -479,7 +531,16 @@ parse.AFNI.args <- function ( args, params = NULL,
          }
          #create a cleaned up string
          pp <- paste(pp, collapse = ' ')
-         pp <- strsplit(clean.args.string(pp), ' ')
+         if (  length(grep('^".*"$',pp)) || #Quoted string, do not split
+               length(grep("^'.*'$",pp)) || #Quoted string, do not split 
+               length(grep("^1D:.*$",pp)) || #1D: string, do not split
+               length(grep("^R:.*$",pp)) ) { 
+         } else {
+            if (verb) {
+               note.AFNI(sprintf("Splitting >>>%s<<<", pp)) 
+            }
+            pp <- strsplit(clean.args.string(pp), ' ')
+         }
          ops <- c(ops, (pp));
          names(ops)[length(ops)] <- newnm;
       }
@@ -845,6 +906,12 @@ read.AFNI.matrix <- function (fname,
       read.AFNI.matrix.test()
       return(NULL);
    }
+   
+   if (!is.null(mm <- eval.AFNI.string(fname))) {
+      #Might need to add some names someday...
+      return(as.matrix(mm))
+   }
+   
    if (verb) print(who.called.me())
    
    ttt <- read.table(fname, colClasses='character');
