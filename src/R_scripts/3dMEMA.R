@@ -970,7 +970,7 @@ read.MEMA.opts.batch <- function (args=NULL, verb = 0) {
             lop$testName[[1]] <- names(lop$bFN)[1] 
          } else {
             lop$testName[[1]] <- 
-                     sprintf('%s-%s', names(lop$bFN)[2]-names(lop$bFN)[1]) 
+                     sprintf('%s-%s', names(lop$bFN)[2], names(lop$bFN)[1]) 
          }
       } else { 
          lop$testName <- lop$grpName
