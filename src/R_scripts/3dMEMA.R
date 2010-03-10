@@ -574,7 +574,8 @@ contrast from each subject in a group):
 
    ex2 <-
 "Example 2 --- Paired type (two regression coefficients or general linear 
-contrasts from each subject in a group):
+contrasts from each subject in a group with the constrast is the 2nd set 
+subtracing the 1st one):
 ---------------------------------
    3dMEMA   -prefix ex2  \\
             -jobs 4      \\
@@ -593,9 +594,10 @@ contrasts from each subject in a group):
    
    ex3 <- 
 "Example 3 --- Two-sample type (one regression coefficient or general linear
-contrast from each subject in two groups), homoskedasticity (different
-cross-subjects variability between the two groups), outlier modeling,
-covariates centering, no payment no interest till Memorial Day next year:
+contrast from each subject in two groups with the constrast being the 2nd group 
+subtracing the 1st one), homoskedasticity (different cross-subjects variability 
+between the two groups), outlier modeling, covariates centering, no payment no 
+interest till Memorial Day next year:
 -------------------------------------------------------------------------
    3dMEMA   -prefix ex3  \\
             -jobs 4      \\
