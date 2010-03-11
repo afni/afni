@@ -547,6 +547,9 @@ int main( int argc , char *argv[] )
    char **eglt_sym = NULL ;
    int    oglt_num = 0    ;   /* number of 'original' GLTs */
 
+   int polort = 0 ;           /* 11 Mar 2010 */
+   MRI_IMAGE *matim = NULL ;
+
    /**------- Get by with a little help from your friends? -------**/
 
    Argc = argc ; Argv = argv ;
@@ -600,6 +603,24 @@ int main( int argc , char *argv[] )
       "                       example, to have some fun with an AR(1) time series:\n"
       "                 1deval -num 1001 -expr 'gran(0,1)+(i-i)+0.7*z' > g07.1D\n"
       "                 3dREMLfit -input g07.1D'{1..$}'\' -Rvar -.1D -grid 5 -MAXa 0.9\n"
+     ) ;
+
+     if( AFNI_yesenv("AFNI_POMOC") )
+     printf(
+      "\n"
+      " SECRET ALTERNATIVE WAYS TO DEFINE THE MATRIX\n"
+      " --------------------------------------------\n"
+      " -polort P = If no -matrix option is given, AND no -matim option,\n"
+      "               create a matrix with Legendre polynomial regressors\n"
+      "               up to order 'P'.  The default value is P=0, which\n"
+      "               produces a matrix with a single column of all ones.\n"
+      " -matim M  = Read a standard .1D file as the matrix.\n"
+      "           ** N.B.: You can only use 'Col' as a name in GLTs\n"
+      "                      with these nonstandard matrix input methods.\n"
+      " -----------------------------------------------------------------\n"
+     ) ;
+
+     printf(
       "\n"
       " -mask kkk   = Read dataset 'kkk' as a mask for the input.\n"
       " -automask   = If you don't know what this does by now, I'm not telling.\n"
@@ -1392,7 +1413,24 @@ int main( int argc , char *argv[] )
        nelmat = NI_read_element_fromfile( argv[iarg] ) ; /* read NIML file */
        matname = argv[iarg];
        if( nelmat == NULL || nelmat->type != NI_ELEMENT_TYPE )
-         ERROR_exit("Can't process -matrix file!?") ;
+         ERROR_exit("Can't process -matrix file '%s'!?",matname) ;
+       iarg++ ; continue ;
+     }
+
+      /**==========   -polort P [undocumented] ===========**/
+
+     if( strcasecmp(argv[iarg],"-polort") == 0 ){
+       if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]) ;
+       polort = (int)strtod(argv[iarg],NULL) ;
+       iarg++ ; continue ;
+     }
+
+      /**==========   -matim M [undocumented] ===========**/
+
+     if( strcasecmp(argv[iarg],"-matim") == 0 ){
+       if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]) ;
+       matim = mri_read_1D(argv[iarg]) ;
+       if( matim == NULL ) ERROR_exit("-matim fails to read file?!") ;
        iarg++ ; continue ;
      }
 
@@ -1524,14 +1562,50 @@ STATUS("options done") ;
 #else
    if( nelmat == NULL ){  /* make up a matrix [14 Apr 2009] */
      char *str = NULL ; NI_stream ns ;
-     WARNING_message(
-       "No -matrix file! Making up a matrix with one column of %d 1s",nvals) ;
-     str = THD_zzprintf(str,
-                        "str:<matrix ni_type='double' ni_dimen='%d'\n"
-                        "            NRowFull='%d' GoodList='0..%d' >\n",
-                        nvals , nvals , nvals-1 ) ;
-     for( ii=0 ; ii < nvals ; ii++ ) str = THD_zzprintf(str," 1\n") ;
-     str = THD_zzprintf(str,"</matrix>\n") ;
+
+     if( matim != NULL ){  /* get matrix from an image */
+       int nx = matim->nx, ny = matim->ny; float *far = MRI_FLOAT_PTR(matim);
+
+       if( nx != nvals ) ERROR_exit("-matim nx=%d but nvals=%d",nx,nvals) ;
+       if( ny >= nx    ) ERROR_exit("-matim nx=%d but ny=%d"   ,nx,ny) ;
+       WARNING_message("No -matrix file: using -matim to create %d x %d matrix",
+                       nx , ny ) ;
+       str = THD_zzprintf(str,
+                          "str:<matrix ni_type='%d*double' ni_dimen='%d'\n"
+                          "            NRowFull='%d' GoodList='0..%d' >\n",
+                          ny , nvals , nvals , nvals-1 ) ;
+       for( ii=0 ; ii < nvals ; ii++ ){
+         for( jj=0 ; jj < ny ; jj++ )
+           str = THD_zzprintf(str," %g",far[ii+jj*nx]) ;
+         str = THD_zzprintf(str,"\n") ;
+       }
+       str = THD_zzprintf(str,"</matrix>\n") ;
+
+     } else {              /* just make up some crapola */
+       double fac = 2.0/(nvals-1.0) ; int kk ;
+
+       polort = MAX(polort,0) ;  /* polynomial matrix [11 Mar 2010] */
+       if( polort == 0 )
+         WARNING_message(
+           "No -matrix file! Making up a matrix with one column of %d 1s",nvals) ;
+       else
+         WARNING_message(
+           "No -matrix file! Making up a matrix %d polynomial columns of length",
+           polort+1,nvals) ;
+       str = THD_zzprintf(str,
+                          "str:<matrix ni_type='%d*double' ni_dimen='%d'\n"
+                          "            NRowFull='%d' GoodList='0..%d' >\n",
+                          polort+1 , nvals , nvals , nvals-1 ) ;
+       for( ii=0 ; ii < nvals ; ii++ ){
+         for( kk=0 ; kk <= polort ; kk++ )
+           str = THD_zzprintf(str," %g",Plegendre(fac*ii-1.0,kk)) ;
+         str = THD_zzprintf(str,"\n") ;
+       }
+       str = THD_zzprintf(str,"</matrix>\n") ;
+     }
+
+     /* convert str to nelmat */
+
      ns  = NI_stream_open( str , "r" ) ;
      if( ns == (NI_stream)NULL ) ERROR_exit("Can't fabricate matrix!?") ;
      nelmat = NI_read_element( ns , 9 ) ;
@@ -1864,7 +1938,12 @@ STATUS("process -addbase images") ;
        ERROR_message("matrix column #%d is all zero!?",jj) ; nbad++ ;
      }
    }
-   if( nbad > 0 ) ERROR_exit("Cannot continue with all zero columns!") ;
+   if( nbad > 0 ){
+     if( goforit )
+       WARNING_message("You said to GOFORIT, so here we GO!") ;
+     else
+       ERROR_exit("Cannot continue with all zero columns!") ;
+   }
 
    /****------------------ process -slibase images ------------------****/
 
@@ -1997,7 +2076,7 @@ STATUS("process -slibase images") ;
 
    /**---- check X matrices for collinearity ----**/
 
-   { char lab[32]="\0" ;
+   { char lab[32]="\0" ; int nkill ;
      for( nbad=ss=0 ; ss < nsli ; ss++ ){
        if( nsli > 1 ) sprintf(lab,"slice #%d",ss) ;
        nbad += check_matrix_condition( *(Xsli[ss]) , lab ) ;
@@ -2006,10 +2085,27 @@ STATUS("process -slibase images") ;
        if( !goforit ){
          ERROR_exit("Can't continue after matrix condition errors!\n"
                     "** you might try -GOFORIT, but be careful! (cf. '-help')");
-       } else {
-         WARNING_message("-GOFORIT ==> Continuing on despite my grave misgivings!") ;
-         ININFO_message (" Check results carefully!") ;
        }
+
+       WARNING_message("-GOFORIT ==> Continuing on despite my misgivings!") ;
+
+       /* 11 Mar 2010: try to de-singularize the matrices with problems */
+
+       for( nkill=ss=0 ; ss < nsli ; ss++ ){
+         if( nsli > 1 ) sprintf(lab,"[slice #%d]",ss) ;
+matrix_print( *(Xsli[ss]) ) ;
+         nbad = matrix_desingularize( *(Xsli[ss]) ) ;
+         if( nbad < 0 ){
+           ERROR_message("Can't de-singularize matrix%s",lab) ; nkill++ ;
+         } else if( nbad > 0 ){
+           WARNING_message(" de-singularized %d values in matrix%s",nbad,lab) ;
+matrix_print( *(Xsli[ss]) ) ;
+         }
+       }
+       if( nkill > 0 )
+         ERROR_exit("Can't continue after de-singularization failure!") ;
+
+       ININFO_message(" ==> Check results carefully!") ;
      }
    }
 

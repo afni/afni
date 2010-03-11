@@ -1027,3 +1027,58 @@ double pca_fast3 (float *data_mat, int num_rows, int be_quiet, double *pca_mat, 
    return(atrace);
 
 }
+
+/*---------------------------------------------------------------------------*/
+
+#undef A
+#undef U
+#undef V
+#undef pseps
+
+#define A(i,j) aa[(i)+(j)*m]
+#define U(i,j) uu[(i)+(j)*m]
+#define V(i,j) vv[(i)+(j)*n]
+#define pseps  5.e-7
+
+int svd_desingularize( int m , int n , double *aa )
+{
+   double *uu , *vv , *ww , sum , smax ;
+   int i,j,k , nfix ;
+
+   if( aa == NULL || m < 1 || n < 1 ) return -1 ;
+
+   ww  = (double *)malloc(sizeof(double)*n) ;
+   uu  = (double *)malloc(sizeof(double)*m*n) ;
+   vv  = (double *)malloc(sizeof(double)*n*n) ;
+
+   svd_double( m , n , aa , ww , uu , vv ) ;
+
+   /* fix singular values */
+
+   smax = ww[0] ;
+   for( i=1 ; i < n ; i++ ) if( ww[i] > smax ) smax = ww[i] ;
+   if( smax <= 0.0 ){  /* should not happen */
+     free(vv) ; free(uu) ; free(ww) ; return -1 ;
+   }
+
+   smax = pseps * smax ;
+   for( nfix=i=0 ; i < n ; i++ ){
+          if( ww[i] < 0.0      ){ ww[i] = smax ;                      nfix++; }
+     else if( ww[i] < 2.0*smax ){ ww[i] = smax+0.25*ww[i]*ww[i]/smax; nfix++; }
+   }
+
+   if( nfix == 0 ){  /* no fix needed */
+     free(vv) ; free(uu) ; free(ww) ; return 0 ;
+   }
+
+   /* otherwise, recompute [a] matrix from fixed SVD */
+
+   for( j=0 ; j < n ; j++ ){
+     for( i=0 ; i < m ; i++ ){
+       sum = 0.0 ;
+       for( k=0 ; k < n ; k++ ) sum += U(i,k)*V(j,k)*ww[k] ;
+       A(i,j) = sum ;
+   }}
+
+   free(vv) ; free(uu) ; free(ww) ; return nfix ;
+}

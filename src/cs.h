@@ -47,6 +47,8 @@ extern void svd_double( int, int, double *, double *, double *, double * ) ;
 extern void svd_float ( int, int, float *, float *, float *, float * ) ;
 extern void set_svd_sort(int) ;
 
+extern int svd_desingularize( int m , int n , double *aa ) ; /* 11 Mar 2010 */
+
 extern void symeig_3( double *, double *, int ) ;  /* 30 Sep 2005 */
 extern void symeig_2( double *, double *, int ) ;
 extern void symeig_forbid_23( int ) ;

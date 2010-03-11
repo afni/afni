@@ -2072,3 +2072,50 @@ void matrix_rrtran_solve( matrix R , matrix B , matrix *X )
    }
    vector_destroy(&v) ; vector_destroy(&u) ; return ;
 }
+
+/*---------------------------------------------------------------------------*/
+
+int matrix_desingularize( matrix X )
+{
+   int m = X.rows , n = X.cols , ii,jj , nfix ;
+   double *amat , *xfac , sum ;
+
+   if( m < 1 || n < 1 ) return -1 ;
+
+   amat = (double *)calloc( sizeof(double),m*n ) ;  /* input matrix */
+   xfac = (double *)calloc( sizeof(double),n   ) ;  /* column norms of [a] */
+
+#undef  A
+#define A(i,j) amat[(i)+(j)*m]
+
+   /* copy input matrix into amat */
+
+   for( ii=0 ; ii < m ; ii++ )
+     for( jj=0 ; jj < n ; jj++ ) A(ii,jj) = X.elts[ii][jj] ;
+
+   /* scale each column to have norm 1 */
+
+   for( jj=0 ; jj < n ; jj++ ){
+     sum = 0.0 ;
+     for( ii=0 ; ii < m ; ii++ ) sum += A(ii,jj)*A(ii,jj) ;
+     if( sum > 0.0 ){
+       xfac[jj] = sqrt(sum) ;
+       sum      = 1.0 / sum ;
+       for( ii=0 ; ii < m ; ii++ ) A(ii,jj) *= sum ;
+     } else {
+       xfac[jj] = 1.0 ;
+     }
+   }
+
+   nfix = svd_desingularize( m , n , amat ) ;
+
+   if( nfix > 0 ){ /* put fixed values back in place */
+     for( ii=0 ; ii < m ; ii++ ){
+       for( jj=0 ; jj < n ; jj++ ){
+         X.elts[ii][jj] = A(ii,jj) * xfac[ii] ;
+       }
+     }
+   }
+
+   free(xfac) ; free(amat) ; return nfix ;
+}
