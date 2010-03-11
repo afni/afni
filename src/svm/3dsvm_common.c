@@ -1430,6 +1430,7 @@ void writeModelMap_bucket ( MODEL_MAPS *maps, MaskType *dsetMaskArray,
     *dsetModelMapBucket = NULL;
   DatasetType 
     *scaled_map         = NULL;
+  char * commandline    = NULL;  /* 11 Mar 2010 [rickr] */
     
 
   ENTRY("writeModelMap_bucket");
@@ -1476,11 +1477,11 @@ void writeModelMap_bucket ( MODEL_MAPS *maps, MaskType *dsetMaskArray,
 
   /* -- record and append history of dataset -- */
   tross_Copy_History( dsetTrain, dsetModelMapBucket);
-  char * commandline = tross_commandline( PROGRAM_NAME , argc , argv ) ;
+  commandline = tross_commandline( PROGRAM_NAME , argc , argv ) ;
   tross_Append_History ( dsetModelMapBucket, commandline);
   free(commandline);
 
-  
+
  /* --- scale and write maps into bucket --- */
   for (iMap=0; iMap<maps->nmaps; ++iMap) {
     
@@ -1586,6 +1587,7 @@ void writeModelBrik(AFNI_MODEL *afniModel, ASLoptions *options, char *fileName,
   char csv_kernelCustom[50];        /* JL Feb. 2009: For custom kernels
                                        50 hard-coded as in svm-light */
   char headernames[LONG_STRING];	/* holds name for each alpha section in the .HEAD */
+  char * commandline;                   /* 11 Mar 2010 [rickr] */
   long i;
 
   ENTRY("writeModelBrik");
@@ -1625,7 +1627,7 @@ void writeModelBrik(AFNI_MODEL *afniModel, ASLoptions *options, char *fileName,
 
   /*----- Record history of dataset -----*/
 
-  char * commandline = tross_commandline( PROGRAM_NAME , argc , argv ) ;
+  commandline = tross_commandline( PROGRAM_NAME , argc , argv ) ;
   tross_Append_History ( dsetModel, commandline);
   free(commandline) ;
   
@@ -2423,7 +2425,7 @@ void test_routine (ASLoptions *options, MODEL *model, AFNI_MODEL *afniModel,
   MaskType *dsetMaskArray=NULL; /*ZSS: init to NULL*/
   float dist_tmp;
   float *dist;  /* really want this to be double, but am detrending - should do something smarter soon!*/
-  float *dist_cnsrs;
+  float *dist_cnsrs=NULL;
   /* double *multiclass_dist;
    * double multiclassTmp;
    *
