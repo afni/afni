@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 11, MAR, 2010, RCR, "3dsvm_common.c", MICRO, TYPE_MODIFY,
+   "some compilers choke on mid-block variable definitions",
+   NULL
+ } ,
+
  {  9, MAR, 2010, RCR, "3dNotes", MICRO, TYPE_MODIFY,
    "send -help output to stderr (req by T Nycum)",
    NULL
