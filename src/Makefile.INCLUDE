@@ -2437,7 +2437,7 @@ qqq.o:qqq.c
 	$(CCFAST) -c qqq.c $(INFLAGS)
 
 qqq:qqq.o
-	$(CC) -o qqq qqq.o $(INFLAGS) $(LFLAGS) $(LLIBS)
+	$(CC) -o qqq qqq.o $(INFLAGS) $(LFLAGS) $(LLIBS) -lmrix -lcoxplot  -lf2c $(LLIBS)
 
 bitvec.o:bitvec.c
 	$(CCFAST) -c bitvec.c $(INFLAGS)
