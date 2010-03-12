@@ -2096,6 +2096,7 @@ int matrix_desingularize( matrix X )
    /* scale each column to have norm 1 */
 
    for( jj=0 ; jj < n ; jj++ ){
+#if 0
      sum = 0.0 ;
      for( ii=0 ; ii < m ; ii++ ) sum += A(ii,jj)*A(ii,jj) ;
      if( sum > 0.0 ){
@@ -2105,6 +2106,9 @@ int matrix_desingularize( matrix X )
      } else {
        xfac[jj] = 1.0 ;
      }
+#else
+     xfac[jj] = 1.0 ;
+#endif
    }
 
    nfix = svd_desingularize( m , n , amat ) ;
@@ -2112,7 +2116,7 @@ int matrix_desingularize( matrix X )
    if( nfix > 0 ){ /* put fixed values back in place */
      for( ii=0 ; ii < m ; ii++ ){
        for( jj=0 ; jj < n ; jj++ ){
-         X.elts[ii][jj] = A(ii,jj) * xfac[ii] ;
+         X.elts[ii][jj] = A(ii,jj) * xfac[jj] ;
        }
      }
    }

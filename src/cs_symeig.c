@@ -1061,15 +1061,34 @@ int svd_desingularize( int m , int n , double *aa )
      free(vv) ; free(uu) ; free(ww) ; return -1 ;
    }
 
+fprintf(stderr,"ww before =") ;
+for( i=0 ; i < n ; i++ ) fprintf(stderr," %g",ww[i]) ;
+fprintf(stderr,"\n") ;
+
    smax = pseps * smax ;
    for( nfix=i=0 ; i < n ; i++ ){
           if( ww[i] < 0.0      ){ ww[i] = smax ;                      nfix++; }
      else if( ww[i] < 2.0*smax ){ ww[i] = smax+0.25*ww[i]*ww[i]/smax; nfix++; }
    }
 
+fprintf(stderr,"ww after  =") ;
+for( i=0 ; i < n ; i++ ) fprintf(stderr," %g",ww[i]) ;
+fprintf(stderr,"\n") ;
+
    if( nfix == 0 ){  /* no fix needed */
      free(vv) ; free(uu) ; free(ww) ; return 0 ;
    }
+
+fprintf(stderr,"U\n") ;
+for( i=0 ; i < m ; i++ ){
+  for( j=0 ; j < n ; j++ ) fprintf(stderr," %g",U(i,j)) ;
+  fprintf(stderr,"\n") ;
+}
+fprintf(stderr,"V\n") ;
+for( i=0 ; i < n ; i++ ){
+  for( j=0 ; j < n ; j++ ) fprintf(stderr," %g",V(i,j)) ;
+  fprintf(stderr,"\n") ;
+}
 
    /* otherwise, recompute [a] matrix from fixed SVD */
 
@@ -1077,6 +1096,7 @@ int svd_desingularize( int m , int n , double *aa )
      for( i=0 ; i < m ; i++ ){
        sum = 0.0 ;
        for( k=0 ; k < n ; k++ ) sum += U(i,k)*V(j,k)*ww[k] ;
+fprintf(stderr,"A(%d,%d): %g -> %g\n",i,j,A(i,j),sum) ;
        A(i,j) = sum ;
    }}
 

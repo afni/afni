@@ -1143,12 +1143,10 @@ int main( int argc , char *argv[] )
       "-----------------------------------------------------------\n"
       "To Dream the Impossible Dream, to Write the Uncodeable Code\n"
       "-----------------------------------------------------------\n"
-      "* Add a -jobs option to use multiple CPUs (or multiple Steves?).\n"
-      "* Add options for -iresp/-sresp for -stim_times?\n"
-      "* Output variance estimates for the betas, to be carried to the\n"
-      "    inter-subject (group) analysis level?\n"
+      "* Add options for -iresp/-sresp for -stim_times.\n"
       "* Prevent Daniel Glen from referring to this program as 3dARMAgeddon.\n"
-      "* Establish incontrovertibly the nature of quantum mechanical observation!\n"
+      "* Establish incontrovertibly the nature of quantum mechanical observation.\n"
+      "* Create an iPhone/iPad version of the AFNI software suite.\n"
       "\n"
       "----------------------------------------------------------\n"
       "* For more information, see the contents of\n"
@@ -1165,15 +1163,16 @@ int main( int argc , char *argv[] )
       , corcut
      ) ;
      PRINT_AFNI_OMP_USAGE("3dREMLfit",
-         "* The REML matrix setup and REML voxel ARMA(1,1) estimation loops are\n"
-         "   parallelized.\n"
-         "* The GLSQ and OLSQ loops are not parallelized. They are usually much\n"
-         "   faster than the REML voxel loop, and so I made no effort to speed\n"
-         "   these up (yet).\n"
-         "* '-usetemp' disables OpenMP multi-CPU usage, since the file I/O for\n"
-         "   saving and restoring various matrices and results is not easily\n"
-         "   parallelized.\n"
-       ) ;
+       "* The REML matrix setup and REML voxel ARMA(1,1) estimation loops are\n"
+       "   parallelized, across (a,b) parameter sets and across voxels, respectively.\n"
+       "* The GLSQ and OLSQ loops are not parallelized. They are usually much\n"
+       "   faster than the REML voxel loop, and so I made no effort to speed\n"
+       "   these up (now and forever).\n"
+       "* '-usetemp' disables OpenMP multi-CPU usage, since the file I/O for\n"
+       "   saving and restoring various matrices and results is not easily\n"
+       "   parallelized.  To get OpenMP speedup for large problems (just where\n"
+       "   you want it), you'll need a lot of RAM.\n"
+     ) ;
      PRINT_COMPILE_DATE ; exit(0) ;
    }
 
@@ -2089,21 +2088,21 @@ STATUS("process -slibase images") ;
 
        WARNING_message("-GOFORIT ==> Continuing on despite my misgivings!") ;
 
+#if 0
        /* 11 Mar 2010: try to de-singularize the matrices with problems */
 
        for( nkill=ss=0 ; ss < nsli ; ss++ ){
          if( nsli > 1 ) sprintf(lab,"[slice #%d]",ss) ;
-matrix_print( *(Xsli[ss]) ) ;
          nbad = matrix_desingularize( *(Xsli[ss]) ) ;
          if( nbad < 0 ){
            ERROR_message("Can't de-singularize matrix%s",lab) ; nkill++ ;
          } else if( nbad > 0 ){
            WARNING_message(" de-singularized %d values in matrix%s",nbad,lab) ;
-matrix_print( *(Xsli[ss]) ) ;
          }
        }
        if( nkill > 0 )
          ERROR_exit("Can't continue after de-singularization failure!") ;
+#endif
 
        ININFO_message(" ==> Check results carefully!") ;
      }
@@ -2316,7 +2315,7 @@ STATUS("make GLTs from matrix file") ;
 
    vector_initialize( &y ) ; vector_create_noinit( ntime , &y ) ;
    niv = (nvals+nrega+glt_num+9)*2 ;
-   iv  = (float *)malloc(sizeof(float)*(niv+1)) ;
+   iv  = (float *)malloc(sizeof(float)*(niv+1)) ; /* temp vectors */
    jv  = (float *)malloc(sizeof(float)*(niv+1)) ;
 
    for( nbad=vv=0 ; vv < nvox ; vv++ ){
@@ -2504,7 +2503,7 @@ STATUS("make GLTs from matrix file") ;
 
 #pragma omp critical (MALLOC)
  {
-   iv   = (float *)malloc(sizeof(float)*(niv+1)) ;
+   iv = (float *)malloc(sizeof(float)*(niv+1)) ;
    vector_initialize(&y) ; vector_create_noinit(ntime,&y) ;
    ws = (MTYPE *)malloc(sizeof(MTYPE)*nws) ;
  }
