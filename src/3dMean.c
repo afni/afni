@@ -46,6 +46,9 @@ int main( int argc , char * argv[] )
              "    * Dataset sub-brick selectors [] are allowed.\n"
              "    * The output dataset origin, time steps, etc., are taken from the\n"
              "       first input dataset.\n"
+             "*** If you are trying to compute the mean (or some other statistic)\n"
+             "    across time for a 3D+time dataset (not across datasets), use\n"
+             "    3dTstat instead.\n"
             ) ;
       PRINT_COMPILE_DATE ; exit(0) ;
    }

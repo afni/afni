@@ -203,7 +203,9 @@ g_help_string = """
         from 6 degrees and 10 mm to 45 degrees and 45 mm and adds in
         a center of mass adjustment. The giant_move option will usually
         work well too, but it adds significant time to the processing
-        and allows for the possibility of a very bad alignment.
+        and allows for the possibility of a very bad alignment.Another cost
+        functional is available that has worked well with noisy data, "lpc+ZZ".
+        For difficult data, consider that alternative.
 
         If your data starts out fairly close (probably the typical case
         for EPI and anatomical data), you can use the -big_move with 

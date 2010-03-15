@@ -49,6 +49,17 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 15 , MAR , 2010 , DRG , "3dTstat, 3dMean" , 
+    MICRO , TYPE_MODIFY,
+    "Minor text changes to refer to the other program in help"
+} ,
+
+{ 1 , MAR , 2010 , DRG , "align_epi_anat.py" , 
+    MINOR , TYPE_MODIFY, 
+    "Changed default options used with giant_move and 3dAllineate." ,
+    "Changed with version 1.30 of align_epi_anat.py"
+} ,
+
 { 9 , FEB , 2010 , DRG , "align_epi_anat.py" , 
     MINOR , TYPE_BUG_FIX, 
     "Fixed silly bug introduced in previous version" ,
