@@ -213,7 +213,10 @@ int main( int argc , char *argv[] )
  "doesn't allow that, you can use program 3dDetrend first.\n"
  "\n"
  "The output is a bucket dataset.  The input dataset may\n"
- "use a sub-brick selection list, as in program 3dcalc.\n"
+ "use a sub-brick selection list, as in program 3dcalc.\n\n"
+ "*** If you are trying to compute the mean or std.dev. of multiple\n"
+ "datasets (not across time), use 3dMean or 3dmerge instead.\n"
+
            ) ;
 
  printf("\n"
