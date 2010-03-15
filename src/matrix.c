@@ -199,7 +199,7 @@ void matrix_destroy (matrix *m)
 
 */
 
-void matrix_create (int rows, int cols, matrix * m)
+void matrix_create (int rows, int cols, matrix *m)
 {
   register int i ;
 
@@ -534,6 +534,33 @@ void matrix_extract_rows (matrix a, int p, int * list, matrix * b)
       b->elts[i][j] = a.elts[list[i]][j];
 }
 
+/*---------------------------------------------------------------------------*/
+/*! Return value is number of rows deleted.
+    If this is zero, the output matrix *b is not created.
+    If the output matrix would have no rows
+      (return value == number of rows input), then *b is also not created.
+*//*-------------------------------------------------------------------------*/
+
+int matrix_delete_allzero_rows( matrix a , matrix *b )
+{
+   int ii , jj , rows , cols , np=0 , *lp ;
+
+   rows = a.rows ;
+   cols = a.cols ; if( rows < 1 || cols < 1 || b == NULL ) return 0 ;
+
+   /* make list of rows to keep */
+
+   lp = (int *)malloc(sizeof(int)*rows) ;
+   for( ii=0 ; ii < rows ; ii++ ){
+     for( jj=0 ; jj < cols && a.elts[ii][jj] == 0.0 ; jj++ ) ; /*nada*/
+     if( jj < cols ) lp[np++] = ii ;
+   }
+
+   if( np > 0 && np < rows )
+     matrix_extract_rows( a , np , lp , b ) ;
+
+   free(lp) ; return (rows-np) ;
+}
 
 /*---------------------------------------------------------------------------*/
 /*!

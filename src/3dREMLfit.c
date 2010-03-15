@@ -33,7 +33,6 @@ static int goforit=0 ;
 # define MEMORY_CHECK /*nada*/
 #endif
 
-#undef PATCHX
 #undef REML_DEBUG
 
 /*---------------------------------------------------------------------------*/
@@ -597,8 +596,7 @@ int main( int argc , char *argv[] )
       "\n"
       " -matrix mmm = Read the matrix 'mmm', which should have been\n"
       "                 output from 3dDeconvolve via the '-x1D' option.\n"
-      "            *** N.B.: 3dREMLfit will NOT work with all zero columns,\n"
-      "                       unlike 3dDeconvolve!!!\n"
+      "\n"
       "             ** N.B.: Actually, you can omit the '-matrix' option, but\n"
       "                       then the program will fabricate a matrix consisting\n"
       "                       of a single column with all 1s.  This option is\n"
@@ -606,6 +604,9 @@ int main( int argc , char *argv[] )
       "                       example, to have some fun with an AR(1) time series:\n"
       "                 1deval -num 1001 -expr 'gran(0,1)+(i-i)+0.7*z' > g07.1D\n"
       "                 3dREMLfit -input g07.1D'{1..$}'\' -Rvar -.1D -grid 5 -MAXa 0.9\n"
+      "\n"
+      "             ** N.B.: 3dREMLfit now supports all zero columns, if you use\n"
+      "                        the '-GOFORIT' option. [Ides of March, MMX A.D.]\n"
      ) ;
 
      if( AFNI_yesenv("AFNI_POMOC") )
@@ -625,11 +626,12 @@ int main( int argc , char *argv[] )
 
      printf(
       "\n"
-      " -mask kkk   = Read dataset 'kkk' as a mask for the input.\n"
+      " -mask kkk   = Read dataset 'kkk' as a mask for the input; voxels outside\n"
+      "                 the mask will not be fit by the regression model.\n"
       " -automask   = If you don't know what this does by now, I'm not telling.\n"
       "            *** If you don't specify ANY mask, the program will\n"
       "                 build one automatically (from each voxel's RMS)\n"
-      "                 and use this mask solely for the purpose of\n"
+      "                 and use this mask SOLELY for the purpose of\n"
       "                 computing the FDR curves in the bucket dataset's header.\n"
       "              * If you DON'T want this to happen, then use '-noFDR'\n"
       "                 and later run '3drefit -addFDR' on the bucket dataset.\n"
@@ -975,6 +977,10 @@ int main( int argc , char *argv[] )
       "                program to continue past such a failed collinearity\n"
       "                check, but you must check your results to see if they\n"
       "                make sense!\n"
+      "              ** '-GOFORIT' is required if there are all zero columns\n"
+      "                   in the regression matrix.  However, at this time\n"
+      "                   [15 Mar 2010], the all zero columns CANNOT come from\n"
+      "                   the '-slibase' inputs.\n"
       "\n"
       "---------------------\n"
       "Miscellaneous Options\n"
@@ -1121,18 +1127,10 @@ int main( int argc , char *argv[] )
       "    or '-slibase') is rank-deficient (e.g., has collinear columns),\n"
       "    then the program will print a message something like\n"
       "      ** ERROR: X matrix has 1 tiny singular value -- collinearity\n"
-#ifndef PATCHX
-      "    At this time, the program will NOT continue past this type of error.\n"
-#else
-      "    The program will still produce a solution.  However, since\n"
-      "    3dREMLfit uses a different linear algebra approach than\n"
-      "    3dDeconvolve for solving the equations, the solution for the\n"
-      "    beta-weights involved in the collinearity will probably differ\n"
-      "    from what 3dDeconvolve would produce in such a situation.\n"
-      "    If you receive such a warning, you should examine your results\n"
+      "    The program will NOT continue past this type of error, unless\n"
+      "    the '-GOFORIT' option is used.  You should examine your results\n"
       "    carefully to make sure they are reasonable (e.g., look at\n"
       "    the fitted model overlay on the input time series).\n"
-#endif
       "* Despite my best efforts, this program is somewhat slow.\n"
       "    Partly because it solves many linear systems for each voxel,\n"
       "    trying to find the 'best' ARMA(1,1) pre-whitening matrix.\n"
@@ -1149,7 +1147,7 @@ int main( int argc , char *argv[] )
       "* Add options for -iresp/-sresp for -stim_times.\n"
       "* Prevent Daniel Glen from referring to this program as 3dARMAgeddon.\n"
       "* Establish incontrovertibly the nature of quantum mechanical observation.\n"
-      "* Create an iPhone/iPad version of the AFNI software suite.\n"
+      "* Create an iPad version of the AFNI software suite.\n"
       "\n"
       "----------------------------------------------------------\n"
       "* For more information, see the contents of\n"
@@ -2103,7 +2101,7 @@ STATUS("process -slibase images") ;
                     "** you might try -GOFORIT, but be careful! (cf. '-help')");
        }
 
-       WARNING_message("-GOFORIT ==> Forging ahead despite any problems!") ;
+       WARNING_message("-GOFORIT ==> Charging ahead into battle!") ;
        ININFO_message ("                  ==> Check results carefully!") ;
      }
    }
@@ -2300,6 +2298,46 @@ STATUS("make GLTs from matrix file") ;
        ERROR_exit("Can't continue after -gltsym errors!") ;
 
    } /* end of GLT setup */
+
+   /**-- if have all zero matrix columns,  [15 Mar 2010]
+         set those coefficients to have zero weight in the GLT matrices --**/
+
+   if( nallz > 0 ){
+     matrix *G ; int cc ;
+     if( verb > 1 )
+       INFO_message("Editing GLT matrices for all zero X matrix column%s",
+                    (nallz==1) ? "\0" : "s" ) ;
+     for( kk=0 ; kk < glt_num ; kk++ ){
+       G = glt_mat[kk] ;
+       for( jj=0 ; jj < nallz ; jj++ ){
+         cc = allz[jj] ;
+         for( ii=0 ; ii < G->rows ; ii++ ) G->elts[ii][cc] = 0.0 ;
+       }
+     }
+   }
+
+   /**-- edit out any all zero rows in the GLT matrices [15 Mar 2010] --**/
+
+   { matrix *G , *GM ; int nrk , ndone=0 ;
+     GM = (matrix *)malloc(sizeof(matrix)) ; matrix_initialize(GM) ;
+     for( kk=0 ; kk < glt_num ; kk++ ){
+       G   = glt_mat[kk] ;
+       nrk = matrix_delete_allzero_rows( *G , GM ) ;
+       if( nrk > 0 && nrk < G->rows ){
+         ndone++ ;
+         if( verb > 1 )
+           ININFO_message("Removed %d all zero row%s from GLT matrix '%s'",
+                          nrk , (nrk==1) ? "\0" : "s" , glt_lab[kk] ) ;
+         glt_mat[kk] = GM ; matrix_destroy(G) ; glt_rtot -= nrk ;
+         GM = (matrix *)malloc(sizeof(matrix)) ; matrix_initialize(GM) ;
+       } else if( nrk == G->rows ){
+         ININFO_message("GLT matrix '%s' is all zero!",glt_lab[kk]) ;
+       }
+     }
+     free(GM) ;
+     if( ndone == 0 && verb > 1 && nallz > 0 )
+       ININFO_message("No GLT matrices neededed editing") ;
+   }
 
    /***--------- done with nelmat ---------***/
 
