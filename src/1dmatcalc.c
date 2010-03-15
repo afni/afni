@@ -12,10 +12,10 @@ int main( int argc , char *argv[] )
             "---------------\n"
             "* Multiply each element of an input 1D file\n"
             "  by a constant factor and write to disk.\n"
-            "    1dmatcalc \"read(in.1D) 3.1416 * write(out.1D)\"\n"
+            "    1dmatcalc \"&read(in.1D) 3.1416 * &write(out.1D)\"\n"
             "\n"
             "* Subtract two 1D files\n"
-            "    1dmatcalc \"read(a.1D) read(b.1D) - write(c.1D)\"\n"
+            "    1dmatcalc \"&read(a.1D) &read(b.1D) - &write(stdout:)\"\n"
            ) ;
      exit(0) ;
    }
