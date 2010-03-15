@@ -1059,8 +1059,10 @@ int svd_desingularize( int m , int n , double *aa )
 
    smax = ww[0] ;
    for( i=1 ; i < n ; i++ ) if( ww[i] > smax ) smax = ww[i] ;
-   if( smax <= 0.0 ){  /* should not happen */
+   if( smax < 0.0 ){  /* should not happen */
      free(vv) ; free(uu) ; free(ww) ; return -1 ;
+   } else if( smax == 0.0 ){ /* only if input is all zero */
+     smax = 1.0 ;
    }
 
 #ifdef DSDBUG

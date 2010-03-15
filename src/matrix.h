@@ -180,6 +180,9 @@ void matrix_extract (matrix a, int p, int * list, matrix * b);
 
 void matrix_extract_rows (matrix a, int p, int * list, matrix * b);
 
+/* do what the name says [15 Mar 2010] */
+
+int matrix_delete_allzero_rows( matrix a , matrix *b ) ;
 
 /*---------------------------------------------------------------------------*/
 /*

@@ -1255,6 +1255,15 @@ ENTRY("REML_get_gltfactors") ;
    if( rr == 1 ){               /* F is really an nn-vector */
      ete = matrix_frobenius( *F ) ;        /* sum of squares */
      vector_create(rr,S) ; S->elts[0] = sqrt(ete) ; /* sigma */
+     if( ete == 0.0f ){
+#pragma omp critical (GLTZZZ)
+ {     static int first = 1 ;
+       if( first ){
+         WARNING_message( "GLT setup %dx1 matrix is all zero?" , nn ); first=0;
+       }
+       ete = 1.0 ;
+ } /* end of OpenMP critical section */
+     }
      ete = 1.0 / ete ;                       /* scale factor */
      JR = (matrix *)malloc(sizeof(matrix)) ; matrix_initialize(JR) ;
      matrix_create(rr,nn,JR) ;
@@ -1271,7 +1280,7 @@ ENTRY("REML_get_gltfactors") ;
  {     static int iold = 0 ;
        if( i > iold ){
          WARNING_message(
-           "QR decomposition of GLT %dx%d matrix had %d collinearity problem%s" ,
+           "QR decomposition of GLT setup %dx%d matrix had %d collinearity problem%s" ,
            nn,rr, i , (i==1) ? "\0" : "s"                             ) ;
          iold = i ;
        }
