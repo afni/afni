@@ -143,7 +143,7 @@ void matrix_enter (matrix * m);
 */
 
 void matrix_file_read (char * filename, int rows, int cols,  matrix * m,
-		       int error_exit);
+                       int error_exit);
 
 
 /*---------------------------------------------------------------------------*/
@@ -228,10 +228,10 @@ void matrix_scale (double k, matrix a, matrix * c);
 
 void matrix_transpose (matrix a, matrix * t);
 
- 
+
 /*---------------------------------------------------------------------------*/
 /*
-  Use Gaussian elimination to calculate inverse of matrix a.  Result is 
+  Use Gaussian elimination to calculate inverse of matrix a.  Result is
   matrix ainv.
 */
 
@@ -242,7 +242,7 @@ int matrix_inverse_dsc (matrix a, matrix * ainv);  /* 15 Jul 2004 */
 
 /*---------------------------------------------------------------------------*/
 /*
-  Calculate square root of symmetric positive definite matrix a.  
+  Calculate square root of symmetric positive definite matrix a.
   Result is matrix s.
 */
 
@@ -362,7 +362,7 @@ double vector_multiply_subtract (matrix a, vector b, vector c, vector * d) ;
 
 /*---------------------------------------------------------------------------*/
 /*
-  Calculate dot product of vector a with vector b. 
+  Calculate dot product of vector a with vector b.
 */
 
 double vector_dot (vector a, vector b);
@@ -384,6 +384,8 @@ void matrix_psinv( matrix X , matrix *XtXinv , matrix *XtXinvXt ) ;  /* 19 Jul 2
 extern int matrix_collinearity_fixup( matrix X , matrix *Xa ) ; /* 12 Dec 2008 */
 
 extern void matrix_psinv_seteps( double eps ) ; /* 02 Mar 2007 - MoJM */
+
+extern void matrix_allow_desing( int ) ;          /* 15 Mar 2010 */
 
 extern int  matrix_qrr( matrix X , matrix *R ) ;  /* 03 Jul 2008 */
 extern void vector_rr_solve    ( matrix R , vector b , vector *x ) ;
