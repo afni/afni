@@ -194,10 +194,11 @@ void check_dataset( THD_3dim_dataset *dset )
    int nn ; static int first=1 ;
    nn = dset_floatscan( dset ) ;
    if( nn > 0 ){
-     WARNING_message("Zero-ed %d float errors in dataset %s",DSET_BRIKNAME(dset));
+     WARNING_message("Zero-ed %d float error%s in dataset %s" ,
+                     nn , (nn==1) ? "\0" : "s" , DSET_BRIKNAME(dset) ) ;
      if( first ){
-       ININFO_message(" Float errors include NaN and Infinity values") ;
-       ININFO_message(" ==> Check matrix setup! Check inputs! Check results!") ;
+       ININFO_message("   Float errors include NaN and Infinity values") ;
+       ININFO_message("   ==> Check matrix setup! Check inputs! Check results!") ;
        first = 0 ;
      }
    }
@@ -549,6 +550,8 @@ int main( int argc , char *argv[] )
 
    int polort = 0 ;           /* 11 Mar 2010 */
    MRI_IMAGE *matim = NULL ;
+
+   int nallz = 0 ; int *allz = NULL ;  /* 15 Mar 2010 */
 
    /**------- Get by with a little help from your friends? -------**/
 
@@ -1517,6 +1520,14 @@ int main( int argc , char *argv[] )
      ERROR_exit("Unknown option '%.33s'",argv[iarg]) ;
    }
 
+   /*------ The Ides of March 2010 ------*/
+
+   if( goforit ){
+     matrix_allow_desing(1) ;
+     if( verb > 1 )
+       INFO_message("GOFORIT ==> Enabling matrix desingularization") ;
+   }
+
 STATUS("options done") ;
 
    /**--------------- sanity checks, dataset input, maskifying --------------**/
@@ -1543,7 +1554,8 @@ STATUS("options done") ;
        WARNING_message("-usetemp disables OpenMP multi-CPU usage") ;
      } else if( nvox < 999 ){
        maxthr = 1 ;
-       WARNING_message("only %d voxels: disables OpenMP multi-CPU usage",nvox) ;
+       WARNING_message("only %d voxels: disables OpenMP multi-CPU usage in voxel loop",
+                       nvox) ;
      }
    }
 #if 0
@@ -1935,13 +1947,18 @@ STATUS("process -addbase images") ;
      for( ii=0 ; ii < ntime && X.elts[ii][jj]==0.0 ; ii++ ) ; /*nada*/
      if( ii==ntime ){
        ERROR_message("matrix column #%d is all zero!?",jj) ; nbad++ ;
+       if( allz == NULL ) allz = (int *)malloc(sizeof(int)*nrega) ;
+       allz[nallz++] = jj ;
      }
    }
    if( nbad > 0 ){
-     if( goforit )
+     if( goforit ){
        WARNING_message("You said to GOFORIT, so here we GO!") ;
-     else
-       ERROR_exit("Cannot continue with all zero columns!") ;
+       allz = (int *)realloc(allz,sizeof(int)*nallz) ;
+     } else
+       ERROR_exit(
+        "Can't continue with all zero column%s without -GOFORIT option!",
+        (nbad==1) ? "\0" : "s" ) ;
    }
 
    /****------------------ process -slibase images ------------------****/
@@ -2086,25 +2103,8 @@ STATUS("process -slibase images") ;
                     "** you might try -GOFORIT, but be careful! (cf. '-help')");
        }
 
-       WARNING_message("-GOFORIT ==> Continuing on despite my misgivings!") ;
-
-#if 0
-       /* 11 Mar 2010: try to de-singularize the matrices with problems */
-
-       for( nkill=ss=0 ; ss < nsli ; ss++ ){
-         if( nsli > 1 ) sprintf(lab,"[slice #%d]",ss) ;
-         nbad = matrix_desingularize( *(Xsli[ss]) ) ;
-         if( nbad < 0 ){
-           ERROR_message("Can't de-singularize matrix%s",lab) ; nkill++ ;
-         } else if( nbad > 0 ){
-           WARNING_message(" de-singularized %d values in matrix%s",nbad,lab) ;
-         }
-       }
-       if( nkill > 0 )
-         ERROR_exit("Can't continue after de-singularization failure!") ;
-#endif
-
-       ININFO_message(" ==> Check results carefully!") ;
+       WARNING_message("-GOFORIT ==> Forging ahead despite any problems!") ;
+       ININFO_message ("                  ==> Check results carefully!") ;
      }
    }
 
@@ -2338,7 +2338,9 @@ STATUS("make GLTs from matrix file") ;
 #ifdef USE_OMP
    if( maxthr > 1 && nmask < 99*maxthr ){
      maxthr = 1 ;
-     WARNING_message("only %d voxels in mask: disables OpenMP multi-CPU usage",nmask) ;
+     WARNING_message(
+      "only %d voxels in mask: disables OpenMP multi-CPU usage for voxel loop",
+      nmask) ;
    }
 #endif
 

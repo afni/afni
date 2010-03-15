@@ -39,6 +39,8 @@ int thd_floatscan( int nbuf , float *fbuf )
    return nerr ;
 }
 
+/*--------------------------------------------------------------------*/
+
 #if 0
 typedef struct complex { float r , i ; } complex ;  /* cf. mrilib.h */
 #endif
@@ -72,23 +74,34 @@ int mri_floatscan( MRI_IMAGE *im )
    return 0 ;
 }
 
+/*--------------------------------------------------------------------*/
+
 int imarr_floatscan( MRI_IMARR *imar )
 {
    int ii , nn ;
    if( imar == NULL ) return 0 ;
-   for( nn=ii=0 ; ii < IMARR_COUNT(imar) ; ii++ )
+   for( nn=ii=0 ; ii < IMARR_COUNT(imar) ; ii++ ){
      nn += mri_floatscan( IMARR_SUBIM(imar,ii) ) ;
+   }
    return nn ;
 }
 
+/*--------------------------------------------------------------------*/
+
 int dblk_floatscan( THD_datablock *dblk )
 {
+   int nn ;
    if( !ISVALID_DATABLOCK(dblk) ) return 0 ;
-   return imarr_floatscan( dblk->brick ) ;
+   nn = imarr_floatscan( dblk->brick ) ;
+   return nn ;
 }
+
+/*--------------------------------------------------------------------*/
 
 int dset_floatscan( THD_3dim_dataset *dset )
 {
+   int nn ;
    if( !ISVALID_DSET(dset) ) return 0 ;
-   return dblk_floatscan( dset->dblk ) ;
+   nn = dblk_floatscan( dset->dblk ) ;
+   return nn ;
 }
