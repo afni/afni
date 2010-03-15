@@ -646,18 +646,17 @@ reml_setup * setup_arma11_reml( int nt, int *tau,
        ERROR_message("matrix_qrr fails?! a=%.3f lam=%.3f",rho,lam) ;
      matrix_destroy(D) ; free((void *)D) ; rcmat_destroy(rcm) ; return NULL ;
    } else if( ii > 0 ){
-#ifndef USE_OMP
-     static int iold=0 ;
-     if( ii != iold ){
+#pragma omp critical (QRERR)
+ {  static int iold=0 ;
+     if( ii > iold ){
        WARNING_message("-----") ;
        WARNING_message(
-         "QR decomposition of X had %d tiny diagonal"
-         " element%s adjusted -- collinearity!",
+         "QR decomposition of X had %d collinearity problem%s" ,
          ii , (ii==1) ? "\0" : "s"                       ) ;
        WARNING_message("-----") ;
        iold = ii ;
      }
-#endif
+ } /* end of OpenMP critical section */
    }
 
    /* create the setup struct, save stuff into it */
@@ -1243,11 +1242,15 @@ ENTRY("REML_get_gltfactors") ;
    GT = (matrix *)malloc(sizeof(matrix)) ; matrix_initialize(GT) ;
    matrix_transpose( *G , GT ) ;         /* GT = [G'] = nn X rr matrix */
 
+/* INFO_message("GLT GT matrix") ; matrix_print( *GT ) ; */
+
    F = (matrix *)malloc(sizeof(matrix)) ; matrix_initialize(F) ;
    matrix_rrtran_solve( *D , *GT , F ) ; /* F = inv[D'] [G'] = nn X rr matrix */
    matrix_destroy(GT); free(GT);
 
    S = (vector *)malloc(sizeof(vector)) ; vector_initialize(S) ;
+
+/* INFO_message("GLT F matrix") ; matrix_print( *F ) ; */
 
    if( rr == 1 ){               /* F is really an nn-vector */
      ete = matrix_frobenius( *F ) ;        /* sum of squares */
@@ -1264,14 +1267,15 @@ ENTRY("REML_get_gltfactors") ;
      JR = (matrix *)malloc(sizeof(matrix)) ; matrix_initialize(JR) ;
      i = matrix_qrr( *F , E ) ;
      if( i > 0 ){
-       static int iold = 0 ;
-       if( i != iold ){
+#pragma omp critical (QRERR)
+ {     static int iold = 0 ;
+       if( i > iold ){
          WARNING_message(
-           "QR decomposition of GLT matrix had %d tiny diagonal"
-           " element%s adjusted -- collinearity!",
-           i , (i==1) ? "\0" : "s"                             ) ;
+           "QR decomposition of GLT %dx%d matrix had %d collinearity problem%s" ,
+           nn,rr, i , (i==1) ? "\0" : "s"                             ) ;
          iold = i ;
        }
+ } /* end of OpenMP critical section */
      }
      matrix_rrtran_solve( *E , *G , Z ) ;
      matrix_rr_solve( *E , *Z , JR ) ;  /* JR = inv[E] inv[E'] G = rr X nn */

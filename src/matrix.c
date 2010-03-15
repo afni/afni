@@ -1835,6 +1835,11 @@ int matrix_collinearity_fixup( matrix X , matrix *Xa )
 #endif
 
 /*---------------------------------------------------------------------------*/
+
+static int allow_desing = 0 ;
+void matrix_allow_desing( int ii ){ allow_desing = ii ; }
+
+/*---------------------------------------------------------------------------*/
 /*! Given MxN matrix X, compute the NxN upper triangle factor R in X = QR.
     Must have M >= N (more rows than columns).
     Q is not computed.  If you want Q, then compute it as [Q] = [X] * inv[R].
@@ -1844,7 +1849,7 @@ int matrix_collinearity_fixup( matrix X , matrix *Xa )
 
 int matrix_qrr( matrix X , matrix *R )
 {
-   int m=X.rows , n=X.cols , ii,jj,kk , m1=m-1 ;
+   int m=X.rows , n=X.cols , ii,jj,kk , m1=m-1 , nsing=0 ;
    double *amat , x1 ;
    register double alp, sum , *uvec, *Ak;
 
@@ -1860,6 +1865,9 @@ int matrix_qrr( matrix X , matrix *R )
 
    for( ii=0 ; ii < m ; ii++ )
      for( jj=0 ; jj < n ; jj++ ) A(ii,jj) = X.elts[ii][jj] ;
+
+   if( allow_desing )
+     nsing = svd_desingularize( m , n , amat ) ;  /* Ides of March, 2010 */
 
    /* Householder transform each column of A in turn */
 
@@ -1924,7 +1932,7 @@ fprintf(stderr,"\n") ;
 #endif
 
    free((void *)uvec) ; free((void *)amat) ;
-   return (0) ;
+   return (nsing) ;
 }
 
 /*----------------- below is a test program for matrix_qrr() -----------------*/
@@ -2074,7 +2082,9 @@ void matrix_rrtran_solve( matrix R , matrix B , matrix *X )
 }
 
 /*---------------------------------------------------------------------------*/
+/* not current used anywhere */
 
+#if 0
 int matrix_desingularize( matrix X )
 {
    int m = X.rows , n = X.cols , ii,jj , nfix ;
@@ -2123,3 +2133,4 @@ int matrix_desingularize( matrix X )
 
    free(xfac) ; free(amat) ; return nfix ;
 }
+#endif
