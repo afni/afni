@@ -981,6 +981,9 @@ int main( int argc , char *argv[] )
       "                   in the regression matrix.  However, at this time\n"
       "                   [15 Mar 2010], the all zero columns CANNOT come from\n"
       "                   the '-slibase' inputs.\n"
+      "              ** If there are all zero columns in the matrix, a number\n"
+      "                   of WARNING messages will be generated as the program\n"
+      "                   pushes forward in the solution of the linear systems.\n"
       "\n"
       "---------------------\n"
       "Miscellaneous Options\n"
@@ -1138,8 +1141,57 @@ int main( int argc , char *argv[] )
       "    systems (QR method, sparse matrix operations, etc.) and some\n"
       "    other code optimizations should make running 3dREMLfit tolerable.\n"
       "    Depending on the matrix and the options, you might expect CPU time\n"
-      "    to be about 1..3 times that of the corresponding 3dDeconvolve run.\n"
+      "    to be about 2..5 times that of the corresponding 3dDeconvolve run.\n"
       "    (Slower than that if you use '-slibase' and/or '-Grid 5', however.)\n"
+      "\n"
+      "---------------------------------------------------------------\n"
+      "How 3dREMLfit handles all zero columns in the regression matrix\n"
+      "---------------------------------------------------------------\n"
+#if 0
+      "* 3dDeconvolve uses the singular value decomposition to compute\n"
+      "    the pseudo-inverse of the regression matrix X; normally, the\n"
+      "    pseudo-inverse is given by inv[X'X] X'.  However, if X has\n"
+      "    any zero singular values (i.e., there is a linear combination\n"
+      "    of the columns of X that is zero), then matrix X'X is not\n"
+      "    invertible.  The SVD-based pseudo-inverse of X proceeds past\n"
+      "    this point by modifying X'X to make it non-singular, by\n"
+      "    boosting up the close-to-zero singular values to make them\n"
+      "    bounded away from zero.\n"
+      "* 3dREMLfit doesn't use the SVD and doesn't form the pseudo-inverse\n"
+      "    for the calculations for several reasons -- to save on CPU time\n"
+      "    and to save on memory, since many more matrices must be processed\n"
+      "    than in 3dDeconvolve.  Instead, 3dREMLfit uses the QR factorization\n"
+      "    [of R^(-1/2)X].  However, if X has any zero singular values, then\n"
+      "    the some diagonal elements of the QR factor will be zero, and in\n"
+      "    in the equation solution process, we have to divide by these diagonal\n"
+      "    elements ==> problem!\n"
+      "* The solution used here is to 'de-singularize' the matrix before QR\n"
+      "    factorization (if '-GOFORIT' is on).  This is done simply by\n"
+      "    doing the SVD of the matrix to be QR factored, boosting up the\n"
+      "    close-to-zero singular values, and then re-constructing the matrix\n"
+      "    from the SVD factors.\n"
+#endif
+      "* One salient (to the user) difference from 3dDeconvolve is how\n"
+      "    3dREMLfit deals with the beta weight from an all zero column when\n"
+      "    computing a statistic (e.g., a GLT).  The beta weight will simply\n"
+      "    be ignored, and its entry in the GLT matrix will be set to zero.\n"
+      "    Any all zero rows in the GLT matrix are then removed.  For example,\n"
+      "    the 'Full_Fstat' for a model with 3 beta weights is computed from\n"
+      "    the GLT matrix [ 1 0 0 ]\n"
+      "                   [ 0 1 0 ]\n"
+      "                   [ 0 0 1 ].  If the last beta weight corresponds to\n"
+      "    an all zero column, then the matrix becomes [ 1 0 0 ]\n"
+      "                                                [ 0 1 0 ]\n"
+      "                                                [ 0 0 0 ], and then\n"
+      "    then last row is omitted.  This excision reduces the number of\n"
+      "    numerator degrees of freedom in this test from 3 to 2.  The net\n"
+      "    effect is that the F-statistic will be larger than in 3dDeconvolve,\n"
+      "    which does not modify the GLT matrix (or its equivalent).\n"
+      " * A similar adjustment is made to denominator degrees of freedom, which\n"
+      "    is usually n-m, where n=# of data points and m=# of regressors.\n"
+      "    3dDeconvolve counts all zero regressors in with m, but 3dREMLfit\n"
+      "    does not.  The net effect is again to (slightly) increase F-statistic\n"
+      "    values over the equivalent 3dDeconvolve computation.\n"
       "\n"
       "-----------------------------------------------------------\n"
       "To Dream the Impossible Dream, to Write the Uncodeable Code\n"
@@ -1523,7 +1575,7 @@ int main( int argc , char *argv[] )
    if( goforit ){
      matrix_allow_desing(1) ;
      if( verb > 1 )
-       INFO_message("GOFORIT ==> Enabling matrix desingularization") ;
+       INFO_message("GOFORIT ==> Matrix de-singularization is engaged!") ;
    }
 
 STATUS("options done") ;
@@ -1952,6 +2004,8 @@ STATUS("process -addbase images") ;
    if( nbad > 0 ){
      if( goforit ){
        WARNING_message("You said to GOFORIT, so here we GO!") ;
+       ININFO_message(
+         "         Note that a bunch of further WARNINGs will be generated below.") ;
        allz = (int *)realloc(allz,sizeof(int)*nallz) ;
      } else
        ERROR_exit(
@@ -2087,6 +2141,14 @@ STATUS("process -slibase images") ;
      DESTROY_IMARR(imar_slibase) ;
 
    } /**** end of -slibase stuff ****/
+
+   /** Modify denominator DOF? Don't subtract for all zero regressors [16 Mar 2010] **/
+
+   ddof += nallz ;
+   if( nallz > 0 && verb > 1 )
+     INFO_message(
+      "Denominator DOF increased from %d to %d to allow for all zero columns" ,
+      ddof-nallz , ddof ) ;
 
    /**---- check X matrices for collinearity ----**/
 
@@ -2326,8 +2388,9 @@ STATUS("make GLTs from matrix file") ;
        if( nrk > 0 && nrk < G->rows ){
          ndone++ ;
          if( verb > 1 )
-           ININFO_message("Removed %d all zero row%s from GLT matrix '%s'",
-                          nrk , (nrk==1) ? "\0" : "s" , glt_lab[kk] ) ;
+           ININFO_message("Removed %d all zero row%s from GLT matrix '%s';"
+                          " numerator DOF changes from %d to %d",
+                          nrk , (nrk==1) ? "\0" : "s" , glt_lab[kk] , G->rows,GM->rows ) ;
          glt_mat[kk] = GM ; matrix_destroy(G) ; glt_rtot -= nrk ;
          GM = (matrix *)malloc(sizeof(matrix)) ; matrix_initialize(GM) ;
        } else if( nrk == G->rows ){
@@ -2338,6 +2401,7 @@ STATUS("make GLTs from matrix file") ;
      if( ndone == 0 && verb > 1 && nallz > 0 )
        ININFO_message("No GLT matrices neededed editing") ;
    }
+   if( allz != NULL ){ free(allz) ; allz == NULL ; }
 
    /***--------- done with nelmat ---------***/
 
@@ -2881,7 +2945,7 @@ STATUS("setting up Rglt") ;
            for( kk=0 ; kk < glt_num ; kk++ ){
              gin = glt_ind[kk] ; if( gin == NULL ) continue ; /* skip this'n */
              nr = gin->nrow ;
-             gv = REML_compute_gltstat( &y , &qq5 , bbsumq ,
+             gv = REML_compute_gltstat( ddof , &y , &qq5 , bbsumq ,
                                         RCsli[ss]->rs[jj], RCsli[ss]->rs[jj]->glt[kk],
                                         glt_mat[kk] , glt_smat[kk] ,
                                         RCsli[ss]->X , RCsli[ss]->Xs        ) ;
@@ -2908,7 +2972,7 @@ STATUS("setting up Rglt") ;
            for( kk=oglt_num ; kk < glt_num ; kk++ ){
              gin = glt_ind[kk] ; if( gin == NULL ) continue ; /* skip this'n */
              nr = gin->nrow ;
-             gv = REML_compute_gltstat( &y , &qq5 , bbsumq ,
+             gv = REML_compute_gltstat( ddof , &y , &qq5 , bbsumq ,
                                         RCsli[ss]->rs[jj], RCsli[ss]->rs[jj]->glt[kk],
                                         glt_mat[kk] , glt_smat[kk] ,
                                         RCsli[ss]->X , RCsli[ss]->Xs        ) ;
@@ -3162,7 +3226,7 @@ STATUS("setting up Rglt") ;
            for( kk=0 ; kk < glt_num ; kk++ ){
              gin = glt_ind[kk] ; if( gin == NULL ) continue ; /* skip this'n */
              nr = gin->nrow ;
-             gv = REML_compute_gltstat( &y , &qq5 , bbsumq ,
+             gv = REML_compute_gltstat( ddof , &y , &qq5 , bbsumq ,
                                         RCsli[ss]->rs[jj], RCsli[ss]->rs[jj]->glt[kk],
                                         glt_mat[kk] , glt_smat[kk] ,
                                         RCsli[ss]->X , RCsli[ss]->Xs        ) ;
@@ -3189,7 +3253,7 @@ STATUS("setting up Rglt") ;
            for( kk=oglt_num ; kk < glt_num ; kk++ ){
              gin = glt_ind[kk] ; if( gin == NULL ) continue ; /* skip this'n */
              nr = gin->nrow ;
-             gv = REML_compute_gltstat( &y , &qq5 , bbsumq ,
+             gv = REML_compute_gltstat( ddof , &y , &qq5 , bbsumq ,
                                         RCsli[ss]->rs[jj], RCsli[ss]->rs[jj]->glt[kk],
                                         glt_mat[kk] , glt_smat[kk] ,
                                         RCsli[ss]->X , RCsli[ss]->Xs        ) ;

@@ -651,7 +651,7 @@ reml_setup * setup_arma11_reml( int nt, int *tau,
      if( ii > iold ){
        WARNING_message("-----") ;
        WARNING_message(
-         "QR decomposition of X had %d collinearity problem%s" ,
+         "QR decomposition of [R]^(-1/2) [X] had %d collinearity problem%s" ,
          ii , (ii==1) ? "\0" : "s"                       ) ;
        WARNING_message("-----") ;
        iold = ii ;
@@ -1302,8 +1302,8 @@ ENTRY("REML_get_gltfactors") ;
    /* save results into struct */
 
    gf = (gltfactors *)malloc(sizeof(gltfactors)) ;
-   gf->mpar   = nn ;
-   gf->rglt   = rr ;
+   gf->mpar   = nn ;  /* number of parameters */
+   gf->rglt   = rr ;  /* number of rows in matrix */
    gf->Jright = JR ;
    gf->Jleft  = JL ;
    gf->sig    = S  ;
@@ -1361,7 +1361,8 @@ static vector *betaT = NULL ;  /* GLT t-statistics  */
 static MTYPE   betaR = 0.0  ;  /* GLT R^2 statistic */
 static MTYPE   betaF = 0.0  ;  /* GLT F statistic   */
 
-MTYPE REML_compute_gltstat( vector *y, vector *bfull, MTYPE fsumq ,
+MTYPE REML_compute_gltstat( int ddof ,
+                            vector *y, vector *bfull, MTYPE fsumq ,
                             reml_setup *rset, gltfactors *gf,
                             matrix *G, sparmat *Gs, matrix *X, sparmat *Xs )
 {
@@ -1381,6 +1382,8 @@ ENTRY("REML_compute_gltstat") ;
      free(betaG) ; free(betaT) ; betaG = betaT = NULL ; betaR = 0.0 ;
      RETURN( 0.0 );
    }
+
+   if( ddof <= 0 ) ddof = X->rows - X->cols ;  /* 16 Mar 2010 */
 
    vector_initialize(&ba); vector_initialize(&bb); vector_initialize(&br);
 
@@ -1412,20 +1415,20 @@ ENTRY("REML_compute_gltstat") ;
    /* F stat measures the improvement in sum of squares of
       residuals between this restricted model and the full model */
 
-   fstat = ( (rsumq-fsumq) / gf->rglt ) / ( fsumq / (X->rows - X->cols) ) ;
+   fstat = ( (rsumq-fsumq) / gf->rglt ) / ( fsumq / ddof ) ;
    if( fstat < 0.0 ) fstat = 0.0 ;  /* should not happen */
    betaF = fstat ;
 
    /* 23 Oct 2008: generalized correlation coefficient squared */
 
-   if( rsumq > 0.0 ) betaR = 1.0 - fsumq / rsumq ;
-   else              betaR = 0.0 ;
+   if( rsumq > fsumq ) betaR = 1.0 - fsumq / rsumq ;
+   else                betaR = 0.0 ;
 
    /* compute GLT combinations of beta coefficients, and t-statistics */
 
    if( G != NULL ){
      MTYPE fsig ; int ii ;
-     fsig = sqrt( fsumq / (X->rows - X->cols) ) ;
+     fsig = sqrt( fsumq / ddof ) ;  /* noise estimate */
      if( Gs != NULL ){
        vector_create_noinit( Gs->rows , betaG ) ;
        vector_spc_multiply( Gs , bfull->elts , betaG->elts ) ;
