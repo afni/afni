@@ -44,6 +44,13 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 16 , MAR , 2010 , RWC , "3dREMLfit" , MINOR , TYPE_MODIFY ,
+   "Allow all zero columns in regression matrix, with -GOFORIT option" ,
+   "* Use SVD to desingularize matrix when QR factorizing (not elsewhere)\n"
+   "* Remove coefficients for all zero columns from GLT matrices\n"
+   "* Adjust DOF to compensate\n"
+   "* This is Thalia Wheatley's fault" } ,
+
  { 5 , MAR , 2010 , RWC , "mri_read" , MICRO , TYPE_MODIFY ,
    "Modify to allow row and col selectors on stdin" ,
    NULL } ,
