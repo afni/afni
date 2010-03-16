@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 16 , MAR , 2010 , RWC , "3dbucket" , MICRO , TYPE_GENERAL ,
+   "Make -glueto keep compressed form of the first dataset" ,
+   NULL } ,
+
  { 16 , MAR , 2010 , RWC , "3dREMLfit" , MINOR , TYPE_MODIFY ,
    "Allow all zero columns in regression matrix, with -GOFORIT option" ,
    "* Use SVD to desingularize matrix when QR factorizing (not elsewhere)\n"
