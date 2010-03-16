@@ -95,4 +95,5 @@ Recent Updates
     - RR added examples/clib_01_read_write.c as a simple library example
     - RR allow uppercase extension
     - RR added 4 checks of alloc() returns
+    - RR added NIFTI_ECODE_VOXBO for Dan Kimberg of VoxBo
 

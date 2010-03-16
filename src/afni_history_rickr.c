@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 16, MAR, 2010, RCR, "NIFTI", MICRO, TYPE_MODIFY,
+   "added NIFTI_ECODE_VOXBO for D. Kimberg",
+   NULL
+ } ,
+
  { 11, MAR, 2010, RCR, "3dsvm_common.c", MICRO, TYPE_MODIFY,
    "some compilers choke on mid-block variable definitions",
    NULL

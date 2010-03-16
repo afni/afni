@@ -462,7 +462,9 @@ int    valid_nifti_extensions(const nifti_image *nim);
 #define NIFTI_ECODE_DT_COMPONENT    24
 #define NIFTI_ECODE_SHC_DEGREEORDER 26  /* end LONI MiND codes                */
 
-#define NIFTI_MAX_ECODE             26  /******* maximum extension code *******/
+#define NIFTI_ECODE_VOXBO           28  /* Dan Kimberg: www.voxbo.org         */
+
+#define NIFTI_MAX_ECODE             28  /******* maximum extension code *******/
 
 /* nifti_type file codes */
 #define NIFTI_FTYPE_ANALYZE   0
