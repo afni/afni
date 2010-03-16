@@ -1,0 +1,53 @@
+#!/bin/tcsh -f
+
+PARSE: 
+   set Narg = $#
+   set cnt = 1
+   if ("$1" == '') goto HELP
+
+   while ($cnt <= $Narg)
+      set donext = 1;
+      
+      if ($donext && "$argv[$cnt]" == "-help" || "$argv[$cnt]" == "-h") then
+         goto HELP
+      endif
+       
+      @ cnt ++
+   end
+
+set f1 = $1
+set f2 = $2
+
+PROCESS:
+   if ( ! -f $f1 && ! -f $f2 ) then 
+      #consider them of the same time
+      echo 0
+   else if ( ! -f $f1 && -f $f2 ) then
+      #file 1 considered newer
+      echo 1   
+   else if (  -f $f1 && ! -f $f2 ) then
+      #file 1 considered older
+      echo -1
+   else 
+      set t1 = `\stat -f "%m" $f1`
+      set t2 = `\stat -f "%m" $f2`
+      set dt = `ccalc -i $t2 - $t1`
+      echo $dt
+   endif   
+
+   goto END
+
+HELP:
+   echo ""
+   echo "Usage: `basename $0` <FILE1> <FILE2>"
+   echo ""    
+   echo "Returns the difference in modification time A(.) "
+   echo " between FILE1 and FILE2"
+   echo ""
+   echo "If FILE2 was modified after FILE1 then A(FILE2) - A(FILE1) > 0"
+   echo ""
+   echo "Non existent files are considered more recent than existing ones."
+   echo "" 
+   goto END
+   
+END:
