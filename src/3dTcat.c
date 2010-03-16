@@ -24,6 +24,7 @@ static int                     TCAT_dry   = 0 ;     /* dry run? */
 static int                     TCAT_verb  = 0 ;     /* verbose? */
 static int                     TCAT_type  = -1 ;    /* dataset type */
 static int                     TCAT_glue  = 0 ;     /* glueing run? */
+static int                     TCAT_ccode = COMPRESS_NONE ; /* 16 Mar 2010 */
 static int                     TCAT_rlt   = 0 ;     /* remove linear trend? */
 
 static int                     TCAT_rqt   = 0 ;     /* 15 Nov 1999 */
@@ -222,6 +223,8 @@ void TCAT_read_opts( int argc , char *argv[] )
       THD_force_malloc_type( dset->dblk , DATABLOCK_MEM_MALLOC ) ;
 
       if( TCAT_type < 0 ) TCAT_type = dset->type ;
+
+      TCAT_ccode = COMPRESS_filecode(dset->dblk->diskptr->brick_name) ; /* 16 Mar 2010 */
 
       /* check if voxel counts match */
 
@@ -948,6 +951,8 @@ int main( int argc , char *argv[] )
       if( TCAT_verb ) INFO_message("-verb: computing sub-brick statistics") ;
       THD_load_statistics( new_dset ) ;
       if( TCAT_glue ) putenv("AFNI_DECONFLICT=OVERWRITE") ;
+      if( TCAT_glue && TCAT_ccode >= 0 )
+        THD_set_write_compression(TCAT_ccode) ; /* 16 Mar 2010 */
       THD_write_3dim_dataset( NULL,NULL , new_dset , True ) ;
       if( TCAT_verb ) INFO_message("-verb: Wrote output to %s",
                               DSET_BRIKNAME(new_dset) ) ;
