@@ -552,7 +552,7 @@ int main( int argc , char *argv[] )
 
    int nallz = 0 ; int *allz = NULL ;  /* 15 Mar 2010 */
 
-   /**------- Get by with a little help from your friends? -------**/
+   /**------------ Get by with a little help from your friends? ------------**/
 
    Argc = argc ; Argv = argv ;
 
@@ -568,7 +568,8 @@ int main( int argc , char *argv[] )
       "* It solves the linear equations for each voxel in the generalized\n"
       "    (prewhitened) least squares sense, using the REML estimation method\n"
       "    to find a best-fit ARMA(1,1) model for the time series noise\n"
-      "    correlation matrix in each voxel.\n"
+      "    correlation matrix in each voxel (i.e., each voxel gets a separate\n"
+      "    pair of ARMA parameters).\n"
       "* You MUST run 3dDeconvolve first to generate the input matrix\n"
       "    (.xmat.1D) file, which contains the hemodynamic regression\n"
       "    model, censoring and catenation information, the GLTs, etc.\n"
@@ -581,13 +582,19 @@ int main( int argc , char *argv[] )
       "* The output datasets from 3dREMLfit are structured to resemble\n"
       "    the corresponding results from 3dDeconvolve, to make it\n"
       "    easy to adapt your scripts for further processing.\n"
-      "* Is this type of analysis important?\n"
+      "* Is this type of analysis (generalized least squares) important?\n"
       "    That depends on your point of view, your data, and your goals.\n"
       "    If you really want to know the answer, you should run\n"
       "    your analyses both ways (with 3dDeconvolve and 3dREMLfit),\n"
       "    through to the final step (e.g., group analysis), and then\n"
       "    decide if your neuroscience/brain conclusions depend strongly\n"
       "    on the type of linear regression that was used.\n"
+      "* If you are planning to use 3dMEMA for group analysis, then using\n"
+      "    3dREMLfit instead of 3dDeconvolve is a good idea.  3dMEMA uses\n"
+      "    the t-statistic of the beta weight as well as the beta weight\n"
+      "    itself -- and the t-values from 3dREMLfit are probably more\n"
+      "    more accurate than those from 3dDeconvolve, since the underlying\n"
+      "    variance estimate should be more accurate (less biased).\n"
       "\n"
       "-------------------------------------------\n"
       "Input Options (the first two are mandatory)\n"
@@ -612,8 +619,8 @@ int main( int argc , char *argv[] )
      if( AFNI_yesenv("AFNI_POMOC") )
      printf(
       "\n"
-      " SECRET ALTERNATIVE WAYS TO DEFINE THE MATRIX\n"
-      " --------------------------------------------\n"
+      " Semi-Hidden Alternative Ways to Define the Matrix\n"
+      " -------------------------------------------------\n"
       " -polort P = If no -matrix option is given, AND no -matim option,\n"
       "               create a matrix with Legendre polynomial regressors\n"
       "               up to order 'P'.  The default value is P=0, which\n"
@@ -621,7 +628,8 @@ int main( int argc , char *argv[] )
       " -matim M  = Read a standard .1D file as the matrix.\n"
       "           ** N.B.: You can only use 'Col' as a name in GLTs\n"
       "                      with these nonstandard matrix input methods.\n"
-      " -----------------------------------------------------------------\n"
+      " ** These mutually exclusive options are ignored if -matrix is used.\n"
+      " -------------------------------------------------------------------\n"
      ) ;
 
      printf(
@@ -1229,7 +1237,7 @@ int main( int argc , char *argv[] )
      PRINT_COMPILE_DATE ; exit(0) ;
    }
 
-   /*------- official startup ------*/
+   /*--------------------------- official startup --------------------------*/
 
 #if defined(USING_MCW_MALLOC) && !defined(USE_OMP)
    enable_mcw_malloc() ;
