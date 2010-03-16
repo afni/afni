@@ -49,6 +49,7 @@ static int                      BUCK_dry   = 0 ;
 static int                      BUCK_verb  = 0 ;
 static int                      BUCK_type  = -1 ;
 static int                      BUCK_glue  = 0 ;
+static int                      BUCK_ccode = COMPRESS_NONE ; /* 16 Mar 2010 */
 
 static char BUCK_output_prefix[THD_MAX_PREFIX] = "buck" ;
 static char BUCK_session[THD_MAX_NAME]         = "./"   ;
@@ -145,7 +146,7 @@ void BUCK_read_opts( int argc , char * argv[] )
                     "-session and -glueto options are not compatible\n");
             exit(1) ;
          }
-	 BUCK_glue = 1 ;
+         BUCK_glue = 1 ;
          nopt++ ;
          if( nopt >= argc ){
             fprintf(stderr,"need argument after -glueto!\n") ; exit(1) ;
@@ -230,6 +231,8 @@ void BUCK_read_opts( int argc , char * argv[] )
       THD_force_malloc_type( dset->dblk , DATABLOCK_MEM_MALLOC ) ;
 
       if( BUCK_type < 0 ) BUCK_type = dset->type ;
+
+      BUCK_ccode = COMPRESS_filecode(dset->dblk->diskptr->brick_name) ; /* 16 Mar 2010 */
 
       ii = dset->daxes->nxx * dset->daxes->nyy * dset->daxes->nzz ;
       if( BUCK_nvox < 0 ){
@@ -698,6 +701,8 @@ int main( int argc , char * argv[] )
       }
       THD_load_statistics( new_dset ) ;
       if( BUCK_glue ) putenv("AFNI_DECONFLICT=OVERWRITE") ;
+      if( BUCK_glue && BUCK_ccode >= 0 )
+        THD_set_write_compression(BUCK_ccode) ; /* 16 Mar 2010 */
       THD_write_3dim_dataset( NULL,NULL , new_dset , True ) ;
       if( BUCK_verb ) fprintf(stderr,"-verb: wrote output: %s\n",DSET_BRIKNAME(new_dset)) ;
    }
