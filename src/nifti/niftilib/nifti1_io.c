@@ -329,6 +329,7 @@ static char * gni_history[] =
   "   - uppercase extensions are now valid (requested by M. Coursolle)\n"
   "   - nifti_set_allow_upper_fext controls this option (req by C. Ooi)\n"
   "1.39 23 Jun 2009 [rickr]: added 4 checks of alloc() returns\n",
+  "1.40 16 Mar 2010 [rickr]: added NIFTI_ECODE_VOXBO for D. Kimberg\n",
   "----------------------------------------------------------------------\n"
 };
 static char gni_version[] = "nifti library version 1.39 (23 June, 2009)";
