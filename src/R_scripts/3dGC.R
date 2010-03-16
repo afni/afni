@@ -86,14 +86,14 @@ if (length(grep('orig', inFN))==1) outView <- "orig"
 #source(file.path(Sys.getenv("AFNI_R_DIR"), "AFNIio.R"))
 #source(file.path(Sys.getenv("LME"), "AFNIio.R"))
 masked <- as.integer(readline("Any mask (0: no; 1: yes)? "))
-if (masked) {maskFN <- readline("Mask file name (suffix unnecessary, e.g., mask+tlrc): "); maskData <- read.AFNI(maskFN)$ttt}
+if (masked) {maskFN <- readline("Mask file name (suffix unnecessary, e.g., mask+tlrc): "); maskData <- read.AFNI(maskFN)$brk}
 
 inDataTS <- read.AFNI(inFN)
 myNote=inDataTS$header$HISTORY_NOTE; myOrig=inDataTS$origin; myDelta=inDataTS$delta
 
 dataOrient <- system(sprintf("@GetAfniOrient %s", inFN), intern = TRUE)
 
-inDataTS <- inDataTS$ttt
+inDataTS <- inDataTS$brk
 dimx <- dim(inDataTS)[1]; dimy <- dim(inDataTS)[2]; dimz <- dim(inDataTS)[3]; nT <- dim(inDataTS)[4]
 
 

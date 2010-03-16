@@ -219,7 +219,7 @@ read.MEMA.opts.interactive <- function (verb = 0) {
    if(masked) {
       lop$maskFN <- 
          readline("Mask file name (suffix unnecessary, e.g., mask+tlrc): "); 
-         lop$maskData <- read.AFNI(lop$maskFN)$ttt
+         lop$maskData <- read.AFNI(lop$maskFN)$brk
    }else {
       lop$maskFN <- NULL;
    }
@@ -1218,7 +1218,7 @@ process.MEMA.opts <- function (lop, verb = 0) {
          warning("Failed to read mask", immediate.=TRUE);
          return(NULL);
       }
-      lop$maskData <- mm$ttt
+      lop$maskData <- mm$brk
       if (verb) cat ("Done read ", lop$maskFN,'\n');
    }
    if(!is.null(lop$maskFN)) 
@@ -2070,8 +2070,8 @@ tTop <- 100   # upper bound for t-statistic
    # Maybe I should avoid doing this below part for those voxels in the mask!!!
    if(lop$anaType==1 | lop$anaType==2 | lop$anaType==4) {
       for(ii in 1:lop$nGrp) {
-         lop$bList[[ii]] <- lapply(lop$bList[[ii]], function(x) x$ttt); 
-         lop$tList[[ii]] <- lapply(lop$tList[[ii]], function(x) x$ttt)
+         lop$bList[[ii]] <- lapply(lop$bList[[ii]], function(x) x$brk); 
+         lop$tList[[ii]] <- lapply(lop$tList[[ii]], function(x) x$brk)
          lop$varList[[ii]] <- mapply(function(x, y) 
                ifelse((abs(x)<tolL) | (abs(y)<tolL), 0, (x/y)^2), 
                lop$bList[[ii]], lop$tList[[ii]], SIMPLIFY = FALSE)  # variances
@@ -2086,8 +2086,8 @@ tTop <- 100   # upper bound for t-statistic
    
    if(lop$anaType==3) {
       for(ii in 1:lop$nLevel) {
-         lop$bList[[ii]] <- lapply(lop$bList[[ii]], function(x) x$ttt); 
-         lop$tList[[ii]] <- lapply(lop$tList[[ii]], function(x) x$ttt)
+         lop$bList[[ii]] <- lapply(lop$bList[[ii]], function(x) x$brk); 
+         lop$tList[[ii]] <- lapply(lop$tList[[ii]], function(x) x$brk)
          lop$varList[[ii]] <- 
             mapply(function(x, y) 
                    ifelse((abs(x)<tolL) | (abs(y)<tolL), 0, (x/y)^2), 

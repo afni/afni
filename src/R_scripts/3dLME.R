@@ -192,8 +192,8 @@ inData <- unlist(lapply(lapply(Model[,FileCol], read.AFNI), '[[', 1))
 dim(inData) <- c(dimx, dimy, dimz, NoFile)
 
 if (!is.na(mask)) {
-	Mask <- read.AFNI(mask)$ttt[,,,1]
-	inData <- array(apply(inData, 4, function(x) x*read.AFNI(mask)$ttt[,,,1]), dim=c(dimx,dimy,dimz,NoFile))
+	Mask <- read.AFNI(mask)$brk[,,,1]
+	inData <- array(apply(inData, 4, function(x) x*read.AFNI(mask)$brk[,,,1]), dim=c(dimx,dimy,dimz,NoFile))
 }
 
 # try out a few voxels and see if the model is OK, and find out the number of F tests and DF's 

@@ -61,7 +61,7 @@ dimz <- Data$dim[3]
 tp   <- Data$dim[4]
 
 NData <- array(data=NA, dim=c(dimx, dimy, dimz, tp))
-NData <- Data$ttt
+NData <- Data$brk
 dim(NData) <- c(prod(dimx, dimy, dimz), tp)
 
 #ww <- apply(NData, 4, rbind)
