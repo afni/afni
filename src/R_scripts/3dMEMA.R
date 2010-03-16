@@ -242,16 +242,23 @@ read.MEMA.opts.interactive <- function (verb = 0) {
       #print("multi-column files. The vertical sequence in each column has to follow the same subject order")
       #print("as the beta/t-statistic input files listed above.")
       print("Each subject is assumed to have one number per covariate. All covariates should be put into one")
-      print("file in one- or multi-column format. Header at the 1st line as labels is optional. The vertical")
-      print("sequence in each column has to follow exactly the same subject order as the beta/t-statistic")
-      print("input files listed above.")
+      print("file in a table format. It's required that both row (subject ID) and column (covariate) be put in")
+      print("the table, for instance,")
+      print("  subj  age   weight")
+      print("  Jane   25   300")
+      print("  Joe    22   313")
+      print("  ...    ..   ...")
+      
+      #print("Header at the 1st line as labels is optional. The vertical")
+      #print("sequence in each column has to follow exactly the same subject order as the beta/t-statistic")
+      #print("input files listed above.")
       #covForm <- as.integer(readline("Covariates data type (0: MULTIPLE one-column files; 1: ONE single/multi-column file)? "))
       covForm <- 1
       if (covForm) {
          lop$covFN <- readline("Covariates file name: ")
-         covHeader <- 
-            as.integer(readline(
-      "Does this multi-column file have a header (0: no; 1: yes)? "))
+         #covHeader <- as.integer(readline(
+         #"Does this multi-column file have a header (0: no; 1: yes)? "))
+         covHeader <- 1
          if(covHeader == 1) {
             #lop$covData <- read.table(lop$covFN, header=TRUE)
             lop$covData <- read.AFNI.matrix(lop$covFN, userrownames=unlist(lop$subjLab))
