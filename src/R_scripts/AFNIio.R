@@ -163,7 +163,15 @@ parse.AFNI.name <- function(filename, verb = 0) {
       traceback();
       return(NULL);
    }
-
+   #Deal with special names:
+   if (length(grep("^1D:.*$",filename))) {
+      an$type = '1Ds'
+      return(an)
+   } else if (length(grep("^R:.*$",filename))) {
+      an$type = 'Rs'
+      return(an)
+   }
+   
    #Deal with selectors
    n <- parse.AFNI.name.selectors(filename, verb)
    filename <- n$name
@@ -590,12 +598,38 @@ parse.AFNI.args <- function ( args, params = NULL,
 #------------------------------------------------------------------
 #   Some utilities
 #------------------------------------------------------------------
-#history and grep
+#history.AFNI (is almost identical to history() but without
+#the interactive mode and grep
+history.AFNI <- function (max.show = 25, reverse = FALSE, pattern, ...) 
+{
+    file1 <- tempfile("Rrawhist")
+    savehistory(file1)
+    rawhist <- readLines(file1)
+    unlink(file1)
+    if (!missing(pattern)) 
+        rawhist <- unique(grep(pattern, rawhist, value = TRUE, 
+            ...))
+    nlines <- length(rawhist)
+    if (nlines) {
+        inds <- max(1, nlines - max.show):nlines
+        if (reverse) 
+            inds <- rev(inds)
+    }
+    else inds <- integer(0L)
+    file2 <- tempfile("hist")
+    writeLines(rawhist[inds], file2)
+    #file.show(file2, title = "R History", delete.file = TRUE)
+    mm <- readLines(file2)
+    file.remove(file2)
+    cat(mm, sep='\n')
+    invisible(mm)
+}
+
 hgrep <- function (pattern=NULL){
    if (is.null(pattern)) {
-      history()
+      history.AFNI(max.show=200)
    } else {
-      history(max.show=Inf, pattern=pattern)
+      history.AFNI(max.show=Inf, pattern=pattern)
    }
 } 
 
@@ -607,7 +641,7 @@ R.bit.version <- function () {
   else return(0)
 }
 
-memory.hogs <- function (n=10, test=FALSE) {
+memory.hogs <- function (n=10, top_frac=0.9, test=FALSE, msg=NULL) {
    if (test) {
       toy <- function() { g <- array(0,c(128,128,128,10)); 
                            memory.hogs(test=FALSE) }
@@ -630,7 +664,19 @@ memory.hogs <- function (n=10, test=FALSE) {
       names(zs) <- paste(names(zs)," (in ",envfunc,")")
       z <- c(z, zs)
    }
-   m <- as.matrix(rev(sort(z))[1:n]/us)
+   
+   #Stop at the top_frac
+   if (top_frac > 0.0) {
+      m <- rev(sort(z))[1:n]
+      mtot <- sum(m)
+      ms <- m[1]
+      nf <- 1
+      while (ms /mtot < top_frac && nf <= n) {
+         nf <- nf+1
+         ms <- ms+m[nf]
+      }
+   }
+   m <- as.matrix(rev(sort(z))[1:nf]/us)
    colnames(m) <- c("Size(Mb)")
    m <- rbind(m,'        total' = sum(m));
    m <- rbind(m,'  Grand total' = sum(z)/us);
@@ -638,6 +684,7 @@ memory.hogs <- function (n=10, test=FALSE) {
    cat( sprintf("Memory hogs check from function: %s\nR-%d bit version\n", 
                      as.character(paste(sys.call(-1), collapse=' ')), 
                      R.bit.version()) );
+   if (!is.null(msg)) cat(msg)
    print(m, digits=2)
    invisible(m)
 }
@@ -653,7 +700,7 @@ who.called.me <- function () {
 #print warnings a la AFNI
 warn.AFNI <- function (str='Consider yourself warned',callstr=NULL, 
                        newline=TRUE) {
-   if (is.null(callstr)) callstr <- who.called.me()
+   if (is.null(callstr)) callstr <- sprintf('   %s',who.called.me())
    nnn<-''
    if (newline) nnn <- '\n'
    if (BATCH_MODE) ff <- stderr()
@@ -665,7 +712,7 @@ warn.AFNI <- function (str='Consider yourself warned',callstr=NULL,
 
 err.AFNI <- function (str='Danger Danger Will Robinson',callstr=NULL, 
                       newline=TRUE) {
-   if (is.null(callstr)) callstr <- who.called.me()
+   if (is.null(callstr)) callstr <- sprintf('   %s',who.called.me())
    nnn<-''
    if (newline) nnn <- '\n'
    if (BATCH_MODE) ff <- stderr()
@@ -675,13 +722,22 @@ err.AFNI <- function (str='Danger Danger Will Robinson',callstr=NULL,
        sep='', file = ff);
 }
 
-note.AFNI <- function (str='May I speak frankly?',callstr=NULL, newline=TRUE) {
-   if (is.null(callstr)) callstr <- who.called.me()
+note.AFNI <- function (str='May I speak frankly?',
+                       callstr=NULL, newline=TRUE, tic=1) {
+   if (is.null(callstr)) 
+      callstr <- sprintf('   %s',who.called.me())
    nnn<-''
    if (newline) nnn <- '\n'
    if (BATCH_MODE) ff <- stderr()
    else ff <- ''
-   cat(  '\n', '** Note from: ',  callstr,':\n   ', 
+   if (tic == 1) {
+      tm <- format(Sys.time(), " @ %H:%M:%S")
+   } else if (tic==2) {
+      tm <- format(Sys.time(), " @ %a %b %d %H:%M:%S %Y")
+   } else tm <- ''
+   
+   cat(  '\n', '** Note from: ',  callstr,
+         sprintf('%s:\n   ', tm), 
          paste(str, collapse=''),nnn, 
        sep='', file = ff);
 }
@@ -914,46 +970,46 @@ read.AFNI.matrix <- function (fname,
    
    if (verb) print(who.called.me())
    
-   ttt <- read.table(fname, colClasses='character');
-   if ( tolower(ttt$V1[1]) == 'name' || 
-        tolower(ttt$V1[1]) == 'subj' ||
-        tolower(ttt$V1[1]) == '#file') {
-      subjCol <- ttt$V1[2:dim(ttt)[1]]; 
-      covNames <- paste(ttt[1,2:dim(ttt)[2]]);
-      if (dim(ttt)[2]-1 == 1) {
-         covMatrix <- as.matrix(as.numeric(ttt[2:dim(ttt)[1],2]))
+   brk <- read.table(fname, colClasses='character');
+   if ( tolower(brk$V1[1]) == 'name' || 
+        tolower(brk$V1[1]) == 'subj' ||
+        tolower(brk$V1[1]) == '#file') {
+      subjCol <- brk$V1[2:dim(brk)[1]]; 
+      covNames <- paste(brk[1,2:dim(brk)[2]]);
+      if (dim(brk)[2]-1 == 1) {
+         covMatrix <- as.matrix(as.numeric(brk[2:dim(brk)[1],2]))
       } else {
-         for (ii in 1:(dim(ttt)[2]-1)) { #Add one column at a time
+         for (ii in 1:(dim(brk)[2]-1)) { #Add one column at a time
             if (ii==1) {
                covMatrix <- cbind(
-                  as.numeric(ttt[2:dim(ttt)[1],2:dim(ttt)[2]][[ii]]));
+                  as.numeric(brk[2:dim(brk)[1],2:dim(brk)[2]][[ii]]));
             } else {
                covMatrix <- cbind(covMatrix,
-                  as.numeric(ttt[2:dim(ttt)[1],2:dim(ttt)[2]][[ii]]));
+                  as.numeric(brk[2:dim(brk)[1],2:dim(brk)[2]][[ii]]));
             }
          }
       }
    }  else {
-      flg <- tryCatch({as.numeric(ttt$V1[1])}, warning=function(aa) {});
+      flg <- tryCatch({as.numeric(brk$V1[1])}, warning=function(aa) {});
       if (is.null(flg)) { #Just labels
-         covNames <- paste(ttt[1,1:dim(ttt)[2]]);
-         subjCol <- paste('row',sprintf('%02d',c(1:(dim(ttt)[1]-1))), sep='')
+         covNames <- paste(brk[1,1:dim(brk)[2]]);
+         subjCol <- paste('row',sprintf('%02d',c(1:(dim(brk)[1]-1))), sep='')
          istrt<- 2
       }else {  #completely naked
-         covNames <- paste('col',sprintf('%02d',c(1:dim(ttt)[2])),sep='');
-         subjCol <- paste('row',sprintf('%02d',c(1:dim(ttt)[1])), sep='')
+         covNames <- paste('col',sprintf('%02d',c(1:dim(brk)[2])),sep='');
+         subjCol <- paste('row',sprintf('%02d',c(1:dim(brk)[1])), sep='')
          istrt<- 1
       }
-      if (dim(ttt)[2] == 1) {
-         covMatrix <- as.matrix(as.numeric(ttt[istrt:dim(ttt)[1],1]))
+      if (dim(brk)[2] == 1) {
+         covMatrix <- as.matrix(as.numeric(brk[istrt:dim(brk)[1],1]))
       } else {
-         for (ii in 1:(dim(ttt)[2])) { #Add one column at a time
+         for (ii in 1:(dim(brk)[2])) { #Add one column at a time
             if (ii==1) {
                covMatrix <- cbind(
-                  as.numeric(ttt[istrt:dim(ttt)[1],1:dim(ttt)[2]][[ii]]));
+                  as.numeric(brk[istrt:dim(brk)[1],1:dim(brk)[2]][[ii]]));
             } else {
                covMatrix <- cbind(covMatrix,
-                  as.numeric(ttt[istrt:dim(ttt)[1],1:dim(ttt)[2]][[ii]]));
+                  as.numeric(brk[istrt:dim(brk)[1],1:dim(brk)[2]][[ii]]));
             }
          }
       }
@@ -1009,12 +1065,157 @@ read.AFNI.matrix <- function (fname,
    return(covMatrix)
 }   
 
-#------------------------------------------------------------------
-# Extracted (and modified) from fmri library by Karsten Tabelow, 
-# tabelow@wias-berlin.de and Joerg Polzehl (polzehl@wias-berlin.de)
-#
-# Updates by ZSS & GC
-#------------------------------------------------------------------
+write.AFNI.matrix <- function (m, fname='test.1D') {
+   if (is.vector(m)) {
+      write(m, fname, ncolumns=1)
+   } else if (is.matrix(m)) { #Need to transpose matrix
+      write(t(m), fname, ncolumns=dim(m)[2])
+   } else {
+      err.AFNI("Don't know how to write this thing");
+   }
+   return(fname)
+}
+
+dset.nonzero.indices <- function (dset) {
+   nn <- dset.ndim(dset)
+   if (nn == 3 || nn==1) {
+      return(which(rowSums(abs(dset$brk), dims=nn)!=0,arr.ind=TRUE))
+   } else {
+      err.AFNI("Bad dim");
+      return(NULL);
+   }
+}
+
+dset.zero.indices <- function (dset) {
+   nn <- dset.ndim(dset)
+   if (nn == 3 || nn==1) {
+      return(which(rowSums(abs(dset$brk), dims=nn)==0,arr.ind=TRUE))
+   } else {
+      err.AFNI("Bad dim");
+      return(NULL);
+   }
+}
+
+dset.nvox <- function (dset) {
+   nvox = -1
+   if (length(dd <- dim(dset$brk)) <= 2) {
+      nvox = dd[1]
+   } else if (length(dd) > 2) {
+      nvox = prod(dd[1:3])
+   } 
+   return(nvox)
+}
+
+dset.nval <- function (dset) {
+   nval = -1
+   if (length(dd <- dim(dset$brk)) == 1) {
+      nval = 1
+   } else if (length(dd) == 2) {
+      nval = dd[2]
+   } else if (length(dd) == 3) {
+      nval = 1
+   } else if (length(dd) == 4) {
+      nval = dd[4]
+   } 
+   return(nval)
+}
+
+dset.ndim <- function (dset) {
+   ndims <- -1
+   if (length(dd <- dim(dset$brk)) == 1 ||
+       length(dd) == 2) {
+      ndims <- 1
+   } else if (length(dd) == 3 || length(dd) == 4)  {
+      ndims <- 3
+   }
+   return(ndims)
+}
+
+dimBRKarray <- function(brk=NULL) {
+   d <- c(1,1,1,1)
+   if (is.array(brk)) dd <- dim(brk)
+   else if (is.vector(brk)) dd <- length(brk)
+   else {
+      note.AFNI("Don't know what to do with this brk")
+      return(NULL)
+   } 
+   d[1:length(dd)]<-dd
+   return(d)
+}
+
+dset.dimBRKarray <- function(dset) {
+   return(dimBRKarray(dset$brk))
+}
+
+index3Dto1D <- function(ii, dd) {
+   dd12 <- dd[1]*dd[2]
+   return(  (ii[,1]-1)+
+            (ii[,2]-1)*dd[1]+
+            (ii[,3]-1)*dd12 + 1)          
+}
+
+index1Dto3D <- function(ii, dd) {
+   dd12 <- dd[1]*dd[2]
+   ii <- ii-1
+   k <- ii %/% dd12
+   j <- ii %% dd12
+   i <- j %% dd[1]
+   j <- j %/% dd[1]
+   return(cbind(i+1,j+1,k+1))          
+}
+
+dset.index3Dto1D <- function(ii, dset) {
+   dd <- dset$dim
+   return( index3Dto1D(ii,dd ))          
+}
+
+dset.index1Dto3D <- function(ii, dset) {
+   dd <- dset$dim
+   return( index1Dto3D(ii,dd ))          
+}
+
+dset.3DBRKarrayto1D <- function(dset) {
+   if (is.null(dset$brk)) {
+      err.AFNI("NULL or non existent dset$brk")
+      return(NULL);
+   }
+   if (dset.ndim(dset) == 1) return(dset)
+   dd <- dset.dimBRKarray(dset)
+   dim(dset$brk) <- c(prod(dd[1:3]),dd[4])
+   return(dset)
+}
+
+dset.1DBRKarrayto3D <- function(dset, dd=NULL) {
+   if (is.null(dset$brk)) {
+      err.AFNI("NULL or non existent dset$brk")
+      return(NULL);
+   }
+   if (dset.ndim(dset) == 3) return(dset)
+   ddi <- dset.dimBRKarray(dset)
+   if (is.null(dd)) { #get it from voxel header
+      dd <- dset$dim
+   }
+   if (prod(dd[1:3]) != prod(ddi[1])) {
+      err.AFNI("Dimension mismatch");
+      return(NULL)
+   }
+   dim(dset$brk) <- c(dd[1:3],ddi[2])
+   return(dset)
+}
+
+array2dset <- function (brk=NULL, format='BRIK') {
+   if (is.vector(brk)) {
+      brk <- as.array(brk, dim=c(length(brk),1,1,1))
+   }
+   dd <- dimBRKarray(brk)
+   z <- list(brk=brk,format=format, dim=dd, 
+                 delta=NULL, origin=NULL, orient=NULL)
+   class(z) <- "AFNI_dataset"
+
+   return(z)   
+}
+
+
 orcode.AFNI <- function(orstr) {
    if (is.character(orstr)) {
       orcode <- c (-1,-1,-1)
@@ -1043,11 +1244,25 @@ orcode.AFNI <- function(orstr) {
    }
    return(orcode);
 }
+
+#------------------------------------------------------------------
+# Extracted (and modified) from fmri library by Karsten Tabelow, 
+# tabelow@wias-berlin.de and Joerg Polzehl (polzehl@wias-berlin.de)
+#
+# Updates by ZSS & GC
+#------------------------------------------------------------------
+
 read.AFNI <- function(filename, verb = 0, ApplyScale = 1, PercMask=0.0) {
   an <- parse.AFNI.name(filename);
   
   if (verb) {
    show.AFNI.name(an);
+  }
+  
+  if (an$type == "1D" || an$type == "Rs" || an$type == "1Ds") {
+    brk <- read.AFNI.matrix(an$orig_name)
+    z <- array2dset(brk, format=an$type)
+    return(z)
   }
   
   #If you have any selectors, use 3dbucket to get what you want, then read
@@ -1146,10 +1361,10 @@ read.AFNI <- function(filename, verb = 0, ApplyScale = 1, PercMask=0.0) {
       conbrik <- file(brik.AFNI.name(an),"rb")
       # modified below by GC 12/2/2008
       if (all(values$BRICK_TYPES==0) | all(values$BRICK_TYPES==1)) {
-         myttt<- readBin( conbrik, "int", n=dx*dy*dz*dt, size=size, 
+         mybrk<- readBin( conbrik, "int", n=dx*dy*dz*dt, size=size, 
                           signed=TRUE, endian=endian) 
       } else if (all(values$BRICK_TYPES==3)) {
-         myttt<- readBin(conbrik, "numeric", n=dx*dy*dz*dt, size=size, 
+         mybrk<- readBin(conbrik, "numeric", n=dx*dy*dz*dt, size=size, 
                          signed=TRUE, endian=endian) # float        
       } else {
          err.AFNI("Cannot read datasets of multiple data types");
@@ -1157,33 +1372,33 @@ read.AFNI <- function(filename, verb = 0, ApplyScale = 1, PercMask=0.0) {
          return(NULL);
       }  
       close(conbrik)
-      dim(myttt) <- c(dx,dy,dz,dt)
+      dim(mybrk) <- c(dx,dy,dz,dt)
 
       if (ApplyScale) {
          if (verb) { cat ('Scaling\n'); }
          #After this operation, size of mytt doubles if initially read as int
-         for (k in 1:dt) if (scale[k] != 0) myttt[,,,k] <- scale[k] * myttt[,,,k]
+         for (k in 1:dt) if (scale[k] != 0) mybrk[,,,k] <- scale[k] * mybrk[,,,k]
       }
 
       mask=NULL;
       if (PercMask > 0.0) { #ZSS: Dunno what that is for. 
                             #     0.75 was default for PercMask
          mask <- array(TRUE,c(dx,dy,dz))
-         mask[myttt[,,,1] < quantile(myttt[,,,1],PercMask)] <- FALSE
+         mask[mybrk[,,,1] < quantile(mybrk[,,,1],PercMask)] <- FALSE
       } 
-      z <- list(ttt=myttt,format="HEAD/BRIK",delta=values$DELTA,
+      z <- list(brk=mybrk,format=an$type,delta=values$DELTA,
             origin=values$ORIGIN,
             orient=values$ORIENT_SPECIFIC,
             dim=c(dx,dy,dz,dt),weights=weights, header=values,mask=mask)
   } else {
     warning("Error reading file: Could not detect size per voxel\n")
-    z <- list(ttt=NULL,format="HEAD/BRIK",delta=NULL,
+    z <- list(brk=NULL,format=an$type,delta=NULL,
               origin=NULL,orient=NULL,dim=NULL,weights=NULL,
               header=values,mask=NULL)    
   }
 
-  class(z) <- "fmridata"
-  attr(z,"file") <- paste(filename,".HEAD/BRIK",sep="")
+  class(z) <- "AFNI_dataset"
+  attr(z,"file") <- paste(filename,"BRIK",sep="")
   
   if (rmtmp == 1) {
    if (verb) {
@@ -1243,19 +1458,28 @@ newid.AFNI <- function(ext=0) {
    }
 }
 
-write.AFNI <- function( filename, ttt=NULL, label=NULL, 
+write.AFNI <- function( filename, brk=NULL, label=NULL, 
                         note=NULL, origin=NULL, delta=NULL,
                         orient=NULL, 
                         idcode=NULL, defhead=NULL,
                         verb = 0,
-                        maskinf=0) {
+                        maskinf=0, scale = TRUE) {
+  
+  #Call with brk if dset is sent in
+  if (class(brk) == "AFNI_dataset") {
+     return(write.AFNI( filename, brk$brk, label, note, origin, delta, 
+                        orient, idcode, defhead, verb, maskinf, scale)) 
+  }
   
   #Set the defaults. 
   if (is.null(note)) note <- '';
   if (is.null(idcode)) idcode <- newid.AFNI(0);
-  
+  if (is.null(brk)) {
+   err.AFNI("NULL input");
+   return(0)
+  }
   if (is.null(defhead)) { # No default header
-     if (is.null(label)) label <- paste(c(1:dim(ttt)[4]),collapse='~');
+     if (is.null(label)) label <- paste(c(1:dim(brk)[4]),collapse='~');
      if (is.null(origin)) origin <- c(0,0,0)
      if (is.null(delta)) delta <- c(4,4,4)
      if (is.null(orient)) orient <- 'RAI'
@@ -1264,7 +1488,7 @@ write.AFNI <- function( filename, ttt=NULL, label=NULL,
       if (!is.null(defhead$BRICK_LABS)) {
          label <- gsub("^'", '', defhead$BRICK_LABS);
       } else {
-         label <- paste(c(1:dim(ttt)[4]),collapse='~');
+         label <- paste(c(1:dim(brk)[4]),collapse='~');
       }
      }
      if (is.null(origin)) {
@@ -1289,7 +1513,7 @@ write.AFNI <- function( filename, ttt=NULL, label=NULL,
       }
      }
   }
-  if (is.null(ttt) || !is.numeric(ttt)) {
+  if (is.null(brk) || !is.numeric(brk)) {
    err.AFNI("data array improperly formatted");
    return(0);
   }      
@@ -1329,30 +1553,33 @@ write.AFNI <- function( filename, ttt=NULL, label=NULL,
   
   if (maskinf) {
    if (verb) note.AFNI("Masking infs");
-   ttt[!is.finite(ttt)]=0
+   brk[!is.finite(brk)]=0
   }
   
-  mm <- minmax(ttt)
+  mm <- minmax(brk)
   writeChar(AFNIheaderpart("float-attribute","BRICK_STATS",mm),
             conhead,eos=NULL)
   writeChar(AFNIheaderpart("integer-attribute","DATASET_RANK",
-                           c(3,dim(ttt)[4],0,0,0,0,0,0)),
+                           c(3,dim(brk)[4],0,0,0,0,0,0)),
             conhead,eos=NULL)  
   writeChar(AFNIheaderpart("integer-attribute","DATASET_DIMENSIONS",
-                           c(dim(ttt)[1:3],0,0)),
+                           c(dim(brk)[1:3],0,0)),
             conhead,eos=NULL)  
-  writeChar(AFNIheaderpart("integer-attribute","BRICK_TYPES",rep(1,dim(ttt)[4])),
+  writeChar(AFNIheaderpart("integer-attribute","BRICK_TYPES",rep(1,dim(brk)[4])),
             conhead,eos=NULL)  
 
-  if (verb) {
-   note.AFNI("Computing scaling factors");
-  }
-  scale <- rep(0,dim(ttt)[4])
-  for (k in 1:dim(ttt)[4]) {
-    scale[k] <- max(abs(mm[2*k-1]),abs(mm[2*k]))/32767
-  }
-
-  writeChar(AFNIheaderpart("float-attribute","BRICK_FLOAT_FACS",scale),
+  if (scale) {
+     if (verb) {
+      note.AFNI("Computing scaling factors");
+     }
+     scale_fac <- rep(0,dim(brk)[4])
+     for (k in 1:dim(brk)[4]) {
+       scale_fac[k] <- max(abs(mm[2*k-1]),abs(mm[2*k]))/32767
+     }
+   } else {
+      scale_fac <- rep(0,dim(brk)[4])
+   }
+  writeChar(AFNIheaderpart("float-attribute","BRICK_FLOAT_FACS",scale_fac),
             conhead,eos=NULL)  
   writeChar(AFNIheaderpart("string-attribute","BRICK_LABS",
                            paste(label,collapse="~")),
@@ -1366,25 +1593,35 @@ write.AFNI <- function( filename, ttt=NULL, label=NULL,
   if (0) { #ZSS: old method, 
            # runs out of memory for large dsets
            # when scaling. Code kept here for testing
-   if (verb) {
-      note.AFNI("Applying scaling ")
-     }
-   for (k in 1:dim(ttt)[4]) {
-      ttt[,,,k] <- ttt[,,,k] / scale[k]
+   if (scale) {
+      if (verb) {
+         note.AFNI("Applying scaling ")
+        }
+      for (k in 1:dim(brk)[4]) {
+         brk[,,,k] <- brk[,,,k] / scale_fac[k]
+      }
    }
-   dim(ttt) <- NULL  #Don't know why this was done here ....
+   dim(brk) <- NULL  #Don't know why this was done here ....
      if (verb) {
       note.AFNI("Writing brik")
      }
-     writeBin(as.integer(ttt), conbrik,size=2, endian="big")
+     writeBin(as.integer(brk), conbrik,size=2, endian="big")
    } else {
       if (verb) {
       note.AFNI("Writing /Scaling, meth 2")
      }
      #Write on sub-brick at a time to reduce memory use. 
      #      as.integer will allocate a new copy
-     for (k in 1:dim(ttt)[4]) {
-      writeBin(as.integer(ttt[,,,k] / scale[k]), conbrik,size=2, endian="big") 
+     if (scale) {
+        for (k in 1:dim(brk)[4]) {
+         writeBin(as.integer(brk[,,,k] / scale_fac[k]), 
+                  conbrik,size=2, endian="big") 
+        }
+     } else {
+        for (k in 1:dim(brk)[4]) {
+         writeBin(as.integer(brk[,,,k]), 
+                  conbrik,size=2, endian="big") 
+        }
      }
    }
    close(conbrik)
@@ -1469,7 +1706,7 @@ read.NIFTI <- function(filename) {
     signed <- TRUE
     size <- 1
   }
-  ttt <- readBin(con, what, n=dx*dy*dz*dt, size=size, signed=signed, endian=endian) 
+  brk <- readBin(con, what, n=dx*dy*dz*dt, size=size, signed=signed, endian=endian) 
   close(con)
 
   if (min(abs(header$pixdim[2:4])) != 0) {
@@ -1478,35 +1715,35 @@ read.NIFTI <- function(filename) {
   } else {
     weights <- NULL
   }
-  dim(ttt) <- c(dx,dy,dz,dt)
+  dim(brk) <- c(dx,dy,dz,dt)
 
   mask <- array(TRUE,c(dx,dy,dz))
-  mask[ttt[,,,1] < quantile(ttt[,,,1],0.75)] <- FALSE
+  mask[brk[,,,1] < quantile(brk[,,,1],0.75)] <- FALSE
 
-  z <- list(ttt=writeBin(as.numeric(ttt),raw(),4),format="NIFTI",delta=header$pixdim[2:4],
+  z <- list(brk=writeBin(as.numeric(brk),raw(),4),format="NIFTI",delta=header$pixdim[2:4],
                 origin=NULL,orient=NULL,dim=header$dimension[2:5],weights=weights,header=header,mask=mask)
 
-  class(z) <- "fmridata"
+  class(z) <- "AFNI_dataset"
 
   invisible(z)
 }
 
 extract.data <- function(z,what="data") {
-  if (!("fmridata"%in%class(z))) {
-    warning("extract.data: data not of class <fmridata>. Try to proceed but strange things may happen")
+  if (!("AFNI_dataset"%in%class(z))) {
+    warning("extract.data: data not of class <AFNI_dataset>. Try to proceed but strange things may happen")
   }
   if (what=="residuals") {  
       if(!is.null(z$resscale)){
-          ttt <- readBin(z$res,"integer",prod(z$dim),2)*z$resscale 
-          dim(ttt) <- z$dim
+          brk <- readBin(z$res,"integer",prod(z$dim),2)*z$resscale 
+          dim(brk) <- z$dim
           } else {
           warning("extract.data: No residuals available, returning NULL")
-          ttt <- NULL
+          brk <- NULL
       }
       } else { 
-      ttt <- readBin(z$ttt,"numeric",prod(z$dim),4)
-      dim(ttt) <- z$dim
+      brk <- readBin(z$brk,"numeric",prod(z$dim),4)
+      dim(brk) <- z$dim
       }
  
-  invisible(ttt)
+  invisible(brk)
 }
