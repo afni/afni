@@ -948,7 +948,27 @@ read.AFNI.matrix.test <- function(verb=1) {
          note.AFNI(sprintf("Working with %s", fouts))
          cat (mm,file=fouts);
          print(read.AFNI.matrix(fouts, verb=verb))
+      
+      i <- i+1
+         mm <- paste ( 'subj age \n',
+                       'joe   13  \n',
+                       'jane  22 \n',
+                       'jim   2  \n',
+                      sep='', collapse='');
+         fouts <- sprintf('___fout%02d.1D', i);
+         cat (mm,file=fouts);
          
+         comm <- 'read.AFNI.matrix(fouts, verb=verb)'
+         note.AFNI(sprintf("Working with fouts=%s:\n   %s", fouts, comm))
+         print(eval(parse(text=comm)))
+         
+         comm <- paste("read.AFNI.matrix(fouts, verb=verb,", 
+                                         "userrownames=c('jim','jane'))",
+                        sep='', collapse='')
+         note.AFNI(sprintf("Working with fouts=%s:\n   %s", fouts, comm))
+         print(eval(parse(text=comm)))
+         
+       
       for (j in 0:i) {   
          system(sprintf('\\rm -f ___fout%02d.1D', i));
       }
@@ -1040,6 +1060,7 @@ read.AFNI.matrix <- function (fname,
          }
       }
       rownames(mm) <- userrownames
+      if(length(covNames)) colnames(mm) <- covNames
       covMatrix <- mm
    }
    if (!is.null(usercolnames)) {
