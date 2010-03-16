@@ -98,29 +98,29 @@ read.AFNI <- function(filename) {
   if (as.integer(size) == size) {
     conbrik <- file(filename.brik,"rb")
   # modified below by GC 12/2/2008
-  if (all(values$BRICK_TYPES==0) | all(values$BRICK_TYPES==1)) myttt<- readBin(conbrik, "int", n=dx*dy*dz*dt, size=size, signed=TRUE, endian=endian) # unsigned charater or short
-  if (all(values$BRICK_TYPES==3)) myttt<- readBin(conbrik, "numeric", n=dx*dy*dz, size=size, signed=TRUE, endian=endian) # float        
+  if (all(values$BRICK_TYPES==0) | all(values$BRICK_TYPES==1)) mybrk<- readBin(conbrik, "int", n=dx*dy*dz*dt, size=size, signed=TRUE, endian=endian) # unsigned charater or short
+  if (all(values$BRICK_TYPES==3)) mybrk<- readBin(conbrik, "numeric", n=dx*dy*dz, size=size, signed=TRUE, endian=endian) # float        
     close(conbrik)
-    dim(myttt) <- c(dx,dy,dz,dt)
+    dim(mybrk) <- c(dx,dy,dz,dt)
 #    for (k in 1:dt) {
 #      if (scale[k] != 0) {
 #        cat("scale",k,"with",scale[k],"\n")
-#        cat(range(myttt[,,,k]),"\n")
-#        myttt[,,,k] <- scale[k] * myttt[,,,k]
-#        cat(range(myttt[,,,k]),"\n")
+#        cat(range(mybrk[,,,k]),"\n")
+#        mybrk[,,,k] <- scale[k] * mybrk[,,,k]
+#        cat(range(mybrk[,,,k]),"\n")
 #      }
 #    }
-    for (k in 1:dt) if (scale[k] != 0) myttt[,,,k] <- scale[k] * myttt[,,,k]
+    for (k in 1:dt) if (scale[k] != 0) mybrk[,,,k] <- scale[k] * mybrk[,,,k]
 
   mask <- array(TRUE,c(dx,dy,dz))
-  mask[myttt[,,,1] < quantile(myttt[,,,1],0.75)] <- FALSE
+  mask[mybrk[,,,1] < quantile(mybrk[,,,1],0.75)] <- FALSE
     z <-
-      list(ttt=myttt,format="HEAD/BRIK",delta=values$DELTA,origin=values$ORIGIN,orient=values$ORIENT_SPECIFIC,dim=c(dx,dy,dz,dt),weights=weights, header=values,mask=mask)
-#      list(ttt=writeBin(as.numeric(myttt),raw(),4),format="HEAD/BRIK",delta=values$DELTA,origin=values$ORIGIN,orient=values$ORIENT_SPECIFIC,dim=c(dx,dy,dz,dt),weights=weights, header=values,mask=mask)
+      list(brk=mybrk,format="HEAD/BRIK",delta=values$DELTA,origin=values$ORIGIN,orient=values$ORIENT_SPECIFIC,dim=c(dx,dy,dz,dt),weights=weights, header=values,mask=mask)
+#      list(brk=writeBin(as.numeric(mybrk),raw(),4),format="HEAD/BRIK",delta=values$DELTA,origin=values$ORIGIN,orient=values$ORIENT_SPECIFIC,dim=c(dx,dy,dz,dt),weights=weights, header=values,mask=mask)
 
   } else {
     warning("Error reading file: Could not detect size per voxel\n")
-    z <- list(ttt=NULL,format="HEAD/BRIK",delta=NULL,origin=NULL,orient=NULL,dim=NULL,weights=NULL,header=values,mask=NULL)    
+    z <- list(brk=NULL,format="HEAD/BRIK",delta=NULL,origin=NULL,orient=NULL,dim=NULL,weights=NULL,header=values,mask=NULL)    
   }
 
   class(z) <- "fmridata"
@@ -128,7 +128,7 @@ read.AFNI <- function(filename) {
   invisible(z)
 }
 
-write.AFNI <- function(filename, ttt, label, note="", origin=c(0,0,0), delta=c(4,4,4), idcode="WIAS_noid") {
+write.AFNI <- function(filename, brk, label, note="", origin=c(0,0,0), delta=c(4,4,4), idcode="WIAS_noid") {
   ## TODO:
   ## 
   ## create object oriented way!!!!
@@ -164,16 +164,16 @@ write.AFNI <- function(filename, ttt, label, note="", origin=c(0,0,0), delta=c(4
   writeChar(AFNIheaderpart("float-attribute","ORIGIN",origin),conhead,eos=NULL)  
   writeChar(AFNIheaderpart("float-attribute","DELTA",delta),conhead,eos=NULL)  
   minmax <- function(y) {r <- NULL;for (k in 1:dim(y)[4]) {r <- c(r,min(y[,,,k]),max(y[,,,k]))}; r}
-  mm <- minmax(ttt)
+  mm <- minmax(brk)
   writeChar(AFNIheaderpart("float-attribute","BRICK_STATS",mm),conhead,eos=NULL)
-  writeChar(AFNIheaderpart("integer-attribute","DATASET_RANK",c(3,dim(ttt)[4],0,0,0,0,0,0)),conhead,eos=NULL)  
-  writeChar(AFNIheaderpart("integer-attribute","DATASET_DIMENSIONS",c(dim(ttt)[1:3],0,0)),conhead,eos=NULL)  
-  writeChar(AFNIheaderpart("integer-attribute","BRICK_TYPES",rep(1,dim(ttt)[4])),conhead,eos=NULL)  
+  writeChar(AFNIheaderpart("integer-attribute","DATASET_RANK",c(3,dim(brk)[4],0,0,0,0,0,0)),conhead,eos=NULL)  
+  writeChar(AFNIheaderpart("integer-attribute","DATASET_DIMENSIONS",c(dim(brk)[1:3],0,0)),conhead,eos=NULL)  
+  writeChar(AFNIheaderpart("integer-attribute","BRICK_TYPES",rep(1,dim(brk)[4])),conhead,eos=NULL)  
 
-  scale <- rep(0,dim(ttt)[4])
-  for (k in 1:dim(ttt)[4]) {
+  scale <- rep(0,dim(brk)[4])
+  for (k in 1:dim(brk)[4]) {
     scale[k] <- max(abs(mm[2*k-1]),abs(mm[2*k]))/32767
-    ttt[,,,k] <- ttt[,,,k] / scale[k]
+    brk[,,,k] <- brk[,,,k] / scale[k]
   }
 
   writeChar(AFNIheaderpart("float-attribute","BRICK_FLOAT_FACS",scale),conhead,eos=NULL)  
@@ -182,8 +182,8 @@ write.AFNI <- function(filename, ttt, label, note="", origin=c(0,0,0), delta=c(4
   close(conhead)
 
   conbrik <- file(paste(filename, ".BRIK", sep=""), "wb")
-  dim(ttt) <- NULL
-  writeBin(as.integer(ttt), conbrik,size=2, endian="big")
+  dim(brk) <- NULL
+  writeBin(as.integer(brk), conbrik,size=2, endian="big")
   close(conbrik)
 }
 
@@ -265,7 +265,7 @@ for(ii in 1:nGrp) {
    if(ii==1) {myNote=bList[[1]][[1]]$header$HISTORY_NOTE; myOrig=bList[[1]][[1]]$origin; myDelta=bList[[1]][[1]]$delta; myDim <- bList[[1]][[1]]$dim}
    lapply(lapply(bList[[ii]], function(x) x$dim), function(x) if(!all(x==myDim)) stop("Dimension mismatch among the input files!"))
    
-   bList[[ii]] <- lapply(bList[[ii]], function(x) x$ttt)
+   bList[[ii]] <- lapply(bList[[ii]], function(x) x$brk)
 #   bArr[[ii]] <- array(unlist(c(bList[[ii]])), dim=c(myDim[1:3], nFiles[ii]))   
 
 } # for(ii in 1:nGrp)
@@ -278,7 +278,7 @@ for(ii in 1:nGrp) {
    print("Masking is optional.")
    
    masked <- as.integer(readline("Any mask (0: no; 1: yes)? "))
-   if(masked) {maskFN <- readline("Mask file name (suffix unnecessary, e.g., mask+tlrc): "); maskData <- read.AFNI(maskFN)$ttt}
+   if(masked) {maskFN <- readline("Mask file name (suffix unnecessary, e.g., mask+tlrc): "); maskData <- read.AFNI(maskFN)$brk}
    if(masked) if(!all(dim(maskData[,,,1])==myDim[1:3])) stop("Mask dimensions don't match the input files!")
       
    nBrick <- 2   # no. sub-bricks in the main output

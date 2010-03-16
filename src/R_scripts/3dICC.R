@@ -88,7 +88,7 @@ dimx <- Data$dim[1]
 dimy <- Data$dim[2]
 dimz <- Data$dim[3]
 
-if (!is.na(mask)) Mask <- read.AFNI(mask)$ttt
+if (!is.na(mask)) Mask <- read.AFNI(mask)$brk
 
 if (length(grep('tlrc', Model[1, "InputFile"]))==1) outView <- "tlrc"
 if (length(grep('orig', Model[1, "InputFile"]))==1) outView <- "orig"
@@ -97,10 +97,10 @@ if (length(grep('orig', Model[1, "InputFile"]))==1) outView <- "orig"
 # initialization
 IData <- array(data=NA, dim=c(dimx, dimy, dimz, NoFile))
 
-IData[,,,1] <- Data$ttt
+IData[,,,1] <- Data$brk
 # Read in the rest input files (beta)
 for (m in 2:NoFile) {
-   IData[,,,m] <- read.AFNI(Model[m, "InputFile"])$ttt
+   IData[,,,m] <- read.AFNI(Model[m, "InputFile"])$brk
 }
 
 # try out a few voxels and see if the model is OK, and find out the number of F tests and DF's 
