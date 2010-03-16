@@ -1279,6 +1279,7 @@ ENTRY("REML_get_gltfactors") ;
 #pragma omp critical (QRERR)
  {     static int iold = 0 ;
        if( i > iold ){
+         fprintf(stderr,"\n") ;
          WARNING_message(
            "QR decomposition of GLT setup %dx%d matrix had %d collinearity problem%s" ,
            nn,rr, i , (i==1) ? "\0" : "s"                             ) ;
