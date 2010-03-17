@@ -642,16 +642,17 @@ int main( int argc , char * argv[] )
 
             /** append any fdrcurve **/
             if( have_fdr ){
-               if(dset->dblk->brick_fdrcurve && dset->dblk->brick_fdrcurve[iv]){
+               /* fixed iv->jv (ick!), noticed by dglen  16 Mar 2010 [rickr] */
+               if(dset->dblk->brick_fdrcurve && dset->dblk->brick_fdrcurve[jv]){
                   COPY_floatvec(new_dset->dblk->brick_fdrcurve[ivout],
-                                    dset->dblk->brick_fdrcurve[iv]) ;
+                                    dset->dblk->brick_fdrcurve[jv]) ;
                   nfdr++;
                }
                else new_dset->dblk->brick_fdrcurve[ivout] = NULL ;
 
-               if(dset->dblk->brick_mdfcurve && dset->dblk->brick_mdfcurve[iv]){
+               if(dset->dblk->brick_mdfcurve && dset->dblk->brick_mdfcurve[jv]){
                   COPY_floatvec(new_dset->dblk->brick_mdfcurve[ivout],
-                                    dset->dblk->brick_mdfcurve[iv]) ;
+                                    dset->dblk->brick_mdfcurve[jv]) ;
                }
                else new_dset->dblk->brick_mdfcurve[ivout] = NULL ;
             }
