@@ -124,6 +124,9 @@ int main( int argc , char * argv[] )
       }
    } else {
       dset  = THD_open_one_dataset( argv[nopt] ) ;
+
+      /* in either case (i.e. handle non-AFNI dsets)   16 Mar 2010 [rickr] */
+      THD_set_dataset_attributes(dset);
    }
    if( !ISVALID_DSET(dset) ){
       fprintf(stderr,"*** Can't open dataset %s\n",argv[nopt]); exit(1);
