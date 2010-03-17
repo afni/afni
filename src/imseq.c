@@ -1688,6 +1688,8 @@ STATUS("creation: widgets created") ;
    newseq->graymap_mtd  = NULL ;       /* 24 Oct 2003 */
    newseq->cmap_changed = 0 ;
 
+   newseq->shft_ctrl_dragged = 0 ;     /* 17 Mar 2010 */
+
 #define DEFAULT_THETA  55.0
 #define DEFAULT_PHI   285.0
 
@@ -5284,14 +5286,16 @@ ENTRY("ISQ_drawing_EV") ;
              seq->zoom_button1 = 0 ;
              POPUP_cursorize( seq->wimage ) ;
              MCW_invert_widget( seq->zoom_drag_pb ) ;
-           } else if( !seq->zoom_button1 ){           /* 23 Oct 2003 */
+           } else if( !seq->zoom_button1 ){              /* 23 Oct 2003 */
              if( seq->cmap_changed ){
                COLORMAP_CHANGE(seq); seq->cmap_changed = 0;
                if( seq->graymap_mtd != NULL && AFNI_yesenv("AFNI_STROKE_AUTOPLOT") ){
-                 NI_sleep(456) ;     /* pop down after a short delay */
+                 NI_sleep(666) ;     /* pop down after a short delay */
                  plotkill_topshell( seq->graymap_mtd ) ;
                  seq->graymap_mtd = NULL ;
                }
+             } else if( seq->shft_ctrl_dragged ){        /* 17 Mar 2010 */
+               seq->shft_ctrl_dragged = 0 ;
              } else if( seq->status->send_CB != NULL ){  /* 04 Nov 2003 */
                 int imx,imy,nim;
                 seq->wimage_width = -1 ;
@@ -5310,7 +5314,7 @@ ENTRY("ISQ_drawing_EV") ;
            }
          }
       }
-      break ;
+      break ;  /*--- end of ButtonRelease ---*/
 
       /*----- motion with Button #1 pressed down -----*/
 
@@ -5318,7 +5322,7 @@ ENTRY("ISQ_drawing_EV") ;
         XMotionEvent *event = (XMotionEvent *) ev ;
         int bx,by ;
 
-        /** 03 Oct 2002: change Shift+Button1 into Button2, then send to that event handler **/
+        /** 03 Oct 2002: change Shift+Button1 into Button2, send to event handler **/
 
         if( (event->state & Button1Mask) &&
              ( seq->cursor_state == CURSOR_PENCIL ||
@@ -5329,6 +5333,21 @@ ENTRY("ISQ_drawing_EV") ;
           else
              { XBell(seq->dc->display,100); busy=0;EXRETURN; }
           busy=0;EXRETURN ;
+        }
+
+        /** 17 Mar 2010: Shift+Ctrl+Button1 = send to our master [InstaCorr] **/
+
+        if( (event->state & Button1Mask) && (seq->status->send_CB != NULL) &&
+            (event->state & ShiftMask)   && (event->state & ControlMask)     ){
+          int imx,imy,nim;
+          seq->wimage_width = -1 ;
+          ISQ_mapxy( seq , event->x,event->y , &imx,&imy,&nim ) ;
+          cbs.reason = isqCR_buttonmove ;
+          cbs.event  = ev ;
+          cbs.xim    = imx ;       /* delayed send of Button1 */
+          cbs.yim    = imy ;       /* event to AFNI now       */
+          cbs.nim    = nim ;
+          SEND(seq,cbs) ; busy=0 ; seq->shft_ctrl_dragged=1 ; EXRETURN ;
         }
 
         /* Button1 motion: if not panning, changing the color/gray map? */
@@ -5392,7 +5411,7 @@ ENTRY("ISQ_drawing_EV") ;
 
         busy=0; EXRETURN ;
       }
-      break ;
+      break ;  /*--- end of MotionNotify ---*/
 
       /*----- redraw -----*/
 
@@ -5426,7 +5445,7 @@ STATUS(" .. really a hidden resize") ;
 
          }
       }
-      break ;
+      break ;  /*--- end of Expose ---*/
 
       /*----- take key press -----*/
 
@@ -5487,7 +5506,7 @@ fprintf(stderr,"KeySym=%04x nbuf=%d state=%u\n",(unsigned int)ks,nbuf,event->sta
 #endif
          }
       }
-      break ;  /* end of KeyPress */
+      break ;  /*--- end of KeyPress ---*/
 
       /*----- take button press -----*/
 
@@ -5676,7 +5695,7 @@ STATUS(" .. ButtonPress") ;
          }
       }
       ISQ_but_done_reset( seq ) ;
-      break ;
+      break ;                     /*--- end of ButtonPress ---*/
 
       /*----- window changed size -----*/
 
@@ -5753,7 +5772,7 @@ else fprintf(stderr,"  -- too soon to enforce aspect!\n") ;
 
          am_active = 0 ;
       }
-      break ;
+      break ;  /*--- end of ConfigureNotify ---*/
 
       /*----- ignore all other events -----*/
 

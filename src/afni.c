@@ -3571,6 +3571,28 @@ if(PRINT_TRACING)
       MPROBE ;
       break ;  /* end of destroy */
 
+      case isqCR_buttonmove:{  /* 17 Mar 2010: InstaCorr on the go! */
+        XMotionEvent *xev = (XMotionEvent *)cbs->event ;
+
+        if( im3d->ignore_seq_callbacks != AFNI_IGNORE_NOTHING    ) EXRETURN ;
+        if( !(xev->state&ShiftMask) || !(xev->state&ControlMask) ) EXRETURN ;
+
+        if( cbs->xim >= 0 && cbs->xim < br->n1 &&
+            cbs->yim >= 0 && cbs->yim < br->n2 &&
+            cbs->nim >= 0 && cbs->nim < br->n3   ){
+
+          THD_ivec3 id ; int qq , ii,jj,kk ;
+
+          id = THD_fdind_to_3dind(br,TEMP_IVEC3(cbs->xim,cbs->yim,cbs->nim));
+          UNLOAD_IVEC3(id,ii,jj,kk) ;
+
+          qq = AFNI_icor_setref_anatijk(im3d,ii,jj,kk) ;
+          if( qq > 0 ) AFNI_icor_setref_locked(im3d) ;
+        }
+      }
+      MPROBE ;
+      break ;  /* end of button move */
+
       case isqCR_buttonpress:{
          XButtonEvent *xev = (XButtonEvent *)cbs->event ;
 
@@ -3585,7 +3607,7 @@ if(PRINT_TRACING){
 
             default: EXRETURN ;  /* unused button */
 
-            case Button3:{  /* popup */
+            case Button3:{  /* popup menu */
                XtVaSetValues( im3d->vwid->imag->popmenu ,
                                  XmNuserData , (XtPointer) seq ,   /* who */
                               NULL ) ;
@@ -3594,7 +3616,7 @@ if(PRINT_TRACING){
             }
             break ;
 
-            case Button1:{
+            case Button1:{   /* set viewpoint; set InstaCorr? */
                THD_ivec3 id ;
 
                /* April 1996:  only use this button press if
@@ -3634,13 +3656,7 @@ if(PRINT_TRACING)
 
                   if( xev->state&ShiftMask && xev->state&ControlMask ){
                     int qq = AFNI_icor_setref(im3d) ;
-                    if( qq < 0 ) BEEPIT ;
-                    else {
-                      im3d->vinfo->i1_icor = im3d->vinfo->i1 ;
-                      im3d->vinfo->j2_icor = im3d->vinfo->j2 ;
-                      im3d->vinfo->k3_icor = im3d->vinfo->k3 ;
-                      if( qq > 0 ) AFNI_icor_setref_locked(im3d) ; /* 15 May 2009 */
-                    }
+                    if( qq > 0 ) AFNI_icor_setref_locked(im3d) ; /* 15 May 2009 */
                   }
                }
             } /* end of button 1 */
@@ -5691,7 +5707,7 @@ void AFNI_do_bkgd_lab( Three_D_View *im3d )
    char str[256] ;
    char labstrf[256]={""}, labstra[256]={""};
    char strhint[256]={"Values at crosshairs voxel"};
-   
+
 ENTRY("AFNI_do_bkgd_lab") ;
 
    if( !IM3D_OPEN(im3d) || !im3d->vwid->imag->do_bkgd_lab ) EXRETURN ;
@@ -5700,7 +5716,7 @@ ENTRY("AFNI_do_bkgd_lab") ;
                            strtod(im3d->vinfo->anat_val, NULL), labstra);
    AFNI_get_dset_val_label(im3d->fim_now,         /* 26 Feb 2010 ZSS */
                            strtod(im3d->vinfo->func_val, NULL), labstrf);
-   
+
 #define VSTR(x) ( ((x)[0] == '\0') ? ("?") : (x) )
 
    sprintf(str,"ULay = %s%s\n"
@@ -5721,7 +5737,7 @@ ENTRY("AFNI_do_bkgd_lab") ;
                       labstrf);
       MCW_register_hint( im3d->vwid->func->bkgd_lab, strhint);
    }
-   
+
    MCW_set_widget_label( im3d->vwid->func->bkgd_lab , str ) ;
    XtManageChild( im3d->vwid->func->bkgd_lab ) ;
    FIX_SCALE_SIZE(im3d) ;
@@ -5894,8 +5910,8 @@ DUMP_IVEC3("  new_id",new_id) ;
 #endif
 
    if( im3d->type == AFNI_3DDATA_VIEW ){
-      fv = THD_3dind_to_3dmm( im3d->anat_now , new_id ) ;
-      fv = THD_3dmm_to_dicomm( im3d->anat_now , fv ) ;
+      fv = THD_3dind_to_3dmm ( im3d->anat_now , new_id ) ;
+      fv = THD_3dmm_to_dicomm( im3d->anat_now , fv     ) ;
       im3d->vinfo->xi = fv.xyz[0] ;  /* set display coords */
       im3d->vinfo->yj = fv.xyz[1] ;  /* to Dicom standard  */
       im3d->vinfo->zk = fv.xyz[2] ;
@@ -8686,15 +8702,8 @@ ENTRY("AFNI_imag_pop_CB") ;
    /*---- 06 May 2009: set InstaCorr point ----*/
 
    else if( w == im3d->vwid->imag->pop_instacorr_pb && w != NULL ){
-
      int qq = AFNI_icor_setref(im3d) ;
-     if( qq < 0 ) BEEPIT ;
-     else {
-       im3d->vinfo->i1_icor = im3d->vinfo->i1 ;
-       im3d->vinfo->j2_icor = im3d->vinfo->j2 ;
-       im3d->vinfo->k3_icor = im3d->vinfo->k3 ;
-       if( qq > 0 ) AFNI_icor_setref_locked(im3d) ; /* 15 May 2009 */
-     }
+     if( qq > 0 ) AFNI_icor_setref_locked(im3d) ; /* 15 May 2009 */
    }
 
    /*---- 08 May 2009: jump to InstaCorr point ----*/

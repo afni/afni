@@ -298,7 +298,8 @@ typedef struct {
           stats_func_ok,     /*   to indicate if the sub-brick range  */
           stats_thresh_ok ;  /*   statistics are loaded properly     */
 
-      int i1_icor, j2_icor, k3_icor;  /* for InstaCorr -- 08 May 2009 */
+      int   i1_icor , j2_icor , k3_icor;  /* for InstaCorr -- 08 May 2009 */
+      float xi_icor , yj_icor , zk_icor ; /* DICOM coords -- 17 Mar 2010 */
 
 } AFNI_view_info ;
 
@@ -1617,6 +1618,9 @@ extern char * AFNI_bucket_label_CB( MCW_arrowval * , XtPointer ) ;
 extern void   AFNI_vedit_CB       ( MCW_arrowval * , XtPointer ) ; /* 05 May 2009 */
 extern int    AFNI_icor_setref    ( Three_D_View *im3d ) ;
 extern void   AFNI_icor_setref_locked( Three_D_View *im3d ) ;      /* 15 May 2009 */
+
+extern int    AFNI_icor_setref_anatijk( Three_D_View *im3d, int,int,int ) ; /* 17 Mar 2010 */
+extern int    AFNI_icor_setref_xyz    ( Three_D_View *im3d, float,float,float) ;
 
 extern int    AFNI_gicor_setref   ( Three_D_View *im3d ) ;         /* 23 Dec 2009 */
 

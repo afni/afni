@@ -266,6 +266,7 @@ typedef struct {
 #define isqCR_geometry    3   /* the display geometry altered */
 #define isqCR_newimage    4   /* moved to a new image */
 #define isqCR_newmontage  5   /* a new image montage layout */
+#define isqCR_buttonmove  6   /* button moved while pressed [17 Mar 2010] */
 #define isqCR_destroy     99  /* the MCW_imseq was destroyed */
 
 #define isqCR_getimage    401
@@ -536,6 +537,8 @@ typedef struct MCW_imseq {
      MCW_arrowval *wbar_checkbrd_av ;
 
      MCW_arrowval *wbar_animdup_av ;                  /* 10 Feb 2009 */
+
+     int shft_ctrl_dragged ;                          /* 17 Mar 2010 */
 } MCW_imseq ;
 
 #define RENDER_DEFAULT    0
