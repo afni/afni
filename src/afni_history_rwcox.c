@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 17 , MAR , 2010 , RWC , "afni" , MINOR , TYPE_MODIFY ,
+   "Add Shift+Ctrl+Button1 seed dragging in individual InstaCorr" ,
+   NULL } ,
+
  { 16 , MAR , 2010 , RWC , "3dbucket" , MICRO , TYPE_GENERAL ,
    "Make -glueto keep compressed form of the first dataset" ,
    "Same change made for 3dTcat" } ,

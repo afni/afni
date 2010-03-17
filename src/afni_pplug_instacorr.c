@@ -389,13 +389,12 @@ static char * ICOR_main( PLUGIN_interface *plint )
 }
 #endif  /* ALLOW_PLUGINS */
 
-/*------------------------------------------------------------------*/
+/*-------------------------------------------------------------------------*/
+/* Seed location at crosshairs */
 
 int AFNI_icor_setref( Three_D_View *im3d )
 {
-   MRI_IMAGE *iim; float *iar; THD_fvec3 iv,jv; THD_ivec3 kv; int ijk;
-   THD_3dim_dataset *icoset ; THD_slist_find slf ; int nds=0 ;
-   double etim ;
+   int ijk ;
 
 ENTRY("AFNI_icor_setref") ;
 
@@ -405,12 +404,52 @@ ENTRY("AFNI_icor_setref") ;
      ijk = AFNI_gicor_setref(im3d) ; RETURN(ijk) ;
    }
 
+   ijk = AFNI_icor_setref_xyz( im3d , im3d->vinfo->xi ,
+                                      im3d->vinfo->yj , im3d->vinfo->zk ) ;
+   RETURN(ijk) ;
+}
+
+/*-------------------------------------------------------------------------*/
+/* Seed location at anat dataset i,j,k voxel indexes */
+
+int AFNI_icor_setref_anatijk( Three_D_View *im3d , int ii,int jj,int kk )
+{
+   int ijk ;
+   THD_ivec3 iv ; THD_fvec3 fv ;
+
+ENTRY("AFNI_icor_setref_ijk") ;
+
+   if( !IM3D_OPEN(im3d)                          ) RETURN(-1) ;
+   if( im3d->giset != NULL && im3d->giset->ready ) RETURN(-1) ;
+
+   LOAD_IVEC3(iv,ii,jj,kk) ;
+   fv = THD_3dind_to_3dmm ( im3d->anat_now , iv ) ;
+   fv = THD_3dmm_to_dicomm( im3d->anat_now , fv ) ;
+
+   ijk = AFNI_icor_setref_xyz( im3d , fv.xyz[0] , fv.xyz[1] , fv.xyz[2] ) ;
+   RETURN(ijk) ;
+}
+
+/*-----------------------------------------------------------------------*/
+/* Seed location at DICOM x,y,z location */
+
+int AFNI_icor_setref_xyz( Three_D_View *im3d , float xx,float yy,float zz )
+{
+   MRI_IMAGE *iim; float *iar; THD_fvec3 iv,jv; THD_ivec3 kv; int ijk;
+   THD_3dim_dataset *icoset ; THD_slist_find slf ; int nds=0 ;
+   double etim ;
+
+ENTRY("AFNI_icor_setref_xyz") ;
+
+   if( !IM3D_OPEN(im3d)                          ) RETURN(-1) ;
+   if( im3d->giset != NULL && im3d->giset->ready ) RETURN(-1) ;
+
    if( !ISVALID_ICOR_setup(im3d->iset) ) RETURN(-1) ;
 
-   /* find where we are */
+   /* find where we are working from, in dataset coordinates */
 
-   LOAD_FVEC3( iv , im3d->vinfo->xi,im3d->vinfo->yj,im3d->vinfo->zk ) ;
-   jv  = THD_dicomm_to_3dmm       ( im3d->iset->dset, iv ) ;
+   LOAD_FVEC3( iv , xx,yy,zz ) ;
+   jv = THD_dicomm_to_3dmm( im3d->iset->dset, iv ) ;
 
    if( jv.xyz[0] < im3d->iset->dset->daxes->xxmin ||
        jv.xyz[0] > im3d->iset->dset->daxes->xxmax ||
@@ -437,6 +476,16 @@ ENTRY("AFNI_icor_setref") ;
                     PLUTO_elapsed_time()-etim) ;
 
    if( iim == NULL ) RETURN(-1) ;  /* did it fail? */
+
+   /* 17 Mar 2010: save seed location we just did in the im3d struct */
+
+   im3d->vinfo->xi_icor = xx ;
+   im3d->vinfo->yj_icor = yy ;
+   im3d->vinfo->zk_icor = zz ;
+
+   kv = THD_3dmm_to_3dind ( im3d->anat_now , jv ) ;
+   UNLOAD_IVEC3( kv , im3d->vinfo->i1_icor ,
+                      im3d->vinfo->j2_icor , im3d->vinfo->k3_icor ) ;
 
    /* find the output dataset */
 
@@ -494,7 +543,8 @@ ENTRY("AFNI_icor_setref") ;
    DSET_KILL_STATS(icoset) ; THD_load_statistics(icoset) ;
 
    if( ncall <= 1 )
-     ININFO_message(" InstaCorr elapsed time = %.2f sec: dataset ops",PLUTO_elapsed_time()-etim) ;
+     ININFO_message(" InstaCorr elapsed time = %.2f sec: dataset ops" ,
+                    PLUTO_elapsed_time()-etim ) ;
 
    EDIT_BRICK_LABEL  (icoset,0,"Correlation") ;
    EDIT_BRICK_TO_FICO(icoset,0,im3d->iset->mv->nvals,1,im3d->iset->ndet) ;
@@ -505,7 +555,8 @@ ENTRY("AFNI_icor_setref") ;
    if( AFNI_yesenv("AFNI_INSTACORR_FDR") ){
      THD_create_all_fdrcurves(icoset) ;
      if( ncall <= 1 )
-       ININFO_message(" InstaCorr elapsed time = %.2f sec: FDR curve",PLUTO_elapsed_time()-etim) ;
+       ININFO_message(" InstaCorr elapsed time = %.2f sec: FDR curve" ,
+                      PLUTO_elapsed_time()-etim ) ;
    }
 
    /* 10 May 2009: save seed timeseries into timeseries library */
@@ -545,24 +596,28 @@ ENTRY("AFNI_icor_setref") ;
    AFNI_set_thr_pval(im3d) ; AFNI_process_drawnotice(im3d) ;
 
    if( ncall <= 1 )
-     ININFO_message(" InstaCorr elapsed time = %.2f sec: redisplay",PLUTO_elapsed_time()-etim) ;
+     ININFO_message(" InstaCorr elapsed time = %.2f sec: redisplay" ,
+                    PLUTO_elapsed_time()-etim ) ;
 
    ncall++ ; RETURN(1) ;
 }
 
-/*------------------------------------------------------------------*/
+/*------------------------------------------------------------------------------*/
+/* Set seeds at same x,y,z location as the 'master' viewer. */
 
 void AFNI_icor_setref_locked( Three_D_View *im3d )
 {
-   Three_D_View *qq3d ; int ii,cc,qq , glock ; static int busy=0 ;
+   Three_D_View *qq3d ; int ii,cc , glock ; static int busy=0 ;
 
 ENTRY("AFNI_icor_setref_locked") ;
+
+   if( !IM3D_OPEN(im3d)                          ) EXRETURN ;
+   if( im3d->giset != NULL && im3d->giset->ready ) EXRETURN ;
 
    glock = GLOBAL_library.controller_lock ;
 
    if( busy )                       EXRETURN ;  /* routine already busy */
    if( glock == 0 )                 EXRETURN ;  /* nothing to do */
-   if( !IM3D_OPEN(im3d) )           EXRETURN ;  /* bad input */
    if( GLOBAL_library.ignore_lock ) EXRETURN ;  /* ordered not to do anything */
 
    ii = AFNI_controller_index(im3d) ;           /* which one am I? */
@@ -573,14 +628,10 @@ ENTRY("AFNI_icor_setref_locked") ;
 
    for( cc=0 ; cc < MAX_CONTROLLERS ; cc++ ){
      qq3d = GLOBAL_library.controllers[cc] ; /* controller */
-     if( IM3D_OPEN(qq3d) && qq3d != im3d && ((1<<cc) & glock) != 0 ){
-       qq = AFNI_icor_setref(qq3d) ;
-       if( qq ){
-         qq3d->vinfo->i1_icor = qq3d->vinfo->i1 ;
-         qq3d->vinfo->j2_icor = qq3d->vinfo->j2 ;
-         qq3d->vinfo->k3_icor = qq3d->vinfo->k3 ;
-       }
-     }
+     if( IM3D_OPEN(qq3d) && qq3d != im3d && ((1<<cc) & glock) != 0 )
+       (void)AFNI_icor_setref_xyz( qq3d ,
+                                   im3d->vinfo->xi_icor,
+                                   im3d->vinfo->yj_icor, im3d->vinfo->zk_icor);
    }
 
    busy = 0 ; EXRETURN ;
