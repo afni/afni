@@ -48,6 +48,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 16, MAR, 2010, RCR, "3dAttribute", MICRO, TYPE_MODIFY,
+   "set_dataset_attributes() on read - so can use on non-AFNI datasets",
+   NULL
+ } ,
+
+ { 16, MAR, 2010, RCR, "3dbucket", MINOR, TYPE_BUG_FIX,
+   "fixed getting incorrect FDR curves (noted by D Glen)",
+   NULL
+ } ,
+
  { 16, MAR, 2010, RCR, "NIFTI", MICRO, TYPE_MODIFY,
    "added NIFTI_ECODE_VOXBO for D. Kimberg",
    NULL
