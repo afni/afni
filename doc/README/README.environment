@@ -2818,6 +2818,14 @@ that the dummy dataset is only created if you start the AFNI GUI without
 any input datasets at all -- AFNI is constructed so that it needs SOME
 dataset present to be able to operate: hence, the dummy dataset concept.)
 
+----------------------------
+Variable: AFNI_DONT_COMMAIZE
+----------------------------
+When AFNI programs print out informative (and fun) messages about the
+size of files, memory space, etc., by default commas are inserted,
+as in "8,765,432".  If you want these numbers printed as "8765432"
+(for whatever hideous and twisted reason), set this variable to YES.
+
 ----------------------------------------------------------------------
 --- variables specific to NIML I/O
 ----------------------------------------------------------------------
