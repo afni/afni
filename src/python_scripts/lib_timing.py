@@ -651,7 +651,7 @@ class AfniMarriedTiming:
          t = LT.AfniTiming('ch_fltr.txt')
          mt = LT.AfniMarriedTiming(from_at=1, at=t)
          mt.timing_to_tr_frac(run_len, 2.5)
-         mt.timing_to_1D(run_len, 2.5)
+         mt.timing_to_1D(run_len, 2.5, 0.3)
       """
 
       if not self.ready:
@@ -680,16 +680,15 @@ class AfniMarriedTiming:
       if self.verb > 1:
          print 'timing_to_tr_fr, tr = %g, nruns = %d' % (tr,len(run_len))
 
-      last_stim = [scopy.data[ind][-1][1] for ind in range(len(scopy.data))]
-      for ind, stim in enumerate(last_stim):
-          if stim > run_len[ind] or run_len[ind] < 0:
-              return '** run %d, stim after end run' % ind, []
-
+      # need to check each run for being empty
+      for ind, data in enumerate(scopy.data):
+          if len(data) < 1: continue
+          if data[-1][1] > run_len[ind] or run_len[ind] < 0:
+              return '** run %d, stim ends after end of run' % ind+1, []
+          
       result = []
       # process one run at a time, first converting to TR indicies
       for rind, data in enumerate(scopy.data):
-         data = scopy.data[rind]                   # reference to current run
-
          if self.verb > 4:
             print '\n++ stimulus on/off times, run %d :' % (rind+1)
             print data
