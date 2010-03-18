@@ -1619,10 +1619,9 @@ extern void   AFNI_vedit_CB       ( MCW_arrowval * , XtPointer ) ; /* 05 May 200
 extern int    AFNI_icor_setref    ( Three_D_View *im3d ) ;
 extern void   AFNI_icor_setref_locked( Three_D_View *im3d ) ;      /* 15 May 2009 */
 
-extern int    AFNI_icor_setref_anatijk( Three_D_View *im3d, int,int,int ) ; /* 17 Mar 2010 */
-extern int    AFNI_icor_setref_xyz    ( Three_D_View *im3d, float,float,float) ;
-
-extern int    AFNI_gicor_setref   ( Three_D_View *im3d ) ;         /* 23 Dec 2009 */
+extern int    AFNI_icor_setref_anatijk( Three_D_View *, int,int,int ) ;      /* 17 Mar 2010 */
+extern int    AFNI_icor_setref_xyz    ( Three_D_View *, float,float,float );
+extern int    AFNI_gicor_setref_xyz   ( Three_D_View *, float,float,float ); /* 23 Dec 2009 */
 
 extern Boolean AFNI_refashion_dataset( Three_D_View * ,
                                        THD_3dim_dataset *, THD_dataxes * , int ) ;

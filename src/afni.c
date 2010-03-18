@@ -3579,9 +3579,11 @@ if(PRINT_TRACING)
 
         if( cbs->xim >= 0 && cbs->xim < br->n1 &&
             cbs->yim >= 0 && cbs->yim < br->n2 &&
-            cbs->nim >= 0 && cbs->nim < br->n3   ){
+            cbs->nim >= 0 && cbs->nim < br->n3   ){  /* inside brick? */
 
           THD_ivec3 id ; int qq , ii,jj,kk ;
+
+          /* find location in underlay dataset */
 
           id = THD_fdind_to_3dind(br,TEMP_IVEC3(cbs->xim,cbs->yim,cbs->nim));
           UNLOAD_IVEC3(id,ii,jj,kk) ;
@@ -3591,7 +3593,7 @@ if(PRINT_TRACING)
         }
       }
       MPROBE ;
-      break ;  /* end of button move */
+      break ;  /* end of button move (while clicked down) */
 
       case isqCR_buttonpress:{
          XButtonEvent *xev = (XButtonEvent *)cbs->event ;

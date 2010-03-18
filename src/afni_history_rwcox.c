@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 18 , MAR , 2010 , RWC , "afni" , MINOR , TYPE_MODIFY ,
+   "Added Shft+Ctrl+click/drag to dynamic Group InstaCorr as well" ,
+   NULL } ,
+
  { 17 , MAR , 2010 , RWC , "afni" , MINOR , TYPE_MODIFY ,
    "Add Shift+Ctrl+Button1 seed dragging in individual InstaCorr" ,
    NULL } ,
