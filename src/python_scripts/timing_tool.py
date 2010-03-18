@@ -460,9 +460,10 @@ g_history = """
    1.1  Jul 23, 2009 - added -partition option
    1.2  Sep 16, 2009 - added -scale_data
    1.3  Feb 20, 2010 - added -timing_to_1D, -tr and -min_frac
+   1.4  Mar 17, 2010 - fixed timing_to_1D when some runs are empty
 """
 
-g_version = "timing_tool.py version 1.3, Feb 20, 2010"
+g_version = "timing_tool.py version 1.4, Mar 17, 2010"
 
 
 class ATInterface:

@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 17, MAR, 2010, RCR, "timing_tool.py", MINOR, TYPE_BUG_FIX,
+   "fixed timing_to_1D when some runs are empty",
+   "Problem found by L Thomas and B Bones."
+ } ,
+
  { 16, MAR, 2010, RCR, "3dAttribute", MICRO, TYPE_MODIFY,
    "set_dataset_attributes() on read - so can use on non-AFNI datasets",
    NULL
@@ -138,7 +143,7 @@ afni_history_struct rickr_history[] = {
 
  { 14, JAN, 2010, RCR, "3dVol2Surf", MINOR, TYPE_BUG_FIX,
    "Fixed crash w/labels on '-map_func seg_vals' -> NIML",
-   "Found by Swaroop at Dartmouth."
+   "Problem found by Swaroop at Dartmouth."
  } ,
 
  { 12, JAN, 2010, RCR, "2dImReg", MICRO, TYPE_BUG_FIX,
@@ -264,7 +269,7 @@ afni_history_struct rickr_history[] = {
 
  { 16, SEP, 2009, RCR, "3ddot", MINOR, TYPE_BUG_FIX,
    "de-meaning data causes permission-based seg fault, apply means upon read",
-   "Found by Giuseppe Pagnoni."
+   "Problem found by Giuseppe Pagnoni."
  } ,
 
  {  8, SEP, 2009, RCR, "realtime_receiver.py", MICRO, TYPE_MODIFY,
@@ -294,7 +299,7 @@ afni_history_struct rickr_history[] = {
 
  { 27, AUG, 2009, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
    "fixed motion_ prefix in '3dDeconvolve -censor'",
-   "Found by B Bones."
+   "Problem found by B Bones."
  } ,
 
  { 27, AUG, 2009, RCR, "afni_proc.py", MICRO, TYPE_NEW_OPT,
