@@ -5506,7 +5506,10 @@ STATUS("got func info") ;
      AFNI_purge_dsets( 1 ) ;
      ma = mcw_malloc_total() ;
      if( mb > 0 && ma > 0 )
-       INFO_message("Purge: before=%lld  after=%lld  diff=%lld",mb,ma,mb-ma) ;
+       INFO_message("Purge: before=%s  after=%s  diff=%s",
+                    commaized_integer_string(mb) ,
+                    commaized_integer_string(ma) ,
+                    commaized_integer_string(mb-ma) ) ;
    }
 
    /*.........................................................*/
