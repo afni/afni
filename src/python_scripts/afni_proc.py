@@ -175,9 +175,10 @@ g_history = """
         - changed max(0,...) to *step(a)*step(b) in scaling block
     2.17 Mar 03 2010 : when censoring, create uncensored ideals and sum
     2.18 Mar 08 2010 : minor: changed option order in some examples
+    2.19 Mar 18 2010 : minor: help updates to alignment options
 """
 
-g_version = "version 2.18, March 8, 2010"
+g_version = "version 2.19, March 18, 2010"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions

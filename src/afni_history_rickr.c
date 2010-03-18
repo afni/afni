@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 18, MAR, 2010, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
+   "small updates to help for alignment options",
+   NULL
+ } ,
+
  { 17, MAR, 2010, RCR, "timing_tool.py", MINOR, TYPE_BUG_FIX,
    "fixed timing_to_1D when some runs are empty",
    "Problem found by L Thomas and B Bones."

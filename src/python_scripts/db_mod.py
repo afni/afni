@@ -3591,13 +3591,13 @@ g_help_string = """
                 e.g. -align_epi_ext_dset subj10/epi_r01+orig'[0]'
 
             This option allows the user to specify an external volume for the
-            EPI and base used in align_epi_anat.py in the align block.  The
-            user should apply sub-brick selection if the dataset has more than
-            one volume.  This volume would be used for both the -epi and the
+            EPI base used in align_epi_anat.py in the align block.  The user
+            should apply sub-brick selection if the dataset has more than one
+            volume.  This volume would be used for both the -epi and the
             -epi_base options in align_epi_anat.py.
 
-            This user might want to align to an EPI volume that is not in the
-            processing stream for the case where there is not sufficient EPI
+            The user might want to align to an EPI volume that is not in the
+            processing stream in the case where there is not sufficient EPI
             contrast left after the magnetization has reached a steady state.
             Perhaps volume 0 has sufficient contrast for alignment, but is not
             appropriate for analysis.  In such a case, the user may elect to
@@ -3609,10 +3609,20 @@ g_help_string = """
                  -align_epi_ext_dset subj10/epi_r01+orig'[0]'
                  -volreg_align_to first
 
-            Note that if the anatomy were acquired after the EPI, the user may
-            want to still align it to the beginning of some run, and all the
-            EPIs to a time point close to that.
+            Note that even if the anatomy were acquired after the EPI, the user
+            might still want to align the anat to the beginning of some run,
+            and align all the EPIs to a time point close to that.  Since the
+            anat and EPI are being forcibly aligned, it does not make such a
+            big difference whether the EPI base is close in time to the anat
+            acquisition.
 
+            Note that this option does not affect the EPI registration base.
+
+            Note that without this option, the volreg base dataset (whether
+            one of the processed TRs or not) will be applied for anatomical
+            alignment, assuming the align block is applied.
+
+            See also -volreg_base_dset.
             Please see "align_epi_anat.py -help" for more information.
 
         -align_opts_aea OPTS ... : specify extra options for align_epi_anat.py
@@ -3677,6 +3687,12 @@ g_help_string = """
             This option allows the user to specify an external dataset for the
             volreg base.  The user should apply sub-brick selection if the
             dataset has more than one volume.
+
+            Note that unless -align_epi_ext_dset is also applied, this volume
+            will be used for anatomical to EPI alignment (assuming that is
+            being done at all).
+
+            See also -align_epi_ext_dset, -volreg_align_to and -volreg_base_ind.
 
         -volreg_base_ind RUN SUB : specify run/sub-brick indices for base
 
