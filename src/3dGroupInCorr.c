@@ -238,8 +238,9 @@ MRI_shindss * GRINCOR_read_input( char *fname )
      GQUIT("datafile is missing") ;
    else if( nbytes_dfname < nbytes_needed ){
      char str[2048] ;
-     sprintf(str,"datafile has %lld bytes but needs at least %lld",
-             nbytes_dfname , nbytes_needed ) ;
+     sprintf(str,"datafile has %s bytes but needs at least %s",
+              commaized_integer_string(nbytes_dfname) ,
+              commaized_integer_string(nbytes_needed) ) ;
      GQUIT(str) ;
    }
    fdes = open( dfname , O_RDONLY ) ;
@@ -831,7 +832,8 @@ int main( int argc , char *argv[] )
        }
        shd_AAA = GRINCOR_read_input( fname ) ;
        if( shd_AAA == NULL ) ERROR_exit("Cannot continue after -setA input error") ;
-       if( verb > 1 ) INFO_message("-setA opened, contains %lld bytes",shd_AAA->nbytes);
+       if( verb > 1 ) INFO_message("-setA opened, contains %s bytes",
+                                   commaized_integer_string(shd_AAA->nbytes));
        qlab_AAA = fname ;
        cpt = strchr(qlab_AAA,'.') ; if( cpt != NULL && cpt != qlab_AAA ) *cpt = '\0' ;
        nopt++ ; continue ;
@@ -848,7 +850,8 @@ int main( int argc , char *argv[] )
        }
        shd_BBB = GRINCOR_read_input( fname ) ;
        if( shd_BBB == NULL ) ERROR_exit("Cannot continue after -setB input error") ;
-       if( verb > 1 ) INFO_message("-setB opened, contains %lld bytes",shd_BBB->nbytes) ;
+       if( verb > 1 ) INFO_message("-setB opened, contains %s bytes",
+                                   commaized_integer_string(shd_BBB->nbytes)) ;
        qlab_BBB = fname ;
        cpt = strchr(qlab_BBB,'.') ; if( cpt != NULL && cpt != qlab_BBB ) *cpt = '\0' ;
        nopt++ ; continue ;
@@ -930,8 +933,9 @@ int main( int argc , char *argv[] )
    if( verb ){
      long long nbtot = shd_AAA->nbytes ;
      if( shd_BBB != NULL ) nbtot += shd_BBB->nbytes ;
-     INFO_message("total bytes input = %lld (about %s)" ,
-                   nbtot , approximate_number_string((double)nbtot) ) ;
+     INFO_message("total bytes input = %s (about %s)" ,
+                   commaized_integer_string(nbtot) ,
+                   approximate_number_string((double)nbtot) ) ;
    }
 
    if( verb ) INFO_message  ("Be sure to start afni with the '-niml' option"        ) ;

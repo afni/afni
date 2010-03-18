@@ -4715,7 +4715,7 @@ void proc_finalize_shm_volumes(void)
    if( psum >= twogig )                               /* too much for shmem */
 #endif
      ERROR_exit(
-     "Total shared memory needed = %lld >= %lld (2 GB)\n"
+     "Total shared memory needed = %s >= %s (2 GB)\n"
      "** SUGGESTION 1:  Use 3dAutobox to automatically eliminate non-brain\n"
      "   areas from the 3d+time input dataset and reduce memory \n"
      "   requirements,  e.g.\n"
@@ -4726,7 +4726,7 @@ void proc_finalize_shm_volumes(void)
      "**                and then 3dZcat to glue results back together.\n"
      "\n"
      "** SUGGESTION 3:  Run on a 64-bit computer system, instead of 32-bit.\n"
-    , psum,twogig) ;
+    , commaized_integer_string(psum) , commaized_integer_string(twogig) ) ;
    else {
      INFO_message("total shared memory needed = %s bytes (about %s)" ,
                   commaized_integer_string(psum) ,
@@ -4761,9 +4761,9 @@ void proc_finalize_shm_volumes(void)
    UNIQ_idcode_fill( kstr ) ;               /* unique string "key" */
    proc_shmid = shm_create( kstr , proc_shmsize ) ; /* thd_iochan.c */
    if( proc_shmid < 0 ){
-     fprintf(stderr,"\n** Can't create shared memory of size %lld!\n"
+     fprintf(stderr,"\n** Can't create shared memory of size %s!\n"
                       "** Try re-running without -jobs option!\n" ,
-             proc_shmsize ) ;
+             commaized_integer_string(proc_shmsize) ) ;
 
      /** if failed, print out some advice on how to tune SHMMAX **/
 
