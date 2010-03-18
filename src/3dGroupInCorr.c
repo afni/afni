@@ -1257,7 +1257,7 @@ int main( int argc , char *argv[] )
 #ifndef DONT_USE_SHM
      if( do_shm > 0 && strcmp(afnihost,"localhost") == 0 && !shm_active ){
        char nsnew[128] ;
-       sprintf( nsnew , "shm:GrpInCorr:%dM+10K" , (dosix) ? 6 : 3 ) ;
+       sprintf( nsnew , "shm:GrpInCorr:%dM+10K" , (dosix) ? 3 : 1 ) ;
        INFO_message("Reconnecting to %s with shared memory channel %s",pname,nsnew) ;
        kk = NI_stream_reopen( GI_stream , nsnew ) ;
        if( kk == 0 ){
