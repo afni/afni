@@ -7,6 +7,7 @@ typedef struct {
   int       ttest_opcode , vmul ;
   float     seedrad ;
   NI_stream ns ;
+  int       busy ;   /* 18 Mar 2010 */
   THD_session *session ; THD_3dim_dataset *dset ;
   int nds,nvox,nivec,*ivec ;
   

@@ -1257,7 +1257,7 @@ int main( int argc , char *argv[] )
 #ifndef DONT_USE_SHM
      if( do_shm > 0 && strcmp(afnihost,"localhost") == 0 && !shm_active ){
        char nsnew[128] ;
-       sprintf( nsnew , "shm:GrpInCorr:%dM+10K" , (dosix) ? 2 : 1 ) ;
+       sprintf( nsnew , "shm:GrpInCorr:%dM+10K" , (dosix) ? 6 : 3 ) ;
        INFO_message("Reconnecting to %s with shared memory channel %s",pname,nsnew) ;
        kk = NI_stream_reopen( GI_stream , nsnew ) ;
        if( kk == 0 ){
@@ -1280,7 +1280,8 @@ int main( int argc , char *argv[] )
 
      ctim = NI_clock_time() ;
      if( verb > 2 || (verb==1 && nsend < 2) )
-       ININFO_message(" sent results to %s: elapsed=%d ms",pname,ctim-btim) ;
+       ININFO_message(" sent results to %s: elapsed=%d ms  bytes=%d" ,
+                      pname , ctim-btim , kk ) ;
 
      if( verb > 1 || (verb==1 && nsend < 2) )
        ININFO_message(" Total elapsed time = %d msec",ctim-atim) ;
