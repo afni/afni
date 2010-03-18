@@ -55,13 +55,14 @@ void AL_setup_warp_coords( int,int,int,int ,
 
 #undef MEMORY_CHECK
 #ifdef USING_MCW_MALLOC
-# define MEMORY_CHECK(mm)                                                    \
-   do{ if( verb > 5 ) mcw_malloc_dump() ;                                    \
-       if( verb > 1 ){                                                       \
-         long long nb = mcw_malloc_total() ;                                 \
-         if( nb > 0 ) INFO_message("Memory usage now = %lld (%s): %s" ,      \
-                      nb , approximate_number_string((double)nb) , (mm) ) ;  \
-       }                                                                     \
+# define MEMORY_CHECK(mm)                                               \
+   do{ if( verb > 5 ) mcw_malloc_dump() ;                               \
+       if( verb > 1 ){                                                  \
+         long long nb = mcw_malloc_total() ;                            \
+         if( nb > 0 ) INFO_message("Memory usage now = %s (%s): %s" ,   \
+                      commaized_integer_string(nb) ,                    \
+                      approximate_number_string((double)nb) , (mm) ) ;  \
+       }                                                                \
    } while(0)
 #else
 # define MEMORY_CHECK(mm) /*nada*/

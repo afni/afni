@@ -1816,8 +1816,9 @@ void proc_finalize_shm_volumes(void)
      "** SUGGESTION 3:  Run on a 64-bit computer system, instead of 32-bit.\n"
      , psum,twogig) ;
    else
-     INFO_message("total shared memory needed = %lld bytes (about %s)" ,
-                  psum , approximate_number_string((double)psum) ) ;
+     INFO_message("total shared memory needed = %s bytes (about %s)" ,
+                  commaized_integer_string(psum) ,
+                  approximate_number_string((double)psum) ) ;
 
    proc_shmsize = psum ;  /* global variable */
 #if 0
