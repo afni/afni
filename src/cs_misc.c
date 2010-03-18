@@ -2,6 +2,34 @@
 
 /*-----------------------------------------------------------------------------*/
 
+char * commaized_integer_string( long long val )
+{
+   static char sval[128] ;
+   char qval[128] ;
+   int qq,ss , qpos , qlen , pval = (val >= 0) ;
+
+   sprintf(qval,"%lld",val) ; qlen = strlen(qval) ;
+
+   if( AFNI_yesenv("AFNI_DONT_COMMAIZE") ||
+       ( pval && qlen <= 3)              ||
+       (!pval && qlen <= 4)                ){ strcpy(sval,qval); return sval; }
+
+   if( pval ) qpos = (qlen-1) % 3 + 1 ;
+   else       qpos = (qlen-2) % 3 + 2 ;
+
+   for( qq=0 ; qq < qpos ; qq++ ) sval[qq] = qval[qq] ;
+   ss = qpos ;
+   for( ; qq < qlen ; ){
+     sval[ss++] = ','        ;
+     sval[ss++] = qval[qq++] ;
+     sval[ss++] = qval[qq++] ;
+     sval[ss++] = qval[qq++] ;
+   }
+   sval[ss] = '\0' ; return sval ;
+}
+
+/*-----------------------------------------------------------------------------*/
+
 char * approximate_number_string( double val )
 {
    static char sval[128] ;
@@ -76,14 +104,13 @@ int strcmp_aboot( char *a , char *b )  /* 12 Mar 2007 */
    free(bb); free(aa); return ii;
 }
 
-/*! function to write a value in nice formatted ways 
-   Daniel Glen (put here by ZSS)
-*/ 
-char *format_value_4print(double value, int oform, char *formatstr) 
+/*! function to write a value in nice formatted ways Daniel Glen (put here by ZSS) */
+
+char *format_value_4print(double value, int oform, char *formatstr)
 {
    static int ii, len, isint;
    static char sans[256]={""}, *strptr=NULL, ch='\0';
-   
+
    switch (oform) {
       case CCALC_DOUBLE: /* double */
          sprintf(sans,"%f",value) ;
@@ -117,11 +144,11 @@ char *format_value_4print(double value, int oform, char *formatstr)
             for(ii=1;ii<len;ii++) {
                ch = *(++strptr);
   	            switch(ch) {
-		            case 'd':  
-                  case 'i': 
-                  case 'c': 
-                  case 'o': 
-                  case 'u': 
+		            case 'd':
+                  case 'i':
+                  case 'c':
+                  case 'o':
+                  case 'u':
                   case 'x': case 'X':
 		               isint = 1; /* integer (no decimal) type output */
                      ii = len + 1;
@@ -137,7 +164,7 @@ char *format_value_4print(double value, int oform, char *formatstr)
                   default:
 		               break;
                }
-            }   
+            }
 		      if(ii==len) {
 		         fprintf(stderr,
                      "unknown format specifier.\n"
@@ -154,13 +181,13 @@ char *format_value_4print(double value, int oform, char *formatstr)
 		         }
             }
             /* must type cast here*/
-            if (isint) sprintf(sans,formatstr,(int)value) ; 
+            if (isint) sprintf(sans,formatstr,(int)value) ;
             else sprintf(sans,formatstr,value) ;
          }
          break;
       default:
          sprintf(sans,"%f",value) ;
-         break; 
+         break;
    }
    return(sans);
-}      
+}

@@ -23,11 +23,12 @@ static int goforit=0 ;
 
 #undef MEMORY_CHECK
 #if defined(USING_MCW_MALLOC) && !defined(USE_OMP)
-# define MEMORY_CHECK                                                  \
-   do{ long long nb = mcw_malloc_total() ;                             \
-       if( nb > 0 && verb > 1 )                                        \
-         ININFO_message("Memory usage now = %lld (%s)" ,               \
-                        nb , approximate_number_string((double)nb) ) ; \
+# define MEMORY_CHECK                                             \
+   do{ long long nb = mcw_malloc_total() ;                        \
+       if( nb > 0 && verb > 1 )                                   \
+         ININFO_message("Memory usage now = %%s (%s)" ,           \
+                        commaized_integer_string(nb) ,            \
+                        approximate_number_string((double)nb) ) ; \
    } while(0)
 #else
 # define MEMORY_CHECK /*nada*/
