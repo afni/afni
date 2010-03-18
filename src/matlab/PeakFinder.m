@@ -317,10 +317,9 @@ function [t,v] =  remove_duplicates(t,v, Opt)
    return;
 
 function [tp,vp, tn, vn] =  remove_PNduplicates(tp,vp, tn,vn, Opt)
-   
    ok=zeros(1,length(tp));
    ok(1) = 1; j = 1;
-   for (i=2:1:length(tp)),
+   for (i=2:1:min(length(tp), length(tn))),
       if (  tp(i) ~= tp(i-1)  & ...
             tp(i) - tp(i-1) > 0.3), %minimum time
                                   %before next beat
