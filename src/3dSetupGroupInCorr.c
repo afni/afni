@@ -560,8 +560,9 @@ int main( int argc , char * argv[] )
 
    fclose(fp) ;
    fsize = THD_filesize(dfname) ;
-   INFO_message("Wrote data file %s = %lld bytes (about %s)",
-                dfname , fsize , approximate_number_string((double)fsize) ) ;
+   INFO_message("Wrote data file %s = %s bytes (about %s)",
+                dfname , commaized_integer_string(fsize) ,
+                         approximate_number_string((double)fsize) ) ;
 
    ctim = NI_clock_time() - atim ;
    ININFO_message("Total elapsed time = %d ms = %.2f min",ctim,ctim/(60000.0f)) ;

@@ -2819,6 +2819,14 @@ static char * readme_env[] = {
    "any input datasets at all -- AFNI is constructed so that it needs SOME\n" ,
    "dataset present to be able to operate: hence, the dummy dataset concept.)\n" ,
    "\n" ,
+   "----------------------------\n" ,
+   "Variable: AFNI_DONT_COMMAIZE\n" ,
+   "----------------------------\n" ,
+   "When AFNI programs print out informative (and fun) messages about the\n" ,
+   "size of files, memory space, etc., by default commas are inserted,\n" ,
+   "as in \"8,765,432\".  If you want these numbers printed as \"8765432\"\n" ,
+   "(for whatever hideous and twisted reason), set this variable to YES.\n" ,
+   "\n" ,
    "----------------------------------------------------------------------\n" ,
    "--- variables specific to NIML I/O\n" ,
    "----------------------------------------------------------------------\n" ,
@@ -3034,4 +3042,4 @@ static char * readme_env[] = {
    "behavior, set this variable to YES.\n" ,
    "\n" ,
    NULL } ;
-#define NUM_readme_env 3034
+#define NUM_readme_env 3042
