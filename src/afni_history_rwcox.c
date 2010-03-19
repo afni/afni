@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 19 , MAR , 2010 , RWC , "3dGroupInCorr" , MICRO , TYPE_MODIFY ,
+   "Unroll correlation inner loop by 2 == speedup of 30% for this part" ,
+   NULL } ,
+
  { 18 , MAR , 2010 , RWC , "cs_misc.c" , MICRO , TYPE_GENERAL ,
    "Comma-ize function, and used in various places, for pretty print" ,
    NULL } ,

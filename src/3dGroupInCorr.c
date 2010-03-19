@@ -342,6 +342,8 @@ MRI_shindss * GRINCOR_read_input( char *fname )
 #define MYatanh(x) ( ((x)<-0.999329f) ? -4.0f                \
                     :((x)>+0.999329f) ? +4.0f : atanhf(x) )
 
+#define UNROLL  /* to speed things up in the correlation inner loop */
+
 /*--------------------------------------------------------------------------*/
 /* This cute little function consumes a lot of CPU time. */
 
@@ -351,11 +353,27 @@ void GRINCOR_dotprod_short( MRI_shindss *shd, int ids, float *vv, float *dp )
    float sum , fac = shd->fac[ids]*0.9999f ;
    short *sv = shd->sv[ids] , *svv ;
 
+#ifndef UNROLL
    for( iv=0 ; iv < nvec ; iv++ ){
      svv = sv + iv*nvals ;
      for( sum=0.0f,ii=0 ; ii < nvals ; ii++ ) sum += vv[ii]*svv[ii] ;
      sum *= fac ; dp[iv] = MYatanh(sum) ;
    }
+#else
+   if( nvals%2 == 0 ){  /* even number of samples */
+     for( iv=0 ; iv < nvec ; iv++ ){
+       svv = sv + iv*nvals ; sum = 0.0f ;
+       for( ii=0 ; ii < nvals ; ii+=2 ) sum += vv[ii]*svv[ii] + vv[ii+1]*svv[ii+1] ;
+       sum *= fac ; dp[iv] = MYatanh(sum) ;
+     }
+   } else {             /* odd number of samples */
+     for( iv=0 ; iv < nvec ; iv++ ){
+       svv = sv + iv*nvals ; sum = vv[0]*svv[0] ;
+       for( ii=1 ; ii < nvals ; ii+=2 ) sum += vv[ii]*svv[ii] + vv[ii+1]*svv[ii+1] ;
+       sum *= fac ; dp[iv] = MYatanh(sum) ;
+     }
+   }
+#endif
 
    return ;
 }
@@ -369,11 +387,27 @@ void GRINCOR_dotprod_sbyte( MRI_shindss *shd, int ids, float *vv, float *dp )
    float sum , fac = shd->fac[ids]*0.9999f ;
    sbyte *bv = shd->bv[ids] , *bvv ;
 
+#ifndef UNROLL
    for( iv=0 ; iv < nvec ; iv++ ){
      bvv = bv + iv*nvals ;
      for( sum=0.0f,ii=0 ; ii < nvals ; ii++ ) sum += vv[ii]*bvv[ii] ;
      sum *= fac ; dp[iv] = MYatanh(sum) ;
    }
+#else
+   if( nvals%2 == 0 ){  /* even number of samples */
+     for( iv=0 ; iv < nvec ; iv++ ){
+       bvv = bv + iv*nvals ; sum = 0.0f ;
+       for( ii=0 ; ii < nvals ; ii+=2 ) sum += vv[ii]*bvv[ii] + vv[ii+1]*bvv[ii+1] ;
+       sum *= fac ; dp[iv] = MYatanh(sum) ;
+     }
+   } else {             /* odd number of samples */
+     for( iv=0 ; iv < nvec ; iv++ ){
+       bvv = bv + iv*nvals ; sum = vv[0]*bvv[0] ;
+       for( ii=1 ; ii < nvals ; ii+=2 ) sum += vv[ii]*bvv[ii] + vv[ii+1]*bvv[ii+1] ;
+       sum *= fac ; dp[iv] = MYatanh(sum) ;
+     }
+   }
+#endif
 
    return ;
 }
