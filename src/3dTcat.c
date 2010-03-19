@@ -238,14 +238,14 @@ void TCAT_read_opts( int argc , char *argv[] )
       }
       ADDTO_3DARR(TCAT_dsar,dset) ;  /* list of datasets */
 
-      /* process the sub-brick selector string,
-         returning an array of int with
-           svar[0]   = # of sub-bricks,
-           svar[j+1] = index of sub-brick #j for j=0..svar[0] */
-
-      svar = TCAT_get_subv( DSET_NVALS(dset) , subv ) ;
-      if( svar == NULL || svar[0] <= 0 )
-        ERROR_exit("Can't decipher index codes from %s%s",dname,subv) ;
+      if (subv == NULL || subv[0] == '\0') { /* lazy way for 3dTcat special */
+         svar = TCAT_get_subv( DSET_NVALS(dset) , subv ) ; /* ZSS March 2010 */
+      } else {
+         svar = MCW_get_thd_intlist (dset, subv);          /* ZSS March 2010 */
+      }
+      if( svar == NULL || svar[0] <= 0 ){
+         ERROR_exit("can't decipher index codes from %s%s\n",dname,subv) ;
+      }
       ADDTO_XTARR(TCAT_subv,svar) ;  /* list of sub-brick selectors */
 
       max_nsub = MAX( max_nsub , svar[0] ) ;
@@ -678,7 +678,7 @@ int main( int argc , char *argv[] )
        /*----- If this sub-brick is from a bucket dataset,
                     preserve the label for this sub-brick -----*/
 
-       if( ISBUCKET(dset) )
+       if( DSET_HAS_LABEL(dset,jv) )   
          sprintf (buf, "%s", DSET_BRICK_LABEL(dset,jv));
        else
          sprintf(buf,"%.12s[%d]",DSET_PREFIX(dset),jv) ;

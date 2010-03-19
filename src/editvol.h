@@ -139,13 +139,15 @@ typedef struct {
 typedef struct {
    int num_clu , num_all ;
    MCW_cluster ** clar ;
+   int grid_nx, grid_ny, grid_nz;   /* ZSS March 02 2010 */
 } MCW_cluster_array ;
 
 /*! Initialize a MCW_cluster_array. */
 
 #define INIT_CLARR(cl)                \
   ( (cl) = XtNew(MCW_cluster_array) , \
-    (cl)->num_clu = (cl)->num_all = 0 , (cl)->clar = NULL )
+    (cl)->num_clu = (cl)->num_all = 0 , (cl)->clar = NULL, \
+    (cl)->grid_nz = 0, (cl)->grid_ny = 0, (cl)->grid_nz = 0)
 
 /*! Add a MCW_cluster to a MCW_cluster_array. */
 
@@ -289,6 +291,8 @@ typedef struct EDIT_options {
 
    int rank;                      /*!< 13 Nov 2007 --> ZSS: Rank dset values. */
    char rankmapname[THD_MAX_NAME+THD_MAX_PREFIX+1];
+   
+   int isomode;                  /*!< 03 March 2010, ZSS: Use value for clust */
 } EDIT_options ;
 
 /*--- cluster editing options ---*/   /* 10 Sept 1996 */
@@ -300,6 +304,7 @@ typedef struct EDIT_options {
 #define ECFLAG_SMAX   5
 #define ECFLAG_SIZE   6
 #define ECFLAG_ORDER  7         /* 09 June 1998 */
+#define ECFLAG_DEPTH  8         /* 02 March 2010 ZSS */
 
 /*--- filtering options ---*/   /* 11 Sept 1996 */
 #define FCFLAG_NONE   0
@@ -351,6 +356,7 @@ typedef struct EDIT_options {
         (edopt)->fake_dxyz     = 0   , \
         (edopt)->rank          = 0,    \
         (edopt)->rankmapname[0]= '\0', \
+        (edopt)->isomode       = 0, \
        0 )
 
 extern void EDIT_one_dataset( THD_3dim_dataset * dset , EDIT_options * edopt ) ;

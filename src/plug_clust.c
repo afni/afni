@@ -178,6 +178,7 @@ static char * CLUST_main( PLUGIN_interface * plint )
    else  if (strcmp(str,"SMax") == 0)   clust_type = ECFLAG_SMAX;
    else	 if (strcmp(str,"Size") == 0)   clust_type = ECFLAG_SIZE;
    else  if (strcmp(str,"Order") == 0)  clust_type = ECFLAG_ORDER;
+   else  if (strcmp(str,"Depth") == 0)  clust_type = ECFLAG_DEPTH;
    else
      return 
        "**********************************\n"

@@ -58,7 +58,7 @@ int * get_count_intlist ( char *str , int *nret)
    }
    nused = (cpt-(str+ipos)) ;
    if( ibot == 0 && nused == 0 ){
-     fprintf(stderr,"** ERROR: selector syntax error '%s'\n",str+ipos) ;
+     fprintf(stderr,"** ERROR: selector syntax error 1 '%s'\n",str+ipos) ;
      return NULL ;
    }
    ipos += nused ;
@@ -72,7 +72,7 @@ int * get_count_intlist ( char *str , int *nret)
      return NULL ;
    }
    if( itop == 0 && nused == 0 ){
-     fprintf(stderr,"** ERROR: selector syntax error '%s'\n",str+ipos) ;
+     fprintf(stderr,"** ERROR: selector syntax error 2 '%s'\n",str+ipos) ;
      return NULL ;
    }
    nused = (cpt-(str+ipos)) ;
@@ -240,7 +240,7 @@ int * MCW_get_intlist( int nvals , char *str )
          nused = (cpt-(str+ipos)) ;
          if( ibot == 0 && nused == 0 ){
            fprintf(stderr,
-                   "** ERROR: selector syntax error '%s'\n",str+ipos) ;
+                   "** ERROR: selector syntax error 3 '%s'\n",str+ipos) ;
            free(subv) ; return NULL ;
          }
          ipos += nused ;
@@ -289,7 +289,7 @@ int * MCW_get_intlist( int nvals , char *str )
          }
          nused = (cpt-(str+ipos)) ;
          if( itop == 0 && nused == 0 ){
-           fprintf(stderr,"** ERROR: selector syntax error '%s'\n",str+ipos) ;
+           fprintf(stderr,"** ERROR: selector syntax error 4 '%s'\n",str+ipos) ;
            free(subv) ; return NULL ;
          }
          ipos += nused ;
@@ -370,12 +370,13 @@ int is_in_labels(char *lbl, char **labels, int N_labels, int *isb)
    
    sbuf2[499] = '\0';
       
-   /* 
-   fprintf(stderr,"ZSS: lbln >%s<\n"
-                  "      lbl >%s<\n"
-                  "     nused %d\n"
-                  , lbln, lbl, nused);
+   /*
+      fprintf(stderr,"ZSS: lbln >%s<\n"
+                     "      lbl >%s<\n"
+                     "     nused %d\n"
+                     , lbln, lbl, nused);
    */
+      
    repeat = 0;
    do {
       for (ii=0; ii<N_labels; ++ii) {
@@ -394,11 +395,11 @@ int is_in_labels(char *lbl, char **labels, int N_labels, int *isb)
             slbl = labels[ii];
          }
          nused = strlen(slbl);
-         if (check && !(strncmp(lbl, slbl, nused))) {
-            /* 
+         /*
             fprintf(stderr,"ZSS: (rep %d) Checking against >%s< \n", 
                            repeat, slbl);
-            */
+         */
+         if (check && !(strncmp(lbl, slbl, nused))) {
             *isb = ii;
             return(nused);
          }
@@ -498,7 +499,7 @@ int * MCW_get_labels_intlist (char **labels, int nvals, char *str)
          nused = (cpt-(str+ipos)) ;
          if( ibot == 0 && nused == 0 ){
            fprintf(stderr,
-                   "** ERROR: selector syntax error '%s'\n",str+ipos) ;
+                   "** ERROR: selector syntax error 5 '%s'\n",str+ipos) ;
            free(subv) ; return NULL ;
          }
          ipos += nused ;
@@ -556,7 +557,7 @@ int * MCW_get_labels_intlist (char **labels, int nvals, char *str)
          }
          nused = (cpt-(str+ipos)) ;
          if( itop == 0 && nused == 0 ){
-           fprintf(stderr,"** ERROR: selector syntax error '%s'\n",str+ipos) ;
+           fprintf(stderr,"** ERROR: selector syntax error 6 '%s'\n",str+ipos) ;
            free(subv) ; return NULL ;
          }
          ipos += nused ;

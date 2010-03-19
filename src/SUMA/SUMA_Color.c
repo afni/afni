@@ -1133,11 +1133,12 @@ int SUMA_a_good_col(char *name, int i, float *acol)
       
    }
 
-   if (icmap < 0) {
+   if (name && icmap < 0) {
             SUMA_S_Warnv("No colormap named %s was found, "
                          "returning random colors.\n", name);
             dorand = 1;
    }
+   
    if (dorand) {
       /* GIMME SOME RANDOM */
       srand(i);

@@ -1097,3 +1097,79 @@ int THD_peel_mask( int nx, int ny, int nz , byte *mmm, int pdepth )
 
    return num ;
 }
+
+/*!
+   Return a vector representing the number of layers peeled 
+   to reach a voxel in mask.  ZSS March 02 2010 
+*/
+short *THD_mask_depth ( int nx, int ny, int nz, byte *mask, 
+                        byte preservemask, short *usethisdepth) 
+{
+   int ii, np, niter, ncpmask, nxyz;
+   byte *cpmask=NULL;
+   short *depth = NULL;
+   
+   if ((nxyz = nx * ny * nz) < 0) {
+      if (verb) ERROR_message("Bad dims");      
+      return(NULL);
+   }
+   
+   if (preservemask) {
+      cpmask = (byte *)malloc(nxyz*sizeof(byte));
+      memcpy(cpmask, mask, nxyz*sizeof(byte));
+   } else {
+      cpmask = mask;
+   }
+      
+   if (!cpmask) {
+      if (verb) ERROR_message("NULL mask (or mask copy) pointer");
+      return(NULL);
+   }
+   
+   if (usethisdepth) {
+      depth = usethisdepth;
+   } else {
+      if (!(depth = (short *)calloc(nxyz, sizeof(short)))) {
+         if (verb) ERROR_message("Failed to allocate for %d shorts", nxyz);
+         return(NULL);
+      }
+   }
+   if (!depth) {
+      if (verb) ERROR_message("NULL depth vector");
+      return(NULL);
+   }
+   
+   ncpmask = THD_countmask( nxyz , cpmask );
+      
+   niter=0;
+   while ( ncpmask > 0) {
+      for (ii=0 ; ii < nxyz; ++ii) {
+         if (cpmask[ii]) ++depth[ii];
+      }
+      /* peel it */
+      THD_mask_erode( nx, ny, nz, cpmask, 0 ) ;  
+      np = ncpmask - THD_countmask( nxyz , cpmask );
+      if (verb) INFO_message("Peeled %d voxels from mask of %d (now %d)\n",
+                              np, ncpmask, 
+                              ncpmask - np) ;
+
+      ncpmask -= np;
+      ++niter;
+      if (!np && ncpmask) {
+         WARNING_message("Nothing left to peel, after %d interations.\n"
+                         " however %d voxels remain in cpmask!\n"
+                         " Jumping ship.\n", 
+                         niter, ncpmask);
+         break;
+      }
+      if (ncpmask < 0) {
+         ERROR_message("Behavioral problems. ncpmask is < 0!\n"
+                       "Hiding head in sand.");
+         break;
+      }                     
+   }
+      
+   if (cpmask != mask) free(cpmask); cpmask=NULL;
+
+   return(depth);
+}

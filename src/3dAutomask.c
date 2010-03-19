@@ -18,53 +18,66 @@ int main( int argc , char * argv[] )
    float clfrac=0.5 ;      /* 20 Mar 2006 */
    int peels=1, nbhrs=17 ; /* 24 Oct 2006 */
    int apply_mask = 0;     /* 17 Nov 2009 */
-   char *apply_prefix = NULL;
+   char *apply_prefix = NULL, *depthprefix=NULL;
+   short *depth=NULL, dodepth=0;      /* 02 March 2010 ZSS */ 
+
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
-      printf("Usage: 3dAutomask [options] dataset\n"
-             "Input dataset is EPI 3D+time, or a skull-stripped anatomical.\n"
-             "Output dataset is a brain-only mask dataset.\n"
-             "Method:\n"
-             " + Uses 3dClipLevel algorithm to find clipping level.\n"
-             " + Keeps only the largest connected component of the\n"
-             "   supra-threshold voxels, after an erosion/dilation step.\n"
-             " + Writes result as a 'fim' type of functional dataset,\n"
-             "   which will be 1 inside the mask and 0 outside the mask.\n"
-             "Options:\n"
-             "  -prefix ppp = Write mask into dataset with prefix 'ppp'.\n"
-             "                 [Default == 'automask']\n"
-             "  -apply_prefix ppp = Apply mask to input dataset and save\n"
-             "                masked dataset. If an apply_prefix is given\n"
-             "                and not the usual prefix, the only output\n"
-             "                will be the applied dataset\n" 
-             "  -clfrac cc  = Set the 'clip level fraction' to 'cc', which\n"
-             "                 must be a number between 0.1 and 0.9.\n"
-             "                 A small 'cc' means to make the initial threshold\n"
-             "                 for clipping (a la 3dClipLevel) smaller, which\n"
-             "                 will tend to make the mask larger.  [default=0.5]\n"
-             "  -nograd     = The program uses a 'gradual' clip level by default.\n"
-             "                 To use a fixed clip level, use '-nograd'.\n"
-             "                 [Change to gradual clip level made 24 Oct 2006.]\n"
-             "  -peels pp   = Peel the mask 'pp' times, then unpeel.  Designed\n"
-             "                 to clip off protuberances less than 2*pp voxels\n"
-             "                 thick. [Default == 1]\n"
-             "  -nbhrs nn   = Define the number of neighbors needed for a voxel\n"
-             "                 NOT to be peeled.  The 18 nearest neighbors in\n"
-             "                 the 3D lattice are used, so 'nn' should be between\n"
-             "                 9 and 18.  [Default == 17]\n"
-             "  -q          = Don't write progress messages (i.e., be quiet).\n"
-             "  -eclip      = After creating the mask, remove exterior\n"
-             "                 voxels below the clip threshold.\n"
-             "  -dilate nd  = Dilate the mask outwards 'nd' times.\n"
-             "  -erode ne   = Erode the mask inwards 'ne' times.\n"
+      printf(
+"Usage: 3dAutomask [options] dataset\n"
+ "Input dataset is EPI 3D+time, or a skull-stripped anatomical.\n"
+ "Output dataset is a brain-only mask dataset.\n"
+ "Method:\n"
+ " + Uses 3dClipLevel algorithm to find clipping level.\n"
+ " + Keeps only the largest connected component of the\n"
+ "   supra-threshold voxels, after an erosion/dilation step.\n"
+ " + Writes result as a 'fim' type of functional dataset,\n"
+ "   which will be 1 inside the mask and 0 outside the mask.\n"
+ "Options:\n"
+ "  -prefix ppp = Write mask into dataset with prefix 'ppp'.\n"
+ "                 [Default == 'automask']\n"
+ "  -apply_prefix ppp = Apply mask to input dataset and save\n"
+ "                masked dataset. If an apply_prefix is given\n"
+ "                and not the usual prefix, the only output\n"
+ "                will be the applied dataset\n" 
+ "  -clfrac cc  = Set the 'clip level fraction' to 'cc', which\n"
+ "                 must be a number between 0.1 and 0.9.\n"
+ "                 A small 'cc' means to make the initial threshold\n"
+ "                 for clipping (a la 3dClipLevel) smaller, which\n"
+ "                 will tend to make the mask larger.  [default=0.5]\n"
+ "  -nograd     = The program uses a 'gradual' clip level by default.\n"
+ "                 To use a fixed clip level, use '-nograd'.\n"
+ "                 [Change to gradual clip level made 24 Oct 2006.]\n"
+ "  -peels pp   = Peel the mask 'pp' times, then unpeel.  Designed\n"
+ "                 to clip off protuberances less than 2*pp voxels\n"
+ "                 thick. [Default == 1]\n"
+ "  -nbhrs nn   = Define the number of neighbors needed for a voxel\n"
+ "                 NOT to be peeled.  The 18 nearest neighbors in\n"
+ "                 the 3D lattice are used, so 'nn' should be between\n"
+ "                 9 and 18.  [Default == 17]\n"
+ "  -q          = Don't write progress messages (i.e., be quiet).\n"
+ "  -eclip      = After creating the mask, remove exterior\n"
+ "                 voxels below the clip threshold.\n"
+ "  -dilate nd  = Dilate the mask outwards 'nd' times.\n"
+ "  -erode ne   = Erode the mask inwards 'ne' times.\n"
 #ifdef ALLOW_FILLIN
-             "  -fillin nnn = Fill in holes inside the mask of width up\n"
-             "                 to 'nnn' voxels. [Default == 0 == no fillin]\n"
+ "  -fillin nnn = Fill in holes inside the mask of width up\n"
+ "                 to 'nnn' voxels. [Default == 0 == no fillin]\n"
 #endif
-             "  -SI hh      = After creating the mask, find the most superior\n"
-             "                 voxel, then zero out everything more than 'hh'\n"
-             "                 millimeters inferior to that.  hh=130 seems to\n"
-             "                 be decent (i.e., for Homo Sapiens brains).\n"
+ "  -SI hh      = After creating the mask, find the most superior\n"
+ "                 voxel, then zero out everything more than 'hh'\n"
+ "                 millimeters inferior to that.  hh=130 seems to\n"
+ "                 be decent (i.e., for Homo Sapiens brains).\n"
+ "\n"
+ "  -depth DEP  = Produce a dataset (DEP) that shows how many peel \n"
+ "                operations it takes to get to a voxel in the mask.\n"
+ "                The higher the number, the deeper a voxel is located \n"
+ "                in a cluster. \n"
+#ifdef ALLOW_FILLIN
+"          None of -peels, -dilate, -fillin, or -erode affect this option.\n" 
+#else
+"          None of -peels, -dilate, or -erode affect this option.\n" 
+#endif
             ) ;
 
       printf(
@@ -134,6 +147,14 @@ int main( int argc , char * argv[] )
       if( strcmp(argv[iarg],"-eclip") == 0 ){     /* 28 Oct 2003 */
         THD_automask_extclip(1) ;
         iarg++ ; continue ;
+      }
+
+      if( strcmp(argv[iarg],"-depth") == 0 ){
+         depthprefix = argv[++iarg] ;
+         if( !THD_filename_ok(depthprefix) )
+           ERROR_exit("-depth %s is illegal!\n",depthprefix) ;
+         dodepth = 1 ;
+         iarg++ ; continue ;
       }
 
       if( strcmp(argv[iarg],"-q") == 0 ){     /* 28 Oct 2003 */
@@ -209,8 +230,15 @@ int main( int argc , char * argv[] )
    if( mask == NULL )
      ERROR_exit("Mask creation fails for unknown reasons!\n");
 
-   /* 30 Aug 2002 (modified 05 Mar 2003 to do fillin, etc, after dilation) */
+   if (dodepth) {       /* ZSS March 02 2010 */
+      if (!(depth = THD_mask_depth( DSET_NX(dset), 
+                                    DSET_NY(dset),  
+                                    DSET_NZ(dset), mask, 1, NULL))) {
+         ERROR_exit("Failed to get depth vector!\n");
+      }
+   }
 
+   /* 30 Aug 2002 (modified 05 Mar 2003 to do fillin, etc, after dilation) */
    if(dilate||erode) {
      int ii,nx,ny,nz , nmm ;
 
@@ -411,6 +439,31 @@ int main( int argc , char * argv[] )
       else {
          ERROR_exit("Could not apply mask to dataset");
       }
+   }
+   
+   if (dodepth) {             /* ZSS March 02 2010 */
+      if(verb) INFO_message("Writing depth dataset\n");
+      if (mset) DSET_delete(mset); mset = NULL;
+      mset = EDIT_empty_copy( dset ) ;
+      EDIT_dset_items( mset ,
+                         ADN_prefix     , depthprefix   ,
+                         ADN_datum_all  , MRI_short ,
+                         ADN_nvals      , 1        ,
+                         ADN_ntt        , 0        ,
+                         ADN_type       , HEAD_FUNC_TYPE ,
+                         ADN_func_type  , FUNC_FIM_TYPE ,
+                       ADN_none ) ;
+      EDIT_substitute_brick( mset , 0 , MRI_short , depth ) ;
+
+      /* 16 Apr 2002: make history */
+
+      tross_Copy_History( dset , mset ) ;
+      tross_Make_History( "3dAutomask", argc,argv, mset ) ;
+
+      DSET_write( mset ) ;
+      if( verb ) WROTE_DSET(mset) ;
+      
+      DSET_delete(mset); mset = NULL;
    }
 
    DSET_unload( dset ) ;  /* don't need data any more */
