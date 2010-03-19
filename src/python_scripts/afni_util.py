@@ -258,7 +258,8 @@ def get_truncated_grid_dim(dset, verb=1):
     for ind in range(len(dims)):
         dims[ind] = abs(dims[ind])
     md = min(dims)
-    if md >= 2.0: return math.floor(md)
+    # changed 2 -> 4  19 Mar 2010 
+    if md >= 4.0: return math.floor(md)
     if md <= 0:
         print '** failed to get truncated grid dim from %s' % dims
         return 0
