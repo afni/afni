@@ -39,7 +39,7 @@ float mri_nstat( int code , int npt , float *far , float voxval)
        register float mm,vv ; register int ii ;
        if( npt == 1 ) break ;                     /* will return 0.0 */
        for( mm=0.0,ii=0 ; ii < npt ; ii++ ) mm += far[ii] ;
-       mm /= npt ;
+       mm /= npt ; 
        for( vv=0.0,ii=0 ; ii < npt ; ii++ ) vv += (far[ii]-mm)*(far[ii]-mm) ;
        vv /= (npt-1) ;
             if( code == NSTAT_SIGMA ) outval = sqrt(vv) ;
@@ -54,6 +54,24 @@ float mri_nstat( int code , int npt , float *far , float voxval)
 
      case NSTAT_MAD:
        qmedmad_float( npt , far , NULL , &val ) ; outval = val ;
+     break ;
+
+     case NSTAT_P2SKEW:
+       /* Pearson's second skewness coefficient */
+       {
+          register float mm,vv, sig, mean; register int ii ;
+          if( npt == 1 ) break ;                     /* will return 0.0 */
+          for( mm=0.0,ii=0 ; ii < npt ; ii++ ) mm += far[ii] ;
+          mm /= npt ; mean = mm; 
+          for( vv=0.0,ii=0 ; ii < npt ; ii++ ) 
+                                 vv += (far[ii]-mm)*(far[ii]-mm) ;
+          vv /= (npt-1) ;
+          sig = sqrt(vv) ; 
+          if (sig) {
+            qmedmad_float( npt , far , &val , NULL ) ;
+            outval = 3.0 * (mean - val) / sig;
+          } else outval = 0.0;
+       }
      break ;
 
      case NSTAT_MAX:{

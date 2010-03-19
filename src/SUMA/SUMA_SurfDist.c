@@ -15,82 +15,98 @@ void usage_SurfDist (SUMA_GENERIC_ARGV_PARSE *ps)
       int i;
       s = SUMA_help_basics();
       sio  = SUMA_help_IO_Args(ps);
-      printf ( "\n"
-               "Usage: SurfDist  [OPTIONS] <SURFACE> <NODEPAIRS>\n"
-               "       Output shortest distance between NODEPAIRS along\n"
-               "       the nesh of SURFACE.\n"
-               "\n"
-               "Mandatory options:\n"
-               "  <SURFACE> : Surface on which distances are computed.\n"
-               "              (For option's syntax, see \n"
-               "              'Specifying input surfaces' section below).\n"
-               "  <NODEPAIRS> : Specifying node pairs can be done in two ways\n"
-               "\n"
-               "     <FROM_TO_NODES>: A dataset of two columns where each row\n"
-               "               specifies a node pair.\n"
-               "               (For option's syntax, see \n"
-               "              'SUMA dataset input options' section below).\n"                   "   or\n"
-               "     <-from_node START>: Specify one starting node.\n"
-               "     <TO_NODES>: Specify one column of 'To' node indices.\n"
-               "                 Node pairs are between START and each node\n"
-               "                 in TO_NODES.\n"
-               "               (For option's syntax, see \n"
-               "              'SUMA dataset input options' section below).\n"                   "\n"
-               "Optional stuff:\n"
-               "  -node_path_do PATH_DO: Output the shortest path between\n"
-               "                         each node pair as a SUMA Displayable\n"
-               "                         object.\n" 
-               "\n"
-               "  example 1:\n"
-               "     echo make a toy surface\n"
-               "     CreateIcosahedron\n"
-               "     echo Create some nodepairs\n"
-               "     echo 2 344 > nodelist.1D\n"
-               "     echo 416 489 >> nodelist.1D\n"
-               "     echo 123 32414 >> nodelist.1D\n"
-               "     echo Get distances and write out results in a 1D file\n"
-               "     SurfDist -i CreateIco_surf.asc \\\n"
-               "              -input nodelist.1D \\\n"
-               "              -node_path_do node_path   > example.1D\n"
-               "     echo 'The internode distances are in this file:'\n"
-               "     cat example.1D\n"
-               "     echo 'And you can visualize the paths this way:'\n"
-               "     suma -niml &\n"
-               "     DriveSuma -com show_surf -label ico \\\n"
-               "                       -i_fs CreateIco_surf.asc \\\n"
-               "               -com viewer_cont -load_do node_path.1D.do\n"
-               "\n"
-               "  example 2: (for tcsh)\n"
-               "     echo Say one has a filled ROI called: Area.niml.roi on \n"
-               "     echo a surface called lh.smoothwm.asc.\n"
-               "     set apref = Area\n"
-               "     set surf = lh.smoothwm.asc\n"
-               "     echo Create a dataset from this ROI with:\n"
-               "     ROI2dataset -prefix ${apref} -input ${apref}.niml.roi\n"
-               "     echo Get the nodes column forming the area\n"
-               "     ConvertDset -i ${apref}.niml.dset'[i]' -o_1D_stdout \\\n" 
-               "                              > ${apref}Nodes.1D \n"
-               "     echo Calculate distance from node 85329 to each of " 
-               "${apref}Nodes.1D\n" 
-               "     SurfDist  -from_node 85329 -input ${apref}Nodes.1D \\\n" 
-               "               -i ${surf}   > ${apref}Dists.1D\n"
-               "     echo Combine node indices and distances from node  85329\n"
-               "     1dcat ${apref}Nodes.1D ${apref}Dists.1D'[2]' \\\n"
-               "                                  > welt.1D.dset \n"
-               "     echo Now load welt.1D.dset and overlay on surface\n"
-               "     echo Distances are in the second column\n"
-               "     echo 'And you can visualize the distances this way:'\n"
-               "     suma -niml &\n"
-               "     sleep 4\n"
-               "     DriveSuma -com show_surf -label oke \\\n"
-               "                       -i_fs ${surf} \\\n"
-               "               -com  pause hit enter when surface is ready \\\n"
-               "               -com surf_cont -load_dset welt.1D.dset \\\n"
-               "                              -I_sb 1 -T_sb 1 -T_val 0.0 \n"
-               "\n"  
-               "%s"
-               "%s"
-               "\n", 
+      printf ( 
+"\n"
+"Usage: SurfDist  [OPTIONS] <SURFACE> <NODEPAIRS>\n"
+"       Output shortest distance between NODEPAIRS along\n"
+"       the nesh of SURFACE, or the Euclidian distance.\n"
+"\n"
+"Mandatory options:\n"
+"  <SURFACE> : Surface on which distances are computed.\n"
+"              (For option's syntax, see \n"
+"              'Specifying input surfaces' section below).\n"
+"  <NODEPAIRS> : Specifying node pairs can be done in two ways\n"
+"\n"
+"     <FROM_TO_NODES>: A dataset of two columns where each row\n"
+"               specifies a node pair.\n"
+"               (For option's syntax, see \n"
+"              'SUMA dataset input options' section below).\n"                   "   or\n"
+"     <-from_node START>: Specify one starting node.\n"
+"     <TO_NODES>: Specify one column of 'To' node indices.\n"
+"                 Node pairs are between START and each node\n"
+"                 in TO_NODES.\n"
+"               (For option's syntax, see \n"
+"              'SUMA dataset input options' section below).\n"                   "\n"
+"Optional stuff:\n"
+"  -node_path_do PATH_DO: Output the shortest path between\n"
+"                         each node pair as a SUMA Displayable\n"
+"                         object.\n"
+"  -Euclidian: Calculate Euclidian distance, rather than graph distance.\n" 
+"  -Graph: Calculate distance along the mesh (default).\n" 
+"\n"
+"  example 1:\n"
+"     echo make a toy surface\n"
+"     CreateIcosahedron\n"
+"     echo Create some nodepairs\n"
+"     echo 2 344 > nodelist.1D\n"
+"     echo 416 489 >> nodelist.1D\n"
+"     echo 415 412 >> nodelist.1D\n"
+"     echo 123 32414 >> nodelist.1D\n"
+"     echo Get distances and write out results in a 1D file\n"
+"     SurfDist -i CreateIco_surf.asc \\\n"
+"              -input nodelist.1D \\\n"
+"              -node_path_do node_path   > example.1D\n"
+"     echo 'The internode distances are in this file:'\n"
+"     cat example.1D\n"
+"     echo 'And you can visualize the paths this way:'\n"
+"     suma -niml &\n"
+"     DriveSuma -com show_surf -label ico \\\n"
+"                       -i_fs CreateIco_surf.asc \\\n"
+"               -com viewer_cont -load_do node_path.1D.do\n"
+"\n"
+"  example 2: (for tcsh)\n"
+"     echo Say one has a filled ROI called: Area.niml.roi on \n"
+"     echo a surface called lh.smoothwm.asc.\n"
+"     set apref = Area\n"
+"     set surf = lh.smoothwm.asc\n"
+"     echo Create a dataset from this ROI with:\n"
+"     ROI2dataset -prefix ${apref} -input ${apref}.niml.roi\n"
+"     echo Get the nodes column forming the area\n"
+"     ConvertDset -i ${apref}.niml.dset'[i]' -o_1D_stdout \\\n" 
+"                              > ${apref}Nodes.1D \n"
+"     echo Calculate distance from node 85329 to each of " 
+"${apref}Nodes.1D\n" 
+"     SurfDist  -from_node 85329 -input ${apref}Nodes.1D \\\n" 
+"               -i ${surf}   > ${apref}Dists.1D\n"
+"     echo Combine node indices and distances from node  85329\n"
+"     1dcat ${apref}Nodes.1D ${apref}Dists.1D'[2]' \\\n"
+"                                  > welt.1D.dset \n"
+"     echo Now load welt.1D.dset and overlay on surface\n"
+"     echo Distances are in the second column\n"
+"     echo 'And you can visualize the distances this way:'\n"
+"     suma -niml &\n"
+"     sleep 4\n"
+"     DriveSuma -com show_surf -label oke \\\n"
+"                       -i_fs ${surf} \\\n"
+"               -com  pause hit enter when surface is ready \\\n"
+"               -com surf_cont -load_dset welt.1D.dset \\\n"
+"                              -I_sb 1 -T_sb 1 -T_val 0.0 \n"
+"\n"
+"  example 3:\n"
+"     echo make a toy surface\n"
+"     CreateIcosahedron\n"
+"     echo Create some nodepairs\n"
+"     echo 2 344 > nodelist.1D\n"
+"     echo 416 489 >> nodelist.1D\n"
+"     echo 415 412 >> nodelist.1D\n"
+"     echo 123 32414 >> nodelist.1D\n"
+"     echo Get Euclidian distances and write out results to file\n"
+"     SurfDist -i CreateIco_surf.asc \\\n"
+"              -input nodelist.1D \\\n"
+"              -Euclidian   > example3.1D\n"   
+"%s"
+"%s"
+"\n", 
                ps->hverb ? sio:"Use -help for more detail.\n", 
                ps->hverb ? s:"");
       if (s) SUMA_free(s); s = NULL; 
@@ -116,6 +132,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfDist_ParseInput(
    Opt->bases_prefix =NULL;
    Opt->iopt = -1;
    Opt->b1 = 0;
+   Opt->b2 = 0;
    kar = 1;
    brk = NOPE;
 	while (kar < argc) { /* loop accross command ine options */
@@ -131,6 +148,18 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfDist_ParseInput(
       if (!brk && (strcmp(argv[kar], "-for_Daniel") == 0))
       {
          Opt->b1 = 1;
+         brk = YUP;
+      }
+
+      if (!brk && (strcmp(argv[kar], "-Euclidian") == 0))
+      {
+         Opt->b2 = 1;
+         brk = YUP;
+      }
+      
+      if (!brk && (strcmp(argv[kar], "-graph") == 0))
+      {
+         Opt->b2 = 0;
          brk = YUP;
       }
       
@@ -386,7 +415,7 @@ int main (int argc,char *argv[])
       }
       Nfrom = Opt->iopt;
    }
-   /* dset has to have two columns */
+   /* dset has to have one or two columns */
    if (SDSET_VECNUM(din)!= 2 && SDSET_VECNUM(din) != 1) {
       SUMA_S_Errv(
          "Expected one or two columns in input data from %s, have %d!\n",
@@ -394,11 +423,19 @@ int main (int argc,char *argv[])
       exit(1);
    }
    /* work  the node pairs */
-   fprintf(fout, "#Internodal distance along graph of surface %s\n"
+   if (!Opt->b2) {
+      fprintf(fout, "#Internodal distance along graph of surface %s\n"
                         "#A distance of -1 indicates an error of sorts.\n", 
                         SO->Label);
-   fprintf(fout, "#%-6s %-6s %-6s\n",
-                        "From" , "to", "Dist." );
+      fprintf(fout, "#%-6s %-6s %-6s\n",
+                           "From" , "to", "gDist." );
+   } else {
+      fprintf(fout, "#Internodal euclidian distance for surface %s\n"
+                        "#A distance of -1 indicates an error of sorts.\n", 
+                        SO->Label);
+      fprintf(fout, "#%-6s %-6s %-6s\n",
+                           "From" , "to", "eDist." );
+   }  
    if (Opt->nmask) {
       if (!(dm = (SUMA_Boolean *)SUMA_malloc(sizeof(SUMA_Boolean) * 
                                              SO->N_Node))) {
@@ -426,24 +463,38 @@ int main (int argc,char *argv[])
       
       /* You can replace SUMA_Dijkstra with SUMA_Dijkstra_usegen 
       and compare the results. They should be identical, of course */
-      if (  Nfrom < 0 || Nfrom >= SO->N_Node ||
-            Nto   < 0 || Nto   >= SO->N_Node ||
-            !(nPath = SUMA_Dijkstra ( SO, Nfrom, Nto, 
-                              dm, NULL, 1, 
-                              &nDistance, &N_n)) ) {
-         nDistance = -1.0;
-      } else {
-         if (fpout) {
-            for(kk=1; kk<N_n; ++kk) 
-               fprintf(fpout, 
-                        "%d %d %.2f %.2f %.2f 1.0\n", 
-                        nPath[kk-1], nPath[kk], 
-                        cout[0], cout[1], cout[2]); 
-            fprintf(fpout, "\n");
+      if (!Opt->b2) {
+         if (  Nfrom < 0 || Nfrom >= SO->N_Node ||
+               Nto   < 0 || Nto   >= SO->N_Node ||
+               !(nPath = SUMA_Dijkstra ( SO, Nfrom, Nto, 
+                                 dm, NULL, 1, 
+                                 &nDistance, &N_n)) ) {
+            nDistance = -1.0;
+         } else {
+            if (fpout) {
+               for(kk=1; kk<N_n; ++kk) 
+                  fprintf(fpout, 
+                           "%d %d %.2f %.2f %.2f 1.0\n", 
+                           nPath[kk-1], nPath[kk], 
+                           cout[0], cout[1], cout[2]); 
+               fprintf(fpout, "\n");
+            }
+            SUMA_free(nPath); nPath = NULL;
          }
-         SUMA_free(nPath); nPath = NULL;
+      } else {
+         if (Nfrom < 0 || Nfrom >= SO->N_Node ||
+               Nto   < 0 || Nto   >= SO->N_Node) {
+            nDistance = -1.0;
+         } else {
+            float *v1 = SO->NodeList+SO->NodeDim*Nfrom;
+            float *v2 = SO->NodeList+SO->NodeDim*Nto;
+            nDistance=0;
+            for (kk=0; kk<SO->NodeDim; ++kk) {
+               nDistance += SUMA_POW2(v1[kk]-v2[kk]);
+            }
+            nDistance = sqrt(nDistance); 
+         }
       }
-      
       fprintf(fout, " %-6d %-6d %-4.2f\n", 
                            Nfrom, Nto, nDistance
                            );

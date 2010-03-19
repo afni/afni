@@ -41,7 +41,8 @@ int main(int argc, char *argv[])
 {
     THD_3dim_dataset *mask_dset = NULL, *input_dset = NULL ;
     int mask_subbrik = 0;
-    int sigma = 0, nzmean = 0, nzcount = 0, debug = 0, quiet = 0, summary = 0;
+    int sigma = 0, mean = 1, nzmean = 0, nzcount = 0;
+    int debug = 0, quiet = 0, summary = 0;
     int minmax = 0, nzminmax = 0, donzsum = 0;		/* 07 July, 2004 [rickr] */
     short *mask_data;
     int nvox, i, brik;
@@ -127,9 +128,15 @@ int main(int argc, char *argv[])
 "\n"
 "  -debug        Print out debugging information\n"
 "  -quiet        Do not print out labels for columns or rows\n"
+"  -nomeanout    Do not print out the mean column. Default is \n"
+"                to always start with the mean value.\n"
+"                This option cannot be used with -summary\n"
 "  -nobriklab    Do not print the sub-brick label next to its index\n"
 "  -1Dformat     Output results in a 1D format that includes \n"
 "                commented labels\n"
+"  -1DRformat    Output results in a 1D format that includes \n"
+"                uncommented labels. This format does not work well with \n"
+"                typical 1D programs, but it is useful for R functions.\n"
 "\n"
 "The following options specify what stats are computed.  By default\n"
 "the mean is always computed.\n"
@@ -146,6 +153,7 @@ int main(int argc, char *argv[])
 "  -nzmedian     Compute the median of non_zero voxels.\n"
 "  -summary      Only output a summary line with the grand mean \n"
 "                across all briks in the input dataset. \n"
+"                This option cannot be used with -nomeanout.\n"
 "\n"
 "The output is printed to stdout (the terminal), and can be\n"
 "saved to a file using the usual redirection operation '>'.\n"
@@ -169,7 +177,7 @@ int main(int argc, char *argv[])
 
     /* scan argument list */
    disp1d = 0;
-   
+   mean = 1;   /* LEAVE this as the default ZSS March 09 2010 */
     while (narg < argc && argv[narg][0] == '-') {
 
 	if (strncmp(argv[narg], "-mask_f2short", 9) == 0) {
@@ -241,6 +249,11 @@ int main(int argc, char *argv[])
 	    narg++;
 	    continue;
 	}
+   if (strncmp(argv[narg], "-1DRformat", 5) == 0) {
+	    disp1d = 2;
+	    narg++;
+	    continue;
+	}
 	if (strncmp(argv[narg], "-sigma", 5) == 0) {
 	    sigma = 1;
 	    narg++;
@@ -297,6 +310,11 @@ int main(int argc, char *argv[])
 	    narg++;
 	    continue;
 	}
+	if (strncmp(argv[narg], "-nomeanout", 8) == 0) {  /* 09 Mar 2010 ZSS*/
+	    mean = 0;
+	    narg++;
+	    continue;
+	}
 	if (strncmp(argv[narg], "-summary", 5) == 0) {
 	    summary = 1;
 	    narg++;
@@ -321,6 +339,9 @@ int main(int argc, char *argv[])
 	Error_Exit("Unknown option");
     }
 
+   if (!mean && summary) {
+      Error_Exit("Cannot use -nomeanout with -summary");
+   }
     /* Remaining arguements are files */
 
     if (narg >= argc)
@@ -425,19 +446,20 @@ int main(int argc, char *argv[])
 
     /* Print the header line, while we set up the index array */
     if (!quiet && !summary) {
-	   if (disp1d) fprintf(stdout, "#File\tSub-brick\n\t\t#");
+	   if (disp1d == 1) fprintf(stdout, "#File\tSub-brick\n\t\t#");
+      else if (disp1d == 2) fprintf(stdout, "name\t\t");
       else fprintf(stdout, "File\tSub-brick");
     }  
     for (i = 0, num_ROI = 0; i < IMAX; i++)
 	if (non_zero[i]) {
 	    if (force_num_ROI && (((i - 32768) < 0) || ((i - 32768) > force_num_ROI)))
 		Error_Exit("You used the numROI option, yet in the mask there was a\n"
-			   "value in the mask outside the range [1 n].\nMaybe you shouldn't use\n"
-			   "that option\n");
+			   "value in the mask outside the range [1 n].\n"
+            "Maybe you shouldn't use that option\n");
 	    non_zero[i] = num_ROI;
 	    num_ROI++;
 	    if (!quiet && !summary && !force_num_ROI) {
-		fprintf(stdout, "\tMean_%d  ", i - 32768);
+		if (mean) fprintf(stdout, "\tMean_%d  ", i - 32768);
 		if (nzmean)
 		    fprintf(stdout, "\tNZMean_%d", i - 32768);
 		if (nzcount)
@@ -468,7 +490,7 @@ int main(int argc, char *argv[])
 	for (i = 1; i <= force_num_ROI; i++) {
 	    non_zero[i + 32768] = (i - 1);
 	    if (!quiet && !summary) {
-		fprintf(stdout, "\tMean_%d  ", i );
+		if (mean) fprintf(stdout, "\tMean_%d  ", i );
 		if (nzmean)
 		    fprintf(stdout, "\tNZMean_%d", i );
 		if (nzcount)
@@ -684,10 +706,13 @@ int main(int argc, char *argv[])
        /* print the next line of results */
 	    if (!quiet && !summary){
          if( nobriklab )
-		     if (disp1d) fprintf(stdout, "#%s\t%d\n\t\t", argv[narg], brik);
+		     if (disp1d == 1) fprintf(stdout, "#%s\t%d\n\t\t", argv[narg], brik);
+           else if (disp1d == 2) fprintf(stdout, "%s_%d\t\t", argv[narg], brik);
            else fprintf(stdout, "%s\t%d", argv[narg], brik);
          else
-           if (disp1d) fprintf(stdout, "#%s\t%d[%-.9s]\n\t\t",   
+           if (disp1d == 1) fprintf(stdout, "#%s\t%d[%-.9s]\n\t\t",   
+                           argv[narg],brik,DSET_BRICK_LABEL(input_dset,brik));
+           else if (disp1d == 2) fprintf(stdout, "%s_%d[%-.9s]\t\t",   
                            argv[narg],brik,DSET_BRICK_LABEL(input_dset,brik));
            else fprintf(stdout, "%s\t%d[%-.9s]",   /* 14 Mar 2008 */
                            argv[narg],brik,DSET_BRICK_LABEL(input_dset,brik));
@@ -695,7 +720,7 @@ int main(int argc, char *argv[])
 	    if (!summary) {
 		for (i = 0; i < num_ROI; i++) {
 		    if (voxels[i]) {	/* possible if the numROI option is used - 5/00 */
-			fprintf(stdout, "\t%f", (sum[i] / (double) voxels[i]));
+			if (mean) fprintf(stdout, "\t%f", (sum[i] / (double) voxels[i]));
 			if (nzmean)
 			    fprintf(stdout, "\t%f", nzvoxels[i] ? (nzsum[i] / (double) nzvoxels[i]) : 0.0);
 			if (nzcount)
@@ -724,7 +749,7 @@ int main(int argc, char *argv[])
              fprintf(stdout, "\t%f", nzsum[i]);
 		   }
           } else {	/* no voxels, so just leave blanks */
-			fprintf(stdout, "\t%s", zerofill);
+			if (mean) fprintf(stdout, "\t%s", zerofill);
 			if (nzmean)
 			    fprintf(stdout, "\t%s", zerofill);
 			if (nzcount)

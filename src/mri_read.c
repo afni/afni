@@ -2298,11 +2298,17 @@ STATUS(fname) ;  /* 16 Oct 2007 */
      }
      if (linebufdied) {/* death?  ZSS: Oct 19 2009*/
         static int nfail=0 ;
-        if( ++nfail < 9 )
-        fprintf(stderr,
+        if( ++nfail < 9 ){
+         fprintf(stderr,
                 "\n** Error: Failed parsing data row 0 of 1D file '%.44s'\n"
                 "          Check for illegal non-numeric characters in:\n"
                 "          '%s'\n", fname,buf);
+         if (nfail == 1) 
+            fprintf(stderr,
+    "          You can have text entries set to 0 with -ok_1D_text or by \n"
+    "          setting environment variable AFNI_1D_ZERO_TEXT to YES.\n");
+
+        }
      }
      if( fvec != NULL ) KILL_floatvec(fvec) ;
      FRB(buf); fclose(fts); RETURN(NULL);
@@ -2356,11 +2362,16 @@ STATUS(fname) ;  /* 16 Oct 2007 */
       if (strlen(buf) > 64) { 
          buf[64]='\0'; buf[63]='.'; buf[62]='.'; buf[61]='.'; buf[60]=' ';
       }
-      if( ++nfail < 9 )
-      fprintf(stderr,
+      if( ++nfail < 9 ) {
+         fprintf(stderr,
                 "\n** Error: Failed parsing data row %d of 1D file '%.44s'\n"
                 "          Check for illegal non-numeric characters in:\n"
                 "          '%s'\n", nrow, fname , buf);
+         if (nfail == 1) 
+            fprintf(stderr,
+    "          You can have text entries set to 0 with -ok_1D_text or by \n"
+    "          setting environment variable AFNI_1D_ZERO_TEXT to YES.\n"); 
+      }
       if (tsar) free(tsar); tsar = NULL;
       FRB(buf);
       RETURN(NULL); 
@@ -2433,11 +2444,16 @@ ENTRY("mri_read_double_ascii") ;
      }
      if (doublelinebufdied) {/* death? ZSS: Oct 19 2009 */
         static int nfail=0 ;
-        if( ++nfail < 9 )
-        fprintf(stderr,
+        if( ++nfail < 9 ) {
+           fprintf(stderr,
                 "\n** Error: Failed parsing data row 0 of 1D file '%.44s'\n"
                 "          Check for illegal non-numeric characters in:\n"
                 "          '%s'\n", fname,buf);
+         if (nfail == 1) 
+            fprintf(stderr,
+    "          You can have text entries set to 0 with -ok_1D_text or by \n"
+    "          setting environment variable AFNI_1D_ZERO_TEXT to YES.\n"); 
+        }
      }
      if( dvec != NULL ) KILL_doublevec(dvec) ;
      FRB(buf); fclose(fts); RETURN(NULL);
@@ -2491,11 +2507,16 @@ ENTRY("mri_read_double_ascii") ;
       if (strlen(buf) > 64) { 
          buf[64]='\0'; buf[63]='.'; buf[62]='.'; buf[61]='.'; buf[60]=' ';
       }
-      if( ++nfail < 9 )
-      fprintf(stderr,
+      if( ++nfail < 9 ) {
+         fprintf(stderr,
                 "\n** Error: Failed parsing data row %d of 1D file '%.44s'\n"
                 "          Check for illegal non-numeric characters in:\n"
                 "          '%s'\n", nrow, fname , buf);
+         if (nfail == 1) 
+            fprintf(stderr,
+    "          You can have text entries set to 0 with -ok_1D_text or by \n"
+    "          setting environment variable AFNI_1D_ZERO_TEXT to YES.\n"); 
+      }
       if (dtsar) free(dtsar); dtsar = NULL;
       FRB(buf);
       RETURN(NULL); 
@@ -2567,11 +2588,16 @@ ENTRY("mri_read_complex_ascii") ;
      }
      if (linebufdied) {/* death?  ZSS: Oct 19 2009*/
         static int nfail=0 ;
-        if( ++nfail < 9 )
-        fprintf(stderr,
+        if( ++nfail < 9 ) {
+         fprintf(stderr,
                 "\n** Error: Failed parsing data row 0 of 1D file '%.44s'\n"
                 "          Check for illegal non-numeric characters in:\n"
                 "          '%s'\n", fname,buf);
+         if (nfail == 1) 
+            fprintf(stderr,
+    "          You can have text entries set to 0 with -ok_1D_text or by \n"
+    "          setting environment variable AFNI_1D_ZERO_TEXT to YES.\n");
+        }
      }
      if( vec != NULL ) KILL_floatvec(vec) ;
      FRB(buf); fclose(fts); RETURN(NULL);
@@ -2630,11 +2656,17 @@ ENTRY("mri_read_complex_ascii") ;
       if (strlen(buf) > 64) { 
          buf[64]='\0'; buf[63]='.'; buf[62]='.'; buf[61]='.'; buf[60]=' ';
       }
-      if( ++nfail < 9 )
-      fprintf(stderr,
+      if( ++nfail < 9 ) {
+         fprintf(stderr,
                 "\n** Error: Failed parsing data row %d of 1D file '%.44s'\n"
                 "          Check for illegal non-numeric characters in:\n"
                 "          '%s'\n", nrow, fname,buf);
+         if (nfail == 1) 
+            fprintf(stderr,
+       "          You can have text entries set to 0 with -ok_1D_text or by \n"
+       "          setting environment variable AFNI_1D_ZERO_TEXT to YES.\n");
+      }
+      
       if (tsar) free(tsar); tsar = NULL;
       FRB(buf);
       RETURN(NULL); 

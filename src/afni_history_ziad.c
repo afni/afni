@@ -66,6 +66,56 @@
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 19 , MAR , 2010 , ZSS , "SurfDist" , MINOR , TYPE_NEW_OPT,
+   "Added option to calculate Euclidian distance",
+   NULL
+ } ,
+
+ { 18 , MAR , 2010 , ZSS , "RetroTS" , MINOR , TYPE_BUG_FIX ,
+   "Fixed crash in function remove_PNduplicates",
+   NULL
+ } ,
+
+ { 16 , MAR , 2010 , ZSS , "3dcalc" , MINOR , TYPE_NEW_OPT ,
+   "-within option to test Min <= X <= Max",
+   NULL
+ } ,
+
+ { 9 , MAR , 2010 , ZSS , "3dROIstats" , MINOR , TYPE_NEW_OPT ,
+   "-nomeanout to get rid of mean in output",
+   NULL
+ } ,
+
+ { 9 , MAR , 2010 , ZSS , "3dclust" , MINOR , TYPE_BUG_FIX ,
+   "-isomerge and -isovalue options were being ignored",
+   NULL
+ } ,
+
+ { 8 , MAR , 2010 , ZSS , "3dTcat" , MINOR , TYPE_BUG_FIX ,
+   "Program was not working with string label sub-brick selection",
+   NULL
+ } ,
+
+ { 5 , MAR , 2010 , ZSS , "3dLocalstat" , MINOR , TYPE_NEW_OPT ,
+   "Added -stat P2skew to calculate Pearson's second skewness coefficient",
+   NULL
+ } ,
+
+ { 3 , MAR , 2010 , ZSS , "3dAutomask" , MINOR , TYPE_NEW_OPT ,
+   "-depth option to determine how deep voxel is in mask",
+   NULL
+ } ,
+
+ { 3 , MAR , 2010 , ZSS , "3dmerge" , MINOR , TYPE_NEW_OPT ,
+   "-isomerge and -isovalue options that mimick 3dclust's options",
+   NULL
+ } ,
+
+ { 3 , MAR , 2010 , ZSS , "3dmerge" , MINOR , TYPE_NEW_OPT ,
+   "-1clust_depth option to determine how deep voxel is in cluster",
+   NULL
+ } ,
+
  { 1 , MAR , 2010 , ZSS , "@SUMA_Make_Spec_FS" , MINOR , TYPE_MODIFY ,
    "Script now deals with 2009, and 2005 parcellations.",
    NULL

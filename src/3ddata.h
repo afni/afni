@@ -3033,7 +3033,8 @@ extern int    THD_deconflict_prefix( THD_3dim_dataset * ) ;          /* 23 Mar 2
 /** 30 Nov 1997 **/
 
 static char tmp_dblab[8] ;
-#define DBLK_BRICK_LAB(db,iv) ( ((db)->brick_lab != NULL) ? ((db)->brick_lab[iv]) : "?" )
+#define NO_LAB_FLAG "?"          
+#define DBLK_BRICK_LAB(db,iv) ( ((db)->brick_lab != NULL) ? ((db)->brick_lab[iv]) : NO_LAB_FLAG )
 
 /*! Return the label string for sub-brick iv of dataset ds.
 
@@ -3044,6 +3045,9 @@ static char tmp_dblab[8] ;
 /*! Synonym for DSET_BRICK_LAB */
 
 #define DSET_BRICK_LABEL      DSET_BRICK_LAB
+
+/*! Check if sub-brick has label March 2010 ZSS */
+#define DSET_HAS_LABEL(ds,iv) ( strcmp (DSET_BRICK_LABEL(ds,iv), NO_LAB_FLAG) ) 
 
 #define DBLK_BRICK_STATCODE(db,iv)  \
  ( ((db)->brick_statcode != NULL) ? (db)->brick_statcode[iv] : ILLEGAL_TYPE )
@@ -4389,6 +4393,9 @@ extern void THD_mask_erodemany( int nx, int ny, int nz, byte *mmm, int npeel ) ;
 extern int THD_peel_mask( int nx, int ny, int nz , byte *mmm, int pdepth ) ;
 
 extern void THD_mask_dilate( int, int, int, byte *, int ) ;  /* 30 Aug 2002 */
+extern short *THD_mask_depth (int nx, int ny, int nz, byte *mask, 
+                              byte preservemask, 
+                              short *usethisdepth);    /* ZSS March 02 2010 */ 
 
 extern float THD_cliplevel( MRI_IMAGE * , float ) ;          /* 12 Aug 2001 */
 extern float THD_cliplevel_abs( MRI_IMAGE * , float ) ;      /* 05 Mar 2007 */

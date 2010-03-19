@@ -576,9 +576,8 @@ int main( int argc , char * argv[] )
             EDIT_substitute_brick( new_dset , ivout ,
                                    DSET_BRICK_TYPE(dset,jv) , DSET_ARRAY(dset,jv) ) ;
 
-            /*----- If this sub-brick is from a bucket dataset,
-                    preserve the label for this sub-brick -----*/
-            if (dset->func_type == FUNC_BUCK_TYPE)
+            /*----- preserve label when one exists --- Modified March 2010 ZSS*/
+            if (DSET_HAS_LABEL(dset, jv) ) 
               sprintf (buf, "%s", DSET_BRICK_LABEL(dset,jv));
             else
               sprintf(buf,"%.12s[%d]",DSET_PREFIX(dset),jv) ;
