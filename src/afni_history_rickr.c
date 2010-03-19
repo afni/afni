@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 19, MAR, 2010, RCR, "3dfractionize", MICRO, TYPE_MODIFY,
+   "added 3dAllineate example of inverse tlrc warp",
+   NULL
+ } ,
+
  { 18, MAR, 2010, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
    "handle args with '\\n' in them (probably from quoted newlines)",
    NULL
