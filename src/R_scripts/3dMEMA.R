@@ -1859,11 +1859,14 @@ rmaB2 <- function(yi, vi, n1, nT, p, X, resOut, lapMod,
    } # if(lapMod==0)
    
    if(knha) { # scaling done in runRMA
+      #browser()
       if (is.nan(pp1 <- sqrt((c( t(Y1) %*% P1 %*% Y1 ) / (n1-p+1)))) | 
-                 pp2 <- sqrt((c( t(Y2) %*% P2 %*% Y2 ) / (n2-p+1)))) scl <- NA else {
+          is.nan(pp2 <- sqrt((c( t(Y2) %*% P2 %*% Y2 ) / (n2-p+1)))) ) scl <- NA else {
       #pp1 <- sqrt((c( t(Y1) %*% P1 %*% Y1 ) / (n1-p+1)))
       #scl <- c(pp1,
       #   sqrt((c( t(Y2) %*% P2 %*% Y2 ) / (n2-p+1))))
+      #if(!exists(as.character(substitute(pp1)))) browser()
+      
       scl <- c(pp1, pp2)
       W <- diag(c(1/(v1 + tau2[1]), 1/(v2 + tau2[2])))
       tmp <- t(X) %*% W
@@ -1908,7 +1911,6 @@ readMultiFiles <- function(nFiles, dim, type) {
 	return(inData)
 }
 
-# for one group of subjects only
 runRMA <- function(  inData, nGrp, n, p, xMat, outData, 
                      mema, lapMod, KHtest, nNonzero, 
                      nCov, nBrick, anaType, resZout, tol) {  
@@ -1936,6 +1938,8 @@ runRMA <- function(  inData, nGrp, n, p, xMat, outData,
          outData[2*ii+2] <- resList$z[ii+1]   
       } # for(ii in 1:nCov)
    } # if (nGrp==1)
+   
+   #browser()
    if(anaType==2) {
       outData[1] <- resList$b[1]  # beta of group1, intercept
       outData[2] <- resList$z[1]  # z score of group1
@@ -1959,11 +1963,16 @@ runRMA <- function(  inData, nGrp, n, p, xMat, outData,
       outData[5] <- resList$b[2]-resList$b[1]  # beta of group2-group1
       tmp <- sqrt(resList$se[1]^2+resList$se[2]^2)
       outData[6] <- ifelse(tmp>tol, outData[5]/tmp, 0) #z score of group2-group1
-      if(KHtest) {
-         outData[2] <- outData[2]/resList$scl[1]
-         outData[4] <- outData[4]/resList$scl[2]
-         outData[6] <- outData[6]/resList$scl[3]
-      }
+      #browser()
+      #if(KHtest) {
+      #   outData[2] <- outData[2]/resList$scl[1]
+      #   outData[4] <- outData[4]/resList$scl[2]
+      #   outData[6] <- outData[6]/resList$scl[3]
+      #}
+      
+      # more concise than above
+      #if(KHtest)  outData[c(2,4,6)] <- outData[c(2,4,6)]/resList$scl[c(1,2,3)]
+      if(KHtest)  outData[c(2,4,6)] <- outData[c(2,4,6)]/resList$scl
    
       if(resZout==0) {
          outData[nBrick-5] <- resList$tau2[1]
