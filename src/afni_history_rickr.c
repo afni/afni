@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 19, MAR, 2010, RCR, "afni_util.py", MICRO, TYPE_MODIFY,
+   "round to 3 bits below 4 (above, truncate to int)",
+   NULL
+ } ,
+
  { 19, MAR, 2010, RCR, "3dfractionize", MICRO, TYPE_MODIFY,
    "added 3dAllineate example of inverse tlrc warp",
    NULL
