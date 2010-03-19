@@ -49,6 +49,11 @@
 afni_history_struct rickr_history[] = {
 
  { 18, MAR, 2010, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
+   "handle args with '\\n' in them (probably from quoted newlines)",
+   NULL
+ } ,
+
+ { 18, MAR, 2010, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
    "small updates to help for alignment options",
    NULL
  } ,
