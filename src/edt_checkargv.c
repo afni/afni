@@ -248,6 +248,34 @@ ENTRY("EDIT_check_argv") ;
       CHECK_DONE ;
    }
 
+   /**** -1clust_depth rmm vmul ****/   /* 09 June 1998 */
+
+   if( strncmp(argv[nopt],"-1clust_depth",12) == 0 ){
+      nopt++ ;
+      if( nopt+1 >= argc ){
+         fprintf(stderr,"need 2 arguments after -1clust_depth!\n") ; EXIT(1) ;
+      }
+      edopt->edit_clust = ECFLAG_DEPTH;
+      edopt->clust_rmm  = strtod( argv[nopt++] , NULL ) ;
+      edopt->clust_vmul = strtod( argv[nopt++] , NULL ) ;
+      if( edopt->clust_rmm < 0 ){
+         fprintf(stderr,"illegal value after -1clust_depth\n") ; EXIT(1) ;
+      }
+      CHECK_DONE ;
+   }
+
+   /**** 03 March 2010 ZSS: -isovalue and -isomerge ****/
+
+   if( strcmp(argv[nopt],"-isovalue") == 0 ){
+      edopt->isomode = ISOVALUE_MODE ;
+      nopt++ ;  CHECK_DONE;
+   }
+
+   if( strcmp(argv[nopt],"-isomerge") == 0 ){
+      edopt->isomode = ISOMERGE_MODE ;
+      nopt++ ; CHECK_DONE ;
+   }
+
    /**** -1erode pv ****/   /* 17 June 1998 */
 
    if( strncmp(argv[nopt],"-1erode",7) == 0 ){

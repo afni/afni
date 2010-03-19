@@ -20,6 +20,7 @@
    Date   :  10 September 1996
 
    Modified 09 June 1998 by RWCox to add ECFLAG_ORDER option.
+   and on 02 March 2010  by ZSS to add ECFLAG_DEPTH option.
 -----------------------------------------------------------------------------*/
 
 void EDIT_cluster_array (MCW_cluster_array * clar, int edit_clust,
@@ -39,7 +40,7 @@ void EDIT_cluster_array (MCW_cluster_array * clar, int edit_clust,
 
 ENTRY("EDIT_cluster_array") ;
 
-   if( edit_clust == ECFLAG_ORDER ){
+   if( edit_clust == ECFLAG_ORDER){
       SORT_CLARR(clar) ;
    }
 
@@ -69,6 +70,7 @@ ENTRY("EDIT_cluster_array") ;
                case ECFLAG_SMAX :
                   if (fabs(mag) > fabs(smax))  smax = mag;  break;
                case ECFLAG_SIZE : break;
+               case ECFLAG_DEPTH : break; /* handled outside of this function*/
                default          : break;
             }
 
@@ -91,9 +93,11 @@ ENTRY("EDIT_cluster_array") ;
                case ECFLAG_SMAX :  clar->clar[iclu]->mag[ii] = smax;  break;
                case ECFLAG_SIZE :  clar->clar[iclu]->mag[ii] = size;  break;
                case ECFLAG_ORDER:  clar->clar[iclu]->mag[ii] = nclu;  break;
+               case ECFLAG_DEPTH:  break; /* Done outside, ZSS March 02 2010 */
                default          :                                     break;
             }
          }
+         
       }
    }  /* iclu */
 

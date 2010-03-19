@@ -30,6 +30,11 @@ PARSE:
          set scale = 'median'
          set donext = 0     
       endif
+      if ($donext && "$argv[$cnt]" == "-norm") then
+         set pLoc = $cnt 
+         set scale = 'norm'
+         set donext = 0     
+      endif
       
       if ($donext && "$argv[$cnt]" == "-perc_clip") then
          set pLoc = $cnt      
@@ -117,8 +122,13 @@ endif
 
 if ($scale == 'range') then
    goto DOIT
-else
+else if ($scale == 'scale') then
    goto DOIT_DIV
+else if ($scale == 'norm') then
+   goto DOIT_NORM
+else
+   echo "Don't know how to scale by $scale"
+   goto END
 endif
 
 DOIT:
@@ -157,6 +167,17 @@ DOIT:
 
    goto END
 
+DOIT_NORM:
+   set nvals = `3dnvals -all $invol`
+   set vvv = `@parse_afni_name $invol`
+   set vvv = $vvv[3]
+   3dTstat -mean -stdev -prefix ___ts $invol
+   3dcalc -a $invol -b ___ts$vvv"[0]" -c ___ts$vvv"[1]" \
+            -expr '(a-b)/c' -prefix $opref
+   rm -f ___ts$vvv.*
+   
+   goto END
+   
 DOIT_DIV:
    set nvals = `3dnvals -all $invol`
    set cnt = 0
@@ -186,9 +207,10 @@ HELP:
    echo ""
    echo "Usage: `basename $0` <-input DSET> <-prefix PREFIX>"
    echo "                     [-perc_clip P0 P1] [-val_clip V0 V1]"
-   echo "                     [-scale_by_mean] [-scale_by_median]"    
+   echo "                     [-scale_by_mean] [-scale_by_median]"
+   echo "                     [-norm] "    
    echo "Method 1: (default)"
-   echo "Scale a vloume so that its values range between V0 and V1"
+   echo "Scale a volume so that its values range between V0 and V1"
    echo "-val_clip V0 V1: Min and Max of output dset"
    echo "                 Default V0 = $min and V1 = $max"
    echo "-perc_clip P0 P1: Set lowest P0 percentile to Min "
@@ -200,6 +222,9 @@ HELP:
    echo "Method 2:"
    echo "-scale_by_mean: Divide each sub-brick by mean of non-zero voxels"
    echo "-scale_by_median: Divide each sub-brick by median of non-zero voxels"
+   echo ""
+   echo "Method 3:"
+   echo "-norm: For each time series T, Tnorm= (T-mean(T))/stdev(T)"
    echo ""
    goto END
          

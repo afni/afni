@@ -98,6 +98,7 @@ static int   MRG_ivthr = -1 ;
 static int   MRG_nscale = 0 ; /* 15 Sep 2000 */
 
 static int   MRG_rank   = 0 ; /* 13 Nov 2007: ZSS */
+
 /*--------------------------- prototypes ---------------------------*/
 int MRG_read_opts( int , char ** ) ;
 void MRG_Syntax(void) ;
@@ -1189,7 +1190,6 @@ int main( int argc , char * argv[] )
       if ((!MRG_be_quiet) && MRG_doall) printf ("Editing sub-brick %d\n", iv);
 
       MRG_edopt.iv_fim = iv;
-
       EDIT_one_dataset( dset , &MRG_edopt ) ;  /* all the real work */
 
       if( !MRG_be_quiet && !MRG_doall ){ printf(".") ; fflush(stdout) ; }
@@ -1793,7 +1793,8 @@ int main( int argc , char * argv[] )
    if( (rmm >= dx || rmm >= dy || rmm >= dz) && ptmin > 1 ){
       if( ! MRG_be_quiet ) printf("-- editing merger for cluster size\n") ;
 
-      clar  = MCW_find_clusters( nx,ny,nz , dx,dy,dz , MRI_float,gfim , rmm ) ;
+      
+      clar  = MCW_find_clusters( nx,ny,nz , dx,dy,dz , MRI_float,gfim , rmm) ;   
       nclu  = 0 ;
       if( clar != NULL ){
          for( iclu=0 ; iclu < clar->num_clu ; iclu++ ){

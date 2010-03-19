@@ -714,6 +714,7 @@ extern MRI_IMAGE ** mri_stat_seq( MRI_IMAGE * ) ;
 #define NSTAT_PERCENTILE  19
 #define NSTAT_RANK        21      /* ZSS Jan 10 */
 #define NSTAT_FRANK       22      /* ZSS Jan 10 */
+#define NSTAT_P2SKEW      23      /* ZSS March 04 10*/
 
 #define NSTAT_FWHMx      63   /*these should be after all other NSTAT_* values */
 #define NSTAT_FWHMy      64

@@ -820,7 +820,7 @@ C
      X       LAND,LOR,LMOFN,MEDIAN , ZTONE , HMODE,LMODE,
      X       GRAN,URAN,IRAN,ERAN,LRAN , ORSTAT , TENT, MAD ,
      X       MEAN , STDEV , SEM , POSVAL , ZZMOD
-      REAL*8 ARGMAX,ARGNUM , PAIRMX,PAIRMN , AMONGF
+      REAL*8 ARGMAX,ARGNUM , PAIRMX,PAIRMN , AMONGF, WITHINF
 C
 C  External library functions
 C
@@ -1199,6 +1199,10 @@ C.......................................................................
             NTM   = R8_EVAL(NEVAL)
             NEVAL = NEVAL - NTM
             R8_EVAL(NEVAL) = AMONGF( NTM , R8_EVAL(NEVAL) )
+         ELSEIF( CNCODE .EQ. 'WITHIN' )THEN
+            NTM   = R8_EVAL(NEVAL)
+            NEVAL = NEVAL - NTM
+            R8_EVAL(NEVAL) = WITHINF( NTM , R8_EVAL(NEVAL) )
 C.......................................................................
          ELSEIF( CNCODE .EQ. 'FICO_T2P' )THEN
             NEVAL = NEVAL - 3
@@ -1354,7 +1358,7 @@ C
      X       LOR, LMOFN , MEDIAN , ZTONE , HMODE , LMODE ,
      X       GRAN,URAN,IRAN,ERAN,LRAN , ORSTAT , TENT, MAD ,
      X       MEAN , STDEV , SEM , POSVAL , ZZMOD
-      REAL*8 ARGMAX,ARGNUM , PAIRMX,PAIRMN, AMONGF
+      REAL*8 ARGMAX,ARGNUM , PAIRMX,PAIRMN, AMONGF, WITHINF
 C
 C  External library functions
 C
@@ -2141,6 +2145,15 @@ C.......................................................................
                ENDDO
                R8_EVAL(IV-IBV,NEVAL) = AMONGF( NTM, SCOP )
             ENDDO
+         ELSEIF( CNCODE .EQ. 'WITHIN'  )THEN
+            NTM   = R8_EVAL(1, NEVAL)
+            NEVAL = NEVAL - NTM
+            DO IV=IVBOT,IVTOP
+               DO JTM=1,NTM
+                  SCOP(JTM) = R8_EVAL(IV-IBV,NEVAL+JTM-1)
+               ENDDO
+               R8_EVAL(IV-IBV,NEVAL) = WITHINF( NTM, SCOP )
+            ENDDO
 C.......................................................................
          ELSEIF( CNCODE .EQ. 'FICO_T2P' )THEN
             NEVAL = NEVAL - 3
@@ -2766,6 +2779,28 @@ C
         ENDIF
       ENDDO
       AMONGF = 0.0D+00
+      RETURN
+      END
+C
+C
+C
+      FUNCTION WITHINF(N,X)
+      REAL*8 WITHINF , X(N)
+      INTEGER N,I
+C
+      IF( N .LT. 1 )THEN
+        WITHINF = 0.0D+00
+        RETURN
+      ENDIF
+      IF( X(1) .LT. X(2) )THEN
+         WITHINF = 0.0D+00
+        RETURN
+      ENDIF
+      IF( X(1) .GT. X(3) )THEN
+         WITHINF = 0.0D+00
+        RETURN
+      ENDIF    
+      WITHINF = 1.0D+00
       RETURN
       END
 C

@@ -329,7 +329,8 @@ void qmedmad_float_3dSeg( int n, float *ar, float *med, float *mad )
 int mri_nstat_3dSeg( MRI_IMAGE *im, int *code_vec, int N_code, float *val_vec )
 {
    MRI_IMAGE *fim ;
-   float     *far , outval=0.0f, med = 0.0f, mad = 0.0f ;
+   float     *far , outval=0.0f, med = 0.0f, mad = 0.0f
+   float     var = -1.0f , cvar = -1.0f, sig = -1.0f, mean = -1.0f;
    int npt, code , medmaded = 0;
    int ic = 0;
    
@@ -363,12 +364,12 @@ int mri_nstat_3dSeg( MRI_IMAGE *im, int *code_vec, int N_code, float *val_vec )
           register float mm,vv ; register int ii ;
           if( npt == 1 ) break ;                     /* will return 0.0 */
           for( mm=0.0,ii=0 ; ii < npt ; ii++ ) mm += far[ii] ;
-          mm /= npt ;
+          mm /= npt ; mean = mm; 
           for( vv=0.0,ii=0 ; ii < npt ; ii++ ) vv += (far[ii]-mm)*(far[ii]-mm) ;
           vv /= (npt-1) ;
-               if( code == NSTAT_SIGMA ) outval = sqrt(vv) ;
-          else if( code == NSTAT_VAR   ) outval = vv ;
-          else if( mm   !=  0.0f       ) outval = sqrt(vv) / fabsf(mm) ;
+               if( code == NSTAT_SIGMA ) sig = outval = sqrt(vv) ;
+          else if( code == NSTAT_VAR   ) var = outval = vv ;
+          else if( mm   !=  0.0f       ) cvar = outval = sqrt(vv) / fabsf(mm) ;
         }
         break ;
 
@@ -386,6 +387,26 @@ int mri_nstat_3dSeg( MRI_IMAGE *im, int *code_vec, int N_code, float *val_vec )
             medmaded = 1;
           }
           outval = mad;
+        break ;
+
+        case NSTAT_P2SKEW:
+            /* Pearson's second skewness coefficient */
+          if (!medmaded) {
+            qmedmad_float_3dSeg( npt , far , &med , &mad ) ;
+            medmaded = 1;
+          }
+          if (sig < 0 ) {
+            register float mm,vv ; register int ii ;
+             if( npt == 1 ) break ;                     /* will return 0.0 */
+             for( mm=0.0,ii=0 ; ii < npt ; ii++ ) mm += far[ii] ;
+             mm /= npt ; mean = mm; 
+             for( vv=0.0,ii=0 ; ii < npt ; ii++ ) 
+                                    vv += (far[ii]-mm)*(far[ii]-mm) ;
+             vv /= (npt-1) ;
+             sig = sqrt(vv) ; 
+          }
+          if (sig) outval = 3.0 * (mean - med) / sig;
+          else outval = 0.0;
         break ;
 
         case NSTAT_MAX:{

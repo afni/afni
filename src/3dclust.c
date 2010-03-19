@@ -81,10 +81,9 @@ static int CL_quiet = 0;   /* MSB 02 Dec 1999 */
 static char * CL_prefix = NULL ; /* 29 Nov 2001 -- RWCox */
 
 static int    CL_do_mni = 0 ;    /* 30 Apr 2002 -- RWCox */
-static int    CL_isomode = 0 ;   /* 30 Apr 2002 -- RWCox */
 
 static int    CL_1Dform = 1 ;    /* 02 Mar 2006 -- Zaid (it's hopeless) 
-                                    Changed to '1' 23 Mar 2007 -- Said (still hopeless)*/
+                       Changed to '1' 23 Mar 2007 -- Said (still hopeless)*/
 
 /**-- RWCox: July 1997
       Report directions based on AFNI_ORIENT environment --**/
@@ -505,9 +504,9 @@ int main( int argc , char * argv[] )
       } /* end of report header */
 
       /*-- actually find the clusters in the dataset */
-
       clar = NIH_find_clusters( nx,ny,nz , dxf,dyf,dzf ,
-                                DSET_BRICK_TYPE(dset,ivfim) , vfim , rmm , CL_isomode ) ;
+                                DSET_BRICK_TYPE(dset,ivfim) , vfim , rmm , 
+                                CL_edopt.isomode ) ;
 
       /*-- don't need dataset data any more --*/
 
@@ -819,8 +818,9 @@ void CL_read_opts( int argc , char * argv[] )
          continue ;
       }
 
+      #if 0 /* These two are now captured in EDIT_check_argv, 
+               remove this block next time you see it.      ZSS March 2010 */
       /**** 30 Apr 2002: -isovalue and -isomerge ****/
-
       if( strcmp(argv[nopt],"-isovalue") == 0 ){
          CL_isomode = ISOVALUE_MODE ;
          nopt++ ; continue ;
@@ -830,7 +830,8 @@ void CL_read_opts( int argc , char * argv[] )
          CL_isomode = ISOMERGE_MODE ;
          nopt++ ; continue ;
       }
-
+      #endif
+      
       /**** 30 Apr 2002: -mni ****/
 
       if( strcmp(argv[nopt],"-mni") == 0 ){

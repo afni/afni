@@ -514,6 +514,9 @@ char * EDIT_opts
 		      if (strcmp(str,"Order") == 0)
 			edopt->edit_clust = ECFLAG_ORDER;
 		      else
+		         if (strcmp(str,"Depth") == 0)
+			   edopt->edit_clust = ECFLAG_DEPTH;
+               else
 			return 
 			  "*********************************\n"
 			  "EDIT_opts: Illegal Cluster option\n"

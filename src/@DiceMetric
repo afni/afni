@@ -1,4 +1,6 @@
-#!/bin/tcsh -f
+#!/bin/tcsh -fe
+
+set stat = 0
 
 if ("$1" == '' || "$1" == '-h' || "$1" == '-help' || "$2" == '') then
 	goto USAGE
@@ -44,17 +46,19 @@ foreach dset ($dsets)
    while ($cl <= $N_cl)
       set in = `ccalc -i "2*$icl"`
       set cl_num = `1dcat ___aib.1D"[$in]" | uniq`
-      if ($#cl_num != 1 && $#cl_num != 0) then
-         echo "Bad table $cl_num"
-         goto END
+      if ("$#cl_num" != 1 && "$#cl_num" != 0) then
+         echo "#Bad table $cl_num, filling with 0s"
+         set clar = ($clar $cl)
+         set dcar = ($dcar 0)
+      else      
+         if ("$cl_num" != 0) then
+            set in = `ccalc -i "2*$icl+1"`
+            set nums = `1dcat ___aib.1D"[$in]"`
+            set dice = `ccalc "2*$nums[1]/($nums[2]+$nums[3])"`
+            set clar = ($clar $cl_num)
+            set dcar = ($dcar $dice)
+         endif 
       endif
-      if ($cl_num != 0) then
-         set in = `ccalc -i "2*$icl+1"`
-         set nums = `1dcat ___aib.1D"[$in]"`
-         set dice = `ccalc "2*$nums[1]/($nums[2]+$nums[3])"`
-         set clar = ($clar $cl_num)
-         set dcar = ($dcar $dice)
-      endif 
       @ cl ++
       @ icl ++
    end
@@ -169,7 +173,11 @@ PARSE_COMMAND:
          set cleanup = 0;		
          set donext = 0		
       endif
-      
+       if ($donext && "$argv[$cnt]" == "-echo") then
+         set echo		
+         set donext = 0		
+      endif
+     
       #ADD NO NEW OPTIONS BELOW THIS LINE
       
       if ($donext == 1 && $cnt == 1) then
@@ -217,13 +225,17 @@ echo "   [-max_N_roi MAX_ROI]: The maximum possible roi index. Default is 12" ec
 echo "                     Default is separate results for each dset to stdout"
 echo "   [-keep_tmp]: Keep temporary files for debugging. Note that you should"
 echo "                delete temporary files before rerunning the script."
-echo ""         
+echo "   [-echo]    : set echo "         
 echo ""
 echo "Ziad Saad (saadz@mail.nih.gov)"
 echo "SSCC/NIMH/ National Institutes of Health, Bethesda Maryland"
 echo ""
 	goto END
 
+BEND:
+   set stat = 1
+   goto END
+   
 END:
 if ($cleanup) then
    rm -f ___dice_*.1D ___aib.1D ___aib+????.*

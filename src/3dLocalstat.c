@@ -142,14 +142,16 @@ int main( int argc , char *argv[] )
       "                          Places where an output is -1 are locations\n"
       "                          where the FWHM value could not be computed\n"
       "                          (e.g., outside the mask).\n"
-      "               * rank   = rank of the voxel's instensity\n"
-      "               * frank  = rank / numer of voxels in neighborhood\n"
       "               * FWHMbar= Compute just the average of the 3 FWHM values\n"
       "                          (normally would NOT do this with FWHM also).\n"
       "               * perc:P0:P1:Pstep = \n"
       "                          Compute percentiles between P0 and P1 with a \n"
       "                          step of Pstep.\n"
       "                          Default P1 is equal to P0 and default P2 = 1\n"
+      "               * rank   = rank of the voxel's instensity\n"
+      "               * frank  = rank / numer of voxels in neighborhood\n"
+      "               * P2skew = Pearson's second skewness coefficient\n"
+      "                           3 * (mean - median) / stdev \n"
       "               * ALL    = all of the above, in that order \n"
       "                         (except for FWHMbar and perc).\n"
       "               More than one '-stat' option can be used.\n"
@@ -285,6 +287,7 @@ int main( int argc , char *argv[] )
        else if( strcasecmp(cpt,"cvar")  == 0 ) code[ncode++] = NSTAT_CVAR  ;
        else if( strcasecmp(cpt,"median")== 0 ) code[ncode++] = NSTAT_MEDIAN;
        else if( strcasecmp(cpt,"MAD")   == 0 ) code[ncode++] = NSTAT_MAD   ;
+       else if( strcasecmp(cpt,"P2skew")== 0 ) code[ncode++] = NSTAT_P2SKEW;
        else if( strcasecmp(cpt,"min")   == 0 ) code[ncode++] = NSTAT_MIN   ;
        else if( strcasecmp(cpt,"max")   == 0 ) code[ncode++] = NSTAT_MAX   ;
        else if( strcasecmp(cpt,"absmax")== 0 ) code[ncode++] = NSTAT_ABSMAX;
@@ -337,6 +340,7 @@ int main( int argc , char *argv[] )
          code[ncode++] = NSTAT_FWHMx ; code[ncode++] = NSTAT_FWHMy ;
          code[ncode++] = NSTAT_FWHMz ; do_fwhm++ ;
          code[ncode++] = NSTAT_RANK  ; code[ncode++] = NSTAT_FRANK ; 
+         code[ncode++] = NSTAT_P2SKEW; 
        }
        else
          ERROR_exit("-stat '%s' is an unknown statistic type",argv[iarg]) ;
@@ -491,6 +495,7 @@ int main( int argc , char *argv[] )
      lcode[NSTAT_FWHMy]  = "FWHMy"; lcode[NSTAT_SUM]    = "SUM"    ;
      lcode[NSTAT_FWHMz]  = "FWHMz";
      lcode[NSTAT_RANK]   = "RANK" ; lcode[NSTAT_FRANK]  = "FRANK";
+     lcode[NSTAT_P2SKEW] = "P2skew"; 
      
      if( DSET_NVALS(inset) == 1 ){
        ii=0;

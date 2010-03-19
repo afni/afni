@@ -56,7 +56,7 @@ void EDIT_one_dataset( THD_3dim_dataset *dset , EDIT_options *edopt )
    byte    *bfim = NULL , *bthr = NULL ;
    void    *vfim = NULL , *vthr = NULL ;
    int nx,ny,nz,nxy,nxyz , jj,kk , ptmin , iclu,nclu , fim_max ;
-   int iv_fim , iv_thr , fim_type , thr_type ;
+   int iv_fim , iv_thr , fim_type , thr_type, icl, ijk ;
    register int ii ;
    float dx,dy,dz , dxyz , rmm,vmul , val , vvv ;
    MCW_cluster_array *clar ;
@@ -365,7 +365,9 @@ STATUS("abs applied to meaningless type: will be ignored") ;
 
    if( edit_clip_bot < edit_clip_top ){
 
-      if( verbose ) fprintf(stderr,"--- EDIT_one_dataset: clip fim values\n") ;
+      if( verbose ) 
+         fprintf(stderr,"--- EDIT_one_dataset: clip fim values %f %f\n",
+                 edit_clip_bot, edit_clip_top) ;
 
       switch( fim_type ){
          case MRI_short:{
@@ -688,7 +690,10 @@ STATUS("clustering") ;
 
       vmul = MAX(1,ptmin) * dxyz ;  /* for use below */
 
-      clar  = MCW_find_clusters( nx,ny,nz , dx,dy,dz , fim_type,vfim , rmm ) ;
+      /* ZSS March 03 2010, changed from MCW_find_clusters 
+       to NIH_find_clusters to accommodate isomode */
+      clar  = NIH_find_clusters( nx,ny,nz , dx,dy,dz , 
+                                 fim_type,vfim , rmm, edopt->isomode) ;
       nclu  = 0 ;
 
       if( clar != NULL ){
@@ -725,14 +730,122 @@ STATUS("no data left after cluster edit!") ;
       /*----- edit clusters? -----*/   /* 10 Sept 1996 */
       if (edit_clust > ECFLAG_SAME)
          EDIT_cluster_array (clar, edit_clust, dxyz, vmul);
-      if (edit_clust == ECFLAG_SIZE || edit_clust == ECFLAG_ORDER)
+      if (edit_clust == ECFLAG_SIZE || 
+          edit_clust == ECFLAG_ORDER ||
+          edit_clust == ECFLAG_DEPTH )
          DSET_BRICK_FACTOR(dset,iv_fim) = 0.0;
 
       for( iclu=0 ; iclu < clar->num_clu ; iclu++ )
          if( clar->clar[iclu] != NULL && clar->clar[iclu]->num_pt > 0 ){
-            MCW_cluster_to_vol( nx,ny,nz , fim_type,vfim , clar->clar[iclu] ) ;
+            MCW_cluster_to_vol( nx,ny,nz , fim_type, vfim , clar->clar[iclu] ) ;
          } else {
          }
+      
+      /* now deal with ECFLAG_DEPTH */
+      
+      if (edit_clust == ECFLAG_DEPTH) {
+         int iwarn=0; 
+         byte *mask=NULL;
+         short *depth=NULL; 
+         for( iclu=0 ; iclu < clar->num_clu ; iclu++ ) {
+            if ( clar->clar[iclu] && clar->clar[iclu]->num_pt > 0 ){
+               /* allocate if 1st time */
+               if (!mask) mask = (byte *)calloc(nxyz, sizeof(byte));
+               if (!depth) depth = (short*)calloc(nxyz, sizeof(short));
+               if (!mask || !depth) {
+                  ERROR_message("NULL mask and/or depth");
+                  EXRETURN ;
+               }
+               /* start clean */
+               memset(mask, 0, sizeof(byte)*nxyz);
+               memset(depth, 0, sizeof(short)*nxyz);
+               /* fill mask */
+               #if 0
+               switch( fim_type ){
+                  case MRI_short:   /* fim datum is shorts */
+                     
+                     for( ii=0 ; ii < nxyz ; ii++ ) {
+                        if( sfim[ii] == (short)clar->clar[iclu]->mag[0] ) 
+                           mask[ii] = 1 ;  
+                     }
+                     break ;
+
+                 case MRI_byte:    /* fim datum is bytes */
+                    for( ii=0 ; ii < nxyz ; ii++ ) {
+                        if( bfim[ii] == (byte)clar->clar[iclu]->mag[0] ) 
+                           mask[ii] = 1 ;  
+                    } 
+                    break ;
+
+                 case MRI_float:   /* fim datum is floats */
+                    for( ii=0 ; ii < nxyz ; ii++ ) {
+                        if( ffim[ii] == (float)clar->clar[iclu]->mag[0] ) 
+                           mask[ii] = 1 ;  
+                    } 
+                    break ;
+
+                 case MRI_complex: /* fim datum is complex */
+                   for( ii=0 ; ii < nxyz ; ii++ ) {
+                        if( cfim[ii].r == (float)clar->clar[iclu]->mag[0] ) 
+                           mask[ii] = 1 ;  
+                   } 
+                   break ;
+                 
+                 default:
+                   ERROR_message("Bad type");
+                   break;
+               
+               }/* end of switch */
+               #endif
+               for( icl=0 ; icl < clar->clar[iclu]->num_pt ; icl++ ) {
+                  ijk = THREE_TO_IJK (clar->clar[iclu]->i[icl], 
+                                      clar->clar[iclu]->j[icl], 
+                                      clar->clar[iclu]->k[icl],
+                                       nx, nxy);
+                  mask[ijk] = 1 ;
+               }
+             if (!THD_mask_depth ( nx, ny, nz, mask, 1, depth)) {
+               ERROR_message("Failed in mask depth");
+               break;
+             }
+             /* Now put depth values back in fim */
+             switch( fim_type ){
+               case MRI_short:
+                  for( ii=0 ; ii < nxyz ; ii++ ) {
+                     if (mask[ii]) sfim[ii] = depth[ii];
+                  }
+                  break;
+               case MRI_byte:
+                  for( ii=0 ; ii < nxyz ; ii++ ) {
+                     if (mask[ii]) {
+                        if (depth[ii] > MRI_maxbyte) {
+                           if (!iwarn) {
+                              WARNING_message("Depth values exceed byte range,"
+                                              " clipping at %d\n", MRI_maxbyte);
+                              ++iwarn;
+                           }
+                           depth[ii] = MRI_maxbyte;
+                        }   
+                        bfim[ii] = (byte)depth[ii];
+                     }
+                  }
+                  break;
+               case MRI_float:
+                  for( ii=0 ; ii < nxyz ; ii++ ) {
+                     if (mask[ii]) ffim[ii] = (float)depth[ii];
+                  }
+                  break;
+               case MRI_complex:
+                  for( ii=0 ; ii < nxyz ; ii++ ) {
+                     if (mask[ii]) cfim[ii].r = cfim[ii].i =(float)depth[ii];
+                  }
+                  break;
+               } /* end of second switch */   
+            } /* end of is non empty cluster */
+        }/* end of loop over clusters */
+       if (mask) free(mask);  mask=NULL;
+       if (depth) free(depth); depth=NULL;
+     } /* end of ORDER trip */ 
 
       DESTROY_CLARR(clar) ;
    }
