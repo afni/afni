@@ -1722,6 +1722,11 @@ def db_mod_regress(block, proc, user_opts):
         if proc.verb > 0: print '-- will use -stim_files in 3dDeconvolve'
         block.opts.add_opt('-regress_no_stim_times',0,[],setpar=1)
 
+    # if the user wants to compute the fitts, just pass the option along
+    uopt = user_opts.find_opt('-regress_compute_fitts')
+    bopt = block.opts.find_opt('-regress_compute_fitts')
+    if uopt and not bopt: block.opts.add_opt('-regress_compute_fitts',0,[])
+
     # just pass along regress_3dD_stop
     uopt = user_opts.find_opt('-regress_3dD_stop')
     bopt = block.opts.find_opt('-regress_3dD_stop')
@@ -1925,10 +1930,15 @@ def db_cmd_regress(proc, block):
         cmd = cmd + '\\\n'
         regindex += proc.ricor_nreg
 
+    # -------------------- fitts and errts setup --------------------
+
     # see if the user wants the fit time series
     opt = block.opts.find_opt('-regress_fitts_prefix')
+    fitts_pre = ''
     if not opt or not opt.parlist: fitts = ''
-    else: fitts = '    -fitts %s \\\n' % opt.parlist[0]
+    else:
+        fitts_pre = opt.parlist[0]
+        fitts = '    -fitts %s \\\n' % fitts_pre
 
     # -- see if the user wants the error time series --
     opt = block.opts.find_opt('-regress_errts_prefix')
@@ -1938,9 +1948,26 @@ def db_cmd_regress(proc, block):
     if nregs == 0 or (not opt.parlist and bluropt):
         opt.parlist = ['errts.$subj']
 
+    errts_pre = ''
     if not opt or not opt.parlist: errts = ''
-    else: errts = '    -errts %s \\\n' % opt.parlist[0]
+    else:
+        errts_pre = opt.parlist[0]
+        errts = '    -errts %s \\\n' % errts_pre
     # -- end errts --
+
+    # if the user wants to compute fitts, save the prefix
+    compute_fitts = 0
+    if block.opts.find_opt('-regress_compute_fitts'):
+        if fitts_pre == '':
+            print '** regress_compute_fitts: no fitts prefix'
+            return
+        if errts_pre == '':
+            print '** regress_compute_fitts: no errts prefix'
+            return
+        compute_fitts = 1
+        fitts = ''  # so nothing in 3dDeconvolve
+
+    # -- fitts and errts setup --
 
     # see if the user has provided other options (like GLTs)
     opt = block.opts.find_opt('-regress_opts_3dD')
@@ -1985,6 +2012,13 @@ def db_cmd_regress(proc, block):
     cmd = cmd + "# create an all_runs dataset to match the fitts, errts, etc.\n"
     cmd = cmd + "3dTcat -prefix %s %s\n\n" % \
                 (all_runs, proc.prev_dset_form_wild())
+
+    # possibly create computed fitts dataset
+    if compute_fitts:
+        cmd = cmd + "# create fitts dataset from all_runs and errts\n"  \
+                    "3dcalc -a %s%s -b %s%s -expr a-b \\\n"             \
+                    "       -prefix %s\n\n"   \
+                    % (all_runs, proc.view, errts_pre, proc.view, fitts_pre)
 
     # if censoring create an uncensored X-matrix file
     if proc.regress_censor_file:
@@ -2461,18 +2495,19 @@ g_help_string = """
         tlrc        : warp anat to standard space
 
     ==================================================
-    DEFAULTS: basic defaults for each block (not all defaults)
+    DEFAULTS: basic defaults for each block (blocks listed in default order)
 
-        setup:    - use 'SUBJ' for the subject id
+        A : denotes automatic block that is not a 'processing' option
+        D : denotes a default processing block (others must be requested)
+
+    A   setup:    - use 'SUBJ' for the subject id
                         (option: -subj_id SUBJ)
                   - create a t-shell script called 'proc_subj'
                         (option: -script proc_subj)
                   - use results directory 'SUBJ.results'
                         (option: -out_dir SUBJ.results)
 
-        tcat:     - do not remove any of the first TRs
-
-        empty:    - do nothing (just copy the data using 3dTcat)
+    A   tcat:     - do not remove any of the first TRs
 
         despike:  - NOTE: by default, this block is _not_ used
                   - automasking is not done (requires -despike_mask)
@@ -2482,14 +2517,17 @@ g_help_string = """
                   - solver is OLSQ, not REML
                   - do not remove any first TRs from the regressors
 
-        tshift:   - align slices to the beginning of the TR
+    D   tshift:   - align slices to the beginning of the TR
                   - use quintic interpolation for time series resampling
                         (option: -tshift_interp -quintic)
 
         align:    - align the anatomy to match the EPI
                     (also required for the option of aligning EPI to anat)
 
-        volreg:   - align to third volume of first run, -zpad 1
+        tlrc:     - use TT_N27+tlrc as the base (-tlrc_base TT_N27+tlrc)
+                  - no additional suffix (-tlrc_suffix NONE)
+
+    D   volreg:   - align to third volume of first run, -zpad 1
                         (option: -volreg_align_to third)
                         (option: -volreg_zpad 1)
                   - use cubic interpolation for volume resampling
@@ -2498,19 +2536,19 @@ g_help_string = """
                   - do not align EPI to anat
                   - do not warp to standard space
 
-        blur:     - blur data using a 4 mm FWHM filter with 3dmerge
+    D   blur:     - blur data using a 4 mm FWHM filter with 3dmerge
                         (option: -blur_filter -1blur_fwhm)
                         (option: -blur_size 4)
                         (option: -blur_in_mask no)
 
-        mask:     - create a union of masks from 3dAutomask on each run
+    D   mask:     - create a union of masks from 3dAutomask on each run
                   - not applied in regression without -regress_apply_mask
                   - if possible, create a subject anatomy mask
                   - if possible, create a group anatomy mask (tlrc base)
 
-        scale:    - scale each voxel to mean of 100, clip values at 200
+    D   scale:    - scale each voxel to mean of 100, clip values at 200
 
-        regress:  - use GAM regressor for each stim
+    D   regress:  - use GAM regressor for each stim
                         (option: -regress_basis)
                   - compute the baseline polynomial degree, based on run length
                         (e.g. option: -regress_polort 2)
@@ -2519,8 +2557,7 @@ g_help_string = """
                   - output ideal curves for GAM/BLOCK regressors
                   - output iresp curves for non-GAM/non-BLOCK regressors
 
-        tlrc:     - use TT_N27+tlrc as the base (-tlrc_base TT_N27+tlrc)
-                  - no additional suffix (-tlrc_suffix NONE)
+        empty:    - do nothing (just copy the data using 3dTcat)
 
     ==================================================
     EXAMPLES (options can be provided in any order):
@@ -3197,11 +3234,11 @@ g_help_string = """
             default position.  This includes the following blocks, along with
             their default positions:
 
-                align   : after tlrc, before volreg
                 despike : first (between tcat and tshift)
-                empty   : NO DEFAULT, cannot be applied via -do_block
                 ricor   : just after despike (else first)
-                tlrc    : before volreg, after align
+                align   : before tlrc, before volreg
+                tlrc    : after align, before volreg
+                empty   : NO DEFAULT, cannot be applied via -do_block
 
             Any block not included in -blocks can be added via this option
             (except for 'empty').
@@ -3525,9 +3562,9 @@ g_help_string = """
 
                 e.g. -tlrc_anat
 
-            After the regression block, run @auto_tlrc on the anatomical
-            dataset provided by '-copy_anat'.  By default, warp the anat to
-            align with TT_N27+tlrc, unless the '-tlrc_base' option is given.
+            Run @auto_tlrc on the anatomical dataset provided by '-copy_anat'.
+            By default, warp the anat to align with TT_N27+tlrc, unless the
+            '-tlrc_base' option is given.
 
             The -copy_anat option specifies which anatomy to transform.
 
@@ -4118,6 +4155,29 @@ g_help_string = """
             not to censor the previous TRs by setting this to 'no'.
 
             See also -regress_censor_motion.
+
+        -regress_compute_fitts       : compute fitts via 3dcalc, not 3dDecon
+
+            This option is to save memory during 3dDeconvolve, in the case
+            where the user has requested both the fitts and errts datasets.
+
+            Normally 3dDeconvolve is used to compute both the fitts and errts
+            time series.  But if memory gets tight, it is worth noting that
+            these datasets are redundant, one can be computed from the other
+            (given the all_runs dataset).
+
+                all_runs = fitts + errts
+
+            Using -regress_compute_fitts, -fitts is no longer applied in 3dD
+            (though -errts is).  Instead, note that an all_runs dataset is
+            created just after 3dDeconvolve.  After that step, the script will
+            create fitts as (all_runs-errts) using 3dcalc.
+
+            Note that computation of both errts and fitts datasets is required
+            for this option to be applied.
+
+            See also -regress_est_blur_errts, -regress_errts_prefix,
+            -regress_fitts_prefix and -regress_no_fitts.
 
         -regress_est_blur_epits      : estimate the smoothness of the EPI data
 
