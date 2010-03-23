@@ -4,7 +4,7 @@ print("#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 print("          ================== Welcome to 3dGC.R ==================          ")
 print("AFNI Bivariate Auto-Regressive Modeling Package!")
 print("#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-print("Version 0.0.7,  Feb. 1, 2010")
+print("Version 0.0.7,  March 23 1, 2010")
 print("Author: Gang Chen (gangchen@mail.nih.gov)")
 print("Website: http://afni.nimh.nih.gov/sscc/gangc/3dGC.html")
 print("SSCC/NIMH, National Institutes of Health, Bethesda MD 20892")
