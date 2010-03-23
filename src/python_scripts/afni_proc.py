@@ -177,9 +177,10 @@ g_history = """
     2.18 Mar 08 2010 : minor: changed option order in some examples
     2.19 Mar 18 2010 : minor: help updates to alignment options
     2.20 Mar 18 2010 : deal with args having '\\n' (from quoted newlines)
+    2.21 Mar 23 2010 : added -regress_compute_fitts, to save memory in 3dD
 """
 
-g_version = "version 2.20, March 18, 2010"
+g_version = "version 2.21, March 23, 2010"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
@@ -508,6 +509,8 @@ class SubjProcSream:
         self.valid_opts.add_opt('-regress_extra_stim_labels', -1, [],
                         helpstr="labels for extra -stim_files")
 
+        self.valid_opts.add_opt('-regress_compute_fitts', 0, [],
+                        helpstr="compute fitts only after 3dDeconvolve")
         self.valid_opts.add_opt('-regress_est_blur_epits', 0, [],
                         helpstr="estimate blur from scaled EPI time series")
         self.valid_opts.add_opt('-regress_est_blur_errts', 0, [],

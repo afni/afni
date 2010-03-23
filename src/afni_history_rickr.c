@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 23, MAR, 2010, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "added -regress_compute_fitts option, to save memory in 3dDeconvolve",
+   NULL
+ } ,
+
  { 19, MAR, 2010, RCR, "afni_util.py", MICRO, TYPE_MODIFY,
    "round to 3 bits below 4 (above, truncate to int)",
    NULL
