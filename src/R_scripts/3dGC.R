@@ -273,6 +273,11 @@ runVAR<-function(inDataTS, sdTS, exMatMod, nLags) {
 	   outData[5+6*(mm-1)] <- coef(fm)[[2]][1+2*(mm-1),1]   # target to seed
 	   outData[6+6*(mm-1)] <- coef(fm)[[2]][1+2*(mm-1),3]   # t
       # I'm ignoring the seed to seed effect here because it's not practical to store it
+      #if(is.nan(outData[4+6*(mm-1)])) browser()
+      #if(any(is.nan(outData))) outData[1:6+(mm-1)] <- rep(0, 6)
+      outData[1:6+(mm-1)] <- ifelse(is.nan(outData[1:6+(mm-1)]), 0, outData[1:6+(mm-1)])
+      outData[1:6+(mm-1)] <- ifelse(outData[1:6+(mm-1)] > 100, 100, outData[1:6+(mm-1)])
+      outData[1:6+(mm-1)] <- ifelse(outData[1:6+(mm-1)] < -100, -100, outData[1:6+(mm-1)])
 	}
 	}
    return(outData)
