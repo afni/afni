@@ -7,8 +7,8 @@ int main( int argc , char *argv[] )
    MRI_IMAGE *outim ; float *outar ;
    byte *mask=NULL ; int mask_nx,mask_ny,mask_nz , automask=0 ;
    char *outfile = NULL ;
-   double fx,fy,fz , cx,cy,cz ; int nx,ny,nz ;
-   int geom=1 , demed=0 , unif=0 , corder=0 ;
+   double fx,fy,fz , cx,cy,cz , ccomb ; int nx,ny,nz , ncomb ;
+   int geom=1 , demed=0 , unif=0 , corder=0 , combine=0 ;
    char *newprefix=NULL ;
 
    /*---- for the clueless who wish to become clueful ----*/
@@ -66,6 +66,9 @@ int main( int argc , char *argv[] )
       "  -arith     }= or the arithmetic mean of the individual sub-brick\n"
       "                FWHM estimates. [Default = -geom, for no good reason]\n"
       "\n"
+      "  -combine    = combine the final measurements along each axis into\n"
+      "                one result\n"
+      "\n"
       "  -out ttt    = Write output to file 'ttt' (3 columns of numbers).\n"
       "                If not given, the sub-brick outputs are not written.\n"
       "                Use '-out -' to write to stdout, if desired.\n"
@@ -93,12 +96,23 @@ int main( int argc , char *argv[] )
       "trouble, use '-unif' to at least partially subtract out the anatomical\n"
       "spatial structure, or use the output of 3dDetrend for the same purpose.\n"
       "\n"
+      "IF YOUR DATA HAS SMOOTH-ISH SPATIAL STRUCTURE YOU CAN'T GET RID OF:\n"
+      "For example, you only have 1 volume, say from PET imaging.  In this case,\n"
+      "the standard estimate of the noise smoothness will be mixed in with the\n"
+      "structure of the background.  An approximate way to avoid this problem\n"
+      "is provided with the semi-secret '-2difMAD' option, which uses a combination of\n"
+      "first-neighbor and second-neighbor differences to estimate the smoothness,\n"
+      "rather than just first-neighbor differences, and uses the MAD of the differences\n"
+      "rather than the standard deviation.  (If you must know the details, read the\n"
+      "source code in mri_fwhm.c!)                    [For Jatin Vaidya, March 2010]\n"
+      "\n"
       "ALSO SEE:\n"
       " - The older program 3dFWHM is superseded by 3dFWHMx.\n"
       " - 3dLocalstat -stat FWHM will estimate the FWHM values at each\n"
-      "   voxel, using the same algorithm as this program but applied only\n"
-      "   to a local neighborhood of each voxel in turn.\n"
+      "   voxel, using the same first-difference algorithm as this program but applied\n"
+      "   only to a local neighborhood of each voxel in turn.\n"
       " - 3dBlurToFWHM will blur a dataset to have a given global FWHM.\n"
+      " - 3dBlurInMask will blur a dataset inside a mask, but doesn't measure FWHM.\n"
       "\n"
       "-- Emperor Zhark - Halloween 2006 --- BOO!\n"
      ) ;
@@ -129,6 +143,11 @@ int main( int argc , char *argv[] )
        iarg++ ; continue ;
      }
 
+     if( strcmp(argv[iarg],"-2difMAD") == 0 ){              /* 24 Mar 2010 */
+       mri_fwhm_setfester( mri_estimate_FWHM_12dif_MAD ) ;  /* secret option */
+       iarg++ ; continue ;
+     }
+
      if( strncmp(argv[iarg],"-geom",4) == 0 ){          /* 15 Nov 2006 */
        geom = 1 ; iarg++ ; continue ;
      }
@@ -140,6 +159,9 @@ int main( int argc , char *argv[] )
      }
      if( strncmp(argv[iarg],"-unif",5) == 0 ){          /* 07 Dec 2006 */
        unif = demed = 1 ; iarg++ ; continue ;
+     }
+     if( strncmp(argv[iarg],"-comb",4) == 0 ){          /* 24 Mar 2010 */
+       combine = 1 ; iarg++ ; continue ;
      }
 
      if( strncmp(argv[iarg],"-compat",6) == 0 ){        /* 09 Nov 2006 */
@@ -299,6 +321,12 @@ int main( int argc , char *argv[] )
      cx = (nx == 0) ? 0.0 : exp(cx/nx) ;
      cy = (ny == 0) ? 0.0 : exp(cy/ny) ;
      cz = (nz == 0) ? 0.0 : exp(cz/nz) ;
+     ccomb = 1.0 ; ncomb = 0 ;
+     if( cx > 0.0 ){ ccomb *= cx ; ncomb++ ; }
+     if( cy > 0.0 ){ ccomb *= cy ; ncomb++ ; }
+     if( cz > 0.0 ){ ccomb *= cz ; ncomb++ ; }
+          if( ncomb == 2 ) ccomb = sqrt(ccomb) ;
+     else if( ncomb == 3 ) ccomb = cbrt(ccomb) ;
    } else {
      cx = cy = cz = 0.0 ;
      for( ii=0 ; ii < nvals ; ii++ ){
@@ -310,7 +338,14 @@ int main( int argc , char *argv[] )
      cx = (nx == 0) ? 0.0 : cx/nx ;
      cy = (ny == 0) ? 0.0 : cy/ny ;
      cz = (nz == 0) ? 0.0 : cz/nz ;
+     ccomb = 1.0 ; ncomb = 0 ;
+     if( cx > 0.0 ){ ccomb *= cx ; ncomb++ ; }
+     if( cy > 0.0 ){ ccomb *= cy ; ncomb++ ; }
+     if( cz > 0.0 ){ ccomb *= cz ; ncomb++ ; }
+     if( ncomb > 1 ) ccomb /= ncomb ;
    }
-   printf(" %g  %g  %g\n",cx,cy,cz) ;
+   printf(" %g  %g  %g",cx,cy,cz) ;
+   if( combine ) printf("     %g",ccomb) ;
+   printf("\n") ;
    exit(0) ;
 }

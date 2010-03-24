@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 24 , MAR , 2010 , RWC , "3dFWHMx" , MICRO , TYPE_NEW_OPT ,
+   "Add -2difMAD option, for dealing with PET data, maybe." ,
+   NULL } ,
+
  { 19 , MAR , 2010 , RWC , "3dGroupInCorr" , MICRO , TYPE_MODIFY ,
    "Unroll correlation inner loop by 2 == speedup of 30% for this part" ,
    NULL } ,
