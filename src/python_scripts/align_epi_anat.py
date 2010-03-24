@@ -548,7 +548,7 @@ g_help_string = """
 ## BEGIN common functions across scripts (loosely of course)
 class RegWrap:
    def __init__(self, label):
-      self.align_version = "1.31" # software version (update for changes)
+      self.align_version = "1.32" # software version (update for changes)
       self.label = label
       self.valid_opts = None
       self.user_opts = None
@@ -1214,29 +1214,6 @@ class RegWrap:
       else:
          ps.AlOpt = ''
 
-      #big_move?
-      opt1 = self.user_opts.find_opt('-big_move')
-      #giant_move?
-      opt2 = self.user_opts.find_opt('-giant_move')
-      if(not (opt1 or opt2)):
-         ps.AlOpt = "%s -onepass " % ps.AlOpt
-      else:
-         # resampling has the potential to cut off data
-         # the cmass flag is used by 3dAllineate to align the center of mass
-         # first and then resamples
-         self.resample_flag = 0  
-         
-      if(opt1):
-         ps.AlOpt = "%s -twopass " % ps.AlOpt
-         
-      if(opt2):
-         ps.AlOpt =  \
-          "-twobest 11 -twopass -VERB -maxrot 45 -maxshf 40 -fineblur 1 -source_automask+2"
-         ps.cmass = "cmass"
-         giant_move = 1
-      else :
-         giant_move = 0
-
       opt = self.user_opts.find_opt('-feature_size')
       if opt != None:
          featuresize = float(opt.parlist[0])
@@ -1255,6 +1232,34 @@ class RegWrap:
             ps.AlOpt = "%s %s" % (ps.AlOpt, aljoin)
          ps.skullstrip_opt = "-rat"         
 
+      #big_move?
+      opt1 = self.user_opts.find_opt('-big_move')
+      #giant_move?
+      opt2 = self.user_opts.find_opt('-giant_move')
+      if(not (opt1 or opt2)):
+         ps.AlOpt = "%s -onepass " % ps.AlOpt
+      else:
+         # resampling has the potential to cut off data
+         # the cmass flag is used by 3dAllineate to align the center of mass
+         # first and then resamples
+         self.resample_flag = 0  
+         
+      if(opt1):
+         ps.AlOpt = "%s -twopass " % ps.AlOpt
+         
+      if(opt2):
+         if featuresize  == 0.0 :
+            fsize = 1
+         else:
+            fsize = featuresize
+            
+         ps.AlOpt =  \
+         "-twobest 11 -twopass -VERB -maxrot 45 -maxshf 40 " \
+         "-fineblur %s -source_automask+2" %  fsize
+         ps.cmass = "cmass"
+         giant_move = 1
+      else :
+         giant_move = 0
 
       #add edges
       opt = self.user_opts.find_opt('-AddEdge')
