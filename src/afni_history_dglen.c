@@ -49,6 +49,12 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 24 , MAR , 2010 , DRG , "align_epi_anat.py" , 
+    MINOR , TYPE_MODIFY, 
+    "Some flexibility with animal alignment and giant move." ,
+    "feature_size, rat_align options used for fineblur option"
+} ,
+
 { 15 , MAR , 2010 , DRG , "3dTstat, 3dMean" , 
     MICRO , TYPE_MODIFY,
     "Minor text changes to refer to the other program in help"
