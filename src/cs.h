@@ -29,6 +29,7 @@ extern void qsort_intint    ( int , int *    , int * ) ;
 extern void qsort_floatfloat( int , float *  , float * ) ;  /* 30 Jan 2000 */
 extern void qsort_floatstuff( int , float *  , void ** ) ;  /* 06 Feb 2000 */
 extern void qsort_doublestuff( int, double * , void ** ) ;  /* 18 Dec 2006 */
+extern void qsort_intstuff   ( int, int *    , void ** ) ;  /* 25 Mar 2010 */
 
 /***** Quicksort-ish median *****/
 
