@@ -25,7 +25,9 @@ int main( int argc , char *argv[] )
       printf(
        "Usage 1: 3dcopy [-verb] [-denote] old_prefix new_prefix\n"
        "  Will copy all datasets using the old_prefix to use the new_prefix;\n"
+       "\n"
        "    3dcopy fred ethel\n"
+       "\n"
        "  will copy   fred+orig.HEAD    to ethel+orig.HEAD\n"
        "              fred+orig.BRIK    to ethel+orig.BRIK\n"
        "              fred+tlrc.HEAD    to ethel+tlrc.HEAD\n"
@@ -38,7 +40,12 @@ int main( int argc , char *argv[] )
        "  Will copy the non-AFNI formatted dataset (e.g., MINC, ANALYZE, CTF)\n"
        "  to the AFNI formatted dataset with the given new prefix.\n"
        "\n"
+       "\n"
        "Notes:\n"
+       "* This is to copy entire datasets, possibly with multiple views.\n"
+       "  So sub-brick selection is not allowed.  Please use 3dbucket or\n"
+       "  3dTcat for that purpose.\n"
+       "\n"
        "* The new datasets have new ID codes.  If you are renaming\n"
        "   multiple datasets (as in Usage 1), then if the old +orig\n"
        "   dataset is the warp parent of the old +acpc and/or +tlrc\n"
@@ -46,18 +53,24 @@ int main( int argc , char *argv[] )
        "   parent of the new +acpc and +tlrc datasets.  If any other\n"
        "   datasets point to the old datasets as anat or warp parents,\n"
        "   they will still point to the old datasets, not these new ones.\n"
+       "\n"
        "* The BRIK files are copied if they exist, keeping the compression\n"
        "   suffix unchanged (if any).\n"
+       "\n"
        "* The old_prefix may have a directory name attached in front,\n"
        "   as in 'gerard/manley/hopkins'.\n"
+       "\n"
        "* If the new_prefix does not have a directory name attached\n"
        "   (i.e., does NOT look like 'homer/simpson'), then the new\n"
        "   datasets will be written in the current directory ('./').\n"
+       "\n"
        "* The new_prefix cannot JUST be a directory (unlike the Unix\n"
        "   utility 'cp'); you must supply a filename prefix, even if\n"
        "   is identical to the filename prefix in old_prefix.\n"
+       "\n"
        "* The '-verb' option will print progress reports; otherwise, the\n"
        "   program operates silently (unless an error is detected).\n"
+       "\n"
        "* The '-denote' option will remove any Notes from the file.\n"
       ) ;
       PRINT_COMPILE_DATE ; exit(0) ;
@@ -80,7 +93,8 @@ int main( int argc , char *argv[] )
    new_name = argv[nopt++] ; new_len = strlen(new_name) ;
 
    if( old_len < 1 || old_len > THD_MAX_PREFIX || !THD_filename_ok(old_name) )
-     ERROR_exit("Illegal old dataset name! - EXIT\n") ;
+     ERROR_exit("Illegal old dataset name! - EXIT\n"
+                "(note: sub-brick selection is not allowed in this context)") ;
    if( new_len < 1 || new_len > THD_MAX_PREFIX || !THD_filename_ok(new_name) )
      ERROR_exit("Illegal new dataset name! - EXIT\n") ;
 
