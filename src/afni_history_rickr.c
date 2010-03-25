@@ -48,6 +48,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 25, MAR, 2010, RCR, "1d_tool.py", MICRO, TYPE_GENERAL,
+   "small help update",
+   NULL
+ } ,
+
+ { 25, MAR, 2010, RCR, "afni_proc.py", MICRO, TYPE_GENERAL,
+   "small help update describing help sections",
+   NULL
+ } ,
+
  { 25, MAR, 2010, RCR, "plug_crender", MICRO, TYPE_GENERAL,
    "changed name in plugin list to original 'Render Dataset'",
    "Also changed plug_render to 'Render [old]', though it is no longer\n"
