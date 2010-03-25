@@ -2,10 +2,6 @@
 
 set stat = 0
 
-if ("$1" == '' || "$1" == '-h' || "$1" == '-help' || "$2" == '') then
-	goto USAGE
-endif
-
 goto PARSE_COMMAND
 Ret_PARSE_COMMAND:
 
@@ -18,20 +14,28 @@ foreach dset ($dsets)
    set dparse = `@parse_afni_name $dset`
    set vol2 = $dparse[1]/$dparse[2]
    set iidset = `printf %02d $idset`
+   if ($SaveEq) then
+      set aib = $dparse[1]/$bparse[2].EQ.$dparse[2]
+   endif
+   if ($SaveDiff) then
+      set anib = $dparse[1]/$bparse[2].DF.$dparse[2]
+   endif
    3dcalc   -datum short -overwrite \
             -a $vol1${view} -b $vol2${view} -expr 'a*equals(a,b)' \
-            -prefix  ___aib   
-
+            -prefix  ${aib}   
+   3dcalc   -datum short -overwrite \
+            -a $vol1${view} -b $vol2${view} -expr 'a*(1-equals(a,b))' \
+            -prefix  ${anib}                        
    if (1) then
       3dROIstats -1Dformat -mask_f2short -numROI ${numROI} -zerofill 0\
-                  -nzvoxels -mask ___aib$view ___aib$view > ___aib.1D
+                  -nzvoxels -mask ${aib}$view ${aib}$view > ___aib.1D
       3dROIstats -1Dformat -mask_f2short -numROI ${numROI} -zerofill 0\
                   -nzvoxels -mask $vol1$view $vol1$view >> ___aib.1D
       3dROIstats -1Dformat -mask_f2short -numROI ${numROI} -zerofill 0\
                   -nzvoxels -mask $vol2$view $vol2$view >> ___aib.1D
    else 
       #Not convenient for parsing further down
-      3dclust -isomerge 0 0 ___aib$view > ___aib.1D
+      3dclust -isomerge 0 0 ${aib}$view > ___aib.1D
       3dclust -isomerge 0 0  $vol1$view >> ___aib.1D
       3dclust -isomerge 0 0  $vol2$view >> ___aib.1D
    endif
@@ -103,7 +107,16 @@ PARSE_COMMAND:
    set prefix = ''
    set cleanup = 1
    set cnt = 1
+   set aib = ___aib
+   set anib = ___anib
+   set SaveEq=0
+   set SaveDiff=0
    set Narg = $#argv
+   
+   if ("$1" == '' || "$1" == '-h' || "$1" == '-help' || "$2" == '') then
+	   goto USAGE
+   endif
+
    while ($cnt <= $Narg)
 		set donext = 1;
       if ($donext && "$argv[$cnt]" == "-max_N_roi") then
@@ -117,6 +130,7 @@ PARSE_COMMAND:
             set donext = 0	
          endif	
       endif
+      
       if ($donext && "$argv[$cnt]" == "-prefix") then
          set pLoc = $cnt		
 		   if ($pLoc == $Narg) then
@@ -173,6 +187,14 @@ PARSE_COMMAND:
          set cleanup = 0;		
          set donext = 0		
       endif
+      if ($donext && "$argv[$cnt]" == "-save_match") then
+         set SaveEq = 1;		
+         set donext = 0		
+      endif
+      if ($donext && "$argv[$cnt]" == "-save_diff") then
+         set SaveDiff = 1;		
+         set donext = 0		
+      endif
        if ($donext && "$argv[$cnt]" == "-echo") then
          set echo		
          set donext = 0		
@@ -221,6 +243,12 @@ echo "  NOTE: A lazy usage would be:"
 echo "  `basename $0` BASE DSET"
 echo ""
 echo "Optional parameters:"
+echo "   [-save_match] : Save volume showing BASE*equals(BASE,DSET)"
+echo "   [-save_diff ] : Save volume showing BASE*(1-equals(BASE,DSET))"
+echo "          These two options are off by default. The output filenames"
+echo "          are formed this way:"
+echo "             PATH_DSET/PREFIX_BASE.EQ.PREFIX_DSET"
+echo "             PATH_DSET/PREFIX_BASE.DF.PREFIX_DSET"
 echo "   [-max_N_roi MAX_ROI]: The maximum possible roi index. Default is 12" echo "   [-prefix PREFIX]: Use PREFIX for the output table. "
 echo "                     Default is separate results for each dset to stdout"
 echo "   [-keep_tmp]: Keep temporary files for debugging. Note that you should"
@@ -230,6 +258,7 @@ echo ""
 echo "Ziad Saad (saadz@mail.nih.gov)"
 echo "SSCC/NIMH/ National Institutes of Health, Bethesda Maryland"
 echo ""
+   set cleanup = 0
 	goto END
 
 BEND:

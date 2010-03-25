@@ -58,9 +58,15 @@ eval.AFNI.1D.string <- function (t) {
       t<-sub("'$",'',t)
       doTr = TRUE
    }
+   #replace commas with space
+   t<-gsub(",",' ',t)
+   
+   #remove multiple blanks
+   t <- deblank.string(t, middle=TRUE)
+
    vvf = vector(length = 0, mode="numeric")
-   #replace .. with : and split at ,
-   s = strsplit(sub("..",":",t, fixed=TRUE), ",")[[1]]
+   #replace .. with : and split at 'space'
+   s = strsplit(sub("..",":",t, fixed=TRUE), " ")[[1]]
 
    #Now loop and form vector of components
    for (si in s) {
@@ -632,6 +638,13 @@ hgrep <- function (pattern=NULL){
       history.AFNI(max.show=Inf, pattern=pattern)
    }
 } 
+hsgrep <- function (pattern='source'){
+   if (is.null(pattern)) {
+      history.AFNI(max.show=200)
+   } else {
+      history.AFNI(max.show=Inf, pattern=pattern)
+   }
+} 
 
 #Report objects using the most memory
 
@@ -690,7 +703,8 @@ memory.hogs <- function (n=10, top_frac=0.9, test=FALSE, msg=NULL) {
 }
 
 who.called.me <- function () {
-   caller <- as.character(sys.call(-2))
+   if (BATCH_MODE) caller <- as.character(sys.call(-1))
+   else caller <- as.character(sys.call(-2))
    callstr <- paste( caller[1],'(',
                      paste(caller[2:length(caller)], collapse=','),
                      ')', sep='')
@@ -698,7 +712,8 @@ who.called.me <- function () {
 }
 
 #print warnings a la AFNI
-warn.AFNI <- function (str='Consider yourself warned',callstr=NULL, 
+warn.AFNI <- function (str='Consider yourself warned',
+                       callstr=who.called.me(), 
                        newline=TRUE) {
    if (is.null(callstr)) callstr <- sprintf('   %s',who.called.me())
    nnn<-''
@@ -710,7 +725,8 @@ warn.AFNI <- function (str='Consider yourself warned',callstr=NULL,
        sep='', file = ff);
 }
 
-err.AFNI <- function (str='Danger Danger Will Robinson',callstr=NULL, 
+err.AFNI <- function (str='Danger Danger Will Robinson',
+                        callstr=who.called.me(), 
                       newline=TRUE) {
    if (is.null(callstr)) callstr <- sprintf('   %s',who.called.me())
    nnn<-''
@@ -723,7 +739,7 @@ err.AFNI <- function (str='Danger Danger Will Robinson',callstr=NULL,
 }
 
 note.AFNI <- function (str='May I speak frankly?',
-                       callstr=NULL, newline=TRUE, tic=1) {
+                       callstr=who.called.me(), newline=TRUE, tic=1) {
    if (is.null(callstr)) 
       callstr <- sprintf('   %s',who.called.me())
    nnn<-''
@@ -777,6 +793,19 @@ clean.args.string <- function(ss) {
    #treat = nicely
    ss <- gsub('[[:space:]]*=[[:space:]]*','=',ss)
    return(ss)
+}
+
+deblank.string <- function(s, start=TRUE, end=TRUE, middle=FALSE) {
+   if (end) {
+      s = sub('[[:space:]]+$','',s);
+   }
+   if (start) {
+      s = sub('^[[:space:]]+','',s);
+   }
+   if (middle) {
+      s = gsub('[[:space:]]+',' ',s); 
+   }
+   return(s);
 }
  
 as.num.vec <- function(ss, addcount=TRUE, sepstr='.', reset=FALSE) {

@@ -969,7 +969,7 @@ int thd_Adist (  THD_3dim_dataset *in_set,
             /* check if it is all non zero */
             for (kk=0; kk<ncol; ++kk) {
                if (asigvec[0][kk]) { /* non zero, calculate the distance */
-                  distvec[ii] = metric(ncol, afsig, asigvec, weight,0, 0, 0);
+                  distvec[ii] = metric(ncol, afsig, asigvec, weight,jj, 0, 0);
                   break; /* get out of the loop */
                }
             }

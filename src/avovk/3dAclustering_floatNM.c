@@ -523,7 +523,7 @@ int main(int argc, char **argv)
       if (dist_set) {
          EDIT_dset_items(  dist_set , ADN_prefix  , prefix, ADN_none);
          tross_Copy_History( in_set , dist_set ) ;
-         tross_Make_History( "3dAclustering" , argc, argv , dist_set ) ;
+         tross_Make_History( "3dAclustering_fNM" , argc, argv , dist_set ) ;
          DSET_write(dist_set); DSET_unload(dist_set); 
          DSET_delete(dist_set); dist_set = NULL;
       }
@@ -635,7 +635,7 @@ int main(int argc, char **argv)
       if (clust_set) {
          EDIT_dset_items(  clust_set , ADN_prefix  , prefix, ADN_none);
          tross_Copy_History( in_set , clust_set ) ;
-         tross_Make_History( "3dAclustering" , argc, argv , clust_set ) ;
+         tross_Make_History( "3dAclustering_fNM" , argc, argv , clust_set ) ;
          DSET_write(clust_set); DSET_unload(clust_set); 
          DSET_delete(clust_set); clust_set = NULL;
       }
