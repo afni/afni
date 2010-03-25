@@ -2465,6 +2465,21 @@ g_help_string = """
     line, even if using -ask_me.  See "-ask_me EXAMPLES", below.
 
     ==================================================
+    SECTIONS: order of sections in "afni_proc.py -help" output
+
+        program introduction    : (above) basic overview of afni_proc.py
+        PROCESSING BLOCKS       : list of possible processing blocks
+        DEFAULTS                : basic default operations, per block
+        EXAMPLES                : various examples of running this program
+        NOTE sections           : details on various topics
+            TIMING FILE NOTE, MASKING NOTE, WARP TO TLRC NOTE, RETROICOR NOTE,
+            RUNS OF DIFFERENT LENGTHS NOTE, SCRIPT EXECUTION NOTE
+        OPTIONS                 : desriptions of all program options
+            informational       : options to get quick info and quit
+            general execution   : options not specific to a processing block
+            block options       : specific to blocks, in default block order
+
+    ==================================================
     PROCESSING BLOCKS (of the output script):
 
     The output script will go through the following steps, unless the user

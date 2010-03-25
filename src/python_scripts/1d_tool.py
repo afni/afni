@@ -110,7 +110,7 @@ examples (very basic for now):
  
        a. general example
 
-          1d_tool.py -infile motion.1D -set_nruns 9 -set_tr 3.0     \\
+          1d_tool.py -infile motion.1D -set_nruns 9                 \\
                      -derivative -collapse_cols euclidean_norm      \\
                      -extreme_mask -1.2 1.2                         \\
                      -show_censor_count                             \\
@@ -125,13 +125,13 @@ examples (very basic for now):
           option will also result in subjA_enorm.1D being written, which is the
           euclidean norm of the derivative, before the extreme mask is applied.
 
-          1d_tool.py -infile motion.1D -set_nruns 9 -set_tr 3.0  \\
-                     -show_censor_count                          \\
+          1d_tool.py -infile motion.1D -set_nruns 9     \\
+                     -show_censor_count                 \\
                      -censor_motion 1.2 subjA
 
        c. allow the run lengths to vary
 
-          1d_tool.py -infile motion.1D -set_tr 3.0               \\
+          1d_tool.py -infile motion.1D                           \\
                      -set_run_lengths 64 61 67 61 67 61 67 61 67 \\
                      -show_censor_count                          \\
                      -censor_motion 1.2 subjA_rlens
@@ -212,9 +212,8 @@ general options:
         PREFIX_CENSORTR.txt and PREFIX_enorm.1D (e.g. subj123_censor.1D,
         subj123_CENSORTR.txt and subj123_enorm.1D).
 
-        The other information necessary besides an input motion file (-infile)
-        is the number of runs (-set_nruns or -set_run_lengths) and the TR
-        (-set_tr).
+        Besides an input motion file (-infile), the number of runs is needed
+        (-set_nruns or -set_run_lengths).
 
         Consider also '-censor_prev_TR'.
         See example 10.
@@ -338,9 +337,10 @@ g_history = """
    0.14 Oct 15, 2009 - added -demean
    0.15 Oct 23, 2009 - added -censor_fill and -censor_fill_par
    0.16 Nov 16, 2009 - allow motion censoring with varying run lengths
+   0.17 Mar 25, 2010 - small help update
 """
 
-g_version = "1d_tool.py version 0.16, Nov 16, 2009"
+g_version = "1d_tool.py version 0.17, Mar 25, 2010"
 
 
 class A1DInterface:
