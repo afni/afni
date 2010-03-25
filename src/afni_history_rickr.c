@@ -48,6 +48,17 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 25, MAR, 2010, RCR, "plug_crender", MICRO, TYPE_GENERAL,
+   "changed name in plugin list to original 'Render Dataset'",
+   "Also changed plug_render to 'Render [old]', though it is no longer\n"
+   "built by default."
+ } ,
+
+ { 25, MAR, 2010, RCR, "3dcopy", MICRO, TYPE_GENERAL,
+   "on failure, warn user that sub-brick selection is not allowed",
+   "Requested by T Nycum."
+ } ,
+
  { 23, MAR, 2010, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "added -regress_compute_fitts option, to save memory in 3dDeconvolve",
    NULL
@@ -58,7 +69,7 @@ afni_history_struct rickr_history[] = {
    NULL
  } ,
 
- { 19, MAR, 2010, RCR, "3dfractionize", MICRO, TYPE_MODIFY,
+ { 19, MAR, 2010, RCR, "3dfractionize", MICRO, TYPE_GENERAL,
    "added 3dAllineate example of inverse tlrc warp",
    NULL
  } ,
@@ -68,7 +79,7 @@ afni_history_struct rickr_history[] = {
    NULL
  } ,
 
- { 18, MAR, 2010, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
+ { 18, MAR, 2010, RCR, "afni_proc.py", MICRO, TYPE_GENERAL,
    "small updates to help for alignment options",
    NULL
  } ,
@@ -88,17 +99,17 @@ afni_history_struct rickr_history[] = {
    NULL
  } ,
 
- { 16, MAR, 2010, RCR, "NIFTI", MICRO, TYPE_MODIFY,
+ { 16, MAR, 2010, RCR, "NIFTI", MICRO, TYPE_GENERAL,
    "added NIFTI_ECODE_VOXBO for D. Kimberg",
    NULL
  } ,
 
- { 11, MAR, 2010, RCR, "3dsvm_common.c", MICRO, TYPE_MODIFY,
+ { 11, MAR, 2010, RCR, "3dsvm_common.c", MICRO, TYPE_GENERAL,
    "some compilers choke on mid-block variable definitions",
    NULL
  } ,
 
- {  9, MAR, 2010, RCR, "3dNotes", MICRO, TYPE_MODIFY,
+ {  9, MAR, 2010, RCR, "3dNotes", MICRO, TYPE_GENERAL,
    "send -help output to stderr (req by T Nycum)",
    NULL
  } ,
@@ -108,7 +119,7 @@ afni_history_struct rickr_history[] = {
    NULL
  } ,
 
- {  8, MAR, 2010, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
+ {  8, MAR, 2010, RCR, "afni_proc.py", MICRO, TYPE_GENERAL,
    "modified option order in some help examples",
    NULL
  } ,
@@ -146,7 +157,7 @@ afni_history_struct rickr_history[] = {
    NULL
  } ,
 
- { 18, FEB, 2010, RCR, "SUMA_Makefile_NoDev", MICRO, TYPE_MODIFY,
+ { 18, FEB, 2010, RCR, "SUMA_Makefile_NoDev", MICRO, TYPE_GENERAL,
    "added '--includedir /usr/local/netpbm' for libgts.a build on new Linux",
    NULL
  } ,
@@ -203,7 +214,7 @@ afni_history_struct rickr_history[] = {
    NULL
  } ,
 
- {  4, DEC, 2009, RCR, "3dWarp", MICRO, TYPE_MODIFY,
+ {  4, DEC, 2009, RCR, "3dWarp", MICRO, TYPE_GENERAL,
    "add help example of going from +tlrc space to +orig space",
    NULL
  } ,
@@ -272,7 +283,7 @@ afni_history_struct rickr_history[] = {
    "- do not call 3dTstat if only one sub-brick"
  } ,
 
- { 1, OCT, 2009, RCR, "afni-general", MICRO, TYPE_MODIFY,
+ { 1, OCT, 2009, RCR, "afni-general", MICRO, TYPE_GENERAL,
    "9/29, defined isblank() in case of SOLARIS_OLD ... and then removed it",
    NULL
  } ,
@@ -399,7 +410,7 @@ afni_history_struct rickr_history[] = {
    NULL
  } ,
 
- { 31, JUL, 2009, RCR, "prompt_user", MICRO, TYPE_MODIFY,
+ { 31, JUL, 2009, RCR, "prompt_user", MICRO, TYPE_GENERAL,
    "apply some escape sequences, mostly to display newlines",
    NULL
  } ,
@@ -435,7 +446,7 @@ afni_history_struct rickr_history[] = {
    "Also, changed prefix separator to double underscore '__'.",
  } ,
 
- { 27, JUL, 2009, RCR, "afni-general", MICRO, TYPE_MODIFY,
+ { 27, JUL, 2009, RCR, "afni-general", MICRO, TYPE_GENERAL,
    "added SOLARIS_OLD atanhf #define to machdep.h",
    NULL
  } ,
@@ -471,7 +482,7 @@ afni_history_struct rickr_history[] = {
    NULL
  } ,
 
- { 7, JUL, 2009, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
+ { 7, JUL, 2009, RCR, "afni_proc.py", MICRO, TYPE_GENERAL,
    "warn users to modify script for _AM1 in case of basis function dmBLOCK",
    NULL
  } ,
@@ -521,12 +532,12 @@ afni_history_struct rickr_history[] = {
    "- change block dividers to more visual '===' with block names"
  } ,
 
- { 15, JUN, 2009, RCR, "3dmerge", MINOR, TYPE_MODIFY,
+ { 15, JUN, 2009, RCR, "3dmerge", MINOR, TYPE_GENERAL,
    "allowed short/byte datasets to use FIR blur, so no Fourier interpolation",
    "Also added Y/N AFNI_BLUR_INTS_AS_OLD env var to use previous method."
  } ,
 
- { 12, JUN, 2009, RCR, "xmat_tool.py", MICRO, TYPE_MODIFY,
+ { 12, JUN, 2009, RCR, "xmat_tool.py", MICRO, TYPE_GENERAL,
    "used some wx IDs, per Daniel's suggestion",
    NULL
  } ,
@@ -543,7 +554,7 @@ afni_history_struct rickr_history[] = {
    NULL
  } ,
 
- { 8, JUN, 2009, RCR, "afni_base.py", MICRO, TYPE_MODIFY,
+ { 8, JUN, 2009, RCR, "afni_base.py", MICRO, TYPE_GENERAL,
    "added many afni_name descripts to __doc__ lines, check error in dset_dims",
    NULL
  } ,
@@ -573,7 +584,7 @@ afni_history_struct rickr_history[] = {
    "found by R Notestine of UCSD"
  } ,
 
- { 28, MAY, 2009, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
+ { 28, MAY, 2009, RCR, "afni_proc.py", MINOR, TYPE_GENERAL,
    "example updates for AFNI_data4 and new options",
    NULL
  } ,
@@ -593,7 +604,7 @@ afni_history_struct rickr_history[] = {
    NULL
  } ,
 
- { 19, MAY, 2009, RCR, "3dbucket", MICRO, TYPE_MODIFY,
+ { 19, MAY, 2009, RCR, "3dbucket", MICRO, TYPE_GENERAL,
    "suggest -overwrite if -glueto is not allowed (for Mike B)",
    NULL
  } ,
