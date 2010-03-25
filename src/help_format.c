@@ -257,8 +257,8 @@ void setup_wsub( int nskip , char **skip )
    nwign   = 1 + nskip ;
     wign   = (char **)malloc(sizeof(char *)*nwign) ;
    lwign   = (int *)  malloc(sizeof(int)   *nwign) ;
-   wign[4] = "sumarc" ;
-   for( ii=0 ; ii < nskip ; ii++ ) wign[ii+5] = skip[ii] ;
+   wign[0] = "sumarc" ;
+   for( ii=0 ; ii < nskip ; ii++ ) wign[ii+1] = skip[ii] ;
 
    for( ii=0 ; ii < nwign ; ii++ ) lwign[ii] = -strlen(wign[ii]) ;
    qsort_intchar( nwign , lwign , wign ) ;
