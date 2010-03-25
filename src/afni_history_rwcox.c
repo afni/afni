@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 25 , MAR , 2010 , RWC , "help_format" , MINOR , TYPE_MODIFY ,
+   "Hyperlink refs to other programs" ,
+   NULL } ,
+
  { 24 , MAR , 2010 , RWC , "3dFWHMx" , MICRO , TYPE_NEW_OPT ,
    "Add -2difMAD option, for dealing with PET data, maybe." ,
    NULL } ,

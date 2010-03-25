@@ -1631,6 +1631,10 @@ cs_sort_fv.o:cs_sort_fv.c
 	$(RM) $@
 	$(CCFAST) -c cs_sort_fv.c $(INFLAGS)
 
+cs_sort_iv.o:cs_sort_iv.c
+	$(RM) $@
+	$(CCFAST) -c cs_sort_iv.c $(INFLAGS)
+
 cs_sort_dv.o:cs_sort_dv.c
 	$(RM) $@
 	$(CCFAST) -c cs_sort_dv.c $(INFLAGS)
@@ -1803,7 +1807,7 @@ CS_OBJS  = cs_sort_fi.o cs_sort_di.o cs_symeig.o cs_sort_ii.o cs_sort_ff.o \
            cs_addto_args.o multivector.o afni_environ.o cs_qmed.o cl2.o    \
            cs_sort_fv.o cs_laguerre.o machdep.o cs_qhull.o afni_logger.o   \
            cl1.o cs_misc.o powell_int.o powell_newuoa.o cs_sort_dv.o       \
-           rhdd.o zfun.o cs_pv.o
+           rhdd.o zfun.o cs_pv.o cs_sort_iv.o
 
 EIS_OBJS = eis_bakvec.o eis_balanc.o eis_balbak.o eis_bandr.o              \
            eis_bandv.o eis_bisect.o eis_bqr.o eis_cbabk2.o eis_cbal.o      \
