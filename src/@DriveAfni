@@ -1,19 +1,20 @@
 #!/bin/tcsh -f 
 
-# NEEDS afni's class data archive AFNI_data3.tgz
+# NEEDS afni's class data archive AFNI_data?.tgz
+set Ad = AFNI_data6
 
-if ( ! -d AFNI_data3/afni/ ) then
-   echo "Directory ./AFNI_data3/afni  not found."
+if ( ! -d ${Ad}/afni/ ) then
+   echo "Directory ./${Ad}/afni  not found."
    echo "You could be in the wrong directory,"
-   echo " or you may not have AFNI_data3 on disk."
+   echo " or you may not have ${Ad} on disk."
    echo "This directory is in archive:"
-   echo "http://afni.nimh.nih.gov/pub/dist/edu/data/AFNI_data3.tgz"
+   echo "http://afni.nimh.nih.gov/pub/dist/edu/data/${Ad}.tgz"
    echo ""
    goto END
 endif
 
 
-afni -niml -yesplugouts AFNI_data3/afni/  &
+afni -niml -yesplugouts ${Ad}/afni/  &
 
 plugout_drive  -com 'SWITCH_SESSION A.afni'  \
                -com 'OPEN_WINDOW A.axialimage geom=600x600+416+44 \
