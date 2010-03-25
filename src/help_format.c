@@ -81,10 +81,11 @@ int need_expansion( char *buf )
 void complex_echo_line( char *buf )
 {
    int hend , ii , jj , is_img ;
-   char *hpt , cc ;
+   char *hpt , cc , lch ;
 
    /* scan thru buf, printing stuff */
 
+   lch = ' ' ;
    while( *buf != '\0' ){
 
      /* direct link to a web page? */
@@ -116,7 +117,7 @@ void complex_echo_line( char *buf )
 
        if( is_img ) printf("</center>\n") ;
 
-       buf += hend ; continue ;
+       buf += hend ; lch = buf[-1] ; continue ;
      }
 
      /* a name to output directly with no editing? */
@@ -124,25 +125,30 @@ void complex_echo_line( char *buf )
      jj = WIGN_check(buf) ;
      if( jj >= 0 ){
        printf("%s",wign[jj]) ;
-       buf += lwign[jj] ; continue ;
+       buf += lwign[jj] ; lch = buf[-1] ; continue ;
      }
 
      /* a name to substitute with a link to an AFNI help web page? */
 
-     jj = WSUB_check(buf) ;
+     if( isalnum(lch) || lch == '.' || lch == '_' || lch == '-' )
+       jj = -1 ;
+     else
+       jj = WSUB_check(buf) ;
 
      if( jj >= 0 ){
 
+        cc = buf[lwsub[jj]] ;  /* char after the name we found */
+
         /* expand name to be a hyperlink to that web page? */
 
-        if( line_num > pwsub[jj]+LINE_GAP ){
+        if( line_num <= pwsub[jj]+LINE_GAP || isalnum(cc) || cc == '_' || cc == '-' ){
+          printf("%s",wsub[jj]) ;
+        } else {
           printf("<a href='%s%s.html'>%s</a>",WEB,wsub[jj],wsub[jj]) ;
           pwsub[jj] = line_num ;
-        } else {
-          printf("%s",wsub[jj]) ;
         }
 
-        buf += lwsub[jj] ; continue ;
+        buf += lwsub[jj] ; lch = buf[-1] ; continue ;
 
      }
 
@@ -155,7 +161,7 @@ void complex_echo_line( char *buf )
      else if( cc == '>'   ) printf("&gt;")   ;
      else                   printf("%c",cc)  ;   /* perfectly normal character */
 
-     buf++ ; continue ;  /* just advanced one character here */
+     lch = cc ; buf++ ; continue ;  /* just advanced one character here */
    }
 
    /* explicit end of line callout */
@@ -248,14 +254,11 @@ void setup_wsub( int nskip , char **skip )
    char *wlist , *cc,*dd ;
    int nall , len , ii ;
 
-   nwign   = 4 + nskip ;
+   nwign   = 1 + nskip ;
     wign   = (char **)malloc(sizeof(char *)*nwign) ;
    lwign   = (int *)  malloc(sizeof(int)   *nwign) ;
-   wign[0] = ".afni.vctime" ;
-   wign[1] = ".afni.log" ;
-   wign[2] = ".afnirc" ;
-   wign[3] = "AFNI" ;
-   for( ii=0 ; ii < nskip ; ii++ ) wign[ii+4] = skip[ii] ;
+   wign[4] = "sumarc" ;
+   for( ii=0 ; ii < nskip ; ii++ ) wign[ii+5] = skip[ii] ;
 
    for( ii=0 ; ii < nwign ; ii++ ) lwign[ii] = -strlen(wign[ii]) ;
    qsort_intchar( nwign , lwign , wign ) ;
