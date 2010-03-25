@@ -66,6 +66,16 @@
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 23 , MAR , 2010 , ZSS , "1dplot" , MINOR , TYPE_NEW_OPT,
+   "Added -jpgs, and -pngs to allow easier size setup.",
+   NULL
+ } ,
+
+ { 23 , MAR , 2010 , ZSS , "1dplot" , MICRO , TYPE_BUG_FIX,
+   "Fixed unreported bug related to wintitle variable.",
+   NULL
+ } ,
+
  { 19 , MAR , 2010 , ZSS , "SurfDist" , MINOR , TYPE_NEW_OPT,
    "Added option to calculate Euclidian distance",
    NULL

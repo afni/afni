@@ -66,6 +66,7 @@ int main( int argc , char *argv[] )
    int skip_x11=0 , imsave=0 ; char *imfile=NULL ;
    int do_norm=0 ;   /* 26 Mar 2008 */
    char *ytran=NULL; /* 16 Jun 2009 */
+   char autotitle[512]={""}; /* 23 March 2009 */
 
    /*-- help? --*/
 
@@ -151,6 +152,10 @@ int main( int argc , char *argv[] )
             "                 compressed without loss.\n"
             "               * PNG output requires that the netpbm program\n"
             "                 pnmtopng be installed somewhere in your PATH.\n"
+            "\n"
+            " -pngs SIZE fname } = a convenience function equivalent to\n"
+            " -jpgs SIZE fname } = setenv AFNI_1DPLOT_IMSIZE SIZE and \n"
+            " -jpegs SIZE fname} = -png (or -jpg) fname\n"
             "\n"
             "-ytran 'expr'    = Transform the data along the y-axis by\n"
             "                   applying the expression to each input value.\n"
@@ -256,8 +261,11 @@ int main( int argc , char *argv[] )
    for( ii=1 ; ii < argc ; ii++ ){
      if( strcasecmp(argv[ii],"-ps")   == 0 ){ skip_x11 = 1; break; }
      if( strcasecmp(argv[ii],"-jpg")  == 0 ){ skip_x11 = 1; break; }
+     if( strcasecmp(argv[ii],"-jpgs")  == 0 ){ skip_x11 = 1; break; }
      if( strcasecmp(argv[ii],"-jpeg") == 0 ){ skip_x11 = 1; break; }
+     if( strcasecmp(argv[ii],"-jpegs")  == 0 ){ skip_x11 = 1; break; }
      if( strcasecmp(argv[ii],"-png")  == 0 ){ skip_x11 = 1; break; }
+     if( strcasecmp(argv[ii],"-pngs")  == 0 ){ skip_x11 = 1; break; }
    }
 
    if( !skip_x11 ){
@@ -356,6 +364,29 @@ int main( int argc , char *argv[] )
         iarg++ ; continue ;
      }
 
+     if( strcasecmp(argv[iarg],"-jpegs") == 0 || 
+         strcasecmp(argv[iarg],"-jpgs") == 0 ){
+        int isize; char sss[256]={""} ;
+        out_ps = 0 ; imsave = JPEG_MODE ;
+        iarg++ ; 
+        if( iarg+1 >= argc ) 
+         ERROR_exit("need 2 argument after '%s'",argv[iarg-1]) ;
+        isize = (int) strtod(argv[iarg], NULL);
+        if (isize < 100 || isize > 9999) {
+         ERROR_exit("SIZE value of %d is rather fishy. \n"
+                    "Allowed range is between 100 and 9999", isize);
+        }
+        sprintf(sss,"AFNI_1DPLOT_IMSIZE=%d", isize);
+        putenv(sss) ;
+        iarg++ ;        
+        imfile = (char *)malloc(strlen(argv[iarg])+8) ; 
+        strcpy(imfile,argv[iarg]) ;
+        if( !STRING_HAS_SUFFIX(imfile,".jpg") && 
+            !STRING_HAS_SUFFIX(imfile,".JPG") )
+          strcat(imfile,".jpg") ;
+        iarg++ ; continue ;
+     }
+
      if( strcasecmp(argv[iarg],"-png") == 0 ){
         out_ps = 0 ; imsave = PNG_MODE ;
         iarg++ ; if( iarg >= argc ) ERROR_exit("need argument after '%s'",argv[iarg-1]) ;
@@ -364,6 +395,29 @@ int main( int argc , char *argv[] )
           strcat(imfile,".png") ;
         iarg++ ; continue ;
      }
+     
+     if( strcasecmp(argv[iarg],"-pngs") == 0 ){
+        int isize; char sss[256]={""} ;
+        out_ps = 0 ; imsave = PNG_MODE ;
+        iarg++ ; 
+        if( iarg+1 >= argc ) 
+         ERROR_exit("need 2 arguments after '%s'",argv[iarg-1]) ;
+        isize = (int) strtod(argv[iarg], NULL);
+        if (isize < 100 || isize > 9999) {
+         ERROR_exit("SIZE value of %d is rather fishy. \n"
+                    "Allowed range is between 100 and 9999", isize);
+        }
+        sprintf(sss,"AFNI_1DPLOT_IMSIZE=%d", isize);
+        putenv(sss) ;
+        iarg++ ;
+        imfile = (char *)malloc(strlen(argv[iarg])+8) ; 
+        strcpy(imfile,argv[iarg]) ;
+        if( !STRING_HAS_SUFFIX(imfile,".png") && !STRING_HAS_SUFFIX(imfile,".PNG") )
+          strcat(imfile,".png") ;
+        iarg++ ; continue ;
+     }
+     
+     
 
      if( strcmp(argv[iarg],"-install") == 0 ){
         install++ ; iarg++ ; continue ;
@@ -573,13 +627,12 @@ int main( int argc , char *argv[] )
        MRI_IMARR *imar ;                   /* read them & glue into 1 image */
        int iarg_first=iarg, nysum=0, ii,jj,nx=1 ;
        float *far,*iar ;
-       char stmp[256];
        
        if (!wintitle) {
-         snprintf(stmp,64*sizeof(char),"%s ...", argv[iarg] );
-         wintitle = stmp;
+         snprintf(autotitle,64*sizeof(char),"%s ...", argv[iarg] );
+         wintitle = autotitle;
        } 
-       
+
        INIT_IMARR(imar) ;
        for( ; iarg < argc ; iarg++ ){
          inim = mri_read_1D( argv[iarg] ) ;
