@@ -119,7 +119,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
    if( ncall > 0 ) return NULL ;  /* only one interface */
 
-   plint = PLUTO_new_interface( "Render Dataset" , NULL , NULL ,
+   plint = PLUTO_new_interface( "Render [old]" , NULL , NULL ,
                                 PLUGIN_CALL_IMMEDIATELY , REND_main ) ;
 
    PLUTO_add_hint( plint , "Volume Rendering" ) ;
