@@ -2244,15 +2244,26 @@ ENTRY("AFNI_startup_timeout_CB") ;
                               "++ for dataset files.                   ++\n " ,
                               MCW_USER_KILL | MCW_TIMER_KILL ) ;
    else if( !ALLOW_realtime && GLOBAL_library.have_dummy_dataset ){
-    (void) MCW_popup_message( MAIN_im3d->vwid->picture ,       /* 23 Dec 2009 */
-                              " \n"
-                              "++ NOTICE:                               ++\n"
-                              "++ No valid datasets were found.         ++\n"
-                              "++ A 'dummy' dataset has been loaded     ++\n"
-                              "++ for your viewing pleasure :-)         ++\n"
-                              "++ To read in an actual data directory,  ++\n"
-                              "++ use the 'Read' button near 'DataDir'. ++\n " ,
-                              MCW_USER_KILL | MCW_TIMER_KILL ) ;
+    char hstr[1024] ;
+    sprintf( hstr ,
+             "   *** NOTICE ***                                              \n"
+             "                                                               \n"
+             "++ No valid datasets were found.  A dummy dataset has been   ++\n"
+             "++ created for your viewing pleasure :-)  To read in a real  ++\n"
+             "++ data directory, use the 'Read' button near 'DataDir'.     ++\n"
+             "                                                               \n"
+             "++ For general AFNI program help, see the Web page           ++\n"
+             "++                                                           ++\n"
+             "++ http://afni.nimh.nih.gov/afni/doc/program_help/index.html ++\n"
+             "%s" ,
+      (GLOBAL_browser == NULL)
+           ? " "
+           : "++                                                           ++\n"
+             "++ which you can open by right-clicking on the logo space to ++\n"
+             "++ the right of the 'done' button, and from the resulting    ++\n"
+             "++ popup menu, choose the 'Web Browser: Help' item.          ++\n"
+           ) ;
+    (void) MCW_popup_message( MAIN_im3d->vwid->picture , hstr , MCW_USER_KILL ) ;
      MCW_flash_widget_list( 9 , MAIN_im3d->vwid->view->sess_lab ,
                                 MAIN_im3d->vwid->view->choose_sess_pb ,
                                 MAIN_im3d->vwid->view->read_sess_pb ,
