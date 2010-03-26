@@ -2269,7 +2269,7 @@ ENTRY("AFNI_startup_timeout_CB") ;
              "++ the right of the 'done' button, and from the resulting    ++\n"
              "++ popup menu, choose the 'Web Browser: Help' item.          ++\n"
            ) ;
-    (void) MCW_popup_message( MAIN_im3d->vwid->picture , hstr , MCW_USER_KILL ) ;
+    (void) MCW_popup_message( MAIN_im3d->vwid->prog->quit_pb, hstr, MCW_USER_KILL ) ;
      MCW_flash_widget_list( 9 , MAIN_im3d->vwid->view->sess_lab ,
                                 MAIN_im3d->vwid->view->choose_sess_pb ,
                                 MAIN_im3d->vwid->view->read_sess_pb ,
