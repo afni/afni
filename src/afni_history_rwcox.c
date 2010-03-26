@@ -45,7 +45,7 @@ afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
  { 25 , MAR , 2010 , RWC , "help_format" , MINOR , TYPE_MODIFY ,
-   "Hyperlink refs to other programs" ,
+   "Hyperlink refs to other program names in -help Web pages" ,
    NULL } ,
 
  { 24 , MAR , 2010 , RWC , "3dFWHMx" , MICRO , TYPE_NEW_OPT ,
