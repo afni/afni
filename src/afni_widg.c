@@ -5114,7 +5114,7 @@ STATUS("making prog->rowcol") ;
         prog->hidden_browser_pb =
               XtVaCreateManagedWidget(
                  "dialog" , xmPushButtonWidgetClass , prog->hidden_menu ,
-                    LABEL_ARG("Web Browser") ,
+                    LABEL_ARG("Web Browser: Help") ,
                     XmNmarginHeight , 0 ,
                     XmNtraversalOn , True  ,
                     XmNinitialResourcesPersistent , False ,
