@@ -402,28 +402,6 @@ void AFNI_syntax(void)
     " http://afni.nimh.nih.gov/pub/dist/doc/program_help/images/afni_splashes.gif\n"
    ) ;
 
-   /*........................................................................*/
-#undef  NSLIDE
-#define NSLIDE 34
-   if( AFNI_yesenv("AFNI_POMOC") ){  /* for the Web -help page */
-     int ii ;
-     printf("\n"
-            "                   ------------------------------------\n"
-            "                     SLIDES to help with the AFNI GUI\n"
-            "                   ------------------------------------\n"
-     ) ;
-     for( ii=1 ; ii <= NSLIDE ; ii++ )
-       printf(
-        "http://afni.nimh.nih.gov/pub/dist/doc/program_help/images/afni03/Slide%02d.png\n",ii) ;
-     printf("\n") ;
-   } else {
-     printf("\n"
-            "* Some slides to help with learning the AFNI GUI can be found at\n"
-            " http://afni.nimh.nih.gov/pub/dist/doc/program_help/images/afni03/\n"
-     ) ;
-   }
-   /*........................................................................*/
-
    printf(
     "\n"
     "-----------------------------------------\n"
@@ -487,7 +465,32 @@ void AFNI_syntax(void)
     "  * http://afni.nimh.nih.gov/sscc/posters\n"
    ) ;
 
-   PRINT_COMPILE_DATE ; exit(0) ;
+   /*........................................................................*/
+#undef  NSLIDE
+#define NSLIDE 34
+   if( AFNI_yesenv("AFNI_POMOC") ){  /* for the Web -help page */
+     int ii ;
+     printf("\n"
+            "------------------------------------------------------------------------------------\n"
+            "                  SLIDE IMAGES to help with learning the AFNI GUI\n"
+            "           http://afni.nimh.nih.gov/pub/dist/doc/program_help/images/afni03/\n"
+            "------------------------------------------------------------------------------------\n"
+     ) ;
+     for( ii=1 ; ii <= NSLIDE ; ii++ ){
+       printf(
+        "http://afni.nimh.nih.gov/pub/dist/doc/program_help/images/afni03/Slide%02d.png\n"
+        "------------------------------------------------------------------------------------\n"
+        , ii ) ;
+     }
+   } else {
+     printf("\n"
+            "SLIDE IMAGES to help with learning the AFNI GUI can be found at\n"
+            "  * http://afni.nimh.nih.gov/pub/dist/doc/program_help/images/afni03/\n"
+     ) ;
+   }
+   /*........................................................................*/
+
+   exit(0) ;
 }
 
 /*----------------------------------------------------------------------
