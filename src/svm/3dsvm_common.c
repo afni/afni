@@ -734,8 +734,9 @@ void readAllocateAfniModel( THD_3dim_dataset *dsetModel,  AFNI_MODEL *afniModel)
   ATR_int *atr_int;
   ATR_string *atr_string;
   long i,j,c;
-  char p[100],*q; /* used for strtok magic */
-  char headernames[100];
+  char p[CLASS_MAX*10],*q; /* used for strtok magic */
+	  /* JL Mar 2010: Changed to CLASS_MAX*10 */
+  char headernames[LONG_STRING];
 
   ENTRY("readAllocateAfniModel");
 
@@ -744,13 +745,15 @@ void readAllocateAfniModel( THD_3dim_dataset *dsetModel,  AFNI_MODEL *afniModel)
    * model header has changed. We added "3DSVM" in front of each parameter name 
    * to avoid collisions with header entries from other afni programs.
    *
-   * Trying to be backwards compatible. */
-
-  /* Assuming old (before Oct. 2009) naming for model parameters 
-   * if "3DSVM_SVM_TYPE" is not present in the header. */
+   * Trying to be backwards compatible:
+   * Assuming old (before Oct. 2009) naming for model parameters
+   * if "3DSVM_SVM_TYPE" is not present in the header.
+   *
+   * TODO: Need error checking for each model parameter
+   *
+   */
   
   atr_string = THD_find_string_atr( dsetModel->dblk, "3DSVM_SVM_TYPE" );
-  
   
   /* ---- naming for model parameters before Oct. 2009 ---*/
   if( atr_string == NULL ) {
@@ -1430,7 +1433,6 @@ void writeModelMap_bucket ( MODEL_MAPS *maps, MaskType *dsetMaskArray,
     *dsetModelMapBucket = NULL;
   DatasetType 
     *scaled_map         = NULL;
-  char * commandline    = NULL;  /* 11 Mar 2010 [rickr] */
     
 
   ENTRY("writeModelMap_bucket");
@@ -1477,11 +1479,11 @@ void writeModelMap_bucket ( MODEL_MAPS *maps, MaskType *dsetMaskArray,
 
   /* -- record and append history of dataset -- */
   tross_Copy_History( dsetTrain, dsetModelMapBucket);
-  commandline = tross_commandline( PROGRAM_NAME , argc , argv ) ;
+  char * commandline = tross_commandline( PROGRAM_NAME , argc , argv ) ;
   tross_Append_History ( dsetModelMapBucket, commandline);
   free(commandline);
 
-
+  
  /* --- scale and write maps into bucket --- */
   for (iMap=0; iMap<maps->nmaps; ++iMap) {
     
@@ -1581,13 +1583,13 @@ void writeModelMask( THD_3dim_dataset *dsetMask, MaskType* dsetMaskArray, char *
 void writeModelBrik(AFNI_MODEL *afniModel, ASLoptions *options, char *fileName,
 		int argc, char **argv)
 {
-  THD_3dim_dataset *dsetModel;
-  char csv_combName[LONG_STRING];	/* to put in header file - comma seperated "names" 
-                                       of class category combinations */
-  char csv_kernelCustom[50];        /* JL Feb. 2009: For custom kernels
-                                       50 hard-coded as in svm-light */
-  char headernames[LONG_STRING];	/* holds name for each alpha section in the .HEAD */
-  char * commandline;                   /* 11 Mar 2010 [rickr] */
+  THD_3dim_dataset *dsetModel = NULL;
+  char csv_combName[LONG_STRING];	   /* to put in header file - comma seperated "names"
+                                          of class category combinations */
+  char csv_kernelCustom[50*CLASS_MAX];  /* JL Feb. 2009: For custom kernels
+                                           50 hard-coded as in svm-light */
+  char headernames[LONG_STRING];		/* holds name for each alpha section in the .HEAD */
+  char * commandline = NULL;        	/* for history */
   long i;
 
   ENTRY("writeModelBrik");
@@ -1611,8 +1613,8 @@ void writeModelBrik(AFNI_MODEL *afniModel, ASLoptions *options, char *fileName,
   DSET_load( dsetModel );
  
 
-  /* JL Sep 2009: Assigning new idcode to avioid problems with 
-   * dublicated idcodes */
+  /* JL Sep 2009: Assigning new idcode to avoid problems with
+   * duplicated idcodes */
   dsetModel->idcode=MCW_new_idcode();
 
   strcpy(csv_combName, afniModel->combName[0]);
@@ -1626,10 +1628,9 @@ void writeModelBrik(AFNI_MODEL *afniModel, ASLoptions *options, char *fileName,
   }
 
   /*----- Record history of dataset -----*/
-
-  commandline = tross_commandline( PROGRAM_NAME , argc , argv ) ;
-  tross_Append_History ( dsetModel, commandline);
-  free(commandline) ;
+  commandline = tross_commandline(PROGRAM_NAME, argc, argv);
+  tross_Append_History (dsetModel, commandline);
+  free(commandline);
   
   THD_set_int_atr( dsetModel->dblk, "3DSVM_CLASS_COUNT", 1,
       &afniModel->class_count);
@@ -2425,7 +2426,7 @@ void test_routine (ASLoptions *options, MODEL *model, AFNI_MODEL *afniModel,
   MaskType *dsetMaskArray=NULL; /*ZSS: init to NULL*/
   float dist_tmp;
   float *dist;  /* really want this to be double, but am detrending - should do something smarter soon!*/
-  float *dist_cnsrs=NULL;
+  float *dist_cnsrs;
   /* double *multiclass_dist;
    * double multiclassTmp;
    *
@@ -2447,7 +2448,7 @@ void test_routine (ASLoptions *options, MODEL *model, AFNI_MODEL *afniModel,
   long i,j,c;
   LABELS testLabels;
   LabelType *tmp_labels=NULL; /*ZSS: init to NULL*/
-  char p[100],*q; /* used for strtok magic */
+  char p[CLASS_MAX*10], *q; /* used for strtok magic */
   long cc, dd;
   long sampleCount = 0;			/* number of samples used in training */
   float correct=0.0,incorrect=0.0,no_accuracy=0.0; /*ZSS: init to 0.0*/
@@ -2457,12 +2458,12 @@ void test_routine (ASLoptions *options, MODEL *model, AFNI_MODEL *afniModel,
   short edgeFlag; /* DAG related */
   int classAssignment; /* multi-class related */
   float *classCorrect, *classIncorrect;
-  long *nClass;
-  int *classVote;    /* mulit-class vote */
+  long *nClass = NULL;
+  int *classVote = NULL;    /* mulit-class vote */
   int currentComb, class0, class1, winningCount;    /* mulit-class vote */
-  enum mctypes { MCTYPE_DAG, MCTYPE_VOTE };  /* classifyer types for multiclass */
+  enum mctypes { MCTYPE_DAG, MCTYPE_VOTE };  /* types for multiclass */
   enum mctypes mctype = MCTYPE_DAG;          /* default value */
-
+  long classCountMax = 0; /* JL */
   ENTRY("test_routine"); 
     
   if (verbosity >= 1) INFO_message("\n++ CLASSIFICATION (testing):\n++");
@@ -2616,14 +2617,24 @@ void test_routine (ASLoptions *options, MODEL *model, AFNI_MODEL *afniModel,
   dist_cnsrs = (float *)malloc(sizeof(float)*(nt-testLabels.n_cnsrs));
   }
 
+  /* JL Mar. 2009: Check if the number of classes in labelfile is grater than
+   * the number of classes in model
+   */
+  classCountMax = afniModel->class_count;
+  if( options->testLabelFile[0] ) {
+    if (testLabels.n_classes > afniModel->class_count) {
+	  classCountMax = testLabels.n_classes;
+    }
+  }
+
   /* Note: if not multiclass these may not get used - moreover, if only one multiclass approach
    *       still not everything will get used. So perhaps being a little inneficient here */
   /* multiclass_dist = (double *)calloc(sizeof(double),nt); -- SL Aug. 08*/
   multiclass_dist = Allocate2f((long) afniModel->combinations, (long) nt);
-  classCorrect = (float *)malloc(sizeof(float)*afniModel->class_count);
-  classIncorrect = (float *)malloc(sizeof(float)*afniModel->class_count);
-  nClass = (long *)malloc(sizeof(long)*afniModel->class_count);
-  classVote = (int *)malloc(sizeof(long)*afniModel->class_count);
+  classCorrect = (float *)malloc(sizeof(float)*classCountMax);
+  classIncorrect = (float *)malloc(sizeof(float)*classCountMax);
+  nClass = (long *)malloc(sizeof(long)*classCountMax);
+  classVote = (int *)malloc(sizeof(long)*classCountMax);
 
   
   for(i = 0; i < afniModel->combinations; ++i ) {
@@ -2755,9 +2766,9 @@ void test_routine (ASLoptions *options, MODEL *model, AFNI_MODEL *afniModel,
       res_c=0.0;
       res_d=0.0;
       for(c = 0; c < afniModel->class_count; ++c) {
-	classCorrect[c] = 0.0;
-	classIncorrect[c] = 0.0;
-	nClass[c] = 0L;
+    	  classCorrect[c] = 0.0;
+    	  classIncorrect[c] = 0.0;
+    	  nClass[c] = 0L;
       }
     }
 
@@ -3011,8 +3022,17 @@ void test_routine (ASLoptions *options, MODEL *model, AFNI_MODEL *afniModel,
     }
   }
 
+  /* JL Mar 2010 */
+  if( options->testLabelFile[0] ) {
+    if (testLabels.n_classes > afniModel->class_count) {
+  	  WARNING_message("Number of classes: %d in labelfile: %s is grater than\n"
+  			  "            the number of classes: %d in modelfile: %s",
+  			  testLabels.n_classes, options->testLabelFile,
+  			  afniModel->class_count, options->modelFile);
+    }
+  }
+
   free(dist);
-  
   free(classCorrect);
   free(classIncorrect);
   free(nClass);
