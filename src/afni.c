@@ -134,9 +134,22 @@ static int   recursed_ondot = 0 ;  /* 18 Feb 2007 */
 
 void AFNI_syntax(void)
 {
-   printf(
-     ANNOUNCEMENT
+   printf(ANNOUNCEMENT) ;
 
+   if( AFNI_yesenv("AFNI_POMOC") )  /* for the Web -help page */
+     printf(
+      " **** At the bottom of this Web page are some slide images to\n"
+      "    outline the usage of the AFNI Graphical User Interface (GUI).\n"
+      "\n"
+     ) ;
+   else
+     printf(
+      " **** Help for all AFNI programs can be found at the Web page\n"
+      "    http://afni.nimh.nih.gov/afni/doc/program_help/index.html\n"
+      "\n"
+     ) ;
+
+   printf(
      "----------------------------------------------------------------\n"
      "USAGE 1: read in sessions of 3D datasets (created by to3d, etc.)\n"
      "----------------------------------------------------------------\n"
