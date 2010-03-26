@@ -6101,7 +6101,9 @@ ENTRY("AFNI_hidden_CB") ;
             GLOBAL_browser != NULL ){
 
      char cmd[2345] ;
-     sprintf(cmd,"%s http://afni.nimh.nih.gov/afni &",GLOBAL_browser) ;
+     sprintf(cmd ,
+             "%s http://afni.nimh.nih.gov/afni/doc/program_help/index.html &" ,
+             GLOBAL_browser ) ;
      system(cmd) ;
    }
 
