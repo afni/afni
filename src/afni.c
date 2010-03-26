@@ -488,6 +488,7 @@ void AFNI_syntax(void)
             "  * http://afni.nimh.nih.gov/pub/dist/doc/program_help/images/afni03/\n"
      ) ;
    }
+   printf("\n") ;
    /*........................................................................*/
 
    exit(0) ;
