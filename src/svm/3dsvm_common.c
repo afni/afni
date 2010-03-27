@@ -734,9 +734,10 @@ void readAllocateAfniModel( THD_3dim_dataset *dsetModel,  AFNI_MODEL *afniModel)
   ATR_int *atr_int;
   ATR_string *atr_string;
   long i,j,c;
-  char p[CLASS_MAX*10],*q; /* used for strtok magic */
-	  /* JL Mar 2010: Changed to CLASS_MAX*10 */
-  char headernames[LONG_STRING];
+  char p[10*(CLASS_MAX * (CLASS_MAX-1))/2],*q;
+	  /* used for strtok magic */
+	  /* JL Mar 2010: Changed to 10*(CLASS_MAX * (CLASS_MAX-1))/2 */
+  char headernames[10*(CLASS_MAX * (CLASS_MAX-1))/2];
 
   ENTRY("readAllocateAfniModel");
 
@@ -1477,13 +1478,6 @@ void writeModelMap_bucket ( MODEL_MAPS *maps, MaskType *dsetMaskArray,
     ERROR_exit("%d errors in attempting to create bucket dataset!", ierror );
   }
 
-  /* -- record and append history of dataset -- */
-  tross_Copy_History( dsetTrain, dsetModelMapBucket);
-  char * commandline = tross_commandline( PROGRAM_NAME , argc , argv ) ;
-  tross_Append_History ( dsetModelMapBucket, commandline);
-  free(commandline);
-
-  
  /* --- scale and write maps into bucket --- */
   for (iMap=0; iMap<maps->nmaps; ++iMap) {
     
@@ -1584,11 +1578,12 @@ void writeModelBrik(AFNI_MODEL *afniModel, ASLoptions *options, char *fileName,
 		int argc, char **argv)
 {
   THD_3dim_dataset *dsetModel = NULL;
-  char csv_combName[LONG_STRING];	   /* to put in header file - comma seperated "names"
-                                          of class category combinations */
-  char csv_kernelCustom[50*CLASS_MAX];  /* JL Feb. 2009: For custom kernels
-                                           50 hard-coded as in svm-light */
-  char headernames[LONG_STRING];		/* holds name for each alpha section in the .HEAD */
+  char csv_combName[10*(CLASS_MAX * (CLASS_MAX-1))/2];
+	  /* to put in header file - comma seperated "names"of class category combinations */
+  char csv_kernelCustom[50*(CLASS_MAX * (CLASS_MAX-1))/2];
+	  /* JL Feb. 2009: For custom kernels size 50 hard-coded as in svm-light */
+  char headernames[10*(CLASS_MAX * (CLASS_MAX-1))/2];
+	  /* holds name for each alpha section in the .HEAD */
   char * commandline = NULL;        	/* for history */
   long i;
 
@@ -1611,12 +1606,21 @@ void writeModelBrik(AFNI_MODEL *afniModel, ASLoptions *options, char *fileName,
         options->trainFile );
     }
   DSET_load( dsetModel );
- 
 
   /* JL Sep 2009: Assigning new idcode to avoid problems with
    * duplicated idcodes */
   dsetModel->idcode=MCW_new_idcode();
 
+  if ( !ISVALID_DATABLOCK((dsetModel)->dblk) ) ERROR_message("BLA");
+
+  /*----- Record history of dataset -----*/
+  commandline = tross_commandline(PROGRAM_NAME, argc, argv);
+  if (commandline == NULL) WARNING_message("Can not copy commandline into model!");
+  else tross_Append_History (dsetModel, commandline);
+  free(commandline);
+
+
+  /* --- write header --- */
   strcpy(csv_combName, afniModel->combName[0]);
   strcpy(csv_kernelCustom, afniModel->kernel_custom[0]);
 
@@ -1627,11 +1631,6 @@ void writeModelBrik(AFNI_MODEL *afniModel, ASLoptions *options, char *fileName,
     strcat(csv_kernelCustom, afniModel->kernel_custom[i]);
   }
 
-  /*----- Record history of dataset -----*/
-  commandline = tross_commandline(PROGRAM_NAME, argc, argv);
-  tross_Append_History (dsetModel, commandline);
-  free(commandline);
-  
   THD_set_int_atr( dsetModel->dblk, "3DSVM_CLASS_COUNT", 1,
       &afniModel->class_count);
   THD_set_int_atr( dsetModel->dblk, "3DSVM_CLASS_COMBINATIONS", 1, 
@@ -1701,6 +1700,7 @@ void writeModelBrik(AFNI_MODEL *afniModel, ASLoptions *options, char *fileName,
     THD_set_float_atr( dsetModel->dblk, headernames, afniModel->timepoints, afniModel->alphas[i] );
   }
   
+  /* -- write brick -- */
   fflush(stdout);
   INFO_message( "Writing model dataset..." );
   THD_write_3dim_dataset( "./", fileName, dsetModel, True );
@@ -2135,7 +2135,7 @@ void freeLabels(LABELS *labels) {
    
 void getLabels(LABELS *labels, char *labelFile, char *censorFile)
 {
-  FILE *fp;
+  FILE *fp = NULL;
   int class_exists_flag = 0;
   int nine_exists_flag = 0;
   long i,j,k;
