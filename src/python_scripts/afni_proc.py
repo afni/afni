@@ -178,9 +178,10 @@ g_history = """
     2.19 Mar 18 2010 : minor: help updates to alignment options
     2.20 Mar 18 2010 : deal with args having '\\n' (from quoted newlines)
     2.21 Mar 23 2010 : added -regress_compute_fitts, to save memory in 3dD
+    2.22 Mar 28 2010 : applied fitts computation to REML case
 """
 
-g_version = "version 2.21, March 23, 2010"
+g_version = "version 2.22, March 28, 2010"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
