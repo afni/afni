@@ -1274,7 +1274,8 @@ def group_mask_command(proc, block):
 
     if com.status or not com.so or len(com.so[0]) < 2:
         # call this a non-fatal error for now
-        print "** failed to find tlrc_base '%s' for group mask"%proc.tlrc_base
+        print "** failed to find tlrc_base '%s' for group mask" \
+              % proc.tlrc_base.pv()
         if proc.verb > 2:
            print '   status = %s' % com.status
            print '   stdout = %s' % com.so
@@ -2015,10 +2016,18 @@ def db_cmd_regress(proc, block):
 
     # possibly create computed fitts dataset
     if compute_fitts:
-        cmd = cmd + "# create fitts dataset from all_runs and errts\n"  \
-                    "3dcalc -a %s%s -b %s%s -expr a-b \\\n"             \
-                    "       -prefix %s\n\n"   \
-                    % (all_runs, proc.view, errts_pre, proc.view, fitts_pre)
+        # create if no -x1D_stop
+        if stop_opt == '':
+            cmd = cmd + "# create fitts dataset from all_runs and errts\n"  \
+                        "3dcalc -a %s%s -b %s%s -expr a-b \\\n"             \
+                        "       -prefix %s\n\n"                             \
+                        % (all_runs, proc.view, errts_pre, proc.view, fitts_pre)
+        # if reml_exec, make one for the REML fitts, too
+        if block.opts.find_opt('-regress_reml_exec'):
+            cmd = cmd + "# create fitts from REML errts\n"              \
+                        "3dcalc -a %s%s -b %s\_REML%s -expr a-b \\\n"   \
+                        "       -prefix %s\_REML\n\n"                   \
+                        % (all_runs, proc.view, errts_pre, proc.view, fitts_pre)
 
     # if censoring create an uncensored X-matrix file
     if proc.regress_censor_file:

@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 28, MAR, 2010, RCR, "afni_proc.py", MICRO, TYPE_GENERAL,
+   "applied fitts computation to REML case",
+   NULL
+ } ,
+
  { 25, MAR, 2010, RCR, "1d_tool.py", MICRO, TYPE_GENERAL,
    "small help update",
    NULL
