@@ -2512,6 +2512,10 @@ int main( int argc , char *argv[] )
          THD_mask_fillin_once( nx_targ,ny_targ,nz_targ , mmm , 2 ) ;
        }
      }
+     if( auto_tstring == NULL ){
+       auto_tstring = (char *)malloc(sizeof(char)*32) ;
+       sprintf(auto_tstring,"source_automask+%d",ndil) ;
+     }
      ntmask = THD_countmask( im_tmask->nvox , mmm ) ;
      if( ntmask < 666 && auto_tmask )
        ERROR_exit("Too few (%d) voxels in %s :-(",ntmask,auto_tstring) ;

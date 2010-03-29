@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 29 , MAR , 2010 , RWC , "3dAllineate" , MICRO , TYPE_BUG_FIX ,
+   "Make sure auto_tstring is set to something reasonable" ,
+   NULL } ,
+
  { 29 , MAR , 2010 , RWC , "afni_history" , MICRO , TYPE_MODIFY ,
    "Add -dline option, alternative to -html option" ,
    NULL } ,
