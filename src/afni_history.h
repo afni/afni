@@ -87,6 +87,7 @@ typedef struct {
     char     * author;
     char     * program;
     int        html;
+    int        dline;
     int        type;
     int        level;
     int        min_level;
@@ -147,6 +148,7 @@ int show_history        (global_data * gd, hist_type ** hlist, int len);
 int show_html_footer    (FILE * fp);
 int show_html_header    (global_data * gd, FILE * fp, int min_level);
 int show_html_separator (FILE * fp);
+int show_dline_separator(FILE * fp);
 int show_results        (global_data * gd);
 int show_valid_types    (void);
 int show_wrapping_line  (char * str, char * prefix, int indent, FILE * fp);
