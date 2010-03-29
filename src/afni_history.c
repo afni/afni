@@ -25,11 +25,11 @@ static char g_history[] =
   "     - added -past_entries option\n"
   "1.6  14 Jul, 2008 [rickr]\n"
   "     - a single integer option is used as -past_entries\n"
-  "     29 Mar 2010 [RWCox]\n"
+  "1.7  29 Mar 2010 [RWCox]\n"
   "     - add '-dline' option\n"
 };
 
-static char g_version[] = "afni_history version 1.6, 14 July 2008";
+static char g_version[] = "afni_history version 1.7, 29 Mar 2010";
 
 static  char * g_author_list[] = {
     "rwcox",    "RWC",  RWC,
