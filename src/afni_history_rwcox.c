@@ -1296,8 +1296,10 @@ afni_history_struct rwcox_history[] = {
  /*---------- The stuff below was converted from AFNI.changes.cox ----------*/
 
  { 24,JUL,1996, RWC, "Miscellaneous", SUPERDUPER, TYPE_GENERAL, "Oldest History stuff" ,
-   "AFNI was created in summer 1994 (altho some parts date to the 1980s).\n"
-   "However, no log was made of changes until this date in 1996.\n"
+   "AFNI was created in summer 1994 (but some parts date to the 1980s).\n"
+   "However, no formal log was made of changes until this date in 1996.\n"
+   "So this is the beginning of AFNI historiography.\n"
+   "  'Lately it occurs to me: What a long, strange trip it's been.'\n"
    } ,
 
  { 25,JUL,1996 , RWC , "Miscellaneous" , MICRO , TYPE_GENERAL , "Older History stuff" ,
