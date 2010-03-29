@@ -921,6 +921,7 @@ int show_help(void)
   "general options: \n"
   "\n"
   "  -html                    : add html formatting\n"
+  "  -dline                   : put a divider line between dates\n"
   "  -reverse                 : reverse the sorting order\n"
   "                             (sort is by date, author, level, program)\n"
   "  -verb LEVEL              : request verbose output\n"
