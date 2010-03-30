@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 30 , MAR , 2010 , RWC , "3dGroupInCorr" , MICRO , TYPE_MODIFY ,
+   "Munge input filenames if user just gives prefix" ,
+   NULL } ,
+
  { 29 , MAR , 2010 , RWC , "3dAllineate" , MICRO , TYPE_BUG_FIX ,
    "Make sure auto_tstring is set to something reasonable" ,
    NULL } ,
