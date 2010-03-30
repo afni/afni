@@ -44,6 +44,11 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 30 , MAR , 2010 , RWC , "3drefit" , MICRO , TYPE_GENERAL ,
+   "Keeps track of if it actual does something" ,
+   "And then will only re-write dataset header if a change was made.\n"
+   "Also, prints a message if it has to re-write entire dataset (e.g., .nii)" } ,
+
  { 30 , MAR , 2010 , RWC , "3dGroupInCorr" , MICRO , TYPE_MODIFY ,
    "Munge input filenames if user just gives prefix" ,
    NULL } ,
