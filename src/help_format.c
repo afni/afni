@@ -173,13 +173,24 @@ void complex_echo_line( char *buf )
 
 void echo_line( char *buf )
 {
-   int kend = strlen(buf) ;
+   int kend = strlen(buf) , ii ;
 
    if( kend == 0 ) return ;
    if( kend == 1 ){ printf("<br />\n") ; return ; }
-   if( buf[kend-1] == '\n' ) buf[kend-1] = '\0' ;
+   if( buf[kend-1] == '\n' ){ buf[kend-1] = '\0' ; kend-- ; }
 
-   complex_echo_line(buf) ;
+#if 0
+   for( ii=0 ; ii < kend && buf[ii] == '-' ; ii++ ) ; /*nada*/
+
+   if( ii == kend ){  /* string was all dashes ==> use a horizontal rule */
+     ii = (int)(100.0f*ii/80.0f) ;
+     if( ii > 99 ) ii = 99 ; else if( ii < 9 ) ii = 9 ;
+     printf("<hr width='%d%%' />\n",ii) ;
+     return ;
+   }
+#endif
+
+   complex_echo_line(buf) ; return ;
 }
 
 /*-------------------------------------------------------------------------*/
