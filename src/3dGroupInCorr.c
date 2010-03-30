@@ -658,6 +658,8 @@ int main( int argc , char *argv[] )
       "     your input dataset collection file!\n"
       "  ++ 3dGroupInCorr can use byte-valued or short-valued data as\n"
       "     produced by the '-byte' or '-short' options to 3dSetupGroupInCorr.\n"
+      "  ++ You can also put the '.data' filename here, or leave off the '.niml';\n"
+      "     the program will look for these cases and patch the filename as needed.\n"
       "\n"
       " -setB BBB.grpincorr.niml\n"
       "   = Give the setup file that describes the second dataset collection:\n"
@@ -677,10 +679,10 @@ int main( int argc , char *argv[] )
       "    -- One reason for using Z-scores is that the DOF parameter varies between\n"
       "       voxels when you choose the -unpooled option for a 2-sample t-test.\n"
       "\n"
-      " -labelA aaa = Label to attach (in AFNI) to the sub-bricks corresponding to\n"
-      "               setA.  If you don't give this, the label used will be 'AAA'.\n"
-      " -labelB bbb = Label to attach (in AFNI) to the sub-bricks corresponding to\n"
-      "               setB.  If you don't give this, the label used will be 'BBB'.\n"
+      " -labelA aaa = Label to attach (in AFNI) to sub-bricks corresponding to setA.\n"
+      "               If you don't give this option, the label used will be the prefix\n"
+      "               from the -setA filename.\n"
+      " -labelB bbb = Label to attach (in AFNI) to sub-bricks corresponding to setB.\n"
       "              ++ At most the first 11 characters of each label will be used!\n"
       "\n"
       "*** Two-Sample Options ***\n"
@@ -863,6 +865,14 @@ int main( int argc , char *argv[] )
        if( STRING_HAS_SUFFIX(fname,".data") ){
          strcpy(fname+strlen(fname)-5,".niml") ;
          WARNING_message("Replaced '.data' with '.niml' in -setA filename") ;
+       } else if( STRING_HAS_SUFFIX(fname,".grpincorr") ){
+         fname = (char *)realloc(fname,strlen(fname)+16) ;
+         strcat(fname,".niml") ;
+         INFO_message("Added '.niml' to end of -setA filename") ;
+       } else if( STRING_HAS_SUFFIX(fname,".grpincorr.") ){
+         fname = (char *)realloc(fname,strlen(fname)+16) ;
+         strcat(fname,"niml") ;
+         INFO_message("Added 'niml' to end of -setA filename") ;
        }
        shd_AAA = GRINCOR_read_input( fname ) ;
        if( shd_AAA == NULL ) ERROR_exit("Cannot continue after -setA input error") ;
@@ -881,6 +891,14 @@ int main( int argc , char *argv[] )
        if( STRING_HAS_SUFFIX(fname,".data") ){
          strcpy(fname+strlen(fname)-5,".niml") ;
          WARNING_message("Replaced '.data' with '.niml' in -setA filename") ;
+       } else if( STRING_HAS_SUFFIX(fname,".grpincorr") ){
+         fname = (char *)realloc(fname,strlen(fname)+16) ;
+         strcat(fname,".niml") ;
+         INFO_message("Added '.niml' to end of -setB filename") ;
+       } else if( STRING_HAS_SUFFIX(fname,".grpincorr.") ){
+         fname = (char *)realloc(fname,strlen(fname)+16) ;
+         strcat(fname,"niml") ;
+         INFO_message("Added 'niml' to end of -setB filename") ;
        }
        shd_BBB = GRINCOR_read_input( fname ) ;
        if( shd_BBB == NULL ) ERROR_exit("Cannot continue after -setB input error") ;
@@ -898,7 +916,7 @@ int main( int argc , char *argv[] )
 
    if( shd_AAA == NULL ) ERROR_exit("You must use the '-setA' option!") ;
 
-   /* 18 Mar 2010: change labels */
+   /* 18 Mar 2010: if -labelA not used, get it from input filename (mm for B) */
 
    if( !lset_AAA && qlab_AAA != NULL )
      NI_strncpy(label_AAA,qlab_AAA,MAX_LABEL_SIZE) ;
@@ -925,7 +943,7 @@ int main( int argc , char *argv[] )
    else if( shd_BBB->ndset != shd_AAA->ndset ) ttest_opcode_max = 1 ;
 
    if( ttest_opcode < 0 || ttest_opcode > ttest_opcode_max ){
-     if( verb > 1 )
+     if( verb > 2 )
        INFO_message("Setting t-test option to default value of 'pooled'") ;
      ttest_opcode = 0 ;
    }
