@@ -48,7 +48,7 @@ parse.name <- function (filename, extvec=NULL, verb=0) {
    return(n)
 }
 
-eval.AFNI.1D.string <- function (t) {
+eval.AFNI.1D.string <- function (t, verb=0, nmax=0) {
    
    #remove 1D:
    t <- sub("^1D:","",t)
@@ -64,15 +64,27 @@ eval.AFNI.1D.string <- function (t) {
    #remove multiple blanks
    t <- deblank.string(t, middle=TRUE)
 
-   vvf = vector(length = 0, mode="numeric")
+   vvf <- vector(length = 0, mode="numeric")
    #replace .. with : and split at 'space'
-   s = strsplit(sub("..",":",t, fixed=TRUE), " ")[[1]]
+   s <- strsplit(sub("..",":",t, fixed=TRUE), " ")[[1]]
 
+   #replace $ with nmax if possible
+   s <- gsub("[$]",as.character(nmax),s)
+    
    #Now loop and form vector of components
    for (si in s) {
-      #cat ("working ", si, "\n")
+      if (verb) cat ("working ", si, "\n")
       if (length(grep(":",si))) {
-         vv = eval(parse(text=si))
+         sss <- strsplit(si,'[(*)]')[[1]]
+         if (length(sss)>1) {
+            se <- sss[2]
+         
+            si <- strsplit(sss[1],":")[[1]]
+            vv <- eval(parse(text=sprintf('seq(from=%s,to=%s,by=%s)',
+                                          si[1], si[2], se) ))
+         }  else {
+            vv <- eval(parse(text=si))
+         }
       } else if (length(grep("@",si))) {
          ssi = as.numeric(strsplit(si,"@")[[1]])
          #cat ("ssi = ", ssi, "\n")
@@ -160,6 +172,7 @@ parse.AFNI.name <- function(filename, verb = 0) {
    an$type <- NULL;
    an$path <- NULL;
    an$orig_name <- filename;
+   an$file <- NULL;
 
    if (verb) { cat ('Parsing >>',filename,'<<\n', sep=''); }
    if (!is.character(filename)) {
@@ -181,6 +194,7 @@ parse.AFNI.name <- function(filename, verb = 0) {
    #Deal with selectors
    n <- parse.AFNI.name.selectors(filename, verb)
    filename <- n$name
+   an$file <- n$name
    an$brsel <- n$brsel;
    an$rosel <- n$rosel;
    an$rasel <- n$rasel; 
@@ -319,6 +333,7 @@ uncompress.AFNI <- function(an, verb = 1) {
 show.AFNI.name <- function(an) {
    cat ('\n',
         'uname=', an$orig_name, '\n',
+        'file=', an$file,'\n',
         'type =', an$type,'\n',
         'pref.=', an$prefix, '\n',
         'view =', an$view, '\n',
@@ -1019,7 +1034,10 @@ read.AFNI.matrix <- function (fname,
    
    if (verb) print(who.called.me())
    
-   brk <- read.table(fname, colClasses='character');
+   if (is.character(fname)) fname <- parse.AFNI.name(fname)
+   str(fname)
+   fname$file
+   brk <- read.table(fname$file, colClasses='character');
    if ( tolower(brk$V1[1]) == 'name' || 
         tolower(brk$V1[1]) == 'subj' ||
         tolower(brk$V1[1]) == '#file') {
@@ -1070,6 +1088,32 @@ read.AFNI.matrix <- function (fname,
    }
    rownames(covMatrix) <- subjCol;
    colnames(covMatrix) <- covNames;
+   
+   #And now apply selectors
+   if (!is.null(fname$brsel)) {
+      sbsel <- eval.AFNI.1D.string(fname$brsel, nmax=dim(covMatrix)[2]-1)
+      if (min(sbsel) < 0 || max(sbsel)>=dim(covMatrix)[2]) {
+         err.AFNI(
+            sprintf('column selection outside possible range of <0,%d> in %s',
+                    dim(covMatrix)[2]-1, fname$file));
+         return(NULL); 
+      } 
+      covMatrix <- covMatrix[,sbsel+1, drop=FALSE]
+   }
+   if (!is.null(fname$rosel)) {
+      rosel <- eval.AFNI.1D.string(fname$rosel, nmax=dim(covMatrix)[1]-1)
+      if (min(rosel) < 0 || max(rosel)>=dim(covMatrix)[1]) {
+         err.AFNI(
+            sprintf('row selection outside possible range of <0,%d> in %s',
+                    dim(covMatrix)[1]-1, fname$file));
+         return(NULL); 
+      } 
+      covMatrix <- covMatrix[rosel,, drop=FALSE]
+   }
+   if (!is.null(fname$rasel)) {
+      err.AFNI('Not ready to deal with range selection');
+      return(NULL); 
+   }
    
    #Now, reorder per user*names 
    if (!is.null(userrownames)) {
