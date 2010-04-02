@@ -35,6 +35,10 @@ int mri_svd_shrink( MRI_IMAGE *fim , float tau , float *sv )
 
    /** setup m x m [A] = [X]'[X] matrix to eigensolve **/
 
+#pragma omp parallel if( mm > 9 && nn > 999 )
+ { int jj , kk , ii ; register double sum ; register float *xj,*xk ;
+ AFNI_OMP_START ;
+#pragma omp for
    for( jj=0 ; jj < mm ; jj++ ){
      xj = xx + jj*nn ;               /* j-th column */
      for( kk=0 ; kk <= jj ; kk++ ){
@@ -44,6 +48,8 @@ int mri_svd_shrink( MRI_IMAGE *fim , float tau , float *sv )
        A(jj,kk) = sum ; if( kk < jj ) A(kk,jj) = sum ;
      }
    }
+ AFNI_OMP_END ;
+ } /* end OpenMP */
 
    /** reduction to tridiagonal form (stored in fv1..3) **/
 
@@ -162,62 +168,71 @@ int mri_abs_shrink( MRI_IMAGE *fim , float tau )
 
 /*----------------------------------------------------------------------------*/
 /* Shrink in SVD, then shrink in abs.
-   Inputs lim, sim, and yim are modified in place.
+   Inputs aim, bim, eim, fim are modified in place.
 *//*--------------------------------------------------------------------------*/
 
-float_pair mri_pc_pursuit_step( float lam , float mu ,
-                                MRI_IMAGE *mim , MRI_IMAGE *lim ,
-                                MRI_IMAGE *sim , MRI_IMAGE *yim  )
+void mri_pc_pursuit_step( float lam , float mu , float ac ,
+                          MRI_IMAGE *dim ,
+                          MRI_IMAGE *aim , MRI_IMAGE *eim
+                          MRI_IMAGE *bim , MRI_IMAGE *fim )
 {
-   int nn=mim->nx , mm=mim->ny , nxy=nn*mm , ii ;
-   float *mar=MRI_FLOAT_PTR(mim) , *lar=MRI_FLOAT_PTR(lim) ;
-   float *sar=MRI_FLOAT_PTR(sim) , *yar=MRI_FLOAT_PTR(yim) ;
-   float xmu=mu , xlam=lam , sum ;
-   MRI_IMAGE *tim ; float *tar ; float_pair lsdif ;
+   int nn=dim->nx , mm=dim->ny , nxy=nn*mm ;
+   float *dar=MRI_FLOAT_PTR(dim) ;
+   float *aar=MRI_FLOAT_PTR(aim) , *bar=MRI_FLOAT_PTR(bim) ;
+   float *ear=MRI_FLOAT_PTR(eim) , *far=MRI_FLOAT_PTR(fim) ;
+   float xmu=mu , xlam=lam , xac=ac , sum ;
 
-   tim = mri_copy(lim) ; tar = MRI_FLOAT_PTR(tim) ;
+   MRI_IMAGE *yaim , *yeim ;
+   float     *yaar , *year ;
+   register int ii ; register float val ;
 
-   /* form M - S + mu*Y into L */
+   /** form [yaim] = [aim] + ac*([aim]-[bim])
+            [yeim] = [eim] + ac*([eim]-[fim]) **/
 
-   for( ii=0 ; ii < nxy ; ii++ )
-     lar[ii] = mar[ii] - sar[ii] + xmu*yar[ii] ;
-
-   /* shrink it */
-
-   ii = mri_svd_shrink( lim , mu , NULL ) ;
-fprintf(stderr,"svd_shrink = %d\n",ii) ;
-
-   sum = 0.0f ;
-   for( ii=0 ; ii < nxy ; ii++ ) sum += fabsf( lar[ii] - tar[ii] ) ;
-   lsdif.a = sum/nxy ;
-
-   /* form M - L + mu*Y into S */
-
-   for( ii=0 ; ii < nxy ; ii++ ){
-     tar[ii] = sar[ii] ;
-     sar[ii] = mar[ii] - lar[ii] + xmu*yar[ii] ;
+   yaim = mri_new_conforming(dim,MRI_float) ; yaar = MRI_FLOAT_PTR(yaim) ;
+   yeim = mri_new_conforming(dim,MRI_float) ; year = MRI_FLOAT_PTR(yeim) ;
+   if( xac <= 0.0f ){
+     memcpy( yaar , aar , sizeof(float)*nxy ) ;
+     memcpy( year , ear , sizeof(float)*nxy ) ;
+   } else {
+     register float af , bf ;
+     af = 1.0f + xac ; bf = xac ;
+     for( ii=0 ; ii < nxy ; ii++ ){
+       yaar[ii] = af*aar[ii] - bf*bar[ii] ;
+       year[ii] = af*ear[ii] - bf*far[ii] ;
+     }
    }
 
-   /* shrink it */
+   /* copy contents of aim into bim, and eim into fim,  */
+   /* so on output, bim is the old aim, aim is updated, */
+   /* and mutatis mutandum for fim and eim.             */
 
-   ii = mri_abs_shrink( sim , xlam*mu ) ;
-fprintf(stderr,"abs_shrink = %d\n",ii) ;
+   memcpy( bar , aar , sizeof(float)*nxy ) ;
+   memcpy( far , ear , sizeof(float)*nxy ) ;
 
-   sum = 0.0f ;
-   for( ii=0 ; ii < nxy ; ii++ ) sum += fabsf( sar[ii] - tar[ii] ) ;
-   lsdif.b = sum/nxy ;
+   /** form [aim] = [yaim] - 0.5*([yaim]+[yeim]-[dim]) **/
+   /**  and [eim] = [yeim] - ditto                     **/
 
-   /* form Y += mu*(M-L-S) */
+   for( ii=0 ; ii < nxy ; ii++ ){
+     val = 0.5f * ( yaar[ii] + year[ii] - dar[ii] ) ;
+     aar[ii] = yaar[ii] - val ;
+     ear[ii] = year[ii] - val ;
+   }
 
-   for( ii=0 ; ii < nxy ; ii++ )
-     yar[ii] += xmu*(mar[ii]-lar[ii]-sar[ii]) ;
+   /** now shrink [aim] and [eim] in their own special ways **/
 
-   mri_free(tim) ; return lsdif ;
+   ii = mri_shrink_svd( aim , 0.5f*xmu , NULL ) ;
+fprintf(stderr,"svd_shrink dimen = %d\n",ii) ;
+
+   ii = mri_abs_shrink( eim , 0.5f*xlam*mu ) ;
+fprintf(stderr,"abs_shrink count = %d\n",ii) ;
+
+   mri_free(yeim) ; mri_fee(yaim) ; return ;
 }
 
 /*----------------------------------------------------------------------------*/
 
-MRI_IMARR * mri_pc_pursuit( MRI_IMAGE *mim , float lam , float mu )
+MRI_IMARR * mri_pc_pursuit( MRI_IMAGE *dim , float lam , float mu )
 {
    MRI_IMAGE *sim , *lim , *yim ;
    MRI_IMARR *lsar ;
