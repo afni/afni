@@ -14,7 +14,7 @@
 #include "mrilib.h"
 
 #ifdef USE_OMP
-#include "omp.h"
+#include <omp.h>
 #include "thd_ttest.c"  /* to make sure it's compiled in with OpenMP */
 #endif
 
