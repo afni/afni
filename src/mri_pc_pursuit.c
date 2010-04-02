@@ -44,7 +44,20 @@ static MRI_IMAGE * mri_make_xxt( MRI_IMAGE *fim )
 
 /*----------------------------------------------------------------------------*/
 
-static float
+static float mri_svd_max( MRI_IMAGE *fim )
+{
+   MRI_IMAGE *aim ;
+   double ev=0.0 ;
+   int mm ; float sv ;
+
+   aim = mri_make_xxt( fim ) ; if( aim == NULL ) return -1.0f ;
+   mm  = aim->nx ;
+
+   (void)symeig_irange( mm, MRI_DOUBLE_PTR(aim) , &ev , mm-1,mm-1 , 1 ) ;
+   mri_free(aim) ;
+   sv = (ev > 0.0) ? (float)sqrt(ev) : 0.0f ;
+   return sv ;
+}
 
 /*----------------------------------------------------------------------------*/
 /*  - Must have fewer columns than rows [fim->nx >= fim->ny >= 2]
@@ -260,29 +273,23 @@ fprintf(stderr,"abs_shrink count = %d\n",ii) ;
 
 MRI_IMARR * mri_pc_pursuit( MRI_IMAGE *dim , float lam , float mubot )
 {
-   MRI_IMAGE *sim , *lim , *yim ;
    MRI_IMARR *lsar ;
-   float_pair lsdif ;
+   MRI_IMAGE *aim, *bim , *eim, *fim ;
+   float mu , *dar ;
    int nite ;
 
-   if( mim == NULL || mim->kind != MRI_float ||
-       mim->nx < mim->ny || mim->ny < 2         ) return NULL ;
+   if( dim == NULL || mim->kind != MRI_float ||
+       dim->nx < dim->ny || dim->ny < 2         ) return NULL ;
 
-   /* initial setup: L = M, S = Y = 0 */
+   if( lam <= 0.0f ) lam = 1.0f / sqrtf((float)dim->nx) ;
 
-   lim = mri_copy(mim) ;
-   sim = mri_new_conforming(mim,MRI_float) ;
-   yim = mri_new_conforming(mim,MRI_float) ;
+   /* get largest singular value of [dim] */
 
-   for( nite=1 ; nite <= 19 ; nite++ ){
-     lsdif = mri_pc_pursuit_step( lam , mu , mim , lim , sim, yim ) ;
-fprintf(stderr,"Iter #%02d: ldif = %g  sdif = %g\n",nite,lsdif.a,lsdif.b) ;
-   }
+   mu = mri_svd_max( dim ) ;     if( mu <= 0.0f ) return NULL ;
+   mu *= 0.911f ; if( mu < mubot ) mu = mubot ;
 
-   INIT_IMARR(lsar) ;
-   ADDTO_IMARR(lsar,lim) ;
-   ADDTO_IMARR(lsar,sim) ;
-   mri_free(yim) ;
+   /* ..... */
+
    return lsar ;
 }
 
