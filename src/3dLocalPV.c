@@ -1,7 +1,7 @@
 #include "mrilib.h"
 
 #ifdef USE_OMP    /* don't use this yet */
-#include "omp.h"
+#include <omp.h>
 #endif
 
 #undef  INMASK
