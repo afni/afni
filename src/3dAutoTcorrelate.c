@@ -29,6 +29,8 @@ int main( int argc , char *argv[] )
              "voxels in the input dataset, and stores the output into\n"
              "a new anatomical bucket dataset.\n"
              "\n"
+             "*** Also see program 3dTcorrMap ***\n"
+             "\n"
              "Options:\n"
              "  -pearson  = Correlation is the normal Pearson (product moment)\n"
              "                correlation coefficient [default].\n"
