@@ -20,7 +20,7 @@ static FILE * fopen_maybe( char *fname )  /* 05 Feb 2008 */
    /* special case -- be sure not to fclose() stdout! */
 
    if( strcmp(fname,"-") == 0 || strcmp(fname,"-.1D")    == 0
-                              || strcmp(fname,"stdout")  == 0 
+                              || strcmp(fname,"stdout")  == 0
                               || strcmp(fname,"stdout:") == 0 ) return stdout ;
 
    if( THD_is_ondisk(fname) ){   /* check for existing file */
@@ -264,6 +264,11 @@ ENTRY("mri_write_ascii") ;
    if( fname == NULL || *fname == '\0' ) fname = "-" ; /* to stdout */
    imfile = fopen_maybe(fname) ;
    if( imfile == NULL ) RETURN(0) ;
+
+   ii = mri_floatscan( im ) ;  /* 05 Apr 2010 */
+   if( ii > 0 )
+     WARNING_message("Zeroed %d float error%s while writing 1D file %s",
+                     ii , (ii > 1) ? "s" : "\0" , fname ) ;
 
    nx = im->nx ; ny = im->ny ;
 
