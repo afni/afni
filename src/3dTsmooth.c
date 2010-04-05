@@ -68,6 +68,8 @@ int main( int argc , char * argv[] )
              "Smooths each voxel time series in a 3D+time dataset and produces\n"
              "as output a new 3D+time dataset (e.g., lowpass filter in time).\n"
              "\n"
+             "*** Also see program 3dBandpass ***\n"
+             "\n"
              "General Options:\n"
              "  -prefix ppp  = Sets the prefix of the output dataset to be 'ppp'.\n"
              "                   [default = 'smooth']\n"
