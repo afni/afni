@@ -2167,7 +2167,7 @@ tTop <- 100   # upper bound for t-statistic
       for (kk in 1:lop$myDim[3]) {
          comArr[,,kk,] <- 
             array(apply(comArr[,,kk,], 3, 
-                        function(x) x*lop$maskData[,,kk,1]), 
+                        function(x) x*(abs(lop$maskData[,,kk,1])>tolL)), 
                         dim=c(lop$myDim[1:2],sum(lop$nFiles)))
       }
       #rm(lop$maskData)
