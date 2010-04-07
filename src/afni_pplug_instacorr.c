@@ -937,6 +937,7 @@ ENTRY("GICOR_process_dataset") ;
    }
 
    giset->busy = 0 ; /* Not busy waiting anymore [18 Mar 2010] */
+   GRPINCORR_LABEL_ON(im3d) ;                  /* 07 Apr 2010 */
    EXRETURN ;
 }
 
@@ -979,7 +980,12 @@ STATUS("check socket to 3dGroupInCorr") ;
 
 STATUS("check if already busy") ;
 
-   if( giset->busy ) RETURN(0) ; /* Already waiting? [18 Mar 2010] */
+   if( giset->busy ){                     /* Already waiting? [18 Mar 2010] */
+#if 0
+     MCW_flash_widget( 2 , im3d->vwid->func->gicor_label ) ; /* 07 Apr 2010 */
+#endif
+     RETURN(0) ;
+   }
 
    /* find where we are working from, in dataset coordinates */
 
@@ -1042,6 +1048,7 @@ STATUS("send NIML element") ;
 STATUS("mark that we're busy for now") ;
 
    giset->busy = 1 ; /* Mark that we're busy right now [18 Mar 2010] */
+   GRPINCORR_LABEL_WORKING(im3d) ;                   /* 07 Apr 2010 */
    RETURN(0) ;
 }
 

@@ -3613,7 +3613,7 @@ STATUS("making func->rowcol") ;
            NULL ) ;
      XmStringFree(xstr) ;
      MCW_set_widget_bg(func->gicor_label,STOP_COLOR,0) ;
-     MCW_register_hint( func->gicor_label , "Will be ** Ready ** when 3dGroupInCorr is running" ) ;
+     MCW_register_hint(func->gicor_label,"Will be ** Ready ** when 3dGroupInCorr is running");
 
    } else {
 
