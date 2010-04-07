@@ -1047,6 +1047,7 @@ typedef struct Three_D_View {
 
 #define STOP_COLOR "#770000"
 #define GO_COLOR   "#005500"
+#define WORK_COLOR "#888800"
 
 #define INSTACORR_LABEL_ON(iq)                                          \
  do{ MCW_set_widget_label((iq)->vwid->func->icor_label,"** Ready **") ; \
@@ -1056,6 +1057,11 @@ typedef struct Three_D_View {
 #define INSTACORR_LABEL_OFF(iq)                                         \
  do{ MCW_set_widget_label((iq)->vwid->func->icor_label,"*NOT Ready*") ; \
      MCW_set_widget_bg   ((iq)->vwid->func->icor_label,STOP_COLOR,0 ) ; \
+ } while(0)
+
+#define INSTACORR_LABEL_WORKING(iq)                                     \
+ do{ MCW_set_widget_label((iq)->vwid->func->icor_label,"..Working..") ; \
+     MCW_set_widget_bg   ((iq)->vwid->func->icor_label,WORK_COLOR,0 ) ; \
  } while(0)
 
 /*! Change InstaCorr popup buttons status */
@@ -1099,6 +1105,13 @@ typedef struct Three_D_View {
  do{ if( (iq)->vwid->func->gicor_rowcol != NULL ){                         \
        MCW_set_widget_label((iq)->vwid->func->gicor_label,"*NOT Ready*") ; \
        MCW_set_widget_bg   ((iq)->vwid->func->gicor_label,STOP_COLOR,0 ) ; \
+     } } while(0)
+
+#define GRPINCORR_LABEL_WORKING(iq)                                        \
+ do{ if( (iq)->vwid->func->gicor_rowcol != NULL ){                         \
+       MCW_set_widget_label((iq)->vwid->func->gicor_label,"..Working..") ; \
+       MCW_set_widget_bg   ((iq)->vwid->func->gicor_label,WORK_COLOR,0 ) ; \
+       MCW_set_widget_fg   ((iq)->vwid->func->gicor_label,"#000088"    ) ; \
      } } while(0)
 
 #define ENABLE_GRPINCORR(iq)          \
