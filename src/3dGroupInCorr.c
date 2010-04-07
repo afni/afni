@@ -86,6 +86,8 @@ typedef struct {
   int *nvals ; /* nvals[i] = number of values in a vector in i-th dataset */
   int datum ;  /* 1 for sbyte, 2 for short */
 
+  int nuse , *use ;  /* 07 Apr 2010: subset of datasets to use */
+
   char *geometry_string ;
   THD_3dim_dataset *tdset ; /* template dataset */
   int nx,ny,nz,nvox ;       /* number of nodes in template */
@@ -299,6 +301,12 @@ MRI_shindss * GRINCOR_read_input( char *fname )
    } else {
       shd->ninmask[0] = shd->ninmask[1] = -1 ;
    }
+
+   /*--- 07 Apr 2010: setup default use list (all of them) ---*/
+
+   shd->nuse = ndset ;
+   shd->use  = (int *)malloc(sizeof(int)*ndset) ;
+   for( ids=0 ; ids < ndset ; ids++ ) shd->use[ids] = ids ;
 
    /*--- now have to map data from disk ---*/
 
@@ -572,6 +580,7 @@ int main( int argc , char *argv[] )
    char label_AAA[MAX_LABEL_SIZE]="AAA" , label_BBB[MAX_LABEL_SIZE]="BBB" ;
    char *qlab_AAA=NULL , *qlab_BBB=NULL ;
    int   lset_AAA=0    ,  lset_BBB=0 ;
+   int   *use_AAA=NULL ,  *use_BBB=NULL ;
 
    /*-- enlighten the ignorant and brutish sauvages? --*/
 
@@ -616,7 +625,8 @@ int main( int argc , char *argv[] )
       "       [you could do this manually with 3dDeconvolve or 3dfim]\n"
       "   -- Result is one 3D correlation map per input dataset\n"
       " ++ Then carry out the t-test between/among these 3D correlation maps.\n"
-      "   -- Actually, between the arctanh() of these maps (cf. RA Fisher).\n"
+      "   -- Actually, between the arctanh() of these maps;\n"
+      "       cf. RA Fisher: http://en.wikipedia.org/Fisher_transformation\n"
       "       [you could do the arctanh() conversion manually with 3dcalc]\n"
       "       [and then do the t-test manually with 3dttest; then convert]\n"
       "       [the t-statistics to Z-scores with another run of 3dcalc   ]\n"
@@ -857,6 +867,22 @@ int main( int argc , char *argv[] )
        nopt++ ; continue ;
      }
 
+     if( strcasecmp(argv[nopt],"-useA") == 0 ){
+       if( ++nopt >= argc ) ERROR_exit("need 1 argument after option '%s'",argv[nopt-1]) ;
+       if( use_AAA != NULL ) ERROR_exit("you can't use -useA twice!") ;
+       use_AAA = MCW_get_intlist( 999999 , argv[nopt] ) ;
+       if( use_AAA == NULL || use_AAA[0] <= 0 )
+         ERROR_exit("can't decode argument after -useA") ;
+     }
+
+     if( strcasecmp(argv[nopt],"-useB") == 0 ){
+       if( ++nopt >= argc ) ERROR_exit("need 1 argument after option '%s'",argv[nopt-1]) ;
+       if( use_BBB != NULL ) ERROR_exit("you can't use -useB twice!") ;
+       use_BBB = MCW_get_intlist( 999999 , argv[nopt] ) ;
+       if( use_BBB == NULL || use_BBB[0] <= 0 )
+         ERROR_exit("can't decode argument after -useB") ;
+     }
+
      if( strcasecmp(argv[nopt],"-setA") == 0 ){
        char *fname , *cpt ;
        if( shd_AAA != NULL ) ERROR_exit("can only use '-setA' once!") ;
@@ -946,6 +972,30 @@ int main( int argc , char *argv[] )
      if( verb > 2 )
        INFO_message("Setting t-test option to default value of 'pooled'") ;
      ttest_opcode = 0 ;
+   }
+
+   /*-- attach use list to dataset collections [07 Apr 2010] --*/
+
+   if( use_AAA != NULL ){
+     int nuse = use_AAA[0] ;
+     for( kk=1 ; kk <= nuse ; kk++ ){
+       if( use_AAA[kk] < 0 || use_AAA[kk] >= shd_AAA->ndset )
+         ERROR_exit("Index in -useAAA outside of range 0..%d",shd_AAA->ndset-1) ;
+     }
+     shd_AAA->nuse = nuse ;
+     shd_AAA->use  = use_AAA + 1 ;
+   }
+
+   if( use_BBB != NULL && shd_BBB != NULL ){
+     int nuse = use_BBB[0] ;
+     for( kk=1 ; kk <= nuse ; kk++ ){
+       if( use_BBB[kk] < 0 || use_BBB[kk] >= shd_BBB->ndset )
+         ERROR_exit("Index in -useBBB outside of range 0..%d",shd_BBB->ndset-1) ;
+     }
+     shd_BBB->nuse = nuse ;
+     shd_BBB->use  = use_BBB + 1 ;
+   } else if( use_BBB != NULL ){
+     WARNING_message("-useB was given, but -setB wasn't given!") ;
    }
 
    /* scan through all the data, which will make it be page faulted
