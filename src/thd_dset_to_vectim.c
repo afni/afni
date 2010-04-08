@@ -93,8 +93,8 @@ ENTRY("THD_dset_to_vectim") ;
 
 /*---------------------------------------------------------------------*/
 /*-------- Catenates two datasets into vectim     ZSS Jan 2010 --------*/
-MRI_vectim * THD_2dset_to_vectim( THD_3dim_dataset *dset1, byte *mask1 , 
-                                  THD_3dim_dataset *dset2, byte *mask2 , 
+MRI_vectim * THD_2dset_to_vectim( THD_3dim_dataset *dset1, byte *mask1 ,
+                                  THD_3dim_dataset *dset2, byte *mask2 ,
                                   int ignore )
 {
    byte *mmmv[2]={NULL, NULL}, *mmmt=NULL;
@@ -116,7 +116,7 @@ ENTRY("THD_2dset_to_vectim") ;
    if (DSET_NVALS(dsetv[0]) != DSET_NVALS(dsetv[1])) {
       RETURN(NULL) ;
    }
-     
+
    if( ignore < 0 ) ignore = 0 ;
    nvals  = DSET_NVALS(dsetv[0]) - ignore ; if( nvals <= 0 ) RETURN(NULL) ;
 
@@ -146,7 +146,7 @@ ENTRY("THD_2dset_to_vectim") ;
      ERROR_message("THD_2dset_to_vectim: out of memory") ;
      if (mrv->ivec) free(mrv->ivec) ;
      if (ivvectmp)  free(ivvectmp) ;
-     free(mrv) ; 
+     free(mrv) ;
      if( mmmv[0] != mask1 ) free(mmmv[0]) ;
      if( mmmv[1] != mask2 ) free(mmmv[1]) ;
      RETURN(NULL) ;
@@ -155,7 +155,7 @@ ENTRY("THD_2dset_to_vectim") ;
    if( mrv->fvec == NULL ){
      ERROR_message("THD_2dset_to_vectim: out of memory") ;
      if (ivvectmp)  free(ivvectmp) ;
-     free(mrv->ivec) ; free(mrv) ; 
+     free(mrv->ivec) ; free(mrv) ;
      if( mmmv[0] != mask1 ) free(mmmv[0]) ;
      if( mmmv[1] != mask2 ) free(mmmv[1]) ;
      RETURN(NULL) ;
@@ -195,19 +195,19 @@ ENTRY("THD_2dset_to_vectim") ;
        memcpy( VECTIM_PTR(mrv,kk) , var+ignore , sizeof(float)*nvals ) ;
        kk++ ;
      }
-     
+
      free(var) ;
 
    } else {  /* do all at once: this way is a lot faster */
 
-     THD_extract_many_arrays( nmaskv[0] ,  mrv->ivec            , 
+     THD_extract_many_arrays( nmaskv[0] ,  mrv->ivec            ,
                                 dsetv[0]  ,   mrv->fvec            ) ;
-     THD_extract_many_arrays( nmaskv[1] ,  ivvectmp, 
+     THD_extract_many_arrays( nmaskv[1] ,  ivvectmp,
                                 dsetv[1]  ,  (mrv->fvec+nmaskv[0]*mrv->nvals) ) ;
 
    }
 
-   mrv->nx = DSET_NX(dsetv[0]) + DSET_NX(dsetv[1]); 
+   mrv->nx = DSET_NX(dsetv[0]) + DSET_NX(dsetv[1]);
    mrv->dx = fabs(DSET_DX(dsetv[0])) ;
    mrv->ny = DSET_NY(dsetv[0]) ; mrv->dy = fabs(DSET_DY(dsetv[0])) ;
    mrv->nz = DSET_NZ(dsetv[0]) ; mrv->dz = fabs(DSET_DZ(dsetv[0])) ;
@@ -218,12 +218,12 @@ ENTRY("THD_2dset_to_vectim") ;
    if( mmmv[0] != mask1 ) free(mmmv[0]) ;
    if( mmmv[1] != mask2 ) free(mmmv[1]) ;
    if (ivvectmp)  free(ivvectmp) ;
-        
+
    if (0) {
-     int ShowThisTs=38001; 
+     int ShowThisTs=38001;
      float *fff=NULL;
      fprintf(stderr,"++ ZSS mrv->nvec = %d, mrv->nvals = %d\n",
-                    mrv->nvec, mrv->nvals);  
+                    mrv->nvec, mrv->nvals);
      for( kk=0 ; kk < mrv->nvals; ++kk) {
       fff=mrv->fvec+(mrv->nvals*ShowThisTs);
       fprintf(stderr," %f \t", *(fff+kk));
@@ -231,6 +231,24 @@ ENTRY("THD_2dset_to_vectim") ;
    }
 
    RETURN(mrv) ;
+}
+
+/*---------------------------------------------------------------------*/
+
+MRI_vectim * THD_vectim_copy( MRI_vectim *mrv )  /* 08 Apr 2010 */
+{
+   MRI_vectim *qrv ;
+
+   if( mrv == NULL ) return NULL ;
+
+   MAKE_VECTIM( qrv , mrv->nvec , mrv->nvals ) ;
+   qrv->ignore = mrv->ignore ;
+   memcpy( qrv->ivec , mrv->ivec , sizeof(int)*mrv->nvec ) ;
+   memcpy( qrv->fvec , mrv->fvec , sizeof(float)*mrv->nvec*mrv->nvals ) ;
+   qrv->nx = mrv->nx ; qrv->dx = mrv->dx ;
+   qrv->ny = mrv->ny ; qrv->dy = mrv->dy ;
+   qrv->nz = mrv->nz ; qrv->dz = mrv->dz ; qrv->dt = mrv->dt ;
+   return qrv ;
 }
 
 /*---------------------------------------------------------------------*/

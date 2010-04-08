@@ -4191,6 +4191,8 @@ extern int THD_vectim_subset_average( MRI_vectim *mrv, int nind, int *ind, float
 
 extern void THD_vectim_vectim_dot( MRI_vectim *arv, MRI_vectim *brv, float *dp ) ;
 
+extern MRI_vectim * THD_vectim_copy( MRI_vectim *mrv ) ; /* 08 Apr 2010 */
+
 #define ICOR_MAX_FTOP 99999  /* 26 Feb 2010 */
 
 typedef struct {
