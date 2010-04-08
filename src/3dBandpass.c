@@ -408,6 +408,7 @@ int main( int argc , char * argv[] )
    if( pvrad > 0.0f ){
      if( verb )
        INFO_message("Local PV-ing time series data spatially; radius=%.2f",pvrad) ;
+     THD_vectim_normalize( mrv ) ;
      THD_vectim_localpv( mrv , pvrad ) ;
    }
    if( do_norm && pvrad <= 0.0f ){
@@ -454,11 +455,18 @@ void THD_vectim_localpv( MRI_vectim *mrv , float rad )
   MCW_cluster *nbhd ;
   int iv,kk,nn,nx,ny,nz,nxy , nind , *ind , xx,yy,zz , aa,bb,cc ;
   float *pv , *fv ;
+  MRI_vectim *qrv ;  /* workspace to hold results */
 
   nbhd = MCW_spheremask( mrv->dx,mrv->dy,mrv->dz , rad ) ;
   if( nbhd->num_pt <= 1 ){ THD_vectim_normalize(mrv); return; }
   ind = (int *)malloc(sizeof(int)*nbhd->num_pt) ;
   pv  = (float *)malloc(sizeof(float)*mrv->nvals) ;
+
+  kk = thd_floatscan( mrv->nvec*mrv->nvals , mrv->fvec ) ;
+  if( kk > 0 )
+    WARNING_message("fixed %d float error%s before localPV",kk,(kk==1)?"\0":"s");
+
+  qrv = THD_vectim_copy(mrv) ;  /* 08 Apr 2010: workspace */
 
   nx = mrv->nx ; ny = mrv->ny ; nz = mrv->nz ; nxy = nx*ny ;
   for( iv=0 ; iv < mrv->nvec ; iv++ ){
@@ -471,13 +479,20 @@ void THD_vectim_localpv( MRI_vectim *mrv , float rad )
     }
 
     nn = THD_vectim_subset_pv( mrv , nind,ind , pv , xran ) ;
-    fv = VECTIM_PTR(mrv,iv) ;
+    fv = VECTIM_PTR(qrv,iv) ; /* 08 Apr 2010: result goes in here, not mrv! */
     if( nn > 0 ){
       for( kk=0 ; kk < mrv->nvals ; kk++ ) fv[kk] = pv[kk] ;
     } else {                                             /* should not happen */
       THD_normalize( mrv->nvals , fv ) ;
     }
   }
+
+  memcpy( mrv->fvec , qrv->fvec , sizeof(float)*mrv->nvec*mrv->nvals ) ;
+  VECTIM_destroy(qrv) ;
+
+  kk = thd_floatscan( mrv->nvec*mrv->nvals , mrv->fvec ) ;
+  if( kk > 0 )
+    WARNING_message("fixed %d float error%s after localPV",kk,(kk==1)?"\0":"s");
 
   KILL_CLUSTER(nbhd) ; free(ind) ; free(pv) ; return ;
 }

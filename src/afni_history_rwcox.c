@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 8 , APR , 2010 , RWC , "3dBandpass" , MINOR , TYPE_BUG_FIX ,
+   "Fix -localPV implementation" ,
+   NULL } ,
+
  { 30 , MAR , 2010 , RWC , "3drefit" , MICRO , TYPE_GENERAL ,
    "Keeps track of if it actual does something" ,
    "And then will only re-write dataset header if a change was made.\n"
