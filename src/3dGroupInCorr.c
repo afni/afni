@@ -969,7 +969,7 @@ int main( int argc , char *argv[] )
    else if( shd_BBB->ndset != shd_AAA->ndset ) ttest_opcode_max = 1 ;
 
    if( ttest_opcode < 0 || ttest_opcode > ttest_opcode_max ){
-     if( verb > 2 )
+     if( shd_BBB != NULL && verb > 2 )
        INFO_message("Setting t-test option to default value of 'pooled'") ;
      ttest_opcode = 0 ;
    }
@@ -1003,9 +1003,9 @@ int main( int argc , char *argv[] )
       the downside is that this may take quite a while, which is boring */
 
 #undef  BSTEP
-#define BSTEP 4096
+#define BSTEP 1024
    { long long pp , vstep=9 ; char *qv ; float sum=0.0f ;
-     if( verb ) INFO_message("page faulting data into memory") ;
+     if( verb ) INFO_message("page faulting (reading) data into memory") ;
      if( shd_AAA->datum == 1 ) qv = (char *)shd_AAA->bv[0] ;
      else                      qv = (char *)shd_AAA->sv[0] ;
      if( verb ){
