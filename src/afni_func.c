@@ -4302,7 +4302,16 @@ ENTRY("AFNI_write_dataset_CB") ;
 
    if( ISVALID_DSET(dset) && dset->dblk->diskptr->allow_directwrite == 1 ){
      INFO_message("Direct write of dataset '%s'",DSET_BRIKNAME(dset)) ;
-     DSET_overwrite(dset) ;
+     if (!AFNI_yesenv("AFNI_GUI_WRITE_AS_DECONFLICT")) { /* ZSS April 11 2010 */ 
+        DSET_overwrite(dset) ;
+     } else {
+        char pfx[THD_MAX_PREFIX] ; /* to hold old one */
+        MCW_strncpy( pfx , DSET_PREFIX(dset) , THD_MAX_PREFIX ) ;
+        DSET_write(dset); 
+        /* Now put old prefix back in case there was deconflicting */
+        EDIT_dset_items( dset , ADN_prefix , pfx , ADN_none ) ;
+     }
+
      EXRETURN ;
    }
 
