@@ -66,6 +66,18 @@
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 12 , APR , 2010 , ZSS , "afni" , MINOR , TYPE_BUG_FIX,
+   "Added AFNI_GUI_WRITE_AS_DECONFLICT to modify interactive 'Write' overwrite.",
+   "The default is to have the interactive 'Write' buttons overwrite exisiting\n"
+   "volumes. If this env variable is set to YES, the 'Write' behaviour follows\n"
+   "env AFNI_DECONFLICT\n"
+ } ,
+
+ { 12 , APR , 2010 , ZSS , "afni" , MINOR , TYPE_BUG_FIX,
+   "Made InstaCorr SeedJump work with GroupInCorr",
+   NULL
+ } ,
+
  { 23 , MAR , 2010 , ZSS , "1dplot" , MINOR , TYPE_NEW_OPT,
    "Added -jpgs, and -pngs to allow easier size setup.",
    NULL
