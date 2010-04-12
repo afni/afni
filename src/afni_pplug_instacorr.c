@@ -1045,6 +1045,17 @@ STATUS("send NIML element") ;
      RETURN(-1) ;
    }
 
+STATUS("This is my only chance at building a disreputable past.") ;
+   /* 12 Apr 2010: save this seed location ZSS */
+   LOAD_FVEC3( iv , xx,yy,zz ) ; /* reload to be safe, use of anat_now */
+   im3d->vinfo->xi_icor = xx ;   /* should do the trick. */
+   im3d->vinfo->yj_icor = yy ;
+   im3d->vinfo->zk_icor = zz ;
+   jv = THD_dicomm_to_3dmm( im3d->anat_now , iv ) ;
+   kv = THD_3dmm_to_3dind ( im3d->anat_now , jv ) ;
+   UNLOAD_IVEC3( kv , im3d->vinfo->i1_icor ,
+                      im3d->vinfo->j2_icor , im3d->vinfo->k3_icor ) ;
+
 STATUS("mark that we're busy for now") ;
 
    giset->busy = 1 ; /* Mark that we're busy right now [18 Mar 2010] */

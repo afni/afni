@@ -329,7 +329,7 @@ void qmedmad_float_3dSeg( int n, float *ar, float *med, float *mad )
 int mri_nstat_3dSeg( MRI_IMAGE *im, int *code_vec, int N_code, float *val_vec )
 {
    MRI_IMAGE *fim ;
-   float     *far , outval=0.0f, med = 0.0f, mad = 0.0f
+   float     *far , outval=0.0f, med = 0.0f, mad = 0.0f;
    float     var = -1.0f , cvar = -1.0f, sig = -1.0f, mean = -1.0f;
    int npt, code , medmaded = 0;
    int ic = 0;
