@@ -1055,6 +1055,9 @@ STATUS("This is my only chance at building a disreputable past.") ;
    kv = THD_3dmm_to_3dind ( im3d->anat_now , jv ) ;
    UNLOAD_IVEC3( kv , im3d->vinfo->i1_icor ,
                       im3d->vinfo->j2_icor , im3d->vinfo->k3_icor ) ;
+   INFO_message("Called GICOR from %.2f %.2f %.2f (RAI), "
+                "seed radius %g",
+                xx, yy, zz, giset->seedrad) ;
 
 STATUS("mark that we're busy for now") ;
 
