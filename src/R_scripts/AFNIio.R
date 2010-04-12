@@ -1035,8 +1035,6 @@ read.AFNI.matrix <- function (fname,
    if (verb) print(who.called.me())
    
    if (is.character(fname)) fname <- parse.AFNI.name(fname)
-   str(fname)
-   fname$file
    brk <- read.table(fname$file, colClasses='character');
    if ( tolower(brk$V1[1]) == 'name' || 
         tolower(brk$V1[1]) == 'subj' ||
@@ -1071,12 +1069,15 @@ read.AFNI.matrix <- function (fname,
          covMatrix <- as.matrix(as.numeric(brk[istrt:dim(brk)[1],1]))
       } else {
          for (ii in 1:(dim(brk)[2])) { #Add one column at a time
+            tryCatch(bbb<-as.numeric(
+                              brk[istrt:dim(brk)[1],1:dim(brk)[2]][[ii]]), 
+                     warning=function(ex) {})
             if (ii==1) {
                covMatrix <- cbind(
-                  as.numeric(brk[istrt:dim(brk)[1],1:dim(brk)[2]][[ii]]));
+                  bbb);
             } else {
                covMatrix <- cbind(covMatrix,
-                  as.numeric(brk[istrt:dim(brk)[1],1:dim(brk)[2]][[ii]]));
+                  bbb);
             }
          }
       }
@@ -1108,7 +1109,7 @@ read.AFNI.matrix <- function (fname,
                     dim(covMatrix)[1]-1, fname$file));
          return(NULL); 
       } 
-      covMatrix <- covMatrix[rosel,, drop=FALSE]
+      covMatrix <- covMatrix[rosel+1,, drop=FALSE]
    }
    if (!is.null(fname$rasel)) {
       err.AFNI('Not ready to deal with range selection');
