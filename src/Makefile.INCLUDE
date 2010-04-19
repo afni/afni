@@ -2652,7 +2652,8 @@ suma_exec:libGLws.a libSUMA.a libmri.a xutil.o LiteClue.o parser.o parser_int.o 
 	( cd SUMA ;	\
 	$(MAKE) -f $(SUMA_MAKEFILE_NAME) testGL suma ScaleToMap CompareSurfaces \
 	MakeColorMap ROI2dataset 3dVol2Surf \
-	3dSurf2Vol SurfMeasures ConvertSurface ConvertDset SurfClust IsoSurface \
+	3dSurf2Vol SurfMeasures SurfFWHM \
+	ConvertSurface ConvertDset SurfClust IsoSurface \
    ConvexHull MapIcosahedron CreateIcosahedron SurfaceMetrics \
    SurfSmooth inspec quickspec FSread_annot SurfPatch SurfQual SampBias \
    3dSkullStrip 3dCRUISEtoAFNI 3dBRAIN_VOYAGERtoAFNI 3dSurfMask\
@@ -2732,6 +2733,8 @@ suma_clean:
 	if [ -f 3dSurf2Vol ]; then $(RM) 3dSurf2Vol; fi;
 	if [ -f SUMA/SurfMeasures ]; then $(RM) SUMA/SurfMeasures; fi;
 	if [ -f SurfMeasures ]; then $(RM) SurfMeasures; fi;
+	if [ -f SUMA/SurfFWHM  ]; then $(RM) SUMA/SurfFWHM ; fi;
+	if [ -f SurfFWHM  ]; then $(RM) SurfFWHM ; fi;
 	if [ -f ScaleToMap ]; then $(RM) ScaleToMap; fi;
 	if [ -f SUMA/ScaleToMap ]; then $(RM) SUMA/ScaleToMap; fi;
 	if [ -f CompareSurfaces  ]; then $(RM) CompareSurfaces ; fi;
@@ -2812,7 +2815,8 @@ suma_link:
 	tar -xf $(SUMA_BIN_ARCHIVE)	;\
 	touch *.a	;\
 	$(CP) libmri.a libmrix.a libcoxplot.a libf2c.a ../	;\
-	$(RM) suma MakeColorMap ROI2dataset 3dVol2Surf 3dSurf2Vol SurfMeasures \
+	$(RM) suma MakeColorMap ROI2dataset 3dVol2Surf 3dSurf2Vol \
+   SurfMeasures  SurfFWHM \
    ScaleToMap MapIcosahedron \
    CreateIcosahedron CompareSurfaces ConvertSurface ConvertDset SurfClust \
    IsoSurface ConvexHull SurfaceMetrics SurfSmooth inspec \
@@ -2821,7 +2825,7 @@ suma_link:
    SurfToSurf Surf2VolCoord ROIgrow SurfDsetInfo SurfInfo AnalyzeTrace \
    DriveSuma SurfDist SpharmReco SpharmDeco prompt_user; \
 	$(MAKE) -f $(SUMA_MAKEFILE_NAME) testGL suma MakeColorMap ROI2dataset \
-   3dVol2Surf 3dSurf2Vol ScaleToMap SurfMeasures \
+   3dVol2Surf 3dSurf2Vol ScaleToMap SurfMeasures SurfFWHM \
 	MapIcosahedron CreateIcosahedron CompareSurfaces ConvertSurface ConvertDset \
 	SurfClust IsoSurface ConvexHull SurfaceMetrics SurfSmooth inspec \
    quickspec FSread_annot SurfPatch SurfQual SampBias 3dSkullStrip \
@@ -2845,7 +2849,7 @@ suma_link:
 suma_install:
 	( if [ ! -d $(INSTALLDIR) ]; then $(MKDIR) -p $(INSTALLDIR); echo WARNING: directory $(INSTALLDIR) has been created. ; fi	;\
 	$(CP) SUMA/suma SUMA/MakeColorMap SUMA/ROI2dataset SUMA/3dVol2Surf \
-	SUMA/3dSurf2Vol SUMA/SurfMeasures \
+	SUMA/3dSurf2Vol SUMA/SurfMeasures SUMA/SurfFWHM \
 	SUMA/ScaleToMap SUMA/MapIcosahedron SUMA/CreateIcosahedron \
 	SUMA/CompareSurfaces \
 	SUMA/ConvertSurface SUMA/ConvertDset SUMA/SurfClust SUMA/IsoSurface \
