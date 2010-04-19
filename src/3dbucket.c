@@ -136,14 +136,96 @@ void BUCK_read_opts( int argc , char * argv[] )
          nopt++ ; continue ;
       }
 
-      if( strncmp(argv[nopt],"-glueto",5) == 0 ){
+      if( strncmp(argv[nopt],"-glueto",5) == 0 ||
+          strncmp(argv[nopt],"-aglueto",5) == 0){  /* ZSS April 16 2010 */
          if( strncmp(BUCK_output_prefix, "buck", 5) != 0 ){
-            fprintf(stderr,"-prefix and -glueto options are not compatible\n");
+            fprintf(stderr,
+                 "-prefix, -glueto, and -aglueto options are not compatible\n");
             exit(1) ;
          }
          if( strncmp(BUCK_session, "./", 5) != 0 ){
             fprintf(stderr,
-                    "-session and -glueto options are not compatible\n");
+                 "-session, -glueto, and -aglueto options are not compatible\n");
+            exit(1) ;
+         }
+         nopt++ ;
+         if( nopt >= argc ){
+            fprintf(stderr,"need argument after -glueto or -aglueto!\n") ; 
+            exit(1) ;
+         }
+         if (strncmp(argv[nopt-1],"-aglueto",5) == 0) { /* ZSS April 16 2010 */
+            THD_3dim_dataset *ddd = THD_open_dataset( argv[nopt] );
+            if( !ISVALID_DSET(ddd) ){
+              /* treat as -prefix */
+              MCW_strncpy( BUCK_output_prefix , argv[nopt++] , THD_MAX_PREFIX ) ;
+              continue ;
+            }  else {
+               /* go on as standard -glueto option */
+            }
+         }
+         BUCK_glue = 1 ;
+
+	    /*----- Verify that file name ends in View Type -----*/
+	    ok = 1;
+	    nlen = strlen(argv[nopt]);
+	    if (nlen <= 5) ok = 0;
+
+	    if (ok)
+	      {
+   #if 0                              /* old code - scan from end, instead */
+
+	        for (ilen = 0;  ilen < nlen;  ilen++)
+	          {
+		    str = argv[nopt] + ilen;
+		    if (str[0] == '+') break;
+	          }
+	        if (ilen == nlen)  ok = 0;
+   #endif
+
+	        /* scan from end for view type extension, require one char */
+	        /*                                     30 Oct 2003 [rickr] */
+	        for (ilen = nlen - 1; ilen > 0; ilen--)
+	          {
+		    str = argv[nopt] + ilen;
+		    if (str[0] == '+') break;
+	          }
+	        if (ilen == 0)  ok = 0;
+	      }
+
+	    if (ok)
+	      {
+	        str = argv[nopt] + ilen + 1;
+
+	        for (ii=FIRST_VIEW_TYPE ; ii <= LAST_VIEW_TYPE ; ii++)
+	          if (! strncmp(str,VIEW_codestr[ii],4)) break ;
+
+	        if( ii > LAST_VIEW_TYPE )  ok = 0;
+	      }
+
+	    if (! ok)
+	      {
+	        fprintf(stderr,
+	        "File name must end in +orig, +acpc, or +tlrc after -glueto\n"
+           "(consider: 3dbucket -prefix dsetA -overwrite dsetA dsetB ...)\n");
+	        exit(1);
+	      }
+
+	    /*----- Remove View Type from string to make output prefix -----*/
+            MCW_strncpy( BUCK_output_prefix , argv[nopt] , ilen+1) ;
+
+	    /*----- Note: no "continue" statement here.  File name will now
+	      be processed as an input dataset -----*/
+      }
+
+      if( strncmp(argv[nopt],"-aglueto",5) == 0 ){
+         if( strncmp(BUCK_output_prefix, "buck", 5) != 0 ){
+            fprintf(stderr,"-prefix and -aglueto options are not compatible.\n"
+                 "Make sure you do not have two -agluto options on command.\n");
+            exit(1) ;
+         }
+         if( strncmp(BUCK_session, "./", 5) != 0 ){
+            fprintf(stderr,
+                    "-session and -aglueto options are not compatible\n");
             exit(1) ;
          }
          BUCK_glue = 1 ;
@@ -152,58 +234,58 @@ void BUCK_read_opts( int argc , char * argv[] )
             fprintf(stderr,"need argument after -glueto!\n") ; exit(1) ;
          }
 
-	 /*----- Verify that file name ends in View Type -----*/
-	 ok = 1;
-	 nlen = strlen(argv[nopt]);
-	 if (nlen <= 5) ok = 0;
+	    /*----- Verify that file name ends in View Type -----*/
+	    ok = 1;
+	    nlen = strlen(argv[nopt]);
+	    if (nlen <= 5) ok = 0;
 
-	 if (ok)
-	   {
-#if 0                              /* old code - scan from end, instead */
+	    if (ok)
+	      {
+   #if 0                              /* old code - scan from end, instead */
 
-	     for (ilen = 0;  ilen < nlen;  ilen++)
-	       {
-		 str = argv[nopt] + ilen;
-		 if (str[0] == '+') break;
-	       }
-	     if (ilen == nlen)  ok = 0;
-#endif
+	        for (ilen = 0;  ilen < nlen;  ilen++)
+	          {
+		    str = argv[nopt] + ilen;
+		    if (str[0] == '+') break;
+	          }
+	        if (ilen == nlen)  ok = 0;
+   #endif
 
-	     /* scan from end for view type extension, require one char */
-	     /*                                     30 Oct 2003 [rickr] */
-	     for (ilen = nlen - 1; ilen > 0; ilen--)
-	       {
-		 str = argv[nopt] + ilen;
-		 if (str[0] == '+') break;
-	       }
-	     if (ilen == 0)  ok = 0;
-	   }
+	        /* scan from end for view type extension, require one char */
+	        /*                                     30 Oct 2003 [rickr] */
+	        for (ilen = nlen - 1; ilen > 0; ilen--)
+	          {
+		    str = argv[nopt] + ilen;
+		    if (str[0] == '+') break;
+	          }
+	        if (ilen == 0)  ok = 0;
+	      }
 
-	 if (ok)
-	   {
-	     str = argv[nopt] + ilen + 1;
+	    if (ok)
+	      {
+	        str = argv[nopt] + ilen + 1;
 
-	     for (ii=FIRST_VIEW_TYPE ; ii <= LAST_VIEW_TYPE ; ii++)
-	       if (! strncmp(str,VIEW_codestr[ii],4)) break ;
-	
-	     if( ii > LAST_VIEW_TYPE )  ok = 0;
-	   }
+	        for (ii=FIRST_VIEW_TYPE ; ii <= LAST_VIEW_TYPE ; ii++)
+	          if (! strncmp(str,VIEW_codestr[ii],4)) break ;
 
-	 if (! ok)
-	   {
-	     fprintf(stderr,
-	     "File name must end in +orig, +acpc, or +tlrc after -glueto\n"
-             "(consider: 3dbucket -prefix dsetA -overwrite dsetA dsetB ...)\n");
-	     exit(1);
-	   }
+	        if( ii > LAST_VIEW_TYPE )  ok = 0;
+	      }
 
-	 /*----- Remove View Type from string to make output prefix -----*/
-         MCW_strncpy( BUCK_output_prefix , argv[nopt] , ilen+1) ;
+	    if (! ok)
+	      {
+	        fprintf(stderr,
+	        "File name must end in +orig, +acpc, or +tlrc after -glueto\n"
+           "(consider: 3dbucket -prefix dsetA -overwrite dsetA dsetB ...)\n");
+	        exit(1);
+	      }
 
-	 /*----- Note: no "continue" statement here.  File name will now
-	   be processed as an input dataset -----*/
+	    /*----- Remove View Type from string to make output prefix -----*/
+            MCW_strncpy( BUCK_output_prefix , argv[nopt] , ilen+1) ;
+
+	    /*----- Note: no "continue" statement here.  File name will now
+	      be processed as an input dataset -----*/
       }
-
+      
       if( argv[nopt][0] == '-' ){
          fprintf(stderr,"Unknown option: %s\n",argv[nopt]) ; exit(1) ;
       }
@@ -385,72 +467,75 @@ void BUCK_Syntax(void)
    ) ;
 
    printf(
-    "     -prefix pname = Use 'pname' for the output dataset prefix name.\n"
-    " OR  -output pname     [default='buck']\n"
-    "\n"
-    "     -session dir  = Use 'dir' for the output dataset session directory.\n"
-    "                       [default='./'=current working directory]\n"
-    "     -glueto fname = Append bricks to the end of the 'fname' dataset.\n"
-    "                       This command is an alternative to the -prefix \n"
-    "                       and -session commands.                        \n"
-    "     -dry          = Execute a 'dry run'; that is, only print out\n"
-    "                       what would be done.  This is useful when\n"
-    "                       combining sub-bricks from multiple inputs.\n"
-    "     -verb         = Print out some verbose output as the program\n"
-    "                       proceeds (-dry implies -verb).\n"
-    "     -fbuc         = Create a functional bucket.\n"
-    "     -abuc         = Create an anatomical bucket.  If neither of\n"
-    "                       these options is given, the output type is\n"
-    "                       determined from the first input type.\n"
-    "\n"
-    "Command line arguments after the above are taken as input datasets.\n"
-    "A dataset is specified using one of these forms:\n"
-    "   'prefix+view', 'prefix+view.HEAD', or 'prefix+view.BRIK'.\n"
-    "You can also add a sub-brick selection list after the end of the\n"
-    "dataset name.  This allows only a subset of the sub-bricks to be\n"
-    "included into the output (by default, all of the input dataset\n"
-    "is copied into the output).  A sub-brick selection list looks like\n"
-    "one of the following forms:\n"
-    "  fred+orig[5]                     ==> use only sub-brick #5\n"
-    "  fred+orig[5,9,17]                ==> use #5, #9, and #17\n"
-    "  fred+orig[5..8]     or [5-8]     ==> use #5, #6, #7, and #8\n"
-    "  fred+orig[5..13(2)] or [5-13(2)] ==> use #5, #7, #9, #11, and #13\n"
-    "Sub-brick indexes start at 0.  You can use the character '$'\n"
-    "to indicate the last sub-brick in a dataset; for example, you\n"
-    "can select every third sub-brick by using the selection list\n"
-    "  fred+orig[0..$(3)]\n"
-    "\n"
-    "N.B.: The sub-bricks are output in the order specified, which may\n"
-    " not be the order in the original datasets.  For example, using\n"
-    "  fred+orig[0..$(2),1..$(2)]\n"
-    " will cause the sub-bricks in fred+orig to be output into the\n"
-    " new dataset in an interleaved fashion.  Using\n"
-    "  fred+orig[$..0]\n"
-    " will reverse the order of the sub-bricks in the output.\n"
-    "\n"
-    "N.B.: Bucket datasets have multiple sub-bricks, but do NOT have\n"
-    " a time dimension.  You can input sub-bricks from a 3D+time dataset\n"
-    " into a bucket dataset.  You can use the '3dinfo' program to see\n"
-    " how many sub-bricks a 3D+time or a bucket dataset contains.\n"
-    "\n"
-    "N.B.: The '$', '(', ')', '[', and ']' characters are special to\n"
-    " the shell, so you will have to escape them.  This is most easily\n"
-    " done by putting the entire dataset plus selection list inside\n"
-    " single quotes, as in 'fred+orig[5..7,9]'.\n"
-    "\n"
-    "N.B.: In non-bucket functional datasets (like the 'fico' datasets\n"
-    " output by FIM, or the 'fitt' datasets output by 3dttest), sub-brick\n"
-    " [0] is the 'intensity' and sub-brick [1] is the statistical parameter\n"
-    " used as a threshold.  Thus, to create a bucket dataset using the\n"
-    " intensity from dataset A and the threshold from dataset B, and\n"
-    " calling the output dataset C, you would type\n"
-    "    3dbucket -prefix C -fbuc 'A+orig[0]' -fbuc 'B+orig[1]'\n"
-    "\n"
-    "WARNING: using this program, it is possible to create a dataset that\n"
-    "         has different basic datum types for different sub-bricks\n"
-    "         (e.g., shorts for brick 0, floats for brick 1).\n"
-    "         Do NOT do this!  Very few AFNI programs will work correctly\n"
-    "         with such datasets!\n"
+ "     -prefix pname = Use 'pname' for the output dataset prefix name.\n"
+ " OR  -output pname     [default='buck']\n"
+ "\n"
+ "     -session dir  = Use 'dir' for the output dataset session directory.\n"
+ "                       [default='./'=current working directory]\n"
+ "     -glueto fname = Append bricks to the end of the 'fname' dataset.\n"
+ "                       This command is an alternative to the -prefix \n"
+ "                       and -session commands.                        \n"
+ "     -aglueto fname= If fname dset does not exist, create it (like -prefix).\n"
+ "                     Otherwise append to fname (like -glueto).\n"
+ "                     This option is useful when appending in a loop.\n"
+ "     -dry          = Execute a 'dry run'; that is, only print out\n"
+ "                       what would be done.  This is useful when\n"
+ "                       combining sub-bricks from multiple inputs.\n"
+ "     -verb         = Print out some verbose output as the program\n"
+ "                       proceeds (-dry implies -verb).\n"
+ "     -fbuc         = Create a functional bucket.\n"
+ "     -abuc         = Create an anatomical bucket.  If neither of\n"
+ "                       these options is given, the output type is\n"
+ "                       determined from the first input type.\n"
+ "\n"
+ "Command line arguments after the above are taken as input datasets.\n"
+ "A dataset is specified using one of these forms:\n"
+ "   'prefix+view', 'prefix+view.HEAD', or 'prefix+view.BRIK'.\n"
+ "You can also add a sub-brick selection list after the end of the\n"
+ "dataset name.  This allows only a subset of the sub-bricks to be\n"
+ "included into the output (by default, all of the input dataset\n"
+ "is copied into the output).  A sub-brick selection list looks like\n"
+ "one of the following forms:\n"
+ "  fred+orig[5]                     ==> use only sub-brick #5\n"
+ "  fred+orig[5,9,17]                ==> use #5, #9, and #17\n"
+ "  fred+orig[5..8]     or [5-8]     ==> use #5, #6, #7, and #8\n"
+ "  fred+orig[5..13(2)] or [5-13(2)] ==> use #5, #7, #9, #11, and #13\n"
+ "Sub-brick indexes start at 0.  You can use the character '$'\n"
+ "to indicate the last sub-brick in a dataset; for example, you\n"
+ "can select every third sub-brick by using the selection list\n"
+ "  fred+orig[0..$(3)]\n"
+ "\n"
+ "N.B.: The sub-bricks are output in the order specified, which may\n"
+ " not be the order in the original datasets.  For example, using\n"
+ "  fred+orig[0..$(2),1..$(2)]\n"
+ " will cause the sub-bricks in fred+orig to be output into the\n"
+ " new dataset in an interleaved fashion.  Using\n"
+ "  fred+orig[$..0]\n"
+ " will reverse the order of the sub-bricks in the output.\n"
+ "\n"
+ "N.B.: Bucket datasets have multiple sub-bricks, but do NOT have\n"
+ " a time dimension.  You can input sub-bricks from a 3D+time dataset\n"
+ " into a bucket dataset.  You can use the '3dinfo' program to see\n"
+ " how many sub-bricks a 3D+time or a bucket dataset contains.\n"
+ "\n"
+ "N.B.: The '$', '(', ')', '[', and ']' characters are special to\n"
+ " the shell, so you will have to escape them.  This is most easily\n"
+ " done by putting the entire dataset plus selection list inside\n"
+ " single quotes, as in 'fred+orig[5..7,9]'.\n"
+ "\n"
+ "N.B.: In non-bucket functional datasets (like the 'fico' datasets\n"
+ " output by FIM, or the 'fitt' datasets output by 3dttest), sub-brick\n"
+ " [0] is the 'intensity' and sub-brick [1] is the statistical parameter\n"
+ " used as a threshold.  Thus, to create a bucket dataset using the\n"
+ " intensity from dataset A and the threshold from dataset B, and\n"
+ " calling the output dataset C, you would type\n"
+ "    3dbucket -prefix C -fbuc 'A+orig[0]' -fbuc 'B+orig[1]'\n"
+ "\n"
+ "WARNING: using this program, it is possible to create a dataset that\n"
+ "         has different basic datum types for different sub-bricks\n"
+ "         (e.g., shorts for brick 0, floats for brick 1).\n"
+ "         Do NOT do this!  Very few AFNI programs will work correctly\n"
+ "         with such datasets!\n"
    ) ;
 
    PRINT_COMPILE_DATE ; exit(0) ;

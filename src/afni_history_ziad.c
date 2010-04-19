@@ -66,6 +66,11 @@
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 16 , APR , 2010 , ZSS , "3dbucket" , MINOR , TYPE_NEW_OPT,
+   "-agluto option = amalgamated -prefix and -glueto",
+   NULL
+ } ,
+
  { 12 , APR , 2010 , ZSS , "afni" , MINOR , TYPE_BUG_FIX,
    "Added AFNI_GUI_WRITE_AS_DECONFLICT to modify interactive 'Write' overwrite.",
    "The default is to have the interactive 'Write' buttons overwrite exisiting\n"
