@@ -179,9 +179,10 @@ g_history = """
     2.20 Mar 18 2010 : deal with args having '\\n' (from quoted newlines)
     2.21 Mar 23 2010 : added -regress_compute_fitts, to save memory in 3dD
     2.22 Mar 28 2010 : applied fitts computation to REML case
+    2.23 Apr 26 2010 : added -regress_opts_reml
 """
 
-g_version = "version 2.22, March 28, 2010"
+g_version = "version 2.23, April 26, 2010"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
@@ -539,7 +540,9 @@ class SubjProcSream:
         self.valid_opts.add_opt('-regress_no_motion', 0, [],
                         helpstr="do not apply motion parameters in regression")
         self.valid_opts.add_opt('-regress_opts_3dD', -1, [],
-                        helpstr='additional options directly for 3dDeconvolve')
+                        helpstr='additional options directly to 3dDeconvolve')
+        self.valid_opts.add_opt('-regress_opts_reml', -1, [],
+                        helpstr='additional options directly to 3dREMLfit')
         self.valid_opts.add_opt('-regress_reml_exec', 0, [],
                         helpstr="execute 3dREMLfit command script")
         self.valid_opts.add_opt('-regress_RONI', -1, [],

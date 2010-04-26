@@ -48,6 +48,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 26, APR, 2010, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "added -regress_opts_reml",
+   NULL
+ } ,
+
+ { 26, APR, 2010, RCR, "3dDeconvolve", MINOR, TYPE_GENERAL,
+   "add $* to end of 3dREMLfit script command, for additional arguments",
+   "Finally getting around to afni_proc.py option -regress_opts_reml..."
+ } ,
+
  { 28, MAR, 2010, RCR, "afni_proc.py", MICRO, TYPE_GENERAL,
    "applied fitts computation to REML case",
    NULL
