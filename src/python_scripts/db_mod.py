@@ -1445,6 +1445,7 @@ def db_mod_regress(block, proc, user_opts):
         block.opts.add_opt('-regress_extra_stim_labels', -1, [])
 
         block.opts.add_opt('-regress_opts_3dD', -1, [])
+        block.opts.add_opt('-regress_opts_reml', -1, [])
         block.opts.add_opt('-regress_make_ideal_sum', 1, [])
         block.opts.add_opt('-regress_errts_prefix', 1, [])
         block.opts.add_opt('-regress_fitts_prefix', 1, ['fitts.$subj'],
@@ -1547,6 +1548,10 @@ def db_mod_regress(block, proc, user_opts):
 
     uopt = user_opts.find_opt('-regress_opts_3dD')
     bopt = block.opts.find_opt('-regress_opts_3dD')
+    if uopt and bopt: bopt.parlist = uopt.parlist
+
+    uopt = user_opts.find_opt('-regress_opts_reml')
+    bopt = block.opts.find_opt('-regress_opts_reml')
     if uopt and bopt: bopt.parlist = uopt.parlist
 
     # --------------------------------------------------
@@ -2074,8 +2079,13 @@ def db_cmd_regress(proc, block):
 def db_cmd_reml_exec(proc, block):
     if proc.verb > 1: print '++ creating reml_exec command string'
 
+    # see if the user has provided other 3dREMLfit options
+    opt = block.opts.find_opt('-regress_opts_reml')
+    if not opt or not opt.parlist: reml_opts = ''
+    else: reml_opts = ' '.join(UTIL.quotize_list(opt.parlist, '', 1))
+
     cmd = '# -- execute the REML command script and check the status --\n'
-    cmd = cmd + 'tcsh -x stats.REML_cmd\n\n'
+    cmd = cmd + 'tcsh -x stats.REML_cmd %s\n\n' % reml_opts
 
     # if 3dDeconvolve fails, terminate the script
     cmd = cmd + "# if 3dREMLfit fails, terminate the script\n"          \
@@ -4425,6 +4435,18 @@ g_help_string = """
 
             Please see '3dDeconvolve -help' for more information, or the link:
                 http://afni.nimh.nih.gov/afni/doc/misc/3dDeconvolveSummer2004
+
+        -regress_opts_reml OPTS ...  : specify extra options for 3dREMLfit
+
+                e.g. -regress_opts_reml                                 \\
+                        -gltsym ../contr/contrast1.txt FACEvsDONUT      \\
+                        -MAXa 0.92
+
+            This option allows the user to add extra options to the 3dREMLfit
+            command.  Note that only one -regress_opts_reml should be applied,
+            which may be used for multiple 3dREMLfit options.
+
+            Please see '3dREMLfit -help' for more information.
 
         -regress_polort DEGREE  : specify the polynomial degree of baseline
 
