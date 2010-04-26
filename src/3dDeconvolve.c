@@ -5955,7 +5955,8 @@ ENTRY("calculate_results") ;
       fp = fopen(pref,"w") ;
       if( fp != NULL ){
         fprintf( fp, "# %s\n", (commandline!=NULL) ? commandline : PROGRAM_NAME );
-        fprintf( fp, "\n%s\n", cname ) ;
+        /* allow options (should apply to bash or tcsh)  23 Apr 2010 [rickr] */
+        fprintf( fp, "\n%s $*\n", cname ) ;
         fclose(fp) ;
         INFO_message("N.B.: 3dREMLfit command above written to file %s",pref) ;
       }
