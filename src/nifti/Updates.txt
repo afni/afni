@@ -96,4 +96,5 @@ Recent Updates
     - RR allow uppercase extension
     - RR added 4 checks of alloc() returns
     - RR added NIFTI_ECODE_VOXBO for Dan Kimberg of VoxBo
+    - RR added NIFTI_ECODE_CARET for John Harwell of Caret
 
