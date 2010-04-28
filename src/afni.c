@@ -2035,6 +2035,16 @@ STATUS("call 14") ;
           }
         }
 
+        if( !AFNI_yesenv("AFNI_ENABLE_MARKERS") )  /* 28 Apr 2010 */
+          REPORT_PROGRESS("\n"
+                          "+++++++++++++++++++++++++++++++++++++++++++++++++++\n"
+                          "++ NOTICE: 'Define Markers' panel is turned off.\n"
+                          "++         To control Talairach markers, you must\n"
+                          "++         re-start AFNI with environment variable\n"
+                          "++         AFNI_ENABLE_MARKERS set to YES, as in\n"
+                          "++           afni -DAFNI_ENABLE_MARKERS=YES\n"
+                          "+++++++++++++++++++++++++++++++++++++++++++++++++++\n") ;
+
       }
       break ;  /* end of 14th entry case */
 
@@ -2250,18 +2260,23 @@ ENTRY("AFNI_startup_timeout_CB") ;
                               "++ for dataset files.                   ++\n " ,
                               MCW_USER_KILL | MCW_TIMER_KILL ) ;
    else if( !ALLOW_realtime && GLOBAL_library.have_dummy_dataset ){
+    int show_markers = AFNI_yesenv("AFNI_ENABLE_MARKERS") ; /* 28 Apr 2010 */
     char hstr[1024] ;
     sprintf( hstr ,
              "   *** NOTICE ***                                              \n"
              "                                                               \n"
              "++ No valid datasets were found.  A dummy dataset has been   ++\n"
              "++ created for your viewing pleasure :-)  To read in a real  ++\n"
-             "++ data directory, use the 'Read' button near 'DataDir'.     ++\n"
+             "%s"
              "                                                               \n"
              "++ For general AFNI program help, see the Web page           ++\n"
              "++                                                           ++\n"
              "++ http://afni.nimh.nih.gov/afni/doc/program_help/index.html ++\n"
              "%s" ,
+      (show_markers)
+           ? "++ data directory, use the 'Read' button near 'DataDir'.     ++\n"
+           : "++ data directory, use the 'Read New Directory' button,      ++\n"
+             "++ located below the 'Data Directory' label.                 ++\n" ,
       (GLOBAL_browser == NULL)
            ? " "
            : "++                                                           ++\n"

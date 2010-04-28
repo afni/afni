@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 28 , APR , 2010 , RWC , "afni" , MINOR , TYPE_MODIFY ,
+   "Hide markers stuff from the user" ,
+   "Unless AFNI_ENABLE_MARKERS is set to YES" } ,
+
  { 8 , APR , 2010 , RWC , "3dBandpass" , MINOR , TYPE_BUG_FIX ,
    "Fix -localPV implementation" ,
    NULL } ,

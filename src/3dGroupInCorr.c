@@ -1003,7 +1003,7 @@ int main( int argc , char *argv[] )
       the downside is that this may take quite a while, which is boring */
 
 #undef  BSTEP
-#define BSTEP 1024
+#define BSTEP 256
    { long long pp , vstep=9 ; char *qv ; float sum=0.0f ;
      if( verb ) INFO_message("page faulting (reading) data into memory") ;
      if( shd_AAA->datum == 1 ) qv = (char *)shd_AAA->bv[0] ;
