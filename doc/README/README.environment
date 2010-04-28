@@ -652,6 +652,13 @@ behaves as if the "-noqual" command line option had been included.  This
 feature was added at the request of Dr. Michael S. Beauchamp, who has a
 very rare neurological disorder called "noqaulagnosia".
 
+-----------------------------
+Variable: AFNI_ENABLE_MARKERS
+-----------------------------
+As of 28 Apr 2010, the AFNI Talairach 'Define Markers' panel will no longer
+be visible by default.  To use this old feature, you must set this variable
+to YES before running AFNI.
+
 ----------------------
 Variable: AFNI_OPTIONS
 ----------------------
