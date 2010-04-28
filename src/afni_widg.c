@@ -710,6 +710,7 @@ void AFNI_raiseup_CB( Widget w , XtPointer cd , XtPointer cb )
 void AFNI_make_wid1( Three_D_View *im3d )
 {
    int ii ;
+   int show_markers = AFNI_yesenv("AFNI_ENABLE_MARKERS") ;  /* 28 Apr 2010 */
 
 ENTRY("AFNI_make_wid1") ;
 
@@ -1758,15 +1759,17 @@ STATUS("making view->rowcol") ;
 
    /*-- 03 Dec 2009: move Session change stuff to a private rowcol --*/
 
+ { int horz = show_markers ; char *hstr ;
+
    view->session_rowcol =
       XtVaCreateWidget(
          "dialog" , xmRowColumnWidgetClass , view->dataset_rowcol ,
             XmNpacking      , XmPACK_TIGHT ,
-            XmNorientation  , XmHORIZONTAL ,
+            XmNorientation  , (horz) ? XmHORIZONTAL : XmVERTICAL ,
             XmNtraversalOn  , True  ,
-            XmNmarginHeight , 0 ,
-            XmNmarginWidth  , 0 ,
-            XmNspacing      , 0 ,
+            XmNmarginHeight , (horz) ? 0 : 2 ,
+            XmNmarginWidth  , (horz) ? 0 : 2 ,
+            XmNspacing      , (horz) ? 0 : 2 ,
             XmNadjustLast   , False ,
             XmNisAligned    , False ,
             XmNentryAlignment , XmALIGNMENT_CENTER ,
@@ -1775,27 +1778,29 @@ STATUS("making view->rowcol") ;
 
    /*--- pushbuttons for session choice ---*/
 
-   xstr = XmStringCreateLtoR("DataDir",XmFONTLIST_DEFAULT_TAG );
+   hstr = (horz) ? "DataDir" : "Data Directory" ;
+   xstr = XmStringCreateLtoR(hstr,XmFONTLIST_DEFAULT_TAG);
    view->sess_lab =
       XtVaCreateManagedWidget(
          "dialog" , xmLabelWidgetClass , view->session_rowcol ,
             XmNrecomputeSize , False ,
             XmNlabelString , xstr ,
             XmNtraversalOn , True  ,
-            XmNmarginHeight , 0 ,
-            XmNmarginWidth  , 0 ,
+            XmNmarginHeight , (horz) ? 0 : 2 ,
+            XmNmarginWidth  , (horz) ? 0 : 2 ,
             XmNadjustMargin , False ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
    XmStringFree( xstr ) ;
    MCW_register_hint( view->sess_lab ,
-                      "Switch = change dataset directory; Read = open a new dataset directory" ) ;
+    "Switch = change dataset directory; Read = open a new dataset directory" ) ;
 
+   hstr = (horz) ? "Switch" : "Switch Directory" ;
    view->choose_sess_pb =
       XtVaCreateManagedWidget(
          "dialog" , xmPushButtonWidgetClass , view->session_rowcol ,
-            LABEL_ARG("Switch") ,
-            XmNmarginHeight , 0 ,
+            LABEL_ARG(hstr) ,
+            XmNmarginHeight , (horz) ? 0 : 2 ,
             XmNmarginWidth  , 1 ,
             XmNtraversalOn , True  ,
             XmNalignment , XmALIGNMENT_CENTER ,
@@ -1811,10 +1816,11 @@ STATUS("making view->rowcol") ;
    MCW_set_widget_bg( view->choose_sess_pb , "black"   , 0 ) ;
    MCW_set_widget_fg( view->choose_sess_pb , "#ffddaa" ) ;
 
+   hstr = (horz) ? "Read" : "Read New Directory" ;
    view->read_sess_pb =
       XtVaCreateManagedWidget(
          "dialog" , xmPushButtonWidgetClass , view->session_rowcol ,
-            LABEL_ARG("Read") ,
+            LABEL_ARG(hstr) ,
             XmNmarginHeight , 0 ,
             XmNmarginWidth  , 0 ,
             XmNmarginLeft   , 0 ,
@@ -1834,6 +1840,7 @@ STATUS("making view->rowcol") ;
             "dialog" , xmSeparatorWidgetClass , view->dataset_rowcol ,
                 XmNseparatorType , XmSHADOW_ETCHED_IN ,
             NULL ) ;
+ }
 
    /*-- 02 Feb 2007: move Underlay and Overlay choosers into a rowcol --*/
 
@@ -2079,7 +2086,12 @@ STATUS("making view->rowcol") ;
 
    /*--- all view controls made, now manage them ---*/
 
-   XtManageChild( view->marks_rowcol ) ;
+   if( show_markers ){  /* 28 Apr 2010 */
+     XtManageChild( view->marks_rowcol ) ;
+     XtManageChild( view->marks_frame ) ;
+   } else {
+     XtUnmanageChild( view->marks_frame ) ;
+   }
    XtManageChild( view->func_rowcol ) ;
    XtManageChild( view->session_rowcol ) ;
    XtManageChild( view->choose_rowcol ) ;

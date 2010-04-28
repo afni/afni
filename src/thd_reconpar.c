@@ -80,7 +80,7 @@ ENTRY("THD_reconcile_parents") ;
                if( dset_orph->anat_parent != NULL )
                   SHOW_PARENTING("(NAME) anat_parent",dset_orph,dset_orph->anat_parent) ;
             }
-            IFNOANAT(dset_orph) ;
+            /** IFNOANAT(dset_orph) ; **/
           }
 
             /*-- if it needs a warp parent --*/
