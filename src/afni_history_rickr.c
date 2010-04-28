@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 28, APR, 2010, RCR, "NIFTI", MICRO, TYPE_GENERAL,
+   "added NIFTI_ECODE_CARET for J. Harwell",
+   NULL
+ } ,
+
  { 26, APR, 2010, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "added -regress_opts_reml",
    NULL

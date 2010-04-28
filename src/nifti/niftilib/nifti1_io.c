@@ -330,9 +330,10 @@ static char * gni_history[] =
   "   - nifti_set_allow_upper_fext controls this option (req by C. Ooi)\n"
   "1.39 23 Jun 2009 [rickr]: added 4 checks of alloc() returns\n",
   "1.40 16 Mar 2010 [rickr]: added NIFTI_ECODE_VOXBO for D. Kimberg\n",
+  "1.41 28 Apr 2010 [rickr]: added NIFTI_ECODE_CARET for J. Harwell\n",
   "----------------------------------------------------------------------\n"
 };
-static char gni_version[] = "nifti library version 1.39 (23 June, 2009)";
+static char gni_version[] = "nifti library version 1.41 (28 April, 2010)";
 
 /*! global nifti options structure - init with defaults */
 static nifti_global_options g_opts = { 

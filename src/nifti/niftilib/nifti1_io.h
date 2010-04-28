@@ -464,7 +464,12 @@ int    valid_nifti_extensions(const nifti_image *nim);
 
 #define NIFTI_ECODE_VOXBO           28  /* Dan Kimberg: www.voxbo.org         */
 
-#define NIFTI_MAX_ECODE             28  /******* maximum extension code *******/
+#define NIFTI_ECODE_CARET           30  /* John Harwell: john@brainvis.wustl.edu
+                                           http://brainvis.wustl.edu/wiki
+                                             /index.php/Caret:Documentation
+                                             :CaretNiftiExtension             */
+
+#define NIFTI_MAX_ECODE             30  /******* maximum extension code *******/
 
 /* nifti_type file codes */
 #define NIFTI_FTYPE_ANALYZE   0
