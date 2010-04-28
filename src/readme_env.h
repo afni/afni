@@ -653,6 +653,13 @@ static char * readme_env[] = {
    "feature was added at the request of Dr. Michael S. Beauchamp, who has a\n" ,
    "very rare neurological disorder called \"noqaulagnosia\".\n" ,
    "\n" ,
+   "-----------------------------\n" ,
+   "Variable: AFNI_ENABLE_MARKERS\n" ,
+   "-----------------------------\n" ,
+   "As of 28 Apr 2010, the AFNI Talairach 'Define Markers' panel will no longer\n" ,
+   "be visible by default.  To use this old feature, you must set this variable\n" ,
+   "to YES before running AFNI.\n" ,
+   "\n" ,
    "----------------------\n" ,
    "Variable: AFNI_OPTIONS\n" ,
    "----------------------\n" ,
@@ -3042,4 +3049,4 @@ static char * readme_env[] = {
    "behavior, set this variable to YES.\n" ,
    "\n" ,
    NULL } ;
-#define NUM_readme_env 3042
+#define NUM_readme_env 3049
