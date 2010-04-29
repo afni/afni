@@ -1,39 +1,42 @@
 #!/bin/tcsh -f 
 
 # NEEDS afni's class data archive AFNI_data?.tgz
-set Ad = AFNI_data6
+set adir = AFNI_data6
 
-if ( ! -d ${Ad}/afni/ ) then
-   echo "Directory ./${Ad}/afni  not found."
+if ( ! -d $adir/afni/ ) then
+   echo ""
+   echo "** Directory $adir/afni not found."
+   echo ""
    echo "You could be in the wrong directory,"
-   echo " or you may not have ${Ad} on disk."
+   echo "or you may not have $adir on disk."
+   echo ""
    echo "This directory is in archive:"
-   echo "http://afni.nimh.nih.gov/pub/dist/edu/data/${Ad}.tgz"
+   echo "    http://afni.nimh.nih.gov/pub/dist/edu/data/$adir.tgz"
    echo ""
    goto END
 endif
 
 
-afni -niml -yesplugouts ${Ad}/afni/  &
+afni -niml -yesplugouts $adir/afni  &
 
-plugout_drive  -com 'SWITCH_SESSION A.afni'  \
+plugout_drive  -com 'SWITCH_SESSION A.afni'                       \
                -com 'OPEN_WINDOW A.axialimage geom=600x600+416+44 \
-                     ifrac=0.8 opacity=9'  \
-               -com 'OPEN_WINDOW A.sagittalimage geom=+45+430 \
-                     ifrac=0.8 opacity=9' \
-               -com 'SWITCH_UNDERLAY anat'     \
-               -com 'SWITCH_OVERLAY strip'     \
-               -com 'SEE_OVERLAY +'               \
-               -com 'OPEN_WINDOW A.axialimage keypress=v'   \
+                     ifrac=0.8 opacity=9'                         \
+               -com 'OPEN_WINDOW A.sagittalimage geom=+45+430     \
+                     ifrac=0.8 opacity=9'                         \
+               -com 'SWITCH_UNDERLAY anat'                        \
+               -com 'SWITCH_OVERLAY strip'                        \
+               -com 'SEE_OVERLAY +'                               \
+               -com 'OPEN_WINDOW A.axialimage keypress=v'         \
                -quit
                                     
 echo "Hit Enter to pause movie and move on"
 set l = $<
  
-plugout_drive  -com 'OPEN_WINDOW A.axialimage keypress=space   \
-                                 geom=+56+44 mont=6x3:8'      \
-               -com 'SET_DICOM_XYZ A 0 20 40'                  \
-               -com 'SAVE_JPEG axialimage SavedAxiale.jpg'   \
+plugout_drive  -com 'OPEN_WINDOW A.axialimage keypress=space      \
+                                 geom=+56+44 mont=6x3:8'          \
+               -com 'SET_DICOM_XYZ A 0 20 40'                     \
+               -com 'SAVE_JPEG axialimage SavedAxiale.jpg'        \
                -quit
                
 echo "Hit Enter to view the saved image"
@@ -45,23 +48,25 @@ echo "Hit Enter to examine time series."
 set l = $<
 
 #Now let us examine the time series
-plugout_drive  -com 'OPEN_WINDOW B.sagittalimage \
-                     geom=300x300+416+344 ifrac=0.8 opacity=9'  \
-               -com 'SWITCH_UNDERLAY B.epi_r1'             \
-               -com 'OPEN_WINDOW B.sagittalgraph   \
-                     geom=400x300+0+344   \
-                     keypress=v'           \
+plugout_drive  -com 'OPEN_WINDOW B.sagittalimage                  \
+                     geom=300x300+416+344 ifrac=0.8 opacity=9'    \
+               -com 'SWITCH_UNDERLAY B.epi_r1'                    \
+               -com 'OPEN_WINDOW B.sagittalgraph                  \
+                     geom=400x300+0+344                           \
+                     keypress=A keypress=v'                       \
                -quit
 
 #Show how sub-brick selection can be done.
 #and how the threshold bar can be set
 echo "Hit Enter to pause movie and show sub-brick manipulation"
 set l = $<
-plugout_drive  -com 'OPEN_WINDOW B.sagittalgraph  keypress=space' \
-               -com 'SET_SUBBRICKS B 13 3 4' \
-               -com 'SET_THRESHNEW B 0.001 *p'   \
-               -com 'SEE_OVERLAY B.+' \
-               -com 'SET_DICOM_XYZ B -42.6 32 5'                  \
+plugout_drive  -com 'OPEN_WINDOW B.sagittalgraph keypress=space'  \
+               -com 'SET_SUBBRICKS B 13 5 6'                      \
+               -com 'OPEN_WINDOW B.sagittalimage'                 \
+               -com 'SET_THRESHNEW B 0.0001 *p'                   \
+               -com 'SET_FUNC_RANGE B.5.0'                        \
+               -com 'SEE_OVERLAY B.+'                             \
+               -com 'SET_DICOM_XYZ B 30 80.7 15'                  \
                -quit   
 
 echo "Hit Enter to quit"
