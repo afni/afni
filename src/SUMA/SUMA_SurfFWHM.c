@@ -299,7 +299,8 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfFWHM_ParseInput(char *argv[], int arg
          brk = YUP;
       }
       
-      if (!brk && (strcmp(argv[kar], "-hood") == 0 || strcmp(argv[kar], "-nbhd_rad") == 0))
+      if (!brk && (strcmp(argv[kar], "-hood") == 0 || 
+                   strcmp(argv[kar], "-nbhd_rad") == 0))
       {
          if (kar+1 >= argc)
          {
@@ -400,7 +401,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfFWHM_ParseInput(char *argv[], int arg
    }
 
    if (!Opt->out_prefix) {
-      Opt->out_prefix = SUMA_copy_string("SurfLocalstat");
+      Opt->out_prefix = SUMA_copy_string("SurfFWHM");
    }
 
    if (Opt->r > 0.0 && Opt->d1 > 0.0) {

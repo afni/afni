@@ -186,7 +186,7 @@ Boolean SUMA_niml_workproc( XtPointer thereiselvis )
       if (SUMAg_CF->ns_flags_v[cc] & SUMA_FLAG_WAITING) {
          SUMAg_CF->ns_flags_v[cc] = SUMA_FLAG_CONNECTED;
          SUMA_S_Notev( 
-                  "++ NIML connection opened from %s on port %d (%dth steam)\n",
+                  "++ NIML connection opened from %s on port %d (%dth stream)\n",
                   NI_stream_name(SUMAg_CF->ns_v[cc]), 
                   SUMAg_CF->TCP_port[cc], cc) ;
       }

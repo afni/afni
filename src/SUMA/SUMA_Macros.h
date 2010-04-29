@@ -230,7 +230,7 @@
    float m_n, m_Un[3];  \
    SUMA_NORM_VEC(U, 3, m_n); \
    if (m_n) {  \
-      if (m_n != 1) { \
+      if (m_n != 1.0) { \
          m_Un[0] = (U[0]) / (m_n); m_Un[1] = (U[1]) / (m_n); m_Un[2] = (U[2]) / (m_n); \
          SUMA_POINT_AT_DISTANCE_NORM(m_Un, P1, d, P2);   \
       } else { SUMA_POINT_AT_DISTANCE_NORM(U, P1, d, P2); } \
@@ -379,28 +379,44 @@ if Dist = 0, point on plane, if Dist > 0 point above plane (along normal), if Di
    
    - NOTE: macro does not check that three points are colinear (as they should be)!
 */
-#define SUMA_IS_POINT_IN_SEGMENT(p, p0, p1)  (  (  (  \
-                                                      (p[0] >  p0[0] && p[0] <  p1[0]) ||   \
-                                                      (p[0] <  p0[0] && p[0] >  p1[0]) ||   \
-                                                      (SUMA_ABS(p[0] - p0[0]) < 0.00000001 || \
-                                                       SUMA_ABS(p[0] - p1[0]) < 0.00000001 ) \
-                                                   )\
+#define SUMA_IS_POINT_IN_SEGMENT(p, p0, p1)  (  (  \
+            (  \
+               (p[0] >  p0[0] && p[0] <  p1[0]) ||   \
+               (p[0] <  p0[0] && p[0] >  p1[0]) ||   \
+               (SUMA_ABS(p[0] - p0[0]) < 0.00000001 || \
+                SUMA_ABS(p[0] - p1[0]) < 0.00000001 ) \
+            )\
                                                    && \
-                                                   (  \
-                                                      (p[1] >  p0[1] && p[1] <  p1[1]) ||   \
-                                                      (p[1] <  p0[1] && p[1] >  p1[1]) ||   \
-                                                      (SUMA_ABS(p[1] - p0[1]) < 0.00000001 || \
-                                                       SUMA_ABS(p[1] - p1[1]) < 0.00000001 ) \
-                                                   )\
+            (  \
+               (p[1] >  p0[1] && p[1] <  p1[1]) ||   \
+               (p[1] <  p0[1] && p[1] >  p1[1]) ||   \
+               (SUMA_ABS(p[1] - p0[1]) < 0.00000001 || \
+                SUMA_ABS(p[1] - p1[1]) < 0.00000001 ) \
+            )\
                                                    && \
-                                                   (  \
-                                                      (p[2] >  p0[2] && p[2] <  p1[2]) ||   \
-                                                      (p[2] <  p0[2] && p[2] >  p1[2]) ||   \
-                                                      (SUMA_ABS(p[2] - p0[2]) < 0.00000001 || \
-                                                       SUMA_ABS(p[2] - p1[2]) < 0.00000001 ) \
-                                                   )\
-                                                   ) ? 1 : 0 )
+            (  \
+               (p[2] >  p0[2] && p[2] <  p1[2]) ||   \
+               (p[2] <  p0[2] && p[2] >  p1[2]) ||   \
+               (SUMA_ABS(p[2] - p0[2]) < 0.00000001 || \
+                SUMA_ABS(p[2] - p1[2]) < 0.00000001 ) \
+            )\
+                                   ) ? 1 : 0 )
                                           
+/*! 
+   \brief Project point N onto plane Eq
+*/
+   #define SUMA_PROJECT_ONTO_PLANE(Eq,N,P) {\
+      double cn = (Eq)[0]*(Eq)[0]+(Eq)[1]*(Eq)[1]+(Eq)[2]*(Eq)[2];  \
+      if (cn != 0.0f) { \
+         cn  = ((Eq)[0]*(N)[0]+(Eq)[1]*(N)[1]+(Eq)[2]*(N)[2]+(Eq)[3])/cn;   \
+         (P)[0] = (N)[0] - (Eq)[0] * cn;  \
+         (P)[1] = (N)[1] - (Eq)[1] * cn;  \
+         (P)[2] = (N)[2] - (Eq)[2] * cn;  \
+      }  else { \
+         (P)[0] = (P)[1] = (P)[2] = 0.0;  \
+      }  \
+   }
+
 /*!
    \brief Intersection of a segment with a plane
    \param p1 x y z of point 1

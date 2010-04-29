@@ -32,7 +32,8 @@ DListElmt * SUMA_FindDsetEl_s (char *idcode, DList *DsetList);
 int SUMA_GetNodeIndex_FromNodeRow_s(SUMA_DSET *dset, int row, int N_Node);
 int SUMA_GetNodeRow_FromNodeIndex_s(SUMA_DSET *dset, int node, int N_Node);
 SUMA_DSET *SUMA_LoadDset_s (char *Name, SUMA_DSET_FORMAT *form, int verb);
-char * SUMA_WriteDset_s (char *Name, SUMA_DSET *dset, SUMA_DSET_FORMAT form, int overwrite, int verb) ;
+char * SUMA_WriteDset_s (char *Name, SUMA_DSET *dset, 
+                         SUMA_DSET_FORMAT form, int overwrite, int verb) ;
 char *SUMA_RemoveDsetExtension_s (char*Name, SUMA_DSET_FORMAT form);
 SUMA_DSET *SUMA_far2dset_s( char *FullName, char *dset_id, char *dom_id, 
                                  float **farp, int vec_len, int vec_num, 
