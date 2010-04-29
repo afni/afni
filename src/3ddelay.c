@@ -690,7 +690,7 @@ void get_options
       if (strcmp(argv[nopt], "-nodtrnd") == 0)
 		{
 		  /* option_data->dtrnd = 0; */
-        option_data->polort = 1;
+        option_data->polort = 0;
 		  nopt++;
 		  continue;
 		}

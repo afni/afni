@@ -1424,7 +1424,7 @@ SUMA_Boolean SUMA_isRelated ( SUMA_SurfaceObject *SO1,
                if ( (SO1->Side == SO2->Side) ) {
                   SUMA_RETURN(YUP);
                } else {
-                  if (!iwarn % 25) {
+                  if (!(iwarn % 25)) {
                      SUMA_S_Note( "Surfaces appear related at level 2 "
                                "but sides are not the same.\n"                                                   "Kinship level is being ignored.\n"
                                "(Message shown intermittenly)\n");
