@@ -166,6 +166,15 @@ float THD_spearman_corr_nd( int n , float *x , float *y )
    return cv ;
 }
 
+/*--------------------------------------------------------------------------*/
+/*! Kendall Tau_b (x and y are modified) */
+
+float THD_ktaub_corr( int n , float *x , float *y )
+{
+   qsort_floatfloat( n , x , y ) ;
+   return kendallNlogN( x , y , n ) ;
+}
+
 /*--------------------------------------------------------------*/
 /*! Quadrant correlation of x[] and y[] (x and y are modified). */
 

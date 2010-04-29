@@ -161,7 +161,8 @@ PLUGIN_interface * ICOR_init( char *lab )
 {
    PLUGIN_interface *plint ;     /* will be the output of this routine */
    static char *yn[2] = { "No" , "Yes" } ;
-   static char *meth_string[3] = { "Pearson" , "Spearman" , "Quadrant" } ;
+   static char *meth_string[4] = { "Pearson" , "Spearman" ,
+                                   "Quadrant", "Ken Tau_b"  } ;
    char sk[32] , sc[32] ;
    int gblur = AFNI_yesenv("AFNI_INSTACORR_SEEDBLUR") ;
 
@@ -208,7 +209,7 @@ PLUGIN_interface * ICOR_init( char *lab )
    PLUTO_add_option( plint , "Misc Opts" , "MiscOpts" , FALSE ) ;
    PLUTO_add_number( plint , (gblur) ? "SeedBlur" : "SeedRad" , 0,10,0,0,TRUE ) ;
    PLUTO_add_number( plint , "Polort" , -1,2,0,2 , FALSE ) ;
-   PLUTO_add_string( plint , "Method" , 3 , meth_string , 0 ) ;
+   PLUTO_add_string( plint , "Method" , 4 , meth_string , 0 ) ;
 
    return plint ;
 }
@@ -301,6 +302,7 @@ static char * ICOR_main( PLUGIN_interface *plint )
          default:  cmeth = NBISTAT_PEARSON_CORR  ; break ;
          case 'S': cmeth = NBISTAT_SPEARMAN_CORR ; break ;
          case 'Q': cmeth = NBISTAT_QUADRANT_CORR ; break ;
+         case 'K': cmeth = NBISTAT_KENDALL_TAUB  ; break ;
        }
        continue ;
      }

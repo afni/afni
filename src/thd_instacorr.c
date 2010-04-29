@@ -217,6 +217,9 @@ ENTRY("THD_instacorr") ;
 
      case NBISTAT_QUADRANT_CORR:
        THD_vectim_quadrant( iset->mv , tsar , dar ) ; break ;
+
+     case NBISTAT_KENDALL_TAUB:
+       THD_vectim_ktaub( iset->mv , tsar , dar ) ; break ;  /* 29 Apr 2010 */
    }
 
    /** put them into the output image **/

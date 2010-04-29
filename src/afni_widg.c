@@ -1759,8 +1759,15 @@ STATUS("making view->rowcol") ;
 
    /*-- 03 Dec 2009: move Session change stuff to a private rowcol --*/
 
- { int horz = show_markers ; char *hstr ;
+ {
+#if 0
+  int horz = show_markers ;
+#else
+  int horz = 1 ;
+#endif
+   char *hstr ;
 
+   view->session_horz = horz ;
    view->session_rowcol =
       XtVaCreateWidget(
          "dialog" , xmRowColumnWidgetClass , view->dataset_rowcol ,
