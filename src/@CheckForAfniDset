@@ -4,13 +4,12 @@ if ("$1" == '' || "$1" == '-h' || "$1" == '-help') then
 	goto USAGE
 endif
 #save path
-set pt = $1:h
-if ("$pt" == "$1") then
-   set pt = "."
-endif
 
-set pref = `@GetAfniPrefix $1`
-set view = `@GetAfniView $1`
+set lll = `@parse_afni_name "$1"`
+set pt = $lll[1]
+
+set pref = `@GetAfniPrefix "$1"`
+set view = `@GetAfniView "$1"`
 
 set ext = $1:e
 if ("$ext" == "gz" || "$ext" == "bz2" || "$ext" == "Z" ) then

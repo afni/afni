@@ -3696,7 +3696,8 @@ SUMA_Boolean SUMA_isIOFormatFromArg(char *argi, SUMA_DSET_FORMAT *oformp,
 
    I hope and pray that this will not be a can of worms. 
 */
-SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optflags)
+SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], 
+                                             char *optflags)
 {
    static char FuncName[]={"SUMA_Parse_IO_Args"};
    int i, kar, ind, N_name, MoreInput =0;

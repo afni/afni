@@ -66,6 +66,11 @@
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 21 , APR , 2010 , ZSS , "3ddelay" , MINOR , TYPE_BUG_FIX,
+   "-nodtrnd option was setting polort to 1, as opposed to 0.",
+   NULL
+ } ,
+
  { 16 , APR , 2010 , ZSS , "3dbucket" , MINOR , TYPE_NEW_OPT,
    "-agluto option = amalgamated -prefix and -glueto",
    NULL
