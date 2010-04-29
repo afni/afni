@@ -3,6 +3,7 @@
 #define SPEARMAN 1
 #define QUADRANT 2
 #define PEARSON  3
+#define KTAUB    4
 
 int main( int argc , char *argv[] )
 {
@@ -26,10 +27,16 @@ int main( int argc , char *argv[] )
              "\n"
              "Options:\n"
              "  -pearson  = Correlation is the normal Pearson (product moment)\n"
-             "                correlation coefficient [default].\n"
+             "                correlation coefficient [this is the default method].\n"
              "  -spearman = Correlation is the Spearman (rank) correlation\n"
              "                coefficient.\n"
              "  -quadrant = Correlation is the quadrant correlation coefficient.\n"
+             "  -ktaub    = Correlation is Kendall's tau_b coefficient.\n"
+             "\n"
+             " http://en.wikipedia.org/wiki/Correlation\n"
+             " http://en.wikipedia.org/wiki/Pearson_product-moment_correlation_coefficient\n"
+             " http://en.wikipedia.org/wiki/Spearman's_rank_correlation_coefficient\n"
+             " http://en.wikipedia.org/wiki/Kendall_tau_rank_correlation_coefficient\n"
              "\n"
              "  -polort m = Remove polynomical trend of order 'm', for m=-1..3.\n"
              "                [default is m=1; removal is by least squares].\n"
@@ -91,16 +98,20 @@ int main( int argc , char *argv[] )
          do_autoclip = 1 ; nopt++ ; continue ;
       }
 
-      if( strcmp(argv[nopt],"-pearson") == 0 ){
+      if( strcasecmp(argv[nopt],"-pearson") == 0 ){
          method = PEARSON ; nopt++ ; continue ;
       }
 
-      if( strcmp(argv[nopt],"-spearman") == 0 ){
+      if( strcasecmp(argv[nopt],"-spearman") == 0 ){
          method = SPEARMAN ; nopt++ ; continue ;
       }
 
-      if( strcmp(argv[nopt],"-quadrant") == 0 ){
+      if( strcasecmp(argv[nopt],"-quadrant") == 0 ){
          method = QUADRANT ; nopt++ ; continue ;
+      }
+
+      if( strcasecmp(argv[nopt],"-ktaub") == 0 ){
+         method = KTAUB ; nopt++ ; continue ;
       }
 
       if( strcmp(argv[nopt],"-prefix") == 0 ){
@@ -200,6 +211,7 @@ int main( int argc , char *argv[] )
       case PEARSON:  EDIT_BRICK_LABEL(cset,0,"Pear.Corr.") ; break ;
       case SPEARMAN: EDIT_BRICK_LABEL(cset,0,"Spmn.Corr.") ; break ;
       case QUADRANT: EDIT_BRICK_LABEL(cset,0,"Quad.Corr.") ; break ;
+      case KTAUB:    EDIT_BRICK_LABEL(cset,0,"Taub.Corr.") ; break ;
    }
 
    EDIT_substitute_brick( cset , 0 , MRI_float , NULL ) ; /* make array  */
@@ -208,7 +220,7 @@ int main( int argc , char *argv[] )
    tross_Make_History( "3dTcorrelate" , argc,argv , cset ) ;
 
    /* loop over voxels, correlate */
-   /* fprintf(stderr,"have %d voxels to work with, %d values/time series.\n", nvox, nvals);*/
+   /* fprintf(stderr,"have %d voxels to work with, %d values/time series\n",nvox,nvals);*/
    for( ii=0 ; ii < nvox ; ii++ ){
 
       if( mmm != NULL && mmm[ii] == 0 ){  /* the easy case */
@@ -228,6 +240,7 @@ int main( int argc , char *argv[] )
          case PEARSON:  car[ii] = THD_pearson_corr ( nvals,xsar,ysar ); break;
          case SPEARMAN: car[ii] = THD_spearman_corr( nvals,xsar,ysar ); break;
          case QUADRANT: car[ii] = THD_quadrant_corr( nvals,xsar,ysar ); break;
+         case KTAUB:    car[ii] = THD_ktaub_corr   ( nvals,xsar,ysar ); break;
       }
 
       mri_free(xsim) ; mri_free(ysim) ;    /* toss time series */

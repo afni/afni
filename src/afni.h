@@ -533,6 +533,7 @@ typedef struct {
 
       Widget choose_rowcol , rescan_pb, nimlpo_pb ;                    /* 02 Feb 2007 */
       Widget session_rowcol, sess_lab , choose_sess_pb, read_sess_pb ; /* 03 Dec 2009 */
+      int    session_horz ;                                            /* 29 Apr 2010 */
 
       Boolean marks_pb_inverted , func_pb_inverted , dmode_pb_inverted ;
 

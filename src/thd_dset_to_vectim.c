@@ -243,8 +243,9 @@ MRI_vectim * THD_vectim_copy( MRI_vectim *mrv )  /* 08 Apr 2010 */
 
    MAKE_VECTIM( qrv , mrv->nvec , mrv->nvals ) ;
    qrv->ignore = mrv->ignore ;
-   memcpy( qrv->ivec , mrv->ivec , sizeof(int)*mrv->nvec ) ;
-   memcpy( qrv->fvec , mrv->fvec , sizeof(float)*mrv->nvec*mrv->nvals ) ;
+#pragma omp critical (MEMCPY)
+   { memcpy( qrv->ivec , mrv->ivec , sizeof(int)*mrv->nvec ) ;
+     memcpy( qrv->fvec , mrv->fvec , sizeof(float)*mrv->nvec*mrv->nvals ) ; }
    qrv->nx = mrv->nx ; qrv->dx = mrv->dx ;
    qrv->ny = mrv->ny ; qrv->dy = mrv->dy ;
    qrv->nz = mrv->nz ; qrv->dz = mrv->dz ; qrv->dt = mrv->dt ;
@@ -319,15 +320,17 @@ void THD_vectim_spearman( MRI_vectim *mrv , float *vec , float *dp )
    av   = (float *)malloc(sizeof(float)*nvals) ;
    bv   = (float *)malloc(sizeof(float)*nvals) ;
 
+#pragma omp critical (MEMCPY)
    memcpy( av , vec , sizeof(float)*nvals ) ;
    sav = spearman_rank_prepare( nvals , av ) ; if( sav <= 0.0f ) sav = 1.e+9f ;
 
    for( iv=0 ; iv < nvec ; iv++ ){
+#pragma omp critical (MEMCPY)
      memcpy( bv , VECTIM_PTR(mrv,iv) , sizeof(float)*nvals ) ;
      dp[iv] = spearman_rank_corr( nvals , bv , sav , av ) ;
    }
 
-  return ;
+   free(bv) ; free(av) ; return ;
 }
 
 /*---------------------------------------------------------------------*/
@@ -344,15 +347,53 @@ void THD_vectim_quadrant( MRI_vectim *mrv , float *vec , float *dp )
    av   = (float *)malloc(sizeof(float)*nvals) ;
    bv   = (float *)malloc(sizeof(float)*nvals) ;
 
+#pragma omp critical (MEMCPY)
    memcpy( av , vec , sizeof(float)*nvals ) ;
    sav = quadrant_corr_prepare( nvals , av ) ; if( sav <= 0.0f ) sav = 1.e+9f ;
 
    for( iv=0 ; iv < nvec ; iv++ ){
+#pragma omp critical (MEMCPY)
      memcpy( bv , VECTIM_PTR(mrv,iv) , sizeof(float)*nvals ) ;
      dp[iv] = quadrant_corr( nvals , bv , sav , av ) ;
    }
 
-  return ;
+   free(bv) ; free(av) ; return ;
+}
+
+/*----------------------------------------------------------------------------*/
+/* 29 Apr 2010: Kendall Tau-b correlation. */
+
+void THD_vectim_ktaub( MRI_vectim *mrv , float *vec , float *dp )
+{
+   float *av , *aav , *bv , *dv ;
+   int nvec , nvals , iv , jv , *qv ;
+
+ENTRY("THD_vectim_ktaub") ;
+
+   if( mrv == NULL || vec == NULL || dp == NULL ) EXRETURN ;
+
+   nvec = mrv->nvec ; nvals = mrv->nvals ;
+   av   = (float *)malloc(sizeof(float)*nvals) ;
+   aav  = (float *)malloc(sizeof(float)*nvals) ;
+   bv   = (float *)malloc(sizeof(float)*nvals) ;
+   qv   = (int   *)malloc(sizeof(int  )*nvals) ;
+
+#pragma omp critical (MEMCPY)
+   memcpy( av , vec , sizeof(float)*nvals ) ;
+   for( jv=0 ; jv < nvals ; jv++ ) qv[jv] = jv ;
+STATUS("qsort") ;
+   qsort_floatint( nvals , av , qv ) ;
+
+STATUS("loop") ;
+   for( iv=0 ; iv < nvec ; iv++ ){
+     dv = VECTIM_PTR(mrv,iv) ;
+     for( jv=0 ; jv < nvals ; jv++ ) bv[jv] = dv[qv[jv]] ;
+#pragma omp critical (MEMCPY)
+     memcpy( aav , av , sizeof(float)*nvals) ;
+     dp[iv] = kendallNlogN( aav , bv , nvals ) ;
+   }
+
+   free(qv) ; free(bv) ; free(aav) ; free(av) ; EXRETURN ;
 }
 
 /*----------------------------------------------------------------------------*/
