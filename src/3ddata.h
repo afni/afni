@@ -4186,6 +4186,10 @@ extern void THD_vectim_normalize( MRI_vectim *mrv ) ;
 extern void THD_vectim_dotprod ( MRI_vectim *mrv, float *vec, float *dp, int ata ) ;
 extern void THD_vectim_spearman( MRI_vectim *mrv, float *vec, float *dp ) ; /* 01 Mar 2010 */
 extern void THD_vectim_quadrant( MRI_vectim *mrv, float *vec, float *dp ) ; /* 01 Mar 2010 */
+extern void THD_vectim_ktaub   ( MRI_vectim *mrv, float *vec, float *dp ) ; /* 29 Apr 2010 */
+
+extern float kendallNlogN ( float *arr1, float *arr2, int len ) ;  /* in ktaub.c */
+extern float kendallSmallN( float *arr1, float *arr2, int len ) ;
 
 extern int THD_vectim_subset_average( MRI_vectim *mrv, int nind, int *ind, float *ar );
 
@@ -4841,6 +4845,7 @@ extern THD_3dim_dataset * TT_retrieve_atlas_either(void); /* 22 Aug 2001 */
 extern float THD_spearman_corr( int,float *,float *) ;  /* 23 Aug 2001 */
 extern float THD_quadrant_corr( int,float *,float *) ;
 extern float THD_pearson_corr ( int,float *,float *) ;
+extern float THD_ktaub_corr   ( int,float *,float *) ;  /* 29 Apr 2010 */
 
 extern float THD_pearson_corr_wt( int,float *,float *,float *) ; /* 13 Sep 2006 */
 
