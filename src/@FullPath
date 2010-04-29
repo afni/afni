@@ -1,0 +1,16 @@
+#!/bin/tcsh -f
+if ("$1" == '-h' || "$1" == '-help') then
+   echo "Usage: `basename $0` FILE"
+   echo "Changes relative path to absolute one."
+   echo "   It is needed where one want to avoid an operation"
+   echo "   that returns a status=1"
+   goto END
+endif
+echo "$1"  | \grep '^/' >& /dev/null
+if ($status) then
+   echo "$PWD/$1"
+else
+   echo "$1"
+endif 
+
+END:
