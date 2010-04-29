@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 29, APR, 2010, RCR, "@DriveAfni", MICRO, TYPE_MODIFY,
+   "minor updates",
+   NULL
+ } ,
+
  { 28, APR, 2010, RCR, "NIFTI", MICRO, TYPE_GENERAL,
    "added NIFTI_ECODE_CARET for J. Harwell",
    NULL
