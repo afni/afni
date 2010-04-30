@@ -91,21 +91,25 @@ int main( int argc , char *argv[] )
      ERROR_exit("Need 2 non-option arguments on command line!?") ;
 
    if( STRING_HAS_SUFFIX(argv[nopt],"1D") ){
+INFO_message("reading 1D file %s",argv[nopt]) ;
      ysim = mri_read_1D( argv[nopt] ) ; ynam = argv[nopt] ;
      if( ysim == NULL )
        ERROR_exit("Can't read 1D file %s",argv[nopt]) ;
    } else {
+INFO_message("reading dataset file %s",argv[nopt]) ;
      xset = THD_open_dataset( argv[nopt] ) ; xnam = argv[nopt] ;
      if( xset == NULL )
        ERROR_exit("Can't open dataset %s",argv[nopt]) ;
    }
 
    nopt++ ;
-   if( xset == NULL ){
+   if( xset != NULL ){
+INFO_message("reading 1D file %s",argv[nopt]) ;
      ysim = mri_read_1D( argv[nopt] ) ; ynam = argv[nopt] ;
      if( ysim == NULL )
        ERROR_exit("Can't read 1D file %s",argv[nopt]) ;
    } else {
+INFO_message("reading dataset file %s",argv[nopt]) ;
      xset = THD_open_dataset( argv[nopt] ) ; xnam = argv[nopt] ;
      if( xset == NULL )
        ERROR_exit("Can't open dataset %s",argv[nopt]) ;
