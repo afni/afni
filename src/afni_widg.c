@@ -1801,6 +1801,13 @@ STATUS("making view->rowcol") ;
    XmStringFree( xstr ) ;
    MCW_register_hint( view->sess_lab ,
     "Switch = change dataset directory; Read = open a new dataset directory" ) ;
+   XtInsertEventHandler( view->sess_lab ,         /* handle events in label */
+                             ButtonPressMask ,    /* button presses */
+                             FALSE ,              /* nonmaskable events? */
+                             AFNI_sesslab_EV ,    /* handler */
+                             (XtPointer)im3d ,    /* client data */
+                             XtListTail           /* last in queue */
+                         ) ;
 
    hstr = (horz) ? "Switch" : "Switch Directory" ;
    view->choose_sess_pb =
@@ -2096,8 +2103,11 @@ STATUS("making view->rowcol") ;
    if( show_markers ){  /* 28 Apr 2010 */
      XtManageChild( view->marks_rowcol ) ;
      XtManageChild( view->marks_frame ) ;
+     view->marks_enabled = 1 ;
    } else {
+     XtUnmanageChild( view->marks_rowcol ) ;
      XtUnmanageChild( view->marks_frame ) ;
+     view->marks_enabled = 0 ;
    }
    XtManageChild( view->func_rowcol ) ;
    XtManageChild( view->session_rowcol ) ;
@@ -6637,4 +6647,45 @@ int AFNI_get_dset_val_label(THD_3dim_dataset *dset, double val, char *str)
    }
 
    RETURN(0);
+}
+
+/*-------------------------------------------------------------------------*/
+
+void AFNI_sesslab_EV( Widget w , XtPointer cd ,
+                      XEvent *ev , Boolean *continue_to_dispatch )
+{
+   Three_D_View *im3d = (Three_D_View *)cd ;
+
+ENTRY("AFNI_sesslab_EV") ;
+
+   if( ! IM3D_OPEN(im3d) ) EXRETURN ;
+
+   /*** handle events ***/
+
+   switch( ev->type ){
+
+     /*----- take button press -----*/
+
+     case ButtonPress:{
+       XButtonEvent *event = (XButtonEvent *)ev ;
+       if( event->button == Button3 ){
+         AFNI_viewing_widgets *view = im3d->vwid->view ;
+         if( view->marks_enabled ){
+           XtUnmanageChild( view->marks_rowcol ) ;
+           XtUnmanageChild( view->marks_frame ) ;
+           view->marks_enabled = 0 ;
+         } else {
+           XtManageChild( view->marks_rowcol ) ;
+           XtManageChild( view->marks_frame ) ;
+           view->marks_enabled = 1 ;
+         }
+       } else if( event->button == Button2 ){
+         XUngrabPointer( event->display , CurrentTime ) ;
+       }
+     }
+     break ;
+
+   }
+
+   EXRETURN ;
 }

@@ -7,13 +7,13 @@
 
 int main( int argc , char *argv[] )
 {
-   THD_3dim_dataset *xset , *cset ;
+   THD_3dim_dataset *xset=NULL , *cset ;
    int nopt=1 , method=PEARSON , do_autoclip=0 ;
    int nvox , nvals , ii , polort=1 ;
-   MRI_IMAGE *xsim , *ysim ;
+   MRI_IMAGE *xsim , *ysim=NULL ;
    float     *xsar , *ysar , *ydar , *car ;
    char *prefix = "Tcorr1D" ;
-   byte *mmm=NULL ;
+   char *xnam=NULL , *ynam=NULL ;
 
    /*----*/
 
@@ -90,28 +90,41 @@ int main( int argc , char *argv[] )
    if( nopt+1 >= argc )
      ERROR_exit("Need 2 non-option arguments on command line!?") ;
 
-   xset = THD_open_dataset( argv[nopt] ) ;
-   if( xset == NULL )
-     ERROR_exit("Can't open dataset %s",argv[nopt]) ;
+   if( STRING_HAS_SUFFIX(argv[nopt],"1D") ){
+     ysim = mri_read_1D( argv[nopt] ) ; ynam = argv[nopt] ;
+     if( ysim == NULL )
+       ERROR_exit("Can't read 1D file %s",argv[nopt]) ;
+   } else {
+     xset = THD_open_dataset( argv[nopt] ) ; xnam = argv[nopt] ;
+     if( xset == NULL )
+       ERROR_exit("Can't open dataset %s",argv[nopt]) ;
+   }
+
+   nopt++ ;
+   if( xset == NULL ){
+     ysim = mri_read_1D( argv[nopt] ) ; ynam = argv[nopt] ;
+     if( ysim == NULL )
+       ERROR_exit("Can't read 1D file %s",argv[nopt]) ;
+   } else {
+     xset = THD_open_dataset( argv[nopt] ) ; xnam = argv[nopt] ;
+     if( xset == NULL )
+       ERROR_exit("Can't open dataset %s",argv[nopt]) ;
+   }
 
    nvals = DSET_NVALS(xset) ;
    if( nvals < 3 )
-     ERROR_exit("Input dataset %s length is less than 3",argv[nopt]) ;
-
-   ysim = mri_read_1D( argv[++nopt] ) ;
-   if( ysim == NULL )
-     ERROR_exit("Can't read 1D file %s",argv[nopt]) ;
+     ERROR_exit("Input dataset %s length is less than 3?!",xnam) ;
 
    if( ysim->ny > 1 )
      WARNING_message("1D file %s has %d columns: only first one will be used!",
-                     argv[nopt],ysim->ny) ;
+                     ynam,ysim->ny) ;
 
    if( ysim->nx < nvals )
      ERROR_exit("1D file %s has %d time points, but dataset has %d values",
-                argv[nopt],ysim->nx,nvals) ;
+                ynam,ysim->nx,nvals) ;
    else if( ysim->nx > nvals )
      WARNING_message("1D file %s has %d time points, dataset has %d",
-                     argv[nopt],ysim->nx,nvals) ;
+                     ynam,ysim->nx,nvals) ;
 
    DSET_load(xset) ; CHECK_LOAD_ERROR(xset) ;
 
@@ -153,14 +166,14 @@ int main( int argc , char *argv[] )
    /* loop over voxels, correlate */
 
    ysar = MRI_FLOAT_PTR(ysim) ;
-   ydar = (float *)malloc(sizeof(float)*nvals) ;
+   ydar = (float *)malloc(sizeof(float)*nvals) ;  /* 1D data duplicate */
 
    for( ii=0 ; ii < nvox ; ii++ ){
 
       /* get time series */
 
       xsim = THD_extract_series(ii,xset,0) ; xsar = MRI_FLOAT_PTR(xsim) ;
-      memcpy(ydar,ysar,sizeof(float)*nvals) ;
+      memcpy(ydar,ysar,sizeof(float)*nvals) ;   /* make copy of 1D data */
 
       switch( method ){                    /* correlate */
          default:
@@ -176,11 +189,11 @@ int main( int argc , char *argv[] )
 
    /* toss the other trash */
 
-   DSET_unload(xset) ;
+   free(ydar) ; DSET_unload(xset) ;
 
    /* finito */
 
    DSET_write(cset) ;
-   fprintf(stderr,"++ Wrote dataset: %s\n",DSET_BRIKNAME(cset)) ;
+   INFO_message("Wrote dataset: %s\n",DSET_BRIKNAME(cset)) ;
    exit(0) ;
 }
