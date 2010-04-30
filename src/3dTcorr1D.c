@@ -23,7 +23,7 @@ int main( int argc , char *argv[] )
              "in the input 3D+time dataset 'xset' and the 1D time series file 'y1D',\n"
              "and stores the output values in a new 1 sub-brick dataset.\n"
              "\n"
-             "Options:\n"
+             "OPTIONS:\n"
              "  -pearson  = Correlation is the normal Pearson (product moment)\n"
              "                correlation coefficient [this is the default method].\n"
              "  -spearman = Correlation is the Spearman (rank) correlation\n"
@@ -34,12 +34,14 @@ int main( int argc , char *argv[] )
              "  -prefix p = Save output into dataset with prefix 'p'\n"
              "               [default prefix is 'Tcorr1D'].\n"
              "\n"
-             "Notes:\n"
+             "NOTES:\n"
              "* The output dataset is functional bucket type, with just one\n"
              "   sub-brick, stored in floating point format.\n"
-             "* No detrending or other pre-processing options are available here;\n"
-             "   if you want these things, see 3dDetrend or 3dBandpass.\n"
-             "   [This program presumes you know what you are doing!]\n"
+             "* No detrending, masking, or other pre-processing options are available here;\n"
+             "   if you want these things, see 3dDetrend or 3dBandpass or 3dcalc.\n"
+             "   [In other words, this program presumes you know what you are doing!]\n"
+             "* If the 'y1D' file has more than one column, only the first one will\n"
+             "   be correlated with 'xset', and a warning message will be displayed.\n"
              "* Also see 3dTcorrelate to do voxel-by-voxel correlation of TWO\n"
              "   3D+time datasets' time series, with similar options.\n"
              "* http://en.wikipedia.org/wiki/Correlation\n"
@@ -174,12 +176,12 @@ INFO_message("reading dataset file %s",argv[nopt]) ;
 
    for( ii=0 ; ii < nvox ; ii++ ){
 
-      /* get time series */
+      /* get time series to correlate */
 
       xsim = THD_extract_series(ii,xset,0) ; xsar = MRI_FLOAT_PTR(xsim) ;
       memcpy(ydar,ysar,sizeof(float)*nvals) ;   /* make copy of 1D data */
 
-      switch( method ){                    /* correlate */
+      switch( method ){                    /* correlate away! */
          default:
          case PEARSON:  car[ii] = THD_pearson_corr ( nvals,xsar,ydar ); break;
          case SPEARMAN: car[ii] = THD_spearman_corr( nvals,xsar,ydar ); break;
