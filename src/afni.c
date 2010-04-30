@@ -2039,10 +2039,12 @@ STATUS("call 14") ;
           REPORT_PROGRESS("\n"
                           "+++++++++++++++++++++++++++++++++++++++++++++++++++++\n"
                           "++ NOTICE: 'Define Markers' panel is turned off.   ++\n"
-                          "++         To control Talairach markers, you must  ++\n"
+                          "++ ------  To control Talairach markers, you must  ++\n"
                           "++         re-start AFNI with environment variable ++\n"
                           "++         AFNI_ENABLE_MARKERS set to YES, as in   ++\n"
                           "++           afni -DAFNI_ENABLE_MARKERS=YES        ++\n"
+                          "++   _OR_  Right-click with the mouse cursor over  ++\n"
+                          "++         the 'DataDir' label, above 'Underlay'.  ++\n"
                           "+++++++++++++++++++++++++++++++++++++++++++++++++++++\n") ;
 
       }
@@ -5002,6 +5004,8 @@ ENTRY("AFNI_startup_3dview") ;
 
    if( im3d->vwid->func->inten_pbar->bigmode )
      POPUP_cursorize( im3d->vwid->func->inten_pbar->panew ) ;
+
+   POPUP_cursorize( im3d->vwid->view->sess_lab ) ; /* 30 Apr 2010 */
 
    /* Hey Rocky!  Watch me pull a rabbit out of my hat! */
 

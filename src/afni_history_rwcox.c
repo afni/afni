@@ -44,6 +44,15 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 30 , APR , 2010 , RWC , "afni" , MICRO , TYPE_GENERAL ,
+   "Right-click in DataDir label turns markers controls on/off." ,
+   NULL } ,
+
+ { 30 , APR , 2010 , RWC , "3dTcorr1D" , MINOR , TYPE_NEW_PROG ,
+   "Like 3dTcorrelate, but between a 1D file and a 3D+time dataset" ,
+   "Really a very simple program, with 4 options for the 'correlation'\n"
+   "coefficient computation: Pearson, Spearman, Quadrant, and Kendall tau_b." } ,
+
  { 29 , APR , 2010 , RWC , "3dTcorrelate" , MICRO , TYPE_NEW_OPT ,
    "add -ktaub option" ,
    NULL } ,

@@ -520,6 +520,7 @@ typedef struct {
       Widget     marks_frame , marks_rowcol ;
       Widget     define_marks_pb ;
       MCW_bbox * see_marks_bbox ;
+      int        marks_enabled ;
 
       Widget     func_frame , func_rowcol ;
       Widget     define_func_pb ;
@@ -540,6 +541,8 @@ typedef struct {
       Widget choose_surf_pb ;  /* 19 Aug 2002 */
       AFNI_surface_widgets *swid ;
 } AFNI_viewing_widgets ;
+
+extern void AFNI_sesslab_EV( Widget, XtPointer, XEvent *, Boolean * ) ; /* 30 Apr 2010 */
 
 #define OPEN_PANEL(iq,panel)                                            \
    {  XtManageChild( (iq)->vwid->  panel  ->frame ) ;                    \
