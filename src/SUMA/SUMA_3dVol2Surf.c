@@ -1614,9 +1614,11 @@ ENTRY("validate_datasets");
     {
         if ( opts->gpar_file == NULL )
             fprintf( stderr, "** error: missing '-grid_parent DSET' option\n" );
-        else
+        else {
             fprintf( stderr, "** error: invalid input dataset '%s'\n",
                      opts->gpar_file);
+            fprintf( stderr, "   Does the dataset exist?\n");
+        }
         RETURN(-1);
     }
     else if ( DSET_BRICK_TYPE(p->gpar, 0) == MRI_complex )
