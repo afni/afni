@@ -46,7 +46,7 @@ int main( int argc , char *argv[] )
              "   3D+time datasets' time series, with similar options.\n"
              "* http://en.wikipedia.org/wiki/Correlation\n"
              "* http://en.wikipedia.org/wiki/Pearson_product-moment_correlation_coefficient\n"
-             "* http://en.wikipedia.org/wiki/Spearman's_rank_correlation_coefficient\n"
+             "* http://en.wikipedia.org/wiki/Spearman%%27s_rank_correlation_coefficient\n"
              "* http://en.wikipedia.org/wiki/Kendall_tau_rank_correlation_coefficient\n"
              "\n"
              "-- RWCox - Apr 2010\n"
