@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 1, MAY, 2010, RCR, "make_random_timing.py", MINOR, TYPE_NEW_OPT,
+   "added -max_consec for Liat of Cornell",
+   NULL
+ } ,
+
  { 29, APR, 2010, RCR, "@DriveAfni", MICRO, TYPE_MODIFY,
    "minor updates",
    NULL

@@ -1345,6 +1345,29 @@ def shuffle(vlist):
 
     return
 
+def random_merge(list1, list2):
+    """randomly merge 2 lists (so each list stays in order)
+
+       shuffle a list of 0s and 1s and then fill from lists
+    """
+
+    # if we need random elsewhere, maybe do it globally
+    import random
+
+    mlist = [0 for i in range(len(list1))] + [1 for i in range(len(list2))]
+    shuffle(mlist)
+
+    i1, i2 = 0, 0
+    for ind in range(len(mlist)):
+        if mlist[ind] == 0:
+            mlist[ind] = list1[i1]
+            i1 += 1
+        else:
+            mlist[ind] = list2[i2]
+            i2 += 1
+
+    return mlist
+
 def swap2(data):
     """swap data elements in pairs"""
     
