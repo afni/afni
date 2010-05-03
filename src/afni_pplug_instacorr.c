@@ -538,6 +538,7 @@ ENTRY("AFNI_icor_setref_xyz") ;
 
    } else {
 
+     DSET_mallocize(icoset); /* make sure not mmap-ed file     ZSS */
      icoset = slf.dset ; nds = slf.dset_index ;
 
    }
