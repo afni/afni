@@ -66,6 +66,11 @@
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 29 , APR , 2010 , ZSS , "3dMean" , MICRO , TYPE_MODIFY,
+   "Allowed program to work with only one dset for input.",
+   NULL
+ } ,
+
  { 21 , APR , 2010 , ZSS , "3ddelay" , MINOR , TYPE_BUG_FIX,
    "-nodtrnd option was setting polort to 1, as opposed to 0.",
    NULL

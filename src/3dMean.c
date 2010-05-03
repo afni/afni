@@ -139,8 +139,12 @@ int main( int argc , char * argv[] )
    /*-- rest of command line should be datasets --*/
 
    if( nopt >= argc-1 ){
-      fprintf(stderr,"** ERROR: need at least 2 input datasets!\n") ;
-      exit(1) ;
+      if ( do_sd ) {
+         fprintf(stderr,"** ERROR: need at least 2 input datasets with -sd!\n") ;
+         exit(1) ;
+      } else {
+         fprintf(stderr,"++ WARNING: Have only 1 dset.\n");
+      }
    }
 
    /*-- loop over datasets --*/
