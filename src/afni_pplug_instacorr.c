@@ -551,15 +551,23 @@ ENTRY("AFNI_icor_setref_xyz") ;
    mri_clear_data_pointer(iim) ; mri_free(iim) ;
    DSET_KILL_STATS(icoset) ; THD_load_statistics(icoset) ;
 
-   if( ncall <= 1 )
-     ININFO_message(" InstaCorr elapsed time = %.2f sec: dataset ops" ,
-                    PLUTO_elapsed_time()-etim ) ;
+   /* 03 May 2010: add some attributes that say where this comes from */
+
+   { char buf[64] ;
+     THD_set_string_atr( icoset->dblk , "INSTACORR_PARENT" , DSET_HEADNAME(im3d->iset->dset) ) ;
+     sprintf(buf,"%d,%d,%d",im3d->vinfo->i1_icor,im3d->vinfo->j2_icor,im3d->vinfo->k3_icor) ;
+     THD_set_string_atr( icoset->dblk , "INSTACORR_SEEDIJK" , buf ) ;
+   }
 
    EDIT_BRICK_LABEL  (icoset,0,"Correlation") ;
    EDIT_BRICK_TO_FICO(icoset,0,im3d->iset->mv->nvals,1,im3d->iset->ndet) ;
 
    DSET_BRICK_FDRCURVE_ALLKILL(icoset) ;
    DSET_BRICK_MDFCURVE_ALLKILL(icoset) ;
+
+   if( ncall <= 1 )
+     ININFO_message(" InstaCorr elapsed time = %.2f sec: dataset ops" ,
+                    PLUTO_elapsed_time()-etim ) ;
 
    if( AFNI_yesenv("AFNI_INSTACORR_FDR") ){
      THD_create_all_fdrcurves(icoset) ;
