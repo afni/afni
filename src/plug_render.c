@@ -6132,8 +6132,7 @@ void REND_set_pbar_top_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
 
 void REND_finalize_saveim_CB( Widget wcaller, XtPointer cd, MCW_choose_cbs * cbs )
 {
-   Three_D_View * im3d = (Three_D_View *) cd ;
-   char * fname , * ptr ;
+   char *fname , *ptr ;
    int ll , nx=20 , ny=256 ;
    MRI_IMAGE * im ;
 

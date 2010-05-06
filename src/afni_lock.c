@@ -105,6 +105,7 @@ void AFNI_lock_enforce_CB( Widget w , XtPointer cd , XtPointer calld )
    Three_D_View *im3d = (Three_D_View *) cd ;
 
 ENTRY("AFNI_lock_enforce_CB") ;
+   if( !IM3D_OPEN(im3d) ) EXRETURN ;
    AFNI_lock_carryout( im3d ) ;
    AFNI_time_lock_carryout( im3d ) ;  /* 03 Nov 1998 */
    RESET_AFNI_QUIT(im3d) ;

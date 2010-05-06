@@ -569,6 +569,8 @@ void AFNI_inten_av_CB( MCW_arrowval *av , XtPointer cd )
    MCW_pbar *pbar = (MCW_pbar *) cd ;
    Three_D_View *im3d = (Three_D_View *) pbar->parent ;
 
+   if( !IM3D_OPEN(im3d) ) return ;
+
    HIDE_SCALE(im3d) ;
    if( av->ival > NPANE_MAX ){
      int npane=pbar->num_panes , jm=pbar->mode ;
@@ -2769,7 +2771,7 @@ void AFNI_close_file_dialog_CB( Widget w, XtPointer cd, XtPointer cb )
 
 ENTRY("AFNI_close_file_dialog") ;
 
-   if( im3d->vwid->file_dialog != NULL )
+   if( IM3D_VALID(im3d) && im3d->vwid->file_dialog != NULL )
      RWC_XtPopdown( im3d->vwid->file_dialog ) ;
 
    EXRETURN ;
@@ -2872,6 +2874,8 @@ void AFNI_read_sess_CB( Widget w, XtPointer cd, XtPointer cb )
    Widget www ;
 
 ENTRY("AFNI_read_sess_CB") ;
+
+   if( !IM3D_OPEN(im3d) ) EXRETURN ;
 
    if( GLOBAL_library.sslist->num_sess >= THD_MAX_NUM_SESSION ){
       (void) MCW_popup_message( w ,
@@ -3158,6 +3162,8 @@ void AFNI_read_1D_CB( Widget w, XtPointer cd, XtPointer cb )
 
 ENTRY("AFNI_read_1D_CB") ;
 
+   if( !IM3D_OPEN(im3d) ) EXRETURN ;
+
    AFNI_make_file_dialog( im3d ) ;
 
    XtAddCallback( im3d->vwid->file_sbox , XmNokCallback ,
@@ -3206,6 +3212,8 @@ void AFNI_finalize_read_1D_CB( Widget w, XtPointer cd, XtPointer cb )
    XmFileSelectionBoxCallbackStruct *cbs = (XmFileSelectionBoxCallbackStruct *) cb ;
 
 ENTRY("AFNI_finalize_read_1D_CB") ;
+
+   if( !IM3D_OPEN(im3d) ) EXRETURN ;
 
    switch( cbs->reason ){
 
@@ -3286,6 +3294,8 @@ ENTRY("AFNI_read_Web_CB") ;
    if( AFNI_splash_isopen() == 1 ){ BEEPIT ; EXRETURN ; }
 #endif
 
+   if( !IM3D_OPEN(im3d) ) EXRETURN ;
+
    MCW_choose_string( w ,
     "Complete http:// or ftp:// address of dataset (.HEAD or .mnc or .mnc.gz):\n"
     "Examples: ftp://afni.nimh.nih.gov/AFNI/data/astrip+orig.HEAD\n"
@@ -3307,6 +3317,8 @@ void AFNI_finalize_read_Web_CB( Widget w , XtPointer cd , MCW_choose_cbs *cbs )
    int nds,dd,vv , nn, na=-1,nf=-1 ,nts ;
 
 ENTRY("AFNI_finalize_read_Web_CB") ;
+
+   if( !IM3D_OPEN(im3d) ) EXRETURN ;
 
    if( cbs->reason  != mcwCR_string ||
        cbs->cval    == NULL         ||
@@ -3430,6 +3442,8 @@ void AFNI_rescan_CB( Widget w, XtPointer cd, XtPointer cb )
    char str[256+THD_MAX_NAME] ;
 
 ENTRY("AFNI_rescan_CB") ;
+
+   if( !IM3D_OPEN(im3d) ) EXRETURN ;
 
    SHOW_AFNI_PAUSE ;
    cc = AFNI_rescan_session( im3d->vinfo->sess_num ) ;
@@ -5907,7 +5921,7 @@ void AFNI_editenv_CB( Widget w , XtPointer cd , XtPointer cbd )
 {
    Three_D_View *im3d = (Three_D_View *) cd ;
 
-   if( !IM3D_OPEN(im3d) ) EXRETURN ;
+   if( !IM3D_OPEN(im3d) ) return ;
    AFNI_misc_CB( im3d->vwid->dmode->misc_environ_pb ,
                  (XtPointer) im3d , (XtPointer) NULL ) ;
 }
@@ -6551,6 +6565,8 @@ static char skstr[512] ;
 void SKIT_popper(Three_D_View *im3d)
 {
    int ii,jj,kk ;
+
+   if( !IM3D_OPEN(im3d) ) return ;
 
    ii = lrand48() % NSKIT ; jj = lrand48() % NSKIT ; kk = lrand48() % NSKIT ;
    sprintf(skstr,"Randomly generated Shakespearean Insult:\n\n"

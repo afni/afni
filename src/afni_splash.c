@@ -1622,6 +1622,8 @@ void AFNI_save_layout_CB( Widget w , XtPointer cd , XtPointer cbs )
 
 ENTRY("AFNI_save_layout_CB") ;
 
+   if( !IM3D_OPEN(im3d) ) EXRETURN ;
+
    MCW_choose_string( im3d->vwid->picture ,
                       "Layout filename [blank => .afni.startup_script]:" ,
                       NULL , AFNI_finalsave_layout_CB , cd ) ;
@@ -1741,26 +1743,26 @@ ENTRY("AFNI_finalsave_layout_CB") ;
                 RESAM_shortstr[zm3d->vinfo->func_resam_mode] ,
                 RESAM_shortstr[zm3d->vinfo->thr_resam_mode]   ) ;
 
-        if( im3d->vinfo->use_autorange )
+        if( zm3d->vinfo->use_autorange )
           fprintf(gp,"SET_FUNC_AUTORANGE %c.+\n" , abet[cc] ) ;
         else
           fprintf(gp,"SET_FUNC_RANGE %c.%f\n" , abet[cc] ,
-                  im3d->vwid->func->range_av->fval        ) ;
+                  zm3d->vwid->func->range_av->fval        ) ;
 
-        if( ISVALID_DSET(im3d->anat_now) ){          /* 27 Dec 2006 */
-          char *pp = DSET_PREFIX(im3d->anat_now) ;
-          if( pp == NULL || *pp == '\0' ) pp = DSET_IDCODE_STR(im3d->anat_now);
+        if( ISVALID_DSET(zm3d->anat_now) ){          /* 27 Dec 2006 */
+          char *pp = DSET_PREFIX(zm3d->anat_now) ;
+          if( pp == NULL || *pp == '\0' ) pp = DSET_IDCODE_STR(zm3d->anat_now);
           fprintf(gp,"SET_UNDERLAY %c.%s %d\n",
-                  abet[cc], pp, im3d->vinfo->anat_index ) ;
+                  abet[cc], pp, zm3d->vinfo->anat_index ) ;
         }
-        if( ISVALID_DSET(im3d->fim_now) ){           /* 27 Dec 2006 */
-          char *pp = DSET_PREFIX(im3d->fim_now) ;
-          if( pp == NULL || *pp == '\0' ) pp = DSET_IDCODE_STR(im3d->fim_now);
+        if( ISVALID_DSET(zm3d->fim_now) ){           /* 27 Dec 2006 */
+          char *pp = DSET_PREFIX(zm3d->fim_now) ;
+          if( pp == NULL || *pp == '\0' ) pp = DSET_IDCODE_STR(zm3d->fim_now);
           fprintf(gp,"SET_OVERLAY %c.%s %d %d\n",
-                  abet[cc], pp, im3d->vinfo->fim_index,im3d->vinfo->thr_index );
+                  abet[cc], pp, zm3d->vinfo->fim_index,zm3d->vinfo->thr_index );
         }
         fprintf(gp,"SET_DICOM_XYZ %c %f %f %f\n",    /* 27 Dec 2006 */
-                abet[cc], im3d->vinfo->xi, im3d->vinfo->yj, im3d->vinfo->zk );
+                abet[cc], zm3d->vinfo->xi, zm3d->vinfo->yj, zm3d->vinfo->zk );
 
       } /* end of startup script stuff */
 
@@ -1944,6 +1946,8 @@ void AFNI_run_script_CB( Widget w , XtPointer cd , XtPointer cbs )
 
 ENTRY("AFNI_run_script_CB") ;
 
+   if( !IM3D_OPEN(im3d) ) EXRETURN ;
+
    MCW_choose_string( im3d->vwid->picture ,
                       "Enter AFNI script filename:" ,
                       NULL , AFNI_finalrun_script_CB , cd ) ;
@@ -1957,6 +1961,8 @@ void AFNI_finalrun_script_CB( Widget w , XtPointer cd , MCW_choose_cbs *cbs )
    Three_D_View *im3d = (Three_D_View *) cd ;
 
 ENTRY("AFNI_finalrun_script_CB") ;
+
+   if( !IM3D_OPEN(im3d) ) EXRETURN ;
 
    AFNI_startup_script_CB( (XtPointer) cbs->cval , NULL ) ;
    EXRETURN ;

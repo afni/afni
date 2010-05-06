@@ -44,6 +44,13 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 6 , MAY , 2010 , RWC , "afni" , MICRO , TYPE_BUG_FIX ,
+   "Fix NULL pointer de-reference from renderer" ,
+   "When colorscale is changed to one of the ROI colormaps, Ziad the Wise\n"
+   "added a 'feature' to automatically change the im3d viewer data range for\n"
+   "the user's convenience.  However, this doesn't work when the colorscale\n"
+   "isn't in an im3d -- such as in the renderer." } ,
+
  { 30 , APR , 2010 , RWC , "afni" , MICRO , TYPE_GENERAL ,
    "Right-click in DataDir label turns markers controls on/off." ,
    NULL } ,
