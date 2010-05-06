@@ -333,9 +333,10 @@ BL_affine_warp BL_affine_from_12_elements( float *par )
 /*--------------------------------------------------------------------------*/
 /* Create a bilinear warp from parameters.
    Possible npar values:
-    -12 ==> affine  [params = 12 matrix values]
-     12 ==> affine  [params = shifts, angles, scales, shears]
-     39 ==> standard bilinear
+    -12 ==> affine only; tensor=0 [params = 12 matrix values]
+     12 ==> affine only; tensor=0 [params = shifts, angles, scales, shears]
+    -39 ==> standard bilinear [1st 12 params = numerator matrix values]
+     39 ==> standard bilinear [1st 12 params = shifts, angle, etc. ]
      43 ==> 3dAllineate / 3dWarpDrive bilinear (with cen vector and fac)
    God only knows what will happen to you if npar takes on any other value!
 *//*------------------------------------------------------------------------*/
@@ -346,19 +347,20 @@ BL_standard_warp BL_warp_from_params( int npar , float *par )
 
    /* setup affine part from first 12 parameters */
 
-   if( npar == -12 ){
+   if( npar < 0 ){
      waf = BL_affine_from_12_elements( par ) ;
    } else {
      waf = BL_affine_from_12_params( par ) ;
    }
+   if( npar < 0 ) npar = -npar ;
 
    if( npar < 39 ){                    /* affine only */
 
      ws.a = waf.a ; ws.b = waf.b ;
-     memset( &(ws.c) , 0 , sizeof(BLten) ) ;
+     memset( &(ws.c) , 0 , sizeof(BLten) ) ; /* set tensor to zero */
 
    } else if( npar < 43 ){             /* standard bilinear */
-
+                                       /* params 12..38 go into the tensor */
      ws.a = waf.a ; ws.b = waf.b ;
 
      ws.c.t[0][0][0] = par[12]; ws.c.t[0][0][1] = par[13]; ws.c.t[0][0][2] = par[14];
