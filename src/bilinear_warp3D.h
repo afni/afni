@@ -45,6 +45,7 @@ extern BL_standard_warp BL_warp_from_params( int npar , float *par ) ;
 extern BL_affine_warp   BL_affine_from_12_params  ( float *par ) ;
 extern BL_affine_warp   BL_affine_from_12_elements( float *par ) ;
 extern BL_affine_warp   BL_extract_affine_warp    ( BL_standard_warp wi ) ;
+extern BL_standard_warp BL_extend_affine_warp     ( BL_affine_warp wa ) ;
 
 extern BL_standard_warp BL_bilinear_x_affine( BL_standard_warp, BL_affine_warp ) ;
 extern BL_standard_warp BL_affine_x_bilinear( BL_affine_warp, BL_standard_warp ) ;
