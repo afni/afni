@@ -517,9 +517,9 @@ ENTRY("load_PBAR_palette_array") ;
 
    if( nn > 0 && !pbar->bigmode ){
       Three_D_View * im3d = (Three_D_View *) pbar->parent ;
-      if( fixim ){ HIDE_SCALE(im3d) ; }
+      if( fixim && IM3D_OPEN(im3d) ){ HIDE_SCALE(im3d) ; }
       alter_MCW_pbar( pbar , 0 , NULL ) ;
-      if( fixim ){ FIX_SCALE_SIZE(im3d) ; }
+      if( fixim && IM3D_OPEN(im3d) ){ FIX_SCALE_SIZE(im3d) ; }
    }
    EXRETURN ;
 }
@@ -713,6 +713,9 @@ void AFNI_finalize_read_palette_CB( Widget w, XtPointer cd, XtPointer cb )
    char * dum ;
 
 ENTRY("AFNI_finalize_read_palette_CB") ;
+
+   if( !IM3D_VALID(im3d) ) EXRETURN ;
+   if( !IM3D_OPEN(im3d) ) cbs->reason = XmCR_CANCEL ;
 
    switch( cbs->reason ){
 
