@@ -17,6 +17,19 @@
    Functions are provided to invert a bilinear warp, as well as to
    multiply it (pre- and post-) with an affine warp.  Also, to apply
    a bilinear warp to a set of points.
+
+   Important functions:
+
+   BL_invert_warp()         = invert a bilinear warp
+   BL_warp_from_params()    = create a bilinear warp from parameters
+                              [if tensor C=0, warp is really affine]
+   BL_extract_affine_warp() = get the affine (A,b) part out
+   BL_bilinear_x_affine()   = catenate bilinear warp with affine warp
+                              = Wbilin(Waffine(x))
+   BL_affine_x_bilinear()   = catenate affine warp with bilinear warp
+                              = Waffine(Wbilin(x))
+   BL_print_standard_warp() = print bilinear warp coefficients nicely
+   BL_apply_warp()          = apply bilinear warp to a set of (x,y,z) points
 *//**************************************************************************/
 
 /*==========================================================================*/
