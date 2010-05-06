@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 6 , MAY , 2010 , RWC , "bilinear_warp3D" , MICRO , TYPE_GENERAL ,
+   "Add functions for manipulating bilinear warps" ,
+   "bilinear_warp3d.[ch] -- for Daniel" } ,
+
  { 6 , MAY , 2010 , RWC , "afni" , MICRO , TYPE_BUG_FIX ,
    "Fix NULL pointer de-reference from renderer" ,
    "When colorscale is changed to one of the ROI colormaps, Ziad the Wise\n"
