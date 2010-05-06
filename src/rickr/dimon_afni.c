@@ -149,7 +149,7 @@ int    disp_obl_info(char * mesg);
 /*--------------------------------------------------------------------*/
 /* useful Dicom information that is not stored in an MRI_IMAGE struct */
 struct dimon_stuff_t {
-   int study, series, image;
+   int study, series, image, image_index;
 } gr_dimon_stuff;
 static int g_debug = 0;
 /*-------------------------------------------------------------------------*/
@@ -204,6 +204,8 @@ static char *elist[] = {
  "0020 0011" ,  /* series number */
  "0020 0013" ,  /* image number  */
 
+ "0054 1330" ,  /* image index  */
+
 NULL } ;
 
 #define NUM_ELIST (sizeof(elist)/sizeof(char *)-1)
@@ -244,6 +246,8 @@ NULL } ;
 #define E_RS_STUDY_NUM               28    /* 10 Feb 2005: for Imon [rickr] */
 #define E_RS_SERIES_NUM              29
 #define E_RS_IMAGE_NUM               30
+
+#define E_RS_IMAGE_INDEX             31    /* 06 May 2010: for PET [rickr] */
 
 /*-------------------------------------------------------------------------*/
 /*! Read image(s) from a DICOM file, if possible.
@@ -592,6 +596,9 @@ MRI_IMAGE * r_mri_read_dicom( char *fname, int debug, void ** data )
 
    /* check if we might have 16 bit unsigned data that fills all bits */
 
+   memset(&gr_dimon_stuff, 0, sizeof(gr_dimon_stuff));
+   gr_dimon_stuff.image_index = -1;    /* hopefully negatives can be a flag */
+
    if( epos[E_RS_STUDY_NUM] != NULL ){
      ddd = strstr(epos[E_RS_STUDY_NUM],"//") ;
      if( ddd != NULL ) sscanf( ddd+2 , "%d" , &gr_dimon_stuff.study);
@@ -605,6 +612,11 @@ MRI_IMAGE * r_mri_read_dicom( char *fname, int debug, void ** data )
    if( epos[E_RS_IMAGE_NUM] != NULL ){
      ddd = strstr(epos[E_RS_IMAGE_NUM],"//") ;
      if( ddd != NULL ) sscanf( ddd+2 , "%d" , &gr_dimon_stuff.image);
+   }
+
+   if( epos[E_RS_IMAGE_INDEX] != NULL ){
+     ddd = strstr(epos[E_RS_IMAGE_INDEX],"//") ;
+     if( ddd != NULL ) sscanf( ddd+2 , "%d" , &gr_dimon_stuff.image_index);
    }
 
    /** Finally! Read images from file. **/

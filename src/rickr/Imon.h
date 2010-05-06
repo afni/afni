@@ -46,6 +46,7 @@ typedef struct                      /* stuff extracted from GE I.* image */
     int   nx, ny;                   /* image matrix                    */
     int   uv17;                     /* apparently codes for scan index */
     int   index;                    /* image counter                   */
+    int   im_index;                 /* image index, if one exists      */
     float dx,dy,dz, zoff, tr,te;    /* various dimensions              */
                                     /* dxyz in mm, tr in seconds       */
     char  orients[8];               /* orientation string              */

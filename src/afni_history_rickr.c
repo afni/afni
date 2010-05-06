@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 6, MAY, 2010, RCR, "Dimon", MINOR, TYPE_NEW_OPT,
+   "allow negatives in -sort_by_num_suffix, look for '0054 1330' in sorting",
+   NULL
+ } ,
+
  { 1, MAY, 2010, RCR, "make_random_timing.py", MINOR, TYPE_NEW_OPT,
    "added -max_consec for Liat of Cornell",
    NULL

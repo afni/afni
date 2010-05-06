@@ -45,10 +45,14 @@ static char * g_history[] =
     " 2.17 Nov 24, 2008 [rickr] - added -infile_list and -show_sorted_list\n"
     " 2.18 Jun 25, 2009 [rickr] - fixed dz sent to RT plugin for oblique data\n"
     " 2.19 Nov  4, 2009 [rickr] - small change to sort test\n"
+    " 2.20 May  6, 2010 [rickr]\n"
+    "      - look for field 0054 1330 (Image Index) in image sorting\n"
+    "        (for S Kippenhan, S Wei, G Alarcon)\n"
+    "      - allow negatives in -sort_by_num_suffix\n"
     "----------------------------------------------------------------------\n"
 };
 
-#define DIMON_VERSION "version 2.18 (Jun 25, 2009)"
+#define DIMON_VERSION "version 2.20 (May 6, 2010)"
 
 /*----------------------------------------------------------------------
  * Dimon - monitor real-time aquisition of Dicom or I-files
@@ -108,7 +112,8 @@ extern char  DI_MRL_orients[8];
 extern float DI_MRL_tr;
 extern int   g_use_last_elem;
 
-extern struct dimon_stuff_t { int study, series, image; } gr_dimon_stuff;
+extern struct dimon_stuff_t { int study, series, image, image_index; }
+              gr_dimon_stuff;
 
 static int         clear_float_zeros( char * str );
 int                compare_finfo( const void * v0, const void * v1 );
@@ -199,7 +204,8 @@ stats_t   gS;           /* general run information   */
 ART_comm  gAC;          /* afni communication struct */
 
 float     gD_epsilon       = IFM_EPSILON;
-int       g_dicom_sort_dir = 1;  /* can use to swap sort direction */
+int       g_dicom_sort_dir = 1;  /* can use to swap sort direction          */
+int       g_sort_type      = 0;  /* bitmask: note fields applied in sorting */
 
 /***********************************************************************/
 int main( int argc, char * argv[] )
@@ -1473,6 +1479,9 @@ static int dicom_order_files( param_t * p )
     {
         fprintf(stderr,"** no DICOM files to order\n");
         return 0;
+    } else if( p->nfiles < 2 ) {
+        fprintf(stderr,"** but ordering only 1 file is easy...\n");
+        return 0;
     }
 
     if( gD.level > 0 )
@@ -1561,12 +1570,12 @@ static int dicom_order_files( param_t * p )
     if( scount == 0 && p->nfiles == dcount ) rv = 0;
     else                                     rv = 1;
 
+    /* also note g_sort_type                     6 May 2010 [rickr] */
     if(gD.level > 0)
     {
-        fprintf(stderr,"-- dicom sort : %d inversions, %d non-DICOM files\n",
-                scount, p->nfiles-dcount);
-        if( rv == 0 ) fprintf(stderr,"   (dicom_org unnecessary)\n");
-        else          fprintf(stderr,"   (dicom_org was useful)\n");
+        fprintf(stderr,"-- dicom sort : %d inversions, %d non-DICOM files, "
+                "sort type %x\n", scount, p->nfiles-dcount, g_sort_type);
+        fprintf(stderr,"   (dicom_org was %s)\n", rv ? "useful":"unnecessary");
     }
 
     /* now create a new fnames list */
@@ -1653,6 +1662,10 @@ static int sort_by_num_suff( char ** names, int nnames)
 }
 
 
+#ifdef DEATH_VALUE
+#undef DEATH_VALUE
+#endif
+#define DEATH_VALUE -99999
 /*----------------------------------------------------------------------
  * compare filenames by numerical suffix (must be .nnn)
  *----------------------------------------------------------------------
@@ -1662,7 +1675,7 @@ int compare_by_num_suff( const void * v0, const void * v1 )
     int n0 = get_num_suffix(*(char **)v0);
     int n1 = get_num_suffix(*(char **)v1);
 
-    if ( n0 < 0 || n1 < 0 ) return -2;   /* error condition */
+    if ( n0 == DEATH_VALUE || n1 == DEATH_VALUE ) return -2; /* error */
 
     if ( n0 < n1 ) return -1;
     if ( n0 > n1 ) return  1;
@@ -1672,12 +1685,11 @@ int compare_by_num_suff( const void * v0, const void * v1 )
 
 
 /*----------------------------------------------------------------------
- *  find a non-negative suffix
+ *  find a numerical suffix (previously required to be non-negative)
+ *                                                6 May 2010 [rickr]
  *
- *  return  >= 0  : numerical suffix
- *            -1  : bad str
- *            -2  : no '.'
- *            -3  : no number
+ *  return DEATH_VALUE : some error
+ *         else        : numerical suffix
  *----------------------------------------------------------------------
 */
 static int get_num_suffix( char * str )
@@ -1685,21 +1697,21 @@ static int get_num_suffix( char * str )
     char * cp;
     int    len, val;
 
-    if ( !str ) return -1;
+    if ( !str ) return DEATH_VALUE;
     len = strlen( str );
-    if ( len <= 0 ) return -1;
+    if ( len <= 0 ) return DEATH_VALUE;
 
     cp = strrchr(str, '.');
 
-    if ( !cp )                   return -2;
-    if ( cp >= (str + len - 1) ) return -3;
+    if ( !cp )                   return DEATH_VALUE;
+    if ( cp >= (str + len - 1) ) return DEATH_VALUE;
 
     /* point to what should be the start of an integer */
     cp++;
 
-    if ( !isdigit(*cp) ) return -3;
+    /* if ( !isdigit(*cp) ) return -3;     let's just see what is there */
     len = sscanf(cp, "%i", &val);
-    if ( len != 1 ) return -3;
+    if ( len != 1 ) return DEATH_VALUE;   /* bad things man, bad things */
 
     return val;
 }
@@ -1716,20 +1728,27 @@ int compare_finfo( const void * v0, const void * v1 )
     int              dir;
 
     /* check for non-DICOM files first */
-    if     ( h1->uv17 < 0 ) return -1;
-    else if( h0->uv17 < 0 ) return 1;
+    if     ( h1->uv17 < 0 ) { g_sort_type |= 1; return -1; }
+    else if( h0->uv17 < 0 ) { g_sort_type |= 1; return 1; }
 
     /* check the run */
     if( h0->uv17 != h1->uv17 )
     {
-        if( h0->uv17 < h1->uv17 ) return -1;
-        return 1;
+        if( h0->uv17 < h1->uv17 ) { g_sort_type |= 2; return -1; }
+        { g_sort_type |= 2; return 1; }
     }
 
-    /* check the image index, this is where dir can be changed */
     dir = g_dicom_sort_dir;
-    if     ( h0->index < h1->index ) return -dir;
-    else if( h0->index > h1->index ) return dir;
+
+    /* check the image index fields, this is where dir can be changed */
+
+    /* 0054 1330: IMAGE INDEX */
+    if     ( h0->im_index < h1->im_index ) { g_sort_type |= 4; return -dir; }
+    else if( h0->im_index > h1->im_index ) { g_sort_type |= 4; return dir; }
+
+    /* 0020 0013: REL Instance Number */
+    if     ( h0->index < h1->index ) { g_sort_type |= 8; return -dir; }
+    else if( h0->index > h1->index ) { g_sort_type |= 8; return dir; }
 
     return 0;  /* equal */
 }
@@ -2451,9 +2470,10 @@ static int read_dicom_image( char * pathname, finfo_t * fp, int get_data )
 
     if ( gD.level > 2 )
     {
-        fprintf(stderr,"+d dinfo (%s): std, ser, im = (%d, %d, %3d)\n",
+        fprintf(stderr,"+d dinfo (%s): std, ser, im = (%d, %d, %3d, %3d)\n",
             pathname,
-            gr_dimon_stuff.study, gr_dimon_stuff.series, gr_dimon_stuff.image );
+            gr_dimon_stuff.study, gr_dimon_stuff.series,
+            gr_dimon_stuff.image, gr_dimon_stuff.image_index );
         fprintf(stderr,"          im->xo,yo,zo =    (%6.1f,%6.1f,%6.1f)\n",
                 im->xo, im->yo, im->zo);
     }
@@ -2464,7 +2484,8 @@ static int read_dicom_image( char * pathname, finfo_t * fp, int get_data )
     fp->geh.nx    = im->nx;
     fp->geh.ny    = im->ny;
     fp->geh.uv17  = gr_dimon_stuff.series;
-    fp->geh.index = gr_dimon_stuff.image;   /* image index number */
+    fp->geh.index = gr_dimon_stuff.image;            /* image number */
+    fp->geh.im_index = gr_dimon_stuff.image_index;   /* image index number */
     fp->geh.dx    = im->dx;
     fp->geh.dy    = im->dy;
     fp->geh.dz    = im->dz;
