@@ -1,10 +1,30 @@
 #include "bilinear_warp3D.h"
 
+/****************************************************************************/
+/* Functions for dealing with bilinear warps in 3D space.
+
+    y  = inv[ I   + C    x ] [ A   x  + b  ]
+     i         ij    ijk  k     jk  k    j
+
+   where the summation convention applies to repeated indexes.
+
+   Such a transformation has the advantage that it's inverse is
+   also a bilinear transformation.  For small |x|, Taylor series
+   clearly shows that this is similar to a general quadratic
+   transformation, with the extra advantage of being analytically
+   invertible.
+
+   Functions are provided to invert a bilinear warp, as well as to
+   multiply it (pre- and post-) with an affine warp.  Also, to apply
+   a bilinear warp to a set of points.
+*//**************************************************************************/
+
 /*==========================================================================*/
 /*==========================================================================*/
 /* The BLmat44 stuff below has been copied from the corresponding 'mat44'
    stuff in 3ddata.h, et cetera, with some names changes, to provide a
    self-contained file for dealing with 3D bilinear transformations.
+     [Remember -- I wrote it, I can steal it -- RWCox -- May 2010]
 *//*------------------------------------------------------------------------*/
 
 typedef struct { float m[4][4] ; } BLmat44 ;  /* AKA mat44 in AFNI */
@@ -82,6 +102,8 @@ static BLmat44 BL_mat44_mul( BLmat44 A , BLmat44 B )
    C.m[3][0] = C.m[3][1] = C.m[3][2] = 0.0f ; C.m[3][3] = 1.0f ;
    return C ;
 }
+
+/*--------------------------------------------------------------------------*/
 
 static BLmat44 BL_rot_matrix( int ax1, double th1,
                               int ax2, double th2, int ax3, double th3  )
@@ -196,6 +218,7 @@ static INLINE BLvec BL_matvec( BLmat a , BLvec x )
 /*--------------------------------------------------------------------------*/
 
 #undef  RDC            /* row #i DOT column #j */
+
 #define RDC(am,bm,i,j) (  (am)[i][0] * (bm)[0][j]   \
                         + (am)[i][1] * (bm)[1][j]   \
                         + (am)[i][2] * (bm)[2][j] )
@@ -354,8 +377,12 @@ BL_standard_warp BL_warp_from_params( int npar , float *par )
      float fac=par[42] , xcen=par[39] , ycen=par[40] , zcen=par[41] ;
      int i,j,k ;
 
-     wg.g = waf.a ; wg.h = waf.b ;
-     wg.t.v[0] = wg.t.v[1] = wg.t.v[2] = 0.0f ;
+     /* general bilinear has form inv[e+f.x][g.x+h]+t */
+
+     wg.g = waf.a ; wg.h = waf.b ;                 /* copy g, h from affine */
+     wg.t.v[0] = wg.t.v[1] = wg.t.v[2] = 0.0f ;    /* set t=0 */
+
+     /* tensor f is just scaled version of input parameters 12..38 */
 
      wg.f.t[0][0][0] = par[12] * fac ;
      wg.f.t[0][0][1] = par[13] * fac ; wg.f.t[0][0][2] = par[14] * fac ;
@@ -384,16 +411,18 @@ BL_standard_warp BL_warp_from_params( int npar , float *par )
      wg.f.t[2][2][0] = par[36] * fac ;
      wg.f.t[2][2][1] = par[37] * fac ; wg.f.t[2][2][2] = par[38] * fac ;
 
-     wg.e.m[0][0] = wg.e.m[1][1] = wg.e.m[2][2] = 1.0f ;
+     /* matrix e is just identity minus tensor f applied to center shift */
+
+     wg.e.m[0][0] = wg.e.m[1][1] = wg.e.m[2][2] = 1.0f ;  /* load identity */
      wg.e.m[0][1] = wg.e.m[1][0] =
       wg.e.m[0][2] = wg.e.m[2][0] = wg.e.m[1][2] = wg.e.m[2][1] = 0.0f ;
 
-     for( i=0 ; i < 3 ; i++ )
+     for( i=0 ; i < 3 ; i++ )    /* apply tensor to center shift */
        for( j=0 ; j < 3 ; j++ )
          wg.e.m[i][j] -=   wg.f.t[i][j][0]*xcen
                          + wg.f.t[i][j][1]*ycen + wg.f.t[i][j][2]*zcen ;
 
-     ws = BL_standardize_warp( wg ) ;
+     ws = BL_standardize_warp( wg ) ;  /* and convert to standard form */
    }
 
    return ws ;
@@ -414,14 +443,14 @@ int BL_warp_tensor_status( BL_standard_warp wi )
      for( j=0 ; j < 3 ; j++ ){
        for( k=0 ; k < 3 ; k++ ){
          zz        = ( wi.c.t[i][j][k] == 0.0f ) ;
-         zero_tot += zz ;
-         zero_off += (zz && i != j) ;
+         zero_tot += zz ;             /* total number of zero elements */
+         zero_off += (zz && i != j) ; /* number of zeros off-diagonal */
        }
    }}
 
-   if( zero_tot == 27 ) return 0 ;
-   if( zero_off == 18 ) return 1 ;
-                        return 2 ;
+   if( zero_tot == 27 ) return 0 ;  /* all tensor elements are zero */
+   if( zero_off == 18 ) return 1 ;  /* all off-diagonal elements zero */
+                        return 2 ;  /* some off-diagonal values nonzero */
 }
 
 /*--------------------------------------------------------------------------*/
@@ -430,6 +459,16 @@ BL_affine_warp BL_extract_affine_warp( BL_standard_warp wi )
 {
    BL_affine_warp wa ;
    wa.a = wi.a ; wa.b = wi.b ; return wa ;
+}
+
+/*--------------------------------------------------------------------------*/
+
+BL_standard_warp BL_extend_affine_warp( BL_affine_warp wi )
+{
+   BL_standard_warp wo ;
+
+   wo.a = wi.a ; wo.b = wi.b ; memset( &(wo.c) , 0 , sizeof(BLten) ) ;
+   return wo ;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -466,6 +505,7 @@ void BL_print_standard_warp( char *name , BL_standard_warp ws )
 }
 
 /*--------------------------------------------------------------------------*/
+/* pre-multiply by an affine warp */
 
 BL_standard_warp BL_bilinear_x_affine( BL_standard_warp blin , BL_affine_warp afin )
 {
@@ -499,6 +539,7 @@ BL_standard_warp BL_bilinear_x_affine( BL_standard_warp blin , BL_affine_warp af
 }
 
 /*--------------------------------------------------------------------------*/
+/* post-multiply by an affine warp */
 
 BL_standard_warp BL_affine_x_bilinear( BL_affine_warp afin , BL_standard_warp blin )
 {
@@ -521,72 +562,156 @@ BL_standard_warp BL_affine_x_bilinear( BL_affine_warp afin , BL_standard_warp bl
 }
 
 /*--------------------------------------------------------------------------*/
+/* Apply a standard-form bilinear warp to a bunch of points.
+   * Special cases for pure affine and diagonal denominator tensors
+     are coded for efficiency.
+   * To use with OpenMP, #include this file into an OpenMP-ized code.
+*//*------------------------------------------------------------------------*/
 
 void BL_apply_warp( BL_standard_warp wi ,
                     int npt ,
                     float *xi , float *yi , float *zi ,
                     float *xo , float *yo , float *zo  )
 {
-   int ii , tstat ;
-   BLvec xx ;
-   float aa , bb , cc ;
+   int tstat ;
 
    if( npt <= 0 || xi == NULL || xo == NULL ) return ;
 
+   /* find status of denominator tensor
+        0 ==> it is zero (warp is pure affine)
+        1 ==> it is nonzero only on diagonal elements: c[i][j][k] for i==j
+        2 ==> it is nonzero in some off diagonal elements (the hardest case) */
+
    tstat = BL_warp_tensor_status(wi) ;
 
-   for( ii=0 ; ii < npt ; ii++ ){
-     aa = xx.v[0] = xi[ii] ; bb = xx.v[1] = yi[ii] ; cc = xx.v[2] = zi[ii] ;
-     xx = BL_matvec( wi.a , xx ) ;
-     xx.v[0] += wi.b.v[0] ; xx.v[1] += wi.b.v[1] ; xx.v[2] += wi.b.v[2] ;
+   switch( tstat ){
 
-     if( tstat == 2 ){  /* general matrix */
-       BLmat dd , ee ;
-       dd.m[0][0] = 1.0f + wi.c.t[0][0][0]*aa + wi.c.t[0][0][1]*bb + wi.c.t[0][0][2]*cc ;
-       dd.m[0][1] =        wi.c.t[0][1][0]*aa + wi.c.t[0][1][1]*bb + wi.c.t[0][1][2]*cc ;
-       dd.m[0][2] =        wi.c.t[0][2][0]*aa + wi.c.t[0][2][1]*bb + wi.c.t[0][2][2]*cc ;
-       dd.m[1][0] =        wi.c.t[1][0][0]*aa + wi.c.t[1][0][1]*bb + wi.c.t[1][0][2]*cc ;
-       dd.m[1][1] = 1.0f + wi.c.t[1][1][0]*aa + wi.c.t[1][1][1]*bb + wi.c.t[1][1][2]*cc ;
-       dd.m[1][2] =        wi.c.t[1][2][0]*aa + wi.c.t[1][2][1]*bb + wi.c.t[1][2][2]*cc ;
-       dd.m[2][0] =        wi.c.t[2][0][0]*aa + wi.c.t[2][0][1]*bb + wi.c.t[2][0][2]*cc ;
-       dd.m[2][1] =        wi.c.t[2][1][0]*aa + wi.c.t[2][1][1]*bb + wi.c.t[2][1][2]*cc ;
-       dd.m[2][2] = 1.0f + wi.c.t[2][2][0]*aa + wi.c.t[2][2][1]*bb + wi.c.t[2][2][2]*cc ;
+     case 0:          /* affine transform [tensor = 0] */
+#pragma omp parallel if( npt > 9999 )
+      { int ii ; BLvec xx ;
+#pragma omp for
+        for( ii=0 ; ii < npt ; ii++ ){
+          xx.v[0] = xi[ii] ; xx.v[1] = yi[ii] ; xx.v[2] = zi[ii] ;
+          xx = BL_matvec( wi.a , xx ) ;
+          xo[ii] = xx.v[0] + wi.b.v[0] ;
+          yo[ii] = xx.v[1] + wi.b.v[1] ;
+          zo[ii] = xx.v[2] + wi.b.v[2] ;
+        }
+      } /* end OpenMP */
+      break ;
 
-       ee = BL_matinv(dd) ; xx = BL_matvec(ee,xx) ;
+      case 2:      /* general tensor in denominator ==> full matrix inversion */
+#pragma omp parallel if( npt > 9999 )
+      { int ii ; BLvec xx ; float aa,bb,cc ; BLmat dd , ee ;
+#pragma omp for
+        for( ii=0 ; ii < npt ; ii++ ){
+        aa = xx.v[0] = xi[ii] ; bb = xx.v[1] = yi[ii] ; cc = xx.v[2] = zi[ii] ;
+        xx = BL_matvec( wi.a , xx ) ;
+        xx.v[0] += wi.b.v[0] ; xx.v[1] += wi.b.v[1] ; xx.v[2] += wi.b.v[2] ;
 
-     } else if( tstat == 1 ){  /* diagonal matrix */
-       float pp,qq,rr ;
-       pp = 1.0f + wi.c.t[0][0][0]*aa + wi.c.t[0][0][1]*bb + wi.c.t[0][0][2]*cc ;
-       qq = 1.0f + wi.c.t[1][1][0]*aa + wi.c.t[1][1][1]*bb + wi.c.t[1][1][2]*cc ;
-       rr = 1.0f + wi.c.t[2][2][0]*aa + wi.c.t[2][2][1]*bb + wi.c.t[2][2][2]*cc ;
-       xx.v[0] /= pp ; xx.v[1] /= qq ; xx.v[2] /= rr ;
-     }
+        /* create 3x3 matrix by apply tensor to coordinates */
 
-     xo[ii] = xx.v[0] ; yo[ii] = xx.v[1] ; zo[ii] = xx.v[2] ;
-   }
+        dd.m[0][0] = 1.0f + wi.c.t[0][0][0]*aa + wi.c.t[0][0][1]*bb + wi.c.t[0][0][2]*cc;
+        dd.m[0][1] =        wi.c.t[0][1][0]*aa + wi.c.t[0][1][1]*bb + wi.c.t[0][1][2]*cc;
+        dd.m[0][2] =        wi.c.t[0][2][0]*aa + wi.c.t[0][2][1]*bb + wi.c.t[0][2][2]*cc;
+        dd.m[1][0] =        wi.c.t[1][0][0]*aa + wi.c.t[1][0][1]*bb + wi.c.t[1][0][2]*cc;
+        dd.m[1][1] = 1.0f + wi.c.t[1][1][0]*aa + wi.c.t[1][1][1]*bb + wi.c.t[1][1][2]*cc;
+        dd.m[1][2] =        wi.c.t[1][2][0]*aa + wi.c.t[1][2][1]*bb + wi.c.t[1][2][2]*cc;
+        dd.m[2][0] =        wi.c.t[2][0][0]*aa + wi.c.t[2][0][1]*bb + wi.c.t[2][0][2]*cc;
+        dd.m[2][1] =        wi.c.t[2][1][0]*aa + wi.c.t[2][1][1]*bb + wi.c.t[2][1][2]*cc;
+        dd.m[2][2] = 1.0f + wi.c.t[2][2][0]*aa + wi.c.t[2][2][1]*bb + wi.c.t[2][2][2]*cc;
+
+        /* invert matrix and apply to affine-warped vector */
+
+        ee = BL_matinv(dd) ; xx = BL_matvec(ee,xx) ;
+        xo[ii] = xx.v[0] ; yo[ii] = xx.v[1] ; zo[ii] = xx.v[2] ;
+      }
+     } /* end OpenMP */
+     break ;
+
+     case 1: /* diagonal case ==> matrix inversion is diagonal (pp,qq,rr) */
+#pragma omp parallel if( npt > 9999 )
+      { int ii ; BLvec xx ; float aa,bb,cc , pp,qq,rr ;
+#pragma omp for
+        for( ii=0 ; ii < npt ; ii++ ){
+          aa = xx.v[0] = xi[ii] ; bb = xx.v[1] = yi[ii] ; cc = xx.v[2] = zi[ii] ;
+          xx = BL_matvec( wi.a , xx ) ;
+
+          /* create diagonal elements of 3x3 matrix */
+
+          pp = 1.0f + wi.c.t[0][0][0]*aa + wi.c.t[0][0][1]*bb + wi.c.t[0][0][2]*cc ;
+          qq = 1.0f + wi.c.t[1][1][0]*aa + wi.c.t[1][1][1]*bb + wi.c.t[1][1][2]*cc ;
+          rr = 1.0f + wi.c.t[2][2][0]*aa + wi.c.t[2][2][1]*bb + wi.c.t[2][2][2]*cc ;
+
+          /* apply inverse to affine-warped vector */
+
+          xo[ii] = ( xx.v[0] + wi.b.v[0] ) / pp ;
+          yo[ii] = ( xx.v[1] + wi.b.v[1] ) / qq ;
+          zo[ii] = ( xx.v[2] + wi.b.v[2] ) / rr ;
+        }
+      } /* end OpenMP */
+      break ;
+
+   } /* end of switch on tstat */
 
    return ;
 }
 
 /*--------------------------------------------------------------------------*/
-#if 1
+/* main program for testing some of these functions; e.g.
+     cc -o bilinear_warp3D bilinear_warp3D.c
+     ./bilinear_warp3D `1deval -num 51 -expr 'gran(0,3)'`
+*//*------------------------------------------------------------------------*/
+#if 0
+#define PDIM 77
 int main( int argc , char *argv[] )
 {
-   float par[43] ; int npar , ii ;
-   BL_standard_warp wi , wo ;
+   float par[PDIM] ; int npar , ii ;
 
-   npar = argc-1 ; if( npar > 43 ) npar = 43 ;
-   if( npar < 12 ) exit(1) ;
+   npar = argc-1 ; if( npar > PDIM ) npar = PDIM ;
+   if( npar < 12 ){
+     fprintf(stderr,"Need at least 12 numeric parameters!\n"); exit(1);
+   }
 
    for( ii=0 ; ii < npar ; ii++ ) par[ii] = (float)strtod(argv[ii+1],NULL) ;
-   for(      ; ii < 43   ; ii++ ) par[ii] = 0.0f ;
+   for(      ; ii < PDIM ; ii++ ) par[ii] = 0.0f ;
 
-   wi = BL_warp_from_params( npar , par ) ;
-   BL_print_standard_warp( "input" , wi ) ;
-   wo = BL_invert_warp( wi ) ;
-   BL_print_standard_warp( "inverse" , wo ) ;
-   wi = BL_invert_warp( wo ) ;
-   BL_print_standard_warp( "inv[inv]" , wi ) ;
+   if( npar < 51 ){             /* compute warp, invert twice */
+
+     BL_standard_warp wi , wo ;
+     wi = BL_warp_from_params( npar , par ) ;
+     BL_print_standard_warp( "input" , wi ) ;
+     wo = BL_invert_warp( wi ) ;
+     BL_print_standard_warp( "inverse" , wo ) ;
+     wi = BL_invert_warp( wo ) ;
+     BL_print_standard_warp( "inv[inv]" , wi ) ;
+
+   } else if( npar >= 51 ){  /* test catenation and inversion */
+
+     BL_standard_warp wbb, waa, wbbinv, waainv, wbbinv_afinv, waf_bb, waf_bb_inv ;
+     BL_affine_warp   waf, wafinv ;
+
+     wbb = BL_warp_from_params( 39 , par    ) ;   /* W */
+     waa = BL_warp_from_params( 12 , par+39 ) ;   /* A */
+     waf = BL_extract_affine_warp( waa ) ;
+
+     wbbinv = BL_invert_warp( wbb ) ;             /* inv[W] */
+     waainv = BL_invert_warp( waa ) ;             /* inv[A] */
+     wafinv = BL_extract_affine_warp( waainv ) ;
+
+     /* computee inv[W] inv[A] */
+
+     wbbinv_afinv = BL_bilinear_x_affine( wbbinv , wafinv ) ;
+     BL_print_standard_warp( "inv[W] inv[A]" , wbbinv_afinv ) ;
+
+     /* compute inv[A W], which should be same as inv[W] inv[A] */
+
+     waf_bb     = BL_affine_x_bilinear( waf , wbb ) ;  /* A W */
+     waf_bb_inv = BL_invert_warp( waf_bb ) ;           /* inv[A W] */
+     BL_print_standard_warp( "inv[A W]" , waf_bb_inv ) ;
+   }
+
    exit(0) ;
 }
 #endif
+/*--------------------------------------------------------------------------*/
