@@ -612,6 +612,8 @@ static void AFNI_make_surface_widgets( Three_D_View *im3d, int num )
 
 ENTRY("AFNI_make_surface_widgets") ;
 
+   if( im3d == NULL ) EXRETURN ;
+
    im3d->vwid->view->swid = swid = myXtNew( AFNI_surface_widgets ) ;
 
    /* shell to hold it all */
