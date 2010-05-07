@@ -2838,17 +2838,17 @@ Variable: AFNI_FILE_COORDS_x
 ----------------------------
 If this variable is set (where 'x' is A, B, C, ...), then for AFNI
 controller 'x', whenever the crosshair viewpoint changes, the DICOM
-order (x,y,z) coordinates will be written to the file whose name is
-given by the value of this variable.  As a special case, if the
-filename is 'stdout', then the coordinates are written to standard
-output.  A sample command
+order (x,y,z) coordinates and the dataset 3D index (i,j,k) will be
+written to the file whose name is given by the value of this variable.
+As a special case, if the filename is 'stdout', then the coordinates
+are written to standard output.  A sample command
 
   afni -DAFNI_FILE_COORDS_A=stdout
 
 If the file already exists when afni starts, it will be over-written;
 that is, it is opened in "w" mode.
 
-This feature may be referred to as the Jennifer Evans special.
+This feature may be referred to as the Jen Evans special.
 
 ----------------------------------------------------------------------
 --- variables specific to NIML I/O

@@ -1818,8 +1818,6 @@ STATUS("call 12") ;
           MAIN_im3d->dummied = 1 ;  /* 27 Jan 2004 */
           MCW_set_widget_bg( MAIN_im3d->vwid->view->sess_lab ,
                              MCW_hotcolor(MAIN_im3d->vwid->view->sess_lab) , 0 ) ;
-        } else if( MAIN_im3d->type == AFNI_3DDATA_VIEW ){
-          MCW_set_widget_bg( MAIN_im3d->vwid->view->sess_lab , "#553319" , 0 ) ;
         }
       }
       break ;
