@@ -1652,6 +1652,8 @@ extern void AFNI_redisplay_func( Three_D_View * ) ; /* 05 Mar 2002 */
 extern void AFNI_view_setter( Three_D_View *, MCW_imseq *) ; /* 26 Feb 2003 */
 extern void AFNI_range_setter( Three_D_View *, MCW_imseq *); /* 04 Nov 2003 */
 
+extern void AFNI_coord_filer_setup( Three_D_View *im3d ) ; /* 07 May 2010 */
+
 extern XmString AFNI_crosshair_label( Three_D_View * ) ;
 extern XmString AFNI_range_label( Three_D_View * ) ;
 extern XmString AFNI_autorange_label( Three_D_View * ) ;

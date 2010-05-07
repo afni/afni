@@ -5716,6 +5716,8 @@ ENTRY("AFNI_clone_controller_CB") ;
 
    AFNI_vedit_CB( im3d->vwid->func->options_vedit_av , im3d ) ;  /* 05 May 2009 */
 
+   AFNI_coord_filer_setup(im3d) ; /* 07 May 2010 */
+
    PICTURE_OFF(im3d) ; SHOW_AFNI_READY ; EXRETURN ;
 }
 
