@@ -4648,7 +4648,7 @@ STATUS("making prog->rowcol") ;
       prog->panel_pb =
          XtVaCreateManagedWidget(
             "dialog" , xmPushButtonWidgetClass , prog->rc_top ,
-              LABEL_ARG("Views") ,
+              LABEL_ARG("Etc->") ,
               XmNtraversalOn , True  ,
               XmNalignment   , XmALIGNMENT_CENTER ,
               XmNinitialResourcesPersistent , False ,
