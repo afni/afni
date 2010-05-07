@@ -2833,6 +2833,23 @@ size of files, memory space, etc., by default commas are inserted,
 as in "8,765,432".  If you want these numbers printed as "8765432"
 (for whatever hideous and twisted reason), set this variable to YES.
 
+----------------------------
+Variable: AFNI_FILE_COORDS_x
+----------------------------
+If this variable is set (where 'x' is A, B, C, ...), then for AFNI
+controller 'x', whenever the crosshair viewpoint changes, the DICOM
+order (x,y,z) coordinates will be written to the file whose name is
+given by the value of this variable.  As a special case, if the
+filename is 'stdout', then the coordinates are written to standard
+output.  A sample command
+
+  afni -DAFNI_FILE_COORDS_A=stdout
+
+If the file already exists when afni starts, it will be over-written;
+that is, it is opened in "w" mode.
+
+This feature may be referred to as the Jennifer Evans special.
+
 ----------------------------------------------------------------------
 --- variables specific to NIML I/O
 ----------------------------------------------------------------------
