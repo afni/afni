@@ -3,10 +3,12 @@
 /****************************************************************************/
 /* Functions for dealing with bilinear warps in 3D space.
 
-    y  = inv[ I   + C    x ] [ A   x  + b  ]
-     i         ij    ijk  k     jk  k    j
+    Wbilin(x) = y  = inv[ I   + C    x ] [ A   x  + b  ]
+                 i         ij    ijk  k     jk  k    j
 
    where the summation convention applies to repeated indexes.
+   There are 39 parameters: 3 in vector b, 3x3 in matrix A, and
+   3x3x3 in tensor C.  If C=0, this is an affine warp, obviously.
 
    Such a transformation has the advantage that it's inverse is
    also a bilinear transformation.  For small |x|, Taylor series
@@ -18,18 +20,23 @@
    multiply it (pre- and post-) with an affine warp.  Also, to apply
    a bilinear warp to a set of points.
 
-   Important functions:
+   These functions do not depend on other code in the AFNI suite.
+   Important entry points for the programmer using this stuff:
 
-   BL_invert_warp()         = invert a bilinear warp
-   BL_warp_from_params()    = create a bilinear warp from parameters
-                              [if tensor C=0, warp is really affine]
-   BL_extract_affine_warp() = get the affine (A,b) part out
-   BL_bilinear_x_affine()   = catenate bilinear warp with affine warp
-                              = Wbilin(Waffine(x))
-   BL_affine_x_bilinear()   = catenate affine warp with bilinear warp
-                              = Waffine(Wbilin(x))
-   BL_print_standard_warp() = print bilinear warp coefficients nicely
-   BL_apply_warp()          = apply bilinear warp to a set of (x,y,z) points
+   BL_invert_warp()             = invert a bilinear warp
+   BL_warp_from_params()        = create a bilinear warp from parameters
+   BL_params_from_warp()        = extract 39 parameters to an array
+   BL_extract_affine_warp()     = get the affine (A,b) part out
+   BL_affine_from_12_params()   = make affine transform
+   BL_affine_from_12_elements() = make affine transform
+   BL_bilinear_x_affine()       = catenate bilinear warp with affine warp
+                                  = Wbilin(Waffine(x))
+   BL_affine_x_bilinear()       = catenate affine warp with bilinear warp
+                                  = Waffine(Wbilin(x))
+   BL_print_standard_warp()     = print bilinear warp coefficients nicely
+   BL_apply_warp()              = apply bilinear warp to some (x,y,z) points
+
+   A test main() program is '#if 0'-ed out at the end of this file.
 *//**************************************************************************/
 
 /*==========================================================================*/
@@ -92,6 +99,8 @@ typedef struct { float m[4][4] ; } BLmat44 ;  /* AKA mat44 in AFNI */
 
 #undef  LOAD_BLMAT44_VEC
 #define LOAD_BLMAT44_VEC(AA,x,y,z) ( AA.m[0][3]=(x), AA.m[1][3]=(y), AA.m[2][3]=(z) )
+
+/* some numerology */
 
 #undef  PI
 #undef  D2R
@@ -277,7 +286,10 @@ BL_standard_warp BL_invert_warp( BL_standard_warp wi )
 }
 
 /*--------------------------------------------------------------------------*/
-/* Convert a general-form bilinear warp to a standard-form warp. */
+/* Convert a general-form bilinear warp to a standard-form warp.
+   The concept of general-form and standard-form warps simplifies the
+   discussion and coding of affine+bilinear catenation -- see the math notes.
+*//*------------------------------------------------------------------------*/
 
 BL_standard_warp BL_standardize_warp( BL_general_warp wi )
 {
@@ -357,6 +369,10 @@ BL_affine_warp BL_affine_from_12_elements( float *par )
 BL_standard_warp BL_warp_from_params( int npar , float *par )
 {
    BL_standard_warp ws ; BL_affine_warp waf ;
+
+   if( npar == 0 || par == NULL ){
+     memset( &ws , 0 , sizeof(BL_standard_warp) ) ; return ws ;
+   }
 
    /* setup affine part from first 12 parameters */
 
@@ -441,6 +457,32 @@ BL_standard_warp BL_warp_from_params( int npar , float *par )
    }
 
    return ws ;
+}
+
+/*--------------------------------------------------------------------------*/
+/* par array should be (at least) 39 long, to hold the values from wi. */
+
+void BL_params_from_warp( BL_standard_warp wi , float *par )
+{
+   if( par == NULL ) return ;
+
+   par[0] = wi.a.m[0][0] ; par[1] = wi.a.m[0][1] ; par[ 2] = wi.a.m[0][2] ;
+   par[4] = wi.a.m[1][0] ; par[5] = wi.a.m[1][1] ; par[ 6] = wi.a.m[1][2] ;
+   par[8] = wi.a.m[2][0] ; par[9] = wi.a.m[2][1] ; par[10] = wi.a.m[2][2] ;
+
+   par[3] = wi.b.v[0] ; par[7] = wi.b.v[1] ; par[11] = wi.b.v[1] ;
+
+   par[12] = wi.c.t[0][0][0]; par[13] = wi.c.t[0][0][1]; par[14] = wi.c.t[0][0][2];
+   par[15] = wi.c.t[0][1][0]; par[16] = wi.c.t[0][1][1]; par[17] = wi.c.t[0][1][2];
+   par[18] = wi.c.t[0][2][0]; par[19] = wi.c.t[0][2][1]; par[20] = wi.c.t[0][2][2];
+   par[21] = wi.c.t[1][0][0]; par[22] = wi.c.t[1][0][1]; par[23] = wi.c.t[1][0][2];
+   par[24] = wi.c.t[1][1][0]; par[25] = wi.c.t[1][1][1]; par[26] = wi.c.t[1][1][2];
+   par[27] = wi.c.t[1][2][0]; par[28] = wi.c.t[1][2][1]; par[29] = wi.c.t[1][2][2];
+   par[30] = wi.c.t[2][0][0]; par[31] = wi.c.t[2][0][1]; par[32] = wi.c.t[2][0][2];
+   par[33] = wi.c.t[2][1][0]; par[34] = wi.c.t[2][1][1]; par[35] = wi.c.t[2][1][2];
+   par[36] = wi.c.t[2][2][0]; par[37] = wi.c.t[2][2][1]; par[38] = wi.c.t[2][2][2];
+
+   return ;
 }
 
 /*--------------------------------------------------------------------------*/
