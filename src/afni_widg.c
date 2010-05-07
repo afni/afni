@@ -1808,6 +1808,7 @@ STATUS("making view->rowcol") ;
                              (XtPointer)im3d ,    /* client data */
                              XtListTail           /* last in queue */
                          ) ;
+   MCW_set_widget_bg( view->sess_lab, "#553319", 0 ) ; /* brown [07 May 2010] */
 
    hstr = (horz) ? "Switch" : "Switch Directory" ;
    view->choose_sess_pb =
