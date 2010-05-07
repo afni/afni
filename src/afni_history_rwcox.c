@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 7 , MAY , 2010 , RWC , "bilinear_warp3D.c" , MICRO , TYPE_MODIFY ,
+   "Minor changes and additions" ,
+   NULL } ,
+
  { 6 , MAY , 2010 , RWC , "bilinear_warp3D" , MICRO , TYPE_GENERAL ,
    "Add functions for manipulating bilinear warps" ,
    "bilinear_warp3d.[ch] -- for Daniel" } ,
