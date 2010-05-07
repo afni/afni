@@ -2372,6 +2372,8 @@ ENTRY("AFNI_startup_timeout_CB") ;
    if( AFNI_yesenv("AFNI_AUTO_RESCAN") )
     (void) XtAppAddTimeOut( MAIN_app,29999, AFNI_rescan_timeout_CB,&MAIN_app );
 
+   AFNI_coord_filer_setup(im3d) ; /* 07 May 2010 */
+
    MPROBE ;                       /* check mcw_malloc() for integrity */
    EXRETURN ;
 }

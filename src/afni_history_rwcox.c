@@ -44,6 +44,16 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 7 , MAY , 2010 , RWC , "afni" , MICRO , TYPE_NEW_ENV ,
+   "AFNI_FILE_COORDS_x" ,
+   "If this environment variable is set (for x=A,B,C,...), then AFNI\n"
+   "controller 'x' will write each viewpoint change xyz coordinates to the\n"
+   "file whose name is given by the variable value.  For example\n"
+   "  afni -DAFNI_FILE_COORDS_A=stdout\n"
+   "will write each new (x,y,z) triple to standard output.  Coords are\n"
+   "written in DICOM order (natch).  This feature is called the Jennifer\n"
+   "Evans special." } ,
+
  { 7 , MAY , 2010 , RWC , "bilinear_warp3D.c" , MICRO , TYPE_MODIFY ,
    "Minor changes and additions" ,
    NULL } ,
