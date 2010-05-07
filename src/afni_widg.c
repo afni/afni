@@ -1847,6 +1847,11 @@ STATUS("making view->rowcol") ;
                   AFNI_read_sess_CB , im3d ) ;
    MCW_register_hint( view->read_sess_pb ,
                       "Read in a new session directory" ) ;
+   MCW_register_help( view->read_sess_pb ,
+                      "Click this button to get\n"
+                      "a 'chooser' dialog window\n"
+                      "to select a new directory\n"
+                      "from which to read datasets." ) ;
    MCW_set_widget_bg( view->read_sess_pb , "#ffddaa" , 0 ) ;
 
    view_count ++ ;
