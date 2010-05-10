@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 10, MAY, 2010, RCR, "ktaub.c", MICRO, TYPE_MODIFY,
+   "allow for build on SOLARIS_OLD",
+   NULL
+ } ,
+
  { 6, MAY, 2010, RCR, "Dimon", MINOR, TYPE_NEW_OPT,
    "allow negatives in -sort_by_num_suffix, look for '0054 1330' in sorting",
    NULL
