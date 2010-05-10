@@ -6,7 +6,7 @@ plot1D.colindex <- function (ivec,
    return(collist[(ivec) %% N_collist + 1])
 }
 
-plot.1D <- function (ff=NULL, isel=NULL, 
+plot.1D <- function (ff=NULL, ffd=NULL, isel=NULL, 
                      descr="", NoZeros=FALSE,
                      ColumnGroups = NULL,
                      OffsetBase=TRUE,
@@ -30,7 +30,8 @@ plot.1D <- function (ff=NULL, isel=NULL,
    if (is.null(ff)) {
       note.AFNI("Plot.1D in hardwired test mode")
       return(
-         plot.1D( 'IBSR_01.SubClasses.skew.1D.repsig', NoZeros=TRUE, 
+         plot.1D( 'IBSR_01.SubClasses.skew.1D.repsig', 
+                  NoZeros=TRUE, 
                   ColumnGroups=c(rep(1,10), rep(2,10), rep(3,10)), 
                   OffsetBase=FALSE, GroupLabels=c('CSF', 'GM','WM') ) )
    } else if (is.character(ff)) {
@@ -53,11 +54,45 @@ plot.1D <- function (ff=NULL, isel=NULL,
             ff <- cbind(ff, ffc)
          }
       }
-   } 
+   }
+    
    if (is.null(ff)) {
       err.AFNI("Null input");
       return(FALSE)
    }
+   
+   if (!is.null(ffd) && is.character(ffd)) {
+      ffv <- ffd
+      for (i in 1:length(ffv)) { #Won't work for different row numbers...
+         if (is.null(ffc <- read.AFNI.matrix(ffv[i]))) {
+            err.AFNI("Failed to read test file")
+            return(0) 
+         }
+         #str(ffc)
+         if (i==1) { 
+            ffd<-ffc; 
+         }else {
+            if (dim(ffc)[1] < dim(ffd)[1]) {
+               ffna <- matrix(NA, dim(ffd)[1], dim(ffc)[2])
+               ffna[1:dim(ffc)[1],1:dim(ffc)[2]] <- ffc
+               ffc <- ffna
+            }
+            ffd <- cbind(ffd, ffc)
+         }
+      }
+   }
+   
+   if (!is.null(ffd)) {
+      if (!is.null(ffd) && OffsetBase) {
+         err.AFNI("Error bars with OffsetBase?");
+         return(0);
+      }
+      if (dim(ffd)[1] != dim(ff)[1] ||
+          dim(ffd)[2] != dim(ff)[2]) {
+         err.AFNI("Dimensions mismatch between ffd and ff");
+         return(0)   
+      }
+   } 
    if (is.null(isel)) {
       isel=1:1:ncol(ff) 
    }
@@ -127,9 +162,18 @@ plot.1D <- function (ff=NULL, isel=NULL,
             if (OffsetBase) {
                ffr[,i] <- (ffr[,i]-ra[i,1])/(ra[i,2]-ra[i,1])+1.4*i
                ffr[is.nan(ffr[,i]),i] <- 0
+               if (!is.null(ffd)) {
+                  warn.AFNI("Error bars Not scaled as timeseries were");
+               }
             } 
             offs[i] = mean(ffr[,i])
          }
+      
+      ffdrm = NULL; ffdrp=NULL;
+      if (!is.null(ffd)) {
+         ffdrm <- as.matrix(ffd[,isel])
+         ffdrp <- as.matrix(ffd[,isel])
+      } 
       if(is.null(symbs)) symbs<-19+seq(1,ncol(ffr))
       #xy.labels = colnames(ff[,isel])
       if (is.null(x) || length(x) != dim(ffr)[1]) {
@@ -161,6 +205,16 @@ plot.1D <- function (ff=NULL, isel=NULL,
                colnames(ff[,isel]), col = colvec[isel], adj=c(0,0))
          }
       }
+      if (!is.null(ffdrm) && !is.null(ffdrp)) {
+         for (i in 1:length(isel)) {
+            arrows(x0=x, y0=ffr[, i]-ffdrm[,i], 
+                   x1=x, y1=ffr[, i]+ffdrp[,i],
+                   length=.05, angle=90, code = 3,
+                   col = colvec[isel[i]] ) 
+            #errbar(x=x,y=ffr[, i],ffr[, i]-ffdrm[,i], ffr[, i]+ffdrp[,i],
+             #        col = colvec[isel[i]] )
+         } 
+      }  
    } else {
       tp = 'multiple'
       if (length(isel) == 1) {

@@ -98,6 +98,7 @@ parse.1dRplot.Groups <- function(op) {
 init.1DRplot.lop <- function () {
    lop <- list()
    lop$ff = NULL;
+   lop$ffdelta = NULL;
    lop$x = NULL;
    lop$isel=NULL;
    lop$NoZeros=FALSE;
@@ -129,6 +130,11 @@ read.1dRplot.opts.batch <- function (args=NULL, verb = 0) {
       '-input' = apl(n = c(1, Inf), d = NA,  h = paste(
    "-input 1Dfile: file to plot\n"
                      ) ),
+                     
+      '-input_delta' = apl(n = c(1, Inf), d = NA,  h = paste(
+   "-input_delta 1Dfile: file containing value for error bars\n"
+                     ) ),
+                     
       '-x' = apl(n = c(1), h = paste (
    "-x 1Dfile or Rexp: x axis\n",
    "                For example: 1D\n"   
@@ -247,6 +253,7 @@ read.1dRplot.opts.batch <- function (args=NULL, verb = 0) {
       opname <- opname[length(opname)];
       switch(opname,
              input = lop$ff <- ops[[i]],
+             input_delta = lop$ffdelta <- ops[[i]],
              x = lop$x <- parse.1dRplot.Groups(ops[[i]]),
              prefix = lop$prefix  <- ops[[i]],
              save = {lop$prefix <- ops[[i]]; lop$CloseAfterSave=TRUE;} ,
@@ -330,7 +337,7 @@ process.1dRplot.opts <- function (lop, verb = 0) {
    if (lop$verb) { 
       str(lop);
    }
-   thisplot <- plot.1D( ff = lop$ff, 
+   thisplot <- plot.1D( ff = lop$ff, ffd=lop$ffdelta,
             isel = lop$isel, descr = "",  
             NoZeros = lop$NoZeros, 
             ColumnGroups = lop$ColumnGroups,
