@@ -1008,7 +1008,7 @@ STATUS("making imag->rowcol") ;
             XmNtraversalOn , True  ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
-
+   LABELIZE(imag->crosshair_label) ;
    MCW_register_help( imag->crosshair_label , AFNI_crosshair_label_help ) ;
    MCW_register_hint( imag->crosshair_label , "Coordinates of crosshair point" ) ;
 
@@ -1344,6 +1344,7 @@ STATUS("imag->view_frame") ;
             XmNtraversalOn   , True  ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
+   LABELIZE(imag->name_xyz_lab) ;
 
    imag->image_xyz_pb =
       XtVaCreateManagedWidget(
@@ -1392,6 +1393,7 @@ STATUS("imag->view_frame") ;
             XmNtraversalOn   , True  ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
+   LABELIZE(imag->name_yzx_lab) ;
 
    imag->image_yzx_pb =
       XtVaCreateManagedWidget(
@@ -1440,6 +1442,7 @@ STATUS("imag->view_frame") ;
             XmNtraversalOn   , True  ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
+   LABELIZE(imag->name_zxy_lab) ;
 
    imag->image_zxy_pb =
       XtVaCreateManagedWidget(
@@ -1808,7 +1811,7 @@ STATUS("making view->rowcol") ;
                              (XtPointer)im3d ,    /* client data */
                              XtListTail           /* last in queue */
                          ) ;
-   MCW_set_widget_bg( view->sess_lab, "#553319", 0 ) ; /* brown [07 May 2010] */
+   MCW_set_widget_bg( view->sess_lab , BROWN_COLOR , 0 ) ;
 
    hstr = (horz) ? "Switch" : "Switch Directory" ;
    view->choose_sess_pb =
@@ -2647,6 +2650,7 @@ STATUS("making func->rowcol") ;
             XmNrecomputeSize , False ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
+   LABELIZE(func->thr_label) ;
 
 #ifdef FIX_SCALE_VALUE_PROBLEM
    MCW_register_help( func->thr_label ,
@@ -2876,6 +2880,7 @@ STATUS("making func->rowcol") ;
             XmNrecomputeSize , False ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
+   LABELIZE(func->thr_pval_label) ;
 
    MCW_register_help( func->thr_pval_label ,
       " \n"
@@ -2954,6 +2959,7 @@ STATUS("making func->rowcol") ;
             LABEL_ARG("Inten") ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
+   LABELIZE(func->inten_label) ;
 
    /**-- 17 Dec 1997: pbar menu hidden on the inten_label --**/
 
@@ -3362,6 +3368,7 @@ STATUS("making func->rowcol") ;
             LABEL_ARG("Background ") ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
+   LABELIZE(func->options_label) ;
 
 #define VEDIT_COLOR "#000088"
 #define VEDIT_NOPT  4
@@ -3823,6 +3830,7 @@ STATUS("making func->rowcol") ;
             XmNtraversalOn , True  ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
+   LABELIZE(func->range_label) ;
    MCW_register_help( func->range_label ,
                         "These are the range of values in the\n"
                         "UnderLay and OverLay 3D datasets.\n"
@@ -4022,6 +4030,7 @@ STATUS("making func->rowcol") ;
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
    XmStringFree( xstr ) ;
+   LABELIZE(func->bkgd_lab) ;
 
    im3d->vinfo->anat_val[0] =
     im3d->vinfo->func_val[0] =
@@ -4769,7 +4778,7 @@ STATUS("making prog->rowcol") ;
             XmNtraversalOn , True  ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
-
+   LABELIZE(imag->pop_bkgd_lab) ;
    imag->do_bkgd_lab = False ;
 
    /*----------------------------------------------*/
