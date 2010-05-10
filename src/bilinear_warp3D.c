@@ -350,7 +350,7 @@ BL_affine_warp BL_affine_from_12_elements( float *par )
    wa.a.m[1][0] = par[4] ; wa.a.m[1][1] = par[5] ; wa.a.m[1][2] = par[ 6] ;
    wa.a.m[2][0] = par[8] ; wa.a.m[2][1] = par[9] ; wa.a.m[2][2] = par[10] ;
 
-   wa.b.v[0] = par[3] ; wa.b.v[1] = par[7] ; wa.b.v[1] = par[11] ;
+   wa.b.v[0] = par[3] ; wa.b.v[1] = par[7] ; wa.b.v[2] = par[11] ;
 
    return wa ;
 }
