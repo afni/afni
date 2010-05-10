@@ -41,7 +41,7 @@ int main(int argc, char *argv[])
 {
     THD_3dim_dataset *mask_dset = NULL, *input_dset = NULL ;
     int mask_subbrik = 0;
-    int sigma = 0, mean = 1, nzmean = 0, nzcount = 0;
+    int sigma = 0, nzsigma = 0, mean = 1, nzmean = 0, nzcount = 0;
     int debug = 0, quiet = 0, summary = 0;
     int minmax = 0, nzminmax = 0, donzsum = 0;		/* 07 July, 2004 [rickr] */
     short *mask_data;
@@ -50,7 +50,7 @@ int main(int argc, char *argv[])
     int force_num_ROI = 0;	/* Added 5/00 */
     int narg = 1;
     double *sum=NULL, *sumsq=NULL, *nzsum=NULL, sig, *sumallbriks=NULL; 
-    double  *min=NULL, *max=NULL, 
+    double  *min=NULL, *max=NULL, *nzsumsq=NULL,
             *nzmin=NULL, *nzmax=NULL;		/* 07 July, 2004 [rickr] */
     long *voxels=NULL, *nzvoxels=NULL;
     float *input_data;
@@ -147,8 +147,8 @@ int main(int argc, char *argv[])
 "  -nzvoxels     Compute the number of non_zero voxels\n"
 "  -minmax       Compute the min/max of all voxels\n"
 "  -nzminmax     Compute the min/max of non_zero voxels\n"
-"  -sigma        Means to compute the standard deviation as well\n"
-"                 as the mean.\n"
+"  -sigma        Compute the standard deviation of all voxels\n"
+"  -nzsigma      Compute the standard deviation of all non_zero voxels\n"
 "  -median       Compute the median of all voxels.\n"
 "  -nzmedian     Compute the median of non_zero voxels.\n"
 "  -summary      Only output a summary line with the grand mean \n"
@@ -256,6 +256,11 @@ int main(int argc, char *argv[])
 	}
 	if (strncmp(argv[narg], "-sigma", 5) == 0) {
 	    sigma = 1;
+	    narg++;
+	    continue;
+	}
+	if (strncmp(argv[narg], "-nzsigma", 5) == 0) {
+	    nzsigma = 1;
 	    narg++;
 	    continue;
 	}
@@ -466,6 +471,8 @@ int main(int argc, char *argv[])
 		    fprintf(stdout, "\tNZcount_%d", i - 32768);
 		if (sigma)
 		    fprintf(stdout, "\tSigma_%d", i - 32768);
+		if (nzsigma)
+		    fprintf(stdout, "\tNZSigma_%d", i - 32768);
 		if (minmax) {
 		    fprintf(stdout, "\tMin_%d   ", i - 32768);
 		    fprintf(stdout, "\tMax_%d   ", i - 32768);
@@ -497,6 +504,8 @@ int main(int argc, char *argv[])
 		    fprintf(stdout, "\tNZcount_%d", i );
 		if (sigma)
 		    fprintf(stdout, "\tSigma_%d", i );
+		if (nzsigma)
+		    fprintf(stdout, "\tNZSigma_%d", i );
 		if (minmax) {
 		    fprintf(stdout, "\tMin_%d   ", i );
 		    fprintf(stdout, "\tMax_%d   ", i );
@@ -532,7 +541,7 @@ int main(int argc, char *argv[])
 	 Error_Exit("Memory allocation error");
     if ((voxels = (long *) malloc(num_ROI * sizeof(long))) == NULL)
 	 Error_Exit("Memory allocation error");
-    if (nzmean || nzcount || nzminmax || donzsum) {
+    if (nzmean || nzcount || nzminmax || donzsum || nzsigma) {
 	if ((nzsum = (double *) malloc(num_ROI * sizeof(double))) == NULL)
 	     Error_Exit("Memory allocation error");
 	if ((nzvoxels = (long *) malloc(num_ROI * sizeof(long))) == NULL)
@@ -540,6 +549,8 @@ int main(int argc, char *argv[])
 	if ((nzmin = (double *) malloc(num_ROI * sizeof(double))) == NULL)
 	     Error_Exit("Memory allocation error");
 	if ((nzmax = (double *) malloc(num_ROI * sizeof(double))) == NULL)
+	     Error_Exit("Memory allocation error");
+	if ((nzsumsq = (double *) malloc(num_ROI * sizeof(double))) == NULL)
 	     Error_Exit("Memory allocation error");
     }
     if ( minmax ) {
@@ -584,9 +595,10 @@ int main(int argc, char *argv[])
 	    for (i = 0; i < num_ROI; i++) {
 		sum[i] = 0;
 		voxels[i] = 0;
-		if (nzmean || nzcount || donzsum) {
+		if (nzmean || nzcount || donzsum || nzsigma) {
 		    nzsum[i] = 0;
 		    nzvoxels[i] = 0;
+          nzsumsq[i] = 0;
 		}
 		if (sigma)
 		    sumsq[i] = 0;
@@ -663,7 +675,7 @@ int main(int argc, char *argv[])
 
 		    sum[ROI] += (double) input_data[i];
 		    voxels[ROI]++;
-		    if (nzmean || nzcount || nzminmax || donzsum) {
+		    if (nzmean || nzcount || nzminmax || donzsum || nzsigma) {
 			if (input_data[i] != 0.0) {
 			    nzsum[ROI] += (double) input_data[i];
 			    nzvoxels[ROI]++;
@@ -671,6 +683,8 @@ int main(int argc, char *argv[])
 				nzmin[ROI] = input_data[i];
 			    if (input_data[i] > nzmax[ROI] )
 				nzmax[ROI] = input_data[i];
+             if (nzsigma)
+			   nzsumsq[ROI] += input_data[i] * input_data[i];
 			}
 		    }
 		    if (sigma)
@@ -734,6 +748,20 @@ int main(int argc, char *argv[])
 				sig = sqrt((voxels[i] / (voxels[i] - 1)) * (sumsq[i] - mean * mean));
 			    fprintf(stdout, "\t%f", sig);
 			}
+         if (nzsigma) {
+			    double mean = 0.0;
+             sig = 0.0;
+             if (nzvoxels[i]) {
+                  mean = nzsum[i] / (double) nzvoxels[i];
+			         nzsumsq[i] /= (double) nzvoxels[i];
+			       if (nzvoxels[i] == 1)
+				   sig = 1e30;	/* a really big number */
+			       else
+				   sig = sqrt( (nzvoxels[i] / (nzvoxels[i] - 1)) * 
+                           (nzsumsq[i] - mean * mean) );
+             } 
+			    fprintf(stdout, "\t%f", sig);
+			}
 			if (minmax) {
 			    fprintf(stdout, "\t%f", min[i] );
 			    fprintf(stdout, "\t%f", max[i] );
@@ -755,6 +783,8 @@ int main(int argc, char *argv[])
 			if (nzcount)
 			    fprintf(stdout, "\t%s", zerofill);
 			if (sigma)
+			    fprintf(stdout, "\t%s", zerofill);
+			if (nzsigma)
 			    fprintf(stdout, "\t%s", zerofill);
 			if (minmax) {
 			    fprintf(stdout, "\t%s", zerofill);
@@ -817,6 +847,8 @@ int main(int argc, char *argv[])
     }
     if (sigma)
 	free(sumsq);
+    if (nzsigma)
+	free(nzsumsq);
     if (perc || nzperc) {
 	if (percentile) free(percentile); percentile = NULL;
 	 }

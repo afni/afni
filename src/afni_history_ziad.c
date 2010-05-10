@@ -66,6 +66,23 @@
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 4 , MAY , 2010 , ZSS , "3dROIstats" , MINOR , TYPE_NEW_OPT,
+   "Added -nzsigma to 3dROIstats",
+   NULL
+ } ,
+
+ { 4 , MAY , 2010 , ZSS , "1dtranspose" , MICRO , TYPE_NEW_OPT,
+   "Allowed 1dtranspose to accept -overwrite",
+   "The main reason for this is to allow such a command:\n"
+   "  1dtranspose -overwrite FILE.1D FILE.1D\n"
+   "without having to create temporary files."
+ } ,
+
+ { 2 , MAY , 2010 , ZSS , "afni" , MICRO , TYPE_BUG_FIX,
+   "Fixed Instacorr update failure when A_ICOR dset is present on disk.",
+   NULL
+ } ,
+
  { 29 , APR , 2010 , ZSS , "3dMean" , MICRO , TYPE_MODIFY,
    "Allowed program to work with only one dset for input.",
    NULL
