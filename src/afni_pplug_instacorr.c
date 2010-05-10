@@ -534,13 +534,11 @@ ENTRY("AFNI_icor_setref_xyz") ;
        INFO_message("created new dataset %s",im3d->iset->prefix) ;
      }
 
-   /* just need to use existing dataset that matches */
+     /* just need to use existing dataset that matches */
 
    } else {
-
-     DSET_mallocize(icoset); /* make sure not mmap-ed file     ZSS */
      icoset = slf.dset ; nds = slf.dset_index ;
-
+     DSET_mallocize(icoset); /* make sure not mmap-ed file     ZSS */
    }
    icoset->dblk->diskptr->allow_directwrite = 1 ;
 
