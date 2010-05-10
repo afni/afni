@@ -38,13 +38,20 @@
 /**---------------- Adapted for AFNI by RWCox - April 2010 ---------------**/
 /*-------------------------------------------------------------------------*/
 
-#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
 #include <stdio.h>
 #include <assert.h>
 #include <time.h>
+
+#ifdef SOLARIS_OLD      /* 'if' might be overkill, but just to be minimal... */
+                        /*                               10 May 2010 [rickr] */
+#include "machdep.h"
+#else
+#include <stdint.h>
+#endif
+
 
 /*-------------------------------------------------------------------------*/
 /* Sorts in place, returns the bubble sort distance between the input array
