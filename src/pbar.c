@@ -185,6 +185,7 @@ ENTRY("new_MCW_pbar") ;
                                XmNhighlightThickness , 0 ,
                                XmNshadowThickness , 0 ,
                              NULL ) ;
+      LABELIZE(pbar->labels[i]) ;
 
       if( KEEP_LABEL(i,npane) ){
          XtManageChild( pbar->labels[i] ) ;
@@ -257,6 +258,7 @@ ENTRY("new_MCW_pbar") ;
                      "menu" , xmLabelWidgetClass , pbar->big_menu ,
                         XmNinitialResourcesPersistent , False ,
                      NULL ) ;
+   LABELIZE(pbar->big_label) ;
 
    (void) XtVaCreateManagedWidget( "menu",
                                     xmSeparatorWidgetClass, pbar->big_menu ,

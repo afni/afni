@@ -1614,7 +1614,7 @@ if( PRINT_TRACING ){
 
    newseq->onoff_widgets[(newseq->onoff_num)++] =
    newseq->winfo = XtVaCreateManagedWidget(
-                     "imseq" , xmLabelWidgetClass , newseq->wform ,
+                     "font7" , xmLabelWidgetClass , newseq->wform ,
                         XmNtopAttachment   , XmATTACH_WIDGET ,
                         XmNtopWidget       , newseq->wscale ,
                         XmNleftAttachment  , XmATTACH_FORM ,
@@ -1623,9 +1623,9 @@ if( PRINT_TRACING ){
                             (int)( 0.49 + IMAGE_FRAC * FORM_FRAC_BASE ) ,
                         XmNrecomputeSize   , False ,
                         XmNalignment       , XmALIGNMENT_END ,
-
                         XmNinitialResourcesPersistent , False ,
                      NULL ) ;
+   LABELIZE(newseq->winfo) ;
    newseq->winfo_extra[0] = '\0' ;  /* 07 Aug 1999 */
 
    newseq->winfo_sides[0][0] =

@@ -1364,27 +1364,17 @@ typedef struct {
 } AFNI_library_type ;
 
 #define BROWN_COLOR "#553319"
-#define LABELIZE(w)                                     \
- do{ if( GLOBAL_label_bg_color != NULL )                \
-       MCW_set_widget_bg((w),GLOBAL_label_bg_color,0) ; \
-     if( GLOBAL_label_fg_color != NULL )                \
-       MCW_set_widget_fg((w),GLOBAL_label_fg_color) ;   \
- } while(0)
 
 #ifdef MAIN
    AFNI_library_type GLOBAL_library ;
    int GLOBAL_num_dsets = 0 ;
    char *GLOBAL_motd = NULL ;                     /* 29 Nov 2005 */
    char *GLOBAL_browser = NULL ;                  /* 30 Dec 2005 */
-   char *GLOBAL_label_bg_color = NULL ;           /* 10 May 2010 */
-   char *GLOBAL_label_fg_color = NULL ;           /* 10 May 2010 */
 #else
    extern AFNI_library_type GLOBAL_library ;
    extern int GLOBAL_num_dsets ;
    extern char *GLOBAL_motd ;
    extern char *GLOBAL_browser ;
-   extern char *GLOBAL_label_bg_color ;
-   extern char *GLOBAL_label_fg_color ;
 #endif
 
 extern void AFNI_display_motd( Widget w ) ;       /* 29 Nov 2005 */
