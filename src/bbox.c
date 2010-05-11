@@ -554,7 +554,7 @@ ENTRY("new_MCW_arrowval") ;
                        XmNmarginWidth   , 0     ,
                        XmNinitialResourcesPersistent , False ,
                     NULL ) ;
-
+      LABELIZE(av->wlabel) ;
       XtVaGetValues( av->wlabel , XmNfontList , &xflist , NULL ) ;
 
       STATUS("getting label height") ;
@@ -1134,7 +1134,8 @@ rcparent = XtVaCreateWidget ("rowcolumn",
                   XmNmarginTop    , 0 ,
                   XmNmarginRight  , 0 ,
                   XmNmarginLeft   , 0 ,
-                              NULL);
+                              NULL) ;
+   LABELIZE(lb) ;
                                      
    xstr = XmStringCreateLtoR( "" , XmFONTLIST_DEFAULT_TAG ) ;
    XtSetArg( args[nargs] , XmNlabelString , xstr ) ; nargs++ ;
@@ -2885,6 +2886,7 @@ ENTRY("MCW_choose_string") ;
                   LABEL_ARG(label) ,
                   XmNinitialResourcesPersistent , False ,
                NULL ) ;
+     LABELIZE(wlab) ;
 
      cpt = strstr(label,"\n") ;
      if( cpt != NULL ) ncol = cpt-label ;  /* 01 Nov 2001 */
@@ -3152,7 +3154,7 @@ ENTRY("MCW_choose_multi_strlist") ;
                    XmNalignment     , XmALIGNMENT_CENTER ,
                    XmNinitialResourcesPersistent , False ,
                 NULL ) ;
-   myXtFree(lbuf) ; XmStringFree(xms) ;
+   myXtFree(lbuf) ; XmStringFree(xms) ; LABELIZE(wlab) ;
 
    (void) XtVaCreateManagedWidget(
             "menu" , xmSeparatorWidgetClass , wrc ,
@@ -3437,7 +3439,7 @@ if(PRINT_TRACING){
                    XmNalignment     , XmALIGNMENT_CENTER ,
                    XmNinitialResourcesPersistent , False ,
                 NULL ) ;
-   myXtFree(lbuf) ; XmStringFree(xms) ;
+   myXtFree(lbuf) ; XmStringFree(xms) ; LABELIZE(wlab) ;
 
    (void) XtVaCreateManagedWidget(
             "menu" , xmSeparatorWidgetClass , wrc ,
@@ -3663,7 +3665,7 @@ ENTRY("MCW_choose_multi_editable_strlist") ;
                    XmNalignment     , XmALIGNMENT_CENTER ,
                    XmNinitialResourcesPersistent , False ,
                 NULL ) ;
-   myXtFree(lbuf) ; XmStringFree(xms) ;
+   myXtFree(lbuf) ; XmStringFree(xms) ; LABELIZE(wlab) ;
 
    /* Separator line */
 
