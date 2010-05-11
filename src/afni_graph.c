@@ -246,6 +246,7 @@ ENTRY("new_MCW_grapher") ;
             XmNtraversalOn , True ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
+   LABELIZE(grapher->but3_label) ;
 
    /*-------------------------------------*/
    /*--- RowColumn to hold all buttons ---*/
@@ -754,7 +755,7 @@ ENTRY("new_MCW_grapher") ;
                     XmNtraversalOn , True  ,
                     XmNinitialResourcesPersistent , False ,
                  NULL ) ;
-     XmStringFree( xstr ) ;
+     XmStringFree( xstr ) ; LABELIZE(grapher->opt_baseline_global_label) ;
    }
 
    /* 22 Sep 2000: Text toggle */
