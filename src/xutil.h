@@ -57,6 +57,15 @@ extern void MCW_flash_widget ( int , Widget ) ;
 extern void MCW_set_widget_bg( Widget , char * , Pixel ) ;
 extern void MCW_set_widget_fg( Widget , char * ) ;
 
+#undef  LABELIZE
+#define LABELIZE(w)                                   \
+ do{ char *eee ;                                      \
+     eee = getenv("AFNI_LABEL_BG") ;                  \
+     if( eee != NULL ) MCW_set_widget_bg((w),eee,0) ; \
+     eee = getenv("AFNI_LABEL_FG") ;                  \
+     if( eee != NULL ) MCW_set_widget_fg((w),eee) ;   \
+ } while(0)
+
 #include <stdarg.h>
 extern void MCW_flash_widget_list( int ntime , ... ) ;
 

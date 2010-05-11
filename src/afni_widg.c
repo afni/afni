@@ -1802,8 +1802,10 @@ STATUS("making view->rowcol") ;
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
    XmStringFree( xstr ) ;
+#if 0
    MCW_register_hint( view->sess_lab ,
     "Switch = change dataset directory; Read = open a new dataset directory" ) ;
+#endif
    XtInsertEventHandler( view->sess_lab ,         /* handle events in label */
                              ButtonPressMask ,    /* button presses */
                              FALSE ,              /* nonmaskable events? */
@@ -6697,6 +6699,7 @@ ENTRY("AFNI_sesslab_EV") ;
            XtManageChild( view->marks_frame ) ;
            view->marks_enabled = 1 ;
          }
+         XWarpPointer( XtDisplay(w) , None , XtWindow(w) , 0,0,0,0,30,10 ) ;
        } else if( event->button == Button2 ){
          XUngrabPointer( event->display , CurrentTime ) ;
        }

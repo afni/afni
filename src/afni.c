@@ -549,9 +549,6 @@ ENTRY("AFNI_parse_args") ;
    GLOBAL_argopt.no_frivolities = (GLOBAL_argopt.allow_rt != 0) ;
 #endif
 
-   GLOBAL_label_bg_color = getenv("AFNI_LABEL_BG") ; /* 10 May 2010 */
-   GLOBAL_label_fg_color = getenv("AFNI_LABEL_FG") ; /* 10 May 2010 */
-
    SESSTRAIL = 1 ;
    env = getenv( "AFNI_SESSTRAIL" ) ;
    if( env != NULL ){
