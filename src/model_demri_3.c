@@ -22,7 +22,7 @@ extern int  AFNI_needs_dset_ijk(void) ;
 #define M_D3_TR_MIN     0.0
 #define M_D3_TR_MAX     10000.0
 #define M_D3_TF_MIN     0.1
-#define M_D3_TF_MAX     30.0
+#define M_D3_TF_MAX     130.0
 #define M_D3_HCT_MIN    0.01
 #define M_D3_HCT_MAX    0.99
 
@@ -155,10 +155,11 @@ void signal_model (
             convert_mp_to_cp(&P, mp_len) )
                 errs++;  /* bad things man, bad things */
 
-        /* verify TR (maybe we don't need TR) */
-        if( !errs && P.TR != x_array[1][1] - x_array[1][0] )
-            fprintf(stderr, "warning: TR (%f) != x_array time (%f), using TR\n",
-                    P.TR, x_array[1][1] - x_array[1][0]);
+        /* verify TF (inter-frame time) (maybe we don't need TF) */
+        if( !errs && P.TF != x_array[1][1] - x_array[0][1] )
+            fprintf(stderr, 
+              "warning: TF (%f) != x_array time (%f), using dataset TR\n",
+              P.TF, x_array[1][1] - x_array[0][1]);
 
         /* verify time series length */
         if( !errs && mp_len != ts_len )
@@ -539,29 +540,6 @@ static int get_env_params(demri_params * P)
         P->RIB = 1.0 / P->RIB;  /* and take the reciprocal */
     }
 
-    envp = my_getenv("AFNI_MODEL_D3_RIT");
-    if( !envp )
-    {
-        fprintf(stderr,"\n** NLfim: need env var AFNI_MODEL_D3_RIT\n");
-        fprintf(stderr,"          (in seconds (reciprocal will be taken))\n");
-        errs++;
-    }
-    else
-    {
-        if( get_time_in_seconds(envp, &P->RIT) )
-        {
-            fprintf(stderr,"** cannot process time '%s' for RIT\n", envp);
-            errs++;
-        }
-        else if( P->RIT <= M_D3_R_MIN || P->RIT >= M_D3_R_MAX )
-        {
-            fprintf(stderr, "** error: RIT (%f) is not in (%f, %f)\n",
-                            P->RIT, M_D3_R_MIN, M_D3_R_MAX);
-            errs++;
-        }
-        P->RIT = 1.0 / P->RIT;  /* and take the reciprocal */
-    }
-
     envp = my_getenv("AFNI_MODEL_D3_THETA");
     if( !envp )
     {
@@ -672,6 +650,38 @@ static int get_env_params(demri_params * P)
            dset_R1I = NULL;
        }
     }
+
+
+    envp = my_getenv("AFNI_MODEL_D3_RIT");
+    if( !envp )
+    {
+        if(R1I_data_ptr) {
+           fprintf(stderr,
+              "Using intrinsic relaxivity map instead of single value\n");
+        }
+        else {
+           fprintf(stderr,"\n** NLfim: need env var AFNI_MODEL_D3_RIT\n");
+           fprintf(stderr,"          (in seconds (reciprocal will be taken))\n");
+           errs++;
+        }
+    }
+    else
+    {
+        if( get_time_in_seconds(envp, &P->RIT) )
+        {
+            fprintf(stderr,"** cannot process time '%s' for RIT\n", envp);
+            errs++;
+        }
+        else if( P->RIT <= M_D3_R_MIN || P->RIT >= M_D3_R_MAX )
+        {
+            fprintf(stderr, "** error: RIT (%f) is not in (%f, %f)\n",
+                            P->RIT, M_D3_R_MIN, M_D3_R_MAX);
+            errs++;
+        }
+        P->RIT = 1.0 / P->RIT;  /* and take the reciprocal */
+    }
+
+
 
     /* check for residual contrast data */
     envp = my_getenv("AFNI_MODEL_D3_RESID_CT_DSET");  
@@ -922,8 +932,8 @@ static int model_help(void)
     "\n"
     "   model parameters to fit:\n"
     "\n"
-    "       K_trans   in [0, 0.05]\n"
-    "       k_ep      in [0, 0.05]\n"
+    "       K_trans   in [0, 0.99]\n"
+    "       k_ep      in [0, 0.99]\n"
     "       f_pv      in [0, 0.99]\n"
     "\n"
     "       Note that K_trans and k_ep default to rates per second.\n"
