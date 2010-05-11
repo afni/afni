@@ -49,6 +49,11 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 11 , MAY , 2010 , DRG , "model_demri_3" , 
+    MINOR , TYPE_MODIFY, 
+    "Changed minor defaults and error handling in DEMRI model"
+} ,
+
 { 24 , MAR , 2010 , DRG , "align_epi_anat.py" , 
     MINOR , TYPE_MODIFY, 
     "Some flexibility with animal alignment and giant move." ,
