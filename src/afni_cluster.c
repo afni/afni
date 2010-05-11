@@ -19,6 +19,8 @@ static char * AFNI_clus_3dclust( Three_D_View *im3d ) ;
 #undef  MAX_INDEX
 #define MAX_INDEX 99999
 
+static Widget wtemp ;
+
 /*****************************************************************************/
 /*************  Functions for all actions in the cluster group ***************/
 
@@ -425,7 +427,7 @@ ENTRY("AFNI_clus_make_widgets") ;
                        XmNlabelString , xstr ,
                        XmNtraversalOn , True  ,
                     NULL ) ;
-   XmStringFree(xstr) ;
+   XmStringFree(xstr) ; LABELIZE(cwid->top_lab) ;
 
    /*---- popup menu on top label ----*/
 
@@ -441,12 +443,12 @@ ENTRY("AFNI_clus_make_widgets") ;
    SAVEUNDERIZE(cwid->top_menu) ; VISIBILIZE_WHEN_MAPPED(cwid->top_menu) ;
    if( !AFNI_yesenv("AFNI_DISABLE_TEAROFF") ) TEAROFFIZE(cwid->top_menu) ;
 
-   (void) XtVaCreateManagedWidget(
+   wtemp = XtVaCreateManagedWidget(
             "dialog" , xmLabelWidgetClass , cwid->top_menu ,
                LABEL_ARG("--- Cancel ---") ,
                XmNrecomputeSize , False ,
                XmNinitialResourcesPersistent , False ,
-            NULL ) ;
+            NULL ) ; LABELIZE(wtemp) ;
 
    xstr = XmStringCreateLtoR( "Hist range" , XmFONTLIST_DEFAULT_TAG ) ;
    cwid->histrange_pb = XtVaCreateManagedWidget(
@@ -507,6 +509,7 @@ ENTRY("AFNI_clus_make_widgets") ;
    /* row #1: index label */
 
    cwid->index_lab = XtVaCreateManagedWidget( "menu" , xmLabelWidgetClass , rc , NULL ) ;
+   LABELIZE(cwid->index_lab) ;
    MCW_register_hint( cwid->index_lab , "Crosshairs are in this cluster" ) ;
    MCW_register_help( cwid->index_lab , "Shows the cluster index that\n"
                                         "contains the crosshairs point.\n"
@@ -723,6 +726,7 @@ ENTRY("AFNI_clus_make_widgets") ;
                       "dialog" , xmLabelWidgetClass , cwid->rowcol , NULL ) ;
    AFNI_clus_dsetlabel(im3d) ;
    MCW_set_widget_fg( cwid->dset_lab , "white" ) ;
+   LABELIZE( cwid->dset_lab ) ;
 
    /* Separator from other widgets */
 

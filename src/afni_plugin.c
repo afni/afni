@@ -1330,7 +1330,7 @@ ENTRY("PLUG_setup_widgets") ;
                XmNwidth, 20, /*         12 Feb 2009 9Lesstif patrol] */
            XmNinitialResourcesPersistent , False ,
         NULL ) ;
-    XmStringFree( xstr ) ;
+    XmStringFree( xstr ) ; LABELIZE(wid->label) ;
 
     /* now that we have the label,
        find its sizes and make sure the shell doesn't get too small */

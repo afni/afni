@@ -309,6 +309,8 @@ void AFNI_make_wid1 (Three_D_View *) ;
 void AFNI_make_wid2 (Three_D_View *) ;
 void AFNI_make_wid3 (Three_D_View *) ;
 
+static Widget wtemp ;
+
 /*--------------------------------------------------------------------*/
 
 void AFNI_make_widgets( Three_D_View *im3d )
@@ -2711,12 +2713,12 @@ STATUS("making func->rowcol") ;
    /* This --- Cancel --- label does not cause the hangup, so it is
    left alone. See related comments in afni_graph.c
                            LessTif patrol, Jan 07 09 */
-   (void) XtVaCreateManagedWidget(
+   wtemp = XtVaCreateManagedWidget(
             "dialog" , xmLabelWidgetClass , func->thr_menu ,
                LABEL_ARG("--- Cancel ---") ,
                XmNrecomputeSize , False ,
                XmNinitialResourcesPersistent , False ,
-            NULL ) ;
+            NULL ) ; LABELIZE(wtemp) ;
 
    (void) XtVaCreateManagedWidget(
             "dialog" , xmSeparatorWidgetClass , func->thr_menu ,
@@ -2993,12 +2995,12 @@ STATUS("making func->rowcol") ;
    /* This --- Cancel --- label does not cause the hangup, so it is
    left alone. See related comments in afni_graph.c
                            LessTif patrol, Jan 07 09 */
-   (void) XtVaCreateManagedWidget(
+   wtemp = XtVaCreateManagedWidget(
             "dialog" , xmLabelWidgetClass , func->pbar_menu ,
                LABEL_ARG("--- Cancel ---") ,
                XmNrecomputeSize , False ,
                XmNinitialResourcesPersistent , False ,
-            NULL ) ;
+            NULL ) ; LABELIZE(wtemp) ;
 
    (void) XtVaCreateManagedWidget(
             "dialog" , xmSeparatorWidgetClass , func->pbar_menu ,
@@ -3981,7 +3983,7 @@ STATUS("making func->rowcol") ;
             XmNtraversalOn , True  ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
-   XmStringFree(xstr) ;
+   XmStringFree(xstr) ; LABELIZE(func->fim_dset_label) ;
    MCW_register_help( func->fim_dset_label ,
          "Shows the name of the\n"
          "dataset for which FIM\n"
@@ -4031,8 +4033,7 @@ STATUS("making func->rowcol") ;
             XmNtraversalOn , True  ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
-   XmStringFree( xstr ) ;
-   LABELIZE(func->bkgd_lab) ;
+   XmStringFree( xstr ) ; LABELIZE(func->bkgd_lab) ;
 
    im3d->vinfo->anat_val[0] =
     im3d->vinfo->func_val[0] =
@@ -4324,14 +4325,14 @@ STATUS("making dmode->rowcol") ;
 
    /*-- 23 Nov 1996: label at left --*/
 
-   (void) XtVaCreateManagedWidget(
+   wtemp = XtVaCreateManagedWidget(
          "dialog" , xmLabelWidgetClass , dmode->write_rowcol ,
             LABEL_ARG("Write ") ,
             XmNalignment , XmALIGNMENT_BEGINNING ,
             XmNrecomputeSize , False ,
             XmNtraversalOn , True  ,
             XmNinitialResourcesPersistent , False ,
-         NULL ) ;
+         NULL ) ; LABELIZE(wtemp) ;
 
    /*--- write pushbuttons ---*/
 
@@ -4413,14 +4414,14 @@ STATUS("making dmode->rowcol") ;
 
    /*-- 23 Nov 1996: label at left --*/
 
-   (void) XtVaCreateManagedWidget(
+   wtemp = XtVaCreateManagedWidget(
          "dialog" , xmLabelWidgetClass , dmode->rescan_rowcol ,
             LABEL_ARG("Rescan") ,
             XmNalignment , XmALIGNMENT_BEGINNING ,
             XmNrecomputeSize , False ,
             XmNtraversalOn , True  ,
             XmNinitialResourcesPersistent , False ,
-         NULL ) ;
+         NULL ) ; LABELIZE(wtemp) ;
 
    /*-- pushbutton for one session rescan --*/
 
@@ -4502,14 +4503,14 @@ STATUS("making dmode->rowcol") ;
 
    /*-- label at left --*/
 
-   (void) XtVaCreateManagedWidget(
+   wtemp = XtVaCreateManagedWidget(
          "dialog" , xmLabelWidgetClass , dmode->read_rowcol ,
             LABEL_ARG("Read  ") ,
             XmNalignment , XmALIGNMENT_BEGINNING ,
             XmNrecomputeSize , False ,
             XmNtraversalOn , True  ,
             XmNinitialResourcesPersistent , False ,
-         NULL ) ;
+         NULL ) ; LABELIZE(wtemp) ;
 
    /*-- pushbutton for session input --*/
 
@@ -4987,12 +4988,12 @@ STATUS("making prog->rowcol") ;
       /*---- Various Poetry Options ----*/
 
       xstr = XmStringCreateLtoR( "---- Poetry ----" , XmFONTLIST_DEFAULT_TAG ) ;
-      (void) XtVaCreateManagedWidget(
+      wtemp = XtVaCreateManagedWidget(
                "dialog" , xmLabelWidgetClass , prog->hidden_menu ,
                   XmNlabelString , xstr ,
                   XmNrecomputeSize , False ,
                   XmNinitialResourcesPersistent , False ,
-               NULL ) ;
+               NULL ) ; LABELIZE(wtemp) ;
       XmStringFree(xstr) ;
 
       (void) XtVaCreateManagedWidget(
@@ -5849,13 +5850,13 @@ ENTRY("AFNI_lock_button") ;
    left alone. See related comments in afni_graph.c
                            LessTif patrol, Jan 07 09 */
    xstr = XmStringCreateLtoR( "-- Cancel --" , XmFONTLIST_DEFAULT_TAG ) ;
-   (void) XtVaCreateManagedWidget(
+   wtemp = XtVaCreateManagedWidget(
             "dialog" , xmLabelWidgetClass , menu ,
                XmNlabelString , xstr ,
                XmNrecomputeSize , False ,
                XmNinitialResourcesPersistent , False ,
             NULL ) ;
-   XmStringFree(xstr) ;
+   XmStringFree(xstr) ; LABELIZE(wtemp) ;
 
    (void) XtVaCreateManagedWidget(
             "dialog" , xmSeparatorWidgetClass , menu ,
@@ -6057,13 +6058,13 @@ ENTRY("AFNI_misc_button") ;
    left alone. See related comments in afni_graph.c
                            LessTif patrol, Jan 07 09 */
    xstr = XmStringCreateLtoR( "-- Cancel --" , XmFONTLIST_DEFAULT_TAG ) ;
-   (void) XtVaCreateManagedWidget(
+   wtemp = XtVaCreateManagedWidget(
             "dialog" , xmLabelWidgetClass , menu ,
                XmNlabelString , xstr ,
                XmNrecomputeSize , False ,
                XmNinitialResourcesPersistent , False ,
             NULL ) ;
-   XmStringFree(xstr) ;
+   XmStringFree(xstr) ; LABELIZE(wtemp) ;
 
    (void) XtVaCreateManagedWidget(
             "dialog" , xmSeparatorWidgetClass , menu ,
@@ -6113,7 +6114,7 @@ ENTRY("AFNI_misc_button") ;
                      XmNmarginHeight , 0 ,
                      XmNrecomputeSize , False ,
                      XmNinitialResourcesPersistent , False ,
-                  NULL ) ;
+                  NULL ) ; LABELIZE(dmode->misc_hints_pb) ;
 
          } else {
             { char *blab[1] = { "Show Hints?" } ;
