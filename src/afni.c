@@ -2372,6 +2372,10 @@ ENTRY("AFNI_startup_timeout_CB") ;
 
    AFNI_coord_filer_setup(im3d) ; /* 07 May 2010 */
 
+   /*- 12 May 2010: As the last printout, say when this version was created -*/
+
+   fprintf(stderr,"\n++ This version of AFNI was built " __DATE__ " ++\n" ) ;
+
    MPROBE ;                       /* check mcw_malloc() for integrity */
    EXRETURN ;
 }
