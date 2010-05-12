@@ -4985,9 +4985,25 @@ STATUS("making prog->rowcol") ;
       /*---- END OF PTS STUFF ----*/
 #endif
 
+      /*--- put build date into menu header ---*/
+
+      xstr = XmStringCreateLtoR( "Build: " __DATE__ , XmFONTLIST_DEFAULT_TAG ) ;
+      wtemp = XtVaCreateManagedWidget(
+               "dialog" , xmLabelWidgetClass , prog->hidden_menu ,
+                  XmNlabelString , xstr ,
+                  XmNrecomputeSize , False ,
+                  XmNinitialResourcesPersistent , False ,
+               NULL ) ; LABELIZE(wtemp) ; MCW_invert_widget(wtemp) ;
+      XmStringFree(xstr) ;
+
+      (void) XtVaCreateManagedWidget(
+               "dialog" , xmSeparatorWidgetClass , prog->hidden_menu ,
+                  XmNseparatorType , XmSINGLE_LINE ,
+            NULL ) ;
+
       /*---- Various Poetry Options ----*/
 
-      xstr = XmStringCreateLtoR( "---- Poetry ----" , XmFONTLIST_DEFAULT_TAG ) ;
+      xstr = XmStringCreateLtoR( "---- Poetry, Etc ----" , XmFONTLIST_DEFAULT_TAG ) ;
       wtemp = XtVaCreateManagedWidget(
                "dialog" , xmLabelWidgetClass , prog->hidden_menu ,
                   XmNlabelString , xstr ,
