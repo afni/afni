@@ -48,6 +48,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 12, MAY, 2010, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "added -regress_censor_first_trs for A Barbey",
+   "This is needed when also using -regress_censor_motion."
+ } ,
+
+ { 12, MAY, 2010, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
+   "added -censor_first_trs, to mix with -censor_motion results",
+   NULL
+ } ,
+
  { 10, MAY, 2010, RCR, "ktaub.c", MICRO, TYPE_MODIFY,
    "allow for build on SOLARIS_OLD",
    NULL
