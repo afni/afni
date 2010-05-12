@@ -602,7 +602,7 @@ subtracing the 1st one):
    ex3 <- 
 "Example 3 --- Two-sample type (one regression coefficient or general linear
 contrast from each subject in two groups with the constrast being the 2nd group 
-subtracing the 1st one), homoskedasticity (different cross-subjects variability 
+subtracing the 1st one), heteroskedasticity (different cross-subjects variability 
 between the two groups), outlier modeling, covariates centering, no payment no 
 interest till Memorial Day next year:
 -------------------------------------------------------------------------
