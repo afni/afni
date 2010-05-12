@@ -6,6 +6,8 @@
 
 #include "bbox.h"
 
+static Widget wtemp ;
+
 /*------------------------------------------------------------------------*/
 /*
    This function was meant to find the top parent of a widget and later 
@@ -2430,11 +2432,11 @@ ENTRY("MCW_choose_vector") ;
              NULL ) ;
 
    if( label != NULL ){
-     (void) XtVaCreateManagedWidget(
+     wtemp = XtVaCreateManagedWidget(
                   "menu" , xmLabelWidgetClass , wrc ,
                      LABEL_ARG(label) ,
                      XmNinitialResourcesPersistent , False ,
-                  NULL ) ;
+                  NULL ) ; LABELIZE(wtemp) ;
      (void) XtVaCreateManagedWidget(
               "menu" , xmSeparatorWidgetClass , wrc ,
                   XmNseparatorType , XmSHADOW_ETCHED_IN ,
