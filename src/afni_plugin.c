@@ -20,6 +20,8 @@
 
 #define COLSIZE AV_colsize()
 
+static Widget wtemp ;
+
 /***************************************************************************
    Routines to open and initialize plugins.  These should only
    be called at the very end of AFNI initialization, since they
@@ -3527,13 +3529,13 @@ ENTRY("AFNI_plugin_button") ;
    /*** top of menu = a label to click on that does nothing at all ***/
 
    xstr = XmStringCreateLtoR( "-- Cancel --" , XmFONTLIST_DEFAULT_TAG ) ;
-   (void) XtVaCreateManagedWidget(
+   wtemp = XtVaCreateManagedWidget(
             "dialog" , xmLabelWidgetClass , menu ,
                XmNlabelString , xstr ,
                XmNrecomputeSize , False ,
                XmNinitialResourcesPersistent , False ,
             NULL ) ;
-   XmStringFree(xstr) ;
+   XmStringFree(xstr) ; LABELIZE(wtemp) ;
 
    sep = XtVaCreateManagedWidget(
             "dialog" , xmSeparatorWidgetClass , menu ,

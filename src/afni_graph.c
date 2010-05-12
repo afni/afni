@@ -20,6 +20,7 @@
 static int show_grapher_pixmap = 1 ;
 static void fd_line( MCW_grapher *, int,int,int,int ) ;
 static byte PLOT_FORCE_AUTOSCALE = 0;
+static Widget wtemp ;
 
 /*------------------------------------------------------------*/
 /*! Macro to call the getser function with correct prototype. */
@@ -506,12 +507,12 @@ ENTRY("new_MCW_grapher") ;
                XmNinitialResourcesPersistent , False ,
             NULL ) ;
 #else
-   (void) XtVaCreateManagedWidget(
+   wtemp = XtVaCreateManagedWidget(
             "dialog" , xmLabelWidgetClass , grapher->opt_menu ,
                LABEL_ARG("--- Cancel ---") ,
                XmNrecomputeSize , False ,
                XmNinitialResourcesPersistent , False ,
-            NULL ) ;
+            NULL ) ; LABELIZE(wtemp) ;
 #endif
 
    MENU_SLINE(opt_menu) ;
@@ -577,12 +578,12 @@ ENTRY("new_MCW_grapher") ;
                     XmNinitialResourcesPersistent , False ,
                  NULL ) ;
 #else
-        (void) XtVaCreateManagedWidget(
+        wtemp = XtVaCreateManagedWidget(
                  "dialog" , xmLabelWidgetClass , grapher->opt_colors_menu ,
                     XmNlabelString , xstr ,
                     XmNrecomputeSize , False ,
                     XmNinitialResourcesPersistent , False ,
-                 NULL ) ;
+                 NULL ) ; LABELIZE(wtemp) ;
 #endif
         XmStringFree( xstr ) ;
 
@@ -5069,12 +5070,12 @@ ENTRY("GRA_setshift_startup") ;
                 XmNinitialResourcesPersistent , False ,
              NULL ) ;
 
-   (void) XtVaCreateManagedWidget(
+   wtemp = XtVaCreateManagedWidget(
             "dialog" , xmLabelWidgetClass , wrc ,
                LABEL_ARG("-- Shift Controls --") ,
                XmNalignment  , XmALIGNMENT_CENTER ,
                XmNinitialResourcesPersistent , False ,
-            NULL ) ;
+            NULL ) ; LABELIZE(wtemp) ;
 
    (void) XtVaCreateManagedWidget(
             "dialog" , xmSeparatorWidgetClass , wrc ,
@@ -5482,12 +5483,12 @@ ENTRY("AFNI_new_fim_menu") ;
                XmNinitialResourcesPersistent , False ,
             NULL ) ;
 #else
-   (void) XtVaCreateManagedWidget(
+   wtemp = XtVaCreateManagedWidget(
             "dialog" , xmLabelWidgetClass , fmenu->fim_menu ,
                LABEL_ARG("--- Cancel ---") ,
                XmNrecomputeSize , False ,
                XmNinitialResourcesPersistent , False ,
-            NULL ) ;
+            NULL ) ; LABELIZE(wtemp) ;
 #endif
 
    MENU_SLINE(fim_menu) ;
@@ -5655,12 +5656,12 @@ ENTRY("AFNI_new_fim_menu") ;
               "dialog" , xmSeparatorWidgetClass , qbut_menu ,
                XmNseparatorType , XmDOUBLE_LINE , NULL ) ;
 
-      (void) XtVaCreateManagedWidget(
+      wtemp = XtVaCreateManagedWidget(
                "dialog" , xmLabelWidgetClass , qbut_menu ,
                   LABEL_ARG("--Extra Funcs--") ,
                   XmNrecomputeSize , False ,
                   XmNinitialResourcesPersistent , False ,
-               NULL ) ;
+               NULL ) ; LABELIZE(wtemp) ;
 
       fmenu->fimp_user_bbox = new_MCW_bbox( qbut_menu,
                                             GLOBAL_library.registered_fim.num ,
