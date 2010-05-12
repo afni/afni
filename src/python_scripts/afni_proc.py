@@ -180,9 +180,10 @@ g_history = """
     2.21 Mar 23 2010 : added -regress_compute_fitts, to save memory in 3dD
     2.22 Mar 28 2010 : applied fitts computation to REML case
     2.23 Apr 26 2010 : added -regress_opts_reml
+    2.24 May 12 2010 : added -regress_censor_first_trs
 """
 
-g_version = "version 2.23, April 26, 2010"
+g_version = "version 2.24, May 12, 2010"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
@@ -484,6 +485,8 @@ class SubjProcSream:
                         helpstr="specify magnitude of basis functions")
         self.valid_opts.add_opt('-regress_censor_motion', 1, [],
                         helpstr="censor TRs if motion derivative exceeds limit")
+        self.valid_opts.add_opt('-regress_censor_first_trs', 1, [],
+                        helpstr="censor first TRs per run (if censor motion)")
         self.valid_opts.add_opt('-regress_censor_prev', 1, [],
                         acplist=['yes','no'],
                         helpstr="set whether to censor previous motion TR")

@@ -1598,12 +1598,23 @@ def db_mod_regress(block, proc, user_opts):
       except:
         print "** -regress_censor_motion limit must be float, have '%s'" \
               % uopt.parlist[0]
-        return 1
+        errs += 1
       if limit < 0.0:
         print '** -regress_censor_motion limit must be positive, have %g'%limit
         errs += 1
       if bopt: bopt.parlist[0] = limit
       else: block.opts.add_opt('-regress_censor_motion', 1, [limit], setpar=1)
+
+    # do we also censor first N TRs per run?
+    uopt = user_opts.find_opt('-regress_censor_first_trs')
+    bopt = block.opts.find_opt('-regress_censor_first_trs')
+    if uopt:
+        if not block.opts.find_opt('-regress_censor_motion'):
+            print '** -regress_censor_first_trs requires -regress_censor_motion'
+            errs += 1
+        if bopt: bopt.parlist = uopt.parlist
+        else: block.opts.add_opt('-regress_censor_first_trs', 1,
+                                 uopt.parlist, setpar=1)
 
     # do we also censor the previous TR?
     uopt = user_opts.find_opt('-regress_censor_prev')
@@ -2270,6 +2281,14 @@ def db_cmd_regress_censor_motion(proc, block):
             return 1, ''
     else: mot_file = proc.mot_files[0]  # there is only 1
 
+    # check for -regress_censor_first_trs
+    val, err = block.opts.get_type_opt(int, '-regress_censor_first_trs')
+    if err:
+        print '** -regress_censor_first_trs requires integer argument'
+        return 1, ''
+    elif val != None and val > 0: cfstr = '    -censor_first_trs %d \\\n' % val
+    else:                         cfstr = ''
+
     # check for censor_prev_TR
     opt = block.opts.find_opt('-regress_censor_prev')
     if opt.parlist[0] == 'yes': prev_str = '-censor_prev_TR'
@@ -2292,9 +2311,10 @@ def db_cmd_regress_censor_motion(proc, block):
         cmd = cmd + '1d_tool.py -infile %s -set_nruns %d \\\n'       \
                     % (mot_file, proc.runs)
 
-    cmd = cmd + '    -set_tr %g -show_censor_count %s\\\n'     \
-                '    -censor_motion %g %s\n\n'                 \
-                % (proc.tr, prev_str, limit, mot_prefix)
+    cmd = cmd + '    -set_tr %g -show_censor_count %s\\\n'      \
+                '%s'                                            \
+                '    -censor_motion %g %s\n\n'                  \
+                % (proc.tr, prev_str, cfstr, limit, mot_prefix)
 
     return 0, cmd
 
@@ -4170,8 +4190,27 @@ g_help_string = """
             be censored.  To turn off that behavior, use -regress_censor_prev
             with parameter 'no'.
 
+            If censoring the first few TRs from each run is also necessary,
+            use -regress_censor_first_trs.
+
             Please see '1d_tool.py -help' for information on censoring motion.
-            See also -regress_censor_prev.
+            See also -regress_censor_prev and -regress_censor_first_trs.
+
+        -regress_censor_first_trs N  : censor the first N TRs in each run
+
+                e.g.     -regress_censor_first_trs 3
+                default: N = 0
+
+            If, for example, censoring the first 3 TRs per run is desired, a
+            user might add "-CENSORTR '*:0-2'" to the -regress_opts_3dD option.
+            However, when using -regress_censor_motion, these censoring options
+            must be combined into one for 3dDeconvolve.
+
+            The -regress_censor_first_trs censors those TRs along with any with
+            large motion.
+
+            See '-censor_first_trs' under '1d_tool.py -help' for details.
+            See also '-regress_censor_motion'.
 
         -regress_censor_prev yes/no  : censor TRs preceding large motion
 

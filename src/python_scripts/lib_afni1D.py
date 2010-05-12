@@ -315,6 +315,30 @@ class Afni1D:
 
       return 0
 
+   def mask_first_TRs(self, nfirst, cval=0):
+      """set the first nfirst TRs to cval"""
+
+      if self.verb > 3:
+         print '-- masking first %d TRs, cval = %d ...' % (nfirst, cval)
+
+      if not self.ready:
+         print '** mask_first_TRs: Afni1D is not ready'
+         return 1
+
+      # apply derivative to each vector as one run, then clear run breaks
+      for ind in range(self.nvec):
+         offset = 0
+         for run, rlen in enumerate(self.run_len):
+            if nfirst > rlen:
+               print '** mask_first_TRs, nfirst %d > run len %d (of run %d)' \
+                     % (nfirst, rlen, run+1)
+               return 1
+            # apply censor val for first nfirst TRs
+            for tr in range(nfirst): self.mat[ind][offset+tr] = cval
+            offset += rlen
+
+      return 0
+
    def mask_prior_TRs(self):
       """if one TR is set, also set the prior one"""
 

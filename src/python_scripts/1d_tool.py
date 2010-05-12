@@ -136,7 +136,7 @@ examples (very basic for now):
                      -show_censor_count                          \\
                      -censor_motion 1.2 subjA_rlens
 
-       Consider also '-censor_prev_TR'.
+       Consider also '-censor_prev_TR' and '-censor_first_trs'.
 
   11.  Demean the data.  Use motion parameters as an example.
 
@@ -215,7 +215,7 @@ general options:
         Besides an input motion file (-infile), the number of runs is needed
         (-set_nruns or -set_run_lengths).
 
-        Consider also '-censor_prev_TR'.
+        Consider also '-censor_prev_TR' and '-censor_first_trs'.
         See example 10.
 
    -censor_fill                 : expand data, filling censored TRs with zeros
@@ -232,6 +232,8 @@ general options:
 
         See example 12.
 
+   -censor_first_trs N          : when censoring motion, also censor the first
+                                  N TRs of each run
    -censor_prev_TR              : for each censored TR, also censor previous
    -cormat_cutoff CUTOFF        : set cutoff for cormat warnings (in [0,1])
    -demean                      : demean each run (new mean of each run = 0.0)
@@ -338,9 +340,10 @@ g_history = """
    0.15 Oct 23, 2009 - added -censor_fill and -censor_fill_par
    0.16 Nov 16, 2009 - allow motion censoring with varying run lengths
    0.17 Mar 25, 2010 - small help update
+   0.18 Mar 25, 2010 - added -censor_first_trs for A Barbey
 """
 
-g_version = "1d_tool.py version 0.17, Mar 25, 2010"
+g_version = "1d_tool.py version 0.18, May 11, 2010"
 
 
 class A1DInterface:
@@ -358,6 +361,7 @@ class A1DInterface:
       self.add_cols_file   = None       # filename to add cols from
       self.censor_fill     = 0          # zero-fill censored TRs
       self.censor_fill_par = ''         # same, but via this parent dset
+      self.censor_first_trs= 0          # number of first TRs to also censor
       self.censor_prev_TR  = 0          # if censor, also censor previous TR
       self.collapse_method = ''         # method for collapsing columns
       self.demean          = 0          # demean the data
@@ -453,6 +457,9 @@ class A1DInterface:
 
       self.valid_opts.add_opt('-censor_fill_parent', 1, [], 
                       helpstr='-censor_fill, but via this parent dataset')
+
+      self.valid_opts.add_opt('-censor_first_trs', 1, [], 
+                      helpstr='number of initial TRs to censor, per run')
 
       self.valid_opts.add_opt('-censor_motion', 2, [], 
                       helpstr='censor motion data with LIMIT and PREFIX')
@@ -656,6 +663,11 @@ class A1DInterface:
             self.censortr_file   = '%s_CENSORTR.txt' % val[1]
             self.collapse_file   = '%s_enorm.1D' % val[1]
 
+         elif opt.name == '-censor_first_trs':
+            val, err = uopts.get_type_opt(int, '', opt=opt)
+            if err: return 1
+            self.censor_first_trs = val
+
          elif opt.name == '-censor_prev_TR':
             self.censor_prev_TR = 1
 
@@ -834,6 +846,11 @@ class A1DInterface:
 
       if self.censor_prev_TR:
          if self.adata.mask_prior_TRs(): return 1
+
+      if self.censor_first_trs:
+         if self.censor_file == None: cval = 0  # censor by nuking
+         else:                        cval = 1  # will invert later
+         if self.adata.mask_first_TRs(self.censor_first_trs, cval): return 1
 
       # ---- 'show' options come after all other processing ----
 
