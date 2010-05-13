@@ -654,7 +654,7 @@ class XmatInterface:
          return self.test_libraries(verb=val)
 
       # attempting real work, load AM (locally)
-      self.set_afni_xmat()
+      if self.set_afni_xmat(): return 1
 
       # ------------------------------------------------------------
       # check general options, esp. chrono
@@ -1115,7 +1115,7 @@ class XmatInterface:
       else: return 0
 
    def test(self, verb=3):
-      self.set_afni_xmat() # this might not be loaded
+      if self.set_afni_xmat(): return 1 # might not be loaded
       # init
       print '------------------------ initial reads -----------------------'
       self.verb = verb
