@@ -33,7 +33,7 @@ int main( int argc , char *argv[] )
              "  -quadrant = Correlation is the quadrant correlation coefficient.\n"
              "  -ktaub    = Correlation is Kendall's tau_b coefficient.\n"
              "              ++ For 'continuous' or finely-discretized data, tau_b\n"
-             "                 are rank correlation are nearly equivalent.\n"
+             "                 and rank correlation are nearly equivalent.\n"
              "\n"
              "  -polort m = Remove polynomical trend of order 'm', for m=-1..3.\n"
              "                [default is m=1; removal is by least squares].\n"
