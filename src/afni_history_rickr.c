@@ -48,6 +48,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 13, MAY, 2010, RCR, "3dbucket", MICRO, TYPE_MODIFY,
+   "tiny help update to clarify -glueto and -aglueto",
+   NULL
+ } ,
+
+ { 13, MAY, 2010, RCR, "ui_xmat.py", MICRO, TYPE_MODIFY,
+   "tiny update: check for set_afni_xmat() failure",
+   NULL
+ } ,
+
  { 12, MAY, 2010, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "added -regress_censor_first_trs for A Barbey",
    "This is needed when also using -regress_censor_motion."
