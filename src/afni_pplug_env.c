@@ -656,11 +656,15 @@ void ENV_add_numeric( char *vname , char *vhint ,
    return ;
 }
 
+/*---------------------------------------------------------------------------*/
+
 void ENV_add_yesno( char *vname , char *vhint ) /* 08 Aug 2001 */
 {
    ENV_add_string( vname , vhint ,
                    NUM_yesno_list , yesno_list , NULL  ) ;
 }
+
+/*---------------------------------------------------------------------------*/
 
 void ENV_add_string( char *vname , char *vhint ,
                      int vcount , char **vlist , generic_func *cbfunc )
@@ -946,6 +950,7 @@ static void ENV_marksquality( char *vname )
    GLOBAL_argopt.elide_quality = YESSISH(str) ;
 }
 
+/*-----------------------------------------------------------------------*/
 
 static void ENV_setjpegquality(char *vname)
 {
