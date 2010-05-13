@@ -50,8 +50,8 @@ ENTRY("mri_new_7D_generic") ;
    newim = (MRI_IMAGE *)calloc( 1, sizeof(MRI_IMAGE) ) ;
 
    if( newim == NULL ){
-      fprintf( stderr , "malloc failure for new image pointer\n" ) ;
-      MRI_FATAL_ERROR ;
+     fprintf( stderr , "malloc failure for new image pointer\n" ) ;
+     MRI_FATAL_ERROR ;
    }
 
    if( nx < 1 ) nx = 1 ;  /* 18 Mar 2005: fix stupid user problems */
