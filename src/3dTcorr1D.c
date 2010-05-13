@@ -30,6 +30,8 @@ int main( int argc , char *argv[] )
              "                coefficient.\n"
              "  -quadrant = Correlation is the quadrant correlation coefficient.\n"
              "  -ktaub    = Correlation is Kendall's tau_b coefficient.\n"
+             "              ++ For 'continuous' or finely-discretized data, tau_b\n"
+             "                 are rank correlation are nearly equivalent.\n"
              "\n"
              "  -prefix p = Save output into dataset with prefix 'p'\n"
              "               [default prefix is 'Tcorr1D'].\n"
