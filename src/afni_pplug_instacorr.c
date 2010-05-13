@@ -662,6 +662,12 @@ ENTRY("AFNI_icor_setref_locked") ;
 #define GIQUIT \
  do { free(im3d->giset); im3d->giset = NULL; EXRETURN; } while(0)
 
+static PLUGIN_interface *GICOR_plint = NULL ;  /* 13 May 2010 */
+
+static char *GICOR_label_AAA = NULL ;
+static char *GICOR_label_BBB = NULL ;
+static char *GICOR_label_top = NULL ;
+
 /*-- Called from afni_niml.c when 3dGroupInCorr sends a setup NIML element --*/
 
 void GICOR_setup_func( NI_stream nsg , NI_element *nel )
@@ -761,6 +767,22 @@ ENTRY("GICOR_setup_func") ;
    DSET_superlock( dset ) ;
    giset->nvox = DSET_NVOX(dset) ;
 
+   GICOR_label_AAA = NI_get_attribute( nel , "label_AAA") ;
+   GICOR_label_BBB = NI_get_attribute( nel , "label_BBB") ;
+
+   if( GICOR_label_AAA != NULL ){
+     char *tlab = GICOR_label_top ;
+     if( tlab == NULL )
+       GICOR_label_top = tlab = (char *)malloc(sizeof(char)*256) ;
+     if( GICOR_label_BBB == NULL )
+       sprintf( tlab , "GrpInCorr: set AAA=%s" ,
+                     GICOR_label_AAA ) ;
+     else
+       sprintf( tlab , "GrpInCorr: set AAA=%s  set BBB=%s" ,
+                     GICOR_label_AAA,GICOR_label_BBB ) ;
+     PLUTO_set_toplabel( GICOR_plint , tlab ) ;
+   }
+
    /* add dataset to current session (change name if necessary) */
 
    sf = THD_dset_in_session( FIND_PREFIX , pre , ss ) ;
@@ -842,6 +864,9 @@ ENTRY("GICOR_process_dataset") ;
      ERROR_message("badly formatted dataset from 3dGroupInCorr!") ;
      EXRETURN ;
    }
+
+   if( GICOR_label_top != NULL )
+     PLUTO_set_toplabel( GICOR_plint , GICOR_label_top ) ;
 
    nvec = nel->vec_len ;  /* how many values in each column transmitted */
 
@@ -1109,6 +1134,7 @@ PLUGIN_interface * GICOR_init( char *lab )
                                 g_helpstring ,
                                 PLUGIN_CALL_VIA_MENU ,
                                 (char *(*)())GICOR_main  ) ;
+   GICOR_plint = plint ;
 
    PLUTO_set_runlabels( plint , "Setup+Keep" , "Setup+Close" ) ;
 
@@ -1122,6 +1148,9 @@ PLUGIN_interface * GICOR_init( char *lab )
 
    PLUTO_add_option ( plint , "Cluster" , "Cluster" , TRUE ) ;
    PLUTO_add_number ( plint , "Voxels"  , 0,9999,0 , 0,TRUE ) ;
+
+   if( GICOR_label_top != NULL )
+     PLUTO_set_toplabel( GICOR_plint , GICOR_label_top ) ;
 
    return plint ;
 }
@@ -1158,6 +1187,9 @@ static char * GICOR_main( PLUGIN_interface *plint )
      XtUnmapWidget(plint->wid->shell) ;
      return " ************ AFNI: ************ \n 3dGroupInCorr is no longer connected! \n " ;
    }
+
+   if( GICOR_label_top != NULL )
+     PLUTO_set_toplabel( GICOR_plint , GICOR_label_top ) ;
 
    PLUTO_next_option(plint) ;
    srad   = PLUTO_get_number(plint) ;

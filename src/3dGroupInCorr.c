@@ -1149,6 +1149,10 @@ int main( int argc , char *argv[] )
                   label_AAA , label_AAA , label_BBB , label_BBB ) ;
      }
      NI_set_attribute( nelcmd , "target_labels" , bricklabels ) ;
+
+     NI_set_attribute( nelcmd , "label_AAA" , label_AAA ) ;
+     if( shd_BBB != NULL )
+       NI_set_attribute( nelcmd , "label_BBB" , label_BBB ) ;
    }
 
    /* ZSS: set surface attributes */

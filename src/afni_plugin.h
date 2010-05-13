@@ -336,6 +336,7 @@ typedef struct PLUGIN_interface {
 
    char run_label [PLUGIN_LABEL_SIZE] ; /* 04 Nov 2003 */
    char doit_label[PLUGIN_LABEL_SIZE] ;
+   char toplabel  [PLUGIN_STRING_SIZE]; /* 13 May 2010 */
 } PLUGIN_interface ;
 
 #define SHORT_CHOOSE_FLAG 1
@@ -388,6 +389,7 @@ extern void PLUTO_add_hint( PLUGIN_interface * , char * ) ;
 
 extern void PLUTO_set_sequence( PLUGIN_interface *, char * ) ; /* 06 Aug 1999 */
 extern void PLUTO_set_butcolor( PLUGIN_interface *, char * ) ; /* 01 Nov 1999 */
+extern void PLUTO_set_toplabel( PLUGIN_interface *, char * ) ; /* 13 May 2010 */
 
 /* 15 Jun 1999: redo PLUTO_new_interface */
 

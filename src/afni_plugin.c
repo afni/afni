@@ -571,6 +571,7 @@ ENTRY("new_PLUGIN_interface_1999") ;
    plint->wid          = NULL ;
    plint->im3d         = NULL ;
    plint->hint         = NULL ;
+   plint->toplabel[0]  = '\0' ;  /* 13 May 2010 */
 
    if( help == NULL || strlen(help) == 0 )
       plint->helpstring = NULL ;
@@ -662,6 +663,21 @@ ENTRY("PLUTO_set_butcolor") ;
    if( plint == NULL || sq == NULL || sq[0] == '\0' ) EXRETURN ;
    if( strncmp(sq,"hot",3) == 0 ) sq = MCW_hotcolor(NULL) ;
    MCW_strncpy( plint->butcolor , sq , PLUGIN_STRING_SIZE ) ;
+   EXRETURN ;
+}
+
+/*----------------------------------------------------------------------
+  Change the top level label in a plugin [13 May 2010]
+------------------------------------------------------------------------*/
+
+void PLUTO_set_toplabel( PLUGIN_interface *plint , char *lab )
+{
+ENTRY("PLUTO_set_toplabel") ;
+   if( plint != NULL ){
+     if( plint->wid != NULL )
+       MCW_set_widget_label( plint->wid->label , lab ) ;
+     MCW_strncpy( plint->toplabel , lab , PLUGIN_STRING_SIZE ) ;
+   }
    EXRETURN ;
 }
 
@@ -1257,10 +1273,10 @@ ENTRY("PLUG_setup_widgets") ;
    /**** create widgets structure ****/
 
    plint->wid = wid = myXtNew(PLUGIN_widgets) ;
-   
+
    /**** create Shell that can be opened up later ****/
-   /* 'LessTif Widormous' 
-      With 64bit LessTif, some widgets get created with 
+   /* 'LessTif Widormous'
+      With 64bit LessTif, some widgets get created with
       enormous sizes. To complicate matters, the problem
       occurred randomly so tracking it is a frustrating
       exercise. It looks like adding a few, harmless,
@@ -1268,7 +1284,7 @@ ENTRY("PLUG_setup_widgets") ;
       fixed the problem. Those parameters have no effect
       on the final plugin's look so we won't bother to find
       out which of them was necessary for fixing the problem.
-                  12 Feb 2009 9Lesstif patrol] 
+                  12 Feb 2009 9Lesstif patrol]
    */
    wid->shell =
       XtVaAppCreateShell(
@@ -1316,7 +1332,11 @@ ENTRY("PLUG_setup_widgets") ;
 
    /**** create Label at top to hold description of this program ****/
 
-   sprintf( str , "AFNI Plugin: %s" , plint->description ) ;
+   if( plint->toplabel[0] == '\0' )
+     sprintf( str , "AFNI Plugin: %s" , plint->description ) ;
+   else
+     strcpy( str , plint->toplabel ) ;  /* 13 May 2010 */
+
    xstr = XmStringCreateLtoR( str , XmFONTLIST_DEFAULT_TAG ) ;
    wid->label =
       XtVaCreateManagedWidget(
@@ -1606,8 +1626,8 @@ fprintf(stderr,"colormenu setup %s; opt->tag=%s.\n",sv->label,opt->tag) ;
                ow->chtop[ib]   = av->wrowcol ;  /* get the top widget */
                #ifdef USING_LESSTIF_NOT_DOING_THIS
                   if (CPU_IS_64_BIT() ){
-                     ow->chtop[ib]   = XtParent(XtParent(av->wrowcol)); 
-                              /* get the very top rowcol holding the 
+                     ow->chtop[ib]   = XtParent(XtParent(av->wrowcol));
+                              /* get the very top rowcol holding the
                                  optmenu rowcol, see function
                                  new_MCW_optmenu_64fix   [LPatrol Feb 19 2009] */
                   }
@@ -1647,8 +1667,8 @@ fprintf(stderr,"colormenu setup %s; opt->tag=%s.\n",sv->label,opt->tag) ;
                ow->chtop[ib]   = av->wrowcol ;  /* get the top widget */
                #ifdef USING_LESSTIF_NOT_DOING_THIS
                   if (CPU_IS_64_BIT() && use_optmenu){
-                     ow->chtop[ib]   = XtParent(XtParent(av->wrowcol)); 
-                              /* get the very top rowcol holding the 
+                     ow->chtop[ib]   = XtParent(XtParent(av->wrowcol));
+                              /* get the very top rowcol holding the
                                  optmenu rowcol, see function
                                  new_MCW_optmenu_64fix [LPatrol Feb 19 2009]*/
                   }
@@ -1712,8 +1732,8 @@ fprintf(stderr,"colormenu setup %s; opt->tag=%s.\n",sv->label,opt->tag) ;
                   ow->chtop[ib]   = av->wrowcol ;  /* get the top widget */
                   #ifdef USING_LESSTIF_NOT_DOING_THIS
                   if (CPU_IS_64_BIT() && use_optmenu ){
-                     ow->chtop[ib]   = XtParent(XtParent(av->wrowcol)); 
-                              /* get the very top rowcol holding the 
+                     ow->chtop[ib]   = XtParent(XtParent(av->wrowcol));
+                              /* get the very top rowcol holding the
                                  optmenu rowcol, see function
                                  new_MCW_optmenu_64fix [LPatrol Feb 19 2009]*/
                   }
@@ -2420,6 +2440,8 @@ ENTRY("get_label_from_PLUGIN_interface") ;
    if( plint == NULL ) RETURN(NULL) ;
    else                RETURN(plint->label) ;
 }
+
+/*-----------------------------------------------------------------------*/
 
 char * get_description_from_PLUGIN_interface( PLUGIN_interface * plint )
 {
@@ -4656,7 +4678,7 @@ ENTRY("PLUTO_4D_to_typed_fbuc") ;
    if( ! PLUTO_prefix_ok(new_prefix) ) RETURN(NULL) ;
 
    new_dset = MAKER_4D_to_typed_fbuc( old_dset , new_prefix , new_datum ,
-                                      ignore , detrend , nbrik , user_func , 
+                                      ignore , detrend , nbrik , user_func ,
                                       user_data, NULL ) ;
 
    RETURN(new_dset) ;
@@ -4725,6 +4747,8 @@ ENTRY("new_PLUGIN_strval") ;
    RETURN(av) ;
 }
 
+/*----------------------------------------------------------------------------*/
+
 void destroy_PLUGIN_strval( PLUGIN_strval * av )
 {
    if( av != NULL ){
@@ -4734,12 +4758,16 @@ void destroy_PLUGIN_strval( PLUGIN_strval * av )
    return ;
 }
 
+/*----------------------------------------------------------------------------*/
+
 void alter_PLUGIN_strval_width( PLUGIN_strval * av , int nchar )
 {
    if( av != NULL && nchar > 0 )
       XtVaSetValues( av->textf , XmNcolumns , nchar , NULL ) ;
    return ;
 }
+
+/*----------------------------------------------------------------------------*/
 
 void set_PLUGIN_strval( PLUGIN_strval * av , char * str )
 {
@@ -4748,15 +4776,19 @@ void set_PLUGIN_strval( PLUGIN_strval * av , char * str )
    return ;
 }
 
+/*----------------------------------------------------------------------------*/
+
 char * get_PLUGIN_strval( PLUGIN_strval * av )   /* must be XtFree-d */
 {
    if( av == NULL ) return NULL ;
                     return XmTextFieldGetString( av->textf ) ;
 }
 
+/*----------------------------------------------------------------------------*/
+
 /* Set the addresses of the main vol2surf globals.  Note that the
  * plugin options pointer is stored as (void *) so that vol2surf.h
- * will not need to percolate up to afni.h.	09 Sep 2004 [rickr]
+ * will not need to percolate up to afni.h.  09 Sep 2004 [rickr]
  */
 #include "vol2surf.h"
 int PLUTO_set_v2s_addrs(void ** vopt, char *** maps, char ** hist)
@@ -5261,6 +5293,8 @@ fprintf(stderr,"PLUTO_register_workproc: have %d workprocs\n",num_workp) ;
    EXRETURN ;
 }
 
+/*----------------------------------------------------------------------------*/
+
 void PLUTO_remove_workproc( XtWorkProc func )
 {
    int ii , ngood ;
@@ -5294,6 +5328,8 @@ ENTRY("PLUTO_remove_workproc") ;
 
    EXRETURN ;
 }
+
+/*----------------------------------------------------------------------------*/
 
 Boolean PLUG_workprocess( XtPointer fred )
 {
@@ -5353,6 +5389,8 @@ STATUS("calling user timeout function") ;
    myXtFree(myt) ; EXRETURN ;
 }
 
+/*----------------------------------------------------------------------------*/
+
 void PLUTO_register_timeout( int msec, generic_func * func, XtPointer cd )
 {
    mytimeout * myt ;
@@ -5402,6 +5440,8 @@ double PLUTO_elapsed_time(void) /* in seconds */
                    +(new_tval.tv_usec - old_tval.tv_usec)*1.0e-6 ) ;
 }
 
+/*----------------------------------------------------------------------------*/
+
 double PLUTO_cpu_time(void)  /* in seconds */
 {
 #ifdef CLK_TCK
@@ -5413,6 +5453,6 @@ double PLUTO_cpu_time(void)  /* in seconds */
                       )
            / (double) CLK_TCK ) ;
 #else
-   return 0.0l ;
+   return 0.0 ;
 #endif
 }
