@@ -44,6 +44,13 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 14 , MAY , 2010 , RWC , "3dMean" , MICRO , TYPE_BUG_FIX ,
+   "Fix scaling problem" ,
+   "As in 3dcalc: if scaling is not forced (no -fscale or -gscale) but is\n"
+   "optional (no -nscale, either), then check if the values in a sub-brick\n"
+   "are non-integral -- if so, do scaling anyway to minimize truncation\n"
+   "problems." } ,
+
  { 7 , MAY , 2010 , RWC , "afni" , MICRO , TYPE_NEW_ENV ,
    "AFNI_FILE_COORDS_x" ,
    "If this environment variable is set (for x=A,B,C,...), then AFNI\n"

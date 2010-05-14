@@ -30,6 +30,9 @@ Added the _dshift stuff.
 
 Modified help menu
   [P Christidis, July 2005]
+
+Removed the '-b3' type of input from the help menu
+  [RW Cox, May 2010]
 ----------------------------------------------------------------------------*/
 
 #include "mrilib.h"
@@ -38,6 +41,8 @@ Modified help menu
 #ifndef myXtFree
 #define myXtFree(xp) (XtFree((char *)(xp)) , (xp)=NULL)
 #endif
+
+#undef SHOW_B3
 
 /*-------------------------- global data --------------------------*/
 
@@ -884,6 +889,14 @@ void CALC_Syntax(void)
     "     performed on datasets that occupy the same space and have the same \n"
     "     orientations.                                                      \n"
     "                                                                        \n"
+    "     3dcalc has a lot of input options, as its capabilities have grown  \n"
+    "     over the years.  So this 'help' output has gotten kind of long.    \n"
+    "                                                                        \n"
+    "     For simple voxel-wise averaging of datasets:    cf. 3dMean         \n"
+    "     For averaging along the time axis:              cf. 3dTstat        \n"
+    "     For smoothing in time:                          cf. 3dTsmooth      \n"
+    "     For statistics from a region around each voxel: cf. 3dLocalstat    \n"
+    "                                                                        \n"
     "------------------------------------------------------------------------\n"
     "Usage:                                                                  \n"
     "-----                                                                   \n"
@@ -1033,23 +1046,28 @@ void CALC_Syntax(void)
     "               ** If some letter name is used in the expression, but    \n"
     "                  not present in one of the dataset options here, then  \n"
     "                  that variable is set to 0.                            \n"
+#ifdef SHOW_B3
     "               ** If the letter is followed by a number, then that      \n"
     "                  number is used to select the sub-brick of the dataset \n"
     "                  which will be used in the calculations.               \n"
     "                     E.g., '-b3 dname' specifies that the variable 'b'  \n"
     "                     refers to sub-brick '3' of that dataset            \n"
     "                     (indexes in AFNI start at 0).                      \n"
-    "               ** However, it is better to use the subscript '[]' method\n"
+#endif
+    "               ** You can use the subscript '[]' method                 \n"
     "                  to select sub-bricks of datasets, as in               \n"
     "                     -b dname+orig'[3]'                                 \n"
+#ifdef SHOW_B3
     "                  rather than the older notation                        \n"
     "                     -b3 dname+orig                                     \n"
     "                  The subscript notation is more flexible, as it can    \n"
     "                  be used to select a collection of sub-bricks.         \n"
+#endif
     "                                                                        \n"
     " -expr       = Apply the expression - within quotes - to the input      \n"
     "               datasets (dnames), one voxel at time, to produce the     \n"
     "               output dataset.                                          \n"
+    "               ** You must use 1 and only 1 '-expr' option!             \n"
     "                                                                        \n"
     " NOTE: If you want to average or sum up a lot of datasets, programs     \n"
     "       3dTstat and/or 3dMean and/or 3dmerge are better suited for these \n"
@@ -1113,8 +1131,8 @@ void CALC_Syntax(void)
     "  -nscale    = Don't do any scaling on output to byte or short datasets.\n"
     "               This may be especially useful when operating on mask     \n"
     "               datasets whose output values are only 0's and 1's.       \n"
-    "               ** Another way to achieve the effect of '-b3' is described\n"
-    "                  below in the dataset 'INPUT' specification section.   \n"
+    "                  ** Only use this option if you are sure you           \n"
+    "                     want the output dataset to be integer-valued!      \n"
     "                                                                        \n"
     "  -prefix pname = Use 'pname' for the output dataset prefix name.       \n"
     "                  [default='calc']                                      \n"
@@ -1227,9 +1245,9 @@ void CALC_Syntax(void)
     " This version of 3dcalc can operate on 3D+time datasets.  Each input    \n"
     " dataset will be in one of these conditions:                            \n"
     "                                                                        \n"
-    "    (A) Is a regular 3D (no time) dataset; or                           \n"
-    "    (B) Is a 3D+time dataset with a sub-brick index specified ('-b3'); or\n"
-    "    (C) Is a 3D+time dataset with no sub-brick index specified ('-b').  \n"
+    "   (A) Is a regular 3D (no time) dataset; or                            \n"
+    "   (B) Is a 3D+time dataset with a sub-brick index specified ('[3]'); or\n"
+    "   (C) Is a 3D+time dataset with no sub-brick index specified ('-b').   \n"
     "                                                                        \n"
     " If there is at least one case (C) dataset, then the output dataset will\n"
     " also be 3D+time; otherwise it will be a 3D dataset with one sub-brick. \n"
@@ -1246,12 +1264,15 @@ void CALC_Syntax(void)
     "                                                                        \n"
     "------------------------------------------------------------------------\n"
     MASTER_HELP_STRING
+
+#ifdef SHOW_B3
     "                                                                        \n"
     "** WARNING: you cannot combine sub-brick selection of the form          \n"
     "               -b3 bambam+orig       (the old method)                   \n"
     "            with sub-brick selection of the form                        \n"
     "               -b  'bambam+orig[3]'  (the new method)                   \n"
     "            If you try, the Doom of Mandos will fall upon you!          \n"
+#endif
     "                                                                        \n"
     "------------------------------------------------------------------------\n"
     "1D TIME SERIES:                                                         \n"
@@ -2177,13 +2198,13 @@ int main( int argc , char *argv[] )
              /* (gtop <= 1.0) to (gtop < 1.0)     23 Mar 2006 [rickr/dglen] */
              fimfac = (gtop > MRI_TYPE_maxval[CALC_datum]
                         || (gtop > 0.0 && gtop < 1.0) )
-                      ? MRI_TYPE_maxval[CALC_datum]/ gtop : 0.0 ;
+                      ? MRI_TYPE_maxval[CALC_datum] / gtop : 0.0 ;
 
              if( fimfac == 0.0 && gtop > 0.0 ){  /* 28 Jul 2003: check for non-integers */
                float fv,iv ; int kk ;
                for( kk=0 ; kk < CALC_nvox ; kk++ ){
                  fv = buf[ii][kk] ; iv = rint(fv) ;
-                 if( fabs(fv-iv) >= 0.01 ){
+                 if( fabsf(fv-iv) >= 0.01 ){
                    fimfac = MRI_TYPE_maxval[CALC_datum]/ gtop ; break ;
                  }
                }

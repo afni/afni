@@ -33,6 +33,8 @@ int main( int argc , char * argv[] )
              "  -gscale     = Same as '-fscale', but also forces each output sub-brick to\n"
              "                  to get the same scaling factor.\n"
              "  -nscale     = Don't do any scaling on output to byte or short datasets.\n"
+             "                  ** Only use this option if you are sure you\n"
+             "                     want the output dataset to be integer-valued!\n"
              "\n"
              "  -sd *OR*    = Calculate the standard deviation (variance/n-1) instead\n"
              "  -stdev         of the mean (cannot be used with -sqr or -sum).\n"
@@ -90,6 +92,16 @@ int main( int argc , char * argv[] )
 
       if( strncmp(argv[nopt],"-verbose",5) == 0 ){
          verb++ ; nopt++ ; continue ;
+      }
+
+      if( strcmp(argv[nopt],"-float") == 0 ){
+        datum = MRI_float ; nopt++ ; continue ;
+      }
+      if( strcmp(argv[nopt],"-short") == 0 ){
+        datum = MRI_short ; nopt++ ; continue ;
+      }
+      if( strcmp(argv[nopt],"-byte") == 0 ){
+        datum = MRI_byte ; nopt++ ; continue ;
       }
 
       if( strcmp(argv[nopt],"-datum") == 0 ){
@@ -395,18 +407,34 @@ int main( int argc , char * argv[] )
 
          for (kk = 0 ; kk < nval ; kk ++ ) {
 
-            if( ! gscale ){
+            if( ! gscale ){  /* compute max value in this sub-brick */
+
                gtop = MCW_vol_amax( nxyz , 1 , 1 , MRI_float, sum[kk] ) ;
                if( gtop == 0.0 )
                   fprintf(stderr,"  -- Warning: output sub-brick %d is all zeros!\n",kk) ;
+
             }
 
-            if( fscale ){
+            if( fscale ){          /* forced scaling, via -gscale or -fscale */
+
                fimfac = (gtop > 0.0) ? MRI_TYPE_maxval[datum] / gtop : 0.0 ;
-            } else if( !nscale ){
-               fimfac = (gtop > MRI_TYPE_maxval[datum] || (gtop > 0.0 && gtop <= 1.0) )
+
+            } else if( !nscale ){  /* fscale is off, but scaling is allowed */
+
+               fimfac = (gtop > MRI_TYPE_maxval[datum] || (gtop > 0.0 && gtop < 1.0) )
                         ? MRI_TYPE_maxval[datum]/ gtop : 0.0 ;
-            } else {
+
+               if( fimfac == 0.0 && gtop > 0.0 ){  /* 14 May 2010 */
+                 float fv,iv ;                     /* force scaling if */
+                 for( ii=0 ; ii < nxyz ; ii++ ){   /* non-integers are inside */
+                   fv = sum[kk][ii] ; iv = rint(fv) ;
+                   if( fabsf(fv-iv) >= 0.01 ){
+                     fimfac = MRI_TYPE_maxval[datum] / gtop ; break ;
+                   }
+                 }
+               }
+
+            } else {          /* -nscale ==> no scaling allowed */
                fimfac = 0.0 ;
             }
 
