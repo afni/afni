@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 14 , MAY , 2010 , RWC , "3dcalc" , MICRO , TYPE_GENERAL ,
+   "Remove '-b3' style of input from -help output." ,
+   "It's be obsolete for over 10 years -- time to be hidden from view!" } ,
+
  { 14 , MAY , 2010 , RWC , "3dMean" , MICRO , TYPE_BUG_FIX ,
    "Fix scaling problem" ,
    "As in 3dcalc: if scaling is not forced (no -fscale or -gscale) but is\n"
