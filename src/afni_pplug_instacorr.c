@@ -668,6 +668,8 @@ static char *GICOR_label_AAA = NULL ;
 static char *GICOR_label_BBB = NULL ;
 static char *GICOR_label_top = NULL ;
 
+#define GICOR_MAX_NSTAT 5
+
 /*-- Called from afni_niml.c when 3dGroupInCorr sends a setup NIML element --*/
 
 void GICOR_setup_func( NI_stream nsg , NI_element *nel )
