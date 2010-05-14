@@ -664,11 +664,10 @@ ENTRY("AFNI_icor_setref_locked") ;
 
 static PLUGIN_interface *GICOR_plint = NULL ;  /* 13 May 2010 */
 
-static char *GICOR_label_AAA = NULL ;
-static char *GICOR_label_BBB = NULL ;
-static char *GICOR_label_top = NULL ;
+#define GICOR_MAX_NSTAT 5                      /* 14 May 2010 */
+#define GICOR_BASE_STAT 2
 
-#define GICOR_MAX_NSTAT 5
+static void GICOR_refit_stat_menus(void) ;
 
 /*-- Called from afni_niml.c when 3dGroupInCorr sends a setup NIML element --*/
 
@@ -769,20 +768,41 @@ ENTRY("GICOR_setup_func") ;
    DSET_superlock( dset ) ;
    giset->nvox = DSET_NVOX(dset) ;
 
-   GICOR_label_AAA = NI_get_attribute( nel , "label_AAA") ;
-   GICOR_label_BBB = NI_get_attribute( nel , "label_BBB") ;
+   if( labar != NULL ) NI_delete_str_array(labar) ;  /* 14 May 2010 */
 
-   if( GICOR_label_AAA != NULL ){
-     char *tlab = GICOR_label_top ;
+   /* 14 May 2010: set various labels */
+
+   giset->label_AAA = giset->label_BBB = giset->toplabel = NULL ;
+
+   atr = NI_get_attribute( nel , "label_AAA") ;
+   if( atr != NULL ) giset->label_AAA = strdup(atr) ;
+
+   atr = NI_get_attribute( nel , "label_BBB") ;
+   if( atr != NULL ) giset->label_BBB = strdup(atr) ;
+
+   if( giset->label_AAA != NULL ){
+     char *tlab = giset->toplabel ;
      if( tlab == NULL )
-       GICOR_label_top = tlab = (char *)malloc(sizeof(char)*256) ;
-     if( GICOR_label_BBB == NULL )
+       giset->toplabel = tlab = (char *)malloc(sizeof(char)*256) ;
+     if( giset->label_BBB == NULL )
        sprintf( tlab , "GrpInCorr: set AAA=%s" ,
-                     GICOR_label_AAA ) ;
+                     giset->label_AAA ) ;
      else
        sprintf( tlab , "GrpInCorr: set AAA=%s  set BBB=%s" ,
-                     GICOR_label_AAA,GICOR_label_BBB ) ;
+                     giset->label_AAA,giset->label_BBB ) ;
      PLUTO_set_toplabel( GICOR_plint , tlab ) ;
+   }
+
+   giset->num_stat_available = 0 ;
+   giset->lab_stat_available = NULL ;
+   atr   = NI_get_attribute( nel , "stats_available" ) ;
+   labar = NI_decode_string_list( atr , ";" ) ;
+   if( labar != NULL && labar->num > 0 ){
+     giset->num_stat_available = labar->num ;
+     giset->lab_stat_available = (char **)malloc(sizeof(char *)*labar->num) ;
+     for( vv=0 ; vv < labar->num ; vv++ )
+       giset->lab_stat_available[vv] = strdup(labar->str[vv]) ;
+     NI_delete_str_array(labar) ;
    }
 
    /* add dataset to current session (change name if necessary) */
@@ -847,6 +867,8 @@ ENTRY("GICOR_setup_func") ;
      ININFO_message("%d datasets in set B",giset->ndset_B) ;
    ININFO_message("----- AFNI is connnected to 3dGroupInCorr -----") ;
 
+   GICOR_refit_stat_menus() ;  /* 14 May 2010 */
+
    EXRETURN ;
 }
 
@@ -867,8 +889,8 @@ ENTRY("GICOR_process_dataset") ;
      EXRETURN ;
    }
 
-   if( GICOR_label_top != NULL )
-     PLUTO_set_toplabel( GICOR_plint , GICOR_label_top ) ;
+   if( giset->toplabel != NULL )
+     PLUTO_set_toplabel( GICOR_plint , giset->toplabel ) ;
 
    nvec = nel->vec_len ;  /* how many values in each column transmitted */
 
@@ -1102,9 +1124,9 @@ STATUS("mark that we're busy for now") ;
    RETURN(0) ;
 }
 
-/***********************************************************************
-   Set up the interface to the user
-************************************************************************/
+/****************************************************************************
+   Set up the Group InstaCorr interface to the user
+*****************************************************************************/
 
 static char g_helpstring[] =
   "Purpose: control AFNI Group InstaCorr operations\n"
@@ -1118,15 +1140,17 @@ static char * GICOR_main( PLUGIN_interface * ) ;
 
 PLUGIN_interface * GICOR_init( char *lab )
 {
-   int ntops ;
+   int ntops , vv ;
    PLUGIN_interface *plint ;     /* will be the output of this routine */
    char sk[32] ;
    GICOR_setup *giset = A_CONTROLLER->giset ;
 
+ENTRY("GICOR_init") ;
+
    if( lab == NULL ) lab = "\0" ;
 
    if( !IM3D_OPEN(A_CONTROLLER) || giset == NULL || !giset->ready )
-     return NULL ;
+     RETURN(NULL) ;
 
    /*---------------- set titles and call point ----------------*/
 
@@ -1151,10 +1175,56 @@ PLUGIN_interface * GICOR_init( char *lab )
    PLUTO_add_option ( plint , "Cluster" , "Cluster" , TRUE ) ;
    PLUTO_add_number ( plint , "Voxels"  , 0,9999,0 , 0,TRUE ) ;
 
-   if( GICOR_label_top != NULL )
-     PLUTO_set_toplabel( GICOR_plint , GICOR_label_top ) ;
+   if( giset->toplabel != NULL )
+     PLUTO_set_toplabel( GICOR_plint , giset->toplabel ) ;
 
-   return plint ;
+   if( giset->num_stat_available > 0 ){
+     for( vv=0 ; vv < GICOR_MAX_NSTAT ; vv++ ){
+       sprintf(sk,"Stat#%d",vv+1) ;
+       PLUTO_add_option( plint , sk , sk , (vv==0) ? TRUE : FALSE ) ;
+       PLUTO_add_string( plint , "What" ,
+                                 giset->num_stat_available ,
+                                 giset->lab_stat_available ,
+                                 (vv < giset->num_stat_available) ? vv : 0 ) ;
+     }
+     for( vv=giset->num_stat_available ; vv < GICOR_MAX_NSTAT ; vv++ ){
+       XtSetSensitive( plint->wid->opwid[vv+GICOR_BASE_STAT]->toggle, False ) ;
+     }
+   }
+
+   RETURN(plint) ;
+}
+
+/*---------------------------------------------------------------------------*/
+
+static void GICOR_refit_stat_menus(void)
+{
+   GICOR_setup      *giset = A_CONTROLLER->giset ;
+   PLUGIN_interface *plint = GICOR_plint ;
+   PLUGIN_option_widgets *opwid ;
+   MCW_arrowval *av ;
+   int vv , zz ;
+
+ENTRY("GICOR_refit_stat_menus") ;
+
+   if( plint == NULL || plint->option_count <= GICOR_BASE_STAT ) EXRETURN ;
+
+   for( vv=0 ; vv < GICOR_MAX_NSTAT ; vv++ ){
+     opwid = plint->wid->opwid[GICOR_BASE_STAT+vv] ;
+     av    = (MCW_arrowval *)opwid->chooser[0] ;
+     zz    = av->ival ; if( zz >= giset->num_stat_available ) zz = 0 ;
+     refit_MCW_optmenu( av ,
+                        0 , giset->num_stat_available - 1 , zz , 0 ,
+                        MCW_av_substring_CB , giset->lab_stat_available ) ;
+     if( vv >= giset->num_stat_available ){
+       XmToggleButtonSetState( opwid->toggle, False,True ) ;
+       XtSetSensitive        ( opwid->toggle, False      ) ;
+     } else {
+       XtSetSensitive        ( opwid->toggle, True       ) ;
+     }
+   }
+
+   EXRETURN ;
 }
 
 /***************************************************************************
@@ -1169,6 +1239,8 @@ static char * GICOR_main( PLUGIN_interface *plint )
    float srad=0.0f ; int topcod=0 , vmul=0 ; char *tch ;
    GICOR_setup *giset ;
 
+ENTRY("GICOR_main") ;
+
    if( !IM3D_OPEN(im3d)    ||
        im3d->giset == NULL ||
        !im3d->giset->ready   ){   /* should not happen */
@@ -1176,7 +1248,7 @@ static char * GICOR_main( PLUGIN_interface *plint )
      GRPINCORR_LABEL_OFF(im3d) ; SENSITIZE_INSTACORR(im3d,False) ;
      if( im3d->giset != NULL ) im3d->giset->ready = im3d->giset->busy = 0 ;
      XtUnmapWidget(plint->wid->shell) ;
-     return " ************ AFNI: ************ \n 3dGroupInCorr is no longer enabled!? \n " ;
+     RETURN(" ************ AFNI: ************ \n 3dGroupInCorr is no longer enabled!? \n ") ;
    }
 
    giset = im3d->giset ;
@@ -1187,11 +1259,11 @@ static char * GICOR_main( PLUGIN_interface *plint )
      GRPINCORR_LABEL_OFF(im3d) ; SENSITIZE_INSTACORR(im3d,False) ;
      if( giset != NULL ) giset->ready = giset->busy = 0 ;
      XtUnmapWidget(plint->wid->shell) ;
-     return " ************ AFNI: ************ \n 3dGroupInCorr is no longer connected! \n " ;
+     RETURN(" ************ AFNI: ************ \n 3dGroupInCorr is no longer connected! \n ") ;
    }
 
-   if( GICOR_label_top != NULL )
-     PLUTO_set_toplabel( GICOR_plint , GICOR_label_top ) ;
+   if( giset->toplabel != NULL )
+     PLUTO_set_toplabel( GICOR_plint , giset->toplabel ) ;
 
    PLUTO_next_option(plint) ;
    srad   = PLUTO_get_number(plint) ;
@@ -1207,5 +1279,5 @@ static char * GICOR_main( PLUGIN_interface *plint )
    giset->ttest_opcode = topcod ;
    giset->vmul         = vmul ;
 
-   return NULL ;
+   RETURN(NULL) ;
 }
