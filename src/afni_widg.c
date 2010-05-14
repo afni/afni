@@ -3374,11 +3374,13 @@ STATUS("making func->rowcol") ;
          NULL ) ;
    LABELIZE(func->options_label) ;
 
-#define VEDIT_COLOR "#000088"
+#define VEDIT_COLOR_A "#000066"
+#define VEDIT_COLOR_B "#004466"
 #define VEDIT_NOPT  4
    { static char *options_vedit_label[] =
        { "Clusters" , "InstaCorr" , "InstaCalc" , "GrpInCorr" } ;
-     int nopt = (num_entry==1) ? VEDIT_NOPT : VEDIT_NOPT-1 ;
+     int nopt = (num_entry==1) ? VEDIT_NOPT : VEDIT_NOPT-1 ;  /* no GrpInCorr after [A] */
+     int ibut ;
      func->options_vedit_av = new_MCW_arrowval(
                                func->options_top_rowcol , /* parent Widget */
                                NULL ,                     /* label */
@@ -3393,7 +3395,9 @@ STATUS("making func->rowcol") ;
                                MCW_av_substring_CB ,      /* text creation routine */
                                options_vedit_label        /* data for above */
                              ) ;
-     colorize_MCW_optmenu( func->options_vedit_av , VEDIT_COLOR  , -1 ) ;
+     for( ibut=0 ; ibut < nopt ; ibut++ )
+       colorize_MCW_optmenu( func->options_vedit_av ,
+                             (ibut%2==0) ? VEDIT_COLOR_A : VEDIT_COLOR_B  , ibut ) ;
    }
    func->options_vedit_av->parent = (XtPointer)im3d ;
    MCW_reghelp_children( func->options_vedit_av->wrowcol ,
@@ -3476,12 +3480,12 @@ STATUS("making func->rowcol") ;
    func->clu_cluster_pb =
       XtVaCreateManagedWidget(
          "dialog" , xmPushButtonWidgetClass , func->clu_rowcol ,
-            LABEL_ARG(" Clusterize") ,
+            LABEL_ARG("Clusterize ") ,
             XmNmarginHeight, 0 ,
             XmNtraversalOn , True  ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
-   MCW_set_widget_bg( func->clu_cluster_pb , VEDIT_COLOR , 0 ) ;
+   MCW_set_widget_bg( func->clu_cluster_pb , VEDIT_COLOR_A , 0 ) ;
    XtAddCallback( func->clu_cluster_pb , XmNactivateCallback ,
                   AFNI_clu_CB , im3d ) ;
    MCW_register_hint( func->clu_cluster_pb , "Set clustering parameters" ) ;
@@ -3559,7 +3563,7 @@ STATUS("making func->rowcol") ;
                XmNtraversalOn , True  ,
                XmNinitialResourcesPersistent , False ,
             NULL ) ;
-   MCW_set_widget_bg( func->icor_pb , VEDIT_COLOR , 0 ) ;
+   MCW_set_widget_bg( func->icor_pb , VEDIT_COLOR_B , 0 ) ;
    XtAddCallback( func->icor_pb , XmNactivateCallback , AFNI_misc_CB , im3d ) ;
    MCW_register_hint( func->icor_pb , "Control InstaCorr calculations" ) ;
 
@@ -3600,7 +3604,7 @@ STATUS("making func->rowcol") ;
                XmNtraversalOn , True  ,
                XmNinitialResourcesPersistent , False ,
             NULL ) ;
-   MCW_set_widget_bg( func->icalc_pb , VEDIT_COLOR , 0 ) ;
+   MCW_set_widget_bg( func->icalc_pb , VEDIT_COLOR_A , 0 ) ;
    XtAddCallback( func->icalc_pb , XmNactivateCallback , AFNI_misc_CB , im3d ) ;
    MCW_register_hint( func->icalc_pb , "Control InstaCalc calculations" ) ;
 
@@ -3643,7 +3647,7 @@ STATUS("making func->rowcol") ;
                  XmNtraversalOn , True  ,
                  XmNinitialResourcesPersistent , False ,
               NULL ) ;
-     MCW_set_widget_bg( func->gicor_pb , VEDIT_COLOR , 0 ) ;
+     MCW_set_widget_bg( func->gicor_pb , VEDIT_COLOR_B , 0 ) ;
      XtAddCallback( func->gicor_pb , XmNactivateCallback , AFNI_misc_CB , im3d ) ;
      MCW_register_hint( func->gicor_pb , "Control 3dGroupInCorr calculations" ) ;
 
