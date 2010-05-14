@@ -50,6 +50,8 @@ int main( int argc , char * argv[] )
    int atim,btim,ctim ;
    int LRpairs = 0, Ns[2]={-1,-1}, Nv[2]={-1,-1}, Nm[2]={0, 0};
    int do_byte = 1 ;
+   char **dset_labels=NULL ; int ndset_labels=0 ;  /* 14 May 2010 */
+   char  *dset_labels_all  ; int len_all=0 ;
 
    /*-- help? --*/
 
@@ -127,6 +129,13 @@ int main( int argc , char * argv[] )
  "                    than with '-short', but you'll have a hard time finding\n"
  "                    any place where this matters.\n"
  "                 ++ This is now the default [08 Feb 2010].\n"
+ "\n"
+ "  -labels fff    = File 'fff' should be a list of labels, a unique one for each\n"
+ "                   dataset input.  These labels can be used in 3dGroupInCorr to\n"
+ "                   select a subset of datasets to be processed therein.\n"
+ "                 ++ If you don't use this option, then the list of labels will\n"
+ "                    comprise the list of prefixes from the input datasets.\n"
+ "                 ++ Labels cannot contain a space character, a comma, or a semicolon.\n"
  "\n"
  "  -DELETE        = Delete input datasets from disk after\n"
  "                   processing them one at a time into the\n"
@@ -232,6 +241,21 @@ int main( int argc , char * argv[] )
    nopt = 1 ;
    while( nopt < argc && argv[nopt][0] == '-' ){
 
+     if( strncmp(argv[nopt],"-labels",6) == 0 ){  /* 14 May 2010 */
+       char *sf ; NI_str_array *sar ;
+       if( ndset_labels > 0 ) ERROR_exit("Can't use -labels TWICE!") ;
+       if( ++nopt >= argc ) ERROR_exit("need an argument after -labels!") ;
+       sf = AFNI_suck_file( argv[nopt] ) ;
+       if( sf == NULL || *sf == '\0' )
+         ERROR_exit("Can't read file '%s' after -labels!",argv[nopt]) ;
+       sar = NI_decode_string_list(sf,",;") ;
+       if( sar == NULL || sar->num <= 0 )
+         ERROR_exit("Can't get label list from file '%s'",argv[nopt]) ;
+       ndset_labels = sar->num ; dset_labels = sar->str ;
+       INFO_message("Read %d labels from file '%s'",ndset_labels,argv[nopt]) ;
+       nopt++ ; continue ;
+     }
+
      if( strcmp(argv[nopt],"-byte") == 0 ){
        do_byte = 1 ; nopt++ ; continue ;
      }
@@ -318,18 +342,33 @@ int main( int argc , char * argv[] )
    ndset = argc - nopt ;
    if( ndset < 2 )
      ERROR_exit("Must have at least 2 datasets on the command line!") ;
+
    if (LRpairs && (ndset % 2)) {
      ERROR_exit("With -LRpairs, you must have an even "
                 "number of datasets on the command line!") ;
    }
+
+   if( ndset_labels > 0 && ndset_labels != ndset ){  /* 14 May 2010 */
+     if( ndset_labels < ndset )
+       ERROR_exit("Not enough labels for %d datasets on command line!",ndset) ;
+     else
+       WARNING_message("Too many labels for %d datasets on command line!",ndset) ;
+   } else if( ndset_labels == 0 ){
+      dset_labels = (char **)malloc(sizeof(char *)*ndset) ;
+   }
+
    inset = (THD_3dim_dataset **)malloc(sizeof(THD_3dim_dataset *)*ndset) ;
    nvals = (int   *)malloc(sizeof(int)  *ndset) ; /* # time points per dataset */
    fac   = (float *)malloc(sizeof(float)*ndset) ; /* scale factor per dataset */
 
+   INFO_message("Starting scan through %d datasets",ndset) ;
    for( ids=0 ; ids < ndset ; ids++ ){
      inset[ids] = THD_open_dataset(argv[nopt+ids]) ;    /* read header */
      CHECK_OPEN_ERROR(inset[ids],argv[nopt+ids]) ;      /* fail ==> bail */
      nvals[ids] = DSET_NVALS(inset[ids]) ;              /* save # time points */
+     if( ndset_labels == 0 )
+       dset_labels[ids] = strdup(DSET_PREFIX(inset[ids])) ;  /* 14 May 2010 */
+     len_all += strlen( dset_labels[ids] ) ;
      if (!LRpairs) {
       if( ids > 0 && !EQUIV_GRIDS(inset[0],inset[ids]) ) /* check for errors */
          ERROR_exit("Dataset grid %s doesn't match %s" ,
@@ -344,14 +383,21 @@ int main( int argc , char * argv[] )
                   argv[nopt+ids] , nvals[ids] ) ;
    }
 
+   /* 14 May 2010: manufacture list of all dataset labels in one big string */
+
+   dset_labels_all = (char *)calloc(sizeof(char),(len_all+4*ndset+13)) ;
+   for( ids=0 ; ids < ndset ; ids++ ){
+     strcat( dset_labels_all , dset_labels[ids] ) ;
+     if( ids < ndset-1 ) strcat( dset_labels_all , ";") ;
+   }
+
    if (!LRpairs) {
-      nx = DSET_NX(inset[0]) ;
+     nx = DSET_NX(inset[0]) ;
    } else {
-      nx = DSET_NX(inset[0]) + DSET_NX(inset[1]);
+     nx = DSET_NX(inset[0]) + DSET_NX(inset[1]);
    }
    nz = DSET_NZ(inset[0]) ;
-   ny = DSET_NY(inset[0]) ;
-   nvox = nx*ny*nz ;
+   ny = DSET_NY(inset[0]) ; nvox = nx*ny*nz ;
    if( nvox < 2 ) ERROR_exit("Only 1 voxel in datasets?!") ;
 
    /*-- check or create mask --*/
@@ -612,6 +658,8 @@ int main( int argc , char * argv[] )
       sprintf(ss,"%d, %d", Nm[0], Nm[1]);
       NI_set_attribute( nel, "LRpair_ninmask", ss);
    }
+
+   NI_set_attribute( nel , "dset_labels" , dset_labels_all ) ; /* 14 May 2010 */
 
    /*--- write header file ---*/
 

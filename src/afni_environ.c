@@ -22,10 +22,10 @@ char * AFNI_suck_file( char *fname )
 
 ENTRY("AFNI_suck_file") ;
    nsuck = 0 ;
-   if( fname == NULL || fname[0] == '\0' ) RETURN(NULL );
+   if( fname == NULL || fname[0] == '\0' ) RETURN(NULL);
 
    len = THD_filesize( fname ) ;
-   if( len <= 0 ) RETURN(NULL ) ;
+   if( len <= 0 ) RETURN(NULL) ;
 
    fd = open( fname , O_RDONLY ) ;
    if( fd < 0 ) RETURN(NULL) ;
