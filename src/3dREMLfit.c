@@ -2846,6 +2846,8 @@ STATUS("setting up Rglt") ;
      bb4 = bbar[3] ; bb5 = bbar[4] ; bb6 = bbar[5] ; bb7 = bbar[6] ;
      vector_initialize(&qq5) ; vector_create_noinit(nrega,&qq5) ;
 
+     /* ss = slice index, rv = VECTIM index, vv = voxel index */
+
      if( vstep ) fprintf(stderr,"++ GLSQ voxel loop: ") ;
      for( ss=-1,rv=vv=0 ; vv < nvox ; vv++ ){
        if( vstep && vv%vstep==vstep-1 ) vstep_print() ;
@@ -2864,6 +2866,8 @@ STATUS("setting up Rglt") ;
                create new slice matrices, if they don't exist already, OR
                get new slice matrices back from disk, if they were purged
                earlier; add GLT setups to the new slice.
+             Note that the code assumes that the slice index ss is
+               non-decreasing as the voxel index increases.
              The purpose of doing it this way is to save memory space.  ======*/
 
        if( ss > ssold ){
@@ -3173,6 +3177,8 @@ STATUS("setting up Obuckt") ;
      bb4 = bbar[3] ; bb5 = bbar[4] ; bb6 = bbar[5] ; bb7 = bbar[6] ;
      vector_initialize(&qq5) ; vector_create_noinit(nrega,&qq5) ;
 
+     /* rv = VECTIM index, vv = voxel index */
+
      if( vstep ) fprintf(stderr,"++ OLSQ voxel loop: ") ;
      for( rv=vv=0 ; vv < nvox ; vv++ ){
        if( vstep && vv%vstep==vstep-1 ) vstep_print() ;
@@ -3185,7 +3191,7 @@ STATUS("setting up Obuckt") ;
        for( ii=0 ; ii < ntime ; ii++ ) y.elts[ii] = (MTYPE)iv[goodlist[ii]] ;
 
        jj = izero ;                       /* OLSQ (a,b)=(0,0) case */
-       ss = vv / nsliper ;
+       ss = vv / nsliper ;                /* slice index */
 
        if( RCsli[ss]->rs[jj] == NULL ){       /* try to fix up this oversight */
          int   ia  = jj % (1+RCsli[ss]->na);
@@ -3202,7 +3208,9 @@ STATUS("setting up Obuckt") ;
                              DSET_index_to_kz(inset,vv) , jj ) ;
        } else {
 
-         if( RCsli[ss]->rs[jj]->nglt == 0 ){  /* 17 May 2010: if Rstuff wasn't run */
+         /* 17 May 2010: if Rstuff wasn't run, have to add GLTs now */
+
+         if( RCsli[ss]->rs[jj]->nglt == 0 ){
            for( kk=0 ; kk < glt_num ; kk++ )
              REML_add_glt_to_one( RCsli[ss]->rs[jj] , glt_mat[kk]) ;
          }
@@ -3285,7 +3293,7 @@ STATUS("setting up Obuckt") ;
              }
            }
            save_series( vv , Oglt_dset , neglt , iv , Oglt_fp ) ;
-         } 
+         }
        }
      } /* end of voxel loop */
 
