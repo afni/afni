@@ -44,6 +44,14 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 17 , MAY , 2010 , RWC , "3dREMLfit" , MINOR , TYPE_BUG_FIX ,
+   "Program would crash when only -Obuck given, no -Rstuff" ,
+   "Problem was that GLT data structure setup was done in the Rstuff loop,\n"
+   "and if no Rstuff datasets are computed, then doing GLT stuff in the\n"
+   "Ostuff loop would crash.  Fix: test if GLTs are added to the REML setup\n"
+   "structures in the Ostuff loop, and add them if they aren't already\n"
+   "there." } ,
+
  { 14 , MAY , 2010 , RWC , "3dcalc" , MICRO , TYPE_GENERAL ,
    "Remove '-b3' style of input from -help output." ,
    "It's be obsolete for over 10 years -- time to be hidden from view!" } ,

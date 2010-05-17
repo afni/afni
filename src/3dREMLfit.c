@@ -3092,6 +3092,7 @@ STATUS("setting up Rglt") ;
    Obuckt_dset = create_float_dataset( inset , nbuckt,Obuckt_prefix,1 , &Obuckt_fn,&Obuckt_fp ) ;
    if( Obuckt_dset != NULL ){
      int nr ;
+STATUS("setting up Obuckt") ;
      for( ii=0 ; ii < glt_num ; ii++ ){
        if( glt_ind[ii] == NULL ) continue ;
        nr = glt_ind[ii]->nrow ;
@@ -3193,8 +3194,6 @@ STATUS("setting up Rglt") ;
          MTYPE bbb = RCsli[ss]->bbot + ib * RCsli[ss]->db;
 
          RCsli[ss]->rs[jj] = REML_setup_one( Xsli[ss] , tau , aaa,bbb ) ;
-         for( kk=0 ; kk < glt_num ; kk++ )
-           REML_add_glt_to_one( RCsli[ss]->rs[jj] , glt_mat[kk]) ;
        }
        if( RCsli[ss]->rs[jj] == NULL ){ /* should never happen */
          ERROR_message("bad OLSQ! voxel #%d (%d,%d,%d) jj=%d",
@@ -3202,6 +3201,11 @@ STATUS("setting up Rglt") ;
                              DSET_index_to_jy(inset,vv) ,
                              DSET_index_to_kz(inset,vv) , jj ) ;
        } else {
+
+         if( RCsli[ss]->rs[jj]->nglt == 0 ){  /* 17 May 2010: if Rstuff wasn't run */
+           for( kk=0 ; kk < glt_num ; kk++ )
+             REML_add_glt_to_one( RCsli[ss]->rs[jj] , glt_mat[kk]) ;
+         }
 
          (void)REML_func( &y , RCsli[ss]->rs[jj] , RCsli[ss]->X , RCsli[ss]->Xs ,
                           bbar , &bbsumq ) ;
@@ -3281,8 +3285,7 @@ STATUS("setting up Rglt") ;
              }
            }
            save_series( vv , Oglt_dset , neglt , iv , Oglt_fp ) ;
-         }
-
+         } 
        }
      } /* end of voxel loop */
 
