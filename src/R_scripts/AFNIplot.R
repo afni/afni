@@ -22,7 +22,8 @@ plot.1D <- function (ff=NULL, ffd=NULL, isel=NULL,
                      ylabel=NULL,
                      symbs=NULL, cols=NULL, cnames=NULL, 
                      xstep=NULL, ystep=NULL, ltypes = NULL,
-                     leg.ncol = 4, leg.names=NULL, leg.position="topright",
+                     leg.ncol = 4, leg.names=NULL, 
+                     leg.position="topright", leg.fontsize = 12,
                      x=NULL) {
    if (!is.null(xlim) && length(xlim) == 3 && is.null(xstep)) xstep=xlim[3]
    if (!is.null(ylim) && length(ylim) == 3 && is.null(ystep)) ystep=ylim[3]
@@ -243,9 +244,12 @@ plot.1D <- function (ff=NULL, ffd=NULL, isel=NULL,
    
    } else {
       if (is.null(leg.names)) leg.names <- cnames
+      opar <- par();
+      par(ps = leg.fontsize)  
       legend(leg.position, legend=leg.names, text.col=colvec[isel],
                   col=colvec[isel], pch=symbs, lwd=2, lty=ltypes,
                   ncol=leg.ncol, bty='n')
+      par(ps = opar$ps)
    }
    view_cond <- 0
    all_cond <- 0
