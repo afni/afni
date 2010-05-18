@@ -44,6 +44,16 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 18 , MAY , 2010 , RWC , "3dTfitter" , MINOR , TYPE_NEW_OPT ,
+   "New option -vthr, to set threshold for ignoring regression vectors" ,
+   "In the olden version, vectors whose L1 norm was less than 0.000333 times\n"
+   "the largest vector's L1 norm were cast out before the analysis -- this\n"
+   "was to fix a problem of Rasmus Birn's.  However, some people whose\n"
+   "initials are HJJ want to use LHS vectors whose magnitude varies a lot. \n"
+   "So now the user has to specify the 'cast out' vector threshold with the\n"
+   "-vthr option, whose default is NOT 0.000333 but is 0.0 -- that is, only\n"
+   "exactly zero vectors will be unused by default." } ,
+
  { 17 , MAY , 2010 , RWC , "3dREMLfit" , MINOR , TYPE_BUG_FIX ,
    "Program would crash when only -Obuck given, no -Rstuff" ,
    "Problem was that GLT data structure setup was done in the Rstuff loop,\n"
