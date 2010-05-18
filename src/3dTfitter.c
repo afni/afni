@@ -36,6 +36,8 @@ int main( int argc , char *argv[] )
    char *ersum_prefix=NULL; THD_3dim_dataset *ersum_set=NULL; /* 23 Jul 2009 */
    int do_fitts=0 ;
 
+   float vthresh=0.0f ; /* 18 May 2010 */
+
    /*------- help the pitifully ignorant user? -------*/
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
@@ -101,10 +103,22 @@ int main( int argc , char *argv[] )
       "                 .xmat.1D file output by 3dDeconvolve, if you wanted\n"
       "                 to repeat the same linear regression using 3dTfitter,\n"
       "                 for some bizarre unfathomable twisted psychotic reason.\n"
-      "            ** If some LHS vector is very small (less than a factor of 0.000333)\n"
-      "               compared to the largest LHS vector, then it will be ignored\n"
-      "               in the fitting.  This feature allows the case where some LHS\n"
-      "               dataset voxels are all zero.  [Per Rasmus Birn et al.]\n"
+      "            ** If you have a problem where some LHS vectors might be tiny,\n"
+      "                 causing stability problems, you can choose to omit them\n"
+      "                 by using the '-vthr' option.  By default, only all-zero\n"
+      "                 vectors will be omitted from the regression.\n"
+      "            ** Note that if the scales of the LHS vectors are grossly different\n"
+      "                 (e.g., 0 < vector#1 < 0.01  and  0 < vector#2 < 1000),\n"
+      "                 then numerical errors in the calculations might cause the\n"
+      "                 results to be unreliable.  To avoid this problem, you can\n"
+      "                 scale the vectors so that they have similar magnitudes.\n"
+      "            ** Note that if you are fitting a time series dataset that has\n"
+      "                 nonzero mean, then at least some of your basis vectors\n"
+      "                 should have nonzero mean, or you won't be able to get a\n"
+      "                 good fit.  If necessary, use '-polort 0' to fit the mean\n"
+      "                 value of the dataset, so that the zero-mean LHS vectors\n"
+      "                 can do their work in fitting the fluctuations in the data!\n"
+      "                 [This means you, HJJ!]\n"
       "           *** Columns are assembled in the order given on the command line,\n"
       "               which means that LHS parameters will be output in that order!\n"
       "           *** If all LHS inputs are 1D vectors AND you are using least\n"
@@ -118,6 +132,20 @@ int main( int argc , char *argv[] )
       "               columns specified by the '-LHS' option, even if the '-polort'\n"
       "               option appears before '-LHS' on the command line.\n"
       "             * By default, NO polynomial columns will be used.\n"
+      "\n"
+      "  -vthr v   = The value 'v' (between 0.0 and 0.09, inclusive) defines the\n"
+      "               threshold below which LHS vectors will be omitted from\n"
+      "               the regression analysis.  Each vector's L1 norm (sum of\n"
+      "               absolute values) is computed.  Any vector whose L1 norm\n"
+      "               is less than or equal to 'v' times the largest L1 norm\n"
+      "               will not be used in the analysis, and will get 0 weight\n"
+      "               in the output.  The purpose of this option is to let you\n"
+      "               have tiny inputs and have them be ignored.\n"
+      "              * By default, 'v' is zero ==> only exactly zero LHS columns\n"
+      "                will be ignored.\n"
+      "             ** Prior to 18 May 2010, the built-in (and fixed) value of\n"
+      "                'v' was 0.000333.  Thus, to get the old results, you should\n"
+      "                use option '-vthr 0.000333' -- this means YOU, Rasmus!\n"
       "\n"
       "  -label lb = Specifies a sub-brick label for the output LHS parameter dataset.\n"
       "             * More than one 'lb' can follow the '-label' option;\n"
@@ -508,6 +536,19 @@ int main( int argc , char *argv[] )
 
    iarg = 1 ; INIT_XTARR(dsar) ;
    while( iarg < argc ){
+
+     if( strcasecmp(argv[iarg],"-vthr"   ) == 0 ||
+         strcasecmp(argv[iarg],"-vthresh") == 0   ){  /* 18 May 2010 */
+       if( iarg+1 >= argc )
+         ERROR_exit("Need an argument after '%s'",argv[iarg]);
+       vthresh = (float)strtod(argv[++iarg],NULL) ;
+       if( vthresh < 0.0f ){
+         WARNING_message("-vthr value < 0.00 ==> will use 0.00"); vthresh = 0.00f;
+       } else if( vthresh > 0.09f ){
+         WARNING_message("-vthr value > 0.09 ==> will use 0.09"); vthresh = 0.09f;
+       }
+       iarg++ ; continue ;
+     }
 
      if( strcasecmp(argv[iarg],"-polort") == 0 ){  /* 20 Mar 2008 */
        if( polort >= 0 )
@@ -936,7 +977,8 @@ int main( int argc , char *argv[] )
    if( verb && nvox > 499 ) vstep = nvox / 50 ;
    if( vstep > 0 ) fprintf(stderr,"++ voxel loop: ") ;
 
-   THD_fitter_do_fitts( do_fitts ) ;  /* 05 Mar 2008 */
+   THD_fitter_do_fitts   ( do_fitts ) ;  /* 05 Mar 2008 */
+   THD_fitter_set_vthresh( vthresh  ) ;  /* 18 May 2010 */
 
    for( ii=0 ; ii < nvox ; ii++ ){
 
