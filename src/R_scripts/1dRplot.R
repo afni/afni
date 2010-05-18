@@ -119,6 +119,8 @@ init.1DRplot.lop <- function () {
    lop$ColumnNames=NULL
    lop$LegendNames=NULL
    lop$LegendPosition="topright"
+   lop$LegendFontSize = 1.0
+   lop$LegendNumColumns = 4
    lop$ltypes=NULL
    return(lop)
 }
@@ -178,6 +180,14 @@ read.1dRplot.opts.batch <- function (args=NULL, verb = 0) {
 
       '-LegendPosition' = apl(n = c(1,Inf), d = NULL, h = paste(
    "-LegendPosition : Symbols for each column.\n"
+                     ) ),
+      
+      '-LegendFontSize' = apl(n = 1, d = 1.0, h = paste(
+   "-LegendFontSize : Symbols for each column.\n"
+                     ) ),
+
+      '-LegendNumColumns' = apl(n = 1, d = 4, h = paste(
+   "-LegendNumColumns : Symbols for each column.\n"
                      ) ),
                      
       '-NoZeros' = apl (n = 0, d = FALSE, h = paste (
@@ -279,6 +289,8 @@ read.1dRplot.opts.batch <- function (args=NULL, verb = 0) {
              ColumnNames = lop$ColumnNames <- ops[[i]],
              LegendNames = lop$LegendNames <- ops[[i]],
              LegendPosition = lop$LegendPosition <- ops[[i]],
+             LegendFontSize = lop$LegendFontSize <- ops[[i]],
+             LegendNumColumns = lop$LegendNumColumns <- ops[[i]],
              help = help.1dRplot.opts(params, adieu=TRUE),
              show_allowed_options = show.AFNI.args(ops, verb=0, 
                                               hstr="1dRplot's",adieu=TRUE)
@@ -358,6 +370,8 @@ process.1dRplot.opts <- function (lop, verb = 0) {
             cnames = lop$ColumnNames,
             leg.names = lop$LegendNames,
             leg.position = lop$LegendPosition,
+            leg.fontsize = lop$LegendFontSize,
+            leg.ncol = lop$LegendNumColumns,
             x = lop$x)
 
    if (BATCH_MODE) { #do not quit until device is closed
