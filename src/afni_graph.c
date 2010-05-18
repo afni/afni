@@ -3325,11 +3325,8 @@ STATUS(str); }
       case 'A':
         PLOT_FORCE_AUTOSCALE = !PLOT_FORCE_AUTOSCALE;
         MCW_invert_widget(grapher->opt_scale_AUTO_pb);
-        if (PLOT_FORCE_AUTOSCALE) {
-         fprintf(stdout,"++ Force Autoscale: ON\n");
-        } else {
-         fprintf(stdout,"++ Force Autoscale: OFF\n");
-        }
+        if (PLOT_FORCE_AUTOSCALE) INFO_message("Graph Viewer: Autoscale forced ON") ;
+        else                      INFO_message("Graph Viewer: Autoscale forced OFF") ;
         redraw_graph( grapher , 0);
       break;
       
