@@ -67,6 +67,11 @@ static floatvec **ggfitvv = NULL ;
 
 static int use_rcmat = 0 ;
 
+static float vthresh = 0.0f ;             /* 18 May 2010: vector threshold */
+void THD_fitter_set_vthresh( float vvv ){
+   vthresh = (vvv > 0.0f && vvv < 0.1f) ? vvv : 0.0f ;
+}
+
 /*------------------------------------------------------------------*/
 /* Fit the npt-long vector far[] to the nref vectors in ref[].
     - meth=1 ==> L1 fit
@@ -86,6 +91,7 @@ floatvec * THD_fitter( int npt , float *far  ,
    int ii,jj , nbad ;
    float *qfit=NULL, val , qmax ;
    floatvec *fv=NULL ;
+   float *qmag=NULL ;  /* 18 May 2010 */
 
 ENTRY("THD_fitter") ;
 
@@ -101,14 +107,15 @@ ENTRY("THD_fitter") ;
    /*--- 08 Apr 2008: check if some columns are way small;
                       if so, excise them and solve smaller problem ---*/
 
-   qfit = (float *)malloc(sizeof(float)*nref) ;
+   qmag = (float *)malloc(sizeof(float)*nref) ;
    for( qmax=0.0f,jj=0 ; jj < nref ; jj++ ){
      for( val=0.0f,ii=0 ; ii < npt ; ii++ ) val += fabsf(ref[jj][ii]) ;
-     qfit[jj] = val ; if( val > qmax ) qmax = val ;
+     qmag[jj] = val ; if( val > qmax ) qmax = val ;
    }
-   if( qmax == 0.0f ){ free((void *)qfit); RETURN(NULL); }
-   qmax *= 0.000333f ;
-   for( nbad=jj=0 ; jj < nref ; jj++ ) if( qfit[jj] <= qmax ) nbad++ ;
+   if( qmax == 0.0f ){ free(qmag); RETURN(NULL); }  /* all zero?! */
+
+   qmax *= vthresh ;  /* vthresh used to be fixed at 0.000333 [18 May 2010] */
+   for( nbad=jj=0 ; jj < nref ; jj++ ) if( qmag[jj] <= qmax ) nbad++ ;
 
    if( nbad > 0 ){  /*-- must excise the tiny columns before solving --*/
      int    ngood = nref-nbad ;
@@ -116,7 +123,7 @@ ENTRY("THD_fitter") ;
      floatvec *qv ; float *qcon=NULL ;
      if( ccon != NULL ) qcon = (float *)calloc(sizeof(float),ngood) ;
      for( ii=jj=0 ; jj < nref ; jj++ ){
-       if( qfit[jj] > qmax ){
+       if( qmag[jj] > qmax ){
          if( qcon != NULL ) qcon[ii] = ccon[jj] ;
          qref[ii++] = ref[jj] ;
        }
@@ -124,21 +131,19 @@ ENTRY("THD_fitter") ;
      qv = THD_fitter( npt , far , ngood , qref , meth , qcon ) ;
      if( qcon != NULL ) free((void *)qcon) ;
      free((void *)qref) ;
-     if( qv == NULL ){ free((void *)qfit); RETURN(NULL); }
-     MAKE_floatvec(fv,nref) ;
-     for( ii=jj=0 ; jj < nref ; jj++ ){
-       if( qfit[jj] > qmax ) fv->ar[jj] = qv->ar[ii++] ;
+     if( qv == NULL ){ free(qmag); RETURN(NULL); } /* bad solve? */
+     MAKE_floatvec(fv,nref) ;                        /* will be all zero */
+     for( ii=jj=0 ; jj < nref ; jj++ ){      /* load results into output */
+       if( qmag[jj] > qmax ) fv->ar[jj] = qv->ar[ii++] ;
      }
-     KILL_floatvec(qv) ; free((void *)qfit) ; RETURN(fv) ;
+     KILL_floatvec(qv) ; free(qmag) ; RETURN(fv) ;
    }
-
-   free((void *)qfit) ; qfit = NULL ;
 
    /*------- actually solve now -------*/
 
    switch( meth ){
 
-     default: RETURN(NULL) ;  /* stupid user */
+     default: free(qmag) ; RETURN(NULL) ;  /* stupid user */
 
      /*-- least squares --*/
 
@@ -172,7 +177,7 @@ ENTRY("THD_fitter") ;
      break ;
    }
 
-   if( qfit == NULL ) RETURN(NULL) ;  /* bad: didn't get output array */
+   if( qfit == NULL ){ free(qmag); RETURN(NULL); } /* didn't get output array */
 
    MAKE_floatvec(fv,nref) ;                      /* copy output array */
    memcpy( fv->ar, qfit, sizeof(float)*nref ) ;  /* into floatvec and */
@@ -180,7 +185,7 @@ ENTRY("THD_fitter") ;
    if( do_fitv )                                    /* compute fitts? */
      gfitv = THD_fitter_fitts( npt,fv,nref,ref,NULL ); /* 05 Mar 2008 */
 
-   RETURN(fv) ;                                   /* return to caller */
+   free(qmag) ; RETURN(fv) ;                      /* return to caller */
 }
 
 /*-------------------------------------------------------------------------*/
