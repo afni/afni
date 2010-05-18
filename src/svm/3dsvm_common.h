@@ -2,49 +2,57 @@
   #define _3DSVM_COMMON_H
 #endif
 
-
 #include "afni.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <math.h>
-
-/* both afni and svmlight use VERSION */
-#ifdef VERSION  
-  #undef VERSION
-#endif
-//#include "svm_common.h"
-//#include "svm_learn.h"
 #include "mrilib.h"
+
+/* JL Apr 2010: Added version number and version date for 3dsvm
+ * and changed svm-light's VERSION to avoid conflicts with afni*/
+#define VERSION_3DSVM "V1.00"
+#define VERSION_DATE_3DSVM "04/28/10"
 
 #define CLASS_MAX 300
 #define SCALE 4000000
 #define MAX_FILE_NAME_LENGTH 500
 #define LONG_STRING 500
-#define DatasetType short
+
+/* JL: CSV_STRING stands for comma separated value string. It is used to store
+ * class-combination names and custom-kernel names for each class-combination.
+ * svm-light uses 50 for custom-kernel, which is plenty for comb_names,
+ * but for some reason size 50 is causing data corruption problems.
+ */
+#define CSV_STRING  20
+
+/* JL: Internal data representation of dataset arrays. This used to be short */
+#define DatasetType float
 #define MaskType    byte
 #define LabelType   double
-
 #define MODEL_MSK_EXT "_mask"
 
-# define CUSTOM 4 /* JL */
-/* LINEAR 0 
+/* JL: Used to define the kernel type. CUSTOM stands for custom kernel.
+ * LINEAR 0
  * POLY 1 
  * RBF 2 
  * SIGMOID 3 
  * are defined in svm_common.h */
+#define CUSTOM 4
 
 enum calling_fcn { ASL_PLUGIN, ASL_COMMAND_LINE };
 enum modes { NOTHING, TRAIN, TEST, TRAIN_AND_TEST }; /* modes */
 
 typedef struct ASLoptions{
   /* initialize at instantiation */
-  char labelFile[MAX_FILE_NAME_LENGTH]; /* training class (label) file */
-  char censorFile[MAX_FILE_NAME_LENGTH];/* training censor (ignore) file */
-  char trainFile[MAX_FILE_NAME_LENGTH]; /* training dataset file */
-  char maskFile[MAX_FILE_NAME_LENGTH];  /* mask dataset */
-  char modelFile[MAX_FILE_NAME_LENGTH]; /* training output - model file */
-  char docFile[MAX_FILE_NAME_LENGTH];   /* JL June 2009: write brick data into 
+  char labelFile[LONG_STRING];          /* training class (label) file */
+  char censorFile[LONG_STRING];         /* training censor (ignore) file */
+  char trainFile[LONG_STRING];          /* training dataset file */
+  char maskFile[LONG_STRING];           /* mask dataset */
+  char modelFile[LONG_STRING];          /* training output - model file */
+  char docFile[LONG_STRING];            /* JL June 2009: write brick data into
+                                           svm-light formated textfile */
+  char docFileOnly[LONG_STRING];        /* JL June 2009: write brick data into
                                            svm-light formated textfile */
   char kernelName[LONG_STRING];         /* JL Feb. 2009: tring specifying 
                                            kernel functions  */
@@ -53,56 +61,67 @@ typedef struct ASLoptions{
   int  outModelNoMask;	                /* flag signifying that no mask 
                                            should be applied to output model */
   int  noPredDetrend;	                /* flag signifying that no detrending 
-          should be applied to output predictions in test mode */
-  int  classout;	                    /* flag signifying thresholded class 
-          predictions should be written to prediction files (rather than 
-          continuous valued "distances") */
-  char modelAlphaFile[MAX_FILE_NAME_LENGTH];
-  char modelWeightFile[MAX_FILE_NAME_LENGTH];
-  char testFile[MAX_FILE_NAME_LENGTH];      /* testing dataset file */
-  char testLabelFile[MAX_FILE_NAME_LENGTH];	/* testing target classes 
-                                               for test samples */
-  char multiclass[LONG_STRING];	            /* type of classifyer 
+                                           should be applied to output predictions
+                                           in test mode */
+  int  noPredCensor;                    /* flag signifying that predictions for
+                                           censored timepoints are not written
+                                           into prediction file */
+  int noPredScale;                      /* flag signifying that predcitions are
+                                           not scaled to {0,1} */
+  int  classout;	                /* flag signifying thresholded class
+                                           predictions should be written to
+                                           prediction files (rather than
+                                           continuous valued "distances") */
+  char modelAlphaFile[LONG_STRING];
+  char modelWeightFile[LONG_STRING];
+  char testFile[LONG_STRING];           /* testing dataset file */
+  char testLabelFile[LONG_STRING];	/* testing target classes
+                                           for test samples */
+  char multiclass[LONG_STRING];	        /* type of classifyer
                                                for a mulitclass dataset */
-  char predFile[MAX_FILE_NAME_LENGTH];      /* predictions file */
+  char predFile[LONG_STRING];           /* predictions file */
 
 }ASLoptions;
 
 typedef struct labels {
-  LabelType *lbls;			    /* the class labels indicating the stimulus
+  LabelType *lbls; 		/* the class labels indicating the stimulus
                                    categories for fMRI data */
-  LabelType *cnsrs;			    /* indicates which labels to ignore 
+  LabelType *cnsrs;	        /* indicates which labels to ignore
                                    (value == 0) or use (value == 1) */
-  int   class_list[CLASS_MAX];	/* hold class numbers appearing in classfile */
-  int   n_classes;              /* number of different classes allowed 
+  int *class_list;              /* hold class numbers appearing in classfile
+                                   JL: changed allocation due to corruption
+                                   problems */
+  int n_classes;                /* number of different classes allowed
                                    (for multiclass) */
-  long  n;				        /* the number of labels and censors */
-  int   n_cnsrs;                /* JL: number of censord time points 
+  long n;			/* the number of labels and censors */
+  int n_cnsrs;                  /* JL: number of censord time points
                                    (i.e., label 9999) */
 } LABELS;
 
 typedef struct afniSvmModelHead {
   
-    /* Gneral comment: The following int and float would be ideally 
+    /* General comment: The following int and float would be ideally
      * long and double, but their ulitmate destination  is in the model 
      * header file (.HEAD). Unfortunately, there is no double or long 
      * functionality in THD_set_atr... */
 
     int   class_count;		   /* number of classes (stimulus categories) */
     int   combinations;		   /* all possible pair-wise combinations of 
-                                  class_count  - would like to be long*/
+                                    * class_count  - would like to be long*/
     int   timepoints;		   /* total number (even counting censored data) */
-    char  combName[(CLASS_MAX * (CLASS_MAX-1))/2][10];		
+    char  **combName;
          /* short string describing the class combinations (e.g. '0_1','0_3') 
             ZSS: Changed from [10][...] to [...][10] 
             See how combName was used in function train_routine
             where classCount is the variable used to index into combName's 
             first dimension. classCount goes to (CLASS_MAX * (CLASS_MAX-1))/2
             and the previous declaration was causing bad corruption with other
-            pointers. */
-    char  kernel_custom[(CLASS_MAX * (CLASS_MAX-1))/2][50];
-          /* JL: string describing user-defined kernel.
-           * String-size 50 hard-coded as in svm-light. */
+            pointers.
+            JL Apr. 2010: Now allocated at run time in allocateAfniModel
+         */
+    char  **kernel_custom;
+          /* JL: string describing user-defined kernel */
+          /* JL: now allocate at run time in allocateAfniModel */
     char  svm_type[LONG_STRING];  /* JL: string describing svm (learn) type */
     int   *kernel_type;
     int   *polynomial_degree; 
@@ -155,6 +174,8 @@ typedef struct afniSvmModelHead {
 typedef struct ModelMaps {
   long nmaps;           /* number of maps */
   long nvox;            /* number of voxels in each map */
+  long index;           /* index over nmaps (keeps track of how many maps were
+                           written into this structure) */
   char **names;         /* name for each map: names[nmaps][LONG_STRING]
                            shows up in the AFNI GUI (define overlay) */
   double **data;        /* data for each map:  data[nmaps][nvox] */
@@ -584,21 +605,31 @@ static char plugin_helpstring_rt[] = "\n"
 static char contribution_string [] =
 "Significant programming contributions by: \n"
 "\n"
-"  Jeff W. Prescott     \n" 
-"  William A. Curtis    \n" 
-"  Ziad Saad            \n" 
+"  Jeff W. Prescott     \n"
+"  William A. Curtis    \n"
+"  Ziad Saad            \n"
 "  Jonathan M. Lisinski \n" 
 "  Stephen M. LaConte   \n"
 "\n"
+
 "Original version written by JP and SL, August 2006 \n"
 "Released to general public, July 2007 \n"
 "\n"
 "Questions/Comments/Bugs - email slaconte@cpu.bcm.edu \n"
-"\n"
+"\n\n"
 "Reference:\n"
 "LaConte, S., Strother, S., Cherkassky, V. and Hu, X. 2005. Support vector\n" 
 "    machines for temporal classification of block design fMRI data. \n"
 "    NeuroImage, 26, 317-329.\n"
+"\n"
+"Please also consider to reference:\n"
+"T. Joachims, Making Large-Scale SVM Learning Practical.\n"
+"     Advances in Kernel Methods - Support Vector Learning,\n"
+"     B. Schoelkopf and C. Burges and A. Smola (ed.), MIT Press, 1999.\n"
+"\n"
+"RW Cox. AFNI: Software for analysis and visualization of\n"
+"    functional magnetic resonance neuroimages.\n"
+"    Computers and Biomedical Research, 29:162-173, 1996.\n"
 "\n";
 
 /*----- String that briefly describes changes -------------------*/

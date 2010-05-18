@@ -70,21 +70,24 @@ double sprod_ss(WORD *a, WORD *b)
 {
     register FVAL sum=0;
     register WORD *ai,*bj;
+    
     ai=a;
     bj=b;
     while (ai->wnum && bj->wnum) {
       if(ai->wnum > bj->wnum) {
-	bj++;
+        bj++;
       }
       else if (ai->wnum < bj->wnum) {
-	ai++;
+        ai++;
       }
       else {
-	sum+=ai->weight * bj->weight;
-	ai++;
-	bj++;
+        sum+=ai->weight * bj->weight;
+        
+        ai++;
+        bj++;
       }
-    }
+    } 
+    
     return((double)sum);
 }
 
@@ -195,7 +198,7 @@ void add_vector_ns(double *vec_n, WORD *vec_s, double faktor)
     ai++;
   }
 }
-
+  
 double sprod_ns(double *vec_n, WORD *vec_s)
 {
   register double sum=0;
@@ -243,7 +246,7 @@ void read_model(char *modelfile, MODEL *model, long int max_words, long int ll)
   { perror (modelfile); exit (1); }
 
   fscanf(modelfl,"SVM-light Version %s\n",version_buffer);
-  if(strcmp(version_buffer,VERSION)) {
+  if(strcmp(version_buffer,VERSION_SVMLIGHT)) {
     perror ("Version of model-file does not match version of svm_classify!"); 
     exit (1); 
   }

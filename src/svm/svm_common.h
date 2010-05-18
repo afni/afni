@@ -28,8 +28,12 @@
 # include <time.h> 
 # include <float.h>
 
-# define VERSION       "V5.00"
-# define VERSION_DATE  "30.06.02"
+/* JL: changed VERSION      to VERSION_SVMLIGHT      and
+ *             VERSION_DATE to VERSIOM_DATE_SVMLING
+ * to avoid conflicts with afni
+ */
+# define VERSION_SVMLIGHT       "V5.00"
+# define VERSION_DATE_SVMLIGHT  "30.06.02"
 
 # define CFLOAT  float       /* the type of float to use for caching */
                              /* kernel evaluations. Using float saves */

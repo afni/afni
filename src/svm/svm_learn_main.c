@@ -297,7 +297,7 @@ void wait_any_key()
 
 void print_help()
 {
-  printf("\nSVM-light %s: Support Vector Machine, learning module     %s\n",VERSION,VERSION_DATE);
+  printf("\nSVM-light %s: Support Vector Machine, learning module     %s\n",VERSION_SVMLIGHT,VERSION_DATE_SVMLIGHT);
   copyright_notice();
   printf("   usage: svm_learn [options] example_file model_file\n\n");
   printf("Arguments:\n");
