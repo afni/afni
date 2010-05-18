@@ -181,7 +181,7 @@ void read_input_parameters(int argc, char **argv, char *docfile,
 
 void print_help(void)
 {
-  printf("\nSVM-light %s: Support Vector Machine, classification module     %s\n",VERSION,VERSION_DATE);
+  printf("\nSVM-light %s: Support Vector Machine, classification module     %s\n",VERSION_SVMLIGHT, VERSION_DATE_SVMLIGHT);
   copyright_notice();
   printf("   usage: svm_classify [options] example_file model_file output_file\n\n");
   printf("options: -h         -> this help\n");
