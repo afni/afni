@@ -1389,6 +1389,8 @@ extern int SYM_expand_errcount(void) ; /* 03 May 2007 */
 #include "zlib.h"             /* 02 Mar 2009 */
 #endif
 
+THD_string_array * mri_read_1D_headerline( char *fname ) ; /* 18 May 2010 */
+
 /*------------------------------------------------------------------------*/
 /* 13 Feb 2009: generic 4x4 matrix struct stuff */
 
