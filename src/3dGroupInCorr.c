@@ -580,7 +580,10 @@ int main( int argc , char *argv[] )
    char label_AAA[MAX_LABEL_SIZE]="AAA" , label_BBB[MAX_LABEL_SIZE]="BBB" ;
    char *qlab_AAA=NULL , *qlab_BBB=NULL ;
    int   lset_AAA=0    ,  lset_BBB=0 ;
-   int   *use_AAA=NULL ,  *use_BBB=NULL ;
+   int   *use_AAA=NULL ,  *use_BBB=NULL ;  /* lists of subjects to use */
+   THD_string_array *covlab=NULL ;  /* covariates */
+   MRI_IMAGE        *covim =NULL ;
+   float            *covar =NULL ;
 
    /*-- enlighten the ignorant and brutish sauvages? --*/
 
@@ -847,6 +850,21 @@ int main( int argc , char *argv[] )
 
      if( strcasecmp(argv[nopt],"-paired") == 0 ){
        ttest_opcode = 2 ; nopt++ ; continue ;
+     }
+
+     if( strcasecmp(argv[nopt],"-covariates") == 0 ){
+       if( ++nopt >= argc ) ERROR_exit("need 1 argument after option '%s'",argv[nopt-1]);
+       if( covim != NULL ) ERROR_exit("can't use -covariates twice!") ;
+       covim = mri_read_1D(argv[nopt]) ;
+       if( covim == NULL )
+         ERROR_exit("Can't read numbers from -covariates file '%s'",argv[nopt]) ;
+       covar = MRI_FLOAT_PTR(covim) ;
+       covlab = mri_read_1D_headerline(argv[nopt]) ;
+       if( covlab == NULL )
+         ERROR_exit("Can't read header line from -covariates file '%s'",argv[nopt]) ;
+       INFO_message("Covariates file: %d columns, each with %d rows",covim->ny,covim->nx) ;
+       PRINTF_SARR(covlab,"++ Covariates labels") ;
+       nopt++ ; continue ;
      }
 
      if( strcasecmp(argv[nopt],"-labelA") == 0 || strcasecmp(argv[nopt],"-labA") == 0 ){
