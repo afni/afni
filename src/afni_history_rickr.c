@@ -50,7 +50,7 @@ afni_history_struct rickr_history[] = {
 
  { 19, MAY, 2010, RCR, "Makefile.*", MINOR, TYPE_MODIFY,
    "add CCOLD to all for compiling nifticdf.o on linux_xorg7_64 using gcc v3",
-   NULL
+   "Problem found by L Thomas and B Bones."
  } ,
 
  { 13, MAY, 2010, RCR, "3dbucket", MICRO, TYPE_MODIFY,
