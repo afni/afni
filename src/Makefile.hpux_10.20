@@ -6,6 +6,8 @@ CCVOL  = cc -Ae -z +O1 -DHP -DUSE_TRACING -DHAVE_XDBE
 CCFAST = cc -Ae -z +O3 -DHP +Oaggressive +Olibcalls
 CCMIN  = cc -Ae
 CCD    = $(CC) $(CCDEBS)
+CCOLD  = $(CC)
+
 IFLAGS = -I. -I/usr/include/X11R5 -I/usr/include/Motif1.2
 LFLAGS = -s -L. -L/usr/lib/X11R5 -L/usr/lib/Motif1.2
 

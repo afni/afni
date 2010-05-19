@@ -6,6 +6,8 @@ CCVOL  = gcc -DSOLARIS -D_ILP32
 CCFAST = $(CC)
 CCMIN  = gcc
 CCD    = $(CC) $(CCDEBS)
+CCOLD  = $(CC)
+
 IFLAGS = -I. -I/usr/dt/include -I/usr/openwin/include
 LFLAGS = -s -L. -L/usr/dt/lib -L/usr/openwin/lib
 

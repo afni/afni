@@ -2559,9 +2559,11 @@ nifti_stats.o:nifti/utils/nifti_stats.c
 	$(RM) $@
 	$(CC) -c nifti/utils/nifti_stats.c $(INFLAGS)
 
+# 64-bit gcc 4.0+ has optimization problem with this file
+# -> use 3.4 if necessary		19 May 2010 [rickr]
 nifticdf.o:nifti/nifticdf/nifticdf.c
 	$(RM) $@
-	$(CC) -D__COMPILE_UNUSED_FUNCTIONS__ -c nifti/nifticdf/nifticdf.c $(INFLAGS)
+	$(CCOLD) -D__COMPILE_UNUSED_FUNCTIONS__ -c nifti/nifticdf/nifticdf.c $(INFLAGS)
 
 nifti_statlib.o:nifti/utils/nifti_stats.c nifti_statlib.c
 	$(RM) $@

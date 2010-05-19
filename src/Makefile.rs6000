@@ -10,6 +10,8 @@ CCVOL  = gcc -DRS6000 -DUSE_TRACING  -DNO_FRIVOLITIES
 CCFAST = $(CC)
 CCMIN  = gcc
 CCD    = $(CC) $(CCDEBS)
+CCOLD  = $(CC)
+
 IFLAGS = -I.
 LFLAGS = -s -L.
 

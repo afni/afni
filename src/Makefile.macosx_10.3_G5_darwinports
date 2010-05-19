@@ -17,6 +17,8 @@ CC     = $(CCFAST)
 CCVOL  = cc -O2 -ffast-math -DDARWIN $(CEXTRA)
 CCMIN  = cc
 CCD    = $(CC) $(CCDEBS)
+CCOLD  = $(CC)
+
 # IFLAGS = -I. -I/usr/include -I/usr/include/sys -I/usr/X11R6/include
 IFLAGS = -I. -I/usr/X11R6/include
 LFLAGS = -L. -L/usr/X11R6/lib -Wl,-force_flat_namespace

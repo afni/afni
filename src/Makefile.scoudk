@@ -9,6 +9,8 @@ CCVOL  = cc -DSCO -DNO_GAMMA $(CEXTRA)
 CCFAST = cc -O2 -DSCO -DNO_GAMMA $(CEXTRA)
 CCMIN  = cc
 CCD    = $(CC) $(CCDEBS)
+CCOLD  = $(CC)
+
 IFLAGS = -I. -I/usr/local/include
 LFLAGS = -W l,'-Bexport' -L.
 
