@@ -11,6 +11,8 @@ CCVOL  = cc -xO2 -Xa -w -DSOLARIS -D_ILP32
 CCFAST = $(CC) -xO3 -fsimple=2
 CCMIN  = cc
 CCD    = $(CC) $(CCDEBS)
+CCOLD  = $(CC)
+
 IFLAGS = -I. -I/usr/dt/include -I/usr/openwin/include
 LFLAGS = -s -L. -L/usr/dt/lib -L/usr/openwin/lib
 

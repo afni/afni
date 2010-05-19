@@ -11,6 +11,8 @@ CCFAST = /opt/intel_cc_80/bin/icc -O3 -ip -fPIC -DREAD_WRITE_64 -DLINUX2 -DNO_GA
 
 CCMIN  = /opt/intel_cc_80/bin/icc $(CPROF) -DINTEL_CC
 CCD    = $(CC) $(CCDEBS)
+CCOLD  = $(CC)
+
 IFLAGS = -I. -I/usr/X11R6/include
 LFLAGS = -L. -L/usr/X11R6/lib
 

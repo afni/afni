@@ -22,6 +22,8 @@ CCFAST = /usr/bin/gcc -O2 -march=i686 -mmmx -DLINUX2 $(CEXTRA)
 
 CCMIN  = /usr/bin/gcc $(CPROF)
 CCD    = $(CC) $(CCDEBS)
+CCOLD  = $(CC)
+
 IFLAGS = -I. -I/usr/X11R6/include
 LFLAGS = -L. -L/usr/X11R6/lib
 

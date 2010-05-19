@@ -9,6 +9,8 @@ CCVOL  = gcc -O2 -ffast-math -DCYGWIN -DNO_GAMMA $(CEXTRA) -DUSE_TRACING -DDONT_
 CCFAST = gcc -O3 -ffast-math -DCYGWIN -DNO_GAMMA $(CEXTRA) -DUSE_TRACING -DDONT_USE_MCW_MALLOC
 CCMIN  = gcc
 CCD    = $(CC) $(CCDEBS)
+CCOLD  = $(CC)
+
 IFLAGS = -I. -I/usr/X11R6/include
 LFLAGS = -s -L. -L/usr/X11R6/lib
 

@@ -17,6 +17,7 @@ CCVOL  = cc -O2 -ffast-math -DDARWIN $(CEXTRA)
 CCFAST = cc -O3 -ffast-math -DDARWIN $(CEXTRA)
 CCMIN  = cc
 CCD    = $(CC) $(CCDEBS)
+CCOLD  = $(CC)
 
 IFLAGS = -I. -I/sw/include -I/usr/X11R6/include -I/usr/local/include
 LFLAGS = -L. -L/sw/lib -L/usr/X11R6/lib -L/usr/local/lib -Wl,-x -Wl,-multiply_defined -Wl,warning -Wl,-bind_at_load
