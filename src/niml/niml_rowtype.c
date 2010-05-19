@@ -133,13 +133,13 @@ static void setup_basic_types(void)
      rt->userdef     = NI_strdup(type_name[ii]);
      rt->flag        = 0 ;
 
-     rt->comp_num    = 1 ;                      /* basic types have */
+     rt->comp_num    = 1 ;                           /* basic types have */
      rt->comp_typ    = NI_malloc(int, sizeof(int)) ; /* only one component */
      rt->comp_typ[0] = ii ;
      rt->comp_dim    = NI_malloc(int, sizeof(int)) ;
-     rt->comp_dim[0] = -1 ;                     /* fixed dim component */
+     rt->comp_dim[0] = -1 ;                          /* fixed dim component */
 
-     rt->part_num    = 1 ;                      /* basic types have */
+     rt->part_num    = 1 ;                           /* basic types have */
      rt->part_typ    = NI_malloc(int, sizeof(int)) ; /* only one part */
      rt->part_typ[0] = ii ;
      rt->part_off    = NI_malloc(int, sizeof(int)) ;
@@ -147,11 +147,11 @@ static void setup_basic_types(void)
      rt->part_siz    = NI_malloc(int, sizeof(int)) ;
      rt->part_siz[0] = type_size[ii] ;
      rt->part_dim    = NI_malloc(int, sizeof(int)) ;
-     rt->part_dim[0] = -1 ;                     /* fixed dim part */
+     rt->part_dim[0] = -1 ;                          /* fixed dim part */
      rt->part_rtp    = NI_malloc(NI_rowtype*, sizeof(NI_rowtype *)) ;
      rt->part_rtp[0] = rt ;
 
-     ROWTYPE_register( rt ) ;                   /* put in the Htable */
+     ROWTYPE_register( rt ) ;                        /* put in the Htable */
    }
 
    /* alignment and size of pointers */

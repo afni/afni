@@ -206,7 +206,7 @@ ENTRY("mri_matrix_scale") ;
    RETURN(imc) ;
 }
 
-/*-----------------------------------------------------------------------*/
+/*----------------------------------------------------------------------------*/
 static int force_svd = 0 ;
 void mri_matrix_psinv_svd( int i ){ force_svd = i; }
 /*----------------------------------------------------------------------------*/
@@ -263,7 +263,7 @@ ENTRY("mri_matrix_psinv") ;
        sum = 1.0 / sum ; pmat = MRI_FLOAT_PTR(imp) ;
        for( ii=0 ; ii < m ; ii++ ) pmat[ii] = sum * rmat[ii] ;
      }
-     return imp ;
+     RETURN(imp) ;
    }
 
    /* OK, have a real matrix to handle here */
@@ -425,7 +425,7 @@ STATUS("psinv from Choleski") ;
 
      for( ii=0 ; ii < n ; ii++ ) P(ii,jj) = (float)sval[ii] ;
    }
-   free((void *)amat); free((void *)vmat); free((void *)sval);
+   free(amat); free(vmat); free(sval);
    goto RESCALE_PLACE ;
 
   SVD_PLACE:
@@ -437,7 +437,7 @@ STATUS("psinv from Choleski") ;
 
      if( umat == NULL ){  /* 29 Dec 2008 */
        ERROR_message("mri_matrix_psinv: can't malloc umat workspace!") ;
-       free(amat) ; free(xfac) ; RETURN(NULL) ;
+       free(vmat) ; free(amat) ; free(xfac) ; RETURN(NULL) ;
      }
 
      sval = (double *)calloc( sizeof(double),n   ); /* singular values */
@@ -447,7 +447,7 @@ STATUS("psinv from Choleski") ;
 STATUS("SVD") ;
      svd_double( m , n , amat , sval , umat , vmat ) ;
 
-     free((void *)amat) ;  /* done with this */
+     free(amat) ;  /* done with this */
 
      /* find largest singular value */
 
@@ -458,8 +458,8 @@ STATUS("SVD") ;
        static int first = 1 ;
 #pragma omp critical (STDERR)
        { if( first ) ERROR_message("SVD fails in mri_matrix_psinv()!\n"); }
-       free((void *)xfac); free((void *)sval); first = 0;
-       free((void *)vmat); free((void *)umat); RETURN( NULL);
+       free(xfac); free(sval); first = 0;
+       free(vmat); free(umat); RETURN( NULL);
      }
 
      for( ii=0 ; ii < n ; ii++ )
@@ -484,7 +484,7 @@ STATUS("psinv from SVD") ;
          P(ii,jj) = (float)sum ;
        }
      }
-     free((void *)sval); free((void *)vmat); free((void *)umat);
+     free(sval); free(vmat); free(umat);
 
   RESCALE_PLACE:
    /** from either method, must now rescale rows from norming */
@@ -493,7 +493,7 @@ STATUS("rescale") ;
    for( ii=0 ; ii < n ; ii++ ){
      for( jj=0 ; jj < m ; jj++ ) P(ii,jj) *= xfac[ii] ;
    }
-   free((void *)xfac);
+   free(xfac);
 
    /* rescale cols for weight? */
 
@@ -536,6 +536,165 @@ ENTRY("mri_matrix_ortproj") ;
    }
 
    RETURN(imt) ;
+}
+
+/*----------------------------------------------------------------------------*/
+/*! Return both inv[C'C]C' and inv[C'C] -- RWCox -- 19 May 2010 */
+
+MRI_IMARR * mri_matrix_psinv_pair( MRI_IMAGE *imc , float alpha )
+{
+   float *rmat ;
+   int m , n , ii,jj,kk ;
+   double *amat , *umat , *vmat , *sval , *xfac , smax,del,ww , alp ;
+   MRI_IMAGE *imp=NULL , *imq=NULL ; float *pmat,*qmat ; MRI_IMARR *imar ;
+   register double sum ;
+
+ENTRY("mri_matrix_psinv_pair") ;
+
+   if( imc == NULL || imc->kind != MRI_float ) RETURN(NULL);
+   m = imc->nx ;  /* number of rows in input */
+   n = imc->ny ;  /* number of columns */
+
+   /* deal with a single vector (of length m) */
+
+   rmat = MRI_FLOAT_PTR(imc) ;
+
+   if( n == 1 ){
+     for( sum=0.0,ii=0 ; ii < m ; ii++ ) sum += rmat[ii]*rmat[ii] ;
+     imp = mri_new( 1 , m , MRI_float ) ;
+     imq = mri_new( 1 , 1 , MRI_float ) ;  /* a very boring image */
+     if( sum > 0.0 ){
+       sum = 1.0 / sum ; pmat = MRI_FLOAT_PTR(imp) ;
+       for( ii=0 ; ii < m ; ii++ ) pmat[ii] = sum * rmat[ii] ;
+       qmat = MRI_FLOAT_PTR(imq) ; qmat[0] = sum ;
+     }
+     INIT_IMARR(imar); ADDTO_IMARR(imar,imp); ADDTO_IMARR(imar,imq); RETURN(imar);
+   }
+
+   /* OK, have a real matrix to handle here */
+
+   amat = (double *)calloc( sizeof(double),m*n ) ;  /* input matrix */
+   xfac = (double *)calloc( sizeof(double),n   ) ;  /* column norms of [a] */
+
+   if( amat == NULL || xfac == NULL ){
+     ERROR_message("mri_matrix_psinv_pair: can't malloc matrix workspace!") ;
+     if( amat != NULL ) free(amat) ;
+     if( xfac != NULL ) free(xfac) ;
+     RETURN(NULL) ;
+   }
+
+#undef  PSINV_EPS
+#define PSINV_EPS 1.e-12
+
+   alp = (alpha <= 0.0f) ? PSINV_EPS : (double)alpha ;
+
+#undef  R
+#undef  A
+#undef  P
+#undef  U
+#undef  V
+#undef  Q
+#define R(i,j) rmat[(i)+(j)*m]   /* i=0..m-1 , j=0..n-1 */
+#define A(i,j) amat[(i)+(j)*m]   /* i=0..m-1 , j=0..n-1 */
+#define P(i,j) pmat[(i)+(j)*n]   /* i=0..n-1 , j=0..m-1 */
+#define U(i,j) umat[(i)+(j)*m]
+#define V(i,j) vmat[(i)+(j)*n]
+#define Q(i,j) qmat[(i)+(j)*n]   /* i=0..n-1 , j=0..n-1 */
+
+   /* copy input matrix into amat */
+
+STATUS("copy matrix") ;
+   for( ii=0 ; ii < m ; ii++ )
+     for( jj=0 ; jj < n ; jj++ ) A(ii,jj) = R(ii,jj) ;
+
+   /* scale each column to have norm 1 */
+
+STATUS("scale matrix") ;
+   for( jj=0 ; jj < n ; jj++ ){
+     for( sum=0.0,ii=0 ; ii < m ; ii++ ) sum += A(ii,jj)*A(ii,jj) ;
+     if( sum > 0.0 ) sum = 1.0/sqrt(sum) ;
+     xfac[jj] = sum ;
+     if( sum > 0.0 ){ for( ii=0 ; ii < m ; ii++ ) A(ii,jj) *= sum ; }
+   }
+
+   /*** real computations follow, via SVD ***/
+
+   vmat = (double *)calloc( sizeof(double),n*n );
+
+   if( vmat == NULL ){  /* 29 Dec 2008 */
+     ERROR_message("mri_matrix_psinv_pair: can't malloc vmat workspace!") ;
+     free(amat) ; free(xfac) ; RETURN(NULL) ;
+   }
+
+   umat = (double *)calloc( sizeof(double),m*n ); /* left singular vectors */
+
+   if( umat == NULL ){  /* 29 Dec 2008 */
+     ERROR_message("mri_matrix_psinv_pair: can't malloc umat workspace!") ;
+     free(vmat) ; free(amat) ; free(xfac) ; RETURN(NULL) ;
+   }
+
+   sval = (double *)calloc( sizeof(double),n   ); /* singular values */
+
+   /* compute SVD of scaled matrix */
+
+STATUS("SVD") ;
+   svd_double( m , n , amat , sval , umat , vmat ) ;
+
+   free(amat) ;  /* done with this */
+
+   /* find largest singular value */
+
+   smax = sval[0] ;
+   for( ii=1 ; ii < n ; ii++ ) if( sval[ii] > smax ) smax = sval[ii] ;
+
+   if( smax <= 0.0 ){                        /* this is bad */
+     static int first = 1 ;
+#pragma omp critical (STDERR)
+     { if( first ) ERROR_message("SVD fails in mri_matrix_psinv_pair()!\n"); }
+     free(xfac); free(sval); first = 0;
+     free(vmat); free(umat); RETURN(NULL);
+   }
+
+   for( ii=0 ; ii < n ; ii++ )
+     if( sval[ii] < 0.0 ) sval[ii] = 0.0 ;  /* should not happen */
+
+   /* "reciprocals" of singular values:  1/s is actually s/(s^2+del) */
+
+   del = PSINV_EPS * smax*smax ; if( del < alp ) del = alp ;
+   for( ii=0 ; ii < n ; ii++ )
+     sval[ii] = sval[ii] / ( sval[ii]*sval[ii] + del ) ;
+
+   /* create pseudo-inverse */
+
+STATUS("psinv from SVD") ;
+   imp  = mri_new( n , m , MRI_float ) ;   /* recall that m > n */
+   pmat = MRI_FLOAT_PTR(imp) ;
+
+   for( ii=0 ; ii < n ; ii++ ){
+     for( jj=0 ; jj < m ; jj++ ){
+       sum = 0.0 ;
+       for( kk=0 ; kk < n ; kk++ ) sum += sval[kk] * V(ii,kk) * U(jj,kk) ;
+       P(ii,jj) = (float)(sum*xfac[ii]) ;
+     }
+   }
+
+STATUS("inv[XtX] from SVD") ;
+   imq  = mri_new( n , n , MRI_float ) ;
+   qmat = MRI_FLOAT_PTR(imq) ;
+
+   for( ii=0 ; ii < n ; ii++ ){
+     for( jj=0 ; jj <= ii ; jj++ ){
+       sum = 0.0 ;
+       for( kk=0 ; kk < n ; kk++ )
+         sum += sval[kk] * V(ii,kk) * V(jj,kk) ;
+       Q(ii,jj) = (float)(sum * xfac[ii] * xfac[jj]) ;
+       if( jj < ii ) Q(jj,ii) = Q(ii,jj) ;
+     }
+   }
+
+   free(sval); free(vmat); free(umat); free(xfac) ;
+
+   INIT_IMARR(imar); ADDTO_IMARR(imar,imp); ADDTO_IMARR(imar,imq); RETURN(imar);
 }
 
 /*----------------------------------------------------------------------------*/
