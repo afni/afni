@@ -581,9 +581,7 @@ int main( int argc , char *argv[] )
    char *qlab_AAA=NULL , *qlab_BBB=NULL ;
    int   lset_AAA=0    ,  lset_BBB=0 ;
    int   *use_AAA=NULL ,  *use_BBB=NULL ;  /* lists of subjects to use */
-   THD_string_array *covlab=NULL ;  /* covariates */
-   MRI_IMAGE        *covim =NULL ;
-   float            *covar =NULL ;
+   NI_element *covnel=NULL ;       /* covariates */
 
    /*-- enlighten the ignorant and brutish sauvages? --*/
 
@@ -853,17 +851,16 @@ int main( int argc , char *argv[] )
      }
 
      if( strcasecmp(argv[nopt],"-covariates") == 0 ){
+       char *lab ;
        if( ++nopt >= argc ) ERROR_exit("need 1 argument after option '%s'",argv[nopt-1]);
-       if( covim != NULL ) ERROR_exit("can't use -covariates twice!") ;
-       covim = mri_read_1D(argv[nopt]) ;
-       if( covim == NULL )
-         ERROR_exit("Can't read numbers from -covariates file '%s'",argv[nopt]) ;
-       covar = MRI_FLOAT_PTR(covim) ;
-       covlab = mri_read_1D_headerline(argv[nopt]) ;
-       if( covlab == NULL )
-         ERROR_exit("Can't read header line from -covariates file '%s'",argv[nopt]) ;
-       INFO_message("Covariates file: %d columns, each with %d rows",covim->ny,covim->nx) ;
-       PRINTF_SARR(covlab,"++ Covariates labels") ;
+       if( covnel != NULL ) ERROR_exit("can't use -covariates twice!") ;
+       covnel = THD_table_read( argv[nopt] ) ;
+       if( covnel == NULL )
+         ERROR_exit("Can't read table from -covariates file '%s'",argv[nopt]) ;
+       INFO_message("Covariates file: %d columns, each with %d rows",
+                    covnel->vec_num,covnel->vec_len) ;
+       lab = NI_get_attribute( covnel , "Labels" ) ;
+       if( lab != NULL ) ININFO_message("Covariates labels: %s",lab) ;
        nopt++ ; continue ;
      }
 
