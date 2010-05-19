@@ -37,6 +37,8 @@ CCVOL  = gcc -O2 -DREAD_WRITE_64 -fPIC -ffast-math -DFreeBSD -DNO_GAMMA $(CEXTRA
 CCFAST = gcc -O3 -DREAD_WRITE_64 -fPIC -ffast-math -DFreeBSD -DNO_GAMMA $(CEXTRA)
 CCMIN  = gcc
 CCD    = $(CC) $(CCDEBS)
+CCOLD  = $(CC)
+
 # OpenBSD: /usr/local/include/Xm
 IFLAGS = -I. -I/usr/X11R6/include -I/usr/local/include
 LFLAGS = -s -L. -L/usr/X11R6/lib

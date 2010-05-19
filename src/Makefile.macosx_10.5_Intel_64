@@ -42,6 +42,7 @@ CCVOL  = cc -O2 -ffast-math -DDARWIN $(CEXTRA)
 CCFAST = cc -O3 -ftree-vectorize -ffast-math -DDARWIN $(CEXTRA)
 CCMIN  = cc -m64
 CCD    = $(CC) $(CCDEBS)
+CCOLD  = $(CC)
 
 OMPFLAG = -fopenmp -DUSE_OMP
 

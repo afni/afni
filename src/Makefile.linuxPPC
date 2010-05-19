@@ -15,6 +15,8 @@ CCVOL  = gcc -DLINUX2 -DNO_GAMMA $(CEXTRA)
 CCFAST = $(CC)
 CCMIN  = gcc
 CCD    = $(CC) $(CCDEBS)
+CCOLD  = $(CC)
+
 IFLAGS = -I. -I/usr/X11R6/include
 LFLAGS = -s -L. -L/usr/X11R6/lib
 
