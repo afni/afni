@@ -44,6 +44,11 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 19 , MAY , 2010 , RWC , "3dDeconvolve" , MICRO , TYPE_BUG_FIX ,
+   "Bug: 'filename' copy from argv[] can be too long for 1D: input" ,
+   "Especially if the user is named Handwerker.  Solution: compute length of\n"
+   "'filname' before malloc-izing, vs. fixed length THD_MAX_NAME." } ,
+
  { 18 , MAY , 2010 , RWC , "3dTfitter" , MINOR , TYPE_NEW_OPT ,
    "New option -vthr, to set threshold for ignoring regression vectors" ,
    "In the olden version, vectors whose L1 norm was less than 0.000333 times\n"
