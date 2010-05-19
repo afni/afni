@@ -3718,6 +3718,8 @@ extern char * THD_find_executable( char * ) ;
 extern int THD_is_dataset( char * , char * , int ) ; /* 17 Mar 2000 */
 extern char * THD_dataset_headname( char * , char * , int ) ;
 
+extern NI_element * THD_table_read( char *fname ) ; /* 19 May 2010 */
+
 extern MRI_IMARR * THD_get_all_timeseries( char * ) ;
 extern MRI_IMARR * THD_get_many_timeseries( THD_string_array * ) ;
 extern char * THD_trailname( char * fname , int lev ) ;
