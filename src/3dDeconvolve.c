@@ -357,6 +357,9 @@
                     approximate_number_string((double)val) ) ;           \
  } while(0)
 
+static int aa_len_AA ;
+#undef  ALEN
+#define ALEN(na) (aa_len_AA=strlen(argv[na])+16 , MAX(aa_len_AA,THD_MAX_NAME))
 
 /*------------ prototypes for routines far below (RWCox) ------------------*/
 
@@ -1682,7 +1685,7 @@ void get_options
       {
         nopt++;
         if (nopt >= argc)  DC_error ("need argument after -xjpeg ");
-        option_data->xjpeg_filename = malloc (sizeof(char)*THD_MAX_NAME);
+        option_data->xjpeg_filename = malloc (sizeof(char)*ALEN(nopt));
         MTEST (option_data->xjpeg_filename);
         strcpy (option_data->xjpeg_filename, argv[nopt]);
         if( !STRING_HAS_SUFFIX_CASE(option_data->xjpeg_filename,".jpg") &&
@@ -1696,7 +1699,7 @@ void get_options
       {
         nopt++;
         if (nopt >= argc)  DC_error ("need argument after -x1D ");
-        option_data->x1D_filename = malloc (sizeof(char)*THD_MAX_NAME);
+        option_data->x1D_filename = malloc (sizeof(char)*ALEN(nopt));
         MTEST (option_data->x1D_filename);
         strcpy (option_data->x1D_filename, argv[nopt]);
         if( strstr(option_data->x1D_filename,"1D") == NULL )
@@ -1717,7 +1720,7 @@ void get_options
       {
         nopt++;
         if (nopt >= argc)  DC_error ("need argument after -x1D_uncensored ");
-        option_data->x1D_unc = malloc (sizeof(char)*THD_MAX_NAME);
+        option_data->x1D_unc = malloc (sizeof(char)*ALEN(nopt));
         MTEST (option_data->x1D_unc);
         strcpy (option_data->x1D_unc, argv[nopt]);
         if( strstr(option_data->x1D_unc,"1D") == NULL )
@@ -1732,7 +1735,7 @@ void get_options
         nopt++;
         if (nopt >= argc)  DC_error ("need argument after -input ");
 #if 0
-        option_data->input_filename = malloc (sizeof(char)*THD_MAX_NAME);
+        option_data->input_filename = malloc (sizeof(char)*ALEN(nopt));
         MTEST (option_data->input_filename);
         strcpy (option_data->input_filename, argv[nopt]);
         nopt++;
@@ -1760,7 +1763,7 @@ void get_options
         nopt++;
         if (nopt >= argc)  DC_error ("need argument after -mask ");
         if( option_data->automask ) DC_error("can't use -mask AND -automask!") ;
-        option_data->mask_filename = malloc (sizeof(char)*THD_MAX_NAME);
+        option_data->mask_filename = malloc (sizeof(char)*ALEN(nopt));
         MTEST (option_data->mask_filename);
         strcpy (option_data->mask_filename, argv[nopt]);
         nopt++;
@@ -1782,7 +1785,7 @@ void get_options
         nopt++;
         if (nopt >= argc)  DC_error ("need argument after -input1D ");
         option_data->input1D_filename =
-          malloc (sizeof(char)*THD_MAX_NAME);
+          malloc (sizeof(char)*ALEN(nopt));
         MTEST (option_data->input1D_filename);
         strcpy (option_data->input1D_filename, argv[nopt]);
         nopt++;
@@ -1819,7 +1822,7 @@ void get_options
         nopt++;
         if (nopt >= argc)  DC_error ("need argument after -censor ");
         option_data->censor_filename =
-          malloc (sizeof(char)*THD_MAX_NAME);
+          malloc (sizeof(char)*ALEN(nopt));
         MTEST (option_data->censor_filename);
         strcpy (option_data->censor_filename, argv[nopt]);
         nopt++;
@@ -1893,7 +1896,7 @@ void get_options
         nopt++;
         if (nopt >= argc)  DC_error ("need argument after -concat ");
         option_data->concat_filename =
-          malloc (sizeof(char)*THD_MAX_NAME);
+          malloc (sizeof(char)*ALEN(nopt));
         MTEST (option_data->concat_filename);
         strcpy (option_data->concat_filename, argv[nopt]);
         nopt++;
@@ -2376,7 +2379,7 @@ void get_options
           ERROR_exit("'-slice_base %d' trying to overwrite previous stimulus [nopt=%d]",
                      ival , nopt ) ;
 
-        option_data->stim_filename[k] = malloc(sizeof(char)*THD_MAX_NAME);
+        option_data->stim_filename[k] = malloc(sizeof(char)*ALEN(nopt));
         MTEST(option_data->stim_filename[k]);
         strcpy(option_data->stim_filename[k], argv[nopt]);
         option_data->slice_base[k] = 1;
@@ -2400,7 +2403,7 @@ void get_options
             ERROR_exit("'-stim_file %d' trying to overwrite previous stimulus [nopt=%d]",
                     ival , nopt ) ;
 
-        option_data->stim_filename[k] = malloc (sizeof(char)*THD_MAX_NAME);
+        option_data->stim_filename[k] = malloc (sizeof(char)*ALEN(nopt));
         MTEST (option_data->stim_filename[k]);
         strcpy (option_data->stim_filename[k], argv[nopt]);
         nopt++;
@@ -2556,7 +2559,7 @@ void get_options
         option_data->glt_rows[iglt] = s;
         nopt++;
 
-        option_data->glt_filename[iglt] = malloc (sizeof(char)*THD_MAX_NAME);
+        option_data->glt_filename[iglt] = malloc (sizeof(char)*ALEN(nopt));
         MTEST (option_data->glt_filename[iglt]);
         strcpy (option_data->glt_filename[iglt], argv[nopt]);
         iglt++;
@@ -2626,7 +2629,7 @@ void get_options
         nopt++;
 
         option_data->iresp_filename[k]
-          = malloc (sizeof(char)*THD_MAX_NAME);
+          = malloc (sizeof(char)*ALEN(nopt));
         MTEST (option_data->iresp_filename[k]);
         strcpy (option_data->iresp_filename[k], argv[nopt]);
         CHECK_NEEDS_FLOATS(argv[nopt]) ;
@@ -2657,7 +2660,7 @@ void get_options
         nopt++;
 
         option_data->sresp_filename[k]
-          = malloc (sizeof(char)*THD_MAX_NAME);
+          = malloc (sizeof(char)*ALEN(nopt));
         MTEST (option_data->sresp_filename[k]);
         strcpy (option_data->sresp_filename[k], argv[nopt]);
         CHECK_NEEDS_FLOATS(argv[nopt]) ;
@@ -2746,7 +2749,7 @@ void get_options
       {
         nopt++;
         if (nopt >= argc)  DC_error ("need file prefixname after -bucket ");
-        option_data->bucket_filename = malloc (sizeof(char)*THD_MAX_NAME);
+        option_data->bucket_filename = malloc (sizeof(char)*ALEN(nopt));
         MTEST (option_data->bucket_filename);
         strcpy (option_data->bucket_filename, argv[nopt]);
         CHECK_NEEDS_FLOATS(argv[nopt]) ;
@@ -2775,7 +2778,7 @@ void get_options
       {
         nopt++;
         if (nopt >= argc)  DC_error ("need file prefixname after -fitts ");
-        option_data->fitts_filename = malloc (sizeof(char)*THD_MAX_NAME);
+        option_data->fitts_filename = malloc (sizeof(char)*ALEN(nopt));
         MTEST (option_data->fitts_filename);
         strcpy (option_data->fitts_filename, argv[nopt]);
         CHECK_NEEDS_FLOATS(argv[nopt]) ;
@@ -2789,7 +2792,7 @@ void get_options
       {
         nopt++;
         if (nopt >= argc)  DC_error ("need file prefixname after -errts ");
-        option_data->errts_filename = malloc (sizeof(char)*THD_MAX_NAME);
+        option_data->errts_filename = malloc (sizeof(char)*ALEN(nopt));
         MTEST (option_data->errts_filename);
         strcpy (option_data->errts_filename, argv[nopt]);
         CHECK_NEEDS_FLOATS(argv[nopt]) ;
