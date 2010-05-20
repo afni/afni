@@ -69,7 +69,7 @@ L_INIT_VARS:
     rm ___flats
     set surf_attribs = (Fiducial		FIDUCIAL \
 			Raw   RAW   \
-         VeryInflated		VERY-INFLATED	\
+         VeryInflated		VERY-INFLATED	VERY_INFLATED\
 			Inflated		   INFLATED \
 			$flats )
 
@@ -432,12 +432,21 @@ L_LOOK_FOR_SURF:
 				   #goto L_BAD_END
 			   else 
 				   if ($Side == $sides_labels[1]) then
-					   set list_lh = ( $list_lh $candidate )
+					   echo $list_lh | \grep -w $candidate
+                  if ($status) then
+                     set list_lh = ( $list_lh $candidate )
+                  endif
 				   else if ($Side == $sides_labels[2]) then
-					   set list_rh = ( $list_rh $candidate )
+					   echo $list_rh | \grep -w $candidate
+                  if ($status) then
+                     set list_rh = ( $list_rh $candidate )
+                  endif
                else if ($Side == $sides_labels[3]) then
-                  set list_lrh = ( $list_lrh $candidate )
-				   endif
+                  echo $list_lrh | \grep -w $candidate
+                  if ($status) then
+                     set list_lrh = ( $list_lrh $candidate )
+				      endif
+               endif
 			   endif
    	   end
       endif
@@ -693,8 +702,10 @@ L_CREATE_SPEC:
 
 	set spec_file = {$subj_id}_$hand.spec
    if ( $#list_cur > 0) then
-	   if ( $debug ) echo "++ creating spec file '$spec_file'..."
-
+	   if ( $debug ) then
+         echo "++ creating spec file '$spec_file'..."
+         echo "For surfaces $list_cur"
+      endif
 	   (echo "# delimits comments" > $spec_file) >& /dev/null
 
 	   if ( $status ) then
@@ -734,7 +745,7 @@ L_CREATE_SPEC:
 		    set s_state = ''
           set i_state = 1
           while ($i_state <= $#surf_attribs )
-            set gr = `echo $NoExt | grep .{$surf_attribs[$i_state]}`
+            set gr = `echo $NoExt | grep '\.'{$surf_attribs[$i_state]}`
             if ("$gr" != "") then
                set s_state = $surf_attribs[$i_state]
                set i_state = $#surf_attribs
