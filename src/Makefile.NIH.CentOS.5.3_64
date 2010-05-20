@@ -40,6 +40,7 @@ CEXTRA = -Wcomment -Wformat -DUSE_TRACING -DHAVE_XDBE $(CPROF) -DDONT_USE_XTDEST
 CC     = /usr/bin/gcc -O2 -m64 -fPIC -ffast-math -mmmx -DREAD_WRITE_64 -DLINUX2 $(CEXTRA)
 CCVOL  = /usr/bin/gcc -O2 -m64 -fPIC -ffast-math -mmmx -DLINUX2 $(CEXTRA)
 CCFAST = /usr/bin/gcc -O3 -m64 -fPIC -ffast-math -mmmx -DLINUX2 $(CEXTRA)
+CCOLD  = /usr/bin/gcc -V 34 -O2 -m64 -fPIC -ffast-math -mmmx -DREAD_WRITE_64 -DLINUX2 $(CEXTRA)
 
 # The following line includes compiling for the SSE operations.
 # However, I found that it actually makes things worse in some test code.
@@ -49,7 +50,6 @@ CCFAST = /usr/bin/gcc -O3 -m64 -fPIC -ffast-math -mmmx -DLINUX2 $(CEXTRA)
 
 CCMIN  = /usr/bin/gcc -m64 $(CPROF)
 CCD    = $(CC) $(CCDEBS)
-CCOLD  = $(CC)
 
 IFLAGS = -I. $(XROOT_I) -I/usr/include
 LFLAGS = -L. -L/usr/lib64
