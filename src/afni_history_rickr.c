@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 20, MAY, 2010, RCR, "Makefile.NIH.CentOS.5.3_64", MICRO, TYPE_MODIFY,
+   "update CCOLD to compile with gcc verion 3.4",
+   NULL
+ } ,
+
  { 19, MAY, 2010, RCR, "Makefile.*", MINOR, TYPE_MODIFY,
    "add CCOLD to all for compiling nifticdf.o on linux_xorg7_64 using gcc v3",
    "The gcc compiler versions 4.1-4.3 (at least) had an optimization bug\n"
