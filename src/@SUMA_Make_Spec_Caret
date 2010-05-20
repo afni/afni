@@ -98,6 +98,7 @@ L_PARSE_COMMAND:
 
     # init command line arg values
 
+    set sides_labels = ( L R LR)
     set sf_dir		= "."
     set subj_id		= ""
 
@@ -150,6 +151,29 @@ L_PARSE_COMMAND:
 	    breaksw
 
 	    # ----------------------------------------------------------
+	    # usage: -side_labels_style STYLE
+	    case "-side_labels_style":
+
+      if ( $count >= $args ) then
+		    set endstr = "arg usage: -side_labels_style STYLE"
+		    goto L_BAD_END
+		endif
+
+		@ count ++
+		set sides_labels_style  = $argv[$count]
+
+      if ($sides_labels_style == 1) then
+         set sides_labels = (L R LR)
+      else if ($sides_labels_style == 2) then
+         set sides_labels = (LEFT RIGHT LR)
+      else
+		    set endstr = "failure: STYLE of $sides_labels_style not understood"
+		    goto L_BAD_END
+		endif
+
+	    breaksw
+
+	    # ----------------------------------------------------------
 	    # usage : -debug DEBUG_LEVEL
 	    case "-debug":
 
@@ -164,6 +188,14 @@ L_PARSE_COMMAND:
 		if ( "$debug" > 2 ) set debug = 2
 		if ( "$debug" < 0 ) set debug = 0
 
+	    breaksw
+	    
+       # ----------------------------------------------------------
+	    # usage : -echo
+	    case "-echo":
+
+		set echo
+      
 	    breaksw
 
 	    # ----------------------------------------------------------
@@ -356,7 +388,7 @@ L_LOOK_FOR_SURF:
     set list_rh = "X"
     set list_lrh = "X"
     
-	 foreach Side ( 'L' 'R' 'LR')
+	 foreach Side ( $sides_labels )
 		#get all the surfaces and ask user to identify one to use
 		set CHOOSE_LIST = `ls -t *.$Side.*Fiducial*.coord *.$Side.*FIDUCIAL*.coord`
 		if ($#CHOOSE_LIST > 0) then
@@ -399,11 +431,11 @@ L_LOOK_FOR_SURF:
 				   #set endstr = "found 0 or more than one candidate surfaces matching '*."$Side'.'$attrib'.*'$NodeNumb'*.coord'
 				   #goto L_BAD_END
 			   else 
-				   if ($Side == 'L') then
+				   if ($Side == $sides_labels[1]) then
 					   set list_lh = ( $list_lh $candidate )
-				   else if ($Side == 'R') then
+				   else if ($Side == $sides_labels[2]) then
 					   set list_rh = ( $list_rh $candidate )
-               else if ($Side == 'LR') then
+               else if ($Side == $sides_labels[3]) then
                   set list_lrh = ( $list_lrh $candidate )
 				   endif
 			   endif
@@ -416,7 +448,7 @@ L_LOOK_FOR_SURF:
     set list_lrh = ( $list_lrh[2-] )
 
     if ( $#list_lh == 0 && $#list_rh == 0 && $#list_lrh == 0) then
-		set endstr = "found no LH or RH or LRH surface files under '$surfaces_dir'"
+		set endstr = "found no $sides_labels, surface files under '$surfaces_dir'"
 		goto L_BAD_END
     endif
 
@@ -468,11 +500,11 @@ L_LOOK_FOR_TOPO:
 	 cd $surfaces_dir
 
 
-	foreach Side (L R LR)
+	foreach Side ($sides_labels)
    	set list_topo = "X"	# init to something useless - allows nice empty check
-		if ($Side == 'L') then
+		if ($Side == $sides_labels[1]) then
 			set list = ( $list_lh )
-		else if ($Side == 'R') then
+		else if ($Side == $sides_labels[2]) then
 			set list = ( $list_rh )
 		else 
 			set list = ( $list_lrh )
@@ -529,15 +561,15 @@ L_LOOK_FOR_TOPO:
 			set list_topo = ( $list_topo $candidate )
 		end
 
-		if ($Side == 'L') then
+		if ($Side == $sides_labels[1]) then
 			set list_topo_lh = ( $list_topo[2-] )		#Remove the X
 			#echo "Topo List side $Side :"
 			#echo "$list_topo_lh"
-		else if ($Side == 'R') then
+		else if ($Side == $sides_labels[2]) then
 			set list_topo_rh = ( $list_topo[2-] )
 			#echo "Topo List side $Side :"
 			#echo "$list_topo_rh"
-		else if ($Side == 'LR') then
+		else if ($Side == $sides_labels[3]) then
 			set list_topo_lrh = ( $list_topo[2-] )
 			#echo "Topo List side $Side :"
 			#echo "$list_topo_lrh"
@@ -718,7 +750,7 @@ L_CREATE_SPEC:
 	       echo $surf
           echo $s_state
           # check for SAME mapping ref
-	       if ( "$s_state" == "Fiducial" ) then
+	       if ( "$s_state" == "Fiducial" || "$s_state" == "FIDUCIAL") then
 		   set surf_map_ref = $surf
          set map_ref = SAME
 	       else
@@ -850,6 +882,8 @@ L_HELP_END:
     echo "          e.g. -debug 1"
     echo "          the default level is 0, max is 2"
     echo ""
+    echo "    -echo: Turn shell echo on"
+    echo ""
     echo "    -sfpath PATH    : path to directory containing 'SURFACES'"
 	 echo "                      and AFNI volume used in creating the surfaces."
     echo "          e.g. -sfpath subject1/surface_models"
@@ -863,6 +897,12 @@ L_HELP_END:
     echo ""
     echo ""
     echo "    -sid SUBJECT_ID : required subject ID for file naming"
+    echo ""
+    echo ""
+    echo "    -side_labels_style STYLE: Naming style for Left, Right sides."
+    echo "                              Allowed STYLE values are : "
+    echo "                              1 for L R LR style (default)"
+    echo "                              2 for LEFT RIGHT LR style"
     echo ""
     echo ""
     echo "  notes:"

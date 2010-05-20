@@ -4348,7 +4348,7 @@ char SUMA_GuessAnatCorrect(SUMA_SurfaceObject *SO)
                SUMA_iswordin (SO->Name_coord.FileName, ".pial") == 1 ||
                SUMA_iswordin (SO->Name_coord.FileName, ".orig") == 1 ||
                SUMA_iswordin (SO->Name_coord.FileName, ".fiducial") == 1 ||
-               SUMA_iswordin (SO->Name_coord.FileName, ".Fiducial") == 1 ||
+               SUMA_iswordin_ci (SO->Name_coord.FileName, ".Fiducial") == 1 ||
                SUMA_iswordin (SO->Name_coord.FileName, ".Raw") == 1 ||
                SUMA_iswordin (SO->Name.FileName, "_WM") == 1 ||
                SUMA_iswordin (SO->Name.FileName, "_GM") == 1
