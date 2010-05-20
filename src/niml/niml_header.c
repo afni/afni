@@ -384,6 +384,21 @@ NI_str_array * NI_decode_string_list( char *ss , char *sep )
 }
 
 /*--------------------------------------------------------------------*/
+/*! Return value = -1 if not found, otherwise is index [20 May 2010]. */
+
+int NI_str_array_find( char *targ , NI_str_array *sar )
+{
+   int ii ;
+
+   if( targ == NULL || *targ == '\0' || sar == NULL || sar->num < 1 ) return -1;
+
+   for( ii=0 ; ii < sar->num ; ii++ )
+     if( strcmp(targ,sar->str[ii]) == 0 ) return ii ;
+
+   return -1 ;
+}
+
+/*--------------------------------------------------------------------*/
 /*! Decode a string that gives a list of floats [10 Jun 2007]. */
 
 NI_float_array * NI_decode_float_list( char *ss , char *sep )
