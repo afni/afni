@@ -92,6 +92,20 @@ static int mybsearch_int( int tt , int nar , int *ar )
 
 /*--------------------------------------------------------------------------*/
 
+static int string_search( char *targ , int nstr , char **str )
+{
+   int ii ;
+
+   if( targ == NULL || *targ == '\0' || str == NULL || nstr < 1 ) return -1 ;
+
+   for( ii=0 ; ii < nstr ; ii++ )
+     if( str[ii] != NULL && strcmp(targ,str[ii]) == 0 ) return ii ;
+
+   return -1 ;
+}
+
+/*--------------------------------------------------------------------------*/
+
 typedef struct {
 
   int nvec  ;  /* number of vectors in a dataset */
@@ -594,7 +608,9 @@ int main( int argc , char *argv[] )
    char *qlab_AAA=NULL , *qlab_BBB=NULL ;
    int   lset_AAA=0    ,  lset_BBB=0 ;
    int   *use_AAA=NULL ,  *use_BBB=NULL ;  /* lists of subjects to use */
-   NI_element *covnel=NULL ;       /* covariates */
+   NI_element   *covnel=NULL ;       /* covariates */
+   NI_str_array *covlab=NULL ;
+   int             mcov=0 ;
 
    /*-- enlighten the ignorant and brutish sauvages? --*/
 
@@ -863,17 +879,36 @@ int main( int argc , char *argv[] )
        ttest_opcode = 2 ; nopt++ ; continue ;
      }
 
-     if( strcasecmp(argv[nopt],"-covariates") == 0 ){
-       char *lab ;
+     if( strcasecmp(argv[nopt],"-covariates") == 0 ){  /* 20 May 2010 */
+       char *lab ; float sig ; int nbad ;
        if( ++nopt >= argc ) ERROR_exit("need 1 argument after option '%s'",argv[nopt-1]);
        if( covnel != NULL ) ERROR_exit("can't use -covariates twice!") ;
        covnel = THD_table_read( argv[nopt] ) ;
        if( covnel == NULL )
          ERROR_exit("Can't read table from -covariates file '%s'",argv[nopt]) ;
        INFO_message("Covariates file: %d columns, each with %d rows",
-                    covnel->vec_num,covnel->vec_len) ;
+                    covnel->vec_num , covnel->vec_len ) ;
+       mcov = covnel->vec_num - 1 ;
+       if( mcov < 1 )
+         ERROR_exit("Need at least 2 columns in -covariates file!") ;
        lab = NI_get_attribute( covnel , "Labels" ) ;
-       if( lab != NULL ) ININFO_message("Covariates labels: %s",lab) ;
+       if( lab != NULL ){
+         ININFO_message("Covariates labels: %s",lab) ;
+         covlab = NI_decode_string_list( lab , ";" ) ;
+         if( covlab == NULL || covlab->num < covnel->vec_num )
+           ERROR_exit("can't decode labels properly?!") ;
+       } else {
+         ERROR_exit("Can't get labels from -covariates file '%s'",argv[nopt]) ;
+       }
+       for( nbad=0,kk=1 ; kk <= mcov ; kk++ ){
+         meansigma_float(covnel->vec_len,(float *)covnel->vec[kk],NULL,&sig) ;
+         if( sig <= 0.0f ){
+           ERROR_message("Covariate '%s' is constant; how can this be used?!" ,
+                         covlab->str[kk] ) ;
+           nbad++ ;
+         }
+       }
+       if( nbad > 0 ) ERROR_exit("Cannot continue :-(") ;
        nopt++ ; continue ;
      }
 
