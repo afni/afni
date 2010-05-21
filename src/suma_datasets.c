@@ -1452,7 +1452,7 @@ SUMA_Boolean SUMA_CopyDsetAttributes ( SUMA_DSET *src, SUMA_DSET *dest,
          if (LocalHead) {
                fprintf(SUMA_STDERR,
                         "%s:\n"
-                        "  Putting string %s at col %d in target's %s\n"
+                        "  Inserting string %s at col %d in target's %s\n"
                         , FuncName, src_string, idest, nmbuf2);
          }
          SUMA_AddColAtt_CompString( nelt, idest,
