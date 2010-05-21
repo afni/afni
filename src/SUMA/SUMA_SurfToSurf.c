@@ -374,7 +374,7 @@ int main (int argc,char *argv[])
    if (Opt->debug > 2) LocalHead = YUP;
    
    outname = SUMA_append_string(Opt->out_prefix,".1D");
-   if (SUMA_filexists(outname)) {
+   if (SUMA_filexists(outname) && !THD_ok_overwrite()) {
       fprintf(SUMA_STDERR,"Output file %s exists.\n", outname);
       exit(1);
    }
