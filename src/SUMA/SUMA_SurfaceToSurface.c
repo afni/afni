@@ -433,7 +433,6 @@ SUMA_DSET *SUMA_morphDsetToStd (SUMA_DSET *dset, SUMA_M2M_STRUCT *M2M,
    }
    
    SUMA_COPY_DSETWIDE_ATTRIBUTES(dset, ndset);
-   SUMA_COPY_DSET_ALL_COL_ATTRIBUTES(dset, ndset);
    
    /* do it the cautious way, one column at a time */
    for (i=0; i<SDSET_VECNUM(dset); ++i) {
@@ -488,9 +487,12 @@ SUMA_DSET *SUMA_morphDsetToStd (SUMA_DSET *dset, SUMA_M2M_STRUCT *M2M,
    
    if (bfull) SUMA_free(bfull); bfull=NULL;
    
+   SUMA_COPY_DSET_ALL_COL_ATTRIBUTES(dset, ndset);
+
    if (LocalHead) {
       SUMA_ShowDset(ndset, 0, NULL);
    }
+   
    SUMA_RETURN(ndset);
 }
 
