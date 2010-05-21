@@ -995,7 +995,7 @@ fprintf(stderr,"ax1=%d ax2=%d ax3=%d\n",ax1,ax2,ax3) ;
                   ( fabs(tvec.xyz[2])        < 0.001   )    ;
        }
 
-       if( verb && skipit ) fprintf(stderr,"[skip]");
+       if( skipit ) fprintf(stderr,"[Matrix near identity, skipping]");
      }
 
      /** carry out the rotation **/
