@@ -83,6 +83,10 @@ void usage_SurfToSurf (SUMA_GENERIC_ARGV_PARSE *ps)
 "              of columns.\n"
 "              If -data option is not specified and Data is in PARAM_LIST\n"
 "              then the XYZ coordinates of SO2's nodes are the data.\n"
+"  -dset DSET: Treat like -data, but works best with datasets, preserving\n"
+"              header information in the output.\n"
+"              -dset and -data are mutually exclusive.\n"
+"              Also, -dset and parameter Data cannot be mixed.\n"
 "  -node_indices NODE_INDICES: 1D file containing the indices of S1\n"
 "                              to consider. The default is all of the\n"
 "                              nodes in S1. Only one column of values is\n"
@@ -224,6 +228,10 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfToSurf_ParseInput(char *argv[], int a
       }
       
       if (!brk && accepting_out && (strcmp(argv[kar], "Data") == 0)) {
+         if (Opt->Data < 0) {
+            fprintf (SUMA_STDERR, "Cannot mix parameter Data with -dset option \n");
+            exit (1);   
+         }
          Opt->Data = 1;
          brk = YUP;
       }
@@ -239,13 +247,37 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfToSurf_ParseInput(char *argv[], int a
          if (strcmp(argv[kar],"_XYZ_") == 0) { 
             /* default Opt->in_name = NULL*/
             if (Opt->in_name) {
-               SUMA_SL_Err("Unexpected non null value");
+               SUMA_SL_Err("Input already specified."
+                           "Do not mix -data and -dset");
                exit (1);
             }
          } else {
             Opt->in_name = SUMA_copy_string(argv[kar]);
          }
          Opt->Data = 1;
+         brk = YUP;
+      }
+      
+      if (!brk && (strcmp(argv[kar], "-dset") == 0))
+      {
+         if (kar+1 >= argc)
+         {
+            fprintf (SUMA_STDERR, "need a name after -dset \n");
+            exit (1);
+         }
+         ++kar;
+         if (strcmp(argv[kar],"_XYZ_") == 0 || Opt->Data > 0) { 
+            /* default Opt->in_name = NULL*/
+            if (Opt->in_name || Opt->Data > 0) {
+               SUMA_SL_Err("Input already specified."
+                           "Do not mix -data and -dset."
+                           "Or use parameter DATA with -dset");
+               exit (1);
+            }
+         } else {
+            Opt->in_name = SUMA_copy_string(argv[kar]);
+         }
+         Opt->Data = -1;
          brk = YUP;
       }
       
@@ -306,13 +338,13 @@ int main (int argc,char *argv[])
    SUMA_M2M_STRUCT *M2M = NULL;
    int N_Spec=0, *nodeind = NULL, N_nodeind, icol, i, j;
    MRI_IMAGE *im = NULL, *im_data=NULL;
-	int nvec, ncol=0, nvec_data, ncol_data, Nchar;
+	int nvec=0, ncol=0, nvec_data=0, ncol_data=0, Nchar=0;
    float *far = NULL, *far_data=NULL, *dt = NULL, *projdir=NULL;
    char *outname = NULL, *s=NULL, sbuf[100];
    void *SO_name = NULL;   
    FILE *outptr=NULL;
    SUMA_Boolean exists = NOPE;
-   SUMA_INDEXING_ORDER d_order;
+   SUMA_INDEXING_ORDER d_order = SUMA_NO_ORDER;
    SUMA_STRING *SS=NULL;
    SUMA_Boolean LocalHead = NOPE;
 
@@ -486,26 +518,30 @@ int main (int argc,char *argv[])
          exit(1);
       }
    } 
-   /* a file containing data? */
-   if (Opt->in_name) {
-      /* When you are ready to work with dsets, you should 
-      checkout the function morphDsetToStd. It uses M2M */
-      im_data = mri_read_1D(Opt->in_name);
-      if (!im_data) { SUMA_SL_Err("Failed to read 1D file of data"); exit(1);}
-      far_data = MRI_FLOAT_PTR(im_data);
-      nvec_data = im_data->nx;
-      ncol_data = im_data->ny;
-      if (nvec_data != SO2->N_Node) {
-         SUMA_SL_Err("Your data file must have one row "
-                     "for each node in surface 2.\n"); exit(1);
+   /* a 1D file containing data, or Data parameter (for XYZ)? */
+   if (Opt->Data > 0) {
+      if (Opt->in_name) {
+         /* When you are ready to work with dsets, you should 
+         checkout the function morphDsetToStd. It uses M2M */
+         im_data = mri_read_1D(Opt->in_name);
+         if (!im_data) { SUMA_SL_Err("Failed to read 1D file of data"); exit(1);}
+         far_data = MRI_FLOAT_PTR(im_data);
+         nvec_data = im_data->nx;
+         ncol_data = im_data->ny;
+         if (nvec_data != SO2->N_Node) {
+            SUMA_SL_Err("Your data file must have one row "
+                        "for each node in surface 2.\n"); exit(1);
+         }
+         d_order = SUMA_COLUMN_MAJOR;
+      } else { 
+         im_data = NULL;
+         far_data = SO2->NodeList;
+         nvec_data = SO2->N_Node;
+         ncol_data = 3;
+         d_order = SUMA_ROW_MAJOR;
       }
-      d_order = SUMA_COLUMN_MAJOR;
-   } else { 
-      im_data = NULL;
-      far_data = SO2->NodeList;
-      nvec_data = SO2->N_Node;
-      ncol_data = 3;
-      d_order = SUMA_ROW_MAJOR;
+   } else {
+      /* just -dset */
    }
    
      
@@ -526,7 +562,7 @@ int main (int argc,char *argv[])
    }
    
    /* Now please do the interpolation */
-   if (Opt->Data) {
+   if (Opt->Data > 0) {
       if (Opt->NearestNode > 1) 
          dt = SUMA_M2M_interpolate( M2M, far_data, ncol_data, 
                                     nvec_data, d_order, 0 );
@@ -537,9 +573,36 @@ int main (int argc,char *argv[])
          SUMA_SL_Err("Failed to interpolate");
          exit(1);
       }
+   } else if (Opt->Data < 0) {
+         SUMA_DSET *dset=NULL, *dseto=NULL;
+         char *oname=NULL, *uname=NULL;
+         int oform=SUMA_ASCII_NIML, iform=SUMA_NO_DSET_FORMAT;
+         if (Opt->NodeDbg>= 0) {
+            SUMA_S_Notev("Processing dset %s\n", Opt->in_name);
+         }
+         iform = SUMA_NO_DSET_FORMAT;
+         if (!(dset = SUMA_LoadDset_s (Opt->in_name, &iform, 0))) {
+            SUMA_S_Errv("Failed to load %s\n", Opt->in_name);
+            exit(1);
+         }
+         if (!(dseto = SUMA_morphDsetToStd ( dset, M2M, 
+                                             Opt->NearestNode == 1 ? 1:0))) {
+            SUMA_S_Errv("Failed to map %s\n", Opt->in_name);
+            exit(1);
+         }
+         uname = SUMA_append_replace_string(
+               SUMA_FnameGet(Opt->in_name,"pa", SUMAg_CF->cwd), 
+                             SUMA_FnameGet(Opt->in_name,"f",SUMAg_CF->cwd), 
+                             Opt->out_prefix, 0);
+         oname = SUMA_WriteDset_s (uname, dseto, oform, 1, 1);
+         if (Opt->NodeDbg>= 0) SUMA_S_Notev("Wrote %s\n", oname);
+         if (oname) SUMA_free(oname); oname=NULL;
+         if (uname) SUMA_free(uname); oname=NULL;
+         if (dseto) SUMA_FreeDset(dseto); dseto = NULL;
+         if (dset) SUMA_FreeDset(dset); dset = NULL;      
    }
    
-   SUMA_LH("Forming the output");
+   SUMA_LH("Forming the remaining output");
    outptr = fopen(outname,"w");
    if (!outptr) {
       SUMA_SL_Err("Failed to open file for output.\n");
@@ -609,7 +672,7 @@ int main (int argc,char *argv[])
          , icol); 
          ++icol;
    }
-   if (Opt->Data) {
+   if (Opt->Data > 0) {
       if (!Opt->in_name) {
          SS = SUMA_StringAppend_va(SS, 
       "#Col. %d..%d:\n"
@@ -664,7 +727,7 @@ SS = SUMA_StringAppend_va(SS,
       if (Opt->DistanceToMesh) { 
          fprintf(outptr,"%6s   ", MV_format_fval2(M2M->PD[i], Nchar)); 
       }
-      if (Opt->Data) {
+      if (dt && Opt->Data > 0) {
          if (!Opt->in_name) {
             fprintf(outptr,"%6s   ", MV_format_fval2(dt[3*i], Nchar));
             fprintf(outptr,"%6s   ", MV_format_fval2(dt[3*i+1], Nchar));

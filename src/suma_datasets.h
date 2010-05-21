@@ -1182,6 +1182,16 @@ If ind is NULL, then the index will be the line number.
       SUMA_S_Err("Failed to copy dset attributes");   \
    }  \
 }
+#define SUMA_COPY_DSET_ALL_COL_ATTRIBUTES(odset, ndset) {   \
+   int m_i=-1;\
+   if (SDSET_VECNUM(odset) != SDSET_VECNUM(ndset)) {\
+      SUMA_S_Err("Mismatch in number of columns");   \
+   } \
+   for (m_i=0; m_i<SDSET_VECNUM(dset); ++m_i) { \
+      SUMA_COPY_DSET_COL_ATTRIBUTES(odset, ndset, m_i, m_i);   \
+   }  \
+}
+
 #define SUMA_COPY_DSETWIDE_ATTRIBUTES(odset, ndset) {   \
    char *m_ATR_LIST[64] = { \
       "TR",  \
