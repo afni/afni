@@ -2,20 +2,20 @@
 
 /***
   Ideas for making this program more cromulently embiggened:
-   ++ 2-way case: produce 1-way result sub-bricks as well
+   ++ 2-way case: produce 1-way result sub-bricks as well -- DONE
    ++ Rank or other robust analog to t-test
    ++ Send sub-brick data as scaled shorts to reduce transmit time
    ++ Fix shm: bug in AFNI libray
    ++ Have non-server modes:
     -- To output dataset to disk
     -- 3dTcorrMap-like scan through whole brain as seed
+   ++ Per-subject covariates
 ***/
 
 #include "mrilib.h"
 
 #ifdef USE_OMP
 #include <omp.h>
-#include "thd_ttest.c"  /* to make sure it's compiled in with OpenMP */
 #endif
 
 /*--- prototypes ---*/
@@ -32,17 +32,20 @@ static int debug = 0 ;  /* default non-debug mode */
 typedef signed char sbyte ;  /* 02 Feb 2010 */
 
 #undef  UINT32
-#undef  MAXCOV
 #define UINT32 unsigned int  /* 20 May 2010 */
-#define MAXCOV 32
+#undef  MAXCOV
+#define MAXCOV 31
 
 void regress_toz( int numA , float *zA ,
                   int numB , float *zB , int opcode ,
                   int mcov ,
                   float *xA , float *psinvA , float *xtxinvA ,
                   float *xB , float *psinvB , float *xtxinvB ,
-                  UINT32 testA , UINT32 testB , UINT32 testAB ,
                   float *outvec , float *workspace             ) ;
+
+void GRINCOR_many_regress( int nvec , int numx , float **xxar ,
+                                      int numy , float **yyar ,
+                                      int nout , float **dtar  ) ;
 
 /*----------------------------------------------------------------------------*/
 
@@ -125,6 +128,8 @@ typedef struct {
   short **sv   ;  /* sv[i] = short array [nvals[i]*nvec] for i-th dataset */
   sbyte **bv   ;  /* bv[i] = sbyte array [nvals[i]*nvec] for i-th dataset */
 
+  char **dslab ;  /* dslab[i] = label string for i-th dataset [23 May 2010] */
+
   long long nbytes ;  /* number of bytes in the data array */
 
   /* Surface stuff  ZSS Jan 09 2010 */
@@ -172,6 +177,7 @@ MRI_shindss * GRINCOR_read_input( char *fname )
    char *geometry_string=NULL ;
    THD_3dim_dataset *tdset=NULL; int nvox;
    int no_ivec=0 , *ivec=NULL , *nvals=NULL , nvec,ndset ; float *fac=NULL ;
+   NI_str_array *slabar=NULL ;
 
    if( fname == NULL || *fname == '\0' ) GQUIT(NULL) ;
 
@@ -183,7 +189,7 @@ MRI_shindss * GRINCOR_read_input( char *fname )
    if( strcmp(nel->name,"3dGroupInCorr") != 0 )
      GQUIT("data element name is not '3dGroupInCorr'") ;
 
-   /* headerless ==> using all voxels */
+   /* no data vector ==> using all voxels */
 
    no_ivec = ( nel->vec_num < 1 ||
                nel->vec_len < 1 || nel->vec_typ[0] != NI_INT ) ;
@@ -211,6 +217,15 @@ MRI_shindss * GRINCOR_read_input( char *fname )
    if( nvar == NULL || nvar->num < ndset )
      GQUIT("nvals attribute doesn't match ndset") ;
    nvals = nvar->ar ; nvar->ar = NULL ; NI_delete_int_array(nvar) ;
+
+   /* dataset labels [23 May 2010] */
+
+   atr = NI_get_attribute(nel,"dset_labels") ;
+   if( atr != NULL ){
+     slabar = NI_decode_string_list(atr,";") ;
+     if( slabar == NULL || slabar->num < ndset )
+       GQUIT("dset_labels attribute invalid") ;
+   }
 
    /* datum of datasets */
 
@@ -334,6 +349,8 @@ MRI_shindss * GRINCOR_read_input( char *fname )
    shd->nuse = ndset ;
    shd->use  = (int *)malloc(sizeof(int)*ndset) ;
    for( ids=0 ; ids < ndset ; ids++ ) shd->use[ids] = ids ;
+
+   shd->dslab = (slabar != NULL) ? slabar->str : NULL ;  /* 23 May 2010 */
 
    /*--- now have to map data from disk ---*/
 
@@ -584,8 +601,14 @@ static MRI_shindss *shd_BBB = NULL ;
 static int ttest_opcode     = -1   ;  /* 0=pooled, 1=unpooled, 2=paired */
 static int ttest_opcode_max =  2   ;
 
+static UINT32 testA, testB, testAB ;  /* 23 May 2010 */
+static int mcov = 0 ;
+static int nout = 0 ;
+static float *axx , *axx_psinv , *axx_xtxinv ;
+static float *bxx , *bxx_psinv , *bxx_xtxinv ;
+
 #define MAX_LABEL_SIZE 12
-#define NSEND_LIMIT     3
+#define NSEND_LIMIT     9
 
 int main( int argc , char *argv[] )
 {
@@ -608,9 +631,12 @@ int main( int argc , char *argv[] )
    char *qlab_AAA=NULL , *qlab_BBB=NULL ;
    int   lset_AAA=0    ,  lset_BBB=0 ;
    int   *use_AAA=NULL ,  *use_BBB=NULL ;  /* lists of subjects to use */
+
    NI_element   *covnel=NULL ;       /* covariates */
    NI_str_array *covlab=NULL ;
-   int             mcov=0 ;
+   MRI_IMAGE *axxim , *axxim_psinv , *axxim_xtxinv ;
+   MRI_IMAGE *bxxim , *bxxim_psinv , *bxxim_xtxinv ;
+   float **dtar ;
 
    /*-- enlighten the ignorant and brutish sauvages? --*/
 
@@ -739,13 +765,26 @@ int main( int argc , char *argv[] )
       "               must be the same, and the datasets must have been input to\n"
       "               3dSetupGroupInCorr in the same relative order when each\n"
       "               collection was created. (Duh.)\n"
+#if 0
       " -nosix    = For a 2-sample situation, the program by default computes\n"
       "             not only the t-test for the difference between the samples,\n"
       "             but also the individual (setA and setB) 1-sample t-tests, giving\n"
       "             6 sub-bricks that are sent to AFNI.  If you don't want\n"
       "             these 4 extra 1-sample sub-bricks, use the '-nosix' option.\n"
-      "   ++ None of these 4 options means anything for a 1-sample t-test\n"
+#endif
+      "   ++ None of these options means anything for a 1-sample t-test\n"
       "      (i.e., where you don't use -setB).\n"
+      "\n"
+      "*** Dataset-Level Covariates ***\n"
+      "\n"
+      " -covariates cf = Read file 'cf' that contains covariates values for each dataset\n"
+      "                  input (in both -setA and -setB; there can only at most one\n"
+      "                  -covariates option).  Format of the file\n"
+      "                      subj    IQ   age\n"
+      "                      Elvis   143   37\n"
+      "                      Fred     85   59\n"
+      "                      Frank   129   28\n"
+      "                      Lucy    133   32\n"
       "\n"
       "*** Other Options ***\n"
       "\n"
@@ -847,9 +886,11 @@ int main( int argc , char *argv[] )
        TalkToAfni = 0 ; nopt++ ; continue ;
      }
 
+#if 0
      if( strcasecmp(argv[nopt],"-nosix") == 0 ){
        nosix = 1 ; nopt++ ; continue ;
      }
+#endif
 
      if( strcasecmp(argv[nopt],"-seedrad") == 0 ){
        if( ++nopt >= argc ) ERROR_exit("need 1 argument after option '%s'",argv[nopt-1]) ;
@@ -891,11 +932,13 @@ int main( int argc , char *argv[] )
        mcov = covnel->vec_num - 1 ;
        if( mcov < 1 )
          ERROR_exit("Need at least 2 columns in -covariates file!") ;
+       else if( mcov > MAXCOV )
+         ERROR_exit("%d covariates in file, more than max allowed %d",mcov,MAXCOV) ;
        lab = NI_get_attribute( covnel , "Labels" ) ;
        if( lab != NULL ){
-         ININFO_message("Covariates labels: %s",lab) ;
+         ININFO_message("Covariate column labels: %s",lab) ;
          covlab = NI_decode_string_list( lab , ";" ) ;
-         if( covlab == NULL || covlab->num < covnel->vec_num )
+         if( covlab == NULL || covlab->num < mcov+1 )
            ERROR_exit("can't decode labels properly?!") ;
        } else {
          ERROR_exit("Can't get labels from -covariates file '%s'",argv[nopt]) ;
@@ -907,6 +950,8 @@ int main( int argc , char *argv[] )
                          covlab->str[kk] ) ;
            nbad++ ;
          }
+         if( strlen(covlab->str[kk]) > MAX_LABEL_SIZE )  /* truncate labels to fit */
+           covlab->str[kk][MAX_LABEL_SIZE] = '\0' ;
        }
        if( nbad > 0 ) ERROR_exit("Cannot continue :-(") ;
        nopt++ ; continue ;
@@ -930,6 +975,7 @@ int main( int argc , char *argv[] )
        nopt++ ; continue ;
      }
 
+#if 0
      if( strcasecmp(argv[nopt],"-useA") == 0 ){
        if( ++nopt >= argc ) ERROR_exit("need 1 argument after option '%s'",argv[nopt-1]) ;
        if( use_AAA != NULL ) ERROR_exit("you can't use -useA twice!") ;
@@ -945,6 +991,7 @@ int main( int argc , char *argv[] )
        if( use_BBB == NULL || use_BBB[0] <= 0 )
          ERROR_exit("can't decode argument after -useB") ;
      }
+#endif
 
      if( strcasecmp(argv[nopt],"-setA") == 0 ){
        char *fname , *cpt ;
@@ -1037,6 +1084,7 @@ int main( int argc , char *argv[] )
      ttest_opcode = 0 ;
    }
 
+#if 0
    /*-- attach use list to dataset collections [07 Apr 2010] --*/
 
    if( use_AAA != NULL ){
@@ -1060,6 +1108,81 @@ int main( int argc , char *argv[] )
    } else if( use_BBB != NULL ){
      WARNING_message("-useB was given, but -setB wasn't given!") ;
    }
+#endif
+
+   /*---------- Process covariates into matrices [23 May 2010] ----------*/
+
+#undef  AXX
+#define AXX(i,j) axx[(i)+(j)*(nA)]    /* i=0..nA-1 , j=0..mcov */
+#undef  BXX
+#define BXX(i,j) bxx[(i)+(j)*(nB)]    /* i=0..nB-1 , j=0..mcov */
+
+   if( mcov > 0 ){
+     int nbad=0 , nA , nB ;
+
+     if( shd_AAA->dslab == NULL )
+       ERROR_exit("Can't use covariates, since setA doesn't have dataset labels!") ;
+     if( shd_BBB != NULL && shd_BBB->dslab == NULL )
+       ERROR_exit("Can't use covariates, since setB doesn't have dataset labels!") ;
+
+     if( verb ) INFO_message("Setting up regression matrices for covariates") ;
+
+     /*--- setup the setA regression matrix ---*/
+
+     nA    = shd_AAA->ndset ;
+     axxim = mri_new( nA , mcov+1 , MRI_float ) ;
+     axx   = MRI_FLOAT_PTR(axxim) ;
+     for( kk=0 ; kk < shd_AAA->ndset ; kk++ ){  /* loop over datasets */
+       ii = string_search( shd_AAA->dslab[kk] , /* find which covariate */
+                           covnel->vec_len , (char **)covnel->vec[0] ) ;
+       if( ii < 0 ){
+         ERROR_message("Can't find dataset label '%s' in covariates file" ,
+                       shd_AAA->dslab[kk] ) ;
+         nbad++ ;
+       } else {             /* ii-th row of covariates == kk-th dataset */
+         AXX(kk,0) = 1.0f ;
+         for( jj=1 ; jj <= mcov ; jj++ )
+           AXX(kk,jj) = ((float *)covnel->vec[jj])[ii] ;
+       }
+     }
+     if( nbad == 0 ){  /* process the array */
+       MRI_IMARR *impr = mri_matrix_psinv_pair( axxim , 0.0f ) ;
+       if( impr == NULL ) ERROR_exit("Can't process setA covariate matrix?! :-(") ;
+       axxim_psinv  = IMARR_SUBIM(impr,0) ; axx_psinv  = MRI_FLOAT_PTR(axxim_psinv ) ;
+       axxim_xtxinv = IMARR_SUBIM(impr,1) ; axx_xtxinv = MRI_FLOAT_PTR(axxim_xtxinv) ;
+     }
+
+     /*--- setup the setB regression matrix ---*/
+
+     if( shd_BBB != NULL ){
+       nB    = shd_BBB->ndset ;
+       bxxim = mri_new( nB , mcov+1 , MRI_float ) ;
+       bxx   = MRI_FLOAT_PTR(bxxim) ;
+       for( kk=0 ; kk < shd_BBB->ndset ; kk++ ){  /* loop over datasets */
+         ii = string_search( shd_BBB->dslab[kk] , /* find which covariate */
+                             covnel->vec_len , (char **)covnel->vec[0] ) ;
+         if( ii < 0 ){
+           ERROR_message("Can't find dataset label '%s' in covariates file" ,
+                         shd_BBB->dslab[kk] ) ;
+           nbad++ ;
+         } else {             /* ii-th row of covariates == kk-th dataset */
+           BXX(kk,0) = 1.0f ;
+           for( jj=1 ; jj <= mcov ; jj++ )
+             BXX(kk,jj) = ((float *)covnel->vec[jj])[ii] ;
+         }
+       }
+       if( nbad == 0 ){  /* process the array */
+         MRI_IMARR *impr = mri_matrix_psinv_pair( bxxim , 0.0f ) ;
+         if( impr == NULL ) ERROR_exit("Can't process setB covariate matrix?! :-(") ;
+         bxxim_psinv  = IMARR_SUBIM(impr,0) ; bxx_psinv  = MRI_FLOAT_PTR(bxxim_psinv ) ;
+         bxxim_xtxinv = IMARR_SUBIM(impr,1) ; bxx_xtxinv = MRI_FLOAT_PTR(bxxim_xtxinv) ;
+       }
+     }
+
+     if( nbad > 0 )
+       ERROR_exit("Can't continue past the above covariates errors :-((") ;
+
+   } /* covariates regression matrices now setup */
 
    /* scan through all the data, which will make it be page faulted
       into RAM, which will make the correlation-izing process faster;
@@ -1109,26 +1232,49 @@ int main( int argc , char *argv[] )
    /*-- Create VOLUME_DATA NIML element to hold the brick data --*/
 
    nelset = NI_new_data_element( "3dGroupInCorr_dataset" , shd_AAA->nvec ) ;
-   NI_add_column( nelset, NI_FLOAT, NULL );
-   NI_add_column( nelset, NI_FLOAT, NULL );
-   neldar = (float *)nelset->vec[0];  /* neldar = delta  sub-brick */
-   nelzar = (float *)nelset->vec[1];  /* nelzar = Zscore sub-brick */
-   if( neldar == NULL || nelzar == NULL )
-     ERROR_exit("Can't setup output dataset?") ; /* should never happen */
 
-   /* for a 2-sample test, create arrays for the 1-sample results as well */
+   /*----- if no covariates, do it the olden style way -----*/
 
-   if( dosix ){
-     NI_add_column( nelset, NI_FLOAT, NULL ); neldar_AAA = (float *)nelset->vec[2];
-     NI_add_column( nelset, NI_FLOAT, NULL ); nelzar_AAA = (float *)nelset->vec[3];
-     NI_add_column( nelset, NI_FLOAT, NULL ); neldar_BBB = (float *)nelset->vec[4];
-     NI_add_column( nelset, NI_FLOAT, NULL ); nelzar_BBB = (float *)nelset->vec[5];
-     if( neldar_AAA == NULL || nelzar_AAA == NULL ||
-         neldar_BBB == NULL || nelzar_BBB == NULL   )
-      ERROR_exit("Can't setup output dataset?") ; /* should never transpire */
+   if( mcov == 0 ){
+     NI_add_column( nelset, NI_FLOAT, NULL );
+     NI_add_column( nelset, NI_FLOAT, NULL );
+     neldar = (float *)nelset->vec[0];  /* neldar = delta  sub-brick */
+     nelzar = (float *)nelset->vec[1];  /* nelzar = Zscore sub-brick */
+     if( neldar == NULL || nelzar == NULL )
+       ERROR_exit("Can't setup output dataset?") ; /* should never happen */
+
+     /* for a 2-sample test, create arrays for the 1-sample results as well */
+
+     if( dosix ){
+       NI_add_column( nelset, NI_FLOAT, NULL ); neldar_AAA = (float *)nelset->vec[2];
+       NI_add_column( nelset, NI_FLOAT, NULL ); nelzar_AAA = (float *)nelset->vec[3];
+       NI_add_column( nelset, NI_FLOAT, NULL ); neldar_BBB = (float *)nelset->vec[4];
+       NI_add_column( nelset, NI_FLOAT, NULL ); nelzar_BBB = (float *)nelset->vec[5];
+       if( neldar_AAA == NULL || nelzar_AAA == NULL ||
+           neldar_BBB == NULL || nelzar_BBB == NULL   )
+        ERROR_exit("Can't setup output dataset?") ; /* should never transpire */
+     }
+
+     nout = (dosix) ? 6 : 2 ;
+
+   } else {  /* alternative setup for covariates results */
+
+     nout = (dosix) ? 6*(mcov+1) : 2*(mcov+1) ;
+     dtar = (float **)malloc(sizeof(float *)*nout) ;
+     for( kk=0 ; kk < nout ; kk++ ){
+       NI_add_column( nelset , NI_FLOAT , NULL ) ;
+       dtar[kk] = (float *)nelset->vec[kk] ;
+       if( dtar[kk] == NULL ) ERROR_exit("Can't setup output dataset?!") ;
+     }
+     if( shd_BBB != NULL ){
+       testAB = (UINT32)(-1) ; testA  = testB = (dosix) ? testAB : 0 ;
+     } else {
+       testAB = testB = 0 ; testA = (UINT32)(-1) ;
+     }
+
    }
 
-   /*-- this stuff is one-time-only setup of the I/O to AFNI --*/
+   /*========= this stuff is one-time-only setup of the I/O to AFNI =========*/
 
    atexit(GI_exit) ;             /* call this when program ends */
 
@@ -1139,7 +1285,7 @@ int main( int argc , char *argv[] )
 
    /* name of NIML stream (socket) to open */
 
-   if(TalkToAfni ){
+   if( TalkToAfni ){
      sprintf( nsname , "tcp:%s:%d" , afnihost , AFNI_NIML_PORT ) ;
    } else {
      sprintf( nsname , "tcp:%s:%d" , afnihost , SUMA_GICORR_PORT ) ;
@@ -1196,11 +1342,18 @@ int main( int argc , char *argv[] )
 
    NI_set_attribute( nelcmd , "geometry_string", shd_AAA->geometry_string  ) ;
    NI_set_attribute( nelcmd , "target_name"    , "A_GRP_ICORR"             ) ;
-   NI_set_attribute( nelcmd , "target_nvals"   , dosix ? "6" : "2" ) ;
 
    /* 04 Feb 2010: create sub-brick labels here, based on what we compute */
 
-   { char bricklabels[32*MAX_LABEL_SIZE+64] ;
+   NI_set_attribute( nelcmd , "label_AAA" , label_AAA ) ;
+   if( shd_BBB != NULL )
+     NI_set_attribute( nelcmd , "label_BBB" , label_BBB ) ;
+
+   if( mcov == 0 ){
+     char bricklabels[32*MAX_LABEL_SIZE+64] ;
+
+     NI_set_attribute( nelcmd , "target_nvals" , dosix ? "6" : "2" ) ;
+
      if( shd_BBB == NULL ){  /* 1 sample */
        sprintf( bricklabels , "%s_mean ; %s_Zscr" , label_AAA , label_AAA ) ;
      } else {                /* 2 samples */
@@ -1213,9 +1366,39 @@ int main( int argc , char *argv[] )
      }
      NI_set_attribute( nelcmd , "target_labels" , bricklabels ) ;
 
-     NI_set_attribute( nelcmd , "label_AAA" , label_AAA ) ;
-     if( shd_BBB != NULL )
-       NI_set_attribute( nelcmd , "label_BBB" , label_BBB ) ;
+   } else {  /* labels for the myriad of covariates results [23 May 2010] */
+     char *bricklabels = (char *)calloc(sizeof(char),(3*MAX_LABEL_SIZE+16)*(nout+1)) ;
+
+     if( testAB ){
+       sprintf( bricklabels , "%s-%s_mean ; %s-%s_Zscr" ,
+                label_AAA , label_BBB , label_AAA , label_BBB ) ;
+       for( kk=1 ; kk <= mcov ; kk++ )
+         sprintf( bricklabels+strlen(bricklabels) ,
+                  "%s-%s_%s ; %s-%s_%s_Zscr" ,
+                label_AAA , label_BBB , covlab->str[kk] ,
+                label_AAA , label_BBB , covlab->str[kk]  ) ;
+     }
+     if( testA ){
+       sprintf( bricklabels+strlen(bricklabels) ,
+                "%s_mean ; %s_Zscr" , label_AAA , label_AAA ) ;
+       for( kk=1 ; kk <= mcov ; kk++ )
+         sprintf( bricklabels+strlen(bricklabels) ,
+                  "%s_%s ; %s_%s_Zscr" ,
+                  label_AAA , covlab->str[kk] ,
+                  label_AAA , covlab->str[kk]  ) ;
+     }
+     if( testB ){
+       sprintf( bricklabels+strlen(bricklabels) ,
+                "%s_mean ; %s_Zscr" , label_BBB , label_BBB ) ;
+       for( kk=1 ; kk <= mcov ; kk++ )
+         sprintf( bricklabels+strlen(bricklabels) ,
+                  "%s_%s ; %s_%s_Zscr" ,
+                  label_BBB , covlab->str[kk] ,
+                  label_BBB , covlab->str[kk]  ) ;
+     }
+
+     NI_set_attribute( nelcmd , "target_labels" , bricklabels ) ;
+     free(bricklabels) ;
    }
 
    /* ZSS: set surface attributes */
@@ -1362,6 +1545,7 @@ int main( int argc , char *argv[] )
          }
        }
 
+#if 0
        /* t-test method (for 2-sample case only) */
 
        atr = NI_get_attribute(nelcmd,"ttest_opcode") ;
@@ -1372,6 +1556,7 @@ int main( int argc , char *argv[] )
          if( verb > 2 )
            ININFO_message(" ttest_opcode set to %d",ttest_opcode) ;
        }
+#endif
 
      /** unknown command type **/
 
@@ -1383,7 +1568,7 @@ int main( int argc , char *argv[] )
 
      }
 
-     /** get rid of the message from AFNI **/
+     /** throw away the message from AFNI **/
 
      NI_free_element( nelcmd ) ;
 
@@ -1418,26 +1603,38 @@ int main( int argc , char *argv[] )
 
      /* step 3: lots of t-test-ification */
 
-     if( verb > 3 )
-       ININFO_message(" start %d-sample t-test-izing" , (ndset_BBB > 0) ? 2 : 1 ) ;
-     GRINCOR_many_ttest( nvec , ndset_AAA , dotprod_AAA ,
-                                ndset_BBB , dotprod_BBB , neldar,nelzar ) ;
+     if( mcov == 0 ){   /*-- no covariates ==> pure t-tests --*/
 
-     /* 1-sample results for the 2-sample case? */
-
-     if( dosix ){
-       if( verb > 3 ) ININFO_message(" start 1-sample t-test-izing for %s",label_AAA) ;
+       if( verb > 3 )
+         ININFO_message(" start %d-sample t-test-izing" , (ndset_BBB > 0) ? 2 : 1 ) ;
        GRINCOR_many_ttest( nvec , ndset_AAA , dotprod_AAA ,
-                                  0         , NULL        , neldar_AAA,nelzar_AAA ) ;
-       if( verb > 3 ) ININFO_message(" start 1-sample t-test-izing for %s",label_BBB) ;
-       GRINCOR_many_ttest( nvec , ndset_BBB , dotprod_BBB ,
-                                  0         , NULL        , neldar_BBB,nelzar_BBB ) ;
-     }
+                                  ndset_BBB , dotprod_BBB , neldar,nelzar ) ;
 
-     if( verb > 2 || (verb==1 && nsend < NSEND_LIMIT) ){
-       ctim = NI_clock_time() ;
-       ININFO_message(" finished t-test-izing: elapsed=%d ms",ctim-btim) ;
-       btim = ctim ;
+       /* 1-sample results for the 2-sample case? */
+
+       if( dosix ){
+         if( verb > 3 ) ININFO_message(" start 1-sample t-test-izing for %s",label_AAA) ;
+         GRINCOR_many_ttest( nvec , ndset_AAA , dotprod_AAA ,
+                                    0         , NULL        , neldar_AAA,nelzar_AAA ) ;
+         if( verb > 3 ) ININFO_message(" start 1-sample t-test-izing for %s",label_BBB) ;
+         GRINCOR_many_ttest( nvec , ndset_BBB , dotprod_BBB ,
+                                    0         , NULL        , neldar_BBB,nelzar_BBB ) ;
+       }
+
+       if( verb > 2 || (verb==1 && nsend < NSEND_LIMIT) ){
+         ctim = NI_clock_time() ;
+         ININFO_message(" finished t-test-izing: elapsed=%d ms",ctim-btim) ;
+         btim = ctim ;
+       }
+
+     } else {  /*-- covariates ==> regression analyses --*/
+
+       if( verb > 3 )
+         ININFO_message(" start %d-sample regressionizing" , (ndset_BBB > 0) ? 2 : 1 ) ;
+
+       GRINCOR_many_regress( nvec , ndset_AAA , dotprod_AAA ,
+                                    ndset_BBB , dotprod_BBB , nout , dtar ) ;
+
      }
 
      /** re-attach to AFNI using shared memory? **/
@@ -1608,16 +1805,9 @@ static double GIC_incbeta( double x , double p , double q , double beta )
    psq = p+q ;
    cx  = ONE-x ;
    if(  p < psq*x ){
-      xx   = cx ;
-      cx   = x ;
-      pp   = q ;
-      qq   = p ;
-      indx = 1 ;
+      xx   = cx ; cx   = x ; pp   = q ; qq   = p ; indx = 1 ;
    } else {
-      xx   = x ;
-      pp   = p ;
-      qq   = q ;
-      indx = 0 ;
+      xx   = x ; pp   = p ; qq   = q ; indx = 0 ;
    }
 
    term   = ONE ;
@@ -1655,6 +1845,9 @@ lab5:
 
 /*----------------------------------------------------------------------*/
 
+#undef  ZMAX
+#define ZMAX 13.0f
+
 double GIC_student_t2z( double tt , double dof )
 {
    double xx , pp , bb ;
@@ -1667,14 +1860,12 @@ double GIC_student_t2z( double tt , double dof )
    if( tt > 0.0 ) pp = 1.0 - 0.5 * pp ;
    else           pp = 0.5 * pp ;
 
-   xx = GIC_qginv(pp) ;
-   return -xx ;
+   xx = - GIC_qginv(pp) ;
+   if( xx > ZMAX ) xx = ZMAX ; else if( xx < -ZMAX ) xx = -ZMAX ;
+   return xx ;
 }
 
 /*=============================================================================*/
-
-#undef  ZMAX
-#define ZMAX 13.0f
 
 void GRINCOR_many_ttest( int nvec , int numx , float **xxar ,
                                     int numy , float **yyar ,
@@ -1683,7 +1874,7 @@ void GRINCOR_many_ttest( int nvec , int numx , float **xxar ,
    if( numy > 0 && yyar != NULL ){  /*--- 2 sample t-test ---*/
 
 #pragma omp parallel
- { int ii,kk ; float *xar,*yar ; float_pair delzsc ; float delta,zscore ;
+ { int ii,kk ; float *xar,*yar ; float_pair delzsc ;
    AFNI_OMP_START ;
    xar = (float *)malloc(sizeof(float)*numx) ;
    yar = (float *)malloc(sizeof(float)*numy) ;
@@ -1692,10 +1883,7 @@ void GRINCOR_many_ttest( int nvec , int numx , float **xxar ,
        for( ii=0 ; ii < numx ; ii++ ) xar[ii] = xxar[ii][kk] ;
        for( ii=0 ; ii < numy ; ii++ ) yar[ii] = yyar[ii][kk] ;
        delzsc  = ttest_toz( numx , xar , numy , yar , ttest_opcode ) ;
-       dar[kk] = delzsc.a ;
-       zscore  = delzsc.b ; if( zscore >  ZMAX ) zscore =  ZMAX ;
-                       else if( zscore < -ZMAX ) zscore = -ZMAX ;
-       zar[kk] = zscore ;
+       dar[kk] = delzsc.a ; zar[kk] = delzsc.b ;
      }
    free(yar) ; free(xar) ;
    AFNI_OMP_END ;
@@ -1704,17 +1892,14 @@ void GRINCOR_many_ttest( int nvec , int numx , float **xxar ,
    } else {  /*--- 1 sample t-test ---*/
 
 #pragma omp parallel
- { int kk,ii ; float zscore,delta , *xar ; float_pair delzsc ;
+ { int kk,ii ; float *xar ; float_pair delzsc ;
    AFNI_OMP_START ;
    xar = (float *)malloc(sizeof(float)*numx) ;
 #pragma omp for
      for( kk=0 ; kk < nvec ; kk++ ){
        for( ii=0 ; ii < numx ; ii++ ) xar[ii] = xxar[ii][kk] ;
        delzsc  = ttest_toz( numx , xar , 0 , NULL , ttest_opcode ) ;
-       dar[kk] = delzsc.a ;
-       zscore  = delzsc.b ; if( zscore >  ZMAX ) zscore =  ZMAX ;
-                       else if( zscore < -ZMAX ) zscore = -ZMAX ;
-       zar[kk] = zscore ;
+       dar[kk] = delzsc.a ; zar[kk] = delzsc.b ;
      }
    AFNI_OMP_END ;
  }
@@ -1850,12 +2035,11 @@ void regress_toz( int numA , float *zA ,
                   int mcov ,
                   float *xA , float *psinvA , float *xtxinvA ,
                   float *xB , float *psinvB , float *xtxinvB ,
-                  UINT32 testA , UINT32 testB , UINT32 testAB ,
                   float *outvec , float *workspace             )
 {
    int ii,jj,kt=0,tt,nws , mm=mcov+1 , nA=numA , nB=numB ;
    float *betA=NULL , *betB=NULL , *zdifA=NULL , *zdifB=NULL ;
-   float ssqA=0.0f , ssqB=0.0f , varA=0.0f , varB=0.0f ;
+   float ssqA=0.0f , ssqB=0.0f , varA=0.0f , varB=0.0f ; double dof=0.0 ;
    register float val ;
 
    nws = 0 ;
@@ -1868,7 +2052,7 @@ void regress_toz( int numA , float *zA ,
      zdifB = workspace + nws ; nws += nB ;
    }
 
-   /* compute estimates for A parameters */
+   /*-- compute estimates for A parameters --*/
 
    if( testA || testAB ){
      for( ii=0 ; ii < mm ; ii++ ){
@@ -1883,7 +2067,7 @@ void regress_toz( int numA , float *zA ,
      if( testA ){ varA = ssqA / (nA-mm) ; if( varA <= 0.0f ) varA = VBIG ; }
    }
 
-   /* compute estimates for B parameters */
+   /*-- compute estimates for B parameters --*/
 
    if( testB || testAB ){
      for( ii=0 ; ii < mm ; ii++ ){
@@ -1898,27 +2082,7 @@ void regress_toz( int numA , float *zA ,
      if( testB ){ varB = ssqB / (nB-mm) ; if( varB <= 0.0f ) varB = VBIG ; }
    }
 
-   /* carry out 1-sample A tests, if any */
-
-   if( testA ){
-     for( tt=0 ; tt < mm ; tt++ ){
-       if( (testA & (1 << tt)) == 0 ) continue ;  /* bitwise AND */
-       outvec[kt++] = betA[tt] ;
-       outvec[kt++] = betA[tt] / sqrtf( varA * xtxinvA[tt] ) ;
-     }
-   }
-
-   /* carry out 1-sample B tests, if any */
-
-   if( testB ){
-     for( tt=0 ; tt < mm ; tt++ ){
-       if( (testB & (1 << tt)) == 0 ) continue ;  /* bitwise AND */
-       outvec[kt++] = betB[tt] ;
-       outvec[kt++] = betB[tt] / sqrtf( varB * xtxinvB[tt] ) ;
-     }
-   }
-
-   /* carry out 2-sample (A-B) tests, if any */
+   /*-- carry out 2-sample (A-B) tests, if any --*/
 
    if( testAB ){
      float varAB ;
@@ -1930,23 +2094,102 @@ void regress_toz( int numA , float *zA ,
        }
        varAB /= (nA-mm) ; if( varAB <= 0.0f ) varAB = VBIG ;
 
+       dof = nA - mm ;
        for( tt=0 ; tt < mm ; tt++ ){
          if( (testAB & (1 << tt)) == 0 ) continue ;  /* bitwase AND */
          outvec[kt++] = betA[ii] - betB[ii] ;
-         outvec[kt++] = outvec[kt-1] / sqrtf( varAB*xtxinvA[tt] ) ;
+         val          = outvec[kt-1] / sqrtf( varAB*xtxinvA[tt] ) ;
+         outvec[kt++] = (float)GIC_student_t2z( (double)val , dof ) ;
        }
 
      } else {            /* unpaired, pooled variance */
 
        varAB = (ssqA+ssqB)/(nA+nB-2*mm) ; if( varAB <= 0.0f ) varAB = VBIG ;
 
+       dof = nA + nB - 2*mm ;
        for( tt=0 ; tt < mm ; tt++ ){
          if( (testAB & (1 << tt)) == 0 ) continue ;  /* bitwase AND */
          outvec[kt++] = betA[tt] - betB[tt] ;
-         outvec[kt++] = outvec[kt-1] / sqrtf( varAB*(xtxinvA[tt]+xtxinvB[tt]) );
+         val          = outvec[kt-1] / sqrtf( varAB*(xtxinvA[tt]+xtxinvB[tt]) );
+         outvec[kt++] = (float)GIC_student_t2z( (double)val , dof ) ;
        }
      } /* end of unpaired pooled variance */
    }
+
+   /*-- carry out 1-sample A tests, if any --*/
+
+   if( testA ){
+     dof = nA - mm ;
+     for( tt=0 ; tt < mm ; tt++ ){
+       if( (testA & (1 << tt)) == 0 ) continue ;  /* bitwise AND */
+       outvec[kt++] = betA[tt] ;
+       val          = betA[tt] / sqrtf( varA * xtxinvA[tt] ) ;
+       outvec[kt++] = (float)GIC_student_t2z( (double)val , dof ) ;
+     }
+   }
+
+   /*-- carry out 1-sample B tests, if any --*/
+
+   if( testB ){
+     dof = nB - mm ;
+     for( tt=0 ; tt < mm ; tt++ ){
+       if( (testB & (1 << tt)) == 0 ) continue ;  /* bitwise AND */
+       outvec[kt++] = betB[tt] ;
+       val          = betB[tt] / sqrtf( varB * xtxinvB[tt] ) ;
+       outvec[kt++] = (float)GIC_student_t2z( (double)val , dof ) ;
+     }
+   }
+
+   return ;
+}
+
+/*---------------------------------------------------------------------------*/
+
+void GRINCOR_many_regress( int nvec , int numx , float **xxar ,
+                                      int numy , float **yyar ,
+                                      int nout , float **dtar  )
+{
+   if( numy > 0 && yyar != NULL ){  /*--- 2 sample ---*/
+#pragma omp parallel
+   { int ii,kk ; float *xar,*yar,*var,*wss ;
+     AFNI_OMP_START ;
+     xar = (float *)malloc(sizeof(float)*numx) ;
+     yar = (float *)malloc(sizeof(float)*numy) ;
+     var = (float *)malloc(sizeof(float)*nout) ;
+     wss = (float *)malloc(sizeof(float)*(2*mcov+numx+numy+9)) ;
+#pragma omp for
+     for( kk=0 ; kk < nvec ; kk++ ){
+       for( ii=0 ; ii < numx ; ii++ ) xar[ii] = xxar[ii][kk] ;
+       for( ii=0 ; ii < numy ; ii++ ) yar[ii] = yyar[ii][kk] ;
+       regress_toz( numx , xar , numy , yar , ttest_opcode ,
+                    mcov ,
+                    axx , axx_psinv , axx_xtxinv ,
+                    bxx , bxx_psinv , bxx_xtxinv , var , wss ) ;
+       for( ii=0 ; ii < nout ; ii++ ) dtar[ii][kk] = var[ii] ;
+     }
+     free(wss) ; free(var) ; free(yar) ; free(xar) ;
+     AFNI_OMP_END ;
+
+   }} else {  /*--- 1 sample ---*/
+
+#pragma omp parallel
+   { int ii,kk ; float *xar,*var,*wss ;
+     AFNI_OMP_START ;
+     xar = (float *)malloc(sizeof(float)*numx) ;
+     var = (float *)malloc(sizeof(float)*nout) ;
+     wss = (float *)malloc(sizeof(float)*(2*mcov+numx+9)) ;
+#pragma omp for
+     for( kk=0 ; kk < nvec ; kk++ ){
+       for( ii=0 ; ii < numx ; ii++ ) xar[ii] = xxar[ii][kk] ;
+       regress_toz( numx , xar , 0 , NULL , ttest_opcode ,
+                    mcov ,
+                    axx , axx_psinv , axx_xtxinv ,
+                    NULL, NULL      , NULL       , var , wss ) ;
+       for( ii=0 ; ii < nout ; ii++ ) dtar[ii][kk] = var[ii] ;
+     }
+     free(wss) ; free(var) ; free(xar) ;
+     AFNI_OMP_END ;
+   }}
 
    return ;
 }
