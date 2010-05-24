@@ -697,6 +697,52 @@ STATUS("inv[XtX] from SVD") ;
    INIT_IMARR(imar); ADDTO_IMARR(imar,imp); ADDTO_IMARR(imar,imq); RETURN(imar);
 }
 
+/*---------------------------------------------------------------------------*/
+/*! Return the eigenvalues of NxN matrix [C'C], scaled to diagonal 1.
+    The output points to a 1D image as vector of floats, of length N=C->ny.
+    This image should be mri_free()-ed when you are done with it.
+-----------------------------------------------------------------------------*/
+
+MRI_IMAGE * mri_matrix_singvals( MRI_IMAGE *imc )    /* 24 May 2010 */
+{
+   int i,j,k , M , N ;
+   double *a , *e , sum ;
+   float *rmat ; MRI_IMAGE *ime ;
+
+ENTRY("mri_matrix_singvals") ;
+
+   if( imc == NULL || imc->kind != MRI_float ) RETURN(NULL);
+
+   M = imc->nx ; N = imc->ny ;
+   a = (double *)malloc( sizeof(double)*N*N ) ;
+   e = (double *)malloc( sizeof(double)*N   ) ;
+
+#undef  R
+#define R(i,j) rmat[(i)+(j)*M]
+   rmat = MRI_FLOAT_PTR(imc) ;
+
+   for( i=0 ; i < N ; i++ ){
+     for( j=0 ; j <= i ; j++ ){
+       sum = 0.0 ;
+       for( k=0 ; k < M ; k++ ) sum += R(k,i)*R(k,j) ;
+       a[j+N*i] = sum ; if( j < i ) a[i+N*j] = sum ;
+     }
+   }
+
+   for( i=0 ; i < N ; i++ ){
+     if( a[i+N*i] > 0.0 ) e[i] = 1.0 / sqrt(a[i+N*i]) ;
+     else                 e[i] = 1.0 ;
+   }
+   for( i=0 ; i < N ; i++ ){
+     for( j=0 ; j < N ; j++ ) a[j+N*i] *= e[i]*e[j] ;
+   }
+
+   symeigval_double( N , a , e ) ; free(a) ;
+   ime = mri_new( N , 1 , MRI_float ) ; rmat = MRI_FLOAT_PTR(ime) ;
+   for( j=0 ; j < N ; j++ ) rmat[j] = e[j] ;
+   free(e) ; RETURN(ime) ;
+}
+
 /*----------------------------------------------------------------------------*/
 /*! imt = time series to detrend in place (can be more than 1 vector in here)
     imq = array of orts to remove (imq->nx must equal imt->nx)

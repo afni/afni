@@ -1466,6 +1466,9 @@ extern char      * mri_matrix_evalrpn_help(void) ;
 extern void        mri_matrix_evalrpn_verb(int) ;
 extern float mri_matrix_size( MRI_IMAGE * ) ;
 
+extern MRI_IMARR * mri_matrix_psinv_pair( MRI_IMAGE *, float ) ;
+extern MRI_IMAGE * mri_matrix_singvals  ( MRI_IMAGE * ) ;
+
 extern void mri_matrix_detrend( MRI_IMAGE *, MRI_IMAGE *, MRI_IMAGE * ) ;
 
 #define            mri_matrix_transpose(x) mri_transpose(x)
