@@ -62,7 +62,8 @@ int SUMA_Down_Key(SUMA_SurfaceViewer *sv, char *key, char *caller);
 int SUMA_Left_Key(SUMA_SurfaceViewer *sv, char *key, char *caller);
 int SUMA_Right_Key(SUMA_SurfaceViewer *sv, char *key, char *caller);
 void SUMA_input(Widget w, XtPointer clientData, XtPointer callData) ;
-int SUMA_MarkLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov);
+int SUMA_MarkLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov, 
+                                    int IgnoreSameNode);
 void SUMA_momentum(XtPointer clientData, XtIntervalId *id);
 SUMA_Boolean  SUMA_AddToBrushStroke (SUMA_SurfaceViewer *sv, int x, int y, GLdouble *NP, GLdouble *FP, SUMA_Boolean Show);
 SUMA_Boolean  SUMA_CreateBrushStroke (SUMA_SurfaceViewer *sv);
