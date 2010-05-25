@@ -66,6 +66,16 @@
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 25 , MAY , 2010 , ZSS , "suma" , MINOR , TYPE_NEW_OPT,
+   "Added click and drag for third mouse button",
+   NULL
+ } ,
+
+ { 21 , MAY , 2010 , ZSS , "SurfToSurf" , MINOR , TYPE_NEW_OPT,
+   "Added -dset option to take in niml dsets",
+   NULL
+ } ,
+
  { 4 , MAY , 2010 , ZSS , "3dROIstats" , MINOR , TYPE_NEW_OPT,
    "Added -nzsigma to 3dROIstats",
    NULL

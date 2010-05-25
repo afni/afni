@@ -1368,8 +1368,10 @@ SUMA_DSET *SUMA_CalculateLocalStats(SUMA_SurfaceObject *SO, SUMA_DSET *din,
          /* Now I have the data column, nice and solid , do the stats */
          switch (code[ic]) {
             case NSTAT_MEAN:
-               lblcp = SUMA_DsetColLabelCopy(din, icols[k], 1); lblcp = SUMA_append_replace_string("mean_", lblcp, "", 2);
-               if (!SUMA_AddDsetNelCol (dout, lblcp, SUMA_NODE_FLOAT, (void *)fout, NULL ,1)) {
+               lblcp = SUMA_DsetColLabelCopy(din, icols[k], 1); 
+               lblcp = SUMA_append_replace_string("mean_", lblcp, "", 2);
+               if (!SUMA_AddDsetNelCol (dout, lblcp, SUMA_NODE_FLOAT, 
+                                        (void *)fout, NULL ,1)) {
                   SUMA_S_Crit("Failed to add dset column");
                   SUMA_RETURN(NULL);
                }
@@ -1380,7 +1382,8 @@ SUMA_DSET *SUMA_CalculateLocalStats(SUMA_SurfaceObject *SO, SUMA_DSET *din,
                      nval = 1;
                      for (j=0; j<OffS_out[n].N_Neighb; ++j) {
                         nj = OffS_out[n].Neighb_ind[j];
-                        if (OffS_out[n].Neighb_dist[j] <= rhood) { fp += fin_orig[nj]; ++nval; }
+                        if (OffS_out[n].Neighb_dist[j] <= rhood) { 
+                           fp += fin_orig[nj]; ++nval; }
                      }/* for j*/
                         fout[n] = fp/(float)(nval);
                         SUMA_WORLD_STATS_NODE_DBG;
@@ -1394,7 +1397,8 @@ SUMA_DSET *SUMA_CalculateLocalStats(SUMA_SurfaceObject *SO, SUMA_DSET *din,
                         for (j=0; j<OffS_out[n].N_Neighb; ++j) {
                            nj = OffS_out[n].Neighb_ind[j];
                            if (nmask[nj] || !strict_mask) {
-                              if (OffS_out[n].Neighb_dist[j] <= rhood) { fp += fin_orig[nj]; ++nval; }
+                              if (OffS_out[n].Neighb_dist[j] <= rhood) { 
+                                 fp += fin_orig[nj]; ++nval; }
                            } 
                         }/* for j*/
                         fout[n] = fp/(float)nval;
@@ -1408,13 +1412,16 @@ SUMA_DSET *SUMA_CalculateLocalStats(SUMA_SurfaceObject *SO, SUMA_DSET *din,
                break;
             
             case -666: /* used to be NSTAT_FWHMx: */
-               lblcp = SUMA_DsetColLabelCopy(din, icols[k], 1); lblcp = SUMA_append_replace_string("fwhm_", lblcp, "", 2);
-               if (!SUMA_AddDsetNelCol (dout, lblcp, SUMA_NODE_FLOAT, (void *)fout, NULL ,1)) {
+               lblcp = SUMA_DsetColLabelCopy(din, icols[k], 1); 
+               lblcp = SUMA_append_replace_string("fwhm_", lblcp, "", 2);
+               if (!SUMA_AddDsetNelCol (dout, lblcp, SUMA_NODE_FLOAT, 
+                                          (void *)fout, NULL ,1)) {
                   SUMA_S_Crit("Failed to add dset column");
                   SUMA_RETURN(NULL);
                }
                /* form a mask for fwhm function */
-               if (!(fwhm_mask = (byte *)SUMA_calloc(SO->N_Node, sizeof(byte)))) {
+               if (!(fwhm_mask = 
+                        (byte *)SUMA_calloc(SO->N_Node, sizeof(byte)))) {
                   SUMA_S_Crit("Failed to allocate fwhm_mask");
                   SUMA_RETURN(NULL);
                }
@@ -1520,15 +1527,19 @@ SUMA_DSET *SUMA_CalculateLocalStats(SUMA_SurfaceObject *SO, SUMA_DSET *din,
                   } /* for n */
                }
                if (SUMA_Get_UseSliceFWHM()) {
-                  for (ipl=0; ipl<3; ++ipl) { SUMA_FREE_DLIST(striplist_vec[ipl]); striplist_vec[ipl] = NULL; }
+                  for (ipl=0; ipl<3; ++ipl) { 
+                     SUMA_FREE_DLIST(striplist_vec[ipl]); 
+                     striplist_vec[ipl] = NULL; }
                }
                SUMA_free(fwhm_mask); fwhm_mask = NULL;
                SUMA_free(lblcp); lblcp = NULL;
                break;
                
             case NSTAT_FWHMx:
-               lblcp = SUMA_DsetColLabelCopy(din, icols[k], 1); lblcp = SUMA_append_replace_string("fwhm_", lblcp, "", 2);
-               if (!SUMA_AddDsetNelCol (dout, lblcp, SUMA_NODE_FLOAT, (void *)fout, NULL ,1)) {
+               lblcp = SUMA_DsetColLabelCopy(din, icols[k], 1); 
+               lblcp = SUMA_append_replace_string("fwhm_", lblcp, "", 2);
+               if (!SUMA_AddDsetNelCol (dout, lblcp, SUMA_NODE_FLOAT, 
+                                          (void *)fout, NULL ,1)) {
                   SUMA_S_Crit("Failed to add dset column");
                   SUMA_RETURN(NULL);
                }
@@ -1540,7 +1551,8 @@ SUMA_DSET *SUMA_CalculateLocalStats(SUMA_SurfaceObject *SO, SUMA_DSET *din,
                
                #if FAST_APPROX
                if (!SOf && SO->isSphere) SOf = SO;
-               SegDist = SUMA_SegmentDistortion(SO, SOf); /* this function should return a vector of 1s if SO == SOf */
+               SegDist = SUMA_SegmentDistortion(SO, SOf); 
+                  /* this function should return a vector of 1s if SO == SOf */
                mask_record = (int *)SUMA_calloc(SO->N_Node,sizeof(int));
                if (!SegDist || !mask_record) { SUMA_S_Crit("Failed to allocate"); SUMA_RETURN(NULL);}
                nval = -1;     /* Must initialize nval this way for SUMA_APPROX_NEIGHBORS */

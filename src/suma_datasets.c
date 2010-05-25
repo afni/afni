@@ -702,7 +702,12 @@ char *SUMA_DsetColLabelCopy(SUMA_DSET *dset, int i, int addcolnum)
    if (i < 0 || i >= SDSET_VECNUM(dset)) { SUMA_RETURN(NULL); }
    
    if (!(nelb = SUMA_FindDsetAttributeElement(dset, "COLMS_LABS"))) {
-      SUMA_RETURN(SUMA_copy_string("no_label"));
+      if (!addcolnum) {
+         SUMA_RETURN(SUMA_copy_string("no_label"));
+      } else {
+         sprintf(Name, "%d: ", i);
+         SUMA_RETURN(SUMA_append_string(Name,"no_label"));
+      }
    }
    SUMA_NEL_GET_STRING(nelb, 0, 0, lbl); 
       /* sc is a pointer copy here, do not free */

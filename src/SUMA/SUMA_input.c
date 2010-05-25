@@ -3993,7 +3993,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 
 
                   /* perform the intersection calcluation and mark the surface */
-                  hit = SUMA_MarkLineSurfaceIntersect (sv, SUMAg_DOv);
+                  hit = SUMA_MarkLineSurfaceIntersect (sv, SUMAg_DOv, 0);
                   if (hit < 0) {
                      fprintf( SUMA_STDERR,
                               "Error %s: "
@@ -4354,7 +4354,74 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                                         SMT_Error, SMA_LogAndPopup);
                   break;
                }
+            } else {
+               if (Mev.state & ShiftMask) {
+                  SUMAg_CF->HoldClickCallbacks = 1;
+                  SUMA_LH("Holding back callbacks");
+               }
+               if (SUMAg_N_SVv > 1) {
+                  ii = SUMA_WhichViewerInMomentum (SUMAg_SVv, 
+                                                   SUMAg_N_SVv, NULL);
+                  if (ii >= 0) {
+                     sprintf (s, "You cannot select or draw while viewers\n"
+                                 "(like viewer %c) are in momentum mode.\n", 
+                                 ii+65);
+                     SUMA_RegisterMessage (SUMAg_CF->MessageList, 
+                                           s, FuncName, SMT_Error, 
+                                           SMA_LogAndPopup);
+                     SUMA_RETURNe;
+                  }
+               }  
+                  
+                  
+               ii = SUMA_RegisteredSOs(sv, SUMAg_DOv, NULL);
+               if (ii == 0) { /* no surfaces, break */
+                  break;
+               }
+
+                  #if 0
+                  /* Try this if you are having OpenGLStateReset problems at
+                     node selection time. It is inefficient, but helps point
+                     to the problem. 
+                     Look at recent updates to SE_Redisplay*All* for the more
+                     appropriate fix */
+                  SUMA_S_Note("Blunt fix:");
+                  SUMA_OpenGLStateReset(SUMAg_DOv, SUMAg_N_DOv, sv);
+                  SUMA_handleRedisplay((XtPointer)sv->X->GLXAREA);
+                  #endif
+                  
+               if (!SUMA_GetSelectionLine (  sv, (int)Mev.x, (int)Mev.y, 
+                                             sv->Pick0, sv->Pick1, 0, 
+                                             NULL, NULL, NULL)) {
+                  fprintf (SUMA_STDERR, 
+                           "Error %s: Failed in SUMA_GetSelectionLine.\n", 
+                           FuncName);
+                  break;
+               } 
+
+
+               /* perform the intersection calcluation and mark the surface */
+               hit = SUMA_MarkLineSurfaceIntersect (sv, SUMAg_DOv, 1);
+               if (hit < 0) {
+                  fprintf( SUMA_STDERR,
+                           "Error %s: "
+                           "Failed in SUMA_MarkLineSurfaceIntersect.\n",
+                           FuncName);
+                  break;
+               }else if (hit == 0) { /* nothing hit, get out */
+                  break;
+               }
+               
+               /* redisplay */
+               sv->ResetGLStateVariables = YUP;
+               SUMA_handleRedisplay((XtPointer)sv->X->GLXAREA);            
+               
+               /* reset hold on xforms */
+               SUMAg_CF->HoldClickCallbacks = 0;
+
             }
+            
+            
             
             break;
       }
@@ -4422,11 +4489,14 @@ void SUMA_momentum(XtPointer clientData, XtIntervalId *id)
    ans = SUMA_MarkLineSurfaceIntersect (sv, dov);
    \param sv (SUMA_SurfaceViewer *) surface viewer pointer
    \param dov (SUMA_DO *) displayable object vector pointer
+   \param IgnoreSameNode (int) 1 do nothing if node already selected
+                               0 don't care if it was already selected
    \ret ans (int)  -1 error, 0 no hit, hit 
    
    also requires SUMAg_DOv and SUMAg_N_DOv
 */
-int SUMA_MarkLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov)
+int SUMA_MarkLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov, 
+                                    int IgnoreSameNode)
 {/* determine intersection */
    static char FuncName[]={"SUMA_MarkLineSurfaceIntersect"};
    float P0f[3], P1f[3];
@@ -4457,38 +4527,56 @@ int SUMA_MarkLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov)
    imin = -1;
    dmin = 10000000.0;
    for (ii=0; ii < N_SOlist; ++ii) { /* find the closest intersection */
-      if (LocalHead) fprintf (SUMA_STDERR, "%s: working %d/%d shown surfaces ...\n", FuncName, ii, N_SOlist);
+      if (LocalHead) 
+         fprintf (SUMA_STDERR, 
+                  "%s: working %d/%d shown surfaces ...\n", 
+                  FuncName, ii, N_SOlist);
       SO = (SUMA_SurfaceObject *)dov[SOlist[ii]].OP;
       if (SO->FaceSetDim != 3) {
-         fprintf(SUMA_STDERR,"Error %s: SUMA_MT_intersect_triangle only works for triangular meshes.\n", FuncName);
+         fprintf(SUMA_STDERR,
+            "Error %s: "
+            "SUMA_MT_intersect_triangle only works for triangular meshes.\n", 
+            FuncName);
       } else {
 
          SUMA_etime (&tt_tmp, 0);
 
-         MTIi = SUMA_MT_intersect_triangle(P0f, P1f, SO->NodeList, SO->N_Node, SO->FaceSetList, SO->N_FaceSet, NULL);
+         MTIi = SUMA_MT_intersect_triangle(P0f, P1f, SO->NodeList, SO->N_Node, 
+                                           SO->FaceSetList, SO->N_FaceSet, NULL);
 
          delta_t_tmp = SUMA_etime (&tt_tmp, 1);
-         if (LocalHead) fprintf (SUMA_STDERR, "Local Debug %s: Intersection took %f seconds.\n", FuncName, delta_t_tmp);
+         if (LocalHead) 
+            fprintf (SUMA_STDERR, 
+               "Local Debug %s: Intersection took %f seconds.\n", 
+               FuncName, delta_t_tmp);
 
          if (MTIi == NULL) {
-            fprintf(SUMA_STDERR,"Error %s: SUMA_MT_intersect_triangle failed.\n", FuncName);
+            fprintf(SUMA_STDERR,
+                     "Error %s: SUMA_MT_intersect_triangle failed.\n", FuncName);
             SUMA_RETURN (-1);
          }
          
-         if (MTIi->N_hits) { /* decide on the closest surface to the clicking point */
+         if (MTIi->N_hits) { 
+            /* decide on the closest surface to the clicking point */
             if (MTIi->t[MTIi->ifacemin] < dmin) {
-               if (LocalHead) fprintf (SUMA_STDERR, "%s: A minimum for surface %d.\n", FuncName, ii);
+               if (LocalHead) 
+                  fprintf (SUMA_STDERR, "%s: A minimum for surface %d.\n", 
+                           FuncName, ii);
                dmin = MTIi->t[MTIi->ifacemin];
                imin = SOlist[ii];
                MTI = MTIi;
             }else {     
                /* not good, toss it away */
-               if (LocalHead) fprintf (SUMA_STDERR, "%s: ii=%d freeing MTIi...\n", FuncName, ii);
+               if (LocalHead) 
+                  fprintf (SUMA_STDERR, 
+                           "%s: ii=%d freeing MTIi...\n", FuncName, ii);
                MTIi = SUMA_Free_MT_intersect_triangle(MTIi); 
             }
          }else {
             /* not good, toss it away */
-           if (LocalHead) fprintf (SUMA_STDERR, "%s: ii=%d freeing MTIi no hits...\n", FuncName, ii);
+           if (LocalHead) 
+               fprintf (SUMA_STDERR, 
+                        "%s: ii=%d freeing MTIi no hits...\n", FuncName, ii);
            MTIi = SUMA_Free_MT_intersect_triangle(MTIi); 
         }
       }
@@ -4531,20 +4619,25 @@ int SUMA_MarkLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov)
       /* Set the Nodeselection at the closest node */
       it = MTI->inodemin;
       if (!list) list = SUMA_CreateList();
-      ED = SUMA_InitializeEngineListData (SE_SetSelectedNode);
-      SetNodeElem = SUMA_RegisterEngineListCommand (  list, ED, 
-                                             SEF_i, (void*)&it,
-                                             SES_Suma, (void *)sv, NOPE,
-                                             SEI_Head, NULL);
-      if (!SetNodeElem) {
-         fprintf( SUMA_STDERR,
-                  "Error %s: Failed to register SetNodeElem\n", FuncName);
-         SUMA_RETURN (-1);
+      if (IgnoreSameNode && SO->SelectedNode == MTI->inodemin) {
+         SUMA_LHv("Ignoring identical node selection %d on surface %s\n",
+                  SO->SelectedNode, SO->Label);
       } else {
-         SUMA_RegisterEngineListCommand (  list, ED, 
-                                           SEF_ngr, NULL,
-                                           SES_Suma, (void *)sv, NOPE,
-                                           SEI_In, SetNodeElem);  
+         ED = SUMA_InitializeEngineListData (SE_SetSelectedNode);
+         SetNodeElem = SUMA_RegisterEngineListCommand (  list, ED, 
+                                                SEF_i, (void*)&it,
+                                                SES_Suma, (void *)sv, NOPE,
+                                                SEI_Head, NULL);
+         if (!SetNodeElem) {
+            fprintf( SUMA_STDERR,
+                     "Error %s: Failed to register SetNodeElem\n", FuncName);
+            SUMA_RETURN (-1);
+         } else {
+            SUMA_RegisterEngineListCommand (  list, ED, 
+                                              SEF_ngr, NULL,
+                                              SES_Suma, (void *)sv, NOPE,
+                                              SEI_In, SetNodeElem);  
+         }
       }
       
       
