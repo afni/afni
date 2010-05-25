@@ -3651,7 +3651,7 @@ if(PRINT_TRACING)
       MPROBE ;
       break ;  /* end of destroy */
 
-      case isqCR_buttonmove:{  /* 17 Mar 2010: InstaCorr on the go! */
+      case isqCR_buttonmove:{  /* 17 Mar 2010: InstaCorr on the go go go! */
         XMotionEvent *xev = (XMotionEvent *)cbs->event ;
 
         if( im3d->ignore_seq_callbacks != AFNI_IGNORE_NOTHING    ) EXRETURN ;

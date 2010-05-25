@@ -669,6 +669,7 @@ static PLUGIN_interface *GICOR_plint = NULL ;  /* 13 May 2010 */
 
 static void GICOR_refit_stat_menus(void) ;
 
+/*---------------------------------------------------------------------------*/
 /*-- Called from afni_niml.c when 3dGroupInCorr sends a setup NIML element --*/
 
 void GICOR_setup_func( NI_stream nsg , NI_element *nel )
@@ -795,6 +796,7 @@ ENTRY("GICOR_setup_func") ;
 
    giset->num_stat_available = 0 ;
    giset->lab_stat_available = NULL ;
+#if 0
    atr   = NI_get_attribute( nel , "stats_available" ) ;
    labar = NI_decode_string_list( atr , ";" ) ;
    if( labar != NULL && labar->num > 0 ){
@@ -804,6 +806,7 @@ ENTRY("GICOR_setup_func") ;
        giset->lab_stat_available[vv] = strdup(labar->str[vv]) ;
      NI_delete_str_array(labar) ;
    }
+#endif
 
    /* add dataset to current session (change name if necessary) */
 

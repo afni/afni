@@ -619,6 +619,10 @@ extern NI_procins * NI_new_processing_instruction( char * ) ;       /* 16 Mar 20
 
 extern void NI_swap_vector( int, int, void * ) ;
 
+#undef  NI_set_attribute_int
+#define NI_set_attribute_int(el,nm,vv)  \
+ do{ char ib[16]; sprintf(ib,"%d",(vv)); NI_set_attribute((el),(nm),ib); } while(0)
+
 /** I/O functions **/
 
 extern NI_stream NI_stream_open( char *, char * ) ;
