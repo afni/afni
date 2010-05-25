@@ -222,7 +222,7 @@ MRI_shindss * GRINCOR_read_input( char *fname )
 
    atr = NI_get_attribute(nel,"dset_labels") ;
    if( atr != NULL ){
-     slabar = NI_decode_string_list(atr,";") ;
+     slabar = NI_decode_string_list(atr,";,") ;
      if( slabar == NULL || slabar->num < ndset )
        GQUIT("dset_labels attribute invalid") ;
    }
@@ -610,6 +610,8 @@ static float *bxx , *bxx_psinv , *bxx_xtxinv ;
 #define MAX_LABEL_SIZE 12
 #define NSEND_LIMIT     9
 
+#undef COVTEST
+
 int main( int argc , char *argv[] )
 {
    int nopt , kk , nn , ii,jj, TalkToAfni=1;
@@ -637,6 +639,10 @@ int main( int argc , char *argv[] )
    MRI_IMAGE *axxim , *axxim_psinv , *axxim_xtxinv ;
    MRI_IMAGE *bxxim , *bxxim_psinv , *bxxim_xtxinv ;
    float **dtar ;
+
+#ifdef COVTEST
+   float *ctarA=NULL , *ctarB=NULL ; char *ctnam ;
+#endif
 
    /*-- enlighten the ignorant and brutish sauvages? --*/
 
@@ -780,11 +786,16 @@ int main( int argc , char *argv[] )
       " -covariates cf = Read file 'cf' that contains covariates values for each dataset\n"
       "                  input (in both -setA and -setB; there can only at most one\n"
       "                  -covariates option).  Format of the file\n"
-      "                      subj    IQ   age\n"
-      "                      Elvis   143   37\n"
+      "     FIRST LINE -->   subj    IQ   age\n"
+      "     LATER LINES -->  Elvis   143   42\n"
       "                      Fred     85   59\n"
-      "                      Frank   129   28\n"
+      "                      Ethel   109   49\n"
       "                      Lucy    133   32\n"
+      "                   The first column contains the labels that must match the\n"
+      "                   dataset labels stored in the input *.grpincorr.niml files.\n"
+      "                   N.B.: This option is very new [25 May 2010] and hasn't yet\n"
+      "                         been fully tested.  Also, I hope to document this\n"
+      "                         somewhat better soon -- Bob Cox.\n"
       "\n"
       "*** Other Options ***\n"
       "\n"
@@ -937,7 +948,7 @@ int main( int argc , char *argv[] )
        lab = NI_get_attribute( covnel , "Labels" ) ;
        if( lab != NULL ){
          ININFO_message("Covariate column labels: %s",lab) ;
-         covlab = NI_decode_string_list( lab , ";" ) ;
+         covlab = NI_decode_string_list( lab , ";," ) ;
          if( covlab == NULL || covlab->num < mcov+1 )
            ERROR_exit("can't decode labels properly?!") ;
        } else {
@@ -1012,8 +1023,8 @@ int main( int argc , char *argv[] )
        }
        shd_AAA = GRINCOR_read_input( fname ) ;
        if( shd_AAA == NULL ) ERROR_exit("Cannot continue after -setA input error") ;
-       if( verb > 1 ) INFO_message("-setA opened, contains %s bytes",
-                                   commaized_integer_string(shd_AAA->nbytes));
+       if( verb ) INFO_message("-setA opened, contains %d datasets, %s bytes",
+                                shd_AAA->ndset , commaized_integer_string(shd_AAA->nbytes));
        qlab_AAA = fname ;
        cpt = strchr(qlab_AAA,'.') ; if( cpt != NULL && cpt != qlab_AAA ) *cpt = '\0' ;
        nopt++ ; continue ;
@@ -1038,8 +1049,8 @@ int main( int argc , char *argv[] )
        }
        shd_BBB = GRINCOR_read_input( fname ) ;
        if( shd_BBB == NULL ) ERROR_exit("Cannot continue after -setB input error") ;
-       if( verb > 1 ) INFO_message("-setB opened, contains %s bytes",
-                                   commaized_integer_string(shd_BBB->nbytes)) ;
+       if( verb ) INFO_message("-setB opened, contains %d datasets, %s bytes",
+                               shd_BBB->ndset , commaized_integer_string(shd_BBB->nbytes)) ;
        qlab_BBB = fname ;
        cpt = strchr(qlab_BBB,'.') ; if( cpt != NULL && cpt != qlab_BBB ) *cpt = '\0' ;
        nopt++ ; continue ;
@@ -1050,7 +1061,7 @@ int main( int argc , char *argv[] )
 
    /*-- check inputs for OK-ness --*/
 
-   if( shd_AAA == NULL ) ERROR_exit("You must use the '-setA' option!") ;
+   if( shd_AAA == NULL ) ERROR_exit(" !! You must use the '-setA' option !!") ;
 
    /* 18 Mar 2010: if -labelA not used, get it from input filename (mm for B) */
 
@@ -1146,10 +1157,25 @@ int main( int argc , char *argv[] )
        }
      }
      if( nbad == 0 ){  /* process the array */
-       MRI_IMARR *impr = mri_matrix_psinv_pair( axxim , 0.0f ) ;
+       MRI_IMARR *impr ; float sum ;
+       for( jj=1 ; jj <= mcov ; jj++ ){
+         for( sum=0.0f,kk=0 ; kk < shd_AAA->ndset ; kk++ ) sum += AXX(kk,jj) ;
+         sum /= shd_AAA->ndset ;
+         for( kk=0 ; kk < shd_AAA->ndset ; kk++ ) AXX(kk,jj) -= sum ;
+       }
+       impr = mri_matrix_psinv_pair( axxim , 0.0f ) ;
        if( impr == NULL ) ERROR_exit("Can't process setA covariate matrix?! :-(") ;
        axxim_psinv  = IMARR_SUBIM(impr,0) ; axx_psinv  = MRI_FLOAT_PTR(axxim_psinv ) ;
        axxim_xtxinv = IMARR_SUBIM(impr,1) ; axx_xtxinv = MRI_FLOAT_PTR(axxim_xtxinv) ;
+
+#ifdef COVTEST
+       ININFO_message("axx matrix: %d X %d",axxim->nx,axxim->ny) ;
+        mri_write_1D("stderr:",axxim) ;
+       ININFO_message("axxim_psinv matrix: %d X %d",axxim_psinv->nx,axxim_psinv->ny) ;
+        mri_write_1D("stderr:",axxim_psinv) ;
+       ININFO_message("axxim_xtxinv matrix: %d X %d",axxim_xtxinv->nx,axxim_xtxinv->ny) ;
+        mri_write_1D("stderr:",axxim_xtxinv) ;
+#endif
      }
 
      /*--- setup the setB regression matrix ---*/
@@ -1172,7 +1198,13 @@ int main( int argc , char *argv[] )
          }
        }
        if( nbad == 0 ){  /* process the array */
-         MRI_IMARR *impr = mri_matrix_psinv_pair( bxxim , 0.0f ) ;
+         MRI_IMARR *impr ; float sum ;
+         for( jj=1 ; jj <= mcov ; jj++ ){
+           for( sum=0.0f,kk=0 ; kk < shd_BBB->ndset ; kk++ ) sum += BXX(kk,jj) ;
+           sum /= shd_BBB->ndset ;
+           for( kk=0 ; kk < shd_BBB->ndset ; kk++ ) BXX(kk,jj) -= sum ;
+         }
+         impr = mri_matrix_psinv_pair( bxxim , 0.0f ) ;
          if( impr == NULL ) ERROR_exit("Can't process setB covariate matrix?! :-(") ;
          bxxim_psinv  = IMARR_SUBIM(impr,0) ; bxx_psinv  = MRI_FLOAT_PTR(bxxim_psinv ) ;
          bxxim_xtxinv = IMARR_SUBIM(impr,1) ; bxx_xtxinv = MRI_FLOAT_PTR(bxxim_xtxinv) ;
@@ -1349,10 +1381,10 @@ int main( int argc , char *argv[] )
    if( shd_BBB != NULL )
      NI_set_attribute( nelcmd , "label_BBB" , label_BBB ) ;
 
+   NI_set_attribute_int( nelcmd , "target_nvals" , nout ) ;
+
    if( mcov == 0 ){
      char bricklabels[32*MAX_LABEL_SIZE+64] ;
-
-     NI_set_attribute( nelcmd , "target_nvals" , dosix ? "6" : "2" ) ;
 
      if( shd_BBB == NULL ){  /* 1 sample */
        sprintf( bricklabels , "%s_mean ; %s_Zscr" , label_AAA , label_AAA ) ;
@@ -1370,33 +1402,34 @@ int main( int argc , char *argv[] )
      char *bricklabels = (char *)calloc(sizeof(char),(3*MAX_LABEL_SIZE+16)*(nout+1)) ;
 
      if( testAB ){
-       sprintf( bricklabels , "%s-%s_mean ; %s-%s_Zscr" ,
+       sprintf( bricklabels , "%s-%s_mean ; %s-%s_Zscr ;" ,
                 label_AAA , label_BBB , label_AAA , label_BBB ) ;
        for( kk=1 ; kk <= mcov ; kk++ )
          sprintf( bricklabels+strlen(bricklabels) ,
-                  "%s-%s_%s ; %s-%s_%s_Zscr" ,
+                  "%s-%s_%s ; %s-%s_%s_Zscr ;" ,
                 label_AAA , label_BBB , covlab->str[kk] ,
                 label_AAA , label_BBB , covlab->str[kk]  ) ;
      }
      if( testA ){
        sprintf( bricklabels+strlen(bricklabels) ,
-                "%s_mean ; %s_Zscr" , label_AAA , label_AAA ) ;
+                "%s_mean ; %s_mean_Zscr ;" , label_AAA , label_AAA ) ;
        for( kk=1 ; kk <= mcov ; kk++ )
          sprintf( bricklabels+strlen(bricklabels) ,
-                  "%s_%s ; %s_%s_Zscr" ,
+                  "%s_%s ; %s_%s_Zscr ;" ,
                   label_AAA , covlab->str[kk] ,
                   label_AAA , covlab->str[kk]  ) ;
      }
      if( testB ){
        sprintf( bricklabels+strlen(bricklabels) ,
-                "%s_mean ; %s_Zscr" , label_BBB , label_BBB ) ;
+                "%s_mean ; %s_Zscr ;" , label_BBB , label_BBB ) ;
        for( kk=1 ; kk <= mcov ; kk++ )
          sprintf( bricklabels+strlen(bricklabels) ,
-                  "%s_%s ; %s_%s_Zscr" ,
+                  "%s_%s ; %s_%s_Zscr ;" ,
                   label_BBB , covlab->str[kk] ,
                   label_BBB , covlab->str[kk]  ) ;
      }
 
+     kk = strlen(bricklabels) ; bricklabels[kk-1] = '\0' ;
      NI_set_attribute( nelcmd , "target_labels" , bricklabels ) ;
      free(bricklabels) ;
    }
@@ -1456,6 +1489,19 @@ int main( int argc , char *argv[] )
  }
 #endif
    }
+
+#ifdef COVTEST
+   ctnam = getenv("GI_AAA_add") ;
+   if( ctnam != NULL && strncmp(ctnam,"1D:",3) == 0 ){
+     MRI_IMAGE *ctimm = mri_1D_fromstring(ctnam) ;
+     if( ctimm != NULL && ctimm->nx >= shd_AAA->ndset ) ctarA = MRI_FLOAT_PTR(ctimm) ;
+   }
+   ctnam = getenv("GI_BBB_add") ;
+   if( dotprod_BBB != NULL && ctnam != NULL && strncmp(ctnam,"1D:",3) == 0 ){
+     MRI_IMAGE *ctimm = mri_1D_fromstring(ctnam) ;
+     if( ctimm != NULL && ctimm->nx >= shd_BBB->ndset ) ctarB = MRI_FLOAT_PTR(ctimm) ;
+   }
+#endif
 
    /** now wait for commands from AFNI */
 
@@ -1594,6 +1640,17 @@ int main( int argc , char *argv[] )
        if( verb > 3 ) ININFO_message(" start correlation-izing for %s",label_BBB) ;
        GRINCOR_many_dotprod( shd_BBB , seedvec_BBB , dotprod_BBB ) ;
      }
+
+#ifdef COVTEST
+     if( ctarA != NULL ){
+       for( kk=0 ; kk < ndset_AAA ; kk++ )
+         for( jj=nvec/2 ; jj < nvec ; jj++ ) dotprod_AAA[kk][jj] += ctarA[kk] ;
+     }
+     if( ctarB != NULL ){
+       for( kk=0 ; kk < ndset_BBB ; kk++ )
+         for( jj=nvec/2 ; jj < nvec ; jj++ ) dotprod_BBB[kk][jj] += ctarB[kk] ;
+     }
+#endif
 
      if( verb > 2 || (verb==1 && nsend < NSEND_LIMIT) ){
        ctim = NI_clock_time() ;
@@ -2016,6 +2073,11 @@ float_pair ttest_toz( int numx, float *xar, int numy, float *yar, int opcode )
 #define XA(i,j) xA[(i)+(j)*(nA)]    /* i=0..nA-1 , j=0..mm-1 */
 #define XB(i,j) xB[(i)+(j)*(nB)]
 
+#undef  xtxA
+#undef  xtxB
+#define xtxA(i) xtxinvA[(i)+(i)*mm] /* diagonal elements */
+#define xtxB(i) xtxinvB[(i)+(i)*mm]
+
 #undef  VBIG
 #define VBIG 1.0e+24f
 
@@ -2027,8 +2089,10 @@ float_pair ttest_toz( int numx, float *xar, int numy, float *yar, int opcode )
 
     xA      = numA X (mcov+1) matrix -- in column-major order
     psinvA  = (mcov+1) X numA matrix -- in column-major order
-    xtxinvA = (mcov+1) vector = diagonal elements of inv[X'X]
+    xtxinvA = (mcov+1) X (mcov+1) matrix = inv[xA'xA]
 *//*-------------------------------------------------------------------------*/
+
+static int first=1 ;
 
 void regress_toz( int numA , float *zA ,
                   int numB , float *zB , int opcode ,
@@ -2098,7 +2162,7 @@ void regress_toz( int numA , float *zA ,
        for( tt=0 ; tt < mm ; tt++ ){
          if( (testAB & (1 << tt)) == 0 ) continue ;  /* bitwase AND */
          outvec[kt++] = betA[ii] - betB[ii] ;
-         val          = outvec[kt-1] / sqrtf( varAB*xtxinvA[tt] ) ;
+         val          = outvec[kt-1] / sqrtf( varAB*xtxA(tt) ) ;
          outvec[kt++] = (float)GIC_student_t2z( (double)val , dof ) ;
        }
 
@@ -2110,7 +2174,7 @@ void regress_toz( int numA , float *zA ,
        for( tt=0 ; tt < mm ; tt++ ){
          if( (testAB & (1 << tt)) == 0 ) continue ;  /* bitwase AND */
          outvec[kt++] = betA[tt] - betB[tt] ;
-         val          = outvec[kt-1] / sqrtf( varAB*(xtxinvA[tt]+xtxinvB[tt]) );
+         val          = outvec[kt-1] / sqrtf( varAB*(xtxA(tt)+xtxB(tt)) );
          outvec[kt++] = (float)GIC_student_t2z( (double)val , dof ) ;
        }
      } /* end of unpaired pooled variance */
@@ -2119,11 +2183,21 @@ void regress_toz( int numA , float *zA ,
    /*-- carry out 1-sample A tests, if any --*/
 
    if( testA ){
+#ifdef COVTEST
+#pragma omp critical
+     { if( first ){
+         first = 0 ;
+         fprintf(stderr,"testA varA=%g xtxA=",varA) ;
+         for( tt=0 ; tt < mm ; tt++ ) fprintf(stderr," %g",xtxA(tt)) ;
+         fprintf(stderr,"\n") ;
+       }
+     }
+#endif
      dof = nA - mm ;
      for( tt=0 ; tt < mm ; tt++ ){
        if( (testA & (1 << tt)) == 0 ) continue ;  /* bitwise AND */
        outvec[kt++] = betA[tt] ;
-       val          = betA[tt] / sqrtf( varA * xtxinvA[tt] ) ;
+       val          = betA[tt] / sqrtf( varA * xtxA(tt) ) ;
        outvec[kt++] = (float)GIC_student_t2z( (double)val , dof ) ;
      }
    }
@@ -2135,7 +2209,7 @@ void regress_toz( int numA , float *zA ,
      for( tt=0 ; tt < mm ; tt++ ){
        if( (testB & (1 << tt)) == 0 ) continue ;  /* bitwise AND */
        outvec[kt++] = betB[tt] ;
-       val          = betB[tt] / sqrtf( varB * xtxinvB[tt] ) ;
+       val          = betB[tt] / sqrtf( varB * xtxB(tt) ) ;
        outvec[kt++] = (float)GIC_student_t2z( (double)val , dof ) ;
      }
    }

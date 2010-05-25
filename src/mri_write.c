@@ -23,6 +23,9 @@ static FILE * fopen_maybe( char *fname )  /* 05 Feb 2008 */
                               || strcmp(fname,"stdout")  == 0
                               || strcmp(fname,"stdout:") == 0 ) return stdout ;
 
+   if( strcmp(fname,"stderr" ) == 0 ||
+       strcmp(fname,"stderr:") == 0  ) return stderr ;
+
    if( THD_is_ondisk(fname) ){   /* check for existing file */
      if( !THD_ok_overwrite() ){  /* if not allowed to overwrite */
        ERROR_message("(FAILED) attempt to over-write file %s",fname) ;
@@ -41,7 +44,9 @@ static FILE * fopen_maybe( char *fname )  /* 05 Feb 2008 */
 
 static void fclose_maybe( FILE *fp )  /* 05 Feb 2008 */
 {
-   if( fp != NULL && fp != stdout || fp != stderr ) fclose(fp) ;
+        if( fp == NULL   ) return ;
+        if( fp == stdout ) fflush(fp) ;
+   else if( fp != stderr ) fclose(fp) ;
    return ;
 }
 
