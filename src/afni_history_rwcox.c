@@ -44,6 +44,12 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 26 , MAY , 2010 , RWC , "3dGroupInCorr" , MAJOR , TYPE_MODIFY ,
+   "Add -covariates option" ,
+   "With coordinated changes to AFNI to deal with the possibly more\n"
+   "complicated dataset that will arrive.  And some minor changes to\n"
+   "3dSetupGroupInCorr to match." } ,
+
  { 19 , MAY , 2010 , RWC , "3dDeconvolve" , MICRO , TYPE_BUG_FIX ,
    "Bug: 'filename' copy from argv[] can be too long for 1D: input" ,
    "Especially if the user is named Handwerker.  Solution: compute length of\n"

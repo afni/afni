@@ -52,6 +52,7 @@ int main( int argc , char * argv[] )
    int do_byte = 1 ;
    char **dset_labels=NULL ; int ndset_labels=0 ;  /* 14 May 2010 */
    char  *dset_labels_all  ; int len_all=0 ;
+   char *cmdline ;                                 /* 26 May 2010 */
 
    /*-- help? --*/
 
@@ -660,6 +661,12 @@ int main( int argc , char * argv[] )
    }
 
    NI_set_attribute( nel , "dset_labels" , dset_labels_all ) ; /* 14 May 2010 */
+
+   cmdline = tross_commandline( "3dSetupGroupInCorr" , argc . argv ) ;
+   if( cmdline != NULL ){
+     NI_set_attribute( nel , "commandline" , cmdline ) ;       /* 26 May 2010 */
+     free(cmdline) ;
+   }
 
    /*--- write header file ---*/
 
