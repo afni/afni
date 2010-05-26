@@ -2,14 +2,14 @@
 
 /***
   Ideas for making this program more cromulently embiggened:
-   ++ 2-way case: produce 1-way result sub-bricks as well -- DONE
+   ++ 2-way case: produce 1-way result sub-bricks as well -- DONE!
    ++ Rank or other robust analog to t-test
    ++ Send sub-brick data as scaled shorts to reduce transmit time
    ++ Fix shm: bug in AFNI libray
    ++ Have non-server modes:
     -- To output dataset to disk
     -- 3dTcorrMap-like scan through whole brain as seed
-   ++ Per-subject covariates
+   ++ Per-subject covariates -- DONE!
 ***/
 
 #include "mrilib.h"
@@ -610,7 +610,7 @@ static float *bxx , *bxx_psinv , *bxx_xtxinv ;
 #define MAX_LABEL_SIZE 12
 #define NSEND_LIMIT     9
 
-#undef COVTEST
+#undef COVTEST  /* this is for Cox ONLY */
 
 int main( int argc , char *argv[] )
 {
@@ -781,21 +781,40 @@ int main( int argc , char *argv[] )
       "   ++ None of these options means anything for a 1-sample t-test\n"
       "      (i.e., where you don't use -setB).\n"
       "\n"
-      "*** Dataset-Level Covariates ***\n"
+      "*** Dataset-Level Covariates [26 May 2010] ***\n"
       "\n"
       " -covariates cf = Read file 'cf' that contains covariates values for each dataset\n"
       "                  input (in both -setA and -setB; there can only at most one\n"
       "                  -covariates option).  Format of the file\n"
-      "     FIRST LINE -->   subj    IQ   age\n"
+      "     FIRST LINE -->   subject IQ   age\n"
       "     LATER LINES -->  Elvis   143   42\n"
       "                      Fred     85   59\n"
       "                      Ethel   109   49\n"
       "                      Lucy    133   32\n"
-      "                   The first column contains the labels that must match the\n"
-      "                   dataset labels stored in the input *.grpincorr.niml files.\n"
-      "                   N.B.: This option is very new [25 May 2010] and hasn't yet\n"
-      "                         been fully tested.  Also, I hope to document this\n"
-      "                         somewhat better soon -- Bob Cox.\n"
+      "        This file format should be compatible with 3dMEMA.\n"
+      "        ++ The first column contains the labels that must match the dataset\n"
+      "            labels stored in the input *.grpincorr.niml files, which are\n"
+      "            either the dataset prefixes or whatever you supplied in the\n"
+      "            3dSetupGroupInCorr program via '-labels'.\n"
+      "        ++ The later columns contain numbers.\n"
+      "        ++ The first line contains column headers.  The header label for the\n"
+      "            first column isn't used for anything.  The later header labels are\n"
+      "            used in the sub-brick labels sent to AFNI.\n"
+      "        ++ At this time, only the -paired and -pooled options can be used with\n"
+      "            covariates.  If you use -unpooled, it will be changed to -pooled.\n"
+      "            -unpooled still works with a pure t-test (no -covariates option).\n"
+      "        ++ Each covariate column in the regression matrix will have its mean\n"
+      "            removed (centered). If there are 2 sets of subjects, each set's\n"
+      "            matrix will be centered separately.\n"
+      "        ++ For each covariate, 2 sub-bricks are produced:\n"
+      "            -- The estimated slope of arctanh(correlation) vs covariate\n"
+      "            -- The Z-score of the t-statistic of this slope\n"
+      "        ++ If there are 2 sets of subjects, then each pair of sub-bricks is\n"
+      "            produced for the A-B, A, and B cases, so that you'll get 6 sub-bricks\n"
+      "            per covariate (plus 6 more for the mean, which is treated as a\n"
+      "            special covariate whose values are all 1).\n"
+      "        ++ A maximum of 31 covariates are allowed.  If you have more, then\n"
+      "            seriously consider the possibility that you are completely deranged.\n"
       "\n"
       "*** Other Options ***\n"
       "\n"
@@ -944,7 +963,7 @@ int main( int argc , char *argv[] )
        if( mcov < 1 )
          ERROR_exit("Need at least 2 columns in -covariates file!") ;
        else if( mcov > MAXCOV )
-         ERROR_exit("%d covariates in file, more than max allowed %d",mcov,MAXCOV) ;
+         ERROR_exit("%d covariates in file, more than max allowed (%d)",mcov,MAXCOV) ;
        lab = NI_get_attribute( covnel , "Labels" ) ;
        if( lab != NULL ){
          ININFO_message("Covariate column labels: %s",lab) ;
@@ -1095,6 +1114,11 @@ int main( int argc , char *argv[] )
      ttest_opcode = 0 ;
    }
 
+   if( ttest_opcode == 1 && mcov > 0 ){
+     INFO_message("-covariates does not support unpooled variance (yet)") ;
+     ttest_opcode = 0 ;
+   }
+
 #if 0
    /*-- attach use list to dataset collections [07 Apr 2010] --*/
 
@@ -1131,10 +1155,24 @@ int main( int argc , char *argv[] )
    if( mcov > 0 ){
      int nbad=0 , nA , nB ;
 
-     if( shd_AAA->dslab == NULL )
-       ERROR_exit("Can't use covariates, since setA doesn't have dataset labels!") ;
+     /* simple tests for stoopid users [is there any other kind?] */
+
+     if( shd_AAA->dslab == NULL ){
+       ERROR_message("Can't use covariates, since setA doesn't have dataset labels!") ;
+       nbad++ ;
      if( shd_BBB != NULL && shd_BBB->dslab == NULL )
-       ERROR_exit("Can't use covariates, since setB doesn't have dataset labels!") ;
+       ERROR_message("Can't use covariates, since setB doesn't have dataset labels!") ;
+       nbad++ ;
+     }
+
+     if( ndset_AAA < mcov+3 ){
+       ERROR_message("-setA has %d datasets, but you have %d covariates!") ; nbad++ ;
+     }
+     if( ndset_BBB < mcov+3 ){
+       ERROR_message("-setB has %d datasets, but you have %d covariates!") ; nbad++ ;
+     }
+
+     if( nbad ) ERROR_exit("Can't continue :-(") ;
 
      if( verb ) INFO_message("Setting up regression matrices for covariates") ;
 
@@ -1156,19 +1194,20 @@ int main( int argc , char *argv[] )
            AXX(kk,jj) = ((float *)covnel->vec[jj])[ii] ;
        }
      }
-     if( nbad == 0 ){  /* process the array */
+     if( nbad == 0 ){  /* process the matrix */
        MRI_IMARR *impr ; float sum ;
-       for( jj=1 ; jj <= mcov ; jj++ ){
+       for( jj=1 ; jj <= mcov ; jj++ ){  /* demean the columns */
          for( sum=0.0f,kk=0 ; kk < shd_AAA->ndset ; kk++ ) sum += AXX(kk,jj) ;
          sum /= shd_AAA->ndset ;
          for( kk=0 ; kk < shd_AAA->ndset ; kk++ ) AXX(kk,jj) -= sum ;
        }
+       /* Compute inv[X'X] and the pseudo-inverse inv[X'X]X' for this matrix */
        impr = mri_matrix_psinv_pair( axxim , 0.0f ) ;
        if( impr == NULL ) ERROR_exit("Can't process setA covariate matrix?! :-(") ;
        axxim_psinv  = IMARR_SUBIM(impr,0) ; axx_psinv  = MRI_FLOAT_PTR(axxim_psinv ) ;
        axxim_xtxinv = IMARR_SUBIM(impr,1) ; axx_xtxinv = MRI_FLOAT_PTR(axxim_xtxinv) ;
 
-#ifdef COVTEST
+#if defined(COVTEST) && 0
        ININFO_message("axx matrix: %d X %d",axxim->nx,axxim->ny) ;
         mri_write_1D("stderr:",axxim) ;
        ININFO_message("axxim_psinv matrix: %d X %d",axxim_psinv->nx,axxim_psinv->ny) ;
@@ -1197,13 +1236,14 @@ int main( int argc , char *argv[] )
              BXX(kk,jj) = ((float *)covnel->vec[jj])[ii] ;
          }
        }
-       if( nbad == 0 ){  /* process the array */
+       if( nbad == 0 ){  /* process the matrix */
          MRI_IMARR *impr ; float sum ;
-         for( jj=1 ; jj <= mcov ; jj++ ){
+         for( jj=1 ; jj <= mcov ; jj++ ){  /* demean the columns */
            for( sum=0.0f,kk=0 ; kk < shd_BBB->ndset ; kk++ ) sum += BXX(kk,jj) ;
            sum /= shd_BBB->ndset ;
            for( kk=0 ; kk < shd_BBB->ndset ; kk++ ) BXX(kk,jj) -= sum ;
          }
+         /* Compute inv[X'X] and the pseudo-inverse inv[X'X]X' for this matrix */
          impr = mri_matrix_psinv_pair( bxxim , 0.0f ) ;
          if( impr == NULL ) ERROR_exit("Can't process setB covariate matrix?! :-(") ;
          bxxim_psinv  = IMARR_SUBIM(impr,0) ; bxx_psinv  = MRI_FLOAT_PTR(bxxim_psinv ) ;
@@ -1211,7 +1251,7 @@ int main( int argc , char *argv[] )
        }
      }
 
-     if( nbad > 0 )
+     if( nbad )
        ERROR_exit("Can't continue past the above covariates errors :-((") ;
 
    } /* covariates regression matrices now setup */
@@ -1258,9 +1298,6 @@ int main( int argc , char *argv[] )
                    approximate_number_string((double)nbtot) ) ;
    }
 
-   if( verb ) INFO_message  ("Be sure to start afni with the '-niml' option"        ) ;
-   if( verb ) ININFO_message("(or press the 'NIML+PO' button if you forgot '-niml')") ;
-
    /*-- Create VOLUME_DATA NIML element to hold the brick data --*/
 
    nelset = NI_new_data_element( "3dGroupInCorr_dataset" , shd_AAA->nvec ) ;
@@ -1304,6 +1341,14 @@ int main( int argc , char *argv[] )
        testAB = testB = 0 ; testA = (UINT32)(-1) ;
      }
 
+   }
+
+   /*========= message for the user =========*/
+
+   if( verb ){
+     INFO_message  ("--- Be sure to start afni with the '-niml' command line option") ;
+     ININFO_message("---  [or press the NIML+PO button if you forgot '-niml']") ;
+     ININFO_message("--- Then open Define Overlay and pick GrpInCorr from the Clusters menu") ;
    }
 
    /*========= this stuff is one-time-only setup of the I/O to AFNI =========*/
@@ -1699,7 +1744,8 @@ int main( int argc , char *argv[] )
 #ifndef DONT_USE_SHM
      if( do_shm > 0 && strcmp(afnihost,"localhost") == 0 && !shm_active ){
        char nsnew[128] ;
-       sprintf( nsnew , "shm:GrpInCorr:%dM+10K" , (dosix) ? 3 : 1 ) ;
+       kk = nout / 2 ; if( kk < 1 ) kk = 1 ; else if( kk > 3 ) kk = 3 ;
+       sprintf( nsnew , "shm:GrpInCorr:%dM+4K" , kk ) ;
        INFO_message("Reconnecting to %s with shared memory channel %s",pname,nsnew) ;
        kk = NI_stream_reopen( GI_stream , nsnew ) ;
        if( kk == 0 ){
@@ -2183,7 +2229,7 @@ void regress_toz( int numA , float *zA ,
    /*-- carry out 1-sample A tests, if any --*/
 
    if( testA ){
-#ifdef COVTEST
+#if defined(COVTEST) && 0
 #pragma omp critical
      { if( first ){
          first = 0 ;
