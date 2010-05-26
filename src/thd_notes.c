@@ -22,9 +22,9 @@
      free() this when done.
 -----------------------------------------------------------------------------*/
 
-char * tross_commandline( char * pname , int argc , char ** argv )
+char * tross_commandline( char *pname , int argc , char **argv )
 {
-   char * ch ;
+   char *ch ;
    int ii , ll ;
 
    if( argc < 1 || argv == NULL ) return NULL ; /* ZSS, changed argc < 2 to argc < 1 */
