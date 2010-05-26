@@ -1139,7 +1139,7 @@ char * SUMA_help_message_Info(void)
       "     c: load a node color file.\n\n");
    SS = SUMA_StringAppend (SS, 
       "     Ctrl+d: draw ROI controller.\n\n");
-   if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, 
+   SS = SUMA_StringAppend (SS, 
       "     D: Attch to the current dataset 'parent' a dot product\n"
       "        transform. The 'child' (transformed) dataset\n"
       "        is created by calculating the dot product between\n"
@@ -1200,7 +1200,8 @@ char * SUMA_help_message_Info(void)
       "        or in AFNI\n\n");
    SS = SUMA_StringAppend_va (SS, 
       "     L: Light's XYZ coordinates.\n"
-      "        Default setting is 0.0 0.0 %.1f \n", 1.0 * SUMA_INTITIAL_LIGHT0_SWITCH);
+      "        Default setting is 0.0 0.0 %.1f \n", 
+      1.0 * SUMA_INTITIAL_LIGHT0_SWITCH);
    if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, 
       "     Ctrl+L: Dim all lights and colors by a factor of 0.8\n" );
    SS = SUMA_StringAppend (SS, 
@@ -1232,7 +1233,11 @@ char * SUMA_help_message_Info(void)
    SS = SUMA_StringAppend (SS, 
       "     r: record current image\n"
       "        in an a la AFNI image viewer.\n"
-      "        Identical images are rejected.\n\n");
+      "        Identical images are rejected.\n"
+      "        If you just save one image, the recording\n"
+      "        window has no visible controls for saving\n"
+      "        the image. Either take another picture, or\n"
+      "        use 'Shift+right click' to get a menu.\n\n");
    if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, 
       "     Alt+r: Set new center of rotation.\n"
       "            Enter nothing to go back to default.\n"
