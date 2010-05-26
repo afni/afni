@@ -1168,7 +1168,7 @@ int main( int argc , char *argv[] )
      if( ndset_AAA < mcov+3 ){
        ERROR_message("-setA has %d datasets, but you have %d covariates!") ; nbad++ ;
      }
-     if( ndset_BBB < mcov+3 ){
+     if( ndset_BBB > 0 && ndset_BBB < mcov+3 ){
        ERROR_message("-setB has %d datasets, but you have %d covariates!") ; nbad++ ;
      }
 

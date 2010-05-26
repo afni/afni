@@ -662,7 +662,7 @@ int main( int argc , char * argv[] )
 
    NI_set_attribute( nel , "dset_labels" , dset_labels_all ) ; /* 14 May 2010 */
 
-   cmdline = tross_commandline( "3dSetupGroupInCorr" , argc . argv ) ;
+   cmdline = tross_commandline( "3dSetupGroupInCorr" , argc , argv ) ;
    if( cmdline != NULL ){
      NI_set_attribute( nel , "commandline" , cmdline ) ;       /* 26 May 2010 */
      free(cmdline) ;
