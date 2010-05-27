@@ -2045,28 +2045,35 @@ int SUMA_T_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
    switch (k) {
       case XK_T:
          if (!list) list = SUMA_CreateList();
-            SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_StartListening, SES_Suma, sv);
+            SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, 
+                                    SE_StartListening, SES_Suma, sv);
 
          if (!SUMA_Engine (&list)) {
-               fprintf(SUMA_STDERR, "Error %s: SUMA_Engine call failed.\n", FuncName);
+               fprintf(SUMA_STDERR, 
+                        "Error %s: SUMA_Engine call failed.\n", FuncName);
          } 
          break;
       case XK_t:
          if ((SUMA_CTRL_KEY(key))){
-               if (callmode && strcmp(callmode, "interactive") == 0) { SUMA_SLP_Note("Forcing a resend of Surfaces to Afni...");}
+               if (callmode && strcmp(callmode, "interactive") == 0) {
+                     SUMA_SLP_Note("Forcing a resend of Surfaces to Afni...");}
                else { SUMA_S_Note("Forcing a resend of Surfaces to Afni..."); }
                if (!list) list = SUMA_CreateList();
-               SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_SetForceAfniSurf, SES_Suma, sv);
+               SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, 
+                        SE_SetForceAfniSurf, SES_Suma, sv);
 
                if (!SUMA_Engine (&list)) {
-                  fprintf(SUMA_STDERR, "Error %s: SUMA_Engine call failed.\n", FuncName);
+                  fprintf(SUMA_STDERR, 
+                           "Error %s: SUMA_Engine call failed.\n", FuncName);
                }
          } else {
             if (!list) list = SUMA_CreateList();
-            SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_ToggleConnected, SES_Suma, sv);
+            SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, 
+                           SE_ToggleConnected, SES_Suma, sv);
 
             if (!SUMA_Engine (&list)) {
-                  fprintf(SUMA_STDERR, "Error %s: SUMA_Engine call failed.\n", FuncName);
+                  fprintf(SUMA_STDERR, 
+                           "Error %s: SUMA_Engine call failed.\n", FuncName);
             }
          }
          break;
