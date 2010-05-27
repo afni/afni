@@ -653,10 +653,10 @@ int main( int argc , char *argv[] )
       "* Also see\n"
       "  http://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/instastuff.pdf\n"
       "\n"
-      "* This program operates as a server for AFNI.  It reads in dataset\n"
-      "  collections that have been prepared by 3dSetupGroupInCorr, and\n"
-      "  then connects to the AFNI GUI program (via TCP/IP).  Then it waits\n"
-      "  for a command to be sent from AFNI before it actually does anything.\n"
+      "* This program operates as a server for AFNI or SUMA.  It reads in dataset\n"
+      "  collections that have been prepared by 3dSetupGroupInCorr, and then\n"
+      "  connects to the AFNI or SUMA GUI program (via TCP/IP).  Then it waits\n"
+      "  for a command to be sent from AFNI/SUMA before it actually does anything.\n"
       "\n"
       "* At the same time as you run 3dGroupInCorr, you also have to run the\n"
       "  AFNI GUI program, with a command like 'afni -niml'.  3dGroupInCorr\n"
@@ -796,6 +796,9 @@ int main( int argc , char *argv[] )
       "            labels stored in the input *.grpincorr.niml files, which are\n"
       "            either the dataset prefixes or whatever you supplied in the\n"
       "            3dSetupGroupInCorr program via '-labels'.\n"
+      "            -- If you ran 3dSetupGroupInCorr before this update, its output\n"
+      "               .grpincorr.niml file will NOT have dataset labels included.\n"
+      "               Such a file cannot be used with -covariates -- Sorry.\n"
       "        ++ The later columns contain numbers.\n"
       "        ++ The first line contains column headers.  The header label for the\n"
       "            first column isn't used for anything.  The later header labels are\n"
@@ -803,6 +806,10 @@ int main( int argc , char *argv[] )
       "        ++ At this time, only the -paired and -pooled options can be used with\n"
       "            covariates.  If you use -unpooled, it will be changed to -pooled.\n"
       "            -unpooled still works with a pure t-test (no -covariates option).\n"
+      "            -- This restriction may be lifted in the future.\n"
+      "        ++ If you use -paired, then the covariates for -setB will be the same\n"
+      "            as those for -setA, even if the dataset labels are different!\n"
+      "            -- This restriction may be lifted in the future.\n"
       "        ++ Each covariate column in the regression matrix will have its mean\n"
       "            removed (centered). If there are 2 sets of subjects, each set's\n"
       "            matrix will be centered separately.\n"
@@ -810,9 +817,11 @@ int main( int argc , char *argv[] )
       "            -- The estimated slope of arctanh(correlation) vs covariate\n"
       "            -- The Z-score of the t-statistic of this slope\n"
       "        ++ If there are 2 sets of subjects, then each pair of sub-bricks is\n"
-      "            produced for the A-B, A, and B cases, so that you'll get 6 sub-bricks\n"
-      "            per covariate (plus 6 more for the mean, which is treated as a\n"
-      "            special covariate whose values are all 1).\n"
+      "            produced for the setA-setB, setA, and setB cases, so that you'll\n"
+      "            get 6 sub-bricks per covariate (plus 6 more for the mean, which\n"
+      "            is treated as a special covariate whose values are all 1).\n"
+      "            -- At present, there is no way to tell 3dGroupInCorr not to send\n"
+      "               all this information back to AFNI/SUMA.\n"
       "        ++ A maximum of 31 covariates are allowed.  If you have more, then\n"
       "            seriously consider the possibility that you are completely deranged.\n"
       "\n"
@@ -823,8 +832,8 @@ int main( int argc , char *argv[] )
       "              to any blurring done prior to 3dSetupGroupInCorr.  The default\n"
       "              radius is 0, but the AFNI user can change this interactively.\n"
       "\n"
-      " -ah host = Connect to AFNI on the computer named 'host', rather than on\n"
-      "            the current computer system 'localhost'.\n"
+      " -ah host = Connect to AFNI/SUMA on the computer named 'host', rather than\n"
+      "            on the current computer system 'localhost'.\n"
       "     ++ This allows 3dGroupInCorr to run on a separate system than\n"
       "        the AFNI GUI.\n"
       "       -- e.g., If your desktop is weak and pitiful, but you have access\n"
@@ -1042,8 +1051,8 @@ int main( int argc , char *argv[] )
        }
        shd_AAA = GRINCOR_read_input( fname ) ;
        if( shd_AAA == NULL ) ERROR_exit("Cannot continue after -setA input error") ;
-       if( verb ) INFO_message("-setA opened, contains %d datasets, %s bytes",
-                                shd_AAA->ndset , commaized_integer_string(shd_AAA->nbytes));
+       if( verb ) INFO_message("-setA opened, contains %d datasets, %d time series, %s bytes",
+                                shd_AAA->ndset , shd_AAA->nvec , commaized_integer_string(shd_AAA->nbytes));
        qlab_AAA = fname ;
        cpt = strchr(qlab_AAA,'.') ; if( cpt != NULL && cpt != qlab_AAA ) *cpt = '\0' ;
        nopt++ ; continue ;
@@ -1068,8 +1077,8 @@ int main( int argc , char *argv[] )
        }
        shd_BBB = GRINCOR_read_input( fname ) ;
        if( shd_BBB == NULL ) ERROR_exit("Cannot continue after -setB input error") ;
-       if( verb ) INFO_message("-setB opened, contains %d datasets, %s bytes",
-                               shd_BBB->ndset , commaized_integer_string(shd_BBB->nbytes)) ;
+       if( verb ) INFO_message("-setB opened, contains %d datasets, %d time series, %s bytes",
+                                shd_BBB->ndset , shd_BBB->nvec , commaized_integer_string(shd_BBB->nbytes));
        qlab_BBB = fname ;
        cpt = strchr(qlab_BBB,'.') ; if( cpt != NULL && cpt != qlab_BBB ) *cpt = '\0' ;
        nopt++ ; continue ;
@@ -1219,7 +1228,7 @@ int main( int argc , char *argv[] )
 
      /*--- setup the setB regression matrix ---*/
 
-     if( shd_BBB != NULL ){
+     if( shd_BBB != NULL && ttest_opcode != 2 ){  /* un-paired case */
        nB    = shd_BBB->ndset ;
        bxxim = mri_new( nB , mcov+1 , MRI_float ) ;
        bxx   = MRI_FLOAT_PTR(bxxim) ;
@@ -1249,6 +1258,11 @@ int main( int argc , char *argv[] )
          bxxim_psinv  = IMARR_SUBIM(impr,0) ; bxx_psinv  = MRI_FLOAT_PTR(bxxim_psinv ) ;
          bxxim_xtxinv = IMARR_SUBIM(impr,1) ; bxx_xtxinv = MRI_FLOAT_PTR(bxxim_xtxinv) ;
        }
+
+     } else if( shd_BBB != NULL && ttest_opcode == 2 ){  /* paired case */
+
+       bxx = axx ; bxx_psinv = axx_psinv ; bxx_xtxinv = axx_xtxinv ;
+
      }
 
      if( nbad )
@@ -1346,9 +1360,11 @@ int main( int argc , char *argv[] )
    /*========= message for the user =========*/
 
    if( verb ){
-     INFO_message  ("--- Be sure to start afni with the '-niml' command line option") ;
-     ININFO_message("---  [or press the NIML+PO button if you forgot '-niml']") ;
-     ININFO_message("--- Then open Define Overlay and pick GrpInCorr from the Clusters menu") ;
+     INFO_message    ("--- Be sure to start %s with the '-niml' command line option",pname) ;
+     if( TalkToAfni ){
+       ININFO_message("---  [or press the NIML+PO button if you forgot '-niml']") ;
+       ININFO_message("--- Then open Define Overlay and pick GrpInCorr from the Clusters menu") ;
+     }
    }
 
    /*========= this stuff is one-time-only setup of the I/O to AFNI =========*/
@@ -1732,10 +1748,16 @@ int main( int argc , char *argv[] )
      } else {  /*-- covariates ==> regression analyses --*/
 
        if( verb > 3 )
-         ININFO_message(" start %d-sample regressionizing" , (ndset_BBB > 0) ? 2 : 1 ) ;
+         ININFO_message(" start %d-sample regression-izing" , (ndset_BBB > 0) ? 2 : 1 ) ;
 
        GRINCOR_many_regress( nvec , ndset_AAA , dotprod_AAA ,
                                     ndset_BBB , dotprod_BBB , nout , dtar ) ;
+
+       if( verb > 2 || (verb==1 && nsend < NSEND_LIMIT) ){
+         ctim = NI_clock_time() ;
+         ININFO_message(" finished regression-izing: elapsed=%d ms",ctim-btim) ;
+         btim = ctim ;
+       }
 
      }
 
@@ -1760,7 +1782,7 @@ int main( int argc , char *argv[] )
 
      /*** send the result to AFNI ***/
 
-     if( verb > 3 ) ININFO_message(" sending results to AFNI") ;
+     if( verb > 3 ) ININFO_message(" sending results to %s",pname) ;
      kk = NI_write_element( GI_stream , nelset , NI_BINARY_MODE ) ;
      if( kk <= 0 ){
        ERROR_message("3dGroupInCorr: failure when writing to %s",pname) ;
@@ -1949,7 +1971,7 @@ lab5:
 /*----------------------------------------------------------------------*/
 
 #undef  ZMAX
-#define ZMAX 13.0f
+#define ZMAX 13.0
 
 double GIC_student_t2z( double tt , double dof )
 {
@@ -2138,7 +2160,11 @@ float_pair ttest_toz( int numx, float *xar, int numy, float *yar, int opcode )
     xtxinvA = (mcov+1) X (mcov+1) matrix = inv[xA'xA]
 *//*-------------------------------------------------------------------------*/
 
+#if defined(COVTEST) && 0
 static int first=1 ;
+#endif
+
+#undef UNROLL
 
 void regress_toz( int numA , float *zA ,
                   int numB , float *zB , int opcode ,
@@ -2147,10 +2173,10 @@ void regress_toz( int numA , float *zA ,
                   float *xB , float *psinvB , float *xtxinvB ,
                   float *outvec , float *workspace             )
 {
-   int ii,jj,kt=0,tt,nws , mm=mcov+1 , nA=numA , nB=numB ;
+   int kt=0,nws , mm=mcov+1 , nA=numA , nB=numB ;
    float *betA=NULL , *betB=NULL , *zdifA=NULL , *zdifB=NULL ;
    float ssqA=0.0f , ssqB=0.0f , varA=0.0f , varB=0.0f ; double dof=0.0 ;
-   register float val ;
+   register float val ; register int ii,jj,tt ;
 
    nws = 0 ;
    if( testA || testAB ){
@@ -2165,10 +2191,28 @@ void regress_toz( int numA , float *zA ,
    /*-- compute estimates for A parameters --*/
 
    if( testA || testAB ){
+#ifndef UNROLL
      for( ii=0 ; ii < mm ; ii++ ){
        for( val=0.0f,jj=0 ; jj < nA ; jj++ ) val += PA(ii,jj)*zA[jj] ;
        betA[ii] = val ;
      }
+#else
+     if( nA%2 == 0 ){
+       for( ii=0 ; ii < mm ; ii++ ){
+         val = 0.0f ;
+         for( jj=0 ; jj < nA ; jj+=2 )
+           val += PA(ii,jj)*zA[jj] + PA(ii,jj+1)*zA[jj+1] ;
+         betA[ii] = val ;
+       }
+     } else {
+       for( ii=0 ; ii < mm ; ii++ ){
+         val = PA(ii,0)*zA[0] ;
+         for( jj=1 ; jj < nA ; jj+=2 )
+           val += PA(ii,jj)*zA[jj] + PA(ii,jj+1)*zA[jj+1] ;
+         betA[ii] = val ;
+       }
+     }
+#endif
      for( jj=0 ; jj < nA ; jj++ ){
        val = -zA[jj] ;
        for( ii=0 ; ii < mm ; ii++ ) val += XA(jj,ii)*betA[ii] ;
@@ -2180,10 +2224,28 @@ void regress_toz( int numA , float *zA ,
    /*-- compute estimates for B parameters --*/
 
    if( testB || testAB ){
+#ifndef UNROLL
      for( ii=0 ; ii < mm ; ii++ ){
        for( val=0.0f,jj=0 ; jj < nB ; jj++ ) val += PB(ii,jj)*zB[jj] ;
        betB[ii] = val ;
      }
+#else
+     if( nB%2 == 0 ){
+       for( ii=0 ; ii < mm ; ii++ ){
+         val = 0.0f ;
+         for( jj=0 ; jj < nB ; jj+=2 )
+           val += PB(ii,jj)*zB[jj] + PB(ii,jj+1)*zB[jj+1] ;
+         betB[ii] = val ;
+       }
+     } else {
+       for( ii=0 ; ii < mm ; ii++ ){
+         val = PB(ii,0)*zB[0] ;
+         for( jj=1 ; jj < nB ; jj+=2 )
+           val += PB(ii,jj)*zB[jj] + PB(ii,jj+1)*zB[jj+1] ;
+         betB[ii] = val ;
+       }
+     }
+#endif
      for( jj=0 ; jj < nB ; jj++ ){
        val = -zB[jj] ;
        for( ii=0 ; ii < mm ; ii++ ) val += XB(jj,ii)*betB[ii] ;
@@ -2207,7 +2269,7 @@ void regress_toz( int numA , float *zA ,
        dof = nA - mm ;
        for( tt=0 ; tt < mm ; tt++ ){
          if( (testAB & (1 << tt)) == 0 ) continue ;  /* bitwase AND */
-         outvec[kt++] = betA[ii] - betB[ii] ;
+         outvec[kt++] = betA[tt] - betB[tt] ;
          val          = outvec[kt-1] / sqrtf( varAB*xtxA(tt) ) ;
          outvec[kt++] = (float)GIC_student_t2z( (double)val , dof ) ;
        }
