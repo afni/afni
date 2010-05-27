@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 27 , MAY , 2010 , RWC , "3dGroupInCorr" , MINOR , TYPE_BUG_FIX ,
+   "Fix bug in paired t-test for covariates regression" ,
+   NULL } ,
+
  { 26 , MAY , 2010 , RWC , "3dGroupInCorr" , MAJOR , TYPE_MODIFY ,
    "Add -covariates option" ,
    "With coordinated changes to AFNI to deal with the possibly more\n"

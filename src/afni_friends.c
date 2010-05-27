@@ -379,7 +379,7 @@ static mday holiday[] = {
 
    {JUN, 1,"Marilyn Monroe's birthday"                               } ,
    {JUN, 1,"Tunisia National Day"                                    } ,
-   {JUN, 2,"Italy National Day"                                      } ,
+   {JUN, 2,"Festa della Repubblica!"                                 } ,
    {JUN, 4,"Anniversary of Battle of Midway"                         } ,
    {JUN, 5,"John Maynard Keynes' birthday"                           } ,
    {JUN, 5,"Seychelles Independence Day"                             } ,
