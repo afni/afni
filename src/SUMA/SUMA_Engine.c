@@ -1839,6 +1839,12 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                      break;
                   }
                   if (SendList) SUMA_free(SendList); SendList = NULL;   
+               }else {
+                  SUMA_SLP_Warn(
+                     "None of the surfaces were marked as 'Anatomical'\n"
+                     "So none were sent to AFNI. You can label a surface\n"
+                     "as Anatomical by adding 'Anatomical = Y' where the \n"
+                     "surface is declared in the .spec file.");
                }
 
                break;
