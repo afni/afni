@@ -4414,10 +4414,10 @@ SUMA_SO_SIDE SUMA_GuessSide(SUMA_SurfaceObject *SO)
                   }
          break;
       case SUMA_SUREFIT:
-         if (SUMA_iswordin (SO->Name_coord.FileName, "left") == 1 ||
+         if (SUMA_iswordin_ci (SO->Name_coord.FileName, "left") == 1 ||
              SUMA_iswordin (SO->Name_coord.FileName, ".L.") == 1) {
             SUMA_RETURN(SUMA_LEFT);
-         } else if (SUMA_iswordin (SO->Name_coord.FileName, "right") == 1 ||
+         } else if (SUMA_iswordin_ci (SO->Name_coord.FileName, "right") == 1 ||
              SUMA_iswordin (SO->Name_coord.FileName, ".R.") == 1) {
              SUMA_RETURN(SUMA_RIGHT);
                 }
