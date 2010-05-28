@@ -1171,7 +1171,7 @@ ENTRY("GICOR_init") ;
                                 (char *(*)())GICOR_main  ) ;
    GICOR_plint = plint ;
 
-   PLUTO_set_runlabels( plint , "Setup+Keep" , "Setup+Quit" ) ;
+   PLUTO_set_runlabels( plint , "Set+Keep" , "Set+Quit" ) ;
 
    /*--------- make interface lines -----------*/
 
