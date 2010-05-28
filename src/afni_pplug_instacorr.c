@@ -1176,7 +1176,7 @@ ENTRY("GICOR_init") ;
    /*--------- make interface lines -----------*/
 
    PLUTO_add_option ( plint , "Params" , "Params" , TRUE ) ;
-   PLUTO_add_number ( plint , "SeedRad" , 0,16,0,(int)rint(giset->seedrad), TRUE ) ;
+   PLUTO_add_number ( plint , "SeedRadius" , 0,16,0,(int)rint(giset->seedrad), TRUE ) ;
 
 #ifdef GIC_ALLOW_TTEST
    ntops = (giset->ndset_A == giset->ndset_B) ? 3 : 2 ;
@@ -1184,7 +1184,7 @@ ENTRY("GICOR_init") ;
 #endif
 
    PLUTO_add_option ( plint , "Cluster" , "Cluster" , TRUE ) ;
-   PLUTO_add_number ( plint , "Voxels"  , 0,9999,0 , 0,TRUE ) ;
+   PLUTO_add_number ( plint , "Voxels Min"  , 0,9999,0 , 0,TRUE ) ;
 
    if( giset->toplabel != NULL )
      PLUTO_set_toplabel( GICOR_plint , giset->toplabel ) ;
