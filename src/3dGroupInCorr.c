@@ -1584,6 +1584,7 @@ int main( int argc , char *argv[] )
            ININFO_message("TCP/IP restart is good :-)") ; shm_active = 0 ;
          } else {
            ININFO_message("TCP/IP restart failed :-(") ;
+           NI_stream_close(GI_stream) ; GI_stream = (NI_stream)NULL ;
            goto GetOutOfDodge ;  /* failed */
          }
        }
