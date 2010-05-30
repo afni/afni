@@ -2274,7 +2274,7 @@ def db_cmd_regress_censor_motion(proc, block):
         vblk = proc.find_block('volreg')
         opt = None
         mot_file = ''
-        if vblk: opt = vblk.find_opt('-volreg_regress_per_run')
+        if vblk: opt = vblk.opts.find_opt('-volreg_regress_per_run')
         if opt: mot_file = 'dfile.rall.1D'
         if not mot_file:
             print '** bad motion files for -regress_censor_motion'

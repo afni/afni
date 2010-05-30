@@ -181,9 +181,12 @@ g_history = """
     2.22 Mar 28 2010 : applied fitts computation to REML case
     2.23 Apr 26 2010 : added -regress_opts_reml
     2.24 May 12 2010 : added -regress_censor_first_trs
+    2.25 May 29 2010 :
+        - fixed use of -volreg_regress_per_run and -regress_censor_motion pair
+          (problem noted by D Drake)
 """
 
-g_version = "version 2.24, May 12, 2010"
+g_version = "version 2.25, May 20, 2010"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
