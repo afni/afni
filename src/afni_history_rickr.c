@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 27, MAY, 2010, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
+   "fixed use of -volreg_regress_per_run and -regress_censor_motion pair",
+   "Problem found by D Drake."
+ } ,
+
  { 20, MAY, 2010, RCR, "Makefile.NIH.CentOS.5.3_64", MICRO, TYPE_MODIFY,
    "update CCOLD to compile with gcc verion 3.4",
    NULL
