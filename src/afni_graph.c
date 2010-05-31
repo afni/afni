@@ -2845,7 +2845,7 @@ STATUS(str) ; }
       /*----- redraw -----*/
 
       case Expose:{
-         XExposeEvent * event = (XExposeEvent *) ev ;
+         XExposeEvent *event = (XExposeEvent *) ev ;
 
 if(PRINT_TRACING){
 char str[256] ;
@@ -2876,10 +2876,10 @@ STATUS(str) ; }
       /*----- take key press -----*/
 
       case KeyPress:{
-         XKeyEvent * event = (XKeyEvent *) ev ;
-         char           buf[32] ;
-         KeySym         ks=0 ;
-         int            nbuf ;
+         XKeyEvent *event = (XKeyEvent *) ev ;
+         char          buf[32] ;
+         KeySym        ks=0 ;
+         int           nbuf ;
 
 STATUS("KeyPress event") ;
 
@@ -2921,13 +2921,15 @@ STATUS("KeyPress event") ;
 
 STATUS("button press") ;
 
+         GRA_timer_stop(grapher) ;  /* 31 May 2010 = Memorial Day */
+
          /* 26 Feb 2007: Buttons 4 and 5 = scroll wheel = change time point */
 
          if( but == Button4 || but == Button5 ){
            int dd=(but==Button4)?-1:+1 , tt ;
            if( AFNI_yesenv("AFNI_INDEX_SCROLLREV") ) dd = -dd ;
            tt = grapher->time_index + dd ;
-           EXRONE(grapher) ; GRA_timer_stop(grapher) ;
+           EXRONE(grapher) ;
            if( tt >= 0 && tt < grapher->status->num_series ){
              if( grapher->status->send_CB != NULL ){
                GRA_cbs cbs ;
@@ -3173,8 +3175,9 @@ STATUS("button press") ;
          int new_width , new_height ;
 
 STATUS("ConfigureNotify event") ;
-
+ 
          XSync( XtDisplay(w) , False ) ;
+         GRA_timer_stop(grapher) ;  /* 31 May 2010 = Memorial Day */
 
          new_width  = event->width ;
          new_height = event->height ;
