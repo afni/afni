@@ -3070,7 +3070,8 @@ STATUS("button press") ;
 
          /* Button 3 --> popup statistics of this graph */
 
-         if( but == Button3 && !ISONE(grapher) && !grapher->textgraph ){
+         if( !AFNI_noenv("AFNI_GRAPH_BUT3") &&  /* stupid Xorg bug */
+             but == Button3 && !ISONE(grapher) && !grapher->textgraph ){
             int ix , iy ;
 
             ix = xloc - grapher->xpoint + grapher->xc ;
