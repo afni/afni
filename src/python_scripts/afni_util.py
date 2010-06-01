@@ -1193,7 +1193,9 @@ def data_to_hex_str(data):
    return retstr
 
 # ----------------------------------------------------------------------
-# matematical functions
+# matematical functions:
+#    vector routines: sum, sum squares, mean, demean
+# ----------------------------------------------------------------------
 
 def loc_sum(vals):
    """in case 'sum' does not exist, such as on old machines"""
@@ -1203,6 +1205,12 @@ def loc_sum(vals):
       tot = 0
       for val in vals: tot += val
    return tot
+
+def sumsq(vals):
+   """return the sum of the squared values"""
+   ssq = 0
+   for val in vals: ssq += (val*val)
+   return ssq
 
 def euclidean_norm(vals):
 
@@ -1274,6 +1282,10 @@ def demean(vec, ibot=-1, itop=-1):
 
     return 0
 
+# ----------------------------------------------------------------------
+# statistical routines - stdev, variance, ttest
+# ----------------------------------------------------------------------
+
 def min_mean_max_stdev(data):
     """return 4 values for data: min, mean, max, stdev (unbiased)"""
 
@@ -1319,6 +1331,133 @@ def stdev(data):
     # watch for truncation artifact
     if val < 0.0 : return 0.0
     return math.sqrt(val)
+
+def variance_ub(data):
+    """unbiased variance (divide by len-1, not just len)"""
+
+    length = len(data)
+    if length <  2: return 0.0
+
+    meanval = loc_sum(data)/float(length)
+    # compute standard deviation
+    ssq = 0.0
+    for val in data: ssq += val*val
+    val = (ssq - length*meanval*meanval)/(length-1.0)
+
+    # watch for truncation artifact
+    if val < 0.0 : return 0.0
+    return val
+
+def variance(data):
+    """(biased) variance (divide by len, not len-1)"""
+
+    length = len(data)
+    if length <  2: return 0.0
+
+    meanval = loc_sum(data)/float(length)
+    # compute standard deviation
+    ssq = 0.0
+    for val in data: ssq += val*val
+    val = (ssq - length*meanval*meanval)/length
+
+    # watch for truncation artifact
+    if val < 0.0 : return 0.0
+    return val
+
+def ttest(data0, data1=None):
+    """just a top-level function"""
+
+    if data1: return ttest_2sam(data0, data1)
+    return ttest_1sam(data0)
+
+def ttest_1sam(data, m0=0.0):
+    """return (mean-m0) / (stdev_ub(data)/sqrt(N)),
+
+              where stdev_ub = sqrt( (sumsq - N*mean^2)/(N-1) )
+
+       or faster, return: (sum-N*m0)/(sqrt(N)*stdev_ub)
+
+       note: move 1/N factor to denominator
+    """
+
+    # check for short length
+    N = len(data)
+    if N < 2: return 0.0
+
+    # check for division by 0
+    sd = stdev_ub(data)
+    if sd <= 0.0: return 0.0
+
+    # and return, based on any passed expected mean
+    if m0: t = (loc_sum(data) - N*m0)/(math.sqrt(N)*sd)
+    else:  t =  loc_sum(data)        /(math.sqrt(N)*sd)
+
+    return t
+
+def ttest_paired(data0, data1):
+    """easy: return 1 sample t-test of the difference"""
+
+    N0 = len(data0)
+    N1 = len(data1)
+    if N0 < 2 or N1 < 2: return 0.0
+    if N0 != N1:
+        print '** ttest_paired: unequal vector lengths'
+        return 0.0
+
+    return ttest_1sam([data1[i] - data0[i] for i in range(N0)])
+
+def ttest_2sam(data0, data1, pooled=1):
+    """if not pooled, return ttest_2sam_unpooled(), otherwise
+
+       return (mean1-mean0)/sqrt(PV * (1/N0 + 1/N1))
+
+              where PV (pooled_variance) = ((N0-1)*V0 + (N1-1)*V1)/(N0+N1-2)
+
+       note: these lists do not need to be of the same length
+       note: the sign is as with 3dttest (second value(s) minus first)
+    """
+
+    if not pooled: return ttest_2sam_unpooled(data0, data1)
+
+    N0 = len(data0)
+    N1 = len(data1)
+    if N0 < 2 or N1 < 2: return 0.0
+
+    m0 = loc_sum(data0)/float(N0)
+    v0 = variance_ub(data0)
+
+    m1 = loc_sum(data1)/float(N1)
+    v1 = variance_ub(data1)
+
+    pv = ((N0-1)*v0 + (N1-1)*v1) / (N0+N1-2.0)
+    if pv <= 0.0: return 0.0
+
+    return (m1-m0)/math.sqrt(pv * (1.0/N0 + 1.0/N1))
+
+def ttest_2sam_unpooled(data0, data1):
+    """return (mean1-mean0)/sqrt(var0/N0 + var1/N1)
+
+       note: these lists do not need to be of the same length
+       note: the sign is as with 3dttest (second value(s) minus first)
+    """
+
+    N0 = len(data0)
+    N1 = len(data1)
+    if N0 < 2 or N1 < 2: return 0.0
+
+    m0 = loc_sum(data0)/float(N0)
+    v0 = variance_ub(data0)
+
+    m1 = loc_sum(data1)/float(N1)
+    v1 = variance_ub(data1)
+
+    if v0 <= 0.0 or v1 <= 0.0: return 0.0
+
+    return (m1-m0)/math.sqrt(v0/N0 + v1/N1)
+
+# ----------------------------------------------------------------------
+# random list routines: shuffle, merge, swap, extreme checking
+# ----------------------------------------------------------------------
 
 def shuffle(vlist):
     """randomize the order of list elements, where each perumuation is

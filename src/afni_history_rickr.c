@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 1, JUN, 2010, RCR, "afni_util.py", MINOR, TYPE_NEW_OPT,
+   "added variance and t-test routines (1-sample, paired, pooled, unpooled)",
+   NULL
+ } ,
+
  { 27, MAY, 2010, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
    "fixed use of -volreg_regress_per_run and -regress_censor_motion pair",
    "Problem found by D Drake."
