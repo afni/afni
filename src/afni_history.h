@@ -41,7 +41,8 @@
 #define TYPE_NEW_ENV    3  /* environmental change or new env variable */
 #define TYPE_BUG_FIX    4  /* enhancement of an existing bug */
 #define TYPE_MODIFY     5  /* a change (not new, not a bug fix) */
-#define MAX_TYPE_VAL    5  /* maximum type value */
+#define TYPE_ENHANCE    6  /* general enhancement */
+#define MAX_TYPE_VAL    6  /* maximum type value */
 
 
 typedef struct {

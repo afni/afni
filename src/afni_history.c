@@ -1130,6 +1130,7 @@ char * type_string(int type)
         case TYPE_NEW_ENV:      return "NEW_ENV";
         case TYPE_BUG_FIX:      return "BUG_FIX";
         case TYPE_MODIFY:       return "MODIFY";
+        case TYPE_ENHANCE:      return "ENHANCE";
     }
 }
 
@@ -1146,6 +1147,7 @@ int type_string2type(char * tstring)
     if( ! strcmp("NEW_ENV",  tstring) ) return TYPE_NEW_ENV;
     if( ! strcmp("BUG_FIX",  tstring) ) return TYPE_BUG_FIX;
     if( ! strcmp("MODIFY",   tstring) ) return TYPE_MODIFY;
+    if( ! strcmp("ENHANCE",  tstring) ) return TYPE_ENHANCE;
 
     return TYPE_INVALID;
 }
