@@ -57,9 +57,10 @@ def db_cmd_tcat(proc, block):
                     (proc.od_var, proc.prefix_form(block,run+1),
                      proc.dsets[run].rpv(), first)
 
-    cmd = cmd + '\n'                            + \
-                '# and enter the results directory\n' \
-                'cd %s\n\n' % proc.od_var
+    cmd = cmd + '\n'                                                          \
+                '# -------------------------------------------------------\n' \
+                '# enter the results directory (can begin processing data)\n' \
+                'cd %s\n\n\n' % proc.od_var
 
     proc.reps   -= first        # update reps to account for removed TRs
     proc.reps_all = [reps-first for reps in proc.reps_all]
@@ -67,8 +68,24 @@ def db_cmd_tcat(proc, block):
     proc.bindex += 1            # increment block index
     proc.pblabel = block.label  # set 'previous' block label
 
+    # now that the 'output' index and label are set, maybe get outlier counts
+    opt = proc.user_opts.find_opt('-count_outliers')
+    if not opt or OL.opt_is_yes(opt):
+        cmd = cmd + make_outlier_commands(proc)
+
     if proc.verb > 0: print "-- %s: reps is now %d" % (block.label, proc.reps)
 
+    return cmd
+
+# could do this from any block, but expect to do at end of tcat
+def make_outlier_commands(proc):
+    prev_prefix = proc.prev_prefix_form_run(view=1)
+    cmd = '# data check: compute outlier fraction for each volume\n'     \
+          'foreach run ( $runs )\n'                                      \
+          '    3dToutcount -automask -fraction %s > outcount_r$run.1D\n' \
+          'end\n\n'                                                      \
+          '# and catenate into a single time series\n'                   \
+          'cat outcount_r??.1D > outcount.rall.1D\n\n' % prev_prefix
     return cmd
 
 # --------------- align (anat2epi) ---------------
@@ -590,17 +607,15 @@ def db_cmd_tshift(proc, block):
     else: other_opts = '             %s \\\n' % ' '.join(opt.parlist)
 
     # write commands
-    cmd = cmd + '# %s\n'                                        \
-                '# run 3dToutcount and 3dTshift for each run\n' \
+    cmd = cmd + '# %s\n'                                                \
+                '# time shift data so all slice timing is the same \n'  \
                 % block_header('tshift')
-    cmd = cmd + 'foreach run ( $runs )\n'                                     \
-                '    3dToutcount -automask %s > outcount_r$run.1D\n'          \
-                '\n'                                                          \
-                '    3dTshift %s %s -prefix %s \\\n'                          \
-                '%s'                                                          \
-                '             %s\n'                                           \
-                'end\n\n' %                                                   \
-                (prev_prefix, align_to, resam,cur_prefix,other_opts,prev_prefix)
+    cmd = cmd + 'foreach run ( $runs )\n'                               \
+                '    3dTshift %s %s -prefix %s \\\n'                    \
+                '%s'                                                    \
+                '             %s\n'                                     \
+                'end\n\n'                                               \
+                % (align_to, resam, cur_prefix, other_opts, prev_prefix)
     
     proc.bindex += 1            # increment block index
     proc.pblabel = block.label  # set 'previous' block label
@@ -2069,9 +2084,14 @@ def db_cmd_regress(proc, block):
     if opt and opt.parlist:
         first = (polort+1) * proc.runs
         last = first + len(proc.stims) - 1
-        cmd = cmd + "# create ideal file by adding ideal regressors\n"
-        cmd = cmd + "3dTstat -sum -prefix %s %s'[%d..%d]'\n\n" % \
-                    (opt.parlist[0], proc.xmat, first, last)
+        if first == last: # use 1dcat to extract just the one column
+           cmd = cmd + '# only 1 regressor for ideal "sum", so use 1dcat\n'
+           cmd = cmd + "1dcat %s'[%d]' > %s\n\n" % \
+                       (proc.xmat, first, opt.parlist[0])
+        else:
+           cmd = cmd + "# compute sum of ideals from X-matrix\n"
+           cmd = cmd + "3dTstat -sum -prefix %s %s'[%d..%d]'\n\n" % \
+                       (opt.parlist[0], proc.xmat, first, last)
 
     # check for blur estimates
     bcmd = db_cmd_blur_est(proc, block)

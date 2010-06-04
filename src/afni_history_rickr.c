@@ -48,6 +48,19 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 4, JUN, 2010, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "moved outlier counting outside of tshift block",
+   "- if only one regressor, use 1dcat for 'sum' ideal\n"
+   "- added -count_outliers, default to 'yes'\n"
+   "- outlier counting is now at end of tcat block"
+
+ } ,
+
+ { 4, JUN, 2010, RCR, "3dToutcount", MICRO, TYPE_NEW_OPT,
+   "added -fraction to output fraction of bad voxels, instead of count",
+   "This will be used by afni_proc.py for censoring."
+ } ,
+
  { 3, JUN, 2010, RCR, "plug_realtime", MAJOR, TYPE_ENHANCE,
    "added ability to register merged data and possibly all channels",
    "Via MergeRegister, one can request to register the ChannelMerge dataset.\n"

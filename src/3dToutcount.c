@@ -5,7 +5,7 @@ int main( int argc , char *argv[] )
    THD_3dim_dataset *dset , *oset=NULL ;
    int nvals , iv , nxyz , ii,jj , iarg , saveit=0 , oot , ic,cc ;
    int *count ;
-   float qthr=0.001 , alph,fmed,fmad , fbot,ftop,fsig , sq2p,cls ;
+   float qthr=0.001 , alph,fmed,fmad , fbot,ftop,fsig=0 , sq2p,cls ;
    MRI_IMAGE *flim ;
    float *far , *var ;
    byte *mmm=NULL ;
@@ -14,6 +14,7 @@ int main( int argc , char *argv[] )
    int do_autoclip=0 , npass=0 , do_range=0 ;   /* 12 Aug 2001 */
 
    int polort=0 , nref , nbad=0 , nfsc=0 ;      /* 07 Aug 2002 */
+   int do_frac=0;                               /* 04 Jun 2010 [rickr] */
    float **ref ;
    float  *fit ;
 
@@ -31,6 +32,9 @@ int main( int argc , char *argv[] )
              "\n"
              " -autoclip }= Clip off 'small' voxels (as in 3dClipLevel);\n"
              " -automask }=   you can't use this with -mask!\n"
+             "\n"
+             " -fraction  = Output the fraction of (masked) voxels which are\n"
+             "              outliers at each time point, instead of the count.\n"
              "\n"
              " -range     = Print out median+3.5*MAD of outlier count with\n"
              "                each time point; use with 1dplot as in\n"
@@ -85,6 +89,10 @@ int main( int argc , char *argv[] )
            exit(1) ;
          }
          do_autoclip = 1 ; iarg++ ; continue ;
+      }
+
+      if( strncmp(argv[iarg], "-fraction", 5) == 0 ){  /* 6 Jun 2010 */
+         do_frac = 1 ; iarg++ ; continue ;
       }
 
       if( strcmp(argv[iarg],"-range") == 0 ){  /* 12 Aug 2001 */
@@ -307,9 +315,17 @@ int main( int argc , char *argv[] )
       for( iv=0 ; iv < nvals ; iv++ ) ff[iv] = count[iv] ;
       qmedmad_float( nvals,ff , &cmed,&cmad ) ; free(ff) ;
       ctop = (int)(cmed+3.5*cmad+0.499) ;
-      for( iv=0 ; iv < nvals ; iv++ ) printf("%6d %d\n",count[iv],ctop) ;
+      if( do_frac )     /* 04 Jun 2010 [rickr] */
+         for( iv=0 ; iv < nvals ; iv++ )
+            printf("%0.5f %d\n",(float)count[iv]/npass,ctop) ;
+      else
+         for( iv=0 ; iv < nvals ; iv++ ) printf("%6d %d\n",count[iv],ctop) ;
    } else {
-      for( iv=0 ; iv < nvals ; iv++ ) printf("%6d\n",count[iv]) ;
+      if( do_frac )     /* 04 Jun 2010 [rickr] */
+         for( iv=0 ; iv < nvals ; iv++ )
+            printf("%0.5f\n",(float)count[iv]/npass) ;
+      else
+         for( iv=0 ; iv < nvals ; iv++ ) printf("%6d\n",count[iv]) ;
    }
 
 #if 0
