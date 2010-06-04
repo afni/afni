@@ -184,9 +184,13 @@ g_history = """
     2.25 May 29 2010 :
         - fixed use of -volreg_regress_per_run and -regress_censor_motion pair
           (problem noted by D Drake)
+    2.26 Jun 04 2010 :
+        - if only one regressor, use 1dcat for "sum" ideal
+        - added -count_outliers, default to "yes"
+        - outlier counting is now at end of tcat block
 """
 
-g_version = "version 2.25, May 20, 2010"
+g_version = "version 2.26, June 4, 2010"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
@@ -357,6 +361,9 @@ class SubjProcSream:
                         helpstr='anatomy to copy to results directory')
         self.valid_opts.add_opt('-copy_files', -1, [],
                         helpstr='list of files to copy to results directory')
+        self.valid_opts.add_opt('-count_outliers', 1, [],
+                        acplist=['yes','no'],
+                        helpstr='run 3dToutcount, default is "yes"')
         self.valid_opts.add_opt('-execute', 0, [],
                         helpstr='execute script as suggested to user')
         self.valid_opts.add_opt('-exit_on_error', 1, [],
@@ -487,7 +494,7 @@ class SubjProcSream:
         self.valid_opts.add_opt('-regress_basis_normall', 1, [],
                         helpstr="specify magnitude of basis functions")
         self.valid_opts.add_opt('-regress_censor_motion', 1, [],
-                        helpstr="censor TRs if motion derivative exceeds limit")
+                        helpstr="censor TR if motion derivative exceeds limit")
         self.valid_opts.add_opt('-regress_censor_first_trs', 1, [],
                         helpstr="censor first TRs per run (if censor motion)")
         self.valid_opts.add_opt('-regress_censor_prev', 1, [],
