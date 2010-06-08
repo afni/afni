@@ -1031,7 +1031,7 @@ void CALC_Syntax(void)
     "             -b a+i -c a-i -d a+j -e a-j -f a+k -g a-k     \\           \n"
     "             -expr 'a*amongst(0,b,c,d,e,f,g)'                           \n"
     "                                                                        \n"
-    "    consider similar erosion or dilation operations:                    \n"
+    "    consider similar erode or dilate operations:                        \n"
     "        erosion:  -expr 'a*(1-amongst(0,b,c,d,e,f,g))'                  \n"
     "        dilation: -expr 'amongst(1,a,b,c,d,e,f,g)'                      \n"
     "                                                                        \n"
