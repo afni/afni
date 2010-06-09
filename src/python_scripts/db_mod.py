@@ -51,7 +51,8 @@ def db_cmd_tcat(proc, block):
 
     cmd = cmd + "# %s\n"                                                      \
                 "# apply 3dTcat to copy input dsets to results dir, while\n"  \
-                "# removing the first %d TRs\n" % (block_header('tcat'), first)
+                "# removing the first %d TRs\n"                               \
+                % (block_header('auto block: tcat'), first)
     for run in range(0, proc.runs):
         cmd = cmd + "3dTcat -prefix %s/%s %s'[%d..$]'\n" %              \
                     (proc.od_var, proc.prefix_form(block,run+1),
@@ -71,22 +72,95 @@ def db_cmd_tcat(proc, block):
     # now that the 'output' index and label are set, maybe get outlier counts
     opt = proc.user_opts.find_opt('-count_outliers')
     if not opt or OL.opt_is_yes(opt):
-        cmd = cmd + make_outlier_commands(proc)
+        rv, oc = make_outlier_commands(proc)
+        if rv: return   # failure (error has been printed)
+        cmd = cmd + oc
 
     if proc.verb > 0: print "-- %s: reps is now %d" % (block.label, proc.reps)
 
     return cmd
 
 # could do this from any block, but expect to do at end of tcat
+# return error code (0 = success) and string
 def make_outlier_commands(proc):
+    # check for any censoring
+    val, err = proc.user_opts.get_type_opt(float, '-regress_censor_outliers')
+    if err: return 1, ''
+    elif val == None: censor = 0.0
+    elif val < 0.0 or val > 1.0:
+        print '** -regress_censor_outliers value %f is not in [0,1.0]' % val
+        return 1, ''
+    else: censor = val
+
+    # check for ignoring first TRs of each run
+    val, err = proc.user_opts.get_type_opt(int, '-regress_skip_first_outliers')
+    if err: return 1, ''
+    elif val == None: nskip = 0
+    elif val < 0:
+        print '** -regress_skip_first_outliers: bad value %d' % val
+        return 1, ''
+    else: nskip = val
+
+    # if ignoring first few TRs, modify the 1deval expression
+    if nskip: dstr = '*step(t-%d)' % (nskip-1)
+    else:     dstr = ''
+
+    if censor > 0.0:
+        cfile = 'outcount_${subj}_censor.1D'
+        cs0 = '\n'                                                            \
+          '    # censor outlier TRs per run, ignoring the first %d TRs\n'     \
+          '    # - censor when more than %g of automask voxels are outliers\n'\
+          '    # - step() defines which TRs to remove\n'                      \
+          '    1deval -a outcount_r$run.1D '                                  \
+          '-expr "1-step(a-%g)%s" > rm.out.cen.r$run.1D\n'                    \
+          % (nskip, censor, censor, dstr)
+        cs1 = '\n'                                                          \
+              '# catenate outlier censor files into a single time series\n' \
+              'cat rm.out.cen.r*.1D > %s\n' % cfile
+        if proc.censor_file:
+            rv, cs2 = combine_censor_files(proc, cfile)
+            if rv: return 1, ''
+            cs1 += cs2
+        else:
+            proc.censor_file = cfile
+            proc.censor_count = 1
+    else:
+        cs0 = ''
+        cs1 = ''
+
     prev_prefix = proc.prev_prefix_form_run(view=1)
-    cmd = '# data check: compute outlier fraction for each volume\n'     \
+    cmd = '# %s\n'                                                       \
+          '# data check: compute outlier fraction for each volume\n'     \
           'foreach run ( $runs )\n'                                      \
           '    3dToutcount -automask -fraction %s > outcount_r$run.1D\n' \
+          '%s'                                                           \
           'end\n\n'                                                      \
-          '# and catenate into a single time series\n'                   \
-          'cat outcount_r??.1D > outcount.rall.1D\n\n' % prev_prefix
-    return cmd
+          '# catenate outlier counts into a single time series\n'        \
+          'cat outcount_r??.1D > outcount.rall.1D\n'                     \
+          '%s\n'                                                         \
+          % (block_header('auto block: outcount'), prev_prefix, cs0, cs1)
+    return 0, cmd
+
+def combine_censor_files(proc, cfile, newfile=''):
+    """create a 1deval command to multiply the 2 current censor file
+       with the existing one, writing to newfile
+
+       store newfile as censor_file
+
+       return err, cmd_str   (where err=0 implies success)"""
+    if not newfile:
+        newfile = 'censor_${subj}_combined_%d.1D' % (proc.censor_count+1)
+    if not proc.censor_file or not cfile:
+        print '** combine_censor_files: missing input'
+        return 1, ''
+    cstr = '# combine multiple censor files\n'          \
+           '1deval -a %s -b %s \\\n'                    \
+           '       -expr "a*b" > %s\n'                  \
+           % (cfile, proc.censor_file, newfile)
+    proc.censor_file = newfile
+    proc.censor_count += 1
+
+    return 0, cstr
 
 # --------------- align (anat2epi) ---------------
 
@@ -1846,9 +1920,8 @@ def db_cmd_regress(proc, block):
                    nmotion + proc.ricor_nreg
     
     # maybe we will censor
-    if proc.regress_censor_file:
-        censor_str = '    -censor %s \\\n' % proc.regress_censor_file
-    else: censor_str = ''
+    if proc.censor_file: censor_str = '    -censor %s \\\n' % proc.censor_file
+    else:                censor_str = ''
 
     cmd = cmd + '3dDeconvolve -input %s \\\n'           \
                 '%s'                                    \
@@ -2021,6 +2094,7 @@ def db_cmd_regress(proc, block):
     cmd = cmd + iresp
     cmd = cmd + other_opts
     cmd = cmd + "    %s-tout -x1D %s -xjpeg X.jpg \\\n" % (fout_str, proc.xmat)
+    if proc.censor_file: cmd += "    -x1D_uncensored X.uncensored.xmat.1D \\\n"
     cmd = cmd + fitts + errts + stop_opt
     cmd = cmd + "    -bucket stats.$subj\n\n\n"
 
@@ -2061,10 +2135,10 @@ def db_cmd_regress(proc, block):
                         % (all_runs, proc.view, errts_pre, proc.view, fitts_pre)
 
     # if censoring create an uncensored X-matrix file
-    if proc.regress_censor_file:
-        newmat = "X.uncensored.xmat.1D"
+    if proc.censor_file:
+        newmat = "X.full_length.xmat.1D"
         cmd = cmd +     \
-            "# in case of censoring, create uncensored X-matrix\n"      \
+            "# in case of censoring, create full length X-matrix\n"     \
             "1d_tool.py -infile %s -censor_fill -write %s\n\n"          \
                 % (proc.xmat, newmat)
         proc.xmat = newmat
@@ -2274,7 +2348,7 @@ def db_cmd_regress_censor_motion(proc, block):
        Require a non-negative LIMIT, consistent run length and a single
        motion file.
 
-       As a side effect, set proc.regress_censor_file.
+       As a side effect, set proc.censor_file.
 
        return an error code (0=success) and command string"""
 
@@ -2319,9 +2393,19 @@ def db_cmd_regress_censor_motion(proc, block):
 
     # save string to apply in 3dDeconvolve
     mot_prefix = 'motion_${subj}'
-    proc.regress_censor_file = '%s_censor.1D' % mot_prefix
+    censor_file = '%s_censor.1D' % mot_prefix
     cmd = '\n# create censor file %s, for censoring motion \n' \
-          % proc.regress_censor_file
+          % censor_file
+
+    # if we are already censoring, make a command to combine the results
+    if proc.censor_file:
+        rv, cfs = combine_censor_files(proc, censor_file)
+        if rv: return 1, ''
+        cfs += '\n'
+    else:
+        proc.censor_file = censor_file
+        proc.censor_count = 1
+        cfs = ''
                 
     # make command string to create censor file
     if proc.reps_vary :     # use -set_run_lengths aot -set_nruns
@@ -2335,6 +2419,8 @@ def db_cmd_regress_censor_motion(proc, block):
                 '%s'                                            \
                 '    -censor_motion %g %s\n\n'                  \
                 % (proc.tr, prev_str, cfstr, limit, mot_prefix)
+
+    if cfs: cmd += cfs
 
     return 0, cmd
 
@@ -2475,16 +2561,19 @@ def db_cmd_gen_review(proc):
     cmd = "# %s\n"                                                      \
           "# generate a review script for the unprocessed EPI data\n"   \
           "gen_epi_review.py -script %s \\\n"                           \
-          "    -dsets %s\n\n" % (block_header('gen_epi_review.py'),
+          "    -dsets %s\n\n" % (block_header('auto block: gen_epi_review.py'),
                proc.gen_review, proc.dset_form_wild('tcat',proc.origview))
 
     return cmd
 
-def block_header(hname, maxlen=74, hchar='='):
-    """return a title string of 'hchar's with the middle chars set to 'name'"""
+def block_header(hname, maxlen=74, hchar='=', endchar=''):
+    """return a title string of 'hchar's with the middle chars set to 'name'
+       if endchar is set, put at both ends of header
+       e.g. block_header('volreg', endchar='##') """
     if len(hname) > 0: name = ' %s ' % hname
     else:              name = ''
 
+    if endchar != '': maxlen -= 2*len(endchar)
     rmlen = len(name)
     if rmlen >= maxlen:
         print "** block_header, rmlen=%d exceeds maxlen=%d" % (rmlen, maxlen)
@@ -2492,7 +2581,7 @@ def block_header(hname, maxlen=74, hchar='='):
     prelen  = (maxlen - rmlen) // 2     # basically half the chars
     postlen = maxlen - rmlen - prelen   # other 'half'
 
-    return prelen*hchar + name + postlen*hchar
+    return endchar + prelen*hchar + name + postlen*hchar + endchar
 
 # ----------------------------------------------------------------------
 # global help string (see end global help string)
@@ -4248,6 +4337,45 @@ g_help_string = """
             not to censor the previous TRs by setting this to 'no'.
 
             See also -regress_censor_motion.
+
+        -regress_censor_outliers LIMIT : censor TRs with excessive outliers
+
+                e.g. -regress_censor_outliers 0.15
+
+            This option is used to censor TRs where too many voxels are flagged
+            as outliers by 3dToutcount.  LIMIT should be in [0.0, 1.0], as it
+            is a limit on the fraction of masked voxels.
+
+            '3dToutcount -automask -fraction' is used to output the fraction of
+            (auto)masked voxels that are considered outliers at each TR.  If
+            the fraction of outlier voxels is greater than LIMIT for some TR,
+            that TR is censored out.
+
+            Depending on the scanner settings, early TRs might have somewhat
+            higher intensities.  This could lead to the first few TRs of each
+            run being censored.  To avoid censoring the first few TRs of each
+            run, apply the -regress_skip_first_outliers option.
+
+            Note that if motion is also being censored, the multiple censor
+            files will be combined (multiplied) before 3dDeconvolve.
+            
+            See '3dToutcount -help' for more details.
+            See also -regress_skip_first_outliers, -regress_censor_motion.
+
+        -regress_skip_first_outliers NSKIP : ignore the first NSKIP TRs
+
+                e.g. -regress_skip_first_outliers 4
+                default: 0
+
+            When using -regress_censor_outliers, any TR with too high of an
+            outlier fraction will be censored.  But depending on the scanner
+            settings, early TRs might have somewhat higher intensities, leading
+            to them possibly being inappropriately censored.
+
+            To avoid censoring any the first few TRs of each run, apply the
+            -regress_skip_first_outliers option.
+
+            See also -regress_censor_outliers.
 
         -regress_compute_fitts       : compute fitts via 3dcalc, not 3dDecon
 
