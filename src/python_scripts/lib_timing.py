@@ -151,6 +151,8 @@ class AfniTiming:
 
       nlabr = len(labels)
 
+      if self.verb > 3: print '-- partition: %d labels: %s' % (nlabr, labels)
+
       # first test nrows, then test lengths per row
       if self.nrows != nlabr:
          print '** Timing nrows differs from partition nrows (%d, %d)' % \
@@ -166,8 +168,8 @@ class AfniTiming:
       for line in labels:
          ulabs.extend(line)
       ulabs = UTIL.get_unique_sublist(ulabs)
-      if self.verb > 2: print '-- unique label list: %s' % ulabs
-      ulabs.remove('0')
+      if self.verb > 2: print '-- partition: unique label list: %s' % ulabs
+      if ulabs.count('0'): ulabs.remove('0')
 
       if self.verb > 1: print '++ Timing: partitioning with %s' % part_file
 
