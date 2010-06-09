@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 8, JUN, 2010, RCR, "timing_tool.py", MICRO, TYPE_BUG_FIX,
+   "fixed partitioning without zeros",
+   NULL
+ } ,
+
  { 8, JUN, 2010, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "added -regress_censor_outliers and -regress_skip_first_outliers",
    NULL
