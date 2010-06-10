@@ -56,7 +56,7 @@ def db_cmd_tcat(proc, block):
     for run in range(0, proc.runs):
         cmd = cmd + "3dTcat -prefix %s/%s %s'[%d..$]'\n" %              \
                     (proc.od_var, proc.prefix_form(block,run+1),
-                     proc.dsets[run].rpv(), first)
+                     proc.dsets[run].rel_input(), first)
 
     cmd = cmd + '\n'                                                          \
                 '# -------------------------------------------------------\n' \
@@ -391,10 +391,11 @@ def db_cmd_ricor(proc, block):
         return
 
     # get nslices
-    err, dims = UTIL.get_typed_dset_attr_list(proc.dsets[0].rpv(),
+    err, dims = UTIL.get_typed_dset_attr_list(proc.dsets[0].rel_input(),
                                               "DATASET_DIMENSIONS", int)
     if err or len(dims) < 4:
-        print '** ERROR: failed to get DIMENSIONS from %s' % proc.dsets[0].rpv()
+        print '** ERROR: failed to get DIMENSIONS from %s' \
+              % proc.dsets[0].rel_input()
         return
     nslices = dims[2]
     if proc.verb > 2: print '-- ricor: found nslices = %d' % nslices
@@ -960,9 +961,10 @@ def db_cmd_volreg(proc, block):
         opt = block.opts.find_opt('-volreg_warp_dxyz')
         if opt: dim = opt.parlist[0]
         else:
-            dim = UTIL.get_truncated_grid_dim(proc.dsets[0].rpv())
+            dim = UTIL.get_truncated_grid_dim(proc.dsets[0].rel_input())
             if dim <= 0:
-                print '** failed to get grid dim from %s' % proc.dsets[0].rpv()
+                print '** failed to get grid dim from %s' \
+                      % proc.dsets[0].rel_input()
                 return
 
     # if warping, multiply matrices and apply

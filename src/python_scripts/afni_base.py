@@ -46,6 +46,15 @@ class afni_name:
       else:
          return self.ppve() 
 
+   def rel_input(self):
+      """relative path to dataset in 'input' format
+         e.g. +orig, but no .HEAD
+         e.g. would include .nii"""
+      if self.type == 'BRIK':
+         return self.rpv()
+      else:
+         return self.rpve() 
+
    def shortinput(self):
       """dataset name in 'input' format
          - no directory prefix
