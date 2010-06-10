@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 10, JUN, 2010, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
+   "fixed copying EPI and anat as NIfTI",
+   NULL
+ } ,
+
  { 8, JUN, 2010, RCR, "timing_tool.py", MICRO, TYPE_BUG_FIX,
    "fixed partitioning without zeros",
    NULL

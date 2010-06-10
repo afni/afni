@@ -191,9 +191,11 @@ g_history = """
     2.27 Jun 09 2010 :
         - added -regress_censor_outliers and -regress_skip_first_outliers
         - specified 'auto block:' in block headers for those not chosen by user
+    2.28 Jun 10 2010 : fixed copying EPI and anat as NIfTI
+          (problem noted by S Tambalo)
 """
 
-g_version = "version 2.27, June 9, 2010"
+g_version = "version 2.28, June 10, 2010"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
@@ -312,7 +314,7 @@ class SubjProcSream:
                 print
                 for dset in self.dsets: dset.show()
             else:
-                for dset in self.dsets: print dset.pv(),
+                for dset in self.dsets: print dset.rel_input(),
                 print
         if self.verb > 3: self.valid_opts.show('valid_opts: ')
         if self.verb > 1: self.user_opts.show('user_opts: ')
@@ -672,7 +674,7 @@ class SubjProcSream:
         if opt != None:
             for dset in opt.parlist:
                 self.dsets.append(afni_name(dset))
-            if self.dsets[0].view != self.view:
+            if self.dsets[0].view and self.dsets[0].view != self.view:
                 self.view = self.dsets[0].view
                 self.origview = self.view
                 if self.verb > 0: print '-- applying view as %s' % self.view
@@ -1176,7 +1178,7 @@ class SubjProcSream:
         if self.anat:
             str = '# copy anatomy to results dir\n'     \
                   '3dcopy %s %s/%s\n' %                 \
-                      (self.anat.rpv(), self.od_var, self.anat.prefix)
+                      (self.anat.rel_input(), self.od_var, self.anat.prefix)
             self.fp.write(add_line_wrappers(str))
             self.fp.write("%s\n" % stat_inc)
 
