@@ -470,8 +470,7 @@ ENTRY("AFNI_inten_pbar_CB") ;
 
    if( ! IM3D_VALID(im3d) ) EXRETURN ;
 
-   if( im3d->vinfo->func_visible )
-      AFNI_redisplay_func( im3d ) ;
+   if( im3d->vinfo->func_visible ) AFNI_redisplay_func( im3d ) ;
 
    AFNI_hintize_pbar( pbar ,
                       (im3d->vinfo->fim_range != 0.0) ? im3d->vinfo->fim_range
