@@ -1571,7 +1571,6 @@ if( PRINT_TRACING ){
             XmNtraversalOn , False ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
-
    XtAddCallback( newseq->wbar_rng_but, XmNactivateCallback, ISQ_wbar_menu_CB, newseq ) ;
 
    newseq->wbar_zer_but =
@@ -1581,8 +1580,15 @@ if( PRINT_TRACING ){
             XmNtraversalOn , False ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
-
    XtAddCallback( newseq->wbar_zer_but, XmNactivateCallback, ISQ_wbar_menu_CB, newseq ) ;
+
+   { char *blab[1] = { "Automask?" } ;
+     newseq->wbar_amask_bbox = new_MCW_bbox( newseq->wbar_menu ,  /* 14 Jun 2010 */
+                                             1 , blab ,
+                                             MCW_BB_check , MCW_BB_noframe ,
+                                             ISQ_wbar_amask_CB , (XtPointer)newseq ) ;
+   }
+
 
    newseq->wbar_flat_but =
       XtVaCreateManagedWidget(
@@ -1591,7 +1597,6 @@ if( PRINT_TRACING ){
             XmNtraversalOn , False ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
-
    XtAddCallback( newseq->wbar_flat_but, XmNactivateCallback, ISQ_wbar_menu_CB, newseq ) ;
 
    newseq->wbar_sharp_but =
@@ -1601,7 +1606,6 @@ if( PRINT_TRACING ){
             XmNtraversalOn , False ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
-
    XtAddCallback( newseq->wbar_sharp_but, XmNactivateCallback, ISQ_wbar_menu_CB, newseq ) ;
 
    newseq->rng_bot   = newseq->rng_top = newseq->rng_ztop = 0 ;
@@ -3427,6 +3431,31 @@ STATUS("call ISQ_perpoints") ;
 
    /**** at this point, the processed image is in "newim" ****/
 
+   /** 14 Jun 2010: automask 2D image **/
+
+   if( MCW_val_bbox(seq->wbar_amask_bbox) > 0 ){
+     byte *mmm = mri_automask_image2D(newim) ;
+     if( mmm != NULL ){
+       int npix = newim->nx * newim->ny , ii ;
+       switch( newim->kind ){
+         case MRI_short:{
+           short zz = -seq->zer_color ;
+           short *ar = MRI_SHORT_PTR(newim) ;
+           for( ii=0 ; ii < npix ; ii++ )
+             if( !mmm[ii] ) ar[ii] = zz ;
+         }
+         break ;
+
+         case MRI_rgb:{
+           byte *ar = MRI_RGB_PTR(newim) ;
+           for( ii=0 ; ii < npix ; ii++ )
+             if( !mmm[ii] ) ar[3*ii] = ar[3*ii+1] = ar[3*ii+2] = 0 ;
+         }
+         break ;
+       }
+     }
+   }
+
    /** Aug 31, 1995: put zer_color in at bottom, if nonzero **/
 
    if( newim->kind == MRI_short && seq->zer_color > 0 ){
@@ -3434,8 +3463,30 @@ STATUS("call ISQ_perpoints") ;
      short *ar = MRI_SHORT_PTR(newim) ;
      int npix = newim->nx * newim->ny , ii ;
 
+#if 0
      for( ii=0 ; ii < npix ; ii++ )
-       if( ar[ii] == seq->bot ) ar[ii] = zz ;
+       if( ar[ii] == seq->bot ) ar[ii] = zz ;   /* the olden way */
+#else
+     switch( lim->kind ){                       /* the new way: 14 Jun 2010 */
+       case MRI_short:{
+         short *lar = MRI_SHORT_PTR(lim) ;
+         for( ii=0 ; ii < npix ; ii++ ) if( lar[ii] == 0 ) ar[ii] = zz ;
+       }
+       break ;
+
+       case MRI_byte:{
+         byte *lar = MRI_BYTE_PTR(lim) ;
+         for( ii=0 ; ii < npix ; ii++ ) if( lar[ii] == 0 ) ar[ii] = zz ;
+       }
+       break ;
+
+       case MRI_float:{
+         float *lar = MRI_FLOAT_PTR(lim) ;
+         for( ii=0 ; ii < npix ; ii++ ) if( lar[ii] == 0.0f ) ar[ii] = zz ;
+       }
+       break ;
+     }
+#endif
    }
 
    /** copy pixel sizes, etc. (fixup for mrilib to be happy) **/
@@ -8412,17 +8463,24 @@ ENTRY("ISQ_setup_new") ;
    RETURN( True ) ;
 }
 
-/*----------------------------------------------------------------------*/
-/*----         Stuff for the menu hidden on the color bar           ----*/
+/*----------------------------------------------------------------------------*/
+/*----            Stuff for the menu hidden on the color bar              ----*/
 
 void ISQ_wbar_plots_CB( Widget w , XtPointer cld , XtPointer cad ) /* 20 Sep 2001 */
 {
    MCW_imseq *seq = (MCW_imseq *) cld ;
-
 ENTRY("ISQ_wbar_plots_CB") ;
+   if( ISQ_REALZ(seq) ) ISQ_redisplay( seq , -1 , isqDR_display ) ;
+   EXRETURN ;
+}
 
-   if( !ISQ_REALZ(seq) ) EXRETURN ;
-   ISQ_redisplay( seq , -1 , isqDR_display ) ;
+/*----------------------------------------------------------------------------*/
+
+void ISQ_wbar_amask_CB( Widget w, XtPointer client_data, XtPointer call_data )
+{
+   MCW_imseq *seq = (MCW_imseq *)client_data ;  /* 14 Jun 2010 */
+ENTRY("ISQ_wbar_amask_CB") ;
+   if( ISQ_REALZ(seq) ) ISQ_redisplay( seq , -1 , isqDR_display ) ;
    EXRETURN ;
 }
 

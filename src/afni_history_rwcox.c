@@ -44,6 +44,19 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 14 , JUN , 2010 , RWC , "AFNI GUI" , MINOR , TYPE_MODIFY ,
+   "Added 'Automask' toggle button to image viewer bar popup menu" ,
+   "In combination with 'Zero Color', provides an easy way to fill\n"
+   "the background with a solid color, such as white, as requested\n"
+   "by Adriana di Martino (among others).\n"
+   "ALSO: modified 'Zero Color' to fill zero values with that color,\n"
+   "rather than the bottom-most color (so images with negative values\n"
+   "can be treated properly).\n" } ,
+
+ { 14 , JUN , 2010 , RWC , "3dDeconvolve" , MICRO , TYPE_MODIFY ,
+   "Changed error message when user tries '1D:' with -stim_times_AM2" ,
+   NULL } ,
+
  { 27 , MAY , 2010 , RWC , "3dGroupInCorr" , MINOR , TYPE_BUG_FIX ,
    "Fix bug in paired t-test for covariates regression" ,
    NULL } ,
