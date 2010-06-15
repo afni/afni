@@ -551,6 +551,7 @@ ENTRY("THD_mask_fillin_completely") ;
 
 /*! Put (i,j,k) into the current cluster, if it is nonzero. */
 
+# undef  CPUT
 # define CPUT(i,j,k)                                            \
   do{ ijk = THREE_TO_IJK(i,j,k,nx,nxy) ;                        \
       if( mmm[ijk] ){                                           \
@@ -936,7 +937,7 @@ ENTRY("THD_autobbox") ;
    if( bbox_clip ){
       clip_val = THD_cliplevel(medim,clfrac) ;
       for( ii=0 ; ii < nvox ; ii++ )
-	if( mar[ii] < clip_val ) mar[ii] = 0.0 ;
+        if( mar[ii] < clip_val ) mar[ii] = 0.0 ;
    }
 
    MRI_autobbox( medim , xm,xp , ym,yp , zm,zp ) ;
@@ -1101,33 +1102,33 @@ int THD_peel_mask( int nx, int ny, int nz , byte *mmm, int pdepth )
 }
 
 /*!
-   Return a vector representing the number of layers peeled 
-   to reach a voxel in mask.  ZSS March 02 2010 
+   Return a vector representing the number of layers peeled
+   to reach a voxel in mask.  ZSS March 02 2010
 */
-short *THD_mask_depth ( int nx, int ny, int nz, byte *mask, 
-                        byte preservemask, short *usethisdepth) 
+short *THD_mask_depth ( int nx, int ny, int nz, byte *mask,
+                        byte preservemask, short *usethisdepth)
 {
    int ii, np, niter, ncpmask, nxyz;
    byte *cpmask=NULL;
    short *depth = NULL;
-   
+
    if ((nxyz = nx * ny * nz) < 0) {
-      if (verb) ERROR_message("Bad dims");      
+      if (verb) ERROR_message("Bad dims");
       return(NULL);
    }
-   
+
    if (preservemask) {
       cpmask = (byte *)malloc(nxyz*sizeof(byte));
       memcpy(cpmask, mask, nxyz*sizeof(byte));
    } else {
       cpmask = mask;
    }
-      
+
    if (!cpmask) {
       if (verb) ERROR_message("NULL mask (or mask copy) pointer");
       return(NULL);
    }
-   
+
    if (usethisdepth) {
       depth = usethisdepth;
    } else {
@@ -1140,19 +1141,19 @@ short *THD_mask_depth ( int nx, int ny, int nz, byte *mask,
       if (verb) ERROR_message("NULL depth vector");
       return(NULL);
    }
-   
+
    ncpmask = THD_countmask( nxyz , cpmask );
-      
+
    niter=0;
    while ( ncpmask > 0) {
       for (ii=0 ; ii < nxyz; ++ii) {
          if (cpmask[ii]) ++depth[ii];
       }
       /* peel it */
-      THD_mask_erode( nx, ny, nz, cpmask, 0 ) ;  
+      THD_mask_erode( nx, ny, nz, cpmask, 0 ) ;
       np = ncpmask - THD_countmask( nxyz , cpmask );
       if (verb) INFO_message("Peeled %d voxels from mask of %d (now %d)\n",
-                              np, ncpmask, 
+                              np, ncpmask,
                               ncpmask - np) ;
 
       ncpmask -= np;
@@ -1160,7 +1161,7 @@ short *THD_mask_depth ( int nx, int ny, int nz, byte *mask,
       if (!np && ncpmask) {
          WARNING_message("Nothing left to peel, after %d interations.\n"
                          " however %d voxels remain in cpmask!\n"
-                         " Jumping ship.\n", 
+                         " Jumping ship.\n",
                          niter, ncpmask);
          break;
       }
@@ -1168,12 +1169,125 @@ short *THD_mask_depth ( int nx, int ny, int nz, byte *mask,
          ERROR_message("Behavioral problems. ncpmask is < 0!\n"
                        "Hiding head in sand.");
          break;
-      }                     
+      }
    }
-      
+
    if (cpmask != mask) free(cpmask); cpmask=NULL;
 
    return(depth);
+}
+
+/*------------------------------------------------------------------*/
+
+#undef  DALL
+#define DALL 128
+
+/*! Put (i,j,k) into the current cluster, if it is nonzero. */
+
+# undef  CPUT
+# define CPUT(i,j)                                              \
+  do{ ijk = (i) + (j)*nx ;                                      \
+      if( mmm[ijk] ){                                           \
+        if( nnow == nall ){ /* increase array lengths */        \
+          nall += DALL + nall/4 ;                               \
+          inow = (short *) realloc(inow,sizeof(short)*nall) ;   \
+          jnow = (short *) realloc(jnow,sizeof(short)*nall) ;   \
+        }                                                       \
+        inow[nnow] = i; jnow[nnow] = j; nnow++; mmm[ijk] = 0;   \
+      } } while(0)
+
+/*------------------------------------------------------------------*/
+/*! Find the biggest cluster of nonzeros in the byte mask mmm,
+    and keep all clusters at least kfrac times that size
+    (0 < kfrac <= 1, duh).
+*//*----------------------------------------------------------------*/
+
+void THD_mask_clust2D( int nx, int ny, float kfrac, byte *mmm )
+{
+   int ii,jj, icl ,  nxy, ijk , ijk_last , mnum ;
+   int ip,jp, im,jm , nbest ;
+   short *inow , *jnow  ; int nall , nnow , nkeep ;
+
+   int     clust_num=0 ;
+   int    *clust_len=NULL ;
+   short **clust_iii=NULL , **clust_jjj=NULL ;
+
+ENTRY("THD_mask_clust2D") ;
+
+   if( mmm == NULL ) EXRETURN ;
+
+   nxy   = nx*ny ;
+   nbest = 0 ;
+
+   /*--- scan through array, find nonzero point, build a cluster, ... ---*/
+
+   ijk_last = 0 ;
+   while(1) {
+     /* find next nonzero point */
+
+     for( ijk=ijk_last ; ijk < nxy ; ijk++ ) if( mmm[ijk] ) break ;
+     if( ijk == nxy ) break ;  /* didn't find any! */
+
+     ijk_last = ijk+1 ;         /* start here next time */
+
+     /* init current cluster list with this point */
+
+     mmm[ijk] = 0 ;                              /* clear found point */
+     nall = 16 ;                                 /* # allocated pts */
+     nnow = 1 ;                                  /* # pts in cluster */
+     inow = (short *) malloc(sizeof(short)*16) ; /* coords of pts */
+     jnow = (short *) malloc(sizeof(short)*16) ;
+     inow[0] = ijk % nx ; jnow[0] = ijk / nx ;
+
+     /*--
+        for each point in cluster:
+           check neighboring points for nonzero entries in mmm
+           enter those into cluster (and clear them in mmm)
+           continue until end of cluster is reached
+             (note that cluster is expanding as we progress)
+     --*/
+
+     for( icl=0 ; icl < nnow ; icl++ ){
+       ii = inow[icl] ; jj = jnow[icl] ;
+       im = ii-1      ; jm = jj-1      ;
+       ip = ii+1      ; jp = jj+1      ;
+
+       if( im >= 0 ) CPUT(im,jj) ;
+       if( ip < nx ) CPUT(ip,jj) ;
+       if( jm >= 0 ) CPUT(ii,jm) ;
+       if( jp < ny ) CPUT(ii,jp) ;
+     }
+
+     /* save all clusters for later processing */
+
+     clust_num++ ;
+     clust_len = (int   * )realloc(clust_len,sizeof(int    )*clust_num) ;
+     clust_iii = (short **)realloc(clust_iii,sizeof(short *)*clust_num) ;
+     clust_jjj = (short **)realloc(clust_jjj,sizeof(short *)*clust_num) ;
+     clust_len[clust_num-1] = nnow ;
+     clust_iii[clust_num-1] = inow ;
+     clust_jjj[clust_num-1] = jnow ;
+
+     if( nnow > nbest ) nbest = nnow ;  /* nbest = size of biggest cluster */
+
+   } /* loop ends when all nonzero points are clustered */
+
+   /* put 1's back in at all points from biggest clusters */
+
+   nkeep = (int)(kfrac * nbest) ;
+   if( nkeep <= 0 || nkeep > nbest ) nkeep = nbest ;
+
+   for( icl=0 ; icl < clust_num ; icl++ ){
+     nnow = clust_len[icl] ;
+     if( nnow >= nkeep ){
+       inow = clust_iii[icl] ; jnow = clust_jjj[icl] ;
+       for( ii=0 ; ii < nnow ; ii++ ) mmm[ inow[ii] + jnow[ii]*nx ] = 1 ;
+     }
+     free(clust_iii[icl]) ; free(clust_jjj[icl]) ;
+   }
+   free(clust_iii); free(clust_jjj); free(clust_len) ;
+
+   EXRETURN ;
 }
 
 /*---------------------------------------------------------------------*/
@@ -1206,11 +1320,11 @@ ENTRY("mri_automask_image2D") ;
    if( nmm == 0 ){ free(mmm) ; RETURN(NULL) ; }  /* should not happen */
    if( nmm <= 2 || nmm == nvox ) RETURN(mmm) ;   /* very unlikely */
 
-   THD_mask_clust( im->nx,im->ny,1, mmm ) ;
+   THD_mask_clust2D( im->nx,im->ny,0.5f, mmm ) ;
 
    for( ii=0 ; ii < nvox ; ii++ ) mmm[ii] = !mmm[ii] ;
 
-   THD_mask_clust( im->nx,im->ny,1, mmm ) ;
+   THD_mask_clust2D( im->nx,im->ny,0.9f, mmm ) ;
 
    for( ii=0 ; ii < nvox ; ii++ ) mmm[ii] = !mmm[ii] ;
 
