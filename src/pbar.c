@@ -342,6 +342,7 @@ ENTRY("PBAR_enviro_bigmaps") ;
 /*-----------------------------------------------------------------------*/
 /*! Add a color map for "big" mode.
 -------------------------------------------------------------------------*/
+
 void PBAR_add_bigmap( char *name , rgbyte *cmap )
 {
    int ii , nn , kk ;

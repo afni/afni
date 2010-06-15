@@ -64,7 +64,7 @@ typedef struct {
   Widget top , panew , panes[NPANE_MAX]   , labels[NPANE_MAX+1] ;
   int num_panes , panes_sum , panew_height , ov_index[NPANE_MAX] , renew_all ;
   float pval[NPANE_MAX+1] ;
-  MCW_DC * dc ;
+  MCW_DC *dc ;
 
   float pval_save[NPANE_MAX+1][NPANE_MAX+1][PANE_MAXMODE] ;  /* saved values */
   int   ovin_save[NPANE_MAX+1][NPANE_MAX+1][PANE_MAXMODE] ;
@@ -74,16 +74,16 @@ typedef struct {
 
   int   update_me , mode , hide_changes , keep_pval ;
 
-  gen_func * pb_CB ;
-  XtPointer  pb_data ;
+  gen_func *pb_CB ;
+  XtPointer pb_data ;
 
   XtPointer parent ;
 
   int    bigmode , bigset ;     /* 30 Jan 2003 */
   float  bigtop , bigbot ;
   rgbyte bigcolor[NPANE_BIG] ;
-  char * bigname ;              /* 22 Oct 2003 */
-  XImage * bigxim ;
+  char  *bigname ;              /* 22 Oct 2003 */
+  XImage *bigxim ;
   int    bigmap_index ;         /* 31 Jan 2003 */
   float  bigfac ;               /* 11 Feb 2003 */
   int    bigflip ;              /* 07 Feb 2004 */
