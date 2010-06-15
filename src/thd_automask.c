@@ -192,7 +192,9 @@ byte * mri_automask_image( MRI_IMAGE *im )
 
 ENTRY("mri_automask_image") ;
 
-   if( im == NULL )RETURN(NULL) ;
+   if( im == NULL ) RETURN(NULL) ;
+
+   if( im->nz == 1 ) RETURN( mri_automask_image2D(im) ) ;  /* 12 Jun 2010 */
 
    if( im->kind != MRI_float ) medim = mri_to_float(im) ;
    else                        medim = im ;
@@ -1172,4 +1174,45 @@ short *THD_mask_depth ( int nx, int ny, int nz, byte *mask,
    if (cpmask != mask) free(cpmask); cpmask=NULL;
 
    return(depth);
+}
+
+/*---------------------------------------------------------------------*/
+/*! Make a byte mask from an image (2D).
+-----------------------------------------------------------------------*/
+
+byte * mri_automask_image2D( MRI_IMAGE *im )  /* 12 Jun 2010 */
+{
+   float clip_val , *mar ;
+   byte *mmm = NULL ;
+   int nvox, ii, nmm ;
+   MRI_IMAGE *medim ;
+
+ENTRY("mri_automask_image2D") ;
+
+   if( im == NULL ) RETURN(NULL) ;
+
+   medim = mri_to_float(im) ;
+   mar   = MRI_FLOAT_PTR(medim) ;
+   nvox  = medim->nvox ;
+   for( ii=0 ; ii < nvox ; ii++ ) mar[ii] = fabsf(mar[ii]) ;
+
+   clip_val = THD_cliplevel(medim,clfrac) ;
+   mmm  = (byte *) calloc( sizeof(byte), nvox ) ;
+
+   for( nmm=ii=0 ; ii < nvox ; ii++ )
+     if( mar[ii] >= clip_val ){ mmm[ii] = 1; nmm++; }
+
+   mri_free(medim) ;
+   if( nmm == 0 ){ free(mmm) ; RETURN(NULL) ; }  /* should not happen */
+   if( nmm <= 2 || nmm == nvox ) RETURN(mmm) ;   /* very unlikely */
+
+   THD_mask_clust( im->nx,im->ny,1, mmm ) ;
+
+   for( ii=0 ; ii < nvox ; ii++ ) mmm[ii] = !mmm[ii] ;
+
+   THD_mask_clust( im->nx,im->ny,1, mmm ) ;
+
+   for( ii=0 ; ii < nvox ; ii++ ) mmm[ii] = !mmm[ii] ;
+
+   RETURN(mmm) ;
 }
