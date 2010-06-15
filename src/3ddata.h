@@ -4371,6 +4371,7 @@ extern int    mask_intersect_count( int, byte *, byte * ); /* 30 Mar 2009 */
 extern int    mask_union_count    ( int, byte *, byte * ); /* 30 Mar 2009 */
 extern int    mask_count          ( int, byte * ) ;
 extern float_triple mask_rgyrate( int nx, int ny, int nz , byte *mmm ) ;
+extern byte * mri_automask_image2D( MRI_IMAGE *im ) ;      /* 12 Mar 2010 */
 
 
                                                    /* 13 Nov 2006 [rickr] */

@@ -2229,11 +2229,17 @@ void get_options
 
         } else if( strncmp(suf,"_AM",3) == 0 ){
 
-          vdim = basis_times[k]->vdim ;  /* number of values per point */
-          if( vdim < 2 )                 /* need at least 2 (time and amplitude) */
-            ERROR_exit(
+          vdim = basis_times[k]->vdim ; /* number of values per point */
+          if( vdim < 2 ){                /* need at least 2 (time & amplitude) */
+            if( strncmp(argv[nopt],"1D:",3) == 0 )
+              ERROR_exit(
+              "'%s %d' doesn't allow '1D:' type of input -- use a file [nopt=%d]",
+              sopt , ival , nopt ) ;
+            else
+              ERROR_exit(
               "'%s %d' file '%s' doesn't have auxiliary values per time point! [nopt=%d]",
               sopt , ival , argv[nopt] , nopt ) ;
+          }
           else if( vdim-1 > BASIS_MAX_VDIM ) /* over the limit */
             ERROR_exit(
               "'%s %d' file '%s' has too many auxiliary values per time point! [nopt=%d]",
