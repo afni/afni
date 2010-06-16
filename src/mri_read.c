@@ -2766,6 +2766,8 @@ ENTRY("mri_read_1D") ;
    } else {                             /* got a subvector list */
       if( cpt != NULL ){ ii = cpt-fname; dname[ii] = '\0'; }
       if( dpt != NULL ){ ii = dpt-fname; dname[ii] = '\0'; }
+      ii = strlen(dname) ;
+      if( dname[ii-1] == '\'' ){ flip = 0 ; dname[ii-1] = '\0' ; }  /* 16 Jun 2010 */
    }
 
    /*-- read file in, flip it sideways --*/
