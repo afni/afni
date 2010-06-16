@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 16 , JUN , 2010 , RWC , "mri_read_1D" , MICRO , TYPE_MODIFY ,
+   "If filename is of form xxx'[...]', quotes will be ignored." ,
+   NULL } ,
+
  { 14 , JUN , 2010 , RWC , "AFNI GUI" , MINOR , TYPE_MODIFY ,
    "Added 'Automask' toggle button to image viewer bar popup menu" ,
    "In combination with 'Zero Color', provides an easy way to fill\n"
