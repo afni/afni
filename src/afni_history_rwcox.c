@@ -54,8 +54,10 @@ afni_history_struct rwcox_history[] = {
    "the background with a solid color, such as white, as requested\n"
    "by Adriana di Martino (among others).\n"
    "ALSO: modified 'Zero Color' to fill zero values with that color,\n"
-   "rather than the bottom-most color (so images with negative values\n"
-   "can be treated properly).\n" } ,
+   "      rather than fill pixels assigned the bottom-most color\n"
+   "      (so images with negative values can be treated properly).\n"
+   "N.B.: Automasking in the image viewer is done with a special 2D\n"
+   "      function in thd_automask.c, different than 3D Automasking.\n" } ,
 
  { 14 , JUN , 2010 , RWC , "3dDeconvolve" , MICRO , TYPE_MODIFY ,
    "Changed error message when user tries '1D:' with -stim_times_AM2" ,
