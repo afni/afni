@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 17, JUN, 2010, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
+   "apply default polort in 3dToutcount",
+   NULL
+ } ,
+
  { 17, JUN, 2010, RCR, "3dTcat", MICRO, TYPE_ENHANCE,
    "removed sub-brick length limit",
    NULL
