@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 17, JUN, 2010, RCR, "3dTcat", MICRO, TYPE_ENHANCE,
+   "removed sub-brick length limit",
+   NULL
+ } ,
+
  { 10, JUN, 2010, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
    "fixed copying EPI and anat as NIfTI",
    NULL

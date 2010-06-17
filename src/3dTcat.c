@@ -56,7 +56,7 @@ void TCAT_read_opts( int argc , char *argv[] )
 {
    int nopt = 1 , ii ;
    char dname[THD_MAX_NAME] ;
-   char subv[THD_MAX_NAME] ;
+   char *subv=NULL ;  /* no sub-brick length limit     17 Jun 2010 [rickr] */
    char *cpt ;
    THD_3dim_dataset *dset, *fset=NULL ;
    int *svar ;
@@ -208,13 +208,14 @@ void TCAT_read_opts( int argc , char *argv[] )
 
       if( cpt == NULL ){              /* no selector */
          strcpy(dname,argv[nopt]) ;
-         subv[0] = '\0' ;
+         /* subv[0] = '\0' ; */       /* init to NULL, above */
       } else if( cpt == argv[nopt] ){ /* can't be at start!*/
          ERROR_exit("Illegal dataset specifier: %s",argv[nopt]) ;
       } else {                        /* found selector */
          ii = cpt - argv[nopt] ;
          memcpy(dname,argv[nopt],ii) ; dname[ii] = '\0' ;
-         strcpy(subv,cpt) ;
+         /* strcpy(subv,cpt) ; */
+         subv = cpt;   /* no length limit    17 Jun 2010 [rickr] */
       }
       nopt++ ;
 
