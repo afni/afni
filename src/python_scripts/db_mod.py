@@ -128,17 +128,19 @@ def make_outlier_commands(proc):
         cs0 = ''
         cs1 = ''
 
+    polort = UTIL.get_default_polort(proc.tr, proc.reps)
     prev_prefix = proc.prev_prefix_form_run(view=1)
     cmd = '# %s\n'                                                       \
           '# data check: compute outlier fraction for each volume\n'     \
           'foreach run ( $runs )\n'                                      \
-          '    3dToutcount -automask -fraction %s > outcount_r$run.1D\n' \
+          '    3dToutcount -automask -fraction -polort %d \\\n'          \
+          '                %s > outcount_r$run.1D\n'                     \
           '%s'                                                           \
           'end\n\n'                                                      \
           '# catenate outlier counts into a single time series\n'        \
           'cat outcount_r??.1D > outcount.rall.1D\n'                     \
           '%s\n'                                                         \
-          % (block_header('auto block: outcount'), prev_prefix, cs0, cs1)
+          % (block_header('auto block: outcount'), polort, prev_prefix,cs0,cs1)
     return 0, cmd
 
 def combine_censor_files(proc, cfile, newfile=''):

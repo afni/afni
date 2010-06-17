@@ -193,9 +193,10 @@ g_history = """
         - specified 'auto block:' in block headers for those not chosen by user
     2.28 Jun 10 2010 : fixed copying EPI and anat as NIfTI
           (problem noted by S Tambalo)
+    2.29 Jun 17 2010 : apply default polort in 3dToutcount
 """
 
-g_version = "version 2.28, June 10, 2010"
+g_version = "version 2.29, June 17, 2010"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
