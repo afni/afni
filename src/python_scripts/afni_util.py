@@ -899,7 +899,7 @@ def get_next_indentation(command,start=0,end=-1):
     # now check for an indention prefix
     posn = command.find('\\\n', start)
     pn = command.find('\n', start)      # but don't continue past current line
-    if posn >= 0 and posn < p2:
+    if posn >= 0 and posn < pn:
         spaces = num_leading_line_spaces(command,posn+2,1)
         if posn > start and spaces >= 2:
             prefix = command[posn+2:posn+2+spaces] # grab those spaces
