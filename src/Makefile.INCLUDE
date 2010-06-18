@@ -986,6 +986,10 @@ waver:waver.o parser.o parser_int.o
 	$(RM) $@
 	$(CC) -o waver waver.o parser.o parser_int.o $(LFLAGS) -lmri -lf2c $(LLIBS)
 
+3dSimARMA11:3dSimARMA11.o
+	$(RM) $@
+	$(CC) -o 3dSimARMA11 3dSimARMA11.o $(LFLAGS) -lmri -lf2c $(LLIBS)
+
 3dnewid:3dnewid.o
 	$(RM) $@
 	$(CC) -o 3dnewid 3dnewid.o $(LFLAGS) $(LLIBS)

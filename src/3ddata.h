@@ -23,6 +23,8 @@
 #include <math.h>
 #include <errno.h>
 #include <ctype.h>
+#include <time.h>
+#include <sys/types.h>
 
 #include <X11/Intrinsic.h>
 
@@ -4999,6 +5001,11 @@ extern NI_group * THD_dataset_to_niml( THD_3dim_dataset * ) ;
 
 extern MRI_IMAGE  * niml_to_mri( NI_element * ) ;
 extern NI_element * mri_to_niml( MRI_IMAGE *  ) ;
+
+/* a random-ish seed for a random number generator */
+
+#undef  GSEED
+#define GSEED (time(NULL)<<2 + 7*getpid())
 
 #ifdef  __cplusplus
 }
