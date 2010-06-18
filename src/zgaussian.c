@@ -139,7 +139,7 @@ static const float wtab[128] = {
 /*-------------------------------------------------------------------------*/
 /*! Return 1 Gaussian random deviate.  Uses mrand48() and drand48(). */
 
-float zgaussian(void)  /* return one Gaussian random deviate */
+static float zgaussian(void)  /* return one Gaussian random deviate */
 {
   unsigned int  U, sgn, i, j;
   float  x, y;
@@ -186,7 +186,7 @@ float zgaussian(void)  /* return one Gaussian random deviate */
       each thread needs its own seed state to avoid conflicts and blocking.
 *//*-----------------------------------------------------------------------*/
 
-float zgaussian_sss( unsigned short xi[] )
+static float zgaussian_sss( unsigned short xi[] )
 {
   unsigned int  U, sgn, i, j;
   float  x, y;

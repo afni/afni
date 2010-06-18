@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 18 , JUN , 2010 , RWC , "3dSimARMA11" , MICRO , TYPE_NEW_PROG ,
+   "Simulating ARMA(1,1) time series for testing 3dREMLfit + 3dMEMA" ,
+   NULL } ,
+
  { 16 , JUN , 2010 , RWC , "mri_read_1D" , MICRO , TYPE_MODIFY ,
    "If filename is of form xxx'[...]', quotes will be ignored." ,
    NULL } ,
