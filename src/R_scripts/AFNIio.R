@@ -1035,6 +1035,8 @@ read.AFNI.matrix <- function (fname,
    if (verb) print(who.called.me())
    
    if (is.character(fname)) fname <- parse.AFNI.name(fname)
+   str(fname)
+   fname$file
    brk <- read.table(fname$file, colClasses='character');
    if ( tolower(brk$V1[1]) == 'name' || 
         tolower(brk$V1[1]) == 'subj' ||
@@ -1069,15 +1071,12 @@ read.AFNI.matrix <- function (fname,
          covMatrix <- as.matrix(as.numeric(brk[istrt:dim(brk)[1],1]))
       } else {
          for (ii in 1:(dim(brk)[2])) { #Add one column at a time
-            tryCatch(bbb<-as.numeric(
-                              brk[istrt:dim(brk)[1],1:dim(brk)[2]][[ii]]), 
-                     warning=function(ex) {})
             if (ii==1) {
                covMatrix <- cbind(
-                  bbb);
+                  as.numeric(brk[istrt:dim(brk)[1],1:dim(brk)[2]][[ii]]));
             } else {
                covMatrix <- cbind(covMatrix,
-                  bbb);
+                  as.numeric(brk[istrt:dim(brk)[1],1:dim(brk)[2]][[ii]]));
             }
          }
       }
@@ -1109,7 +1108,7 @@ read.AFNI.matrix <- function (fname,
                     dim(covMatrix)[1]-1, fname$file));
          return(NULL); 
       } 
-      covMatrix <- covMatrix[rosel+1,, drop=FALSE]
+      covMatrix <- covMatrix[rosel,, drop=FALSE]
    }
    if (!is.null(fname$rasel)) {
       err.AFNI('Not ready to deal with range selection');
@@ -1236,6 +1235,26 @@ dimBRKarray <- function(brk=NULL) {
    } 
    d[1:length(dd)]<-dd
    return(d)
+}
+
+subBRKarray <- function(brk=NULL, sel=NULL) {
+   d <- dimBRKarray(brk)
+   if (is.null(d)) {
+      note.AFNI("Failed to get dims")
+      return(NULL)
+   }
+   if (is.null(sel) || d[4] == 1) {
+      v <- brk
+   } else {
+      if (max(sel) > d[4] || min(sel) < 1) {
+         note.AFNI(printf("sel outside of range 1:%d\n", d[4]))
+         return(NULL)
+      }
+      v <- brk[,,,sel]
+      d[4] <- length(sel)
+      dim(v) <- d
+   }
+   return(v)
 }
 
 dset.dimBRKarray <- function(dset) {
