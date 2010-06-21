@@ -49,6 +49,16 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 8 , JUN, 2010 , DRG , "RetroTS.m" , 
+    MINOR , TYPE_NEW_OPT, 
+    "Allowed for alt+z2 slice timing"
+} ,
+
+{ 18 , MAY , 2010 , DRG , "model_demri_3" , 
+    MINOR , TYPE_NEW_ENV, 
+    "Allowed for flip angle variation through volume with scaling dataset"
+} ,
+
 { 11 , MAY , 2010 , DRG , "model_demri_3" , 
     MINOR , TYPE_MODIFY, 
     "Changed minor defaults and error handling in DEMRI model"
