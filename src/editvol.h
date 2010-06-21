@@ -650,6 +650,20 @@ extern int cluster_alphaindex_64( int csize, int nz, float fw, float pv ) ;
 #define EDIT_BRICK_ADDKEY(ds,iv,str) \
      EDIT_dset_items( (ds), ADN_brick_keywords_append_one+(iv), (str), ADN_none )
 
+#if 0
+/*------------------------------------------------------------------------*/
+/*! Change the orientation of a dataset */
+
+#define EDIT_DSET_ORIENT(ds,ox,oy,oz)                              \
+ do{ THD_ivec3 orixyz ;                                            \
+     LOAD_IVEC3( orixyz , (ox),(oy),(oz) ) ;                       \
+     EDIT_dset_items( (ds) , ADN_xyzorient , orixyz , ADN_none ) ; \
+ } while(0)
+
+#define DSET_TO_RAI(ds) EDIT_DSET_ORIENT((ds),ORI_R2L_TYPE,ORI_A2P_TYPE,ORI_I2S_TYPE)
+#define DSET_TO_LPI(ds) EDIT_DSET_ORIENT((ds),ORI_L2R_TYPE,ORI_P2A_TYPE,ORI_I2S_TYPE)
+#endif
+
 /*------------------------------------------------------------------*/
 /* 22 Aug 2005: neighborhood/local operations. */
 

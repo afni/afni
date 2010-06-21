@@ -3026,7 +3026,7 @@ STATUS("setting up Rglt") ;
 
 #undef  FDRIZE
 #define FDRIZE(ds)                                                            \
- do{ if( do_FDR || !AFNI_noenv("AFNI_AUTOMATIC_FDR") ){                       \
+ do{ if( do_FDR && !AFNI_noenv("AFNI_AUTOMATIC_FDR") ){                       \
        ii = THD_count_fdrwork(ds) ;                                           \
        if( verb > 1 && ii*nmask > 666666 )                                    \
          INFO_message("creating FDR curves in dataset %s",DSET_FILECODE(ds)); \
