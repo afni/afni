@@ -43,11 +43,13 @@ typedef struct
 {
     float    K, kep, ve, fpv;   /* fit params  (one of kep or ve given)   */
     float    r1, RIB, RIT;      /* given params (via env)                 */
-    float    theta, TR, TF;     /* TR & inter-frame TR (TR of input dset) */
+    float    theta;             /* flip angle */
+    float    TR, TF;            /* TR & inter-frame TR (TR of input dset) */
     float    hct;               /* hematocrit value (via env)             */
     float    rct;               /* residual Ct value (via env dset)       */
-
+    float    faf;               /* flip angle factor (0-1) */
     float    cos0;              /* cos(theta)                             */
+    float    mp_cos0;           /* cos(mp_theta)                          */
     int      nfirst;            /* num TRs used to compute mean Mp,0 */
     int      ijk;               /* voxel index*/
     int      debug;
@@ -63,9 +65,11 @@ static int g_use_ve = 0;        /* can be modified in initialize model() */
 
 /* extra datasets and data pointers */
 static THD_3dim_dataset *dset_R1I = NULL;      /* input 3d+time data set */
-static float *R1I_data_ptr = NULL;
+static float *R1I_data_ptr = NULL;             /* intrinsic relaxivity dataset*/
 static THD_3dim_dataset *dset_resid_ct = NULL; /* input 3d+time data set */
-static float *resid_ct_ptr = NULL;
+static float *resid_ct_ptr = NULL;             /* residual tissue conc */
+static THD_3dim_dataset *dset_FAF = NULL;      /* flipangle factor dataset */
+static float *flipangle_factor_ptr = NULL;     /* flipangle factor data ptr*/
 
 static int alloc_param_arrays(demri_params * P, int len);
 static int compute_ts       (demri_params *P, float *ts, int ts_len);
@@ -258,6 +262,16 @@ void signal_model (
         P.rct = resid_ct_ptr[P.ijk];  /*  get residual Ct from dataset */
         if(P.debug > 3) printf("Voxel index %d, rCt value %f\n", P.ijk, P.rct); 
     }
+
+    /* get any flip angle scale factor value */
+    if( flipangle_factor_ptr )
+    {
+        P.ijk = AFNI_needs_dset_ijk();
+        P.faf = flipangle_factor_ptr[P.ijk]; /*get flipangle factor from dset */
+        if(P.debug > 3) printf(
+            "Voxel index %d, flipangle factor value %f\n", P.ijk, P.rct); 
+    }
+    else P.faf = 1;
 
     if(P.debug>1 && P.counter==0) disp_demri_params("before compute_ts: ", &P);
     (void)compute_ts( &P, ts_array, ts_len );
@@ -473,7 +487,11 @@ static int Mx_from_R1(demri_params * P, float * ts, int len)
     double   P1, P1c, e, cos0;
     int      n;
 
-    cos0 = P->cos0;
+    if( flipangle_factor_ptr )
+       cos0 = cos(P->theta * P->faf) ; /* adjust cos or theta by flip angle factor? */
+    else
+       cos0 = P->cos0;
+
     P1   = exp(-P->RIT * P->TR);
     P1c  = 1 - P1 * cos0;
     P1   = 1 - P1;
@@ -498,6 +516,7 @@ static int get_env_params(demri_params * P)
 {
     char * envp;
     int    errs = 0;
+    double mp_theta;
 
     envp = my_getenv("AFNI_MODEL_D3_R1");
     if( !envp )
@@ -553,11 +572,25 @@ static int get_env_params(demri_params * P)
         P->cos0 = cos(P->theta * Mmmmmm_PIiiiii / 180.0);
         if( P->theta <= M_D3_THETA_MIN || P->theta >= M_D3_THETA_MAX )
         {
-            fprintf(stderr, "** error: theta (%f) is not in (%f, %f)\n",
+            fprintf(stderr, "** error: theta (%f) is not in range (%f, %f)\n",
                             P->theta, M_D3_THETA_MIN, M_D3_THETA_MAX);
             errs++;
         }
     }
+
+    envp = my_getenv("AFNI_MODEL_D3_MP_THETA");
+    if( !envp )
+       mp_theta = P->theta;
+    else
+       mp_theta = atof(envp);
+    if( mp_theta <= M_D3_THETA_MIN || mp_theta >= M_D3_THETA_MAX )
+    {
+        fprintf(stderr, 
+          "** error: plasma theta (MP_THETA) (%f) is not in range(%f, %f)\n",
+          mp_theta, M_D3_THETA_MIN, M_D3_THETA_MAX);
+        errs++;
+    }
+    P->mp_cos0 = cos(mp_theta * Mmmmmm_PIiiiii / 180.0);
 
     envp = my_getenv("AFNI_MODEL_D3_TR");
     if( !envp )
@@ -714,6 +747,40 @@ static int get_env_params(demri_params * P)
        }
     }
 
+    /* check if non-uniform flip angle factor map is assigned */
+    envp = my_getenv("AFNI_MODEL_D3_FLIPANGLE_FACTOR_DATASET");  
+    if(envp)
+    {
+        /* verify R1I dataset existence and open dataset */
+        dset_FAF = THD_open_one_dataset (envp);
+        if (dset_FAF == NULL)  
+          { fprintf(stderr,"Unable to open flip angle factor dataset: %s", envp); return 1; }
+
+        DSET_mallocize (dset_FAF);
+        DSET_load(dset_FAF);
+        if( !DSET_LOADED((dset_FAF)) ) 
+            { fprintf(stderr,"Can't load dataset %s",envp) ; return 1; }
+
+        if( DSET_BRICK_TYPE(dset_FAF, 0) != MRI_float )
+            { fprintf(stderr,"dset %s is not of type float\n",envp); return 1; }
+
+        flipangle_factor_ptr = DSET_ARRAY(dset_FAF, 0);
+        if(P->debug>0) printf("Set flipangle_factor_ptr\n");
+    }
+    else
+    {                    /* should I close any open datasets? */
+       if(flipangle_factor_ptr)
+       {
+           fprintf(stderr,
+            "** MD3 flipangle_factor_ptr assigned:"
+            "warning, we should not be here\n");
+           flipangle_factor_ptr = NULL;
+           dset_FAF = NULL;
+       }
+    }
+
+
+
     if( envp && P->debug>1 && !errs ) disp_demri_params("env params set: ", P);
 
     return errs;
@@ -810,7 +877,7 @@ static int convert_mp_to_cp(demri_params * P, int mp_len)
     int     c;
 
     /* use local vars for those in P, for readability */
-    float  r1 = P->r1, RIB = P->RIB, TR = P->TR, cos0 = P->cos0;
+    float  r1 = P->r1, RIB = P->RIB, TR = P->TR, cos0 = P->mp_cos0;
     int    nfirst = P->nfirst;
 
     if( nfirst > mp_len ) nfirst = 0;
@@ -898,13 +965,14 @@ static int disp_demri_params( char * mesg, demri_params * p )
                     "    r1     = %f  ( 1/(mMol*seconds) )\n"
                     "    RIB    = %f  ( 1/seconds )\n"
                     "    RIT    = %f  ( 1/seconds )\n"
-                    "    theta  = %f  ( degrees )\n"
+                    "    theta  = %f  ( flip angle in degrees )\n"
                     "    TR     = %f  ( seconds (~0.007) )\n"
                     "    TF     = %f  ( seconds (~20) )\n"
                     "    hct    = %f  ( hematocrit (~0.5) )\n"
                     "    rct    = %f  ( residual Ct value )\n"
                     "\n"
-                    "    cos0    = %f  ( cos(theta) )\n"
+                    "    cos0    = %f ( cos(flipangle) )\n"
+                    "    mp_cos0 = %f ( plasma cos(flipangle))\n"
                     "    nfirst  = %d\n"
                     "    ijk     = %d\n"
                     "    debug   = %d\n"
@@ -916,7 +984,7 @@ static int disp_demri_params( char * mesg, demri_params * p )
             , p,
             p->K, p->kep, p->ve, p->fpv,
             p->r1, p->RIB, p->RIT, p->theta, p->TR, p->TF, p->hct, p->rct,
-            p->cos0, p->nfirst, p->ijk, p->debug, p->per_min,
+            p->cos0, p->mp_cos0, p->nfirst, p->ijk, p->debug, p->per_min,
             p->comp, p->elist, p->mcp);
 
     return 0;
@@ -1036,10 +1104,24 @@ static int model_help(void)
     "           After that, the first and last 45 TRs can be given to 3dNLfim\n"
     "           separately.\n"
     "\n"
+    "       --- AFNI_MODEL_D3_FLIPANGLE_FACTOR_DSET -------------------------\n"
+    "\n"
+    "           This specifies a dataset that can vary the flip angle factor.\n"
+    "\n"
+    "           Each value will be a scale factor for the angle at each voxel\n"
+    "           This is an optional dataset. Without this variable, the angle\n"
+    "           will be used as specified in the AFNI_MODEL_D3_THETA \n"
+    "           variable. You will probably also want to set the plasma flip\n"
+    "           angle as described below with AFNI_MODEL_D3_MP_THETA.\n"
+    "\n"
+    "           e.g. flipangle+orig\n"
+    "\n"
+
     "   environment variables to control Mp(t):\n"
     "       AFNI_MODEL_D3_MP_FILE : file containing Mp(t) data\n"
     "       AFNI_MODEL_D3_NFIRST  : to set the number of TRs averaged for M0\n"
     "                               (if data is not scaled, this will do it)\n"
+    "       AFNI_MODEL_D3_MP_THETA: use a different flip angle for the plasma\n"
     "\n"
     "   optional environment variables:\n"
     "       AFNI_MODEL_HELP_DEMRI_3 (Y/N) : to get this help\n"
