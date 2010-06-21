@@ -2363,8 +2363,10 @@ tTop <- 100   # upper bound for t-statistic
    #rm(comArr)
    outArr[outArr > tTop] <- tTop  # Avoid outflow!!!!
    outArr[outArr < (-tTop)] <- -tTop  # Avoid outflow!!!!
+     
    if (lop$verb) cat ('outLabel', outLabel,'\n');
-   write.AFNI(lop$outFN, outArr[,,,1:nBrick0], 
+   #write.AFNI(lop$outFN, outArr[,,,1:nBrick0],
+   write.AFNI(lop$outFN, subBRKarray(brk=outArr, sel=1:nBrick0), 
                   outLabel, note=lop$myNote, origin=lop$myOrig, 
                   delta=lop$myDelta, idcode="whatever")
    if (dataView=="tlrc") statpar <- paste(statpar, " -view ", dataView)     
@@ -2374,10 +2376,12 @@ tTop <- 100   # upper bound for t-statistic
    system(statpar)
 
    if(lop$resZout==1) {
-      write.AFNI(lop$icc_FN, outArr[,,,seq((nBrick0+1), nBrick, by=2)], iccLabel,
+      #write.AFNI(lop$icc_FN, outArr[,,,seq((nBrick0+1), nBrick, by=2)], iccLabel,
+      write.AFNI(lop$icc_FN, subBRKarray(outArr, seq((nBrick0+1), nBrick, by=2)), iccLabel,
                  note=lop$myNote, origin=lop$myOrig, delta=lop$myDelta, 
                  idcode="whatever")
-      write.AFNI(lop$resZ_FN, outArr[,,,seq((nBrick0+2), nBrick, by=2)], 
+      #write.AFNI(lop$resZ_FN, outArr[,,,seq((nBrick0+2), nBrick, by=2)],
+      write.AFNI(lop$resZ_FN, subBRKarray(outArr, seq((nBrick0+2), nBrick, by=2)), 
                  resZLabel, note=lop$myNote, origin=lop$myOrig, 
                  delta=lop$myDelta, idcode="whatever")
       if (dataView=="tlrc") {
