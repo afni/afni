@@ -1843,7 +1843,7 @@ SUMA_OBJS = suma_afni_surface.o suma_datasets.o suma_algorithms.o
 
 MISC_OBJS  = afni_suma.o vol2surf.o nifti1_io.o znzlib.o list_struct.o  \
 	     nifti_statlib.o nifticdf.o r_new_resam_dset.o r_idisp.o    \
-	     r_misc.o matrix.o gifti_choice.o
+	     r_misc.o matrix.o gifti_choice.o misc_math.o
 
 libmri.a:$(NIML_OBJS) $(MRI_OBJS) $(THD_OBJS)                \
          $(EDT_OBJS)  $(CS_OBJS)  $(EIS_OBJS) $(NETCDF_OBJS) \
