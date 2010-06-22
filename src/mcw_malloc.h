@@ -12,7 +12,12 @@
 
 #include <stdlib.h>
 #include <stdio.h>
-#include <X11/Intrinsic.h>
+
+#ifdef __BUILDING_QUICKLOOK_PLUGIN__
+  #include "IntrinsicQuickLook.h"
+#else
+  #include <X11/Intrinsic.h>
+#endif
 
 #include "machdep.h"
 

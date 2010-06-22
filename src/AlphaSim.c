@@ -784,7 +784,7 @@ void get_options (int argc, char ** argv,
              AlphaSim_error ("need argument after -seed ");
 	  *seed = atoi(argv[nopt]);
      if( *seed == 0 ){
-       *seed = ((int)time(NULL))<<2 + 7*(int)getpid() ;
+       *seed = ((int)time(NULL)) + 17*(int)getpid() ;
        if( *seed < 0 ) *seed = -*seed ;
        INFO_message("-seed 0 resets to %d",*seed) ;
      }

@@ -95,6 +95,19 @@ static rcmat * rcmat_arma11( int nt, int *tau, MTYPE rho, MTYPE lam )
 }
 
 /*---------------------------------------------------------------------------*/
+
+#if 0
+static INLINE double qgaussian(void)
+{
+  double z ;
+  z = -6.0 + drand48() + drand48() + drand48() + drand48()
+           + drand48() + drand48() + drand48() + drand48()
+           + drand48() + drand48() + drand48() + drand48() ;
+  return z ;
+}
+#endif
+
+/*---------------------------------------------------------------------------*/
 /* Generate ARMA11(a=ap,lam=lm) vectors of length nlen, nvec of them, with
    standard deviation set to sg.  If sg <= 0, then the vectors are
    L2-normalized (sum of squares=1).
@@ -102,7 +115,7 @@ static rcmat * rcmat_arma11( int nt, int *tau, MTYPE rho, MTYPE lam )
 
 MRI_IMAGE * mri_genARMA11( int nlen, int nvec, float ap, float lm, float sg )
 {
-   int kk,ii ;
+   int kk,ii , do_rcmat ;
    double aa=ap, lam=lm , sig=sg ; int do_norm = (sg<=0.0f) ;
    double *rvec ;
    rcmat *rcm ;
@@ -120,16 +133,19 @@ ENTRY("mri_genARMA11") ;
    if( fabs(aa)  >= 0.98 ){ ERROR_message("ARMA11 a too big");   RETURN(NULL); }
    if( fabs(lam) >= 0.97 ){ ERROR_message("ARMA11 lam too big"); RETURN(NULL); }
 
+   do_rcmat = ( lam != 0.0 ) ;
+
    /* setup */
 
-   rcm = rcmat_arma11( nlen , NULL , aa , lam ) ;
-   if( rcm == NULL ){
-     ERROR_message("Can't setup ARMA11 matrix?!"); RETURN(NULL);
-   }
-
-   kk = rcmat_choleski( rcm ) ;
-   if( kk > 0 ){
-     ERROR_message("ARMA11 Choleski fails at row %d",kk); RETURN(NULL);
+   if( do_rcmat ){
+     rcm = rcmat_arma11( nlen , NULL , aa , lam ) ;
+     if( rcm == NULL ){
+       ERROR_message("Can't setup ARMA11 matrix?!"); RETURN(NULL);
+     }
+     kk = rcmat_choleski( rcm ) ;
+     if( kk > 0 ){
+       ERROR_message("ARMA11 Choleski fails at row %d",kk); RETURN(NULL);
+     }
    }
 
    /* simulate */
@@ -139,7 +155,7 @@ ENTRY("mri_genARMA11") ;
 
    for( kk=0 ; kk < nvec ; kk++ ){
      for( ii=0 ; ii < nlen ; ii++ ) rvec[ii] = zgaussian() ;
-     rcmat_lowert_vecmul( rcm , rvec ) ;
+     if( do_rcmat ) rcmat_lowert_vecmul( rcm , rvec ) ;
      vv = outar + kk*nlen ;
      if( do_norm ){
        sig = 0.0 ;
@@ -149,7 +165,8 @@ ENTRY("mri_genARMA11") ;
      if( sig != 1.0 ){ for( ii=0 ; ii < nlen ; ii++ ) vv[ii] = sig * rvec[ii]; }
    }
 
-   rcmat_destroy(rcm) ; free(rvec) ;
+   free(rvec) ;
+   if( do_rcmat ) rcmat_destroy(rcm) ;
 
    RETURN(outim) ;
 }

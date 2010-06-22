@@ -1,6 +1,9 @@
 #include "mrilib.h"
 #include "zgaussian.c"
 
+#include <time.h>
+#include <unistd.h>
+
 #undef  LAMBDA
 #define LAMBDA(a,b) ((b+a)*(1.0+a*b)/(1.0+2.0*a*b+b*b))
 
@@ -18,6 +21,7 @@ int main( int argc , char *argv[] )
    int dvx,dvy,xx,yy,zz,tt , kk , kold ;
    float *tsar , val , wal , a0,a1 , b0,b1 , dsig , aa,bb,lam ;
    MRI_IMAGE *armim ; float *armar ;
+   long seed ;
 
    /*-- the pitiful help --*/
 
@@ -124,27 +128,31 @@ int main( int argc , char *argv[] )
      EDIT_substitute_brick(dset,tt,MRI_float,NULL) ;
 
    tsar = (float *)malloc(sizeof(float)*ntr) ;
-   srand48( (long)GSEED ) ;
+   seed = (long)GSEED ; srand48(seed) ; INFO_message("seed = %ld",seed) ;
 
    /* build baseline model into dataset */
 
    nxyq = nxy * nxy ;
 
-   INFO_message("3dSimARMA11: build baseline model") ;
+   if( base != 0.0f || (nbb > 0 && bsig > 0.0f) ){
+     INFO_message("3dSimARMA11: build baseline model") ;
 
-   for( zz=0 ; zz < nz ; zz++ ){
-    for( yy=0 ; yy < nxy ; yy++ ){
-     for( xx=0 ; xx < nxy ; xx++ ){
-       val = zgaussian() ; val *= val * base ;
-       for( tt=0 ; tt < ntr ; tt++ ) tsar[tt] = val ;
-       wal = 1.99998f / (ntr-1.0f) ;
-       for( kk=1 ; kk <= nbb ; kk++ ){
-         val = bsig * zgaussian() ;
-         for( tt=0 ; tt < ntr ; tt++ )
-           tsar[tt] += val * Plegendre( wal*tt-0.99999 , kk ) ;
-       }
-       THD_insert_series( xx+yy*nxy+zz*nxyq , dset , ntr , MRI_float , tsar , 1 ) ;
-   }}}
+     for( zz=0 ; zz < nz ; zz++ ){
+      for( yy=0 ; yy < nxy ; yy++ ){
+       for( xx=0 ; xx < nxy ; xx++ ){
+         val = zgaussian() ; val *= val * base ;
+         for( tt=0 ; tt < ntr ; tt++ ) tsar[tt] = val ;
+         wal = 1.99998f / (ntr-1.0f) ;
+         for( kk=1 ; kk <= nbb ; kk++ ){
+           val = bsig * zgaussian() ;
+           for( tt=0 ; tt < ntr ; tt++ )
+             tsar[tt] += val * Plegendre( wal*tt-0.99999 , kk ) ;
+         }
+         THD_insert_series( xx+yy*nxy+zz*nxyq , dset , ntr , MRI_float , tsar , 1 ) ;
+     }}}
+   } else {
+    blur = 0.0f ;
+   }
 
    /* smooth baseline model */
 
@@ -169,11 +177,11 @@ int main( int argc , char *argv[] )
 
      nbar = (nxy-1)/ndiv + 1 ; dtau = taumx / (nbar-1) ;
      bar = (float *)malloc(sizeof(float)*nbar*nbar) ;
-     for( yy=0 ; yy < nbar ; yy++ )
-       for( xx=0 ; xx < nbar ; xx++ )
-         bar[xx+yy*nbar] = zgaussian() * xx*dtau ;
 
      for( zz=0 ; zz < nz ; zz++ ){
+       for( yy=0 ; yy < nbar ; yy++ )
+         for( xx=0 ; xx < nbar ; xx++ )
+           bar[xx+yy*nbar] = zgaussian() * xx*dtau ;
        for( xx=0 ; xx < nxy ; xx++ ){
          dvx = xx/ndiv ;
          for( yy=0 ; yy < nxy ; yy++ ){
@@ -194,10 +202,10 @@ int main( int argc , char *argv[] )
    /* add noise model */
 
    fprintf(stderr,"++ adding ARMA(1,1) model") ;
-   kk = (nxy+nxy-2)/(2*ndiv) ; a0 = amn ; a1 = amx/kk ;
+   kk = (nxy+nxy-2)/(2*ndiv) ; a0 = amn ; a1 = (amx-amn)/kk ;
    kk = (nxy-1)    /(2*ndiv) ; b0 = 0.5f*(bmn+bmx) ; b1 = (bmx-bmn)/(2.0f*kk) ;
    kk = 1 + (nxy-1)/ndiv ; dsig = (sigmx-sigmn)/kk ; kold = -1 ;
-   for( zz=0 ; zz < nz ; zz++ ){
+   for( zz=0 ; zz < nz ; zz++,kold=-1 ){
      for( yy=0 ; yy < nxy ; yy++ ){
        kk  = yy/ndiv ; val = (1+kk)*dsig + sigmn ;
        if( kk > kold ){ fprintf(stderr,".") ; kold = kk ; }
@@ -217,6 +225,7 @@ int main( int argc , char *argv[] )
          mri_free(armim) ;
        }
      }
+     fprintf(stderr,"%d",zz%10) ;
    }
    fprintf(stderr,"\n") ;
 
