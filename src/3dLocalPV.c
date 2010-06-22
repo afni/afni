@@ -101,7 +101,7 @@ int main( int argc , char *argv[] )
    PRINT_VERSION("3dLocalPV"); mainENTRY("3dLocalPV main"); machdep();
    AFNI_logger("3dLocalPV",argc,argv); AUTHOR("Emperor Zhark the Iterator");
 
-   gseed = ((unsigned int)time(NULL))<<2 + 7*(unsigned int)getpid() ;
+   gseed = ((unsigned int)time(NULL)) + 17*(unsigned int)getpid() ;
 
    /*---- loop over options ----*/
 

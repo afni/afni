@@ -5005,7 +5005,7 @@ extern NI_element * mri_to_niml( MRI_IMAGE *  ) ;
 /* a random-ish seed for a random number generator */
 
 #undef  GSEED
-#define GSEED (time(NULL)<<2 + 7*getpid())
+#define GSEED (time(NULL) + 701*getpid())
 
 #ifdef  __cplusplus
 }
