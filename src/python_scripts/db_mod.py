@@ -70,7 +70,7 @@ def db_cmd_tcat(proc, block):
     proc.pblabel = block.label  # set 'previous' block label
 
     # now that the 'output' index and label are set, maybe get outlier counts
-    opt = proc.user_opts.find_opt('-count_outliers')
+    opt = proc.user_opts.find_opt('-outlier_count')
     if not opt or OL.opt_is_yes(opt):
         rv, oc = make_outlier_commands(proc)
         if rv: return   # failure (error has been printed)
@@ -83,6 +83,7 @@ def db_cmd_tcat(proc, block):
 # could do this from any block, but expect to do at end of tcat
 # return error code (0 = success) and string
 def make_outlier_commands(proc):
+    # ----------------------------------------
     # check for any censoring
     val, err = proc.user_opts.get_type_opt(float, '-regress_censor_outliers')
     if err: return 1, ''
@@ -127,20 +128,33 @@ def make_outlier_commands(proc):
     else:
         cs0 = ''
         cs1 = ''
+    # ---------- end censor options ----------
 
-    polort = UTIL.get_default_polort(proc.tr, proc.reps)
+    # set polort level
+    val, err = proc.user_opts.get_type_opt(int, '-outlier_polort')
+    if err: return
+    elif val != None and val >= 0: polort = val
+    else: polort = UTIL.get_default_polort(proc.tr, proc.reps)
+
+    # use Legendre polynomials?
+    opt = proc.user_opts.find_opt('-outlier_legendre')
+    if not opt or OL.opt_is_yes(opt): lstr = ' -legendre'
+    else:                             lstr = ''
+
     prev_prefix = proc.prev_prefix_form_run(view=1)
     cmd = '# %s\n'                                                       \
           '# data check: compute outlier fraction for each volume\n'     \
           'foreach run ( $runs )\n'                                      \
-          '    3dToutcount -automask -fraction -polort %d \\\n'          \
+          '    3dToutcount -automask -fraction -polort %d%s \\\n'        \
           '                %s > outcount_r$run.1D\n'                     \
           '%s'                                                           \
           'end\n\n'                                                      \
           '# catenate outlier counts into a single time series\n'        \
           'cat outcount_r??.1D > outcount.rall.1D\n'                     \
           '%s\n'                                                         \
-          % (block_header('auto block: outcount'), polort, prev_prefix,cs0,cs1)
+          % (block_header('auto block: outcount'), polort, lstr,
+             prev_prefix, cs0, cs1)
+
     return 0, cmd
 
 def combine_censor_files(proc, cfile, newfile=''):
@@ -3476,6 +3490,45 @@ g_help_string = """
 
             The AFNI processing script will create this directory and perform
             all processing in it.
+
+        -outlier_count yes/no   : should we count outliers with 3dToutcount?
+
+                e.g. -outlier_count no
+                default: yes
+
+            By default, outlier fractions are computed per TR with 3dToutcount.
+            To disable outlier counting, apply this option with parameter 'no'.
+            This is a yes/no option, meaning those are the only valid inputs.
+
+            Note that -outlier_count must be 'yes' in order to censor outliers
+            with -regress_censor_outliers.
+
+            See "3dToutcount -help" for more details.
+            See also -regress_censor_outliers.
+
+        -outlier_legendre yes/no : use Legendre polynomials in 3dToutcount?
+
+                e.g. -outlier_legendre no
+                default: yes
+
+            By default the -legendre option is passed to 3dToutcount.  Along
+            with using better behaved polynomials, it also allows them to be
+            higher than 3rd order (if desired).
+
+            See "3dToutcount -help" for more details.
+
+        -outlier_polort POLORT  : specify polynomial baseline for 3dToutcount
+
+                e.g. -outlier_polort 3
+                default: same degree that 3dDeconvolve would use: 1+time/150
+
+            Outlier counts come after detrending the data, where the degree
+            of the polynomial trend defaults to the same that 3dDeconvolve
+            would use.  This option will override the default.
+
+            See "3dToutcount -help" for more details.
+            See "3dDeconvolve -help" for more details.
+            See also '-regress_polort' and '-outlier_legendre'.
 
         -remove_preproc_files   : delete pre-processed data
 

@@ -186,7 +186,7 @@ g_history = """
           (problem noted by D Drake)
     2.26 Jun 04 2010 :
         - if only one regressor, use 1dcat for "sum" ideal
-        - added -count_outliers, default to "yes"
+        - added -outlier_count, default to "yes"
         - outlier counting is now at end of tcat block
     2.27 Jun 09 2010 :
         - added -regress_censor_outliers and -regress_skip_first_outliers
@@ -194,9 +194,13 @@ g_history = """
     2.28 Jun 10 2010 : fixed copying EPI and anat as NIfTI
           (problem noted by S Tambalo)
     2.29 Jun 17 2010 : apply default polort in 3dToutcount
+    2.30 Jun 17 2010 :
+        - 3dToutcount detrending now defaults to Legendre polynomials and
+          can so exceed polort 3 (limit found by I Mukai and K Bahadur)
+        - added options -outlier_legendre and -outlier_polort
 """
 
-g_version = "version 2.29, June 17, 2010"
+g_version = "version 2.30, June 22, 2010"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
@@ -368,9 +372,6 @@ class SubjProcSream:
                         helpstr='anatomy to copy to results directory')
         self.valid_opts.add_opt('-copy_files', -1, [],
                         helpstr='list of files to copy to results directory')
-        self.valid_opts.add_opt('-count_outliers', 1, [],
-                        acplist=['yes','no'],
-                        helpstr='run 3dToutcount, default is "yes"')
         self.valid_opts.add_opt('-execute', 0, [],
                         helpstr='execute script as suggested to user')
         self.valid_opts.add_opt('-exit_on_error', 1, [],
@@ -384,6 +385,14 @@ class SubjProcSream:
                         helpstr='do not delete temporary rm.* files')
         self.valid_opts.add_opt('-move_preproc_files', 0, [],
                         helpstr='move preprocessing files to preproc.data dir')
+        self.valid_opts.add_opt('-outlier_count', 1, [],
+                        acplist=['yes','no'],
+                        helpstr='run 3dToutcount?  (default=yes)')
+        self.valid_opts.add_opt('-outlier_legendre', 1, [],
+                        acplist=['yes','no'],
+                        helpstr='use -legendre in 3dToutcount?  (def=yes)')
+        self.valid_opts.add_opt('-outlier_polort', 1, [],
+                        helpstr='3dToutcount polort (default is as with 3dD)')
         self.valid_opts.add_opt('-remove_preproc_files', 0, [],
                         helpstr='remove pb0* preprocessing files')
         self.valid_opts.add_opt('-verb', 1, [],
