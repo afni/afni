@@ -1389,6 +1389,8 @@ extern int SYM_expand_errcount(void) ; /* 03 May 2007 */
 #include "zlib.h"             /* 02 Mar 2009 */
 #endif
 
+#include "misc_math.h"        /* 21 Jun 2010 [rickr] */
+
 THD_string_array * mri_read_1D_headerline( char *fname ) ; /* 18 May 2010 */
 
 /*------------------------------------------------------------------------*/
