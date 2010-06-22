@@ -14,7 +14,7 @@ int main( int argc , char *argv[] )
    int do_autoclip=0 , npass=0 , do_range=0 ;   /* 12 Aug 2001 */
 
    int polort=0 , nref , nbad=0 , nfsc=0 ;      /* 07 Aug 2002 */
-   int do_frac=0;                               /* 04 Jun 2010 [rickr] */
+   int do_frac=0, use_legendre;                 /* 21 Jun 2010 [rickr] */
    float **ref ;
    float  *fit ;
 
@@ -51,6 +51,8 @@ int main( int argc , char *argv[] )
              "                order 'nn' prior to outlier estimation.  Default\n"
              "                value of nn=0, which means just remove the median.\n"
              "                Detrending is done with L1 regression, not L2.\n"
+             "\n"
+             " -legendre  = Use Legendre polynomials (also allows -polort > 3).\n"
              "\n"
              "OUTLIERS are defined as follows:\n"
              " * The trend and MAD of each time series are calculated.\n"
@@ -115,6 +117,10 @@ int main( int argc , char *argv[] )
          iarg++ ; continue ;
       }
 
+      if( strcmp(argv[iarg],"-legendre") == 0 ){  /* 21 Jun 2010 [rickr] */
+         use_legendre = 1 ; iarg++ ; continue ;
+      }
+
       if( strcmp(argv[iarg],"-mask") == 0 ){
          int mcount ;
          THD_3dim_dataset *mask_dset ;
@@ -141,13 +147,15 @@ int main( int argc , char *argv[] )
 
       if( strcmp(argv[iarg],"-polort") == 0 ){
         polort = strtol( argv[++iarg] , NULL , 10 ) ;
-        if( polort < 0 || polort > 3 ){
-          fprintf(stderr,"** Illegal value of polort!\n"); exit(1);
-        }
         iarg++ ; continue ;
       }
 
       fprintf(stderr,"** Unknown option: %s\n",argv[iarg]) ; exit(1) ;
+   }
+
+   /* check polort level */
+   if( polort < 0 || (polort > 3 && !use_legendre) ){
+     fprintf(stderr,"** polort > 3 requires -legendre\n"); exit(1);
    }
 
    /*----- read input dataset -----*/
@@ -230,14 +238,25 @@ int main( int argc , char *argv[] )
      /* r(t) = t - tmid */
 
      float tm = 0.5 * (nvals-1.0) ; float fac = 2.0 / nvals ;
-     for( iv=0 ; iv < nvals ; iv++ ) ref[1][iv] = (iv-tm)*fac ;
+
+     if( use_legendre )                 /* 21 Jun 2010 [rickr] */
+        for( iv=0 ; iv < nvals ; iv++ ) ref[1][iv] = legendre((iv-tm)*fac, 1) ;
+     else
+        for( iv=0 ; iv < nvals ; iv++ ) ref[1][iv] = (iv-tm)*fac ;
+
      jj = 2 ;
 
      /* r(t) = (t-tmid)**jj */
 
-     for( ; jj <= polort ; jj++ )
-      for( iv=0 ; iv < nvals ; iv++ )
-       ref[jj][iv] = pow( (iv-tm)*fac , (double)jj ) ;
+     for( ; jj <= polort ; jj++ ) {
+       if( use_legendre ) {             /* 21 Jun 2010 [rickr] */
+         for( iv=0 ; iv < nvals ; iv++ )
+           ref[jj][iv] = legendre((iv-tm)*fac, jj) ;
+       } else {
+         for( iv=0 ; iv < nvals ; iv++ )
+           ref[jj][iv] = pow( (iv-tm)*fac , (double)jj ) ;
+       }
+     }
    }
 
    /*--- loop over voxels and count ---*/

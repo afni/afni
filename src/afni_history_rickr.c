@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 22, JUN, 2010, RCR, "3dToutcount", MINOR, TYPE_NEW_OPT,
+   "added -legendre option, which also allows polort > 3",
+   NULL
+ } ,
+
  { 17, JUN, 2010, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
    "apply default polort in 3dToutcount",
    NULL
