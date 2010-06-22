@@ -48,6 +48,13 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 22, JUN, 2010, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "3dToutcount detrending now defaults to Legendre polynomials",
+   "  Using Legendre polynomials, 3dToutcount polort can exceed 3\n"
+   "  (limit noted by I Mukai and K Bahadur).\n"
+   "  Added options -outlier_legendre and -outlier_polort."
+ } ,
+
  { 22, JUN, 2010, RCR, "3dToutcount", MINOR, TYPE_NEW_OPT,
    "added -legendre option, which also allows polort > 3",
    NULL
