@@ -12,7 +12,7 @@ int main( int argc , char *argv[] )
    int nxy=256 , nxyq , nz=1 , ntr=200 , ndiv=16 , nbb=3 , iarg ;
    float TR=2.5f , blur=5.0f , base=30.0f , bsig=3.0f ;
    float amx=0.8f , bmx=0.5f , amn=0.0f , bmn=-0.5f ;
-   float taumx=3.0f , sigmx=5.0f , sigmn=0.0f ;
+   float taumx=3.0f , sigmx=5.0f , sigmn=1.0f ;
    MRI_IMAGE *rim=NULL ;
    char *prefix="Simm" ;
 
@@ -206,12 +206,15 @@ int main( int argc , char *argv[] )
    kk = (nxy-1)    /(2*ndiv) ; b0 = 0.5f*(bmn+bmx) ; b1 = (bmx-bmn)/(2.0f*kk) ;
    kk = 1 + (nxy-1)/ndiv ; dsig = (sigmx-sigmn)/kk ; kold = -1 ;
    for( zz=0 ; zz < nz ; zz++,kold=-1 ){
+     fprintf(stderr,".") ;
      for( yy=0 ; yy < nxy ; yy++ ){
-       kk  = yy/ndiv ; val = (1+kk)*dsig + sigmn ;
-       if( kk > kold ){ fprintf(stderr,".") ; kold = kk ; }
+       kk = yy/ndiv ; val = (1+kk)*dsig + sigmn ; if( val <= 0.0 ) val = 0.01 ;
        for( xx=0 ; xx < nxy ; xx++ ){
          dvx = (xx+yy)/(2*ndiv) ; dvy = (xx-yy)/(2*ndiv) ;
-         aa = a0+a1*dvx ; bb = b0+b1*dvy ; lam = LAMBDA(aa,bb) ;
+         aa = a0+a1*dvx ; bb = b0+b1*dvy ;
+         if( aa < -0.888 ) aa = -0.888 ; else if( aa > 0.888 ) aa = 0.888 ;
+         if( bb < -0.888 ) bb = -0.888 ; else if( bb > 0.888 ) bb = 0.888 ;
+         lam = LAMBDA(aa,bb) ;
          armim = mri_genARMA11( ntr , 1 , aa,lam , val ) ;
          if( armim == NULL ){
            WARNING_message("ARMA11 fails: xx=%d yy=%d a=%g b=%g lam=%g sig=%g",
@@ -225,7 +228,6 @@ int main( int argc , char *argv[] )
          mri_free(armim) ;
        }
      }
-     fprintf(stderr,"%d",zz%10) ;
    }
    fprintf(stderr,"\n") ;
 
