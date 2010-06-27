@@ -2,39 +2,30 @@
 
 /*==============================================================================*/
 /*========== The following functions were moved from afni_fimfunc.c -===========*/
-/*==============================================================================*/
+/*===========================================================================*/
 
-/*------------------------------------------------------------------------------*/
+/*---------------------------------------------------------------------------*/
 /*! Rank-order a float array, with ties getting the average rank.
    The output overwrites the input.
---------------------------------------------------------------------------------*/
+   [27 Jun 2010: modified to create/destroy workspace on each call]
+*//*-------------------------------------------------------------------------*/
 
 void rank_order_float( int n , float *a )
 {
    register int ii , ns , n1 , ib ;
-   static int   nb = 0 ;
-   static int   *b = NULL ;  /* workspaces */
-   static float *c = NULL ;
+   int   *b ;  /* workspaces */
+   float *c ;
    float cs ;
 
    /*- handle special cases -*/
 
-   if( a == NULL ){
-     if( b != NULL ){ free(b); free(c); b=NULL ; c=NULL; nb=0; }  /* free workspaces */
-     return ;
-   }
+   if( a == NULL || n < 1 ) return ;        /* meaningless input */
+   if( n == 1 ){ a[0] = 0.0f ; return ; }    /* only one point!? */
 
-   if( n < 1 ) return ;                     /* meaningless input */
-   if( n == 1 ){ a[0] = 0.0 ; return ; }    /* only one point!? */
+   /*- make workspaces -*/
 
-   /*- make workspaces, if needed -*/
-
-   if( nb < n ){
-     if( b != NULL ){ free(b); free(c); }
-     b  = (int   *) malloc(sizeof(int  )*n) ;
-     c  = (float *) malloc(sizeof(float)*n) ;
-     nb = n ;
-   }
+   b = (int   *) malloc(sizeof(int  )*n) ;
+   c = (float *) malloc(sizeof(float)*n) ;
 
    for( ii=0 ; ii < n ; ii++ ) c[ii] = b[ii] = ii ;
 
@@ -55,7 +46,7 @@ void rank_order_float( int n , float *a )
 
    for( ii=0 ; ii < n ; ii++ ) a[b[ii]] = c[ii] ;
 
-   return ;
+   free(c) ; free(b) ; return ;
 }
 
 /*---------------------------------------------------------------------------*/
