@@ -475,10 +475,6 @@ dsetdup:dsetdup.o
 	$(RM) $@
 	$(CC) -o 3dTcorrelate 3dTcorrelate.o $(LFLAGS) $(LLIBS) -lf2c -lmri
 
-3dTcorr1D:3dTcorr1D.o
-	$(RM) $@
-	$(CC) -o 3dTcorr1D 3dTcorr1D.o $(LFLAGS) $(LLIBS) -lf2c -lmri
-
 3dAutoTcorrelate:3dAutoTcorrelate.o
 	$(RM) $@
 	$(CC) -o 3dAutoTcorrelate 3dAutoTcorrelate.o $(LFLAGS) $(LLIBS) -lf2c -lmri
@@ -1076,6 +1072,10 @@ AlphaSim:AlphaSim.o
 	$(RM) $@
 	$(CCOMP) -o 3dTcorrMap 3dTcorrMap.o $(LFLAGS) $(LLIBS) -lf2c -lmri
 
+3dTcorr1D:3dTcorr1D.o
+	$(RM) $@
+	$(CCOMP) -o 3dTcorr1D 3dTcorr1D.o $(LFLAGS) $(LLIBS) -lf2c -lmri
+
 3dBlurInMask:3dBlurInMask.o
 	$(RM) $@
 	$(CCOMP) -o 3dBlurInMask 3dBlurInMask.o $(LFLAGS) $(LLIBS) -lf2c -lmri
@@ -1107,6 +1107,10 @@ mri_rbfinterp.o:mri_rbfinterp.c
 3dTcorrMap.o:3dTcorrMap.c
 	$(RM) $@
 	$(CCOMP) -c 3dTcorrMap.c $(INFLAGS)
+
+3dTcorr1D.o:3dTcorr1D.c
+	$(RM) $@
+	$(CCOMP) -c 3dTcorr1D.c $(INFLAGS)
 
 ## ------- end of OpenMP compilations -------
 

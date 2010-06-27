@@ -163,22 +163,17 @@ int main( int argc , char * argv[] )
 
    if( HI_doall ){
      iv_bot = 0 ; iv_top = DSET_NVALS(dset)-1 ;
-     if( !THD_datum_constant(dset->dblk) ){
-       fprintf(stderr,
-         "** ERROR: Dataset %s doesn't have same datum type in all sub-bricks!\n",
-         argv[iarg]) ;
-       exit(1) ;
-     }
+     if( !THD_datum_constant(dset->dblk) )
+       ERROR_exit("Dataset %s doesn't have same datum type in all sub-bricks!",
+                  argv[iarg]) ;
    } else {
      iv_bot = (HI_dind >= 0) ? HI_dind
                              : DSET_IS_MASTERED(dset) ? 0
                                                       : DSET_PRINCIPAL_VALUE(dset) ;
      iv_top = iv_bot ;
-     if( iv_bot < 0 || iv_bot >= DSET_NVALS(dset) ){
-       fprintf(stderr,"*** Sub-brick index %d out of range for dataset %s\n",
-               iv_bot , argv[iarg] ) ;
-       exit(1) ;
-     }
+     if( iv_bot < 0 || iv_bot >= DSET_NVALS(dset) )
+       ERROR_exit("Sub-brick index %d out of range for dataset %s",
+                  iv_bot , argv[iarg] ) ;
    }
    fim_type = DSET_BRICK_TYPE(dset,iv_bot) ;
 
