@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 28, JUN, 2010, RCR, "GIFTI", MICRO, TYPE_MODIFY,
+   "the most significant dimension cannot be 1",
+   "Requested by N Schmansky"
+ } ,
+
  { 28, JUN, 2010, RCR, "3dAutoTcorrelate", MINOR, TYPE_NEW_OPT,
    "added -eta2 (Cohen eta squared) for HJ Jo",
    "Also added -mask and -mask_only_targets."
