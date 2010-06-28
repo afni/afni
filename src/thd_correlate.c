@@ -273,6 +273,36 @@ float mri_spearman_corr( MRI_IMAGE *im , MRI_IMAGE *jm )
    mri_free(gim) ; mri_free(fim) ; return cc ;
 }
 
+/*----------------------------------------------------------------*/
+/*! eta^2 (Cohen, NeuroImage 2008)              25 Jun 2010 [rickr]
+ *
+ *  eta^2 = 1 -  SUM[ (a_i - m_i)^2 + (b_i - m_i)^2 ]
+ *               ------------------------------------
+ *               SUM[ (a_i - M  )^2 + (b_i - M  )^2 ]
+ *
+ *  where  o  a_i and b_i are the vector elements
+ *         o  m_i = (a_i + b_i)/2
+ *         o  M = mean across both vectors
+ -----------------------------------------------------------------*/
+float THD_eta_squared( int n, float *x , float *y )
+{
+   double num=0.0f , denom = 0.0f ;
+   float gm=0.0f , lm ;
+   int ii ;
+
+   for( ii=0 ; ii < n ; ii++ ){ gm += x[ii] + y[ii] ; }
+   gm /= (2*n) ;
+
+   for( ii=0 ; ii < n ; ii++ ){
+     lm = 0.5 * ( x[ii] + y[ii] ) ;
+     num   += (x[ii]-lm)*(x[ii]-lm) + (y[ii]-lm)*(y[ii]-lm) ;
+     denom += (x[ii]-gm)*(x[ii]-gm) + (y[ii]-gm)*(y[ii]-gm) ;
+   }
+
+   if( num < 0.0f || denom <= 0.0f || num >= denom ) return 0.0f ;
+   return 1.0 - num/denom ;
+}
+
 /****************************************************************************/
 /*** Histogram-based measurements of dependence between two float arrays. ***/
 /****************************************************************************/
