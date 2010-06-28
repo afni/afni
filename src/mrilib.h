@@ -106,8 +106,8 @@ extern AFD_dicom_header **MRILIB_dicom_header ;
     "  since OpenMP queries this variable before the program actually is started\n"\
     "  -- you can't usefully set this variable in your ~/.afnirc file or on the\n" \
     "  command line with the '-D' option.\n"                                       \
-    "* In my limited experience with OpenMP, using more than 4 threads doesn't\n"  \
-    "  often give much gain, even on an 8 CPU system -- but please experiment!\n"  \
+    "* How many threads are useful?  That varies with the program, and how well\n" \
+    "  it was coded.  You'll have to experiment on your own systems!\n"            \
     "* The number of CPUs on this particular computer system is %d.\n"             \
     "%s\n"                                                                         \
     , (pnam) , omp_get_num_procs() , (extra==NULL) ? "\0" : extra                  \
@@ -121,7 +121,7 @@ extern AFD_dicom_header **MRILIB_dicom_header ;
     "   semi-automatic parallelizer software toolkit, which splits the work\n"     \
     "   across multiple CPUs/cores on the same shared memory computer.\n"          \
     "* However, the source code is modified for OpenMP, and can be compiled\n"     \
-    "   with an OpenMP-capable compiler, such as gcc 4.2, Intel's icc, and\n"      \
+    "   with an OpenMP-capable compiler, such as gcc 4.2+, Intel's icc, and\n"     \
     "   Sun Studio.\n"                                                             \
     "* If you wish to compile this program with OpenMP, see the man page for\n"    \
     "   your C compiler, and (if needed) consult the AFNI message board, and\n"    \
