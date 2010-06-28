@@ -60,7 +60,7 @@ float spearman_rank_prepare( int n , float *a )
 
    rank_order_float( n , a ) ;
 
-   rb = 0.5*(n-1) ; rs=0.0 ;
+   rb = 0.5f*(n-1) ; rs=0.0f ;
    for( ii=0 ; ii < n ; ii++ ){
      a[ii] -= rb ;
      rs    += a[ii]*a[ii] ;
@@ -80,10 +80,10 @@ float quadrant_corr_prepare( int n , float *a )
 
    rank_order_float( n , a ) ;
 
-   rb = 0.5*(n-1) ; rs=0.0 ;
+   rb = 0.5f*(n-1) ; rs=0.0f ;
    for( ii=0 ; ii < n ; ii++ ){
      a[ii] = (a[ii] > rb) ? 1.0
-                          : (a[ii] < rb) ? -1.0 : 0.0 ;
+                          : (a[ii] < rb) ? -1.0f : 0.0f ;
      rs   += a[ii]*a[ii] ;
    }
 
@@ -103,9 +103,9 @@ float spearman_rank_corr( int n , float *x , float rv , float *r )
    register int ii ;
    register float ss ; float xv ;
 
-   xv = spearman_rank_prepare( n , x ) ; if( xv <= 0.0 ) return 0.0 ;
+   xv = spearman_rank_prepare( n , x ) ; if( xv <= 0.0f ) return 0.0f ;
 
-   for( ii=0,ss=0.0 ; ii < n ; ii++ ) ss += x[ii] * r[ii] ;
+   for( ii=0,ss=0.0f ; ii < n ; ii++ ) ss += x[ii] * r[ii] ;
 
    return ( ss/sqrtf(rv*xv) ) ;
 }
@@ -123,9 +123,9 @@ float quadrant_corr( int n , float *x , float rv , float *r )
    register int ii ;
    register float ss ; float xv ;
 
-   xv = quadrant_corr_prepare( n , x ) ; if( xv <= 0.0 ) return 0.0 ;
+   xv = quadrant_corr_prepare( n , x ) ; if( xv <= 0.0f ) return 0.0f ;
 
-   for( ii=0,ss=0.0 ; ii < n ; ii++ ) ss += x[ii] * r[ii] ;
+   for( ii=0,ss=0.0f ; ii < n ; ii++ ) ss += x[ii] * r[ii] ;
 
    return ( ss/sqrtf(rv*xv) ) ;
 }
@@ -140,7 +140,7 @@ float quadrant_corr( int n , float *x , float rv , float *r )
 float THD_spearman_corr( int n , float *x , float *y )
 {
    float xv = spearman_rank_prepare(n,x) ;
-   if( xv <= 0.0 ) return 0.0 ;
+   if( xv <= 0.0f ) return 0.0f ;
    return spearman_rank_corr( n,y,xv,x ) ;
 }
 
@@ -162,8 +162,8 @@ float THD_spearman_corr_nd( int n , float *x , float *y )
 
 float THD_ktaub_corr( int n , float *x , float *y )
 {
-   qsort_floatfloat( n , x , y ) ;
-   return kendallNlogN( x , y , n ) ;
+   qsort_floatfloat( n , x , y ) ;    /* preliminary sorting of x, carrying y */
+   return kendallNlogN( x , y , n ) ; /* the actual work */
 }
 
 /*--------------------------------------------------------------*/
@@ -172,7 +172,7 @@ float THD_ktaub_corr( int n , float *x , float *y )
 float THD_quadrant_corr( int n , float *x , float *y )
 {
    float xv = quadrant_corr_prepare(n,x) ;
-   if( xv <= 0.0 ) return 0.0 ;
+   if( xv <= 0.0f ) return 0.0f ;
    return quadrant_corr( n,y,xv,x ) ;
 }
 
@@ -197,7 +197,7 @@ float THD_quadrant_corr_nd( int n , float *x , float *y )
      qc += (x[ii] > xm) * (y[ii] > ym) ;
    qc = (4.0f*qc) / n - 1.0f ;
    if( qc < -1.0f ) qc = -1.0f; else if( qc > 1.0f ) qc = 1.0f;
-   qc = sinf(1.570796*qc) ;
+   qc = sinf(1.570796f*qc) ;  /* adjust to normal model */
    return qc ;
 }
 #else

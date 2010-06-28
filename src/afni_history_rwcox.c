@@ -44,6 +44,12 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 28 , JUN , 2010 , RWC , "3dTcorr1D" , MINOR , TYPE_GENERAL ,
+   "1 output brick per column of input 1D file" ,
+   "Before: only used 1st column of 1D file.\n"
+   "Now: also uses OpenMP to parallelize across columns.\n"
+   "Also: -short and -mask options." } ,
+
  { 18 , JUN , 2010 , RWC , "3dSimARMA11" , MICRO , TYPE_NEW_PROG ,
    "Simulating ARMA(1,1) time series for testing 3dREMLfit + 3dMEMA" ,
    NULL } ,
