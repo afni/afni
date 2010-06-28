@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 28, JUN, 2010, RCR, "GIFTI", MICRO, TYPE_ENHANCE,
+   "applied CMakeLists.txt update from M Hanke for Debian release",
+   NULL
+ } ,
+
  { 28, JUN, 2010, RCR, "GIFTI", MICRO, TYPE_MODIFY,
    "the most significant dimension cannot be 1",
    "Requested by N Schmansky"
