@@ -7,10 +7,11 @@
 #define SPEARMAN 1
 #define QUADRANT 2
 #define PEARSON  3
+#define ETA2     4
 
 int main( int argc , char *argv[] )
 {
-   THD_3dim_dataset *xset , *cset ;
+   THD_3dim_dataset *xset , *cset, *mset=NULL ;
    int nopt=1 , method=PEARSON , do_autoclip=0 ;
    int nvox , nvals , ii,jj,kout , polort=1 , ix,jy,kz ;
    MRI_IMAGE *xsim , *ysim ;
@@ -19,6 +20,7 @@ int main( int argc , char *argv[] )
    char * prefix = "ATcorr" ;
    byte * mmm=NULL ;
    int   nmask , abuc=1 ;
+   int   all_source=0;          /* output all source voxels  25 Jun 2010 [rickr] */
    char str[32] ;
 
    /*----*/
@@ -37,6 +39,8 @@ int main( int argc , char *argv[] )
              "  -spearman = Correlation is the Spearman (rank) correlation\n"
              "                coefficient.\n"
              "  -quadrant = Correlation is the quadrant correlation coefficient.\n"
+             "  -eta2     = Output is eta^2 measure from Cohen, NeuroImage, 2008.\n"
+             "                Note: -polort -1 is recommended with this option.\n"
              "\n"
              "  -polort m = Remove polynomical trend of order 'm', for m=-1..3.\n"
              "                [default is m=1; removal is by least squares].\n"
@@ -48,6 +52,24 @@ int main( int argc , char *argv[] )
              "               high-intensity (presumably brain) voxels.  The\n"
              "               intensity level is determined the same way that\n"
              "               3dClipLevel works.\n"
+             "\n"
+             "  -mask MSET = Mask of both 'source' and 'target' voxels.\n"
+             "\n"
+             "              Restrict computations to those in the mask.  Output\n"
+             "               volumes are restricted to masked voxels.  Also, only\n"
+             "               masked voxels will have non-zero output.\n"
+             "\n"
+             "              A dataset with 1000 voxels would lead to output of\n"
+             "               1000 voxels by 1000 sub-bricks.  With a -mask of 50\n"
+             "               voxels, output would be 1000 voxels by 50 sub-bricks,\n"
+             "               where the 950 unmasked voxels would be all zero over\n"
+             "               the 50 sub-bricks.\n"
+             "\n"
+             "  -mask_only_targets = Provide output for all voxels.\n"
+             "\n"
+             "              Used with -mask, every voxel is correlated with each\n"
+             "              of the mask voxels.  In the example above, there\n"
+             "              would be 50 useful sub-bricks for all 1000 voxels.\n"
              "\n"
              "  -prefix p = Save output into dataset with prefix 'p'\n"
              "               [default prefix is 'ATcorr'].\n"
@@ -87,6 +109,16 @@ int main( int argc , char *argv[] )
          do_autoclip = 1 ; nopt++ ; continue ;
       }
 
+      if( strcmp(argv[nopt],"-mask") == 0 ){
+         mset = THD_open_dataset(argv[++nopt]);
+         CHECK_OPEN_ERROR(mset,argv[nopt]);
+         nopt++ ; continue ;
+      }
+
+      if( strcmp(argv[nopt],"-mask_only_targets") == 0 ){
+         all_source = 1 ; nopt++ ; continue ;
+      }
+
       if( strcmp(argv[nopt],"-pearson") == 0 ){
          method = PEARSON ; nopt++ ; continue ;
       }
@@ -97,6 +129,10 @@ int main( int argc , char *argv[] )
 
       if( strcmp(argv[nopt],"-quadrant") == 0 ){
          method = QUADRANT ; nopt++ ; continue ;
+      }
+
+      if( strcmp(argv[nopt],"-eta2") == 0 ){
+         method = ETA2 ; nopt++ ; continue ;
       }
 
       if( strcmp(argv[nopt],"-prefix") == 0 ){
@@ -132,15 +168,26 @@ int main( int argc , char *argv[] )
 
    nvox = DSET_NVOX(xset) ; nvals = DSET_NVALS(xset) ;
 
-   if( do_autoclip ){
+   if( mset ){
+      if( DSET_NVOX(mset) != nvox )
+         ERROR_exit("Input and mask dataset differ in number of voxels!") ;
+      mmm = THD_makemask(mset, 0, 1.0, 0.0) ;
+      nmask = THD_countmask( nvox , mmm ) ;
+      INFO_message("%d voxels in -mask dataset",nmask) ;
+      if( nmask < 2 ) ERROR_exit("Only %d voxels in -mask, exiting...",nmask);
+      DSET_unload(mset) ;
+   } else if( do_autoclip ){
       mmm   = THD_automask( xset ) ;
       nmask = THD_countmask( nvox , mmm ) ;
       INFO_message("%d voxels survive -autoclip",nmask) ;
-      if( nmask < 2 ) exit(1) ;
+      if( nmask < 2 ) ERROR_exit("Only %d voxels in -automask!",nmask);
    } else {
       nmask = nvox ;
       INFO_message("computing for all %d voxels",nmask) ;
    }
+
+   if( method == ETA2 && polort >= 0 )
+      WARNING_message("Polort for -eta2 should probably be -1...");
 
    /*-- create output dataset --*/
 
@@ -213,7 +260,8 @@ int main( int argc , char *argv[] )
 
       for( jj=0 ; jj < nvox ; jj++ ){  /* loop over voxels, correlate w/ref */
 
-         if( mmm != NULL && mmm[jj] == 0 ){  /* the easy case */
+         /* skip unmasked voxels, unless we want results from all source voxels */
+         if( mmm != NULL && mmm[jj] == 0 && ! all_source ){  /* the easy case */
             car[jj] = 0 ; continue ;
          }
 
@@ -230,6 +278,8 @@ int main( int argc , char *argv[] )
             break;
             case QUADRANT:
               car[jj] = rint(10000.0*THD_quadrant_corr(nvals,xsar,ysar));
+            case ETA2:
+              car[jj] = rint(10000.0*THD_eta_squared(nvals,xsar,ysar));
             break;
          }
 
