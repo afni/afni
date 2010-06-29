@@ -567,7 +567,7 @@ void GI_exit(void)                   /* Function to be called to make sure */
      fprintf(stderr,"** 3dGroupInCorr exits: closing connection to %s\n",pname) ;
      NI_stream_close(GI_stream) ;
    } else if( verb > 2 ){
-     fprintf(stderr,"** 3dGroupInCorr atexit() function invoked") ;
+     fprintf(stderr,"** 3dGroupInCorr atexit() function invoked\n") ;
    }
    return ;
 }
