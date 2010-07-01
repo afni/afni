@@ -48,6 +48,11 @@ SUMA_M2M_STRUCT *SUMA_GetM2M_NN( SUMA_SurfaceObject *SO1, SUMA_SurfaceObject *SO
                                  int NodeDbg);
 float *SUMA_M2M_interpolate(SUMA_M2M_STRUCT *M2M, float *far_data, int ncol, int nrow,  SUMA_INDEXING_ORDER d_order, int useClosest );
 SUMA_M2M_STRUCT *SUMA_MorphInfo2M2M(SUMA_MorphInfo *MI);
+NI_group *SUMA_M2M_to_niml (SUMA_M2M_STRUCT *M2M);
+SUMA_M2M_STRUCT * SUMA_niml_to_M2M(NI_group *ngr);
+SUMA_Boolean SUMA_Save_M2M(char *fname, SUMA_M2M_STRUCT *M2M);
+SUMA_M2M_STRUCT *SUMA_Load_M2M (char *fname); 
+
 SUMA_DSET *SUMA_morphDsetToStd (SUMA_DSET *dset, SUMA_M2M_STRUCT *M2M, 
                                  int useclosest);
 

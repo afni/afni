@@ -34,6 +34,8 @@ PARSE:
    set accept_maxite = 0
    set acpciate = 0
    set npass = -twopass
+   set prexform = ""
+   set OneWarp = 0
    if ("$1" == '') goto HELP
 
    while ($cnt <= $Narg)
@@ -41,6 +43,28 @@ PARSE:
       
       if ($donext && "$argv[$cnt]" == "-help" || "$argv[$cnt]" == "-h") then
          goto HELP
+      endif
+
+      if ($donext && "$argv[$cnt]" == "-echo") then
+         set echo
+         set donext = 0   
+      endif
+
+      if ($donext && "$argv[$cnt]" == "-onewarp") then
+         set OneWarp = 1
+         set donext = 0   
+      endif
+      
+      if ($donext && "$argv[$cnt]" == "-init_xform") then
+         set pLoc = $cnt      
+         if ($pLoc == $Narg) then
+            echo "Need xform file after -init_xform"
+            goto END
+         else
+            @ cnt ++
+            set prexform = "$argv[$cnt]"
+            set donext = 0   
+         endif   
       endif
       
       if ($donext && "$argv[$cnt]" == "-xform") then
@@ -311,7 +335,21 @@ PARSE:
       set prs_in = `@parse_afni_name "$anat_in"`
    endif 
 
-   
+   #Apply pre-transform if need be
+   set nopre_anat_in = $anat_in
+   if ($prexform != '') then
+      3dWarp   -overwrite -matvec_out2in $prexform \
+               -prefix pre.${prs_in[2]} ${anat_in}
+      #This operation is the same as
+      #  cat_matvec $prexform -ONELINE > d1.$prexform
+      #  3dAllineate -1Dmatrix_apply d1.$prexform \
+      #            -prefix Horse2 struct+orig.
+      # The 3dAllineate is the way users should verify
+      # if their init_xform is good.
+      set anat_in = pre.${anat_in}
+      set prs_in = `@parse_afni_name "$anat_in"`
+   endif
+
    #At the moment, must have . for anat_path
    #It looks like 3drefit does not like an input dset with a path
    if ( "$anat_path" != "." ) then
@@ -331,7 +369,7 @@ PARSE:
       if ($apar_mode == 1) then
          set rmode = "quintic"
       else
-         set rmode = "quintic"
+         set rmode = "linear"
       endif
    endif
    
@@ -362,6 +400,8 @@ PARSE:
    #set tmppref = "${tmppref}__`@GetAfniPrefix ${anat_in}`" 
    set rs_pref = ${tmppref}__rs_`@GetAfniPrefix "${anat_in}"`
    set tt_pref = ${anat_pref}${suf}
+   
+   set out_pref = `@GetAfniPrefix "${nopre_anat_in}"`${suf}
 
    set ref_pref_nopad = "${ref_path}/`@GetAfniPrefix ${ref_in}`"
    set ref_pref_pad  = "${tmppref}_ref_`@GetAfniPrefix ${ref_in}`_${pd}pad"
@@ -500,7 +540,6 @@ AUTO_TLRC_MODE:
    endif
 
    SS:
-   #Skully Strippin, Brainy Sniffing
    if ( `@CheckForAfniDset ${ns_pref}${anat_view}` != 2 ) then
       if ("$ss_opt" != "") then
          echo "Skull Stripping (with options ${ss_opt})..."
@@ -731,52 +770,74 @@ AUTO_TLRC_MODE:
    end
    
    
-   if ($warp_orig_vol) then
-      #Do not output the skull-stripped version, use
-      #input volume
-      if ($user_res) then
-         #force resampling of tmpgrid
-         3drename ${tmppref}_reg_warpdriveout${anat_view} \
-                  ${tmppref}_reg_warpdriveoutpreresamp${anat_view}
-         3dresample -dxyz ${dxyz_list[1]} ${dxyz_list[2]} ${dxyz_list[3]} \
-                    -inset ${tmppref}_reg_warpdriveoutpreresamp${anat_view}   \
-                    -prefix ${tmppref}_reg_warpdriveout  
-         #and copy the bloody attributes
-         3drefit  -atrcopy ${tmppref}_reg_warpdriveoutpreresamp${anat_view} \
-                  WARPDRIVE_INPUT_IDCODE ${tmppref}_reg_warpdriveout${anat_view}
-         3drefit  -atrcopy ${tmppref}_reg_warpdriveoutpreresamp${anat_view} \
-                  WARPDRIVE_INPUT_NAME ${tmppref}_reg_warpdriveout${anat_view}
-         3drefit  -atrcopy ${tmppref}_reg_warpdriveoutpreresamp${anat_view} \
-                  WARPDRIVE_BASE_IDCODE ${tmppref}_reg_warpdriveout${anat_view}
-         3drefit  -atrcopy ${tmppref}_reg_warpdriveoutpreresamp${anat_view} \
-            WARPDRIVE_MATVEC_FOR_000000 ${tmppref}_reg_warpdriveout${anat_view}
-         3drefit  -atrcopy ${tmppref}_reg_warpdriveoutpreresamp${anat_view} \
-            WARPDRIVE_MATVEC_INV_000000 ${tmppref}_reg_warpdriveout${anat_view}
+   FINAL_XFORM:
+   set tt_prefpad = ${tmppref}__pad${pd}_${tt_pref}
+   if ($prexform != '') then
+      if (0) then
+         #That's in ONELINE format, 3dWarp does not like it
+         cp ${ns_pref}.Xaff12.1D ${tt_prefpad}.Xat.l2.1D
+      else
+         #another way to do the same
+         cat_matvec \
+           ${tmppref}_reg_warpdriveout${anat_view}::WARPDRIVE_MATVEC_FOR_000000 \
+                     > ${tt_prefpad}.Xat.l2.1D
       endif
-      set tt_prefpad = ${tmppref}__pad${pd}_${tt_pref}
-      3dWarp   -matparent ${tmppref}_reg_warpdriveout${anat_view} \
-               -linear -prefix ${tt_prefpad} \
-               -gridset ${tmppref}_reg_warpdriveout${anat_view} \
-               ${anat_in} 
+      #Need to combine xforms
+      cat_matvec ${tt_prefpad}.Xat.l2.1D  ${prexform} \
+         > ${tt_prefpad}.Xat.1D 
    else
-      #apply same warp for mask of dataset and 
-      #  use mask to get rid of edge artifacts
-      3dcalc   -a "${rs_pref}${anat_view}" \
-               -expr "step(a)*10000" -prefix ${tmppref}_reg_braintlrcstep
-      3dWarp   -matparent ${tmppref}_reg_warpdriveout${anat_view} \
-               -linear -prefix ${tmppref}_reg_braintlrcmask \
-               ${tmppref}_reg_braintlrcstep${anat_view} 
-      set tt_prefpad = ${tmppref}__pad${pd}_${tt_pref}
-      3dcalc   -a "${tmppref}_reg_braintlrcmask${anat_view}" \
-               -b "${tmppref}_reg_warpdriveout${anat_view}" \
-               -expr "step(a-5000)*b" -prefix ${tt_prefpad}
-      if ( `@CheckForAfniDset ${tt_prefpad}${anat_view}` != 2 ) then
-         echo "Error: Failed to create tlrced brain"
-         set estat = 1
-         goto END
+      #This is the same as ${ns_pref}.Xaff12.1D
+      if (0) then
+         #That's in ONELINE format, 3dWarp does not like it
+         cp ${ns_pref}.Xaff12.1D ${tt_prefpad}.Xat.1D
+      else
+         #another way to get the same
+         cat_matvec \
+           ${tmppref}_reg_warpdriveout${anat_view}::WARPDRIVE_MATVEC_FOR_000000 \
+                     > ${tt_prefpad}.Xat.1D
       endif
    endif
+   cp ${tt_prefpad}.Xat.1D ${out_pref}.Xat.1D
    
+   OUTPUT_GRID:
+   if ($user_res) then
+      3dresample    -rmode Linear \
+                    -dxyz ${dxyz_list[1]} ${dxyz_list[2]} ${dxyz_list[3]} \
+                    -inset ${tmppref}_reg_warpdriveout${anat_view}   \
+                    -prefix ${tmppref}_gridout  
+   else
+      3dcopy ${tmppref}_reg_warpdriveout${anat_view} ${tmppref}_gridout  
+   endif
+   
+   WARP_INPUT_BY_XFORM:
+   3dWarp   -matvec_out2in ${out_pref}.Xat.1D \
+               -${rmode} -prefix ${tt_prefpad} \
+               -gridset ${tmppref}_gridout${anat_view} \
+               ${nopre_anat_in}
+               
+   if ($warp_orig_vol == 0) then
+      set ttvolpref = ${tt_prefpad}
+      set mskvol =  ${rs_pref}${anat_view}
+      set mskwrppar = ${tmppref}_reg_warpdriveout${anat_view}
+      set nomskpref = .skl
+      set RET_apply_mask = BMW
+      goto APPLY_MASK
+      BMW:
+      #copy fields
+         set FromVol = ${tt_prefpad}.skl${anat_view}
+         set ToVol = ${tt_prefpad}${anat_view}
+         set RET_copy_fields = BM
+         goto COPY_FIELDS
+         BM:       
+   endif
+   
+   if ( `@CheckForAfniDset ${tt_prefpad}${anat_view}` != 2 ) then
+      echo "Error: Failed to create tlrced brain"
+      set estat = 1
+      goto END
+   endif
+      
+
    UNPAD:
    #unPadding the anatomical 
    echo "Unpadding ..."
@@ -784,16 +845,11 @@ AUTO_TLRC_MODE:
    3dZeropad   -I -$pd -S -$pd -A -$pd -P -$pd -L -$pd -R -$pd -mm \
                -prefix ${tt_prefupad} ${tt_prefpad}${anat_view}
    #copy the WARPDRIVE_MATVEC_ fields to the zero unpadded dude
-   3drefit  -atrcopy ${tmppref}_reg_warpdriveout${anat_view} \
-            WARPDRIVE_INPUT_IDCODE ${tt_prefupad}${anat_view}
-   3drefit  -atrcopy ${tmppref}_reg_warpdriveout${anat_view} \
-            WARPDRIVE_INPUT_NAME ${tt_prefupad}${anat_view}
-   3drefit  -atrcopy ${tmppref}_reg_warpdriveout${anat_view} \
-            WARPDRIVE_BASE_IDCODE ${tt_prefupad}${anat_view}
-   3drefit  -atrcopy ${tmppref}_reg_warpdriveout${anat_view} \
-            WARPDRIVE_MATVEC_FOR_000000 ${tt_prefupad}${anat_view}
-   3drefit  -atrcopy ${tmppref}_reg_warpdriveout${anat_view} \
-            WARPDRIVE_MATVEC_INV_000000 ${tt_prefupad}${anat_view}
+      set FromVol = ${tt_prefpad}${anat_view}
+      set ToVol = ${tt_prefupad}${anat_view}
+      set RET_copy_fields = UP
+      goto COPY_FIELDS
+      UP:       
    3dNotes  -a "Dataset created via: `basename $0` $argv[*]" \
             -h "Dataset created via: `basename $0` $argv[*]"   \
             ${tt_prefupad}${anat_view}
@@ -803,13 +859,13 @@ AUTO_TLRC_MODE:
       3drefit -view ${ref_view} ${tt_prefupad}${anat_view}.HEAD
       if ("${ref_view}" == "+tlrc" && "${anat_view}" == "+orig") then
          #Now add a 3drefit line to specify the warp parent
-         echo "Setting parent with 3drefit -wset ${anat_in} ${tt_prefupad}${ref_view}"
-         3drefit -wset ${anat_in} ${tt_prefupad}${ref_view}
+         echo "Setting parent with 3drefit -wset ${nopre_anat_in} ${tt_prefupad}${ref_view}"
+         3drefit -wset ${nopre_anat_in} ${tt_prefupad}${ref_view}
       endif
       #finally, rename the damned thing
-      3drename ${tt_prefupad}${ref_view} ${tt_pref}${ref_view}
+      3drename ${tt_prefupad}${ref_view} ${out_pref}${ref_view}
    else
-      3drename ${tt_prefupad}${anat_view} ${tt_pref}${anat_view}
+      3drename ${tt_prefupad}${anat_view} ${out_pref}${anat_view}
    endif
    
    
@@ -817,22 +873,29 @@ AUTO_TLRC_MODE:
    if ($acpciate == 1) then
       echo "Doing the MSB thing..."
       #create a version witout scaling
-      cat_matvec  ${tt_pref}${ref_view}::WARPDRIVE_MATVEC_FOR_000000 -P \
-                  > ${tt_pref}.Xat.rigid.1D
-      3dWarp   -matvec_out2in ${tt_pref}.Xat.rigid.1D \
-               -prefix ${tmppref}_acpciate ${ns_pref}${anat_view}
-      if ($KeepView == 0) then
-         echo "Changing view of rigid_equiv anatomy"
-         3drefit -view ${ref_view} ${tmppref}_acpciate${anat_view}.HEAD
+      cat_matvec  ${out_pref}${ref_view}::WARPDRIVE_MATVEC_FOR_000000 -P \
+                  > ${out_pref}.Xat.rigid.1D
+      3dWarp   -matvec_out2in ${out_pref}.Xat.rigid.1D \
+               -gridset ${out_pref}${ref_view} \
+               -${rmode} -prefix ${out_pref}.Xat.rigid \
+               ${nopre_anat_in}
+      if ($warp_orig_vol == 0) then
+         set ttvolpref = ${out_pref}.Xat.rigid
+         set mskvol =  ${rs_pref}${anat_view}
+         set mskwrppar = ${tmppref}_reg_warpdriveout${anat_view}
+         set nomskpref = .skl
+         set RET_apply_mask = BMR
+         goto APPLY_MASK
+         BMR:
       endif
-      #Now resample as +tlrc dset 
-      3dresample  -master ${tt_pref}${ref_view} \
-                  -inset ${tmppref}_acpciate${ref_view} \
-                  -prefix ${tt_pref}.Xat.rigid
-      
       3dNotes  -a "Dataset created via: `basename $0` $argv[*]" \
                -h "Dataset created via: `basename $0` $argv[*]" \
-               ${tt_pref}${anat_view}
+               ${out_pref}.Xat.rigid${anat_view}
+      if ($KeepView == 0) then
+         echo "Changing view of rigid_equiv anatomy"
+         3drefit -view ${ref_view} ${out_pref}.Xat.rigid${anat_view}.HEAD
+      endif
+      
       
    endif
    
@@ -854,22 +917,39 @@ APAR_MODE:
    3dZeropad   -I $pd -S $pd -A $pd -P $pd -L $pd -R $pd -mm \
                -prefix ./${tmppref}_ipad ${ns_pref}${anat_view}
    
-   echo "Warping per parent transform ($rmode interpolation) ..."
-   3dWarp   -matparent ${ref_pref_nopad}${ref_view} \
-            -prefix ${tmppref}_warp_tmp -${rmode} ${tmppref}_ipad${anat_view}
-   if ( `@CheckForAfniDset ${tmppref}_warp_tmp${anat_view}` != 2) then
+   echo "Creating grid at (${dxyz_list[1]} ${dxyz_list[2]} ${dxyz_list[3]})mm RAI resolution..."
+   3dresample  -master ${ref_in} \
+               -dxyz ${dxyz_list[1]} ${dxyz_list[2]} ${dxyz_list[3]} \
+               -prefix ${tmppref}_warp_grid \
+               -inset ${ref_in} \
+               -rmode Linear
+               
+   if ($OneWarp) then
+      echo "Direct warping per parent transform ($rmode interpolation) ..."
+      3dWarp   -matparent ${ref_pref_nopad}${ref_view} \
+            -gridset ${tmppref}_warp_grid${ref_view} \
+            -prefix ${out_pref} -${rmode} \
+            ${tmppref}_ipad${anat_view}
+   else
+      #Keep old way involving two interpolations for backward
+      #compatibility
+      echo "Warping per parent transform ($rmode interpolation) and resampling with $resam interpolation (use -onewarp for single interpolation) ..."
+      3dWarp   -matparent ${ref_pref_nopad}${ref_view} \
+            -prefix ${out_pref} -${rmode} \
+            ${tmppref}_ipad${anat_view}
+      #Change view of master or else 3dresample will force a change
+      3drefit -view ${anat_view} ${tmppref}_warp_grid${ref_view}
+      3dresample  -master ${tmppref}_warp_grid${anat_view} \
+               -prefix ${out_pref} -inset ${out_pref}${anat_view} \
+               -rmode ${resam}  -overwrite
+      ls ${out_pref}*
+   endif
+   if ( `@CheckForAfniDset ${out_pref}${anat_view}` != 2) then
       echo "Error: Failed to create tlrced dset"
       set estat = 1
       goto END
    endif
    
-   echo "Resampling to fit tlrc box ($resam interpolation) at "
-   echo "(${dxyz_list[1]} ${dxyz_list[2]} ${dxyz_list[3]})mm RAI resolution..."
-   echo ""
-   3dresample  -master ${ref_in} \
-               -dxyz ${dxyz_list[1]} ${dxyz_list[2]} ${dxyz_list[3]} \
-               -prefix ${tt_pref} -inset ${tmppref}_warp_tmp${anat_view} \
-               -rmode ${resam}  
    if ( $KeepTmp == 0) rm -f ${tmppref}*+????.???? >& /dev/null
    
    
@@ -884,22 +964,23 @@ APAR_MODE:
       # @auto_tlrc -apar T1High_ns+tlrc -input T1High+orig -suffix NONE
       #
       #copy the WARPDRIVE_MATVEC_ fields to the zero unpadded dude
-      3drefit  -atrcopy ${ref_pref_nopad}${ref_view} \
-               WARPDRIVE_INPUT_IDCODE ${tt_pref}${ref_view}
-      3drefit  -atrcopy ${ref_pref_nopad}${ref_view} \
-               WARPDRIVE_INPUT_NAME ${tt_pref}${ref_view}
-      3drefit  -atrcopy ${ref_pref_nopad}${ref_view} \
-               WARPDRIVE_BASE_IDCODE ${tt_pref}${ref_view}
-      3drefit  -atrcopy ${ref_pref_nopad}${ref_view} \
-               WARPDRIVE_MATVEC_FOR_000000 ${tt_pref}${ref_view}
-      3drefit  -atrcopy ${ref_pref_nopad}${ref_view} \
-               WARPDRIVE_MATVEC_INV_000000 ${tt_pref}${ref_view}
-      3drefit -wpar ${ref_pref_nopad}${ref_view} ${tt_pref}${ref_view}
+         set FromVol = ${ref_pref_nopad}${ref_view}
+         set ToVol = ${out_pref}${anat_view}
+         set RET_copy_fields = APCW
+         goto COPY_FIELDS
+         APCW:    
+      
+      3drefit -wpar ${ref_pref_nopad}${ref_view} ${out_pref}${anat_view}
    endif
    
    3dNotes  -a "Dataset created via: `basename $0` $argv[*]" \
             -h "Dataset created via: `basename $0` $argv[*]" \
-            ${tt_pref}${ref_view}
+            ${out_pref}${anat_view}
+   
+   if ($KeepView == 0) then
+      echo "Changing view of xformed volumes"
+      3drefit -view ${ref_view} ${out_pref}${anat_view}.HEAD
+   endif
    
    goto WRAP_UP
 #######################
@@ -929,6 +1010,8 @@ rm -f ${tmppref}*_resam*.????*   >& /dev/null
 rm -f ${tmppref}*_rs*.????*      >& /dev/null
 rm -f ${tmppref}*_pad*.????*     >& /dev/null
 rm -f ${tmppref}_acpc*.????*     >& /dev/null
+rm -f ${tmppref}*gridout*.????*  >& /dev/null
+rm -f ${tmppref}*ipad*.????*  >& /dev/null
 rm -f ${tmppref}_MP* >& /dev/null
 goto $Ret_Clean
 
@@ -1099,10 +1182,33 @@ echo "                       know what to do with it!"
 echo "                       For more information on how the rigid-body"
 echo "                       equivalent transformation is obtained, see"
 echo "                       cat_matvec -help 's output for the -P option. "
+echo "      -init_xform XFORM0.1D: Apply affine transform in XFORM0.1D before"
+echo "                       beginning registration and then include XFORM0.1D"
+echo "                       in the final xform."
+echo "                       To verify that XFORM0.1D does what you think"
+echo "                       it should be doing, try:"
+echo "                 3dWarp    -matvec_out2in XFORM0.1D \"
+echo "                           -prefix pre.anat anat+orig"
+echo "                       and verify that 'pre.anat+orig' is"
+echo "                       transformed by XFORM0.1D as you expected it to be."
+echo ""
+echo "                    XFORM0.1D can be obtained in a variety of ways. "
+echo "                    One of which involves extracting it from a transformed"
+echo "                    volume."
+echo "                    For example, say you want to perform an initial"
+echo "                    rotation that is equivalent to: "
+echo "                 3drotate -matvec_order RotMat.1D \"
+echo "                          -prefix struct.r struct+orig "
+echo "                    The equivalent XFORM0.1D is obtained with:\n"
+echo "                 cat_matvec 'struct.r+orig::ROTATE_MATVEC_000000' -I \"
+echo "                           > XFORM0.1D  "
+echo ""
+echo "                    See cat_matvec -help for more details on extracting"
+echo "                    appropriate affine transforms from dataset headers."
 echo ""                      
 echo "   Example:"
 echo "   `basename $0` -base TT_N27+tlrc. -input SubjectHighRes+orig."
-echo "    (the output is named SubjectHighRes_at+TLRC, by default."
+echo "    (the output is named SubjectHighRes+TLRC, by default."
 echo "     See -suffix for more info.)"
 echo ""
 echo "Usage 2: A script to transform any dataset by the same TLRC "
@@ -1115,7 +1221,7 @@ echo "   Mandatory parameters:"
 echo "      -apar TLRC_parent : An anatomical dataset in tlrc space"
 echo "                          created using Usage 1 of `basename $0`"
 echo "                          From the example for usage 1, TLRC_parent"
-echo "                          would be: SubjectHighRes_at+TLRC"
+echo "                          would be: SubjectHighRes+TLRC"
 echo "      -input DSET       : Dataset (typically EPI time series or"
 echo "                          statistical datset) to transform to"
 echo "                          tlrc space per the xform in TLRC_parent"
@@ -1139,17 +1245,29 @@ echo "                        MM to `ccalc -eval $pd_default+10` or "
 echo "                              `ccalc -eval $pd_default+20`."
 echo "                        If that does not help, report the"
 echo "                        problem to the script's authors."
+echo "      -onewarp          : Create follower data with one interpolation"
+echo "                          step, instead of two. "
+echo "                          This option reduces blurring of the output data."
+echo "                          It is not used by default for backward"
+echo "                          compatibility."
 echo "" 
 echo "   Example:"
-echo "   `basename $0`  -apar SubjectHighRes_at+tlrc. \"
+echo "   `basename $0`  -apar SubjectHighRes+tlrc. \"
 echo "                  -input Subject_EPI+orig. -dxyz 3"
 echo "    (the output is named Subject_EPI_at+TLRC, by default."
 echo ""
 echo "Common Optional parameters:"
 echo "   -rmode     MODE:  Resampling mode. Choose from:"
 echo "                     linear, cubic, NN or quintic ."
-echo "                     Default for 'Usage 1' is quintic"
-echo "                     Default for 'Usage 2' is quintic"
+echo "                     Default for 'Usage 1' is Linear."
+echo "               Notice: Prior to 07/2010 -help output incorrecly stated"
+echo "                     that rmode controlled interpolation in usage 1"
+echo "                     and that it was 'quintic' by default. "
+echo "                     In fact, until this version, rmode did not affect"
+echo "                     'Usage 1', and interpolation was linear"
+echo "                     Default for 'Usage 2' is quintic for 3dWarp,"
+echo "                      followed by Bk for the 3dresample step."
+echo "                     See option -onewarp for avoiding two interpolations"
 echo "   -suffix    SUF :  Name the output dataset by append SUF "
 echo "                     to the prefix of the input data for the output."
 echo "                     Default for SUF is NONE (see below)"
@@ -1225,13 +1343,15 @@ WARN_notice:
    set vvv = `echo "$info" | grep 'Dataset in' | grep 'coordinate space'`
    if ("$vvv" == "") then
       set vers_str = "Old version of TT_avg152 template found."
-      echo ""
-      echo "Error:"
-      echo "It looks like your version of template $ref_pref_nopad is old and in MNI space."
-      echo "Please download new corrected version of this template and of ${alternate}+tlrc "
-      echo "to work with this version of `basename $0` ."
-      echo "New template versions are available from http://afni.nimh.nih.gov/pub/dist/tgz" 
-      echo ""
+echo ""
+echo "Error:"
+echo "It looks like your version of template $ref_pref_nopad is old,"
+echo "and in MNI space."
+echo "Please download new corrected version of this template "
+echo "and of ${alternate}+tlrc "
+echo "to work with this version of `basename $0` ."
+echo "New template versions are available from http://afni.nimh.nih.gov/pub/dist/tgz" 
+echo ""
       goto END
    else
       set vers_str = "Corrected version of TT_avg152 template found."
@@ -1240,26 +1360,54 @@ WARN_notice:
       echo ""
       set ap = "`@FindAfniDsetPath ${alternate}+tlrc`"
       if ("$ap" == "") then
-         echo ""
-         echo "${alternate}+tlrc not found. I recommend you download it in case you"
-         echo "want to reuse the older (MNI space) version of $ttt_pref"
-         echo "Old version is now available here: http://afni.nimh.nih.gov/pub/dist/tgz"
-         echo ""
+echo ""
+echo "${alternate}+tlrc not found. I recommend you download it in case you"
+echo "want to reuse the older (MNI space) version of $ttt_pref"
+echo "Old version is now available here: http://afni.nimh.nih.gov/pub/dist/tgz"
+echo ""
       endif
    endif
    if ($ok_notice != 1) then
-      echo ""
-      echo "Warning:"
-      echo "Because of the error in older versions of TT_avg152 template, this script"
-      echo "requires that you use the flag -ok_notice to proceed."
-      echo "Before proceeding, DO check the error message at:"
-      echo "   http://afni.nimh.nih.gov/afni/MOTD/MOTD_2006_10_12.txt " 
-      echo "To produce results using the old version of the template, use template ${alternate}+tlrc ."
-      echo ""
+echo ""
+echo "Warning:"
+echo "Because of the error in older versions of TT_avg152 template, this script"
+echo "requires that you use the flag -ok_notice to proceed."
+echo "Before proceeding, DO check the error message at:"
+echo "   http://afni.nimh.nih.gov/afni/MOTD/MOTD_2006_10_12.txt " 
+echo "To produce results using the old version of the template, "
+echo "use template ${alternate}+tlrc ."
+echo ""
       goto END
    else 
       goto OK_notice
    endif
    
+COPY_FIELDS:
+   set fl = (  WARPDRIVE_INPUT_IDCODE        WARPDRIVE_INPUT_NAME \
+               WARPDRIVE_BASE_IDCODE         WARPDRIVE_MATVEC_FOR_000000   \
+               WARPDRIVE_MATVEC_FOR_000000   WARPDRIVE_MATVEC_INV_000000   )
+   foreach ff ($fl)
+      #Redirect to /dev/null to avoid FATAL ERROR alarm when some 
+      #attributes are not present.
+      3drefit  -atrcopy $FromVol \
+                $ff     $ToVol  >& /dev/null
+   end
+   goto $RET_copy_fields
+   
+APPLY_MASK:      
+   echo "Applying brain mask"
+   3dcalc   -a "${mskvol}" -overwrite \
+            -expr "step(a)*10000" -prefix ${tmppref}_reg_braintlrcstep
+   3dWarp   -matparent ${mskwrppar} -overwrite \
+            -gridset ${ttvolpref}${anat_view}   \
+            -linear -prefix ${tmppref}_reg_braintlrcmask \
+            ${tmppref}_reg_braintlrcstep${anat_view}    
+   3drename ${ttvolpref}${anat_view} ${ttvolpref}${nomskpref}
+   3dcalc   -a "${tmppref}_reg_braintlrcmask${anat_view}" \
+            -b "${ttvolpref}${nomskpref}${anat_view}" \
+            -expr "step(a-5000)*b" \
+            -prefix ${ttvolpref}${anat_view}
+   goto $RET_apply_mask 
+
 END:
    exit $estat

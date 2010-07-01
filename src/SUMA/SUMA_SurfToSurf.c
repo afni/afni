@@ -27,6 +27,8 @@ void usage_SurfToSurf (SUMA_GENERIC_ARGV_PARSE *ps)
 "                  [<-node_debug NODE>]\n"
 "                  [<-debug DBG_LEVEL>]\n"
 "                  [-make_consistent]\n"
+"                  [<-dset DSET>]\n"
+"                  [<-mapfile MAP_INFO>]\n"
 " \n"
 "  This program is used to interpolate data from one surface (S2)\n"
 " to another (S1), assuming the surfaces are quite similar in\n"
@@ -102,7 +104,16 @@ void usage_SurfToSurf (SUMA_GENERIC_ARGV_PARSE *ps)
 "                    oriented such that the majority of normals point\n"
 "                    away from center of surface.\n"
 "                    The program might not succeed in repairing some\n"
-"                    meshes with inconsistent orientation.\n" 
+"                    meshes with inconsistent orientation.\n"
+"  -mapfile MAP_INFO: Use the mapping from S2 to S1 that is stored in\n"
+"                     MAP_INFO. MAP_INFO is a file containing the mapping\n"
+"                     parameters between surfaces S2 and S1. \n"
+"                     It is generated automatically by SurfToSurf when \n"
+"                     -mapfile is not used, and saved under PREFIX.niml.M2M.\n"
+"                     Reusing the MAP_INFO file allows for faster execution\n" 
+"                     of SurfToSurf the next time around, assuming of course\n"
+"                     that the two surfaces involved are the same, and that \n"
+"                     only the input data differs.\n"
 "\n"
 "%s"
 "%s"
@@ -194,7 +205,8 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfToSurf_ParseInput(char *argv[], int a
       {
          if (kar+1 >= argc)
          {
-            fprintf (SUMA_STDERR, "need at least one parameter after output_params \n");
+            fprintf (SUMA_STDERR, 
+                     "need at least one parameter after output_params \n");
             exit (1);
          }
          
@@ -207,7 +219,8 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfToSurf_ParseInput(char *argv[], int a
          brk = YUP;
       }
       
-      if (!brk && accepting_out && (strcmp(argv[kar], "NearestTriangleNodes") == 0)) {
+      if (!brk && accepting_out && 
+            (strcmp(argv[kar], "NearestTriangleNodes") == 0)) {
          if (Opt->NearestNode < 3) Opt->NearestNode = 3;
          brk = YUP;
       }
@@ -222,14 +235,17 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfToSurf_ParseInput(char *argv[], int a
          brk = YUP;
       }
       
-      if (!brk && accepting_out && (strcmp(argv[kar], "ProjectionOnSurf") == 0)) {
+      if (!brk && accepting_out && 
+            (strcmp(argv[kar], "ProjectionOnSurf") == 0)) {
          Opt->ProjectionOnMesh = 1;
          brk = YUP;
       }
       
-      if (!brk && accepting_out && (strcmp(argv[kar], "Data") == 0)) {
+      if (!brk && accepting_out && 
+            (strcmp(argv[kar], "Data") == 0)) {
          if (Opt->Data < 0) {
-            fprintf (SUMA_STDERR, "Cannot mix parameter Data with -dset option \n");
+            fprintf (SUMA_STDERR, 
+                     "Cannot mix parameter Data with -dset option \n");
             exit (1);   
          }
          Opt->Data = 1;
@@ -292,6 +308,23 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfToSurf_ParseInput(char *argv[], int a
          Opt->out_prefix = SUMA_Extension(argv[++kar],".1D", YUP);
          brk = YUP;
       }
+
+      if (!brk && (strcmp(argv[kar], "-mapfile") == 0))
+      {
+         if (kar+1 >= argc)
+         {
+            fprintf (SUMA_STDERR, "need a name after -mapfile \n");
+            exit (1);
+         }
+         
+         Opt->s = SUMA_Extension(argv[++kar],".niml.M2M", NOPE);
+         if (!SUMA_filexists(Opt->s)) {
+            SUMA_S_Errv("File %s not found\n"
+                         , Opt->s);
+            exit(1);
+         }
+         brk = YUP;
+      }
       
       if (!brk && (strcmp(argv[kar], "-proj_dir") == 0))
       {
@@ -312,7 +345,8 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfToSurf_ParseInput(char *argv[], int a
       if (!brk && !ps->arg_checked[kar]) {
 			fprintf (SUMA_STDERR,
                   "Error %s:\n"
-                  "Option %s not understood. Try -help for usage\n", FuncName, argv[kar]);
+                  "Option %s not understood. Try -help for usage\n", 
+                  FuncName, argv[kar]);
 			exit (1);
 		} else {	
 			brk = NOPE;
@@ -324,7 +358,10 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfToSurf_ParseInput(char *argv[], int a
    if (Opt->NearestNode < 1) Opt->NearestNode = 3;
    
    if (!Opt->out_prefix) Opt->out_prefix = SUMA_copy_string("SurfToSurf"); 
-   
+   if (Opt->in_1D && Opt->s) {
+      SUMA_S_Err("Cannot use -proj_dir along with -mapfile");
+      exit(1);
+   }
    SUMA_RETURN(Opt);
 }
 
@@ -364,9 +401,12 @@ int main (int argc,char *argv[])
 
    /* if output surface requested, check on pre-existing file */
    if (ps->o_N_surfnames) {
-      SO_name = SUMA_Prefix2SurfaceName(ps->o_surfnames[0], NULL, NULL, ps->o_FT[0], &exists);
+      SO_name = SUMA_Prefix2SurfaceName(ps->o_surfnames[0], 
+                                        NULL, NULL, ps->o_FT[0], &exists);
       if (exists) {
-         fprintf(SUMA_STDERR,"Error %s:\nOutput file(s) %s* on disk.\nWill not overwrite.\n", FuncName, ps->o_surfnames[0]);
+         fprintf(SUMA_STDERR,
+                  "Error %s:\nOutput file(s) %s* on disk.\n"
+                  "Will not overwrite.\n", FuncName, ps->o_surfnames[0]);
          exit(1);
       }
    } 
@@ -400,53 +440,79 @@ int main (int argc,char *argv[])
                               FuncName );
          exit(1);
    }
-   if (!SUMA_SurfaceMetrics(SO1, "EdgeList|MemberFace", NULL)) { SUMA_SL_Err("Failed to create edge list for SO1"); exit(1);  }
+   if (!SUMA_SurfaceMetrics(SO1, "EdgeList|MemberFace", NULL)) { 
+      SUMA_SL_Err("Failed to create edge list for SO1"); 
+      exit(1);  
+   }
    if (Opt->fix_winding) {
-            int orient, trouble;
-            if (LocalHead) fprintf(SUMA_STDERR,"%s: Making sure S1 is consistently orientated\n", FuncName);
-            if (!SUMA_MakeConsistent (SO1->FaceSetList, SO1->N_FaceSet, SO1->EL, Opt->debug, &trouble)) {
-               SUMA_SL_Err("Failed in SUMA_MakeConsistent");
-            }
-            if (trouble && LocalHead) {
-               fprintf(SUMA_STDERR,"%s: trouble value of %d from SUMA_MakeConsistent.\n"
-                                    "Inconsistencies were found and corrected unless \n"
-                                    "stderr output messages from SUMA_MakeConsistent\n"
-                                    "indicate otherwise.\n", FuncName, trouble);
-            }
-            if (LocalHead) fprintf(SUMA_STDERR,"%s: Checking orientation.\n", FuncName);
-            orient = SUMA_OrientTriangles (SO1->NodeList, SO1->N_Node, SO1->FaceSetList, SO1->N_FaceSet, 1, 0);
-            if (orient < 0) { 
-               /* flipping was done, dump the edge list since it is not automatically updated (should do that in function, just like in SUMA_MakeConsistent,  shame on you) */ 
-               if (SO1->EL) SUMA_free_Edge_List(SO1->EL); SO1->EL = NULL; 
-               if (!SUMA_SurfaceMetrics(SO1, "EdgeList", NULL)) { SUMA_SL_Err("Failed to create edge list for SO1"); exit(1);  }
-               /* free normals, new ones needed (Normals should be flipped inside  of SUMA_OrientTriangles! (just like in SUMA_MakeConsistent) ) */
-               if (SO1->NodeNormList) SUMA_free(SO1->NodeNormList); SO1->NodeNormList = NULL;
-               if (SO1->FaceNormList) SUMA_free(SO1->FaceNormList); SO1->FaceNormList = NULL;
-            }
-            if (!orient) { fprintf(SUMA_STDERR,"Error %s:\nFailed in SUMA_OrientTriangles\n", FuncName); }
-            if (LocalHead) {
-               if (orient < 0) { SUMA_SL_Note("S1 was reoriented"); }
-               else { SUMA_SL_Note("S1 was properly oriented"); }
-            }
+      int orient, trouble;
+      if (LocalHead) 
+         fprintf(SUMA_STDERR,
+                  "%s: Making sure S1 is consistently orientated\n", FuncName);
+      if (!SUMA_MakeConsistent (SO1->FaceSetList, SO1->N_FaceSet, 
+                                SO1->EL, Opt->debug, &trouble)) {
+         SUMA_SL_Err("Failed in SUMA_MakeConsistent");
+      }
+      if (trouble && LocalHead) {
+         fprintf(SUMA_STDERR,
+                     "%s: trouble value of %d from SUMA_MakeConsistent.\n"
+                     "Inconsistencies were found and corrected unless \n"
+                     "stderr output messages from SUMA_MakeConsistent\n"
+                     "indicate otherwise.\n", FuncName, trouble);
+      }
+      if (LocalHead) 
+         fprintf(SUMA_STDERR,"%s: Checking orientation.\n", FuncName);
+      orient = SUMA_OrientTriangles (SO1->NodeList, SO1->N_Node, 
+                                    SO1->FaceSetList, SO1->N_FaceSet, 1, 0);
+      if (orient < 0) { 
+         /* flipping was done, dump the edge list since it is not 
+            automatically updated (should do that in function, 
+            just like in SUMA_MakeConsistent,  shame on you) */ 
+         if (SO1->EL) SUMA_free_Edge_List(SO1->EL); SO1->EL = NULL; 
+         if (!SUMA_SurfaceMetrics(SO1, "EdgeList", NULL)) { 
+            SUMA_SL_Err("Failed to create edge list for SO1"); exit(1);  
+         }
+         /* free normals, new ones needed (Normals should be flipped inside  of 
+            SUMA_OrientTriangles! (just like in SUMA_MakeConsistent) ) */
+         if (SO1->NodeNormList) SUMA_free(SO1->NodeNormList); 
+            SO1->NodeNormList = NULL;
+         if (SO1->FaceNormList) SUMA_free(SO1->FaceNormList); 
+            SO1->FaceNormList = NULL;
+      }
+      if (!orient) { 
+         fprintf(SUMA_STDERR,
+                  "Error %s:\nFailed in SUMA_OrientTriangles\n", FuncName); 
+      }
+      if (LocalHead) {
+         if (orient < 0) { SUMA_SL_Note("S1 was reoriented"); }
+         else { SUMA_SL_Note("S1 was properly oriented"); }
+      }
    }
   
    
-   if (!SO1->NodeNormList || !SO1->FaceNormList) { SUMA_LH("Node Normals"); SUMA_RECOMPUTE_NORMALS(SO1); }
+   if (!SO1->NodeNormList || !SO1->FaceNormList) { 
+      SUMA_LH("Node Normals"); SUMA_RECOMPUTE_NORMALS(SO1); 
+   }
    if (Opt->NodeDbg >= SO1->N_Node) {
-      SUMA_SL_Warn("node_debug index is larger than number of nodes in surface, ignoring -node_debug.");
+      SUMA_SL_Warn(  "node_debug index is larger than number "
+                     "of nodes in surface, ignoring -node_debug.");
       Opt->NodeDbg = -1;
    }
       
    SO2 = SUMA_Load_Spec_Surf(Spec, 1, ps->sv[1], 0);
    if (!SO2) {
-         fprintf (SUMA_STDERR,"Error %s:\n"
-                              "Failed to find surface\n"
-                              "in spec file. \n",
-                              FuncName );
-         exit(1);
+      fprintf (SUMA_STDERR,"Error %s:\n"
+                           "Failed to find surface\n"
+                           "in spec file. \n",
+                           FuncName );
+      exit(1);
    }  
-   if (!SUMA_SurfaceMetrics(SO2, "EdgeList|MemberFace", NULL)) { SUMA_SL_Err("Failed to create edge list for SO2"); exit(1);  }
-   if (!SO2->NodeNormList || !SO2->FaceNormList) { SUMA_LH("Node Normals"); SUMA_RECOMPUTE_NORMALS(SO2); }
+   if (!SUMA_SurfaceMetrics(SO2, "EdgeList|MemberFace", NULL)) { 
+      SUMA_SL_Err("Failed to create edge list for SO2"); exit(1);  
+   }
+   if (!SO2->NodeNormList || !SO2->FaceNormList) { 
+      SUMA_LH("Node Normals"); SUMA_RECOMPUTE_NORMALS(SO2); 
+   }
    
    if (LocalHead) { 
       SUMA_LH("Surf1");
@@ -463,15 +529,19 @@ int main (int argc,char *argv[])
       far = MRI_FLOAT_PTR(im);
       N_nodeind = nvec = im->nx;
       ncol = im->ny;
-      if (ncol != 1) { SUMA_SL_Err("More than one column in node index input file."); exit(1);}
+      if (ncol != 1) { 
+         SUMA_SL_Err("More than one column in node index input file."); exit(1);
+      }
       nodeind = (int *)SUMA_calloc(nvec, sizeof(int));
       if (!nodeind) { SUMA_SL_Crit("Failed to allocate"); exit(1); }
       for (i=0;i<nvec;++i) { 
          nodeind[i] = (int)far[i]; 
          if (nodeind[i] < 0 || nodeind[i] >= SO1->N_Node) {
-            fprintf(SUMA_STDERR, "Error %s: A node index of %d was found in input file %s, entry %d.\n"
-                                 "Acceptable indices are positive and less than %d\n", 
-                                    FuncName, nodeind[i], Opt->in_nodeindices, i, SO1->N_Node);
+            fprintf(SUMA_STDERR, 
+                    "Error %s:\n"
+                    "A node index of %d was found in input file %s, entry %d.\n"
+                    "Acceptable indices are positive and less than %d\n", 
+                    FuncName, nodeind[i], Opt->in_nodeindices, i, SO1->N_Node);
             exit(1);
          }
       } 
@@ -482,12 +552,19 @@ int main (int argc,char *argv[])
    projdir = NULL; 
    if (Opt->in_1D) {
       im = mri_read_1D(Opt->in_1D);
-      if (!im) { SUMA_SL_Err("Failed to read 1D file of projection directions"); exit(1);}
+      if (!im) { 
+         SUMA_SL_Err("Failed to read 1D file of projection directions"); exit(1);
+      }
       far = MRI_FLOAT_PTR(im);
-      if (im->ny != 3) { SUMA_SL_Err("Need three columns in projection directions file."); exit(1); }
+      if (im->ny != 3) { 
+         SUMA_SL_Err("Need three columns in projection directions file."); 
+         exit(1); 
+      }
       if (im->nx != SO1->N_Node) {
-         fprintf(SUMA_STDERR, "Error %s: You must have a direction for each node in SO1.\n"
-                              "%d directions found but SO1 has %d nodes.\n", FuncName, im->nx, SO1->N_Node);
+         fprintf(SUMA_STDERR, 
+                  "Error %s: You must have a direction for each node in SO1.\n"
+                  "%d directions found but SO1 has %d nodes.\n", 
+                  FuncName, im->nx, SO1->N_Node);
          exit(1);
       }
 
@@ -545,9 +622,27 @@ int main (int argc,char *argv[])
    }
    
      
-   SUMA_LH("Going for the mapping of SO1 --> SO2");
-   M2M = SUMA_GetM2M_NN( SO1, SO2, nodeind, N_nodeind, projdir, 0, Opt->NodeDbg);
+
    
+   if (!Opt->s) {
+      SUMA_LH("Going for the mapping of SO1 --> SO2");
+      M2M = SUMA_GetM2M_NN( SO1, SO2, nodeind, N_nodeind, 
+                            projdir, 0, Opt->NodeDbg);
+      SUMA_S_Notev("Saving M2M into %s\n\n",
+               Opt->out_prefix);
+      if (!(SUMA_Save_M2M(Opt->out_prefix, M2M))) {
+         SUMA_S_Err("Failed to save M2M");
+         exit(1);
+      }
+   } else {
+      SUMA_S_Notev("Reusing mapping of SO1 --> SO2 from %s\n\n", 
+               Opt->s);   
+      if (!(M2M = SUMA_Load_M2M(Opt->s))) {
+         SUMA_S_Errv("Failed to load %s\n", Opt->s);
+         exit(1);
+      }
+   }
+
    /* Now show the mapping results for a debug node ? */
    if (Opt->NodeDbg >= 0) {
       char *s = NULL;

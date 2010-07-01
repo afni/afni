@@ -66,6 +66,41 @@
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 01, JUL , 2010 , ZSS , "SurfToSurf" , MINOR , TYPE_NEW_OPT,
+   "Added -mapfile option, allowing SurfToSurf to reuse an existing mapping.",
+   NULL
+ } ,
+
+ { 30 , JUN , 2010 , ZSS , "@auto_tlrc" , MINOR , TYPE_MODIFY,
+   "Added -onewarp, and -init_xform to @auto_tlrc",
+"I have made some small improvements to @auto_tlrc, but avoided changing \n"
+"its default operation, except in one case.\n"
+"\n"
+"In 'Usage 2', the old version performed two resampling operations. One in \n" "3dWarp with the default quintic kernel, the other in 3dresample with the \n"
+"Bk kernel. The new version can perform only one resampling thereby  \n"
+"reducing the smoothness of the final result. To change from the default\n" 
+"behavior,use the new option -onewarp. "
+"\n"
+"The help output of the old version stated that -rmode controlled the \n"
+"interpolation kernel in 'Usage 1'. That was not the case. In Usage 1,\n"
+"interpolation was always linear. It remains so in the current version,\n"
+"but the -rmode option can now be used to change the kernel.\n"
+"\n"
+"The change in default operation between this version and the previous \n"
+"concerns 'Usage 1'. In the old version, the brain was skull stripped, AND\n"
+"its intensities adjusted by 3dSkullStrip. It was this adjusted brain that\n"
+"was then output in TLRC space. In other terms, the output was with \n"
+"no skull, but its values differed from those of the input.\n"
+"This is no longer the case. In the current version, you will either\n"
+"get a skull-stripped version of the input in TLRC space \n"
+"(no intensity adjustment)\n"
+"Behavior of the -warp_orig_vol is unchanged.\n" 
+"This change in 'Usage 1' does not affect the registration transform, \n"
+"nor 'Usage 2'.\n" 
+"If you insist on the old mode of operation, then contact me and I will \n"
+"send you an older version of @auto_tlrc."
+ } ,
+
  { 25 , MAY , 2010 , ZSS , "suma" , MINOR , TYPE_NEW_OPT,
    "Added click and drag for third mouse button",
    NULL
