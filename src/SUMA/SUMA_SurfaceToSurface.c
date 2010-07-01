@@ -86,7 +86,7 @@ SUMA_M2M_STRUCT *SUMA_NewM2M(char *SO1_id, int N_SO1_nodes,
    
    /* if (!SO1_id || !SO2_id) SUMA_RETURN(M2M); */
    
-   M2M = (SUMA_M2M_STRUCT*)SUMA_malloc(sizeof(SUMA_M2M_STRUCT));
+   M2M = (SUMA_M2M_STRUCT*)SUMA_calloc(1, sizeof(SUMA_M2M_STRUCT));
    
    M2M->M1Nn = N_SO1_nodes;
    M2M->M1_N_Nodes = N_SO1_nodes;
@@ -380,6 +380,265 @@ SUMA_M2M_STRUCT *SUMA_GetM2M_NN( SUMA_SurfaceObject *SO1,
    SUMA_RETURN(M2M);
 }
 
+SUMA_M2M_STRUCT * SUMA_niml_to_M2M(NI_group *ngr)
+{
+   static char FuncName[]={"SUMA_niml_to_M2M"};
+   SUMA_M2M_STRUCT *M2M = NULL;
+   int i=0, j=0, k=0, Nmax=0;
+   int *itmp=NULL;
+   double *dtmp = NULL;
+   NI_element *nel=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!ngr) SUMA_RETURN(M2M);
+   if (strcmp(ngr->name,"M2M")) {
+      SUMA_S_Errv("NI_group name is %s, looking for M2M\n", ngr->name);
+      SUMA_RETURN(M2M);
+   }
+   
+   NI_GET_INT(ngr, "M1_N_Nodes", i);
+   NI_GET_INT(ngr, "M2_N_Nodes", j);
+   
+   if (!(M2M = SUMA_NewM2M(NI_get_attribute(ngr,"M1_IDcode"), i, 
+                           NI_get_attribute(ngr,"M2_IDcode"), j))) {
+      SUMA_S_Err("Failed to initialize");
+      SUMA_RETURN(M2M);
+   }
+
+   NI_GET_INT(ngr, "M1Nn", M2M->M1Nn);
+   
+   /* retrieve 1D arrays */
+   if (!(nel =  SUMA_FindNgrNamedElement(ngr, "M1n"))) {
+      SUMA_S_Err("Missing M1n");
+      SUMA_RETURN(SUMA_FreeM2M(M2M));
+   }
+   memcpy(M2M->M1n, nel->vec[0], M2M->M1Nn*sizeof(int)); 
+   
+   if (!(nel =  SUMA_FindNgrNamedElement(ngr, "M2t_M1n"))) {
+      SUMA_S_Err("Missing M2t_M1n");
+      SUMA_RETURN(SUMA_FreeM2M(M2M));
+   }
+   memcpy(M2M->M2t_M1n, nel->vec[0], M2M->M1Nn*sizeof(int)); 
+   
+   if (!(nel =  SUMA_FindNgrNamedElement(ngr, "M2pb_M1n"))) {
+      SUMA_S_Err("Missing M2pb_M1n");
+      SUMA_RETURN(SUMA_FreeM2M(M2M));
+   }
+   memcpy(M2M->M2pb_M1n, nel->vec[0], 2*M2M->M1Nn*sizeof(float));
+   
+   if (!(nel =  SUMA_FindNgrNamedElement(ngr, "M2p_M1n"))) {
+      SUMA_S_Err("Missing M2p_M1n");
+      SUMA_RETURN(SUMA_FreeM2M(M2M));
+   }
+   memcpy(M2M->M2p_M1n, nel->vec[0], 3*M2M->M1Nn*sizeof(float));
+   
+   if (!(nel =  SUMA_FindNgrNamedElement(ngr, "PD"))) {
+      SUMA_S_Err("Missing PD");
+      SUMA_RETURN(SUMA_FreeM2M(M2M));
+   }
+   memcpy(M2M->PD, nel->vec[0], M2M->M1Nn*sizeof(double));
+   
+   if (!(nel =  SUMA_FindNgrNamedElement(ngr, "M2Nne_M1n"))) {
+      SUMA_S_Err("Missing M2Nne_M1n");
+      SUMA_RETURN(SUMA_FreeM2M(M2M));
+   }
+   memcpy(M2M->M2Nne_M1n, nel->vec[0], M2M->M1Nn*sizeof(int));
+   
+   /* now the ragged monsters */
+   Nmax = 0;
+   for (i=0; i<M2M->M1Nn; ++i) Nmax += M2M->M2Nne_M1n[i];
+
+   if (!(nel =  SUMA_FindNgrNamedElement(ngr, "M2ne_M1n"))) {
+      SUMA_S_Err("Missing M2ne_M1n");
+      SUMA_RETURN(SUMA_FreeM2M(M2M));
+   }
+   itmp = (int *)(nel->vec[0]);
+   k = 0;
+   for (i=0; i<M2M->M1Nn; ++i) {
+      M2M->M2ne_M1n[i] = (int *)SUMA_calloc(M2M->M2Nne_M1n[i], sizeof(int));
+      for (j=0; j<M2M->M2Nne_M1n[i]; ++j) {
+         M2M->M2ne_M1n[i][j] = itmp[k]; ++k;
+      }
+   }
+   itmp = NULL;
+   
+   if (!(nel =  SUMA_FindNgrNamedElement(ngr, "M2we_M1n"))) {
+      SUMA_S_Err("Missing M2we_M1n");
+      SUMA_RETURN(SUMA_FreeM2M(M2M));
+   }
+   dtmp = (double *)(nel->vec[0]);
+   k = 0;
+   for (i=0; i<M2M->M1Nn; ++i) {
+      M2M->M2we_M1n[i] = (double *)
+                           SUMA_calloc(M2M->M2Nne_M1n[i], sizeof(double));
+      for (j=0; j<M2M->M2Nne_M1n[i]; ++j) {
+         M2M->M2we_M1n[i][j] = dtmp[k]; ++k;
+      }
+   }
+   dtmp=NULL;
+   
+   SUMA_RETURN(M2M);
+}
+
+NI_group *SUMA_M2M_to_niml (SUMA_M2M_STRUCT *M2M)
+{
+   static char FuncName[]={"SUMA_M2M_to_niml"};
+   NI_group *ngr = NULL;
+   int i=0, j=0, k=0, Nmax=0;
+   int *itmp=NULL;
+   double *dtmp = NULL;
+   NI_element *nel=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!M2M) SUMA_RETURN(ngr);
+   
+   /* form group */
+   ngr = NI_new_group_element();
+   NI_rename_group(ngr,"M2M");
+   
+   /* add easy stuff */
+   NI_SET_STR(ngr, "M1_IDcode", M2M->M1_IDcode);
+   NI_SET_INT(ngr, "M1_N_Nodes", M2M->M1_N_Nodes);
+   
+   NI_SET_STR(ngr, "M2_IDcode", M2M->M2_IDcode);
+   NI_SET_INT(ngr, "M2_N_Nodes", M2M->M2_N_Nodes);
+   
+   NI_SET_INT(ngr, "M1Nn", M2M->M1Nn);
+   
+   /* Now the 1D arrays */
+   nel = NI_new_data_element("M1n", M2M->M1Nn); 
+   NI_add_column_stride ( nel, NI_INT, M2M->M1n, 1);
+   NI_add_to_group(ngr, nel);
+   
+   nel = NI_new_data_element("M2t_M1n", M2M->M1Nn); 
+   NI_add_column_stride ( nel, NI_INT, M2M->M2t_M1n, 1);
+   NI_add_to_group(ngr, nel);
+   
+   nel = NI_new_data_element("M2pb_M1n", 2*M2M->M1Nn); 
+   NI_add_column_stride ( nel, NI_FLOAT, M2M->M2pb_M1n, 1);
+   NI_add_to_group(ngr, nel);
+   
+   nel = NI_new_data_element("M2p_M1n", 3*M2M->M1Nn);
+   NI_add_column_stride ( nel, NI_FLOAT, M2M->M2p_M1n, 1);
+   NI_add_to_group(ngr, nel); 
+   
+   nel = NI_new_data_element("PD", M2M->M1Nn); 
+   NI_add_column_stride ( nel, NI_DOUBLE, M2M->PD, 1);
+   NI_add_to_group(ngr, nel); 
+   
+   nel = NI_new_data_element("M2Nne_M1n", M2M->M1Nn);
+   NI_add_column_stride ( nel, NI_INT, M2M->M2Nne_M1n, 1);
+   NI_add_to_group(ngr, nel); 
+   
+   /* now the ragged monsters */
+   Nmax = 0;
+   for (i=0; i<M2M->M1Nn; ++i) Nmax += M2M->M2Nne_M1n[i];
+
+   if (!(itmp = (int *)calloc(Nmax, sizeof(int)))) {
+      SUMA_S_Crit("Failed to allocate");
+      NI_free_element(ngr); SUMA_RETURN(NULL); 
+   }
+   k = 0;
+   for (i=0; i<M2M->M1Nn; ++i) {
+      for (j=0; j<M2M->M2Nne_M1n[i]; ++j) {
+         itmp[k] = M2M->M2ne_M1n[i][j]; ++k;
+      }
+   }
+   nel = NI_new_data_element("M2ne_M1n", Nmax);
+   NI_add_column_stride ( nel, NI_INT, itmp, 1); SUMA_free(itmp); itmp = NULL;
+   NI_add_to_group(ngr, nel); 
+   
+   if (!(dtmp = (double *)calloc(Nmax, sizeof(double)))) {
+      SUMA_S_Crit("Failed to allocate");
+      NI_free_element(ngr); SUMA_RETURN(NULL); 
+   }
+   k = 0;
+   for (i=0; i<M2M->M1Nn; ++i) {
+      for (j=0; j<M2M->M2Nne_M1n[i]; ++j) {
+         dtmp[k] = M2M->M2we_M1n[i][j]; ++k;
+      }
+   }
+   nel = NI_new_data_element("M2we_M1n", Nmax);
+   NI_add_column_stride ( nel, NI_DOUBLE, dtmp, 1); SUMA_free(dtmp); dtmp = NULL;
+   NI_add_to_group(ngr, nel);
+   
+   SUMA_RETURN(ngr);
+}
+
+SUMA_M2M_STRUCT *SUMA_Load_M2M (char *fname) 
+{
+   static char FuncName[]={"SUMA_Load_M2M"};
+   NI_stream ns = NULL;
+   void *nini=NULL;
+   char *niname = NULL, *fname2=NULL;
+   SUMA_M2M_STRUCT *M2M = NULL;
+   
+   SUMA_ENTRY;
+   
+   if (!fname) SUMA_RETURN(M2M);
+   
+   fname2 = SUMA_Extension(fname, ".niml.M2M", 0);
+   niname = SUMA_append_string("file:", fname2);
+   SUMA_free(fname2); fname2=NULL;
+   ns = NI_stream_open(niname, "r");
+   if (!ns) {
+      SUMA_S_Crit("Failed to open NI stream for reading.\n");
+      if (niname) SUMA_free(niname); niname = NULL;
+      SUMA_RETURN(M2M);
+   }
+   SUMA_free(niname); niname = NULL;
+   
+   nini = NI_read_element(ns, 1) ; 
+   NI_stream_close( ns ) ; ns = NULL;
+   if (NI_element_type(nini) != NI_GROUP_TYPE) {
+      SUMA_S_Err("NIML not group type");
+      NI_free_element(nini); SUMA_RETURN(M2M);
+   }
+   M2M = SUMA_niml_to_M2M((NI_group*)nini);
+   NI_free_element(nini); nini = NULL;
+   
+   SUMA_RETURN(M2M);
+}  
+
+SUMA_Boolean SUMA_Save_M2M(char *fname, SUMA_M2M_STRUCT *M2M) 
+{
+   static char FuncName[]={"SUMA_Save_M2M"};
+   NI_stream ns = NULL;
+   char *niname = NULL, *fname2=NULL;
+   NI_group *ngr=NULL;
+   
+   SUMA_ENTRY;
+   
+   if (!fname || !M2M) SUMA_RETURN(NOPE);
+
+   fname2 = SUMA_Extension(fname, ".niml.M2M", 0);
+   niname = SUMA_append_string("file:", fname2);
+   SUMA_free(fname2); fname2=NULL;
+   
+   ns = NI_stream_open(niname, "w");
+   if (!ns) {
+      SUMA_S_Crit("Failed to open NI stream for writing.\n");
+      if (niname) SUMA_free(niname); niname = NULL;
+      SUMA_RETURN(NOPE);
+   }
+   SUMA_free(niname); niname = NULL;
+   
+   if (!(ngr=SUMA_M2M_to_niml(M2M))) {
+      SUMA_S_Err("Failed to create ngr");
+      NI_stream_close( ns ) ; ns = NULL;
+      SUMA_RETURN(NOPE);
+   }
+   
+   NI_write_element(ns, ngr, NI_BINARY_MODE);
+   NI_stream_close( ns ) ; ns = NULL;
+   NI_free_element(ngr); ngr = NULL;
+    
+   SUMA_RETURN(YUP);
+}
 /*!
    dseto = SUMA_morphDsetToStd (dset, M2M, imode);
    Funtion to map dsets from one mesh to another per MI
