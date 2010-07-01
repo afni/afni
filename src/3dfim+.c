@@ -371,7 +371,7 @@ void get_options
 	    FIM_error ("illegal argument after -polort ");
 
 #ifdef USE_LEGENDRE
-     if( ival > 2 )
+     if( 0 && ival > 2 ) /* ZSS June 2010,  No need for fear mongering */ 
        fprintf(stderr,
             "** WARNING: -polort > 2 is a new untested option: 29 Mar 2005\n") ;
 #endif
