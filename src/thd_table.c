@@ -66,7 +66,7 @@ ENTRY("THD_table_read") ;
    if( sar == NULL ){ fclose(fts); RETURN(NULL); }            /* nuthin? */
 
    nlab = sar->num ; if( nlab <= 1 ){
-     fclose(fts); NI_delete_str_array(sar); RETURN(NULL);
+     fclose(fts) ; NI_delete_str_array(sar) ; RETURN(NULL) ;
    }
 
    /* setup output data structure */
