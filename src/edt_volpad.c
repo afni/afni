@@ -50,13 +50,13 @@ ENTRY("EDIT_volpad") ;
        nynew < 2 || jjbot >= jjtop ||   /* and ranges of dataset     */
        nznew < 2 || kkbot >= kktop   ){
 
-      fprintf(stderr,"*** EDIT_volpad: can't cut volume down to nothing!\n") ;
+      ERROR_message("EDIT_volpad: can't cut volume down to nothing!") ;
       RETURN(NULL) ;
    }
 
    vnew = calloc( nxnew*nynew*nznew , mri_datum_size(ftype) ) ; /* new brick */
    if( vnew == NULL ){
-      fprintf(stderr, "*** EDIT_volpad: Can't malloc space for new array\n") ;
+      ERROR_message("EDIT_volpad: Can't malloc space for new array") ;
       RETURN(NULL) ;
    }
 
@@ -70,7 +70,7 @@ ENTRY("EDIT_volpad") ;
    switch( ftype ){  /* copy rows of old into new */
 
       default:
-         fprintf(stderr,"*** EDIT_volpad: unknown input datum=%d\n",ftype) ;
+         ERROR_message("EDIT_volpad: unknown input datum=%d",ftype) ;
          free(vnew) ;
       RETURN(NULL) ;
 
