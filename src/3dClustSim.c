@@ -45,7 +45,7 @@ static float dz     = 3.5f ;
 static float fwhm_x = 0.0f ;
 static float fwhm_y = 0.0f ;
 static float fwhm_z = 0.0f ;
-static int   niter  = 71802 ;  /* Bob Cox's US Zip code, reversed */
+static int   niter  = 10000 ;
 
 static float sigmax , sigmay , sigmaz ;
 static int do_blur = 0 ;
@@ -98,6 +98,10 @@ void display_help_menu()
    "Program to estimate the probability of false cluster positives.\n"
    "An adaptation of Doug Ward's AlphaSim, streamlined for various purposes.\n"
    "\n"
+   "In particular, this program lets you run with multiple p-value thresholds\n"
+   "(the '-pthr' option) and only outputs the cluster size threshold at chosen\n"
+   "values of the alpha significance level (the '-athr' option).\n"
+   "\n"
    "Options: [at least 1 option is required, or you'll get this help message!]\n"
    "--------\n"
    "-nxyz n1 n2 n3 = Size of 3D grid to use for simulation\n"
@@ -131,7 +135,7 @@ void display_help_menu()
    "         ** should be given in DESCENDING order.  They will be sorted to be **\n"
    "         ** that way in any case, and such is how the output will be given. **\n"
    "\n"
-   "-iter n        = number of Monte Carlo simulations [default = 71802]\n"
+   "-iter n        = number of Monte Carlo simulations [default = 10000]\n"
    "\n"
    "-seed S        = random number seed [default seed = 123456789]\n"
    "                  if seed=0, then program will randomize it\n"
@@ -140,6 +144,31 @@ void display_help_menu()
    "to capture the results to a file, to save them for historical archives.\n"
    "\n"
    "-- RW Cox -- July 2010\n"
+  ) ;
+
+  printf(
+   "\n"
+   "SAMPLE OUTPUT from the command '3dClustSim -fwhm 5':\n"
+   "\n"
+   "# 3dClustSim -fwhm 5\n"
+   "# CLUSTER SIZE THRESHOLDS(pthr,alpha)\n"
+   "#------- | alpha = Prob(Cluster >= given size)\n"
+   "# pthr   |  0.100  0.050  0.020  0.010\n"
+   "#------- | ------ ------ ------ ------\n"
+   " 0.01000     18.7   20.5   22.8   24.5\n"
+   " 0.00500     13.2   14.5   16.3   17.8\n"
+   " 0.00200      9.1   10.0   11.2   12.2\n"
+   " 0.00100      7.2    7.9    9.0    9.7\n"
+   " 0.00050      5.7    6.4    7.3    8.0\n"
+   " 0.00020      4.4    4.9    5.7    6.4\n"
+   " 0.00010      3.6    4.1    4.7    5.3\n"
+   "\n"
+   "e.g., for the sample volume, if the per-voxel p-value threshold is set\n"
+   "at 0.002, then the probability of getting a noise-only cluster with 10\n"
+   "or more voxels is 0.05.\n"
+   "\n"
+   "The header lines start with the '#' character so that the result is a\n"
+   "correctly formatted AFNI .1D file -- that is, it can be 1dplot-ed, etc.\n"
   ) ;
 
   PRINT_AFNI_OMP_USAGE("3dClustSim",NULL) ;
@@ -345,7 +374,6 @@ void get_options( int argc , char **argv )
   return ;
 }
 
-
 /*---------------------------------------------------------------------------*/
 /* Generate random smoothed masked image, with stdev=1. */
 
@@ -448,7 +476,7 @@ void gather_stats( int ithr , float *fim , byte *bfim , int *mtab )
   register int ii ; register float thr ; int siz ;
 
   thr = zthr[ithr] ;
-  for( ii=0 ; ii < nxyz ; ii++ ) bfim[ii] = (fim[ii] >= thr) ;
+  for( ii=0 ; ii < nxyz ; ii++ ) bfim[ii] = (fim[ii] > thr) ;
   siz = find_largest_cluster( bfim ) ;
   if( siz > max_cluster_size ) siz = max_cluster_size ;
   mtab[siz]++ ;
