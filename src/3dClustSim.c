@@ -50,14 +50,16 @@ static int   niter  = 10000 ;
 static float sigmax , sigmay , sigmaz ;
 static int do_blur = 0 ;
 
+static int nodec = 0 ;
+
 static unsigned int gseed = 123456789 ;
 
 #define PMAX 0.2
 
-static double pthr_init[7] = { 0.01, 0.005, 0.002, 0.001, 0.0005, 0.0002, 0.0001 } ;
+static double pthr_init[8] = { 0.02 , 0.01, 0.005, 0.002, 0.001, 0.0005, 0.0002, 0.0001 } ;
 static double athr_init[4] = { 0.10 , 0.05 , 0.02 , 0.01 } ;
 
-static int    npthr = 7 ;
+static int    npthr = 8 ;
 static double *pthr = NULL ;
 static float  *zthr = NULL ;
 
@@ -123,13 +125,14 @@ void display_help_menu()
    "\n"
    "-pthr p1 .. pn = list of uncorrected (per voxel) p-values at which to\n"
    "                  threshold the simulated images prior to clustering.\n"
-   "                  [default = 0.01 0.005 0.002 0.001 0.0005 0.0002 0.0001]\n"
+   "                  [default = 0.02 0.01 0.005 0.002 0.001 0.0005 0.0002 0.0001]\n"
    "\n"
    "-athr a1 .. an = list of corrected (whole volume) alpha-values at which\n"
    "                  the simulation will print out the cluster size\n"
    "                  thresholds.  For each 'p' and 'a', the smallest cluster\n"
    "                  size C(p,a) for which the probability of the 'p'-thresholded\n"
-   "                  image having a cluster of size C is less than 'a' is output.\n"
+   "                  image having a noise-only cluster of size C is less than 'a'\n"
+   "                  is the output (cf. the sample output, below)\n"
    "                  [default = 0.10 0.05 0.02 0.01]\n"
    "         ** Both lists '-pthr' and '-athr' (of values between 0 and 0.2)    **\n"
    "         ** should be given in DESCENDING order.  They will be sorted to be **\n"
@@ -140,35 +143,55 @@ void display_help_menu()
    "-seed S        = random number seed [default seed = 123456789]\n"
    "                  if seed=0, then program will randomize it\n"
    "\n"
-   "Output goes to stdout (e.g., the terminal window).  Use Unix redirection\n"
-   "to capture the results to a file, to save them for historical archives.\n"
+   "-nodec         = normally, the program prints the cluster size threshold to\n"
+   "                 1 decimal place (e.g., 27.2).  Of course, clusters only come\n"
+   "                 with an integer number of voxels -- this fractional value\n"
+   "                 is interpolated to give the desired alpha level.  If you\n"
+   "                 want no decimal places (so that 27.2 becomes 28), use '-nodec'.\n"
+   "\n"
+   "NOTES:\n"
+   "------\n"
+   "* Output goes to stdout (e.g., the terminal window).  Use Unix redirection\n"
+   "  to capture the results to a file, to save them for historical archives.\n"
+   "\n"
+   "* Nearest neigbhor clustering is the only type implemented at this time.\n"
+   "  That is, voxels are considered neighbors only if they touch face-to-face;\n"
+   "  in other words, if their (i,j,k) indexes in the grid differ in only 1 index\n"
+   "  and only by plus-or-minus 1 in that direction.\n"
+   "\n"
+   "* This program is like running AlphaSim once for each '-pthr' value and then\n"
+   "  extracting the relevant information from its 'Alpha' output column.\n"
    "\n"
    "-- RW Cox -- July 2010\n"
   ) ;
 
   printf(
    "\n"
-   "SAMPLE OUTPUT from the command '3dClustSim -fwhm 5':\n"
+   "SAMPLE OUTPUT from the command '3dClustSim -fwhm 5'\n"
    "\n"
    "# 3dClustSim -fwhm 5\n"
    "# CLUSTER SIZE THRESHOLDS(pthr,alpha)\n"
-   "#------- | alpha = Prob(Cluster >= given size)\n"
-   "# pthr   |  0.100  0.050  0.020  0.010\n"
-   "#------- | ------ ------ ------ ------\n"
-   " 0.01000     18.7   20.5   22.8   24.5\n"
-   " 0.00500     13.2   14.5   16.3   17.8\n"
-   " 0.00200      9.1   10.0   11.2   12.2\n"
-   " 0.00100      7.2    7.9    9.0    9.7\n"
-   " 0.00050      5.7    6.4    7.3    8.0\n"
-   " 0.00020      4.4    4.9    5.7    6.4\n"
-   " 0.00010      3.6    4.1    4.7    5.3\n"
+   "# ------ | alpha = Prob(Cluster >= given size)\n"
+   "#  pthr  |  0.100  0.050  0.020  0.010\n"
+   "# ------ | ------ ------ ------ ------\n"
+   " 0.02000     28.9   31.5   35.2   37.7\n"
+   " 0.01000     18.7   20.5   22.9   24.4\n"
+   " 0.00500     13.2   14.5   16.3   17.6\n"
+   " 0.00200      9.1   10.0   11.2   12.0\n"
+   " 0.00100      7.1    7.9    8.8    9.5\n"
+   " 0.00050      5.7    6.4    7.2    7.8\n"
+   " 0.00020      4.3    4.9    5.7    6.2\n"
+   " 0.00010      3.6    4.1    4.7    5.2\n"
    "\n"
    "e.g., for the sample volume, if the per-voxel p-value threshold is set\n"
-   "at 0.002, then the probability of getting a noise-only cluster with 10\n"
-   "or more voxels is 0.05.\n"
+   "at 0.005, then to keep the probability of getting a single noise-only\n"
+   "cluster at 0.05 or less, the cluster size threshold should be 15 voxels.\n"
+   "\n"
+   "If you ran the same simulation with the '-nodec' option, then the line\n"
+   "for pthr=0.002 would contain the cluster sizes 10 10 12 12.\n"
    "\n"
    "The header lines start with the '#' character so that the result is a\n"
-   "correctly formatted AFNI .1D file -- that is, it can be 1dplot-ed, etc.\n"
+   "correctly formatted AFNI .1D file -- it can be used in 1dplot, etc.\n"
   ) ;
 
   PRINT_AFNI_OMP_USAGE("3dClustSim",NULL) ;
@@ -324,6 +347,12 @@ void get_options( int argc , char **argv )
         }
       }
       nopt += nathr ; continue ;
+    }
+
+    /*----   -nodec   ----*/
+
+    if( strcmp(argv[nopt],"-nodec") == 0 ){
+      nodec = 1 ; nopt++ ; continue ;
     }
 
     /*----- unknown option -----*/
@@ -612,21 +641,17 @@ MPROBE ;
     alpha        = (double *)malloc(sizeof(double)*(max_cluster_size+1)) ;
     clust_thresh = (float **)malloc(sizeof(float *)*npthr) ;
     for( ipthr=0 ; ipthr < npthr ; ipthr++ ){
-MPROBE ;
       clust_thresh[ipthr] = (float *)malloc(sizeof(float)*nathr) ;
-MPROBE ;
       for( iathr=0 ; iathr < nathr ; iathr++ ) clust_thresh[ipthr][iathr] = -666.0f ;
-MPROBE ;
       for( itop=ii=1 ; ii <= max_cluster_size ; ii++ ){
         alpha[ii] = max_table[ipthr][ii] / (double)niter ;
         if( alpha[ii] > 0.0 ) itop = ii ;
       }
-MPROBE ;
       for( ii=itop-1 ; ii >= 1 ; ii-- ) alpha[ii] += alpha[ii+1] ;
       for( iathr=0 ; iathr < nathr ; iathr++ ){
         aval = athr[iathr] ;
         for( ii=1 ; ii < itop ; ii++ )
-          if( alpha[ii] >= aval && alpha[ii+1] < aval ) break ;
+          if( alpha[ii] > aval && alpha[ii+1] <= aval ) break ;
         if( ii < itop ){
           double alo , ahi ;
 #if 0
@@ -635,33 +660,37 @@ INFO_message("pthr=%g athr=%g ii=%d alpha[ii]=%g alpha[ii+1]=%g",pthr[ipthr],ath
           aval = log(-log(1.0-aval)) ;
           alo  = log(-log(1.0-alpha[ii])) ;
           ahi  = log(-log(1.0-alpha[ii+1])) ;
-          clust_thresh[ipthr][iathr] = (float)( ii + (aval-alo)/(ahi-alo) ) ;
+          aval = ii + (aval-alo)/(ahi-alo) ;
+          if( nodec ) aval = (int)(aval+0.951) ;
+          clust_thresh[ipthr][iathr] = aval ;
 #if 0
 ININFO_message("aval=%g alo=%g ahi=%g ==> thresh=%g",aval,alo,ahi,clust_thresh[ipthr][iathr]) ;
 #endif
         } else {
           clust_thresh[ipthr][iathr] = max_cluster_size ;
         }
-MPROBE ;
       }
     }
+MPROBE ;
 
     fflush(stderr) ; fflush(stdout) ;
 
     printf(
      "# %s\n"
      "# CLUSTER SIZE THRESHOLDS(pthr,alpha)\n"
-     "#------- | alpha = Prob(Cluster >= given size)\n"
-     "# pthr   |" , commandline ) ;
+     "# ------ | alpha = Prob(Cluster >= given size)\n"
+     "#  pthr  |" , commandline ) ;
     for( iathr=0 ; iathr < nathr ; iathr++ ) printf(" %6.3f",athr[iathr]) ;
     printf("\n"
-     "#------- |" ) ;
+     "# ------ |" ) ;
     for( iathr=0 ; iathr < nathr ; iathr++ ) printf(" ------") ;
     printf("\n") ;
     for( ipthr=0 ; ipthr < npthr ; ipthr++ ){
       printf("%8.5f  ",pthr[ipthr]) ;
-      for( iathr=0 ; iathr < nathr ; iathr++ )
-        printf(" %6.1f",clust_thresh[ipthr][iathr]) ;
+      for( iathr=0 ; iathr < nathr ; iathr++ ){
+        if( nodec ) printf("%7d"  ,(int)clust_thresh[ipthr][iathr]) ;
+        else        printf("%7.1f",     clust_thresh[ipthr][iathr]) ;
+      }
       printf("\n") ;
     }
     fflush(stdout) ;

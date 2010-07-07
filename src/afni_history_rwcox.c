@@ -44,6 +44,14 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 7 , JUL , 2010 , RWC , "3dClustSim" , MAJOR , TYPE_NEW_PROG ,
+   "Like AlphaSim, but faster and terser output" ,
+   "Computes C(p,a) = cluster size threshold for a range of p and a values:\n"
+   " p = per-voxel (uncorrected) threshold p-value\n"
+   " a = corrected probability level desired = probability of at least one\n"
+   "noise-only cluster happening when the cluster size threshold is C(p,a)\n"
+   "Optimized to use OpenMP for speed." } ,
+
  { 28 , JUN , 2010 , RWC , "3dTcorr1D" , MINOR , TYPE_GENERAL ,
    "1 output brick per column of input 1D file" ,
    "Before: only used 1st column of 1D file.\n"
