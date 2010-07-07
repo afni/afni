@@ -21,7 +21,7 @@
 #include <unistd.h>
 
 #define MAX_NAME_LENGTH  THD_MAX_NAME /* max. string length for file names */
-#define MAX_CLUSTER_SIZE 9999         /* max. size of cluster for freq. table */
+#define MAX_CLUSTER_SIZE 99999        /* max. size of cluster for freq. table */
 
 /*---------------------------------------------------------------------------*/
 /*
@@ -51,6 +51,7 @@ static float sigmax , sigmay , sigmaz ;
 static int do_blur = 0 ;
 
 static int nodec = 0 ;
+static int do_niml = 0 ;
 
 static unsigned int gseed = 123456789 ;
 
@@ -144,10 +145,13 @@ void display_help_menu()
    "                  if seed=0, then program will randomize it\n"
    "\n"
    "-nodec         = normally, the program prints the cluster size threshold to\n"
-   "                 1 decimal place (e.g., 27.2).  Of course, clusters only come\n"
-   "                 with an integer number of voxels -- this fractional value\n"
-   "                 is interpolated to give the desired alpha level.  If you\n"
-   "                 want no decimal places (so that 27.2 becomes 28), use '-nodec'.\n"
+   "                  1 decimal place (e.g., 27.2).  Of course, clusters only come\n"
+   "                  with an integer number of voxels -- this fractional value\n"
+   "                  is interpolated to give the desired alpha level.  If you\n"
+   "                  want no decimal places (so that 27.2 becomes 28), use '-nodec'.\n"
+   "\n"
+   "-niml          = Output the table in an XML/NIML format, rather than a .1D format.\n"
+   "                  This option is for use with other software programs.\n"
    "\n"
    "NOTES:\n"
    "------\n"
@@ -167,28 +171,36 @@ void display_help_menu()
 
   printf(
    "\n"
-   "SAMPLE OUTPUT from the command '3dClustSim -fwhm 5'\n"
+   "SAMPLE OUTPUT from the command '3dClustSim -fwhm 7'\n"
    "\n"
-   "# 3dClustSim -fwhm 5\n"
-   "# CLUSTER SIZE THRESHOLDS(pthr,alpha)\n"
+   "# 3dClustSim -fwhm 7\n"
+   "# Grid: 64x64x32 3.50x3.50x3.50 mm^3 (131072 voxels)\n"
+   "#\n"
+   "# CLUSTER SIZE THRESHOLD(pthr,alpha) in Voxels\n"
    "# ------ | alpha = Prob(Cluster >= given size)\n"
    "#  pthr  |  0.100  0.050  0.020  0.010\n"
    "# ------ | ------ ------ ------ ------\n"
-   " 0.02000     28.9   31.5   35.2   37.7\n"
-   " 0.01000     18.7   20.5   22.9   24.4\n"
-   " 0.00500     13.2   14.5   16.3   17.6\n"
-   " 0.00200      9.1   10.0   11.2   12.0\n"
-   " 0.00100      7.1    7.9    8.8    9.5\n"
-   " 0.00050      5.7    6.4    7.2    7.8\n"
-   " 0.00020      4.3    4.9    5.7    6.2\n"
-   " 0.00010      3.6    4.1    4.7    5.2\n"
+   " 0.02000     64.3   71.0   80.5   88.5\n"
+   " 0.01000     40.3   44.7   50.7   55.1\n"
+   " 0.00500     28.0   31.2   34.9   38.1\n"
+   " 0.00200     19.0   21.2   24.2   26.1\n"
+   " 0.00100     14.6   16.3   18.9   20.5\n"
+   " 0.00050     11.5   13.0   15.1   16.7\n"
+   " 0.00020      8.7   10.0   11.6   12.8\n"
+   " 0.00010      7.1    8.3    9.7   10.9\n"
    "\n"
-   "e.g., for the sample volume, if the per-voxel p-value threshold is set\n"
+   "e.g., for this sample volume, if the per-voxel p-value threshold is set\n"
    "at 0.005, then to keep the probability of getting a single noise-only\n"
-   "cluster at 0.05 or less, the cluster size threshold should be 15 voxels.\n"
+   "cluster at 0.05 or less, the cluster size threshold should be 32 voxels\n"
+   "(the next integer above 31.2).\n"
    "\n"
-   "If you ran the same simulation with the '-nodec' option, then the line\n"
-   "for pthr=0.002 would contain the cluster sizes 10 10 12 12.\n"
+   "If you ran the same simulation with the '-nodec' option, then the last\n"
+   "line above would be\n"
+   " 0.00010        8      9     10     11\n"
+   "If you set the per voxel p-value to 0.0001 (1e-4), and want the chance\n"
+   "of a noise-only false-positive cluster to be 5%% or less, then the cluster\n"
+   "size threshold would be 9 -- that is, you would keep all NN clusters with\n"
+   "9 or more voxels.\n"
    "\n"
    "The header lines start with the '#' character so that the result is a\n"
    "correctly formatted AFNI .1D file -- it can be used in 1dplot, etc.\n"
@@ -250,7 +262,8 @@ void get_options( int argc , char **argv )
       DSET_unload(mask_dset) ;
       mask_ngood = THD_countmask( mask_nvox , mask_vol ) ;
       if( mask_ngood < 128 ) ERROR_exit("-mask has only %d nonzero voxels!",mask_ngood) ;
-      INFO_message("%d voxels in mask",mask_ngood) ;
+      INFO_message("%d voxels in mask (%.1f%% of total)",
+                   mask_ngood,100.0*mask_ngood/(double)mask_nvox) ;
       nopt++ ; continue ;
     }
 
@@ -351,8 +364,14 @@ void get_options( int argc , char **argv )
 
     /*----   -nodec   ----*/
 
-    if( strcmp(argv[nopt],"-nodec") == 0 ){
+    if( strcasecmp(argv[nopt],"-nodec") == 0 ){
       nodec = 1 ; nopt++ ; continue ;
+    }
+
+    /*----   -niml   ----*/
+
+    if( strcasecmp(argv[nopt],"-niml") == 0 ){
+      do_niml = 1 ; nopt++ ; continue ;
     }
 
     /*----- unknown option -----*/
@@ -374,6 +393,8 @@ void get_options( int argc , char **argv )
   nxy = nx*ny ; nxyz = nxy*nz ;
   if( nxyz < 256 )
     ERROR_exit("Only %d voxels in simulation?! Need at least 256.",nxyz) ;
+
+  if( mask_ngood == 0 ) mask_ngood = nxyz ;
 
   srand48(gseed) ;  /* not really needed */
 
@@ -411,7 +432,7 @@ void generate_image( float *fim , unsigned short xran[] )
   register int ii ; register float sum ;
   for( ii=0 ; ii < nxyz ; ii++ ) fim[ii] = zgaussian_sss(xran) ;
   if( do_blur ){
-    EDIT_blur_volume_3d(nx,ny,nz,dx,dy,dz,MRI_float,fim,sigmax,sigmay,sigmaz) ;
+    FIR_blur_volume_3d(nx,ny,nz,dx,dy,dz,fim,sigmax,sigmay,sigmaz) ;
     for( sum=0.0f,ii=0 ; ii < nxyz ; ii++ ) sum += fim[ii]*fim[ii] ;
     sum = sqrtf( nxyz / sum ) ;
     for( ii=0 ; ii < nxyz ; ii++ ) fim[ii] *= sum ;
@@ -634,7 +655,7 @@ MPROBE ;
   /*---------- compute and print the output table ----------*/
 
   { double *alpha , aval ;
-    float **clust_thresh ;
+    float **clust_thresh , cmax=0.0f ;
     int ii , itop , iathr ;
     char *commandline = tross_commandline("3dClustSim",argc,argv) ;
 
@@ -669,29 +690,69 @@ ININFO_message("aval=%g alo=%g ahi=%g ==> thresh=%g",aval,alo,ahi,clust_thresh[i
         } else {
           clust_thresh[ipthr][iathr] = max_cluster_size ;
         }
+        if( clust_thresh[ipthr][iathr] > cmax ) cmax = clust_thresh[ipthr][iathr] ;
       }
     }
+
+    if( !nodec && !do_niml && cmax > 9999.8f ){  /* if largest output is way big, */
+      for( ipthr=0 ; ipthr < npthr ; ipthr++ ){  /* then truncate all to integers */
+        for( iathr=0 ; iathr < nathr ; iathr++ ){
+          aval = clust_thresh[ipthr][iathr] ;
+          aval = (int)(aval+0.951) ;
+          clust_thresh[ipthr][iathr] = aval ;
+        }
+      }
+      nodec = 1 ;
+    }
+
 MPROBE ;
 
     fflush(stderr) ; fflush(stdout) ;
 
-    printf(
-     "# %s\n"
-     "# CLUSTER SIZE THRESHOLDS(pthr,alpha)\n"
-     "# ------ | alpha = Prob(Cluster >= given size)\n"
-     "#  pthr  |" , commandline ) ;
-    for( iathr=0 ; iathr < nathr ; iathr++ ) printf(" %6.3f",athr[iathr]) ;
-    printf("\n"
-     "# ------ |" ) ;
-    for( iathr=0 ; iathr < nathr ; iathr++ ) printf(" ------") ;
-    printf("\n") ;
-    for( ipthr=0 ; ipthr < npthr ; ipthr++ ){
-      printf("%8.5f  ",pthr[ipthr]) ;
-      for( iathr=0 ; iathr < nathr ; iathr++ ){
-        if( nodec ) printf("%7d"  ,(int)clust_thresh[ipthr][iathr]) ;
-        else        printf("%7.1f",     clust_thresh[ipthr][iathr]) ;
-      }
+    if( !do_niml ){  /* output in 1D format */
+      printf(
+       "# %s\n"
+       "# Grid: %dx%dx%d %.2fx%.2fx%.2f mm^3 (%d voxels%s)\n"
+       "#\n"
+       "# CLUSTER SIZE THRESHOLD(pthr,alpha) in Voxels\n"
+       "# ------ | alpha = Prob(Cluster >= given size)\n"
+       "#  pthr  |" ,
+       commandline ,
+       nx,ny,nz , dx,dy,dz ,
+       mask_ngood , (mask_ngood < nxyz) ? " in mask" : "\0" ) ;
+      for( iathr=0 ; iathr < nathr ; iathr++ ) printf(" %6.3f",athr[iathr]) ;
+      printf("\n"
+       "# ------ |" ) ;
+      for( iathr=0 ; iathr < nathr ; iathr++ ) printf(" ------") ;
       printf("\n") ;
+      for( ipthr=0 ; ipthr < npthr ; ipthr++ ){
+        printf("%8.5f  ",pthr[ipthr]) ;
+        for( iathr=0 ; iathr < nathr ; iathr++ ){
+          if( nodec ) printf("%7d"  ,(int)clust_thresh[ipthr][iathr]) ;
+          else        printf("%7.1f",     clust_thresh[ipthr][iathr]) ;
+        }
+        printf("\n") ;
+      }
+    } else {       /* output in NIML format */
+      NI_element *nel ; float *vec ; char buf[1024] , *bbb ; NI_float_array nfar ;
+      nel = NI_new_data_element( "3dClustSim" , npthr ) ;
+      vec = (float *)malloc(sizeof(float)*MAX(npthr,nathr)) ;
+      for( iathr=0 ; iathr < nathr ; iathr++ ){
+        for( ipthr=0 ; ipthr < npthr ; ipthr++ ) vec[ipthr] = clust_thresh[ipthr][iathr] ;
+        NI_add_column( nel , NI_FLOAT , vec ) ;
+      }
+      NI_set_attribute( nel , "commandline" , commandline ) ;
+      sprintf(buf,"%d,%d,%d",nx,ny,nz) ; NI_set_attribute(nel,"nxyz",buf) ;
+      sprintf(buf,"%.3f,%.3f,%.3f",dx,dy,dz) ; NI_set_attribute(nel,"dxyz",buf) ;
+      sprintf(buf,"%.2f,%.2f,%.2f",fwhm_x,fwhm_y,fwhm_z) ; NI_set_attribute(nel,"fwhmxyz",buf) ;
+      sprintf(buf,"%d",niter) ; NI_set_attribute(nel,"iter",buf) ;
+      for( ipthr=0 ; ipthr < npthr ; ipthr++ ) vec[ipthr] = pthr[ipthr] ;
+      nfar.num = npthr ; nfar.ar = vec ; bbb = NI_encode_float_list(&nfar,",") ;
+      NI_set_attribute(nel,"pthr",bbb) ; NI_free(bbb) ;
+      for( iathr=0 ; iathr < nathr ; iathr++ ) vec[iathr] = athr[iathr] ;
+      nfar.num = nathr ; nfar.ar = vec ; bbb = NI_encode_float_list(&nfar,",") ;
+      NI_set_attribute(nel,"athr",bbb) ; NI_free(bbb) ;
+      NI_write_element_tofile( "stdout:" , nel , NI_TEXT_MODE ) ;
     }
     fflush(stdout) ;
   }

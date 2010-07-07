@@ -1363,7 +1363,7 @@ void FIR_blur_volume_3d( int nx, int ny, int nz,
                          float sigmax, float sigmay, float sigmaz )
 {
    int   fir_m , ii ;
-   float *fir_wt , fac ;
+   float *fir_wt=NULL , fac ;
 
    double sfac = AFNI_numenv("AFNI_BLUR_FIRFAC") ;
    if( sfac < 2.0 ) sfac = 2.5 ;
@@ -1385,17 +1385,7 @@ void FIR_blur_volume_3d( int nx, int ny, int nz,
      if( fir_m > nx/2 ) fir_m = nx/2 ;
      fir_wt = (float *)malloc(sizeof(float)*(fir_m+1)) ;
      fir_gaussian_load( fir_m , dx/sigmax , fir_wt ) ;
-#if 0
-     fac = fir_wt[0] = 1.0f ;
-     for( ii=1 ; ii <= fir_m ; ii++ ){
-       fir_wt[ii] = exp(-0.5*(ii*dx)*(ii*dx)/(sigmax*sigmax)) ;
-       fac += 2.0f * fir_wt[ii] ;
-     }
-     fac = 1.0f / fac ;
-     for( ii=0 ; ii <= fir_m ; ii++ ) fir_wt[ii] *= fac ;
-#endif
      fir_blurx( fir_m , fir_wt , nx,ny,nz , ffim ) ;
-     free((void *)fir_wt) ;
    }
 
    /*-- blur along y --*/
@@ -1404,19 +1394,9 @@ void FIR_blur_volume_3d( int nx, int ny, int nz,
      fir_m = (int) ceil( sfac * sigmay / dy ) ;
      if( fir_m < 1    ) fir_m = 1 ;
      if( fir_m > ny/2 ) fir_m = ny/2 ;
-     fir_wt = (float *)malloc(sizeof(float)*(fir_m+1)) ;
+     fir_wt = (float *)realloc(fir_wt,sizeof(float)*(fir_m+1)) ;
      fir_gaussian_load( fir_m , dy/sigmay , fir_wt ) ;
-#if 0
-     fac = fir_wt[0] = 1.0f ;
-     for( ii=1 ; ii <= fir_m ; ii++ ){
-       fir_wt[ii] = exp(-0.5*(ii*dy)*(ii*dy)/(sigmay*sigmay)) ;
-       fac += 2.0f * fir_wt[ii] ;
-     }
-     fac = 1.0f / fac ;
-     for( ii=0 ; ii <= fir_m ; ii++ ) fir_wt[ii] *= fac ;
-#endif
      fir_blury( fir_m , fir_wt , nx,ny,nz , ffim ) ;
-     free((void *)fir_wt) ;
    }
 
    /*-- blur along z --*/
@@ -1425,21 +1405,12 @@ void FIR_blur_volume_3d( int nx, int ny, int nz,
      fir_m = (int) ceil( sfac * sigmaz / dz ) ;
      if( fir_m < 1    ) fir_m = 1 ;
      if( fir_m > nz/2 ) fir_m = nz/2 ;
-     fir_wt = (float *)malloc(sizeof(float)*(fir_m+1)) ;
+     fir_wt = (float *)realloc(fir_wt,sizeof(float)*(fir_m+1)) ;
      fir_gaussian_load( fir_m , dz/sigmaz , fir_wt ) ;
-#if 0
-     fac = fir_wt[0] = 1.0f ;
-     for( ii=1 ; ii <= fir_m ; ii++ ){
-       fir_wt[ii] = exp(-0.5*(ii*dz)*(ii*dz)/(sigmaz*sigmaz)) ;
-       fac += 2.0f * fir_wt[ii] ;
-     }
-     fac = 1.0f / fac ;
-     for( ii=0 ; ii <= fir_m ; ii++ ) fir_wt[ii] *= fac ;
-#endif
      fir_blurz( fir_m , fir_wt , nx,ny,nz , ffim ) ;
-     free((void *)fir_wt) ;
    }
 
+   if( fir_wt != NULL ) free(fir_wt) ;
    EXRETURN ;
 }
 
