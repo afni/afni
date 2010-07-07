@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 7 , JUL , 2010 , RWC , "3dClustSim" , MICRO , TYPE_NEW_OPT ,
+   "Added info to output header; also, added -niml option" ,
+   NULL } ,
+
  { 7 , JUL , 2010 , RWC , "3dClustSim" , MAJOR , TYPE_NEW_PROG ,
    "Like AlphaSim, but faster and terser output" ,
    "Computes C(p,a) = cluster size threshold for a range of p and a values:\n"
