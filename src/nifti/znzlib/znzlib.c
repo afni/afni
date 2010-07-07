@@ -152,7 +152,11 @@ size_t znzread(void* buf, size_t size, size_t nmemb, znzFile file)
        if( nread < (int)n2read ) break;  /* return will be short */
     }
 
-    return size*nmemb - remain;   /* return number of bytes processed */
+    /* warn of a short read that will seem complete */
+    if( remain > 0 && remain < size )
+       fprintf(stderr,"** znzread: read short by %u bytes\n",(unsigned)remain);
+
+    return nmemb - remain/size;   /* return number of members processed */
   }
 #endif
   return fread(buf,size,nmemb,file->nzfptr);
@@ -182,7 +186,11 @@ size_t znzwrite(const void* buf, size_t size, size_t nmemb, znzFile file)
        if( nwritten < (int)n2write ) break;
     }
 
-    return size*nmemb - remain;   /* return number of bytes processed */
+    /* warn of a short write that will seem complete */
+    if( remain > 0 && remain < size )
+      fprintf(stderr,"** znzwrite: write short by %u bytes\n",(unsigned)remain);
+
+    return nmemb - remain/size;   /* return number of members processed */
   }
 #endif
   return fwrite(buf,size,nmemb,file->nzfptr);

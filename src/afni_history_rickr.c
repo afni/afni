@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 7, JUL, 2010, RCR, "NIFTI", MICRO, TYPE_BUG_FIX,
+   "fixed znzread/write to again return nmembers",
+   "Also, added M Hanke's update to CMakeLists.txt for new realease number."
+ } ,
+
  { 7, JUL, 2010, RCR, "nifti_tool", MICRO, TYPE_BUG_FIX,
    "fixed nt_read_bricks bsize computation for large files",
    NULL

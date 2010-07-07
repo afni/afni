@@ -335,9 +335,10 @@ static char * gni_history[] =
   "   - noted/investigated by M Hanke and Y Halchenko\n"
   "   - fixed znzread/write, noting example by M Adler\n"
   "   - changed nifti_swap_* routines/calls to take size_t (6)\n"
+  "1.43 07 Jul 2010 [rickr]: fixed znzR/W to again return nmembers\n",
   "----------------------------------------------------------------------\n"
 };
-static char gni_version[] = "nifti library version 1.42 (6 July, 2010)";
+static char gni_version[] = "nifti library version 1.43 (7 July, 2010)";
 
 /*! global nifti options structure - init with defaults */
 static nifti_global_options g_opts = { 
