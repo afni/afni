@@ -113,7 +113,15 @@ void display_help_menu()
 {
   printf
     (
-     "This program performs alpha probability simulations.  \n\n"
+     "This program performs alpha probability simulations; among other\n"
+     "things, it computes the probability of a random field of noise\n"
+     "producing a cluster of a given size after the noise is thresholded\n"
+     "at a given level ('-pthr').\n"
+     "\n"
+     "** You may also be interested in program 3dClustSim, which does a **\n"
+     "** similar simulation of the probability of noise-only clusters,  **\n"
+     "** but also allows multiple '-pthr' values to be used in one run. **\n"
+     "\n"
      "Usage: \n"
      "AlphaSim \n"
      "-nx n1        n1 = number of voxels along x-axis                      \n"
@@ -1109,11 +1117,13 @@ void gaussian_filter (int nx, int ny, int nz, float dx, float dy, float dz,
 		      float * fim)
 {
 
-  if( AFNI_yesenv("AFNI_BLUR_FFT") ) EDIT_blur_allow_fir(0) ;  /* 03 Apr 2007 */
-
-  /*----- use Gaussian blur routine -----*/
-  EDIT_blur_volume_3d (nx, ny, nz, dx, dy, dz,
-		       MRI_float, fim, sigmax, sigmay, sigmaz);
+  if( AFNI_yesenv("AFNI_BLUR_FFT") ){
+    EDIT_blur_allow_fir(0) ;  /* 03 Apr 2007 */
+    EDIT_blur_volume_3d(nx, ny, nz, dx, dy, dz,
+                        MRI_float, fim, sigmax, sigmay, sigmaz);
+  } else {
+    FIR_blur_volume_3d( nx,ny,nz , dx,dy,dz , fim , sigmax,sigmay,sigmaz ) ;
+  }
 
 }
 
