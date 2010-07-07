@@ -331,9 +331,13 @@ static char * gni_history[] =
   "1.39 23 Jun 2009 [rickr]: added 4 checks of alloc() returns\n",
   "1.40 16 Mar 2010 [rickr]: added NIFTI_ECODE_VOXBO for D. Kimberg\n",
   "1.41 28 Apr 2010 [rickr]: added NIFTI_ECODE_CARET for J. Harwell\n",
+  "1.42 06 Jul 2010 [rickr]: trouble with large (gz) files\n",
+  "   - noted/investigated by M Hanke and Y Halchenko\n"
+  "   - fixed znzread/write, noting example by M Adler\n"
+  "   - changed nifti_swap_* routines/calls to take size_t (6)\n"
   "----------------------------------------------------------------------\n"
 };
-static char gni_version[] = "nifti library version 1.41 (28 April, 2010)";
+static char gni_version[] = "nifti library version 1.42 (6 July, 2010)";
 
 /*! global nifti options structure - init with defaults */
 static nifti_global_options g_opts = { 
@@ -857,7 +861,7 @@ static int nifti_load_NBL_bricks( nifti_image * nim , int * slist, int * sindex,
              fprintf(stderr,"** failed to read brick %d from file '%s'\n",
                      isrc, nim->iname ? nim->iname : nim->fname);
              if( g_opts.debug > 1 )
-                fprintf(stderr,"   read %u of %u bytes)\n",
+                fprintf(stderr,"   (read %u of %u bytes)\n",
                         (unsigned int)rv, (unsigned int)NBL->bsize);
              return -1;
           }
@@ -2131,9 +2135,9 @@ void nifti_mat44_to_orientation( mat44 R , int *icod, int *jcod, int *kcod )
  *  Fixes http://bugs.debian.org/446893   Yaroslav <debian@onerussian.com>
  *
 *//*--------------------------------------------------------------------*/
-void nifti_swap_2bytes( int n , void *ar )    /* 2 bytes at a time */
+void nifti_swap_2bytes( size_t n , void *ar )    /* 2 bytes at a time */
 {
-   register int ii ;
+   register size_t ii ;
    unsigned char * cp1 = (unsigned char *)ar, * cp2 ;
    unsigned char   tval;
 
@@ -2148,9 +2152,9 @@ void nifti_swap_2bytes( int n , void *ar )    /* 2 bytes at a time */
 /*----------------------------------------------------------------------*/
 /*! swap 4 bytes at a time from the given list of n sets of 4 bytes
 *//*--------------------------------------------------------------------*/
-void nifti_swap_4bytes( int n , void *ar )    /* 4 bytes at a time */
+void nifti_swap_4bytes( size_t n , void *ar )    /* 4 bytes at a time */
 {
-   register int ii ;
+   register size_t ii ;
    unsigned char * cp0 = (unsigned char *)ar, * cp1, * cp2 ;
    register unsigned char tval ;
 
@@ -2169,9 +2173,9 @@ void nifti_swap_4bytes( int n , void *ar )    /* 4 bytes at a time */
  *
  *  perhaps use this style for the general Nbytes, as Yaroslav suggests
 *//*--------------------------------------------------------------------*/
-void nifti_swap_8bytes( int n , void *ar )    /* 8 bytes at a time */
+void nifti_swap_8bytes( size_t n , void *ar )    /* 8 bytes at a time */
 {
-   register int ii ;
+   register size_t ii ;
    unsigned char * cp0 = (unsigned char *)ar, * cp1, * cp2 ;
    register unsigned char tval ;
 
@@ -2190,9 +2194,9 @@ void nifti_swap_8bytes( int n , void *ar )    /* 8 bytes at a time */
 /*----------------------------------------------------------------------*/
 /*! swap 16 bytes at a time from the given list of n sets of 16 bytes
 *//*--------------------------------------------------------------------*/
-void nifti_swap_16bytes( int n , void *ar )    /* 16 bytes at a time */
+void nifti_swap_16bytes( size_t n , void *ar )    /* 16 bytes at a time */
 {
-   register int ii ;
+   register size_t ii ;
    unsigned char * cp0 = (unsigned char *)ar, * cp1, * cp2 ;
    register unsigned char tval ;
 
@@ -2208,18 +2212,45 @@ void nifti_swap_16bytes( int n , void *ar )    /* 16 bytes at a time */
    return ;
 }
 
+#if 0  /* not important: save for version update     6 Jul 2010 [rickr] */
+
+/*----------------------------------------------------------------------*/
+/*! generic: swap siz bytes at a time from the given list of n sets
+*//*--------------------------------------------------------------------*/
+void nifti_swap_bytes( size_t n , int siz , void *ar )
+{
+   register size_t ii ;
+   unsigned char * cp0 = (unsigned char *)ar, * cp1, * cp2 ;
+   register unsigned char tval ;
+
+   for( ii=0 ; ii < n ; ii++ ){
+       cp1 = cp0;  cp2 = cp0+(siz-1);
+       while ( cp2 > cp1 )
+       {
+           tval = *cp1 ; *cp1 = *cp2 ; *cp2 = tval ;
+           cp1++; cp2--;
+       }
+       cp0 += siz;
+   }
+   return ;
+}
+#endif
+
 /*---------------------------------------------------------------------------*/
 
 /*----------------------------------------------------------------------*/
 /*! based on siz, call the appropriate nifti_swap_Nbytes() function
 *//*--------------------------------------------------------------------*/
-void nifti_swap_Nbytes( int n , int siz , void *ar )  /* subsuming case */
+void nifti_swap_Nbytes( size_t n , int siz , void *ar )  /* subsuming case */
 {
    switch( siz ){
      case 2:  nifti_swap_2bytes ( n , ar ) ; break ;
      case 4:  nifti_swap_4bytes ( n , ar ) ; break ;
      case 8:  nifti_swap_8bytes ( n , ar ) ; break ;
      case 16: nifti_swap_16bytes( n , ar ) ; break ;
+     default:    /* nifti_swap_bytes  ( n , siz, ar ) ; */
+        fprintf(stderr,"** NIfTI: cannot swap in %d byte blocks\n", siz);
+        break ;
    }
    return ;
 }
@@ -2431,7 +2462,7 @@ int nifti_get_filesize( const char *pathname )
 *//*--------------------------------------------------------------------*/
 size_t nifti_get_volsize(const nifti_image *nim)
 {
-   return (size_t)(nim->nbyper) * (size_t)(nim->nvox) ; /* total bytes */
+   return nim->nbyper * nim->nvox ; /* total bytes */
 }
 
 
@@ -4905,7 +4936,7 @@ size_t nifti_read_buffer(znzFile fp, void* dataptr, size_t ntot,
   }
 
   ii = znzread( dataptr , 1 , ntot , fp ) ;             /* data input */
-  
+
   /* if read was short, fail */
   if( ii < ntot ){ 
     if( g_opts.debug > 0 )
@@ -4924,8 +4955,12 @@ size_t nifti_read_buffer(znzFile fp, void* dataptr, size_t ntot,
   
   /* byte swap array if needed */
   
-  if( nim->swapsize > 1 && nim->byteorder != nifti_short_order() )
-    nifti_swap_Nbytes( (int)(ntot / nim->swapsize ), nim->swapsize , dataptr ) ;
+  /* ntot/swapsize might not fit as int, use size_t    6 Jul 2010 [rickr] */
+  if( nim->swapsize > 1 && nim->byteorder != nifti_short_order() ) {
+    if( g_opts.debug > 1 )
+       fprintf(stderr,"+d nifti_read_buffer: swapping data bytes...\n");
+    nifti_swap_Nbytes( ntot / nim->swapsize, nim->swapsize , dataptr ) ;
+  }
 
 #ifdef isfinite
 {
@@ -5348,7 +5383,7 @@ nifti_image * nifti_make_new_nim(const int dims[], int datatype, int data_fill)
       /* if we cannot allocate data, take ball and go home */
       if( !nim->data ) {
          fprintf(stderr,"** NMNN: failed to alloc %u bytes for data\n",
-                 (unsigned)nim->nvox);
+                 (unsigned)(nim->nvox*nim->nbyper));
          nifti_image_free(nim);
          nim = NULL;
       }

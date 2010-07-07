@@ -97,4 +97,7 @@ Recent Updates
     - RR added 4 checks of alloc() returns
     - RR added NIFTI_ECODE_VOXBO for Dan Kimberg of VoxBo
     - RR added NIFTI_ECODE_CARET for John Harwell of Caret
+    - RR fixed znzread/write for large files
+    - RR changed nifti_swap_* routines/calls to take size_t
+    - RR fixed nifti_tool.c:nt_read_bricks bsize for large files
 

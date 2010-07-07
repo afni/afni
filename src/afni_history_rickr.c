@@ -48,6 +48,17 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 7, JUL, 2010, RCR, "nifti_tool", MICRO, TYPE_BUG_FIX,
+   "fixed nt_read_bricks bsize computation for large files",
+   NULL
+ } ,
+
+ { 7, JUL, 2010, RCR, "NIFTI", MINOR, TYPE_BUG_FIX,
+   "fixes for large files (noted/investigated by M Hanke and Y Halchenko)",
+   "- fixed znzread/write, noting example by M Adler\n"
+   "- changed nifti_swap_* routines/calls to take size_t"
+ } ,
+
  { 28, JUN, 2010, RCR, "GIFTI", MICRO, TYPE_ENHANCE,
    "applied CMakeLists.txt update from M Hanke for Debian release",
    NULL
@@ -86,7 +97,7 @@ afni_history_struct rickr_history[] = {
  } ,
 
  { 10, JUN, 2010, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
-   "fixed copying EPI and anat as NIfTI",
+   "fixed copying EPI and anat as NIFTI",
    NULL
  } ,
 
@@ -894,7 +905,7 @@ afni_history_struct rickr_history[] = {
    NULL
  } ,
 
- { 14, APR, 2009, RCR, "NIfTI", MINOR, TYPE_NEW_OPT,
+ { 14, APR, 2009, RCR, "NIFTI", MINOR, TYPE_NEW_OPT,
    "added sample nifticlib program: clib_01_read_write.c",
    NULL
  } ,
@@ -1071,7 +1082,7 @@ afni_history_struct rickr_history[] = {
    "One can execute 3dREMLfit and/or 3dDeconvolve.  Error blur is from each."
  } ,
 
- { 10, MAR, 2009, RCR, "NIfTI", MICRO, TYPE_MODIFY,
+ { 10, MAR, 2009, RCR, "NIFTI", MICRO, TYPE_MODIFY,
    "added NIFTI_ECODEs 18-28 for the LONI MiND group",
    NULL
  } ,
