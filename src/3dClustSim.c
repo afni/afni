@@ -674,21 +674,28 @@ MPROBE ;
         for( ii=1 ; ii < itop ; ii++ )
           if( alpha[ii] > aval && alpha[ii+1] <= aval ) break ;
         if( ii < itop ){
-          double alo , ahi ;
-#if 0
+          double alo=alpha[ii] , ahi=alpha[ii+1] ;
+#if 1
 INFO_message("pthr=%g athr=%g ii=%d alpha[ii]=%g alpha[ii+1]=%g",pthr[ipthr],athr[iathr],ii,alpha[ii],alpha[ii+1]) ;
 #endif
-          aval = log(-log(1.0-aval)) ;
-          alo  = log(-log(1.0-alpha[ii])) ;
-          ahi  = log(-log(1.0-alpha[ii+1])) ;
-          aval = ii + (aval-alo)/(ahi-alo) ;
+          if( alo < 1.0 && ahi > 0.0 ){
+            aval = log(-log(1.0-aval)) ;
+            alo  = log(-log(1.0-alo)) ;
+            ahi  = log(-log(1.0-ahi)) ;
+            aval = ii + (aval-alo)/(ahi-alo) ;
+          } else {
+            aval = ii + (alo-aval)/alo ;
+          }
           if( nodec ) aval = (int)(aval+0.951) ;
           clust_thresh[ipthr][iathr] = aval ;
-#if 0
+#if 1
 ININFO_message("aval=%g alo=%g ahi=%g ==> thresh=%g",aval,alo,ahi,clust_thresh[ipthr][iathr]) ;
 #endif
         } else {
-          clust_thresh[ipthr][iathr] = max_cluster_size ;
+#if 1
+INFO_message("pthr=%g athr=%g ii=%d alpha[ii]=%g alpha[ii+1]=%g",pthr[ipthr],athr[iathr],ii,alpha[ii],alpha[ii+1]) ;
+#endif
+          clust_thresh[ipthr][iathr] = itop ;
         }
         if( clust_thresh[ipthr][iathr] > cmax ) cmax = clust_thresh[ipthr][iathr] ;
       }
