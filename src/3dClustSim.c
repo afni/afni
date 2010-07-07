@@ -675,7 +675,7 @@ MPROBE ;
           if( alpha[ii] > aval && alpha[ii+1] <= aval ) break ;
         if( ii < itop ){
           double alo=alpha[ii] , ahi=alpha[ii+1] ;
-#if 1
+#if 0
 INFO_message("pthr=%g athr=%g ii=%d alpha[ii]=%g alpha[ii+1]=%g",pthr[ipthr],athr[iathr],ii,alpha[ii],alpha[ii+1]) ;
 #endif
           if( alo < 1.0 && ahi > 0.0 ){
@@ -688,11 +688,11 @@ INFO_message("pthr=%g athr=%g ii=%d alpha[ii]=%g alpha[ii+1]=%g",pthr[ipthr],ath
           }
           if( nodec ) aval = (int)(aval+0.951) ;
           clust_thresh[ipthr][iathr] = aval ;
-#if 1
+#if 0
 ININFO_message("aval=%g alo=%g ahi=%g ==> thresh=%g",aval,alo,ahi,clust_thresh[ipthr][iathr]) ;
 #endif
         } else {
-#if 1
+#if 0
 INFO_message("pthr=%g athr=%g ii=%d alpha[ii]=%g alpha[ii+1]=%g",pthr[ipthr],athr[iathr],ii,alpha[ii],alpha[ii+1]) ;
 #endif
           clust_thresh[ipthr][iathr] = itop ;
