@@ -108,7 +108,7 @@ extern AFD_dicom_header **MRILIB_dicom_header ;
     "  command line with the '-D' option.\n"                                       \
     "* How many threads are useful?  That varies with the program, and how well\n" \
     "  it was coded.  You'll have to experiment on your own systems!\n"            \
-    "* The number of CPUs on this particular computer system is %d.\n"             \
+    "* The number of CPUs on this particular computer system is ...... %d.\n"      \
     "%s\n"                                                                         \
     , (pnam) , omp_get_num_procs() , (extra==NULL) ? "\0" : extra                  \
   )

@@ -44,6 +44,14 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 8 , JUL , 2010 , RWC , "3dClustSim" , MICRO , TYPE_NEW_OPT ,
+   "Add -NN option (clustering method) and -prefix (output filename)" ,
+   NULL } ,
+
+ { 8 , JUL , 2010 , RWC , "3dClustSim" , MICRO , TYPE_GENERAL ,
+   "'LOTS' for more output; malloc tweaks for OpenMP speedup" ,
+   NULL } ,
+
  { 7 , JUL , 2010 , RWC , "3dClustSim" , MICRO , TYPE_NEW_OPT ,
    "Added info to output header; also, added -niml option" ,
    NULL } ,
