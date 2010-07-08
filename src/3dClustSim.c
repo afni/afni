@@ -217,7 +217,7 @@ void display_help_menu()
   printf(
    "\n"
    "SAMPLE OUTPUT from the command '3dClustSim -fwhm 7'\n"
-   "\n"
+   "-------------\n"
    "# 3dClustSim -fwhm 7\n"
    "# Grid: 64x64x32 3.50x3.50x3.50 mm^3 (131072 voxels)\n"
    "#\n"
