@@ -160,7 +160,7 @@ if (nNodes==1) for (kk in 1:dimz) {
 }
 	
 if (nNodes>1)	 {
-   #cl <- makeCluster(rep('locahost', nNodes), type = "SOCK")
+q   #cl <- makeCluster(rep('locahost', nNodes), type = "SOCK")
    cl <- makeCluster(nNodes, type = "SOCK")
    clusterEvalQ(cl, library(lme4))
    for (kk in 1:dimz) {
@@ -168,7 +168,6 @@ if (nNodes>1)	 {
       cat("Z slice #", kk, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
    } 
    stopCluster(cl)
-}
 }
 
 print(sprintf("Analysis finished: %s", format(Sys.time(), "%D %H:%M:%OS3")))
