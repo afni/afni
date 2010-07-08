@@ -215,6 +215,14 @@ void display_help_menu()
    "* This program is like running AlphaSim once for each '-pthr' value and then\n"
    "  extracting the relevant information from its 'Alpha' output column.\n"
    "\n"
+   "* To add the cluster simulation C(p,alpha) table to the header of an AFNI\n"
+   "  dataset, something like the following can be done:\n"
+   "     3dClustSim ... -niml -NN 1 -prefix Ctemp\n"
+   "     3drefit -atrstring AFNI_CLUSTSIM_NN1 file:Ctemp.NN1.niml\n"
+   "     rm -f Ctemp.NN1.niml\n"
+   "  In the very near future, AFNI's Clusters GUI will make use of such\n"
+   "  attributes, if stored in a statistical dataset (e.g., from 3dDeconvolve).\n"
+   "\n"
    "-- RW Cox -- July 2010\n"
   ) ;
 
