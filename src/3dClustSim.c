@@ -39,6 +39,7 @@ static int   ny     = 64 ;
 static int   nz     = 32 ;
 static int   nxy ;
 static int   nxyz ;
+static int   nxyz1 ;
 static float dx     = 3.5f ;
 static float dy     = 3.5f ;
 static float dz     = 3.5f ;
@@ -50,8 +51,11 @@ static int   niter  = 10000 ;
 static float sigmax , sigmay , sigmaz ;
 static int do_blur = 0 ;
 
-static int nodec = 0 ;
+static int nodec   = 0 ;
 static int do_niml = 0 ;
+static int do_ball = 0 ;
+
+static int do_NN[4] = { 0 , 1 , 0 , 0 } ;
 
 static unsigned int gseed = 123456789 ;
 
@@ -60,12 +64,26 @@ static unsigned int gseed = 123456789 ;
 static double pthr_init[8] = { 0.02 , 0.01, 0.005, 0.002, 0.001, 0.0005, 0.0002, 0.0001 } ;
 static double athr_init[4] = { 0.10 , 0.05 , 0.02 , 0.01 } ;
 
+static int   npthr_lots     = 24 ;
+static double pthr_lots[24] = { 0.05,    0.04,    0.03,    0.02,    0.015,    0.01,
+                                0.007,   0.005,   0.003,   0.002,   0.0015,   0.001,
+                                0.0007,  0.0005,  0.0003,  0.0002,  0.00015,  0.0001,
+                                0.00007, 0.00005, 0.00003, 0.00002, 0.000015, 0.00001 } ;
+
+static int   nathr_lots   = 10 ;
+static double athr_lots[] = { 0.10, 0.09, .08, .07, .06, .05, .04, .03, .02, .01 } ;
+
 static int    npthr = 8 ;
 static double *pthr = NULL ;
 static float  *zthr = NULL ;
 
 static int    nathr = 4 ;
 static double *athr = NULL ;
+
+static int verb = 1 ;
+static int nthr = 1 ;
+
+static char *prefix = NULL ;
 
 #undef  PSMALL
 #define PSMALL 1.e-15
@@ -111,18 +129,23 @@ void display_help_menu()
    "                  [default values = 64 64 32]\n"
    "-dxyz d1 d2 d3 = give all 3 voxel sizes at once\n"
    "                  [default values = 3.5 3.5 3.5]\n"
+   "-BALL          = inside the 3D grid, mask off points outside a ball\n"
+   "                  at the center of the grid and touching the edges.\n"
+   "\n"
    "  ** OR **\n"
+   "\n"
    "-mask mset     = Use the 0 sub-brick of dataset 'mset' as a mask\n"
    "                  to indicate which voxels to analyze (a sub-brick\n"
    "                  selector '[]' is allowed) \n"
-   "         ** If '-mask' is used, then '-nxyz' and '-dxyz' will be ignored. **\n"
+   "\n"
+   "  ** If '-mask' is used, then '-nxyz' & '-dxyz' & '-BALL' will be ignored. **\n"
    "\n"
    "-fwhm s        = Gaussian filter width (all 3 dimensions)\n"
    "                  [default = 0.0 = no smoothing]\n"
-   "                  If you wish to set different smoothing amounts for\n"
-   "                  each axis, you can instead use option\n"
-   "                    -fwhmxyz sx sy sz\n"
-   "                  to specify the three values separately.\n"
+   "                 * If you wish to set different smoothing amounts for\n"
+   "                   each axis, you can instead use option\n"
+   "                     -fwhmxyz sx sy sz\n"
+   "                   to specify the three values separately.\n"
    "\n"
    "-pthr p1 .. pn = list of uncorrected (per voxel) p-values at which to\n"
    "                  threshold the simulated images prior to clustering.\n"
@@ -135,14 +158,34 @@ void display_help_menu()
    "                  image having a noise-only cluster of size C is less than 'a'\n"
    "                  is the output (cf. the sample output, below)\n"
    "                  [default = 0.10 0.05 0.02 0.01]\n"
+   "\n"
    "         ** Both lists '-pthr' and '-athr' (of values between 0 and 0.2)    **\n"
    "         ** should be given in DESCENDING order.  They will be sorted to be **\n"
    "         ** that way in any case, and such is how the output will be given. **\n"
    "\n"
+   "         ** The list of values following '-pthr' or '-athr' can be replaced **\n"
+   "         ** with the single word 'LOTS', which will tell the program to use **\n"
+   "         ** a longer list of values for these probabilities [try it & see!] **\n"
+   "         ** (i.e., '-pthr LOTS' and/or '-athr LOTS' are legal options)      **\n"
+   "\n"
    "-iter n        = number of Monte Carlo simulations [default = 10000]\n"
    "\n"
-   "-seed S        = random number seed [default seed = 123456789]\n"
-   "                  if seed=0, then program will randomize it\n"
+   "-NN abc        = Define the clustering method(s) to use.  'abc' contains\n"
+   "                 some set of digits from the set { 1 , 2 , 3 }, where\n"
+   "                  1 = Use first-nearest neigbhor clustering\n"
+   "                      * above threshold voxels cluster together if faces touch\n"
+   "                  2 = Use second-nearest neigbhor clustering\n"
+   "                      * voxels cluster together if faces OR edges touch\n"
+   "                  3 = Use third-nearest neigbhor clustering\n"
+   "                      * voxels cluster together if faces OR edges OR corners touch\n"
+   "                 To get outputs from all 3 types of clustering, use '-NN 123'.\n"
+   "                 If you don't use this option, then only first-nearest neighbor\n"
+   "                 clustering will be computed (as if you used '-NN 1').\n"
+   "\n"
+   "              ** The clustering method only makes a difference at higher **\n"
+   "              ** (less significant) values of pthr.  At small values of  **\n"
+   "              ** pthr (more significant), all 3 clustering methods will  **\n"
+   "              ** give about the same results.                            **\n"
    "\n"
    "-nodec         = normally, the program prints the cluster size threshold to\n"
    "                  1 decimal place (e.g., 27.2).  Of course, clusters only come\n"
@@ -150,19 +193,21 @@ void display_help_menu()
    "                  is interpolated to give the desired alpha level.  If you\n"
    "                  want no decimal places (so that 27.2 becomes 28), use '-nodec'.\n"
    "\n"
+   "-seed S        = random number seed [default seed = 123456789]\n"
+   "                  * if seed=0, then program will randomize it\n"
+   "\n"
    "-niml          = Output the table in an XML/NIML format, rather than a .1D format.\n"
-   "                  This option is for use with other software programs.\n"
+   "                  * This option is for use with other software programs.\n"
    "\n"
-   "NOTES:\n"
-   "------\n"
-   "* Output goes to stdout (e.g., the terminal window).  Use Unix redirection\n"
-   "  to capture the results to a file, to save them for historical archives.\n"
+   "-prefix ppp    = Write output for NN method #k to file 'ppp.NNk.1D' for k=1, 2, 3.\n"
+   "                  * If '-niml' is used, the filename is 'ppp.NNk.niml'.\n"
+   "                  * If '-prefix is not used, results go to standard output.\n"
    "\n"
-   "* Nearest neigbhor clustering is the only type implemented at this time.\n"
-   "  That is, voxels are considered neighbors only if they touch face-to-face;\n"
-   "  in other words, if their (i,j,k) indexes in the grid differ in only 1 index\n"
-   "  and only by plus-or-minus 1 in that direction.\n"
+   "-quiet         = Don't print out the progress reports, etc.\n"
+   "                  * Put this option first to quiet most messages.\n"
    "\n"
+   "NOTE:\n"
+   "-----\n"
    "* This program is like running AlphaSim once for each '-pthr' value and then\n"
    "  extracting the relevant information from its 'Alpha' output column.\n"
    "\n"
@@ -177,17 +222,17 @@ void display_help_menu()
    "# Grid: 64x64x32 3.50x3.50x3.50 mm^3 (131072 voxels)\n"
    "#\n"
    "# CLUSTER SIZE THRESHOLD(pthr,alpha) in Voxels\n"
-   "# ------ | alpha = Prob(Cluster >= given size)\n"
+   "# -NN 1  | alpha = Prob(Cluster >= given size)\n"
    "#  pthr  |  0.100  0.050  0.020  0.010\n"
    "# ------ | ------ ------ ------ ------\n"
-   " 0.02000     64.3   71.0   80.5   88.5\n"
-   " 0.01000     40.3   44.7   50.7   55.1\n"
-   " 0.00500     28.0   31.2   34.9   38.1\n"
-   " 0.00200     19.0   21.2   24.2   26.1\n"
-   " 0.00100     14.6   16.3   18.9   20.5\n"
-   " 0.00050     11.5   13.0   15.1   16.7\n"
-   " 0.00020      8.7   10.0   11.6   12.8\n"
-   " 0.00010      7.1    8.3    9.7   10.9\n"
+   " 0.020000    64.3   71.0   80.5   88.5\n"
+   " 0.010000    40.3   44.7   50.7   55.1\n"
+   " 0.005000    28.0   31.2   34.9   38.1\n"
+   " 0.002000    19.0   21.2   24.2   26.1\n"
+   " 0.001000    14.6   16.3   18.9   20.5\n"
+   " 0.000500    11.5   13.0   15.1   16.7\n"
+   " 0.000200     8.7   10.0   11.6   12.8\n"
+   " 0.000100     7.1    8.3    9.7   10.9\n"
    "\n"
    "e.g., for this sample volume, if the per-voxel p-value threshold is set\n"
    "at 0.005, then to keep the probability of getting a single noise-only\n"
@@ -196,7 +241,7 @@ void display_help_menu()
    "\n"
    "If you ran the same simulation with the '-nodec' option, then the last\n"
    "line above would be\n"
-   " 0.00010        8      9     10     11\n"
+   " 0.000100       8      9     10     11\n"
    "If you set the per voxel p-value to 0.0001 (1e-4), and want the chance\n"
    "of a noise-only false-positive cluster to be 5%% or less, then the cluster\n"
    "size threshold would be 9 -- that is, you would keep all NN clusters with\n"
@@ -218,8 +263,6 @@ void get_options( int argc , char **argv )
   int nopt=1 , ii ;
 
   /*----- add to program log -----*/
-
-  AFNI_logger("3dClustSim",argc,argv) ;
 
   pthr = (double *)malloc(sizeof(double)*npthr) ;
   memcpy( pthr , pthr_init , sizeof(double)*npthr ) ;
@@ -262,8 +305,8 @@ void get_options( int argc , char **argv )
       DSET_unload(mask_dset) ;
       mask_ngood = THD_countmask( mask_nvox , mask_vol ) ;
       if( mask_ngood < 128 ) ERROR_exit("-mask has only %d nonzero voxels!",mask_ngood) ;
-      INFO_message("%d voxels in mask (%.1f%% of total)",
-                   mask_ngood,100.0*mask_ngood/(double)mask_nvox) ;
+      if( verb ) INFO_message("%d voxels in mask (%.1f%% of total)",
+                              mask_ngood,100.0*mask_ngood/(double)mask_nvox) ;
       nopt++ ; continue ;
     }
 
@@ -307,7 +350,7 @@ void get_options( int argc , char **argv )
       gseed = (unsigned int)strtol(argv[nopt],NULL,10) ;
       if( gseed == 0 ){
         gseed = ((unsigned int)time(NULL)) + 17*(unsigned int)getpid() ;
-        INFO_message("-seed 0 resets to %u",gseed) ;
+        if( verb ) INFO_message("-seed 0 resets to %u",gseed) ;
       }
       nopt++; continue;
     }
@@ -316,50 +359,66 @@ void get_options( int argc , char **argv )
 
     if( strcmp(argv[nopt],"-pthr") == 0 || strcmp(argv[nopt],"-pval") == 0 ){
       nopt++; if( nopt >= argc ) ERROR_exit("need argument after %s",argv[nopt-1]);
-      for( ii=nopt ; ii < argc && argv[ii][0] != '-' ; ii++ ) ; /*nada*/
-      npthr = ii-nopt ;
-      if( npthr <= 0 ) ERROR_exit("No positive values found after %s",argv[nopt-1]) ;
-      pthr = (double *)realloc(pthr,sizeof(double)*npthr) ;
-      for( ii=0 ; ii < npthr ; ii++ ){
-        pthr[ii] = strtod(argv[nopt+ii],NULL) ;
-        if( pthr[ii] <= 0.0 || pthr[ii] > PMAX )
-          ERROR_exit("value '%s' after '%s' is illegal!",argv[nopt+ii],argv[nopt-1]) ;
-      }
-      if( npthr > 1 ){
-        for( ii=0 ; ii < npthr ; ii++ ) pthr[ii] = -pthr[ii] ;
-        qsort_double( npthr , pthr ) ;
-        for( ii=0 ; ii < npthr ; ii++ ) pthr[ii] = -pthr[ii] ;
-        for( ii=1 ; ii < npthr ; ii++ ){
-          if( pthr[ii] == pthr[ii-1] )
-            WARNING_message("duplicate value %g after '%s'",pthr[ii],argv[nopt-1]) ;
+      if( strcmp(argv[nopt],"LOTS") == 0 ){   /* built in big table of values */
+        npthr = npthr_lots ;
+        pthr = (double *)realloc(pthr,sizeof(double)*npthr) ;
+        memcpy( pthr , pthr_lots , sizeof(double)*npthr ) ;
+        nopt++ ;
+      } else {                                /* a list of values */
+        for( ii=nopt ; ii < argc && argv[ii][0] != '-' ; ii++ ) ; /*nada*/
+        npthr = ii-nopt ;
+        if( npthr <= 0 ) ERROR_exit("No positive values found after %s",argv[nopt-1]) ;
+        pthr = (double *)realloc(pthr,sizeof(double)*npthr) ;
+        for( ii=0 ; ii < npthr ; ii++ ){
+          pthr[ii] = strtod(argv[nopt+ii],NULL) ;
+          if( pthr[ii] <= 0.0 || pthr[ii] > PMAX )
+            ERROR_exit("value '%s' after '%s' is illegal!",argv[nopt+ii],argv[nopt-1]) ;
         }
+        if( npthr > 1 ){
+          for( ii=0 ; ii < npthr ; ii++ ) pthr[ii] = -pthr[ii] ;  /* sort into */
+          qsort_double( npthr , pthr ) ;                          /* descending */
+          for( ii=0 ; ii < npthr ; ii++ ) pthr[ii] = -pthr[ii] ;  /* order */
+          for( ii=1 ; ii < npthr ; ii++ ){
+            if( pthr[ii] == pthr[ii-1] )
+              WARNING_message("duplicate value %g after '%s'",pthr[ii],argv[nopt-1]) ;
+          }
+        }
+        nopt += npthr ;
       }
-      nopt += npthr ; continue ;
+      continue ;
     }
 
     /*-----   -athr p   -----*/
 
     if( strcmp(argv[nopt],"-athr") == 0 || strcmp(argv[nopt],"-aval") == 0 ){
       nopt++; if( nopt >= argc ) ERROR_exit("need argument after %s",argv[nopt-1]);
-      for( ii=nopt ; ii < argc && argv[ii][0] != '-' ; ii++ ) ; /*nada*/
-      nathr = ii-nopt ;
-      if( nathr <= 0 ) ERROR_exit("No positive values found after %s",argv[nopt-1]) ;
-      athr = (double *)realloc(athr,sizeof(double)*nathr) ;
-      for( ii=0 ; ii < nathr ; ii++ ){
-        athr[ii] = strtod(argv[nopt+ii],NULL) ;
-        if( athr[ii] <= 0.0 || athr[ii] > PMAX )
-          ERROR_exit("value '%s' after '%s' is illegal!",argv[nopt+ii],argv[nopt-1]) ;
-      }
-      if( nathr > 1 ){
-        for( ii=0 ; ii < nathr ; ii++ ) athr[ii] = -athr[ii] ;
-        qsort_double( nathr , athr ) ;
-        for( ii=0 ; ii < nathr ; ii++ ) athr[ii] = -athr[ii] ;
-        for( ii=1 ; ii < nathr ; ii++ ){
-          if( athr[ii] == athr[ii-1] )
-            WARNING_message("duplicate value %g after '%s'",athr[ii],argv[nopt-1]) ;
+      if( strcmp(argv[nopt],"LOTS") == 0 ){   /* built in big table of values */
+        nathr = nathr_lots ;
+        athr = (double *)realloc(athr,sizeof(double)*nathr) ;
+        memcpy( athr , athr_lots , sizeof(double)*nathr ) ;
+        nopt++ ;
+      } else {                                /* a list of values */
+        for( ii=nopt ; ii < argc && argv[ii][0] != '-' ; ii++ ) ; /*nada*/
+        nathr = ii-nopt ;
+        if( nathr <= 0 ) ERROR_exit("No positive values found after %s",argv[nopt-1]) ;
+        athr = (double *)realloc(athr,sizeof(double)*nathr) ;
+        for( ii=0 ; ii < nathr ; ii++ ){
+          athr[ii] = strtod(argv[nopt+ii],NULL) ;
+          if( athr[ii] <= 0.0 || athr[ii] > PMAX )
+            ERROR_exit("value '%s' after '%s' is illegal!",argv[nopt+ii],argv[nopt-1]) ;
         }
+        if( nathr > 1 ){
+          for( ii=0 ; ii < nathr ; ii++ ) athr[ii] = -athr[ii] ;
+          qsort_double( nathr , athr ) ;
+          for( ii=0 ; ii < nathr ; ii++ ) athr[ii] = -athr[ii] ;
+          for( ii=1 ; ii < nathr ; ii++ ){
+            if( athr[ii] == athr[ii-1] )
+              WARNING_message("duplicate value %g after '%s'",athr[ii],argv[nopt-1]) ;
+          }
+        }
+        nopt += nathr ;
       }
-      nopt += nathr ; continue ;
+      continue ;
     }
 
     /*----   -nodec   ----*/
@@ -372,6 +431,40 @@ void get_options( int argc , char **argv )
 
     if( strcasecmp(argv[nopt],"-niml") == 0 ){
       do_niml = 1 ; nopt++ ; continue ;
+    }
+
+    /*----   -BALL   ----*/
+
+    if( strcasecmp(argv[nopt],"-BALL") == 0 ){
+      do_ball = 1 ; nopt++ ; continue ;
+    }
+
+    /*----   -NN   ----*/
+
+    if( strcasecmp(argv[nopt],"-NN") == 0 ){
+      nopt++; if( nopt >= argc ) ERROR_exit("need argument after %s",argv[nopt-1]);
+      do_NN[1] = (strchr(argv[nopt],'1') != NULL) ;
+      do_NN[2] = (strchr(argv[nopt],'1') != NULL) ;
+      do_NN[3] = (strchr(argv[nopt],'1') != NULL) ;
+      ii = do_NN[1] + do_NN[2] + do_NN[3] ;
+      if( !ii )
+        ERROR_exit("argument after %s does not contain digits 1, 2, or 3",argv[nopt-1]) ;
+      nopt++ ; continue ;
+    }
+
+    /*-----  -prefix -----*/
+
+    if( strcmp(argv[nopt],"-prefix") == 0 ){
+      nopt++ ; if( nopt >= argc ) ERROR_exit("need argument after -prefix!") ;
+      prefix = strdup(argv[nopt]) ;
+      if( !THD_filename_ok(prefix) ) ERROR_exit("bad -prefix option!") ;
+      nopt++ ; continue ;
+    }
+
+    /*----   -quiet   ----*/
+
+    if( strcasecmp(argv[nopt],"-quiet") == 0 ){
+      verb = 0 ; nopt++ ; continue ;
     }
 
     /*----- unknown option -----*/
@@ -390,9 +483,30 @@ void get_options( int argc , char **argv )
     dz = fabsf(DSET_DZ(mask_dset)) ;
   }
 
-  nxy = nx*ny ; nxyz = nxy*nz ;
+  nxy = nx*ny ; nxyz = nxy*nz ; nxyz1 = nxyz - nxy ;
   if( nxyz < 256 )
     ERROR_exit("Only %d voxels in simulation?! Need at least 256.",nxyz) ;
+
+  if( mask_vol == NULL && do_ball ){
+    float xq,yq,zq , nx2,ny2,nz2 , nxq,nyq,nzq ; int ii,jj,kk ;
+
+    nx2 = 0.5f*(nx-1) ; nxq = nx2*nx2 + 0.501f ;
+    ny2 = 0.5f*(ny-1) ; nyq = ny2*ny2 + 0.501f ;
+    nz2 = 0.5f*(nz-1) ; nzq = nz2*nz2 + 0.501f ;
+    mask_vol = (byte *)malloc(sizeof(byte)*nxyz) ;
+    for( kk=0 ; kk < nz ; kk++ ){
+      zq = kk - nz2 ; zq = (zq*zq) / nzq ;
+      for( jj=0 ; jj < ny ; jj++ ){
+        yq = jj - ny2 ; yq = (yq*yq) / nyq ;
+          for( ii=0 ; ii < nx ; ii++ ){
+            xq = ii - nx2 ; xq = (xq*xq) / nxq ;
+            mask_vol[ii+jj*nx+kk*nxy] = ((xq+yq+zq) <= 1.0f) ;
+    }}}
+    mask_nvox  = nxyz ;
+    mask_ngood = THD_countmask( mask_nvox , mask_vol ) ;
+    if( verb ) INFO_message("%d voxels in BALL mask (%.1f%% of total)",
+                             mask_ngood,100.0*mask_ngood/(double)mask_nvox) ;
+  }
 
   if( mask_ngood == 0 ) mask_ngood = nxyz ;
 
@@ -464,19 +578,32 @@ void generate_image( float *fim , unsigned short xran[] )
 
 #define USE_MEMCHR
 
-int find_largest_cluster( byte *mmm )
+static int    *nall_g = NULL ;  /* per-thread workspaces */
+static short **inow_g = NULL ;  /* for clusterizationing */
+static short **jnow_g = NULL ;
+static short **know_g = NULL ;
+
+/*----------------------------------------------------------------------------*/
+
+int find_largest_cluster_NN1( byte *mmm , int ithr )
 {
    int max_size=0 ;
    int ii,jj,kk, icl , ijk , ijk_last ;
    int ip,jp,kp , im,jm,km ;
-   int nnow  ; short *inow=NULL , *jnow , *know ; int nall ;
+   int nnow  , nall ; short *inow , *jnow , *know ;
 #ifdef USE_MEMCHR
    byte *mch ;
 #endif
 
-   ijk_last = 0 ;
+   /* get workspace for this thread */
+
+   nall = nall_g[ithr] ;
+   inow = inow_g[ithr] ; jnow = jnow_g[ithr] ; know = know_g[ithr] ;
+
+   ijk_last = 0 ;  /* start scanning at the start */
+
    while(1) {
-     /* find next nonzero point */
+     /* find next nonzero point in mmm array */
 
 #ifndef USE_MEMCHR
      for( ijk=ijk_last ; ijk < nxyz ; ijk++ ) if( mmm[ijk] ) break ;
@@ -489,14 +616,17 @@ int find_largest_cluster( byte *mmm )
      ijk_last = ijk+1 ;         /* start here next time */
 
      mmm[ijk] = 0 ;                                /* clear found point */
+
+#if 0
+     if( max_size > 0 && ijk < nxyz1 &&    /* skip this if it's an isola */
+         mmm[ijk+1] == 0 && mmm[ijk+nx] == 0 && mmm[ijk+nxy] == 0 ) continue ;
+#endif
+
      nnow = 1 ;                                    /* # pts in cluster */
-     if( inow == NULL ){
-       nall = DALL ;                                 /* # allocated pts */
-       inow = (short *) malloc(sizeof(short)*DALL) ; /* coords of pts */
-       jnow = (short *) malloc(sizeof(short)*DALL) ;
-       know = (short *) malloc(sizeof(short)*DALL) ;
-     }
      IJK_TO_THREE(ijk, inow[0],jnow[0],know[0] , nx,nxy) ;
+
+     /* loop over points in cluster, checking their neighbors,
+        growing the cluster if we find any that belong therein */
 
      for( icl=0 ; icl < nnow ; icl++ ){
        ii = inow[icl] ; jj = jnow[icl] ; kk = know[icl] ;
@@ -514,20 +644,234 @@ int find_largest_cluster( byte *mmm )
      if( nnow > max_size ) max_size = nnow ;
    }
 
-   if( inow != NULL ){ free(know) ; free(jnow) ; free(inow) ; }
+   if( nall > nall_g[ithr] ){  /* probably won't happen */
+     nall_g[ithr] = nall ;
+     inow_g[ithr] = inow ; jnow_g[ithr] = jnow ; know_g[ithr] = know ;
+   }
+
+   return max_size ;
+}
+
+/*----------------------------------------------------------------------------*/
+
+int find_largest_cluster_NN2( byte *mmm , int ithr )
+{
+   int max_size=0 ;
+   int ii,jj,kk, icl , ijk , ijk_last ;
+   int ip,jp,kp , im,jm,km ;
+   int nnow  , nall ; short *inow , *jnow , *know ;
+#ifdef USE_MEMCHR
+   byte *mch ;
+#endif
+
+   /* get workspace for this thread */
+
+   nall = nall_g[ithr] ;
+   inow = inow_g[ithr] ; jnow = jnow_g[ithr] ; know = know_g[ithr] ;
+
+   ijk_last = 0 ;  /* start scanning at the start */
+
+   while(1) {
+     /* find next nonzero point in mmm array */
+
+#ifndef USE_MEMCHR
+     for( ijk=ijk_last ; ijk < nxyz ; ijk++ ) if( mmm[ijk] ) break ;
+#else
+     mch = memchr( mmm+ijk_last , 1 , nxyz-ijk_last ) ;  /* quicker search */
+     if( mch == NULL ) ijk = nxyz ;
+     else              ijk = mch - mmm ;
+#endif
+     if( ijk == nxyz ) break ;  /* didn't find any! */
+     ijk_last = ijk+1 ;         /* start here next time */
+
+     mmm[ijk] = 0 ;                                /* clear found point */
+
+#if 0
+     if( max_size > 0 && ijk < nxyz1 &&    /* skip this if it's an isola */
+         mmm[ijk+1] == 0 && mmm[ijk+nx] == 0 && mmm[ijk+nxy] == 0 ) continue ;
+#endif
+
+     nnow = 1 ;                                    /* # pts in cluster */
+     IJK_TO_THREE(ijk, inow[0],jnow[0],know[0] , nx,nxy) ;
+
+     /* loop over points in cluster, checking their neighbors,
+        growing the cluster if we find any that belong therein */
+
+     for( icl=0 ; icl < nnow ; icl++ ){
+       ii = inow[icl] ; jj = jnow[icl] ; kk = know[icl] ;
+       im = ii-1      ; jm = jj-1      ; km = kk-1 ;
+       ip = ii+1      ; jp = jj+1      ; kp = kk+1 ;
+
+       if( im >= 0 ){  CPUT(im,jj,kk) ;
+         if( jm >= 0 ) CPUT(im,jm,kk) ;  /* 2NN */
+         if( jp < nx ) CPUT(im,jp,kk) ;  /* 2NN */
+         if( km >= 0 ) CPUT(im,jj,km) ;  /* 2NN */
+         if( kp < nz ) CPUT(im,jj,kp) ;  /* 2NN */
+       }
+       if( ip < nx ){  CPUT(ip,jj,kk) ;
+         if( jm >= 0 ) CPUT(ip,jm,kk) ;  /* 2NN */
+         if( jp < nx ) CPUT(ip,jp,kk) ;  /* 2NN */
+         if( km >= 0 ) CPUT(ip,jj,km) ;  /* 2NN */
+         if( kp < nz ) CPUT(ip,jj,kp) ;  /* 2NN */
+       }
+       if( jm >= 0 ){  CPUT(ii,jm,kk) ;
+         if( km >= 0 ) CPUT(ii,jm,km) ;  /* 2NN */
+         if( kp < nz ) CPUT(ii,jm,kp) ;  /* 2NN */
+       }
+       if( jp < ny ){  CPUT(ii,jp,kk) ;
+         if( km >= 0 ) CPUT(ii,jp,km) ;  /* 2NN */
+         if( kp < nz ) CPUT(ii,jp,kp) ;  /* 2NN */
+       }
+       if( km >= 0 )   CPUT(ii,jj,km) ;
+       if( kp < nz )   CPUT(ii,jj,kp) ;
+     }
+
+     if( nnow > max_size ) max_size = nnow ;
+   }
+
+   if( nall > nall_g[ithr] ){  /* probably won't happen */
+     nall_g[ithr] = nall ;
+     inow_g[ithr] = inow ; jnow_g[ithr] = jnow ; know_g[ithr] = know ;
+   }
+
+   return max_size ;
+}
+
+/*----------------------------------------------------------------------------*/
+
+int find_largest_cluster_NN3( byte *mmm , int ithr )
+{
+   int max_size=0 ;
+   int ii,jj,kk, icl , ijk , ijk_last ;
+   int ip,jp,kp , im,jm,km ;
+   int nnow  , nall ; short *inow , *jnow , *know ;
+#ifdef USE_MEMCHR
+   byte *mch ;
+#endif
+
+   /* get workspace for this thread */
+
+   nall = nall_g[ithr] ;
+   inow = inow_g[ithr] ; jnow = jnow_g[ithr] ; know = know_g[ithr] ;
+
+   ijk_last = 0 ;  /* start scanning at the start */
+
+   while(1) {
+     /* find next nonzero point in mmm array */
+
+#ifndef USE_MEMCHR
+     for( ijk=ijk_last ; ijk < nxyz ; ijk++ ) if( mmm[ijk] ) break ;
+#else
+     mch = memchr( mmm+ijk_last , 1 , nxyz-ijk_last ) ;  /* quicker search */
+     if( mch == NULL ) ijk = nxyz ;
+     else              ijk = mch - mmm ;
+#endif
+     if( ijk == nxyz ) break ;  /* didn't find any! */
+     ijk_last = ijk+1 ;         /* start here next time */
+
+     mmm[ijk] = 0 ;                                /* clear found point */
+
+#if 0
+     if( max_size > 0 && ijk < nxyz1 &&    /* skip this if it's an isola */
+         mmm[ijk+1] == 0 && mmm[ijk+nx] == 0 && mmm[ijk+nxy] == 0 ) continue ;
+#endif
+
+     nnow = 1 ;                                    /* # pts in cluster */
+     IJK_TO_THREE(ijk, inow[0],jnow[0],know[0] , nx,nxy) ;
+
+     /* loop over points in cluster, checking their neighbors,
+        growing the cluster if we find any that belong therein */
+
+     for( icl=0 ; icl < nnow ; icl++ ){
+       ii = inow[icl] ; jj = jnow[icl] ; kk = know[icl] ;
+       im = ii-1      ; jm = jj-1      ; km = kk-1 ;
+       ip = ii+1      ; jp = jj+1      ; kp = kk+1 ;
+
+       if( im >= 0 ){  CPUT(im,jj,kk) ;
+         if( jm >= 0 ) CPUT(im,jm,kk) ;  /* 2NN */
+         if( jp < nx ) CPUT(im,jp,kk) ;  /* 2NN */
+         if( km >= 0 ) CPUT(im,jj,km) ;  /* 2NN */
+         if( kp < nz ) CPUT(im,jj,kp) ;  /* 2NN */
+         if( jm >= 0 && km >= 0 ) CPUT(im,jm,km) ;  /* 3NN */
+         if( jm >= 0 && kp < nz ) CPUT(im,jm,kp) ;  /* 3NN */
+         if( jp < ny && km >= 0 ) CPUT(im,jp,km) ;  /* 3NN */
+         if( jp < ny && kp < nz ) CPUT(im,jp,kp) ;  /* 3NN */
+       }
+       if( ip < nx ){  CPUT(ip,jj,kk) ;
+         if( jm >= 0 ) CPUT(ip,jm,kk) ;  /* 2NN */
+         if( jp < nx ) CPUT(ip,jp,kk) ;  /* 2NN */
+         if( km >= 0 ) CPUT(ip,jj,km) ;  /* 2NN */
+         if( kp < nz ) CPUT(ip,jj,kp) ;  /* 2NN */
+         if( jm >= 0 && km >= 0 ) CPUT(ip,jm,km) ;  /* 3NN */
+         if( jm >= 0 && kp < nz ) CPUT(ip,jm,kp) ;  /* 3NN */
+         if( jp < ny && km >= 0 ) CPUT(ip,jp,km) ;  /* 3NN */
+         if( jp < ny && kp < nz ) CPUT(ip,jp,kp) ;  /* 3NN */
+       }
+       if( jm >= 0 ){  CPUT(ii,jm,kk) ;
+         if( km >= 0 ) CPUT(ii,jm,km) ;  /* 2NN */
+         if( kp < nz ) CPUT(ii,jm,kp) ;  /* 2NN */
+       }
+       if( jp < ny ){  CPUT(ii,jp,kk) ;
+         if( km >= 0 ) CPUT(ii,jp,km) ;  /* 2NN */
+         if( kp < nz ) CPUT(ii,jp,kp) ;  /* 2NN */
+       }
+       if( km >= 0 )   CPUT(ii,jj,km) ;
+       if( kp < nz )   CPUT(ii,jj,kp) ;
+     }
+
+     if( nnow > max_size ) max_size = nnow ;
+   }
+
+   if( nall > nall_g[ithr] ){  /* probably won't happen */
+     nall_g[ithr] = nall ;
+     inow_g[ithr] = inow ; jnow_g[ithr] = jnow ; know_g[ithr] = know ;
+   }
+
    return max_size ;
 }
 
 /*---------------------------------------------------------------------------*/
 /* Find clusters, save some info, re-populate array? */
 
-void gather_stats( int ithr , float *fim , byte *bfim , int *mtab )
+void gather_stats_NN1( int ipthr , float *fim , byte *bfim , int *mtab , int ithr )
 {
   register int ii ; register float thr ; int siz ;
 
-  thr = zthr[ithr] ;
+  thr = zthr[ipthr] ;
   for( ii=0 ; ii < nxyz ; ii++ ) bfim[ii] = (fim[ii] > thr) ;
-  siz = find_largest_cluster( bfim ) ;
+  siz = find_largest_cluster_NN1( bfim , ithr ) ;  /* find_cluster is a function pointer */
+  if( siz > max_cluster_size ) siz = max_cluster_size ;
+  mtab[siz]++ ;
+
+  return ;
+}
+
+/*---------------------------------------------------------------------------*/
+/* Find clusters, save some info, re-populate array? */
+
+void gather_stats_NN2( int ipthr , float *fim , byte *bfim , int *mtab , int ithr )
+{
+  register int ii ; register float thr ; int siz ;
+
+  thr = zthr[ipthr] ;
+  for( ii=0 ; ii < nxyz ; ii++ ) bfim[ii] = (fim[ii] > thr) ;
+  siz = find_largest_cluster_NN2( bfim , ithr ) ;  /* find_cluster is a function pointer */
+  if( siz > max_cluster_size ) siz = max_cluster_size ;
+  mtab[siz]++ ;
+
+  return ;
+}
+
+/*---------------------------------------------------------------------------*/
+/* Find clusters, save some info, re-populate array? */
+
+void gather_stats_NN3( int ipthr , float *fim , byte *bfim , int *mtab , int ithr )
+{
+  register int ii ; register float thr ; int siz ;
+
+  thr = zthr[ipthr] ;
+  for( ii=0 ; ii < nxyz ; ii++ ) bfim[ii] = (fim[ii] > thr) ;
+  siz = find_largest_cluster_NN3( bfim , ithr ) ;  /* find_cluster is a function pointer */
   if( siz > max_cluster_size ) siz = max_cluster_size ;
   mtab[siz]++ ;
 
@@ -538,9 +882,9 @@ void gather_stats( int ithr , float *fim , byte *bfim , int *mtab )
 
 int main( int argc , char **argv )
 {
-  int **max_table=NULL ; int ipthr , nthr=1 ;
+  int **max_table[4] ; int nnn , ipthr ;
 #ifdef USE_OMP
-  int ***mtab=NULL ;
+  int ***mtab[4] ;
 #endif
 
   /*----- does user request help menu? -----*/
@@ -555,17 +899,19 @@ int main( int argc , char **argv )
 
   get_options( argc , argv ) ;
 
-MPROBE ;
+  /*----- create some space for the results -----*/
 
-  max_table = (int **)malloc(sizeof(int *)*npthr) ;  /* array of tables */
-  for( ipthr=0 ; ipthr < npthr ; ipthr++ )           /* create tables */
-    max_table[ipthr] = (int *)calloc(sizeof(int),(max_cluster_size+1)) ;
-
-MPROBE ;
+  for( nnn=1 ; nnn <= 3 ; nnn++ ){
+    if( do_NN[nnn] ){
+      max_table[nnn] = (int **)malloc(sizeof(int *)*npthr) ;  /* array of tables */
+      for( ipthr=0 ; ipthr < npthr ; ipthr++ )               /* create tables */
+        max_table[nnn][ipthr] = (int *)calloc(sizeof(int),(max_cluster_size+1)) ;
+    }
+  }
 
 #pragma omp parallel
  {
-   int iter, ithr, ipthr, **mt ;
+   int iter, ithr, ipthr, **mt[4] , nnn ;
    float *fim ; byte *bfim ; unsigned short xran[3] ;
    int vstep , vii ;
 
@@ -577,14 +923,32 @@ MPROBE ;
 #pragma omp master  /* only in the master thread */
  {
    nthr = omp_get_num_threads() ;
-   mtab = (int ***)malloc(sizeof(int **)*nthr) ;  /* array of arrays of tables */
-   INFO_message("Using %d OpenMP threads",nthr) ;
+   for( nnn=1 ; nnn <= 3 ; nnn++ ){
+     if( do_NN[nnn] ) mtab[nnn] = (int ***)malloc(sizeof(int **) *nthr) ;
+   }
+
+   nall_g = (int *)   malloc(sizeof(int)    *nthr) ;  /* workspaces for */
+   inow_g = (short **)malloc(sizeof(short *)*nthr) ;  /* find_largest_cluster() */
+   jnow_g = (short **)malloc(sizeof(short *)*nthr) ;
+   know_g = (short **)malloc(sizeof(short *)*nthr) ;
+   if( verb ) INFO_message("Using %d OpenMP threads",nthr) ;
  }
 #pragma omp barrier  /* all threads wait until the above is finished */
    /* create tables for each thread separately */
-   mtab[ithr] = mt = (int **)malloc(sizeof(int *)*npthr) ;
-   for( ipthr=0 ; ipthr < npthr ; ipthr++ )
-     mt[ipthr] = (int *)calloc(sizeof(int),(max_cluster_size+1)) ;
+   for( nnn=1 ; nnn <= 3 ; nnn++ ){
+     if( do_NN[nnn] ){
+       mtab[nnn][ithr] = mt[nnn] = (int **)malloc(sizeof(int *)*npthr) ;
+       for( ipthr=0 ; ipthr < npthr ; ipthr++ )
+         mt[nnn][ipthr] = (int *)calloc(sizeof(int),(max_cluster_size+1)) ;
+     }
+   }
+
+   /* create workspace for find_largest_cluster(), for this thread */
+
+   nall_g[ithr] = DALL ;
+   inow_g[ithr] = (short *) malloc(sizeof(short)*DALL) ;
+   jnow_g[ithr] = (short *) malloc(sizeof(short)*DALL) ;
+   know_g[ithr] = (short *) malloc(sizeof(short)*DALL) ;
 
    /* initialize random seed array for each thread separately */
    xran[2] = ( gseed        & 0xffff) + (unsigned short)ithr ;
@@ -592,10 +956,20 @@ MPROBE ;
    xran[0] = 0x330e                   + (unsigned short)ithr ;
 
 #else /* not OpenMP ==> only one set of tables */
-   mt = max_table ; ithr = 0 ;
+   ithr = 0 ;
    xran[2] = ( gseed        & 0xffff) ;
    xran[1] = ((gseed >> 16) & 0xffff) ;
    xran[0] = 0x330e ;
+   nall_g = (int *)   malloc(sizeof(int)    *nthr) ;
+   inow_g = (short **)malloc(sizeof(short *)*nthr) ;
+   jnow_g = (short **)malloc(sizeof(short *)*nthr) ;
+   know_g = (short **)malloc(sizeof(short *)*nthr) ;
+   nall_g[ithr] = DALL ;
+   inow_g[ithr] = (short *) malloc(sizeof(short)*DALL) ;
+   jnow_g[ithr] = (short *) malloc(sizeof(short)*DALL) ;
+   know_g[ithr] = (short *) malloc(sizeof(short)*DALL) ;
+   for( nnn=1 ; nnn <= 3 ; nnn++ )
+     if( do_NN[nnn] ) mt[nnn] = max_table[nnn] ;
 #endif
 
    fim  = (float *)malloc(sizeof(float)*nxyz) ;  /* image space */
@@ -603,52 +977,56 @@ MPROBE ;
 
    vstep = niter / (nthr*50) ;
    vii   = 0 ;
-   if( ithr == 0 ) fprintf(stderr,"Simulating: ") ;
+   if( ithr == 0 && verb ) fprintf(stderr,"Simulating: ") ;
 
   /*----- Monte Carlo iterations -----*/
 
 #pragma omp for
   for( iter=1 ; iter <= niter ; iter++ ){
 
-    if( ithr == 0 ){
+    if( verb && ithr == 0 ){
       vii++ ; if( vii%vstep == 0 ) vstep_print() ;
     }
 
     generate_image( fim , xran ) ;
-MPROBE ;
 
     for( ipthr=0 ; ipthr < npthr ; ipthr++ ){
-      gather_stats( ipthr , fim , bfim , mt[ipthr] ) ;
-MPROBE ;
+      if( do_NN[1] )
+        gather_stats_NN1( ipthr , fim , bfim , mt[1][ipthr] , ithr ) ;
+      if( do_NN[2] )
+        gather_stats_NN2( ipthr , fim , bfim , mt[2][ipthr] , ithr ) ;
+      if( do_NN[3] )
+        gather_stats_NN3( ipthr , fim , bfim , mt[3][ipthr] , ithr ) ;
     }
 
   } /* end of simulation loop */
 
-MPROBE ;
   free(fim) ; free(bfim) ;
-  if( ithr == 0 ) fprintf(stderr,"\n") ;
+  free(inow_g[ithr]) ; free(jnow_g[ithr]) ; free(know_g[ithr]) ;
+
+  if( ithr == 0 && verb ) fprintf(stderr,"\n") ;
 
  AFNI_OMP_END ;
  } /* end OpenMP parallelization */
 
    /*-------- sum tables from various threads into one result ----------*/
 
-MPROBE ;
-
 #ifdef USE_OMP
    { int ithr , ii , ipthr , **mt , *mth ;
-     for( ithr=0 ; ithr < nthr ; ithr++ ){
-       mt = mtab[ithr] ;
-       for( ipthr=0 ; ipthr < npthr ; ipthr++ ){
-         mth = mt[ipthr] ;
-         for( ii=1 ; ii <= max_cluster_size ; ii++ )
-           max_table[ipthr][ii] += mth[ii] ;
+     for( nnn=1 ; nnn <= 3 ; nnn++ ){
+       if( do_NN[nnn] ){
+         for( ithr=0 ; ithr < nthr ; ithr++ ){
+           mt = mtab[nnn][ithr] ;
+           for( ipthr=0 ; ipthr < npthr ; ipthr++ ){
+             mth = mt[ipthr] ;
+             for( ii=1 ; ii <= max_cluster_size ; ii++ )
+               max_table[nnn][ipthr][ii] += mth[ii] ;
+           }
+         }
        }
      }
    }
 #endif
-
-MPROBE ;
 
   enable_mcw_malloc() ;
 
@@ -658,110 +1036,121 @@ MPROBE ;
     float **clust_thresh , cmax=0.0f ;
     int ii , itop , iathr ;
     char *commandline = tross_commandline("3dClustSim",argc,argv) ;
+    char fname[THD_MAX_NAME] ;
 
     alpha        = (double *)malloc(sizeof(double)*(max_cluster_size+1)) ;
     clust_thresh = (float **)malloc(sizeof(float *)*npthr) ;
-    for( ipthr=0 ; ipthr < npthr ; ipthr++ ){
+    for( ipthr=0 ; ipthr < npthr ; ipthr++ )
       clust_thresh[ipthr] = (float *)malloc(sizeof(float)*nathr) ;
-      for( iathr=0 ; iathr < nathr ; iathr++ ) clust_thresh[ipthr][iathr] = -666.0f ;
-      for( itop=ii=1 ; ii <= max_cluster_size ; ii++ ){
-        alpha[ii] = max_table[ipthr][ii] / (double)niter ;
-        if( alpha[ii] > 0.0 ) itop = ii ;
-      }
-      for( ii=itop-1 ; ii >= 1 ; ii-- ) alpha[ii] += alpha[ii+1] ;
-      for( iathr=0 ; iathr < nathr ; iathr++ ){
-        aval = athr[iathr] ;
-        for( ii=1 ; ii < itop ; ii++ )
-          if( alpha[ii] > aval && alpha[ii+1] <= aval ) break ;
-        if( ii < itop ){
-          double alo=alpha[ii] , ahi=alpha[ii+1] ;
-#if 0
-INFO_message("pthr=%g athr=%g ii=%d alpha[ii]=%g alpha[ii+1]=%g",pthr[ipthr],athr[iathr],ii,alpha[ii],alpha[ii+1]) ;
-#endif
-          if( alo < 1.0 && ahi > 0.0 ){
-            aval = log(-log(1.0-aval)) ;
-            alo  = log(-log(1.0-alo)) ;
-            ahi  = log(-log(1.0-ahi)) ;
-            aval = ii + (aval-alo)/(ahi-alo) ;
-          } else {
-            aval = ii + (alo-aval)/alo ;
-          }
-          if( nodec ) aval = (int)(aval+0.951) ;
-          clust_thresh[ipthr][iathr] = aval ;
-#if 0
-ININFO_message("aval=%g alo=%g ahi=%g ==> thresh=%g",aval,alo,ahi,clust_thresh[ipthr][iathr]) ;
-#endif
-        } else {
-#if 0
-INFO_message("pthr=%g athr=%g ii=%d alpha[ii]=%g alpha[ii+1]=%g",pthr[ipthr],athr[iathr],ii,alpha[ii],alpha[ii+1]) ;
-#endif
-          clust_thresh[ipthr][iathr] = itop ;
-        }
-        if( clust_thresh[ipthr][iathr] > cmax ) cmax = clust_thresh[ipthr][iathr] ;
-      }
-    }
 
-    if( !nodec && !do_niml && cmax > 9999.8f ){  /* if largest output is way big, */
-      for( ipthr=0 ; ipthr < npthr ; ipthr++ ){  /* then truncate all to integers */
+    for( nnn=1 ; nnn <= 3 ; nnn++ ){
+      if( !do_NN[nnn] ) continue ;
+      for( ipthr=0 ; ipthr < npthr ; ipthr++ ){
+        for( itop=ii=1 ; ii <= max_cluster_size ; ii++ ){
+          alpha[ii] = max_table[nnn][ipthr][ii] / (double)niter ;
+          if( alpha[ii] > 0.0 ) itop = ii ;
+        }
+        for( ii=itop-1 ; ii >= 1 ; ii-- ) alpha[ii] += alpha[ii+1] ;
         for( iathr=0 ; iathr < nathr ; iathr++ ){
-          aval = clust_thresh[ipthr][iathr] ;
-          aval = (int)(aval+0.951) ;
-          clust_thresh[ipthr][iathr] = aval ;
+          aval = athr[iathr] ;
+          for( ii=1 ; ii < itop ; ii++ )
+            if( alpha[ii] > aval && alpha[ii+1] <= aval ) break ;
+          if( ii < itop ){
+            double alo=alpha[ii] , ahi=alpha[ii+1] ;
+            if( alo < 1.0 && ahi > 0.0 ){
+              aval = log(-log(1.0-aval)) ;
+              alo  = log(-log(1.0-alo)) ;
+              ahi  = log(-log(1.0-ahi)) ;
+              aval = ii + (aval-alo)/(ahi-alo) ;
+            } else {
+              aval = ii + (alo-aval)/alo ;
+            }
+            if( nodec ) aval = (int)(aval+0.951) ;
+            clust_thresh[ipthr][iathr] = aval ;
+          } else {
+            clust_thresh[ipthr][iathr] = itop ;
+          }
+          if( clust_thresh[ipthr][iathr] > cmax ) cmax = clust_thresh[ipthr][iathr] ;
         }
       }
-      nodec = 1 ;
-    }
+
+      if( !nodec && !do_niml && cmax > 9999.8f ){  /* if largest output is way big, */
+        for( ipthr=0 ; ipthr < npthr ; ipthr++ ){  /* then truncate all to integers */
+          for( iathr=0 ; iathr < nathr ; iathr++ ){
+            aval = clust_thresh[ipthr][iathr] ;
+            aval = (int)(aval+0.951) ;
+            clust_thresh[ipthr][iathr] = aval ;
+          }
+        }
+        nodec = 1 ;
+      }
 
 MPROBE ;
 
-    fflush(stderr) ; fflush(stdout) ;
+      if( prefix != NULL ){
+        sprintf(fname,"%s.NN%d.",prefix,nnn) ;
+      } else {
+        fflush(stderr) ; fflush(stdout) ;
+      }
 
-    if( !do_niml ){  /* output in 1D format */
-      printf(
-       "# %s\n"
-       "# Grid: %dx%dx%d %.2fx%.2fx%.2f mm^3 (%d voxels%s)\n"
-       "#\n"
-       "# CLUSTER SIZE THRESHOLD(pthr,alpha) in Voxels\n"
-       "# ------ | alpha = Prob(Cluster >= given size)\n"
-       "#  pthr  |" ,
-       commandline ,
-       nx,ny,nz , dx,dy,dz ,
-       mask_ngood , (mask_ngood < nxyz) ? " in mask" : "\0" ) ;
-      for( iathr=0 ; iathr < nathr ; iathr++ ) printf(" %6.3f",athr[iathr]) ;
-      printf("\n"
-       "# ------ |" ) ;
-      for( iathr=0 ; iathr < nathr ; iathr++ ) printf(" ------") ;
-      printf("\n") ;
-      for( ipthr=0 ; ipthr < npthr ; ipthr++ ){
-        printf("%8.5f  ",pthr[ipthr]) ;
-        for( iathr=0 ; iathr < nathr ; iathr++ ){
-          if( nodec ) printf("%7d"  ,(int)clust_thresh[ipthr][iathr]) ;
-          else        printf("%7.1f",     clust_thresh[ipthr][iathr]) ;
+      if( !do_niml ){  /* output in 1D format */
+        FILE *fp = stdout ;
+        if( prefix != NULL ){
+          strcat(fname,"1D") ; fp = fopen(fname,"w") ;
+          if( fp == NULL ){
+            ERROR_message("Can't open file %s -- using stdout",fname) ;
+            fp = stdout ;
+          }
         }
-        printf("\n") ;
+        fprintf(fp,
+         "# %s\n"
+         "# Grid: %dx%dx%d %.2fx%.2fx%.2f mm^3 (%d voxels%s)\n"
+         "#\n"
+         "# CLUSTER SIZE THRESHOLD(pthr,alpha) in Voxels\n"
+         "# -NN %d  | alpha = Prob(Cluster >= given size)\n"
+         "#  pthr  |" ,
+         commandline ,
+         nx,ny,nz , dx,dy,dz ,
+         mask_ngood , (mask_ngood < nxyz) ? " in mask" : "\0" , nnn ) ;
+        for( iathr=0 ; iathr < nathr ; iathr++ ) fprintf(fp," %6.3f",athr[iathr]) ;
+        fprintf(fp,"\n"
+         "# ------ |" ) ;
+        for( iathr=0 ; iathr < nathr ; iathr++ ) fprintf(fp," ------") ;
+        fprintf(fp,"\n") ;
+        for( ipthr=0 ; ipthr < npthr ; ipthr++ ){
+          fprintf(fp,"%9.6f ",pthr[ipthr]) ;
+          for( iathr=0 ; iathr < nathr ; iathr++ ){
+            if( nodec ) fprintf(fp,"%7d"  ,(int)clust_thresh[ipthr][iathr]) ;
+            else        fprintf(fp,"%7.1f",     clust_thresh[ipthr][iathr]) ;
+          }
+          fprintf(fp,"\n") ;
+        }
+      } else {       /* output in NIML format */
+        NI_element *nel ; float *vec ; char buf[1024] , *bbb ; NI_float_array nfar ;
+        sprintf(buf,"3dClustSim_NN%d",nnn) ;
+        nel = NI_new_data_element( buf , npthr ) ;
+        vec = (float *)malloc(sizeof(float)*MAX(npthr,nathr)) ;
+        for( iathr=0 ; iathr < nathr ; iathr++ ){
+          for( ipthr=0 ; ipthr < npthr ; ipthr++ ) vec[ipthr] = clust_thresh[ipthr][iathr] ;
+          NI_add_column( nel , NI_FLOAT , vec ) ;
+        }
+        NI_set_attribute( nel , "commandline" , commandline ) ;
+        sprintf(buf,"%d,%d,%d",nx,ny,nz) ; NI_set_attribute(nel,"nxyz",buf) ;
+        sprintf(buf,"%.3f,%.3f,%.3f",dx,dy,dz) ; NI_set_attribute(nel,"dxyz",buf) ;
+        sprintf(buf,"%.2f,%.2f,%.2f",fwhm_x,fwhm_y,fwhm_z) ; NI_set_attribute(nel,"fwhmxyz",buf) ;
+        sprintf(buf,"%d",niter) ; NI_set_attribute(nel,"iter",buf) ;
+        for( ipthr=0 ; ipthr < npthr ; ipthr++ ) vec[ipthr] = pthr[ipthr] ;
+        nfar.num = npthr ; nfar.ar = vec ; bbb = NI_encode_float_list(&nfar,",") ;
+        NI_set_attribute(nel,"pthr",bbb) ; NI_free(bbb) ;
+        for( iathr=0 ; iathr < nathr ; iathr++ ) vec[iathr] = athr[iathr] ;
+        nfar.num = nathr ; nfar.ar = vec ; bbb = NI_encode_float_list(&nfar,",") ;
+        NI_set_attribute(nel,"athr",bbb) ; NI_free(bbb) ;
+        if( prefix != NULL ) strcat(fname,"niml") ;
+        else                 strcpy(fname,"stdout:") ;
+        NI_write_element_tofile( fname , nel , NI_TEXT_MODE ) ;
       }
-    } else {       /* output in NIML format */
-      NI_element *nel ; float *vec ; char buf[1024] , *bbb ; NI_float_array nfar ;
-      nel = NI_new_data_element( "3dClustSim" , npthr ) ;
-      vec = (float *)malloc(sizeof(float)*MAX(npthr,nathr)) ;
-      for( iathr=0 ; iathr < nathr ; iathr++ ){
-        for( ipthr=0 ; ipthr < npthr ; ipthr++ ) vec[ipthr] = clust_thresh[ipthr][iathr] ;
-        NI_add_column( nel , NI_FLOAT , vec ) ;
-      }
-      NI_set_attribute( nel , "commandline" , commandline ) ;
-      sprintf(buf,"%d,%d,%d",nx,ny,nz) ; NI_set_attribute(nel,"nxyz",buf) ;
-      sprintf(buf,"%.3f,%.3f,%.3f",dx,dy,dz) ; NI_set_attribute(nel,"dxyz",buf) ;
-      sprintf(buf,"%.2f,%.2f,%.2f",fwhm_x,fwhm_y,fwhm_z) ; NI_set_attribute(nel,"fwhmxyz",buf) ;
-      sprintf(buf,"%d",niter) ; NI_set_attribute(nel,"iter",buf) ;
-      for( ipthr=0 ; ipthr < npthr ; ipthr++ ) vec[ipthr] = pthr[ipthr] ;
-      nfar.num = npthr ; nfar.ar = vec ; bbb = NI_encode_float_list(&nfar,",") ;
-      NI_set_attribute(nel,"pthr",bbb) ; NI_free(bbb) ;
-      for( iathr=0 ; iathr < nathr ; iathr++ ) vec[iathr] = athr[iathr] ;
-      nfar.num = nathr ; nfar.ar = vec ; bbb = NI_encode_float_list(&nfar,",") ;
-      NI_set_attribute(nel,"athr",bbb) ; NI_free(bbb) ;
-      NI_write_element_tofile( "stdout:" , nel , NI_TEXT_MODE ) ;
-    }
-    fflush(stdout) ;
+      fflush(stdout) ;
+    } /* end of loop over nnn */
   }
 
   /* run away screaming */
