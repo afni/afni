@@ -52,6 +52,13 @@ afni_history_struct gangc_history[] = {
 
   /* can copy to and change one of the examples here */
   
+  { 8 , JUL , 2010 , GC , "3dICC_REML.R" , MINOR , TYPE_NEW_PROG ,
+    "IntraClass Correlation (ICC) with REML Method",
+	 "This is an R program that calculates ICC with REML method on 3D \n"
+    "volume data based on linear mixed-effect modeling scheme. See \n"
+    "more details at http://afni.nimh.nih.gov/sscc/gangc/ICC_REML.html" 
+  } ,
+  
   { 23 , NOV , 2009 , GC , "3dKS.R" , MINOR , TYPE_NEW_PROG ,
     "Kolmogorov-Smirnov test",
 	 "This is an R program that runs Kolmogrov-Smirnov test between\n"
