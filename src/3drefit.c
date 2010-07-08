@@ -218,6 +218,9 @@ void Syntax(char *str)
     "                  communicating information between programs.  However,\n"
     "                  when most AFNI programs write a new dataset, they will\n"
     "                  not preserve any such non-standard attributes.\n"
+    "          **N.B.: Special case: if the string 'x' is of the form\n"
+    "                  'file:name', then the contents of the file 'name' will\n"
+    "                  be read in as a single string and stored in the attribute.\n"
     "  -atrfloat name 'values'\n"
     "  -atrint name 'values'\n"
     "                  Create or modify floating point or integer attributes.\n"
@@ -511,7 +514,7 @@ int main( int argc , char * argv[] )
       /*----- -atrstring nn xx [03 Aug 2005] -----*/
 
       if( strcmp(argv[iarg],"-atrstring") == 0 ){
-        ATR_string *atr ; char *aname , *xx ;
+        ATR_string *atr ; char *aname , *xx , *yy=NULL ;
 
         if( iarg+2 >= argc ) Syntax("need 2 arguments after -atrstring!") ;
 
@@ -523,11 +526,24 @@ int main( int argc , char * argv[] )
         xx  = argv[++iarg] ;
         atr = (ATR_string *)XtMalloc(sizeof(ATR_string)) ;
 
+        if( strncmp(xx,"file:",5) == 0 && strlen(xx) > 5 ){  /* 08 Jul 2010 */
+          int ii ;
+          yy = AFNI_suck_file(xx+5) ;
+          if( yy == NULL ){
+            WARNING_message("Can't read '%s'",xx) ; goto atrstring_done ;
+          }
+          xx = yy ;
+          for( ii=strlen(yy)-1 ; ii > 0 && isspace(yy[ii]) ; ii-- )
+            yy[ii] = '\0' ;   /* truncate trailing whitespace */
+        }
+
         atr->type = ATR_STRING_TYPE ;
         atr->name = XtNewString( aname ) ;
         atr->nch  = strlen(xx)+1 ; ;
         atr->ch   = (char *)XtMalloc( sizeof(char) * atr->nch ) ;
         memcpy( atr->ch , xx , sizeof(char) * atr->nch ) ;
+
+        if( yy != NULL ) free(yy) ;  /* 08 Jul 2010 */
 
         atrcopy = (ATR_any **)realloc( (void *)atrcopy ,
                                        sizeof(ATR_any *)*(num_atrcopy+1) ) ;
