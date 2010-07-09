@@ -116,7 +116,7 @@ void display_help_menu()
   printf(
    "Usage: 3dClustSim [options]\n"
    "\n"
-   "Program to estimate the probability of false cluster positives.\n"
+   "Program to estimate the probability of false positive (noise-only) clusters.\n"
    "An adaptation of Doug Ward's AlphaSim, streamlined for various purposes.\n"
    "\n"
    "In particular, this program lets you run with multiple p-value thresholds\n"
@@ -128,6 +128,9 @@ void display_help_menu()
    "\n"
    "OPTIONS  [at least 1 option is required, or you'll get this help message!]\n"
    "-------\n"
+   " ** Specify the volume over which the simulation will occur **\n"
+   "\n"
+   "    ** Directly give the spatial domain that will be used **\n"
    "-nxyz n1 n2 n3 = Size of 3D grid to use for simulation\n"
    "                  [default values = 64 64 32]\n"
    "-dxyz d1 d2 d3 = give all 3 voxel sizes at once\n"
@@ -135,14 +138,15 @@ void display_help_menu()
    "-BALL          = inside the 3D grid, mask off points outside a ball\n"
    "                  at the center of the grid and touching the edges;\n"
    "                  this will keep about 1/2 the points in the 3D grid.\n"
+   "                  [default = use all voxels in the 3D grid]\n"
    "\n"
-   "  ** OR **\n"
+   "    ** OR: Specify the spatial domain using a dataset mask **\n"
    "\n"
    "-mask mset     = Use the 0 sub-brick of dataset 'mset' as a mask\n"
    "                  to indicate which voxels to analyze (a sub-brick\n"
    "                  selector '[]' is allowed) \n"
    "\n"
-   "  ** If '-mask' is used, then '-nxyz' & '-dxyz' & '-BALL' will be ignored. **\n"
+   "    ** '-mask' means that '-nxyz' & '-dxyz' & '-BALL' will be ignored. **\n"
    "\n"
    "-fwhm s        = Gaussian filter width (all 3 dimensions)\n"
    "                  [default = 0.0 = no smoothing]\n"
@@ -171,6 +175,8 @@ void display_help_menu()
    "         ** with the single word 'LOTS', which will tell the program to use **\n"
    "         ** a longer list of values for these probabilities [try it & see!] **\n"
    "         ** (i.e., '-pthr LOTS' and/or '-athr LOTS' are legal options)      **\n"
+   "\n"
+   "-LOTS          = the same as using '-pthr LOTS -athr LOTS'\n"
    "\n"
    "-iter n        = number of Monte Carlo simulations [default = 10000]\n"
    "\n"
@@ -208,19 +214,27 @@ void display_help_menu()
    "                  * If '-prefix is not used, results go to standard output.\n"
    "\n"
    "-quiet         = Don't print out the progress reports, etc.\n"
-   "                  * Put this option first to quiet most messages.\n"
+   "                  * Put this option first to quiet most informational messages.\n"
    "\n"
    "NOTE:\n"
    "-----\n"
    "* This program is like running AlphaSim once for each '-pthr' value and then\n"
    "  extracting the relevant information from its 'Alpha' output column.\n"
    "\n"
+   "* To be clear, the C(p,alpha) thresholds that are calculated are for\n"
+   "  alpha = probability of a noise-only smooth random field, after thresholding\n"
+   "  at the per-voxel p value, produces a cluster of voxels at least this big.\n"
+   "  So if your cluster is well above the C(p,0.05) threshold in size (say),\n"
+   "  then it is very unlikely that noise BY ITSELF produced this result.  This\n"
+   "  statement does not mean that all the voxels in the cluster are 'truly'\n"
+   "  active -- it means that at least SOME of them are (probably) truly active.\n"
+   "\n"
    "* To add the cluster simulation C(p,alpha) table to the header of an AFNI\n"
    "  dataset, something like the following can be done:\n"
-   "     3dClustSim ... -niml -NN 1 -prefix Ctemp\n"
+   "     3dClustSim -LOTS -niml -prefix Ctemp\n"
    "     3drefit -atrstring AFNI_CLUSTSIM_NN1 file:Ctemp.NN1.niml\n"
    "     rm -f Ctemp.NN1.niml\n"
-   "  In the very near future, AFNI's Clusters GUI will make use of such\n"
+   "  In the real soon now future, AFNI's Clusters GUI will make use of such\n"
    "  attributes, if stored in a statistical dataset (e.g., from 3dDeconvolve).\n"
    "\n"
    "-- RW Cox -- July 2010\n"
@@ -365,6 +379,18 @@ void get_options( int argc , char **argv )
         if( verb ) INFO_message("-seed 0 resets to %u",gseed) ;
       }
       nopt++; continue;
+    }
+
+    /*-----   -LOTS     -----*/
+
+    if( strcasecmp(argv[nopt],"-LOTS") == 0 ){
+      npthr = npthr_lots ;
+      pthr = (double *)realloc(pthr,sizeof(double)*npthr) ;
+      memcpy( pthr , pthr_lots , sizeof(double)*npthr ) ;
+      nathr = nathr_lots ;
+      athr = (double *)realloc(athr,sizeof(double)*nathr) ;
+      memcpy( athr , athr_lots , sizeof(double)*nathr ) ;
+      nopt++ ; continue ;
     }
 
     /*-----   -pthr p   -----*/
@@ -629,11 +655,6 @@ int find_largest_cluster_NN1( byte *mmm , int ithr )
 
      mmm[ijk] = 0 ;                                /* clear found point */
 
-#if 0
-     if( max_size > 0 && ijk < nxyz1 &&    /* skip this if it's an isola */
-         mmm[ijk+1] == 0 && mmm[ijk+nx] == 0 && mmm[ijk+nxy] == 0 ) continue ;
-#endif
-
      nnow = 1 ;                                    /* # pts in cluster */
      IJK_TO_THREE(ijk, inow[0],jnow[0],know[0] , nx,nxy) ;
 
@@ -697,11 +718,6 @@ int find_largest_cluster_NN2( byte *mmm , int ithr )
      ijk_last = ijk+1 ;         /* start here next time */
 
      mmm[ijk] = 0 ;                                /* clear found point */
-
-#if 0
-     if( max_size > 0 && ijk < nxyz1 &&    /* skip this if it's an isola */
-         mmm[ijk+1] == 0 && mmm[ijk+nx] == 0 && mmm[ijk+nxy] == 0 ) continue ;
-#endif
 
      nnow = 1 ;                                    /* # pts in cluster */
      IJK_TO_THREE(ijk, inow[0],jnow[0],know[0] , nx,nxy) ;
@@ -782,11 +798,6 @@ int find_largest_cluster_NN3( byte *mmm , int ithr )
      ijk_last = ijk+1 ;         /* start here next time */
 
      mmm[ijk] = 0 ;                                /* clear found point */
-
-#if 0
-     if( max_size > 0 && ijk < nxyz1 &&    /* skip this if it's an isola */
-         mmm[ijk+1] == 0 && mmm[ijk+nx] == 0 && mmm[ijk+nxy] == 0 ) continue ;
-#endif
 
      nnow = 1 ;                                    /* # pts in cluster */
      IJK_TO_THREE(ijk, inow[0],jnow[0],know[0] , nx,nxy) ;
@@ -987,9 +998,9 @@ int main( int argc , char **argv )
    fim  = (float *)malloc(sizeof(float)*nxyz) ;  /* image space */
    bfim = (byte * )malloc(sizeof(byte) *nxyz) ;
 
-   vstep = niter / (nthr*50) ;
+   vstep = (int)( niter / (nthr*50.0f) + 0.901f) ;
    vii   = 0 ;
-   if( ithr == 0 && verb ) fprintf(stderr,"Simulating: ") ;
+   if( ithr == 0 && verb ) fprintf(stderr,"Simulating:") ;
 
   /*----- Monte Carlo iterations -----*/
 
@@ -997,7 +1008,7 @@ int main( int argc , char **argv )
   for( iter=1 ; iter <= niter ; iter++ ){
 
     if( verb && ithr == 0 ){
-      vii++ ; if( vii%vstep == 0 ) vstep_print() ;
+      vii++ ; if( vii%vstep == vstep/2 ) vstep_print() ;
     }
 
     generate_image( fim , xran ) ;
@@ -1044,7 +1055,7 @@ int main( int argc , char **argv )
 
   /*---------- compute and print the output table ----------*/
 
-  { double *alpha , aval ;
+  { double *alpha , aval , ahi,alo ;
     float **clust_thresh , cmax=0.0f ;
     int ii , itop , iathr ;
     char *commandline = tross_commandline("3dClustSim",argc,argv) ;
@@ -1067,27 +1078,42 @@ int main( int argc , char **argv )
           aval = athr[iathr] ;
           for( ii=1 ; ii < itop ; ii++ )
             if( alpha[ii] > aval && alpha[ii+1] <= aval ) break ;
-          if( ii < itop ){
-            double alo=alpha[ii] , ahi=alpha[ii+1] ;
-            if( alo < 1.0 && ahi > 0.0 ){
-              aval = log(-log(1.0-aval)) ;
-              alo  = log(-log(1.0-alo)) ;
-              ahi  = log(-log(1.0-ahi)) ;
-              aval = ii + (aval-alo)/(ahi-alo) ;
-            } else {
-              aval = ii + (alo-aval)/alo ;
-            }
-            if( nodec ) aval = (int)(aval+0.951) ;
-            clust_thresh[ipthr][iathr] = aval ;
-          } else {
-            clust_thresh[ipthr][iathr] = itop ;
-          }
+
+          alo=alpha[ii] ; ahi=alpha[ii+1] ;
+          if( alo >= 1.0 ) alo = 1.0 - 0.1/niter ;
+          if( ahi <= 0.0 ) ahi = 0.1/niter ;
+          if( ahi >= alo ) ahi = 0.1*alo ;
+          aval = log(-log(1.0-aval)) ;
+          alo  = log(-log(1.0-alo)) ;
+          ahi  = log(-log(1.0-ahi)) ;
+          aval = ii + (aval-alo)/(ahi-alo) ;
+          if( nodec ) aval = (int)(aval+0.951) ;
+          clust_thresh[ipthr][iathr] = aval ;
+
           if( clust_thresh[ipthr][iathr] > cmax ) cmax = clust_thresh[ipthr][iathr] ;
         }
       }
 
-      if( !nodec && !do_niml && cmax > 9999.8f ){  /* if largest output is way big, */
-        for( ipthr=0 ; ipthr < npthr ; ipthr++ ){  /* then truncate all to integers */
+      /* edit each column to increase as pthr increases [shouldn't be needed] */
+
+      for( iathr=0 ; iathr < nathr ; iathr++ ){
+        for( ipthr=npthr-2 ; ipthr >= 0 ; ipthr-- ){
+          if( clust_thresh[ipthr][iathr] < clust_thresh[ipthr+1][iathr] )
+            clust_thresh[ipthr][iathr] = clust_thresh[ipthr+1][iathr] ;
+        }
+      }
+
+      /* edit each row to increase as athr decreases [shouldn't be needed] */
+
+      for( ipthr=0 ; ipthr < npthr ; ipthr++ ){
+        for( iathr=1 ; iathr < nathr ; iathr++ ){
+          if( clust_thresh[ipthr][iathr] < clust_thresh[ipthr][iathr-1] )
+            clust_thresh[ipthr][iathr] = clust_thresh[ipthr][iathr-1] ;
+        }
+      }
+
+      if( !nodec && !do_niml && cmax > 9999.9f ){  /* if largest is way big, */
+        for( ipthr=0 ; ipthr < npthr ; ipthr++ ){  /* then truncate to ints. */
           for( iathr=0 ; iathr < nathr ; iathr++ ){
             aval = clust_thresh[ipthr][iathr] ;
             aval = (int)(aval+0.951) ;

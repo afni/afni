@@ -44,6 +44,11 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 9 , JUL , 2010 , RWC , "3drefit" , MICRO , TYPE_GENERAL ,
+   "add 'file:' input to -atrstring option" ,
+   "The ability to read the attribute value from a file, rather than from\n"
+   "the command line." } ,
+
  { 8 , JUL , 2010 , RWC , "3dClustSim" , MICRO , TYPE_NEW_OPT ,
    "Add -NN option (clustering method) and -prefix (output filename)" ,
    NULL } ,
