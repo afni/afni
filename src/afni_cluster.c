@@ -1714,3 +1714,46 @@ ENTRY("AFNI_thronoff_change_CB") ;
    }
    EXRETURN ;
 }
+
+/*****************************************************************************/
+
+typedef struct {
+  int npthr , nathr ;
+  float *pthr , *athr ;
+  float **cluthr ;
+} CLU_threshtable ;
+
+#undef  loginterp
+#define loginterp(xout,xa,xb,ya,yb)                                   \
+   ( (xout)==(xa) ) ? (ya)                                            \
+ : ( (xout)==(xb) ) ? (yb)                                            \
+ : ( (ya) * powf( (xout)/(xa) , logf((yb)/(ya)) / logf((xb)/(xa)) ) )
+
+float find_cluster_alpha( int csiz , float pval , CLU_threshtable *ctab )
+{
+   int   ipthr , iathr ;
+   int   npthr , nathr ;
+   float *pthr , *athr , **cluthr , cval ;
+
+   if( csiz <= 1 || ctab == NULL || pval > ctab->pthr[0] ) return 0.0f ;
+
+   npthr = ctab->npthr ; nathr = ctab->nathr ;
+    pthr = ctab-> pthr ;  athr = ctab-> athr ; cluthr = ctab->cluthr ;
+
+   /* find ipthr such that pthr[ipthr-1] > pval > pthr[ipthr] */
+
+  for( ipthr=1 ; ipthr < npthr && pval <= pthr[ipthr] ; ipthr++ ) ; /*nada*/
+  if( ipthr == npthr ){
+    ipthr = npthr-1 ; pval = pthr[ipthr] ;  /* pval was too small */
+  }
+
+  /* scan in athr direction to find a C(p,alpha) value */
+
+  for( iathr=0 ; iathr < nathr ; iathr++ ){
+    cval = loginterp( pval,   pthr[ipthr-1]       ,   pthr[ipthr]       ,
+                            cluthr[ipthr-1][iathr], cluthr[ipthr][iathr] ) ;
+    if( csiz < cval ) break ;
+  }
+  if( iathr == 0 ) return (-athr[0]) ;
+  return ( athr[iathr-1] ) ;
+}

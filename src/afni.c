@@ -6909,7 +6909,11 @@ ENTRY("AFNI_marks_action_CB") ;
 
    /*----- set button pressed -----*/
 
+#ifdef POPTOG
    if( w == marks->action_set_pb || w == marks->pop_set_pb ){
+#else
+   if( w == marks->action_set_pb ){
+#endif
 
       if( ! markers->valid[ipt] ) (markers->numset) ++ ;  /* newly set */
 
@@ -6934,7 +6938,9 @@ if(PRINT_TRACING)
 
       if( ! marks->inverted[itog] ){
          MCW_invert_widget( marks->tog[itog] ) ;
+#ifdef POPTOG
          MCW_invert_widget( marks->poptog[itog] ) ;
+#endif
          marks->inverted[itog] = True ;
       }
 
@@ -6964,7 +6970,9 @@ if(PRINT_TRACING)
 
       if( marks->inverted[itog] ){
          MCW_invert_widget( marks->tog[itog] ) ;
+#ifdef POPTOG
          MCW_invert_widget( marks->poptog[itog] ) ;
+#endif
          marks->inverted[itog] = False ;
       }
    }
@@ -7317,8 +7325,10 @@ STATUS("turning markers on") ;
       marks->editable = False ;
       MCW_set_bbox( marks->edits_bbox , 0 ) ;
 
+#ifdef POPTOG
       SENSITIZE( marks->pop_set_pb   , marks->editable ) ;
       SENSITIZE( marks->pop_clear_pb , marks->editable ) ;
+#endif
 
       /* copy help into location where MCW_help will find it */
 
@@ -7338,27 +7348,35 @@ STATUS("turning markers on") ;
 
          if( lll == 0 ){
             XtUnmanageChild( marks->tog[itog] ) ;   /* empty label! */
+#ifdef POPTOG
             XtUnmanageChild( marks->poptog[itog] ) ;
+#endif
          } else {
             MCW_set_widget_label( marks->tog[itog] ,
                                   &(markers->label[itog][0]) ) ;
             SENSITIZE( marks->tog[itog] , True ) ;
             XtManageChild( marks->tog[itog] ) ;
 
+#ifdef POPTOG
             MCW_set_widget_label( marks->poptog[itog] ,
                                   &(markers->label[itog][0]) ) ;
             SENSITIZE( marks->poptog[itog] , True ) ;
             XtManageChild( marks->poptog[itog] ) ;
+#endif
 
             if( markers->valid[itog] && ! marks->inverted[itog] ){
                MCW_invert_widget( marks->tog[itog] ) ;
+#ifdef POPTOG
                MCW_invert_widget( marks->poptog[itog] ) ;
+#endif
                marks->inverted[itog] = True ;
             }
 
             if( ! markers->valid[itog] && marks->inverted[itog] ){
                MCW_invert_widget( marks->tog[itog] ) ;
+#ifdef POPTOG
                MCW_invert_widget( marks->poptog[itog] ) ;
+#endif
                marks->inverted[itog] = False ;
             }
          }
@@ -8360,14 +8378,18 @@ ENTRY("AFNI_marks_edits_CB") ;
    SENSITIZE( marks->tog_frame         , True ) ;
    SENSITIZE( marks->action_set_pb     , marks->editable ) ;
    SENSITIZE( marks->action_clear_pb   , marks->editable ) ;
+#ifdef POPTOG
    SENSITIZE( marks->pop_set_pb        , marks->editable ) ;
    SENSITIZE( marks->pop_clear_pb      , marks->editable ) ;
+#endif
    SENSITIZE( marks->action_quality_pb , transformable ) ;
    SENSITIZE( marks->transform_pb      , False ) ;  /* require QC first */
 
    if( ! marks->editable ){
       AFNI_set_tog( -1 , MARKS_MAXNUM , marks->tog ) ;    /* none will */
+#ifdef POPTOG
       AFNI_set_tog( -1 , MARKS_MAXNUM , marks->poptog ) ; /* be "on" */
+#endif
    }
 
    RESET_AFNI_QUIT(im3d) ;
