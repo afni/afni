@@ -86,6 +86,8 @@ typedef struct {
 /* define this to put "chooser" controls on the popup menu */
 #undef POPUP_CHOOSERS
 
+#undef POPTOG
+
 /*-----------------------------------------------------------*/
 
 #define UNDERLAY_ANAT      0
