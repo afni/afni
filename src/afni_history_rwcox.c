@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 9 , JUL , 2010 , RWC , "afni" , MICRO , TYPE_GENERAL ,
+   "Remove marker controls from image viewer popup menu." ,
+   NULL } ,
+
  { 9 , JUL , 2010 , RWC , "3dDeconvolve" , MICRO , TYPE_BUG_FIX ,
    "Skip FDR masking if dataset isn't really 3D" ,
    NULL } ,

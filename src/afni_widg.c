@@ -2248,6 +2248,7 @@ STATUS("making marks->rowcol") ;
                  XmNinitialResourcesPersistent , False ,
               NULL ) ;
 
+#ifdef POPTOG
         MCW_register_help( marks->tog[ib],&(marks->tog_help[ib][0]) ) ;
 
         XtAddCallback( marks->tog[ib] ,
@@ -2257,6 +2258,7 @@ STATUS("making marks->rowcol") ;
         XtAddCallback( marks->poptog[ib] ,
                        XmNvalueChangedCallback ,
                        AFNI_marktog_CB , im3d ) ;
+#endif
 
         marks->inverted[ib] = False ;
      }  /* end of loop creating toggle buttons */
@@ -2515,6 +2517,7 @@ STATUS("making marks->rowcol") ;
 
    /*----- copies of these pushbuttons on the popup menu -----*/
 
+#ifdef POPTOG
    marks->always_popup[(marks->num_always_popup)++] =
       XtVaCreateManagedWidget(
              "dialog" , xmSeparatorWidgetClass , imag->popmenu ,
@@ -2546,6 +2549,7 @@ STATUS("making marks->rowcol") ;
 
    XtAddCallback( marks->pop_clear_pb , XmNactivateCallback ,
                   AFNI_marks_action_CB , im3d ) ;
+#endif
 
    /*----- a "quality" button (not on the popup menu) -----*/
 
