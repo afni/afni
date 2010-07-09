@@ -75,8 +75,9 @@ nFact <- dim(Model)[2]-1
 fNames <- colnames(Model)[which(colnames(Model) != "InputFile")]
 
 ModelForm <- paste("Beta~(1|",fNames[1],")")
-if (nFact == 2 ) ModelForm <- paste(ModelForm,"+","(1|",fNames[2],")")
-if (nFact == 3 ) ModelForm <- paste(ModelForm,"+","(1|",fNames[2],")","+(1|",fNames[3],")")
+#if (nFact == 2 ) ModelForm <- paste(ModelForm,"+","(1|",fNames[2],")")
+#if (nFact == 3 ) ModelForm <- paste(ModelForm,"+","(1|",fNames[2],")","+(1|",fNames[3],")")
+for(ii in 2:nFact) ModelForm <- paste(ModelForm,"+(1|",fNames[ii],")")
 ModelForm <- as.formula(ModelForm)
 
 # Read in the 1st input file so that we have the dimension information
