@@ -3282,6 +3282,8 @@ ENTRY("read_input_data") ;
 
   else if (option_data->input_filename != NULL) /*----- 3D+time dataset -----*/
     {
+      int nxd , nyd , nzd ;
+
       *dset_time = THD_open_dataset (option_data->input_filename);
       CHECK_OPEN_ERROR(*dset_time,option_data->input_filename);
       if( !option_data->x1D_stop ){
@@ -3304,6 +3306,9 @@ ENTRY("read_input_data") ;
 
       nt   = DSET_NUM_TIMES (*dset_time);
       nxyz = DSET_NVOX (*dset_time);
+      nxd  = DSET_NX(*dset_time) ;
+      nyd  = DSET_NY(*dset_time) ;
+      nzd  = DSET_NZ(*dset_time) ;
 
       DSET_UNMSEC( *dset_time ) ; /* 12 Aug 2005: surgery on the time units? */
 
@@ -3411,13 +3416,13 @@ ENTRY("read_input_data") ;
 
       /* 03 Feb 2009 -- make a global mask if not provided thus far */
 
-      if( gmask == NULL ){
+      if( gmask == NULL && nxd > 15 && nyd > 15 && nzd > 15 ){
         MRI_IMAGE *qim ; int mc ;
         qim   = THD_rms_brick( *dset_time ) ;
         gmask = mri_automask_image( qim ) ;
         mri_free( qim ) ;
         mc = THD_countmask( DSET_NVOX(*dset_time) , gmask ) ;
-        if( mc <= 1 ){ free(gmask) ; gmask = NULL ; }
+        if( mc <= 99 ){ if( gmask != NULL ){ free(gmask) ; gmask = NULL ; } }
         else if( verb && (!floatout || do_FDR) )
           INFO_message("misfit/FDR automask has %d voxels (out of %d = %.1f%%)",
                        mc, DSET_NVOX(*dset_time), (100.0f*mc)/DSET_NVOX(*dset_time) ) ;
