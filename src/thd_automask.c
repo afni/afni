@@ -1303,7 +1303,7 @@ byte * mri_automask_image2D( MRI_IMAGE *im )  /* 12 Jun 2010 */
 
 ENTRY("mri_automask_image2D") ;
 
-   if( im == NULL ) RETURN(NULL) ;
+   if( im == NULL || im->nx < 16 || im->ny < 16 ) RETURN(NULL) ;
 
    medim = mri_to_float(im) ;
    mar   = MRI_FLOAT_PTR(medim) ;

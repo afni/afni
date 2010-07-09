@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 9 , JUL , 2010 , RWC , "3dDeconvolve" , MICRO , TYPE_BUG_FIX ,
+   "Skip FDR masking if dataset isn't really 3D" ,
+   NULL } ,
+
  { 9 , JUL , 2010 , RWC , "3drefit" , MICRO , TYPE_GENERAL ,
    "add 'file:' input to -atrstring option" ,
    "The ability to read the attribute value from a file, rather than from\n"
