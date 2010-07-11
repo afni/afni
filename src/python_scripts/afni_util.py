@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+# afni_util.py : general utilities for python programs
+
 import sys, os, math
 import afni_base as BASE
 
@@ -1215,6 +1217,7 @@ def sumsq(vals):
 
 def euclidean_norm(vals):
 
+   if len(vals) < 1: return 0.0
    return math.sqrt(loc_sum([v*v for v in vals]))
 
 def dotprod(v1,v2):
@@ -1301,6 +1304,42 @@ def min_mean_max_stdev(data):
 
     return minval, meanval, maxval, stdev_ub(data)
 
+def interval_offsets(times, dur):
+    """given a list of times and an interval duration (e.g. TR), return
+       the offsets into respective intervals"""
+
+    if not times or dur <= 0:
+        print "** interval offsets: bad dur (%s) or times: %s" % (dur, times)
+        return []
+
+    length = len(times)
+    if length <  1: return []
+
+    fdur = float(dur)   # to make sure (e.g. avoid int division)
+
+    try: offlist = [math.modf(val/fdur)[0] for val in times]
+    except:
+        print "** interval offsets 2: bad dur (%s) or times: %s" % (dur, times)
+        return []
+   
+    return offlist
+
+def fractional_offsets(times, dur):
+    """given a list of times and an interval duration (e.g. TR), return
+       the fractional offsets into respective intervals
+
+       i.e. similar to interval offsets, but times are divided by dur"""
+
+    # rely on i_o for error checking
+    olist = interval_offsets(times, dur)
+    if len(olist) < 1 or dur <= 0: return []
+
+    dur = float(dur)
+    for ind, val in enumerate(olist):
+        olist[ind] = val/dur
+
+    return olist
+
 def stdev_ub(data):
     """unbiased standard deviation (divide by len-1, not just len)"""
 
@@ -1364,6 +1403,35 @@ def variance(data):
     # watch for truncation artifact
     if val < 0.0 : return 0.0
     return val
+
+def correlation_p(vA, vB):
+    """return the Pearson correlation between the 2 vectors"""
+
+    length = len(vA)
+    if len(vB) != length:
+        print '** correlation_pearson: vectors have different lengths'
+        return 0.0
+
+    if length < 2: return 0.0
+
+    ma = mean(vA)
+    mb = mean(vB)
+
+    dA = [v-ma for v in vA]
+    dB = [v-mb for v in vB]
+
+    ssA = 0.0
+    ssB = 0.0
+    sAB = 0.0
+    for ind in range(length):
+        ssA += dA[ind]*dA[ind]
+        ssB += dB[ind]*dB[ind]
+        sAB += dA[ind]*dB[ind]
+
+    del(dA); del(dB)
+
+    if ssA <= 0.0 or ssB <= 0.0: return 0.0
+    else:                        return sAB/math.sqrt(ssA*ssB)
 
 def ttest(data0, data1=None):
     """just a top-level function"""
@@ -1599,4 +1667,33 @@ def vec_range_limit(vec, minv, maxv):
       elif vec[ind] > maxv: vec[ind] = maxv
 
    return 0
+
+# for now, make 2 vectors and return their correlation
+def test_tent_vecs(val, freq, length):
+    a = []
+    b = []
+    for i in range(length):
+        if (i%freq) == 0:
+            a.append(val)
+            b.append(1-val)
+        elif ((i-1)%freq) == 0:
+            a.append(0.0)
+            b.append(val)
+        else:
+            a.append(0.0)
+            b.append(0.0)
+
+    return correlation_p(a,b)
+
+def main():
+   if len(sys.argv) > 2:
+      if sys.argv[1] == '-eval':
+         print eval(' '.join(sys.argv[2:]))
+         return 0
+
+   print 'afni_util.py: not intended as a main program'
+   return 1
+
+if __name__ == '__main__':
+   sys.exit(main())
 
