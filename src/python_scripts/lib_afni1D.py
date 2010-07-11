@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# currently, the explicitly does _not_ depend on scipy or numpy
+# currently, this explicitly does _not_ depend on scipy or numpy
 
 import os, sys
 import module_test_lib
@@ -720,21 +720,21 @@ class Afni1D:
          print '... deepcopy failure, using simplecopy()...'
          cmat = self.simplecopy()
 
-      # demean each vector (for cormat), unless it is all 1's
+      # demean each vector (for cormat), unless it is constant
       means = [UTIL.loc_sum(vec)/cmat.nt for vec in cmat.mat]
       for v in range(cmat.nvec):
          lmin = min(cmat.mat[v])
          lmax = max(cmat.mat[v])
-         if lmin != 1.0 or lmax != 1.0:
+         if lmin != lmax:
             for ind in range(cmat.nt):
                cmat.mat[v][ind] -= means[v]
 
       # and normalize
-      norms = [norm(row) for row in cmat.mat]
+      norms = [UTIL.euclidean_norm(row) for row in cmat.mat]
       for v in range(cmat.nvec):
          for ind in range(cmat.nt):
-            if norms[v] == 0: cmat.mat[v][ind] = 0
-            else:             cmat.mat[v][ind] /= norms[v]
+            if norms[v] == 0.0: cmat.mat[v][ind] = 0.0
+            else:               cmat.mat[v][ind] /= norms[v]
 
       # finally, assign cormat
       self.cormat =[[UTIL.dotprod(r1,r2) for r2 in cmat.mat] for r1 in cmat.mat]
@@ -1326,12 +1326,6 @@ class Afni1D:
             print "** failed to process comment label '%s'" % label
 
       return 0
-
-def norm(vec):
-   """return the euclidean norm"""
-
-   if len(vec) < 1: return 0.0
-   return UTIL.euclidean_norm(vec)
 
 def c1D_line2labelNdata(cline, verb=1):
    """expect cline to be of the form: '# LABEL = "DATA"'

@@ -686,7 +686,7 @@ class AfniMarriedTiming:
       for ind, data in enumerate(scopy.data):
           if len(data) < 1: continue
           if data[-1][1] > run_len[ind] or run_len[ind] < 0:
-              return '** run %d, stim ends after end of run' % ind+1, []
+              return '** run %d, stim ends after end of run' % (ind+1, [])
           
       result = []
       # process one run at a time, first converting to TR indicies
@@ -742,11 +742,13 @@ class AfniMarriedTiming:
 
       return '', result
 
-   def show_isi_stats(self, mesg='', run_len=[]):
+   def show_isi_stats(self, mesg='', run_len=[], tr=0):
       """display ISI timing statistics
 
             mesg        : display the user message first
             run_len     : can be empty, length 1 or length nrows
+            tr          : if > 0: show mean/stdev for stimuli within TRs
+                          (so 0 <= mean < tr)
 
          display these statistics:
             - total time, total stim time, total rest time
@@ -774,6 +776,7 @@ class AfniMarriedTiming:
       if self.nrows != len(self.data):
          print '** bad MTiming, nrows=%d, datalen=%d, failing...' % \
                (self.nrows, len(self.data))
+         return 1
 
       # make a sorted copy
       scopy = self.copy()
@@ -789,6 +792,7 @@ class AfniMarriedTiming:
       else:     # failure
          print '** invalid len(run_len)=%d, must be one of 0,1,%d' % \
                (len(run_len), self.nrows)
+         return 1
 
       if self.verb > 3:
          print scopy.make_data_string(nplaces=1, flag_empty=0, check_simple=0,
@@ -905,6 +909,9 @@ class AfniMarriedTiming:
             (UTIL.min_mean_max_stdev(stim_list))
       print ''
 
+      # and possibly print out offset info
+      if tr > 0: self.show_TR_offset_stats(tr, '')
+
       # clean up, just to be kind
       del(all_stim); del(all_isi); del(pre_time); del(post_time); del(run_time)
       
@@ -913,6 +920,118 @@ class AfniMarriedTiming:
 
       del(scopy)
 
+   def get_TR_offset_stats(self, tr):
+      """create a list of TR offsets (per-run and overall)
+
+            tr : must be positive
+
+         return: 6 values in a list:
+                    mean, maxabs, stdev of absolute and fractional offsets
+                 empty list on error
+      """
+
+      if not self.ready:
+         print '** M Timing: nothing to compute ISI stats from'
+         return []
+
+      if self.nrows != len(self.data):
+         print '** bad MTiming, nrows=%d, datalen=%d, failing...' % \
+               (self.nrows, len(self.data))
+         return []
+
+      if tr < 0.0:
+         print '** show_TR_offset_stats: invalid TR %s' % tr
+         return []
+
+      offsets   = []    # stim offsets within given TRs
+      for rind in range(self.nrows):
+         run  = self.data[rind]
+         if len(run) == 0: continue
+
+         roffsets = UTIL.interval_offsets([val[0] for val in run], tr)
+         offsets.extend(roffsets)
+
+      if len(offsets) < 1: return []
+
+      # get overall stats (absolute and fractional)
+      # absolute
+      m0, m1, m2, s = UTIL.min_mean_max_stdev(offsets)
+      offm = m1; offs = s
+      mn = abs(min(offsets))
+      offmax = abs(max(offsets))
+      if mn > offmax: offmax = mn       
+
+      # fractional
+      for ind, val in enumerate(offsets):
+         offsets[ind] = val/tr
+      m0, m1, m2, s = UTIL.min_mean_max_stdev(offsets)
+
+      del(offsets)
+
+      return [offm, offmax, offs, m1, offmax/tr, s]
+      
+   def show_TR_offset_stats(self, tr, mesg=''):
+      """display statistics regarding within-TR offsets of stimuli
+
+            tr          : show mean/stdev for stimuli within TRs
+                          (so 0 <= mean < tr)
+            mesg        : display the user message in the output
+      """
+
+      if not self.ready:
+         print '** M Timing: nothing to compute ISI stats from'
+         return 1
+
+      if self.nrows != len(self.data):
+         print '** bad MTiming, nrows=%d, datalen=%d, failing...' % \
+               (self.nrows, len(self.data))
+         return 1
+
+      if tr < 0.0:
+         print '** show_TR_offset_stats: invalid TR %s' % tr
+         return 1
+
+      off_means = []    # ... means per run
+      off_stdev = []    # ... stdevs per run
+      for rind in range(self.nrows):
+         run  = self.data[rind]
+         if len(run) == 0: continue
+
+         # start with list of time remainders (offsets) within each TR
+         roffsets = UTIL.interval_offsets([val[0] for val in run], tr)
+
+         m0, m1, m2, s = UTIL.min_mean_max_stdev(roffsets)
+         off_means.append(m1)
+         off_stdev.append(s)
+
+      # and get overall stats (absolute and fractional)
+      offs = self.get_TR_offset_stats(tr)
+
+      # print out offset info
+      if mesg: mstr = '(%s) ' % mesg
+      else:    mstr = ''
+
+      print '\nwithin-TR stimulus offset statistics %s:\n' % mstr
+
+      if self.nrows > 1:
+         print '                       per run'
+         print '                       ------------------------------'
+         print '    offset means       %s'%float_list_string(off_means, ndec=3)
+         print '    offset stdevs      %s'%float_list_string(off_stdev, ndec=3)
+         print ''
+         print '    overall:     mean = %.3f  maxoff = %.3f  stdev = %.4f' \
+               % (offs[0], offs[1], offs[2])
+         print '    fractional:  mean = %.3f  maxoff = %.3f  stdev = %.4f\n' \
+               % (offs[3], offs[4], offs[5])
+      else:
+         print '    one run:     mean = %.3f  maxoff = %.3f  stdev = %.4f' \
+               % (offs[0], offs[1], offs[2])
+         print '    fractional:  mean = %.3f  maxoff = %.3f  stdev = %.4f\n' \
+               % (offs[3], offs[4], offs[5])
+
+      # clean up, just to be kind
+      del(off_means); del(off_stdev)
+      
 def float_list_string(vals, nchar=7, ndec=3, nspaces=2):
    str = ''
    for val in vals: str += '%*.*f%*s' % (nchar, ndec, val, nspaces, '')
