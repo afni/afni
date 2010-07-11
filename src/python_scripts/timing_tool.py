@@ -164,6 +164,8 @@ options with both single and multi versions (all single first):
         With this option, the program will display timing statistics for the
         single (possibly modified) timing element.
 
+        If -tr is included, TR offset statistics are also shown.
+
    -show_timing_ele             : display info on the main timing element
 
         With this option, the program will display information regarding the
@@ -200,6 +202,8 @@ options with both single and multi versions (all single first):
 
         With this option, the program will display timing statistics for the
         multiple timing files.
+
+        If -tr is included, TR offset statistics are also shown.
 
    -multi_show_timing_ele       : display info on the multiple timing elements
 
@@ -462,9 +466,10 @@ g_history = """
    1.3  Feb 20, 2010 - added -timing_to_1D, -tr and -min_frac
    1.4  Mar 17, 2010 - fixed timing_to_1D when some runs are empty
    1.5  Jun 09, 2010 - fixed partitioning without zeros
+   1.6  Jul 11, 2010 - show TR offset stats if -tr and -show_isi_stats
 """
 
-g_version = "timing_tool.py version 1.5, June 9, 2010"
+g_version = "timing_tool.py version 1.6, July 11, 2010"
 
 
 class ATInterface:
@@ -1023,7 +1028,8 @@ class ATInterface:
 
       amt = LT.AfniMarriedTiming(from_at=1, at=self.timing)
 
-      rv = amt.show_isi_stats(mesg='single element', run_len=self.run_len)
+      rv = amt.show_isi_stats(mesg='single element', run_len=self.run_len,
+                              tr=self.tr)
       if rv and self.verb > 2:
          amt.make_data_string(nplaces=self.nplaces,mesg='SHOW ISI FAILURE')
 
@@ -1043,7 +1049,8 @@ class ATInterface:
 
       if self.verb > 2: amt.show('final AMT')
 
-      rv = amt.show_isi_stats(mesg='%d elements'%nele, run_len=self.run_len)
+      rv = amt.show_isi_stats(mesg='%d elements'%nele, run_len=self.run_len,
+                              tr=self.tr)
       if rv and self.verb > 2:
          print amt.make_data_string(nplaces=self.nplaces,mesg='ISI FAILURE')
 
