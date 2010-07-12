@@ -231,7 +231,7 @@ void display_help_menu()
    "\n"
    "* To add the cluster simulation C(p,alpha) table to the header of an AFNI\n"
    "  dataset, something like the following can be done [tcsh syntax]:\n"
-   "     set fwhm = ( `3dFWHMx -combine -detrend time_series_dataset+orig` )
+   "     set fwhm = ( `3dFWHMx -combine -detrend time_series_dataset+orig` )\n"
    "     3dClustSim -fwhm $fwhm[4] -LOTS -niml -prefix Ctemp\n"
    "     3drefit -atrstring AFNI_CLUSTSIM_NN1 file:Ctemp.NN1.niml statistics_dataset+orig\n"
    "     rm -f Ctemp.NN1.niml\n"
