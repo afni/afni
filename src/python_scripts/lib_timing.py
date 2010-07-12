@@ -270,6 +270,56 @@ class AfniTiming:
 
       return 0
 
+   def round_times(self, tr, round_frac=1.0):
+      """round/truncate times to multiples of the TR
+
+         round_frac : fraction of TR required to "round up"
+                      e.g. 0.5  : normal rounding
+                           1.0  : never round up, floor()
+                           0.0  : always round up, ceil()
+      """
+      if not self.ready: return 1
+      if tr <= 0:
+         print "** truncate_times: invalid tr %s" % tr
+         return 1
+
+      # convert to fraction to add before truncation (and be sure of type)
+      try: rf = 1.0 - round_frac
+      except:
+         print "** truncate_times: invalid round_frac '%s'" % round_frac
+         return 1
+
+      try: tr = float(tr)
+      except:
+         print "** truncate_times: invalid tr '%s'" % tr
+         return 1
+
+      if rf < 0.0 or rf > 1.0:
+         print "** truncate_times: bad round_frac outside [0,1]: %s" % rf
+         return 1
+
+      if self.verb > 1:
+         print '-- Timing: round times to multiples of %s (frac = %s)'%(tr,rf)
+
+      # fr to use for floor and ceil (to assist with fractional TRs)
+      if tr == math.floor(tr): tiny = 0.0
+      else:                    tiny = 0.0000000001
+
+      for row in self.data:
+         for ind in range(len(row)):
+            # start with TR index
+            tind = row[ind]/tr
+            # note that rf = 0 now means floor and 1 means ceil
+
+            # add/subract a tiny fraction even for truncation
+            if rf == 1.0   :
+               if tind == 0: row[ind] = 0.0  # to avoid
+               else:         row[ind] = math.ceil(tind-tiny) * tr
+            elif rf == 0.0 : row[ind] = math.floor(tind+tiny) * tr
+            else           : row[ind] = math.floor(tind+rf) * tr
+
+      return 0
+
    def copy(self):
       """return a complete (deep)copy of the current AfniTiming"""
       return copy.deepcopy(self)
