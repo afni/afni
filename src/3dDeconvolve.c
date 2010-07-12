@@ -1049,6 +1049,18 @@ void display_help_menu()
     "                         z = time scaled to be z=-1..1 for t=bot..top  \n"
     "                      * Spatially dependent regressors are not allowed!\n"
     "                      * Other symbols are set to 0 (silently).         \n"
+    "     'MION(d)'     = 1 parameter block stimulus of duration 'd',       \n"
+    "                     intended to model the response of MION.           \n"
+    "                     The impulse response function is                  \n"
+    "                  h(t) = 16.4486f * ( -0.184f/ 1.5f * expf(-x/ 1.5f)   \n"
+    "                                      +0.330f/ 4.5f * expf(-x/ 4.5f)   \n"
+    "                                      +0.670f/13.5f * expf(-x/13.5f) ) \n"
+    "                     which is sort of taken from the paper             \n"
+    "                      FP Leite, et al.  NeuroImage 16: 283-294 (2002)  \n"
+    "                      http://dx.doi.org/10.1006/nimg.2002.1110         \n"
+    "                  ** Note that this is a positive function, but MION   \n"
+    "                     produces a negative response, so the beta and     \n"
+    "                     t-statistic for this will generally be negative.  \n"
     "                                                                       \n"
     " * 3dDeconvolve does LINEAR regression, so the model parameters are    \n"
     "   amplitudes of the basis functions; 1 parameter models are 'simple'  \n"
@@ -9485,6 +9497,18 @@ static float basis_gam( float x, float b, float c, float top, void *q )
 }
 
 /*--------------------------------------------------------------------------*/
+/* MION basis function [12 Jul 2010] */
+
+static float basis_mion( float x, float b, float c, float top, void *q )
+{
+   if( x <= 0.0f || x > 60.0f ) return 0.0f ;
+
+   return 16.4486f * ( -0.184f/ 1.5f * expf(-x/ 1.5f)
+                       +0.330f/ 4.5f * expf(-x/ 4.5f)
+                       +0.670f/13.5f * expf(-x/13.5f) ) ;
+}
+
+/*--------------------------------------------------------------------------*/
 /* SPMG basis functions (corrected 29 May 2007, I hope) */
 
 #undef  SPM_A1
@@ -9535,6 +9559,7 @@ static float basis_spmg3( float x, float a, float b, float c, void *q )
 static float waveform_SPMG1( float t ){ return basis_spmg1(t,0.0f,0.0f,0.0f,NULL); }
 static float waveform_SPMG2( float t ){ return basis_spmg2(t,0.0f,0.0f,0.0f,NULL); }
 static float waveform_SPMG3( float t ){ return basis_spmg3(t,0.0f,0.0f,0.0f,NULL); }
+static float waveform_MION ( float t ){ return basis_mion (t,0.0f,0.0f,0.0f,NULL); }
 
 /*--------------------------------------------------------------------------*/
 /*  f(t,T) = int( h(t-s) , s=0..min(t,T) )
@@ -9876,6 +9901,7 @@ static float waveform_WAV( float t )
 #define WTYPE_SPMG2 2
 #define WTYPE_SPMG3 3
 
+#define WTYPE_MION  8
 #define WTYPE_WAV   9
 
 typedef struct {
@@ -9959,6 +9985,13 @@ static int setup_WFUN_function( int wtyp , float dur , float *parm )
      case WTYPE_SPMG2: wavfun = waveform_SPMG2 ; break ;
 
      case WTYPE_SPMG3: wavfun = waveform_SPMG3 ; break ;
+
+     case WTYPE_MION:
+       wavfun = waveform_MION  ;
+#if 1
+       INFO_message("setup: MION(dur=%g)",dur) ;
+#endif
+     break ;
 
    }
 
@@ -10055,7 +10088,9 @@ basis_expansion * basis_parser( char *sym )
    float bot=0.0f, top=0.0f ;
    int nn , nord=0 ;
 
-   if( sym == NULL ) return NULL ;
+ENTRY("basis_parser") ;
+
+   if( sym == NULL ) RETURN(NULL);
 
    scp = strdup(sym) ;                        /* duplicate, for editing */
    cpt = strchr(scp,'(') ;                    /* find opening '(' */
@@ -10084,7 +10119,7 @@ basis_expansion * basis_parser( char *sym )
          ERROR_message("'GAM(%s' is illegal",cpt) ;
          ERROR_message(
            " Correct format: 'GAM(b,c)' with b > 0 and c > 0.");
-         free((void *)be->bfunc); free((void *)be); free(scp); return NULL;
+         free((void *)be->bfunc); free((void *)be); free(scp); RETURN(NULL);
        }
        be->bfunc[0].a = bot ;    /* t_peak = bot*top */
        be->bfunc[0].b = top ;    /* FWHM   = 2.3*sqrt(bot)*top */
@@ -10101,14 +10136,14 @@ basis_expansion * basis_parser( char *sym )
        ERROR_message("'TENT' by itself is illegal") ;
        ERROR_message(
         " Correct format: 'TENT(bot,top,n)' with bot < top and n > 0.") ;
-       free((void *)be); free(scp); return NULL;
+       free((void *)be); free(scp); RETURN(NULL);
      }
      sscanf(cpt,"%f,%f,%d",&bot,&top,&nord) ;
      if( bot >= top || nord < 2 ){
        ERROR_message("'TENT(%s' is illegal",cpt) ;
        ERROR_message(
         " Correct format: 'TENT(bot,top,n)' with bot < top and n > 1.") ;
-       free((void *)be); free(scp); return NULL;
+       free((void *)be); free(scp); RETURN(NULL);
      }
      be->nfunc = nord ;
      be->tbot  = bot  ; be->ttop = top ;
@@ -10139,14 +10174,14 @@ basis_expansion * basis_parser( char *sym )
        ERROR_message("'CSPLIN' by itself is illegal") ;
        ERROR_message(
         " Correct format: 'CSPLIN(bot,top,n)' with bot < top and n > 3.") ;
-       free((void *)be); free(scp); return NULL;
+       free((void *)be); free(scp); RETURN(NULL);
      }
      sscanf(cpt,"%f,%f,%d",&bot,&top,&nord) ;
      if( bot >= top || nord < 4 ){
        ERROR_message("'CSPLIN(%s' is illegal",cpt) ;
        ERROR_message(
         " Correct format: 'CSPLIN(bot,top,n)' with bot < top and n > 3.") ;
-       free((void *)be); free(scp); return NULL;
+       free((void *)be); free(scp); RETURN(NULL);
      }
      be->nfunc = nord ;
      be->tbot  = bot  ; be->ttop = top ;
@@ -10172,14 +10207,14 @@ basis_expansion * basis_parser( char *sym )
        ERROR_message("'TRIG' by itself is illegal") ;
        ERROR_message(
         " Correct format: 'TRIG(bot,top,n)' with bot < top and n > 2.") ;
-       free((void *)be); free(scp); return NULL;
+       free((void *)be); free(scp); RETURN(NULL);
      }
      sscanf(cpt,"%f,%f,%d",&bot,&top,&nord) ;
      if( bot >= top || nord < 3 ){
        ERROR_message("'TRIG(%s' is illegal",cpt) ;
        ERROR_message(
         " Correct format: 'TRIG(bot,top,n)' with bot < top and n > 2.") ;
-       free((void *)be); free(scp); return NULL;
+       free((void *)be); free(scp); RETURN(NULL);
      }
      be->nfunc = nord ;
      be->tbot  = bot  ; be->ttop = top ;
@@ -10209,14 +10244,14 @@ basis_expansion * basis_parser( char *sym )
        ERROR_message("'SIN' by itself is illegal") ;
        ERROR_message(
         " Correct format: 'SIN(bot,top,n)' with bot < top and n > 0.") ;
-       free((void *)be); free(scp); return NULL;
+       free((void *)be); free(scp); RETURN(NULL);
      }
      sscanf(cpt,"%f,%f,%d",&bot,&top,&nord) ;
      if( bot >= top || nord < 1 ){
        ERROR_message("'SIN(%s' is illegal",cpt) ;
        ERROR_message(
         " Correct format: 'SIN(bot,top,n)' with bot < top and n > 0.") ;
-       free((void *)be); free(scp); return NULL;
+       free((void *)be); free(scp); RETURN(NULL);
      }
      be->nfunc = nord ;
      be->tbot  = bot  ; be->ttop = top ;
@@ -10238,7 +10273,7 @@ basis_expansion * basis_parser( char *sym )
        ERROR_message(
         " Correct format: 'POLY(bot,top,n)' with bot<top and n>0 and n<%d",
         POLY_MAX+1) ;
-       free((void *)be); free(scp); return NULL;
+       free((void *)be); free(scp); RETURN(NULL);
      }
      sscanf(cpt,"%f,%f,%d",&bot,&top,&nord) ;
      if( bot >= top || nord < 1 || nord > POLY_MAX ){
@@ -10246,7 +10281,7 @@ basis_expansion * basis_parser( char *sym )
        ERROR_message(
         " Correct format: 'POLY(bot,top,n)' with bot<top and n>0 and n<%d",
         POLY_MAX+1) ;
-       free((void *)be); free(scp); return NULL;
+       free((void *)be); free(scp); RETURN(NULL);
      }
      be->nfunc = nord ;
      be->tbot  = bot  ; be->ttop = top ;
@@ -10311,7 +10346,7 @@ basis_expansion * basis_parser( char *sym )
       iwav = setup_WFUN_function( WTYPE_SPMG1 , dur , NULL ) ;
       if( iwav < 0 ){
         ERROR_message("Can't setup SPMG1(%f) for some reason?!",dur) ;
-        free((void *)be); free(scp); return NULL;
+        free((void *)be); free(scp); RETURN(NULL);
       }
 
       be->tbot = 0.0f ; be->ttop = WFUNDT * WFUNS[iwav].nfun ;
@@ -10325,7 +10360,7 @@ basis_expansion * basis_parser( char *sym )
         iwav = setup_WFUN_function( WTYPE_SPMG2 , dur , NULL ) ;
         if( iwav < 0 ){
           ERROR_message("Can't setup SPMG2(%f) for some reason?!",dur) ;
-          free((void *)be); free(scp); return NULL;
+          free((void *)be); free(scp); RETURN(NULL);
         }
         be->bfunc[1].f = basis_WFUN ;
         be->bfunc[1].a = (float)iwav ;
@@ -10337,7 +10372,7 @@ basis_expansion * basis_parser( char *sym )
         iwav = setup_WFUN_function( WTYPE_SPMG3 , dur , NULL ) ;
         if( iwav < 0 ){
           ERROR_message("Can't setup SPMG3(%f) for some reason?!",dur) ;
-          free((void *)be); free(scp); return NULL;
+          free((void *)be); free(scp); RETURN(NULL);
         }
         be->bfunc[2].f = basis_WFUN ;
         be->bfunc[2].a = (float)iwav ;
@@ -10355,7 +10390,7 @@ basis_expansion * basis_parser( char *sym )
        nb = strtol( scp+7 , NULL , 10 ) ;
        if( nb != 4 && nb != 5 ){
          ERROR_message("'%s' has illegal power: only 4 or 5 allowed",scp) ;
-         free((void *)be); free(scp); return NULL;
+         free((void *)be); free(scp); RETURN(NULL);
        }
      }
 
@@ -10379,7 +10414,7 @@ basis_expansion * basis_parser( char *sym )
        nb = strtol( scp+5 , NULL , 10 ) ;
        if( nb != 4 && nb != 5 ){
          ERROR_message("'%s' has illegal power: only 4 or 5 allowed",scp) ;
-         free((void *)be); free(scp); return NULL;
+         free((void *)be); free(scp); RETURN(NULL);
        }
      }
 
@@ -10388,7 +10423,7 @@ basis_expansion * basis_parser( char *sym )
        ERROR_message(
         " Correct format: 'BLOCKn(dur)' with dur > 0, n=4 or 5\n"
         "                     *OR* 'BLOCKn(dur,peak)' with peak > 0 too.") ;
-       free((void *)be); free(scp); return NULL;
+       free((void *)be); free(scp); RETURN(NULL);
      }
      sscanf(cpt,"%f,%f",&top,&bot) ;  /* top = duration, bot = peak */
      if( top <= 0.0f ){
@@ -10396,7 +10431,7 @@ basis_expansion * basis_parser( char *sym )
        ERROR_message(
         " Correct format: 'BLOCKn(dur)' with dur > 0, n=4 or 4\n"
         "                      or: 'BLOCKn(dur,peak)' with peak > 0 too.") ;
-       free((void *)be); free(scp); return NULL;
+       free((void *)be); free(scp); RETURN(NULL);
      }
      if( bot < 0.0f ) bot = 0.0f ;
 
@@ -10451,7 +10486,7 @@ basis_expansion * basis_parser( char *sym )
          dpt = ept ; if( *dpt != '\0' ) dpt++ ;                   \
        } else if( *dpt == '-' ){                                  \
          ERROR_message("Can't give negative arguments to 'WAV'"); \
-         free((void *)be); free(scp); return NULL;                \
+         free((void *)be); free(scp); RETURN(NULL);               \
        } else {                                                   \
          dpt++ ;                                                  \
        }                                                          \
@@ -10474,7 +10509,7 @@ basis_expansion * basis_parser( char *sym )
      iwav = setup_WFUN_function( WTYPE_WAV , dur , parm ) ;
      if( iwav < 0 ){
        ERROR_message("Can't setup WAV for some reason?!") ;
-       free((void *)be); free(scp); return NULL;
+       free((void *)be); free(scp); RETURN(NULL);
      }
 
      be->nfunc = 1 ;
@@ -10495,22 +10530,22 @@ basis_expansion * basis_parser( char *sym )
 
      if( cpt == NULL ){
        ERROR_message("'EXPR' by itself is illegal") ;
-       free((void *)be); free(scp); return NULL;
+       free((void *)be); free(scp); RETURN(NULL);
      }
      sscanf(cpt,"%f,%f",&bot,&top) ;
      if( top <= bot ){
        ERROR_message("'EXPR(%f,%f)' has illegal time range",bot,top) ;
-       free((void *)be); free(scp); return NULL;
+       free((void *)be); free(scp); RETURN(NULL);
      }
      ept = strchr( cpt , ')' ) ;
      if( ept == NULL ){
        ERROR_message("'EXPR(%f,%f)' has no expressions!?",bot,top);
-       free((void *)be); free(scp); return NULL;
+       free((void *)be); free(scp); RETURN(NULL);
      }
      sar = NI_decode_string_list( ept+1 , "~" ) ;
      if( sar == NULL || sar->num == 0 ){
        ERROR_message("'EXPR(%f,%f)' has no expressions!?",bot,top);
-       free((void *)be); free(scp); return NULL;
+       free((void *)be); free(scp); RETURN(NULL);
      }
      be->nfunc = nexpr = sar->num ;
      be->tbot  = bot  ; be->ttop = top ;
@@ -10520,7 +10555,7 @@ basis_expansion * basis_parser( char *sym )
        pc = PARSER_generate_code( sar->str[ie] ) ;
        if( pc == NULL ){
          ERROR_message("unparsable EXPRession '%s'",sar->str[ie]) ;
-         free((void *)be); free(scp); return NULL;
+         free((void *)be); free(scp); RETURN(NULL);
        }
        if( strcmp(sar->str[ie],"1") != 0 &&    /* must either be "1" */
            !PARSER_has_symbol("t",pc)    &&    /* or contain symbol  */
@@ -10529,7 +10564,7 @@ basis_expansion * basis_parser( char *sym )
          ERROR_message(
            "illegal EXPRession '%s' lacks symbol t, x, or z",
            sar->str[ie]) ;
-         free((void *)be); free(scp); return NULL;
+         free((void *)be); free(scp); RETURN(NULL);
        }
        be->bfunc[ie].f = basis_expr ;
        be->bfunc[ie].a = bot ;
@@ -10541,11 +10576,40 @@ basis_expansion * basis_parser( char *sym )
 
      NI_delete_str_array(sar) ;
 
+   /*--- MION ---*/
+
+   } else if( strcmp(scp,"MION") == 0 ){   /* 28 Aug 2004 */
+     float dur=-1.0f ; int iwav ;
+
+     if( cpt != NULL ) sscanf(cpt,"%f",&dur) ; /* 28 Apr 2009: get duration param */
+
+     be->nfunc = 1 ;
+     be->bfunc = (basis_func *)calloc(sizeof(basis_func),be->nfunc) ;
+
+     if( dur < 0.0f ){            /* impulse response */
+       be->bfunc[0].f = basis_mion ;
+       be->bfunc[0].a = 0.0f ;    /* no parameters */
+       be->bfunc[0].b = 0.0f ;
+       be->bfunc[0].c = 0.0f ;
+       be->tbot = 0.0f ; be->ttop = 60.0f ;
+     } else {                     /* convolve with square wave */
+        iwav = setup_WFUN_function( WTYPE_MION , dur , NULL ) ;
+        if( iwav < 0 ){
+          ERROR_message("Can't setup MION(%f) for some reason?!",dur) ;
+          free((void *)be); free(scp); RETURN(NULL);
+        }
+        be->bfunc[0].f = basis_WFUN ;
+        be->bfunc[0].a = (float)iwav ;
+        be->bfunc[0].b = 0.0f ;
+        be->bfunc[0].c = 0.0f ;
+        be->tbot = 0.0f ; be->ttop = WFUNDT * WFUNS[iwav].nfun ;
+     }
+
    /*--- NO MORE BASIS FUNCTION CHOICES ---*/
 
    } else {
      ERROR_message("'%s' is unknown response function type",scp) ;
-     free((void *)be); free(scp); return NULL;
+     free((void *)be); free(scp); RETURN(NULL);
    }
 
    /* 28 Apr 2005: set scaling factors */
@@ -10576,7 +10640,7 @@ basis_expansion * basis_parser( char *sym )
      }
    }
 
-   free(scp); return be;
+   free(scp); RETURN(be);
 }
 
 /*----------------------------------------------------------------------*/
