@@ -235,8 +235,9 @@ void display_help_menu()
    "     3dClustSim -fwhm $fwhm[4] -LOTS -niml -prefix Ctemp\n"
    "     3drefit -atrstring AFNI_CLUSTSIM_NN1 file:Ctemp.NN1.niml statistics_dataset+orig\n"
    "     rm -f Ctemp.NN1.niml\n"
-   "  AFNI's Clusters GUI makes use of this attribute, if stored in a statistical\n"
+   "  AFNI's Clusterize GUI makes use of this attribute, if stored in a statistical\n"
    "  dataset (e.g., something from 3dDeconvolve, 3dREMLfit, et cetera).\n"
+   "  [At present, AFNI only uses the NN1 method in the Clusterize GUI.\n"
    "\n"
    "-- RW Cox -- July 2010\n"
   ) ;
