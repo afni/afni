@@ -415,9 +415,15 @@ typedef struct {
 struct Three_D_View ;  /* incomplete type definition */
 
 typedef struct {
+  int npthr , nathr ;
+  float *pthr , *athr ;
+  float **cluthr ;
+} CLU_threshtable ;   /* from 3dClustSim [Jul 2010] */
+
+typedef struct {
   Widget wtop, rowcol;      /* containers */
   Widget top_lab;           /* overall report text */
-  Widget top_menu , histrange_pb , fwhm_pb ;
+  Widget top_menu , histrange_pb ;
   MCW_bbox *histsqrt_bbox ;
 
   MCW_arrowval *cmode_av ;  /* first row of controls */
@@ -442,8 +448,9 @@ typedef struct {
   int coord_mode ;
   int receive_on ;
   float hbot,htop ;
-  float fwhm ;
 } AFNI_clu_widgets ;      /** not yet used **/
+
+extern void CLU_free_table( CLU_threshtable *ctab ) ;
 
 /*---*/
 
@@ -678,6 +685,7 @@ typedef struct {
       int                 clu_index;
       int                 clu_num ;
       mri_cluster_detail *clu_det ;
+      CLU_threshtable *clu_tabNN1, *clu_tabNN2, *clu_tabNN3 ; /* Jul 2010 */
 
       ICALC_widget_set   *iwid ;       /* 17 Sep 2009 */
 } AFNI_function_widgets ;
@@ -1046,10 +1054,18 @@ typedef struct Three_D_View {
        (iq)->vwid->func->clu_rep = NULL ; redis++ ;                        \
      }                                                                     \
      DESTROY_CLARR((iq)->vwid->func->clu_list);                            \
+     CLU_free_table((iq)->vwid->func->clu_tabNN1) ;                        \
+      CLU_free_table((iq)->vwid->func->clu_tabNN2) ;                       \
+       CLU_free_table((iq)->vwid->func->clu_tabNN3) ;                      \
+     (iq)->vwid->func->clu_tabNN1 = NULL ;                                 \
+      (iq)->vwid->func->clu_tabNN2 = NULL ;                                \
+       (iq)->vwid->func->clu_tabNN3 = NULL ;                               \
      if( (iq)->vedset.code ) redis++ ;                                     \
      (iq)->vedset.flags = (iq)->vedset.code = 0; AFNI_set_thr_pval((iq));  \
      if( (iq)->vinfo->func_visible && redis ) AFNI_redisplay_func((iq)) ;  \
  } while(0) ;
+
+extern void CLU_setup_alpha_tables( Three_D_View * ) ; /* Jul 2010 */
 
 #define STOP_COLOR "#770000"
 #define GO_COLOR   "#005500"

@@ -103,7 +103,7 @@ typedef struct {
 #define ADDTO_CLUSTER(cc,ii,jj,kk,m)                                        \
   do{ int nn ;                                                              \
       if( (cc)->num_pt == (cc)->num_all ){                                  \
-         (cc)->num_all = 1.25*(cc)->num_all + INC_CLUSTER ;                 \
+         (cc)->num_all = 2*(cc)->num_all + INC_CLUSTER ;                    \
          nn = (cc)->num_all ;                                               \
          (cc)->i=(short *)   XtRealloc((char *)(cc)->i,sizeof(short)*nn  ); \
          (cc)->j=(short *)   XtRealloc((char *)(cc)->j,sizeof(short)*nn  ); \
@@ -119,7 +119,7 @@ typedef struct {
 #define ADDTO_CLUSTER_NOMAG(cc,ii,jj,kk)                               \
   do{ int nn ;                                                         \
       if( (cc)->num_pt == (cc)->num_all ){                             \
-         (cc)->num_all = 1.25*(cc)->num_all + INC_CLUSTER ;            \
+         (cc)->num_all = 2*(cc)->num_all + INC_CLUSTER ;               \
          nn = (cc)->num_all ;                                          \
          (cc)->i=(short *)XtRealloc((char *)(cc)->i,sizeof(short)*nn); \
          (cc)->j=(short *)XtRealloc((char *)(cc)->j,sizeof(short)*nn); \
@@ -154,7 +154,7 @@ typedef struct {
 #define ADDTO_CLARR(cl,cc)                                                     \
   do{ int nn ;                                                                 \
       if( (cl)->num_clu == (cl)->num_all ){                                    \
-         (cl)->num_all += INC_CLUSTER+(cl)->num_all/16; nn = (cl)->num_all ;   \
+         (cl)->num_all += INC_CLUSTER+(cl)->num_all/2 ; nn = (cl)->num_all ;   \
          (cl)->clar = (MCW_cluster **) XtRealloc( (char *)(cl)->clar ,         \
                                                  sizeof(MCW_cluster *) * nn ); \
       }                                                                        \
