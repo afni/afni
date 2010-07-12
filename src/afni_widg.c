@@ -3419,6 +3419,8 @@ STATUS("making func->rowcol") ;
    func->clu_rep = NULL; func->clu_list = NULL; func->clu_index = -1;
    func->clu_det = NULL; func->clu_num  = 0 ;
 
+   func->clu_tabNN1 = func->clu_tabNN2 = func->clu_tabNN3 = NULL; /* Jul 2010 */
+
    func->iwid = NULL ;  /* 17 Sep 2009 */
 
    /*-- 26 Mar 2007: rowcol for clustering stuff --*/
@@ -5588,6 +5590,7 @@ ENTRY("AFNI_initialize_controller") ;
    im3d->anat_now = im3d->anat_dset[im3d->vinfo->view_type] ;  /* will not be NULL */
    im3d->fim_now  = im3d->fim_dset [im3d->vinfo->view_type] ;  /* this may be NULL */
    if( !ISVALID_DSET(im3d->fim_now) ) AFNI_SEE_FUNC_OFF(im3d) ;     /* 22 May 2009 */
+   else                               CLU_setup_alpha_tables(im3d) ;   /* Jul 2010 */
 
    /* initial point of view = middle of dataset brick */
 

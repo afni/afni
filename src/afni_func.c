@@ -2708,6 +2708,8 @@ ENTRY("AFNI_finalize_dataset_CB") ;
    else
      AFNI_check_obliquity(wcall, ss_new->dsset[new_anat][0]);
 
+   CLU_setup_alpha_tables(im3d) ;
+
    EXRETURN ;
 }
 

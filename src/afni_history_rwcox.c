@@ -44,6 +44,17 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 12 , JUL , 2010 , RWC , "afni" , MINOR , TYPE_MODIFY ,
+   "Clusterize features modifed and enhanced" ,
+   "1) Only NN clustering is now allowed in the AFNI Clusterize GUI, and so\n"
+   "the only parameter left is the 'Voxels' count for the smallest cluster\n"
+   "to retain.\n"
+   "\n"
+   "2) If attribute AFNI_CLUSTSIM_NN1 is attached (via 3dClustSim), then the\n"
+   "Clusterize GUI will use this to show the approximate alpha level for\n"
+   "each cluster -- provided the threshold has a p-value associated with it,\n"
+   "et cetera, et cetera, et cetera." } ,
+
  { 9 , JUL , 2010 , RWC , "afni" , MICRO , TYPE_GENERAL ,
    "Remove marker controls from image viewer popup menu." ,
    NULL } ,
