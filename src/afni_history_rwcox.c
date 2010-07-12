@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 12 , JUL , 2010 , RWC , "3dDeconvolve" , MICRO , TYPE_NEW_OPT ,
+   "add MION to the -stim_times HRF repertoire" ,
+   "Now will they stop bugging me?!  (of course not)" } ,
+
  { 12 , JUL , 2010 , RWC , "afni" , MINOR , TYPE_MODIFY ,
    "Clusterize features modifed and enhanced" ,
    "1) Only NN clustering is now allowed in the AFNI Clusterize GUI, and so\n"
