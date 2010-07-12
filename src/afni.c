@@ -5067,6 +5067,10 @@ ENTRY("AFNI_closedown_3dview") ;
 
    AFNI_fimmer_setref(im3d,NULL) ; CLEAR_FIMDATA(im3d) ;
 
+   CLU_free_table( im3d->vwid->func->clu_tabNN1 ) ; /* Jul 2010 */
+   CLU_free_table( im3d->vwid->func->clu_tabNN2 ) ;
+   CLU_free_table( im3d->vwid->func->clu_tabNN3 ) ;
+
    RESET_AFNI_QUIT(im3d) ;
 
    im3d->anat_now = im3d->fim_now = NULL ;
@@ -7424,6 +7428,8 @@ STATUS("turning markers on") ;
    ENABLE_LOCK ;   /* 11 Nov 1996 */
 
    SAVE_VPT(im3d) ;  /* save current location as jumpback */
+
+   CLU_setup_alpha_tables(im3d) ;  /* Jul 2010 */
 
    EXRETURN ;
 }

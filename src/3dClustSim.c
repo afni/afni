@@ -230,12 +230,13 @@ void display_help_menu()
    "  active -- it means that at least SOME of them are (probably) truly active.\n"
    "\n"
    "* To add the cluster simulation C(p,alpha) table to the header of an AFNI\n"
-   "  dataset, something like the following can be done:\n"
-   "     3dClustSim -LOTS -niml -prefix Ctemp\n"
-   "     3drefit -atrstring AFNI_CLUSTSIM_NN1 file:Ctemp.NN1.niml\n"
+   "  dataset, something like the following can be done [tcsh syntax]:\n"
+   "     set fwhm = ( `3dFWHMx -combine -detrend time_series_dataset+orig` )
+   "     3dClustSim -fwhm $fwhm[4] -LOTS -niml -prefix Ctemp\n"
+   "     3drefit -atrstring AFNI_CLUSTSIM_NN1 file:Ctemp.NN1.niml statistics_dataset+orig\n"
    "     rm -f Ctemp.NN1.niml\n"
-   "  In the real soon now future, AFNI's Clusters GUI will make use of such\n"
-   "  attributes, if stored in a statistical dataset (e.g., from 3dDeconvolve).\n"
+   "  AFNI's Clusters GUI makes use of this attribute, if stored in a statistical\n"
+   "  dataset (e.g., something from 3dDeconvolve, 3dREMLfit, et cetera).\n"
    "\n"
    "-- RW Cox -- July 2010\n"
   ) ;

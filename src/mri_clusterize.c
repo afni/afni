@@ -3,6 +3,13 @@
 /*---------------------------------------------------------------------*/
 static char *report = NULL ;
 char * mri_clusterize_report(void){ return report; }
+/*---------------------------------------------------------------------*/
+
+#if 0
+MCW_cluster_array *find_clusters_NN1( MRI_IMAGE *cim ) ;
+MCW_cluster_array *find_clusters_NN2( MRI_IMAGE *cim ) ;
+MCW_cluster_array *find_clusters_NN3( MRI_IMAGE *cim ) ;
+#endif
 
 /*---------------------------------------------------------------------*/
 static MCW_cluster_array *clarout=NULL ;
@@ -132,3 +139,213 @@ ENTRY("mri_clusterize_detailize") ;
 
    RETURN(cld) ;
 }
+
+#if 0
+/*---------------------------------------------------------------------------*/
+/** The stuff below is added Jul 2010, for the new AFNI Clusterize methods. **/
+/*---------------------------------------------------------------------------*/
+
+/* Put (i,j,k) into the current cluster, maybe */
+
+#undef  CPUT
+#define CPUT(i,j,k)                            \
+  do{ ijk = THREE_TO_IJK(i,j,k,nx,nxy) ;       \
+      if( car[ijk] != 0.0f ){                  \
+        ADDTO_CLUSTER(clust,i,j,k,car[ijk]) ;  \
+        car[ijk] = 0.0f ;                      \
+      } } while(0)
+
+/*----------------------------------------------------------------------------*/
+
+MCW_cluster_array *find_clusters_NN1( MRI_IMAGE *cim )
+{
+   MCW_cluster_array *clust_arr ;
+   MCW_cluster       *clust ;
+   int ii,jj,kk, icl , ijk , ijk_last ;
+   int ip,jp,kp , im,jm,km ;
+   int nx,ny,nz,nxy,nxyz ;
+   float *car = MRI_FLOAT_PTR(cim) ;
+
+   nx = cim->nx ; ny = cim->ny ; cim->nz ; nxy = nx*ny ; nxyz = nxy*nz ;
+
+   INIT_CLARR(clust_arr) ;
+
+   ijk_last = 0 ;  /* start scanning at the start */
+
+   while(1) {
+     /* find next nonzero point in mmm array */
+
+     for( ijk=ijk_last ; ijk < nxyz ; ijk++ ) if( car[ijk] != 0.0f ) break ;
+     if( ijk == nxyz ) break ;  /* didn't find any! */
+     ijk_last = ijk+1 ;         /* start here next time */
+
+     INIT_CLUSTER(clust) ;
+     IJK_TO_THREE(ijk,ii,jj,kk,nx,nxy) ;
+     ADDTO_CLUSTER( clust , ii,jj,kk , car[ijk] ) ;
+     car[ijk] = 0.0f ;
+
+     /* loop over points in cluster, checking their neighbors,
+        growing the cluster if we find any that belong therein */
+
+     for( icl=0 ; icl < clust->num_pt ; icl++ ){
+       ii = clust->i[icl] ; jj = clust->j[icl] ; kk = clust->k[icl] ;
+       im = ii-1          ; jm = jj-1          ; km = kk-1          ;
+       ip = ii+1          ; jp = jj+1          ; kp = kk+1          ;
+
+       if( im >= 0 ) CPUT(im,jj,kk) ;
+       if( ip < nx ) CPUT(ip,jj,kk) ;
+       if( jm >= 0 ) CPUT(ii,jm,kk) ;
+       if( jp < ny ) CPUT(ii,jp,kk) ;
+       if( km >= 0 ) CPUT(ii,jj,km) ;
+       if( kp < nz ) CPUT(ii,jj,kp) ;
+     }
+     ADDTO_CLARR(clust_arr,clust) ;
+   }
+
+   if( clust_arr->num_clu <= 0 ){ DESTROY_CLARR(clust_arr) ; }
+   return clust_arr ;
+}
+
+/*----------------------------------------------------------------------------*/
+
+MCW_cluster_array *find_clusters_NN2( MRI_IMAGE *cim )
+{
+   MCW_cluster_array *clust_arr ;
+   MCW_cluster       *clust ;
+   int ii,jj,kk, icl , ijk , ijk_last ;
+   int ip,jp,kp , im,jm,km ;
+   int nx,ny,nz,nxy,nxyz ;
+   float *car = MRI_FLOAT_PTR(cim) ;
+
+   nx = cim->nx ; ny = cim->ny ; cim->nz ; nxy = nx*ny ; nxyz = nxy*nz ;
+
+   INIT_CLARR(clust_arr) ;
+
+   ijk_last = 0 ;  /* start scanning at the start */
+
+   while(1) {
+     /* find next nonzero point in mmm array */
+
+     for( ijk=ijk_last ; ijk < nxyz ; ijk++ ) if( car[ijk] != 0.0f ) break ;
+     if( ijk == nxyz ) break ;  /* didn't find any! */
+     ijk_last = ijk+1 ;         /* start here next time */
+
+     INIT_CLUSTER(clust) ;
+     IJK_TO_THREE(ijk,ii,jj,kk,nx,nxy) ;
+     ADDTO_CLUSTER( clust , ii,jj,kk , car[ijk] ) ;
+     car[ijk] = 0.0f ;
+
+     /* loop over points in cluster, checking their neighbors,
+        growing the cluster if we find any that belong therein */
+
+     for( icl=0 ; icl < clust->num_pt ; icl++ ){
+       ii = clust->i[icl] ; jj = clust->j[icl] ; kk = clust->k[icl] ;
+       im = ii-1          ; jm = jj-1          ; km = kk-1          ;
+       ip = ii+1          ; jp = jj+1          ; kp = kk+1          ;
+
+       if( im >= 0 ){  CPUT(im,jj,kk) ;
+         if( jm >= 0 ) CPUT(im,jm,kk) ;  /* 2NN */
+         if( jp < nx ) CPUT(im,jp,kk) ;  /* 2NN */
+         if( km >= 0 ) CPUT(im,jj,km) ;  /* 2NN */
+         if( kp < nz ) CPUT(im,jj,kp) ;  /* 2NN */
+       }
+       if( ip < nx ){  CPUT(ip,jj,kk) ;
+         if( jm >= 0 ) CPUT(ip,jm,kk) ;  /* 2NN */
+         if( jp < nx ) CPUT(ip,jp,kk) ;  /* 2NN */
+         if( km >= 0 ) CPUT(ip,jj,km) ;  /* 2NN */
+         if( kp < nz ) CPUT(ip,jj,kp) ;  /* 2NN */
+       }
+       if( jm >= 0 ){  CPUT(ii,jm,kk) ;
+         if( km >= 0 ) CPUT(ii,jm,km) ;  /* 2NN */
+         if( kp < nz ) CPUT(ii,jm,kp) ;  /* 2NN */
+       }
+       if( jp < ny ){  CPUT(ii,jp,kk) ;
+         if( km >= 0 ) CPUT(ii,jp,km) ;  /* 2NN */
+         if( kp < nz ) CPUT(ii,jp,kp) ;  /* 2NN */
+       }
+       if( km >= 0 ) CPUT(ii,jj,km) ;
+       if( kp < nz ) CPUT(ii,jj,kp) ;
+     }
+     ADDTO_CLARR(clust_arr,clust) ;
+   }
+
+   if( clust_arr->num_clu <= 0 ){ DESTROY_CLARR(clust_arr) ; }
+   return clust_arr ;
+}
+
+/*----------------------------------------------------------------------------*/
+
+MCW_cluster_array *find_clusters_NN3( MRI_IMAGE *cim )
+{
+   MCW_cluster_array *clust_arr ;
+   MCW_cluster       *clust ;
+   int ii,jj,kk, icl , ijk , ijk_last ;
+   int ip,jp,kp , im,jm,km ;
+   int nx,ny,nz,nxy,nxyz ;
+   float *car = MRI_FLOAT_PTR(cim) ;
+
+   nx = cim->nx ; ny = cim->ny ; cim->nz ; nxy = nx*ny ; nxyz = nxy*nz ;
+
+   INIT_CLARR(clust_arr) ;
+
+   ijk_last = 0 ;  /* start scanning at the start */
+
+   while(1) {
+     /* find next nonzero point in mmm array */
+
+     for( ijk=ijk_last ; ijk < nxyz ; ijk++ ) if( car[ijk] != 0.0f ) break ;
+     if( ijk == nxyz ) break ;  /* didn't find any! */
+     ijk_last = ijk+1 ;         /* start here next time */
+
+     INIT_CLUSTER(clust) ;
+     IJK_TO_THREE(ijk,ii,jj,kk,nx,nxy) ;
+     ADDTO_CLUSTER( clust , ii,jj,kk , car[ijk] ) ;
+     car[ijk] = 0.0f ;
+
+     /* loop over points in cluster, checking their neighbors,
+        growing the cluster if we find any that belong therein */
+
+     for( icl=0 ; icl < clust->num_pt ; icl++ ){
+       ii = clust->i[icl] ; jj = clust->j[icl] ; kk = clust->k[icl] ;
+       im = ii-1          ; jm = jj-1          ; km = kk-1          ;
+       ip = ii+1          ; jp = jj+1          ; kp = kk+1          ;
+
+       if( im >= 0 ){  CPUT(im,jj,kk) ;
+         if( jm >= 0 ) CPUT(im,jm,kk) ;  /* 2NN */
+         if( jp < nx ) CPUT(im,jp,kk) ;  /* 2NN */
+         if( km >= 0 ) CPUT(im,jj,km) ;  /* 2NN */
+         if( kp < nz ) CPUT(im,jj,kp) ;  /* 2NN */
+         if( jm >= 0 && km >= 0 ) CPUT(im,jm,km) ;  /* 3NN */
+         if( jm >= 0 && kp < nz ) CPUT(im,jm,kp) ;  /* 3NN */
+         if( jp < ny && km >= 0 ) CPUT(im,jp,km) ;  /* 3NN */
+         if( jp < ny && kp < nz ) CPUT(im,jp,kp) ;  /* 3NN */
+       }
+       if( ip < nx ){  CPUT(ip,jj,kk) ;
+         if( jm >= 0 ) CPUT(ip,jm,kk) ;  /* 2NN */
+         if( jp < nx ) CPUT(ip,jp,kk) ;  /* 2NN */
+         if( km >= 0 ) CPUT(ip,jj,km) ;  /* 2NN */
+         if( kp < nz ) CPUT(ip,jj,kp) ;  /* 2NN */
+         if( jm >= 0 && km >= 0 ) CPUT(ip,jm,km) ;  /* 3NN */
+         if( jm >= 0 && kp < nz ) CPUT(ip,jm,kp) ;  /* 3NN */
+         if( jp < ny && km >= 0 ) CPUT(ip,jp,km) ;  /* 3NN */
+         if( jp < ny && kp < nz ) CPUT(ip,jp,kp) ;  /* 3NN */
+       }
+       if( jm >= 0 ){  CPUT(ii,jm,kk) ;
+         if( km >= 0 ) CPUT(ii,jm,km) ;  /* 2NN */
+         if( kp < nz ) CPUT(ii,jm,kp) ;  /* 2NN */
+       }
+       if( jp < ny ){  CPUT(ii,jp,kk) ;
+         if( km >= 0 ) CPUT(ii,jp,km) ;  /* 2NN */
+         if( kp < nz ) CPUT(ii,jp,kp) ;  /* 2NN */
+       }
+       if( km >= 0 )   CPUT(ii,jj,km) ;
+       if( kp < nz )   CPUT(ii,jj,kp) ;
+
+     }
+     ADDTO_CLARR(clust_arr,clust) ;
+   }
+
+   if( clust_arr->num_clu <= 0 ){ DESTROY_CLARR(clust_arr) ; }
+   return clust_arr ;
+}
+#endif
