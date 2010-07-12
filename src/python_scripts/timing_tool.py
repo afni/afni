@@ -74,7 +74,7 @@ examples:
                         -add_offset -12.0                    \\
                         -write_timing stimesB1_offset12.1D
 
-   2b. Similar to 2, but scale times (multiply) by 0.975, perhaps to account
+   2b.Similar to 2, but scale times (multiply) by 0.975, perhaps to account
       for a different TR or stimulus duration.
 
          timing_tool.py -timing stimesB_01_houses.1D         \\
@@ -107,18 +107,17 @@ examples:
          timing_tool.py -timing response_times.1D       \\
                         -partition partitions.txt new_times
 
-   6a. Convert a stim_times timing file to 0/1 stim_file format.  Suppose the
+   6a.Convert a stim_times timing file to 0/1 stim_file format.  Suppose the
       timing is random where each event lasts 2.5 seconds and runs are of 
-      lengths 360, 360 and 400 seconds.  Convert timing.txt to sfile.1D on a
-      TR grid of 0.5 seconds (oversampling), where a TR gets an event if at
-      least 30% of the TR is is occupied by stimulus.
+      lengths 360, 360 and 400 seconds.  Convert timing.txt to sfile.1D on a TR
+      grid of 0.5 seconds (oversampling), where a TR gets an event if at least        30% of the TR is is occupied by stimulus.
 
           timing_tool.py -timing timing.txt -timing_to_1D sfile.1D      \\
                          -tr 0.5 -stim_dur 2.5 -min_frac 0.3            \\
                          -run_len 360 360 400
 
-    6b. Evaluate the results.  Use waver to convolve sfile.1D with GAM and
-       use 3dDeonvolve to convolve the timing file with BLOCK(2.5).
+    6b.Evaluate the results.  Use waver to convolve sfile.1D with GAM and use
+       3dDeconvolve to convolve the timing file with BLOCK(2.5).
 
           waver -GAM -TR 0.5 -peak 1 -input sfile.1D > waver.1D
 
@@ -129,17 +128,42 @@ examples:
 
           1dplot -sepscl sfile.1D waver.1D X.xmat.1D
 
+   7. Truncate stimulus times to the beginning of respective TRs.
+
+      Given a TR of 2.5 seconds and random stimulus times, truncate those times
+      to multiples of the TR (2.5).
+
+          timing_tool.py -timing timing.txt -tr 2.5 -truncate_times     \\
+                         -write_timing trunc_times.txt
+
+      Here, 11.83 would get truncated down to 10, the largest multiple of 2.5
+      less than or equal to the original time.
+
+   7b.Instead of just truncating the times, round them to the nearest TR, based
+      on some TR fraction.  In this example, round up to the next TR when a
+      stimulus occurs at least 70% into a TR, otherwise round down to the
+      beginning.
+
+          timing_tool.py -timing timing.txt -tr 2.5 -round_times 0.7    \\
+                         -write_timing round_times.txt
+
+      With no rounding, a time of 11.83 would be truncated to 10.0.  But 11.83
+      is 1.83 seconds into the TR, or is 73.2 percent into the TR.  Since it is
+      at least 70% into the TR, it is rounded up to the next one.
+
+      Here, 11.83 would get rounded up to 12.5.
+
 --------------------------------------------------------------------------
 Notes:
 
-   1. Action options are performed in the order of the options.  If
-      the -chrono option is given, everything (but -chrono) is.
+   1. Action options are performed in the order of the options.  If the -chrono
+      option is given, everything (but -chrono) is.
 
    2. Either -timing or -multi_timing is required for processing.
 
-   3. Option -run_len applies to single or multiple stimulus classes.
-      A single parameter would be used for all runs.  Otherwise one duration
-      per run should be supplied.
+   3. Option -run_len applies to single or multiple stimulus classes.  A single
+      parameter would be used for all runs.  Otherwise one duration per run
+      should be supplied.
 
 --------------------------------------------------------------------------
 basic informational options:
@@ -296,6 +320,27 @@ action options (apply to single timing element, only):
                     0        0        0        84.9      116.2
                     *
 
+   -round_times FRAC            : round times to multiples of the TR
+                                  0.0 <= FRAC <= 1.0
+
+        e.g. -round_times 0.7
+
+        All stimulus times will be rounded to a multiple TR, rounding down if
+        the fraction of the TR that has passed is less than FRAC, rounding up
+        otherwise.
+
+        Using the example of FRAC=0.7, if the TR is 2.5 seconds, then times are
+        rounded down if they occur earlier than 1.75 seconds into the TR.  So
+        11.83 would get rounded up to 12.5, while 11.64 would be rounded down
+        to 10.
+
+        FRAC = 1.0 is essentially floor() (as in -truncate_times), while
+        FRAC = 0.0 is essentially ceil().
+
+        This option requires -tr.
+
+            Consider example 7b.  See also -truncate_times.
+
    -scale_data SCALAR           : multiply every stim time by SCALAR
 
         e.g. -scale_data 0.975
@@ -370,6 +415,22 @@ action options (apply to single timing element, only):
         be swapped with the first column, etc.
 
             Consider '-write_timing'.
+
+   -truncate_times              : truncate times to multiples of the TR
+
+        All stimulus times will be truncated to the largest multiple of the TR
+        that is less than or equal to each respective time.  That is to say,
+        shift each stimulus time to the beginning of its TR.
+
+        This is particularly important when stimulus times are at a constant
+        offset into each TR and at the same time using TENT basis functions
+        for regression (in 3dDeconvolve, say).  The shorter the (non-zero)
+        offset, the more correlated the first two tent regressors will be,
+        possibly leading to unpredictable results.
+
+        This option requires -tr.
+
+            Consider example 7.
 
    -write_timing NEW_FILE       : write the current timing to a new file
 
@@ -467,9 +528,11 @@ g_history = """
    1.4  Mar 17, 2010 - fixed timing_to_1D when some runs are empty
    1.5  Jun 09, 2010 - fixed partitioning without zeros
    1.6  Jul 11, 2010 - show TR offset stats if -tr and -show_isi_stats
+   1.7  Jul 12, 2010 - added -truncate_times and -round_times
+                       (added for S Durgerian)
 """
 
-g_version = "timing_tool.py version 1.6, July 11, 2010"
+g_version = "timing_tool.py version 1.7, July 12, 2010"
 
 
 class ATInterface:
@@ -663,6 +726,9 @@ class ATInterface:
       self.valid_opts.add_opt('-partition', 2, [], 
                          helpstr='partition the events into multiple files')
 
+      self.valid_opts.add_opt('-round_times', 1, [], 
+                         helpstr='round times up if past FRAC of TR')
+
       self.valid_opts.add_opt('-scale_data', 1, [], 
                          helpstr='multiply all data by the given value')
 
@@ -677,6 +743,9 @@ class ATInterface:
 
       self.valid_opts.add_opt('-transpose', 0, [], 
                          helpstr='transpose timing data (must be rectangular)')
+
+      self.valid_opts.add_opt('-truncate_times', 0, [], 
+                         helpstr='truncation times to multiple of TR')
 
       self.valid_opts.add_opt('-write_timing', 1, [], 
                          helpstr='write timing contents to the given file')
@@ -926,6 +995,26 @@ class ATInterface:
             val, err = uopts.get_type_opt(float, opt=opt)
             if val != None and err: return 1
             self.timing.scale_val(val)
+
+         elif opt.name == '-round_times':
+            if not self.timing:
+               print "** '%s' requires -timing" % opt.name
+               return 1
+            if self.tr <= 0.0:
+               print "** '%s' requires -tr" % opt.name
+               return 1
+            val, err = uopts.get_type_opt(float, opt=opt)
+            if val != None and err: return 1
+            self.timing.round_times(self.tr, round_frac=val)
+
+         elif opt.name == '-truncate_times':
+            if not self.timing:
+               print "** '%s' requires -timing" % opt.name
+               return 1
+            if self.tr <= 0.0:
+               print "** '%s' requires -tr" % opt.name
+               return 1
+            self.timing.round_times(self.tr)
 
          elif opt.name == '-sort':
             if not self.timing:
