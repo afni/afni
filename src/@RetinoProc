@@ -828,7 +828,7 @@ echo "                             from having to generate it. To be sure"
 echo "                             you have the right volume, you should"
 echo "                             get surfaces to align with the EPI data."
 echo "                             Check for this with AFNI and SUMA:"
-echo "         suma -spec SPL -sv SVOLALND & ; afni -niml &
+echo "         suma -spec SPL -sv SVOLALND & ; afni -niml &"
 echo ""
 echo " -sid SID: SID is a flag identifying the subject"
 echo ""
@@ -854,8 +854,8 @@ echo "                time series after the non-steady images have been removed.
 echo ""
 echo " -ccw CCW_1 CCW_2 ...: Specify the retinotopic time series for each of the"
 echo " -cw  CW_1  CW_2  ...: four stimulus types. You can have multiple runs of"
-echo " -exp EXP_1 EXP_2 ...: each type. 
-echo " -con CON_1 CON_2 ...: 
+echo " -exp EXP_1 EXP_2 ...: each type. "
+echo " -con CON_1 CON_2 ...: "
 echo ""
 echo " -no_tshift: Do not correct for slice timing. Assume it has been done."
 echo ""
