@@ -3451,6 +3451,8 @@ SUMA_Boolean SUMA_LoadSpec_eng (
             }else if (  SUMA_isEnv("SUMA_ShowLabelDsetAtStartup","xxx") ||
                   SUMA_isEnv("SUMA_ShowLabelDsetAtStartup","no")) {
                NewColPlane->ShowMode = SW_SurfCont_DsetViewXXX;
+            }else{ /* show as contours only */
+               NewColPlane->ShowMode = SW_SurfCont_DsetViewCon;
             }
             /* create contours for this monster */
             SUMA_ContourateDsetOverlay(NewColPlane, NULL);
