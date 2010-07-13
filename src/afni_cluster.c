@@ -288,6 +288,7 @@ static int scrolling      =  1 ;
      if( scrolling && ii%2==1 ){                                    \
        MCW_set_widget_bg(rc,"black",0);                             \
        MCW_set_widget_bg(lb,"black",0);                             \
+       MCW_set_widget_bg(mb,"black",0);                             \
      }                                                              \
   } while(0)
 
@@ -724,7 +725,7 @@ ENTRY("AFNI_clus_make_widgets") ;
      MCW_register_hint( cwid->clu_flsh_pb[ii] ,
                         "Flash cluster voxels in image viewers" ) ;
      MCW_register_hint( cwid->clu_alph_lab[ii] ,
-                        "Approximate alpha value: see BHelp for more info" ) ;
+                        "Approximate alpha value: use BHelp for more info" ) ;
      MCW_register_help( cwid->clu_alph_lab[ii] ,
                         "Alpha values come from 3dClustSim (via afni_proc.py).\n"
                         "\n"
