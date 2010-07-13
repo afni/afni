@@ -86,7 +86,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            3dUpsample 3dTcorrMap 3dmatmult 3dABoverlap 3dmaskSVD 1dBandpass     \
            3dBlurInMask 3dRank 3dFFT 1dgenARMA11 3dPeriodogram 1dAstrip         \
            3dLocalPV 3dBandpass 3dSetupGroupInCorr 3dGroupInCorr 3dTcorr1D      \
-           3dClustSim                                                           \
+           3dClustSim 3dRetinoPhase                                             \
            $(EXTRAS)
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge      \
@@ -116,7 +116,7 @@ PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge  
                   1dMarry 3dEmpty 3dTsort 1dTsort 1dFlagMotion 3dTfitter            \
                   3dLocalSVD 3dFFT         3dErrtsCormat 3dREMLfit 3dTcorrMap       \
                   afni_history 3dUpsample 1dUpsample 3dmatmult 3dABoverlap          \
-                  3dmaskSVD 3dRank 3dLocalPV 3dTcorr1D 3dClustSim $(EXTRAS)
+                  3dmaskSVD 3dRank 3dLocalPV 3dTcorr1D 3dClustSim 3dRetinoPhase  $(EXTRAS)
 
 # For CYGWIN (look for "exe" to find various places below)
 #  Note that 3dNLfim and 3dTSgen are missing for now
@@ -148,7 +148,7 @@ PROGRAMS_EXE = afni.exe to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge 
                3danisosmooth 3dTwotoComplex 3dInvFMRI 3dmatcalc 3dAllineate       \
                3dFWHMx 3dBlurToFWHM 1dSEM 3dDFT 3dSynthesize 1dMarry 3dEmpty      \
                1dFlagMotion 3dTsort 1dTsort 3dTfitter afni_history 1dUpsample     \
-               3dTcorrMap 3dABoverlap 3dRank 3dFFT 3dTcorr1D 3dClustSim
+               3dTcorrMap 3dABoverlap 3dRank 3dFFT 3dTcorr1D 3dClustSim 3dRetinoPhase 
 
 SCRIPTS = @4Daverage @CommandGlobb @GetAfniOrient @DTI_studio_reposition          \
           @GetAfniPrefix @NoExt @UpdateAfni @RenamePanga @2dwarper                \
@@ -524,6 +524,10 @@ dsetdup:dsetdup.o
 3dDFT:3dDFT.o
 	$(RM) $@
 	$(CC) -o 3dDFT 3dDFT.o $(LFLAGS) $(LLIBS) -lf2c
+
+3dRetinoPhase:3dRetinoPhase.o
+	$(RM) $@
+	$(CC) -o 3dRetinoPhase 3dRetinoPhase.o $(LFLAGS) $(LLIBS) -lf2c
 
 3dDTeig:3dDTeig.o libmri.a
 	$(RM) $@
@@ -2691,7 +2695,7 @@ suma_exec:libGLws.a libSUMA.a libmri.a xutil.o LiteClue.o parser.o parser_int.o 
    SurfSmooth inspec quickspec FSread_annot SurfPatch SurfQual SampBias \
    3dSkullStrip 3dCRUISEtoAFNI 3dBRAIN_VOYAGERtoAFNI 3dSurfMask\
    SurfToSurf Surf2VolCoord ROIgrow SurfDsetInfo SurfInfo AnalyzeTrace \
-   DriveSuma SurfDist SpharmReco SpharmDeco prompt_user \
+   DriveSuma SurfDist SpharmReco SpharmDeco prompt_user SurfRetinoMap \
    'INSTALLDIR=$(INSTALLDIR)' \
 	'SUMA_INCLUDE_PATH=$(SUMA_INCLUDE_PATH)' \
 	'SUMA_LINK_PATH=$(SUMA_LINK_PATH)' \
@@ -2840,6 +2844,8 @@ suma_clean:
 	if [ -f SUMA/SpharmDeco ]; then $(RM) SUMA/SpharmDeco; fi;
 	if [ -f prompt_user ]; then $(RM) prompt_user; fi;
 	if [ -f SUMA/prompt_user ]; then $(RM) SUMA/prompt_user; fi;
+	if [ -f SurfRetinoMap ]; then $(RM) SurfRetinoMap; fi;
+	if [ -f SUMA/SurfRetinoMap ]; then $(RM) SUMA/SurfRetinoMap; fi;
 
 ###
 #Use precompiled libraries present in SUMA/$(SUMA_BIN_ARCHIVE) and just link SUMA
@@ -2856,7 +2862,7 @@ suma_link:
    quickspec FSread_annot SurfPatch SurfQual SampBias 3dSkullStrip \
    3dCRUISEtoAFNI 3dBRAIN_VOYAGERtoAFNI 3dSurfMask\
    SurfToSurf Surf2VolCoord ROIgrow SurfDsetInfo SurfInfo AnalyzeTrace \
-   DriveSuma SurfDist SpharmReco SpharmDeco prompt_user; \
+   DriveSuma SurfDist SpharmReco SpharmDeco prompt_user SurfRetinoMap ; \
 	$(MAKE) -f $(SUMA_MAKEFILE_NAME) testGL suma MakeColorMap ROI2dataset \
    3dVol2Surf 3dSurf2Vol ScaleToMap SurfMeasures SurfFWHM \
 	MapIcosahedron CreateIcosahedron CompareSurfaces ConvertSurface ConvertDset \
@@ -2864,7 +2870,7 @@ suma_link:
    quickspec FSread_annot SurfPatch SurfQual SampBias 3dSkullStrip \
    3dCRUISEtoAFNI 3dBRAIN_VOYAGERtoAFNI 3dSurfMask \
 	SurfToSurf Surf2VolCoord ROIgrow SurfDsetInfo SurfInfo AnalyzeTrace \
-   DriveSuma SurfDist SpharmReco SpharmDeco prompt_user \
+   DriveSuma SurfDist SpharmReco SpharmDeco prompt_user SurfRetinoMap \
 	'INSTALLDIR=$(INSTALLDIR)' \
 	'SUMA_INCLUDE_PATH=$(SUMA_INCLUDE_PATH)' \
 	'SUMA_LINK_PATH=$(SUMA_LINK_PATH)' \
@@ -2893,7 +2899,7 @@ suma_install:
    SUMA/3dBRAIN_VOYAGERtoAFNI SUMA/3dSurfMask \
    SUMA/SurfToSurf  SUMA/Surf2VolCoord  SUMA/ROIgrow SUMA/SurfDsetInfo \
    SUMA/SurfInfo SUMA/AnalyzeTrace SUMA/DriveSuma SUMA/SurfDist \
-   SUMA/SpharmReco SUMA/SpharmDeco SUMA/prompt_user \
+   SUMA/SpharmReco SUMA/SpharmDeco SUMA/prompt_user SUMA/SurfRetinoMap \
    ${INSTALLDIR} ; \
 	if [ -f SUMA/SurfMesh ]; then $(CP) SUMA/SurfMesh ${INSTALLDIR} ; fi; \
 	$(CP) @SUMA_* ${INSTALLDIR} ;)
