@@ -821,6 +821,99 @@ SUMA_AFNI_COLORS *SUMA_Get_AFNI_Default_Color_Maps ()
    SUMA_RETURN(SAC);
 }
 
+/*! Load colormaps in directory dname */
+int SUMA_LoadUserCmapsDir( char * dname, SUMA_AFNI_COLORS *SAC)
+{
+   static char FuncName[]={"SUMA_LoadUserCmapsDir"};
+   THD_string_array * flist , * rlist ;
+   int ir , ll , ii , k_read=0;
+   char * fname , * tname ;
+   float * far ;
+   MRI_IMARR * outar ;
+   MRI_IMAGE * outim , * flim ;
+   char * pat ;
+   SUMA_COLOR_MAP *Cmap=NULL;
+   SUMA_PARSED_NAME * pn=NULL;
+   SUMA_DSET_FORMAT form;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+
+   /*----- sanity check and initialize -----*/
+
+   if( dname == NULL || strlen(dname) == 0 ) SUMA_RETURN(-1) ;
+   if(!SAC) {
+      SUMA_RETURN(-1) ;
+   }
+   /*----- find all *.cmap files -----*/
+
+   ii  = strlen(dname) ;
+   pat = (char *) malloc(sizeof(char)*(ii+8)) ;
+   strcpy(pat,dname) ;
+   if( pat[ii-1] != '/' ) strcat(pat,"/") ;
+   strcat(pat,"*.cmap") ;
+   flist = THD_get_wildcard_filenames( pat ) ;
+   free(pat) ;
+
+   if( flist == NULL || flist->num <= 0 ){
+      DESTROY_SARR(flist) ;
+      SUMA_RETURN(0) ;
+   }
+
+   rlist = THD_extract_regular_files( flist ) ;
+   DESTROY_SARR(flist) ;
+   if( rlist == NULL || rlist->num <= 0 ){
+      DESTROY_SARR(rlist) ;
+      SUMA_RETURN(0) ;
+   }
+
+   for( ir=0 ; ir < rlist->num ; ir++ ){
+      fname = rlist->ar[ir] ; if( fname == NULL ) continue ;
+      SUMA_LHv("Loading %d-%s\n", ir, rlist->ar[ir]);
+
+      /* take a stab at the format */
+      form = SUMA_GuessFormatFromExtension(fname, NULL);
+   
+      /* load the baby */
+      Cmap = NULL;
+      switch (form) {
+         case  SUMA_1D:
+            Cmap = SUMA_Read_Color_Map_1D (fname);
+            if (Cmap == NULL) {
+               SUMA_S_Err("Could not load colormap.");
+               SUMA_RETURN(-1); 
+            }
+            break;
+         case SUMA_ASCII_NIML:
+         case SUMA_BINARY_NIML:
+         case SUMA_NIML:
+            Cmap = SUMA_Read_Color_Map_NIML(fname);
+            break;
+         default:
+            SUMA_S_Err(  "Format not recognized.\n"
+                           "I won't try to guess.\n"
+                           "Do use the proper extension.");
+            break;
+      }
+
+      if (Cmap) {
+         /* remove path from name for pretty purposes */
+         pn = SUMA_ParseFname(Cmap->Name, NULL);
+         SUMA_STRING_REPLACE(Cmap->Name, pn->FileName_NoExt);
+         SUMA_Free_Parsed_Name(pn); pn = NULL;
+         SAC->CMv = SUMA_Add_ColorMap (Cmap, SAC->CMv, 
+                                                   &(SAC->N_maps)); 
+
+         ++k_read;
+      }
+   }
+
+   DESTROY_SARR(rlist) ;
+
+   SUMA_RETURN(k_read) ;
+}
+
 /*!
    \brief creates the colormaps available for SUMA
 */
@@ -855,10 +948,22 @@ SUMA_AFNI_COLORS *SUMA_Build_Color_maps(void)
       name = SUMA_COLOR_MAP_NAMES[i];
    } 
    
+   /* load cmaps from user's directory */
+   if ((name = getenv("SUMA_CmapsDir")) && name[0] != '\0') {
+      if (SUMA_LoadUserCmapsDir( name, SAC) < 0) {
+         SUMA_S_Warn("Failed reading user colormaps\n");
+      }
+   }
+
+   /* load cmaps from current directory */
+   if (SUMA_LoadUserCmapsDir( "./", SAC) < 0) {
+      SUMA_S_Warn("Failed reading user colormaps\n");
+   }
+
    SUMA_RETURN(SAC);
 }
    
-
+   
 /*! \brief A function to add a new color to the color vector 
 
    \param Name (char *) name of new color  to be added

@@ -35,7 +35,7 @@ SUMA_EXECS = CreateIcosahedron SUMA_Map_SurfacetoSurface MapIcosahedron       \
    3dCRUISEtoAFNI	3dBRAIN_VOYAGERtoAFNI 3dSurfMask Surf2VolCoord \
 	SurfToSurf ROIgrow\
    NikoMap SurfDsetInfo SurfInfo AnalyzeTrace DriveSuma SurfLocalstat SurfFWHM \
-   SpharmDeco SpharmReco SurfDist SumaProgramTemplate SUMA_RetinoMap 
+   SpharmDeco SpharmReco SurfDist SumaProgramTemplate SurfRetinoMap 
    
  
 
@@ -456,10 +456,10 @@ SumaProgramTemplate: SUMA_ProgramTemplate.c
 		${AFNI_3dOBJS} MarchingCubes/debug/MarchingCubes.o			\
 		${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
-RetinoMap: SUMA_RetinoMap.c
+SurfRetinoMap: SUMA_SurfRetinoMap.c
 	$(RM) $@
 	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} -o $@ $(AFWARPOBJS) \
-		${AFNI_OBJS} SUMA_RetinoMap.c ${SUMA_INPATH} ${SUMA_LINK_PATH} 	\
+		${AFNI_OBJS} SUMA_SurfRetinoMap.c ${SUMA_INPATH} ${SUMA_LINK_PATH} 	\
 		${AFNI_3dOBJS} MarchingCubes/debug/MarchingCubes.o			\
 		${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 

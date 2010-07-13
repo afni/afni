@@ -1773,8 +1773,12 @@ SUMA_context_Init(SUMA_SurfaceViewer *sv)
    /*GLfloat green_light[] = { 0.0, 1.0, 0.0, 1.0};*/
    
    SUMA_ENTRY;
-   if (sv->PolyMode == SRM_Hide) { SUMA_SL_Note("sv->PolyMode reset to SRM_Fill"); sv->PolyMode = SRM_Fill; }
-   glClearColor (sv->clear_color[0], sv->clear_color[1], sv->clear_color[2], sv->clear_color[3]);
+   if (sv->PolyMode == SRM_Hide) { 
+      SUMA_SL_Note("sv->PolyMode reset to SRM_Fill"); 
+      sv->PolyMode = SRM_Fill; 
+   }
+   glClearColor (sv->clear_color[0], sv->clear_color[1], 
+                 sv->clear_color[2], sv->clear_color[3]);
    glShadeModel (GL_SMOOTH);
 
    SUMA_SET_GL_RENDER_MODE(sv->PolyMode); 
@@ -8236,6 +8240,7 @@ void SUMA_cb_SelectSwitchColPlane(Widget w, XtPointer data, XtPointer call_data)
          SUMA_InitializeColPlaneShell(SO, ColPlane);
          SUMA_UpdateColPlaneShellAsNeeded(SO); /* update other open 
                                                    ColPlaneShells */
+         SUMA_UpdateNodeField(SO);
          /* If you're viewing one plane at a time, do a remix */
          if (SO->SurfCont->ShowCurForeOnly) SUMA_RemixRedisplay(SO);
       }
