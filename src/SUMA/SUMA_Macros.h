@@ -450,12 +450,22 @@ if Dist = 0, point on plane, if Dist > 0 point above plane (along normal), if Di
    {  \
       switch (m_PolyMode) {   \
                case SRM_Fill: \
+                  glEnable (GL_POLYGON_OFFSET_FILL);  \
+                  glPolygonOffset(1.0, 1.0); \
+                     /* Polygon offset is needed to deal with rendering
+                     lines that are coplanar with filled polygons.
+                     Without polygon offset, lines can get stripy under 
+                     certain angles, quite ugly. The effect is known as
+                     stitching, bleeding, or Z fighting. 
+             http://www.opengl.org/resources/faq/technical/polygonoffset.htm */ \
                   glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);   \
                   break;   \
                case SRM_Line:  \
+                  glDisable (GL_POLYGON_OFFSET_FILL);  \
                   glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);   \
                   break;   \
                case SRM_Points:  \
+                  glDisable (GL_POLYGON_OFFSET_FILL);  \
                   glPolygonMode(GL_FRONT_AND_BACK, GL_POINT);  \
                   break;   \
                case SRM_ViewerDefault: \
@@ -463,7 +473,7 @@ if Dist = 0, point on plane, if Dist > 0 point above plane (along normal), if Di
                case SRM_Hide: \
                   break;   \
                default: \
-                  fprintf (SUMA_STDERR, "Error %s: Wrong Rendering Mode.\n", FuncName);   \
+      fprintf (SUMA_STDERR, "Error %s: Wrong Rendering Mode.\n", FuncName);   \
                   break;   \
             }  \
    }         

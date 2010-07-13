@@ -6127,11 +6127,6 @@ void SUMA_cb_Cmap_Load(Widget w, XtPointer data, XtPointer client_data)
 }
 
 /*! Loads a colormap file and adds it to the list of colormaps */
-/*!
-   \brief Loads a Dset file and adds it to the list of datasets
-   
-   \param dlg (SUMA_SELECTION_DIALOG_STRUCT *) struture from selection dialogue
-*/
 void SUMA_LoadCmapFile (char *filename, void *data)
 {
    static char FuncName[]={"SUMA_LoadCmapFile"};
@@ -6150,11 +6145,6 @@ void SUMA_LoadCmapFile (char *filename, void *data)
       
    SUMA_ENTRY;
 
-   if (!data) {
-      SUMA_SLP_Err("Null data"); 
-      SUMA_RETURNe;
-   }
-   
    if (!SUMAg_CF->scm) {   
       SUMAg_CF->scm = SUMA_Build_Color_maps();
       if (!SUMAg_CF->scm) {
@@ -6163,12 +6153,10 @@ void SUMA_LoadCmapFile (char *filename, void *data)
       }
    }
    
-   SO = (SUMA_SurfaceObject *)data;
-   
    if (LocalHead) {
       fprintf (SUMA_STDERR,
-               "%s: Received request to load %s for surface %s.\n", 
-               FuncName, filename, SO->Label);
+               "%s: Received request to load %s \n", 
+               FuncName, filename);
    }
 
    /* find out if file exists and how many values it contains */
@@ -6224,24 +6212,36 @@ void SUMA_LoadCmapFile (char *filename, void *data)
          bringup = 1;
       }
    }
-   /* refresh the list */
-   SUMA_CmapSelectList(SO, 1, bringup);
-   
-   /* update the menu buttons */
-   SUMA_CreateUpdatableCmapMenu(SO);
-   
-   /* Set the menu button to the current choice */
-   if (!SUMA_SetCmapMenuChoice (SO, Cmap->Name)) {
-      SUMA_SL_Err("Failed in SUMA_SetCmapMenuChoice");
-   }
 
-   /* switch to the recently loaded  cmap */
-   if (!SUMA_SwitchColPlaneCmap(SO, Cmap)) {
-      SUMA_SL_Err("Failed in SUMA_SwitchColPlaneCmap");
+   if (data) {
+      SO = (SUMA_SurfaceObject *)data;
+
+      if (LocalHead) {
+         fprintf (SUMA_STDERR,
+                  "%s: bonding colormap %s to surface %s.\n", 
+                  FuncName, filename, SO->Label);
+      }
+
+      /* refresh the list */
+      SUMA_CmapSelectList(SO, 1, bringup);
+
+      /* update the menu buttons */
+      SUMA_CreateUpdatableCmapMenu(SO);
+
+      /* Set the menu button to the current choice */
+      if (!SUMA_SetCmapMenuChoice (SO, Cmap->Name)) {
+         SUMA_SL_Err("Failed in SUMA_SetCmapMenuChoice");
+      }
+
+      /* switch to the recently loaded  cmap */
+      if (!SUMA_SwitchColPlaneCmap(SO, Cmap)) {
+         SUMA_SL_Err("Failed in SUMA_SwitchColPlaneCmap");
+      }
+
+      /* update Lbl fields */
+      SUMA_UpdateNodeLblField(SO);
    }
    
-   /* update Lbl fields */
-   SUMA_UpdateNodeLblField(SO);
 
    SUMA_RETURNe;
 }
