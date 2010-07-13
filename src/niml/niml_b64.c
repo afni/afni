@@ -19,7 +19,8 @@ int  nocrlf  = 0 ;         /* disable CR LF output? */
 void B64_set_crlf( int nn )
 {
    if( nn >= 1 && nn <= 2 ) ncrlf  = nn ;
-   else                     nocrlf = !nocrlf ;
+   else if( nn == 0 )       nocrlf = 1 ;
+   else if( nn <  0 )       nocrlf = 0 ;
    return ;
 }
 
@@ -159,7 +160,9 @@ void B64_to_binary( int nb64 , byte *b64 , int *nbin , byte **bin )
    where n=1 for LF, n=2 for CR LF.  The default is LF.  The output
    array will be terminated with a line separator.  If you call
       B64_set_crlf(0)
-   then this will toggle the use of line separators.
+   then this will turn off the use of line separators.
+      B64_set_crlf(-1) or (1) or (2)
+   will turn line separators back on.
 
    There will be no ASCII NUL character at the end of *b64 -- that is,
    the output is not a C string.
