@@ -1,0 +1,819 @@
+#!/bin/tcsh -fe
+
+set stat = 0
+set idir = $PWD
+
+goto PARSE
+RET_PARSE:
+
+goto SANITY
+RET_SANITY:
+
+AUTOVAR:
+   set retts = ()
+   foreach rr ($retcls)
+      set retts = ( $retts {$ec}.$rr )
+   end
+   set fs = `ccalc 1/$TR`
+   set runclsAll = ($runs_ccw $runs_cw $runs_exp $runs_con )
+   if ($#runclsAll < 4) then
+      echo "Derth of epi runs ($#runclsAll in total, need 4 at least)"
+      goto BEND
+   endif
+   set sdir = `dirname $svol`
+   cd $sdir
+   set sdir = $PWD
+   cd $idir
+   set svol = `basename $svol`
+   set svol = "$sdir/$svol"
+   set sides = ( lh rh )
+   set specs = ( $spec_left  $spec_right)
+   set A2E_opt = ''
+
+COPY:
+   set runclsNAll = ()
+   foreach dset ( $runclsAll )
+      set ndset = `basename $dset`
+      set ndset = `@NoExt $ndset .nii .nii.gz`
+      set pndset = `@GetAfniPrefix $ndset`
+      if ( ! -f $rdir/$pndset+orig.HEAD) then
+         3dTcat -prefix $rdir/$pndset $dset'['$Nignore'-$]'
+      endif
+      set runclsNAll = ($runclsNAll $pndset)
+   end
+   set ndset = `basename $avol`
+   set ndset = `@NoExt $ndset .nii .nii.gz`
+   set ndset = $ndset
+   if ( ! -f $rdir/$ndset) then
+      3dcopy ${avol}  $rdir/$ndset
+   endif  
+   set avol = $ndset  
+   
+   if ("$svolal" != '') then
+      set ndset = ${ec}.SurfVol_AlndRetino+orig.HEAD
+      if ( ! -f $rdir/$ndset) then
+         3dcopy "$svolal" $rdir/$ndset  
+      endif  
+      set svolal = $ndset
+   endif
+   
+   if ("$a2evol" != '') then
+      set ndset = `basename "$a2evol"`
+      set ndset = `@GetAfniPrefix "$ndset"`
+      set ndset = a2e.$ndset+orig.HEAD
+      set pndset = `@GetAfniPrefix $ndset`
+      if ( ! -f $rdir/$ndset) then
+         3dTcat -prefix $rdir/$pndset "$a2evol" 
+      endif  
+      set a2evol = $ndset
+   endif
+   
+   if ("$sref" != '') then
+      set ndset = `basename "$sref"`
+      set ndset = `@GetAfniPrefix "$ndset"`
+      set ndset = e.$ndset+orig.HEAD
+      if ( ! -f $rdir/$ndset) then
+         3dTcat -prefix $rdir/$ndset $sref 
+      endif  
+      set sref = $ndset
+   endif
+
+REGISTER_EPI_REFS:
+   if ("$a2evol" != '') then
+      set ee = `@GetAfniPrefix "$a2evol"`
+      if ("$sref" == '') then
+         set gref = `@GetAfniPrefix $runclsNAll[1]`
+         set gref = ${gref}+orig'[3]'
+      else
+         set gref = "$sref"
+      endif
+      if ( ! -f ${ee}vr+orig.HEAD) then
+         3dvolreg -base "${gref}" \
+                  -cubic -overwrite \
+                  -prefix ${ee}vr   \
+                  -1Dfile ${ee}vr.1D   \
+                  ${ee}+orig
+      endif
+      set a2evol = "${ee}vr+orig"         
+   endif   
+   
+REGISTER_TS:
+   cd $rdir
+   set vref = ''
+   foreach s ($runclsNAll)
+      set sp = `@GetAfniPrefix $s`
+      if ( $tshift >= 0) then
+         if ( ! -f ${sp}ts+orig.HEAD) then
+            3dTshift -tzero $tshift -overwrite \
+                     -prefix ${sp}ts \
+                     $s
+         endif
+         set vrin = ${sp}ts
+         if ("$sref" == '') then
+            set sref = ${sp}ts+orig'[3]'
+         endif
+      else 
+         set vrin = ${sp}
+         if ("$sref" == '') then
+            set sref = ${sp}+orig'[3]'
+         endif
+      endif
+      if ( ! -f ${sp}vr+orig.HEAD) then
+         3dvolreg -base "${sref}" \
+                  -cubic   \
+                  -overwrite \
+                  -prefix ${sp}vr  \
+                  -1Dfile ${sp}vr.1D   \
+                  ${vrin}+orig
+      endif
+      if ("$vref" == '') then
+         set vref = ${sp}vr+orig
+      endif
+   end
+   cd $idir
+   
+if ("$svolal" != "") then
+   goto RETINO_START
+   echo "Have anatomy aligned to EPIs"
+else
+   echo "Will align antomy to EPIs"
+      ALIGN_EXPANAT_TO_EPI:
+         cd $rdir
+         set aa = `@parse_afni_name $avol`
+         set avol_al = "${aa[2]}_al${aa[3]}.HEAD"                        
+         if ( ! -f $avol_al) then
+            align_epi_anat.py    -anat ${avol}   \
+                              -epi  $vref'[0]'   \
+                              -AddEdge \
+                              -epi_base 0
+         endif
+         cd $idir
+
+      ALIGN_SURFVOL_TO_EXPANAT:
+         cd $rdir
+         set svolb = `basename $svol`
+         set aa = `@parse_afni_name $svolb`
+         set svolal = "${aa[2]}_Alnd_Exp${aa[3]}.HEAD"     
+         if ( ! -f ${svolal}) then
+            @SUMA_AlignToExperiment    -exp_anat ${avol_al}  \
+                                       -surf_anat ${svol}  \
+                                       ${A2E_opt} -prefix "${aa[2]}_Alnd_Exp" \
+                                       -wd   
+            cat_matvec ${svolal}::WARPDRIVE_MATVEC_INV_000000 > Svol2Evol.1D
+         endif
+         cd $idir
+endif
+      
+RETINO_START:
+set sdc = 0
+foreach sd ($sides)
+   @ sdc ++ 
+   VOL2SURFTS:
+      #Now map time series to surfaces
+      cd $rdir
+      foreach s ($runclsNAll)
+         set p = `@GetAfniPrefix $s`
+         if ( ! -f {$p}.${sd}.niml.dset ) then
+            3dVol2Surf  -spec          ${specs[$sdc]} \
+                        -sv            ${svolal}   \
+                        -surf_A        ${sd}.smoothwm.asc \
+                        -surf_B        ${sd}.pial.asc  \
+                        -grid_parent   {$p}vr+orig \
+                        -map_func      ave   \
+                        -f_index       nodes \
+                        -f_steps       15    \
+                        -oob_value     0     \
+                        -overwrite     \
+                        -out_niml      {$p}.${sd}.niml.dset 
+         endif
+      end
+      cd $idir
+
+   DETREND: #PERHAPS replace with 3dDeconvolve for removing motion too
+      cd $rdir
+         foreach s ($runclsNAll)
+            set p = `@GetAfniPrefix $s`
+            set din = {$p}.${sd}
+            #set nvals = `3dnvals ${din}.niml.dset`   #too slow
+            set nvals = `3dnvals {$p}vr+orig`   #faster pusscat
+            if ($nvals < 2) then
+               echo "Bad time series length of $nvals for ${din}.niml.dset"
+               goto BEND
+            endif
+            set polort = `ccalc -form fint -eval "1 + $TR*$nvals/150"`
+            if ( ! -f $din.dtr.niml.dset) then
+               3dDetrend   -polort $polort   \
+                           -prefix $din.dtr.niml.dset  \
+                           ${din}.niml.dset
+            endif
+         end
+      cd $idir
+         
+   AVERAGE:
+      #combine similar runs types
+      cd $rdir
+      foreach tp (1 2 3 4)
+         if ($tp == 1) then
+            set runcls = ()
+            foreach rr  ($runs_ccw) 
+               set bb = `basename $rr`
+               set bb = `@GetAfniPrefix $bb`
+               set bb = `@NoExt $bb .nii .nii.gz`
+               set runcls = ($runcls $bb.${sd}.dtr.niml.dset)
+            end
+            set runs_ccwsurf = ($runcls)  
+         else if ($tp == 2) then
+            set runcls = ()
+            foreach rr  ($runs_cw) 
+               set bb = `basename $rr`
+               set bb = `@GetAfniPrefix $bb`
+               set bb = `@NoExt $bb .nii .nii.gz`
+               set runcls = ($runcls $bb.${sd}.dtr.niml.dset)
+            end
+            set runs_cwsurf = ($runcls)  
+         else if ($tp == 3) then
+            set runcls = ()
+            foreach rr  ($runs_exp) 
+               set bb = `basename $rr`
+               set bb = `@GetAfniPrefix $bb`
+               set bb = `@NoExt $bb .nii .nii.gz`
+               set runcls = ($runcls $bb.${sd}.dtr.niml.dset)
+            end
+            set runs_expsurf = ($runcls)  
+         else if ($tp == 4) then
+            set runcls = ()
+            foreach rr  ($runs_con) 
+               set bb = `basename $rr`
+               set bb = `@GetAfniPrefix $bb`
+               set bb = `@NoExt $bb .nii .nii.gz`
+               set runcls = ($runcls $bb.${sd}.dtr.niml.dset)
+            end
+            set runs_consurf = ($runcls) 
+         endif   
+         if ( ! -f $retts[$tp].${sd}.niml.dset) then
+            3dMean   -overwrite    \
+                     -prefix $retts[$tp].${sd}.niml.dset  \
+                     $runcls
+         endif
+      end
+      cd $idir
+      
+   SMOOTH_IF_DESIRED:
+      cd $rdir
+         set cnt = 1
+         foreach f ($retts)
+            set dset = $f.$sd.niml.dset
+            if ("$retcls[$cnt]" == "ccw" || "$retcls[$cnt]" == "cw") then
+               set sfwhm = $fwhm_pol
+            else if ("$retcls[$cnt]" == "cnt" || "$retcls[$cnt]" == "exp") then
+               set sfwhm = $fwhm_ecc
+            else
+               echo "Cannot tell class of $dset"
+               goto BEND
+            endif            
+            if (1) then
+               if (  ! -f smooth_params.sm$sfwhm.$sd.1D || \
+                     ! -f $f.sm.$sd.niml.dset ) then
+                  SurfSmooth  -spec          ${specs[$sdc]} \
+                              -surf_A        ${sd}.smoothwm.asc \
+                              -input         $dset \
+                              -met           HEAT_07   \
+                              -target_fwhm   $sfwhm        \
+                              -blurmaster    $dset \
+                              -detrend_master \
+                              -overwrite     \
+                              -output        $f.sm.$sd.niml.dset\
+                              > smooth_params.sm$sfwhm.$sd.1D
+               else 
+                  if ( ! -f $f.sm.$sd.niml.dset ) then
+                     set pars = `1dcat smooth_params.sm$sfwhm.$sd.1D`
+                     SurfSmooth  -spec          ${specs[$sdc]} \
+                                 -surf_A        ${sd}.smoothwm.asc \
+                                 -input         $dset \
+                                 -met           HEAT_07   \
+                                 -Niter         $pars[1]\
+                                 -sigma         $pars[2]\
+                                 -overwrite     \
+                                 -output       $f.sm.$sd.niml.dset
+                  endif
+               endif
+            endif
+            @ cnt ++
+         end
+      cd $idir
+
+   PHASE:
+      cd $rdir
+      
+      foreach sss ( '' '.sm')
+         if ( ! -f $ec${sss}.$sd.pol.field.niml.dset) then
+            3dRetinoPhase  -ccw $retts[1]${sss}.$sd.niml.dset  \
+                           -cw  $retts[2]${sss}.$sd.niml.dset  \
+                           -detrend -Tpol $period_pol \
+                           -nwedges $nwedges   \
+                           -pre_stim $pre_stim \
+                           -prefix $ec${sss}.$sd.niml.dset
+         endif
+         if ( ! -f $ec${sss}.$sd.ecc.field.niml.dset) then
+            3dRetinoPhase  -exp $retts[3]${sss}.$sd.niml.dset  \
+                           -con $retts[4]${sss}.$sd.niml.dset  \
+                           -detrend -Tecc $period_ecc \
+                           -nrings $nrings   \
+                           -pre_stim $pre_stim \
+                           -prefix $ec${sss}.$sd.niml.dset
+         endif
+      end                 
+              
+      cd $idir
+   
+   VFR:
+      cd $rdir
+      foreach sss ( '' '.sm')
+         if ( ! -f $ec${sss}.vfr.$sd.niml.dset) then
+            SurfRetinoMap  -spec          ${specs[$sdc]} \
+                           -surf_A   $sd.pial \
+                           -input   $ec${sss}.$sd.pol.field.niml.dset \
+                                 $ec${sss}.$sd.ecc.field.niml.dset \
+                           -prefix $ec${sss}.vfr.$sd.niml.dset 
+         endif
+      end
+      cd $idir
+  
+   VFR:
+
+   goto NEXT_SIDE
+   
+   NEXT_SIDE:
+   #Finish side loop   
+end
+
+EXAMINE_RESULTS:
+   cd $rdir
+   echo "suma  -spec  ${specs[1]} -sv ${svolal}   &"
+   echo "suma  -spec  ${specs[2]} -sv ${svolal}   &"
+   
+   cd $idir
+
+goto END
+
+
+PARSE:
+
+   
+   #continue parsing for new options
+   set Narg = $#
+   set ec = 'ZZ'
+   set svol = '' 
+   set rdir = ''
+   set avol = ''
+   set TR = ''
+   set pre_stim = 0
+   set period_ecc = ''
+   set nrings = 1
+   set period_pol = ''
+   set nwedges = 1
+   set fwhm_pol = 4
+   set fwhm_ecc = 8
+   set tshift = 0
+   set rettype=(  POL    ECC ) #DO NOT CHANGE ORDER, affects DIFFERENCE
+   set retcls= (ccw cw exp cnt)  #DO NOT CHANGE ORDER, affects DIFFERENCE
+   set runs_ccw = (  )   #ccw, always
+   set runs_cw = (  )   #cw, always
+   set runs_exp = (  )   #exp, always
+   set runs_con = (  )   #cnt, always
+   set Nignore = 0
+   set a2evol = ''
+   set sref = ''
+   set PhMeth = .PHZ
+   set svolal = ''
+   set cnt = 1
+   
+   if ($#Narg < $cnt) goto HELP
+   
+   while ($cnt <= $Narg)
+		set donext = 1;
+
+      if ($donext && ("$argv[$cnt]" == "-h" || "$argv[$cnt]" == "-help") ) then
+         goto HELP
+      endif
+      
+      if ($donext && "$argv[$cnt]" == "-phase_method") then
+         set pLoc = $cnt		
+		   if ($pLoc == $Narg) then
+				echo "Need label after -phase_method"
+            goto END
+			else
+            @ cnt ++
+            set PhMeth = ".$argv[$cnt]"
+            if ($PhMeth != '.PHZ' && $PhMeth != '.DEL') then
+               echo "Choose either PHZ, or DEL for -phase. Have $argv[$cnt]."
+               goto END
+            endif
+            set donext = 0	
+         endif	
+      endif
+      
+      if ($donext && "$argv[$cnt]" == "-sid") then
+         set pLoc = $cnt		
+		   if ($pLoc == $Narg) then
+				echo "Need label after -sid"
+            goto END
+			else
+            @ cnt ++
+            set ec = "$argv[$cnt]"
+            set donext = 0	
+         endif	
+      endif
+      
+      if ($donext && "$argv[$cnt]" == "-ignore") then
+         set pLoc = $cnt		
+		   if ($pLoc == $Narg) then
+				echo "Need number after -ignore"
+            goto END
+			else
+            @ cnt ++
+            set Nignore = `printf '%d' "$argv[$cnt]"`
+            set donext = 0	
+         endif	
+      endif
+      
+       if ($donext && "$argv[$cnt]" == "-surf_vol") then
+         set pLoc = $cnt		
+		   if ($pLoc == $Narg) then
+				echo "Need a volume file after -surf_vol"
+            goto END
+			else
+            @ cnt ++
+            set svol = "$argv[$cnt]"
+            if ( ! -f $svol) then 
+               set svol = (`ls ${svol}*.HEAD`)
+               if ($#svol != 1) then
+                  echo "Found $#svol options. Need just one"
+                  goto BEND
+               endif
+            endif
+            set donext = 0	
+         endif	
+      endif
+      if ($donext && "$argv[$cnt]" == "-surf_vol_alndepi") then
+         set pLoc = $cnt		
+		   if ($pLoc == $Narg) then
+				echo "Need a volume file after -surf_vol_alndepi"
+            goto END
+			else
+            @ cnt ++
+            set svolal = "$argv[$cnt]"
+            if ( ! -f $svolal) then 
+               set svolal = (`ls ${svolal}*.HEAD`)
+               if ($#svolal != 1) then
+                  echo "Found $#svolal options. Need just one"
+                  goto BEND
+               endif
+            endif
+            set donext = 0	
+         endif	
+      endif
+      
+      if ($donext && "$argv[$cnt]" == "-anat_vol") then
+         set pLoc = $cnt		
+		   if ($pLoc == $Narg) then
+				echo "Need a volume file after -anat_vol"
+            goto END
+			else
+            @ cnt ++
+            set avol = "$argv[$cnt]"
+            if ( ! -f $avol) then 
+               set avol = (`ls ${avol}*.HEAD`)
+               if ($#avol != 1) then
+                  echo "Found $#avol options. Need just one"
+                  goto BEND
+               endif
+            endif
+            set donext = 0	
+         endif	
+      endif
+
+      if ($donext && "$argv[$cnt]" == "-epianat_ref") then
+         set pLoc = $cnt		
+		   if ($pLoc == $Narg) then
+				echo "Need a volume file after -epianat_ref"
+            goto END
+			else
+            @ cnt ++
+            set a2evol = "$argv[$cnt]"
+            set donext = 0	
+         endif	
+      endif
+
+      if ($donext && "$argv[$cnt]" == "-epi_ref") then
+         set pLoc = $cnt		
+		   if ($pLoc == $Narg) then
+				echo "Need a volume file after -epi_ref"
+            goto END
+			else
+            @ cnt ++
+            set sref = "$argv[$cnt]"
+            set donext = 0	
+         endif	
+      endif
+      
+      if ($donext && "$argv[$cnt]" == "-TR") then
+         set pLoc = $cnt		
+		   if ($pLoc == $Narg) then
+				echo "Need a number  after -TR"
+            goto END
+			else
+            @ cnt ++
+            set TR = `printf '%g' $argv[$cnt]`
+            set donext = 0	
+         endif	
+      endif
+
+      if ($donext && "$argv[$cnt]" == "-pre_stim") then
+         set pLoc = $cnt		
+		   if ($pLoc == $Narg) then
+				echo "Need a number  after -pre_stim"
+            goto END
+			else
+            @ cnt ++
+            set pre_stim = `printf '%f' $argv[$cnt]`
+            set donext = 0	
+         endif	
+      endif
+      
+      if ($donext && "$argv[$cnt]" == "-period") then
+         set pLoc = $cnt		
+		   if ($pLoc == $Narg) then
+				echo "Need a number  after -period"
+            goto END
+			else
+            @ cnt ++
+            set period_ecc = `printf '%g' $argv[$cnt]`
+            set period_pol = `printf '%g' $argv[$cnt]`
+            set donext = 0	
+         endif	
+      endif
+      
+      if ($donext && "$argv[$cnt]" == "-period_ecc") then
+         set pLoc = $cnt		
+		   if ($pLoc == $Narg) then
+				echo "Need a number  after -period_ecc"
+            goto END
+			else
+            @ cnt ++
+            set period_ecc = `printf '%g' $argv[$cnt]`
+            set donext = 0	
+         endif	
+      endif
+      
+      if ($donext && "$argv[$cnt]" == "-period_pol") then
+         set pLoc = $cnt		
+		   if ($pLoc == $Narg) then
+				echo "Need a number  after -period_pol"
+            goto END
+			else
+            @ cnt ++
+            set period_pol = `printf '%g' $argv[$cnt]`
+            set donext = 0	
+         endif	
+      endif
+
+      if ($donext && "$argv[$cnt]" == "-nwedges") then
+         set pLoc = $cnt		
+		   if ($pLoc == $Narg) then
+				echo "Need a number  after -nwedges"
+            goto END
+			else
+            @ cnt ++
+            set nwedges = `printf '%d' $argv[$cnt]`
+            set donext = 0	
+         endif	
+      endif
+      
+      if ($donext && "$argv[$cnt]" == "-nrings") then
+         set pLoc = $cnt		
+		   if ($pLoc == $Narg) then
+				echo "Need a number  after -nrings"
+            goto END
+			else
+            @ cnt ++
+            set nrings = `printf '%d' $argv[$cnt]`
+            set donext = 0	
+         endif	
+      endif
+      
+      if ($donext && "$argv[$cnt]" == "-out_dir") then
+         set pLoc = $cnt		
+		   if ($pLoc == $Narg) then
+				echo "Need directory name after -out_dir"
+            goto END
+			else
+            @ cnt ++
+            set rdir = "$argv[$cnt]"
+            set donext = 0	
+         endif	
+      endif
+      
+      if ($donext && "$argv[$cnt]" == "-spec_left") then
+         set pLoc = $cnt		
+		   if ($pLoc == $Narg) then
+				echo "Need specfile name after -spec_left"
+            goto END
+			else
+            @ cnt ++
+            set spec_left = "`@FullPath $argv[$cnt]`"
+            if ( ! -f $spec_left) then
+               echo "spec file $spec_left not found"
+               goto BEND
+            endif 
+            set donext = 0	
+         endif	
+      endif
+
+      if ($donext && "$argv[$cnt]" == "-spec_right") then
+         set pLoc = $cnt		
+		   if ($pLoc == $Narg) then
+				echo "Need specfile name after -spec_right"
+            goto END
+			else
+            @ cnt ++
+            set spec_right = "`@FullPath $argv[$cnt]`"
+            if ( ! -f $spec_right) then
+               echo "spec file $spec_right not found"
+               goto BEND
+            endif 
+            set donext = 0	
+         endif	
+      endif
+      
+      if ($donext && "$argv[$cnt]" == "-fwhm") then
+         set pLoc = $cnt		
+		   if ($pLoc == $Narg) then
+				echo "Need argument after -fwhm"
+            goto END
+			else
+            @ cnt ++
+            set ttt = ()
+            while ($cnt < $Narg && "$argv[$cnt]" !~ -*) 
+               set ttt = ($ttt $argv[$cnt])
+               @ cnt ++
+            end
+            if ($#ttt != 1) then
+               echo "Failed to get one and only 1 -fwhm value. Have $#ttt" 
+               goto BEND
+            else
+               if ($cnt < $Narg) @ cnt -- 
+            endif
+            set fwhm_pol = $ttt
+            set fwhm_ecc = $ttt
+            set donext = 0	
+         endif	
+      endif
+      
+      if ($donext && "$argv[$cnt]" == "-fwhm_pol") then
+         set pLoc = $cnt		
+		   if ($pLoc == $Narg) then
+				echo "Need argument after -fwhm_pol"
+            goto END
+			else
+            @ cnt ++
+            set fwhm_pol = $argv[$cnt]
+            set donext = 0	
+         endif	
+      endif
+      
+      if ($donext && "$argv[$cnt]" == "-fwhm_ecc") then
+         set pLoc = $cnt		
+		   if ($pLoc == $Narg) then
+				echo "Need argument after -fwhm_ecc"
+            goto END
+			else
+            @ cnt ++
+            set fwhm_ecc = $argv[$cnt]
+            set donext = 0	
+         endif	
+      endif
+
+      if ($donext && "$argv[$cnt]" == "-A2E_opts") then
+         set pLoc = $cnt		
+		   if ($pLoc == $Narg) then
+				echo "Need argument after -A2E_opts"
+            goto END
+			else
+            @ cnt ++
+            set A2E_opts = $argv[$cnt]
+            set donext = 0	
+         endif	
+      endif
+      
+      if ($donext && \
+            ("$argv[$cnt]" == "-ccw" )  || \
+            ("$argv[$cnt]" == "-cw"  )  || \
+            ("$argv[$cnt]" == "-exp"  )  || \
+            ("$argv[$cnt]" == "-cnt"  )     ) then
+         set pLoc = $cnt		
+		   if ($pLoc == $Narg) then
+				echo "Need volumes after -ccw, or -cw, or -exp, or -cnt"
+            goto END
+			else
+            @ cnt ++
+            set runcls = ()
+            while ($cnt < $Narg && "$argv[$cnt]" !~ '-*') 
+               set runcls = ($runcls $argv[$cnt])
+               @ cnt ++
+            end
+            if ($#runcls < 1) then
+               echo "Failed to get -ccw, or -cw, or -exp, or -cnt volumes" 
+               goto BEND
+            else
+               if ($cnt <= $Narg) @ cnt -- 
+            endif
+            if ("$argv[$pLoc]" == "-ccw" ) then
+               set runs_ccw = ($runcls)
+            else if ("$argv[$pLoc]" == "-cw" ) then
+               set runs_cw = ($runcls)
+            else if ("$argv[$pLoc]" == "-exp" ) then
+               set runs_exp = ($runcls)
+            else if ("$argv[$pLoc]" == "-cnt" ) then
+               set runs_con = ($runcls)
+            endif
+            set donext = 0	
+         endif	
+      endif
+      
+      if ($donext && "$argv[$cnt]" == "-no_tshift") then
+         set tshift = -1;		
+         set donext = 0		
+      endif
+      
+      if ($donext && "$argv[$cnt]" == "-keep_tmp") then
+         set cleanup = 0;		
+         set donext = 0		
+      endif
+      
+      if ($donext && "$argv[$cnt]" == "-echo") then
+         set echo		
+         set donext = 0		
+      endif
+      
+      #ADD NO NEW OPTIONS BELOW THIS LINE
+      
+      if ($donext == 1) then
+         echo "Error: Option or parameter '$argv[$cnt]' not understood"
+         goto END
+      endif
+      
+      NEXT:
+		@ cnt ++
+	end
+   goto RET_PARSE
+
+SANITY:
+   if ($rdir == '') then
+      set rdir = $ec.retino
+   endif
+   if ( ! -d $rdir ) then
+      \mkdir -p $rdir
+      if ($status) then
+         echo "Could not create $rdir"
+         goto BEND
+      endif
+   endif
+      
+   if ($TR == '') then
+      echo "-TR not specified"
+      goto BEND
+   endif
+   
+   if ($period_ecc == '') then
+      echo "-period_ecc not specified"
+      goto BEND
+   endif
+   if ($period_pol == '') then
+      echo "-period_pol not specified"
+      goto BEND
+   endif
+   
+   if ($spec_left == '') then
+      echo "-spec_left not specified"
+      goto BEND
+   endif
+   
+   if ($spec_right == '') then
+      echo "-spec_right not specified"
+      goto BEND
+   endif
+   
+   
+   goto RET_SANITY
+  
+
+HELP:
+   goto END
+   
+BEND:
+   set stat = 1
+   goto END   
+
+END:
+   exit $stat
