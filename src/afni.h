@@ -415,12 +415,6 @@ typedef struct {
 struct Three_D_View ;  /* incomplete type definition */
 
 typedef struct {
-  int npthr , nathr ;
-  float *pthr , *athr ;
-  float **cluthr ;
-} CLU_threshtable ;   /* from 3dClustSim [Jul 2010] */
-
-typedef struct {
   Widget wtop, rowcol;      /* containers */
   Widget top_lab;           /* overall report text */
   Widget top_menu , histrange_pb ;

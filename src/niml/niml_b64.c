@@ -164,8 +164,8 @@ void B64_to_binary( int nb64 , byte *b64 , int *nbin , byte **bin )
       B64_set_crlf(-1) or (1) or (2)
    will turn line separators back on.
 
-   There will be no ASCII NUL character at the end of *b64 -- that is,
-   the output is not a C string.
+   There will be an ASCII NUL character at the end of *b64 (i.e., it
+   is a C string), but this character is not included in the count nb64.
 
    Example:
      -  byte *b64 , *bin ;
@@ -242,7 +242,8 @@ void B64_to_base64( int nbin , byte *bin , int *nb64 , byte **b64 )
 
    /* resize output array to be exact fit */
 
-   *b64  = (byte *) realloc( *b64 , sizeof(byte)*jj ) ;
-   *nb64 = jj ;
+   *b64       = (byte *) realloc( *b64 , sizeof(byte)*(jj+1) ) ;
+   (*b64)[jj] = '\0' ;
+   *nb64      = jj ;
    return ;
 }
