@@ -1018,6 +1018,13 @@ AFNI_REALTIME_CHMERMODE = Number
         "ChannelMerge" control, where 0=none, 1=sum, etc.  If not
         set, the default value is 0.
 
+AFNI_REALTIME_MRG_CHANLIST = String
+
+        If set, this variable specifies a list of 0-based channels to merge,
+        rather than using all channels.  The format is akin to sub-brick
+        selection.  For example '0..$' means all and '0,5..7' means 0,5,6,7.
+
+
 For detailed information about how the realtime plugin works, read the
 file README.realtime.
 
