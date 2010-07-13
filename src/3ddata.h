@@ -4931,6 +4931,9 @@ extern float THD_ncdfloat( int n , float *x , float *y );
 extern float THD_ncdfloat_scl( int n , float xbot,float xtop,float *x ,
                                        float ybot,float ytop,float *y  );
 
+extern char * array_to_zzb64( int nsrc , char *src ) ;
+extern int    zzb64_to_array( char *zb , char **dest ) ;
+
 /*------------------------------------------------------------------------*/
 
 extern THD_fvec3 THD_autonudge( THD_3dim_dataset *dsepi, int ivepi,
@@ -5011,5 +5014,14 @@ extern NI_element * mri_to_niml( MRI_IMAGE *  ) ;
 #ifdef  __cplusplus
 }
 #endif
+
+typedef struct {
+  int npthr , nathr ;
+  float *pthr , *athr ;
+  float **cluthr ;
+} CLU_threshtable ;   /* from 3dClustSim [Jul 2010] */
+
+extern char * THD_clustsim_atr_mask_dset_idcode( THD_3dim_dataset *dset ) ;
+extern float_triple THD_clustsim_atr_fwhmxyz( THD_3dim_dataset *dset ) ;
 
 #endif /* _MCW_3DDATASET_ */
