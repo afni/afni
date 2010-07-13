@@ -809,7 +809,11 @@ SANITY:
   
 
 HELP:
-echo "`basename $0` is a script to process retinotpic FMRI data."
+echo ""
+echo "   `basename $0` is a script to process retinotpic FMRI data."
+echo ""
+echo " It estimates visual field angles and visual field maps using AFNI's"
+echo " 3dRetinoPhase, and SurfRetinMap "
 echo ""
 echo " -surf_vol SVOL: SVOL is the Surface Volume for the cortical surfaces."
 echo "                 SVOL is created when you first run @SUMA_Make_Spec_*"
