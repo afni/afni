@@ -66,6 +66,21 @@
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 08, JUL , 2010 , ZSS , "suma" , MINOR , TYPE_BUG_FIX,
+   "Fixed striping with contour objects",
+   NULL 
+ } ,
+
+ { 06, JUL , 2010 , ZSS , "suma" , MINOR , TYPE_NEW_ENV,
+   "Added SUMA_Cmaps_Dir to point to directory with colormaps",
+   "With this environment variable, users can point to a \n"
+   "directory containing SUMA colormaps (*.cmap) that should\n"
+   "be made available to SUMA. For help on colormap file formats,\n"
+   "open a surface controller ('View'-->'Surface Controller'), \n"
+   "click on BHelp (bottom left) and then click on 'New' button\n"
+   "which is to the right of the colormap selector." 
+ } ,
+
  { 01, JUL , 2010 , ZSS , "SurfToSurf" , MINOR , TYPE_NEW_OPT,
    "Added -mapfile option, allowing SurfToSurf to reuse an existing mapping.",
    NULL

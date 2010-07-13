@@ -165,7 +165,7 @@ SCRIPTS = @4Daverage @CommandGlobb @GetAfniOrient @DTI_studio_reposition        
           demo.mobile.niml.do @Spharm.examples @GetAfniBin @fast_roi              \
           @make_plug_diff @build_afni_Xlib @update.afni.binaries @ROI_Corr_Mat    \
           @FS_roi_label @demo_prompt @ScriptCheck @NoPound @Reorder               \
-          3dMEMA @DiceMetric @R_funclist @TimeDiff @FullPath 
+          3dMEMA @DiceMetric @R_funclist @TimeDiff @FullPath @RetinoProc 
 
 PY_DIR = python_scripts
 PY_SCRIPTS = afni_base.py @DoPerRoi.py

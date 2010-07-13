@@ -332,7 +332,7 @@ void usage_RetinoMap (SUMA_GENERIC_ARGV_PARSE *ps)
       s = SUMA_help_basics();
       sio  = SUMA_help_IO_Args(ps);
       printf ( "\n"
-"Usage: RetinoMap <SURFACE> <-input POLAR ECCENTRICITY>\n"
+"Usage: SurfRetinoMap <SURFACE> <-input POLAR ECCENTRICITY>\n"
 "                 [<-prefix PREFIX>] [<-node_dbg NODE>]\n"
 "       A template code for writing SUMA programs.\n"
 "  <SURFACE> : Surface on which distances are computed.\n"
@@ -446,7 +446,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *
 
 int main (int argc,char *argv[])
 {/* Main */    
-   static char FuncName[]={"RetinoMap"}; 
+   static char FuncName[]={"SurfRetinoMap"}; 
    SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt;  
    SUMA_GENERIC_ARGV_PARSE *ps=NULL;
    SUMA_DSET_FORMAT iform = SUMA_NO_DSET_FORMAT;

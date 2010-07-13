@@ -12108,13 +12108,16 @@ static ENV_SPEC envlist[] = {
       "  'C&C': Shows both colors and contours\n"
       "  'XXX'or 'No': Does not show it.\n",
       "SUMA_ShowLabelDsetAtStartup",
-      "YES" },
+      "Con" },
    {  "Initial Label Datasest opacity.",
       "SUMA_LabelDsetOpacity",
       "0.2" },
    {  "Attempt to recover from AFNI <--> SUMA disconnection bug.\n",
       "SUMA_AttemptTalkRecover",
       "Yes" }, 
+   {  "Name of directory containing user's own SUMA color maps (*.cmap)\n",
+      "SUMA_CmapsDir",
+      "" }, 
    {  NULL, NULL, NULL  }
 };
       
