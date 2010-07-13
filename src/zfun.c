@@ -15,6 +15,9 @@ float THD_ncdfloat( int n , float *x , float *y ){return -1.0f;}
 float THD_ncdfloat_scl( int n , float xbot,float xtop,float *x ,
                                 float ybot,float ytop,float *y  ){return -1.0f;}
 
+char * array_to_zzb64( int nsrc , char *src ){ return NULL; }
+int    zzb64_to_array( char *zb , char **dest ){ reutrn -1; }
+
 /*===========================================================================*/
 #else  /* HAVE_ZLIB */
 
@@ -169,6 +172,9 @@ int zz_compress_some( int nsrc, void *ptr )
 }
 
 /*------------------------------------------------------------------------*/
+/*! Compress all of src array into the *dest array (if not NULL).
+    Return value is size of dest array, as malloc()-ed.
+*//*----------------------------------------------------------------------*/
 
 int zz_compress_all( int nsrc , char *src , char **dest )
 {
@@ -257,6 +263,9 @@ int zz_uncompress_some( int nsrc, char *src, int ndest, char *dest )
 }
 
 /*------------------------------------------------------------------------*/
+/*! Uncompress all nsrc bytes in src at once, malloc()-ing *dest;
+    the number of bytes in *dest is the return value of this function.
+*//*----------------------------------------------------------------------*/
 
 int zz_uncompress_all( int nsrc , byte *src , char **dest )
 {
@@ -419,6 +428,47 @@ ENTRY("THD_ncdfloat_scl") ;
 float THD_ncdfloat( int n , float *x , float *y )
 {
    return THD_ncdfloat_scl( n, 1.0f,-1.0f, x, 1.0f,-1.0f, y ) ;
+}
+
+/*------------------------------------------------------------------------*/
+/*! Compress and Base64 string-ify an input array. */
+
+char * array_to_zzb64( int nsrc , char *src )
+{
+   int nzb    ; char *zb    ;
+   int nzdest ; char *zdest ;
+
+   if( nsrc <= 0 || src == NULL ) return NULL ;
+
+   zz_compress_dosave(1) ; zz_compress_dlev(9) ;
+
+   nzdest = zz_compress_all( nsrc , src , &zdest ) ;
+   if( nzdest <= 0 ) return NULL ;
+
+   B64_set_crlf(0) ;
+   B64_to_base64( nzdest , (byte *)zdest , &nzb , (byte **)(&zb) ) ;
+   free(zdest) ;
+   if( nzb <= 0 ) return NULL ;
+   return zb ;
+}
+
+/*------------------------------------------------------------------------*/
+/*! Inverse to array_to_zzb64(). */
+
+int zzb64_to_array( char *zb , char **dest )
+{
+   int nzdest=0 ; byte *zdest=NULL ;
+   int nout     ; char *cout       ;
+
+   if( zb == NULL ) return 0 ;
+
+   B64_to_binary( strlen(zb) , (byte *)zb , &nzdest , &zdest ) ;
+
+   if( nzdest <= 0 ) return 0 ;
+
+   nout = zz_uncompress_all( nzdest , zdest , dest ) ;
+   free(zdest) ;
+   return nout ;
 }
 
 #endif /* HAVE_ZLIB */
