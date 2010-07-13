@@ -388,7 +388,7 @@ PARSE:
    set svolal = ''
    set cnt = 1
    
-   if ($#Narg < $cnt) goto HELP
+   if ($#Narg < 2) goto HELP
    
    while ($cnt <= $Narg)
 		set donext = 1;
