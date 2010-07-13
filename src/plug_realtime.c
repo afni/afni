@@ -263,9 +263,11 @@ typedef struct {
    int mrg_status ;               /* does AFNI know about this dataset yet? */
    int mrg_nvol ;                 /* number of volumes merged so far */
 
-   THD_3dim_dataset * reg_chan_dset[MAX_CHAN];  /* 17 May 2010 [rickr] */
+   THD_3dim_dataset * reg_chan_dset[MAX_CHAN];  /* 17 May 2010 [rickr]     */
    int reg_chan_status[MAX_CHAN];               /* does AFNI know of these */
-   int reg_chan_mode;                           /* see RT_CM_RMODE_*   */
+   int reg_chan_mode;                           /* see RT_CM_RMODE_*       */
+   char * chan_list_str;          /* list of channels in string format     */
+   int  * chan_list;              /* list of channels  13 Jul 2010 [rickr] */
 
 } RT_input ;
 
@@ -367,32 +369,39 @@ static char helpstring[] =
    "\n"
    "                  --> see example F from 'Dimon -help'\n"
    "\n"
-   " RT Write     = Turns on real time writing of individual time point data\n"
-   "                  sets (either the acquired or volume registered data) to\n"
-   "                  disk.\n"
-   "\n"
    " ChannelMerge = Turn on method for merging multi-channel information.\n"
    "                * Has no effect if only one channel of data is sent.\n"
    "                * Only works if the data channels are float or complex\n"
    "                  data (doesn't work with shorts or bytes).\n"
    "                * Creates an extra '_mrg' dataset.\n"
    "                * none    ==> don't combine channels at all\n"
-   "                  sum     ==> add channels          [output is float or complex]\n"
-   "                  L1 norm ==> add absolute values of channels  [output is float]\n"
-   "                  L2 norm ==> sqrt(sum of squares of channels) [output is float]\n"
+   "                  sum     ==> add channels [output is float or complex]\n"
+   "                  L1 norm ==> sum(absolute values) [output is float]\n"
+   "                  L2 norm ==> sqrt(sum of squares) [output is float]\n"
    "\n"
-   "MergeRegister = Turn on method for registering ChannelMerge dataset.  So instead\n"
-   "                  of registered channel 0 dataset, first merge the channels via\n"
-   "                  ChannelMerge method, then apply the same xform to each channel.\n"
-   "                  Thus channels should be in register.\n"
+   "MergeRegister = Turn on method for registering ChannelMerge dataset.  So\n"
+   "                  instead of a registered channel 0 dataset, merge the\n"
+   "                  channels via the ChannelMerge method, then apply the\n"
+   "                  same xform to each channel.\n"
+   "                  Then all channels should be in register.\n"
    "                * Requires application of ChannelMerge\n"
-   "                * Created reg3D dataset is registered ChannelMerge dataset\n"
-   "                * Creates chanreg datasets if MergeRegister set to reg channels\n"
+   "                * Created reg3D dset is registered ChannelMerge dataset\n"
+   "                * Creates chanreg dsets if MergeReg set to reg channels\n"
    "                MergeRegister values:\n"
    "                    none         ==> no merge registration\n"
    "                    reg merged   ==> register merged datasets\n"
-   "                    reg channels ==> apply merge xform to all channel, i.e.\n"
-   "                                     create 'registered' dataset per channel\n"
+   "                    reg channels ==> apply merge xform to all channel,\n"
+   "                            i.e. create 'registered' dataset per channel\n"
+   "\n"
+   " Chan List    = Select a list of channels to merge (otherwise use all).\n"
+   "                  Use sub-brick style syntax to select which channels to\n"
+   "                  merge, e.g. 0..$(2) would be the even channels, and\n"
+   "                  0,3,7..12 would mean channels 0,3,7,8,9,10,11,12.\n"
+   "                * Note that these are 0-based channel indices.\n"
+   "\n"
+   " RT Write     = Turns on real time writing of individual time point data\n"
+   "                  sets (either the acquired or volume registered data) to\n"
+   "                  disk.\n"
    "\n"
    "MULTICHANNEL ACQUISITION [Aug 2002]:\n"
    " Multiple image channels can be acquired (e.g., from multi-coil and/or\n"
@@ -506,8 +515,9 @@ static char * GRAPH_strings[NGRAPH] = { "No" , "Yes" , "Realtime" } ;
                 { "none" , "sum" , "L1" , "L2" } ;
    static int RT_chmrg_mode  = 0 ;
    static int RT_chmrg_datum = -1 ;
+   static char * RT_chmrg_list = NULL ;
 
-   MRI_IMAGE * RT_mergerize( int , THD_3dim_dataset ** , int ) ;
+   MRI_IMAGE * RT_mergerize( int , THD_3dim_dataset ** , int , int * ) ;
 
 /* variables for regisrtation of merged dataset  17 May 2010 [rickr] */
 #define RT_CM_RMODE_NONE     0
@@ -809,19 +819,14 @@ PLUGIN_interface * PLUGIN_init( int ncall )
                              RT_mask_strings , g_mask_val_type ) ;
    PLUTO_add_hint( plint , "choose which mask data to send to serial_helper" ) ;
 
-   /* Adding options for writing individual time-point volumes to disk */
+   /*-- Adding options for merging channels --*/
 
-   PLUTO_add_option( plint , "" , "DataWriting" , FALSE ) ;
-
-   RTdatamode = (int)AFNI_numenv("AFNI_REALTIME_WRITEMODE") ;
-   if( RTdatamode < 0 || RTdatamode >= N_RT_WRITE_MODES ) RTdatamode = 0 ;
-   PLUTO_add_string( plint , "RT Write" , N_RT_WRITE_MODES, RT_write_strings,
-                     RTdatamode ) ;
+   PLUTO_add_option( plint , "" , "ChannelMerging" , FALSE ) ;
 
    /* channel merge modes: 02 Jun 2009 */
 
    RT_chmrg_mode = (int)AFNI_numenv("AFNI_REALTIME_CHMERMODE") ;
-   if( RT_chmrg_mode < 0 || RT_chmrg_mode >= N_RT_CHMER_MODES ) RT_chmrg_mode = 0 ;
+   if( RT_chmrg_mode < 0 || RT_chmrg_mode >= N_RT_CHMER_MODES ) RT_chmrg_mode=0;
    PLUTO_add_string( plint , "ChannelMerge" , N_RT_CHMER_MODES ,
                               RT_chmrg_strings , RT_chmrg_mode ) ;
 
@@ -832,6 +837,23 @@ PLUGIN_interface * PLUGIN_init( int ncall )
      RT_chmrg_reg_mode = 0 ;
    PLUTO_add_string( plint , "MergeRegister" , N_RT_CM_RMODES ,
                               RT_chmrg_rmode_strings , RT_chmrg_reg_mode ) ;
+
+   /* channel list, using sub-brick syntax    13 Jul 2010 [rickr] */
+   ept = getenv("AFNI_REALTIME_MRG_CHANLIST") ; 
+   if( ept ) {
+      if( RT_chmrg_list ) free(RT_chmrg_list);
+      RT_chmrg_list = nifti_strdup(ept);
+   }
+
+   PLUTO_add_string( plint , "Chan List" , 0, (ept!=NULL) ? &ept : NULL , 13 ) ;
+
+   /*-- Adding options for writing individual time-point volumes to disk --*/
+   PLUTO_add_option( plint , "" , "DataWriting" , FALSE ) ;
+
+   RTdatamode = (int)AFNI_numenv("AFNI_REALTIME_WRITEMODE") ;
+   if( RTdatamode < 0 || RTdatamode >= N_RT_WRITE_MODES ) RTdatamode = 0 ;
+   PLUTO_add_string( plint , "RT Write" , N_RT_WRITE_MODES, RT_write_strings,
+                     RTdatamode ) ;
 
    /***** Register a work process *****/
 
@@ -1007,16 +1029,28 @@ char * RT_main( PLUGIN_interface * plint )
          continue ;
       }
 
-      if( strcmp(tag,"DataWriting") == 0 ){
-         str        = PLUTO_get_string(plint) ;
-         RTdatamode = PLUTO_string_index( str , N_RT_WRITE_MODES,
-                                                RT_write_strings ) ;
+      if( strcmp(tag,"ChannelMerging") == 0 ){
          str           = PLUTO_get_string(plint) ;
          RT_chmrg_mode = PLUTO_string_index( str , N_RT_CHMER_MODES,
                                                    RT_chmrg_strings ) ;
          str               = PLUTO_get_string(plint) ;
          RT_chmrg_reg_mode = PLUTO_string_index( str , N_RT_CM_RMODES,
                                                    RT_chmrg_rmode_strings ) ;
+         if( RT_chmrg_list ) free(RT_chmrg_list);
+         RT_chmrg_list = nifti_strdup(PLUTO_get_string(plint)) ;
+
+         if (verbose)
+            fprintf(stderr,"RT: mrg_mode = %s, reg_mode = %s, mrg_list = %s\n",
+                    RT_chmrg_strings[RT_chmrg_mode],
+                    RT_chmrg_rmode_strings[RT_chmrg_reg_mode],
+                    RT_chmrg_list ? RT_chmrg_list : "<empty>");
+         continue ;
+      }
+
+      if( strcmp(tag,"DataWriting") == 0 ){
+         str        = PLUTO_get_string(plint) ;
+         RTdatamode = PLUTO_string_index( str , N_RT_WRITE_MODES,
+                                                RT_write_strings ) ;
          continue ;
       }
 
@@ -1170,6 +1204,10 @@ void cleanup_rtinp( int keep_ioc_data )
      for( kk=0 ; kk < rtinp->num_note ; kk++ ) FREEUP( rtinp->note[kk] ) ;
      FREEUP(rtinp->note) ;
    }
+
+   /* 13 Jul 2010 [rickr] : free channel list and string */
+   FREEUP( rtinp->chan_list_str ) ;
+   FREEUP( rtinp->chan_list ) ;
 
    free(rtinp) ; rtinp = NULL ;            /* destroy data structure */
    ioc_control = NULL ;                    /* ready to listen again */
@@ -1853,6 +1891,8 @@ RT_input * new_RT_input( IOCHAN *ioc_data )
       rtin->reg_chan_status[cc] = 0 ;
    }
    rtin->reg_chan_mode  = RT_CM_RMODE_NONE;       /* 16 May 2010 [rickr] */
+   rtin->chan_list_str  = NULL;                   /* 13 Jul 2010 [rickr] */
+   rtin->chan_list      = NULL;
 
    /* if dset to copy, dupe one vol                  04 Sep 2009 [rickr] */
    if(g_reg_base_dset) rtin->reg_base_dset=THD_copy_one_sub(g_reg_base_dset,0);
@@ -3636,6 +3676,10 @@ void RT_start_dataset( RT_input * rtin )
        for( ii=0 ; ii < rtin->num_note ; ii++ )
          tross_Add_Note( rtin->mrg_dset , rtin->note[ii] ) ;
      }
+
+     /* and copy any channel merge list */
+     if( rtin->chan_list_str ) free(rtin->chan_list_str);
+     rtin->chan_list_str = nifti_strdup(RT_chmrg_list);
    }
 
    /* if reg_chan_mode is set, verify there is something to do
@@ -4117,7 +4161,22 @@ void RT_process_image( RT_input * rtin )
         int iv = rtin->nvol[cc]-1 ;  /* sub-brick index */
         MRI_IMAGE *mrgim ;
 
-        mrgim = RT_mergerize( rtin->num_chan , rtin->dset , iv ) ;
+        /* 10 Jul 2010 [rickr]: maybe merge only a subset of channels */
+        /* note: the channel int list can only be created "now", since
+                 we must know how many channels there are to use */
+        if( rtin->chan_list_str && ! rtin->chan_list ) {
+          rtin->chan_list = MCW_get_labels_intlist(NULL, rtin->num_chan,
+                                                   rtin->chan_list_str);
+          if( !rtin->chan_list ) {
+             fprintf(stderr,"** failed to make channel list (%d) from '%s'\n",
+                     rtin->num_chan, rtin->chan_list_str);
+             free(rtin->chan_list_str);  rtin->chan_list_str = NULL;
+          } else if( verbose )
+             fprintf(stderr,"RTM: using list of %d chans for merge from %s\n",
+                     rtin->chan_list[0], rtin->chan_list_str);
+        }
+
+        mrgim = RT_mergerize(rtin->num_chan, rtin->dset, iv, rtin->chan_list) ;
         if( mrgim == NULL ){
           ERROR_message("RT can't merge channels at time index #%d",iv) ;
         } else {
@@ -6487,16 +6546,40 @@ void RT_test_callback(void *junk)
 
 /*-------------------------------------------------------------------------*/
 /* Function to merge a collection of datasets, at sub-brick #iv. */
+/* 
+ *   dlist : list of dataset indices to apply in merge, if set
+ *           - created via MCW_get_intlist, so dlist[0] is the length
+ */
 
-MRI_IMAGE * RT_mergerize( int nds , THD_3dim_dataset **ds , int iv )
+MRI_IMAGE * RT_mergerize(int nds , THD_3dim_dataset **ds , int iv, int * dlist)
 {
    float *far[MAX_CHAN] ; complex *car[MAX_CHAN] ;
-   int cc , nvox , idatum , ii ;
+   int cc , nvox , idatum , ii , ndsets=nds ;
    MRI_IMAGE *mrgim ;
    float *fmar=NULL , *ftar ; complex *cmar=NULL , *ctar ;
 
    if( nds <= 1 || ds == NULL || !ISVALID_DSET(ds[0]) ) return NULL ;
    if( iv < 0 || iv >= DSET_NVALS(ds[0]) )              return NULL ;
+
+   /* maybe apply merge dataset list          13 Jul 2010 [rickr] */
+   if( dlist && dlist[0] > 0 ) {
+      ndsets = dlist[0];
+
+      if( ndsets > nds ) {
+         fprintf(stderr,"** RT_merge: dlist longer than num channels!\n");
+         return NULL;
+      }
+
+      cc = 0;  /* success status */
+      for( ii=1 ; ii <= ndsets ; ii++ )
+         if( dlist[ii] < 0 || dlist[ii] >= nds ) {
+            fprintf(stderr,
+                    "** RT_merge: bad channel in list (%d chan): #%d = %d\n",
+                    nds, ii, dlist[ii]);
+            cc = 1;
+         }
+      if( cc > 0 ) return NULL;
+   }
 
    /* get pointers to input data arrays */
 
@@ -6505,11 +6588,17 @@ MRI_IMAGE * RT_mergerize( int nds , THD_3dim_dataset **ds , int iv )
      default: return NULL ; /* should never happen */
 
      case MRI_float:
-       for( cc=0 ; cc < nds ; cc++ ) far[cc] = DSET_ARRAY(ds[cc],iv) ;
+       for( cc=0 ; cc < ndsets ; cc++ )
+          /* if dlist is set, get the index from there */
+          far[cc] = dlist ? DSET_ARRAY(ds[dlist[cc+1]],iv)
+                          : DSET_ARRAY(ds[cc],iv) ;
      break ;
 
      case MRI_complex:
-       for( cc=0 ; cc < nds ; cc++ ) car[cc] = DSET_ARRAY(ds[cc],iv) ;
+       for( cc=0 ; cc < ndsets ; cc++ )
+          /* if dlist is set, get the index from there */
+          car[cc] = dlist ? DSET_ARRAY(ds[dlist[cc+1]],iv)
+                          : DSET_ARRAY(ds[cc],iv) ;
      break ;
    }
 
@@ -6538,14 +6627,14 @@ MRI_IMAGE * RT_mergerize( int nds , THD_3dim_dataset **ds , int iv )
      case RT_CHMER_L1NORM:  /* output datum is always float */
        switch( idatum ){
          case MRI_float:
-           for( cc=0 ; cc < nds ; cc++ ){
+           for( cc=0 ; cc < ndsets ; cc++ ){
              ftar = far[cc] ;
              for( ii=0 ; ii < nvox ; ii++ ) fmar[ii] += fabsf(ftar[ii]) ;
            }
          break ;
 
          case MRI_complex:
-           for( cc=0 ; cc < nds ; cc++ ){
+           for( cc=0 ; cc < ndsets ; cc++ ){
              ctar = car[cc] ;
              for( ii=0 ; ii < nvox ; ii++ ) fmar[ii] += sqrtf(CSQR(ctar[ii])) ;
            }
@@ -6558,14 +6647,14 @@ MRI_IMAGE * RT_mergerize( int nds , THD_3dim_dataset **ds , int iv )
      case RT_CHMER_L2NORM:  /* output datum is always float */
        switch( idatum ){
          case MRI_float:
-           for( cc=0 ; cc < nds ; cc++ ){
+           for( cc=0 ; cc < ndsets ; cc++ ){
              ftar = far[cc] ;
              for( ii=0 ; ii < nvox ; ii++ ) fmar[ii] += SQR(ftar[ii]) ;
            }
          break ;
 
          case MRI_complex:
-           for( cc=0 ; cc < nds ; cc++ ){
+           for( cc=0 ; cc < ndsets ; cc++ ){
              ctar = car[cc] ;
              for( ii=0 ; ii < nvox ; ii++ ) fmar[ii] += CSQR(ctar[ii]) ;
            }
@@ -6579,14 +6668,14 @@ MRI_IMAGE * RT_mergerize( int nds , THD_3dim_dataset **ds , int iv )
      case RT_CHMER_SUM:  /* output datum is same as input datum */
        switch( idatum ){
          case MRI_float:
-           for( cc=0 ; cc < nds ; cc++ ){
+           for( cc=0 ; cc < ndsets ; cc++ ){
              ftar = far[cc] ;
              for( ii=0 ; ii < nvox ; ii++ ) fmar[ii] += ftar[ii] ;
            }
          break ;
 
          case MRI_complex:
-           for( cc=0 ; cc < nds ; cc++ ){
+           for( cc=0 ; cc < ndsets ; cc++ ){
              ctar = car[cc] ;
              for( ii=0 ; ii < nvox ; ii++ ){
                cmar[ii].r += ctar[ii].r ; cmar[ii].i += ctar[ii].i ;

@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 13, JUL, 2010, RCR, "plug_realtime", MINOR, TYPE_ENHANCE,
+   "added channel list selection, for choosing which channels to merge",
+   NULL
+ } ,
+
  { 12, JUL, 2010, RCR, "timing_tool.py", MINOR, TYPE_NEW_OPT,
    "added -truncate_times and -round_times for S Durgerian",
    NULL
