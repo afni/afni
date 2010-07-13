@@ -237,7 +237,7 @@ void display_help_menu()
    "     rm -f Ctemp.NN1.niml\n"
    "  AFNI's Clusterize GUI makes use of this attribute, if stored in a statistical\n"
    "  dataset (e.g., something from 3dDeconvolve, 3dREMLfit, et cetera).\n"
-   "  [At present, AFNI only uses the NN1 method in the Clusterize GUI.\n"
+   "  [At present, AFNI only uses the NN1 method in the Clusterize GUI.]\n"
    "\n"
    "-- RW Cox -- July 2010\n"
   ) ;
