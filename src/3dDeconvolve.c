@@ -789,6 +789,12 @@ void display_help_menu()
    "this explanation or its consequences are unclear, you need to consult   \n"
    "with a statistician, or with the AFNI message board guru entities.      \n"
    "------------------------------------------------------------------------\n"
+   "At its core, 3dDeconvolve solves a linear regression problem z = X b    \n"
+   "for the parameter vector b, given the data vector z in each voxel, and  \n"
+   "given the SAME matrix X in each voxel.  If you want to solve a problem  \n"
+   "where some of the matrix columns in X (the regressors) are different in \n"
+   "different voxel (are spatially variable), then use program 3dTfitter,   \n"
+   "------------------------------------------------------------------------\n"
   ) ;
   printf("\n"
     "Usage Details:                                                         \n"
@@ -1051,16 +1057,24 @@ void display_help_menu()
     "                      * Other symbols are set to 0 (silently).         \n"
     "     'MION(d)'     = 1 parameter block stimulus of duration 'd',       \n"
     "                     intended to model the response of MION.           \n"
-    "                     The impulse response function is                  \n"
-    "                  h(t) = 16.4486f * ( -0.184f/ 1.5f * expf(-x/ 1.5f)   \n"
-    "                                      +0.330f/ 4.5f * expf(-x/ 4.5f)   \n"
-    "                                      +0.670f/13.5f * expf(-x/13.5f) ) \n"
-    "                     which is sort of taken from the paper             \n"
-    "                      FP Leite, et al.  NeuroImage 16: 283-294 (2002)  \n"
+    "                     The impulse response function 'MION(0)' is        \n"
+    "                       h(t) = 16.4486 * ( -0.184/ 1.5 * exp(-t/ 1.5)   \n"
+    "                                          +0.330/ 4.5 * exp(-t/ 4.5)   \n"
+    "                                          +0.670/13.5 * exp(-t/13.5) ) \n"
+    "                     which is adapted from the paper                   \n"
+    "                      FP Leite, et al.  NeuroImage 16:283-294 (2002)   \n"
     "                      http://dx.doi.org/10.1006/nimg.2002.1110         \n"
     "                  ** Note that this is a positive function, but MION   \n"
     "                     produces a negative response, so the beta and     \n"
     "                     t-statistic for this will generally be negative.  \n"
+    "                  ** After convolution with a square wave 'd' seconds  \n"
+    "                     long, the resulting single-trial waveform is      \n"
+    "                     scaled to have magnitude 1.  For example, try     \n"
+    "                     this fun command to compare BLOCK and MION:       \n"
+    "               3dDeconvolve -nodata 300 1 -polort -1 -num_stimts 2   \\\n"
+    "                            -stim_times 1 '1D: 10 150' 'MION(70)'    \\\n"
+    "                            -stim_times 2 '1D: 10 150' 'BLOCK(70,1)' \\\n"
+    "                            -x1D stdout: | 1dplot -stdin -one -thick   \n"
     "                                                                       \n"
     " * 3dDeconvolve does LINEAR regression, so the model parameters are    \n"
     "   amplitudes of the basis functions; 1 parameter models are 'simple'  \n"
@@ -1360,7 +1374,7 @@ void display_help_menu()
     "[-x1D filename]      Save X matrix to a .xmat.1D (ASCII) file [default]\n"
     "                     * If 'filename' is 'stdout:', the file is written \n"
     "                       to standard output, and could be piped into     \n"
-    "                       1dplot (an example is given earlier).           \n"
+    "                       1dplot (examples are given earlier).            \n"
     "                     * This can be used for quick checks to see if your\n"
     "                       inputs are setting up a 'reasonable' matrix.    \n"
     "[-nox1D]             Don't save X matrix [a bad idea]                  \n"
@@ -9939,6 +9953,7 @@ static int setup_WFUN_function( int wtyp , float dur , float *parm )
    WFUN_storage ws ;
    float *hhrf=NULL ; int nhrf, ahrf;
    float (*wavfun)(float) = NULL ;
+   char msg[222] ;
 
    if( dur < 0.0f ) dur = 0.0f ;
    ws.wtype = wtyp ; ws.dur = dur ;
@@ -9971,26 +9986,31 @@ static int setup_WFUN_function( int wtyp , float dur , float *parm )
        ws.parm[3] = WAV_restore_end ;
        wavfun     = waveform_WAV    ;  /* func to be integrated */
 
-#if 1
-       INFO_message(
-         "setup: WAV(dur=%g,delay=%g,rise=%g,fall=%g,undershoot=%g,restore=%g)" ,
+       sprintf(msg,
+         "waveform setup: WAV(dur=%g,delay=%g,rise=%g,fall=%g,undershoot=%g,restore=%g)" ,
          dur,WAV_delay_time,WAV_rise_time,
          WAV_fall_time,WAV_undershoot,WAV_restore_time) ;
-#endif
 
      break ;
 
-     case WTYPE_SPMG1: wavfun = waveform_SPMG1 ; break ; /* no params */
+     case WTYPE_SPMG1:
+       wavfun = waveform_SPMG1 ;
+       sprintf(msg,"waveform setup: SPMG1(dur=%g)",dur) ;
+     break ; /* no params */
 
-     case WTYPE_SPMG2: wavfun = waveform_SPMG2 ; break ;
+     case WTYPE_SPMG2:
+       wavfun = waveform_SPMG2 ;
+       sprintf(msg,"waveform setup: SPMG2(dur=%g)",dur) ;
+     break ;
 
-     case WTYPE_SPMG3: wavfun = waveform_SPMG3 ; break ;
+     case WTYPE_SPMG3:
+       wavfun = waveform_SPMG3 ;
+       sprintf(msg,"waveform setup: SPMG3(dur=%g)",dur) ;
+     break ;
 
      case WTYPE_MION:
        wavfun = waveform_MION  ;
-#if 1
-       INFO_message("setup: MION(dur=%g)",dur) ;
-#endif
+       sprintf(msg,"waveform setup: MION(dur=%g)",dur) ;
      break ;
 
    }
@@ -10001,6 +10021,8 @@ static int setup_WFUN_function( int wtyp , float dur , float *parm )
      if( WFUN_equals(ws,WFUNS[ii]) ) return ii ;  /* found a match */
 
    /**** must create a new WFUN function: ****/
+
+   INFO_message(msg) ;
 
    /* create array of basic waveformm, convolved with a square wave */
 
