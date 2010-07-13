@@ -864,6 +864,7 @@ echo ""
 echo " -no_tshift: Do not correct for slice timing. Assume it has been done."
 echo ""
 goto END
+#Need to write a section about what gets created and how to view VFR maps in SUMA
 #Options that need much refinement and testing "
 echo " -epi_ref EREF: Specify a volume from the EPI time series to which all"
 echo "                EPI volumes are aligned. Default is the 4th sub-brick "

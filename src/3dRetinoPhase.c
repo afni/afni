@@ -316,7 +316,7 @@ static void RP_tsfunc( double tzero, double tdelta ,
    /** is this a "notification"? **/
 
    if( val == NULL ){
-      if (rpud->verb) {
+      if (rpud->verb > 1) {
          INFO_message("First call npts=%d\n", npts);
          Show_RP_UD(rpud, "Top of init:\n");
       }
@@ -365,7 +365,7 @@ static void RP_tsfunc( double tzero, double tdelta ,
                SetFreqBin(fharm, rpud->fstep, stk, stw);
                stimharm[stk[0]] = nharm;
                stimharm[stk[1]] = nharm; 
-               if (rpud->verb > 1) 
+               if (rpud->verb > 2) 
                   INFO_message("Freq. indices [%d(%.3f) %d(%.3f)] is harm %d\n", 
                               stk[0], stw[0], stk[1], stw[1], nharm);
                ++nharm;
@@ -377,7 +377,7 @@ static void RP_tsfunc( double tzero, double tdelta ,
             if (  jj > rpud->stk[1]    /* above freq. */
                && !stimharm[jj] ) { /* not harmonic */
                nzfreq[jj] = 1; ++N_nzfreq;
-               if (rpud->verb > 1) INFO_message("Freq. index %d is noise\n", jj);
+               if (rpud->verb > 2) INFO_message("Freq. index %d is noise\n", jj);
             }
          }
          rpud->dof[0] = 2; /* assuming estimate of phase and amp at one freq.*/
@@ -390,11 +390,11 @@ static void RP_tsfunc( double tzero, double tdelta ,
                char stmp[10+strlen(rpud->prefix)];
 
                if (ii) {
-                  if (rpud->verb) INFO_message("Init. amp");
+                  if (rpud->verb > 1) INFO_message("Init. amp");
                   sprintf(stmp,"%s.%s.amp%s",
                         rpud->prefix, Phase_Dirs_lbl(rpud->dir),rpud->oext);
                } else {
-                  if (rpud->verb) INFO_message("Init. phz");
+                  if (rpud->verb > 1) INFO_message("Init. phz");
                   sprintf(stmp,"%s.%s.phz%s",
                         rpud->prefix, Phase_Dirs_lbl(rpud->dir),rpud->oext);
                }
@@ -433,7 +433,7 @@ static void RP_tsfunc( double tzero, double tdelta ,
             Show_RP_UD(rpud, "End of init:\n");
          }
       } else {  /* the "end notification" */
-         if (rpud->verb) {
+         if (rpud->verb > 1) {
             INFO_message("Last call\n");
          }
          st = -1;
@@ -601,7 +601,7 @@ int main( int argc , char * argv[] )
    rpud.Fstim[ECC] = rpud.Fstim[POL] = 0.0f;
    rpud.Fresp[ECC] = rpud.Fresp[POL] = 0.0f;
    rpud.nfft = 0;
-   rpud.verb = 1;
+   rpud.verb = 0;
    rpud.iset = NULL;
    rpud.nmask=0;
    rpud.vox = NULL;
