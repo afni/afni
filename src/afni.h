@@ -680,6 +680,7 @@ typedef struct {
       int                 clu_num ;
       mri_cluster_detail *clu_det ;
       CLU_threshtable *clu_tabNN1, *clu_tabNN2, *clu_tabNN3 ; /* Jul 2010 */
+      byte *clu_mask ;
 
       ICALC_widget_set   *iwid ;       /* 17 Sep 2009 */
 } AFNI_function_widgets ;

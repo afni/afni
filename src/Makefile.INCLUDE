@@ -2479,7 +2479,7 @@ qqq:qqq.o
 	$(CC) -o qqq qqq.o $(INFLAGS) $(LFLAGS) $(LLIBS) -lmrix -lcoxplot  -lf2c $(LLIBS)
 
 zb64.o:zb64.c
-	$(CC) -c qqq.c $(INFLAGS)
+	$(CC) -c zb64.c $(INFLAGS)
 
 zb64:zb64.o
 	$(CC) -o zb64 zb64.o $(INFLAGS) $(LFLAGS) $(LLIBS)

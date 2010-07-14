@@ -5067,9 +5067,14 @@ ENTRY("AFNI_closedown_3dview") ;
 
    AFNI_fimmer_setref(im3d,NULL) ; CLEAR_FIMDATA(im3d) ;
 
-   CLU_free_table( im3d->vwid->func->clu_tabNN1 ) ; /* Jul 2010 */
-   CLU_free_table( im3d->vwid->func->clu_tabNN2 ) ;
-   CLU_free_table( im3d->vwid->func->clu_tabNN3 ) ;
+   /* Jul 2010 */
+
+   CLU_free_table(im3d->vwid->func->clu_tabNN1); im3d->vwid->func->clu_tabNN1 = NULL;
+   CLU_free_table(im3d->vwid->func->clu_tabNN2); im3d->vwid->func->clu_tabNN2 = NULL;
+   CLU_free_table(im3d->vwid->func->clu_tabNN3); im3d->vwid->func->clu_tabNN3 = NULL;
+   if( im3d->vwid->func->clu_mask != NULL ){
+     free(im3d->vwid->func->clu_mask) ; im3d->vwid->func->clu_mask = NULL ;
+   }
 
    RESET_AFNI_QUIT(im3d) ;
 
@@ -6029,7 +6034,8 @@ DUMP_IVEC3("  new_id",new_id) ;
          break ;
        }
        if( !im3d->vedskip )
-         changed = AFNI_vedit( im3d->fim_now , im3d->vedset ) ;
+         changed = AFNI_vedit( im3d->fim_now , im3d->vedset ,
+                               im3d->vwid->func->clu_mask    ) ;
        if( !DSET_VEDIT_good(im3d->fim_now) ){
          UNCLUSTERIZE(im3d) ;
        } else if( changed ){

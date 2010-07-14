@@ -3035,7 +3035,7 @@ extern int    THD_deconflict_prefix( THD_3dim_dataset * ) ;          /* 23 Mar 2
 /** 30 Nov 1997 **/
 
 static char tmp_dblab[8] ;
-#define NO_LAB_FLAG "?"          
+#define NO_LAB_FLAG "?"
 #define DBLK_BRICK_LAB(db,iv) ( ((db)->brick_lab != NULL) ? ((db)->brick_lab[iv]) : NO_LAB_FLAG )
 
 /*! Return the label string for sub-brick iv of dataset ds.
@@ -3049,7 +3049,7 @@ static char tmp_dblab[8] ;
 #define DSET_BRICK_LABEL      DSET_BRICK_LAB
 
 /*! Check if sub-brick has label March 2010 ZSS */
-#define DSET_HAS_LABEL(ds,iv) ( strcmp (DSET_BRICK_LABEL(ds,iv), NO_LAB_FLAG) ) 
+#define DSET_HAS_LABEL(ds,iv) ( strcmp (DSET_BRICK_LABEL(ds,iv), NO_LAB_FLAG) )
 
 #define DBLK_BRICK_STATCODE(db,iv)  \
  ( ((db)->brick_statcode != NULL) ? (db)->brick_statcode[iv] : ILLEGAL_TYPE )
@@ -4177,8 +4177,8 @@ typedef struct {
  } while(0)
 
 extern MRI_vectim * THD_dset_to_vectim( THD_3dim_dataset *dset, byte *mask, int ignore );
-MRI_vectim * THD_2dset_to_vectim( THD_3dim_dataset *dset1, byte *mask1 , 
-                                  THD_3dim_dataset *dset2, byte *mask2 , 
+MRI_vectim * THD_2dset_to_vectim( THD_3dim_dataset *dset1, byte *mask1 ,
+                                  THD_3dim_dataset *dset2, byte *mask2 ,
                                   int ignore );
 extern int64_t THD_vectim_size( THD_3dim_dataset *dset , byte *mask ) ;
 extern int THD_vectim_ifind( int iv , MRI_vectim *mrv ) ;
@@ -4405,9 +4405,9 @@ extern void THD_mask_erodemany( int nx, int ny, int nz, byte *mmm, int npeel ) ;
 extern int THD_peel_mask( int nx, int ny, int nz , byte *mmm, int pdepth ) ;
 
 extern void THD_mask_dilate( int, int, int, byte *, int ) ;  /* 30 Aug 2002 */
-extern short *THD_mask_depth (int nx, int ny, int nz, byte *mask, 
-                              byte preservemask, 
-                              short *usethisdepth);    /* ZSS March 02 2010 */ 
+extern short *THD_mask_depth (int nx, int ny, int nz, byte *mask,
+                              byte preservemask,
+                              short *usethisdepth);    /* ZSS March 02 2010 */
 
 extern float THD_cliplevel( MRI_IMAGE * , float ) ;          /* 12 Aug 2001 */
 extern float THD_cliplevel_abs( MRI_IMAGE * , float ) ;      /* 05 Mar 2007 */
@@ -4744,7 +4744,7 @@ extern double ENTROPY_compute   (void) ;
 extern double ENTROPY_dataset   (THD_3dim_dataset *) ;
 extern double ENTROPY_datablock (THD_datablock *) ;
 
-extern int  AFNI_vedit( THD_3dim_dataset *dset , VEDIT_settings vednew ) ;
+extern int  AFNI_vedit( THD_3dim_dataset *dset , VEDIT_settings vednew , byte *mask ) ;
 extern void AFNI_vedit_clear( THD_3dim_dataset *dset ) ;
 
 /*--------------------------------------------------------------------------*/
@@ -4931,8 +4931,15 @@ extern float THD_ncdfloat( int n , float *x , float *y );
 extern float THD_ncdfloat_scl( int n , float xbot,float xtop,float *x ,
                                        float ybot,float ytop,float *y  );
 
-extern char * array_to_zzb64( int nsrc , char *src ) ;
+extern char * array_to_zzb64( int nsrc , char *src , int linelen ) ;
 extern int    zzb64_to_array( char *zb , char **dest ) ;
+
+extern byte * mask_binarize( int , byte * ) ;
+extern byte * mask_unbinarize( int , byte * ) ;
+
+extern char * mask_to_b64string  ( int nvox  , byte *mful ) ;
+extern byte * mask_from_b64string( char *str , int *nvox  ) ;
+extern int    mask_b64string_nvox( char *str ) ;
 
 /*------------------------------------------------------------------------*/
 

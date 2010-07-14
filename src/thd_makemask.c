@@ -11,7 +11,7 @@ typedef struct {
     int id;    /* keep it named 'id' to facilitate use of convenience
                   macros in uthash . */
     UT_hash_handle hh;  /* keep name for same reason  */
-    int index; 
+    int index;
 }  INT_HASH_DATUM;
 
 /*---------------------------------------------------------------------*/
@@ -272,7 +272,7 @@ extern int * UniqueInt (int *y, int ysz, int *kunq, int Sorted );
 int is_integral_sub_brick ( THD_3dim_dataset *dset, int isb, int check_values) {
    float mfac = 0.0;
    void *vv=NULL;
-   
+
    if(   !ISVALID_DSET(dset)    ||
             isb < 0                     ||
             isb >= DSET_NVALS(dset)  ) {
@@ -282,9 +282,9 @@ int is_integral_sub_brick ( THD_3dim_dataset *dset, int isb, int check_values) {
 
    }
    if( !DSET_LOADED(dset) ) DSET_load(dset);
-   
+
    switch( DSET_BRICK_TYPE(dset,isb) ){
-      case MRI_short: 
+      case MRI_short:
       case MRI_byte:
          if (check_values) {
             mfac = DSET_BRICK_FACTOR(dset,isb) ;
@@ -301,20 +301,20 @@ int is_integral_sub_brick ( THD_3dim_dataset *dset, int isb, int check_values) {
             fprintf(stderr,"** NULL array!\n");
             return(0);
          }
-         return(is_integral_data(DSET_NVOX(dset), 
+         return(is_integral_data(DSET_NVOX(dset),
                                  DSET_BRICK_TYPE(dset,isb),
                                  DSET_ARRAY(dset,isb) ) );
          break;
       default:
          return(0);
    }
-   
-   return(1);  
+
+   return(1);
 }
 
 int is_integral_dset ( THD_3dim_dataset *dset, int check_values) {
    int i=0;
-   
+
    if(   !ISVALID_DSET(dset)  ) return(0);
    for (i=0; i<DSET_NVALS(dset); ++i) {
       if (!is_integral_sub_brick(dset, i, check_values)) return(0);
@@ -353,7 +353,7 @@ int *THD_unique_vals( THD_3dim_dataset *mask_dset ,
                   miv, DSET_PREFIX(mask_dset) ? DSET_PREFIX(mask_dset):"NULL");
       return (unq) ;
    }
-   
+
    vals = (int *)malloc(sizeof(int)*nvox);
    if (!vals) {
       fprintf(stderr,"** Failed to allocate.\n");
@@ -449,7 +449,7 @@ int *THD_unique_rank( THD_3dim_dataset *mask_dset ,
                   miv, DSET_PREFIX(mask_dset) ? DSET_PREFIX(mask_dset):"NULL");
       return (vals) ;
    }
-   
+
 
    vals = (int *)malloc(sizeof(int)*nvox);
    if (!vals) {
@@ -544,7 +544,7 @@ int *THD_unique_rank( THD_3dim_dataset *mask_dset ,
       hd = (INT_HASH_DATUM*)calloc(1,sizeof(INT_HASH_DATUM));
       hd->id = unq[r];
       hd->index = r;
-      HASH_ADD_INT(rmap, id, hd); 
+      HASH_ADD_INT(rmap, id, hd);
    }
    for (ii=0; ii<nvox; ii++)
       if (!cmask || cmask[ii]) {
@@ -554,7 +554,7 @@ int *THD_unique_rank( THD_3dim_dataset *mask_dset ,
             fprintf(stderr,
                      "** Failed to find key %d inhash table\n",
                      vals[ii]);
-            free(vals); 
+            free(vals);
             while (rmap) { hd=rmap; HASH_DEL(rmap,hd); free(hd); }
             return (NULL);
          }
@@ -565,7 +565,7 @@ int *THD_unique_rank( THD_3dim_dataset *mask_dset ,
       HASH_DEL(rmap,hd);
       if (hd) free(hd);
    }
-   
+
    #endif
 
    free(unq); unq = NULL;
@@ -1089,4 +1089,104 @@ ENTRY("thd_mask_from_brick");
     *mask = tmask;
 
     RETURN(0);
+}
+
+/*-------------------------------------------------------------------------*/
+/* Input:  0/1 array of bytes, nvox long.
+   Output: compressed by a factor of 8: 1+(nvox-1)/8 bytes long.
+*//*-----------------------------------------------------------------------*/
+
+static byte binar[8] = { 1 , 1<<1 , 1<<2 , 1<<3 , 1<<4 , 1<<5 , 1<<6 , 1<<7 } ;
+
+byte * mask_binarize( int nvox , byte *mful )
+{
+   register byte *mbin ; register int ii ;
+
+   if( nvox < 1 || mful == NULL ) return NULL ;
+
+   mbin = (byte *)calloc(sizeof(byte),1+(nvox-1)/8) ;
+
+   for( ii=0 ; ii < nvox ; ii++ )
+     if( mful[ii] != 0 ) mbin[ii>>3] |= binar[ii&0x7] ;
+
+   return mbin ;
+}
+
+/*-------------------------------------------------------------------------*/
+
+byte * mask_unbinarize( int nvox , byte *mbin )
+{
+   register byte *mful ; register int ii ;
+
+   if( nvox < 1 || mbin == NULL ) return NULL ;
+
+   mful = (byte *)calloc(sizeof(byte),nvox) ;
+
+   for( ii=0 ; ii < nvox ; ii++ )
+     mful[ii] = ( mbin[ii>>3] & binar[ii&0x7] ) != 0 ;
+
+   return mful ;
+}
+
+/*-------------------------------------------------------------------------*/
+/*! Convert a byte-value 0/1 mask to an ASCII string in Base64. */
+
+char * mask_to_b64string( int nvox , byte *mful )
+{
+   byte *mbin ; char *str ; int nstr ;
+
+   if( nvox < 1 || mful == NULL ) return NULL ;          /* bad inputs */
+
+   mbin = mask_binarize( nvox , mful ) ;
+   str  = array_to_zzb64( 1+(nvox-1)/8 , mbin , 72 ) ; free(mbin) ;
+   if( str == NULL ) return NULL ;              /* should never happen */
+
+   nstr = strlen(str) ;
+   str  = (char *)realloc( str , sizeof(char)*(nstr+16) ) ;
+   sprintf( str+nstr-1 , "===%d" , nvox ) ;  /* -1 to erase last linefeed */
+
+   return str ;
+}
+
+/*-------------------------------------------------------------------------*/
+/*! Convert an ASCII string in Base64 to a byte-valued 0/1 mask. */
+
+byte * mask_from_b64string( char *str , int *nvox )
+{
+   byte *mful , *mbin=NULL ; int nvvv , nstr , ii,ibot , nbin ;
+
+   if( str == NULL || nvox == NULL ) return NULL ;    /* bad inputs */
+
+   nvvv = mask_b64string_nvox(str) ;
+   if( nvvv <= 0 ) return NULL ;                            /* WTF? */
+
+   /* decode string to binarized array */
+
+   nbin = zzb64_to_array( str , (char **)&mbin ) ;
+   if( nbin <= 0 || mbin == NULL ) return NULL ;      /* bad decode */
+
+   /* decode binarized array to byte mask */
+
+   mful = mask_unbinarize( nvvv , mbin ) ; free(mbin) ;
+
+   *nvox = nvvv ; return mful ;
+}
+
+/*-------------------------------------------------------------------------*/
+
+int mask_b64string_nvox( char *str )
+{
+   int nstr , ii , ibot ;
+
+   if( str == NULL ) return 0 ;
+   nstr = strlen(str) ; if( nstr < 7 ) return 0 ;      /* too short */
+
+   /* find the last '=' at the end of the string */
+
+   ibot = nstr-16 ; if( ibot < 3 ) ibot = 3 ;
+   for( ii=nstr-1 ; ii > ibot && str[ii] != '=' ; ii-- ) ; /*nada*/
+   if( str[ii] != '=' ) return 0 ;               /* badly formatted */
+
+   ibot = (int)strtod(str+ii+1,NULL) ;          /* number of voxels */
+   return ibot ;
 }

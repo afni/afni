@@ -200,7 +200,7 @@ int zz_compress_all( int nsrc , char *src , char **dest )
 int zz_uncompress_some( int nsrc, char *src, int ndest, char *dest )
 {
    static int busy=0 ; static z_stream strm;
-   int ret ;
+   int ret , done ;
 
    if( ndest <= 0 || dest == NULL ){
      ERROR_message("zz_uncompress_some: bad dest inputs!") ;
@@ -249,16 +249,20 @@ int zz_uncompress_some( int nsrc, char *src, int ndest, char *dest )
    strm.avail_out = ndest ;
    strm.next_out  = dest ;
    ret = inflate( &strm , (nsrc >= 0) ? Z_SYNC_FLUSH : Z_FINISH ) ;
+/* INFO_message("inflate ret=%d",ret) ; */
 
-   if( ret != Z_OK ){
-     ERROR_message("zz_uncompress_some: inflation fails!") ;
+   if( ret != Z_OK && ret != Z_STREAM_END ){
+     ERROR_message("zz_uncompress_some: inflation fails: %d",ret) ;
      inflateEnd(&strm) ; busy = 0 ; return -1 ;
    }
+   done = (ret == Z_STREAM_END) ;
 
    ret = ndest - strm.avail_out ;  /* number of bytes output */
+/* ININFO_message("  #bytes = %d",ret) ; */
 
    if( ret == 0 ){ inflateEnd(&strm); busy = 0; } /* finished */
 
+   if( ret == 0 && done ) ret = -1 ;
    return ret ;
 }
 
@@ -273,7 +277,10 @@ int zz_uncompress_all( int nsrc , byte *src , char **dest )
 
    if( nsrc <= 0 || src == NULL || dest == NULL ) return -1 ;
 
+/* INFO_message("zz_uncompress_all: nsrc=%d",nsrc) ; */
+
    nbuf = zz_uncompress_some( nsrc , src , CHUNK , buf ) ;
+/* ININFO_message("zz_uncompress_some returns %d",nbuf) ; */
    if( nbuf <= 0 ) return -1 ;
 
    nddd = nbuf ;
@@ -282,6 +289,7 @@ int zz_uncompress_all( int nsrc , byte *src , char **dest )
 
    while(1){
      nbuf = zz_uncompress_some( 0 , NULL , CHUNK , buf ) ;
+/* ININFO_message("zz_uncompress_some returns %d",nbuf) ; */
      if( nbuf <= 0 ) break ;
      ddd = (char *)realloc(ddd,sizeof(char)*(nddd+nbuf)) ;
      memcpy(ddd+nddd,buf,nbuf) ;
@@ -291,6 +299,7 @@ int zz_uncompress_all( int nsrc , byte *src , char **dest )
    if( nbuf == 0 ){
      while(1){
        nbuf = zz_uncompress_some( -1 , NULL , CHUNK , buf ) ;
+/* ININFO_message("cleanup zz_uncompress_some returns %d",nbuf) ; */
        if( nbuf <= 0 ) break ;
        ddd = (char *)realloc(ddd,sizeof(char)*(nddd+nbuf)) ;
        memcpy(ddd+nddd,buf,nbuf) ;
@@ -298,6 +307,7 @@ int zz_uncompress_all( int nsrc , byte *src , char **dest )
      }
    }
 
+/* ININFO_message("Finally: %d bytes",nddd) ; */
    *dest = ddd ; return nddd ;
 }
 
@@ -433,7 +443,7 @@ float THD_ncdfloat( int n , float *x , float *y )
 /*------------------------------------------------------------------------*/
 /*! Compress and Base64 string-ify an input array. */
 
-char * array_to_zzb64( int nsrc , char *src )
+char * array_to_zzb64( int nsrc , char *src , int linelen )
 {
    int nzb    ; char *zb    ;
    int nzdest ; char *zdest ;
@@ -445,7 +455,9 @@ char * array_to_zzb64( int nsrc , char *src )
    nzdest = zz_compress_all( nsrc , src , &zdest ) ;
    if( nzdest <= 0 ) return NULL ;
 
-   B64_set_crlf(0) ;
+   if( linelen < 4 ) B64_set_crlf(0);
+   else            { B64_set_crlf(1); B64_set_linelen(linelen); }
+
    B64_to_base64( nzdest , (byte *)zdest , &nzb , (byte **)(&zb) ) ;
    free(zdest) ;
    if( nzb <= 0 ) return NULL ;

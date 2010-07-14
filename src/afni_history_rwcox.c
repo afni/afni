@@ -44,6 +44,14 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 14 , JUL , 2010 , RWC , "afni" , MICRO , TYPE_GENERAL ,
+   "Clusterize now uses the mask from 3dClustSim, if available" ,
+   NULL } ,
+
+ { 14 , JUL , 2010 , RWC , "3dClustSim" , MICRO , TYPE_GENERAL ,
+   "Changes to write mask info to output, to use in Clusterize" ,
+   NULL } ,
+
  { 12 , JUL , 2010 , RWC , "3dDeconvolve" , MICRO , TYPE_NEW_OPT ,
    "add MION to the -stim_times HRF repertoire" ,
    "Now will they stop bugging me?!  (of course not)" } ,

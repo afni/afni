@@ -951,6 +951,8 @@ extern MRI_IMAGE *mri_scale_to_float( float , MRI_IMAGE * ) ;
 extern void mri_threshold( double , double , MRI_IMAGE * , MRI_IMAGE * ) ;
 extern MRI_IMAGE * mri_mult_to_float( float * , MRI_IMAGE * ) ;
 
+extern void mri_maskify( MRI_IMAGE *im , byte *mask ) ; /* Jul 2010 */
+
 extern MRI_IMAGE * mri_scalize( MRI_IMAGE *, int, float * ) ; /* 20 Oct 2003 */
 
 extern MRI_IMAGE *mri_multiply_complex( int , MRI_IMAGE * , MRI_IMAGE * ) ;
@@ -1438,7 +1440,7 @@ typedef struct {
 } mri_cluster_detail ;
 
 extern MRI_IMAGE * mri_clusterize( float,float, MRI_IMAGE * ,
-                                   float,float, MRI_IMAGE * , int );
+                                   float,float, MRI_IMAGE * , int , byte * );
 extern char * mri_clusterize_report(void) ;
 extern MCW_cluster_array * mri_clusterize_array(int clear) ;
 extern mri_cluster_detail mri_clusterize_detailize( MCW_cluster *cl ) ;

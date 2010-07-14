@@ -972,7 +972,7 @@ ENTRY("GICOR_process_dataset") ;
 
      dsim = DSET_BRICK(giset->dset,im3d->vinfo->fim_index) ;
      tsim = DSET_BRICK(giset->dset,im3d->vinfo->thr_index) ;
-     clim = mri_clusterize( 0.0f , vmul , dsim , thb,tht,tsim , pfun ) ;
+     clim = mri_clusterize( 0.0f , vmul , dsim , thb,tht,tsim , pfun , NULL ) ;
      if( clim != NULL ){
        float *csar = MRI_FLOAT_PTR(clim) ;
        memcpy( MRI_FLOAT_PTR(dsim) , csar , sizeof(float)*clim->nvox ) ;
