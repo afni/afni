@@ -1242,6 +1242,7 @@ def db_mod_mask(block, proc, user_opts):
     if len(block.opts.olist) == 0: # then init
         block.opts.add_opt('-mask_type', 1, ['union'], setpar=1)
         block.opts.add_opt('-mask_dilate', 1, [1], setpar=1)
+        block.opts.add_opt('-mask_test_overlap', 1, ['yes'], setpar=1)
 
     # check for user updates
     uopt = user_opts.find_opt('-mask_type')
@@ -1264,6 +1265,14 @@ def db_mod_mask(block, proc, user_opts):
     if uopt:
         if bopt: bopt.parlist = uopt.parlist
         else: block.opts.add_opt('-mask_apply', 1, uopt.parlist, setpar=1)
+
+    # maybe we do not want cormat warnings
+    uopt = user_opts.find_opt('-mask_test_overlap')
+    if uopt:
+        bopt = block.opts.find_opt('-mask_test_overlap')
+        if bopt: bopt.parlist = uopt.parlist
+        else: block.opts.add_opt('-mask_test_overlap', 1,
+                                 uopt.parlist, setpar=1)
 
     proc.mask_epi = BASE.afni_name('full_mask%s$subj' % proc.sep_char)
     proc.mask = proc.mask_epi   # default to referring to EPI mask
@@ -1471,6 +1480,15 @@ def anat_mask_command(proc, block):
                 "3dcalc -a %s -expr 'ispositive(a)' -prefix %s\n\n" \
                 % (tanat.pv(), proc.mask_anat.prefix)
 
+    opt = block.opts.find_opt('-mask_test_overlap')
+    if not opt or OL.opt_is_yes(opt):  # so default to 'yes'
+        if proc.mask_epi and proc.mask_anat:
+            rcmd = "# compute overlaps between anat and EPI masks\n"  \
+                   "3dABoverlap -no_automask %s %s \\\n"              \
+                   "            |& tee out.mask_overlap.txt\n\n"      \
+                   % (proc.mask_epi.pv(), proc.mask_anat.pv())
+            cmd = cmd + rcmd
+
     proc.mask_anat.created = 1  # so this mask 'exists' now
 
     return cmd
@@ -1540,6 +1558,7 @@ def db_mod_regress(block, proc, user_opts):
     if len(block.opts.olist) == 0: # then init
         block.opts.add_opt('-regress_basis', 1, ['GAM'], setpar=1)
         block.opts.add_opt('-regress_censor_prev', 1, ['yes'], setpar=1)
+        block.opts.add_opt('-regress_cormat_warnings', 1, ['yes'], setpar=1)
         block.opts.add_opt('-regress_fout', 1, ['yes'], setpar=1)
         block.opts.add_opt('-regress_polort', 1, [-1], setpar=1)
         block.opts.add_opt('-regress_stim_files', -1, [])
@@ -1729,6 +1748,14 @@ def db_mod_regress(block, proc, user_opts):
     if uopt:
         if bopt: bopt.parlist = uopt.parlist
         else: block.opts.add_opt('-regress_censor_prev', 1,
+                                 uopt.parlist, setpar=1)
+
+    # maybe we do not want cormat warnings
+    uopt = user_opts.find_opt('-regress_cormat_warnigns')
+    if uopt:
+        bopt = block.opts.find_opt('-regress_cormat_warnigns')
+        if bopt: bopt.parlist = uopt.parlist
+        else: block.opts.add_opt('-regress_cormat_warnigns', 1,
                                  uopt.parlist, setpar=1)
 
     # maybe we do not want the -fout option
@@ -2124,6 +2151,14 @@ def db_cmd_regress(proc, block):
                 "    echo '   (consider the file 3dDeconvolve.err)'\n"  \
                 "    exit\n"                                            \
                 "endif\n\n\n"
+
+    # check the X-matrix for high pairwise correlations
+    opt = block.opts.find_opt('-regress_cormat_warnigns')
+    if not opt or OL.opt_is_yes(opt):  # so default to 'yes'
+        rcmd = "# display any large pariwise correlations from the X-matrix\n"\
+               "1d_tool.py -show_cormat_warnings -infile %s"                  \
+               " |& tee out.cormat_warn.txt\n\n" % proc.xmat
+        cmd = cmd + rcmd
 
     # possibly run the REML script
     if block.opts.find_opt('-regress_reml_exec'):
@@ -3002,6 +3037,9 @@ g_help_string = """
        This requires either the 'align' block or a tlrc anatomy (from the
        'tlrc' block, or just copied via '-copy_anat').  Basically, it requires
        afni_proc.py to know of a skull-stripped anatomical dataset.
+
+       By default, if both the anat and EPI masks exist, the overlap between
+       them will be computed for evaluation.
 
     3. group ("mask_group") : skull-stripped @auto_tlrc base
 
@@ -4208,21 +4246,6 @@ g_help_string = """
             See "MASKING NOTE" and "DEFAULTS" for details.
             See also -blocks.
 
-        -mask_type TYPE         : specify 'union' or 'intersection' mask type
-
-                e.g. -mask_type intersection
-                default: union
-
-            This option is used to specify whether the mask applied to the
-            analysis is the union of masks from each run, or the intersection.
-            The only valid values for TYPE are 'union' and 'intersection'.
-
-            This is not how to specify whether a mask is created, that is
-            done via the 'mask' block with the '-blocks' option.
-
-            Please see '3dAutomask -help', '3dMean -help' or '3dcalc -help'.
-            See also -mask_dilate, -blocks.
-
         -mask_dilate NUM_VOXELS : specify the automask dilation
 
                 e.g. -mask_dilate 3
@@ -4238,6 +4261,34 @@ g_help_string = """
 
             Please see '3dAutomask -help' for more information.
             See also -mask_type.
+
+        -mask_test_overlap Y/N  : choose whether to test anat/EPI mask overlap
+
+                e.g. -mask_test_overlap No
+                default: Yes
+
+            If the subject anatomy and EPI masks are computed, then the default
+            operation is to run 3dABoverlap to evaluate the overlap between the
+            two masks.  Output is saved in a text file.
+
+            This option allows one to disable such functionality.
+
+            Please see '3dABoverlap -help' for more information.
+
+        -mask_type TYPE         : specify 'union' or 'intersection' mask type
+
+                e.g. -mask_type intersection
+                default: union
+
+            This option is used to specify whether the mask applied to the
+            analysis is the union of masks from each run, or the intersection.
+            The only valid values for TYPE are 'union' and 'intersection'.
+
+            This is not how to specify whether a mask is created, that is
+            done via the 'mask' block with the '-blocks' option.
+
+            Please see '3dAutomask -help', '3dMean -help' or '3dcalc -help'.
+            See also -mask_dilate, -blocks.
 
         -scale_max_val MAX      : specify the maximum value for scaled data
 
@@ -4456,6 +4507,19 @@ g_help_string = """
 
             See also -regress_est_blur_errts, -regress_errts_prefix,
             -regress_fitts_prefix and -regress_no_fitts.
+
+        -regress_cormat_warnings Y/N : specify whether to get cormat warnings
+
+                e.g. -mask_cormat_warnings No
+                default: Yes
+
+            By default, '1d_tool.py -show_cormat_warnings' is run on the 
+            regression matrix.  Any large, pairwise correlations are shown
+            in text output (which is also saved to a text file).
+
+            This option allows one to disable such functionality.
+
+            Please see '1d_tool.py -help' for more details.
 
         -regress_est_blur_epits      : estimate the smoothness of the EPI data
 

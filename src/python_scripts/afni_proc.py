@@ -198,9 +198,10 @@ g_history = """
         - 3dToutcount detrending now defaults to Legendre polynomials and
           can so exceed polort 3 (limit found by I Mukai and K Bahadur)
         - added options -outlier_legendre and -outlier_polort
+    2.31 Jul 14 2010 : added -mask_test_overlap and -regress_cormat_warnigns
 """
 
-g_version = "version 2.30, June 22, 2010"
+g_version = "version 2.31, July 14, 2010"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
@@ -492,6 +493,9 @@ class SubjProcSream:
                         helpstr="select mask to apply in regression")
         self.valid_opts.add_opt('-mask_dilate', 1, [],
                         helpstr="dilation to be applied in automask")
+        self.valid_opts.add_opt('-mask_test_overlap', 1, [],
+                        acplist=['yes','no'],
+                        helpstr='test anat/EPI mask overlap (yes/no)')
         self.valid_opts.add_opt('-mask_type', 1, [],
                         acplist=['union','intersection'],
                         helpstr="specify a 'union' or 'intersection' mask type")
@@ -517,12 +521,14 @@ class SubjProcSream:
                         helpstr="set whether to censor previous motion TR")
         self.valid_opts.add_opt('-regress_censor_first_trs', 1, [],
                         helpstr="censor first TRs per run (if censor motion)")
-
         self.valid_opts.add_opt('-regress_censor_outliers', 1, [],
                         helpstr="censor TR if outlier fraction exceeds limit")
         self.valid_opts.add_opt('-regress_skip_first_outliers', 1, [],
                         helpstr="ignore outliers in first few TRs of each run")
 
+        self.valid_opts.add_opt('-regress_cormat_warnigns', 1, [],
+                        acplist=['yes','no'],
+                        helpstr="show cormat warnings from X-matrix (def: yes)")
         self.valid_opts.add_opt('-regress_fout', 1, [],
                         acplist=['yes','no'],
                         helpstr="output individual F-stats? (def: yes)")
