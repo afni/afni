@@ -3,6 +3,7 @@
 int main( int argc , char * argv[] )
 {
    int iarg , nvox=0 , iv,ii,cnum , verb=1 ;
+   int automask=1 ;  /* allow masks as input    14 Jul 2010 [rickr] */
    THD_3dim_dataset *aset , *bset ;
    byte *amm , *bmm ; int naa , nbb , nabu,nabi , naout , nbout ;
    float paout , pbout , xrat,yrat,zrat ;
@@ -40,8 +41,10 @@ int main( int argc , char * argv[] )
        "\n"
        "OPTIONS\n"
        "-------\n"
-       " -verb  = print out some progress reports (to stderr)\n"
+       " -no_automask = consider input datasets as masks\n"
+       "                (automask does not work on mask datasets)\n"
        " -quiet = be as quiet as possible (without being entirely mute)\n"
+       " -verb  = print out some progress reports (to stderr)\n"
        "\n"
        "NOTES\n"
        "-----\n"
@@ -66,6 +69,10 @@ int main( int argc , char * argv[] )
 
      if( strcmp(argv[iarg],"-quiet") == 0 ){
        verb = 0 ; iarg++ ; continue ;
+     }
+
+     if( strcmp(argv[iarg],"-no_automask") == 0 ){
+       automask = 0 ; iarg++ ; continue ;
      }
 
      ERROR_exit("Illegal option: %s",argv[iarg]) ;
@@ -100,13 +107,19 @@ int main( int argc , char * argv[] )
    /* 10 Aug 2009: keep input datasets without automask, if appropriate */
 
    if( DSET_NVALS(aset) > 1 || DSET_BRICK_TYPE(aset,0) != MRI_byte ){
-     amm = THD_automask(aset); DSET_unload(aset);
+     /* allow masks as input (via -no_automask)   14 Jul 2010 [rickr] */
+     if( automask ) amm = THD_automask(aset);
+     else           amm = THD_makemask(aset, 0, 1, 0); /* use any non-zero */
+     DSET_unload(aset);
    } else {
      amm = DSET_BRICK_ARRAY(aset,0) ;
    }
 
    if( DSET_NVALS(bset) > 1 || DSET_BRICK_TYPE(bset,0) != MRI_byte ){
-     bmm = THD_automask(bset); DSET_unload(bset);
+     /* allow masks as input (via -no_automask)   14 Jul 2010 [rickr] */
+     if( automask ) bmm = THD_automask(bset);
+     else           bmm = THD_makemask(bset, 0, 1, 0); /* use any non-zero */
+     DSET_unload(bset);
    } else {
      bmm = DSET_BRICK_ARRAY(bset,0) ;
    }
