@@ -22,13 +22,15 @@ MCW_cluster_array * mri_clusterize_array(int clear)
 }
 
 /*---------------------------------------------------------------------*/
+
+/*---------------------------------------------------------------------*/
 /*! Cluster-edit volume bim, possibly thresholding with tim, and
     produce a new output image.  [05 Sep 2006]
 -----------------------------------------------------------------------*/
 
 MRI_IMAGE * mri_clusterize( float rmm , float vmul , MRI_IMAGE *bim ,
                             float thb , float tht  , MRI_IMAGE *tim ,
-                            int posonly )
+                            int posonly , byte *mask )
 {
    float dx,dy,dz , dbot , vmin ;
    int   nx,ny,nz , ptmin,iclu , nkeep,nkill,ncgood , nbot,ntop , ii ;
@@ -64,6 +66,8 @@ ENTRY("mri_clusterize") ;
 
    if( posonly )
      mri_threshold( -1.e9 , 0.0 , cim , cim ) ;
+
+   mri_maskify( cim , mask ) ;  /* Jul 2010: mask it? */
 
    /* smallest cluster to keep */
 

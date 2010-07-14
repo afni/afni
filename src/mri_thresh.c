@@ -178,3 +178,63 @@ ENTRY("mri_threshold") ;
 
    EXRETURN ;  /* should not be reached! */
 }
+
+/*----------------------------------------------------------------------------*/
+
+void mri_maskify( MRI_IMAGE *im , byte *mask )  /* Jul 2010 */
+{
+   register int npix ,ii ;
+
+ENTRY("mri_maskify") ;
+
+   if( im == NULL || mask == NULL ) EXRETURN ;
+
+   npix = im->nvox ;
+
+   switch( im->kind ){
+
+      case MRI_byte:{
+        register byte *ar = MRI_BYTE_PTR(im) ;
+        for( ii=0 ; ii < npix ; ii++ ) if( mask[ii] == 0 ) ar[ii] = 0 ;
+      }
+      break ;
+
+      case MRI_rgb:{
+        register byte *ar = MRI_RGB_PTR(im) ;
+        for( ii=0 ; ii < npix ; ii++ ) if( mask[ii] == 0 ) ar[3*ii] = ar[3*ii+1] = ar[3*ii+2] = 0 ;
+      }
+      break ;
+
+      case MRI_short:{
+        register short *ar = MRI_SHORT_PTR(im) ;
+        for( ii=0 ; ii < npix ; ii++ ) if( mask[ii] == 0 ) ar[ii] = 0 ;
+      }
+      break ;
+
+      case MRI_int:{
+        register int *ar = MRI_INT_PTR(im) ;
+        for( ii=0 ; ii < npix ; ii++ ) if( mask[ii] == 0 ) ar[ii] = 0 ;
+      }
+      break ;
+
+      case MRI_float:{
+        register float *ar = MRI_FLOAT_PTR(im) ;
+        for( ii=0 ; ii < npix ; ii++ ) if( mask[ii] == 0 ) ar[ii] = 0.0f ;
+      }
+      break ;
+
+      case MRI_double:{
+        register double *ar = MRI_DOUBLE_PTR(im) ;
+        for( ii=0 ; ii < npix ; ii++ ) if( mask[ii] == 0 ) ar[ii] = 0.0 ;
+      }
+      break ;
+
+      case MRI_complex:{
+        register complex *ar = MRI_COMPLEX_PTR(im) ;
+        for( ii=0 ; ii < npix ; ii++ ) if( mask[ii] == 0 ) ar[ii].r = ar[ii].i = 0.0f ;
+      }
+      break ;
+   }
+
+   EXRETURN ;
+}

@@ -12,7 +12,7 @@
     parameters stored in dset->dblk->vedset.  [05 Sep 2006]
 -----------------------------------------------------------------------------*/
 
-int AFNI_vedit( THD_3dim_dataset *dset , VEDIT_settings vednew )
+int AFNI_vedit( THD_3dim_dataset *dset , VEDIT_settings vednew , byte *mask )
 {
    THD_datablock *dblk ;
    int ival ;
@@ -79,7 +79,7 @@ ENTRY("AFNI_vedit") ;
        thr /= DSET_BRICK_FACTOR(dset,ithr) ;
      thb = THBOT(thr) ; tht = THTOP(thr) ;
      rmm  = vednew.param[2] ; vmul = vednew.param[3] ;
-     dblk->vedim = mri_clusterize( rmm,vmul,dim,thb,tht,tim,posfunc );
+     dblk->vedim = mri_clusterize( rmm,vmul,dim,thb,tht,tim,posfunc , mask );
 
    }
 
@@ -95,6 +95,6 @@ void AFNI_vedit_clear( THD_3dim_dataset *dset )
    VEDIT_settings vs ;
 ENTRY("AFNI_vedit_clear") ;
    memset(&vs,0,sizeof(VEDIT_settings)) ;
-   (void)AFNI_vedit( dset , vs ) ;
+   (void)AFNI_vedit( dset , vs , NULL ) ;
    EXRETURN ;
 }

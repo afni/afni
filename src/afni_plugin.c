@@ -4868,9 +4868,9 @@ void * MCW_onen_i_estel_edain(void *n){} ;  /* dummy routine */
    a few places in AFNI that are not plugin-specific.
 ************************************************************************/
 
-void PLUTO_register_timeseries( char * cname , MRI_IMAGE * tsim )
+void PLUTO_register_timeseries( char *cname , MRI_IMAGE *tsim )
 {
-   MRI_IMAGE * qim ;
+   MRI_IMAGE *qim ;
 
 ENTRY("PLUTO_register_timeseries") ;
 
@@ -4886,7 +4886,7 @@ ENTRY("PLUTO_register_timeseries") ;
   Find a dataset, given its idcode string. [02 Mar 2002]
 ------------------------------------------------------------------------------*/
 
-THD_3dim_dataset * PLUTO_find_dset_idc( char * idc )
+THD_3dim_dataset * PLUTO_find_dset_idc( char *idc )
 {
    MCW_idcode idcode ;
    if( idc == NULL ) return NULL ;

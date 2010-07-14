@@ -64,8 +64,9 @@ static unsigned int gseed = 123456789 ;
 static double pthr_init[8] = { 0.02 , 0.01, 0.005, 0.002, 0.001, 0.0005, 0.0002, 0.0001 } ;
 static double athr_init[4] = { 0.10 , 0.05 , 0.02 , 0.01 } ;
 
-static int   npthr_lots     = 24 ;
-static double pthr_lots[24] = { 0.05,    0.04,    0.03,    0.02,    0.015,    0.01,
+static int   npthr_lots     = 29 ;
+static double pthr_lots[29] = { 0.10,    0.09,    0.08,    0.07,    0.06,
+                                0.05,    0.04,    0.03,    0.02,    0.015,    0.01,
                                 0.007,   0.005,   0.003,   0.002,   0.0015,   0.001,
                                 0.0007,  0.0005,  0.0003,  0.0002,  0.00015,  0.0001,
                                 0.00007, 0.00005, 0.00003, 0.00002, 0.000015, 0.00001 } ;
@@ -210,8 +211,13 @@ void display_help_menu()
    "                  * This option is for use with other software programs.\n"
    "\n"
    "-prefix ppp    = Write output for NN method #k to file 'ppp.NNk.1D' for k=1, 2, 3.\n"
-   "                  * If '-niml' is used, the filename is 'ppp.NNk.niml'.\n"
    "                  * If '-prefix is not used, results go to standard output.\n"
+   "                  * If '-niml' is used, the filename is 'ppp.NNk.niml'.\n"
+   "                  * If '-niml' AND '-mask' are both used, then an ASCII encoding\n"
+   "                    of the mask volume is stored into file 'ppp.mask'.  This\n"
+   "                    encoding can be stored into a dataset header as an attribute\n"
+   "                    with name AFNI_CLUSTSIM_MASK, and will be used in the AFNI\n"
+   "                    Clusterize GUI, if present.\n"
    "\n"
    "-quiet         = Don't print out the progress reports, etc.\n"
    "                  * Put this option first to quiet most informational messages.\n"
@@ -232,11 +238,13 @@ void display_help_menu()
    "* To add the cluster simulation C(p,alpha) table to the header of an AFNI\n"
    "  dataset, something like the following can be done [tcsh syntax]:\n"
    "     set fwhm = ( `3dFWHMx -combine -detrend time_series_dataset+orig` )\n"
-   "     3dClustSim -fwhm $fwhm[4] -LOTS -niml -prefix Ctemp\n"
-   "     3drefit -atrstring AFNI_CLUSTSIM_NN1 file:Ctemp.NN1.niml statistics_dataset+orig\n"
-   "     rm -f Ctemp.NN1.niml\n"
-   "  AFNI's Clusterize GUI makes use of this attribute, if stored in a statistical\n"
-   "  dataset (e.g., something from 3dDeconvolve, 3dREMLfit, et cetera).\n"
+   "     3dClustSim -mask mask+orig -fwhm $fwhm[4] -LOTS -niml -prefix CStemp\n"
+   "     3drefit -atrstring AFNI_CLUSTSIM_NN1 file:CStemp.NN1.niml \\\n"
+   "             -atrstring AFNI_CLUSTSIM_MASK file:CStemp.mask    \\\n"
+   "             statistics_dataset+orig\n"
+   "     rm -f CStemp.*\n"
+   "  AFNI's Clusterize GUI makes use of these attributes, if stored in a\n"
+   "  statistics dataset (e.g., something from 3dDeconvolve, 3dREMLfit, etc.).\n"
    "  [At present, AFNI only uses the NN1 method in the Clusterize GUI.]\n"
    "\n"
    "-- RW Cox -- July 2010\n"
@@ -907,7 +915,7 @@ void gather_stats_NN3( int ipthr , float *fim , byte *bfim , int *mtab , int ith
 
 int main( int argc , char **argv )
 {
-  int **max_table[4] ; int nnn , ipthr ;
+  int **max_table[4] ; int nnn , ipthr , first_mask=1 ;
 #ifdef USE_OMP
   int ***mtab[4] ;
 #endif
@@ -1188,17 +1196,25 @@ MPROBE ;
         if( mask_dset != NULL ){
           NI_set_attribute(nel,"mask_dset_idcode",DSET_IDCODE_STR(mask_dset)) ;
           NI_set_attribute(nel,"mask_dset_name"  ,DSET_HEADNAME(mask_dset)) ;
-          sprintf(bbb,"%d",mask_ngood) ; NI_set_attribute(nel,"mask_count",bbb) ;
+          sprintf(buf,"%d",mask_ngood) ; NI_set_attribute(nel,"mask_count",buf) ;
         }
         if( prefix != NULL ) strcat(fname,"niml") ;
         else                 strcpy(fname,"stdout:") ;
         NI_write_element_tofile( fname , nel , NI_TEXT_MODE ) ;
-      }
-      fflush(stdout) ;
-    } /* end of loop over nnn */
-  }
+        if( prefix != NULL && mask_vol != NULL && first_mask ){
+          bbb = mask_to_b64string( mask_nvox , mask_vol ) ; first_mask = 0 ;
+          if( bbb != NULL ){
+            FILE *fp ;
+            sprintf(fname,"%s.mask",prefix) ; fp = fopen(fname,"w") ;
+            if( fp != NULL ){ fprintf(fp,"%s\n",bbb); fclose(fp); }
+            free(bbb) ;
+          }
+        }
+      } /* end of NIML output */
+    } /* end of loop over nnn = NN degree */
+  } /* end of outputization */
 
-  /* run away screaming */
+  /*----- run away screaming into the night ----- AAUUGGGHHH!!! -----*/
 
   exit(0);
 }
