@@ -49,6 +49,11 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 13 , JUL, 2010 , DRG , "3dresample" , 
+    MINOR , TYPE_MODIFY, 
+    "Allowed for wider range of voxel sizes"
+} ,
+
 { 8 , JUN, 2010 , DRG , "RetroTS.m" , 
     MINOR , TYPE_NEW_OPT, 
     "Allowed for alt+z2 slice timing"
