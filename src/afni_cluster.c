@@ -73,7 +73,7 @@ ENTRY("AFNI_cluster_choose_CB") ;
      }
    }
    im3d->vedset.code     = VEDIT_CLUST ;
-   im3d->vedset.param[2] = rmm ;
+   im3d->vedset.param[2] = rmm ;   /* is always 0 now -- Jul 2010 */
    im3d->vedset.param[3] = vmul ;  /* other params set in afni.c */
    set_vedit_cluster_label(im3d,1) ;
    if( ISVALID_3DIM_DATASET(im3d->fim_now) && !im3d->vinfo->func_visible ){
@@ -1767,23 +1767,45 @@ void CLU_setup_alpha_tables( Three_D_View *im3d )
 ENTRY("CLU_setup_alpha_tables") ;
 
    if( !IM3D_OPEN(im3d) ) EXRETURN ;
-   dset = im3d->fim_now ;
-   if( !ISVALID_DSET(dset) ){
-     CLU_free_table( im3d->vwid->func->clu_tabNN1 ) ;
-      im3d->vwid->func->clu_tabNN1 = NULL ;
-     CLU_free_table( im3d->vwid->func->clu_tabNN2 ) ;
-      im3d->vwid->func->clu_tabNN2 = NULL ;
-     CLU_free_table( im3d->vwid->func->clu_tabNN3 ) ;
-      im3d->vwid->func->clu_tabNN3 = NULL ;
-     EXRETURN ;
+
+   /* free anything we have now */
+
+   CLU_free_table( im3d->vwid->func->clu_tabNN1 ) ;
+    im3d->vwid->func->clu_tabNN1 = NULL ;
+   CLU_free_table( im3d->vwid->func->clu_tabNN2 ) ;
+    im3d->vwid->func->clu_tabNN2 = NULL ;
+   CLU_free_table( im3d->vwid->func->clu_tabNN3 ) ;
+    im3d->vwid->func->clu_tabNN3 = NULL ;
+   if( im3d->vwid->func->clu_mask != NULL ){
+     free(im3d->vwid->func->clu_mask) ; im3d->vwid->func->clu_mask = NULL ;
+   }
+
+   /* get info from the Overlay dataset header, if present */
+
+   dset = im3d->fim_now ; if( !ISVALID_DSET(dset) ) EXRETURN ;
+
+   atr = THD_find_string_atr( dset->dblk , "AFNI_CLUSTSIM_MASK" ) ;
+   if( atr != NULL ){
+     int nvox = mask_b64string_nvox(atr->ch) ;
+     if( nvox == DSET_NVOX(dset) ){
+       im3d->vwid->func->clu_mask = mask_from_b64string(atr->ch,&nvox) ;
+     }
    }
 
    atr = THD_find_string_atr( dset->dblk , "AFNI_CLUSTSIM_NN1" ) ;
    if( atr != NULL ){
      nel = NI_read_element_fromstring(atr->ch) ;
-     ctab = format_cluster_table(nel) ; NI_free_element(nel) ;
-     CLU_free_table( im3d->vwid->func->clu_tabNN1 ) ;
+     ctab = format_cluster_table(nel) ;
      im3d->vwid->func->clu_tabNN1 = ctab ;
+     if( im3d->vwid->func->clu_mask == NULL ){
+       char *idc = NI_get_attribute(nel,"mask_dset_idcode") ;
+       THD_3dim_dataset *mset = PLUTO_find_dset_idc(idc) ;
+       if( mset != NULL && DSET_NVOX(mset) == DSET_NVOX(dset) ){
+         im3d->vwid->func->clu_mask = THD_makemask(mset,0,1.0,0.0) ;
+         DSET_unload(mset) ;
+       }
+     }
+     NI_free_element(nel) ;
    }
 
 #if 0
@@ -1791,7 +1813,6 @@ ENTRY("CLU_setup_alpha_tables") ;
    if( atr != NULL ){
      nel = NI_read_element_fromstring(atr->ch) ;
      ctab = format_cluster_table(nel) ; NI_free_element(nel) ;
-     CLU_free_table( im3d->vwid->func->clu_tabNN2 ) ;
      im3d->vwid->func->clu_tabNN2 = ctab ;
    }
 
@@ -1799,7 +1820,6 @@ ENTRY("CLU_setup_alpha_tables") ;
    if( atr != NULL ){
      nel = NI_read_element_fromstring(atr->ch) ;
      ctab = format_cluster_table(nel) ; NI_free_element(nel) ;
-     CLU_free_table( im3d->vwid->func->clu_tabNN3 ) ;
      im3d->vwid->func->clu_tabNN3 = ctab ;
    }
 #endif

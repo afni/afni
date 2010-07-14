@@ -113,6 +113,7 @@ void B64_to_binary( int nb64 , byte *b64 , int *nbin , byte **bin )
 
       w = b64[ii++] ;
       while( !B64_goodchar(w) && ii < nb64 ) w = b64[ii++] ;
+      if( w == '=' ) break ;                 /* premature end of input */
       x = (ii < nb64) ? b64[ii++] : '=' ;
       while( !B64_goodchar(x) && ii < nb64 ) x = b64[ii++] ;
       y = (ii < nb64) ? b64[ii++] : '=' ;

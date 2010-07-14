@@ -3420,6 +3420,7 @@ STATUS("making func->rowcol") ;
    func->clu_det = NULL; func->clu_num  = 0 ;
 
    func->clu_tabNN1 = func->clu_tabNN2 = func->clu_tabNN3 = NULL; /* Jul 2010 */
+   func->clu_mask = NULL ;
 
    func->iwid = NULL ;  /* 17 Sep 2009 */
 
