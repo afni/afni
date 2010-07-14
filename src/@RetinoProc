@@ -375,8 +375,8 @@ PARSE:
    set fwhm_pol = 4
    set fwhm_ecc = 8
    set tshift = 0
-   set rettype=(  POL    ECC ) #DO NOT CHANGE ORDER, affects DIFFERENCE
-   set retcls= (ccw cw exp cnt)  #DO NOT CHANGE ORDER, affects DIFFERENCE
+   set rettype=(  POL    ECC ) #DO NOT CHANGE ORDER
+   set retcls= (ccw cw exp cnt)  #DO NOT CHANGE ORDER
    set runs_ccw = (  )   #ccw, always
    set runs_cw = (  )   #cw, always
    set runs_exp = (  )   #exp, always
@@ -388,7 +388,7 @@ PARSE:
    set svolal = ''
    set cnt = 1
    
-   if ($#Narg < 2) goto HELP
+   if ($Narg < 2) goto HELP
    
    while ($cnt <= $Narg)
 		set donext = 1;
@@ -851,6 +851,8 @@ echo " -nrings NRING: in eccentricity stimulus."
 echo ""
 echo " -fwhm_pol FWPOL: Target smoothness, in mm, for the polar and for the "
 echo " -fwhm_ecc FWECC: eccentricity stimuli. "
+echo "                  Note that the script outputs results for both smoothed"
+echo "                  and unsmoothed time series." 
 echo ""
 echo " -pre_stim PRE: PRE is the duration, in sec, before the stimulus began."
 echo "                PRE is relative to the beginning of the retinotopic time"
