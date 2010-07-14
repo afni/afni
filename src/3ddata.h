@@ -3446,6 +3446,8 @@ typedef struct { THD_3dim_dataset *drow[LAST_VIEW_TYPE+1] ; } THD_dsetrow ;
     [20 Jan 2004: modified to put surfaces into here as well]
 */
 
+#define oldsessions 1
+
 typedef struct {
       int type     ;                  /*!< code indicating this is a THD_session */
       int num_dsset ;                 /*!< Number of datasets. */
@@ -3468,6 +3470,19 @@ typedef struct {
       XtPointer parent ;        /*!< generic pointer to "owner" of session */
 } THD_session ;
 
+
+#ifdef oldsessions
+   #define GET_SESSION_DSET(session, index, space) \
+        session->dsset[index][space]
+   #define SET_SESSION_DSET(sdset, session, index, space) \
+        session->dsset[index][space] = sdset
+#else
+   #define GET_SESSION_DSET(session, index, space) \
+        get_dset_from_session(session, index, space)
+   #define SET_SESSION_DSET(sdset, session, index, space) \
+        set_dset_for_session(dset, session, index, space)
+#endif
+
 /*! Determine if ss points to a valid THD_session. */
 
 #define ISVALID_SESSION(ss) ( (ss) != NULL && (ss)->type == SESSION_TYPE )
@@ -3478,7 +3493,8 @@ typedef struct {
   if( ISVALID_SESSION((ss)) ){                                                \
       int id , vv ;                                                           \
       for( id=0 ; id < THD_MAX_SESSION_SIZE ; id++ )                          \
-        for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ ) (ss)->dsset[id][vv] = NULL; \
+        for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ )                             \
+           SET_SESSION_DSET(NULL, ss, id, vv);                                \
       (ss)->num_dsset = 0 ;                                                   \
       (ss)->su_num    = 0 ; (ss)->su_surf = NULL ;                            \
       (ss)->su_numgroup = 0 ; (ss)->su_surfgroup = NULL ;                     \

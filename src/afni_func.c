@@ -852,10 +852,11 @@ void AFNI_make_descendants( THD_sessionlist *ssl )
 void AFNI_make_descendants_old( THD_sessionlist *ssl , int vbase )
 {
    int iss , jdd , kvv , num_made=0 ;
-   THD_session *ss ;
-   THD_3dim_dataset *orig_dset , *new_dset ;
+   THD_session *ss, *temp_ss ;
+   THD_3dim_dataset *orig_dset , *new_dset, *temp_dset, *temp_anat_dset ;
    THD_slist_find     find ;
    THD_3dim_dataset **anat_parent_row , **orig_row ;
+   int orig_row_key, anat_parent_row_key;
 
 ENTRY("AFNI_make_descendants_old") ;
 
@@ -872,7 +873,8 @@ ENTRY("AFNI_make_descendants_old") ;
       /* loop over datasets in this session */
 
       for( jdd=0 ; jdd < ss->num_dsset ; jdd++ ){
-         orig_dset = ss->dsset[jdd][vbase] ;                  /* 03 Jun 98 */
+        orig_dset = GET_SESSION_DSET(ss, jdd, vbase);
+/*         orig_dset = ss->dsset_xform_table[jdd][vbase] ; */ /* 03 Jun 98 */
          if( !ISVALID_3DIM_DATASET(orig_dset) ||              /* no good   */
              orig_dset->anat_parent == NULL   ||              /* no parent */
              orig_dset->anat_parent == orig_dset ) continue ; /* ==> skip  */
@@ -899,26 +901,36 @@ ENTRY("AFNI_make_descendants_old") ;
          /* make a pointer to the row of datasets of the anat
             parent (this is like the SPGR row in the picture above) */
 
+   /* will need to change this test with updated session tables - drg 05/2010 */
          anat_parent_row =
-           &(ssl->ssar[find.sess_index]->dsset[find.dset_index][0]) ;
+           &(GET_SESSION_DSET(ssl->ssar[find.sess_index], find.dset_index, 0)) ;
+         anat_parent_row_key = find.dset_index;
+/*         anat_parent_row =
+           &(ssl->ssar[find.sess_index]->dsset_xform_table[find.dset_index][0]) ;*/
 
          /* pointer to row of datasets being operated on now
             (like the FIM row in the picture above)          */
-
-         orig_row = &(ss->dsset[jdd][0]) ;
+         orig_row = &(GET_SESSION_DSET(ss,jdd,0)) ;
+         orig_row_key = jdd;
+/*         orig_row = &(ss->dsset_xform_table[jdd][0]) ; */
 
          if( orig_row == anat_parent_row ) continue ;  /* 14 Dec 1999 */
 
          /* loop over downstream dataset positions (from orig_dset);
             those that don't exist yet, but have entries in the
             anat_parent_row can be brought into being now */
+         temp_ss = ssl->ssar[find.sess_index];
 
          for( kvv=vbase+1 ; kvv <= LAST_VIEW_TYPE ; kvv++ ){
-            if( orig_row[kvv]        != NULL ) continue ;
-            if( anat_parent_row[kvv] == NULL ) continue ;
+            if( GET_SESSION_DSET(ss, orig_row_key, kvv) != NULL ) continue ;
+            temp_anat_dset = GET_SESSION_DSET(temp_ss, anat_parent_row_key, kvv);
+            if( temp_anat_dset == NULL ) continue ;
 
-            orig_row[kvv] = AFNI_follower_dataset( anat_parent_row[kvv] ,
-                                                   orig_dset ) ;
+            temp_dset = AFNI_follower_dataset( temp_anat_dset, orig_dset ) ;
+
+            SET_SESSION_DSET(temp_dset, ss, orig_row_key, kvv);
+/*            orig_row[kvv] = AFNI_follower_dataset( anat_parent_row[kvv] ,
+                                                   orig_dset ) ;*/
             num_made ++ ;
          }
       }  /* end of loop over datasets in this session */
@@ -947,7 +959,7 @@ if(PRINT_TRACING)
 void AFNI_force_adoption( THD_session *ss , Boolean do_anats )
 {
    int aa , ff , vv , apref=0 , aset=-1 ;
-   THD_3dim_dataset *dset ;
+   THD_3dim_dataset *dset, *pref_dset, *anyanat_dset ;
    int quiet = !AFNI_noenv("AFNI_NO_ADOPTION_WARNING") ; /* 03 Dec 1999 */
    int first = 1 ;
 
@@ -964,8 +976,8 @@ ENTRY("AFNI_force_adoption") ;
 if(PRINT_TRACING)
 { char str[256] ;
   sprintf(str,"scanning dataset %d for markers",aa) ; STATUS(str) ; }
-
-      dset = ss->dsset[aa][0] ;             /* original view */
+      dset = GET_SESSION_DSET(ss, aa, 0);   /* original view */
+/*      dset = ss->dsset_xform_table[aa][0] ;*/   /* original view */
 
       if( ISVALID_3DIM_DATASET(dset) &&     /* if a good dataset */
           ISANAT(dset)               &&     /* and is anatomical */
@@ -994,16 +1006,20 @@ if(PRINT_TRACING)
 
 if(aset >= 0 && PRINT_TRACING)
 { char str[256] ;
+  THD_3dim_dataset *temp_dset;
+  temp_dset = GET_SESSION_DSET(ss,apref,0);
   sprintf(str,"session %s: apref=%d [%s] aset=%d",
-          ss->lastname,apref,DSET_HEADNAME(ss->dsset[apref][0]),aset) ;
+          ss->lastname,apref,DSET_HEADNAME(temp_dset),aset) ;
+/*  sprintf(str,"session %s: apref=%d [%s] aset=%d",
+          ss->lastname,apref,DSET_HEADNAME(ss->dsset_xform_table[apref][0]),aset) ;*/
   STATUS(str) ; }
 
    /* scan through all datasets, all views */
 
    for( ff=0 ; ff < ss->num_dsset ; ff++ ){
       for( vv=VIEW_ORIGINAL_TYPE ; vv <= LAST_VIEW_TYPE ; vv++ ){
-
-         dset = ss->dsset[ff][vv] ;  /* function that needs parent */
+         dset = GET_SESSION_DSET(ss, ff, vv);    /* function that needs parent */
+/*         dset = ss->dsset_xform_table[ff][vv] ; */ /* function that needs parent */
 
          if( ! ISVALID_3DIM_DATASET(dset) ||
              dset->anat_parent != NULL      ) continue ; /* nothing to do */
@@ -1012,14 +1028,29 @@ if(aset >= 0 && PRINT_TRACING)
 
          if( DSET_in_global_session(dset) ) continue ; /* 25 Dec 2001 */
 
-         if( ISVALID_3DIM_DATASET(ss->dsset[apref][vv]) ){  /* if preferred is OK, */
-            dset->anat_parent = ss->dsset[apref][vv] ;      /* use it here         */
-         } else {
+         pref_dset = GET_SESSION_DSET(ss,apref,vv);
+         
+         if( ISVALID_3DIM_DATASET(pref_dset) ){  /* if preferred is OK, */
+            dset->anat_parent = pref_dset ;      /* use it here         */
+         }
+#if 0
+         if( ISVALID_3DIM_DATASET(ss->dsset_xform_table[apref][vv]) ){  /* if preferred is OK, */
+            dset->anat_parent = ss->dsset_xform_table[apref][vv] ;      /* use it here         */
+         }
+#endif
+         else {
             for( aa=0 ; aa < ss->num_dsset ; aa++ ){          /* search for something, */
-               if( ISVALID_3DIM_DATASET(ss->dsset[aa][vv])
-                   && ISANAT(ss->dsset[aa][vv])           ){  /* anything, and use it  */
-                  dset->anat_parent = ss->dsset[aa][vv] ; break ;
+               anyanat_dset = GET_SESSION_DSET(ss, aa, vv);
+               if( ISVALID_3DIM_DATASET(anyanat_dset)
+                   && ISANAT(anyanat_dset)           ){  /* anything, and use it  */
+                  dset->anat_parent = anyanat_dset ; break ;
                }
+#if 0
+               if( ISVALID_3DIM_DATASET(ss->dsset_xform_table[aa][vv])
+                   && ISANAT(ss->dsset_xform_table[aa][vv])           ){  /* anything, and use it  */
+                  dset->anat_parent = ss->dsset_xform_table[aa][vv] ; break ;
+               }
+#endif
             }
          }
 
@@ -2176,7 +2207,8 @@ void AFNI_choose_dataset_CB( Widget w , XtPointer cd , XtPointer cb )
    int browse_select = 0 ;
    int is_other = 0 ;       /* 18 Dec 2007 */
    void (*cbfun)(Widget,XtPointer,MCW_choose_cbs *)=AFNI_finalize_dataset_CB;
-
+   THD_3dim_dataset *temp_dset;
+   
 ENTRY("AFNI_choose_dataset_CB") ;
 
    /*--- initialize ---*/
@@ -2242,50 +2274,70 @@ ENTRY("AFNI_choose_dataset_CB") ;
 
       ltop = 4 ;
       for( ii=0 ; ii < num_str ; ii++ ){
-         THD_report_obliquity(im3d->ss_now->dsset[ii][0]) ;  /* 20 Dec 2007 */
+               THD_report_obliquity(GET_SESSION_DSET(im3d->ss_now,ii,0)) ; 
+/*         THD_report_obliquity(im3d->ss_now->dsset_xform_table[ii][0]) ; */ /* 20 Dec 2007 */
 
          for( vv=FIRST_VIEW_TYPE ; vv <= LAST_VIEW_TYPE ; vv++ )
-            if( ISVALID_3DIM_DATASET(im3d->ss_now->dsset[ii][vv]) ) break ;
+            {
+               temp_dset = GET_SESSION_DSET(im3d->ss_now, ii, vv);
+
+               if( ISVALID_3DIM_DATASET(temp_dset) ) break ;
+            }
+/*            if( ISVALID_3DIM_DATASET(im3d->ss_now->dsset_xform_table[ii][vv]) ) break ;*/
 
          if( vv <= LAST_VIEW_TYPE ){
-            llen = strlen( im3d->ss_now->dsset[ii][vv]->dblk->diskptr->prefix ) ;
+            llen = strlen( temp_dset->dblk->diskptr->prefix ) ;
+/*            llen = strlen( im3d->ss_now->dsset_xform_table[ii][vv]->dblk->diskptr->prefix ) ;*/
             ltop = MAX( ltop , llen ) ;
          }
       }
       ltop = MIN(ltop,STRLIST_SIZE-24) ;  /* 06 Aug 2002 */
 
       for( ii=0 ; ii < num_str ; ii++ ){
-         for( vv=FIRST_VIEW_TYPE ; vv <= LAST_VIEW_TYPE ; vv++ )
-            if( ISVALID_3DIM_DATASET(im3d->ss_now->dsset[ii][vv]) ) break ;
-
+         for( vv=FIRST_VIEW_TYPE ; vv <= LAST_VIEW_TYPE ; vv++ ) {
+            temp_dset = GET_SESSION_DSET(im3d->ss_now, ii, vv);            
+            if( ISVALID_3DIM_DATASET(temp_dset) ) break ;
+/*            if( ISVALID_3DIM_DATASET(im3d->ss_now->dsset_xform_table[ii][vv]) ) break ;*/
+         }
+         
          if( vv <= LAST_VIEW_TYPE ){
-            sprintf( strlist[ii] , "%-*s" ,
-                     ltop,im3d->ss_now->dsset[ii][vv]->dblk->diskptr->prefix ) ;
+              sprintf( strlist[ii] , "%-*s" ,
+                  ltop,temp_dset->dblk->diskptr->prefix ) ;
+/*            sprintf( strlist[ii] , "%-*s" ,
+                  ltop,im3d->ss_now->dsset_xform_table[ii][vv]->dblk->diskptr->prefix ) ;*/
 
             strcat( strlist[ii] , " [" ) ;
-            strcat( strlist[ii] , DSET_PREFIXSTR(im3d->ss_now->dsset[ii][vv]) ) ;
+            strcat( strlist[ii] , DSET_PREFIXSTR(temp_dset) ) ;
+/*            strcat( strlist[ii] , DSET_PREFIXSTR(im3d->ss_now->dsset_xform_table[ii][vv]) ) ;*/
 
-            if( DSET_NUM_TIMES(im3d->ss_now->dsset[ii][vv]) > 1 ){
+            if( DSET_NUM_TIMES(temp_dset) > 1 ){
+/*            if( DSET_NUM_TIMES(im3d->ss_now->dsset_xform_table[ii][vv]) > 1 ){*/
                int ll = strlen(strlist[ii]) ;
                sprintf( strlist[ii]+ll , ":3D+t:%d]" ,
-                        DSET_NUM_TIMES(im3d->ss_now->dsset[ii][vv]) ) ;
-            } else if( ISBUCKET(im3d->ss_now->dsset[ii][vv]) ){
+                        DSET_NUM_TIMES(temp_dset) ) ;
+/*                        DSET_NUM_TIMES(im3d->ss_now->dsset_xform_table[ii][vv]) ) ;*/
+            } else if( ISBUCKET(temp_dset) ){
+/*            } else if( ISBUCKET(im3d->ss_now->dsset_xform_table[ii][vv]) ){*/
                int ll = strlen(strlist[ii]) ;
                sprintf( strlist[ii]+ll , ":%d]" ,
-                        DSET_NVALS(im3d->ss_now->dsset[ii][vv]) ) ;
+                        DSET_NVALS(temp_dset) ) ;
+/*                        DSET_NVALS(im3d->ss_now->dsset_xform_table[ii][vv]) ) ;*/
             } else {
                strcat( strlist[ii] , "]" ) ;
             }
 
-            if( DSET_GRAPHABLE(im3d->ss_now->dsset[ii][vv]) )
+            if( DSET_GRAPHABLE(temp_dset) )
+/*            if( DSET_GRAPHABLE(im3d->ss_now->dsset_xform_table[ii][vv]) )*/
                strcat( strlist[ii] , "*" ) ;
 
-            if( DSET_COMPRESSED(im3d->ss_now->dsset[ii][vv]) )
+            if( DSET_COMPRESSED(temp_dset) )
+/*            if( DSET_COMPRESSED(im3d->ss_now->dsset_xform_table[ii][vv]) )*/
                strcat( strlist[ii] , "z" ) ;
 
             /* 20 Dec 2001: mark if this is a global dataset */
 
-            if( DSET_in_global_session(im3d->ss_now->dsset[ii][vv]) )
+            if( DSET_in_global_session(temp_dset) )
+/*            if( DSET_in_global_session(im3d->ss_now->dsset_xform_table[ii][vv]) )*/
               strcat( strlist[ii] , "G" ) ;
 
          } else {
@@ -2339,7 +2391,8 @@ if( first ){
           dset = dset_list[ii] ;
         } else {
           for( vv=FIRST_VIEW_TYPE ; vv <= LAST_VIEW_TYPE ; vv++ ){
-            dset = im3d->ss_now->dsset[ii][vv]; if( ISVALID_DSET(dset) ) break;
+            dset = GET_SESSION_DSET(im3d->ss_now, ii, vv); if( ISVALID_DSET(dset) ) break;
+/*            dset = im3d->ss_now->dsset_xform_table[ii][vv]; if( ISVALID_DSET(dset) ) break;*/
           }
         }
         if( ISVALID_DSET(dset) ){
@@ -2355,7 +2408,8 @@ if( first ){
            dset = dset_list[ii] ; if( !ISVALID_DSET(dset) ) continue ;
          } else {
            for( vv=FIRST_VIEW_TYPE ; vv <= LAST_VIEW_TYPE ; vv++ ){
-             dset = im3d->ss_now->dsset[ii][vv]; if( ISVALID_DSET(dset) ) break;
+            dset = GET_SESSION_DSET(im3d->ss_now, ii, vv); if( ISVALID_DSET(dset) ) break;
+/*             dset = im3d->ss_now->dsset_xform_table[ii][vv]; if( ISVALID_DSET(dset) ) break;*/
            }
          }
 
@@ -2436,7 +2490,8 @@ void AFNI_finalize_dataset_CB( Widget wcall ,
    int new_sess=-1 , new_anat=-1 , new_func=-1 , new_view=-1 ;
    int ii , vv , ff ;
    THD_session *ss_new ;
-
+   THD_3dim_dataset *temp_dset;
+   
 ENTRY("AFNI_finalize_dataset_CB") ;
 
    if( ! IM3D_VALID(im3d) ) EXRETURN ;
@@ -2460,31 +2515,40 @@ ENTRY("AFNI_finalize_dataset_CB") ;
       ss_new = GLOBAL_library.sslist->ssar[new_sess] ;
 
       /* find an anat in new session to match current anat */
-
-      if( ISVALID_3DIM_DATASET(ss_new->dsset[old_anat][old_view]) ){  /* are OK */
+      temp_dset = GET_SESSION_DSET(ss_new, old_anat, old_view);
+      if( ISVALID_3DIM_DATASET(temp_dset) ){  /* are OK */
+/*      if( ISVALID_3DIM_DATASET(ss_new->dsset_xform_table[old_anat][old_view]) ){ */ /* are OK */
         new_anat = old_anat ;
       } else {
-        for( ii=0 ; ii < ss_new->num_dsset ; ii++ )
-          if( ISVALID_3DIM_DATASET(ss_new->dsset[ii][old_view]) ){
+        for( ii=0 ; ii < ss_new->num_dsset ; ii++ ) {
+          temp_dset = GET_SESSION_DSET(ss_new, ii, old_view);
+          if( ISVALID_3DIM_DATASET(temp_dset) )
+/*          if( ISVALID_3DIM_DATASET(ss_new->dsset_xform_table[ii][old_view]) ){*/
              new_anat = ii ; break ;
           }
       }
       if( new_anat < 0 ) new_anat = 0 ;  /* use 1st if no match */
 
       /* find a view to fit this chosen anat */
-
-      if( ISVALID_3DIM_DATASET(ss_new->dsset[new_anat][old_view]) ){ /* are OK */
+      temp_dset = GET_SESSION_DSET(ss_new, new_anat, old_view);
+      if( ISVALID_3DIM_DATASET(temp_dset )) { /* are OK */
+/*      if( ISVALID_3DIM_DATASET(ss_new->dsset_xform_table[new_anat][old_view]) ){*/ /* are OK */
          new_view = old_view ;
       } else {
-         for( vv=old_view-1 ; vv >= FIRST_VIEW_TYPE ; vv-- )  /* look below */
-            if( ISVALID_3DIM_DATASET(ss_new->dsset[new_anat][vv]) ) break ;
-
+         for( vv=old_view-1 ; vv >= FIRST_VIEW_TYPE ; vv-- ) { /* look below */
+            temp_dset = GET_SESSION_DSET(ss_new, new_anat, vv);
+            if( ISVALID_3DIM_DATASET(temp_dset) ) break ;
+/*            if( ISVALID_3DIM_DATASET(ss_new->dsset_xform_table[new_anat][vv]) ) break ;*/
+         }
          if( vv >= FIRST_VIEW_TYPE ){  /* found it below */
             new_view = vv ;
          } else {                      /* look above */
-            for( vv=old_view+1 ; vv <= LAST_VIEW_TYPE ; vv++ )
-               if( ISVALID_3DIM_DATASET(ss_new->dsset[new_anat][vv]) ) break ;
-
+            for( vv=old_view+1 ; vv <= LAST_VIEW_TYPE ; vv++ ) {
+               temp_dset = GET_SESSION_DSET(ss_new, new_anat, vv);
+               if( ISVALID_3DIM_DATASET(temp_dset) ) break ;
+/*               if( ISVALID_3DIM_DATASET(ss_new->dsset_xform_table[new_anat][vv]) ) break ;*/
+            }
+            
             if( vv <= LAST_VIEW_TYPE ){  /* found it above */
                new_view = vv ;
             } else {
@@ -2497,12 +2561,16 @@ ENTRY("AFNI_finalize_dataset_CB") ;
 
 #define FINDAFUNC
 #ifdef FINDAFUNC
-      if( ISVALID_3DIM_DATASET(ss_new->dsset[old_func][new_view]) ){  /* are OK */
-
+/*      if( ISVALID_3DIM_DATASET(ss_new->dsset_xform_table[old_func][new_view]) ){ */ /* are OK */
+      temp_dset = GET_SESSION_DSET(ss_new, old_func, new_view);
+      if( ISVALID_3DIM_DATASET(temp_dset) ){  /* are OK */
          new_func = old_func ;
       } else {
-         for( ff=0 ; ff < ss_new->num_dsset ; ff++ )  /* search */
-            if( ISVALID_3DIM_DATASET(ss_new->dsset[ff][new_view]) ) break ;
+         for( ff=0 ; ff < ss_new->num_dsset ; ff++ ) { /* search */
+            temp_dset = GET_SESSION_DSET(ss_new, ff, new_view);
+            if( ISVALID_3DIM_DATASET(temp_dset) ) break ;
+/*            if( ISVALID_3DIM_DATASET(ss_new->dsset_xform_table[ff][new_view]) ) break ;*/
+         }
 
          if( ff < ss_new->num_dsset ) new_func = ff ;  /* found one */
       }
@@ -2524,18 +2592,26 @@ ENTRY("AFNI_finalize_dataset_CB") ;
       }
 
       /* find a view to fit this chosen anat */
+      temp_dset = GET_SESSION_DSET(ss_new, new_anat, old_view);
 
-      if( ISVALID_3DIM_DATASET(ss_new->dsset[new_anat][old_view]) ){ /* are OK */
+/*      if( ISVALID_3DIM_DATASET(ss_new->dsset_xform_table[new_anat][old_view]) ){ *//* are OK */
+      if( ISVALID_3DIM_DATASET(temp_dset) ){ /* are OK */
          new_view = old_view ;
       } else {
-         for( vv=old_view-1 ; vv >= FIRST_VIEW_TYPE ; vv-- )  /* look below */
-            if( ISVALID_3DIM_DATASET(ss_new->dsset[new_anat][vv]) ) break ;
+         for( vv=old_view-1 ; vv >= FIRST_VIEW_TYPE ; vv-- ) { /* look below */
+/*            if( ISVALID_3DIM_DATASET(ss_new->dsset_xform_table[new_anat][vv]) ) break ;*/
+            temp_dset = GET_SESSION_DSET(ss_new, new_anat, vv);
+            if( ISVALID_3DIM_DATASET(temp_dset) ) break ;
+         }
 
          if( vv >= FIRST_VIEW_TYPE ){  /* found it below */
             new_view = vv ;
          } else {                      /* look above */
-            for( vv=old_view+1 ; vv <= LAST_VIEW_TYPE ; vv++ )
-               if( ISVALID_3DIM_DATASET(ss_new->dsset[new_anat][vv]) ) break ;
+            for( vv=old_view+1 ; vv <= LAST_VIEW_TYPE ; vv++ ){
+               temp_dset = GET_SESSION_DSET(ss_new, new_anat, vv);
+               if( ISVALID_3DIM_DATASET(temp_dset) ) break ;
+            }
+/*          if( ISVALID_3DIM_DATASET(ss_new->dsset_xform_table[new_anat][vv]) ) break ;*/
 
             if( vv <= LAST_VIEW_TYPE ){  /* found it above */
                new_view = vv ;
@@ -2548,12 +2624,16 @@ ENTRY("AFNI_finalize_dataset_CB") ;
       /* find a func to match this view */
 
 #ifdef FINDAFUNC
-      if( ISVALID_3DIM_DATASET(ss_new->dsset[old_func][new_view]) ){ /* are OK */
-
+     temp_dset = GET_SESSION_DSET(ss_new, old_func, new_view);
+     if( ISVALID_3DIM_DATASET(temp_dset) ) {
+/*     if( ISVALID_3DIM_DATASET(ss_new->dsset_xform_table[old_func][new_view]) ){ *//* are OK */
          new_func = old_func ;
       } else {
-         for( ff=0 ; ff < ss_new->num_dsset ; ff++ )  /* search */
-            if( ISVALID_3DIM_DATASET(ss_new->dsset[ff][new_view]) ) break ;
+         for( ff=0 ; ff < ss_new->num_dsset ; ff++ ) { /* search */
+            temp_dset = GET_SESSION_DSET(ss_new, ff, new_view);
+            if( ISVALID_3DIM_DATASET(temp_dset) ) break ;
+/*            if( ISVALID_3DIM_DATASET(ss_new->dsset_xform_table[ff][new_view]) ) break ;*/
+         }
 
          if( ff < ss_new->num_dsset ) new_func = ff ;  /* found one */
       }
@@ -2575,18 +2655,25 @@ ENTRY("AFNI_finalize_dataset_CB") ;
       }
 
       /* find a view to fit this chosen func */
-
-      if( ISVALID_3DIM_DATASET(ss_new->dsset[new_func][old_view]) ){ /* are OK */
+      temp_dset = GET_SESSION_DSET(ss_new, new_func, old_view);
+      if( ISVALID_3DIM_DATASET(temp_dset) ) {
+/*      if( ISVALID_3DIM_DATASET(ss_new->dsset_xform_table[new_func][old_view]) ){*/ /* are OK */
          new_view = old_view ;
       } else {
-         for( vv=old_view-1 ; vv >= FIRST_VIEW_TYPE ; vv-- )  /* look below */
-            if( ISVALID_3DIM_DATASET(ss_new->dsset[new_func][vv]) ) break ;
+         for( vv=old_view-1 ; vv >= FIRST_VIEW_TYPE ; vv-- ) { /* look below */
+            temp_dset = GET_SESSION_DSET(ss_new, new_func, vv);
+            if( ISVALID_3DIM_DATASET(temp_dset) ) break ;
+         }
+/*          if( ISVALID_3DIM_DATASET(ss_new->dsset_xform_table[new_func][vv]) ) break ;*/
 
          if( vv >= FIRST_VIEW_TYPE ){  /* found it below */
             new_view = vv ;
          } else {                      /* look above */
-            for( vv=old_view+1 ; vv <= LAST_VIEW_TYPE ; vv++ )
-               if( ISVALID_3DIM_DATASET(ss_new->dsset[new_func][vv]) ) break ;
+            for( vv=old_view+1 ; vv <= LAST_VIEW_TYPE ; vv++ ) {
+               temp_dset = GET_SESSION_DSET(ss_new, new_func, vv);
+               if( ISVALID_3DIM_DATASET(temp_dset) ) break ;
+            }
+/*             if( ISVALID_3DIM_DATASET(ss_new->dsset_xform_table[new_func][vv]) ) break ; */
 
             if( vv <= LAST_VIEW_TYPE ){  /* found it above */
                new_view = vv ;
@@ -2597,13 +2684,16 @@ ENTRY("AFNI_finalize_dataset_CB") ;
       }
 
       /* find an anat to go with the new view (this is NOT optional) */
-
-      if( ISVALID_3DIM_DATASET(ss_new->dsset[old_anat][new_view]) ){  /* are OK */
-
+      temp_dset = GET_SESSION_DSET(ss_new, old_anat, new_view);
+      if( ISVALID_3DIM_DATASET(temp_dset) ) {
+/*      if( ISVALID_3DIM_DATASET(ss_new->dsset_xform_table[old_anat][new_view]) ){ */ /* are OK */
          new_anat = old_anat ;
       } else {
-         for( ff=0 ; ff < ss_new->num_dsset ; ff++ )  /* search */
-            if( ISVALID_3DIM_DATASET(ss_new->dsset[ff][new_view]) ) break ;
+         for( ff=0 ; ff < ss_new->num_dsset ; ff++ ) { /* search */
+            temp_dset = GET_SESSION_DSET(ss_new, ff, new_view);
+            if( ISVALID_3DIM_DATASET(temp_dset) ) break ;
+         }
+/*          if( ISVALID_3DIM_DATASET(ss_new->dsset_xform_table[ff][new_view]) ) break ; */
 
          if( ff < ss_new->num_dsset ) new_anat = ff ;  /* found one */
       }
@@ -2704,12 +2794,14 @@ ENTRY("AFNI_finalize_dataset_CB") ;
    /* pop up warning if necessary */
 
    if(wcall == im3d->vwid->view->choose_func_pb)
-     AFNI_check_obliquity(wcall, ss_new->dsset[new_func][0]);
+     AFNI_check_obliquity(wcall, GET_SESSION_DSET(ss_new, new_func, 0));
+/*     AFNI_check_obliquity(wcall, ss_new->dsset_xform_table[new_func][0]); */
    else
-     AFNI_check_obliquity(wcall, ss_new->dsset[new_anat][0]);
+     AFNI_check_obliquity(wcall, GET_SESSION_DSET(ss_new, new_anat, 0));
+/*     AFNI_check_obliquity(wcall, ss_new->dsset_xform_table[new_anat][0]);*/
 
    CLU_setup_alpha_tables(im3d) ;
-
+   
    EXRETURN ;
 }
 
@@ -2925,7 +3017,8 @@ ENTRY("AFNI_read_sess_CB") ;
 void AFNI_append_sessions( THD_session *ssa , THD_session *ssb )
 {
    int qs, qd, vv ;
-
+   THD_3dim_dataset *temp_dset;
+   
 ENTRY("AFNI_append_sessions") ;
 
    if( !ISVALID_SESSION(ssa) || !ISVALID_SESSION(ssb) ) EXRETURN ;
@@ -2933,8 +3026,11 @@ ENTRY("AFNI_append_sessions") ;
 
    qs = ssa->num_dsset ;
    for( qd=0; qd < ssb->num_dsset && qd+qs < THD_MAX_SESSION_SIZE ; qd++ )
-     for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ )
-       ssa->dsset[qd+qs][vv] = ssb->dsset[qd][vv] ;
+     for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ ) {
+       temp_dset = GET_SESSION_DSET(ssb, qd, vv);
+       SET_SESSION_DSET(temp_dset, ssa,qd+qs,vv);
+/*     ssa->dsset_xform_table[qd+qs][vv] = ssb->dsset_xform_table[qd][vv] ;*/
+     }
    ssa->num_dsset += qd ;
 
    EXRETURN ;
@@ -3060,7 +3156,8 @@ STATUS("processing new session") ;
 
                for( qd=0 ; qd < new_ss->num_dsset ; qd++ ){      /* parentize */
                  for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ ){
-                   dset = new_ss->dsset[qd][vv] ;
+                   dset = GET_SESSION_DSET(new_ss,qd,vv) ;
+/*                   dset = new_ss->dsset_xform_table[qd][vv] ;*/
                    if( dset != NULL ){
                      PARENTIZE( dset , NULL ) ;
                      AFNI_inconstancy_check(NULL,dset) ; /* 06 Sep 2006 */
@@ -3311,7 +3408,7 @@ ENTRY("AFNI_read_Web_CB") ;
 void AFNI_finalize_read_Web_CB( Widget w , XtPointer cd , MCW_choose_cbs *cbs )
 {
    Three_D_View *im3d = (Three_D_View *) cd ;
-   THD_3dim_dataset *dset ;
+   THD_3dim_dataset *dset, *temp_dset ;
    XtPointer_array *dsar ;
    THD_session *ss = GLOBAL_library.sslist->ssar[im3d->vinfo->sess_num] ;
    char str[256] ;
@@ -3384,7 +3481,8 @@ ENTRY("AFNI_finalize_read_Web_CB") ;
         fprintf(stderr,"\a\n*** too many anatomical datasets!\n") ;
         DSET_delete(dset) ;  /* 01 Nov 2001 */
       } else {
-        ss->dsset[nn][vv] = dset ;
+          SET_SESSION_DSET(dset,ss,nn,vv) ;
+/*        ss->dsset_xform_table[nn][vv] = dset ;*/
         ss->num_dsset++ ; nds++ ;
         if( vv == im3d->vinfo->view_type && na == -1 ) na = nn ;
       }
@@ -3419,7 +3517,11 @@ ENTRY("AFNI_finalize_read_Web_CB") ;
        im3d->vinfo->anat_num = 1 ;
        im3d->vinfo->func_num = 1 ;            /* 07 Sep 2006 (oops) */
        for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ ){
-         if( ISVALID_DSET(ss->dsset[1][vv]) ){ im3d->vinfo->view_type = vv; break; }
+         temp_dset = GET_SESSION_DSET(ss,1,vv);
+/*         if( ISVALID_DSET(ss->dsset_xform_table[1][vv]) ){ */
+         if( ISVALID_DSET(temp_dset) ){ 
+            im3d->vinfo->view_type = vv; break;
+         }
        }
      } else if( na < 0 ){                         /* should be impossible */
        (void) MCW_popup_message( im3d->vwid->dmode->read_Web_pb ,
@@ -3543,7 +3645,7 @@ static int AFNI_rescan_session_OLD( int sss )  /* the old way */
    MCW_idcode     anat_idcode[MAX_CONTROLLERS] ,
                   func_idcode[MAX_CONTROLLERS] ;
    THD_slist_find find ;
-   THD_3dim_dataset *dset ;
+   THD_3dim_dataset *dset, *temp_dset ;
 
 ENTRY("AFNI_rescan_session_OLD") ;
 { char str[256]; sprintf(str,"session index %d\n",sss); STATUS(str); }
@@ -3577,13 +3679,18 @@ STATUS("marking old session datasets") ;
    nold = old_ss->num_dsset ;
 
    for( ii=0 ; ii < old_ss->num_dsset ; ii++ )
-      for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ )
-         if( ISVALID_3DIM_DATASET(old_ss->dsset[ii][vv]) )
-            if( DSET_in_global_session(old_ss->dsset[ii][vv]) )
-               old_ss->dsset[ii][vv] = NULL ;   /* will be added back in later */
+      for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ ){
+         temp_dset = GET_SESSION_DSET(old_ss, ii, vv);
+         if( ISVALID_3DIM_DATASET(temp_dset) )
+/*         if( ISVALID_3DIM_DATASET(old_ss->dsset_xform_table[ii][vv]) )*/
+            if( DSET_in_global_session(temp_dset) )
+               SET_SESSION_DSET(NULL, old_ss, ii, vv);
+/*            if( DSET_in_global_session(old_ss->dsset_xform_table[ii][vv]) )*/
+/*               old_ss->dsset_xform_table[ii][vv] = NULL ; */  /* will be added back in later */
             else
-               DSET_MARK_FOR_DEATH( old_ss->dsset[ii][vv] ) ;
-
+               DSET_MARK_FOR_DEATH( temp_dset ) ;
+/*               DSET_MARK_FOR_DEATH( old_ss->dsset_xform_table[ii][vv] ) ;*/
+      }
    /*--- mark all descendants for purging as well ---*/
 
    AFNI_mark_for_death( GLOBAL_library.sslist ) ;
@@ -3632,9 +3739,11 @@ STATUS("PARENTIZE-ing datasets in new session") ;
    new_ss->parent = NULL ;
    for( ii=0 ; ii < new_ss->num_dsset ; ii++ ){
      for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ ){
-       dset = new_ss->dsset[ii][vv] ;
+       dset = GET_SESSION_DSET(new_ss, ii, vv);
+/*       dset = new_ss->dsset_xform_table[ii][vv] ;*/
        if( dset != NULL ){
-         PARENTIZE( new_ss->dsset[ii][vv] , NULL ) ;
+         PARENTIZE( dset, NULL ) ;
+/*         PARENTIZE( new_ss->dsset_xform_table[ii][vv] , NULL ) ;*/
          AFNI_inconstancy_check(NULL,dset) ; /* 06 Sep 2006 */
        }
    } }
@@ -3688,8 +3797,11 @@ STATUS("fixing active controllers") ;
          if( find.dset != NULL && find.view_index == vv ){
             im3d->vinfo->anat_num = find.dset_index ;
          } else {
-            for( ii=0 ; ii < new_ss->num_dsset ; ii++ )
-               if( ISVALID_3DIM_DATASET(new_ss->dsset[ii][vv]) ) break ;
+            for( ii=0 ; ii < new_ss->num_dsset ; ii++ ) {
+               temp_dset = GET_SESSION_DSET(new_ss, ii, vv);
+               if( ISVALID_3DIM_DATASET(temp_dset)) break ;
+/*               if( ISVALID_3DIM_DATASET(new_ss->dsset_xform_table[ii][vv]) ) break ;*/
+            }
             if( ii < new_ss->num_dsset ){
                im3d->vinfo->anat_num = ii ;
             } else {
@@ -3711,8 +3823,11 @@ STATUS("fixing active controllers") ;
             if( find.dset != NULL && find.view_index == vv ){
                im3d->vinfo->func_num = find.dset_index ;
             } else {
-               for( ii=0 ; ii < new_ss->num_dsset ; ii++ )
-                  if( ISVALID_3DIM_DATASET(new_ss->dsset[ii][vv]) ) break ;
+               for( ii=0 ; ii < new_ss->num_dsset ; ii++ ) {
+                  temp_dset = GET_SESSION_DSET(new_ss, ii, vv);
+                  if( ISVALID_3DIM_DATASET(temp_dset) ) break ;
+/*                if( ISVALID_3DIM_DATASET(new_ss->dsset_xform_table[ii][vv]) ) break ;*/
+               }
                if( ii < new_ss->num_dsset ){
                   im3d->vinfo->func_num = ii ;
                } else {
@@ -3757,7 +3872,7 @@ static int AFNI_rescan_session_NEW( int sss )   /* the new way */
    int vv , ii , nr , na_new=0 , nf_new=0 ;
    THD_session  *new_ss , *old_ss ;
    THD_slist_find find ;
-   THD_3dim_dataset *new_dset ;
+   THD_3dim_dataset *new_dset, *temp_dset ;
 
 ENTRY("AFNI_rescan_session_NEW") ;
 { char str[256]; sprintf(str,"session index %d\n",sss); STATUS(str); }
@@ -3791,7 +3906,8 @@ STATUS(old_ss->sessname) ;
 
    for( ii=0 ; ii < new_ss->num_dsset ; ii++ ){
      for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ ){
-       new_dset = new_ss->dsset[ii][vv] ;
+       new_dset = GET_SESSION_DSET(new_ss, ii, vv);
+/*     new_dset = new_ss->dsset_xform_table[ii][vv] ;*/
        if( ISVALID_DSET(new_dset) ){
          find = THD_dset_in_session( FIND_IDCODE, &(new_dset->idcode), old_ss );
          if( find.dset == NULL ){
@@ -3799,7 +3915,9 @@ STATUS(old_ss->sessname) ;
           if( find.dset != NULL && find.view_index != vv ) find.dset = NULL ;
          }
          if( find.dset != NULL ){
-           DSET_delete(new_dset); new_ss->dsset[ii][vv] = NULL;
+           DSET_delete(new_dset);
+           SET_SESSION_DSET(NULL, new_ss, ii, vv);
+           /* new_ss->dsset_xform_table[ii][vv] = NULL;*/
          }
        }
      }
@@ -3809,14 +3927,19 @@ STATUS(old_ss->sessname) ;
          at the end of the existing session ---*/
 
    for( ii=0 ; ii < new_ss->num_dsset ; ii++ ){
-     for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ )     /* see if row is empty */
-       if( new_ss->dsset[ii][vv] != NULL ) break ;
+     for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ )   /* see if row is empty */
+       if( GET_SESSION_DSET(new_ss, ii, vv) != NULL ) break ;
+/*       if( new_ss->dsset_xform_table[ii][vv] != NULL ) break ;*/
      if( vv > LAST_VIEW_TYPE ) continue ;          /* empty row ==> skip  */
-     AFNI_inconstancy_check(NULL,new_ss->dsset[ii][vv]) ;  /* 06 Sep 2006 */
+     AFNI_inconstancy_check(NULL,GET_SESSION_DSET(new_ss, ii,vv)) ;  /* 06 Sep 2006 */
+/*     AFNI_inconstancy_check(NULL,new_ss->dsset_xform_table[ii][vv]) ;*/  /* 06 Sep 2006 */
      nr = old_ss->num_dsset ;                      /* next row in old_ss  */
      if( nr >= THD_MAX_SESSION_SIZE ) break ;      /* old session is full */
-     for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ )     /* copy new row to old */
-       old_ss->dsset[nr][vv] = new_ss->dsset[ii][vv];
+     for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ ) {    /* copy new row to old */
+         temp_dset = GET_SESSION_DSET(new_ss, ii, vv);
+         SET_SESSION_DSET(temp_dset, old_ss, nr, vv);
+/*       old_ss->dsset_xform_table[nr][vv] = new_ss->dsset_xform_table[ii][vv];*/
+     }
      old_ss->num_dsset++ ;  na_new++ ;             /* 1 more row in old   */
    }
    if( na_new == 0 ) RETURN(0) ;                   /* 10 Nov 2005 */
@@ -3825,9 +3948,11 @@ STATUS(old_ss->sessname) ;
    /*-- 15 Jan 2003: purge all datasets from memory (for Hauke Heekeren) --*/
 
    for( ii=0 ; ii < old_ss->num_dsset ; ii++ )
-     for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ )
-       if( old_ss->dsset[ii][vv] != NULL ) DSET_unload(old_ss->dsset[ii][vv]);
-
+     for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ ) {
+       temp_dset = GET_SESSION_DSET(old_ss, ii, vv); 
+       if( temp_dset != NULL ) DSET_unload(temp_dset);
+/*     if( old_ss->dsset_xform_table[ii][vv] != NULL ) DSET_unload(old_ss->dsset_xform_table[ii][vv]);*/
+     }
    /* assign the warp and anatomy parent pointers;
       then, make any datasets that don't exist but logically
       descend from the warp and anatomy parents just assigned */
@@ -4080,7 +4205,8 @@ ENTRY("AFNI_write_many_dataset_CB") ;
       ss = GLOBAL_library.sslist->ssar[iss] ;
 
       for( id=0 ; id < ss->num_dsset ; id++ ){
-         dset = ss->dsset[id][vv] ;
+         dset = GET_SESSION_DSET(ss, id, vv);
+/*         dset = ss->dsset_xform_table[id][vv] ;*/
          if( DSET_WRITEABLE(dset) ){
             strcpy( nam , dset->dblk->diskptr->directory_name ) ;
             strcat( nam , dset->dblk->diskptr->filecode ) ;
@@ -4098,8 +4224,8 @@ ENTRY("AFNI_write_many_dataset_CB") ;
       /* check anat datasets */
 
       for( id=0 ; id < ss->num_dsset ; id++ ){
-         dset = ss->dsset[id][vv] ;
-
+         dset = GET_SESSION_DSET(ss, id, vv);
+/*         dset = ss->dsset_xform_table[id][vv] ;*/
          if( DSET_WRITEABLE(dset) ){
             num_dset++ ;
             idclist = (MCW_idcode *) XtRealloc( (char *) idclist ,
@@ -4781,8 +4907,8 @@ ENTRY("AFNI_mark_for_death") ;
 
       for( jdd=0 ; jdd < ss->num_dsset ; jdd++ ){
          for( kvv=FIRST_VIEW_TYPE ; kvv <= LAST_VIEW_TYPE ; kvv++ ){
-
-            dset = ss->dsset[jdd][kvv] ;
+            dset = GET_SESSION_DSET(ss, jdd, kvv);
+/*            dset = ss->dsset_xform_table[jdd][kvv] ;*/
 
             if( ISVALID_3DIM_DATASET(dset) &&                /* good dset */
                 dset->anat_parent != NULL  &&                /* has parent */
@@ -4832,8 +4958,8 @@ ENTRY("AFNI_andersonville") ;
 
       for( jdd=0 ; jdd < ss->num_dsset ; jdd++ ){
          for( kvv=FIRST_VIEW_TYPE ; kvv <= LAST_VIEW_TYPE ; kvv++ ){
-
-            dset = ss->dsset[jdd][kvv] ;
+              dset = GET_SESSION_DSET(ss, jdd, kvv);
+/*            dset = ss->dsset_xform_table[jdd][kvv] ;*/
 
             if( ISVALID_3DIM_DATASET(dset) &&    /* good dset */
                 dset->death_mark == DOOMED   ){  /* alas, poor Yorick */
@@ -4841,7 +4967,9 @@ ENTRY("AFNI_andersonville") ;
                kill_me = (kvv == VIEW_ORIGINAL_TYPE) ? False : kill_files ;
                THD_delete_3dim_dataset( dset , kill_me ) ;
                myXtFree( dset ) ;
-               ss->dsset[jdd][kvv] = NULL ; num_killed ++ ;
+               SET_SESSION_DSET(NULL, ss, jdd, kvv);
+/*               ss->dsset_xform_table[jdd][kvv] = NULL ;*/
+               num_killed ++ ;
             }
          }
       }
