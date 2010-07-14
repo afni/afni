@@ -95,7 +95,7 @@ SUMA_INCLUDE_PATH = -I/usr/X11R6/include -I./ -I../ -I../niml/ -Igts/src -I/usr/
 SUMA_LINK_PATH = -L/usr/lib64 -L/usr/X11R6/lib64 -L../
 #use -lGLw if you have libGLw.a or libGLw.so* or 
 #  -lMesaGLw if you have Mesa's version (libMesaGLw*) of libGLw
-SUMA_LINK_LIB = -lXm -lGLw -lGLU -lGL -lXmu -lXp -lXt -lXext -lX11 $(LZLIB) $(LGIFTI) -lm 
+SUMA_LINK_LIB = /usr/X11R6/lib64/libXm.a -lGLw -lGLU -lGL -lXmu -lXp -lXt -lXext -lX11 $(LZLIB) $(LGIFTI) -lm 
 SUMA_MAKEFILE_NAME = SUMA_Makefile
 SUMA_BIN_ARCHIVE = SUMA_Linux.tar
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

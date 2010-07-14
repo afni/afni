@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 14, JUL, 2010, RCR, "Makefile.linux_gcc33_64", MICRO, TYPE_MODIFY,
+   "use staic link of SUMA programs to Motif, as AFNI programs already do",
+   NULL
+ } ,
+
  { 13, JUL, 2010, RCR, "plug_realtime", MINOR, TYPE_ENHANCE,
    "added channel list selection, for choosing which channels to merge",
    NULL
