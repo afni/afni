@@ -69,8 +69,8 @@ static char g_history[] =
 #define USE_VERSION     3
 #define USE_HISTORY     4
 
-#define DELTA_MIN        0.1
-#define DELTA_MAX       99.9
+#define DELTA_MIN        0.0000001
+#define DELTA_MAX       9999.9
 
 #define RL_DEBUG_OFF    0
 #define RL_DEBUG_LOW    1
