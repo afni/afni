@@ -48,6 +48,14 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 14, JUL, 2010, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "added -mask_test_overlap and -regress_cormat_warnigns",
+   "Unless the user sets these options to 'no', the processing script\n"
+   "will now use 3dABoverlap to evaluate the anat/EPI mask overlap, and\n"
+   "1d_tool.py to check the X-matrix for large pairwise correlations\n"
+   "between any two regressors."
+ } ,
+
  { 14, JUL, 2010, RCR, "3dABoverlap", MICRO, TYPE_ENHANCE,
    "added -no_automask to allow mask datasets as input",
    NULL
