@@ -2246,7 +2246,8 @@ STATUS("searching for Node_ROI functional dataset") ;
      EDIT_BRICK_TO_NOSTAT( dset_func , 0 ) ;
      EDIT_substitute_brick( dset_func , 0 , MRI_short , NULL ) ;
 
-     sess->dsset[ii][dset_func->view_type] = dset_func ;
+     SET_SESSION_DSET(dset_func, sess, ii, dset_func->view_type);
+     /* sess->dsset_xform_table[ii][dset_func->view_type] = dset_func ;*/
      sess->num_dsset ++ ;
 
 STATUS("switching func to Node_ROI dataset") ;
@@ -2378,7 +2379,8 @@ ENTRY("process_NIML_AFNI_dataset") ;
        EXRETURN ;
      }
 
-     ss->dsset[ii][vv] = dset ;     /*** insert dataset into session here ***/
+     SET_SESSION_DSET(dset, ss, ii, vv);     /*** insert dataset into session here ***/
+     /*ss->dsset_xform_table[ii][vv] = dset ;*/    
      ss->num_dsset++ ;
      POPDOWN_strlist_chooser ;
 
@@ -2497,8 +2499,11 @@ ENTRY("process_NIML_AFNI_volumedata") ;
          int vv=dset->view_type , qq ;
          if( vv < FIRST_VIEW_TYPE || vv > LAST_VIEW_TYPE ) vv = FIRST_VIEW_TYPE;
          for( qq=FIRST_VIEW_TYPE ; qq <= LAST_VIEW_TYPE ; qq++ )
-           ss->dsset[qs][qq] = NULL ;
-         ss->dsset[qs][vv] = dset ; ss->num_dsset++ ;
+             SET_SESSION_DSET(NULL, ss, qs, qq);
+           /* ss->dsset_xform_table[qs][qq] = NULL ; */
+         SET_SESSION_DSET(dset, ss, qs, vv);
+         /* ss->dsset_xform_table[qs][vv] = dset ;  */
+         ss->num_dsset++ ;
          INFO_message("Added dataset '%s' to controller %s",
                       DSET_FILECODE(dset), AFNI_controller_label(im3d) ) ;
          UNDUMMYIZE ;

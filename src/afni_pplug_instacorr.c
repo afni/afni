@@ -527,7 +527,8 @@ ENTRY("AFNI_icor_setref_xyz") ;
      } else {                                  /* add to the session */
        int vv = icoset->view_type ;
        nds = im3d->ss_now->num_dsset ;
-       im3d->ss_now->dsset[nds][vv] = icoset ;
+       SET_SESSION_DSET(icoset, im3d->ss_now, nds, vv);
+       /* im3d->ss_now->dsset_xform_table[nds][vv] = icoset ; */
        im3d->ss_now->num_dsset++ ;
        AFNI_force_adoption( im3d->ss_now , False ) ;
        AFNI_make_descendants( GLOBAL_library.sslist ) ;
