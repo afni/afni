@@ -49,6 +49,13 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 14 , JUL, 2010 , DRG , "afni_all" , 
+    MAJOR , TYPE_MODIFY, 
+    "Beginning to introduce code for allowing multiple spaces and atlases",
+    "These code changes should initially have no effect on functionality\n"
+    "and provide only a framework for introducing changes\n"
+    "cvs tag marked on code before this change as pre-atlantic"
+} ,
 { 13 , JUL, 2010 , DRG , "3dresample" , 
     MINOR , TYPE_MODIFY, 
     "Allowed for wider range of voxel sizes"

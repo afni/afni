@@ -20,7 +20,7 @@ THD_session * THD_init_session( char * sessname )
    THD_session            *sess ;
    XtPointer_array        *dblk_arrarr ;
    THD_datablock_array    *dblk_arr ;
-   THD_3dim_dataset       *dset=NULL ;
+   THD_3dim_dataset       *dset=NULL , *temp_dset;
    THD_3dim_dataset_array *dset_arr ;
 
    int ibar , idset , iview  , nds ;
@@ -101,14 +101,16 @@ ENTRY("THD_init_session") ;
       for( idset=0 ; idset < dset_arr->num ; idset++ ){
         dset  = dset_arr->ar[idset] ;
         iview = dset->view_type ;
-
-        if( sess->dsset[nds][iview] != NULL ){  /* should never happen */
+        
+        if( GET_SESSION_DSET(sess, nds, iview) != NULL ){  /* should never happen */
+/*        if( sess->dsset_xform_table[nds][iview] != NULL ){  /* should never happen */
           fprintf(stderr,
            "\n*** Session %s has duplicate dataset views of %s ***\n",
            sessname , dset->self_name) ;
           THD_delete_3dim_dataset( dset , False ) ;
         } else {
-          sess->dsset[nds][iview] = dset ;       /* should always happen */
+          SET_SESSION_DSET(dset, sess, nds, iview);  /* should always happen */
+/*        sess->dsset_xform_table[nds][iview] = dset ; */  /* should always happen */
         }
       }
 
@@ -154,7 +156,8 @@ ENTRY("THD_init_session") ;
            break ; /* out of for loop */
          }
          iview = dset->view_type ;
-         sess->dsset[nds][iview] = dset ;
+         SET_SESSION_DSET(dset, sess, nds, iview);
+/*         sess->dsset_xform_table[nds][iview] = dset ;*/
          sess->num_dsset ++ ;
        } /* end of loop over files */
        MCW_free_expand( num_minc , fn_minc ) ;
@@ -190,7 +193,8 @@ ENTRY("THD_init_session") ;
            break ; /* out of for loop */
          }
          iview = dset->view_type ;
-         sess->dsset[nds][iview] = dset ;
+         SET_SESSION_DSET(dset, sess, nds, iview); 
+/*         sess->dsset_xform_table[nds][iview] = dset ;*/
          sess->num_dsset ++ ;
        } /* end of loop over files */
        MCW_free_expand( num_nifti , fn_nifti ) ;
@@ -234,7 +238,8 @@ ENTRY("THD_init_session") ;
            break ; /* out of for loop */
         }
         iview = dset->view_type ;
-        sess->dsset[nds][iview] = dset ;
+        SET_SESSION_DSET(dset, sess, nds, iview);
+/*      sess->dsset_xform_table[nds][iview] = dset ; */
         sess->num_dsset ++ ;
 #ifdef ALLOW_FSL_FEAT
              if( strcmp(DSET_PREFIX(dset),"example_func.hdr") == 0 ) feat_exf = nds;
@@ -258,9 +263,13 @@ ENTRY("THD_init_session") ;
          float a11,a12,a13,s1 , a21,a22,a23,s2 , a31,a32,a33,s3 ;
          THD_warp *warp_exf_hrs=NULL , *warp_exf_std=NULL , *warp_std_hrs=NULL ;
 
-                             dset_exf = sess->dsset[feat_exf][0] ;  /* Must have this. */
-         if( feat_hrs >= 0 ) dset_hrs = sess->dsset[feat_hrs][0] ;  /* And at least   */
-         if( feat_std >= 0 ) dset_std = sess->dsset[feat_std][0] ;  /* one of these. */
+                             dset_exf = GET_SESSION_DSET(sess, feat_exf, 0) ;  /* Must have this. */
+         if( feat_hrs >= 0 ) dset_hrs = GET_SESSION_DSET(sess, feat_hrs, 0) ;  /* And at least   */
+         if( feat_std >= 0 ) dset_std = GET_SESSION_DSET(sess, feat_std, 0) ;  /* one of these. */
+
+/*                              dset_exf = sess->dsset_xform_table[feat_exf][0] ;
+         if( feat_hrs >= 0 ) dset_hrs = sess->dsset_xform_table[feat_hrs][0] ;
+         if( feat_std >= 0 ) dset_std = sess->dsset_xform_table[feat_std][0] ; */
 
          /* try to read the warp from example_func (EPI) to standard */
 
@@ -488,14 +497,20 @@ printf("warp_std_hrs AFTER:") ; DUMP_LMAP(warp_std_hrs->rig_bod.warp) ;
 
            if( warp_exf_hrs != NULL ){
              for( ii=feat_nds_start ; ii < sess->num_dsset ; ii++ ){
-               if( ISFUNC(sess->dsset[ii][0]) ){
-                 sprintf(fnam,"%s,%s",dset_hrs->idcode.str,sess->dsset[ii][0]->idcode.str) ;
+               temp_dset = GET_SESSION_DSET(sess, ii, 0);
+               if( ISFUNC(temp_dset) ){
+/*               if( ISFUNC(sess->dsset_xform_table[ii][0]) ){*/
+/*                 sprintf(fnam,"%s,%s",dset_hrs->idcode.str,sess->dsset_xform_table[ii][0]->idcode.str) ;*/
+                 sprintf(fnam,"%s,%s",dset_hrs->idcode.str,temp_dset->idcode.str) ;
                  addto_Htable( fnam , warp_exf_hrs , sess->warptable ) ;
                }
              }
              for( ii=feat_nds_start ; ii < sess->num_dsset ; ii++ ){
-               if( ii != feat_hrs && ii != feat_std && ISANAT(sess->dsset[ii][0]) ){
-                 sprintf(fnam,"%s,%s",dset_hrs->idcode.str,sess->dsset[ii][0]->idcode.str) ;
+               temp_dset = GET_SESSION_DSET(sess, ii, 0);
+               if( ii != feat_hrs && ii != feat_std && ISANAT(temp_dset) ){
+/*               if( ii != feat_hrs && ii != feat_std && ISANAT(sess->dsset_xform_table[ii][0]) ){*/
+/*                 sprintf(fnam,"%s,%s",dset_hrs->idcode.str,sess->dsset_xform_table[ii][0]->idcode.str) ;*/
+                 sprintf(fnam,"%s,%s",dset_hrs->idcode.str,temp_dset->idcode.str) ;
                  addto_Htable( fnam , warp_exf_hrs , sess->warptable ) ;
                }
              }
@@ -503,14 +518,20 @@ printf("warp_std_hrs AFTER:") ; DUMP_LMAP(warp_std_hrs->rig_bod.warp) ;
 
            if( warp_exf_std != NULL ){
              for( ii=feat_nds_start ; ii < sess->num_dsset ; ii++ ){
-               if( ISFUNC(sess->dsset[ii][0]) ){
-                 sprintf(fnam,"%s,%s",dset_std->idcode.str,sess->dsset[ii][0]->idcode.str) ;
+               temp_dset = GET_SESSION_DSET(sess, ii, 0);
+               if( ISFUNC(temp_dset) ){
+/*             if( ISFUNC(sess->dsset_xform_table[ii][0]) ){*/
+/*                sprintf(fnam,"%s,%s",dset_std->idcode.str,sess->dsset_xform_table[ii][0]->idcode.str) ;*/
+                 sprintf(fnam,"%s,%s",dset_std->idcode.str,temp_dset->idcode.str) ;
                  addto_Htable( fnam , warp_exf_std , sess->warptable ) ;
                }
              }
              for( ii=feat_nds_start ; ii < sess->num_dsset ; ii++ ){
-               if( ii != feat_hrs && ii != feat_std && ISANAT(sess->dsset[ii][0]) ){
-                 sprintf(fnam,"%s,%s",dset_std->idcode.str,sess->dsset[ii][0]->idcode.str) ;
+               temp_dset = GET_SESSION_DSET(sess, ii, 0);
+               if( ii != feat_hrs && ii != feat_std && ISANAT(temp_dset) ){
+                 sprintf(fnam,"%s,%s",dset_std->idcode.str,temp_dset->idcode.str) ;
+/*               if( ii != feat_hrs && ii != feat_std && ISANAT(sess->dsset_xform_table[ii][0]) ){ */
+/*                 sprintf(fnam,"%s,%s",dset_std->idcode.str,sess->dsset_xform_table[ii][0]->idcode.str) ; */
                  addto_Htable( fnam , warp_exf_std , sess->warptable ) ;
                }
              }
@@ -562,7 +583,8 @@ printf("warp_std_hrs AFTER:") ; DUMP_LMAP(warp_std_hrs->rig_bod.warp) ;
            break ; /* out of for loop */
          }
          iview = dset->view_type ;
-         sess->dsset[nds][iview] = dset ;
+         SET_SESSION_DSET(dset, sess, nds, iview);
+/*         sess->dsset_xform_table[nds][iview] = dset ;*/
          sess->num_dsset ++ ;
        } /* end of loop over files */
        MCW_free_expand( num_ctf , fn_ctf ) ;
@@ -595,7 +617,8 @@ printf("warp_std_hrs AFTER:") ; DUMP_LMAP(warp_std_hrs->rig_bod.warp) ;
            break ; /* out of for loop */
          }
          iview = dset->view_type ;
-         sess->dsset[nds][iview] = dset ;
+         SET_SESSION_DSET(dset, sess, nds, iview);
+/*         sess->dsset_xform_table[nds][iview] = dset ;*/
          sess->num_dsset ++ ;
        } /* end of loop over files */
        MCW_free_expand( num_mpeg , fn_mpeg ) ;
@@ -633,12 +656,14 @@ ENTRY("THD_order_session") ;
    nds = 0 ;
    for( ids=0 ; ids < sess->num_dsset ; ids++ ){
      for( iview=0 ; iview <= LAST_VIEW_TYPE ; iview++ ){
-       dset = sess->dsset[ids][iview] ;
+       dset = GET_SESSION_DSET(sess, ids, iview);
+/*       dset = sess->dsset_xform_table[ids][iview] ;*/
        if( dset != NULL && ISANAT(dset) ) break ;
      }
      if( iview <= LAST_VIEW_TYPE ){
        for( iview=0 ; iview <= LAST_VIEW_TYPE ; iview++ )
-         qset[nds][iview] = sess->dsset[ids][iview] ;
+         qset[nds][iview] = GET_SESSION_DSET(sess, ids, iview);
+/*       qset[nds][iview] = sess->dsset_xform_table[ids][iview] ;*/
        nds++ ;
      }
    }
@@ -647,12 +672,14 @@ ENTRY("THD_order_session") ;
 
    for( ids=0 ; ids < sess->num_dsset ; ids++ ){
      for( iview=0 ; iview <= LAST_VIEW_TYPE ; iview++ ){
-       dset = sess->dsset[ids][iview] ;
+       dset = GET_SESSION_DSET(sess, ids, iview);
+/*     dset = sess->dsset_xform_table[ids][iview] ;*/
        if( dset != NULL && ISFUNC(dset) ) break ;
      }
      if( iview <= LAST_VIEW_TYPE ){
        for( iview=0 ; iview <= LAST_VIEW_TYPE ; iview++ )
-         qset[nds][iview] = sess->dsset[ids][iview] ;
+          qset[nds][iview] = GET_SESSION_DSET(sess, ids, iview);
+/*       qset[nds][iview] = sess->dsset_xform_table[ids][iview] ;*/
        nds++ ;
      }
    }
@@ -661,8 +688,8 @@ ENTRY("THD_order_session") ;
 
    for( ids=0 ; ids < nds ; ids++ )
      for( iview=0 ; iview <= LAST_VIEW_TYPE ; iview++ )
-       sess->dsset[ids][iview] = qset[ids][iview] ;
-
+/*       sess->dsset_xform_table[ids][iview] = qset[ids][iview] ;*/
+        SET_SESSION_DSET(qset[ids][iview], sess, ids, iview);
    sess->num_dsset = nds ;  /* shouldn't change */
    EXRETURN ;
 }

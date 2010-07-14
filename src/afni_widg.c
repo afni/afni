@@ -5479,7 +5479,8 @@ void AFNI_initialize_controller( Three_D_View *im3d )
 {
    int ii , sss=0 ;
    char ttl[16] , *eee ;
-
+   THD_3dim_dataset *temp_dset = NULL;
+   
 ENTRY("AFNI_initialize_controller") ;
 
    /*--- check for various criminal behavior;
@@ -5520,15 +5521,17 @@ ENTRY("AFNI_initialize_controller") ;
      switch( sss ){
        case 2:       /* the OLD way */
          for( mm=1.e+33,jb=jj=0 ; jj < im3d->ss_now->num_dsset ; jj++ ){
-           if( ISANAT(im3d->ss_now->dsset[jj][0]) ){
-             bb = DSET_bigositiness(im3d->ss_now->dsset[jj][0]) ;
+           temp_dset = GET_SESSION_DSET(im3d->ss_now, jj,0);
+           if( ISANAT(temp_dset) ){
+             bb = DSET_bigositiness(temp_dset) ;
              if( bb > 0 && bb < mm ){ mm = bb; jb = jj; }
            }
          }
          if( mm < 1.e+33 ) im3d->vinfo->anat_num = qb = jb ;
          for( mm=1.e+33,jb=jj=0 ; jj < im3d->ss_now->num_dsset ; jj++ ){
-           if( ISFUNC(im3d->ss_now->dsset[jj][0]) ){
-             bb = DSET_bigositiness(im3d->ss_now->dsset[jj][0]) ;
+           temp_dset = GET_SESSION_DSET(im3d->ss_now, jj,0);
+           if( ISFUNC(temp_dset) ){
+             bb = DSET_bigositiness(temp_dset) ;
              if( jj != qb && bb > 0 && bb < mm ){ mm = bb; jb = jj; }
            }
          }
@@ -5548,19 +5551,24 @@ ENTRY("AFNI_initialize_controller") ;
 
    } else if( im3d->brand_new ){  /* 29 Jul 2003 */
      int jj ;
-     for( jj=0 ; jj < im3d->ss_now->num_dsset ; jj++ )
-       if( ISANAT(im3d->ss_now->dsset[jj][0]) ) break ;
+     for( jj=0 ; jj < im3d->ss_now->num_dsset ; jj++ ) {
+       temp_dset = GET_SESSION_DSET(im3d->ss_now, jj,0);
+       if( ISANAT(temp_dset) ) break ;
+     }  
      if( jj < im3d->ss_now->num_dsset ) im3d->vinfo->anat_num = jj ;
 
-     for( jj=0 ; jj < im3d->ss_now->num_dsset ; jj++ )
-       if( ISFUNC(im3d->ss_now->dsset[jj][0]) ) break ;
+     for( jj=0 ; jj < im3d->ss_now->num_dsset ; jj++ ) {
+       temp_dset = GET_SESSION_DSET(im3d->ss_now, jj,0);
+       if( ISFUNC(temp_dset) ) break ;
+     }
      if( jj < im3d->ss_now->num_dsset ) im3d->vinfo->func_num = jj ;
    }
 
    /* copy pointers from this session into the controller for fast access */
 
    for( ii=0 ; ii <= LAST_VIEW_TYPE ; ii++ )
-      im3d->anat_dset[ii] = im3d->ss_now->dsset[im3d->vinfo->anat_num][ii] ;
+      im3d->anat_dset[ii] = GET_SESSION_DSET(im3d->ss_now, im3d->vinfo->anat_num, ii);
+      /* im3d->ss_now->dsset_xform_table[im3d->vinfo->anat_num][ii] ; */
 
    /*--- 11/23/94 addition: scan for a good view in the
         initial setup (to allow for input of datasets w/o +orig view) */
@@ -5574,17 +5582,21 @@ ENTRY("AFNI_initialize_controller") ;
    im3d->vinfo->view_type = ii ;  /* first view with a good anat */
 
    /* now find a function that can be viewed here */
+   temp_dset = GET_SESSION_DSET(im3d->ss_now, im3d->vinfo->func_num, ii);
 
-   if( !ISVALID_DSET(im3d->ss_now->dsset[im3d->vinfo->func_num][ii]) ){
+   if( !ISVALID_DSET(temp_dset) ){
      for( ii=0 ; ii < im3d->ss_now->num_dsset ; ii++ ){
-       if(ISVALID_DSET(im3d->ss_now->dsset[ii][im3d->vinfo->view_type])){
+       temp_dset = GET_SESSION_DSET(im3d->ss_now, ii, im3d->vinfo->view_type);
+       if(ISVALID_DSET(temp_dset)){
           im3d->vinfo->func_num = ii ; break ;
        }
      }
    }
 
    for( ii=0 ; ii <= LAST_VIEW_TYPE ; ii++ )
-      im3d->fim_dset[ii] = im3d->ss_now->dsset[im3d->vinfo->func_num][ii] ;
+        im3d->fim_dset[ii] = GET_SESSION_DSET(im3d->ss_now, im3d->vinfo->func_num, ii);
+
+/*      im3d->fim_dset[ii] = im3d->ss_now->dsset_xform_table[im3d->vinfo->func_num][ii] ;*/
 
    /*--- 11/23/94 addition end */
 

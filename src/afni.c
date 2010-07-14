@@ -4443,7 +4443,8 @@ ENTRY("AFNI_read_inputs") ;
       new_ss->type        = SESSION_TYPE ;
       BLANK_SESSION(new_ss) ;
       new_ss->num_dsset   = 1 ;
-      new_ss->dsset[0][0] = dset ;
+      SET_SESSION_DSET(dset, new_ss, 0,0);
+/*      new_ss->dsset_xform_table[0][0] = dset ;*/
       new_ss->parent      = NULL ;
 
       MCW_strncpy( new_ss->sessname ,
@@ -4485,7 +4486,8 @@ ENTRY("AFNI_read_inputs") ;
             gss->parent = NULL ;                          /* parentize them */
             for( qd=0 ; qd < gss->num_dsset ; qd++ )
               for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ ){
-                dset = gss->dsset[qd][vv] ;
+                dset = GET_SESSION_DSET(gss, qd, vv) ;
+/*                dset = gss->dsset_xform_table[qd][vv] ;*/
                 if( dset != NULL ){
                   PARENTIZE( dset , NULL ) ;
                   DSET_MARK_FOR_IMMORTALITY( dset ) ;
@@ -4581,7 +4583,8 @@ if(PRINT_TRACING)
              THD_3dim_dataset *dset = THD_open_dataset( dname ) ;
              if( ISVALID_DSET(dset) ){
                STATUS("it IS a dataset file!") ;
-               dss->dsset[qd][dset->view_type] = dset ;
+               SET_SESSION_DSET(dset, dss, qd, dset->view_type);
+/*               dss->dsset_xform_table[qd][dset->view_type] = dset ;*/
                dss->num_dsset ++ ;
                AFNI_inconstancy_check(NULL,dset) ; /* 06 Sep 2006 */
              } else if( qlist == dlist ){
@@ -4600,7 +4603,8 @@ if(PRINT_TRACING)
            new_ss->parent = NULL ;
            for( qd=0 ; qd < new_ss->num_dsset ; qd++ ){
              for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ ){
-               dset = new_ss->dsset[qd][vv] ;
+                 dset = GET_SESSION_DSET(new_ss, qd, vv);
+/*               dset = new_ss->dsset_xform_table[qd][vv] ;*/
                if( dset != NULL ){
                  PARENTIZE( dset , NULL ) ;
                  AFNI_inconstancy_check(NULL,dset) ; /* 06 Sep 2006 */
@@ -4879,7 +4883,8 @@ STATUS("reading commandline dsets") ;
               fprintf(stderr,"\a\n** too many datasets!\n") ;
               nerr++ ;
             } else {
-              new_ss->dsset[nn][vv] = dset ;
+              SET_SESSION_DSET(dset, new_ss, nn, vv);
+/*              new_ss->dsset_xform_table[nn][vv] = dset ; */
               new_ss->num_dsset ++ ;
             }
          } /* end of loop over dd=datasets in dsar */
@@ -7193,8 +7198,8 @@ ENTRY("AFNI_purge_dsets") ;
 
       for( idd=0 ; idd < sess->num_dsset ; idd++ ){
          for( ivv=FIRST_VIEW_TYPE ; ivv <= LAST_VIEW_TYPE ; ivv++ ){
-
-            dset = sess->dsset[idd][ivv] ;
+            dset = GET_SESSION_DSET(sess,idd,ivv) ;
+/*            dset = sess->dsset_xform_table[idd][ivv] ; */
             if( dset == NULL ) continue ;
             if( doall ){ PURGE_DSET(dset) ; continue ; }
 
@@ -7246,9 +7251,12 @@ if(PRINT_TRACING)
   sprintf(str,"view=%d session=%d anat=%d func=%d",vvv,sss,aaa,fff);
   STATUS(str) ; }
 
-   new_anat = GLOBAL_library.sslist->ssar[sss]->dsset[aaa][vvv] ;
-   new_func = GLOBAL_library.sslist->ssar[sss]->dsset[fff][vvv] ;
+   new_anat = GET_SESSION_DSET(GLOBAL_library.sslist->ssar[sss], aaa, vvv) ;
+   new_func = GET_SESSION_DSET(GLOBAL_library.sslist->ssar[sss], fff, vvv) ;
 
+/*   new_anat = GLOBAL_library.sslist->ssar[sss]->dsset_xform_table[aaa][vvv] ;
+   new_func = GLOBAL_library.sslist->ssar[sss]->dsset_xform_table[fff][vvv] ;
+*/
    AFNI_vedit_clear( im3d->fim_now ) ;  /* 05 Sep 2006 */
 
    /*----------------------------------------------*/
@@ -7274,9 +7282,12 @@ STATUS("purging old datasets from memory (maybe)") ;
    /* set the new datasets that we will deal with from now on */
 
    for( id=0 ; id <= LAST_VIEW_TYPE ; id++ ){
-     im3d->anat_dset[id] = GLOBAL_library.sslist->ssar[sss]->dsset[aaa][id] ;
-     im3d->fim_dset[id]  = GLOBAL_library.sslist->ssar[sss]->dsset[fff][id] ;
+     im3d->anat_dset[id] = GET_SESSION_DSET(GLOBAL_library.sslist->ssar[sss], aaa, id) ;
+     im3d->fim_dset[id]  = GET_SESSION_DSET(GLOBAL_library.sslist->ssar[sss], fff, id) ;
 
+/*     im3d->anat_dset[id] = GLOBAL_library.sslist->ssar[sss]->dsset_xform_table[aaa][id] ;
+     im3d->fim_dset[id]  = GLOBAL_library.sslist->ssar[sss]->dsset_xform_table[fff][id] ;
+*/
      if( ISVALID_3DIM_DATASET(im3d->anat_dset[id]) )
        SENSITIZE( im3d->vwid->view->view_bbox->wbut[id], True ) ;
      else
@@ -9238,15 +9249,19 @@ ENTRY("AFNI_marks_transform_CB") ;
    sss = im3d->vinfo->sess_num ;
    aaa = im3d->vinfo->anat_num ;
    fff = im3d->vinfo->func_num ;
-   GLOBAL_library.sslist->ssar[sss]->dsset[aaa][vnew] = new_dset ;
+
+   SET_SESSION_DSET(new_dset, GLOBAL_library.sslist->ssar[sss], aaa, vnew);
+/*   GLOBAL_library.sslist->ssar[sss]->dsset_xform_table[aaa][vnew] = new_dset ;*/
 
    /* reload active datasets, to allow for destruction that may
       have occured (this code is copied from AFNI_initialize_view) */
 
    for( id=0 ; id <= LAST_VIEW_TYPE ; id++ ){
-      im3d->anat_dset[id] = GLOBAL_library.sslist->ssar[sss]->dsset[aaa][id] ;
-      im3d->fim_dset[id]  = GLOBAL_library.sslist->ssar[sss]->dsset[fff][id] ;
-
+      im3d->anat_dset[id] = GET_SESSION_DSET(GLOBAL_library.sslist->ssar[sss], aaa, id) ;
+      im3d->fim_dset[id]  = GET_SESSION_DSET(GLOBAL_library.sslist->ssar[sss], fff, id) ;
+/*      im3d->anat_dset[id] = GLOBAL_library.sslist->ssar[sss]->dsset_xform_table[aaa][id] ;
+      im3d->fim_dset[id]  = GLOBAL_library.sslist->ssar[sss]->dsset_xform_table[fff][id] ;
+*/
       if( ISVALID_3DIM_DATASET(im3d->anat_dset[id]) )
         SENSITIZE( im3d->vwid->view->view_bbox->wbut[id], True ) ;
       else
@@ -9271,7 +9286,8 @@ STATUS("writing new dataset") ;
 STATUS("re-anat_parenting anatomical datasets in this session") ;
 
       for( id=0 ; id < im3d->ss_now->num_dsset ; id++ ){
-         dss = im3d->ss_now->dsset[id][0] ;
+         dss = GET_SESSION_DSET(im3d->ss_now, id, 0) ;
+/*         dss = im3d->ss_now->dsset_xform_table[id][0] ;*/
 
          if( ! ISVALID_3DIM_DATASET(dss) || dss == im3d->anat_now ) continue ;
 

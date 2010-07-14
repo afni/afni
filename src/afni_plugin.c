@@ -2849,7 +2849,9 @@ ENTRY("PLUG_choose_dataset_CB") ;
       /* check datasets in this session */
 
       for( id=0 ; id < ss->num_dsset ; id++ ){
-        dset = ss->dsset[id][vv] ;            if( dset == NULL ) continue ;
+             dset = GET_SESSION_DSET(ss, id, vv);
+        /* dset = ss->dsset_xform_table[id][vv] ; */
+        if( dset == NULL ) continue ;
 
         if( sv->dset_anat_mask != 0 && ISANAT(dset) )
           if( ! PLUGIN_dset_check( sv->dset_anat_mask ,
@@ -3251,7 +3253,9 @@ ENTRY("PLUTO_popup_dset_chooser") ;
       /* check datasets from this session */
 
       for( id=0 ; id < ss->num_dsset ; id++ ){
-         dset = ss->dsset[id][vv] ;    if( dset == NULL ) continue ;
+         dset = GET_SESSION_DSET(ss, id, vv);
+         /* dset = ss->dsset_xform_table[id][vv] ; */
+         if( dset == NULL ) continue ;
 #if 0
          if( chk_func != NULL && chk_func(dset,cd) == 0 ) continue ; /* skip */
 #else
@@ -3768,7 +3772,9 @@ ENTRY("PLUTO_add_dset") ;
      fprintf(stderr,"*** Overflow session dataset limit ***\n") ;
      RETURN(1) ;
    }
-   sess->dsset[id][vv] = dset ;
+   SET_SESSION_DSET(dset, sess, id, vv);
+
+/*   sess->dsset_xform_table[id][vv] = dset ; */
    sess->num_dsset ++ ;
 
    /** make sure the dataset is properly fit into the situation **/
