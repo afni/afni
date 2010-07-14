@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 14, JUL, 2010, RCR, "3dABoverlap", MICRO, TYPE_ENHANCE,
+   "added -no_automask to allow mask datasets as input",
+   NULL
+ } ,
+
  { 14, JUL, 2010, RCR, "Makefile.linux_gcc33_64", MICRO, TYPE_MODIFY,
    "use staic link of SUMA programs to Motif, as AFNI programs already do",
    NULL
