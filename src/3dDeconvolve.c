@@ -396,7 +396,7 @@ static char *commandline = NULL ;
 
 static int goforit = 0 ;  /* 07 Mar 2007 */
 static int badlev  = 0 ;
-static int floatout= 0 ;  /* 13 Mar 2007 */
+static int floatout= 1 ;  /* 13 Mar 2007 ; 15 Jul 2010: now defaults on */
 
 /* include other dset types for float output   2 Apr 2009 [rickr] */
 #define CHECK_NEEDS_FLOATS(fn)                                         \
@@ -1684,7 +1684,8 @@ void get_options
   /*----- initialize the input options -----*/
   initialize_options (option_data);
 
-  if( AFNI_yesenv("AFNI_FLOATIZE") ) floatout = 1 ;  /* 17 Jan 2008 */
+       if( AFNI_yesenv("AFNI_FLOATIZE") ) floatout = 1 ;  /* 17 Jan 2008 */
+  else if( AFNI_yesenv("AFNI_SHORTIZE") ) floatout = 0 ;  /* 15 Jun 2010 */
 
   if( AFNI_yesenv("AFNI_3dDeconvolve_GOFORIT") ) goforit++ ; /* 07 Mar 2007 */
 
