@@ -1091,49 +1091,12 @@ ENTRY("thd_mask_from_brick");
     RETURN(0);
 }
 
-/*-------------------------------------------------------------------------*/
-/* Input:  0/1 array of bytes, nvox long.
-   Output: compressed by a factor of 8: 1+(nvox-1)/8 bytes long.
-*//*-----------------------------------------------------------------------*/
-
-static byte binar[8] = { 1 , 1<<1 , 1<<2 , 1<<3 , 1<<4 , 1<<5 , 1<<6 , 1<<7 } ;
-
-byte * mask_binarize( int nvox , byte *mful )
-{
-   register byte *mbin ; register int ii ;
-
-   if( nvox < 1 || mful == NULL ) return NULL ;
-
-   mbin = (byte *)calloc(sizeof(byte),1+(nvox-1)/8) ;
-
-   for( ii=0 ; ii < nvox ; ii++ )
-     if( mful[ii] != 0 ) mbin[ii>>3] |= binar[ii&0x7] ;
-
-   return mbin ;
-}
-
-/*-------------------------------------------------------------------------*/
-
-byte * mask_unbinarize( int nvox , byte *mbin )
-{
-   register byte *mful ; register int ii ;
-
-   if( nvox < 1 || mbin == NULL ) return NULL ;
-
-   mful = (byte *)calloc(sizeof(byte),nvox) ;
-
-   for( ii=0 ; ii < nvox ; ii++ )
-     mful[ii] = ( mbin[ii>>3] & binar[ii&0x7] ) != 0 ;
-
-   return mful ;
-}
-
 /****************************************************************************
  ** The functions below are for converting a byte-valued 0/1 mask to/from  **
  ** an ASCII representation.  The ASCII representation is formed like so:  **
  **    1. convert it to binary = 8 bits stored in each byte, rather than 1 **
  **       - this takes the mask from nvox bytes to 1+(nvox-1)/8 bytes      **
- **       - this operation is done in function mask_binarize() [above]     **
+ **       - this operation is done in function mask_binarize() [below]     **
  **    2. compress the binarized array with zlib                           **
  **       - this step is done in function array_to_zzb64(), which uses     **
  **         function zz_compress_all() [in zfun.c]                         **
@@ -1148,42 +1111,8 @@ byte * mask_unbinarize( int nvox , byte *mbin )
  **   count from the end of the string, which can be used to check if a    **
  **   mask is compatible with a given dataset for which it is intended.    **
  ****************************************************************************
- * Below is a sample main program 'zb64.c' that can convert a file between  *
- * these two formats:                                                       *
- *    make zb64                                                             *
- *    zb64 -tob64 maskfile  > stringfile                                    *
- *    zb64 -tobin stringfil > maskfile                                      *
-
-#include "mrilib.h"
-
-int main( int argc , char *argv[] )
-{
-   int nmask , iarg=1 , tob64=1 ; char *mask , *str ; byte *mbin ;
-
-   if( argc < 2 ){
-     printf("Usage: zb64 [-tob64|-tobin] filename > outputfile\n"); exit(0);
-   }
-   if( argv[iarg][0] == '-' ){
-     if( strcmp(argv[iarg++],"-tobin") == 0 ) tob64 = 0 ;
-   }
-
-   if( tob64 ){
-     mask = AFNI_suck_file(argv[iarg]) ;
-     if( mask == NULL ) ERROR_exit("Can't open file '%s'",argv[iarg]) ;
-     nmask = AFNI_suck_file_len() ;
-     str = mask_to_b64string( nmask , mask ) ;
-     printf("%s\n",str) ;
-   } else {
-     str = AFNI_suck_file(argv[iarg]) ;
-     if( str == NULL ) ERROR_exit("Can't open file '%s'",argv[iarg]) ;
-     mask = mask_from_b64string( str , &nmask ) ;
-     if( mask == NULL || nmask <= 0 )
-       ERROR_exit("Can't decode file '%s'",argv[iarg]) ;
-     fwrite(mask,sizeof(char),nmask,stdout) ;
-   }
-   exit(0) ;
-}
-*******************************************************************************/
+ * See program 3dMaskToASCII.c for sample usage of these functions.         *
+*****************************************************************************/
 
 /*-------------------------------------------------------------------------*/
 /*! Convert a byte-value 0/1 mask to an ASCII string in Base64. */
@@ -1246,4 +1175,105 @@ int mask_b64string_nvox( char *str )
 
    ibot = (int)strtod(str+ii+1,NULL) ;          /* number of voxels */
    return ibot ;
+}
+
+/*-------------------------------------------------------------------------*/
+/* Input:  0/1 array of bytes, nvox long.
+   Output: compressed by a factor of 8: 1+(nvox-1)/8 bytes long.
+*//*-----------------------------------------------------------------------*/
+
+static byte binar[8] = { 1 , 1<<1 , 1<<2 , 1<<3 , 1<<4 , 1<<5 , 1<<6 , 1<<7 } ;
+
+byte * mask_binarize( int nvox , byte *mful )
+{
+   register byte *mbin ; register int ii ;
+
+   if( nvox < 1 || mful == NULL ) return NULL ;
+
+   mbin = (byte *)calloc(sizeof(byte),1+(nvox-1)/8) ;
+
+   for( ii=0 ; ii < nvox ; ii++ )
+     if( mful[ii] != 0 ) mbin[ii>>3] |= binar[ii&0x7] ;
+
+   return mbin ;
+}
+
+/*-------------------------------------------------------------------------*/
+
+byte * mask_unbinarize( int nvox , byte *mbin )
+{
+   register byte *mful ; register int ii ;
+
+   if( nvox < 1 || mbin == NULL ) return NULL ;
+
+   mful = (byte *)calloc(sizeof(byte),nvox) ;
+
+   for( ii=0 ; ii < nvox ; ii++ )
+     mful[ii] = ( mbin[ii>>3] & binar[ii&0x7] ) != 0 ;
+
+   return mful ;
+}
+
+/*===========================================================================*/
+/*! Create a binary byte-valued mask from an input string:
+      - a dataset filename
+      - a Base64 mask string
+      - filename with data containing a Base64 mask string
+      - future editions?
+*//*-------------------------------------------------------------------------*/
+
+bytevec * THD_create_mask_from_string( char *str )  /* Jul 2010 */
+{
+   bytevec *bvec ; int nstr ; char *buf=NULL ;
+
+ENTRY("THD_create_mask") ;
+
+   if( str == NULL || *str == '\0' ) RETURN(NULL) ;
+
+   nstr = strlen(str) ;
+   bvec = (bytevec *)malloc(sizeof(bytevec)) ;
+
+   /* try to read it as a dataset */
+
+   if( nstr < THD_MAX_NAME ){
+     THD_3dim_dataset *dset = THD_open_one_dataset(str) ;
+     if( dset != NULL ){
+       bvec->nar = DSET_NVOX(dset) ;
+       bvec->ar  = THD_makemask( dset , 0 , 1.0f,0.0f ) ;
+       if( bvec->ar == NULL ){
+         ERROR_message("Can't make mask from dataset '%s'",str) ;
+         free(bvec) ; bvec = NULL ;
+       }
+       RETURN(bvec) ;
+     }
+   }
+
+   /* if str is a filename, read that file;
+      otherwise, use the string itself to find the mask */
+
+   if( THD_is_file(str) ){
+     buf = AFNI_suck_file(str) ;
+     if( buf != NULL ) nstr = strlen(buf) ;
+   } else {
+     buf = str ;
+   }
+
+   /* try to read buf as a Base64 mask string */
+
+   if( strrchr(buf,'=') != NULL ){
+     int nvox ;
+     bvec->ar = mask_from_b64string( buf , &nvox ) ;
+     if( bvec->ar != NULL ){
+       bvec->nar = nvox ;
+     } else {
+       ERROR_message("Can't make mask from string '%.16s' %s",buf,(nstr<=16)?" ":"...") ;
+       free(bvec) ; bvec = NULL ;
+     }
+   } else {
+     ERROR_message("Don't understand mask string '%.16s'",buf,(nstr<=16)?" ":"...") ;
+     free(bvec) ; bvec = NULL ;
+   }
+
+   if( buf != str && buf != NULL ) free(buf) ;
+   RETURN(bvec) ;
 }
