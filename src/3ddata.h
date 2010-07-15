@@ -4947,6 +4947,8 @@ extern float THD_ncdfloat( int n , float *x , float *y );
 extern float THD_ncdfloat_scl( int n , float xbot,float xtop,float *x ,
                                        float ybot,float ytop,float *y  );
 
+/* stuff below, for masks, created Jul 2010 */
+
 extern char * array_to_zzb64( int nsrc , char *src , int linelen ) ;
 extern int    zzb64_to_array( char *zb , char **dest ) ;
 
@@ -4956,6 +4958,8 @@ extern byte * mask_unbinarize( int , byte * ) ;
 extern char * mask_to_b64string  ( int nvox  , byte *mful ) ;
 extern byte * mask_from_b64string( char *str , int *nvox  ) ;
 extern int    mask_b64string_nvox( char *str ) ;
+
+extern bytevec * THD_create_mask_from_string( char *str ) ;
 
 /*------------------------------------------------------------------------*/
 

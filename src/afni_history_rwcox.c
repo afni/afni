@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 15 , JUL , 2010 , RWC , "3dREMLfit+3dDeconvolve" , MICRO , TYPE_NEW_OPT ,
+   "Add -STATmask option" ,
+   "Allows user to specify mask for FDR calculations, when no -mask is used." } ,
+
  { 15 , JUL , 2010 , RWC , "3dClustSim" , MICRO , TYPE_GENERAL ,
    "-niml now implies -LOTS as well" ,
    NULL } ,

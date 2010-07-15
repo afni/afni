@@ -488,6 +488,7 @@ int main( int argc , char *argv[] )
    MRI_IMAGE *aim=NULL, *bim=NULL ; float *aar=NULL, *bar=NULL ;
    MRI_IMAGE *rim=NULL ;            float *rar=NULL ;
    byte *mask=NULL,*gmask=NULL ;
+   bytevec *statmask=NULL ; char *statmask_name=NULL ;     /* 15 Jul 2010 */
    int mask_nx=0,mask_ny=0,mask_nz=0, automask=0, nmask=0;
    float *iv , *jv ; int niv ;
    int iarg, ii,jj,kk, ntime,ddof, *tau=NULL, rnum, nfull, nvals,nvox,vv,rv ;
@@ -648,6 +649,14 @@ int main( int argc , char *argv[] )
       "                 the input dataset has at least 5 voxels along each of\n"
       "                 the x and y axes, to avoid applying it when you run\n"
       "                 3dREMLfit on 1D timeseries inputs.\n"
+      "-STATmask ss = Build a mask from file 'ss', and use this for the purpose\n"
+      "                 of computing the FDR curves.\n"
+      "              * The actual results ARE not masked with this option\n"
+      "                  (only with '-mask' or '-automask' options).\n"
+      "              * If you don't use '-STATmask', then the mask from\n"
+      "                  '-mask' or '-automask' is used for the FDR work.\n"
+      "                  If neither of those is given, then the automatically\n"
+      "                  generated mask described just above is used for FDR.\n"
       "\n"
       "--------------------------------------------------------------------------\n"
       "Options to Add Baseline (Null Hypothesis) Columns to the Regression Matrix\n"
@@ -1506,6 +1515,20 @@ int main( int argc , char *argv[] )
        iarg++ ; continue ;
      }
 
+     /**==========  -STATmask [15 Jul 2010]  ==========*/
+
+     if( strcasecmp(argv[iarg],"-STATmask") == 0 ){
+       if( statmask != NULL ) ERROR_exit("can't use -STATmask twice") ;
+       if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]) ;
+       statmask_name = strdup(argv[iarg]) ;
+       statmask = THD_create_mask_from_string(statmask_name) ;
+       if( statmask == NULL ){
+         WARNING_message("-STATmask being ignored: can't use it") ;
+         free(statmask_name) ; statmask_name = NULL ;
+       }
+       iarg++ ; continue ;
+     }
+
      /**==========   -mask  ==========**/
 
      if( strcasecmp(argv[iarg],"-mask") == 0 ){
@@ -1790,21 +1813,40 @@ STATUS("options done") ;
 
    /*-------------- process the mask somehow --------------*/
 
+   if( statmask != NULL ){               /* 15 Jul 2010 */
+     if( statmask->nar != nvox ){
+       WARNING_message("-STATmask ignored: doesn't match -input dataset size!") ;
+       KILL_bytevec(statmask) ; free(statmask_name) ; statmask_name = NULL ;
+     } else {
+       int mc ;
+       gmask = statmask->ar ; mc = THD_countmask( nvox , gmask ) ;
+       if( mc <= 99 ){
+         gmask = NULL ;
+         KILL_bytevec(statmask) ; free(statmask_name) ; statmask_name = NULL ;
+         WARNING_message("-STATmask ignored: only has %d nonzero voxels",mc) ;
+       } else if( verb )
+         INFO_message("-STATmask has %d voxels (out of %d = %.1f%%)",
+                      mc, nvox, (100.0f*mc)/nvox ) ;
+     }
+   }
+
+   /*-- meanwhile, back at the masking ranch --*/
+
    if( mask != NULL ){     /* check -mask option for compatibility */
-     gmask = mask ;
+     if( gmask == NULL ) gmask = mask ;
      if( mask_nx != nx || mask_ny != ny || mask_nz != nz )
-       ERROR_exit("-mask dataset grid doesn't match input dataset") ;
+       ERROR_exit("-mask dataset grid doesn't match input dataset :-(") ;
 
    } else if( automask ){  /* create a mask from input dataset */
      mask = THD_automask( inset ) ;
      if( mask == NULL )
-       ERROR_message("Can't create -automask from input dataset?") ;
+       ERROR_message("Can't create -automask from input dataset :-(") ;
      nmask = THD_countmask( nvox , mask ) ;
      if( verb || nmask < 1 )
        INFO_message("Number of voxels in automask = %d (out of %d = %.1f%%)",
                     nmask, nvox, (100.0f*nmask)/nvox ) ;
      if( nmask < 1 ) ERROR_exit("Automask is too small to process") ;
-     gmask = mask ;
+     if( gmask == NULL ) gmask = mask ;
 
    } else {                /* create a 'mask' for all voxels */
      if( verb )
@@ -1812,7 +1854,9 @@ STATUS("options done") ;
      mask = (byte *)malloc(sizeof(byte)*nvox) ; nmask = nvox ;
      memset( mask , 1 , sizeof(byte)*nvox ) ;
 
-     if( do_FDR && DSET_NX(inset) > 4 && DSET_NY(inset) > 4 ){  /* 27 Mar 2009 */
+     if( gmask == NULL && do_FDR && DSET_NX(inset) > 15 &&
+                                    DSET_NY(inset) > 15 &&
+                                    DSET_NZ(inset) > 15   ){  /* 27 Mar 2009 */
        MRI_IMAGE *qim ; int mc ;
        qim   = THD_rms_brick(inset) ;
        gmask = mri_automask_image( qim ) ;
