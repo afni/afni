@@ -1323,7 +1323,7 @@ typedef struct { int nar ; int *ar ; } intvec ;
 
 /*----------*/
 
-typedef struct { short nar ; short *ar ; } shortvec ;
+typedef struct { int nar ; short *ar ; } shortvec ;
 #define KILL_shortvec(iv)                    \
   do{ if( (iv) != NULL ){                     \
         if( (iv)->ar != NULL ) free((iv)->ar); \
@@ -1340,6 +1340,28 @@ typedef struct { short nar ; short *ar ; } shortvec ;
   do{ if( (iv)->nar != (m) ){                                   \
         (iv)->nar = (m) ;                                        \
         (iv)->ar  = (short *)realloc((iv)->ar,sizeof(short)*(m)); \
+  }} while(0)
+
+/*----------*/
+/* Jul 2010 */
+
+typedef struct { int nar ; byte *ar ; } bytevec ;
+#define KILL_bytevec(iv)                     \
+  do{ if( (iv) != NULL ){                     \
+        if( (iv)->ar != NULL ) free((iv)->ar); \
+        free(iv); (iv) = NULL;                  \
+  } } while(0)
+
+#define MAKE_bytevec(iv,n)                         \
+  do{ (iv) = (bytevec *)malloc(sizeof(bytevec)) ;   \
+      (iv)->nar = (n) ;                              \
+      (iv)->ar  = (byte *)calloc(sizeof(byte),(n)) ;  \
+  } while(0)
+
+#define RESIZE_bytevec(iv,m)                                 \
+  do{ if( (iv)->nar != (m) ){                                 \
+        (iv)->nar = (m) ;                                      \
+        (iv)->ar  = (byte *)realloc((iv)->ar,sizeof(byte)*(m)); \
   }} while(0)
 
 /*----------*/

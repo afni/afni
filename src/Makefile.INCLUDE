@@ -86,7 +86,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            3dUpsample 3dTcorrMap 3dmatmult 3dABoverlap 3dmaskSVD 1dBandpass     \
            3dBlurInMask 3dRank 3dFFT 1dgenARMA11 3dPeriodogram 1dAstrip         \
            3dLocalPV 3dBandpass 3dSetupGroupInCorr 3dGroupInCorr 3dTcorr1D      \
-           3dClustSim 3dRetinoPhase                                             \
+           3dClustSim 3dRetinoPhase 3dMaskToASCII                               \
            $(EXTRAS)
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge      \
@@ -99,7 +99,7 @@ PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge  
                   24swap 3dTsmooth RSFgen float_scan 3dDeconvolve_f 1ddot 1dsvd     \
                   3dFourier 3dNotes 3dROIstats 1deval 3dStatClust 3dTstat 3ddelay   \
                   3dDTeig 3dDWItoDT 1dtranspose whereami 3dAFNItoNIML 3dcopy imcat  \
-                  3dDetrend 1dfft 1dcat 3drename 1dnorm afni_vcheck 3ddot 3dBrickStat \
+                  3dDetrend 1dfft 3drename 1dnorm afni_vcheck 3ddot 3dBrickStat     \
                   imcutup 3dMean 3dAttribute 3dZeropad 3dWinsor 3dmaskdump 3dfim+   \
                   3dUndump cat_matvec 3dOverlap 3dClipLevel 3dZregrid 3dEntropy     \
                   ent16 3dRowFillin 1dgrayplot 3dToutcount 1dsum 3dExtrema strblast \
@@ -114,9 +114,10 @@ PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge  
                   3dmaxima 3dTwotoComplex 3dInvFMRI 1dmatcalc 3dmatcalc 3dAcost     \
                   3dLocalBistat 3dFWHMx 3dBlurToFWHM 1dSEM 3dDFT 3dSynthesize       \
                   1dMarry 3dEmpty 3dTsort 1dTsort 1dFlagMotion 3dTfitter            \
-                  3dLocalSVD 3dFFT         3dErrtsCormat 3dREMLfit 3dTcorrMap       \
+                  3dLocalSVD 3dFFT  1dcat  3dErrtsCormat 3dREMLfit 3dTcorrMap       \
                   afni_history 3dUpsample 1dUpsample 3dmatmult 3dABoverlap          \
-                  3dmaskSVD 3dRank 3dLocalPV 3dTcorr1D 3dClustSim 3dRetinoPhase  $(EXTRAS)
+                  3dmaskSVD 3dRank 3dLocalPV 3dTcorr1D 3dClustSim 3dRetinoPhase     \
+                  3dMaskToASCII $(EXTRAS)
 
 # For CYGWIN (look for "exe" to find various places below)
 #  Note that 3dNLfim and 3dTSgen are missing for now
@@ -148,7 +149,8 @@ PROGRAMS_EXE = afni.exe to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge 
                3danisosmooth 3dTwotoComplex 3dInvFMRI 3dmatcalc 3dAllineate       \
                3dFWHMx 3dBlurToFWHM 1dSEM 3dDFT 3dSynthesize 1dMarry 3dEmpty      \
                1dFlagMotion 3dTsort 1dTsort 3dTfitter afni_history 1dUpsample     \
-               3dTcorrMap 3dABoverlap 3dRank 3dFFT 3dTcorr1D 3dClustSim 3dRetinoPhase 
+               3dTcorrMap 3dABoverlap 3dRank 3dFFT 3dTcorr1D 3dClustSim           \
+               3dRetinoPhase 3dMaskToASCII
 
 SCRIPTS = @4Daverage @CommandGlobb @GetAfniOrient @DTI_studio_reposition          \
           @GetAfniPrefix @NoExt @UpdateAfni @RenamePanga @2dwarper                \
@@ -2478,11 +2480,11 @@ qqq.o:qqq.c
 qqq:qqq.o
 	$(CC) -o qqq qqq.o $(INFLAGS) $(LFLAGS) $(LLIBS) -lmrix -lcoxplot  -lf2c $(LLIBS)
 
-zb64.o:zb64.c
-	$(CC) -c zb64.c $(INFLAGS)
+3dMaskToASCII.o:3dMaskToASCII.c
+	$(CC) -c 3dMaskToASCII.c $(INFLAGS)
 
-zb64:zb64.o
-	$(CC) -o zb64 zb64.o $(INFLAGS) $(LFLAGS) $(LLIBS)
+3dMaskToASCII:3dMaskToASCII.o
+	$(CC) -o 3dMaskToASCII 3dMaskToASCII.o $(INFLAGS) $(LFLAGS) $(LLIBS)
 
 bitvec.o:bitvec.c
 	$(CCFAST) -c bitvec.c $(INFLAGS)
