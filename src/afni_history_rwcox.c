@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 15 , JUL , 2010 , RWC , "3dClustSim" , MICRO , TYPE_GENERAL ,
+   "-niml now implies -LOTS as well" ,
+   NULL } ,
+
  { 14 , JUL , 2010 , RWC , "afni" , MICRO , TYPE_GENERAL ,
    "Clusterize now uses the mask from 3dClustSim, if available" ,
    NULL } ,
