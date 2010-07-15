@@ -327,7 +327,7 @@ void Syntax(char *str)
     "              stat values == 0 will be ignored in the FDR algorithm.\n"
     "\n"
     " -FDRmask mset = load dataset 'mset' and use it as a mask\n"
-    "                 for the '-addFDR' calculations.\n"
+    " -STATmask mset  for the '-addFDR' calculations.\n"
     "                 * This can be useful if you ran 3dDeconvolve/3dREMLFIT\n"
     "                    without a mask, and want to apply a mask to improve\n"
     "                    the FDR estimation procedure.\n"
@@ -462,21 +462,23 @@ int main( int argc , char * argv[] )
         do_killSTAT = 1 ; do_FDR = -1 ; new_stuff++ ; iarg++ ; continue ;
       }
 
-      if( strcasecmp(argv[iarg],"-FDRmask") == 0 ){   /*-- 27 Mar 2009 --*/
-        THD_3dim_dataset *fset ;
+      if( strcasecmp(argv[iarg],"-FDRmask")  == 0 ||
+          strcasecmp(argv[iarg],"-STATmask") == 0   ){   /*-- 27 Mar 2009 --*/
+
+        bytevec *bvec ;  /* 15 Jul 2010 */
+
         if( iarg+1 >= argc ) Syntax("need 1 argument after -FDRmask!") ;
         if( nFDRmask > 0 )   Syntax("can't have two -FDRmask options!") ;
-        fset = THD_open_dataset( argv[++iarg] ) ; CHECK_OPEN_ERROR(fset,argv[iarg]) ;
-        DSET_load(fset)                         ; CHECK_LOAD_ERROR(fset) ;
-        FDRmask = THD_makemask( fset , 0 , 1.0f,-1.0f ) ;
-        if( FDRmask == NULL ) Syntax("Can't use -FDRmask dataset!") ;
-        nFDRmask = DSET_NVOX(fset) ; DSET_delete(fset) ;
+        bvec = THD_create_mask_from_string(argv[++iarg]) ;
+        if( bvec == NULL ) ERROR_exit("Can't decipher %s",argv[iarg-1]) ;
+        FDRmask = bvec->ar ; nFDRmask = bvec->nar ;
         ii = THD_countmask(nFDRmask,FDRmask) ;
         if( ii < 100 ){
           WARNING_message("-FDRmask has only %d nonzero voxels: ignoring",ii) ;
-          free(FDRmask) ; FDRmask = NULL ; nFDRmask = 0 ;
+          KILL_bytevec(bvec) ; FDRmask = NULL ; nFDRmask = 0 ;
         } else {
-          INFO_message("-FDRmask has %d nonzero voxels (out of %d total)",ii,nFDRmask) ;
+          INFO_message("%s has %d nonzero voxels (out of %d total)",
+                       argv[iarg-1],ii,nFDRmask) ;
         }
         iarg++ ; continue ;
       }
