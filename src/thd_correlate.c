@@ -287,7 +287,7 @@ float mri_spearman_corr( MRI_IMAGE *im , MRI_IMAGE *jm )
 float THD_eta_squared( int n, float *x , float *y )
 {
    double num=0.0f , denom = 0.0f ;
-   float gm=0.0f , lm ;
+   float gm=0.0f , lm, vv, ww;
    int ii ;
 
    for( ii=0 ; ii < n ; ii++ ){ gm += x[ii] + y[ii] ; }
@@ -295,8 +295,10 @@ float THD_eta_squared( int n, float *x , float *y )
 
    for( ii=0 ; ii < n ; ii++ ){
      lm = 0.5 * ( x[ii] + y[ii] ) ;
-     num   += (x[ii]-lm)*(x[ii]-lm) + (y[ii]-lm)*(y[ii]-lm) ;
-     denom += (x[ii]-gm)*(x[ii]-gm) + (y[ii]-gm)*(y[ii]-gm) ;
+     vv = (x[ii]-lm); ww = (y[ii]-lm);
+     num   += ( vv*vv + ww*ww );
+     vv = (x[ii]-gm); ww = (y[ii]-gm);
+     denom += ( vv*vv + ww*ww );
    }
 
    if( num < 0.0f || denom <= 0.0f || num >= denom ) return 0.0f ;
