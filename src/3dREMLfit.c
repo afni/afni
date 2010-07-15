@@ -1517,7 +1517,8 @@ int main( int argc , char *argv[] )
 
      /**==========  -STATmask [15 Jul 2010]  ==========*/
 
-     if( strcasecmp(argv[iarg],"-STATmask") == 0 ){
+     if( strcasecmp(argv[iarg],"-STATmask") == 0 ||
+         strcasecmp(argv[iarg],"-FDRmask")  == 0   ){
        if( statmask != NULL ) ERROR_exit("can't use -STATmask twice") ;
        if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]) ;
        statmask_name = strdup(argv[iarg]) ;
