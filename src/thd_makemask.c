@@ -1128,6 +1128,63 @@ byte * mask_unbinarize( int nvox , byte *mbin )
    return mful ;
 }
 
+/****************************************************************************
+ ** The functions below are for converting a byte-valued 0/1 mask to/from  **
+ ** an ASCII representation.  The ASCII representation is formed like so:  **
+ **    1. convert it to binary = 8 bits stored in each byte, rather than 1 **
+ **       - this takes the mask from nvox bytes to 1+(nvox-1)/8 bytes      **
+ **       - this operation is done in function mask_binarize() [above]     **
+ **    2. compress the binarized array with zlib                           **
+ **       - this step is done in function array_to_zzb64(), which uses     **
+ **         function zz_compress_all() [in zfun.c]                         **
+ **    3. express the compressed array into Base64 notation (in ASCII)     **
+ **       - this step is also done in function array_to_zzb64(), which     **
+ **         uses function B64_to_base64() [in niml/niml_b64.c]             **
+ **    4. attach at the end a string to indicate the number of voxels      **
+ **         in the mask.                                                   **
+ ** + The above steps are done in function mask_to_b64string() [below].    **
+ ** + The inverse is done in function mask_from_b64string() [below].       **
+ ** + Function mask_b64string_nvox() [below] can be used to get the voxel  **
+ **   count from the end of the string, which can be used to check if a    **
+ **   mask is compatible with a given dataset for which it is intended.    **
+ ****************************************************************************
+ * Below is a sample main program 'zb64.c' that can convert a file between  *
+ * these two formats:                                                       *
+ *    make zb64                                                             *
+ *    zb64 -tob64 maskfile  > stringfile                                    *
+ *    zb64 -tobin stringfil > maskfile                                      *
+
+#include "mrilib.h"
+
+int main( int argc , char *argv[] )
+{
+   int nmask , iarg=1 , tob64=1 ; char *mask , *str ; byte *mbin ;
+
+   if( argc < 2 ){
+     printf("Usage: zb64 [-tob64|-tobin] filename > outputfile\n"); exit(0);
+   }
+   if( argv[iarg][0] == '-' ){
+     if( strcmp(argv[iarg++],"-tobin") == 0 ) tob64 = 0 ;
+   }
+
+   if( tob64 ){
+     mask = AFNI_suck_file(argv[iarg]) ;
+     if( mask == NULL ) ERROR_exit("Can't open file '%s'",argv[iarg]) ;
+     nmask = AFNI_suck_file_len() ;
+     str = mask_to_b64string( nmask , mask ) ;
+     printf("%s\n",str) ;
+   } else {
+     str = AFNI_suck_file(argv[iarg]) ;
+     if( str == NULL ) ERROR_exit("Can't open file '%s'",argv[iarg]) ;
+     mask = mask_from_b64string( str , &nmask ) ;
+     if( mask == NULL || nmask <= 0 )
+       ERROR_exit("Can't decode file '%s'",argv[iarg]) ;
+     fwrite(mask,sizeof(char),nmask,stdout) ;
+   }
+   exit(0) ;
+}
+*******************************************************************************/
+
 /*-------------------------------------------------------------------------*/
 /*! Convert a byte-value 0/1 mask to an ASCII string in Base64. */
 

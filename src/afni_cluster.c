@@ -1784,20 +1784,23 @@ ENTRY("CLU_setup_alpha_tables") ;
 
    dset = im3d->fim_now ; if( !ISVALID_DSET(dset) ) EXRETURN ;
 
-   atr = THD_find_string_atr( dset->dblk , "AFNI_CLUSTSIM_MASK" ) ;
-   if( atr != NULL ){
-     int nvox = mask_b64string_nvox(atr->ch) ;
-     if( nvox == DSET_NVOX(dset) ){
-       im3d->vwid->func->clu_mask = mask_from_b64string(atr->ch,&nvox) ;
-     }
-   }
+   /* NN1 cluster C(p,alpha) table */
 
    atr = THD_find_string_atr( dset->dblk , "AFNI_CLUSTSIM_NN1" ) ;
    if( atr != NULL ){
-     nel = NI_read_element_fromstring(atr->ch) ;
-     ctab = format_cluster_table(nel) ;
+     nel = NI_read_element_fromstring(atr->ch) ;  /* attribute string => NIML */
+     ctab = format_cluster_table(nel) ;           /* NIML => C(p,alpha) table */
      im3d->vwid->func->clu_tabNN1 = ctab ;
-     if( im3d->vwid->func->clu_mask == NULL ){
+
+     /*  search for ASCII mask string */
+
+     atr = THD_find_string_atr( dset->dblk , "AFNI_CLUSTSIM_MASK" ) ; 
+     if( atr != NULL ){
+       int nvox = mask_b64string_nvox(atr->ch) ;  /* length of mask */
+       if( nvox == DSET_NVOX(dset) ){         /* must match dataset */
+         im3d->vwid->func->clu_mask = mask_from_b64string(atr->ch,&nvox) ;
+       }
+     } else {   /* search for original mask dataset via its idcode */
        char *idc = NI_get_attribute(nel,"mask_dset_idcode") ;
        THD_3dim_dataset *mset = PLUTO_find_dset_idc(idc) ;
        if( mset != NULL && DSET_NVOX(mset) == DSET_NVOX(dset) ){
@@ -1805,8 +1808,10 @@ ENTRY("CLU_setup_alpha_tables") ;
          DSET_unload(mset) ;
        }
      }
-     NI_free_element(nel) ;
+     NI_free_element(nel) ;  /* get rid of the C(p,alpha) NIML element */
    }
+
+   /* NN2 and NN3 C(p,alpha) tables */
 
 #if 0
    atr = THD_find_string_atr( dset->dblk , "AFNI_CLUSTSIM_NN2" ) ;

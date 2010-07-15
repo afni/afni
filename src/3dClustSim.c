@@ -209,15 +209,22 @@ void display_help_menu()
    "\n"
    "-niml          = Output the table in an XML/NIML format, rather than a .1D format.\n"
    "                  * This option is for use with other software programs.\n"
+   "                  * '-niml' also implicitly means '-LOTS'.\n"
    "\n"
    "-prefix ppp    = Write output for NN method #k to file 'ppp.NNk.1D' for k=1, 2, 3.\n"
    "                  * If '-prefix is not used, results go to standard output.\n"
    "                  * If '-niml' is used, the filename is 'ppp.NNk.niml'.\n"
-   "                  * If '-niml' AND '-mask' are both used, then an ASCII encoding\n"
-   "                    of the mask volume is stored into file 'ppp.mask'.  This\n"
-   "                    encoding can be stored into a dataset header as an attribute\n"
+   "                  * If '-niml' AND '-mask' are both used, then a compressed ASCII\n"
+   "                    encoding of the mask volume is stored into file 'ppp.mask'.\n"
+   "                    This string can be stored into a dataset header as an attribute\n"
    "                    with name AFNI_CLUSTSIM_MASK, and will be used in the AFNI\n"
-   "                    Clusterize GUI, if present.\n"
+   "                    Clusterize GUI, if present, to mask out above-threshold voxels\n"
+   "                    before the clusterizing is done (which is how the mask is used\n"
+   "                    here in 3dClustSim).\n"
+   "                  * If the ASCII mask string is NOT stored into the statistics dataset\n"
+   "                    header, then the Clusterize GUI will try to find the original\n"
+   "                    mask dataset and use that instead.  If that fails, then masking\n"
+   "                    won't be done in the Clusterize process.\n"
    "\n"
    "-quiet         = Don't print out the progress reports, etc.\n"
    "                  * Put this option first to quiet most informational messages.\n"
@@ -238,13 +245,19 @@ void display_help_menu()
    "* To add the cluster simulation C(p,alpha) table to the header of an AFNI\n"
    "  dataset, something like the following can be done [tcsh syntax]:\n"
    "     set fwhm = ( `3dFWHMx -combine -detrend time_series_dataset+orig` )\n"
-   "     3dClustSim -mask mask+orig -fwhm $fwhm[4] -LOTS -niml -prefix CStemp\n"
+   "     3dClustSim -mask mask+orig -fwhm $fwhm[4] -niml -prefix CStemp\n"
    "     3drefit -atrstring AFNI_CLUSTSIM_NN1 file:CStemp.NN1.niml \\\n"
    "             -atrstring AFNI_CLUSTSIM_MASK file:CStemp.mask    \\\n"
    "             statistics_dataset+orig\n"
    "     rm -f CStemp.*\n"
    "  AFNI's Clusterize GUI makes use of these attributes, if stored in a\n"
    "  statistics dataset (e.g., something from 3dDeconvolve, 3dREMLfit, etc.).\n"
+   "\n"
+   "* The C(p,alpha) table will only be used in Clusterize to provide the cluster\n"
+   "  level alpha value when the AFNI GUI is set so that the Overlay threshold\n"
+   "  sub-brick is a statistical parameter (e.g., a t- or F-statistic), from which\n"
+   "  a per-voxel p-value can be calculated, so that Clusterize can interpolate\n"
+   "  in the C(p,alpha) table.\n"
    "  [At present, AFNI only uses the NN1 method in the Clusterize GUI.]\n"
    "\n"
    "-- RW Cox -- July 2010\n"
@@ -478,6 +491,12 @@ void get_options( int argc , char **argv )
     /*----   -niml   ----*/
 
     if( strcasecmp(argv[nopt],"-niml") == 0 ){
+      npthr = npthr_lots ;
+      pthr = (double *)realloc(pthr,sizeof(double)*npthr) ;
+      memcpy( pthr , pthr_lots , sizeof(double)*npthr ) ;
+      nathr = nathr_lots ;
+      athr = (double *)realloc(athr,sizeof(double)*nathr) ;
+      memcpy( athr , athr_lots , sizeof(double)*nathr ) ;
       do_niml = 1 ; nopt++ ; continue ;
     }
 
