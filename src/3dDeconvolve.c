@@ -1801,7 +1801,8 @@ void get_options
 
       /*-----  -STATmask  fname  -----*/
 
-      if( strcasecmp(argv[nopt],"-STATmask") == 0 ){
+      if( strcasecmp(argv[nopt],"-STATmask") == 0 ||
+          strcasecmp(argv[nopt],"-FDRmask")  == 0   ){
         nopt++ ;
         if( statmask != NULL ) DC_error("can't use -STATmask twice") ;
         if( nopt     >= argc ) DC_error("need argument after -STATmask") ;
