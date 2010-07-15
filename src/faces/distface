@@ -109,8 +109,8 @@ cat afni_scroller                                                           >> a
 
 echo "===== Send to Web server ====="
 
-# scp -q afni_faces.html afni_faces_scroll.html afni_faces.gif face_*.jpg elrond:/var/www/html/afni/community/faces/
-scp -q afni_faces.html afni_faces_scroll.html face_*.jpg elrond:/var/www/html/afni/community/faces/
-ssh elrond chmod ugo+r /var/www/html/afni/community/faces/\*
+# scp -q afni_faces.html afni_faces_scroll.html afni_faces.gif face_*.jpg afni:/var/www/html/afni/community/faces/
+scp -q afni_faces.html afni_faces_scroll.html face_*.jpg afni:/var/www/html/afni/community/faces/
+ssh afni chmod ugo+r /var/www/html/afni/community/faces/\*
 
 echo "===== Done ====="
