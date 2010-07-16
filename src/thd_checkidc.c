@@ -31,7 +31,8 @@ ENTRY("THD_check_idcodes") ;
      sess = ssl->ssar[iss] ; if( !ISVALID_SESSION(sess) ) continue ;
      for( idd=0 ; idd < sess->num_dsset ; idd++ ){
        for( ivv=FIRST_VIEW_TYPE ; ivv <= LAST_VIEW_TYPE ; ivv++ ){
-         dset = sess->dsset[idd][ivv] ;
+         dset = GET_SESSION_DSET(sess, idd, ivv);
+/*         dset = sess->dsset_xform_table[idd][ivv] ;*/
          if( ISVALID_DSET(dset) ) dsnum++ ;
        }
      }
@@ -47,7 +48,8 @@ ENTRY("THD_check_idcodes") ;
      sess = ssl->ssar[iss] ; if( !ISVALID_SESSION(sess) ) continue ;
      for( idd=0 ; idd < sess->num_dsset ; idd++ ){
        for( ivv=FIRST_VIEW_TYPE ; ivv <= LAST_VIEW_TYPE ; ivv++ ){
-         dset = sess->dsset[idd][ivv] ;
+         dset = GET_SESSION_DSET(sess, idd, ivv);
+/*         dset = sess->dsset_xform_table[idd][ivv] ;*/
          if( ISVALID_DSET(dset) ) dsl[nd++] = dset ;
        }
      }

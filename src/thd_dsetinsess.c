@@ -37,7 +37,8 @@ THD_slist_find THD_dset_in_session( int find_type , void *target ,
 
          for( id=0 ; id < sess->num_dsset ; id++ ){
             for( iv=FIRST_VIEW_TYPE ; iv <= LAST_VIEW_TYPE ; iv++ ){
-               dset = sess->dsset[id][iv] ;
+               dset = GET_SESSION_DSET(sess, id, iv);
+/*             dset = sess->dsset_xform_table[id][iv] ;*/
 
                if( dset != NULL && strcmp(dset->self_name,target_name) == 0 ){
                   find.dset = dset ; find.dset_index = id ; find.view_index = iv ;
@@ -58,7 +59,8 @@ THD_slist_find THD_dset_in_session( int find_type , void *target ,
 
          for( id=0 ; id < sess->num_dsset ; id++ ){
             for( iv=FIRST_VIEW_TYPE ; iv <= LAST_VIEW_TYPE ; iv++ ){
-               dset = sess->dsset[id][iv] ;
+               dset = GET_SESSION_DSET(sess, id, iv);
+/*               dset = sess->dsset_xform_table[id][iv] ;*/
 
                if( dset != NULL && strcmp(DSET_PREFIX(dset),target_prefix) == 0 ){
                   find.dset = dset ; find.dset_index = id ; find.view_index = iv ;
@@ -80,7 +82,8 @@ THD_slist_find THD_dset_in_session( int find_type , void *target ,
 
          for( id=0 ; id < sess->num_dsset ; id++ ){
             for( iv=FIRST_VIEW_TYPE ; iv <= LAST_VIEW_TYPE ; iv++ ){
-               dset = sess->dsset[id][iv] ;
+               dset = GET_SESSION_DSET(sess, id, iv);
+/*               dset = sess->dsset_xform_table[id][iv] ;*/
 
                if( dset != NULL && EQUIV_IDCODES(target_id,dset->idcode) ){
                   find.dset = dset ; find.dset_index = id ; find.view_index = iv ;
