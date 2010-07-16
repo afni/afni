@@ -328,9 +328,14 @@ ENTRY("AFNI_drive_purge_memory") ;
    }
 
    if( slf.sess_index >= 0 && slf.dset_index >= 0 ){
-     THD_3dim_dataset **dss =
-       GLOBAL_library.sslist->ssar[slf.sess_index]->dsset[slf.dset_index] ;
-     for( ic=0 ; ic <= LAST_VIEW_TYPE ; ic++ ) PURGE_DSET( dss[ic] ) ;
+/*     THD_3dim_dataset **dss =
+       GLOBAL_library.sslist->ssar[slf.sess_index]->dsset_xform_table[slf.dset_index] ;*/
+     THD_3dim_dataset *dss;
+     for( ic=0 ; ic <= LAST_VIEW_TYPE ; ic++ ) {
+        dss = GET_SESSION_DSET(GLOBAL_library.sslist->ssar[slf.sess_index], slf.dset_index,ic) ;
+        if (dss != NULL)
+           PURGE_DSET( dss ) ;
+     }
      RETURN(0) ;
    }
 

@@ -1805,6 +1805,7 @@ ENTRY("AFNI_fimmer_menu_CB") ;
       static int first_call = 1 ;                    /* initialization flag */
 
       int num_str , ii , init_str=-1 , vv , jj ;
+      THD_3dim_dataset *temp_dset = NULL;            /* temporary dataset from session list */
 
       /** initialize string array **/
 
@@ -1822,14 +1823,16 @@ ENTRY("AFNI_fimmer_menu_CB") ;
       vv      = im3d->vinfo->view_type ;  /* current view */
       for( ii=0 ; ii < im3d->ss_now->num_dsset ; ii++ ){
 
-         if( DSET_GRAPHABLE(im3d->ss_now->dsset[ii][vv]) ){  /** have one! **/
+         if( DSET_GRAPHABLE(GET_SESSION_DSET(im3d->ss_now, ii, vv)) { /* template session list - 2010 */
+            temp_dset = GET_SESSION_DSET(im3d->ss_now, ii, vv);           
+            /* im3d->ss_now->dsset_xform_table[ii][vv]) ){ */ /** have one! **/
             MCW_strncpy( strlist[num_str] ,
-                         im3d->ss_now->dsset[ii][vv]->dblk->diskptr->prefix ,
+                         temp_dset->dblk->diskptr->prefix ,
                          THD_MAX_PREFIX ) ;
 
             jj = ii ;  /* most recent */
 
-            if( im3d->fimdata->fimdset == im3d->ss_now->dsset[ii][vv] )  /* same? */
+            if( im3d->fimdata->fimdset == temp_dset )  /* same? */
                init_str = num_str ;
 
             num_str ++ ;
@@ -1847,9 +1850,10 @@ ENTRY("AFNI_fimmer_menu_CB") ;
                    MCW_USER_KILL | MCW_TIMER_KILL ) ;
 
       } else if( num_str == 1 ){             /* Hobson's choice */
-
-         im3d->fimdata->fimdset = im3d->ss_now->dsset[jj][vv] ;
-         ALLOW_COMPUTE_FIM(im3d) ;
+         if(temp_dset != NULL){
+           im3d->fimdata->fimdset = temp_dset ;
+           ALLOW_COMPUTE_FIM(im3d) ;
+         }
 
       } else {                               /* an actual choice to make! */
 
@@ -1902,14 +1906,14 @@ void AFNI_fimmer_dset_choose_CB( Widget wcaller , XtPointer cd , MCW_choose_cbs 
    num_str = 0 ;
    vv      = im3d->vinfo->view_type ;
    for( ii=0 ; ii < im3d->ss_now->num_dsset ; ii++ ){
-      if( DSET_GRAPHABLE(im3d->ss_now->dsset[ii][vv]) ){
+      if( DSET_GRAPHABLE(GET_SESSION_DSET(im3d->ss_now, ii, vv)) ){
          if( num_str == cbs->ival ) break ;
          num_str ++ ;
       }
    }
 
    if( ii < im3d->ss_now->num_dsset ){
-      im3d->fimdata->fimdset = im3d->ss_now->dsset[ii][vv] ;
+      im3d->fimdata->fimdset = GET_SESSION_DSET(im3d->ss_now, ii, vv) ;
       ALLOW_COMPUTE_FIM(im3d) ;
    } else {
       fprintf(stderr,"\n*** Illegal choice in AFNI_fimmer_dset_choose_CB:"
@@ -2029,7 +2033,8 @@ STATUS("first_call mode") ;
       /*** Fit the new dataset into its place in the session ***/
 
       ifunc = sess->num_dsset ;
-      sess->dsset[ifunc][new_dset->view_type] = new_dset ;
+      SET_SESSION_DSET(new_dset, sess, ifunc, new_dset->view_type);
+/*      sess->dsset_xform_table[ifunc][new_dset->view_type] = new_dset ;*/
       sess->num_dsset ++ ;
       im3d->vinfo->func_num = ifunc ;
 

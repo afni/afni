@@ -1147,7 +1147,8 @@ ENTRY("AFNI_clus_action_CB") ;
                                              *im3d->ss_now->num_dsset  ) ;
      cdds.cb = AFNI_clus_finalize_dataset_CB ;
      for( ii=0 ; ii < im3d->ss_now->num_dsset ; ii++ ){
-       dset = im3d->ss_now->dsset[ii][vv] ;
+       dset = GET_SESSION_DSET(im3d->ss_now, ii, vv) ; 
+/*     dset = im3d->ss_now->dsset_xform_table[ii][vv] ;*/
        if( ISVALID_DSET(dset)                          &&  /* qualifications */
            DSET_NVOX(dset) == DSET_NVOX(im3d->fim_now) &&
            DSET_INMEMORY(dset)                           )
