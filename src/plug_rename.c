@@ -77,7 +77,6 @@ char * RENAME_main( PLUGIN_interface * plint )
    char * new_prefix ;
    MCW_idcode * idc ;
    THD_3dim_dataset * dset ;
-   THD_3dim_dataset ** session_row ;
    char * old_header_name , * old_brick_name ;
    THD_slist_find find ;
    THD_session * ss ;
@@ -114,11 +113,7 @@ char * RENAME_main( PLUGIN_interface * plint )
    find = THD_dset_in_sessionlist( FIND_IDCODE, idc, GLOBAL_library.sslist, -1 ) ;
    iss  = find.sess_index ;
    ss   = GLOBAL_library.sslist->ssar[iss] ;
-
-   /*-- set up session_row to point to all the associated datasets --*/
-
-   id = find.dset_index ;
-   session_row = ss->dsset[id] ;
+   id = find.dset_index ; 
 
    /*-- for each element of this row,
         change its internal names and, if needed, filenames on disk --*/
@@ -127,7 +122,8 @@ char * RENAME_main( PLUGIN_interface * plint )
 
    for( ivv=FIRST_VIEW_TYPE ; ivv <= LAST_VIEW_TYPE ; ivv++ ){
 
-      dset = session_row[ivv] ;
+      dset = GET_SESSION_DSET(ss, id, ivv);
+      
       if( ! ISVALID_3DIM_DATASET(dset) ) continue ;  /* skip this one */
 
       /*-- copy the old filenames --*/

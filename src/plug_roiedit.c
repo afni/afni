@@ -4955,7 +4955,8 @@ static void DRAW_choose_CB( Widget w, XtPointer client_data, XtPointer call_data
    /* scan anats */
 
    for( id=0 ; id < ss->num_dsset ; id++ ){
-      qset = ss->dsset[id][vv] ;
+      qset = GET_SESSION_DSET(ss, id, vv);
+/*      qset = ss->dsset_xform_table[id][vv] ;*/
 
       if( ! ISVALID_DSET (qset)                        ) continue ;  /* skip */
       if( ! DSET_INMEMORY(qset)                        ) continue ;
