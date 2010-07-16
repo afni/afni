@@ -4854,6 +4854,7 @@ static vptr_func * forced_loads[] = {
    (vptr_func *) r_hex_str_to_long ,      /* 31 Jul 2007 */
    (vptr_func *) r_idisp_vec3f ,          /* 31 Jul 2007 */
    (vptr_func *) THD_dataset_mismatch ,   /* 04 Sep 2009 */
+   (vptr_func *) legendre ,               /* 16 Jul 2010 */
 #endif
 NULL } ;
 

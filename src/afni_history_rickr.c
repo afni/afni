@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 16, JUL, 2010, RCR, "afni", MICRO, TYPE_BUG_FIX,
+   "added legendre to forced_loads array for plugin use",
+   NULL
+ } ,
+
  { 16, JUL, 2010, RCR, "3dMean", MINOR, TYPE_NEW_OPT,
    "added -mask_union and -mask_inter, for creation of mask datasets",
    NULL
