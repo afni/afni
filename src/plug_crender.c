@@ -3295,7 +3295,8 @@ ENTRY( "RCREND_load_dsl" );
    /* scan datasets */
 
    for( id=0 ; id < ss->num_dsset ; id++ ){
-      qset = ss->dsset[id][vv] ;
+      qset = GET_SESSION_DSET(ss, id, vv);
+/*      qset = ss->dsset_xform_table[id][vv] ;*/
 
       if( ! USEFUL_DSET(qset) ) continue ;   /* skip this one */
 

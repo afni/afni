@@ -3006,7 +3006,8 @@ void REND_load_dsl( THD_3dim_dataset * mset , int float_ok )
    /* scan datasets */
 
    for( id=0 ; id < ss->num_dsset ; id++ ){
-      qset = ss->dsset[id][vv] ;
+      qset = GET_SESSION_DSET(ss, id, vv);
+/*      qset = ss->dsset_xform_table[id][vv] ; */
 
       if( ! USEFUL_DSET(qset) ) continue ;   /* skip this one */
 
