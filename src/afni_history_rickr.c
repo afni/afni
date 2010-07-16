@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 16, JUL, 2010, RCR, "3dMean", MINOR, TYPE_NEW_OPT,
+   "added -mask_union and -mask_inter, for creation of mask datasets",
+   NULL
+ } ,
+
  { 14, JUL, 2010, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
    "added -mask_test_overlap and -regress_cormat_warnigns",
    "Unless the user sets these options to 'no', the processing script\n"
