@@ -9,14 +9,17 @@
 
 int main( int argc , char * argv[] )
 {
-   THD_3dim_dataset * inset , * outset ;
+   THD_3dim_dataset * inset=NULL , * outset=NULL ;
    int nx,ny,nz,nxyz,nval , ii,kk , nopt=1, nsum=0 ;
    char * prefix = "mean" ;
    int datum=-1 , verb=0 , do_sd=0, do_sum=0 , do_sqr=0, firstds=0 ;
-   float ** sum , fsum;
-   float ** sd;
+   int do_union=0 , do_inter=0 ;
+   float ** sum=NULL , fsum=0.0;
+   float ** sd=NULL;
 
    int fscale=0 , gscale=0 , nscale=0 ;
+
+   nx = ny = nz = nxyz = nval = 0;  /* just for compiler warnings */
 
    /*-- help? --*/
 
@@ -41,6 +44,12 @@ int main( int argc , char * argv[] )
              "\n"
              "  -sqr        = Average the squares, instead of the values.\n"
              "  -sum        = Just take the sum (don't divide by number of datasets).\n"
+             "\n"
+             "  -mask_inter = Create a simple intersection mask.\n"
+             "  -mask_union = Create a simple union mask.\n"
+             "\n"
+             "                The masks will be set by any non-zero voxels in\n"
+             "                the input datasets.\n"
              "\n"
              "N.B.: All input datasets must have the same number of voxels along\n"
              "       each axis (x,y,z,t).\n"
@@ -69,6 +78,14 @@ int main( int argc , char * argv[] )
    /*-- command line options --*/
 
    while( nopt < argc && argv[nopt][0] == '-' ){
+
+      if( strcmp(argv[nopt],"-mask_inter") == 0 ){  /* 16 Jul 2010 [rickr] */
+         do_inter = 1 ; nopt++ ; continue ;
+      }
+
+      if( strcmp(argv[nopt],"-mask_union") == 0 ){
+         do_union = 1 ; nopt++ ; continue ;
+      }
 
       if( strcmp(argv[nopt],"-sd") == 0 || strcmp(argv[nopt],"-stdev") == 0 ){
          do_sd = 1 ; nopt++ ; continue ;
@@ -148,6 +165,17 @@ int main( int argc , char * argv[] )
      exit(1) ;
    }
 
+   /* mask options cannot be combined       16 Jul 2010 [rickr] */
+   if( do_union || do_inter ) {
+     if ( do_sum || do_sqr || do_sd ) {
+        fprintf(stderr,"** -sd, -sqr, -sum cannot be used with -mask_*\n") ;
+        exit(1) ;
+     } else if ( do_union && do_inter ) {
+        fprintf(stderr,"** cannot use both -mask_inter and -mask_union\n") ;
+        exit(1) ;
+     }
+   }
+
    /*-- rest of command line should be datasets --*/
 
    if( nopt >= argc-1 ){
@@ -181,12 +209,20 @@ int main( int argc , char * argv[] )
          sum = (float **) malloc( sizeof(float *)*nval ) ;    /* array of sub-bricks */
          for( kk=0 ; kk < nval ; kk++ ){
            sum[kk] = (float *) malloc(sizeof(float)*nxyz) ;  /* kk-th sub-brick */
-           for( ii=0 ; ii < nxyz ; ii++ ) sum[kk][ii] = 0.0f ;
+           /* for -mask_inter, start with full mask and clear */
+           if( do_inter ) {
+              for( ii=0 ; ii < nxyz ; ii++ ) sum[kk][ii] = 1.0f ;
+           } else {
+              for( ii=0 ; ii < nxyz ; ii++ ) sum[kk][ii] = 0.0f ;
+           }
          }
 
          outset = EDIT_empty_copy( inset ) ;
 
-         if( datum < 0 ) datum = DSET_BRICK_TYPE(inset,0) ;
+         if( datum < 0 ) {                      /* 16 Jul 2010 [rickr] */
+            if( do_inter || do_union ) datum = MRI_byte ;
+            else                       datum = DSET_BRICK_TYPE(inset,0) ;
+         }
 
          tross_Copy_History( inset , outset ) ;
          tross_Make_History( "3dMean" , argc,argv , outset ) ;
@@ -196,7 +232,7 @@ int main( int argc , char * argv[] )
                              ADN_datum_all , datum ,
                           ADN_none ) ;
 
-         if( THD_deathcon() && THD_is_file(outset->dblk->diskptr->header_name) ){
+         if(THD_deathcon() && THD_is_file(outset->dblk->diskptr->header_name)){
             fprintf(stderr,
                     "*** Output file %s already exists -- cannot continue!\n",
                     outset->dblk->diskptr->header_name ) ;
@@ -243,6 +279,16 @@ int main( int argc , char * argv[] )
                if( do_sqr )
                   for( ii=0 ; ii < nxyz ; ii++ )
                      { val = fac * pp[ii] ; sum[kk][ii] += val*val ; }
+               else if ( do_inter )     /* 16 Jul 2010 [rickr] */
+                  /* for intersection, start with full mask and clear */
+                  for( ii=0 ; ii < nxyz ; ii++ ) {
+                     if( ! pp[ii] ) sum[kk][ii] = 0.0 ;
+                  }
+               else if ( do_union )     /* 16 Jul 2010 [rickr] */
+                  /* for union, start with empty mask and add */
+                  for( ii=0 ; ii < nxyz ; ii++ ) {
+                     if( pp[ii] ) sum[kk][ii] = 1.0 ;
+                  }
                else
                   for( ii=0 ; ii < nxyz ; ii++ ) sum[kk][ii] += fac * pp[ii] ;
             }
@@ -255,6 +301,16 @@ int main( int argc , char * argv[] )
                if( do_sqr )
                   for( ii=0 ; ii < nxyz ; ii++ )
                      { val = fac * pp[ii] ; sum[kk][ii] += val*val ; }
+               else if ( do_inter )     /* 16 Jul 2010 [rickr] */
+                  /* for intersection, start with full mask and clear */
+                  for( ii=0 ; ii < nxyz ; ii++ ) {
+                     if( ! pp[ii] ) sum[kk][ii] = 0.0 ;
+                  }
+               else if ( do_union )     /* 16 Jul 2010 [rickr] */
+                  /* for union, start with empty mask and add */
+                  for( ii=0 ; ii < nxyz ; ii++ ) {
+                     if( pp[ii] ) sum[kk][ii] = 1.0 ;
+                  }
                else
                   for( ii=0 ; ii < nxyz ; ii++ ) sum[kk][ii] += fac * pp[ii] ;
             }
@@ -267,6 +323,16 @@ int main( int argc , char * argv[] )
                if( do_sqr )
                   for( ii=0 ; ii < nxyz ; ii++ )
                      { val = fac * pp[ii] ; sum[kk][ii] += val*val ; }
+               else if ( do_inter )     /* 16 Jul 2010 [rickr] */
+                  /* for intersection, start with full mask and clear */
+                  for( ii=0 ; ii < nxyz ; ii++ ) {
+                     if( ! pp[ii] ) sum[kk][ii] = 0.0 ;
+                  }
+               else if ( do_union )     /* 16 Jul 2010 [rickr] */
+                  /* for union, start with empty mask and add */
+                  for( ii=0 ; ii < nxyz ; ii++ ) {
+                     if( pp[ii] ) sum[kk][ii] = 1.0 ;
+                  }
                else
                   for( ii=0 ; ii < nxyz ; ii++ ) sum[kk][ii] += fac * pp[ii] ;
             }
@@ -279,7 +345,7 @@ int main( int argc , char * argv[] )
 
    /* scale to be mean instead of sum */
 
-   if( !do_sum ){
+   if( !do_sum && !do_inter && !do_union ){
      fsum = 1.0 / nsum ;
      for( kk=0 ; kk < nval ; kk++ )
        for( ii=0 ; ii < nxyz ; ii++ ) sum[kk][ii] *= fsum ;
@@ -387,7 +453,7 @@ int main( int argc , char * argv[] )
       case MRI_byte:
       case MRI_short:{
          void ** dfim ;
-         float gtop , fimfac , gtemp ;
+         float gtop=0.0 , fimfac , gtemp ;
 
          if( verb )
             fprintf(stderr,"  ++ Scaling output to type %s brick(s)\n",
