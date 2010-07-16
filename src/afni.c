@@ -7439,14 +7439,14 @@ STATUS("turning markers on") ;
 
    DISABLE_LOCK ;  /* 11 Nov 1996 */
 
+   CLU_setup_alpha_tables(im3d) ;  /* Jul 2010 */
+
    AFNI_view_setter(im3d,NULL) ;
    AFNI_set_viewpoint( im3d, iv.ijk[0],iv.ijk[1],iv.ijk[2] , REDISPLAY_ALL ) ;
 
    ENABLE_LOCK ;   /* 11 Nov 1996 */
 
    SAVE_VPT(im3d) ;  /* save current location as jumpback */
-
-   CLU_setup_alpha_tables(im3d) ;  /* Jul 2010 */
 
    EXRETURN ;
 }
