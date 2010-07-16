@@ -1,7 +1,7 @@
 #!/usr/bin/env afni_run_R
 #Welcome to 3dICC_REML.R, an AFNI IntraClass Correlation Package!
 #-----------------------------------------------------------
-#Version 0.0.1,  Jul. 8, 2010
+#Version 0.0.2,  Jul. 16, 2010
 #Author: Gang Chen (gangchen@mail.nih.gov)
 #Website: http://afni.nimh.nih.gov/sscc/gangc/icc.html
 #SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -42,8 +42,14 @@ system("rm -f .RData")
 source(file.path(Sys.getenv("AFNI_R_DIR"), "AFNIio.R"))
 #source("~/abin/AFNIio.R")
 
+comArgs <- commandArgs()
+if(length(comArgs)<6) parFile <- "model.txt" else
+parFile <- comArgs[6]
+paste(comArgs)
+paste(parFile)
+
 #  Output filename: optional
-Out <- getInfo("Output", "model.txt")
+Out <- getInfo("Output", parFile)
 if(is.na(Out)) {
    print("No output file name provided: a suffix of TEST will be used...")
 	Out <- "TEST"
@@ -53,15 +59,15 @@ OutFile <- paste(Out, "+orig", sep="")
 libLoad("lme4")
 
 # MASK: optional
-mask <- getInfo("Mask", "model.txt")
+mask <- getInfo("Mask", parFile)
 
 # number of Clusters: optional
-nNodes <- as.integer(getInfo("Clusters", "model.txt"))
+nNodes <- as.integer(getInfo("Clusters", parFile))
 if(is.na(nNodes)) nNodes<-1
 
 # header position (hp) defined by column name InputFile
-if(!is.na(LN<-lineNum("InputFile", "model.txt"))) { 
-   Model <- read.table("model.txt", skip=LN-1, header=TRUE)
+if(!is.na(LN<-lineNum("InputFile", parFile))) { 
+   Model <- read.table(parFile, skip=LN-1, header=TRUE)
 # More decent way to do this?
    Model$Subj <-  as.factor(Model$Subj)
    Model$InputFile <-  as.character(Model$InputFile)
