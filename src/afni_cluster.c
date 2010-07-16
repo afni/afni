@@ -971,6 +971,7 @@ ENTRY("AFNI_clus_update_widgets") ;
 
    pval = im3d->vinfo->func_pval ;
    if( pval >= 0.0f && im3d->vwid->func->clu_tabNN1 != NULL ){
+#if 0
      int csiz ;
      csiz = find_cluster_thresh( 0.10f , pval , im3d->vwid->func->clu_tabNN1 ) ;
      if( csiz > 0 ) sprintf( rrr+strlen(rrr) , " Cluster thresh(alpha=0.10) =%6d\n",csiz) ;
@@ -981,6 +982,18 @@ ENTRY("AFNI_clus_update_widgets") ;
      csiz = find_cluster_thresh( 0.01f , pval , im3d->vwid->func->clu_tabNN1 ) ;
      if( csiz > 0 ) sprintf( rrr+strlen(rrr) , " Cluster thresh(alpha=0.01) =%6d\n",csiz) ;
      else           strcat ( rrr             , " Cluster thresh(alpha=0.01) =   N/A\n") ;
+#else
+     int csiz ; char ssiz10[8] , ssiz05[8] , ssiz01[8] ;
+     csiz = find_cluster_thresh( 0.10f , pval , im3d->vwid->func->clu_tabNN1 ) ;
+     if( csiz > 0 ) sprintf(ssiz10,"%d",csiz) ; else strcpy(ssiz10,"N/A") ;
+     csiz = find_cluster_thresh( 0.05f , pval , im3d->vwid->func->clu_tabNN1 ) ;
+     if( csiz > 0 ) sprintf(ssiz05,"%d",csiz) ; else strcpy(ssiz05,"N/A") ;
+     csiz = find_cluster_thresh( 0.01f , pval , im3d->vwid->func->clu_tabNN1 ) ;
+     if( csiz > 0 ) sprintf(ssiz01,"%d",csiz) ; else strcpy(ssiz01,"N/A") ;
+     sprintf( rrr+strlen(rrr) ,
+              " Alpha -> Cluster thresh: 0.10->%s : 0.05->%s : 0.01->%s" ,
+              ssiz10 , ssiz05 , ssiz01 ) ;
+#endif
    }
    ii = strlen(rrr) ; if( rrr[ii-1] == '\n' ) rrr[ii-1] = '\0' ;
 
@@ -1893,8 +1906,8 @@ float find_cluster_alpha( int csiz, float pval, CLU_threshtable *ctab )
      if( csiz < cval ) break ;
    }
    if( iathr == 0 )                        return (       -athr[0]       ) ;
-   if( iathr < nathr || csiz < 2.2f*cval ) return (        athr[iathr-1] ) ;
-                                          return ( 0.1f * athr[nathr-1] ) ;
+   if( iathr < nathr || csiz < 2.0f*cval ) return (        athr[iathr-1] ) ;
+                                           return ( 0.1f * athr[nathr-1] ) ;
 }
 
 /*----------------------------------------------------------------------------*/
