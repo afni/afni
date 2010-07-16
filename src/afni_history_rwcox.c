@@ -44,6 +44,11 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 16 , JUL , 2010 , RWC , "3dAutoTcorrelate" , MICRO , TYPE_GENERAL ,
+   "OpenMP-ized for HJJ" ,
+   "Required inverting dataset to MRI_vectim struct to solve memory\n"
+   "thrashing problem.  Otherwise, speedup was marginal at best." } ,
+
  { 16 , JUL , 2010 , RWC , "afni" , MICRO , TYPE_GENERAL ,
    "Add C(p,alpha) threshold label for alpha=0.10,0.05,0.01" ,
    "Plus fix bug that caused crash when switching to overlay of different\n"
