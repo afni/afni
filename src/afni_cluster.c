@@ -21,7 +21,8 @@ static char * AFNI_clus_3dclust( Three_D_View *im3d ) ;
 
 static Widget wtemp ;
 
-char * get_alpha_string( int csiz , float pval , Three_D_View *im3d ) ;
+char * get_alpha_string( int csiz  , float pval , Three_D_View *im3d    ) ;
+int find_cluster_thresh( float athr, float pval , CLU_threshtable *ctab ) ;
 
 /*****************************************************************************/
 /*************  Functions for all actions in the cluster group ***************/
@@ -388,7 +389,7 @@ ENTRY("AFNI_clus_make_widgets") ;
                               XmFONTLIST_DEFAULT_TAG ) ;
    cwid->top_lab = XtVaCreateManagedWidget(
                     "menu" , xmLabelWidgetClass , cwid->rowcol ,
-                       XmNrecomputeSize , False ,
+                       XmNrecomputeSize , True ,
                        XmNlabelString , xstr ,
                        XmNtraversalOn , True  ,
                     NULL ) ;
@@ -921,7 +922,7 @@ void AFNI_clus_update_widgets( Three_D_View *im3d )
    char *rpt , *rrr ;
    mri_cluster_detail *cld ;
    int nclu , ii ;
-   float px,py,pz , xx,yy,zz ;
+   float px,py,pz , xx,yy,zz , pval ;
    char line[128] ;
    MCW_cluster_array *clar ;
    int maxclu ;
@@ -966,7 +967,23 @@ ENTRY("AFNI_clus_update_widgets") ;
 
    if( rpt == NULL || *rpt == '\0' ) rpt = " \n --- Cluster Report --- \n " ;
 
-   rrr = malloc(strlen(rpt)+8) ; strcpy(rrr," \n") ; strcat(rrr,rpt) ;
+   rrr = malloc(strlen(rpt)+256) ; strcpy(rrr,rpt) ;
+
+   pval = im3d->vinfo->func_pval ;
+   if( pval >= 0.0f && im3d->vwid->func->clu_tabNN1 != NULL ){
+     int csiz ;
+     csiz = find_cluster_thresh( 0.10f , pval , im3d->vwid->func->clu_tabNN1 ) ;
+     if( csiz > 0 ) sprintf( rrr+strlen(rrr) , " Cluster thresh(alpha=0.10) =%6d\n",csiz) ;
+     else           strcat ( rrr             , " Cluster thresh(alpha=0.10) =   N/A\n") ;
+     csiz = find_cluster_thresh( 0.05f , pval , im3d->vwid->func->clu_tabNN1 ) ;
+     if( csiz > 0 ) sprintf( rrr+strlen(rrr) , " Cluster thresh(alpha=0.05) =%6d\n",csiz) ;
+     else           strcat ( rrr             , " Cluster thresh(alpha=0.05) =   N/A\n") ;
+     csiz = find_cluster_thresh( 0.01f , pval , im3d->vwid->func->clu_tabNN1 ) ;
+     if( csiz > 0 ) sprintf( rrr+strlen(rrr) , " Cluster thresh(alpha=0.01) =%6d\n",csiz) ;
+     else           strcat ( rrr             , " Cluster thresh(alpha=0.01) =   N/A\n") ;
+   }
+   ii = strlen(rrr) ; if( rrr[ii-1] == '\n' ) rrr[ii-1] = '\0' ;
+
    MCW_set_widget_label( cwid->top_lab , rrr ) ; free(rrr) ;
 
    /* make more widget rows? (1 per cluster is needed) */
@@ -1021,10 +1038,8 @@ ENTRY("AFNI_clus_update_widgets") ;
                ii+1,cld[ii].nvox , px,py,pz ) ;
      MCW_set_widget_label( cwid->clu_lab[ii] , line ) ;
 
-#if 1
-     rrr = get_alpha_string( cld[ii].nvox , im3d->vinfo->func_pval , im3d ) ;
+     rrr = get_alpha_string( cld[ii].nvox , pval , im3d ) ;
      MCW_set_widget_label( cwid->clu_alph_lab[ii] , rrr ) ;
-#endif
 
    } /* end of loop over widget rows */
 
@@ -1766,7 +1781,7 @@ void CLU_setup_alpha_tables( Three_D_View *im3d )
 
 ENTRY("CLU_setup_alpha_tables") ;
 
-   if( !IM3D_OPEN(im3d) ) EXRETURN ;
+   if( !IM3D_VALID(im3d) ) EXRETURN ;
 
    /* free anything we have now */
 
@@ -1794,7 +1809,7 @@ ENTRY("CLU_setup_alpha_tables") ;
 
      /*  search for ASCII mask string */
 
-     atr = THD_find_string_atr( dset->dblk , "AFNI_CLUSTSIM_MASK" ) ; 
+     atr = THD_find_string_atr( dset->dblk , "AFNI_CLUSTSIM_MASK" ) ;
      if( atr != NULL ){
        int nvox = mask_b64string_nvox(atr->ch) ;  /* length of mask */
        if( nvox == DSET_NVOX(dset) ){         /* must match dataset */
@@ -1835,6 +1850,7 @@ ENTRY("CLU_setup_alpha_tables") ;
 /*----------------------------------------------------------------------------*/
 /* Interpolate function y(x) at x=xout, given y(xa)=ya and y(xb)=yb.
    Assume y(x) = A * x^b, so that log(y(x)) = log(A) + b*log(x).
+   In our application, x=p and y=C(p,alpha) for a fixed alpha.
 *//*--------------------------------------------------------------------------*/
 
 #undef  loginterp
@@ -1851,7 +1867,7 @@ ENTRY("CLU_setup_alpha_tables") ;
     * x >  0   ==> cluster alpha value is smaller than x
 *//*--------------------------------------------------------------------------*/
 
-static float find_cluster_alpha( int csiz , float pval , CLU_threshtable *ctab )
+float find_cluster_alpha( int csiz, float pval, CLU_threshtable *ctab )
 {
    int   ipthr , iathr ;
    int   npthr , nathr ;
@@ -1864,21 +1880,54 @@ static float find_cluster_alpha( int csiz , float pval , CLU_threshtable *ctab )
 
    /* find ipthr such that pthr[ipthr-1] > pval > pthr[ipthr] */
 
-  for( ipthr=1 ; ipthr < npthr && pval <= pthr[ipthr] ; ipthr++ ) ; /*nada*/
-  if( ipthr == npthr ){
-    ipthr = npthr-1 ; pval = pthr[ipthr] ;  /* pval was too small */
-  }
+   for( ipthr=1 ; ipthr < npthr && pval <= pthr[ipthr] ; ipthr++ ) ; /*nada*/
+   if( ipthr == npthr ){
+     ipthr = npthr-1 ; pval = pthr[ipthr] ;  /* pval was too small */
+   }
 
-  /* scan in athr direction to find a C(p,alpha) value */
+   /* scan in athr direction to find a C(p,alpha) value */
 
-  for( iathr=0 ; iathr < nathr ; iathr++ ){
-    cval = loginterp( pval,   pthr[ipthr-1]       ,   pthr[ipthr]       ,
-                            cluthr[ipthr-1][iathr], cluthr[ipthr][iathr] ) ;
-    if( csiz < cval ) break ;
-  }
-  if( iathr == 0 )                        return (       -athr[0]       ) ;
-  if( iathr < nathr || csiz < 2.2f*cval ) return (        athr[iathr-1] ) ;
+   for( iathr=0 ; iathr < nathr ; iathr++ ){
+     cval = loginterp( pval,   pthr[ipthr-1]       ,   pthr[ipthr]       ,
+                             cluthr[ipthr-1][iathr], cluthr[ipthr][iathr] ) ;
+     if( csiz < cval ) break ;
+   }
+   if( iathr == 0 )                        return (       -athr[0]       ) ;
+   if( iathr < nathr || csiz < 2.2f*cval ) return (        athr[iathr-1] ) ;
                                           return ( 0.1f * athr[nathr-1] ) ;
+}
+
+/*----------------------------------------------------------------------------*/
+
+int find_cluster_thresh( float aaa, float pval, CLU_threshtable *ctab )
+{
+   int ipthr , iathr , npthr , nathr ;
+   float *pthr , *athr , **cluthr , cval ;
+
+   if( aaa <= 0.0f || ctab == NULL || pval  > ctab->pthr[0] ) return 0 ;
+
+   npthr = ctab->npthr ; nathr = ctab->nathr ;
+    pthr = ctab-> pthr ;  athr = ctab-> athr ; cluthr = ctab->cluthr ;
+
+   /* find iathr to match athr */
+
+   for( iathr=0 ; iathr < nathr && athr[iathr] > aaa ; iathr++ ) /*nada*/
+   if( iathr == nathr ) return 0 ;   /* not found? */
+
+   /* find ipthr such that pthr[ipthr-1] > pval > pthr[ipthr] */
+
+   for( ipthr=1 ; ipthr < npthr && pval <= pthr[ipthr] ; ipthr++ ) ; /*nada*/
+   if( ipthr == npthr ){
+     ipthr = npthr-1 ; pval = pthr[ipthr] ;  /* pval was too small */
+   }
+   if( ipthr == npthr ){
+     ipthr = npthr-1 ; pval = pthr[ipthr] ;  /* pval was too small */
+   }
+
+   cval = loginterp( pval,   pthr[ipthr-1]       ,   pthr[ipthr]       ,
+                           cluthr[ipthr-1][iathr], cluthr[ipthr][iathr] ) ;
+
+   return (int)(cval+0.951) ;
 }
 
 /*----------------------------------------------------------------------------*/
