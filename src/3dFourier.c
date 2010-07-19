@@ -28,6 +28,10 @@ void Error_Exit(char *message)
 	exit(1);
 }
 
+static int    g_argc ;  /* Jul 2010 */
+static char **g_argv ;
+#define ARGC g_argc
+#define ARGV g_argv
 
 /* include the filter and filter driver */
 #include "fourier_filter.c"
@@ -72,6 +76,8 @@ int main (int argc, char *argv[])
 		help_message();
 		exit(1);
 	}
+
+        g_argc = argc ; g_argv = argv ;  /* Jul 2010 */
 
 	/* Loop over arguements and pull out what we need */
 	while( narg < argc && argv[narg][0] == '-' ){
