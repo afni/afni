@@ -48,6 +48,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 19, JUL, 2010, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "added -check_afni_version and -requires_afni_version",
+   "This will allow the processing script to verify that the AFNI version\n"
+   "is recent enough for the enclosed commands."
+ } ,
+
  { 19, JUL, 2010, RCR, "@DriveAfni", MICRO, TYPE_NEW_OPT,
    "added -help", 
    NULL
