@@ -215,7 +215,7 @@ get.dsets.mema <- function( fr, dsetcolname,
    
    #Check on results
    for (ic in 1:1:length(sc)) {
-      com <- paste ('3dAttribute BRICK_LABS', sc[ic], '>& /dev/null',
+      com <- paste ('3dAttribute BRICK_LABS', sc[ic], '> /dev/null 2>&1',
                      collapse ='');
       if (try(system(com)) != 0) {
          warning(paste("Failed to execute:\n   ", com, "\ndataset missing ?"),

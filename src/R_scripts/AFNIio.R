@@ -1387,9 +1387,12 @@ read.AFNI <- function(filename, verb = 0, ApplyScale = 1, PercMask=0.0) {
   rmtmp <- 0;
   if (!is.null(an$brsel) || !is.null(an$rosel) ||  !is.null(an$rasel)) {
     rmtmp <- 1;
+    #Changed below from >& /dev/null to > /dev/null 2>&1
+    #because system uses sh not tcsh
+    #Tx to G. Pagnoni & Co.
     com <- paste ('3dcalc -overwrite -prefix ___R.read.AFNI.' ,
                basename(an$prefix), 
-               ' -a "', filename,'" -expr "a" >& /dev/null', 
+               ' -a "', filename,'" -expr "a" > /dev/null 2>&1', 
                sep = '');
     if (try(system(com)) != 0) {
       warning(paste("Failed to execute:\n   ", com),
@@ -1518,7 +1521,9 @@ read.AFNI <- function(filename, verb = 0, ApplyScale = 1, PercMask=0.0) {
    if (verb) {
       cat ('ZSS: Will remove tmp files\n');
    }
-   system('\\rm -f ___R.read.AFNI.* >& /dev/null');
+   #Changed below from >& to 2&>1 because system uses sh not tcsh
+   #Tx to G. Pagnoni & Co.
+   system('\\rm -f ___R.read.AFNI.* > /dev/null 2>&1');
   }else{
    if (verb) {
       cat ('ZSS: No temps to remove\n');
