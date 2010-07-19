@@ -199,9 +199,13 @@ g_history = """
           can so exceed polort 3 (limit found by I Mukai and K Bahadur)
         - added options -outlier_legendre and -outlier_polort
     2.31 Jul 14 2010 : added -mask_test_overlap and -regress_cormat_warnigns
+    2.32 Jul 14 2010 : added -check_afni_version and -requires_afni_version
 """
 
-g_version = "version 2.31, July 14, 2010"
+g_version = "version 2.32, July 19, 2010"
+
+# version of AFNI required for script execution
+g_requires_afni = "19 Jul 2010"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
@@ -336,6 +340,8 @@ class SubjProcSream:
                         helpstr="show this help")
         self.valid_opts.add_opt('-hist', 0, [],
                         helpstr="show revision history")
+        self.valid_opts.add_opt('-requires_afni_version', 0, [],
+                        helpstr='show which date is required of AFNI')
         self.valid_opts.add_opt('-show_valid_opts', 0, [],
                         helpstr="show all valid options")
         self.valid_opts.add_opt('-ver', 0, [],
@@ -366,6 +372,9 @@ class SubjProcSream:
                         helpstr='have afni_proc.py as the user for options')
         self.valid_opts.add_opt('-bash', 0, [],
                         helpstr='show execution help in bash syntax')
+        self.valid_opts.add_opt('-check_afni_version', 1, [],
+                        acplist=['yes','no'],
+                        helpstr='check that AFNI is current enough')
         self.valid_opts.add_opt('-check_setup_errors', 1, [],
                         acplist=['yes','no'],
                         helpstr='terminate on setup errors')
@@ -633,6 +642,10 @@ class SubjProcSream:
         
         if opt_list.find_opt('-hist'):     # print the history
             print g_history
+            return 0  # gentle termination
+        
+        if opt_list.find_opt('-requires_afni_version'): # print required version
+            print g_requires_afni
             return 0  # gentle termination
         
         if opt_list.find_opt('-ver'):      # show the version string
@@ -1154,6 +1167,18 @@ class SubjProcSream:
         if len(stat_inc) > 0:
             self.fp.write("# prepare to count setup errors\n"
                           "set nerrors = 0\n\n")
+
+        # possibly check the AFNI version (via afni_history)
+        opt = self.user_opts.find_opt('-check_afni_version')
+        if not opt or opt_is_yes(opt):
+          self.fp.write(                                                    \
+            '# check that the current AFNI version is recent enough\n'      \
+            'afni_history -check_date %s\n'                                 \
+            'if ( $status ) then\n'                                         \
+            '    echo "** this script requires newer AFNI binaries (%s)"\n' \
+            '    echo "   (consider: @update.afni.binaries -defaults)"\n'   \
+            '    exit\n' \
+            'endif\n\n' % (g_requires_afni, g_requires_afni) )
 
         self.fp.write('# the user may specify a single subject to run with\n'\
                       'if ( $#argv > 0 ) then\n'                             \

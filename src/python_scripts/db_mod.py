@@ -3380,10 +3380,32 @@ g_help_string = """
     OPTIONS: (information options, general options, block options)
              (block options are ordered by block)
 
-        ------------ information options ------------
+        ------------ informational/terminal options ------------
 
         -help                   : show this help
         -hist                   : show the module history
+
+        -requires_afni_version  : show AFNI date required by processing script
+
+            Many updates to afni_proc.py are accompanied by corresponding
+            updates to other AFNI programs.  So if the processing script is
+            created on one computer but executed on another (with an older
+            version of AFNI), confusing failures could result.
+
+            The required date is adjusted whenever updates are made that rely
+            on new features of some other program.  If the processing script
+            checks the AFNI version, the AFNI package must be as current as the
+            date output via this option.  Checks are controlled by the option
+            '-check_afni_version'.
+
+            The checking method compares the output of:
+                afni_proc.py -requires_afni_version
+
+            against the most recent date in afni_history:
+                afni_history -past_entries 1
+
+            See also '-check_afni_version'.
+
         -show_valid_opts        : show all valid options (brief format)
         -ver                    : show the version number
 
@@ -3423,6 +3445,37 @@ g_help_string = """
             may be varied, and blocks may be skipped.
 
             See also '-do_block' (e.g. '-do_block despike').
+
+        -check_afni_version yes/no : check that AFNI is current enough
+
+                e.g. -check_afni_version no
+                default: yes
+
+            Check that the version of AFNI is recent enough for processing of
+            the afni_proc.py script.
+
+            For the version check, the output of:
+                afni_proc.py -requires_afni_version
+
+            is tested against the most recent date in afni_history:
+                afni_history -past_entries 1
+
+            In the case that newer features in other programs might not be
+            needed by the given afni_proc.py script (depending on the options),
+            the user is left with this option to ignore the AFNI version check.
+
+            Please see 'afni_history -help' or 'afni -ver' for more information.
+            See also '-requires_afni_version'.
+
+        -check_setup_errors yes/no : terminate on setup errors
+
+                e.g. -check_setup_errors yes
+                default: no
+
+            Have the script check $status after each command in the setup
+            processing block.  It is preferable to run the script using the
+            -e option to tcsh (as suggested), but maybe the user does not wish
+            to do so.
 
         -copy_anat ANAT         : copy the ANAT dataset to the results dir
 

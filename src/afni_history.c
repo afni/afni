@@ -354,15 +354,15 @@ int check_date(global_data * gd, hist_type ** hlist, int len)
 
     if( hh->yyyy < yy || hh->mm < mm || hh->dd < dd ) {
         if( gd->verb )
-            printf("== too old: afni_history older than %02d %s %04d\n"
-                   "            most recent entry is    %02d %s %04d\n",
+            printf("** too old: afni_history older than: %02d %s %04d\n"
+                   "            most recent entry is:    %02d %s %04d\n",
                 dd, mm2month(mm), yy, hh->dd, mm2month(hh->mm), hh->yyyy);
         return 1;
     }
 
     if( gd->verb )
-        printf("== is current: afni_history as new as %02d %s %04d\n"
-               "               most recent entry is   %02d %s %04d\n",
+        printf("-- is current: afni_history as new as: %02d %s %04d\n"
+               "               most recent entry is:   %02d %s %04d\n",
             dd, mm2month(mm), yy, hh->dd, mm2month(hh->mm), hh->yyyy);
 
     return 0;
