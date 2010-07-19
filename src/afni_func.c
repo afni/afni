@@ -995,7 +995,7 @@ if(PRINT_TRACING)
    vv = 0 ;
    if( aset >= 0 ){
      for( aa=0 ; aa < ss->num_dsset ; aa++ ){
-       dset = ss->dsset[aa][0] ;
+       dset = GET_SESSION_DSET(ss, aa, 0);
        if( ISVALID_DSET(dset)    &&
            ISANAT(dset)          &&
            dset->markers != NULL && dset->markers->numset >= aset ) vv++ ;
@@ -1033,11 +1033,6 @@ if(aset >= 0 && PRINT_TRACING)
          if( ISVALID_3DIM_DATASET(pref_dset) ){  /* if preferred is OK, */
             dset->anat_parent = pref_dset ;      /* use it here         */
          }
-#if 0
-         if( ISVALID_3DIM_DATASET(ss->dsset_xform_table[apref][vv]) ){  /* if preferred is OK, */
-            dset->anat_parent = ss->dsset_xform_table[apref][vv] ;      /* use it here         */
-         }
-#endif
          else {
             for( aa=0 ; aa < ss->num_dsset ; aa++ ){          /* search for something, */
                anyanat_dset = GET_SESSION_DSET(ss, aa, vv);
@@ -1045,12 +1040,6 @@ if(aset >= 0 && PRINT_TRACING)
                    && ISANAT(anyanat_dset)           ){  /* anything, and use it  */
                   dset->anat_parent = anyanat_dset ; break ;
                }
-#if 0
-               if( ISVALID_3DIM_DATASET(ss->dsset_xform_table[aa][vv])
-                   && ISANAT(ss->dsset_xform_table[aa][vv])           ){  /* anything, and use it  */
-                  dset->anat_parent = ss->dsset_xform_table[aa][vv] ; break ;
-               }
-#endif
             }
          }
 
@@ -2345,7 +2334,7 @@ ENTRY("AFNI_choose_dataset_CB") ;
 THD_3dim_dataset *qset ; static int first=1 ;
 if( first ){
  for( vv=FIRST_VIEW_TYPE ; vv <= LAST_VIEW_TYPE ; vv++ ){
-  qset = im3d->ss_now->dsset[ii][vv] ;
+  qset = GET_SESSION_DSET(im3d->ss_now, ii, vv);
   if( qset != NULL ){
    INFO_message("BAD dataset: type=%d view_type=%d ibk=%d bkt=%d",
                 qset->type , qset->view_type , qset->dblk != NULL , qset->dblk->type ) ;
@@ -2441,7 +2430,7 @@ if( first ){
 THD_3dim_dataset *qset ; static int first=1 ;
 if( first ){
  for( vv=FIRST_VIEW_TYPE ; vv <= LAST_VIEW_TYPE ; vv++ ){
-  qset = im3d->ss_now->dsset[ii][vv] ;
+  qset = GET_SESSION_DSET(im3d->ss_now,ii,vv) ;
   if( qset != NULL ){
    INFO_message("BAD dataset: type=%d view_type=%d ibk=%d bkt=%d",
                 qset->type , qset->view_type , qset->dblk != NULL , qset->dblk->type ) ;

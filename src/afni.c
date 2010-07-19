@@ -4471,7 +4471,8 @@ ENTRY("AFNI_read_inputs") ;
       int num_dsets=0 ;       /* 04 Jan 2000 */
       THD_session *gss=NULL ; /* 11 May 2002: global session */
       THD_session *dss ;      /* 28 Aug 2003: session for command-line datasets */
-
+      THD_3dim_dataset *temp_dset; /* 16 Jul 2010 place holder dummy datasets*/
+      
       /*-- 20 Dec 2001: Try to read a "global" session --*/
       /*-- 11 May 2002: Move read global session up here --*/
 
@@ -4724,18 +4725,17 @@ if(PRINT_TRACING)
 
          if( cpt != NULL &&
              ( strcasecmp(cpt,"RWCOX")==0 || strcasecmp(cpt,"OLD")==0 ) ){
-
-           new_ss->dsset[0][0] = THD_dummy_RWCOX() ;  /* the olden way */
+           temp_dset = THD_dummy_RWCOX();
+           SET_SESSION_DSET(temp_dset,new_ss, 0, 0); /* the olden way */
 
          } else {
-
-           new_ss->dsset[0][0] = THD_dummy_N27() ;  /* 12 Feb 2010 */
-           new_ss->dsset[0][2] = new_ss->dsset[0][0] ;
-
+           temp_dset = THD_dummy_N27();
+           SET_SESSION_DSET(temp_dset,new_ss, 0, 0); /* 12 Feb 2010 */
+           SET_SESSION_DSET(temp_dset,new_ss, 0, 2);
          }
 
-         DSET_lock(new_ss->dsset[0][0]) ; /* lock into memory */
-         PARENTIZE( new_ss->dsset[0][0] , NULL ) ;
+         DSET_lock(temp_dset) ; /* lock into memory */
+         PARENTIZE( temp_dset , NULL ) ;
 
       } else {  /* 04 Jan 2000: show total number of datasets */
 

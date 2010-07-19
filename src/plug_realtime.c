@@ -4581,7 +4581,6 @@ void RT_tell_afni_one( RT_input *rtin , int mode , int cc )
       }
 
       SET_SESSION_DSET(rtin->dset[cc], sess,id,VIEW_ORIGINAL_TYPE);
-/*      sess->dsset_xform_table[id][VIEW_ORIGINAL_TYPE] = rtin->dset[cc] ;*/
       sess->num_dsset = id+1 ;
       POPDOWN_strlist_chooser ;
 
@@ -4651,7 +4650,6 @@ void RT_tell_afni_one( RT_input *rtin , int mode , int cc )
               EXIT(1) ;
             }
             SET_SESSION_DSET(rtin->func_dset, sess, id,VIEW_ORIGINAL_TYPE);
-/*           sess->dsset_xform_table[id][VIEW_ORIGINAL_TYPE] = rtin->func_dset ;*/ 
             sess->num_dsset++ ;
             AFNI_force_adoption( sess , False ) ;
             POPDOWN_strlist_chooser ;
@@ -4691,7 +4689,8 @@ void RT_tell_afni_one( RT_input *rtin , int mode , int cc )
            fprintf(stderr,"RT: max number of datasets exceeded!\a\n") ;
            EXIT(1) ;
          }
-         sess->dsset[id][VIEW_ORIGINAL_TYPE] = rtin->mrg_dset ; sess->num_dsset = id+1 ;
+         SET_SESSION_DSET(rtin->mrg_dset, sess, id, VIEW_ORIGINAL_TYPE);
+         sess->num_dsset = id+1 ;
          POPDOWN_strlist_chooser ;
 
          rtin->mrg_status = 1 ;   /* AFNI knows about this dataset now */
@@ -4725,7 +4724,8 @@ void RT_tell_afni_one( RT_input *rtin , int mode , int cc )
            fprintf(stderr,"RT: max number of datasets exceeded!\a\n") ;
            EXIT(1) ;
          }
-         sess->dsset[id][VIEW_ORIGINAL_TYPE] = rtin->reg_dset ; sess->num_dsset = id+1 ;
+         SET_SESSION_DSET(rtin->reg_dset, sess, id, VIEW_ORIGINAL_TYPE);
+         sess->num_dsset = id+1 ;
          POPDOWN_strlist_chooser ;
 
          rtin->reg_status = 1 ;   /* AFNI knows about this dataset now */
@@ -4757,7 +4757,7 @@ void RT_tell_afni_one( RT_input *rtin , int mode , int cc )
            fprintf(stderr,"RT: max number of datasets exceeded!\a\n") ;
            EXIT(1) ;
          }
-         sess->dsset[id][VIEW_ORIGINAL_TYPE] = rtin->reg_chan_dset[cc] ;
+         SET_SESSION_DSET(rtin->reg_chan_dset[cc], sess, id, VIEW_ORIGINAL_TYPE);         
          sess->num_dsset = id+1 ;
          POPDOWN_strlist_chooser ;
 

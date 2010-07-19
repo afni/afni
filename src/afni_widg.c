@@ -5540,8 +5540,9 @@ ENTRY("AFNI_initialize_controller") ;
 
        case 1:
          for( mm=1.e+33,jb=jj=0 ; jj < im3d->ss_now->num_dsset ; jj++ ){
-           if( ISVALID_DSET(im3d->ss_now->dsset[jj][0]) ){
-             bb = DSET_bigositiness(im3d->ss_now->dsset[jj][0]) ;
+           temp_dset = GET_SESSION_DSET(im3d->ss_now, jj,0);
+           if( ISVALID_DSET(temp_dset) ){
+             bb = DSET_bigositiness(temp_dset) ;
              if( bb > 0.0f && bb < mm ){ mm = bb; jb = jj; }
            }
          }

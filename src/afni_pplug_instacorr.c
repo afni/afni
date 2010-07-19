@@ -528,7 +528,6 @@ ENTRY("AFNI_icor_setref_xyz") ;
        int vv = icoset->view_type ;
        nds = im3d->ss_now->num_dsset ;
        SET_SESSION_DSET(icoset, im3d->ss_now, nds, vv);
-       /* im3d->ss_now->dsset_xform_table[nds][vv] = icoset ; */
        im3d->ss_now->num_dsset++ ;
        AFNI_force_adoption( im3d->ss_now , False ) ;
        AFNI_make_descendants( GLOBAL_library.sslist ) ;
@@ -832,9 +831,11 @@ ENTRY("GICOR_setup_func") ;
 
    vv = dset->view_type ;
    if( vv < FIRST_VIEW_TYPE || vv > LAST_VIEW_TYPE ) vv = FIRST_VIEW_TYPE;
+   /* null all other session dataset entries for this dataset */
    for( qq=FIRST_VIEW_TYPE ; qq <= LAST_VIEW_TYPE ; qq++ )
-     ss->dsset[qs][qq] = NULL ;
-   ss->dsset[qs][vv] = dset ; ss->num_dsset++ ; giset->nds = qs ;
+     SET_SESSION_DSET(NULL, ss, qs, qq);
+   SET_SESSION_DSET(dset, ss, qs, vv);
+   ss->num_dsset++ ; giset->nds = qs ;
    giset->session = ss ;
 
    UNDUMMYIZE ;
