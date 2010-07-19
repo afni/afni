@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 19, JUL, 2010, RCR, "@DriveAfni", MICRO, TYPE_NEW_OPT,
+   "added -help", 
+   NULL
+ } ,
+
  { 19, JUL, 2010, RCR, "afni_history", MINOR, TYPE_NEW_OPT,
    "added -check_date, to verify whether the distribution is current",
    NULL
