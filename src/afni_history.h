@@ -87,6 +87,8 @@ typedef struct {
     /* user options */
     char     * author;
     char     * program;
+    int        check_date;
+    char     * cd_day, * cd_month, * cd_year;
     int        html;
     int        dline;
     int        type;
@@ -129,6 +131,7 @@ typedef struct {
 /* main protos */
 int add_to_hlist        (hist_type *** hlist, hist_type * hadd,
                          int addlen, int * newlen);
+int check_date          (global_data * gd, hist_type ** hlist, int len);
 int compare_hlist       (const void *v0, const void *v1);
 int compare_hist_dates  (hist_type *h0, hist_type *h1);    /* RWC */
 int disp_global_data    (char * mesg, global_data * gd);
@@ -141,6 +144,8 @@ int restrict_by_date    (global_data * gd, hist_type *** hlist, int * len);
 int restrict_by_level   (global_data * gd, hist_type *** hlist, int * len);
 int restrict_by_program (global_data * gd, hist_type *** hlist, int * len);
 int restrict_by_type    (global_data * gd, hist_type *** hlist, int * len);
+int restrict_results    (global_data * gd, hist_type *** hlist, int * len);
+int set_dates           (global_data * gd, int * dd, int * mm, int * yy );
 int show_author_list    (void);
 int show_command        (FILE * fp, int argc, char ** argv);
 int show_help           (void);
@@ -162,6 +167,7 @@ int valid_program       (char * prog);
 char * convert_author   (char * name);
 char * level_string     (int level);
 char * mm2month         (int mm);
+int    month2mm         (char * month);
 char * type_string      (int level);
 
 #endif /* _AFNI_HISTORY_HEADER_ */
