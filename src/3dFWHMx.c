@@ -5,7 +5,7 @@ int main( int argc , char *argv[] )
    THD_3dim_dataset *inset=NULL ;
    int iarg=1 , ii , nvals,nvox , ncon ;
    MRI_IMAGE *outim ; float *outar ;
-   byte *mask=NULL ; int mask_nx,mask_ny,mask_nz , automask=0 ;
+   byte *mask=NULL ; int mask_nx=0,mask_ny=0,mask_nz=0 , automask=0 ;
    char *outfile = NULL ;
    double fx,fy,fz , cx,cy,cz , ccomb ; int nx,ny,nz , ncomb ;
    int geom=1 , demed=0 , unif=0 , corder=0 , combine=0 ;
@@ -338,10 +338,11 @@ int main( int argc , char *argv[] )
      cx = (nx == 0) ? 0.0 : cx/nx ;
      cy = (ny == 0) ? 0.0 : cy/ny ;
      cz = (nz == 0) ? 0.0 : cz/nz ;
-     ccomb = 1.0 ; ncomb = 0 ;
-     if( cx > 0.0 ){ ccomb *= cx ; ncomb++ ; }
-     if( cy > 0.0 ){ ccomb *= cy ; ncomb++ ; }
-     if( cz > 0.0 ){ ccomb *= cz ; ncomb++ ; }
+     /* fix arithmetic mean    19 Jul 2010 [rickr] */
+     ccomb = 0.0 ; ncomb = 0 ;
+     if( cx > 0.0 ){ ccomb += cx ; ncomb++ ; }
+     if( cy > 0.0 ){ ccomb += cy ; ncomb++ ; }
+     if( cz > 0.0 ){ ccomb += cz ; ncomb++ ; }
      if( ncomb > 1 ) ccomb /= ncomb ;
    }
    printf(" %g  %g  %g",cx,cy,cz) ;
