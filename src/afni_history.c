@@ -50,7 +50,8 @@ global_data GD;
 int main(int argc, char *argv[])
 {
     global_data * gd = &GD;
-    int           rv;
+    hist_type  ** hlist = NULL;
+    int           rv, hlen = 0;
 
     rv = process_options(argc, argv, gd);
     if( rv < 0 )        return 1;
@@ -62,9 +63,17 @@ int main(int argc, char *argv[])
     /* are they valid? */
     if( ! histlists_are_valid(gd->histpairs, gd->plen) ) return 1;
 
-    return show_results(gd);
+    /* restrict results based on options    19 Jul 2010 [rickr] */
+    rv = restrict_results(gd, &hlist, &hlen);
+    if( rv ) return rv;
 
-    return 0;
+    /* either check the date or return history info */
+    if( gd->check_date ) rv = check_date(gd, hlist, hlen);
+    else                 rv = show_history(gd, hlist, hlen);
+
+    if( hlist ) free(hlist);
+
+    return rv;
 }
 
 /* return -1 on error, +1 for gentle exit, and 0 to continue */
@@ -77,6 +86,7 @@ int process_options(int argc, char * argv[], global_data * gd)
     memset(gd, 0, sizeof(global_data));
     gd->sort_dir = 1;   /* can reverse this */
     gd->verb = 1;
+    gd->cd_day = NULL;  gd->cd_month = NULL;  gd->cd_year = NULL;
 
 
     /* if( argc <= 1 ) { show_help(); return 1; } maybe just run */
@@ -103,10 +113,19 @@ int process_options(int argc, char * argv[], global_data * gd)
             ac++;
             CHECK_NEXT_OPT2(ac, argc, "-author", "AUTHOR");
             gd->author = convert_author(argv[ac]);
-        } else if( !strcmp(argv[ac], "-html" ) ) {
-            gd->html = 1; gd->dline = 0;
+        } else if( !strcmp(argv[ac], "-check_date" ) ) {
+            if( ac+3 >= argc ) {
+                fprintf(stderr,"** -check_date: requiers DD MM YYYY params\n");
+                return -1;
+            }
+            gd->check_date = 1;
+            gd->cd_day   = argv[++ac];
+            gd->cd_month = argv[++ac];
+            gd->cd_year  = argv[++ac];
         } else if( !strcmp(argv[ac], "-dline" ) ) {
             gd->html = 0; gd->dline = 1;
+        } else if( !strcmp(argv[ac], "-html" ) ) {
+            gd->html = 1; gd->dline = 0;
         } else if( !strcmp(argv[ac], "-level" ) ) {
             ac++;
             CHECK_NEXT_OPT2(ac, argc, "-level", "LEVEL");
@@ -182,7 +201,7 @@ int process_options(int argc, char * argv[], global_data * gd)
         }
     }
 
-    if( gd->verb > 3 ) disp_global_data("-- options read: ", gd);
+    if( gd->verb > 2 ) disp_global_data("-- options read: ", gd);
 
     /* save options for later, in case we want to print them out */
     gd->argc = argc;
@@ -233,10 +252,10 @@ char * convert_author(char * name)
     return name;   /* give up and stick with what we have */
 }
 
-/* if author is set, show results for only that author
- * otherwise, create a combined list, and show them from there
+/* if author is set, results are for only that author
+ * otherwise, create a combined list, return it and its length
  */
-int show_results(global_data * gd)
+int restrict_results(global_data * gd, hist_type *** H, int * Hlen)
 {
     hist_type ** hlist = NULL, * h1 = NULL;
     int          c, rv = 0, hlen = 0;
@@ -298,9 +317,89 @@ int show_results(global_data * gd)
     if( !rv && hlen>0 && (gd->past_days || gd->past_months || gd->past_years) )
         rv = restrict_by_date(gd, &hlist, &hlen);
 
-    rv = show_history(gd, hlist, hlen);
+    *H = hlist;
+    *Hlen = hlen;
 
-    if( hlist ) free(hlist);
+    return 0;
+}
+
+/* check whether there is an entry as recent as the user date
+ *
+ * if so, return 0  (good)
+ * else,  return 1  (bad)
+ */
+int check_date(global_data * gd, hist_type ** hlist, int len)
+{
+    hist_type * hh = NULL;
+    int yy, mm, dd;
+
+    if( gd->verb > 1 )
+        fprintf(stderr,"\n-- checking date, length %d...\n\n",len);
+
+    if( !hlist || !*hlist || len <= 0 ) {
+        if( gd->verb > 0 )
+            printf("no history to check, given the restrictions\n");
+        return 1;
+    }
+
+    if( set_dates(gd, &dd, &mm, &yy) ) return 1;
+
+    if( gd->sort_dir ) hh = hlist[len-1];       /* last is most recent */
+    else               hh = hlist[0];
+
+    if( gd->verb > 1 ) {
+        fprintf(stderr,"-- comparing date against hist entry:\n");
+        show_hist_type(hh, stderr);
+    }
+
+    if( hh->yyyy < yy || hh->mm < mm || hh->dd < dd ) {
+        if( gd->verb )
+            printf("== too old: afni_history older than %02d %s %04d\n"
+                   "            most recent entry is    %02d %s %04d\n",
+                dd, mm2month(mm), yy, hh->dd, mm2month(hh->mm), hh->yyyy);
+        return 1;
+    }
+
+    if( gd->verb )
+        printf("== is current: afni_history as new as %02d %s %04d\n"
+               "               most recent entry is   %02d %s %04d\n",
+            dd, mm2month(mm), yy, hh->dd, mm2month(hh->mm), hh->yyyy);
+
+    return 0;
+}
+
+/* extract and validate DD/MM/YY values from the user options
+ * return 0 if they seem okay, 1 otherwise */
+int set_dates(global_data * gd, int * dd, int * mm, int * yy )
+{
+    int rv = 0;
+
+    if( !gd->cd_day || !gd->cd_month || !gd->cd_year ) {
+        fprintf(stderr,"** set_dates: dd/mm/yy not set: %p, %p, %p\n",
+                gd->cd_day, gd->cd_month, gd->cd_year);
+        return 1;
+    }
+
+    *dd = atoi(gd->cd_day);
+    *mm = month2mm(gd->cd_month); /* if month is a bad string, get as int */
+    if(*mm <= 0 || *mm > 12) *mm = atoi(gd->cd_month);
+    *yy = atoi(gd->cd_year);
+
+    if( gd->verb > 1 )
+        fprintf(stderr,"\n-- set dates, dd/mm/yy = %d/%d/%d\n", *dd, *mm, *yy);
+
+    if( *dd < 0 || *dd > 31   ) {
+        fprintf(stderr,"** bad day:   %d\n", *dd);
+        rv = 1;
+    }
+    if( *mm < 0 || *mm > 12   ) {
+        fprintf(stderr,"** bad month: %d\n", *mm);
+        rv = 1;
+    }
+    if( *yy < 0 || *yy > 3000 ) {
+        fprintf(stderr,"** bad year:  %d\n", *yy);
+        rv = 1;
+    }
 
     return rv;
 }
@@ -485,6 +584,42 @@ char * mm2month(int mm)
     if( mm == 12 ) return "Dec";
 
     return "ILLEGAL";
+}
+
+/* convert a numerical month to a readable word */
+int month2mm(char * month)
+{
+    char * copy;
+    int    cc, rv = 0, len;
+
+    if( !month || !*month ) return 0;
+
+    /* make a lower case copy (no libraries used so far, keep it that way) */
+    len = strlen(month);
+    copy = (char *)malloc((len+1)*sizeof(char));
+    strcpy(copy, month);
+    if( !copy ) {
+        fprintf(stderr,"** month2mm: failed to copy '%s'\n", month);
+        return 0;
+    }
+    for(cc = 0; cc < strlen(copy); cc++) copy[cc] = tolower(copy[cc]);
+
+    if     ( ! strncmp(copy, "jan", 3) ) rv = 1;
+    else if( ! strncmp(copy, "feb", 3) ) rv = 2;
+    else if( ! strncmp(copy, "mar", 3) ) rv = 3;
+    else if( ! strncmp(copy, "apr", 3) ) rv = 4;
+    else if( ! strncmp(copy, "may", 3) ) rv = 5;
+    else if( ! strncmp(copy, "jun", 3) ) rv = 6;
+    else if( ! strncmp(copy, "jul", 3) ) rv = 7;
+    else if( ! strncmp(copy, "aug", 3) ) rv = 8;
+    else if( ! strncmp(copy, "sep", 3) ) rv = 9;
+    else if( ! strncmp(copy, "oct", 3) ) rv = 10;
+    else if( ! strncmp(copy, "nov", 3) ) rv = 11;
+    else if( ! strncmp(copy, "dec", 3) ) rv = 12;
+
+    if(copy) free(copy);
+
+    return rv;
 }
 
 /* perhaps we want to remove everything that is not so recent */
@@ -822,14 +957,19 @@ int disp_global_data(char * mesg, global_data * gd)
     if( !gd ) return 1;
 
     fprintf(stderr,"global_data struct: \n"
-            "    author                   = %s\n"
-            "    program                  = %s\n"
-            "    html, type               = %d, %d\n"
-            "    level, min_level         = %d, %d\n"
-            "    past_days, months, years = %d, %d, %d\n"
-            "    past_entries             = %d\n"
-            "    sort_dir, verb, plen     = %d, %d, %d\n",
-            gd->author, gd->program, gd->html, gd->type,
+            "    author                    = %s\n"
+            "    program                   = %s\n"
+            "    check_date                = %d\n"
+            "    cd_day, cd_month, cd_year = %s, %s, %s\n"
+            "    html, dline, type         = %d, %d, %d\n"
+            "    level, min_level          = %d, %d\n"
+            "    past_days, months, years  = %d, %d, %d\n"
+            "    past_entries              = %d\n"
+            "    sort_dir, verb, plen      = %d, %d, %d\n",
+            CHECK_NULL_STR(gd->author), CHECK_NULL_STR(gd->program),
+            gd->check_date, CHECK_NULL_STR(gd->cd_day),
+            CHECK_NULL_STR(gd->cd_month), CHECK_NULL_STR(gd->cd_year), 
+            gd->html, gd->dline, gd->type,
             gd->level, gd->min_level,
             gd->past_days, gd->past_months, gd->past_years,
             gd->past_entries, gd->sort_dir, gd->verb, gd->plen);
@@ -890,9 +1030,18 @@ int show_help(void)
   "     c. afni_history -html -reverse -min_level 3  > afni_hist_level3.html\n"
   "     d. afni_history -html -reverse -min_level 4  > afni_hist_level4.html\n"
   "\n"
+  "  5. verify that the distribution is new enough\n"
+  "\n"
+  "     Compare the most recent history entry against the passed date.  If\n"
+  "     there is a history entry as recent as the given date, it is current.\n"
+  "     Otherwise, the distribution is considered old.\n"
+  "\n"
+  "     a. afni_history -check_date 1 1 2010\n"
+  "     b. afni_history -check_date 15 Mar 2050\n"
+  "\n"
   "-----------------------------------------------------------------\n"
   "\n"
-  "informational options: \n"
+  "------------------ informational options: -----------------------\n"
   "\n"
   "  -help                    : show this help\n"
   "  -hist                    : show this program's history\n"
@@ -900,8 +1049,7 @@ int show_help(void)
   "  -list_types              : show the list of valid change types\n"
   "  -ver                     : show this program's version\n"
   "\n"
-  "\n"
-  "output restriction options: \n"
+  "------------------ output restriction options: ------------------\n"
   "\n"
   "  -author AUTHOR           : restrict output to the given AUTHOR\n"
   "  -level LEVEL             : restrict output to the given LEVEL\n"
@@ -918,7 +1066,18 @@ int show_help(void)
   "                             e.g.  -type NEW_ENV\n"
   "                             e.g.  -type BUG_FIX\n"
   "\n"
-  "general options: \n"
+  "------------------ verification options: ------------------------\n"
+  "\n"
+  "  -check_date DD MM YYYY   : check history against given date\n"
+  "\n"
+  "     If most recent afni_history is older than the passed date, the\n"
+  "     distribution version might be considered out of date.  Otherwise, it\n"
+  "     might be considered current.\n"
+  "\n"
+  "     If the version seems okay, afni_history returns 0, else 1.\n"
+  "     That way a script can check the status.\n"
+  "\n"
+  "------------------ general options: -----------------------------\n"
   "\n"
   "  -html                    : add html formatting\n"
   "  -dline                   : put a divider line between dates\n"
@@ -1103,7 +1262,8 @@ int hlist_len(hist_type * hlist)
     for( len = 0; hlist[len].dd != 99; len++ )
         ;
 
-    if( GD.verb > 1 ) fprintf(stderr,"-- hlist has %d entries\n", len);
+    if( GD.verb > 1 ) fprintf(stderr,"-- hlist '%s' has %d entries\n",
+                              CHECK_NULL_STR(hlist->author), len);
 
     return len;
 }
