@@ -1,5 +1,26 @@
 #!/bin/tcsh -f 
 
+if ( $#argv > 0 ) then
+   if ( $argv[1] == '-help' || $argv[1] == '-h' ) then
+      echo ""
+      echo "@DriveAfni  - a demo program for driving 'afni' from a script"
+      echo ""
+      echo "The purpose is for one to review this script while executing it."
+      echo ""
+      echo "This program requres the AFNI_data6 class data directory and must"
+      echo "be run just above it (i.e. typing 'ls' should include AFNI_data6"
+      echo "in the output)."
+      echo ""
+      echo "     one output file is created: ./SavedAxiale.jpg"
+      echo ""
+      echo "See README.driver for details on driver commands."
+      echo "See also 'plugout_drive -help'."
+      echo "See also 'DriveSuma -help'."
+      echo ""
+      exit
+   endif
+endif
+
 # NEEDS afni's class data archive AFNI_data?.tgz
 set adir = AFNI_data6
 
