@@ -494,7 +494,7 @@ if(DEBUG) ININFO_message("hollowing out old dataset") ;
        int vv = icaset->view_type ;
        nds = im3d->ss_now->num_dsset ;
 if(DEBUG) ININFO_message("adding to session: nds=%d",nds) ;
-       im3d->ss_now->dsset[nds][vv] = icaset ;
+       SET_SESSION_DSET(icaset, im3d->ss_now, nds, vv);
        im3d->ss_now->num_dsset++ ;
 if(DEBUG) ININFO_message("force adoption") ;
        AFNI_force_adoption( im3d->ss_now , False ) ;
@@ -666,7 +666,8 @@ ENTRY("ICALC_choose_dataset") ;
       /* check datasets in this session */
 
       for( id=0 ; id < ss->num_dsset ; id++ ){
-        dset = ss->dsset[id][vv] ; if( !ISVALID_DSET(dset)  ) continue ;
+        dset = GET_SESSION_DSET(ss, id, vv);
+                                   if( !ISVALID_DSET(dset)  ) continue ;
                                    if( !DSET_INMEMORY(dset) ) continue ;
            if( strncmp(DSET_PREFIX(dset)+1,"_ICALC",6) == 0 ) continue ;
         kk = DSET_BRICK_TYPE(dset,0); if( !IS_REAL_TYPE(kk) ) continue ;
