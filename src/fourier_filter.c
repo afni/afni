@@ -415,6 +415,11 @@ static char *Fourier_Filter_Driver(THD_3dim_dataset *input, float low_fc, float 
 	
 	/* create new dataset and convert, etc. */
 	output = EDIT_empty_copy(input);
+
+        tross_Copy_History(output,input) ;  /* Jul 2010 */
+#if defined(ARGC) && defined(ARGV)
+        tross_Make_History( "3dFourier" , ARGC,ARGV , output ) ;
+#endif
 	
 	j=EDIT_dset_items(output,
 		ADN_prefix, output_prefix,
