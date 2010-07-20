@@ -215,8 +215,8 @@ int main( int argc , char *argv[] )
 #ifdef ALLOW_MMAP
              "\n"
              "  -mmap     = Write .BRIK results to disk directly using Unix mmap().\n"
-             "               This trick may improve efficiency when the amount of\n"
-             "               memory required to hold the output is very large.\n"
+             "               This trick can speed the program up  when the amount\n"
+             "               of memory required to hold the output is very large.\n"
              "              ** If the program crashes, you'll have to manually\n"
              "                 remove the .BRIK file, which will have been created\n"
              "                 before the loop over voxels and written into during\n"
@@ -574,19 +574,27 @@ AFNI_OMP_END ;
 
    /*----------  Finish up ---------*/
 
+   /* toss the trash */
+
+   free(imap); VECTIM_destroy(xvectim); if( mmm != NULL ) free(mmm);
+
+   /* if did mmap(), finish that off as well */
+
    if( !do_mmap ){
      fprintf(stderr,"Done..\n") ;
    } else {
 #ifdef ALLOW_MMAP
+     char *ptr = cbrik ;
      fprintf(stderr,"Done.[un-mmap-ing") ;
+     for( ii=0 ; ii < nmask ; ii++ ){
+       mri_fix_data_pointer( ptr , DSET_BRICK(cset,ii) ) ;
+       ptr += DSET_BRICK_BYTES(cset,ii) ;
+     }
+     THD_load_statistics(cset) ; fprintf(stderr,".") ;
      munmap(cbrik,ncbrik) ; cbrik = NULL ;
      fprintf(stderr,"].\n") ;
 #endif
    }
-
-   /* toss the other trash */
-
-   free(imap); VECTIM_destroy(xvectim); if( mmm != NULL ) free(mmm);
 
    /* finito */
 
