@@ -405,7 +405,7 @@ static int floatout= 1 ;  /* 13 Mar 2007 ; 15 Jul 2010: now defaults on */
            strstr((fn),".gii") ) ){                                    \
        WARNING_message(                                                \
         "output prefix is '%s' ==> forcing '-float'" , (fn)) ;         \
-       floatout = 1 ;                                                  \
+       floatout = 2 ;                                                  \
    }} while(0)
 
 static int allzero_OK = 0 ;  /* 30 May 2007 */
@@ -796,7 +796,7 @@ void display_help_menu()
    "for the parameter vector b, given the data vector z in each voxel, and  \n"
    "given the SAME matrix X in each voxel.  If you want to solve a problem  \n"
    "where some of the matrix columns in X (the regressors) are different in \n"
-   "different voxel (are spatially variable), then use program 3dTfitter,   \n"
+   "different voxels (are spatially variable), then use program 3dTfitter,  \n"
    "------------------------------------------------------------------------\n"
   ) ;
   printf("\n"
@@ -843,10 +843,10 @@ void display_help_menu()
     "                  ** If you don't specify ANY mask, the program will   \n"
     "                      build one automatically (from each voxel's RMS)  \n"
     "                      and use this mask solely for the purpose of      \n"
-    "                      reporting truncation-to-short errors (unless     \n"
-    "                      '-float' is used) AND for computing the FDR curves\n"
-    "                      in the bucket dataset's header (unless '-noFDR'  \n"
-    "                      is used, of course).                             \n"
+    "                      reporting truncation-to-short errors (if '-short'\n"
+    "                      is used) AND for computing the FDR curves in the \n"
+    "                      bucket dataset's header (unless '-noFDR' is used,\n"
+    "                      of course).                                      \n"
     "                   * If you don't want the FDR curves to be computed   \n"
     "                      inside this automatically generated mask, then   \n"
     "                      use '-noFDR' and later run '3drefit -addFDR' on  \n"
@@ -2078,7 +2078,8 @@ void get_options
         floatout = 1 ; nopt++ ; continue ;
       }
       if( strcmp(argv[nopt],"-short") == 0 ){
-        floatout = 0 ; nopt++ ; continue ;
+        if( floatout < 2 ) floatout = 0 ;   /* 2 ==> floatout was forced on */
+        nopt++ ; continue ;
       }
       if( strcmp(argv[nopt],"-datum") == 0 ){
         nopt++ ;
