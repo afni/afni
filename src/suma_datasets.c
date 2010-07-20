@@ -11863,7 +11863,7 @@ Usage :
 		Ans = SUMA_StripPath (Name)
    
    
-Input paramters : 
+Input parameters : 
 \param   Name (char *) something like /hello/something
    
 Returns : 

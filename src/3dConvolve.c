@@ -1565,7 +1565,7 @@ void calculate_results
   int * nptr;              /* number of stim fn. time points per TR */
 
   int it;                  /* data point index */
-  int ip;                  /* paramter index */
+  int ip;                  /* parameter index */
   int is;                  /* stimulus index */
   int ilag;                /* time lag index */
   float stddev;            /* normalized parameter standard deviation */
