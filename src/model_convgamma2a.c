@@ -109,7 +109,7 @@ void conv_set_ref( int num , float ** ref )
 
 /*-----------------------------------------------------------------------
   Function to compute the simulated time series:
-    gs[0..2]      = gamma variate paramters t0, r, b
+    gs[0..2]      = gamma variate parameters t0, r, b
     gs[3..NREF+3] = amplitudes for each reference time series
 -------------------------------------------------------------------------*/
 
