@@ -855,7 +855,7 @@ void AFNI_make_descendants_old( THD_sessionlist *ssl , int vbase )
    THD_session *ss, *temp_ss ;
    THD_3dim_dataset *orig_dset , *new_dset, *temp_dset, *temp_anat_dset ;
    THD_slist_find     find ;
-   THD_3dim_dataset **anat_parent_row , **orig_row ;
+   THD_3dim_dataset *anat_parent_dset , **orig_row ;
    int orig_row_key, anat_parent_row_key;
 
 ENTRY("AFNI_make_descendants_old") ;
@@ -902,19 +902,19 @@ ENTRY("AFNI_make_descendants_old") ;
             parent (this is like the SPGR row in the picture above) */
 
    /* will need to change this test with updated session tables - drg 05/2010 */
-         anat_parent_row =
-           &(GET_SESSION_DSET(ssl->ssar[find.sess_index], find.dset_index, 0)) ;
+         anat_parent_dset =
+           GET_SESSION_DSET(ssl->ssar[find.sess_index], find.dset_index, vbase) ;
+         if(orig_dset == anat_parent_dset) continue ;  /* 20 Jul 2010 */
+
          anat_parent_row_key = find.dset_index;
 /*         anat_parent_row =
            &(ssl->ssar[find.sess_index]->dsset_xform_table[find.dset_index][0]) ;*/
 
          /* pointer to row of datasets being operated on now
             (like the FIM row in the picture above)          */
-         orig_row = &(GET_SESSION_DSET(ss,jdd,0)) ;
          orig_row_key = jdd;
 /*         orig_row = &(ss->dsset_xform_table[jdd][0]) ; */
-
-         if( orig_row == anat_parent_row ) continue ;  /* 14 Dec 1999 */
+/*         if( orig_row == anat_parent_row ) continue ;*/  /* 14 Dec 1999 */
 
          /* loop over downstream dataset positions (from orig_dset);
             those that don't exist yet, but have entries in the
