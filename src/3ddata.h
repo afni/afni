@@ -3166,8 +3166,8 @@ extern int THD_count_fdrwork( THD_3dim_dataset *dset ) ; /* 12 Nov 2008 */
     strcpy((ds)->label2   ,THD_DEFAULT_LABEL) )
 
 /*! Macro to load brick statistics of a dataset if it
-      - doesn't have statistics already, or
-      - has bad statistics from the (very) old to3d bug
+      - doesn't have statistics already, OR
+      - has bad statistics from the (very very very) old to3d bug
 */
 
 #define RELOAD_STATS(dset)                                                  \
