@@ -569,7 +569,7 @@ extern int cluster_alphaindex_64( int csize, int nz, float fw, float pv ) ;
 /*------------------------------------------------------------------*/
 
 /*! Change statistical parameters in dataset ds, sub-brick iv,
-    to statistical type ft, with paramters a,b,c,d.
+    to statistical type ft, with parameters a,b,c,d.
 */
 
 #define EDIT_STATAUX4(ds,iv,ft,a,b,c,d)                     \

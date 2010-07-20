@@ -87,7 +87,7 @@ int main( int argc , char *argv[] )
       "       N = time series length = length of -data file\n"
       "       M = number of voxels in mask\n"
       "       p = number of stimulus time series to estimate\n"
-      "         = number of paramters in -map file\n"
+      "         = number of parameters in -map file\n"
       "       q = number of baseline parameters\n"
       "   and ' = matrix transpose operator\n"
       " Next, define matrix Z (Y detrended relative to columns of F) by\n"

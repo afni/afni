@@ -44,6 +44,14 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 20 , JUL , 2010 , RWC , "3dAutoTcorrelate" , MICRO , TYPE_NEW_OPT ,
+   "-mmap option -- output large .BRIK file in a faster way" ,
+   NULL } ,
+
+ { 20 , JUL , 2010 , RWC , "3dFourier" , MICRO , TYPE_GENERAL ,
+   "Propagate history unto the next generation." ,
+   NULL } ,
+
  { 16 , JUL , 2010 , RWC , "3dAutoTcorrelate" , MICRO , TYPE_GENERAL ,
    "OpenMP-ized for HJJ" ,
    "Required inverting dataset to MRI_vectim struct to solve memory\n"
