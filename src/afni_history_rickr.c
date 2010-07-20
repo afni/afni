@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 20, JUL, 2010, RCR, "xmat_tool.py", MICRO, TYPE_MODIFY,
+   "made small improvement out text formatting for cormat and cosmat", 
+   NULL
+ } ,
+
  { 19, JUL, 2010, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "added -check_afni_version and -requires_afni_version",
    "This will allow the processing script to verify that the AFNI version\n"
