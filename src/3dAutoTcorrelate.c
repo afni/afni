@@ -11,12 +11,12 @@
 #define PEARSON  3
 #define ETA2     4
 
-#undef ALLOW_MMAP
+#define ALLOW_MMAP
 
 #ifndef ALLOW_MMAP
 # define do_mmap 0
 #else
-# static int do_mmap = 0 ;
+  static int do_mmap = 0 ;
 #endif
 
 /*----------------------------------------------------------------*/
@@ -157,38 +157,37 @@ int main( int argc , char *argv[] )
              "\n"
              "Options:\n"
              "  -pearson  = Correlation is the normal Pearson (product moment)\n"
-             "                correlation coefficient [default].\n"
+             "               correlation coefficient [default].\n"
              "  -eta2     = Output is eta^2 measure from Cohen et al., NeuroImage, 2008:\n"
-             "                http://www.ncbi.nlm.nih.gov/pmc/articles/PMC2705206/\n"
-             "                http://dx.doi.org/10.1016/j.neuroimage.2008.01.066\n"
-             "              ** '-eta2' is intended to be used to measure the similarity\n"
+             "               http://www.ncbi.nlm.nih.gov/pmc/articles/PMC2705206/\n"
+             "               http://dx.doi.org/10.1016/j.neuroimage.2008.01.066\n"
+             "             ** '-eta2' is intended to be used to measure the similarity\n"
              "                 between 2 correlation maps; therefore, this option is\n"
              "                 to be used in a second stage analysis, where the input\n"
              "                 dataset is the output of running 3dAutoTcorrelate with\n"
              "                 the '-pearson' option -- the voxel 'time series' from\n"
              "                 that first stage run is the correlation map of that\n"
              "                 voxel with all other voxels.\n"
-             "              ** '-polort -1' is recommended with this option!\n"
+             "             ** '-polort -1' is recommended with this option!\n"
 #if 0
              "  -spearman = Correlation is the Spearman (rank) correlation\n"
-             "                coefficient.\n"
+             "               coefficient.\n"
              "  -quadrant = Correlation is the quadrant correlation coefficient.\n"
 #else
              "  -spearman AND -quadrant are disabled at this time :-(\n"
 #endif
              "\n"
              "  -polort m = Remove polynomical trend of order 'm', for m=-1..3.\n"
-             "                [default is m=1; removal is by least squares].\n"
-             "                Using m=-1 means no detrending; this is only useful\n"
-             "                for data/information that has been pre-processed.\n"
+             "               [default is m=1; removal is by least squares].\n"
+             "               Using m=-1 means no detrending; this is only useful\n"
+             "               for data/information that has been pre-processed.\n"
              "\n"
              "  -autoclip = Clip off low-intensity regions in the dataset,\n"
              "  -automask =  so that the correlation is only computed between\n"
              "               high-intensity (presumably brain) voxels.  The\n"
-             "               intensity level is determined the same way that\n"
-             "               3dClipLevel works.\n"
+             "               mask is determined the same way that 3dAutomask works.\n"
              "\n"
-             "  -mask MSET = Mask of both 'source' and 'target' voxels.\n"
+             "  -mask mmm = Mask of both 'source' and 'target' voxels.\n"
              "\n"
              "              Restrict computations to those in the mask.  Output\n"
              "               volumes are restricted to masked voxels.  Also, only\n"
@@ -202,33 +201,41 @@ int main( int argc , char *argv[] )
              "\n"
              "  -mask_only_targets = Provide output for all voxels.\n"
              "\n"
-             "              Used with -mask, every voxel is correlated with each\n"
-             "              of the mask voxels.  In the example above, there\n"
-             "              would be 50 useful sub-bricks for all 1000 voxels.\n"
+             "              Used with -mask, every voxel is correlated with each of\n"
+             "               the mask voxels.  In the example above, there would\n"
+             "               be 50 output sub-bricks; the n-th output sub-brick\n"
+             "               would contain the correlations of the n-th voxel in\n"
+             "               the mask with all 1000 voxels in the dataset (rather\n"
+             "               than with just the 50 voxels in the mask).\n"
              "\n"
              "  -prefix p = Save output into dataset with prefix 'p'\n"
              "               [default prefix is 'ATcorr'].\n"
+             "\n"
+             "  -time     = Mark output as a 3D+time dataset instead of an anat bucket.\n"
 #ifdef ALLOW_MMAP
+             "\n"
              "  -mmap     = Write .BRIK results to disk directly using Unix mmap().\n"
              "               This trick may improve efficiency when the amount of\n"
              "               memory required to hold the output is very large.\n"
              "              ** If the program crashes, you'll have to manually\n"
              "                 remove the .BRIK file, which will have been created\n"
-             "                 before the loop over voxels.\n"
+             "                 before the loop over voxels and written into during\n"
+             "                 that loop, rather than being written all at once\n"
+             "                 at the end of the analysis, as is usually the case.\n"
              "              ** If the amount of memory needed is bigger than the\n"
-             "                 RAM on your system, this program will be slow with\n"
-             "                 or without '-mmap'.\n"
+             "                 RAM on your system, this program will be very slow\n"
+             "                 with or without '-mmap'.\n"
              "              ** This option won't work with NIfTI-1 (.nii) output!\n"
 #endif
              "\n"
-             "  -time     = Save output as a 3D+time dataset instead\n"
-             "               of a anat bucket.\n"
-             "\n"
              "Notes:\n"
-             " * The output dataset is anatomical bucket type of shorts.\n"
+             " * The output dataset is anatomical bucket type of shorts\n"
+             "    (unless '-time' is used).\n"
+             " * Values are scaled so that a correlation (or eta-squared)\n"
+             "    of 1 corresponds to a value of 10000.\n"
              " * The output file might be gigantic and you might run out\n"
              "    of memory running this program.  Use at your own risk!\n"
-             "    * If you get an error message like\n"
+             "   ++ If you get an error message like\n"
              "        *** malloc error for dataset sub-brick\n"
              "      this means that the program ran out of memory when making\n"
              "      the output dataset.\n"
@@ -358,11 +365,18 @@ int main( int argc , char *argv[] )
 
    /*-- create vectim from input dataset --*/
 
+   /**  For the case of Pearson correlation, we make sure the  **/
+   /**  data time series have their mean removed (polort >= 0) **/
+   /**  and are normalized, so that correlation = dot product, **/
+   /**  and we can use function zm_THD_pearson_corr for speed. **/
+
    INFO_message("vectim-izing input dataset") ;
    xvectim = THD_dset_to_vectim( xset , NULL , 0 ) ;
    if( xvectim == NULL ) ERROR_exit("Can't create vectim?!") ;
    DSET_unload(xset) ;
-   if( polort < 0 && method == PEARSON ) polort = 0 ;
+   if( polort < 0 && method == PEARSON ){
+     polort = 0; WARNING_message("Pearson correlation always uses polort >= 0");
+   }
    if( polort >= 0 ){
      for( ii=0 ; ii < nvox ; ii++ ){  /* remove polynomial trend */
        DETREND_polort(polort,nvals,VECTIM_PTR(xvectim,ii)) ;
@@ -397,7 +411,7 @@ int main( int argc , char *argv[] )
    }
 
    if( THD_deathcon() && THD_is_file(DSET_HEADNAME(cset)) )
-      ERROR_exit("Output dataset %s already exists!",DSET_HEADNAME(cset)) ;
+     ERROR_exit("Output dataset %s already exists!",DSET_HEADNAME(cset)) ;
 
    { double nb = (double)(xset->dblk->total_bytes)
                 +(double)(cset->dblk->total_bytes) ;
@@ -514,7 +528,9 @@ AFNI_OMP_START ;
 
          if( !all_source && mmm != NULL && mmm[jj] == 0 ) continue ;
 
+#if 0
          if( jj == kout ){ car[jj] = 10000 ; continue ; } /* correlation = 1.0 */
+#endif
 
          ysar = VECTIM_PTR(xvectim,jj) ;
 
@@ -536,10 +552,10 @@ AFNI_OMP_START ;
 #endif
          }
 
-      } /* end of loop over voxels in this sub-brick */
+      } /* end of innter loop over voxels */
 
 #ifdef ALLOW_MMAP
-      if( do_mmap ){
+      if( do_mmap ){  /* copy results to disk mmap now */
         short *cout = ((short *)(cbrik)) + (int64_t)(nvox)*(int64_t)(kout) ;
 #pragma omp critical
         { memcpy( cout , car , sizeof(short)*nvox ) ;
@@ -548,9 +564,9 @@ AFNI_OMP_START ;
       }
 #endif
 
-   } /* end of loop over ref voxels */
+   } /* end of outer loop over ref voxels */
 
-   if( do_mmap ) free(car) ;
+   if( do_mmap ) free(car) ;             /* workspace for each thread */
    if( ithr == 0 ) fprintf(stderr,".") ;
 
 AFNI_OMP_END ;
@@ -564,7 +580,7 @@ AFNI_OMP_END ;
 #ifdef ALLOW_MMAP
      fprintf(stderr,"Done.[un-mmap-ing") ;
      munmap(cbrik,ncbrik) ; cbrik = NULL ;
-     fprintf(stderr,".\n") ;
+     fprintf(stderr,"].\n") ;
 #endif
    }
 
