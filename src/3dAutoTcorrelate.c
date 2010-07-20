@@ -465,9 +465,9 @@ int main( int argc , char *argv[] )
      fseek( fp , ncbrik-1 , SEEK_SET ) ;
      fwrite( &buf , 1 , 2 , fp ) ; fflush(fp) ;
 #undef MFLAG
-#if defined(DARWIN)
+#if defined(MAP_NOCACHE)
 # define MFLAG (MAP_SHARED | MAP_NOCACHE)
-#elif defined(SOLARIS)
+#elif defined(MAP_NORESERVE)
 # define MFLAG (MAP_SHARED | MAP_NORESERVE)
 #else
 # define MFLAG MAP_SHARED
