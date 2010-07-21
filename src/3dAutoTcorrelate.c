@@ -105,6 +105,16 @@ static void vstep_print(void)
 
 static char    *cbrik = NULL ;
 static int64_t ncbrik = 0 ;
+static char    *cbrik_name = NULL ;
+
+#undef MFLAG
+#if defined(MAP_NOCACHE)
+# define MFLAG (MAP_SHARED | MAP_NOCACHE)
+#elif defined(MAP_NORESERVE)
+# define MFLAG (MAP_SHARED | MAP_NORESERVE)
+#else
+# define MFLAG MAP_SHARED
+#endif
 
 #include <signal.h>
 
@@ -123,7 +133,7 @@ void AC_sigfunc(int sig)   /** signal handler for fatal errors **/
    }
    fprintf(stderr,"\n** 3dAutoTcorrelate: Fatal Signal %d (%s) received\n",sig,sname) ;
    if( cbrik != NULL ){
-     fprintf(stderr,"** Un-mmap-ing .BRIK file (but not deleting it)\n") ;
+     fprintf(stderr,"** Un-mmap-ing %s file (but not deleting it)\n",cbrik_name) ;
      munmap(cbrik,ncbrik) ; cbrik = NULL ;
    }
    exit(1) ;
@@ -139,11 +149,12 @@ int main( int argc , char *argv[] )
    int nopt=1 , method=PEARSON , do_autoclip=0 ;
    int nvox , nvals , ii,kout , polort=1 , ix,jy,kz ;
    char *prefix = "ATcorr" ;
-   byte *mmm=NULL ;
+   byte *mask=NULL ;
    int   nmask , abuc=1 ;
    int   all_source=0;          /* output all source voxels  25 Jun 2010 [rickr] */
    char str[32] , *cpt ;
    int *imap ; MRI_vectim *xvectim ;
+   float (*corfun)(int,float *,float*) = NULL ;
 
    /*----*/
 
@@ -188,25 +199,24 @@ int main( int argc , char *argv[] )
              "               mask is determined the same way that 3dAutomask works.\n"
              "\n"
              "  -mask mmm = Mask of both 'source' and 'target' voxels.\n"
-             "\n"
-             "              Restrict computations to those in the mask.  Output\n"
-             "               volumes are restricted to masked voxels.  Also, only\n"
-             "               masked voxels will have non-zero output.\n"
-             "\n"
-             "              A dataset with 1000 voxels would lead to output of\n"
-             "               1000 voxels by 1000 sub-bricks.  With a -mask of 50\n"
-             "               voxels, output would be 1000 voxels by 50 sub-bricks,\n"
-             "               where the 950 unmasked voxels would be all zero over\n"
-             "               the 50 sub-bricks.\n"
+             "              ** Restricts computations to those in the mask.  Output\n"
+             "                  volumes are restricted to masked voxels.  Also, only\n"
+             "                  masked voxels will have non-zero output.\n"
+             "              ** A dataset with 1000 voxels would lead to output of\n"
+             "                  1000 sub-bricks.  With a '-mask' of 50 voxels, the\n"
+             "                  output dataset have 50 sub-bricks, where the 950\n"
+             "                  unmasked voxels would be all zero in all 50 sub-bricks\n"
+             "                  (unless option '-mask_only_targets' is also used).\n"
+             "              ** The mask is encoded in the output dataset header in the\n"
+             "                  attribute named 'AFNI_AUTOTCORR_MASK' (cf. 3dMaskToASCII).\n"
              "\n"
              "  -mask_only_targets = Provide output for all voxels.\n"
-             "\n"
-             "              Used with -mask, every voxel is correlated with each of\n"
-             "               the mask voxels.  In the example above, there would\n"
-             "               be 50 output sub-bricks; the n-th output sub-brick\n"
-             "               would contain the correlations of the n-th voxel in\n"
-             "               the mask with all 1000 voxels in the dataset (rather\n"
-             "               than with just the 50 voxels in the mask).\n"
+             "              ** Used with '-mask': every voxel is correlated with each\n"
+             "                  of the mask voxels.  In the example above, there would\n"
+             "                  be 50 output sub-bricks; the n-th output sub-brick\n"
+             "                  would contain the correlations of the n-th voxel in\n"
+             "                  the mask with ALL 1000 voxels in the dataset (rather\n"
+             "                  than with just the 50 voxels in the mask).\n"
              "\n"
              "  -prefix p = Save output into dataset with prefix 'p'\n"
              "               [default prefix is 'ATcorr'].\n"
@@ -217,6 +227,9 @@ int main( int argc , char *argv[] )
              "  -mmap     = Write .BRIK results to disk directly using Unix mmap().\n"
              "               This trick can speed the program up  when the amount\n"
              "               of memory required to hold the output is very large.\n"
+             "              ** In many case, the amount of time needed to write\n"
+             "                 the results to disk is longer than the CPU time.\n"
+             "                 This option can shorten the disk write time.\n"
              "              ** If the program crashes, you'll have to manually\n"
              "                 remove the .BRIK file, which will have been created\n"
              "                 before the loop over voxels and written into during\n"
@@ -345,14 +358,14 @@ int main( int argc , char *argv[] )
    if( mset ){
       if( DSET_NVOX(mset) != nvox )
          ERROR_exit("Input and mask dataset differ in number of voxels!") ;
-      mmm = THD_makemask(mset, 0, 1.0, 0.0) ;
-      nmask = THD_countmask( nvox , mmm ) ;
+      mask  = THD_makemask(mset, 0, 1.0, 0.0) ;
+      nmask = THD_countmask( nvox , mask ) ;
       INFO_message("%d voxels in -mask dataset",nmask) ;
       if( nmask < 2 ) ERROR_exit("Only %d voxels in -mask, exiting...",nmask);
       DSET_unload(mset) ;
    } else if( do_autoclip ){
-      mmm   = THD_automask( xset ) ;
-      nmask = THD_countmask( nvox , mmm ) ;
+      mask  = THD_automask( xset ) ;
+      nmask = THD_countmask( nvox , mask ) ;
       INFO_message("%d voxels survive -autoclip",nmask) ;
       if( nmask < 2 ) ERROR_exit("Only %d voxels in -automask!",nmask);
    } else {
@@ -369,6 +382,12 @@ int main( int argc , char *argv[] )
    /**  data time series have their mean removed (polort >= 0) **/
    /**  and are normalized, so that correlation = dot product, **/
    /**  and we can use function zm_THD_pearson_corr for speed. **/
+
+   switch( method ){
+     default:
+     case PEARSON: corfun = zm_THD_pearson_corr ; break ;
+     case ETA2:    corfun = my_THD_eta_squared  ; break ;
+   }
 
    INFO_message("vectim-izing input dataset") ;
    xvectim = THD_dset_to_vectim( xset , NULL , 0 ) ;
@@ -415,7 +434,7 @@ int main( int argc , char *argv[] )
 
    { double nb = (double)(xset->dblk->total_bytes)
                 +(double)(cset->dblk->total_bytes) ;
-     nb /= (1024.0*1024.0) ;
+     nb /= 1000000 ;
      INFO_message(
        "Memory required = %.1f Mbytes for %d output sub-bricks",nb,nmask);
      if( nb > 2000.0 && (sizeof(void *) < 8 || sizeof(size_t) < 8) )
@@ -432,7 +451,7 @@ int main( int argc , char *argv[] )
      ININFO_message("creating output dataset in memory") ;
 
    for( kout=ii=0 ; ii < nvox ; ii++ ){
-      if( mmm != NULL && mmm[ii] == 0 ) continue ; /* skip it */
+      if( mask != NULL && mask[ii] == 0 ) continue ; /* skip it */
 
       EDIT_BRICK_TO_NOSTAT(cset,kout) ;                     /* stat params  */
       EDIT_BRICK_FACTOR(cset,kout,0.0001) ;                 /* scale factor */
@@ -450,35 +469,30 @@ int main( int argc , char *argv[] )
 
 #ifdef ALLOW_MMAP
    if( do_mmap ){
-     FILE *fp ; int64_t qq ; char buf[2]={0,0} ;
+     FILE *fp ; int64_t qq,dq ; char buf[2]={0,0} ;
 
      signal(SIGINT ,AC_sigfunc) ;  /* setup signal handler */
      signal(SIGBUS ,AC_sigfunc) ;  /* for fatal errors */
      signal(SIGSEGV,AC_sigfunc) ;
      signal(SIGTERM,AC_sigfunc) ;
 
-     ININFO_message("creating output file %s via mmap()",DSET_BRIKNAME(cset)) ;
-     fp = fopen( DSET_BRIKNAME(cset) , "w+" ) ;
-     if( fp == NULL )
-       ERROR_exit("Can't create output BRIK :-(") ;
+     cbrik_name = strdup(DSET_BRIKNAME(cset)) ;   /* save name for later use */
      ncbrik = cset->dblk->total_bytes ;
+     ININFO_message("creating output file %s via mmap() [%s bytes]",
+                    cbrik_name , commaized_integer_string(ncbrik) ) ;
+     fp = fopen(cbrik_name,"w+") ;
+     if( fp == NULL ) ERROR_exit("Can't create output BRIK file :-(") ;
      fseek( fp , ncbrik-1 , SEEK_SET ) ;
      fwrite( &buf , 1 , 2 , fp ) ; fflush(fp) ;
-#undef MFLAG
-#if defined(MAP_NOCACHE)
-# define MFLAG (MAP_SHARED | MAP_NOCACHE)
-#elif defined(MAP_NORESERVE)
-# define MFLAG (MAP_SHARED | MAP_NORESERVE)
-#else
-# define MFLAG MAP_SHARED
-#endif
      cbrik = mmap( 0 , (size_t)ncbrik ,
                    PROT_READ | PROT_WRITE , MFLAG , fileno(fp) , 0 ) ;
      fclose(fp) ;
-     if( cbrik == (char *)(-1) )
-       ERROR_exit("Can't mmap output BRIK :-(") ;
+     if( cbrik == (char *)(-1) ){
+       remove(cbrik_name) ; ERROR_exit("Can't mmap output BRIK file :-(") ;
+     }
      ININFO_message("Testing output BRIK") ;
-     for( qq=0 ; qq < ncbrik ; qq+=655360 ) cbrik[qq] = 0 ;
+     dq = ncbrik / 65536 ; if( dq < 1024 ) dq = 1024 ;
+     for( qq=0 ; qq < ncbrik ; qq+=dq ) cbrik[qq] = 0 ;
      cbrik[ncbrik-1] = 0 ;
      ININFO_message("... done with test") ;
    }
@@ -526,7 +540,7 @@ AFNI_OMP_START ;
 
          /* skip unmasked voxels, unless want correlations from all source voxels */
 
-         if( !all_source && mmm != NULL && mmm[jj] == 0 ) continue ;
+         if( !all_source && mask != NULL && mask[jj] == 0 ) continue ;
 
 #if 0
          if( jj == kout ){ car[jj] = 10000 ; continue ; } /* correlation = 1.0 */
@@ -534,23 +548,7 @@ AFNI_OMP_START ;
 
          ysar = VECTIM_PTR(xvectim,jj) ;
 
-         switch( method ){                    /* correlate */
-            default:
-            case PEARSON:
-              car[jj] = (short)(10000.49f*zm_THD_pearson_corr(nvals,xsar,ysar));
-            break;
-            case ETA2:
-              car[jj] = (short)(10000.49f*my_THD_eta_squared(nvals,xsar,ysar));
-            break;
-#if 0
-            case SPEARMAN:
-              car[jj] = (short)(10000.49*THD_spearman_corr(nvals,xsar,ysar));
-            break;
-            case QUADRANT:
-              car[jj] = (short)(10000.49*THD_quadrant_corr(nvals,xsar,ysar));
-            break ;
-#endif
-         }
+         car[jj] = (short)(10000.49f*corfun(nvals,xsar,ysar)) ;
 
       } /* end of innter loop over voxels */
 
@@ -558,9 +556,7 @@ AFNI_OMP_START ;
       if( do_mmap ){  /* copy results to disk mmap now */
         short *cout = ((short *)(cbrik)) + (int64_t)(nvox)*(int64_t)(kout) ;
 #pragma omp critical
-        { memcpy( cout , car , sizeof(short)*nvox ) ;
-          msync(  cout , sizeof(short)*nvox , MS_ASYNC ) ;
-        }
+        { memcpy( cout , car , sizeof(short)*nvox ) ; }
       }
 #endif
 
@@ -574,9 +570,24 @@ AFNI_OMP_END ;
 
    /*----------  Finish up ---------*/
 
-   /* toss the trash */
+   /* write mask info (if any) to output dataset header */
 
-   free(imap); VECTIM_destroy(xvectim); if( mmm != NULL ) free(mmm);
+   if( mask != NULL ){
+     char *maskstring = mask_to_b64string(nvox,mask) ;
+     THD_set_string_atr( cset->dblk , "AFNI_AUTOTCORR_MASK" , maskstring ) ;
+     free(maskstring) ; free(mask) ;
+     if( ISVALID_DSET(mset) ){
+       THD_set_string_atr( cset->dblk , "AFNI_AUTOCORR_MASK_IDCODE" ,
+                                        DSET_IDCODE_STR(mset)        ) ;
+       THD_set_string_atr( cset->dblk , "AFNI_AUTOCORR_MASK_NAME"   ,
+                                        DSET_HEADNAME(mset)          ) ;
+       DSET_delete(mset) ;
+     }
+   }
+
+   /* toss the remaining trash */
+
+   free(imap) ; VECTIM_destroy(xvectim) ;
 
    /* if did mmap(), finish that off as well */
 
@@ -586,11 +597,12 @@ AFNI_OMP_END ;
 #ifdef ALLOW_MMAP
      char *ptr = cbrik ;
      fprintf(stderr,"Done.[un-mmap-ing") ;
-     for( ii=0 ; ii < nmask ; ii++ ){
+     for( ii=0 ; ii < nmask ; ii++ ){  /* map sub-bricks */
        mri_fix_data_pointer( ptr , DSET_BRICK(cset,ii) ) ;
        ptr += DSET_BRICK_BYTES(cset,ii) ;
      }
-     THD_load_statistics(cset) ; fprintf(stderr,".") ;
+     THD_load_statistics(cset) ;       /* so can do stats */
+     fprintf(stderr,".") ;
      munmap(cbrik,ncbrik) ; cbrik = NULL ;
      fprintf(stderr,"].\n") ;
 #endif
