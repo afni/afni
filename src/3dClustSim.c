@@ -124,6 +124,10 @@ void display_help_menu()
    "(the '-pthr' option) and only outputs the cluster size threshold at chosen\n"
    "values of the alpha significance level (the '-athr' option).\n"
    "\n"
+   "In addition, the program allows the output to be formatted for inclusion\n"
+   "into an AFNI dataset's header, whence it can be used in the AFNI Clusterize\n"
+   "interface to show approximate alpha values for the displayed clusters.\n"
+   "\n"
    "Three different clustering methods can be used -- the program can give\n"
    "you results for any or all of them in one run -- see the '-NN' option.\n"
    "\n"
@@ -935,6 +939,7 @@ void gather_stats_NN3( int ipthr , float *fim , byte *bfim , int *mtab , int ith
 int main( int argc , char **argv )
 {
   int **max_table[4] ; int nnn , ipthr , first_mask=1 ;
+  char *refit_cmd = NULL ;
 #ifdef USE_OMP
   int ***mtab[4] ;
 #endif
@@ -1220,6 +1225,13 @@ MPROBE ;
         if( prefix != NULL ) strcat(fname,"niml") ;
         else                 strcpy(fname,"stdout:") ;
         NI_write_element_tofile( fname , nel , NI_TEXT_MODE ) ;
+        if( prefix != NULL ){
+          if( refit_cmd == NULL )
+            refit_cmd = THD_zzprintf( refit_cmd , "3drefit " ) ;
+          refit_cmd = THD_zzprintf( refit_cmd ,
+                                    "-atrstring AFNI_CLUSTSIM_NN%d file:%s " ,
+                                    nnn , fname ) ;
+        }
         if( prefix != NULL && mask_vol != NULL && first_mask ){
           bbb = mask_to_b64string( mask_nvox , mask_vol ) ; first_mask = 0 ;
           if( bbb != NULL ){
@@ -1227,11 +1239,20 @@ MPROBE ;
             sprintf(fname,"%s.mask",prefix) ; fp = fopen(fname,"w") ;
             if( fp != NULL ){ fprintf(fp,"%s\n",bbb); fclose(fp); }
             free(bbb) ;
+            refit_cmd = THD_zzprintf( refit_cmd ,
+                                      "-atrstring AFNI_CLUSTSIM_MASK file:%s " ,
+                                      fname) ;
           }
         }
       } /* end of NIML output */
     } /* end of loop over nnn = NN degree */
   } /* end of outputization */
+
+  /*-- a minor aid for the pitiful helpless user [e.g., me] --*/
+
+  if( refit_cmd != NULL )
+    INFO_message("Command fragment to put cluster results into a dataset header:\n"
+                 " %s" , refit_cmd ) ;
 
   /*----- run away screaming into the night ----- AAUUGGGHHH!!! -----*/
 

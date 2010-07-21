@@ -23,6 +23,7 @@ static Widget wtemp ;
 
 char * get_alpha_string( int csiz  , float pval , Three_D_View *im3d    ) ;
 int find_cluster_thresh( float athr, float pval , CLU_threshtable *ctab ) ;
+CLU_threshtable * CLU_get_thresh_table( Three_D_View *im3d ) ;
 
 /*****************************************************************************/
 /*************  Functions for all actions in the cluster group ***************/
@@ -61,7 +62,11 @@ ENTRY("AFNI_cluster_choose_CB") ;
 
    if( ! IM3D_OPEN(im3d) ) EXRETURN ;
 
-   rmm = 0.0f ; vmul = vec[0] ;
+   rmm = -rintf(vec[0]) ;
+        if( rmm >= -1.0f ) rmm = -1.0f ;
+   else if( rmm >= -2.0f ) rmm = -2.0f ;
+   else                    rmm = -3.0f ;
+   vmul = vec[1] ;
    if( vmul < 2.0f ){
      static int first=1 ;
      vmul = 2.0f ;
@@ -74,13 +79,15 @@ ENTRY("AFNI_cluster_choose_CB") ;
      }
    }
    im3d->vedset.code     = VEDIT_CLUST ;
-   im3d->vedset.param[2] = rmm ;   /* is always 0 now -- Jul 2010 */
+   im3d->vedset.param[2] = rmm ;   /* is -1, -2, or -3 [Jul 2010] */
    im3d->vedset.param[3] = vmul ;  /* other params set in afni.c */
    set_vedit_cluster_label(im3d,1) ;
    if( ISVALID_3DIM_DATASET(im3d->fim_now) && !im3d->vinfo->func_visible ){
      MCW_set_bbox( im3d->vwid->view->see_func_bbox , 1 ) ;
      im3d->vinfo->func_visible = True ;
    }
+
+   im3d->vwid->func->clu_nnlev = (int)(-rmm) ;
 
    if( im3d->vinfo->func_visible ) AFNI_redisplay_func( im3d ) ;
    EXRETURN ;
@@ -130,17 +137,23 @@ ENTRY("AFNI_clu_CB") ;
    /*--- Get clusterizing parameters ---*/
 
    if( w == im3d->vwid->func->clu_cluster_pb ){
-     char *lvec[1] = { "Voxels" } ;
-     float fvec[1] ;
+     char *lvec[2] = { "NN level " , "Voxels   " } ;
+     float fvec[2] ;
      if( im3d->vedset.code == VEDIT_CLUST ){
-       fvec[0] = im3d->vedset.param[3]; if( fvec[0] <= 0.0f ) fvec[0] = 20.0f;
+       fvec[0] = -im3d->vedset.param[2];
+       fvec[1] =  im3d->vedset.param[3]; if( fvec[1] < 2.0f ) fvec[1] = 20.0f;
      } else {
-       fvec[0] = 20.0f ;
+       fvec[0] =  1.0f ;  /* NN1 */
+       fvec[1] = 20.0f ;
      }
      MCW_choose_vector( im3d->vwid->func->thr_label ,
                        "------ Set Clusterize Parameter -------\n"
-                       "* Voxels = minimum cluster size that\n"
-                       "           will be kept [at least 2]\n"
+                       "* NN level => NN clustering method\n"
+                       "        1 = faces must touch\n"
+                       "        2 = faces or edges touch\n"
+                       "        3 = faces or edges or corners\n"
+                       "* Voxels   => minimum cluster size that\n"
+                       "              will be kept [at least 2]\n"
                        "---------------------------------------\n"
                        "* Use 'BHelp' on 'Cluster Edit' label\n"
                        "  to get summary of clustering results.\n"
@@ -148,7 +161,7 @@ ENTRY("AFNI_clu_CB") ;
                        "* Click on the 'Rpt' button to open a\n"
                        "  more complete cluster report panel.\n"
                        "---------------------------------------"
-                       , 1 , lvec,fvec ,
+                       , 2 , lvec,fvec ,
                         AFNI_cluster_choose_CB , (XtPointer)im3d ) ;
      EXRETURN ;
    }
@@ -926,6 +939,7 @@ void AFNI_clus_update_widgets( Three_D_View *im3d )
    char line[128] ;
    MCW_cluster_array *clar ;
    int maxclu ;
+   CLU_threshtable *ctab=NULL ;
 
 ENTRY("AFNI_clus_update_widgets") ;
 
@@ -970,25 +984,26 @@ ENTRY("AFNI_clus_update_widgets") ;
    rrr = malloc(strlen(rpt)+256) ; strcpy(rrr,rpt) ;
 
    pval = im3d->vinfo->func_pval ;
-   if( pval >= 0.0f && im3d->vwid->func->clu_tabNN1 != NULL ){
+   ctab = CLU_get_thresh_table( im3d ) ;
+   if( pval >= 0.0f && ctab != NULL ){
 #if 0
      int csiz ;
-     csiz = find_cluster_thresh( 0.10f , pval , im3d->vwid->func->clu_tabNN1 ) ;
+     csiz = find_cluster_thresh( 0.10f , pval , ctab ) ;
      if( csiz > 0 ) sprintf( rrr+strlen(rrr) , " Cluster thresh(alpha=0.10) =%6d\n",csiz) ;
      else           strcat ( rrr             , " Cluster thresh(alpha=0.10) =   N/A\n") ;
-     csiz = find_cluster_thresh( 0.05f , pval , im3d->vwid->func->clu_tabNN1 ) ;
+     csiz = find_cluster_thresh( 0.05f , pval , ctab ) ;
      if( csiz > 0 ) sprintf( rrr+strlen(rrr) , " Cluster thresh(alpha=0.05) =%6d\n",csiz) ;
      else           strcat ( rrr             , " Cluster thresh(alpha=0.05) =   N/A\n") ;
-     csiz = find_cluster_thresh( 0.01f , pval , im3d->vwid->func->clu_tabNN1 ) ;
+     csiz = find_cluster_thresh( 0.01f , pval , ctab ) ;
      if( csiz > 0 ) sprintf( rrr+strlen(rrr) , " Cluster thresh(alpha=0.01) =%6d\n",csiz) ;
      else           strcat ( rrr             , " Cluster thresh(alpha=0.01) =   N/A\n") ;
 #else
      int csiz ; char ssiz10[8] , ssiz05[8] , ssiz01[8] ;
-     csiz = find_cluster_thresh( 0.10f , pval , im3d->vwid->func->clu_tabNN1 ) ;
+     csiz = find_cluster_thresh( 0.10f , pval , ctab ) ;
      if( csiz > 0 ) sprintf(ssiz10,"%d",csiz) ; else strcpy(ssiz10,"N/A") ;
-     csiz = find_cluster_thresh( 0.05f , pval , im3d->vwid->func->clu_tabNN1 ) ;
+     csiz = find_cluster_thresh( 0.05f , pval , ctab ) ;
      if( csiz > 0 ) sprintf(ssiz05,"%d",csiz) ; else strcpy(ssiz05,"N/A") ;
-     csiz = find_cluster_thresh( 0.01f , pval , im3d->vwid->func->clu_tabNN1 ) ;
+     csiz = find_cluster_thresh( 0.01f , pval , ctab ) ;
      if( csiz > 0 ) sprintf(ssiz01,"%d",csiz) ; else strcpy(ssiz01,"N/A") ;
      sprintf( rrr+strlen(rrr) ,
               " Alpha -> Cluster thresh: 0.10->%s : 0.05->%s : 0.01->%s" ,
@@ -1643,7 +1658,11 @@ static char * AFNI_clus_3dclust( Three_D_View *im3d )
      sprintf(cmd+strlen(cmd)," -2thresh %g %g",thb,tht) ;
 
    if( rmm <= 0.0f ){
-     strcat(cmd," -dxyz=1") ; rmm = 1.0f ;
+     strcat(cmd," -dxyz=1") ;
+     rmm = rintf(rmm) ;
+          if( rmm >= -1.0f ) rmm = 1.01f ;
+     else if( rmm >= -2.0f ) rmm = 1.44f ;
+     else                    rmm = 1.75f ;
      if( vmul < 2.0f ) vmul = 2.0f ;
    } else {
      float vmin=2.0f*DSET_VOXVOL(im3d->fim_now) ;
@@ -1842,7 +1861,6 @@ ENTRY("CLU_setup_alpha_tables") ;
 
    /* NN2 and NN3 C(p,alpha) tables */
 
-#if 0
    atr = THD_find_string_atr( dset->dblk , "AFNI_CLUSTSIM_NN2" ) ;
    if( atr != NULL ){
      nel = NI_read_element_fromstring(atr->ch) ;
@@ -1856,7 +1874,6 @@ ENTRY("CLU_setup_alpha_tables") ;
      ctab = format_cluster_table(nel) ; NI_free_element(nel) ;
      im3d->vwid->func->clu_tabNN3 = ctab ;
    }
-#endif
 
    EXRETURN ;
 }
@@ -1950,7 +1967,7 @@ char * get_alpha_string( int csiz , float pval , Three_D_View *im3d )
 {
    float alpha ; static char astr[32] ; CLU_threshtable *ctab ;
 
-   ctab = im3d->vwid->func->clu_tabNN1 ;
+   ctab = CLU_get_thresh_table(im3d) ;
 
    if( ctab ==  NULL )  return "N/Csim" ;  /* no ClustSim */
    if( pval < 0.0f )    return "N/stat" ;  /* not a statistic */
@@ -1967,4 +1984,22 @@ char * get_alpha_string( int csiz , float pval , Three_D_View *im3d )
      strcpy(astr,"N/pval") ;
    }
    return astr ;
+}
+
+/*----------------------------------------------------------------------------*/
+
+CLU_threshtable * CLU_get_thresh_table( Three_D_View *im3d )
+{
+   CLU_threshtable *ctab ;
+
+   if( !IM3D_VALID(im3d) ) return NULL ;
+   switch( im3d->vwid->func->clu_nnlev ){
+     default: ctab = im3d->vwid->func->clu_tabNN1 ; break ;
+     case 2:  ctab = im3d->vwid->func->clu_tabNN2 ; break ;
+     case 3:  ctab = im3d->vwid->func->clu_tabNN3 ; break ;
+   }
+   if( ctab == NULL ) ctab = im3d->vwid->func->clu_tabNN1 ;
+   if( ctab == NULL ) ctab = im3d->vwid->func->clu_tabNN2 ;
+   if( ctab == NULL ) ctab = im3d->vwid->func->clu_tabNN3 ;
+   return ctab ;
 }

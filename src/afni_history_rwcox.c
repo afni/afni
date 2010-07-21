@@ -44,6 +44,12 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 21 , JUL , 2010 , RWC , "afni Clusterize" , MICRO , TYPE_GENERAL ,
+   "Allow user to choose from NN1 or NN2 or NN3 cluster methods" ,
+   "And selects the corresponding ClustSim table, if present.  Also, modify\n"
+   "3dClustSim to output 3drefit command fragment if appropriate.  For\n"
+   "Shruti, who we all love." } ,
+
  { 20 , JUL , 2010 , RWC , "3dAutoTcorrelate" , MICRO , TYPE_NEW_OPT ,
    "-mmap option -- output large .BRIK file in a faster way" ,
    NULL } ,
