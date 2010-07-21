@@ -45,8 +45,8 @@ int main( int argc , char *argv[] )
       "+bQSH4qpH+T9T/4eYIDvLd4Jb9x7Qm5dJz6do6/31z7fwR+0TpB4IOMX9knzXF1X9mW80Dqi\n"
       "auvOtR/lmn55z13e/wz9EKH/3RD/AmrpJfk====65536\n"
       "\n"
-      " [The input binary mask is compressed (like 'gzip -9'),  then the result]\n"
-      " [is encoded in Base64, and the number of voxels is appended at the end.]\n"
+      "[The input binary mask is compressed (like 'gzip -9'),  then the result]\n"
+      "[is encoded in Base64, and the number of voxels is appended at the end.]\n"
       "\n"
      ) ;
      PRINT_COMPILE_DATE ; exit(0) ;
