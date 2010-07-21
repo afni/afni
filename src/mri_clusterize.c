@@ -51,7 +51,15 @@ ENTRY("mri_clusterize") ;
    if( dz <= 0.0f ) dz = 1.0f ;
    dbot = MIN(dx,dy) ; dbot = MIN(dbot,dz) ;
 
-   if( rmm < dbot ){ dx = dy = dz = 1.0f; rmm = 1.01f; }
+   if( rmm < dbot ){
+     int irr = (int)rintf(rmm) ;
+     dx = dy = dz = 1.0f;
+     switch( irr ){
+       default:  rmm = 1.01f ; break ;   /* NN1 */
+       case -2:  rmm = 1.44f ; break ;   /* NN2 */
+       case -3:  rmm = 1.75f ; break ;   /* NN3 */
+     }
+   }
    vmin = 2.0f*dx*dy*dz ; if( vmul < vmin ) vmul = vmin ;
 
    /* create copy of input image (this will be edited below) */
