@@ -2857,6 +2857,15 @@ that is, it is opened in "w" mode.
 
 This feature may be referred to as the Jen Evans special.
 
+-----------------------------
+Variable: AFNI_SQRT_AUTORANGE (editable)
+-----------------------------
+The functional overlay 'autoRange' value is now [22 Jul 2010] by
+default set to the square root of the largest value in the
+OLay sub-brick (if that value is > 1).  If you want the old behavior,
+where the autoRange value is set to the largest value, set this
+variable to NO.
+
 ----------------------------------------------------------------------
 --- variables specific to NIML I/O
 ----------------------------------------------------------------------

@@ -501,6 +501,10 @@ PLUGIN_interface * ENV_init(void)
                     "Cropped image panning step size" ,
                     -9,9,0,1 , NULL ) ;
 
+   /* 22 Jul 2010 [RWCox] */
+   ENV_add_yesno( "AFNI_SQRT_AUTORANGE" ,
+                  "Set autoRange to sqrt(largest value)?" ) ;
+
    /*--------- Sort list of variables [21 Feb 2007]  -----------*/
 
    if( !AFNI_yesenv("AFNI_DONT_SORT_ENVIRONMENT") )
