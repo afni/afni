@@ -199,10 +199,11 @@ g_history = """
           can so exceed polort 3 (limit found by I Mukai and K Bahadur)
         - added options -outlier_legendre and -outlier_polort
     2.31 Jul 14 2010 : added -mask_test_overlap and -regress_cormat_warnigns
-    2.32 Jul 14 2010 : added -check_afni_version and -requires_afni_version
+    2.32 Jul 19 2010 : added -check_afni_version and -requires_afni_version
+    2.33 Jul 22 2010 : added -regress_run_clustsim and -regress_opts_CS
 """
 
-g_version = "version 2.32, July 19, 2010"
+g_version = "version 2.33, July 22, 2010"
 
 # version of AFNI required for script execution
 g_requires_afni = "19 Jul 2010"
@@ -592,12 +593,17 @@ class SubjProcSream:
                         helpstr="do not apply motion parameters in regression")
         self.valid_opts.add_opt('-regress_opts_3dD', -1, [],
                         helpstr='additional options directly to 3dDeconvolve')
+        self.valid_opts.add_opt('-regress_opts_CS', -1, [],
+                        helpstr='additional options directly to 3dClustSim')
         self.valid_opts.add_opt('-regress_opts_reml', -1, [],
                         helpstr='additional options directly to 3dREMLfit')
         self.valid_opts.add_opt('-regress_reml_exec', 0, [],
                         helpstr="execute 3dREMLfit command script")
         self.valid_opts.add_opt('-regress_RONI', -1, [],
                         helpstr="1-based list of regressors of no interest")
+        self.valid_opts.add_opt('-regress_run_clustsim', 1, [],
+                        acplist=['yes','no'],
+                        helpstr="add 3dClustSim attrs to regression bucket")
 
         self.valid_opts.trailers = 0   # do not allow unknown options
         
@@ -1171,14 +1177,14 @@ class SubjProcSream:
         # possibly check the AFNI version (via afni_history)
         opt = self.user_opts.find_opt('-check_afni_version')
         if not opt or opt_is_yes(opt):
-          self.fp.write(                                                    \
-            '# check that the current AFNI version is recent enough\n'      \
-            'afni_history -check_date %s\n'                                 \
-            'if ( $status ) then\n'                                         \
-            '    echo "** this script requires newer AFNI binaries (%s)"\n' \
-            '    echo "   (consider: @update.afni.binaries -defaults)"\n'   \
-            '    exit\n' \
-            'endif\n\n' % (g_requires_afni, g_requires_afni) )
+          self.fp.write(                                                      \
+          '# check that the current AFNI version is recent enough\n'          \
+          'afni_history -check_date %s\n'                                     \
+          'if ( $status ) then\n'                                             \
+          '    echo "** this script requires newer AFNI binaries (than %s)"\n'\
+          '    echo "   (consider: @update.afni.binaries -defaults)"\n'       \
+          '    exit\n'                                                        \
+          'endif\n\n' % (g_requires_afni, g_requires_afni) )
 
         self.fp.write('# the user may specify a single subject to run with\n'\
                       'if ( $#argv > 0 ) then\n'                             \

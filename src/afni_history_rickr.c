@@ -48,6 +48,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 22, JUL, 2010, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "added options -regress_run_clustsim and -regress_opts_CS",
+   "This is to apply 3dClustSim results for multiple comparison correction\n"
+   "to the stats dataset output from 3dDeconvolve."
+ } ,
+
  { 20, JUL, 2010, RCR, "xmat_tool.py", MICRO, TYPE_MODIFY,
    "made small improvement out text formatting for cormat and cosmat", 
    NULL
