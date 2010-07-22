@@ -496,9 +496,14 @@ ENTRY("AFNI_clus_make_widgets") ;
                             "Center-of-Mass X,Y,Z coordinates\n"
                             "for each cluster.\n"
                             "* The weights that define these\n"
-                            "  locations are taken from the\n"
-                            "  'OLay' sub-brick of the Overlay\n"
-                            "  dataset."
+                            "   locations are taken from the\n"
+                            "   'OLay' sub-brick of the Overlay\n"
+                            "   dataset.\n"
+                            "* The coordinate signs (DICOM or\n"
+                            "   SPM order) can be chosen in the\n"
+                            "   main AFNI controller window by\n"
+                            "   the right-click popup menu in\n"
+                            "   the upper-left coordinate label.\n"
                          ) ;
    }
 
@@ -514,8 +519,16 @@ ENTRY("AFNI_clus_make_widgets") ;
    XmStringFree(xstr) ;
    XtAddCallback( cwid->clust3d_pb, XmNactivateCallback, AFNI_clus_action_CB, im3d );
    MCW_register_hint( cwid->clust3d_pb , "Output equivalent 3dclust command" ) ;
-   MCW_register_help( cwid->clust3d_pb , "Writes the equivalent 3dclust\n"
-                                         "command to the terminal (stdout)" ) ;
+   MCW_register_help( cwid->clust3d_pb ,
+                       "Writes the equivalent 3dclust\n"
+                       "command to the terminal (stdout)\n"
+                       "* However, at this time, 3dclust\n"
+                       "   has no way to use the 3dClustSim\n"
+                       "   mask (if any) stored in the\n"
+                       "   Overlay dataset's header, so\n"
+                       "   the results might not be exactly\n"
+                       "   identical to AFNI's Clusterize."
+                    ) ;
 
    /* row #1: SaveTable button */
 
@@ -1162,7 +1175,7 @@ ENTRY("AFNI_clus_action_CB") ;
                                              *im3d->ss_now->num_dsset  ) ;
      cdds.cb = AFNI_clus_finalize_dataset_CB ;
      for( ii=0 ; ii < im3d->ss_now->num_dsset ; ii++ ){
-       dset = GET_SESSION_DSET(im3d->ss_now, ii, vv) ; 
+       dset = GET_SESSION_DSET(im3d->ss_now, ii, vv) ;
 /*     dset = im3d->ss_now->dsset_xform_table[ii][vv] ;*/
        if( ISVALID_DSET(dset)                          &&  /* qualifications */
            DSET_NVOX(dset) == DSET_NVOX(im3d->fim_now) &&
