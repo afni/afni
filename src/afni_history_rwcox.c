@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 22 , JUL , 2010 , RWC , "3dClustSim" , MICRO , TYPE_NEW_OPT ,
+   "Add -both option (get NIML and 1D output in one run)" ,
+   NULL } ,
+
  { 21 , JUL , 2010 , RWC , "afni Clusterize" , MICRO , TYPE_GENERAL ,
    "Allow user to choose from NN1 or NN2 or NN3 cluster methods" ,
    "And selects the corresponding ClustSim table, if present.  Also, modify\n"

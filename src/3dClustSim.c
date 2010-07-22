@@ -53,6 +53,7 @@ static int do_blur = 0 ;
 
 static int nodec   = 0 ;
 static int do_niml = 0 ;
+static int do_1D   = 1 ;
 static int do_ball = 0 ;
 
 static int do_NN[4] = { 0 , 1 , 0 , 0 } ;
@@ -131,6 +132,7 @@ void display_help_menu()
    "Three different clustering methods can be used -- the program can give\n"
    "you results for any or all of them in one run -- see the '-NN' option.\n"
    "\n"
+   "-------\n"
    "OPTIONS  [at least 1 option is required, or you'll get this help message!]\n"
    "-------\n"
    " ** Specify the volume over which the simulation will occur **\n"
@@ -214,6 +216,9 @@ void display_help_menu()
    "-niml          = Output the table in an XML/NIML format, rather than a .1D format.\n"
    "                  * This option is for use with other software programs.\n"
    "                  * '-niml' also implicitly means '-LOTS'.\n"
+   "-both          = Output the table in XML/NIML format AND in .1D format.\n"
+   "                  * You probably want to use '-prefix' with this option!\n"
+   "                    Otherwise, everything is mixed together on stdout.\n"
    "\n"
    "-prefix ppp    = Write output for NN method #k to file 'ppp.NNk.1D' for k=1, 2, 3.\n"
    "                  * If '-prefix is not used, results go to standard output.\n"
@@ -233,6 +238,7 @@ void display_help_menu()
    "-quiet         = Don't print out the progress reports, etc.\n"
    "                  * Put this option first to quiet most informational messages.\n"
    "\n"
+   "------\n"
    "NOTES:\n"
    "------\n"
    "* This program is like running AlphaSim once for each '-pthr' value and then\n"
@@ -257,18 +263,26 @@ void display_help_menu()
    "  AFNI's Clusterize GUI makes use of these attributes, if stored in a\n"
    "  statistics dataset (e.g., something from 3dDeconvolve, 3dREMLfit, etc.).\n"
    "\n"
-   "* The C(p,alpha) table will only be used in Clusterize to provide the cluster\n"
+   "* 3dClustSim will print (to stderr) a 3drefit command fragment, similar\n"
+   "  to the one above, that you can use to add cluster tables to any\n"
+   "  relevant statistical datasets you have lolling about.\n"
+   "\n"
+   "* The C(p,alpha) table will be used in Clusterize to provide the cluster\n"
    "  level alpha value when the AFNI GUI is set so that the Overlay threshold\n"
    "  sub-brick is a statistical parameter (e.g., a t- or F-statistic), from which\n"
    "  a per-voxel p-value can be calculated, so that Clusterize can interpolate\n"
    "  in the C(p,alpha) table.\n"
-   "  [At present, AFNI only uses the NN1 method in the Clusterize GUI.]\n"
+   "\n"
+   "* AFNI will use the NN1, NN2, NN3 tables as needed in its Clusterize\n"
+   "  interface if they are all stored in the statistics dataset header,\n"
+   "  depending on the NN level chosen in the Clusterize controller.\n"
    "\n"
    "-- RW Cox -- July 2010\n"
   ) ;
 
   printf(
    "\n"
+   "-------------\n"
    "SAMPLE OUTPUT from the command '3dClustSim -fwhm 7'\n"
    "-------------\n"
    "# 3dClustSim -fwhm 7\n"
@@ -494,14 +508,17 @@ void get_options( int argc , char **argv )
 
     /*----   -niml   ----*/
 
-    if( strcasecmp(argv[nopt],"-niml") == 0 ){
+    if( strcasecmp(argv[nopt],"-niml") == 0 ||
+        strcasecmp(argv[nopt],"-both") == 0   ){
       npthr = npthr_lots ;
       pthr = (double *)realloc(pthr,sizeof(double)*npthr) ;
       memcpy( pthr , pthr_lots , sizeof(double)*npthr ) ;
       nathr = nathr_lots ;
       athr = (double *)realloc(athr,sizeof(double)*nathr) ;
       memcpy( athr , athr_lots , sizeof(double)*nathr ) ;
-      do_niml = 1 ; nopt++ ; continue ;
+      do_niml = 1 ;
+      do_1D   = (strcasecmp(argv[nopt],"-both") == 0) ;
+      nopt++ ; continue ;
     }
 
     /*----   -BALL   ----*/
@@ -1093,7 +1110,7 @@ int main( int argc , char **argv )
     float **clust_thresh , cmax=0.0f ;
     int ii , itop , iathr ;
     char *commandline = tross_commandline("3dClustSim",argc,argv) ;
-    char fname[THD_MAX_NAME] ;
+    char fname[THD_MAX_NAME] , pname[THD_MAX_NAME] ;
 
     alpha        = (double *)malloc(sizeof(double)*(max_cluster_size+1)) ;
     clust_thresh = (float **)malloc(sizeof(float *)*npthr) ;
@@ -1146,6 +1163,7 @@ int main( int argc , char **argv )
         }
       }
 
+#if 0
       if( !nodec && !do_niml && cmax > 9999.9f ){  /* if largest is way big, */
         for( ipthr=0 ; ipthr < npthr ; ipthr++ ){  /* then truncate to ints. */
           for( iathr=0 ; iathr < nathr ; iathr++ ){
@@ -1156,19 +1174,20 @@ int main( int argc , char **argv )
         }
         nodec = 1 ;
       }
+#endif
 
 MPROBE ;
 
       if( prefix != NULL ){
-        sprintf(fname,"%s.NN%d.",prefix,nnn) ;
+        sprintf(pname,"%s.NN%d.",prefix,nnn) ;
       } else {
         fflush(stderr) ; fflush(stdout) ;
       }
 
-      if( !do_niml ){  /* output in 1D format */
+      if( do_1D ){  /* output in 1D format */
         FILE *fp = stdout ;
         if( prefix != NULL ){
-          strcat(fname,"1D") ; fp = fopen(fname,"w") ;
+          strcpy(fname,pname) ; strcat(fname,"1D") ; fp = fopen(fname,"w") ;
           if( fp == NULL ){
             ERROR_message("Can't open file %s -- using stdout",fname) ;
             fp = stdout ;
@@ -1192,39 +1211,52 @@ MPROBE ;
         for( ipthr=0 ; ipthr < npthr ; ipthr++ ){
           fprintf(fp,"%9.6f ",pthr[ipthr]) ;
           for( iathr=0 ; iathr < nathr ; iathr++ ){
-            if( nodec ) fprintf(fp,"%7d"  ,(int)clust_thresh[ipthr][iathr]) ;
-            else        fprintf(fp,"%7.1f",     clust_thresh[ipthr][iathr]) ;
+            if( nodec )
+              fprintf(fp,"%7d"  ,(int)clust_thresh[ipthr][iathr]) ;
+            else if( clust_thresh[ipthr][iathr] <= 9999.9f )
+              fprintf(fp,"%7.1f",     clust_thresh[ipthr][iathr]) ;
+            else
+              fprintf(fp,"%7.0f",     clust_thresh[ipthr][iathr]) ;
           }
           fprintf(fp,"\n") ;
         }
-      } else {       /* output in NIML format */
+      }
+
+      if( do_niml ){ /* output in NIML format */
         NI_element *nel ; float *vec ; char buf[1024] , *bbb ; NI_float_array nfar ;
         sprintf(buf,"3dClustSim_NN%d",nnn) ;
         nel = NI_new_data_element( buf , npthr ) ;
         vec = (float *)malloc(sizeof(float)*MAX(npthr,nathr)) ;
         for( iathr=0 ; iathr < nathr ; iathr++ ){
-          for( ipthr=0 ; ipthr < npthr ; ipthr++ ) vec[ipthr] = clust_thresh[ipthr][iathr] ;
+          for( ipthr=0 ; ipthr < npthr ; ipthr++ )
+            vec[ipthr] = clust_thresh[ipthr][iathr] ;
           NI_add_column( nel , NI_FLOAT , vec ) ;
         }
-        NI_set_attribute( nel , "commandline" , commandline ) ;
-        sprintf(buf,"%d,%d,%d",nx,ny,nz) ; NI_set_attribute(nel,"nxyz",buf) ;
-        sprintf(buf,"%.3f,%.3f,%.3f",dx,dy,dz) ; NI_set_attribute(nel,"dxyz",buf) ;
-        sprintf(buf,"%.2f,%.2f,%.2f",fwhm_x,fwhm_y,fwhm_z) ; NI_set_attribute(nel,"fwhmxyz",buf) ;
-        sprintf(buf,"%d",niter) ; NI_set_attribute(nel,"iter",buf) ;
+          NI_set_attribute( nel , "commandline" , commandline ) ;
+        sprintf(buf,"%d,%d,%d",nx,ny,nz) ;
+          NI_set_attribute(nel,"nxyz",buf) ;
+        sprintf(buf,"%.3f,%.3f,%.3f",dx,dy,dz) ;
+          NI_set_attribute(nel,"dxyz",buf) ;
+        sprintf(buf,"%.2f,%.2f,%.2f",fwhm_x,fwhm_y,fwhm_z) ;
+          NI_set_attribute(nel,"fwhmxyz",buf) ;
+        sprintf(buf,"%d",niter) ;
+          NI_set_attribute(nel,"iter",buf) ;
         for( ipthr=0 ; ipthr < npthr ; ipthr++ ) vec[ipthr] = pthr[ipthr] ;
         nfar.num = npthr ; nfar.ar = vec ; bbb = NI_encode_float_list(&nfar,",") ;
-        NI_set_attribute(nel,"pthr",bbb) ; NI_free(bbb) ;
+          NI_set_attribute(nel,"pthr",bbb) ; NI_free(bbb) ;
         for( iathr=0 ; iathr < nathr ; iathr++ ) vec[iathr] = athr[iathr] ;
         nfar.num = nathr ; nfar.ar = vec ; bbb = NI_encode_float_list(&nfar,",") ;
-        NI_set_attribute(nel,"athr",bbb) ; NI_free(bbb) ;
+          NI_set_attribute(nel,"athr",bbb) ; NI_free(bbb) ;
         if( mask_dset != NULL ){
-          NI_set_attribute(nel,"mask_dset_idcode",DSET_IDCODE_STR(mask_dset)) ;
-          NI_set_attribute(nel,"mask_dset_name"  ,DSET_HEADNAME(mask_dset)) ;
-          sprintf(buf,"%d",mask_ngood) ; NI_set_attribute(nel,"mask_count",buf) ;
+            NI_set_attribute(nel,"mask_dset_idcode",DSET_IDCODE_STR(mask_dset)) ;
+            NI_set_attribute(nel,"mask_dset_name"  ,DSET_HEADNAME(mask_dset)) ;
+          sprintf(buf,"%d",mask_ngood) ;
+            NI_set_attribute(nel,"mask_count",buf) ;
         }
-        if( prefix != NULL ) strcat(fname,"niml") ;
-        else                 strcpy(fname,"stdout:") ;
+        if( prefix != NULL ){ strcpy(fname,pname) ; strcat(fname,"niml") ; }
+        else                  strcpy(fname,"stdout:") ;
         NI_write_element_tofile( fname , nel , NI_TEXT_MODE ) ;
+        NI_free_element( nel ) ;
         if( prefix != NULL ){
           if( refit_cmd == NULL )
             refit_cmd = THD_zzprintf( refit_cmd , "3drefit " ) ;
@@ -1245,16 +1277,19 @@ MPROBE ;
           }
         }
       } /* end of NIML output */
+
     } /* end of loop over nnn = NN degree */
+
   } /* end of outputization */
 
-  /*-- a minor aid for the pitiful helpless user [e.g., me] --*/
+  /*------- a minor aid for the pitiful helpless user [e.g., me] -------*/
 
   if( refit_cmd != NULL )
-    INFO_message("Command fragment to put cluster results into a dataset header:\n"
+    INFO_message("Command fragment to put cluster results into a dataset header;\n"
+                 " + Append the name of the datasets to be patched to this command:\n"
                  " %s" , refit_cmd ) ;
 
-  /*----- run away screaming into the night ----- AAUUGGGHHH!!! -----*/
+  /*-------- run away screaming into the night ----- AAUUGGGHHH!!! --------*/
 
   exit(0);
 }
