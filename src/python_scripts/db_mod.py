@@ -1672,11 +1672,17 @@ def db_mod_regress(block, proc, user_opts):
     if uopt and bopt:
         bopt.parlist = uopt.parlist
 
-    uopt = user_opts.find_opt('-regress_opts_3dD')
+    uopt = user_opts.find_opt('-regress_opts_3dD')      # 3dDeconvolve
     bopt = block.opts.find_opt('-regress_opts_3dD')
     if uopt and bopt: bopt.parlist = uopt.parlist
 
-    uopt = user_opts.find_opt('-regress_opts_reml')
+    uopt = user_opts.find_opt('-regress_opts_CS')       # 3dClustSim
+    if uopt:
+        bopt = block.opts.find_opt('-regress_opts_CS')
+        if bopt: bopt.parlist = uopt.parlist
+        else: block.opts.add_opt('-regress_opts_CS', -1, uopt.parlist, setpar=1)
+
+    uopt = user_opts.find_opt('-regress_opts_reml')      # 3dREMLfit
     bopt = block.opts.find_opt('-regress_opts_reml')
     if uopt and bopt: bopt.parlist = uopt.parlist
 
@@ -1887,6 +1893,14 @@ def db_mod_regress(block, proc, user_opts):
     uopt = user_opts.find_opt('-regress_reml_exec')
     bopt = block.opts.find_opt('-regress_reml_exec')
     if uopt and not bopt: block.opts.add_opt('-regress_reml_exec',0,[])
+
+    # check for whether to run 3dClustSim
+    uopt = user_opts.find_opt('-regress_run_clustsim')
+    if uopt:
+        bopt = block.opts.find_opt('-regress_run_clustsim')
+        if bopt: bopt.parlist = uopt.parlist
+        else: block.opts.add_opt('-regress_run_clustsim', 1, uopt.parlist,
+                                 setpar=1)
 
     # prepare to return
     if errs > 0:
@@ -2279,6 +2293,7 @@ def db_cmd_blur_est(proc, block):
 
     if proc.verb > 1: print '++ computing blur estimates'
     blur_file = 'blur_est.$subj.1D'
+    mask_dset = '%s%s' % (proc.mask.prefix, proc.view)
 
     # call this a new sub-block
     cmd = cmd + '# %s\n'                                \
@@ -2289,7 +2304,7 @@ def db_cmd_blur_est(proc, block):
     if aopt:
         bstr = blur_est_loop_str(proc,
                     'all_runs%s$subj%s' % (proc.sep_char, proc.view), 
-                    '%s%s' % (proc.mask.prefix, proc.view), 'epits', blur_file)
+                    mask_dset, 'epits', blur_file)
         if not bstr: return
         cmd = cmd + bstr
 
@@ -2299,18 +2314,51 @@ def db_cmd_blur_est(proc, block):
 
     if eopt and not sopt: # want errts, but 3dD was not executed
         bstr = blur_est_loop_str(proc, '%s%s' % (errts_pre, proc.view), 
-                    '%s%s' % (proc.mask.prefix, proc.view), 'errts', blur_file)
+                    mask_dset, 'errts', blur_file)
         if not bstr: return
         cmd = cmd + bstr
     if eopt and ropt: # want errts and reml was executed
         # cannot use ${}, so escape the '_'
         bstr = blur_est_loop_str(proc, '%s\_REML%s' % (errts_pre, proc.view), 
-                    '%s%s'%(proc.mask.prefix,proc.view), 'err_reml', blur_file)
+                    mask_dset, 'err_reml', blur_file)
         if not bstr: return
         cmd = cmd + bstr
     cmd = cmd + '\n'
 
+    # maybe make string to run and apply 3dClustSim
+    opt = block.opts.find_opt('-regress_run_clustsim')
+    if not opt or OL.opt_is_yes(opt):
+        stats_dset = 'stats.$subj%s' % proc.view
+        rv, bstr = make_clustsim_commands(proc, block, blur_file, 
+                                          mask_dset, stats_dset)
+        if rv: return   # failure (error has been printed)
+        cmd = cmd + bstr + '\n'
+
     return cmd
+
+def make_clustsim_commands(proc, block, blur_file, mask_dset, stats_dset):
+    if proc.verb > 2:
+        print '-- make_clustsim_commands: blur = %s\n\tmask = %s, stats = %s' \
+              % (blur_file, mask_dset, stats_dset)
+
+    opt = block.opts.find_opt('-regress_opts_CS')
+    optstr = ''
+    if opt:
+        if len(opt.parlist) > 0 :
+           optstr = '           %s \\\n' % ' '.join(opt.parlist)
+
+    cprefix = 'rm.CSim'     # prefix for 3dClustSim files
+    cstr = '# add 3dClustSim results as attributes to the stats dset\n' \
+           'set fxyz = ( `tail -1 %s` )\n'                              \
+           '3dClustSim -niml -mask %s \\\n'                             \
+           '%s'                                                         \
+           '           -fwhmxyz $fxyz[1-3] -prefix %s\n'                \
+           '3drefit -atrstring AFNI_CLUSTSIM_NN1 file:%s.NN1.niml \\\n' \
+           '        -atrstring AFNI_CLUSTSIM_MASK file:%s.mask    \\\n' \
+           '        %s\n\n' % (blur_file, mask_dset, optstr,
+                               cprefix, cprefix, cprefix, stats_dset)
+
+    return 0, cstr
 
 def blur_est_loop_str(proc, dname, mname, label, outfile):
     """return tcsh command string to compute blur from this dset
@@ -4797,6 +4845,17 @@ g_help_string = """
             Please see '3dDeconvolve -help' for more information, or the link:
                 http://afni.nimh.nih.gov/afni/doc/misc/3dDeconvolveSummer2004
 
+        -regress_opts_CS OPTS ...    : specify extra options for 3dClustSim
+
+                e.g. -regress_opts_CS -athr 0.05 0.01 0.005 0.001
+
+            This option allows the user to add extra options to the 3dClustSim
+            command.  Only 1 such option should be applied, though multiple
+            options to 3dClustSim can be included.
+
+            Please see '3dClustSim -help' for more information.
+            See also -regress_run_clustsim.
+
         -regress_opts_reml OPTS ...  : specify extra options for 3dREMLfit
 
                 e.g. -regress_opts_reml                                 \\
@@ -4856,6 +4915,27 @@ g_help_string = """
 
             The user is encouraged to check the 3dDeconvolve command in the
             processing script, to be sure they are applied correctly.
+
+        -regress_run_clustsim yes/no : add 3dClustSim attrs to stats dset
+
+                e.g. -regress_run_clustsim no
+                default: yes
+
+            This option controls whether 3dClustSim will be executed after the
+            regression analysis.  Since the default is 'yes', the effective use
+            of this option would be to turn off the operation.
+
+            3dClustSim is a more advanced version of AlphaSim, and generates a
+            table of cluster sizes/alpha values that can be then stored in the
+            stats dataset for a simple multiple comparison correction in the
+            cluster interface of the afni GUI.
+
+            The blur estimates and mask dataset are required, and so the
+            option is only relevant in the context of blur estimation.
+
+            Please see '3dClustSim -help' for more information.
+            See also -regress_est_blur_epits, -regress_est_blur_epits and
+                     -regress_opts_CS.
 
         -regress_stim_labels LAB1 ...   : specify labels for stimulus types
 
