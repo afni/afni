@@ -44,6 +44,12 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 22 , JUL , 2010 , RWC , "afni GUI" , MICRO , TYPE_GENERAL ,
+   "Set 'autoRange' to sqrt(largest value) rather than largest value." ,
+   "To make the color scaling a little nicer, usually.\n"
+   "Can be turned off by setting environment variable AFNI_SQRT_AUTORANGE to\n"
+   "NO (this is interactively editable)." } ,
+
  { 22 , JUL , 2010 , RWC , "3dClustSim" , MICRO , TYPE_NEW_OPT ,
    "Add -both option (get NIML and 1D output in one run)" ,
    NULL } ,
