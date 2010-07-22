@@ -3498,16 +3498,18 @@ STATUS("making func->rowcol") ;
    MCW_register_hint( func->clu_cluster_pb , "Set clustering parameters" ) ;
    MCW_register_help( func->clu_cluster_pb ,
                         "Cluster editing parameters:\n"
-                        "  rmm = connectivity radius (rmm=0 -> 1 voxel)\n"
-                        " vmul = minimum cluster volume (in microliters)\n"
-                        "       ** BUT, if rmm=0, vmul is in voxels,\n"
-                        "       ** not in absolute volume!\n\n"
-                        "N.B.: Clustering is done at the overlay\n"
-                        "      dataset voxel resolution, NOT at\n"
-                        "      the underlay resolution.\n\n"
-                        "N.B.: Clustering cannot be done if the overlay\n"
-                        "      dataset does not have a stored volume\n"
-                        "      (e.g., is 'warp-on-demand' only)." ) ;
+                        "NN level = how to decide if two above-threshold\n"
+                        "           voxels are neighbors to be put in\n"
+                        "           the same cluster\n"
+                        "Voxels   = minimum cluster size to be shown\n"
+                        "           in the Rpt table\n\n"
+                        "** Clustering is done at the overlay dataset\n"
+                        "    voxel resolution, NOT at the underlay\n"
+                        "    dataset's resolution.\n\n"
+                        "** Clustering cannot be done if the overlay\n"
+                        "    dataset does not have a stored volume\n"
+                        "    (e.g., is 'warp-on-demand' only)."
+                     ) ;
 
    hrc = XtVaCreateWidget(
          "dialog" , xmRowColumnWidgetClass , func->clu_rowcol ,

@@ -2693,7 +2693,7 @@ ENTRY("AFNI_finalize_dataset_CB") ;
       /* 03 Aug 2007: turn 'See Overlay' on? */
 
       if( !im3d->vinfo->func_visible && im3d->vinfo->func_visible_count == 0 ){
-        AFNI_SEE_FUNC_ON(im3d) ;
+        AFNI_SEE_FUNC_ON(im3d) ; OPEN_PANEL(im3d,func) ;
       }
 
    /*--- switch to Hell? ---*/
