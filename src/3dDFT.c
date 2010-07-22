@@ -22,6 +22,7 @@ int main( int argc , char * argv[] )
             " -taper f == taper 'f' fraction of data at ends (0 <= f <= 1).\n"
             "             [Hamming 'raised cosine' taper of f/2 of the ]\n"
             "             [data length at each end; default is no taper]\n"
+            "             [cf. 3dPeriodogam -help for tapering details!]\n"
            ) ;
      PRINT_COMPILE_DATE ; exit(0) ;
    }

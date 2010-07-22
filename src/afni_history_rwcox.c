@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 22 , JUL , 2010 , RWC , "3dPeriodogram" , MICRO , TYPE_GENERAL ,
+   "Add more details about what it does to -help" ,
+   NULL } ,
+
  { 22 , JUL , 2010 , RWC , "3dDeconvolve" , MICRO , TYPE_GENERAL ,
    "move -x1D_stop exit to AFTER the condition number stuff is output" ,
    "Per the request of Christy Wilson" } ,
