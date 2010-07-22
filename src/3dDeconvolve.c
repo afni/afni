@@ -6069,11 +6069,6 @@ ENTRY("calculate_results") ;
                       num_blocks,block_list , NULL,NULL ) ;
   }
 
-  if( option_data->x1D_stop ){   /* 28 Jun 2007 -- my work here is done */
-    INFO_message("3dDeconvolve exits: -x1D_stop option was given") ;
-    exit(0) ;
-  }
-
   /*----- 14 Jul 2004: check matrix for bad columns - RWCox -----*/
 
   { int *iar , k , nerr=0 ;
@@ -6156,7 +6151,15 @@ ENTRY("calculate_results") ;
     }
   }
 
+  /** 22 Jul 2010: move the exit to AFTER condition number reports **/
+
+  if( option_data->x1D_stop ){   /* 28 Jun 2007 -- my work here is done */
+    INFO_message("3dDeconvolve exits: -x1D_stop option was given") ;
+    exit(0) ;
+  }
+
   /*----- Initialization for the regression analysis -----*/
+
   init_regression_analysis (p, qp, num_stimts, baseline, min_lag, max_lag,
                       xdata, &x_full, &xtxinv_full, &xtxinvxt_full,
                       &x_base, &xtxinvxt_base, x_rdcd, xtxinvxt_rdcd);

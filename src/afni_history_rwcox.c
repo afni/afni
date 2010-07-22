@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 22 , JUL , 2010 , RWC , "3dDeconvolve" , MICRO , TYPE_GENERAL ,
+   "move -x1D_stop exit to AFTER the condition number stuff is output" ,
+   "Per the request of Christy Wilson" } ,
+
  { 22 , JUL , 2010 , RWC , "afni GUI" , MICRO , TYPE_GENERAL ,
    "Set 'autoRange' to sqrt(largest value) rather than largest value." ,
    "To make the color scaling a little nicer, usually.\n"
