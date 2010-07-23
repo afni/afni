@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 23, JUL, 2010, RCR, "afni-general", MINOR, TYPE_ENHANCE,
+   "added Makefile.linux_openmp (and _64) for building with OpenMP support",
+   "Those distribution binaries will be built on a 64-bit Fedora 12 system."
+ } ,
+
  { 22, JUL, 2010, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "added options -regress_run_clustsim and -regress_opts_CS",
    "This is to apply 3dClustSim results for multiple comparison correction\n"
