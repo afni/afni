@@ -3729,7 +3729,7 @@ STATUS("unpacking fvect image") ;
       /** convert time in sec (tar) to time in indexes (qar) **/
 
       if( be->timetype == GLOBAL_TIMES ){  /****------ global times ------****/
-        int nbad=0 , nout=0 ;
+        int nbad=0 , nout=0 ; float *psfb=NULL ;
 
         INFO_message("%s%s %d using GLOBAL times",glprefix,be->option,is+1) ;
         tmax = (nt-1)*basis_TR ;         /* max allowed time offset */
@@ -3740,7 +3740,10 @@ STATUS("loading GLOBAL times and aux params") ;
             for( vv=0 ; vv < vmod+vfun ; vv++ ) zar[vv][ngood] = aar[vv][ii] ;
             qar[ngood++] = tt / basis_TR ;
           } else if( tt >= big_time           ) nbad++ ; /* '*' entries */
-            else                                nout++ ; /* PSFB entries */
+            else {                                       /* PSFB entries */
+              nout++ ; psfb = (float *)realloc(psfb,sizeof(float)*nout) ;
+              psfb[nout-1] = tt ;
+            }
         }
         if( nbad )          /* warn about '*' times in GLOBAL input */
           WARNING_message(
@@ -3750,11 +3753,14 @@ STATUS("loading GLOBAL times and aux params") ;
           WARNING_message(
            "'%s %d' (GLOBAL) has %d times outside range 0 .. %g [PSFB syndrome]",
            be->option , is+1 , nout , tmax ) ;
-          WARNING_message("[dataset TR being used is %g sec]",basis_TR) ;
+           ININFO_message("dataset TR being used is %g s -- unusable times follow",
+                          basis_TR) ;
+          for( ii=0 ; ii < nout ; ii++ ) fprintf(stderr," %g",psfb[ii]) ;
+          fprintf(stderr,"\n") ; free(psfb) ; psfb = NULL ;
         }
 
       } else {   /****---------- local times => 1 row per block ----------****/
-        int nout ;
+        int nout ; float *psfb=NULL ;
 
         INFO_message("%s%s %d using LOCAL times",glprefix,be->option,is+1) ;
         if( ny != nbl ){                 /* times are relative to block */
@@ -3773,15 +3779,21 @@ STATUS("loading LOCAL times and aux params") ;
             if( tt >= 0.0f && tt <= tmax ){
               for( vv=0 ; vv < vmod+vfun ; vv++ ) zar[vv][ngood] = aar[vv][ii+jj*nx] ;
               qar[ngood++] = tt / basis_TR + bst[jj] ;
-            } else if( tt < big_time ) nout++ ; /* PSFB entries */
+            } else if( tt < big_time ){         /* PSFB entries */
+              nout++ ; psfb = (float *)realloc(psfb,sizeof(float)*nout) ;
+              psfb[nout-1] = tt ;
+            }
           }
-          if( nout ){
+          if( nout ){         /* PSFB strikes again! */
             WARNING_message(
              "'%s %d' (LOCAL) run#%d has %d times outside range 0 .. %g [PSFB syndrome]",
              be->option , is+1 , jj+1 , nout , tmax ) ;
-            WARNING_message("dataset TR being used is %g s",basis_TR) ;
+            ININFO_message("dataset TR being used is %g s -- unusable times follow",
+                           basis_TR) ;
+            for( ii=0 ; ii < nout ; ii++ ) fprintf(stderr," %g",psfb[ii]) ;
+            fprintf(stderr,"\n") ; free(psfb) ; psfb = NULL ;
           }
-        }
+        } /* end of loop over row index */
 
       } /** end of converting times into indexes **/
 

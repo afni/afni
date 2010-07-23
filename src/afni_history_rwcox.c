@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 23 , JUL , 2010 , RWC , "3dDeconvolve" , MICRO , TYPE_GENERAL ,
+   "print out list of offending times for the PSFB syndrome" ,
+   NULL } ,
+
  { 22 , JUL , 2010 , RWC , "3dPeriodogram" , MICRO , TYPE_GENERAL ,
    "Add more details about what it does to -help" ,
    NULL } ,
