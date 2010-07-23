@@ -44,6 +44,11 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 23 , JUL , 2010 , RWC , "3dDeconvolve" , MINOR , TYPE_NEW_OPT ,
+   "Add TENTzero and CSPLINzero response models" ,
+   "To allow the HRF to be required to be zero at the start and stop times\n"
+   "(i.e., it will be continuous, not suddenly drop off to zero)." } ,
+
  { 23 , JUL , 2010 , RWC , "3dDeconvolve" , MICRO , TYPE_GENERAL ,
    "print out list of offending times for the PSFB syndrome" ,
    NULL } ,
