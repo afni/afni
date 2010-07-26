@@ -516,7 +516,7 @@ greeting.MEMA <- function ()
           ================== Welcome to 3dMEMA.R ==================          
              AFNI Mixed-Effects Meta-Analysis Modeling Package!
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.1.6,  March 10, 2010
+Version 0.1.7,  Jul 27, 2010
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MEMA.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -547,7 +547,7 @@ Usage:
  both regression coefficients, or general linear contrasts among them, and the 
  corresponding t-statistics from each subject as input. It\'s required to install 
  R (http://www.r-project.org/), plus \'snow\' package if parallel computing is
- desirable. Version 0.1.6 (March 10, 2010). See more details at
+ desirable. Version 0.1.7 (Jul 26, 2010). See more details at
  
  http://afni.nimh.nih.gov/sscc/gangc/MEMA.html'
    
@@ -2024,7 +2024,7 @@ runRMA <- function(  inData, nGrp, n, p, xMat, outData,
 #################################################################################
 
 
-tolL <- 1e-7 # bottom tolerance for avoiding division by 0 and for avioding analyzing data with most 0's
+tolL <- 1e-8 # bottom tolerance for avoiding division by 0 and for avioding analyzing data with most 0's
 tolU <- 1e8  # upper tolerance for those variances of 0
 tTop <- 100   # upper bound for t-statistic
 
