@@ -963,7 +963,7 @@ int main( int argc , char *argv[] )
        char *lab ; float sig ; int nbad ;
        if( ++nopt >= argc ) ERROR_exit("need 1 argument after option '%s'",argv[nopt-1]);
        if( covnel != NULL ) ERROR_exit("can't use -covariates twice!") ;
-       covnel = THD_table_read( argv[nopt] ) ;
+       covnel = THD_simple_table_read( argv[nopt] ) ;
        if( covnel == NULL )
          ERROR_exit("Can't read table from -covariates file '%s'",argv[nopt]) ;
        INFO_message("Covariates file: %d columns, each with %d rows",
