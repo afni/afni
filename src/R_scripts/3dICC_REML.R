@@ -1,7 +1,7 @@
 #!/usr/bin/env afni_run_R
 #Welcome to 3dICC_REML.R, an AFNI IntraClass Correlation Package!
 #-----------------------------------------------------------
-#Version 0.0.2,  Jul. 16, 2010
+#Version 0.0.3,  Jul. 26, 2010
 #Author: Gang Chen (gangchen@mail.nih.gov)
 #Website: http://afni.nimh.nih.gov/sscc/gangc/icc.html
 #SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -141,12 +141,26 @@ if (!is.na(mask)) {
    rm(Mask)   # retrieve some memory
 }
 
-runREML <- function(myData, Model, ModelForm, nFact, tag) {
+#runREML <- function(myData, Model, ModelForm, nFact, tag) {
+   #browser()
+#   myStat<-vector(mode="numeric", length= nFact+1)
+#   if (!all(myData == 0)) {	
+#	Model$Beta<-myData
+#	try(fmAOV<-lmer(ModelForm, data=Model), tag<-1)   
+#	if (tag != 1) {	   
+#	   for(ii in 1:nFact) myStat[ii] <- VarCorr(fmAOV)[[ii]][1]  # factor variances
+#	   myStat[nFact+1] <- attr(VarCorr(fmAOV), "sc")^2  # residual variance
+#	   myStat <- myStat/sum(myStat)
+#	}
+#}
+#return(myStat)
+#}
+
+runREML <- function(myData, fm, nFact, tag) {
    #browser()
    myStat<-vector(mode="numeric", length= nFact+1)
    if (!all(myData == 0)) {	
-	Model$Beta<-myData
-	try(fmAOV<-lmer(ModelForm, data=Model), tag<-1)   
+	try(fmAOV<-refit(fm, myData), tag<-1)   
 	if (tag != 1) {	   
 	   for(ii in 1:nFact) myStat[ii] <- VarCorr(fmAOV)[[ii]][1]  # factor variances
 	   myStat[nFact+1] <- attr(VarCorr(fmAOV), "sc")^2  # residual variance
@@ -156,13 +170,15 @@ runREML <- function(myData, Model, ModelForm, nFact, tag) {
 return(myStat)
 }
 
+
 print(sprintf("Start to run analysis on %i Z slices: %s", dimz, format(Sys.time(), "%D %H:%M:%OS3")))
 print("You can monitor the progress and estimate the total runtime by opening this file from time to time.")
 
 outData <- array(0, dim=c(dimx, dimy, dimz, nFact+1))
 
 if (nNodes==1) for (kk in 1:dimz) {
-   outData[,,kk,] <- aperm(apply(IData[,,kk,], c(1,2), runREML, Model=Model, ModelForm=ModelForm, nFact=nFact, tag=0), c(2,3,1))
+#   outData[,,kk,] <- aperm(apply(IData[,,kk,], c(1,2), runREML, Model=Model, ModelForm=ModelForm, nFact=nFact, tag=0), c(2,3,1))
+   outData[,,kk,] <- aperm(apply(IData[,,kk,], c(1,2), runREML, fm=fm, nFact=nFact, tag=0), c(2,3,1))
    cat("Z slice #", kk, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
 }
 	
@@ -172,7 +188,8 @@ if (nNodes>1)	 {
    cl <- makeCluster(nNodes, type = "SOCK")
    clusterEvalQ(cl, library(lme4))
    for (kk in 1:dimz) {
-      outData[,,kk,] <- aperm(parApply(cl, IData[,,kk,], c(1,2), runREML, Model=Model, ModelForm=ModelForm, nFact=nFact, tag=0), c(2,3,1))
+#      outData[,,kk,] <- aperm(parApply(cl, IData[,,kk,], c(1,2), runREML, Model=Model, ModelForm=ModelForm, nFact=nFact, tag=0), c(2,3,1))
+      outData[,,kk,] <- aperm(parApply(cl, IData[,,kk,], c(1,2), runREML, fm=fm, nFact=nFact, tag=0), c(2,3,1))
       cat("Z slice #", kk, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
    } 
    stopCluster(cl)
