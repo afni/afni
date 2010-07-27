@@ -48,6 +48,13 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 27, JUL, 2010, RCR, "afni-general", MINOR, TYPE_ENHANCE,
+   "propagate storage_mode in THD_open_tcat",
+   "This is for non-AFNI formatted datasets, and fixes the problem where\n"
+   "3dDeconvolve would not propagate nnodes/node_list of surface datasets.\n"
+   "Problem noted by N Oosterhof."
+ } ,
+
  { 23, JUL, 2010, RCR, "afni-general", MINOR, TYPE_ENHANCE,
    "added Makefile.linux_openmp (and _64) for building with OpenMP support",
    "Those distribution binaries will be built on a 64-bit Fedora 12 system."
