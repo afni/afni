@@ -83,6 +83,11 @@ ENTRY("THD_open_tcat") ;
 
    dset_out = EDIT_empty_copy( dset_in[dd] ) ;
 
+   /* since this is basically an input dataset, set the storage_mode
+    * to match                                   27 Jul 2010 [rickr] */
+   if( DSET_ONDISK(dset_out) && IS_VALID_NON_AFNI_DSET(dset_in[dd]) )
+      THD_set_storage_mode(dset_out, dset_in[dd]->dblk->diskptr->storage_mode);
+
    EDIT_dset_items( dset_out ,
                       ADN_prefix    , "tcat" ,
                       ADN_func_type , ISANAT(dset_in[dd]) ? ANAT_EPI_TYPE
