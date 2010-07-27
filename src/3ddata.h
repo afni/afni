@@ -4216,7 +4216,9 @@ extern int THD_vectim_subset_average( MRI_vectim *mrv, int nind, int *ind, float
 
 extern void THD_vectim_vectim_dot( MRI_vectim *arv, MRI_vectim *brv, float *dp ) ;
 
-extern MRI_vectim * THD_vectim_copy( MRI_vectim *mrv ) ; /* 08 Apr 2010 */
+extern MRI_vectim * THD_vectim_copy( MRI_vectim *mrv ) ;      /* 08 Apr 2010 */
+extern MRI_vectim * THD_tcat_vectims( int , MRI_vectim ** ) ; /* 26 Jul 2010 */
+extern MRI_vectim * THD_dset_list_to_vectim( int, THD_3dim_dataset **, byte * );
 
 #define ICOR_MAX_FTOP 99999  /* 26 Feb 2010 */
 
