@@ -4164,11 +4164,11 @@ typedef struct {
 
 #undef  MAKE_VECTIM
 #define MAKE_VECTIM(nam,nvc,nvl)                                  \
- do{ (nam) = (MRI_vectim *)malloc(sizeof(MRI_vectim)) ;           \
+ do{ (nam) = (MRI_vectim *)calloc(sizeof(MRI_vectim),1) ;         \
      (nam)->nvec  = (nvc) ;                                       \
      (nam)->nvals = (nvl) ;                                       \
-     (nam)->ivec  = (int *)  malloc(sizeof(int)  *(nvc)) ;        \
-     (nam)->fvec  = (float *)malloc(sizeof(float)*(nvc)*(nvl)) ;  \
+     (nam)->ivec  = (int *)  calloc(sizeof(int)  ,(nvc)) ;        \
+     (nam)->fvec  = (float *)calloc(sizeof(float),(nvc)*(nvl)) ;  \
  } while(0)
 
 #undef  ISVALID_VECTIM

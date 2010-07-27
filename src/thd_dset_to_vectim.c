@@ -577,6 +577,9 @@ MRI_vectim * THD_dset_list_to_vectim( int nds, THD_3dim_dataset **ds, byte *mask
 
    if( nds == 1 ) return THD_dset_to_vectim( ds[0] , mask , 0 ) ;
 
+   for( kk=0 ; kk < nds ; kk++ )
+     if( !ISVALID_DSET(ds[kk]) ) return NULL ;
+
    vim = (MRI_vectim **)malloc(sizeof(MRI_vectim *)*nds) ;
    for( kk=0 ; kk < nds ; kk++ ){
      vim[kk] = THD_dset_to_vectim( ds[kk] , mask , 0 ) ;
