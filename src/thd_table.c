@@ -246,7 +246,7 @@ ENTRY("THD_mixed_table_read") ;
          RETURN(NULL) ;
        }
        for( ii=1 ; ii < nlab ; ii++ ){
-         val = (float)strtd( sar->str[ii] , &qpt ) ;
+         val = (float)strtod( sar->str[ii] , &qpt ) ;
          if( *qpt == '\0' ) NI_add_column( nel , NI_FLOAT  , NULL ) ;
          else               NI_add_column( nel , NI_STRING , NULL ) ;
        }
