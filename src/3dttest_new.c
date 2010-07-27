@@ -13,7 +13,7 @@
  do{ if( strlen(ss) > MAX_LABEL_SIZE ){(ss)[MAX_LABEL_SIZE] = '\0'; }} while(0)
 
 static int toz = 0 ;  /* convert t-statistics to z-scores? */
-static int dosix = 0 ;
+static int twosam = 0 ;
 
 void regress_toz( int numA , float *zA ,
                   int numB , float *zB , int opcode ,
@@ -35,9 +35,11 @@ static MRI_vectim   **covvim_BBB=NULL ;
 static floatvec     **covvec_AAA=NULL ;
 static floatvec     **covvec_BBB=NULL ;
 
+static unsigned int testA, testB, testAB ;
+
 static int mcov  = 0 ;
 static int nvout = 0 ;
-MRI_IMAGE *Axxim=NULL , *bxxim=NULL ;
+MRI_IMAGE *Axxim=NULL , *Bxxim=NULL ;
 static float *Axx=NULL , *Axx_psinv=NULL , *Axx_xtxinv=NULL ;
 static float *Bxx=NULL , *Bxx_psinv=NULL , *Bxx_xtxinv=NULL ;
 
@@ -232,7 +234,10 @@ void display_help_menu(void)
 
 int main( int argc , char *argv[] )
 {
-   int nopt , nbad , ii,jj,kk ;
+   int nopt , nbad , ii,jj,kk , kout,ivox ;
+   MRI_vectim *vimout ;
+   float *workspace , *datAAA , *datBBB , *resar ;
+   float_pair tpair ;
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 )
      display_help_menu() ;
@@ -328,7 +333,7 @@ int main( int argc , char *argv[] )
            nds++ ;
            nams = (char **)realloc(nams,sizeof(char *)*nds) ;
            labs = (char **)realloc(labs,sizeof(char *)*nds) ;
-           dset = (char **)realloc(dset,sizeof(THD_3dim_dataset *)*nds) ;
+           dset = (THD_3dim_dataset **)realloc(dset,sizeof(THD_3dim_dataset *)*nds) ;
            nams[nds-1] = strdup(argv[nopt]) ; dset[nds-1] = qset ;
            labs[nds-1] = strdup(THD_trailname(argv[nopt],0)) ; LTRUNC(labs[nds-1]) ;
          }
@@ -345,7 +350,7 @@ int main( int argc , char *argv[] )
            nds++ ;
            nams = (char **)realloc(nams,sizeof(char *)*nds) ;
            labs = (char **)realloc(labs,sizeof(char *)*nds) ;
-           dset = (char **)realloc(dset,sizeof(THD_3dim_dataset *)*nds) ;
+           dset = (THD_3dim_dataset **)realloc(dset,sizeof(THD_3dim_dataset *)*nds) ;
            nams[nds-1] = strdup(argv[nopt+1]) ; dset[nds-1] = qset ;
            labs[nds-1] = strdup(argv[nopt]  ) ; LTRUNC(labs[nds-1]) ;
          }
@@ -356,7 +361,7 @@ int main( int argc , char *argv[] )
        for( ids=1 ; ids < nds ; ids++ ){
          if( DSET_NVOX(dset[ids]) != DSET_NVOX(dset[0]) )
            ERROR_exit("Option %s: dataset '%s' does match others in size",
-                      onam,nam[nds-1]) ;
+                      onam,nams[nds-1]) ;
        }
 
        /* assign results to global variables */
@@ -424,6 +429,7 @@ int main( int argc , char *argv[] )
    /*----- check some stuff -----*/
 
    nA = ndset_AAA ; nB = ndset_BBB ;  /* shorthand */
+   twosam = (nB > 1) ;                /* 2 sample test? */
 
    if( ndset_AAA <= 0 )
      ERROR_exit("No '-setA' option?  Please please read the instructions!") ;
@@ -433,14 +439,14 @@ int main( int argc , char *argv[] )
                 ndset_AAA , ndset_BBB ) ;
 
    nvox = DSET_NVOX(dset_AAA[0]) ;
-   if( ndset_BBB > 0 && DSET_NVOX(dset_BBB[0]) != nvox )
+   if( twosam && DSET_NVOX(dset_BBB[0]) != nvox )
      ERROR_exit("-setA and -setB datasets don't match number of voxels") ;
 
    if( nmask > 0 && nmask != nvox )
      ERROR_exit("-mask doesn't match datasets number of voxels") ;
 
    if( ndset_AAA - mcov < 2 ||
-       ( ndset_BBB > 0 && (ndset_BBB - mcov < 2) ) )
+       ( twosam && (ndset_BBB - mcov < 2) ) )
      ERROR_exit("Too many covariates compared to number of datasets") ;
 
    if( ttest_opcode == 1 && mcov > 0 ){
@@ -458,7 +464,7 @@ int main( int argc , char *argv[] )
    if( ndset_AAA > 0 )
      vectim_AAA = THD_dset_list_to_vectim( ndset_AAA , dset_AAA , mask ) ;
 
-   if( ndset_BBB > 0 )
+   if( twosam )
      vectim_BBB = THD_dset_list_to_vectim( ndset_BBB , dset_BBB , mask ) ;
 
    /*----- deal with covariates in a lengthy aside now -----*/
@@ -477,7 +483,7 @@ int main( int argc , char *argv[] )
         which holds the vectim of covariate values, ndset_BBB long.  */
 
      nbad = 0 ; /* total error count */
-     if( ndset_BBB > 0 ){
+     if( twosam ){
        qset = (THD_3dim_dataset **)malloc(sizeof(THD_3dim_dataset *)*ndset_BBB) ;
        covvim_BBB = (MRI_vectim **)malloc(sizeof(MRI_vectim *)*mcov) ;
        covvec_BBB = (floatvec   **)malloc(sizeof(floatvec   *)*mcov) ;
@@ -591,7 +597,7 @@ int main( int argc , char *argv[] )
 #undef  AXX
 #define AXX(i,j) Axx[(i)+(j)*(nA)]    /* i=0..nA-1 , j=0..mcov */
 #undef  BXX
-#define BXX(i,j) bxx[(i)+(j)*(nB)]    /* i=0..nB-1 , j=0..mcov */
+#define BXX(i,j) Bxx[(i)+(j)*(nB)]    /* i=0..nB-1 , j=0..mcov */
 
      /*-- setA matrix --*/
 
@@ -613,13 +619,13 @@ int main( int argc , char *argv[] )
        /* Compute inv[X'X] and the pseudo-inverse inv[X'X]X' for this matrix */
        impr = mri_matrix_psinv_pair( Axxim , 0.0f ) ;
        if( impr == NULL ) ERROR_exit("Can't process setA covariate matrix?! :-(") ;
-       Axxim_psinv  = MRI_FLOAT_PTR(IMARR_SUBIM(impr,0)) ;
-       Axxim_xtxinv = MRI_FLOAT_PTR(IMARR_SUBIM(impr,1)) ;
+       Axx_psinv  = MRI_FLOAT_PTR(IMARR_SUBIM(impr,0)) ;
+       Axx_xtxinv = MRI_FLOAT_PTR(IMARR_SUBIM(impr,1)) ;
      }
 
      /*-- setB matrix ---*/
 
-     if( nB > 0 && ttest_opcode != 2 ){  /* un-paired case */
+     if( twosam && ttest_opcode != 2 ){  /* un-paired case */
        Bxxim = mri_new( nB , mcov+1 , MRI_float ) ;
        Bxx   = MRI_FLOAT_PTR(Bxxim) ;
        for( kk=0 ; kk < nB ; kk++ ){
@@ -638,11 +644,11 @@ int main( int argc , char *argv[] )
          /* Compute inv[X'X] and the pseudo-inverse inv[X'X]X' for this matrix */
          impr = mri_matrix_psinv_pair( Bxxim , 0.0f ) ;
          if( impr == NULL ) ERROR_exit("Can't process setB covariate matrix?! :-(") ;
-         Bxxim_psinv  = MRI_FLOAT_PTR(IMARR_SUBIM(impr,0)) ;
-         Bxxim_xtxinv = MRI_FLOAT_PTR(IMARR_SUBIM(impr,1)) ;
+         Bxx_psinv  = MRI_FLOAT_PTR(IMARR_SUBIM(impr,0)) ;
+         Bxx_xtxinv = MRI_FLOAT_PTR(IMARR_SUBIM(impr,1)) ;
        }
 
-     } else if( nb > 0 && ttest_opcode == 2 ){  /* paired case */
+     } else if( twosam && ttest_opcode == 2 ){  /* paired case */
 
        Bxx = Axx ; Bxx_psinv = Axx_psinv ; Bxx_xtxinv = Axx_xtxinv ;
 
@@ -652,25 +658,33 @@ int main( int argc , char *argv[] )
 
    /*----- create output space -----*/
 
-   dosix = (nB > 1)           ;            /* 2 sample test? */
-   nvout = ((dosix) ? 6 : 2) * (mcov+1) ;  /* number of output volumes */
+   nvout  = ((twosam) ? 6 : 2) * (mcov+1) ;  /* number of output volumes */
 
    MAKE_VECTIM(vimout,nmask_hits,nvout) ; vimout->ignore = 0 ;
 
    /**********==========---------- process data ----------==========**********/
+
+   if( mcov > 0 ){
+     workspace = (float *)malloc(sizeof(float)*(2*mcov+nA+nB+32)) ;
+     if( twosam ){
+       testAB = testA = testB = (unsigned int)(-1) ;
+     } else {
+       testAB = testB = 0 ; testA = (unsigned int)(-1) ;
+     }
+   }
 
    for( kout=ivox=0 ; ivox < nvox ; ivox++ ){
 
      if( mask != NULL && mask[ivox] == 0 ) continue ;  /* don't process */
 
                   datAAA = VECTIM_PTR(vectim_AAA,kout) ;  /* data arrays */
-     if( nB > 0 ) datBBB = VECTIM_PTR(vectim_BBB,kout) ;
+     if( twosam ) datBBB = VECTIM_PTR(vectim_BBB,kout) ;
 
      resar = VECTIM_PTR(vimout,kout) ;                    /* results array */
 
      if( mcov == 0 ){  /*--- no covariates ==> standard t-tests ---*/
 
-       if( dosix ){
+       if( twosam ){
          tpair = ttest_toz( nA,datAAA , nB,datBBB , ttest_opcode ) ;
          resar[0] = tpair.a ; resar[1] = tpair.b ;
          tpair = ttest_toz( nA,datAAA , 0 ,NULL   , ttest_opcode ) ;
@@ -684,12 +698,64 @@ int main( int argc , char *argv[] )
 
      } else {          /*--- covariates ==> regression analysis ---*/
 
+       /*-- if covariate datasets are being used,
+            must fill in the Axx and Bxx matrices now --*/
+
+       if( num_covset_col > 0 ){
+         float *fpt ;
+         for( jj=1 ; jj <= mcov ; jj++ ){
+           if( covvim_AAA[jj-1] != NULL ){
+             fpt = VECTIM_PTR(covvim_AAA[jj-1],kout) ;
+             for( kk=0 ; kk < nA ; kk++ ) AXX(kk,jj) = fpt[kk] ;
+           }
+           if( twosam && covvim_BBB[jj-1] != NULL ){
+             fpt = VECTIM_PTR(covvim_BBB[jj-1],kout) ;
+             for( kk=0 ; kk < nB ; kk++ ) BXX(kk,jj) = fpt[kk] ;
+           }
+         }
+       }
+
+       /*-- and do the work --*/
+
+       regress_toz( nA , datAAA , nB , datBBB , ttest_opcode ,
+                    mcov ,
+                    Axx , Axx_psinv , Axx_xtxinv ,
+                    Bxx , Bxx_psinv , Bxx_xtxinv , resar , workspace ) ;
+
      }
 
      kout++ ;
    }
-   
 
+   /*--- get rid of the input data now ---*/
+
+                            VECTIM_destroy(vectim_AAA) ;
+   if( vectim_BBB != NULL ) VECTIM_destroy(vectim_BBB) ;
+
+   if( covvim_AAA != NULL ){
+     for( jj=0 ; jj < mcov ; jj++ )
+       if( covvim_AAA[jj] != NULL ) VECTIM_destroy(covvim_AAA[jj]) ;
+     free(covvim_AAA) ;
+   }
+   if( covvec_AAA != NULL ){
+     for( jj=0 ; jj < mcov ; jj++ )
+       if( covvec_AAA[jj] != NULL ) KILL_floatvec(covvec_AAA[jj]) ;
+     free(covvec_AAA) ;
+   }
+
+   if( covvim_BBB != NULL ){
+     for( jj=0 ; jj < mcov ; jj++ )
+       if( covvim_BBB[jj] != NULL ) VECTIM_destroy(covvim_BBB[jj]) ;
+     free(covvim_BBB) ;
+   }
+   if( covvec_BBB != NULL ){
+     for( jj=0 ; jj < mcov ; jj++ )
+       if( covvec_BBB[jj] != NULL ) KILL_floatvec(covvec_BBB[jj]) ;
+     free(covvec_BBB) ;
+   }
+
+   /*---------- create output dataset -----------*/
+   
 } /* end of main program */
 
 /*---------------------------------------------------------------------------*/
@@ -722,10 +788,6 @@ int main( int argc , char *argv[] )
     xtxinvA = (mcov+1) X (mcov+1) matrix = inv[xA'xA]
 *//*-------------------------------------------------------------------------*/
 
-#if defined(COVTEST) && 0
-static int first=1 ;
-#endif
-
 void regress_toz( int numA , float *zA ,
                   int numB , float *zB , int opcode ,
                   int mcov ,
@@ -737,8 +799,6 @@ void regress_toz( int numA , float *zA ,
    float *betA=NULL , *betB=NULL , *zdifA=NULL , *zdifB=NULL ;
    float ssqA=0.0f , ssqB=0.0f , varA=0.0f , varB=0.0f ; double dof=0.0 ;
    register float val ; register int ii,jj,tt ;
-
-   MRI_IMAGE *bxxim_psinv=NULL , *bxxim_xtxinv=NULL ;
 
    nws = 0 ;
    if( testA || testAB ){
@@ -754,7 +814,7 @@ void regress_toz( int numA , float *zA ,
 
    if( testA || testAB ){
      MRI_IMAGE *axxim_psinv=NULL , *axxim_xtxinv=NULL ;
-     if( psinvA == NULL || xtxinvA ){
+     if( psinvA == NULL || xtxinvA == NULL ){  /* matrix wasn't pre-inverted */
        MRI_IMARR *impr ; MRI_IMAGE *axxim ;
        axxim = mri_new_vol_empty( nA , mcov+1 , 1 , MRI_float ) ;
        mri_fix_data_pointer(xA,axxim) ;
@@ -782,7 +842,7 @@ void regress_toz( int numA , float *zA ,
 
    if( testB || testAB ){
      MRI_IMAGE *bxxim_psinv=NULL , *bxxim_xtxinv=NULL ;
-     if( psinvB == NULL || xtxinvB == NULL ){
+     if( psinvB == NULL || xtxinvB == NULL ){  /* matrix wasn't pre-inverted */
        MRI_IMARR *impr ; MRI_IMAGE *bxxim ;
        bxxim = mri_new_vol_empty( nB , mcov+1 , 1 , MRI_float ) ;
        mri_fix_data_pointer(xB,bxxim) ;
@@ -845,16 +905,6 @@ void regress_toz( int numA , float *zA ,
    /*-- carry out 1-sample A tests, if any --*/
 
    if( testA ){
-#if defined(COVTEST) && 0
-#pragma omp critical
-     { if( first ){
-         first = 0 ;
-         fprintf(stderr,"testA varA=%g xtxA=",varA) ;
-         for( tt=0 ; tt < mm ; tt++ ) fprintf(stderr," %g",xtxA(tt)) ;
-         fprintf(stderr,"\n") ;
-       }
-     }
-#endif
      dof = nA - mm ;
      for( tt=0 ; tt < mm ; tt++ ){
        if( (testA & (1 << tt)) == 0 ) continue ;  /* bitwise AND */
@@ -874,10 +924,9 @@ void regress_toz( int numA , float *zA ,
        outvec[kt++] = betB[tt] ;
        val          = betB[tt] / sqrtf( varB * xtxB(tt) ) ;
        outvec[kt++] = (toz) ? (float)GIC_student_t2z( (double)val , dof )
-                            ? val ;
+                            : val ;
      }
    }
-
 
    return ;
 }
@@ -975,7 +1024,7 @@ float_pair ttest_toz( int numx, float *xar, int numy, float *yar, int opcode )
 
    result.a = delta ;
    result.b = (toz) ? (float)GIC_student_t2z( (double)tstat , (double)dof )
-                    ? tstat ;
+                    : tstat ;
    return result ;
 }
 
