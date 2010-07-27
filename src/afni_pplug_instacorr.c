@@ -714,7 +714,7 @@ ENTRY("GICOR_setup_func") ;
    if( im3d->giset == NULL ){
      im3d->giset = (GICOR_setup *)calloc(1,sizeof(GICOR_setup)) ;
    } else {
-     memset(im3d->giset,sizeof(GICOR_setup),0) ;
+     memset(im3d->giset,0,sizeof(GICOR_setup)) ;  /* fixed an oopsie */
    }
    giset = im3d->giset ;
 
