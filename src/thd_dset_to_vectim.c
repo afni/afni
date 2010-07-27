@@ -523,3 +523,71 @@ ENTRY("THD_vectim_to_dset") ;
 
    EXRETURN ;
 }
+
+/*---------------------------------------------------------------------------*/
+
+MRI_vectim * THD_tcat_vectims( int nvim , MRI_vectim **vim )
+{
+   MRI_vectim *vout ;
+   int iv , nvec , nvsum , vv , nvals , nvv ;
+   float *vout_ptr , *vin_ptr ;
+
+   if( nvim <= 0 || vim == NULL ) return NULL ;
+
+   if( nvim == 1 ){
+     vout = THD_vectim_copy( vim[0] ) ; return vout ;
+   }
+
+   nvec  = vim[0]->nvec ;
+   nvsum = vim[0]->nvals ;
+   for( iv=1 ; iv < nvim ; iv++ ){
+     if( vim[iv]->nvec != nvec ) return NULL ;
+     nvsum += vim[iv]->nvals ;
+   }
+
+   MAKE_VECTIM(vout,nvec,nvsum) ;
+   vout->ignore = 0 ;
+   vout->nx = vim[0]->nx ; vout->dx = vim[0]->dx ;
+   vout->ny = vim[0]->ny ; vout->dy = vim[0]->dy ;
+   vout->nz = vim[0]->nz ; vout->dz = vim[0]->dz ; vout->dt = vim[0]->dt ;
+#pragma omp critical (MEMCPY)
+   { memcpy( vout->ivec , vim[0]->ivec , sizeof(int)*vim[0]->nvec ) ; }
+
+   for( nvv=iv=0 ; iv < nvim ; iv++,nvv+=nvals ){
+     nvals = vim[iv]->nvals ;
+     for( vv=0 ; vv < nvec ; vv++ ){
+       vout_ptr = VECTIM_PTR(vout,vv) + nvv ;
+       vin_ptr  = VECTIM_PTR(vim[iv],vv) ;
+#pragma omp critical (MEMCPY)
+       { memcpy( vout_ptr , vin_ptr , sizeof(float)*nvals ) ; }
+     }
+   }
+
+   return vout ;
+}
+
+/*---------------------------------------------------------------------------*/
+
+MRI_vectim * THD_dset_list_to_vectim( int nds, THD_3dim_dataset **ds, byte *mask )
+{
+   MRI_vectim *vout , **vim ;
+   int kk , jj ;
+
+   if( nds < 1 || ds == NULL ) return NULL ;
+
+   if( nds == 1 ) return THD_dset_to_vectim( ds[0] , mask , 0 ) ;
+
+   vim = (MRI_vectim **)malloc(sizeof(MRI_vectim *)*nds) ;
+   for( kk=0 ; kk < nds ; kk++ ){
+     vim[kk] = THD_dset_to_vectim( ds[kk] , mask , 0 ) ;
+     DSET_unload( ds[kk] ) ;
+     if( vim[kk] == NULL ){
+       for( jj=0 ; jj < kk ; jj++ ) VECTIM_destroy(vim[jj]) ;
+       free(vim) ; return NULL ;
+     }
+   }
+
+   vout = THD_tcat_vectims( nds , vim ) ;
+   for( jj=0 ; jj < nds ; jj++ ) VECTIM_destroy(vim[jj]) ;
+   free(vim) ; return vout ;
+}

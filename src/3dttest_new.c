@@ -24,9 +24,9 @@ float_pair ttest_toz( int numx, float *xar, int numy, float *yar, int opcode ) ;
 static NI_element         *covnel=NULL ;       /* covariates */
 static NI_str_array       *covlab=NULL ;
 
-static int             num_covset_col=0;
-static THD_3dim_dataset ***covset_AAA=NULL ;
-static THD_3dim_dataset ***covset_BBB=NULL ;
+static int        num_covset_col=0;
+static MRI_vectim   **covvim_AAA=NULL ;
+static MRI_vectim   **covvim_BBB=NULL ;
 
 static int mcov = 0 ;
 static int nout = 0 ;
@@ -46,12 +46,14 @@ static char              *snam_AAA=NULL ;
 static char             **name_AAA=NULL ;
 static char             **labl_AAA=NULL ;
 static THD_3dim_dataset **dset_AAA=NULL ;
+static MRI_vectim      *vectim_AAA=NULL ;
 
 static int               ndset_BBB=0 ;
 static char              *snam_BBB=NULL ;
 static char             **name_BBB=NULL ;
 static char             **labl_BBB=NULL ;
 static THD_3dim_dataset **dset_BBB=NULL ;
+static MRI_vectim      *vectim_BBB=NULL ;
 
 /*--------------------------------------------------------------------------*/
 
@@ -71,7 +73,7 @@ static int string_search( char *targ , int nstr , char **str )
 
 int main( int argc , char *argv[] )
 {
-   int nopt ;
+   int nopt , nbad , ii,jj,kk ;
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
      printf(
@@ -165,6 +167,8 @@ int main( int argc , char *argv[] )
       "  ++ The later columns contain numbers (as in IQ and age, above), or\n"
       "      dataset names.  In the latter case, you are specifying a voxel-wise\n"
       "      covariate (e.g., GMfrac).\n"
+      "     ++ A column can contain numbers only, or datasets only.  But one\n"
+      "        column CANNOT contain a mix of numbers and dataset names!\n"
       "  ++ The first line contains column headers.  The header label for the\n"
       "      first column isn't used for anything.  The later header labels are\n"
       "      used in the sub-brick labels sent to AFNI.\n"
@@ -183,6 +187,8 @@ int main( int argc , char *argv[] )
       "      produced for the setA-setB, setA, and setB cases, so that you'll\n"
       "      get 6 sub-bricks per covariate (plus 6 more for the mean, which\n"
       "      is treated as a special covariate whose values are all 1).\n"
+      "  ++ N.B.: The simpler forms of the COVAR_FILE that 3dMEMA allows are\n"
+      "           NOT supported here!\n"
       "  ++ A maximum of 31 covariates are allowed.  If you have more, then\n"
       "      seriously consider the possibility that you are completely demented.\n"
       "\n"
@@ -197,7 +203,10 @@ int main( int argc , char *argv[] )
       " -mask mmm = Only compute results for voxels in the specified mask.\n"
       "\n"
       " -prefix p = Gives the name of the output dataset file.\n"
+      "\n"
+      "AUTHOR -- RW Cox -- Please wine WITH me, don't whine TO me.\n"
     ) ;
+    PRINT_COMPILE_DATE ; exit(0) ;
    }
 
    /*--- read the options from the command line ---*/
@@ -332,7 +341,7 @@ int main( int argc , char *argv[] )
      /*----- covariates -----*/
 
      if( strcasecmp(argv[nopt],"-covariates") == 0 ){  /* 20 May 2010 */
-       char *lab ; float sig ; int nbad ;
+       char *lab ; float sig ;
        if( ++nopt >= argc ) ERROR_exit("need 1 argument after option '%s'",argv[nopt-1]);
        if( covnel != NULL ) ERROR_exit("can't use -covariates twice!") ;
        covnel = THD_mixed_table_read( argv[nopt] ) ;
@@ -361,8 +370,8 @@ int main( int argc , char *argv[] )
              ERROR_message("Covariate '%s' is constant; how can this be used?!" ,
                            covlab->str[kk] ) ; nbad++ ;
            }
-         } else {                                /* string column */
-           num_covset_col++ ;
+         } else {                                /* string column: */
+           num_covset_col++ ;              /* count number of them */
          }
          LTRUNC(covlab->str[kk]) ;
        }
@@ -398,43 +407,76 @@ int main( int argc , char *argv[] )
    if( nmask > 0 && nmask != nvox )
      ERROR_exit("-mask doesn't match datasets number of voxels") ;
 
+   if( nmask == 0 )
+     INFO_message("no mask ==> processing all %d voxels",nvox) ;
+
    if( ndset_BBB - mcov < 2 ||
        ( ndset_AAA > 0 && (ndset_AAA - mcov < 2) ) )
      ERROR_exit("Too many covariates compared to number of datasets") ;
 
-   /*--- read in covariate datasets, if any ---*/
+   /*----- convert each input set of datasets to a vectim -----*/
+
+   if( ndset_AAA > 0 )
+     vectim_AAA = THD_dset_list_to_vectim( ndset_AAA , dset_AAA , mask ) ;
+
+   if( ndset_BBB > 0 )
+     vectim_BBB = THD_dset_list_to_vectim( ndset_BBB , dset_BBB , mask ) ;
+
+   /*----- read in covariate datasets and vectim-ize them, if any -----*/
 
    if( num_covset_col > 0 ){
-     THD_3dim_dataset *qset ;
+     THD_3dim_dataset **qset ; int nbbad ;
 
+     /* create covvim_BBB[jj] for the jj-th covariate (jj=0..mcov-1),
+        which holds the vectim of covariate values, ndset_BBB long.  */
+
+     nbad = 0 ; /* total error count */
      if( ndset_BBB > 0 ){
-       covset_BBB = (THD_3dim_dataset ***)malloc(sizeof(THD_3dim_dataset **)*ndset_BBB) ;
-       for( kk=0 ; kk < ndset_BBB ; kk++ ){
-         covset_BBB[kk] = (THD_3dim_dataset **)calloc(sizeof(THD_3dim_dataset *),mcov) ;
-         ii = string_search( labl_BBB[kk] ,
-                             covnel->vec_len , (char **)covnel->vec[0] ) ;
-         if( ii < 0 ){
-           ERROR_message("Can't find dataset label '%s' in covariates file" ,
-                         labl_BBB[kk] ) ; nbad++ ;
-         } else {
-           for( jj=1 ; jj <= mcov ; jj++ ){
-             if( covnel->vec_typ[jj] == NI_STRING ){
-               char **qpt = (char **)covnel->vec[jj] ;
-               qset = THD_open_one_dataset(qpt[ii]) ;
-               if( qset == NULL ){
+       int firstjj = 1 ;
+       qset = (THD_3dim_dataset **)malloc(sizeof(THD_3dim_dataset *)*ndset_BBB) ;
+       covvim_BBB = (MRI_vectim **)malloc(sizeof(MRI_vectim *)*mcov) ;
+       for( jj=0 ; jj < mcov ; jj++ ){
+         covvim_BBB[jj] = NULL ;
+         if( covnel->vec_typ[jj+1] == NI_STRING ){ /* a dataset name field */
+           char **qpt = (char **)covnel->vec[jj+1] ;  /* column of strings */
+           for( nbbad=kk=0 ; kk < ndset_BBB ; kk++ ){
+             qset[kk] = NULL ;
+             ii = string_search( labl_BBB[kk] ,
+                                 covnel->vec_len  (char **)covnel->vec[0] ) ;
+             if( ii < 0 ){
+               if( firstjj )
+                 ERROR_message("Can't find dataset label '%s' in covariates file" ,
+                               labl_BBB[kk] ) ;
+               nbad++ ; nbbad++ ;
+             } else {                            /* ii = row index in table */
+               qset[kk] = THD_open_one_dataset(qpt[ii]) ;
+               if( qset[kk] == NULL ){
                  ERROR_message("Can't find dataset '%s' from covariates file" ,
-                               qpt[ii] ) ; nbad++ ;
-               } else {
-                 covset_BBB[kk][jj-1] = qset ;
+                               qpt[ii] ) ; nbad++ ; nbbad++ ;
+               } else if( DSET_NVALS(qset[kk]) > 1 ){
+                 ERROR_message("Dataset '%s' from covariates file has %d sub-bricks",
+                               qpt[ii] , DSET_NVALS(qset[kk]) ) ; nbad++ ; nbbad++ ;
                }
              }
+           } /* end of loop over kk=dataset index */
+           firstjj = 0 ;
+           if( nbbad == 0 ){  /* all loads were good ==> convert to vectim */
+             covvim_BBB[jj] = THD_dset_list_to_vectim( ndset_BBB, qset, mask ) ;
            }
-         }
-       }
-     }
+           for( kk=0 ; kk < ndset_BBB ; kk++ )    /* toss out the trashola */
+             if( qset[kk] != NULL ) DSET_delete(qset[kk]) ;
+         } /* end of processing a dataset field in the covariates table */
+       } /* end of loop over jj = covariates column index */
+       free(qset) ;
+     } /* end of BBB covariates datasets processing */
+
+     /* repeat for the AAA datasets */
+
+
+     if( nbad > 0 ) ERROR_exit("Cannot continue past above ERROR%s :-(",
+                                (nbad==1) ? "\0" : "s" ) ;
 
    } /* end of loading covariates datasets */
-
 
      /*--- setup the setA regression matrix ---*/
 
