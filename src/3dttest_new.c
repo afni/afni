@@ -12,6 +12,9 @@
 #define LTRUNC(ss) \
  do{ if( strlen(ss) > MAX_LABEL_SIZE ){(ss)[MAX_LABEL_SIZE] = '\0'; }} while(0)
 
+static int toz = 0 ;  /* convert t-statistics to z-scores? */
+static int dosix = 0 ;
+
 void regress_toz( int numA , float *zA ,
                   int numB , float *zB , int opcode ,
                   int mcov ,
@@ -21,17 +24,22 @@ void regress_toz( int numA , float *zA ,
 
 float_pair ttest_toz( int numx, float *xar, int numy, float *yar, int opcode ) ;
 
+double GIC_student_t2z( double tt , double dof ) ;
+
 static NI_element         *covnel=NULL ;       /* covariates */
 static NI_str_array       *covlab=NULL ;
 
 static int        num_covset_col=0;
 static MRI_vectim   **covvim_AAA=NULL ;
 static MRI_vectim   **covvim_BBB=NULL ;
+static floatvec     **covvec_AAA=NULL ;
+static floatvec     **covvec_BBB=NULL ;
 
-static int mcov = 0 ;
-static int nout = 0 ;
-static float *axx , *axx_psinv , *axx_xtxinv ;
-static float *bxx , *bxx_psinv , *bxx_xtxinv ;
+static int mcov  = 0 ;
+static int nvout = 0 ;
+MRI_IMAGE *Axxim=NULL , *bxxim=NULL ;
+static float *Axx=NULL , *Axx_psinv=NULL , *Axx_xtxinv=NULL ;
+static float *Bxx=NULL , *Bxx_psinv=NULL , *Bxx_xtxinv=NULL ;
 
 static char *prefix = "TTnew" ;
 static byte *mask   = NULL ;
@@ -41,14 +49,14 @@ static int  nmask_hits = 0 ;
 
 static int ttest_opcode = 0 ;  /* 0=pooled, 1=unpooled, 2=paired */
 
-static int               ndset_AAA=0 ;
+static int               ndset_AAA=0 , nA=0 ;
 static char              *snam_AAA=NULL ;
 static char             **name_AAA=NULL ;
 static char             **labl_AAA=NULL ;
 static THD_3dim_dataset **dset_AAA=NULL ;
 static MRI_vectim      *vectim_AAA=NULL ;
 
-static int               ndset_BBB=0 ;
+static int               ndset_BBB=0 , nB=0 ;
 static char              *snam_BBB=NULL ;
 static char             **name_BBB=NULL ;
 static char             **labl_BBB=NULL ;
@@ -71,21 +79,27 @@ static int string_search( char *targ , int nstr , char **str )
 
 /*----------------------------------------------------------------------------*/
 
-int main( int argc , char *argv[] )
+static void vstep_print(void)
 {
-   int nopt , nbad , ii,jj,kk ;
+   static char xx[10] = "0123456789" ; static int vn=0 ;
+   fprintf(stderr , "%c" , xx[vn%10] ) ;
+   if( vn%10 == 9) fprintf(stderr,".") ; vn++ ;
+}
 
-   if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
-     printf(
+/*--------------------------------------------------------------------------*/
+
+void display_help_menu(void)
+{
+   printf(
       "Gosset (Student) t-test of sets of 3D datasets.\n"
       "\n"
       "Usage can be similar to the old 3dttest; for example:\n"
       "\n"
-      "  3dttest_new -set2 a+tlrc'[3]' b+tlrc'[3]' ...\n"
+      "  3dttest_new -setA a+tlrc'[3]' b+tlrc'[3]' ...\n"
       "\n"
       "*OR* usage can be similar to 3dMEMA; for example:\n"
       "\n"
-      "  3dttest_new -set2 Green sub001 a+tlrc'[3]' \\\n"
+      "  3dttest_new -setA Green sub001 a+tlrc'[3]' \\\n"
       "                          sub002 b+tlrc'[3]' \\\n"
       "                          sub003 c+tlrc'[3]' \\\n"
       "                          ...                \\\n"
@@ -93,15 +107,17 @@ int main( int argc , char *argv[] )
       "\n"
       "The 3dMEMA-like (more complicated) syntax is required to use covariates.\n"
       "\n"
-      "You can input 1 or 2 sets of data.  With 1 set, the mean across\n"
-      "input datasets (usually subjects) is tested against 0 (by default).\n"
+      "You can input 1 or 2 sets of data (labeled 'A' and 'B').\n"
+      "\n"
+      "With 1 set ('-setA'), the mean across input datasets (usually subjects)\n"
+      "is tested against 0.\n"
+      "\n"
       "With 2 sets, the difference in means across each set is tested\n"
       "against 0.  The 1 sample results for each set are also provided, since\n"
       "these are often of interest to the investigator (e.g., YOU).\n"
       "\n"
-      "Covariates can be per-dataset (input=1 number) or per-voxel/per-dataset\n"
-      "(input=1 dataset).  Note that the second option will slow the program\n"
-      "down considerably.\n"
+      "Covariates can be per-dataset (input=1 number) and/or per-voxel/per-dataset\n"
+      "(input=1 dataset).  Voxel-level covariates will slow the program down!\n"
       "\n"
       "This program is meant (for most uses) to replace the original 3dttest,\n"
       "which was written in 1994 \"when grass was green and grain was yellow\".\n"
@@ -109,10 +125,10 @@ int main( int argc , char *argv[] )
       "------------\n"
       "SET OPTIONS:\n"
       "------------\n"
-      "* At least the '-set2' option must be given.  '-set1' is optional, and\n"
-      "   if it isn't used, then the mean of the dataset values from '-set2' is\n"
+      "* At least the '-setA' option must be given.  '-setB' is optional, and\n"
+      "   if it isn't used, then the mean of the dataset values from '-setA' is\n"
       "   t-tested against 0.\n"
-      "* Two forms for the '-setx' (x=1 or 2) options are allowed.  The first\n"
+      "* Two forms for the '-setx' (x=A or B) options are allowed.  The first\n"
       "   form is similar to the original 3dttest program, where the option\n"
       "   is just followed by a list of datasets to use.\n"
       "* The second form is similar to the 3dMEMA program, where you specify\n"
@@ -123,20 +139,20 @@ int main( int argc , char *argv[] )
       "   '-covariates' option, since it is the dataset 'SAMP_K' labels that\n"
       "   are used to extract the covariates for each input dataset.\n"
       "\n"
-      " -set1 BETA_DSET BETA_DSET ...\n"
+      " -setA BETA_DSET BETA_DSET ...\n"
       "  *OR*\n"
-      " -set2\n"
+      " -setB\n"
       "   In this form of input, you specify the datasets for each set\n"
-      "    directly following the '-setx' option ('x' is '1' or '2').\n"
+      "    directly following the '-setx' option ('x' is 'A' or 'B').\n"
       "   ++ Unlike 3dttest, you can specify multiple sub-bricks in a dataset:\n"
       "        a+tlrc'[1..13(2)]'\n"
       "      which inputs 7 sub-bricks at once (1,3,5,7,9,11,13).\n"
       "\n"
       "** ALTERNATIVELY **\n"
       "\n"
-      " -set1 SETNAME            \\\n"
+      " -setA SETNAME            \\\n"
       "  *OR*   SAMP_1 BETA_DSET \\\n"
-      " -set2   SAMP_2 BETA_DSET \\\n"
+      " -setB   SAMP_2 BETA_DSET \\\n"
       "         ...    ...       \\\n"
       "         SAMP_N BETA_DSET\n"
       "   Specify the data for one of the test variables.\n"
@@ -163,7 +179,7 @@ int main( int argc , char *argv[] )
       "                      Ethel   109   49  Ethel_GM+tlrc'[8]'\n"
       "                      Lucy    133   32  Lucy_GM+tlrc'[8]'\n"
       "  ++ The first column contains the labels that must match the dataset\n"
-      "      SAMP_K labels given in the '-set' option(s).\n"
+      "      SAMP_K labels given in the '-setx' option(s).\n"
       "  ++ The later columns contain numbers (as in IQ and age, above), or\n"
       "      dataset names.  In the latter case, you are specifying a voxel-wise\n"
       "      covariate (e.g., GMfrac).\n"
@@ -193,21 +209,33 @@ int main( int argc , char *argv[] )
       "      seriously consider the possibility that you are completely demented.\n"
       "\n"
       " -paired   = Specifies the use of a paired-sample t-test to\n"
-      "              compare set1 and set2.  If this option is used,\n"
-      "              set1 and set2 must have the same cardinality (duh).\n"
+      "              compare setA and setB.  If this option is used,\n"
+      "              setA and setB must have the same cardinality (duh).\n"
       "\n"
-      " -unpooled = Specifies that the variance estimates for set1 and\n"
-      "              set2 be computed separately (not pooled together).\n"
+      " -unpooled = Specifies that the variance estimates for setA and\n"
+      "              setB be computed separately (not pooled together).\n"
       "              This only makes sense if -paired is NOT given.\n"
+      "\n"
+      " -toz      = Convert output t-statistics to z-scores\n"
       "\n"
       " -mask mmm = Only compute results for voxels in the specified mask.\n"
       "\n"
       " -prefix p = Gives the name of the output dataset file.\n"
       "\n"
       "AUTHOR -- RW Cox -- Please wine WITH me, don't whine TO me.\n"
-    ) ;
-    PRINT_COMPILE_DATE ; exit(0) ;
-   }
+  ) ;
+
+  PRINT_COMPILE_DATE ; exit(0) ;
+}
+
+/*----------------------------------------------------------------------------*/
+
+int main( int argc , char *argv[] )
+{
+   int nopt , nbad , ii,jj,kk ;
+
+   if( argc < 2 || strcmp(argv[1],"-help") == 0 )
+     display_help_menu() ;
 
    /*--- read the options from the command line ---*/
 
@@ -238,7 +266,10 @@ int main( int argc , char *argv[] )
          ERROR_exit("Can't create mask from '-mask' option") ;
        mask = bvec->ar ; nmask = bvec->nar ;
        nmask_hits = THD_countmask( nmask , mask ) ;
-       INFO_message("%d voxels in -mask dataset",nmask_hits) ;
+       if( nmask_hits > 0 )
+         INFO_message("%d voxels in -mask dataset",nmask_hits) ;
+       else
+         ERROR_exit("no nonzero voxels in -mask dataset") ;
        nopt++ ; continue ;
      }
 
@@ -256,6 +287,10 @@ int main( int argc , char *argv[] )
        ttest_opcode = 2 ; nopt++ ; continue ;
      }
 
+     if( strcasecmp(argv[nopt],"-toz") == 0 ){
+       toz = 1 ; nopt++ ; continue ;
+     }
+
      /*----- the various flavours of '-set' -----*/
 
      if( strncmp(argv[nopt],"-set",4) == 0 ){
@@ -263,10 +298,10 @@ int main( int argc , char *argv[] )
        int nds=0 , ids ; char **nams=NULL , **labs=NULL , *snam=NULL ;
        THD_3dim_dataset *qset , **dset=NULL ;
 
-       if( cc == '1' ){
-         if( ndset_AAA > 0 ) ERROR_exit("Can't use '-set1' twice!") ;
-       } else if( cc == '2' ){
-         if( ndset_BBB > 0 ) ERROR_exit("Can't use '-set2' twice!") ;
+       if( cc == 'A' ){
+         if( ndset_AAA > 0 ) ERROR_exit("Can't use '-setA' twice!") ;
+       } else if( cc == 'B' ){
+         if( ndset_BBB > 0 ) ERROR_exit("Can't use '-setB' twice!") ;
        } else {
          ERROR_exit("'%s' is not a recognized '-set' option",argv[nopt]);
        }
@@ -312,7 +347,7 @@ int main( int argc , char *argv[] )
            labs = (char **)realloc(labs,sizeof(char *)*nds) ;
            dset = (char **)realloc(dset,sizeof(THD_3dim_dataset *)*nds) ;
            nams[nds-1] = strdup(argv[nopt+1]) ; dset[nds-1] = qset ;
-			  labs[nds-1] = strdup(argv[nopt]  ) ; LTRUNC(labs[nds-1]) ;
+           labs[nds-1] = strdup(argv[nopt]  ) ; LTRUNC(labs[nds-1]) ;
          }
 
        }
@@ -326,7 +361,7 @@ int main( int argc , char *argv[] )
 
        /* assign results to global variables */
 
-       if( cc == '1' ){
+       if( cc == 'A' ){
          ndset_AAA = nds  ; snam_AAA = snam ;
           name_AAA = nams ; labl_AAA = labs ; dset_AAA = dset ;
        } else {
@@ -388,31 +423,35 @@ int main( int argc , char *argv[] )
 
    /*----- check some stuff -----*/
 
+   nA = ndset_AAA ; nB = ndset_BBB ;  /* shorthand */
+
+   if( ndset_AAA <= 0 )
+     ERROR_exit("No '-setA' option?  Please please read the instructions!") ;
+
+   if( ndset_AAA != ndset_BBB && ttest_opcode == 2 )
+     ERROR_exit("Can't do '-paired' with unequal set sizes: #A=%d #B=%d",
+                ndset_AAA , ndset_BBB ) ;
+
+   nvox = DSET_NVOX(dset_AAA[0]) ;
+   if( ndset_BBB > 0 && DSET_NVOX(dset_BBB[0]) != nvox )
+     ERROR_exit("-setA and -setB datasets don't match number of voxels") ;
+
+   if( nmask > 0 && nmask != nvox )
+     ERROR_exit("-mask doesn't match datasets number of voxels") ;
+
+   if( ndset_AAA - mcov < 2 ||
+       ( ndset_BBB > 0 && (ndset_BBB - mcov < 2) ) )
+     ERROR_exit("Too many covariates compared to number of datasets") ;
+
    if( ttest_opcode == 1 && mcov > 0 ){
      WARNING_message("-covariates does not support unpooled variance (yet)") ;
      ttest_opcode = 0 ;
    }
 
-   if( ndset_BBB <= 0 )
-     ERROR_exit("No '-set2' option?  Please please read the instructions!") ;
-
-   if( ndset_AAA != ndset_BBB && ttest_opcode == 2 )
-     ERROR_exit("Can't do '-paired' with unequal set sizes: #1=%d #2=%d",
-                ndset_AAA , ndset_BBB ) ;
-
-   nvox = DSET_NVOX(dset_BBB[0]) ;
-   if( ndset_AAA > 0 && DSET_NVOX(dset_AAA[0]) != nvox )
-     ERROR_exit("-set1 and -set2 datasets don't match number of voxels") ;
-
-   if( nmask > 0 && nmask != nvox )
-     ERROR_exit("-mask doesn't match datasets number of voxels") ;
-
-   if( nmask == 0 )
+   if( nmask == 0 ){
      INFO_message("no mask ==> processing all %d voxels",nvox) ;
-
-   if( ndset_BBB - mcov < 2 ||
-       ( ndset_AAA > 0 && (ndset_AAA - mcov < 2) ) )
-     ERROR_exit("Too many covariates compared to number of datasets") ;
+     nmask_hits = nvox ;
+   }
 
    /*----- convert each input set of datasets to a vectim -----*/
 
@@ -422,135 +461,236 @@ int main( int argc , char *argv[] )
    if( ndset_BBB > 0 )
      vectim_BBB = THD_dset_list_to_vectim( ndset_BBB , dset_BBB , mask ) ;
 
-   /*----- read in covariate datasets and vectim-ize them, if any -----*/
+   /*----- deal with covariates in a lengthy aside now -----*/
 
-   if( num_covset_col > 0 ){
-     THD_3dim_dataset **qset ; int nbbad ;
+   if( mcov > 0 ){
+     THD_3dim_dataset **qset ; int nkbad ;
 
-     /* create covvim_BBB[jj] for the jj-th covariate (jj=0..mcov-1),
+     /*-- convert covariates to vectors to be loaded into matrices --*/
+
+     /* for covariates which are just numbers, create float vector
+        covvec_BBB[jj] for the jj-th covariate (jj=0..mcov-1),
+        which holds the array of covariate values, ndset_BBB long. */
+
+     /* for covariates which are datasets,
+        create covvim_BBB[jj] for the jj-th covariate (jj=0..mcov-1),
         which holds the vectim of covariate values, ndset_BBB long.  */
 
      nbad = 0 ; /* total error count */
      if( ndset_BBB > 0 ){
-       int firstjj = 1 ;
        qset = (THD_3dim_dataset **)malloc(sizeof(THD_3dim_dataset *)*ndset_BBB) ;
        covvim_BBB = (MRI_vectim **)malloc(sizeof(MRI_vectim *)*mcov) ;
-       for( jj=0 ; jj < mcov ; jj++ ){
-         covvim_BBB[jj] = NULL ;
-         if( covnel->vec_typ[jj+1] == NI_STRING ){ /* a dataset name field */
-           char **qpt = (char **)covnel->vec[jj+1] ;  /* column of strings */
-           for( nbbad=kk=0 ; kk < ndset_BBB ; kk++ ){
-             qset[kk] = NULL ;
-             ii = string_search( labl_BBB[kk] ,
-                                 covnel->vec_len  (char **)covnel->vec[0] ) ;
-             if( ii < 0 ){
-               if( firstjj )
-                 ERROR_message("Can't find dataset label '%s' in covariates file" ,
-                               labl_BBB[kk] ) ;
-               nbad++ ; nbbad++ ;
-             } else {                            /* ii = row index in table */
-               qset[kk] = THD_open_one_dataset(qpt[ii]) ;
-               if( qset[kk] == NULL ){
-                 ERROR_message("Can't find dataset '%s' from covariates file" ,
-                               qpt[ii] ) ; nbad++ ; nbbad++ ;
-               } else if( DSET_NVALS(qset[kk]) > 1 ){
-                 ERROR_message("Dataset '%s' from covariates file has %d sub-bricks",
-                               qpt[ii] , DSET_NVALS(qset[kk]) ) ; nbad++ ; nbbad++ ;
-               }
-             }
-           } /* end of loop over kk=dataset index */
-           firstjj = 0 ;
-           if( nbbad == 0 ){  /* all loads were good ==> convert to vectim */
-             covvim_BBB[jj] = THD_dset_list_to_vectim( ndset_BBB, qset, mask ) ;
+       covvec_BBB = (floatvec   **)malloc(sizeof(floatvec   *)*mcov) ;
+       for( jj=0 ; jj < mcov ; jj++ ){                /* loop over covariates */
+         covvim_BBB[jj] = NULL ;         /* initialize output vectors to NULL */
+         covvec_BBB[jj] = NULL ;
+         for( nkbad=kk=0 ; kk < ndset_BBB ; kk++ ){     /* loop over datasets */
+           ii = string_search( labl_BBB[kk] ,     /* ii = covariate row index */
+                               covnel->vec_len ,
+                               (char **)covnel->vec[0] ) ;
+           if( ii < 0 ){                     /* can't find it ==> this is bad */
+             if( jj == 0 )
+               ERROR_message("Can't find label '%s' in covariates file" ,
+                             labl_BBB[kk] ) ;
+               nbad++ ; nkbad++ ; continue ;
            }
-           for( kk=0 ; kk < ndset_BBB ; kk++ )    /* toss out the trashola */
+           if( covnel->vec_typ[jj+1] == NI_STRING ){  /* a dataset name field */
+             char **qpt = (char **)covnel->vec[jj+1] ;   /* column of strings */
+             qset[kk] = THD_open_one_dataset(qpt[ii]) ;  /* covariate dataset */
+             if( qset[kk] == NULL ){
+               ERROR_message("Can't open dataset '%s' from covariates file" ,
+                             qpt[ii] ) ; nbad++ ; nkbad++ ;
+             } else if( DSET_NVALS(qset[kk]) > 1 ){
+               ERROR_message("Dataset '%s' from covariates file has %d sub-bricks",
+                             qpt[ii] , DSET_NVALS(qset[kk]) ) ; nbad++ ; nkbad++ ;
+             }
+           } /* end of creating dataset #kk in column #jj */
+           else {                                           /* a number field */
+             float *fpt = (float *)covnel->vec[jj+1] ;    /* column of floats */
+             if( covvec_BBB[jj] == NULL )             /* create output vector */
+               MAKE_floatvec(covvec_BBB[jj],ndset_BBB) ;
+             covvec_BBB[jj]->ar[kk] = fpt[ii] ;             /* save the value */
+           }
+         } /* end of kk loop over BBB datasets */
+         if( covnel->vec_typ[jj+1] == NI_STRING ){      /* a dataset covariate */
+           if( nkbad == 0 ){   /* all dataset opens good ==> convert to vectim */
+             covvim_BBB[jj] = THD_dset_list_to_vectim( ndset_BBB, qset, mask ) ;
+             if( covvim_BBB[jj] == NULL ){
+               ERROR_message("Can't assemble dataset vectors for covariate #%d",jj+1) ;
+               nbad++ ;
+             }
+           }
+           for( kk=0 ; kk < ndset_BBB ; kk++ )       /* toss out the trashola */
              if( qset[kk] != NULL ) DSET_delete(qset[kk]) ;
-         } /* end of processing a dataset field in the covariates table */
-       } /* end of loop over jj = covariates column index */
+         }
+       } /* end of jj loop = covariates column index */
        free(qset) ;
      } /* end of BBB covariates datasets processing */
 
      /* repeat for the AAA datasets */
 
+     if( ndset_AAA > 0 ){
+       qset = (THD_3dim_dataset **)malloc(sizeof(THD_3dim_dataset *)*ndset_AAA) ;
+       covvim_AAA = (MRI_vectim **)malloc(sizeof(MRI_vectim *)*mcov) ;
+       covvec_AAA = (floatvec   **)malloc(sizeof(floatvec   *)*mcov) ;
+       for( jj=0 ; jj < mcov ; jj++ ){                /* loop over covariates */
+         covvim_AAA[jj] = NULL ;         /* initialize output vectors to NULL */
+         covvec_AAA[jj] = NULL ;
+         for( nkbad=kk=0 ; kk < ndset_AAA ; kk++ ){     /* loop over datasets */
+           ii = string_search( labl_AAA[kk] ,     /* ii = covariate row index */
+                               covnel->vec_len ,
+                               (char **)covnel->vec[0] ) ;
+           if( ii < 0 ){                     /* can't find it ==> this is bad */
+             if( jj == 0 )
+               ERROR_message("Can't find label '%s' in covariates file" ,
+                             labl_AAA[kk] ) ;
+               nbad++ ; nkbad++ ; continue ;
+           }
+           if( covnel->vec_typ[jj+1] == NI_STRING ){  /* a dataset name field */
+             char **qpt = (char **)covnel->vec[jj+1] ;   /* column of strings */
+             qset[kk] = THD_open_one_dataset(qpt[ii]) ;  /* covariate dataset */
+             if( qset[kk] == NULL ){
+               ERROR_message("Can't open dataset '%s' from covariates file" ,
+                             qpt[ii] ) ; nbad++ ; nkbad++ ;
+             } else if( DSET_NVALS(qset[kk]) > 1 ){
+               ERROR_message("Dataset '%s' from covariates file has %d sub-bricks",
+                             qpt[ii] , DSET_NVALS(qset[kk]) ) ; nbad++ ; nkbad++ ;
+             }
+           } /* end of creating dataset #kk in column #jj */
+           else {                                           /* a number field */
+             float *fpt = (float *)covnel->vec[jj+1] ;    /* column of floats */
+             if( covvec_AAA[jj] == NULL )             /* create output vector */
+               MAKE_floatvec(covvec_AAA[jj],ndset_AAA) ;
+             covvec_AAA[jj]->ar[kk] = fpt[ii] ;             /* save the value */
+           }
+         } /* end of kk loop over AAA datasets */
+         if( covnel->vec_typ[jj+1] == NI_STRING ){      /* a dataset covariate */
+           if( nkbad == 0 ){   /* all dataset opens good ==> convert to vectim */
+             covvim_AAA[jj] = THD_dset_list_to_vectim( ndset_AAA, qset, mask ) ;
+             if( covvim_AAA[jj] == NULL ){
+               ERROR_message("Can't assemble dataset vectors for covariate #%d",jj+1) ;
+               nbad++ ;
+             }
+           }
+           for( kk=0 ; kk < ndset_AAA ; kk++ )       /* toss out the trashola */
+             if( qset[kk] != NULL ) DSET_delete(qset[kk]) ;
+         }
+       } /* end of jj loop = covariates column index */
+       free(qset) ;
+     } /* end of AAA covariates datasets processing */
+
+     /* Alas Babylon! */
 
      if( nbad > 0 ) ERROR_exit("Cannot continue past above ERROR%s :-(",
                                 (nbad==1) ? "\0" : "s" ) ;
 
-   } /* end of loading covariates datasets */
+     /*--- end of loading covariate vectors ---*/
 
-     /*--- setup the setA regression matrix ---*/
+     /*--- next, setup the regression matrices ---*/
 
-     nA    = shd_AAA->ndset ;
-     axxim = mri_new( nA , mcov+1 , MRI_float ) ;
-     axx   = MRI_FLOAT_PTR(axxim) ;
-     for( kk=0 ; kk < shd_AAA->ndset ; kk++ ){  /* loop over datasets */
-       ii = string_search( shd_AAA->dslab[kk] , /* find which covariate */
-                           covnel->vec_len , (char **)covnel->vec[0] ) ;
-       if( ii < 0 ){
-         ERROR_message("Can't find dataset label '%s' in covariates file" ,
-                       shd_AAA->dslab[kk] ) ;
-         nbad++ ;
-       } else {             /* ii-th row of covariates == kk-th dataset */
-         AXX(kk,0) = 1.0f ;
-         for( jj=1 ; jj <= mcov ; jj++ )
-           AXX(kk,jj) = ((float *)covnel->vec[jj])[ii] ;
+#undef  AXX
+#define AXX(i,j) Axx[(i)+(j)*(nA)]    /* i=0..nA-1 , j=0..mcov */
+#undef  BXX
+#define BXX(i,j) bxx[(i)+(j)*(nB)]    /* i=0..nB-1 , j=0..mcov */
+
+     /*-- setA matrix --*/
+
+     Axxim = mri_new( nA , mcov+1 , MRI_float ) ;
+     Axx   = MRI_FLOAT_PTR(Axxim) ;
+     for( kk=0 ; kk < nA ; kk++ ){
+       AXX(kk,0) = 1.0f ;   /* first column is all 1s ==> the mean */
+       for( jj=1 ; jj <= mcov ; jj++ ){
+         if( covvec_AAA[jj-1] != NULL ) AXX(kk,jj) = covvec_AAA[jj-1]->ar[kk] ;
        }
      }
-     if( nbad == 0 ){  /* process the matrix */
+     if( num_covset_col == 0 ){  /* process the A matrix now */
        MRI_IMARR *impr ; float sum ;
        for( jj=1 ; jj <= mcov ; jj++ ){  /* demean the columns */
-         for( sum=0.0f,kk=0 ; kk < shd_AAA->ndset ; kk++ ) sum += AXX(kk,jj) ;
-         sum /= shd_AAA->ndset ;
-         for( kk=0 ; kk < shd_AAA->ndset ; kk++ ) AXX(kk,jj) -= sum ;
+         for( sum=0.0f,kk=0 ; kk < nA ; kk++ ) sum += AXX(kk,jj) ;
+         sum /= nA ;
+         for( kk=0 ; kk < nA ; kk++ ) AXX(kk,jj) -= sum ;
        }
        /* Compute inv[X'X] and the pseudo-inverse inv[X'X]X' for this matrix */
-       impr = mri_matrix_psinv_pair( axxim , 0.0f ) ;
+       impr = mri_matrix_psinv_pair( Axxim , 0.0f ) ;
        if( impr == NULL ) ERROR_exit("Can't process setA covariate matrix?! :-(") ;
-       axxim_psinv  = IMARR_SUBIM(impr,0) ; axx_psinv  = MRI_FLOAT_PTR(axxim_psinv ) ;
-       axxim_xtxinv = IMARR_SUBIM(impr,1) ; axx_xtxinv = MRI_FLOAT_PTR(axxim_xtxinv) ;
+       Axxim_psinv  = MRI_FLOAT_PTR(IMARR_SUBIM(impr,0)) ;
+       Axxim_xtxinv = MRI_FLOAT_PTR(IMARR_SUBIM(impr,1)) ;
      }
 
-     /*--- setup the setB regression matrix ---*/
+     /*-- setB matrix ---*/
 
-     if( shd_BBB != NULL && ttest_opcode != 2 ){  /* un-paired case */
-       nB    = shd_BBB->ndset ;
-       bxxim = mri_new( nB , mcov+1 , MRI_float ) ;
-       bxx   = MRI_FLOAT_PTR(bxxim) ;
-       for( kk=0 ; kk < shd_BBB->ndset ; kk++ ){  /* loop over datasets */
-         ii = string_search( shd_BBB->dslab[kk] , /* find which covariate */
-                             covnel->vec_len , (char **)covnel->vec[0] ) ;
-         if( ii < 0 ){
-           ERROR_message("Can't find dataset label '%s' in covariates file" ,
-                         shd_BBB->dslab[kk] ) ;
-           nbad++ ;
-         } else {             /* ii-th row of covariates == kk-th dataset */
-           BXX(kk,0) = 1.0f ;
-           for( jj=1 ; jj <= mcov ; jj++ )
-             BXX(kk,jj) = ((float *)covnel->vec[jj])[ii] ;
+     if( nB > 0 && ttest_opcode != 2 ){  /* un-paired case */
+       Bxxim = mri_new( nB , mcov+1 , MRI_float ) ;
+       Bxx   = MRI_FLOAT_PTR(Bxxim) ;
+       for( kk=0 ; kk < nB ; kk++ ){
+         BXX(kk,0) = 1.0f ;   /* first column is all 1s ==> the mean */
+         for( jj=1 ; jj <= mcov ; jj++ ){
+           if( covvec_BBB[jj-1] != NULL ) BXX(kk,jj) = covvec_BBB[jj-1]->ar[kk] ;
          }
        }
-       if( nbad == 0 ){  /* process the matrix */
+       if( num_covset_col == 0 ){  /* process the B matrix now */
          MRI_IMARR *impr ; float sum ;
          for( jj=1 ; jj <= mcov ; jj++ ){  /* demean the columns */
-           for( sum=0.0f,kk=0 ; kk < shd_BBB->ndset ; kk++ ) sum += BXX(kk,jj) ;
-           sum /= shd_BBB->ndset ;
-           for( kk=0 ; kk < shd_BBB->ndset ; kk++ ) BXX(kk,jj) -= sum ;
+           for( sum=0.0f,kk=0 ; kk < nB ; kk++ ) sum += BXX(kk,jj) ;
+           sum /= nB ;
+           for( kk=0 ; kk < nB ; kk++ ) BXX(kk,jj) -= sum ;
          }
          /* Compute inv[X'X] and the pseudo-inverse inv[X'X]X' for this matrix */
-         impr = mri_matrix_psinv_pair( bxxim , 0.0f ) ;
+         impr = mri_matrix_psinv_pair( Bxxim , 0.0f ) ;
          if( impr == NULL ) ERROR_exit("Can't process setB covariate matrix?! :-(") ;
-         bxxim_psinv  = IMARR_SUBIM(impr,0) ; bxx_psinv  = MRI_FLOAT_PTR(bxxim_psinv ) ;
-         bxxim_xtxinv = IMARR_SUBIM(impr,1) ; bxx_xtxinv = MRI_FLOAT_PTR(bxxim_xtxinv) ;
+         Bxxim_psinv  = MRI_FLOAT_PTR(IMARR_SUBIM(impr,0)) ;
+         Bxxim_xtxinv = MRI_FLOAT_PTR(IMARR_SUBIM(impr,1)) ;
        }
 
-     } else if( shd_BBB != NULL && ttest_opcode == 2 ){  /* paired case */
+     } else if( nb > 0 && ttest_opcode == 2 ){  /* paired case */
 
-       bxx = axx ; bxx_psinv = axx_psinv ; bxx_xtxinv = axx_xtxinv ;
+       Bxx = Axx ; Bxx_psinv = Axx_psinv ; Bxx_xtxinv = Axx_xtxinv ;
 
      }
 
-     if( nbad )
-       ERROR_exit("Can't continue past the above covariates errors :-((") ;
+   }  /*-- end of covariates setup --*/
+
+   /*----- create output space -----*/
+
+   dosix = (nB > 1)           ;            /* 2 sample test? */
+   nvout = ((dosix) ? 6 : 2) * (mcov+1) ;  /* number of output volumes */
+
+   MAKE_VECTIM(vimout,nmask_hits,nvout) ; vimout->ignore = 0 ;
+
+   /**********==========---------- process data ----------==========**********/
+
+   for( kout=ivox=0 ; ivox < nvox ; ivox++ ){
+
+     if( mask != NULL && mask[ivox] == 0 ) continue ;  /* don't process */
+
+                  datAAA = VECTIM_PTR(vectim_AAA,kout) ;  /* data arrays */
+     if( nB > 0 ) datBBB = VECTIM_PTR(vectim_BBB,kout) ;
+
+     resar = VECTIM_PTR(vimout,kout) ;                    /* results array */
+
+     if( mcov == 0 ){  /*--- no covariates ==> standard t-tests ---*/
+
+       if( dosix ){
+         tpair = ttest_toz( nA,datAAA , nB,datBBB , ttest_opcode ) ;
+         resar[0] = tpair.a ; resar[1] = tpair.b ;
+         tpair = ttest_toz( nA,datAAA , 0 ,NULL   , ttest_opcode ) ;
+         resar[2] = tpair.a ; resar[3] = tpair.b ;
+         tpair = ttest_toz( nB,datBBB , 0 ,NULL   , ttest_opcode ) ;
+         resar[4] = tpair.a ; resar[5] = tpair.b ;
+       } else {
+         tpair = ttest_toz( nA,datAAA , 0 ,NULL   , ttest_opcode ) ;
+         resar[0] = tpair.a ; resar[1] = tpair.b ;
+       }
+
+     } else {          /*--- covariates ==> regression analysis ---*/
+
+     }
+
+     kout++ ;
+   }
+   
+
+} /* end of main program */
 
 /*---------------------------------------------------------------------------*/
 
@@ -574,7 +714,7 @@ int main( int argc , char *argv[] )
 /*---------------------------------------------------------------------------*/
 /*  opcode defines what to do for 2-sample tests:
       0 ==> unpaired, pooled variance
-      1 ==> unpaired, unpooled variance (not yet implemented)
+      1 ==> unpaired, unpooled variance (not implemented here)
       2 ==> paired (numA==numB required)
 
     xA      = numA X (mcov+1) matrix -- in column-major order
@@ -683,7 +823,8 @@ void regress_toz( int numA , float *zA ,
          if( (testAB & (1 << tt)) == 0 ) continue ;  /* bitwase AND */
          outvec[kt++] = betA[tt] - betB[tt] ;
          val          = outvec[kt-1] / sqrtf( varAB*xtxA(tt) ) ;
-         outvec[kt++] = (float)GIC_student_t2z( (double)val , dof ) ;
+         outvec[kt++] = (toz) ? (float)GIC_student_t2z( (double)val , dof )
+                              : val ;
        }
 
      } else {            /* unpaired, pooled variance */
@@ -695,7 +836,8 @@ void regress_toz( int numA , float *zA ,
          if( (testAB & (1 << tt)) == 0 ) continue ;  /* bitwase AND */
          outvec[kt++] = betA[tt] - betB[tt] ;
          val          = outvec[kt-1] / sqrtf( varAB*(xtxA(tt)+xtxB(tt)) );
-         outvec[kt++] = (float)GIC_student_t2z( (double)val , dof ) ;
+         outvec[kt++] = (toz) ? (float)GIC_student_t2z( (double)val , dof )
+                              : val ;
        }
      } /* end of unpaired pooled variance */
    }
@@ -718,7 +860,8 @@ void regress_toz( int numA , float *zA ,
        if( (testA & (1 << tt)) == 0 ) continue ;  /* bitwise AND */
        outvec[kt++] = betA[tt] ;
        val          = betA[tt] / sqrtf( varA * xtxA(tt) ) ;
-       outvec[kt++] = (float)GIC_student_t2z( (double)val , dof ) ;
+       outvec[kt++] = (toz) ? (float)GIC_student_t2z( (double)val , dof )
+                            : val ;
      }
    }
 
@@ -730,7 +873,8 @@ void regress_toz( int numA , float *zA ,
        if( (testB & (1 << tt)) == 0 ) continue ;  /* bitwise AND */
        outvec[kt++] = betB[tt] ;
        val          = betB[tt] / sqrtf( varB * xtxB(tt) ) ;
-       outvec[kt++] = (float)GIC_student_t2z( (double)val , dof ) ;
+       outvec[kt++] = (toz) ? (float)GIC_student_t2z( (double)val , dof )
+                            ? val ;
      }
    }
 
@@ -830,6 +974,186 @@ float_pair ttest_toz( int numx, float *xar, int numy, float *yar, int opcode )
    } /* end of all possible cases */
 
    result.a = delta ;
-   result.b = (float)GIC_student_t2z( (double)tstat , (double)dof ) ;
+   result.b = (toz) ? (float)GIC_student_t2z( (double)tstat , (double)dof )
+                    ? tstat ;
    return result ;
+}
+
+/*=======================================================================*/
+/** The following routines are for the t-to-z conversion, and are
+    adapted from mri_stats.c to be parallelizable (no static data).
+=========================================================================*/
+
+static double GIC_qginv( double p )
+{
+   double dp , dx , dt , ddq , dq ;
+   int    newt ;                       /* not Gingrich, but Isaac */
+
+   dp = (p <= 0.5) ? (p) : (1.0-p) ;   /* make between 0 and 0.5 */
+
+   if( dp <= 1.e-37 ){
+      dx = 13.0 ;                      /* 13 sigma has p < 10**(-38) */
+      return ( (p <= 0.5) ? (dx) : (-dx) ) ;
+   }
+
+/**  Step 1:  use 26.2.23 from Abramowitz and Stegun **/
+
+   dt = sqrt( -2.0 * log(dp) ) ;
+   dx = dt
+        - ((.010328*dt + .802853)*dt + 2.515517)
+        /(((.001308*dt + .189269)*dt + 1.432788)*dt + 1.) ;
+
+/**  Step 2:  do 3 Newton steps to improve this
+              (uses the math library erfc function) **/
+
+   for( newt=0 ; newt < 3 ; newt++ ){
+     dq  = 0.5 * erfc( dx / 1.414213562373095 ) - dp ;
+     ddq = exp( -0.5 * dx * dx ) / 2.506628274631000 ;
+     dx  = dx + dq / ddq ;
+   }
+
+   if( dx > 13.0 ) dx = 13.0 ;
+   return ( (p <= 0.5) ? (dx) : (-dx) ) ;  /* return with correct sign */
+}
+
+#ifdef NO_GAMMA
+/*-----------------------------------------------------------------------*/
+/* If the system doesn't provide lgamma() for some primitive reason.
+-------------------------------------------------------------------------*/
+
+/**----- log of gamma, for argument between 1 and 2 -----**/
+
+static double gamma_12( double y )
+{
+   double x , g ;
+   x = y - 1.0 ;
+   g = ((((((( 0.035868343 * x - 0.193527818 ) * x
+                               + 0.482199394 ) * x
+                               - 0.756704078 ) * x
+                               + 0.918206857 ) * x
+                               - 0.897056937 ) * x
+                               + 0.988205891 ) * x
+                               - 0.577191652 ) * x + 1.0 ;
+   return log(g) ;
+}
+
+/**----- asymptotic expansion of ln(gamma(x)) for large positive x -----**/
+
+#define LNSQRT2PI 0.918938533204672  /* ln(sqrt(2*PI)) */
+
+static double gamma_asympt(double x)
+{
+   double sum ;
+
+   sum = (x-0.5)*log(x) - x + LNSQRT2PI + 1.0/(12.0*x) - 1./(360.0*x*x*x) ;
+   return sum ;
+}
+
+/**----- log of gamma, argument positive (not very efficient!) -----**/
+
+static double GIC_lgamma( double x )
+{
+   double w , g ;
+
+   if( x <= 0.0 ) return 0.0 ;  /* should not happen */
+
+   if( x <  1.0 ) return gamma_12( x+1.0 ) - log(x) ;
+   if( x <= 2.0 ) return gamma_12( x ) ;
+   if( x >= 6.0 ) return gamma_asympt(x) ;
+
+   g = 0 ; w = x ;
+   while( w > 2.0 ){ w -= 1.0 ; g += log(w) ; }
+   return ( gamma_12(w) + g ) ;
+}
+
+#define lgamma GIC_lgamma
+
+#endif  /*----- NO_GAMMA ------------------------------------------------*/
+
+/*----------------------------------------------------------------------*/
+
+static double GIC_lnbeta( double p , double q )
+{
+   return (lgamma(p) + lgamma(q) - lgamma(p+q)) ;
+}
+
+/*----------------------------------------------------------------------*/
+
+#define ZERO 0.0
+#define ONE  1.0
+#define ACU  1.0e-15
+
+static double GIC_incbeta( double x , double p , double q , double beta )
+{
+   double betain , psq , cx , xx,pp,qq , term,ai , temp , rx ;
+   int indx , ns ;
+
+   if( p <= ZERO || q <= ZERO ) return -1.0 ;  /* error! */
+
+   if( x <= ZERO ) return ZERO ;
+   if( x >= ONE  ) return ONE ;
+
+   /**  change tail if necessary and determine s **/
+
+   psq = p+q ;
+   cx  = ONE-x ;
+   if(  p < psq*x ){
+      xx   = cx ; cx   = x ; pp   = q ; qq   = p ; indx = 1 ;
+   } else {
+      xx   = x ; pp   = p ; qq   = q ; indx = 0 ;
+   }
+
+   term   = ONE ;
+   ai     = ONE ;
+   betain = ONE ;
+   ns     = qq + cx*psq ;
+
+   /** use soper's reduction formulae **/
+
+      rx = xx/cx ;
+
+lab3:
+      temp = qq-ai ;
+      if(ns == 0) rx = xx ;
+
+lab4:
+      term   = term*temp*rx/(pp+ai) ;
+      betain = betain+term ;
+      temp   = fabs(term) ;
+      if(temp <= ACU && temp <= ACU*betain) goto lab5 ;
+
+      ai = ai+ONE ;
+      ns = ns-1 ;
+      if(ns >= 0) goto lab3 ;
+      temp = psq ;
+      psq  = psq+ONE ;
+      goto lab4 ;
+
+lab5:
+      betain = betain*exp(pp*log(xx)+(qq-ONE)*log(cx)-beta)/pp ;
+      if(indx) betain=ONE-betain ;
+
+   return betain ;
+}
+
+/*----------------------------------------------------------------------*/
+
+#undef  ZMAX
+#define ZMAX 13.0
+
+double GIC_student_t2z( double tt , double dof )
+{
+   double xx , pp , bb ;
+
+   bb = GIC_lnbeta( 0.5*dof , 0.5 ) ;
+
+   xx = dof/(dof + tt*tt) ;
+   pp = GIC_incbeta( xx , 0.5*dof , 0.5 , bb ) ;
+
+   if( tt > 0.0 ) pp = 1.0 - 0.5 * pp ;
+   else           pp = 0.5 * pp ;
+
+   xx = - GIC_qginv(pp) ;
+   if( xx > ZMAX ) xx = ZMAX ; else if( xx < -ZMAX ) xx = -ZMAX ;
+   return xx ;
 }
