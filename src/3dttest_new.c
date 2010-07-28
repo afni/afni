@@ -29,7 +29,8 @@ double GIC_student_t2z( double tt , double dof ) ;
 static NI_element         *covnel=NULL ;       /* covariates */
 static NI_str_array       *covlab=NULL ;
 
-static int        num_covset_col=0;
+static int        num_covset_col=0 ;
+static int             allow_cov=1 ;
 static MRI_vectim   **covvim_AAA=NULL ;
 static MRI_vectim   **covvim_BBB=NULL ;
 static floatvec     **covvec_AAA=NULL ;
@@ -51,15 +52,15 @@ static int  nmask_hits = 0 ;
 
 static int ttest_opcode = 0 ;  /* 0=pooled, 1=unpooled, 2=paired */
 
-static int               ndset_AAA=0 , nA=0 ;
-static char              *snam_AAA=NULL ;
+static int               ndset_AAA=0 , nval_AAA=0 ;
+static char              *snam_AAA=NULL , *lnam_AAA=NULL ;
 static char             **name_AAA=NULL ;
 static char             **labl_AAA=NULL ;
 static THD_3dim_dataset **dset_AAA=NULL ;
 static MRI_vectim      *vectim_AAA=NULL ;
 
-static int               ndset_BBB=0 , nB=0 ;
-static char              *snam_BBB=NULL ;
+static int               ndset_BBB=0 , nval_BBB=0 ;
+static char              *snam_BBB=NULL , *lnam_BBB=NULL ;
 static char             **name_BBB=NULL ;
 static char             **labl_BBB=NULL ;
 static THD_3dim_dataset **dset_BBB=NULL ;
@@ -81,7 +82,7 @@ static int string_search( char *targ , int nstr , char **str )
 
 /*----------------------------------------------------------------------------*/
 
-static void vstep_print(void)
+static void vstep_print(void)   /* pacifier */
 {
    static char xx[10] = "0123456789" ; static int vn=0 ;
    fprintf(stderr , "%c" , xx[vn%10] ) ;
@@ -95,104 +96,121 @@ void display_help_menu(void)
    printf(
       "Gosset (Student) t-test of sets of 3D datasets.\n"
       "\n"
-      "Usage can be similar to the old 3dttest; for example:\n"
+      "* Usage can be similar to the old 3dttest; for example:\n"
       "\n"
-      "  3dttest_new -setA a+tlrc'[3]' b+tlrc'[3]' ...\n"
+      "    3dttest_new -setA a+tlrc'[3]' b+tlrc'[3]' ...\n"
       "\n"
-      "*OR* usage can be similar to 3dMEMA; for example:\n"
+      "* OR, usage can be similar to 3dMEMA; for example:\n"
       "\n"
-      "  3dttest_new -setA Green sub001 a+tlrc'[3]' \\\n"
-      "                          sub002 b+tlrc'[3]' \\\n"
-      "                          sub003 c+tlrc'[3]' \\\n"
-      "                          ...                \\\n"
-      "              -covariates Cfile\n"
+      "    3dttest_new -setA Green sub001 a+tlrc'[3]' \\\n"
+      "                            sub002 b+tlrc'[3]' \\\n"
+      "                            sub003 c+tlrc'[3]' \\\n"
+      "                            ...                \\\n"
+      "                -covariates Cfile\n"
       "\n"
-      "The 3dMEMA-like (more complicated) syntax is required to use covariates.\n"
+      "* You can input 1 or 2 sets of data (labeled 'A' and 'B').\n"
       "\n"
-      "You can input 1 or 2 sets of data (labeled 'A' and 'B').\n"
+      "* With 1 set ('-setA'), the mean across input datasets (usually subjects)\n"
+      "   is tested against 0.\n"
       "\n"
-      "With 1 set ('-setA'), the mean across input datasets (usually subjects)\n"
-      "is tested against 0.\n"
+      "* With 2 sets, the difference in means across each set is tested\n"
+      "   against 0.  The 1 sample results for each set are also provided, since\n"
+      "   these are often of interest to the investigator (e.g., YOU).\n"
       "\n"
-      "With 2 sets, the difference in means across each set is tested\n"
-      "against 0.  The 1 sample results for each set are also provided, since\n"
-      "these are often of interest to the investigator (e.g., YOU).\n"
+      "* Covariates can be per-dataset (input=1 number) and/or per-voxel/per-dataset\n"
+      "   (input=1 dataset sub-brick).  Please note that voxel-level covariates will\n"
+      "   slow the program down, since the regression matrix for the covariates must\n"
+      "   be re-inverted for each voxel separately.\n"
       "\n"
-      "Covariates can be per-dataset (input=1 number) and/or per-voxel/per-dataset\n"
-      "(input=1 dataset).  Voxel-level covariates will slow the program down!\n"
-      "\n"
-      "This program is meant (for most uses) to replace the original 3dttest,\n"
-      "which was written in 1994 \"when grass was green and grain was yellow\".\n"
+      "* This program is meant (for most uses) to replace the original 3dttest,\n"
+      "   which was written in 1994, \"When grass was green and grain was yellow\".\n"
       "\n"
       "------------\n"
       "SET OPTIONS:\n"
       "------------\n"
       "* At least the '-setA' option must be given.  '-setB' is optional, and\n"
       "   if it isn't used, then the mean of the dataset values from '-setA' is\n"
-      "   t-tested against 0.\n"
-      "* Two forms for the '-setx' (x=A or B) options are allowed.  The first\n"
-      "   form is similar to the original 3dttest program, where the option\n"
+      "   t-tested against 0 (1 sample t-test).\n"
+      "* Two forms for the '-setX' (X='A' or 'B') options are allowed.  The first\n"
+      "   (short) form is similar to the original 3dttest program, where the option\n"
       "   is just followed by a list of datasets to use.\n"
-      "* The second form is similar to the 3dMEMA program, where you specify\n"
+      "* The second (long) form is similar to the 3dMEMA program, where you specify\n"
       "   a label for each input dataset sub-brick (a difference between this\n"
       "   option and the version in 3dMEMA is only that you do not give a second\n"
       "   dataset ('T_DSET') with each sample in this program).\n"
-      "* The second, more complicated, form is needed if you want to use the\n"
-      "   '-covariates' option, since it is the dataset 'SAMP_K' labels that\n"
-      "   are used to extract the covariates for each input dataset.\n"
+      "\n"
+      "** SHORT FORM **\n"
       "\n"
       " -setA BETA_DSET BETA_DSET ...\n"
-      "  *OR*\n"
-      " -setB\n"
-      "   In this form of input, you specify the datasets for each set\n"
-      "    directly following the '-setx' option ('x' is 'A' or 'B').\n"
-      "   ++ Unlike 3dttest, you can specify multiple sub-bricks in a dataset:\n"
-      "        a+tlrc'[1..13(2)]'\n"
-      "      which inputs 7 sub-bricks at once (1,3,5,7,9,11,13).\n"
+      "[-setB]\n"
+      "* In this form of input, you specify the datasets for each set\n"
+      "   directly following the '-setX' option.\n"
+      "  ++ Unlike 3dttest, you can specify multiple sub-bricks in a dataset:\n"
+      "        -setA a+tlrc'[1..13(2)]'\n"
+      "     which inputs 7 sub-bricks at once (1,3,5,7,9,11,13).\n"
       "\n"
-      "** ALTERNATIVELY **\n"
+      "** LONG FORM **\n"
       "\n"
       " -setA SETNAME            \\\n"
-      "  *OR*   SAMP_1 BETA_DSET \\\n"
-      " -setB   SAMP_2 BETA_DSET \\\n"
+      "[-setB]  LABL_1 BETA_DSET \\\n"
+      "         LABL_2 BETA_DSET \\\n"
       "         ...    ...       \\\n"
-      "         SAMP_N BETA_DSET\n"
-      "   Specify the data for one of the test variables.\n"
-      "   SETNAME is the name assigned to the set (used in the output labels).\n"
-      "   SAMP_K  is the label for the sample K whose input dataset follows.\n"
-      "   DSET    is the name of the dataset of the beta coefficient or GLT.\n"
-      "           ++ only 1 sub-brick can be specified here.\n"
-      "   Note that the labels 'SETNAME' and 'SAMP_K' are limited to 12\n"
+      "         LABL_N BETA_DSET\n"
+      "* Specify the data for one of the test variables.\n"
+      "   SETNAME   is the name assigned to the set (used in the output labels).\n"
+      "   LABL_K    is the label for the Kth input dataset name, whose name follows.\n"
+      "   BETA_DSET is the name of the dataset of the beta coefficient or GLT.\n"
+      "             ++ only 1 sub-brick can be specified here!\n"
+      "   Note that the labels 'SETNAME' and 'LABL_K' are limited to 12\n"
       "   characters -- any more will be thrown away without warning.\n"
       "\n"
-      "--------------\n"
-      "OTHER OPTIONS:\n"
-      "--------------\n"
+      " -labelA SETNAME = for the short form of '-setX', this option allows you\n"
+      "[-labelB]          to attach a label to the set, which will be used in\n"
+      "                   the sub-brick labels in the output dataset.  If you don't\n"
+      "                   give a SETNAME, then '-setA' will be named 'SetA', etc.\n"
+      "\n"
+      "  ***** NOTE WELL: The sign of a two sample test is A - B           *****\n"
+      "  ***              Thus, '-setB' corresponds to '-set1' in 3dttest,   ***\n"
+      "  ***                and '-setA' corresponds to '-set2' in 3dttest.   ***\n"
+      "  *****            This ordering of A and B matches 3dGroupInCorr.  *****\n"
+      "\n"
+      "-----------\n"
+      "COVARIATES:\n"
+      "-----------\n"
       " -covariates COVAR_FILE\n"
       "* Specify the name of a text file containing a table for the covariate(s).\n"
       "   Each column in the file is treated as a separate covariate, and each\n"
       "   row contains the values of these covariates for each sample. Note that\n"
       "   you can use '-covariates' only once -- the COVAR_FILE should contain\n"
-      "   the covariates for all input samples from both sets.\n"
+      "   the covariates for ALL input samples from both sets.\n"
+      "  ++ Rows in COVAR_FILE that don't match a dataset label are ignored.\n"
       "* The format of COVAR_FILE is like that for 3dMEMA and for 3dGroupInCorr:\n"
       "     FIRST LINE -->   subject IQ   age  GMfrac\n"
-      "     LATER LINES -->  Elvis   143   42  Elvis_GM+tlrc'[8]'\n"
-      "                      Fred     85   59  Fred_GM+tlrc'[8]'\n"
-      "                      Ethel   109   49  Ethel_GM+tlrc'[8]'\n"
-      "                      Lucy    133   32  Lucy_GM+tlrc'[8]'\n"
+      "     LATER LINES -->  Elvis   143   42  Elvis_GM+tlrc[8]\n"
+      "                      Fred     85   59  Fred_GM+tlrc[8]\n"
+      "                      Ethel   109   49  Ethel_GM+tlrc[8]\n"
+      "                      Lucy    133   32  Lucy_GM+tlrc[8]\n"
+      "                      Ricky   121   37  Ricky_GM+tlrc[8]\n"
       "  ++ The first column contains the labels that must match the dataset\n"
-      "      SAMP_K labels given in the '-setx' option(s).\n"
-      "  ++ The later columns contain numbers (as in IQ and age, above), or\n"
+      "      LABL_K labels given in the '-setX' option(s).\n"
+      "     ++ If you used a short form '-setX' option, each dataset label is\n"
+      "         the dataset's prefix name, truncated to 12 characters.\n"
+      "     ++ '-covariates' can only be used with the short form '-setX' option\n"
+      "         if each input dataset has only 1 sub-brick (so that each label\n"
+      "         refers to exactly 1 volume of data).\n"
+      "  ++ The later columns contain numbers (as in 'IQ' and 'age', above), or\n"
       "      dataset names.  In the latter case, you are specifying a voxel-wise\n"
-      "      covariate (e.g., GMfrac).\n"
-      "     ++ A column can contain numbers only, or datasets only.  But one\n"
-      "        column CANNOT contain a mix of numbers and dataset names!\n"
+      "      covariate (e.g., 'GMfrac').\n"
+      "  ++ A column can contain numbers only, or datasets only.  But one\n"
+      "      column CANNOT contain a mix of numbers and dataset names!\n"
       "  ++ The first line contains column headers.  The header label for the\n"
       "      first column isn't used for anything.  The later header labels are\n"
       "      used in the sub-brick labels sent to AFNI.\n"
+#if 0
       "  ++ At this time, only the -paired and -pooled options can be used with\n"
       "      covariates.  If you use -unpooled, it will be changed to -pooled.\n"
       "      -unpooled still works with a pure t-test (no -covariates option).\n"
+#endif
       "  ++ If you use -paired, then the covariates for -setB will be the same\n"
       "      as those for -setA, even if the dataset labels are different!\n"
       "  ++ Each covariate column in the regression matrix will have its mean\n"
@@ -208,23 +226,37 @@ void display_help_menu(void)
       "  ++ N.B.: The simpler forms of the COVAR_FILE that 3dMEMA allows are\n"
       "           NOT supported here!\n"
       "  ++ A maximum of 31 covariates are allowed.  If you have more, then\n"
-      "      seriously consider the possibility that you are completely demented.\n"
+      "      seriously consider the likelihood that you are completely demented.\n"
+      "\n"
+      "--------------\n"
+      "OTHER OPTIONS:\n"
+      "--------------\n"
       "\n"
       " -paired   = Specifies the use of a paired-sample t-test to\n"
       "              compare setA and setB.  If this option is used,\n"
       "              setA and setB must have the same cardinality (duh).\n"
+#if 0
       "\n"
       " -unpooled = Specifies that the variance estimates for setA and\n"
       "              setB be computed separately (not pooled together).\n"
       "              This only makes sense if -paired is NOT given.\n"
+#endif
       "\n"
       " -toz      = Convert output t-statistics to z-scores\n"
+#if 0
+      "             ++ This might be useful for the '-unpooled' case, where\n"
+      "                the t-statistics aren't directly comparable since\n"
+      "                the degrees of freedom will vary between voxels.\n"
+#endif
       "\n"
       " -mask mmm = Only compute results for voxels in the specified mask.\n"
+      "             ++ Voxels not in the mask will be set to 0 in the output.\n"
+      "             ++ If '-mask' is not used, all voxels will be tested.\n"
       "\n"
       " -prefix p = Gives the name of the output dataset file.\n"
+      "             ++ Dataset is stored in float format.\n"
       "\n"
-      "AUTHOR -- RW Cox -- Please wine WITH me, don't whine TO me.\n"
+      "AUTHOR -- RW Cox -- don't whine TO me; wine WITH me.\n"
   ) ;
 
   PRINT_COMPILE_DATE ; exit(0) ;
@@ -234,13 +266,22 @@ void display_help_menu(void)
 
 int main( int argc , char *argv[] )
 {
-   int nopt , nbad , ii,jj,kk , kout,ivox ;
+   int nopt , nbad , ii,jj,kk , kout,ivox , vstep ;
    MRI_vectim *vimout ;
-   float *workspace , *datAAA , *datBBB , *resar ;
+   float *workspace=NULL , *datAAA , *datBBB , *resar ;
    float_pair tpair ;
+   THD_3dim_dataset *outset ;
+   char blab[64] , *stnam ;
+   float dof_AB=0.0f , dof_A=0.0f , dof_B=0.0f ;
 
-   if( argc < 2 || strcmp(argv[1],"-help") == 0 )
-     display_help_menu() ;
+   /*--- help the piteous luser? ---*/
+
+   if( argc < 2 || strcmp(argv[1],"-help") == 0 ) display_help_menu() ;
+
+   /*--- record things for posterity, et cetera ---*/
+
+   mainENTRY("3dttest_new main"); machdep(); AFNI_logger("3dttest_new",argc,argv);
+   PRINT_VERSION("3dttest_new") ; AUTHOR("The Bob") ;
 
    /*--- read the options from the command line ---*/
 
@@ -296,11 +337,25 @@ int main( int argc , char *argv[] )
        toz = 1 ; nopt++ ; continue ;
      }
 
+     if( strcasecmp(argv[nopt],"-labelA") == 0 ){
+       if( ++nopt >= argc )
+         ERROR_exit("Need argument after '%s'",argv[nopt-1]) ;
+       lnam_AAA = strdup(argv[nopt]) ; LTRUNC(lnam_AAA) ;
+       nopt++ ; continue ;
+     }
+
+     if( strcasecmp(argv[nopt],"-labelB") == 0 ){
+       if( ++nopt >= argc )
+         ERROR_exit("Need argument after '%s'",argv[nopt-1]) ;
+       lnam_BBB = strdup(argv[nopt]) ; LTRUNC(lnam_BBB) ;
+       nopt++ ; continue ;
+     }
+
      /*----- the various flavours of '-set' -----*/
 
      if( strncmp(argv[nopt],"-set",4) == 0 ){
-       char cc=argv[nopt][4] , *onam=argv[nopt] ;
-       int nds=0 , ids ; char **nams=NULL , **labs=NULL , *snam=NULL ;
+       char cc=argv[nopt][4] , *onam=argv[nopt] , *cpt ;
+       int nds=0 , ids , nv=0 ; char **nams=NULL , **labs=NULL , *snam=NULL ;
        THD_3dim_dataset *qset , **dset=NULL ;
 
        if( cc == 'A' ){
@@ -310,12 +365,12 @@ int main( int argc , char *argv[] )
        } else {
          ERROR_exit("'%s' is not a recognized '-set' option",argv[nopt]);
        }
-       if( ++nopt >= argc )
-         ERROR_exit("Need argument after '%s'",argv[nopt-1]) ;
+       if( ++nopt >= argc-1 )
+         ERROR_exit("Need arguments after '%s'",argv[nopt-1]) ;
 
        /* if next arg is a dataset, then all of the next args are datasets */
 
-       qset = THD_open_one_dataset( argv[nopt] ) ;
+       qset = THD_open_dataset( argv[nopt] ) ;
        if( ISVALID_DSET(qset) ){
          nds  = 1 ;
          nams = (char **)malloc(sizeof(char *)) ;
@@ -323,31 +378,44 @@ int main( int argc , char *argv[] )
          dset = (THD_3dim_dataset **)malloc(sizeof(THD_3dim_dataset *)) ;
          nams[0] = strdup(argv[nopt]) ; dset[0] = qset ;
          labs[0] = strdup(THD_trailname(argv[nopt],0)) ; LTRUNC(labs[0]) ;
-         snam = (char *)malloc(sizeof(char)*MAX_LABEL_SIZE) ;
-         sprintf(snam,"Set%c",cc) ;
-         nopt++ ;
+         cpt = strchr(labs[0]+1,'+') ; if( cpt != NULL ) *cpt = '\0' ;
+         cpt = strchr(labs[0]+1,'.') ; if( cpt != NULL ) *cpt = '\0' ;
+ININFO_message("labs[0] = %s",labs[0]) ;
+         nv = DSET_NVALS(qset) ;
          for( nopt++ ; nopt < argc && argv[nopt][0] != '-' ; nopt++ ){
-           qset = THD_open_one_dataset( argv[nopt] ) ;
+           qset = THD_open_dataset( argv[nopt] ) ;
            if( !ISVALID_DSET(qset) )
-             ERROR_exit("Option %s: can't open dataset '%s'",onam,argv[nopt]) ;
-           nds++ ;
+             ERROR_exit("Option %s: cannot open dataset '%s'",onam,argv[nopt]) ;
+           nds++ ; nv += DSET_NVALS(qset) ;
            nams = (char **)realloc(nams,sizeof(char *)*nds) ;
            labs = (char **)realloc(labs,sizeof(char *)*nds) ;
            dset = (THD_3dim_dataset **)realloc(dset,sizeof(THD_3dim_dataset *)*nds) ;
            nams[nds-1] = strdup(argv[nopt]) ; dset[nds-1] = qset ;
            labs[nds-1] = strdup(THD_trailname(argv[nopt],0)) ; LTRUNC(labs[nds-1]) ;
+           cpt = strchr(labs[nds-1]+1,'+') ; if( cpt != NULL ) *cpt = '\0' ;
+           cpt = strchr(labs[nds-1]+1,'.') ; if( cpt != NULL ) *cpt = '\0' ;
+ININFO_message("labs[%d] = %s",nds-1,labs[nds-1]) ;
          }
+
+         if( nv > nds ) allow_cov = 0 ;
+
+         if( nv < 2 )
+           ERROR_exit("Option %s (short form): need at least 2 datasets or sub-bricks",onam) ;
 
        } else {  /* not a dataset => label label dset label dset ... */
 
          snam = strdup(argv[nopt]) ; LTRUNC(snam) ;
+ININFO_message("processing %s: SETNAME = %s",onam,snam) ;
          for( nopt++ ; nopt < argc && argv[nopt][0] != '-' ; nopt+=2 ){
-           if( nopt+1 >= argc )
+           if( nopt+1 >= argc || argv[nopt+1][0] == '-' )
              ERROR_exit("Option %s: ends prematurely",onam) ;
-           qset = THD_open_one_dataset( argv[nopt+1] ) ;
+           qset = THD_open_dataset( argv[nopt+1] ) ;
            if( !ISVALID_DSET(qset) )
-             ERROR_exit("Option %s: can't open dataset '%s'",onam,argv[nopt]) ;
-           nds++ ;
+             ERROR_exit("Option %s: can't open dataset '%s'",onam,argv[nopt+1]) ;
+           if( DSET_NVALS(qset) > 1 )
+             ERROR_exit("Option %s: dataset '%s' has more than one sub-brick",
+                        onam,argv[nopt+1]) ;
+           nds++ ; nv++ ;
            nams = (char **)realloc(nams,sizeof(char *)*nds) ;
            labs = (char **)realloc(labs,sizeof(char *)*nds) ;
            dset = (THD_3dim_dataset **)realloc(dset,sizeof(THD_3dim_dataset *)*nds) ;
@@ -355,22 +423,27 @@ int main( int argc , char *argv[] )
            labs[nds-1] = strdup(argv[nopt]  ) ; LTRUNC(labs[nds-1]) ;
          }
 
+         if( nv < 2 )
+           ERROR_exit("Option %s (long form): need at least 2 datasets",onam) ;
        }
-       if( nds == 1 )
-         ERROR_exit("Option %s: need at least 2 datasets",onam) ;
-       for( ids=1 ; ids < nds ; ids++ ){
-         if( DSET_NVOX(dset[ids]) != DSET_NVOX(dset[0]) )
-           ERROR_exit("Option %s: dataset '%s' does match others in size",
-                      onam,nams[nds-1]) ;
+
+       /* check for grid size mismatch */
+
+       for( nbad=0,ids=1 ; ids < nds ; ids++ ){
+         if( DSET_NVOX(dset[ids]) != DSET_NVOX(dset[0]) ){
+           ERROR_message("Option %s: dataset '%s' does match first one in size",
+                         onam,nams[ids]) ; nbad++ ;
+         }
        }
+       if( nbad > 0 ) ERROR_exit("Cannot go on after such an error!") ;
 
        /* assign results to global variables */
 
        if( cc == 'A' ){
-         ndset_AAA = nds  ; snam_AAA = snam ;
+         ndset_AAA = nds  ; snam_AAA = snam ; nval_AAA = nv ;
           name_AAA = nams ; labl_AAA = labs ; dset_AAA = dset ;
        } else {
-         ndset_BBB = nds  ; snam_BBB = snam ;
+         ndset_BBB = nds  ; snam_BBB = snam ; nval_BBB = nv ;
           name_BBB = nams ; labl_BBB = labs ; dset_BBB = dset ;
        }
 
@@ -403,17 +476,19 @@ int main( int argc , char *argv[] )
        } else {
          ERROR_exit("Can't get labels from -covariates file '%s'",argv[nopt]) ;
        }
-       for( nbad=0,kk=1 ; kk <= mcov ; kk++ ){
-         if( covnel->vec_typ[kk] == NI_FLOAT ){  /* numeric column */
-           meansigma_float(covnel->vec_len,(float *)covnel->vec[kk],NULL,&sig) ;
+       for( nbad=0,jj=1 ; jj <= mcov ; jj++ ){
+         if( covnel->vec_typ[jj] == NI_FLOAT ){  /* numeric column */
+ININFO_message("testing covariate column #%d",jj) ;
+           meansigma_float(covnel->vec_len,(float *)covnel->vec[jj],NULL,&sig) ;
            if( sig <= 0.0f ){
              ERROR_message("Covariate '%s' is constant; how can this be used?!" ,
-                           covlab->str[kk] ) ; nbad++ ;
+                           covlab->str[jj] ) ; nbad++ ;
            }
+else ININFO_message(" passed the test") ;
          } else {                                /* string column: */
            num_covset_col++ ;              /* count number of them */
          }
-         LTRUNC(covlab->str[kk]) ;
+         LTRUNC(covlab->str[jj]) ;
        }
        if( nbad > 0 ) ERROR_exit("Cannot continue past above ERROR%s :-(",
                                   (nbad==1) ? "\0" : "s" ) ;
@@ -425,18 +500,18 @@ int main( int argc , char *argv[] )
      ERROR_exit("3dttest_new: don't recognize option '%s'",argv[nopt]) ;
 
    }  /*-------------------- end of option parsing --------------------*/
+INFO_message("finished options") ;
 
    /*----- check some stuff -----*/
 
-   nA = ndset_AAA ; nB = ndset_BBB ;  /* shorthand */
-   twosam = (nB > 1) ;                /* 2 sample test? */
+   twosam = (nval_BBB > 1) ; /* 2 sample test? */
 
-   if( ndset_AAA <= 0 )
+   if( nval_AAA <= 0 )
      ERROR_exit("No '-setA' option?  Please please read the instructions!") ;
 
-   if( ndset_AAA != ndset_BBB && ttest_opcode == 2 )
+   if( nval_AAA != nval_BBB && ttest_opcode == 2 )
      ERROR_exit("Can't do '-paired' with unequal set sizes: #A=%d #B=%d",
-                ndset_AAA , ndset_BBB ) ;
+                nval_AAA , nval_BBB ) ;
 
    nvox = DSET_NVOX(dset_AAA[0]) ;
    if( twosam && DSET_NVOX(dset_BBB[0]) != nvox )
@@ -445,12 +520,16 @@ int main( int argc , char *argv[] )
    if( nmask > 0 && nmask != nvox )
      ERROR_exit("-mask doesn't match datasets number of voxels") ;
 
-   if( ndset_AAA - mcov < 2 ||
-       ( twosam && (ndset_BBB - mcov < 2) ) )
+   if( nval_AAA - mcov < 2 ||
+       ( twosam && (nval_BBB - mcov < 2) ) )
      ERROR_exit("Too many covariates compared to number of datasets") ;
 
+   if( mcov > 0 && !allow_cov )
+     ERROR_exit(
+     "-covariates not allowed with -set that has multiple sub-bricks from one dataset");
+
    if( ttest_opcode == 1 && mcov > 0 ){
-     WARNING_message("-covariates does not support unpooled variance (yet)") ;
+     WARNING_message("-covariates does not support unpooled variance") ;
      ttest_opcode = 0 ;
    }
 
@@ -459,31 +538,38 @@ int main( int argc , char *argv[] )
      nmask_hits = nvox ;
    }
 
+   if( snam_AAA == NULL )
+     snam_AAA = (lnam_AAA != NULL) ? lnam_AAA : strdup("SetA") ;
+   if( snam_BBB == NULL )
+     snam_BBB = (lnam_BBB != NULL) ? lnam_BBB : strdup("SetB") ;
+    
    /*----- convert each input set of datasets to a vectim -----*/
 
-   if( ndset_AAA > 0 )
-     vectim_AAA = THD_dset_list_to_vectim( ndset_AAA , dset_AAA , mask ) ;
+   vectim_AAA = THD_dset_list_to_vectim( ndset_AAA , dset_AAA , mask ) ;
 
    if( twosam )
      vectim_BBB = THD_dset_list_to_vectim( ndset_BBB , dset_BBB , mask ) ;
 
-   /*----- deal with covariates in a lengthy aside now -----*/
+   /*----- set up covariates in a very lengthy aside now -----*/
 
    if( mcov > 0 ){
-     THD_3dim_dataset **qset ; int nkbad ;
+     THD_3dim_dataset **qset ; int nkbad ; float sum ;
 
      /*-- convert covariates to vectors to be loaded into matrices --*/
 
      /* for covariates which are just numbers, create float vector
         covvec_BBB[jj] for the jj-th covariate (jj=0..mcov-1),
-        which holds the array of covariate values, ndset_BBB long. */
+        which holds the array of covariate values, nval_BBB long. */
 
      /* for covariates which are datasets,
         create covvim_BBB[jj] for the jj-th covariate (jj=0..mcov-1),
-        which holds the vectim of covariate values, ndset_BBB long.  */
+        which holds the vectim of covariate values, nval_BBB long.  */
+
+     /* note that if covariates are used, nval_XXX == ndset_XXX */
 
      nbad = 0 ; /* total error count */
      if( twosam ){
+ININFO_message("extracting covariates for setB") ;
        qset = (THD_3dim_dataset **)malloc(sizeof(THD_3dim_dataset *)*ndset_BBB) ;
        covvim_BBB = (MRI_vectim **)malloc(sizeof(MRI_vectim *)*mcov) ;
        covvec_BBB = (floatvec   **)malloc(sizeof(floatvec   *)*mcov) ;
@@ -502,7 +588,7 @@ int main( int argc , char *argv[] )
            }
            if( covnel->vec_typ[jj+1] == NI_STRING ){  /* a dataset name field */
              char **qpt = (char **)covnel->vec[jj+1] ;   /* column of strings */
-             qset[kk] = THD_open_one_dataset(qpt[ii]) ;  /* covariate dataset */
+             qset[kk] = THD_open_dataset(qpt[ii]) ;      /* covariate dataset */
              if( qset[kk] == NULL ){
                ERROR_message("Can't open dataset '%s' from covariates file" ,
                              qpt[ii] ) ; nbad++ ; nkbad++ ;
@@ -518,15 +604,15 @@ int main( int argc , char *argv[] )
              covvec_BBB[jj]->ar[kk] = fpt[ii] ;             /* save the value */
            }
          } /* end of kk loop over BBB datasets */
-         if( covnel->vec_typ[jj+1] == NI_STRING ){      /* a dataset covariate */
-           if( nkbad == 0 ){   /* all dataset opens good ==> convert to vectim */
+         if( covnel->vec_typ[jj+1] == NI_STRING ){     /* a dataset covariate */
+           if( nkbad == 0 ){  /* all dataset opens good ==> convert to vectim */
              covvim_BBB[jj] = THD_dset_list_to_vectim( ndset_BBB, qset, mask ) ;
              if( covvim_BBB[jj] == NULL ){
                ERROR_message("Can't assemble dataset vectors for covariate #%d",jj+1) ;
                nbad++ ;
              }
            }
-           for( kk=0 ; kk < ndset_BBB ; kk++ )       /* toss out the trashola */
+           for( kk=0 ; kk < ndset_BBB ; kk++ )         /* tossola la trashola */
              if( qset[kk] != NULL ) DSET_delete(qset[kk]) ;
          }
        } /* end of jj loop = covariates column index */
@@ -536,6 +622,7 @@ int main( int argc , char *argv[] )
      /* repeat for the AAA datasets */
 
      if( ndset_AAA > 0 ){
+ININFO_message("extracting covariates for setA") ;
        qset = (THD_3dim_dataset **)malloc(sizeof(THD_3dim_dataset *)*ndset_AAA) ;
        covvim_AAA = (MRI_vectim **)malloc(sizeof(MRI_vectim *)*mcov) ;
        covvec_AAA = (floatvec   **)malloc(sizeof(floatvec   *)*mcov) ;
@@ -554,7 +641,7 @@ int main( int argc , char *argv[] )
            }
            if( covnel->vec_typ[jj+1] == NI_STRING ){  /* a dataset name field */
              char **qpt = (char **)covnel->vec[jj+1] ;   /* column of strings */
-             qset[kk] = THD_open_one_dataset(qpt[ii]) ;  /* covariate dataset */
+             qset[kk] = THD_open_dataset(qpt[ii]) ;      /* covariate dataset */
              if( qset[kk] == NULL ){
                ERROR_message("Can't open dataset '%s' from covariates file" ,
                              qpt[ii] ) ; nbad++ ; nkbad++ ;
@@ -595,27 +682,26 @@ int main( int argc , char *argv[] )
      /*--- next, setup the regression matrices ---*/
 
 #undef  AXX
-#define AXX(i,j) Axx[(i)+(j)*(nA)]    /* i=0..nA-1 , j=0..mcov */
+#define AXX(i,j) Axx[(i)+(j)*(nval_AAA)]    /* i=0..nval_AAA-1 , j=0..mcov */
 #undef  BXX
-#define BXX(i,j) Bxx[(i)+(j)*(nB)]    /* i=0..nB-1 , j=0..mcov */
+#define BXX(i,j) Bxx[(i)+(j)*(nval_BBB)]    /* i=0..nval_BBB-1 , j=0..mcov */
 
      /*-- setA matrix --*/
 
-     Axxim = mri_new( nA , mcov+1 , MRI_float ) ;
+     Axxim = mri_new( nval_AAA , mcov+1 , MRI_float ) ;
      Axx   = MRI_FLOAT_PTR(Axxim) ;
-     for( kk=0 ; kk < nA ; kk++ ){
-       AXX(kk,0) = 1.0f ;   /* first column is all 1s ==> the mean */
-       for( jj=1 ; jj <= mcov ; jj++ ){
-         if( covvec_AAA[jj-1] != NULL ) AXX(kk,jj) = covvec_AAA[jj-1]->ar[kk] ;
+     for( kk=0 ; kk < nval_AAA ; kk++ ) AXX(kk,0) = 1.0f ; /* the mean */
+     for( jj=1 ; jj <= mcov ; jj++ ){
+       if( covvec_AAA[jj-1] != NULL ){  /* this column is a fixed value */
+         for( sum=0.0f,kk=0 ; kk < nval_AAA ; kk++ ){
+           AXX(kk,jj) = covvec_AAA[jj-1]->ar[kk] ; sum += AXX(kk,jj) ;
+         }
+         sum /= nval_AAA ;  /* remove mean */
+         for( kk=0 ; kk < nval_AAA ; kk++ ) AXX(kk,jj) -= sum ;
        }
      }
      if( num_covset_col == 0 ){  /* process the A matrix now */
        MRI_IMARR *impr ; float sum ;
-       for( jj=1 ; jj <= mcov ; jj++ ){  /* demean the columns */
-         for( sum=0.0f,kk=0 ; kk < nA ; kk++ ) sum += AXX(kk,jj) ;
-         sum /= nA ;
-         for( kk=0 ; kk < nA ; kk++ ) AXX(kk,jj) -= sum ;
-       }
        /* Compute inv[X'X] and the pseudo-inverse inv[X'X]X' for this matrix */
        impr = mri_matrix_psinv_pair( Axxim , 0.0f ) ;
        if( impr == NULL ) ERROR_exit("Can't process setA covariate matrix?! :-(") ;
@@ -626,21 +712,20 @@ int main( int argc , char *argv[] )
      /*-- setB matrix ---*/
 
      if( twosam && ttest_opcode != 2 ){  /* un-paired case */
-       Bxxim = mri_new( nB , mcov+1 , MRI_float ) ;
+       Bxxim = mri_new( nval_BBB , mcov+1 , MRI_float ) ;
        Bxx   = MRI_FLOAT_PTR(Bxxim) ;
-       for( kk=0 ; kk < nB ; kk++ ){
-         BXX(kk,0) = 1.0f ;   /* first column is all 1s ==> the mean */
-         for( jj=1 ; jj <= mcov ; jj++ ){
-           if( covvec_BBB[jj-1] != NULL ) BXX(kk,jj) = covvec_BBB[jj-1]->ar[kk] ;
+       for( kk=0 ; kk < nval_BBB ; kk++ ) BXX(kk,0) = 1.0f ; /* the mean */
+       for( jj=1 ; jj <= mcov ; jj++ ){
+         if( covvec_BBB[jj-1] != NULL ){  /* this column is a fixed value */
+           for( sum=0.0f,kk=0 ; kk < nval_BBB ; kk++ ){
+             BXX(kk,jj) = covvec_BBB[jj-1]->ar[kk] ; sum += BXX(kk,jj) ;
+           }
+           sum /= nval_BBB ;  /* remove mean */
+           for( kk=0 ; kk < nval_BBB ; kk++ ) BXX(kk,jj) -= sum ;
          }
        }
        if( num_covset_col == 0 ){  /* process the B matrix now */
          MRI_IMARR *impr ; float sum ;
-         for( jj=1 ; jj <= mcov ; jj++ ){  /* demean the columns */
-           for( sum=0.0f,kk=0 ; kk < nB ; kk++ ) sum += BXX(kk,jj) ;
-           sum /= nB ;
-           for( kk=0 ; kk < nB ; kk++ ) BXX(kk,jj) -= sum ;
-         }
          /* Compute inv[X'X] and the pseudo-inverse inv[X'X]X' for this matrix */
          impr = mri_matrix_psinv_pair( Bxxim , 0.0f ) ;
          if( impr == NULL ) ERROR_exit("Can't process setB covariate matrix?! :-(") ;
@@ -656,26 +741,138 @@ int main( int argc , char *argv[] )
 
    }  /*-- end of covariates setup --*/
 
-   /*----- create output space -----*/
+   /*---------- create empty output dataset -----------*/
 
    nvout  = ((twosam) ? 6 : 2) * (mcov+1) ;  /* number of output volumes */
 
-   MAKE_VECTIM(vimout,nmask_hits,nvout) ; vimout->ignore = 0 ;
+   outset = EDIT_empty_copy( dset_AAA[0] ) ;
 
-   /**********==========---------- process data ----------==========**********/
+   EDIT_dset_items( outset ,
+                      ADN_prefix    , prefix ,
+                      ADN_nvals     , nvout  ,
+                      ADN_ntt       , 0      ,
+                      ADN_brick_fac , NULL   ,
+                      ADN_type      , HEAD_FUNC_TYPE ,
+                      ADN_func_type , FUNC_BUCK_TYPE ,
+                    ADN_none ) ;
+
+   if( THD_deathcon() && THD_is_file(DSET_HEADNAME(outset)) )
+       ERROR_exit("Output dataset %s already exists!",
+                  DSET_HEADNAME(outset) ) ;
+
+   tross_Make_History( "3dttest_new" , argc,argv , outset ) ;
+
+   /* make up some brick labels [[[man, this is tediously boring work]]] */
 
    if( mcov > 0 ){
-     workspace = (float *)malloc(sizeof(float)*(2*mcov+nA+nB+32)) ;
+     workspace = (float *)malloc(sizeof(float)*(2*mcov+nval_AAA+nval_BBB+32)) ;
      if( twosam ){
        testAB = testA = testB = (unsigned int)(-1) ;
      } else {
        testAB = testB = 0 ; testA = (unsigned int)(-1) ;
      }
    }
+   dof_A = nval_AAA - (mcov+1) ;
+   if( twosam ){
+    dof_B  = nval_BBB - (mcov+1) ;
+    dof_AB = (ttest_opcode==2) ? dof_A : dof_A+dof_B ;
+   }
+
+   stnam = (toz) ? "Zscr" : "Tstat" ;
+   if( mcov <= 0 ){                    /*--- no covariates ---*/
+     if( !twosam ){
+       sprintf(blab,"%s_mean",snam_AAA);       EDIT_BRICK_LABEL(outset,0,blab);
+       sprintf(blab,"%s_%s"  ,snam_AAA,stnam); EDIT_BRICK_LABEL(outset,1,blab);
+          if( toz ) EDIT_BRICK_TO_FIZT(outset,1) ;
+          else      EDIT_BRICK_TO_FITT(outset,1,dof_A) ;
+     } else {
+       sprintf(blab,"%s-%s_mean",snam_AAA,snam_BBB)      ; EDIT_BRICK_LABEL(outset,0,blab);
+       sprintf(blab,"%s-%s_%s"  ,snam_AAA,snam_BBB,stnam); EDIT_BRICK_LABEL(outset,1,blab);
+          if( toz ) EDIT_BRICK_TO_FIZT(outset,1) ;
+          else      EDIT_BRICK_TO_FITT(outset,1,dof_AB) ;
+       sprintf(blab,"%s_mean",snam_AAA)                  ; EDIT_BRICK_LABEL(outset,2,blab);
+       sprintf(blab,"%s_%s"  ,snam_AAA,stnam)            ; EDIT_BRICK_LABEL(outset,3,blab);
+          if( toz ) EDIT_BRICK_TO_FIZT(outset,3) ;
+          else      EDIT_BRICK_TO_FITT(outset,3,dof_A) ;
+       sprintf(blab,"%s_mean",snam_BBB)                  ; EDIT_BRICK_LABEL(outset,4,blab);
+       sprintf(blab,"%s_%s"  ,snam_BBB,stnam)            ; EDIT_BRICK_LABEL(outset,5,blab);
+          if( toz ) EDIT_BRICK_TO_FIZT(outset,5) ;
+          else      EDIT_BRICK_TO_FITT(outset,5,dof_B) ;
+     }
+   } else {                            /*--- have covariates ---*/
+     kk = 0 ;
+     if( testAB ){
+       sprintf(blab,"%s-%s_mean",snam_AAA,snam_BBB);
+         EDIT_BRICK_LABEL(outset,kk,blab); kk++;
+       sprintf(blab,"%s-%s_%s"  ,snam_AAA,snam_BBB,stnam);
+         EDIT_BRICK_LABEL(outset,kk,blab);
+         if( toz ) EDIT_BRICK_TO_FIZT(outset,kk) ;
+         else      EDIT_BRICK_TO_FITT(outset,kk,dof_AB) ;
+         kk++;
+       for( jj=1 ; jj <= mcov ; jj++ ){
+         sprintf(blab,"%s-%s_%s",snam_AAA,snam_BBB,covlab->str[jj]) ;
+           EDIT_BRICK_LABEL(outset,kk,blab); kk++;
+         sprintf(blab,"%s-%s_%s_%s",snam_AAA,snam_BBB,covlab->str[jj],stnam) ;
+           EDIT_BRICK_LABEL(outset,kk,blab);
+         if( toz ) EDIT_BRICK_TO_FIZT(outset,kk) ;
+         else      EDIT_BRICK_TO_FITT(outset,kk,dof_AB) ;
+         kk++;
+       }
+     }
+     if( testA ){
+       sprintf(blab,"%s_mean",snam_AAA) ;
+         EDIT_BRICK_LABEL(outset,kk,blab); kk++;
+       sprintf(blab,"%s_%s  ",snam_AAA,stnam) ;
+         EDIT_BRICK_LABEL(outset,kk,blab);
+         if( toz ) EDIT_BRICK_TO_FIZT(outset,kk) ;
+         else      EDIT_BRICK_TO_FITT(outset,kk,dof_A) ;
+         kk++;
+       for( jj=1 ; jj <= mcov ; jj++ ){
+         sprintf(blab,"%s_%s",snam_AAA,covlab->str[jj]) ;
+           EDIT_BRICK_LABEL(outset,kk,blab); kk++;
+         sprintf(blab,"%s_%s_%s",snam_AAA,covlab->str[jj],stnam) ;
+           EDIT_BRICK_LABEL(outset,kk,blab);
+           if( toz ) EDIT_BRICK_TO_FIZT(outset,kk) ;
+           else      EDIT_BRICK_TO_FITT(outset,kk,dof_A) ;
+           kk++;
+       }
+     }
+     if( testB ){
+       sprintf(blab,"%s_mean",snam_BBB) ;
+         EDIT_BRICK_LABEL(outset,kk,blab); kk++;
+       sprintf(blab,"%s_%s  ",snam_BBB,stnam) ;
+         EDIT_BRICK_LABEL(outset,kk,blab);
+         if( toz ) EDIT_BRICK_TO_FIZT(outset,kk) ;
+         else      EDIT_BRICK_TO_FITT(outset,kk,dof_B) ;
+         kk++;
+       for( jj=1 ; jj <= mcov ; jj++ ){
+         sprintf(blab,"%s_%s",snam_BBB,covlab->str[jj]) ;
+           EDIT_BRICK_LABEL(outset,kk,blab); kk++;
+         sprintf(blab,"%s_%s_%s",snam_BBB,covlab->str[jj],stnam) ;
+           EDIT_BRICK_LABEL(outset,kk,blab);
+           if( toz ) EDIT_BRICK_TO_FIZT(outset,kk) ;
+           else      EDIT_BRICK_TO_FITT(outset,kk,dof_B) ;
+           kk++;
+       }
+     }
+   }
+
+   /*----- create space to store results before dataset-izing them -----*/
+
+   MAKE_VECTIM(vimout,nmask_hits,nvout) ; vimout->ignore = 0 ;
+
+   /**********==========---------- process data ----------==========**********/
+
+   vstep = (nmask_hits > 666) ? nmask_hits/50 : 0 ;
+   if( vstep > 0 ) fprintf(stderr,"++ Voxel loop:") ;
 
    for( kout=ivox=0 ; ivox < nvox ; ivox++ ){
 
      if( mask != NULL && mask[ivox] == 0 ) continue ;  /* don't process */
+
+     vimout->ivec[kout] = ivox ;  /* table of what voxels are in vimout */
+
+     if( vstep > 0 && kout%vstep==vstep/2 ) vstep_print() ;
 
                   datAAA = VECTIM_PTR(vectim_AAA,kout) ;  /* data arrays */
      if( twosam ) datBBB = VECTIM_PTR(vectim_BBB,kout) ;
@@ -685,14 +882,14 @@ int main( int argc , char *argv[] )
      if( mcov == 0 ){  /*--- no covariates ==> standard t-tests ---*/
 
        if( twosam ){
-         tpair = ttest_toz( nA,datAAA , nB,datBBB , ttest_opcode ) ;
+         tpair = ttest_toz( nval_AAA,datAAA , nval_BBB,datBBB , ttest_opcode ) ;
          resar[0] = tpair.a ; resar[1] = tpair.b ;
-         tpair = ttest_toz( nA,datAAA , 0 ,NULL   , ttest_opcode ) ;
+         tpair = ttest_toz( nval_AAA,datAAA , 0 ,NULL   , ttest_opcode ) ;
          resar[2] = tpair.a ; resar[3] = tpair.b ;
-         tpair = ttest_toz( nB,datBBB , 0 ,NULL   , ttest_opcode ) ;
+         tpair = ttest_toz( nval_BBB,datBBB , 0 ,NULL   , ttest_opcode ) ;
          resar[4] = tpair.a ; resar[5] = tpair.b ;
        } else {
-         tpair = ttest_toz( nA,datAAA , 0 ,NULL   , ttest_opcode ) ;
+         tpair = ttest_toz( nval_AAA,datAAA , 0 ,NULL   , ttest_opcode ) ;
          resar[0] = tpair.a ; resar[1] = tpair.b ;
        }
 
@@ -702,22 +899,30 @@ int main( int argc , char *argv[] )
             must fill in the Axx and Bxx matrices now --*/
 
        if( num_covset_col > 0 ){
-         float *fpt ;
+         float *fpt , sum ;
          for( jj=1 ; jj <= mcov ; jj++ ){
            if( covvim_AAA[jj-1] != NULL ){
              fpt = VECTIM_PTR(covvim_AAA[jj-1],kout) ;
-             for( kk=0 ; kk < nA ; kk++ ) AXX(kk,jj) = fpt[kk] ;
+             for( sum=0.0f,kk=0 ; kk < nval_AAA ; kk++ ){
+               AXX(kk,jj) = fpt[kk] ; sum += AXX(kk,jj) ;
+             }
+             sum /= nval_AAA ;  /* remove mean */
+             for( kk=0 ; kk < nval_AAA ; kk++ ) AXX(kk,jj) -= sum ;
            }
-           if( twosam && covvim_BBB[jj-1] != NULL ){
+           if( twosam && ttest_opcode != 2 && covvim_BBB[jj-1] != NULL ){
              fpt = VECTIM_PTR(covvim_BBB[jj-1],kout) ;
-             for( kk=0 ; kk < nB ; kk++ ) BXX(kk,jj) = fpt[kk] ;
+             for( sum=0.0f,kk=0 ; kk < nval_BBB ; kk++ ){
+               BXX(kk,jj) = fpt[kk] ; sum += BXX(kk,jj) ;
+             }
+             sum /= nval_BBB ;  /* remove mean */
+             for( kk=0 ; kk < nval_BBB ; kk++ ) BXX(kk,jj) -= sum ;
            }
          }
        }
 
        /*-- and do the work --*/
 
-       regress_toz( nA , datAAA , nB , datBBB , ttest_opcode ,
+       regress_toz( nval_AAA , datAAA , nval_BBB , datBBB , ttest_opcode ,
                     mcov ,
                     Axx , Axx_psinv , Axx_xtxinv ,
                     Bxx , Bxx_psinv , Bxx_xtxinv , resar , workspace ) ;
@@ -725,9 +930,13 @@ int main( int argc , char *argv[] )
      }
 
      kout++ ;
-   }
+   }  /* end of loop over voxels */
 
-   /*--- get rid of the input data now ---*/
+   if( vstep > 0 ) fprintf(stderr,"!\n") ;
+
+   /*-------- get rid of the input data now --------*/
+
+   if( workspace != NULL ) free(workspace) ;
 
                             VECTIM_destroy(vectim_AAA) ;
    if( vectim_BBB != NULL ) VECTIM_destroy(vectim_BBB) ;
@@ -754,8 +963,23 @@ int main( int argc , char *argv[] )
      free(covvec_BBB) ;
    }
 
-   /*---------- create output dataset -----------*/
-   
+   /*---------- fill in the output dataset with some numbers ----------*/
+
+   for( kk=0 ; kk < nvout ; kk++ )
+     EDIT_substitute_brick( outset , kk , MRI_float , NULL ) ;
+
+   THD_vectim_to_dset( vimout , outset ) ;
+   VECTIM_destroy( vimout ) ;
+
+   mri_fdr_setmask(mask) ;
+   kk = THD_create_all_fdrcurves(outset) ;
+   if( kk > 0 )
+     INFO_message("Added %d FDR curve%s to dataset",kk,(kk==1)?"\0":"s");
+   else
+     WARNING_message("Failed to add FDR curves to dataset?!") ;
+
+   DSET_write(outset) ; WROTE_DSET(outset) ; exit(0) ;
+
 } /* end of main program */
 
 /*---------------------------------------------------------------------------*/
@@ -776,6 +1000,9 @@ int main( int argc , char *argv[] )
 
 #undef  VBIG
 #define VBIG 1.0e+24f
+
+#undef  TMAX
+#define TMAX 19.0f
 
 /*---------------------------------------------------------------------------*/
 /*  opcode defines what to do for 2-sample tests:
