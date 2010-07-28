@@ -699,8 +699,11 @@ d3dmerge:3dmerge.c
 
 3dttest:3dttest.o parser.o parser_int.o
 	$(RM) $@
-	$(CC) -o 3dttest 3dttest.o parser.o parser_int.o \
-              $(LFLAGS) -lmri -lf2c $(LLIBS)
+	$(CC) -o 3dttest 3dttest.o parser.o parser_int.o $(LFLAGS) -lmri -lf2c $(LLIBS)
+
+3dttest_new:3dttest_new.o
+	$(RM) $@
+	$(CC) -o 3dttest_new 3dttest_new.o $(LFLAGS) -lmri -lf2c $(LLIBS)
 
 3dedge3:lib3DEdge.a 3dedge3.o
 	$(RM) $@
