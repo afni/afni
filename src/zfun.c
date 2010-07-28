@@ -15,7 +15,7 @@ float THD_ncdfloat( int n , float *x , float *y ){return -1.0f;}
 float THD_ncdfloat_scl( int n , float xbot,float xtop,float *x ,
                                 float ybot,float ytop,float *y  ){return -1.0f;}
 
-char * array_to_zzb64( int nsrc , char *src ){ return NULL; }
+char * array_to_zzb64( int nsrc , char *src , int linelen ){ return NULL; }
 int    zzb64_to_array( char *zb , char **dest ){ return -1; }
 
 /*===========================================================================*/
