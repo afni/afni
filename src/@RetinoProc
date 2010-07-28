@@ -71,11 +71,11 @@ COPY:
    if ("$sref" != '') then
       set ndset = `basename "$sref"`
       set ndset = `@GetAfniPrefix "$ndset"`
-      set ndset = e.$ndset+orig.HEAD
-      if ( ! -f $rdir/$ndset) then
+      set ndset = e.$ndset
+      if ( ! -f $rdir/$ndset+orig.HEAD) then
          3dTcat -prefix $rdir/$ndset $sref 
       endif  
-      set sref = $ndset
+      set sref = $ndset+orig.HEAD
    endif
 
 REGISTER_EPI_REFS:
@@ -106,7 +106,7 @@ REGISTER_TS:
          if ( ! -f ${sp}ts+orig.HEAD) then
             3dTshift -tzero $tshift -overwrite \
                      -prefix ${sp}ts \
-                     $s
+                     $s+orig
          endif
          set vrin = ${sp}ts
          if ("$sref" == '') then
@@ -131,37 +131,44 @@ REGISTER_TS:
       endif
    end
    cd $idir
+
+
+ALIGN_EXPANAT_TO_EPI:
+if ($AlignAnatToEPI == 1) then
+   cd $rdir
+   set aa = `@parse_afni_name $avol`
+   set avol_al = "${aa[2]}_al${aa[3]}.HEAD"                        
+   if ( ! -f $avol_al) then
+      align_epi_anat.py    -anat ${avol}   \
+                        -epi  $vref'[0]'   \
+                        -AddEdge \
+                        -epi_base 0
+   endif
+   cd $idir
+else
+   set avol_al = ${avol}
+   echo "Assuming $avol_al is aligned to $vref'[0]'"
+endif
    
+
+ALIGN_SURFVOL_TO_EXPANAT:
 if ("$svolal" != "") then
    goto RETINO_START
    echo "Have anatomy aligned to EPIs"
 else
    echo "Will align antomy to EPIs"
-      ALIGN_EXPANAT_TO_EPI:
-         cd $rdir
-         set aa = `@parse_afni_name $avol`
-         set avol_al = "${aa[2]}_al${aa[3]}.HEAD"                        
-         if ( ! -f $avol_al) then
-            align_epi_anat.py    -anat ${avol}   \
-                              -epi  $vref'[0]'   \
-                              -AddEdge \
-                              -epi_base 0
-         endif
-         cd $idir
-
-      ALIGN_SURFVOL_TO_EXPANAT:
-         cd $rdir
-         set svolb = `basename $svol`
-         set aa = `@parse_afni_name $svolb`
-         set svolal = "${aa[2]}_Alnd_Exp${aa[3]}.HEAD"     
-         if ( ! -f ${svolal}) then
-            @SUMA_AlignToExperiment    -exp_anat ${avol_al}  \
-                                       -surf_anat ${svol}  \
-                                       ${A2E_opt} -prefix "${aa[2]}_Alnd_Exp" \
-                                       -wd   
-            cat_matvec ${svolal}::WARPDRIVE_MATVEC_INV_000000 > Svol2Evol.1D
-         endif
-         cd $idir
+   cd $rdir
+   set svolb = `basename $svol`
+   set aa = `@parse_afni_name $svolb`
+   set svolal = "${aa[2]}_Alnd_Exp${aa[3]}.HEAD"     
+   if ( ! -f ${svolal}) then
+      @SUMA_AlignToExperiment    -exp_anat ${avol_al}  \
+                                 -surf_anat ${svol}  \
+                                 ${A2E_opt} -prefix "${aa[2]}_Alnd_Exp" \
+                                 -wd   
+      cat_matvec ${svolal}::WARPDRIVE_MATVEC_INV_000000 > Svol2Evol.1D
+   endif
+   cd $idir
 endif
       
 RETINO_START:
@@ -386,18 +393,23 @@ PARSE:
    set sref = ''
    set PhMeth = .PHZ
    set svolal = ''
+   set AlignAnatToEPI = 1
    set cnt = 1
    
    if ($Narg < 2) goto HELP
    
    while ($cnt <= $Narg)
-		set donext = 1;
 
-      if ($donext && ("$argv[$cnt]" == "-h" || "$argv[$cnt]" == "-help") ) then
+      if ( "$argv[$cnt]" == "-echo") then
+         set echo		
+         goto NEXT		
+      endif
+      
+      if ( ("$argv[$cnt]" == "-h" || "$argv[$cnt]" == "-help") ) then
          goto HELP
       endif
       
-      if ($donext && "$argv[$cnt]" == "-phase_method") then
+      if ( "$argv[$cnt]" == "-phase_method") then
          set pLoc = $cnt		
 		   if ($pLoc == $Narg) then
 				echo "Need label after -phase_method"
@@ -409,11 +421,11 @@ PARSE:
                echo "Choose either PHZ, or DEL for -phase. Have $argv[$cnt]."
                goto END
             endif
-            set donext = 0	
+            goto NEXT	
          endif	
       endif
       
-      if ($donext && "$argv[$cnt]" == "-sid") then
+      if ( "$argv[$cnt]" == "-sid") then
          set pLoc = $cnt		
 		   if ($pLoc == $Narg) then
 				echo "Need label after -sid"
@@ -421,11 +433,11 @@ PARSE:
 			else
             @ cnt ++
             set ec = "$argv[$cnt]"
-            set donext = 0	
+            goto NEXT	
          endif	
       endif
       
-      if ($donext && "$argv[$cnt]" == "-ignore") then
+      if ( "$argv[$cnt]" == "-ignore") then
          set pLoc = $cnt		
 		   if ($pLoc == $Narg) then
 				echo "Need number after -ignore"
@@ -433,11 +445,11 @@ PARSE:
 			else
             @ cnt ++
             set Nignore = `printf '%d' "$argv[$cnt]"`
-            set donext = 0	
+            goto NEXT	
          endif	
       endif
       
-       if ($donext && "$argv[$cnt]" == "-surf_vol") then
+       if ( "$argv[$cnt]" == "-surf_vol") then
          set pLoc = $cnt		
 		   if ($pLoc == $Narg) then
 				echo "Need a volume file after -surf_vol"
@@ -452,10 +464,10 @@ PARSE:
                   goto BEND
                endif
             endif
-            set donext = 0	
+            goto NEXT	
          endif	
       endif
-      if ($donext && "$argv[$cnt]" == "-surf_vol_alndepi") then
+      if ( "$argv[$cnt]" == "-surf_vol_alndepi") then
          set pLoc = $cnt		
 		   if ($pLoc == $Narg) then
 				echo "Need a volume file after -surf_vol_alndepi"
@@ -470,11 +482,11 @@ PARSE:
                   goto BEND
                endif
             endif
-            set donext = 0	
+            goto NEXT	
          endif	
       endif
       
-      if ($donext && "$argv[$cnt]" == "-anat_vol") then
+      if ( "$argv[$cnt]" == "-anat_vol") then
          set pLoc = $cnt		
 		   if ($pLoc == $Narg) then
 				echo "Need a volume file after -anat_vol"
@@ -489,11 +501,11 @@ PARSE:
                   goto BEND
                endif
             endif
-            set donext = 0	
+            goto NEXT	
          endif	
       endif
 
-      if ($donext && "$argv[$cnt]" == "-epianat_ref") then
+      if ( "$argv[$cnt]" == "-epianat_ref") then
          set pLoc = $cnt		
 		   if ($pLoc == $Narg) then
 				echo "Need a volume file after -epianat_ref"
@@ -501,11 +513,11 @@ PARSE:
 			else
             @ cnt ++
             set a2evol = "$argv[$cnt]"
-            set donext = 0	
+            goto NEXT	
          endif	
       endif
 
-      if ($donext && "$argv[$cnt]" == "-epi_ref") then
+      if ( "$argv[$cnt]" == "-epi_ref") then
          set pLoc = $cnt		
 		   if ($pLoc == $Narg) then
 				echo "Need a volume file after -epi_ref"
@@ -513,11 +525,11 @@ PARSE:
 			else
             @ cnt ++
             set sref = "$argv[$cnt]"
-            set donext = 0	
+            goto NEXT	
          endif	
       endif
       
-      if ($donext && "$argv[$cnt]" == "-TR") then
+      if ( "$argv[$cnt]" == "-TR") then
          set pLoc = $cnt		
 		   if ($pLoc == $Narg) then
 				echo "Need a number  after -TR"
@@ -525,11 +537,11 @@ PARSE:
 			else
             @ cnt ++
             set TR = `printf '%g' $argv[$cnt]`
-            set donext = 0	
+            goto NEXT	
          endif	
       endif
 
-      if ($donext && "$argv[$cnt]" == "-pre_stim") then
+      if ( "$argv[$cnt]" == "-pre_stim") then
          set pLoc = $cnt		
 		   if ($pLoc == $Narg) then
 				echo "Need a number  after -pre_stim"
@@ -537,11 +549,11 @@ PARSE:
 			else
             @ cnt ++
             set pre_stim = `printf '%f' $argv[$cnt]`
-            set donext = 0	
+            goto NEXT	
          endif	
       endif
       
-      if ($donext && "$argv[$cnt]" == "-period") then
+      if ( "$argv[$cnt]" == "-period") then
          set pLoc = $cnt		
 		   if ($pLoc == $Narg) then
 				echo "Need a number  after -period"
@@ -550,11 +562,11 @@ PARSE:
             @ cnt ++
             set period_ecc = `printf '%g' $argv[$cnt]`
             set period_pol = `printf '%g' $argv[$cnt]`
-            set donext = 0	
+            goto NEXT	
          endif	
       endif
       
-      if ($donext && "$argv[$cnt]" == "-period_ecc") then
+      if ( "$argv[$cnt]" == "-period_ecc") then
          set pLoc = $cnt		
 		   if ($pLoc == $Narg) then
 				echo "Need a number  after -period_ecc"
@@ -562,11 +574,11 @@ PARSE:
 			else
             @ cnt ++
             set period_ecc = `printf '%g' $argv[$cnt]`
-            set donext = 0	
+            goto NEXT	
          endif	
       endif
       
-      if ($donext && "$argv[$cnt]" == "-period_pol") then
+      if ( "$argv[$cnt]" == "-period_pol") then
          set pLoc = $cnt		
 		   if ($pLoc == $Narg) then
 				echo "Need a number  after -period_pol"
@@ -574,11 +586,11 @@ PARSE:
 			else
             @ cnt ++
             set period_pol = `printf '%g' $argv[$cnt]`
-            set donext = 0	
+            goto NEXT	
          endif	
       endif
 
-      if ($donext && "$argv[$cnt]" == "-nwedges") then
+      if ( "$argv[$cnt]" == "-nwedges") then
          set pLoc = $cnt		
 		   if ($pLoc == $Narg) then
 				echo "Need a number  after -nwedges"
@@ -586,11 +598,11 @@ PARSE:
 			else
             @ cnt ++
             set nwedges = `printf '%d' $argv[$cnt]`
-            set donext = 0	
+            goto NEXT	
          endif	
       endif
       
-      if ($donext && "$argv[$cnt]" == "-nrings") then
+      if ( "$argv[$cnt]" == "-nrings") then
          set pLoc = $cnt		
 		   if ($pLoc == $Narg) then
 				echo "Need a number  after -nrings"
@@ -598,11 +610,11 @@ PARSE:
 			else
             @ cnt ++
             set nrings = `printf '%d' $argv[$cnt]`
-            set donext = 0	
+            goto NEXT	
          endif	
       endif
       
-      if ($donext && "$argv[$cnt]" == "-out_dir") then
+      if ( "$argv[$cnt]" == "-out_dir") then
          set pLoc = $cnt		
 		   if ($pLoc == $Narg) then
 				echo "Need directory name after -out_dir"
@@ -610,11 +622,11 @@ PARSE:
 			else
             @ cnt ++
             set rdir = "$argv[$cnt]"
-            set donext = 0	
+            goto NEXT	
          endif	
       endif
       
-      if ($donext && "$argv[$cnt]" == "-spec_left") then
+      if ( "$argv[$cnt]" == "-spec_left") then
          set pLoc = $cnt		
 		   if ($pLoc == $Narg) then
 				echo "Need specfile name after -spec_left"
@@ -626,11 +638,11 @@ PARSE:
                echo "spec file $spec_left not found"
                goto BEND
             endif 
-            set donext = 0	
+            goto NEXT	
          endif	
       endif
 
-      if ($donext && "$argv[$cnt]" == "-spec_right") then
+      if ( "$argv[$cnt]" == "-spec_right") then
          set pLoc = $cnt		
 		   if ($pLoc == $Narg) then
 				echo "Need specfile name after -spec_right"
@@ -642,11 +654,11 @@ PARSE:
                echo "spec file $spec_right not found"
                goto BEND
             endif 
-            set donext = 0	
+            goto NEXT	
          endif	
       endif
       
-      if ($donext && "$argv[$cnt]" == "-fwhm") then
+      if ( "$argv[$cnt]" == "-fwhm") then
          set pLoc = $cnt		
 		   if ($pLoc == $Narg) then
 				echo "Need argument after -fwhm"
@@ -666,11 +678,11 @@ PARSE:
             endif
             set fwhm_pol = $ttt
             set fwhm_ecc = $ttt
-            set donext = 0	
+            goto NEXT	
          endif	
       endif
       
-      if ($donext && "$argv[$cnt]" == "-fwhm_pol") then
+      if ( "$argv[$cnt]" == "-fwhm_pol") then
          set pLoc = $cnt		
 		   if ($pLoc == $Narg) then
 				echo "Need argument after -fwhm_pol"
@@ -678,11 +690,11 @@ PARSE:
 			else
             @ cnt ++
             set fwhm_pol = $argv[$cnt]
-            set donext = 0	
+            goto NEXT	
          endif	
       endif
       
-      if ($donext && "$argv[$cnt]" == "-fwhm_ecc") then
+      if ( "$argv[$cnt]" == "-fwhm_ecc") then
          set pLoc = $cnt		
 		   if ($pLoc == $Narg) then
 				echo "Need argument after -fwhm_ecc"
@@ -690,11 +702,11 @@ PARSE:
 			else
             @ cnt ++
             set fwhm_ecc = $argv[$cnt]
-            set donext = 0	
+            goto NEXT	
          endif	
       endif
 
-      if ($donext && "$argv[$cnt]" == "-A2E_opts") then
+      if ( "$argv[$cnt]" == "-A2E_opts") then
          set pLoc = $cnt		
 		   if ($pLoc == $Narg) then
 				echo "Need argument after -A2E_opts"
@@ -702,18 +714,18 @@ PARSE:
 			else
             @ cnt ++
             set A2E_opts = $argv[$cnt]
-            set donext = 0	
+            goto NEXT	
          endif	
       endif
       
-      if ($donext && \
+      if ( \
             ("$argv[$cnt]" == "-ccw" )  || \
-            ("$argv[$cnt]" == "-cw"  )  || \
+            ("$argv[$cnt]" == "-cw"  )  || ("$argv[$cnt]" == "-clw"  ) || \
             ("$argv[$cnt]" == "-exp"  )  || \
             ("$argv[$cnt]" == "-con")     ) then
          set pLoc = $cnt		
 		   if ($pLoc == $Narg) then
-				echo "Need volumes after -ccw, or -cw, or -exp, or -con"
+				echo "Need volumes after -ccw, or -clw, or -exp, or -con"
             goto END
 			else
             @ cnt ++
@@ -723,42 +735,42 @@ PARSE:
                @ cnt ++
             end
             if ($#runcls < 1) then
-               echo "Failed to get -ccw, or -cw, or -exp, or -con volumes" 
+               echo "Failed to get -ccw, or -clw, or -exp, or -con volumes" 
                goto BEND
             else
                if ($cnt <= $Narg) @ cnt -- 
             endif
             if ("$argv[$pLoc]" == "-ccw" ) then
                set runs_ccw = ($runcls)
-            else if ("$argv[$pLoc]" == "-cw" ) then
+            else if ("$argv[$pLoc]" == "-cw" || "$argv[$pLoc]" == "-clw") then
                set runs_cw = ($runcls)
             else if ("$argv[$pLoc]" == "-exp" ) then
                set runs_exp = ($runcls)
             else if ("$argv[$pLoc]" == "-con" ) then
                set runs_con = ($runcls)
             endif
-            set donext = 0	
+            goto NEXT	
          endif	
       endif
       
-      if ($donext && "$argv[$cnt]" == "-no_tshift") then
+      if ( "$argv[$cnt]" == "-no_tshift") then
          set tshift = -1;		
-         set donext = 0		
+         goto NEXT		
       endif
       
-      if ($donext && "$argv[$cnt]" == "-keep_tmp") then
+      if ( "$argv[$cnt]" == "-no_A2E") then
+         set AlignAnatToEPI = 0;		
+         goto NEXT		
+      endif
+      
+      if ( "$argv[$cnt]" == "-keep_tmp") then
          set cleanup = 0;		
-         set donext = 0		
-      endif
-      
-      if ($donext && "$argv[$cnt]" == "-echo") then
-         set echo		
-         set donext = 0		
+         goto NEXT		
       endif
       
       #ADD NO NEW OPTIONS BELOW THIS LINE
       
-      if ($donext == 1) then
+      if (1) then
          echo "Error: Option or parameter '$argv[$cnt]' not understood"
          goto END
       endif
