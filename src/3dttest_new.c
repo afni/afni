@@ -125,15 +125,17 @@ void display_help_menu(void)
       "* This program is meant (for most uses) to replace the original 3dttest,\n"
       "   which was written in 1994, \"When grass was green and grain was yellow\".\n"
       "\n"
-      "------------\n"
-      "SET OPTIONS:\n"
-      "------------\n"
+      "-----------\n"
+      "SET OPTIONS\n"
+      "-----------\n"
       "* At least the '-setA' option must be given.  '-setB' is optional, and\n"
       "   if it isn't used, then the mean of the dataset values from '-setA' is\n"
       "   t-tested against 0 (1 sample t-test).\n"
+      "\n"
       "* Two forms for the '-setX' (X='A' or 'B') options are allowed.  The first\n"
       "   (short) form is similar to the original 3dttest program, where the option\n"
       "   is just followed by a list of datasets to use.\n"
+      "\n"
       "* The second (long) form is similar to the 3dMEMA program, where you specify\n"
       "   a label for each input dataset sub-brick (a difference between this\n"
       "   option and the version in 3dMEMA is only that you do not give a second\n"
@@ -174,89 +176,156 @@ void display_help_menu(void)
       "  ***                and '-setA' corresponds to '-set2' in 3dttest.   ***\n"
       "  *****            This ordering of A and B matches 3dGroupInCorr.  *****\n"
       "\n"
-      "-----------\n"
-      "COVARIATES:\n"
-      "-----------\n"
+      "----------\n"
+      "COVARIATES\n"
+      "----------\n"
       " -covariates COVAR_FILE\n"
-      "* Specify the name of a text file containing a table for the covariate(s).\n"
+      "\n"
+      "* COVAR_FILE is the name of a text file with a table for the covariate(s).\n"
       "   Each column in the file is treated as a separate covariate, and each\n"
       "   row contains the values of these covariates for each sample. Note that\n"
       "   you can use '-covariates' only once -- the COVAR_FILE should contain\n"
       "   the covariates for ALL input samples from both sets.\n"
       "  ++ Rows in COVAR_FILE that don't match a dataset label are ignored.\n"
-      "* The format of COVAR_FILE is like that for 3dMEMA and for 3dGroupInCorr:\n"
+      "\n"
+      "* The format of COVAR_FILE is like that for 3dMEMA and 3dGroupInCorr:\n"
       "     FIRST LINE -->   subject IQ   age  GMfrac\n"
       "     LATER LINES -->  Elvis   143   42  Elvis_GM+tlrc[8]\n"
       "                      Fred     85   59  Fred_GM+tlrc[8]\n"
       "                      Ethel   109   49  Ethel_GM+tlrc[8]\n"
       "                      Lucy    133   32  Lucy_GM+tlrc[8]\n"
       "                      Ricky   121   37  Ricky_GM+tlrc[8]\n"
-      "  ++ The first column contains the labels that must match the dataset\n"
-      "      LABL_K labels given in the '-setX' option(s).\n"
-      "     ++ If you used a short form '-setX' option, each dataset label is\n"
-      "         the dataset's prefix name, truncated to 12 characters.\n"
-      "     ++ '-covariates' can only be used with the short form '-setX' option\n"
-      "         if each input dataset has only 1 sub-brick (so that each label\n"
-      "         refers to exactly 1 volume of data).\n"
-      "  ++ The later columns contain numbers (as in 'IQ' and 'age', above), or\n"
-      "      dataset names.  In the latter case, you are specifying a voxel-wise\n"
-      "      covariate (e.g., 'GMfrac').\n"
-      "  ++ A column can contain numbers only, or datasets only.  But one\n"
-      "      column CANNOT contain a mix of numbers and dataset names!\n"
-      "  ++ The first line contains column headers.  The header label for the\n"
-      "      first column isn't used for anything.  The later header labels are\n"
-      "      used in the sub-brick labels sent to AFNI.\n"
-#if 0
-      "  ++ At this time, only the -paired and -pooled options can be used with\n"
-      "      covariates.  If you use -unpooled, it will be changed to -pooled.\n"
-      "      -unpooled still works with a pure t-test (no -covariates option).\n"
-#endif
-      "  ++ If you use -paired, then the covariates for -setB will be the same\n"
-      "      as those for -setA, even if the dataset labels are different!\n"
-      "  ++ Each covariate column in the regression matrix will have its mean\n"
-      "      removed (centered). If there are 2 sets of subjects, each set's\n"
-      "      matrix will be centered separately.\n"
-      "  ++ For each covariate, 2 sub-bricks are produced:\n"
-      "      -- The estimated slope of the beta values vs covariate\n"
-      "      -- The t-statistic of this slope\n"
-      "  ++ If there are 2 sets of subjects, then each pair of sub-bricks is\n"
-      "      produced for the setA-setB, setA, and setB cases, so that you'll\n"
-      "      get 6 sub-bricks per covariate (plus 6 more for the mean, which\n"
-      "      is treated as a special covariate whose values are all 1).\n"
-      "  ++ N.B.: The simpler forms of the COVAR_FILE that 3dMEMA allows are\n"
-      "           NOT supported here!\n"
-      "  ++ A maximum of 31 covariates are allowed.  If you have more, then\n"
-      "      seriously consider the likelihood that you are completely demented.\n"
       "\n"
-      "--------------\n"
-      "OTHER OPTIONS:\n"
-      "--------------\n"
+      "* The first column contains the labels that must match the dataset\n"
+      "   LABL_K labels given in the '-setX' option(s).\n"
+      "\n"
+      "* If you used a short form '-setX' option, each dataset label is\n"
+      "   the dataset's prefix name, truncated to 12 characters.\n"
+      "\n"
+      "* '-covariates' can only be used with the short form '-setX' option\n"
+      "   if each input dataset has only 1 sub-brick (so that each label\n"
+      "   refers to exactly 1 volume of data).\n"
+      "\n"
+      "* The later columns in COVAR_FILE contain numbers (e.g., 'IQ' and 'age',\n"
+      "    above), or dataset names.  In the latter case, you are specifying a\n"
+      "    voxel-wise covariate (e.g., 'GMfrac').\n"
+      "\n"
+      "* A column can contain numbers only, or datasets only.  But one\n"
+      "   column CANNOT contain a mix of numbers and dataset names!\n"
+      "\n"
+      "* The first line of COVAR_FILE contains column headers.  The header label\n"
+      "   for the first column isn't used for anything.  The later header labels\n"
+      "   are used in the sub-brick labels sent to AFNI.\n"
+      "\n"
+      "* Only the -paired and -pooled options can be used with covariates.\n"
+      "  ++ If you use -unpooled, it will be changed to -pooled.\n"
+      "\n"
+      "* If you use -paired, then the covariates for -setB will be the same\n"
+      "   as those for -setA, even if the dataset labels are different!\n"
+      "\n"
+      "* Each covariate column in the regression matrix will have its mean\n"
+      "   removed (centered). If there are 2 sets of subjects, each set's\n"
+      "   matrix will be centered separately.\n"
+      "\n"
+      "* See the section 'STRUCTURE OF THE OUTPUT DATASET' for details of\n"
+      "   what is calculated and stored by 3dttest_new.\n"
+      "\n"
+      "* A maximum of 31 covariates are allowed.  If you have more, then\n"
+      "   seriously consider the likelihood that you are completely demented.\n"
+      "\n"
+      "* N.B.: The simpler forms of the COVAR_FILE that 3dMEMA allows are\n"
+      "        NOT supported here!\n"
+      "\n"
+      "-------------\n"
+      "OTHER OPTIONS\n"
+      "-------------\n"
       "\n"
       " -paired   = Specifies the use of a paired-sample t-test to\n"
       "              compare setA and setB.  If this option is used,\n"
       "              setA and setB must have the same cardinality (duh).\n"
-#if 0
+      "             ++ Recall that if '-paired' is used with '-covariates',\n"
+      "                 the covariates for setB will be the same as for setA.\n"
       "\n"
       " -unpooled = Specifies that the variance estimates for setA and\n"
       "              setB be computed separately (not pooled together).\n"
-      "              This only makes sense if -paired is NOT given.\n"
-#endif
+      "             ++ This only makes sense if -paired is NOT given.\n"
+      "             ++ '-unpooled' cannot be used with '-covariates'.\n"
+      "             ++ Unpooled variance estimates are supposed to\n"
+      "                 provide some protection against heteroscedasticty.\n"
+      "                 Our experience is that for most FMRI data, using\n"
+      "                 '-unpooled' is not needed.\n"
       "\n"
       " -toz      = Convert output t-statistics to z-scores\n"
-#if 0
       "             ++ This might be useful for the '-unpooled' case, where\n"
-      "                the t-statistics aren't directly comparable since\n"
-      "                the degrees of freedom will vary between voxels.\n"
-#endif
+      "                 the t-statistics aren't directly comparable since\n"
+      "                 the degrees of freedom will vary between voxels.\n"
       "\n"
       " -mask mmm = Only compute results for voxels in the specified mask.\n"
       "             ++ Voxels not in the mask will be set to 0 in the output.\n"
       "             ++ If '-mask' is not used, all voxels will be tested.\n"
       "\n"
       " -prefix p = Gives the name of the output dataset file.\n"
-      "             ++ Dataset is stored in float format.\n"
       "\n"
+      "-------------------------------\n"
+      "STRUCTURE OF THE OUTPUT DATASET\n"
+      "-------------------------------\n"
+      "* The output dataset is stored in float format; there is no option\n"
+      "   to store it in scaled short format.\n"
+      "\n"
+      "* For each covariate, 2 sub-bricks are produced:\n"
+      "  ++ The estimated slope of the beta values vs covariate\n"
+      "  ++ The t-statistic of this slope\n"
+      "  ++ If there are 2 sets of subjects, then each pair of sub-bricks is\n"
+      "      produced for the setA-setB, setA, and setB cases, so that you'll\n"
+      "      get 6 sub-bricks per covariate (plus 6 more for the mean, which\n"
+      "      is treated as a special covariate whose values are all 1).\n"
+      "  ++ Thus the number of sub-bricks produced is 6*(m+1) for the two-sample\n"
+      "      case and 2*(m+1) for the one-sample case, where m=number of covariates.\n"
+      "\n"
+      "* For example, if there is one covariate 'IQ', and a two sample analysis\n"
+      "   is carried out ('-setA' and '-setB' both used), then the output\n"
+      "   dataset will contain the following 12 sub-bricks:\n"
+      "      #0  SetA-SetB_mean      = difference of means [covariates removed]\n"
+      "      #1  SetA-SetB_Tstat\n"
+      "      #2  SetA-SetB_IQ        = difference of slopes wrt covariate IQ\n"
+      "      #3  SetA-SetB_IQ_Tstat\n"
+      "      #4  SetA_mean           = mean of SetA [covariates removed]\n"
+      "      #5  SetA_Tstat\n"
+      "      #6  SetA_IQ             = slope of SetA wrt covariate IQ\n"
+      "      #7  SetA_IQ_Tstat\n"
+      "      #8  SetB_mean           = mean of SetB [covariates removed]\n"
+      "      #9  SetB_Tstat\n"
+      "      #10 SetB_IQ             = slope of SetB wrt covariate IQ\n"
+      "      #11 SetB_IQ_Tstat\n"
+      "\n"
+      "* In the above, 'wrt' is standard mathematical shorthand for the\n"
+      "   phrase 'with respect to'.\n"
+      "\n"
+      "* If option '-toz' is used, the 'Tstat' will be replaced with 'Zscr'\n"
+      "   in the statistical sub-brick labels.\n"
+      "\n"
+      "* If the long form of '-setA' is used, or '-labelA' is given, then\n"
+      "   'SetA' is the sub-brick labels is replaced with the corresponding\n"
+      "   SETNAME.  (Mutatis mutandis for 'SetB', of course.)\n"
+      "\n"
+      "* If you produce a NIfTI-1 file, then the sub-brick labels are saved\n"
+      "   in the AFNI extension in the .nii file.  Processing further in\n"
+      "   non-AFNI programs will probably cause these labels to be lost\n"
+      "   (along with other niceties, such as the history field).\n"
+      "\n"
+      "* Although you might not care about some of the results, there is no\n"
+      "   option to turn off the output of all the sub-bricks described above.\n"
+      "\n"
+      "-------------------------\n"
+      "VARIOUS LINKS OF INTEREST\n"
+      "-------------------------\n"
+      "* http://en.wikipedia.org/wiki/T_test\n"
+      "* http://www.statsoft.com/textbook/basic-statistics/\n"
+      "* http://en.wikipedia.org/wiki/Mutatis_mutandis\n"
+      "\n"
+      "----------------------------------------------------\n"
       "AUTHOR -- RW Cox -- don't whine TO me; wine WITH me.\n"
+      "----------------------------------------------------\n"
   ) ;
 
   PRINT_COMPILE_DATE ; exit(0) ;
@@ -380,7 +449,6 @@ int main( int argc , char *argv[] )
          labs[0] = strdup(THD_trailname(argv[nopt],0)) ; LTRUNC(labs[0]) ;
          cpt = strchr(labs[0]+1,'+') ; if( cpt != NULL ) *cpt = '\0' ;
          cpt = strchr(labs[0]+1,'.') ; if( cpt != NULL ) *cpt = '\0' ;
-ININFO_message("labs[0] = %s",labs[0]) ;
          nv = DSET_NVALS(qset) ;
          for( nopt++ ; nopt < argc && argv[nopt][0] != '-' ; nopt++ ){
            qset = THD_open_dataset( argv[nopt] ) ;
@@ -394,7 +462,6 @@ ININFO_message("labs[0] = %s",labs[0]) ;
            labs[nds-1] = strdup(THD_trailname(argv[nopt],0)) ; LTRUNC(labs[nds-1]) ;
            cpt = strchr(labs[nds-1]+1,'+') ; if( cpt != NULL ) *cpt = '\0' ;
            cpt = strchr(labs[nds-1]+1,'.') ; if( cpt != NULL ) *cpt = '\0' ;
-ININFO_message("labs[%d] = %s",nds-1,labs[nds-1]) ;
          }
 
          if( nv > nds ) allow_cov = 0 ;
@@ -405,7 +472,6 @@ ININFO_message("labs[%d] = %s",nds-1,labs[nds-1]) ;
        } else {  /* not a dataset => label label dset label dset ... */
 
          snam = strdup(argv[nopt]) ; LTRUNC(snam) ;
-ININFO_message("processing %s: SETNAME = %s",onam,snam) ;
          for( nopt++ ; nopt < argc && argv[nopt][0] != '-' ; nopt+=2 ){
            if( nopt+1 >= argc || argv[nopt+1][0] == '-' )
              ERROR_exit("Option %s: ends prematurely",onam) ;
@@ -478,13 +544,11 @@ ININFO_message("processing %s: SETNAME = %s",onam,snam) ;
        }
        for( nbad=0,jj=1 ; jj <= mcov ; jj++ ){
          if( covnel->vec_typ[jj] == NI_FLOAT ){  /* numeric column */
-ININFO_message("testing covariate column #%d",jj) ;
            meansigma_float(covnel->vec_len,(float *)covnel->vec[jj],NULL,&sig) ;
            if( sig <= 0.0f ){
              ERROR_message("Covariate '%s' is constant; how can this be used?!" ,
                            covlab->str[jj] ) ; nbad++ ;
            }
-else ININFO_message(" passed the test") ;
          } else {                                /* string column: */
            num_covset_col++ ;              /* count number of them */
          }
@@ -500,7 +564,6 @@ else ININFO_message(" passed the test") ;
      ERROR_exit("3dttest_new: don't recognize option '%s'",argv[nopt]) ;
 
    }  /*-------------------- end of option parsing --------------------*/
-INFO_message("finished options") ;
 
    /*----- check some stuff -----*/
 
@@ -542,8 +605,10 @@ INFO_message("finished options") ;
      snam_AAA = (lnam_AAA != NULL) ? lnam_AAA : strdup("SetA") ;
    if( snam_BBB == NULL )
      snam_BBB = (lnam_BBB != NULL) ? lnam_BBB : strdup("SetB") ;
-    
+
    /*----- convert each input set of datasets to a vectim -----*/
+
+   INFO_message("loading input datasets") ;
 
    vectim_AAA = THD_dset_list_to_vectim( ndset_AAA , dset_AAA , mask ) ;
 
@@ -567,9 +632,10 @@ INFO_message("finished options") ;
 
      /* note that if covariates are used, nval_XXX == ndset_XXX */
 
+     INFO_message("loading covariates") ;
+
      nbad = 0 ; /* total error count */
      if( twosam ){
-ININFO_message("extracting covariates for setB") ;
        qset = (THD_3dim_dataset **)malloc(sizeof(THD_3dim_dataset *)*ndset_BBB) ;
        covvim_BBB = (MRI_vectim **)malloc(sizeof(MRI_vectim *)*mcov) ;
        covvec_BBB = (floatvec   **)malloc(sizeof(floatvec   *)*mcov) ;
@@ -622,7 +688,6 @@ ININFO_message("extracting covariates for setB") ;
      /* repeat for the AAA datasets */
 
      if( ndset_AAA > 0 ){
-ININFO_message("extracting covariates for setA") ;
        qset = (THD_3dim_dataset **)malloc(sizeof(THD_3dim_dataset *)*ndset_AAA) ;
        covvim_AAA = (MRI_vectim **)malloc(sizeof(MRI_vectim *)*mcov) ;
        covvec_AAA = (floatvec   **)malloc(sizeof(floatvec   *)*mcov) ;
@@ -707,6 +772,11 @@ ININFO_message("extracting covariates for setA") ;
        if( impr == NULL ) ERROR_exit("Can't process setA covariate matrix?! :-(") ;
        Axx_psinv  = MRI_FLOAT_PTR(IMARR_SUBIM(impr,0)) ;
        Axx_xtxinv = MRI_FLOAT_PTR(IMARR_SUBIM(impr,1)) ;
+#if 0
+INFO_message("Axx:") ; mri_write_1D("-",Axxim) ;
+INFO_message("Axx_psinv:") ; mri_write_1D("-",IMARR_SUBIM(impr,0)) ;
+INFO_message("Axx_xtxinv:") ; mri_write_1D("-",IMARR_SUBIM(impr,1)) ;
+#endif
      }
 
      /*-- setB matrix ---*/
@@ -822,7 +892,7 @@ ININFO_message("extracting covariates for setA") ;
      if( testA ){
        sprintf(blab,"%s_mean",snam_AAA) ;
          EDIT_BRICK_LABEL(outset,kk,blab); kk++;
-       sprintf(blab,"%s_%s  ",snam_AAA,stnam) ;
+       sprintf(blab,"%s_%s",snam_AAA,stnam) ;
          EDIT_BRICK_LABEL(outset,kk,blab);
          if( toz ) EDIT_BRICK_TO_FIZT(outset,kk) ;
          else      EDIT_BRICK_TO_FITT(outset,kk,dof_A) ;
@@ -840,7 +910,7 @@ ININFO_message("extracting covariates for setA") ;
      if( testB ){
        sprintf(blab,"%s_mean",snam_BBB) ;
          EDIT_BRICK_LABEL(outset,kk,blab); kk++;
-       sprintf(blab,"%s_%s  ",snam_BBB,stnam) ;
+       sprintf(blab,"%s_%s",snam_BBB,stnam) ;
          EDIT_BRICK_LABEL(outset,kk,blab);
          if( toz ) EDIT_BRICK_TO_FIZT(outset,kk) ;
          else      EDIT_BRICK_TO_FITT(outset,kk,dof_B) ;
@@ -864,7 +934,7 @@ ININFO_message("extracting covariates for setA") ;
    /**********==========---------- process data ----------==========**********/
 
    vstep = (nmask_hits > 666) ? nmask_hits/50 : 0 ;
-   if( vstep > 0 ) fprintf(stderr,"++ Voxel loop:") ;
+   if( vstep > 0 ) fprintf(stderr,"++ t-testing:") ;
 
    for( kout=ivox=0 ; ivox < nvox ; ivox++ ){
 
@@ -964,6 +1034,8 @@ ININFO_message("extracting covariates for setA") ;
    }
 
    /*---------- fill in the output dataset with some numbers ----------*/
+
+   INFO_message("saving results") ;
 
    for( kk=0 ; kk < nvout ; kk++ )
      EDIT_substitute_brick( outset , kk , MRI_float , NULL ) ;
