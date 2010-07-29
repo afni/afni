@@ -436,8 +436,8 @@ int main( int argc , char *argv[] )
        } else {
          ERROR_exit("'%s' is not a recognized '-set' option",argv[nopt]);
        }
-       if( ++nopt >= argc-1 )
-         ERROR_exit("Need arguments after '%s'",argv[nopt-1]) ;
+       if( ++nopt >= argc )
+         ERROR_exit("Need argument after '%s'",argv[nopt-1]) ;
 
        /* if next arg is a dataset, then all of the next args are datasets */
 
@@ -828,9 +828,8 @@ INFO_message("Axx_xtxinv:") ; mri_write_1D("-",IMARR_SUBIM(impr,1)) ;
                       ADN_func_type , FUNC_BUCK_TYPE ,
                     ADN_none ) ;
 
-   if( THD_deathcon() && THD_is_file(DSET_HEADNAME(outset)) )
-       ERROR_exit("Output dataset %s already exists!",
-                  DSET_HEADNAME(outset) ) ;
+   if( THD_deathcon() && THD_deconflict_prefix(outset) )
+     ERROR_exit("Output dataset '%s' already exists!",prefix) ;
 
    tross_Make_History( "3dttest_new" , argc,argv , outset ) ;
 
