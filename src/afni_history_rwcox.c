@@ -44,6 +44,11 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 29 , JUL , 2010 , RWC , "3dttest_new" , MAJOR , TYPE_NEW_PROG ,
+   "New and improved version of 3dttest!" ,
+   "With covariates, including per-voxel covariates! It slices, it dices! \n"
+   "But wait, there's more!  For no extra charge, it masks!" } ,
+
  { 23 , JUL , 2010 , RWC , "3dDeconvolve" , MINOR , TYPE_NEW_OPT ,
    "Add TENTzero and CSPLINzero response models" ,
    "To allow the HRF to be required to be zero at the start and stop times\n"

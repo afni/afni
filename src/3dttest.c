@@ -391,6 +391,10 @@ void TT_syntax(char * msg)
     "   ** or use -base1_dset\n"
     "\n"
 
+    "  ** Also see the newer program 3dttest_new, which lets you **\n"
+    "  ** include covariates to be regressed out of the data.    **\n"
+    "\n"
+
     "OUTPUTS:\n"
     " A single dataset is created that is the voxel-by-voxel difference\n"
     " of the mean of set2 minus the mean of set1 (or minus 'bval').\n"
