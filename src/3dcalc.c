@@ -98,9 +98,10 @@ static char  abet[] = "abcdefghijklmnopqrstuvwxyz" ;
 #define HAS_Z  CALC_has_sym[25]
 #define HAS_T  CALC_has_sym[19]  /* 19 Nov 1999 */
 #define HAS_L  CALC_has_sym[11]  /* 19 Nov 1999 */
+#define HAS_N  CALC_has_sym[13]  /* 29 Jul 2010 */
 
 #define PREDEFINED_MASK ((1<< 8)|(1<< 9)|(1<<10)|(1<<11)| \
-                         (1<<19)|(1<<23)|(1<<24)|(1<<25) )
+                         (1<<19)|(1<<23)|(1<<24)|(1<<25)|(1<<13) )
 
 static int     CALC_has_predefined = 0 ;  /* 19 Nov 1999 */
 static int     CALC_has_xyz        = 0 ;  /* 17 May 2005 */
@@ -1384,8 +1385,12 @@ void CALC_Syntax(void)
     " will be loaded with the voxel spatial index coordinates.  The '-l'     \n"
     " (letter 'ell') value will be loaded with the temporal index coordinate.\n"
     "                                                                        \n"
-    " Otherwise undefined letters will be set to zero.  In the future,       \n"
-    " new default values for other letters may be added.                     \n"
+    " The '-n' value, if not otherwise used, will be loaded with the overall \n"
+    " voxel 1D index.  For a 3D dataset, n = i + j*NX + k*NX*NY, where       \n"
+    " NX, NY, NZ are the array dimensions of the 3D grid.  [29 Jul 2010]     \n"
+    "                                                                        \n"
+    " Otherwise undefined letters will be set to zero.  In the future, new   \n"
+    " default values for other letters may be added.                         \n"
     "                                                                        \n"
     " NOTE WELL: By default, the coordinate order of (x,y,z) is the order in \n"
     " *********  which the data array is stored on disk; this order is output\n"
@@ -2039,6 +2044,13 @@ int main( int argc , char *argv[] )
                      for( jj=jbot ; jj < jtop ; jj++ )
                        atoz[ids][jj-ii] = kt ;
                  break ;
+
+                 case 13:    /* n */
+                   if( HAS_N )
+                     for( jj=jbot ; jj < jtop ; jj++ )
+                       atoz[ids][jj-ii] = jj ;
+                 break ;
+
                } /* end of switch on symbol subscript */
 
               } /* end of choice over data type (if-else cascade) */
