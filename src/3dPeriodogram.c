@@ -47,11 +47,11 @@ int main( int argc , char *argv[] )
         "* FFT length defaults to be the next legal length >= input dataset.\n"
         "* The program can only do FFT lengths that are factorable\n"
         "   into a product of powers of 2, 3, and 5, and are even.\n"
-        "  + The largest power of 3 that is allowed is 3^3 = 27.\n"
-        "  + The largest power of 5 that is allowed is 5^3 = 125.\n"
-        "  + e.g., FFT of length 3*5*8=120 is possible.\n"
-        "  + e.g., FFT of length 4*31 =124 is not possible.\n"
-        "  + '-nfft' with an illegal value will cause the program to fail.\n"
+        "  ++ The largest power of 3 that is allowed is 3^3 = 27.\n"
+        "  ++ The largest power of 5 that is allowed is 5^3 = 125.\n"
+        "  ++ e.g., FFT of length 3*5*8=120 is possible.\n"
+        "  ++ e.g., FFT of length 4*31 =124 is not possible.\n"
+        "  ++ '-nfft' with an illegal value will cause the program to fail.\n"
         "* If you want to do smaller FFTs, then average the periodograms\n"
         "   (to reduce random fluctuations), you can use 3dPeriodogram in\n"
         "   a script with \"[...]\" sub-brick selectors, then average\n"
@@ -70,6 +70,7 @@ int main( int argc , char *argv[] )
         "---------------------------------------------------\n"
         "* Tapering is done with the Hamming window (if taper > 0):\n"
         "    Define npts   = number of time points analyzed (<= nfft)\n"
+        "                    (i.e., the length of the input dataset)\n"
         "           ntaper = taper * npts / 2        (0 < taper <= 1)\n"
         "                  = number of points to taper on each end\n"
         "           ktop   = npts - ntaper\n"
@@ -88,6 +89,25 @@ int main( int argc , char *argv[] )
         "\n"
         "* Normalizing by P also means that the values output for different\n"
         "  amounts of tapering or different lengths of data are comparable.\n"
+        "\n"
+        "* To be as clear as I can: this program does NOT do any averaging\n"
+        "  across multiple windows of the data (such as Welch's method does)\n"
+        "  to estimate the power spectrum.  This program:\n"
+        "  ++ tapers the data,\n"
+        "  ++ zero-pads it to the FFT length,\n"
+        "  ++ FFTs it (in time),\n"
+        "  ++ squares it and divides by the P factor.\n"
+        "\n"
+        "* The number of output sub-bricks is nfft/2:\n"
+        "     sub-brick #0 = FFT bin #1 = frequency 1/(nfft*dt)\n"
+        "               #1 = FFT bin #2 = frequency 2/(nfft*dt)\n"
+        "  et cetera, et cetera, et cetera.\n"
+        "\n"
+        "* If you desire to implement Welch's method for spectrum estimation\n"
+        "  using 3dPeriodogram, you will have to run the program multiple\n"
+        "  times, using different subsets of the input data, then average\n"
+        "  the results with 3dMean.\n"
+        "  ++ http://en.wikipedia.org/wiki/Welch's_method\n"
       ) ;
       PRINT_COMPILE_DATE ; exit(0) ;
    }
@@ -154,8 +174,8 @@ int main( int argc , char *argv[] )
 
    if( gfft <= 0 ) gfft = csfft_nextup_even(nvals) ;
    nbin = gfft / 2 ;
-   INFO_message("Lengths: Data=%d%s FFT=%d  Output=%d" ,
-                nvals, (nvals>gfft)?"* ":" ", gfft, nbin) ;
+   INFO_message("Dataset Lengths: Input=%d FFT=%d  Output=%d" ,
+                nvals, gfft, nbin ) ;
 
    /*------------- ready to compute new dataset -----------*/
 
