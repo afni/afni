@@ -1972,7 +1972,7 @@ runRMA <- function(  inData, nGrp, n, p, xMat, outData,
       
       # more concise than above
       #if(KHtest)  outData[c(2,4,6)] <- outData[c(2,4,6)]/resList$scl[c(1,2,3)]
-      if(KHtest)  outData[c(2,4,6)] <- outData[c(2,4,6)]/resList$scl
+      if(KHtest & all(resList$scl>tol)) outData[c(2,4,6)] <- outData[c(2,4,6)]/resList$scl
    
       if(resZout==0) {
          outData[nBrick-5] <- resList$tau2[1]
