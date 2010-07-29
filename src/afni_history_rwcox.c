@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 29 , JUL , 2010 , RWC , "3dPeriodogram" , MICRO , TYPE_GENERAL ,
+   "Expand the help (again)" ,
+   NULL } ,
+
  { 29 , JUL , 2010 , RWC , "3dttest_new" , MAJOR , TYPE_NEW_PROG ,
    "New and improved version of 3dttest!" ,
    "With covariates, including per-voxel covariates! It slices, it dices! \n"
