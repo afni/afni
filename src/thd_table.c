@@ -206,7 +206,6 @@ ENTRY("THD_mixed_table_read") ;
    nel = NI_new_data_element( "AFNI_table" , LVEC ) ;
 
    NI_add_column( nel , NI_STRING , NULL ) ;
-   /* for( ii=1 ; ii < nlab ; ii++ ) NI_add_column( nel , NI_FLOAT , NULL ) ; */
 
    strcpy( lbuf , sar->str[0] ) ;
    for( ii=1 ; ii < nlab ; ii++ ){
@@ -266,7 +265,7 @@ ENTRY("THD_mixed_table_read") ;
        } else {
          if( ii < sar->num ) dpt = sar->str[ii] ;
          else                dpt = "N/A" ;
-         NI_insert_value( nel , row , ii , sar->str[ii] ) ;
+         NI_insert_string( nel , row , ii , dpt ) ;
        }
      }
 
