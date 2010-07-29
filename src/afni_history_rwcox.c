@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 29 , JUL , 2010 , RWC , "3dcalc" , MICRO , TYPE_GENERAL ,
+   "Add '-n' predefined value [for Ziad].  n = voxel 1D index." ,
+   NULL } ,
+
  { 29 , JUL , 2010 , RWC , "3dPeriodogram" , MICRO , TYPE_GENERAL ,
    "Expand the help (again)" ,
    NULL } ,
