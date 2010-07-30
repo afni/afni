@@ -428,6 +428,8 @@ def write_1D_file(data, filename):
 
     return 0
 
+BIG_ASTERISK_TIME = 9999999.0
+
 def read_1D_file(filename, nlines = -1, verb = 1):
     """read a simple 1D file into a float matrix, and return the matrix
        - skip leading '#', return a 2D array of floats"""
@@ -439,6 +441,8 @@ def read_1D_file(filename, nlines = -1, verb = 1):
 
     if verb > 1: print "+d opened file %s" % filename
 
+    big = BIG_ASTERISK_TIME     # just to make shorter
+
     retmat = []
     lnum   = 0
     data = fp.read()
@@ -446,14 +450,19 @@ def read_1D_file(filename, nlines = -1, verb = 1):
     for line in data.splitlines():
         if 0 <= nlines <= lnum: break   # then stop early
         if not line:
-            if verb > 0: print "skipping empty line:"
+            if verb > 1: print "skipping empty line:"
             continue
         if line[0] == '#' or line[0] == '\0':
-            if verb > 0: print "skipping comment line: %s" % line
+            if verb > 1: print "skipping comment line: %s" % line
             continue
         retmat.append([])
         tokens = line.split()
         for tok in tokens:
+            # check that there are '*' elements, too
+            if tok == '*':
+                if verb > 2: print "-- read_1D: replacing '*' with %d" % big
+                retmat[lnum].append(big)
+                continue
             try: fval = float(tok)
             except:
                 if verb >= 0:
@@ -466,6 +475,55 @@ def read_1D_file(filename, nlines = -1, verb = 1):
         lnum += 1
 
     return retmat
+
+def read_data_file(filename, nlines = -1, verb = 1):
+    """read a numerical text file (1D or timing, say) into a float matrix,
+       and return the matrix and comment lines
+       - skip leading '#', return a 2D array of floats and 1D array of text"""
+    try:
+        fp = open(filename, 'r')
+    except:
+        if verb >= 0: print "failed to open 1D file %s" % filename
+        return None, None
+
+    if verb > 1: print "+d opened file %s" % filename
+
+    big = BIG_ASTERISK_TIME     # just to make shorter
+
+    retmat = []
+    clines = []
+    lnum   = 0
+    data = fp.read()
+    fp.close()
+    for line in data.splitlines():
+        if 0 <= nlines <= lnum: break   # then stop early
+        if not line:
+            if verb > 1: print "skipping empty line:"
+            continue
+        if line[0] == '#' or line[0] == '\0':
+            if verb > 1: print "skipping comment line: %s" % line
+            clines.append(line)
+            continue
+        retmat.append([])
+        tokens = line.split()
+        for tok in tokens:
+            # check that there are '*' elements, too
+            if tok == '*':
+                if verb > 2: print "-- read_1D: replacing '*' with %d" % big
+                retmat[lnum].append(big)
+                continue
+            try: fval = float(tok)
+            except:
+                if verb >= 0:
+                    print "found bad float on line %d: '%s'" % (lnum+1,tok)
+                return None, None
+            retmat[lnum].append(float(tok))
+
+        if verb > 2: print "+d line %d, length %d" % (lnum, len(retmat[lnum]))
+
+        lnum += 1
+
+    return retmat, clines
 
 def num_cols_1D(filename):
     """return the number of columns in a 1D file"""
@@ -1047,7 +1105,7 @@ def vals_are_multiples(num, vals, digits=4):
 
     return 1
 
-def vals_are_constant(vlist, cval=0):
+def vals_are_constant(vlist, cval=None):
    """determine whether every value in vlist is equal to cval
       (if cval == None, use vlist[0])"""
 
@@ -1066,6 +1124,12 @@ def vals_are_positive(vlist):
       if val <= 0: return 0
    return 1
 
+def vals_are_0_1(vlist):
+   """determine whether every value in vlist is either 0 or 1"""
+   for val in vlist:
+      if val != 0 and val != 1: return 0
+   return 1
+
 def vals_are_sorted(vlist, reverse=0):
    """determine whether values non-decreasing (or non-inc if reverse)"""
    if vlist == None: return 1
@@ -1080,6 +1144,28 @@ def vals_are_sorted(vlist, reverse=0):
                break
          else:
             if vlist[ind] > vlist[ind+1]:
+               rval = 0
+               break
+   except:
+      print "** failed to detect sorting in list: %s" % vlist
+      rval = 0
+      
+   return rval
+
+def vals_are_increasing(vlist, reverse=0):
+   """determine whether values strictly increasing (or dec if reverse)"""
+   if vlist == None: return 1
+   if len(vlist) < 2: return 1
+
+   rval = 1
+   try:
+      for ind in range(len(vlist)-1):
+         if reverse:
+            if vlist[ind] <= vlist[ind+1]:
+               rval = 0
+               break
+         else: # verify increasing
+            if vlist[ind] >= vlist[ind+1]:
                rval = 0
                break
    except:
