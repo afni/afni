@@ -44,6 +44,12 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 30 , JUL , 2010 , RWC , "3dttest++" , MINOR , TYPE_GENERAL ,
+   "Renamed from 3dttest_new" ,
+   "Because the others in the group were whining, not wining.\n"
+   "Also added '-center' option to allow user a little more control over the\n"
+   "de-meaning of the covariates." } ,
+
  { 29 , JUL , 2010 , RWC , "3dcalc" , MICRO , TYPE_GENERAL ,
    "Add '-n' predefined value [for Ziad].  n = voxel 1D index." ,
    NULL } ,

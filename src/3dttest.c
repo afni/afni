@@ -391,7 +391,7 @@ void TT_syntax(char * msg)
     "   ** or use -base1_dset\n"
     "\n"
 
-    "  ** Also see the newer program 3dttest_new, which lets you **\n"
+    "  ** Also see the newer program 3dttest++, which lets you **\n"
     "  ** include covariates to be regressed out of the data.    **\n"
     "\n"
 
