@@ -998,6 +998,9 @@ class SubjProcSream:
             if err: return 1
             self.reps_all.append(reps)
             if reps != self.reps: self.reps_vary = 1
+            if tr != self.tr:
+                print '** TR of %g != run #1 TR %g' % (tr, self.tr)
+                return 1
 
         # note data type and whether data is scaled
         err, vlist = get_typed_dset_attr_list(dset, "BRICK_TYPES", int)
