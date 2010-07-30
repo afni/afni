@@ -48,6 +48,13 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 30, JUL, 2010, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
+   "added options to evaluate whether a file is valid as 1D or stim_times",
+   "Added -looks_like_1D, -looks_like_local_times, -looks_like_global_times\n"
+   "and -looks_like_test_all.\n"
+   "The main purpose is to have tests that afni_proc.py can apply."
+ } ,
+
  { 27, JUL, 2010, RCR, "afni-general", MINOR, TYPE_ENHANCE,
    "propagate storage_mode in THD_open_tcat",
    "This is for non-AFNI formatted datasets, and fixes the problem where\n"
