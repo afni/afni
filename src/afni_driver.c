@@ -44,6 +44,7 @@ static int AFNI_drive_set_view( char *cmd ) ;       /* 28 Jul 2005 */
 static int AFNI_drive_set_dicom_xyz( char *cmd ) ;  /* 28 Jul 2005 */
 static int AFNI_drive_set_spm_xyz( char *cmd ) ;    /* 28 Jul 2005 */
 static int AFNI_drive_set_ijk( char *cmd ) ;        /* 28 Jul 2005 */
+static int AFNI_drive_set_ijk_index( char *cmd ) ;      /* 29 Jul 2010 */
 static int AFNI_drive_set_xhairs( char *cmd ) ;     /* 28 Jul 2005 */
 static int AFNI_drive_save_filtered( char *cmd ) ;  /* 14 Dec 2006 */
 static int AFNI_drive_save_allpng( char *cmd ) ;    /* 15 Dec 2006 */
@@ -144,6 +145,7 @@ static AFNI_driver_pair dpair[] = {
  { "SET_DICOM_XYZ"    , AFNI_drive_set_dicom_xyz     } ,
  { "SET_SPM_XYZ"      , AFNI_drive_set_spm_xyz       } ,
  { "SET_IJK"          , AFNI_drive_set_ijk           } ,
+ { "SET_INDEX"        , AFNI_drive_set_ijk_index     } ,
  { "SET_XHAIRS"       , AFNI_drive_set_xhairs        } ,
  { "SET_CROSSHAIRS"   , AFNI_drive_set_xhairs        } ,
 
@@ -2829,6 +2831,28 @@ static int AFNI_drive_set_ijk( char *cmd )
    ic = sscanf( cmd+dadd , "%d%d%d" , &i,&j,&k ) ;
    if( ic < 3 ) return -1 ;
    AFNI_set_viewpoint( im3d , i,j,k , REDISPLAY_ALL ) ;
+   return 0 ;
+}
+
+/*--------------------------------------------------------------------*/
+/*! SET_INDEX [c.] ijk */
+
+static int AFNI_drive_set_ijk_index( char *cmd )
+{
+   int ic , dadd=2 ;
+   Three_D_View *im3d ;
+   int ijk ;
+
+   if( strlen(cmd) < 1 ) return -1;
+
+   ic = AFNI_controller_code_to_index( cmd ) ;
+   if( ic < 0 ){ ic = 0 ; dadd = 0 ; }
+   im3d = GLOBAL_library.controllers[ic] ;
+   if( !IM3D_OPEN(im3d) ) return -1 ;
+
+   ic = sscanf( cmd+dadd , "%d" , &ijk ) ;
+   if( ic < 1 ) return -1 ;
+   AFNI_set_index_viewpoint( im3d , ijk , REDISPLAY_ALL ) ;
    return 0 ;
 }
 

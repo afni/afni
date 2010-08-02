@@ -1086,6 +1086,10 @@ AlphaSim:AlphaSim.o
 	$(RM) $@
 	$(CCOMP) -o 3dTcorrMap 3dTcorrMap.o $(LFLAGS) $(LLIBS) -lf2c -lmri
 
+3dTmatch:3dTmatch.o
+	$(RM) $@
+	$(CCOMP) -o 3dTmatch 3dTmatch.o $(LFLAGS) $(LLIBS) -lf2c -lmri
+
 3dTcorr1D:3dTcorr1D.o
 	$(RM) $@
 	$(CCOMP) -o 3dTcorr1D 3dTcorr1D.o $(LFLAGS) $(LLIBS) -lf2c -lmri
@@ -1129,6 +1133,10 @@ mri_rbfinterp.o:mri_rbfinterp.c
 3dTcorrMap.o:3dTcorrMap.c
 	$(RM) $@
 	$(CCOMP) -c 3dTcorrMap.c $(INFLAGS)
+
+3dTmatch.o:3dTmatch.c
+	$(RM) $@
+	$(CCOMP) -c 3dTmatch.c $(INFLAGS)
 
 3dTcorr1D.o:3dTcorr1D.c
 	$(RM) $@
