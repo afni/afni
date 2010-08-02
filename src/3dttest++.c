@@ -172,6 +172,8 @@ void display_help_menu(void)
       "     which inputs 7 sub-bricks at once (1,3,5,7,9,11,13).\n"
       "  ++ If multiple sub-bricks are input from a single dataset, then\n"
       "     covariates cannot be used (sorry, Charlie).\n"
+      "  ++ For some limited compatibility with 3dttest, you can use '-set2' in\n"
+      "     place of '-setA', and '-set1' in place of '-setB'.\n"
       "\n"
       "***** LONG FORM *****\n"
       "\n"
@@ -281,8 +283,8 @@ void display_help_menu(void)
       "\n"
       " ++ How to choose between '-center SAME' or '-center DIFF'?  You have\n"
       "    to understand what your model is and what effect the covariates\n"
-      "    are expected to have on the data.  You shouldn't just blindly put\n"
-      "    covariates in 'just in case'.  That way lies statistical madness.\n"
+      "    are likely to have on the data.  You shouldn't just blindly us\n"
+      "    covariates 'just in case'.  That way lies statistical madness.\n"
       "\n"
       " ++ At this time, there is no option to force the SLOPES of the\n"
       "    regression vs. covariate values to be the same in the two-sample\n"
@@ -506,9 +508,9 @@ int main( int argc , char *argv[] )
        int nds=0 , ids , nv=0 ; char **nams=NULL , **labs=NULL , *snam=NULL ;
        THD_3dim_dataset *qset , **dset=NULL ;
 
-       if( cc == 'A' ){
+       if( cc == 'A' || cc == '2' ){
          if( ndset_AAA > 0 ) ERROR_exit("Can't use '-setA' twice!") ;
-       } else if( cc == 'B' ){
+       } else if( cc == 'B' || cc == '1' ){
          if( ndset_BBB > 0 ) ERROR_exit("Can't use '-setB' twice!") ;
        } else {
          ERROR_exit("'%s' is not a recognized '-set' option",argv[nopt]);
@@ -584,7 +586,7 @@ int main( int argc , char *argv[] )
 
        /* assign results to global variables */
 
-       if( cc == 'A' ){
+       if( cc == 'A' || cc == '2' ){
          ndset_AAA = nds  ; snam_AAA = snam ; nval_AAA = nv ;
           name_AAA = nams ; labl_AAA = labs ; dset_AAA = dset ;
        } else {
