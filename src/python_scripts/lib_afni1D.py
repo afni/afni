@@ -1501,15 +1501,13 @@ class AfniData:
    def set_run_lengths(run_lengths):
       self.row_lens = run_lengths
 
-   def looks_like_1D(self, run_lens=[], tr=0.0, nstim=0, verb=1):
+   def looks_like_1D(self, run_lens=[], nstim=0, verb=1):
       """return whether data looks like 1D (stim_file) format
                 - data should be rectangular
                   (what else can we even check?)
-         if run_lens is passed and tr > 0
-                - nrows should equal tr*sum(run_lens)
-                  ** allow nrows to be off by 1
-         if run_lens is passed and tr = -1, tread run_lens as TR counts
-                - nrows should equal sum(run_lens)
+         if run_lens is passed,
+                - nrows should be at least sum(run_lens)
+                - warn if too many and verb > 0
          if nstim is passed,
                 - number of columns should equal nstim
 
@@ -1530,21 +1528,24 @@ class AfniData:
          errors |= ERR_ANY_MISC
          if verb > 1: print "** file %s is not rectangular" % self.fname
 
-      if tr == 0.0: rlens = run_lens
-      else:         rlens = [tr*length for length in run_lens]
+      # keep same local variable
+      rlens = run_lens
 
       nruns = len(rlens)
       if nruns > 0:
          # if TR, scale it in
          tot_dur = sum(rlens)
-         if tr > 0.0: tot_dur = round(tot_dur)
 
-         # allow to be off by 1
-         if abs(tot_dur-self.nrows) > 1:
+         # if nrows is too small, error -- if too big, just warn
+         if tot_dur > self.nrows:
             errors |= ERR_ANY_MISC
             if verb > 1:
-               print "** file %s: nrows mis-match for run dur*TR: %d != %d" \
+               print "** file %s: nrows too small for run dur: %d < %d" \
                                % (self.fname, self.nrows, tot_dur)
+         elif tot_dur < self.nrows:
+            if verb > 0:
+               print "** warning for 1D file %s, more rows than TRs: %d > %d" \
+                     % (self.fname, self.nrows, tot_dur)
 
       if nstim > 0 and nstim != self.ncols:
          errors |= ERR_ANY_MISC
@@ -1552,11 +1553,11 @@ class AfniData:
                             % (self.fname, self.ncols, nstim)
 
       if errors == 0:
-         if verb > 0: print '== YES: %s looks like 1D' % self.fname
-         return 0
-      else:
-         if verb > 0: print '== NO: %s does not look like 1D' % self.fname
+         if verb > 0: print '== GOOD: %s looks like 1D' % self.fname
          return 1
+      else:
+         if verb > 0: print '== BAD: %s does not look like 1D' % self.fname
+         return 0
 
    def looks_like_local_times(self, run_lens=[], tr=0.0, verb=1):
       """return whether data looks like local stim_times format
@@ -1615,7 +1616,7 @@ class AfniData:
 
       if verb > 1:
          if errors:
-            print "\n** file '%s' is not in -local_times format" % self.fname
+            print "** file '%s' is not in -local_times format" % self.fname
             if errors & ERR_ST_NEGATIVES:  print '   - has negative times'
             if errors & ERR_ST_NON_UNIQUE: print '   - times are not unique'
             if errors & ERR_ST_NUM_RUNS:   print '   - num rows != num runs'
@@ -1623,12 +1624,12 @@ class AfniData:
          else: print '++ data looks like stim times'
 
       if errors == 0:
-         if verb > 0: print '== YES: %s looks like local stim_times'%self.fname
-         return 0
+         if verb>0: print '== GOOD: %s looks like local stim_times'%self.fname
+         return 1
       else:
          if verb > 0:
-            print '== NO: %s does not look like local stim_times' % self.fname
-         return 1
+            print '== BAD: %s does not look like local stim_times' % self.fname
+         return 0
 
 
    def looks_like_global_times(self, run_lens=[], tr=0.0, verb=1):
@@ -1677,13 +1678,13 @@ class AfniData:
             if verb > 1: print "** file %s has repeat times"
 
       if errors == 0:
-         if verb > 0: print '== YES: %s looks like global stim_times' \
-                            % self.fname
-         return 0
-      else:
-         if verb > 0: print '== NO: %s does not look like global stim_times' \
+         if verb > 0: print '== GOOD: %s looks like global stim_times' \
                             % self.fname
          return 1
+      else:
+         if verb > 0: print '== BAD: %s does not look like global stim_times' \
+                            % self.fname
+         return 0
 
    def init_from_filename(self, fname):
       """simple for now"""
