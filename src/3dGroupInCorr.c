@@ -555,6 +555,8 @@ void GRINCOR_load_seedvec( MRI_shindss *shd , MCW_cluster *nbhd ,
 #define AFNI_NIML_PORT   53212          /* TCP/IP port that AFNI uses */
 #define SUMA_GICORR_PORT 53224          /* TCP/IP port that SUMA uses */
 
+static int nport = -1 ;                 /* 02 Aug 2010 */
+
 NI_stream GI_stream = (NI_stream)NULL ;
 
 /*=============================================================================*/
@@ -858,6 +860,13 @@ int main( int argc , char *argv[] )
       "         Firewalls are a separate issue from setting up AFNI host 'trusting',\n"
       "         and the mechanics of how you can setup your firewall permissions is\n"
       "         not something about which we can give you advice.\n"
+      "\n"
+      " -np port = Connect to AFNI/SUMA using the TCP/IP port number given here,\n"
+      "            rather than the default port number [53212 for AFNI, 53224 for\n"
+      "            SUMA].  You must give the corresponding option to AFNI to\n"
+      "            get proper communication going.  Using '-np' properly is the\n"
+      "            only way to have multiple copies of 3dGroupInCorr and AFNI\n"
+      "            talking to each other!\n"
 #ifndef DONT_USE_SHM
       "\n"
       " -NOshm = Do NOT reconnect to AFNI using shared memory, rather than TCP/IP,\n"
@@ -937,6 +946,16 @@ int main( int argc , char *argv[] )
        if( seedrad < 0.0f ){
          WARNING_message("Negative -seedrad being set back to zero!?") ;
          seedrad = 0.0f ;
+       }
+       nopt++ ; continue ;
+     }
+
+     if( strcasecmp(argv[nopt],"-np") == 0 ){
+       if( ++nopt >= argc ) ERROR_exit("need 1 argument after option '%s'",argv[nopt-1]) ;
+       nport = (int)strtod(argv[nopt],NULL) ;
+       if( nport < 1024 || nport > 65535 ){
+         WARNING_message("Illegal port after '-np': should be in range 1024..65535") ;
+         nport = -1 ;
        }
        nopt++ ; continue ;
      }
@@ -1378,12 +1397,10 @@ int main( int argc , char *argv[] )
 
    /* name of NIML stream (socket) to open */
 
-   if( TalkToAfni ){
-     sprintf( nsname , "tcp:%s:%d" , afnihost , AFNI_NIML_PORT ) ;
-   } else {
-     sprintf( nsname , "tcp:%s:%d" , afnihost , SUMA_GICORR_PORT ) ;
-     pname = "SUMA" ;
-   }
+                    pname = (TalkToAfni) ? "AFNI"         : "SUMA" ;
+   if( nport <= 0 ) nport = (TalkToAfni) ? AFNI_NIML_PORT : SUMA_GICORR_PORT ;
+   sprintf( nsname , "tcp:%s:%d" , afnihost , nport ) ;
+
    /* open the socket (i.e., dial the telephone call) */
 
    fprintf(stderr,"++ Opening NIML socket '%s' to %s",nsname,pname) ;
@@ -1768,7 +1785,7 @@ int main( int argc , char *argv[] )
      if( do_shm > 0 && strcmp(afnihost,"localhost") == 0 && !shm_active ){
        char nsnew[128] ;
        kk = nout / 2 ; if( kk < 1 ) kk = 1 ; else if( kk > 3 ) kk = 3 ;
-       sprintf( nsnew , "shm:GrpInCorr:%dM+4K" , kk ) ;
+       sprintf( nsnew , "shm:GrpInCorr_%d:%dM+4K" , nport , kk ) ;
        INFO_message("Reconnecting to %s with shared memory channel %s",pname,nsnew) ;
        kk = NI_stream_reopen( GI_stream , nsnew ) ;
        if( kk == 0 ){

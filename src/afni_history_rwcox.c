@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 2 , AUG , 2010 , RWC , "3dGroupInCorr" , MICRO , TYPE_NEW_OPT ,
+   "Add -np option to change NIML port used to talk to AFNI" ,
+   "Per the request of Andreas Hahn." } ,
+
  { 30 , JUL , 2010 , RWC , "3dttest++" , MINOR , TYPE_GENERAL ,
    "Renamed from 3dttest_new" ,
    "Because the others in the group were whining, not wining.\n"
