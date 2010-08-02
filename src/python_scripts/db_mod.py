@@ -3828,14 +3828,22 @@ g_help_string = """
             name (unless -out_dir is used).  This option allows the user to
             apply an appropriate naming convention.
 
+        -test_for_dsets yes/no  : test for existence of input datasets
+
+                e.g. -test_for_dsets no
+                default: yes
+
+            This options controls whether afni_proc.py check for the existence
+            of input datasets.  In general, they must exist when afni_proc.py
+            is run, in order to get run information (TR, #TRs, #runs, etc).
+
         -test_stim_files yes/no : evaluate stim_files for appropriateness?
 
                 e.g. -test_stim_files no
                 default: yes
 
             This options controls whether afni_proc.py evaluates the stim_files
-            or stim_times files for validity.  By default, the program will do
-            so.
+            for validity.  By default, the program will do so.
 
             Input files are one of local stim_times, global stim_times or 1D
             formats.  Options -regress_stim_files and -regress_extra_stim_files

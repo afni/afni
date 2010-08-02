@@ -203,7 +203,8 @@ g_history = """
     2.33 Jul 22 2010 : added -regress_run_clustsim and -regress_opts_CS
     2.34 Aug 02 2010 :
         - check that stim_file/_time files match datasets
-        - added -test_stim_files option
+        - check for existence of input datasets
+        - added -test_stim_files and -test_for_dsets options
         - now depends on lib_afni1D
 """
 
@@ -281,6 +282,7 @@ class SubjProcSream:
         self.have_rm    = 0             # have rm.* files (such files exist)
         self.gen_review = '@epi_review.$subj' # filename for gen_epi_review.py
         self.test_stims = 1             # test stim_files for appropriateness
+        self.test_dsets = 1             # test datasets for existence
 
         self.ricor_reg    = None        # ricor reg to apply in regress block
         self.ricor_nreg   = 0           # number of regs in ricor_reg
@@ -411,6 +413,9 @@ class SubjProcSream:
                         helpstr='3dToutcount polort (default is as with 3dD)')
         self.valid_opts.add_opt('-remove_preproc_files', 0, [],
                         helpstr='remove pb0* preprocessing files')
+        self.valid_opts.add_opt('-test_for_dsets', 1, [],
+                        acplist=['yes','no'],
+                        helpstr="test input datasets for existence (def=yes)")
         self.valid_opts.add_opt('-test_stim_files', 1, [],
                         acplist=['yes','no'],
                         helpstr="test stim_files for validity (default=yes)")
@@ -709,6 +714,11 @@ class SubjProcSream:
         opt = opt_list.find_opt('-scr_overwrite')
         if opt != None: self.overwrite = 1
 
+        # do we check input datasets for existence?  default to yes
+        opt = opt_list.find_opt('-test_for_dsets')
+        if not opt or opt_is_yes(opt): self.test_dsets = 1
+        else:                          self.test_dsets = 0
+
         # do we test stim files for validity?  default to yes
         opt = opt_list.find_opt('-test_stim_files')
         if not opt or opt_is_yes(opt): self.test_stims = 1
@@ -723,6 +733,16 @@ class SubjProcSream:
         if opt != None:
             for dset in opt.parlist:
                 self.dsets.append(afni_name(dset))
+
+            # possibly verify that all of the input datasets exist
+            if self.test_dsets:
+                missing = 0
+                for dset in self.dsets:
+                    if not dset.exist():
+                        print '** missing dataset: %s' % dset.rpv()
+                        missing = 1
+                if missing: return 1
+
             if self.dsets[0].view and self.dsets[0].view != self.view:
                 self.view = self.dsets[0].view
                 self.origview = self.view
