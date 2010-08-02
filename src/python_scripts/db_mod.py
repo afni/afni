@@ -9,6 +9,7 @@ if __name__ == '__main__':
 import math, os
 import afni_base as BASE, afni_util as UTIL
 import option_list as OL
+import lib_afni1D as LD
 
 
 WARP_EPI_TLRC_ADWARP    = 1
@@ -1964,15 +1965,32 @@ def db_cmd_regress(proc, block):
         mask = ''
 
     # maybe the user has specified global or local times
+    # if so, verify the files against exactly that
     if block.opts.find_opt('-regress_global_times'):
         times_type = '    -global_times \\\n'
+        verify_times_type = 3
     elif block.opts.find_opt('-regress_local_times'):
         times_type = '    -local_times \\\n' 
-    else: times_type=''
+        verify_times_type = 2
+    else:
+        times_type=''
+        verify_times_type = 10 # either local or global
 
     # if the input datatype is float, force such output from 3dDeconvolve
     if proc.datatype == 3: datum = '-float '
     else:                  datum = ''
+
+    # check all input stim_times or stim_files for validity
+    opt = block.opts.find_opt('-regress_stim_times')
+    if not opt.parlist or len(opt.parlist) == 0:
+        # then any original stims are as 1D, whether converting or not
+        if not valid_file_types(proc, proc.stims_orig, 1): return
+    else:
+        # local/global question just answered above
+        if not valid_file_types(proc,proc.stims_orig,verify_times_type): return
+
+    # and check any extras against 1D only
+    if not valid_file_types(proc, proc.extra_stims_orig, 1): return
 
     nmotion = len(proc.mot_labs) * len(proc.mot_files)
     total_nstim =  len(proc.stims) + len(proc.extra_stims) + \
@@ -2630,6 +2648,81 @@ def db_cmd_tlrc(proc, block):
            % (base, dname, ss, rmode, suffix, extra_opts)
 
     return cmd
+
+def valid_file_types(proc, stims, file_type):
+    """verify that the files are valid as 1D, local or global times
+
+         1 : 1D
+         2 : local
+         3 : global
+        10 : local or global
+
+       If invalid, print messages (so run the check twice).
+
+       return 1 if valid, 0 otherwise
+    """
+
+    if len(stims) == 0: return 1
+
+    if not proc.test_stims: return 1
+
+    if proc.verb > 2: print '-- check files of type %d: %s' % (file_type, stims)
+
+    ok_all = 1  # assume good, and look for failure
+
+    for fname in stims:
+        adata = LD.AfniData(fname)
+        if adata == None:
+            print "** failed to read data file '%s'" % fname
+            return 0
+
+        ok = 0  # prudent
+        if   file_type == 1: # check 1D, just compare against total reps
+            ok = adata.looks_like_1D(run_lens=proc.reps_all, verb=0)
+        elif file_type == 2: # check local
+            ok = adata.looks_like_local_times(run_lens=proc.reps_all,
+                                                tr=proc.tr, verb=0)
+        elif file_type == 3: # check global
+            ok = adata.looks_like_global_times(run_lens=proc.reps_all,
+                                                tr=proc.tr, verb=0)
+        elif file_type == 10: # check both local and global
+            # if not local, check global
+            ok = adata.looks_like_local_times(run_lens=proc.reps_all,
+                                                tr=proc.tr, verb=0)
+            if not ok:
+                ok = adata.looks_like_global_times(run_lens=proc.reps_all,
+                                                tr=proc.tr,verb=0)
+        else: # error
+            print '** valid_file_types: bad type %d' % file_type
+            return 0
+
+        # if current file is good, move on
+        if ok: continue
+
+        if ok_all: # first time: surround errors with dashed lines
+           print '------------------------------------------------------------'
+
+        # else, propagate any failure and warn user
+        ok_all = 0
+
+        # if ft=10, report local errors only
+        if file_type == 10: file_type = 2
+
+        if file_type == 1:
+            adata.looks_like_1D(run_lens=proc.reps_all, tr=proc.tr, verb=3)
+        elif file_type == 2:
+            adata.looks_like_local_times(run_lens=proc.reps_all, tr=proc.tr,
+                                         verb=3)
+        elif file_type == 3: # check global
+            adata.looks_like_global_times(run_lens=proc.reps_all, tr=proc.tr,
+                                         verb=3)
+        print '------------------------------------------------------------'
+
+    if not ok_all:
+        print "-- consider use of '-test_stim_files no' if files are OK"
+        print '------------------------------------------------------------'
+
+    return ok_all
 
 # currently nothing to verify for an 'empty' command (placeholder command)
 # just return 1
@@ -3734,6 +3827,39 @@ g_help_string = """
             The subject ID is used in dataset names and in the output directory
             name (unless -out_dir is used).  This option allows the user to
             apply an appropriate naming convention.
+
+        -test_stim_files yes/no : evaluate stim_files for appropriateness?
+
+                e.g. -test_stim_files no
+                default: yes
+
+            This options controls whether afni_proc.py evaluates the stim_files
+            or stim_times files for validity.  By default, the program will do
+            so.
+
+            Input files are one of local stim_times, global stim_times or 1D
+            formats.  Options -regress_stim_files and -regress_extra_stim_files
+            imply 1D format for input files.  Otherwise, -regress_stim_times is
+            assumed to imply local stim_times format (-regress_global_times
+            implies global stim_times format).
+
+            Checks include:
+
+                1D              : # rows equals total reps
+                local times     : # rows equal # runs
+                                : times must be >= 0.0
+                                : times per run (per row) are unique
+                                : times cannot exceed run time
+                global times    : file must be either 1 row or 1 column
+                                : times must be >= 0.0
+                                : times must be unique
+                                : times cannot exceed total duration of all runs
+
+            This option provides the ability to disable this test.
+
+            See "1d_tool.py -help" for details on '-look_like_*' options.
+            See also -regress_stim_files, -regress_extra_stim_files,
+            -regress_stim_times, -regress_local_times, -regress_global_times.
 
         -verb LEVEL             : specify the verbosity of this script
 
