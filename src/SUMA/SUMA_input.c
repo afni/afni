@@ -1170,7 +1170,8 @@ int SUMA_D_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                                                    /* no replacement allowed 
                                                    I don't think it's necessary*/
                   if (!SUMA_InsertDsetPointer (&dot, SUMAg_CF->DsetList, 0)) {
-                     SUMA_S_Err("Failed to insert pointer");
+                     SUMA_S_Errv("Failed to insert pointer for %s\n", 
+                                 SDSET_LABEL(dot));
                      SUMA_RETURN(0);
                   }
                   

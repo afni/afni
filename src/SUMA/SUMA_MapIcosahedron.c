@@ -1180,7 +1180,7 @@ int main (int argc, char *argv[])
          exit(1);
       }
       if (!(fp = fopen(fname,"w")) ) {
-         SUMA_S_Err("Failed to open %s for writing.");
+         SUMA_S_Errv("Failed to open %s for writing.\n", fname);
          exit (1);
       }
       fprintf(fp, 

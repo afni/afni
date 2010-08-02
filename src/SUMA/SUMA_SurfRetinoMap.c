@@ -149,7 +149,7 @@ SUMA_DSET * SUMA_RetinoMap (SUMA_SurfaceObject *SO,
    }
    
    for (i=0; i<SO->N_Node; ++i) {   if (!nmask || nmask[i]) {
-      if (!(i % 1000)) fprintf(SUMA_STDERR,"."); 
+      if (!(i % 10000)) fprintf(SUMA_STDERR,"."); 
       i3 = SO->NodeDim *i;
       /* tangent plane at node */
       SUMA_PLANE_NORMAL_POINT((SO->NodeNormList+i3),
@@ -294,6 +294,8 @@ SUMA_DSET * SUMA_RetinoMap (SUMA_SurfaceObject *SO,
       #endif
    
    } }
+   
+   fprintf(SUMA_STDERR,"\n");
    
    SUMA_LH("Hard work over");
    if (!(dout = SUMA_CreateDsetPointer( 
@@ -456,7 +458,7 @@ int main (int argc,char *argv[])
    int oform= SUMA_NO_DSET_FORMAT;
    SUMA_SurfaceObject *SO=NULL;
    char *s=NULL;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_STANDALONE_INIT;
 	SUMA_mainENTRY;

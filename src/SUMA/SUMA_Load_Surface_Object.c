@@ -3376,6 +3376,17 @@ SUMA_Boolean SUMA_LoadSpec_eng (
        fprintf (SUMA_STDERR, "Expecting to read %d surfaces.\n", Spec->N_Surfs);
    for (i=0; i<Spec->N_Surfs; ++i) { /* first loop across mappable surfaces */
       /*locate and load all Mappable surfaces */
+      if (Spec->LocalDomainParent[i][0] == '\0') {
+         /* assume surface is local domain parent, otherwise, 
+         surface controller would crash      ZSS  July 13 2010 */
+         if (debug) 
+            SUMA_S_Warnv(
+               "MappingRef field unavailable for %s in spec file, "
+               "Assuming MappingRef = SAME\n"
+               "You might have problems linking to volume.\n",
+                SO->Label);
+         sprintf(Spec->LocalDomainParent[i], "SAME");
+      } 
       if (SUMA_iswordin(Spec->LocalDomainParent[i],"SAME") == 1) { 
          /* Mappable surfaces */
          if ( debug || LoadPacify) { /* turned this back on as a pacifier */
@@ -3541,8 +3552,11 @@ SUMA_Boolean SUMA_LoadSpec_eng (
             
          /* set its MappingRef id to NULL if none is specified */
             if (Spec->LocalDomainParent[i][0] == '\0') {
+               /* This should not happen after July 13 2010 fix above */
                SO->LocalDomainParentID = NULL; /* no known MapRef_idcode */
-               fprintf(SUMA_STDERR,"No Mapping Ref specified.\n");
+               SUMA_S_Warnv(
+                  "MappingRef field unavailable for %s in spec file ",
+                   SO->Label);
             } else {
                /* make sure that specified Mapping ref had been loaded */
                   int j = 0, ifound = -1;
@@ -3600,9 +3614,10 @@ SUMA_Boolean SUMA_LoadSpec_eng (
                   }
                } else {
                   if (debug) 
-                     fprintf(SUMA_STDERR,
-                             "MappingRef unavailable, "
-                             "you won't be able to link to afni.\n");
+                     SUMA_S_Warnv(
+                        "MappingRef field unavailable for %s in spec file, "
+                        "You might have problems linking to volume.\n",
+                         SO->Label);
                   SO->LocalDomainParentID = NULL;
                }
             }
