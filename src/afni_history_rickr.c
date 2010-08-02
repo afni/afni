@@ -49,9 +49,10 @@
 afni_history_struct rickr_history[] = {
 
  {  2, AUG, 2010, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
-   "check that stim_file/_time files match datasets",
+   "check that stim_file/_time files match datasets, and that dsets exist",
    "- default is to check that files are appropriate for the input data\n"
-   "- added -test_stim_files option\n"
+   "- default is to check that input datasets exist\n"
+   "- added options -test_stim_files and -test_for_dsets\n"
    "- afni_proc.py now depends on lib_afni1D"
  } ,
 
