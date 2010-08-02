@@ -201,9 +201,13 @@ g_history = """
     2.31 Jul 14 2010 : added -mask_test_overlap and -regress_cormat_warnigns
     2.32 Jul 19 2010 : added -check_afni_version and -requires_afni_version
     2.33 Jul 22 2010 : added -regress_run_clustsim and -regress_opts_CS
+    2.34 Aug 02 2010 :
+        - check that stim_file/_time files match datasets
+        - added -test_stim_files option
+        - now depends on lib_afni1D
 """
 
-g_version = "version 2.33, July 22, 2010"
+g_version = "version 2.34, Aug 2, 2010"
 
 # version of AFNI required for script execution
 g_requires_afni = "19 Jul 2010"
@@ -276,6 +280,7 @@ class SubjProcSream:
         self.rm_rm      = 1             # remove rm.* files (user option)
         self.have_rm    = 0             # have rm.* files (such files exist)
         self.gen_review = '@epi_review.$subj' # filename for gen_epi_review.py
+        self.test_stims = 1             # test stim_files for appropriateness
 
         self.ricor_reg    = None        # ricor reg to apply in regress block
         self.ricor_nreg   = 0           # number of regs in ricor_reg
@@ -406,6 +411,9 @@ class SubjProcSream:
                         helpstr='3dToutcount polort (default is as with 3dD)')
         self.valid_opts.add_opt('-remove_preproc_files', 0, [],
                         helpstr='remove pb0* preprocessing files')
+        self.valid_opts.add_opt('-test_stim_files', 1, [],
+                        acplist=['yes','no'],
+                        helpstr="test stim_files for validity (default=yes)")
         self.valid_opts.add_opt('-verb', 1, [],
                         helpstr="set the verbose level")
 
@@ -700,6 +708,12 @@ class SubjProcSream:
 
         opt = opt_list.find_opt('-scr_overwrite')
         if opt != None: self.overwrite = 1
+
+        # do we test stim files for validity?  default to yes
+        opt = opt_list.find_opt('-test_stim_files')
+        if not opt or opt_is_yes(opt): self.test_stims = 1
+        else:                          self.test_stims = 0
+
 
     # init blocks from command line options, then check for an
     # alternate source       rcr - will we use 'file' as source?

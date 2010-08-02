@@ -178,10 +178,10 @@ examples (very basic for now):
 
           1d_tool.py -infile data.txt -looks_like_1D
 
-       b. as a 1D stim_file, of 3 runs of 64 TRs, with a TR of 2 seconds
+       b. as a 1D stim_file, of 3 runs of 64 TRs (TR is irrelevant)
 
           1d_tool.py -infile data.txt -looks_like_1D \\
-                     -set_run_lengths 64 64 64 -set_tr 2
+                     -set_run_lengths 64 64 64
 
        c. as a stim_times file with local times
 
@@ -414,9 +414,12 @@ g_history = """
    0.19 Jul 30, 2010 - added "Looks like" optins
         - added -looks_like_1D, -looks_like_local_times,
                 -looks_like_global_times, -looks_like_test_all
+   0.20 Aug 02, 2010
+        - small change to looks_like text formatting
+        - removed useless TR from looks_like_1D function
 """
 
-g_version = "1d_tool.py version 0.19, July 30, 2010"
+g_version = "1d_tool.py version 0.20, August 2, 2010"
 
 
 class A1DInterface:
@@ -882,16 +885,12 @@ class A1DInterface:
          print '** no looks_like action to perform on AfniData'
          return 1
 
-      # quiet check
-      is1D = self.adata.looks_like_1D(verb=0)
-
       # use verb of at least 1 to print result
       verb = self.verb
       if verb < 1: verb = 1
 
       if self.looks_like & 2:
-         self.adata.looks_like_1D(run_lens=self.set_run_lengths,
-                                  tr=self.set_tr, verb=verb)
+         self.adata.looks_like_1D(run_lens=self.set_run_lengths, verb=verb)
 
       if self.looks_like & 4:
          self.adata.looks_like_local_times(run_lens=self.set_run_lengths,
