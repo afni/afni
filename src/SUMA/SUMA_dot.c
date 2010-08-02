@@ -831,7 +831,7 @@ SUMA_Boolean SUMA_dot_product(SUMA_DSET *in_dset,
       }
       if (!SDSET_LABEL(in_dset)) SUMA_LabelDset(in_dset, NULL);
       
-      sname = SUMA_append_string("dot.",SDSET_LABEL(in_dset));
+      sname = SUMA_append_string("dot.",SDSET_FILENAME(in_dset));
       SUMA_LHv("Creating new  dset (%s) with precision %d\n", sname, prec);
       if (!(dot = SUMA_CreateDsetPointer( 
                   sname, SUMA_NODE_BUCKET, NULL, 

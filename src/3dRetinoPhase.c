@@ -782,7 +782,7 @@ int main( int argc , char * argv[] )
                   ERROR_exit("-pre_stim requires an argument\n");   
                       
         rpud.pre = (float)strtod(argv[++iarg],NULL) ;
-        if( rpud.pre <= 0.0f )
+        if( rpud.pre < 0.0f )
           ERROR_exit("Illegal value after -pre_stim: %g",rpud.pre) ;
         iarg++ ; continue ;
       }

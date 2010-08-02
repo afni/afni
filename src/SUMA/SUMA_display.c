@@ -5271,6 +5271,7 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
       XtManageChild (SurfFrame);
    }  
    
+   SUMA_LH("Xhair business");
    {  /* Xhair Controls */
       Widget rcv;
       /* put a frame */
@@ -5304,6 +5305,7 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
       XtManageChild(SO->SurfCont->Xhair_fr);
    }  /* Xhair Controls */
     
+   SUMA_LH("Dset Mapping");
    {  /* Dset Mapping */
       Widget rcv;
       /* put a frame */
@@ -5341,6 +5343,7 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
       XtManageChild(SO->SurfCont->DsetMap_fr);
    }
 
+   SUMA_LH("Dset Controls");
    /* Dset Controls */
    {
        Widget rc, rcv, pb;

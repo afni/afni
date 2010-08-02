@@ -107,10 +107,12 @@ int main( int argc , char * argv[] )
    void * vfim ;
    int nx,ny,nz , nxy,nxyz , ivfim ,
        iclu , ptmin , ipt , ii,jj,kk , ndet , nopt ;
-   float dx,dy,dz , xx,yy,zz,mm , xxsum,yysum,zzsum,mmsum , volsum , fimfac ,
-                                  xxmax,yymax,zzmax,mmmax , ms, mssum , msmax ,
-         RLmax, RLmin, APmax, APmin, ISmax, ISmin;
-   double mean, sem, sqsum, glmmsum, glsqsum, glmssum, glmean, glxxsum, glyysum, glzzsum;
+   float dx,dy,dz , xx,yy,zz,mm ,ms, fimfac,
+          xxmax,yymax,zzmax, mmmax  , msmax ,
+          RLmax, RLmin, APmax, APmin, ISmax, ISmin;
+   double xxsum,yysum,zzsum,mmsum , volsum , mssum ;
+   double mean, sem, sqsum, glmmsum, glsqsum, glmssum, 
+          glmean, glxxsum, glyysum, glzzsum;
    MCW_cluster_array * clar , * clbig ;
    MCW_cluster       * cl ;
    THD_fvec3 fv ;
@@ -673,8 +675,9 @@ int main( int argc , char * argv[] )
             ms = cl->mag[ipt];                           /* BDW  18 Jan 1999 */
             mm = fabs(ms);
 
-	    mssum += ms;
+       mssum += ms;
 	    mmsum += mm;
+
             sqsum += mm * mm;
             xxsum += mm * xx ; yysum += mm * yy ; zzsum += mm * zz ;
             if( mm > mmmax ){

@@ -122,7 +122,7 @@ endif
 
 if ($scale == 'range') then
    goto DOIT
-else if ($scale == 'scale') then
+else if ($scale == 'median' || $scale == 'mean') then
    goto DOIT_DIV
 else if ($scale == 'norm') then
    goto DOIT_NORM
@@ -186,20 +186,28 @@ DOIT_DIV:
       while ($cnt < $nvals[4])
        set scl = `3dBrickStat -non-zero -mean $invol"[$cnt]"`
        echo $scl
-       echo $scl[1] >> scl.$opref.1D
+       if ($scl[1] =~ 'nan') then
+         echo 0 >> scl.$opref.1D
+       else
+        echo $scl[1] >> scl.$opref.1D 
+       endif
        @ cnt ++
       end
    else
       while ($cnt < $nvals[4])
        set scl = `3dBrickStat -non-zero -median $invol"[$cnt]"`
        echo $scl
-       echo $scl[2] >> scl.$opref.1D
+       if ($scl[2] =~ 'nan') then
+         echo 0 >> scl.$opref.1D
+       else
+         echo $scl[2] >> scl.$opref.1D
+       endif
        @ cnt ++
       end
    endif
    3dcalc   -a $invol -prefix $opref  \
             -b scl.$opref.1D   \
-            -expr "a/b"
+            -expr "bool(b)*a/b"
    
    goto END
    

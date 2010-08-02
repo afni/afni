@@ -5165,7 +5165,7 @@ int SUMA_InsertDsetPointer (SUMA_DSET **dsetp, DList *DsetList, int replace)
    } 
    if (dprev) {
       SUMA_LH("Dset exists");
-      if (replace) {
+      if (replace || AFNI_yesenv("SUMA_AllowFilenameDsetMatch")) {
          SUMA_LH("Replacing");
          SUMA_SL_Note(stmp);
          #ifdef OLD_DSET /* before ngr was used */

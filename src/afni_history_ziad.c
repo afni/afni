@@ -66,6 +66,23 @@
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 2, AUG , 2010 , ZSS , "suma" , MICRO , TYPE_BUG_FIX,
+   "Fixed default naming for interactive dsets.",
+   "The older naming, based on label, rather than filename\n"
+   "created some conflicts under certain cases.\n"
+   "Repair job in SUMA_dot_product."
+ } ,
+
+ { 28, JUL , 2010 , ZSS , "plugout_drive" , MINOR , TYPE_NEW_OPT,
+   "Added SET_INDEX to plugout_drive",
+   NULL 
+ } ,
+
+ { 26, JUL , 2010 , ZSS , "3dclust" , MINOR , TYPE_BUG_FIX,
+   "Mean calculations were off for large clusters with large values.",
+   NULL 
+ } ,
+
  { 8, JUL , 2010 , ZSS , "suma" , MINOR , TYPE_BUG_FIX,
    "Fixed striping with contour objects",
    NULL 

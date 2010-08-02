@@ -1664,6 +1664,8 @@ extern Boolean AFNI_refashion_dataset( Three_D_View * ,
 #define REDISPLAY_ALL      2
 
 extern void AFNI_set_viewpoint( Three_D_View * , int,int,int , int ) ;
+extern void AFNI_set_index_viewpoint( Three_D_View *, int, int );
+                                                            /*ZSS July 2010 */
 extern void AFNI_redisplay_func( Three_D_View * ) ; /* 05 Mar 2002 */
 extern void AFNI_view_setter( Three_D_View *, MCW_imseq *) ; /* 26 Feb 2003 */
 extern void AFNI_range_setter( Three_D_View *, MCW_imseq *); /* 04 Nov 2003 */

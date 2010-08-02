@@ -5940,6 +5940,33 @@ ENTRY("AFNI_view_setter") ;
 
 /*------------------------------------------------------------------------*/
 
+void AFNI_set_index_viewpoint ( Three_D_View *im3d , 
+                             int ijk, int redisplay_option )  /* ZSS July 2010 */
+{
+   int nij, ni, ii, jj, kk;
+   
+   if (  ijk<0 || !im3d || 
+         !IM3D_OPEN(im3d) || 
+         !ISVALID_3DIM_DATASET(im3d->anat_now)) return;
+   
+   if (ijk < DSET_NVOX(im3d->anat_now)) {
+      
+      ni = DSET_NX(im3d->anat_now);
+      nij = (ni * DSET_NY(im3d->anat_now));
+      
+      kk = (ijk / nij); 
+      jj = (ijk % nij);   
+      ii = (jj % ni);  
+      jj = (jj / ni);
+      
+      AFNI_set_viewpoint( im3d, ii, jj, kk, redisplay_option );
+   }
+   
+   return;
+}
+
+/*------------------------------------------------------------------------*/
+
 void AFNI_set_viewpoint( Three_D_View *im3d ,
                          int xx,int yy,int zz , int redisplay_option )
 {
