@@ -516,7 +516,7 @@ greeting.MEMA <- function ()
           ================== Welcome to 3dMEMA.R ==================          
              AFNI Mixed-Effects Meta-Analysis Modeling Package!
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.1.7,  Jul 29, 2010
+Version 0.1.8,  Aug 2, 2010
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MEMA.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -547,7 +547,7 @@ Usage:
  both regression coefficients, or general linear contrasts among them, and the 
  corresponding t-statistics from each subject as input. It\'s required to install 
  R (http://www.r-project.org/), plus \'snow\' package if parallel computing is
- desirable. Version 0.1.7 (Jul 29, 2010). See more details at
+ desirable. Version 0.1.8 (Aug 2, 2010). See more details at
  
  http://afni.nimh.nih.gov/sscc/gangc/MEMA.html'
    
@@ -1385,7 +1385,7 @@ DOF.check.MEMA <- function (lop)  {
 
 # handles one group or two groups with homogeneity assumption
 rmaB <- function( yi, vi, n, p, X, resOut, lapMod, 
-                  knha=FALSE, con=list(thr=10^-8, maxiter=50, thrZ=1.3)) {
+                  knha=FALSE, con=list(thr=10^-8, maxiter=200, thrZ=1.3)) {
 
 # yi: vector of dependent variable values
 # vi: corresponding variances of yi 
@@ -1414,7 +1414,7 @@ rmaB <- function( yi, vi, n, p, X, resOut, lapMod,
       # force t(Y) %*% P %*% Y to be 0 in case it's numerically 0 but negative
       if(knha) vb <- max((c( t(Y) %*% P %*% Y ) / (n-p)), 0) * vb      
       se <- sqrt(diag(vb))
-       b    <- R %*% Y
+      b    <- R %*% Y
       z <- ifelse(se>con$thr, b/se, 0)
       out <- list(se, b, z)
       names(out) <- c("se", "b", "z")
@@ -1438,16 +1438,17 @@ rmaB <- function( yi, vi, n, p, X, resOut, lapMod,
    }                 
 
    
-   Laplace <- function(Y, vi, n, p, X, knha, con=list(thr=2*10^-5, maxiter=50)) {
+   Laplace <- function(Y, vi, n, p, X, knha, con=list(thr=2*10^-5, maxiter=200)) {
    ### looks like you can't get the precision lower than con$thr = 10^-5!!!
 
    conv		<- 1
-	change_b	<- 1000
-   change_nu	<- 1000
+	change_b	<- 1000  # percent change of beta coefficients
+   #change_nu	<- 1000
 	iter		<- 0
    
    nu       <- sqrt(max(0, var(Y) - mean(vi)))/sqrt(2)
-   if(nu < 10^-10) nu <- sqrt(max(0, var(Y) - mean(vi)/3))
+   if(nu < 10^-10) nu <- sqrt(max(0, var(Y) - mean(vi)/3)) 
+   #if(nu < 10^-10) conv <- 0 else {
    W		   <- diag(1/(vi + 2*nu^2))  # need to deal with 0s' here?
    tmp  <- t(X) %*% W   
    b    <- solve(tmp %*% X) %*% tmp %*% Y
@@ -1456,7 +1457,9 @@ rmaB <- function( yi, vi, n, p, X, resOut, lapMod,
 	# seems two ways to update beta (b): one through iterative WLS, while the other via its own iterations
    
    if(nu > 10^-10) {
-   while (any(change_b > con$thr) & (change_nu > con$thr)) {
+   #while (any(change_b > con$thr) & (change_nu > con$thr)) {
+   #while (any(change_b > 1.001) | (change_nu > 0.001)) {
+   while (any(abs(change_b) > 0.01)) {
 		iter     <- iter + 1
       if (iter > con$maxiter) {  # Laplace fails
 			conv    <- 0
@@ -1502,9 +1505,10 @@ rmaB <- function( yi, vi, n, p, X, resOut, lapMod,
       
       b  <- b.old + adj[1:p]
       nu <- nu + adj[p+1]
-      change_b	   <- abs(b.old - b)
-      change_nu	<- abs(nu.old - nu)
+      change_b	   <- abs(adj[1:p])/(abs(b)+1e-6)  # small number of 1e-6 to avoid division by 0
+      #change_nu	<- abs(adj[p+1])/(abs(nu)+1e-6)
 	}
+   #browser()
    } else conv <- 0
 
    if(conv==0) {
@@ -1528,6 +1532,7 @@ rmaB <- function( yi, vi, n, p, X, resOut, lapMod,
    REML <- function(Y, X, v, knha, n, p, con) {
       conv		<- 1
       adj	   <- 1000
+      change   <- 1000
       iter		<- 0
       tau2     <- max(0, var(Y) - mean(v))  # tau^2 for group 1
       W		   <- diag(1/(v + tau2))
@@ -1535,7 +1540,8 @@ rmaB <- function( yi, vi, n, p, X, resOut, lapMod,
       vb       <- solve(tmp %*% X)   # variance-covariance matrix
       R        <- vb %*% tmp  # projection of Y to space spanned by X
       P        <- W - t(tmp) %*% R
-      while(abs(adj) > con$thr) {
+      #while(abs(adj) > con$thr) {
+      while(abs(change) > 0.001) {
          iter     <- iter + 1  # iteration counter
          if (iter > con$maxiter) {
             conv    <- 0
@@ -1546,6 +1552,8 @@ rmaB <- function( yi, vi, n, p, X, resOut, lapMod,
          adj	<- solve( tr(P%*%P) ) %*% ( t(py)%*%py - tr(P) )
          while (tau2 + adj < 0) adj <- adj / 2
          tau2		<- tau2 + adj
+         #change   <- ifelse(tau2>con$thr, abs(adj)/tau2, 0)
+         change <- abs(adj)/(abs(tau2)+1e-8)
          W		   <- diag(1/(v + tau2))
          tmp <- t(X) %*% W
          vb  <- solve(tmp %*% X)   # variance-covariance matrix
@@ -1623,6 +1631,7 @@ rmaB <- function( yi, vi, n, p, X, resOut, lapMod,
       names(res)  <- c("b", "se", "z", "tau2", "QE", "meth", "iter")
    }
    res
+   #browser()
    } else return(NULL) # if(continue)
 }
 
@@ -2182,7 +2191,7 @@ tTop <- 100   # upper bound for t-statistic
       print("-----------------")
       print(sprintf("Totally %i slices in the volume data.", lop$myDim[3]))
       #print("-----------------")
-      print("Starting to analyze data slice-wise, and running progression can be seen below...")
+      print("Starting to analyze data slice-wise. Running progression shown below:")
       print("-----------------")
    #}
 
