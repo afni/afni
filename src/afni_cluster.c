@@ -139,6 +139,7 @@ ENTRY("AFNI_clu_CB") ;
    if( w == im3d->vwid->func->clu_cluster_pb ){
      char *lvec[2] = { "NN level " , "Voxels   " } ;
      float fvec[2] ;
+     MCW_arrowval **vav ; int nav ;
      if( im3d->vedset.code == VEDIT_CLUST ){
        fvec[0] = -im3d->vedset.param[2];
        fvec[1] =  im3d->vedset.param[3]; if( fvec[1] < 2.0f ) fvec[1] = 20.0f;
@@ -163,6 +164,11 @@ ENTRY("AFNI_clu_CB") ;
                        "---------------------------------------"
                        , 2 , lvec,fvec ,
                         AFNI_cluster_choose_CB , (XtPointer)im3d ) ;
+     vav = MCW_choose_vector_avarray(&nav) ;
+     if( nav > 1 && vav != NULL ){
+       vav[0]->imin = vav[0]->fmin = 1 ; vav[0]->imax = vav[0]->fmax = 3 ;
+       vav[1]->imin = vav[1]->fmin = 2 ;
+     }
      EXRETURN ;
    }
 

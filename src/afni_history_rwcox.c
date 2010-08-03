@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 3 , AUG , 2010 , RWC , "afni Clusterize" , MICRO , TYPE_GENERAL ,
+   "put limits on range of choosers in the popup control" ,
+   "NN = 1..3   Voxels = 2..99999" } ,
+
  { 2 , AUG , 2010 , RWC , "3dGroupInCorr" , MICRO , TYPE_NEW_OPT ,
    "Add -np option to change NIML port used to talk to AFNI" ,
    "Per the request of Andreas Hahn." } ,
