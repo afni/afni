@@ -259,6 +259,8 @@ extern void   MCW_choose_integer( Widget , char * ,
 extern void   MCW_choose_vector ( Widget, char *,
                                   int, char **, float *, gen_func *, XtPointer ) ;
 
+extern MCW_arrowval ** MCW_choose_vector_avarray( int *nav ) ; /* Aug 2010 */
+
 extern void   MCW_choose_string ( Widget, char *,
                                   char *, gen_func *, XtPointer );
 
