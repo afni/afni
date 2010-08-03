@@ -351,7 +351,9 @@ int check_date(global_data * gd, hist_type ** hlist, int len)
         show_hist_type(hh, stderr);
     }
 
-    if( hh->yyyy < yy || hh->mm < mm || hh->dd < dd ) {
+    if(  hh->yyyy  < yy || 
+        (hh->yyyy == yy && hh->mm  < mm ) ||
+        (hh->yyyy == yy && hh->mm == mm && hh->dd < dd ) ) {
         if( gd->verb )
             printf("** too old: afni_history older than: %02d %s %04d\n"
                    "            most recent entry is:    %02d %s %04d\n",
