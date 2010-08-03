@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  3, AUG, 2010, RCR, "afni_history", MICRO, TYPE_BUG_FIX,
+   "fixed -check_date test to see if version is current",
+   "This problem affects afni_proc.py script execution."
+ } ,
+
  {  2, AUG, 2010, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "check that stim_file/_time files match datasets, and that dsets exist",
    "- default is to check that files are appropriate for the input data\n"
