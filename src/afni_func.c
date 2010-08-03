@@ -5133,7 +5133,7 @@ ENTRY("AFNI_autorange_label") ;
      }
    }
    if( !AFNI_noenv("AFNI_SQRT_AUTORANGE") &&
-       rrr > 1.0f && rrr < DEFAULT_FIM_SCALE ) rrr = sqrtf(rrr) ;
+       rrr > 1.0f && rrr < DEFAULT_FIM_SCALE ) rrr = powf(rrr,0.666f) ;
    im3d->vinfo->fim_autorange = rrr ;
    AV_fval_to_char( rrr , qbuf ) ;
    sprintf( buf , "autoRange:%s" , qbuf ) ;
