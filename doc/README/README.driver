@@ -326,10 +326,13 @@ SAVE_RAWMONT [c.]imagewindowname filename
 SET_DICOM_XYZ [c] x y z
 SET_SPM_XYZ   [c] x y z
 SET_IJK       [c] i j k
-  Set the controller coordinates to the given triple; DICOM_XYZ has the
-  coordinates in DICOM (RAI) order, SPM_XYZ has the coordinates in SPM
-  (LPI) order, and IJK has voxel indexes instead of spatial coordinates.
-
+SET_INDEX     [c] ijk
+  Set the controller coordinates to the given triple, or singleton for SET_INDEX;   DICOM_XYZ has the coordinates in DICOM (RAI) order, SPM_XYZ has the coordinates
+  in SPM (LPI) order, and IJK has voxel indexes instead of spatial coordinates.
+  ijk is the array index corresponding to a triplet of voxel indices. It is the
+  same as 'index' displayed in the top left corner of AFNI's controller when 
+  Misc-->Voxel Coords is turned on.
+   
 SET_XHAIRS [c.]code
   Set the crosshairs ('Xhairs') control to the specified value, where
   'code' is one of the following strings:
