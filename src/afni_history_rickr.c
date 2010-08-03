@@ -73,6 +73,16 @@ afni_history_struct rickr_history[] = {
    "The main purpose is to have tests that afni_proc.py can apply."
  } ,
 
+ { 28, JUL, 2010, RCR, "zfun.c", MICRO, TYPE_BUG_FIX,
+   "fixed small typos in the case of HAVE_ZLIB not being defined",
+   "- zzb64_to_array (return) and array_to_zzb64 (missing arg)"
+ } ,
+
+ { 27, JUL, 2010, RCR, "thd_table.c", MICRO, TYPE_BUG_FIX,
+   "strtod typo",
+   NULL
+ } ,
+
  { 27, JUL, 2010, RCR, "afni-general", MINOR, TYPE_ENHANCE,
    "propagate storage_mode in THD_open_tcat",
    "This is for non-AFNI formatted datasets, and fixes the problem where\n"
