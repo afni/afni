@@ -2662,6 +2662,16 @@ be changed to 'fred_AA1+orig'.
 The default behavior is as 'NO', not to deconflict, but to exit.
 Some programs supply their own default.
 
+---------------------------------------
+Variable:  AFNI_GUI_WRITE_AS_DECONFLICT
+---------------------------------------
+When you use the 'Write' buttons under 'Define Datamode' Panel, the default
+is to overwrite existing datasets. However, if AFNI_GUI_WRITE_AS_DECONFLICT 
+is set to YES, then the decision follows the value of AFNI_DECONFLICT
+
+The default value for this variable is NO, which means interactive 'Write'
+operates in overwrite mode.
+
 --------------------------
 Variable: AFNI_SEE_OVERLAY
 --------------------------
