@@ -51,7 +51,8 @@ afni_history_struct rickr_history[] = {
  {  4, AUG, 2010, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "added -regress_CS_NN, default to 123",
    "Also, changed -niml to -both so that 1D files are output, and changed\n"
-   "the prefix to ClustSim (from rm.CS) so those files are not deleted."
+   "the prefix to ClustSim (from rm.CS) so those files are not deleted.\n"
+   "If ClustSim is explicitly requested, require blur estimation."
  } ,
 
  {  3, AUG, 2010, RCR, "afni_history", MICRO, TYPE_BUG_FIX,
