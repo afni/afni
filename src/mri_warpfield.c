@@ -26,8 +26,8 @@ void Warpfield_prodfun( int kfun, void *vpar, bfunc1D bf , int npt ,
 
 /*---------------------------------------------------------------------------*/
 
-static int verb = 0 ;
-void Warpfield_set_verbose( int vv ){ verb = vv; }
+static int wfverb = 0 ;
+void Warpfield_set_verbose( int vv ){ wfverb = vv; }
 
 /*---------------------------------------------------------------------------*/
 /*! Setup a new warpfield. */
@@ -157,7 +157,7 @@ float Warpfield_lsqfit( Warpfield *wf , int flags , float order ,
    ncol = wf->nfun ; nrow = npt ;
    if( ncol >= nrow ) return(-1.0f) ;
 
-   if( verb > 1 ) ININFO_message(" lsqfit: nfun=%d nrow=%d",ncol,nrow) ;
+   if( wfverb > 1 ) ININFO_message(" lsqfit: nfun=%d nrow=%d",ncol,nrow) ;
 
 #undef  B   /* macros to access image arrays like matrices */
 #undef  P
@@ -172,14 +172,14 @@ float Warpfield_lsqfit( Warpfield *wf , int flags , float order ,
      car = bar + jj*nrow ;          /* ptr to jj-th column in matrix */
      wf->bfun( jj , wf->bpar , nrow , xi,yi,zi , car ) ;
    }
-   if( verb > 1 ) ININFO_message("   |imbase| = %g",mri_matrix_size(imbase)) ;
+   if( wfverb > 1 ) ININFO_message("   |imbase| = %g",mri_matrix_size(imbase)) ;
 
    /* compute pseudo-inverse of matrix */
 
    imbinv = mri_matrix_psinv( imbase , NULL , 1.e-8 ) ;
    if( imbinv == NULL ){ mri_free(imbase); return(-2.0f); }  /* bad */
    iar = MRI_FLOAT_PTR(imbinv) ;
-   if( verb > 1 ) ININFO_message("   |imbinv| = %g",mri_matrix_size(imbinv)) ;
+   if( wfverb > 1 ) ININFO_message("   |imbinv| = %g",mri_matrix_size(imbinv)) ;
 
    /* apply pseudo-inverse to (xw,yw,zw) points,
       to get coefficients for each basis function */
@@ -276,13 +276,13 @@ Warpfield * Warpfield_inverse( Warpfield *wf , float *rmserr )
 
    /* compute approximate inverse at various orders */
 
-   if( verb ) INFO_message("Start inverse fitting with npt=%d",npt) ;
+   if( wfverb ) INFO_message("Start inverse fitting with npt=%d",npt) ;
    if( rmserr != NULL && *rmserr > 0 ) egoal = *rmserr ;
    else                                egoal = 0.00222f ;
    orbot = 2.0f ;
    for( ord=orbot ; ord < MAXORD ; ord += 0.501 ){
      dg = Warpfield_lsqfit( uf , 0 , ord , npt , xi,yi,zi , xw,yw,zw ) ;
-     if( verb > 1 ) ININFO_message(" order=%g rmserr=%g nfun=%d",ord,dg,uf->nfun) ;
+     if( wfverb > 1 ) ININFO_message(" order=%g rmserr=%g nfun=%d",ord,dg,uf->nfun) ;
      if( dg <= egoal ) break ;
    }
 
@@ -531,15 +531,23 @@ void Warpfield_prodfun( int kfun, void *vpar, bfunc1D bff , int npt ,
 
 void Wtrig( int m , int npt , float *xx , float *v )
 {
-  register int ii ;
-  register float fac ;
-
-  fac = (0.5f*PI) * (float)m ;   /* frequency */
 
   switch( m%2 ){  /* odd = sin, even = cos */
-    case 1: for( ii=0 ; ii < npt ; ii++ ) v[ii] = sinf( fac * xx[ii] ) ;
+    case 1:
+#pragma omp parallel if( npt > 9999 )
+    { register int ii ; register float fac ;
+      fac = (0.5f*PI) * (float)m ;   /* frequency */
+#pragma omp for
+      for( ii=0 ; ii < npt ; ii++ ) v[ii] = sinf( fac * xx[ii] ) ;
+    }
     break ;
-    case 0: for( ii=0 ; ii < npt ; ii++ ) v[ii] = cosf( fac * xx[ii] ) ;
+    case 0:
+#pragma omp parallel if( npt > 9999 )
+    { register int ii ; register float fac ;
+      fac = (0.5f*PI) * (float)m ;   /* frequency */
+#pragma omp for
+      for( ii=0 ; ii < npt ; ii++ ) v[ii] = cosf( fac * xx[ii] ) ;
+    }
     break ;
   }
 }

@@ -2228,6 +2228,10 @@ void mri_genalign_set_boxsize( float xbot, float xtop,
 }
 
 /*--------------------------------------------------------------------------*/
+#ifdef USE_OMP
+# include "mri_warpfield.c"
+#endif
+/*--------------------------------------------------------------------------*/
 
 static Warpfield *wfield = NULL ;
 
@@ -2297,13 +2301,25 @@ void mri_genalign_warpfield( int npar, float *wpar ,
 
    for( pp=0 ; pp < npt ; pp+=NPER ){
      npp = MIN( NPER , npt-pp ) ;  /* number to do in this iteration */
+
+#pragma omp parallel if( npp > 33333 )
+{ int ii ;
+#pragma omp for
      for( ii=0 ; ii < npp ; ii++ )
        MAT44_VEC( to_cube , xi [ii+pp],yi [ii+pp],zi [ii+pp] ,
                             xii[ii+pp],yii[ii+pp],zii[ii+pp]  ) ;
+}
+
      Warpfield_eval_array( wfield , npp , xii,yii,zii , xoo,yoo,zoo ) ;
+
+#pragma omp parallel if( npp > 33333 )
+{ int ii ;
+#pragma omp for
      for( ii=0 ; ii < npp ; ii++ )
        MAT44_VEC( fr_cube , xoo[ii+pp],yoo[ii+pp],zoo[ii+pp] ,
                             xo [ii+pp],yo [ii+pp],zo [ii+pp]  ) ;
+}
+
    }
 
    return ;

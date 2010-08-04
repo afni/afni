@@ -1026,6 +1026,8 @@ int main(int argc, char **argv)
                fprintf(stdout,"++ Skipping unique value of 0\n");
                continue;
             } else {
+               fprintf(stdout,
+               "++ ========================================================================\n") ;
                fprintf(stdout,"++ Processing unique value of %d\n", unq[iroi]);
             }
             mset = EDIT_full_copy(mset_orig, "tmp_ccopy");
