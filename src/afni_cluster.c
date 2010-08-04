@@ -619,14 +619,19 @@ ENTRY("AFNI_clus_make_widgets") ;
            NULL ) ;
      XmStringFree(xstr) ;
      XtAddCallback( cwid->whermask_pb, XmNactivateCallback, AFNI_clus_action_CB, im3d );
-     MCW_register_hint( cwid->whermask_pb , "Save and run 'whereami -omask'") ;
+     MCW_register_hint( cwid->whermask_pb , "SaveMsk, then 'whereami -omask'") ;
      MCW_register_help( cwid->whermask_pb ,
                          "Write the set of clusters to\n"
                          "a 3D dataset, then run program\n"
-                         "  whereami -omask\n"
-                         "to get a table of atlas locations\n"
+                         "       whereami -omask\n"
+                         "to get a report of atlas locations\n"
                          "that overlap each cluster.\n"
-                         "Can only be run in Talairach View"
+                         "* At most the first 20 clusters\n"
+                         "    will be passed to whereami.\n"
+                         "* To change this upper limit, set\n"
+                         "    AFNI_CLUSTER_WAMIMAX to a\n"
+                         "    value between 1 and 99.\n"
+                         "* Can only be run in Talairach View"
                       ) ;
      SENSITIZE(cwid->whermask_pb,
                (im3d->vinfo->view_type == VIEW_TALAIRACH_TYPE) ) ;
@@ -833,7 +838,7 @@ ENTRY("AFNI_clus_make_widgets") ;
      int wx,hy , cmax ;
      MCW_widget_geom( cwid->rowcol  , &wx,&hy,NULL,NULL ) ;
      hy *= 2 ; cmax = im3d->dc->height-128 ; if( hy > cmax ) hy = cmax ;
-     XtVaSetValues( cwid->wtop , XmNwidth,wx+47,XmNheight,hy+21 , NULL ) ;
+     XtVaSetValues( cwid->wtop , XmNwidth,wx+17,XmNheight,hy+21 , NULL ) ;
    }
 
    XtRealizeWidget( cwid->wtop ) ;
@@ -1318,7 +1323,12 @@ ENTRY("AFNI_clus_action_CB") ;
      EDIT_substitute_brick( mset , 0 , MRI_short , NULL ) ;
      mask = DSET_BRICK_ARRAY( mset , 0 ) ;
      jtop = clar->num_clu ;
-     if( do_wami && jtop > 20 ) jtop = 20 ;
+     if( do_wami ){
+       int etop = (int)AFNI_numenv("AFNI_CLUSTER_WAMIMAX") ;
+            if( etop <  1 ) etop = 20 ;
+       else if( etop > 99 ) etop = 99 ;
+       if( jtop > etop ) jtop = etop ;
+     }
      for( jj=0 ; jj < jtop ; jj++ ){
        cl = clar->clar[jj] ;
        for( ii=0 ; ii < cl->num_pt ; ii++ ){
@@ -1335,13 +1345,13 @@ ENTRY("AFNI_clus_action_CB") ;
 #undef  WSIZ
 #define WSIZ 4096
      if( do_wami ){  /* 04 Aug 2010 */
-       char *wout ; FILE *fp ;
+       char *wout , ct[64] ; FILE *fp ;
        SHOW_AFNI_PAUSE ;
        wout = (char *)malloc(sizeof(char)*WSIZ) ;
        sprintf(wout,"%s -omask %s",wherprog,DSET_HEADNAME(mset)) ;
-       INFO_message("Running '%s'%s" ,wout ,
-                    (jtop >= clar->num_clu) ? " "
-                                            : " [for first 20 clusters]" ) ;
+       if( jtop >= clar->num_clu ) strcpy (ct," ") ;
+       else                        sprintf(ct," [for first %d clusters]",jtop) ;
+       INFO_message("Running '%s'%s" , wout , ct ) ;
        fp = popen( wout , "r" ) ;
        if( fp == NULL ){
          (void)MCW_popup_message(w," \n*** Can't run whereami command? ***\n ",
