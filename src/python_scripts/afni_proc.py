@@ -210,7 +210,7 @@ g_history = """
         - added -regress_CS_NN, default to 123
         - changed 3dClustSim to use -both instead of just -niml
         - changed prefix to ClustSim (so resulting .1D files are not removed)
-        - if request for ClustSim, check for blur estimation options
+        - if request for ClustSim, require blur estimation
 """
 
 g_version = "version 2.35, Aug 4, 2010"
