@@ -1908,8 +1908,8 @@ def db_mod_regress(block, proc, user_opts):
         if bopt: bopt.parlist = uopt.parlist
         else: block.opts.add_opt('-regress_run_clustsim', 1, uopt.parlist,
                                  setpar=1)
-        # if explicit 'yes', check for blur estimation
-        if uopt.parlist[0] == 'yes'                           and \
+        # if explicit 'yes', require blur estimation
+        if OL.opt_is_yes(uopt)                                and \
            not block.opts.find_opt('-regress_est_blur_errts') and \
            not block.opts.find_opt('-regress_est_blur_epits'):
             print '** blur estimation is required for ClustSim\n' \
