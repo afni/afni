@@ -6764,7 +6764,7 @@ void AFNI_marktog_CB( Widget w ,
    XmToggleButtonCallbackStruct *cbs = (XmToggleButtonCallbackStruct *)call_data;
 
    int bval , ip , xx=-1 , yy=-1 , zz=-1 ;
-   Widget *other_tog ;
+   Widget *other_tog=NULL ;
 
 ENTRY("AFNI_marktog_CB") ;
 
@@ -6778,21 +6778,26 @@ ENTRY("AFNI_marktog_CB") ;
       case XmCR_DISARM:   /* button on the control panel */
          bval      = AFNI_first_tog( MARKS_MAXNUM ,
                                      im3d->vwid->marks->tog ) ;
+#ifdef POPTOG
          other_tog = im3d->vwid->marks->poptog ;
+#endif
       break ;
 
+#ifdef POPTOG
       case XmCR_VALUE_CHANGED:  /* button on the menu panel */
          bval = AFNI_first_tog( MARKS_MAXNUM ,
                                 im3d->vwid->marks->poptog ) ;
          other_tog = im3d->vwid->marks->tog ;
       break ;
+#endif
    }
 
    /* bval      = index of toggle that is set (-1 if none)
       other_tog = pointer to other set of toggles;
                   set those buttons to match now */
 
-   AFNI_set_tog( bval , MARKS_MAXNUM , other_tog ) ;
+   if( other_tog != NULL )
+     AFNI_set_tog( bval , MARKS_MAXNUM , other_tog ) ;
 
    /* set point overlay colors based on bval */
 
