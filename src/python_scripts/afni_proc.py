@@ -206,9 +206,13 @@ g_history = """
         - check for existence of input datasets
         - added -test_stim_files and -test_for_dsets options
         - now depends on lib_afni1D
+    2.35 Aug 04 2010 :
+        - added -regress_CS_NN, default to 123
+        - changed 3dClustSim to use -both instead of just -niml
+        - changed prefix to ClustSim (so resulting .1D files are not removed)
 """
 
-g_version = "version 2.34, Aug 2, 2010"
+g_version = "version 2.35, Aug 4, 2010"
 
 # version of AFNI required for script execution
 g_requires_afni = "19 Jul 2010"
@@ -606,14 +610,19 @@ class SubjProcSream:
                         helpstr="do not apply motion parameters in regression")
         self.valid_opts.add_opt('-regress_opts_3dD', -1, [],
                         helpstr='additional options directly to 3dDeconvolve')
-        self.valid_opts.add_opt('-regress_opts_CS', -1, [],
-                        helpstr='additional options directly to 3dClustSim')
         self.valid_opts.add_opt('-regress_opts_reml', -1, [],
                         helpstr='additional options directly to 3dREMLfit')
         self.valid_opts.add_opt('-regress_reml_exec', 0, [],
                         helpstr="execute 3dREMLfit command script")
         self.valid_opts.add_opt('-regress_RONI', -1, [],
                         helpstr="1-based list of regressors of no interest")
+
+        # 3dClustSim options
+        self.valid_opts.add_opt('-regress_CS_NN', 1, [],
+                        acplist=['1','2','3','12','13','23','123'],
+                        helpstr='specify subset of {1,2,3} (default=123)')
+        self.valid_opts.add_opt('-regress_opts_CS', -1, [],
+                        helpstr='additional options directly to 3dClustSim')
         self.valid_opts.add_opt('-regress_run_clustsim', 1, [],
                         acplist=['yes','no'],
                         helpstr="add 3dClustSim attrs to regression bucket")
