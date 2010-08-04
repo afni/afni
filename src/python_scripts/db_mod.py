@@ -1677,6 +1677,12 @@ def db_mod_regress(block, proc, user_opts):
     bopt = block.opts.find_opt('-regress_opts_3dD')
     if uopt and bopt: bopt.parlist = uopt.parlist
 
+    uopt = user_opts.find_opt('-regress_CS_NN')         # 3dClustSim NN
+    if uopt:
+        bopt = block.opts.find_opt('-regress_CS_NN')
+        if bopt: bopt.parlist = uopt.parlist
+        else: block.opts.add_opt('-regress_CS_NN', 1, uopt.parlist, setpar=1)
+
     uopt = user_opts.find_opt('-regress_opts_CS')       # 3dClustSim
     if uopt:
         bopt = block.opts.find_opt('-regress_opts_CS')
@@ -2355,9 +2361,27 @@ def db_cmd_blur_est(proc, block):
     return cmd
 
 def make_clustsim_commands(proc, block, blur_file, mask_dset, stats_dset):
-    if proc.verb > 2:
+    if proc.verb > 1:
         print '-- make_clustsim_commands: blur = %s\n\tmask = %s, stats = %s' \
               % (blur_file, mask_dset, stats_dset)
+
+    # track which neighbors to go after
+    nnvalid = ['1','2','3']
+    nnlist  = ['1','2','3']
+
+    opt = block.opts.find_opt('-regress_CS_NN')
+    if opt and len(opt.parlist) > 0:
+        # verify and separate as an array
+        nnlist = []
+        for nn in opt.parlist[0]:
+            if nn not in nnvalid:
+                print "** CS_NN value %s is not in %s" % (nn,','.join(nnvalid))
+                return 1, ''
+            nnlist.append(nn)
+
+    nnlist.sort()   # just to be sure we look pretty
+    nnstr = ''.join(nnlist)
+    if proc.verb > 2: print "++ have CS_NN list string %s" % nnstr
 
     opt = block.opts.find_opt('-regress_opts_CS')
     optstr = ''
@@ -2365,16 +2389,23 @@ def make_clustsim_commands(proc, block, blur_file, mask_dset, stats_dset):
         if len(opt.parlist) > 0 :
            optstr = '           %s \\\n' % ' '.join(opt.parlist)
 
-    cprefix = 'rm.CSim'     # prefix for 3dClustSim files
+    cprefix = 'ClustSim'        # prefix for 3dClustSim files
     cstr = '# add 3dClustSim results as attributes to the stats dset\n' \
            'set fxyz = ( `tail -1 %s` )\n'                              \
-           '3dClustSim -niml -mask %s \\\n'                             \
+           '3dClustSim -both -NN %s -mask %s \\\n'                      \
            '%s'                                                         \
            '           -fwhmxyz $fxyz[1-3] -prefix %s\n'                \
-           '3drefit -atrstring AFNI_CLUSTSIM_NN1 file:%s.NN1.niml \\\n' \
-           '        -atrstring AFNI_CLUSTSIM_MASK file:%s.mask    \\\n' \
-           '        %s\n\n' % (blur_file, mask_dset, optstr,
-                               cprefix, cprefix, cprefix, stats_dset)
+           % (blur_file, nnstr, mask_dset, optstr, cprefix)
+
+    # start with the mask attr, add each NNx, and finally the stats input dset
+    cstr += '3drefit -atrstring AFNI_CLUSTSIM_MASK file:%s.mask     \\\n' \
+             % cprefix
+    for nn in nnlist:
+        cstr += '        -atrstring AFNI_CLUSTSIM_NN%s  file:%s.NN%s.niml \\\n'\
+                % (nn, cprefix, nn)
+
+    # finally, the input
+    cstr += '        %s\n\n' % stats_dset
 
     return 0, cstr
 
@@ -4979,17 +5010,6 @@ g_help_string = """
             Please see '3dDeconvolve -help' for more information, or the link:
                 http://afni.nimh.nih.gov/afni/doc/misc/3dDeconvolveSummer2004
 
-        -regress_opts_CS OPTS ...    : specify extra options for 3dClustSim
-
-                e.g. -regress_opts_CS -athr 0.05 0.01 0.005 0.001
-
-            This option allows the user to add extra options to the 3dClustSim
-            command.  Only 1 such option should be applied, though multiple
-            options to 3dClustSim can be included.
-
-            Please see '3dClustSim -help' for more information.
-            See also -regress_run_clustsim.
-
         -regress_opts_reml OPTS ...  : specify extra options for 3dREMLfit
 
                 e.g. -regress_opts_reml                                 \\
@@ -5049,27 +5069,6 @@ g_help_string = """
 
             The user is encouraged to check the 3dDeconvolve command in the
             processing script, to be sure they are applied correctly.
-
-        -regress_run_clustsim yes/no : add 3dClustSim attrs to stats dset
-
-                e.g. -regress_run_clustsim no
-                default: yes
-
-            This option controls whether 3dClustSim will be executed after the
-            regression analysis.  Since the default is 'yes', the effective use
-            of this option would be to turn off the operation.
-
-            3dClustSim is a more advanced version of AlphaSim, and generates a
-            table of cluster sizes/alpha values that can be then stored in the
-            stats dataset for a simple multiple comparison correction in the
-            cluster interface of the afni GUI.
-
-            The blur estimates and mask dataset are required, and so the
-            option is only relevant in the context of blur estimation.
-
-            Please see '3dClustSim -help' for more information.
-            See also -regress_est_blur_epits, -regress_est_blur_epits and
-                     -regress_opts_CS.
 
         -regress_stim_labels LAB1 ...   : specify labels for stimulus types
 
@@ -5223,6 +5222,60 @@ g_help_string = """
             Please see '3dDeconvolve -help' for more information.
             See also -regress_stim_files, -regress_stim_times, 
                      -regress_stim_labels.
+
+        --------------- 3dClustSim options ------------------
+
+        -regress_run_clustsim yes/no : add 3dClustSim attrs to stats dset
+
+                e.g. -regress_run_clustsim no
+                default: yes
+
+            This option controls whether 3dClustSim will be executed after the
+            regression analysis.  Since the default is 'yes', the effective use
+            of this option would be to turn off the operation.
+
+            3dClustSim is a more advanced version of AlphaSim, and generates a
+            table of cluster sizes/alpha values that can be then stored in the
+            stats dataset for a simple multiple comparison correction in the
+            cluster interface of the afni GUI.
+
+            The blur estimates and mask dataset are required, and so the
+            option is only relevant in the context of blur estimation.
+
+            Please see '3dClustSim -help' for more information.
+            See also -regress_est_blur_epits, -regress_est_blur_epits and
+                     -regress_opts_CS.
+
+        -regress_CS_NN LEVELS   : specify NN levels for 3dClustSim command
+
+                e.g.     -regress_CS_NN 1
+                default: -regress_CS_NN 123
+
+            This option allows the user to specify which nearest neighbors to
+            consider when clustering.  Cluster results will be generated for
+            each included NN level.  Using multiple levels means being able to
+            choose between those same levels when looking at the statistical
+            results using the afni GUI.
+
+            The LEVELS should be chosen from the set {1,2,3}, where the
+            respective levels mean "shares a face", "shares an edge" and
+            "shares a corner", respectively.  Any non-empty subset can be used.
+            They should be specified as is with 3dClustSim.
+
+            So there are 7 valid subsets: 1, 2, 3, 12, 13, 23, and 123.
+
+            Please see '3dClustSim -help' for details on its '-NN' option.
+
+        -regress_opts_CS OPTS ...    : specify extra options for 3dClustSim
+
+                e.g. -regress_opts_CS -athr 0.05 0.01 0.005 0.001
+
+            This option allows the user to add extra options to the 3dClustSim
+            command.  Only 1 such option should be applied, though multiple
+            options to 3dClustSim can be included.
+
+            Please see '3dClustSim -help' for more information.
+            See also -regress_run_clustsim.
 
     - R Reynolds  Dec, 2006                             thanks to Z Saad
     ===========================================================================
