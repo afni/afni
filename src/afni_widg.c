@@ -2235,6 +2235,13 @@ STATUS("making marks->rowcol") ;
         if( ib==0 )
            XtVaGetValues( marks->tog[0],XmNindicatorSize,&isiz,NULL ) ;
 
+        MCW_register_help( marks->tog[ib],&(marks->tog_help[ib][0]) ) ;
+
+        XtAddCallback( marks->tog[ib] ,
+                       XmNdisarmCallback ,
+                       AFNI_marktog_CB , im3d ) ;
+
+#ifdef POPTOG
         marks->sometimes_popup[(marks->num_sometimes_popup)++] =
         marks->poptog[ib] =
            XtVaCreateWidget(
@@ -2247,13 +2254,6 @@ STATUS("making marks->rowcol") ;
                  XmNtraversalOn  , True  ,
                  XmNinitialResourcesPersistent , False ,
               NULL ) ;
-
-#ifdef POPTOG
-        MCW_register_help( marks->tog[ib],&(marks->tog_help[ib][0]) ) ;
-
-        XtAddCallback( marks->tog[ib] ,
-                       XmNdisarmCallback ,
-                       AFNI_marktog_CB , im3d ) ;
 
         XtAddCallback( marks->poptog[ib] ,
                        XmNvalueChangedCallback ,
