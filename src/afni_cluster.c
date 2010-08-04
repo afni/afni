@@ -21,6 +21,8 @@ static char * AFNI_clus_3dclust( Three_D_View *im3d ) ;
 
 static Widget wtemp ;
 
+static char *wherprog = NULL ;
+
 char * get_alpha_string( int csiz  , float pval , Three_D_View *im3d    ) ;
 int find_cluster_thresh( float athr, float pval , CLU_threshtable *ctab ) ;
 CLU_threshtable * CLU_get_thresh_table( Three_D_View *im3d ) ;
@@ -536,9 +538,9 @@ ENTRY("AFNI_clus_make_widgets") ;
                        "   identical to AFNI's Clusterize."
                     ) ;
 
-   /* row #1: SaveTable button */
+   /* row #1: SaveTabl button */
 
-   xstr = XmStringCreateLtoR( "SaveTable" , XmFONTLIST_DEFAULT_TAG ) ;
+   xstr = XmStringCreateLtoR( "SaveTabl" , XmFONTLIST_DEFAULT_TAG ) ;
    cwid->savetable_pb = XtVaCreateManagedWidget(
            "menu" , xmPushButtonWidgetClass , rc ,
             XmNlabelString , xstr ,
@@ -583,9 +585,9 @@ ENTRY("AFNI_clus_make_widgets") ;
                                           "for all 'Save' buttons."  ) ;
    }
 
-   /* row #1: SaveMask button [01 May 2008] */
+   /* row #1: SaveMsk button [01 May 2008] */
 
-   xstr = XmStringCreateLtoR( "SaveMask" , XmFONTLIST_DEFAULT_TAG ) ;
+   xstr = XmStringCreateLtoR( "SaveMsk" , XmFONTLIST_DEFAULT_TAG ) ;
    cwid->savemask_pb = XtVaCreateManagedWidget(
            "menu" , xmPushButtonWidgetClass , rc ,
             XmNlabelString , xstr ,
@@ -604,6 +606,34 @@ ENTRY("AFNI_clus_make_widgets") ;
                        "(to the left) is used to set\n"
                        "the dataset's prefix name."
                     ) ;
+
+   /* row #1: Where button [04 Aug 2010] */
+
+   wherprog = THD_find_executable("whereami") ;
+   if( wherprog != NULL ){
+     xstr = XmStringCreateLtoR( "WamI" , XmFONTLIST_DEFAULT_TAG ) ;
+     cwid->whermask_pb = XtVaCreateManagedWidget(
+             "menu" , xmPushButtonWidgetClass , rc ,
+              XmNlabelString , xstr ,
+              XmNtraversalOn , True  ,
+           NULL ) ;
+     XmStringFree(xstr) ;
+     XtAddCallback( cwid->whermask_pb, XmNactivateCallback, AFNI_clus_action_CB, im3d );
+     MCW_register_hint( cwid->whermask_pb , "Save and run 'whereami -omask'") ;
+     MCW_register_help( cwid->whermask_pb ,
+                         "Write the set of clusters to\n"
+                         "a 3D dataset, then run program\n"
+                         "  whereami -omask\n"
+                         "to get a table of atlas locations\n"
+                         "that overlap each cluster.\n"
+                         "Can only be run in Talairach View"
+                      ) ;
+     SENSITIZE(cwid->whermask_pb,
+               (im3d->vinfo->view_type == VIEW_TALAIRACH_TYPE) ) ;
+
+   } else {
+     cwid->whermask_pb = cwid->savemask_pb ;
+   }
 
    /* row #1: Done button */
 
@@ -659,8 +689,8 @@ ENTRY("AFNI_clus_make_widgets") ;
                        "* Histogram it:                      'Hist'\n"
                        "And then either 'Plot' or 'Save' these\n"
                        "results.  If you 'Save' these results,\n"
-                       "the text field (between 'SaveTable and\n"
-                       "'SaveMask') is used to define the output\n"
+                       "the text field (between 'SaveTabl and\n"
+                       "'SaveMsk') is used to define the output\n"
                        "filename.  If the text field is just the\n"
                        "string '-', then 'Save' writes to the terminal\n"
                        "window (stdout), instead of a file."
@@ -959,6 +989,7 @@ void AFNI_clus_update_widgets( Three_D_View *im3d )
    MCW_cluster_array *clar ;
    int maxclu ;
    CLU_threshtable *ctab=NULL ;
+   int do_wami = (wherprog != NULL) ;
 
 ENTRY("AFNI_clus_update_widgets") ;
 
@@ -1093,10 +1124,13 @@ ENTRY("AFNI_clus_update_widgets") ;
    SET_INDEX_LAB(im3d) ;
 
    if( !cwid->receive_on ){
-     AFNI_receive_init( im3d, RECEIVE_VIEWPOINT_MASK,
-                        AFNI_clus_viewpoint_CB, im3d, "AFNI_clus_viewpoint_CB" ) ;
+     AFNI_receive_init(im3d, RECEIVE_VIEWPOINT_MASK,
+                       AFNI_clus_viewpoint_CB, im3d, "AFNI_clus_viewpoint_CB") ;
      cwid->receive_on = 1 ;
    }
+
+   if( do_wami ) SENSITIZE( cwid->whermask_pb ,                /* 04 Aug 2010 */
+                            (im3d->vinfo->view_type == VIEW_TALAIRACH_TYPE) ) ;
 
    EXRETURN ;
 }
@@ -1199,7 +1233,7 @@ ENTRY("AFNI_clus_action_CB") ;
      EXRETURN ;
    }
 
-   /*--------- SaveTable button ---------*/
+   /*--------- SaveTabl button ---------*/
 
    if( w == cwid->savetable_pb ){
      char fnam[128+THD_MAX_NAME] , *ppp ; FILE *fp ; int ff ;
@@ -1249,14 +1283,16 @@ ENTRY("AFNI_clus_action_CB") ;
      EXRETURN ;
    }
 
-   /*--------- SaveMask button ---------*/
+   /*--------- SaveMsk button ---------*/
 
-   if( w == cwid->savemask_pb ){  /* 01 May 2008 */
+   if( w == cwid->savemask_pb || w == cwid->whermask_pb ){  /* 01 May 2008 */
      char pref[128] , *ppp , *cmd ;
      THD_3dim_dataset  *fset = im3d->fim_now , *mset ;
      MCW_cluster_array *clar = im3d->vwid->func->clu_list ;
      MCW_cluster *cl ;
      short *mask ; int ii,jj,nx,ny,nxy,nz,ijk ;
+     int do_wami = (w == cwid->whermask_pb && wherprog != NULL) ;
+     int jtop ;
 
      nclu = im3d->vwid->func->clu_num ;
      cld  = im3d->vwid->func->clu_det ;
@@ -1281,7 +1317,9 @@ ENTRY("AFNI_clus_action_CB") ;
      nx = DSET_NX(mset); ny = DSET_NY(mset); nxy = nx*ny; nz = DSET_NZ(mset);
      EDIT_substitute_brick( mset , 0 , MRI_short , NULL ) ;
      mask = DSET_BRICK_ARRAY( mset , 0 ) ;
-     for( jj=0 ; jj < clar->num_clu ; jj++ ){
+     jtop = clar->num_clu ;
+     if( do_wami && jtop > 20 ) jtop = 20 ;
+     for( jj=0 ; jj < jtop ; jj++ ){
        cl = clar->clar[jj] ;
        for( ii=0 ; ii < cl->num_pt ; ii++ ){
          ijk = THREE_TO_IJK( cl->i[ii] , cl->j[ii] , cl->k[ii] , nx,nxy ) ;
@@ -1293,6 +1331,33 @@ ENTRY("AFNI_clus_action_CB") ;
      DSET_write(mset) ;
      DSET_delete(mset) ;
      THD_force_ok_overwrite(0) ;
+
+#undef  WSIZ
+#define WSIZ 4096
+     if( do_wami ){  /* 04 Aug 2010 */
+       char *wout ; FILE *fp ;
+       SHOW_AFNI_PAUSE ;
+       wout = (char *)malloc(sizeof(char)*WSIZ) ;
+       sprintf(wout,"%s -omask %s",wherprog,DSET_HEADNAME(mset)) ;
+       INFO_message("Running '%s'%s" ,wout ,
+                    (jtop >= clar->num_clu) ? " "
+                                            : " [for first 20 clusters]" ) ;
+       fp = popen( wout , "r" ) ;
+       if( fp == NULL ){
+         (void)MCW_popup_message(w," \n*** Can't run whereami command? ***\n ",
+                                 MCW_USER_KILL) ;
+       } else {
+         wout[0] = '\0' ;
+         while( fgets(wout+strlen(wout),WSIZ-2,fp) != NULL ){
+           wout = (char *)realloc(wout,sizeof(char)*(strlen(wout)+WSIZ)) ;
+         }
+         (void)pclose(fp) ;
+         MCW_textwin_setbig(0) ;
+         (void)new_MCW_textwin(w,wout,TEXT_READONLY) ;
+       }
+       free(wout) ;
+       SHOW_AFNI_READY ;
+     }
 
      EXRETURN ;
    }
