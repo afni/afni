@@ -2700,6 +2700,12 @@ Variable: AFNI_CLUSTER_SCROLL
 If this variable is NO, then the 'Clusterize' report will not be given
 scrollbars.  The default is to give it scroll bars (i.e., YES).
 
+---------------------------
+Variable: AFNI_CLUSTER_EBAR
+---------------------------
+If this variable is YES, then the Clusterize 'Mean' and 'Medn' Plot
+graphs will have error bars plotted.
+
 -----------------------------
 Variable: AFNI_CLUSTER_REPMAX  (editable)
 -----------------------------
