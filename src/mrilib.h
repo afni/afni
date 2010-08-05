@@ -1046,6 +1046,7 @@ extern float * delayed_lsqfit( int , float * , int , float *ref[] , double * ) ;
 
 extern MRI_IMAGE * mri_pcvector  ( MRI_IMARR *imar , int,int ) ;
 extern MRI_IMAGE * mri_meanvector( MRI_IMARR *imar , int,int ) ;
+extern MRI_IMAGE * mri_MMBvector ( MRI_IMARR *imar , int,int,int ) ; /* 05 Aug 2010 */
 
 extern MRI_IMAGE * mri_sobel( int , int , MRI_IMAGE * ) ;
 extern MRI_IMAGE * mri_sharpen( float , int , MRI_IMAGE * ) ;
