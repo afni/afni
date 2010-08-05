@@ -792,3 +792,216 @@ void plot_ts_addto( MEM_topshell_data * mp ,
 
    return ;
 }
+
+/*-----------------------------------------------------------------------
+  Plot a timeseries with error bars, into an in-memory plot structure.
+  If array x[] is NULL, then routine will make an x-axis up.
+-------------------------------------------------------------------------*/
+
+MEM_plotdata * plot_ts_ebar( int nx , float *x , float *y , float *ey ,
+                             char *lab_xxx , char *lab_yyy , char *lab_top )
+{
+   int ii , jj , np , nnax,nnay , mmax,mmay ;
+   float *xx ;
+   float xbot,xtop , ybot,ytop , pbot,ptop , xobot,xotop,yobot,yotop ;
+   char str[32] ;
+   MEM_plotdata *mp ;
+   float ymm , ypp , xmm,xpp,xdd ;
+
+   /*-- sanity check --*/
+
+   if( nx <= 1 || y == NULL || ey == NULL ) return NULL ;
+
+   init_colors() ;
+
+   /*-- make up an x-axis if none given --*/
+
+   if( x == NULL ){
+      xx = (float *) malloc( sizeof(float) * nx ) ;
+      for( ii=0 ; ii < nx ; ii++ ) xx[ii] = ii ;
+      xbot = 0 ; xtop = nx-1 ;
+   } else {
+      xx = x ;
+      xbot = WAY_BIG ; xtop = -WAY_BIG ;
+      for( ii=0 ; ii < nx ; ii++ ){
+         if( xx[ii] < xbot && xx[ii] < WAY_BIG ) xbot = xx[ii] ;
+         if( xx[ii] > xtop && xx[ii] < WAY_BIG ) xtop = xx[ii] ;
+      }
+      if( xbot >= xtop ) return NULL ;
+   }
+
+   /*-- push range of x outwards --*/
+
+   pbot = p10(xbot) ; ptop = p10(xtop) ; if( ptop < pbot ) ptop = pbot ;
+   if( nnaxx >= 0 ){
+     nnax = nnaxx ; nnaxx = -1 ;
+     mmax = mmaxx ;
+     xbot = xxbot ;
+     xtop = xxtop ;
+   } else if( ptop != 0.0 && xpush > 0 ){
+      np = (xtop-xbot) / ptop ;
+      switch( np ){
+         case 1:  ptop *= 0.1  ; break ;
+         case 2:  ptop *= 0.2  ; break ;
+         case 3:  ptop *= 0.25 ; break ;
+         case 4:
+         case 5:  ptop *= 0.5  ; break ;
+      }
+      xbot = floor( xbot/ptop ) * ptop ;
+      xtop =  ceil( xtop/ptop ) * ptop ;
+      nnax = floor( (xtop-xbot) / ptop + 0.5 ) ;
+      mmax = (nnax < 3) ? 10
+                        : (nnax < 6) ? 5 : 2 ;
+   } else {
+      nnax = 1 ; mmax = 10 ;
+      ii = (int)rint(xtop-xbot) ;
+      if( fabs(xtop-xbot-ii) < 0.01 && ii <= 200 ) mmax = ii ;
+   }
+
+   /*-- find range of y --*/
+
+   ybot = WAY_BIG ; ytop = -WAY_BIG ;
+   for( ii=0 ; ii < nx ; ii++ ){
+     if( y[ii] < ybot ) ybot = y[ii] ;
+     if( y[ii] > ytop ) ytop = y[ii] ;
+   }
+   floatfix(ybot) ; floatfix(ytop) ;
+   if( ybot >= ytop ){                       /* shouldn't happen */
+      ytop = ybot + 0.05f*fabsf(ybot) + 0.1f ;
+      ybot = ybot - 0.05f*fabsf(ybot) - 0.1f ;
+   }
+
+   /*-- push range of y outwards --*/
+
+   pbot = p10(ybot) ; ptop = p10(ytop) ; if( ptop < pbot ) ptop = pbot ;
+   if( nnayy >= 0 ){
+     nnay = nnayy ; nnayy = -1 ;
+     mmay = mmayy ;
+     ybot = yybot ;
+     ytop = yytop ;
+   } else if( ptop != 0.0 && ypush > 0 ){
+      np = (ytop-ybot) / ptop ;
+      switch( np ){
+         case 1:  ptop *= 0.1  ; break ;
+         case 2:  ptop *= 0.2  ; break ;
+         case 3:  ptop *= 0.25 ; break ;
+         case 4:
+         case 5:  ptop *= 0.5  ; break ;
+      }
+      ybot = floor( ybot/ptop ) * ptop ;
+      ytop =  ceil( ytop/ptop ) * ptop ;
+      nnay = floor( (ytop-ybot) / ptop + 0.5 ) ;
+      mmay = (nnay < 3) ? 10
+                        : (nnay < 6) ? 5 : 2 ;
+   } else {
+      float dif=(ytop-ybot)*0.005f ;
+      if( ypush == 0 ){ ybot -= dif ; ytop += dif ; }
+      nnay = 1 ; mmay = 10 ;
+   }
+
+   pbot = p10(ybot) ; ptop = p10(ytop) ; if( ptop < pbot ) ptop = pbot ;
+   if( ptop != 0.0 && ypush > 0 ){
+     np = (ytop-ybot) / ptop ;
+     switch( np ){
+       case 1:  ptop *= 0.1  ; break ;
+       case 2:  ptop *= 0.2  ; break ;
+       case 3:  ptop *= 0.25 ; break ;
+       case 4:
+       case 5:  ptop *= 0.5  ; break ;
+     }
+     ybot = floor( ybot/ptop ) * ptop ;
+     ytop =  ceil( ytop/ptop ) * ptop ;
+   } else if( ypush == 0 ){
+     float dif=(ytop-ybot)*0.005f ;
+     ybot -= dif ; ytop += dif ;
+   }
+
+   /*-- setup to plot --*/
+
+   create_memplot_surely( "tsplot" , 1.3 ) ;
+   set_thick_memplot( 0.002f ) ;  /* for labels */
+
+   /*-- plot labels, if any --*/
+
+   xobot = 0.15 ; xotop = 1.27 ;  /* set objective size of plot */
+   yobot = 0.1  ; yotop = 0.95 ;
+
+   if( STGOOD(lab_top) ){ yotop -= 0.02 ; yobot -= 0.01 ; }
+
+   /* x-axis label? */
+
+   set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
+   if( STGOOD(lab_xxx) )
+     plotpak_pwritf( 0.5*(xobot+xotop) , yobot-0.06 , lab_xxx , 16 , 0 , 0 ) ;
+
+   /* y-axis label? */
+
+   set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
+   if( STGOOD(lab_yyy) )
+     plotpak_pwritf( xobot-0.10 , 0.5*(yobot+yotop) , lab_yyy , 16 , 90 , 0 ) ;
+
+   /* label at top? */
+
+   set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
+   if( STGOOD(lab_top) )
+     plotpak_pwritf( xobot+0.01 , yotop+0.01 , lab_top , 18 , 0 , -2 ) ;
+
+   /*-- start plotting --*/
+
+   /* plot axes */
+
+   set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
+   set_thick_memplot( 0.002f ) ;
+   floatfix(ybot) ; floatfix(ytop) ;
+   plotpak_set( xobot,xotop , yobot,yotop , xbot,xtop , ybot,ytop , 1 ) ;
+   plotpak_perimm( nnax,mmax , nnay,mmay , ilab[(nnax>0)+2*(nnay>0)] ) ;
+
+   xdd = (xtop-xbot)*0.00333f ;
+
+   /* plot data */
+
+   set_thick_memplot( THIK ) ;
+   set_color_memplot( ccc[0][0] , ccc[0][1] , ccc[0][2] ) ;
+
+   for( ii=1 ; ii < nx ; ii++ ){
+     if( xx[ii-1] < WAY_BIG && xx[ii] < WAY_BIG &&
+         y [ii-1] < WAY_BIG && y [ii] < WAY_BIG   )
+       plotpak_line( xx[ii-1] , y[ii-1] , xx[ii] , y[ii] ) ;
+   }
+
+   set_thick_memplot( 0.0 ) ;
+   set_color_memplot( ccc[1][0] , ccc[1][1] , ccc[1][2] ) ;
+   for( ii=0 ; ii < nx ; ii++ ){
+     if( xx[ii] < WAY_BIG && y [ii] <  WAY_BIG &&
+         ey[ii] < WAY_BIG && ey[ii] != 0.0       ){
+
+       ymm = y[ii] - ey[ii] ; ypp = y[ii] + ey[ii] ;
+       xmm = xx[ii] - xdd   ; xpp = xx[ii] + xdd ;
+
+       plotpak_line( xmm,ymm , xpp,ymm ) ;
+       plotpak_line( xmm,ypp , xpp,ypp ) ;
+       if( nx <= 333 )
+         plotpak_line( xx[ii],ymm , xx[ii],ypp ) ;
+     }
+   }
+
+   /*-- exit, stage left --*/
+
+   set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
+   if( xx != x ) free(xx) ;
+   mp = get_active_memplot() ;
+   return mp ;
+}
+
+/*-----------------------------------------------------------------------*/
+
+void plot_ts_ebar_win( Display *dpy ,
+                       int nx , float *x , float *y , float *ey ,
+                       char *lab_xxx , char *lab_yyy , char *lab_top ,
+                       void_func *killfunc )
+{
+   MEM_plotdata *mp ;
+   mp = plot_ts_ebar( nx,x,y,ey,lab_xxx,lab_yyy,lab_top ) ;
+   if( mp != NULL )
+     (void) memplot_to_topshell( dpy , mp , killfunc ) ;
+}

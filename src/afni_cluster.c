@@ -691,6 +691,7 @@ ENTRY("AFNI_clus_make_widgets") ;
                        "the corresponding data from that\n"
                        "dataset and do various things with it:\n"
                        "* Average it:                        'Mean'\n"
+                       "* Pointwise median:                  'Medn'\n"
                        "* Compute first principal component: 'PC#1'\n"
                        "* Histogram it:                      'Hist'\n"
                        "And then either 'Plot' or 'Save' these\n"
@@ -720,8 +721,8 @@ ENTRY("AFNI_clus_make_widgets") ;
 
    /* row #2: data processing method */
 
-   { static char *clab[3] = { "Mean" , "PC#1" , "Hist" } ;
-     cwid->aver_av = new_MCW_optmenu( rc , " " , 0,2,0,0 ,
+   { static char *clab[4] = { "Mean" , "Medn" , "PC#1" , "Hist" } ;
+     cwid->aver_av = new_MCW_optmenu( rc , " " , 0,3,0,0 ,
                                       NULL,NULL , MCW_av_substring_CB,clab ) ;
      MCW_reghint_children( cwid->aver_av->wrowcol ,
                            "Set data processing method for Plot/Save" ) ;
@@ -729,6 +730,7 @@ ENTRY("AFNI_clus_make_widgets") ;
                            "Defines how data extracted from the\n"
                            "Auxiliary Dataset will be processed:\n"
                            "* Mean = averaged across voxels\n"
+                           "* Medn = median across voxels\n"
                            "* PC#1 = compute first principal\n"
                            "         component vector\n"
                            "* Hist = build a histogram across\n"
@@ -1426,11 +1428,13 @@ ENTRY("AFNI_clus_action_CB") ;
 
      } else if( w == cwid->clu_plot_pb[ii] || w == cwid->clu_save_pb[ii] ){
 
-       int dosave = (w == cwid->clu_save_pb[ii]) ;
+       int dosave = (w == cwid->clu_save_pb[ii]) ;  /* save OR plot */
        int domean = (cwid->aver_av->ival == 0) ;
-       int dopc   = (cwid->aver_av->ival == 1) ;
-       int dohist = (cwid->aver_av->ival == 2) ;
+       int domedn = (cwid->aver_av->ival == 1) ;
+       int dopc   = (cwid->aver_av->ival == 2) ;
+       int dohist = (cwid->aver_av->ival == 3) ;
        MRI_IMARR *imar ; MRI_IMAGE *im=NULL ; int nx,ibot,itop ;
+       MRI_IMAGE *sim=NULL ;
 
        SHOW_AFNI_PAUSE ;
 
@@ -1448,9 +1452,8 @@ ENTRY("AFNI_clus_action_CB") ;
        if( ibot >= nx ) ibot = 0 ;
        if( itop < ibot || itop >= nx ) itop = nx-1 ;
 
-
-       { static float rrr[3] = { 0.7f , 0.0f , 0.1f } ;
-         static float ggg[3] = { 0.0f , 0.6f , 0.1f } ;
+       { static float rrr[3] = { 0.6f , 0.0f , 0.1f } ;
+         static float ggg[3] = { 0.0f , 0.5f , 0.1f } ;
          static float bbb[3] = { 0.1f , 0.0f , 0.7f } ;
          plot_ts_setcolors( 3 , rrr,ggg,bbb ) ;
        }
@@ -1548,11 +1551,11 @@ ENTRY("AFNI_clus_action_CB") ;
 
        /*------------ time series processing ------------*/
 
-       if( (domean || dopc) && itop == ibot ){
+       if( (domean || dopc || domedn) && itop == ibot ){
          MCW_popup_message( w , " \n"
-                                "** Need at least two   **\n"
-                                "** time series indexes **\n"
-                                "** to do Mean or PC#1  **\n " ,
+                                "** Need at least two    **\n"
+                                "** time series indexes  **\n"
+                                "** for Mean, Medn, PC#1 **\n " ,
                             MCW_USER_KILL | MCW_TIMER_KILL ) ;
          DESTROY_IMARR(imar) ; SHOW_AFNI_READY; EXRETURN ;
        }
@@ -1565,6 +1568,12 @@ ENTRY("AFNI_clus_action_CB") ;
          im = mri_pcvector( imar , ibot,itop ) ;
        } else if( domean ){            /*-------- Mean --------*/
          im = mri_meanvector( imar , ibot,itop ) ;
+         if( !dosave && AFNI_yesenv("AFNI_CLUSTER_EBAR") )
+           sim = mri_MMBvector( imar,ibot,itop,2 ) ;
+       } else if( domedn ){            /*-------- Medn --------*/
+         im = mri_MMBvector( imar , ibot,itop,0 ) ;
+         if( !dosave && AFNI_yesenv("AFNI_CLUSTER_EBAR") )
+           sim = mri_MMBvector( imar,ibot,itop,2 ) ;
        }
        if( im != NULL ){
          if( !dosave ){                       /* Plotting (to rule the world) */
@@ -1572,16 +1581,25 @@ ENTRY("AFNI_clus_action_CB") ;
            float *far = MRI_FLOAT_PTR(im) , *xax ;
            int jj ;
            sprintf(ylab,"%s: Cluster #%d = %d voxels",
-                   (dopc) ? "PC#1" : "Mean" , ii+1 , IMARR_COUNT(imar) ) ;
+                   (dopc) ? "PC#1" : (domean) ? "Mean" : "Median" ,
+                   ii+1 , IMARR_COUNT(imar) ) ;
            sprintf(tlab,"\\noesc %s[%d..%d]",
                    THD_trailname(DSET_HEADNAME(cwid->dset),SESSTRAIL+1),
                    ibot,itop) ;
-           plot_ts_xypush(1,0) ; plot_ts_setthik(0.005f) ;
+           plot_ts_xypush(1,0) ; plot_ts_setthik(0.007f) ;
            xax = (float *)malloc(sizeof(float)*im->nx) ;
            for( jj=0 ; jj < im->nx ; jj++ ) xax[jj] = ibot+jj ;
-           plot_ts_lab( im3d->dc->display ,
-                        im->nx , xax , 1 , &far ,
-                        "TR index" , ylab , tlab , NULL , NULL ) ;
+           if( sim == NULL ){
+              plot_ts_lab( im3d->dc->display ,
+                           im->nx , xax , 1 , &far ,
+                           "TR index" , ylab , tlab , NULL , NULL ) ;
+           } else {
+              float *sar= MRI_FLOAT_PTR(sim) , fac=2.0f/sqrtf(IMARR_COUNT(imar));
+              for( jj=0 ; jj < sim->nx ; jj++ ) sar[jj] *= fac ;
+              plot_ts_ebar_win( im3d->dc->display ,
+                                im->nx , xax , far , sar ,
+                                "TR index" , ylab , tlab , NULL ) ;
+           }
            free((void *)xax) ;
 
          } else {                                       /* Saving (the world) */
@@ -1622,6 +1640,7 @@ ENTRY("AFNI_clus_action_CB") ;
            }
          }
          if( im != IMARR_SUBIM(imar,0) ) mri_free(im) ;
+         if( sim != NULL ) mri_free(sim) ;
        }
        DESTROY_IMARR(imar) ; SHOW_AFNI_READY; EXRETURN ;
 
