@@ -542,93 +542,102 @@ int main( int argc , char * argv[] )
 
       /*-- 29 Nov 2001: write out an edited dataset? --*/
 
-      if( iarg == nopt && CL_prefix != NULL ){
-        int qv ; byte *mmm ;
+      if( CL_prefix != NULL ){
+        if (iarg == nopt) {
+           int qv ; byte *mmm ;
 
-        /* make a mask of voxels to keep */
+           /* make a mask of voxels to keep */
 
-        mmm = (byte *) calloc(sizeof(byte),nxyz) ;
-        for( iclu=0 ; iclu < clar->num_clu ; iclu++ ){
-          cl = clar->clar[iclu] ; if( cl == NULL ) continue ;
-          for( ipt=0 ; ipt < cl->num_pt ; ipt++ ){
-            ii = cl->i[ipt] ; jj = cl->j[ipt] ; kk = cl->k[ipt] ;
-            mmm[ii+jj*nx+kk*nxy] = 1 ;
-          }
-        }
-
-        DSET_load( dset ) ;             /* reload data from disk */
-
-        /* needs a new ID, but after loading     30 May 2006 [rickr] */
-        dset->idcode = MCW_new_idcode() ; 
-
-        EDIT_dset_items( dset ,         /* rename dataset internally */
-                           ADN_prefix , CL_prefix ,
-                         ADN_none ) ;
-
-        tross_Make_History( "3dclust" , argc , argv , dset ) ;
-
-        /* mask out each sub-brick */
-
-        for( qv=0 ; qv < DSET_NVALS(dset) ; qv++ ){
-
-           switch( DSET_BRICK_TYPE(dset,qv) ){
-
-             case MRI_short:{
-               short *bar = (short *) DSET_ARRAY(dset,qv) ;
-               for( ii=0 ; ii < nxyz ; ii++ )
-                 if( mmm[ii] == 0 ) bar[ii] = 0 ;
+           mmm = (byte *) calloc(sizeof(byte),nxyz) ;
+           for( iclu=0 ; iclu < clar->num_clu ; iclu++ ){
+             cl = clar->clar[iclu] ; if( cl == NULL ) continue ;
+             for( ipt=0 ; ipt < cl->num_pt ; ipt++ ){
+               ii = cl->i[ipt] ; jj = cl->j[ipt] ; kk = cl->k[ipt] ;
+               mmm[ii+jj*nx+kk*nxy] = 1 ;
              }
-             break ;
+           }
 
-             case MRI_byte:{
-               byte *bar = (byte *) DSET_ARRAY(dset,qv) ;
-               for( ii=0 ; ii < nxyz ; ii++ )
-                 if( mmm[ii] == 0 ) bar[ii] = 0 ;
-             }
-             break ;
+           DSET_load( dset ) ;             /* reload data from disk */
 
-             case MRI_int:{
-               int *bar = (int *) DSET_ARRAY(dset,qv) ;
-               for( ii=0 ; ii < nxyz ; ii++ )
-                 if( mmm[ii] == 0 ) bar[ii] = 0 ;
-             }
-             break ;
+           /* needs a new ID, but after loading     30 May 2006 [rickr] */
+           dset->idcode = MCW_new_idcode() ; 
 
-             case MRI_float:{
-               float *bar = (float *) DSET_ARRAY(dset,qv) ;
-               for( ii=0 ; ii < nxyz ; ii++ )
-                 if( mmm[ii] == 0 ) bar[ii] = 0.0 ;
-             }
-             break ;
+           EDIT_dset_items( dset ,         /* rename dataset internally */
+                              ADN_prefix , CL_prefix ,
+                            ADN_none ) ;
 
-             case MRI_double:{
-               double *bar = (double *) DSET_ARRAY(dset,qv) ;
-               for( ii=0 ; ii < nxyz ; ii++ )
-                 if( mmm[ii] == 0 ) bar[ii] = 0.0 ;
-             }
-             break ;
+           tross_Make_History( "3dclust" , argc , argv , dset ) ;
 
-             case MRI_complex:{
-               complex *bar = (complex *) DSET_ARRAY(dset,qv) ;
-               for( ii=0 ; ii < nxyz ; ii++ )
-                 if( mmm[ii] == 0 ) bar[ii].r = bar[ii].i = 0.0 ;
-             }
-             break ;
+           /* mask out each sub-brick */
 
-             case MRI_rgb:{
-               byte *bar = (byte *) DSET_ARRAY(dset,qv) ;
-               for( ii=0 ; ii < nxyz ; ii++ )
-                 if( mmm[ii] == 0 ) bar[3*ii] = bar[3*ii+1] = bar[3*ii+2] = 0 ;
-             }
-             break ;
-          } /* end of switch over sub-brick type */
-        } /* end of loop over sub-bricks */
+           for( qv=0 ; qv < DSET_NVALS(dset) ; qv++ ){
 
-        /* write dataset out */
+              switch( DSET_BRICK_TYPE(dset,qv) ){
 
-        DSET_write(dset) ;
-        fprintf(stderr,"++ Wrote dataset %s\n",DSET_BRIKNAME(dset)) ;
-        PURGE_DSET(dset) ; free(mmm) ;
+                case MRI_short:{
+                  short *bar = (short *) DSET_ARRAY(dset,qv) ;
+                  for( ii=0 ; ii < nxyz ; ii++ )
+                    if( mmm[ii] == 0 ) bar[ii] = 0 ;
+                }
+                break ;
+
+                case MRI_byte:{
+                  byte *bar = (byte *) DSET_ARRAY(dset,qv) ;
+                  for( ii=0 ; ii < nxyz ; ii++ )
+                    if( mmm[ii] == 0 ) bar[ii] = 0 ;
+                }
+                break ;
+
+                case MRI_int:{
+                  int *bar = (int *) DSET_ARRAY(dset,qv) ;
+                  for( ii=0 ; ii < nxyz ; ii++ )
+                    if( mmm[ii] == 0 ) bar[ii] = 0 ;
+                }
+                break ;
+
+                case MRI_float:{
+                  float *bar = (float *) DSET_ARRAY(dset,qv) ;
+                  for( ii=0 ; ii < nxyz ; ii++ )
+                    if( mmm[ii] == 0 ) bar[ii] = 0.0 ;
+                }
+                break ;
+
+                case MRI_double:{
+                  double *bar = (double *) DSET_ARRAY(dset,qv) ;
+                  for( ii=0 ; ii < nxyz ; ii++ )
+                    if( mmm[ii] == 0 ) bar[ii] = 0.0 ;
+                }
+                break ;
+
+                case MRI_complex:{
+                  complex *bar = (complex *) DSET_ARRAY(dset,qv) ;
+                  for( ii=0 ; ii < nxyz ; ii++ )
+                    if( mmm[ii] == 0 ) bar[ii].r = bar[ii].i = 0.0 ;
+                }
+                break ;
+
+                case MRI_rgb:{
+                  byte *bar = (byte *) DSET_ARRAY(dset,qv) ;
+                  for( ii=0 ; ii < nxyz ; ii++ )
+                    if( mmm[ii] == 0 ) bar[3*ii] = bar[3*ii+1] = bar[3*ii+2] = 0 ;
+                }
+                break ;
+             } /* end of switch over sub-brick type */
+           } /* end of loop over sub-bricks */
+
+           /* write dataset out */
+
+           DSET_write(dset) ;
+           fprintf(stderr,"++ Wrote dataset %s\n",DSET_BRIKNAME(dset)) ;
+           PURGE_DSET(dset) ; free(mmm) ;
+         } else {
+            WARNING_message(  
+               "Output volume not written for input %s . You either \n"
+            "have bad datasets on the command line (check output warnings),\n"
+            "or multiple valid datasets as input. In the latter case, \n"
+            "-prefix does not work.\n",
+                              DSET_BRIKNAME(dset));
+         }
       }
 
       /** sort clusters by size, to make a nice report **/
