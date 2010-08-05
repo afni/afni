@@ -71,7 +71,7 @@ MRI_IMAGE * mri_meanvector( MRI_IMARR *imar , int ibot, int itop )
 
    nx = IMARR_SUBIM(imar,0)->nx ; nv = IMARR_COUNT(imar) ;
    if( ibot < 0 ) ibot = 0 ;
-   if( itop <= itop || itop >= nx ) itop = nx-1 ;
+   if( itop <= ibot || itop >= nx ) itop = nx-1 ;
    nxout = itop-ibot+1 ;
    im = mri_new( nxout , 1 , MRI_float ) ; far = MRI_FLOAT_PTR(im) ;
    for( jj=0 ; jj < nv ; jj++ ){
@@ -80,4 +80,37 @@ MRI_IMAGE * mri_meanvector( MRI_IMARR *imar , int ibot, int itop )
    }
    for( kk=0 ; kk < nxout ; kk++ ) far[kk] /= nv ;
    return im ;
+}
+
+/*------------------------------------------------------------------------*/
+/* code = 0 ==> median
+          1 ==> MAD * 1.4826
+          2 ==> biweight midvariance */
+
+MRI_IMAGE * mri_MMBvector( MRI_IMARR *imar , int ibot, int itop , int code )
+{
+   float *qar , *far , *var , med,mad,bmv ;
+   int nx,nv,jj,kk , nxout ;
+   MRI_IMAGE *im ;
+
+   if( imar == NULL ) return NULL ;
+
+   nx = IMARR_SUBIM(imar,0)->nx ; nv = IMARR_COUNT(imar) ;
+   if( nv < 2 ) return NULL ;
+
+   if( ibot < 0 ) ibot = 0 ;
+   if( itop <= ibot || itop >= nx ) itop = nx-1 ;
+   nxout = itop-ibot+1 ;
+   im = mri_new( nxout , 1 , MRI_float ) ; far = MRI_FLOAT_PTR(im) ;
+   var = (float *)malloc(sizeof(float)*nv) ;
+   for( kk=0 ; kk < nxout ; kk++ ){
+     for( jj=0 ; jj < nv ; jj++ ){
+       qar = MRI_FLOAT_PTR(IMARR_SUBIM(imar,jj)) ; var[jj] = qar[kk+ibot] ;
+     }
+     qmedmadbmv_float( nv , var , &med , &mad , &bmv ) ;
+          if( code <= 0 ) far[kk] = med ;
+     else if( code == 1 ) far[kk] = mad * 1.4826f ;
+     else if( code >= 2 ) far[kk] = bmv ;
+   }
+   free(var) ; return im ;
 }

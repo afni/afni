@@ -296,6 +296,13 @@ extern void plot_ts_lab( Display *,
                          int,float *, int,float **,
                          char *,char *,char *,char ** , void_func * ) ;
 
+extern MEM_plotdata * plot_ts_ebar( int nx , float *x , float *y , float *ey ,
+                                    char *lab_xxx , char *lab_yyy , char *lab_top ) ;
+
+extern void plot_ts_ebar_win( Display *,
+                              int,float *,float *,float *,char *,char *,char *,
+                              void_func * ) ;
+
 #define plot_ts(a,b,c,d,e) plot_ts_lab((a),(b),(c),(d),(e),NULL,NULL,NULL,NULL,NULL)
 
 extern MEM_topshell_data * plot_ts_init( Display *, float, float,
