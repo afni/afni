@@ -1586,7 +1586,7 @@ ENTRY("AFNI_clus_action_CB") ;
            sprintf(tlab,"\\noesc %s[%d..%d]",
                    THD_trailname(DSET_HEADNAME(cwid->dset),SESSTRAIL+1),
                    ibot,itop) ;
-           plot_ts_xypush(1,0) ; plot_ts_setthik(0.007f) ;
+           plot_ts_xypush(1,0) ; plot_ts_setthik(0.006f) ;
            xax = (float *)malloc(sizeof(float)*im->nx) ;
            for( jj=0 ; jj < im->nx ; jj++ ) xax[jj] = ibot+jj ;
            if( sim == NULL ){
