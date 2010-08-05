@@ -1229,7 +1229,7 @@ int main( int argc , char *argv[] )
 
        if( iarg < argc && isdigit(argv[iarg][0]) ){
          nwarp_order = (float)strtod(argv[iarg],NULL) ;
-         if( nwarp_order < 2.0f || nwarp_order > 5.0f ){
+         if( nwarp_order < 2.0f || nwarp_order > 7.0f ){
            WARNING_message("illegal -nwarp order '%s' :-(",argv[iarg]) ;
            nwarp_order = 2.9f ;
          }

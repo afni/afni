@@ -637,6 +637,7 @@ ENTRY("AFNI_clus_make_widgets") ;
                (im3d->vinfo->view_type == VIEW_TALAIRACH_TYPE) ) ;
 
    } else {
+     WARNING_message("No whereami program in Unix path ==> no WamI button in Clusterize!") ;
      cwid->whermask_pb = cwid->savemask_pb ;
    }
 
@@ -673,7 +674,7 @@ ENTRY("AFNI_clus_make_widgets") ;
 
    /* row #2: dataset chooser */
 
-   xstr = XmStringCreateLtoR( "Aux Dataset" , XmFONTLIST_DEFAULT_TAG ) ;
+   xstr = XmStringCreateLtoR( "Choose Aux Dataset" , XmFONTLIST_DEFAULT_TAG ) ;
    cwid->dataset_pb = XtVaCreateManagedWidget(
            "menu" , xmPushButtonWidgetClass , rc ,
             XmNlabelString , xstr ,
@@ -1346,11 +1347,11 @@ ENTRY("AFNI_clus_action_CB") ;
 #define WSIZ 4096
      if( do_wami ){  /* 04 Aug 2010 */
        char *wout , ct[64] ; FILE *fp ;
-       SHOW_AFNI_PAUSE ;
+       SHOW_AFNI_PAUSE ; MCW_invert_widget(cwid->whermask_pb) ;
        wout = (char *)malloc(sizeof(char)*WSIZ) ;
        sprintf(wout,"%s -omask %s",wherprog,DSET_HEADNAME(mset)) ;
        if( jtop >= clar->num_clu ) strcpy (ct," ") ;
-       else                        sprintf(ct," [for first %d clusters]",jtop) ;
+       else                        sprintf(ct," [first %d clusters]",jtop) ;
        INFO_message("Running '%s'%s" , wout , ct ) ;
        fp = popen( wout , "r" ) ;
        if( fp == NULL ){
@@ -1366,7 +1367,7 @@ ENTRY("AFNI_clus_action_CB") ;
          (void)new_MCW_textwin(w,wout,TEXT_READONLY) ;
        }
        free(wout) ;
-       SHOW_AFNI_READY ;
+       MCW_invert_widget(cwid->whermask_pb) ; SHOW_AFNI_READY ;
      }
 
      EXRETURN ;
