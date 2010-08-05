@@ -25,6 +25,7 @@
                     TYPE_NEW_ENV    - new environment variable or change
                     TYPE_BUG_FIX    - bug fix
                     TYPE_MODIFY     - a change (not new, not a fix)
+                    TYPE_ENHANCE    - general improvement
 
            - PLEASE, stick to what fits on an 80 column terminal
            - it may be nice to put the newest entries at the top
@@ -47,6 +48,11 @@
 */
 
 afni_history_struct rickr_history[] = {
+
+ {  5, AUG, 2010, RCR, "afni-general", MICRO, TYPE_GENERAL,
+   "do not let THD_write_3dim_dataset fail silently",
+   NULL
+ } ,
 
  {  4, AUG, 2010, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "added -regress_CS_NN, default to 123",

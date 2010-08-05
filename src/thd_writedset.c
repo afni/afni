@@ -42,20 +42,53 @@ ENTRY("THD_write_3dim_dataset") ;
 
    if( ! ISVALID_3DIM_DATASET(dset)    ||
        ! ISVALID_DATABLOCK(dset->dblk) ||
-       ! ISVALID_DISKPTR(dset->dblk->diskptr) ) RETURN(False) ;
+       ! ISVALID_DISKPTR(dset->dblk->diskptr) ) {
+      /* do not fail silently                 5 Aug 2010 [rickr] */
+      fprintf(stderr,"** cannot write '%s', invalid dset/dblk/diskptr\n",
+              new_prefixname ? new_prefixname : "<NO PREFIX>");
+      RETURN(False) ;
+   }
 
    blk = dset->dblk ;
    blk->parent = (XtPointer)dset ;  /* 05 Jul 2005 */
 
    /* Can only write AFNI formatted datasets */
-   if( DSET_IS_MINC(dset)     ) RETURN(False) ;  /* 29 Oct 2001 */
-   if( DSET_IS_MASTERED(dset) ) RETURN(False) ;  /* 11 Jan 1999 */
-   if( DSET_IS_ANALYZE(dset)  ) RETURN(False) ;  /* 27 Aug 2002 */
-   if( DSET_IS_CTFMRI(dset)   ) RETURN(False) ;  /* 05 Dec 2002 */
-   if( DSET_IS_CTFSAM(dset)   ) RETURN(False) ;  /* 05 Dec 2002 */
-   if( DSET_IS_TCAT(dset)     ) RETURN(False) ;  /* 05 Aug 2004 */
+   if( DSET_IS_MINC(dset)     ) {
+      fprintf(stderr,"** cannot write '%s', dset is MINC\n",
+              new_prefixname ? new_prefixname : "<NO PREFIX>");
+      RETURN(False) ;  /* 29 Oct 2001 */
+   }
+   if( DSET_IS_MASTERED(dset) ) {
+      fprintf(stderr,"** cannot write '%s', dset is MASTERED (sub-bricks)\n",
+              new_prefixname ? new_prefixname : "<NO PREFIX>");
+      RETURN(False) ;  /* 11 Jan 1999 */
+   }
+   if( DSET_IS_ANALYZE(dset)  ) {
+      fprintf(stderr,"** cannot write '%s', dset is ANALYZE\n",
+              new_prefixname ? new_prefixname : "<NO PREFIX>");
+      RETURN(False) ;  /* 27 Aug 2002 */
+   }
+   if( DSET_IS_CTFMRI(dset)   ) {
+      fprintf(stderr,"** cannot write '%s', dset is CTFMRI\n",
+              new_prefixname ? new_prefixname : "<NO PREFIX>");
+      RETURN(False) ;  /* 05 Dec 2002 */
+   }
+   if( DSET_IS_CTFSAM(dset)   ) {
+      fprintf(stderr,"** cannot write '%s', dset is CTFSAM\n",
+              new_prefixname ? new_prefixname : "<NO PREFIX>");
+      RETURN(False) ;  /* 05 Dec 2002 */
+   }
+   if( DSET_IS_TCAT(dset)     ) {
+      fprintf(stderr,"** cannot write '%s', dset is TCAT\n",
+              new_prefixname ? new_prefixname : "<NO PREFIX>");
+      RETURN(False) ;  /* 05 Aug 2004 */
+   }
 
-   if( DSET_IS_VOLUMES(dset) && write_brick ) RETURN(False) ;  /* 20 Jun 2002 */
+   if( DSET_IS_VOLUMES(dset) && write_brick ) {
+      fprintf(stderr,"** cannot write '%s', dset is VOLUMES\n",
+              new_prefixname ? new_prefixname : "<NO PREFIX>");
+      RETURN(False) ;  /* 20 Jun 2002 */
+   }
 
    /* block NI_SURF_DSET from 1D write    11 Jul 2006 [rickr] */
    ppp = DSET_PREFIX(dset) ;
