@@ -26,7 +26,7 @@ static int goforit=0 ;
 # define MEMORY_CHECK                                             \
    do{ long long nb = mcw_malloc_total() ;                        \
        if( nb > 0 && verb > 1 )                                   \
-         ININFO_message("Memory usage now = %%s (%s)" ,           \
+         ININFO_message("Memory usage now = %s (%s)" ,            \
                         commaized_integer_string(nb) ,            \
                         approximate_number_string((double)nb) ) ; \
    } while(0)

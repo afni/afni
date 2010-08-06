@@ -66,6 +66,22 @@
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 6, AUG , 2010 , ZSS , "3dSetupGroupInCorr" , MINOR , TYPE_BUG_FIX,
+   "Fixed bug with LRpairs when time series had different lengths.",
+   "Also fixed minor bug with error message about data size"
+ } ,
+
+ { 6, AUG , 2010 , ZSS , "afni" , MICRO , TYPE_BUG_FIX,
+   "Tiny changes to functions prettyfying numeric output"
+   "Particularly functions approximate_number_string, and \n"
+   "commaized_integer_string, and macro MEMORY_CHECK in 3dREMLfit"
+ } ,
+
+ { 5, AUG , 2010 , ZSS , "suma" , MICRO , TYPE_BUG_FIX,
+   "Fixed crash when using group instant correlation on 1 surface.",
+   NULL
+ } ,
+
  { 2, AUG , 2010 , ZSS , "suma" , MICRO , TYPE_BUG_FIX,
    "Fixed default naming for interactive dsets.",
    "The older naming, based on label, rather than filename\n"
