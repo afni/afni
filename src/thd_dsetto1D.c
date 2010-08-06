@@ -93,6 +93,7 @@ int THD_extract_array( int ind, THD_3dim_dataset *dset, int raw, void *uar )
 
    nb1 = mri_datum_size(typ); nb = nb1 * (nv+1); nb1 = nb1 * nv;
    tar = (void *)calloc(1,nb) ;
+   NULL_CHECK(tar) ;
 
    if( !raw ) far = (float *)uar ;  /* non-raw output */
 
@@ -269,7 +270,7 @@ int THD_voxel_is_constant( int ind , THD_3dim_dataset *dset )
    if( ind < 0 || ind >= DSET_NVOX(dset) ) return 1 ;
 
    nvals = DSET_NVALS(dset) ; if( nvals == 1 ) return 1 ;
-   far = (float *)malloc(sizeof(float)*nvals) ;
+   far = (float *)malloc(sizeof(float)*nvals) ; NULL_CHECK(far) ;
    ii = THD_extract_array( ind , dset , 0 , far ) ;
    if( ii < 0 ){ free(far); return 1; }
    for( ii=1 ; ii < nvals && far[ii]==far[0]; ii++ ) ; /*nada*/
@@ -300,12 +301,17 @@ ENTRY("THD_extract_many_series") ;
    if( iar == NULL ){  /* if data needs to be loaded from disk */
      (void) THD_load_datablock( dset->dblk ) ;
      iar = DSET_ARRAY(dset,0) ;
-     if( iar == NULL ) RETURN( NULL );
+     if( iar == NULL ){
+       static int nerr=0 ;
+       if( nerr < 2 ){ ERROR_message("Can't load dataset %s",DSET_HEADNAME(dset)); nerr++; }
+       RETURN( NULL );
+     }
    }
 
    /* create output */
 
    far = (float **) malloc(sizeof(float *)*ns) ;  /* 27 Feb 2003 */
+   NULL_CHECK(far) ;
    INIT_IMARR(imar) ;
    for( kk=0 ; kk < ns ; kk++ ){
      im = mri_new( nv , 1 , MRI_float ) ;  /* N.B.: now does 0 fill */
@@ -406,7 +412,7 @@ ENTRY("THD_extract_many_series") ;
    /* scale outputs, if needed */
 
    if( THD_need_brick_factor(dset) ){
-      MRI_IMAGE * qim ;
+      MRI_IMAGE *qim ;
       for( kk=0 ; kk < ns ; kk++ ){
          im  = IMARR_SUBIMAGE(imar,kk) ;
          qim = mri_mult_to_float( dset->dblk->brick_fac , im ) ;
@@ -499,6 +505,7 @@ ENTRY("THD_extract_many_arrays") ;
    nv = dset->dblk->nvals ;
 
    far = (float **) malloc(sizeof(float *)*ns) ;  /* 27 Feb 2003 */
+   NULL_CHECK(far) ;
    for( kk=0 ; kk < ns ; kk++ ) far[kk] = dsar + kk*nv ;
 
    /* fill the output */
