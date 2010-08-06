@@ -5085,7 +5085,12 @@ SUMA_OVERLAYS * SUMA_CreateOverlayPointerIdentifiers(
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-    
+   
+   if (!Name) {
+      SUMA_S_Err("Bad boy! Name should never be NULL here.");
+      SUMA_RETURN(NULL);
+   } 
+   
    Sover = (SUMA_OVERLAYS *)SUMA_calloc(1, sizeof(SUMA_OVERLAYS));
    if (!Sover) {
       fprintf (SUMA_STDERR,
@@ -5143,8 +5148,8 @@ SUMA_OVERLAYS * SUMA_CreateOverlayPointer (
    
    SUMA_ENTRY;
 
-   if (!dset) {
-      SUMA_SL_Err("Need dset");
+   if (!dset || !Name) {
+      SUMA_SL_Err("Need dset, need name.");
       SUMA_RETURN(NULL);
    }
    

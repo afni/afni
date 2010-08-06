@@ -620,7 +620,7 @@ int main( int argc , char *argv[] )
    char nsname[2048]  ; /* NIML socket name */
    NI_element *nelset ; /* NIML element with dataset to send to AFNI */
    NI_element *nelcmd ; /* NIML element with command from AFNI */
-   float *neldar          , *nelzar          ;
+   float *neldar=NULL     , *nelzar=NULL          ;
    float *neldar_AAA=NULL , *nelzar_AAA=NULL ;
    float *neldar_BBB=NULL , *nelzar_BBB=NULL ; int dosix=0 , nosix=0 ;
    char buf[1024] ;
@@ -640,7 +640,7 @@ int main( int argc , char *argv[] )
    NI_str_array *covlab=NULL ;
    MRI_IMAGE *axxim , *axxim_psinv , *axxim_xtxinv ;
    MRI_IMAGE *bxxim , *bxxim_psinv , *bxxim_xtxinv ;
-   float **dtar ;
+   float **dtar=NULL ;
 
 #ifdef COVTEST
    float *ctarA=NULL , *ctarB=NULL ; char *ctnam ;
