@@ -775,13 +775,13 @@ ENTRY("AFNI_clus_make_widgets") ;
    cwid->nall = num ;
    cwid->nrow = 0 ;     /* none are managed at this time */
 
-   cwid->clu_rc      = (Widget *) XtCalloc( num , sizeof(Widget) ) ;
-   cwid->clu_lab     = (Widget *) XtCalloc( num , sizeof(Widget) ) ;
-   cwid->clu_jump_pb = (Widget *) XtCalloc( num , sizeof(Widget) ) ;
-   cwid->clu_plot_pb = (Widget *) XtCalloc( num , sizeof(Widget) ) ;
-   cwid->clu_save_pb = (Widget *) XtCalloc( num , sizeof(Widget) ) ;
-   cwid->clu_flsh_pb = (Widget *) XtCalloc( num , sizeof(Widget) ) ;
-   cwid->clu_alph_lab= (Widget *) XtCalloc( num , sizeof(Widget) ) ;
+   cwid->clu_rc      = (Widget *)XtCalloc( num , sizeof(Widget) ) ;
+   cwid->clu_lab     = (Widget *)XtCalloc( num , sizeof(Widget) ) ;
+   cwid->clu_jump_pb = (Widget *)XtCalloc( num , sizeof(Widget) ) ;
+   cwid->clu_plot_pb = (Widget *)XtCalloc( num , sizeof(Widget) ) ;
+   cwid->clu_save_pb = (Widget *)XtCalloc( num , sizeof(Widget) ) ;
+   cwid->clu_flsh_pb = (Widget *)XtCalloc( num , sizeof(Widget) ) ;
+   cwid->clu_alph_lab= (Widget *)XtCalloc( num , sizeof(Widget) ) ;
 
    for( ii=0 ; ii < num ; ii++ ){ MAKE_CLUS_ROW(ii) ; }
    for( ii=0 ; ii < num ; ii++ ){

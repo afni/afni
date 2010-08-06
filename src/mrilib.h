@@ -658,6 +658,10 @@ static int MRI_mm ;
 #define MRI_FATAL_ERROR \
         {fprintf(stderr,"in file: %s at line %d\n",__FILE__,__LINE__);EXIT(1);}
 
+#undef  NULL_CHECK
+#define NULL_CHECK(p) \
+ do{ if( (p)==NULL ){ ERROR_message("malloc failure: out of RAM?"); EXIT(1); } } while(0)
+
 /**** prototypes ****/
 
 #ifdef  __cplusplus
