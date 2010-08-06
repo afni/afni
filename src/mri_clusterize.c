@@ -37,6 +37,8 @@ MRI_IMAGE * mri_clusterize( float rmm , float vmul , MRI_IMAGE *bim ,
    MRI_IMAGE *cim ; void *car ;
    MCW_cluster *cl , *dl ; MCW_cluster_array *clar ;
    int nnlev = 0 ;
+   static char *cclev[3] = { "[faces touch]" ,
+                             "[edges touch]" , "[corners touch]" } ;
 
 ENTRY("mri_clusterize") ;
 
@@ -110,16 +112,18 @@ ENTRY("mri_clusterize") ;
                             " Voxels survived clustering =%6d\n"
                             " Voxels edited out          =%6d\n" ,
                             nkeep , nkill ) ;
+#if 0
      if( ntop >= nbot )
        report = THD_zzprintf( report ,
                             " Min cluster size (voxels)  =%6d\n"
                             " Max cluster size           =%6d\n"
                             " Number of clusters kept    =%6d\n" ,
                             nbot , ntop , ncgood ) ;
+#endif
      if( nnlev > 0 )
        report = THD_zzprintf( report ,
-                            " NN clustering level        =%6d\n" ,
-                            nnlev ) ;
+                            " NN clustering level        =%6d %s\n" ,
+                            nnlev , cclev[nnlev-1] ) ;
    }
 
    RETURN(cim) ;

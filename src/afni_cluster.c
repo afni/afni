@@ -1348,8 +1348,9 @@ ENTRY("AFNI_clus_action_CB") ;
 #undef  WSIZ
 #define WSIZ 4096
      if( do_wami ){  /* 04 Aug 2010 */
-       char *wout , ct[64] ; FILE *fp ;
-       SHOW_AFNI_PAUSE ; MCW_invert_widget(cwid->whermask_pb) ;
+       char *wout , ct[64] ; FILE *fp ; int inv ;
+       SHOW_AFNI_PAUSE ;
+       MCW_invert_widget(cwid->whermask_pb) ; inv = 1 ;
        wout = (char *)malloc(sizeof(char)*WSIZ) ;
        sprintf(wout,"%s -omask %s",wherprog,DSET_HEADNAME(mset)) ;
        if( jtop >= clar->num_clu ) strcpy (ct," ") ;
@@ -1363,13 +1364,15 @@ ENTRY("AFNI_clus_action_CB") ;
          wout[0] = '\0' ;
          while( fgets(wout+strlen(wout),WSIZ-2,fp) != NULL ){
            wout = (char *)realloc(wout,sizeof(char)*(strlen(wout)+WSIZ)) ;
+           /*** MCW_invert_widget(cwid->whermask_pb) ; inv = !inv ; ***/
          }
          (void)pclose(fp) ;
          MCW_textwin_setbig(0) ;
          (void)new_MCW_textwin(w,wout,TEXT_READONLY) ;
        }
        free(wout) ;
-       MCW_invert_widget(cwid->whermask_pb) ; SHOW_AFNI_READY ;
+       if( inv ) MCW_invert_widget(cwid->whermask_pb) ;
+       SHOW_AFNI_READY ;
      }
 
      EXRETURN ;
