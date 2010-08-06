@@ -4,10 +4,21 @@
 
 char * commaized_integer_string( long long val )
 {
-   static char sval[128] ;
+   static char svals[5][128] ;   /* ZSS Aug. 2010 */
+   char *sval;
    char qval[128] ;
    int qq,ss , qpos , qlen , pval = (val >= 0) ;
-
+   static int k=0;
+   
+   /* without these three lines, a call like this:
+      sprintf(str,"Hello %s, %s\n", 
+               commaized_integer_string(100),
+               commaized_integer_string(500)); 
+      would fail to write out both numbers.  ZSS Aug. 2010*/
+   k = k % 5;  
+   sval = svals[k];
+   ++k;
+   
    sprintf(qval,"%lld",val) ; qlen = strlen(qval) ;
 
    if( AFNI_yesenv("AFNI_DONT_COMMAIZE") ||
@@ -32,9 +43,15 @@ char * commaized_integer_string( long long val )
 
 char * approximate_number_string( double val )
 {
-   static char sval[128] ;
+   static char svals[5][128] ;
+   char *sval;
    double aval=fabs(val) , tval ;
    int    lv , qv ;
+   static int k=0;
+   
+   k = k % 5;     /* ZSS Aug. 2010 (same fix as commaized_integer_string)*/
+   sval = svals[k];
+   ++k;
 
    if( aval == 0.0 ){ strcpy(sval,"Zero"); return; }
 

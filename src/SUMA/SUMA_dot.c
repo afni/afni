@@ -1036,7 +1036,7 @@ SUMA_Boolean SUMA_GICOR_Dsets(SUMA_SurfaceObject *SOv[],
                             "AAA_Delta" , "AAA_Zscore" ,
                             "BBB_Delta" , "BBB_Zscore"  } ;
    NI_str_array *labar=NULL ;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
@@ -1048,6 +1048,7 @@ SUMA_Boolean SUMA_GICOR_Dsets(SUMA_SurfaceObject *SOv[],
    }
    
    if (target_name) { /* Brand new init, search/create by name */
+      SUMA_LHv("Brand new init, target_name=%s\n", target_name);
       if (!nel) {
          SUMA_S_Err("Need GICOR setup nel for creating new dsets");
          SUMA_RETURN(NOPE);
@@ -1063,6 +1064,7 @@ SUMA_Boolean SUMA_GICOR_Dsets(SUMA_SurfaceObject *SOv[],
       /* Now create a dataset for each case */
       for (i=0; i<2; ++i) {
          if (targetv[i]) {
+            SUMA_LHv("Working %s\n", targetv[i]);
             /* dset names */
             dset_namev[i] = SUMA_append_string(targetv[i], SOv[i]->idcode_str);
             sdsetv[i] = SUMA_CreateDsetPointer (dset_namev[i], 
@@ -1109,40 +1111,41 @@ SUMA_Boolean SUMA_GICOR_Dsets(SUMA_SurfaceObject *SOv[],
                }
             }
             if (labar) SUMA_free_NI_str_array(labar); labar=NULL;
-         }
          
-         /* create overlays */
-         ov[i] = SUMA_CreateOverlayPointer (targetv[i], sdsetv[i], 
-                                            SOv[i]->idcode_str, NULL);
-         if (!ov[i]) {
-            SUMA_SL_Err("Failed in SUMA_CreateOverlayPointer.\n");
-            SUMA_free(dset_namev[i]); SUMA_free(targetv[i]);
-            SUMA_RETURN(NOPE);
+            SUMA_LHv("Creating overlays for %s\n", targetv[i]);
+            /* create overlays */
+            ov[i] = SUMA_CreateOverlayPointer (targetv[i], sdsetv[i], 
+                                               SOv[i]->idcode_str, NULL);
+            if (!ov[i]) {
+               SUMA_SL_Err("Failed in SUMA_CreateOverlayPointer.\n");
+               SUMA_free(dset_namev[i]); SUMA_free(targetv[i]);
+               SUMA_RETURN(NOPE);
+            }
+            ov[i]->ShowMode = SW_SurfCont_DsetViewCol;
+            ov[i]->GlobalOpacity = 0.8;
+            ov[i]->isBackGrnd = NOPE;
+            ov[i]->OptScl->BrightFact = 0.5;
+            ov[i]->OptScl->find = 0;
+            ov[i]->OptScl->tind = 1;
+            ov[i]->OptScl->bind = 0;
+            ov[i]->OptScl->UseThr = 1; /* turn on threshold use */
+            ov[i]->SymIrange = 1;   /* Use symmetric range */
+            ov[i]->OptScl->AutoIntRange = 0; /* Do not update range */
+            ov[i]->OptScl->IntRange[0] = -0.5;  /* set the range */
+            ov[i]->OptScl->IntRange[1] =  0.5;
+            ov[i]->OptScl->ThreshRange[0] = 2.0;
+            ov[i]->OptScl->ThreshRange[1] = 0.0;
+
+            /* Now add the overlay to SOv[i]->Overlays */
+            if (!SUMA_AddNewPlane (SOv[i], ov[i], SUMAg_DOv, SUMAg_N_DOv, 0)) {
+               SUMA_SL_Crit("Failed in SUMA_AddNewPlane");
+               SUMA_FreeOverlayPointer(ov[i]);
+               SUMA_free(dset_namev[i]); SUMA_free(targetv[i]);
+               SUMA_RETURN (NOPE);
+            }
+            SUMA_free(dset_namev[i]); dset_namev[i]=NULL;
+            SUMA_free(targetv[i]); targetv[i]=NULL;
          }
-         ov[i]->ShowMode = SW_SurfCont_DsetViewCol;
-         ov[i]->GlobalOpacity = 0.8;
-         ov[i]->isBackGrnd = NOPE;
-         ov[i]->OptScl->BrightFact = 0.5;
-         ov[i]->OptScl->find = 0;
-         ov[i]->OptScl->tind = 1;
-         ov[i]->OptScl->bind = 0;
-         ov[i]->OptScl->UseThr = 1; /* turn on threshold use */
-         ov[i]->SymIrange = 1;   /* Use symmetric range */
-         ov[i]->OptScl->AutoIntRange = 0; /* Do not update range */
-         ov[i]->OptScl->IntRange[0] = -0.5;  /* set the range */
-         ov[i]->OptScl->IntRange[1] =  0.5;
-         ov[i]->OptScl->ThreshRange[0] = 2.0;
-         ov[i]->OptScl->ThreshRange[1] = 0.0;
-         
-         /* Now add the overlay to SOv[i]->Overlays */
-         if (!SUMA_AddNewPlane (SOv[i], ov[i], SUMAg_DOv, SUMAg_N_DOv, 0)) {
-            SUMA_SL_Crit("Failed in SUMA_AddNewPlane");
-            SUMA_FreeOverlayPointer(ov[i]);
-            SUMA_free(dset_namev[i]); SUMA_free(targetv[i]);
-            SUMA_RETURN (NOPE);
-         }
-         SUMA_free(dset_namev[i]); dset_namev[i]=NULL;
-         SUMA_free(targetv[i]); targetv[i]=NULL;
       }
       
       /* Done with brand new init */
@@ -1150,7 +1153,9 @@ SUMA_Boolean SUMA_GICOR_Dsets(SUMA_SurfaceObject *SOv[],
    } 
    
    CHECK_DSET_AND_OVERLAYS:
-    { /* just use what is in giset */
+   SUMA_LH("Checking Dset and Overlays.\n");
+
+   { /* just use what is in giset */
       if (giset->sdset_ID[0][0] == '\0') {
          SUMA_S_Err("No ID in sdset_ID. Unexpected happenstance");
          SUMA_RETURN(NOPE);
@@ -1229,7 +1234,7 @@ SUMA_Boolean SUMA_GICOR_setup_func( NI_stream nsg , NI_element *nel )
    int nnode_dom[2]={0,0};
    int nnode_mask[2]={0,0};
    SUMA_SurfaceObject *SOv[2]={NULL, NULL};
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    

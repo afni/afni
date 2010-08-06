@@ -41,12 +41,12 @@ int main( int argc , char * argv[] )
    char *hfname , *dfname ;
    char atrib[2048] , *buf , *gstr ;
    byte *mask=NULL ;
-   int mask_nx,mask_ny,mask_nz,nmask , nx,ny,nz,nvox ;
+   int mask_nx=0,mask_ny=0,mask_nz=0,nmask=0 , nx=0,ny=0,nz=0,nvox=0 ;
    NI_element *nel ;
    int nvec , *nvals , *ivec=NULL , iv,kk,nvv , nopt , do_delete=0 ;
    float *fac , *fv , val,top ;
    NI_float_array *facar ; NI_int_array *nvar ;
-   short *sv ; sbyte *bv ; MRI_vectim *mv ; FILE *fp ; long long fsize ;
+   short *sv=NULL; sbyte *bv=NULL ; MRI_vectim *mv ; FILE *fp ; long long fsize ;
    int atim,btim,ctim ;
    int LRpairs = 0, Ns[2]={-1,-1}, Nv[2]={-1,-1}, Nm[2]={0, 0};
    int do_byte = 1 ;
@@ -333,9 +333,9 @@ int main( int argc , char * argv[] )
    dfname = (char *)malloc(strlen(prefix)+32) ;    /* data filename   */
    strcpy(hfname,prefix) ; strcat(hfname,suffix_head) ;
    strcpy(dfname,prefix) ; strcat(dfname,suffix_data) ;
-   if( THD_is_file(hfname) )
+   if( THD_is_file(hfname) && !THD_ok_overwrite())
      ERROR_exit("Output header file '%s' already exists",hfname) ;
-   if( THD_is_file(dfname) )
+   if( THD_is_file(dfname) && !THD_ok_overwrite())
      ERROR_exit("Output data file '%s' already exists",dfname) ;
 
    /*-- read input dataset headers --*/
@@ -471,7 +471,6 @@ int main( int argc , char * argv[] )
         btim = NI_clock_time() ;
 
         /* extract all time series in the mask, as floats */
-
         mv = THD_2dset_to_vectim( inset[ids], NULL ,
                                   inset[ids+1], NULL ,
                                   0 );
@@ -536,7 +535,11 @@ int main( int argc , char * argv[] )
 
         ids += 2;
       } /* end of dataset pairs loop */
-      ndset /= 2;
+      /* trim nvals, and ndset */
+      for ( ids=0 ; ids < ndset/2; ++ids) {
+         nvals[ids] = nvals[2*ids];
+      }
+         ndset /= 2;
    } else {
       for( ids=0 ; ids < ndset ; ids++ ){
         fprintf(stderr,"++ Dataset %s:",DSET_BRIKNAME(inset[ids])) ;
