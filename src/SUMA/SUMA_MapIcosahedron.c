@@ -1081,9 +1081,10 @@ int main (int argc, char *argv[])
                         UserRadius,
                         r);
       } 
-      sprintf( snote,
-               "%s User specified radius = %.4f, Average raidus is     = %.4f."
-               , snote, UserRadius, r);
+      sprintf( sbuf,
+               " User specified radius = %.4f, Average raidus is     = %.4f."
+               , UserRadius, r);
+      strcat (snote,sbuf);
       r = UserRadius;
    } else {
       if (verb) {
@@ -1091,7 +1092,8 @@ int main (int argc, char *argv[])
                      "  Using average radius of %.4f\n"
                      , SO_morph->Label, r  );
       } 
-      sprintf(snote,"%s Using average radius of %.4f", snote, r);
+      sprintf(sbuf," Using average radius of %.4f", r);
+      strcat (snote,sbuf);
    }
    
    if (verb) 

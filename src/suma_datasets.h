@@ -1175,7 +1175,7 @@ If ind is NULL, then the index will be the line number.
     COLMS_RANGE as these are handled at the moment of column creation
 */
 #define SUMA_COPY_DSET_COL_ATTRIBUTES(odset, ndset, io, in) {   \
-   char *m_ATR_LIST[64] = { \
+   static char *m_ATR_LIST[64] = { \
       "COLMS_STATSYM", "FDRCURVE",  \
        NULL }; \
    if (!SUMA_CopyDsetAttributes (odset, ndset, m_ATR_LIST, io, in)) {   \
@@ -1193,7 +1193,7 @@ If ind is NULL, then the index will be the line number.
 }
 
 #define SUMA_COPY_DSETWIDE_ATTRIBUTES(odset, ndset) {   \
-   char *m_ATR_LIST[64] = { \
+   static char *m_ATR_LIST[64] = { \
       "TR",  \
       "AFNI_labeltable",   \
        NULL }; \

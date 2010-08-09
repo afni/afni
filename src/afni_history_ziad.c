@@ -66,6 +66,16 @@
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 9, AUG , 2010 , ZSS , "suma-general" , MICRO , TYPE_NEW_OPT,
+   "Allows reading 5-column colormaps",
+   NULL
+ } ,
+
+ { 9, AUG , 2010 , ZSS , "MapIcosahedron" , MICRO , TYPE_BUG_FIX,
+   "Changed 2 sprintf lines writing and reading from same address.",
+   NULL
+ } ,
+
  { 6, AUG , 2010 , ZSS , "3dSetupGroupInCorr" , MINOR , TYPE_BUG_FIX,
    "Fixed bug with LRpairs when time series had different lengths.",
    "Also fixed minor bug with error message about data size"
