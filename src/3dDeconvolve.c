@@ -1040,8 +1040,13 @@ void display_help_menu()
     "     'GAM(p,q)'    = 1 parameter gamma variate                         \n"
     "                         (t/(p*q))^p * exp(p-t/q)                      \n"
     "                       Defaults: p=8.6 q=0.547 if only 'GAM' is used   \n"
-    "                 ==> ** There is no convolution of the 'GAM' function  \n"
-    "                        with a square wave implied.                    \n"
+    "                     ** The peak of 'GAM(p,q)' is at time p*q after    \n"
+    "                        the stimulus.  The FWHM is about 2.3*sqrt(p)*q.\n"
+    "                 ==> ** If you add a third argument 'd', then the GAM  \n"
+    "                        function is convolved with a square wave of    \n"
+    "                        duration 'd' seconds; for example:             \n"
+    "                          'GAM(8.6,.547,17)'                           \n"
+    "                        for a 17 second stimulus.  [09 Aug 2010]       \n"
     "     'SPMG1'       = 1 parameter SPM gamma variate basis function      \n"
     "                         exp(-t)*(A1*t^P1-A2*t^P2) where               \n"
     "                       A1 = 0.0083333333  P1 = 5  (main positive lobe) \n"
@@ -9695,6 +9700,9 @@ static float waveform_SPMG2( float t ){ return basis_spmg2(t,0.0f,0.0f,0.0f,NULL
 static float waveform_SPMG3( float t ){ return basis_spmg3(t,0.0f,0.0f,0.0f,NULL); }
 static float waveform_MION ( float t ){ return basis_mion (t,0.0f,0.0f,0.0f,NULL); }
 
+static float GAM_p , GAM_q , GAM_top ;
+static float waveform_GAM( float t ){ return basis_gam(t,GAM_p,GAM_q,GAM_top,NULL); }
+
 /*--------------------------------------------------------------------------*/
 /*  f(t,T) = int( h(t-s) , s=0..min(t,T) )
     where h(t) = t^4 * exp(-t) /(4^4*exp(-4))
@@ -10035,6 +10043,7 @@ static float waveform_WAV( float t )
 #define WTYPE_SPMG2 2
 #define WTYPE_SPMG3 3
 
+#define WTYPE_GAM   7
 #define WTYPE_MION  8
 #define WTYPE_WAV   9
 
@@ -10075,6 +10084,8 @@ static int setup_WFUN_function( int wtyp , float dur , float *parm )
    float (*wavfun)(float) = NULL ;
    char msg[222] ;
 
+ENTRY("setup_WFUN_function") ;
+
    if( dur < 0.0f ) dur = 0.0f ;
    ws.wtype = wtyp ; ws.dur = dur ;
    ws.parm[0] = ws.parm[1] = ws.parm[2] = ws.parm[3] =
@@ -10083,7 +10094,7 @@ static int setup_WFUN_function( int wtyp , float dur , float *parm )
 
    switch( wtyp ){
 
-     default: return -1 ;  /* bad input */
+     default: RETURN(-1) ;  /* bad input */
 
      case WTYPE_WAV:
        if( parm != NULL ){
@@ -10133,12 +10144,19 @@ static int setup_WFUN_function( int wtyp , float dur , float *parm )
        sprintf(msg,"waveform setup: MION(dur=%g)",dur) ;
      break ;
 
+     case WTYPE_GAM:
+       wavfun = waveform_GAM  ;
+       ws.parm[0] = GAM_p = parm[0] ;
+       ws.parm[1] = GAM_q = parm[1] ;
+       GAM_top = GAM_p*GAM_q + 5.0f*sqrtf(GAM_p)*GAM_q ;
+       sprintf(msg,"waveform setup: GAM(p=%g,q=%g,dur=%g)",GAM_p,GAM_q,dur) ;
+     break ;
    }
 
    /* check if we have a duplicate of an existing WFUN function */
 
    for( ii=0 ; ii < nWFUNS ; ii++ )
-     if( WFUN_equals(ws,WFUNS[ii]) ) return ii ;  /* found a match */
+     if( WFUN_equals(ws,WFUNS[ii]) ) RETURN(ii) ;  /* found a match */
 
    /**** must create a new WFUN function: ****/
 
@@ -10192,7 +10210,7 @@ static int setup_WFUN_function( int wtyp , float dur , float *parm )
    memcpy( WFUNS+nWFUNS , &ws , sizeof(WFUN_storage) ) ;
    nWFUNS++ ;
 
-   return (nWFUNS-1) ;  /* index of new struct */
+   RETURN(nWFUNS-1) ;  /* index of new struct */
 }
 
 /*----------------------------------------------------------------*/
@@ -10250,24 +10268,45 @@ ENTRY("basis_parser") ;
 
      be->nfunc = 1 ;
      be->bfunc = (basis_func *)calloc(sizeof(basis_func),be->nfunc) ;
-     be->bfunc[0].f = basis_gam ;
      if( cpt == NULL ){
        be->bfunc[0].a = 8.6f ;     /* Mark Cohen's parameters */
        be->bfunc[0].b = 0.547f ;   /* t_peak=4.7 FWHM=3.7 */
        be->bfunc[0].c = 11.1f ;    /* return to zero-ish */
+       be->bfunc[0].f = basis_gam ;
+       be->tbot = 0.0f ; be->ttop = be->bfunc[0].c ;
      } else {
-       sscanf(cpt,"%f,%f",&bot,&top) ;
-       if( bot <= 0.0f || top <= 0.0f ){
+       float dur=-1.0f ;
+       sscanf(cpt,"%f,%f,%f",&bot,&top,&dur) ;
+       if( dur < 0.0f && (bot <= 0.0f || top <= 0.0f) ){
          ERROR_message("'GAM(%s' is illegal",cpt) ;
          ERROR_message(
            " Correct format: 'GAM(b,c)' with b > 0 and c > 0.");
          free((void *)be->bfunc); free((void *)be); free(scp); RETURN(NULL);
        }
-       be->bfunc[0].a = bot ;    /* t_peak = bot*top */
-       be->bfunc[0].b = top ;    /* FWHM   = 2.3*sqrt(bot)*top */
-       be->bfunc[0].c = bot*top + 4.0f*sqrt(bot)*top ;  /* long enough */
+       if( dur < 0.0f ){   /* the olden way: no duration given */
+         be->bfunc[0].a = bot ;    /* t_peak = bot*top */
+         be->bfunc[0].b = top ;    /* FWHM   = 2.3*sqrt(bot)*top */
+         be->bfunc[0].c = bot*top + 5.0f*sqrtf(bot)*top ;  /* long enough */
+         be->bfunc[0].f = basis_gam ;
+         be->tbot = 0.0f ; be->ttop = be->bfunc[0].c ;
+       } else {            /* duration given ==> integrate it */
+         int iwav ; float parm[2] ;
+         if( bot <= 0.0f ) bot = 8.6f ;
+         if( top <= 0.0f ) top = 0.547f ;
+         if( dur == 0.0f ) dur = 0.01f ;
+         parm[0] = bot ; parm[1] = top ;
+         iwav = setup_WFUN_function( WTYPE_GAM , dur , parm ) ;
+         if( iwav < 0 ){
+           ERROR_message("Can't setup GAM(%f,%f,%f) for some reason?!",bot,top,dur) ;
+           free((void *)be); free(scp); RETURN(NULL);
+         }
+         be->tbot = 0.0f ; be->ttop = WFUNDT * WFUNS[iwav].nfun ;
+         be->bfunc[0].f = basis_WFUN ;
+         be->bfunc[0].a = (float)iwav ;
+         be->bfunc[0].b = 0.0f ;
+         be->bfunc[0].c = 0.0f ;
+       }
      }
-     be->tbot = 0.0f ; be->ttop = be->bfunc[0].c ;
 
    /*--- TENT(bot,top,order) ---*/  /*-- add TENTzero 23 Jul 2010 --*/
 
