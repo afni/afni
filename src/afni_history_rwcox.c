@@ -44,6 +44,11 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 9 , AUG , 2010 , RWC , "3dDeconvolve" , MICRO , TYPE_GENERAL ,
+   "Add duration 'd' parameter to GAM basis function." ,
+   "Also add some various comments to the help; in particular, advertising\n"
+   "afni_proc.py" } ,
+
  { 4 , AUG , 2010 , RWC , "afni" , MICRO , TYPE_BUG_FIX ,
    "Restore 'jump to' capability when selecting a marker" ,
    "Removed accidentally when disabling the popup marker toggles." } ,
