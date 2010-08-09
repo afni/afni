@@ -1655,8 +1655,9 @@ SUMA_COLOR_MAP *SUMA_Read_Color_Map_1D (char *Name)
    MRI_IMAGE *im = NULL;
    float *far=NULL;
    float ColSum;
-   int i=0;
+   int i=0, iwarn=0;
    SUMA_COLOR_MAP* SM = NULL;
+
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -1674,8 +1675,9 @@ SUMA_COLOR_MAP *SUMA_Read_Color_Map_1D (char *Name)
    }
 
    /* check for sizes */
-   if (im->ny != 3 && im->ny != 4) {
-      SUMA_S_Err("File must contain 3 or 4 columns only");
+   if (im->ny != 3 && im->ny != 4 && im->ny != 5) {
+      SUMA_S_Errv("Colormap file %s must contain 3, 4, or 5 columns only.\n",
+                  Name);
       SUMA_RETURN(NULL);
       
    }
@@ -1704,7 +1706,36 @@ SUMA_COLOR_MAP *SUMA_Read_Color_Map_1D (char *Name)
    far = MRI_FLOAT_PTR(im);
    
    ColSum = 0;
-   if (im->ny == 4) {
+   if (im->ny == 5) {   /* assume it is the freesurfer colormap */
+      /* if need be, can check that 1st column is a monotonically
+         increasing index 0 ... Ncol -1 ... 
+         Last column is a key 
+         You encounter these colormaps in the SUMA/ directory
+         They are created by @SUMA_Make_Spec_FS and get stuck inside
+         annotation files. It does not hurt to load them here though.
+         For now, just take colors */
+      SM->Sgn = 1;
+      for (i=0; i < im->nx; ++i) {
+         if (!iwarn && SUMA_ABS(far[i]-(int)far[i])>SUMA_EPSILON) {
+            SUMA_S_Warnv("Colormap %s does not appear to be a 1D version"
+                        "of a freesurfer colormap.\n"
+                        "Assuming format to be:\n"
+                        "  icol r g b key \n"
+                        "Data line %d is:\n"
+                        "  %f    %f %f %f    %f\n", 
+               Name, i, far[i], far[i+im->nx],  far[i+2*im->nx], 
+                             far[i+3*im->nx],far[i+4*im->nx]); 
+            ++iwarn;
+         }
+         SM->M[SM->N_M[0] - i - 1][0] = far[i+im->nx]; 
+            ColSum += far[i];
+         SM->M[SM->N_M[0] - i - 1][1] = far[i+2*im->nx]; 
+            ColSum += far[i+im->nx];
+         SM->M[SM->N_M[0] - i - 1][2] = far[i+3*im->nx]; 
+            ColSum += far[i+2*im->nx];
+         SM->M[SM->N_M[0] - i - 1][3] = 1.0;
+      }
+   } else if (im->ny == 4) {
       SM->Sgn = 1;
       for (i=0; i < im->nx; ++i) {
          SM->M[SM->N_M[0] - i - 1][0] = far[i]; 
