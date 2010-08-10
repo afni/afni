@@ -988,10 +988,27 @@ void display_help_menu()
     "   Generate the k-th response model from a set of stimulus times       \n"
     "   given in file 'tname'.  The response model is specified by the      \n"
     "   'Rmodel' argument, which can be one of the following:               \n"
-    "         [In the descriptions, a '1 parameter' model is a model ]      \n"
-    "         [that has a fixed shape, and only the amplitude varies.]      \n"
-    "         [Models with more than 1 parameter have multiple basis ]      \n"
-    "         [functions, and the parameters are their amplitudes.   ]      \n"
+    "    *** In the descriptions below, a '1 parameter' model is a model    \n"
+    "        that has a fixed shape, and only the amplitude varies.         \n"
+    "        Models with more than 1 parameter have multiple basis          \n"
+    "        functions, and the parameters are their amplitudes.            \n"
+    "    *** If you use '-tout', each parameter will get a separate         \n"
+    "        t-statistic.  As mentioned far above, this is a marginal       \n"
+    "        statistic, measuring the impact of that model component on     \n"
+    "        the regression fit relative to the fit with that one component \n"
+    "        removed.                                                       \n"
+    "    *** If you use '-fout', each stimulus will also get an F-statistic,\n"
+    "        which is the collective impact of all the model components     \n"
+    "        it contains, relative to the regression fit with the entire    \n"
+    "        stimulus removed. (If there is only 1 parameter, then F = t*t.)\n"
+    "    *** Some models below are described in terms of a simple response  \n"
+    "        function that is then convolved with a square wave whose       \n"
+    "        duration is a parameter you give (NOT a parameter that will be \n"
+    "        estimated).  Read the descriptions below carefully: not all    \n"
+    "        functions are (or can be) convolved in this way:               \n"
+    "          ALWAYS convolved:     BLOCK  dmBLOCK  MION                   \n"
+    "          NEVER convolved:      TENT   CSPLIN   POLY  SIN  EXPR        \n"
+    "          OPTIONALLY convolved: GAM    SPMGx    WAV                    \n"
     "                                                                       \n"
     "     'BLOCK(d,p)'  = 1 parameter block stimulus of duration 'd'        \n"
     "                    ** There are 2 variants of BLOCK:                  \n"
@@ -1008,7 +1025,7 @@ void display_help_menu()
     "                       basis function, and should usually be set to 1. \n"
     "                       If 'p' is omitted, the amplitude will depend on \n"
     "                       the duration 'd', which is useful only in       \n"
-    "                       special circumstances!                          \n"
+    "                       special circumstances!!                         \n"
     "     'TENT(b,c,n)' = n parameter tent function expansion from times    \n"
     "                       b..c after stimulus time [piecewise linear]     \n"
     "                       [n must be at least 2; time step is (c-b)/(n-1)]\n"
@@ -1160,12 +1177,12 @@ void display_help_menu()
     "*  since graphing that part of the matrix would just be confusing.    *\n"
     "*  Another example, for example, comparing the similar models         *\n"
     "** 'WAV(10)', 'BLOCK4(10,1)', and 'SPMG1(10)':                       **\n"
-    "     3dDeconvolve -nodata 200 1.0 -num_stimts 3 -polort -1           \\\n"
-    "                  -local_times -x1D stdout:                          \\\n"
-    "                  -stim_times 1 '1D: 10 60 110 160' 'WAV(10)'        \\\n"
-    "                  -stim_times 2 '1D: 10 60 110 160' 'BLOCK4(10,1)'   \\\n"
-    "                  -stim_times 3 '1D: 10 60 110 160' 'SPMG1(10)'      \\\n"
-    "           | 1dplot -one -stdin -xlabel Time -ynames WAV BLOCK4 SPMG1  \n"
+    "     3dDeconvolve -nodata 100 1.0 -num_stimts 3 -polort -1   \\\n"
+    "                  -local_times -x1D stdout:                  \\\n"
+    "                  -stim_times 1 '1D: 10 60' 'WAV(10)'        \\\n"
+    "                  -stim_times 2 '1D: 10 60' 'BLOCK4(10,1)'   \\\n"
+    "                  -stim_times 3 '1D: 10 60' 'SPMG1(10)'      \\\n"
+    "      | 1dplot -thick -one -stdin -xlabel Time -ynames WAV BLOCK4 SPMG1\n"
     "                                                                       \n"
     " * For the format of the 'tname' file, see the last part of            \n"
     " http://afni.nimh.nih.gov/pub/dist/doc/misc/Decon/DeconSummer2004.html \n"
@@ -1226,7 +1243,7 @@ void display_help_menu()
     " and should be separated from the duration parameter by a ':'          \n"
     " character, as in '30*5,3:12' which means (for dmBLOCK):               \n"
     "   a block starting at 30 s,                                           \n"
-    "   with amplitude parameters 5 and 3,                                  \n"
+    "   with amplitude modulation parameters 5 and 3,                       \n"
     "   and with duration 12 s.                                             \n"
     " The unmodulated peak response of dmBLOCK is normally set to 1.        \n"
     " If you want the peak response to be a different value, use            \n"
@@ -2023,7 +2040,7 @@ void get_options
       if (strcmp(argv[nopt], "-nodata") == 0){
         option_data->nodata = 1; nopt++;
 
-     /* 27 Apr 2005: check for additional numeric values */
+        /* 27 Apr 2005: check for additional numeric values */
 
         if( nopt < argc && isdigit(argv[nopt][0]) ){  /* get NT */
           option_data->nodata_NT = (int)strtol(argv[nopt++],NULL,10) ;
@@ -2995,6 +3012,10 @@ void get_options
   }
 
   /*---- 09 Mar 2007: output -x1D file always ----*/
+
+  if( option_data->x1D_filename != NULL &&  /* 10 Aug 2010 */
+      option_data->nodata               &&
+      strncmp(option_data->x1D_filename,"stdout:",7) == 0 ) option_data->x1D_stop = 1 ;
 
   if( option_data->x1D_filename == NULL && !option_data->nox1D ){
     char *pref=NULL , *cpt ;
@@ -6223,7 +6244,7 @@ ENTRY("calculate_results") ;
   /** 22 Jul 2010: move the exit to AFTER condition number reports **/
 
   if( option_data->x1D_stop ){   /* 28 Jun 2007 -- my work here is done */
-    INFO_message("3dDeconvolve exits: -x1D_stop option was given") ;
+    INFO_message("3dDeconvolve exits: -x1D_stop option was invoked") ;
     exit(0) ;
   }
 
@@ -9951,10 +9972,9 @@ static float basis_legendre( float x, float bot, float top, float n, void *q )
 #define POLY_MAX 20  /* max order allowed in function above */
 
 /*--------------------------------------------------------------------------*/
-#define ITT 19
-#define IXX 23
-#define IZZ 25
-
+#define ITT 19  /* index for symbol 't' */
+#define IXX 23  /* 'x' */
+#define IZZ 25  /* 'z' */
 /*------------------------------------------------------*/
 /*! Basis function given by a user-supplied expression. */
 
@@ -9972,7 +9992,6 @@ static float basis_expr( float x, float bot, float top, float dtinv, void *q )
    return (float)val ;
 }
 
-#if 1
 /*==========================================================================*/
 /**---------- Implementation of the Cox WAV function from waver.c ---------**/
 /*==========================================================================*/
@@ -10235,7 +10254,6 @@ static float basis_WFUN( float t, float fwav, float junk1, float junk2, void *q 
 /*==========================================================================*/
 /*------------------------ End of WAV function stuff -----------------------*/
 /*==========================================================================*/
-#endif
 
 /*--------------------------------------------------------------------------*/
 /* Take a string and generate a basis expansion structure from it.
@@ -10742,7 +10760,7 @@ ENTRY("basis_parser") ;
      }
      sar = NI_decode_string_list( ept+1 , "~" ) ;
      if( sar == NULL || sar->num == 0 ){
-       ERROR_message("'EXPR(%f,%f)' has no expressions!?",bot,top);
+       ERROR_message("'EXPR(%f,%f)' has no expressions after '('!?",bot,top);
        free((void *)be); free(scp); RETURN(NULL);
      }
      be->nfunc = nexpr = sar->num ;
