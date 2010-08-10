@@ -901,6 +901,9 @@ void display_help_menu()
     "                    ** If you use 'A' for pnum, the program will       \n"
     "                       automatically choose a value based on the       \n"
     "                       time duration of the longest run.               \n"
+    "                    ** Use '-1' for pnum to specify not to include     \n"
+    "                       any polynomials in the baseline model.  Only    \n"
+    "                       do this if you know what this means!            \n"
     "[-legendre]          use Legendre polynomials for null hypothesis      \n"
     "                       (baseline model)                                \n"
     "[-nolegendre]        use power polynomials for null hypotheses         \n"
@@ -982,33 +985,37 @@ void display_help_menu()
     "        analyzing FMRI time series data now.  The options directly     \n"
     "        above are only maintained for the sake of backwards            \n"
     "        compatibility!  For most FMRI users, the 'BLOCK' and 'TENT'    \n"
-    "        response models will serve their needs.                        \n"
+    "        (or 'CSPLIN') response models will serve their needs.  The     \n"
+    "        other models are for users with specific needs who understand  \n"
+    "        clearly what they are doing.                                   \n"
     "                                                                       \n"
     "[-stim_times k tname Rmodel]                                           \n"
     "   Generate the k-th response model from a set of stimulus times       \n"
     "   given in file 'tname'.  The response model is specified by the      \n"
     "   'Rmodel' argument, which can be one of the following:               \n"
-    "    *** In the descriptions below, a '1 parameter' model is a model    \n"
-    "        that has a fixed shape, and only the amplitude varies.         \n"
-    "        Models with more than 1 parameter have multiple basis          \n"
-    "        functions, and the parameters are their amplitudes.            \n"
+    "    *** In the descriptions below, a '1 parameter' model has a fixed   \n"
+    "        shape, and only the amplitude varies.                          \n"
+    "    *** Models with more than 1 parameter have multiple basis          \n"
+    "        functions, and the parameters are their amplitudes.  The       \n"
+    "        estimated shape of the response to a stimulus will be different\n"
+    "        in different voxels.                                           \n"
     "    *** If you use '-tout', each parameter will get a separate         \n"
     "        t-statistic.  As mentioned far above, this is a marginal       \n"
-    "        statistic, measuring the impact of that model component on     \n"
-    "        the regression fit relative to the fit with that one component \n"
-    "        removed.                                                       \n"
+    "        statistic, measuring the impact of that model component on the \n"
+    "        regression fit, relative to the fit with that one component    \n"
+    "        (matrix column) removed.                                       \n"
     "    *** If you use '-fout', each stimulus will also get an F-statistic,\n"
     "        which is the collective impact of all the model components     \n"
     "        it contains, relative to the regression fit with the entire    \n"
     "        stimulus removed. (If there is only 1 parameter, then F = t*t.)\n"
     "    *** Some models below are described in terms of a simple response  \n"
     "        function that is then convolved with a square wave whose       \n"
-    "        duration is a parameter you give (NOT a parameter that will be \n"
-    "        estimated).  Read the descriptions below carefully: not all    \n"
-    "        functions are (or can be) convolved in this way:               \n"
-    "          ALWAYS convolved:     BLOCK  dmBLOCK  MION                   \n"
-    "          NEVER convolved:      TENT   CSPLIN   POLY  SIN  EXPR        \n"
-    "          OPTIONALLY convolved: GAM    SPMGx    WAV                    \n"
+    "        duration is a parameter you give (duration is NOT a parameter  \n"
+    "        that will be estimated).  Read the descriptions below carefully:\n"
+    "        not all functions are (or can be) convolved in this way:       \n"
+    "        * ALWAYS convolved:      BLOCK  dmBLOCK  MION                  \n"
+    "        * NEVER convolved:       TENT   CSPLIN   POLY  SIN  EXPR       \n"
+    "        * OPTIONALLY convolved:  GAM    SPMGx    WAV                   \n"
     "                                                                       \n"
     "     'BLOCK(d,p)'  = 1 parameter block stimulus of duration 'd'        \n"
     "                    ** There are 2 variants of BLOCK:                  \n"
@@ -3015,7 +3022,7 @@ void get_options
 
   if( option_data->x1D_filename != NULL &&  /* 10 Aug 2010 */
       option_data->nodata               &&
-      strncmp(option_data->x1D_filename,"stdout:",7) == 0 ) option_data->x1D_stop = 1 ;
+      strncmp(option_data->x1D_filename,"stdout:",7) == 0 ) option_data->x1D_stop = 2 ;
 
   if( option_data->x1D_filename == NULL && !option_data->nox1D ){
     char *pref=NULL , *cpt ;
@@ -6244,7 +6251,8 @@ ENTRY("calculate_results") ;
   /** 22 Jul 2010: move the exit to AFTER condition number reports **/
 
   if( option_data->x1D_stop ){   /* 28 Jun 2007 -- my work here is done */
-    INFO_message("3dDeconvolve exits: -x1D_stop option was invoked") ;
+    if( option_data->x1D_stop == 1 )
+      INFO_message("3dDeconvolve exits: -x1D_stop option was invoked") ;
     exit(0) ;
   }
 
