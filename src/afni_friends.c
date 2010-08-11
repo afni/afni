@@ -179,6 +179,7 @@ static mday holiday[] = {
    {JAN, 8,"Elvis Presley's birthday"                                } ,
    {JAN, 9,"Richard Nixon's birthday"                                } ,
    {JAN,10,"Donald Knuth's birthday"                                 } ,
+   {JAN,10,"Caesar crosses the Rubicon"                              } ,
    {JAN,11,"Alexander Hamilton's birthday"                           } ,
    {JAN,11,"Chad Independence Day"                                   } ,
    {JAN,13,"Anniversary of Zola's J'Accuse"                          } ,
@@ -519,6 +520,7 @@ static mday holiday[] = {
 
    {SEP, 1,"Anniversary of Nazi invasion of Poland"                  } ,
    {SEP, 2,"VJ Day"                                                  } ,
+   {SEP, 2,"Anniversary of Battle of Actium"                         } ,
    {SEP, 2,"Queen Liliuokalani's birthday"                           } ,
    {SEP, 3,"Qatar Independence Day"                                  } ,
    {SEP, 3,"San Marino Anniversary of Founding"                      } ,
