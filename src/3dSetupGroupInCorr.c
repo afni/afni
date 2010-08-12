@@ -1,7 +1,5 @@
 #include "mrilib.h"
 
-typedef signed char sbyte ;  /* for -byte */
-
 /*--------------------------------------------------------------------------*/
 
 char * get_surf_param(char *sname, char *parname)
