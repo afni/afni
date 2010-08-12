@@ -163,6 +163,11 @@ extern AFD_dicom_header **MRILIB_dicom_header ;
 typedef unsigned char byte ;
 #endif
 
+#ifndef TYPEDEF_sbyte
+#define TYPEDEF_sbyte
+typedef signed char sbyte ;
+#endif
+
 /*! RGBA data type; not used anywhere (yet). */
 
 #ifndef TYPEDEF_rgba

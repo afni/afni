@@ -29,8 +29,6 @@ void        GRINCOR_many_ttest( int nvec , int numx , float **xxar ,
 static int verb  = 1 ;  /* default verbosity level */
 static int debug = 0 ;  /* default non-debug mode */
 
-typedef signed char sbyte ;  /* 02 Feb 2010 */
-
 #undef  UINT32
 #define UINT32 unsigned int  /* 20 May 2010 */
 #undef  MAXCOV
