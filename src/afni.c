@@ -1262,17 +1262,15 @@ static char *FALLback[] =
       "AFNI*cluefont:              9x15bold"             ,
       "AFNI*bigtext*fontList:      10x20=charset1"       ,
       "AFNI*help*cancelWaitPeriod: 333"                  ,
+
       "AFNI*XmList.translations: #augment"                /* 24 Feb 2007 */
            "<Btn4Down>: ListPrevItem()\\n"
            "<Btn5Down>: ListNextItem()"                  ,
+
       "AFNI*XmText.translations: #augment"
            "<Btn4Down>: previous-line() scroll-one-line-down()\\n"
            "<Btn5Down>: next-line() scroll-one-line-up()"          ,
 #if 0
-      "AFNI*XmScrollBar.translations: #augment"
-           "<Btn4Down>: IncrementUpOrLeft(0)\\n"
-           "<Btn5Down>: IncrementDownOrRight(0)" ,
-#else
       "AFNI*XmScrollBar.translations: #augment"
            "<Btn4Down>: IncrementUpOrLeft(0) IncrementUpOrLeft(1)\\n"
            "<Btn5Down>: IncrementDownOrRight(1) IncrementDownOrRight(0)" ,
