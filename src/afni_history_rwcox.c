@@ -44,6 +44,11 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 13 , AUG , 2010 , RWC , "3dFWHMx" , MICRO , TYPE_GENERAL ,
+   "Check if -detrend option is needed, if not given" ,
+   "Compare each voxel's median to its MAD -- if the median is too big, then\n"
+   "print a warning if there a lots of such voxels." } ,
+
  { 9 , AUG , 2010 , RWC , "3dDeconvolve" , MICRO , TYPE_GENERAL ,
    "Add duration 'd' parameter to GAM basis function." ,
    "Also add some various comments to the help; in particular, advertising\n"
