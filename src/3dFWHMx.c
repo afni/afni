@@ -267,6 +267,28 @@ int main( int argc , char *argv[] )
        WARNING_message("removed %d voxels from mask because they are constant in time",ncon) ;
    }
 
+   /*-- if NOT detrending or de-median-ing, check if that's a good idea --*/
+
+   if( !(corder > 0 || demed) && nvals > 4 ){  /* 13 Aug 2010 */
+     MRI_IMARR *imar ;
+     imar = THD_medmad_bricks(inset) ;
+     if( imar != NULL ){
+       float *med , *mad ; int nchk=0,nbad=0 ;
+       med = MRI_FLOAT_PTR(IMARR_SUBIM(imar,0)) ;
+       mad = MRI_FLOAT_PTR(IMARR_SUBIM(imar,1)) ;
+       for( ii=0 ; ii < nvox ; ii++ ){
+         if( mask[ii] && mad[ii] > 0.0f ){
+           nchk++ ; if( fabsf(med[ii]) > 6.66f*mad[ii] ) nbad++ ;
+         }
+       }
+       DESTROY_IMARR(imar) ;
+       if( nbad > nchk/16 ){
+         WARNING_message("Suggestion: use the '-detrend' option:") ;
+         ININFO_message ("%d (out of %d) voxel time series have significant means",nbad,nchk) ;
+       }
+     }
+   }
+
    /*-- if detrending, do that now --*/
 
    if( corder > 0 ){
