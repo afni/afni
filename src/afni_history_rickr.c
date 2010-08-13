@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 13, AUG, 2010, RCR, "Makefile.INCLUDE", MICRO, TYPE_GENERAL,
+   "explicitly link the math library for the balloon target",
+   NULL
+ } ,
+
  {  5, AUG, 2010, RCR, "afni-general", MICRO, TYPE_GENERAL,
    "do not let THD_write_3dim_dataset fail silently",
    NULL
