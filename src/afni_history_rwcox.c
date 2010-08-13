@@ -44,6 +44,12 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 13 , AUG , 2010 , RWC , "afni" , MICRO , TYPE_GENERAL ,
+   "Add 'Thr=OLay+1' button to threshold slider popup" ,
+   "Enforces threshold sub-brick index = overlay sub-brick index + 1.\n"
+   "For David Perlman at UW Madison, who wants to lock the statistical\n"
+   "threshold to the effect of interest to which it is yoked." } ,
+
  { 13 , AUG , 2010 , RWC , "3dFWHMx" , MICRO , TYPE_GENERAL ,
    "Check if -detrend option is needed, if not given" ,
    "Compare each voxel's median to its MAD -- if the median is too big, then\n"
