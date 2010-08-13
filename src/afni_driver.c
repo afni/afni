@@ -480,6 +480,7 @@ void AFNI_set_anat_index( Three_D_View *im3d , int nuse )
 {
    if( IM3D_OPEN(im3d)                    &&
        im3d->type == AFNI_3DDATA_VIEW     &&
+       ISVALID_DSET(im3d->anat_now)       &&
        nuse >= 0                          &&
        nuse <  DSET_NVALS(im3d->anat_now) &&
        nuse != im3d->vinfo->anat_index      ){
@@ -502,6 +503,7 @@ void AFNI_set_fim_index( Three_D_View *im3d , int nfun )
 {
    if( IM3D_OPEN(im3d)                   &&
        im3d->type == AFNI_3DDATA_VIEW    &&
+       ISVALID_DSET(im3d->fim_now)       &&
        nfun >= 0                         &&
        nfun <  DSET_NVALS(im3d->fim_now) &&
        nfun != im3d->vinfo->fim_index       ){
@@ -517,6 +519,7 @@ void AFNI_set_thr_index( Three_D_View *im3d , int nthr )
 {
    if( IM3D_OPEN(im3d)                   &&
        im3d->type == AFNI_3DDATA_VIEW    &&
+       ISVALID_DSET(im3d->fim_now)       &&
        nthr >= 0                         &&
        nthr <  DSET_NVALS(im3d->fim_now) &&
        nthr != im3d->vinfo->thr_index       ){

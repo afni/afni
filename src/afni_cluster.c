@@ -1826,6 +1826,8 @@ ENTRY("AFNI_thr_EV") ;
    EXRETURN ;
 }
 
+/*-----------------------------------------------------------------*/
+
 void AFNI_thronoff_change_CB( Widget w , XtPointer cd , XtPointer calld )
 {
    Three_D_View *im3d = (Three_D_View *)cd ;
@@ -1842,6 +1844,46 @@ ENTRY("AFNI_thronoff_change_CB") ;
      im3d->vinfo->thr_onoff = pp ;
      if( im3d->vinfo->func_visible ) AFNI_redisplay_func( im3d ) ;
    }
+   EXRETURN ;
+}
+
+/*-----------------------------------------------------------------*/
+
+void AFNI_throlay1_change_CB( Widget w , XtPointer cd , XtPointer calld )
+{
+   Three_D_View *im3d = (Three_D_View *)cd ;
+   int qq , pp ;
+
+ENTRY("AFNI_throlay1_change_CB") ;
+
+   if( ! IM3D_VALID(im3d) ) EXRETURN ;
+
+   qq = im3d->vinfo->thr_olay1 ;
+   pp = MCW_val_bbox( im3d->vwid->func->thr_olay1_bbox ) ;
+
+   if( pp != qq ){
+     im3d->vinfo->thr_olay1 = pp ;
+     MCW_invert_widget(im3d->vwid->func->thr_buck_av->wrowcol) ;
+     AFNI_enforce_throlay1(im3d) ;
+   }
+   EXRETURN ;
+}
+
+/*-----------------------------------------------------------------*/
+
+void AFNI_enforce_throlay1( Three_D_View *im3d )
+{
+   int ithr ;
+
+ENTRY("AFNI_enforce_throlay1") ;
+
+   if( !IM3D_VALID(im3d) || !ISVALID_DSET(im3d->fim_now)
+                         || !im3d->vinfo->thr_olay1      ) EXRETURN ;
+
+   ithr = im3d->vinfo->fim_index + 1 ;
+   if( ithr >= DSET_NVALS(im3d->fim_now) ) EXRETURN ;
+   AFNI_set_thr_index(im3d,ithr) ;
+   if( im3d->vinfo->func_visible ) AFNI_redisplay_func( im3d ) ;
    EXRETURN ;
 }
 
