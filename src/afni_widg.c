@@ -2686,10 +2686,11 @@ STATUS("making func->rowcol") ;
    MCW_register_hint( func->thr_label , "Type of threshold statistic" ) ;
 #endif
 
-   /**--------- 05 Sep 2006: creat menu hidden on the thr_label ---------**/
+   /**--------- 05 Sep 2006: create menu hidden on the thr_label ---------**/
 
 #if 1
-   { static char *onofflabel[] = { "Use Threshold?" } ;
+   { static char *onofflabel[]    = { "Use Threshold?" } ;
+     static char *throlay1label[] = { "Thr = OLay+1 ?" } ;
 
 #ifdef BAD_BUTTON3_POPUPS
    func->thr_menu = XmCreatePopupMenu( func->thr_rowcol, "menu", NULL, 0 ) ;
@@ -2728,6 +2729,8 @@ STATUS("making func->rowcol") ;
             "dialog" , xmSeparatorWidgetClass , func->thr_menu ,
              XmNseparatorType , XmSINGLE_LINE , NULL ) ;
 
+   /*-- Threshold on/off? button --*/
+
    func->thr_onoff_bbox = new_MCW_bbox( func->thr_menu ,
                                         1 , onofflabel ,
                                         MCW_BB_check , MCW_BB_noframe ,
@@ -2738,7 +2741,19 @@ STATUS("making func->rowcol") ;
    MCW_reghint_children( func->thr_onoff_bbox->wrowcol ,
                          "Temporarily ignore threshold?" ) ;
 
-   /* AutoThreshold button */
+   /*-- Thr=OLay+1? button [13 Aug 2010] --*/
+
+   func->thr_olay1_bbox = new_MCW_bbox( func->thr_menu ,
+                                        1 , throlay1label ,
+                                        MCW_BB_check , MCW_BB_noframe ,
+                                        AFNI_throlay1_change_CB ,
+                                        (XtPointer)im3d ) ;
+   im3d->vinfo->thr_olay1 = 0 ;
+   MCW_set_bbox( func->thr_olay1_bbox , 0 ) ;
+   MCW_reghint_children( func->thr_olay1_bbox->wrowcol ,
+                         "Lock Thr to be sub-brick after OLay?" ) ;
+
+   /*-- AutoThreshold button --*/
 
    func->thr_autothresh_pb =
       XtVaCreateManagedWidget(
