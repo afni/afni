@@ -281,7 +281,7 @@ ENTRY("PLUG_get_many_plugins") ;
 /**
 #if defined(DARWIN) && !defined(c_plusplus) && !defined(__cplusplus)
 **/
-#ifdef DARWIN
+#if 0  /* formerly ifdef DARWIN */
    if( _dyld_present() == 0 ) RETURN(NULL) ;  /* 05 Sep 2001: Mac OSX */
 #endif
 
