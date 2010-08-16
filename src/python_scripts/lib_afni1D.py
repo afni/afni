@@ -14,6 +14,7 @@ import copy
 
 import afni_util as UTIL
 import afni_base as BASE
+import lib_textdata as TD
 
 class Afni1D:
    def __init__(self, filename="", from_mat=0, matrix=None, verb=1):
@@ -1251,8 +1252,16 @@ class Afni1D:
 
       if self.verb > 3: print "-- Afni1D: init_from_1D '%s'" % fname
 
-      mat, clines = read_1D_file(fname)
-      if not mat: return 1
+      tmat, clines = TD.read_data_file(fname, verb=self.verb)
+      if not TD.data_is_rect(tmat):
+         print "** data is not rectangular in %s" % fname
+         return 1
+      if not tmat: return 1
+
+      # treat columns as across time
+      mat = UTIL.transpose(tmat)
+      del(tmat)
+      
       self.mat   = mat
       self.nvec  = len(mat)
       self.nt    = len(mat[0])
@@ -1355,51 +1364,6 @@ def c1D_line2labelNdata(cline, verb=1):
 
    return label, data
 
-def read_1D_file(fname):
-   """read 1D file, returning the data in a matrix, and comments in clines
-      (matrix is transposed so the columns over time are stored as rows)"""
-
-   try: fp = open(fname, 'r')
-   except:
-      print "** failed to open file '%s'" % fname
-      return None, None
-
-   fmat = []            # data lines
-   clines = []          # comment lines
-
-   lind = 0
-   nts = 0              # number of time series (cols in file, rows in fmat)
-   for line in fp.readlines():
-      lind += 1
-      lary = line.split()
-      if len(lary) == 0: continue
-      if lary[0] == '#':
-         clines.append(line)
-         continue
-
-      # so this should be data
-
-      # maybe initialize fmat
-      if nts == 0:
-         nts = len(lary)
-         fmat = [[] for ind in range(nts)]
-
-      if len(lary) != nts:
-         print "** matrix is not square at line %d of %s" % (lind,fname)
-         del(fmat)
-         del(clines)
-         return None, None
-
-      try:
-         for ind in range(nts): fmat[ind].append(float(lary[ind]))
-      except:
-         print "** failed to convert line '%s' to floats in %s" % (line,fname)
-         del(fmat)
-         del(clines)
-         return None, None
-
-   return fmat, clines
-
 def list2_is_in_list1(list1, list2, label=''):
    """return 0 or 1, based on whether every element in list2 exists
       in list1"""
@@ -1462,6 +1426,7 @@ class AfniData:
       self.tr        = 0        # non-zero, if it applies
       self.nruns     = 0        # non-zero, if known
       self.run_lens  = []       # run lengths, in seconds or TRs
+      self.verb      = verb
 
       # computed variables
       self.cormat      = None   # correlation mat (normed xtx)
@@ -1593,8 +1558,8 @@ class AfniData:
             if verb > 2: print "** %d rows does not match %d runs" \
                                % (self.nrows, nruns)
       for rind in range(len(self.data)):
-         # start with all times that are not from '*' and sort
-         row = [val for val in self.data[rind] if val != UTIL.BIG_ASTERISK_TIME]
+         # start with row copy
+         row = self.data[rind][:]
          if len(row) == 0: continue
          row.sort()
          first = row[0]
@@ -1675,7 +1640,7 @@ class AfniData:
 
       if not UTIL.vals_are_increasing(data):
             errors |= ERR_ANY_MISC
-            if verb > 1: print "** file %s has repeat times"
+            if verb > 1: print "** file %s has repeat times" % self.fname
 
       if errors == 0:
          if verb > 0: print '== GOOD: %s looks like global stim_times' \
@@ -1689,7 +1654,7 @@ class AfniData:
    def init_from_filename(self, fname):
       """simple for now"""
 
-      data, clines = UTIL.read_data_file(fname)
+      data, clines = TD.read_data_file(fname, verb=self.verb)
       if data == None: return 1
 
       self.fname    = fname

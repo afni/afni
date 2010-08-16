@@ -4,6 +4,7 @@
 
 import sys, os, math
 import afni_base as BASE
+import lib_textdata as TD
 
 # this file contains various afni utilities   17 Nov 2006 [rickr]
 
@@ -395,151 +396,21 @@ def attr_equals_val(object, attr, val):
 # ----------------------------------------------------------------------
 # begin matrix functions
 
-def write_1D_file(data, filename):
-    """data can be 1D or 2D array of floats, write one index per line
-       If 2D data, each element is treated as a column.
-
-       return 0 on success"""
-
-    try: fp = open(filename, 'w')
-    except:
-        print "** failed to open '%s' for writing 1D" % filename
-        return 1
-
-    if type(data) != type([]):
-        print "** write_1D_file, invalid type: %s" % type(data)
-        return 1
-
-    if type(data[0]) == type([]):       # multi-column
-        nt = len(data[0])
-        for col in data:
-            if len(col) != nt:
-                print '** write_1D_file: columns not of equal lengths'
-                return 1
-
-        for ind in range(nt):
-            fp.write( "%s\n" % ' '.join(["%g " % col[ind] for col in data]) )
-
-    else:                               # single column
-        for val in data:
-            fp.write('%g\n' % val)
-
-    fp.close()
-
-    return 0
-
-BIG_ASTERISK_TIME = 9999999.0
-
-def read_1D_file(filename, nlines = -1, verb = 1):
-    """read a simple 1D file into a float matrix, and return the matrix
-       - skip leading '#', return a 2D array of floats"""
-    try:
-        fp = open(filename, 'r')
-    except:
-        if verb >= 0: print "failed to open 1D file %s" % filename
-        return None
-
-    if verb > 1: print "+d opened file %s" % filename
-
-    big = BIG_ASTERISK_TIME     # just to make shorter
-
-    retmat = []
-    lnum   = 0
-    data = fp.read()
-    fp.close()
-    for line in data.splitlines():
-        if 0 <= nlines <= lnum: break   # then stop early
-        if not line:
-            if verb > 1: print "skipping empty line:"
-            continue
-        if line[0] == '#' or line[0] == '\0':
-            if verb > 1: print "skipping comment line: %s" % line
-            continue
-        retmat.append([])
-        tokens = line.split()
-        for tok in tokens:
-            # check that there are '*' elements, too
-            if tok == '*':
-                if verb > 2: print "-- read_1D: replacing '*' with %d" % big
-                retmat[lnum].append(big)
-                continue
-            try: fval = float(tok)
-            except:
-                if verb >= 0:
-                    print "found bad float on line %d: '%s'" % (lnum+1,tok)
-                return None
-            retmat[lnum].append(float(tok))
-
-        if verb > 2: print "+d line %d, length %d" % (lnum, len(retmat[lnum]))
-
-        lnum += 1
-
-    return retmat
-
-def read_data_file(filename, nlines = -1, verb = 1):
-    """read a numerical text file (1D or timing, say) into a float matrix,
-       and return the matrix and comment lines
-       - skip leading '#', return a 2D array of floats and 1D array of text"""
-    try:
-        fp = open(filename, 'r')
-    except:
-        if verb >= 0: print "failed to open 1D file %s" % filename
-        return None, None
-
-    if verb > 1: print "+d opened file %s" % filename
-
-    big = BIG_ASTERISK_TIME     # just to make shorter
-
-    retmat = []
-    clines = []
-    lnum   = 0
-    data = fp.read()
-    fp.close()
-    for line in data.splitlines():
-        if 0 <= nlines <= lnum: break   # then stop early
-        if not line:
-            if verb > 1: print "skipping empty line:"
-            continue
-        if line[0] == '#' or line[0] == '\0':
-            if verb > 1: print "skipping comment line: %s" % line
-            clines.append(line)
-            continue
-        retmat.append([])
-        tokens = line.split()
-        for tok in tokens:
-            # check that there are '*' elements, too
-            if tok == '*':
-                if verb > 2: print "-- read_1D: replacing '*' with %d" % big
-                retmat[lnum].append(big)
-                continue
-            try: fval = float(tok)
-            except:
-                if verb >= 0:
-                    print "found bad float on line %d: '%s'" % (lnum+1,tok)
-                return None, None
-            retmat[lnum].append(float(tok))
-
-        if verb > 2: print "+d line %d, length %d" % (lnum, len(retmat[lnum]))
-
-        lnum += 1
-
-    return retmat, clines
-
 def num_cols_1D(filename):
     """return the number of columns in a 1D file"""
-    mat = read_1D_file(filename)
+    mat = TD.read_1D_file(filename)
     if not mat or len(mat) == 0: return 0
     return len(mat[0])
 
 def num_rows_1D(filename):
     """return the number of columns in a 1D file"""
-    mat = read_1D_file(filename)
+    mat = TD.read_1D_file(filename)
     if not mat: return 0
     return len(mat)
 
 def max_dim_1D(filename):
     """return the larger of the number of rows or columns"""
-    mat = read_1D_file(filename)
+    mat = TD.read_1D_file(filename)
     if not mat: return 0
     rows = len(mat)
     cols = len(mat[0])
