@@ -8,6 +8,7 @@ import gc, math
 import option_list as OL
 import lib_timing as LT
 import afni_util as UTIL
+import lib_textdata as TD
 
 # ----------------------------------------------------------------------
 # globals
@@ -530,9 +531,10 @@ g_history = """
    1.6  Jul 11, 2010 - show TR offset stats if -tr and -show_isi_stats
    1.7  Jul 12, 2010 - added -truncate_times and -round_times
                        (added for S Durgerian)
+   1.8  Aug 16, 2010 - use lib_textdata for I/O
 """
 
-g_version = "timing_tool.py version 1.7, July 12, 2010"
+g_version = "timing_tool.py version 1.8, August 16, 2010"
 
 
 class ATInterface:
@@ -1108,7 +1110,7 @@ class ATInterface:
          print errstr
          return 1
 
-      UTIL.write_1D_file(result, fname)
+      TD.write_1D_file(result, fname)
 
    def show_isi_stats(self):
       if not self.timing:

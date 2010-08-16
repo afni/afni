@@ -2,6 +2,7 @@
 
 import sys, os, string
 import option_list, afni_util
+import lib_textdata as TD
 
 g_help_string = """
 ===========================================================================
@@ -249,11 +250,12 @@ def proc_mats(uopts):
     
     newfile_index = 1   # index over output files
     for file in files:
-        mat = afni_util.read_1D_file(file, -1, verb=verb)
-        if not mat:
+        tmat = TD.read_1D_file(file, verb=verb)
+        if not tmat:
             print "read_1D_file failed for file: %s" % file
             return
-        mat = afni_util.transpose(mat)
+        mat = afni_util.transpose(tmat)
+        del(tmat)
 
         if len(mat[0]) < nt * nruns:
             print '** error: file %s has only %d entries (%d required)' % \

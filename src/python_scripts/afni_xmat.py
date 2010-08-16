@@ -12,6 +12,7 @@ import copy
 import numpy as N
 
 import afni_util as UTIL
+import lib_textdata as TD
 
 class AfniXmat:
     def __init__(self, filename="", from_mat=0, matrix=None, verb=1):
@@ -637,8 +638,11 @@ class AfniXmat:
 
     def init_from_1D(self, fname):
         """initialize AfniXmat from a 1D file"""
-        mat, clines = read_1D_file(fname)
+        mat, clines = TD.read_data_file(fname)
         if not mat: return
+        if not TD.data_is_rect(mat):
+            print '** matrix is not rectangular in %s' % fname
+            return
         self.mat   = N.array(mat)
         self.nrows  = len(mat)
         self.ncols  = len(mat[0])
@@ -729,38 +733,6 @@ def c1D_line2labelNdata(cline, verb=1):
     if verb > 2: print "++ line2labelNdata returns '%s', '%s'" % (label,data)
 
     return label, data
-
-def read_1D_file(fname):
-    """read 1D file, returning the data in a matrix, and comments in clines"""
-    try: fp = open(fname, 'r')
-    except:
-        print "** failed to open file '%s'" % fname
-        return None, None
-
-    fmat = []           # data lines
-    clines = []         # comment lines
-
-    lind = 0
-    for line in fp.readlines():
-        lind += 1
-        lary = line.split()
-        if len(lary) == 0: continue
-        if lary[0] == '#':
-            clines.append(line)
-            continue
-
-        # so this should be data
-        try:
-            fmat.append([float(x) for x in lary])
-        except:
-            print "** failed to convert line '%s' to floats in %s" %    \
-                  (line,fname)
-            return None, None
-        if len(lary) != len(fmat[0]):
-            print "** matrix is not square at line %d of %s" % (lind,fname)
-            return None, None
-
-    return fmat, clines
 
 def list2_is_in_list1(list1, list2, label=''):
     """return 0 or 1, based on whether every element in list2 exists
