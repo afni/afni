@@ -49,6 +49,36 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 16, AUG, 2010, RCR, "lib_textdata.py", MINOR, TYPE_ENHANCE,
+   "new module to deal with reading/writing 1D/timing/married text files",
+   "heading towards handling married timing in afni_proc.py"
+ } ,
+
+ { 16, AUG, 2010, RCR, "make_stim_times.py", MICRO, TYPE_MODIFY,
+   "use lib_textdata.py for I/O",
+   NULL
+ } ,
+
+ { 16, AUG, 2010, RCR, "timing_tool.py", MICRO, TYPE_MODIFY,
+   "use lib_textdata.py for I/O",
+   NULL
+ } ,
+
+ { 16, AUG, 2010, RCR, "lib_afni1D.py", MICRO, TYPE_MODIFY,
+   "use lib_textdata.py for I/O (deleted read_1D_file)",
+   NULL
+ } ,
+
+ { 16, AUG, 2010, RCR, "afni_xmat.py", MICRO, TYPE_MODIFY,
+   "use lib_textdata.py for I/O (deleted read_1D_file)",
+   NULL
+ } ,
+
+ { 16, AUG, 2010, RCR, "afni_util.py", MICRO, TYPE_MODIFY,
+   "rewrote and moved text data I/O routines into lib_textdata.py",
+   NULL
+ } ,
+
  { 13, AUG, 2010, RCR, "Makefile.INCLUDE", MICRO, TYPE_GENERAL,
    "explicitly link the math library for the balloon target",
    NULL

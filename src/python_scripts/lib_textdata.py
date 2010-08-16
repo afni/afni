@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# lib_textdata.py : general utilities for 1D/timing/married data files
+# lib_textdata.py : I/O utilities for 1D/timing/married data files
 
 # created 16 Aug, 2010 [rickr]
 
