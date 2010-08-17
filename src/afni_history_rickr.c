@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 17, AUG, 2010, RCR, "afni_proc.py", MICRO, TYPE_NEW_OPT,
+   "allowed married timing files",
+   "Also, delete output script on failure (have -keep_script_on_err option)."
+ } ,
+
  { 16, AUG, 2010, RCR, "lib_textdata.py", MINOR, TYPE_ENHANCE,
    "new module to deal with reading/writing 1D/timing/married text files",
    "heading towards handling married timing in afni_proc.py"

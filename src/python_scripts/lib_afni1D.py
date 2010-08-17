@@ -1385,6 +1385,12 @@ def list2_is_in_list1(list1, list2, label=''):
 # ===========================================================================
 # begin AfniData - generic numeric sparse 2D float class
 
+g_AfniData_hist = """
+   30 Jul, 2010 : added AfniData class
+   17 Aug, 2010 : get data via lib_textdata.read_data_file()
+                  - this includes modulation and duration data
+"""
+
 # error constants for file tests
 ERR_ANY_MISC      =  1       # apply to errors that are not accumulated
 ERR_ST_NEGATIVES  =  2       # some times are negatives
@@ -1397,8 +1403,6 @@ class AfniData:
    def __init__(self, filename="", verb=1):
       """akin to a 2D float class, but do not require a square matrix
 
-         matrix is stored transposed from 1D file, each row as a time series
-
          init from filename
             filename   : 1D/timing file to read
             verb       : verbose level of operations
@@ -1408,6 +1412,7 @@ class AfniData:
       self.fname   = filename   # name of data file
       self.name    = "NoName"   # more personal and touchy-feely...
       self.data    = None       # actual data (array of arrays [[]])
+      self.mdata   = None       # married data (elements are [time [mods] dur])
       self.clines  = None       # comment lines from file
 
       # descriptive variables, set from data
@@ -1419,6 +1424,7 @@ class AfniData:
       self.square    = 0        # square?
       self.binary    = 0        # 0/1 file?
       self.empty     = 0        # no data at all
+      self.married   = 0        # data has modulators or durations
 
       self.ready     = 0        # data is ready
 
@@ -1427,6 +1433,7 @@ class AfniData:
       self.nruns     = 0        # non-zero, if known
       self.run_lens  = []       # run lengths, in seconds or TRs
       self.verb      = verb
+      self.hist      = g_AfniData_hist
 
       # computed variables
       self.cormat      = None   # correlation mat (normed xtx)
@@ -1614,9 +1621,14 @@ class AfniData:
          errors |= ERR_ANY_MISC
          if verb > 1: print "** file %s is not a single column" % self.fname
 
+      # must rectangular
+      if not self.rect:
+         errors |= ERR_ANY_MISC
+         if verb > 1: print "** file %s is not a rectangular" % self.fname
+
       # get a single sequence of numbers, depending on the direction
       if self.nrows == 1: data = self.data[0]
-      else:               data = [row[0] for row in self.data]
+      else:data = [row[0] for row in self.data if len(row)>0]
 
       data.sort()
 
@@ -1652,17 +1664,28 @@ class AfniData:
          return 0
 
    def init_from_filename(self, fname):
-      """simple for now"""
+      """file could be 1D, timing or married timing data
+        
+         For now, store complete result but focus on times only.
+      """
 
-      data, clines = TD.read_data_file(fname, verb=self.verb)
-      if data == None: return 1
+      mdata, clines = TD.read_married_file(fname, verb=self.verb)
+      if mdata == None:
+         print '** A1D: failed to read data file %s' % fname
+         return 1
 
-      self.fname    = fname
-      self.data     = data
+      # note whether the data is married (modulation or duration)
+      if TD.married_type(mdata):
+         self.married = 1
+
+      # data will ignore any married information
+      self.data     = [[val[0] for val in row] for row in mdata]
+      self.mdata    = mdata
       self.clines   = clines
+      self.fname    = fname
       
-      self.nrows    = len(data)
-      self.row_lens = [len(row) for row in data]
+      self.nrows    = len(self.data)
+      self.row_lens = [len(row) for row in self.data]
 
       # accept an empty file?
       if self.nrows == 0:
