@@ -211,9 +211,12 @@ g_history = """
         - changed 3dClustSim to use -both instead of just -niml
         - changed prefix to ClustSim (so resulting .1D files are not removed)
         - if request for ClustSim, require blur estimation
+    2.36 Aug 04 2010 :
+        - allow married timing files (needed for -test_stim_files)
+        - added -keep_script_on_err (NEW default: delete script on error)
 """
 
-g_version = "version 2.35, Aug 4, 2010"
+g_version = "version 2.36, Aug 17, 2010"
 
 # version of AFNI required for script execution
 g_requires_afni = "19 Jul 2010"
@@ -406,6 +409,9 @@ class SubjProcSream:
                         helpstr='do not generate an EPI review script')
         self.valid_opts.add_opt('-keep_rm_files', 0, [],
                         helpstr='do not delete temporary rm.* files')
+        self.valid_opts.add_opt('-keep_script_on_err', 1, [],
+                        acplist=['yes','no'],
+                        helpstr='do not delete script on failure')
         self.valid_opts.add_opt('-move_preproc_files', 0, [],
                         helpstr='move preprocessing files to preproc.data dir')
         self.valid_opts.add_opt('-outlier_count', 1, [],
@@ -998,7 +1004,12 @@ class SubjProcSream:
 
         if self.fp: self.fp.close()
 
-        if errs > 0: return 1    # so we print all errors before leaving
+        if errs > 0:
+            # default to removing any created script
+            opt = self.user_opts.find_opt('-keep_script_on_err')
+            if not opt or opt_is_no(opt):
+                os.remove(self.script)
+            return 1    # so we print all errors before leaving
 
         if self.verb > 0:
             # last warning, if user is masking EPI data...
