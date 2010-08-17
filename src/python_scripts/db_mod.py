@@ -2709,10 +2709,13 @@ def valid_file_types(proc, stims, file_type):
     ok_all = 1  # assume good, and look for failure
 
     for fname in stims:
-        adata = LD.AfniData(fname)
+        adata = LD.AfniData(fname, verb=proc.verb)
         if adata == None:
             print "** failed to read data file '%s'" % fname
             return 0
+
+        if adata.married and proc.verb > 1:
+            print '-- have married file %s' % fname
 
         ok = 0  # prudent
         if   file_type == 1: # check 1D, just compare against total reps
