@@ -71,6 +71,11 @@ afni_history_struct ziad_history[] = {
    NULL
  } ,
 
+ { 18, AUG , 2010 , ZSS , "DriveSuma" , MICRO , TYPE_MODIFY,
+   "Added -echo_edu option for edification purposes",
+   NULL
+ } ,
+
  { 9, AUG , 2010 , ZSS , "suma-general" , MICRO , TYPE_NEW_OPT,
    "Allows reading 5-column colormaps",
    NULL
