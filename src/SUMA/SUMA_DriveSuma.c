@@ -1262,13 +1262,13 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_DriveSuma_ParseInput(char *argv[], int ar
       
       if (!brk && (strcmp(argv[kar], "-echo_edu") == 0)) {
          int jj;
-         fprintf(SUMA_STDOUT,"\nNow running:\n   ");
+         fprintf(SUMA_STDOUT,"\n+++ Now running:\n   ");
          for (jj=0; jj<argc; ++jj) {
             if (jj != kar) {
                fprintf(SUMA_STDOUT,"%s ", argv[jj]);
             }
          } 
-         fprintf(SUMA_STDOUT,"\n");
+         fprintf(SUMA_STDOUT,"\n+++\n");
          brk = YUP;   
       }
    
