@@ -1,7 +1,7 @@
 # This Makefile works on Linux.
 # This is for compiling with OpenMP support ON a 64-bit system,
 # but FOR a 32-bit system.
-# It is based on linux_openmp_64 and is used on a Fedora 12 system.
+# It is based on linux_openmp_64 and is used on a Fedora 10 system.
 
 # CPROF = -pg -g
 USE_ZLIB = -DHAVE_ZLIB
@@ -42,7 +42,7 @@ CEXTRA = -Wcomment -Wformat -DUSE_TRACING -DHAVE_XDBE $(CPROF) -DDONT_USE_XTDEST
 CC     = /usr/bin/gcc -O2 -m32 -fPIC -ffast-math -mmmx -DREAD_WRITE_64 -DLINUX2 $(CEXTRA)
 CCVOL  = /usr/bin/gcc -O2 -m32 -fPIC -ffast-math -mmmx -DLINUX2 $(CEXTRA)
 CCFAST = /usr/bin/gcc -O3 -m32 -fPIC -ffast-math -mmmx -DLINUX2 $(CEXTRA)
-CCOLD  = $(CC)
+CCOLD  = /usr/bin/gcc -V 34 -O2 -m32 -fPIC -ffast-math -mmmx -DREAD_WRITE_64 -DLINUX2 $(CEXTRA)
 
 # The following line includes compiling for the SSE operations.
 # However, I found that it actually makes things worse in some test code.
