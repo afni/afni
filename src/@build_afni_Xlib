@@ -51,6 +51,7 @@ set packages     = ()                     # init to empty package list
 set localinstall = 0                      # local install under package dir
 
 set cflags = ( )
+set extra_opts = ( )
 
 
 # show help on no arguments, as well as via -help
@@ -69,6 +70,15 @@ while ( $ac <= $#argv )
     else if ( "$arg" == "-lib" ) then   # 64-bit
         set ldir = lib
         echo "++ setting ldir = $ldir"
+    else if ( "$arg" == "-lib32" ) then   # force 32-bit
+        set ldir = lib
+        echo "++ setting ldir = $ldir"
+        if ( "`uname -s`" == "Linux" ) then
+            set extra_opts = ( $extra_opts --host=i386 )
+            set cflags = ( $cflags '-m32' )
+            echo "++ setting extra_opts to force 32-bit build: $extra_opts"
+            echo "++ setting cflags     to force 32-bit build: $cflags"
+        endif
     else if ( "$arg" == "-lib64" ) then # 64-bit
         set ldir = lib64
         echo "++ setting ldir = $ldir"
@@ -115,6 +125,8 @@ if ( $show_help ) then
     echo "                    (default is ../install)"
     echo "    -g            : compile with -g to add symbols"
     echo "                    (no longer the default)"
+    echo "    -lib32        : install libs under lib, and force 32-bit compile"
+    echo "                    (on Linux: add --target=i386)"
     echo "    -lib64        : install libs under lib64"
     echo "                    (default is lib)"
     echo "    -localinstall : install under each package directory"
@@ -235,21 +247,25 @@ foreach package ( $packages )
     if ( $package == openmotif ) then
         set command = (                                         \
             ./autogen.sh --enable-static --prefix=$instdir      \
+                $extra_opts                                     \
                 --exec-prefix=$instdir                          \
                 --libdir=$instdir/$ldir                         \
                 --includedir=$instdir/include                   \
                 --datadir=$instdir/data                         \
-                ACLOCALDIR=$ACLOCALDIR )
+                ACLOCALDIR=$ACLOCALDIR                          \
+                 )
     else  # LessTif or Xt
         set command = (                                         \
             ./configure --enable-static                         \
+                    $extra_opts                                 \
                     --prefix=$instdir                           \
                     --exec-prefix=$instdir                      \
                     --libdir=$instdir/$ldir                     \
                     --includedir=$instdir/include               \
                     --datadir=$instdir/data                     \
                     $debugflag                                  \
-                    ACLOCALDIR=$ACLOCALDIR )
+                    ACLOCALDIR=$ACLOCALDIR                      \
+                )
     endif
 
     set outfile = out.config
