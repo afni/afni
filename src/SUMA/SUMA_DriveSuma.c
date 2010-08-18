@@ -1258,6 +1258,19 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_DriveSuma_ParseInput(char *argv[], int ar
 		
 		SUMA_SKIP_COMMON_OPTIONS(brk, kar);
       
+      if (!brk && (strcmp(argv[kar], "-echo_edu") == 0)) {
+         int jj;
+         fprintf(SUMA_STDOUT,"\nNow running:\n   ");
+         for (jj=0; jj<argc; ++jj) {
+            if (jj != kar) {
+               fprintf(SUMA_STDOUT,"%s ", argv[jj]);
+            }
+         } 
+         fprintf(SUMA_STDOUT,"\n");
+         brk = YUP;   
+      }
+   
+
       if (!brk && (strcmp(argv[kar], "-debug") == 0))
       {
          if (kar+1 >= argc)
