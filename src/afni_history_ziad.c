@@ -66,6 +66,11 @@
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 18, AUG , 2010 , ZSS , "@DriveSuma" , MINOR , TYPE_MODIFY,
+   "Improvements to @DriveSuma to make it more didactic",
+   NULL
+ } ,
+
  { 9, AUG , 2010 , ZSS , "suma-general" , MICRO , TYPE_NEW_OPT,
    "Allows reading 5-column colormaps",
    NULL
