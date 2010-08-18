@@ -49,6 +49,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 18, AUG, 2010, RCR, "@build_afni_Xlib", MICRO, TYPE_NEW_OPT,
+   "added -lib32 for building 32-bit on a 64-bit Linux box",
+   NULL
+ } ,
+
+ { 18, AUG, 2010, RCR, "afni-general", MINOR, TYPE_MODIFY,
+   "changed Makefile.linux_openmp (and _64) building on F10 (was F12)",
+   NULL
+ } ,
+
  { 17, AUG, 2010, RCR, "afni_proc.py", MICRO, TYPE_NEW_OPT,
    "allowed married timing files",
    "Also, delete output script on failure (have -keep_script_on_err option)."
