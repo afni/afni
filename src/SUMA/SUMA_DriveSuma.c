@@ -327,6 +327,8 @@ void usage_DriveSuma (SUMA_GENERIC_ARGV_PARSE *ps)
 "                  key option.\n"
 "Options:\n"
 "--------\n"
+"   -echo_edu: Echos the entire command line (without -echo_edu)\n"
+"              for edification purposes\n"
 "   -examples: Show all the sample commands and exit\n"
 "   -C_demo: execute a preset number of commands\n"
 "            which are meant to illustrate how one\n"
