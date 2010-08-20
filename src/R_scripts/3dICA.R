@@ -1,7 +1,7 @@
 #!/usr/bin/env afni_run_R
 #Welcome to 3dICA.R, an AFNI IVA Package!
 #-----------------------------------------------------------
-#Version 0.0.2, Jul. 6, 2010
+#Version 0.0.3, Aug 20, 2010
 #Author: Gang Chen (gangchen@mail.nih.gov)
 #Website: http://afni.nimh.nih.gov/sscc/gangc/ica.html
 #SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -12,7 +12,7 @@
 
 system("rm -f .RData")
 source(file.path(Sys.getenv("AFNI_R_DIR"), "AFNIio.R"))
-#source(file.path(Sys.getenv("LME"), "AFNIio.R"))
+#source("~/abin/AFNIio.R")
 library(fastICA)
 
 # C is much faster than R!
@@ -63,11 +63,11 @@ NOTE <- Data$header$HISTORY_NOTE
 ORIG <- Data$origin
 DELTA <- Data$delta
 
+NData <- array(data=NA, dim=c(dimx, dimy, dimz, tp))
+NData <- Data$brk
 # release some memory
 rm(Data)
 
-NData <- array(data=NA, dim=c(dimx, dimy, dimz, tp))
-NData <- Data$brk
 dim(NData) <- c(prod(dimx, dimy, dimz), tp)
 
 #ww <- apply(NData, 4, rbind)
