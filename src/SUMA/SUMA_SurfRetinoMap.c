@@ -309,7 +309,7 @@ SUMA_DSET * SUMA_RetinoMap (SUMA_SurfaceObject *SO,
       goto CLEANOUT;
    }
    
-   if (!SUMA_AddDsetNelCol(dout, "VFR", SUMA_NODE_FLOAT, vfr, NULL, 1)) {
+   if (!SUMA_AddDsetNelCol(dout, "VFR", SUMA_NODE_VFR, vfr, NULL, 1)) {
       SUMA_S_Err("Failed to add column");
       SUMA_FreeDset(dout); dout=NULL;
       goto CLEANOUT;

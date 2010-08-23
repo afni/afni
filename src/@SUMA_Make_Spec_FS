@@ -69,6 +69,7 @@ L_INIT_VARS:
 			sphere			\
          white          \
          sphere.reg     \
+         pial-outer-smoothed     \
 			)
 
 goto L_INIT_VARS_DONE

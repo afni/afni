@@ -2391,7 +2391,17 @@ int SUMA_Left_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
    switch (k) {
       case XK_Left:
             if ((SUMA_CTRL_KEY(key) && SUMA_SHIFT_KEY(key))) {
-               /* do nothing about ctrl+shift+this key */
+               float a[3], cQ[4];
+               /* rotate about Z axis CCW  */
+               a[0] = 0.0; a[1] = 0.0; a[2] = 1.0;
+               axis_to_quat(a, -sv->ArrowRotationAngle, cQ);
+               /*add rotation */
+               add_quats ( cQ, 
+                           sv->GVS[sv->StdView].currentQuat, 
+                           sv->GVS[sv->StdView].currentQuat);
+               sv->GVS[sv->StdView].spinDeltaX = 0;
+               sv->GVS[sv->StdView].spinDeltaY = 0;
+               SUMA_postRedisplay(w, NULL, NULL); 
             }else if (SUMA_SHIFT_KEY(key)) {
                /*fprintf (SUMA_STDERR,"%s: Shift down\n", FuncName);*/
                sv->GVS[sv->StdView].translateVec[0] -=
@@ -2486,7 +2496,17 @@ int SUMA_Right_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
    switch (k) {
       case XK_Right:
             if ((SUMA_CTRL_KEY(key) && SUMA_SHIFT_KEY(key))) {
-               /* do nothing about ctrl+shift+this key */
+               float a[3], cQ[4];
+               /* rotate about Z axis CCW  */
+               a[0] = 0.0; a[1] = 0.0; a[2] = 1.0;
+               axis_to_quat(a, sv->ArrowRotationAngle, cQ);
+               /*add rotation */
+               add_quats ( cQ, 
+                           sv->GVS[sv->StdView].currentQuat, 
+                           sv->GVS[sv->StdView].currentQuat);
+               sv->GVS[sv->StdView].spinDeltaX = 0;
+               sv->GVS[sv->StdView].spinDeltaY = 0;
+               SUMA_postRedisplay(w, NULL, NULL); 
             }else if (SUMA_SHIFT_KEY(key)) {
                /*fprintf (SUMA_STDERR,"%s: Shift down\n", FuncName);*/
                sv->GVS[sv->StdView].translateVec[0] += 

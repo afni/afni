@@ -1009,6 +1009,8 @@ typedef struct {
    char ** clist; /*!< strings displayed in the Scrolled list window */
    int N_clist; /*!< Number of strings in clist */
    void **oplist; /*!< list of pointers to objects in the scrolled list */
+   char *content_id; /*!< A string identifier to indicate which object
+                          provided the content of this list */
 } SUMA_ASSEMBLE_LIST_STRUCT;
 
 /*!

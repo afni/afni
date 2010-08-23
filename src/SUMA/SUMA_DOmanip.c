@@ -1866,7 +1866,7 @@ SUMA_ASSEMBLE_LIST_STRUCT *SUMA_CreateAssembleListStruct(void)
    str->clist = NULL;
    str->N_clist = -1;
    str->oplist = NULL;
-   
+   str->content_id = NULL;
    SUMA_RETURN(str);
 }
 /*!
@@ -1892,6 +1892,8 @@ SUMA_ASSEMBLE_LIST_STRUCT *SUMA_FreeAssembleListStruct(SUMA_ASSEMBLE_LIST_STRUCT
       SUMA_free(str->clist);
    }
    if (str->oplist) SUMA_free(str->oplist);
+   if (str->content_id) SUMA_free(str->content_id);
+   
    SUMA_free(str);
    
    SUMA_RETURN(NULL);
