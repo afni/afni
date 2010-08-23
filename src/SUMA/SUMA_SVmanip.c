@@ -385,9 +385,13 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
          char *eee = getenv("SUMA_ArrowRotAngle");
          if (eee) {
             float rotval = strtod(eee, NULL);
-            if (rotval > 0.0 && rotval < 360.0) SV->ArrowRotationAngle = SUMA_PI * rotval / 180.0;
-            else SV->ArrowRotationAngle = SUMA_PI * ARROW_ROTATION_ANGLE_DEG / 180.0;
-         } else SV->ArrowRotationAngle = SUMA_PI * ARROW_ROTATION_ANGLE_DEG / 180.0;
+            if (rotval > 0.0 && rotval < 360.0) 
+               SV->ArrowRotationAngle = SUMA_PI * rotval / 180.0;
+            else 
+               SV->ArrowRotationAngle = SUMA_PI * 
+                                    ARROW_ROTATION_ANGLE_DEG / 180.0;
+         } else 
+            SV->ArrowRotationAngle = SUMA_PI * ARROW_ROTATION_ANGLE_DEG / 180.0;
       }
       {
          char *eee = getenv("SUMA_KeyZoomGain");

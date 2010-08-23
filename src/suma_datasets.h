@@ -293,8 +293,10 @@ typedef enum {
    SUMA_NODE_STRING,   /*!< Generic String */
    SUMA_NODE_SHORT,      /*!< Generic short */
    SUMA_NODE_DOUBLE,     /*!< Generic double */
-   SUMA_NODE_XCORR,      /*!< Cross Correlation Coefficient */ 
-   SUMA_NODE_ZSCORE      /*!< Zscore */
+   SUMA_NODE_XCORR,      /*!< Cross Correlation Coefficient */
+   SUMA_NODE_ZSCORE,      /*!< Zscore */
+   SUMA_NODE_VFR,       /* Visual Field Ration */
+   SUMA_NODE_PHASE     /* Phase of some sort */ 
 }  SUMA_COL_TYPE; /*!<  Column types.
                         When you add a new element, you need to modify
                         SUMA_AddColAttr
@@ -1387,6 +1389,9 @@ SUMA_DSET * SUMA_far2dset_ns( char *FullName, char *dset_id, char *dom_id,
 int SUMA_is_AllNumeric_dset(SUMA_DSET *dset);
 int SUMA_dset_to_Label_dset(SUMA_DSET *dset); 
 int SUMA_is_Label_dset(SUMA_DSET *dset, NI_group **NIcmap); 
+int SUMA_is_Phase_dset(SUMA_DSET *dset); 
+int SUMA_is_RetinoAngle_dset(SUMA_DSET *dset); 
+int SUMA_is_VFR_dset(SUMA_DSET *dset); 
 NI_group *SUMA_NICmapToNICmap(NI_group *NIcmap);
 int * SUMA_UniqueValuesInLabelDset(SUMA_DSET *dset, int *N_unq);
 int SUMA_is_AllConsistentNumeric_dset(SUMA_DSET *dset, SUMA_VARTYPE *vtpp);

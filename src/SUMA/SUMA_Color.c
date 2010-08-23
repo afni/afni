@@ -5247,18 +5247,30 @@ SUMA_OVERLAYS * SUMA_CreateOverlayPointer (
          Sover->cmapname = NULL;
          Sover->OptScl = NULL;
       } else {
-         if (!SUMA_is_Label_dset(dset, &ncmap)) {
-            char *eee=getenv("SUMA_DsetColorMap");
+         if (SUMA_is_VFR_dset(dset)) {
+            char *eee=getenv("SUMA_VFR_DsetColorMap");
             if (eee) {
                if (!SUMA_FindNamedColMap(eee)) {
-                  Sover->cmapname = SUMA_copy_string("Spectrum:red_to_blue");
+                  Sover->cmapname = SUMA_copy_string("afni_n2");
                   SUMA_S_Errv( "Colormap %s not found.\n"
-                              "Using Spectrum:red_to_blue instead.\n", eee);
+                              "Using afni_n2 instead.\n", eee);
                } else Sover->cmapname = SUMA_copy_string(eee);
             } else {
-               Sover->cmapname = SUMA_copy_string("Spectrum:red_to_blue");
+               Sover->cmapname = SUMA_copy_string("afni_n2");
             }
-         } else {
+            Sover->SymIrange = 1;
+         } else if (SUMA_is_RetinoAngle_dset(dset)) {
+            char *eee=getenv("SUMA_RetinoAngle_DsetColorMap");
+            if (eee) {
+               if (!SUMA_FindNamedColMap(eee)) {
+                  Sover->cmapname = SUMA_copy_string("rgybr20");
+                  SUMA_S_Errv( "Colormap %s not found.\n"
+                              "Using rgybr20 instead.\n", eee);
+               } else Sover->cmapname = SUMA_copy_string(eee);
+            } else {
+               Sover->cmapname = SUMA_copy_string("rgybr20");
+            }
+         } else if (SUMA_is_Label_dset(dset, &ncmap)) {
             /* this is a label dset */
             if (!ncmap) { /*  have no colormap, throw one in */
                if (!(ncmap = SUMA_CreateCmapForLabelDset(dset, NULL))) {
@@ -5273,7 +5285,19 @@ SUMA_OVERLAYS * SUMA_CreateOverlayPointer (
                Sover->cmapname = SUMA_copy_string(
                                        NI_get_attribute(ncmap,"Name"));
             }
+         } else {
+            char *eee=getenv("SUMA_DsetColorMap");
+            if (eee) {
+               if (!SUMA_FindNamedColMap(eee)) {
+                  Sover->cmapname = SUMA_copy_string("Spectrum:red_to_blue");
+                  SUMA_S_Errv( "Colormap %s not found.\n"
+                              "Using Spectrum:red_to_blue instead.\n", eee);
+               } else Sover->cmapname = SUMA_copy_string(eee);
+            } else {
+               Sover->cmapname = SUMA_copy_string("Spectrum:red_to_blue");
+            }
          }
+         
          Sover->OptScl = SUMA_ScaleToMapOptInit();
          if (!Sover->OptScl) {
             fprintf (SUMA_STDERR,
@@ -5281,7 +5305,9 @@ SUMA_OVERLAYS * SUMA_CreateOverlayPointer (
                      FuncName);
             SUMA_RETURN (NOPE); 
          }
-         if (SUMA_is_Label_dset(dset, NULL)) {
+         if (SUMA_is_VFR_dset(dset)) {
+            Sover->OptScl->interpmode = SUMA_NO_INTERP;
+         } else if (SUMA_is_Label_dset(dset, NULL)) {
             Sover->OptScl->interpmode = SUMA_DIRECT; /* default for such dsets */
          }
       }
@@ -7328,6 +7354,8 @@ void SUMA_RefreshDsetList (SUMA_SurfaceObject *SO)
    
    SUMA_ENTRY;
    
+   SUMA_S_Note("CALLED");
+   
    LW = SO->SurfCont->SwitchDsetlst;
    
    if (!LW) SUMA_RETURNe;
@@ -7832,8 +7860,6 @@ SUMA_Boolean SUMA_LoadDsetOntoSO_eng (char *filename, SUMA_SurfaceObject *SO,
             if (!(colplanepre = SUMA_Fetch_OverlayPointerByDset (
                            SO->Overlays, SO->N_Overlays, dset, &OverInd))) {
                SUMA_SLP_Err("Failed to fetch existing dset's overlay pointer");
-               /* is there not a function to replace a dset yet? */
-               /* SUMA_FreeDset(dset); dset = NULL; do not free existing dset */
                SUMA_RETURN(NOPE);
             }
             /* have bias? REMOVE IT! */
@@ -7926,7 +7952,18 @@ SUMA_Boolean SUMA_LoadDsetOntoSO_eng (char *filename, SUMA_SurfaceObject *SO,
       if (LW) {
          if (!LW->isShaded) SUMA_RefreshDsetList (SO);  
       }  
-
+      
+      /* if lists for switching sub-bricks are not shaded, update them too */
+      if ((LW = SO->SurfCont->SwitchIntLst) && !LW->isShaded) {
+         SUMA_DsetColSelectList(SO, 0, 0, 1);
+      }
+      if ((LW = SO->SurfCont->SwitchThrLst) && !LW->isShaded) {
+         SUMA_DsetColSelectList(SO, 1, 0, 1);
+      }
+      if ((LW = SO->SurfCont->SwitchBrtLst) && !LW->isShaded) {
+         SUMA_DsetColSelectList(SO, 2, 0, 1);
+      }
+      
       if (LocalHead) 
          fprintf (SUMA_STDERR,
                   "%s: Updating Dset frame, OverInd=%d\n", 

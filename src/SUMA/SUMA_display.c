@@ -6650,10 +6650,9 @@ SUMA_LIST_WIDGET * SUMA_AllocateScrolledList (
 {
    static char FuncName[]={"SUMA_AllocateScrolledList"};
    SUMA_LIST_WIDGET *LW = NULL;
-
+   
    SUMA_ENTRY;
    
-
    if (!Label) {
       SUMA_SLP_Err("Null Label");
       SUMA_RETURN(LW);
@@ -6882,7 +6881,7 @@ void SUMA_CreateScrolledList (
    }
    
    if (N_clist <= 0) {
-      SUMA_SLP_Note ("No ROIs found");
+      SUMA_SLP_Note ("No elements in list (such as ROIs) found");
       SUMA_RETURNe;
    }
    

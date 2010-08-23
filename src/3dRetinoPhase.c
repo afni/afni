@@ -3,10 +3,10 @@
 typedef enum { 
    NEG=-3, CONT=-2, CCW=-1, 
    NOT_SET=0, 
-   CW=1, EXP=2, POS=3
+   CLW=1, EXP=2, POS=3
    } PHAZE_DIRS;
 typedef enum { 
-   k_EXP=0, k_CON, k_CW, k_CCW, k_N } STIM_TYPES;
+   k_EXP=0, k_CON, k_CLW, k_CCW, k_N } STIM_TYPES;
 typedef enum { 
    ECC=0, POL=1 } FIELD_PARAMS;
    
@@ -23,7 +23,7 @@ typedef struct {
    int nmask;     /* total number of voxels in mask */
    char *prefix; 
    char *oext;    /* output extension */
-   int dir;       /* +1 for CW, -1 for CCW
+   int dir;       /* +1 for CLW, -1 for CCW
                            +2 for Exp. -2 for contracting*/
    int n[2];           /* number of rings, wedges */
    int spectra;
@@ -52,8 +52,8 @@ int Phase_Type_to_Dir(int p) {
          return(CONT);
       case k_EXP:
          return(EXP);
-      case k_CW:
-         return(CW);
+      case k_CLW:
+         return(CLW);
       case k_CCW:
          return(CCW);
       default:
@@ -67,8 +67,8 @@ int Phase_Dir_to_Type(int p) {
          return(k_CON);
       case EXP:
          return(k_EXP);
-      case CW:
-         return(k_CW);
+      case CLW:
+         return(k_CLW);
       case CCW:
          return(k_CCW);
       default:
@@ -85,7 +85,7 @@ char * Phase_Dirs_string(int p) {
       case CCW:
          sprintf(ps,"Counter clockwise (Polar -)");
          break;
-      case CW:
+      case CLW:
          sprintf(ps,"Clockwise (Polar +)");
          break;
       case EXP:
@@ -115,7 +115,7 @@ char * Phase_Dirs_lbl(int p) {
       case CCW:
          sprintf(ps,"pol-");
          break;
-      case CW:
+      case CLW:
          sprintf(ps,"pol+");
          break;
       case EXP:
@@ -144,7 +144,7 @@ char * Phase_Dirs_ulbl(int p) {
          sprintf(ps,"ecc");
          break;
       case CCW:
-      case CW:
+      case CLW:
          sprintf(ps,"pol");
          break;
       default:
@@ -160,7 +160,7 @@ int Dir_is_eccentricity(d) {
 }
 
 int Dir_is_polar(d) {
-   if (d == CW || d == CCW) return(1);
+   if (d == CLW || d == CCW) return(1);
    return(0);
 }
 
@@ -172,7 +172,7 @@ int Dir2Type(p) {
          return(ECC);
          break;
       case CCW:
-      case CW:
+      case CLW:
          return(POL);
          break;
       default:
@@ -321,20 +321,18 @@ static void RP_tsfunc( double tzero, double tdelta ,
          Show_RP_UD(rpud, "Top of init:\n");
       }
       if( npts > 0 ){  /* the "start notification" */
-         if (ncall != 0) {
-            INFO_message("Repeat initialization, make sure cleanup was done\n"
-                         "done well at end notification.\n");
-         }
          ncall = 0 ;
          st = Dir2Type(rpud->dir);
          if (st < 0) {
             ERROR_message("Bad rpud->dir, assuming POLAR stimulus");
             st = POL;
          }
+         
          /* nfft ? */
          if (rpud->nfft == 0) rpud->nfft = csfft_nextup(rpud->nvals);
-         INFO_message("Data length = %d ; FFT length = %d",
-                        rpud->nvals,rpud->nfft) ;
+         INFO_message("Data length = %d ; FFT length = %d; st %d, direc %d (%s)",
+                        rpud->nvals,rpud->nfft, 
+                        st, rpud->dir, Phase_Dirs_lbl(rpud->dir)) ;
 
          if( rpud->ftap > 0.0f ) {
            xtap = mri_setup_taper( npts , rpud->ftap ) ; 
@@ -346,6 +344,11 @@ static void RP_tsfunc( double tzero, double tdelta ,
          /* response frequency */
          rpud->Fresp[st] = 
             rpud->Fstim[st]*(float)rpud->n[st];
+         
+         if (rpud->Fresp[st] <= 0.0f) {
+            ERROR_message("Bad rpud->Fresp !");
+            return;
+         }
          
          /* allocate for fft array */
          comp_array = (complex *) calloc( sizeof(complex) , rpud->nfft);
@@ -361,13 +364,15 @@ static void RP_tsfunc( double tzero, double tdelta ,
             int nharm = 1, stk[2];
             float fharm=0.0, stw[2];
             while ((fharm = nharm*rpud->Fresp[st]) < 
-                     rpud->nfft/2.0*rpud->fstep) {
+                     rpud->nfft/2.0*rpud->fstep ) {
                SetFreqBin(fharm, rpud->fstep, stk, stw);
                stimharm[stk[0]] = nharm;
                stimharm[stk[1]] = nharm; 
                if (rpud->verb > 2) 
-                  INFO_message("Freq. indices [%d(%.3f) %d(%.3f)] is harm %d\n", 
-                              stk[0], stw[0], stk[1], stw[1], nharm);
+                  INFO_message("Freq. indices [%d(%.3f) %d(%.3f)] is harm %d"
+                               " (fharm=%f. lim=%f)\n", 
+                              stk[0], stw[0], stk[1], stw[1], nharm,
+                              fharm, rpud->nfft/2.0*rpud->fstep);
                ++nharm;
             }
          }
@@ -624,7 +629,7 @@ int main( int argc , char * argv[] )
             "\n"
             " -exp EXP: These four options specify the type of retinotpy \n"
             " -con CON: stimulus. EXP and CON are for expanding and \n"
-            " -cw  CW : contracting rings, respectively. CW and CCW are\n"
+            " -clw CLW : contracting rings, respectively. CLW and CCW are\n"
             " -ccw CCW: for clockwise and counter clockwise moving polar\n"
             "           polar angle mapping stimuli. You can specify one, \n"
             "           or all stimuli in one command. When all are specified\n"
@@ -634,7 +639,7 @@ int main( int argc , char * argv[] )
             "           PREF is suffixed with the following:\n"
             "           .ecc+ for positive (expanding) eccentricity (EXP)\n"
             "           .ecc- for negative (contracting) eccentricity (CON)\n"
-            "           .pol+ for clockwise polar angle mapping (CW)\n"
+            "           .pol+ for clockwise polar angle mapping (CLW)\n"
             "           .pol- for counterclockwise polar angle mapping (CCW)\n"
             " -spectra: Output amplitude and phase spectra datasets.\n"
             " -Tstim T: Period of stimulus in seconds. This parameter does\n"
@@ -807,7 +812,7 @@ int main( int argc , char * argv[] )
       }
       
       if( strcmp(argv[iarg],"-dir") == 0 ){  
-         ERROR_exit("-dir now obsolete, use -exp, -con, -cw, or -ccw\n");
+         ERROR_exit("-dir now obsolete, use -exp, -con, -clw, or -ccw\n");
         if( iarg+1 >= argc )
             ERROR_exit("-dir option requires an argument!\n");
         ++iarg;
@@ -815,7 +820,8 @@ int main( int argc , char * argv[] )
         else if (!strncmp(argv[iarg],"con", 3) ||
                  !strncmp(argv[iarg],"cnt", 3)) rpud.dir = CONT;
         else if (!strncmp(argv[iarg],"cw",  2) ||
-                 !strncmp(argv[iarg],"clo", 3)) rpud.dir = CW;
+                 !strncmp(argv[iarg],"clo", 3) ||
+                 !strncmp(argv[iarg],"clw", 3)) rpud.dir = CLW;
         else if (!strncmp(argv[iarg],"ccw", 3) ||
                  !strncmp(argv[iarg],"cou", 3)) rpud.dir = CCW;
         else if (!strncmp(argv[iarg],"+",   1) ||
@@ -851,10 +857,11 @@ int main( int argc , char * argv[] )
          iarg++ ; continue ;
       }
 
-      if( strcmp(argv[iarg],"-cw") == 0 ){
+      if( strcmp(argv[iarg],"-cw") == 0 ||
+          strcmp(argv[iarg],"-clw") == 0){
          if( iarg+1 >= argc )
-            ERROR_exit("-cw option requires a  dset\n");
-         in_name[k_CW] = argv[++iarg] ;
+            ERROR_exit("-clw (or -cw) option requires a  dset\n");
+         in_name[k_CLW] = argv[++iarg] ;
          iarg++ ; continue ;
       }
 
@@ -956,6 +963,7 @@ int main( int argc , char * argv[] )
          }
          sprintf(stmp,"%s.%s%s",
                      rpud.prefix, Phase_Dirs_lbl(rpud.dir),rpud.oext);
+         
 
          new_dset[stype] = MAKER_4D_to_typed_fbuc(
                        old_dset ,             /* input dataset */
@@ -1030,13 +1038,13 @@ int main( int argc , char * argv[] )
       DSET_delete(cset); cset = NULL;                  
    }
    
-   if (new_dset[k_CW] && new_dset[k_CCW]) {
+   if (new_dset[k_CLW] && new_dset[k_CCW]) {
       THD_3dim_dataset *cset=NULL;
       
-      rpud.dir = CW; /* not really, but sign does not matter at this point */
-      cset = Combine_Opposites(new_dset[k_CW], new_dset[k_CCW], 
+      rpud.dir = CLW; /* not really, but sign does not matter at this point */
+      cset = Combine_Opposites(new_dset[k_CLW], new_dset[k_CCW], 
                         &rpud);
-      tross_Copy_History( cset , new_dset[k_CW] ) ;
+      tross_Copy_History( cset , new_dset[k_CLW] ) ;
       DSET_write( cset ) ;
       WROTE_DSET( cset ) ;
       DSET_delete(cset); cset = NULL;                  

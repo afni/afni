@@ -1456,6 +1456,8 @@ char * SUMA_help_message_Info(void)
    SS = SUMA_StringAppend (SS, 
       "     Ctrl+Shift+U-D arrows: AP cardinal views\n\n");
    SS = SUMA_StringAppend (SS, 
+      "     Ctrl+Shift+L-R arrows: rotate CCW and CW about Z screen axis\n\n");
+   SS = SUMA_StringAppend (SS, 
       "     Alt+L-R arrows: Move selected node to neighboring nodes\n"
       "                     in the direction of the screen's \n"
       "                     X axis. The default is to move one\n"
