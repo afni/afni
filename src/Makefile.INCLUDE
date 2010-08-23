@@ -2495,6 +2495,12 @@ qqq.o:qqq.c
 qqq:qqq.o
 	$(CC) -o qqq qqq.o $(INFLAGS) $(LFLAGS) $(LLIBS) -lmrix -lcoxplot  -lf2c $(LLIBS)
 
+mri_gwarp.o:mri_gwarp.c
+	$(CCFAST) -c mri_gwarp.c $(INFLAGS)
+
+gwarp:mri_gwarp.o
+	$(CC) -o gwarp mri_gwarp.o $(INFLAGS) $(LFLAGS) $(LLIBS)
+
 3dMaskToASCII.o:3dMaskToASCII.c
 	$(CC) -c 3dMaskToASCII.c $(INFLAGS)
 
