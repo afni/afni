@@ -233,7 +233,7 @@ float GW_diffval( MRI_IMAGE *iim   , MRI_IMAGE *jim    ,
 float GW_best_step( MRI_IMAGE *iim   , MRI_IMAGE *jim   ,
                     MRI_IMARR *wimar , MRI_IMARR *deltar )
 {
-   float vbot , vtop , vmid , db=0.0f, dt=0.1f , dm , vbm,vmt ;
+   float vbot , vtop , vmid , db=0.0f, dt=0.16f , dm , vbm,vmt ;
    int ii ;
 
 /* INFO_message("Enter GW_best_step") ; */
@@ -241,7 +241,7 @@ float GW_best_step( MRI_IMAGE *iim   , MRI_IMAGE *jim   ,
    vbot = GW_diffval( iim , jim , wimar , deltar , db ) ;
    vtop = GW_diffval( iim , jim , wimar , deltar , dt ) ;
 
-   for( ii=0 ; ii < 3 ; ii++ ){
+   for( ii=0 ; ii < 2 ; ii++ ){
      dm   = 0.5f*(db+dt) ;
      vmid = GW_diffval( iim , jim , wimar , deltar , dm ) ;
      vbm  = MIN(vbot,vmid) ;
@@ -335,7 +335,7 @@ float GW_iterate(void)
 {
    MRI_IMARR *deltar ; float ds , qblur ;
 
-INFO_message("Enter GW_iterate") ;
+/* INFO_message("Enter GW_iterate") ; */
 
    qblur = 1.444f*blur ; qblur = MAX(qblur,14.444f) ;
    deltar = GW_deltim( jim , iimar , wimar , qblur ) ;
@@ -357,6 +357,8 @@ ININFO_message("best_step = %f",ds) ;
        wzar[ii] += ds*dzar[ii] ;
      }
 
+/* debug output */
+
 { MRI_IMAGE *tim = GW_warpim(IMARR_SUBIM(iimar,0),wimar,MRI_LINEAR) ;
   char prefix[64] ;
   static int nite=0 ;
@@ -375,22 +377,29 @@ ININFO_message("best_step = %f",ds) ;
 int main( int argc , char *argv[] )
 {
    THD_3dim_dataset *iset , *bset , *oset ;
-   MRI_IMAGE *iim , *bim ; int ii ; float ds ;
+   MRI_IMAGE *iim , *bim ; int ii,iarg=1 ; float ds , bblur=0.0f,sblur=4.9f ;
 
-   if( argc < 3 ){ printf("qqq base source\n") ; exit(0) ; }
+   if( argc < 3 ){ printf("gwarp [-blur b s] base source\n") ; exit(0) ; }
 
-   bset = THD_open_dataset(argv[1]) ; if( !ISVALID_DSET(bset) ) ERROR_exit("bset") ;
+INFO_message("gwarp is NOT a production program: it is merely for testing!") ;
+
+   if( strcmp(argv[iarg],"-blur") == 0 ){
+     bblur = strtod(argv[++iarg],NULL) ;
+     sblur = strtod(argv[++iarg],NULL) ; iarg++ ;
+   }
+
+   bset = THD_open_dataset(argv[iarg++]) ; if( !ISVALID_DSET(bset) ) ERROR_exit("bset") ;
    DSET_load(bset) ; bim = mri_to_float(DSET_BRICK(bset,0)) ; DSET_unload(bset) ;
 
-   iset = THD_open_dataset(argv[2]) ; if( !ISVALID_DSET(iset) ) ERROR_exit("iset") ;
+   iset = THD_open_dataset(argv[iarg++]) ; if( !ISVALID_DSET(iset) ) ERROR_exit("iset") ;
    DSET_load(iset) ; iim = mri_to_float(DSET_BRICK(iset,0)) ; DSET_unload(iset) ;
 
    qset = EDIT_empty_copy(iset) ;
    EDIT_dset_items( qset , ADN_nvals,1 , ADN_none ) ;
 
-   GW_setup(iim,bim,3.9f,0.0f) ; mri_free(bim) ;
+   GW_setup(iim,bim,sblur,bblur) ; mri_free(bim) ;
 
-   for( ii=0 ; ii < 199 ; ii++ ){
+   for( ii=0 ; ii < 99 ; ii++ ){
      ds = GW_iterate() ; if( ds == 0.0f ) break ;
    }
 
