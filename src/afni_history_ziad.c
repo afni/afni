@@ -66,6 +66,51 @@
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 23, AUG , 2010 , ZSS , "suma" , MINOR , TYPE_MODIFY,
+   "Fixed bug in sub-brick selection lists",
+   "Before the bug fix, once a sub-brick selection list was open\n"
+   "(right-click on 'I', 'T', or 'B') for one dataset, it never got\n"
+   "updated after switching to another dataset, rendering it quite useless.\n"
+   "Thanks to Adam Greenberg for reporting the error.\n"
+ } ,
+
+ { 23, AUG , 2010 , ZSS , "suma" , MINOR , TYPE_MODIFY,
+   "SUMA now detects retinotopy results and displays them appropriately",
+   NULL
+ } ,
+ 
+ { 23, AUG , 2010 , ZSS , "suma" , MINOR , TYPE_NEW_OPT,
+   "Shift+Ctrl left, right rotates surface about Z axis",
+   "Useful for rotating flat surfaces"
+ } ,
+ 
+  { 23, AUG , 2010 , ZSS , "suma" , MINOR , TYPE_NEW_ENV,
+   "Allow users to specify colormaps for retinotopy results",
+   "See help section for variables:\n"
+   "  SUMA_RetinoAngle_DsetColorMap and SUMA_VFR_DsetColorMap\n"
+   "in your ~/.sumarc, after running suma -update_env.\n"
+ } ,
+ 
+  { 23, AUG , 2010 , ZSS , "@RetinoProc" , MAJOR , TYPE_NEW_PROG,
+   "Packages processing step for phase-based retinotopic mapping.",
+   "See @RetinoProc -help for details\n"
+ } ,
+ 
+  { 23, AUG , 2010 , ZSS , "3dRetinoPhase" , MAJOR , TYPE_NEW_PROG,
+   "Calculate visual field angle from phase-based retinotopy data.",
+   NULL
+ } ,
+
+  { 23, AUG , 2010 , ZSS , "SurfRetinoMap" , MAJOR , TYPE_NEW_PROG,
+   "Calculates Visual Field Signs from visual field angle data",
+   NULL
+  } ,
+ 
+  { 23, AUG , 2010 , ZSS , "@SUMA_Make_Spec_FS" , MICRO , TYPE_MODIFY,
+   "Script now looks for brain envelope surface from FreeSurfer",
+   "Thanks to Mike Beauchamp for the modification."
+  } ,
+ 
  { 18, AUG , 2010 , ZSS , "@DriveSuma" , MINOR , TYPE_MODIFY,
    "Improvements to @DriveSuma to make it more didactic",
    NULL

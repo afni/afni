@@ -1770,8 +1770,12 @@ int SUMA_AddColAttr (NI_element *nel, char *col_label, SUMA_COL_TYPE ctp, void *
 
    if (!nel) SUMA_RETURN(0);
    if (col_index < 0) col_index = nel->vec_num-1;
-   if (col_index < 0 || !nel->vec_num ) { SUMA_SL_Err("No columns in data set!"); SUMA_RETURN(0); }
-   if (nel->vec_num <= col_index) { SUMA_SL_Err("col_index >= nel->vec_num!"); SUMA_RETURN(0); }
+   if (col_index < 0 || !nel->vec_num ) { 
+      SUMA_SL_Err("No columns in data set!"); SUMA_RETURN(0); 
+   }
+   if (nel->vec_num <= col_index) { 
+      SUMA_SL_Err("col_index >= nel->vec_num!"); SUMA_RETURN(0); 
+   }
    
    /* if a label is specified, set it */
    if (col_label) {
@@ -1870,6 +1874,14 @@ int SUMA_AddColAttr (NI_element *nel, char *col_label, SUMA_COL_TYPE ctp, void *
          break;     
       
       case SUMA_NODE_CX:
+         NI_set_attribute ( nel, Attr, NULL);
+         break;  
+      
+      case SUMA_NODE_VFR:
+         NI_set_attribute ( nel, Attr, NULL);
+         break;  
+      
+      case SUMA_NODE_PHASE:
          NI_set_attribute ( nel, Attr, NULL);
          break;  
       
@@ -3755,6 +3767,8 @@ SUMA_VARTYPE SUMA_ColType2TypeCast (SUMA_COL_TYPE ctp)
       case SUMA_NODE_XCORR:
       case SUMA_NODE_ZSCORE:
       case SUMA_NODE_3C:
+      case SUMA_NODE_VFR:
+      case SUMA_NODE_PHASE:
          SUMA_RETURN(SUMA_float);      
          break;
       case SUMA_NODE_BYTE:
@@ -4045,6 +4059,12 @@ char * SUMA_Col_Type_Name (SUMA_COL_TYPE tp)
       case SUMA_NODE_ZSCORE:
          SUMA_RETURN("Z_score");
          break;
+      case SUMA_NODE_VFR:
+         SUMA_RETURN("VFR");
+         break;
+      case SUMA_NODE_PHASE:
+         SUMA_RETURN("Phase");
+         break;
       default:
          SUMA_RETURN("Cowabonga-Jo");
          break;
@@ -4088,6 +4108,8 @@ SUMA_COL_TYPE SUMA_Col_Type (char *Name)
    if (!strcmp(Name,"Convexity")) SUMA_RETURN (SUMA_NODE_CX);
    if (!strcmp(Name,"Cross_Corr_Coeff")) SUMA_RETURN (SUMA_NODE_XCORR);
    if (!strcmp(Name,"Z_score")) SUMA_RETURN (SUMA_NODE_ZSCORE);
+   if (!strcmp(Name,"VFR")) SUMA_RETURN (SUMA_NODE_VFR);
+   if (!strcmp(Name,"Phase")) SUMA_RETURN (SUMA_NODE_PHASE);
    /* if (!strcmp(Name,"")) SUMA_RETURN (); */
    SUMA_RETURN (SUMA_ERROR_COL_TYPE);
 
@@ -10370,6 +10392,90 @@ int SUMA_is_Label_dset(SUMA_DSET *dset, NI_group **NIcmap)
    SUMA_RETURN(1);
 }
 
+/*! 
+   \brief requirements to be a VFR dset:
+   1- 1st column of data with type SUMA_NODE_VFR
+*/
+int SUMA_is_VFR_dset(SUMA_DSET *dset) 
+{
+   static char FuncName[]={"SUMA_is_VFR_dset"};
+   int ctp, vtp, i;
+   NI_group *ngr=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!dset) SUMA_RETURN(0);
+   
+   i = 0;
+   ctp = SUMA_TypeOfDsetColNumb(dset, i);    
+   if (LocalHead) {
+         fprintf(SUMA_STDERR,"%s: ctp(%d) = %d (%d)\n",
+               FuncName, i, ctp, SUMA_NODE_VFR);
+   }
+   if (ctp == SUMA_NODE_VFR) SUMA_RETURN(1);
+      
+      
+   SUMA_RETURN(0);
+}
+
+/*! 
+   \brief requirements to be a phase dset:
+   1- 1st column of data with type SUMA_NODE_PHASE
+*/
+int SUMA_is_Phase_dset(SUMA_DSET *dset) 
+{
+   static char FuncName[]={"SUMA_is_Phase_dset"};
+   int ctp, vtp, i;
+   NI_group *ngr=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!dset) SUMA_RETURN(0);
+   
+   i = 0;
+      ctp = SUMA_TypeOfDsetColNumb(dset, i); 
+      if (LocalHead) {
+         fprintf(SUMA_STDERR,"%s: ctp(%d) = %d (%d)\n",
+               FuncName, i, ctp, SUMA_NODE_PHASE);
+      }
+      if (ctp == SUMA_NODE_PHASE) SUMA_RETURN(1);
+      
+   SUMA_RETURN(0);
+}
+
+/*! 
+   \brief requirements to be a retinotopically derived angle:
+   Checks labels of columns
+*/
+int SUMA_is_RetinoAngle_dset(SUMA_DSET *dset) 
+{
+   static char FuncName[]={"SUMA_is_RetinoAngle_dset"};
+   int ctp, vtp, i;
+   NI_group *ngr=NULL;
+   char *lblcp=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!dset) SUMA_RETURN(0);
+   
+   /* check based on label, rather than column type.
+   Dset is created with 3d program and it is a pain 
+   to add the column type there at the moment */
+    
+   i = 0;   
+   lblcp = SUMA_DsetColLabelCopy(dset, 0, 0);
+   if (strstr(lblcp, "Polar Angle")) i = 1;
+   else if (strstr(lblcp, "Eccentricity")) i = 1;
+   else if (strncmp(lblcp, "Phz@", 4) == 0) i = 1;  
+   
+   SUMA_free(lblcp);
+   SUMA_RETURN(i);
+}
+
+
 
 NI_group *SUMA_NI_Cmap_of_Dset(SUMA_DSET *dset)
 {
@@ -12117,7 +12223,14 @@ static ENV_SPEC envlist[] = {
       "Yes" }, 
    {  "Name of directory containing user's own SUMA color maps (*.cmap)\n",
       "SUMA_CmapsDir",
-      "" }, 
+      "" },
+   {  "Name of color map for datasets of retinotopy angles.\n"
+      "These would be produced by 3dRetinoPhase\n",
+      "SUMA_RetinoAngle_DsetColorMap",
+      "rgybr20" },
+   {  "Name of color map for VFR datasets produced by SurfRetinoMap\n",
+      "SUMA_VFR_DsetColorMap",
+      "afni_n2" }, 
    {  NULL, NULL, NULL  }
 };
       

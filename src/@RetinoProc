@@ -10,167 +10,212 @@ goto SANITY
 RET_SANITY:
 
 AUTOVAR:
-   set retts = ()
-   foreach rr ($retcls)
-      set retts = ( $retts {$ec}.$rr )
-   end
    set fs = `ccalc 1/$TR`
-   set runclsAll = ($runs_ccw $runs_cw $runs_exp $runs_con )
-   if ($#runclsAll < 4) then
-      echo "Derth of epi runs ($#runclsAll in total, need 4 at least)"
-      goto BEND
-   endif
-   set sdir = `dirname $svol`
+   set sdir = `dirname $u_SVol`
    cd $sdir
    set sdir = $PWD
    cd $idir
-   set svol = `basename $svol`
-   set svol = "$sdir/$svol"
    set sides = ( lh rh )
    set specs = ( $spec_left  $spec_right)
    set A2E_opt = ''
 
-COPY:
-   set runclsNAll = ()
-   foreach dset ( $runclsAll )
-      set ndset = `basename $dset`
-      set ndset = `@NoExt $ndset .nii .nii.gz`
-      set pndset = `@GetAfniPrefix $ndset`
-      if ( ! -f $rdir/$pndset+orig.HEAD) then
-         3dTcat -prefix $rdir/$pndset $dset'['$Nignore'-$]'
+COPY_EPI_RUNS:
+   set FirstEpi = ''
+   foreach tp ($stim_direc)
+      if ($tp == 'ccw') then
+         set u_runs = ($u_runs_ccw) 
+      else if ($tp == 'clw') then
+         set u_runs = ($u_runs_clw)
+      else if ($tp == 'exp') then
+         set u_runs = ($u_runs_exp)
+      else if ($tp == 'con') then 
+         set u_runs = ($u_runs_con)
+      else
+         echo "Bad direction"
+         goto BEND
       endif
-      set runclsNAll = ($runclsNAll $pndset)
+      set i = 1
+      foreach dset ($u_runs)
+         set pndset = $tp.`printf %02d $i`
+         if ( ! -f $rdir/$pndset+orig.HEAD) then
+            if ( $tshift >= 0) then
+         echo "Tshifting and copying epi run$dset\[$Nignore-\] to $rdir/$pndset"
+               3dTshift -tzero $tshift -overwrite \
+                     -prefix $rdir/$pndset \
+                     $dset'['$Nignore'-$]'
+            else
+               echo "Copying epi run $dset\[$Nignore-\] to $rdir/$pndset"
+               3dTcat -prefix $rdir/$pndset $dset'['$Nignore'-$]'
+            endif
+         else
+            echo "Reusing $rdir/$pndset"
+         endif
+         if ("$FirstEpi" == "") set FirstEpi = $pndset+orig.HEAD
+         @ i ++
+      end
    end
-   set ndset = `basename $avol`
-   set ndset = `@NoExt $ndset .nii .nii.gz`
-   set ndset = $ndset
-   if ( ! -f $rdir/$ndset) then
-      3dcopy ${avol}  $rdir/$ndset
-   endif  
-   set avol = $ndset  
-   
-   if ("$svolal" != '') then
-      set ndset = ${ec}.SurfVol_AlndRetino+orig.HEAD
-      if ( ! -f $rdir/$ndset) then
-         3dcopy "$svolal" $rdir/$ndset  
+
+COPY_EPI_REF:
+   if ("$u_EpiRef" != '') then
+      set nsb = `3dnvals $u_EpiRef`
+      if ($nsb != 1) then
+         echo "Must have one sub-brick in -epi_ref's $u_EpiRef"
+         goto BEND
+      endif
+      if ( ! -f $rdir/EpiRef+orig.HEAD) then
+         echo "Creating $rdir/EpiRef"
+         3dTcat -prefix $rdir/EpiRef $u_EpiRef 
+      else
+         echo "Reusing $rdir/EpiRef"
       endif  
-      set svolal = $ndset
+   else
+      if ( ! -f $rdir/EpiRef+orig.HEAD) then
+         echo "Setting $rdir/EpiRef to be 4th subbrick of $FirstEpi"
+         3dTcat -prefix $rdir/EpiRef $rdir/$FirstEpi'[3]'
+      else
+         echo "Reusing default $rdir/EpiRef"
+      endif
    endif
-   
-   if ("$a2evol" != '') then
-      set ndset = `basename "$a2evol"`
-      set ndset = `@GetAfniPrefix "$ndset"`
-      set ndset = a2e.$ndset+orig.HEAD
-      set pndset = `@GetAfniPrefix $ndset`
-      if ( ! -f $rdir/$ndset) then
-         3dTcat -prefix $rdir/$pndset "$a2evol" 
-      endif  
-      set a2evol = $ndset
-   endif
-   
-   if ("$sref" != '') then
-      set ndset = `basename "$sref"`
-      set ndset = `@GetAfniPrefix "$ndset"`
-      set ndset = e.$ndset
-      if ( ! -f $rdir/$ndset+orig.HEAD) then
-         3dTcat -prefix $rdir/$ndset $sref 
-      endif  
-      set sref = $ndset+orig.HEAD
+ 
+COPY_EPI_ANAT_REF:
+   if ("$u_EpiAnatRef" != '') then
+      set nsb = `3dnvals $u_EpiAnatRef`
+      if ($nsb != 1) then
+         echo "Must have one sub-brick in -epi_anat_ref's $u_EpiAnatRef"
+         goto BEND
+      endif
+      #The copying is done later
    endif
 
-REGISTER_EPI_REFS:
-   if ("$a2evol" != '') then
-      set ee = `@GetAfniPrefix "$a2evol"`
-      if ("$sref" == '') then
-         set gref = `@GetAfniPrefix $runclsNAll[1]`
-         set gref = ${gref}+orig'[3]'
+COPY_AVOLS:   
+   if ( ! -f $rdir/AVol+orig.HEAD) then
+      echo "Copying ${u_AVol} to $rdir/AVol"
+      3dcopy ${u_AVol}  $rdir/AVol
+   else
+      echo "Reusing $rdir/AVol"
+   endif  
+   
+   if ("$u_SVolAtEpi" != '') then
+      if ( ! -f $rdir/SVol@Epi+orig.HEAD) then
+         echo "Copying $u_SVolAtEpi to $rdir/SVol@Epi"
+         3dcopy "$u_SVolAtEpi" $rdir/SVol@Epi  
       else
-         set gref = "$sref"
+         echo "Reusing $rdir/SVol@Epi"
+      endif  
+   endif
+   
+    if ("$u_AVolAtEpi" != '') then
+      if ( ! -f $rdir/AVol@Epi+orig.HEAD) then
+         echo "Copying $u_AVolAtEpi to $rdir/AVol@Epi"
+         3dcopy "$u_AVolAtEpi" $rdir/AVol@Epi  
+      else
+         echo "Reusing $rdir/AVol@Epi"
+      endif  
+   endif
+     
+REGISTER_EPI_REFS:
+   cd $rdir
+   if ("$u_EpiAnatRef" != '') then
+      if ( ! -f EpiAnatRef+orig.HEAD) then
+         if (1) then
+            echo "Registering $idir/$u_EpiAnatRef to EpiRef to create EpiAnatRef"
+            3dvolreg -base EpiRef+orig \
+                     -cubic -overwrite \
+                     -prefix EpiAnatRef   \
+                     -1Dfile EpiAnatRef.1D   \
+                     $idir/$u_EpiAnatRef      
+         else
+            echo "Just copying $idir/$u_EpiAnatRef to EpiAnatRef"
+            3dTcat -prefix EpiAnatRef $idir/$u_EpiAnatRef 
+         endif
+      else
+         echo "Reusing EpiAnatRef"
+      endif  
+   else
+      if ( ! -f EpiAnatRef+orig.HEAD) then
+         echo "Copying EpiRef to EpiAnatRef"
+         3dcopy EpiRef+orig EpiAnatRef+orig
+      else
+         echo "Reusing existing EpiAnatRef"
       endif
-      if ( ! -f ${ee}vr+orig.HEAD) then
-         3dvolreg -base "${gref}" \
-                  -cubic -overwrite \
-                  -prefix ${ee}vr   \
-                  -1Dfile ${ee}vr.1D   \
-                  ${ee}+orig
-      endif
-      set a2evol = "${ee}vr+orig"         
    endif   
+   cd $idir
    
 REGISTER_TS:
    cd $rdir
    set vref = ''
-   foreach s ($runclsNAll)
+   foreach s (???.??+orig.HEAD)
       set sp = `@GetAfniPrefix $s`
-      if ( $tshift >= 0) then
-         if ( ! -f ${sp}ts+orig.HEAD) then
-            3dTshift -tzero $tshift -overwrite \
-                     -prefix ${sp}ts \
-                     $s+orig
-         endif
-         set vrin = ${sp}ts
-         if ("$sref" == '') then
-            set sref = ${sp}ts+orig'[3]'
-         endif
-      else 
-         set vrin = ${sp}
-         if ("$sref" == '') then
-            set sref = ${sp}+orig'[3]'
-         endif
-      endif
-      if ( ! -f ${sp}vr+orig.HEAD) then
-         3dvolreg -base "${sref}" \
+      if ( ! -f ${sp}.vr+orig.HEAD) then
+         echo "Registering epi run $s to create ${sp}.vr"
+         3dvolreg -base EpiRef+orig \
                   -cubic   \
                   -overwrite \
-                  -prefix ${sp}vr  \
-                  -1Dfile ${sp}vr.1D   \
-                  ${vrin}+orig
-      endif
-      if ("$vref" == '') then
-         set vref = ${sp}vr+orig
+                  -prefix ${sp}.vr  \
+                  -1Dfile ${sp}.vr.1D   \
+                  $s
+      else
+         echo "Reusing ${sp}.vr"
       endif
    end
    cd $idir
 
 
 ALIGN_EXPANAT_TO_EPI:
-if ($AlignAnatToEPI == 1) then
    cd $rdir
-   set aa = `@parse_afni_name $avol`
-   set avol_al = "${aa[2]}_al${aa[3]}.HEAD"                        
-   if ( ! -f $avol_al) then
-      align_epi_anat.py    -anat ${avol}   \
-                        -epi  $vref'[0]'   \
-                        -AddEdge \
-                        -epi_base 0
+   if ( ! -f AVol@Epi+orig.HEAD ) then
+      echo "Using align_epi_anat.py to create AVol@Epi"
+      align_epi_anat.py    -anat AVol+orig   \
+                        -epi  EpiAnatRef+orig   \
+                        -AddEdge -anat2epi \
+                        -epi_base 0 \
+                        -suffix RetinoProc
+      3drename *RetinoProc*HEAD AVol@Epi
+   else
+      echo "AVol@Epi already present"
    endif
    cd $idir
-else
-   set avol_al = ${avol}
-   echo "Assuming $avol_al is aligned to $vref'[0]'"
-endif
    
-
 ALIGN_SURFVOL_TO_EXPANAT:
-if ("$svolal" != "") then
-   goto RETINO_START
-   echo "Have anatomy aligned to EPIs"
-else
-   echo "Will align antomy to EPIs"
    cd $rdir
-   set svolb = `basename $svol`
-   set aa = `@parse_afni_name $svolb`
-   set svolal = "${aa[2]}_Alnd_Exp${aa[3]}.HEAD"     
-   if ( ! -f ${svolal}) then
-      @SUMA_AlignToExperiment    -exp_anat ${avol_al}  \
-                                 -surf_anat ${svol}  \
-                                 ${A2E_opt} -prefix "${aa[2]}_Alnd_Exp" \
+   if ( ! -f SVol@Epi+orig.HEAD ) then
+      @SUMA_AlignToExperiment    -exp_anat AVol@Epi+orig  \
+                                 -surf_anat $sdir/${u_SVol:t}  \
+                                 ${A2E_opt} -prefix SVol@Epi \
                                  -wd   
-      cat_matvec ${svolal}::WARPDRIVE_MATVEC_INV_000000 > Svol2Evol.1D
+      cat_matvec SVol@Epi+orig.HEAD::WARPDRIVE_MATVEC_INV_000000 > SVol2Epi.1D
+   else
+      echo "SVol@Epi already present"
    endif
    cd $idir
-endif
-      
+
+SET_POLORT:
+   cd $rdir
+   set nts_max = 0
+   foreach s (???.??.vr+orig.HEAD)
+      set kk = `3dnvals $s`
+      if ($kk > $nts_max) set nts_max = $kk
+   end
+   set polort = `ccalc -form fint -eval "1 + $TR*$nts_max/150"`
+   cd $idir
+
+DETREND:
+   cd $rdir
+   foreach s (???.??.vr+orig.HEAD)
+      set p = `@GetAfniPrefix $s`
+      set p = $p:r
+      if ( ! -f ${p}.b01+orig.HEAD ) then
+         echo "Detrending $s to create ${p}.b01"
+         3dDetrend   -polort $polort    \
+                     -vector ${p}.vr.1D \
+                     -prefix ${p}.b01  \
+                     $s
+      else
+         echo "Reusing existing detrended version ${p}.b01+orig.HEAD"
+      endif 
+   end
+   cd $idir         
+   
 RETINO_START:
 set sdc = 0
 foreach sd ($sides)
@@ -178,14 +223,15 @@ foreach sd ($sides)
    VOL2SURFTS:
       #Now map time series to surfaces
       cd $rdir
-      foreach s ($runclsNAll)
+      foreach s (???.??.b01+orig.HEAD)
          set p = `@GetAfniPrefix $s`
+         set p = $p:r
          if ( ! -f {$p}.${sd}.niml.dset ) then
             3dVol2Surf  -spec          ${specs[$sdc]} \
-                        -sv            ${svolal}   \
+                        -sv            SVol@Epi+orig   \
                         -surf_A        ${sd}.smoothwm.asc \
                         -surf_B        ${sd}.pial.asc  \
-                        -grid_parent   {$p}vr+orig \
+                        -grid_parent   $s \
                         -map_func      ave   \
                         -f_index       nodes \
                         -f_steps       15    \
@@ -195,139 +241,158 @@ foreach sd ($sides)
          endif
       end
       cd $idir
-
-   DETREND: #PERHAPS replace with 3dDeconvolve for removing motion too
-      cd $rdir
-         foreach s ($runclsNAll)
-            set p = `@GetAfniPrefix $s`
-            set din = {$p}.${sd}
-            #set nvals = `3dnvals ${din}.niml.dset`   #too slow
-            set nvals = `3dnvals {$p}vr+orig`   #faster pusscat
-            if ($nvals < 2) then
-               echo "Bad time series length of $nvals for ${din}.niml.dset"
-               goto BEND
-            endif
-            set polort = `ccalc -form fint -eval "1 + $TR*$nvals/150"`
-            if ( ! -f $din.dtr.niml.dset) then
-               3dDetrend   -polort $polort   \
-                           -prefix $din.dtr.niml.dset  \
-                           ${din}.niml.dset
-            endif
-         end
-      cd $idir
          
    AVERAGE:
-      #combine similar runs types
+      #combine similar runs directions
       cd $rdir
       foreach tp (1 2 3 4)
-         if ($tp == 1) then
-            set runcls = ()
-            foreach rr  ($runs_ccw) 
-               set bb = `basename $rr`
-               set bb = `@GetAfniPrefix $bb`
-               set bb = `@NoExt $bb .nii .nii.gz`
-               set runcls = ($runcls $bb.${sd}.dtr.niml.dset)
-            end
-            set runs_ccwsurf = ($runcls)  
-         else if ($tp == 2) then
-            set runcls = ()
-            foreach rr  ($runs_cw) 
-               set bb = `basename $rr`
-               set bb = `@GetAfniPrefix $bb`
-               set bb = `@NoExt $bb .nii .nii.gz`
-               set runcls = ($runcls $bb.${sd}.dtr.niml.dset)
-            end
-            set runs_cwsurf = ($runcls)  
-         else if ($tp == 3) then
-            set runcls = ()
-            foreach rr  ($runs_exp) 
-               set bb = `basename $rr`
-               set bb = `@GetAfniPrefix $bb`
-               set bb = `@NoExt $bb .nii .nii.gz`
-               set runcls = ($runcls $bb.${sd}.dtr.niml.dset)
-            end
-            set runs_expsurf = ($runcls)  
-         else if ($tp == 4) then
-            set runcls = ()
-            foreach rr  ($runs_con) 
-               set bb = `basename $rr`
-               set bb = `@GetAfniPrefix $bb`
-               set bb = `@NoExt $bb .nii .nii.gz`
-               set runcls = ($runcls $bb.${sd}.dtr.niml.dset)
-            end
-            set runs_consurf = ($runcls) 
-         endif   
-         if ( ! -f $retts[$tp].${sd}.niml.dset) then
-            3dMean   -overwrite    \
-                     -prefix $retts[$tp].${sd}.niml.dset  \
-                     $runcls
+         if ( -f $stim_direc[$tp].01.${sd}.niml.dset ) then
+            set runcls = ($stim_direc[$tp].??.${sd}.niml.dset )
+            if ($#runcls > 0) then
+               if ( ! -f $stim_direc[$tp].${sd}.niml.dset) then
+            echo "Averaging $#runcls datasets in $stim_direc[$tp] direction"
+                  3dMean   -overwrite    \
+                           -prefix $stim_direc[$tp].${sd}.niml.dset  \
+                           $runcls
+               else
+            echo "Reusing average time series of $stim_direc[$tp] direction"
+               endif
+            else
+               echo "No data of direction $stim_direc[$tp]"
+            endif
+         else
+            echo "No runs for $stim_direc[$tp]"
          endif
       end
       cd $idir
       
    SMOOTH_IF_DESIRED:
       cd $rdir
-         set cnt = 1
-         foreach f ($retts)
-            set dset = $f.$sd.niml.dset
-            if ("$retcls[$cnt]" == "ccw" || "$retcls[$cnt]" == "cw") then
-               set sfwhm = $fwhm_pol
-            else if ("$retcls[$cnt]" == "cnt" || "$retcls[$cnt]" == "exp") then
-               set sfwhm = $fwhm_ecc
+      foreach tp (1 2 3 4)
+         if ("$stim_direc[$tp]" == "ccw" || "$stim_direc[$tp]" == "clw") then
+            set sfwhm = $fwhm_pol
+            set class = pol
+         else if ("$stim_direc[$tp]" == "con" || \
+                  "$stim_direc[$tp]" == "exp") then
+            set sfwhm = $fwhm_ecc
+            set class = ecc
+         else
+            echo "Cannot tell direction of stimulus"
+            goto BEND
+         endif            
+         set dset = $stim_direc[$tp].${sd}.niml.dset
+         if (-f $dset) then
+            if (  ! -f $class.sm.SmPar.1D ) then
+         echo "Smoothing $dset to $sfwhm mm FWHM and creating $class.sm.SmPar.1D"
+               SurfSmooth  -spec          ${specs[$sdc]} \
+                           -surf_A        ${sd}.smoothwm.asc \
+                           -input         $dset \
+                           -met           HEAT_07   \
+                           -target_fwhm   $sfwhm        \
+                           -blurmaster    $dset \
+                           -detrend_master \
+                           -overwrite     \
+                           -output        $stim_direc[$tp].sm.$sd.niml.dset\
+                           > $class.sm.SmPar.1D
             else
-               echo "Cannot tell class of $dset"
-               goto BEND
-            endif            
-            if (1) then
-               if (  ! -f smooth_params.sm$sfwhm.$sd.1D || \
-                     ! -f $f.sm.$sd.niml.dset ) then
-                  SurfSmooth  -spec          ${specs[$sdc]} \
-                              -surf_A        ${sd}.smoothwm.asc \
-                              -input         $dset \
-                              -met           HEAT_07   \
-                              -target_fwhm   $sfwhm        \
-                              -blurmaster    $dset \
-                              -detrend_master \
-                              -overwrite     \
-                              -output        $f.sm.$sd.niml.dset\
-                              > smooth_params.sm$sfwhm.$sd.1D
-               else 
-                  if ( ! -f $f.sm.$sd.niml.dset ) then
-                     set pars = `1dcat smooth_params.sm$sfwhm.$sd.1D`
-                     SurfSmooth  -spec          ${specs[$sdc]} \
-                                 -surf_A        ${sd}.smoothwm.asc \
-                                 -input         $dset \
-                                 -met           HEAT_07   \
-                                 -Niter         $pars[1]\
-                                 -sigma         $pars[2]\
-                                 -overwrite     \
-                                 -output       $f.sm.$sd.niml.dset
-                  endif
-               endif
+               echo "Reusing $class.sm.SmPar.1D"
             endif
-            @ cnt ++
-         end
+            if ( ! -f $stim_direc[$tp].sm.$sd.niml.dset ) then
+         echo "Smoothing $dset to $sfwhm mm FWHM per $class.sm.SmPar.1D"
+               set pars = `1dcat $class.sm.SmPar.1D`
+               SurfSmooth  -spec          ${specs[$sdc]} \
+                           -surf_A        ${sd}.smoothwm.asc \
+                           -input         $dset \
+                           -met           HEAT_07   \
+                           -Niter         $pars[1]\
+                           -sigma         $pars[2]\
+                           -overwrite     \
+                           -output       $stim_direc[$tp].sm.$sd.niml.dset
+            else
+               echo "Reusing $stim_direc[$tp].sm.$sd.niml.dset"
+            endif
+         else
+            echo "No user data for $class $stim_direc[$tp]" 
+         endif 
+      end
       cd $idir
 
    PHASE:
       cd $rdir
-      
       foreach sss ( '' '.sm')
-         if ( ! -f $ec${sss}.$sd.pol.field.niml.dset) then
-            3dRetinoPhase  -ccw $retts[1]${sss}.$sd.niml.dset  \
-                           -cw  $retts[2]${sss}.$sd.niml.dset  \
-                           -detrend -Tpol $period_pol \
-                           -nwedges $nwedges   \
-                           -pre_stim $pre_stim \
-                           -prefix $ec${sss}.$sd.niml.dset
+         POLAR_BLOCK:
+         set cls = ()
+         if ( -f ccw${sss}.$sd.niml.dset) then
+            set cls = ($cls ccw${sss}.$sd.niml.dset) 
          endif
-         if ( ! -f $ec${sss}.$sd.ecc.field.niml.dset) then
-            3dRetinoPhase  -exp $retts[3]${sss}.$sd.niml.dset  \
-                           -con $retts[4]${sss}.$sd.niml.dset  \
-                           -detrend -Tecc $period_ecc \
-                           -nrings $nrings   \
-                           -pre_stim $pre_stim \
-                           -prefix $ec${sss}.$sd.niml.dset
+         if ( -f clw${sss}.$sd.niml.dset) then
+            set cls = ($cls clw${sss}.$sd.niml.dset) 
+         endif 
+         set cc = `echo $cls | cut -f 1 -d .`
+         if ($#cls == 2) then
+            #Can get field angles  
+            if ( ! -f $ec${sss}.$sd.pol.field.niml.dset) then
+         echo "Estimating ${cc} vis. field angle from two directions ${ec}${sss}"
+               3dRetinoPhase  -$stim_direc[1] $cls[1]  \
+                              -$stim_direc[2] $cls[2]  \
+                              -detrend -Tpol $period_pol \
+                              -nwedges $nwedges   \
+                              -pre_stim $pre_pol \
+                              -prefix ${ec}${sss}.$sd.niml.dset
+            else
+         echo "Reusing polar field angle ${ec}${sss}.$sd.pol.field.niml.dset"
+            endif
+         else if ($#cls == 1) then
+            #One direction only
+            set sg = '+'
+            if ($cc == 'ccw' || $cc == 'con') set sg = '-'
+            if ( ! -f $ec${sss}.$sd.pol$sg.niml.dset) then
+               echo "Estimating ${cc} hemodynamic angle from one direction"
+               3dRetinoPhase  -$cc $cls[1]  \
+                              -detrend -Tpol $period_pol \
+                              -nwedges $nwedges   \
+                              -pre_stim $pre_pol \
+                              -prefix ${ec}${sss}.$sd.niml.dset
+            else
+               echo "Reusing ${ec}${sss}.$sd.$cc$sg.niml.dset"
+            endif
+         endif
+         ECC_BLOCK:
+         set cls = ()
+         if ( -f exp${sss}.$sd.niml.dset) then
+            set cls = ($cls exp${sss}.$sd.niml.dset) 
+         endif
+         if ( -f con${sss}.$sd.niml.dset) then
+            set cls = ($cls con${sss}.$sd.niml.dset) 
+         endif 
+         set cc = `echo $cls | cut -f 1 -d .`
+         if ($#cls == 2) then
+            #Can get field angles  
+            if ( ! -f $ec${sss}.$sd.ecc.field.niml.dset) then
+         echo "Estimating ${cc} vis. field angle from two directions ${ec}${sss}"
+               3dRetinoPhase  -$stim_direc[3] $cls[1]  \
+                              -$stim_direc[4] $cls[2]  \
+                              -detrend -Tecc $period_ecc \
+                              -nrings $nrings   \
+                              -pre_stim $pre_ecc \
+                              -prefix ${ec}${sss}.$sd.niml.dset
+            else
+     echo "Reusing eccentricity field angle ${ec}${sss}.$sd.ecc.field.niml.dset"
+            endif
+         else if ($#cls == 1) then
+            #One direction only
+            set sg = '+'
+            if ($cc == 'ccw' || $cc == 'con') set sg = '-'
+            if ( ! -f $ec${sss}.$sd.ecc$sg.niml.dset) then
+               echo "Estimating ${cc} hemodynamic angle from one direction"
+               3dRetinoPhase  -$cc $cls[1]  \
+                              -detrend -Tecc $period_ecc \
+                              -nrings $nrings   \
+                              -pre_stim $pre_ecc \
+                              -prefix ${ec}${sss}.$sd.niml.dset
+            else
+               echo "Reusing ${ec}${sss}.$sd.$cc$sg.niml.dset"
+            endif
          endif
       end                 
               
@@ -336,17 +401,38 @@ foreach sd ($sides)
    VFR:
       cd $rdir
       foreach sss ( '' '.sm')
+         #Decide based on what is available, .field is best 
+         if ( -f $ec${sss}.$sd.pol.field.niml.dset ) then
+            set polin = $ec${sss}.$sd.pol.field.niml.dset
+         else
+            #next best
+            set polin = $ec${sss}.$sd.pol?.niml.dset
+         endif
+         if (! -f $polin) then
+            echo "Need at least one polar angle direction for visual field maps"
+            echo "Skipping VFR"
+            goto NEXT_SIDE
+         endif
+         if ( -f $ec${sss}.$sd.ecc.field.niml.dset ) then
+            set eccin = $ec${sss}.$sd.ecc.field.niml.dset
+         else
+            #next best
+            set eccin = $ec${sss}.$sd.ecc?.niml.dset
+         endif
+         if (! -f $eccin) then
+            echo "Need at least one eccentricity direction for visual field maps"
+            echo "Skipping VFR"
+            goto NEXT_SIDE
+         endif
          if ( ! -f $ec${sss}.vfr.$sd.niml.dset) then
             SurfRetinoMap  -spec          ${specs[$sdc]} \
                            -surf_A   $sd.pial \
-                           -input   $ec${sss}.$sd.pol.field.niml.dset \
-                                 $ec${sss}.$sd.ecc.field.niml.dset \
-                           -prefix $ec${sss}.vfr.$sd.niml.dset 
+                           -input    $polin $eccin \
+                           -prefix   $ec${sss}.vfr.$sd.niml.dset 
          endif
       end
       cd $idir
   
-   VFR:
 
    goto NEXT_SIDE
    
@@ -356,9 +442,12 @@ end
 
 EXAMINE_RESULTS:
    cd $rdir
-   echo "suma  -spec  ${specs[1]} -sv ${svolal}   &"
-   echo "suma  -spec  ${specs[2]} -sv ${svolal}   &"
-   
+   echo "------------------------------------"
+   echo "Launch SUMA and view results with:"
+   echo "------------------------------------"
+   echo "cd $rdir"
+   echo "suma  -spec  ${specs[1]} -sv $rdir/SVol@Epi+orig   &"
+   echo ""
    cd $idir
 
 goto END
@@ -370,11 +459,8 @@ PARSE:
    #continue parsing for new options
    set Narg = $#
    set ec = 'ZZ'
-   set svol = '' 
    set rdir = ''
-   set avol = ''
    set TR = ''
-   set pre_stim = 0
    set period_ecc = ''
    set nrings = 1
    set period_pol = ''
@@ -382,18 +468,22 @@ PARSE:
    set fwhm_pol = 4
    set fwhm_ecc = 8
    set tshift = 0
-   set rettype=(  POL    ECC ) #DO NOT CHANGE ORDER
-   set retcls= (ccw cw exp cnt)  #DO NOT CHANGE ORDER
-   set runs_ccw = (  )   #ccw, always
-   set runs_cw = (  )   #cw, always
-   set runs_exp = (  )   #exp, always
-   set runs_con = (  )   #cnt, always
+   set stim_class=(  POL    ECC ) #DO NOT CHANGE ORDER
+   set stim_direc= (ccw clw exp con)  #DO NOT CHANGE ORDER
+   set u_SVol = '' 
+   set u_AVol = ''
+   set u_EpiRef = ''
+   set u_EpiAnatRef = ''
+   set u_runs_ccw = (  )   #ccw, always
+   set u_runs_clw = (  )   #clw, always
+   set u_runs_exp = (  )   #exp, always
+   set u_runs_con = (  )   #con, always
    set Nignore = 0
    set a2evol = ''
    set sref = ''
    set PhMeth = .PHZ
-   set svolal = ''
-   set AlignAnatToEPI = 1
+   set u_SVolAtEpi = ''
+   set u_AVolAtEpi = ''
    set cnt = 1
    
    if ($Narg < 2) goto HELP
@@ -456,29 +546,56 @@ PARSE:
             goto END
 			else
             @ cnt ++
-            set svol = "$argv[$cnt]"
-            if ( ! -f $svol) then 
-               set svol = (`ls ${svol}*.HEAD`)
-               if ($#svol != 1) then
-                  echo "Found $#svol options. Need just one"
+            set u_SVol = "$argv[$cnt]"
+            if ( ! -f $u_SVol) then 
+               echo "Note: -surf_vol $u_SVol not found,"
+               echo " looking for ${u_SVol}\*.HEAD instead"
+               set u_SVol = (`ls ${u_SVol}*.HEAD`)
+               if ($#u_SVol != 1) then
+            echo "Found $#u_SVol volumes for $argv[$cnt]. Need exactly  one"
                   goto BEND
                endif
             endif
             goto NEXT	
          endif	
       endif
-      if ( "$argv[$cnt]" == "-surf_vol_alndepi") then
+      
+      if (  "$argv[$cnt]" == "-surf_vol_alndepi" || \
+            "$argv[$cnt]" == "-surf_vol@epi" ) then
          set pLoc = $cnt		
 		   if ($pLoc == $Narg) then
-				echo "Need a volume file after -surf_vol_alndepi"
+				echo "Need a volume file after -surf_vol@epi (or -surf_vol_alndepi)"
             goto END
 			else
             @ cnt ++
-            set svolal = "$argv[$cnt]"
-            if ( ! -f $svolal) then 
-               set svolal = (`ls ${svolal}*.HEAD`)
-               if ($#svolal != 1) then
-                  echo "Found $#svolal options. Need just one"
+            set u_SVolAtEpi = "$argv[$cnt]"
+            if ( ! -f $u_SVolAtEpi) then 
+              echo "Note: -surf_vol@epi $u_SVolAtEpi not found,"
+              echo " looking for ${u_SVolAtEpi}\*.HEAD instead"
+              set u_SVolAtEpi = (`ls ${u_SVolAtEpi}*.HEAD`)
+               if ($#u_SVolAtEpi != 1) then
+            echo "Found $#u_SVolAtEpi volumes for $argv[$cnt]. Need exactly one"
+                  goto BEND
+               endif
+            endif
+            goto NEXT	
+         endif	
+      endif
+
+      if (  "$argv[$cnt]" == "-anat_vol@epi" ) then
+         set pLoc = $cnt		
+		   if ($pLoc == $Narg) then
+				echo "Need a volume file after -anat_vol@epi"
+            goto END
+			else
+            @ cnt ++
+            set u_AVolAtEpi = "$argv[$cnt]"
+            if ( ! -f $u_AVolAtEpi) then 
+               echo "Note: -anat_vol@epi $u_AVolAtEpi not found, "
+               echo " looking for ${u_AVolAtEpi}\*.HEAD instead"
+               set u_AVolAtEpi = (`ls ${u_AVolAtEpi}*.HEAD`)
+               if ($#u_AVolAtEpi != 1) then
+            echo "Found $#u_AVolAtEpi volumes for $argv[$cnt]. Need exactly one"
                   goto BEND
                endif
             endif
@@ -493,11 +610,12 @@ PARSE:
             goto END
 			else
             @ cnt ++
-            set avol = "$argv[$cnt]"
-            if ( ! -f $avol) then 
-               set avol = (`ls ${avol}*.HEAD`)
-               if ($#avol != 1) then
-                  echo "Found $#avol options. Need just one"
+            set u_AVol = "$argv[$cnt]"
+            if ( ! -f $u_AVol) then 
+         echo "Note: -anat_vol ${u_AVol} not found, looking for ${u_AVol}\*.HEAD"
+               set u_AVol = (`ls ${u_AVol}*.HEAD`)
+               if ($#u_AVol != 1) then
+                  echo "Found $#u_AVol options. Need just one"
                   goto BEND
                endif
             endif
@@ -524,7 +642,7 @@ PARSE:
             goto END
 			else
             @ cnt ++
-            set sref = "$argv[$cnt]"
+            set u_EpiRef = "$argv[$cnt]"
             goto NEXT	
          endif	
       endif
@@ -548,7 +666,30 @@ PARSE:
             goto END
 			else
             @ cnt ++
-            set pre_stim = `printf '%f' $argv[$cnt]`
+            set pre_pol = `printf '%f' $argv[$cnt]`
+            set pre_ecc = `printf '%f' $argv[$cnt]`
+            goto NEXT	
+         endif	
+      endif
+      if ( "$argv[$cnt]" == "-pre_pol") then
+         set pLoc = $cnt		
+		   if ($pLoc == $Narg) then
+				echo "Need a number  after -pre_pol"
+            goto END
+			else
+            @ cnt ++
+            set pre_pol = `printf '%f' $argv[$cnt]`
+            goto NEXT	
+         endif	
+      endif
+      if ( "$argv[$cnt]" == "-pre_ecc") then
+         set pLoc = $cnt		
+		   if ($pLoc == $Narg) then
+				echo "Need a number  after -pre_ecc"
+            goto END
+			else
+            @ cnt ++
+            set pre_ecc = `printf '%f' $argv[$cnt]`
             goto NEXT	
          endif	
       endif
@@ -741,13 +882,13 @@ PARSE:
                if ($cnt <= $Narg) @ cnt -- 
             endif
             if ("$argv[$pLoc]" == "-ccw" ) then
-               set runs_ccw = ($runcls)
+               set u_runs_ccw = ($runcls)
             else if ("$argv[$pLoc]" == "-cw" || "$argv[$pLoc]" == "-clw") then
-               set runs_cw = ($runcls)
+               set u_runs_clw = ($runcls)
             else if ("$argv[$pLoc]" == "-exp" ) then
-               set runs_exp = ($runcls)
+               set u_runs_exp = ($runcls)
             else if ("$argv[$pLoc]" == "-con" ) then
-               set runs_con = ($runcls)
+               set u_runs_con = ($runcls)
             endif
             goto NEXT	
          endif	
@@ -759,7 +900,7 @@ PARSE:
       endif
       
       if ( "$argv[$cnt]" == "-no_A2E") then
-         set AlignAnatToEPI = 0;		
+         set u_AVolAtEpi = "IID"
          goto NEXT		
       endif
       
@@ -816,6 +957,7 @@ SANITY:
       goto BEND
    endif
    
+   if ($u_AVolAtEpi == 'IID') set u_AVolAtEpi = $u_AVol
    
    goto RET_SANITY
   
@@ -827,36 +969,65 @@ echo ""
 echo " It estimates visual field angles and visual field maps using AFNI's"
 echo " 3dRetinoPhase, and SurfRetinMap "
 echo ""
-echo " -surf_vol SVOL: SVOL is the Surface Volume for the cortical surfaces."
-echo "                 SVOL is created when you first run @SUMA_Make_Spec_*"
-echo "                 scripts."
+echo "+++ Volumetric input:"
+echo "    Time series datasets"
+echo " -ccw CCW_1 CCW_2 ...: Specify the retinotopic time series for each of the"
+echo " -cw  CLW_1 CLW_2 ...: four stimulus types. You can have multiple runs of"
+echo " -exp EXP_1 EXP_2 ...: each type. "
+echo " -con CON_1 CON_2 ...: "
 echo ""
+echo "    Reference and Anatomical Volumes"
+echo " -epi_ref EpiRef: Specify a volume from the EPI time series to which all"
+echo "                EPI volumes are aligned. "
+echo "                Default is the 4th sub-brick of the first epi time series"
+echo "                on the command line."
+echo " -epi_anat_ref EpiAnatRef: Specify a volume from the EPI time series that"
+echo "                is better suited for aligning the T1 to it than EpiRef "
+echo "                might be. EpiAnatRef is usually a pre-steadystate volume"
+echo "                which still shows anatomical contrast. This volume is"
+echo "                first registered to EpiRef, then its registered version"
+echo "                is used as a targe for registering AVol. If not set, "
+echo "                EpiAnatRef is set to be EpiRef."
+echo " -anat_vol AVol: T1 volume acquired during the same session as the"
+echo "                 retinotopic scans. This volume is assumed to need"
+echo "                 registration to EpiRef volume. The registration"
+echo "                 is carried out automatically by the script, producing"
+echo "                 a dataset we will call AVol@Epi."
+echo " -anat@epi_vol AVol@Epi: Instead of letting the script align AVol"
+echo "                 to your EpiRef, you can supply AVol@Epi directly"
+echo "                 and skip the registration. Of course, you should "
+echo "                 be sure that AVol@Epi is indeed aligned with  EpiRef"
+echo " -surf_vol SVol: SVol is the Surface Volume for the cortical surfaces."
+echo "                 SVol is created when you first run @SUMA_Make_Spec_*"
+echo "                 scripts. This volume is eventually aligned to AVol@Epi"
+echo "                 with @SUMA_AlignToExperiment in order to create SVol@Epi"
+echo " -surf_vol@epi SVol@Epi: SVol that has been aligned to the experiment's"
+echo "                 EPI data. If you use this option, you would be bypassing"
+echo "                 the @SUMA_AlignToExperiment step mentioned above"
+echo "                 To be sure you have the right volume, you should be sure"
+echo "                 the surfaces align with the EPI data."
+echo "         Check for this with AFNI and SUMA using:"
+echo "         suma -spec SPL -sv SVol@Epi & ; afni -niml &"
+echo "   Note this option can also be  called -surf_vol_alndepi"
+echo ""
+echo "+++ Surface input:"
 echo " -spec_left  SPL: SPL, and SPR are the spec files for the left and"  
 echo " -spec_right SPR: right hemispheres, respectively."
 echo ""
-echo " -anat_vol AVOL: T1 volume acquired during the same session as the"
-echo "                 retinotopic scans"
-echo ""
-echo " -surf_vol_alndepi SVOLALND: SVOLALND is the surface volume, aligned"
-echo "                             to the EPI time series. If you have"
-echo "                             such a volume use it to keep the script"
-echo "                             from having to generate it. To be sure"
-echo "                             you have the right volume, you should"
-echo "                             get surfaces to align with the EPI data."
-echo "                             Check for this with AFNI and SUMA:"
-echo "         suma -spec SPL -sv SVOLALND & ; afni -niml &"
-echo ""
+echo "+++ Misc Parameters:"
 echo " -sid SID: SID is a flag identifying the subject"
-echo ""
 echo " -out_dir DIR: Directory where processing results are to be stored"
 echo ""
+echo "+++ Stimulus, and Time Series Parameters:"
 echo " -TR TR: TR, in seconds, of retinotopic scans"
-echo ""
 echo " -period_ecc TECC: Period, in seconds, of eccentricity (rings) and"
 echo " -periof_pol TPOL: polar angle (wedges) stimuli, respectively."
 echo "                   Note that the period is independent of the number"
 echo "                   of rings/wedges used. For most sane people, TECC"
 echo "                   and TPOL have the same value."
+echo " -pre_ecc PREECC: PREECC and PREPOL are the durations, in sec, before the "
+echo " -pre_pol PREPOL: each of the two stimuli began. The duration is relative" echo "                  to the beginning of the retinotopic time series, "
+echo "                  after the pre-steadystate images have been removed."
 echo ""
 echo " -nwedges NWED: Number of wedges in polar stimulus, and number of rings."
 echo " -nrings NRING: in eccentricity stimulus."
@@ -866,30 +1037,19 @@ echo " -fwhm_ecc FWECC: eccentricity stimuli. "
 echo "                  Note that the script outputs results for both smoothed"
 echo "                  and unsmoothed time series." 
 echo ""
-echo " -pre_stim PRE: PRE is the duration, in sec, before the stimulus began."
-echo "                PRE is relative to the beginning of the retinotopic time"
-echo "                time series after the non-steady images have been removed."
-echo ""
-echo " -ccw CCW_1 CCW_2 ...: Specify the retinotopic time series for each of the"
-echo " -cw  CW_1  CW_2  ...: four stimulus types. You can have multiple runs of"
-echo " -exp EXP_1 EXP_2 ...: each type. "
-echo " -con CON_1 CON_2 ...: "
-echo ""
 echo " -no_tshift: Do not correct for slice timing. Assume it has been done."
+echo ""
+echo ""
+echo ""
 echo ""
 goto END
 #Need to write a section about what gets created and how to view VFR maps in SUMA
 #Options that need much refinement and testing "
-echo " -epi_ref EREF: Specify a volume from the EPI time series to which all"
-echo "                EPI volumes are aligned. Default is the 4th sub-brick "
-echo "                of the first counter clockwise epi time series."
-echo ""
 echo " -epianat_ref EAREF: Not used at the moment"
 echo ""
 echo " -ignore IGN: Ignore IGN volumes from the beginning of each time series."
-echo "              When IGN is not 0, make sure that -pre_stim's PRE value"
-echo "              represents the duration before the stimulus starts AFTER the"
-echo "              IGN volumes are taken out."
+echo "              When IGN is not 0, make sure that PREECC and PREPOL values"
+echo "              represents the durations AFTER IGN volumes are taken out."
 echo ""
    goto END
    
