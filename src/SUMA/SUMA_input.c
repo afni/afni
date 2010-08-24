@@ -3950,9 +3950,15 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                               FuncName, SUMA_WhichSV(sv, SUMAg_SVv, SUMAg_N_SVv),
                               (float)Bev.x, (float)Bev.y);
                               
-               if (Bev.state & ShiftMask) {
-                  SUMAg_CF->HoldClickCallbacks = 1;
+               /* Bev.state does work in the line below, 
+                  unlike Mev.state further down.
+                  Using Kev.state anyway because it works in both cases */
+               if ((Kev.state & ShiftMask) && (Kev.state & ControlMask)) {
+                  SUMA_LH("Allowing callbacks");
+                  SUMAg_CF->HoldClickCallbacks = 0;
+               } else {
                   SUMA_LH("Holding back callbacks");
+                  SUMAg_CF->HoldClickCallbacks = 1;
                }
                
                #if 0
@@ -4239,6 +4245,8 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                            "WindWidth %d  \n"
                            "WindHeight %d\n"
                            "ZoomCompensate %f\n"
+                           "mv[xy]last [%d %d]\n"
+                           "mvdelta[xy]last [%d %d]\n"
                            "MoveRatePixelsPerms [%f %f]\n"
                            , 
                         sv->GVS[sv->StdView].spinBeginX, 
@@ -4246,6 +4254,8 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                         sv->GVS[sv->StdView].spinDeltaX, 
                         sv->GVS[sv->StdView].spinDeltaY, 
                         sv->WindWidth, sv->WindHeight, sv->ZoomCompensate,
+                        mvxlast, mvylast,
+                        mvdeltax, mvdeltay,
                         mvx_fac, mvy_fac
                         );
             #else
@@ -4253,23 +4263,35 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             #endif
             /* do not use movement rate before you scale it properly */
             mvx_fac = mvy_fac = 1.0;
-            
             if (sv->GVS[sv->StdView].spinDeltaX || 
                 sv->GVS[sv->StdView].spinDeltaY){
-               trackball(  sv->GVS[sv->StdView].deltaQuat, 
-                           (2*sv->GVS[sv->StdView].spinBeginX - wwid) /
-                           wwid*zc_fac*mvx_fac, 
-                           (whei - 2*sv->GVS[sv->StdView].spinBeginY) / 
-                           whei*zc_fac*mvy_fac,
-                           (2*mevx - wwid)/wwid*zc_fac*mvx_fac, 
-                           (whei - 2*mevy)/whei*zc_fac*mvy_fac); 
-                                 /* comput the increment Quat */
-               sv->GVS[sv->StdView].spinBeginX = mevx;
-               sv->GVS[sv->StdView].spinBeginY = mevy;
-               add_quats ( sv->GVS[sv->StdView].deltaQuat, 
-                           sv->GVS[sv->StdView].currentQuat, 
-                           sv->GVS[sv->StdView].currentQuat);
-               
+               if (Mev.state & ShiftMask) {
+                  float a[3], cQ[4];
+                  /* rotate about Z axis   */
+                  a[0] = 0.0; a[1] = 0.0; a[2] = 1.0;
+                  axis_to_quat(a, 
+                              -SUMA_SIGN(mvdeltax)*sqrt(SUMA_ABS(mvdeltax))*
+                                 sv->ArrowRotationAngle, 
+                              cQ);
+                  /*add rotation */
+                  add_quats ( cQ, 
+                              sv->GVS[sv->StdView].currentQuat, 
+                              sv->GVS[sv->StdView].currentQuat);
+               } else {
+                  trackball(  sv->GVS[sv->StdView].deltaQuat, 
+                              (2*sv->GVS[sv->StdView].spinBeginX - wwid) /
+                              wwid*zc_fac*mvx_fac, 
+                              (whei - 2*sv->GVS[sv->StdView].spinBeginY) / 
+                              whei*zc_fac*mvy_fac,
+                              (2*mevx - wwid)/wwid*zc_fac*mvx_fac, 
+                              (whei - 2*mevy)/whei*zc_fac*mvy_fac); 
+                                    /* comput the increment Quat */
+                  sv->GVS[sv->StdView].spinBeginX = mevx;
+                  sv->GVS[sv->StdView].spinBeginY = mevy;
+                  add_quats ( sv->GVS[sv->StdView].deltaQuat, 
+                              sv->GVS[sv->StdView].currentQuat, 
+                              sv->GVS[sv->StdView].currentQuat);
+               }
                ii = SUMA_WhichSV(sv, SUMAg_SVv, SUMAg_N_SVv);
                if (ii < 0) {
                   fprintf (SUMA_STDERR,
@@ -4383,10 +4405,15 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   break;
                }
             } else {
-               if (Mev.state & ShiftMask) {
-                  SUMAg_CF->HoldClickCallbacks = 1;
+               /* Mev.state does not work in the line below */
+               if ((Kev.state & ShiftMask) && (Kev.state & ControlMask) ) {
+                  SUMA_LH("Allowing callbacks");
+                  SUMAg_CF->HoldClickCallbacks = 0;
+               } else {
                   SUMA_LH("Holding back callbacks");
+                  SUMAg_CF->HoldClickCallbacks = 1;
                }
+
                if (SUMAg_N_SVv > 1) {
                   ii = SUMA_WhichViewerInMomentum (SUMAg_SVv, 
                                                    SUMAg_N_SVv, NULL);
@@ -4539,6 +4566,7 @@ int SUMA_MarkLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
    DList *list = NULL;
    DListElmt *SetNodeElem = NULL;
    SUMA_SurfaceObject *SO = NULL;
+   SUMA_Boolean NodeIgnored = NOPE;
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
@@ -4650,6 +4678,7 @@ int SUMA_MarkLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
       if (IgnoreSameNode && SO->SelectedNode == MTI->inodemin) {
          SUMA_LHv("Ignoring identical node selection %d on surface %s\n",
                   SO->SelectedNode, SO->Label);
+         NodeIgnored = YUP;
       } else {
          ED = SUMA_InitializeEngineListData (SE_SetSelectedNode);
          SetNodeElem = SUMA_RegisterEngineListCommand (  list, ED, 
@@ -4725,7 +4754,8 @@ int SUMA_MarkLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
       }
       
       /* put in a request for GICOR if need be */
-      if (  SUMAg_CF->Connected_v[SUMA_GICORR_LINE] && 
+      if (  !NodeIgnored &&
+            SUMAg_CF->Connected_v[SUMA_GICORR_LINE] && 
             SUMAg_CF->giset && !SUMAg_CF->HoldClickCallbacks) {
          if (LocalHead) 
             fprintf(SUMA_STDERR,

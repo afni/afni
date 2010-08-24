@@ -66,6 +66,13 @@
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 24, AUG , 2010 , ZSS , "suma" , MINOR , TYPE_MODIFY,
+   "Improved SUMA's DotXform (InstaCorr) and GroupInCorr interface",
+   "Changed interface so that shft+ctrl+right click is needed to initiate \n"
+   "callback. This makes it consistent with AFNI's interface.\n"
+   "shft+ctrl+right click and drag now a little faster.\n"
+ } ,
+
  { 23, AUG , 2010 , ZSS , "suma" , MINOR , TYPE_MODIFY,
    "Fixed bug in sub-brick selection lists",
    "Before the bug fix, once a sub-brick selection list was open\n"

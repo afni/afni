@@ -11,14 +11,14 @@ set pt = $lll[1]
 set pref = `@GetAfniPrefix "$1"`
 set view = `@GetAfniView "$1"`
 
-set ext = $1:e
+set ext = "$1:e"
 if ("$ext" == "gz" || "$ext" == "bz2" || "$ext" == "Z" ) then
-   set Name2 = $1:r
-   set ext = $Name2:e
+   set Name2 = "$1:r"
+   set ext = "$Name2:e"
 endif
 
-if ("$ext" == "nii") then
-   if ( -f $1 ) then
+if ("$ext" =~ "nii*") then
+   if ( -f "$1" || -f "$lll[1]/$lll[2]") then
       set cnt = 3
    else 
       set cnt = 0
@@ -27,7 +27,7 @@ if ("$ext" == "nii") then
 endif
 
    
-if ("$view" == "" && "$ext" != "nii") then
+if ("$view" == "" && "$ext" !~ "nii*") then
    echo 0
    #echo "Error: No view specified in dset name $1"
    #echo "Make sure you are not passing a prefix instead"
@@ -39,12 +39,12 @@ endif
 set dsethead = "${pt}/${pref}${view}.HEAD"
 set dsetbrik = "${pt}/${pref}${view}.BRIK"
 set cnt = 0
-if ( -f $dsethead ) then 
+if ( -f "$dsethead" ) then 
    @ cnt ++
 else
    goto RESULT
 endif
-if ( -f $dsetbrik || -f {$dsetbrik}.gz || -f {$dsetbrik}.bz2 || -f {$dsetbrik}.Z ) then 
+if ( -f "$dsetbrik" || -f "{$dsetbrik}.gz" || -f "{$dsetbrik}.bz2" || -f "{$dsetbrik}.Z" ) then 
    @ cnt ++
 else
    goto RESULT
