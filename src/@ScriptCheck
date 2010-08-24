@@ -63,6 +63,9 @@ HELP:
    echo ""
    echo "The cleaned file goes into ___toy.cln"
    echo ""
+   echo "Use file_tool -show_file_type -infiles YOURFILE"
+   echo "To check for non-printable characters, and a whole lot more."
+   echo ""
    
 goto END
 

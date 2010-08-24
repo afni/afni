@@ -1523,12 +1523,21 @@ char * SUMA_help_message_Info(void)
       "      Shift+Button2-Motion: \n"
       "          Zoom in/out\n");
    SS = SUMA_StringAppend (SS, 
-      "     Button 3-Press: picking \n");
+      "     Button 3-Press: Node picking \n"
+      "                     Initiates a path to new node in DrawROI mode.\n"
+      "                     No calls in Dot xform mode, or GroupInCorr\n" );
    SS = SUMA_StringAppend (SS, 
-      "     shft+Button 3-Press: Pick only\n"
-      "                       Does not draw to new node in DrawROI mode.\n"
-      "                       Does not apply transforms as in Dot xform mode\n"
+      "     shft+ctrl+Button 3-Press: Pick and initiate call in Dot xform\n"
+      "                               mode, or to GroupInCorr\n"
       );
+   SS = SUMA_StringAppend (SS, 
+      "     Button 3-Motion: continuous picking\n"
+      "                      No calls for dot product (InstaCorr)\n"
+      "                           or GroupInCorr, while dragging.\n" 
+      "     shft+ctrl+Button 3-Motion: Continuous picking and calls \n"
+      "                                for dot product (InstaCorr)\n"
+      "                               or GroupInCorr, while dragging.\n"
+      ); 
    SS = SUMA_StringAppend (SS, 
       "    \n");
    SS = SUMA_StringAppend (SS, 
