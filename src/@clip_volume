@@ -209,9 +209,9 @@ DOIT:
    echo "Clipping"
    if ($crop == 1) then
       set noglob
-      if ($verb) echo "3dcalc -a "$anat_in" -expr "a * $eq" -rai -prefix ___tmp_clp"
+      if ($verb) echo "3dcalc -a "$anat_in" -expr "a * step($eq)" -rai -prefix ___tmp_clp"
       unset noglob
-      3dcalc -a "$anat_in" -expr "a * $eq" -rai -prefix ___tmp_clp
+      3dcalc -a "$anat_in" -expr "a * step($eq)" -rai -prefix ___tmp_clp
       set noglob
       if ($verb) echo "3dAutobox -prefix $prefix -input ___tmp_clp$in_name[3]"
       unset noglob
@@ -219,9 +219,9 @@ DOIT:
       rm -f ___tmp_clp$in_name[3].???? >& /dev/null
    else
       set noglob
-      if ($verb) echo "3dcalc -a "$anat_in" -expr "a * $eq" -rai -prefix $prefix"
+      if ($verb) echo "3dcalc -a "$anat_in" -expr "a * step($eq)" -rai -prefix $prefix"
       unset noglob
-      3dcalc -a "$anat_in" -expr "a * $eq" -rai -prefix $prefix
+      3dcalc -a "$anat_in" -expr "a * step($eq)" -rai -prefix $prefix
    endif
    
 END:

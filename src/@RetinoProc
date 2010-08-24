@@ -57,14 +57,15 @@ COPY_EPI_RUNS:
 
 COPY_EPI_REF:
    if ("$u_EpiRef" != '') then
-      set nsb = `3dnvals $u_EpiRef`
+      echo "Checking number of subbriks in -epi_ref $u_EpiRef"
+      set nsb = `3dnvals "$u_EpiRef"`
       if ($nsb != 1) then
          echo "Must have one sub-brick in -epi_ref's $u_EpiRef"
          goto BEND
       endif
       if ( ! -f $rdir/EpiRef+orig.HEAD) then
          echo "Creating $rdir/EpiRef"
-         3dTcat -prefix $rdir/EpiRef $u_EpiRef 
+         3dTcat -prefix $rdir/EpiRef "$u_EpiRef"
       else
          echo "Reusing $rdir/EpiRef"
       endif  
@@ -79,7 +80,8 @@ COPY_EPI_REF:
  
 COPY_EPI_ANAT_REF:
    if ("$u_EpiAnatRef" != '') then
-      set nsb = `3dnvals $u_EpiAnatRef`
+      echo "Checking number of subbriks in -epi_anat_ref $u_EpiAnatRef"
+      set nsb = `3dnvals "$u_EpiAnatRef"`
       if ($nsb != 1) then
          echo "Must have one sub-brick in -epi_anat_ref's $u_EpiAnatRef"
          goto BEND
@@ -114,6 +116,14 @@ COPY_AVOLS:
    endif
      
 REGISTER_EPI_REFS:
+   if ("$u_SVolAtEpi" != '') then
+      echo "Have SurfVol aligned to EPI, skipping EPI Anat reference process"
+      goto REGISTER_TS
+   endif
+   if ("$u_AVolAtEpi" != '') then
+      echo "Have AnatVol aligned to EPI, skipping EPI Anat reference process"
+      goto REGISTER_TS
+   endif   
    cd $rdir
    if ("$u_EpiAnatRef" != '') then
       if ( ! -f EpiAnatRef+orig.HEAD) then
@@ -123,7 +133,7 @@ REGISTER_EPI_REFS:
                      -cubic -overwrite \
                      -prefix EpiAnatRef   \
                      -1Dfile EpiAnatRef.1D   \
-                     $idir/$u_EpiAnatRef      
+                     $idir/"$u_EpiAnatRef"      
          else
             echo "Just copying $idir/$u_EpiAnatRef to EpiAnatRef"
             3dTcat -prefix EpiAnatRef $idir/$u_EpiAnatRef 
@@ -160,8 +170,15 @@ REGISTER_TS:
    end
    cd $idir
 
-
 ALIGN_EXPANAT_TO_EPI:
+   if ("$u_SVolAtEpi" != '') then
+      echo "Have SurfVol aligned to EPI, skipping Svol alignment to EPI"
+      goto SET_POLORT
+   endif
+   if ("$u_AVolAtEpi" != '') then
+      echo "Have AnatVol aligned to EPI, skipping Avol alignment to EPI"
+      goto ALIGN_SURFVOL_TO_EXPANAT
+   endif
    cd $rdir
    if ( ! -f AVol@Epi+orig.HEAD ) then
       echo "Using align_epi_anat.py to create AVol@Epi"
@@ -406,7 +423,12 @@ foreach sd ($sides)
             set polin = $ec${sss}.$sd.pol.field.niml.dset
          else
             #next best
-            set polin = $ec${sss}.$sd.pol?.niml.dset
+            set polin = 'NADA'
+            if (-f $ec${sss}.$sd.pol+.niml.dset) then
+               set polin = $ec${sss}.$sd.pol+.niml.dset
+            else if (-f $ec${sss}.$sd.pol-.niml.dset) then
+               set polin = $ec${sss}.$sd.pol-.niml.dset
+            endif
          endif
          if (! -f $polin) then
             echo "Need at least one polar angle direction for visual field maps"
@@ -417,7 +439,12 @@ foreach sd ($sides)
             set eccin = $ec${sss}.$sd.ecc.field.niml.dset
          else
             #next best
-            set eccin = $ec${sss}.$sd.ecc?.niml.dset
+            set eccin = 'NADA'
+            if (-f $ec${sss}.$sd.ecc+.niml.dset) then
+               set eccin = $ec${sss}.$sd.ecc+.niml.dset
+            else if (-f $ec${sss}.$sd.ecc-.niml.dset) then
+               set eccin = $ec${sss}.$sd.ecc-.niml.dset
+            endif
          endif
          if (! -f $eccin) then
             echo "Need at least one eccentricity direction for visual field maps"
@@ -431,12 +458,9 @@ foreach sd ($sides)
                            -prefix   $ec${sss}.vfr.$sd.niml.dset 
          endif
       end
-      cd $idir
   
-
-   goto NEXT_SIDE
-   
    NEXT_SIDE:
+   cd $idir
    #Finish side loop   
 end
 
@@ -445,8 +469,9 @@ EXAMINE_RESULTS:
    echo "------------------------------------"
    echo "Launch SUMA and view results with:"
    echo "------------------------------------"
+   set echo
    echo "cd $rdir"
-   echo "suma  -spec  ${specs[1]} -sv $rdir/SVol@Epi+orig   &"
+   echo "suma -spec `@RelPath ${specs[1]} $PWD` -sv `@RelPath $rdir/SVol@Epi+orig`  &"
    echo ""
    cd $idir
 
@@ -478,8 +503,12 @@ PARSE:
    set u_runs_clw = (  )   #clw, always
    set u_runs_exp = (  )   #exp, always
    set u_runs_con = (  )   #con, always
+   set SurfInput = 0
+   set u_s_runs_ccw = (  )   #ccw, always
+   set u_s_runs_clw = (  )   #clw, always
+   set u_s_runs_exp = (  )   #exp, always
+   set u_s_runs_con = (  )   #con, always
    set Nignore = 0
-   set a2evol = ''
    set sref = ''
    set PhMeth = .PHZ
    set u_SVolAtEpi = ''
@@ -623,14 +652,17 @@ PARSE:
          endif	
       endif
 
-      if ( "$argv[$cnt]" == "-epianat_ref") then
+      if ( "$argv[$cnt]" == "-epi_anat_ref") then
          set pLoc = $cnt		
 		   if ($pLoc == $Narg) then
-				echo "Need a volume file after -epianat_ref"
+				echo "Need a volume file after -epi_anat_ref"
             goto END
 			else
             @ cnt ++
-            set a2evol = "$argv[$cnt]"
+            set u_EpiAnatRef = "$argv[$cnt]"
+            if ( `@CheckForAfniDset "$u_EpiAnatRef"` < 2) then
+               echo "Could not find volume '$u_EpiAnatRef' for -epi_anat_ref"
+            endif
             goto NEXT	
          endif	
       endif
@@ -643,6 +675,9 @@ PARSE:
 			else
             @ cnt ++
             set u_EpiRef = "$argv[$cnt]"
+            if ( `@CheckForAfniDset "$u_EpiRef"` < 2) then
+               echo "Could not find volume '$u_EpiRef' for -epi_ref"
+            endif
             goto NEXT	
          endif	
       endif
@@ -894,6 +929,42 @@ PARSE:
          endif	
       endif
       
+      if ( \
+            ("$argv[$cnt]" == "-s_ccw" )  || \
+            ("$argv[$cnt]" == "-s_cw"  )  || ("$argv[$cnt]" == "-s_clw"  ) || \
+            ("$argv[$cnt]" == "-s_exp"  )  || \
+            ("$argv[$cnt]" == "-s_con")     ) then
+         set SurfInput = 1
+         set pLoc = $cnt		
+		   if ($pLoc == $Narg) then
+				echo "Need volumes after -s_ccw, or -s_clw, or -s_exp, or -s_con"
+            goto END
+			else
+            @ cnt ++
+            set runcls = ()
+            while ($cnt < $Narg && "$argv[$cnt]" !~ '-*') 
+               set runcls = ($runcls $argv[$cnt])
+               @ cnt ++
+            end
+            if ($#runcls < 1) then
+   echo "Failed to get -s_ccw, or -s_clw, or -s_exp, or -s_con surface datasets" 
+               goto BEND
+            else
+               if ($cnt <= $Narg) @ cnt -- 
+            endif
+            if ("$argv[$pLoc]" == "-s_ccw" ) then
+               set u_s_runs_ccw = ($runcls)
+            else if ("$argv[$pLoc]" == "-s_cw" || \
+                     "$argv[$pLoc]" == "-s_clw") then
+               set u_s_runs_clw = ($runcls)
+            else if ("$argv[$pLoc]" == "-s_exp" ) then
+               set u_s_runs_exp = ($runcls)
+            else if ("$argv[$pLoc]" == "-s_con" ) then
+               set u_s_runs_con = ($runcls)
+            endif
+            goto NEXT	
+         endif	
+      endif
       if ( "$argv[$cnt]" == "-no_tshift") then
          set tshift = -1;		
          goto NEXT		
