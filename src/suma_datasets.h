@@ -1160,11 +1160,22 @@ If ind is NULL, then the index will be the line number.
    \brief A macro to be run from main() before writing a dset.
    Changes a dset's ID, label (using prefix) and history
 */
+#define SUMA_NEWDSET_ID_LABEL(dset, prefix) {\
+   if (dset) { \
+      if (!SUMA_NewDsetID (dset))  { \
+         SUMA_SL_Err("Failed in SUMA_NewDsetID, proceeding..."); }  \
+      if (!SUMA_LabelDset(dset, prefix)) { \
+         SUMA_SL_Err("Failed in SUMA_LabelDset, proceeding..."); }  \
+   } else {\
+      SUMA_SL_Err("NULL dset");  \
+   }  \
+}
+
 #define SUMA_NEWDSET_ID_LABEL_HIST(dset, prefix) {\
    if (dset) { \
-      if (!SUMA_NewDsetID (dset))  { SUMA_SL_Err("Failed in SUMA_NewDsetID, proceeding..."); }  \
-      if (!SUMA_LabelDset(dset, prefix)) { SUMA_SL_Err("Failed in SUMA_LabelDset, proceeding..."); }  \
-      if (!SUMA_AddNgrHist (dset->ngr, FuncName, argc, argv)) { SUMA_SL_Err("Failed in SUMA_AddNgrHist, proceeding..."); } \
+      SUMA_NEWDSET_ID_LABEL(dset, prefix);   \
+      if (!SUMA_AddNgrHist (dset->ngr, FuncName, argc, argv)) { \
+         SUMA_SL_Err("Failed in SUMA_AddNgrHist, proceeding..."); } \
    } else {\
       SUMA_SL_Err("NULL dset");  \
    }  \
@@ -1310,6 +1321,8 @@ char * SUMA_Dset_Format_Name (SUMA_DSET_FORMAT fr);
 char *SUMA_HistString (char *CallingFunc, int N_arg, char **arg, char *sold);
 char * SUMA_GetNgrHist(NI_group *ngr);
 int SUMA_AddNgrHist(NI_group *ngr, char *CallingFunc, int N_arg, char **arg);
+int SUMA_RemoveNgrHist(NI_group *ngr);
+int SUMA_RemoveDsetHist(SUMA_DSET *dset);
 int SUMA_AddNelHist(NI_element *nel, char *CallingFunc, int N_arg, char **arg);
 void SUMA_FreeDset(void *dset);
 SUMA_DSET * SUMA_FindDset_ns (char *idcode_str, DList *DsetList);

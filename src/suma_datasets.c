@@ -4391,6 +4391,28 @@ int SUMA_AddNgrHist(NI_group *ngr, char *CallingFunc, int N_arg, char **arg)
    SUMA_RETURN(1);
 }
 
+int SUMA_RemoveDsetHist(SUMA_DSET *dset) {
+   if (!dset||!dset->ngr) return(0);
+   return(SUMA_RemoveNgrHist(dset->ngr));
+}
+
+int SUMA_RemoveNgrHist(NI_group *ngr)
+{
+   static char FuncName[]={"SUMA_RemoveNgrHist"}; 
+   NI_element *nelb = NULL;
+   
+   SUMA_ENTRY;
+   
+   if (!ngr) SUMA_RETURN(0);
+   
+   /* get former history element, if any and old string */
+   nelb = SUMA_FindNgrAttributeElement(ngr, "HISTORY_NOTE");
+   if (nelb) {
+      NI_remove_from_group(ngr, nelb);
+   }
+   SUMA_RETURN(1);
+}
+
 /*!
    \brief adds a history note to the ni-element
    
