@@ -189,6 +189,8 @@ typedef struct {
 /*! filename, extension and path */
 typedef struct {
    char *AbsPath;
+   char *RelPath;
+   char *RelDir;
    char *Path;
    char *FileName;
    char *FileName_NoExt;
