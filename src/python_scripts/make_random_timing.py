@@ -91,7 +91,7 @@ getting TR-locked timing
 ----------------------------------------
 distributing stimuli across all runs at once (via -across_runs)
 
-    The main described use is where there is a fixed number of stimlus events 
+    The main described use is where there is a fixed number of stimulus events 
     in each run, and of each type.  The -num_reps option specifies that number
     (or those numbers).  For example, if -num_reps is 8 and -num_runs is 4,
     each stimulus class would have 8 repetitions in each of the 4 runs (for a
@@ -102,7 +102,7 @@ distributing stimuli across all runs at once (via -across_runs)
     With the addition of the -across_runs option, the meaning of -num_reps
     changes to be the total number of repetitions for each class across all
     runs, and the randomization changes to occur across all runs.  So in the
-    above example, with -num_reps equal to 8, 8 stimluli (of each class) will
+    above example, with -num_reps equal to 8, 8 stimuli (of each class) will
     be distributed across 4 runs.  The average number of repetitions per run
     would be 2.
 
@@ -593,10 +593,11 @@ optional arguments:
     -t_digits DIGITS            : set the number of decimal places for times
 
         e.g. -t_digits 3
+        e.g. -t_digits -1
 
         Via this option one can control the number of places after the
         decimal that are used when writing the stimulus times to each output
-        file.  
+        file.  The special value of -1 implies %g format.
 
         The default is 1, printing times in tenths of a second.  But if a
         higher time granularity is requested via -t_gran, one might want
@@ -668,14 +669,16 @@ g_history = """
     1.0  Jul 14, 2009: call this a release version
          - added -max_rest for Steffen S (see message board post 30189)
     1.1  May 01, 2010: added -max_consec for Liat of Cornell
+    1.2  Aug 24, 2010: small updates for 3dDeconvolve -nodata script
+         - update polort and write -nodata TR using 3 decimal places
 """
 
-g_version = "version 1.1, May 1, 2010"
+g_version = "version 1.2, August 24, 2010"
 
 gDEF_VERB       = 1      # default verbose level
 gDEF_T_GRAN     = 0.1    # default time granularity, in seconds
 gDEF_MIN_T_GRAN = 0.0001 # minimum time granularity, in seconds
-gDEF_DEC_PLACES = 1      # decimal places, when printing time
+gDEF_DEC_PLACES = 1      # decimal places when printing time (-1 ==> %g format)
 
 class RandTiming:
     def __init__(self, label):
@@ -712,6 +715,7 @@ class RandTiming:
         self.max_consec = []            # max consectutive stimuli per type
         self.t_gran   = gDEF_T_GRAN     # time granularity for rest
         self.t_digits = gDEF_DEC_PLACES # digits after decimal when showing time
+                                        # (-1 means to use %g)
         self.labels   = None            # labels to be applied to filenames
 
         self.tr_locked      = 0         # flag: require TR-locked timing
@@ -1119,7 +1123,10 @@ class RandTiming:
 
                 # write out all times on one line
                 for ttime in stims:
-                    fp.write('%.*f ' % (self.t_digits, ttime))
+                    # if t_digits is not specified, use general format
+                    if self.t_digits < 0:  fp.write('%.g ' % ttime)
+                    else: fp.write('%.*f ' % (self.t_digits, ttime))
+
                     if ttime < mint: mint = ttime
                     if ttime > maxt: maxt = ttime
                 if rind == 0 and len(stims) == 1: fp.write('*')
@@ -1155,16 +1162,18 @@ class RandTiming:
         nt = round(UTIL.loc_sum(self.run_time) / tr)
 
         cmd  = '# -------------------------------------------------------\n' \
-               '# create 3dDeconvolve -nodata command\n\n'      \
+               '# create 3dDeconvolve -nodata command\n\n'
 
+        polort = UTIL.run_time_to_polort(self.run_time[0])
         # separate the 3dDecon command, to apply wrappers
         c2   = '3dDeconvolve   \\\n'                            \
-            +  '    -nodata %d %.1f    \\\n' % (nt, tr)         \
+            +  '    -nodata %d %.3f   \\\n' % (nt, tr)          \
+            +  '    -polort %d        \\\n' % polort            \
             +  '%s' % make_concat_from_times(self.run_time,tr)  \
             +  '    -num_stimts %d    \\\n' % self.num_stim
 
         for ind in range(len(self.fnames)):
-            c2 += '    -stim_times %d %s %s    \\\n' %          \
+            c2 += '    -stim_times %d %s %s    \\\n' %                  \
                   (ind+1,self.fnames[ind],basis_from_time(self.stim_dur[ind]))
             # add labels, but play it safe
             if self.labels and len(self.labels) == len(self.fnames):
@@ -1174,15 +1183,18 @@ class RandTiming:
         c2 += '    -x1D X.xmat.1D\n\n'
 
         if len(self.run_time) > 1:
-            c2 += '# compute sum\n'                                          \
+            # note first non-poly baseline index
+            first = (polort+1) * len(self.run_time)
+            c2 += '# compute the sum of non-baseline regressors\n'           \
                   "3dTstat -sum -prefix sum_ideal.1D X.xmat.1D'[%d..$]'\n\n" \
-                    % (2*len(self.run_time))
+                  % first
             ynames = '-ynames SUM - sum_ideal.1D '
-            c2 += "# consider: 1dplot -xlabel Time %sX.xmat.1D'[%d..$]'\n"   \
-                    % (ynames, 2*len(self.run_time))
+            c2 += "# consider plotting the SUM below non-polort regressors\n"\
+                  "# command: 1dplot -xlabel Time %sX.xmat.1D'[%d..$]'\n"    \
+                  % (ynames, first)
         else:
-            c2 += "# consider: 1dplot -xlabel Time X.xmat.1D'[%d]'\n"        \
-                    % (2*len(self.run_time))
+            c2 += "# consider plotting the SUM below non-polort regressors\n"\
+                  "# command: 1dplot -xlabel Time X.xmat.1D'[%d]'\n" % first
 
         cmd += UTIL.add_line_wrappers(c2)
 
