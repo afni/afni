@@ -109,6 +109,7 @@ void usage_ConverDset()
 "     -prefix OUT_PREF: Output prefix for data set.\n"
 "                       Default is something based\n"
 "                       on the input prefix.\n"
+"     -no_history: Do not include a history element in the output\n"
 "  Notes:\n"
 "     -This program will not overwrite pre-existing files.\n"  
 "     -The new data set is given a new idcode.\n"
@@ -135,7 +136,8 @@ int main (int argc,char *argv[])
 {/* Main */
    static char FuncName[]={"ConvertDset"};
    int   kar, brk, i_input, i, j, *Ti=NULL, 
-         *indexmap = NULL, add_node_index, prepend_node_index ;
+         *indexmap = NULL, add_node_index, prepend_node_index,
+         no_hist ;
    byte *Tb=NULL, *auto_nmask=NULL;
    float *fv = NULL;
    SUMA_DSET_FORMAT iform, oform;
@@ -168,6 +170,7 @@ int main (int argc,char *argv[])
    node_index_1d = NULL;
    node_mask = NULL;
    exists = 0;
+   no_hist = 0;
    kar = 1;
    brk = NOPE;
    while (kar < argc) { /* loop accross command ine options */
@@ -192,6 +195,12 @@ int main (int argc,char *argv[])
             exit(1);
          }
          iform = SUMA_1D;
+         brk = YUP;
+      }
+
+      if (!brk && (strcmp(argv[kar], "-no_history") == 0))
+      {
+         no_hist = 1;
          brk = YUP;
       }
       
@@ -484,6 +493,10 @@ int main (int argc,char *argv[])
       /* set a new ID for the dset */
       SUMA_NEWDSET_ID_LABEL_HIST(dset, prefix) ;
       
+      
+      if (no_hist) {
+         SUMA_RemoveDsetHist(dset);
+      }
       
       if (prepend_node_index) {/* prepend node index? */         
          if (!SUMA_InsertDsetNelCol (  dset, "Node Index Copy", 

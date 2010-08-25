@@ -561,8 +561,12 @@ EXAMINE_RESULTS:
       echo "No Demo side"
       goto END
    endif
+   set svo = ''
+   if (-f SVol@Epi+orig.HEAD) then
+      set svo = '-sv SVol@Epi+orig '
+   endif
    set spr = `ParseName -cwd $PWD -out RelName $sps` 
-   echo "suma -spec $spr -sv SVol@Epi+orig -niml &"
+   echo "suma -spec $spr $svo -niml &"
    set demo_set = ''
    if ( -f $DemoVFR) then
       set prm = "Press OK to see VFR result"
@@ -577,7 +581,7 @@ EXAMINE_RESULTS:
       echo "No Demo set"
       goto END
    endif
-   echo "prompt_user -pause 'Wait until SUMA is up then press enter'"
+   echo "prompt_user -pause 'Wait until SUMA is up then press OK'"
    echo "DriveSuma -com  pause $prm -com surf_cont -load_dset $demo_set"
    echo ""
    cd $idir
@@ -1170,6 +1174,8 @@ echo ""
 echo " It estimates visual field angles and visual field maps using AFNI's"
 echo " 3dRetinoPhase, and SurfRetinMap "
 echo ""
+echo "The Options:"
+echo "==========="
 echo "+++ Stimulus, and Time Series Parameters:"
 echo " -TR TR: TR, in seconds, of retinotopic scans"
 echo " -period_ecc TECC: Period, in seconds, of eccentricity (rings) and"
@@ -1260,14 +1266,37 @@ echo ""
 echo "+++ Misc Parameters:"
 echo " -sid SID: SID is a flag identifying the subject"
 echo " -out_dir DIR: Directory where processing results are to be stored"
+echo " -echo: Turn on the command echoing to help with debugging script failure"
 echo ""
+echo "The process:"
+echo "============"
+echo "   The full process consists of the following steps:"
+echo "   - Copy input data in the results directory"
+echo "   - Time shift and register volumetric epi data to EpiRef"
+echo "   - Align EpiAnatRef to EpiRef to produce a NEW EpiAnatRef"
+echo "   - Align AVol to (new) EpiAnatRef to produce AVol@Epi"
+echo "   - Align SVol to AVol@Epi to produce SVol@Epi"
+echo "   - Detrend components of no interest from time series volumes"
+echo "   - Map time series to Surfaces"
+echo "   - Smooth time series on the surfaces"
+echo "   - Run 3dRetinoPhase on time series to produce field angle dataset"
+echo "   - Run SurfRetinoMap on field angle data to produce visual field ratio"
+echo "     datasets."
+echo "   - Suggest a command to show results"
 echo ""
+echo "Sample Data:"
+echo "============"
+echo "You can download a test dataset, generously contributed by Peter Kohler,"
+echo "from afni.nimh.nih.gov/pub/dist/tgz/AfniRetinoDemo.tgz"
+echo "A README file in the archive will point you to sample scripts that "
+echo "illustrate the usage of @RetinoProc."
 echo ""
+echo "Kvetching:"
+echo "============"
+echo "Questions and Comments are best posted to AFNI's message board:"
+echo "   http://afni.nimh.nih.gov/afni/community/board/"
 echo ""
-echo ""
-goto END
-#Need to write a section about what gets created and how to view VFR maps in SUMA
-#Options that need much refinement and testing "
+echo "      Ziad S. Saad      Aug. 2010 "
 echo ""
    goto END
    
