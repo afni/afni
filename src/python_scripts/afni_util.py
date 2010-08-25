@@ -195,7 +195,11 @@ def get_default_polort(tr, reps):
     if tr <= 0 or reps <= 0:
         print "** cannot guess polort from tr = %f, reps = %d" % (tr,reps)
         return 2        # return some default
-    run_time = tr * reps
+
+    return run_time_to_polort(tr*reps/150.0)
+
+def run_time_to_polort(run_time):
+    """direct computation: 1+floor(run_time/150)"""
     return 1+math.floor(run_time/150.0)
 
 def get_num_warp_pieces(dset, verb=1):

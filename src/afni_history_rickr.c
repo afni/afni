@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 25, AUG, 2010, RCR, "make_random_timing.py", MICRO, TYPE_MODIFY,
+   "update polort and write -nodata TR using 3 decimal places",
+   NULL
+ } ,
+
  { 18, AUG, 2010, RCR, "@build_afni_Xlib", MICRO, TYPE_NEW_OPT,
    "added -lib32 for building 32-bit on a 64-bit Linux box",
    NULL
