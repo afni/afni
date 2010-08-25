@@ -11,14 +11,73 @@ RET_SANITY:
 
 AUTOVAR:
    set fs = `ccalc 1/$TR`
-   set sdir = `dirname $u_SVol`
+   set sides = ()
+   set specs = ()
+   if ($spec_left != 'NADA') then
+      set sides = ($sides lh)
+      set specs = ($specs $spec_left)
+   endif
+   if ($spec_right != 'NADA') then
+      set sides = ($sides rh)
+      set specs = ($specs $spec_right)
+   endif
+   set sdir = `dirname "$specs[1]"`
    cd $sdir
    set sdir = $PWD
    cd $idir
-   set sides = ( lh rh )
-   set specs = ( $spec_left  $spec_right)
    set A2E_opt = ''
 
+COPY_SURF_EPI_RUNS:
+if ($SurfInput == 1) then
+   echo "Input time series are already on surface"
+   foreach sd ($sides)   
+      foreach tp ($stim_direc)
+         set u_runs = ()
+         if ($sd == 'lh') then
+            if ($tp == 'ccw') then
+               set u_runs = ($u_lh_runs_ccw) 
+            else if ($tp == 'clw') then
+               set u_runs = ($u_lh_runs_clw)
+            else if ($tp == 'exp') then
+               set u_runs = ($u_lh_runs_exp)
+            else if ($tp == 'con') then 
+               set u_runs = ($u_lh_runs_con)
+            else
+               echo "Bad direction"
+               goto BEND
+            endif
+         else if ($sd == 'rh') then
+            if ($tp == 'ccw') then
+               set u_runs = ($u_rh_runs_ccw) 
+            else if ($tp == 'clw') then
+               set u_runs = ($u_rh_runs_clw)
+            else if ($tp == 'exp') then
+               set u_runs = ($u_rh_runs_exp)
+            else if ($tp == 'con') then 
+               set u_runs = ($u_rh_runs_con)
+            else
+               echo "Bad direction"
+               goto BEND
+            endif
+         endif
+         set i = 1
+         foreach dset ($u_runs) 
+            set pndset = $tp.`printf %02d $i`
+            if ( ! -f $rdir/$pndset.$sd.niml.dset) then
+               echo "Copying "$dset" to $pndset.$sd.niml.dset"
+               ConvertDset -o_niml_bi -input "$dset" \
+                           -prefix $rdir/$pndset.$sd.niml.dset
+            else
+               echo "Reusing $rdir/$pndset.$sd.niml.dset"
+            endif
+            @ i ++ 
+         end #dset
+      end #tp
+   end  #sd
+   echo "Skipping volume processing steps..."
+   goto RETINO_START
+endif
+   
 COPY_EPI_RUNS:
    set FirstEpi = ''
    foreach tp ($stim_direc)
@@ -67,7 +126,7 @@ COPY_EPI_REF:
          echo "Creating $rdir/EpiRef"
          3dTcat -prefix $rdir/EpiRef "$u_EpiRef"
       else
-         echo "Reusing $rdir/EpiRef"
+         echo "Reusing existing $rdir/EpiRef"
       endif  
    else
       if ( ! -f $rdir/EpiRef+orig.HEAD) then
@@ -90,12 +149,14 @@ COPY_EPI_ANAT_REF:
    endif
 
 COPY_AVOLS:   
-   if ( ! -f $rdir/AVol+orig.HEAD) then
-      echo "Copying ${u_AVol} to $rdir/AVol"
-      3dcopy ${u_AVol}  $rdir/AVol
-   else
-      echo "Reusing $rdir/AVol"
-   endif  
+   if ("$u_AVol" != '') then
+      if ( ! -f $rdir/AVol+orig.HEAD) then
+         echo "Copying ${u_AVol} to $rdir/AVol"
+         3dcopy ${u_AVol}  $rdir/AVol
+      else
+         echo "Reusing $rdir/AVol"
+      endif  
+   endif
    
    if ("$u_SVolAtEpi" != '') then
       if ( ! -f $rdir/SVol@Epi+orig.HEAD) then
@@ -235,29 +296,35 @@ DETREND:
    
 RETINO_START:
 set sdc = 0
+set DemoVFR = 'NADA'
+set DemoPol = 'NADA'
+set DemoSide = 'NADA'
+set DemoEcc = 'NADA'
 foreach sd ($sides)
    @ sdc ++ 
    VOL2SURFTS:
-      #Now map time series to surfaces
-      cd $rdir
-      foreach s (???.??.b01+orig.HEAD)
-         set p = `@GetAfniPrefix $s`
-         set p = $p:r
-         if ( ! -f {$p}.${sd}.niml.dset ) then
-            3dVol2Surf  -spec          ${specs[$sdc]} \
-                        -sv            SVol@Epi+orig   \
-                        -surf_A        ${sd}.smoothwm.asc \
-                        -surf_B        ${sd}.pial.asc  \
-                        -grid_parent   $s \
-                        -map_func      ave   \
-                        -f_index       nodes \
-                        -f_steps       15    \
-                        -oob_value     0     \
-                        -overwrite     \
-                        -out_niml      {$p}.${sd}.niml.dset 
-         endif
-      end
-      cd $idir
+      if ($SurfInput == 0) then
+         #Now map time series to surfaces
+         cd $rdir
+         foreach s (???.??.b01+orig.HEAD)
+            set p = `@GetAfniPrefix $s`
+            set p = $p:r
+            if ( ! -f {$p}.${sd}.niml.dset ) then
+               3dVol2Surf  -spec          ${specs[$sdc]} \
+                           -sv            SVol@Epi+orig   \
+                           -surf_A        ${sd}.smoothwm.asc \
+                           -surf_B        ${sd}.pial.asc  \
+                           -grid_parent   $s \
+                           -map_func      ave   \
+                           -f_index       nodes \
+                           -f_steps       15    \
+                           -oob_value     0     \
+                           -overwrite     \
+                           -out_niml      {$p}.${sd}.niml.dset 
+            endif
+         end
+         cd $idir
+      endif
          
    AVERAGE:
       #combine similar runs directions
@@ -430,6 +497,10 @@ foreach sd ($sides)
                set polin = $ec${sss}.$sd.pol-.niml.dset
             endif
          endif
+         if ($sss == '.sm' && $DemoPol == 'NADA') then
+               set DemoPol = $polin
+               set DemoSide = $sd
+         endif
          if (! -f $polin) then
             echo "Need at least one polar angle direction for visual field maps"
             echo "Skipping VFR"
@@ -451,11 +522,22 @@ foreach sd ($sides)
             echo "Skipping VFR"
             goto NEXT_SIDE
          endif
+         if ($sss == '.sm' && $DemoEcc == 'NADA') then
+               set DemoEcc = $eccin
+               set DemoSide = $sd
+         endif
          if ( ! -f $ec${sss}.vfr.$sd.niml.dset) then
+            echo "Creating $ec${sss}.vfr.$sd.niml.dset"
             SurfRetinoMap  -spec          ${specs[$sdc]} \
                            -surf_A   $sd.pial \
                            -input    $polin $eccin \
                            -prefix   $ec${sss}.vfr.$sd.niml.dset 
+         else
+            echo "Reusing $ec${sss}.vfr.$sd.niml.dset"
+         endif
+         if ($sss == '.sm' && $DemoVFR == 'NADA') then
+            set DemoVFR = $ec${sss}.vfr.$sd.niml.dset
+            set DemoSide = $sd
          endif
       end
   
@@ -466,12 +548,37 @@ end
 
 EXAMINE_RESULTS:
    cd $rdir
-   echo "------------------------------------"
-   echo "Launch SUMA and view results with:"
-   echo "------------------------------------"
-   set echo
+   echo "-----------------------------------------"
+   echo "Close all existing AFNI and SUMA sessions"
+   echo "Launch SUMA and view some results with:"
+   echo "-----------------------------------------"
    echo "cd $rdir"
-   echo "suma -spec `@RelPath ${specs[1]} $PWD` -sv `@RelPath $rdir/SVol@Epi+orig`  &"
+   if ($DemoSide == 'lh') then
+      set sps = $spec_left
+   else if ($DemoSide == 'rh') then
+      set sps = $spec_right
+   else
+      echo "No Demo side"
+      goto END
+   endif
+   set spr = `ParseName -cwd $PWD -out RelName $sps` 
+   echo "suma -spec $spr -sv SVol@Epi+orig -niml &"
+   set demo_set = ''
+   if ( -f $DemoVFR) then
+      set prm = "Press OK to see VFR result"
+      set demo_set = $DemoVFR
+   else if (-f $DemoEcc) then
+      set prm = "Press OK to see Eccentricity result"
+      set demo_set = $DemoEcc
+   else if (-f $DemoPol) then
+      set prm = "Press OK to see Polar angle result"
+      set demo_set = $DemoPol
+   else
+      echo "No Demo set"
+      goto END
+   endif
+   echo "prompt_user -pause 'Wait until SUMA is up then press enter'"
+   echo "DriveSuma -com  pause $prm -com surf_cont -load_dset $demo_set"
    echo ""
    cd $idir
 
@@ -504,15 +611,20 @@ PARSE:
    set u_runs_exp = (  )   #exp, always
    set u_runs_con = (  )   #con, always
    set SurfInput = 0
-   set u_s_runs_ccw = (  )   #ccw, always
-   set u_s_runs_clw = (  )   #clw, always
-   set u_s_runs_exp = (  )   #exp, always
-   set u_s_runs_con = (  )   #con, always
+   set u_lh_runs_ccw = (  )   #ccw, always
+   set u_lh_runs_clw = (  )   #clw, always
+   set u_lh_runs_exp = (  )   #exp, always
+   set u_lh_runs_con = (  )   #con, always
+   set u_rh_runs_ccw = (  )   #ccw, always
+   set u_rh_runs_clw = (  )   #clw, always
+   set u_rh_runs_exp = (  )   #exp, always
+   set u_rh_runs_con = (  )   #con, always
    set Nignore = 0
    set sref = ''
-   set PhMeth = .PHZ
    set u_SVolAtEpi = ''
    set u_AVolAtEpi = ''
+   set spec_left = 'NADA'
+   set spec_right = 'NADA'
    set cnt = 1
    
    if ($Narg < 2) goto HELP
@@ -527,23 +639,7 @@ PARSE:
       if ( ("$argv[$cnt]" == "-h" || "$argv[$cnt]" == "-help") ) then
          goto HELP
       endif
-      
-      if ( "$argv[$cnt]" == "-phase_method") then
-         set pLoc = $cnt		
-		   if ($pLoc == $Narg) then
-				echo "Need label after -phase_method"
-            goto END
-			else
-            @ cnt ++
-            set PhMeth = ".$argv[$cnt]"
-            if ($PhMeth != '.PHZ' && $PhMeth != '.DEL') then
-               echo "Choose either PHZ, or DEL for -phase. Have $argv[$cnt]."
-               goto END
-            endif
-            goto NEXT	
-         endif	
-      endif
-      
+            
       if ( "$argv[$cnt]" == "-sid") then
          set pLoc = $cnt		
 		   if ($pLoc == $Narg) then
@@ -930,14 +1026,14 @@ PARSE:
       endif
       
       if ( \
-            ("$argv[$cnt]" == "-s_ccw" )  || \
-            ("$argv[$cnt]" == "-s_cw"  )  || ("$argv[$cnt]" == "-s_clw"  ) || \
-            ("$argv[$cnt]" == "-s_exp"  )  || \
-            ("$argv[$cnt]" == "-s_con")     ) then
+            ("$argv[$cnt]" == "-lh_ccw" )  || \
+            ("$argv[$cnt]" == "-lh_cw"  )  || ("$argv[$cnt]" == "-lh_clw"  ) || \
+            ("$argv[$cnt]" == "-lh_exp"  )  || \
+            ("$argv[$cnt]" == "-lh_con")     ) then
          set SurfInput = 1
          set pLoc = $cnt		
 		   if ($pLoc == $Narg) then
-				echo "Need volumes after -s_ccw, or -s_clw, or -s_exp, or -s_con"
+				echo "Need dsets after -lh_ccw, or -lh_clw, or -lh_exp, or -lh_con"
             goto END
 			else
             @ cnt ++
@@ -947,24 +1043,62 @@ PARSE:
                @ cnt ++
             end
             if ($#runcls < 1) then
-   echo "Failed to get -s_ccw, or -s_clw, or -s_exp, or -s_con surface datasets" 
+   echo "Failed to get -lh_ccw, or -lh_clw, or -lh_exp, or -lh_con surface datasets" 
                goto BEND
             else
                if ($cnt <= $Narg) @ cnt -- 
             endif
-            if ("$argv[$pLoc]" == "-s_ccw" ) then
-               set u_s_runs_ccw = ($runcls)
-            else if ("$argv[$pLoc]" == "-s_cw" || \
-                     "$argv[$pLoc]" == "-s_clw") then
-               set u_s_runs_clw = ($runcls)
-            else if ("$argv[$pLoc]" == "-s_exp" ) then
-               set u_s_runs_exp = ($runcls)
-            else if ("$argv[$pLoc]" == "-s_con" ) then
-               set u_s_runs_con = ($runcls)
+            if ("$argv[$pLoc]" == "-lh_ccw" ) then
+               set u_lh_runs_ccw = ($runcls)
+            else if ("$argv[$pLoc]" == "-lh_cw" || \
+                     "$argv[$pLoc]" == "-lh_clw") then
+               set u_lh_runs_clw = ($runcls)
+            else if ("$argv[$pLoc]" == "-lh_exp" ) then
+               set u_lh_runs_exp = ($runcls)
+            else if ("$argv[$pLoc]" == "-lh_con" ) then
+               set u_lh_runs_con = ($runcls)
             endif
             goto NEXT	
          endif	
       endif
+
+      if ( \
+            ("$argv[$cnt]" == "-rh_ccw" )  || \
+            ("$argv[$cnt]" == "-rh_cw"  )  || ("$argv[$cnt]" == "-rh_clw"  ) || \
+            ("$argv[$cnt]" == "-rh_exp"  )  || \
+            ("$argv[$cnt]" == "-rh_con")     ) then
+         set SurfInput = 1
+         set pLoc = $cnt		
+		   if ($pLoc == $Narg) then
+				echo "Need dsets after -rh_ccw, or -rh_clw, or -rh_exp, or -rh_con"
+            goto END
+			else
+            @ cnt ++
+            set runcls = ()
+            while ($cnt < $Narg && "$argv[$cnt]" !~ '-*') 
+               set runcls = ($runcls $argv[$cnt])
+               @ cnt ++
+            end
+            if ($#runcls < 1) then
+   echo "Failed to get -rh_ccw, or -rh_clw, or -rh_exp, or -rh_con surface datasets" 
+               goto BEND
+            else
+               if ($cnt <= $Narg) @ cnt -- 
+            endif
+            if ("$argv[$pLoc]" == "-rh_ccw" ) then
+               set u_rh_runs_ccw = ($runcls)
+            else if ("$argv[$pLoc]" == "-rh_cw" || \
+                     "$argv[$pLoc]" == "-rh_clw") then
+               set u_rh_runs_clw = ($runcls)
+            else if ("$argv[$pLoc]" == "-rh_exp" ) then
+               set u_rh_runs_exp = ($runcls)
+            else if ("$argv[$pLoc]" == "-rh_con" ) then
+               set u_rh_runs_con = ($runcls)
+            endif
+            goto NEXT	
+         endif	
+      endif
+      
       if ( "$argv[$cnt]" == "-no_tshift") then
          set tshift = -1;		
          goto NEXT		
@@ -1018,15 +1152,11 @@ SANITY:
       goto BEND
    endif
    
-   if ($spec_left == '') then
-      echo "-spec_left not specified"
+   if ($spec_left == 'NADA' && $spec_right == 'NADA') then
+      echo "You must specify at least one of -spec_left or -spec_right"
       goto BEND
    endif
    
-   if ($spec_right == '') then
-      echo "-spec_right not specified"
-      goto BEND
-   endif
    
    if ($u_AVolAtEpi == 'IID') set u_AVolAtEpi = $u_AVol
    
@@ -1040,10 +1170,38 @@ echo ""
 echo " It estimates visual field angles and visual field maps using AFNI's"
 echo " 3dRetinoPhase, and SurfRetinMap "
 echo ""
+echo "+++ Stimulus, and Time Series Parameters:"
+echo " -TR TR: TR, in seconds, of retinotopic scans"
+echo " -period_ecc TECC: Period, in seconds, of eccentricity (rings) and"
+echo " -periof_pol TPOL: polar angle (wedges) stimuli, respectively."
+echo "                   Note that the period is independent of the number"
+echo "                   of rings/wedges used. For most sane people, TECC"
+echo "                   and TPOL have the same value."
+echo " -pre_ecc PREECC: PREECC and PREPOL are the durations, in sec, before the "
+echo " -pre_pol PREPOL: each of the two stimuli began. The duration is relative" echo "                  to the beginning of the retinotopic time series, "
+echo "                  after the pre-steadystate images have been removed."
+echo ""
+echo " -nwedges NWED: Number of wedges in polar stimulus, and number of rings."
+echo " -nrings NRING: in eccentricity stimulus."
+echo ""
+echo " -fwhm_pol FWPOL: Target smoothness, in mm, for the polar and for the "
+echo " -fwhm_ecc FWECC: eccentricity stimuli. "
+echo "                  Note that the script outputs results for both smoothed"
+echo "                  and unsmoothed time series." 
+echo ""
+echo " -ignore IGN: Ignore IGN volumes from the beginning of each time series."
+echo "              When IGN is not 0, make sure that PREECC and PREPOL values"
+echo "              represents the durations AFTER IGN volumes are taken out."
+echo "              This option is useless if you input surface-based "
+echo "              time series such as with option -lh_ccw"
+echo " -no_tshift:  Do not correct for slice timing. Assume it has been done."
+echo "              This option is useless if you input surface-based "
+echo "              time series such as with option -lh_ccw"
+echo ""
 echo "+++ Volumetric input:"
 echo "    Time series datasets"
 echo " -ccw CCW_1 CCW_2 ...: Specify the retinotopic time series for each of the"
-echo " -cw  CLW_1 CLW_2 ...: four stimulus types. You can have multiple runs of"
+echo " -clw CLW_1 CLW_2 ...: four stimulus types. You can have multiple runs of"
 echo " -exp EXP_1 EXP_2 ...: each type. "
 echo " -con CON_1 CON_2 ...: "
 echo ""
@@ -1073,42 +1231,36 @@ echo "                 SVol is created when you first run @SUMA_Make_Spec_*"
 echo "                 scripts. This volume is eventually aligned to AVol@Epi"
 echo "                 with @SUMA_AlignToExperiment in order to create SVol@Epi"
 echo " -surf_vol@epi SVol@Epi: SVol that has been aligned to the experiment's"
-echo "                 EPI data. If you use this option, you would be bypassing"
-echo "                 the @SUMA_AlignToExperiment step mentioned above"
+echo "                 EPI data. If you use this option, you would be providing"
+echo "                 the output of @SUMA_AlignToExperiment step mentioned "
+echo "                 above, allowing the script to skip running it."
 echo "                 To be sure you have the right volume, you should be sure"
 echo "                 the surfaces align with the EPI data."
 echo "         Check for this with AFNI and SUMA using:"
 echo "         suma -spec SPL -sv SVol@Epi & ; afni -niml &"
-echo "   Note this option can also be  called -surf_vol_alndepi"
+echo "   Note this option used to be called -surf_vol_alndepi"
 echo ""
-echo "+++ Surface input:"
+echo "+++ Surface-based input: "
+echo "    Surfaces:"
 echo " -spec_left  SPL: SPL, and SPR are the spec files for the left and"  
 echo " -spec_right SPR: right hemispheres, respectively."
+echo ""
+echo "    Time series datasets: For use when time series have already been "
+echo "                          mapped onto the surface."
+echo " -lh_ccw CCW_1 CCW_2 ...: Specify the datasets containing retinotopic time"
+echo " -lh_clw CLW_1 CLW_2 ...: series that have already been mapped to the "
+echo " -lh_exp EXP_1 EXP_2 ...: surface for each of the four stimulus types. "
+echo " -lh_con CON_1 CON_2 ...: You can have multiple runs of each type. "
+echo "                          The script assumes that nuisance parameters "
+echo "                          have already been regressed out of these time" echo "                          series."
+echo "    For the right hemisphere, replace -lh_ in the option names with -rh_"
+echo "    It makes no sense to use these options along with -ccw, -clw, -exp, "
+echo "    or -con."
 echo ""
 echo "+++ Misc Parameters:"
 echo " -sid SID: SID is a flag identifying the subject"
 echo " -out_dir DIR: Directory where processing results are to be stored"
 echo ""
-echo "+++ Stimulus, and Time Series Parameters:"
-echo " -TR TR: TR, in seconds, of retinotopic scans"
-echo " -period_ecc TECC: Period, in seconds, of eccentricity (rings) and"
-echo " -periof_pol TPOL: polar angle (wedges) stimuli, respectively."
-echo "                   Note that the period is independent of the number"
-echo "                   of rings/wedges used. For most sane people, TECC"
-echo "                   and TPOL have the same value."
-echo " -pre_ecc PREECC: PREECC and PREPOL are the durations, in sec, before the "
-echo " -pre_pol PREPOL: each of the two stimuli began. The duration is relative" echo "                  to the beginning of the retinotopic time series, "
-echo "                  after the pre-steadystate images have been removed."
-echo ""
-echo " -nwedges NWED: Number of wedges in polar stimulus, and number of rings."
-echo " -nrings NRING: in eccentricity stimulus."
-echo ""
-echo " -fwhm_pol FWPOL: Target smoothness, in mm, for the polar and for the "
-echo " -fwhm_ecc FWECC: eccentricity stimuli. "
-echo "                  Note that the script outputs results for both smoothed"
-echo "                  and unsmoothed time series." 
-echo ""
-echo " -no_tshift: Do not correct for slice timing. Assume it has been done."
 echo ""
 echo ""
 echo ""
@@ -1116,11 +1268,6 @@ echo ""
 goto END
 #Need to write a section about what gets created and how to view VFR maps in SUMA
 #Options that need much refinement and testing "
-echo " -epianat_ref EAREF: Not used at the moment"
-echo ""
-echo " -ignore IGN: Ignore IGN volumes from the beginning of each time series."
-echo "              When IGN is not 0, make sure that PREECC and PREPOL values"
-echo "              represents the durations AFTER IGN volumes are taken out."
 echo ""
    goto END
    
