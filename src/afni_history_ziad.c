@@ -66,6 +66,11 @@
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 25, AUG , 2010 , ZSS , "ConvertDset" , MICRO , TYPE_NEW_OPT,
+   "Added -no_history option",
+   NULL
+ } ,
+
  { 24, AUG , 2010 , ZSS , "suma" , MINOR , TYPE_MODIFY,
    "Improved SUMA's DotXform (InstaCorr) and GroupInCorr interface",
    "Changed interface so that shft+ctrl+right click is needed to initiate \n"
