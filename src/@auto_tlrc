@@ -927,7 +927,6 @@ APAR_MODE:
                
    if ($OneWarp) then
       echo "Direct warping per parent transform ($rmode interpolation) ..."
-      set echo
       3dWarp   -matparent ${ref_pref_nopad}${ref_view} \
             -gridset ${tmppref}_warp_grid${ref_view} \
             -prefix ${tmp_out_pref} -${rmode} \
