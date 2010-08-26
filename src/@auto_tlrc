@@ -908,6 +908,7 @@ AUTO_TLRC_MODE:
 #Begin apar block
 #######################
 APAR_MODE:
+   set tmp_out_pref = ${tmppref}${out_pref}
    echo "Applying tlrc warp from ${ref_pref_nopad}${ref_view} to ${ns_pref}${anat_view} ..."
    if ( -f warp_tmp${anat_view}.HEAD) then
       rm -f warp_tmp${anat_view}.HEAD warp_tmp${anat_view}.BRIK*
@@ -926,31 +927,35 @@ APAR_MODE:
                
    if ($OneWarp) then
       echo "Direct warping per parent transform ($rmode interpolation) ..."
+      set echo
       3dWarp   -matparent ${ref_pref_nopad}${ref_view} \
             -gridset ${tmppref}_warp_grid${ref_view} \
-            -prefix ${out_pref} -${rmode} \
+            -prefix ${tmp_out_pref} -${rmode} \
             ${tmppref}_ipad${anat_view}
+      if ($status) then
+         echo "Failed to warp"
+         goto BEND  
+      endif
    else
       #Keep old way involving two interpolations for backward
       #compatibility
       echo "Warping per parent transform ($rmode interpolation) and resampling with $resam interpolation (use -onewarp for single interpolation) ..."
       3dWarp   -matparent ${ref_pref_nopad}${ref_view} \
-            -prefix ${out_pref} -${rmode} \
+            -prefix ${tmp_out_pref} -${rmode} \
             ${tmppref}_ipad${anat_view}
       #Change view of master or else 3dresample will force a change
       3drefit -view ${anat_view} ${tmppref}_warp_grid${ref_view}
       3dresample  -master ${tmppref}_warp_grid${anat_view} \
-               -prefix ${out_pref} -inset ${out_pref}${anat_view} \
+               -prefix ${tmp_out_pref} -inset ${tmp_out_pref}${anat_view} \
                -rmode ${resam}  -overwrite
-      ls ${out_pref}*
+      #ls ${tmp_out_pref}*
    endif
-   if ( `@CheckForAfniDset ${out_pref}${anat_view}` != 2) then
+   if ( `@CheckForAfniDset ${tmp_out_pref}${anat_view}` != 2) then
       echo "Error: Failed to create tlrced dset"
       set estat = 1
       goto END
    endif
    
-   if ( $KeepTmp == 0) rm -f ${tmppref}*+????.???? >& /dev/null
    
    
    if ($apar_copyWarpinfo) then
@@ -965,23 +970,44 @@ APAR_MODE:
       #
       #copy the WARPDRIVE_MATVEC_ fields to the zero unpadded dude
          set FromVol = ${ref_pref_nopad}${ref_view}
-         set ToVol = ${out_pref}${anat_view}
+         set ToVol = ${tmp_out_pref}${anat_view}
          set RET_copy_fields = APCW
          goto COPY_FIELDS
          APCW:    
       
-      3drefit -wpar ${ref_pref_nopad}${ref_view} ${out_pref}${anat_view}
+      3drefit -wpar ${ref_pref_nopad}${ref_view} ${tmp_out_pref}${anat_view}
    endif
    
    3dNotes  -a "Dataset created via: `basename $0` $argv[*]" \
             -h "Dataset created via: `basename $0` $argv[*]" \
-            ${out_pref}${anat_view}
-   
+            ${tmp_out_pref}${anat_view}
+
    if ($KeepView == 0) then
       echo "Changing view of xformed volumes"
-      3drefit -view ${ref_view} ${out_pref}${anat_view}.HEAD
+      3drefit -view ${ref_view} ${tmp_out_pref}${anat_view}.HEAD
+      if ( `@CheckForAfniDset ${out_pref}${ref_view}` < 1) then
+         3drename ${tmp_out_pref}${ref_view} ${out_pref}${ref_view}
+      else
+         echo "ERROR: Final output ${out_pref}${ref_view} is already on disk"
+         echo "   Aborted command:"
+         echo "   3drename ${tmp_out_pref}${ref_view} ${out_pref}${ref_view}"
+         echo "Transformed dataset ${tmp_out_pref}${ref_view} not renamed"
+         goto BEND
+      endif
+   else
+      if ( `@CheckForAfniDset ${out_pref}${anat_view}` < 1) then
+         3drename ${tmp_out_pref}${anat_view} ${out_pref}${anat_view}
+      else
+         echo "ERROR: Final output ${out_pref}${anat_view} is already on disk"
+         echo "   Aborted command:"
+         echo "   3drename ${tmp_out_pref}${anat_view} ${out_pref}${anat_view}"
+         echo "Transformed dataset ${tmp_out_pref}${anat_view} not renamed"
+         goto BEND
+      endif
    endif
    
+   if ( $KeepTmp == 0) rm -f ${tmppref}*+????.???? >& /dev/null
+
    goto WRAP_UP
 #######################
 #End of apar block
@@ -1409,5 +1435,11 @@ APPLY_MASK:
             -prefix ${ttvolpref}${anat_view}
    goto $RET_apply_mask 
 
+goto END
+
+BEND:
+   set estat = 1
+   goto END
+   
 END:
    exit $estat
