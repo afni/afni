@@ -1,0 +1,408 @@
+#! /bin/tcsh -fe
+
+set stat = 0
+set init_path = "$PWD"
+
+if ("$1" == "" || "$1" == '-h' || "$1" == '-help') then
+   goto HELP
+endif
+
+goto PARSE
+RETURN_PARSE:
+
+
+CHECK:
+if ("$fn_epi" == "") then
+   echo "No time series dset"
+   goto BEND
+endif
+if ("$fn_aseg" == "") then
+   echo "No aseg dset"
+   goto END
+endif
+if ("$fn_mo" == "") then
+   echo "No motion 1D file"
+   goto END
+endif
+if ("$outfile" == "") then
+   echo "No prefix output file"
+   goto END
+endif
+
+if ($verb) echo "Input File:"${fn_epi}
+if ($verb) echo "aseg File:"${fn_aseg}
+if ($verb) echo "Motion File:"${fn_mo}
+
+if ($polort < 0) then
+   echo "Must specify -polort"
+   goto END
+endif
+
+set N = `3dnvals $fn_epi`
+if ($N < 15) then
+   echo "epi has less than 15 time points!"
+   goto END
+endif
+
+
+GET_msk:
+if ($verb) echo "Making masks from aseg file ..."
+
+3dcalc -a $fn_aseg \
+       -expr 'equals(a,2)   +equals(a,7)   +equals(a,41)  +equals(a,46) \
+             +equals(a,251) +equals(a,252) +equals(a,253) +equals(a,254) \
+             +equals(a,255) +equals(a, 16)' \
+       -prefix __mask_WM  >& /dev/null
+3dcalc -a $fn_aseg -expr 'equals(a,4) +equals(a,43)' \
+       -prefix __mask_LV  >& /dev/null
+
+RESAMPLE_msk2epi:
+if ($verb) echo "Resampling masks to epi with NN interpolation..."
+3dresample  -input __mask_WM${view} -master $fn_epi'[0]'    \
+            -prefix __mask_WM_res    -overwrite  \
+            -rmode NN    >& /dev/null
+3dresample  -input __mask_LV${view} -master $fn_epi'[0]'    \
+            -prefix __mask_LV_res    -overwrite  \
+            -rmode NN    >& /dev/null
+if ($status) goto END
+
+EROSION:
+if ($verb) echo "Eroding masks ..."
+3dcalc   -a __mask_WM_res${view} \
+         -b a+i -c a-i -d a+j -e a-j -f a+k -g a-k \
+         -expr 'a* (1-amongst(0,b,c,d,e,f,g))' \
+         -prefix __mask_WMe
+3dcalc   -a __mask_LV_res${view} \
+         -b a+i -c a-i -d a+j -e a-j -f a+k -g a-k \
+         -expr 'a*(1- amongst(0,b,c,d,e,f,g))' \
+         -prefix __mask_LVe
+
+LOCAL_WM_REGRESSOR:
+if ($verb) echo "Making Local WMe regressor ..."
+3dLocalstat -prefix __WMeLOCAL_r${r} -nbhd 'SPHERE('${r}')' \
+            -stat mean -mask  __mask_WMe${view} \
+            -use_nonmask ${fn_epi}
+if ($DoCover) then
+if ($verb) echo "Making the spatial coverage map of Local WMe regressor ..."
+3dLocalstat -prefix ${outfile}_WMeLOCAL_coverage  -nbhd 'SPHERE('${r}')' \
+            -stat mean -mask  __mask_WMe${view} \
+            -use_nonmask __mask_WMe${view}
+endif
+
+OTHER_REGRESSOR:
+if ($verb) echo "Making the spatial coverage map of Local WMe regressor ..."
+3dmaskave -q -mask __mask_LVe${view} $fn_epi > __LVe.1D
+if ($DoNuisance) then
+  if ($verb) echo "Collecting other regressors ..."
+  1dcat $fn_mo __LVe.1D $fn_nuisance > __regressor_others.1D
+else
+  1dcat $fn_mo __LVe.1D > __regressor_others.1D
+endif
+
+DETREND_regressors:
+if ($verb) echo "Detrending regressors ..."
+3dDetrend   -normalize -prefix __WMeLOCAL_r${r}_det \
+            -polort ${polort} __WMeLOCAL_r${r}${view}
+3dDetrend   -DAFNI_1D_TRANOUT=YES -normalize \
+            -prefix '__regressors_others_det.1D' \
+            -polort ${polort} __regressor_others.1D\'
+
+ANATICOR:
+if ($verb) echo "Doing Regression ..."
+3dTfitter   -polort ${polort} \
+            -RHS $fn_epi \
+            -LHS __regressors_others_det.1D __WMeLOCAL_r${r}_det${view} \
+            -prefix __${outfile}_beta \
+            -fitts __${outfile}_fitts \
+            -errsum __${outfile}_errsum
+
+3dcalc      -float -a $fn_epi -b __${outfile}_fitts${view} \
+            -expr 'a-b' -prefix $outfile
+
+if ($DoRsq) then
+   if ($verb) echo "Making Rsq map for WMeLOCAL ..."
+   3dTfitter -polort ${polort} \
+             -RHS $fn_epi \
+             -LHS __regressors_others_det.1D \
+             -prefix __WMeLOCAL_beta \
+             -fitts __WMeLOCAL_fitts \
+             -errsum __WMeLOCAL_errsum
+   3dcalc   -a __${outfile}_errsum${view}'[0]' \
+            -b __WMeLOCAL_errsum${view}'[0]' \
+            -expr '(1-a/b)*notzero(a/b)' \
+            -prefix ${outfile}_Rsq_WMeLOCAL
+endif
+
+CLEANUP:
+   if ($cleanup) then
+      rm __*${view}.????* >& /dev/null
+      rm __*.1D
+   endif
+
+DONE:
+if ($verb) echo " done"
+goto END
+
+
+HELP:
+   echo "Script to produce a residual time series cleaned by ANATICOR model."
+   echo ""
+   echo "Usage: "
+   echo "`basename $0`    <-ts TimeSeriesVol>  "
+   echo "             <-polort polort>"
+   echo "             <-motion motion.1D>"
+   echo "             <-aseg aseg.nii>  "
+   echo "             <-prefix output>"
+   echo "             [<-radius r >] "
+   echo "             [<-view VIEW>]"
+   echo "             [<-nuisance nuisance.1D>]" 
+   echo "             [<-no_ventricles>]" 
+   echo "             [<-Rsq_WMe>]" 
+   echo "             [<-coverage>]" 
+   echo "             [-verb] [-dirty] [-echo]"
+   echo ""
+   echo "Parameters"
+   echo "   -ts TimeSeriesVol: Time series volume"
+   echo "      The time series should have had the following done already:"
+   echo "         Despiking (if necessary)"
+   echo "         RetroIcor, and RVT correction"
+   echo "         Time shifting, and volume registration"
+   echo "    We strongly recommend you do the preprocessing with afni_proc.py,"
+   echo "    for example:"      
+   echo "           afni_proc.py  -subj_id ID  -dsets EPI+orig.HEAD \ "
+   echo "                         -blocks despike ricor tshift volreg regress \ "
+   echo "                         -tcat_remove_first_trs 4 \ "
+   echo "                         -ricor_regs_nfirst 0 \"
+   echo "                         -ricor_regs oba.slibase.1D \ "
+   echo "                         -ricor_regress_method per-run \ "
+   echo "                         -volreg_regress_per_run "
+   echo "   -polort polort: Polynomial for linear trend removal."
+   echo "                   Use the same order as for afni_proc.py"
+   echo "   -motion motion.1D: head motion parameters from 3dvolreg "
+   echo "                      Also created by afni_proc.py"
+   echo "   -aseg aseg.nii: aseg file from FreeSurfer's segmentation."
+   echo "                   This aseg volume must be in register with the EPI"
+   echo "                   time series. Otherwise you're wasting your time."
+   echo "                   This script will automatically make tissue masks"
+   echo "                   from this file. Do not replace aseg with aparc"
+   echo "                   volumes for example. If you want other methods"
+   echo "                   for providing tissue masks, complain to HJJ, "
+   echo "                   Email address below."
+   echo "   -prefix output: Use output (residual time series) for a prefix"
+   echo "   -radius r: The radius of a local sphere mask, r mm"
+   echo "              default = 15 mm, which what was used in HJJ et al. 2010 "
+   echo "              for high resolution 1.7x1.7x3mm data. For typical, about"
+   echo "              3x3x5 resolution, a radius of 30 mm seems to do fine."
+   echo "              You should check out the coverage of WMeLocal regressor"
+   echo "              using -coverage option."
+   echo "   -view VIEW: Set the view of the output data. Default is +orig"
+   echo "               Choose from +orig, +acpc, or +tlrc."
+   echo "   -nuisance nuisance.1D: Other nuisance regressors."
+   echo "              Each regressor is a column in .1D file"
+   echo "   -Rsq_WMe: produce an explained variance map for WMeLOCAL regressor."
+   echo "             This may help measuring the sptial pattern of local "
+   echo "             artifact like the paper of Jo et al. (2010, Neuroimage)."
+   echo "   -coverage: produce a spatial coverage map of WMeLOCAL regressor" 
+   echo "   -dirty: Keep temporary files"
+   echo "   -verb: Verbose flag"
+   echo "   -echo: Echo each script command for debugging"
+   echo ""
+   echo "Please reference the following two papers if you publish results"
+   echo " from this script."
+   echo "'Mapping sources of correlation in resting state FMRI, with "
+   echo " artifact detection and removal'"
+   echo "       Jo, et al., Neuroimage, Vol 52 (2), 571-582, 2010."
+   echo "       [http://dx.doi.org/10.1016/j.neuroimage.2010.04.246]"
+   echo ""
+   echo "Written by Hang Joon Jo. "
+   echo "           hangjoon.jo@nih.gov (08/25/2010)"
+   echo ""
+   goto END
+   
+PARSE:
+	set Narg = $#
+	
+	#find the locations of -ts and -roi, etc
+  set verb = 0
+  set cnt = 1
+	set fn_epi = ''
+	set fn_aseg = ''
+	set fn_mo = ''
+	set fn_nuisance = ''
+  set outfile = ''
+  set r = 15
+  set DoNuisance = 0
+  set DoRsq = 0
+  set DoCover = 0
+  set cleanup = 1
+  set view = +orig
+  set polort = -1
+   while ($cnt <= $Narg)
+		if ("$argv[$cnt]" == "-echo") then
+         set echo
+         set SubLoc = $cnt	
+      endif
+      if ("$argv[$cnt]" == "-prefix") then
+         set SubLoc = $cnt		
+		   if ($SubLoc == $Narg) then
+				echo "Need option after -prefix"
+            goto END
+			else
+				@ cnt ++
+				set outfile = "$argv[$cnt]"
+            set ee = `@CheckForAfniDset ${init_path}/${outfile}${view}`
+            if ( $ee > 0 ) then
+               echo "Output dset ${init_path}/${outfile}${view} exists"
+               echo "Change prefix $outfile or remove existing output"
+               goto END
+            endif
+            set NxtInd = $cnt
+			endif
+      endif
+		
+      if ("$argv[$cnt]" == "-aseg") then
+         set SubLoc = $cnt		
+      if ($SubLoc == $Narg) then
+				echo "Need option after -aseg"
+            goto END
+			else
+				@ cnt ++
+				set fn_aseg = "$argv[$cnt]"
+        set NxtInd = $cnt
+			endif
+      endif
+
+      if ("$argv[$cnt]" == "-view") then
+         set SubLoc = $cnt		
+      if ($SubLoc == $Narg) then
+				echo "Need option after -view"
+            goto END
+			else
+				@ cnt ++
+				set view = "$argv[$cnt]"
+            if (  $view != "+orig" &&  \
+                  $view != "+acpc" &&  \
+                  $view != "+tlrc" ) then
+               echo "Bad -view value of $view"
+               goto END
+            endif
+        set NxtInd = $cnt
+			endif
+      endif
+      
+      if ("$argv[$cnt]" == "-polort") then
+         set SubLoc = $cnt		
+      if ($SubLoc == $Narg) then
+				echo "Need option after -polort"
+            goto END
+			else
+				@ cnt ++
+				set polort = `printf %d $argv[$cnt]`
+        set NxtInd = $cnt
+			endif
+      endif
+	  	
+      if ("$argv[$cnt]" == "-ts") then
+        set SufLoc = $cnt		
+		  if ($SufLoc == $Narg) then
+				echo "Need option after -ts"
+            goto END
+			else
+				@ cnt ++
+            set fn_epi = "$argv[$cnt]"
+            set NxtInd = $cnt
+			endif
+      endif
+
+      if ("$argv[$cnt]" == "-motion") then
+         set SubLoc = $cnt		
+		   if ($SubLoc == $Narg) then
+				echo "Need option after -motion"
+            goto END
+			else
+				@ cnt ++
+				set fn_mo = "$argv[$cnt]"
+            if ("${fn_mo:r}.1D" != "$fn_mo") then
+               echo "motion must have a .1D extension"
+            endif
+            set NxtInd = $cnt
+			endif
+      endif
+      
+
+      if ("$argv[$cnt]" == "-nuisance") then
+         set SubLoc = $cnt		
+		   if ($SubLoc == $Narg) then
+				echo "Need option after -nuisance"
+            goto END
+			else
+				@ cnt ++
+				set fn_nuisance = "$argv[$cnt]"
+				set DoNuisance = 1
+            if ("${fn_nuisance:r}.1D" != "$fn_nuisance") then
+               echo "nuisance must have a .1D extension"
+            endif
+            set NxtInd = $cnt
+			endif
+      endif
+      
+      if ("$argv[$cnt]" == "-radius") then
+         set SubLoc = $cnt		
+		     if ($SubLoc == $Narg) then
+				    echo "Need option after -radius"
+            goto END
+			   else
+				    @ cnt ++
+				    set r = "$argv[$cnt]"
+			   endif
+      endif
+      
+      
+      if ("$argv[$cnt]" == "-Rsq_WMe") then
+         set SufLoc = $cnt		
+         set NxtInd = $cnt
+		   
+         set DoRsq = 1
+      endif
+      
+      if ("$argv[$cnt]" == "-coverage") then
+         set SufLoc = $cnt		
+         set NxtInd = $cnt
+		   
+         set DoCover = 1
+      endif
+      
+      if ("$argv[$cnt]" == "-dirty") then
+         set SufLoc = $cnt		
+         set NxtInd = $cnt
+		   
+         set cleanup = 0
+      endif
+      
+      if ("$argv[$cnt]" == "-verb") then
+         set SufLoc = $cnt		
+         set NxtInd = $cnt
+		   
+         set verb = 1
+      endif
+		
+		@ cnt ++
+	end
+
+@ NxtInd ++
+set others_list = ( $argv[$NxtInd-$#argv] )
+
+if ($verb) echo "$others_list"
+
+if ($#others_list != 0) then
+   echo "Parameter(s) $others_list not understood"
+   goto END
+endif
+goto RETURN_PARSE
+
+BEND:
+   set stat = 1
+   goto END
+   
+END:
+exit ($stat)
