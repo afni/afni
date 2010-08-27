@@ -66,6 +66,51 @@
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 26, AUG , 2010 , ZSS , "@auto_tlrc" , MAJOR , TYPE_BUG_FIX,
+   "Fixed bug in @auto_tlrc in usage 2 mode AND with no suffix",
+"There was a bug in @auto_tlrc  for the last 2 months: \n"
+"   from June 30, 2010 until  August 26, 2010. \n"
+"\n"
+"It occurs only when using auto_tlrc in: \n"
+"  usage 2 mode \n"
+"        AND \n"
+"  with -suffix omitted, or set to NONE.\n"
+"\n"
+"This bug does not affect your data if you had used adwarp -apar, \n"
+"  or if you put your data in TLRC space via afni_proc.py, \n"
+"  or align_epi_anat.py.\n"
+"\n"
+"The bug essentially results in a renaming of your follower dataset, \n"
+" without the spatial transformation. So, if you were applying the \n"
+" transform to epi+orig, it practically got renamed to epi+tlrc. \n"
+" Despite the +tlrc in the name, epi+tlrc would still be in +orig \n"
+" view and you no longer have epi+orig on disk. \n"
+"   \n"
+"Examples of affected commands would be:\n"
+"	@auto_tlrc  -apar anat+tlrc 	               -input epi+orig \n"
+"or\n"
+"	@auto_tlrc  -apar anat+tlrc 	-suffix NONE   -input epi+orig  \n"
+"\n"
+"The script did produce Error messages but it failed to stop.\n"
+"\n"
+"If you think you ran the buggy command (a clear symptom would be \n"
+"missing +orig datasets AND bad alignment in TLRC of course), you \n"
+"must download the latest binaries and rerun @auto_tlrc after you \n"
+"have recreated the +orig files. You can also just get @auto_tlrc \n"
+"at the link below.\n"
+"\n"
+"Sorry for this, I had tested complicated option combinations on \n"
+"the last release, but all tests had used the -suffix option.\n"
+"(<http://afni.nimh.nih.gov/afni/community/board/read.php?f=1&i=34139&t=34139>)"
+"\n"
+"\n"
+"Binaries postdating this message will contain the new script. \n"
+"You can also get a corrected version of @auto_tlrc at this link:\n"
+"<http://afni.nimh.nih.gov/sscc/staff/ziad/Misc_Download/tmp/@auto_tlrc>\n"
+"\n"
+"Thanks To James Blair for finding the bug.\n"
+ } ,
+
  { 25, AUG , 2010 , ZSS , "ConvertDset" , MICRO , TYPE_NEW_OPT,
    "Added -no_history option",
    NULL
