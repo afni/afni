@@ -3,18 +3,32 @@ if ("$1" == '' || "$1" == '-h' || "$1" == '-help') then
 	goto USAGE
 endif
 
-set ans = `3dinfo "$1" | grep '\[-orient' | cut -d[ -f2 | cut -d] -f1`
+set doexp = 0
+set inf = "$1"
+if ("$1" == '-exp') then
+   set doexp = 1
+   set inf = "$2"
+endif
+
+set ans = `3dinfo "$inf" | grep '\[-orient' | cut -d[ -f2 | cut -d] -f1`
 if ( "$ans[1]" != "-orient" ) then
    echo "Error: Failed to find -orient string in 3dinfo output"
    goto ENDALL
 endif
 
-echo $ans[2]
+if ($doexp == 1) then
+   set or = `echo "$ans[2]" | cut -c1`
+   set or = ($or `echo "$ans[2]" | cut -c2`)
+   set or = ($or `echo "$ans[2]" | cut -c3`)
+   echo $or
+else
+   echo $ans[2]
+endif
 
 goto ENDALL
 
 USAGE:
-	echo "Usage: `basename $0` <Name> ....."
+	echo "Usage: `basename $0` [-exp] <Name> ....."
 	echo "example: `basename $0` Hello+orig.HEAD"
 	echo "returns the orient code of Hello+orig.HEAD" 
 	echo "Ziad Saad (saadz@mail.nih.gov)"

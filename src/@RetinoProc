@@ -310,6 +310,7 @@ foreach sd ($sides)
             set p = `@GetAfniPrefix $s`
             set p = $p:r
             if ( ! -f {$p}.${sd}.niml.dset ) then
+               echo "Mapping $s to surface to create {$p}.${sd}.niml.dset"
                3dVol2Surf  -spec          ${specs[$sdc]} \
                            -sv            SVol@Epi+orig   \
                            -surf_A        ${sd}.smoothwm.asc \
@@ -321,9 +322,13 @@ foreach sd ($sides)
                            -oob_value     0     \
                            -overwrite     \
                            -out_niml      {$p}.${sd}.niml.dset 
+            else
+               echo "Reusing existing {$p}.${sd}.niml.dset "
             endif
          end
          cd $idir
+      else
+         echo "Time series already on surface, skipping 3dVol2Surf"
       endif
          
    AVERAGE:
@@ -989,7 +994,7 @@ PARSE:
             goto END
 			else
             @ cnt ++
-            set A2E_opts = $argv[$cnt]
+            set A2E_opt = $argv[$cnt]
             goto NEXT	
          endif	
       endif
@@ -1267,7 +1272,12 @@ echo "+++ Misc Parameters:"
 echo " -sid SID: SID is a flag identifying the subject"
 echo " -out_dir DIR: Directory where processing results are to be stored"
 echo " -echo: Turn on the command echoing to help with debugging script failure"
-echo ""
+echo " -A2E_opts 'A2E_OPTS': Pass options A2E_OPTS to @SUMA_AlignToExperiment"
+echo "                       You might use for example,"
+echo "                       -A2E_opts '-strip_skull surf_anat' since SVol"
+echo "                       usually has a skull, but AVol@Epi does not."
+echo "                       This could help with the alignment in certain"
+echo "                       difficult cases"
 echo "The process:"
 echo "============"
 echo "   The full process consists of the following steps:"

@@ -17,16 +17,25 @@ foreach ff ($others_list)
       goto END
    endif
    set good = 1
+
    #Look for blank(s) following \ at end of line
    set l = `\grep -nE '\\[ \t][ \t]*$' $ff`
-   if ("$l" != "") then
-      if (! $clean) then
-         echo "$ff   has improperly terminated lines"
+   set lt = `file_tool -show_file_type -infiles $ff`
+   set lt = `echo $lt | cut -f 2 -d :`
+   #set ln = `\grep '[^[:print:]]' $ff`
+   set ln = ''
+   if ("$l" != "" || "$ln" != "" || "$lt" != "UNIX") then
+      if ($clean == 0) then
+echo "$ff has improperly terminated lines, non-printable characters, or DOS type"
          echo "$l"
+         echo "Use -clean option to cleanup"
          set good = 0
       else 
-         sed 's/\(\\[ \t][ \t]*$\)/\\/g' $ff > ${ff}${suffix}
+         sed 's/\(\\[ \t][ \t]*$\)/\\/g' $ff | \
+            tr -d '\r' | tr -cd '\11\12\15\40-\176' \
+               > ${ff}${suffix}
          echo "$ff's clean version is ${ff}${suffix}"
+         file_tool -show_file_type -infiles ${ff}${suffix}
          set good = 0
       endif
    endif 
