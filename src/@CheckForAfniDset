@@ -44,7 +44,7 @@ if ( -f "$dsethead" ) then
 else
    goto RESULT
 endif
-if ( -f "$dsetbrik" || -f "{$dsetbrik}.gz" || -f "{$dsetbrik}.bz2" || -f "{$dsetbrik}.Z" ) then 
+if ( -f "$dsetbrik" || -f "${dsetbrik}.gz" || -f "${dsetbrik}.bz2" || -f "${dsetbrik}.Z" ) then 
    @ cnt ++
 else
    goto RESULT
