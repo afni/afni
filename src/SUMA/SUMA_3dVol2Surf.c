@@ -220,9 +220,10 @@ static char g_history[] =
     "\n"
     "6.8  Dec 15, 2006 [rickr] - added example for EPI -> surface in help\n"
     "6.9  Jan 14, 2009 [rickr] - allow f_steps == 1\n"
+    "6.10 Aug 30, 2010 [rickr] - check for -sv dset\n"
     "---------------------------------------------------------------------\n";
 
-#define VERSION "version  6.8 (Jan 14, 2009)"
+#define VERSION "version  6.10 (Aug 30, 2010)"
 
 /*----------------------------------------------------------------------
  * todo:
@@ -246,6 +247,8 @@ SUMA_CommonFields  * SUMAg_CF = NULL;   /* info common to all viewers   */
 
 /* --------------------  AFNI prototype(s)  -------------------- */
 extern void machdep( void );
+
+static int dset_exists( char * name );
 
 #define MAIN
 
@@ -1407,6 +1410,11 @@ ENTRY("init_options");
             }
 
             opts->sv_file = argv[++ac];
+            if( ! dset_exists( opts->sv_file ) ) {
+                fprintf(stderr,"** ERROR: failed to open -sv dataset, %s\n",
+                        opts->sv_file);
+                RETURN(-1);
+            }
         }
         else if ( ! strncmp(argv[ac], "-use_norms", 5) )
         {
@@ -1423,6 +1431,23 @@ ENTRY("init_options");
             usage( PROG_NAME, V2S_USE_SHORT );
             RETURN(-1);
         }
+    }
+
+    RETURN(0);
+}
+
+/* try to open as an AFNI dataset */
+static int dset_exists( char * name )
+{
+    THD_3dim_dataset * dset;
+
+ENTRY("dset_exists");
+
+    dset = THD_open_dataset(name);
+    if( dset ) {
+        /* good, the input exists */
+        DSET_delete(dset);
+        RETURN(1);
     }
 
     RETURN(0);
