@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 30, AUG, 2010, RCR, "3dVol2Surf", MICRO, TYPE_BUG_FIX,
+   "check for -sv dataset before proceeding",
+   NULL
+ } ,
+
  { 30, AUG, 2010, RCR, "@CheckForAfniDset", MICRO, TYPE_BUG_FIX,
    "replaced use of {$var} with ${var}",
    "Problem noted by R Mruczek."
