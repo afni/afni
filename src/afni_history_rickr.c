@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 30, AUG, 2010, RCR, "@CheckForAfniDset", MICRO, TYPE_BUG_FIX,
+   "replaced use of {$var} with ${var}",
+   "Problem noted by R Mruczek."
+ } ,
+
  { 25, AUG, 2010, RCR, "make_random_timing.py", MICRO, TYPE_MODIFY,
    "update polort and write -nodata TR using 3 decimal places",
    NULL
