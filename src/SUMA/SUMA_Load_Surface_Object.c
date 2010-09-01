@@ -4814,7 +4814,7 @@ int SUMA_swap_spec_entries( SUMA_SurfSpecFile * spec, int i0, int i1, int debug)
 int SUMA_copy_spec_entries( SUMA_SurfSpecFile * spec0, SUMA_SurfSpecFile *spec1,
                             int i0, int i1, int debug)
 {
-
+    static char FuncName[]={"SUMA_copy_spec_entries"};
     if ( !spec0 || !spec1 || 
          (i0 < 0) || (i0 >= spec0->N_Surfs) ||
 	      (i1 < 0) || (i1 >= spec1->N_Surfs) )
@@ -4833,38 +4833,38 @@ int SUMA_copy_spec_entries( SUMA_SurfSpecFile * spec0, SUMA_SurfSpecFile *spec1,
     copy_strings(spec0->SurfaceFormat[i0], spec1->SurfaceFormat[i1],
 	              SUMA_MAX_LABEL_LENGTH);
     copy_strings(spec0->TopoFile[i0], spec1->TopoFile[i1],
-	              SUMA_MAX_NAME_LENGTH);
+	              SUMA_MAX_FP_NAME_LENGTH);
     copy_strings(spec0->CoordFile[i0], spec1->CoordFile[i1],
 	              SUMA_MAX_NAME_LENGTH);
     copy_strings(spec0->MappingRef[i0], spec1->MappingRef[i1],
-	              SUMA_MAX_NAME_LENGTH);
+	              SUMA_MAX_FP_NAME_LENGTH);
     copy_strings(spec0->AnatCorrect[i0], spec1->AnatCorrect[i1],
-	              SUMA_MAX_NAME_LENGTH);
+	              SUMA_MAX_LABEL_LENGTH);
     copy_strings(spec0->Hemisphere[i0], spec1->Hemisphere[i1],
-	              SUMA_MAX_NAME_LENGTH);
+	              SUMA_MAX_LABEL_LENGTH);
     copy_strings(spec0->DomainGrandParentID[i0], spec1->DomainGrandParentID[i1],
-	              SUMA_MAX_NAME_LENGTH);     
+	              SUMA_MAX_LABEL_LENGTH);     
     copy_strings(spec0->OriginatorID[i0], spec1->OriginatorID[i1],
-	              SUMA_MAX_NAME_LENGTH);
+	              SUMA_MAX_LABEL_LENGTH);
     copy_strings(spec0->LocalCurvatureParent[i0],spec1->LocalCurvatureParent[i1],
-	              SUMA_MAX_NAME_LENGTH);
+	              SUMA_MAX_FP_NAME_LENGTH);
     copy_strings(spec0->LocalDomainParent[i0], spec1->LocalDomainParent[i1],
-	              SUMA_MAX_NAME_LENGTH);
+	              SUMA_MAX_FP_NAME_LENGTH);
     copy_strings(spec0->SureFitVolParam[i0], spec1->SureFitVolParam[i1],
-	              SUMA_MAX_NAME_LENGTH);
+	              SUMA_MAX_FP_NAME_LENGTH);
     copy_strings(spec0->SurfaceFile[i0], spec1->SurfaceFile[i1],
-	              SUMA_MAX_NAME_LENGTH);
+	              SUMA_MAX_FP_NAME_LENGTH);
     copy_strings(spec0->VolParName[i0], spec1->VolParName[i1],
-	              SUMA_MAX_NAME_LENGTH);
+	              SUMA_MAX_FP_NAME_LENGTH);
     
-    spec1->IDcode[i1] = spec0->IDcode[i0];
+    spec1->IDcode[i1] = spec0->IDcode[i0]; /* always pointer copy for this one */
 
     copy_strings(spec0->State[i0], spec1->State[i1],
 	              SUMA_MAX_LABEL_LENGTH);
     copy_strings(spec0->Group[i0], spec1->Group[i1],
-	              SUMA_MAX_NAME_LENGTH);
-    copy_strings(spec0->SurfaceLabel[i0], spec1->SurfaceLabel[i1],
-	              SUMA_MAX_NAME_LENGTH);
+	              SUMA_MAX_LABEL_LENGTH);
+     copy_strings(spec0->SurfaceLabel[i0], spec1->SurfaceLabel[i1],
+	              SUMA_MAX_LABEL_LENGTH);
 
     spec1->EmbedDim[i1] = spec0->EmbedDim[i0];
 
