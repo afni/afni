@@ -4198,7 +4198,8 @@ g_help_string = """
 
         -align_opts_aea OPTS ... : specify extra options for align_epi_anat.py
 
-                e.g. -align_opts_aea -big_move 
+                e.g. -align_opts_aea -cost lpc+ZZ
+                e.g. -align_opts_aea -Allineate_opts -source_automask+4
                 e.g. -align_opts_aea -giant_move -AddEdge -epi_strip 3dAutomask
 
             This option allows the user to add extra options to the alignment
@@ -4207,7 +4208,12 @@ g_help_string = """
             Note that only one -align_opts_aea option should be given, with
             possibly many parameters to be passed on to align_epi_anat.py.
 
+            Note the second example.  In order to pass '-source_automask+4' to
+            3dAllineate, one must pass '-Allineate_opts -source_automask+4' to
+            align_epi_anat.py.
+
             Please see "align_epi_anat.py -help" for more information.
+            Please see "3dAllineate -help" for more information.
 
         -volreg_align_e2a       : align EPI to anatomy at volreg step
 
