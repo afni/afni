@@ -5247,10 +5247,23 @@ SUMA_Boolean SUMA_Draw_SO_Dset_Contours(SUMA_SurfaceObject *SO,
                      if (SO->EmbedDim == 2) {
                         if (SO->NodeNormList && D_ROI->CE) {
                            /* just take a node in the ROI */
-                           id2cont = 3 * D_ROI->CE[0].n2;
-                           off[0] = 3*SO->NodeNormList[id2cont];
-                           off[1] = 3*SO->NodeNormList[id2cont+1];
-                           off[2] = 3*SO->NodeNormList[id2cont+2];
+                           icont = 0;
+                           while (  icont < D_ROI->N_CE && 
+                                    ( (D_ROI->CE[icont].n1 >= SO->N_Node || 
+                                       D_ROI->CE[icont].n2 >= SO->N_Node)  || 
+                                  (!SO->patchNodeMask[D_ROI->CE[icont].n1] &&
+                                   !SO->patchNodeMask[D_ROI->CE[icont].n2]) ) ) 
+                              ++icont;
+                           if (icont < D_ROI->N_CE && 
+                                 D_ROI->CE[icont].n1 < SO->N_Node &&
+                                 D_ROI->CE[icont].n2 < SO->N_Node )    {
+                              id2cont = 3 * D_ROI->CE[icont].n2;
+                              off[0] = 3*SO->NodeNormList[id2cont];
+                              off[1] = 3*SO->NodeNormList[id2cont+1];
+                              off[2] = 3*SO->NodeNormList[id2cont+2];
+                           } else {
+                              off[0] = off[1] = off[2] = 0.0;
+                           }
                         }
                      }
                      #if 1 /* faster but more complicated */
