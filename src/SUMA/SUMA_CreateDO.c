@@ -5255,10 +5255,18 @@ SUMA_Boolean SUMA_Draw_SO_Dset_Contours(SUMA_SurfaceObject *SO,
                      }
                      #if 1 /* faster but more complicated */
                      icont = 0;
-                     while (icont < D_ROI->N_CE &&
-                            !SO->patchNodeMask[D_ROI->CE[icont].n1] &&
-                            !SO->patchNodeMask[D_ROI->CE[icont].n2] ) ++icont;
-                     if (icont < D_ROI->N_CE) {
+                     while (  icont < D_ROI->N_CE && 
+                              ( (D_ROI->CE[icont].n1 >= SO->N_Node || 
+                                 D_ROI->CE[icont].n2 >= SO->N_Node)  || 
+                            (!SO->patchNodeMask[D_ROI->CE[icont].n1] &&
+                             !SO->patchNodeMask[D_ROI->CE[icont].n2]) ) ) 
+                        ++icont; /* skip if n1 or n2 exceed N_Node, 
+                                    or neither of them is in the patch. 
+                                    For patches, it is possible that 
+                                    SOpatch->N_Node < SOLDP->Parent */
+                     if (icont < D_ROI->N_CE && 
+                           D_ROI->CE[icont].n1 < SO->N_Node &&
+                           D_ROI->CE[icont].n2 < SO->N_Node ) {
                         glBegin(GL_LINE_STRIP);
                         id1cont = 3 * D_ROI->CE[icont].n1;
                         glVertex3f(SO->NodeList[id1cont]+off[0], 
@@ -5266,7 +5274,9 @@ SUMA_Boolean SUMA_Draw_SO_Dset_Contours(SUMA_SurfaceObject *SO,
                                    SO->NodeList[id1cont+2]+off[2]);
                         i2last = D_ROI->CE[icont].n1;
                         while (icont < D_ROI->N_CE) {
-                           if (SO->patchNodeMask[D_ROI->CE[icont].n1] &&
+                           if (D_ROI->CE[icont].n1 < SO->N_Node &&
+                               D_ROI->CE[icont].n2 < SO->N_Node &&
+                               SO->patchNodeMask[D_ROI->CE[icont].n1] &&
                                SO->patchNodeMask[D_ROI->CE[icont].n2] ) {
                               id2cont = 3 * D_ROI->CE[icont].n2;
                               if (i2last != D_ROI->CE[icont].n1) {
@@ -5292,7 +5302,9 @@ SUMA_Boolean SUMA_Draw_SO_Dset_Contours(SUMA_SurfaceObject *SO,
                      for (icont = 0; icont < D_ROI->N_CE; ++icont) {
                         id1cont = 3 * D_ROI->CE[icont].n1;
                         id2cont = 3 * D_ROI->CE[icont].n2;
-                        if (SO->patchNodeMask[D_ROI->CE[icont].n1] && 
+                        if (D_ROI->CE[icont].n1 < SO->N_Node &&
+                            D_ROI->CE[icont].n2 < SO->N_Node &&
+                            SO->patchNodeMask[D_ROI->CE[icont].n1] && 
                             SO->patchNodeMask[D_ROI->CE[icont].n2]) {
 
                            glBegin(GL_LINES);
