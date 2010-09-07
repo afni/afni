@@ -7094,7 +7094,7 @@ byte *SUMA_load_1D_n_mask(char *name, int N_Node, byte *omask, const char *oper,
 
    SUMA_ENTRY;
    
-   if (*N_inmask) *N_inmask = -1;
+   if (N_inmask) *N_inmask = -1;
    if (!name) {
       SUMA_S_Err("NULL input");
       SUMA_RETURN(NULL); 
@@ -7177,7 +7177,7 @@ byte *SUMA_load_1D_n_mask(char *name, int N_Node, byte *omask, const char *oper,
       }
    }
 
-   if (*N_inmask) {
+   if (N_inmask) {
       *N_inmask = 0;
       for (kk=0; kk<N_Node; ++kk) if (out[kk]) ++(*N_inmask);
    }
@@ -7203,7 +7203,7 @@ byte *SUMA_load_1D_b_mask(char *name, int N_Node, byte *omask, const char *oper,
 
    SUMA_ENTRY;
    
-   if (*N_inmask) *N_inmask = -1;
+   if (N_inmask) *N_inmask = -1;
    
    if (!name) {
       SUMA_S_Err("NULL input");
@@ -7268,7 +7268,7 @@ byte *SUMA_load_1D_b_mask(char *name, int N_Node, byte *omask, const char *oper,
       }
    }
    
-   if (*N_inmask) {
+   if (N_inmask) {
       *N_inmask = 0;
       for (kk=0; kk<N_Node; ++kk) if (out[kk]) ++(*N_inmask);
    }
@@ -7286,7 +7286,7 @@ byte *SUMA_get_c_mask(char *mask, int N_Node, byte *omask, const char *oper, int
    
    SUMA_ENTRY;
    
-   if (*N_inmask) *N_inmask = -1;
+   if (N_inmask) *N_inmask = -1;
    if (!mask) {
       SUMA_S_Err("NULL input");
       SUMA_RETURN(bmask);
@@ -7344,7 +7344,7 @@ byte *SUMA_get_c_mask(char *mask, int N_Node, byte *omask, const char *oper, int
       }
    }
    
-   if (*N_inmask) {
+   if (N_inmask) {
       *N_inmask = 0;
       for (kk=0; kk<N_Node; ++kk) if (out[kk]) ++(*N_inmask);
    }
@@ -11614,14 +11614,17 @@ void SUMA_process_environ(void)
    } else {
       if (LocalHead) 
          fprintf (SUMA_STDERR,"%s: No sumarc file found.\n", FuncName);
-      fprintf (SUMA_STDOUT,
+      fprintf (SUMA_STDERR,
    "\n"
    "++ No sumarc file found. To create a new one, or add the latest \n"
-   " variables while preserving your settings, consider running:\n"
+   " variables while preserving your settings. \n"
+   " To stop this annoying message run the following:\n"
    "\n"
    "              suma -update_env\n"
    "\n"
-   "See details on -environment and -update_env in suma -help's output.\n"
+   "I recommend you run 'suma -update_env' whenever you update AFNI.\n" 
+   "See details for -environment and -update_env options in \n"
+   " suma -help's output.\n"
    "\n");
    }
 

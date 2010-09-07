@@ -66,6 +66,24 @@
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 7, SEP , 2010 , ZSS , "3dRetinoPhase" , MINOR , TYPE_BUG_FIX,
+   "Fixed crash caused by bad function prototype.",
+   "Crash only occurred on linux. Thanks to P. J. Kohler for \n"
+   "tests and bug report.\n"
+ } ,
+
+ { 3, SEP , 2010 , ZSS , "@SUMA_Make_Spec_FS" , MINOR , TYPE_NEW_OPT,
+   "Script now process v1.label files from FreeSurfer",
+   "The output is two datasets per hemisphere, one for the ??.v1.prob.label\n"
+   "and one for the ??.v1.predict.label.\n"
+ } ,
+
+ { 3, SEP , 2010 , ZSS , "suma" , MINOR , TYPE_BUG_FIX,
+   "Fixed inappropriate read in SUMA_Draw_SO_Dset_Contours",
+   "This bug had caused a crash on one machine, but had the potential\n"
+   "for bad surprises in the future.\n"
+ } ,
+
  { 26, AUG , 2010 , ZSS , "@auto_tlrc" , MAJOR , TYPE_BUG_FIX,
    "Fixed bug in @auto_tlrc in usage 2 mode AND with no suffix",
 "There was a bug in @auto_tlrc  for the last 2 months: \n"
