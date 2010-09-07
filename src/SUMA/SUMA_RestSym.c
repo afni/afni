@@ -2168,7 +2168,7 @@ int main( int argc , char *argv[] )
 
      if( mcov == 0 ){   /*-- no covariates ==> pure t-tests --*/
 
-       if( verb )
+       if( verb > 2)
          ININFO_message(" start %d-sample t-test-izing" , (ndset_BBB > 0) ? 2 : 1 ) ;
        GRINCOR_many_ttest( nvec , ndset_AAA , dotprod_AAA ,
                                   ndset_BBB , dotprod_BBB , neldar,nelzar ) ;
@@ -2184,7 +2184,7 @@ int main( int argc , char *argv[] )
                                     0         , NULL        , neldar_BBB,nelzar_BBB ) ;
        }
 
-       if( verb  || (verb==1 && nsend < NSEND_LIMIT) ){
+       if( verb > 3 || (verb==1 && nsend < NSEND_LIMIT) ){
          ctim = NI_clock_time() ;
          ININFO_message(" finished t-test-izing: elapsed=%d ms",ctim-btim) ;
          btim = ctim ;
@@ -2192,13 +2192,13 @@ int main( int argc , char *argv[] )
 
      } else {  /*-- covariates ==> regression analyses --*/
 
-       if( verb  )
+       if( verb > 2 )
          ININFO_message(" start %d-sample regression-izing" , (ndset_BBB > 0) ? 2 : 1 ) ;
 
        GRINCOR_many_regress( nvec , ndset_AAA , dotprod_AAA ,
                                     ndset_BBB , dotprod_BBB , nout , dtar ) ;
 
-       if( verb  || (verb==1 && nsend < NSEND_LIMIT) ){
+       if( verb > 3 || (verb==1 && nsend < NSEND_LIMIT) ){
          ctim = NI_clock_time() ;
          ININFO_message(" finished regression-izing: elapsed=%d ms",ctim-btim) ;
          btim = ctim ;
@@ -2220,7 +2220,7 @@ int main( int argc , char *argv[] )
                      , inode, nsend);
          exit(1);
       }
-     if( verb  || (verb==1 && nsend < NSEND_LIMIT) )
+     if( verb > 2 || (verb==1 && nsend < NSEND_LIMIT) )
        ININFO_message(" Done with RestSym_Proc ") ;
 
      nsend++ ;  /* number of results sent back so far */
@@ -2228,10 +2228,12 @@ int main( int argc , char *argv[] )
    if (! (nsend % 100) ) {
       ctim = NI_clock_time() ;
       ININFO_message(" %d/%d (%f%%) in %f minutes, this inode = %d\n"
-                     "expected completion in %f hours",          
+                     "Total expected completion time %f hours.\n"
+                     "Remaining completion time: %f hours\n",          
             nsend, N_nmask, (float)nsend/N_nmask*100.0,
                      (ctim-btim_all)/60000.0, inode,
-                     (ctim-btim_all)/3600000.0*(float)nsend/N_nmask);
+                     (ctim-btim_all)/3600000.0/(float)nsend*(float)N_nmask,
+                  (ctim-btim_all)/3600000.0/(float)nsend*(float)(N_nmask-nsend));
    }
   LoopBack: ; /* loop back for another command from AFNI */
    inode = inode + 1;

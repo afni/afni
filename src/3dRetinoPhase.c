@@ -1,4 +1,8 @@
 #include "mrilib.h"
+static void RP_tsfunc( double tzero, double tdelta ,
+                          int npts, float ts[], 
+                          double ts_mean , double ts_slope ,
+                          void *ud, int nbriks, float *val  );
 
 typedef enum { 
    NEG=-3, CONT=-2, CCW=-1, 
@@ -303,6 +307,7 @@ THD_3dim_dataset * Combine_Opposites(THD_3dim_dataset *dset1,
 
 static void RP_tsfunc( double tzero, double tdelta ,
                           int npts, float ts[],
+                          double ts_mean , double ts_slope ,
                           void *ud, int nbriks, float *val          )
 {
    static int nvox , ncall , N_nzfreq=0, *stimharm=NULL;
@@ -314,7 +319,11 @@ static void RP_tsfunc( double tzero, double tdelta ,
    RP_UD *rpud = (RP_UD *)ud; 
    static int st = -1;
    /** is this a "notification"? **/
-
+   
+   if (!rpud) {
+      ERROR_exit("NULL rpud!!!\n"
+                 "rpud %p, ud %p\n", rpud, ud);
+   }
    if( val == NULL ){
       if (rpud->verb > 1) {
          INFO_message("First call npts=%d\n", npts);
@@ -973,7 +982,7 @@ int main( int argc , char * argv[] )
                        1 ,                   /* linear detrend */
                        2 ,                   /* number of briks */
                        RP_tsfunc ,         /* timeseries processor */
-                       &rpud,                  /* data for tsfunc */
+                       (void *)(&rpud),    /* data for tsfunc */
                        mmm
                     ) ;
 
