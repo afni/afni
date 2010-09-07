@@ -2081,7 +2081,15 @@ int main (int argc,char *argv[])
                if (Opt->sigma < 0) {
                   Opt->sigma = SUMA_SigForFWHM( SO->EL->AvgLe, 
                                                 Opt->tfwhm, &(Opt->N_iter),
-                                                NULL)*SO->EL->AvgLe;  
+                                                NULL);
+                  if (Opt->sigma == -1.0f) {
+                     SUMA_S_Errv("Failed to get decent sigma (%f)\n", 
+                                  Opt->sigma);
+                     exit(1);
+                  } else {
+                     Opt->sigma = Opt->sigma*SO->EL->AvgLe;
+                  }
+                  
                   /* if specified, Opt->N_iter is taken into consideration
                    above. But it is not the condition for stopping, only for
                    setting sigma. Opt->N_iter is now of no use and 
