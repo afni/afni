@@ -1207,8 +1207,49 @@ char *SUMA_find_SOidcode_from_label (char *label, SUMA_DO *dov, int N_dov)
          if (strcmp(label, SO->Label)== 0) {
             if (!found) { found = SO->idcode_str; }
             else {
-               SUMA_S_Errv("More than one surface with label %s found.\n", label);
+               SUMA_S_Errv("More than one surface with label %s found.\n",    
+                           label);
                SUMA_RETURN(NULL);
+            }
+         }
+      }
+   }
+   
+   if (!found) { /* try less stringent search */
+      for (i=0; i<N_dov; ++i) {
+         if (dov[i].ObjectType == SO_type) {
+            SO = (SUMA_SurfaceObject *)dov[i].OP;
+            if (SUMA_iswordin(SO->Label, label)) {
+               if (!found) { found = SO->idcode_str; }
+               else {
+                  SUMA_S_Errv(
+               "Found more than one surface with labels patially matching %s.\n"
+               "For example: surfaces %s, and %s .\n",    
+                              label,
+                              SUMA_find_SOLabel_from_idcode(found, dov, N_dov),
+                              SO->Label);
+                  SUMA_RETURN(NULL);
+               }
+            }
+         }
+      }
+   }
+   
+   if (!found) { /* even less stringent search */
+      for (i=0; i<N_dov; ++i) {
+         if (dov[i].ObjectType == SO_type) {
+            SO = (SUMA_SurfaceObject *)dov[i].OP;
+            if (SUMA_iswordin_ci(SO->Label, label)) {
+               if (!found) { found = SO->idcode_str; }
+               else {
+                  SUMA_S_Errv(
+               "Found more than one surface with labels patially matching %s.\n"
+               "For example: surfaces %s, and %s .\n",    
+                              label,
+                              SUMA_find_SOLabel_from_idcode(found, dov, N_dov),
+                              SO->Label);
+                  SUMA_RETURN(NULL);
+               }
             }
          }
       }

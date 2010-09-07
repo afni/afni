@@ -5956,9 +5956,14 @@ double SUMA_SigForFWHM(float AvgLe, double dfwhm, int *niterest, double *beta)
    Sigma = -1;   
    
    if (dfwhm/AvgLe < 2) {
-      SUMA_S_Errv("FWHM desired (%.3f) is too close to average intersegment length (%.3f).\n"
-                  "The function fit is poor for this extreme.\n", dfwhm, AvgLe);
-      SUMA_RETURN(Sigma);
+      SUMA_S_Errv(
+   "FWHM desired (%.3f) is too small relative to "
+   "average intersegment length (AvgLe = %.3f).\n"
+   "Expecting a ration of FWHM/AvgLe >= 2.0\n"
+   "The automatic sigma selection is poor for this FWHM/AvgLe of %f.\n"
+   "You can set sigma manually instead.\n"
+   , dfwhm, AvgLe, dfwhm/AvgLe);
+      SUMA_RETURN(-1.0);
    }
    
    /* upper limit for Delta, not that critical */
@@ -6049,7 +6054,13 @@ SUMA_Boolean SUMA_FixNN_Oversampling ( SUMA_SurfaceObject *SO, SUMA_DSET *dset,
    SUMA_LH("Blur parameters");
    dfwhm = (double)SO->EL->AvgLe;
    N_iter = 20;
-   sigma = SUMA_SigForFWHM( SO->EL->AvgLe, dfwhm, NULL, NULL) * SO->EL->AvgLe;
+   sigma = SUMA_SigForFWHM( SO->EL->AvgLe, dfwhm, NULL, NULL);
+   if (sigma == -1.0f) {
+      SUMA_S_Err("Failed to select sigma\n");
+      SUMA_RETURN(NOPE);
+   } else {
+      sigma = sigma * SO->EL->AvgLe; 
+   }
    
    ipass = 0;
    do {
