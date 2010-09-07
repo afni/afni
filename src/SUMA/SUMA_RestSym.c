@@ -2226,14 +2226,16 @@ int main( int argc , char *argv[] )
      nsend++ ;  /* number of results sent back so far */
    
    if (! (nsend % 100) ) {
+      float ffr;
       ctim = NI_clock_time() ;
+      ffr = (ctim-btim_all)/3600000.0/(float)nsend;
       ININFO_message(" %d/%d (%f%%) in %f minutes, this inode = %d\n"
                      "Total expected completion time %f hours.\n"
-                     "Remaining completion time: %f hours\n",          
+                     "Remaining completion time: %f hours (%f minutes)\n", 
             nsend, N_nmask, (float)nsend/N_nmask*100.0,
                      (ctim-btim_all)/60000.0, inode,
-                     (ctim-btim_all)/3600000.0/(float)nsend*(float)N_nmask,
-                  (ctim-btim_all)/3600000.0/(float)nsend*(float)(N_nmask-nsend));
+                     ffr*(float)N_nmask,
+                  ffr*(float)(N_nmask-nsend), ffr*(float)(N_nmask-nsend)*60.0);
    }
   LoopBack: ; /* loop back for another command from AFNI */
    inode = inode + 1;
