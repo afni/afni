@@ -7354,7 +7354,6 @@ void SUMA_RefreshDsetList (SUMA_SurfaceObject *SO)
    
    SUMA_ENTRY;
    
-   SUMA_S_Note("CALLED");
    
    LW = SO->SurfCont->SwitchDsetlst;
    
