@@ -1157,6 +1157,98 @@ def data_to_hex_str(data):
    return retstr
 
 # ----------------------------------------------------------------------
+# wildcard construction functions
+# ----------------------------------------------------------------------
+
+def first_last_match_strs(slist):
+   """given a list of strings, return the first and last consistent strings
+      (i.e. all strings have the form first*last)
+
+        e.g. given ['subj_A1.txt', 'subj_B4.txt', 'subj_A2.txt' ]
+             return 'subj_' and '.txt'
+   """
+
+   if not slist: return '', ''
+
+   maxlen = len(slist[0])
+   hmatch = maxlen              # let them shrink
+   tmatch = maxlen
+   for sind in range(1, len(slist)):
+      if slist[0] == slist[sind]: continue
+
+      hmatch = min(hmatch, len(slist[sind]))
+      tmatch = min(tmatch, len(slist[sind]))
+
+      # find first left diff
+      i = 0
+      while i < hmatch:
+         if slist[sind][i] != slist[0][i]: break
+         i += 1
+      hmatch = min(hmatch, i)
+
+      # find first right diff (index from 1)
+      i = 1
+      while i <= tmatch:
+         if slist[sind][-i] != slist[0][-i]: break
+         i += 1
+      tmatch = min(tmatch, i-1)
+
+   if hmatch+tmatch > maxlen:           # weird, but constructable
+      tmatch = maxlen - hmatch          # so shrink to fit
+
+   return slist[0][0:hmatch], slist[0][-tmatch:]
+
+def glob_form_from_list(slist):
+   """given a list of strings, return a glob form
+
+        e.g. given ['subjA1.txt', 'subjB4.txt', 'subjA2.txt' ]
+             return 'subj*.txt'
+
+      Somewhat opposite list_minus_glob_form().
+   """
+
+   first, last = first_last_match_strs(slist)
+   globstr = '%s*%s' % (first,last)
+
+   return globstr
+
+def list_minus_glob_form(slist, hpad=0, tpad=0):
+   """given a list of strings, return the inner part of the list that varies
+      (i.e. remove the consistent head and tail elements)
+
+        e.g. given ['subjA1.txt', 'subjB4.txt', 'subjA2.txt' ]
+             return [ 'A1', 'B4', 'A2' ]
+
+      If hpad > 0, then pad with that many characters back into the head
+      element.  Similarly, tpad pads forward into the tail.
+
+        e.g. given ['subjA1.txt', 'subjB4.txt', 'subjA2.txt' ]
+             if hpad = 926 (or 4 :) and tpad = 1,
+             return [ 'subjA1.', 'subjB4.', 'subjA2.' ]
+
+      Somewhat opposite glob_form_from_list().
+   """
+
+   if hpad < 0 or tpad < 0:
+      print '** list_minus_glob_form: hpad/tpad must be non-negative'
+      return []
+
+   # get head, tail and note lengths
+   head, tail = first_last_match_strs(slist)
+   hlen = len(head)
+   tlen = len(tail)
+
+   # adjust by padding, but do not go negative
+   if hpad >= hlen: hlen = 0
+   else:            hlen -= hpad
+   if tpad >= tlen: tlen = 0
+   else:            tlen -= tpad
+
+   # and return the list of center strings
+   if tlen == 0: return [ s[hlen:]      for s in slist ]
+   else:         return [ s[hlen:-tlen] for s in slist ]
+
+# ----------------------------------------------------------------------
 # matematical functions:
 #    vector routines: sum, sum squares, mean, demean
 # ----------------------------------------------------------------------
