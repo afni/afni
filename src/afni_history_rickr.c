@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  8, SEP, 2010, RCR, "afni_util.py", MICRO, TYPE_ENHANCE,
+   "added wildcard construction functions",
+   NULL
+ } ,
+
  {  1, SEP, 2010, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
    "tiny changes to help output (e.g. 3dAllineate options)",
    NULL
