@@ -10,27 +10,36 @@
 #include "mrilib.h"
 
 /* JL Apr 2010: Added version number and version date for 3dsvm
- * and changed svm-light's VERSION to avoid conflicts with afni*/
-#define VERSION_3DSVM "V1.00"
-#define VERSION_DATE_3DSVM "04/28/10"
-
+ * and changed VERSION in svm-light source to avoid conflicts with afni.
+ * readAllocateAfniModel is using the version number to read in model
+ * parameters correctly */
+#define VERSION_3DSVM "V1.10"
+#define VERSION_DATE_3DSVM "09/08/10"
 #define CLASS_MAX 300
 #define SCALE 4000000
 #define MAX_FILE_NAME_LENGTH 500
 #define LONG_STRING 500
 
-/* JL: CSV_STRING stands for comma separated value string. It is used to store
- * class-combination names and custom-kernel names for each class-combination.
- * svm-light uses 50 for custom-kernel, which is plenty for comb_names,
- * but for some reason size 50 is causing data corruption problems.
- */
-#define CSV_STRING  20
 
-/* JL: Internal data representation of dataset arrays. This used to be short */
-#define DatasetType float
+
+#define CSV_STRING  20          /* JL: CSV_STRING: size of comma separated value
+        string. Strings of this size are used to store class-combination and
+        custom-kernel names for each class-combination. Svm-light uses 50 for
+        custom-kernel, which is plenty for comb_names, but for some reason
+        size 50 is causing memory corruption problems. */
+
+#define DatasetType float       /* JL: Internal data representation of dataset
+                                   arrays. This used to be short */
 #define MaskType    byte
 #define LabelType   double
-#define MODEL_MSK_EXT "_mask"
+
+#define MODEL_MSK_EXT "_mask"   /* JL: Used for mask file naming before mask was
+                                   written as a sub-brick into the model */
+#define MASK_YES 1              /* Mask was used for training */
+#define MASK_NO  0              /* Mask was not used for training */
+#define MASK_UNKNOWN -1         /* Unknown if mask was used for training. Only the
+                                   case if version < V1.10 was used for training */
+
 
 /* JL: Used to define the kernel type. CUSTOM stands for custom kernel.
  * LINEAR 0
@@ -39,150 +48,177 @@
  * SIGMOID 3 
  * are defined in svm_common.h */
 #define CUSTOM 4
-
 enum calling_fcn { ASL_PLUGIN, ASL_COMMAND_LINE };
 enum modes { NOTHING, TRAIN, TEST, TRAIN_AND_TEST }; /* modes */
 
 typedef struct ASLoptions{
   /* initialize at instantiation */
-  char labelFile[LONG_STRING];          /* training class (label) file */
-  char censorFile[LONG_STRING];         /* training censor (ignore) file */
-  char trainFile[LONG_STRING];          /* training dataset file */
-  char maskFile[LONG_STRING];           /* mask dataset */
-  char modelFile[LONG_STRING];          /* training output - model file */
-  char docFile[LONG_STRING];            /* JL June 2009: write brick data into
-                                           svm-light formated textfile */
-  char docFileOnly[LONG_STRING];        /* JL June 2009: write brick data into
-                                           svm-light formated textfile */
-  char kernelName[LONG_STRING];         /* JL Feb. 2009: tring specifying 
-                                           kernel functions  */
-  char svmType[LONG_STRING];            /* JL May 2009: classification, 
-                                           regression or ranking */
-  int  outModelNoMask;	                /* flag signifying that no mask 
-                                           should be applied to output model */
-  int  noPredDetrend;	                /* flag signifying that no detrending 
-                                           should be applied to output predictions
-                                           in test mode */
-  int  noPredCensor;                    /* flag signifying that predictions for
-                                           censored timepoints are not written
-                                           into prediction file */
-  int noPredScale;                      /* flag signifying that predcitions are
-                                           not scaled to {0,1} */
-  int  classout;	                /* flag signifying thresholded class
-                                           predictions should be written to
-                                           prediction files (rather than
-                                           continuous valued "distances") */
+  char labelFile[LONG_STRING];  /* training class (label) file */
+  char censorFile[LONG_STRING]; /* training censor (ignore) file */
+  char trainFile[LONG_STRING];  /* training dataset file */
+  char maskFile[LONG_STRING];   /* mask dataset */
+  char modelFile[LONG_STRING];  /* training output - model file */
+  char docFile[LONG_STRING];    /* JL June 2009: write brick data into
+                                   svm-light formated textfile */
+  char docFileOnly[LONG_STRING];/* JL June 2009: write brick data into
+                                    svm-light formated textfile */
+  char kernelName[LONG_STRING]; /* JL Feb. 2009: tring specifying
+                                   kernel functions  */
+  char svmType[LONG_STRING];    /* JL May 2009: classification, regression
+                                   or ranking */
+  int  outModelNoMask;	        /* flag signifying that no mask
+                                   should be applied to output model */
+  int  noPredDetrend;	        /* flag signifying that no detrending
+                                   should be applied to output predictions
+                                   in test mode */
+  int  noPredCensor;            /* flag signifying that predictions for
+                                   censored timepoints are not written
+                                   into prediction file */
+  int noPredScale;              /* flag signifying that predcitions are
+                                   not scaled to {0,1} */
+  int  classout;	        /* flag signifying thresholded class
+                                   predictions should be written to
+                                   prediction files (rather than
+                                   continuous valued "distances") */
+
+  char testFile[LONG_STRING];   /* testing dataset file */
+  char multiclass[LONG_STRING];	/* type of classifyer for a mulitclass dataset */
+  char predFile[LONG_STRING];   /* predictions file */
+  char testLabelFile[LONG_STRING]; /* testing target classes for test samples */
   char modelAlphaFile[LONG_STRING];
   char modelWeightFile[LONG_STRING];
-  char testFile[LONG_STRING];           /* testing dataset file */
-  char testLabelFile[LONG_STRING];	/* testing target classes
-                                           for test samples */
-  char multiclass[LONG_STRING];	        /* type of classifyer
-                                               for a mulitclass dataset */
-  char predFile[LONG_STRING];           /* predictions file */
-
 }ASLoptions;
 
 typedef struct labels {
-  LabelType *lbls; 		/* the class labels indicating the stimulus
+  LabelType* lbls; 		/* the class labels indicating the stimulus
                                    categories for fMRI data */
-  LabelType *cnsrs;	        /* indicates which labels to ignore
+  LabelType* cnsrs;	        /* indicates which labels to ignore
                                    (value == 0) or use (value == 1) */
+  LabelType* lbls_cont;         /* JL: labels converted to continues values */
   int *class_list;              /* hold class numbers appearing in classfile
                                    JL: changed allocation due to corruption
                                    problems */
   int n_classes;                /* number of different classes allowed
                                    (for multiclass) */
   long n;			/* the number of labels and censors */
-  int n_cnsrs;                  /* JL: number of censord time points
+  int n_cnsrs;                  /* JL: number ofensord time points
                                    (i.e., label 9999) */
 } LABELS;
 
 typedef struct afniSvmModelHead {
   
     /* General comment: The following int and float would be ideally
-     * long and double, but their ulitmate destination  is in the model 
-     * header file (.HEAD). Unfortunately, there is no double or long 
-     * functionality in THD_set_atr... */
+   * long and double, but their ultimate destination  is in the model
+   * header file (.HEAD). Unfortunately, there is no double or long
+   * functionality in THD_set_atr... */
 
-    int   class_count;		   /* number of classes (stimulus categories) */
-    int   combinations;		   /* all possible pair-wise combinations of 
-                                    * class_count  - would like to be long*/
-    int   timepoints;		   /* total number (even counting censored data) */
-    char  **combName;
-         /* short string describing the class combinations (e.g. '0_1','0_3') 
-            ZSS: Changed from [10][...] to [...][10] 
-            See how combName was used in function train_routine
-            where classCount is the variable used to index into combName's 
-            first dimension. classCount goes to (CLASS_MAX * (CLASS_MAX-1))/2
-            and the previous declaration was causing bad corruption with other
-            pointers.
-            JL Apr. 2010: Now allocated at run time in allocateAfniModel
-         */
-    char  **kernel_custom;
-          /* JL: string describing user-defined kernel */
-          /* JL: now allocate at run time in allocateAfniModel */
-    char  svm_type[LONG_STRING];  /* JL: string describing svm (learn) type */
-    int   *kernel_type;
-    int   *polynomial_degree; 
-    float *rbf_gamma;
-    float *linear_coefficient;
-    float *constant_coefficient;
-    int   *total_masked_features;  
-    int   *total_samples;         /* number of time points per class */
-    int   *total_support_vectors; 
-    float **cAlphas;            
-           /* JL: censored alphas, cAlphas[class][total_samples[cc]]. Contains
-            * alphas without censored timepoints (i.e., skipping labels: 9999),
-            * to match index of data and index of alphas for each class-combintation */
-    float **alphas;               /* alphas[class][timepoints] */
-    float *b;
+  int   mask_used;              /* JL: flag indicating if mask was used
+                                 * MASK_YES, MASK_NO, MASK_UNKNOWN */
+  int   class_count;		/* number of classes (stimulus categories) */
+  int   combinations;		/* all possible pair-wise combinations of
+                                 * class_count  - would like to be long*/
+  int   timepoints;		/* total number (even counting censored data) */
+  char  **combName;
+       /* short string describing the class combinations (e.g. '0_1','0_3')
+          ZSS: Changed from [10][...] to [...][10]
+          See how combName was used in function train_routine
+          where classCount is the variable used to index into combName's
+          first dimension. classCount goes to (CLASS_MAX * (CLASS_MAX-1))/2
+          and the previous declaration was causing bad corruption with other
+          pointers.
+          JL Apr. 2010: Now allocated at run time in allocateAfniModel
+       */
+  char  **kernel_custom;        /* JL: string describing user-defined kernel */
+                                /* JL: now allocate at run time in allocateAfniModel */
+  char  svm_type[LONG_STRING];  /* JL: string describing svm (learn) type */
+  int   *kernel_type;
+  int   *polynomial_degree;
+  float *rbf_gamma;
+  float *linear_coefficient;
+  float *constant_coefficient;
+  int   *total_masked_features;
+  int   *total_samples;         /* number of time points per class */
+  int   *total_support_vectors;
+  float **cAlphas;              /* JL: censored alphas,
+          * cAlphas[class][total_samples[cc]]. Contains alphas without censored
+          * timepoints (i.e., skipping labels: 9999 and censors), to match index
+          * of data and index of alphas for each class-combination */
+  float **alphas;               /* alphas[class][timepoints] */
+  float *b;
 
-    
-    /* JL Oct. 2009: Added remaining svm-light parameters that can be specified
-     * from the command-line. */
-    float *eps;                   /* epsilon for regression  */
-    float *svm_c;                 /* upper bound C on alphas */
-    int   *biased_hyperplane;     /* if nonzero, use hyperplane w*x+b=0 
-                                     otherwise w*x=0 */
-    int   *skip_final_opt_check;  /* do not check KT-Conditions at the end of
-            optimization for examples removed by shrinking. WARNING: This might 
-            lead to sub-optimal solutions! */ 
-    int   *svm_maxqpsize;         /* size q of working set */ 
-    int   *svm_newvarsinqp;       /* new variables to enter the working set 
-                                     in each iteration */
-    int   *svm_iter_to_shrink;    /* iterations h after which an example can
-                                     be removed by shrinking */
-    float *transduction_posratio; /* fraction of unlabeled examples to be 
-                                     classified as positives */ 
-    float *svm_costratio;         /* factor to multiply C for positive examples */
-    float *svm_costratio_unlab;   /* for svm-ligth internal use */
-    float *svm_unlabbound;        /* for svm-light internal use */
-    float *epsilon_a;             /* for svm-light internal use */
-    float *epsilon_crit;          /* tolerable error for distances used in 
-                                     stopping criterion */
-    int   *compute_loo;           /* if nonzero, computes leave-one-out
-                                     estimates */
-    float *rho;                   /* parameter in xi/alpha-estimates and for
-                                     pruning leave-one-out range [1..2] */
-    int   *xa_depth;              /* parameter in xi/alpha-estimates upper
-            bounding the number of SV the current alpha_t is distributed over */
+
+  /* JL Oct. 2009: Added remaining svm-light parameters that can be specified
+   * from the command-line. */
+  float *eps;                   /* epsilon for regression  */
+  float *svm_c;                 /* upper bound C on alphas */
+  int   *biased_hyperplane;     /* if nonzero, use hyperplane w*x+b=0
+                                   otherwise w*x=0 */
+  int   *skip_final_opt_check;  /* do not check KT-Conditions at the end of
+          optimization for examples removed by shrinking. WARNING: This might
+          lead to sub-optimal solutions! */
+  int   *svm_maxqpsize;         /* size q of working set */
+  int   *svm_newvarsinqp;       /* new variables to enter the working set
+                                   in each iteration */
+  int   *svm_iter_to_shrink;    /* iterations h after which an example can
+                                   be removed by shrinking */
+  float *transduction_posratio; /* fraction of unlabeled examples to be
+                                   classified as positives */
+  float *svm_costratio;         /* factor to multiply C for positive examples */
+  float *svm_costratio_unlab;   /* for svm-ligth internal use */
+  float *svm_unlabbound;        /* for svm-light internal use */
+  float *epsilon_a;             /* for svm-light internal use */
+  float *epsilon_crit;          /* tolerable error for distances used in
+                                   stopping criterion */
+  int   *compute_loo;           /* if nonzero, computes leave-one-out
+                                   estimates */
+  float *rho;                   /* parameter in xi/alpha-estimates and for
+                                   pruning leave-one-out range [1..2] */
+  int   *xa_depth;              /* parameter in xi/alpha-estimates upper
+                                   bounding the number of SV the current
+                                   alpha_t is distributed over */
 } AFNI_MODEL;
 
 
 /* JL: Holds maps to be written into a functional bucket dataset  */
 typedef struct ModelMaps {
-  long nmaps;           /* number of maps */
-  long nvox;            /* number of voxels in each map */
-  long index;           /* index over nmaps (keeps track of how many maps were
-                           written into this structure) */
-  char **names;         /* name for each map: names[nmaps][LONG_STRING]
-                           shows up in the AFNI GUI (define overlay) */
-  double **data;        /* data for each map:  data[nmaps][nvox] */
+  long nmaps;                  /* number of maps */
+  long nvox;                   /* number of voxels in each map */
+  long index;                  /* index over nmaps (keeps track of how many
+                                  maps were written into this structure) */
+  char **names;                /* name for each map: names[nmaps][LONG_STRING]
+                                  shows up in the AFNI GUI (define overlay) */
+  double **data;               /* data for each map:  data[nmaps][nvox] */
 } MODEL_MAPS;
 
+/* --- advanced user command line help-string --- */
+static char advanced_helpstring[] = "\n"
+"3dsvm Advanced Usage:\n"
+"---------------------\n\n"
+"Usage:\n"
+"  3dsvm [options] \n"
+"\n\n"
+"Options: \n"
+"  -docout docname        Write training data to a SVM-light formated text-file.\n"
+"                         (in addition to training/testing)\n"
+"\n"
+"  -doconly docname       Write training data to a SVM-light formated text-file.\n"
+"                         (without training/testing)\n"
+"\n"
+"                         e.g. 3dsvm  -type classification \\ \n"
+"                                     -trainvol run1+orig  \\ \n"
+"                                     -trainlabels run1_categories.1D \\ \n"
+"                                     -mask mask+orig \\ \n"
+"                                     -doconly doc_run1 \n"
+"\n"
+"  -nopredscale          For direct comparison with SVM-light. Leave labels in {-1,+1}\n"
+"                        (Do not scale predictions to {0,1})\n"
+"                        using this flag with -nodetrend and -nopredcensored\n"
+"                        will give rusults that are most closely comparible with \n"
+"                        SVM-light predictions \n"
+"\n\n";
 
-/* --- command line helpstring --- */
+
+/* --- command line help-string --- */
 static char cl_helpstring[] = "\n"
 "Program: 3dsvm\n"
 "\n"
@@ -327,8 +363,7 @@ static char cl_helpstring[] = "\n"
 "                              n    - class n (where n is a positive integer)\n"
 "                              9999 - censor this point \n"
 "\n"
-"                       It is recommended to use a continuous set of class\n"
-"                       labels, starting at 0. See also -censor.\n"
+"                       See also -censor.\n"
 "\n"
 "-censor cname          Specify a .1D censor file that allows the user\n"
 "                       to ignore certain samples in the training data.\n"
@@ -361,8 +396,7 @@ static char cl_helpstring[] = "\n"
 "                             -r float   : r parameter in sigmoid/poly kernel\n"
 "                                            1.0 [default]\n"
 "\n"
-"-alpha aname           Write the alpha file generated by SVM-light to\n"
-"                       aname.1D \n"
+"-alpha aname           Write the alphas to aname.1D \n"
 "\n"
 "-wout                  Flag to output sum of weighted linear support \n"
 "                       vectors to the bucket file. This is one means of\n"
@@ -376,9 +410,6 @@ static char cl_helpstring[] = "\n"
 "                       brik file. This is one means of generating an \n"
 "                       \"activation map\" from linear kernel SVMS \n"
 "                       (see LaConte et al, 2005). \n"
-"\n"
-"-docout docname        Write training data to a SVM-light (version 5.00)\n"
-"                       formated textfile. For debugging purposes only.\n"
 "\n"
 "------------------- TRAINING AND TESTING MUST SPECIFY MODNAME ------------------\n"
 "-model modname         modname = basename for the output model brik and any\n"
@@ -414,6 +445,9 @@ static char cl_helpstring[] = "\n"
 "-classout              Flag to specify that pname files should be integer-\n"
 "                       valued, corresponding to class category decisions.\n"
 "\n"
+"-nopredcensord         Do not write predictions for censored time-points to\n"
+"                       prediction file\n"
+"\n"
 "-nodetrend             Flag to specify that pname files should not be \n"
 "                       linearly de-trended (detrend is the current default).\n"
 "\n"
@@ -439,9 +473,8 @@ static char cl_helpstring[] = "\n"
 "------------------- INFORMATION OPTIONS ---------------------------------------\n"
 "-help                  this help\n"
 "\n"
-"-change_summary        describes chages of note and rough dates of their\n" 
-"                       implementation\n"
-"\n"
+"-version               print version history including rough description\n"
+"                       of changes\n"
 "\n\n";
 
 /* --- plugin helpstring --- */
@@ -469,11 +502,8 @@ static char plugin_helpstring[] = "\n"
 "  1)  Training - Select this option to perform SVM training. \n"
 "\n"
 "    a.  Training Type - Choose classification or regression\n"
-"       classification: labels represent stimulus/behavioral categories\n"
-"       regression: labels for parametric tasks\n"
-"       Note: See ""Labels"" below. For classifiaction, should have\n"
-"             Integers (starting at 0). For regression, can have\n"
-"             continuous valued labels.\n"
+"    classification: labels represent stimulus/behavioral categories\n"
+"    regression: labels for parametric tasks\n"
 "\n"
 "  2)  Train Data - Perform SVM learning using the data specified on \n"
 "      this line. \n"
@@ -491,8 +521,6 @@ static char plugin_helpstring[] = "\n"
 "       1    - class 1\n"
 "       n    - class n\n"
 "       9999 - censor this point\n"
-"       It is recommended (currently required) that the class labels be\n"
-"       continuous integers, starting at 0.\n"
 "\n"
 "    For regression, labels can any real number value\n"
 "\n"
@@ -634,30 +662,49 @@ static char contribution_string [] =
 
 /*----- String that briefly describes changes -------------------*/
 static char change_string[] = "\n"
-"Changes of note:\n"
 "\n"
-"Circa Nov/Dec 2008\n"
-"Note that 3dsvm's -predictions files have always been correct, however changes\n"
-"1 and 3 (below) are important for those who only rely on prediction accuracy \n"
-"summaries.\n"
-"1) Fixed a bug in calculating prediction accuracies.\n"
-"2) Changed multiclass for testvols - old method may have had problems in\n"
-"   special cases. Now using DAG and Max Wins voting for or one vs. one\n" 
-"   multiclass.\n"
-"3) Improved handling of prediction accuracy calculations for censored test" 
-"   data labels\n"
-"4) This change_summary flag added!\n"
+"V1.10 (09/08/10)\n"
+"  1) Removed restriction that class labels had to start from 0 and be continuous integers.\n"
+"     Now it is possible to have, say, a labels.1D that has {3,10,14} \n"
+"     Previously the user would have had to rename these as {0,1,2}. \n"
+"  2) Mask is now the last (two - don't ask why) brik(s) in the model dataset. \n"
+"     Previously the mask was a seperate file. If you have old models laying around \n"
+"     We have kept backwards compatibililty to handle this.\n"
+"  3) Writing command-line history to bucket header now (still also writing to model header).\n"
+"  4) Added option -version: Print 3dsvm's and SVM-light's version\n"
+"     and brief description of changes\n"
+"  5) Added option -HELP: Advanced user command-line options (mainly for debugging).\n"
 "\n"
+
+"V1.00 (05/14/08) \n"
+"  1) Added support for datum type float\n"
+"  2) Changed internal representation for datasets to float\n"
+"  3) Fixed a memory allocation bug for multi-class strings, that caused\n"
+"     crashes for more than ~ 6 classes\n"
+"  3) Writing weight-vector-maps (into the bucket) as float now\n"
+"  4) Enabled SVM-light-provided kernels in regression\n"
+"  5) Writing the b-value(s) of the model into bucket header now\n"
+"  6) Added version number and version date\n"
+"\n"
+
 "Circa Nov 2009\n"
-"1) fixed a memory allocation bug that caused crashes in linux\n" 
-"2) fixed a bug in bucket file that caused a one pixel shift in weight\n" 
-"   vector map \n"
-"3) enabled SVM-light-provided kernels\n"
-"4) enabled SVM-light regression\n"
-"5) added –docout flag to allow conversion of {trainvol, mask, trainlabels}\n"
-"   to SVM-light format (for debugging)\n"
-"6) combined multiclass –bucket output to actually be a bucket, rather than\n"
-"   individual ‘fim’ briks\n"
+"  1) fixed a memory allocation bug that caused crashes in linux\n"
+"  2) fixed a bug in bucket file that caused a one pixel shift in weight\n"
+"     vector map \n"
+"  3) enabled SVM-light-provided kernels\n"
+"  4) enabled SVM-light regression\n"
+"  5) combined multiclass bucket output to actually be a bucket, rather than\n"
+"     individual briks\n"
 "\n"
-"-enjoy\n"
+
+"Circa Nov/Dec 2008\n"
+"  Note that 3dsvm's -predictions files have always been correct, however changes\n"
+"  1 and 3 (below) are important for those who only rely on prediction accuracy \n"
+"  summaries.\n\n"
+"  1) Fixed a bug in calculating prediction accuracies.\n"
+"  2) Changed multiclass for testvols - old method may have had problems in\n"
+"     special cases. Now using DAG and Max Wins voting for or one vs. one\n"
+"     multiclass.\n"
+"  3) Improved handling of prediction accuracy calculations for censored test\n"
+"     data labels\n"
 "\n\n";
