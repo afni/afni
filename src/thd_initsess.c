@@ -37,6 +37,9 @@ ENTRY("THD_init_session") ;
    sess         = myXtNew( THD_session ) ;
    sess->type   = SESSION_TYPE ;
    sess->parent = NULL ;
+#ifdef DEBUG_SESSIONS
+fprintf(stderr, "blanking session\n");
+#endif
    BLANK_SESSION(sess) ;  /* null out all entries */
 
    /* save directory name, with a trailing slash */
@@ -103,12 +106,14 @@ ENTRY("THD_init_session") ;
         iview = dset->view_type ;
         
         if( GET_SESSION_DSET(sess, nds, iview) != NULL ){  /* should never happen */
-/*        if( sess->dsset_xform_table[nds][iview] != NULL ){  /* should never happen */
           fprintf(stderr,
            "\n*** Session %s has duplicate dataset views of %s ***\n",
            sessname , dset->self_name) ;
           THD_delete_3dim_dataset( dset , False ) ;
         } else {
+#ifdef DEBUG_SESSIONS
+fprintf(stderr,"\nputting datasets into initial view \n");
+#endif
           SET_SESSION_DSET(dset, sess, nds, iview);  /* should always happen */
 /*        sess->dsset_xform_table[nds][iview] = dset ; */  /* should always happen */
         }

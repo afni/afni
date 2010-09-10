@@ -51,7 +51,7 @@
 #ifdef SHSTRING
 #define ANNOUNCEMENT                                                           \
  "GPL AFNI: Analysis of Functional NeuroImages, by RW Cox (" COXEMAIL ")\n"    \
- "This is Version " AVERZHN               "\n"                                 \
+ "This is Version " VERSION               "\n"                                 \
  "[[Precompiled binary " SHSTRING ": " __DATE__ "]]\n\n"                       \
  " ** This software was designed to be used only for research purposes. **\n"  \
  " ** Clinical uses are not recommended, and have never been evaluated. **\n"  \
@@ -134,7 +134,7 @@ static int   recursed_ondot = 0 ;  /* 18 Feb 2007 */
 
 void AFNI_syntax(void)
 {
-   printf(ANNOUNCEMENT) ;
+/*   printf(ANNOUNCEMENT) ;*/
 
    if( AFNI_yesenv("AFNI_POMOC") )  /* for the Web -help page */
      printf(
@@ -1516,7 +1516,7 @@ int main( int argc , char *argv[] )
 
    /*----- tell the user who we are -----*/
 
-   REPORT_PROGRESS( ANNOUNCEMENT ) ;
+/*   REPORT_PROGRESS( ANNOUNCEMENT ) ;*/
 
    /*-------------------------------------------------------------*/
    /*------------ initialize the controllers list ----------------*/
@@ -4439,6 +4439,7 @@ ENTRY("AFNI_read_inputs") ;
 
       new_ss              = myXtNew( THD_session ) ;
       new_ss->type        = SESSION_TYPE ;
+      new_ss->dsrow       = NULL;  /* row of datasets across spaces not defined yet */
       BLANK_SESSION(new_ss) ;
       new_ss->num_dsset   = 1 ;
       SET_SESSION_DSET(dset, new_ss, 0,0);
@@ -4505,6 +4506,8 @@ ENTRY("AFNI_read_inputs") ;
       dss         = myXtNew( THD_session ) ;
       dss->type   = SESSION_TYPE ;
       dss->parent = NULL ;
+      dss->ndsets = 0;
+      dss->dsrow = NULL;
       BLANK_SESSION(dss) ;
       MCW_strncpy( dss->sessname , "fromCLI" , THD_MAX_NAME ) ;
       MCW_strncpy( dss->lastname , "fromCLI" , THD_MAX_NAME ) ;
@@ -6197,7 +6200,8 @@ DUMP_IVEC3("             new_ib",new_ib) ;
    if( new_xyz ) AFNI_process_viewpoint( im3d ) ;
    else          AFNI_process_redisplay( im3d ) ;
 
-   if( new_xyz && im3d->vwid->imag->pop_whereami_twin != NULL ){
+/*   if( new_xyz && im3d->vwid->imag->pop_whereami_twin != NULL ){*/
+   if( im3d->vwid->imag->pop_whereami_twin != NULL ){
 
       char *tlab = AFNI_ttatlas_query( im3d ) ;
 
@@ -8971,6 +8975,8 @@ void AFNI_pop_whereami_kill( Three_D_View *im3d )
 char * AFNI_ttatlas_query( Three_D_View *im3d )
 {
    static int have_TT = -1 ;
+   THD_3dim_dataset *dset;
+   int space_index;
 
    if( !IM3D_OPEN(im3d) || !CAN_TALTO(im3d) ) return NULL ;
 
@@ -8995,8 +9001,17 @@ char * AFNI_ttatlas_query( Three_D_View *im3d )
                                     im3d->anat_dset[VIEW_TALAIRACH_TYPE] ) ;
 
      /*-- get result string --*/
-
-     tlab = TT_whereami( tv.xyz[0] , tv.xyz[1] , tv.xyz[2], UNKNOWN_SPC ) ;
+     /* use space of "talairach view" dataset */
+     /* will want to change this for flexibility not to go through previous xform */
+     dset = im3d->anat_dset[VIEW_TALAIRACH_TYPE];
+     space_index = THD_space_code(dset->atlas_space);
+#ifdef DEBUG_SPACES
+   fprintf(stderr,"Space is %s with index %d\n",dset->atlas_space, space_index);
+#endif
+ 
+     tlab = TT_whereami( tv.xyz[0] , tv.xyz[1] , tv.xyz[2],
+             space_index );
+/*     tlab = TT_whereami( tv.xyz[0] , tv.xyz[1] , tv.xyz[2], UNKNOWN_SPC ) ;*/
      return tlab ;
    }
 

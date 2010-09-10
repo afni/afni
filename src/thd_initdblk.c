@@ -6,7 +6,7 @@ Version 2.  See the file README.Copyright for details.
 
 #include "mrilib.h"
 #include "thd.h"
-
+#include "thd_atlas.h"
 /*----------------------------------------------------------------
   Given a directory name, and a header filename, create a
   datablock that corresponds (return NULL if impossible).
@@ -1154,6 +1154,20 @@ ENTRY("THD_datablock_apply_atr") ;
      }
 
    }
+
+   /* get template space for dataset */
+   if(ATR_IS_STR("TEMPLATE_SPACE"))
+      MCW_strncpy( dset->atlas_space , atr_str->ch , THD_MAX_NAME ) ;
+   /* otherwise guess from view and environment */
+   else
+      THD_get_space(dset);
+      
+   /* flag for whether dataset should be displayed with integer colormap */
+   if(ATR_IS_INT("INT_CMAP"))
+      dset->int_cmap = atr_int->in[0];
+   /* otherwise guess it's just regular old data */
+   else
+      dset->int_cmap = CONT_CMAP;
 
    EXRETURN ;
 }

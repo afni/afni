@@ -436,13 +436,13 @@ char * get_atlas_dirname(void)  /* 31 Jan 2008 -- RWCox */
 
 /*-----------------------------------------------------------------------*/
 
-THD_3dim_dataset * get_altas(char *epath, char *aname)
+THD_3dim_dataset * get_atlas(char *epath, char *aname)
 {
    char dname[THD_MAX_NAME], ename[THD_MAX_NAME], *elocal=NULL, *eee;
    THD_3dim_dataset *dset = NULL;
    int epos=0, ll=0, ii=0, id = 0;
 
-   ENTRY("get_altas");
+   ENTRY("get_atlas");
 
    if( epath != NULL ){ /* A path or dset was specified */
       if (aname == NULL) { /* all in epath */
@@ -534,10 +534,10 @@ ENTRY("TT_load_atlas") ;
 
    epath = getenv("AFNI_TTATLAS_DATASET") ;   /* suggested path, if any */
    sprintf(sbuf,"%s+tlrc", TT_DAEMON_TT_PREFIX);
-   dseTT = get_altas( epath, sbuf ) ;  /* try to open it */
+   dseTT = get_atlas( epath, sbuf ) ;  /* try to open it */
    if (!dseTT) { /* try for NIFTI */
       sprintf(sbuf,"%s.nii.gz", TT_DAEMON_TT_PREFIX);
-      dseTT = get_altas( epath, sbuf) ;
+      dseTT = get_atlas( epath, sbuf) ;
    }
    if( dseTT != NULL ){                     /* got it!!! */
       have_dseTT = 1; RETURN(1);
@@ -916,6 +916,8 @@ char Atlas_Voxel_Side( THD_3dim_dataset *dset, int k1d, byte *lrmask)
    The string returned is malloc()-ed and should be free()-ed later.
    The string will end with a newline '\n' character.
 ------------------------------------------------------------------------*/
+/* ***tbd need to update this for new atlas structures -
+    will need the space, xform and atlas list */
 
 #if 0
 #undef  SS
@@ -935,6 +937,8 @@ char * Atlas_Query_to_String (ATLAS_QUERY *wami,
    ATLAS_COORD acv[NUMBER_OF_SPC];
    AFNI_ATLAS_CODES atcode = UNKNOWN_ATLAS;
    int i, ii, nfind=0, nfind_one = 0, iq=0, il=0, newzone = 0;
+   AFNI_STD_SPACES start_space;
+   
    byte LocalHead = 0;
 
    ENTRY("Atlas_Query_to_String") ;
@@ -947,6 +951,10 @@ char * Atlas_Query_to_String (ATLAS_QUERY *wami,
    /* get the coordinates into as many spaces as possible */
    /* first put ac in AFNI_TLRC */
    LOAD_FVEC3( m , ac.x, ac.y, ac.z ) ;
+   /* the original starting space has the coordinates for that space */
+   start_space = ac.space;  /* save the index of the original space */
+   acv[ac.space] = ac;
+   
    switch (ac.space) {
       default: ERROR_message("bad ac.space") ; RETURN(rbuf);
       case AFNI_TLRC_SPC:
@@ -988,11 +996,40 @@ char * Atlas_Query_to_String (ATLAS_QUERY *wami,
                      acv[i].x, acv[i].y, acv[i].z);
       }
    }
-   ac = acv[AFNI_TLRC_SPC]; /* TLRC from now on */
 
    /* Prep the string toys */
    INIT_SARR(sar) ; ADDTO_SARR(sar,WAMI_HEAD) ;
-
+   sprintf(lbuf, "Original input data coordinates in %s space\n", 
+      Space_Code_to_Space_Name(ac.space));
+   ADDTO_SARR(sar, lbuf);
+   ac = acv[AFNI_TLRC_SPC]; /* TLRC from now on */
+   for (i=UNKNOWN_SPC+1; i<NUMBER_OF_SPC; ++i) {
+      if(i!=start_space) {  /* if not already set from starting space */
+         LOAD_FVEC3(m,ac.x, ac.y, ac.z);
+         t = m;      /* default no transformation of coordinates */
+         if(i==MNI_SPC) {
+            t = THD_tta_to_mni(m);   /* returns LPI */
+            t.xyz[0] = -t.xyz[0]; t.xyz[1] = -t.xyz[1];
+         }       
+         else 
+            if(i==MNI_ANAT_SPC)
+               t = THD_tta_to_mnia_N27(m);
+         acv[i].x = t.xyz[0]; acv[i].y = t.xyz[1]; acv[i].z = t.xyz[2];
+      }
+      /* for MNI anatomical output, check TLRC coordinates against L/R volume that is
+      already in TLRC space. This LR volume had been converted from MNI_Anat space.
+      The L/R volume is from a particular subject, and it is not completely aligned along
+      any zero line separating left from right */
+      if(i!=MNI_ANAT_SPC)
+         sprintf(xlab[i-1],"%4.0f mm [%c]",-acv[i].x,(acv[i].x<0.0)?'R':'L') ;
+      else  
+         sprintf(xlab[i-1], "%4.0f mm [%c]", 
+                   -acv[i].x, TO_UPPER(MNI_Anatomical_Side(acv[AFNI_TLRC_SPC]))) ;
+      sprintf(ylab[i-1],"%4.0f mm [%c]",-acv[i].y,(acv[i].y<0.0)?'A':'P') ;
+      sprintf(zlab[i-1],"%4.0f mm [%c]", acv[i].z,(acv[i].z<0.0)?'I':'S') ;
+      sprintf(clab[i-1],"{%s}", Space_Code_to_Space_Name(i));
+   }
+#if 0   
    /* form the coordinate labels, all results in LPI */
       /* good olde tlrc */
       SS('a');sprintf(xlab[0],"%4.0f mm [%c]",-ac.x,(ac.x<0.0)?'R':'L') ;
@@ -1016,6 +1053,7 @@ char * Atlas_Query_to_String (ATLAS_QUERY *wami,
       SS('j');sprintf(ylab[2],"%4.0f mm [%c]",-t.xyz[1], (ac.y<0.0)?'A':'P') ;
       SS('k');sprintf(zlab[2],"%4.0f mm [%c]",t.xyz[2], (ac.z<0.0)?'I':'S') ;
       SS('l');sprintf(clab[2],"{MNI Anat.}");
+#endif
 
    /* form the Focus point part */
    switch (mode) {
@@ -1352,6 +1390,65 @@ AFNI_STD_SPACES TT_whereami_default_spc (void)
 }
 /* a new version of TT_whereami that can use the variety
    of atlases */
+/****tbd spc is the input space here - for new atlas space, will use atlas_space structure instead */
+char * TT_whereami_genx( float xx , float yy , float zz, AFNI_STD_SPACES spc)
+{
+   ATLAS_COORD ac;
+   ATLAS_QUERY *wami = NULL;
+   char *rbuf = NULL, *strg = NULL ;
+   int k;
+
+   ENTRY("TT_whereami") ;
+
+   /* build atlas list */
+   if (TT_whereami_n_atlas_list == 0) {
+      /* Uninitialized, get them all */
+      for (k=UNKNOWN_ATLAS+1; k<NUMBER_OF_ATLASES; ++k) {
+         TT_whereami_add_atlas(k);
+      }
+   }
+
+   switch (spc) {
+      case UNKNOWN_SPC:
+         spc = TT_whereami_default_spc();
+         break;
+      case MNI_SPC:
+      case MNI_ANAT_SPC:
+      case AFNI_TLRC_SPC:
+         /* OK, do nothing */
+         break;
+      default:
+         WARNING_message("Bad coordinate space %d\n", spc);
+         RETURN(rbuf) ;
+   }
+
+   /* build coord structure */
+   ac.x = xx; ac.y = yy; ac.z = zz; ac.space = spc;
+
+/* ***tbd whereami_9yards converts coordinates among spaces and
+      looks up coordinates through radius among atlases in atlas list */
+/* will need to change this to use new atlas_list from NIML database */ 
+/* modify whereami_9yards to use xform list */
+   strg = whereami_9yards( ac, &wami,
+                           TT_whereami_atlas_list, TT_whereami_n_atlas_list);
+   if (strg) {
+      WARNING_message("Unexpected string (%s) from whereami_9yards\n", strg);
+      free(strg); strg = NULL; /* nothing useful here */
+   }
+   if (!wami) {
+      ERROR_message("No atlas regions found.");
+      RETURN(rbuf) ;
+   }
+
+   /* Now form the string */
+   rbuf =  Atlas_Query_to_String (wami, ac, TT_whereami_mode);
+
+   /*cleanup*/
+   if (wami)  wami = Free_Atlas_Query(wami);
+
+   RETURN(rbuf) ;
+}
+
 char * TT_whereami( float xx , float yy , float zz, AFNI_STD_SPACES spc)
 {
    ATLAS_COORD ac;
@@ -1386,6 +1483,10 @@ char * TT_whereami( float xx , float yy , float zz, AFNI_STD_SPACES spc)
    /* build coord structure */
    ac.x = xx; ac.y = yy; ac.z = zz; ac.space = spc;
 
+/* ***tbd whereami_9yards converts coordinates among spaces and
+      looks up coordinates through radius among atlases in atlas list */
+/* will need to change this to use new atlas_list from NIML database */ 
+/* modify whereami_9yards to use xform list */
    strg = whereami_9yards( ac, &wami,
                            TT_whereami_atlas_list, TT_whereami_n_atlas_list);
    if (strg) {
@@ -2966,11 +3067,11 @@ const char *Space_Code_to_Space_Name (AFNI_STD_SPACES cod)
       case UNKNOWN_SPC:
          RETURN("Unknown");
       case AFNI_TLRC_SPC:
-         RETURN("Afni_TLRC");
+         RETURN("TLRC");
       case MNI_SPC:
          RETURN("MNI");
       case MNI_ANAT_SPC:
-         RETURN("MNI_Anatomical");
+         RETURN("MNI_ANAT");
       case NUMBER_OF_SPC:
          RETURN("Flag for number of spaces");
       default:
@@ -3012,6 +3113,8 @@ const char *Atlas_Code_to_Atlas_Dset_Name (AFNI_ATLAS_CODES cod)
          RETURN(CA_EZ_N27_LR_TT_PREFIX);
       case CA_EZ_N27_PMAPS_ATLAS:
          RETURN(CA_EZ_N27_PMaps_TT_PREFIX);
+      case CUSTOM_ATLAS :
+         RETURN("Custom atlas name");
       case NUMBER_OF_ATLASES:
          RETURN("Flag for number of atlases");
       default:
@@ -3377,10 +3480,10 @@ int CA_EZ_ML_load_atlas(void)
 
    epath = getenv("AFNI_CA_EZ_N27_ML_ATLAS_DATASET") ;   /* suggested path, if any */
    snprintf(atpref, 255*sizeof(char), "%s+tlrc", CA_EZ_N27_ML_TT_PREFIX);
-   dseCA_EZ_ML = get_altas( epath, atpref ) ;  /* try to open it */
+   dseCA_EZ_ML = get_atlas( epath, atpref ) ;  /* try to open it */
    if (!dseCA_EZ_ML) { /* try for NIFTI */
       snprintf(atpref, 255*sizeof(char), "%s.nii.gz", CA_EZ_N27_ML_TT_PREFIX);
-      dseCA_EZ_ML = get_altas( epath, atpref) ;
+      dseCA_EZ_ML = get_atlas( epath, atpref) ;
    }
    if( dseCA_EZ_ML != NULL ){                     /* got it!!! */
       /* check on version */
@@ -3413,10 +3516,10 @@ int CA_EZ_LR_load_atlas(void)
 
    epath = getenv("AFNI_CA_EZ_N27_LR_ATLAS_DATASET") ;   /* suggested path, if any */
    snprintf(atpref, 255*sizeof(char), "%s+tlrc", CA_EZ_N27_LR_TT_PREFIX);
-   dseCA_EZ_LR = get_altas( epath, atpref ) ;  /* try to open it */
+   dseCA_EZ_LR = get_atlas( epath, atpref ) ;  /* try to open it */
    if (!dseCA_EZ_LR) { /* try for NIFTI */
       snprintf(atpref, 255*sizeof(char), "%s.nii.gz", CA_EZ_N27_LR_TT_PREFIX);
-      dseCA_EZ_LR = get_altas( epath, atpref) ;
+      dseCA_EZ_LR = get_atlas( epath, atpref) ;
    }
    if( dseCA_EZ_LR != NULL ){                     /* got it!!! */
       /* check on version */
@@ -3449,10 +3552,10 @@ int CA_EZ_MPM_load_atlas(void)
 
    epath = getenv("AFNI_CA_EZ_N27_MPM_ATLAS_DATASET") ;   /* suggested path, if any */
    snprintf(atpref, 255*sizeof(char), "%s+tlrc", CA_EZ_N27_MPM_TT_PREFIX);
-   dseCA_EZ_MPM = get_altas( epath, atpref ) ;  /* try to open it */
+   dseCA_EZ_MPM = get_atlas( epath, atpref ) ;  /* try to open it */
    if (!dseCA_EZ_MPM) { /* try for NIFTI */
       snprintf(atpref, 255*sizeof(char), "%s.nii.gz", CA_EZ_N27_MPM_TT_PREFIX);
-      dseCA_EZ_MPM = get_altas( epath, atpref) ;
+      dseCA_EZ_MPM = get_atlas( epath, atpref) ;
    }
    if( dseCA_EZ_MPM != NULL ){                     /* got it!!! */
       /* check on version */
@@ -3486,10 +3589,10 @@ int CA_EZ_PMaps_load_atlas(void)
 
    epath = getenv("AFNI_CA_EZ_N27_PMAPS_ATLAS_DATASET") ;   /* suggested path, if any */
    snprintf(atpref, 255*sizeof(char), "%s+tlrc", CA_EZ_N27_PMaps_TT_PREFIX) ;
-   dseCA_EZ_PMaps = get_altas( epath, atpref ) ;  /* try to open it */
+   dseCA_EZ_PMaps = get_atlas( epath, atpref ) ;  /* try to open it */
    if (!dseCA_EZ_PMaps) { /* try for NIFTI */
       snprintf(atpref, 255*sizeof(char), "%s.nii.gz", CA_EZ_N27_PMaps_TT_PREFIX) ;
-      dseCA_EZ_PMaps = get_altas( epath, atpref) ;
+      dseCA_EZ_PMaps = get_atlas( epath, atpref) ;
    }
    if( dseCA_EZ_PMaps != NULL ){                     /* got it!!! */
       /* check on version */
@@ -3776,8 +3879,11 @@ ATLAS_DSET_HOLDER Atlas_With_Trimming (AFNI_ATLAS_CODES atcode, int LoadLRMask)
             adh.duplicateLRentries = 1; /* Are LR labels listed in adh.apl and under the same code? (only case I know of is in TTO_list*/
             build_lr = 0;
             break;
+         case CUSTOM_ATLAS :  /* need to update for custom atlases here *******/
+            return(adh);
+            break;
          default:
-            ERROR_message("Should not be here");
+            ERROR_message("Should not be here - atcode is %d", atcode);
             RETURN(adh);
       }
 

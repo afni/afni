@@ -57,6 +57,10 @@ ENTRY("EDIT_empty_copy") ; /* 29 Aug 2001 */
       new_dset->type      = old_dset->type ;      /* data types */
       new_dset->func_type = old_dset->func_type ;
       new_dset->view_type = old_dset->view_type ;
+      /* use template space of parent to mark as TLRC/MNI/... */
+      MCW_strncpy( new_dset->atlas_space ,
+         old_dset->atlas_space , THD_MAX_NAME ) ; 
+ 
       new_nvals           = old_dset->dblk->nvals ;
    } else {
       new_dset->type      = HEAD_ANAT_TYPE ;
