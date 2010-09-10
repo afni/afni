@@ -11580,6 +11580,9 @@ float SUMA_fdrcurve_zval( SUMA_DSET *dset , int iv , float thresh )
 
 /*********************** BEGIN Miscellaneous support functions **************************** */
 /* A few functions that are useful without having to link and include all of SUMA's structures */
+static int no_suma_rc_found;
+
+int NoSumaRcFound (void) { return (no_suma_rc_found);}
 
 /*!
    \brief load the environment varaibles first from 
@@ -11596,6 +11599,8 @@ void SUMA_process_environ(void)
    char *sumarc = NULL, *homeenv=NULL;
    SUMA_Boolean LocalHead = NOPE;
 
+   no_suma_rc_found = 0;
+   
    if (LocalHead) 
          fprintf (SUMA_STDERR,"%s: Entering SUMA_process_environ\n", FuncName);
    
@@ -11614,18 +11619,7 @@ void SUMA_process_environ(void)
    } else {
       if (LocalHead) 
          fprintf (SUMA_STDERR,"%s: No sumarc file found.\n", FuncName);
-      fprintf (SUMA_STDERR,
-   "\n"
-   "++ No sumarc file found. To create a new one, or add the latest \n"
-   " variables while preserving your settings. \n"
-   " To stop this annoying message run the following:\n"
-   "\n"
-   "              suma -update_env\n"
-   "\n"
-   "I recommend you run 'suma -update_env' whenever you update AFNI.\n" 
-   "See details for -environment and -update_env options in \n"
-   " suma -help's output.\n"
-   "\n");
+         no_suma_rc_found = 1;
    }
 
    if (!homeenv) sprintf(sumarc, ".afnirc");

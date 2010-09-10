@@ -388,7 +388,6 @@ int main (int argc,char *argv[])
    SUMA_mainENTRY;
    
 	SUMAg_CF->isGraphical = YUP;
-
    ps = SUMA_Parse_IO_Args(argc, argv, "-i;-t;");
    #if 0
    if (argc < 2)
@@ -836,6 +835,22 @@ int main (int argc,char *argv[])
       }
    }
    SUMA_FreeGenericArgParse(ps); ps = NULL;
+ 
+   /* A Warning about no sumarc */
+   if (NoSumaRcFound()) { 
+         SUMA_S_Warn(
+"\n"
+" No sumarc file found. You should create one by running the following:\n"
+"\n"
+"              suma -update_env\n"
+"\n"
+" I also recommend you run 'suma -update_env' whenever you update AFNI.\n" 
+"\n"
+" See details for -environment and -update_env options in suma -help's output.\n"
+"\n");
+   }
+
+ 
    
 	/*Main loop */
 	XtAppMainLoop(SUMAg_CF->X->App);

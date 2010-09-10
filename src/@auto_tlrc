@@ -537,6 +537,10 @@ AUTO_TLRC_MODE:
       echo "Padding ..."
       3dZeropad   -I $pd -S $pd -A $pd -P $pd -L $pd -R $pd \
                   -mm -prefix ./${ref_pref_pad} ${ref_in}
+      if ($status) then
+            echo "Failed to pad"
+            goto BEND  
+      endif            
    endif
 
    SS:
@@ -586,16 +590,20 @@ AUTO_TLRC_MODE:
       #  Use a resampled mask to cleanup
       3dresample -rmode Cu -master ${ref_pref_pad}${ref_view} \
                   -inset ${ns_pref}${anat_view} \
-                  -prefix ${tmppref}_resamp_edge_art
+                  -prefix ./${tmppref}_resamp_edge_art
+      if ($status) then
+            echo "Failed to resample"
+            goto BEND  
+      endif            
       3dcalc   -a "${ns_pref}${anat_view}" \
                -expr "step(a)*10000" \
-               -prefix ${tmppref}_resamp_step
+               -prefix ./${tmppref}_resamp_step
       3dresample  -rmode Linear -master ${ref_pref_pad}${ref_view} \
                   -inset ${tmppref}_resamp_step${anat_view} \
-                  -prefix ${tmppref}_resamp_NN
+                  -prefix ./${tmppref}_resamp_NN
       3dcalc   -a "${tmppref}_resamp_edge_art${ref_view}." \
                -b "${tmppref}_resamp_NN${ref_view}." \
-               -expr "a*step(b-5000)" -prefix ${tmppref}_resamp
+               -expr "a*step(b-5000)" -prefix ./${tmppref}_resamp
       if ( `@CheckForAfniDset ${tmppref}_resamp${ref_view}` != 2 ) then
          echo "Error: Failed to create resampled volume"
          set estat = 1
@@ -639,8 +647,12 @@ AUTO_TLRC_MODE:
                   -final ${rmode} -1Dmatrix_save ${ns_pref}.Xaff12.1D \
                   -base ${ref_pref_pad}${ref_view} \
                   -summ ${ns_pref}_WarpDrive.log \
-                  -prefix ${tmppref}_reg_warpdriveout \
+                  -prefix ./${tmppref}_reg_warpdriveout \
                   -input ${rs_pref}${anat_view}
+      if ($status) then
+            echo "Failed to resample"
+            goto BEND  
+      endif            
       if ( `@CheckForAfniDset ${tmppref}_reg_warpdriveout${anat_view}` != 2) then
          echo "Error: Failed in 3dWarpDrive "
          set estat = 1
@@ -804,14 +816,22 @@ AUTO_TLRC_MODE:
       3dresample    -rmode Linear \
                     -dxyz ${dxyz_list[1]} ${dxyz_list[2]} ${dxyz_list[3]} \
                     -inset ${tmppref}_reg_warpdriveout${anat_view}   \
-                    -prefix ${tmppref}_gridout  
+                    -prefix ./${tmppref}_gridout  
+      if ($status) then
+            echo "Failed to resample"
+            goto BEND  
+      endif            
    else
       3dcopy ${tmppref}_reg_warpdriveout${anat_view} ${tmppref}_gridout  
+      if ($status) then
+            echo "Failed to copy"
+            goto BEND  
+      endif            
    endif
    
    WARP_INPUT_BY_XFORM:
    3dWarp   -matvec_out2in ${out_pref}.Xat.1D \
-               -${rmode} -prefix ${tt_prefpad} \
+               -${rmode} -prefix ./${tt_prefpad} \
                -gridset ${tmppref}_gridout${anat_view} \
                ${nopre_anat_in}
                
@@ -843,7 +863,7 @@ AUTO_TLRC_MODE:
    echo "Unpadding ..."
    set tt_prefupad = ${tmppref}__upad${pd}_${tt_pref}
    3dZeropad   -I -$pd -S -$pd -A -$pd -P -$pd -L -$pd -R -$pd -mm \
-               -prefix ${tt_prefupad} ${tt_prefpad}${anat_view}
+               -prefix ./${tt_prefupad} ${tt_prefpad}${anat_view}
    #copy the WARPDRIVE_MATVEC_ fields to the zero unpadded dude
       set FromVol = ${tt_prefpad}${anat_view}
       set ToVol = ${tt_prefupad}${anat_view}
@@ -917,19 +937,25 @@ APAR_MODE:
    echo "Padding the input data before warping"
    3dZeropad   -I $pd -S $pd -A $pd -P $pd -L $pd -R $pd -mm \
                -prefix ./${tmppref}_ipad ${ns_pref}${anat_view}
-   
+   if ($status) then
+         echo "Failed to pad"
+         goto BEND  
+   endif  
    echo "Creating grid at (${dxyz_list[1]} ${dxyz_list[2]} ${dxyz_list[3]})mm RAI resolution..."
    3dresample  -master ${ref_in} \
                -dxyz ${dxyz_list[1]} ${dxyz_list[2]} ${dxyz_list[3]} \
-               -prefix ${tmppref}_warp_grid \
+               -prefix ./${tmppref}_warp_grid \
                -inset ${ref_in} \
                -rmode Linear
-               
+   if ($status) then
+         echo "Failed to resample"
+         goto BEND  
+   endif            
    if ($OneWarp) then
       echo "Direct warping per parent transform ($rmode interpolation) ..."
       3dWarp   -matparent ${ref_pref_nopad}${ref_view} \
             -gridset ${tmppref}_warp_grid${ref_view} \
-            -prefix ${tmp_out_pref} -${rmode} \
+            -prefix ./${tmp_out_pref} -${rmode} \
             ${tmppref}_ipad${anat_view}
       if ($status) then
          echo "Failed to warp"
@@ -940,14 +966,17 @@ APAR_MODE:
       #compatibility
       echo "Warping per parent transform ($rmode interpolation) and resampling with $resam interpolation (use -onewarp for single interpolation) ..."
       3dWarp   -matparent ${ref_pref_nopad}${ref_view} \
-            -prefix ${tmp_out_pref} -${rmode} \
+            -prefix ./${tmp_out_pref} -${rmode} \
             ${tmppref}_ipad${anat_view}
       #Change view of master or else 3dresample will force a change
       3drefit -view ${anat_view} ${tmppref}_warp_grid${ref_view}
       3dresample  -master ${tmppref}_warp_grid${anat_view} \
-               -prefix ${tmp_out_pref} -inset ${tmp_out_pref}${anat_view} \
+               -prefix ./${tmp_out_pref} -inset ${tmp_out_pref}${anat_view} \
                -rmode ${resam}  -overwrite
-      #ls ${tmp_out_pref}*
+      if ($status) then
+         echo "Failed to resample"
+         goto BEND  
+      endif
    endif
    if ( `@CheckForAfniDset ${tmp_out_pref}${anat_view}` != 2) then
       echo "Error: Failed to create tlrced dset"
@@ -1422,16 +1451,16 @@ COPY_FIELDS:
 APPLY_MASK:      
    echo "Applying brain mask"
    3dcalc   -a "${mskvol}" -overwrite \
-            -expr "step(a)*10000" -prefix ${tmppref}_reg_braintlrcstep
+            -expr "step(a)*10000" -prefix ./${tmppref}_reg_braintlrcstep
    3dWarp   -matparent ${mskwrppar} -overwrite \
             -gridset ${ttvolpref}${anat_view}   \
-            -linear -prefix ${tmppref}_reg_braintlrcmask \
+            -linear -prefix ./${tmppref}_reg_braintlrcmask \
             ${tmppref}_reg_braintlrcstep${anat_view}    
    3drename ${ttvolpref}${anat_view} ${ttvolpref}${nomskpref}
    3dcalc   -a "${tmppref}_reg_braintlrcmask${anat_view}" \
             -b "${ttvolpref}${nomskpref}${anat_view}" \
             -expr "step(a-5000)*b" \
-            -prefix ${ttvolpref}${anat_view}
+            -prefix ./${ttvolpref}${anat_view}
    goto $RET_apply_mask 
 
 goto END
