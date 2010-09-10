@@ -1512,6 +1512,7 @@ void set_Doiotrace(int s) ;
 int get_IgnoreXforms(void);
 void setIgnoreXforms(int s) ;
 void SUMA_process_environ(void);
+int NoSumaRcFound (void);
 void SUMA_ParseInput_basics_ns (char *argv[], int argc); 
 int SUMA_ParseInput_basics_eng (char *argv[], int argc); 
 void WorkErrLog_ns(void);

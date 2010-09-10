@@ -479,9 +479,16 @@ int main( int argc , char * argv[] )
    }  /* end of loop over voxels */
 
    DSET_unload(old_dset) ; free(ftap) ;
-   DSET_write(new_dset) ;
-   fprintf(stderr,"++ output dataset: %s\n",DSET_BRIKNAME(new_dset)) ;
-   exit(0) ;
+   
+   if (DSET_write(new_dset) != False) {
+      fprintf(stderr,"++ output dataset: %s\n",DSET_BRIKNAME(new_dset)) ;
+      exit(0) ;
+   } else {
+      fprintf(stderr,
+         "** 3dTsmoothR: Failed to write output!\n" ) ;
+      exit(1) ;
+   }   
+
 }
 
 /*--------------- Order Statistics Filter ----------------*/
