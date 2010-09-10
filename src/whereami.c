@@ -537,7 +537,7 @@ int main(int argc, char **argv)
    int read_niml_atlas = 0, show_atlas = 0, show_atlas_spaces = 0;
    int show_atlas_templates = 0, show_atlas_xforms = 0;
    int show_xform_chain = 0, calc_xform_chain=0, show_avail_space=0;
-   char *srcspace, *destspace;
+   char *srcspace=NULL, *destspace=NULL;
    atlas_xform_list *xfl = NULL, *cxfl = NULL;
    atlas_xform *xf;
    float xout, yout, zout;
@@ -2376,7 +2376,7 @@ atlas_xform_list *
 calc_xform_list(atlas_xform_list *xfl)
 {
    int i, nxf, sl1, sl2, cc;
-   atlas_xform *xf, *xf2, *xf3, *oldxfptr;
+   atlas_xform *xf, *xf2, *xf3, *oldxfptr=NULL;
    char *source, *dest;
    atlas_xform_list *cxfl;
 
