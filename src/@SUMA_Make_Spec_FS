@@ -479,33 +479,33 @@ L_CONVERT_SURFACES:
    if ( -d $label_dir) then
       cd $label_dir
       foreach hand ( lh rh )
-     if ( -f ${hand}.aparc.a2005s.annot ) then
-         FSread_annot   -input ${hand}.aparc.a2005s.annot \
+        if ( -f ${hand}.aparc.a2005s.annot ) then
+          FSread_annot   -input ${hand}.aparc.a2005s.annot \
             -roi_1D  $start_dir/$suma_dir/${hand}.aparc.a2005s.annot.1D.roi \
             -dset    $start_dir/$suma_dir/${hand}.aparc.a2005s.annot.niml.dset \
             -cmap_1D $start_dir/$suma_dir/${hand}.aparc.a2005s.annot.1D.cmap 
-         endif
-     endif
-     if ( -f ${hand}.aparc.a2009s.annot ) then
-         FSread_annot   -input ${hand}.aparc.a2009s.annot \
+        endif
+     
+        if ( -f ${hand}.aparc.a2009s.annot ) then
+          FSread_annot   -input ${hand}.aparc.a2009s.annot \
             -roi_1D  $start_dir/$suma_dir/${hand}.aparc.a2009s.annot.1D.roi \
             -dset    $start_dir/$suma_dir/${hand}.aparc.a2009s.annot.niml.dset \
             -cmap_1D $start_dir/$suma_dir/${hand}.aparc.a2009s.annot.1D.cmap 
-         endif
-     endif
-      foreach pp (prob predict)
-     if ( -f ${hand}.v1.${pp}.label ) then
-         sed '1,2s/^/#/' ${hand}.v1.${pp}.label > ${hand}.v1.${pp}.label.1D
-         ConvertDset    -input ${hand}.v1.${pp}.label.1D'[$]' \
-                        -node_index_1D ${hand}.v1.${pp}.label.1D'[0]' \
-                        -o_niml \
-                        -prefix $start_dir/$suma_dir/${hand}.v1.${pp} 
-         \rm -f ${hand}.v1.${pp}.label.1D
-         cd $start_dir/$suma_dir/
-         3drefit -sublabel 0 v1_${pp} ${hand}.v1.${pp}.niml.dset
-         cd -
-     endif
-      end
+        endif
+
+        foreach pp (prob predict)
+           if ( -f ${hand}.v1.${pp}.label ) then
+              sed '1,2s/^/#/' ${hand}.v1.${pp}.label > ${hand}.v1.${pp}.label.1D
+              ConvertDset    -input ${hand}.v1.${pp}.label.1D'[$]' \
+                             -node_index_1D ${hand}.v1.${pp}.label.1D'[0]' \
+                             -o_niml \
+                             -prefix $start_dir/$suma_dir/${hand}.v1.${pp} 
+              \rm -f ${hand}.v1.${pp}.label.1D
+              cd $start_dir/$suma_dir/
+              3drefit -sublabel 0 v1_${pp} ${hand}.v1.${pp}.niml.dset
+              cd -
+           endif
+        end
      
       end
       cd $start_dir
