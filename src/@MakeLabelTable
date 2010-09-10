@@ -1,0 +1,243 @@
+#!/bin/tcsh -f
+set stat = 1
+if ("$1" == "" || "$1" == '-h' || "$1" == '-help') then
+   goto HELP
+endif
+
+goto PARSE
+RETURN_PARSE:
+
+MAKE_TABLE:
+   set max_label = $llistmax[$#llistmax]
+   if ($max_label < 32) then
+      set pbar = "ROI_i32"
+   else if ($max_label < 64) then
+      set pbar = "ROI_i64"
+   else if ($max_label < 128) then
+      set pbar = "ROI_i128"
+   else
+      set pbar = "ROI_i256"
+   endif
+   
+   if ( -f /tmp/___lt.txt) rm -f /tmp/___lt.txt
+   if ( -f /tmp/___ll.txt) rm -f /tmp/___ll.txt
+   if ( -f /tmp/___kk.txt) rm -f /tmp/___kk.txt
+   set cnt = 1
+   foreach ll ($llist)
+      set inds = `count -digits 1 $llistmin[$cnt] $llistmax[$cnt]`
+      if ($#inds > 1) then
+         set ci = 1
+         foreach ind ($inds)
+            printf '"%d" "%s%02d"\n' $ind $llist[$cnt] $ci  \
+               >> /tmp/___lt.txt
+            printf '%d\n' $ind >> /tmp/___kk.txt
+            printf '%s%02d\n' $llist[$cnt] $ci >> /tmp/___ll.txt
+            @ ci ++
+         end
+      else
+         printf '"%d" "%s"\n' $llistmin[$cnt] $llist[$cnt] \
+               >> /tmp/___lt.txt
+         printf '%d\n' $llistmin[$cnt] >> /tmp/___kk.txt
+         printf '%s\n' $llist[$cnt] >> /tmp/___ll.txt
+      endif
+      @ cnt ++
+   end
+   
+   set n = `wc -l /tmp/___ll.txt`
+   set n = $n[1]
+   uniq /tmp/___ll.txt > /tmp/___llu.txt
+   set nu = `wc -l /tmp/___llu.txt`
+   set nu = $nu[1]
+   if ($nu < $n) then
+      echo "ERROR: `ccalc -i $n -$nu` Labels dropped because of duplicates"
+      goto END
+   endif
+   set n = `wc -l /tmp/___kk.txt`
+   set n = $n[1]
+   uniq /tmp/___kk.txt > /tmp/___kku.txt
+   set nu = `wc -l /tmp/___kku.txt`
+   set nu = $nu[1]
+   if ($nu < $n) then
+      echo "ERROR: `ccalc -i $n -$nu` Keys dropped because of duplicates"
+      goto END
+   endif
+   
+   
+      printf '<VALUE_LABEL_DTABLE\n' > $labeltable
+      printf 'ni_type="2*String"\n' >> $labeltable
+      printf 'ni_dimen="%d"\n' $nu[1] >> $labeltable
+      printf 'pbar_name="%s">\n' $pbar >> $labeltable
+      uniq /tmp/___lt.txt >> $labeltable
+      printf '</VALUE_LABEL_DTABLE>\n' >> $labeltable
+
+PUT_TABLE:
+   if ($target_dset != '') then
+      3drefit -labeltable $labeltable $target_dset
+   endif
+   
+set stat = 0
+goto END
+
+PARSE:
+   set labeltable = 'lltt'
+   set llist = ''
+   set llistmin = ''
+   set llistmax = ''
+	set Narg = $#
+   set target_dset = ''
+	set cnt = 1
+   while ($cnt <= $Narg)
+      if ("$argv[$cnt]" == "-d") then
+         set NxtInd = $cnt
+         set echo
+      endif
+      if ("$argv[$cnt]" == "-labeltable") then
+         set SubLoc = $cnt		
+		   if ($SubLoc == $Narg) then
+				echo "Need file after -labeltable"
+            goto END
+			else
+				@ cnt ++
+				set labeltable = `@NoExt "$argv[$cnt]" .niml .niml.lt`
+            set labeltable = $labeltable.niml.lt
+            set NxtInd = $cnt
+			endif
+      endif
+      
+		if ("$argv[$cnt]" == "-lab_r" || "$argv[$cnt]" == "-label_range") then
+         set nneed = `ccalc -i $cnt + 3`
+         if ($nneed > $Narg) then
+				echo "Need 2 values after -label_range"
+            goto END
+			else
+				@ cnt ++
+            if ($argv[$cnt] =~ -*) then
+               echo "Label name $argv[$cnt] cannot start with '-'"
+               goto END
+            endif 
+            set llist = ($llist $argv[$cnt])
+            @ cnt ++
+            if ($argv[$cnt] =~ -*) then
+               echo "Label min range $argv[$cnt] cannot be '-'"
+               goto END
+            endif 
+            set llistmin = ($llistmin `ccalc -i $argv[$cnt]`)
+            @ cnt ++
+            if ($argv[$cnt] =~ -*) then
+               echo "Label min range $argv[$cnt] cannot be '-'"
+               goto END
+            endif 
+            set llistmax = ($llistmax `ccalc -i $argv[$cnt]`)
+            if ($llistmax[$#llistmax] == 0 ||   \
+                $llistmin[$#llistmin] == 0 ||   \
+                $llistmin[$#llistmin] > $llistmax[$#llistmax]) then
+               printf "Bad range values of [%d %d] for label '%s'\n" \
+                   $llistmin[$#llistmin] $llistmax[$#llistmax] $llist[$#llist] 
+               goto END
+            endif
+            set NxtInd = $cnt
+			endif
+      endif
+		if (  "$argv[$cnt]" == "-lab" || \
+            "$argv[$cnt]" == "-lab_v" || \
+            "$argv[$cnt]" == "-label_value") then
+         set nneed = `ccalc -i $cnt + 2`
+         if ($nneed > $Narg) then
+				echo "Need 1 value after -label_value"
+            goto END
+			else
+				@ cnt ++
+            if ($argv[$cnt] =~ -*) then
+               echo "Label name $argv[$cnt] cannot start with '-'"
+               goto END
+            endif 
+            set llist = ($llist $argv[$cnt])
+            @ cnt ++
+            if ($argv[$cnt] =~ -*) then
+               echo "Label min range $argv[$cnt] cannot be '-'"
+               goto END
+            endif 
+            set llistmin = ($llistmin `ccalc -i $argv[$cnt]`)
+            set llistmax = ($llistmax `ccalc -i $argv[$cnt]`)
+            set NxtInd = $cnt
+			endif
+      endif
+      if ("$argv[$cnt]" == "-dset") then
+         if ($cnt > $Narg) then
+            echo "Need a dset after -dset"
+            goto END
+         endif
+         @ cnt ++
+         set target_dset = $argv[$cnt]
+         if (`@CheckForAfniDset $target_dset` < 2) then
+            echo "-dset $target_dset not found"
+            goto END
+         endif 
+         set NxtInd = $cnt
+      endif 		
+		@ cnt ++
+	end
+
+   @ NxtInd ++
+   if ( $NxtInd > $#argv ) then
+      set others_list = ( )
+   else
+      set others_list = ( $argv[$NxtInd-$#argv] )
+   endif
+
+   if ($#others_list > 0) then
+      echo "Options $others_list not understood"
+      goto END
+   endif
+ 
+   
+   echo "Have:"
+   echo $llist
+   echo $llistmin
+   echo $llistmax
+      
+   goto RETURN_PARSE
+
+HELP:
+   echo ""
+   echo "Script used to create a label table "
+   echo ""
+   echo "Usage: `basename $0` <-labeltable LABELTABLE> "
+   echo "                     [<-lab_r LAB MIN MAX> <-lab_r LAB MIN MAX> <...>]"
+   echo "                     [<-lab_v LAB KEY> <-lab_v LAB VAL> <...>]"
+   echo "                     [<-dset DSET>]"
+   echo "   -labeltable LABELTABLE: Name of output label table"
+   echo "   -lab_r LAB MIN MAX: Define a label LAB its minimum key MIN"
+   echo "                       and its maximum value MAX. "
+   echo "              For example: -lab_r GM 5 7 generates in the labeltable:"
+   echo '                           "5" "GM01"'
+   echo '                           "6" "GM02"'
+   echo '                           "7" "GM03"'
+   echo "   -lab_v LAB KEY: Define a label LAB and its value KEY"
+   echo "              For example: -lab_v  WM 8 generates in the labeltable:"
+   echo '                           "8" "WM"'
+   echo "   -dset DSET: Attach the label table to dataset DSET"
+   echo ""
+   echo "   Note that you cannot use the same key for multiple labels."
+   echo "   When redundancies occur, the script preserves just one entry."
+   echo ""
+   echo "   Example 1:"
+   echo "      @MakeLabelTable   -lab_r CSF 1 3 -lab_r GM 5 7 -lab_v WM 8  \"
+   echo "                        -labeltable example1"
+   echo ""
+   echo "Usage: `basename $0` <-surf_annot_cmap CMAP> <-sname SNAME>"
+   echo "   Return the entries matching NAME (case insensitive, partial match)"
+   echo "   from the CMAP file"
+   echo "   Example:"
+   echo "      @FS_roi_label  -sname occi \"
+   echo "                     -surf_annot_cmap lh.aparc.a2005s.annot.1D.cmap "
+   echo ""
+   echo ""
+   
+   set stat = 0
+   goto END
+   
+END:
+exit $stat   
+
+ 
