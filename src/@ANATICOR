@@ -53,17 +53,26 @@ if ($verb) echo "Making masks from aseg file ..."
              +equals(a,251) +equals(a,252) +equals(a,253) +equals(a,254) \
              +equals(a,255) +equals(a, 16)' \
        -prefix __mask_WM  >& /dev/null
+if ($DoLVe) then
 3dcalc -a $fn_aseg -expr 'equals(a,4) +equals(a,43)' \
        -prefix __mask_LV  >& /dev/null
+endif
 
 RESAMPLE_msk2epi:
 if ($verb) echo "Resampling masks to epi with NN interpolation..."
 3dresample  -input __mask_WM${view} -master $fn_epi'[0]'    \
             -prefix __mask_WM_res    -overwrite  \
             -rmode NN    >& /dev/null
-3dresample  -input __mask_LV${view} -master $fn_epi'[0]'    \
-            -prefix __mask_LV_res    -overwrite  \
-            -rmode NN    >& /dev/null
+if ($DoLVe) then
+  3dresample  -input __mask_LV${view} -master $fn_epi'[0]'    \
+              -prefix __mask_LV_res    -overwrite  \
+              -rmode NN    >& /dev/null
+  3dcalc   -a __mask_LV_res${view} \
+           -b a+i -c a-i -d a+j -e a-j -f a+k -g a-k \
+           -expr 'a*(1- amongst(0,b,c,d,e,f,g))' \
+           -prefix __mask_LVe
+  3dmaskave -q -mask __mask_LVe${view} $fn_epi > __LVe.1D
+endif
 if ($status) goto END
 
 EROSION:
@@ -72,31 +81,36 @@ if ($verb) echo "Eroding masks ..."
          -b a+i -c a-i -d a+j -e a-j -f a+k -g a-k \
          -expr 'a* (1-amongst(0,b,c,d,e,f,g))' \
          -prefix __mask_WMe
-3dcalc   -a __mask_LV_res${view} \
-         -b a+i -c a-i -d a+j -e a-j -f a+k -g a-k \
-         -expr 'a*(1- amongst(0,b,c,d,e,f,g))' \
-         -prefix __mask_LVe
 
 LOCAL_WM_REGRESSOR:
 if ($verb) echo "Making Local WMe regressor ..."
 3dLocalstat -prefix __WMeLOCAL_r${r} -nbhd 'SPHERE('${r}')' \
             -stat mean -mask  __mask_WMe${view} \
             -use_nonmask ${fn_epi}
+
 if ($DoCover) then
-if ($verb) echo "Making the spatial coverage map of Local WMe regressor ..."
-3dLocalstat -prefix ${outfile}_WMeLOCAL_coverage  -nbhd 'SPHERE('${r}')' \
-            -stat mean -mask  __mask_WMe${view} \
-            -use_nonmask __mask_WMe${view}
+  if ($verb) echo "Making the spatial coverage map of Local WMe regressor ..."
+  3dLocalstat -prefix ${outfile}_WMeLOCAL_coverage  -nbhd 'SPHERE('${r}')' \
+              -stat mean -mask  __mask_WMe${view} \
+              -use_nonmask __mask_WMe${view}
 endif
 
 OTHER_REGRESSOR:
-if ($verb) echo "Making the spatial coverage map of Local WMe regressor ..."
-3dmaskave -q -mask __mask_LVe${view} $fn_epi > __LVe.1D
+if ($verb) echo "Processing 1D regressors ..."
+
 if ($DoNuisance) then
   if ($verb) echo "Collecting other regressors ..."
-  1dcat $fn_mo __LVe.1D $fn_nuisance > __regressor_others.1D
+  if ($DoLVe) then
+    1dcat $fn_mo __LVe.1D $fn_nuisance > __regressor_others.1D
+  else
+    1dcat $fn_mo $fn_nuisance > __regressor_others.1D
+  endif  
 else
-  1dcat $fn_mo __LVe.1D > __regressor_others.1D
+  if ($DoLVe) then
+    1dcat $fn_mo __LVe.1D > __regressor_others.1D
+  else
+    1dcat $fn_mo > __regressor_others.1D
+  endif    
 endif
 
 DETREND_regressors:
@@ -115,7 +129,6 @@ if ($verb) echo "Doing Regression ..."
             -prefix __${outfile}_beta \
             -fitts __${outfile}_fitts \
             -errsum __${outfile}_errsum
-
 3dcalc      -float -a $fn_epi -b __${outfile}_fitts${view} \
             -expr 'a-b' -prefix $outfile
 
@@ -199,6 +212,7 @@ HELP:
    echo "               Choose from +orig, +acpc, or +tlrc."
    echo "   -nuisance nuisance.1D: Other nuisance regressors."
    echo "              Each regressor is a column in .1D file"
+   echo "   -no_ventricles: not include LVe regressor"
    echo "   -Rsq_WMe: produce an explained variance map for WMeLOCAL regressor."
    echo "             This may help measuring the sptial pattern of local "
    echo "             artifact like the paper of Jo et al. (2010, Neuroimage)."
@@ -215,7 +229,7 @@ HELP:
    echo "       [http://dx.doi.org/10.1016/j.neuroimage.2010.04.246]"
    echo ""
    echo "Written by Hang Joon Jo. "
-   echo "           hangjoon.jo@nih.gov (08/25/2010)"
+   echo "           hangjoon.jo@nih.gov (09/02/2010)"
    echo ""
    goto END
    
@@ -232,6 +246,7 @@ PARSE:
   set outfile = ''
   set r = 15
   set DoNuisance = 0
+  set DoLVe = 1
   set DoRsq = 0
   set DoCover = 0
   set cleanup = 1
@@ -357,6 +372,13 @@ PARSE:
 			   endif
       endif
       
+      
+      if ("$argv[$cnt]" == "-no_ventricles") then
+         set SufLoc = $cnt		
+         set NxtInd = $cnt
+		   
+         set DoLVe = 0
+      endif
       
       if ("$argv[$cnt]" == "-Rsq_WMe") then
          set SufLoc = $cnt		
