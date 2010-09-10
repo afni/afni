@@ -1,4 +1,4 @@
-#!/bin/tcsh -f
+#!/bin/tcsh -fe
 
 set CurDir = $PWD
 
@@ -25,11 +25,16 @@ MAKE_MASK:
 set t = __MA
 set nbin = 1000
 
-3dLocalstat -overwrite -prefix $t"_ls" \
+if ( ! -f $t"_ls"+orig.HEAD) then
+   echo "Creating $t'_ls' ..."
+   3dLocalstat -overwrite -prefix $t"_ls" \
             -stat mean -stat stdev \
             -nbhd 'SPHERE(4)' \
             -datum short   \
             $in 
+else
+   echo "Reusing $t'_ls' ..."
+endif
 
 if ($DoEight) then
    #Also do this one, looks promising might want it later
@@ -44,37 +49,46 @@ if ($DoEight) then
 
 endif
 
-set mma = `3dBrickStat -non-zero -mean $in `
-set mm  = `3dBrickStat -non-zero -mean $t"_ls"$av'[0]'`
-3dcalc   -a $t"_ls"$av'[0]' -b $t"_ls"$av'[1]'   \
-         -c $in   \
-         -expr "a*b/$mm"   \
-         -datum short   \
-         -overwrite -prefix $t"_p"
-         
-3dhistog -nbin $nbin $t"_p"$av > $t"_h.1D"
-set nm1 = `ccalc -i $nbin - 1`
-set nm2 = `ccalc -i $nbin - 2`
-3dTstat -prefix $t"_mx.1D" -max $t"_h.1D[1]'" 
-set mx = `1dcat $t"_mx.1D"` && rm $t"_mx.1D"
-1deval   -a $t"_h.1D[1]{0..$nm2}" -b $t"_h.1D[1]{1..$nm1}" \
-         -expr "(a-b)/$mx" > $t"_hd.1D"
+if ( ! -f $t"_p"+orig.HEAD) then
+   echo "Creating $t'_p' ..."
+   set mma = `3dBrickStat -non-zero -mean $in `
+   set mm  = `3dBrickStat -non-zero -mean $t"_ls"$av'[0]'`
+   3dcalc   -a $t"_ls"$av'[0]' -b $t"_ls"$av'[1]'   \
+            -c $in   \
+            -expr "a*b/$mm"   \
+            -datum short   \
+            -overwrite -prefix $t"_p"
+else
+   echo "Reusing $t'_p' ..."
+endif         
 
-#Find the threshold point where abs(a) is less than 0.01
-set i = 0
-set ith = -1
-while ($i < 50)
-   set d = `1deval -a $t"_hd.1D{$i}" -expr "abs(a)-0.01"`
-   if (`ccalc -i "isnegative($d)"`) then
-      set ith = $i
-      echo "Got threshold at $ith"
-      set i = 10000
-   endif
-   @ i ++
-end
-  
-set th = `1dcat $t"_h.1D[0]{$ith}"`
-echo "Threshold value is: $th"
+if ($th == 0) then
+   3dhistog -nbin $nbin $t"_p"$av > $t"_h.1D"
+   set nm1 = `ccalc -i $nbin - 1`
+   set nm2 = `ccalc -i $nbin - 2`
+   3dTstat -prefix $t"_mx.1D" -max $t"_h.1D[1]'" 
+   set mx = `1dcat $t"_mx.1D"` && rm $t"_mx.1D"
+   1deval   -a $t"_h.1D[1]{0..$nm2}" -b $t"_h.1D[1]{1..$nm1}" \
+            -expr "(a-b)/$mx" > $t"_hd.1D"
+
+   #Find the threshold point where abs(a) is less than 0.01
+   set i = 0
+   set ith = -1
+   while ($i < 50)
+      set d = `1deval -a $t"_hd.1D{$i}" -expr "abs(a)-0.01"`
+      if (`ccalc -i "isnegative($d)"`) then
+         set ith = $i
+         echo "Got threshold for $t"_p" at $ith"
+         set i = 10000
+      endif
+      @ i ++
+   end
+
+   set th = `1dcat $t"_h.1D[0]{$ith}"`
+   echo "Threshold value is for $t'_p': $th"
+else
+   echo "User threshold for $t'_p': $th"
+endif
 
 #create masked version of input
 3dcalc -a $in  \
@@ -151,6 +165,7 @@ PARSE_COMMAND:
    set in = ""
    set DoEight = 0
    set symm = 0
+   set th = 0
    while ($cnt <= $Narg)
 		set donext = 1;
       if ($donext && "$argv[$cnt]" == "-input") then
@@ -164,7 +179,17 @@ PARSE_COMMAND:
             set donext = 0	
          endif	
       endif
-      
+      if ($donext && "$argv[$cnt]" == "-lsth") then
+         set pLoc = $cnt		
+		   if ($pLoc == $Narg) then
+				echo "Need value after -lsth"
+            goto END
+			else
+            @ cnt ++
+            set th = `printf %f "$argv[$cnt]"`
+            set donext = 0	
+         endif	
+      endif
       if ($donext && "$argv[$cnt]" == "-3dSkullStrip_opts") then
          set pLoc = $cnt		
 		   if ($pLoc == $Narg) then
