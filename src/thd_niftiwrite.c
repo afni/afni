@@ -8,6 +8,8 @@ nifti_image * populate_nifti_image(THD_3dim_dataset *dset, niftiwr_opts_t option
 void nifti_set_afni_extension(THD_3dim_dataset *dset,nifti_image *nim) ;
 
 static int get_slice_timing_pattern( float * times, int len, float * delta );
+static int space_to_NIFTI_code(THD_3dim_dataset *dset);
+extern int THD_space_code(char *space);
 
 /*******************************************************************/
 /*!  Write an AFNI dataset as a NIfTI file.
@@ -498,11 +500,16 @@ ENTRY("populate_nifti_image") ;
 
   /* KRH 7/25/05 modified to note talairach view into NIfTI file */
 
+  nim->qform_code = space_to_NIFTI_code(dset);
+
+#if 0
   if ( dset->view_type == VIEW_TALAIRACH_TYPE ) {
     nim->qform_code = NIFTI_XFORM_TALAIRACH ;
   } else {
     nim->qform_code = NIFTI_XFORM_SCANNER_ANAT ;
   }
+#endif
+
   nim->sform_code = nim->qform_code ; /* KRH 7/6/05 - using */
            /* sform to duplicate qform for interoperability with FSL */
 
@@ -724,4 +731,22 @@ ENTRY("get_slice_timing_pattern");
    /** done, whatever the case may be **/
    free(flist);  free(ilist);
    RETURN(pattern);
+}
+
+/* set NIFTI sform code  based on atlas space */
+static int space_to_NIFTI_code(THD_3dim_dataset *dset)
+{
+    switch(THD_space_code(dset->atlas_space)) {
+        case AFNI_TLRC_SPC:
+            return(NIFTI_XFORM_TALAIRACH);
+        case MNI_SPC:
+            return(NIFTI_XFORM_MNI_152);
+        /* note at present (7/2010) 
+           there is no MNI_ANAT space defined in NIFTI */
+        case MNI_ANAT_SPC:
+            return(NIFTI_XFORM_ALIGNED_ANAT);
+        default:
+            return(NIFTI_XFORM_SCANNER_ANAT);
+    }
+
 }

@@ -4,6 +4,8 @@
 #define DONT_INCLUDE_ANALYZE_STRUCT
 #endif
 #include "nifti1_io.h"   /** will include nifti1.h **/
+static void NIFTI_code_to_space(int code,THD_3dim_dataset *dset);
+extern char *THD_get_space(THD_3dim_dataset *dset);
 
 /*******************************************************************/
 /********** 26 Aug 2003: read a NIFTI-1 file as a dataset **********/
@@ -456,6 +458,9 @@ ENTRY("THD_open_nifti") ;
    /* copy transformation matrix to dataset structure */
    dset->daxes->ijk_to_dicom_real = ijk_to_dicom44;
 
+   /* set atlas space based on NIFTI sform code */
+   NIFTI_code_to_space(nim->sform_code,dset);
+
    ppp  = THD_trailname(pathname,0) ;               /* strip directory */
    MCW_strncpy( prefix , ppp , THD_MAX_PREFIX ) ;   /* to make prefix */
 
@@ -860,4 +865,22 @@ ENTRY("THD_load_nifti") ;
    /*-- throw away the trash and return --*/
 
    nifti_image_free(nim) ; EXRETURN ;
+}
+
+
+/* set atlas space based on NIFTI sform code */
+static void NIFTI_code_to_space(int code,THD_3dim_dataset *dset)
+{
+   
+    switch(code) {
+        case NIFTI_XFORM_TALAIRACH:
+            MCW_strncpy(dset->atlas_space, "TLRC", THD_MAX_NAME);
+            break;
+        case NIFTI_XFORM_MNI_152:
+            MCW_strncpy(dset->atlas_space, "MNI", THD_MAX_NAME);
+            break;
+        default:
+            THD_get_space(dset);
+    }
+
 }

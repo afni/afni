@@ -832,9 +832,10 @@ ENTRY("GICOR_setup_func") ;
    vv = dset->view_type ;
    if( vv < FIRST_VIEW_TYPE || vv > LAST_VIEW_TYPE ) vv = FIRST_VIEW_TYPE;
    /* null all other session dataset entries for this dataset */
-   for( qq=FIRST_VIEW_TYPE ; qq <= LAST_VIEW_TYPE ; qq++ )
-     SET_SESSION_DSET(NULL, ss, qs, qq);
    SET_SESSION_DSET(dset, ss, qs, vv);
+   for( qq=FIRST_VIEW_TYPE ; qq <= LAST_VIEW_TYPE ; qq++ )
+      if(qq!=vv)
+         SET_SESSION_DSET(NULL, ss, qs, qq);
    ss->num_dsset++ ; giset->nds = qs ;
    giset->session = ss ;
 

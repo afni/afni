@@ -5,6 +5,7 @@
 ******************************************************************************/
 
 #include "mrilib.h"
+#include "thd_atlas.h"
 
 static ATR_float *Update_float_atr(char *aname, char *fvstring);
 static ATR_int *Update_int_atr(char *aname, char *ivstring);
@@ -146,6 +147,15 @@ void Syntax(char *str)
 "                  You will have to rename the dataset files before trying\n"
 "                  to use '-view'.  If you COPY the files and then use\n"
 "                  '-view', don't forget to use '-newid' as well!\n"
+"  -space spcname  Associates the dataset with a specific template type, e.g.\n"
+"                  TLRC, MNI, ORIG. The default assumed for +tlrc datasets is\n"
+"                  'TLRC'. One use for this attribute is to use MNI space\n"
+"                  coordinates and atlases instead of the default TLRC space.\n"
+"  -cmap cmaptype  Associate colormap type with dataset. Available choices are\n"
+"                  CONT_CMAP (the default), INT_CMAP (integer colormap display)\n"
+"                  and SPARSE_CMAP (for sparse integer colormaps). INT_CMAP is\n"
+"                  appropriate for showing ROI mask datasets or Atlas datasets\n"
+"                  where the continuous color scales are not useful.\n"
 "\n"
 "  -label2 llll    Set the 'label2' field in a dataset .HEAD file to the\n"
 "                  string 'llll'.  (Can be used as in AFNI window titlebars.)\n"
@@ -393,11 +403,15 @@ int main( int argc , char * argv[] )
    int use_oblique_origin = 0;       /* 01 Dec 2008 */
    int do_FDR = 0 ;                  /* 23 Jan 2008 [RWCox] */
    int do_killSTAT = 0 ;             /* 24 Jan 2008 [RWCox] */
+   int space          = 0 ;          /* 16 Mar 2009 [drg]*/
+   char *spacename;
    byte *FDRmask = NULL ;            /* 27 Mar 2009 [RWcox] */
    int  nFDRmask = 0 ;
    int   ndone=0 ;                   /* 18 Jul 2006 */
    int   verb =0 ;
    int   did_something ;             /* 30 Mar 2010 */
+   int cmap = -1;                     /* colormap handling */
+
 #define VINFO(x) if(verb)ININFO_message(x)
 
    char str[256] ;
@@ -1183,6 +1197,29 @@ int main( int argc , char * argv[] )
          new_stuff++ ; iarg++ ; continue ;  /* go to next arg */
       }
 
+      /*----- -space option [16 Mar 2009] -----*/
+
+      if( strcmp(argv[iarg],"-space") == 0 ){
+         space = 1 ;
+         spacename = argv[++iarg] ;
+         new_stuff++ ; iarg++ ; continue ;  /* go to next arg */
+      }
+
+      /*----- -cmap option [31 Mar 2009] -----*/
+      if( strcmp(argv[iarg],"-cmap") == 0 ){
+         if( ++iarg >= argc ) Syntax("need an argument after -cmap!");
+         if(strcmp(argv[iarg],"CONT_CMAP")==0)
+            cmap = CONT_CMAP;
+
+         else {
+            if(strcmp(argv[iarg],"INT_CMAP")==0) cmap = INT_CMAP;
+            else {
+               if(strcmp(argv[iarg],"SPARSE_CMAP")==0) cmap = SPARSE_CMAP;
+               else Syntax("cmap value not valid");
+            }
+         }
+         new_stuff++ ; iarg++ ; continue ;  /* go to next arg */
+      }
 
       /** anything else must be a -type **/
       /*  try the anatomy prefixes */
@@ -1548,6 +1585,17 @@ int main( int argc , char * argv[] )
         did_something++ ; /* 30 Mar 2010 */
       }
 
+      /* set the space of the dataset */
+      if(space) {
+            MCW_strncpy(dset->atlas_space, spacename, THD_MAX_NAME);
+            did_something++;
+      }
+      /* set the colormap type of the dataset */
+      if(cmap>=0)
+      {
+            dset->int_cmap = cmap;
+            did_something++;
+      }
 
       /*-- change time axis --*/
 
@@ -1851,8 +1899,7 @@ int main( int argc , char * argv[] )
          INFO_message("applying attributes");
          THD_datablock_from_atr(dset->dblk , DSET_DIRNAME(dset) ,
                                   dset->dblk->diskptr->header_name);
-         THD_datablock_apply_atr(dset );
-         did_something++ ; /* 30 Mar 2010 */
+         THD_datablock_apply_atr(dset ); 
       }
 
       if( denote ){ THD_anonymize_write(1); did_something++; VINFO("denote");}   /* 08 Jul 2005 */

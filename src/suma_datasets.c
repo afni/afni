@@ -13097,7 +13097,7 @@ int SUMA_search_file(char **fnamep, char *epath)
    pn = SUMA_Free_Parsed_Name(pn);
    #endif
    
-   /* Now work the path (based on code form get_altas function */
+   /* Now work the path (based on code form get_atlas function */
    if (!epath)    epath = getenv("PATH") ;
    if( epath == NULL ) SUMA_RETURN(NOPE) ; /* nothing left to do */
 

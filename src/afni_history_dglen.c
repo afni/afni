@@ -49,6 +49,20 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 10 , SEP, 2010 , DRG , "afni_all" , 
+    MAJOR , TYPE_MODIFY, 
+    "Introduce code allowing multiple space sessions but limited to existing",
+    "spaces (ORIG, ACPC, TLRC) so should continue to be transparent.\n"
+    "Datasets are now tagged with space attribute, TLRC/MNI/MNI_ANAT,\n"
+    "and defines which kind of template a dataset has been aligned to.\n"
+    "This attribute is handled by @auto_tlrc, adwarp, 3drefit, whereami,\n"
+    "and the AFNI GUI using the whereami GUI. In the AFNI GUI, this\n"
+    "has the effect of allowing a dataset to be identified by its template\n"
+    "with the transformation to the TLRC or other atlas space handled\n"
+    "automatically. Other AFNI programs should apply the template space of\n"
+    "the master dataset or first dataset to the output.\n"
+    "cvs tag marked on code before this change as mid-atlantic"
+} ,
 { 14 , JUL, 2010 , DRG , "afni_all" , 
     MAJOR , TYPE_MODIFY, 
     "Beginning to introduce code for allowing multiple spaces and atlases",
