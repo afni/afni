@@ -3,7 +3,7 @@
 #include "afni.h"
 #include "thd_ttatlas_query.h"
 #undef DEBUG_WARPTABLES 1
-extern atlas_space_list *atlas_spaces;
+extern atlas_space_list *HIDDEN_atlas_spaces;
 
 static int nspaces = 3; /* number of spaces to include in tables */
 THD_3dim_dataset *
@@ -216,7 +216,7 @@ set_nspaces(int n)
 void
 set_atlas_nspaces()
 {
-   nspaces = atlas_spaces->nspaces;
+   nspaces = HIDDEN_atlas_spaces->nspaces;
 }
 
 /* accessor function to say how many spaces we are currently dealing with */
