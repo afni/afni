@@ -122,8 +122,17 @@ int main( int argc , char * argv[] )
          tross_Copy_History( dset , outset ) ;             /* 31 Jan 2001 - RWCox */
          tross_Make_History( "3dAutobox" , argc,argv , outset ) ;
 
-         DSET_write(outset) ;
-         fprintf(stderr,"++ output dataset: %s\n",DSET_BRIKNAME(outset)) ;
+         
+         if (DSET_write(outset) != False) {
+            fprintf(stderr,"++ output dataset: %s\n",DSET_BRIKNAME(outset)) ;
+            exit(0) ;
+         } else {
+            fprintf(stderr,
+               "** 3dAutobox: Failed to write output!\n" ) ;
+            exit(1) ;
+         }
+
+         
       }
 
    }
