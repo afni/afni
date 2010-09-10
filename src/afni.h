@@ -997,8 +997,8 @@ typedef struct Three_D_View {
       MCW_DC *dc ;
 
       THD_session      *ss_now ;   /* session now being viewed */
-      THD_3dim_dataset *anat_dset[LAST_VIEW_TYPE+1] ,   /* datasets now */
-                       *fim_dset [LAST_VIEW_TYPE+1]  ;  /* being viewed */
+      THD_3dim_dataset *anat_dset[MAX_LAST_VIEW_TYPE+1] ,   /* datasets now */
+                       *fim_dset [MAX_LAST_VIEW_TYPE+1]  ;  /* being viewed */
       THD_3dim_dataset *anat_now , *fim_now ;  /* REALLY now being viewed */
 
       AFNI_view_info   *vinfo ;  /* information about what's being viewed */

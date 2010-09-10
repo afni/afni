@@ -39,6 +39,9 @@ from a downloaded SPM toolbox. See the matlab function
 CA_EZ_Prep.m */
 #include "thd_ttatlas_CA_EZ.h"
 
+/* generic atlas functions and definitions - 03/13/2009 */
+#include "thd_atlas.h"
+
 /*-------- End Atlas Tables ------------*/
 
 #define IS_LETTER(c) ( ( ((c) >= 'A' && (c) <= 'Z') || ((c) >= 'a' && (c) <= 'z') ) ? 1 : 0 )
@@ -81,7 +84,7 @@ typedef enum { UNKNOWN_ATLAS=0, /*!< Dunno */
                CA_EZ_N27_ML_ATLAS,  /*!< Eickhoff, Zilles MacroLabels atlas*/
                CA_EZ_N27_PMAPS_ATLAS, /*!< Eickhoff, Zilles Probability maps atlas*/
                CA_EZ_N27_LR_ATLAS,  /*!< Eickhoff, Zilles Left/Right Anatomy atlas*/
-               
+               CUSTOM_ATLAS,       /* user specified */
                NUMBER_OF_ATLASES  /*!< A flag for the number of atlases, leave for last */
                } AFNI_ATLAS_CODES;
 
@@ -133,7 +136,7 @@ int Init_Whereami_Max_Find(void);
 void Set_Whereami_Max_Find(int n);
 float Init_Whereami_Max_Rad(void);
 void Set_Whereami_Max_Rad(float n);
-THD_3dim_dataset * get_altas(char *epath, char *aname) ;
+THD_3dim_dataset * get_atlas(char *epath, char *aname) ;
 char * get_atlas_dirname(void) ; /* 31 Jan 2008 -- RWCox */
 char Is_Side_Label(char *str, char *opt);
 int *z_rand_order(int bot, int top, long int seed);

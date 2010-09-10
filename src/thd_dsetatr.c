@@ -608,6 +608,18 @@ ENTRY("THD_set_dataset_attributes") ;
      }
    }
 
+   /* write name of "space" if there is one */
+   THD_get_space(dset);   /* get and set the dataset space */
+   /* the space should now be set to at least ORIG */
+   if(dset->atlas_space[0]!='\0') {   
+      int tlen;
+      tlen = strlen( dset->atlas_space ) + 1; /* +1 for the '\0' */
+      THD_set_char_atr( blk , "TEMPLATE_SPACE" , tlen , dset->atlas_space ) ;
+   }
+
+   /* write whether the dataset should be displayed with an integer colormap */
+   THD_set_int_atr(blk, "INT_CMAP", 1, &dset->int_cmap);
+   
    /******/
    /****** N.B.: we do NOT set the byte order attribute here *****/
    /******/

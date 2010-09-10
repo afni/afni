@@ -406,7 +406,9 @@ PARSE:
    set ref_pref_nopad = "${ref_path}/`@GetAfniPrefix ${ref_in}`"
    set ref_pref_pad  = "${tmppref}_ref_`@GetAfniPrefix ${ref_in}`_${pd}pad"
    set ref_view = "`@GetAfniView ${ref_in}`"
-
+   # use the template space for the transformed dataset
+   set ref_space = `3dinfo ${ref_in} | grep "Template Space"` 
+   set ref_space = "$ref_space[3]"
 
 IN_CHECK:
 if ("$suf" == '' && $KeepView == 1) then
@@ -870,6 +872,10 @@ AUTO_TLRC_MODE:
       set RET_copy_fields = UP
       goto COPY_FIELDS
       UP:       
+
+   # set the space of the output to match the template space
+   3drefit -space $ref_space ${tt_prefupad}${anat_view}
+
    3dNotes  -a "Dataset created via: `basename $0` $argv[*]" \
             -h "Dataset created via: `basename $0` $argv[*]"   \
             ${tt_prefupad}${anat_view}
@@ -908,6 +914,10 @@ AUTO_TLRC_MODE:
          goto APPLY_MASK
          BMR:
       endif
+
+      # reset the space of the output to be ACPC
+      3drefit -space "ACPC" ${out_pref}.Xat.rigid${anat_view}
+
       3dNotes  -a "Dataset created via: `basename $0` $argv[*]" \
                -h "Dataset created via: `basename $0` $argv[*]" \
                ${out_pref}.Xat.rigid${anat_view}
@@ -1006,6 +1016,9 @@ APAR_MODE:
       3drefit -wpar ${ref_pref_nopad}${ref_view} ${tmp_out_pref}${anat_view}
    endif
    
+   # reset the space of the output to match the template space
+   3drefit -space $ref_space ${out_pref}${anat_view}
+
    3dNotes  -a "Dataset created via: `basename $0` $argv[*]" \
             -h "Dataset created via: `basename $0` $argv[*]" \
             ${tmp_out_pref}${anat_view}

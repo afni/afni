@@ -2498,10 +2498,11 @@ ENTRY("process_NIML_AFNI_volumedata") ;
        if( qs < THD_MAX_SESSION_SIZE ){
          int vv=dset->view_type , qq ;
          if( vv < FIRST_VIEW_TYPE || vv > LAST_VIEW_TYPE ) vv = FIRST_VIEW_TYPE;
-         for( qq=FIRST_VIEW_TYPE ; qq <= LAST_VIEW_TYPE ; qq++ )
-             SET_SESSION_DSET(NULL, ss, qs, qq);
-           /* ss->dsset_xform_table[qs][qq] = NULL ; */
          SET_SESSION_DSET(dset, ss, qs, vv);
+         for( qq=FIRST_VIEW_TYPE ; qq <= LAST_VIEW_TYPE ; qq++ )
+             if(qq!=vv)
+                SET_SESSION_DSET(NULL, ss, qs, qq);
+           /* ss->dsset_xform_table[qs][qq] = NULL ; */
          /* ss->dsset_xform_table[qs][vv] = dset ;  */
          ss->num_dsset++ ;
          INFO_message("Added dataset '%s' to controller %s",

@@ -1979,8 +1979,17 @@ static char * DATASET_typestr[] = {
 #define VIEW_REGISTERED_STR   "Registered View"
 #define VIEW_REGISTERED_CODE  "rgst"
 
-#define FIRST_VIEW_TYPE 0
-#define LAST_VIEW_TYPE  2
+#undef oldsessions 1
+#ifdef oldsessions
+   #define FIRST_VIEW_TYPE 0
+   #define LAST_VIEW_TYPE  2
+   #define MAX_LAST_VIEW_TYPE 2
+#else
+   #define FIRST_VIEW_TYPE 0
+   #define LAST_VIEW_TYPE \
+     (get_nspaces()-1)
+   #define MAX_LAST_VIEW_TYPE 10
+#endif
 
 #define LONGEST_VIEW_TYPESTR strlen(VIEW_REGISTERED_STR)
 
@@ -2441,6 +2450,14 @@ typedef struct THD_3dim_dataset {
 
    /* 26 Feb 2010: Pointer to VALUE_LABEL_DTABLE */
       void *Label_Dtable;
+   /* 13 Mar 2009: atlas space */
+      char atlas_space[THD_MAX_NAME] ;
+
+   /* 31 Mar 2009: integer colormap for ROIs and atlases */
+      int int_cmap ;
+   /* 04 Jul 2010: temporary index to say which space the dataset is in */
+      int space_index;
+
 } THD_3dim_dataset ;
 
 /*! A marker that defines a dataset that is about to be killed. */
@@ -3439,14 +3456,21 @@ typedef struct THD_3dim_dataset_array {
 
 #define SESSION_TYPE 97
 
-typedef struct { THD_3dim_dataset *drow[LAST_VIEW_TYPE+1] ; } THD_dsetrow ;
-
 /*! Holds all the datasets from a directory (session).
     [28 Jul 2003: modified to put elide distinction between anat and func]
     [20 Jan 2004: modified to put surfaces into here as well]
 */
 
-#define oldsessions 1
+
+/* each session can contain a list of dataset in different views */
+/* each row can be represented by this structure showing different 
+   spaces or views for each dataset - orig, acpc, tlrc, mni,...*/
+/* the dataset may be on the disk or an on-the-fly transformed 
+   version of another dataset */
+typedef struct {
+  int nds;               /* the number of dataset spaces for this row */
+  THD_3dim_dataset **ds; /* the datasets for that "row" of spaces */
+} THD_dsarr;
 
 typedef struct {
       int type     ;                  /*!< code indicating this is a THD_session */
@@ -3454,9 +3478,11 @@ typedef struct {
       char sessname[THD_MAX_NAME] ;   /*!< Name of directory datasets were read from */
       char lastname[THD_MAX_NAME] ;   /*!< Just/the/last/name of the directory */
 
-      THD_3dim_dataset *xdsset[THD_MAX_SESSION_SIZE][LAST_VIEW_TYPE+1] ;
+/*      THD_3dim_dataset *xdsset[THD_MAX_SESSION_SIZE][LAST_VIEW_TYPE+1] ;*/
                                       /*!< array of datasets */
-
+      THD_dsarr **dsrow;               /* list of pointers for dataset 
+                                         in different spaces */
+      int ndsets;                      /* number of datasets */
       Htable *warptable ;       /*!< Table of inter-dataset warps [27 Aug 2002] */
 
       /* 20 Jan 2004: put surfaces here, rather than in the datasets */
@@ -3478,9 +3504,9 @@ typedef struct {
         session->xdsset[index][space] = sdset
 #else
    #define GET_SESSION_DSET(session, index, space) \
-        get_dset_from_session(session, index, space)
+        get_session_dset(session, index, space)
    #define SET_SESSION_DSET(sdset, session, index, space) \
-        set_dset_for_session(dset, session, index, space)
+        set_session_dset(sdset, session, index, space)
 #endif
 
 /*! Determine if ss points to a valid THD_session. */
@@ -3492,13 +3518,18 @@ typedef struct {
 #define BLANK_SESSION(ss)                                                     \
   if( ISVALID_SESSION((ss)) ){                                                \
       int id , vv ;                                                           \
-      for( id=0 ; id < THD_MAX_SESSION_SIZE ; id++ )                          \
-        for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ )                             \
-           SET_SESSION_DSET(NULL, ss, id, vv);                                \
       (ss)->num_dsset = 0 ;                                                   \
       (ss)->su_num    = 0 ; (ss)->su_surf = NULL ;                            \
       (ss)->su_numgroup = 0 ; (ss)->su_surfgroup = NULL ;                     \
-      (ss)->warptable = NULL ; }
+      (ss)->warptable = NULL ; (ss)->dsrow = NULL;                            \
+      for( id=0 ; id < THD_MAX_SESSION_SIZE ; id++ )                          \
+        for( vv=0 ; vv < get_nspaces() ; vv++ )                              \
+           SET_SESSION_DSET(NULL, ss, id, vv);                                \
+  }
+      
+/*      for( id=0 ; id < THD_MAX_SESSION_SIZE ; id++ )                          \
+        for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ )                             \
+           SET_SESSION_DSET(NULL, ss, id, vv);                       \*/
 
 /*! Determine if session has SUMA surface data attached. */
 

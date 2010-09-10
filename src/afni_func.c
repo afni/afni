@@ -633,6 +633,10 @@ if(PRINT_TRACING)
    new_dset->func_type = data_parent->func_type ;
    new_dset->view_type = anat_parent->view_type ;   /* but different view type */
 
+   /* use template space of parent to mark as TLRC/MNI/... */
+   MCW_strncpy( new_dset->atlas_space ,
+      anat_parent->atlas_space , THD_MAX_NAME ) ; 
+
    new_dset->anat_parent = anat_parent ;            /* what else makes sense? */
 
    new_dset->tagset = NULL ;  /* Oct 1998 */

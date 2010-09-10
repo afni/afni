@@ -50,6 +50,7 @@ ENTRY("THD_dataset_info") ;
 
    outbuf = THD_zzprintf(outbuf,"Identifier Code: %s  Creation Date: %s\n" ,
              dset->idcode.str , dset->idcode.date ) ;
+   outbuf = THD_zzprintf(outbuf,   "Template Space:  %s\n", dset->atlas_space);
 
    if( ISANAT(dset) ){
       outbuf = THD_zzprintf(outbuf,"Dataset Type:    %s (-%s)\n",
