@@ -3674,7 +3674,7 @@ STATUS("marking old session datasets") ;
    for( ii=0 ; ii < old_ss->num_dsset ; ii++ )
       for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ ){
          temp_dset = GET_SESSION_DSET(old_ss, ii, vv);
-         if( ISVALID_3DIM_DATASET(temp_dset) )
+         if( ISVALID_3DIM_DATASET(temp_dset) ){
 /*         if( ISVALID_3DIM_DATASET(old_ss->dsset_xform_table[ii][vv]) )*/
             if( DSET_in_global_session(temp_dset) )
                SET_SESSION_DSET(NULL, old_ss, ii, vv);
@@ -3683,6 +3683,7 @@ STATUS("marking old session datasets") ;
             else
                DSET_MARK_FOR_DEATH( temp_dset ) ;
 /*               DSET_MARK_FOR_DEATH( old_ss->dsset_xform_table[ii][vv] ) ;*/
+         }
       }
    /*--- mark all descendants for purging as well ---*/
 
@@ -3862,7 +3863,7 @@ STATUS("fixing active controllers") ;
 
 static int AFNI_rescan_session_NEW( int sss )   /* the new way */
 {
-   int vv , ii , nr , na_new=0 , nf_new=0 ;
+   int vv , ii , nr , na_new=0 ;
    THD_session  *new_ss , *old_ss ;
    THD_slist_find find ;
    THD_3dim_dataset *new_dset, *temp_dset ;
