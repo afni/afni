@@ -106,7 +106,7 @@ NI_element *NI_find_next_element(NI_stream ns, char *name);
 
 static int debug_niml = 0;
 static atlas_xform_list *atlas_xfl;
-static atlas_space_list *atlas_spaces;
+/*static atlas_space_list *atlas_spaces;*/
 static atlas_list *atlas_alist;
 static atlas_template_list *atlas_templates;
 
