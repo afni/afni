@@ -67,7 +67,7 @@ typedef struct {
 char * THD_get_space(THD_3dim_dataset *dset);
 int THD_space_code(char *space);
 
-atlas_space_list *HIDDEN_atlas_spaces;
+atlas_space_list *atlas_spaces;
 
 THD_3dim_dataset *
 get_session_dset_id(THD_session *sess, MCW_idcode idcode, int space_index);
