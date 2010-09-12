@@ -1979,18 +1979,22 @@ static char * DATASET_typestr[] = {
 #define VIEW_REGISTERED_STR   "Registered View"
 #define VIEW_REGISTERED_CODE  "rgst"
 
-#undef oldsessions 1
-#ifdef oldsessions
+#define oldsessions 1
+/* 
+  #undef oldsessions 1
+  #ifdef oldsessions
+*/
    #define FIRST_VIEW_TYPE 0
    #define LAST_VIEW_TYPE  2
    #define MAX_LAST_VIEW_TYPE 2
+/*
 #else
    #define FIRST_VIEW_TYPE 0
    #define LAST_VIEW_TYPE \
-     (get_nspaces()-1)
+     (int)((int)get_nspaces()-1)
    #define MAX_LAST_VIEW_TYPE 10
 #endif
-
+*/
 #define LONGEST_VIEW_TYPESTR strlen(VIEW_REGISTERED_STR)
 
 static char * VIEW_typestr[] = {
@@ -3477,9 +3481,10 @@ typedef struct {
       int num_dsset ;                 /*!< Number of datasets. */
       char sessname[THD_MAX_NAME] ;   /*!< Name of directory datasets were read from */
       char lastname[THD_MAX_NAME] ;   /*!< Just/the/last/name of the directory */
-
-/*      THD_3dim_dataset *xdsset[THD_MAX_SESSION_SIZE][LAST_VIEW_TYPE+1] ;*/
+#ifdef oldsessions
+      THD_3dim_dataset *xdsset[THD_MAX_SESSION_SIZE][LAST_VIEW_TYPE+1] ;
                                       /*!< array of datasets */
+#endif
       THD_dsarr **dsrow;               /* list of pointers for dataset 
                                          in different spaces */
       int ndsets;                      /* number of datasets */
@@ -3504,7 +3509,7 @@ typedef struct {
         session->xdsset[index][space] = sdset
 #else
    #define GET_SESSION_DSET(session, index, space) \
-        get_session_dset(session, index, space)
+        (THD_3dim_dataset *) get_session_dset(session, index, space)
    #define SET_SESSION_DSET(sdset, session, index, space) \
         set_session_dset(sdset, session, index, space)
 #endif
