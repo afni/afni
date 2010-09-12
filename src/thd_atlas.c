@@ -157,8 +157,8 @@ atlas_lut *read_atlas_lut(THD_3dim_dataset *dset)
    ENTRY("read_atlas_lut");
    
    /* get lookup table from dataset */
-   if(lut_atr = THD_find_atr(dset->dblk, "ATLAS_LUT")) {
-   
+   lut_atr = THD_find_atr(dset->dblk, "ATLAS_LUT");
+   if(lut_atr) {
       atlasdset_lut = malloc(sizeof(atlas_lut));
       if(atlasdset_lut==NULL) {
          WARNING_message("Could not allocate memory for Atlas LUT\n");
@@ -167,10 +167,9 @@ atlas_lut *read_atlas_lut(THD_3dim_dataset *dset)
 
       atlasdset_lut->rgblist = calloc(MAXINT, 3);
 /*      memcpy( atlasdset_lut, lut_atr->in , lut_atr->nin ) ;*/
+      RETURN(atlasdset_lut);
      }
-   else
-      RETURN(NULL);
-
+   RETURN(NULL);
 }
 
 /* write atlas labels */
