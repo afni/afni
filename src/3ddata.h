@@ -1979,22 +1979,18 @@ static char * DATASET_typestr[] = {
 #define VIEW_REGISTERED_STR   "Registered View"
 #define VIEW_REGISTERED_CODE  "rgst"
 
-#define oldsessions 1
-/* 
-  #undef oldsessions 1
-  #ifdef oldsessions
-*/
+/*#define oldsessions 1*/
+#undef oldsessions
+#ifdef oldsessions
    #define FIRST_VIEW_TYPE 0
    #define LAST_VIEW_TYPE  2
    #define MAX_LAST_VIEW_TYPE 2
-/*
 #else
    #define FIRST_VIEW_TYPE 0
    #define LAST_VIEW_TYPE \
      (int)((int)get_nspaces()-1)
    #define MAX_LAST_VIEW_TYPE 10
 #endif
-*/
 #define LONGEST_VIEW_TYPESTR strlen(VIEW_REGISTERED_STR)
 
 static char * VIEW_typestr[] = {
@@ -3501,6 +3497,20 @@ typedef struct {
       XtPointer parent ;        /*!< generic pointer to "owner" of session */
 } THD_session ;
 
+char * THD_get_space(THD_3dim_dataset *dset);
+int THD_space_code(char *space);
+
+
+THD_3dim_dataset *
+get_session_dset_id(THD_session *sess, MCW_idcode idcode, int space_index);
+THD_3dim_dataset *
+get_session_dset(THD_session *sess, int index, int space_index);
+int
+set_session_dset(THD_3dim_dataset *dset, THD_session *sess,
+   int index, int space_index);
+void set_nspaces(int n);
+void set_atlas_nspaces(void);
+int get_nspaces(void);
 
 #ifdef oldsessions
    #define GET_SESSION_DSET(session, index, space) \

@@ -64,6 +64,9 @@ typedef struct {
    void *rgblist;
 } atlas_lut;
 
+atlas_space_list *atlas_spaces;
+
+#if 0
 char * THD_get_space(THD_3dim_dataset *dset);
 int THD_space_code(char *space);
 
@@ -79,3 +82,4 @@ set_session_dset(THD_3dim_dataset *dset, THD_session *sess,
 void set_nspaces(int n);
 void set_atlas_nspaces(void);
 int get_nspaces(void);
+#endif

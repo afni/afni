@@ -45,7 +45,6 @@ get_session_dset(THD_session *sess, int index, int space_index)
 {
    THD_3dim_dataset *dset = NULL;
    THD_dsarr *dsrow;
-   int i;
       
    ENTRY("get_session_dset");
 #ifdef DEBUG_WARPTABLES
@@ -75,8 +74,10 @@ set_session_dset(THD_3dim_dataset *dset, THD_session *sess,
    int index, int space_index)
 {
    THD_dsarr  *dsrow;
+#if 0
    THD_3dim_dataset *td;
    int i, rmrow;
+#endif
    
    ENTRY("set_session_dset");
 #ifdef DEBUG_WARPTABLES
