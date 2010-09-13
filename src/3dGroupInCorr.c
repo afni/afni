@@ -2042,6 +2042,7 @@ void GRINCOR_many_ttest( int nvec , int numx , float **xxar ,
        delzsc  = ttest_toz( numx , xar , 0 , NULL , ttest_opcode ) ;
        dar[kk] = delzsc.a ; zar[kk] = delzsc.b ;
      }
+   free(xar) ;      /* oopsie [13 Sep 2010] */
    AFNI_OMP_END ;
  }
 

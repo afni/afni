@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 13 , SEP , 2010 , RWC , "3dGroupInCorr" , MICRO , TYPE_BUG_FIX ,
+   "Add missing free(xar) to 1-sample t-test loop [oops]" ,
+   NULL } ,
+
  { 13 , AUG , 2010 , RWC , "afni" , MICRO , TYPE_GENERAL ,
    "Add 'Thr=OLay+1' button to threshold slider popup" ,
    "Enforces threshold sub-brick index = overlay sub-brick index + 1.\n"
