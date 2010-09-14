@@ -1017,7 +1017,7 @@ APAR_MODE:
    endif
    
    # reset the space of the output to match the template space
-   3drefit -space $ref_space ${out_pref}${anat_view}
+   3drefit -space $ref_space ${tmp_out_pref}${anat_view}
 
    3dNotes  -a "Dataset created via: `basename $0` $argv[*]" \
             -h "Dataset created via: `basename $0` $argv[*]" \
