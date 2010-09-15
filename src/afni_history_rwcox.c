@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 15 , SEP , 2010 , RWC , "3dROIstats" , MICRO , TYPE_GENERAL ,
+   "Force float-to-short conversion of mask if mask is really integers" ,
+   NULL } ,
+
  { 13 , SEP , 2010 , RWC , "3dGroupInCorr" , MICRO , TYPE_BUG_FIX ,
    "Add missing free(xar) to 1-sample t-test loop [oops]" ,
    NULL } ,
