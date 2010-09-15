@@ -185,6 +185,7 @@ int main(int argc, char *argv[])
 	    narg++;
 	    continue;
         }
+
 	if (strncmp(argv[narg], "-roisel", 5) == 0) {
 	   MRI_IMAGE *im = NULL;
       float *far=NULL;
@@ -357,21 +358,25 @@ int main(int argc, char *argv[])
         return 1;
     }
 
+    if (roisel) DSET_mallocize(mask_dset); 
+    DSET_load(mask_dset);
+    if (DSET_ARRAY(mask_dset, mask_subbrik) == NULL)
+      Error_Exit("Cannot read in mask dataset BRIK!");
+
     /* check the mask dataset type */
-    if (DSET_BRICK_TYPE(mask_dset, 0) == MRI_float && mask_f2s == 0 ){
-        fprintf(stderr,"\nError: cannot deal with float-valued mask dataset\n");
-        fprintf(stderr,"(consider the -mask_f2short option)\n");
-        return 1;
+    if( DSET_BRICK_TYPE(mask_dset,mask_subbrik) == MRI_float && mask_f2s == 0 ){
+        if( !is_integral_sub_brick(mask_dset,mask_subbrik,1) ){ /* 15 Sep 2010 [RWC] */
+          ERROR_message("Cannot deal with float-valued mask dataset\n"
+                        "       [consider using the -mask_f2short option]");
+          return 1;
+        } else {
+          mask_f2s = 1 ;
+        }
     }
 
 
     /* See how many ROIS there are to deal with in the mask */
     for (i = 0; i < IMAX; non_zero[i++] = 0);
-
-    if (roisel) DSET_mallocize(mask_dset); 
-    DSET_load(mask_dset);
-    if (DSET_ARRAY(mask_dset, mask_subbrik) == NULL)
-	Error_Exit("Cannot read in mask dataset BRIK!");
 
     nvox = DSET_NVOX(mask_dset);
     if (debug)
