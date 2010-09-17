@@ -400,7 +400,7 @@ int main( int argc , char *argv[] )
 {
    int nopt , nbad , ii,jj,kk , kout,ivox , vstep ;
    MRI_vectim *vimout ;
-   float *workspace=NULL , *datAAA , *datBBB , *resar ;
+   float *workspace=NULL , *datAAA , *datBBB=NULL , *resar ;
    float_pair tpair ;
    THD_3dim_dataset *outset ;
    char blab[64] , *stnam ;
@@ -871,6 +871,9 @@ int main( int argc , char *argv[] )
 
    if( mcov > 0 ){
      workspace = (float *)malloc(sizeof(float)*(2*mcov+nval_AAA+nval_BBB+32)) ;
+     /* init workspace to 0                     17 Sep 2010 [rickr] */
+     memset(workspace, '\0', sizeof(float)*(2*mcov+nval_AAA+nval_BBB+32));
+
      if( twosam ){
        testAB = testA = testB = (unsigned int)(-1) ;
      } else {
