@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 17, SEP, 2010, RCR, "3dttest++", MINOR, TYPE_BUG_FIX,
+   "init workspace with 0",
+   "Trouble noted by M Choi"
+ } ,
+
  { 10, SEP, 2010, RCR, "@SUMA_Make_Spec_FS", MICRO, TYPE_BUG_FIX,
    "removed extra endif's in case of $label_dir",
    NULL
