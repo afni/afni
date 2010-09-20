@@ -419,6 +419,7 @@ void SUMA_dset_tex_slice_corners( int slc, THD_3dim_dataset *dset,
    int kk=0;
    float orig[3] = { 0, 0, 0}, del[3] = { 0, 0, 0};
    int nvox[3] = { 0, 0, 0};
+   SUMA_Boolean LocalHead = YUP;
     
    SUMA_ENTRY;
    
@@ -462,6 +463,19 @@ void SUMA_dset_tex_slice_corners( int slc, THD_3dim_dataset *dset,
     corners[kk] = orig[2] + slc     * del[2]; 
    tcorners[kk] = tcorners[2];                  ++kk;
    
+   if (LocalHead) {
+      SUMA_LHv("Slice %d, corners and textures\n", slc);
+      for (kk=0; kk<4; ++kk) {
+         fprintf(SUMA_STDERR,
+                  "c%d: %.3f   %.3f   %.3f\n"
+                  "t%d: %.3f   %.3f   %.3f\n", 
+            kk, corners[3*kk],corners[3*kk+1],corners[3*kk+2],
+            kk, tcorners[3*kk],tcorners[3*kk+1],tcorners[3*kk+2]);
+                              
+      }
+      fprintf(SUMA_STDERR,"\n");
+   }
+   
    SUMA_RETURNe;
 }
 
@@ -476,6 +490,22 @@ void SUMA_dset_tex_slice_corners( int slc, THD_3dim_dataset *dset,
       fprintf(stderr,"\n");  \
    }\
 }
+
+#if 0
+if (Doinv) {
+         mat44 A, A0;
+   
+         LOAD_MAT44( A0, \
+                  xform[0][0], xform[0][1], xform[0][2], xform[0][3],    \
+                  xform[1][0], xform[1][1], xform[1][2], xform[1][3],    \
+                  xform[2][0], xform[2][1], xform[2][2], xform[2][3]   );
+         A = nifti_mat44_inverse(A0);
+         UNLOAD_MAT44(A,   \
+                  xform[0][0], xform[0][1], xform[0][2], xform[0][3],    \
+                  xform[1][0], xform[1][1], xform[1][2], xform[1][3],    \
+                  xform[2][0], xform[2][1], xform[2][2], xform[2][3]   );
+      }  
+#endif
 
 SUMA_Boolean SUMA_Draw3DTextureNIDOnel (NI_element *nel, 
                                     SUMA_SurfaceObject *SO, 
