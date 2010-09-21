@@ -254,6 +254,45 @@ MRI_vectim * THD_vectim_copy( MRI_vectim *mrv )  /* 08 Apr 2010 */
 
 /*---------------------------------------------------------------------*/
 
+MRI_vectim * THD_vectim_copy_nonzero( MRI_vectim *mrv ) /* 21 Sep 2010 */
+{
+   MRI_vectim *qrv ;
+   int nvals , nvec , ii,jj , ngood ;
+   float *mar , *qar ;
+
+   if( mrv == NULL ) return NULL ;
+   nvals = mrv->nvals ; nvec = mrv->nvec ;
+
+   for( ngood=ii=0 ; ii < nvec ; ii++ ){
+     mar = VECTIM_PTR(mrv,ii) ;
+     for( jj=0 ; jj < nvals && mar[jj] == 0.0f ; jj++ ) ; /*nada*/
+     if( jj < nvals ) ngood++ ;
+   }
+   if( ngood == 0    ) return NULL ;                 /* nothing to do */
+   if( ngood == nvec ) return THD_vectim_copy(mrv) ; /* everything to do */
+
+   MAKE_VECTIM( qrv , ngood , nvals ) ;
+   qrv->ignore = mrv->ignore ;
+   for( ngood=ii=0 ; ii < nvec ; ii++ ){
+     mar = VECTIM_PTR(mrv,ii) ;
+     for( jj=0 ; jj < nvals && mar[jj] == 0.0f ; jj++ ) ; /*nada*/
+     if( jj < nvals ){
+       qrv->ivec[ngood] = mrv->ivec[ii] ;
+       qar = VECTIM_PTR(qrv,ngood) ;
+#pragma omp critical (MEMCPY)
+       memcpy(qar,mar,sizeof(float)*nvals) ;
+       ngood++ ;
+     }
+   }
+
+   qrv->nx = mrv->nx ; qrv->dx = mrv->dx ;
+   qrv->ny = mrv->ny ; qrv->dy = mrv->dy ;
+   qrv->nz = mrv->nz ; qrv->dz = mrv->dz ; qrv->dt = mrv->dt ;
+   return qrv ;
+}
+
+/*---------------------------------------------------------------------*/
+
 void THD_vectim_normalize( MRI_vectim *mrv )
 {
    int iv , ii ;

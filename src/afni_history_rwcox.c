@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 21 , SEP , 2010 , RWC , "3dttest++" , MINOR , TYPE_BUG_FIX ,
+   "Fix memory leak and paired t-test bug." ,
+   NULL } ,
+
  { 15 , SEP , 2010 , RWC , "3dROIstats" , MICRO , TYPE_GENERAL ,
    "Force float-to-short conversion of mask if mask is really integers" ,
    NULL } ,
