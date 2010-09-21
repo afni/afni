@@ -19,6 +19,18 @@ double GIC_student_t2z( double tt , double dof ) ;
 
 void TT_matrix_setup( int kout ) ;  /* 30 Jul 2010 */
 
+#undef MEMORY_CHECK
+#ifdef USING_MCW_MALLOC
+# define MEMORY_CHECK                                            \
+   do{ long long nb = mcw_malloc_total() ;                       \
+       if( nb > 0 ) INFO_message("Memory usage now = %s (%s)" ,  \
+                    commaized_integer_string(nb) ,               \
+                    approximate_number_string((double)nb) ) ;    \
+   } while(0)
+#else
+# define MEMORY_CHECK     /*nada*/
+#endif
+
 /*----------------------------------------------------------------------------*/
 
 #undef  MAXCOV
@@ -400,7 +412,7 @@ int main( int argc , char *argv[] )
 {
    int nopt , nbad , ii,jj,kk , kout,ivox , vstep ;
    MRI_vectim *vimout ;
-   float *workspace=NULL , *datAAA , *datBBB=NULL , *resar ;
+   float *workspace=NULL , *datAAA , *datBBB=NULL , *resar ; size_t nws=0 ;
    float_pair tpair ;
    THD_3dim_dataset *outset ;
    char blab[64] , *stnam ;
@@ -414,6 +426,10 @@ int main( int argc , char *argv[] )
 
    mainENTRY("3dttest++ main"); machdep(); AFNI_logger("3dttest++",argc,argv);
    PRINT_VERSION("3dttest++") ; AUTHOR("The Bob") ;
+
+#if defined(USING_MCW_MALLOC) && !defined(USE_OMP)
+   enable_mcw_malloc() ;
+#endif
 
    /*--- read the options from the command line ---*/
 
@@ -696,6 +712,8 @@ int main( int argc , char *argv[] )
    if( twosam )
      vectim_BBB = THD_dset_list_to_vectim( ndset_BBB , dset_BBB , mask ) ;
 
+   MEMORY_CHECK ;
+
    /*----- set up covariates in a very lengthy aside now -----*/
 
    if( mcov > 0 ){
@@ -845,6 +863,8 @@ int main( int argc , char *argv[] )
 
      TT_matrix_setup(0) ;  /* 0 = voxel index (just sayin') */
 
+     if( num_covset_col > 0 ) MEMORY_CHECK ;
+
    }  /*-- end of covariates setup --*/
 
    /*-------------------- create empty output dataset ---------------------*/
@@ -870,9 +890,8 @@ int main( int argc , char *argv[] )
    /* make up some brick labels [[[man, this is tediously boring work]]] */
 
    if( mcov > 0 ){
-     workspace = (float *)malloc(sizeof(float)*(2*mcov+nval_AAA+nval_BBB+32)) ;
-     /* init workspace to 0                     17 Sep 2010 [rickr] */
-     memset(workspace, '\0', sizeof(float)*(2*mcov+nval_AAA+nval_BBB+32));
+     nws       = sizeof(float)*(2*mcov+nval_AAA+nval_BBB+32) ;
+     workspace = (float *)malloc(nws) ;
 
      if( twosam ){
        testAB = testA = testB = (unsigned int)(-1) ;
@@ -880,6 +899,7 @@ int main( int argc , char *argv[] )
        testAB = testB = 0 ; testA = (unsigned int)(-1) ;
      }
    }
+
    dof_A = nval_AAA - (mcov+1) ;
    if( twosam ){
     dof_B  = nval_BBB - (mcov+1) ;
@@ -1010,6 +1030,8 @@ int main( int argc , char *argv[] )
 
        /*-- and do the work --*/
 
+       if( nws > 0 ) memset(workspace,0,nws) ;
+
        regress_toz( nval_AAA , datAAA , nval_BBB , datBBB , ttest_opcode ,
                     mcov ,
                     Axx , Axx_psinv , Axx_xtxinv ,
@@ -1020,7 +1042,7 @@ int main( int argc , char *argv[] )
      kout++ ;
    }  /* end of loop over voxels */
 
-   if( vstep > 0 ) fprintf(stderr,"!\n") ;
+   if( vstep > 0 ){ fprintf(stderr,"!\n") ; MEMORY_CHECK ; }
 
    /*-------- get rid of the input data now --------*/
 
@@ -1156,7 +1178,7 @@ ENTRY("regress_toz") ;
      for( jj=0 ; jj < nA ; jj++ ){
        val = -zA[jj] ;
        for( ii=0 ; ii < mm ; ii++ ) val += XA(jj,ii)*betA[ii] ;
-       zdifA[ii] = val ; ssqA += val*val ;
+       zdifA[jj] = val ; ssqA += val*val ;
      }
      if( testA ){ varA = ssqA / (nA-mm) ; if( varA <= 0.0f ) varA = VBIG ; }
 #if 0
@@ -1188,7 +1210,7 @@ ENTRY("regress_toz") ;
      for( jj=0 ; jj < nB ; jj++ ){
        val = -zB[jj] ;
        for( ii=0 ; ii < mm ; ii++ ) val += XB(jj,ii)*betB[ii] ;
-       zdifB[ii] = val ; ssqB += val*val ;
+       zdifB[jj] = val ; ssqB += val*val ;
      }
      if( testB ){ varB = ssqB / (nB-mm) ; if( varB <= 0.0f ) varB = VBIG ; }
 #if 0
@@ -1586,7 +1608,8 @@ ENTRY("TT_centerize") ;
 
 void TT_matrix_setup( int kout )
 {
-   int jj,kk ; MRI_IMARR *impr ; float sum , *fpt ;
+   int jj,kk ; float sum , *fpt ;
+   static MRI_IMARR *imprA=NULL , *imprB=NULL ;
 
 ENTRY("TT_matrix_setup") ;
 
@@ -1616,18 +1639,21 @@ ENTRY("TT_matrix_setup") ;
 
    /* Compute inv[X'X] and the pseudo-inverse inv[X'X]X' for setA */
 
-   impr = mri_matrix_psinv_pair( Axxim , 0.0f ) ;
-   if( impr == NULL ) ERROR_exit("Can't invert setA covariate matrix?! :-(") ;
-   Axx_psinv  = MRI_FLOAT_PTR(IMARR_SUBIM(impr,0)) ;
-   Axx_xtxinv = MRI_FLOAT_PTR(IMARR_SUBIM(impr,1)) ;
+   if( imprA != NULL ) DESTROY_IMARR(imprA) ;
+
+   imprA = mri_matrix_psinv_pair( Axxim , 0.0f ) ;
+   if( imprA == NULL ) ERROR_exit("Can't invert setA covariate matrix?! :-(") ;
+   Axx_psinv  = MRI_FLOAT_PTR(IMARR_SUBIM(imprA,0)) ;
+   Axx_xtxinv = MRI_FLOAT_PTR(IMARR_SUBIM(imprA,1)) ;
 
    /* and for setB, if needed */
 
    if( twosam && ttest_opcode != 2 ){  /* un-paired 2-sample case */
-     impr = mri_matrix_psinv_pair( Bxxim , 0.0f ) ;
-     if( impr == NULL ) ERROR_exit("Can't invert setB covariate matrix?! :-(") ;
-     Bxx_psinv  = MRI_FLOAT_PTR(IMARR_SUBIM(impr,0)) ;
-     Bxx_xtxinv = MRI_FLOAT_PTR(IMARR_SUBIM(impr,1)) ;
+     if( imprB != NULL ) DESTROY_IMARR(imprB) ;
+     imprB = mri_matrix_psinv_pair( Bxxim , 0.0f ) ;
+     if( imprB == NULL ) ERROR_exit("Can't invert setB covariate matrix?! :-(") ;
+     Bxx_psinv  = MRI_FLOAT_PTR(IMARR_SUBIM(imprB,0)) ;
+     Bxx_xtxinv = MRI_FLOAT_PTR(IMARR_SUBIM(imprB,1)) ;
    } else if( twosam && ttest_opcode == 2 ){
      Bxx_psinv = Axx_psinv ; Bxx_xtxinv = Axx_xtxinv ;
    }
