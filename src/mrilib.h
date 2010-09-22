@@ -1511,6 +1511,8 @@ extern void mri_matrix_detrend( MRI_IMAGE *, MRI_IMAGE *, MRI_IMAGE * ) ;
 
 extern double Plegendre( double x , int m ) ;
 
+extern void mri_matrix_print( FILE *fp , MRI_IMAGE *ima , char *label ) ;
+
 /*------------------------------------------------------------------------*/
 
 extern MRI_IMAGE * THD_average_timeseries( MCW_cluster_array *, THD_3dim_dataset *) ;
