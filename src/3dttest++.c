@@ -46,7 +46,7 @@ static NI_element         *covnel=NULL ;       /* covariates */
 static NI_str_array       *covlab=NULL ;
 
 static int        num_covset_col=0 ;
-static int             allow_cov=1 ;
+static int             allow_cov=1 ;           /* allowed by default */
 static MRI_vectim   **covvim_AAA=NULL ;
 static MRI_vectim   **covvim_BBB=NULL ;
 static floatvec     **covvec_AAA=NULL ;
@@ -240,10 +240,14 @@ void display_help_menu(void)
       "\n"
       "* If you used a short form '-setX' option, each dataset label is\n"
       "   the dataset's prefix name (truncated to 12 characters).\n"
+      "  ++ e.g.,  fred+tlrc'[3]'  ==>  fred\n"
+      "  ++ e.g.,  elvis.nii.gz    ==>  elvisn"
       "\n"
       "* '-covariates' can only be used with the short form '-setX' option\n"
       "   if each input dataset has only 1 sub-brick (so that each label\n"
       "   refers to exactly 1 volume of data).\n"
+      "  ++ Duplicate labels in the dataset list or in the covariates file\n"
+      "     will not work well!\n"
       "\n"
       "* The later columns in COVAR_FILE contain numbers (e.g., 'IQ' and 'age',\n"
       "    above), or dataset names.  In the latter case, you are specifying a\n"
@@ -270,6 +274,14 @@ void display_help_menu(void)
       "\n"
       "* N.B.: The simpler forms of the COVAR_FILE that 3dMEMA allows are\n"
       "        NOT supported here!\n"
+      "\n"
+      "* N.B.: IF you are entering multiple sub-bricks from the same dataset in\n"
+      "        one of the '-setX' options, AND you are using covariates, then\n"
+      "        you must use the 'LONG FORM' of input for the '-setX' option,\n"
+      "        and give each sub-brick a distinct label that matches something\n"
+      "        in the covariates file.  Otherwise, the program will not know\n"
+      "        which covariate to use with which input sub-brick, and bad\n"
+      "        things will happen.\n"
       "\n"
       "***** CENTERING *******\n"
       "\n"
@@ -334,6 +346,11 @@ void display_help_menu(void)
       " -mask mmm = Only compute results for voxels in the specified mask.\n"
       "             ++ Voxels not in the mask will be set to 0 in the output.\n"
       "             ++ If '-mask' is not used, all voxels will be tested.\n"
+      "             ++ HOWEVER: voxels whose input data is constant (in either set)\n"
+      "                 will NOT be processed and will get all zero outputs.  This\n"
+      "                 inaction happens because the variance of a constant set of\n"
+      "                 data is zero, and division by zero is forbidden by the\n"
+      "                 Deities of Mathematics.\n"
       "\n"
       " -prefix p = Gives the name of the output dataset file.\n"
       "\n"
@@ -410,7 +427,7 @@ void display_help_menu(void)
 
 int main( int argc , char *argv[] )
 {
-   int nopt , nbad , ii,jj,kk , kout,ivox , vstep ;
+   int nopt , nbad , ii,jj,kk , kout,ivox , vstep , dconst , nconst=0 ;
    MRI_vectim *vimout ;
    float *workspace=NULL , *datAAA , *datBBB=NULL , *resar ; size_t nws=0 ;
    float_pair tpair ;
@@ -561,7 +578,7 @@ int main( int argc , char *argv[] )
            cpt = strchr(labs[nds-1]+1,'.') ; if( cpt != NULL ) *cpt = '\0' ;
          }
 
-         if( nv > nds ) allow_cov = 0 ;
+         if( nv > nds ) allow_cov = 0 ;  /* multiple sub-bricks from 1 input */
 
          if( nv < 2 )
            ERROR_exit("Option %s (short form): need at least 2 datasets or sub-bricks",onam) ;
@@ -599,6 +616,14 @@ int main( int argc , char *argv[] )
          }
        }
        if( nbad > 0 ) ERROR_exit("Cannot go on after such an error!") ;
+
+       /* check for duplicate labels */
+
+       for( ii=0 ; ii < nds ; ii++ ){
+         for( jj=ii+1 ; jj < nds ; jj++ )
+           if( strcmp(labs[ii],labs[jj]) == 0 ) nbad++ ;
+       }
+       if( nbad > 0 ) allow_cov = -1 ;  /* duplicate labels */
 
        /* assign results to global variables */
 
@@ -684,9 +709,16 @@ int main( int argc , char *argv[] )
        ( twosam && (nval_BBB - mcov < 2) ) )
      ERROR_exit("Too many covariates compared to number of datasets") ;
 
-   if( mcov > 0 && !allow_cov )
-     ERROR_exit(
-     "-covariates not allowed with -set that has multiple sub-bricks from one dataset");
+   if( mcov > 0 && allow_cov <= 0 ){
+     switch( allow_cov ){
+       case 0:
+         ERROR_exit(
+          "-covariates not allowed with -set that has multiple sub-bricks from one dataset");
+       case -1:
+         ERROR_exit(
+          "-covariates not allowed with -set that has duplicate dataset labels") ;
+     }
+   }
 
    if( ttest_opcode == 1 && mcov > 0 ){
      WARNING_message("-covariates does not support unpooled variance") ;
@@ -1007,6 +1039,18 @@ int main( int argc , char *argv[] )
 
      resar = VECTIM_PTR(vimout,kout) ;                    /* results array */
 
+     /* skip processing for input voxels whose data is constant */
+
+     for( ii=1 ; ii < nval_AAA && datAAA[ii] == datAAA[0] ; ii++ ) ; /*nada*/
+     dconst = (ii == nval_AAA) ;
+     if( twosam && !dconst ){
+       for( ii=1 ; ii < nval_BBB && datBBB[ii] == datBBB[0] ; ii++ ) ; /*nada*/
+       dconst = (ii == nval_BBB) ;
+     }
+     if( dconst ){
+       memset( resar , 0 , sizeof(float)*nvout ) ; nconst++ ; kout++ ; continue ;
+     }
+
      if( mcov == 0 ){  /*--- no covariates ==> standard t-tests ---*/
 
        if( twosam ){
@@ -1043,6 +1087,10 @@ int main( int argc , char *argv[] )
    }  /* end of loop over voxels */
 
    if( vstep > 0 ){ fprintf(stderr,"!\n") ; MEMORY_CHECK ; }
+
+   if( nconst > 0 )
+     INFO_message("skipped %d voxel%s for having constant data" ,
+                  nconst , (nconst==1) ? "\0" : "s" ) ;
 
    /*-------- get rid of the input data now --------*/
 
