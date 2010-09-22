@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 22 , SEP , 2010 , RWC , "3dttest++" , MICRO , TYPE_MODIFY ,
+   "Skip voxels whose data is constant" ,
+   NULL } ,
+
  { 21 , SEP , 2010 , RWC , "3dttest++" , MINOR , TYPE_BUG_FIX ,
    "Fix memory leak and paired t-test bug." ,
    NULL } ,
