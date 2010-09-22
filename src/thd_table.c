@@ -142,7 +142,7 @@ NI_element * THD_mixed_table_read( char *fname )
 {
    NI_str_array *sar ;
    char *dname , *cpt , *dpt , lbuf[NLL] ;
-   int ii , ibot , nlab , row=0 , *ivlist ;
+   int ii,jj , ibot , nlab , row=0 , *ivlist ;
    NI_element *nel ;
    FILE *fts ;
    float val ;
@@ -279,5 +279,18 @@ ENTRY("THD_mixed_table_read") ;
    fclose(fts) ;
    if( row == 0 ){ NI_free_element(nel); RETURN(NULL); }
 
-   NI_alter_veclen(nel,row) ; RETURN(nel) ;
+   NI_alter_veclen(nel,row) ;
+
+   /* check for duplicate first column labels */
+
+   for( ii=0 ; ii < nel->vec_len ; ii++ ){
+     cpt = ((char **)(nel->vec[0]))[ii] ;
+     for( jj=ii+1 ; jj < nel->vec_len ; jj++ ){
+       dpt = ((char **)(nel->vec[0]))[jj] ;
+       if( strcmp(cpt,dpt) == 0 )
+         WARNING_message("Table: rows %d & %d have same label %s",ii+1,jj+1,cpt) ;
+     }
+   }
+
+   RETURN(nel) ;
 }
