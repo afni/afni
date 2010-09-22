@@ -92,6 +92,8 @@ static char             **labl_BBB=NULL ;
 static THD_3dim_dataset **dset_BBB=NULL ;
 static MRI_vectim      *vectim_BBB=NULL ;
 
+static int debug = 0 ;
+
 /*--------------------------------------------------------------------------*/
 
 static int string_search( char *targ , int nstr , char **str )
@@ -283,6 +285,13 @@ void display_help_menu(void)
       "        which covariate to use with which input sub-brick, and bad\n"
       "        things will happen.\n"
       "\n"
+      "* N.B.: Please be careful in setting up the covariates file and dataset\n"
+      "        labels, as the program only does some simple error checking.\n"
+      "        ++ If you REALLY want to see the regression matrices\n"
+      "           used with covariates, use the '-debug' option.\n"
+      "        ++ Which you give you a LOT of output (to stderr), so redirect:\n"
+      "             3dttest++ .... |& tee debug.out\n"
+      "\n"
       "***** CENTERING *******\n"
       "\n"
       " ++ This term refers to how the mean across subjects of a covariate\n"
@@ -297,8 +306,8 @@ void display_help_menu(void)
       " ++ '-center NONE' is for the case where you have pre-processed the\n"
       "    covariate values to meet your needs; otherwise, it is not recommended!\n"
       "\n"
-      " ++ Centering can be important.  For example, suppose that the average\n"
-      "    IQ in setA is higher than in setB, and that the beta\n"
+      " ++ Centering can be important.  For example, suppose that the mean\n"
+      "    IQ in setA is significantly higher than in setB, and that the beta\n"
       "    values are positively correlated with IQ.  Then the mean in\n"
       "    setA will be higher than in setB simply from the IQ effect.\n"
       "    To avoid this type of inter-group mean differences,  you\n"
@@ -335,7 +344,7 @@ void display_help_menu(void)
       "                 provide some protection against heteroscedasticty\n"
       "                 (significantly different inter-subject variance\n"
       "                 between the two different collections of datasets).\n"
-      "                 Our experience is that for most FMRI data, using\n"
+      "             ++  Our experience is that for most FMRI data, using\n"
       "                 '-unpooled' is not needed.\n"
       "\n"
       " -toz      = Convert output t-statistics to z-scores\n"
@@ -353,6 +362,9 @@ void display_help_menu(void)
       "                 Deities of Mathematics.\n"
       "\n"
       " -prefix p = Gives the name of the output dataset file.\n"
+      "\n"
+      " -debug    = Prints out information about the analysis, which can\n"
+      "               be VERY lengthy -- not for general usage.\n"
       "\n"
       "-------------------------------\n"
       "STRUCTURE OF THE OUTPUT DATASET\n"
@@ -452,6 +464,12 @@ int main( int argc , char *argv[] )
 
    nopt = 1 ;
    while( nopt < argc ){
+
+     /*----- debug -----*/
+
+     if( strcmp(argv[nopt],"-debug") == 0 ){  /* 22 Sep 2010 */
+       debug++ ; nopt++ ; continue ;
+     }
 
      /*----- center -----*/
 
@@ -1048,6 +1066,7 @@ int main( int argc , char *argv[] )
        dconst = (ii == nval_BBB) ;
      }
      if( dconst ){
+       /** if( debug ) INFO_message("skip output voxel#%d for constancy",kout) ; **/
        memset( resar , 0 , sizeof(float)*nvout ) ; nconst++ ; kout++ ; continue ;
      }
 
@@ -1188,7 +1207,7 @@ void regress_toz( int numA , float *zA ,
    int kt=0,nws , mm=mcov+1 , nA=numA , nB=numB ;
    float *betA=NULL , *betB=NULL , *zdifA=NULL , *zdifB=NULL ;
    float ssqA=0.0f , ssqB=0.0f , varA=0.0f , varB=0.0f ; double dof=0.0 ;
-   register float val ; register int ii,jj,tt ;
+   register float val , den ; register int ii,jj,tt ;
 
 ENTRY("regress_toz") ;
 
@@ -1282,7 +1301,8 @@ ENTRY("regress_toz") ;
        for( tt=0 ; tt < mm ; tt++ ){
          if( (testAB & (1 << tt)) == 0 ) continue ;  /* bitwase AND */
          outvec[kt++] = betA[tt] - betB[tt] ;
-         val          = outvec[kt-1] / sqrtf( varAB*xtxA(tt) ) ;
+         den          = xtxA(tt) ; if( den <= 0.0f ) den = 1.e+9f ;
+         val          = outvec[kt-1] / sqrtf( varAB*den ) ;
          outvec[kt++] = (toz) ? (float)GIC_student_t2z( (double)val , dof )
                               : TCLIP(val) ;
        }
@@ -1295,7 +1315,8 @@ ENTRY("regress_toz") ;
        for( tt=0 ; tt < mm ; tt++ ){
          if( (testAB & (1 << tt)) == 0 ) continue ;  /* bitwase AND */
          outvec[kt++] = betA[tt] - betB[tt] ;
-         val          = outvec[kt-1] / sqrtf( varAB*(xtxA(tt)+xtxB(tt)) );
+         den          = xtxA(tt)+xtxB(tt) ; if( den <= 0.0f ) den = 1.e+9f ;
+         val          = outvec[kt-1] / sqrtf( varAB*den );
          outvec[kt++] = (toz) ? (float)GIC_student_t2z( (double)val , dof )
                               : TCLIP(val) ;
        }
@@ -1309,7 +1330,8 @@ ENTRY("regress_toz") ;
      for( tt=0 ; tt < mm ; tt++ ){
        if( (testA & (1 << tt)) == 0 ) continue ;  /* bitwise AND */
        outvec[kt++] = betA[tt] ;
-       val          = betA[tt] / sqrtf( varA * xtxA(tt) ) ;
+       den          = xtxA(tt) ; if( den <= 0.0f ) den = 1.e+9f ;
+       val          = betA[tt] / sqrtf( varA * den ) ;
        outvec[kt++] = (toz) ? (float)GIC_student_t2z( (double)val , dof )
                             : TCLIP(val) ;
      }
@@ -1322,7 +1344,8 @@ ENTRY("regress_toz") ;
      for( tt=0 ; tt < mm ; tt++ ){
        if( (testB & (1 << tt)) == 0 ) continue ;  /* bitwise AND */
        outvec[kt++] = betB[tt] ;
-       val          = betB[tt] / sqrtf( varB * xtxB(tt) ) ;
+       den          = xtxB(tt) ; if( den <= 0.0f ) den = 1.e+9f ;
+       val          = betB[tt] / sqrtf( varB * den ) ;
        outvec[kt++] = (toz) ? (float)GIC_student_t2z( (double)val , dof )
                             : TCLIP(val) ;
      }
@@ -1658,6 +1681,7 @@ void TT_matrix_setup( int kout )
 {
    int jj,kk ; float sum , *fpt ;
    static MRI_IMARR *imprA=NULL , *imprB=NULL ;
+   char label[32] ;
 
 ENTRY("TT_matrix_setup") ;
 
@@ -1683,6 +1707,15 @@ ENTRY("TT_matrix_setup") ;
 
    TT_centerize() ; /* column de-mean-ization? */
 
+   if( debug ){
+     sprintf(label,"setA voxel#%d",kout) ;
+     mri_matrix_print(stderr,Axxim,label) ;
+     if( twosam && ttest_opcode != 2 ){
+       sprintf(label,"setB voxel#%d",kout) ;
+       mri_matrix_print(stderr,Bxxim,label) ;
+     }
+   }
+
    /*-- (pseudo) invert matrices --*/
 
    /* Compute inv[X'X] and the pseudo-inverse inv[X'X]X' for setA */
@@ -1694,6 +1727,13 @@ ENTRY("TT_matrix_setup") ;
    Axx_psinv  = MRI_FLOAT_PTR(IMARR_SUBIM(imprA,0)) ;
    Axx_xtxinv = MRI_FLOAT_PTR(IMARR_SUBIM(imprA,1)) ;
 
+   if( debug ){
+     sprintf(label,"setA psinv") ;
+     mri_matrix_print(stderr,IMARR_SUBIM(imprA,0),label) ;
+     sprintf(label,"setA xtxinv") ;
+     mri_matrix_print(stderr,IMARR_SUBIM(imprA,1),label) ;
+   }
+
    /* and for setB, if needed */
 
    if( twosam && ttest_opcode != 2 ){  /* un-paired 2-sample case */
@@ -1702,6 +1742,14 @@ ENTRY("TT_matrix_setup") ;
      if( imprB == NULL ) ERROR_exit("Can't invert setB covariate matrix?! :-(") ;
      Bxx_psinv  = MRI_FLOAT_PTR(IMARR_SUBIM(imprB,0)) ;
      Bxx_xtxinv = MRI_FLOAT_PTR(IMARR_SUBIM(imprB,1)) ;
+
+     if( debug ){
+       sprintf(label,"setB psinv") ;
+       mri_matrix_print(stderr,IMARR_SUBIM(imprB,0),label) ;
+       sprintf(label,"setB xtxinv") ;
+       mri_matrix_print(stderr,IMARR_SUBIM(imprB,1),label) ;
+     }
+
    } else if( twosam && ttest_opcode == 2 ){
      Bxx_psinv = Axx_psinv ; Bxx_xtxinv = Axx_xtxinv ;
    }
