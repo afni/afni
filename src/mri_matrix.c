@@ -4,6 +4,37 @@
 /***** these functions operate on matrices stored in 2D float images *****/
 
 /*-----------------------------------------------------------------------*/
+
+void mri_matrix_print( FILE *fp , MRI_IMAGE *ima , char *label )
+{
+   int ii,jj , nr,nc , ipr ; float *amat , val ;
+
+   if( ima == NULL ) return ;
+
+   nr = ima->nx ; nc = ima->ny ; amat = MRI_FLOAT_PTR(ima) ;
+
+#undef  A
+#define A(i,j) amat[(i)+(j)*nr]   /* nr X nc */
+
+   for( ii=0 ; ii < ima->nvox ; ii++ ){
+     val = (int)amat[ii] ;
+     if( val != amat[ii] || fabsf(val) > 99.0f ) break ;
+   }
+   ipr = (ii == ima->nvox ) ;
+
+   if( fp == NULL ) fp = stdout ;
+   if( label != NULL ) fprintf(fp,"Matrix %s\n",label) ;
+   for( ii=0 ; ii < nr ; ii++ ){
+     for( jj=0 ; jj < nc ; jj++ ){
+       if( ipr ) fprintf(fp," %3d"    , (int)A(ii,jj) ) ;
+       else      fprintf(fp," %10.4g" ,      A(ii,jj) ) ;
+     }
+     fprintf(fp,"\n") ;
+   }
+   fprintf(fp,"\n") ; fflush(fp) ; return ;
+}
+
+/*-----------------------------------------------------------------------*/
 /*! Compute the product of two matrices, stored in 2D float images.
 -------------------------------------------------------------------------*/
 
