@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 23 , SEP , 2010 , RWC , "3dUndump" , MICRO , TYPE_GENERAL ,
+   "Clarify help a little with some examples." ,
+   NULL } ,
+
  { 22 , SEP , 2010 , RWC , "3dttest++" , MICRO , TYPE_BUG_FIX ,
    "Ensure no division by zero if covariates matrix has all zero column" ,
    NULL } ,

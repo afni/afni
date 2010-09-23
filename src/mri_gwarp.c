@@ -241,6 +241,7 @@ float GW_best_step( MRI_IMAGE *iim   , MRI_IMAGE *jim   ,
    vbot = GW_diffval( iim , jim , wimar , deltar , db ) ;
    vtop = GW_diffval( iim , jim , wimar , deltar , dt ) ;
 
+#if 0
    for( ii=0 ; ii < 2 ; ii++ ){
      dm   = 0.5f*(db+dt) ;
      vmid = GW_diffval( iim , jim , wimar , deltar , dm ) ;
@@ -249,6 +250,7 @@ float GW_best_step( MRI_IMAGE *iim   , MRI_IMAGE *jim   ,
      if( vbm <= vmt ){ dt = dm ; vtop = vmid ; }
      else            { db = dm ; vbot = vmid ; }
    }
+#endif
 
    return ((vtop < vbot) ? dt : db) ;
 }
@@ -399,7 +401,7 @@ INFO_message("gwarp is NOT a production program: it is merely for testing!") ;
 
    GW_setup(iim,bim,sblur,bblur) ; mri_free(bim) ;
 
-   for( ii=0 ; ii < 99 ; ii++ ){
+   for( ii=0 ; ii < 199 ; ii++ ){
      ds = GW_iterate() ; if( ds == 0.0f ) break ;
    }
 
