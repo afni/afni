@@ -2792,7 +2792,7 @@ ENTRY("ISQ_make_image") ;
         tim = ISQ_getoverlay( seq->im_nr , seq ) ;
 
         if( tim != NULL && !ISQ_GOOD_OVERLAY_TYPE(tim->kind) ){
-          fprintf(stderr,"\a\n*** Illegal overlay image kind=%d! ***\n",tim->kind) ;
+          fprintf(stderr,"\a\n*** Illegal overlay image kind=%d! ***\n",(int)tim->kind) ;
           KILL_1MRI(tim) ;
         }
 
@@ -9024,7 +9024,7 @@ ENTRY("ISQ_manufacture_one") ;
    if( tim == NULL ) RETURN( NULL );
 
    if( !ISQ_GOOD_OVERLAY_TYPE(tim->kind) ){
-     fprintf(stderr,"\a\n*** Illegal overlay image kind=%d! ***\n",tim->kind) ;
+     fprintf(stderr,"\a\n*** Illegal overlay image kind=%d! ***\n",(int)tim->kind) ;
      mri_free(tim) ; RETURN( NULL );
    }
 
@@ -12123,7 +12123,7 @@ ENTRY("ISQ_handle_keypress") ;
            XtAppAddTimeOut( XtWidgetToApplicationContext(seq->wform) ,
                             seq->timer_delay , ISQ_timer_CB , seq ) ;
        }
-       busy=0; EXRETURN ;
+       busy=0; RETURN(1);
      }
      break ;
 
