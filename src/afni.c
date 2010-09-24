@@ -1357,7 +1357,7 @@ void AFNI_sigfunc_quit(int sig)
   unsigned int nsec = (unsigned int)AFNI_numenv("AFNI_SIGQUIT_DELAY") ;
   if( nsec == 0 || nsec > 30 ) nsec = 5 ;
   fprintf(stderr,
-          "\n** AFNI received QUIT signal ==> exit in %d seconds! **\n",nsec) ;
+          "\n** AFNI received QUIT signal ==> exit in %u seconds! **\n",nsec) ;
   signal(SIGALRM,AFNI_sigfunc_alrm) ;
   (void) alarm(nsec) ;
   return ;
@@ -3678,7 +3678,7 @@ if(PRINT_TRACING)
 
 if(PRINT_TRACING){
  char str[256] ;
- sprintf(str,"isqCR_buttonpress: button=%d state=%x",xev->button,xev->state) ;
+ sprintf(str,"isqCR_buttonpress: button=%d state=%x",(int)xev->button,xev->state) ;
  STATUS(str) ; }
 
          im3d->vwid->butx = xev->x_root ;  /* 17 May 2005 */
@@ -9010,7 +9010,7 @@ char * AFNI_ttatlas_query( Three_D_View *im3d )
 #endif
  
      tlab = TT_whereami( tv.xyz[0] , tv.xyz[1] , tv.xyz[2],
-             space_index );
+             (AFNI_STD_SPACES)space_index );
 /*     tlab = TT_whereami( tv.xyz[0] , tv.xyz[1] , tv.xyz[2], UNKNOWN_SPC ) ;*/
      return tlab ;
    }
