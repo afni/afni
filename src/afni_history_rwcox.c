@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 24 , SEP , 2010 , RWC , "afni" , MICRO , TYPE_NEW_ENV ,
+   "AFNI_SQRT_AUTORANGE is no more" ,
+   "Instead, AFNI_AUTORANGE_POWER is born." } ,
+
  { 23 , SEP , 2010 , RWC , "3dUndump" , MICRO , TYPE_GENERAL ,
    "Clarify help a little with some examples." ,
    NULL } ,
