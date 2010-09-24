@@ -9,7 +9,9 @@
 #include "afni.h"
 
 #undef  STAMPER
-#define STAMPER(ar,ww) (ar)->last_when[(ww)-RECEIVE_BASEVAL] = NI_clock_time()
+#define STAMPER(ar,ww)    \
+ do{ if( (ar) != NULL )   \
+       (ar)->last_when[(ww)-RECEIVE_BASEVAL] = NI_clock_time() ; } while(0)
 
 #undef  STAMPCHECK
 #if 1
