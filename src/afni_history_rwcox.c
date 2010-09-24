@@ -44,6 +44,15 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 24 , SEP , 2010 , RWC , "afni" , MICRO , TYPE_BUG_FIX ,
+   "Fix bug in afni_receive.c" ,
+   "When a receiver shuts down its own reception, then the pointer to the\n"
+   "receive structure is freed.  In AFNI_process_alteration(), this caused\n"
+   "the time STAMPER macro to de-ref the NULL pointer.  STAMPER was modified\n"
+   "to avoid this problem, which would cause afni to crash if the user\n"
+   "switched to +tlrc during drawing in +orig.  This, of course, is Daniel\n"
+   "Glen's fault." } ,
+
  { 24 , SEP , 2010 , RWC , "afni" , MICRO , TYPE_NEW_ENV ,
    "AFNI_SQRT_AUTORANGE is no more" ,
    "Instead, AFNI_AUTORANGE_POWER is born." } ,

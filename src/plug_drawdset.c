@@ -608,7 +608,7 @@ void DRAW_make_widgets(void)
      AV_SENSITIZE( copy_mode_av , True ) ;
      AV_SENSITIZE( copy_type_av , True ) ;
      AV_SENSITIZE( copy_datum_av, True ) ;
-     
+
      XtManageChild(rc) ;
 
    } /* end of Copy mode stuff */
@@ -1006,22 +1006,22 @@ void DRAW_copy_bbox_CB( Widget w, XtPointer client_data, XtPointer call_data )
      MCW_set_widget_label( choose_pb , "  Choose dataset for copying" );
    else
      MCW_set_widget_label( choose_pb , "  Choose dataset to change directly" );
-   
+
    return ;
 }
 
 /*
-  turn on or off copy dataset check box and related buttons 
+  turn on or off copy dataset check box and related buttons
 */
-static void 
-Sensitize_copy_bbox(int  sens) 
+static void
+Sensitize_copy_bbox(int  sens)
 {
-   XtPointer clienttemp=NULL; 
+   XtPointer clienttemp=NULL;
 
    SENSITIZE(copy_bbox->wbut[0], sens);
    SENSITIZE(copy_bbox->wbut[1], sens);
    /* dummy pointers passed */
-   if(sens) 
+   if(sens)
       DRAW_copy_bbox_CB(copy_bbox->wbut[0], clienttemp, clienttemp);
   else
    {
@@ -1030,7 +1030,7 @@ Sensitize_copy_bbox(int  sens)
       AV_SENSITIZE( copy_datum_av, 0 ) ;
    }
 }
-   
+
 
 /*-------------------------------------------------------------------
   Callback for done button
@@ -1248,7 +1248,7 @@ void DRAW_saveas_finalize_CB( Widget w, XtPointer fd, MCW_choose_cbs * cbs )
    dset_changed = 0 ; SENSITIZE(choose_pb,1) ;
    MCW_invert_widget(saveas_pb) ;
    SENSITIZE(save_pb,0) ; SENSITIZE(saveas_pb,0) ;
-   Sensitize_copy_bbox(1); 
+   Sensitize_copy_bbox(1);
 
    return ;
 }
@@ -1733,7 +1733,7 @@ void DRAW_finalize_dset_CB( Widget w, XtPointer fd, MCW_choose_cbs *cbs )
    dset_idc = dset->idcode ;   /* 31 Mar 1999 */
 
    SENSITIZE(save_pb,0) ; SENSITIZE(saveas_pb,0) ;
-   Sensitize_copy_bbox(0); 
+   Sensitize_copy_bbox(0);
 
    /*-- write the informational label --*/
 
@@ -1882,36 +1882,36 @@ void DRAW_value_CB( MCW_arrowval * av , XtPointer cd )
    return ;
 }
 
-/* check if the value in the value field will be changed 
+/* check if the value in the value field will be changed
   once it gets applied to the dataset */
 /* error message is popped up if data value can not be applied*/
-/* also returns 0 for data okay, 1 if can not use the data value */  
+/* also returns 0 for data okay, 1 if can not use the data value */
 static int Check_value(void)
 {
    int   ityp;
-   float bfac; 
+   float bfac;
    float value_float2, delta;
-   
+
    /* sanity check */
 
    if( dset==NULL) {
      (void) MCW_popup_message( label_textf , \
         "Please choose dataset first\n", \
-	 MCW_USER_KILL | MCW_TIMER_KILL) ;
-     PLUTO_beep() ;  
-   
+        MCW_USER_KILL | MCW_TIMER_KILL) ;
+     PLUTO_beep() ;
+
     return(1) ;
    }
    ityp = DSET_BRICK_TYPE(dset,0) ;
    bfac = DSET_BRICK_FACTOR(dset,0) ;
-   
+
    if( bfac == 0.0 ) bfac = 1.0 ;
 
    switch( ityp ){
 
       default: fprintf(stderr,"Illegal brick type=%s in AFNI Editor!\n",
                        MRI_TYPE_name[ityp] ) ;
-		       return(0);
+               return(0);
       break ;
 
       case MRI_short:{
@@ -1958,7 +1958,7 @@ static int Check_value(void)
      value_float = value_av->fval ;
      DRAW_set_value_label();  /* reset value and label field to previous entry */
      return(1);
-   }  
+   }
 
    return(0);
 }
@@ -2060,7 +2060,7 @@ void DRAW_label_CB( Widget wtex , XtPointer cld, XtPointer cad )
                  " **\n"
                  " ** Value,Label pairs must be unique \n"
                  " *********************************** \n"
-             , str_lab , str_old ) ;  
+             , str_lab , str_old ) ;
      /* changed popup to disappear with timer to make it easier to continue */
      (void) MCW_popup_message( label_textf , msg , MCW_USER_KILL | MCW_TIMER_KILL) ;
      PLUTO_beep() ;
@@ -2220,11 +2220,14 @@ void DRAW_attach_dtable( Dtable *dt, char *atname, THD_3dim_dataset *ds )
 
 void DRAW_receiver( int why , int np , void * vp , void * cbd )
 {
+
+ENTRY("DRAW_receiver") ;
+
    switch( why ){
 
       default:
          fprintf(stderr,"DRAW_receiver: illegal why=%d\n",why) ;
-      return ;
+      EXRETURN ;
 
       /*-- we like this one --*/
 
@@ -2239,7 +2242,7 @@ void DRAW_receiver( int why , int np , void * vp , void * cbd )
          if( mode == UNDO_MODE ){
            if( undo_num > 0 ) DRAW_undo_CB( undo_pb,NULL,NULL ) ;
            else               XBell(dc->display,100) ;
-           return ;
+           EXRETURN ;
          }
 
          if( mode == INCVAL_MODE || mode == DECVAL_MODE ){ /* 13 Sep 2008 */
@@ -2249,12 +2252,12 @@ void DRAW_receiver( int why , int np , void * vp , void * cbd )
            value_int   = value_av->ival ;
            value_float = value_av->fval ;
            DRAW_set_value_label() ;
-           return ;
+           EXRETURN ;
          }
 
          /*-- Did we get points? --*/
 
-         if( np <= 0 ) return ;
+         if( np <= 0 ) EXRETURN ;
 
          plane = mode - SINGLE_MODE ;
          if( plane < 1 || plane > 3 ) plane = mode - PLANAR_MODE ;
@@ -2439,14 +2442,14 @@ void DRAW_receiver( int why , int np , void * vp , void * cbd )
                     fprintf(stderr,
                            "Flood not implemented for datasets of type %s\a\n",
                            MRI_TYPE_name[ityp] ) ;
-                 return ;
+                 EXRETURN ;
 
               } /* end of switch on type */
 
               /* start point must be a 0 (can't fill from an edge) */
 
               if( pl[ix+jy*itop] == 1 ){
-                 free(pl) ; XBell(dc->display,100) ; return ;
+                 free(pl) ; XBell(dc->display,100) ; EXRETURN ;
               }
 
               /* call a routine to fill the array */
@@ -2457,7 +2460,7 @@ void DRAW_receiver( int why , int np , void * vp , void * cbd )
 
               nfill = 0 ;
               for( ii=0 ; ii < nij ; ii++ ) nfill += (pl[ii] == 2) ;
-              if( nfill == 0 ){ free(pl) ; XBell(dc->display,100) ; return ; }
+              if( nfill == 0 ){ free(pl) ; XBell(dc->display,100) ; EXRETURN ; }
 
               xyzf = (int *) malloc( sizeof(int) * nfill ) ;
 
@@ -2508,7 +2511,7 @@ void DRAW_receiver( int why , int np , void * vp , void * cbd )
                 }
               }
               if( ix < 0 ){ /* should never happen */
-                 free(pl) ; XBell(dc->display,100) ; return ;
+                 free(pl) ; XBell(dc->display,100) ; EXRETURN ;
               }
 
               /* fill the array from the edge */
@@ -2519,7 +2522,7 @@ void DRAW_receiver( int why , int np , void * vp , void * cbd )
 
               nfill = 0 ;
               for( ii=0 ; ii < nij ; ii++ ) nfill += (pl[ii] != 2) ;
-              if( nfill == 0 ){ free(pl) ; XBell(dc->display,100) ; return ; }
+              if( nfill == 0 ){ free(pl) ; XBell(dc->display,100) ; EXRETURN ; }
 
               xyzf = (int *) malloc( sizeof(int) * nfill ) ;
 
@@ -2564,6 +2567,11 @@ void DRAW_receiver( int why , int np , void * vp , void * cbd )
                DRAW_quit_CB(NULL,NULL,NULL) ;  /* die */
 
                /* less feeble protest */
+
+               ERROR_message( "Controller grid was altered!\n"
+                              "          Editor was forced to quit!\n"
+                              "          Any un-Saved changes were lost!" ) ;
+
                (void) MCW_popup_message( im3d->vwid->top_shell ,
                                            "Controller grid was altered!\n"
                                            "Editor was forced to quit.\n"
@@ -2599,7 +2607,7 @@ void DRAW_receiver( int why , int np , void * vp , void * cbd )
 
    } /* end of switch on why */
 
-   return ;
+   EXRETURN ;  /* unreachable */
 }
 
 
@@ -2742,7 +2750,7 @@ int DRAW_into_dataset( int np , int *xd , int *yd , int *zd , void *var )
    dset_changed = 1 ;
    SENSITIZE(save_pb,1) ; SENSITIZE(saveas_pb,1) ;
    SENSITIZE(choose_pb,0) ;
-   Sensitize_copy_bbox(0); 
+   Sensitize_copy_bbox(0);
 
    /* save buffer pushed onto appropriate stack */
 
@@ -2915,7 +2923,7 @@ void DRAW_fillin_CB( Widget w , XtPointer cd , XtPointer cb )
      dset_changed = 1 ;
      SENSITIZE(save_pb,1) ; SENSITIZE(saveas_pb,1) ;
      if( recv_open ) AFNI_process_drawnotice( im3d ) ;
-    
+
      { void *bar , *tbar ;     /* 21 Nov 2003: compute the undo stuff */
        int ityp=bim->kind, ii,jj, nvox=bim->nvox, ndel=0 ;
        dobuf *sb=NULL ;
