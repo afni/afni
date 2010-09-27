@@ -49,6 +49,23 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 27 , SEP, 2010 , DRG , "afni GUI" , 
+    MINOR , TYPE_MODIFY, 
+    "Datasets and atlas datasets show labels in overlay panel",
+    "Atlases distributed with afni have been updated to include labels\n"
+    "in the header that show a label for each value. If a dataset has\n"
+    "been created with the Draw Dataset plugin or a label table has been\n"
+    "applied with 3drefit, then the labels will be displayed next to the\n"
+    "corresponding value in the Overlay panel. Integral ROI colormaps are\n"
+    "used for any dataset with label tables assigned or with an INT_CMAP\n"
+    "attribute." 
+} ,
+
+{ 27 , SEP, 2010 , DRG , "3dWarp" , 
+    MICRO , TYPE_MODIFY, 
+    "Output using mni2tta or tta2mni are marked with an appropriate space"
+} ,
+
 { 10 , SEP, 2010 , DRG , "afni_all" , 
     MAJOR , TYPE_MODIFY, 
     "Introduce code allowing multiple space sessions but limited to existing",
