@@ -72,7 +72,7 @@ CP = /bin/cp -f
 
 LINT = /usr/bin/lint -a -b -u -v -x $(IFLAGS) $(CCDEFS)
 
-INSTALLDIR = ./iqq
+INSTALLDIR = ./macosx_10.5_Intel_64icc
 LIBDIR = $(INSTALLDIR)
 SHOWOFF = -DSHOWOFF=macosx_10.5_Intel_64icc
 

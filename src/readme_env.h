@@ -2883,14 +2883,13 @@ static char * readme_env[] = {
    "\n" ,
    "This feature may be referred to as the Jen Evans special.\n" ,
    "\n" ,
-   "-----------------------------\n" ,
-   "Variable: AFNI_SQRT_AUTORANGE (editable)\n" ,
-   "-----------------------------\n" ,
-   "The functional overlay 'autoRange' value is now [22 Jul 2010] by\n" ,
-   "default set to the square root of the largest value in the\n" ,
-   "OLay sub-brick (if that value is > 1).  If you want the old behavior,\n" ,
-   "where the autoRange value is set to the largest value, set this\n" ,
-   "variable to NO.\n" ,
+   "------------------------------\n" ,
+   "Variable: AFNI_AUTORANGE_POWER\n" ,
+   "------------------------------\n" ,
+   "If this variable is set to a value between 0 and 1 (exclusive),\n" ,
+   "then the functional overlay 'autoRange' value will be set to\n" ,
+   "the largest value in the dataset raised to this power.  By default,\n" ,
+   "the autoRange value is computed as if this power is 1.\n" ,
    "\n" ,
    "----------------------------------------------------------------------\n" ,
    "--- variables specific to NIML I/O\n" ,
@@ -3107,4 +3106,4 @@ static char * readme_env[] = {
    "behavior, set this variable to YES.\n" ,
    "\n" ,
    NULL } ;
-#define NUM_readme_env 3107
+#define NUM_readme_env 3106
