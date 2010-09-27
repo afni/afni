@@ -1716,7 +1716,7 @@ int SUMA_M_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                              "time. You are out of luck\n"
                              "if using SUN.");
                }
-               SUMA_RETURNe;
+               SUMA_RETURN(0);
             #endif
          }
          break;

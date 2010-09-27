@@ -10203,7 +10203,9 @@ SUMA_DSET *SUMA_OpenDX2dset( char *FullName, char *dset_id, char *dom_id,
    /* now add the columns */
    
    for (i=0; i<SUMA_NCOL_OPENDX(dx); ++i) {
-      if (!SUMA_AddDsetNelCol (dset, "dx_col", SUMA_VarType2ColType (dx->type), dx->datap+i, NULL , SUMA_NCOL_OPENDX(dx))) {
+      if (!SUMA_AddDsetNelCol (dset, "dx_col", 
+                           SUMA_VarType2ColType (dx->type), 
+                           (char *)dx->datap+i, NULL , SUMA_NCOL_OPENDX(dx))) {
          SUMA_SL_Crit("Failed in SUMA_AddDsetNelCol");
          SUMA_FreeDset((void*)dset); dset = NULL;
          SUMA_RETURN(dset);
