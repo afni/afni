@@ -69,7 +69,7 @@ int calfun_(integer *n, doublereal *x, doublereal *fun)
    }
 
    *fun = (doublereal)val ;
-   return ;
+   return 0 ;
 }
 
 /*---------------------------------------------------------------------------*/

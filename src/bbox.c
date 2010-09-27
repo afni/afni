@@ -563,7 +563,7 @@ ENTRY("new_MCW_arrowval") ;
       if( xflist != (XmFontList)NULL ){
         asizy = XmStringHeight( xflist , xstr ) ;
       } else {
-        static first = 1 ;
+        static int first = 1 ;
         if( first ){ ERROR_message("Can't get font list?"); first=0; }
       }
       STATUS("freeing xstr") ;

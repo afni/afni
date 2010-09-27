@@ -33,7 +33,7 @@ PARSER_code * PARSER_generate_code( char *expression )
    int nexp ;
    PARSER_code *pc ;
    char *exp,cc ; int ii,jj ;  /* 22 Jul 2003 */
-   static first=1 ;
+   static int first=1 ;
 
    if( first ){ srand48((long)time(NULL)+(long)getpid()); first=0; }
    if( expression == NULL ) return NULL ;

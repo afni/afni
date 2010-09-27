@@ -53,7 +53,7 @@ char * approximate_number_string( double val )
    sval = svals[k];
    ++k;
 
-   if( aval == 0.0 ){ strcpy(sval,"Zero"); return; }
+   if( aval == 0.0 ){ strcpy(sval,"Zero"); return sval; }
 
    if( val < 0.0 ){ strcpy(sval,"-"); } else { sval[0] = '\0'; }
 

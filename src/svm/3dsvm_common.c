@@ -4454,6 +4454,7 @@ int ppi (int argc, int i, char *optionString)
   }
   else if ( i<argc-1 ) return(++i);
   else ERROR_exit("No argument after %s!", optionString);
+  return 0 ;  /* unreachable */
 }
 
 int input_parse(int argc,char *argv[],long *main_verbosity,

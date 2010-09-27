@@ -628,8 +628,8 @@ void get_options
   NL_options * option_data          /* bucket dataset options */
 )
 
+#define MAX_BRICKS 100
 {
-  const MAX_BRICKS = 100;           /* max. number of bricks in the bucket */
   int nopt = 1;                     /* input option argument counter */
   int ival, index;                  /* integer input */
   float fval;                       /* float input */

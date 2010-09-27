@@ -46,7 +46,7 @@ get_xform_chain(ATLAS_SPACE *at_space, ATLAS_SPACE *dest_space);
 atlas_xform_list *read_space_xforms(NI_stream space_niml);
 atlas_xform_list *calc_xform_list(atlas_xform_list *xfl);
 int find_atlas_space_index(char *spacename);
-void *report_available_spaces(char *src);
+void report_available_spaces(char *src);
 atlas_space_list *find_available_spaces(char *src_space_name);
 
 void free_atlas_structs(void);
@@ -1556,14 +1556,13 @@ atlas_xform_list *report_xform_chain(char *src, char *dest)
 }
 
 /* report which spaces are available to go between src and all other spaces */
-void *report_available_spaces(char *src)
+void report_available_spaces(char *src)
 {
    atlas_space_list *spl;
    
    spl = find_available_spaces(src);
    print_space_list(spl);
    free_space_list(spl);    
-
 }
 
 /* read various NIML files for atlas information*/
@@ -3265,7 +3264,7 @@ int atlas_read_xform(NI_element *nel, atlas_xform *atlas_xf)
    }
 
   for(i=0;i<nel->vec_num;i++){
-     memcpy(atlas_xf->xform+i*sizeof(float), nel->vec[i], sizeof(float));
+     memcpy((char *)(atlas_xf->xform)+i*sizeof(float), nel->vec[i], sizeof(float));
   }
   if(debug_niml)
       print_xform(atlas_xf);
