@@ -1248,7 +1248,7 @@ void estimate_gfw (int nx, int ny, int nz, float dx, float dy, float dz,
 
   /*-----  output results  -----*/
   if (!quiet){
-#pragma critical (PRINTF)
+#pragma omp critical (PRINTF)
     {
       printf ("var  =%f \n", var);
       printf ("varxx=%f varyy=%f varzz=%f \n", varxx, varyy, varzz);
@@ -1375,7 +1375,7 @@ void threshold_data (int nx, int ny, int nz, float * fim,
 
   if (!quiet)
   {
-#pragma critical (PRINTF)
+#pragma omp critical (PRINTF)
     {
       pact = pcalc (nx, ny, nz, fim, zthr);
       printf ("pthr=%f zthr=%f pact=%f mean=%f sd=%f ", pthr, zthr, pact,mean,sd);
@@ -1467,7 +1467,7 @@ void identify_clusters (int nx,  int ny,  int nz,
   if ((clar == NULL) || (clar->num_clu == 0))
     {
       if (!quiet){
-#pragma critical (PRINTF)
+#pragma omp critical (PRINTF)
         printf ("NumCl=%4d  MaxClSz=%4d\n", 0, 0);
       }
       if (clar != NULL)  DESTROY_CLARR(clar);
@@ -1494,7 +1494,7 @@ void identify_clusters (int nx,  int ny,  int nz,
       else                               max_table[g_max_cluster_size-1]++;
 
       if (!quiet){
-#pragma critical (PRINTF)
+#pragma omp critical (PRINTF)
 	printf ("NumCl=%4d  MaxClSz=%4d\n", clar->num_clu, max_size);
       }
 
@@ -1504,7 +1504,7 @@ void identify_clusters (int nx,  int ny,  int nz,
           cl = clar->clar[iclu] ; if( cl == NULL ) continue ;
           MCW_cluster_to_vol( nx,ny,nz , MRI_float , fim , cl ) ;
         }
-#pragma critical (DO_SAVE)
+#pragma omp critical (DO_SAVE)
         { char fname[32] ; FILE *fp ;
           for( iclu=0 ; ; iclu++ ){
             sprintf(fname,"Clu%06d",iclu) ;
@@ -1958,7 +1958,7 @@ int main (int argc, char ** argv)
   for (iter = 1;  iter <= niter;  iter++)
     {
       if (!qqq){
-#pragma critical (PRINTF)
+#pragma omp critical (PRINTF)
        printf ("Iter =%5d  \n", iter);
       }
 
