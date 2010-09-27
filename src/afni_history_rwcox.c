@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 27 , SEP , 2010 , RWC , "small fixes" , MICRO , TYPE_GENERAL ,
+   "To patch minor problems pointed out by icc" ,
+   NULL } ,
+
  { 24 , SEP , 2010 , RWC , "afni" , MICRO , TYPE_BUG_FIX ,
    "Fix bug in afni_receive.c" ,
    "When a receiver shuts down its own reception, then the pointer to the\n"

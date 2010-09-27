@@ -496,6 +496,7 @@ THD_3dim_dataset * initialize_program ( int argc , char * argv[] )
   if (SC_dimension < 1)  SC_error ("No parameter data?");
 
 
+  return NULL ;
 }
 
 
