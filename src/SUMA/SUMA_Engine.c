@@ -61,6 +61,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
    double dv15[15];
    XtPointer elvis=NULL;
    NI_element *nel;
+   char *cbuf=NULL;
    SUMA_Boolean Found;
    SUMA_SurfaceViewer *svi;
    SUMA_SurfaceViewer *sv = NULL;
@@ -3009,7 +3010,15 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                   SUMA_S_Err("Failed in I_sb"); break; 
                }
             }
-            
+            if ((cbuf = NI_get_attribute(EngineData->ngr, "Dsp"))) {
+               
+               /* inefficient implementation (causes redisplay, 
+                  but avoids duplicating code... */
+               if (!SUMA_SetDsetViewMode(SO, 
+                     SUMA_ShowModeStr2ShowModeMenuItem(cbuf), 1)) { 
+                  SUMA_S_Err("Failed in Dsp"); break; 
+               }
+            }
             if (NI_get_attribute(EngineData->ngr, "I_range")) {
                char *stmp = NULL;
                NI_GET_STR_CP(EngineData->ngr, "I_range", stmp);
@@ -3985,6 +3994,8 @@ int SUMA_VisibleSOs (SUMA_SurfaceViewer *sv, SUMA_DO *dov, int *SO_IDs)
    static char FuncName[]={"SUMA_VisibleSOs"};
    SUMA_SurfaceObject *SO=NULL;
    int i, k = 0;
+   SUMA_NIDO *SDO=NULL;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
 
@@ -4009,7 +4020,7 @@ int SUMA_VisibleSOs (SUMA_SurfaceViewer *sv, SUMA_DO *dov, int *SO_IDs)
          }
       }
    }
-
+   
    SUMA_RETURN (k);
 }
 

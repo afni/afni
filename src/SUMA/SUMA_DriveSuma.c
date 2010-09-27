@@ -295,6 +295,12 @@ void usage_DriveSuma (SUMA_GENERIC_ARGV_PARSE *ps)
 "                         is symmetric from -|IR0| to |IR0|.\n"
 "       -shw_0 y/n      or \n" 
 "       -show_0 y/n: Set shw 0 toggle button of DSET.\n"
+"       -Dsp MODE: Set the viewing mode of the current DSET.\n"
+"                  MODE is one of XXX, Con, Col, or 'C&C' \n"
+"                      (single quotes necessary for 'C&C' MODE).\n"
+"                  This is equivalent to setting the 'Dsp' menu button\n"
+"                  in the surface controller. The option is applied\n"
+"                  to the current DSET on the selected surface.\n"
 "       -T_sb TSB: Switch threshold to TSBth column (sub-brick)\n"
 "                  Set TSB to -1 to turn off thresholding.\n"
 "       -T_val THR: Set threshold to THR\n"
@@ -637,6 +643,21 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          }
          brk = YUP;
       }
+      
+      if (!brk && ( (strcmp(argt[kar], "-Dsp") == 0) ) )
+      {
+         if (kar+1 >= argtc)
+         {
+            fprintf (SUMA_STDERR, "need XXX, Col, Con, or C&C after -Dsp \n");
+            SUMA_RETURN(0);
+         }
+         
+         argt[kar][0] = '\0';
+         NI_set_attribute(ngr, "Dsp", argt[++kar]);
+         argt[kar][0] = '\0';
+         brk = YUP;
+      }
+
       if (!brk && ( (strcmp(argt[kar], "-B_sb") == 0) ) )
       {
          if (kar+1 >= argtc)
@@ -1198,16 +1219,16 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
             SUMA_RETURN(0);
          }
          argt[kar][0] = '\0';++kar;
-         if (atoi(argt[kar]) < 10 || atoi(argt[kar]) > 4000) {
+         if (atoi(argt[kar]) < 0 || atoi(argt[kar]) > 4000) {
             fprintf (SUMA_STDERR, 
-               "Have %d for X in pixels! \n", atoi(argt[kar]));
+               "Have %d for X in pixels. Range [0 4000].! \n", atoi(argt[kar]));
             SUMA_RETURN(0);
          }
          NI_set_attribute(ngr, "WindX", argt[kar]);
          argt[kar][0] = '\0';++kar;
-         if (atoi(argt[kar]) < 10 || atoi(argt[kar]) > 4000) {
+         if (atoi(argt[kar]) < 0 || atoi(argt[kar]) > 4000) {
             fprintf (SUMA_STDERR, 
-               "Have %d for Y in pixels! \n", atoi(argt[kar]));
+               "Have %d for Y in pixels!  Range [0 4000].\n", atoi(argt[kar]));
             SUMA_RETURN(0);
          }
          NI_set_attribute(ngr, "WindY", argt[kar]);

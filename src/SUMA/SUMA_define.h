@@ -167,10 +167,11 @@ typedef enum { type_not_set = -1,
                no_type, SO_type, AO_type, ROIdO_type, ROIO_type, 
                GO_type, LS_type, NBLS_type, OLS_type, NBOLS_type,
                NBV_type, ONBV_type, SP_type,
-               NBSP_type, PL_type,
+               NBSP_type, PL_type, VO_type,
                NBT_type, SBT_type, DBT_type, /*!< Those three will 
                                                    likely not be used */
-               NIDO_type } SUMA_DO_Types;   
+               NIDO_type, 
+               N_DO_TYPES } SUMA_DO_Types;   
 
 /*!< Displayable Object Types 
                                                                                     S: surface, A: axis, G: grid, 
@@ -2232,6 +2233,42 @@ typedef struct {
                      \sa SUMA_Print_Surface_Object in SUMA_Load_Surface_Object.c
                      \sa SUMA_Load_Surface_Object in SUMA_Load_Surface_Object.c
                */  
+
+#define SUMA_MAX_N_VE 5
+typedef struct {
+   THD_3dim_dataset *dset;
+   
+   GLubyte *texvec;  /* vector of voxel textures */
+   GLuint *texName;
+   
+   float vo0[3];  /* coordinates of 1st voxel */
+   float voN[3];  /* coordinates of last voxel */
+   
+} SUMA_VolumeElement;
+
+typedef struct {
+      /* THE FIRST THREE VARIABLES MUST RETAIN THEIR ORDER HERE */
+   char *idcode_str;    
+   char *Label; 
+   SUMA_DO_Types do_type; 
+   
+   SUMA_VolumeElement **VE;
+   
+   GLfloat TexEnvMode;
+   
+   GLdouble CutPlane[6][4];
+   byte UseCutPlane[6];
+   SUMA_SurfaceObject **SOcut;
+   
+   void *VoxelMarker; /* a TBD structure to hold object used to 
+                        highlight a selected voxel */
+   int SelectedVoxel;
+   byte ShowSelectedVoxel;
+   
+   byte Show;
+   
+} SUMA_VolumeObject; /*! \sa SUMA_CreateVolumeObject */
+
                    
 /*! Structure for creating a hash of color ids */
 typedef struct {

@@ -196,6 +196,8 @@ int SUMA_bracketleft_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
    static char FuncName[]={"SUMA_bracketleft_Key"};
    char tk[]={"["}, keyname[100];
    int k, nc;
+   char stmp[200];   
+   static int nwarn=0;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -211,6 +213,18 @@ int SUMA_bracketleft_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
          SUMA_WorldAxisStandard (sv->WAx, sv);
          SUMA_UpdateViewerTitle(sv);   
          SUMA_postRedisplay(sv->X->GLXAREA, NULL, NULL);
+         if (sv->ShowLeft) {
+            sprintf(stmp,"Showing Left side%s",
+               nwarn > 1 ? 
+            "":"\nFurther Show notices for '[' key will be echoed in the shell"); 
+         } else {
+            sprintf(stmp,"Hiding Left side%s",
+               nwarn > 1 ? 
+            "":"\nFurther Hide notices for '[' key will be echoed in the shell");
+         }
+         if (nwarn < 2 && callmode && strcmp(callmode, "interactive") == 0) { 
+            SUMA_SLP_Note(stmp); ++nwarn;
+         } else { SUMA_S_Note(stmp); } 
          break;
       default:
          SUMA_S_Err("Il ne faut pas etre la");
@@ -226,6 +240,8 @@ int SUMA_bracketright_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
    static char FuncName[]={"SUMA_bracketright_Key"};
    char tk[]={"]"}, keyname[100];
    int k, nc;
+   char stmp[200];   
+   static int nwarn=0;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -241,6 +257,18 @@ int SUMA_bracketright_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
          SUMA_WorldAxisStandard (sv->WAx, sv);
          SUMA_UpdateViewerTitle(sv);   
          SUMA_postRedisplay(sv->X->GLXAREA, NULL, NULL);
+         if (sv->ShowRight) {
+            sprintf(stmp,"Showing Right side%s",
+               nwarn > 1 ? 
+                  "":"\nFurther Show notices for ']' key will be in the shell"); 
+         } else {
+            sprintf(stmp,"Hiding right side%s",
+               nwarn > 1 ? 
+                  "":"\nFurther Hide notices for ']' key will be in the shell");
+         }
+         if (nwarn < 2 && callmode && strcmp(callmode, "interactive") == 0) { 
+            SUMA_SLP_Note(stmp); ++nwarn;
+         } else { SUMA_S_Note(stmp); } 
          break;
       default:
          SUMA_S_Err("Il ne faut pas etre la");
@@ -395,7 +423,7 @@ int SUMA_comma_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
          }
 
          do {
-            if (nxtstateID > -1) {
+            if (LocalHead && nxtstateID > -1) {
                note = SUMA_append_string("Skipping state ",sv->State);
                note = SUMA_append_replace_string(note, 
                                              ".\nNo surfaces visible.", "", 1);
@@ -492,7 +520,7 @@ int SUMA_period_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
          }
 
          do {
-            if (nxtstateID > -1) {
+            if (LocalHead && nxtstateID > -1) {
                note = SUMA_append_string("Skipping state ",sv->State);
                note = SUMA_append_replace_string(note, 
                                           ".\nNo surfaces visible.", "", 1);
@@ -3925,6 +3953,40 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                }
             }
             break;
+         case 6:  /* This is shift and wheel , Button6 is not in X.h ! */
+            {
+               int ii;
+               SUMA_VolumeObject *VO=NULL;
+               for (ii=0; ii<SUMAg_N_DOv; ++ii) {
+                  if (SUMA_isVO(SUMAg_DOv[ii])) {
+                     VO = (SUMA_VolumeObject *)(SUMAg_DOv[ii].OP);
+                     if (!SUMA_MoveCutplane(VO, 0, 1.0)) {
+                        SUMA_SLP_Err("Bad");
+                     }
+		     /* JB: only allow cutplane from 1st volume, otherwise remove 'break' */
+		     break;
+                  }
+               }
+               SUMA_postRedisplay(w, NULL, NULL);
+            }
+            break;
+         case 7: /* This is shift and wheel , Button7 is not in X.h ! */
+            {
+               int ii;
+               SUMA_VolumeObject *VO=NULL;
+               for (ii=0; ii<SUMAg_N_DOv; ++ii) {
+                  if (SUMA_isVO(SUMAg_DOv[ii])) {
+                     VO = (SUMA_VolumeObject *)(SUMAg_DOv[ii].OP);
+                     if (!SUMA_MoveCutplane(VO, 0, -1.0)) {
+                        SUMA_SLP_Err("Bad");
+                     }
+		     /* JB: only allow cutplane from 1st volume, otherwise remove 'break' */
+		     break;
+                  }
+               }
+               SUMA_postRedisplay(w, NULL, NULL);
+            }
+            break;
          case Button2:
             if (Bev.state & ShiftMask) {
                /* setup initial zooming conditions */
@@ -4034,11 +4096,23 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                               "Failed in SUMA_MarkLineSurfaceIntersect.\n",
                               FuncName);
                      break;
-                  }else if (hit == 0) { /* nothing hit, get out */
-                     break;
+                  } else if (hit == 0) { /* nothing hit, try cut planes  */
+                     if (SUMAg_CF->Dev ) {
+                        hit = SUMA_MarkLineCutplaneIntersect (sv, SUMAg_DOv, 0);
+                        if (hit < 0) {
+                           fprintf( SUMA_STDERR,
+                              "Error %s: "
+                              "Failed in SUMA_MarkLineCutplaneIntersect.\n",
+                                    FuncName);
+                           break;
+                        }else if (hit == 0) { /* nothing hit, go out */
+                           break;
+                        }
+                     } else { /* nothing hit, and don't touch clipplanes, 
+                                 go out */
+                        break;
+                     }
                   }
-
-                  
                }
                
                if (ROI_mode) {
@@ -4350,29 +4424,33 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             break;
             
          case SUMA_Button_2_Motion:
-            /* fprintf(SUMA_STDERR,"%s: In motion, Butt2 \n", FuncName);*/
             mevx = (float)Mev.x; mevy = (float)Mev.y;
+            SUMA_LHv("In motion, Butt2 %f, %f\n", mevx , mevy);
             if (sv->ZoomCompensate) {
                zc_fac = sv->ZoomCompensate;
             }else {
                zc_fac = 1.0;
             }
-            sv->GVS[sv->StdView].translateDeltaX =  
-               (mevx - sv->GVS[sv->StdView].translateBeginX) /
-               (float)sv->WindWidth*sv->GVS[sv->StdView].TranslateGain;
-            sv->GVS[sv->StdView].translateDeltaY = 
-               -(mevy - sv->GVS[sv->StdView].translateBeginY) /
-                (float)sv->WindHeight*sv->GVS[sv->StdView].TranslateGain;
-            
-            if (  sv->GVS[sv->StdView].translateDeltaX || 
-                  sv->GVS[sv->StdView].translateDeltaY){
-               sv->GVS[sv->StdView].translateVec[0] += 
-                  (GLfloat)sv->GVS[sv->StdView].translateDeltaX * zc_fac;
-               sv->GVS[sv->StdView].translateVec[1] += 
-                  (GLfloat)sv->GVS[sv->StdView].translateDeltaY * zc_fac;
-               sv->GVS[sv->StdView].translateBeginX = mevx;
-               sv->GVS[sv->StdView].translateBeginY = mevy;
-               SUMA_postRedisplay(w, clientData, callData);
+            if ((Kev.state & ShiftMask)){
+               
+            } else {
+               sv->GVS[sv->StdView].translateDeltaX =  
+                  (mevx - sv->GVS[sv->StdView].translateBeginX) /
+                  (float)sv->WindWidth*sv->GVS[sv->StdView].TranslateGain;
+               sv->GVS[sv->StdView].translateDeltaY = 
+                  -(mevy - sv->GVS[sv->StdView].translateBeginY) /
+                   (float)sv->WindHeight*sv->GVS[sv->StdView].TranslateGain;
+
+               if (  sv->GVS[sv->StdView].translateDeltaX || 
+                     sv->GVS[sv->StdView].translateDeltaY){
+                  sv->GVS[sv->StdView].translateVec[0] += 
+                     (GLfloat)sv->GVS[sv->StdView].translateDeltaX * zc_fac;
+                  sv->GVS[sv->StdView].translateVec[1] += 
+                     (GLfloat)sv->GVS[sv->StdView].translateDeltaY * zc_fac;
+                  sv->GVS[sv->StdView].translateBeginX = mevx;
+                  sv->GVS[sv->StdView].translateBeginY = mevy;
+                  SUMA_postRedisplay(w, clientData, callData);
+               }
             }  
             break;
          
@@ -4584,9 +4662,9 @@ int SUMA_MarkLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
    dmin = 10000000.0;
    for (ii=0; ii < N_SOlist; ++ii) { /* find the closest intersection */
       if (LocalHead) 
-         fprintf (SUMA_STDERR, 
-                  "%s: working %d/%d shown surfaces ...\n", 
-                  FuncName, ii, N_SOlist);
+            fprintf (SUMA_STDERR, 
+                     "%s: working %d/%d shown surfaces ...\n", 
+                     FuncName, ii, N_SOlist);
       SO = (SUMA_SurfaceObject *)dov[SOlist[ii]].OP;
       if (SO->FaceSetDim != 3) {
          fprintf(SUMA_STDERR,
@@ -4806,6 +4884,208 @@ int SUMA_MarkLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
       SUMA_RETURN (0); /* no hit */
    }
 }/* determine intersection */
+
+int SUMA_MarkLineCutplaneIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov, 
+                                    int IgnoreSameNode)
+{/* determine intersection */
+   static char FuncName[]={"SUMA_MarkLineCutplaneIntersect"};
+   float P0f[3], P1f[3];
+   int NP; 
+   SUMA_MT_INTERSECT_TRIANGLE *MTI = NULL, *MTIi = NULL;
+   float delta_t_tmp, dmin; 
+   struct timeval tt_tmp; 
+   int ip, it, id, iv3[3], ii, N_SOlist, 
+       SOlist[SUMA_MAX_DISPLAYABLE_OBJECTS], imin;
+   char sfield[100], sdestination[100], CommString[SUMA_MAX_COMMAND_LENGTH];
+   SUMA_EngineData *ED = NULL;
+   DList *list = NULL;
+   DListElmt *SetNodeElem = NULL;
+   SUMA_SurfaceObject *SO = NULL;
+   SUMA_SurfaceObject **SOv = NULL;
+   SUMA_Boolean NodeIgnored = NOPE;
+   SUMA_Boolean LocalHead = YUP;
+
+   SUMA_ENTRY;
+
+
+   P0f[0] = sv->Pick0[0];
+   P0f[1] = sv->Pick0[1];
+   P0f[2] = sv->Pick0[2];
+   P1f[0] = sv->Pick1[0];
+   P1f[1] = sv->Pick1[1];
+   P1f[2] = sv->Pick1[2];
+   
+   SUMA_LH("Getting array of pointers to clip plane surfaces");
+   if (!(SOv = SUMA_TextureClipPlaneSurfaces(&N_SOlist))) {
+      SUMA_LH("No clip plane surfaces");
+      SUMA_RETURN(0);
+   }
+   imin = -1;
+   dmin = 10000000.0;
+   for (ii=0; ii < N_SOlist; ++ii) { /* find the closest intersection */
+      if (LocalHead) 
+            fprintf (SUMA_STDERR, 
+                     "%s: working %d/%d clip plane ...\n", 
+                     FuncName, ii, N_SOlist);
+      SO = SOv[ii];
+      if (SO->FaceSetDim != 3) {
+         fprintf(SUMA_STDERR,
+            "Error %s: "
+            "SUMA_MT_intersect_triangle only works for triangular meshes.\n", 
+            FuncName);
+      } else {
+ 
+         SUMA_etime (&tt_tmp, 0);
+         SUMA_LH("About to call intersection function");
+         
+         MTIi = SUMA_MT_intersect_triangle(P0f, P1f, SO->NodeList, SO->N_Node, 
+                                           SO->FaceSetList, SO->N_FaceSet, NULL);
+
+         delta_t_tmp = SUMA_etime (&tt_tmp, 1);
+         if (LocalHead) 
+            fprintf (SUMA_STDERR, 
+               "Local Debug %s: Intersection took %f seconds.\n", 
+               FuncName, delta_t_tmp);
+
+         if (MTIi == NULL) {
+            fprintf(SUMA_STDERR,
+                     "Error %s: SUMA_MT_intersect_triangle failed.\n", FuncName);
+            SUMA_RETURN (-1);
+         }
+         
+         if (MTIi->N_hits) { 
+            /* decide on the closest surface to the clicking point */
+            if (MTIi->t[MTIi->ifacemin] < dmin) {
+               if (LocalHead) 
+                  fprintf (SUMA_STDERR, "%s: A minimum for surface %d.\n", 
+                           FuncName, ii);
+               dmin = MTIi->t[MTIi->ifacemin];
+               imin = ii;
+               MTI = MTIi;
+            }else {     
+               /* not good, toss it away */
+               if (LocalHead) 
+                  fprintf (SUMA_STDERR, 
+                           "%s: ii=%d freeing MTIi...\n", FuncName, ii);
+               MTIi = SUMA_Free_MT_intersect_triangle(MTIi); 
+            }
+         }else {
+            /* not good, toss it away */
+           if (LocalHead) 
+               fprintf (SUMA_STDERR, 
+                        "%s: ii=%d freeing MTIi no hits...\n", FuncName, ii);
+           MTIi = SUMA_Free_MT_intersect_triangle(MTIi); 
+        }
+      }
+    } 
+
+   if (LocalHead) 
+      fprintf (SUMA_STDERR, 
+               "%s: Closest surface is indexed %d in cutplane surfaces.\n", 
+               FuncName, imin);
+      
+   /* Mark intersection Facsets */
+   if (imin >= 0) {
+      ip = SO->FaceSetDim * MTI->ifacemin;
+      SUMA_S_Note("Have to decide on what to do here,\n"
+                  "see equivalent section in SUMA_MarkLineSurfaceIntersect");
+      
+      /* print nodes about the closets faceset*/
+      fprintf(SUMA_STDOUT, "\nvvvvvvvvvvvvvvvvvvvvvvvvvvvv\n");
+      fprintf(SUMA_STDOUT, "Selected cutplane surface %d .\n"
+                           "FaceSet %d, Closest Node %d\n", 
+         imin, MTI->ifacemin, MTI->inodemin);
+      fprintf(SUMA_STDOUT, "Nodes forming closest FaceSet:\n");
+      fprintf(SUMA_STDOUT, "%d, %d, %d\n", \
+      SO->FaceSetList[ip], SO->FaceSetList[ip+1],SO->FaceSetList[ip+2]);
+
+      fprintf (SUMA_STDOUT,"Coordinates of Nodes forming closest FaceSet:\n");
+      for (it=0; it < 3; ++it) { 
+
+         id = SO->NodeDim * SO->FaceSetList[ip+it];
+         fprintf(SUMA_STDOUT, "%f, %f, %f\n", SO->NodeList[id],\
+                                                SO->NodeList[id+1],\
+                                                SO->NodeList[id+2]);
+      }
+      fprintf(SUMA_STDOUT, "\n^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n");
+
+     
+      
+      /* Now set the cross hair position at the intersection*/
+      if (!list) list = SUMA_CreateList();
+      ED = SUMA_InitializeEngineListData (SE_SetCrossHair);
+      if (!SUMA_RegisterEngineListCommand (  list, ED, 
+                                             SEF_fv3, (void*)MTI->P,
+                                             SES_Suma, (void *)sv, NOPE,
+                                             SEI_Head, NULL)) {
+         fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
+         SUMA_RETURN (-1);
+      }
+
+      if (!SUMA_Engine (&list)) {
+         fprintf( SUMA_STDERR, 
+                  "Error %s: SUMA_Engine call failed.\n", FuncName);
+         SUMA_RETURN (-1);
+      }
+      /* check to see if AFNI needs to be notified */
+      /* Need to deal with SUMA_TO_MATLAB_STREAM_INDEX too 
+         Same for remaining occurrence of SUMA_AFNI_STREAM_INDEX*/
+      if (  SUMAg_CF->Connected_v[SUMA_AFNI_STREAM_INDEX] && 
+            sv->LinkAfniCrossHair) {
+         if (LocalHead) 
+            fprintf(SUMA_STDERR,
+                     "%s: Notifying Afni of CrossHair XYZ\n", FuncName);
+         /* register a call to SetAfniCrossHair */
+         if (!list) list = SUMA_CreateList();
+         SUMA_REGISTER_TAIL_COMMAND_NO_DATA( list, SE_SetAfniCrossHair, 
+                                             SES_Suma, sv);
+         if (!SUMA_Engine (&list)) {
+            fprintf( SUMA_STDERR, 
+                     "Error %s: SUMA_Engine call failed.\n", FuncName);
+            SUMA_RETURN (-1);
+         }
+      }else {
+         if (LocalHead) 
+            fprintf(SUMA_STDERR,"%s: No Notification to AFNI.\n", FuncName);
+      }
+      
+      /* put in a request for GICOR if need be */
+      if (  !NodeIgnored &&
+            SUMAg_CF->Connected_v[SUMA_GICORR_LINE] && 
+            SUMAg_CF->giset && !SUMAg_CF->HoldClickCallbacks) {
+         if (LocalHead) 
+            fprintf(SUMA_STDERR,
+                     "%s: Notifying GICOR of node selection\n", FuncName);
+         /* register a call to SetGICORnode */
+         if (!list) list = SUMA_CreateList();
+         SUMA_REGISTER_TAIL_COMMAND_NO_DATA( list, SE_SetGICORnode, 
+                                             SES_Suma, sv);
+         if (!SUMA_Engine (&list)) {
+            fprintf( SUMA_STDERR, 
+                     "Error %s: SUMA_Engine call failed.\n", FuncName);
+            SUMA_RETURN (-1);
+         }
+      }else {
+         if (LocalHead) 
+            fprintf(SUMA_STDERR,"%s: No Notification to GICOR.\n", FuncName);
+      }
+      
+      
+
+   } 
+   /* clear MTI */
+   if (MTI) {
+      MTI = SUMA_Free_MT_intersect_triangle(MTI);
+   }
+   
+   SUMA_free(SOv); SOv = NULL;
+   
+   if (imin >= 0) {
+      SUMA_RETURN (1); /* hit */
+   } else {
+      SUMA_RETURN (0); /* no hit */
+   }
+}/* determine intersection with cutplanes*/
 
 /*!
    \brief Show the contents of a brush stroke

@@ -43,9 +43,14 @@ NI_group *SUMA_ExtractAfniSO_FromSumaSO( SUMA_SurfaceObject *SO,
                                                    int CopyData);
 
 SUMA_Boolean SUMA_Free_Surface_Object (SUMA_SurfaceObject *SO);
+SUMA_VolumeObject *SUMA_FreeVolumeObject(SUMA_VolumeObject *VO);
 void SUMA_Print_Surface_Object(SUMA_SurfaceObject *SO, FILE *Out);
 char *SUMA_SurfaceObject_Info (SUMA_SurfaceObject *SO, DList *DsetList);
 SUMA_SurfaceObject *SUMA_Alloc_SurfObject_Struct(int N);
+int SUMA_NumVE(SUMA_VolumeObject *VO);
+SUMA_VolumeObject *SUMA_CreateVolumeObject(char *label);
+SUMA_Boolean SUMA_AddDsetVolumeObject( SUMA_VolumeObject *VO, 
+                                       THD_3dim_dataset **dsetp);
 SUMA_DRAWN_ROI * SUMA_AllocateDrawnROI (char *Parent_idcode_str, SUMA_ROI_DRAWING_STATUS DrawStatus, 
                                        SUMA_ROI_DRAWING_TYPE Type, char * label, int ilabel);
 SUMA_ROI * SUMA_AllocateROI (char *Parent_idcode_str, SUMA_ROI_TYPE Type, char * label, int N_ElInd, int *ElInd);

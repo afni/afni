@@ -283,6 +283,7 @@ void SUMA_cb_helpViewerStruct (Widget w, XtPointer data, XtPointer callData);
 void SUMA_cb_helpSurfaceStruct (Widget w, XtPointer data, XtPointer callData);
 void SUMA_cb_SetRenderMode(Widget widget, XtPointer client_data, 
                            XtPointer call_data);
+int SUMA_SetDsetViewMode(SUMA_SurfaceObject *SO, int imenu, int update_menu) ;
 void SUMA_cb_SetDsetViewMode(Widget widget, XtPointer client_data, 
                               XtPointer call_data);
 void SUMA_cb_ToolsDrawROI (Widget w, XtPointer client_data, XtPointer call_data);
@@ -447,6 +448,8 @@ void SUMA_cb_XformOpts_Apply (Widget w, XtPointer data,
                              XtPointer client_data);
 void SUMA_setIO_notify(int val);
 int SUMA_ShowMode2ShowModeMenuItem(int Mode);
+int SUMA_ShowModeStr2ShowModeMenuItem(char *str); 
+
 
 #define SUMA_MAX_XFCB_OBJS 32       /*!< Max number of callbacks or xforms 
                                          that may act on dsets or SOs */
