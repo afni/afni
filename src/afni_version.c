@@ -213,7 +213,7 @@ void AFNI_start_version_check(void)
   do{ fprintf(stderr,"** Version Check fails: %s **\n",ss); \
       return 0; } while(0)
 #else
-# define KAPUT(ss) return
+# define KAPUT(ss) return 0
 #endif
 
 /*----------------------------------------------------------------------------*/

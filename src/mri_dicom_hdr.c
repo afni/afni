@@ -7947,6 +7947,7 @@ DCM_PrintSequenceList(DCM_OBJECT ** object, DCM_TAG tag)
 	       sqObject->pixelOffset);
 	sqItem = (void *)LST_Next(&lst);
     }
+   return cond ;
 }
 
 CONDITION

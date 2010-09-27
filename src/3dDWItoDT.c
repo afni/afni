@@ -1155,7 +1155,7 @@ Other_Bricks:
   /* testing information only */
   if(recordflag)
      INFO_message("ncall= %d, converge_step=%d, deltatau=%f, ED=%f", ncall, converge_step, deltatau, ED);
-  if(debug_briks && ((opt_method==0) || ((opt_method==2) && (voxel_opt_method = 0)) )){
+  if(debug_briks && ((opt_method==0) || ((opt_method==2) && (voxel_opt_method==0)) )){
     val[nbriks-4] = converge_step;
     val[nbriks-3] = ED;
     val[nbriks-1] = ComputeJ(ts, npts);            /* compute J value */;

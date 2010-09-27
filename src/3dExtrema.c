@@ -402,7 +402,7 @@ extrema * remove_extrema (extrema * aextrema, extrema * head_extrema)
   extrema * next_extrema = NULL;
   
 
-  if (head_extrema == NULL)  return;
+  if (head_extrema == NULL)  return NULL;
 
 
   /*----- Remove aextrema from list; reset pointers -----*/
@@ -1228,7 +1228,7 @@ int EX_read_opts( int argc , char * argv[] )
   for voxels above mask.
 */
 
-void * initialize_program (int argc, char * argv[], int * nopt)
+void initialize_program (int argc, char * argv[], int * nopt)
 {
   const int MIN_NTHR = 10;    /* minimum number of voxels above threshold */
 

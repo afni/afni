@@ -622,7 +622,7 @@ void check_one_output_file
   for voxels above mask threshold.
 */
 
-void * initialize_program (int argc, char * argv[])
+void initialize_program (int argc, char * argv[])
 {
   int iv;                  /* index number of sub-brick */
   void * vfim = NULL;      /* sub-brick data pointer */
@@ -800,7 +800,7 @@ void * initialize_program (int argc, char * argv[])
   for (ibin = 0;  ibin < FDR_MAX_LL;  ibin++)
     FDR_head_voxel[ibin] = NULL;
 
-
+  return ;
 }
 
 

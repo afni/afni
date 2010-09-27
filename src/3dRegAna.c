@@ -1087,8 +1087,8 @@ void get_inputs
   RA_options * option_data     /* user input options */
 )
 
+#define MAX_BRICKS 100
 {
-  const MAX_BRICKS = 100;          /* max. number of bricks in the bucket */
   int nopt = 1;                    /* input option argument counter */
   int ival, index;                 /* integer input */
   float fval;                      /* float input */

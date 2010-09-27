@@ -369,7 +369,7 @@ MRI_IMAGE * mri_average_vector( MRI_IMARR *imar )
      for( ii=0 ; ii < nx ; ii++ ) far[ii] += xar[ii] ;
    }
    if( nvec > 1 ){
-     register fac ;
+     register float fac ;
      fac = 1.0f / nvec ;
      for( ii=0 ; ii < nx ; ii++ ) far[ii] *= fac ;
    }
