@@ -180,6 +180,7 @@ SUMA_MX_VEC *  SUMA_Read1DMxVec(SUMA_VARTYPE tp, char *Name, int *dims, int *N_d
 
 void SUMA_ShowFromTo(char *f, char *t, char *head);
 int SUMA_LineNumbersFromTo(char *f, char *t);
+int SUMA_makepow2(int val);
 
 
 #endif

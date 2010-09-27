@@ -9361,4 +9361,14 @@ int SUMA_LineNumbersFromTo(char *f, char *t){
    return(N_line);   
 }
 
+int SUMA_makepow2(int val)
+{
+   int power = 0;
+   if(!val) return 0;
+
+   while(val >>= 1) power++;
+
+   return(1 << power);
+}
+
 

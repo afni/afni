@@ -63,6 +63,9 @@
    End = (End == LSB_FIRST) ? MSB_FIRST : LSB_FIRST;   \
 }
 
+/* nonzero if not power of 2 (from GLUT-3.7's advanced97/volume.c)*/ 
+#define SUMA_NOTPOW2(num) ((num) & (num - 1))
+
 #define SUMA_SWAP_THIS(nip,chnk){   \
    if (chnk == 4) SUMA_swap_4( nip ) ;  \
       else if (chnk == 8) SUMA_swap_8( nip ) ;  \

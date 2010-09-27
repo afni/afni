@@ -235,6 +235,11 @@ SUMA_Boolean SUMA_Free_Displayable_Object (SUMA_DO *dov)
    SUMA_ENTRY;
 
    switch (dov->ObjectType) {
+      case VO_type:
+         if (!SUMA_FreeVolumeObject ((SUMA_VolumeObject *)dov->OP)) {
+            SUMA_S_Err("could not free volume");
+         }
+         break;
       case SO_type:
          if (!SUMA_Free_Surface_Object ((SUMA_SurfaceObject *)dov->OP)) {
             fprintf(SUMA_STDERR,
@@ -372,12 +377,18 @@ SUMA_Boolean SUMA_AddDO(SUMA_DO *dov, int *N_dov, void *op,
       SUMA_error_message (FuncName, "Need an idcode_str for do",0);
       SUMA_RETURN(NOPE);
    }
-   
+   if (DO_Type <= no_type || DO_Type >= N_DO_TYPES) {
+      SUMA_S_Errv("DO_type %d not valid\n", DO_Type);
+      SUMA_RETURN(NOPE);
+   }
    /* Does that baby exist? */
    if ((ieo = SUMA_FindDOi_byID(dov, *N_dov, ado->idcode_str)) >= 0) {
       if (DO_Type == SO_type) {
          SUMA_SLP_Err("Surface exists, cannot be replaced this way.");
          SUMA_RETURN(NOPE);
+      }
+      if (DO_Type == VO_type) {
+         SUMA_S_Warn("Replacing volume object, might get complicated...");
       }
       if (!(nm % 300)) {
          SUMA_SLP_Note( "Object exists and will be replaced.\n"
@@ -593,6 +604,7 @@ char *SUMA_DOv_Info (SUMA_DO *dov, int N_dov, int detail)
    SUMA_COL_TYPE ctp;
    char *s=NULL, stmp[200];
    SUMA_SurfaceObject *so_op=NULL;   
+   SUMA_VolumeObject *vo_op=NULL;   
    SUMA_STRING *SS=NULL;
    
    SUMA_ENTRY;
@@ -603,22 +615,38 @@ char *SUMA_DOv_Info (SUMA_DO *dov, int N_dov, int detail)
       SS = SUMA_StringAppend_va(SS, "\nDOv contents (%d elements):\n", N_dov);
       for (i=0; i < N_dov; ++i) {
          switch (dov[i].ObjectType) {
+            case VO_type:
+               vo_op = (SUMA_VolumeObject *)dov[i].OP;
+               SS = SUMA_StringAppend_va(SS,
+                     "DOv ID: %d\n\tName: %s\n"
+                     "\tType: %d, Axis Attachment %d\n",
+                     i,  SUMA_CHECK_NULL_STR(vo_op->Label), 
+                     dov[i].ObjectType, dov[i].CoordType);
+               break;
             case SO_type:
                so_op = (SUMA_SurfaceObject *)dov[i].OP;
                #if 0
                if (so_op->FileType != SUMA_SUREFIT) {
-                  SS = SUMA_StringAppend_va(SS,"DOv ID: %d\n\tName: %s/%s\n\tType: %d, Axis Attachment %d\n",\
-                     i,  SUMA_CHECK_NULL_STR(so_op->Name.Path), SUMA_CHECK_NULL_STR(so_op->Name.FileName),\
+                  SS = SUMA_StringAppend_va(SS,
+                     "DOv ID: %d\n\tName: %s/%s\n"
+                     "\tType: %d, Axis Attachment %d\n",
+                     i,  SUMA_CHECK_NULL_STR(so_op->Name.Path), 
+                     SUMA_CHECK_NULL_STR(so_op->Name.FileName),
                      dov[i].ObjectType, dov[i].CoordType);
                } else {
-                  SS = SUMA_StringAppend_va(SS,"DOv ID: %d\n\tNameCoord: %s/%s\n\tNameTopo: %s/%s\n\tType: %d, Axis Attachment %d\n",\
-                     i, SUMA_CHECK_NULL_STR(so_op->Name_coord.Path), SUMA_CHECK_NULL_STR(so_op->Name_coord.FileName),\
-                     so_op->Name_topo.Path, so_op->Name_topo.FileName,\
+                  SS = SUMA_StringAppend_va(SS,
+                     "DOv ID: %d\n\tNameCoord: %s/%s\n"
+                     "\tNameTopo: %s/%s\n\tType: %d, Axis Attachment %d\n",
+                     i, SUMA_CHECK_NULL_STR(so_op->Name_coord.Path), 
+                     SUMA_CHECK_NULL_STR(so_op->Name_coord.FileName),
+                     so_op->Name_topo.Path, so_op->Name_topo.FileName,
                      dov[i].ObjectType, dov[i].CoordType);
                } 
                #else
-                  SS = SUMA_StringAppend_va(SS,"DOv ID: %d\n\tName: %s\n\tType: %d, Axis Attachment %d\n",\
-                     i,  SUMA_CHECK_NULL_STR(so_op->Label), \
+                  SS = SUMA_StringAppend_va(SS,
+                     "DOv ID: %d\n\tName: %s\n"
+                     "\tType: %d, Axis Attachment %d\n",
+                     i,  SUMA_CHECK_NULL_STR(so_op->Label), 
                      dov[i].ObjectType, dov[i].CoordType);
                #endif  
                break;
@@ -626,8 +654,12 @@ char *SUMA_DOv_Info (SUMA_DO *dov, int N_dov, int detail)
                {
                   SUMA_Axis* ao;
                   ao = (SUMA_Axis*) dov[i].OP;
-                  SS = SUMA_StringAppend_va(SS,"DOv ID: %d\n\tAxis Object\n\tType: %d, Axis Attachment %d\n", i,dov[i].ObjectType, dov[i].CoordType);
-                  SS = SUMA_StringAppend_va(SS,"\tName: %s\n\tidcode: %s\n", ao->Label, ao->idcode_str);
+                  SS = SUMA_StringAppend_va(SS,
+                     "DOv ID: %d\n\tAxis Object\n"
+                     "\tType: %d, Axis Attachment %d\n", 
+                     i,dov[i].ObjectType, dov[i].CoordType);
+                  SS = SUMA_StringAppend_va(SS,
+                     "\tName: %s\n\tidcode: %s\n", ao->Label, ao->idcode_str);
                }
                break;
             case OLS_type:
@@ -635,8 +667,12 @@ char *SUMA_DOv_Info (SUMA_DO *dov, int N_dov, int detail)
                   SUMA_SegmentDO *sdo=NULL;
 
                   sdo = (SUMA_SegmentDO *)dov[i].OP;
-                  SS = SUMA_StringAppend_va(SS,"DOv ID: %d\n\tOriented Line Segment Object\n\tType: %d, Axis Attachment %d\n", i,dov[i].ObjectType, dov[i].CoordType);
-                  SS = SUMA_StringAppend_va(SS,"\tLabel: %s\n\tidcode: %s\n", sdo->Label, sdo->idcode_str);
+                  SS = SUMA_StringAppend_va(SS,
+                     "DOv ID: %d\n\tOriented Line Segment Object\n"
+                     "\tType: %d, Axis Attachment %d\n", 
+                     i,dov[i].ObjectType, dov[i].CoordType);
+                  SS = SUMA_StringAppend_va(SS,
+                     "\tLabel: %s\n\tidcode: %s\n", sdo->Label, sdo->idcode_str);
 
                }
                break;
@@ -645,8 +681,12 @@ char *SUMA_DOv_Info (SUMA_DO *dov, int N_dov, int detail)
                   SUMA_SegmentDO *sdo=NULL;
 
                   sdo = (SUMA_SegmentDO *)dov[i].OP;
-                  SS = SUMA_StringAppend_va(SS,"DOv ID: %d\n\tNode-Based Ball-Vector\n\tType: %d, Axis Attachment %d\n", i,dov[i].ObjectType, dov[i].CoordType);
-                  SS = SUMA_StringAppend_va(SS,"\tLabel: %s\n\tidcode: %s\n", sdo->Label, sdo->idcode_str);
+                  SS = SUMA_StringAppend_va(SS,
+                     "DOv ID: %d\n\tNode-Based Ball-Vector\n"
+                     "\tType: %d, Axis Attachment %d\n", 
+                        i,dov[i].ObjectType, dov[i].CoordType);
+                  SS = SUMA_StringAppend_va(SS,
+                     "\tLabel: %s\n\tidcode: %s\n", sdo->Label, sdo->idcode_str);
 
                }
                break;
@@ -655,8 +695,12 @@ char *SUMA_DOv_Info (SUMA_DO *dov, int N_dov, int detail)
                   SUMA_SegmentDO *sdo=NULL;
 
                   sdo = (SUMA_SegmentDO *)dov[i].OP;
-                  SS = SUMA_StringAppend_va(SS,"DOv ID: %d\n\tNode-Based Vector\n\tType: %d, Axis Attachment %d\n", i,dov[i].ObjectType, dov[i].CoordType);
-                  SS = SUMA_StringAppend_va(SS,"\tLabel: %s\n\tidcode: %s\n", sdo->Label, sdo->idcode_str);
+                  SS = SUMA_StringAppend_va(SS,
+                     "DOv ID: %d\n\tNode-Based Vector\n"
+                     "\tType: %d, Axis Attachment %d\n", 
+                     i,dov[i].ObjectType, dov[i].CoordType);
+                  SS = SUMA_StringAppend_va(SS,
+                     "\tLabel: %s\n\tidcode: %s\n", sdo->Label, sdo->idcode_str);
 
                }
                break;
@@ -665,8 +709,12 @@ char *SUMA_DOv_Info (SUMA_DO *dov, int N_dov, int detail)
                   SUMA_SegmentDO *sdo=NULL;
 
                   sdo = (SUMA_SegmentDO *)dov[i].OP;
-                  SS = SUMA_StringAppend_va(SS,"DOv ID: %d\n\tLine Segment Object\n\tType: %d, Axis Attachment %d\n", i,dov[i].ObjectType, dov[i].CoordType);
-                  SS = SUMA_StringAppend_va(SS,"\tLabel: %s\n\tidcode: %s\n", sdo->Label, sdo->idcode_str);
+                  SS = SUMA_StringAppend_va(SS,
+                     "DOv ID: %d\n\tLine Segment Object\n"
+                     "\tType: %d, Axis Attachment %d\n", 
+                     i,dov[i].ObjectType, dov[i].CoordType);
+                  SS = SUMA_StringAppend_va(SS,
+                     "\tLabel: %s\n\tidcode: %s\n", sdo->Label, sdo->idcode_str);
 
                }
                break;
@@ -675,8 +723,12 @@ char *SUMA_DOv_Info (SUMA_DO *dov, int N_dov, int detail)
                   SUMA_SphereDO *sdo=NULL;
 
                   sdo = (SUMA_SphereDO *)dov[i].OP;
-                  SS = SUMA_StringAppend_va(SS,"DOv ID: %d\n\tNode-Based Sphere Object\n\tType: %d, Axis Attachment %d\n", i,dov[i].ObjectType, dov[i].CoordType);
-                  SS = SUMA_StringAppend_va(SS,"\tLabel: %s\n\tidcode: %s\n", sdo->Label, sdo->idcode_str);
+                  SS = SUMA_StringAppend_va(SS,
+                     "DOv ID: %d\n\tNode-Based Sphere Object\n"
+                     "\tType: %d, Axis Attachment %d\n", 
+                     i,dov[i].ObjectType, dov[i].CoordType);
+                  SS = SUMA_StringAppend_va(SS,
+                     "\tLabel: %s\n\tidcode: %s\n", sdo->Label, sdo->idcode_str);
 
                }
                break;
@@ -685,8 +737,12 @@ char *SUMA_DOv_Info (SUMA_DO *dov, int N_dov, int detail)
                   SUMA_SphereDO *sdo=NULL;
 
                   sdo = (SUMA_SphereDO *)dov[i].OP;
-                  SS = SUMA_StringAppend_va(SS,"DOv ID: %d\n\tSphere Object\n\tType: %d, Axis Attachment %d\n", i,dov[i].ObjectType, dov[i].CoordType);
-                  SS = SUMA_StringAppend_va(SS,"\tLabel: %s\n\tidcode: %s\n", sdo->Label, sdo->idcode_str);
+                  SS = SUMA_StringAppend_va(SS,
+                     "DOv ID: %d\n\tSphere Object\n"
+                     "\tType: %d, Axis Attachment %d\n", 
+                     i,dov[i].ObjectType, dov[i].CoordType);
+                  SS = SUMA_StringAppend_va(SS,
+                     "\tLabel: %s\n\tidcode: %s\n", sdo->Label, sdo->idcode_str);
 
                }
                break;
@@ -695,8 +751,12 @@ char *SUMA_DOv_Info (SUMA_DO *dov, int N_dov, int detail)
                   SUMA_PlaneDO *pdo=NULL;
 
                   pdo = (SUMA_PlaneDO *)dov[i].OP;
-                  SS = SUMA_StringAppend_va(SS,"DOv ID: %d\n\tPlane Object\n\tType: %d, Axis Attachment %d\n", i,dov[i].ObjectType, dov[i].CoordType);
-                  SS = SUMA_StringAppend_va(SS,"\tLabel: %s\n\tidcode: %s\n", pdo->Label, pdo->idcode_str);
+                  SS = SUMA_StringAppend_va(SS,
+                     "DOv ID: %d\n\tPlane Object\n"
+                     "\tType: %d, Axis Attachment %d\n", 
+                     i,dov[i].ObjectType, dov[i].CoordType);
+                  SS = SUMA_StringAppend_va(SS,
+                     "\tLabel: %s\n\tidcode: %s\n", pdo->Label, pdo->idcode_str);
 
                }
                break;
@@ -705,8 +765,13 @@ char *SUMA_DOv_Info (SUMA_DO *dov, int N_dov, int detail)
                   SUMA_DRAWN_ROI *dROI = NULL;
 
                   dROI = (SUMA_DRAWN_ROI *)dov[i].OP;
-                  SS = SUMA_StringAppend_va(SS,"DOv ID: %d\n\tLine Segment Object\n\tType: %d, Axis Attachment %d\n", i,dov[i].ObjectType, dov[i].CoordType);
-                  SS = SUMA_StringAppend_va(SS,"\tLabel: %s\n\tidcode: %s\n", dROI->Label, dROI->idcode_str);
+                  SS = SUMA_StringAppend_va(SS,
+                     "DOv ID: %d\n\tLine Segment Object\n"
+                     "\tType: %d, Axis Attachment %d\n", 
+                     i,dov[i].ObjectType, dov[i].CoordType);
+                  SS = SUMA_StringAppend_va(SS,
+                     "\tLabel: %s\n\tidcode: %s\n", 
+                     dROI->Label, dROI->idcode_str);
                }  
                break;
             case ROIO_type:
@@ -714,15 +779,26 @@ char *SUMA_DOv_Info (SUMA_DO *dov, int N_dov, int detail)
                   SUMA_ROI *ROI = NULL;
 
                   ROI = (SUMA_ROI *)dov[i].OP;
-                  SS = SUMA_StringAppend_va(SS,"DOv ID: %d\n\tLine Segment Object\n\tType: %d, Axis Attachment %d\n", i,dov[i].ObjectType, dov[i].CoordType);
-                  SS = SUMA_StringAppend_va(SS,"\tLabel: %s\n\tidcode: %s\n", ROI->Label, ROI->idcode_str);
+                  SS = SUMA_StringAppend_va(SS,
+                     "DOv ID: %d\n\tLine Segment Object\n"
+                     "\tType: %d, Axis Attachment %d\n", 
+                     i,dov[i].ObjectType, dov[i].CoordType);
+                  SS = SUMA_StringAppend_va(SS,"\tLabel: %s\n\tidcode: %s\n", 
+                           ROI->Label, ROI->idcode_str);
                }  
                break;
             case GO_type:
                SS = SUMA_StringAppend_va(SS,"DOv ID: %d\n\tGrid Object\n", i);
                break;
+            case NIDO_type:
+               SS = SUMA_StringAppend_va(SS,
+                        "DOv ID: %d\n\tNIDO  Object\n"
+                        "\tType: %d, Axis Attachment %d\n", 
+                        i,dov[i].ObjectType, dov[i].CoordType);
+               break;
             default:
-               SS = SUMA_StringAppend_va(SS,"DOv ID: %d\n\tUnknown Type!\n", i);
+               SS = SUMA_StringAppend_va(SS,"DOv ID: %d\n\tUnknown Type (%d)!\n",
+                                             i, dov[i].ObjectType);
                break;
          }
       }
@@ -816,6 +892,32 @@ SUMA_Boolean SUMA_existSO(char *idcode, SUMA_DO *dov, int N_dov)
    }
    SUMA_RETURN(NOPE);
 }
+/*!
+   searches all VO_type DO objects for idcode
+   YUP if found, NOPE if not
+*/
+SUMA_Boolean SUMA_existVO(char *idcode, SUMA_DO *dov, int N_dov)
+{
+   static char FuncName[]={"SUMA_existVO"};
+   SUMA_VolumeObject *VO;
+   int i;
+   
+   SUMA_ENTRY;
+
+   if (idcode == NULL) {
+      fprintf(SUMA_STDERR,"Warning SUMA_existVO: NULL idcode.\n");
+      SUMA_RETURN (NOPE);
+   }
+   for (i=0; i< N_dov; ++i) {
+      if (dov[i].ObjectType == VO_type) {
+         VO = (SUMA_VolumeObject *)dov[i].OP;
+         if (strcmp(idcode, VO->idcode_str)== 0) {
+            SUMA_RETURN (YUP);
+         }
+      }
+   }
+   SUMA_RETURN(NOPE);
+}
 
 /*!
    searches all DO objects with an idcode_str for idcode
@@ -827,6 +929,7 @@ SUMA_Boolean SUMA_existDO(char *idcode, SUMA_DO *dov, int N_dov)
    static char FuncName[]={"SUMA_existDO"};
    int i;
    SUMA_SurfaceObject *SO = NULL;
+   SUMA_VolumeObject *VO = NULL;
    SUMA_DRAWN_ROI *dROI = NULL;
    SUMA_ROI *ROI = NULL;
    SUMA_SegmentDO *sdo = NULL;
@@ -840,6 +943,12 @@ SUMA_Boolean SUMA_existDO(char *idcode, SUMA_DO *dov, int N_dov)
    }
    for (i=0; i< N_dov; ++i) {
       switch (dov[i].ObjectType) {
+         case (VO_type):
+            VO = (SUMA_VolumeObject *)dov[i].OP;
+            if (strcmp(idcode, VO->idcode_str)== 0) {
+               SUMA_RETURN (YUP);
+            }
+            break;
          case (SO_type):
             SO = (SUMA_SurfaceObject *)dov[i].OP;
             if (strcmp(idcode, SO->idcode_str)== 0) {
@@ -878,7 +987,7 @@ SUMA_Boolean SUMA_existDO(char *idcode, SUMA_DO *dov, int N_dov)
             }
             break;
          default:
-            fprintf(SUMA_STDERR,"Warning %s: Object type %d not checked.\n", FuncName, dov[i].ObjectType);
+            SUMA_S_Warnv("Object type %d not checked.\n", dov[i].ObjectType);
             break;
       }
    }
@@ -895,6 +1004,7 @@ int SUMA_whichDO(char *idcode, SUMA_DO *dov, int N_dov)
 {
    static char FuncName[]={"SUMA_whichDO"};
    int i;
+   SUMA_VolumeObject *VO = NULL;
    SUMA_SurfaceObject *SO = NULL;
    SUMA_DRAWN_ROI *dROI = NULL;
    SUMA_ROI *ROI = NULL;
@@ -910,6 +1020,12 @@ int SUMA_whichDO(char *idcode, SUMA_DO *dov, int N_dov)
    }
    for (i=0; i< N_dov; ++i) {
       switch (dov[i].ObjectType) {
+         case (VO_type):
+            VO = (SUMA_VolumeObject *)dov[i].OP;
+            if (strcmp(idcode, VO->idcode_str)== 0) {
+               SUMA_RETURN (i);
+            }
+            break;
          case (SO_type):
             SO = (SUMA_SurfaceObject *)dov[i].OP;
             if (strcmp(idcode, SO->idcode_str)== 0) {
@@ -948,7 +1064,7 @@ int SUMA_whichDO(char *idcode, SUMA_DO *dov, int N_dov)
             }
             break;
          default:
-            fprintf(SUMA_STDERR,"Warning %s: Object type %d not checked.\n", FuncName, dov[i].ObjectType);
+            SUMA_S_Warnv("Object type %d not checked.\n", dov[i].ObjectType);
             break;
       }
    }
@@ -989,6 +1105,40 @@ int SUMA_findSO_inDOv(char *idcode, SUMA_DO *dov, int N_dov)
    }
    SUMA_RETURN(-1);
 }
+/*!
+   ans = SUMA_findVO_inDOv(idcode, dov, N_dov);
+   searches all VO_type DO objects for idcode
+   
+   \param idcode (char *) idcode of VO you are searching for
+   \param dov (SUMA_DO*) pointer to vector of Displayable Objects, typically SUMAg_DOv
+   \param N_dov (int) number of DOs in dov
+   \return ans (int) index into dov of object with matching idcode 
+       -1 if not found
+  \sa SUMA_findVOp_inDOv
+*/
+int SUMA_findVO_inDOv(char *idcode, SUMA_DO *dov, int N_dov)
+{
+   static char FuncName[]={"SUMA_findVO_inDOv"};
+   SUMA_VolumeObject *VO;
+   int i;
+   SUMA_Boolean LocalHead = NOPE;
+      
+   SUMA_ENTRY;
+
+   for (i=0; i<N_dov; ++i) {
+      if (dov[i].ObjectType == VO_type) {
+         VO = (SUMA_VolumeObject *)dov[i].OP;
+         if (LocalHead) 
+            fprintf (SUMA_STDERR, 
+                     "%s: Comparing \n\t:%s:to\n\t:%s:\n", 
+                     FuncName, idcode, VO->idcode_str);
+         if (strcmp(idcode, VO->idcode_str)== 0) {
+            SUMA_RETURN (i);
+         }
+      }
+   }
+   SUMA_RETURN(-1);
+}
 
 /*!
    
@@ -1023,6 +1173,41 @@ SUMA_SurfaceObject * SUMA_findSOp_inDOv(char *idcode, SUMA_DO *dov, int N_dov)
    }
    SUMA_RETURN(NULL);
 }
+
+/*!
+   
+  VO = SUMA_findVOp_inDOv(char *idcode, SUMA_DO *dov, int N_dov)
+   searches all VO_type DO objects for idcode
+   
+   \param idcode (char *) idcode of VO you are searching for
+   \param dov (SUMA_DO*) pointer to vector of Displayable Objects, 
+                         typically SUMAg_DOv
+   \param N_dov (int) number of DOs in dov
+   \return VO (SUMA_VolumeObject *) pointer of VO with matching idcode 
+       NULL if not found
+   \sa SUMA_findVO_inDOv
+*/
+SUMA_VolumeObject * SUMA_findVOp_inDOv(char *idcode, SUMA_DO *dov, int N_dov)
+{
+   static char FuncName[]={"SUMA_findVOp_inDOv"};
+   SUMA_VolumeObject *VO;
+   int i;
+   
+   SUMA_ENTRY;
+
+   if (!idcode) SUMA_RETURN(NULL);
+   
+   for (i=0; i<N_dov; ++i) {
+      if (dov[i].ObjectType == VO_type) {
+         VO = (SUMA_VolumeObject *)dov[i].OP;
+         if (strcmp(idcode, VO->idcode_str)== 0) {
+            SUMA_RETURN (VO);
+         }
+      }
+   }
+   SUMA_RETURN(NULL);
+}
+
 /*!
    
   SO = SUMA_FindSOp_inDOv_from_N_Node(
@@ -1190,6 +1375,27 @@ char *SUMA_find_SOLabel_from_idcode (char *idcode, SUMA_DO *dov, int N_dov)
    SUMA_RETURN(NULL);
 }
 
+char *SUMA_find_VOLabel_from_idcode (char *idcode, SUMA_DO *dov, int N_dov)
+{
+   static char FuncName[]={"SUMA_find_VOLabel_from_idcode"};
+   SUMA_VolumeObject *VO;
+   int i;
+   
+   SUMA_ENTRY;
+   
+   if (!idcode) SUMA_RETURN(NULL);
+   
+   for (i=0; i<N_dov; ++i) {
+      if (dov[i].ObjectType == VO_type) {
+         VO = (SUMA_VolumeObject *)dov[i].OP;
+         if (strcmp(idcode, VO->idcode_str)== 0) {
+            SUMA_RETURN (VO->Label);
+         }
+      }
+   }
+   SUMA_RETURN(NULL);
+}
+
 char *SUMA_find_SOidcode_from_label (char *label, SUMA_DO *dov, int N_dov)
 {
    static char FuncName[]={"SUMA_find_SOidcode_from_label"};
@@ -1257,13 +1463,131 @@ char *SUMA_find_SOidcode_from_label (char *label, SUMA_DO *dov, int N_dov)
    SUMA_RETURN(found);
 }
 
+char *SUMA_find_VOidcode_from_label (char *label, SUMA_DO *dov, int N_dov)
+{
+   static char FuncName[]={"SUMA_find_VOidcode_from_label"};
+   SUMA_VolumeObject *VO;
+   int i;
+   char *found = NULL;
+   
+   SUMA_ENTRY;
+   
+   if (!label) SUMA_RETURN(NULL);
+   
+   for (i=0; i<N_dov; ++i) {
+      if (dov[i].ObjectType == VO_type) {
+         VO = (SUMA_VolumeObject *)dov[i].OP;
+         if (strcmp(label, VO->Label)== 0) {
+            if (!found) { found = VO->idcode_str; }
+            else {
+               SUMA_S_Errv("More than one volume with label %s found.\n",    
+                           label);
+               SUMA_RETURN(NULL);
+            }
+         }
+      }
+   }
+   
+   if (!found) { /* try less stringent search */
+      for (i=0; i<N_dov; ++i) {
+         if (dov[i].ObjectType == VO_type) {
+            VO = (SUMA_VolumeObject *)dov[i].OP;
+            if (SUMA_iswordin(VO->Label, label)) {
+               if (!found) { found = VO->idcode_str; }
+               else {
+                  SUMA_S_Errv(
+               "Found more than one volume with labels patially matching %s.\n"
+               "For example: volumes %s, and %s .\n",    
+                              label,
+                              SUMA_find_VOLabel_from_idcode(found, dov, N_dov),
+                              VO->Label);
+                  SUMA_RETURN(NULL);
+               }
+            }
+         }
+      }
+   }
+   
+   if (!found) { /* even less stringent search */
+      for (i=0; i<N_dov; ++i) {
+         if (dov[i].ObjectType == VO_type) {
+            VO = (SUMA_VolumeObject *)dov[i].OP;
+            if (SUMA_iswordin_ci(VO->Label, label)) {
+               if (!found) { found = VO->idcode_str; }
+               else {
+                  SUMA_S_Errv(
+               "Found more than one volume with labels patially matching %s.\n"
+               "For example: volumes %s, and %s .\n",    
+                              label,
+                              SUMA_find_VOLabel_from_idcode(found, dov, N_dov),
+                              VO->Label);
+                  SUMA_RETURN(NULL);
+               }
+            }
+         }
+      }
+   }
+   SUMA_RETURN(found);
+}
+
+/*!
+   
+  VO = SUMA_find_named_VOp_inDOv(char *filename, SUMA_DO *dov, int N_dov)
+   searches all VO_type DO objects constructed from a dset from file filename
+   
+   \param coordname (char *) filename of VO (as returned by DSET_HEADNAME) 
+   \param dov (SUMA_DO*) pointer to vector of Displayable Objects, 
+                        typically SUMAg_DOv
+   \param N_dov (int) number of DOs in dov
+   \return VO (SUMA_VolumeObject *) pointer of VO with matching idcode 
+       NULL if not found
+   \sa SUMA_findVO_inDOv
+   \sa SUMA_findVOp_inDOv
+*/
+SUMA_VolumeObject * SUMA_find_named_VOp_inDOv( char *filename, 
+                                                SUMA_DO *dov, int N_dov)
+{
+   static char FuncName[]={"SUMA_find_named_VOp_inDOv"};
+   SUMA_VolumeObject *VO = NULL, *VOf = NULL;
+   SUMA_STRING *SS=NULL;
+   char *stmp=NULL, *coordname=NULL;
+   int i;
+   SUMA_FileName sf;
+   
+   SUMA_ENTRY;
+   
+   if (!filename || !dov) SUMA_RETURN(NULL);
+   
+   
+   i=0;
+   VOf = NULL;
+   while (i<N_dov) {
+      if (dov[i].ObjectType == VO_type) {
+         VO = (SUMA_VolumeObject *)dov[i].OP;
+         if (VO->VE && VO->VE[0] &&
+             !strcmp(filename, DSET_HEADNAME(VO->VE[0]->dset))) {
+            if (VOf) {
+               SUMA_S_Errv("Volume name %s\n"
+                           "is not a unique identifier.\n",
+                           filename);
+               SUMA_RETURN(NULL);
+            }
+            VOf = VO;
+         }
+      }
+      ++i;
+   }
+   
+   SUMA_RETURN(VOf);
+}
+
 /*!
    
   SO = SUMA_find_named_SOp_inDOv(char *idcode, SUMA_DO *dov, int N_dov)
    searches all SO_type DO objects for idcode
    
    \param coordname (char *) filename of SO (without path) that you are searching for.
-                             If surface is specified by 2 files, then use the coord file
+   If surface is specified by 2 files, then use the coord file
                              name.  
    \param dov (SUMA_DO*) pointer to vector of Displayable Objects, typically SUMAg_DOv
    \param N_dov (int) number of DOs in dov
@@ -1756,6 +2080,25 @@ SUMA_Boolean SUMA_isSO (SUMA_DO DO)
    SUMA_ENTRY;
 
    if (DO.ObjectType == SO_type) {
+      SUMA_RETURN (YUP);
+   }
+   SUMA_RETURN (NOPE);
+}
+
+/*!
+   \brief SUMA_Boolean SUMA_isVO (SUMA_DO DO) 
+   returns YUP if DO is of VO_type
+   ans = SUMA_isVO (DO) ;
+   
+   \sa SUMA_isVO_G (SUMA_DO DO, char *Group)
+*/
+SUMA_Boolean SUMA_isVO (SUMA_DO DO) 
+{
+   static char FuncName[]={"SUMA_isVO"};
+   
+   SUMA_ENTRY;
+
+   if (DO.ObjectType == VO_type) {
       SUMA_RETURN (YUP);
    }
    SUMA_RETURN (NOPE);

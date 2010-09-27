@@ -66,6 +66,18 @@
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 27, SEP , 2010 , ZSS , "suma" , MINOR , TYPE_NEW_OPT,
+   "Began code changes to allow for volume rendering",
+   "Changes mostly involve SUMA_volume_render.c and were\n"
+   "made with Joachim Bottger's help. Of note is the addition"
+   "of the Volume Object structure SUMA_VolumeObject.\n"
+ } ,
+
+ { 18, SEP , 2010 , ZSS , "DriveSuma" , MICRO , TYPE_NEW_OPT,
+   "Added -Dsp option to allow control of Dset display mode",
+   NULL
+ } ,
+
  { 7, SEP , 2010 , ZSS , "3dRetinoPhase" , MINOR , TYPE_BUG_FIX,
    "Fixed crash caused by bad function prototype.",
    "Crash only occurred on linux. Thanks to P. J. Kohler for \n"
