@@ -2911,7 +2911,7 @@ SUMA_Boolean SUMA_ScaleToMap_alaAFNI ( float *V, int N_V,
          Opt->MaskColor[0] *= Opt->BrightFact;
          Opt->MaskColor[1] *= Opt->BrightFact;
          Opt->MaskColor[2] *= Opt->BrightFact;
-         if (ColMap->N_M[1] == 4) {
+         if (ColMap->N_M[1] == 4) { /* MaskColor[3] is never used, oh well...*/
          Opt->MaskColor[3] *= Opt->BrightFact;
          }
       }

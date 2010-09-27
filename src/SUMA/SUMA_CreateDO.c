@@ -6038,7 +6038,7 @@ SUMA_Boolean SUMA_Paint_SO_ROIplanes ( SUMA_SurfaceObject *SO,
             D_ROI->FillColor[2] = SUMAg_CF->ROI_CM->M[D_ROI->iLabel][2];
             if (SUMAg_CF->ROI_CM->N_M[1] == 4) 
                D_ROI->FillColor[3] = SUMAg_CF->ROI_CM->M[D_ROI->iLabel][3];
-            else D_ROI->FillColor[4] = 1.0;
+            else D_ROI->FillColor[3] = 1.0;
          } else {
             SUMA_COPY_VEC (D_ROI->FillColor, FillColor, 4,float, float);
          }
@@ -8482,8 +8482,8 @@ SUMA_Boolean SUMA_SetSODims(SUMA_SurfaceObject *SO)
    SUMA_LHv("Min:[%f %f %f]\n"
             "Max:[%f %f %f]\n"
             "aMax: %f, aMin %f\n",
-            SO->MinDims[1], SO->MinDims[2],SO->MinDims[3],
-            SO->MaxDims[1], SO->MaxDims[2],SO->MaxDims[3],
+            SO->MinDims[0], SO->MinDims[1],SO->MinDims[2],
+            SO->MaxDims[0], SO->MaxDims[1],SO->MaxDims[2],
             SO->aMaxDims, SO->aMinDims );
    SUMA_RETURN(YUP);
 }
