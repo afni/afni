@@ -550,6 +550,8 @@ int main( int argc , char * argv[] )
       }
    }
    #endif
+/* these tests don't fit in well with other changes for template spaces */
+#if 0
    /*- 11 Mar 2004: check for coherency -*/
 
    if( tta2mni || mni2tta ){
@@ -565,6 +567,7 @@ int main( int argc , char * argv[] )
        }
      }
    }
+#endif
 
    /*-- do the heavy lifting --*/
 
@@ -690,7 +693,13 @@ DUMP_MAT44("Twcombined", Tw);
    /*- 11 Mar 2004: mark output dataset as being in MNI space -*/
 
    if( tta2mni ){
-     THD_set_string_atr( outset->dblk , "TLRC_SPACE" , "MNI-152" ) ;
+/*     THD_set_string_atr( outset->dblk , "TLRC_SPACE" , "MNI-152" ) ;*/
+     MCW_strncpy(outset->atlas_space, "MNI", THD_MAX_NAME);
+   }
+
+
+   if( mni2tta ){
+     MCW_strncpy(outset->atlas_space, "TLRC", THD_MAX_NAME);
    }
 
    /*- 03 Aug 2005: save WARPDRIVE attributes, if present -*/
