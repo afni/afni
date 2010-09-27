@@ -36,7 +36,7 @@ double SUMA_NI_doubleAttrOfNamedElement(NI_group *ngr, char *elname,
 
 /*! Structure to contain the path between one node and the next. The path is defined in terms of the previous one, plus an edge from
 the previous to the current */
-#define LARGE_NUM 9e300
+#define LARGE_NUM 1e38
 typedef struct {
    int node; /*!< Index of current node*/ 
    float le;   /*!< Length of edge between current node 
