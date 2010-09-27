@@ -6652,7 +6652,7 @@ float SUMA_estimate_slice_FWHM_1dif(
       }
    }
    /* combine, mean for now */
-   if (ssv[0] >=0.0 && ssv[2]>=0.0 && ssv[3] >= 0.0) {
+   if (ssv[0] >=0.0 && ssv[1]>=0.0 && ssv[2] >= 0.0) {
       ssc = (ssv[0]+ssv[1]+ssv[2])/3.0;
       if (ssvr) { ssvr[0] = ssv[0]; ssvr[1] = ssv[1]; ssvr[2] = ssv[2]; }
    } else {

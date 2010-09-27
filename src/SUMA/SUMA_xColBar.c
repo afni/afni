@@ -5190,7 +5190,7 @@ SUMA_MenuItem *SUMA_FormSwitchColMenuVector(SUMA_SurfaceObject *SO, int what, in
       menu[i].accelerator = NULL;
       menu[i].accel_text = NULL;
       menu[i].callback = callback;
-      menu[i].callback_data = (XTP_CAST)i+1; /* DO NOT USE THE zeroth item */
+      menu[i].callback_data = (XTP_CAST)(i+1); /* DO NOT USE THE zeroth item */
       menu[i].subitems = NULL;
    }
    

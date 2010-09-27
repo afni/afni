@@ -661,7 +661,7 @@ typedef struct {
    float MaskRange[2];     /*!< values between MaskRange[0] and 
                                 MaskRange[1] (inclusive) are assigned 
                                 MaskColor */
-   float MaskColor[3];     /*!<   color to assign to masked nodes */
+   float MaskColor[4];     /*!<   color to assign to masked nodes */
    SUMA_Boolean ApplyClip; /*!< if YUP then range clipping using Range 
                                  is applied */
    
@@ -1606,7 +1606,7 @@ typedef struct {
    float TranslateGain;   /*!< gain applied to mouse movement */
    float ArrowtranslateDeltaX;   /*!< User Input (Keyboard) X axis position increment for translation */
    float ArrowtranslateDeltaY;   /*!< User Input (Keyboard) X axis position increment for translation */
-   GLfloat translateVec[2];      /*!< translation vector, in screen coordinates, equal to [translateDeltaX translateDeltaY]. The third translation (Z dimension) is 0.0*/
+   GLfloat translateVec[3];      /*!< translation vector, in screen coordinates, equal to [translateDeltaX translateDeltaY]. The third translation (Z dimension) is 0.0*/
    GLfloat RotaCenter[3];   /*!<Center of Rotation */
    float zoomDelta;       /*!< Zoom increment */
    float zoomBegin;    /*!< Current zoom level*/
