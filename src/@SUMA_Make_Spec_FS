@@ -65,6 +65,7 @@ L_INIT_VARS:
          full.patch.3d      \
          full.patch.flat   \
          full.flat.patch.3d \
+         full.flat   \
          flat.patch      \
          sphere         \
          white          \
@@ -437,7 +438,7 @@ L_CONVERT_SURFACES:
     cd $surf_dir
     foreach surf ( $list_lh $list_rh )
    # run mris_convert and verify
-   if ( $surf =~ *patch* ) then
+   if ( $surf =~ *patch* || $surf =~ *.flat) then
        echo  "-- running 'mris_convert -p $surf $surf.asc'"
        mris_convert -p $surf $surf.asc
    else
