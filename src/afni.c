@@ -3199,19 +3199,19 @@ ENTRY("AFNI_set_valabel") ;
 
       case MRI_byte:{
          int val = MRI_BYTE_2D(im , ib.ijk[0],ib.ijk[1]) ;
-         sprintf( blab , "%-6d" , val ) ;
+         sprintf( blab , "%d" , val ) ;
       }
       break ;
 
       case MRI_short:{
          int val = MRI_SHORT_2D(im , ib.ijk[0],ib.ijk[1]) ;
-         sprintf( blab , "%-6d" , val ) ;
+         sprintf( blab , "%d" , val ) ;
       }
       break ;
 
       case MRI_int:{
          int val = MRI_INT_2D(im , ib.ijk[0],ib.ijk[1]) ;
-         sprintf( blab , "%-7d" , val ) ;
+         sprintf( blab , "%d" , val ) ;
       }
       break ;
 
@@ -5820,8 +5820,8 @@ ENTRY("AFNI_do_bkgd_lab") ;
 
 #define VSTR(x) ( ((x)[0] == '\0') ? ("?") : (x) )
 
-   sprintf(str,"ULay = %s%s\n"
-               "OLay = %s%s\n"
+   sprintf(str,"ULay = %s %s\n"
+               "OLay = %s %s\n"
                "Thr  = %s" ,
            VSTR(im3d->vinfo->anat_val), labstra,
            VSTR(im3d->vinfo->func_val), labstrf,

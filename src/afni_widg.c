@@ -5468,6 +5468,12 @@ ENTRY("new_AFNI_controller") ;
 
    im3d->fim_selfwarp       = NULL ;  /* 27 Aug 2002 */
 
+   im3d->cont_bbox = 0;            /* initialize the continuous color settings */
+   im3d->cont_pos_only = 0;
+   im3d->cont_autorange = 1;
+   im3d->cont_range_fval = 1.0;
+   im3d->first_integral = 1;
+
    RETURN(im3d) ;
 }
 
@@ -6610,8 +6616,17 @@ int AFNI_set_func_range_nval(XtPointer *vp_im3d, float rval)
    Three_D_View *im3d=NULL;
 
    ENTRY("AFNI_set_func_range_nval") ;
-
+ 
    im3d = (Three_D_View *)vp_im3d;
+
+  if(im3d->first_integral) {
+     im3d->cont_bbox = MCW_val_bbox(im3d->vwid->func->range_bbox);
+     im3d->cont_autorange = im3d->vinfo->use_autorange;
+     im3d->cont_range_fval = im3d->vwid->func->range_av->fval;
+     im3d->cont_pos_only = MCW_val_bbox( im3d->vwid->func->inten_bbox) ;
+     im3d->first_integral = 0;
+   }
+
    if( !IM3D_OPEN(im3d) ) RETURN(0) ;
    MCW_set_bbox( im3d->vwid->func->range_bbox , 0 ) ;   /* autoRange box off */
    im3d->vinfo->use_autorange = 0 ;
@@ -6628,6 +6643,33 @@ int AFNI_set_func_range_nval(XtPointer *vp_im3d, float rval)
    RETURN(0) ;
 }
 
+/* reset color overlay for continuous data */
+int AFNI_reset_func_range_cont(XtPointer *vp_im3d)
+{
+   Three_D_View *im3d=NULL;
+
+   ENTRY("AFNI_set_func_range_cont") ;
+
+   im3d = (Three_D_View *)vp_im3d;
+   if( !IM3D_OPEN(im3d) ) RETURN(0) ;
+   MCW_set_bbox( im3d->vwid->func->range_bbox , im3d->cont_bbox ) ;   /* autoRange box */
+   im3d->vinfo->use_autorange = im3d->cont_autorange ;
+
+   AV_SENSITIZE( im3d->vwid->func->range_av , 1 ) ;
+   AV_assign_fval( im3d->vwid->func->range_av , im3d->cont_range_fval ) ;
+   AFNI_range_av_CB( im3d->vwid->func->range_av , im3d ) ;
+
+   /* reset positive only */
+   MCW_set_bbox( im3d->vwid->func->inten_bbox , im3d->cont_pos_only ) ;
+   AFNI_inten_bbox_CB( im3d->vwid->func->inten_bbox->wbut[PBAR_MODEBUT] ,
+                       (XtPointer)im3d , NULL ) ;
+
+   im3d->first_integral = 1;
+
+   RETURN(0) ;
+}
+
+
 /*----------------------------------------------------------------------*/
 
 int AFNI_set_dset_pbar(XtPointer *vp_im3d)
@@ -6642,7 +6684,7 @@ int AFNI_set_dset_pbar(XtPointer *vp_im3d)
 
    ENTRY("AFNI_set_dset_pbar") ;
 
-   if (!AFNI_yesenv("AFNI_CMAP_AUTO")) RETURN(0);
+/*   if (!AFNI_yesenv("AFNI_CMAP_AUTO")) RETURN(0);*/
 
    im3d = (Three_D_View *)vp_im3d;
    if( !IM3D_OPEN(im3d) ) RETURN(0) ;
@@ -6678,6 +6720,15 @@ int AFNI_set_dset_pbar(XtPointer *vp_im3d)
       It is better to have the dataset flagged by a special type
       in the header.
       */
+      /* use ROI_i256 for now for datasets marked as integer cmaps (even sparse ones) */
+      if(im3d->fim_now->int_cmap) {
+         PBAR_set_bigmap( im3d->vwid->func->inten_pbar , "ROI_i256" ) ;
+      }
+      else {
+         PBAR_set_bigmap( im3d->vwid->func->inten_pbar , "Spectrum:red_to_blue" ) ;
+         AFNI_reset_func_range_cont((XtPointer *)im3d);
+      }
+      switched = 1;
    }
 
    if (switched) {
@@ -6722,7 +6773,7 @@ int AFNI_get_dset_val_label(THD_3dim_dataset *dset, double val, char *str)
                                 dset->Label_Dtable);
       /* fprintf(stderr,"ZSS: Have label '%s' for value '%s'\n",
                      str_lab ? str_lab:"NULL", sval); */
-      if (str_lab) snprintf(str,64, "(%s)",str_lab);
+      if (str_lab) snprintf(str,64, "%s",str_lab);
    }
 
    RETURN(0);

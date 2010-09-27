@@ -1036,6 +1036,12 @@ typedef struct Three_D_View {
       ICOR_setup   *iset ;                       /* 05 May 2009 */
       ICALC_setup  *icalc_setup ;                /* 18 Sep 2009 */
       GICOR_setup  *giset ;                      /* 22 Dec 2009 */
+      /* record previous continuous color settings to reinstate later */
+      int cont_bbox;
+      int cont_pos_only ;
+      int cont_autorange;
+      float cont_range_fval;
+      int first_integral;
 } Three_D_View ;
 
 /*! Force re-volume-editing when this viewer is redisplayed */
