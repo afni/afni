@@ -1107,7 +1107,8 @@ SUMA_Boolean SUMA_UpdateViewPoint ( SUMA_SurfaceViewer *SV,
 /*!
 Updates the Rotation Center of SV based on the contents of RegisteredDO
 */
-SUMA_Boolean SUMA_UpdateRotaCenter (SUMA_SurfaceViewer *SV, SUMA_DO *dov, int N_dov)
+SUMA_Boolean SUMA_UpdateRotaCenter (
+               SUMA_SurfaceViewer *SV, SUMA_DO *dov, int N_dov)
 {
    int i, do_id, TotWeight;
    float NewCenter[3], UsedCenter[3];
@@ -1128,10 +1129,12 @@ SUMA_Boolean SUMA_UpdateRotaCenter (SUMA_SurfaceViewer *SV, SUMA_DO *dov, int N_
       switch (dov[do_id].ObjectType) {
          case SO_type:
             so_op = (SUMA_SurfaceObject *)dov[do_id].OP;
-            if (SV->UsePatchDims) { SUMA_COPY_VEC(so_op->patchCenter, UsedCenter, 3, float, float);  } 
-            else {  
+            if (SV->UsePatchDims) { 
+               SUMA_COPY_VEC(so_op->patchCenter, UsedCenter, 3, float, float);  
+            } else {  
                if (SUMA_IS_GEOM_SYMM(so_op->isSphere)) {
-                  SUMA_COPY_VEC(so_op->SphereCenter, UsedCenter, 3, float, float); 
+                  SUMA_COPY_VEC(so_op->SphereCenter, UsedCenter, 
+                                 3, float, float);
                } else {
                   SUMA_COPY_VEC(so_op->Center, UsedCenter, 3, float, float); 
                }
@@ -1154,7 +1157,9 @@ SUMA_Boolean SUMA_UpdateRotaCenter (SUMA_SurfaceViewer *SV, SUMA_DO *dov, int N_
       SV->GVS[SV->StdView].RotaCenter[2] = NewCenter[2]/(float)TotWeight;
    } else
    {/* default back to o.o, o.o, o.o */
-      SV->GVS[SV->StdView].RotaCenter[0] = SV->GVS[SV->StdView].RotaCenter[1] = SV->GVS[SV->StdView].RotaCenter[2] = 0.0;
+      SV->GVS[SV->StdView].RotaCenter[0] = 
+         SV->GVS[SV->StdView].RotaCenter[1] = 
+         SV->GVS[SV->StdView].RotaCenter[2] = 0.0;
    }
    SUMA_RETURN (YUP);
    

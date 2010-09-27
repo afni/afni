@@ -48,19 +48,26 @@ SUMA_INODE *SUMA_CreateInodeLink (SUMA_INODE * FromIN, SUMA_INODE *ToIN);
 SUMA_Boolean SUMA_isInodeLink (SUMA_INODE *IN, const char *HolderIDcode);
 SUMA_INODE * SUMA_BreakInodeLink (SUMA_INODE *IN, const char *HolderIDcode);
 SUMA_Boolean SUMA_existSO(char *idcode, SUMA_DO *dov, int N_dov);
+SUMA_Boolean SUMA_existVO(char *idcode, SUMA_DO *dov, int N_dov);
 SUMA_Boolean SUMA_existDO(char *idcode, SUMA_DO *dov, int N_dov);
 int SUMA_whichDO(char *idcode, SUMA_DO *dov, int N_dov);
 int SUMA_findSO_inDOv(char *idcode, SUMA_DO *dov, int N_dov);
+int SUMA_findVO_inDOv(char *idcode, SUMA_DO *dov, int N_dov);
+SUMA_VolumeObject * SUMA_findVOp_inDOv(char *idcode, SUMA_DO *dov, int N_dov);
 SUMA_SurfaceObject * SUMA_findSOp_inDOv(char *idcode, SUMA_DO *dov, int N_dov);
 SUMA_SurfaceObject * SUMA_find_named_SOp_inDOv(
                         char *coordname, SUMA_DO *dov, int N_dov);
+SUMA_VolumeObject * SUMA_find_named_VOp_inDOv( char *filename, 
+                                                SUMA_DO *dov, int N_dov);
 SUMA_SurfaceObject *SUMA_FindSOp_inDOv_from_N_Node(
                         int N_Node, SUMA_SO_SIDE side, 
                         int check_unique, int return_parent,
                         SUMA_DO *dov, int N_dov);
 SUMA_Boolean  SUMA_is_ID_4_SO(char *idcode, SUMA_SurfaceObject **SOp);
 char *SUMA_find_SOLabel_from_idcode (char *idcode, SUMA_DO *dov, int N_dov);
+char *SUMA_find_VOLabel_from_idcode (char *idcode, SUMA_DO *dov, int N_dov);
 char *SUMA_find_SOidcode_from_label (char *label, SUMA_DO *dov, int N_dov);
+char *SUMA_find_VOidcode_from_label (char *label, SUMA_DO *dov, int N_dov);
 SUMA_SurfaceObject *SUMA_Contralateral_SO(SUMA_SurfaceObject *SO,
                                           SUMA_DO *dov, int N_dov); 
 SUMA_DSET * SUMA_Contralateral_dset(SUMA_DSET *dset, SUMA_SurfaceObject *SO, 
@@ -68,7 +75,8 @@ SUMA_DSET * SUMA_Contralateral_dset(SUMA_DSET *dset, SUMA_SurfaceObject *SO,
 SUMA_Boolean SUMA_ismappable (SUMA_SurfaceObject *SO);
 SUMA_Boolean SUMA_isINHmappable (SUMA_SurfaceObject *SO);
 SUMA_Boolean SUMA_isLocalDomainParent (SUMA_SurfaceObject *SO);
-SUMA_Boolean SUMA_isSO (SUMA_DO DO); 
+SUMA_Boolean SUMA_isSO (SUMA_DO DO);
+SUMA_Boolean SUMA_isVO (SUMA_DO DO);  
 SUMA_Boolean SUMA_isSO_G (SUMA_DO DO, char *Group);
 SUMA_DOMAIN_KINSHIPS SUMA_WhatAreYouToMe (SUMA_SurfaceObject *SO1, SUMA_SurfaceObject *SO2);
 SUMA_Boolean SUMA_isRelated (SUMA_SurfaceObject *SO1, SUMA_SurfaceObject *SO2, int level);

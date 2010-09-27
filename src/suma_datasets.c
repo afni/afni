@@ -13075,13 +13075,13 @@ int SUMA_search_file(char **fnamep, char *epath)
    static char FuncName[]={"SUMA_search_file"};
    SUMA_PARSED_NAME *pn = NULL;
    char dname[THD_MAX_NAME], ename[THD_MAX_NAME], *elocal=NULL;
-   int epos=0, ll=0, ii=0, id = 0;
+   int epos=0, ll=0, ii=0, id = 0, imode=1;
    
    SUMA_ENTRY;
    
    /* does it exist? */
    if ( SUMA_filexists(*fnamep) ) {
-      SUMA_RETURN(YUP); /* all is well */
+      SUMA_RETURN(1); /* all is well */
    }
    
    #if defined SUMA_COMPILED
@@ -13092,7 +13092,17 @@ int SUMA_search_file(char **fnamep, char *epath)
       SUMA_free(*fnamep); 
       *fnamep = SUMA_copy_string(pn->FullName);
       pn = SUMA_Free_Parsed_Name(pn);
-      SUMA_RETURN(YUP); /* all is well */
+      SUMA_RETURN(1); /* all is well */
+   }
+   pn = SUMA_Free_Parsed_Name(pn);
+   /* try again perhaps for compressed data */
+   elocal = SUMA_append_string(*fnamep, ".gz");
+   pn = SUMA_ParseFname(elocal, SUMAg_CF->cwd);
+   if ( SUMA_filexists(pn->FullName) ) {
+      SUMA_free(*fnamep); 
+      *fnamep = SUMA_copy_string(pn->FullName);
+      pn = SUMA_Free_Parsed_Name(pn);
+      SUMA_RETURN(2); /* all is well */
    }
    pn = SUMA_Free_Parsed_Name(pn);
    #endif
@@ -13115,28 +13125,33 @@ int SUMA_search_file(char **fnamep, char *epath)
 
    /*----- extract blank delimited strings;
            use as directory names to look for atlas -----*/
-   epos = 0 ;
-   do{
-      ii = sscanf( elocal+epos , "%s%n" , ename , &id ); /* next substring */
-      if( ii < 1 ) break ;                               /* none -> done   */
+   imode = 1;
+   while (imode < 3) {
+      epos = 0 ;
+      do{
+         ii = sscanf( elocal+epos , "%s%n" , ename , &id ); /* next substring */
+         if( ii < 1 ) break ;                               /* none -> done   */
 
-      epos += id ;                                 /* char after last scanned */
+         epos += id ;                               /* char after last scanned */
 
-      ii = strlen(ename) ;                         /* make sure name has   */
-      if( ename[ii-1] != '/' ){                    /* a trailing '/' on it */
-          ename[ii]  = '/' ; ename[ii+1] = '\0' ;
-      }
-      strcpy(dname,ename) ;
-      strcat(dname,*fnamep) ;               /* add dataset name */
+         ii = strlen(ename) ;                         /* make sure name has   */
+         if( ename[ii-1] != '/' ){                    /* a trailing '/' on it */
+             ename[ii]  = '/' ; ename[ii+1] = '\0' ;
+         }
+         strcpy(dname,ename) ;
+         strcat(dname,*fnamep) ;               /* add dataset name */
+         if (imode == 2) {
+            strcat(dname,".gz");          /* add compression flag */
+         }
+         if ( SUMA_filexists(dname) ) {
+            SUMA_free(*fnamep); *fnamep = SUMA_copy_string(dname);
+            SUMA_free(elocal); elocal=NULL;
+            SUMA_RETURN(imode); /* all is well */
+         }
 
-      if ( SUMA_filexists(dname) ) {
-         SUMA_free(*fnamep); *fnamep = SUMA_copy_string(dname);
-         SUMA_free(elocal); elocal=NULL;
-         SUMA_RETURN(YUP); /* all is well */
-      }
-
-   } while( epos < ll ) ;  /* scan until 'epos' is after end of epath */
-
+      } while( epos < ll ) ;  /* scan until 'epos' is after end of epath */
+      ++imode;
+   } 
    /* nothing */
    SUMA_free(elocal); elocal=NULL;
    

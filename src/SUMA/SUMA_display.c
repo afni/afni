@@ -1320,6 +1320,7 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
    int i;
    static int xList[1], yList[1];
    SUMA_SurfaceObject *SO=NULL;
+   SUMA_VolumeObject *VO=NULL;
    GLfloat rotationMatrix[4][4];
    static char FuncName[]={"SUMA_display"};
    SUMA_Boolean LocalHead = NOPE; /* local headline debugging messages */   
@@ -1409,32 +1410,13 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
       fprintf (SUMA_STDOUT,
                "%s: Creating objects with fixed coordinates ...\n", 
                FuncName);
-   #if 0
-      {
-         float Ps[3]={0.0, 0.0, 0.0};
-         /* To ponder:
-         How to define coordinates of location
-            You could have centered text on center of screen axis,
-         but then what do you do you're off center and you zoom in and out...
-            Do you want coordinate relative to window size or do you want them
-         in mm units?
-         You probably want two loops on the display. 
-            One for DOs in the foreground and one for DOs in the background.
-            It gets complicated but you typically want text on the front and
-            axis on the back even though both may be SUMA_SCREEN CoordType
-         
-         Last but not least, you need a respectable DO for text on screen
-         
-         See SUMA_DrawWindowLine and SUMA_GetSelectionLine for relating 
-         window coords to 3d coords.
-         
-         */ 
-      }
-   #endif
    i = 0;
    while (i < csv->N_DO) {
       if (dov[csv->RegisteredDO[i]].CoordType == SUMA_SCREEN) {
          switch (dov[csv->RegisteredDO[i]].ObjectType) {
+            case N_DO_TYPES:
+               SUMA_S_Err("This is reserved for the number of types");
+               break;
             case type_not_set:
             case no_type:
                SUMA_SL_Err("Should not be doing this buidness");
@@ -1484,6 +1466,15 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
                break;
             case PL_type:
                SUMA_SL_Warn("Not ready yet!");
+               break;
+            case VO_type:
+               if (!SUMA_DrawVolumeDO (
+                     (SUMA_VolumeObject *)dov[csv->RegisteredDO[i]].OP, 
+                        csv)) {
+                  fprintf( SUMA_STDERR, 
+                           "Error %s: Failed in SUMA_DrawVolumeDO.\n", 
+                           FuncName);
+               }
                break;
             case NIDO_type:
                SUMA_LH("Doing Screen NIDO");
@@ -1536,6 +1527,9 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
    while (i < csv->N_DO) {
       if (dov[csv->RegisteredDO[i]].CoordType == SUMA_WORLD) {
          switch (dov[csv->RegisteredDO[i]].ObjectType) {
+            case N_DO_TYPES:
+               SUMA_S_Err("N_DO_TYPES should not come up here");
+               break;
             case SO_type:
                SO = (SUMA_SurfaceObject *)dov[csv->RegisteredDO[i]].OP;
                if (SO->Show) {
@@ -1544,6 +1538,14 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
                         SO->Side == SUMA_NO_SIDE || SO->Side == SUMA_LR) {
                         SUMA_DrawMesh(SO, csv); /* create the surface */
                   }
+               }
+               break;
+            case VO_type:
+               VO = (SUMA_VolumeObject *)dov[csv->RegisteredDO[i]].OP;
+               if (VO->Show) {
+                  if (!SUMA_DrawVolumeDO (VO, csv)) {
+                     SUMA_S_Err("Failed in SUMA_DrawVolumeDO.");
+                  } 
                }
                break;
             case AO_type:
@@ -9990,32 +9992,43 @@ int SUMA_ShowMode2ShowModeMenuItem(int Mode)
    }
 }      
 
-/*!
-   \brief sets the dataset viewing mode of the current dset  
-   
-   - expects a SUMA_MenuCallBackData * in  client_data
-   with SO as client_data->ContID and Menubutton in client_data->callback_data
-*/
-void SUMA_cb_SetDsetViewMode(Widget widget, XtPointer client_data, 
-                           XtPointer call_data)
+int SUMA_ShowModeStr2ShowModeMenuItem(char *str) 
 {
-   static char FuncName[]={"SUMA_cb_SetDsetViewMode"};
+   static char FuncName[]={"SUMA_ShowModeStr2ShowModeMenuItem"};
+   
+   SUMA_ENTRY;
+   if (!str) {
+      SUMA_S_Err("NULL str, returning view color");    
+      SUMA_RETURN(SW_SurfCont_DsetViewCol);
+   }
+   SUMA_TO_LOWER(str);
+   if (!strcmp(str,"xxx")) 
+       SUMA_RETURN(SW_SurfCont_DsetViewXXX);
+   else if (!strcmp(str,"col")) 
+       SUMA_RETURN(SW_SurfCont_DsetViewCol);
+   else if (!strcmp(str,"con")) 
+       SUMA_RETURN(SW_SurfCont_DsetViewCon);
+   else if (!strcmp(str,"c&c")) 
+       SUMA_RETURN(SW_SurfCont_DsetViewCaC);
+   else {
+      SUMA_S_Errv("'%s' is not a valid show mode, returning view col", str);
+      SUMA_RETURN(SW_SurfCont_DsetViewCol);
+   }
+      
+}
+/*!
+   \brief sets the dataset viewing mode of the current dset  on SO
+   
+*/
+int SUMA_SetDsetViewMode(SUMA_SurfaceObject *SO, int imenu, int updatemenu) 
+{
+   static char FuncName[]={"SUMA_SetDsetViewMode"};
    DList *list = NULL;
    DListElmt *Elmnt = NULL;
    SUMA_EngineData *ED = NULL;
-   SUMA_MenuCallBackData *datap=NULL;
-   SUMA_SurfaceObject *SO = NULL;
-   void **curSOp;
-   int imenu = 0;
-   
+
    SUMA_ENTRY;
 
-   /* get the surface object that the setting belongs to */
-   datap = (SUMA_MenuCallBackData *)client_data;
-   curSOp = (void **)datap->ContID;
-   SO = (SUMA_SurfaceObject *)(*curSOp);
-   imenu = (INT_CAST)datap->callback_data; 
-   
    /* make a call to SUMA_Engine */
    if (!list) list = SUMA_CreateList ();
    ED = SUMA_InitializeEngineListData (SE_SetDsetViewMode);
@@ -10030,14 +10043,52 @@ void SUMA_cb_SetDsetViewMode(Widget widget, XtPointer client_data,
       fprintf (SUMA_STDERR, 
                "Error %s: Failed in SUMA_RegisterEngineListCommand.\n", 
                FuncName);
-      SUMA_RETURNe;                                     
+      SUMA_RETURN(NOPE);                                     
    }
-   
-   
+
+
    if (!SUMA_Engine (&list)) {
       fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_Engine.\n", FuncName);
-      SUMA_RETURNe;    
+      SUMA_RETURN(NOPE);    
    }
+
+   if (updatemenu) {
+      SUMA_SET_MENU( SO->SurfCont->DsetViewModeMenu,
+                     SO->SurfCont->curColPlane->ShowMode);
+   }
+
+   SUMA_RETURN(YUP);
+}
+
+/*!
+   \brief sets the dataset viewing mode of the current dset  
+   
+   - expects a SUMA_MenuCallBackData * in  client_data
+   with SO as client_data->ContID and Menubutton in client_data->callback_data
+*/
+void SUMA_cb_SetDsetViewMode(Widget widget, XtPointer client_data, 
+                           XtPointer call_data)
+{
+   static char FuncName[]={"SUMA_cb_SetDsetViewMode"};
+   SUMA_MenuCallBackData *datap=NULL;
+   SUMA_SurfaceObject *SO = NULL;
+   void **curSOp;
+   int imenu = 0;
+   
+   SUMA_ENTRY;
+
+   
+   /* get the surface object that the setting belongs to */
+   datap = (SUMA_MenuCallBackData *)client_data;
+   curSOp = (void **)datap->ContID;
+   SO = (SUMA_SurfaceObject *)(*curSOp);
+   imenu = (INT_CAST)datap->callback_data; 
+   
+   if (!SUMA_SetDsetViewMode(SO, imenu, 0)) {
+      SUMA_S_Err("Failed to set view mode");
+      SUMA_RETURNe;
+   }
+      
    
    SUMA_RETURNe;
 }
