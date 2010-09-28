@@ -562,6 +562,8 @@ static mday holiday[] = {
    {SEP,23,"Emperor Augustus Caesar's birthday"                      } ,
    {SEP,26,"Yemen National Day"                                      } ,
    {SEP,27,"Anniversary of founding of Jesuit Order"                 } ,
+   {SEP,28,"Anniversary of discovery of penicillin"                  } ,
+   {SEP,28,"Seymour Cray's birthday"                                 } ,
    {SEP,29,"Lech Walesa's birthday"                                  } ,
    {SEP,30,"Botswana Independence Day"                               } ,
 
@@ -1023,6 +1025,7 @@ static mday holiday[] = {
    {SEP, 28, "National Strawberry Cream Pie Day" } ,
    {SEP, 29, "National Linguini Day" } ,
    {SEP, 30, "Celebrate National Chicken Month" } ,
+   {SEP ,30, "National Chewing Gum Day" } ,
    {OCT, 1, "World Vegetarian Day" } ,
    {OCT, 2, "National Fried Scallops Day" } ,
    {OCT, 3, "National Caramel Custard Day" } ,
