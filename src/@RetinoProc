@@ -553,11 +553,14 @@ end
 
 EXAMINE_RESULTS:
    cd $rdir
+   echo '#\!/bin/tcsh -f' > @ShowResult
    echo "-----------------------------------------"
    echo "Close all existing AFNI and SUMA sessions"
    echo "Launch SUMA and view some results with:"
    echo "-----------------------------------------"
-   echo "cd $rdir"
+   echo "cd $rdir "
+   echo "tcsh @ShowResult"
+   echo ""
    if ($DemoSide == 'lh') then
       set sps = $spec_left
    else if ($DemoSide == 'rh') then
@@ -571,24 +574,35 @@ EXAMINE_RESULTS:
       set svo = '-sv SVol@Epi+orig '
    endif
    set spr = `ParseName -cwd $PWD -out RelName $sps` 
-   echo "suma -spec $spr $svo -niml &"
+   echo "suma -spec $spr $svo -niml &" >> @ShowResult
+   echo "prompt_user -pause 'Wait until SUMA is up then press OK'" \
+               >> @ShowResult
    set demo_set = ''
    if ( -f $DemoVFR) then
       set prm = "Press OK to see VFR result"
       set demo_set = $DemoVFR
-   else if (-f $DemoEcc) then
+      echo "DriveSuma -com  pause $prm -com surf_cont -view_surf_cont y -com surf_cont -load_dset $demo_set -com surf_cont -view_surf_cont n" \
+               >> @ShowResult
+   endif   
+   if (-f $DemoEcc) then
       set prm = "Press OK to see Eccentricity result"
       set demo_set = $DemoEcc
-   else if (-f $DemoPol) then
+      echo "DriveSuma -com  pause $prm -com surf_cont -view_surf_cont y -com surf_cont -load_dset $demo_set -com surf_cont -view_surf_cont n" \
+               >> @ShowResult
+   endif
+   if (-f $DemoPol) then
       set prm = "Press OK to see Polar angle result"
       set demo_set = $DemoPol
-   else
-      echo "No Demo set"
+      echo "DriveSuma -com  pause $prm -com surf_cont -view_surf_cont y -com surf_cont -load_dset $demo_set -com surf_cont -view_surf_cont n" \
+               >> @ShowResult
+   endif
+   if (! -f $DemoVFR && ! -f $DemoEcc && ! -f $DemoPol) then
+      set prm = "Have no dsets to show off"
+      echo "DriveSuma -com  pause $prm " \
+               >> @ShowResult
       goto END
    endif
-   echo "prompt_user -pause 'Wait until SUMA is up then press OK'"
-   echo "DriveSuma -com  pause $prm -com surf_cont -load_dset $demo_set"
-   echo ""
+   echo "" >> @ShowResult
    cd $idir
 
 goto END
@@ -1184,10 +1198,15 @@ echo "==========="
 echo "+++ Stimulus, and Time Series Parameters:"
 echo " -TR TR: TR, in seconds, of retinotopic scans"
 echo " -period_ecc TECC: Period, in seconds, of eccentricity (rings) and"
-echo " -periof_pol TPOL: polar angle (wedges) stimuli, respectively."
-echo "                   Note that the period is independent of the number"
-echo "                   of rings/wedges used. For most sane people, TECC"
-echo "                   and TPOL have the same value."
+echo " -period_pol TPOL: polar angle (wedges) stimuli, respectively."
+echo "             The period is the duration the stimulus takes to complete"
+echo "             a full cycle. In other terms, if you were to point at one"
+echo "             part of the stimulus and follow that part with your finger, "
+echo "             the period is the duration it takes your finger to get back "
+echo "             to the starting position."
+echo "             The period is independent of the number"
+echo "             of rings/wedges used. For most sane people, TECC"
+echo "             and TPOL have the same value."
 echo " -pre_ecc PREECC: PREECC and PREPOL are the durations, in sec, before the "
 echo " -pre_pol PREPOL: each of the two stimuli began. The duration is relative" echo "                  to the beginning of the retinotopic time series, "
 echo "                  after the pre-steadystate images have been removed."
@@ -1292,12 +1311,14 @@ echo "   - Smooth time series on the surfaces"
 echo "   - Run 3dRetinoPhase on time series to produce field angle dataset"
 echo "   - Run SurfRetinoMap on field angle data to produce visual field ratio"
 echo "     datasets."
-echo "   - Suggest a command to show results"
+echo "   - Create a script to show the results with little pain."
+echo "     The script is named @ShowResult and is stored in DIR/ "
 echo ""
 echo "Sample Data:"
 echo "============"
-echo "You can download a test dataset, generously contributed by Peter Kohler,"
-echo "from afni.nimh.nih.gov/pub/dist/tgz/AfniRetinoDemo.tgz"
+echo "You can download a test dataset, generously contributed by Peter J. Kohler"
+echo " and Sergey V. Fogelson from:"
+echo "       afni.nimh.nih.gov/pub/dist/tgz/AfniRetinoDemo.tgz"
 echo "A README file in the archive will point you to sample scripts that "
 echo "illustrate the usage of @RetinoProc."
 echo ""
