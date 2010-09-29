@@ -51,6 +51,14 @@
 afni_history_struct gangc_history[] = {
 
   /* can copy to and change one of the examples here */
+
+  { 29 , SEP , 2010 , GC , "1dSVAR.R" , MAJOR , TYPE_NEW_PROG ,
+    "Structural vector autoregression (SVAR)",
+         "This is an R program that incorporates both instantaneous and \n"
+    "lagged effects in an SVAR model for ROI-based network analysis.\n"
+    "See more details at http://afni.nimh.nih.gov/sscc/gangc/SVAR.html"
+  } ,
+
   
   { 8 , JUL , 2010 , GC , "3dICC_REML.R" , MINOR , TYPE_NEW_PROG ,
     "IntraClass Correlation (ICC) with REML Method",
