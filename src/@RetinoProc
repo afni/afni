@@ -502,14 +502,9 @@ foreach sd ($sides)
                set polin = $ec${sss}.$sd.pol-.niml.dset
             endif
          endif
-         if ($sss == '.sm' && $DemoPol == 'NADA') then
+         if ($sss == '.sm' && $DemoPol == 'NADA'&& -f $polin) then
                set DemoPol = $polin
                set DemoSide = $sd
-         endif
-         if (! -f $polin) then
-            echo "Need at least one polar angle direction for visual field maps"
-            echo "Skipping VFR"
-            goto NEXT_SIDE
          endif
          if ( -f $ec${sss}.$sd.ecc.field.niml.dset ) then
             set eccin = $ec${sss}.$sd.ecc.field.niml.dset
@@ -522,14 +517,19 @@ foreach sd ($sides)
                set eccin = $ec${sss}.$sd.ecc-.niml.dset
             endif
          endif
+         if ($sss == '.sm' && $DemoEcc == 'NADA' && -f $eccin) then
+               set DemoEcc = $eccin
+               set DemoSide = $sd
+         endif
+         if (! -f $polin) then
+            echo "Need at least one polar angle direction for visual field maps"
+            echo "Skipping VFR"
+            goto END_VFR
+         endif
          if (! -f $eccin) then
             echo "Need at least one eccentricity direction for visual field maps"
             echo "Skipping VFR"
-            goto NEXT_SIDE
-         endif
-         if ($sss == '.sm' && $DemoEcc == 'NADA') then
-               set DemoEcc = $eccin
-               set DemoSide = $sd
+            goto END_VFR
          endif
          if ( ! -f $ec${sss}.vfr.$sd.niml.dset) then
             echo "Creating $ec${sss}.vfr.$sd.niml.dset"
@@ -544,6 +544,7 @@ foreach sd ($sides)
             set DemoVFR = $ec${sss}.vfr.$sd.niml.dset
             set DemoSide = $sd
          endif
+      END_VFR:
       end
   
    NEXT_SIDE:
@@ -566,7 +567,7 @@ EXAMINE_RESULTS:
    else if ($DemoSide == 'rh') then
       set sps = $spec_right
    else
-      echo "No Demo side"
+      echo "No Demo side ($DemoSide)"
       goto END
    endif
    set svo = ''
