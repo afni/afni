@@ -191,9 +191,6 @@ if ($localX == 1) then
    sed 's/# USE_LOCAL_X_TREE/USE_LOCAL_X_TREE/' Makefile > ___mm
    mv ___mm Makefile
 endif
-   set fixccold = 0
-   set expat_sh = 0
-   set fontconf = 0
 
 if ( $optimize_problem ) then
   sed 's/-O2/-O1/' Makefile > ___mm
@@ -274,6 +271,7 @@ if ($buildX) then
       set lop = '-lib64'
    else
       set lop = '-lib32'
+   endif
    tcsh ../$tdir/src/@build_afni_Xlib $lop -afniX openmotif libXt
    if (  ! -f /usr/local/afniX/lib/libXm.a && \
          ! -f /usr/local/afniX/lib64/libXm.a ) then
@@ -340,14 +338,14 @@ CHECK:
 
 CHECK_SCRIPT:
    set frun = `\which @new_dist`
-   set fref = "$tdir/src/SUMA/@new_dist"
+   set fref = "$tdir/src/SUMA/@new_dist.ref"
    set dd = `\diff -q $frun $fref`
    if ($status) then
       echo "Executable $frun differs from "
       echo "CVS stored version $fref"
       echo "Consider which needs to be updated"
       echo "Try:"
-      echo "diff -$frun $fref"
+      echo "diff $frun $fref"
       echo ""
    endif   
    goto END
@@ -383,6 +381,10 @@ PARSE_COMMAND:
    set fontconf = 0
    while ($cnt <= $Narg)
 		set donext = 1;
+      if ($donext && "$argv[$cnt]" == "-echo") then
+         set echo
+         set donext = 0;		
+      endif
       if ($donext && "$argv[$cnt]" == "-optimize_problem") then
          set optimize_problem = 1;
          set donext = 0;		
