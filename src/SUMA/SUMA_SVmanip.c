@@ -492,7 +492,16 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
       SV->X->gc=NULL;
       SV->X->ToggleCrossHair_View_tglbtn=NULL;
       for (iii=0; iii<SW_N_Tools; ++iii) {
-         SV->X->FileMenu[iii] = SV->X->ToolsMenu[iii] = SV->X->ViewMenu[iii] = SV->X->HelpMenu[iii] = NULL;
+         SV->X->ToolsMenu[iii] = NULL;
+      }
+      for (iii=0; iii<SW_N_File; ++iii) {
+         SV->X->FileMenu[iii] = NULL;
+      }
+      for (iii=0; iii<SW_N_View; ++iii) {
+         SV->X->ViewMenu[iii] = NULL;
+      }
+      for (iii=0; iii<SW_N_Help; ++iii) {
+         SV->X->HelpMenu[iii] = NULL;
       }
       
       SV->Focus_SO_ID = -1;
@@ -2027,6 +2036,10 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
    cf->X->SumaCont = SUMA_CreateSumaContStruct();
    cf->X->DrawROI = SUMA_CreateDrawROIStruct();
    cf->X->DPY_controller1 = NULL;
+   memset(&(cf->X->App), 0, sizeof(XtAppContext)); /* a futile effort 
+                  to get rid of Conditional jump or move messages from
+                  valgrind... Problem may be in XtOpenApplication which
+                  returns App, perhaps poorly initialized*/
    
    eee = getenv("SUMA_ColorPattern");
    if (eee) {
