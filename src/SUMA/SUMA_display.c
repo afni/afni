@@ -2058,10 +2058,11 @@ int SUMA_BuildMenu(  Widget parent, int menu_type, char *menu_title,
      cascade = XtVaCreateManagedWidget (menu_title,
          xmCascadeButtonWidgetClass, parent,
          XmNlabelString, str,
-         XmNmnemonic,    menu_mnemonic, /* this line causes a warning on 
+     /*     XmNmnemonic,    menu_mnemonic, this line causes a warning on 
                                           OS X 10.6. Can't tell why...
-                                          
-                                          */
+                           It also causes plenty of valgrind conditional 
+                           jumps warnings.
+                           To hell with it.*/
          XmNsubMenuId,   menu,
          XmNmarginHeight, 0,
          XmNmarginTop, 0,
@@ -2507,7 +2508,7 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
        SUMA_get_fallbackResources(), NULL, 0); Superseded by XtOpenApplication
       */
       SUMAg_SVv[ic].X->TOPLEVEL = 
-         XtOpenApplication(&SUMAg_CF->X->App, "SUMA", 
+         XtOpenApplication(&(SUMAg_CF->X->App), "SUMA", 
                            NULL, 0, &cargc, vargv,
                            SUMA_get_fallbackResources(), 
                            topLevelShellWidgetClass, NULL, 0); 

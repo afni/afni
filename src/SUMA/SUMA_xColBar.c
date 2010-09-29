@@ -3329,7 +3329,8 @@ void SUMA_set_cmap_options(SUMA_SurfaceObject *SO, SUMA_Boolean NewDset, SUMA_Bo
                            "Select Threshold (T) column (BHelp for more)", 
                            SUMA_SurfContHelp_SelThr ,    
                            SO->SurfCont->SwitchThrMenu );
-         XtInsertEventHandler( SO->SurfCont->SwitchThrMenu[0] ,      /* handle events in optmenu */
+         XtInsertEventHandler( SO->SurfCont->SwitchThrMenu[0] ,      
+                                       /* handle events in optmenu */
                         ButtonPressMask ,  /* button presses */
                         FALSE ,            /* nonmaskable events? */
                         SUMA_optmenu_EV ,  /* handler */
@@ -3339,8 +3340,9 @@ void SUMA_set_cmap_options(SUMA_SurfaceObject *SO, SUMA_Boolean NewDset, SUMA_Bo
          /* Now destroy the SwitchThr_Menu */
          SwitchThr_Menu = SUMA_FreeMenuVector(SwitchThr_Menu, N_items);
          /* setup the history to the proper widget */
-         XtVaSetValues( SO->SurfCont->SwitchThrMenu[0], XmNmenuHistory , 
-                        SO->SurfCont->SwitchThrMenu[SO->SurfCont->curColPlane->OptScl->tind+1] , NULL ) ; 
+         XtVaSetValues( SO->SurfCont->SwitchThrMenu[0], XmNmenuHistory ,
+      SO->SurfCont->SwitchThrMenu[SO->SurfCont->curColPlane->OptScl->tind+1] ,
+          NULL ) ; 
       } else {
          SUMA_SL_Err("NULL SwitchThr_Menu");
       }
