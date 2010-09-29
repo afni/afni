@@ -4208,7 +4208,7 @@ SUMA_SCALE_TO_MAP_OPT * SUMA_ScaleToMapOptInit(void)
    Opt->find = 0;
    Opt->tind = 0;
    Opt->bind = 0;
-   Opt->UseThr = NOPE;
+   Opt->UseThr = YUP;
    {
       char *eee = getenv("SUMA_AbsThreshold");
       if (eee) {
