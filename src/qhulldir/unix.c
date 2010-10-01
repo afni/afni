@@ -3,21 +3,24 @@
 
    unix.c
      command line interface to qhull
-	 includes SIOUX interface for Macintoshes
+         includes SIOUX interface for Macintoshes
 
    see qh-qhull.htm
 
-   copyright (c) 1993-2001, The Geometry Center
+   copyright (c) 1993-2010 The Geometry Center.
+   $Id$$Change: 1164 $
+   $DateTime: 2010/01/07 21:52:00 $$Author$
 */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <ctype.h>
-#include <math.h>
-#include "qhull.h"
 #include "mem.h"
 #include "qset.h"
+#include "libqhull.h"
+
+#include <ctype.h>
+#include <math.h>
+#include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 #if __MWERKS__ && __POWERPC__
 #include <SIOUX.h>
@@ -27,7 +30,7 @@
 
 #elif __cplusplus
 extern "C" {
-  int isatty (int);
+  int isatty(int);
 }
 
 #elif _MSC_VER
@@ -35,36 +38,22 @@ extern "C" {
 #define isatty _isatty
 
 #else
-int isatty (int);  /* returns 1 if stdin is a tty
-		   if "Undefined symbol" this can be deleted along with call in main() */
+int isatty(int);  /* returns 1 if stdin is a tty
+                   if "Undefined symbol" this can be deleted along with call in main() */
 #endif
-
-/*========= version =======================
-
-  notes:
-    change date:    Changes.txt, Announce.txt, README.txt, qhull.man
-                    qhull-news.html, Eudora signatures, 
-    change version: README.txt, qhull.html, file_id.diz, Makefile
-	            qconvex.c qdelaun.c qhalf.c qvoronoi.c
-    change year:    Copying.txt
-    check download size
-    recompile user_eg.c, rbox.c, qhull.c, qconvex.c, qdelaun.c qvoronoi.c, qhalf.c
-*/
-
-char qh_version[]= "version 3.0 2001/02/11"; 
 
 /*-<a                             href="qh-qhull.htm#TOC"
   >-------------------------------</a><a name="prompt">-</a>
 
-  qh_prompt 
+  qh_prompt
     long prompt for qhull
-    
+
   see:
     concise prompt below
-*/  
+*/
 char qh_prompta[]= "\n\
 qhull- compute convex hulls and related structures.\n\
-    http://www.geom.umn.edu/locate/qhull  %s\n\
+    http://www.qhull.org  %s\n\
 \n\
 input (stdin):\n\
     first lines: dimension and number of points (or vice-versa).\n\
@@ -79,7 +68,8 @@ options:\n\
     v    - Voronoi diagram (dual of the Delaunay triangulation)\n\
     v Qu - furthest-site Voronoi diagram\n\
     Hn,n,... - halfspace intersection about point [n,n,0,...]\n\
-    QJ   - joggle input instead of merging facets\n\
+    Qt   - triangulated output\n\
+    QJ   - joggled input instead of merged facets\n\
     Qc   - keep coplanar points with nearest facet\n\
     Qi   - keep interior points with nearest facet\n\
 \n\
@@ -106,7 +96,7 @@ char qh_promptb[]= "\
     QGn  - good facet if visible from point n, -n for not visible\n\
     QVn  - good facet if it includes point n, -n if not\n\
     Q0   - turn off default premerge with 'C-0'/'Qx'\n\
-    Q1	   - sort merges by type instead of angle\n\
+    Q1     - sort merges by type instead of angle\n\
     Q2   - merge all non-convex at once instead of independent sets\n\
     Q3   - do not merge redundant vertices\n\
     Q4   - avoid old->new merges\n\
@@ -115,16 +105,20 @@ char qh_promptb[]= "\
     Q7   - depth-first processing instead of breadth-first\n\
     Q8   - do not process near-inside points\n\
     Q9   - process furthest of furthest points\n\
+    Q10  - no special processing for narrow distributions\n\
+    Q11  - copy normals and recompute centrums for tricoplanar facets\n\
 \n\
 ";
 char qh_promptc[]= "\
 Topts- Trace options:\n\
     T4   - trace at level n, 4=all, 5=mem/gauss, -1= events\n\
+    Ta   - annotate output with message codes\n\
     Tc   - check frequently during execution\n\
     Ts   - print statistics\n\
     Tv   - verify result: structure, convexity, and point inclusion\n\
     Tz   - send all output to stdout\n\
     TFn  - report summary when n or more facets created\n\
+    TI file - input data from file, no spaces or single quotes\n\
     TO file - output results to file, may be enclosed in single quotes\n\
     TPn  - turn on tracing when point n added to hull\n\
      TMn - turn on tracing at merge n\n\
@@ -168,6 +162,7 @@ More formats:\n\
            for 'v', separating hyperplanes for bounded Voronoi regions\n\
     FI   - ID of each facet\n\
     Fm   - merge count for each facet (511 max)\n\
+    FM   - Maple output (2-d and 3-d)\n\
     Fn   - count plus neighboring facets for each facet\n\
     FN   - count plus neighboring facets for each point\n\
     Fo   - outer plane (or max_outside) for each facet\n\
@@ -180,7 +175,7 @@ More formats:\n\
                       output: #vertices, #facets, #coplanars, #nonsimplicial\n\
                     #real (2), max outer plane, min vertex\n\
     FS   - sizes:   #int (0)\n\
-                    #real(2) tot area, tot volume\n\
+                    #real (2) tot area, tot volume\n\
     Ft   - triangulation with centrums for non-simplicial facets (OFF format)\n\
     Fv   - count plus vertices for each facet\n\
            for 'v', Voronoi diagram as Voronoi vertices for pairs of sites\n\
@@ -222,10 +217,10 @@ Print options:\n\
   >-------------------------------</a><a name="prompt2">-</a>
 
   qh_prompt2
-    synopsis for qhull 
-*/  
+    synopsis for qhull
+*/
 char qh_prompt2[]= "\n\
-qhull- compute convex hulls and related structures.  %s\n\
+qhull- compute convex hulls and related structures.  Qhull %s\n\
     input (stdin): dimension, n, point coordinates\n\
     comments start with a non-numeric character\n\
     halfspace: use dim+1 and put offsets after coefficients\n\
@@ -236,10 +231,11 @@ options (qh-quick.htm):\n\
     v    - Voronoi diagram as the dual of the Delaunay triangulation\n\
     v Qu - furthest-site Voronoi diagram\n\
     H1,1 - Halfspace intersection about [1,1,0,...] via polar duality\n\
-    QJ   - joggle input instead of merging facets\n\
+    Qt   - triangulated output\n\
+    QJ   - joggled input instead of merged facets\n\
     Tv   - verify result: structure, convexity, and point inclusion\n\
     .    - concise list of all options\n\
-    -    - one-line description of all options\n\
+    -    - one-line description of each option\n\
 \n\
 Output options (subset):\n\
     s    - summary of results (default)\n\
@@ -258,7 +254,7 @@ Output options (subset):\n\
 \n\
 examples:\n\
     rbox c d D2 | qhull Qc s f Fx | more      rbox 1000 s | qhull Tv s FA\n\
-    rbox 10 D2 | qhull d QJ s i TO result     rbox 10 D2 | qhull v QJ p\n\
+    rbox 10 D2 | qhull d QJ s i TO result     rbox 10 D2 | qhull v Qbb Qt p\n\
     rbox 10 D2 | qhull d Qu QJ m              rbox 10 D2 | qhull v Qu QJ o\n\
     rbox c | qhull n                          rbox c | qhull FV n | qhull H Fp\n\
     rbox d D12 | qhull QR0 FA                 rbox c D7 | qhull FA TF1000\n\
@@ -271,13 +267,13 @@ examples:\n\
   >-------------------------------</a><a name="prompt3">-</a>
 
   qh_prompt3
-    concise prompt for qhull 
-*/  
+    concise prompt for qhull
+*/
 char qh_prompt3[]= "\n\
 Qhull %s.\n\
 Except for 'F.' and 'PG', upper-case options take an argument.\n\
 \n\
- delaunay       voronoi	       Geomview       Halfspace      facet_dump\n\
+ delaunay       voronoi        Geomview       Halfspace      facet_dump\n\
  incidences     mathematica    normals        OFF_format     points\n\
  summary\n\
 \n\
@@ -285,7 +281,7 @@ Except for 'F.' and 'PG', upper-case options take an argument.\n\
  FD-cdd-out     FF-dump-xridge Finner         FIDs           Fmerges\n\
  Fneighbors     FNeigh-vertex  Fouter         FOptions       Fpoint-intersect\n\
  FPoint_near    FQhull         Fsummary       FSize          Ftriangles\n\
- Fvertices      Fvoronoi       FVertex-ave    Fxtremes\n\
+ Fvertices      Fvoronoi       FVertex-ave    Fxtremes       FMaple\n\
 \n\
  Gvertices      Gpoints        Gall_points    Gno_planes     Ginner\n\
  Gcentrums      Ghyperplanes   Gridges        Gouter         GDrop_dim\n\
@@ -296,15 +292,16 @@ Except for 'F.' and 'PG', upper-case options take an argument.\n\
 \n\
  QbBound 0:0.5  Qbk:0Bk:0_drop QbB-scale-box  Qbb-scale-last Qcoplanar\n\
  Qfurthest      Qgood_only     QGood_point    Qinterior      Qmax_out\n\
- QJoggle        Qrandom        QRotate        Qsearch_1st    QupperDelaunay\n\
- QVertex_good   Qvneighbors    Qxact_merge    Qzinfinite\n\
+ QJoggle        Qrandom        QRotate        Qsearch_1st    Qtriangulate\n\
+ QupperDelaunay QVertex_good   Qvneighbors    Qxact_merge    Qzinfinite\n\
 \n\
  Q0_no_premerge Q1_no_angle    Q2_no_independ Q3_no_redundant Q4_no_old\n\
  Q5_no_check_out Q6_no_concave Q7_depth_first Q8_no_near_in  Q9_pick_furthest\n\
+ Q10_no_narrow  Q11_trinormals\n\
 \n\
- T4_trace       Tcheck_often   Tstatistics    Tverify        Tz_stdout\n\
- TFacet_log     TPoint_trace   TMerge_trace   TOutput_file   TRerun\n\
- TWide_trace    TVertex_stop   TCone_stop\n\
+ T4_trace       Tannotate      Tcheck_often   Tstatistics    Tverify\n\
+ Tz_stdout      TFacet_log     TInput_file    TPoint_trace   TMerge_trace\n\
+ TOutput_file   TRerun         TWide_trace    TVertex_stop   TCone_stop\n\
 \n\
  Angle_max      Centrum_size   Error_round    Random_dist    Visible_min\n\
  Ucoplanar_max  Wide_outside\n\
@@ -312,10 +309,10 @@ Except for 'F.' and 'PG', upper-case options take an argument.\n\
 
 /*-<a                             href="qh-qhull.htm#TOC"
   >-------------------------------</a><a name="main">-</a>
-  
+
   main( argc, argv )
     processes the command line, calls qhull() to do the work, and exits
-  
+
   design:
     initializes data structures
     reads points
@@ -336,32 +333,32 @@ int main(int argc, char *argv[]) {
   SIOUXSettings.showstatusline= false;
   SIOUXSettings.tabspaces= 1;
   SIOUXSettings.rows= 40;
-  if (setvbuf (stdin, inBuf, _IOFBF, sizeof(inBuf)) < 0   /* w/o, SIOUX I/O is slow*/
-  || setvbuf (stdout, outBuf, _IOFBF, sizeof(outBuf)) < 0
-  || (stdout != stderr && setvbuf (stderr, errBuf, _IOFBF, sizeof(errBuf)) < 0)) 
-    fprintf (stderr, "qhull internal warning (main): could not change stdio to fully buffered.\n");
+  if (setvbuf(stdin, inBuf, _IOFBF, sizeof(inBuf)) < 0   /* w/o, SIOUX I/O is slow*/
+  || setvbuf(stdout, outBuf, _IOFBF, sizeof(outBuf)) < 0
+  || (stdout != stderr && setvbuf(stderr, errBuf, _IOFBF, sizeof(errBuf)) < 0))
+    fprintf(stderr, "qhull internal warning (main): could not change stdio to fully buffered.\n");
   argc= ccommand(&argv);
 #endif
 
-  if ((argc == 1) && isatty( 0 /*stdin*/)) {      
+  if ((argc == 1) && isatty( 0 /*stdin*/)) {
     fprintf(stdout, qh_prompt2, qh_version);
     exit(qh_ERRnone);
   }
   if (argc > 1 && *argv[1] == '-' && !*(argv[1]+1)) {
-    fprintf(stdout, qh_prompta, qh_version, qh_DEFAULTbox, 
-		qh_promptb, qh_promptc, qh_promptd, qh_prompte);
+    fprintf(stdout, qh_prompta, qh_version, qh_DEFAULTbox,
+                qh_promptb, qh_promptc, qh_promptd, qh_prompte);
     exit(qh_ERRnone);
   }
   if (argc >1 && *argv[1] == '.' && !*(argv[1]+1)) {
     fprintf(stdout, qh_prompt3, qh_version);
     exit(qh_ERRnone);
   }
-  qh_init_A (stdin, stdout, stderr, argc, argv);  /* sets qh qhull_command */
-  exitcode= setjmp (qh errexit); /* simple statement for CRAY J916 */
+  qh_init_A(stdin, stdout, stderr, argc, argv);  /* sets qh qhull_command */
+  exitcode= setjmp(qh errexit); /* simple statement for CRAY J916 */
   if (!exitcode) {
-    qh_initflags (qh qhull_command);
-    points= qh_readpoints (&numpoints, &dim, &ismalloc);
-    qh_init_B (points, numpoints, dim, ismalloc);
+    qh_initflags(qh qhull_command);
+    points= qh_readpoints(&numpoints, &dim, &ismalloc);
+    qh_init_B(points, numpoints, dim, ismalloc);
     qh_qhull();
     qh_check_output();
     qh_produce_output();
@@ -374,9 +371,9 @@ int main(int argc, char *argv[]) {
   qh_freeqhull( True);
 #else
   qh_freeqhull( False);
-  qh_memfreeshort (&curlong, &totlong);
-  if (curlong || totlong) 
-    fprintf (stderr, "qhull internal warning (main): did not free %d bytes of long memory (%d pieces)\n",
+  qh_memfreeshort(&curlong, &totlong);
+  if (curlong || totlong)
+    fprintf(stderr, "qhull internal warning (main): did not free %d bytes of long memory(%d pieces)\n",
        totlong, curlong);
 #endif
   return exitcode;
