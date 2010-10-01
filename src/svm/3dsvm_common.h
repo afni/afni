@@ -13,8 +13,8 @@
  * and changed VERSION in svm-light source to avoid conflicts with afni.
  * readAllocateAfniModel is using the version number to read in model
  * parameters correctly */
-#define VERSION_3DSVM "V1.10"
-#define VERSION_DATE_3DSVM "09/08/10"
+#define VERSION_3DSVM "V1.11"
+#define VERSION_DATE_3DSVM "09/31/10"
 #define CLASS_MAX 300
 #define SCALE 4000000
 #define MAX_FILE_NAME_LENGTH 500
@@ -663,17 +663,25 @@ static char contribution_string [] =
 /*----- String that briefly describes changes -------------------*/
 static char change_string[] = "\n"
 "\n"
+"V1.11 (09/31/10)\n"
+"  1) Improved error checking for censor file and fix a bug in deter- \n"
+"     mining the length of the censor file.\n"
+"\n"
+
 "V1.10 (09/08/10)\n"
-"  1) Removed restriction that class labels had to start from 0 and be continuous integers.\n"
-"     Now it is possible to have, say, a labels.1D that has {3,10,14} \n"
-"     Previously the user would have had to rename these as {0,1,2}. \n"
-"  2) Mask is now the last (two - don't ask why) brik(s) in the model dataset. \n"
-"     Previously the mask was a seperate file. If you have old models laying around \n"
-"     We have kept backwards compatibililty to handle this.\n"
-"  3) Writing command-line history to bucket header now (still also writing to model header).\n"
-"  4) Added option -version: Print 3dsvm's and SVM-light's version\n"
-"     and brief description of changes\n"
-"  5) Added option -HELP: Advanced user command-line options (mainly for debugging).\n"
+"  1) Removed restriction that class labels had to start from 0 and be \n"
+"     continuous integers.  Now it is possible to have, say, a labels.1D that\n"
+"     has {3,10,14}. Previously the user would have had to rename these\n"
+"     as {0,1,2}.\n"
+"  2) Mask is now the last (two - don't ask why) brik(s) in the model dataset.\n"
+"     Previously the mask was a separate file. If you have old models laying\n"
+"     around. We have kept backwards compatibility to handle this.\n"
+"  3) Writing command-line history to bucket header now (still also writing\n"
+"     to model header).\n"
+"  4) Added option -version: Print 3dsvm's and SVM-light's version and brief\n"
+"     description of changes\n"
+"  5) Added option -HELP: Advanced user command-line options (mainly for\n"
+"     debugging).\n"
 "\n"
 
 "V1.00 (05/14/08) \n"
