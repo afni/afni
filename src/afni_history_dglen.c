@@ -49,6 +49,11 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 01 , OCT, 2010 , DRG , "afni GUI" , 
+    MINOR , TYPE_BUG_FIX, 
+    "Overlay color autorange, range settings not initialized properly"
+} ,
+
 { 27 , SEP, 2010 , DRG , "afni GUI" , 
     MINOR , TYPE_MODIFY, 
     "Datasets and atlas datasets show labels in overlay panel",
