@@ -237,6 +237,32 @@ double cpxtwonorm_sq(WORD *a)
   RETURN(sum);
 }
 
+/* JL Sep 2010: Remove white space, tab and '\n' from string */
+char *trimString(char *string)
+{
+  char new_string[strlen(string)+1];
+  int i,j = 0;
+
+  ENTRY("trimString");
+
+  if( string == NULL ) RETURN(NULL);
+
+  j = 0;
+  for( i=0; string[i] !='\0'; i++ ) {
+    if( (string[i] != ' ') && (string[i] != '\t') && (string[i] != '\n') )
+     new_string[j++] = string[i];
+  }
+  new_string[j]='\0';
+
+  for( i=0; new_string[i] !='\0'; i++ ) {
+    string[i] = new_string[i];
+  }
+  string[i]='\0';
+
+  RETURN(string);
+}
+
+
 unsigned long int getFileSize(char *fileName)
 {
     FILE *fp;
@@ -445,8 +471,9 @@ char **Allocate2c(long index1, long index2)
     ERROR_exit("Memory allocation in Allocate2c failed");
   }
   for(i=0; i<index1; i++) {
-    carr[i] == NULL;
-    carr[i] = malloc(sizeof(char) * index2);
+    if( (carr[i] = (char *) malloc(sizeof(char) * index2)) == NULL ) {
+      ERROR_exit("Memory allocation in Allocate2c failed");
+    }
   }
   
   RETURN(carr);
@@ -2811,7 +2838,7 @@ void freeLabels(LABELS *labels) {
   
   EXRETURN;
 }
-   
+ 
 void getLabels(LABELS *labels, char *labelFile, char *censorFile)
 {
   FILE *fp = NULL;
@@ -2830,6 +2857,7 @@ void getLabels(LABELS *labels, char *labelFile, char *censorFile)
    * JL Aug. 2010:  Added lbls_cont. which holds the user-given labels
    *                converted  to continues label values (i.e. 0,1,2,...,n)
    *                (needed for calculation of multiclass prediction accuracies).
+   * JL Sep. 2010   Imporved error checking for censor file.
    */
 
   /*----- RETRIEVE LABEL FILE AND CENSOR FILE--------------*/
@@ -2898,15 +2926,15 @@ void getLabels(LABELS *labels, char *labelFile, char *censorFile)
       fgets(labelString, LONG_STRING, fp);
 
       if ( (strLength = strlen(labelString)) == 1 ) {
-        ERROR_exit("Censorfile: '%s' contains empty entry in line %ld!",
-                    censorFile, i+1);
+        ERROR_exit("Censorfile: '%s' line: '%ld' is empty!", censorFile, i+1);
       }
       else labels->cnsrs[i] = (LabelType) atof(labelString);
 
       /* -- check for values other than 1 and 0 -- */
-      if ( ((int)labels->cnsrs[i] != 1 ) && ((int)labels->cnsrs[i] != 0) ) {
-        ERROR_exit("Consorfile: '%s' contains invalid entry in line %d!",
-            censorFile, i+1);
+      if ( (strcmp(trimString(labelString), "0")) &&
+           (strcmp(trimString(labelString), "1")) ) {
+        ERROR_exit("Consorfile: '%s' line: '%d' contains invalid entry: '%s'. "
+            "Only 0 or 1 is allowed!", censorFile, i+1, labelString);
       }
     }
     fclose(fp);
@@ -2986,7 +3014,6 @@ void getLabels(LABELS *labels, char *labelFile, char *censorFile)
     printf("\n");
   }
 
-
   if (labels->n_classes >= CLASS_MAX) {
     ERROR_exit("Max numer of classes hard coded to %d\n"
           "   Complain to the authors if you need more.", CLASS_MAX-1);
@@ -3012,6 +3039,14 @@ LabelType* getAllocateRegressionLabels(LABELS *labels, char *labelFile, char *ce
   int strLength = 0;
   
   ENTRY("getAllocateRegressionLabels");
+
+  
+  /* 
+   * JL Sep. 2010: Improved error checking for censor file and fixed a bug
+   * (length of censorfile was not determined correctly).
+   *
+   */
+ 
  
   /*--- open labelfile ---*/
   if( (fp = fopen(labelFile, "r") ) == NULL ) {
@@ -3030,7 +3065,8 @@ LabelType* getAllocateRegressionLabels(LABELS *labels, char *labelFile, char *ce
 
   labels->class_list = (int *)malloc(sizeof(int)*CLASS_MAX);
     if (labels->class_list == NULL) {
-      ERROR_exit("Memory allocation in getRegressionLabels failed! Could not allocate class list.");
+      ERROR_exit("Memory allocation in getAllocateRegressionLabels failed! "
+          "Could not allocate class list.");
     }
 
  /* to be able to use existing auxiliary functions: */
@@ -3050,12 +3086,14 @@ LabelType* getAllocateRegressionLabels(LABELS *labels, char *labelFile, char *ce
   }
   fclose(fp);
 
-  /*--- allocate cnsrs ---*/
+  /*--- allocate censors ---*/
   labels->cnsrs = (LabelType*)malloc(sizeof(LabelType)*labels->n);
   if( labels->cnsrs == NULL ) {
-    ERROR_exit("Memory allocation in getAllocateRegressionLabels failed! Could not allocate censors.");
+    ERROR_exit("Memory allocation in getAllocateRegressionLabels failed! "
+        "Could not allocate censors.");
   }
 
+  /* --- initialize censors --- */
   for(i=0; i<labels->n; ++i) labels->cnsrs[i] = 1.0;
 
   /*--- open censorfile ---*/
@@ -3064,69 +3102,64 @@ LabelType* getAllocateRegressionLabels(LABELS *labels, char *labelFile, char *ce
       ERROR_exit("Could not open .1D censor file: %s",censorFile);
     }
 
-    /*--- read censorfile and count censors ---*/
-    i=0;
-    j=0;
-    while( !feof(fp) ) {
-      if( i<labels->n ) {
-        fgets(labelString, LONG_STRING, fp);
-        if ( (strLength = strlen(labelString)) == 1 ) {
-          ERROR_exit("Censorfile: '%s' contains empty entry in line %ld!",
-              censorFile, i+1);
-        }
-        else labels->cnsrs[i] = (LabelType) atof(labelString);
-
-        if( (labels->cnsrs[i] != 0.0) && (labels->cnsrs[i] != 1.0) ) {
-           ERROR_exit("Only 0 and 1 are allowed in censorfile!\n"  
-             "   Check line %d of censorfile '%s'!", i+1, censorFile);
-        }
-        else if (labels->cnsrs[i] == 0.0) labels->n_cnsrs++;
-        else ++j;
-      }
-      else {
-        ERROR_exit("Censorfile '%s' is longer than expected length  %ld.\n" 
-            "   Make sure there are no extra lines at the end of this file.", 
-            censorFile, labels->n);
-      } ++i;
+    if( labels->n != getFileSize(censorFile) ) {
+      ERROR_exit("Lenght of labelfile: '%s' (%ld) does not match length of "
+          "censorfile: '%s' (%ld)!", labelFile, labels->n, censorFile,
+           getFileSize(censorFile));
     }
-    if (j+labels->n_cnsrs != labels->n)
-      ERROR_exit("Number of lines %ld in labelfile '%s' does not match\n"
-          "   number of lines %ld in censorfile '%s'!", labels->n, labelFile,
-         j+labels->n_cnsrs, censorFile); 
+
+    /*--- read censorfile and count censors ---*/
+    labels->n_cnsrs = 0;
+
+    for(i=0; i<labels->n; ++i) {
+      fgets(labelString, LONG_STRING, fp);
+
+      if ( (strLength = strlen(labelString)) == 1 ) {
+        ERROR_exit("Censorfile: '%s' line: '%ld' is empty!", censorFile, i+1);
+      }
+      else labels->cnsrs[i] = (LabelType) atof(labelString);
+
+      /* -- check for values other than 0 and 1 and count censors-- */
+      if ( (strcmp(trimString(labelString), "0")) &&
+           (strcmp(trimString(labelString), "1")) ) {
+        ERROR_exit("Consorfile: '%s' line: '%d' contains invalid entry: '%s'. "
+            "Only 0 or 1 is allowed!", censorFile, i+1, labelString);
+      }
+      if( (int)labels->cnsrs[i] == 0 ) labels->n_cnsrs++;
+    }
     fclose(fp);
   }
 
   /*--- allocate target ---*/
   target = (LabelType *) malloc( (labels->n-labels->n_cnsrs)*sizeof(LabelType) );
   if( labels->cnsrs == NULL ) {
-    ERROR_exit("Memory allocation in getAllocateRegressionLabels failed! Could not allocate target.");
+    ERROR_exit("Memory allocation in getAllocateRegressionLabels failed! "
+        "Could not allocate target.");
   }
 
   /*--- check labels and create target ---*/
   j=0;
   for( i=0; i<labels->n; ++i ) {
-    /* what should we do with label -9999 SL? Is there a transductive mode in
-     * sv-regression? */
-    if( labels->lbls[i] == 9999 ) {
-      ++n9999;
-    }
-    if( labels->cnsrs[i] != 0.0 ) {
+    if( (int)labels->cnsrs[i] ) {
+
+      /* -- check for 9999 in labels -- */
+      if( (int)labels->lbls[i] == 9999 ) ++n9999;
+
       target[j] = labels->lbls[i];
       ++j;
     }
   }
 
   if ( n9999 != 0 ) {
-    WARNING_message("Labelfile '%s' contains '9999' '%ld' times.\n"
+    WARNING_message("Labelfile '%s' contains 9999 '%ld' times.\n"
           "   For classification, '9999' can be used to ignore timepoints.\n"
           "   However, in regression (-type regression, you are running it right now)\n"
           "   '9999' can not be used to ignore timepoints\n"
           "   Please use a censorfile (option: -censor)", labelFile, n9999 ); 
-    }
+  }
   
   RETURN(target);
 }
-
 
 void test_routine (ASLoptions *options, MODEL *model, AFNI_MODEL *afniModel, 
     THD_3dim_dataset *dsetTest, THD_3dim_dataset *dsetModel, int argc, char **argv)
