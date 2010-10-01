@@ -299,7 +299,6 @@ static   AFNI_datamode_widgets *dmode ;
 
 static   XmString   xstr ;
 static   XmFontList xflist=(XmFontList)NULL ;
-static   char       str[256] ;
 static   int        id , npane , last_color ,
                     view_count , view_height , sel_height ;
 
@@ -2144,7 +2143,6 @@ void AFNI_make_wid2( Three_D_View *im3d )
 {
    int ii ;
    Widget hrc ;  /* 30 Mar 2001 */
-   Widget www ;  /* 26 Mar 2007 */
 
 ENTRY("AFNI_make_wid2") ;
 
@@ -5472,7 +5470,7 @@ ENTRY("new_AFNI_controller") ;
    im3d->cont_pos_only = 0;
    im3d->cont_autorange = 1;
    im3d->cont_range_fval = 1.0;
-   im3d->first_integral = 1;
+   im3d->first_integral = -1;
 
    RETURN(im3d) ;
 }
@@ -5705,8 +5703,6 @@ static int cii_override = -1 ;
 
 void AFNI_make_controller( int cii )
 {
-   int ii ;
-
 ENTRY("AFNI_make_controller") ;
 
    if( cii < 0 || cii >= MAX_CONTROLLERS ||
@@ -6618,8 +6614,7 @@ int AFNI_set_func_range_nval(XtPointer *vp_im3d, float rval)
    ENTRY("AFNI_set_func_range_nval") ;
  
    im3d = (Three_D_View *)vp_im3d;
-
-  if(im3d->first_integral) {
+   if(im3d->first_integral!=0) {
      im3d->cont_bbox = MCW_val_bbox(im3d->vwid->func->range_bbox);
      im3d->cont_autorange = im3d->vinfo->use_autorange;
      im3d->cont_range_fval = im3d->vwid->func->range_av->fval;
@@ -6648,10 +6643,13 @@ int AFNI_reset_func_range_cont(XtPointer *vp_im3d)
 {
    Three_D_View *im3d=NULL;
 
-   ENTRY("AFNI_set_func_range_cont") ;
-
+   ENTRY("AFNI_reset_func_range_cont") ;
    im3d = (Three_D_View *)vp_im3d;
    if( !IM3D_OPEN(im3d) ) RETURN(0) ;
+   /* check if no continuous colors have ever been set with "first_integral" as the flag */
+   if(im3d->first_integral<0)
+      RETURN(0);
+
    MCW_set_bbox( im3d->vwid->func->range_bbox , im3d->cont_bbox ) ;   /* autoRange box */
    im3d->vinfo->use_autorange = im3d->cont_autorange ;
 
@@ -6675,7 +6673,6 @@ int AFNI_reset_func_range_cont(XtPointer *vp_im3d)
 int AFNI_set_dset_pbar(XtPointer *vp_im3d)
 {
    Three_D_View *im3d=NULL;
-   MCW_pbar *pbar = NULL;
    ATR_string *atr=NULL;
    char *pbar_name=NULL;
    byte switched = 0;
@@ -6744,13 +6741,10 @@ int AFNI_set_dset_pbar(XtPointer *vp_im3d)
 */
 int AFNI_get_dset_val_label(THD_3dim_dataset *dset, double val, char *str)
 {
-   MCW_pbar *pbar = NULL;
+/*   MCW_pbar *pbar = NULL;*/
    ATR_string *atr=NULL;
-   char *pbar_name=NULL;
-   byte switched = 0;
-   int icmap=-1;
+/*   char *pbar_name=NULL;*/
    char *str_lab=NULL, sval[128]={""};
-   NI_element *nel=NULL;
 
    ENTRY("AFNI_get_dset_val_label") ;
 
