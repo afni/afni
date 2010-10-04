@@ -366,6 +366,7 @@ typedef struct {
       Widget crosshair_frame , crosshair_rowcol , crosshair_label ;
 
       Widget crosshair_menu, crosshair_dicom_pb, crosshair_spm_pb ; /* 12 Mar 2004 */
+      Widget crosshair_ijk_pb ;   /* 04 Oct 2010 */
 
       Widget        xhair_rowcol ;
       MCW_arrowval *crosshair_av ;
