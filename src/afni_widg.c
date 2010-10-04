@@ -1064,6 +1064,17 @@ STATUS("making imag->rowcol") ;
     XtAddCallback( imag->crosshair_spm_pb , XmNactivateCallback ,
                    AFNI_crosshair_pop_CB , im3d ) ;
 
+    imag->crosshair_ijk_pb =      /* 04 Oct 2010 */
+       XtVaCreateManagedWidget(
+          "menu" , xmPushButtonWidgetClass , imag->crosshair_menu ,
+             LABEL_ARG(" Voxel Indexes") ,
+             XmNmarginHeight , 0 ,
+             XmNtraversalOn , True  ,
+             XmNinitialResourcesPersistent , False ,
+          NULL ) ;
+    XtAddCallback( imag->crosshair_ijk_pb , XmNactivateCallback ,
+                   AFNI_crosshair_pop_CB , im3d ) ;
+
    } /*- end of crosshair_label popup menu -*/
 
    /*--- 01 Jan 1997: horizontal rowcol for crosshair stuff ---*/

@@ -4471,7 +4471,7 @@ ENTRY("AFNI_read_inputs") ;
       THD_session *gss=NULL ; /* 11 May 2002: global session */
       THD_session *dss ;      /* 28 Aug 2003: session for command-line datasets */
       THD_3dim_dataset *temp_dset; /* 16 Jul 2010 place holder dummy datasets*/
-      
+
       /*-- 20 Dec 2001: Try to read a "global" session --*/
       /*-- 11 May 2002: Move read global session up here --*/
 
@@ -5943,28 +5943,28 @@ ENTRY("AFNI_view_setter") ;
 
 /*------------------------------------------------------------------------*/
 
-void AFNI_set_index_viewpoint ( Three_D_View *im3d , 
+void AFNI_set_index_viewpoint ( Three_D_View *im3d ,
                              int ijk, int redisplay_option )  /* ZSS July 2010 */
 {
    int nij, ni, ii, jj, kk;
-   
-   if (  ijk<0 || !im3d || 
-         !IM3D_OPEN(im3d) || 
+
+   if (  ijk<0 || !im3d ||
+         !IM3D_OPEN(im3d) ||
          !ISVALID_3DIM_DATASET(im3d->anat_now)) return;
-   
+
    if (ijk < DSET_NVOX(im3d->anat_now)) {
-      
+
       ni = DSET_NX(im3d->anat_now);
       nij = (ni * DSET_NY(im3d->anat_now));
-      
-      kk = (ijk / nij); 
-      jj = (ijk % nij);   
-      ii = (jj % ni);  
+
+      kk = (ijk / nij);
+      jj = (ijk % nij);
+      ii = (jj % ni);
       jj = (jj / ni);
-      
+
       AFNI_set_viewpoint( im3d, ii, jj, kk, redisplay_option );
    }
-   
+
    return;
 }
 
@@ -8589,7 +8589,6 @@ ENTRY("AFNI_crosshair_relabel") ;
    EXRETURN ;
 }
 
-
 /*------------------------------------------------------------------
   callback for crosshair label popup menu [12 Mar 2004]
 --------------------------------------------------------------------*/
@@ -8604,18 +8603,29 @@ void AFNI_crosshair_pop_CB( Widget w ,
 
 ENTRY("AFNI_crosshair_pop_CB") ;
 
-        if( w == im3d->vwid->imag->crosshair_dicom_pb ) val = cord_dicom ;
-   else if ( w == im3d->vwid->imag->crosshair_spm_pb  ) val = cord_spm   ;
+   if( !IM3D_OPEN(im3d) ) EXRETURN ;
 
-   if( val != NULL && strcmp(GLOBAL_argopt.orient_code,val) != 0 ){
-     POPDOWN_string_chooser ;   /* in case "Jumpto xyz" is open */
+        if( w == im3d->vwid->imag->crosshair_dicom_pb ) val = cord_dicom ;
+   else if( w == im3d->vwid->imag->crosshair_spm_pb   ) val = cord_spm   ;
+   else if( w == im3d->vwid->imag->crosshair_ijk_pb   ){  /* 04 Oct 2010 */
+     im3d->vinfo->show_voxind = 1 ;
+     POPDOWN_string_chooser ;
+     AFNI_crosshair_relabel(im3d) ;
+     MCW_set_bbox(im3d->vwid->dmode->misc_voxind_bbox,1) ;
+   }
+
+   if( val != NULL ){
+     POPDOWN_string_chooser ;
      MCW_strncpy(GLOBAL_argopt.orient_code,val,4) ;
      THD_coorder_fill( GLOBAL_argopt.orient_code , &GLOBAL_library.cord ) ;
+     im3d->vinfo->show_voxind = 0 ;
+     MCW_set_bbox(im3d->vwid->dmode->misc_voxind_bbox,0) ;
      for( ii=0 ; ii < MAX_CONTROLLERS ; ii++ ){
        AFNI_crosshair_relabel  ( GLOBAL_library.controllers[ii] );
        AFNI_clus_update_widgets( GLOBAL_library.controllers[ii] ); /* 21 Dec 2007 */
      }
    }
+
    EXRETURN ;
 }
 
@@ -9008,7 +9018,7 @@ char * AFNI_ttatlas_query( Three_D_View *im3d )
 #ifdef DEBUG_SPACES
    fprintf(stderr,"Space is %s with index %d\n",dset->atlas_space, space_index);
 #endif
- 
+
      tlab = TT_whereami( tv.xyz[0] , tv.xyz[1] , tv.xyz[2],
              (AFNI_STD_SPACES)space_index );
 /*     tlab = TT_whereami( tv.xyz[0] , tv.xyz[1] , tv.xyz[2], UNKNOWN_SPC ) ;*/
