@@ -141,7 +141,7 @@ static char *threshlock_list[] = { "NO" , "VALUE" , "P-VALUE" } ;
 
 /*--------- variables that can be edited ----------------------------------*/
 
-#define NAME_NMAX 32
+#define NAME_NMAX 64
 #define HINT_NMAX 64
 #define VAL_NMAX  (PLUGIN_STRING_SIZE+NAME_NMAX+8)
 
@@ -505,6 +505,15 @@ PLUGIN_interface * ENV_init(void)
    ENV_add_numeric( "AFNI_IMAGE_CROPSTEP" ,
                     "Cropped image panning step size" ,
                     -9,9,0,1 , NULL ) ;
+
+   /* 06 Oct 2010 [RWcox] */
+   ENV_add_string( "AFNI_IDEAL_COLORS" ,
+                   "Colors for the FIM Ideal in AFNI Graph viewer" ,
+                   0,NULL , NULL ) ;
+   ENV_add_string( "AFNI_ORT_COLORS" ,
+                   "Colors for the FIM Ort in AFNI Graph viewer" ,
+                   0,NULL , NULL ) ;
+
 
    /*--------- Sort list of variables [21 Feb 2007]  -----------*/
 
