@@ -47,7 +47,7 @@ afni_history_struct rwcox_history[] = {
  { 06 , OCT , 2010 , RWC , "afni"      , MICRO , TYPE_GENERAL ,
    "Add AFNI_IDEAL_COLORS and AFNI_ORT_COLORS environment vars" ,
    "For controlling the colors in the graph window overlays.\n"
-   "Per the request of Giuseppe Pagnoni." }
+   "Per the request of Giuseppe Pagnoni." } ,
 
  { 06 , OCT , 2010 , RWC , "3dttest++" , MINOR , TYPE_NEW_OPT ,
    "Add -zskip option" ,
