@@ -44,6 +44,15 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 06 , OCT , 2010 , RWC , "3dttest++" , MINOR , TYPE_NEW_OPT ,
+   "Add -zskip option" ,
+   "Lets users skip the processing of voxel values that are\n"
+   "exactly zero -- to allow for non-overlap between subjects." } ,
+
+ { 04 , OCT , 2010 , RWC , "afni" , MICRO , TYPE_GENERAL ,
+   "Add 'Voxel Indexes' button to crosshair popup menu" ,
+   NULL } ,
+
  { 27 , SEP , 2010 , RWC , "small fixes" , MICRO , TYPE_GENERAL ,
    "To patch minor problems pointed out by icc" ,
    NULL } ,
@@ -55,7 +64,7 @@ afni_history_struct rwcox_history[] = {
    "the time STAMPER macro to de-ref the NULL pointer.  STAMPER was modified\n"
    "to avoid this problem, which would cause afni to crash if the user\n"
    "switched to +tlrc during drawing in +orig.  This, of course, is Daniel\n"
-   "Glen's fault." } ,
+   "Glen's fault (because surely I am guiltless)." } ,
 
  { 24 , SEP , 2010 , RWC , "afni" , MICRO , TYPE_NEW_ENV ,
    "AFNI_SQRT_AUTORANGE is no more" ,
