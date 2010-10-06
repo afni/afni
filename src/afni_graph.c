@@ -487,19 +487,19 @@ ENTRY("new_MCW_grapher") ;
 
    /*** top of menu = a label to click on that does nothing at all ***/
 
-#ifdef USING_LESSTIF     
+#ifdef USING_LESSTIF
                /* Using  xmLabelWidgetClass causes X11 to hang until
                afni is terminated. The hangup occurs after an option
-               button, like:   
+               button, like:
                    ignore --> |-3|
                is set and then -- Cancel -- is clicked upon.
                Also, it seems that the hangup does not occur unless we have:
-                  an 'option menu' inside a 'pulldown menu' which is in 
+                  an 'option menu' inside a 'pulldown menu' which is in
                   another  'pulldown menu' !
-               
+
                So, not all Cancel LabelWidgets will be modified.
-               
-                           LessTif patrol      Jan. 07 09  */                                   
+
+                           LessTif patrol      Jan. 07 09  */
    (void) XtVaCreateManagedWidget(
             "dialog" , xmPushButtonWidgetClass , grapher->opt_menu ,
                LABEL_ARG("--- Cancel ---") ,
@@ -564,13 +564,13 @@ ENTRY("new_MCW_grapher") ;
         sprintf( toplabel , "--- %s ---" , grapher->status->namecode ) ;
         xstr = XmStringCreateLtoR( toplabel , XmFONTLIST_DEFAULT_TAG ) ;
 
-#ifdef USING_LESSTIF     
-               
+#ifdef USING_LESSTIF
+
                /* Using  xmLabelWidgetClass causes X11 to hang until
                afni is terminated. For details, see preceding comment.
                for another --- Cancel --- button.
-               
-                           LessTif patrol      Jan. 07 09  */                                   
+
+                           LessTif patrol      Jan. 07 09  */
         (void) XtVaCreateManagedWidget(
                  "dialog" , xmPushButtonWidgetClass , grapher->opt_colors_menu ,
                     XmNlabelString , xstr ,
@@ -826,7 +826,7 @@ ENTRY("new_MCW_grapher") ;
                           "Tran 1D" ,
                           0 , grapher->status->transforms1D->num , 0 , 0 ,
                           GRA_transform_CB , (XtPointer) grapher ,
-                          GRA_transform_label , 
+                          GRA_transform_label ,
                           (XtPointer) grapher->status->transforms1D ) ;
 
       /* force the optmenu to call us even if the same button is chosen twice */
@@ -1369,12 +1369,12 @@ ENTRY("redraw_graph") ;
 
    erase_fdw  ( grapher ) ;
    draw_grids ( grapher ) ;
-   
-   if (code == 0 && PLOT_FORCE_AUTOSCALE) 
-      code = PLOTCODE_AUTOSCALE; /* Daniel Glen   
+
+   if (code == 0 && PLOT_FORCE_AUTOSCALE)
+      code = PLOTCODE_AUTOSCALE; /* Daniel Glen
                                     July 14th Allons enfants de la patrie,
                                     la guillottine est arrivee */
-                                    
+
    plot_graphs( grapher , code ) ;
 
    DC_fg_color( grapher->dc , TEXT_COLOR(grapher) ) ;
@@ -2465,6 +2465,7 @@ STATUS("starting time series graph loop") ;
          float yscal , val , xscal , exfrac , extop ;
          int   nover , nvec , nx , ivec ;
          int   excolor , exthick ;
+         char *eee=NULL, *cnam=NULL; NI_str_array *cstr=NULL; int icc=0,ncstr=0;
 
 STATUS("plotting extra graphs") ;
 
@@ -2472,6 +2473,20 @@ STATUS("plotting extra graphs") ;
          extop   = (iex==0) ? REFTS_TOP  : ORTTS_TOP  ;
          excolor = (iex==0) ? IDEAL_COLOR(grapher) : ORT_COLOR(grapher) ;
          exthick = (iex==0) ? IDEAL_THICK(grapher) : ORT_THICK(grapher) ;
+
+         /* 06 Oct 2010: get a list of colors to use */
+
+              if( iex == 0 ) eee = my_getenv("AFNI_IDEAL_COLORS") ;
+         else if( iex == 1 ) eee = my_getenv("AFNI_ORT_COLORS") ;
+
+         if( eee != NULL && strlen(eee) > 3 ){
+           cstr = NI_decode_string_list( eee , ":," ) ;
+           if( cstr != NULL && cstr->num == 0 ){
+             NI_delete_str_array(cstr) ; cstr = NULL ;
+           } else {
+             ncstr = cstr->num ;
+           }
+         }
 
          for( its=0 ; its < IMARR_COUNT(eximar) ; its++ ){
 
@@ -2485,6 +2500,7 @@ STATUS("plotting extra graphs") ;
             nvec = (grapher->ref_ts_plotall) ? (tsim->ny) : 1 ;
 
             for( ivec=0 ; ivec < nvec ; ivec++ ){  /* plot each sub-vector */
+              if( ncstr > 0 ){ cnam = cstr->str[icc%ncstr] ; icc++ ; }
               tsar  = MRI_FLOAT_PTR(tsim) + (ivec*nx) ;
               tsbot = 99999999.0 ; tstop = -99999999.0 ;
               nover = grapher->init_ignore ;
@@ -2515,7 +2531,10 @@ STATUS("plotting extra graphs") ;
                  otherwise, must plot each line separately in its needed color */
 
               if( nover == 0 ){
-                DC_fg_color ( grapher->dc , excolor ) ;
+                if( cnam != NULL && *cnam != '\0' )
+                  DC_fg_colortext( grapher->dc , cnam ) ;
+                else
+                  DC_fg_color( grapher->dc , excolor ) ;
                 DC_linewidth( grapher->dc , exthick ) ;
                 XDrawLines( grapher->dc->display ,
                             grapher->fd_pxWind , grapher->dc->myGC ,
@@ -2523,7 +2542,10 @@ STATUS("plotting extra graphs") ;
               } else {
                 for( i=pbot ; i < itop-1 ; i++ ){
                   if( i >= ibot && tsar[i] < WAY_BIG && tsar[i+1] < WAY_BIG ){
-                    DC_fg_color ( grapher->dc , excolor ) ;
+                    if( cnam != NULL && *cnam != '\0' )
+                      DC_fg_colortext( grapher->dc , cnam ) ;
+                    else
+                      DC_fg_color( grapher->dc , excolor ) ;
                     DC_linewidth( grapher->dc , exthick ) ;
                   } else {
                     DC_fg_color( grapher->dc , IGNORE_COLOR(grapher) ) ;
@@ -2542,6 +2564,9 @@ STATUS("plotting extra graphs") ;
               }
             } /* end of loop over sub-vectors */
          } /* end of loop over refs */
+
+         if( cstr != NULL ){ NI_delete_str_array(cstr); cstr = NULL; }
+
       } /* end of if refs exist */
    } /* end of loop over refs and orts */
 
@@ -3175,7 +3200,7 @@ STATUS("button press") ;
          int new_width , new_height ;
 
 STATUS("ConfigureNotify event") ;
- 
+
          XSync( XtDisplay(w) , False ) ;
          GRA_timer_stop(grapher) ;  /* 31 May 2010 = Memorial Day */
 
@@ -3333,7 +3358,7 @@ STATUS(str); }
         else                      INFO_message("Graph Viewer: Autoscale forced OFF") ;
         redraw_graph( grapher , 0);
       break;
-      
+
       case 'a':
         redraw_graph( grapher , PLOTCODE_AUTOSCALE ) ;         /* 03 Feb 1998 */
       break ;
@@ -3613,7 +3638,7 @@ ENTRY("GRA_opt_CB") ;
       GRA_handle_keypress( grapher , "A" , NULL ) ;
       EXRETURN ;
    }
-   
+
    if( w == grapher->opt_scale_auto_pb ){
       GRA_handle_keypress( grapher , "a" , NULL ) ;
       EXRETURN ;
@@ -5470,13 +5495,13 @@ ENTRY("AFNI_new_fim_menu") ;
  } while(0)
 
    /*** top of menu = a label to click on that does nothing at all ***/
-#ifdef USING_LESSTIF     
-               
+#ifdef USING_LESSTIF
+
                /* Using  xmLabelWidgetClass causes X11 to hang until
                afni is terminated. For details, see preceding comment.
                for another --- Cancel --- button.
-               
-                           LessTif patrol      Jan. 07 09  */                                   
+
+                           LessTif patrol      Jan. 07 09  */
    (void) XtVaCreateManagedWidget(
             "dialog" , xmPushButtonWidgetClass , fmenu->fim_menu ,
                LABEL_ARG("--- Cancel ---") ,
@@ -6110,7 +6135,7 @@ void GRA_mapmenu_CB( Widget w , XtPointer client_data , XtPointer call_data )
 
 ENTRY("GRA_mapmenu_CB") ;
 
-   #ifdef USING_LESSTIF 
+   #ifdef USING_LESSTIF
       EXRETURN; /* 30 Dec 2008, the LESSTIF patrol */
    #endif
    if( AFNI_yesenv("AFNI_DONT_MOVE_MENUS") ) EXRETURN ;  /* 08 Aug 2001 */
