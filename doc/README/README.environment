@@ -2882,14 +2882,23 @@ that is, it is opened in "w" mode.
 
 This feature may be referred to as the Jen Evans special.
 
------------------------------
-Variable: AFNI_SQRT_AUTORANGE (editable)
------------------------------
-The functional overlay 'autoRange' value is now [22 Jul 2010] by
-default set to the square root of the largest value in the
-OLay sub-brick (if that value is > 1).  If you want the old behavior,
-where the autoRange value is set to the largest value, set this
-variable to NO.
+------------------------------
+Variable: AFNI_AUTORANGE_POWER
+------------------------------
+If this variable is set to a value between 0 and 1 (exclusive),
+then the functional overlay 'autoRange' value will be set to
+the largest value in the dataset raised to this power.  By default,
+the autoRange value is computed as if this power is 1.
+
+---------------------------
+Variable: AFNI_IDEAL_COLORS (editable)
+---------------------------
+This variable, if set, allows you to specify the set of colors used
+for the FIM Ideal overlay in the graph viewer window.  Separate color
+names by colons, as in "red:green:blue".  The first column in the Ideal
+1D file gets the first color; the second column gets the second color,
+and so on.  The variable AFNI_ORT_COLORS can similarly be used to specify
+the colors for the FIM Ort overlay.
 
 ----------------------------------------------------------------------
 --- variables specific to NIML I/O
