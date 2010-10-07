@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 07 , OCT , 2010 , RWC , "afni"      , MICRO , TYPE_GENERAL ,
+   "Add Despike7 1D Transformation function, just for fun." ,
+   NULL } ,
+
  { 06 , OCT , 2010 , RWC , "afni"      , MICRO , TYPE_GENERAL ,
    "Add AFNI_IDEAL_COLORS and AFNI_ORT_COLORS environment vars" ,
    "For controlling the colors in the graph window overlays.\n"

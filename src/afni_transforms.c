@@ -128,6 +128,42 @@ void median3_func( int num , double to,double dt, float *vec )
    return ;
 }
 
+/*-------- Sample 1D function: Despike5 Filter [07 Oct 2010] ----------*/
+
+#undef  mmm7
+#define mmm7(j)                                            \
+ { float qqq[7] ; int jj = (j)-3 ;                         \
+   if( jj < 0 ) jj = 0; else if( jj+6 >= num ) jj = num-7; \
+   memcpy(qqq,vec+jj,sizeof(float)*7) ;                    \
+   med    = qmed_float(7,qqq); qqq[0] = fabsf(qqq[0]-med); \
+   qqq[1] = fabsf(qqq[1]-med); qqq[2] = fabsf(qqq[2]-med); \
+   qqq[3] = fabsf(qqq[3]-med); qqq[4] = fabsf(qqq[4]-med); \
+   qqq[5] = fabsf(qqq[5]-med); qqq[6] = fabsf(qqq[6]-med); \
+   mad    = qmed_float(7,qqq); }
+
+void despike7_func( int num , double to,double dt , float *vec )
+{
+   int ii ; float *zma,*zme , med,mad,val ;
+
+   if( num < 7 ) return ;
+   zme = (float *)malloc(sizeof(float)*num) ;
+   zma = (float *)malloc(sizeof(float)*num) ;
+
+   for( ii=0 ; ii < num ; ii++ ){
+     mmm7(ii) ; zme[ii] = med ; zma[ii] = mad ;
+   }
+   mad = qmed_float(num,zma) ; free(zma) ;
+   if( mad <= 0.0f ){ free(zme) ; return ; }  /* should not happen */
+   mad *= 7.777f ;  /* threshold value */
+  
+   for( ii=0 ; ii < num ; ii++ )
+     if( fabsf(vec[ii]-zme[ii]) > mad ) vec[ii] = zme[ii] ;
+
+   free(zme) ; return ;
+}
+
+#undef mmm7
+
 /*---------------- Sample 1D function: abs(FFT) [30 Jun 2000] --------------*/
 
 void absfft_func( int num , double to,double dt, float *vec )
