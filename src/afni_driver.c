@@ -42,8 +42,10 @@ static int AFNI_drive_save_mpeg( char *cmd ) ;      /* 07 Dec 2006 */
 static int AFNI_drive_save_alljpeg( char *cmd ) ;   /* 07 Dec 2006 */
 static int AFNI_drive_set_view( char *cmd ) ;       /* 28 Jul 2005 */
 static int AFNI_drive_set_dicom_xyz( char *cmd ) ;  /* 28 Jul 2005 */
+static int AFNI_drive_get_dicom_xyz( char *cmd ) ;  /* 07 Oct 2010 */
 static int AFNI_drive_set_spm_xyz( char *cmd ) ;    /* 28 Jul 2005 */
 static int AFNI_drive_set_ijk( char *cmd ) ;        /* 28 Jul 2005 */
+static int AFNI_drive_get_ijk( char *cmd ) ;        /* 07 Oct 2010 */
 static int AFNI_drive_set_ijk_index( char *cmd ) ;      /* 29 Jul 2010 */
 static int AFNI_drive_set_xhairs( char *cmd ) ;     /* 28 Jul 2005 */
 static int AFNI_drive_save_filtered( char *cmd ) ;  /* 14 Dec 2006 */
@@ -143,8 +145,10 @@ static AFNI_driver_pair dpair[] = {
  { "SAVE_FILTERED"    , AFNI_drive_save_filtered     } ,
  { "SET_VIEW"         , AFNI_drive_set_view          } ,
  { "SET_DICOM_XYZ"    , AFNI_drive_set_dicom_xyz     } ,
+ { "GET_DICOM_XYZ"    , AFNI_drive_get_dicom_xyz     } ,
  { "SET_SPM_XYZ"      , AFNI_drive_set_spm_xyz       } ,
  { "SET_IJK"          , AFNI_drive_set_ijk           } ,
+ { "GET_IJK"          , AFNI_drive_get_ijk           } ,
  { "SET_INDEX"        , AFNI_drive_set_ijk_index     } ,
  { "SET_XHAIRS"       , AFNI_drive_set_xhairs        } ,
  { "SET_CROSSHAIRS"   , AFNI_drive_set_xhairs        } ,
@@ -2794,6 +2798,31 @@ static int AFNI_drive_set_dicom_xyz( char *cmd )
 }
 
 /*--------------------------------------------------------------------*/
+/*! GET_DICOM_XYZ [c.] */
+
+static int AFNI_drive_get_dicom_xyz( char *cmd )
+{
+   int ic , dadd=2 ;
+   Three_D_View *im3d ;
+   float x,y,z ;
+
+/*   if( strlen(cmd) < 1 ) return -1;*/
+
+   ic = AFNI_controller_code_to_index( cmd ) ;
+   if( ic < 0 ){ ic = 0 ; dadd = 0 ; }
+   im3d = GLOBAL_library.controllers[ic] ;
+   if( !IM3D_OPEN(im3d) ) return -1 ;
+
+   x = im3d->vinfo->xi ;  /* current RAI coordinates */
+   y = im3d->vinfo->yj ;
+   z = im3d->vinfo->zk ;
+
+   fprintf(stdout, "RAI xyz: %f %f %f\n", x, y, z);
+
+   return 0 ;
+}
+
+/*--------------------------------------------------------------------*/
 /*! SET_SPM_XYZ [c.] x y z */
 
 static int AFNI_drive_set_spm_xyz( char *cmd )
@@ -2834,6 +2863,31 @@ static int AFNI_drive_set_ijk( char *cmd )
    ic = sscanf( cmd+dadd , "%d%d%d" , &i,&j,&k ) ;
    if( ic < 3 ) return -1 ;
    AFNI_set_viewpoint( im3d , i,j,k , REDISPLAY_ALL ) ;
+   return 0 ;
+}
+
+/*--------------------------------------------------------------------*/
+/*! GET_IJK [c.] */
+
+static int AFNI_drive_get_ijk( char *cmd )
+{
+   int ic , dadd=2 ;
+   Three_D_View *im3d ;
+   int i,j,k;
+
+/*   if( strlen(cmd) < 1 ) return -1;*/
+
+   ic = AFNI_controller_code_to_index( cmd ) ;
+   if( ic < 0 ){ ic = 0 ; dadd = 0 ; }
+   im3d = GLOBAL_library.controllers[ic] ;
+   if( !IM3D_OPEN(im3d) ) return -1 ;
+
+   i = im3d->vinfo->i1 ;  /* current ijk coordinates */
+   j = im3d->vinfo->j2 ;
+   k = im3d->vinfo->k3 ;
+
+   fprintf(stdout, "ijk: %d %d %d\n", i,j,k);
+
    return 0 ;
 }
 
