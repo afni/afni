@@ -332,6 +332,10 @@ SET_INDEX     [c] ijk
   ijk is the array index corresponding to a triplet of voxel indices. It is the
   same as 'index' displayed in the top left corner of AFNI's controller when 
   Misc-->Voxel Coords is turned on.
+
+GET_DICOM_XYZ [c]
+GET_IJK       [c]
+  Have AFNI print the controller current coordinates.
    
 SET_XHAIRS [c.]code
   Set the crosshairs ('Xhairs') control to the specified value, where
