@@ -1844,6 +1844,7 @@ STATUS("call 13") ;
         AFNI_register_1D_function( "Median3"   , median3_func) ;
         AFNI_register_1D_function( "OSfilt3"   , osfilt3_func) ;
         AFNI_register_1D_function( "AdptMean9" , adpt_wt_mn9 ) ;       /* 04 Sep 2009 */
+        AFNI_register_1D_function( "Despike7"  , despike7_func);       /* 07 Oct 2010 */
         AFNI_register_1D_function( "|FFT()|"   , absfft_func ) ;
         AFNI_register_1D_function( "ZeroToOne" , ztone_func  ) ;       /* 02 Sep 2009 */
         AFNI_register_1D_function( "Normlz_L1" , L1normalize_func  ) ; /* 03 Sep 2009 */

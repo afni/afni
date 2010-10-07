@@ -444,6 +444,9 @@ void read_options ( int argc , char * argv[] )
          FDR_quiet = 1;
          nopt++ ; continue ;
       }
+      if( strcmp(argv[nopt],"-verb") == 0 ){
+         FDR_quiet = 0 ; nopt++ ; continue ;
+      }
 
       
       /*----- -list -----*/
@@ -580,6 +583,7 @@ void check_one_output_file
   THD_3dim_dataset * new_dset=NULL;   /* output afni data set pointer */
   int ierror;                         /* number of errors in editing data */
 
+ENTRY("check_one_output_file") ;
   
   /*----- make an empty copy of input dataset -----*/
   new_dset = EDIT_empty_copy( dset_time ) ;
@@ -612,7 +616,8 @@ void check_one_output_file
   
   /*----- deallocate memory -----*/   
   THD_delete_3dim_dataset( new_dset , False ) ; new_dset = NULL ;
-  
+ 
+  EXRETURN ; 
 }
 
 
@@ -1163,6 +1168,7 @@ void process_subbrick (THD_3dim_dataset * dset, int ibrick)
   char brick_label[THD_MAX_NAME];       /* sub-brick label */
 
 
+ENTRY("process_subbrick") ;
   if (!FDR_quiet)  printf ("Processing sub-brick #%d \n", ibrick);
 
   
@@ -1210,6 +1216,7 @@ void process_subbrick (THD_3dim_dataset * dset, int ibrick)
   /*----- Deallocate memory -----*/
   if (ffim != NULL) { free (ffim);   ffim = NULL; }
 
+  EXRETURN ;
 }
 
 
@@ -1225,6 +1232,7 @@ THD_3dim_dataset * process_dataset ()
   int ibrick, nbricks;                    /* sub-brick indices */
   int statcode;                           /* type of stat. sub-brick */
 
+ENTRY("process_dataset") ;
 
   /*----- Make full copy of input dataset -----*/
   new_dset = EDIT_full_copy(FDR_dset, FDR_output_prefix);
@@ -1246,6 +1254,7 @@ THD_3dim_dataset * process_dataset ()
 
   /*----- Loop over sub-bricks in the dataset -----*/
   nbricks = DSET_NVALS(new_dset);
+  STATUS("start loop over bricks") ;
   for (ibrick = 0;  ibrick < nbricks;  ibrick++)
     {
       statcode = DSET_BRICK_STATCODE(new_dset, ibrick);
@@ -1254,13 +1263,13 @@ THD_3dim_dataset * process_dataset ()
 	  /*----- Process the statistical sub-bricks -----*/
 	  if (!FDR_quiet)  
 	    printf ("ibrick = %3d   statcode = %5s \n", 
-		    ibrick, FUNC_prefixstr[statcode]);
+		    ibrick, FUNC_prefixstr[MAX(statcode,0)]);
 	  process_subbrick (new_dset, ibrick);
 	}
     }
 
 
-  return (new_dset);
+  RETURN(new_dset);
 }
 
 

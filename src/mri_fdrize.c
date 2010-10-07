@@ -103,8 +103,8 @@ static int estimate_m1( int nq , float *qq )
 int mri_fdrize( MRI_IMAGE *im, int statcode, float *stataux, int flags )
 {
   float *far ;
-  int ii,jj , nvox , doz , qsmal=0 ;
-  float *qq , nthr , fbad , mone=0.0f,qfac=1.0f ; int *iq , nq ; double qval , qmin ;
+  int ii,jj, nvox, doz, qsmal=0 ;
+  float *qq, nthr, fbad, mone=0.0f,qfac=1.0f ; int *iq, nq ; double qval,qmin ;
 
 ENTRY("mri_fdrize") ;
 
@@ -171,8 +171,16 @@ STATUS("sorting p-values") ;
 
     qmin = 1.0 ;
     nthr = (flags&1) ? nvox : nq ;
-    if( (flags&2) && nthr > 1 ) nthr *= (logf(nthr)+0.5772157f) ;
-STATUS("convert to q") ;
+    if( (flags&2) && nthr > 1 ){
+      float nold = nthr ;
+      nthr *= (logf(nthr)+0.5772157f+0.5f/nthr) ;
+      if( PRINT_TRACING ){
+        char str[256] ;
+        sprintf(str, "expand count %g to %g to allow for dependence",nold,nthr) ;
+        STATUS(str) ;
+      }
+    }
+STATUS("convert p to q") ;
     for( jj=nq-1 ; jj >= 0 ; jj-- ){           /* convert to q, then z */
       qval = (nthr * qq[jj]) / (jj+1.0) ;
       if( qval > qmin ) qval = qmin; else qmin = qval;
