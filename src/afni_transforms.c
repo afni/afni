@@ -128,7 +128,7 @@ void median3_func( int num , double to,double dt, float *vec )
    return ;
 }
 
-/*-------- Sample 1D function: Despike5 Filter [07 Oct 2010] ----------*/
+/*-------- Sample 1D function: Despike7 Filter [07 Oct 2010] ----------*/
 
 #undef  mmm7
 #define mmm7(j)                                            \
@@ -140,6 +140,8 @@ void median3_func( int num , double to,double dt, float *vec )
    qqq[3] = fabsf(qqq[3]-med); qqq[4] = fabsf(qqq[4]-med); \
    qqq[5] = fabsf(qqq[5]-med); qqq[6] = fabsf(qqq[6]-med); \
    mad    = qmed_float(7,qqq); }
+
+#define MTHR 6.789f  /* threshold parameter */
 
 void despike7_func( int num , double to,double dt , float *vec )
 {
@@ -154,15 +156,66 @@ void despike7_func( int num , double to,double dt , float *vec )
    }
    mad = qmed_float(num,zma) ; free(zma) ;
    if( mad <= 0.0f ){ free(zme) ; return ; }  /* should not happen */
-   mad *= 7.777f ;  /* threshold value */
+   mad *= MTHR ;  /* threshold value */
   
    for( ii=0 ; ii < num ; ii++ )
      if( fabsf(vec[ii]-zme[ii]) > mad ) vec[ii] = zme[ii] ;
 
    free(zme) ; return ;
 }
-
 #undef mmm7
+
+/** this next func doesn't work well -- don't include it in AFNI **/
+#if 0
+void despike7pp_func( int num , double to,double dt , float *vec )
+{
+   int ii ; float *dvv ;
+
+   despike7_func(num,to,dt,vec) ;
+   if( num < 9 ) return ;
+   dvv = malloc(sizeof(float)*num) ;
+   for( ii=1 ; ii < num ; ii++ ) dvv[ii-1] = vec[ii]  -vec[ii-1] ;
+   despike7_func( num-1 , to,dt , dvv ) ;
+   for( ii=1 ; ii < num ; ii++ ) vec[ii]   = vec[ii-1]+dvv[ii-1] ;
+   free(dvv) ; return ;
+}
+#endif
+
+/*-------- Sample 1D function: Despike9 Filter [08 Oct 2010] ----------*/
+
+#undef  mmm9
+#define mmm9(j)                                            \
+ { float qqq[9] ; int jj = (j)-4 ;                         \
+   if( jj < 0 ) jj = 0; else if( jj+8 >= num ) jj = num-9; \
+   memcpy(qqq,vec+jj,sizeof(float)*9) ;                    \
+   med    = qmed_float(9,qqq); qqq[0] = fabsf(qqq[0]-med); \
+   qqq[1] = fabsf(qqq[1]-med); qqq[2] = fabsf(qqq[2]-med); \
+   qqq[3] = fabsf(qqq[3]-med); qqq[4] = fabsf(qqq[4]-med); \
+   qqq[5] = fabsf(qqq[5]-med); qqq[6] = fabsf(qqq[6]-med); \
+   qqq[7] = fabsf(qqq[7]-med); qqq[8] = fabsf(qqq[8]-med); \
+   mad    = qmed_float(9,qqq); }
+
+void despike9_func( int num , double to,double dt , float *vec )
+{
+   int ii ; float *zma,*zme , med,mad,val ;
+
+   if( num < 9 ) return ;
+   zme = (float *)malloc(sizeof(float)*num) ;
+   zma = (float *)malloc(sizeof(float)*num) ;
+
+   for( ii=0 ; ii < num ; ii++ ){
+     mmm9(ii) ; zme[ii] = med ; zma[ii] = mad ;
+   }
+   mad = qmed_float(num,zma) ; free(zma) ;
+   if( mad <= 0.0f ){ free(zme) ; return ; }  /* should not happen */
+   mad *= MTHR ;  /* threshold value */
+  
+   for( ii=0 ; ii < num ; ii++ )
+     if( fabsf(vec[ii]-zme[ii]) > mad ) vec[ii] = zme[ii] ;
+
+   free(zme) ; return ;
+}
+#undef mmm9
 
 /*---------------- Sample 1D function: abs(FFT) [30 Jun 2000] --------------*/
 
