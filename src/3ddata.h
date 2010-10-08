@@ -4636,6 +4636,9 @@ extern int THD_bandpass_vectim( MRI_vectim *mrv ,
                                 float dt , float fbot , float ftop  ,
                                 int qdet , int nort   , float **ort  ) ;
 
+extern int THD_despike_nine( int num , float *vec ) ; /* 08 Oct 2010 */
+extern int_pair THD_despike9_vectim( MRI_vectim *mrv ) ;
+
   /*-- see mri_3dalign.c for these routines --*/
 
 /*! Struct that holds information used during 3D registration. */

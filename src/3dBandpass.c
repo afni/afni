@@ -24,6 +24,7 @@ int main( int argc , char * argv[] )
    float **vec , **ort=NULL ; int nort=0 , vv , nopt , ntime  ;
    MRI_vectim *mrv ;
    float pvrad=0.0f ; int nosat=0 ;
+   int do_despike=0 ;
 
    /*-- help? --*/
 
@@ -71,6 +72,7 @@ int main( int argc , char * argv[] )
        "* The output dataset is stored in float format.\n"
        "\n"
        "* The order of processing steps is the following:\n"
+       "  ++ Despiking of each time series\n"
        "  ++ Removal of a constant+linear+quadratic trend in each data time series\n"
        "  ++ Bandpass of data time series\n"
        "  ++ Bandpass of -ort time series, then detrending of data\n"
@@ -84,6 +86,9 @@ int main( int argc , char * argv[] )
        "--------\n"
        "OPTIONS:\n"
        "--------\n"
+       " -despike        = Despike each time series before other processing.\n"
+       "                   ++ Hopefully, you don't actually need to do this,\n"
+       "                      which is why it is optional.\n"
        " -ort f.1D       = Also orthogonalize input to columns in f.1D\n"
        "                   ++ Multiple '-ort' options are allowed.\n"
        " -dsort fset     = Orthogonalize each voxel to the corresponding\n"
@@ -105,14 +110,14 @@ int main( int argc , char * argv[] )
        "                    (AKA first singular vector) from a neighborhood\n"
        "                    of radius 'rrr' millimiters.\n"
        "                   ++ Note that the PV time series is L2 normalized.\n"
-       "                   ++ This option is for Bob Cox to have fun with.\n"
+       "                   ++ This option is mostly for Bob Cox to have fun with.\n"
        " -input dataset  = Alternative way to specify input dataset.\n"
        " -band fbot ftop = Alternative way to specify passband frequencies.\n"
        " -prefix ppp     = Set prefix name of output dataset.\n"
        " -quiet          = Turn off the fun and informative messages. (Why?)\n"
        " -notrans        = Don't check for initial positive transients in the data:\n"
        "                   ++ The test is a little slow, so skipping it is OK,\n"
-       "                      if you KNOW the data time series are transient-free.\n"
+       "                      if you know the data time series are transient-free.\n"
        "                   ++ Initial transients won't be handled well by the\n"
        "                      bandpassing algorithm, and in addition may seriously\n"
        "                      contaminate any further processing, such as inter-voxel\n"
@@ -136,6 +141,10 @@ int main( int argc , char * argv[] )
 
    nopt = 1 ;
    while( nopt < argc && argv[nopt][0] == '-' ){
+
+     if( strcmp(argv[nopt],"-despike") == 0 ){  /* 08 Oct 2010 */
+       do_despike++ ; nopt++ ; continue ;
+     }
 
      if( strcmp(argv[nopt],"-nfft") == 0 ){
        if( ++nopt >= argc ) ERROR_exit("need an argument after -nfft!") ;
@@ -371,6 +380,13 @@ int main( int argc , char * argv[] )
    }
 
    /* all the real work now */
+
+   if( do_despike ){
+     int_pair nsp ;
+     if( verb ) INFO_message("Despiking data time series") ;
+     nsp = THD_despike9_vectim( mrv ) ;
+     if( verb ) ININFO_message("Squashed %d spikes from %d voxels",nsp.j,nsp.i) ;
+   }
 
    if( verb ) INFO_message("Bandpassing data time series") ;
    (void)THD_bandpass_vectim( mrv , dt,fbot,ftop , qdet , nort,ort ) ;

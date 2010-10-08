@@ -44,21 +44,24 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
- { 07 , OCT , 2010 , RWC , "afni"      , MICRO , TYPE_GENERAL ,
+ { 8 , OCT , 2010 , RWC , "3dBandpass", MICRO , TYPE_NEW_OPT ,
+   "Add -despike option to program." , NULL } ,
+
+ { 7 , OCT , 2010 , RWC , "afni"      , MICRO , TYPE_GENERAL ,
    "Add Despike7 1D Transformation function, just for fun." ,
    NULL } ,
 
- { 06 , OCT , 2010 , RWC , "afni"      , MICRO , TYPE_GENERAL ,
+ { 6 , OCT , 2010 , RWC , "afni"      , MICRO , TYPE_GENERAL ,
    "Add AFNI_IDEAL_COLORS and AFNI_ORT_COLORS environment vars" ,
    "For controlling the colors in the graph window overlays.\n"
    "Per the request of Giuseppe Pagnoni." } ,
 
- { 06 , OCT , 2010 , RWC , "3dttest++" , MINOR , TYPE_NEW_OPT ,
+ { 6 , OCT , 2010 , RWC , "3dttest++" , MINOR , TYPE_NEW_OPT ,
    "Add -zskip option" ,
    "Lets users skip the processing of voxel values that are\n"
    "exactly zero -- to allow for non-overlap between subjects." } ,
 
- { 04 , OCT , 2010 , RWC , "afni" , MICRO , TYPE_GENERAL ,
+ { 4 , OCT , 2010 , RWC , "afni" , MICRO , TYPE_GENERAL ,
    "Add 'Voxel Indexes' button to crosshair popup menu" ,
    NULL } ,
 
