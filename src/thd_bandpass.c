@@ -291,3 +291,79 @@ ENTRY("THD_bandpass_vectim") ;
 
    free(vec) ; RETURN(ndof) ;
 }
+
+/*------------------- 08 Oct 2010: functions for despiking ----------------*/
+
+#undef  SWAP
+#define SWAP(x,y) (temp=x,x=y,y=temp)
+
+#undef  SORT2
+#define SORT2(a,b) if(a>b) SWAP(a,b)
+
+static INLINE float median9f(float *p)  /* fast median of 9 */
+{
+    register float temp ;
+    SORT2(p[1],p[2]) ; SORT2(p[4],p[5]) ; SORT2(p[7],p[8]) ;
+    SORT2(p[0],p[1]) ; SORT2(p[3],p[4]) ; SORT2(p[6],p[7]) ;
+    SORT2(p[1],p[2]) ; SORT2(p[4],p[5]) ; SORT2(p[7],p[8]) ;
+    SORT2(p[0],p[3]) ; SORT2(p[5],p[8]) ; SORT2(p[4],p[7]) ;
+    SORT2(p[3],p[6]) ; SORT2(p[1],p[4]) ; SORT2(p[2],p[5]) ;
+    SORT2(p[4],p[7]) ; SORT2(p[4],p[2]) ; SORT2(p[6],p[4]) ;
+    SORT2(p[4],p[2]) ; return(p[4]) ;
+}
+
+/* get the local median and MAD of values vec[j-4 .. j+4] */
+
+#undef  mead9
+#define mead9(j)                                           \
+ { float qqq[9] ; int jj = (j)-4 ;                         \
+   if( jj < 0 ) jj = 0; else if( jj+8 >= num ) jj = num-9; \
+   memcpy(qqq,vec+jj,sizeof(float)*9) ;                    \
+   med    = median9f(qqq);     qqq[0] = fabsf(qqq[0]-med); \
+   qqq[1] = fabsf(qqq[1]-med); qqq[2] = fabsf(qqq[2]-med); \
+   qqq[3] = fabsf(qqq[3]-med); qqq[4] = fabsf(qqq[4]-med); \
+   qqq[5] = fabsf(qqq[5]-med); qqq[6] = fabsf(qqq[6]-med); \
+   qqq[7] = fabsf(qqq[7]-med); qqq[8] = fabsf(qqq[8]-med); \
+   mad    = median9f(qqq); }
+
+/*-------------------------------------------------------------------------*/
+/*! Remove spikes from a time series, in a very simplistic way.
+    Return value is the number of spikes that were squashed [RWCox].
+*//*-----------------------------------------------------------------------*/
+
+int THD_despike_nine( int num , float *vec )
+{
+   int ii , nsp ; float *zma,*zme , med,mad,val ;
+
+   if( num < 9 ) return 0 ;
+   zme = (float *)malloc(sizeof(float)*num) ;
+   zma = (float *)malloc(sizeof(float)*num) ;
+
+   for( ii=0 ; ii < num ; ii++ ){
+     mead9(ii) ; zme[ii] = med ; zma[ii] = mad ;
+   }
+   mad = qmed_float(num,zma) ; free(zma) ;
+   if( mad <= 0.0f ){ free(zme); return 0; }  /* should not happen */
+   mad *= 6.789f ;  /* threshold value */
+
+   for( nsp=ii=0 ; ii < num ; ii++ )
+     if( fabsf(vec[ii]-zme[ii]) > mad ){ vec[ii] = zme[ii]; nsp++; }
+
+   free(zme) ; return nsp ;
+}
+
+/*-------------------------------------------------------------------------*/
+
+int_pair THD_despike9_vectim( MRI_vectim *mrv )
+{
+   int_pair pout = {0,0} ; int nv,ns , ss , kk ;
+
+   if( mrv == NULL || mrv->nvals < 9 ) return pout ;
+
+   for( nv=ns=kk=0 ; kk < mrv->nvec ; kk++ ){
+     ss = THD_despike_nine( mrv->nvals , VECTIM_PTR(mrv,kk) ) ;
+     if( ss > 0 ){ nv++ ; ns += ss ; }
+   }
+
+   pout.i = nv ; pout.j = ns ; return pout ;
+}
