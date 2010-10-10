@@ -183,7 +183,7 @@ main (int argc, char *argv[])
 
   /* open I0 dataset - idealized no gradient image */
   I0_dset = THD_open_dataset (argv[nopt]);
-  CHECK_OPEN_ERROR(IO_dset,argv[nopt]) ;
+  CHECK_OPEN_ERROR(I0_dset,argv[nopt]) ;
 
    DSET_mallocize (I0_dset);
    DSET_load (I0_dset);	                /* load dataset */
