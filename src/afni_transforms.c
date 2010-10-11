@@ -130,6 +130,9 @@ void median3_func( int num , double to,double dt, float *vec )
 
 /*-------- Sample 1D function: Despike7 Filter [07 Oct 2010] ----------*/
 
+#define MTHR 6.789f  /* threshold parameter */
+
+#if 0
 #undef  mmm7
 #define mmm7(j)                                            \
  { float qqq[7] ; int jj = (j)-3 ;                         \
@@ -140,8 +143,6 @@ void median3_func( int num , double to,double dt, float *vec )
    qqq[3] = fabsf(qqq[3]-med); qqq[4] = fabsf(qqq[4]-med); \
    qqq[5] = fabsf(qqq[5]-med); qqq[6] = fabsf(qqq[6]-med); \
    mad    = qmed_float(7,qqq); }
-
-#define MTHR 6.789f  /* threshold parameter */
 
 void despike7_func( int num , double to,double dt , float *vec )
 {
@@ -164,6 +165,7 @@ void despike7_func( int num , double to,double dt , float *vec )
    free(zme) ; return ;
 }
 #undef mmm7
+#endif
 
 /** this next func doesn't work well -- don't include it in AFNI **/
 #if 0
