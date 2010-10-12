@@ -49,6 +49,18 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 12 , OCT, 2010 , DRG , "3dDTtoDWI" , 
+    MINOR , TYPE_NEW_PROG, 
+    "Program to compute DWI images from diffusion tensor",
+    "Release from old code, bug fix for scale factors and lower\n"
+    "triangular order.\n"
+} ,
+
+{ 07 , OCT, 2010 , DRG , "Plugout commands" , 
+    MINOR , TYPE_NEW_OPT, 
+    "Commands to get current RAI xyz or IJK coordinates in a plugout script"
+} ,
+
 { 01 , OCT, 2010 , DRG , "afni GUI" , 
     MINOR , TYPE_BUG_FIX, 
     "Overlay color autorange, range settings not initialized properly"
