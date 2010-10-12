@@ -1345,10 +1345,9 @@ int main( int argc , char *argv[] )
                  "   not clear, search for it on the AFNI Message Board:\n"
                  "        http://afni.nimh.nih.gov/afni/community/board");
            } else { /* order is unknown */
-             WARNING_message("If your regressors are made via 'RetroTS',\n"
-                 "   perhaps -slibase_sm is more appropriate than -slibase.\n"
-                 "   -> consider: 1d_tool.py -show_label_ordering"
-                 " -infile %s", argv[iarg]);
+             WARNING_message("Unknown regressor ordering.  If the regressors\n"
+                 "   were made via 'RetroTS', perhaps -slibase_sm is more\n"
+                 "   appropriate than -slibase.");
            }
          } /* end label_order check */
          if( imar_slibase == NULL ) INIT_IMARR(imar_slibase) ;
@@ -1382,10 +1381,8 @@ int main( int argc , char *argv[] )
                  "   not clear, search for it on the AFNI Message Board:\n"
                  "        http://afni.nimh.nih.gov/afni/community/board");
            } else { /* order is unknown */
-             WARNING_message("If your regressors are made via 'RetroTS',\n"
-                 "   perhaps -slibase is more appropriate than -slibase_sm.\n"
-                 "   -> consider: 1d_tool.py -show_label_ordering"
-                 " -infile %s", argv[iarg]);
+             WARNING_message("Unknown regressor ordering.  If the regressors\n"
+                 "   were made via 'RetroTS' you are probably okay.");
            }
          } /* end label_order check */
          if( imar_slibase == NULL ) INIT_IMARR(imar_slibase) ;
