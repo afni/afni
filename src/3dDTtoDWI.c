@@ -5,18 +5,14 @@
 /* used for modeling diffusion tensor data */
 
 #include "thd_shear3d.h"
-/*#ifndef FLOATIZE*/
 # include "matrix.h"
-/*#endif*/
 #include "afni.h"
 
 #define TINYNUMBER 1E-10
 #define SMALLNUMBER 1E-4
 
-static char prefix[THD_MAX_PREFIX] = "DT";
+static char prefix[THD_MAX_PREFIX] = "DWI";
 static int datum = MRI_float;
-static matrix Dmatrix;
-static vector Dvector;
 
 static double *bmatrix;		/* b matrix = GiGj for gradient intensities */
 
@@ -33,7 +29,7 @@ main (int argc, char *argv[])
 {
   THD_3dim_dataset *old_dset, *new_dset, *I0_dset;	/* input and output datasets */
   int nopt, nbriks, nvox;
-  int i, eigs_brik;
+  int i;
   MRI_IMAGE *grad1Dptr = NULL;
   MRI_IMAGE *anat_im = NULL;
   MRI_IMAGE *data_im = NULL;
@@ -53,7 +49,7 @@ main (int argc, char *argv[])
               "    Only the non-zero gradient vectors are included in this file (no G0 line).\n"
               " The I0 dataset is a volume without any gradient applied.\n"
               " The DT dataset is the 6-sub-brick dataset containing the diffusion tensor data,\n"
-              "    Dxx, Dxy, Dxz, Dyy, Dyz, Dzz\n"
+              "    Dxx, Dxy, Dyy, Dxz, Dyz, Dzz (lower triangular row-wise order)\n"
 	      " Options:\n"
               "   -prefix pname = Use 'pname' for the output dataset prefix name.\n"
               "    [default='DWI']\n"
@@ -190,8 +186,8 @@ main (int argc, char *argv[])
    data_im = DSET_BRICK (I0_dset, 0);	/* set pointer to the 0th sub-brik of the dataset */
    fac = DSET_BRICK_FACTOR(I0_dset, 0); /* get scale factor for each sub-brik*/
    if(fac==0.0) fac=1.0;
-   if((data_im->kind != MRI_float) || (fac!=1.0)) {
-       fprintf (stderr, "*** Error - Can only open float datasets with scale factors of 1\n");
+   if((data_im->kind != MRI_float)) {
+       fprintf (stderr, "*** Error - Can only open float datasets. Use 3dcalc to convert.\n");
        mri_free (grad1Dptr);
        mri_free (data_im);
        exit (1);
@@ -310,16 +306,15 @@ DTtoDWI_tsfunc (double tzero, double tdelta,
 		double ts_mean, double ts_slope,
 		void *ud, int nbriks, float *val)
 {
-  int i, j;
+  int i;
   static int nvox, ncall;
-  int allzeros;
   double I0, bq_d;
   double *bptr;
   float *tempptr;
  
   ENTRY ("DTtoDWI_tsfunc");
   /* ts is input vector data of 6 floating point numbers.*/
-  /* ts should come from data sub-briks in form of Dxx, Dxy, Dxz, Dyy, Dyz, Dzz */
+  /* ts should come from data sub-briks in form of Dxx, Dxy, Dyy, Dxz, Dyz, Dzz */
   /* if automask is turned on, ts has 7 floating point numbers */
   /* val is output vector of form DWI0, DWI1, DWIn sub-briks */
   /* where n = number of gradients = nbriks-1 */
@@ -349,45 +344,16 @@ DTtoDWI_tsfunc (double tzero, double tdelta,
   tempptr = I0_ptr+ncall-1;
   I0 = *tempptr;
 
-#if 0
-  /* check for reasons not to calculate anything and just return zeros */
-if(ncall==1)
-   printf("checking for all zeros\n");
-  allzeros = 0;
-  i=0;
-
-  while ((i<6)&&(I0!=0.0))        /* check if all the DT values are 0 */
-  { 
-     if(ts[i++]!=0)
-        allzeros = 0;
-  }
-
-
-  for(i=0;i<nbriks;i++)
-    val[i] = 0.0;
-  EXRETURN;
-
-
-/* return zeros if all the DT values are 0, if the I0 value is 0 or 
-   the mask is off at this voxel*/
-  if(allzeros||(I0==0.0) || (automask&&(ts[npts] == 0)))
-    {
-	  for (i = 0; i < nbriks; i++)
-	    val[i] = 0.0;	/* return 0 for all DWIn points */
-	  EXRETURN;
-    }
-
-#endif
 
   val[0] = I0; /* the first sub-brik is the I0 sub-brik */
   bptr = bmatrix+6;   /* start at the first gradient */
 
   for(i=1;i<nbriks;i++) {
      bptr = bmatrix+(6*i);   /* start at the first gradient */
-     bq_d = *bptr++ * ts[0];          /* GxGxDxx  */
+     bq_d = *bptr++ * ts[0];           /* GxGxDxx  */
      bq_d += *bptr++ * ts[1] * 2;      /* 2GxGyDxy */
-     bq_d += *bptr++ * ts[2] * 2;      /* 2GxGzDxz */
-     bq_d += *bptr++ * ts[3];          /* GyGyDyy  */
+     bq_d += *bptr++ * ts[2];          /* GyGyDyy  */
+     bq_d += *bptr++ * ts[3] * 2;      /* 2GxGzDxz */
      bq_d += *bptr++ * ts[4] * 2;      /* 2GyGzDyz */
      bq_d += *bptr++ * ts[5];          /* GzGzDzz  */
 
@@ -432,8 +398,8 @@ Computebmatrix (MRI_IMAGE * grad1Dptr)
       Gz = *Gzptr++;
       *bptr++ = Gx * Gx;
       *bptr++ = Gx * Gy;
-      *bptr++ = Gx * Gz;
       *bptr++ = Gy * Gy;
+      *bptr++ = Gx * Gz;
       *bptr++ = Gy * Gz;
       *bptr++ = Gz * Gz;
       for(j=0;j<6;j++)
@@ -449,8 +415,6 @@ Computebmatrix (MRI_IMAGE * grad1Dptr)
 static void
 InitGlobals (int npts)
 {
-  int i;
-  double *cumulativewtptr;
 
   ENTRY ("InitGlobals");
 
