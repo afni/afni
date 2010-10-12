@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 12, OCT, 2010, RCR, "3dREMLfit", MICRO, TYPE_GENERAL,
+   "small help update to clarify slice-based regressor warnings",
+   "Requested by D Handwerker."
+ } ,
+
  { 17, SEP, 2010, RCR, "3dttest++", MINOR, TYPE_BUG_FIX,
    "init workspace with 0",
    "Trouble noted by M Choi"
