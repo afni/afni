@@ -255,7 +255,8 @@ while (~isempty(s)),
       figure(2); clf
       ccm = corrcoef(mshow(:,v)); 
       ccm = ccm.*(1-diag(diag(ccm,0)));
-      imagesc(ccm); colorbar;
+      mmm = max(abs(ccm(:)));
+      imagesc(ccm, [-mmm , mmm]); colorbar;
       ima = gca; 
       title('Correlation matrix of selected regressors. Diagonal set to 0');
       set (ima, 'YTick', [1:1:size(ccm,1)]');
