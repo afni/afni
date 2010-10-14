@@ -3463,9 +3463,9 @@ typedef struct THD_3dim_dataset_array {
 
 
 /* each session can contain a list of dataset in different views */
-/* each row can be represented by this structure showing different 
+/* each row can be represented by this structure showing different
    spaces or views for each dataset - orig, acpc, tlrc, mni,...*/
-/* the dataset may be on the disk or an on-the-fly transformed 
+/* the dataset may be on the disk or an on-the-fly transformed
    version of another dataset */
 typedef struct {
   int nds;               /* the number of dataset spaces for this row */
@@ -3481,7 +3481,7 @@ typedef struct {
       THD_3dim_dataset *xdsset[THD_MAX_SESSION_SIZE][LAST_VIEW_TYPE+1] ;
                                       /*!< array of datasets */
 #endif
-      THD_dsarr **dsrow;               /* list of pointers for dataset 
+      THD_dsarr **dsrow;               /* list of pointers for dataset
                                          in different spaces */
       int ndsets;                      /* number of datasets */
       Htable *warptable ;       /*!< Table of inter-dataset warps [27 Aug 2002] */
@@ -3541,7 +3541,7 @@ int get_nspaces(void);
         for( vv=0 ; vv < get_nspaces() ; vv++ )                              \
            SET_SESSION_DSET(NULL, ss, id, vv);                                \
   }
-      
+ 
 /*      for( id=0 ; id < THD_MAX_SESSION_SIZE ; id++ )                          \
         for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ )                             \
            SET_SESSION_DSET(NULL, ss, id, vv);                       \*/
@@ -4638,6 +4638,8 @@ extern int THD_bandpass_vectim( MRI_vectim *mrv ,
 
 extern int      THD_despike9       ( int, float *) ; /* 08 Oct 2010 */
 extern int_pair THD_vectim_despike9( MRI_vectim *) ;
+
+extern THD_3dim_dataset * THD_despike9_dataset( THD_3dim_dataset *, byte * ) ;
 
   /*-- see mri_3dalign.c for these routines --*/
 

@@ -63,6 +63,16 @@ int main( int argc , char * argv[] )
        "  ++ The program will use a power-of-2, possibly multiplied by]\n"
        "     a single factor of 3 and/or a single factor of 5; e.g.,\n"
        "     240=16*3*5 would be chosen if there are 239 time points.\n"
+       "  ++ If you use the '-nfft' option, you can choose an FFT length\n"
+       "     that includes factors 3^2, 3^3, 5^2, and 5^3 in addition to\n"
+       "     the automatic selection list (which only allows 3^1 and 5^1).\n"
+       "     ++ Such FFT lengths are slower, and you should know what you\n"
+       "        are doing if you choose this option!\n"
+       "     ++ For example, if the input time series has length 136,\n"
+       "        the default FFT length would be 160 = 32*5, but you\n"
+       "        could legally use '-nfft 144' since 144 = 16*9.\n"
+       "     ++ Why you would want this level of control is between you and\n"
+       "        Cooley and Tukey.\n"
        "\n"
        "* Note that the results of combining 3dDetrend and 3dBandpass will\n"
        "   depend on the order in which you run these programs.  That's why\n"
@@ -71,7 +81,7 @@ int main( int argc , char * argv[] )
        "\n"
        "* The output dataset is stored in float format.\n"
        "\n"
-       "* The order of processing steps is the following:\n"
+       "* The order of processing steps is the following (most are optional):\n"
        "  ++ Despiking of each time series\n"
        "  ++ Removal of a constant+linear+quadratic trend in each data time series\n"
        "  ++ Bandpass of data time series\n"
@@ -79,9 +89,9 @@ int main( int argc , char * argv[] )
        "      with respect to the -ort time series\n"
        "  ++ Bandpass and de-orting of the -dsort dataset,\n"
        "      then detrending of the data with respect to -dsort\n"
-       "  ++ Blurring inside the mask\n"
-       "  ++ Local PV calculation (this can be slow)\n"
-       "  ++ L2 normalization\n"
+       "  ++ Blurring inside the mask (can be slow)\n"
+       "  ++ Local PV calculation (this IS slow)\n"
+       "  ++ L2 normalization (this, on the other hand, is fast)\n"
        "\n"
        "--------\n"
        "OPTIONS:\n"
@@ -147,10 +157,12 @@ int main( int argc , char * argv[] )
      }
 
      if( strcmp(argv[nopt],"-nfft") == 0 ){
+       int nnup ;
        if( ++nopt >= argc ) ERROR_exit("need an argument after -nfft!") ;
        nfft = (int)strtod(argv[nopt],NULL) ;
-       if( nfft < 16 || nfft != csfft_nextup_one35(nfft) )
-         ERROR_exit("value after -nfft is illegal!") ;
+       nnup = csfft_nextup_even(nfft) ;
+       if( nfft < 16 || nfft != nnup )
+         ERROR_exit("value %d after -nfft is illegal! Next legal value = %d",nfft,nnup) ;
        nopt++ ; continue ;
      }
 
