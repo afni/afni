@@ -44,11 +44,15 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 14 , OCT , 2010 , RWC , "afni InstaCorr" , MICRO , TYPE_NEW_OPT ,
+   "Add Despike option" ,
+   NULL } ,
+
  { 8 , OCT , 2010 , RWC , "3dBandpass", MICRO , TYPE_NEW_OPT ,
    "Add -despike option to program." , NULL } ,
 
  { 7 , OCT , 2010 , RWC , "afni"      , MICRO , TYPE_GENERAL ,
-   "Add Despike7 1D Transformation function, just for fun." ,
+   "Add Despike 1D Transformation function, just for fun." ,
    NULL } ,
 
  { 6 , OCT , 2010 , RWC , "afni"      , MICRO , TYPE_GENERAL ,

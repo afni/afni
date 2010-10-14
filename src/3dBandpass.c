@@ -383,9 +383,9 @@ int main( int argc , char * argv[] )
 
    if( do_despike ){
      int_pair nsp ;
-     if( verb ) INFO_message("Despiking data time series") ;
-     nsp = THD_despike9_vectim( mrv ) ;
-     if( verb ) ININFO_message("Squashed %d spikes from %d voxels",nsp.j,nsp.i) ;
+     if( verb ) INFO_message("Testing data time series for spikes") ;
+     nsp = THD_vectim_despike9( mrv ) ;
+     if( verb ) ININFO_message(" -- Squashed %d spikes from %d voxels",nsp.j,nsp.i) ;
    }
 
    if( verb ) INFO_message("Bandpassing data time series") ;
