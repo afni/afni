@@ -43,6 +43,7 @@ int main( int argc , char *argv[] )
    int nmask=0 , domean=0 , use_nonmask=0 ;
    float *evar=NULL,*fvar=NULL ;
    unsigned int gseed ;
+   int despike=0 ;  /* 14 Oct 2010 */
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
      printf(
@@ -66,6 +67,7 @@ int main( int argc , char *argv[] )
        "                        [default = don't save]\n"
        " -input inputdataset = input time series dataset\n"
        " -nbhd nnn           = e.g., 'SPHERE(5)' 'TOHD(7)' etc.\n"
+       " -despike            = remove time series spikes from input dataset\n"
        " -polort p           = detrending\n"
        " -vnorm              = normalize data vectors [strongly recommended]\n"
        " -vproj [2]          = project central data time series onto local SVD vector;\n"
@@ -122,6 +124,10 @@ int main( int argc , char *argv[] )
          do_vproj = 2 ; WARNING_message("-vproj set to 2") ;
        }
        iarg++ ; continue ;
+     }
+
+     if( strcmp(argv[iarg],"-despike") == 0 ){  /* 14 Oct 2010 */
+       despike = 1 ; iarg++ ; continue ;
      }
 
      if( strcmp(argv[iarg],"-polort") == 0 ){
@@ -333,6 +339,14 @@ int main( int argc , char *argv[] )
        EDIT_substitute_brick( evset , 1 , MRI_float , NULL ) ;
        fvar = DSET_ARRAY(evset,1) ;
      }
+   }
+
+   if( despike ){             /* 14 Oct 2010 */
+     THD_3dim_dataset *qset ;
+     INFO_message("Despiking input dataset") ;
+     qset = THD_despike9_dataset( inset , mask ) ;
+     if( qset == NULL ) ERROR_exit("Despiking fails!?") ;
+     DSET_delete(inset) ; inset = qset ;
    }
 
    if( polort >= 0 ){
