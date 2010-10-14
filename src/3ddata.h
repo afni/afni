@@ -4274,7 +4274,7 @@ typedef struct {
   MRI_IMAGE *gortim ;
   int ignore , automask , mindex ;
   float fbot , ftop , blur , sblur ;
-  int polort , cmeth ;                     /* 26 Feb 2010 */
+  int polort , cmeth , despike ;
   MRI_vectim *mv ;
   char *prefix ; int ndet ;
   float *tseed ;
@@ -4636,8 +4636,8 @@ extern int THD_bandpass_vectim( MRI_vectim *mrv ,
                                 float dt , float fbot , float ftop  ,
                                 int qdet , int nort   , float **ort  ) ;
 
-extern int THD_despike_nine( int num , float *vec ) ; /* 08 Oct 2010 */
-extern int_pair THD_despike9_vectim( MRI_vectim *mrv ) ;
+extern int      THD_despike9       ( int, float *) ; /* 08 Oct 2010 */
+extern int_pair THD_vectim_despike9( MRI_vectim *) ;
 
   /*-- see mri_3dalign.c for these routines --*/
 
