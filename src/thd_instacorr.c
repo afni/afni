@@ -76,6 +76,16 @@ ENTRY("THD_instacorr_prepare") ;
    nmmm  = iset->mv->nvec ;
    ntime = iset->mv->nvals ;  /* #dataset time points - ignore */
 
+   if( iset->despike ){
+     int_pair ip ;
+     ININFO_message("Testing time series for spikes") ;
+     ip = THD_vectim_despike9( iset->mv ) ;
+     if( ip.i > 0 )
+       ININFO_message(" -- Removed %d spikes from %d time series",ip.j,ip.i) ;
+     else
+       ININFO_message(" -- No spikes were found") ;
+   }
+
    /*--- Filter time series ---*/
 
    ININFO_message("Filtering %d dataset time series",nmmm) ;

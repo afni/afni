@@ -90,6 +90,11 @@ static char i_helpstring[] =
   "                [Even if Bandpass is turned off, each voxel time series]\n"
   "                [is detrended against a quadratic polynomial and then  ]\n"
   "                [has the 0 and Nyquist frequencies removed; cf. Polort ]\n"
+  "    Despike  = If this is YES, then the time series have large spikes\n"
+  "                filtered out BEFORE the detrending and bandpass operations.\n"
+  "                This option is here to let you process datasets that have\n"
+  "                a few large spikes, which would otherwise totally dominate\n"
+  "                the correlation results.\n"
   "\n"
   "* Global Orts:\n"
   "    1D file  = Extra time series to remove from each voxel before\n"
@@ -197,6 +202,7 @@ PLUGIN_interface * ICOR_init( char *lab )
    PLUTO_add_option( plint , "Bandpass(Hz)" , "Bandpass" , MAYBE ) ;
    PLUTO_add_number( plint , "Lower" , 0,1000,3, 10 , TRUE ) ;
    PLUTO_add_number( plint , "Upper" , 0,1000,3,100 , TRUE ) ;
+   PLUTO_add_string( plint , "Despike" , 2 , yn , 0 ) ;
 
    PLUTO_add_option    ( plint , "Global Orts" , "GlobalOrts" , FALSE ) ;
    PLUTO_add_timeseries( plint , "1D file" ) ;
@@ -234,6 +240,7 @@ static char * ICOR_main( PLUGIN_interface *plint )
    double etim ;
    int polort = 2 ; /* 26 Feb 2010 */
    int cmeth  = NBISTAT_PEARSON_CORR ;
+   int despike = 0 ;
 
    ncall = 0 ;
 
@@ -285,9 +292,11 @@ static char * ICOR_main( PLUGIN_interface *plint )
      /** Bandpass **/
 
      if( strcmp(tag,"Bandpass") == 0 ){
+       char *ds ;
        fbot = PLUTO_get_number(plint) ;
        ftop = PLUTO_get_number(plint) ;
        if( fbot >= ftop ) ERROR_message("Ignoring disordered Bandpass frequencies") ;
+       ds = PLUTO_get_string(plint) ; despike = (ds[0] == 'Y') ;
        continue ;
      }
 
@@ -344,6 +353,7 @@ static char * ICOR_main( PLUGIN_interface *plint )
        im3d->iset->fbot     == fbot     &&
        im3d->iset->ftop     == ftop     &&
        im3d->iset->blur     == blur     &&
+       im3d->iset->despike  == despike  &&
        im3d->iset->polort   == polort      ){
 
      INFO_message("InstaCorr setup: minor changes accepted") ;
@@ -363,6 +373,7 @@ static char * ICOR_main( PLUGIN_interface *plint )
    iset->mindex   = mindex ;
    iset->fbot     = fbot ;
    iset->ftop     = ftop ;
+   iset->despike  = despike ; /* 14 Oct 2010 */
    iset->blur     = blur ;
    iset->sblur    = sblur ;
    iset->polort   = polort ;  /* 26 Feb 2010 */

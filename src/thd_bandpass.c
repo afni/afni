@@ -300,7 +300,9 @@ ENTRY("THD_bandpass_vectim") ;
 #undef  SORT2
 #define SORT2(a,b) if(a>b) SWAP(a,b)
 
-static INLINE float median9f(float *p)  /* fast median of 9 */
+/*--- fast median of 9 values ---*/
+
+static INLINE float median9f(float *p)
 {
     register float temp ;
     SORT2(p[1],p[2]) ; SORT2(p[4],p[5]) ; SORT2(p[7],p[8]) ;
@@ -311,19 +313,23 @@ static INLINE float median9f(float *p)  /* fast median of 9 */
     SORT2(p[4],p[7]) ; SORT2(p[4],p[2]) ; SORT2(p[6],p[4]) ;
     SORT2(p[4],p[2]) ; return(p[4]) ;
 }
+#undef SORT2
+#undef SWAP
 
-/* get the local median and MAD of values vec[j-4 .. j+4] */
+/*--- get the local median and MAD of values vec[j-4 .. j+4] ---*/
 
 #undef  mead9
-#define mead9(j)                                           \
- { float qqq[9] ; int jj = (j)-4 ;                         \
-   if( jj < 0 ) jj = 0; else if( jj+8 >= num ) jj = num-9; \
-   memcpy(qqq,vec+jj,sizeof(float)*9) ;                    \
-   med    = median9f(qqq);     qqq[0] = fabsf(qqq[0]-med); \
-   qqq[1] = fabsf(qqq[1]-med); qqq[2] = fabsf(qqq[2]-med); \
-   qqq[3] = fabsf(qqq[3]-med); qqq[4] = fabsf(qqq[4]-med); \
-   qqq[5] = fabsf(qqq[5]-med); qqq[6] = fabsf(qqq[6]-med); \
-   qqq[7] = fabsf(qqq[7]-med); qqq[8] = fabsf(qqq[8]-med); \
+#define mead9(j)                                               \
+ { float qqq[9] ; int jj = (j)-4 ;                             \
+   if( jj < 0 ) jj = 0; else if( jj+8 >= num ) jj = num-9;     \
+   qqq[0] = vec[jj+0]; qqq[1] = vec[jj+1]; qqq[2] = vec[jj+2]; \
+   qqq[3] = vec[jj+3]; qqq[4] = vec[jj+4]; qqq[5] = vec[jj+5]; \
+   qqq[6] = vec[jj+6]; qqq[7] = vec[jj+7]; qqq[8] = vec[jj+8]; \
+   med    = median9f(qqq);     qqq[0] = fabsf(qqq[0]-med);     \
+   qqq[1] = fabsf(qqq[1]-med); qqq[2] = fabsf(qqq[2]-med);     \
+   qqq[3] = fabsf(qqq[3]-med); qqq[4] = fabsf(qqq[4]-med);     \
+   qqq[5] = fabsf(qqq[5]-med); qqq[6] = fabsf(qqq[6]-med);     \
+   qqq[7] = fabsf(qqq[7]-med); qqq[8] = fabsf(qqq[8]-med);     \
    mad    = median9f(qqq); }
 
 /*-------------------------------------------------------------------------*/
@@ -331,11 +337,11 @@ static INLINE float median9f(float *p)  /* fast median of 9 */
     Return value is the number of spikes that were squashed [RWCox].
 *//*-----------------------------------------------------------------------*/
 
-int THD_despike_nine( int num , float *vec )
+int THD_despike9( int num , float *vec )
 {
    int ii , nsp ; float *zma,*zme , med,mad,val ;
 
-   if( num < 9 ) return 0 ;
+   if( num < 9 || vec == NULL ) return 0 ;
    zme = (float *)malloc(sizeof(float)*num) ;
    zma = (float *)malloc(sizeof(float)*num) ;
 
@@ -351,19 +357,25 @@ int THD_despike_nine( int num , float *vec )
 
    free(zme) ; return nsp ;
 }
+#undef mead9
 
 /*-------------------------------------------------------------------------*/
+/* Return value: .i component = number of vectors with spikes
+                 .j component = total number of spikes squashed.
+*//*-----------------------------------------------------------------------*/
 
-int_pair THD_despike9_vectim( MRI_vectim *mrv )
+int_pair THD_vectim_despike9( MRI_vectim *mrv )
 {
    int_pair pout = {0,0} ; int nv,ns , ss , kk ;
 
-   if( mrv == NULL || mrv->nvals < 9 ) return pout ;
+ENTRY("THD_vectim_despike9") ;
+
+   if( mrv == NULL || mrv->nvals < 9 ) RETURN(pout) ;
 
    for( nv=ns=kk=0 ; kk < mrv->nvec ; kk++ ){
-     ss = THD_despike_nine( mrv->nvals , VECTIM_PTR(mrv,kk) ) ;
+     ss = THD_despike9( mrv->nvals , VECTIM_PTR(mrv,kk) ) ;
      if( ss > 0 ){ nv++ ; ns += ss ; }
    }
 
-   pout.i = nv ; pout.j = ns ; return pout ;
+   pout.i = nv ; pout.j = ns ; RETURN(pout) ;
 }
