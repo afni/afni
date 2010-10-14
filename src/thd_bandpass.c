@@ -10,7 +10,7 @@ static int nfft_fixed = 0 ;
 
 int THD_bandpass_set_nfft( int n )
 {
-  nfft_fixed = (n >= 16) ? csfft_nextup_one35(n) : 0 ;
+  nfft_fixed = (n >= 16) ? csfft_nextup_even(n) : 0 ;
   return nfft_fixed ;
 }
 
@@ -378,4 +378,29 @@ ENTRY("THD_vectim_despike9") ;
    }
 
    pout.i = nv ; pout.j = ns ; RETURN(pout) ;
+}
+
+/*-------------------------------------------------------------------------*/
+
+THD_3dim_dataset * THD_despike9_dataset( THD_3dim_dataset *inset , byte *mask )
+{
+   THD_3dim_dataset *outset ;
+   MRI_vectim *mrv ;
+   int ii ;
+
+ENTRY("THD_despike9_dataset") ;
+
+   if( !ISVALID_DSET(inset) || DSET_NVALS(inset) < 9 ) RETURN(NULL) ;
+
+   mrv = THD_dset_to_vectim(inset,mask,0) ;  DSET_unload(inset) ;
+   if( mrv == NULL ) RETURN(NULL) ;
+
+   (void)THD_vectim_despike9(mrv) ;
+
+   outset = EDIT_empty_copy(inset) ;
+   for( ii=0 ; ii < DSET_NVALS(outset) ; ii++ )
+     EDIT_substitute_brick(outset,ii,MRI_float,NULL) ;
+
+   THD_vectim_to_dset(mrv,outset) ; VECTIM_destroy(mrv) ;
+   RETURN(outset) ;
 }
