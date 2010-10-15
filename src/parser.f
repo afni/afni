@@ -477,7 +477,7 @@ C
       IF( L_PRINT )THEN
          IF( NUSED .LT. 1 ) NUSED = 1
          WRITE(*,9001) NERR , C_MESSAGE , C_LOCAL(1:NLEN) ,
-     X                 (' ',NF=1,NPOS) , ('#',NF=1,NUSED)
+     X                 ('.',NF=1,NPOS) , ('#',NF=1,NUSED)
 9001     FORMAT(' PARSER error',I4,': ',A/ 1X,A/ 80A1 )
 C
 CCC         WRITE(*,9002) (N_CODE(NF),NF=NCODE,1,-1)

@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 15 , OCT , 2010 , RWC , "afni InstaCald" , MICRO , TYPE_GENERAL ,
+   "Save expression info to dataset header attributes -- for Jill" ,
+   NULL } ,
+
  { 14 , OCT , 2010 , RWC , "afni InstaCorr" , MICRO , TYPE_NEW_OPT ,
    "Add Despike option" ,
    NULL } ,
