@@ -226,6 +226,7 @@ int main( int argc , char * argv[] )
          cexp = expr ;
       }
 
+      PARSER_set_printout(1) ;
       pcode = PARSER_generate_code( cexp ) ;
       if( pcode == NULL ){
          printf("parser error!\n") ; fflush(stdout) ;
