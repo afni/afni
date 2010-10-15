@@ -6,30 +6,38 @@
 
 import sys, os, math
 
-def write_1D_file(data, filename):
+def write_1D_file(data, filename, as_rows=0):
     """data can be 1D or 2D array of floats, write one index per line
-       If 2D data, each element is treated as a column.
+       If 2D data, each element is treated as a column (unless as_rows).
 
        return 0 on success"""
+
+    if type(data) != type([]):
+        print "** write_1D_file, invalid type: %s" % type(data)
+        return 1
 
     try: fp = open(filename, 'w')
     except:
         print "** failed to open '%s' for writing 1D" % filename
         return 1
 
-    if type(data) != type([]):
-        print "** write_1D_file, invalid type: %s" % type(data)
-        return 1
+    if len(data) == 0:  # an empty file then
+        fp.close()
+        return 0
 
     if type(data[0]) == type([]):       # multi-column
-        nt = len(data[0])
-        for col in data:
-            if len(col) != nt:
-                print '** write_1D_file: columns not of equal lengths'
-                return 1
+        if as_rows:
+            for row in data:
+                fp.write("%s\n" % ' '.join(["%g " % val for val in row]))
+        else:
+            nt = len(data[0])
+            for col in data:
+                if len(col) != nt:
+                    print '** write_1D_file: columns not of equal lengths'
+                    return 1
 
-        for ind in range(nt):
-            fp.write( "%s\n" % ' '.join(["%g " % col[ind] for col in data]) )
+            for ind in range(nt):
+                fp.write("%s\n" % ' '.join(["%g " % col[ind] for col in data]))
 
     else:                               # single column
         for val in data:
