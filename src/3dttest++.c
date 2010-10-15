@@ -246,7 +246,7 @@ void display_help_menu(void)
       "* If you used a short form '-setX' option, each dataset label is\n"
       "   the dataset's prefix name (truncated to 12 characters).\n"
       "  ++ e.g.,  fred+tlrc'[3]'  ==>  fred\n"
-      "  ++ e.g.,  elvis.nii.gz    ==>  elvisn"
+      "  ++ e.g.,  elvis.nii.gz    ==>  elvis\n"
       "\n"
       "* '-covariates' can only be used with the short form '-setX' option\n"
       "   if each input dataset has only 1 sub-brick (so that each label\n"

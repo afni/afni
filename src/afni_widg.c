@@ -4122,6 +4122,10 @@ STATUS("making dmode->rowcol") ;
             XmNorientation , XmVERTICAL ,
             XmNpacking , XmPACK_TIGHT ,
             XmNtraversalOn , True  ,
+#if 0
+            XmNmarginHeight, 0 ,
+            XmNspacing , 1 ,
+#endif
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
 
