@@ -482,6 +482,7 @@ typedef struct {
    char *olay_expr ;
    void *olay_pcode ;
    THD_3dim_dataset *dset_master ;
+   char *value_string ;
 
    int               intyp[26] ;
    THD_3dim_dataset *inset[26] ; int inidx[26] ;
@@ -503,13 +504,11 @@ typedef struct {
      for( qx=0 ; qx < 26 ; qx++ ) (qcs)->intyp[qx] = -666 ;  \
  } while(0)
 
+/* the following macro is unused (as yet) */
+
 #undef  DESTROY_ICALC_setup
 #define DESTROY_ICALC_setup(qcs)     \
  do{ if( (qcs) != NULL ){            \
-       int aa ;                      \
-       XtFree((qcs)->ulay_expr) ;    \
-       XtFree((qcs)->olay_expr) ;    \
-       XtFree((qcs)->the_expr) ;     \
        free((qcs)) ; (qcs) = NULL ;  \
  }} while(0)
 

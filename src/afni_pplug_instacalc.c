@@ -513,6 +513,12 @@ if(DEBUG) ININFO_message("recycling old dataset") ;
    }
    icaset->dblk->diskptr->allow_directwrite = 1 ;
 
+   if( ics->olay_expr != NULL )
+     THD_set_string_atr( icaset->dblk , "ICALC_EXPR" , ics->olay_expr ) ;
+
+   if( ics->value_string != NULL )
+     THD_set_string_atr( icaset->dblk , "ICALC_VALS" , ics->value_string ) ;
+
    /* save the result into the output dataset */
 
 if(DEBUG) ININFO_message("storing results into dataset: %d %d %d",iim->nx,iim->ny,iim->nz) ;
@@ -590,7 +596,7 @@ static char *helpstring =
    "   Expression = 'A*astep(B,3.1)*astep(C,4.2)\n"
    "The effect is to colorize A only where abs(B) > 3.1 AND abs(C) > 4.2.\n"
    "\n"
-   "Advanced Usage:\n"
+   "Advanced Usage [for AFNI Jedi Masters]:\n"
    " * diffsub = as in 3dcalc, you can specify a differentially offset voxel,\n"
    "             which allows a limited amount of spatial processing.\n"
    "             Example:\n"
@@ -599,6 +605,20 @@ static char *helpstring =
    "               C = use 'A-I' for diffsub\n"
    "               D,E,F,G = use 'A+I', 'A-J', 'A+K', 'A-K' for diffsub\n"
    "               Expression = '6*A-B-C-D-E-F-G' = 3D Laplacian = edge detector\n"
+   "             For the diffsub string, you have two slightly different choices.\n"
+   "           ++ If you DO NOT select a dataset, then you must start diffsub\n"
+   "              with a letter code for some other dataset.  Then follow\n"
+   "              that with a valid differential subscript string, as in\n"
+   "                A+I  or  A[3,3,0,0]\n"
+   "           ++ If you DO select a dataset, then you do not start diffsub\n"
+   "              with a letter string, but start it directly with the subscript;\n"
+   "              for example:\n"
+   "                +I  or  -K  or [-3,3,0,0]\n"
+   "           ++ If you selected a dataset and wish to un-select it so that\n"
+   "              no dataset is chosen for a particular letter code, use the\n"
+   "              'Dataset: Value' menu to switch to some other choice, then\n"
+   "              switch back.  This will clear the dataset chosen for that\n"
+   "              letter code.\n"
    " * Index   = choosing 'Index' as the sub-brick '[-]' means that the value\n"
    "             of the 'Index' time selector in the main AFNI controller window\n"
    "             will be used.  When you change the time 'Index' in AFNI,\n"
@@ -608,15 +628,17 @@ static char *helpstring =
    "Author -- RW Cox -- Sep 2009\n"
    "\n"
    "DEBUGGING:\n"
-   "  This feature is very new.  If you can make it realiably crash, please\n"
-   "  re-run AFNI with the extra option '-DAFNI_INSTACALC_DEBUG=YES' and\n"
-   "  then make InstaCalc crash; the screen printout of the processing steps\n"
-   "  might help pinpoint the problem when you report it to me.\n"
+   "  If you can make InstaCalc realiably crash, please re-run AFNI with\n"
+   "  the extra option '-DAFNI_INSTACALC_DEBUG=YES' and then make it crash;\n"
+   "  the screen printout of the processing steps might help figure out what\n"
+   "  is going on when you report it to me.\n"
    "\n"
    "============================================================================\n"
    "============ Description of Expression Syntax and Functionality ============\n"
    "\n"
    PARSER_HELP_STRING ;
+
+/*----------------------------------------------------------------------------*/
 
 static void ICALC_help_CB( Widget w, XtPointer cd, XtPointer cbs )
 {
@@ -831,7 +853,10 @@ if(DEBUG) ININFO_message("parse expression") ;
    PARSER_set_printout(0) ;
 
    if( olay_pcode == NULL ){
-     (void)MCW_popup_message( iwid->olay_expr_text , "Invalid expression" ,
+     (void)MCW_popup_message( iwid->olay_expr_text ,
+                              " \n--- Invalid expression ---\n"
+                              " See terminal window for\n"
+                              " a more complete message.\n " ,
                               MCW_USER_KILL | MCW_TIMER_KILL ) ;
      free(ics->olay_expr) ; ics->olay_expr = NULL ; BEEPIT ; EXRETURN ;
    }
@@ -844,6 +869,10 @@ if(DEBUG) ININFO_message("mark symbols") ;
 
    ics->dset_master = NULL ;
    ics->has_predefined = ics->has_xyz = ics->mangle_xyz = 0 ;
+
+   if( ics->value_string != NULL ){
+     free(ics->value_string) ; ics->value_string = NULL ;
+   }
 
    for( ids=0 ; ids < 26 ; ids++ ){
 
@@ -891,6 +920,11 @@ if(DEBUG) ININFO_message("** process row %c",abet[ids]) ;
 if(DEBUG) ININFO_message("  get constant string") ;
          str = XmTextFieldGetString( iwid->war[ids].string_text) ;
          ics->inval[ids] = strtod(str,NULL) ;
+
+         ics->value_string = THD_zzprintf( ics->value_string ,
+                                           "%s%c == %g" ,
+                                           (ics->value_string != NULL) ? " ; " : "\0" ,
+                                           abet[ids] , ics->inval[ids] ) ;
        break ;
 
        /* these cases aren't so easy */
@@ -898,7 +932,7 @@ if(DEBUG) ININFO_message("  get constant string") ;
        case ICALC_DSET_VALUE:
        case ICALC_DSET_STAT:{
          int idx      = iwid->war[ids].index_av->ival ;
-         char *difstr = XmTextFieldGetString( iwid->war[ids].string_text) ;
+         char *difstr = XmTextFieldGetString(iwid->war[ids].string_text) ;
 if(DEBUG) ININFO_message("  get dataset pointer") ;
          dset = ics->inset[ids] ; jds = ids ;
          if( !ISVALID_DSET(dset) ){
@@ -919,6 +953,12 @@ if(DEBUG) ININFO_message("    diffsub dataset of '%c' is '%c'",abet[ids],abet[jd
          if( idx >= DSET_NVALS(dset) ) idx = DSET_NVALS(dset)-1 ;
          ics->inidx[ids] = idx ;
 if(DEBUG) ININFO_message("  dataset idx = %d",idx) ;
+
+         ics->value_string = THD_zzprintf( ics->value_string ,
+                                           "%s%c == %s[%d]" ,
+                                           (ics->value_string != NULL) ? " ; " : "\0" ,
+                                           abet[ids] ,
+                                           DSET_HEADNAME(dset) , idx ) ;
 
          if( bb == ICALC_DSET_VALUE ){  /*---- actual dataset voxel values ----*/
 
@@ -971,6 +1011,10 @@ if(DEBUG) ININFO_message("  diffsub = %s",difstr) ;
              ics->dshift_j[ids] = (ijkl[0] >= 2) ? ijkl[2] : 0 ;
              ics->dshift_k[ids] = (ijkl[0] >= 3) ? ijkl[3] : 0 ;
              ics->dshift_l[ids] = (ijkl[0] >= 4) ? ijkl[4] : 0 ; free(ijkl) ;
+
+             ics->value_string = THD_zzprintf( ics->value_string ,
+                                              " %s" , difstr      ) ;
+
            } /* end of diffsub-ization */
 if(DEBUG) ININFO_message("  dataset finished") ;
 
@@ -1000,6 +1044,10 @@ if(DEBUG) ININFO_message("  string = %s",str) ;
              errbuf=THD_zzprintf(errbuf,"Unknown statistic '%s' entered for symbol '%c'\n",str,abet[ids]) ;
              nbad++ ; goto DSET_DONE ;
            }
+
+           ics->value_string = THD_zzprintf( ics->value_string, " %s == %g",
+                                             str+ist, ics->inval[ids]       ) ;
+
          } /* end of dataset statisick-ization */
 
 if(DEBUG) ININFO_message("  completely done with dataset processing") ;
