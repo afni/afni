@@ -154,6 +154,28 @@ examples:
 
       Here, 11.83 would get rounded up to 12.5.
 
+   8. Create an event list from stimulus timing files.  The TR is 1.25s, events
+      are ~1 TR long, and require them to occupy at least half of the given TR.
+      Specify that rows should be per run and the run durations are all 370.
+
+          timing_tool.py -multi_timing stimes.*.txt        \\
+               -multi_timing_to_events all.events.txt      \\
+               -tr 1.25 -multi_stim_dur 1 -min_frac 0.5    \\
+               -per_run -run_len 370 
+
+   8b.Break the event file into 2, one for a sequence of changing event types,
+      one for a sequence of ISIs (TRs from one event to the next, including
+      the TR of the event).  So if the event file from #8 shows:
+        0 0 3 0 0 0 0 1 0 2 2 0 0 0 ...
+      The resuling event/ISI files would read:
+        event: 0 3 1 2 2 ...
+        ISI:   2 5 2 1 4 ...
+
+          timing_tool.py -multi_timing stimes.*.txt            \\
+               -multi_timing_to_event_pair events.txt isi.txt  \\
+               -tr 1.25 -multi_stim_dur 1 -min_frac 0.5        \\
+               -per_run -run_len 370 
+
 --------------------------------------------------------------------------
 Notes:
 
@@ -442,6 +464,50 @@ action options (apply to single timing element, only):
         cut-and-paste to write such a file.
 
 ------------------------------------------
+action options (apply to multi timing elements, only):
+
+   -multi_timing_to_events FILE : create event list from stimulus timing
+
+        e.g. -multi_timing_to_events all.events.txt
+
+        Decide which TR each stimulus event belongs to and make an event file
+        (of TRs) containg a sequence of values between 0 (no event) and N (the
+        index of the event class, for the N timing files).
+
+        This option requires -tr, -multi_stim_dur, -min_frac and -run_len.
+
+           Consider example 8.
+
+   -multi_timing_to_event_pair Efile Ifile : break event file into 2 pieces
+
+        e.g. -multi_timing_to_event_pair events.txt isi.txt
+
+        Similar to -multi_timing_to_events, but break the output event file
+        into 2 pieces, an event list and an ISI list.  Each event E followed by 
+        K zeros in the previous events file would be broken into a single E (in
+        the new event file) and K+1 (in the ISI file).  Note that K+1 is 
+        appropriate from the assumption that events are 0-duration.  The ISI
+        entries should sum to the total number of TRs per run.
+
+        Suppose the event file shows 2 TRs of rest, event type 3 followed by 4
+        TRs of rest, event type 1 followed by 1 TR of rest, type 2 and no rest,
+        type 2 and 3 TRs of rest.  So it would read:
+
+           all events:  0 0 3 0 0 0 0 1 0 2 2 0 0 0 ...
+
+        Then the event_pair files would read:
+
+           events:      0 3 1 2 2 ...
+           ISIs:        2 5 2 1 4 ...
+
+        Note that the only 0 events occur at the beginnings of runs.
+        Note that the ISI is always at least 1, for the TR of the event.
+
+        This option requires -tr, -multi_stim_dur, -min_frac and -run_len.
+
+           Consider example 8b.
+
+------------------------------------------
 general options:
 
    -chrono                      : process options chronologically
@@ -478,6 +544,13 @@ general options:
         The default is -1, which uses the minimum needed for accuracy.
 
             Consider '-show_timing' and '-write_timing'.
+
+   -per_run                     : perform relevant operations per run
+
+        e.g. -per_run
+
+        This option applies to -timing_to_1D, so that each 0/1 array is
+        one row per run, as opposed to a single column across runs.
 
    -run_len RUN_TIME ...        : specify the run duration(s), in seconds
 
@@ -532,9 +605,13 @@ g_history = """
    1.7  Jul 12, 2010 - added -truncate_times and -round_times
                        (added for S Durgerian)
    1.8  Aug 16, 2010 - use lib_textdata for I/O
+   1.9  Oct 15, 2010 
+        - added -multi_timing_to_events, -multi_timing_to_event_pair, -per_run
+          (added for N Adleman)
+        
 """
 
-g_version = "timing_tool.py version 1.8, August 16, 2010"
+g_version = "timing_tool.py version 1.9, October 15, 2010"
 
 
 class ATInterface:
@@ -553,6 +630,7 @@ class ATInterface:
 
       self.min_frac        = 0.3        # applies to timing_to_1D
       self.tr              = 0          # applies to some output
+      self.per_run         = 0          # conversions done per run
 
       # user options - single var
       self.timing          = None       # main timing element
@@ -771,6 +849,11 @@ class ATInterface:
                          helpstr='display info about the multi timing elements')
       self.valid_opts.add_opt('-multi_stim_dur', -1, [], 
                          helpstr='provide stimulus durations for timing list')
+      self.valid_opts.add_opt('-multi_timing_to_events', 1, [], 
+                         helpstr='convert stim_times event file')
+      self.valid_opts.add_opt('-multi_timing_to_event_pair', 2, [], 
+                         helpstr='convert stim_times event/isi files')
+
 
       # general options (including multi)
       self.valid_opts.add_opt('-chrono', 0, [], 
@@ -779,6 +862,8 @@ class ATInterface:
                          helpstr='min tr fraction (in [0,1.0])')
       self.valid_opts.add_opt('-nplaces', 1, [], 
                          helpstr='set number of decimal places for printing')
+      self.valid_opts.add_opt('-per_run', 0, [], 
+                         helpstr='perform operations per run')
       self.valid_opts.add_opt('-run_len', -1, [], 
                          helpstr='specify the lengths of each run (seconds)')
       self.valid_opts.add_opt('-tr', 1, [], 
@@ -840,6 +925,8 @@ class ATInterface:
          val, err = uopts.get_type_opt(int, '-nplaces')
          if val and not err:
             self.nplaces = val
+
+         if uopts.find_opt('-per_run'): self.per_run = 1
 
          val, err = uopts.get_type_opt(float, '-tr')
          if val and not err:
@@ -920,6 +1007,10 @@ class ATInterface:
                val, err = self.user_opts.get_type_opt(int, '', opt=opt)
                if val != None and err: return 1
                else: self.nplaces = val
+               continue
+
+            elif opt.name == '-per_run':
+               self.per_run = 1
                continue
 
             elif opt.name == '-run_len':
@@ -1052,6 +1143,24 @@ class ATInterface:
             if val != None and err: return 1
             self.write_timing_as_1D(val)
 
+         # pass event and ISI filenames
+         elif opt.name == '-multi_timing_to_event_pair':
+            if not self.m_timing:
+               print "** '%s' requires -multi_timing" % opt.name
+               return 1
+            val, err = uopts.get_string_list('', opt=opt)
+            if val != None and err: return 1
+            self.multi_timing_to_events(val[0], val[1])
+
+         # just pass the event filename
+         elif opt.name == '-multi_timing_to_events':
+            if not self.m_timing:
+               print "** '%s' requires -multi_timing" % opt.name
+               return 1
+            val, err = uopts.get_string_opt('', opt=opt)
+            if val != None and err: return 1
+            self.multi_timing_to_events(val)
+
          elif opt.name == '-transpose':
             if not self.timing:
                print "** '%s' requires -timing" % opt.name
@@ -1074,12 +1183,166 @@ class ATInterface:
 
       return 0
 
+   def multi_timing_to_events(self, fname, wname=None):
+      """convert multi-stim_times to 0..N event list
+         If wname is not set, write event list to fname.
+         Otherwise, write collapsed event list and ISI list files.
+      """
+
+      errs = 0
+      if len(self.m_timing) < 1:
+         print '** no multi_timing, cannot convert'
+         errs += 1
+
+      if not fname:
+         print '** multi_timing_to_events: missing filename'
+         errs += 1
+
+      for dur in self.m_stim_dur:
+         if dur <= 0:
+            print '** error: -stim_dur must be positive'
+            errs += 1
+
+      if self.tr <= 0.0:
+         print '** error: -tr must be positive'
+         errs += 1
+
+      if len(self.run_len) < 2 and self.run_len[0] == 0:
+         print '** mulit_timing_to_events requires -run_len'
+         errs += 1
+
+      if self.min_frac <= 0.0 or self.min_frac > 1.0:
+         print '** error: -min_frac must be in (0.0, 1.0]'
+         errs += 1
+
+      if errs: return 1
+
+      amtlist = []
+      for index, timing in enumerate(self.m_timing):
+         amt = LT.AfniMarriedTiming(from_at=1, at=timing)
+         if not amt: return 1
+         errstr, result = amt.timing_to_1D(self.run_len, self.tr, self.min_frac,
+                                           self.per_run)
+         if errstr:
+            print errstr
+            return 1
+         if self.verb > 3:
+            print '++ event list %d : %s' % (index+1, result)
+         amtlist.append(result)
+
+      err, combo = self.combine_multi_1D_lists(amtlist)
+      if err: return 1
+
+      # maybe this is all the users wants
+      if not wname:
+         TD.write_1D_file(combo, fname, self.per_run)
+         return 0
+
+      err, stimlist, waitlist = self.combo_to_event_and_wait(combo)
+      if err: return 1
+
+      TD.write_1D_file(stimlist, fname, self.per_run)
+      TD.write_1D_file(waitlist, wname, self.per_run)
+
+      return 0
+
+   def combo_to_event_and_wait(self, combo):
+      """return a list of events (0 for leading rest) and waiting periods
+         (TRs, including events, until next event)"""
+
+      if type(combo[0]) == type([]):    # then process as list of runs
+         elist = []
+         wlist = []
+         for llist in combo:
+            rv, ee, ww = self.single_combo_to_EW(llist)
+            if rv: return 1, [], []
+            elist.append(ee)
+            wlist.append(ww)
+      else:                             # process as one long list
+         rv, elist, wlist = self.single_combo_to_EW(combo)
+         if rv: return 1, [], []
+
+      return 0, elist, wlist
+
+   def single_combo_to_EW(self, combo):
+      """return a list of events (0 for leading rest) and waiting periods
+         (TRs, including events, until next event)"""
+
+      elist = []
+      wlist = []
+      eposn = 0
+      for ind, val in enumerate(combo):
+         if val == 0:
+            if ind == 0:        # we are at the beginnng of the run
+               elist.append(0)
+               wlist.append(1)
+            else:               # wait longer for next event (common)
+               wlist[-1] += 1
+         else:                  # a new event
+            elist.append(val)
+            wlist.append(1)
+
+      return 0, elist, wlist
+
+   def combine_multi_1D_lists(self, amtlist):
+      """combine multiple 0/1 lists into event lists
+            - if each list is 2 dimensional, work per row
+      """
+
+      if self.verb > 1:
+         print '++ creating combo from %d event lists' % len(amtlist)
+
+      if type(amtlist[0][0]) == type([]):
+         combo = []
+         # test lengths
+         L0 = amtlist[0]
+         for L in amtlist:
+            if len(L) != len(L0):
+               print '** CM1L: length mis-match: %d vs %d' % (len(L0), len(L))
+               return 1, []
+            for rind in range(len(L)):
+               if len(L[rind]) != len(L0[rind]):
+                  print '** CM1L: row length mis-match at row %d' % rind
+                  return 1, []
+         # put each row together
+         for rind in range(len(L0)):
+            result = self.combine_1D_lists([L[rind] for L in amtlist])
+            if result == None: return 1, []
+            combo.append(result)
+      else:
+         combo = self.combine_1D_lists(amtlist)
+
+      if self.verb > 2:
+         print '++ have combined TR list: %s' % combo
+
+      return 0, combo
+
+   def combine_1D_lists(self, tlist):
+      """combine these lists of events into a composite, ordered by
+         their indices
+
+         there should be no overlap
+      """
+
+      if len(tlist) <= 1: return tlist
+
+      combo = [0 for val in tlist[0]]
+      # and fill with every other
+      for lind, llist in enumerate(tlist):
+         for vind, val in enumerate(llist):
+            if val != 0:
+               if combo[vind] != 0:
+                  print '** event duplication between lists %d and %d at' \
+                        ' index %d' % (combo[vind], lind+1, vind)
+               combo[vind] = lind+1     # insert 1-based list index here
+
+      return combo
+
    def write_timing_as_1D(self, fname):
-      """
-        - todo: add options -tr, -timing_to_1D, -min_frac
-      """
+      """convert stim_times to 0/1 format"""
+
       if not self.timing:
-         print '** no timing, cannot show stats'
+         print '** no timing, cannot convert to 1D'
          return 1
 
       if not fname:
@@ -1105,12 +1368,13 @@ class ATInterface:
       amt = LT.AfniMarriedTiming(from_at=1, at=self.timing)
       if not amt: return 1
 
-      errstr, result = amt.timing_to_1D(self.run_len, self.tr, self.min_frac)
+      errstr, result = amt.timing_to_1D(self.run_len, self.tr, self.min_frac,
+                                        self.per_run)
       if errstr:
          print errstr
          return 1
 
-      TD.write_1D_file(result, fname)
+      TD.write_1D_file(result, fname, self.per_run)
 
    def show_isi_stats(self):
       if not self.timing:

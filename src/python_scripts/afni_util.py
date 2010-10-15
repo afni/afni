@@ -1049,6 +1049,31 @@ def vals_are_increasing(vlist, reverse=0):
       
    return rval
 
+def vals_are_unique(vlist):
+   """determine whether (possibly unsorted) values are unique
+      - use memory to go for N*log(N) speed"""
+
+   if vlist == None: return 1
+   if len(vlist) < 2: return 1
+
+   # copy and sort
+   dupe = vlist[:]
+   dupe.sort()
+
+   rval = 1
+   try:
+      for ind in range(len(dupe)-1):
+         if dupe[ind] == dupe[ind+1]:
+            rval = 0
+            break
+   except:
+      print "** uniq: failed to compare list elements in %s" % vlist
+      rval = 0
+
+   del(dupe)
+      
+   return rval
+
 def lists_are_same(list1, list2):
    """return 1 if the lists have identical values, else 0"""
    if not list1 and not list2: return 1
