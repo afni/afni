@@ -608,10 +608,10 @@ g_history = """
    1.9  Oct 15, 2010 
         - added -multi_timing_to_events, -multi_timing_to_event_pair, -per_run
           (added for N Adleman)
-        
+   1.10 Oct 16, 2010 - fixed timing_to_1D fractions
 """
 
-g_version = "timing_tool.py version 1.9, October 15, 2010"
+g_version = "timing_tool.py version 1.10, October 16, 2010"
 
 
 class ATInterface:
@@ -1304,12 +1304,16 @@ class ATInterface:
                if len(L[rind]) != len(L0[rind]):
                   print '** CM1L: row length mis-match at row %d' % rind
                   return 1, []
+         if self.verb > 2:
+            print '-- combining event lists per run, %d lists of length %d' \
+                  % (len(amtlist), len(L[0]))
          # put each row together
          for rind in range(len(L0)):
             result = self.combine_1D_lists([L[rind] for L in amtlist])
             if result == None: return 1, []
             combo.append(result)
       else:
+         if self.verb > 2: print '-- combining events lists as single sequence'
          combo = self.combine_1D_lists(amtlist)
 
       if self.verb > 2:
@@ -1324,7 +1328,8 @@ class ATInterface:
          there should be no overlap
       """
 
-      if len(tlist) <= 1: return tlist
+      if len(tlist) < 1:  return []
+      if len(tlist) == 1: return tlist[0]
 
       combo = [0 for val in tlist[0]]
       # and fill with every other
