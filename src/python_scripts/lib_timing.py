@@ -779,12 +779,14 @@ class AfniMarriedTiming:
          # do the real work, for each stimulus, fill appropriate tr fractions
          # init frac list with TR timing (and enough TRs for run)
          num_trs = int(math.ceil( run_len[rind]/tr ))
+         if self.verb>2: print '-- TR frac: have %d TRs and %d events over run'\
+                               % (num_trs, len(data))
          rdata = [0 for i in range(num_trs)]
          for sind in range(len(data)):
-            start  = data[sind][0]
-            end    = data[sind][1]
-            startp = int(start) # indexes
-            endp   = int(end)
+            start  = data[sind][0]      # initial TR (fractional) time
+            end    = data[sind][1]      # end TR time
+            startp = int(start)         # initial TR index
+            endp   = int(end)           # end TR index
 
             # deal with easy case, else: startp, intermediates, endp
 
@@ -794,9 +796,9 @@ class AfniMarriedTiming:
                continue
 
             # startp, intermediates (between startp, endp, exclusive), endp
-            rdata[startp] = start-startp
+            rdata[startp] = round(1-(start-startp),3)
             for tind in range(startp+1,endp): rdata[tind] = 1.0
-            rdata[endp] = round(1.0-(end-endp), 3)
+            rdata[endp] = round(end-endp, 3)
 
          if self.verb > 4:
             print '\n++ timing_to_tr_fr, result for run %d:' % (rind+1)
