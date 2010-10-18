@@ -374,7 +374,7 @@ if(PRINT_TRACING)
      if( zval > 0.0f ){
        float qval = 2.0*qg(zval) ;         /* convert z back to FDR q */
        im3d->vinfo->func_qval = qval ;
-       if( qval > 0.0f && qval < 0.9999 ){   
+       if( qval > 0.0f && qval < 0.9999 ){
          char qbuf[16] ;
          if( qval >= 0.0010 ) sprintf(qbuf,"%5.4f",qval) ;
          else {
@@ -635,7 +635,7 @@ if(PRINT_TRACING)
 
    /* use template space of parent to mark as TLRC/MNI/... */
    MCW_strncpy( new_dset->atlas_space ,
-      anat_parent->atlas_space , THD_MAX_NAME ) ; 
+      anat_parent->atlas_space , THD_MAX_NAME ) ;
 
    new_dset->anat_parent = anat_parent ;            /* what else makes sense? */
 
@@ -1033,7 +1033,7 @@ if(aset >= 0 && PRINT_TRACING)
          if( DSET_in_global_session(dset) ) continue ; /* 25 Dec 2001 */
 
          pref_dset = GET_SESSION_DSET(ss,apref,vv);
-         
+
          if( ISVALID_3DIM_DATASET(pref_dset) ){  /* if preferred is OK, */
             dset->anat_parent = pref_dset ;      /* use it here         */
          }
@@ -2201,7 +2201,7 @@ void AFNI_choose_dataset_CB( Widget w , XtPointer cd , XtPointer cb )
    int is_other = 0 ;       /* 18 Dec 2007 */
    void (*cbfun)(Widget,XtPointer,MCW_choose_cbs *)=AFNI_finalize_dataset_CB;
    THD_3dim_dataset *temp_dset;
-   
+
 ENTRY("AFNI_choose_dataset_CB") ;
 
    /*--- initialize ---*/
@@ -2267,7 +2267,7 @@ ENTRY("AFNI_choose_dataset_CB") ;
 
       ltop = 4 ;
       for( ii=0 ; ii < num_str ; ii++ ){
-               THD_report_obliquity(GET_SESSION_DSET(im3d->ss_now,ii,0)) ; 
+               THD_report_obliquity(GET_SESSION_DSET(im3d->ss_now,ii,0)) ;
 /*         THD_report_obliquity(im3d->ss_now->dsset_xform_table[ii][0]) ; */ /* 20 Dec 2007 */
 
          for( vv=FIRST_VIEW_TYPE ; vv <= LAST_VIEW_TYPE ; vv++ )
@@ -2288,11 +2288,11 @@ ENTRY("AFNI_choose_dataset_CB") ;
 
       for( ii=0 ; ii < num_str ; ii++ ){
          for( vv=FIRST_VIEW_TYPE ; vv <= LAST_VIEW_TYPE ; vv++ ) {
-            temp_dset = GET_SESSION_DSET(im3d->ss_now, ii, vv);            
+            temp_dset = GET_SESSION_DSET(im3d->ss_now, ii, vv);
             if( ISVALID_3DIM_DATASET(temp_dset) ) break ;
 /*            if( ISVALID_3DIM_DATASET(im3d->ss_now->dsset_xform_table[ii][vv]) ) break ;*/
          }
-         
+
          if( vv <= LAST_VIEW_TYPE ){
               sprintf( strlist[ii] , "%-*s" ,
                   ltop,temp_dset->dblk->diskptr->prefix ) ;
@@ -2484,7 +2484,7 @@ void AFNI_finalize_dataset_CB( Widget wcall ,
    int ii , vv , ff ;
    THD_session *ss_new ;
    THD_3dim_dataset *temp_dset;
-   
+
 ENTRY("AFNI_finalize_dataset_CB") ;
 
    if( ! IM3D_VALID(im3d) ) EXRETURN ;
@@ -2541,7 +2541,7 @@ ENTRY("AFNI_finalize_dataset_CB") ;
                if( ISVALID_3DIM_DATASET(temp_dset) ) break ;
 /*               if( ISVALID_3DIM_DATASET(ss_new->dsset_xform_table[new_anat][vv]) ) break ;*/
             }
-            
+
             if( vv <= LAST_VIEW_TYPE ){  /* found it above */
                new_view = vv ;
             } else {
@@ -2778,7 +2778,7 @@ ENTRY("AFNI_finalize_dataset_CB") ;
      float new_thresh = AFNI_get_autothresh(im3d) ;
      if( new_thresh > 0.0f ) AFNI_set_threshold(im3d,new_thresh) ;
    }
-   
+
    if( wcall == im3d->vwid->view->choose_func_pb ){  /* ZSS 25 Feb 2010 */
       AFNI_set_dset_pbar((XtPointer)im3d);
    }
@@ -2794,7 +2794,7 @@ ENTRY("AFNI_finalize_dataset_CB") ;
 /*     AFNI_check_obliquity(wcall, ss_new->dsset_xform_table[new_anat][0]);*/
 
    CLU_setup_alpha_tables(im3d) ;
-   
+
    EXRETURN ;
 }
 
@@ -2807,14 +2807,14 @@ void AFNI_check_obliquity(Widget w, THD_3dim_dataset *dset)
    double angle;
    char str[1024];
    static int num_warn = 0;
-   
+
    ENTRY("AFNI_check_obliquity");
    if( !ISVALID_DSET(dset) ) EXRETURN ;
 
    if(AFNI_yesenv("AFNI_NO_OBLIQUE_WARNING")) EXRETURN;
 
    if(AFNI_yesenv("AFNI_ONE_OBLIQUE_WARNING") && num_warn) EXRETURN;
-   
+
    THD_check_oblique_field(dset);
 
    angle = THD_compute_oblique_angle(dset->daxes->ijk_to_dicom_real, 0);
@@ -2828,7 +2828,7 @@ void AFNI_check_obliquity(Widget w, THD_3dim_dataset *dset)
          "  you should consider running: \n"
          "     3dWarp -deoblique \n"
          "  on this and other oblique datasets in the same session.\n"
-         " Similar warnings will be muted for the rest of this session.\n", 
+         " Similar warnings will be muted for the rest of this session.\n",
          DSET_BRIKNAME(dset) );
    } else {
       sprintf( str,
@@ -2841,7 +2841,7 @@ void AFNI_check_obliquity(Widget w, THD_3dim_dataset *dset)
          DSET_BRIKNAME(dset));
    }
    (void) MCW_popup_message( w , str, MCW_USER_KILL | MCW_TIMER_KILL ) ;
-   
+
    ++num_warn;
    EXRETURN ;
 }
@@ -3011,7 +3011,7 @@ void AFNI_append_sessions( THD_session *ssa , THD_session *ssb )
 {
    int qs, qd, vv ;
    THD_3dim_dataset *temp_dset;
-   
+
 ENTRY("AFNI_append_sessions") ;
 
    if( !ISVALID_SESSION(ssa) || !ISVALID_SESSION(ssb) ) EXRETURN ;
@@ -3512,7 +3512,7 @@ ENTRY("AFNI_finalize_read_Web_CB") ;
        for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ ){
          temp_dset = GET_SESSION_DSET(ss,1,vv);
 /*         if( ISVALID_DSET(ss->dsset_xform_table[1][vv]) ){ */
-         if( ISVALID_DSET(temp_dset) ){ 
+         if( ISVALID_DSET(temp_dset) ){
             im3d->vinfo->view_type = vv; break;
          }
        }
@@ -3943,7 +3943,7 @@ STATUS(old_ss->sessname) ;
 
    for( ii=0 ; ii < old_ss->num_dsset ; ii++ )
      for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ ) {
-       temp_dset = GET_SESSION_DSET(old_ss, ii, vv); 
+       temp_dset = GET_SESSION_DSET(old_ss, ii, vv);
        if( temp_dset != NULL ) DSET_unload(temp_dset);
 /*     if( old_ss->dsset_xform_table[ii][vv] != NULL ) DSET_unload(old_ss->dsset_xform_table[ii][vv]);*/
      }
@@ -4407,6 +4407,64 @@ STATUS("resetting 'use anat brick' button") ;
    EXRETURN ;
 }
 
+/*--------------------------------------------------------------------------*/
+
+static THD_3dim_dataset *saveas_iset = NULL ;
+
+void AFNI_saveas_dataset_CB( Widget w, XtPointer cd, XtPointer cb )
+{
+   Three_D_View *im3d = (Three_D_View *) cd ;
+   char *label ;
+
+ENTRY("AFNI_saveas_dataset_CB") ;
+
+   saveas_iset = NULL ;
+
+   if( ! IM3D_VALID(im3d) || w == NULL ||
+       ! XtIsWidget(w)    || ! XtIsRealized(w) ) EXRETURN ;
+   if( GLOBAL_library.have_dummy_dataset ){ BEEPIT ; EXRETURN ; }
+
+   if( w == im3d->vwid->dmode->saveas_anat_pb ){
+     saveas_iset = im3d->anat_now ; label = "Underlay Prefix" ;
+   } else if( w == im3d->vwid->dmode->saveas_func_pb ){
+     saveas_iset = im3d->fim_now  ; label = "Overlay Prefix" ;
+   } else {
+     BEEPIT ; EXRETURN ;
+   }
+
+   MCW_choose_string( w, label, NULL, AFNI_saveas_finalize_CB, NULL ) ;
+
+   EXRETURN ;
+}
+
+/*--------------------------------------------------------------------------*/
+
+void AFNI_saveas_finalize_CB( Widget w , XtPointer cd , MCW_choose_cbs *cbs )
+{
+   char *prefix ;
+   THD_3dim_dataset *oset ;
+
+ENTRY("AFNI_saveas_finalize_CB") ;
+
+   if( cbs->reason != mcwCR_string || saveas_iset == NULL ){ BEEPIT; EXRETURN; }
+
+   prefix = cbs->cval ;      if( !THD_filename_ok(prefix) ){ BEEPIT; EXRETURN; }
+
+   DSET_load(saveas_iset) ; if( !DSET_LOADED(saveas_iset) ){ BEEPIT; EXRETURN; }
+
+   MCW_invert_widget(w) ;
+   oset = EDIT_full_copy( saveas_iset , prefix ) ;
+   MCW_flash_widget(1,w) ;
+   THD_force_ok_overwrite(1) ;
+   DSET_write(oset) ;
+   MCW_flash_widget(1,w) ;
+   THD_force_ok_overwrite(0) ;
+   WROTE_DSET(oset) ; DSET_delete(oset) ;
+
+   saveas_iset = NULL ; POPDOWN_string_chooser ; MCW_invert_widget(w) ;
+   EXRETURN ;
+}
+
 /*-----------------------------------------------------------------
     Obey the command to write out the current dataset
 -------------------------------------------------------------------*/
@@ -4437,12 +4495,12 @@ ENTRY("AFNI_write_dataset_CB") ;
 
    if( ISVALID_DSET(dset) && dset->dblk->diskptr->allow_directwrite == 1 ){
      INFO_message("Direct write of dataset '%s'",DSET_BRIKNAME(dset)) ;
-     if (!AFNI_yesenv("AFNI_GUI_WRITE_AS_DECONFLICT")) { /* ZSS April 11 2010 */ 
+     if (!AFNI_yesenv("AFNI_GUI_WRITE_AS_DECONFLICT")) { /* ZSS April 11 2010 */
         DSET_overwrite(dset) ;
      } else {
         char pfx[THD_MAX_PREFIX] ; /* to hold old one */
         MCW_strncpy( pfx , DSET_PREFIX(dset) , THD_MAX_PREFIX ) ;
-        DSET_write(dset); 
+        DSET_write(dset);
         /* Now put old prefix back in case there was deconflicting */
         EDIT_dset_items( dset , ADN_prefix , pfx , ADN_none ) ;
      }
