@@ -746,6 +746,8 @@ typedef struct {
       Widget         rescan_rowcol , rescan_pb , rescan_all_pb , rescan_timeseries_pb ;
       Widget         read_rowcol , read_sess_pb , read_1D_pb , read_Web_pb ;
 
+      Widget         saveas_rowcol, saveas_anat_pb, saveas_func_pb ; /* 18 Oct 2010 */
+
       Widget         mbar_rowcol ;
       MCW_bbox     * lock_bbox ;
       Widget         lock_enforce_pb , lock_clear_pb , lock_setall_pb ;
@@ -1562,6 +1564,9 @@ extern void AFNI_write_many_dataset_CB( Widget , XtPointer , XtPointer ) ; /* 23
 extern void AFNI_anatmode_CB          ( Widget , XtPointer , XtPointer ) ;
 extern void AFNI_funcmode_CB          ( Widget , XtPointer , XtPointer ) ;
 extern void AFNI_raiseup_CB           ( Widget , XtPointer , XtPointer ) ;
+
+extern void AFNI_saveas_dataset_CB   ( Widget , XtPointer , XtPointer ) ;  /* 18 Oct 2010 */
+extern void AFNI_saveas_finalize_CB  ( Widget , XtPointer , MCW_choose_cbs * ) ;
 
 extern void AFNI_do_many_writes      ( Widget , XtPointer , MCW_choose_cbs * ) ; /* 23 Nov 1996 */
 extern void AFNI_finalize_dataset_CB ( Widget , XtPointer , MCW_choose_cbs * ) ;
