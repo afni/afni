@@ -1744,7 +1744,7 @@ STATUS("making view->rowcol") ;
 
    MCW_register_help( view->define_dmode_pb ,
      "Use this to control the mode in which\n"
-     "the anatomy data is viewed, and also\n"
+     "the underlay data is viewed, and also\n"
      "to save 3D datasets to disk" ) ;
    MCW_register_hint( view->define_dmode_pb ,
                       "Open/close data manipulation control panel" ) ;
@@ -4122,10 +4122,8 @@ STATUS("making dmode->rowcol") ;
             XmNorientation , XmVERTICAL ,
             XmNpacking , XmPACK_TIGHT ,
             XmNtraversalOn , True  ,
-#if 0
             XmNmarginHeight, 0 ,
             XmNspacing , 1 ,
-#endif
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
 
@@ -4219,7 +4217,7 @@ STATUS("making dmode->rowcol") ;
 
    (void) XtVaCreateManagedWidget(
             "dialog" , xmSeparatorWidgetClass , dmode->rowcol ,
-                XmNseparatorType , XmDOUBLE_LINE ,
+                XmNseparatorType , XmSINGLE_LINE ,
             NULL ) ;
 
    /*--- bbox to control how we see the func data ---*/
@@ -4347,7 +4345,7 @@ STATUS("making dmode->rowcol") ;
 
    (void) XtVaCreateManagedWidget(
             "dialog" , xmSeparatorWidgetClass , dmode->rowcol ,
-                XmNseparatorType , XmDOUBLE_LINE ,
+                XmNseparatorType , XmSINGLE_LINE ,
             NULL ) ;
 
    /*---- 23 Nov 1996: rowcol for Write buttons ----*/
@@ -4389,7 +4387,7 @@ STATUS("making dmode->rowcol") ;
                   AFNI_write_dataset_CB , im3d ) ;
 
    MCW_register_hint( dmode->write_anat_pb ,
-                      "Write current anatomy to disk" ) ;
+                      "Write current underlay to disk" ) ;
 
    dmode->write_func_pb =
       XtVaCreateManagedWidget(
@@ -4438,6 +4436,61 @@ STATUS("making dmode->rowcol") ;
         " + This operation may be very time-consuming,\n"
         "    especially for 3D+time datasets!"
       ) ;
+
+   /*---- 18 Oct 2010: rowcol for SaveAs buttons ----*/
+
+   dmode->saveas_rowcol =
+        XtVaCreateWidget(
+           "dialog" , xmRowColumnWidgetClass , dmode->rowcol ,
+              XmNorientation , XmHORIZONTAL ,
+              XmNpacking , XmPACK_TIGHT ,
+              XmNmarginHeight , 0 ,
+              XmNmarginWidth  , 0 ,
+              XmNspacing      , 1 ,
+              XmNtraversalOn , True  ,
+              XmNinitialResourcesPersistent , False ,
+           NULL ) ;
+
+   /*-- label at left --*/
+
+   wtemp = XtVaCreateManagedWidget(
+         "dialog" , xmLabelWidgetClass , dmode->saveas_rowcol ,
+            LABEL_ARG("SaveAs") ,
+            XmNalignment , XmALIGNMENT_BEGINNING ,
+            XmNrecomputeSize , False ,
+            XmNtraversalOn , True  ,
+            XmNinitialResourcesPersistent , False ,
+         NULL ) ; LABELIZE(wtemp) ;
+
+   /*--- SaveAs pushbuttons ---*/
+
+   dmode->saveas_anat_pb =
+      XtVaCreateManagedWidget(
+         "dialog" , xmPushButtonWidgetClass , dmode->saveas_rowcol ,
+            LABEL_ARG("ULay") ,
+            XmNtraversalOn , True  ,
+            XmNinitialResourcesPersistent , False ,
+         NULL ) ;
+
+   XtAddCallback( dmode->saveas_anat_pb , XmNactivateCallback ,
+                  AFNI_saveas_dataset_CB , im3d ) ;
+
+   MCW_register_hint( dmode->saveas_anat_pb ,
+                      "Write current underlay to disk at its internal resolution" ) ;
+
+   dmode->saveas_func_pb =
+      XtVaCreateManagedWidget(
+         "dialog" , xmPushButtonWidgetClass , dmode->saveas_rowcol ,
+            LABEL_ARG("OLay") ,
+            XmNtraversalOn , True  ,
+            XmNinitialResourcesPersistent , False ,
+         NULL ) ;
+
+   XtAddCallback( dmode->saveas_func_pb , XmNactivateCallback ,
+                  AFNI_saveas_dataset_CB , im3d ) ;
+
+   MCW_register_hint( dmode->saveas_func_pb ,
+                      "Write current overlay to disk at its internal resolution" ) ;
 
    /*---- 23 Nov 1996: Row of Buttons for Rescan Session ----*/
 
@@ -4645,6 +4698,7 @@ STATUS("making dmode->rowcol") ;
    /*-- manage the managers --*/
 
    XtManageChild( dmode->write_rowcol ) ;
+   XtManageChild( dmode->saveas_rowcol ) ;
    XtManageChild( dmode->rescan_rowcol ) ;
    XtManageChild( dmode->read_rowcol ) ;
    XtManageChild( dmode->mbar_rowcol ) ;

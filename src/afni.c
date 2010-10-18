@@ -1343,6 +1343,9 @@ void AFNI_sigfunc_alrm(int sig)
      "Every goodbye makes the next hello closer"                     ,
      "The song is ended, but the melody lingers on"                  ,
      "A star will shine upon the hour of our next meeting"           ,
+     "May we meet again in happier times"                            ,
+     "Adieu, auf Wiedersehen, Adios, Cheerio, and Bon Voyage"        ,
+     "Meeting again is certain for those who are friends"            ,
      "Au revoir, Ciao, Ma'alsalam, Hasta luego, Czesc, and Zai jian"
    } ;
    int nn = (lrand48()>>3) % NMSG ;
@@ -7767,6 +7770,14 @@ STATUS(" -- datamode widgets") ;
    }
 
    SENSITIZE( im3d->vwid->dmode->write_func_pb , writer ) ;
+
+   /* 18 Oct 2010: SaveAs buttons on or off? */
+
+   writer = DSET_INMEMORY(im3d->anat_now) ;
+   SENSITIZE( im3d->vwid->dmode->saveas_anat_pb , writer ) ;
+
+   writer = DSET_INMEMORY(im3d->fim_now) ;
+   SENSITIZE( im3d->vwid->dmode->saveas_func_pb , writer ) ;
 
    /*--- function controls (always see them) ---*/
 

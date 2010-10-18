@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 18 , OCT , 2010 , RWC , "afni" , MICRO , TYPE_GENERAL ,
+   "Add SaveAs buttons to Datamode panel" ,
+   NULL } ,
+
  { 15 , OCT , 2010 , RWC , "afni InstaCald" , MICRO , TYPE_GENERAL ,
    "Save expression info to dataset header attributes -- for Jill" ,
    NULL } ,
