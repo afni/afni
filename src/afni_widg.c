@@ -139,7 +139,7 @@ static char *AFNI_funcmode_bbox_label[2] =
    "WARNING: if you previously executed a geometric\n"        \
    "transformation, and then re-execute it with\n"            \
    "altered markers, you will re-write the old transformed\n" \
-   "dataset, AND also destroy any `downstream' transformed\n" \
+   "dataset, AND also destroy any 'downstream' transformed\n" \
    "datasets -- for example, re-doing a AC-PC aligned view\n" \
    "will destroy the Talairach view (if any) that follows it"
 
@@ -273,7 +273,7 @@ static char *AFNI_funcmode_bbox_label[2] =
    "WARNING: if you previously executed a geometric\n"        \
    "transformation, and then re-execute it with\n"            \
    "altered markers, you will re-write the old transformed\n" \
-   "dataset, AND also destroy any `downstream' transformed\n" \
+   "dataset, AND also destroy any 'downstream' transformed\n" \
    "datasets -- for example, re-doing a AC-PC aligned view\n" \
    "will destroy the Talairach view (if any) that follows it"
 
@@ -4154,7 +4154,7 @@ STATUS("making dmode->rowcol") ;
 
    dmode->anat_resam_av = new_MCW_arrowval(
                              dmode->rowcol ,
-                             "ULay resam mode" ,
+                             "ULay Resam mode" ,
                              AVOPT_STYLE ,
                              FIRST_RESAM_TYPE ,
                              LAST_RESAM_TYPE ,
@@ -4251,7 +4251,7 @@ STATUS("making dmode->rowcol") ;
    ) ;
 
    { char *hh[] = { "View data direct from brick" ,
-                     "View data resampled to new grid" } ;
+                    "View data resampled to new grid" } ;
      MCW_bbox_hints( dmode->funcmode_bbox , 2 , hh ) ;
    }
 
@@ -4262,7 +4262,7 @@ STATUS("making dmode->rowcol") ;
    dmode->func_resam_av = new_MCW_arrowval(
                              dmode->rowcol ,
 #ifdef USE_OPTMENUS
-                             "OLay resam mode" ,
+                             "OLay Resam mode" ,
 #else
                              "OLay mode " ,
 #endif
@@ -4304,7 +4304,7 @@ STATUS("making dmode->rowcol") ;
    dmode->thr_resam_av = new_MCW_arrowval(
                              dmode->rowcol ,
 #ifdef USE_OPTMENUS
-                             "Stat resam mode" ,
+                             "Stat Resam mode" ,
 #else
                              "Stat mode " ,
 #endif
@@ -4329,7 +4329,7 @@ STATUS("making dmode->rowcol") ;
 
    MCW_reghelp_children( dmode->thr_resam_av->wrowcol ,
      "This controls the resampling mode for\n"
-     "overlay data (threshold only):\n\n"
+     "overlay data (statistics sub-bricks only):\n\n"
      "NN = nearest neighbor resampling [fastest]\n"
      "Li = linear interpolation        [OK]\n"
      "Cu = cubic interpolation         [nice but slow]\n"
@@ -4366,7 +4366,7 @@ STATUS("making dmode->rowcol") ;
 
    wtemp = XtVaCreateManagedWidget(
          "dialog" , xmLabelWidgetClass , dmode->write_rowcol ,
-            LABEL_ARG("Resam ") ,
+            LABEL_ARG("Resamp") ,
             XmNalignment , XmALIGNMENT_BEGINNING ,
             XmNrecomputeSize , False ,
             XmNtraversalOn , True  ,
@@ -4418,23 +4418,29 @@ STATUS("making dmode->rowcol") ;
                       "Write multiple datasets to disk at resampling resolution" ) ;
 
    MCW_reghelp_children( dmode->write_rowcol ,
-        "The purpose of the `Write' buttons is to recompute\n"
+        "The purpose of the 'Resamp' buttons is to recompute\n"
         "entire dataset bricks in the current coordinate\n"
-        "system (`view') and write them to disk.\n"
+        "system ('view') and write them to disk.\n"
         "\n"
-        "The `Resam' controls determine the resolution and\n"
-        "interpolation used in creating the new bricks.\n"
+        "The various 'Resam' controls (above) determine the\n"
+        "resolution and interpolation method used in creating\n"
+        "the new bricks.\n"
         "\n"
-        "ULay --> current overlay dataset brick.\n"
-        "OLay --> current underlay dataset brick.\n"
-        "Many --> select one or more datasets from a list.\n"
+        "  ULay --> write current underlay dataset brick\n"
+        "  OLay --> write current overlay dataset brick\n"
+        "  Many --> select one or more datasets from a list\n"
         "\n"
         "N.B.:\n"
-        " + Only dataset bricks that are warped from\n"
-        "    a `parent' dataset can be written out.\n"
-        "    AFNI will not destroy original data (I hope).\n"
-        " + This operation may be very time-consuming,\n"
-        "    especially for 3D+time datasets!"
+        " + Only dataset bricks that are warped from a\n"
+        "     'parent' dataset can be written out.\n"
+        " + 'Resamp' will not destroy original data (I hope).\n"
+        " + This operation might be very time-consuming,\n"
+        "    especially for big 3D+time datasets!\n"
+        " + Resampling a big 3D+time dataset to 1 mm grid\n"
+        "    size is usually pointless and will use up a\n"
+        "    LOT of disk space.\n"
+        " + You can write a dataset to disk under a new name\n"
+        "    (but not resampled) using the 'SaveAs' buttons."
       ) ;
 
    /*---- 18 Oct 2010: rowcol for SaveAs buttons ----*/
@@ -4491,6 +4497,20 @@ STATUS("making dmode->rowcol") ;
 
    MCW_register_hint( dmode->saveas_func_pb ,
                       "Write current overlay to disk at its internal resolution" ) ;
+
+   MCW_reghelp_children( dmode->saveas_rowcol ,
+                         "The 'SaveAs' buttons let you write out one\n"
+                         "of the current dataset (UnderLay or OverLay)\n"
+                         "under a new name.  These datasets will be\n"
+                         "written at the spatial resolution they are\n"
+                         "stored in -- they won't be resampled.\n\n"
+                         "+ Datasets that are 'warp-on-demand' (don't\n"
+                         "   have their own data) cannot be 'SaveAs'-ed!\n"
+                         "+ It is possible to over-write an existing\n"
+                         "   dataset with 'SaveAs' -- but this is\n"
+                         "   usually not advisable, unless you are\n"
+                         "   going to quit AFNI shortly."
+                       ) ;
 
    /*---- 23 Nov 1996: Row of Buttons for Rescan Session ----*/
 
@@ -4565,7 +4585,7 @@ STATUS("making dmode->rowcol") ;
                       "Read directories for new time series files" ) ;
 
    MCW_reghelp_children( dmode->rescan_rowcol ,
-         "The purpose of the `Rescan' buttons is to read\n"
+         "The purpose of the 'Rescan' buttons is to read\n"
          "the contents of session directories again in\n"
          "order to make newly created datasets (e.g., from\n"
          "the 3dmerge program) available for AFNI viewing.\n"
@@ -4656,8 +4676,8 @@ STATUS("making dmode->rowcol") ;
                       "Read dataset via http:// or ftp://" ) ;
 
    MCW_reghelp_children( dmode->read_rowcol ,
-         "The purpose of the `Read' buttons is to read\n"
-         "in new data.  (The `Rescan' buttons are to\n"
+         "The purpose of the 'Read' buttons is to read\n"
+         "in new data.  (The 'Rescan' buttons are to\n"
          "re-read data from old directories.)\n"
          "\n"
          "Sess --> Read a new session directory.\n\n"
