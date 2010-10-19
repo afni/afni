@@ -492,7 +492,8 @@ double normal_t2p( double zz )
    int which , status ;
    double p , q , x , mean,sd,bound ;
 
-   if( zz <= 0.0 ) return 1.0 ;
+   if( zz == 0.0 ) return 1.0 ;
+   if( zz <  0.0 ) zz = -zz ;   /* 19 Oct 2010 */
 
    which  = 1 ;
    p      = 0.0 ;

@@ -325,6 +325,11 @@ void display_help_menu(void)
       "  -- If the two sample don't differ much in the mean values of their\n"
       "      covariates, then the results with '-center SAME' and '-center DIFF'\n"
       "      should be nearly the same.\n"
+      "  -- For fixed covariates (not those taken from datasets), the program\n"
+      "      now prints out the results of a t-test of the between-group mean\n"
+      "      covariate values.  This test is purely informative; no action is\n"
+      "      taken if the t-test shows that the two groups are significantly\n"
+      "      different in some covariate.\n"
       "  -- If the two samples DO differ much in the mean values of their\n"
       "      covariates, then you should read the next point carefully.\n"
       "\n"
@@ -1124,6 +1129,27 @@ int main( int argc , char *argv[] )
      TT_matrix_setup(0) ;  /* 0 = voxel index (just sayin') */
 
      if( num_covset_col > 0 ) MEMORY_CHECK ;
+
+     if( twosam && num_covset_col < mcov ){             /* 19 Oct 2010 */
+       int toz_sav = toz ; float pp ;         /* test covariates for equality */
+
+       toz = 1 ;
+       INFO_message(
+         "Two samples: t-testing fixed covariates for similarity between groups") ;
+       for( jj=0 ; jj < mcov ; jj++ ){
+         if( covnel->vec_typ[jj+1] == NI_STRING ){
+           ININFO_message(" %s: values come from datasets ==> skipping test" ,
+                          covlab->str[jj+1] ) ;
+         } else {
+           tpair = ttest_toz( ndset_AAA , covvec_AAA[jj]->ar ,
+                              ndset_BBB , covvec_BBB[jj]->ar , 0 ) ;
+           pp = normal_t2p( fabs((double)tpair.b) ) ;
+           ININFO_message(" %s: mean of setA-setB=%s ; 2-sided p-value=%.4f" ,
+                          covlab->str[jj+1] , MV_format_fval(tpair.a) , pp ) ;
+         }
+       }
+       toz = toz_sav ;
+     } else INFO_message("twosam=%d num_covset_col=%d mcov=%d",twosam,num_covset_col,mcov) ;
 
    }  /*-- end of covariates setup --*/
 

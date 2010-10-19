@@ -1584,16 +1584,20 @@ extern float mri_scaled_diff( MRI_IMAGE *bim, MRI_IMAGE *nim, MRI_IMAGE *msk ) ;
 #define AUTHOR(aa) INFO_message("Authored by: %s",aa)
 
 #undef  WROTE_DSET_MSG
-#define WROTE_DSET_MSG(dd,ss) \
-  INFO_message("Output dataset %s {%s}",DSET_BRIKNAME(dd),(ss))
+#define WROTE_DSET_MSG(dd,ss)                 \
+  do{ if( THD_is_file(DSET_BRIKNAME(dd)) )    \
+       INFO_message("Output dataset %s {%s}",DSET_BRIKNAME(dd),(ss)); } while(0)
 
 #undef  WROTE_DSET
-#define WROTE_DSET(dd) \
-  INFO_message("Output dataset %s",DSET_BRIKNAME(dd))
+#define WROTE_DSET(dd)                        \
+  do{ if( THD_is_file(DSET_BRIKNAME(dd)) )    \
+        INFO_message("Output dataset %s",DSET_BRIKNAME(dd)); } while(0)
 
 #undef  CHECK_OPEN_ERROR
 #define CHECK_OPEN_ERROR(dd,nn) \
  do{ if( !ISVALID_DSET(dd) ) ERROR_exit("Can't open dataset '%s'",nn); }while(0)
+
+/* note that the following is a fatal error! */
 
 #undef  CHECK_LOAD_ERROR
 #define CHECK_LOAD_ERROR(dd)                                                   \
