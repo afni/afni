@@ -836,7 +836,8 @@ typedef struct {
                        into SUMA be the Parent. Use SAME for this field when
                        a surface is a LocalDomainParent.
                       */
-   
+   char **NodeMarker;  /*!< File containing node marker DO */
+
    int N_Surfs;         /*!< Number of surfaces, in the spec file */
    int N_States;                                                     
    int N_Groups;
@@ -2129,8 +2130,7 @@ typedef struct {
    SUMA_Boolean SentToAfni; /*!< YUP if the surface has been 
                                  niml-sent to AFNI */
    SUMA_Boolean Show; /*!< YUP then the surface is visible in the viewer. 
-                           Not used that much I'd say*/
-   
+                           Used in conjunction with PolyMode*/
    SUMA_RENDER_MODES PolyMode; /*!< polygon viewing mode, SRM_Fill, 
                                     SRM_Line, SRM_Points */
       
@@ -2228,6 +2228,15 @@ typedef struct {
    NI_element *texnel;  /*!< a copy of a pointer to a texture element.
                          This should be set only before drawing and turned
                          back to NULL immediately after that */
+   
+   SUMA_DO *CommonNodeObject; /*!< a node marker which can be any of the 
+                            node-based displayable objects. 
+                            The DO is for one node only, 
+                            something like a sphere say.
+                            At load time, the marker is replicated
+                            to form a DO that covers all the nodes. */
+   SUMA_DO *NodeObjects;   /*!< a replication of CommonNodeObject where
+                           each node gets a shape defined by CommonNodeObject */
 }SUMA_SurfaceObject; /*!< \sa Alloc_SurfObject_Struct in SUMA_DOmanip.c
                      \sa SUMA_Free_Surface_Object in SUMA_Load_Surface_Object.c
                      \sa SUMA_Print_Surface_Object in SUMA_Load_Surface_Object.c
@@ -2258,6 +2267,7 @@ typedef struct {
    
    GLdouble CutPlane[6][4];
    byte UseCutPlane[6];
+   int SelectedCutPlane;
    SUMA_SurfaceObject **SOcut;
    
    void *VoxelMarker; /* a TBD structure to hold object used to 

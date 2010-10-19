@@ -443,7 +443,7 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
       }
       
       
-      SV->ShowEyeAxis = 1;
+      SV->ShowEyeAxis = 0;
       SV->ShowMeshAxis = 0;      /* Turned off Oct 15 04 in favor of WorldAxis */
       SV->ShowWorldAxis = SUMA_NO_WAX;
       

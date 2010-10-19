@@ -18,10 +18,11 @@ char *SUMA_EnablingState_Info(SUMA_EnablingRecord SER);
 void SUMA_dset_extreme_corners( THD_3dim_dataset *dset, 
                                 float * mincorner, float *maxcorner);
 void SUMA_dset_tex_slice_corners( int slc, THD_3dim_dataset *dset, 
-                              GLfloat *tcorners, GLfloat *corners);
+                              GLfloat *tcorners, GLfloat *corners, int dim);
 SUMA_Boolean SUMA_SetTextureClipPlaneSurface(
                         SUMA_VolumeObject *VO, int iplane );
 SUMA_SurfaceObject **SUMA_TextureClipPlaneSurfaces(int *N_SOlist);
+SUMA_VolumeObject *SUMA_VolumeObjectOfClipPlaneSurface(SUMA_SurfaceObject *SO);
 GLubyte * SUMA_dset_to_tex3d(THD_3dim_dataset **dset, byte col);
 int SUMA_MoveCutplane (SUMA_VolumeObject *VO, int iplane, float d);
 SUMA_Boolean SUMA_DrawVolumeDO(SUMA_VolumeObject *VO, SUMA_SurfaceViewer *sv);
@@ -29,5 +30,5 @@ NI_element *SUMA_3DTextureNIDOnelofVO(SUMA_VolumeObject *VO) ;
 SUMA_VolumeObject *SUMA_VOof3DTextureNIDOnel(NI_element *nel);
 SUMA_Boolean SUMA_Colorize_dset(THD_3dim_dataset *dset, 
                                  byte *tex3ddata, byte colopt);
-
+int iPlane2Dim(int iplane);
 #endif

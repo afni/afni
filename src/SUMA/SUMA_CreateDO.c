@@ -2040,6 +2040,43 @@ SUMA_SphereDO * SUMA_ReadNBSphDO (char *s, char *parent_SO_id)
    SUMA_RETURN(SDO);
 }
 
+/* A function to take a single DO and propagate it so that it is
+reprenseted on all nodes on the surface */
+SUMA_DO * SUMA_Multiply_NodeObjects ( SUMA_SurfaceObject *SO, 
+                                      SUMA_DO *DO )
+{
+   static char FuncName[]={"SUMA_Multiply_NodeObjects"};
+   SUMA_DO *DDO = NULL;
+   SUMA_NIDO *nido=NULL;
+   SUMA_Boolean LocalHead = YUP;
+   
+   SUMA_ENTRY;
+   
+   if (!SO || !DO) SUMA_RETURN(NULL);
+   
+   SUMA_LHv("Switch on DO type %s and coord type %d\n", 
+            SUMA_ObjectTypeCode2ObjectTypeName(DO->ObjectType), 
+            DO->CoordType);
+   switch(DO->ObjectType) {
+      case NIDO_type:
+         nido=(SUMA_NIDO *)DO->OP;
+         /* Easiest to duplicate the nido for each of the nodes */
+         /* although its not efficient for fast drawing, it makes */
+         /* is real easy to encode a boat load of information, and use*/
+         /* drawNIDO without much headaches */
+         SUMA_S_Warn("Not doing anything with these NIDOs yet");
+         SUMA_RETURN(NULL);
+         break;
+      default:
+         SUMA_S_Errv("Sorry Chip, goose %s (%d) ain't ready to fly.\n", 
+                     SUMA_ObjectTypeCode2ObjectTypeName(DO->ObjectType),
+                     DO->ObjectType);
+         SUMA_RETURN(NULL);
+   }           
+
+   SUMA_RETURN(DDO);
+}
+
 
 SUMA_PlaneDO * SUMA_ReadPlaneDO (char *s)
 {
@@ -5049,7 +5086,8 @@ SUMA_DRAWN_ROI **SUMA_Find_ROIrelatedtoSO (SUMA_SurfaceObject *SO, SUMA_DO* dov,
 }
 
 /*! Create Node-based spheres for a particular surface */
-SUMA_Boolean SUMA_Draw_SO_NBSP (SUMA_SurfaceObject *SO, SUMA_DO* dov, int N_do, SUMA_SurfaceViewer *sv)
+SUMA_Boolean SUMA_Draw_SO_NBSP (SUMA_SurfaceObject *SO, SUMA_DO* dov, 
+                                    int N_do, SUMA_SurfaceViewer *sv)
 {
    static char FuncName[]={"SUMA_Draw_SO_NBSP"};
    int i;
@@ -7231,6 +7269,13 @@ SUMA_Boolean SUMA_Free_Surface_Object (SUMA_SurfaceObject *SO)
    
    if (SO->texnel) SO->texnel = NULL;
    
+   if (SO->CommonNodeObject) 
+      SUMA_Free_Displayable_Object_Vect(SO->CommonNodeObject,1);
+      SO->CommonNodeObject = NULL;
+   if (SO->NodeObjects) 
+      SUMA_Free_Displayable_Object_Vect (SO->NodeObjects, 1);
+      SO->NodeObjects = NULL;
+      
    if (SO) SUMA_free(SO);
    
    if (LocalHead) fprintf (stdout, "Done\n");
@@ -7815,6 +7860,22 @@ char *SUMA_SurfaceObject_Info (SUMA_SurfaceObject *SO, DList *DsetList)
       SS = SUMA_StringAppend (SS, stmp);
    }   
    
+   if (SO->CommonNodeObject) {
+      s = SUMA_DOv_Info(SO->CommonNodeObject, 1, 1);
+      SUMA_StringAppend (SS, s);
+      SUMA_free(s); s = NULL;
+   } else {
+      SS = SUMA_StringAppend (SS, "CommonNodeObject is NULL");
+   }
+   
+   if (SO->NodeObjects) {
+      s = SUMA_DOv_Info(SO->NodeObjects, 1, 1);
+      SUMA_StringAppend (SS, s);
+      SUMA_free(s); s = NULL;
+   } else {
+      SS = SUMA_StringAppend (SS, "NodeObjects is NULL");
+   }
+   
    /* clean SS */
    SS = SUMA_StringAppend (SS, NULL);
    /* copy s pointer and free SS */
@@ -8269,9 +8330,11 @@ SUMA_VolumeObject *SUMA_CreateVolumeObject(char *Label)
    VO->CutPlane[5][3] = 50.0;
     
    VO->UseCutPlane[0] = 1;
-   for (i=1; i<6; ++i) {
-      VO->UseCutPlane[i] = 0;
+   VO->UseCutPlane[1] = 1;
+   for (i=2; i<6; ++i) {
+      VO->UseCutPlane[i] = 1;
    }
+   VO->SelectedCutPlane = 0;
    
    VO->SelectedVoxel = -1;
    VO->ShowSelectedVoxel = 0;
@@ -8351,19 +8414,28 @@ SUMA_SurfaceObject *SUMA_Alloc_SurfObject_Struct(int N)
       SO[i].Name_NodeParent = NULL;
       SO[i].Label = NULL;
       SO[i].EmbedDim = 3;
-      SO[i].Center[0] = SO[i].Center[1] = SO[i].Center[2] = 0.0;           /* the zeros in Center, MaxDims, MinDims, */ 
-      SO[i].MaxDims[0] = SO[i].MaxDims[1] = SO[i].MaxDims[2] = 0.0;        /* aMinDims and aMaxDims */
-      SO[i].MinDims[0] = SO[i].MinDims[1] = SO[i].MinDims[2] = 0.0;        /* are used to flag unitialized parameters */
-      SO[i].aMinDims = 0.0;                                                /* always keep zero for initialization */      
-      SO[i].aMaxDims = 0.0;                                                /* see SUMA_isSODimInitialized */
+               /* the zeros in Center, MaxDims, MinDims, */ 
+               /* aMinDims and aMaxDims */
+               /* are used to flag unitialized parameters */
+               /* always keep zero for initialization */
+               /* see SUMA_isSODimInitialized */      
+      SO[i].Center[0] = SO[i].Center[1] = SO[i].Center[2] = 0.0;           
+      SO[i].MaxDims[0] = SO[i].MaxDims[1] = SO[i].MaxDims[2] = 0.0;        
+      SO[i].MinDims[0] = SO[i].MinDims[1] = SO[i].MinDims[2] = 0.0;        
+      SO[i].aMinDims = 0.0;                                                
+      SO[i].aMaxDims = 0.0;                                                
+      
       SO[i].ViewCenterWeight = -1;
       SO[i].RotationWeight = -1;
       SO[i].patchNodeMask = NULL;
       SO[i].patchaMaxDims = 0.0;
       SO[i].patchaMinDims = 0.0;
-      SO[i].patchMinDims[0] = SO[i].patchMinDims[1] = SO[i].patchMinDims[2] = 0.0;
-      SO[i].patchMaxDims[0] = SO[i].patchMaxDims[1] = SO[i].patchMaxDims[2] = 0.0;
-      SO[i].patchCenter[0] = SO[i].patchCenter[1] = SO[i].patchCenter[2] = 0.0;
+      SO[i].patchMinDims[0] = SO[i].patchMinDims[1] = 
+                                    SO[i].patchMinDims[2] = 0.0;
+      SO[i].patchMaxDims[0] = SO[i].patchMaxDims[1] = 
+                                    SO[i].patchMaxDims[2] = 0.0;
+      SO[i].patchCenter[0] = SO[i].patchCenter[1] = 
+                                    SO[i].patchCenter[2] = 0.0;
       SO[i].N_patchNode = 0;
       SO[i].MF = NULL;
       SO[i].FN = NULL;
@@ -8443,6 +8515,9 @@ SUMA_SurfaceObject *SUMA_Alloc_SurfObject_Struct(int N)
       SO[i].aSO = NULL;
       
       SO[i].texnel = NULL;
+      
+      SO[i].CommonNodeObject = NULL;
+      SO[i].NodeObjects = NULL;
      }
    SUMA_RETURN(SO);
 }/* SUMA_Alloc_SurfObject_Struct */

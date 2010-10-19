@@ -1532,7 +1532,7 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
                break;
             case SO_type:
                SO = (SUMA_SurfaceObject *)dov[csv->RegisteredDO[i]].OP;
-               if (SO->Show) {
+               if (SO->Show && SO->PolyMode != SRM_Hide) {
                   if (  (SO->Side == SUMA_LEFT && csv->ShowLeft) || 
                         (SO->Side == SUMA_RIGHT && csv->ShowRight) ||
                         SO->Side == SUMA_NO_SIDE || SO->Side == SUMA_LR) {

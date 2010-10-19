@@ -625,13 +625,15 @@ void SUMA_dset_extreme_corners( THD_3dim_dataset *dset,
 }
 
 /*! Note that corners returned correspond to voxel centers */
-void SUMA_dset_tex_slice_corners( int slc, THD_3dim_dataset *dset, 
-                              GLfloat *tcorners, GLfloat *corners)
+void SUMA_dset_tex_slice_corners( int slci, THD_3dim_dataset *dset, 
+                              GLfloat *tcorners, GLfloat *corners, 
+                              int dim)
 {
    static char FuncName[]={"SUMA_dset_tex_slice_corners"};   
    int kk=0;
    float orig[3] = { 0, 0, 0}, del[3] = { 0, 0, 0};
    int nvox[3] = { 0, 0, 0};
+   int slcx, slcy, slcz=0;
    SUMA_Boolean LocalHead = NOPE;
     
    SUMA_ENTRY;
@@ -646,19 +648,24 @@ void SUMA_dset_tex_slice_corners( int slc, THD_3dim_dataset *dset,
    del[1] = dset->daxes->yydel ; 
    del[2] = dset->daxes->zzdel ; 
 
-   
+   switch (dim) {
+      default:
+         SUMA_S_Err("Bad dim value");
+         SUMA_RETURNe;
+      case 2:
+         kk = 0;
     corners[kk] = orig[0] + 0       * del[0]; 
    tcorners[kk] = 0;                            ++kk;
     corners[kk] = orig[1] + 0       * del[1]; 
    tcorners[kk] = 0;                            ++kk;
-    corners[kk] = orig[2] + slc     * del[2]; 
-   tcorners[kk] = ((float)slc+0.5)/(float)nvox[2];++kk;
+    corners[kk] = orig[2] + slci    * del[2]; 
+   tcorners[kk] = ((float)slci+0.5)/(float)nvox[2];++kk;
    
     corners[kk] = orig[0] + (nvox[0]-1) * del[0];  
    tcorners[kk] = 1;                            ++kk;
     corners[kk] = orig[1] + 0       * del[1]; 
    tcorners[kk] = 0;                            ++kk;
-    corners[kk] = orig[2] + slc     * del[2]; 
+    corners[kk] = orig[2] + slci    * del[2]; 
    tcorners[kk] = tcorners[2];                  ++kk;
 
    
@@ -666,18 +673,82 @@ void SUMA_dset_tex_slice_corners( int slc, THD_3dim_dataset *dset,
    tcorners[kk] = 1;                            ++kk;
     corners[kk] = orig[1] + (nvox[1]-1) * del[1]; 
    tcorners[kk] = 1;                            ++kk;
-    corners[kk] = orig[2] + slc     * del[2]; 
+    corners[kk] = orig[2] + slci    * del[2]; 
    tcorners[kk] = tcorners[2];                  ++kk;
 
     corners[kk] = orig[0] + 0       * del[0]; 
    tcorners[kk] = 0;                            ++kk;
     corners[kk] = orig[1] + (nvox[1]-1) * del[1]; 
    tcorners[kk] = 1;                            ++kk;
-    corners[kk] = orig[2] + slc     * del[2]; 
+    corners[kk] = orig[2] + slci    * del[2]; 
    tcorners[kk] = tcorners[2];                  ++kk;
+         break;
+      case 1:
+         kk = 0;
+    corners[kk] = orig[0] + 0       * del[0]; 
+   tcorners[kk] = 0;                            ++kk;
+    corners[kk] = orig[1] + slci    * del[1]; 
+   tcorners[kk] = ((float)slci+0.5)/(float)nvox[1];++kk;
+    corners[kk] = orig[2] + 0       * del[2]; 
+   tcorners[kk] = 0;                            ++kk;
+           
+    corners[kk] = orig[0] + (nvox[0]-1) * del[0];  
+   tcorners[kk] = 1;                            ++kk;
+    corners[kk] = orig[1] + slci    * del[1]; 
+   tcorners[kk] = tcorners[1];                  ++kk;
+    corners[kk] = orig[2] + 0       * del[2]; 
+   tcorners[kk] = 0;                            ++kk;
+
+
+    corners[kk] = orig[0] + (nvox[0]-1) * del[0]; 
+   tcorners[kk] = 1;                            ++kk;
+    corners[kk] = orig[1] + slci    * del[1]; 
+   tcorners[kk] = tcorners[1];                  ++kk;
+    corners[kk] = orig[2] + (nvox[2]-1) * del[2]; 
+   tcorners[kk] = 1;                            ++kk;
+
+    corners[kk] = orig[0] + 0       * del[0]; 
+   tcorners[kk] = 0;                            ++kk;
+    corners[kk] = orig[1] + slci    * del[1]; 
+   tcorners[kk] = tcorners[1];                  ++kk;
+    corners[kk] = orig[2] + (nvox[2]-1) * del[2]; 
+   tcorners[kk] = 1;                            ++kk;
+         break;
+      case 0:
+         kk = 0;
+    corners[kk] = orig[0] + slci    * del[0]; 
+   tcorners[kk] = ((float)slci+0.5)/(float)nvox[0];++kk;
+    corners[kk] = orig[1] + 0       * del[1]; 
+   tcorners[kk] = 0;                            ++kk;
+    corners[kk] = orig[2] + 0       * del[2]; 
+   tcorners[kk] = 0;                            ++kk;
+           
+    corners[kk] = orig[0] + slci    * del[0]; 
+   tcorners[kk] = tcorners[0];                  ++kk;
+    corners[kk] = orig[1] + (nvox[1]-1) * del[1];  
+   tcorners[kk] = 1;                            ++kk;
+    corners[kk] = orig[2] + 0       * del[2]; 
+   tcorners[kk] = 0;                            ++kk;
+
+
+    corners[kk] = orig[0] + slci    * del[0]; 
+   tcorners[kk] = tcorners[0];                  ++kk;
+    corners[kk] = orig[1] + (nvox[1]-1) * del[1]; 
+   tcorners[kk] = 1;                            ++kk;
+    corners[kk] = orig[2] + (nvox[2]-1) * del[2]; 
+   tcorners[kk] = 1;                            ++kk;
+
+    corners[kk] = orig[0] + slci    * del[0]; 
+   tcorners[kk] = tcorners[0];                  ++kk;
+    corners[kk] = orig[1] + 0       * del[1]; 
+   tcorners[kk] = 0;                            ++kk;
+    corners[kk] = orig[2] + (nvox[2]-1) * del[2]; 
+   tcorners[kk] = 1;                            ++kk;
+         break;
+   }
    
    if (LocalHead) {
-      SUMA_LHv("Slice %d, corners and textures\n", slc);
+      SUMA_LHv("Slice %d, dim %d corners and textures\n", slci, dim);
       for (kk=0; kk<4; ++kk) {
          fprintf(SUMA_STDERR,
                   "c%d: %.3f   %.3f   %.3f\n"
@@ -704,37 +775,24 @@ void SUMA_dset_tex_slice_corners( int slc, THD_3dim_dataset *dset,
    }\
 }
 
-#if 0
-if (Doinv) {
-         mat44 A, A0;
-   
-         LOAD_MAT44( A0, \
-                  xform[0][0], xform[0][1], xform[0][2], xform[0][3],    \
-                  xform[1][0], xform[1][1], xform[1][2], xform[1][3],    \
-                  xform[2][0], xform[2][1], xform[2][2], xform[2][3]   );
-         A = nifti_mat44_inverse(A0);
-         UNLOAD_MAT44(A,   \
-                  xform[0][0], xform[0][1], xform[0][2], xform[0][3],    \
-                  xform[1][0], xform[1][1], xform[1][2], xform[1][3],    \
-                  xform[2][0], xform[2][1], xform[2][2], xform[2][3]   );
-      }  
-#endif
 
 SUMA_Boolean SUMA_DrawVolumeDO(SUMA_VolumeObject *VO, SUMA_SurfaceViewer *sv)
 {
    static char FuncName[]={"SUMA_DrawVolumeDO"};
    int i = 0, k = 0, j=0, ive=0;
    float iq[4]={0, 0, 0, 0}, vo0[3], voN[3];
-   static int ipass=0;
+   static int ipass=0, iplane = 0;
    GLfloat tex_corn[12] ;
    GLfloat slc_corn[12] ;
    GLfloat rotationMatrix[4][4], rt[4][4];
    GLboolean gl_dt, gl_bl;
+   int ShowUnselected = 0;
    float tz = 0.0;
    static GLfloat init_rotationMatrix[4][4];
    static GLdouble dmatrix[16], init_mv_matrix[16];
    float* nlt; /*JB: temporary node list, because I do not want to type 
                   "VO->SOcut[0]->NodeList" over and over...*/
+   SUMA_Boolean LastTextureOnCutPlane=YUP;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -888,9 +946,13 @@ SUMA_Boolean SUMA_DrawVolumeDO(SUMA_VolumeObject *VO, SUMA_SurfaceViewer *sv)
 
          /* Now apply the inverse rotation params to the texture coordinates */
          SUMA_build_rotmatrix(rotationMatrix, sv->GVS[sv->StdView].currentQuat);
-         SUMA_TRANSP_4MATRIX(rotationMatrix); /* transpose = inverse 
+         
+         if (sv->ortho) {
+            SUMA_TRANSP_4MATRIX(rotationMatrix); /* transpose = inverse 
                                                 for rotation matrix*/
-
+         } else {
+            SUMA_INV_44ROTATIONMATRIX(rotationMatrix);
+         }
          glTranslatef ( 0.5, 0.5, 0.5); 
          glMultMatrixf(&rotationMatrix[0][0]);
          glMultMatrixf(&init_rotationMatrix[0][0]);  /* Need to multiply by
@@ -913,7 +975,8 @@ SUMA_Boolean SUMA_DrawVolumeDO(SUMA_VolumeObject *VO, SUMA_SurfaceViewer *sv)
       /* slice by slice drawing, doing the deed by hand*/
       for(i = 0; i < DSET_NZ(VO->VE[ive]->dset); i++) {
          glBegin(GL_QUADS);
-            SUMA_dset_tex_slice_corners(i, VO->VE[ive]->dset, tex_corn, slc_corn);
+            SUMA_dset_tex_slice_corners(i, VO->VE[ive]->dset, tex_corn, 
+                                        slc_corn, 2);
             for (k=0; k<4; ++k) {
                glTexCoord3f(tex_corn[3*k], tex_corn[3*k+1], tex_corn[3*k+2]);
                      /* this one is affected by the Texture MatrixMode */
@@ -941,7 +1004,8 @@ SUMA_Boolean SUMA_DrawVolumeDO(SUMA_VolumeObject *VO, SUMA_SurfaceViewer *sv)
 
        for(i = 0; i < DSET_NZ(VO->VE[ive]->dset); i++) {
          glBegin(GL_QUADS);
-            SUMA_dset_tex_slice_corners(i,VO->VE[ive]->dset, tex_corn, slc_corn);
+            SUMA_dset_tex_slice_corners(i,VO->VE[ive]->dset, 
+                                          tex_corn, slc_corn,2);
             for (k=0; k<4; ++k) {
                glVertex3f(slc_corn[3*k], slc_corn[3*k+1], slc_corn[3*k+2]);
             }
@@ -955,9 +1019,10 @@ SUMA_Boolean SUMA_DrawVolumeDO(SUMA_VolumeObject *VO, SUMA_SurfaceViewer *sv)
 
       glMatrixMode(GL_TEXTURE); glPopMatrix(); /* pop matrix of GL_TEXTURE */
       glMatrixMode(GL_MODELVIEW);  glPopMatrix();/* and Modelview*/
-      
+     
       ++ive;
    }
+   
    glFlush();
    
    /* disable the clipping planes */
@@ -969,56 +1034,84 @@ SUMA_Boolean SUMA_DrawVolumeDO(SUMA_VolumeObject *VO, SUMA_SurfaceViewer *sv)
    glDisable(GL_CLIP_PLANE5);
 
    
-   SUMA_dset_tex_slice_corners( 0, VO->VE[0]->dset, tex_corn, slc_corn);
-   
-   // Joachim says this is just wrong ...
-   tz = 0.5+(-VO->CutPlane[0][3])/(float)DSET_NZ(VO->VE[0]->dset);
-   
-   if (!gl_dt) glDisable(GL_DEPTH_TEST);
-   glBegin(GL_TRIANGLES);
-      k = 0;
-      glTexCoord3f(tex_corn[3*k], tex_corn[3*k+1], tz); 
-         glVertex3f( slc_corn[3*k], slc_corn[3*k+1], -VO->CutPlane[0][3]); ++k;
-      glTexCoord3f(tex_corn[3*k], tex_corn[3*k+1], tz); 
-         glVertex3f( slc_corn[3*k], slc_corn[3*k+1], -VO->CutPlane[0][3]); ++k;
-      glTexCoord3f(tex_corn[3*k], tex_corn[3*k+1], tz); 
-         glVertex3f( slc_corn[3*k], slc_corn[3*k+1], -VO->CutPlane[0][3]);
-            
-      k = 0;
-      glTexCoord3f(tex_corn[3*k], tex_corn[3*k+1], tz); 
-         glVertex3f( slc_corn[3*k], slc_corn[3*k+1], -VO->CutPlane[0][3]); k+=2;
-      glTexCoord3f(tex_corn[3*k], tex_corn[3*k+1], tz); 
-         glVertex3f( slc_corn[3*k], slc_corn[3*k+1], -VO->CutPlane[0][3]); ++k;
-      glTexCoord3f(tex_corn[3*k], tex_corn[3*k+1], tz); 
-         glVertex3f( slc_corn[3*k], slc_corn[3*k+1], -VO->CutPlane[0][3]);
-      
-   glEnd();
-   
-   glDisable(GL_TEXTURE_3D);
+   /* Here we create a texture on the cutplane from the last dset loaded
+   At the moment, without this texture, nothing shows 
+   of the overlay volume */
+   if (LastTextureOnCutPlane) {
+      --ive; /* bring ive counter to last dset put into texture*/
+      SUMA_dset_tex_slice_corners( 0, VO->VE[ive]->dset, tex_corn, slc_corn, 2);
+
+      // Joachim says this is just wrong ...
+      tz = 0.5+(-VO->CutPlane[0][3])/(float)DSET_NZ(VO->VE[ive]->dset);
+
+      if (!gl_dt) glDisable(GL_DEPTH_TEST);
+
+      /* If it were not for the slice textures shown here, then the overlay 
+         texture would not show up at all! */
+      #if 0 
+      SUMA_LH("Texture on the slice, with triangles");
+      glBegin(GL_TRIANGLES);
+         k = 0;
+         glTexCoord3f(tex_corn[3*k], tex_corn[3*k+1], tz); 
+            glVertex3f( slc_corn[3*k], slc_corn[3*k+1], 
+                                    -VO->CutPlane[0][3]); ++k;
+         glTexCoord3f(tex_corn[3*k], tex_corn[3*k+1], tz); 
+            glVertex3f( slc_corn[3*k], slc_corn[3*k+1], 
+                                    -VO->CutPlane[0][3]); ++k;
+         glTexCoord3f(tex_corn[3*k], tex_corn[3*k+1], tz); 
+            glVertex3f( slc_corn[3*k], slc_corn[3*k+1], 
+                                    -VO->CutPlane[0][3]);
+
+         k = 0;
+         glTexCoord3f(tex_corn[3*k], tex_corn[3*k+1], tz); 
+            glVertex3f( slc_corn[3*k], slc_corn[3*k+1], 
+                                    -VO->CutPlane[0][3]); k+=2;
+         glTexCoord3f(tex_corn[3*k], tex_corn[3*k+1], tz); 
+            glVertex3f( slc_corn[3*k], slc_corn[3*k+1], 
+                                    -VO->CutPlane[0][3]); ++k;
+         glTexCoord3f(tex_corn[3*k], tex_corn[3*k+1], tz); 
+            glVertex3f( slc_corn[3*k], slc_corn[3*k+1], 
+                                    -VO->CutPlane[0][3]);
+
+      glEnd();
+      #else
+      SUMA_LH("Texture on the slice, QUADS?");
+      glBegin(GL_QUADS);
+         for (k=0; k<4; ++k) {
+            glTexCoord3f(tex_corn[3*k], tex_corn[3*k+1], tz);
+                  /* this one is affected by the Texture MatrixMode */
+            glVertex3f(slc_corn[3*k], slc_corn[3*k+1], 
+                                          -VO->CutPlane[0][3]); 
+                  /* this one is affected by the Modelview matrixMode*/
+         }
+      glEnd();
+      #endif
+      glDisable(GL_TEXTURE_3D);
+   }
    if (!gl_dt) glDisable(GL_DEPTH_TEST);
    if (!gl_bl) glDisable(GL_BLEND);
    
    glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE); 
    glEnable(GL_COLOR_MATERIAL);
-   glColor3f(1.0, 0, 0);
-   glBegin(GL_LINE_LOOP);
-      nlt = VO->SOcut[0]->NodeList; /*this should be "i" instead of "0" or something...*/
-      glVertex3f( nlt[0],nlt[1],nlt[2] );
-      glVertex3f( nlt[3],nlt[4],nlt[5] );
-      glVertex3f( nlt[6],nlt[7],nlt[8] );
-   glEnd();
-   glBegin(GL_LINE_LOOP);
-      nlt = VO->SOcut[0]->NodeList; /*this should be "i" instead of "0" or something...*/
-      glVertex3f( nlt[0],nlt[1],nlt[2] );
-      glVertex3f( nlt[6],nlt[7],nlt[8] );
-      glVertex3f( nlt[9],nlt[10],nlt[11] );
-   glEnd();
-   /*glBegin(GL_LINE_LOOP);
-      k = 0;
-      glVertex3f( slc_corn[3*k], slc_corn[3*k+1], -VO->CutPlane[0][3]); k+=2;
-      glVertex3f( slc_corn[3*k], slc_corn[3*k+1], -VO->CutPlane[0][3]); ++k;
-      glVertex3f( slc_corn[3*k], slc_corn[3*k+1], -VO->CutPlane[0][3]);
-   glEnd();*/
+   for (iplane=0; iplane < 6; ++iplane) {
+      if (VO->UseCutPlane[iplane]) {
+         if (iplane == VO->SelectedCutPlane) glColor3f(1.0, 0, 0);
+         else { 
+            if (ShowUnselected) {
+               glColor3f(0.0, 1.0, 0); /* Unselected in green */
+            } else {
+               continue;
+            }
+         }
+         glBegin(GL_LINE_LOOP);
+            nlt = VO->SOcut[iplane]->NodeList; 
+            glVertex3f( nlt[0],nlt[1],nlt[2] );
+            glVertex3f( nlt[3],nlt[4],nlt[5] );
+            glVertex3f( nlt[6],nlt[7],nlt[8] );
+            glVertex3f( nlt[9],nlt[10],nlt[11] );
+         glEnd();
+      }
+   }
    glDisable(GL_COLOR_MATERIAL);
 
    if (sv->PolyMode != SRM_Fill) {/* set fill mode back */
@@ -1125,19 +1218,36 @@ SUMA_Boolean SUMA_CreateGL3DTexture(SUMA_VolumeObject *VO)
    VO->CutPlane[3][3] = -VO->VE[0]->vo0[1]; /* Yless */
    VO->CutPlane[4][3] = VO->VE[0]->voN[2]; /* Zmore */
    VO->CutPlane[5][3] = -VO->VE[0]->vo0[2]; /* Zless */
-      
-   VO->CutPlane[0][0] = -1.0;   /* cut coords > Xmore along x axis */
-   VO->CutPlane[1][0] =  1.0;   /* cut coords < -Xless along x axis */
-   VO->CutPlane[2][1] = -1.0;   /* cut coords > Ymore along y axis */
-   VO->CutPlane[3][1] =  1.0;   /* cut coords < -Yless along y axis */
-   VO->CutPlane[4][2] = -1.0;   /* cut coords > Zmore along z axis */
-   VO->CutPlane[5][2] =  1.0;   /* cut coords < -Zless along z axis */
-   
-   
-   VO->CutPlane[0][0] = 0.0; 
+         
+   VO->CutPlane[0][0] = 0.0;  /* Z (I/S) plane Clip below plane*/
    VO->CutPlane[0][1] = 0.0; 
    VO->CutPlane[0][2] = 1.0; 
-   VO->CutPlane[0][3] = 0.0; 
+   VO->CutPlane[0][3] = 0.8*VO->VE[0]->voN[2]; 
+   
+   VO->CutPlane[1][0] = 0.0;  /* Z (I/S) plane, clip above plane*/
+   VO->CutPlane[1][1] = 0.0; 
+   VO->CutPlane[1][2] = -1.0; 
+   VO->CutPlane[1][3] = -0.8*VO->VE[0]->vo0[2];
+   
+   VO->CutPlane[2][0] = 0.0;  /* Y (A/P) plane, clip anterior plane*/
+   VO->CutPlane[2][1] = 1.0; 
+   VO->CutPlane[2][2] = 0.0; 
+   VO->CutPlane[2][3] = 0.8*VO->VE[0]->voN[1];; 
+   
+   VO->CutPlane[3][0] = 0.0;  /* Y (A/P) plane, clip posterior plane*/
+   VO->CutPlane[3][1] = -1.0; 
+   VO->CutPlane[3][2] = 0.0; 
+   VO->CutPlane[3][3] = -0.8*VO->VE[0]->vo0[1];
+   
+   VO->CutPlane[4][0] = 1.0;  /* X (R/L) plane, clip right plane*/
+   VO->CutPlane[4][1] = 0.0; 
+   VO->CutPlane[4][2] = 0.0; 
+   VO->CutPlane[4][3] = 0.8*VO->VE[0]->voN[0]; 
+   
+   VO->CutPlane[5][0] = -1.0;  /* X (R/L) plane, clip left plane*/
+   VO->CutPlane[5][1] = 0.0; 
+   VO->CutPlane[5][2] = 0.0; 
+   VO->CutPlane[5][3] = -0.8*VO->VE[0]->vo0[0];
    
    for (i=0; i<6; ++i) {
       SUMA_SetTextureClipPlaneSurface(VO, i);
@@ -1199,6 +1309,14 @@ SUMA_Boolean SUMA_Draw3DTextureNIDOnel (NI_element *nel,
    SUMA_RETURN(YUP);     
 }
 
+int iPlane2Dim(int iplane) 
+{
+   if (iplane == 0 || iplane == 1) return(2);
+   else if (iplane == 2 || iplane == 3) return(1);
+   else if (iplane == 4 || iplane == 5) return(0);
+   else return(-1);
+}
+
 SUMA_Boolean SUMA_SetTextureClipPlaneSurface(
                         SUMA_VolumeObject *VO, int iplane )
 {
@@ -1221,31 +1339,137 @@ SUMA_Boolean SUMA_SetTextureClipPlaneSurface(
    }
    if (!VO->SOcut[iplane]) { 
       SUMA_LH("Creating surface for first time");
-      SUMA_dset_tex_slice_corners( 0, VO->VE[0]->dset, tex_corn, slc_corn);
 
       NodeList = (float *)SUMA_calloc(3*4, sizeof(float)); 
             /* four nodes for a rectangle */
       FaceSetList = (int *)SUMA_calloc(2*3, sizeof(int));  
             /* two triangles   */       
       
-      /* initialize for plane 0 */
-      k=0;
-      NodeList[3*k] = slc_corn[3*k];
-      NodeList[3*k+1] = slc_corn[3*k+1];
-      NodeList[3*k+2] = -VO->CutPlane[iplane][3];
-      k++;
-      NodeList[3*k] = slc_corn[3*k];
-      NodeList[3*k+1] = slc_corn[3*k+1];
-      NodeList[3*k+2] = -VO->CutPlane[iplane][3];
-      k++;
-      NodeList[3*k] = slc_corn[3*k];
-      NodeList[3*k+1] = slc_corn[3*k+1];
-      NodeList[3*k+2] = -VO->CutPlane[iplane][3];
-      k++;
-      NodeList[3*k] = slc_corn[3*k];
-      NodeList[3*k+1] = slc_corn[3*k+1];
-      NodeList[3*k+2] = -VO->CutPlane[iplane][3];
-
+      switch (iplane) {
+         case 0:/* initialize for plane 0 */
+            SUMA_dset_tex_slice_corners( 0, VO->VE[0]->dset, 
+                                         tex_corn, slc_corn, iPlane2Dim(iplane));
+            k=0;
+            NodeList[3*k] = slc_corn[3*k];
+            NodeList[3*k+1] = slc_corn[3*k+1];
+            NodeList[3*k+2] = -VO->CutPlane[iplane][3];
+            k++;
+            NodeList[3*k] = slc_corn[3*k];
+            NodeList[3*k+1] = slc_corn[3*k+1];
+            NodeList[3*k+2] = -VO->CutPlane[iplane][3];
+            k++;
+            NodeList[3*k] = slc_corn[3*k];
+            NodeList[3*k+1] = slc_corn[3*k+1];
+            NodeList[3*k+2] = -VO->CutPlane[iplane][3];
+            k++;
+            NodeList[3*k] = slc_corn[3*k];
+            NodeList[3*k+1] = slc_corn[3*k+1];
+            NodeList[3*k+2] = -VO->CutPlane[iplane][3];
+            break;
+         case 1:
+            SUMA_dset_tex_slice_corners( 0, VO->VE[0]->dset, 
+                                         tex_corn, slc_corn, iPlane2Dim(iplane));
+            k=0;
+            NodeList[3*k] = slc_corn[3*k];
+            NodeList[3*k+1] = slc_corn[3*k+1];
+            NodeList[3*k+2] = -VO->CutPlane[iplane][3];
+            k++;
+            NodeList[3*k] = slc_corn[3*k];
+            NodeList[3*k+1] = slc_corn[3*k+1];
+            NodeList[3*k+2] = -VO->CutPlane[iplane][3];
+            k++;
+            NodeList[3*k] = slc_corn[3*k];
+            NodeList[3*k+1] = slc_corn[3*k+1];
+            NodeList[3*k+2] = -VO->CutPlane[iplane][3];
+            k++;
+            NodeList[3*k] = slc_corn[3*k];
+            NodeList[3*k+1] = slc_corn[3*k+1];
+            NodeList[3*k+2] = -VO->CutPlane[iplane][3];
+            break;
+         case 2:
+            SUMA_dset_tex_slice_corners( 0, VO->VE[0]->dset, 
+                                         tex_corn, slc_corn, iPlane2Dim(iplane));
+            k=0;
+            NodeList[3*k] = slc_corn[3*k];
+            NodeList[3*k+1] = -VO->CutPlane[iplane][3];
+            NodeList[3*k+2] = slc_corn[3*k+2];
+            k++;
+            NodeList[3*k] = slc_corn[3*k];
+            NodeList[3*k+1] = -VO->CutPlane[iplane][3];
+            NodeList[3*k+2] = slc_corn[3*k+2];
+            k++;
+            NodeList[3*k] = slc_corn[3*k];
+            NodeList[3*k+1] = -VO->CutPlane[iplane][3];
+            NodeList[3*k+2] = slc_corn[3*k+2];
+            k++;
+            NodeList[3*k] = slc_corn[3*k];
+            NodeList[3*k+1] = -VO->CutPlane[iplane][3];
+            NodeList[3*k+2] = slc_corn[3*k+2];
+            break;
+         case 3:
+            SUMA_dset_tex_slice_corners( 0, VO->VE[0]->dset, 
+                                         tex_corn, slc_corn, iPlane2Dim(iplane));
+            k=0;
+            NodeList[3*k] = slc_corn[3*k];
+            NodeList[3*k+1] = -VO->CutPlane[iplane][3];
+            NodeList[3*k+2] = slc_corn[3*k+2];
+            k++;
+            NodeList[3*k] = slc_corn[3*k];
+            NodeList[3*k+1] = -VO->CutPlane[iplane][3];
+            NodeList[3*k+2] = slc_corn[3*k+2];
+            k++;
+            NodeList[3*k] = slc_corn[3*k];
+            NodeList[3*k+1] = -VO->CutPlane[iplane][3];
+            NodeList[3*k+2] = slc_corn[3*k+2];
+            k++;
+            NodeList[3*k] = slc_corn[3*k];
+            NodeList[3*k+1] = -VO->CutPlane[iplane][3];
+            NodeList[3*k+2] = slc_corn[3*k+2];
+            break;
+         case 4:
+            SUMA_dset_tex_slice_corners( 0, VO->VE[0]->dset, 
+                                         tex_corn, slc_corn, iPlane2Dim(iplane));
+            k=0;
+            NodeList[3*k] = -VO->CutPlane[iplane][3];
+            NodeList[3*k+1] = slc_corn[3*k+1];
+            NodeList[3*k+2] = slc_corn[3*k+2];
+            k++;
+            NodeList[3*k] = -VO->CutPlane[iplane][3];
+            NodeList[3*k+1] = slc_corn[3*k+1];
+            NodeList[3*k+2] = slc_corn[3*k+2];
+            k++;
+            NodeList[3*k] = -VO->CutPlane[iplane][3];
+            NodeList[3*k+1] = slc_corn[3*k+1];
+            NodeList[3*k+2] = slc_corn[3*k+2];
+            k++;
+            NodeList[3*k] = -VO->CutPlane[iplane][3];
+            NodeList[3*k+1] = slc_corn[3*k+1];
+            NodeList[3*k+2] = slc_corn[3*k+2];
+            break;
+         case 5:
+            SUMA_dset_tex_slice_corners( 0, VO->VE[0]->dset, 
+                                         tex_corn, slc_corn, iPlane2Dim(iplane));
+            k=0;
+            NodeList[3*k] = -VO->CutPlane[iplane][3];
+            NodeList[3*k+1] = slc_corn[3*k+1];
+            NodeList[3*k+2] = slc_corn[3*k+2];
+            k++;
+            NodeList[3*k] = -VO->CutPlane[iplane][3];
+            NodeList[3*k+1] = slc_corn[3*k+1];
+            NodeList[3*k+2] = slc_corn[3*k+2];
+            k++;
+            NodeList[3*k] = -VO->CutPlane[iplane][3];
+            NodeList[3*k+1] = slc_corn[3*k+1];
+            NodeList[3*k+2] = slc_corn[3*k+2];
+            k++;
+            NodeList[3*k] = -VO->CutPlane[iplane][3];
+            NodeList[3*k+1] = slc_corn[3*k+1];
+            NodeList[3*k+2] = slc_corn[3*k+2];
+            break;
+         default:
+            SUMA_S_Errv("Bad iplane %d\n", iplane);
+            SUMA_RETURN(NOPE);
+      }
       FaceSetList[0] = 0;
       FaceSetList[1] = 1;
       FaceSetList[2] = 2;
@@ -1263,11 +1487,12 @@ SUMA_Boolean SUMA_SetTextureClipPlaneSurface(
    NodeList = VO->SOcut[iplane]->NodeList;
    FaceSetList = VO->SOcut[iplane]->FaceSetList;
 
-   SUMA_dset_tex_slice_corners( 0, VO->VE[0]->dset, tex_corn, slc_corn);
 
    /* adjust depending on which plane is called for */
    switch (iplane) {
       case 0:
+         SUMA_dset_tex_slice_corners( 0, VO->VE[0]->dset, 
+                                    tex_corn, slc_corn, iPlane2Dim(iplane));
          k=0;
          NodeList[3*k] = slc_corn[3*k];
          NodeList[3*k+1] = slc_corn[3*k+1];
@@ -1286,12 +1511,108 @@ SUMA_Boolean SUMA_SetTextureClipPlaneSurface(
          NodeList[3*k+2] = -VO->CutPlane[iplane][3];
 	 
          break;
+      case 1:
+         SUMA_dset_tex_slice_corners( 0, VO->VE[0]->dset, 
+                                    tex_corn, slc_corn, iPlane2Dim(iplane));
+         k=0;
+         NodeList[3*k] = slc_corn[3*k];
+         NodeList[3*k+1] = slc_corn[3*k+1];
+         NodeList[3*k+2] = VO->CutPlane[iplane][3];
+         k++;
+         NodeList[3*k] = slc_corn[3*k];
+         NodeList[3*k+1] = slc_corn[3*k+1];
+         NodeList[3*k+2] = VO->CutPlane[iplane][3];
+         k++;
+         NodeList[3*k] = slc_corn[3*k];
+         NodeList[3*k+1] = slc_corn[3*k+1];
+         NodeList[3*k+2] = VO->CutPlane[iplane][3];
+         k++;
+         NodeList[3*k] = slc_corn[3*k];
+         NodeList[3*k+1] = slc_corn[3*k+1];
+         NodeList[3*k+2] = VO->CutPlane[iplane][3];
+         break;
+      case 2:
+         SUMA_dset_tex_slice_corners( 0, VO->VE[0]->dset, 
+                                      tex_corn, slc_corn, iPlane2Dim(iplane));
+         k=0;
+         NodeList[3*k] = slc_corn[3*k];
+         NodeList[3*k+1] = -VO->CutPlane[iplane][3];
+         NodeList[3*k+2] = slc_corn[3*k+2];
+         k++;
+         NodeList[3*k] = slc_corn[3*k];
+         NodeList[3*k+1] = -VO->CutPlane[iplane][3];
+         NodeList[3*k+2] = slc_corn[3*k+2];
+         k++;
+         NodeList[3*k] = slc_corn[3*k];
+         NodeList[3*k+1] = -VO->CutPlane[iplane][3];
+         NodeList[3*k+2] = slc_corn[3*k+2];
+         k++;
+         NodeList[3*k] = slc_corn[3*k];
+         NodeList[3*k+1] = -VO->CutPlane[iplane][3];
+         NodeList[3*k+2] = slc_corn[3*k+2];
+         break;
+      case 3:
+         SUMA_dset_tex_slice_corners( 0, VO->VE[0]->dset, 
+                                      tex_corn, slc_corn, iPlane2Dim(iplane));
+         k=0;
+         NodeList[3*k] = slc_corn[3*k];
+         NodeList[3*k+1] = VO->CutPlane[iplane][3];
+         NodeList[3*k+2] = slc_corn[3*k+2];
+         k++;
+         NodeList[3*k] = slc_corn[3*k];
+         NodeList[3*k+1] = VO->CutPlane[iplane][3];
+         NodeList[3*k+2] = slc_corn[3*k+2];
+         k++;
+         NodeList[3*k] = slc_corn[3*k];
+         NodeList[3*k+1] = VO->CutPlane[iplane][3];
+         NodeList[3*k+2] = slc_corn[3*k+2];
+         k++;
+         NodeList[3*k] = slc_corn[3*k];
+         NodeList[3*k+1] = VO->CutPlane[iplane][3];
+         NodeList[3*k+2] = slc_corn[3*k+2];
+         break;
+      case 4:
+         SUMA_dset_tex_slice_corners( 0, VO->VE[0]->dset, 
+                                      tex_corn, slc_corn, iPlane2Dim(iplane));
+         k=0;
+         NodeList[3*k] = -VO->CutPlane[iplane][3];
+         NodeList[3*k+1] = slc_corn[3*k+1];
+         NodeList[3*k+2] = slc_corn[3*k+2];
+         k++;
+         NodeList[3*k] = -VO->CutPlane[iplane][3];
+         NodeList[3*k+1] = slc_corn[3*k+1];
+         NodeList[3*k+2] = slc_corn[3*k+2];
+         k++;
+         NodeList[3*k] = -VO->CutPlane[iplane][3];
+         NodeList[3*k+1] = slc_corn[3*k+1];
+         NodeList[3*k+2] = slc_corn[3*k+2];
+         k++;
+         NodeList[3*k] = -VO->CutPlane[iplane][3];
+         NodeList[3*k+1] = slc_corn[3*k+1];
+         NodeList[3*k+2] = slc_corn[3*k+2];
+         break;
+      case 5:
+         SUMA_dset_tex_slice_corners( 0, VO->VE[0]->dset, 
+                                      tex_corn, slc_corn, iPlane2Dim(iplane));
+         k=0;
+         NodeList[3*k] =  VO->CutPlane[iplane][3];
+         NodeList[3*k+1] = slc_corn[3*k+1];
+         NodeList[3*k+2] = slc_corn[3*k+2];
+         k++;
+         NodeList[3*k] =  VO->CutPlane[iplane][3];
+         NodeList[3*k+1] = slc_corn[3*k+1];
+         NodeList[3*k+2] = slc_corn[3*k+2];
+         k++;
+         NodeList[3*k] =  VO->CutPlane[iplane][3];
+         NodeList[3*k+1] = slc_corn[3*k+1];
+         NodeList[3*k+2] = slc_corn[3*k+2];
+         k++;
+         NodeList[3*k] =  VO->CutPlane[iplane][3];
+         NodeList[3*k+1] = slc_corn[3*k+1];
+         NodeList[3*k+2] = slc_corn[3*k+2];
+         break;
       default:
-         if (!nwarn) {
-            SUMA_S_Err("Joachim, Zu Hilfe!\n"
-                        "Not ready to deal with other planes");
-            ++nwarn;
-         }
+         SUMA_S_Err("Should not be here");
          break;
    } 
 
@@ -1331,4 +1652,32 @@ SUMA_SurfaceObject ** SUMA_TextureClipPlaneSurfaces(int *N_SOv)
    *N_SOv = kk;
    
    SUMA_RETURN(SOv);
+}
+
+SUMA_VolumeObject *SUMA_VolumeObjectOfClipPlaneSurface(SUMA_SurfaceObject *SO)
+{
+   static char FuncName[]={"SUMA_VolumeObjectOfClipPlaneSurface"};
+   SUMA_VolumeObject *VO=NULL, *VOr = NULL;
+   int ii=0, jj, kk;
+   SUMA_Boolean LocalHead = YUP;
+   
+   SUMA_ENTRY;
+   
+   VO = NULL; VOr=NULL;
+   for (ii=0; ii<SUMAg_N_DOv; ++ii) {
+      if (SUMA_isVO(SUMAg_DOv[ii])) {
+         VO = (SUMA_VolumeObject *)(SUMAg_DOv[ii].OP);
+         for (jj=0; jj<6; ++jj) {
+            if (VO->SOcut[jj] == SO) {
+               if (!VOr) VOr = VO;
+               else {
+                  SUMA_S_Err("Found more than one VO for SO");
+                  SUMA_RETURN(NULL);
+               }
+            }
+         }
+      }
+   }
+   
+   SUMA_RETURN(VOr);
 }
