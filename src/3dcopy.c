@@ -21,7 +21,7 @@ int main( int argc , char *argv[] )
 
    /*-- help? --*/
 
-   if( argc < 3 || strcmp(argv[1],"-help") == 0 ){
+   if( argc < 2 || strcmp(argv[1],"-help") == 0 || strcmp(argv[1],"-h") == 0){
       printf(
        "Usage 1: 3dcopy [-verb] [-denote] old_prefix new_prefix\n"
        "  Will copy all datasets using the old_prefix to use the new_prefix;\n"
@@ -64,9 +64,9 @@ int main( int argc , char *argv[] )
        "   (i.e., does NOT look like 'homer/simpson'), then the new\n"
        "   datasets will be written in the current directory ('./').\n"
        "\n"
-       "* The new_prefix cannot JUST be a directory (unlike the Unix\n"
-       "   utility 'cp'); you must supply a filename prefix, even if\n"
-       "   is identical to the filename prefix in old_prefix.\n"
+       "* The new can JUST be a directory now (like the Unix\n"
+       "   utility 'cp'); in this case the output has the same prefix\n"
+       "   as the input.\n"
        "\n"
        "* The '-verb' option will print progress reports; otherwise, the\n"
        "   program operates silently (unless an error is detected).\n"
@@ -82,28 +82,53 @@ int main( int argc , char *argv[] )
    /* input arguments */
 
    while( nopt < argc && argv[nopt][0] == '-' ){
+      if ( strcmp(argv[nopt], "-echo_edu") == 0 ) {
+         int jj;
+         fprintf(stdout,"\n+++ Now running:\n   ");
+         for (jj=0; jj<argc; ++jj) {
+            if (jj != nopt) {
+               fprintf(stdout,"%s ", argv[jj]);
+            }
+         } 
+         fprintf(stdout,"\n+++\n");
+         nopt++; continue; 
+     }
      if( strcmp(argv[nopt],"-verb")   == 0 ){ verb   = 1; nopt++; continue; }
      if( strcmp(argv[nopt],"-denote") == 0 ){ denote = 1; nopt++; continue; }
      ERROR_exit("unknown option: %s\n", argv[nopt]);
    }
    if( nopt+1 >= argc )
      ERROR_exit("3dcopy needs input AND output filenames!\n") ;
-
+     
+   if (nopt+2 < argc) 
+      ERROR_exit(
+   "3dcopy only takes one input AND one output filename after options.\n"
+   "Have at least one too many parameters: \n %s \n %s \n %s\n"
+         , argv[nopt], argv[nopt+1], argv[nopt+2]);
+         
    old_name = argv[nopt++] ; old_len = strlen(old_name) ;
    new_name = argv[nopt++] ; new_len = strlen(new_name) ;
 
    if( old_len < 1 || old_len > THD_MAX_PREFIX || !THD_filename_ok(old_name) )
      ERROR_exit("Illegal old dataset name! - EXIT\n"
                 "(note: sub-brick selection is not allowed in this context)") ;
-   if( new_len < 1 || new_len > THD_MAX_PREFIX || !THD_filename_ok(new_name) )
-     ERROR_exit("Illegal new dataset name! - EXIT\n") ;
-
+     
+   if( !strcmp(new_name,".") ){        /* turn . to ./ ZSS Oct 2010*/
+     char *str = malloc(new_len+16) ;  
+     strcpy(str,"./") ; 
+     new_name = str ;
+   }
+   
    if( strstr(new_name,"/") == NULL ){        /* put cwd on new name, if no */
      char *str = malloc(new_len+16) ;         /* directory present at all   */
      strcpy(str,"./") ; strcat(str,new_name) ;
      new_name = str ;
    }
 
+   if( new_len < 1 || new_len > THD_MAX_PREFIX || !THD_filename_ok(new_name) )
+     ERROR_exit("Illegal new dataset name! - EXIT\n") ;
+
+   
    /* check old_name for a +view suffix somewhere */
 
    MCW_strncpy(old_prefix,old_name,THD_MAX_PREFIX) ;
@@ -163,6 +188,10 @@ int main( int argc , char *argv[] )
      qset = THD_open_one_dataset( old_name ) ;
      if( qset != NULL ){
        if( verb ) INFO_message("Opened dataset %s\n",old_prefix) ;
+       /* make sure prefix is not just a path     ZSS Oct 2010 */
+       if (new_prefix[strlen(new_prefix)-1] == '/') {
+          strncat(new_prefix, DSET_PREFIX(qset), THD_MAX_PREFIX);
+       }
        cset = EDIT_empty_copy( qset ) ;
        if( new_view < 0 ) new_view = qset->view_type ;
        EDIT_dset_items( cset ,
@@ -209,10 +238,13 @@ int main( int argc , char *argv[] )
 
        if( denote ) THD_anonymize_write(1) ;  /* 08 Jul 2005 */
 
-       DSET_write(cset) ; exit(0) ;
+       if ( DSET_write(cset) != True )  exit(1) ;
+       else exit (0);
      } else if ( non_afni_out ) { /* fail */
-       fprintf(stderr,"** failed to open input '%s' on non-AFNI write\n",
-               old_prefix);
+       fprintf(stderr,"** failed to open input '%s' on non-AFNI write\n"
+                "Try including the view of the input dataset %s\n"
+                "or use its fullname. That might take care of the error.\n",
+               old_prefix, old_name);
        exit(1);
      }
    }
@@ -307,7 +339,6 @@ int main( int argc , char *argv[] )
 
       /*-- however, the .BRIK might have a compression suffix on it,
            which affects both its old name and its new name         --*/
-
       brick_ccode = COMPRESS_filecode(old_brikname) ;
       if( brick_ccode == COMPRESS_NOFILE ){
          new_brikname[0] = '\0' ;  /* flag to do nothing */
@@ -315,8 +346,16 @@ int main( int argc , char *argv[] )
          old_bname = COMPRESS_filename( old_brikname ) ;
          if( old_bname == NULL )  /* should not happen */
            ERROR_exit("COMPRESS_filename() fails! - EXIT\n");
-         sprintf( new_brikname , "%s+%s.%s" ,
+         if (!strstr(new_prefix,DSET_HEADNAME(dset[ii]))) { 
+            /* this would happen in old cases of 3dcopy Joe+tlrc ./ 
+                                                         ZSS Oct 2010*/
+            snprintf( new_brikname , THD_MAX_NAME, "%s/%s+%s.%s" ,
+               DSET_DIRNAME(dset[ii]), DSET_PREFIX(dset[ii]), 
+                     VIEW_codestr[ii] , DATASET_BRICK_SUFFIX) ;
+         } else { /* the old way, for minimal changes*/
+            sprintf( new_brikname , "%s+%s.%s" ,
                   new_prefix , VIEW_codestr[ii] , DATASET_BRICK_SUFFIX ) ;
+         }
          if( brick_ccode >= 0 )
             strcat(new_brikname,COMPRESS_suffix[brick_ccode]) ;
 

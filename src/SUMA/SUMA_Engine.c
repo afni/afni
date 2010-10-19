@@ -3989,6 +3989,7 @@ int SUMA_RegisteredSOs (SUMA_SurfaceViewer *sv, SUMA_DO *dov, int *SO_IDs)
    
    \sa SUMA_isVisibleSO
 */
+
 int SUMA_VisibleSOs (SUMA_SurfaceViewer *sv, SUMA_DO *dov, int *SO_IDs)
 {
    static char FuncName[]={"SUMA_VisibleSOs"};
@@ -4002,7 +4003,7 @@ int SUMA_VisibleSOs (SUMA_SurfaceViewer *sv, SUMA_DO *dov, int *SO_IDs)
    for (i=0; i< sv->N_DO; ++i) {
       if (SUMA_isSO_G(dov[sv->RegisteredDO[i]], sv->CurGroupName)) {
          SO = (SUMA_SurfaceObject *)dov[sv->RegisteredDO[i]].OP;
-         if (SO->Show) {
+         if (SO_SHOWING(SO, sv)) {
             if (  SO->Side == SUMA_NO_SIDE || 
                   SO->Side == SUMA_SIDE_ERROR  || 
                   SO->Side == SUMA_LR) {
@@ -4041,7 +4042,7 @@ SUMA_Boolean SUMA_isVisibleSO (SUMA_SurfaceViewer *sv,
       if (SUMA_isSO_G(dov[sv->RegisteredDO[i]], sv->CurGroupName)) {
          SO = (SUMA_SurfaceObject *)dov[sv->RegisteredDO[i]].OP;
          if (curSO == SO) {
-            if (SO->Show) {
+            if (SO_SHOWING(SO, sv)) {
                if ( SO->Side == SUMA_NO_SIDE || SO->Side == SUMA_SIDE_ERROR ) {
                   SUMA_RETURN(YUP);
                   ++k;

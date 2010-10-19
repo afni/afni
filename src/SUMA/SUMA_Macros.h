@@ -182,6 +182,22 @@
    tt=mm[1][3]; mm[1][3] = mm[3][1]; mm[3][1]=tt;  \
    tt=mm[3][2]; mm[3][2] = mm[2][3]; mm[2][3]=tt;  \
 }
+
+/*! invert a 4x4 affine xform matrix */
+#define SUMA_INV_44ROTATIONMATRIX(xform) \
+{  \
+   static mat44 A, A0;  \
+      LOAD_MAT44( A0, \
+               xform[0][0], xform[0][1], xform[0][2], xform[0][3],    \
+               xform[1][0], xform[1][1], xform[1][2], xform[1][3],    \
+               xform[2][0], xform[2][1], xform[2][2], xform[2][3]   );  \
+      A = nifti_mat44_inverse(A0);  \
+      UNLOAD_MAT44(A,   \
+               xform[0][0], xform[0][1], xform[0][2], xform[0][3],    \
+               xform[1][0], xform[1][1], xform[1][2], xform[1][3],    \
+               xform[2][0], xform[2][1], xform[2][2], xform[2][3]   );  \
+}  
+
 #define SUMA_POW2(a) ((a)*(a))
 
 #define SUMA_POW3(a) ((a)*(a)*(a))
@@ -480,6 +496,11 @@ if Dist = 0, point on plane, if Dist > 0 point above plane (along normal), if Di
                   break;   \
             }  \
    }         
+
+/*!
+   \brief SO->Show is not quite not the end of the story
+*/ 
+#define SO_SHOWING(SO,sv) ( SO->Show && SO->PolyMode != SRM_Hide && (SO->PolyMode != SRM_ViewerDefault || sv->PolyMode != SRM_Hide) )
 
 /*!
    \brief calculates the average 'radius' of a surface.

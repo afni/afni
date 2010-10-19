@@ -119,6 +119,8 @@ SUMA_SegmentDO *SUMA_CreateSegmentDO(  int N_n, int oriented, int NodeBased,
                                        float *n0, float *n1,
                                        float *colv, float *thickv 
                                        );
+SUMA_DO * SUMA_Multiply_NodeObjects ( SUMA_SurfaceObject *SO, 
+                                      SUMA_DO *DO );
 SUMA_SurfaceObject *SUMA_Cmap_To_SO (SUMA_COLOR_MAP *Cmap, float orig[3], float topright[3], int verb);
 SUMA_Boolean SUMA_PrepForNIDOnelPlacement (  SUMA_SurfaceViewer *sv,
                                              NI_element *nel, 
