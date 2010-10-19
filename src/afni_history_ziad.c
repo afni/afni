@@ -66,7 +66,7 @@
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
 
- { 19, Oct , 2010 , ZSS , "3dcopy" , MINOR , TYPE_MODIFY,
+ { 19, OCT , 2010 , ZSS , "3dcopy" , MINOR , TYPE_MODIFY,
    "Allowed 3dcopy to take . or ./ as output options",
    "Other changes make the error message a little more\n"
    "informative\n"
