@@ -2891,6 +2891,16 @@ static char * readme_env[] = {
    "the largest value in the dataset raised to this power.  By default,\n" ,
    "the autoRange value is computed as if this power is 1.\n" ,
    "\n" ,
+   "---------------------------\n" ,
+   "Variable: AFNI_IDEAL_COLORS (editable)\n" ,
+   "---------------------------\n" ,
+   "This variable, if set, allows you to specify the set of colors used\n" ,
+   "for the FIM Ideal overlay in the graph viewer window.  Separate color\n" ,
+   "names by colons, as in \"red:green:blue\".  The first column in the Ideal\n" ,
+   "1D file gets the first color; the second column gets the second color,\n" ,
+   "and so on.  The variable AFNI_ORT_COLORS can similarly be used to specify\n" ,
+   "the colors for the FIM Ort overlay.\n" ,
+   "\n" ,
    "----------------------------------------------------------------------\n" ,
    "--- variables specific to NIML I/O\n" ,
    "----------------------------------------------------------------------\n" ,
@@ -3106,4 +3116,4 @@ static char * readme_env[] = {
    "behavior, set this variable to YES.\n" ,
    "\n" ,
    NULL } ;
-#define NUM_readme_env 3106
+#define NUM_readme_env 3116
