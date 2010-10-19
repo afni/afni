@@ -4366,7 +4366,7 @@ STATUS("making dmode->rowcol") ;
 
    wtemp = XtVaCreateManagedWidget(
          "dialog" , xmLabelWidgetClass , dmode->write_rowcol ,
-            LABEL_ARG("Write ") ,
+            LABEL_ARG("Resam ") ,
             XmNalignment , XmALIGNMENT_BEGINNING ,
             XmNrecomputeSize , False ,
             XmNtraversalOn , True  ,
@@ -4387,7 +4387,7 @@ STATUS("making dmode->rowcol") ;
                   AFNI_write_dataset_CB , im3d ) ;
 
    MCW_register_hint( dmode->write_anat_pb ,
-                      "Write current underlay to disk" ) ;
+                      "Write current underlay to disk at resampling resolution" ) ;
 
    dmode->write_func_pb =
       XtVaCreateManagedWidget(
@@ -4401,7 +4401,7 @@ STATUS("making dmode->rowcol") ;
                   AFNI_write_dataset_CB , im3d ) ;
 
    MCW_register_hint( dmode->write_func_pb ,
-                      "Write current overlay dataset to disk" ) ;
+                      "Write current overlay dataset to disk at resampling resolution" ) ;
 
    dmode->write_many_pb =
       XtVaCreateManagedWidget(
@@ -4415,7 +4415,7 @@ STATUS("making dmode->rowcol") ;
                   AFNI_write_many_dataset_CB , im3d ) ;
 
    MCW_register_hint( dmode->write_many_pb ,
-                      "Write multiple datasets to disk" ) ;
+                      "Write multiple datasets to disk at resampling resolution" ) ;
 
    MCW_reghelp_children( dmode->write_rowcol ,
         "The purpose of the `Write' buttons is to recompute\n"
