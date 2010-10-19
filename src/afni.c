@@ -1328,7 +1328,9 @@ void AFNI_sigfunc_alrm(int sig)
      "We shall meet again, when the fields are white with daisies"   ,
      "Parting is such sweet sorrow"                                  ,
      "Gone, and a cloud in my heart"                                 ,
-     "Happy trails to you"                                           ,
+     "Happy trails to you, until we meet again"                      ,
+     "Only in the agony of parting do we see the depths of love"     ,
+     "Goodbye isn't painful, unless we'll never say hello again"     ,
      "Be well, do good work, and keep in touch"                      ,
      "In the hope to meet shortly again"                             ,
      "May the wind be ever at your back"                             ,
@@ -1346,7 +1348,12 @@ void AFNI_sigfunc_alrm(int sig)
      "May we meet again in happier times"                            ,
      "Adieu, auf Wiedersehen, Adios, Cheerio, and Bon Voyage"        ,
      "Meeting again is certain for those who are friends"            ,
-     "Au revoir, Ciao, Ma'alsalam, Hasta luego, Czesc, and Zai jian"
+     "Au revoir, Ciao, Ma'alsalam, Hasta luego, Czesc, and Zai jian" ,
+     "Don't cry -- a farewell is necessary before we can meet again" ,
+     "We part, but only to meet again"                               ,
+     "How lucky I am to have someone that makes saying goodbye hard" ,
+     "Goodbyes are not forever"                                      ,
+     "Dearest friends, alas, must part"                              ,
    } ;
    int nn = (lrand48()>>3) % NMSG ;
    if( !AFNI_yesenv("AFNI_NEVER_SAY_GOODBYE") )
@@ -1362,7 +1369,7 @@ void AFNI_sigfunc_quit(int sig)
   fprintf(stderr,
           "\n** AFNI received QUIT signal ==> exit in %u seconds! **\n",nsec) ;
   signal(SIGALRM,AFNI_sigfunc_alrm) ;
-  (void) alarm(nsec) ;
+  (void)alarm(nsec) ;
   return ;
 }
 
