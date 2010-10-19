@@ -597,6 +597,80 @@ SUMA_Boolean SUMA_UnRegisterDO(int dov_id, SUMA_SurfaceViewer *cSV)
    SUMA_RETURN(YUP); 
 }
 
+const char *SUMA_ObjectTypeCode2ObjectTypeName(SUMA_DO_Types dd) 
+{
+   switch (dd) {
+      case type_not_set:
+         return("type_not_set");
+         break;
+      case no_type:
+         return("no_type");
+         break;
+      case SO_type:
+         return("Surface");
+         break;
+      case AO_type:
+         return("Axis");
+         break;
+      case ROIdO_type:
+         return("ROI_drawn");
+         break;
+      case ROIO_type:
+         return("ROI");
+         break;
+      case GO_type:
+         return("GO");
+         break;
+      case LS_type:
+         return("Line_Segment");
+         break;
+      case NBLS_type:
+         return("Node_Based_Line_Segment");
+         break;
+      case OLS_type:
+         return("Oriented_Line_Segment");
+         break;
+      case NBOLS_type:
+         return("Oriented_Node_Based_Line_Segment");
+         break;
+      case NBV_type:
+         return("Node_Based_Vector");
+         break;
+      case ONBV_type:
+         return("Oriented_Node_Based_Vector");
+         break;
+      case SP_type:
+         return("Sphere");
+         break;
+      case NBSP_type:
+         return("Node_Based_Sphere");
+         break;
+      case PL_type:
+         return("Plane");
+         break;
+      case VO_type:
+         return("VO");
+         break;
+      case NBT_type:
+         return("NBT");
+         break;
+      case SBT_type:
+         return("SBT");
+         break;
+      case DBT_type:
+         return("DBT");
+         break;
+      case NIDO_type:
+         return("NIDO");
+         break;
+      case N_DO_TYPES:
+         return("Number_Of_DO_Types");
+         break;
+      default:
+         return("WhatTheWhat!");
+   }
+}
+
 char *SUMA_DOv_Info (SUMA_DO *dov, int N_dov, int detail)
 {
    static char FuncName[]={"SUMA_DOv_Info"};
@@ -619,9 +693,11 @@ char *SUMA_DOv_Info (SUMA_DO *dov, int N_dov, int detail)
                vo_op = (SUMA_VolumeObject *)dov[i].OP;
                SS = SUMA_StringAppend_va(SS,
                      "DOv ID: %d\n\tName: %s\n"
-                     "\tType: %d, Axis Attachment %d\n",
+                     "\tType: %d (%s), Axis Attachment %d\n",
                      i,  SUMA_CHECK_NULL_STR(vo_op->Label), 
-                     dov[i].ObjectType, dov[i].CoordType);
+                     dov[i].ObjectType, 
+                     SUMA_ObjectTypeCode2ObjectTypeName(dov[i].ObjectType), 
+                     dov[i].CoordType);
                break;
             case SO_type:
                so_op = (SUMA_SurfaceObject *)dov[i].OP;
@@ -629,25 +705,31 @@ char *SUMA_DOv_Info (SUMA_DO *dov, int N_dov, int detail)
                if (so_op->FileType != SUMA_SUREFIT) {
                   SS = SUMA_StringAppend_va(SS,
                      "DOv ID: %d\n\tName: %s/%s\n"
-                     "\tType: %d, Axis Attachment %d\n",
+                     "\tType: %d (%s), Axis Attachment %d\n",
                      i,  SUMA_CHECK_NULL_STR(so_op->Name.Path), 
                      SUMA_CHECK_NULL_STR(so_op->Name.FileName),
-                     dov[i].ObjectType, dov[i].CoordType);
+                     dov[i].ObjectType, 
+                     SUMA_ObjectTypeCode2ObjectTypeName(dov[i].ObjectType), 
+                     dov[i].CoordType);
                } else {
                   SS = SUMA_StringAppend_va(SS,
                      "DOv ID: %d\n\tNameCoord: %s/%s\n"
-                     "\tNameTopo: %s/%s\n\tType: %d, Axis Attachment %d\n",
+                     "\tNameTopo: %s/%s\n\tType: %d (%s), Axis Attachment %d\n",
                      i, SUMA_CHECK_NULL_STR(so_op->Name_coord.Path), 
                      SUMA_CHECK_NULL_STR(so_op->Name_coord.FileName),
                      so_op->Name_topo.Path, so_op->Name_topo.FileName,
-                     dov[i].ObjectType, dov[i].CoordType);
+                     dov[i].ObjectType, 
+                     SUMA_ObjectTypeCode2ObjectTypeName(dov[i].ObjectType), 
+                     dov[i].CoordType);
                } 
                #else
                   SS = SUMA_StringAppend_va(SS,
                      "DOv ID: %d\n\tName: %s\n"
-                     "\tType: %d, Axis Attachment %d\n",
+                     "\tType: %d (%s), Axis Attachment %d\n",
                      i,  SUMA_CHECK_NULL_STR(so_op->Label), 
-                     dov[i].ObjectType, dov[i].CoordType);
+                     dov[i].ObjectType, 
+                     SUMA_ObjectTypeCode2ObjectTypeName(dov[i].ObjectType), 
+                     dov[i].CoordType);
                #endif  
                break;
             case AO_type:
@@ -656,7 +738,7 @@ char *SUMA_DOv_Info (SUMA_DO *dov, int N_dov, int detail)
                   ao = (SUMA_Axis*) dov[i].OP;
                   SS = SUMA_StringAppend_va(SS,
                      "DOv ID: %d\n\tAxis Object\n"
-                     "\tType: %d, Axis Attachment %d\n", 
+                     "\tType: %d (%s), Axis Attachment %d\n", 
                      i,dov[i].ObjectType, dov[i].CoordType);
                   SS = SUMA_StringAppend_va(SS,
                      "\tName: %s\n\tidcode: %s\n", ao->Label, ao->idcode_str);
@@ -669,8 +751,10 @@ char *SUMA_DOv_Info (SUMA_DO *dov, int N_dov, int detail)
                   sdo = (SUMA_SegmentDO *)dov[i].OP;
                   SS = SUMA_StringAppend_va(SS,
                      "DOv ID: %d\n\tOriented Line Segment Object\n"
-                     "\tType: %d, Axis Attachment %d\n", 
-                     i,dov[i].ObjectType, dov[i].CoordType);
+                     "\tType: %d (%s), Axis Attachment %d\n", 
+                     i,dov[i].ObjectType, 
+                     SUMA_ObjectTypeCode2ObjectTypeName(dov[i].ObjectType), 
+                     dov[i].CoordType);
                   SS = SUMA_StringAppend_va(SS,
                      "\tLabel: %s\n\tidcode: %s\n", sdo->Label, sdo->idcode_str);
 
@@ -683,8 +767,10 @@ char *SUMA_DOv_Info (SUMA_DO *dov, int N_dov, int detail)
                   sdo = (SUMA_SegmentDO *)dov[i].OP;
                   SS = SUMA_StringAppend_va(SS,
                      "DOv ID: %d\n\tNode-Based Ball-Vector\n"
-                     "\tType: %d, Axis Attachment %d\n", 
-                        i,dov[i].ObjectType, dov[i].CoordType);
+                     "\tType: %d (%s), Axis Attachment %d\n", 
+                        i,dov[i].ObjectType, 
+                     SUMA_ObjectTypeCode2ObjectTypeName(dov[i].ObjectType), 
+                     dov[i].CoordType);
                   SS = SUMA_StringAppend_va(SS,
                      "\tLabel: %s\n\tidcode: %s\n", sdo->Label, sdo->idcode_str);
 
@@ -697,8 +783,10 @@ char *SUMA_DOv_Info (SUMA_DO *dov, int N_dov, int detail)
                   sdo = (SUMA_SegmentDO *)dov[i].OP;
                   SS = SUMA_StringAppend_va(SS,
                      "DOv ID: %d\n\tNode-Based Vector\n"
-                     "\tType: %d, Axis Attachment %d\n", 
-                     i,dov[i].ObjectType, dov[i].CoordType);
+                     "\tType: %d (%s), Axis Attachment %d\n", 
+                     i,dov[i].ObjectType, 
+                     SUMA_ObjectTypeCode2ObjectTypeName(dov[i].ObjectType), 
+                     dov[i].CoordType);
                   SS = SUMA_StringAppend_va(SS,
                      "\tLabel: %s\n\tidcode: %s\n", sdo->Label, sdo->idcode_str);
 
@@ -711,8 +799,10 @@ char *SUMA_DOv_Info (SUMA_DO *dov, int N_dov, int detail)
                   sdo = (SUMA_SegmentDO *)dov[i].OP;
                   SS = SUMA_StringAppend_va(SS,
                      "DOv ID: %d\n\tLine Segment Object\n"
-                     "\tType: %d, Axis Attachment %d\n", 
-                     i,dov[i].ObjectType, dov[i].CoordType);
+                     "\tType: %d (%s), Axis Attachment %d\n", 
+                     i,dov[i].ObjectType, 
+                     SUMA_ObjectTypeCode2ObjectTypeName(dov[i].ObjectType), 
+                     dov[i].CoordType);
                   SS = SUMA_StringAppend_va(SS,
                      "\tLabel: %s\n\tidcode: %s\n", sdo->Label, sdo->idcode_str);
 
@@ -725,8 +815,10 @@ char *SUMA_DOv_Info (SUMA_DO *dov, int N_dov, int detail)
                   sdo = (SUMA_SphereDO *)dov[i].OP;
                   SS = SUMA_StringAppend_va(SS,
                      "DOv ID: %d\n\tNode-Based Sphere Object\n"
-                     "\tType: %d, Axis Attachment %d\n", 
-                     i,dov[i].ObjectType, dov[i].CoordType);
+                     "\tType: %d (%s), Axis Attachment %d\n", 
+                     i,dov[i].ObjectType, 
+                     SUMA_ObjectTypeCode2ObjectTypeName(dov[i].ObjectType), 
+                     dov[i].CoordType);
                   SS = SUMA_StringAppend_va(SS,
                      "\tLabel: %s\n\tidcode: %s\n", sdo->Label, sdo->idcode_str);
 
@@ -739,8 +831,10 @@ char *SUMA_DOv_Info (SUMA_DO *dov, int N_dov, int detail)
                   sdo = (SUMA_SphereDO *)dov[i].OP;
                   SS = SUMA_StringAppend_va(SS,
                      "DOv ID: %d\n\tSphere Object\n"
-                     "\tType: %d, Axis Attachment %d\n", 
-                     i,dov[i].ObjectType, dov[i].CoordType);
+                     "\tType: %d (%s), Axis Attachment %d\n", 
+                     i,dov[i].ObjectType, 
+                     SUMA_ObjectTypeCode2ObjectTypeName(dov[i].ObjectType), 
+                     dov[i].CoordType);
                   SS = SUMA_StringAppend_va(SS,
                      "\tLabel: %s\n\tidcode: %s\n", sdo->Label, sdo->idcode_str);
 
@@ -753,8 +847,10 @@ char *SUMA_DOv_Info (SUMA_DO *dov, int N_dov, int detail)
                   pdo = (SUMA_PlaneDO *)dov[i].OP;
                   SS = SUMA_StringAppend_va(SS,
                      "DOv ID: %d\n\tPlane Object\n"
-                     "\tType: %d, Axis Attachment %d\n", 
-                     i,dov[i].ObjectType, dov[i].CoordType);
+                     "\tType: %d (%s), Axis Attachment %d\n", 
+                     i,dov[i].ObjectType, 
+                     SUMA_ObjectTypeCode2ObjectTypeName(dov[i].ObjectType), 
+                     dov[i].CoordType);
                   SS = SUMA_StringAppend_va(SS,
                      "\tLabel: %s\n\tidcode: %s\n", pdo->Label, pdo->idcode_str);
 
@@ -767,8 +863,10 @@ char *SUMA_DOv_Info (SUMA_DO *dov, int N_dov, int detail)
                   dROI = (SUMA_DRAWN_ROI *)dov[i].OP;
                   SS = SUMA_StringAppend_va(SS,
                      "DOv ID: %d\n\tLine Segment Object\n"
-                     "\tType: %d, Axis Attachment %d\n", 
-                     i,dov[i].ObjectType, dov[i].CoordType);
+                     "\tType: %d (%s), Axis Attachment %d\n", 
+                     i,dov[i].ObjectType, 
+                     SUMA_ObjectTypeCode2ObjectTypeName(dov[i].ObjectType), 
+                     dov[i].CoordType);
                   SS = SUMA_StringAppend_va(SS,
                      "\tLabel: %s\n\tidcode: %s\n", 
                      dROI->Label, dROI->idcode_str);
@@ -781,8 +879,10 @@ char *SUMA_DOv_Info (SUMA_DO *dov, int N_dov, int detail)
                   ROI = (SUMA_ROI *)dov[i].OP;
                   SS = SUMA_StringAppend_va(SS,
                      "DOv ID: %d\n\tLine Segment Object\n"
-                     "\tType: %d, Axis Attachment %d\n", 
-                     i,dov[i].ObjectType, dov[i].CoordType);
+                     "\tType: %d (%s), Axis Attachment %d\n", 
+                     i,dov[i].ObjectType, 
+                     SUMA_ObjectTypeCode2ObjectTypeName(dov[i].ObjectType), 
+                     dov[i].CoordType);
                   SS = SUMA_StringAppend_va(SS,"\tLabel: %s\n\tidcode: %s\n", 
                            ROI->Label, ROI->idcode_str);
                }  
@@ -793,12 +893,17 @@ char *SUMA_DOv_Info (SUMA_DO *dov, int N_dov, int detail)
             case NIDO_type:
                SS = SUMA_StringAppend_va(SS,
                         "DOv ID: %d\n\tNIDO  Object\n"
-                        "\tType: %d, Axis Attachment %d\n", 
-                        i,dov[i].ObjectType, dov[i].CoordType);
+                        "\tType: %d (%s), Axis Attachment %d\n", 
+                        i,dov[i].ObjectType, 
+                     SUMA_ObjectTypeCode2ObjectTypeName(dov[i].ObjectType), 
+                     dov[i].CoordType);
                break;
             default:
-               SS = SUMA_StringAppend_va(SS,"DOv ID: %d\n\tUnknown Type (%d)!\n",
-                                             i, dov[i].ObjectType);
+               SS = SUMA_StringAppend_va(SS,"DOv ID: %d\n"
+                                            "\tUnknown Type (%d) %s!\n",
+                                             i, dov[i].ObjectType, 
+                     SUMA_ObjectTypeCode2ObjectTypeName(dov[i].ObjectType)
+                     );
                break;
          }
       }

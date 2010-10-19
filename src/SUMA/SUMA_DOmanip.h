@@ -50,6 +50,7 @@ SUMA_INODE * SUMA_BreakInodeLink (SUMA_INODE *IN, const char *HolderIDcode);
 SUMA_Boolean SUMA_existSO(char *idcode, SUMA_DO *dov, int N_dov);
 SUMA_Boolean SUMA_existVO(char *idcode, SUMA_DO *dov, int N_dov);
 SUMA_Boolean SUMA_existDO(char *idcode, SUMA_DO *dov, int N_dov);
+const char *SUMA_ObjectTypeCode2ObjectTypeName(SUMA_DO_Types dd);
 int SUMA_whichDO(char *idcode, SUMA_DO *dov, int N_dov);
 int SUMA_findSO_inDOv(char *idcode, SUMA_DO *dov, int N_dov);
 int SUMA_findVO_inDOv(char *idcode, SUMA_DO *dov, int N_dov);

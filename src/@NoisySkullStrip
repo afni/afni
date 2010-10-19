@@ -25,45 +25,45 @@ MAKE_MASK:
 set t = __MA
 set nbin = 1000
 
-if ( ! -f $t"_ls"+orig.HEAD) then
-   echo "Creating $t'_ls' ..."
-   3dLocalstat -overwrite -prefix $t"_ls" \
+if ( ! -f $ap".ls"+orig.HEAD) then
+   echo "Creating $ap'.ls' ..."
+   3dLocalstat -overwrite -prefix $ap".ls" \
             -stat mean -stat stdev \
             -nbhd 'SPHERE(4)' \
             -datum short   \
             $in 
 else
-   echo "Reusing $t'_ls' ..."
+   echo "Reusing $ap'.ls' ..."
 endif
 
 if ($DoEight) then
    #Also do this one, looks promising might want it later
-   3dLocalstat -overwrite -prefix $t"_ls8" \
+   3dLocalstat -overwrite -prefix $ap".ls8" \
                -stat mean -stat stdev \
                -nbhd 'SPHERE(8)' \
                -datum short   \
                $in
-   3dcalc   -a $t"_ls"8+orig'[0]' -b $t"_ls"8+orig'[1]' \
-            -expr 'a/b' -prefix $t_"ir"
+   3dcalc   -a $ap".ls"8+orig'[0]' -b $ap".ls"8+orig'[1]' \
+            -expr 'a/b' -prefix $ap".ir"
    #top 75% is brainy 
 
 endif
 
-if ( ! -f $t"_p"+orig.HEAD) then
-   echo "Creating $t'_p' ..."
+if ( ! -f $ap".lsp"+orig.HEAD) then
+   echo "Creating $ap'.lsp' ..."
    set mma = `3dBrickStat -non-zero -mean $in `
-   set mm  = `3dBrickStat -non-zero -mean $t"_ls"$av'[0]'`
-   3dcalc   -a $t"_ls"$av'[0]' -b $t"_ls"$av'[1]'   \
+   set mm  = `3dBrickStat -non-zero -mean $ap".ls"$av'[0]'`
+   3dcalc   -a $ap".ls"$av'[0]' -b $ap".ls"$av'[1]'   \
             -c $in   \
             -expr "a*b/$mm"   \
             -datum short   \
-            -overwrite -prefix $t"_p"
+            -overwrite -prefix $ap".lsp"
 else
-   echo "Reusing $t'_p' ..."
+   echo "Reusing $ap'.lsp' ..."
 endif         
 
 if ($th == 0) then
-   3dhistog -nbin $nbin $t"_p"$av > $t"_h.1D"
+   3dhistog -nbin $nbin $ap".lsp"$av > $t"_h.1D"
    set nm1 = `ccalc -i $nbin - 1`
    set nm2 = `ccalc -i $nbin - 2`
    3dTstat -prefix $t"_mx.1D" -max $t"_h.1D[1]'" 
@@ -78,33 +78,33 @@ if ($th == 0) then
       set d = `1deval -a $t"_hd.1D{$i}" -expr "abs(a)-0.01"`
       if (`ccalc -i "isnegative($d)"`) then
          set ith = $i
-         echo "Got threshold for $t"_p" at $ith"
+         echo "Got threshold for $ap".lsp" at $ith"
          set i = 10000
       endif
       @ i ++
    end
 
    set th = `1dcat $t"_h.1D[0]{$ith}"`
-   echo "Threshold value is for $t'_p': $th"
+   echo "Threshold value is for $ap'.lsp': $th"
 else
-   echo "User threshold for $t'_p': $th"
+   echo "User threshold for $ap'.lsp': $th"
 endif
 
 #create masked version of input
 3dcalc -a $in  \
-       -b $t"_p"$av \
+       -b $ap".lsp"$av \
        -prefix $ap.air \
        -expr "a*(1-step(b-$th))"  \
        -overwrite
 
 
 #This does not work well. Do not use it       
-#Create one killing top 100-pt percent or _p dset
+#Create one killing top 100-pt percent or .lsp dset
 set pt = 97
-set pth = `3dBrickStat -percentile $pt 1 $pt  $t"_p"$av`
+set pth = `3dBrickStat -percentile $pt 1 $pt  $ap".lsp"$av`
 set pth = $pth[2]
 3dcalc -a $in  \
-       -b $t"_p"$av \
+       -b $ap".lsp"$av \
        -prefix $ap.skl \
        -expr "a*(step(b-$pth))"  \
        -overwrite
@@ -179,10 +179,11 @@ PARSE_COMMAND:
             set donext = 0	
          endif	
       endif
-      if ($donext && "$argv[$cnt]" == "-lsth") then
+      if ($donext && \
+          ("$argv[$cnt]" == "-lsth" || "$argv[$cnt]" == "-lspth") ) then
          set pLoc = $cnt		
 		   if ($pLoc == $Narg) then
-				echo "Need value after -lsth"
+				echo "Need value after -lspth"
             goto END
 			else
             @ cnt ++
@@ -273,6 +274,12 @@ echo ""
 echo "The script outputs the following:"
 echo "   ANAT.ns  : A skull stripped version of ANAT"
 echo "   ANAT.air and ANAT.skl: A couple of special masks"
+echo "   ANAT.lsp : A volume that is used to threshold 'air'"
+echo "              out of the volume to be stripped."
+echo "              @NoisySkullStrip tries to choose a threshold"
+echo "              automatically but fails at times. You can set"
+echo "              the threshold manually with -lspth and rerun"
+echo "              the script to try and get a better result"
 echo ""
 echo "Do send me feedback on this script's performance."
 echo ""

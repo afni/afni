@@ -175,6 +175,11 @@ SUMA_Boolean SUMA_AllocSpecFields (SUMA_SurfSpecFile *Spec)
    if (!Spec->LabelDset) { 
       SUMA_S_Err("Failed to allocate"); SUMA_RETURN(NOPE); 
    }
+   Spec->NodeMarker = (char **)SUMA_allocate2D(SUMA_MAX_N_SURFACE_SPEC, 
+                        SUMA_MAX_FP_NAME_LENGTH , sizeof(char));       
+   if (!Spec->NodeMarker) { 
+      SUMA_S_Err("Failed to allocate"); SUMA_RETURN(NOPE); 
+   }
    
 
    
@@ -280,6 +285,9 @@ SUMA_Boolean SUMA_FreeSpecFields (SUMA_SurfSpecFile *Spec)
       SUMA_free2D((char **)Spec->LabelDset, SUMA_MAX_N_SURFACE_SPEC);
       Spec->LabelDset = NULL; }
    
+   if (Spec->NodeMarker) { 
+      SUMA_free2D((char **)Spec->NodeMarker, SUMA_MAX_N_SURFACE_SPEC);
+      Spec->NodeMarker = NULL; }
 
    Spec->N_Surfs = -2; /* flag for freeing */                                                         
    Spec->N_States = 0;                                                     
@@ -1461,7 +1469,7 @@ SUMA_Boolean SUMA_Read_SpecFile (
    SUMA_Boolean   OKread_AnatCorrect, OKread_Hemisphere,
                   OKread_DomainGrandParentID, OKread_OriginatorID;
    SUMA_Boolean   OKread_LocalCurvatureParent, OKread_LocalDomainParent,
-                  OKread_LabelDset;
+                  OKread_LabelDset, OKread_NodeMarker;
    char DupWarn[]={  "Bad format in specfile "
                      "(you may need a NewSurface line). "
                      "Duplicate specification of"};
@@ -1546,7 +1554,7 @@ SUMA_Boolean SUMA_Read_SpecFile (
    OKread_AnatCorrect = OKread_Hemisphere = OKread_DomainGrandParentID =
       OKread_OriginatorID = NOPE;
    OKread_LocalCurvatureParent = OKread_LocalDomainParent = 
-      OKread_LabelDset = NOPE;
+      OKread_LabelDset = OKread_NodeMarker = NOPE;
    
    Spec->StateList[0] = '\0';
    Spec->Group[0][0] = '\0';
@@ -1592,6 +1600,7 @@ SUMA_Boolean SUMA_Read_SpecFile (
                Spec->LocalCurvatureParent[Spec->N_Surfs-1][0] = '\0'; 
                Spec->LocalDomainParent[Spec->N_Surfs-1][0] = '\0';
                Spec->LabelDset[Spec->N_Surfs-1][0] = '\0';
+               Spec->NodeMarker[Spec->N_Surfs-1][0] = '\0';
             } else { 
                /* make sure important fields have been filled */
                if (Spec->SurfaceType[Spec->N_Surfs-2][0] == '\0') {
@@ -1637,6 +1646,7 @@ SUMA_Boolean SUMA_Read_SpecFile (
                Spec->LocalCurvatureParent[Spec->N_Surfs-1][0] = '\0'; 
                Spec->LocalDomainParent[Spec->N_Surfs-1][0] = '\0';
                Spec->LabelDset[Spec->N_Surfs-1][0] = '\0';
+               Spec->NodeMarker[Spec->N_Surfs-1][0] = '\0';
                /* only Spec->CoordFile, Spec->SurfaceFile MUST be 
                   specified with a new surface */
             } 
@@ -1649,7 +1659,7 @@ SUMA_Boolean SUMA_Read_SpecFile (
             OKread_AnatCorrect = OKread_Hemisphere = 
                OKread_DomainGrandParentID = OKread_OriginatorID = YUP;
             OKread_LocalCurvatureParent = OKread_LocalDomainParent = 
-               OKread_LabelDset = YUP;
+               OKread_LabelDset = OKread_NodeMarker = YUP;
             skp = 1;
          }
          
@@ -1891,6 +1901,28 @@ SUMA_Boolean SUMA_Read_SpecFile (
                SUMA_RETURN (NOPE);
             } else  {
                OKread_LabelDset = NOPE;
+            }
+            skp = 1;
+         }
+
+         sprintf(stmp,"NodeMarker");
+         if (!skp && SUMA_iswordin (s, stmp) == 1) {
+            /* found NodeMarker  field, parse it */
+            if (!SUMA_ParseLHS_RHS (s, stmp, stmp2)) {
+               fprintf( SUMA_STDERR,
+                        "Error %s: Error in SUMA_ParseLHS_RHS.\n", FuncName);
+               SUMA_RETURN (NOPE);
+            }
+            
+            snprintf (Spec->NodeMarker[Spec->N_Surfs-1], 
+                        SUMA_MAX_FP_NAME_LENGTH * sizeof(char),
+               "%s%s", Spec->SpecFilePath, stmp2);
+            
+            if (!OKread_NodeMarker) {
+               fprintf(SUMA_STDERR,"Error %s: %s %s\n", FuncName, DupWarn, stmp);
+               SUMA_RETURN (NOPE);
+            } else  {
+               OKread_NodeMarker = NOPE;
             }
             skp = 1;
          }
@@ -2391,6 +2423,7 @@ SUMA_Boolean SUMA_Merge_SpecFiles( SUMA_SurfSpecFile *lhs,
             SUMA_COPY_SPEC_FIELD(bhs, c, vs[k], i, State);
          } 
          SUMA_COPY_SPEC_FIELD(bhs, c, vs[k], i, LabelDset);
+         SUMA_COPY_SPEC_FIELD(bhs, c, vs[k], i, NodeMarker);
          SUMA_COPY_SPEC_FIELD(bhs, c, vs[k], i, Group);
          if (strcmp(bhs->Group[0], vs[k]->Group[i])) {
             SUMA_S_Warn("Unexpected Group mismatch!\n"
@@ -2545,6 +2578,12 @@ SUMA_Boolean SUMA_Write_SpecFile ( SUMA_SurfSpecFile * Spec,
             fprintf (outFile, 
                      "\tLabelDset = %s\n", 
                    Spec->LabelDset[i] );
+         } else {
+         }
+         if (Spec->NodeMarker[i][0]) {
+            fprintf (outFile, 
+                     "\tNodeMarker = %s\n", 
+                   Spec->NodeMarker[i] );
          } else {
          }
          fprintf (outFile, "\tSurfaceState = %s\n"
@@ -2889,6 +2928,12 @@ char* SUMA_SpecStructInfo (SUMA_SurfSpecFile *Spec, int detail)
             } else SS = SUMA_StringAppend_va (SS, 
                                        "\tLabelDset: (empty)\n");
             
+            if (strlen(Spec->NodeMarker[i])) {
+               SS = SUMA_StringAppend_va (SS, 
+                                       "\tNodeMarker: %s\n", 
+                                       Spec->NodeMarker[i]);
+            } else SS = SUMA_StringAppend_va (SS, 
+                                       "\tNodeMarker: (empty)\n");
             /*
             if (strlen(Spec->[i])) {
                SS = SUMA_StringAppend_va (SS, 
@@ -3330,6 +3375,47 @@ SUMA_Boolean SUMA_PrepAddmappableSO(SUMA_SurfaceObject *SO, SUMA_DO *dov,
 
 } /* end SUMA_PrepAddmappableSO */
 
+
+SUMA_Boolean SUMA_Load_SO_NodeMarker(SUMA_SurfaceObject *SO, 
+                                     char *NodeMarker)
+{
+   static char FuncName[]={"SUMA_Load_SO_NodeMarker"};
+   SUMA_NIDO *nido=NULL;
+   SUMA_Boolean LocalHead = YUP;
+   
+   SUMA_ENTRY;
+   
+   if (!SO || !NodeMarker) SUMA_RETURN(NOPE);
+   
+   SUMA_LHv("Loading %s\n", NodeMarker);
+   if (!(nido = SUMA_ReadNIDO (NodeMarker, SO->idcode_str))) {
+      SUMA_S_Errv("Failed to load %s\n", NodeMarker);
+      SUMA_RETURN(NOPE);
+   }
+   nido->do_type = NIDO_type;
+   
+   if (SO->CommonNodeObject) {
+      SUMA_Free_Displayable_Object_Vect(SO->CommonNodeObject,1);
+      SO->CommonNodeObject = NULL;
+   }
+   SO->CommonNodeObject = (SUMA_DO *)SUMA_calloc(1,sizeof(SUMA_DO));
+   
+   SO->CommonNodeObject->OP = (void *)nido; 
+   SO->CommonNodeObject->ObjectType = NIDO_type;
+   SO->CommonNodeObject->CoordType = SUMA_WORLD;
+   nido = NULL;
+
+   if (SO->NodeObjects) {
+      SUMA_Free_Displayable_Object_Vect(SO->NodeObjects, 1);
+   }
+   
+   SUMA_LH("Need to turn SO->CommonNodeObject to SO->NodeObjects");
+   SO->NodeObjects = SUMA_Multiply_NodeObjects( SO,  SO->CommonNodeObject);
+ 
+   SUMA_RETURN(YUP);
+}
+
+
 /*! 
    Call the function engine, with debug turned on.      20 Oct 2003 [rickr]
 */
@@ -3473,6 +3559,16 @@ SUMA_Boolean SUMA_LoadSpec_eng (
             SUMA_MovePlaneDown(SO, NewColPlane->Name);
             
             NewColPlane=NULL;          /* don't let anyone here use it */
+         }
+         if (SO && Spec->NodeMarker[i][0] != '\0') {
+            SUMA_S_Notev("Will need to load NodeMarker %s for %s\n",
+                         Spec->NodeMarker[i], SO->Label);
+            if (!(SUMA_Load_SO_NodeMarker(SO, Spec->NodeMarker[i]))) {
+               SUMA_S_Errv("Failed to loa NodeMarker %s onto %s\n"
+                           "Plodding on nonetheless.\n",
+                           Spec->NodeMarker[i], SO->Label);
+            }
+            SUMA_S_Notev("NodeMarker %s loaded\n", Spec->NodeMarker[i]);
          }
       }/* Mappable surfaces */
    }/* first loop across mappable surfaces */
@@ -3682,6 +3778,10 @@ SUMA_Boolean SUMA_LoadSpec_eng (
                          "surfaces with LocalDomainParent = SAME).\n"
                          "LabelDset %s is ignored.\n",
                          Spec->LabelDset[i]);
+         }
+         if (SO && Spec->NodeMarker[i][0] != '\0') {
+            SUMA_S_Notev("Will need to load NodeMarker %s for non mappable %s\n",
+                         Spec->NodeMarker[i], SO->Label);
          }
       }/* Non Mappable surfaces */
 

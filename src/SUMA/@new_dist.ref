@@ -303,6 +303,7 @@ if ($build) then
 endif
 
 CHECK:
+if ($build) then
    \grep warning ${makelog} | \
       \grep ' is ' | \grep ' used ' | \grep 'uninitialized' | \
       \grep ' function'            > ${warnlog}
@@ -335,6 +336,7 @@ CHECK:
    echo ""
    echo "Compilation honky dory."
    echo ""
+endif
 
 CHECK_SCRIPT:
    set frun = `\which @new_dist`

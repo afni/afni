@@ -66,6 +66,12 @@
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 19, Oct , 2010 , ZSS , "3dcopy" , MINOR , TYPE_MODIFY,
+   "Allowed 3dcopy to take . or ./ as output options",
+   "Other changes make the error message a little more\n"
+   "informative\n"
+ } ,
+
  { 27, SEP , 2010 , ZSS , "suma" , MINOR , TYPE_NEW_OPT,
    "Began code changes to allow for volume rendering",
    "Changes mostly involve SUMA_volume_render.c and were\n"
