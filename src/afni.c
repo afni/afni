@@ -3605,7 +3605,10 @@ if(PRINT_TRACING)
 
    if( ! IM3D_VALID(im3d) ||
        (   im3d->ignore_seq_callbacks == AFNI_IGNORE_EVERYTHING
-        && cbs->reason                != isqCR_getxynim        ) ) EXRETURN ;
+        && cbs->reason                != isqCR_getxynim        ) ){
+
+     STATUS("ignoring call") ; EXRETURN ;
+   }
 
    switch( cbs->reason ){
 
