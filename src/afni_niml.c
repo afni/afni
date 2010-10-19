@@ -335,6 +335,8 @@ void NIML_to_stderr( void *nini , int send )
    }
 }
 
+#undef NIML_DEBUG
+
 /*-----------------------------------------------------------------------*/
 /*! NIML workprocess.
     - Listen for new incoming connections on any non-open connections.
@@ -351,7 +353,9 @@ static Boolean AFNI_niml_workproc( XtPointer elvis )
    char str[512] ;
    int keep_reading , read_msec ; /* 17 Mar 2005 */
 
+#ifdef NIML_DEBUG
 ENTRY("AFNI_niml_workproc") ;
+#endif
 
    /** loop over input NIML streams **/
 
@@ -364,15 +368,19 @@ ENTRY("AFNI_niml_workproc") ;
      /* open streams that aren't open */
 
      if( ns_listen[cc] == NULL && (ns_flags[cc]&FLAG_SKIP)==0 ){
+#ifdef NIML_DEBUG
        if(PRINT_TRACING){
          sprintf(str,"call NI_stream_open('%s')",ns_name[cc]) ;
          STATUS(str) ;
        }
+#endif
 
        ns_listen[cc] = NI_stream_open( ns_name[cc] , "r" ) ;
 
        if( ns_listen[cc] == NULL ){
+#ifdef NIML_DEBUG
          STATUS("NI_stream_open failed") ;
+#endif
          ns_flags[cc] = FLAG_SKIP ; continue ;  /* skip to next NIML stream */
        }
        ns_flags[cc]  = FLAG_WAITING ;
@@ -385,7 +393,9 @@ ENTRY("AFNI_niml_workproc") ;
 
      if(PRINT_TRACING){
        sprintf(str,"call NI_stream_goodcheck('%s')",ns_listen[cc]->orig_name);
+#ifdef NIML_DEBUG
        STATUS(str) ;
+#endif
      }
 
      /* 17 Mar 2005: loopback point if instructed to keep reading */
@@ -396,7 +406,9 @@ ENTRY("AFNI_niml_workproc") ;
      nn = NI_stream_goodcheck( ns_listen[cc] , 1 ) ;
 
      if( nn < 0 ){                          /* is bad */
+#ifdef NIML_DEBUG
        STATUS("NI_stream_goodcheck was unhappy") ;
+#endif
        fprintf(stderr,"++ NIML connection closed from %s\n",
                 NI_stream_name(ns_listen[cc])               ) ;
 
@@ -408,14 +420,18 @@ ENTRY("AFNI_niml_workproc") ;
      }
 
      if( nn == 0 ){
+#ifdef NIML_DEBUG
        STATUS("NI_stream_goodcheck was neutral") ;
+#endif
        keep_reading = 0 ;
        continue ;  /* waiting: skip to next stream */
      }
 
      /* if here, stream is good */
 
+#ifdef NIML_DEBUG
      STATUS("NI_stream_goodcheck was good!") ;
+#endif
 
      /* if just became good, print a message */
 
@@ -431,7 +447,9 @@ ENTRY("AFNI_niml_workproc") ;
      nn = NI_stream_hasinput( ns_listen[cc] , read_msec ) ;
 
      if( nn > 0 ){                                           /* has data!*/
+#ifdef NIML_DEBUG
        STATUS("Reading data!") ;
+#endif
        ct   = NI_clock_time() ;                           /* start timer */
        nini = NI_read_element( ns_listen[cc] , read_msec ) ;  /* read it */
 
@@ -448,10 +466,12 @@ ENTRY("AFNI_niml_workproc") ;
                "pause_reading"           ==> turn "keep_reading" off
                "drive_afni cmd='stuff'"  ==> execute a DRIVE_AFNI command right now */
 
+#ifdef NIML_DEBUG
            if(PRINT_TRACING){
              char sss[256]; sprintf(sss,"Processing instruction: '%s'",npi->name);
              STATUS(sss) ;
            }
+#endif
            if( strcasecmp(npi->name,"keep_reading") == 0 )
              keep_reading = 1 ;
            else if( strcasecmp(npi->name,"pause_reading") == 0 )
@@ -465,19 +485,25 @@ ENTRY("AFNI_niml_workproc") ;
 
          } else {
 
+#ifdef NIML_DEBUG
            STATUS("Actual NIML data!") ;
+#endif
            AFNI_process_NIML_data( cc , nini , ct ) ;    /* do something */
 
          }
 
+#ifdef NIML_DEBUG
          STATUS("Freeing NIML element") ;
+#endif
          NI_free_element( nini ) ;                           /* trash it */
        }
 
      } else keep_reading = 0 ;  /* was no data in the read_msec interval */
 
      if( keep_reading ){
+#ifdef NIML_DEBUG
        STATUS("Loopback to Keep_Reading") ;
+#endif
        goto Keep_Reading ;              /* try to get another input now! */
      }
 
@@ -491,10 +517,18 @@ ENTRY("AFNI_niml_workproc") ;
 
    if( ngood == 0 ){
      fprintf(stderr,"++ NIML shutting down: no listening sockets\n") ;
+#ifdef NIML_DEBUG
      RETURN( True ) ;
+#else
+     return( True ) ;
+#endif
    }
 
+#ifdef NIML_DEBUG
    RETURN( False ) ;   /* normal return: this function will be called again */
+#else
+   return( False ) ;
+#endif
 }
 
 /*----------------------------------------------------------------------*/

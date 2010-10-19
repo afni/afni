@@ -5619,6 +5619,7 @@ STATUS(" .. ButtonPress") ;
          if( but == Button4 || but == Button5 ){
            if( seq->button2_enabled ){ busy=0; EXRETURN; }  /* 10 Oct 2007 */
            if( (event->state & (Mod1Mask|Mod2Mask)) ){ /* mod+scroll == '{}' */
+STATUS("scroll wheel ==> change threshold") ;
              cbs.reason = isqCR_keypress ;
              cbs.event  = ev ;
              cbs.key    = (but==Button4) ? '}' : '{' ; /* == change threshold */
@@ -5626,6 +5627,7 @@ STATUS(" .. ButtonPress") ;
              SEND(seq,cbs) ;
            } else {                           /* no modifiers == change slice */
              int nold=seq->im_nr , dd=(but==Button4)?-1:+1 , nnew ;
+STATUS("scroll wheel ==> change slice") ;
              if( AFNI_yesenv("AFNI_INDEX_SCROLLREV") ) dd = -dd ;
              nnew = nold + dd ;
              ISQ_timer_stop(seq) ;
