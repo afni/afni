@@ -477,8 +477,8 @@ ENTRY("AFNI_display_motd") ;
      sprintf(msg,
      "\n"
      "         *********** Current AFNI Message of the Day **********\n\n"
-     "     [cf. %s ]\n\n"
-     "     [cf. menu item Define Datamode -> Misc -> Message of the Day ]\n\n"
+     "   [cf. %s ]\n\n"
+     "   [cf. menu item Define Datamode -> Misc -> Message of the Day ]\n\n"
      " ====================================================================\n\n"
      "%s\n"
      , url , buf );
