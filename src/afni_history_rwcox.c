@@ -44,6 +44,12 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 19 , OCT , 2010 , RWC , "3dttest++" , MICRO , TYPE_GENERAL ,
+   "Do t-test of covariates between groups (2-sample case)" ,
+   "Only for fixed covariates (not those from datasets, which would be a\n"
+   "per-voxel test).  Intended to help guide understanding when two groups\n"
+   "of subjects differ markedly in some input factor." } ,
+
  { 18 , OCT , 2010 , RWC , "afni" , MICRO , TYPE_GENERAL ,
    "Add SaveAs buttons to Datamode panel" ,
    NULL } ,
