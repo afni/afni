@@ -682,6 +682,8 @@ static void GICOR_refit_stat_menus(void) ;
 
 #undef GIC_ALLOW_TTEST
 
+#undef GIC_ALLOW_CLUST  /* 19 Oct 2010 -- remove clustering */
+
 /*---------------------------------------------------------------------------*/
 /*-- Called from afni_niml.c when 3dGroupInCorr sends a setup NIML element --*/
 
@@ -977,6 +979,7 @@ ENTRY("GICOR_process_dataset") ;
 
    vmul = giset->vmul ;
    thr  = im3d->vinfo->func_threshold * im3d->vinfo->func_thresh_top ;
+#ifdef GIC_ALLOW_CLUST
    if( vmul > 0 && thr > 0.0f ){
      MRI_IMAGE *dsim , *tsim , *clim ;
      int thrsign=im3d->vinfo->thr_sign , pfun=im3d->vinfo->use_posfunc ;
@@ -993,6 +996,7 @@ ENTRY("GICOR_process_dataset") ;
        mri_free(clim) ;
      }
    }
+#endif
    DSET_KILL_STATS(giset->dset) ; THD_load_statistics(giset->dset) ;
    AFNI_reset_func_range(im3d) ;
 
@@ -1197,8 +1201,10 @@ ENTRY("GICOR_init") ;
    PLUTO_add_string ( plint , "t-test"  , ntops , topts , giset->ttest_opcode ) ;
 #endif
 
+#ifdef GIC_ALLOW_CLUST
    PLUTO_add_option ( plint , "Clustering" , "Cluster" , TRUE ) ;
    PLUTO_add_number ( plint , "Voxels Min"  , 0,9999,0 , 0,TRUE ) ;
+#endif
 
    if( giset->toplabel != NULL )
      PLUTO_set_toplabel( GICOR_plint , giset->toplabel ) ;
@@ -1297,8 +1303,10 @@ ENTRY("GICOR_main") ;
    topcod = PLUTO_string_index( tch , 3 , topts ) ;
 #endif
 
+#ifdef GIC_ALLOW_CLUST
    PLUTO_next_option(plint) ;
-   vmul   = (int)PLUTO_get_number(plint) ;
+   vmul = (int)PLUTO_get_number(plint) ;
+#endif
 
    /* do something with these changes */
 
