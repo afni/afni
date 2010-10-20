@@ -324,8 +324,11 @@ ENTRY("THD_deconvolve_multipen") ;
 #else
    fmed = 0.333f * kernsum ;
 #endif
+
+#if 0
    if( AFNI_yesenv("AFNI_TFITTER_VERBOSE") )
      ININFO_message("default penalty scale factor=%g",fmed) ;
+#endif
 
    /* number of equations and number of references */
 
@@ -450,9 +453,11 @@ ENTRY("THD_deconvolve_multipen") ;
          break ;
        }
        KILL_floatvec(fitv) ; pres[ipf] = rsum ; psiz[ipf] = ssum ;
+#if 0
        if( AFNI_yesenv("AFNI_TFITTER_VERBOSE") )
          ININFO_message("qfac=%g penfac=%g resid=%g norm=%g",
                         qfac[ipf],penfac,rsum,ssum) ;
+#endif
      }
 
    }
@@ -673,8 +678,10 @@ ENTRY("THD_deconvolve_autopen") ;
    for( ii=0 ; ii < NPFAC ; ii++ ) if( ii != ipk ) KILL_floatvec(fvv[ii]) ;
    free((void *)fvv) ;
    if( penfac_used != NULL ) *penfac_used = pfac[ipk] ;
+#if 0
    if( AFNI_yesenv("AFNI_TFITTER_VERBOSE") )
      ININFO_message("Optimal penfac_used#%d = %g",ipk,pfac[ipk]) ;
+#endif
 
    if( do_fitv ){ KILL_floatvec(gfitv); gfitv = gv; }
    RETURN(fv) ;
