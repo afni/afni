@@ -1555,6 +1555,7 @@ ENTRY("AFNI_newfunc_overlay") ;
 
    /* create output image */
 
+STATUS("create output image") ;
    im_ov = mri_new_conforming( im_fim , MRI_rgb ) ;
    ovar  = MRI_RGB_PTR(im_ov) ;
    npix  = im_ov->nvox ;
@@ -1566,11 +1567,14 @@ ENTRY("AFNI_newfunc_overlay") ;
    switch( im_fim->kind ){
 
       default:                             /* should not happen! */
+STATUS("bad data kind") ;
         mri_free(im_ov) ;
       RETURN(NULL) ;
 
       case MRI_short:{
         short *ar_fim = MRI_SHORT_PTR(im_fim) ;
+
+STATUS("data kind = short") ;
 
         for( ii=0 ; ii < npix ; ii++ ){
           if( ZREJ(ar_fim[ii]) )       continue ;
@@ -1590,6 +1594,8 @@ ENTRY("AFNI_newfunc_overlay") ;
       case MRI_byte:{
         byte *ar_fim = MRI_BYTE_PTR(im_fim) ;
 
+STATUS("data kind = byte") ;
+
         for( ii=0 ; ii < npix ; ii++ ){
           if( ZREJ(ar_fim[ii]) ) continue ;
           val = fac*(fimtop-ar_fim[ii]) ;
@@ -1607,9 +1613,17 @@ ENTRY("AFNI_newfunc_overlay") ;
       case MRI_float:{
         float *ar_fim = MRI_FLOAT_PTR(im_fim) ;
 
+STATUS("data kind = float") ;
+
+#if 0
+INFO_message("kind = float; npix=%d",npix) ;
+#endif
         for( ii=0 ; ii < npix ; ii++ ){
-          if( ZREJ(ar_fim[ii]) )        continue ;
-          if( zbot && ar_fim[ii] < 0.0 ) continue ;
+#if 0
+fprintf(stderr,"%d ",ii) ;
+#endif
+          if( ZREJ(ar_fim[ii]) )          continue ;
+          if( zbot && ar_fim[ii] < 0.0f ) continue ;
           val = fac*(fimtop-ar_fim[ii]) ;
           if( val < 0.0 ) val = 0.0;
           else if (ar_fim[ii] < fimbot) val = NPANE_BIG-1;
@@ -1619,6 +1633,9 @@ ENTRY("AFNI_newfunc_overlay") ;
           ovar[3*ii+1] = fimcolor[jj].g ;
           ovar[3*ii+2] = fimcolor[jj].b ;
         }
+#if 0
+fprintf(stderr,"\n") ;
+#endif
       }
       break ;
    }
@@ -1632,6 +1649,8 @@ ENTRY("AFNI_newfunc_overlay") ;
          register float thb=thbot , tht=thtop ;
          register short *ar_thr = MRI_SHORT_PTR(im_thr) ;
 
+STATUS("thresh kind = short") ;
+
          for( ii=0 ; ii < npix ; ii++ ){
            if( ar_thr[ii] > thb && ar_thr[ii] < tht )
              ovar[3*ii] = ovar[3*ii+1] = ovar[3*ii+2] = 0 ;
@@ -1643,6 +1662,8 @@ ENTRY("AFNI_newfunc_overlay") ;
          register float thb=thbot , tht=thtop ;
          register byte *ar_thr = MRI_BYTE_PTR(im_thr) ;
 
+STATUS("thresh kind = byte") ;
+
          for( ii=0 ; ii < npix ; ii++ )  /* assuming thb <= 0 always */
            if( ar_thr[ii] < tht )
              ovar[3*ii] = ovar[3*ii+1] = ovar[3*ii+2] = 0 ;
@@ -1652,6 +1673,8 @@ ENTRY("AFNI_newfunc_overlay") ;
        case MRI_float:{
          register float thb=thbot , tht=thtop ;
          register float *ar_thr = MRI_FLOAT_PTR(im_thr) ;
+
+STATUS("thresh kind = float") ;
 
          for( ii=0 ; ii < npix ; ii++ )
            if( ar_thr[ii] > thb && ar_thr[ii] < tht )

@@ -100,9 +100,13 @@ int main( int argc , char *argv[] )
              "You will need to turn plugouts on in AFNI using one of the\n"
              "following methods: \n"
              " 1. Including '-yesplugouts' as an option on AFNI's command line\n"
-             " 2. From AFNI: Define Datamode->Misc->Start Plugouts\n"
-             " 3. Set environment variable AFNI_YESPLUGOUTS to YES in .afnirc\n"
+             " 2. From AFNI GUI: Define Datamode->Misc->Start Plugouts\n"
+             " 3. From AFNI GUI: Press the 'NIML+PO' button (near 'Overlay')\n"
+             " 4. Set environment variable AFNI_YESPLUGOUTS to YES in .afnirc\n"
              "Otherwise, AFNI won't be listening for a plugout connection.\n"
+             "  [AFNI does't listen for socket connections unless]\n"
+             "  [it is told to, in order to avoid the overhead of]\n"
+             "  [checking for incoming data all the time.        ]\n"
              "\n"
             ) ;
       exit(0) ;
@@ -327,9 +331,9 @@ int afni_io(void)
             fprintf(stderr,"++ AFNI control channel connected\n");
       } else {
          delta_t = (((float)(tn.tv_sec  - tw.tv_sec )*Time_Fact) +     /* time spent waiting */
-                     (float)(tn.tv_usec - tw.tv_usec)) /Time_Fact;
-         if (delta_t > 5.0) {
-            fprintf(stderr,"** Waited 5 seconds to no avail.\n"
+                     (float)(tn.tv_usec - tw.tv_usec))/Time_Fact ;
+         if (delta_t > 9.0) {
+            fprintf(stderr,"** Waited 9 seconds to no avail.\n"
                            "   I quit.\n");
             IOCHAN_CLOSE(afni_ioc) ;
             afni_mode = 0 ;
