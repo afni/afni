@@ -346,6 +346,17 @@ READ_NIML_FILE fname
   Reads the NIML-formatted file 'fname' from disk and processes it as if
   the data in the file had been sent to AFNI through a TCP/IP socket.
 
+INSTACORR command
+  This command is to drive the InstaCorr functionality in AFNI.  The only
+  'command' that is implemented now [20 Oct 2010] is
+     SET
+  which sets the InstaCorr seed (in controller A) to the current
+  crosshair location, or
+     SET x y z
+  which sets the InstaCorr seed to the given DICOM coordinates.
+  In the nebulous future, other commands will be implemented to allow
+  the driver to setup InstaCorr, etc.
+
 PURGE_MEMORY [dataset_prefix]
   If no prefix is given, the sub-bricks of all datasets will be purged from
   memory, and when re-used, AFNI will re-read them from disk.  If a prefix
