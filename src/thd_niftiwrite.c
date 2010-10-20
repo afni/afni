@@ -181,9 +181,10 @@ ENTRY("populate_nifti_image") ;
       }
       if (nim->intent_code > -1) {
         nparam = FUNC_need_stat_aux[nim->intent_code];
-        if (nparam >= 1) nim->intent_p1 = DSET_BRICK_STATPAR(dset,0,1);
-        if (nparam >= 2) nim->intent_p2 = DSET_BRICK_STATPAR(dset,0,2);
-        if (nparam == 3) nim->intent_p3 = DSET_BRICK_STATPAR(dset,0,3);
+        /* statpars should be 0-based             20 Oct 2010 [rickr] */
+        if (nparam >= 1) nim->intent_p1 = DSET_BRICK_STATPAR(dset,0,0);
+        if (nparam >= 2) nim->intent_p2 = DSET_BRICK_STATPAR(dset,0,1);
+        if (nparam == 3) nim->intent_p3 = DSET_BRICK_STATPAR(dset,0,2);
       }
     }
     if (dset->daxes->nzz > 1) {
