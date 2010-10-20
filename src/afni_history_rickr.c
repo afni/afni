@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 20, OCT, 2010, RCR, "Dimon", MINOR, TYPE_NEW_OPT,
+   "added -sort_by_acq_time for -dicom_org on Philips data",
+   "Added for Manjula."
+ } ,
+
  { 20, OCT, 2010, RCR, "thd_niftiwrite.c", MICRO, TYPE_BUG_FIX,
    "brick stats to intent codes was off by 1 index",
    "Problem noted by P Kohn."
