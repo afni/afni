@@ -142,6 +142,17 @@ ENTRY("AFNI_clu_CB") ;
      char *lvec[2] = { "NN level " , "Voxels   " } ;
      float fvec[2] ;
      MCW_arrowval **vav ; int nav ;
+
+     if( im3d->giset != NULL && im3d->giset->ready ){  /* 20 Oct 2010 */
+       (void)MCW_popup_message( w ,
+                                 " You can't use Clusterize \n"
+                                 " while Group InstaCorr is \n"
+                                 " attached to this AFNI\n"
+                                 " controller." ,
+                                MCW_USER_KILL | MCW_TIMER_KILL ) ;
+       BEEPIT ; EXRETURN ;
+     }
+
      if( im3d->vedset.code == VEDIT_CLUST ){
        fvec[0] = -im3d->vedset.param[2];
        fvec[1] =  im3d->vedset.param[3]; if( fvec[1] < 2.0f ) fvec[1] = 20.0f;
