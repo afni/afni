@@ -44,6 +44,9 @@
  *
  * 20 November 2006 [rickr]
  *   - change EPISILON of 0.1 to gD_epsilon from dimon.c
+ *
+ * 20 October 2010 [rickr]
+ *   - get ID_ACQUISITION_TIME for sorting Philips
  *----------------------------------------------------------------------
 */
 
@@ -149,7 +152,8 @@ int    disp_obl_info(char * mesg);
 /*--------------------------------------------------------------------*/
 /* useful Dicom information that is not stored in an MRI_IMAGE struct */
 struct dimon_stuff_t {
-   int study, series, image, image_index;
+   int   study, series, image, image_index;
+   float acq_time;
 } gr_dimon_stuff;
 static int g_debug = 0;
 /*-------------------------------------------------------------------------*/
@@ -194,6 +198,7 @@ static char *elist[] = {
  "0028 1051" ,  /* Window width */
 
  "0008 0008" ,  /* ID Image type */
+ "0008 0032" ,  /* ID Acquisition Time (Philips)        20 Oct 2010 [rickr] */
  "0008 0070" ,  /* ID Manufacturer */
  "0018 1310" ,  /* Acquisition Matrix */
 
@@ -237,17 +242,18 @@ NULL } ;
 #define E_WINDOW_WIDTH               22
 
 #define E_ID_IMAGE_TYPE              23    /* 28 Oct 2002: for Siemens mosaic */
-#define E_ID_MANUFACTURER            24
-#define E_ACQ_MATRIX                 25
+#define E_ID_ACQUISITION_TIME        24    /* 20 Oct 2010: Philips sorting */
+#define E_ID_MANUFACTURER            25
+#define E_ACQ_MATRIX                 26
 
-#define E_SIEMENS_1                  26    /* 31 Oct 2002 */
-#define E_SIEMENS_2                  27
+#define E_SIEMENS_1                  27    /* 31 Oct 2002 */
+#define E_SIEMENS_2                  28
 
-#define E_RS_STUDY_NUM               28    /* 10 Feb 2005: for Imon [rickr] */
-#define E_RS_SERIES_NUM              29
-#define E_RS_IMAGE_NUM               30
+#define E_RS_STUDY_NUM               29    /* 10 Feb 2005: for Imon [rickr] */
+#define E_RS_SERIES_NUM              30
+#define E_RS_IMAGE_NUM               31
 
-#define E_RS_IMAGE_INDEX             31    /* 06 May 2010: for PET [rickr] */
+#define E_RS_IMAGE_INDEX             32    /* 06 May 2010: for PET [rickr] */
 
 /*-------------------------------------------------------------------------*/
 /*! Read image(s) from a DICOM file, if possible.
@@ -617,6 +623,11 @@ MRI_IMAGE * r_mri_read_dicom( char *fname, int debug, void ** data )
    if( epos[E_RS_IMAGE_INDEX] != NULL ){
      ddd = strstr(epos[E_RS_IMAGE_INDEX],"//") ;
      if( ddd != NULL ) sscanf( ddd+2 , "%d" , &gr_dimon_stuff.image_index);
+   }
+
+   if( epos[E_ID_ACQUISITION_TIME] != NULL ){
+     ddd = strstr(epos[E_ID_ACQUISITION_TIME],"//") ;
+     if( ddd != NULL ) sscanf( ddd+2 , "%f" , &gr_dimon_stuff.acq_time);
    }
 
    /** Finally! Read images from file. **/
