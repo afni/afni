@@ -40,6 +40,13 @@ def db_mod_tcat(block, proc, user_opts):
             '   --> the stimulus timing files must reflect the '             \
                     'removal of these TRs' % bopt.parlist[0]
 
+    uopt = user_opts.find_opt('-tcat_remove_last_trs')
+    if uopt:
+        bopt = block.opts.find_opt('-tcat_remove_last_trs')
+        if bopt: bopt.parlist = uopt.parlist
+        else:    block.opts.add_opt('-tcat_remove_last_trs',
+                                    1, uopt.parlist, setpar=1)
+
     if errs == 0: block.valid = 1
     else        : block.valid = 0
 
@@ -50,22 +57,35 @@ def db_cmd_tcat(proc, block):
     opt = block.opts.find_opt('-tcat_remove_first_trs')
     first = opt.parlist[0]
 
+    # remove the last TRs?  set rmlast
+    val, err = proc.user_opts.get_type_opt(int, '-tcat_remove_last_trs')
+    if err: return 1, ''
+    if val == None: rmlast = 0
+    else: rmlast = val
+
     cmd = cmd + "# %s\n"                                                      \
                 "# apply 3dTcat to copy input dsets to results dir, while\n"  \
                 "# removing the first %d TRs\n"                               \
                 % (block_header('auto block: tcat'), first)
     for run in range(0, proc.runs):
-        cmd = cmd + "3dTcat -prefix %s/%s %s'[%d..$]'\n" %              \
+        if rmlast == 0: final = '$'
+        else:
+            reps = proc.reps_all[run]
+            final = '%d' % (reps-rmlast-1)
+            if reps-rmlast-1 < 0:
+                print '** run %d: have %d reps, cannot remove %d!' \
+                      % (run+1, reps, rmlast)
+        cmd = cmd + "3dTcat -prefix %s/%s %s'[%d..%s]'\n" %              \
                     (proc.od_var, proc.prefix_form(block,run+1),
-                     proc.dsets[run].rel_input(), first)
+                     proc.dsets[run].rel_input(), first, final)
 
     cmd = cmd + '\n'                                                          \
                 '# -------------------------------------------------------\n' \
                 '# enter the results directory (can begin processing data)\n' \
                 'cd %s\n\n\n' % proc.od_var
 
-    proc.reps   -= first        # update reps to account for removed TRs
-    proc.reps_all = [reps-first for reps in proc.reps_all]
+    proc.reps   -= first+rmlast # update reps to account for removed TRs
+    proc.reps_all = [reps-first-rmlast for reps in proc.reps_all]
 
     proc.bindex += 1            # increment block index
     proc.pblabel = block.label  # set 'previous' block label
@@ -316,13 +336,32 @@ def copy_ricor_regs_str(proc):
     """make a string to copy the retroicor regressors to the results dir"""
     if len(proc.ricor_regs) < 1: return ''
 
-    str = '# copy slice-based regressors for RETROICOR (rm first %d TRs)\n' \
-          % proc.ricor_nfirst
+    # maybe remove final TRs as well, do a little work here...
+    trs = []
+    lstr = ''
+    if proc.ricor_nlast > 0:
+        try:
+            import lib_afni1D as LAD
+            for reg in proc.ricor_regs:
+                adata = LAD.Afni1D(reg)
+                trs.append(adata.nt)
+        except:
+            print '** failing to remove last %d TRs' % proc.ricor_nlast
+            return ''
+        lstr = 'and last %d' % proc.ricor_nlast
+
+    str = '# copy slice-based regressors for RETROICOR (rm first %d %sTRs)\n' \
+          % (proc.ricor_nfirst, lstr)
 
     if proc.ricor_nfirst > 0: offstr = "'{%d..$}'" % proc.ricor_nfirst
     else:                     offstr = ''
     
+    offstr = ''         # default
+    lstr   = '$'
     for ind in range(len(proc.ricor_regs)):
+        if proc.ricor_nfirst > 0 or proc.ricor_nlast > 0:
+            if proc.ricor_nlast > 0: lstr = '%d' % (trs[ind]-1-proc.ricor_nlast)
+            offstr = "'{%d..%s}'" % (proc.ricor_nfirst, lstr)
         str += '1dcat %s%s > %s/stimuli/ricor_orig_r%02d.1D\n' % \
                (proc.ricor_regs[ind], offstr, proc.od_var, ind+1)
 
@@ -349,6 +388,11 @@ def db_mod_ricor(block, proc, user_opts):
     val, err = user_opts.get_type_opt(int, '-ricor_regs_nfirst')
     if err: return
     elif val != None and val >= 0: proc.ricor_nfirst = val
+
+    # delete nlast trs from end of each run
+    val, err = user_opts.get_type_opt(int, '-ricor_regs_rm_nlast')
+    if err: return
+    elif val != None and val >= 0: proc.ricor_nlast = val
 
     # --------- setup options to pass to block ------------
     if len(block.opts.olist) == 0:
@@ -438,7 +482,7 @@ def db_cmd_ricor(proc, block):
     if proc.verb > 2: print '-- ricor: slice 0 labels: %s' % ' '.join(nsr_labs)
 
     # check reps against adjusted NT
-    nt = adata.nt-proc.ricor_nfirst
+    nt = adata.nt-proc.ricor_nfirst-proc.ricor_nlast
     if proc.reps != nt:
         print "** ERROR: ricor NT != dset len (%d, %d)"                 \
               "   (check -ricor_regs_nfirst/-tcat_remove_first_trs)"    \
@@ -3933,6 +3977,15 @@ g_help_string = """
             later ones.  This option is used to specify how many TRs to
             remove from the beginning of every run.
 
+        -tcat_remove_last_trs NUM : specify TRs to remove from run ends
+
+                e.g. -tcat_remove_last_trs 10
+                default: 0
+
+            For when the user wants a simple way to shorten each run.
+
+            See also -ricor_regs_rm_nlast.
+
         -despike_mask           : allow Automasking in 3dDespike
 
             By default, -nomask is applied to 3dDespike.  Since anatomical
@@ -4052,6 +4105,15 @@ g_help_string = """
             -tcat_remove_first_trs.
 
             See also '-tcat_remove_first_trs', '-ricor_regs', '-dsets'.
+
+        -ricor_regs_rm_nlast NUM : remove the last NUM TRs from each regressor
+
+                e.g. -ricor_regs_rm_nlast 10
+                default: 0
+
+            For when the user wants a simple way to shorten each run.
+
+            See also -tcat_remove_last_trs.
 
         -tshift_align_to TSHIFT OP : specify 3dTshift alignment option
 

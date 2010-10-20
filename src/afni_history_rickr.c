@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 20, OCT, 2010, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "added -tcat_remove_last_trs, -ricor_regs_rm_nlast",
+   "Added for J Czarapata."
+ } ,
+
  { 20, OCT, 2010, RCR, "Dimon", MINOR, TYPE_NEW_OPT,
    "added -sort_by_acq_time for -dicom_org on Philips data",
    "Added for Manjula."
