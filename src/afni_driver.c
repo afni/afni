@@ -46,13 +46,15 @@ static int AFNI_drive_get_dicom_xyz( char *cmd ) ;  /* 07 Oct 2010 */
 static int AFNI_drive_set_spm_xyz( char *cmd ) ;    /* 28 Jul 2005 */
 static int AFNI_drive_set_ijk( char *cmd ) ;        /* 28 Jul 2005 */
 static int AFNI_drive_get_ijk( char *cmd ) ;        /* 07 Oct 2010 */
-static int AFNI_drive_set_ijk_index( char *cmd ) ;      /* 29 Jul 2010 */
+static int AFNI_drive_set_ijk_index( char *cmd ) ;  /* 29 Jul 2010 */
 static int AFNI_drive_set_xhairs( char *cmd ) ;     /* 28 Jul 2005 */
 static int AFNI_drive_save_filtered( char *cmd ) ;  /* 14 Dec 2006 */
 static int AFNI_drive_save_allpng( char *cmd ) ;    /* 15 Dec 2006 */
 
 static int AFNI_drive_system( char *cmd ) ;         /* 19 Dec 2002 */
 static int AFNI_drive_chdir ( char *cmd ) ;         /* 19 Dec 2002 */
+
+static int AFNI_drive_instacorr( char *cmd ) ;      /* 20 Oct 2010 */
 
 #ifdef ALLOW_PLUGINS
 static int AFNI_drive_open_plugin( char *cmd ) ;    /* 13 Nov 2001 */
@@ -189,6 +191,8 @@ static AFNI_driver_pair dpair[] = {
  { "DEFINE_COLORSCALE"  , AFNI_define_colorscale       } ,
  { "DEFINE_COLOR_SCALE" , AFNI_define_colorscale       } ,
  { "OPEN_PANEL"         , AFNI_open_panel              } ,
+
+ { "INSTACORR"          , AFNI_drive_instacorr         } , /* 20 Oct 2010 */
 
  { "REDISPLAY"          , AFNI_redisplay               } ,
  { "REDRAW"             , AFNI_redisplay               } ,
@@ -585,14 +589,14 @@ ENTRY("AFNI_switch_anatomy") ;
 
    if( strlen(dname) == 0 ) RETURN(-1) ;
 
-   if( nuse > 0 && 
-       *(cmd+dadd+nuse)!= '\0' && 
-       *(cmd+dadd+nuse+1) != '\0') { 
+   if( nuse > 0 &&
+       *(cmd+dadd+nuse)!= '\0' &&
+       *(cmd+dadd+nuse+1) != '\0') {
       sscanf( cmd+dadd+nuse+1 , "%d" , &sb ) ;  /* 30 Nov 2005 */
                /* not checking for early string termination
                   before sscanf was causing corruption in some cases.
                   ZSS Nov 2009 */
-   }  else  {         
+   }  else  {
       sb = 0 ;
    }
 
@@ -601,7 +605,7 @@ ENTRY("AFNI_switch_anatomy") ;
                      "defaulting to 0\n", sb);
       sb = 0;
    }
-   
+
    /* find this dataset in current session of this controller */
 
    slf = THD_dset_in_session( FIND_PREFIX , dname , im3d->ss_now ) ;
@@ -666,7 +670,7 @@ ENTRY("AFNI_switch_function") ;
    } else {
       nfun = 0; nthr = 0;
    }
-   
+
    if (nfun < 0) {
       WARNING_message("bad sub-brick selection %d\n"
                      "defaulting to 0\n", nfun);
@@ -2954,6 +2958,28 @@ static int AFNI_trace( char *cmd )
    DBG_trace = (YESSISH(cmd)) ? 2 : 0 ;
 #endif
    return 0 ;
+}
+
+/*--------------------------------------------------------------------*/
+/*! INSTACORR SET [x y z] */
+
+static int AFNI_drive_instacorr( char *cmd )
+{
+   float x,y,z ; int good=0 ;
+   Three_D_View *im3d = GLOBAL_library.controllers[0] ;
+
+   if( strlen(cmd) < 1 || !IM3D_OPEN(im3d) ) return -1 ; /* A only */
+
+   if( strncasecmp(cmd,"SET",3) == 0 ){
+     if( cmd[3] != '\0' ) good = sscanf(cmd+3,"%f %f %f",&x,&y,&z) ;
+     if( good < 3 ) AFNI_icor_setref    (im3d)       ;  /* no x y z */
+     else           AFNI_icor_setref_xyz(im3d,x,y,z) ;
+     good = 0 ;
+   } else {
+     good = -1 ;
+   }
+
+   return good ;
 }
 
 /*--------------------------------------------------------------------*/

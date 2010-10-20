@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 20 , OCT , 2010 , RWC , "afni" , MICRO , TYPE_GENERAL ,
+   "Add 'INSTACORR SET' the the drive command list" ,
+   NULL } ,
+
  { 20 , OCT , 2010 , RWC , "afni and 3dGroupInCorr" , MICRO , TYPE_GENERAL ,
    "Clusterize and GrpInCorr together are tricky :-(" ,
    "(1) remove the Cluster option from the GrpInCorr setup panel, since this\n"
