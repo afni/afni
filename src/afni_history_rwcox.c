@@ -44,6 +44,14 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 20 , OCT , 2010 , RWC , "afni and 3dGroupInCorr" , MICRO , TYPE_GENERAL ,
+   "Clusterize and GrpInCorr together are tricky :-(" ,
+   "(1) remove the Cluster option from the GrpInCorr setup panel, since this\n"
+   "only causes trouble (clustering was not re-done when changing thresholds\n"
+   "or sub-bricks).\n"
+   "(2) explain in the 3dGroupInCorr help text how to combine Clusterize\n"
+   "with GrpInCorr in two tricky (and slightly clumsy) ways." } ,
+
  { 19 , OCT , 2010 , RWC , "3dttest++" , MICRO , TYPE_GENERAL ,
    "Do t-test of covariates between groups (2-sample case)" ,
    "Only for fixed covariates (not those from datasets, which would be a\n"
