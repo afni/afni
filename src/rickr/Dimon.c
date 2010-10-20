@@ -49,10 +49,12 @@ static char * g_history[] =
     "      - look for field 0054 1330 (Image Index) in image sorting\n"
     "        (for S Kippenhan, S Wei, G Alarcon)\n"
     "      - allow negatives in -sort_by_num_suffix\n"
+    " 2.21 Oct 20, 2010 [rickr] - added -sort_by_acq_time for -dicom_org\n"
+    "                             (for Manjula)\n"
     "----------------------------------------------------------------------\n"
 };
 
-#define DIMON_VERSION "version 2.20 (May 6, 2010)"
+#define DIMON_VERSION "version 2.21 (Oct 20, 2010)"
 
 /*----------------------------------------------------------------------
  * Dimon - monitor real-time aquisition of Dicom or I-files
@@ -112,8 +114,8 @@ extern char  DI_MRL_orients[8];
 extern float DI_MRL_tr;
 extern int   g_use_last_elem;
 
-extern struct dimon_stuff_t { int study, series, image, image_index; }
-              gr_dimon_stuff;
+extern struct dimon_stuff_t { int study, series, image, image_index;
+                              float acq_time; } gr_dimon_stuff;
 
 static int         clear_float_zeros( char * str );
 int                compare_finfo( const void * v0, const void * v1 );
@@ -205,6 +207,7 @@ ART_comm  gAC;          /* afni communication struct */
 
 float     gD_epsilon       = IFM_EPSILON;
 int       g_dicom_sort_dir = 1;  /* can use to swap sort direction          */
+int       g_sort_by_atime  = 0;  /* choose to sort by acquisition time      */
 int       g_sort_type      = 0;  /* bitmask: note fields applied in sorting */
 
 /***********************************************************************/
@@ -1488,6 +1491,11 @@ static int dicom_order_files( param_t * p )
         fprintf(stderr,"-- checking %d potential DICOM files...  00%%",
                 p->nfiles);
 
+    if( p->opts.sort_acq_time ) {
+        if( gD.level > 0 ) fprintf(stderr,"++ will sort by acqusition time\n");
+        g_sort_by_atime = 1;
+    }
+
     flist = (finfo_t *)calloc(p->nfiles, sizeof(finfo_t));
     if( !flist )
     {
@@ -1574,7 +1582,7 @@ static int dicom_order_files( param_t * p )
     if(gD.level > 0)
     {
         fprintf(stderr,"-- dicom sort : %d inversions, %d non-DICOM files, "
-                "sort type %x\n", scount, p->nfiles-dcount, g_sort_type);
+                "sort type 0x%x\n", scount, p->nfiles-dcount, g_sort_type);
         fprintf(stderr,"   (dicom_org was %s)\n", rv ? "useful":"unnecessary");
     }
 
@@ -1719,6 +1727,8 @@ static int get_num_suffix( char * str )
 
 /*----------------------------------------------------------------------
  * compare run:index values from ge_header structs
+ *
+ * if sorting by acquisition time, try that after run number
  *----------------------------------------------------------------------
 */
 int compare_finfo( const void * v0, const void * v1 )
@@ -1731,6 +1741,8 @@ int compare_finfo( const void * v0, const void * v1 )
     if     ( h1->uv17 < 0 ) { g_sort_type |= 1; return -1; }
     else if( h0->uv17 < 0 ) { g_sort_type |= 1; return 1; }
 
+    dir = g_dicom_sort_dir;
+
     /* check the run */
     if( h0->uv17 != h1->uv17 )
     {
@@ -1738,17 +1750,20 @@ int compare_finfo( const void * v0, const void * v1 )
         { g_sort_type |= 2; return 1; }
     }
 
-    dir = g_dicom_sort_dir;
+    if( g_sort_by_atime ) {
+        if     ( h0->atime < h1->atime ) { g_sort_type |= 4; return -dir; }
+        else if( h0->atime > h1->atime ) { g_sort_type |= 4; return dir; }
+    }
 
     /* check the image index fields, this is where dir can be changed */
 
     /* 0054 1330: IMAGE INDEX */
-    if     ( h0->im_index < h1->im_index ) { g_sort_type |= 4; return -dir; }
-    else if( h0->im_index > h1->im_index ) { g_sort_type |= 4; return dir; }
+    if     ( h0->im_index < h1->im_index ) { g_sort_type |= 8; return -dir; }
+    else if( h0->im_index > h1->im_index ) { g_sort_type |= 8; return dir; }
 
     /* 0020 0013: REL Instance Number */
-    if     ( h0->index < h1->index ) { g_sort_type |= 8; return -dir; }
-    else if( h0->index > h1->index ) { g_sort_type |= 8; return dir; }
+    if     ( h0->index < h1->index ) { g_sort_type |= 16; return -dir; }
+    else if( h0->index > h1->index ) { g_sort_type |= 16; return dir; }
 
     return 0;  /* equal */
 }
@@ -2047,6 +2062,10 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             }
 
             p->opts.sleep_vol = atoi(argv[ac]);
+        }
+        else if ( ! strcmp( argv[ac], "-sort_by_acq_time" ) )
+        {
+            p->opts.sort_acq_time = 1;
         }
         else if ( ! strncmp( argv[ac], "-sort_by_num_suffix", 12 ) )
         {
@@ -2470,10 +2489,12 @@ static int read_dicom_image( char * pathname, finfo_t * fp, int get_data )
 
     if ( gD.level > 2 )
     {
-        fprintf(stderr,"+d dinfo (%s): std, ser, im = (%d, %d, %3d, %3d)\n",
+        fprintf(stderr,"+d dinfo (%s): std, ser, im, im_ind, time = "
+                       "(%d, %d, %3d, %3d, %.3f)\n",
             pathname,
             gr_dimon_stuff.study, gr_dimon_stuff.series,
-            gr_dimon_stuff.image, gr_dimon_stuff.image_index );
+            gr_dimon_stuff.image, gr_dimon_stuff.image_index,
+            gr_dimon_stuff.acq_time );
         fprintf(stderr,"          im->xo,yo,zo =    (%6.1f,%6.1f,%6.1f)\n",
                 im->xo, im->yo, im->zo);
     }
@@ -2486,6 +2507,7 @@ static int read_dicom_image( char * pathname, finfo_t * fp, int get_data )
     fp->geh.uv17  = gr_dimon_stuff.series;
     fp->geh.index = gr_dimon_stuff.image;            /* image number */
     fp->geh.im_index = gr_dimon_stuff.image_index;   /* image index number */
+    fp->geh.atime = gr_dimon_stuff.acq_time;         /* acquisition time */
     fp->geh.dx    = im->dx;
     fp->geh.dy    = im->dy;
     fp->geh.dz    = im->dz;
@@ -2856,6 +2878,7 @@ static int idisp_opts_t( char * info, opts_t * opt )
             "   gert_nz            = %d\n"
             "   dicom_org          = %d\n"
             "   sort_num_suff      = %d\n"
+            "   sort_acq_time      = %d\n"
             "   rev_org_dir        = %d\n"
             "   rev_sort_dir       = %d\n"
             "   flist_file         = %s\n"
@@ -2878,7 +2901,7 @@ static int idisp_opts_t( char * info, opts_t * opt )
             opt->show_sorted_list, opt->gert_reco,
             CHECK_NULL_STR(opt->gert_filename),
             CHECK_NULL_STR(opt->gert_prefix), opt->gert_nz,
-            opt->dicom_org, opt->sort_num_suff,
+            opt->dicom_org, opt->sort_num_suff, opt->sort_acq_time,
             opt->rev_org_dir, opt->rev_sort_dir,
             CHECK_NULL_STR(opt->flist_file),
             opt->rt, opt->swap, opt->rev_bo,
@@ -3013,12 +3036,14 @@ static int idisp_ge_header_info( char * info, ge_header_info * I )
             "    good        = %d\n"
             "    (nx,ny)     = (%d,%d)\n"
             "    uv17        = %d\n"
-            "    index        = %d\n"
+            "    index       = %d\n"
+            "    im_index    = %d\n"
+            "    atime       = %f\n"
             "    (dx,dy,dz)  = (%g,%g,%g)\n"
             "    zoff        = %g\n"
             "    (tr,te)     = (%g,%g)\n"
             "    orients     = %-8s\n",
-            I, I->good, I->nx, I->ny, I->uv17, I->index,
+            I, I->good, I->nx, I->ny, I->uv17, I->index, I->im_index, I->atime,
             I->dx, I->dy, I->dz, I->zoff, I->tr, I->te,
             CHECK_NULL_STR(I->orients)
           );
@@ -3112,7 +3137,13 @@ static int usage ( char * prog, int level )
       "    %s -infile_prefix   s8912345/i  -dicom_org -GERT_Reco -quit\n"
       "\n"
       "  A2. investigate a list of files: \n"
+      "\n"
       "    %s -infile_pattern '*' -dicom_org -show_sorted_list\n"
+      "\n"
+      "  A3. save a sorted list of files and check it later: \n"
+      "\n"
+      "    %s -infile_prefix data/im -dicom_org -save_file_list sorted.files\n"
+      "    %s -infile_list sorted.files ... \n"
       "\n"
       "  B. for GERT_Reco:\n"
       "\n"
@@ -3122,6 +3153,13 @@ static int usage ( char * prog, int level )
       "    %s -infile_prefix anat/image -GERT_Reco -quit\n"
       "    %s -infile_prefix epi_003/image -dicom_org -quit   \\\n"
       "          -GERT_Reco -gert_to3d_prefix run3 -gert_nz 42\n"
+      "\n"
+      "  B2. Deal with Philips data (names are not sorted, and image numbers\n"
+      "      are in slice-major order).  Sort by acq time, then inst num.\n"
+      "      See -sort_by_acq_time in help output for details.\n"
+      "\n"
+      "    %s -infile_pattern 'data/*.dcm' -GERT_Reco -quit \\\n"
+      "          -use_last_elem -dicom_org -sort_by_acq_time\n"
       "\n"
       "  C. with real-time options:\n"
       "\n"
@@ -3266,7 +3304,7 @@ static int usage ( char * prog, int level )
       "       run-time, though plugouts must be enabled to use it.\n"
       "\n"
       "  ---------------------------------------------------------------\n",
-      prog, prog, prog, prog, prog, prog, prog, prog, prog,
+      prog, prog, prog, prog, prog, prog, prog, prog, prog, prog, prog, prog,
       prog, prog, prog, prog, prog,
       prog, prog, prog, prog, prog, prog,
       prog, prog, prog, prog, prog, prog, prog );
@@ -3640,6 +3678,22 @@ static int usage ( char * prog, int level )
           "        user may wish to have a separate list of the files.\n"
           "\n"
           "        Note: this option requires '-dicom_org'.\n"
+          "\n"
+          "    -sort_by_acq_time  : sort files by acquisition time\n"
+          "\n"
+          "        e.g.  -dicom_org -sort_by_acq_time\n"
+          "\n"
+          "        When this option is used with -dicom_org, the program will\n"
+          "        sort DICOM images according to:\n"
+          "           run, acq time, image index and image number\n"
+          "\n"
+          "        For instance, Philips files may have 0020 0013 (Inst. Num)\n"
+          "        fields that are ordered as slice-major (volume minor).\n"
+          "        But since slice needs to be the minor number, Acquisition\n"
+          "        Time may be used for the major sort, before Instance Num.\n"
+          "        So sort first by Acquisition Num, then by Instance.\n"
+          "\n"
+          "        Consider example B2.\n"
           "\n"
           "    -sort_by_num_suffix : sort files according to numerical suffix\n"
           "\n"

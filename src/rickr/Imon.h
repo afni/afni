@@ -47,6 +47,7 @@ typedef struct                      /* stuff extracted from GE I.* image */
     int   uv17;                     /* apparently codes for scan index */
     int   index;                    /* image counter                   */
     int   im_index;                 /* image index, if one exists      */
+    float atime;                    /* acquisition time, if found      */
     float dx,dy,dz, zoff, tr,te;    /* various dimensions              */
                                     /* dxyz in mm, tr in seconds       */
     char  orients[8];               /* orientation string              */
@@ -125,6 +126,7 @@ typedef struct  /* user options */
     /* DICOM organization options */
     int              dicom_org;     /* flag to organize dicom files     */
     int              sort_num_suff; /* flag to sort by numerical suffix */
+    int              sort_acq_time; /* flag to sort by acq time         */
     int              rev_org_dir;   /* flag to reverse dicom_org dir    */
     int              rev_sort_dir;  /* flag to reverse glob sort dir    */
     char           * flist_file;    /* filename to save file list to    */
