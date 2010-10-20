@@ -214,9 +214,11 @@ g_history = """
     2.36 Aug 04 2010 :
         - allow married timing files (needed for -test_stim_files)
         - added -keep_script_on_err (NEW default: delete script on error)
+    2.37 Oct 20 2010 : added -tcat_remove_last_trs, -ricor_regs_rm_nlast
+        
 """
 
-g_version = "version 2.36, Aug 17, 2010"
+g_version = "version 2.37, Oct 20, 2010"
 
 # version of AFNI required for script execution
 g_requires_afni = "19 Jul 2010"
@@ -296,6 +298,7 @@ class SubjProcSream:
         self.ricor_nreg   = 0           # number of regs in ricor_reg
         self.ricor_regs   = []          # RETROICOR regressor files
         self.ricor_nfirst = 0           # number of TRs to remove
+        self.ricor_nlast  = 0           # number of final TRs to remove
 
         self.check_setup_errors = 0     # count init setup errors
         self.exit_on_error      = 1     # exit on any encountered error
@@ -436,6 +439,8 @@ class SubjProcSream:
         # block options
         self.valid_opts.add_opt('-tcat_remove_first_trs', 1, [],
                         helpstr='num TRs to remove from start of each run')
+        self.valid_opts.add_opt('-tcat_remove_last_trs', 1, [],
+                        helpstr='num TRs to remove from end of each run')
 
         self.valid_opts.add_opt('-despike_mask', 0, [],
                         helpstr="allow 3dDespike to automask (-dilate 4)")
@@ -456,6 +461,8 @@ class SubjProcSream:
                         helpstr='slice-based regressors for RETROICOR')
         self.valid_opts.add_opt('-ricor_regs_nfirst', 1, [],
                         helpstr='num first TRs to remove from ricor_regs')
+        self.valid_opts.add_opt('-ricor_regs_rm_nlast', 1, [],
+                        helpstr='num last TRs to remove from ricor_regs')
 
         self.valid_opts.add_opt('-tshift_align_to', -1, [],
                         helpstr='time alignment option given to 3dTshift')
