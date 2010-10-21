@@ -61,14 +61,17 @@ ENTRY("NLFIT_get_all_MODELs") ;
 
    flist = THD_get_all_filenames( dname ) ;
    if( flist == NULL || flist->num <= 0 ){
+STATUS("didn't find filenames") ;
       DESTROY_SARR(flist) ;
       DESTROY_MODEL_ARRAY(outar) ;
       RETURN (NULL) ;
    }
 
    rlist = THD_extract_regular_files( flist ) ;
+STATUS("destroying all_filenames list") ;
    DESTROY_SARR(flist) ;
    if( rlist == NULL || rlist->num <= 0 ){
+STATUS("didn't find regular files") ;
       DESTROY_SARR(rlist) ;
       DESTROY_MODEL_ARRAY(outar) ;
       RETURN (NULL) ;
