@@ -866,17 +866,18 @@ fm2 <- SVAR(x = fm, estmethod = "scoring", Amat = instMat, Bmat = bb, max.iter =
 #(vv$A[abs(vv$Ase)>1e-6])/(vv$As[abs(vv$Ase)>1e-6])
 instMatP <- diag(nROIs) - fm2$A   # instantaneous effects A0
 nZ <- function(x) ifelse(abs(x)>1e-7, x, 1e-7)  # avoid 0 standard error division
-instMatPt <- SEM/apply(fm2$Ase, c(1,2), nZ)   # t-value for instantaneous effects A0
+instMatPt <- instMatP/apply(fm2$Ase, c(1,2), nZ)   # t-value for instantaneous effects A0
 
 cat("\nInstantaneous effect matrix:\n")
-print(instMatP)
+print(t(instMatP))
+print(fm2$LR)
 saveInstMatP <- as.integer(readline("\nSave instantaneous effect matrix (0: no; 1: yes)? "))
 if (saveInstMatP) {
    instMatPName <- as.character(readline("File name prefix for instantaneous matrix? "))
    write.table(t(instMatP), file=sprintf("%s.1D", instMatPName), append=FALSE, row.names=names(myData), col.names=names(myData))
 }
 cat("\nT-values for instantaneous effect matrix:\n")
-print(instMatPt)
+print(t(instMatPt))
 saveInstMatPt <- as.integer(readline("\nSave t-values for instantaneous effect matrix (0: no; 1: yes)? "))
 if (saveInstMatPt) {   
    instMatPtName <- as.character(readline("File name prefix for t-values of instantaneous matrix? "))
