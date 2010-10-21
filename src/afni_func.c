@@ -1928,8 +1928,7 @@ STATUS("functional underlay") ;
 
 STATUS("defaulted anatomy underlay") ;
 
-            BEEPIT ;
-            WARNING_message("invalid Overlay dataset") ;
+            BEEPIT ; WARNING_message("invalid Overlay dataset") ;
 
             im3d->b123_ulay = im3d->b123_anat ;
             im3d->b231_ulay = im3d->b231_anat ;
@@ -4309,14 +4308,13 @@ ENTRY("AFNI_write_many_dataset_CB") ;
    } /* end of loop over sessions */
 
    if( num_dset <= 0 ){
-      BEEPIT ;
       (void) MCW_popup_message( w ,
                  "*******************************\n"
                  "** No datasets are available **\n"
                  "** to write out to disk.     **\n"
                  "*******************************"  ,
               MCW_USER_KILL | MCW_TIMER_KILL ) ;
-      EXRETURN ;
+      BEEPIT ; EXRETURN ;
    }
 
 #if 1
@@ -4587,8 +4585,6 @@ ENTRY("AFNI_write_dataset_CB") ;
 
    if( !good ){
 
-       BEEPIT ;
-
        (void) MCW_popup_message( w ,
                  "****************************************************\n"
                  "** Cannot write dataset for one of these reasons: **\n"
@@ -4600,7 +4596,7 @@ ENTRY("AFNI_write_dataset_CB") ;
                  "****************************************************"  ,
               MCW_USER_KILL | MCW_TIMER_KILL ) ;
 
-       EXRETURN;
+       BEEPIT ; EXRETURN;
    }
 
    SHOW_AFNI_PAUSE ;
@@ -5817,7 +5813,7 @@ STATUS("got func info") ;
 
       if( plint == NULL ){
         plint = ENV_init() ;
-        if( plint == NULL ){ BEEPIT; EXRETURN; }
+        if( plint == NULL ){ BEEPIT; WARNING_message("WTF?!"); EXRETURN; }
         PLUG_setup_widgets( plint , GLOBAL_library.dc ) ;
       }
 
@@ -5872,7 +5868,7 @@ STATUS("got func info") ;
 
       if( plint == NULL ){
          plint = F1D_init() ;
-         if( plint == NULL ){ BEEPIT; EXRETURN; }
+         if( plint == NULL ){ BEEPIT; WARNING_message("WTF?!"); EXRETURN; }
          PLUG_setup_widgets( plint , GLOBAL_library.dc ) ;
       }
 
@@ -5923,7 +5919,7 @@ STATUS("got func info") ;
 
       if( plint == NULL ){
          plint = F2D_init() ;
-         if( plint == NULL ){ BEEPIT; EXRETURN; }
+         if( plint == NULL ){ BEEPIT; WARNING_message("WTF?!"); EXRETURN; }
          PLUG_setup_widgets( plint , GLOBAL_library.dc ) ;
       }
 
@@ -5981,7 +5977,7 @@ STATUS("got func info") ;
 
       if( plint[ic] == NULL ){
          plint[ic] = ICOR_init(lc) ;
-         if( plint[ic] == NULL ){ BEEPIT; EXRETURN; }
+         if( plint[ic] == NULL ){ BEEPIT; WARNING_message("WTF?!"); EXRETURN; }
          PLUG_setup_widgets( plint[ic] , GLOBAL_library.dc ) ;
          plint[ic]->im3d = im3d ;
       }
@@ -6054,7 +6050,7 @@ STATUS("got func info") ;
 
       if( plint == NULL ){
          plint = GICOR_init(lc) ;
-         if( plint == NULL ){ BEEPIT; EXRETURN; }
+         if( plint == NULL ){ BEEPIT; WARNING_message("WTF?!"); EXRETURN; }
          PLUG_setup_widgets( plint , GLOBAL_library.dc ) ;
          plint->im3d = im3d ;
       }
@@ -6102,7 +6098,7 @@ STATUS("got func info") ;
 
      if( im3d->vwid->func->iwid == NULL ){
        ICALC_make_widgets(im3d) ;
-       if( im3d->vwid->func->iwid == NULL ){ BEEPIT; EXRETURN; }
+       if( im3d->vwid->func->iwid == NULL ){ BEEPIT; WARNING_message("WTF?!"); EXRETURN; }
      }
 
      if( im3d->icalc_setup == NULL )
@@ -6676,7 +6672,7 @@ ENTRY("AFNI_hidden_pts_CB") ;
 
          sv = im3d->anat_now->pts ;
          if( sv == NULL || sv->num == 0 ){
-            BEEPIT ; EXRETURN ;
+            BEEPIT ; WARNING_message("Can't write -- no points!") ; EXRETURN ;
          }
 
          if( cbs->cval[0] == '|' ){  /* send to standard output */

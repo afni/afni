@@ -751,10 +751,10 @@ void AFNI_faceup(void)   /* 17 Dec 2004 */
 
 ENTRY("AFNI_faceup") ;
 
-   if( num_face <  0 ){ BEEPIT; EXRETURN; }
+   if( num_face <  0 ){ BEEPIT; WARNING_message("no faces!?"); EXRETURN; }
    if( num_face == 0 ){
      num_face = AFNI_find_jpegs( "face_" , &fname_face ) ;
-     if( num_face <= 0 ){ BEEPIT; EXRETURN; }
+     if( num_face <= 0 ){ BEEPIT; WARNING_message("no faces?!"); EXRETURN; }
    }
    if( face_phan != NULL ){
      PLUGIN_imseq *ph = (PLUGIN_imseq *)face_phan ;
@@ -838,10 +838,10 @@ void AFNI_allsplash(void)   /* 12 Sep 2007 */
 
 ENTRY("AFNI_allsplash") ;
 
-   if( num_splash <  0 ){ BEEPIT; EXRETURN; }
+   if( num_splash <  0 ){ BEEPIT; WARNING_message("no splashes!?"); EXRETURN; }
    if( num_splash == 0 ){
      num_splash = AFNI_find_jpegs( "splash_" , &fname_splash ) ;
-     if( num_splash <= 0 ){ BEEPIT; EXRETURN; }
+     if( num_splash <= 0 ){ BEEPIT; WARNING_message("no splashes?!"); EXRETURN; }
    }
    if( splash_phan != NULL ){
      PLUGIN_imseq *ph = (PLUGIN_imseq *)splash_phan ;
@@ -1662,13 +1662,15 @@ void AFNI_finalsave_layout_CB( Widget w , XtPointer cd , MCW_choose_cbs *cbs )
 
 ENTRY("AFNI_finalsave_layout_CB") ;
 
-   if( strcmp(cbs->cval,".afnirc") == 0 ){ BEEPIT; EXRETURN; } /* 12 Oct 2000 */
+   if( strcmp(cbs->cval,".afnirc") == 0 ){ /* 12 Oct 2000 */
+     BEEPIT; WARNING_message("Won't over-write .afnirc"); EXRETURN;
+   }
 
    /*-- 23 Jan 2003: open layout file if name is OK, else don't use it --*/
 
    if( THD_filename_ok(cbs->cval) ){
      fp = fopen( cbs->cval , "w" ) ;
-     if( fp == NULL ){ BEEPIT; EXRETURN; }
+     if( fp == NULL ){ BEEPIT; WARNING_message("Can't open output file"); EXRETURN; }
    }
    if( fp != NULL && strstr(cbs->cval,"script") != NULL ){  /* 05 Dec 2007 */
      gp = fp ; fp = NULL ;                  /* write as a driver script */
@@ -1689,7 +1691,7 @@ ENTRY("AFNI_finalsave_layout_CB") ;
        fprintf(gp,"ADD_OVERLAY_COLOR %s %s\n",
                ovc->name_ov[qq] , ovc->label_ov[qq] ) ;
    } else {
-     if( fp == NULL ){ BEEPIT; EXRETURN; }  /* no fp and no gp == Error! */
+     if( fp == NULL ){ BEEPIT; WARNING_message("Can't open output file"); EXRETURN; }  /* no fp and no gp == Error! */
    }
 
    /*----- loop over open controllers -----*/

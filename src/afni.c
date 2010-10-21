@@ -8954,7 +8954,7 @@ ENTRY("AFNI_talto_CB") ;
        cbs->reason != mcwCR_integer   ){
 
       POPDOWN_strlist_chooser ;
-      BEEPIT ; WARNING_message("Can't 'Talairach To'") ;
+      BEEPIT ; WARNING_message("Can't 'Talairach To'!?") ;
       EXRETURN ;
    }
 
@@ -9093,7 +9093,7 @@ ENTRY("AFNI_mnito_CB") ;
 
    if( !CAN_TALTO(im3d) || cbs->reason != mcwCR_string  ){   /* error */
       POPDOWN_string_chooser ;
-      BEEPIT ; WARNING_message("Can't 'MNI To'") ;
+      BEEPIT ; WARNING_message("Can't 'MNI To'!?") ;
       EXRETURN ;
    }
 
@@ -9101,7 +9101,7 @@ ENTRY("AFNI_mnito_CB") ;
    last_mnito_string = strdup(cbs->cval) ;
 
    nn = sscanf( cbs->cval , "%f%[ ,]%f%[ ,]%f" , &xx,dum1,&yy,dum2,&zz ) ;
-   if( nn != 5 ){ BEEPIT ; EXRETURN ; }
+   if( nn != 5 ){ BEEPIT ; WARNING_message("bad 'MNI To' entries!?") ; EXRETURN ; }
 
    LOAD_ANAT_VIEW(im3d) ;
 
@@ -9115,7 +9115,7 @@ ENTRY("AFNI_mnito_CB") ;
                                   tv , im3d->anat_now ) ;
 
    nn = AFNI_jumpto_dicom( im3d , tv.xyz[0], tv.xyz[1], tv.xyz[2] ) ;
-   if( nn < 0 ) BEEPIT ;
+   if( nn < 0 ){ BEEPIT ; WARNING_message("'MNI To' failed!?") ; }
 
    RESET_AFNI_QUIT(im3d) ;
    EXRETURN ;
@@ -9141,12 +9141,12 @@ ENTRY("AFNI_jumpto_CB") ;
    last_jumpto_xyz_string = strdup(cbs->cval) ;
 
    nn = sscanf( cbs->cval , "%f%[ ,]%f%[ ,]%f" , &xx,dum1,&yy,dum2,&zz ) ;
-   if( nn != 5 ){ BEEPIT ; EXRETURN ; }
+   if( nn != 5 ){ BEEPIT ; WARNING_message("bad Jumpto entries!?") ; EXRETURN ; }
 
    THD_coorder_to_dicom( &GLOBAL_library.cord , &xx,&yy,&zz ) ;
 
    nn = AFNI_jumpto_dicom( im3d , xx,yy,zz ) ;
-   if( nn < 0 ) BEEPIT ;
+   if( nn < 0 ){ BEEPIT ; WARNING_message("Jumpto failed!") ; }
 
    RESET_AFNI_QUIT(im3d) ;
    EXRETURN ;
@@ -9176,7 +9176,7 @@ ENTRY("AFNI_jumpto_dicom") ;
       AFNI_set_viewpoint( im3d , ii,jj,kk , REDISPLAY_ALL ) ; /* jump */
       RETURN(1) ;
    } else {
-      BEEPIT ;
+      BEEPIT ; WARNING_message("Jumpto DICOM failed -- bad coordinates?!") ;
       RETURN(-1) ;
    }
 }
@@ -9199,7 +9199,7 @@ ENTRY("AFNI_jumpto_ijk") ;
       AFNI_set_viewpoint( im3d , ii,jj,kk , REDISPLAY_ALL ) ; /* jump */
       RETURN(1) ;
    } else {
-      BEEPIT ;
+      BEEPIT ; WARNING_message("Jumpto IJK failed -- bad indexes?!") ;
       RETURN(-1) ;
    }
 }
@@ -9227,7 +9227,7 @@ ENTRY("AFNI_jumpto_ijk_CB") ;
      ii = DSET_index_to_ix(im3d->anat_now,nn) ;
      jj = DSET_index_to_jy(im3d->anat_now,nn) ;
      kk = DSET_index_to_kz(im3d->anat_now,nn) ;
-   } else if( nn != 5 ){ BEEPIT ; EXRETURN ; }
+   } else if( nn != 5 ){ BEEPIT; WARNING_message("Jumpto IJK failed -- bad entries?!"); EXRETURN; }
 
    nn = AFNI_jumpto_ijk( im3d , ii,jj,kk ) ;
    if( nn < 0 ) BEEPIT ;
@@ -9257,7 +9257,7 @@ ENTRY("AFNI_sumato_CB") ;
    nn = -1 ;
    sscanf( cbs->cval , "%d" , &nn ) ;
    ii = SUMA_find_node_id( im3d->ss_now->su_surf[0] , nn ) ;
-   if( ii < 0 ){ BEEPIT; EXRETURN; }
+   if( ii < 0 ){ BEEPIT; WARNING_message("SUMA To fails -- bad entry?!"); EXRETURN; }
 
    (void) AFNI_jumpto_dicom( im3d ,
                              im3d->ss_now->su_surf[0]->ixyz[ii].x ,
