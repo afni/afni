@@ -1340,7 +1340,7 @@ void AFNI_sigfunc_alrm(int sig)
      "Farewell, farewell, you old rhinoceros"                        ,
      "Is that you, Jerzy? Do widzenia"                               ,
      "A farewell is necessary before we can meet again"              ,
-     "Absent from thee I languish"                                   ,
+     "Absent from thee I languish; return speedily if thee can"      ,
      "The return makes one love the farewell"                        ,
      "Every goodbye makes the next hello closer"                     ,
      "The song is ended, but the melody lingers on"                  ,
@@ -1362,11 +1362,13 @@ void AFNI_sigfunc_alrm(int sig)
    int nn = (lrand48()>>3) % NMSG ;
    if( !AFNI_yesenv("AFNI_NEVER_SAY_GOODBYE") ){
      fprintf(stderr,"\n** AFNI is done: %s!\n\n",msg[nn]);
-     MCHECK ;
+     /** MCHECK ; **/
    }
    exit(sig);
 }
 #undef NMSG
+
+/*-------------------------------------------------------------------------*/
 
 void AFNI_sigfunc_quit(int sig)
 {
@@ -4379,7 +4381,7 @@ ENTRY("AFNI_inconstancy_check") ;
      if( nbad == 0 || sbad == NULL ) EXRETURN ; /* nothing to report */
      if( !IM3D_OPEN(im3d) ) im3d =AFNI_find_open_controller();
      wp = im3d->vwid->imag->crosshair_label ;
-     XBell(XtDisplay(wp),100) ;
+     BEEPIT ;
      STATUS("creating inconstancy message") ;
      for(ii=nn=0;ii<nbad;ii++) nn += strlen(sbad[ii]) ;
      nn += 255+4*nbad ; msg = malloc(nn) ;
@@ -4394,7 +4396,7 @@ ENTRY("AFNI_inconstancy_check") ;
      free((void *)msg) ;
      for(ii=0;ii<nbad;ii++)free((void *)sbad[ii]);
      free((void *)sbad) ; nbad=0 ; sbad=NULL ;
-     XBell(XtDisplay(wp),100) ;
+     BEEPIT ;
      EXRETURN ;
    } else if( ISVALID_DSET(dset) && !DSET_datum_constant(dset) ){
      char *str = DSET_BRIKNAME(dset) ;
@@ -6796,7 +6798,7 @@ ENTRY("AFNI_marktog_CB") ;
 
    switch( cbs->reason ){
 
-      default:  XBell(XtDisplay(w),100) ; EXRETURN ;  /* error */
+      default:  EXRETURN ;  /* error */
 
       /** case XmCR_ACTIVATE: **/
       case XmCR_DISARM:   /* button on the control panel */
@@ -6972,8 +6974,7 @@ ENTRY("AFNI_marks_action_CB") ;
    itog = AFNI_first_tog( MARKS_MAXNUM , marks->tog ) ;
 
    if( itog < 0 || ! marks->editable ){
-      XBell(XtDisplay(w),100) ;  /* none active --> beep and return */
-      EXRETURN ;
+      BEEPIT ; EXRETURN ;
    }
 
    ipt = itog ;  /* index of point to deal with */
@@ -7023,7 +7024,6 @@ if(PRINT_TRACING)
    else if( w == marks->action_clear_pb || w == marks->pop_clear_pb ){
 
       if( ! markers->valid[ipt] ){
-         XBell(XtDisplay(w),100) ;  /* already clear */
          EXRETURN ;
       } else {
          (markers->numset) -- ;   /* newly unset --> sub one from count */
@@ -8732,7 +8732,7 @@ ENTRY("AFNI_imag_pop_CB") ;
                             last_mnito_string ,
                             AFNI_mnito_CB , (XtPointer) im3d ) ;
       } else {
-         XBell(XtDisplay(w),100) ; /* should never happen */
+         BEEPIT ; /* should never happen */
       }
    }
 
@@ -8954,7 +8954,7 @@ ENTRY("AFNI_talto_CB") ;
        cbs->reason != mcwCR_integer   ){
 
       POPDOWN_strlist_chooser ;
-      XBell( im3d->dc->display , 100 ) ;
+      BEEPIT ; WARNING_message("Can't 'Talairach To'") ;
       EXRETURN ;
    }
 
@@ -8988,7 +8988,7 @@ ENTRY("AFNI_talto_CB") ;
       SAVE_VPT(im3d) ;
       AFNI_set_viewpoint( im3d , ii,jj,kk , REDISPLAY_ALL ) ; /* jump */
    } else {
-      XBell( im3d->dc->display , 100 ) ;
+      BEEPIT ; WARNING_message("Bad 'Talairach To' coordinates!?") ;
    }
    EXRETURN ;
 }
@@ -9093,7 +9093,7 @@ ENTRY("AFNI_mnito_CB") ;
 
    if( !CAN_TALTO(im3d) || cbs->reason != mcwCR_string  ){   /* error */
       POPDOWN_string_chooser ;
-      XBell( im3d->dc->display , 100 ) ;
+      BEEPIT ; WARNING_message("Can't 'MNI To'") ;
       EXRETURN ;
    }
 
@@ -9101,7 +9101,7 @@ ENTRY("AFNI_mnito_CB") ;
    last_mnito_string = strdup(cbs->cval) ;
 
    nn = sscanf( cbs->cval , "%f%[ ,]%f%[ ,]%f" , &xx,dum1,&yy,dum2,&zz ) ;
-   if( nn != 5 ){ XBell( im3d->dc->display , 100 ) ; EXRETURN ; }
+   if( nn != 5 ){ BEEPIT ; EXRETURN ; }
 
    LOAD_ANAT_VIEW(im3d) ;
 
@@ -9115,7 +9115,7 @@ ENTRY("AFNI_mnito_CB") ;
                                   tv , im3d->anat_now ) ;
 
    nn = AFNI_jumpto_dicom( im3d , tv.xyz[0], tv.xyz[1], tv.xyz[2] ) ;
-   if( nn < 0 ) XBell( im3d->dc->display , 100 ) ;
+   if( nn < 0 ) BEEPIT ;
 
    RESET_AFNI_QUIT(im3d) ;
    EXRETURN ;
@@ -9141,12 +9141,12 @@ ENTRY("AFNI_jumpto_CB") ;
    last_jumpto_xyz_string = strdup(cbs->cval) ;
 
    nn = sscanf( cbs->cval , "%f%[ ,]%f%[ ,]%f" , &xx,dum1,&yy,dum2,&zz ) ;
-   if( nn != 5 ){ XBell( im3d->dc->display , 100 ) ; EXRETURN ; }
+   if( nn != 5 ){ BEEPIT ; EXRETURN ; }
 
    THD_coorder_to_dicom( &GLOBAL_library.cord , &xx,&yy,&zz ) ;
 
    nn = AFNI_jumpto_dicom( im3d , xx,yy,zz ) ;
-   if( nn < 0 ) XBell( im3d->dc->display , 100 ) ;
+   if( nn < 0 ) BEEPIT ;
 
    RESET_AFNI_QUIT(im3d) ;
    EXRETURN ;
@@ -9176,7 +9176,7 @@ ENTRY("AFNI_jumpto_dicom") ;
       AFNI_set_viewpoint( im3d , ii,jj,kk , REDISPLAY_ALL ) ; /* jump */
       RETURN(1) ;
    } else {
-      XBell( im3d->dc->display , 100 ) ;
+      BEEPIT ;
       RETURN(-1) ;
    }
 }
@@ -9199,7 +9199,7 @@ ENTRY("AFNI_jumpto_ijk") ;
       AFNI_set_viewpoint( im3d , ii,jj,kk , REDISPLAY_ALL ) ; /* jump */
       RETURN(1) ;
    } else {
-      XBell( im3d->dc->display , 100 ) ;
+      BEEPIT ;
       RETURN(-1) ;
    }
 }
@@ -9227,10 +9227,10 @@ ENTRY("AFNI_jumpto_ijk_CB") ;
      ii = DSET_index_to_ix(im3d->anat_now,nn) ;
      jj = DSET_index_to_jy(im3d->anat_now,nn) ;
      kk = DSET_index_to_kz(im3d->anat_now,nn) ;
-   } else if( nn != 5 ){ XBell( im3d->dc->display , 100 ) ; EXRETURN ; }
+   } else if( nn != 5 ){ BEEPIT ; EXRETURN ; }
 
    nn = AFNI_jumpto_ijk( im3d , ii,jj,kk ) ;
-   if( nn < 0 ) XBell( im3d->dc->display , 100 ) ;
+   if( nn < 0 ) BEEPIT ;
 
    RESET_AFNI_QUIT(im3d) ;
    EXRETURN ;
@@ -9257,7 +9257,7 @@ ENTRY("AFNI_sumato_CB") ;
    nn = -1 ;
    sscanf( cbs->cval , "%d" , &nn ) ;
    ii = SUMA_find_node_id( im3d->ss_now->su_surf[0] , nn ) ;
-   if( ii < 0 ){ XBell(im3d->dc->display,100); EXRETURN; }
+   if( ii < 0 ){ BEEPIT; EXRETURN; }
 
    (void) AFNI_jumpto_dicom( im3d ,
                              im3d->ss_now->su_surf[0]->ixyz[ii].x ,
@@ -9272,7 +9272,7 @@ ENTRY("AFNI_sumato_CB") ;
    Transform current dataset based on the existing set of markers
 -----------------------------------------------------------------------*/
 
-#define BEEP_AND_RETURN { XBell(XtDisplay(w),100); EXRETURN ; }
+#define BEEP_AND_RETURN { BEEPIT; EXRETURN; }
 
 void AFNI_marks_transform_CB( Widget w ,
                               XtPointer client_data , XtPointer call_data )
@@ -10934,7 +10934,7 @@ void AFNI_sonnet_CB( Widget w , XtPointer client_data , XtPointer call_data )
 
    cbs = (MCW_choose_cbs *) call_data ;
    if( cbs->reason != mcwCR_integer ){  /* error */
-      XBell( XtDisplay(w) , 100 ) ; return ;
+      BEEPIT ; return ;
    }
 
    AFNI_popup_sonnet( im3d->vwid->picture , cbs->ival ) ;
