@@ -1128,7 +1128,7 @@ static void mri_edgize( MRI_IMAGE *im )
 
 /*-----------------------------------------------------------------------*/
 
-#undef  ZREG
+#undef  ZREJ
 #define ZREJ(val) (reject_zero && (val)==0)   /* 20 Apr 2005 */
 
 #undef  THBOT
@@ -1559,7 +1559,7 @@ STATUS("create output image") ;
    im_ov = mri_new_conforming( im_fim , MRI_rgb ) ;
    ovar  = MRI_RGB_PTR(im_ov) ;
    npix  = im_ov->nvox ;
-   zbot  = (fimbot == 0.0) ;             /* no color for negative values? */
+   zbot  = (fimbot == 0.0f) ;             /* no color for negative values? */
    fac   = NPANE_BIG / (fimtop-fimbot) ;
 
    /* load output image with colors */
@@ -1580,9 +1580,9 @@ STATUS("data kind = short") ;
           if( ZREJ(ar_fim[ii]) )       continue ;
           if( zbot && ar_fim[ii] < 0 ) continue ;
           val = fac*(fimtop-ar_fim[ii]) ;
-          if( val < 0.0 ) val = 0.0;
-          else if (ar_fim[ii] < fimbot) val = NPANE_BIG-1; /* overflow guard */
-          jj = (int)(val+0.49);
+               if( val        < 0.0f   ) val = 0.0f ;
+          else if( ar_fim[ii] < fimbot ) val = NPANE_BIG-1.0f;
+          jj = (int)(val+0.49f);
           if( jj >= NPANE_BIG ) jj = NPANE_BIG-1;
           ovar[3*ii  ] = fimcolor[jj].r ;
           ovar[3*ii+1] = fimcolor[jj].g ;
@@ -1599,9 +1599,9 @@ STATUS("data kind = byte") ;
         for( ii=0 ; ii < npix ; ii++ ){
           if( ZREJ(ar_fim[ii]) ) continue ;
           val = fac*(fimtop-ar_fim[ii]) ;
-          if( val < 0.0 ) val = 0.0;
-          else if (ar_fim[ii] < fimbot) val = NPANE_BIG-1;
-          jj = (int)(val+0.49);
+               if( val        < 0.0f   ) val = 0.0f ;
+          else if( ar_fim[ii] < fimbot ) val = NPANE_BIG-1.0f;
+          jj = (int)(val+0.49f);
           if( jj >= NPANE_BIG ) jj = NPANE_BIG-1;
           ovar[3*ii  ] = fimcolor[jj].r ;
           ovar[3*ii+1] = fimcolor[jj].g ;
@@ -1613,22 +1613,25 @@ STATUS("data kind = byte") ;
       case MRI_float:{
         float *ar_fim = MRI_FLOAT_PTR(im_fim) ;
 
-STATUS("data kind = float") ;
+STATUS("data kind = float") ; MPROBE ;
 
 #if 0
 INFO_message("kind = float; npix=%d",npix) ;
 #endif
         for( ii=0 ; ii < npix ; ii++ ){
 #if 0
-fprintf(stderr,"%d ",ii) ;
+fprintf(stderr,"%d;",ii) ;
 #endif
           if( ZREJ(ar_fim[ii]) )          continue ;
           if( zbot && ar_fim[ii] < 0.0f ) continue ;
           val = fac*(fimtop-ar_fim[ii]) ;
-          if( val < 0.0 ) val = 0.0;
-          else if (ar_fim[ii] < fimbot) val = NPANE_BIG-1;
-          jj = (int)(val+0.49);
+               if( val        < 0.0f   ) val = 0.0f ;
+          else if( ar_fim[ii] < fimbot ) val = NPANE_BIG-1.0f;
+          jj = (int)(val+0.49f);
           if( jj >= NPANE_BIG ) jj = NPANE_BIG-1;
+#if 0
+fprintf(stderr,";") ;
+#endif
           ovar[3*ii  ] = fimcolor[jj].r ;
           ovar[3*ii+1] = fimcolor[jj].g ;
           ovar[3*ii+2] = fimcolor[jj].b ;
