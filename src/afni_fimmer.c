@@ -1866,7 +1866,7 @@ ENTRY("AFNI_fimmer_menu_CB") ;
    /*** Unimplemented Button ***/
 
    else {
-      XBell( im3d->dc->display , 100 ) ;
+      BEEPIT ;
    }
 
    /*--- Done!!! ---*/
@@ -1945,15 +1945,15 @@ ENTRY("AFNI_fimmer_execute") ;
    dset_time = im3d->fimdata->fimdset ;
 #endif
 
-   if( ! DSET_GRAPHABLE(dset_time) ){ XBell(im3d->dc->display,100) ; EXRETURN ; }
+   if( ! DSET_GRAPHABLE(dset_time) ){ BEEPIT ; EXRETURN ; }
 
    ref_ts = im3d->fimdata->fimref ;
    ort_ts = im3d->fimdata->fimort ;
-   if( ref_ts == NULL ){ XBell(im3d->dc->display,100) ; EXRETURN ; }
+   if( ref_ts == NULL ){ BEEPIT ; EXRETURN ; }
 
    sess = im3d->ss_now ;
    if( ! ISVALID_SESSION(sess) || sess->num_dsset >= THD_MAX_SESSION_SIZE ){
-      XBell(im3d->dc->display,100) ; EXRETURN ;
+      BEEPIT ; EXRETURN ;
    }
 
    SHOW_AFNI_PAUSE ;
@@ -1966,8 +1966,7 @@ ENTRY("AFNI_fimmer_execute") ;
    /*--- End lots of CPU time ---*/
 
    if( new_dset == NULL ){
-     SHOW_AFNI_READY ;
-     XBell(im3d->dc->display,100) ; EXRETURN ;
+     SHOW_AFNI_READY ; BEEPIT ; EXRETURN ;
    }
 
    AFNI_fimmer_redisplay( 1 , im3d , new_dset ) ;
@@ -2160,7 +2159,7 @@ void AFNI_process_interrupts( Widget w )
          }
       }
 
-      if( ii == nwin ) XBell( dis , 100 ) ;  /* beep for non-allowed event */
+      if( ii == nwin ) BEEPIT ;              /* beep for non-allowed event */
       XUngrabPointer( dis , CurrentTime ) ;  /* 17 Jun 2005 */
    }
 

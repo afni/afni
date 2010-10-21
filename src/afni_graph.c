@@ -3038,7 +3038,7 @@ STATUS("button press") ;
                CALL_sendback( grapher , cbs ) ;
 #endif
             } else {
-               XBell(XtDisplay(w),100) ;
+               BEEPIT ;
             }
          }
 
@@ -3369,7 +3369,7 @@ STATUS(str); }
           cbs.reason = graCR_setignore ; cbs.key = grapher->init_ignore - 1 ;
           CALL_sendback( grapher , cbs ) ;
         } else {
-          XBell(grapher->dc->display,100) ;
+          BEEPIT ;
         }
       break ;
 
@@ -3379,7 +3379,7 @@ STATUS(str); }
           cbs.reason = graCR_setignore ; cbs.key = grapher->init_ignore + 1 ;
           CALL_sendback( grapher , cbs ) ;
         } else {
-          XBell(grapher->dc->display,100) ;
+          BEEPIT ;
         }
       break ;
 
@@ -3494,7 +3494,7 @@ STATUS(str); }
            XtAppAddTimeOut( XtWidgetToApplicationContext(grapher->opt_quit_pb),
                             grapher->timer_delay , GRA_timer_CB , grapher ) ;
         } else {
-          XBell(grapher->dc->display,100) ;
+          BEEPIT ;
         }
       break ;
 
@@ -3509,7 +3509,7 @@ STATUS(str); }
            XtAppAddTimeOut( XtWidgetToApplicationContext(grapher->opt_quit_pb),
                             grapher->timer_delay , GRA_timer_CB , grapher ) ;
         } else {
-          XBell(grapher->dc->display,100) ;
+          BEEPIT ;
         }
       break ;
 
@@ -3800,7 +3800,7 @@ STATUS("User pressed Done button: starting timeout") ;
        grapher->xax_tsim = mri_to_float( grapher->cen_tsim ) ;
        redraw_graph(grapher,0) ;
      } else {
-       XBell(XtDisplay(w),100) ;
+       BEEPIT ;
      }
      EXRETURN ;
    }
@@ -3904,7 +3904,7 @@ ENTRY("GRA_wcsuffix_choose_CB") ;
    if( cbs->reason != mcwCR_string ||
        cbs->cval   == NULL         || (ll=strlen(cbs->cval)) == 0 ){
 
-     XBell( XtDisplay(wcaller) , 100 ) ; EXRETURN ;
+     BEEPIT ; EXRETURN ;
    }
 
    for( ii=0 ; ii < ll ; ii++ ){
@@ -3912,7 +3912,7 @@ ENTRY("GRA_wcsuffix_choose_CB") ;
          isspace(cbs->cval[ii]) ||
          cbs->cval[ii] == '/'     ){
 
-        XBell( XtDisplay(wcaller) , 100 ) ; EXRETURN ;
+        BEEPIT ; EXRETURN ;
      }
    }
 
@@ -3989,7 +3989,7 @@ ENTRY("GRA_pin_choose_CB") ;
        pb <  0                             ||
        (pt > 0 && pt-pb < 2)                 ){   /* stupid user */
 
-      XBell(grapher->dc->display,100) ; EXRETURN ;
+      BEEPIT ; EXRETURN ;
    }
 
    ii = 100000*pt + pb ;
@@ -4143,7 +4143,7 @@ ENTRY("GRA_refread_choose_CB") ;
 
    flim = mri_read_1D( cbs->cval ) ;     /* 16 Nov 1999: replaces mri_read_ascii */
    if( flim == NULL || flim->nx < 2 ){
-      XBell(grapher->dc->display,100) ; mri_free(flim) ; EXRETURN ;
+      BEEPIT ; mri_free(flim) ; EXRETURN ;
    }
 
    far = MRI_FLOAT_PTR(flim) ;
@@ -4211,7 +4211,7 @@ ENTRY("GRA_refwrite_choose_CB") ;
           cbs->cval[ii] == '<'   || cbs->cval[ii] == '\''  ||
           cbs->cval[ii] == '['   || cbs->cval[ii] == ']'     ){
 
-         XBell( XtDisplay(wcaller) , 100 ) ; EXRETURN ;
+         BEEPIT ; EXRETURN ;
       }
    }
 
@@ -4327,8 +4327,7 @@ ENTRY("drive_MCW_grapher") ;
       default:{
          fprintf(stderr,"\a\n*** drive_MCW_grapher: code=%d illegal!\n",
                  drive_code) ;
-         XBell( grapher->dc->display , 100 ) ;
-         RETURN( False ) ;
+         BEEPIT ; RETURN(False) ;
       }
 
       /*------ winaver [27 Jan 2004] -----*/
@@ -4851,7 +4850,7 @@ ENTRY("GRA_fim_CB") ;
                             "Ideal Output Filename:" , NULL ,
                             GRA_refwrite_choose_CB , (XtPointer) grapher ) ;
       } else {
-         XBell( grapher->dc->display , 100 ) ;
+         BEEPIT ;
       }
    }
 
@@ -4861,7 +4860,7 @@ ENTRY("GRA_fim_CB") ;
                             "Label to Store Ideal:" , NULL ,
                             GRA_refstore_choose_CB , (XtPointer) grapher ) ;
       } else {
-         XBell( grapher->dc->display , 100 ) ;
+         BEEPIT ;
       }
    }
 
@@ -4876,7 +4875,7 @@ ENTRY("GRA_fim_CB") ;
          CALL_sendback( grapher , cbs ) ;
 #endif
       } else {
-         XBell( grapher->dc->display , 100 ) ;
+         BEEPIT ;
       }
    }
 
@@ -4918,7 +4917,7 @@ ENTRY("GRA_fim_CB") ;
          CALL_sendback( grapher , cbs ) ;
 #endif
       else
-         XBell( grapher->dc->display , 100 ) ;
+         BEEPIT ;
    }
 
    /*** 04 Jan 2000: modify the FIM+ button settings ***/
@@ -5014,7 +5013,7 @@ ENTRY("GRA_fim_CB") ;
    /*** Unimplemented Button ***/
 
    else {
-      XBell( grapher->dc->display , 100 ) ;
+      BEEPIT ;
    }
 
    /*--- Done!!! ---*/
@@ -5252,7 +5251,7 @@ ENTRY("GRA_doshift") ;
        grapher->ref_ts == NULL                                ||
        IMARR_COUNT(grapher->ref_ts) == 0                        ){
 
-      XBell( grapher->dc->display , 100 ) ; EXRETURN ;
+      BEEPIT ; EXRETURN ;
    }
 
    tsim = IMARR_SUBIMAGE(grapher->ref_ts,0) ; /* current ref */
@@ -6064,7 +6063,7 @@ ENTRY("GRA_saver_CB") ;
    if( cbs->reason != mcwCR_string ||
        cbs->cval   == NULL         || (ll=strlen(cbs->cval)) == 0 ){
 
-      XBell( XtDisplay(wcaller) , 100 ) ; EXRETURN ;
+      BEEPIT ; EXRETURN ;
    }
 
    fname = (char *) malloc( sizeof(char) * (ll+8) ) ;
@@ -6074,8 +6073,7 @@ ENTRY("GRA_saver_CB") ;
      if( iscntrl(fname[ii]) || isspace(fname[ii]) ) break ;
 
    if( ii < ll || ll < 2 || ll > 240 ){
-     XBell( XtDisplay(wcaller) , 100 ) ;
-     free( fname ) ; EXRETURN ;
+     BEEPIT ; free(fname) ; EXRETURN ;
    }
 
                       ppnm = strstr( fname , ".ppm" ) ;
