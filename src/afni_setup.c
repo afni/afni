@@ -595,7 +595,7 @@ ENTRY("AFNI_pbar_CB") ;
 
    if( w == im3d->vwid->func->pbar_equalize_pb ){
 
-      if( pbar->bigmode ){ BEEPIT; EXRETURN; } /* 30 Jan 2003 */
+      if( pbar->bigmode ){ BEEPIT; WARNING_message("Can't equalize!"); EXRETURN; } /* 30 Jan 2003 */
 
       for( ii=0 ; ii <= npane ; ii++ )
          pval[ii] = pmax - ii * (pmax-pmin)/npane ;
@@ -833,7 +833,7 @@ ENTRY("AFNI_set_pbar_top_CB") ;
 
    if( ! IM3D_OPEN(im3d) ) EXRETURN ;
 
-   pmax  = cbs->fval ; if( pmax <= 0.0 ){ BEEPIT; EXRETURN; }
+   pmax  = cbs->fval ; if( pmax <= 0.0 ){ BEEPIT; WARNING_message("Bad pmax"); EXRETURN; }
    pbar  = im3d->vwid->func->inten_pbar ;
 
    HIDE_SCALE(im3d) ;
@@ -871,12 +871,16 @@ void AFNI_finalize_write_palette_CB( Widget wcaller, XtPointer cd, MCW_choose_cb
 ENTRY("AFNI_finalize_write_palette_CB") ;
 
    if( ! IM3D_OPEN(im3d) || cbs->reason != mcwCR_string ||
-       cbs->cval == NULL || (ll=strlen(cbs->cval)) == 0   ){BEEPIT; EXRETURN;}
+       cbs->cval == NULL || (ll=strlen(cbs->cval)) == 0   ){
+     BEEPIT; WARNING_message("Bad filename?!"); EXRETURN;
+   }
 
    fname = (char *) malloc( sizeof(char) * (ll+8) ) ;
    strcpy( fname , cbs->cval ) ;
 
-   if( ll > 240 || ! THD_filename_ok(fname) ){free(fname); BEEPIT; EXRETURN;}
+   if( ll > 240 || ! THD_filename_ok(fname) ){
+     free(fname); BEEPIT; WARNING_message("Bad filename?!"); EXRETURN;
+   }
 
    ptr = strstr(fname,".pal") ;
    if( ptr == NULL || ptr[4] != '0' ){ strcat(fname,".pal"); ll += 4; }
@@ -956,12 +960,16 @@ void AFNI_finalize_saveim_CB( Widget wcaller, XtPointer cd, MCW_choose_cbs * cbs
 ENTRY("AFNI_finalize_saveim_CB") ;
 
    if( ! IM3D_OPEN(im3d) || cbs->reason != mcwCR_string ||
-       cbs->cval == NULL || (ll=strlen(cbs->cval)) == 0   ){BEEPIT; EXRETURN;}
+       cbs->cval == NULL || (ll=strlen(cbs->cval)) == 0   ){
+     BEEPIT; WARNING_message("Bad filename?!"); EXRETURN;
+   }
 
    fname = (char *) malloc( sizeof(char) * (ll+8) ) ;
    strcpy( fname , cbs->cval ) ;
 
-   if( ll > 240 || ! THD_filename_ok(fname) ){free(fname); BEEPIT; EXRETURN;}
+   if( ll > 240 || ! THD_filename_ok(fname) ){
+     free(fname); BEEPIT; WARNING_message("Bad filename?!"); EXRETURN;
+   }
 
    if( !STRING_HAS_SUFFIX_CASE(fname,".ppm") &&
        !STRING_HAS_SUFFIX_CASE(fname,".pnm") &&
