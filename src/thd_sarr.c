@@ -163,7 +163,9 @@ THD_string_array * THD_get_all_subdirs( int lev , char * dirname )
    THD_string_array * star , * flist , * dlist ;
    char * total_dirname ;
 
-   if( dirname == NULL || (dlen=strlen(dirname)) == 0 ) return NULL ;
+ENTRY("THD_get_all_subdirs") ;
+
+   if( dirname == NULL || (dlen=strlen(dirname)) == 0 ) RETURN( NULL );
 
    total_dirname = (char*)XtMalloc( dlen+2 ) ;
    strcpy( total_dirname , dirname ) ;
@@ -177,20 +179,20 @@ THD_string_array * THD_get_all_subdirs( int lev , char * dirname )
 
    /** want only this level? **/
 
-   if( lev <= 0 ) return star ;
+   if( lev <= 0 ) RETURN( star );
 
    /** must want deeper levels **/
 
    flist = THD_get_all_filenames( total_dirname ) ;
    myXtFree(total_dirname) ;
 
-   if( flist == NULL ) return star ;
-   if( flist->num == 0 ){ DESTROY_SARR(flist) ; return star ; }
+   if( flist == NULL ) RETURN( star );
+   if( flist->num == 0 ){ DESTROY_SARR(flist) ; RETURN( star ); }
 
    dlist = THD_extract_directories( flist ) ;
    DESTROY_SARR(flist) ;
-   if( dlist == NULL ) return star ;
-   if( dlist->num == 0 ){ DESTROY_SARR(dlist) ; return star ; }
+   if( dlist == NULL ) RETURN( star );
+   if( dlist->num == 0 ){ DESTROY_SARR(dlist) ; RETURN( star ); }
 
    for( ii=0 ; ii < dlist->num ; ii++ ){
       flist = THD_get_all_subdirs( lev-1 , dlist->ar[ii] ) ;
@@ -202,7 +204,7 @@ THD_string_array * THD_get_all_subdirs( int lev , char * dirname )
    }
 
    DESTROY_SARR(dlist) ;
-   return star ;
+   RETURN( star );
 }
 
 /*-------------------------------------------------------
@@ -215,7 +217,9 @@ THD_string_array * THD_extract_regular_files( THD_string_array * star_in )
    THD_string_array * star_out ;
    int ii ;
 
-   if( star_in == NULL || star_in->num <= 0 ) return NULL ;
+ENTRY("THD_extract_regular_files") ;
+
+   if( star_in == NULL || star_in->num <= 0 ) RETURN( NULL );
 
    INIT_SARR(star_out) ;
 
@@ -225,7 +229,7 @@ THD_string_array * THD_extract_regular_files( THD_string_array * star_in )
    }
 
    if( star_out->num == 0 ) DESTROY_SARR(star_out) ;
-   return star_out ;
+   RETURN( star_out );
 }
 
 /*-------------------------------------------------------
@@ -238,7 +242,9 @@ THD_string_array * THD_extract_directories( THD_string_array * star_in )
    THD_string_array * star_out ;
    int ii ;
 
-   if( star_in == NULL || star_in->num <= 0 ) return NULL ;
+ENTRY("THD_extract_directories") ;
+
+   if( star_in == NULL || star_in->num <= 0 ) RETURN( NULL );
 
    INIT_SARR(star_out) ;
 
@@ -248,7 +254,7 @@ THD_string_array * THD_extract_directories( THD_string_array * star_in )
    }
 
    if( star_out->num == 0 ) DESTROY_SARR(star_out) ;
-   return star_out ;
+   RETURN( star_out );
 }
 
 /*-------------------------------------------------------------------
@@ -264,7 +270,9 @@ THD_string_array * THD_normalize_flist( THD_string_array *star_in )
    char *rp ;
    int ii , jj , nleft , skip_realpath=0 ;
 
-   if( star_in == NULL || star_in->num <= 0 ) return NULL ;
+ENTRY("THD_normalize_flist") ;
+
+   if( star_in == NULL || star_in->num <= 0 ) RETURN( NULL );
 
    skip_realpath = AFNI_yesenv("AFNI_NOREALPATH") ;
 
@@ -277,7 +285,7 @@ THD_string_array * THD_normalize_flist( THD_string_array *star_in )
       if( rp != NULL ) ADDTO_SARR( star_out , rp ) ;
    }
 
-   if( star_out->num == 0 ){ DESTROY_SARR(star_out) ; return NULL ; }
+   if( star_out->num == 0 ){ DESTROY_SARR(star_out) ; RETURN( NULL ); }
 
    nleft = 0 ;
    for( ii=0 ; ii < star_out->num ; ii++ ){
@@ -296,9 +304,9 @@ THD_string_array * THD_normalize_flist( THD_string_array *star_in )
       }
    }
 
-   if( nleft == 0 ){ DESTROY_SARR(star_out) ; return NULL ; }
+   if( nleft == 0 ){ DESTROY_SARR(star_out) ; RETURN( NULL ); }
 
-   if( nleft == star_out->num ) return star_out ;
+   if( nleft == star_out->num ) RETURN( star_out );
 
    INIT_SARR(star_qqq) ;
    for( ii=0 ; ii < star_out->num ; ii++ ){
@@ -311,7 +319,7 @@ fprintf(stderr,"\nTHD_normalize_flist: in=%d out=%d qqq=%d\n",
         star_in->num , star_out->num , star_qqq->num ) ;
 #endif
 
-   DESTROY_SARR(star_out) ; return star_qqq ;
+   DESTROY_SARR(star_out) ; RETURN( star_qqq );
 }
 
 /*---------------------------------------------------------------
@@ -324,14 +332,16 @@ THD_string_array * THD_get_wildcard_filenames( char * pat )
    THD_string_array * star ;
    char ** gname=NULL ;
 
-   if( pat == NULL || strlen(pat) == 0 ) return NULL ;
+ENTRY("THD_get_wildcard_filenames") ;
+
+   if( pat == NULL || strlen(pat) == 0 ) RETURN( NULL );
 
    MCW_warn_expand(0) ;
    MCW_file_expand( 1, &pat, &nfiles, &gname ) ;  /* find files */
 
    if( nfiles < 1 ){
        if( gname != NULL ) free(gname) ;
-       return NULL ;
+       RETURN( NULL );
    }
 
    INIT_SARR( star ) ;
@@ -341,5 +351,5 @@ THD_string_array * THD_get_wildcard_filenames( char * pat )
    }
 
    MCW_free_expand( nfiles , gname ) ;
-   return star ;
+   RETURN( star );
 }

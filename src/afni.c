@@ -1354,10 +1354,16 @@ void AFNI_sigfunc_alrm(int sig)
      "How lucky I am to have someone that makes saying goodbye hard" ,
      "Goodbyes are not forever"                                      ,
      "Dearest friends, alas, must part"                              ,
+     "True goodbyes are the ones never said or explained"            ,
+     "Sometimes you've got to let go to see if there was anything worth holding onto" ,
+     "Remember me and smile, for it's better to forget than remember me and cry"      ,
+     "So now I say goodbye, but I feel sure we will meet again sometime"
    } ;
    int nn = (lrand48()>>3) % NMSG ;
-   if( !AFNI_yesenv("AFNI_NEVER_SAY_GOODBYE") )
+   if( !AFNI_yesenv("AFNI_NEVER_SAY_GOODBYE") ){
      fprintf(stderr,"\n** AFNI is done: %s!\n\n",msg[nn]);
+     MCHECK ;
+   }
    exit(sig);
 }
 #undef NMSG
