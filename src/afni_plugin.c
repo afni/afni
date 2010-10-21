@@ -2171,7 +2171,7 @@ ENTRY("PLUG_action_CB") ;
       if( badrun ){
          if( w != NULL ){
             (void) MCW_popup_message( w , mesg , MCW_USER_KILL ) ;
-            XBell( XtDisplay(w) , 100 ) ;
+            BEEPIT ;
          } else {
             fprintf(stderr,"\n%s\a\n",mesg) ;
          }
@@ -2879,7 +2879,7 @@ ENTRY("PLUG_choose_dataset_CB") ;
       av->dset_count  = 0 ;
       av->dset_choice = -1 ;
       myXtFree(old_chosen) ;
-      XBell( XtDisplay(w) , 100 ) ;
+      BEEPIT ;
       EXRETURN ;
    }
 
@@ -3388,8 +3388,7 @@ ENTRY("PLUG_choose_timeseries_CB") ;
    if( av->tsimar==NULL || IMARR_COUNT(av->tsimar)==0 ){
       av->ts_choice = -1 ;
       av->tsim      = NULL ;
-      XBell( XtDisplay(w) , 100 ) ;
-      EXRETURN ;
+      BEEPIT ; EXRETURN ;
    }
 
    init_ts = AFNI_ts_in_library( av->tsim ) ;
@@ -3677,7 +3676,7 @@ STATUS("calling plugin") ;
       if( mesg != NULL ){
          if( w != NULL ){
             (void) MCW_popup_message( w , mesg , MCW_USER_KILL ) ;
-            XBell( XtDisplay(w) , 100 ) ;
+            BEEPIT ;
          } else {
             fprintf(stderr,"\n%s\a\n",mesg) ;
          }
@@ -3940,8 +3939,7 @@ ENTRY("PLUTO_popup_worker") ;
 
 void PLUTO_beep(void)
 {
-   XBell( GLOBAL_library.dc->display , 100 ) ;
-   return ;
+   BEEPIT ; return ;
 }
 
 /*------------------------------------------------------------------*/
