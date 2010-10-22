@@ -354,13 +354,15 @@ only partially, so if a 20 Megabyte .BRIK file is accessed, all of
 it will be loaded into RAM.  With mmap, the Unix operating system will
 decide how much of the file to load.  In this way, it is possible to
 deal with more files than you have swap space on your computer
-(since .BRIK files are mmap-ed in readonly mode).
+(since .BRIK files are mmap-ed in readonly mode, so they don't
+take up swap space, which is for saving modified memory pages).
 
 The moral of the story: buy more memory, it's cheap.  At the time
 I write this line [Aug 1998], I have a PC with 384 MB of RAM, and
 it is great to use with AFNI.
 
 [Feb 2004] I now have a Mac G5 with 8 GB of RAM, and it is even greater!
+[Oct 2010] Now I have 32 GB of RAM (more than Ziad - ha!), and it's nice!
 
 ----------------------
 Variable: AFNI_PSPRINT (editable)
