@@ -252,6 +252,31 @@ class AfniTiming:
 
       return 0
 
+   def shift_to_offset(self, offset=0):
+      """shift all run times to start at the given offset
+         (offset should be <= first values)"""
+
+      if not self.ready: return 1
+
+      if type(offset) == type('hi'):
+         try: offset = float(offset)
+         except:
+            print "** invalid offset to add to timing: '%s'" % offset
+            return 1
+
+      if self.verb > 1: print '-- timing: setting offset to %f ...' % offset
+
+      for rind, row in enumerate(self.data):
+         if len(row) < 1: continue
+         diff = row[0] - offset
+         if diff < 0:
+            print '** offset shift to %f too big for run %d' % (offset, rind)
+            return 1
+         for ind in range(len(row)):
+            row[ind] -= diff
+
+      return 0
+
    def scale_val(self, val):
       """multiply the given value into each element"""
       if not self.ready: return 1
