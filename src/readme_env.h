@@ -355,13 +355,15 @@ static char * readme_env[] = {
    "it will be loaded into RAM.  With mmap, the Unix operating system will\n" ,
    "decide how much of the file to load.  In this way, it is possible to\n" ,
    "deal with more files than you have swap space on your computer\n" ,
-   "(since .BRIK files are mmap-ed in readonly mode).\n" ,
+   "(since .BRIK files are mmap-ed in readonly mode, so they don't\n" ,
+   "take up swap space, which is for saving modified memory pages).\n" ,
    "\n" ,
    "The moral of the story: buy more memory, it's cheap.  At the time\n" ,
    "I write this line [Aug 1998], I have a PC with 384 MB of RAM, and\n" ,
    "it is great to use with AFNI.\n" ,
    "\n" ,
    "[Feb 2004] I now have a Mac G5 with 8 GB of RAM, and it is even greater!\n" ,
+   "[Oct 2010] Now I have 32 GB of RAM (more than Ziad - ha!), and it's nice!\n" ,
    "\n" ,
    "----------------------\n" ,
    "Variable: AFNI_PSPRINT (editable)\n" ,
@@ -3116,4 +3118,4 @@ static char * readme_env[] = {
    "behavior, set this variable to YES.\n" ,
    "\n" ,
    NULL } ;
-#define NUM_readme_env 3116
+#define NUM_readme_env 3118
