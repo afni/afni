@@ -11521,7 +11521,7 @@ int SUMA_qhull_wrap( int npt , float * xyz , int ** ijk , int fliporient,
    int ii,jj , nfac , *fac ;
    int fd , dim=0; FILE *fp ;
    char qbuf[128] ;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
@@ -11579,7 +11579,7 @@ int SUMA_qdelaunay_wrap( int npt , float * xyz , int ** ijk , int fliporient,
    int ii,jj , nfac , *fac ;
    int fd , dim=0; FILE *fp ;
    char qbuf[128] ;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    

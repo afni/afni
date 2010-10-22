@@ -65,6 +65,24 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 22, OCT , 2010 , ZSS , "DriveSuma" , MINOR , TYPE_NEW_OPT,
+   "Added -RenderMode option to control how a surface is rendered",
+   "This option is the same as Surface Controller-->RenderMode menu"
+ } ,
+
+ { 22, OCT , 2010 , ZSS , "ConvexHull" , MINOR , TYPE_NEW_OPT,
+   "Added -q_opt option to allow for delaunay triangulation of 2D coordinates",
+   "This new option makes it easy to create a surface from a set\n"
+   "of ECOG electrodes.\n"
+ } ,
+
+ { 22, OCT , 2010 , ZSS , "suma" , MINOR , TYPE_NEW_OPT,
+   "Added NodeMarker field to the spec file",
+   "The NodeMarker is a NIDO object that gets replicated at all nodes.\n"
+   "Replicated markers inherit the color of the nodes IF the NodeMarker\n"
+   "has no color attribute.\n"
+ } ,
+
  { 20, OCT , 2010 , ZSS , "niccc" , MICRO , TYPE_NEW_PROG,
    "Started making niccc as part of the default compilation",
    "The program, originally written by Bob, \n"
