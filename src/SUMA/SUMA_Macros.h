@@ -503,6 +503,16 @@ if Dist = 0, point on plane, if Dist > 0 point above plane (along normal), if Di
 #define SO_SHOWING(SO,sv) ( SO->Show && SO->PolyMode != SRM_Hide && (SO->PolyMode != SRM_ViewerDefault || sv->PolyMode != SRM_Hide) )
 
 /*!
+   \brief set polymode
+*/ 
+#define SUMA_SET_SO_POLYMODE(SO,i){ \
+   if (i < 0 || i >= SRM_N_RenderModes) { SO->PolyMode = SRM_ViewerDefault; }\
+   else { SO->PolyMode = i; } \
+   if (SO->PolyMode == SRM_Hide) { SO->Show = NOPE; } \
+   else { SO->Show = YUP; }\
+}
+
+/*!
    \brief calculates the average 'radius' of a surface.
    avg(dist(node_i,center));
 */

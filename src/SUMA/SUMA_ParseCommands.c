@@ -709,7 +709,7 @@ SUMA_SO_File_Type SUMA_SurfaceTypeCode (char *cd)
       SUMA_RETURN( SUMA_BYU); 
    }
    if (  !strcmp(cd, "GIFTI") || !strcmp(cd, "Gifti") || !strcmp(cd, "gifti") || 
-         !strcmp(cd, "gii") ) { 
+         !strcmp(cd, "gii") || !strcmp(cd, "GII")) { 
       SUMA_RETURN( SUMA_GIFTI); 
    }
    if (!strcmp(cd, "1D") || !strcmp(cd, "VEC") || !strcmp(cd, "1d")) { 
