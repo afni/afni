@@ -1357,7 +1357,8 @@ void AFNI_sigfunc_alrm(int sig)
      "True goodbyes are the ones never said or explained"            ,
      "Sometimes you've got to let go to see if there was anything worth holding onto" ,
      "Remember me and smile, for it's better to forget than remember me and cry"      ,
-     "So now I say goodbye, but I feel sure we will meet again sometime"
+     "So now I say goodbye, but I feel sure we will meet again sometime"              ,
+     "If you're anything like me, you're both smart and incredibly good looking"
    } ;
    int nn = (lrand48()>>3) % NMSG ;
    if( !AFNI_yesenv("AFNI_NEVER_SAY_GOODBYE") ){
