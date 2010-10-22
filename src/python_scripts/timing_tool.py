@@ -174,7 +174,7 @@ examples:
       one for a sequence of ISIs (TRs from one event to the next, including
       the TR of the event).  So if the event file from #8 shows:
         0 0 3 0 0 0 0 1 0 2 2 0 0 0 ...
-      The resuling event/ISI files would read:
+      The resulting event/ISI files would read:
         event: 0 3 1 2 2 ...
         ISI:   2 5 2 1 4 ...
 
@@ -478,8 +478,8 @@ action options (apply to multi timing elements, only):
         e.g. -multi_timing_to_events all.events.txt
 
         Decide which TR each stimulus event belongs to and make an event file
-        (of TRs) containg a sequence of values between 0 (no event) and N (the
-        index of the event class, for the N timing files).
+        (of TRs) containing a sequence of values between 0 (no event) and N
+        (the index of the event class, for the N timing files).
 
         This option requires -tr, -multi_stim_dur, -min_frac and -run_len.
 
