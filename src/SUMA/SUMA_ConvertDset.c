@@ -507,6 +507,9 @@ int main (int argc,char *argv[])
          }
          if (LocalHead) SUMA_ShowDset(dset,0, NULL); 
       }
+      
+      
+         
       SUMA_LHv("About to write dset to %s\n", prefix);
       NameOut = SUMA_WriteDset_s (prefix, dset, oform, overwrite, 0);
       

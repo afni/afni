@@ -447,6 +447,7 @@ void SUMA_cb_XformPreProc_Save (Widget w, XtPointer data,
 void SUMA_cb_XformOpts_Apply (Widget w, XtPointer data, 
                              XtPointer client_data);
 void SUMA_setIO_notify(int val);
+int SUMA_RenderMode2RenderModeMenuItem(int Mode);
 int SUMA_ShowMode2ShowModeMenuItem(int Mode);
 int SUMA_ShowModeStr2ShowModeMenuItem(char *str); 
 

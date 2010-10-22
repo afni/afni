@@ -3381,7 +3381,8 @@ SUMA_Boolean SUMA_Load_SO_NodeMarker(SUMA_SurfaceObject *SO,
 {
    static char FuncName[]={"SUMA_Load_SO_NodeMarker"};
    SUMA_NIDO *nido=NULL;
-   SUMA_Boolean LocalHead = YUP;
+   int i=0;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
@@ -3405,13 +3406,27 @@ SUMA_Boolean SUMA_Load_SO_NodeMarker(SUMA_SurfaceObject *SO,
    SO->CommonNodeObject->CoordType = SUMA_WORLD;
    nido = NULL;
 
+   SUMA_LH( "Need to turn SO->CommonNodeObject to "
+            "SO->NodeObjects, and SO->NodeNIDOObjects");
+   #if 0
+   /* this approach is less flexible, only one nel allowed in CommonNodeObject
+   and it is not any faster than the second approach, wich allows for any NIDO
+   to be propagated 
+   Just don't have both modes on, you'll be drawing similar objects twice */  
    if (SO->NodeObjects) {
       SUMA_Free_Displayable_Object_Vect(SO->NodeObjects, 1);
    }
-   
-   SUMA_LH("Need to turn SO->CommonNodeObject to SO->NodeObjects");
    SO->NodeObjects = SUMA_Multiply_NodeObjects( SO,  SO->CommonNodeObject);
- 
+   #else
+   if (SO->NodeNIDOObjects) {
+      for (i=0; i<SO->N_Node; ++i) 
+         if (SO->NodeNIDOObjects[i]) SUMA_free_NIDO(SO->NodeNIDOObjects[i]);
+      SUMA_free(SO->NodeNIDOObjects);   SO->NodeNIDOObjects = NULL;
+   }
+   SO->NodeNIDOObjects = SUMA_Multiply_NodeNIDOObjects( 
+                                                SO,  SO->CommonNodeObject);
+   #endif
+   
    SUMA_RETURN(YUP);
 }
 
@@ -3561,14 +3576,14 @@ SUMA_Boolean SUMA_LoadSpec_eng (
             NewColPlane=NULL;          /* don't let anyone here use it */
          }
          if (SO && Spec->NodeMarker[i][0] != '\0') {
-            SUMA_S_Notev("Will need to load NodeMarker %s for %s\n",
+            SUMA_LHv("Will load NodeMarker %s for %s\n",
                          Spec->NodeMarker[i], SO->Label);
             if (!(SUMA_Load_SO_NodeMarker(SO, Spec->NodeMarker[i]))) {
                SUMA_S_Errv("Failed to loa NodeMarker %s onto %s\n"
                            "Plodding on nonetheless.\n",
                            Spec->NodeMarker[i], SO->Label);
             }
-            SUMA_S_Notev("NodeMarker %s loaded\n", Spec->NodeMarker[i]);
+            SUMA_LHv("NodeMarker %s loaded\n", Spec->NodeMarker[i]);
          }
       }/* Mappable surfaces */
    }/* first loop across mappable surfaces */

@@ -809,9 +809,7 @@ static byte NI_GOT;
 */
 #define NEL_READ(nel, frm) { \
    NI_stream m_ns = NULL;  \
-   int m_tt = NI_element_type((void*)nel) ; \
-   if (m_tt == NI_GROUP_TYPE) {  SUMA_SL_Err ("Group, use DSET_READ"); }/* SHOULD USE DSET_WRITE_1D */   \
-   else {   \
+   {   \
       nel = NULL; \
       m_ns = NI_stream_open( frm , "r" ) ;   \
       if( m_ns == NULL ) {    \

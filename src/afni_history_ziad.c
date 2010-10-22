@@ -65,6 +65,16 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 20, OCT , 2010 , ZSS , "niccc" , MICRO , TYPE_NEW_PROG,
+   "Started making niccc as part of the default compilation",
+   "The program, originally written by Bob, \n"
+   "is useful for testing NIML functions"
+ } ,
+
+ { 20, OCT , 2010 , ZSS , "afni-general" , MINOR , TYPE_MODIFY,
+   "Added NI_duplicate* functions to niml",
+   NULL
+ } ,
 
  { 19, OCT , 2010 , ZSS , "3dcopy" , MINOR , TYPE_MODIFY,
    "Allowed 3dcopy to take . or ./ as output options",

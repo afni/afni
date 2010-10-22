@@ -1,13 +1,8 @@
 
 #include "SUMA_suma.h"
 
-#undef STAND_ALONE
 
-#if defined SUMA_ConvexHull_STANDALONE
-#define STAND_ALONE 
-#endif
 
-#ifdef STAND_ALONE
 /* these global variables must be declared even if they will not be used by this main */
 SUMA_SurfaceViewer *SUMAg_cSV = NULL; /*!< Global pointer to current Surface Viewer structure*/
 SUMA_SurfaceViewer *SUMAg_SVv = NULL; /*!< Global pointer to the vector containing the various Surface Viewer Structures 
@@ -16,125 +11,17 @@ int SUMAg_N_SVv = 0; /*!< Number of SVs realized by X */
 SUMA_DO *SUMAg_DOv = NULL;   /*!< Global pointer to Displayable Object structure vector*/
 int SUMAg_N_DOv = 0; /*!< Number of DOs stored in DOv */
 SUMA_CommonFields *SUMAg_CF = NULL; /*!< Global pointer to structure containing info common to all viewers */
-#else
-extern SUMA_CommonFields *SUMAg_CF;
-extern SUMA_DO *SUMAg_DOv;
-extern SUMA_SurfaceViewer *SUMAg_SVv;
-extern int SUMAg_N_SVv; 
-extern int SUMAg_N_DOv;  
-#endif
 
-
-/*----------------------------------------------------
-  A slightly modified version of Bob's qhull_wrap function
-  
-  Compute the convex hull of a bunch of 3-vectors
-  Inputs:
-    npt = number of vectors
-    xyz = array of coordinates of 3-vectors;
-          the i-th vector is stored in
-            xyz[3*i] xyz[3*i+1] xyz[3*i+2]
-   fliporient = 0 --> leave triangles as they come out of qhull,
-                1 --> flip their orientation
-               \sa SUMA_OrientTriangles if you are not sure about flipping.
-
-  Output:
-    *ijk = pointer to malloc()-ed array of triangles;
-           the j-th triangle is stored in
-             ijk[3*j] ijk[3*j+1] ijk[3*j+2]
-           where the integer index i refers to the
-           i-th 3-vector input
-
-  Return value is the number of triangles.  If this
-  is zero, something bad happened.
-
-  Example:
-    int ntri , *tri , nvec ;
-    float vec[something] ;
-    ntri = SUMA_qhull_wrap( nvec , vec , &tri, 0 ) ;
-
-  This function just executes the Geometry Center
-  program qhull to compute the result.  This program
-  should be in the user's path, or this function
-  will fail (return 0).
-------------------------------------------------------*/
-
-int SUMA_qhull_wrap( int npt , float * xyz , int ** ijk , int fliporient)
-{
-   static char FuncName[]={"SUMA_qhull_wrap"};
-   int ii,jj , nfac , *fac ;
-   int fd ; FILE *fp ;
-   char qbuf[128] ;
-
-#ifndef DONT_USE_MKSTEMP
-   char fname[] = "/tmp/afniXXXXXX" ;
-#else
-   char *fname ;
-#endif
-
-   if( npt < 3 || xyz == NULL || ijk == NULL ){
-      fprintf(stderr,"SUMA_qhull_wrap: bad inputs\n") ;
-      return 0 ;
-   }
-
-#ifndef DONT_USE_MKSTEMP
-   fd = mkstemp( fname ) ;
-   if( fd == -1 ){ fprintf(stderr,"SUMA_qhull_wrap: mkstemp fails\n"); return 0; }
-   fp = fdopen( fd , "w" ) ;
-   if( fp == NULL ){ fprintf(stderr,"SUMA_qhull_wrap: fdopen fails\n"); close(fd); return 0; }
-#else
-   fname = tmpnam(NULL) ;
-   if( fname == NULL ){ fprintf(stderr,"SUMA_qhull_wrap: tmpnam fails\n"); return 0; }
-   fp = fopen( fname , "w" ) ;
-   if( fp == NULL ){ fprintf(stderr,"SUMA_qhull_wrap: fopen fails\n"); return 0; }
-#endif
-
-   fprintf(fp,"3\n%d\n",npt) ;
-   for( ii=0 ; ii < npt ; ii++ )
-      fprintf(fp,"%g %g %g\n",xyz[3*ii],xyz[3*ii+1],xyz[3*ii+2]) ;
-
-   fclose(fp) ;
-
-   sprintf(qbuf,"qhull QJ i < %s",fname) ;
-   fp = popen( qbuf , "r" ) ;
-   if( fp == NULL ){ fprintf(stderr,"SUMA_qhull_wrap: popen fails\n"); remove(fname); return 0; }
-
-   jj = fscanf(fp,"%d",&nfac) ;
-   if( jj != 1 || nfac < 1 ){ fprintf(stderr,"SUMA_qhull_wrap: 1st fscanf fails\n"); pclose(fp); remove(fname); return 0; }
-
-   fac = (int *) malloc( sizeof(int)*3*nfac ) ;
-   if( fac == NULL ){ fprintf(stderr,"SUMA_qhull_wrap: malloc fails\n"); pclose(fp); remove(fname); return 0; }
-
-   if (fliporient) {
-      for( ii=0 ; ii < nfac ; ii++ ){
-         jj = fscanf(fp,"%d %d %d",fac+(3*ii+2),fac+(3*ii+1),fac+(3*ii)) ;
-         if( jj < 3 ){
-            fprintf(stderr,"SUMA_qhull_wrap: fscanf fails at ii=%d\n",ii) ;
-            pclose(fp); remove(fname); free(fac); return 0;
-         }
-      }
-   } else {
-      for( ii=0 ; ii < nfac ; ii++ ){
-         jj = fscanf(fp,"%d %d %d",fac+(3*ii),fac+(3*ii+1),fac+(3*ii+2)) ;
-         if( jj < 3 ){
-            fprintf(stderr,"SUMA_qhull_wrap: fscanf fails at ii=%d\n",ii) ;
-            pclose(fp); remove(fname); free(fac); return 0;
-         }
-      }
-   }
-   pclose(fp); remove(fname);
-
-   *ijk = fac ; return nfac ;
-}
 
 /*!
-   A function to call SUMA_qhull_wrap
+   A function to call SUMA_qhull_wrap or SUMA_qdelaunay_wrap
 */
-SUMA_SurfaceObject *SUMA_ConvexHullSurface(SUMA_GENERIC_PROG_OPTIONS_STRUCT * Opt)
+SUMA_SurfaceObject *SUMA_ConvexHullSurface(
+               SUMA_GENERIC_PROG_OPTIONS_STRUCT * Opt)
 {
    static char FuncName[]={"SUMA_ConvexHullSurface"};
    SUMA_SurfaceObject *SO=NULL;
-   float *xyz=NULL;
+   float *xyz=NULL, *xyzp=NULL;
    int npt, *ijk=NULL, nf, cnt, i, j, k, nxx, nyy, nzz;
    FILE *fid=NULL;
    THD_fvec3 fv, iv;
@@ -161,8 +48,12 @@ SUMA_SurfaceObject *SUMA_ConvexHullSurface(SUMA_GENERIC_PROG_OPTIONS_STRUCT * Op
                   fv.xyz[1] = DSET_YORG(Opt->in_vol) + j * DSET_DY(Opt->in_vol);
                   fv.xyz[2] = DSET_ZORG(Opt->in_vol) + k * DSET_DZ(Opt->in_vol);
                   /* change mm to RAI coords */
-		            iv = SUMA_THD_3dmm_to_dicomm( Opt->in_vol->daxes->xxorient, Opt->in_vol->daxes->yyorient, Opt->in_vol->daxes->zzorient, fv );
-                  xyz[3*npt] = iv.xyz[0]; xyz[3*npt+1] = iv.xyz[1]; xyz[3*npt+2] = iv.xyz[2]; 
+		            iv = SUMA_THD_3dmm_to_dicomm( Opt->in_vol->daxes->xxorient, 
+                                                Opt->in_vol->daxes->yyorient, 
+                                                Opt->in_vol->daxes->zzorient, 
+                                                fv );
+                  xyz[3*npt] = iv.xyz[0]; 
+                  xyz[3*npt+1] = iv.xyz[1]; xyz[3*npt+2] = iv.xyz[2]; 
                   npt++;
                }
                ++cnt;
@@ -174,28 +65,57 @@ SUMA_SurfaceObject *SUMA_ConvexHullSurface(SUMA_GENERIC_PROG_OPTIONS_STRUCT * Op
       if (!xyz) {
          SUMA_S_Err("Failed to allocate"); SUMA_RETURN(NULL);
       }
-      for(  k = 0 ; k < 3*Opt->N_XYZ ; k++ ) {  xyz[k] = Opt->XYZ[k]; npt = Opt->N_XYZ; }   
+      for(  k = 0 ; k < 3*Opt->N_XYZ ; k++ ) {  
+         xyz[k] = Opt->XYZ[k]; npt = Opt->N_XYZ; 
+      }   
    } else {
       SUMA_S_Err("No input");
       SUMA_RETURN(NULL);
    }
-   if (! (nf = SUMA_qhull_wrap(npt, xyz, &ijk, 1)) ) {
-      fprintf(SUMA_STDERR,"%s:\nFailed in SUMA_qhull_wrap\n", FuncName);
-      SUMA_RETURN(SO);
+   
+   if (Opt->corder) {
+      if (!(xyzp = SUMA_Project_Coords_PCA (xyz, npt, 
+                                                 npt/2, 2, 1))) {
+         SUMA_S_Err("Failed to project");
+         exit(1);
+      }
+   } else {
+      xyzp = xyz;
    }
+
+   
+   if (Opt->geom == 1) {
+      if (! (nf = SUMA_qhull_wrap(npt, xyzp, &ijk, 1, Opt->s)) ) {
+         fprintf(SUMA_STDERR,"%s:\nFailed in SUMA_qhull_wrap\n", FuncName);
+         SUMA_RETURN(SO);
+      }
+   } else if (Opt->geom == 2) {
+      if (! (nf = SUMA_qdelaunay_wrap(npt, xyzp, &ijk, 1, Opt->s)) ) {
+         fprintf(SUMA_STDERR,"%s:\nFailed in SUMA_qdelaunay_wrap\n", FuncName);
+         SUMA_RETURN(SO);
+      }
+   } else {
+      SUMA_S_Errv("Opt->geom = %d not valid\n", Opt->geom);
+      SUMA_RETURN(NULL);
+   }  
    
    if (Opt->debug) fprintf(SUMA_STDERR,"%s:\n%d triangles.\n", FuncName, nf);
    
    
-   SO = SUMA_Patch2Surf(xyz, npt, ijk, nf, 3);
+   
+   if (Opt->unif) {
+      SO = SUMA_Patch2Surf(xyz, npt, ijk, nf, 3);
+   } else {
+      SO = SUMA_Patch2Surf(xyzp, npt, ijk, nf, 3);
+   }
+   
    free(ijk); ijk=NULL;
+   if (xyzp != xyz) SUMA_free(xyzp); xyzp = NULL;
    SUMA_free(xyz); xyz = NULL;
       
    SUMA_RETURN(SO);
 }
 
-
-#ifdef SUMA_ConvexHull_STANDALONE
 void usage_SUMA_ConvexHull (SUMA_GENERIC_ARGV_PARSE *ps)
    {
       static char FuncName[]={"usage_SUMA_ConvexHull"};
@@ -205,8 +125,9 @@ void usage_SUMA_ConvexHull (SUMA_GENERIC_ARGV_PARSE *ps)
       sio  = SUMA_help_IO_Args(ps);
       printf ( 
 "\n"
-"Usage: A program to find the convex hull of a set of points.\n"
-"  This program is a wrapper for the Qhull program.\n"
+"Usage: A program to find the convex hull, or perform a delaunay triangulation\n"
+"       of a set of points.\n"
+"  This program is a wrapper for the qhull, and qdelaunay programs.\n"
 "  see copyright notice by running suma -sources.\n"
 "\n"
 "  ConvexHull  \n"
@@ -215,7 +136,8 @@ void usage_SUMA_ConvexHull (SUMA_GENERIC_ARGV_PARSE *ps)
 "              [<-xform XFORM>]\n"
 "     usage 2: < i_TYPE input surface >\n"
 "              [<-sv SURF_VOL>]\n"
-"     usage 3: < -input_1D XYZ >\n"      
+"     usage 3: < -input_1D XYZ >\n"
+"              [<-q_opt OPT>]\n"     
 "     common optional:\n"
 "              [< -o_TYPE PREFIX>]\n"
 "              [< -debug DBG >]\n"  
@@ -239,10 +161,20 @@ void usage_SUMA_ConvexHull (SUMA_GENERIC_ARGV_PARSE *ps)
 "                    below.\n"
 "\n"
 "  Usage 3:\n"
-"     -input_1D XYZ: Construct the convex hull of the points\n"
+"     -input_1D XYZ: Construct the triangulation of the points\n"
 "                    contained in 1D file XYZ. If the file has\n"
 "                    more than 3 columns, use AFNI's [] selectors\n"
 "                    to specify the XYZ columns.\n"
+"     -q_opt OPT: Meshing option OPT can be one of.\n"
+"                    convex_hull: For convex hull of points (default)\n"
+"                    triangulate_xy: Delaunay triangulation using x y coords\n"
+"\n"
+" These two options are only useful with -q_opt triangulate_xy\n"
+"     -proj_xy: Project points onto plane whose normal is the third principal \n"
+"               component. Then rotate projection so that plane in parallel to\n"
+"               Z = constant.\n"
+"     -orig_coord: Use original coordinates when writing surface, not\n"
+"                  transformed ones.\n"
 "\n" 
 "  Optional Parameters:\n"
 "     Usage 1 only:\n"
@@ -336,6 +268,11 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_ConvexHull_ParseInput (char *argv[], int 
    Opt->XYZ = NULL;
    Opt->in_1D = NULL;
    Opt->N_XYZ = 0;
+   Opt->s = SUMA_copy_string("convex_hull");
+   Opt->geom = 1;
+   Opt->corder = 0;
+   Opt->unif = 0;
+   
 	brk = NOPE;
 	while (kar < argc) { /* loop accross command ine options */
 		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
@@ -359,7 +296,8 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_ConvexHull_ParseInput (char *argv[], int 
          } else if (!strcmp(argv[kar], "shift")) {
             Opt->xform = SUMA_ISO_XFORM_SHIFT;
          }else {
-            fprintf (SUMA_STDERR, "%s is a bad parameter for -xform option. \n", argv[kar]);
+            fprintf (SUMA_STDERR, 
+                     "%s is a bad parameter for -xform option. \n", argv[kar]);
 				exit (1);
          }
          brk = YUP;
@@ -372,6 +310,34 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_ConvexHull_ParseInput (char *argv[], int 
 				exit (1);
 			}
 			Opt->in_1D = argv[kar];
+         brk = YUP;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-q_opt") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need option after -q_opt \n");
+				exit (1);
+			}
+         if (!strcmp(argv[kar],"triangulate_xy")) {
+            Opt->geom = 2;
+         } else if (!strcmp(argv[kar],"convex_hull")) {
+            Opt->geom = 1;
+         } else {
+            SUMA_S_Errv("Bad value of %s for -q_opt", argv[kar]);
+            exit(1);
+         }  
+			Opt->s = SUMA_copy_string(argv[kar]);
+         brk = YUP;
+		}
+
+      if (!brk && (strcmp(argv[kar], "-proj_xy") == 0)) {
+         Opt->corder = 1;
+         brk = YUP;
+		}
+
+      if (!brk && (strcmp(argv[kar], "-orig_coord") == 0)) {
+         Opt->unif = 1;
          brk = YUP;
 		}
       
@@ -446,7 +412,10 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_ConvexHull_ParseInput (char *argv[], int 
 		}
       
       if (!brk && !ps->arg_checked[kar]) {
-			fprintf (SUMA_STDERR,"Error %s:\nOption %s not understood. Try -help for usage\n", FuncName, argv[kar]);
+			fprintf (SUMA_STDERR,
+                  "Error %s:\n"
+                  "Option %s not understood. Try -help for usage\n", 
+                  FuncName, argv[kar]);
 			exit (1);
 		} else {	
 			brk = NOPE;
@@ -454,7 +423,8 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_ConvexHull_ParseInput (char *argv[], int 
 		}
    }
    
-   /* transfer some options to Opt from ps. Clunky because this is retrofitting */
+   /* transfer some options to Opt from ps. 
+      Clunky because this is retrofitting */
    if (ps->o_N_surfnames) {
       Opt->out_prefix = SUMA_copy_string(ps->o_surfnames[0]);
       Opt->SurfFileType = ps->o_FT[0];
@@ -463,7 +433,8 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_ConvexHull_ParseInput (char *argv[], int 
    
    if (ps->i_N_surfnames) {
       if (Opt->in_name || Opt->in_1D) {
-         fprintf (SUMA_STDERR,"Error %s:\nOptions -i_TYPE, -input and -input_1D are mutually exclusive.\n", FuncName);
+         SUMA_S_Err( "Options -i_TYPE, -input and -input_1D"
+                     " are mutually exclusive.");
          exit(1);
       }
    }
@@ -638,8 +609,6 @@ int main (int argc,char *argv[])
             
             /* done, clean up and out you go */
             if (im) mri_free(im); im = NULL; 
-            
-            
       } else if (ps->i_N_surfnames) {
          SUMA_SurfSpecFile *Spec=NULL;
          SUMA_SurfaceObject *SO=NULL;
@@ -693,6 +662,8 @@ int main (int argc,char *argv[])
       SUMA_S_Err("Bad input!");
       exit(1);
    }
+   
+               
    /* Now call Marching Cube functions */
    if (!(SO = SUMA_ConvexHullSurface(Opt))) {
       SUMA_S_Err("Failed to create surface.\n");
@@ -700,8 +671,10 @@ int main (int argc,char *argv[])
    }
 
    /* write the surface to disk */
-   if (!SUMA_Save_Surface_Object (SO_name, SO, Opt->SurfFileType, Opt->SurfFileFormat, NULL)) {
-      fprintf (SUMA_STDERR,"Error %s: Failed to write surface object.\n", FuncName);
+   if (!SUMA_Save_Surface_Object (SO_name, SO, 
+                        Opt->SurfFileType, Opt->SurfFileFormat, NULL)) {
+      fprintf (SUMA_STDERR,
+                  "Error %s: Failed to write surface object.\n", FuncName);
       exit (1);
    }
    
@@ -719,4 +692,3 @@ int main (int argc,char *argv[])
    if (!SUMA_Free_CommonFields(SUMAg_CF)) SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);
    exit(0);
 }   
-#endif

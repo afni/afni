@@ -9975,6 +9975,22 @@ void SUMA_cb_SetRenderMode(Widget widget, XtPointer client_data,
    SUMA_RETURNe;
 }
 
+int SUMA_RenderMode2RenderModeMenuItem(int Mode)
+{
+   static char FuncName[]={"SUMA_RenderMode2RenderModeMenuItem"};
+   
+   SUMA_ENTRY;
+   
+   if ((Mode) >= SW_N_SurfCont_Render || 
+       (Mode) <=  SW_SurfCont_Render) {
+      SUMA_S_Err("Bad mode, returning FILL");    
+      SUMA_RETURN(SW_SurfCont_RenderFill);
+   }
+   
+   SUMA_RETURN(Mode);
+}      
+
+
 int SUMA_ShowMode2ShowModeMenuItem(int Mode)
 {
    static char FuncName[]={"SUMA_ShowMode2ShowModeMenuItem"};
@@ -9992,6 +10008,7 @@ int SUMA_ShowMode2ShowModeMenuItem(int Mode)
       SUMA_RETURN(Mode);
    }
 }      
+
 
 int SUMA_ShowModeStr2ShowModeMenuItem(char *str) 
 {

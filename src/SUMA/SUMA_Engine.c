@@ -794,9 +794,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             { /* sets the rendering mode of a surface, 
                expects SO in vp and rendering mode in i*/
                SO = (SUMA_SurfaceObject *)EngineData->vp;
-               SO->PolyMode = EngineData->i;     
-               if (SO->PolyMode == SRM_Hide) SO->Show = NOPE;
-               else SO->Show = YUP;             
+               SUMA_SET_SO_POLYMODE(SO,EngineData->i);
             }  
             break;
             
@@ -3200,14 +3198,39 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                                  SO->SurfCont->curColPlane->ShowMode));
             }
             if (NI_get_attribute(EngineData->ngr, "view_surf")) {
-               if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "view_surf", "y")) 
+               if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "view_surf", "y")) {
                   SO->Show = YUP;
-               else if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "view_surf", "n"))
+               } else if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr,"view_surf","n")){
                   SO->Show = NOPE;
-               else { 
+               } else if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, 
+                                          "view_surf", "Viewer")) {
+                  SUMA_SET_SO_POLYMODE(SO,SRM_ViewerDefault);
+                  SUMA_SET_MENU( SO->SurfCont->RenderModeMenu,
+                         SUMA_RenderMode2RenderModeMenuItem(SO->PolyMode+1));
+               } else if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, 
+                                          "view_surf", "Fill")) {
+                  SUMA_SET_SO_POLYMODE(SO,SRM_Fill);
+                  SUMA_SET_MENU( SO->SurfCont->RenderModeMenu,
+                         SUMA_RenderMode2RenderModeMenuItem(SO->PolyMode+1));
+               } else if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, 
+                                          "view_surf", "Line")) {
+                  SUMA_SET_SO_POLYMODE( SO, SRM_Line );
+                  SUMA_SET_MENU( SO->SurfCont->RenderModeMenu,
+                         SUMA_RenderMode2RenderModeMenuItem(SO->PolyMode+1));
+               } else if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, 
+                                          "view_surf", "Points")) {
+                  SUMA_SET_SO_POLYMODE(SO,SRM_Points);
+                  SUMA_SET_MENU( SO->SurfCont->RenderModeMenu,
+                         SUMA_RenderMode2RenderModeMenuItem(SO->PolyMode+1));
+               } else if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, 
+                                          "view_surf", "Hide")) {
+                  SUMA_SET_SO_POLYMODE(SO,SRM_Hide);
+                  SUMA_SET_MENU( SO->SurfCont->RenderModeMenu,
+                         SUMA_RenderMode2RenderModeMenuItem(SO->PolyMode+1));
+               } else { 
                   SUMA_S_Errv("Bad value of %s for view_surf, setting to 'y'\n", 
                               NI_get_attribute(EngineData->ngr, "view_surf"));
-                  SO->Show = YUP;
+                  SO->Show = YUP; SUMA_SET_SO_POLYMODE(SO,SRM_Fill);
                }
                /* redisplay */
                SUMA_SiSi_I_Insist();   /* did not think that was necessary...

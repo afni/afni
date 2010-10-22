@@ -1260,7 +1260,7 @@ SUMA_Boolean SUMA_Draw3DTextureNIDOnel (NI_element *nel,
                                     SUMA_SurfaceObject *SO, 
                                     SUMA_DO_CoordUnits default_coord_type,
                                     float *default_txcol, 
-                                    void *default_font,
+                                    void *default_font, int default_node,
                                     SUMA_SurfaceViewer *sv)
 {
    static char FuncName[]={"SUMA_Draw3DTextureNIDOnel"};

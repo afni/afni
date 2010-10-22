@@ -1056,6 +1056,225 @@ void NI_set_attribute( void *nini , char *attname , char *attvalue )
    return ;
 }
 
+/*------------------------------------------------------------------------*/
+/*! Copy all attributes from one element to the next.
+    The function is not recursive and must have a target nel
+    with no attributes.    ZSS Oct 2010
+--------------------------------------------------------------------------*/
+
+void NI_copy_all_attributes( void *nisrc , void *nitrg )
+{
+   int nn , ttsrc=NI_element_type(nisrc), tttrg=NI_element_type(nitrg) ;
+
+   if( ttsrc < 0 || tttrg < 0 ) return ;
+   if( tttrg != ttsrc) {
+      fprintf(stderr,"Error NI_copy_all_attributes:\n"
+                     "Src and trg elements must have same type.\n");
+      return; 
+   }
+   /* input is a data element */
+   if( ttsrc == NI_ELEMENT_TYPE ){
+      NI_element *nelsrc = (NI_element *) nisrc ;
+      NI_element *neltrg = (NI_element *) nitrg ;
+      if( neltrg->attr_num != 0) {
+         /* don't allow for this now. Else, you need to clear
+            all pre-existing ones, or just common pre-existing ones
+            then continue below */
+         fprintf(stderr,"Error NI_copy_all_attributes:\n"
+                        "Must have no attributes in target element.\n");
+         return; 
+      }
+
+      neltrg->attr_lhs = NI_realloc ( neltrg->attr_lhs, 
+                                     char*, sizeof(char *)*nelsrc->attr_num);
+      neltrg->attr_rhs = NI_realloc ( neltrg->attr_rhs, 
+                                     char*, sizeof(char *)*nelsrc->attr_num);
+      neltrg->attr_num = nelsrc->attr_num;
+      
+      for( nn=0 ; nn < nelsrc->attr_num ; nn++ ) {
+         neltrg->attr_lhs[nn] = NI_strdup(nelsrc->attr_lhs[nn]);
+         neltrg->attr_rhs[nn] = NI_strdup(nelsrc->attr_rhs[nn]);
+      }
+      
+   /* input is a group element */
+
+   } else if( ttsrc == NI_GROUP_TYPE ){
+      NI_group *ngrsrc = (NI_group *) nisrc ;
+      NI_group *ngrtrg = (NI_group *) nitrg ;
+      if( ngrtrg->attr_num != 0) {
+         /* don't allow for this now. Else, you need to clear
+            all pre-existing ones, or just common pre-existing ones
+            then continue below */
+         fprintf(stderr,"Error NI_copy_all_attributes:\n"
+                        "Must have no attributes in target element.\n");
+         return; 
+      }
+      
+      ngrtrg->attr_lhs = NI_realloc ( ngrtrg->attr_lhs, 
+                                     char*, sizeof(char *)*ngrsrc->attr_num);
+      ngrtrg->attr_rhs = NI_realloc ( ngrtrg->attr_rhs, 
+                                     char*, sizeof(char *)*ngrsrc->attr_num);
+      ngrtrg->attr_num = ngrsrc->attr_num;
+      
+      for( nn=0 ; nn < ngrsrc->attr_num ; nn++ ) {
+         ngrtrg->attr_lhs[nn] = NI_strdup(ngrsrc->attr_lhs[nn]);
+         ngrtrg->attr_rhs[nn] = NI_strdup(ngrsrc->attr_rhs[nn]);
+      }
+   
+   /* input is a processing instruction */
+
+   } else if( ttsrc == NI_PROCINS_TYPE ){
+      NI_procins *npisrc = (NI_procins *) nisrc ;
+      NI_procins *npitrg = (NI_procins *) nitrg ;
+      if( npitrg->attr_num != 0) {
+         /* don't allow for this now. Else, you need to clear
+            all pre-existing ones, or just common pre-existing ones
+            then continue below */
+         fprintf(stderr,"Error NI_copy_all_attributes:\n"
+                        "Must have no attributes in target element.\n");
+         return; 
+      }
+
+      npitrg->attr_lhs = NI_realloc ( npitrg->attr_lhs, 
+                                     char*, sizeof(char *)*npisrc->attr_num);
+      npitrg->attr_rhs = NI_realloc ( npitrg->attr_rhs, 
+                                     char*, sizeof(char *)*npisrc->attr_num);
+      npitrg->attr_num = npisrc->attr_num;
+      
+      for( nn=0 ; nn < npisrc->attr_num ; nn++ ) {
+         npitrg->attr_lhs[nn] = NI_strdup(npisrc->attr_lhs[nn]);
+         npitrg->attr_rhs[nn] = NI_strdup(npisrc->attr_rhs[nn]);
+      }
+   }
+
+   return ;
+}
+
+/*------------------------------------------------------------------------*/
+/*! Duplicate a niml group or element.     
+   Function tested with test program niccc and -dup option  ZSS Oct 2010
+--------------------------------------------------------------------------*/
+void *NI_duplicate(void *vel, byte with_data) 
+{
+   void *vdup=NULL;
+   int tt=-1;
+   
+   if (!vel) return(vdup); 
+   tt = NI_element_type(vel);
+   if (tt == NI_ELEMENT_TYPE) {
+      return(NI_duplicate_element(vel, with_data));
+   } else if (tt == NI_GROUP_TYPE){
+      return(NI_duplicate_group(vel, with_data));
+   } else {
+      fprintf(stderr, 
+         "Error NI_duplicate:\n"
+         "Can only deal with elements on group types\n");
+      return(NULL);
+   }
+   return(NULL);
+}
+
+/*------------------------------------------------------------------------*/
+/*! Duplicate niml element only.   
+    Better use function NI_duplicate                     ZSS Oct 2010
+--------------------------------------------------------------------------*/
+void *NI_duplicate_element (void *vel, byte with_data) 
+{
+   NI_element *ndup = NULL;
+   NI_element *nel = (NI_element *)vel;
+   NI_group *gel = (NI_group *)vel;
+   NI_group *gdup = NULL;
+   int tt=-1, i=0;
+   void *vdup=NULL;
+   
+   if (!vel) return(vdup); 
+   
+   tt = NI_element_type(vel);
+   if (tt != NI_ELEMENT_TYPE) {
+      fprintf(stderr, 
+         "Error NI_duplicate_element:\n"
+         "Can only deal with elements\n");
+      return(vdup);
+   }
+   
+   ndup = NI_new_data_element(nel->name, nel->vec_len);
+   
+   /* copy the attributes */
+   NI_copy_all_attributes(nel, ndup);
+   
+   if (with_data) {
+      /* copy the columns */
+      for (i=0; i<nel->vec_num; ++i) {
+         NI_add_column(ndup, nel->vec_typ[i],(void *)nel->vec[i]);
+      }
+   }
+   
+   if (tt == NI_ELEMENT_TYPE) return((void *)ndup);
+   else return(vdup);
+}
+
+/*------------------------------------------------------------------------*/
+/*! Duplicate niml group only. 
+    Better use function NI_duplicate                        ZSS Oct 2010
+--------------------------------------------------------------------------*/
+void *NI_duplicate_group (void *vel, byte with_data) 
+{
+   NI_group *gel = (NI_group *)vel;
+   NI_group *gdup = NULL;
+   void *vv=NULL;
+   int tt=-1, i=0;
+   void *vdup=NULL, *gg=NULL;
+   
+   if (!vel) return(vdup); 
+   
+   tt = NI_element_type(vel);
+   if (tt != NI_GROUP_TYPE) {
+      fprintf(stderr, 
+         "Error NI_duplicate_group:\n"
+         "Can only deal with groups in this function\n");
+      return(vdup);
+   }
+   
+   gdup = NI_new_group_element();
+   NI_rename_group(gdup, gel->name);
+   
+   /* copy the attributes to gdup*/
+   NI_copy_all_attributes(gel, gdup);
+   
+   /* copy all the elements */
+   for (i=0; i<gel->part_num; ++i) {
+      switch( gel->part_typ[i] ){
+         /*-- a sub-group ==> recursion! --*/
+         case NI_GROUP_TYPE:
+            if (!(gg = NI_duplicate_group(gel->part[i], with_data))) {
+               fprintf(stderr, 
+                  "Error NI_duplicate_group:\n"
+                  "Failed at recursion\n");
+               return(NULL);
+            }
+            NI_add_to_group(gdup, gg);
+            break ;
+         case NI_ELEMENT_TYPE:
+            if (!(gg = NI_duplicate_element(gel->part[i],with_data))) {
+               fprintf(stderr, 
+                  "Error NI_duplicate_element:\n"
+                  "Failed at recursion\n");
+               return(NULL);
+            }
+            NI_add_to_group(gdup, gg);
+            break;
+         default:
+            fprintf(stderr, 
+                  "Error NI_duplicate_group:\n"
+                  "No duplication implemented for type %d, ignoring.\n",
+                  gel->part_typ[i]);
+            break;
+      }
+   }
+   return(gdup);
+}
+
+
 /*-----------------------------------------------------------------------*/
 /*! Get an attribute with the given LHS name.  Returns a pointer to the
     RHS field in the element if the attribute name is found; otherwise

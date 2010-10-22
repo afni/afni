@@ -9,10 +9,12 @@ int SUMAg_N_DOv = 0; /*!< Number of DOs stored in DOv */
 SUMA_CommonFields *SUMAg_CF = NULL; /*!< Global pointer to structure containing info common to all viewers */
 
 
-void usage_SUMA_quickspec()
+void usage_SUMA_quickspec(SUMA_GENERIC_ARGV_PARSE *ps)
 {
    static char FuncName[]={"usage_SUMA_quickspec"};
-   char * s = NULL;
+   char * s = NULL, *sio=NULL;
+   sio  = SUMA_help_IO_Args(ps);
+   
    printf ( 
 "\nUsage:  quickspec \n"
 "        <-tn TYPE NAME> ...\n"
@@ -22,20 +24,7 @@ void usage_SUMA_quickspec()
 "  loading a surface into SUMA or the command line programs.\n"
 "\n"
 "Options:\n"
-"   -tn TYPE NAME: specify surface type, and name.\n"
-"                  See below for help on the parameters.\n"
-"   -tsn TYPE STATE NAME: specify surface type, state, and name.\n"
-"        TYPE: Choose from the following (case sensitive):\n"
-"           1D: 1D format\n"
-"           FS: FreeSurfer ascii format\n"
-"           PLY: ply format\n"
-"           SF: Caret/SureFit format\n"
-"           BV: BrainVoyager format\n"
-"        STATE: State of the surface.\n"
-"           Default is S1, S2.... for each surface.\n"
-"        NAME: Name of surface file. \n"
-"           For SF and 1D formats, NAME is composed of two names\n"
-"           the coord file followed by the topo file\n"
+"%s\n"
 "   -tsnad TYPE STATE NAME ANATFLAG LDP: \n"
 "                 specify surface type, state, name, anatomical correctness, \n"
 "                 and its Local Domain Parent.\n"
@@ -55,7 +44,7 @@ void usage_SUMA_quickspec()
 "\n   This program was written to ward off righteous whiners and is\n"
 "  not meant to replace the venerable @SUMA_Make_Spec_XX scripts.\n"
 "\n"
-      );
+     , sio); SUMA_free(sio); sio = NULL;
      s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL;
      printf("      Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov \n\t\t Tue Dec 30\n"
             "\n");
@@ -75,6 +64,7 @@ int main (int argc,char *argv[])
          *Name_topo[SUMA_MAX_N_SURFACE_SPEC],
          Anat[SUMA_MAX_N_SURFACE_SPEC],
          *LDP[SUMA_MAX_N_SURFACE_SPEC];
+   SUMA_GENERIC_ARGV_PARSE *ps;
    SUMA_Boolean brk;
    
    SUMA_mainENTRY;
@@ -87,9 +77,11 @@ int main (int argc,char *argv[])
 		exit(1);
 	}
    
+   ps = SUMA_Parse_IO_Args(argc, argv, "-t;");
+   
    if (argc < 3)
        {
-          usage_SUMA_quickspec ();
+          usage_SUMA_quickspec (ps);
           exit (1);
        }
    
@@ -102,7 +94,7 @@ int main (int argc,char *argv[])
 	while (kar < argc) { /* loop accross command ine options */
 		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
 		if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
-			 usage_SUMA_quickspec();
+			 usage_SUMA_quickspec(ps);
           exit (1);
 		}
 		if (!brk && (strcmp(argv[kar], "-spec") == 0)) {
@@ -377,11 +369,12 @@ int main (int argc,char *argv[])
    
    if (Unique_st) SUMA_free(Unique_st); Unique_st = NULL;
    
+   if (ps) SUMA_FreeGenericArgParse(ps); ps = NULL;
    if (!SUMA_Free_CommonFields(SUMAg_CF)) {
       fprintf(SUMA_STDERR,"Error %s: SUMAg_CF Cleanup Failed!\n", FuncName);
       exit(1);
    }
-   
+
    SUMA_RETURN(0);
    
 }/* main quickspec */

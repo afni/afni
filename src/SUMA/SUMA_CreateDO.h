@@ -121,10 +121,16 @@ SUMA_SegmentDO *SUMA_CreateSegmentDO(  int N_n, int oriented, int NodeBased,
                                        );
 SUMA_DO * SUMA_Multiply_NodeObjects ( SUMA_SurfaceObject *SO, 
                                       SUMA_DO *DO );
-SUMA_SurfaceObject *SUMA_Cmap_To_SO (SUMA_COLOR_MAP *Cmap, float orig[3], float topright[3], int verb);
+SUMA_NIDO ** SUMA_Multiply_NodeNIDOObjects ( SUMA_SurfaceObject *SO, 
+                                      SUMA_DO *DO );
+SUMA_Boolean SUMA_ApplyDataToNodeObjects(
+            SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv);
+SUMA_SurfaceObject *SUMA_Cmap_To_SO (SUMA_COLOR_MAP *Cmap, float orig[3], 
+                                       float topright[3], int verb);
 SUMA_Boolean SUMA_PrepForNIDOnelPlacement (  SUMA_SurfaceViewer *sv,
                                              NI_element *nel, 
                                              SUMA_SurfaceObject *default_SO,
+                                             int default_node,
                                              float *txloc, float *txcoord,
                                              int *sz, 
                                              int *orthoreset,
@@ -133,18 +139,18 @@ SUMA_Boolean SUMA_DrawImageNIDOnel( NI_element *nel,
                                     SUMA_SurfaceObject *SO,
                                     SUMA_DO_CoordUnits default_coord_type,
                                     float *default_txcol, 
-                                    void *default_font,
+                                    void *default_font, int default_node,
                                     SUMA_SurfaceViewer *sv) ;
 SUMA_Boolean SUMA_DrawTextNIDOnel(  NI_element *nel, 
                                     SUMA_SurfaceObject *SO, 
                                     SUMA_DO_CoordUnits default_coord_type,
                                     float *default_txcol, 
-                                    void *default_font,
+                                    void *default_font, int default_node,
                                     SUMA_SurfaceViewer *sv) ;
 SUMA_Boolean SUMA_DrawSphereNIDOnel(  NI_element *nel, 
                                     SUMA_SurfaceObject *SO, 
                                     SUMA_DO_CoordUnits default_coord_type,
-                                    float *default_txcol, 
+                                    float *default_txcol, int default_node, 
                                     SUMA_SurfaceViewer *sv) ;
 SUMA_Boolean SUMA_DrawNIDO (SUMA_NIDO *SDO, SUMA_SurfaceViewer *sv);
 SUMA_Boolean SUMA_DrawLineAxis ( SUMA_AxisSegmentInfo *ASIp, SUMA_Axis *Ax, SUMA_Boolean AddText);
