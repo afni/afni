@@ -5198,10 +5198,15 @@ int SUMA_MapRefRelative (int cur_id, int *prec_list, int N_prec_list, SUMA_DO *d
          if (N_prec_list == 1) {
             /* if all you have is one surface in one state in SUMA then you need not worry about the rest */
          } else {
-            fprintf(SUMA_STDERR, "\nError %s: Flow problem.\n"
+            /* this can happen if you have multiple surfaces with each being 
+            their own mappable surfaces., so it is OK too */
+            /*
+               fprintf(SUMA_STDERR, "\nError %s: Flow problem.\n"
                                  "Did not expect identical surfaces \n"
-                                 "in this condition (N_prec_list = %d)\n", FuncName, N_prec_list);
-            SUMA_BEEP; 
+                                 "in this condition (N_prec_list = %d)\n", 
+                                 FuncName, N_prec_list);
+            SUMA_BEEP;
+            */ 
          }
          /* 
          I changed the next condition: 
