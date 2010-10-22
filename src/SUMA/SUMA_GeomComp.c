@@ -6136,6 +6136,149 @@ SUMA_Boolean SUMA_FixNN_Oversampling ( SUMA_SurfaceObject *SO, SUMA_DSET *dset,
    SUMA_RETURN(YUP);
 }
  
+ 
+/*!
+   \brief Project coordinates along a plane prependicular to one
+   of the principal components.
+   
+   \param xyz (float *): vector of coordinate triplets
+   \param N_xyz (int) : number of coordinate triplets (nodes)
+   \param iref (int): Make projection plane pass through node iref 
+                     iref has coords xyz[3*iref], xyz[3*iref+1], xyz[3*iref+2]
+                     If -1, then the function chooses iref = 0
+   \param compnum (int): Which of the three component is to be the projection
+                        plane's normal. 0 for the 1st principal vector
+                                        1 for the 2nd principal vector
+                                        2 for the 3rd
+   \param rotate (int): if 1 then rotate projection so that plane becomes 
+                        parallel to XY plane,
+                           2 for XZ plane
+                           3 for YZ plane      
+*/                              
+float *SUMA_Project_Coords_PCA (float *xyz, int N_xyz, int iref, 
+                                int compnum, int rotate)  
+{
+   static char FuncName[]={"SUMA_Project_Coords_PCA"};
+   int i, i3;
+   double trace, pc_vec[9], pc_eig[3], Eq[4], pc0[3], proj[3];
+   float *xyzp=NULL, fv[3], **fm=NULL, *p1, pcf0[3];
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+
+   SUMA_LH("Xforming");
+   if (compnum < 0 || compnum > 2) {
+      SUMA_S_Errv("Bad compnum %d, range [0 2]\n", compnum);
+      SUMA_RETURN(NULL);
+   }
+   
+   if (iref < 0) iref = 0;
+   if (iref >= N_xyz) {
+      SUMA_S_Errv("Bad iref %d, range [%d %d]\n", iref, 0, N_xyz-1);
+      SUMA_RETURN(NULL);
+   }
+   
+   /* make a copy to avoid destroying xyz in PCA and further down */
+   xyzp = (float *)SUMA_calloc(N_xyz*3, sizeof(float));
+   memcpy(xyzp, xyz, N_xyz*3*sizeof(float));
+   
+   if ((trace = pca_fast3(xyzp, N_xyz, 1, pc_vec, pc_eig)) < 0){
+      SUMA_S_Err("Failed calculating PC\n");
+      SUMA_free(xyzp); xyzp=NULL;
+      SUMA_RETURN(xyzp); 
+   }
+   
+   SUMA_LHv("PCA results:\n"
+            "Eig[0]=%f     pc[0]=[%f %f %f]\n"
+            "Eig[1]=%f     pc[1]=[%f %f %f]\n"
+            "Eig[2]=%f     pc[2]=[%f %f %f]\n",
+            pc_eig[0], pc_vec[0], pc_vec[3], pc_vec[6],
+            pc_eig[1], pc_vec[1], pc_vec[4], pc_vec[7],
+            pc_eig[2], pc_vec[2], pc_vec[5], pc_vec[8]);
+            
+            
+   
+   /* Find equation of plane passing by node iref and having the PC 
+      for a normal */
+   pc0[0] = pc_vec[compnum  ]; 
+   pc0[1] = pc_vec[compnum+3]; 
+   pc0[2] = pc_vec[compnum+6];
+   for (i=0; i<3;++i) pcf0[i]=pc0[i];
+    
+   p1 = &(xyzp[3*iref]);
+   SUMA_LHv("   Forming plane with normal [%f %f %f], \n"
+            "   passing by point iref [%f %f %f]\n", 
+      pc0[0], pc0[1], pc0[2], p1[0], p1[1], p1[2]); 
+   SUMA_PLANE_NORMAL_POINT(pc0, p1, Eq);
+   
+   /* project all points to the plane */
+   for (i=0; i<N_xyz; ++i) {
+      i3=3*i;
+      proj[0] = xyzp[i3];proj[1] = xyzp[i3+1];proj[2] = xyzp[i3+2];
+      SUMA_PROJECT_ONTO_PLANE(Eq, proj, (xyzp+3*i));
+   }
+   SUMA_LHv(" After projection\n"
+            "izero now: [%f %f %f]\n"
+            "iref  now: [%f %f %f]\n",
+            xyzp[0], xyzp[1], xyzp[2],
+            xyzp[iref*3], xyzp[iref*3+1], xyzp[iref*3+2]);
+            
+   if (rotate > 0) {
+      /* Now rotate all projected points so that plane is in XY */
+      switch (rotate) {
+         case 1:
+            fv[0]=0.0; fv[1]=0.0; fv[2]=1.0; /* Z axis */
+            break;
+         case 2:
+            fv[0]=0.0; fv[1]=1.0; fv[2]=0.0; /* Y axis */
+            break;
+         case 3:
+            fv[0]=1.0; fv[1]=0.0; fv[2]=0.0; /* X axis */
+            break;
+         default:
+            SUMA_S_Errv("Bad rotation parameter %d\n", rotate);
+            SUMA_free(xyzp); xyzp=NULL;
+            SUMA_RETURN(xyzp); 
+      }
+      fm = (float **)SUMA_allocate2D(4,4,sizeof(float));
+      if (!SUMA_FromToRotation (pcf0, fv,  fm)) {
+            SUMA_S_Err("Failed to get rotation");
+         SUMA_free(xyzp); xyzp=NULL;
+         SUMA_free2D((char **)fm, 2); fm = NULL;
+         SUMA_RETURN(xyzp); 
+      }
+      /* Apply rotation to all points */
+      for (i=0; i<N_xyz; ++i) {
+         i3=3*i;
+         proj[0] = xyzp[i3  ]*fm[0][0] + 
+                   xyzp[i3+1]*fm[0][1] +
+                   xyzp[i3+2]*fm[0][2] ;
+         proj[1] = xyzp[i3  ]*fm[1][0] + 
+                   xyzp[i3+1]*fm[1][1] +
+                   xyzp[i3+2]*fm[1][2] ;
+         proj[2] = xyzp[i3  ]*fm[2][0] + 
+                   xyzp[i3+1]*fm[2][1] +
+                   xyzp[i3+2]*fm[2][2] ;
+         xyzp[i3  ] = proj[0];
+         xyzp[i3+1] = proj[1];
+         xyzp[i3+2] = proj[2];
+      }
+
+      SUMA_LHv("After rotate %d\n"
+               "izero now: [%f %f %f]\n"
+               "iref  now: [%f %f %f]\n"
+               "initial izero still: [%f %f %f]\n",
+               rotate,
+               xyzp[0], xyzp[1], xyzp[2],
+               xyzp[iref*3], xyzp[iref*3+1], xyzp[iref*3+2],
+               xyz[0], xyz[1], xyz[2]);
+
+      if (fm) SUMA_free2D((char **)fm, 2); fm = NULL;
+   }
+   
+   SUMA_RETURN(xyzp); 
+}   
+ 
 static int UseSliceFWHM = 0;
 void SUMA_Set_UseSliceFWHM(int v) { UseSliceFWHM = v; }
 int SUMA_Get_UseSliceFWHM(void) { return(UseSliceFWHM); }
@@ -11333,6 +11476,233 @@ SUMA_DSET *SUMA_RandomDset(int N_Node, int nc, unsigned int seed, float scale, b
    SUMA_RETURN(dset);
 }
 
+/************************** Begin QHULL Functions **************************/    
+/*----------------------------------------------------
+  A slightly modified version of Bob's qhull_wrap function
+  
+  Compute the convex hull of a bunch of 3-vectors
+  Inputs:
+    npt = number of vectors
+    xyz = array of coordinates of 3-vectors;
+          the i-th vector is stored in
+            xyz[3*i] xyz[3*i+1] xyz[3*i+2]
+   fliporient = 0 --> leave triangles as they come out of qhull,
+                1 --> flip their orientation
+               \sa SUMA_OrientTriangles if you are not sure about flipping.
+   qopt qhull option string. If NULL, default is for a convex hull "QJ i" 
+      Available options are:
+         "convex_hull" --> "QJ i"
+         Anything else gets passed to qhull
+  Output:
+    *ijk = pointer to malloc()-ed array of triangles;
+           the j-th triangle is stored in
+             ijk[3*j] ijk[3*j+1] ijk[3*j+2]
+           where the integer index i refers to the
+           i-th 3-vector input
+
+  Return value is the number of triangles.  If this
+  is zero, something bad happened.
+
+  Example:
+    int ntri , *tri , nvec ;
+    float vec[something] ;
+    ntri = SUMA_qhull_wrap( nvec , vec , &tri, 0 , NULL) ;
+
+  This function just executes the Geometry Center
+  program qhull to compute the result.  qhull
+  should be in the user's path, or this function
+  will fail (return 0).
+------------------------------------------------------*/
+
+int SUMA_qhull_wrap( int npt , float * xyz , int ** ijk , int fliporient, 
+                     char *qopt)
+{
+   static char FuncName[]={"SUMA_qhull_wrap"};
+   int ii,jj , nfac , *fac ;
+   int fd , dim=0; FILE *fp ;
+   char qbuf[128] ;
+   SUMA_Boolean LocalHead = YUP;
+   
+   SUMA_ENTRY;
+   
+   dim = 3;
+   if (!qopt) qopt = "QJ i";
+   else {
+      if (!strcmp(qopt,"convex_hull")) {
+         sprintf(qopt, "QJ i");
+      } else {
+         SUMA_S_Notev("Have user defined qhull option of: %s\n",qopt);
+      }
+   }
+
+   SUMA_RETURN(SUMA_q_wrap(npt, xyz, ijk, fliporient, "qhull", qopt, dim));
+}
+/*----------------------------------------------------
+  Compute the triangulation of a bunch of 3-vectors with qdelaunay
+  Inputs:
+    npt = number of vectors
+    xyz = array of coordinates of 3-vectors;
+          the i-th vector is stored in
+            xyz[3*i] xyz[3*i+1] xyz[3*i+2]
+   fliporient = 0 --> leave triangles as they come out of qdelaunay,
+                1 --> flip their orientation
+               \sa SUMA_OrientTriangles if you are not sure about flipping.
+   qopt qdelaunay option string. If NULL, default is for a "QJ i" 
+      Available options are:
+         "triangulate_xy" --> "Qt i" triangulating on X Y 
+                     coords only, input xyz still has to have a third dimension)
+         Anything else gets passed to qdelaunay
+  Output:
+    *ijk = pointer to malloc()-ed array of triangles;
+           the j-th triangle is stored in
+             ijk[3*j] ijk[3*j+1] ijk[3*j+2]
+           where the integer index i refers to the
+           i-th 3-vector input
+
+  Return value is the number of triangles.  If this
+  is zero, something bad happened.
+
+  Example:
+    int ntri , *tri , nvec ;
+    float vec[something] ;
+    ntri = SUMA_qdelaunay_wrap( nvec , vec , &tri, 0, NULL ) ;
+
+  This function just executes the Geometry Center
+  program qdelaunay to compute the result. qdelaunay  
+  should be in the user's path, or this function
+  will fail (return 0).
+------------------------------------------------------*/
+int SUMA_qdelaunay_wrap( int npt , float * xyz , int ** ijk , int fliporient, 
+                         char *qopt)
+{
+   static char FuncName[]={"SUMA_qdelaunay_wrap"};
+   int ii,jj , nfac , *fac ;
+   int fd , dim=0; FILE *fp ;
+   char qbuf[128] ;
+   SUMA_Boolean LocalHead = YUP;
+   
+   SUMA_ENTRY;
+   
+   dim = 2;
+   if (!qopt) qopt = "Qt i";
+   else {
+      if (!strcmp(qopt,"triangulate_xy")) {
+         dim = 2;
+         sprintf(qopt, "Qt i");
+      } else {
+         SUMA_S_Notev("Have user defined qdelaunay option of: %s\n",qopt);
+      }
+   }
+
+   SUMA_RETURN(SUMA_q_wrap(npt, xyz, ijk, fliporient, "qdelaunay", qopt, dim));
+}
+
+int SUMA_q_wrap( int npt , float * xyz , int ** ijk , int fliporient, 
+                 char *qprog, char *qopt, int dim)
+{
+   static char FuncName[]={"SUMA_q_wrap"};
+   int ii,jj , nfac , *fac ;
+   int fd ; 
+   FILE *fp ;
+   char qbuf[128] ;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   SUMA_LHv("qprog = %s\nqopt = %s\n", qprog, qopt);
+   
+#ifndef DONT_USE_MKSTEMP
+   char fname[] = "/tmp/afniXXXXXX" ;
+#else
+   char *fname ;
+#endif
+
+   if( npt < 3 || xyz == NULL || ijk == NULL ){
+      SUMA_S_Err(" bad inputs\n") ;
+      SUMA_RETURN( 0 );
+   }
+
+#ifndef DONT_USE_MKSTEMP
+   fd = mkstemp( fname ) ;
+   if( fd == -1 ){ 
+      SUMA_S_Err(" mkstemp fails\n"); 
+      SUMA_RETURN( 0 ); 
+   }
+   fp = fdopen( fd , "w" ) ;
+   if( fp == NULL ){ 
+      SUMA_S_Err(" fdopen fails\n"); close(fd); 
+      SUMA_RETURN( 0 ); 
+   }
+#else
+   fname = tmpnam(NULL) ;
+   if( fname == NULL ){ 
+      SUMA_S_Err(" tmpnam fails\n"); 
+      SUMA_RETURN( 0 ); 
+   }
+   fp = fopen( fname , "w" ) ;
+   if( fp == NULL ){ 
+      SUMA_S_Err(" fopen fails\n"); 
+      SUMA_RETURN( 0 ); 
+   }
+#endif
+
+   fprintf(fp,"%d\n%d\n",npt, dim) ;
+   for( ii=0 ; ii < npt ; ii++ ) {
+      for (jj=0; jj<dim; ++jj) {
+         fprintf(fp,"%g ",xyz[3*ii+jj]) ;
+      }
+      fprintf(fp,"\n");  
+   }
+   
+   fclose(fp) ;
+
+   sprintf(qbuf,"%s %s < %s", qprog, qopt, fname) ;
+   SUMA_LHv("Executing %s\n", qbuf);
+   fp = popen( qbuf , "r" ) ;
+   if( fp == NULL ){ 
+      SUMA_S_Err(" popen fails\n"); 
+      remove(fname); 
+      SUMA_RETURN( 0 ); 
+   }
+
+   jj = fscanf(fp,"%d",&nfac) ;
+   if( jj != 1 || nfac < 1 ){ 
+      SUMA_S_Err(" 1st fscanf fails\n"); pclose(fp); 
+      remove(fname); 
+      SUMA_RETURN( 0 ); 
+   }
+
+   fac = (int *) malloc( sizeof(int)*3*nfac ) ;
+   if( fac == NULL ){ 
+      SUMA_S_Err(" malloc fails\n"); pclose(fp); 
+      remove(fname); 
+      SUMA_RETURN( 0 ); 
+   }
+
+   if (fliporient) {
+      for( ii=0 ; ii < nfac ; ii++ ){
+         jj = fscanf(fp,"%d %d %d",fac+(3*ii+2),fac+(3*ii+1),fac+(3*ii)) ;
+         if( jj < 3 ){
+            SUMA_S_Errv(" fscanf fails at ii=%d\n",ii) ;
+            pclose(fp); remove(fname); free(fac); SUMA_RETURN( 0 );
+         }
+      }
+   } else {
+      for( ii=0 ; ii < nfac ; ii++ ){
+         jj = fscanf(fp,"%d %d %d",fac+(3*ii),fac+(3*ii+1),fac+(3*ii+2)) ;
+         if( jj < 3 ){
+            SUMA_S_Errv(" fscanf fails at ii=%d\n",ii) ;
+            pclose(fp); remove(fname); free(fac); SUMA_RETURN( 0 );
+         }
+      }
+   }
+   pclose(fp); remove(fname);
+
+   *ijk = fac ; SUMA_RETURN( nfac );
+}
+
+/************************** END QHULL Functions **************************/    
+
    
 #if 0
    /************************** BEGIN Branch Functions **************************/ 
@@ -11747,7 +12117,6 @@ SUMA_DSET *SUMA_RandomDset(int N_Node, int nc, unsigned int seed, float scale, b
 
                   }/*SUMA_WeldBranches*/
 
-   /************************** END Branch Functions **************************/                   
-
+   /************************** END Branch Functions **************************/      
 
 #endif 

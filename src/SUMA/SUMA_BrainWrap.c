@@ -278,7 +278,7 @@ float SUMA_LoadPrepInVol (SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, SUMA_SurfaceObj
                ++cnt;
             }
          }
-         if (! (nf = SUMA_qhull_wrap(cnt, CoordList, &ijk, 1)) ) {
+         if (! (nf = SUMA_qhull_wrap(cnt, CoordList, &ijk, 1, NULL)) ) {
             fprintf( SUMA_STDERR,
                      "Error %s:\nFailed in SUMA_qhull_wrap\n", FuncName);
             *SOhull = NULL;
@@ -3281,7 +3281,7 @@ void *SUMA_Push_Nodes_To_Hull(SUMA_SurfaceObject *SO, SUMA_GENERIC_PROG_OPTIONS_
    
    SUMA_ENTRY;
 
-   if (! (nf = SUMA_qhull_wrap(SO->N_Node, SO->NodeList, &ijk, 1)) ) {
+   if (! (nf = SUMA_qhull_wrap(SO->N_Node, SO->NodeList, &ijk, 1, NULL)) ) {
          fprintf(SUMA_STDERR,"Error %s:\nFailed in SUMA_qhull_wrap\n", FuncName);
          SOhull = NULL;
          SUMA_RETURN(NULL);

@@ -2237,6 +2237,8 @@ typedef struct {
                             to form a DO that covers all the nodes. */
    SUMA_DO *NodeObjects;   /*!< a replication of CommonNodeObject where
                            each node gets a shape defined by CommonNodeObject */
+   SUMA_NIDO **NodeNIDOObjects;   /*!< a more flexible replication of NIDO 
+                           CommonNodeObject where */
 }SUMA_SurfaceObject; /*!< \sa Alloc_SurfObject_Struct in SUMA_DOmanip.c
                      \sa SUMA_Free_Surface_Object in SUMA_Load_Surface_Object.c
                      \sa SUMA_Print_Surface_Object in SUMA_Load_Surface_Object.c

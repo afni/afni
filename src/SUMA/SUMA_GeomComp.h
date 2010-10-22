@@ -256,7 +256,12 @@ int SUMA_ApproxNeighbors ( SUMA_SurfaceObject *SO,
 /* End function prototypes for VolData.c */
 
 /* Begin function prototypes for SUMA_ConvexHull.c */
-int SUMA_qhull_wrap( int npt , float * xyz , int ** ijk , int fliporient);
+int SUMA_qhull_wrap( int npt , float * xyz , int ** ijk , 
+                     int fliporient, char *opt);
+int SUMA_qdelaunay_wrap( int npt , float * xyz , int ** ijk , 
+                     int fliporient, char *opt);
+int SUMA_q_wrap( int npt , float * xyz , int ** ijk , int fliporient, 
+                 char *qprog, char *qopt, int dim);
 /* End function prototypes for SUMA_ConvexHull.c */
 
 DList *SUMA_SliceAlongPlane(SUMA_SurfaceObject *SO, float *Eq, float step);
@@ -264,6 +269,9 @@ DList *SUMA_SliceAlongPlane(SUMA_SurfaceObject *SO, float *Eq, float step);
 SUMA_DSET *SUMA_RandomDset(int N_Node, int nc, unsigned int seed, float scale, byte norm); 
 
 SUMA_Boolean SUMA_FillRandXform(double xform[][4], int seed, int type); 
+
+float *SUMA_Project_Coords_PCA (float *xyz, int N_xyz, int iref, 
+                                int compnum, int rotate);
 
 /*!
    Macros to merge / join two lists together

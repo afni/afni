@@ -126,7 +126,7 @@ void usage_DriveSuma (SUMA_GENERIC_ARGV_PARSE *ps)
 "\n"
 " o show_surf: Send surface to SUMA.\n"
 "     + Mandatory parameters for show_surf action:\n"
-"        -surf_label LABEL: A label (identifier) to assign to the\n"
+"        -surf_label S_LABEL: A label (identifier) to assign to the\n"
 "                           surface\n"
 "        -i_TYPE SURF: Name of surface file, see surface I/O \n"
 "                      options below for details.\n"
@@ -146,7 +146,7 @@ void usage_DriveSuma (SUMA_GENERIC_ARGV_PARSE *ps)
 "\n"
 " o node_xyz: Assign new coordinates to surface in SUMA\n"
 "     + Mandatory parameters for action node_xyz:\n"
-"        -surf_label LABEL: A label to identify the target \n"
+"        -surf_label S_LABEL: A label to identify the target \n"
 "                           surface\n"
 "        -xyz_1D COORDS.1D: A 1D formatted file containing a new \n"
 "                           coordinate for each of the nodes \n"
@@ -264,12 +264,13 @@ void usage_DriveSuma (SUMA_GENERIC_ARGV_PARSE *ps)
 " o surf_cont: Apply settings to surface controller.\n"
 "     + Optional parameters for action surf_cont:\n"
 "       (Parameter names reflect GUI labels.)\n"  
-"       -surf_label LABEL: A label to identify the target surface\n"
+"       -surf_label S_LABEL: A label to identify the target surface\n"
 "       -load_dset DSET: Load a dataset\n"
 "           ! NOTE: When using -load_dset you can follow it\n"
 "                   with -surf_label in order to attach\n"
 "                   the dataset to a particular target surface.\n"
-"       -view_surf y/n: Show or hide surface LABEL\n"
+"       -view_surf y/n: Show or hide surface S_LABEL\n"
+"       -RenderMode V/F/L/P/H: Set the render mode for surface S_LABEL.\n"
 "       -load_col COL: Load a colorfile named COL.\n"
 "                      Similar to what one loads under\n"
 "                      SUMA-->ctrl+s-->Load Col\n"
@@ -280,8 +281,8 @@ void usage_DriveSuma (SUMA_GENERIC_ARGV_PARSE *ps)
 "                      r g b are thre flooat values between 0 and 1\n"
 "                      specifying the color of each node.\n"
 "       -view_surf_cont y/n: View surface controller\n"
-"       -switch_surf LABEL: switch state to that of surface \n"
-"                           labeled LABEL and make that surface \n"
+"       -switch_surf S_LABEL: switch state to that of surface \n"
+"                           labeled S_LABEL and make that surface \n"
 "                           be in focus.\n"
 "       -switch_dset DSET: switch dataset to DSET\n"
 "       -view_dset y/n: Set view toggle button of DSET\n"
@@ -889,6 +890,33 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
             NI_set_attribute(ngr, "view_surf", "n");
          else {
             fprintf (SUMA_STDERR, "need a 'y/n' after -view_surf \n");
+            SUMA_RETURN(0);
+         }
+         argt[kar][0] = '\0';
+         brk = YUP;
+      }
+      
+      if (!brk && (strcmp(argt[kar], "-RenderMode") == 0))
+      {
+         if (kar+1 >= argtc)
+         {
+            fprintf (SUMA_STDERR, "need a valid string after -RenderMode \n");
+            SUMA_RETURN(0);
+         }
+         argt[kar][0] = '\0';
+         ++kar;
+         if (argt[kar][0] == 'V' || argt[kar][0] == 'v')  
+            NI_set_attribute(ngr, "view_surf", "Viewer");
+         else if (argt[kar][0] == 'F' || argt[kar][0] == 'f')  
+            NI_set_attribute(ngr, "view_surf", "Fill");
+         else if (argt[kar][0] == 'L' || argt[kar][0] == 'l')  
+            NI_set_attribute(ngr, "view_surf", "Line");
+         else if (argt[kar][0] == 'P' || argt[kar][0] == 'p')  
+            NI_set_attribute(ngr, "view_surf", "Points");
+         else if (argt[kar][0] == 'H' || argt[kar][0] == 'h')  
+            NI_set_attribute(ngr, "view_surf", "Hide");
+         else {
+            fprintf (SUMA_STDERR, "need a valid string after -view_surf \n");
             SUMA_RETURN(0);
          }
          argt[kar][0] = '\0';
