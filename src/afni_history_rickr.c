@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 21, OCT, 2010, RCR, "timing_tool.py", MICRO, TYPE_NEW_OPT,
+   "added -shift_to_run_offset",
+   NULL
+ } ,
+
  { 20, OCT, 2010, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "added -tcat_remove_last_trs, -ricor_regs_rm_nlast",
    "Added for J Czarapata."
