@@ -2460,6 +2460,7 @@ SUMA_Boolean SUMA_DrawSphereDO (SUMA_SphereDO *SDO, SUMA_SurfaceViewer *sv)
    static char FuncName[]={"SUMA_DrawSphereDO"};
    float origwidth=0.0;
    SUMA_SurfaceObject *SO = NULL;
+   byte AmbDiff = 0;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -2493,7 +2494,11 @@ SUMA_Boolean SUMA_DrawSphereDO (SUMA_SphereDO *SDO, SUMA_SurfaceViewer *sv)
    comcol[3] = SDO->CommonCol[3]; /* *SUMAg_SVv[0].dim_amb;*/
    
    if (!SDO->colv) {
-      glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, comcol);
+      if (AmbDiff) {
+         glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, comcol);
+      } else {
+         glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, NoColor);
+      }
       glMaterialfv(GL_FRONT, GL_EMISSION, comcol);
    }
    if (!SDO->radv) rad = SDO->CommonRad;
@@ -2507,7 +2512,11 @@ SUMA_Boolean SUMA_DrawSphereDO (SUMA_SphereDO *SDO, SUMA_SurfaceViewer *sv)
    for (i=0; i<SDO->N_n;++i) {
       i3 = 3*i;
       if (SDO->colv) {
-         glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, &(SDO->colv[i*4]));
+         if (AmbDiff) {
+            glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, &(SDO->colv[i*4]));
+         } else {
+            glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, NoColor);
+         }
          glMaterialfv(GL_FRONT, GL_EMISSION, &(SDO->colv[i*4]));
       }
       if (SDO->radv) rad = SDO->radv[i];
@@ -2528,7 +2537,10 @@ SUMA_Boolean SUMA_DrawSphereDO (SUMA_SphereDO *SDO, SUMA_SurfaceViewer *sv)
                 SDO->CommonSlices, SDO->CommonStacks);
       glTranslatef (-cent[0], -cent[1], -cent[2]);
    }
-   glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, NoColor);
+   
+   if (AmbDiff) {
+      glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, NoColor);
+   }
    glMaterialfv(GL_FRONT, GL_EMISSION, NoColor); 
    glLineWidth(origwidth);
 
@@ -3980,6 +3992,7 @@ SUMA_Boolean SUMA_DrawSphereNIDOnel(  NI_element *nel,
    SUMA_DO_CoordUnits coord_units = default_coord_units;
    static GLUquadricObj *sphobj=NULL;
    GLenum style=GLU_FILL;
+   byte AmbDiff = 0; /* Do not turn on ambient and diffuse coloring */
    SUMA_Boolean LocalHead=NOPE;
    
    SUMA_ENTRY; 
@@ -4016,7 +4029,14 @@ SUMA_Boolean SUMA_DrawSphereNIDOnel(  NI_element *nel,
    if (!NI_GOT) LineWidth = 2;
    glLineWidth(LineWidth);
       
-   glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, txcol);
+   if (AmbDiff) { /* If this is on, a sphere's color would not match well
+                     because the mixing of ambient light. Keeping it off
+                     makes the colors much more consistent.
+                     Modified thanks to complaint by MSB */
+      glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, txcol);
+   }  else { /* lights out */
+      glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, NoColor); 
+   }
    glMaterialfv(GL_FRONT, GL_EMISSION, txcol);
    glColor3fv(txcol); 
    
@@ -4060,7 +4080,7 @@ SUMA_Boolean SUMA_DrawSphereNIDOnel(  NI_element *nel,
              slices, stacks);
    glTranslatef (-txloc[0], -txloc[1], -txloc[2]);
    
-   glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, NoColor);
+   glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, NoColor); 
    glMaterialfv(GL_FRONT, GL_EMISSION, NoColor); 
    glLineWidth(origwidth);
 
@@ -5562,6 +5582,7 @@ SUMA_Boolean SUMA_Draw_SO_ROI (SUMA_SurfaceObject *SO,
    SUMA_ROI *ROI = NULL;
    DListElmt *NextElm=NULL;
    float off[3];
+   byte AmbDiff = 0;
    SUMA_Boolean LocalHead = NOPE;
     
    SUMA_ENTRY;
@@ -5631,8 +5652,16 @@ SUMA_Boolean SUMA_Draw_SO_ROI (SUMA_SurfaceObject *SO,
                            if (!N_ROId) {
                               /* draw 1st sphere */
                               SUMA_LH("First sphere");
-                              glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, 
-                                           ROI_SphCol_frst);
+                              if (AmbDiff) { 
+                                 glMaterialfv(GL_FRONT, 
+                                              GL_AMBIENT_AND_DIFFUSE, 
+                                              ROI_SphCol_frst);
+                              }  else { /* AmbDiff lights out */
+                                 glMaterialfv(GL_FRONT, 
+                                              GL_AMBIENT_AND_DIFFUSE, NoColor);
+                                 glMaterialfv(GL_FRONT, GL_EMISSION,
+                                             ROI_SphCol_frst); 
+                              }
                               idFirst = 3 * ROId->nPath[0];
                               glTranslatef ( SO->NodeList[idFirst], 
                                              SO->NodeList[idFirst+1], 
@@ -5649,8 +5678,16 @@ SUMA_Boolean SUMA_Draw_SO_ROI (SUMA_SurfaceObject *SO,
                            } 
 
                            glLineWidth(6);
-                           glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, 
-                                        ROI_SphCol);
+                           if (AmbDiff) { 
+                              glMaterialfv(GL_FRONT, 
+                                           GL_AMBIENT_AND_DIFFUSE, 
+                                           ROI_SphCol);
+                           }  else { /* AmbDiff lights out */
+                              glMaterialfv(GL_FRONT, 
+                                           GL_AMBIENT_AND_DIFFUSE, NoColor);
+                              glMaterialfv(GL_FRONT, GL_EMISSION,
+                                          ROI_SphCol); 
+                           }
                            /* always start at 1 since the 0th node was 
                               drawn at the end of the previous ROId */
                            for (ii = 1; ii < ROId->N_n; ++ii) {
@@ -5719,8 +5756,16 @@ SUMA_Boolean SUMA_Draw_SO_ROI (SUMA_SurfaceObject *SO,
                      
                      if (!SO->patchNodeMask) {
                         glLineWidth(2);
-                        glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, 
-                                     D_ROI->FillColor);
+                        if (AmbDiff) { 
+                           glMaterialfv(GL_FRONT, 
+                                        GL_AMBIENT_AND_DIFFUSE, 
+                                        D_ROI->FillColor);
+                        }  else { /* AmbDiff lights out */
+                           glMaterialfv(GL_FRONT, 
+                                        GL_AMBIENT_AND_DIFFUSE, NoColor);
+                           glMaterialfv(GL_FRONT, GL_EMISSION,
+                                       D_ROI->FillColor); 
+                        }
                         SUMA_LH("Drawing contour ...");
                         for (icont = 0; icont < D_ROI->N_CE; ++icont) {
                            id1cont = 3 * D_ROI->CE[icont].n1;
@@ -5737,13 +5782,20 @@ SUMA_Boolean SUMA_Draw_SO_ROI (SUMA_SurfaceObject *SO,
                      } else {
                         if (SO->EmbedDim == 2) {
                            glLineWidth(1);
-                           glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, 
-                                        D_ROI->FillColor);
                         } else {
                            glLineWidth(2);
-                           glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, 
-                                        D_ROI->FillColor);   
                         }
+                        if (AmbDiff) { 
+                           glMaterialfv(GL_FRONT, 
+                                        GL_AMBIENT_AND_DIFFUSE, 
+                                        D_ROI->FillColor);
+                        }  else { /* AmbDiff lights out */
+                           glMaterialfv(GL_FRONT, 
+                                        GL_AMBIENT_AND_DIFFUSE, NoColor);
+                           glMaterialfv(GL_FRONT, GL_EMISSION,
+                                       D_ROI->FillColor); 
+                        }
+
                         SUMA_LHv("Drawing contour on patch (%p)...", 
                                  SO->NodeNormList);
                                  /* set default offset to nothing*/
@@ -5791,8 +5843,16 @@ SUMA_Boolean SUMA_Draw_SO_ROI (SUMA_SurfaceObject *SO,
                            "%s: Drawing ROI %s \n", FuncName, ROI->Label);
                switch (ROI->Type) { /* ROI types */
                   case SUMA_ROI_EdgeGroup:
-                     glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, 
-                                  ROI_EdgeGroup);
+                     if (AmbDiff) { 
+                        glMaterialfv(GL_FRONT, 
+                                     GL_AMBIENT_AND_DIFFUSE, 
+                                     ROI_EdgeGroup);
+                     }  else { /* AmbDiff lights out */
+                        glMaterialfv(GL_FRONT, 
+                                     GL_AMBIENT_AND_DIFFUSE, NoColor);
+                        glMaterialfv(GL_FRONT, GL_EMISSION,
+                                    ROI_EdgeGroup); 
+                     }
                      for (ii=0; ii < ROI->N_ElInd; ++ii) {
                         EdgeIndex = ROI->ElInd[ii];
                         Node1 = SO->EL->EL[EdgeIndex][0];
@@ -5811,8 +5871,16 @@ SUMA_Boolean SUMA_Draw_SO_ROI (SUMA_SurfaceObject *SO,
                      }
                      break;
                   case SUMA_ROI_NodeGroup:
-                     glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, 
-                                  ROI_NodeGroup);
+                     if (AmbDiff) { 
+                        glMaterialfv(GL_FRONT, 
+                                     GL_AMBIENT_AND_DIFFUSE, 
+                                     ROI_NodeGroup);
+                     }  else { /* AmbDiff lights out */
+                        glMaterialfv(GL_FRONT, 
+                                     GL_AMBIENT_AND_DIFFUSE, NoColor);
+                        glMaterialfv(GL_FRONT, GL_EMISSION,
+                                    ROI_NodeGroup); 
+                     }
                      for (ii=0; ii < ROI->N_ElInd; ++ii) {
                         id = 3 * ROI->ElInd[ii];
                         glTranslatef (SO->NodeList[id], SO->NodeList[id+1], 
@@ -5826,8 +5894,17 @@ SUMA_Boolean SUMA_Draw_SO_ROI (SUMA_SurfaceObject *SO,
                      }
                      break;
                   case SUMA_ROI_FaceGroup:   
-                     glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, 
-                                  ROI_FaceGroup);
+                     if (AmbDiff) { 
+                        glMaterialfv(GL_FRONT, 
+                                     GL_AMBIENT_AND_DIFFUSE, 
+                                     ROI_FaceGroup);
+                     }  else { /* AmbDiff lights out */
+                        glMaterialfv(GL_FRONT, 
+                                     GL_AMBIENT_AND_DIFFUSE, NoColor);
+                        glMaterialfv(GL_FRONT, GL_EMISSION,
+                                    ROI_FaceGroup); 
+                     }
+                     
                      for (ii=0; ii < ROI->N_ElInd; ++ii) {
                            FaceIndex = ROI->ElInd[ii];
                            id = FaceIndex * 3;
@@ -5904,6 +5981,15 @@ SUMA_Boolean SUMA_Draw_SO_ROI (SUMA_SurfaceObject *SO,
             break;
       }/* case Object Type */
       
+   }
+   
+   /* lights out */
+   if (AmbDiff) { 
+      glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE,  NoColor);
+   }  else { 
+      glMaterialfv(GL_FRONT, 
+                   GL_AMBIENT_AND_DIFFUSE, NoColor);
+      glMaterialfv(GL_FRONT, GL_EMISSION, NoColor); 
    }
 
    SUMA_RETURN (YUP);
