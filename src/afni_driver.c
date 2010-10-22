@@ -551,9 +551,9 @@ static int AFNI_drive_set_subbricks( char *cmd )
    if( !IM3D_OPEN(im3d) ) RETURN(-1) ;
 
    sscanf( cmd+dadd , "%d%d%d" , &nanat,&nfun,&nthr ) ;
-   AFNI_set_anat_index( im3d , nanat ) ;
-   AFNI_set_fim_index ( im3d , nfun  ) ;
-   AFNI_set_thr_index ( im3d , nthr  ) ;
+   if( nanat >= 0 ) AFNI_set_anat_index( im3d , nanat ) ;
+   if( nfun  >= 0 ) AFNI_set_fim_index ( im3d , nfun  ) ;
+   if( nthr  >= 0 ) AFNI_set_thr_index ( im3d , nthr  ) ;
    RETURN(0) ;
 }
 
@@ -591,20 +591,11 @@ ENTRY("AFNI_switch_anatomy") ;
 
    if( nuse > 0 &&
        *(cmd+dadd+nuse)!= '\0' &&
-       *(cmd+dadd+nuse+1) != '\0') {
+       *(cmd+dadd+nuse+1) != '\0') 
       sscanf( cmd+dadd+nuse+1 , "%d" , &sb ) ;  /* 30 Nov 2005 */
                /* not checking for early string termination
                   before sscanf was causing corruption in some cases.
                   ZSS Nov 2009 */
-   }  else  {
-      sb = 0 ;
-   }
-
-   if (sb < 0) {
-      WARNING_message("bad sub-brick selection %d\n"
-                     "defaulting to 0\n", sb);
-      sb = 0;
-   }
 
    /* find this dataset in current session of this controller */
 
@@ -625,7 +616,7 @@ ENTRY("AFNI_switch_anatomy") ;
    AFNI_finalize_dataset_CB( im3d->vwid->view->choose_anat_pb ,
                              (XtPointer)im3d ,  &cbs          ) ;
 
-   AFNI_set_anat_index( im3d , sb ) ;   /* 30 Nov 2005 */
+   if( sb >= 0 ) AFNI_set_anat_index( im3d , sb ) ;   /* 30 Nov 2005 */
 
    RETURN(0) ;
 }
@@ -663,24 +654,11 @@ ENTRY("AFNI_switch_function") ;
 
    if( strlen(dname) == 0 ) RETURN(-1) ;
 
-   if( nuse > 0 &&                  /* 30 Nov 2005 */
-       *(cmd+dadd+nuse)!= '\0' &&     /* See equivalent condition in */
-       *(cmd+dadd+nuse+1) != '\0')  { /* AFNI_drive_switch_anatomy   */
+   if( nuse > 0                   &&     /* 30 Nov 2005 */
+       *(cmd+dadd+nuse)   != '\0' &&    /* See equivalent condition in */
+       *(cmd+dadd+nuse+1) != '\0'   )  /* AFNI_drive_switch_anatomy   */
      sscanf( cmd+dadd+nuse+1 , "%d%d" , &nfun,&nthr ) ;
-   } else {
-      nfun = 0; nthr = 0;
-   }
 
-   if (nfun < 0) {
-      WARNING_message("bad sub-brick selection %d\n"
-                     "defaulting to 0\n", nfun);
-      nfun = 0;
-   }
-   if (nthr < 0) {
-      WARNING_message("bad sub-brick selection %d\n"
-                     "defaulting to 0\n", nthr);
-      nthr = 0;
-   }
    /* find this dataset in current session of this controller */
 
    slf = THD_dset_in_session( FIND_PREFIX , dname , im3d->ss_now ) ;
@@ -691,7 +669,7 @@ ENTRY("AFNI_switch_function") ;
      slf = THD_dset_in_session( FIND_IDCODE , &idcode , im3d->ss_now ) ;
    }
 
-   if( slf.dset_index < 0 ) RETURN(-1) ;
+   if( slf.dset_index < 0 ) RETURN(-1) ;  /* not found */
 
    cbs.ival = slf.dset_index ;
 
@@ -700,8 +678,8 @@ ENTRY("AFNI_switch_function") ;
    AFNI_finalize_dataset_CB( im3d->vwid->view->choose_func_pb ,
                              (XtPointer)im3d ,  &cbs          ) ;
 
-   AFNI_set_fim_index( im3d , nfun ) ;   /* 30 Nov 2005 */
-   AFNI_set_thr_index( im3d , nthr ) ;
+   if( nfun >= 0 ) AFNI_set_fim_index( im3d , nfun ) ;   /* 30 Nov 2005 */
+   if( nthr >= 0 ) AFNI_set_thr_index( im3d , nthr ) ;
 
    RETURN(0) ;
 }
