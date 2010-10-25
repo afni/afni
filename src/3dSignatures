@@ -1,0 +1,22 @@
+#!/bin/tcsh -f
+set pp = $0:h
+#Run R in script more. Better than R CMD BATCH
+
+if ($#argv == 0) then
+   set arglist = (-help)
+else
+   set noglob
+   set arglist = ($*)
+   unset nogolb
+endif
+
+set tname = `basename $0`.R
+if ( -f  $pp/${tname}) then
+   Rscript $pp/${tname} $arglist
+else if ( -f  $pp/R_scripts/${tname}) then
+   Rscript $pp/R_scripts/${tname} $arglist
+else 
+   echo "** Error `basename $0`:"
+   echo "${tname} not found in $pp or $pp/R_scripts"
+   echo ""
+endif
