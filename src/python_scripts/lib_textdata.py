@@ -6,9 +6,11 @@
 
 import sys, os, math
 
-def write_1D_file(data, filename, as_rows=0):
+def write_1D_file(data, filename, as_rows=0, space=' '):
     """data can be 1D or 2D array of floats, write one index per line
        If 2D data, each element is treated as a column (unless as_rows).
+
+       For tabbed output, consider space = '\t'.
 
        return 0 on success"""
 
@@ -28,7 +30,7 @@ def write_1D_file(data, filename, as_rows=0):
     if type(data[0]) == type([]):       # multi-column
         if as_rows:
             for row in data:
-                fp.write("%s\n" % ' '.join(["%g " % val for val in row]))
+                fp.write("%s\n" % space.join(["%g" % val for val in row]))
         else:
             nt = len(data[0])
             for col in data:
@@ -37,7 +39,7 @@ def write_1D_file(data, filename, as_rows=0):
                     return 1
 
             for ind in range(nt):
-                fp.write("%s\n" % ' '.join(["%g " % col[ind] for col in data]))
+                fp.write("%s\n" % space.join(["%g"%col[ind] for col in data]))
 
     else:                               # single column
         for val in data:

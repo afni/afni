@@ -720,7 +720,7 @@ def replace_n_squeeze(instr, oldstr, newstr):
 # line wrapper functions
 
 # add line wrappers ('\'), and align them all
-def add_line_wrappers(commands, wrapstr='\\\n'):
+def add_line_wrappers(commands, wrapstr='\\\n', verb=1):
     """wrap long lines with 'wrapstr' (probably '\\\n' or just '\n')
        if '\\\n', align all wrapstr strings"""
     new_cmd = ''
@@ -737,7 +737,7 @@ def add_line_wrappers(commands, wrapstr='\\\n'):
             continue
 
         # command needs wrapping
-        new_cmd += insert_wrappers(commands, posn, end, wstring=wrapstr)
+        new_cmd += insert_wrappers(commands,posn,end,wstring=wrapstr,verb=verb)
 
         posn = end + 1     # else, update posn and continue
 
@@ -785,11 +785,13 @@ def align_wrappers(command):
 
     return new_cmd
 
-def insert_wrappers(command, start=0, end=-1, wstring='\\\n'):
+def insert_wrappers(command, start=0, end=-1, wstring='\\\n', verb=1):
     """insert any '\\' chars for the given command
          - insert between start and end positions
          - apply specified wrap string wstring
        return a new string, in any case"""
+
+    global wrap_verb
 
     if end < 0: end = len(command) - start - 1
 
@@ -799,6 +801,10 @@ def insert_wrappers(command, start=0, end=-1, wstring='\\\n'):
     maxlen = 78
     newcmd = ''
     cur    = start
+
+    if verb > 1: print "+d insert wrappers: nfirst=%d, prefix='%s', plen=%d" \
+                       % (nfirst, prefix, plen)
+
     # rewrite: create new command strings after each wrap     29 May 2009
     while needs_wrapper(command,maxlen,cur,end):
         endposn = command.find('\n',cur)
