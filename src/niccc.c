@@ -2,10 +2,10 @@
 
 /*--- Debug printout of a NIML element. ---*/
 
-void NIML_to_terminal( void *nini, int mode, int stderr)
+void NIML_to_terminal( void *nini, int mode, int do_stderr)
 {
    NI_stream ns_err ;
-   if (stderr) ns_err = NI_stream_open( "stderr:" , "w" ) ;
+   if (do_stderr) ns_err = NI_stream_open( "stderr:" , "w" ) ;
    else ns_err = NI_stream_open( "stdout:" , "w" ) ;
    if( ns_err != NULL ){
      NI_write_element( ns_err , nini , mode ) ;
