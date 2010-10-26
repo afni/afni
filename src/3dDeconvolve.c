@@ -299,6 +299,12 @@
 
 #include "mrilib.h"
 
+#ifdef isfinite
+# define IS_GOOD_FLOAT(x) isfinite(x)
+#else
+# define IS_GOOD_FLOAT(x) finite(x)
+#endif
+
 /*---------------------------------------------------------------------------*/
 /*--------- Global variables for multiple process execution - RWCox. --------*/
 /*--------- All names start with "proc_", so search for that string. --------*/
@@ -6318,6 +6324,7 @@ ENTRY("calculate_results") ;
     Xcol_inbase = (int *)  calloc(sizeof(int)  ,p) ;
     Xcol_mean   = (float *)calloc(sizeof(float),p) ;
 
+STATUS("storing Xcol_inbase") ;
     for( is=0 ; is < qp ; is++ ) Xcol_inbase[is] = 1 ; /* mark baseline columns */
     m = qp ;
     for( is=0 ; is < num_stimts ; is++ ){
@@ -6329,6 +6336,7 @@ ENTRY("calculate_results") ;
       m += npar ;
     }
 
+STATUS("computing Xcol_mean") ;
     mmax = 0.0f ;
     for( j=0 ; j < p ; j++ ){   /* compute mean of each column */
       sum = 0.0 ;
@@ -6339,6 +6347,7 @@ ENTRY("calculate_results") ;
     }
 
     if( mmax > 0.0f ){    /* mark baseline cols that have nontrivial means */
+STATUS("re-marking Xcol_inbase") ;
       mmax *= 9.99e-6 ;
       for( j=0 ; j < p ; j++ )
         if( Xcol_inbase[j] && fabs(Xcol_mean[j]) > mmax ) Xcol_inbase[j] = 2 ;
@@ -6351,6 +6360,7 @@ ENTRY("calculate_results") ;
     int nn=xdata.rows , mm=xdata.cols , ii,jj,kk ;
     char *www ;
     esum = 0.0 ;
+STATUS("computing [xtxinvxt_full] [xdata] - I") ;
     for( ii=0 ; ii < mm ; ii++ ){
       for( jj=0 ; jj < mm ; jj++ ){
         sum = (ii==jj) ? -1.0 : 0.0 ;
@@ -6359,8 +6369,10 @@ ENTRY("calculate_results") ;
         esum += fabs(sum) ;
       }
     }
+STATUS("computing message from esum") ;
     esum /= (mm*mm) ;
-         if( esum > 1.e-3 ){ www = " ** BEWARE **"   ; badlev++; }
+         if( esum > 1.e-3 || !IS_GOOD_FLOAT(esum) )
+                           { www = " ** BEWARE **"   ; badlev++; }
     else if( esum > 1.e-4 ){ www = " ++ OK ++"       ; }
     else if( esum > 1.e-6 ){ www = " ++ GOOD ++"     ; }
     else                   { www = " ++ VERY GOOD ++"; }
