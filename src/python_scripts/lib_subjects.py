@@ -150,8 +150,10 @@ class SubjectList(object):
                               % (len(newSL.subjects), olen)
       return newSL
 
-   def show(self):
-      print("SubjectList: %s" % self.name)
+   def show(self, mesg=''):
+      if mesg: mstr = " (%s)" % mesg
+      else:    mstr = ''
+      print("SubjectList: %s%s" % (self.name, mstr))
       print("  nsubj = %d, natrs = %d, ndisp_atrs = %d" % \
                (len(self.subjects), len(self.atrs), len(self.disp_atrs)))
       print("  atrs      = %s" % self.atrs)
@@ -235,10 +237,12 @@ class SubjectList(object):
       """
 
       if prefix == '' or prefix == None: prefix = 'mema_result'
+      if verb > 1: print '++ make_mema_cmd: have prefix %s' % prefix
 
       if set_labs == None:
          if subjlist2 == None: set_labs = ['setA']
          else:                 set_labs = ['setA', 'setB']
+         if verb > 2: print '++ mema_cmd: adding default set labels'
       if bsubs == None: bsubs, tsubs = ['0'], ['1']
 
       # command and first set of subject files
@@ -248,9 +252,14 @@ class SubjectList(object):
 
       # maybe add second set of subject files
       if len(set_labs) > 1:
+         if verb > 2: print '-- mema_cmd: have labels for second subject set'
          # note subject list and sub-brick labels
-         if subjlist2 != None: S = subjlist2
-         else:                 S = self
+         if subjlist2 != None:
+            S = subjlist2
+            if verb > 3: print '-- second subject list was passed'
+         else:
+            S = self
+            if verb > 3: print '-- no second subject list, using same list'
          if len(bsubs) > 1: b, t = bsubs[1], tsubs[1]
          else:
             if S != subjlist2:
