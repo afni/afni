@@ -128,7 +128,7 @@ ENTRY("THD_fitter") ;
          qref[ii++] = ref[jj] ;
        }
      }
-     qv = THD_fitter( npt , far , ngood , qref , meth , qcon ) ;
+     qv = THD_fitter( npt , far , ngood , qref , meth , qcon ) ;  /* recurse! */
      if( qcon != NULL ) free((void *)qcon) ;
      free((void *)qref) ;
      if( qv == NULL ){ free(qmag); RETURN(NULL); } /* bad solve? */
