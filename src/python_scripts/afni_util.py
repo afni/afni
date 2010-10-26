@@ -27,11 +27,13 @@ def write_text_to_file(fname, text, mode='w', wrap=0, wrapstr='\n'):
           mode    : optional write mode 'w' or 'a' [default='w']
           wrap    : optional wrap flag [default=0]
           wrapstr : optional wrap string: if wrap, apply this string
+
+       return 0 on success, 1 on error
     """
 
     if not text or not fname:
         print "** WTTF: missing text or filename"
-        return
+        return 1
 
     if wrap: text = add_line_wrappers(text, warpstr)
     
@@ -39,10 +41,12 @@ def write_text_to_file(fname, text, mode='w', wrap=0, wrapstr='\n'):
         fp = open(fname, mode)
     except:
         print "** failed to open text file '%s' for writing" % fname
-        return
+        return 1
 
     fp.write(text)
     fp.close()
+
+    return 0
 
 def quotize_list(list, opt_prefix, skip_first=0, quote_wild=0):
     """given a list of text elements, return a new list where any existing

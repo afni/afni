@@ -49,6 +49,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 26, OCT, 2010, RCR, "gen_group_command.py", MINOR, TYPE_NEW_OPT,
+   "solidified 3dMEMA commands",
+   "This is now used to generate AFNI_data6/group_results/s4.3dMEMA.V-A."
+ } ,
+
+ { 25, OCT, 2010, RCR, "gen_group_command.py", MAJOR, TYPE_NEW_PROG,
+   "a program to generate group commands (3dMEMA for now)",
+   "Commands to come: 3dttest(++), 3dANOVA*, GroupANA."
+ } ,
+
  { 21, OCT, 2010, RCR, "timing_tool.py", MICRO, TYPE_NEW_OPT,
    "added -shift_to_run_offset",
    NULL
