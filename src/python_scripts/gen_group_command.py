@@ -20,6 +20,12 @@ gen_group_command.py    - generate group commands: 3dMEMA
    most tedious) is generally listing datasets and such, and that is the main
    benefit of using this program.
 
+   If used without sufficient options (which might be typical), the generated
+   commands will not be complete (e.g. they might fail).  So either provide
+   sufficient passed options via -options or plan to edit the resulting script.
+
+   If -write_script is not given, the command is written to stdout.
+
 ------------------------------------------
 examples (by program)
 
@@ -28,42 +34,53 @@ examples (by program)
       Note: these commands apply to the sample group data under
             AFNI_data6/group_results.
 
+      Note: As with 3dttest, group comparisons are done as the second set minus
+            the first set.
+
+
       1. The most simple case, providing just the datasets.  The subject IDs
          will be extracted from the dataset names.  Since no sub-bricks are
          provided, the betas will be 0 and t-stats will be 1.
 
-            gen_group_command.py -command 3dMEMA        \\
-                                 -dsets OL*.HEAD
+            gen_group_command.py -command 3dMEMA           \\
+                                 -dsets REML*.HEAD
 
       2. This does not quite apply to AFNI_data6.  Assuming there are 2 group
          directories, write a 2-sample command.
 
-            gen_group_command.py -command 3dMEMA        \\
-                                 -dsets groupA/OL*.HEAD
-                                 -dsets groupB/OL*.HEAD
+            gen_group_command.py -command 3dMEMA           \\
+                                 -write_script cmd.mema.2  \\
+                                 -dsets groupA/REML*.HEAD  \\
+                                 -dsets groupB/REML*.HEAD
 
       3. Specify the sub-bricks, to compare Vrel vs. Arel.
 
-            gen_group_command.py -command 3dMEMA        \\
-                                 -dsets OL*.HEAD        \\
-                                 -set_labels Vrel Arel  \\
-                                 -subs_betas 0 2        \\
-                                 -subs_tstats 1 3
+            gen_group_command.py -command 3dMEMA           \\
+                                 -write_script cmd.mema.3  \\
+                                 -dsets REML*.HEAD         \\
+                                 -set_labels Arel Vrel     \\
+                                 -subs_betas 2 0           \\
+                                 -subs_tstats 3 1
 
-      4. Similar to 3, but more advanced.  Specify sub-bricks using the labels,
-         specify a paired test, and add some extra options.
+      4. Similar to 3, but complete.  This basically generates the sample
+         command AFNI_data6/group_results/s4.3dMEMA.V-A.
+
+         Specify sub-bricks using the labels, request a paired test, and add
+         some extra 3dMEMA options.
 
             gen_group_command.py -command 3dMEMA                            \\
+                                 -write_script cmd.mema.4                   \\
+                                 -prefix mema_V-A_paired                    \\
                                  -type paired                               \\
-                                 -dsets OL*.HEAD                            \\
-                                 -set_labels Vrel Arel                      \\
-                                 -subs_betas  'Vrel#0_Coef'  'Arel#0_Coef'  \\
-                                 -subs_tstats 'Vrel#0_Tstat' 'Arel#0_Tstat' \\
+                                 -dsets REML*.HEAD                          \\
+                                 -set_labels Arel Vrel                      \\
+                                 -subs_betas  'Arel#0_Coef'  'Vrel#0_Coef'  \\
+                                 -subs_tstats 'Arel#0_Tstat' 'Vrel#0_Tstat' \\
                                  -options                                   \\
-                                    -mask mask+tlrc -max_zeros 0.25 -jobs 2 \\
-                                    -HKtest -model_outliers
+                                    -mask mask+tlrc -max_zeros 0.25         \\
+                                    -model_outliers -HKtest -jobs 2
 
-         See "3dMEMA -help" for details on the given options.
+         See "3dMEMA -help" for details on the extra options.
 
 ------------------------------------------
 terminal options:
@@ -123,6 +140,11 @@ other options:
 
    -verb LEVEL                  : set the verbosity level
 
+   -write_script FILE_NAME      : write command script to FILE_NAME
+
+        If this option is given, the command will be written to the specified
+        file name.  Otherwise, it will be written to the terminal window.
+       
 -----------------------------------------------------------------------------
 R Reynolds    October 2010
 =============================================================================
@@ -133,9 +155,10 @@ g_history = """
 
    0.0  Sep 09, 2010    - initial version
    0.1  Oct 25, 2010    - handle some 3dMEMA cases
+   0.2  Oct 26, 2010    - MEMA updates
 """
 
-g_version = "gen_group_command.py version 0.1, Sep 9, 2010"
+g_version = "gen_group_command.py version 0.2, Oct 26, 2010"
 
 
 class CmdInterface:
@@ -152,6 +175,7 @@ class CmdInterface:
       self.command         = ''         # program name to make command for
       self.ttype           = None       # test type (e.g. paired)
       self.prefix          = None       # prefix for command result
+      self.write_script    = None       # file to write output to (else stdout)
       self.betasubs        = None       # list of beta weight sub-brick indices
       self.tstatsubs       = None       # list of t-stat sub-brick indices
       self.lablist         = None       # list of set labels
@@ -169,10 +193,11 @@ class CmdInterface:
       self.init_options()
 
    def show(self):
-      print "----------------------------- setup -----------------------------"
+      print "---------------------------- setup -----------------------------"
       print "command          : %s" % self.command
       print "test type        : %s" % self.ttype
       print "prefix           : %s" % self.prefix
+      print "write_script     : %s" % self.write_script
       print "beta sub-bricks  : %s" % self.betasubs
       print "tstat sub-bricks : %s" % self.tstatsubs
       print "label list       : %s" % self.lablist
@@ -187,7 +212,7 @@ class CmdInterface:
       if self.verb > 3:
          print "status           : %s" % self.status
          self.user_opts.show(mesg="user options     : ")
-      print "-----------------------------------------------------------------"
+      print "----------------------------------------------------------------"
 
    def init_options(self):
       self.valid_opts = OL.OptionList('valid opts')
@@ -227,6 +252,8 @@ class CmdInterface:
                       helpstr='specify the test type (e.g. paired)')
       self.valid_opts.add_opt('-verb', 1, [], 
                       helpstr='set the verbose level (default is 1)')
+      self.valid_opts.add_opt('-write_script', 1, [], 
+                      helpstr='specify file to write command into')
 
       return 0
 
@@ -335,6 +362,12 @@ class CmdInterface:
 
          if opt.name == '-verb': continue       # already handled
 
+         if opt.name == '-write_script':
+            val, err = uopts.get_string_opt('', opt=opt)
+            if val == None or err: return 1
+            self.write_script = val
+            continue
+
          # general options
 
          # an unhandled option
@@ -355,11 +388,12 @@ class CmdInterface:
                   ', '.join([str(len(dlist)) for dlist in self.dsets]) )
 
       # might deal with subject IDs and attributes later
-      for dlist in self.dsets:
+      for ind, dlist in enumerate(self.dsets):
          slist = SUBJ.SubjectList(dset_l=dlist, verb=self.verb)
          slist.set_ids_from_dsets(prefix=self.subj_prefix,
                                   suffix=self.subj_suffix)
          self.slist.append(slist)
+         if self.verb > 2: slist.show("slist %d" % ind)
 
       cmd = None
       if self.command == '3dMEMA':
@@ -372,9 +406,14 @@ class CmdInterface:
       if cmd == None: return 1
       cmd = UTIL.add_line_wrappers(cmd)
 
-      print cmd
-
-      # rcr - maybe write to file
+      # either write to file or print
+      if self.write_script:
+         if UTIL.write_text_to_file(self.write_script, cmd):
+            print "** failed to write command to file '%s'" % self.write_script
+            return 1
+         if self.verb > 0:
+            print '++ command written to file %s' % self.write_script
+      else: print cmd
 
    def get_mema_command(self):
       if len(self.slist) > 1: s2 = self.slist[1]
@@ -382,7 +421,7 @@ class CmdInterface:
       if (self.betasubs != None and self.tstatsubs == None) or \
          (self.betasubs == None and self.tstatsubs != None):
          print '** -subs_betas and -subs_tstats must be used together'
-         return 1
+         return None
       return self.slist[0].make_mema_command(set_labs=self.lablist,
                      bsubs=self.betasubs, tsubs=self.tstatsubs, subjlist2=s2,
                      prefix=self.prefix, ttype=self.ttype, options=self.options)
