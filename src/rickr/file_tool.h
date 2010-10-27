@@ -13,8 +13,9 @@
 #define MOD_F4            30            /* real mods */
 #define MOD_F8            31
 
-#define SCR_SHOW_BAD_BS 0x01            /* script display */
-#define SCR_SHOW_FILE   0x02            /* script display */
+#define SCR_SHOW_BAD_BS 0x01            /* script display - bad backslash */
+#define SCR_SHOW_BAD_CH 0x02            /* bad characters                */
+#define SCR_SHOW_FILE   0x04            /* file type (UNIX, MAC, DOS)   */
 
 #define SCR_MOD_BADBS   0x10            /* script mods  */
 #define SCR_MOD_FILE    0x20            /* script mods  */
@@ -147,6 +148,7 @@ int  set_params        ( param_t * p, int argc, char * argv[] );
 
 int  scr_show_file     ( char * filename, param_t * p );
 int  scr_show_bad_bs   ( char * filename, param_t * p );
+int  scr_show_bad_ch   ( char * filename, param_t * p );
 
 
 int  help_full         ( char * prog );
