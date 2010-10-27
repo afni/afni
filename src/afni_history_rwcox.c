@@ -44,6 +44,13 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 27 , OCT , 2010 , RWC , "cs_symeig" , MICRO , TYPE_BUG_FIX ,
+   "Patch failure on Mac gcc in svd_double" ,
+   "Mac OS X gcc compilation of svd function can produce bad results -- NaN\n"
+   "values -- when there are too many all zero columns.  Solution: check for\n"
+   "NaNs in the result, then switch to 'slow' mode AND fill all zero columns\n"
+   "with tiny random values." } ,
+
  { 20 , OCT , 2010 , RWC , "afni" , MICRO , TYPE_GENERAL ,
    "Add 'INSTACORR SET' the the drive command list" ,
    NULL } ,

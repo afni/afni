@@ -723,31 +723,31 @@ void svd_double( int m, int n, double *a, double *s, double *u, double *v )
        if not, compute the results in another function;
        this is needed because the svd() function compiles with
        rare computational errors on some compilers' optimizers **/
-   { register int i,j,k ; register doublereal aij ; double err ;
-     err = 0.0 ;
+   { register int i,j,k ; register doublereal aij ; double err=0.0,amag=1.e-11 ;
      for( j=0 ; j < n ; j++ ){
       for( i=0 ; i < m ; i++ ){
-        aij = A(i,j) ;
+        aij = A(i,j) ; amag += fabs(aij) ;
         for( k=0 ; k < n ; k++ ) aij -= U(i,k)*V(j,k)*ww[k] ;
         err += fabs(aij) ;
      }}
-     err /= (m*n) ;  /* average absolute error per matrix element */
-     if( err >= 1.e-5 || !IS_GOOD_FLOAT(err) ){
-       WARNING_message("SVD avg err=%g; recomputing ...",err) ;
+     amag /= (m*n) ; /* average absolute value of matrix elements */
+     err  /= (m*n) ; /* average absolute error per matrix element */
+     if( err >= 1.e-5*amag || !IS_GOOD_FLOAT(err) ){
+       fprintf(stderr,"SVD avg err=%g; recomputing ...",err) ;
 
 #if 1     /* mangle all zero columns */
-       { double amag=0.0 , *aj ; int ii,jj ;
-         for( ii=0 ; ii < mm*nn ; ii++ ) amag += fabs(aa[ii]) ;
-         amag *= 1.e-11 / (mm*nn) ;
-         for( jj=0 ; jj < nn ; jj++ ){
-           aj = aa + jj*mm ;
-           for( ii=0 ; ii < mm ; ii++ ) if( aj[ii] != 0.0 ) break ;
-           if( ii == mm ){
-             for( ii=0 ; ii < mm ; ii++ ) aj[ii] = (drand48()-0.5)*amag ;
+       { double arep=1.e-11*amag , *aj ;
+         for( j=0 ; j < nn ; j++ ){
+           aj = aa + j*mm ;
+           for( i=0 ; i < mm ; i++ ) if( aj[i] != 0.0 ) break ;
+           if( i == mm ){
+             for( i=0 ; i < mm ; i++ ) aj[i] = (drand48()-0.5)*arep ;
            }
          }
        }
 #endif
+
+       /* svd_slow is compiled without optimization */
 
        (void) svd_slow_( &mm , &nn , &lda , aa , ww ,
                          &matu , &ldu , uu , &matv , &ldv , vv , &ierr , rv1 ) ;
@@ -759,8 +759,8 @@ void svd_double( int m, int n, double *a, double *s, double *u, double *v )
           err += fabs(aij) ;
        }}
        err /= (m*n) ;
-       WARNING_message("Recomputed SVD avg err=%g %s\n",
-               err , (err >= 1.e-5 || !IS_GOOD_FLOAT(err)) ? "**BAD**" : "**OK**" ) ;
+       fprintf(stderr," new avg err=%g %s\n",
+               err , (err >= 1.e-5*amag || !IS_GOOD_FLOAT(err)) ? "**BAD**" : "**OK**" ) ;
      }
    }
 #endif
