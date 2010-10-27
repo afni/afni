@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 27, OCT, 2010, RCR, "file_tool", MINOR, TYPE_NEW_OPT,
+   "added -show_bad_char and -show_bad_all",
+   NULL
+ } ,
+
  { 26, OCT, 2010, RCR, "gen_group_command.py", MINOR, TYPE_NEW_OPT,
    "solidified 3dMEMA commands",
    "This is now used to generate AFNI_data6/group_results/s4.3dMEMA.V-A."
