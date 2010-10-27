@@ -38,7 +38,9 @@
  *
  *     script file options:
  *
+ *        -show_bad_all        do all of the following:
  *        -show_bad_backslash  show any lines with only whitespace after '\'
+ *        -show_bad_char       show any non-printable characters
  *        -show_file_type      show whether UNIX, Mac or MS file type
  *
  *     raw ascii options:
@@ -125,9 +127,10 @@ static char g_history[] =
  "      - added '-overwrite' and '-prefix' to specify output\n"
  " 3.7  August 2, 2007  - added -disp_hex, -disp_hex{1,2,4}\n"
  " 3.8  June 19, 2008   - removing printing of pointers in disp_ functions\n"
+ " 3.9  Oct 27, 2010    - added -show_bad_char and -show_bad_all\n"
  "----------------------------------------------------------------------\n";
 
-#define VERSION         "3.8 (June 19, 2008)"
+#define VERSION         "3.9 (October 27, 2010)"
 
 
 /* ----------------------------------------------------------------------
@@ -232,6 +235,7 @@ process_script( char * filename, param_t * p )
 
     if (       p->script & SCR_SHOW_FILE  ) rv = scr_show_file  (filename, p);
     if (!rv && p->script & SCR_SHOW_BAD_BS) rv = scr_show_bad_bs(filename, p);
+    if (!rv && p->script & SCR_SHOW_BAD_CH) rv = scr_show_bad_ch(filename, p);
 
     return rv;
 }
@@ -251,7 +255,8 @@ scr_show_bad_bs( char * filename, param_t * p )
 
     if( read_file( filename, &fdata, &flen ) < 0 ) return -1;
 
-    if( p->debug ) fprintf(stderr,"--- file %s ---\n",filename);
+    if( p->debug ) fprintf(stderr,"-- show_bad_backslash: file %s ...\n",
+                           filename);
 
     line_start = fdata;
     for( count = 0; count < flen; /* in loop */ )
@@ -290,6 +295,43 @@ scr_show_bad_bs( char * filename, param_t * p )
 
 
 /*------------------------------------------------------------
+ * scan file for non-printable characters
+ *------------------------------------------------------------*/
+int
+scr_show_bad_ch( char * filename, param_t * p )
+{
+    static char * fdata = NULL;
+    static int    flen  = 0;
+    char        * cp;
+    int           length, count, bad = 0;
+
+    if( p->debug ) fprintf(stderr,"-- show_bad_chars: file %s ...\n",
+                           filename);
+
+    if( (length = read_file( filename, &fdata, &flen )) < 0 ) return -1;
+
+    if( p->debug ) fprintf(stderr,"file length = %d\n", length);
+
+    for( cp = fdata, count = 0; count < length; count++ )
+    {
+        if( !isprint(cp[count]) && !isspace(cp[count]) )
+        {
+            if( p->debug ) {
+                if( !bad ) fprintf(stderr,"file '%s' has non-printable chars\n",
+                                   filename);
+                fprintf(stderr,": %d (0x%0x)",cp[count],cp[count]);
+            }
+            bad++;
+        }
+    }
+
+    if( bad && p->debug ) putc('\n', stderr);
+    printf("%s has %d bad characters\n", filename, bad);
+    return 0;
+}
+
+
+/*------------------------------------------------------------
  * Scan file for 0x0d characters ('\r').
  *     dos:  \r\n
  *     mac:  \r
@@ -303,7 +345,7 @@ scr_show_file( char * filename, param_t * p )
     char        * cp;
     int           length, count, bin = 0;
 
-    if( p->debug ) fprintf(stderr,"--- file %s ---\n",filename);
+    if( p->debug ) fprintf(stderr,"-- show_file_type: file %s ...\n",filename);
 
     if( (length = read_file( filename, &fdata, &flen )) < 0 ) return -1;
 
@@ -313,15 +355,11 @@ scr_show_file( char * filename, param_t * p )
     {
         if( !isprint(cp[count]) && !isspace(cp[count]) )
         {
-            if( bin == 0 )
-            {
+            if( bin == 0 ) {
+                fprintf(stderr,"file '%s' has non-printable chars\n", filename);
                 bin = 1;
-                if( !p->quiet )
-                    fprintf(stderr,"file '%s' has non-printable chars\n",
-                            filename);
             }
             if( p->debug ) fprintf(stderr,": %d (0x%0x)",cp[count],cp[count]);
-            else           fputc('\n',stderr);
         }
 
         if( cp[count] != '\r' ) continue;
@@ -330,6 +368,7 @@ scr_show_file( char * filename, param_t * p )
         {
             if( p->debug )
                 fprintf(stderr,"found 0x0d0a char pair at offset %d\n",count);
+            if( bin )putchar('\n');
             printf("%s file type: DOS\n", filename);
             return 0;
         }
@@ -337,11 +376,13 @@ scr_show_file( char * filename, param_t * p )
         {
             if( p->debug )
                 fprintf(stderr,"found 0x0d char at offset %d\n",count);
+            if( bin )putchar('\n');
             printf("%s file type: MAC\n", filename);
             return 0;
         }
     }
 
+    if( bin )putchar('\n');
     printf("%s file type: UNIX\n", filename);
     return 0;
 }
@@ -1097,9 +1138,17 @@ set_params( param_t * p, int argc, char * argv[] )
             CHECK_NEXT_OPT(ac, argc, "-prefix");
             p->prefix = argv[ac];
         }
-        else if ( ! strncmp(argv[ac], "-show_bad_backslash", 9 ) )
+        else if ( ! strncmp(argv[ac], "-show_bad_all", 12 ) )
+        {
+            p->script = 0xff;   /* set all show bits */
+        }
+        else if ( ! strncmp(argv[ac], "-show_bad_backslash", 12 ) )
         {
             p->script |= SCR_SHOW_BAD_BS;
+        }
+        else if ( ! strncmp(argv[ac], "-show_bad_char", 12 ) )
+        {
+            p->script |= SCR_SHOW_BAD_CH;
         }
         else if ( ! strncmp(argv[ac], "-show_file_type", 10 ) )
         {
