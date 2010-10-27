@@ -81,6 +81,7 @@ SET_THRESHOLD [c.]val [dec]
   will set the '**' (decimal) level of the slider to 2 and the slider value to
   30 (=0.3000*100).
   ++ You can also use "SET_FUNC_THRESH" for the command name.
+  ++ The newer SET_THRESHNEW command is probably better for your needs.
 
 SET_THRESHNEW [c] val [flags]
   Sets the threshold slider for controller index 'c' (default='A') to the
