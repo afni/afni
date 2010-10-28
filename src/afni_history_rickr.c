@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 28, OCT, 2010, RCR, "3dMean", MICRO, TYPE_BUG_FIX,
+   "do not proceed in case of no input datasets",
+   NULL
+ } ,
+
  { 27, OCT, 2010, RCR, "file_tool", MINOR, TYPE_NEW_OPT,
    "added -show_bad_char and -show_bad_all",
    NULL
