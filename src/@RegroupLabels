@@ -1,0 +1,282 @@
+#!/bin/tcsh -f
+
+set stat = 0
+if ("$1" == "" || "$1" == '-h' || "$1" == '-help') then
+   goto HELP
+endif
+
+goto PARSE
+RETURN_PARSE:
+
+GETLABELS:
+   #Get the labels and values of the grouped labels
+   if (1) then
+      set llist = (`@MakeLabelTable -labeltable $grpd_labeltable -all_labels`)
+      set vlist = (`@MakeLabelTable -labeltable $grpd_labeltable -all_keys`)
+   endif
+   if ($#llist == 0) then
+      echo "Error: Have no labels"
+      goto BEND
+   endif
+   
+   #Get labeltable of label_dset
+   @MakeLabelTable -labeltable_of_dset $label_dset > __lt.niml.lt
+   if ($status) then
+      echo "Failed to get labeltable of $label_dset"
+      goto BEND
+   endif
+   
+   set noglob
+   set com = 0 
+   set c = 1
+   foreach ll ($llist)
+      #use range, easier than getting each value
+      set rng = `@MakeLabelTable -labeltable __lt.niml.lt -rkeys $ll`
+      set com = ("$com" + "$vlist[$c]*within(a,$rng[1],$rng[2])" )
+      @ c ++
+   end
+   
+   if ($mask_dset != '') then
+      3dcalc -a $label_dset -b $mask_dset \
+             -expr "step(b)*($com)" -prefix $grpd_labprefix >& /dev/null
+   else
+      3dcalc -a $label_dset -expr "($com)" -prefix $grpd_labprefix >& /dev/null
+   endif
+      
+   3drefit -labeltable $grpd_labeltable $grpd_labprefix >& /dev/null
+   
+   #Now combine the probabilities
+   if ($p_dset != '') then
+      set v = `@GetAfniView $p_dset`
+      if (`@CheckForAfniDset __gg$v` > 0) \rm -f __gg*
+      foreach ll ($llist)
+         #Get all labels from __lt.niml.lt
+         set llset = `@MakeLabelTable -labeltable __lt.niml.lt \
+                              -match_word_label $ll`
+         echo "Notice: labels $llset map to grouped label $ll"
+         set subsel = ""
+         set psets = ''
+         set c = 1
+         while ($c <= $#llset)
+            3dAttribute -quote -ssep ' ' \
+                        -name BRICK_LABS $p_dset | \
+                     \grep -w $llset[$c] >& /dev/null
+            if ($status) then
+               echo "Ignoring label $llset[$c], not in $p_dset ..."
+            else
+               set subsel = ($subsel p.$llset[$c])
+               set psets = ("$psets" $p_dset'['p.$llset[$c]']')
+            endif
+            @ c ++
+         end
+         if ($#subsel > 1) then
+            #a little slow a selection process, but safe
+            3dbucket -overwrite -prefix __tt $psets >& /dev/null
+            3dTstat -max \
+                  -overwrite -prefix __ttm \
+                  __tt$v >& /dev/null
+            3drefit  -sublabel 0 "p.$ll" __ttm$v  >& /dev/null
+            3dbucket -aglueto __gg$v  \
+                     __ttm$v >& /dev/null
+         endif
+         unset noglob
+         if ( `@CheckForAfniDset __tt$v+orig` >= 2) \rm -f __tt*
+         set noglob
+      end
+      if (`@CheckForAfniDset __gg$v` >= 2) then
+         #calc sum
+         3dTstat -sum -prefix __ss __gg$v >& /dev/null
+         #scale
+         if ($status) then
+            echo "Something went wrong"
+            goto BEND
+         endif
+         3dcalc -overwrite -a __gg$v -b __ss$v -expr "step(b)*a/b"   \
+               -prefix $grpd_pprefix >& /dev/null
+         unset noglob
+         \rm -f __gg* __ss* __tt*
+         set noglob
+      endif
+   endif
+   
+   unset noglob
+   
+goto END
+
+PARSE:
+   set grpd_labeltable = ''
+   set llist = ''
+	set Narg = $#
+   set label_dset = ''
+   set p_dset = ''
+   set mask_dset = ''
+   set grpd_labprefix = ''
+   set grpd_pprefix = ''
+   set verb = 0
+	set cnt = 1
+   while ($cnt <= $Narg)
+      if ("$argv[$cnt]" == "-d" || "$argv[$cnt]" == "-echo") then
+         set NxtInd = $cnt
+         set verb = 1
+         set echo
+      endif
+      
+      if ("$argv[$cnt]" == "-verb") then
+         set NxtInd = $cnt
+         set verb = 1
+      endif
+      
+      if ("$argv[$cnt]" == "-grouped_labeltable") then
+         set SubLoc = $cnt		
+		   if ($SubLoc == $Narg) then
+				echo "Need file after -grouped_labeltable"
+            goto BEND
+			else
+				@ cnt ++
+				set grpd_labeltable = `@NoExt "$argv[$cnt]" .niml .niml.lt`
+            set grpd_labeltable = $grpd_labeltable.niml.lt
+            if (! -f $grpd_labeltable) then
+               echo "Error $grpd_labeltable not found"
+               goto BEND
+            endif
+            set NxtInd = $cnt
+			endif
+      endif
+      
+      #Do not allow for labels to be given separately
+		if (0 && "$argv[$cnt]" == "-labels") then
+         set nneed = `ccalc -i $cnt + 1`
+         if ($nneed > $Narg) then
+				echo "Need at least 1 values after -labels"
+            goto BEND
+			else
+				@ cnt ++
+            set llist = ''
+            while ($argv[$cnt] !~ -* && $cnt <= $Narg)
+               set llist = ($llist $argv[$cnt])
+               @ cnt ++
+            end
+            if ($argv[$cnt] =~ -*) @ cnt --
+            set NxtInd = $cnt
+			endif
+      endif
+		
+      if ("$argv[$cnt]" == "-labdset") then
+         if ($cnt > $Narg) then
+            echo "Need a dset after -labdset"
+            goto BEND
+         endif
+         @ cnt ++
+         set label_dset = $argv[$cnt]
+         if (`@CheckForAfniDset $label_dset` < 2) then
+            echo "-labdset $label_dset not found"
+            goto BEND
+         endif 
+         set NxtInd = $cnt
+      endif 		
+
+      if ("$argv[$cnt]" == "-pdset") then
+         if ($cnt > $Narg) then
+            echo "Need a dset after -pdset"
+            goto BEND
+         endif
+         @ cnt ++
+         set p_dset = $argv[$cnt]
+         if (`@CheckForAfniDset $p_dset` < 2) then
+            echo "-pdset $p_dset not found"
+            goto BEND
+         endif 
+         set NxtInd = $cnt
+      endif 		
+
+      if ("$argv[$cnt]" == "-mask") then
+         if ($cnt > $Narg) then
+            echo "Need a dset after -mask"
+            goto BEND
+         endif
+         @ cnt ++
+         set mask_dset = $argv[$cnt]
+         if (`@CheckForAfniDset $mask_dset` < 2) then
+            echo "-mask $mask_dset not found"
+            goto BEND
+         endif 
+         set NxtInd = $cnt
+      endif 		
+		
+      if ("$argv[$cnt]" == "-grpd_labprefix") then
+         if ($cnt > $Narg) then
+            echo "Need a prefix after -grpd_labprefix"
+            goto BEND
+         endif
+         @ cnt ++
+         set grpd_labprefix = $argv[$cnt]
+         if (`@CheckForAfniDset $grpd_labprefix` > 0) then
+            echo "-grpd_labprefix $grpd_labprefix exists already"
+            goto BEND
+         endif 
+         set NxtInd = $cnt
+      endif 
+      if ("$argv[$cnt]" == "-grpd_pprefix") then
+         if ($cnt > $Narg) then
+            echo "Need a prefix after -grpd_pprefix"
+            goto BEND
+         endif
+         @ cnt ++
+         set grpd_pprefix = $argv[$cnt]
+         if (`@CheckForAfniDset $grpd_pprefix` > 0) then
+            echo "-grpd_pprefix $grpd_pprefix exists already"
+            goto BEND
+         endif 
+         set NxtInd = $cnt
+      endif 
+      @ cnt ++
+	end
+
+   @ NxtInd ++
+   if ( $NxtInd > $#argv ) then
+      set others_list = ( )
+   else
+      set others_list = ( $argv[$NxtInd-$#argv] )
+   endif
+
+   if ($#others_list > 0) then
+      echo "Options $others_list not understood"
+      goto BEND
+   endif
+ 
+   
+   if (0) then
+      echo "Have:"
+      echo $llist
+      echo $llistmin
+      echo $llistmax
+   endif
+      
+   goto RETURN_PARSE
+
+HELP:
+   echo ""
+   echo "Script used to create a label table "
+   echo ""
+   echo "Usage: `basename $0` <-grpd_labeltable LABELTABLE> "
+   echo "                     <-labdset DSET> <-grpd_grpd_labprefix PREFIX>"
+   echo "   -grpd_labeltable LABELTABLE: Name of label table providing"
+   echo "                                grouped categories"
+   echo ""
+   echo "Example 1:"
+   echo "      @RegroupLabels -grouped_labeltable Classes.niml.lt \"
+   echo "                     -labdset s01.test.cls+orig.HEAD \"
+   echo "                     -grpd_labprefix s01.test.cls3+orig \"
+   echo "                     -pdset s01.test.clsp+orig \"
+   echo "                     -grpd_pprefix s01.test.clsp3+orig"
+   echo ""
+   
+   goto END
+
+BEND:
+   set stat = 1
+   goto END
+      
+END:
+if (-f __lt.niml.lt) \rm -f __lt.niml.lt
+exit $stat   
