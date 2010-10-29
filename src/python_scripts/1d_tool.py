@@ -56,9 +56,15 @@ examples (very basic for now):
                     -set_run_lengths 64 61 67 61 67 61 67        \\
                     -write ricor_r02_all.1D
 
-   5.  Display rows and columns for a 1D dataset.
+   5.  Display small details about a 1D dataset:
+
+       a. Display number of rows and columns for a 1D dataset.
 
          1d_tool.py -infile ricor_r02.1D -show_rows_cols
+
+       b. Display indices of regressors of interest.
+
+         1d_tool.py -infile ricor_r02.1D -show_indices_interest
 
    6.  Show correlation matrix warnings for this matrix.
 
@@ -337,6 +343,9 @@ general options:
    -show_cormat_warnings        : display correlation matrix warnings
    -show_label_ordering         : display the labels
    -show_labels                 : display the labels
+   -show_indices_baseline       : display column indices for baseline
+   -show_indices_motion         : display column indices for motion regressors
+   -show_indices_interest       : display column indices for regs of interest
    -show_rows_cols              : display the number of rows and columns
    -sort                        : sort data over time (smallest to largest)
                                   - sorts EVERY vector
@@ -417,9 +426,10 @@ g_history = """
    0.20 Aug 02, 2010
         - small change to looks_like text formatting
         - removed useless TR from looks_like_1D function
+   0.21 Oct 29, 2010
 """
 
-g_version = "1d_tool.py version 0.20, August 2, 2010"
+g_version = "1d_tool.py version 0.21, October 29, 2010"
 
 
 class A1DInterface:
@@ -456,9 +466,12 @@ class A1DInterface:
       self.cormat_cutoff   = -1         # if > 0, apply to show_cormat_warns
       self.show_censor_count= 0         # show count of censored TRs
       self.show_cormat_warn= 0          # show cormat warnings
+      self.show_indices    = 0          # bitmask for index lists to show
+                                        # (base, motion, regs of interest)
       self.show_label_ord  = 0          # show the label ordering
       self.show_labels     = 0          # show the labels
       self.show_rows_cols  = 0          # show the number of rows and columns
+                                
 
       self.sort            = 0          # sort data over time
       self.transpose       = 0          # transpose the matrix
@@ -612,6 +625,15 @@ class A1DInterface:
 
       self.valid_opts.add_opt('-show_cormat_warnings', 0, [], 
                       helpstr='display warnings for the correlation matrix')
+
+      self.valid_opts.add_opt('-show_indices_baseline', 0, [], 
+                      helpstr='display index list for baseline regressors')
+
+      self.valid_opts.add_opt('-show_indices_interest', 0, [], 
+                      helpstr='display index list for regressors of interest')
+
+      self.valid_opts.add_opt('-show_indices_motion', 0, [], 
+                      helpstr='display index list for motion regressors')
 
       self.valid_opts.add_opt('-show_label_ordering', 0, [], 
                       helpstr='show whether labels are in slice-major order')
@@ -839,6 +861,15 @@ class A1DInterface:
          elif opt.name == '-show_censor_count':
             self.show_censor_count = 1
 
+         elif opt.name == '-show_indices_baseline':
+            self.show_indices |= 1
+
+         elif opt.name == '-show_indices_motion':
+            self.show_indices |= 2
+
+         elif opt.name == '-show_indices_interest':
+            self.show_indices |= 4
+
          elif opt.name == '-show_label_ordering':
             self.show_label_ord = 1
 
@@ -1000,6 +1031,9 @@ class A1DInterface:
 
       if self.show_label_ord: self.adata.show_major_order_of_labels()
       if self.show_labels: self.adata.show_labels()
+
+      if self.show_indices:
+         self.adata.show_indices(self.show_indices)
 
       if self.show_rows_cols: self.adata.show_rows_cols(verb=self.verb)
 
