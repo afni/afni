@@ -158,7 +158,7 @@ void despike7_func( int num , double to,double dt , float *vec )
    mad = qmed_float(num,zma) ; free(zma) ;
    if( mad <= 0.0f ){ free(zme) ; return ; }  /* should not happen */
    mad *= MTHR ;  /* threshold value */
-  
+
    for( ii=0 ; ii < num ; ii++ )
      if( fabsf(vec[ii]-zme[ii]) > mad ) vec[ii] = zme[ii] ;
 
@@ -211,13 +211,62 @@ void despike9_func( int num , double to,double dt , float *vec )
    mad = qmed_float(num,zma) ; free(zma) ;
    if( mad <= 0.0f ){ free(zme) ; return ; }  /* should not happen */
    mad *= MTHR ;  /* threshold value */
-  
+
    for( ii=0 ; ii < num ; ii++ )
      if( fabsf(vec[ii]-zme[ii]) > mad ) vec[ii] = zme[ii] ;
 
    free(zme) ; return ;
 }
 #undef mmm9
+
+/*-------------- Sample 1D function: HRF Decon [29 Oct 2010] ---------------*/
+
+static float lhs_legendre( float x, float bot, float top, float n )
+{
+   double xx ;
+   xx = 2.0*(x-bot)/(top-bot) - 1.0 ;  /* now in range -1..1 */
+   return (float)Plegendre(xx,n) ;
+}
+
+void hrfdecon_func( int num , double to,double dt , float *vec )
+{
+   int   nkern ,  nbase , ii,pp ;
+   float *kern , **base , ksum=0.0f ;
+   floatvec *bfit ;
+
+   if( num < 49 || dt >= 4.0f ) return ;
+   if( dt <= 0.0f ) dt = 1.0f ;
+
+   nkern = 1+(int)(16.0f/dt) ; if( nkern >= num/2 ) return ;
+   kern = (float *)calloc(sizeof(float),nkern) ;
+   for( ii=1 ; ii < nkern ; ii++ ){
+     kern[ii] = powf(ii*dt,8.6f)*exp(-ii*dt/0.547) ; ksum += kern[ii] ;
+   }
+   for( ii=1 ; ii < nkern ; ii++ ) kern[ii] /= ksum ;
+   for( ii=nkern-1 ; ii > 2 ; ii-- ) if( kern[ii] >= 0.0444f ) break ;
+   nkern = ii ;
+
+   nbase = 1+(int)(num*dt/100.0f) ; if( nbase < 3 ) nbase = 3 ;
+   base  = (float **)malloc(sizeof(float *)*nbase) ;
+   for( pp=0 ; pp < nbase ; pp++ ){
+     base[pp] = (float *)malloc(sizeof(float)*num) ;
+     for( ii=0 ; ii < num ; ii++ )
+       base[pp][ii] = lhs_legendre( (float)ii, 0.0f, num-1.0f, pp ) ;
+   }
+
+   despike9_func( num , to,dt , vec ) ;
+   bfit = THD_deconvolve( num , vec ,
+                          0 , nkern-1 , kern ,
+                          nbase , base , 2 , NULL , 0 , 7 , -666.0f ) ;
+
+   if( bfit != NULL ){
+     memcpy(vec,bfit->ar,sizeof(float)*num) ;
+     KILL_floatvec(bfit) ;
+   }
+
+   for( pp=0 ; pp < nbase ; pp++ ) free(base[pp]) ;
+   free(base) ; free(kern) ; return ;
+}
 
 /*---------------- Sample 1D function: abs(FFT) [30 Jun 2000] --------------*/
 

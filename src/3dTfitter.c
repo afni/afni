@@ -1102,4 +1102,3 @@ static float lhs_legendre( float x, float bot, float top, float n )
    xx = 2.0*(x-bot)/(top-bot) - 1.0 ;  /* now in range -1..1 */
    return (float)Plegendre(xx,n) ;
 }
-
