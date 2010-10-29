@@ -1153,6 +1153,39 @@ class Afni1D:
       if verb > 0: print 'rows = %d, cols = %d' % (self.nt, self.nvec)
       else:        print '%d %d' % (self.nt, self.nvec)
 
+   def show_indices(self, ind_types):
+      """display an index list (sub-brick selector form) for the
+         following groups:
+
+            1: baseline (group  -1)
+            2: motion   (group   0)
+            4: interest (group > 0)
+
+         Do not return an empty list.  If the groups do not exist or are
+         not found, return '0..$'."""
+
+      default = '0..$'
+
+      if self.verb > 1: print '-- show indices, types = %d, groups = %s' \
+                              % (ind_types, self.groups)
+
+      bmask = ind_types & 7
+      if not self.ready:           return default
+      if bmask == 0 or bmask == 7: return default
+      if len(self.groups) < 1:     return default
+
+      ilist = []
+      allind = range(len(self.groups))
+      if ind_types & 1:
+         ilist += [ind for ind in allind if self.groups[ind] == -1]
+      if ind_types & 2:
+         ilist += [ind for ind in allind if self.groups[ind] == 0]
+      if ind_types & 4:
+         ilist += [ind for ind in allind if self.groups[ind] > 0]
+      ilist.sort()
+
+      print UTIL.encode_1D_ints(ilist)
+
    def make_show_str(self):
       if self.ready: rstr = 'ready'
       else:          rstr = 'not ready'

@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 29, OCT, 2010, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
+   "added -show_indices_baseline, _motion and _interest",
+   NULL
+ } ,
+
  { 28, OCT, 2010, RCR, "3dMean", MICRO, TYPE_BUG_FIX,
    "do not proceed in case of no input datasets",
    NULL
