@@ -276,6 +276,7 @@ int main( int argc , char *argv[] )
    int   nwarp_pass            = 0 ;
    int   nwarp_type            = WARP_BILINEAR ;
    float nwarp_order           = 2.9f ;
+   int   nwarp_flags           = 0 ;             /* 29 Oct 2010 */
 
    int    micho_zfinal          = 0 ;            /* 24 Feb 2010 */
    double micho_mi              = 0.2 ;          /* -lpc+ stuff */
@@ -283,6 +284,8 @@ int main( int argc , char *argv[] )
    double micho_crA             = 0.4 ;
    double micho_hel             = 0.4 ;
    double micho_ov              = 0.4 ;          /* 02 Mar 2010 */
+
+   int do_zclip                 = 0 ;            /* 29 Oct 2010 */
 
    /**----------------------------------------------------------------------*/
    /**----------------- Help the pitifully ignorant user? -----------------**/
@@ -1224,6 +1227,12 @@ int main( int argc , char *argv[] )
 
      /*-----*/
 
+     if( strcmp(argv[iarg],"-zclip") == 0 ){     /* 29 Oct 2010 */
+       do_zclip++ ; iarg++ ; continue ;
+     }
+
+     /*-----*/
+
      if( strcmp(argv[iarg],"-nwarp") == 0 ){     /* 03 Apr 2008 = SECRET */
        nwarp_pass = 1 ; iarg++ ;
 
@@ -1236,6 +1245,7 @@ int main( int argc , char *argv[] )
            nwarp_type = WARPFIELD_GEGEN_TYPE ;
          } else if( strncasecmp(argv[iarg],"bil",3) == 0 ){
            nwarp_type = WARP_BILINEAR ;
+           if( strstr(argv[iarg],"D") != NULL ) nwarp_flags = 1 ; /* 29 Oct 2010 */
          } else {
            WARNING_message("unknown -nwarp type '%s' :-(",argv[iarg]) ;
          }
@@ -2579,6 +2589,11 @@ int main( int argc , char *argv[] )
    dxyz_top = MAX(dxyz_top,dx_targ) ;
    dxyz_top = MAX(dxyz_top,dy_targ) ; dxyz_top = MAX(dxyz_top,dz_targ) ;
 
+   if( do_zclip ){
+     float *bar = MRI_FLOAT_PTR(im_base) ;
+     for( ii=0 ; ii < nvox_base ; ii++ ) if( bar[ii] < 0.0f ) bar[ii] = 0.0f ;
+   }
+
    /* find the autobbox, and setup zero-padding */
 
 #undef  MPAD
@@ -3315,6 +3330,11 @@ int main( int argc , char *argv[] )
      im_targ = mri_scale_to_float( bfac , DSET_BRICK(dset_targ,kk) ) ;
      DSET_unload_one(dset_targ,kk) ;
 
+     if( do_zclip ){
+       float *bar = MRI_FLOAT_PTR(im_targ) ;
+       for( ii=0 ; ii < nvox_base ; ii++ ) if( bar[ii] < 0.0f ) bar[ii] = 0.0f ;
+     }
+
      /*** if we are just applying input parameters, set up for that now ***/
 
      if( apply_1D != NULL ){
@@ -3831,7 +3851,7 @@ int main( int argc , char *argv[] )
 
        if( nwarp_type == WARP_BILINEAR ){  /*------ special case ------------*/
 
-         float rr , xcen,ycen,zcen , brad ; int nbf ;
+         float rr , xcen,ycen,zcen , brad,crad ; int nbf ;
 
          rr = MAX(xsize,ysize) ; rr = MAX(zsize,rr) ; rr = 1.2f / rr ;
 
@@ -3869,7 +3889,8 @@ int main( int argc , char *argv[] )
          brad = MAX(conv_rad,0.001f) ;
               if( rad > 33.3f*brad ) rad = 33.3f*brad ;
          else if( rad < 22.2f*brad ) rad = 22.2f*brad ;
-         nbf = mri_genalign_scalar_optim( &stup , rad, 11.1f*brad, 555 );
+         crad = (nwarp_flags&1 == 0) ? (11.1f*brad) : (2.22f*brad) ;
+         nbf = mri_genalign_scalar_optim( &stup , rad, crad, 555 );
          if( verb ){
            dtim = COX_cpu_time() ;
            ININFO_message("- Bilinear#1 cost = %f ; %d funcs ; CPU = %.1f s",
@@ -3879,28 +3900,30 @@ int main( int argc , char *argv[] )
 
          /* do the second pass, with more parameters varying */
 
-         for( jj=12 ; jj < NPBIL ; jj++ )   /* now free up all B elements */
-           stup.wfunc_param[jj].fixed = 0 ;
-         for( jj=0  ; jj < NPBIL ; jj++ )
-           stup.wfunc_param[jj].val_init = stup.wfunc_param[jj].val_out;
-         nbf = mri_genalign_scalar_optim( &stup, 22.2f*brad, 3.33f*brad,2222 );
-         if( verb ){
-           dtim = COX_cpu_time() ;
-           ININFO_message("- Bilinear#2 cost = %f ; %d funcs ; CPU = %.1f s",
-                          stup.vbest,nbf,dtim-ctim) ;
-           ctim = dtim ;
-         }
+         if( (nwarp_flags&1) == 0 ){
+           for( jj=12 ; jj < NPBIL ; jj++ )   /* now free up all B elements */
+             stup.wfunc_param[jj].fixed = 0 ;
+           for( jj=0  ; jj < NPBIL ; jj++ )
+             stup.wfunc_param[jj].val_init = stup.wfunc_param[jj].val_out;
+           nbf = mri_genalign_scalar_optim( &stup, 22.2f*brad, 3.33f*brad,2222 );
+           if( verb ){
+             dtim = COX_cpu_time() ;
+             ININFO_message("- Bilinear#2 cost = %f ; %d funcs ; CPU = %.1f s",
+                            stup.vbest,nbf,dtim-ctim) ;
+             ctim = dtim ;
+           }
 
-         /* run it again to see if it improves any more */
+           /* run it again to see if it improves any more */
 
-         for( jj=0  ; jj < NPBIL ; jj++ )
-           stup.wfunc_param[jj].val_init = stup.wfunc_param[jj].val_out;
-         nbf = mri_genalign_scalar_optim( &stup, 4.44f*brad, brad, 222 );
-         if( verb ){
-           dtim = COX_cpu_time() ;
-           ININFO_message("- Bilinear#3 cost = %f ; %d funcs ; CPU = %.1f s",
-                          stup.vbest,nbf,dtim-ctim) ;
-           ctim = dtim ;
+           for( jj=0  ; jj < NPBIL ; jj++ )
+             stup.wfunc_param[jj].val_init = stup.wfunc_param[jj].val_out;
+           nbf = mri_genalign_scalar_optim( &stup, 4.44f*brad, brad, 222 );
+           if( verb ){
+             dtim = COX_cpu_time() ;
+             ININFO_message("- Bilinear#3 cost = %f ; %d funcs ; CPU = %.1f s",
+                            stup.vbest,nbf,dtim-ctim) ;
+             ctim = dtim ;
+           }
          }
          if( verb > 1 ) PAROUT("- Bilinear final") ;
 
