@@ -1,0 +1,258 @@
+#!/bin/tcsh -fe
+
+set stat = 0
+if ("$1" == "" || "$1" == '-h' || "$1" == '-help') then
+   goto HELP
+endif
+
+goto PARSE
+Ret_PARSE:
+
+if ($dim[1] < 1 || $dim[2] < 1) then
+   echo "Bad dim [ $dim[1], $dim[2] ]"
+   goto BEND
+endif
+
+set Nelecs = `ccalc -i "$dim[1] * $dim[2]"`
+if ("$coords" == '') then
+   set Ncoords = ($Nelecs 1 1 3)
+   set tcopt = ''
+else
+   1dcat "$coords" > /tmp/xyz.1D
+   set Ncoords = `3dnvals -all /tmp/xyz.1D`
+   if ($Ncoords[4] != 3) then
+      echo "Must have three columns in $coords. Have $Ncoords[4]"
+      goto BEND
+   endif
+   if ($Nelecs != $Ncoords[1]) then
+      echo "Have $Nelecs electrodes, $Ncoords[1] coordinates!"
+      goto BEND
+   endif
+   set tcopt = '-these_coords /tmp/xyz.1D'
+endif
+if ($dim[2] == 1) then
+   goto ONED
+else
+   goto TWOD
+endif
+
+ONED:
+   set Im = `ccalc -i $Nelecs -1`
+   count -column -digits 1 0 $Im > /tmp/ielec.1D
+   1deval -a /tmp/ielec.1D -expr 'gran(0,0.1)' > /tmp/yelec.1D
+   1dcat /tmp/ielec.1D /tmp/yelec.1D /tmp/ielec.1D > /tmp/xyielec.1D
+   goto MERGE_COORDS
+
+TWOD:
+   set Im = `ccalc -i $Nelecs -1`
+   count -column -digits 1 0 $Im > /tmp/ielec.1D
+   set Im = ($dim)
+   set Im[1] = `ccalc -i $dim[1]-1`
+   set Im[2] = `ccalc -i $dim[1]-1`
+   if (-f /tmp/xelec.1D) rm /tmp/xelec.1D
+   if (-f /tmp/yelec.1D) rm /tmp/yelec.1D
+   set i=0
+   while ($i < $dim[2])
+      count -column -digits 1 0 $Im[1] >> /tmp/xelec.1D
+      count -column -digits 1 $i $i  R$dim[1]  >> /tmp/yelec.1D
+      @ i ++
+   end
+   1dcat /tmp/xelec.1D /tmp/yelec.1D /tmp/ielec.1D > /tmp/xyielec.1D
+   
+   goto MERGE_COORDS
+   
+MERGE_COORDS:
+   ConvexHull -input_1D /tmp/xyielec.1D -q_opt triangulate_xy \
+              $tcopt  -o_gii $prefix
+
+goto END
+
+PARSE:
+	
+   #continue parsing for new options
+   set prefix = 'salsa'
+   set coords = ''
+   set dim = ( 1 1 )
+   set cleanup = 1;		
+   set cnt = 1
+   set Narg = $#argv
+
+   if ("$1" == '' || "$1" == '-h' || "$1" == '-help' || "$2" == '') then
+	   goto USAGE
+   endif
+
+   while ($cnt <= $Narg)
+		set donext = 1;
+      
+      if ($donext && "$argv[$cnt]" == "-echo") then
+         set echo		
+         set donext = 0		
+      endif
+      
+      if ($donext && "$argv[$cnt]" == "-h"  || "$argv[$cnt]" == '-help' ) then
+         goto USAGE		
+      endif
+      
+      if ($donext && "$argv[$cnt]" == "-prefix") then
+         set pLoc = $cnt		
+		   if ($pLoc == $Narg) then
+				echo "Need a string after -prefix"
+            goto END
+			else
+            @ cnt ++
+            #set prefix = `@GetAfniPrefix "$argv[$cnt]"`
+            set prefix = `@NoExt $argv[$cnt] 1D`
+            set donext = 0	
+         endif	
+      endif
+      
+      if ($donext && "$argv[$cnt]" == "-coords") then
+         set pLoc = $cnt		
+		   if ($pLoc == $Narg) then
+				echo "Need a 1D file after -coords"
+            goto END
+			else
+            @ cnt ++
+            set coords = "$argv[$cnt]"
+            set donext = 0	
+         endif	
+      endif
+      
+      if ($donext && "$argv[$cnt]" == "-array") then
+         set pLoc = $cnt		
+		   if ($pLoc == $Narg) then
+				echo "Need an integer after -array"
+            goto END
+			else
+            @ cnt ++
+            set dim[1] = `printf %d $argv[$cnt]`
+            set donext = 0	
+         endif	
+      endif   
+         
+      if ($donext && "$argv[$cnt]" == "-grid") then
+         set pLoc = `ccalc $cnt + 1`		
+		   if ($pLoc == $Narg) then
+				echo "Need two integers after -grid"
+            goto END
+			else
+            @ cnt ++
+            set dim[1] = `printf %d $argv[$cnt]`
+            @ cnt ++
+            set dim[2] = `printf %d $argv[$cnt]`
+            set donext = 0	
+         endif	
+      endif   
+      
+      
+      if ($donext && "$argv[$cnt]" == "-keep_tmp") then
+         set cleanup = 0;		
+         set donext = 0		
+      endif
+     
+      #ADD NO NEW OPTIONS BELOW THIS LINE
+      
+      if ($donext == 1) then
+         echo "Error: Option or parameter '$argv[$cnt]' not understood"
+         goto END
+      endif
+      
+		@ cnt ++
+	end
+      
+	goto Ret_PARSE
+
+
+HELP:
+echo ""
+echo "Usage: "
+echo "`basename $0` <[-array Nx] | [-grid Nx Ny]> "
+echo "              [-prefix PREFIX] [-coords XYZ.1D] "
+echo "              [-echo]"
+echo ""
+echo "Creates a mesh representation of an electrode grid for use with SUMA"
+echo ""
+echo "Mandatory parameters:"
+echo "   One of the two options -array or -grid"    
+echo ""      
+echo "   -array Nx: Make an Nx array of electrodes."
+echo ""          
+echo "   -grid Nx Ny: Make an Nx by Ny grid of electrodes."
+echo "                A node at (i,j) has a node ID = i+Nx*j with "
+echo "                0<=i<Nx and 0<=j<=Ny"
+echo ""
+echo "Optional parameters:"
+echo "   -coords XYZ.1D: Specify the coordinates of the nodes on the grid,"
+echo "                   or the array. XYZ.1D should have three columns,"
+echo "                   with each row specifying the coordinates of one node."
+echo "                   You can use sub-brick selectors to select from more"
+echo "                   than three columns."
+echo ""
+echo "                   The fist row is for node 0, second for node 1, etc."
+echo "                   The ordering is trivial for an array. For a grid you"
+echo "                   need to be a bit more careful. You march along the x "
+echo "                   direction first, then move up the y."
+echo "                   A flat grid (Z=0) for a 2x3 electrodes system would "
+echo "                   have coordinates layed out as such:"
+echo "                #  X Y Z   (ID shown here for clarity)"
+echo "                   0 0 0            0"
+echo "                   1 0 0            1"
+echo "                   0 1 0            2"
+echo "                   1 1 0            3"
+echo "                   0 2 0            4"
+echo "                   1 2 0            5"
+echo ""
+echo "                   Usually, you would have coordinates in the subject's"
+echo "                   anatomical space."
+echo ""
+echo "   [-prefix PREFIX]: Use PREFIX for the output surface. "
+#echo "   [-keep_tmp]: Keep temporary files for debugging. Note that you should"
+#echo "                delete temporary files before rerunning the script."
+echo "   [-echo]    : set echo "         
+echo ""
+echo "Examples:"
+echo "   Make a flat 4 electrode array:"
+echo "   Node X coordinates are regularly spaced from 0 to 3."
+echo "   Node Y coordinates are small and random, to allow array "
+echo "   representation as a surface"
+echo ""
+echo "      @ElectroGrid -prefix flat4 -array 4"
+echo "      suma -i flat4.gii"
+echo ""
+echo "   Make a flat 4 electrode array and assign anatomical coordinates"
+echo "   in first three columns of file:   HPelectrodes_AF.1D"
+echo ""
+echo "      @ElectroGrid -prefix HP_array -array 4 \"
+echo "                   -coords  HPelectrodes_AF.1D'[0,1,2]'"
+echo "      suma -i HP_array.gii"
+echo ""    
+echo "   Make a 2x3 flat grid:"
+echo "   Node coordinates are on a regular grid."
+echo ""
+echo "      @ElectroGrid -prefix flat23 \"
+echo "                   -grid 2 3  "
+echo "      suma -i flat23.gii"
+echo ""
+echo "   Make an 8x8 grid, and assign to its nodes the coordinates listed"
+echo "   in the first three columns of HPelectrodes_Grid.1D"
+echo ""
+echo "      @ElectroGrid -prefix HP_grid \"
+echo "                   -coords HPelectrodes_Grid.1D'[0,1,2]' \"
+echo "                   -grid 8 8  "
+echo "      suma -i HP_grid.gii"
+echo ""
+echo "Ziad Saad (saadz@mail.nih.gov)"
+echo "SSCC/NIMH/ National Institutes of Health, Bethesda Maryland"
+echo ""
+   set cleanup = 0
+	goto END
+
+BEND:
+   set stat = 1
+   goto END
+   
+END:
+if ($cleanup) then
+   
+endif
+exit $stat
