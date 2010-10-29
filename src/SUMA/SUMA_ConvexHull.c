@@ -21,14 +21,58 @@ SUMA_SurfaceObject *SUMA_ConvexHullSurface(
 {
    static char FuncName[]={"SUMA_ConvexHullSurface"};
    SUMA_SurfaceObject *SO=NULL;
-   float *xyz=NULL, *xyzp=NULL;
-   int npt, *ijk=NULL, nf, cnt, i, j, k, nxx, nyy, nzz;
+   float *xyz=NULL, *xyzp=NULL, *txyz=NULL;
+   int npt, *ijk=NULL, nf=0, cnt, i, j, k, nxx, nyy, nzz,N_txyz=-1;
    FILE *fid=NULL;
    THD_fvec3 fv, iv;
-
+   SUMA_Boolean LocalHead = NOPE;
+   
    SUMA_ENTRY;
    
    npt = 0;
+   N_txyz=-1;
+   if (Opt->UseThisBrain) {
+      MRI_IMAGE *im = NULL;
+      float *far=NULL;
+      int nx2, i3;
+
+      /* load the 1D file */
+      im = mri_read_1D (Opt->UseThisBrain);
+      if (!im) {
+         SUMA_S_Err("Failed to read file");
+         SUMA_RETURN(NULL);
+      }   
+
+      far = MRI_FLOAT_PTR(im);
+      if (im->nx == 0) {
+         SUMA_S_Errv("Empty file %s.\n", Opt->UseThisBrain);
+         SUMA_RETURN(NULL);
+      }
+      if (im->ny != 3) {
+         SUMA_S_Errv("Found %d columns in %s. Expecting 3\n", 
+                     im->ny, Opt->UseThisBrain);
+         SUMA_RETURN(NULL);
+      }
+
+      /* copy the columns */
+      N_txyz = im->nx;
+      txyz = (float *)SUMA_malloc(im->nx*im->ny*sizeof(float));
+      if (!txyz) {
+         SUMA_S_Crit("Failed to allocate.");
+         SUMA_RETURN(NULL);
+      }
+      nx2 = 2*im->nx;
+      for (i=0; i<N_txyz; ++i) {
+         i3 = 3*i;
+         txyz[i3  ] = far[i];
+         txyz[i3+1] = far[i+im->nx];
+         txyz[i3+2] = far[i+nx2];
+      }
+
+      /* done, clean up and out you go */
+      if (im) mri_free(im); im = NULL;       
+   }
+   
    if (Opt->in_vol) {
       cnt = 0; npt = 0;
       nxx = (DSET_NX(Opt->in_vol)); 
@@ -70,49 +114,97 @@ SUMA_SurfaceObject *SUMA_ConvexHullSurface(
       }   
    } else {
       SUMA_S_Err("No input");
-      SUMA_RETURN(NULL);
+      goto CLEANUP; 
    }
    
    if (Opt->corder) {
+      if (Opt->geom==1) {
+         SUMA_S_Warn("PCA projection makes no sense for usual convex hull");
+      }
       if (!(xyzp = SUMA_Project_Coords_PCA (xyz, npt, 
                                                  npt/2, 2, 1))) {
          SUMA_S_Err("Failed to project");
-         exit(1);
+         goto CLEANUP;   
       }
    } else {
       xyzp = xyz;
    }
 
+   if (N_txyz >= 0 && N_txyz != npt) {
+      SUMA_S_Errv("Mismatch between number of coordinates for convex hull\n"
+                  "and number of coordinates to adopt in the end.\n"
+                  " %d, versus %d in -these_coords\n",
+                  npt, N_txyz);
+      goto CLEANUP;            
+   }  
    
-   if (Opt->geom == 1) {
+   if (Opt->geom == 1) { /* convex hull */
       if (! (nf = SUMA_qhull_wrap(npt, xyzp, &ijk, 1, Opt->s)) ) {
          fprintf(SUMA_STDERR,"%s:\nFailed in SUMA_qhull_wrap\n", FuncName);
-         SUMA_RETURN(SO);
+         goto CLEANUP; 
       }
-   } else if (Opt->geom == 2) {
+      
+      /* Other than unif==0 make no sense here, but leave it to the user */
+      switch (Opt->unif) {
+         case 0:  /* coordinates as passed to qhull, 
+                     could be projected ones*/
+            SO = SUMA_Patch2Surf(xyzp, npt, ijk, nf, 3);
+            break;
+         case 1:  /* Original corrdinates passed to qhull
+                     (pre-projections, if any) */
+            SO = SUMA_Patch2Surf(xyz, npt, ijk, nf, 3);
+            break;
+         case 2: /* special coordinates passed by user, 
+                    never passed in any form to qhull */
+            SUMA_S_Warn("Makes no sense to mess with coords for convex hull...");
+            SO = SUMA_Patch2Surf(txyz, npt, ijk, nf, 3);
+            break;
+         default:
+            SUMA_S_Err("pit of despair");
+            goto CLEANUP; 
+      }
+            
+      if (Opt->debug) fprintf(SUMA_STDERR,"%s:\n%d triangles.\n", FuncName, nf);
+   } else if (Opt->geom == 2) { /* triangulation */
       if (! (nf = SUMA_qdelaunay_wrap(npt, xyzp, &ijk, 1, Opt->s)) ) {
          fprintf(SUMA_STDERR,"%s:\nFailed in SUMA_qdelaunay_wrap\n", FuncName);
-         SUMA_RETURN(SO);
+         goto CLEANUP;    
+      }
+      switch (Opt->unif) {
+         case 0:  /* coordinates as passed to qdelaunay, 
+                     could be projected ones*/
+            if (xyz == xyzp) xyz=NULL; /* xyzp will be set to 
+                                         null in next call, 
+                                         so xyz is treated 
+                                         the same here */
+            SO = SUMA_NewSO(&xyzp, npt, &ijk, nf, NULL);
+            SUMA_LHv("xyzp %p, ijk %p\n", txyz, ijk);
+           break;
+         case 1:  /* Original corrdinates passed to qdelaunay
+                     (pre-projections, if any) */
+            SO = SUMA_NewSO(&xyz, npt, &ijk, nf, NULL);
+            SUMA_LHv("xyz %p, ijk %p\n", txyz, ijk);
+            break;
+         case 2:  /* special coordinates passed by user, 
+                     never passed in any form to qdelaunay */
+            SO = SUMA_NewSO(&txyz, npt, &ijk, nf, NULL);
+            SUMA_LHv("txyz %p, ijk %p\n", txyz, ijk);
+            break;
+         default:
+            SUMA_S_Err("pit of despair, again");
+            goto CLEANUP; 
       }
    } else {
       SUMA_S_Errv("Opt->geom = %d not valid\n", Opt->geom);
-      SUMA_RETURN(NULL);
+      goto CLEANUP;      
    }  
    
-   if (Opt->debug) fprintf(SUMA_STDERR,"%s:\n%d triangles.\n", FuncName, nf);
-   
-   
-   
-   if (Opt->unif) {
-      SO = SUMA_Patch2Surf(xyz, npt, ijk, nf, 3);
-   } else {
-      SO = SUMA_Patch2Surf(xyzp, npt, ijk, nf, 3);
-   }
-   
-   free(ijk); ijk=NULL;
-   if (xyzp != xyz) SUMA_free(xyzp); xyzp = NULL;
-   SUMA_free(xyz); xyz = NULL;
-      
+   CLEANUP:
+   if (ijk) SUMA_free(ijk); ijk=NULL;
+   if(txyz) SUMA_free(txyz); txyz=NULL;
+   if (xyzp != xyz && xyzp != NULL) SUMA_free(xyzp); xyzp = NULL;
+   if (xyz) SUMA_free(xyz); xyz = NULL;
+
    SUMA_RETURN(SO);
 }
 
@@ -175,6 +267,7 @@ void usage_SUMA_ConvexHull (SUMA_GENERIC_ARGV_PARSE *ps)
 "               Z = constant.\n"
 "     -orig_coord: Use original coordinates when writing surface, not\n"
 "                  transformed ones.\n"
+"     -these_coords COORDS.1D: Use coordinates in COORDS.1D when writing.\n" 
 "\n" 
 "  Optional Parameters:\n"
 "     Usage 1 only:\n"
@@ -272,7 +365,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_ConvexHull_ParseInput (char *argv[], int 
    Opt->geom = 1;
    Opt->corder = 0;
    Opt->unif = 0;
-   
+   Opt->UseThisBrain = NULL;
 	brk = NOPE;
 	while (kar < argc) { /* loop accross command ine options */
 		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
@@ -310,6 +403,17 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_ConvexHull_ParseInput (char *argv[], int 
 				exit (1);
 			}
 			Opt->in_1D = argv[kar];
+         brk = YUP;
+		}
+
+      if (!brk && (strcmp(argv[kar], "-these_coords") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need argument after -these_coords \n");
+				exit (1);
+			}
+			Opt->UseThisBrain = argv[kar];
+         Opt->unif = 2;
          brk = YUP;
 		}
       
