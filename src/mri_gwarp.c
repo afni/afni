@@ -1,5 +1,39 @@
 #include "mrilib.h"
 
+/*----------------------------------------------------------------------------*/
+#undef  TRIPROD
+#define TRIPROD(ax,ay,az,bx,by,bz,cx,cy,cz) ( (ax)*((by)*(cz)-(bz)*(cy)) \
+                                             +(bx)*((cy)*(az)-(cz)*(ay)) \
+                                             +(cx)*((ay)*(bz)-(az)*(by))  )
+
+#undef  DA
+#define DA(p,q) (p.a-q.a)
+#undef  DB
+#define DB(p,q) (p.b-q.b)
+#undef  DC
+#define DC(p,q) (p.c-q.c)
+
+static float hexahedron_volume( float_triple x0 , float_triple x1 , float_triple x2 ,
+                                float_triple x3 , float_triple x4 , float_triple x5 ,
+                                float_triple x6 , float_triple x7                    )
+{
+   float xa,ya,za , xb,yb,zb , xc,yc,zc , vol ;
+
+   xa = DA(x7,x1)+DA(x6,x0); ya = DB(x7,x1)+DB(x6,x0); za = DC(x7,x1)+DC(x6,x0);
+   xb = DA(x7,x2)          ; yb = DB(x7,x2)          ; zb = DC(x7,x2) ;
+   xc = DA(x3,x0)          ; yc = DB(x3,x0)          ; zc = DC(x3,x0) ;
+   vol = TRIPROD(xa,ya,za,xb,yb,zb,xc,yc,zc) ;
+   xa = DA(x6,x0)          ; ya = DB(x6,x0)          ; za = DC(x6,x0) ;
+   xb = DA(x7,x2)+DA(x5,x0); yb = DB(x7,x2)+DB(x5,x0); zb = DC(x7,x2)+DC(x5,x0);
+   xc = DA(x7,x4)          ; yc = DB(x7,x4)          ; zc = DC(x7,x4) ;
+   vol += TRIPROD(xa,ya,za,xb,yb,zb,xc,yc,zc) ;
+   xa = DA(x7,x1)          ; ya = DB(x7,x1)          ; za = DC(x7,x1) ;
+   xb = DA(x5,x0)          ; yb = DB(x5,x0)          ; zb = DC(x5,x0) ;
+   xc = DA(x7,x4)+DA(x3,x0); yc = DB(x7,x4)+DB(x3,x0); zc = DC(x7,x4)+DC(x3,x0);
+   vol += TRIPROD(xa,ya,za,xb,yb,zb,xc,yc,zc) ;
+   return vol ;
+}
+
 #undef  MINBLUR
 #define MINBLUR 1.234567f
 
@@ -124,6 +158,8 @@ MRI_IMARR * GW_deltim( MRI_IMAGE *jim  , MRI_IMARR *iimar ,
    izar = MRI_FLOAT_PTR(izim) ;
 
    jar  = MRI_FLOAT_PTR(jim) ;
+
+   /* compute scale factor to convert jar values to iar values */
 
    sij = sjj = 0.0f ;
    for( ii=0 ; ii < nxyz ; ii++ ){
@@ -288,8 +324,8 @@ void GW_setup( MRI_IMAGE *inim , MRI_IMAGE *bsim , float iblur , float jblur )
    MRI_IMAGE *wim ; float *war ;
    int nx,ny,nz,nxy,nxyz , ii,jj,kk,qq ;
 
-   nx = inim->nx ; 
-   ny = inim->ny ; 
+   nx = inim->nx ;
+   ny = inim->ny ;
    nz = inim->nz ; nxy = nx*ny ; nxyz = nx*ny*nz ;
 
    if( iimar != NULL ) DESTROY_IMARR(iimar) ;
@@ -401,7 +437,7 @@ INFO_message("gwarp is NOT a production program: it is merely for testing!") ;
 
    GW_setup(iim,bim,sblur,bblur) ; mri_free(bim) ;
 
-   for( ii=0 ; ii < 199 ; ii++ ){
+   for( ii=0 ; ii < 499 ; ii++ ){
      ds = GW_iterate() ; if( ds == 0.0f ) break ;
    }
 
