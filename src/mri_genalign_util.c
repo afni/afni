@@ -845,7 +845,7 @@ ENTRY("GA_interp_quintic") ;
 
 #define GA_BLOK_ADDTO_intar(nar,nal,ar,val)                                 \
  do{ if( (nar) == (nal) ){                                                  \
-       (nal) = 1.2*(nal)+16; (ar) = (int *)realloc((ar),sizeof(int)*(nal)); \
+       (nal) = 1.5*(nal)+16; (ar) = (int *)realloc((ar),sizeof(int)*(nal)); \
      }                                                                      \
      (ar)[(nar)++] = (val);                                                 \
  } while(0)
