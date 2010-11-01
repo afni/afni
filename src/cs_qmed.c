@@ -356,6 +356,17 @@ int compare_char (char *a, char *b )
 
 }/* compare_char*/
 
+int compare_byte (byte *a, byte *b )
+{/* compare_byte*/
+    if (*a < *b)
+      return (-1);
+   else if (*a == *b)
+      return (0);
+   else
+      return (1);
+
+}/* compare_byte*/
+
 /*----------------------------------------------------------------------*/
 /*!
    \brief find the percentiles of values in vec
@@ -666,7 +677,7 @@ void *Percentate (void *vec, byte *mm, int nxyz,
    if (option != 2) { /* partial sort of vvec */
       switch (type) {
          case MRI_byte:
-            qsort(vvec, mmvox, sizeof(byte), (int(*) (const void *, const void *))compare_char);
+            qsort(vvec, mmvox, sizeof(byte), (int(*) (const void *, const void *))compare_byte);
             break;
          case MRI_short:
 #if 0
