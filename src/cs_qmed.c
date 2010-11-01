@@ -700,7 +700,7 @@ void *Percentate (void *vec, byte *mm, int nxyz,
             qsort(vvec, mmvox, sizeof(double), (int(*) (const void *, const void *))compare_double);
             break;
          default:
-            ERROR_message("Bad type! Should bot be here honhon.");
+            ERROR_message("Bad type (%d). No support in this function", type);
             RETURN(NULL);
       }
    }
