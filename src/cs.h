@@ -40,6 +40,8 @@ extern void  meansigma_float( int,float *,float *,float * ) ; /* 07 Dec 2006 */
 
 extern void qmedmadbmv_float( int, float *, float *, float *, float * ) ;
 
+extern float centromean_float( int n , float *ar ) ;          /* 01 Nov 2010 */
+
 
 /***** Eigensolutions *****/
 

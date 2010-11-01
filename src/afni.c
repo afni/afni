@@ -2055,6 +2055,7 @@ STATUS("call 14") ;
         }
 
         if( !AFNI_yesenv("AFNI_ENABLE_MARKERS") )  /* 28 Apr 2010 */
+#if 0
           REPORT_PROGRESS("\n"
                           "+++++++++++++++++++++++++++++++++++++++++++++++++++++\n"
                           "++ NOTICE: 'Define Markers' panel is turned off.   ++\n"
@@ -2065,6 +2066,9 @@ STATUS("call 14") ;
                           "++   _OR_  Right-click with the mouse cursor over  ++\n"
                           "++         the 'DataDir' label, above 'Underlay'.  ++\n"
                           "+++++++++++++++++++++++++++++++++++++++++++++++++++++\n") ;
+#else
+          REPORT_PROGRESS("++ N.B.: 'Define Markers' panel is now hidden.\n") ;
+#endif
 
       }
       break ;  /* end of 14th entry case */

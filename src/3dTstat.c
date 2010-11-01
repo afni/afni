@@ -54,7 +54,9 @@
 #define METH_ARGMAX1      29  /* ZSS Blizzard 2010 */
 #define METH_ARGABSMAX1   30  /* ZSS Blizzard 2010 */
 
-#define MAX_NUM_OF_METHS  31
+#define METH_CENTROMEAN   31  /* RWC 01 Nov 2010 */
+
+#define MAX_NUM_OF_METHS  32
 
 static int meth[MAX_NUM_OF_METHS]  = {METH_MEAN};
 static int nmeths                  = 0;
@@ -70,7 +72,7 @@ static char *meth_names[] = {
    "ArgAbsMax"     , "Sum"          , "Duration"      , "Centroid"    ,
    "CentDuration"  , "Absolute Sum" , "Non-zero Mean" , "Onset"       ,
    "Offset"        , "Accumulate"   , "SS"            , "BiwtMidV"    ,
-   "ArgMin+1"      , "ArgMax+1"     , "ArgAbsMax+1"
+   "ArgMin+1"      , "ArgMax+1"     , "ArgAbsMax+1"   , "CentroMean"
 };
 
 static void STATS_tsfunc( double tzero , double tdelta ,
@@ -164,6 +166,8 @@ int main( int argc , char *argv[] )
  "               val[i] = sum old_val[t] over t = 0..i\n"
  "               (output length = input length)\n"
  "\n"
+ " -centromean = compute mean of middle 50%% of voxel values [undetrended]\n"
+ "\n"
  " ** If no statistic option is given, then '-mean' is assumed **\n"
  "\n"
  "Other Options:\n"
@@ -249,6 +253,12 @@ int main( int argc , char *argv[] )
    while( nopt < argc && argv[nopt][0] == '-' ){
 
       /*-- methods --*/
+
+      if( strcasecmp(argv[nopt],"-centromean") == 0 ){ /* 01 Nov 2010 */
+         meth[nmeths++] = METH_CENTROMEAN ;
+         nbriks++ ;
+         nopt++ ; continue ;
+      }
 
       if( strcasecmp(argv[nopt],"-bmv") == 0 ){
          meth[nmeths++] = METH_BMV ;
@@ -442,7 +452,7 @@ int main( int argc , char *argv[] )
            ERROR_exit("-mrange inputs are illegal!\n") ;
          nopt++ ; continue ;
       }
-      
+
       if( strcmp(argv[nopt],"-cmask") == 0 ){  /* 16 Mar 2000 */
          if( nopt+1 >= argc )
             ERROR_exit("-cmask option requires a following argument!\n");
@@ -450,7 +460,7 @@ int main( int argc , char *argv[] )
          if( cmask == NULL ) ERROR_exit("Can't compute -cmask!\n");
          nopt++ ; continue ;
       }
-      
+
       if( strcasecmp(argv[nopt],"-autocorr") == 0 ){
          meth[nmeths++] = METH_AUTOCORR ;
          if( ++nopt >= argc ) ERROR_exit("-autocorr needs an argument!\n");
@@ -562,7 +572,7 @@ int main( int argc , char *argv[] )
    /* ------------- Mask business -----------------*/
    if( mask_dset == NULL ){
       mmm = NULL ;
-      if( verb ) 
+      if( verb )
          INFO_message("%d voxels in the entire dataset (no mask)\n",
                      DSET_NVOX(old_dset)) ;
    } else {
@@ -579,7 +589,7 @@ int main( int argc , char *argv[] )
       if( ncmask != DSET_NVOX(old_dset) )
         ERROR_exit("Input and cmask datasets are not same dimensions!\n");
       if( mmm != NULL ){
-         for( ii=0 ; ii < DSET_NVOX(old_dset) ; ii++ ) 
+         for( ii=0 ; ii < DSET_NVOX(old_dset) ; ii++ )
             mmm[ii] = (mmm[ii] && cmask[ii]) ;
          free(cmask) ;
          mcount = THD_countmask( DSET_NVOX(old_dset) , mmm ) ;
@@ -722,7 +732,7 @@ static void STATS_tsfunc( double tzero, double tdelta ,
         val[out_index] = sum;
       }
       break;
-      
+
       case METH_SUM_SQUARES:{           /* 18 Dec 2008 */
         register int ii ;
         register float sum ;
@@ -731,7 +741,7 @@ static void STATS_tsfunc( double tzero, double tdelta ,
         val[out_index] = sum;
       }
       break;
-      
+
       case METH_SLOPE: val[out_index] = ts_slope ; break ;
 
       case METH_CVAR_NOD:
@@ -768,6 +778,15 @@ static void STATS_tsfunc( double tzero, double tdelta ,
         ts_copy = (float*)calloc(npts, sizeof(float));
         memcpy( ts_copy, ts, npts * sizeof(float));
         val[out_index] = qmed_float( npts , ts_copy ) ;
+        free(ts_copy);
+      }
+      break ;
+
+      case METH_CENTROMEAN:{  /* 01 Nov 2010 */
+        float* ts_copy;
+        ts_copy = (float*)calloc(npts, sizeof(float));
+        memcpy( ts_copy, ts, npts * sizeof(float));
+        val[out_index] = centromean_float( npts , ts_copy ) ;
         free(ts_copy);
       }
       break ;
@@ -841,7 +860,7 @@ static void STATS_tsfunc( double tzero, double tdelta ,
       case METH_CENTROID:{
          register int ii, outdex=0 ;
          register float vm=ts[0] ;
-         if ( (meth[meth_index] == METH_ABSMAX) || 
+         if ( (meth[meth_index] == METH_ABSMAX) ||
                (meth[meth_index] == METH_ARGABSMAX) ||
                (meth[meth_index] == METH_ARGABSMAX1)  ) {
            vm = fabs(vm) ;
@@ -859,7 +878,7 @@ static void STATS_tsfunc( double tzero, double tdelta ,
              }
            }
          }
-	 switch( meth[meth_index] ){
+       switch( meth[meth_index] ){
             default:
             case METH_ABSMAX:
             case METH_MAX:
@@ -883,7 +902,7 @@ static void STATS_tsfunc( double tzero, double tdelta ,
             case METH_ARGABSMAX:
               val[out_index] = outdex ;
             break;
-            
+
             case METH_ARGMAX1:
             case METH_ARGABSMAX1:
               val[out_index] = outdex +1;
@@ -1119,7 +1138,7 @@ static void autocorr( int npts, float in_ts[], int numVals, float outcoeff[] )
 /* calculate the duration of a peak in number of subbricks */
 /* duration is the number of points at or above the threshold*/
 static int
-Calc_duration(float ts[], int npts, float vmax, int max_index, 
+Calc_duration(float ts[], int npts, float vmax, int max_index,
   int *onset, int *offset)
 {
    float minlimit;
@@ -1167,4 +1186,3 @@ Calc_centroid(float ts[], int npts)
 
    RETURN(tvsum / sum);
 }
-
