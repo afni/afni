@@ -44,6 +44,18 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 1 , NOV , 2010 , RWC , "afni" , MICRO , TYPE_GENERAL ,
+   "Remove the large notice about 'Define Markers' being gone" ,
+   NULL } ,
+
+ { 1 , NOV , 2010 , RWC , "3dTstat" , MICRO , TYPE_NEW_OPT ,
+   "Add -centromean statistic to the mix" ,
+   NULL } ,
+
+ { 1 , NOV , 2010 , RWC , "3dClipLevel" , MICRO , TYPE_NEW_OPT ,
+   "Add -doall option" ,
+   NULL } ,
+
  { 27 , OCT , 2010 , RWC , "cs_symeig" , MICRO , TYPE_BUG_FIX ,
    "Patch failure on Mac gcc in svd_double" ,
    "Mac OS X gcc compilation of svd function can produce bad results -- NaN\n"
