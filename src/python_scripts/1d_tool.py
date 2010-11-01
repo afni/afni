@@ -420,13 +420,13 @@ g_history = """
    0.16 Nov 16, 2009 - allow motion censoring with varying run lengths
    0.17 Mar 25, 2010 - small help update
    0.18 Mar 25, 2010 - added -censor_first_trs for A Barbey
-   0.19 Jul 30, 2010 - added "Looks like" optins
+   0.19 Jul 30, 2010 - added "Looks like" options
         - added -looks_like_1D, -looks_like_local_times,
                 -looks_like_global_times, -looks_like_test_all
    0.20 Aug 02, 2010
         - small change to looks_like text formatting
         - removed useless TR from looks_like_1D function
-   0.21 Oct 29, 2010
+   0.21 Oct 29, 2010 - added -show_indices_baseline, _motion and _interest
 """
 
 g_version = "1d_tool.py version 0.21, October 29, 2010"
