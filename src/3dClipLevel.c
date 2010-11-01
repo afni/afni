@@ -63,8 +63,16 @@ int main( int argc , char * argv[] )
        "\n"
        "* If the input dataset is short- or byte-valued, the output will\n"
        "    be an integer; otherwise, the output is a float value.\n"
-       "------\n"
-       "Author: Emperor Zhark -- Sadistic Galactic Domination since 1994!\n\n"
+       "\n"
+       "* Example -- Scaling a sequence of sub-bricks from a collection of\n"
+       "             anatomicals from different sites to have about the\n"
+       "             same numerical range (from 0 to 255):\n"
+       "       3dTcat -prefix input anat_*+tlrc.HEAD\n"
+       "       3dClipLevel -doall input+tlrc > clip.1D\n"
+       "       3dcalc -datum byte -nscale -a input+tlrc -b clip.1D \\\n"
+       "              -expr '255*max(0,min(1,a/(3.2*b)))' -verb -prefix scaled\n"
+       "----------------------------------------------------------------------\n"
+       "* Author: Emperor Zhark -- Sadistic Galactic Domination since 1994!\n\n"
      ) ;
      PRINT_COMPILE_DATE ; exit(0) ;
    }
