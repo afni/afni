@@ -290,7 +290,7 @@ int main( int argc , char *argv[] )
 
       /*-- check if new header already exists --*/
 
-      if( THD_is_file( DSET_HEADNAME(dset[ii]) ) )
+      if( !THD_ok_overwrite() && THD_is_file( DSET_HEADNAME(dset[ii]) ) )
          ERROR_exit("Output dataset %s already exists! - EXIT\n",
                  DSET_HEADNAME(dset[ii]) ) ;
 
@@ -359,7 +359,7 @@ int main( int argc , char *argv[] )
          if( brick_ccode >= 0 )
             strcat(new_brikname,COMPRESS_suffix[brick_ccode]) ;
 
-         if( THD_is_file(new_brikname) )
+         if( !THD_ok_overwrite() && THD_is_file(new_brikname) )
             ERROR_exit("New brick %s already exists! - EXIT\n",
                     new_brikname) ;
       }

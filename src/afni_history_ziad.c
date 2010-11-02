@@ -65,6 +65,26 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 29, OCT , 2010 , ZSS , "@ElectroGrid" , MINOR , TYPE_NEW_PROG,
+   "A script for facilitating ECOG grid creation",
+   NULL
+ } ,
+
+ { 28, OCT , 2010 , ZSS , "@RegroupLabels" , MINOR , TYPE_NEW_PROG,
+   "A script for regrouping label datasets",
+   NULL
+ } ,
+
+ { 28, OCT , 2010 , ZSS , "3dcopy" , MICRO , TYPE_NEW_OPT,
+   "Support for -overwrite",
+   NULL
+ } ,
+
+ { 22, OCT , 2010 , ZSS , "suma" , MINOR , TYPE_BUG_FIX,
+   "Fixed rendering of spheres, which were affected by ambient light.",
+   "Thanks to MSB for the complaint."
+ } ,
+
  { 22, OCT , 2010 , ZSS , "DriveSuma" , MINOR , TYPE_NEW_OPT,
    "Added -RenderMode option to control how a surface is rendered",
    "This option is the same as Surface Controller-->RenderMode menu"
