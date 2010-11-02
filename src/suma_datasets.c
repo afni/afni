@@ -3092,11 +3092,7 @@ SUMA_DSET * SUMA_PaddedCopyofDset ( SUMA_DSET *odset, int MaxNodeIndex )
                               MaxNodeIndex+1); 
    SUMA_free(new_name); new_name = NULL;
    
-   /* Here you can copy dsetwide attributes 
-   This was done to test how one can pass dsetwide 
-   attributes. For the moment, there are no such
-   attributes being passed. The test was done with 
-   TR attribute. */
+
    SUMA_COPY_DSETWIDE_ATTRIBUTES(odset, ndset);
 
    SUMA_LH("Adding indnew");
@@ -3288,11 +3284,7 @@ SUMA_DSET * SUMA_MaskedCopyofDset(  SUMA_DSET *odset,
          if (!ndset) {
             ndset = SUMA_EmptyCopyofDset( odset, rowmask, 
                                           masked_only, keep_node_index);
-            /* Here you can copy dsetwide attributes 
-            This was done to test how one can pass dsetwide 
-            attributes. For the moment, there are no such
-            attributes being passed. The test was done with 
-            TR attribute.*/
+            
             SUMA_COPY_DSETWIDE_ATTRIBUTES(odset, ndset);
          }
          /* add the column */
@@ -10588,9 +10580,10 @@ int SUMA_is_TimeSeries_dset(SUMA_DSET *dset, double *TRp)
    if (!SUMA_is_AllNumeric_dset(dset)) SUMA_RETURN(0);
    if (!dset->dnel) SUMA_RETURN(0);
    
+   
    mm = NI_get_attribute(dset->dnel, "ni_timestep");
    if ( !mm ) SUMA_RETURN(0); 
-   TR = atol(mm);
+   TR = strtod(mm, NULL);
    if (TR > 100) { /* likely a bug in dsets prior to Sep 19 09 */
       SUMA_S_Warn("ni_timestep may be incorrectly specified in msec.\n"
                   "Time units should be in sec.");
