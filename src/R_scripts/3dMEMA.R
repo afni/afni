@@ -43,7 +43,7 @@ read.MEMA.opts.interactive <- function (verb = 0) {
    outFNexist <- TRUE
    while (outFNexist) {
       lop$outFN <- 
-         prefix.AFNI.name(readline("Output file name (just prefix, no view+suffix needed, e.g., myOutput): "))
+         pprefix.AFNI.name(readline("Output file name (just prefix, no view+suffix needed, e.g., myOutput): "))
       if(file.exists(paste(lop$outFN,"+orig.HEAD", sep="")) || 
          file.exists(paste(lop$outFN,"+tlrc.HEAD", sep=""))) {
          print("File exists! Try a different name.")
@@ -891,7 +891,7 @@ read.MEMA.opts.batch <- function (args=NULL, verb = 0) {
       opname <- strsplit(names(ops)[i],'^-')[[1]];
       opname <- opname[length(opname)];
       switch(opname,
-             prefix = lop$outFN  <- prefix.AFNI.name(ops[[i]]),
+             prefix = lop$outFN  <- pprefix.AFNI.name(ops[[i]]),
              jobs   = lop$nNodes <- ops[[i]],
              groups = lop$grpName <- ops[[i]],
              conditions = lop$conLab <- ops[[i]],
@@ -2080,7 +2080,7 @@ tTop <- 100   # upper bound for t-statistic
    
    #dump xmat
    if (lop$verb) {
-      xmout <- paste(prefix.AFNI.name(lop$outFN),".RxMat", sep='')
+      xmout <- paste(pprefix.AFNI.name(lop$outFN),".RxMat", sep='')
       cat ('Writing xMat to', xmout, '\n')
       write.table(lop$xMat,xmout);
    }

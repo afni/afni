@@ -65,6 +65,11 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 1, NOV , 2010 , ZSS , "3dBrickStat" , MINOR , TYPE_BUG_FIX,
+   "3dBrickStat's precentile option did not work with byte datasets",
+   NULL
+ } ,
+
  { 29, OCT , 2010 , ZSS , "@ElectroGrid" , MINOR , TYPE_NEW_PROG,
    "A script for facilitating ECOG grid creation",
    NULL
