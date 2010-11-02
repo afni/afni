@@ -65,7 +65,7 @@ GETLABELS:
       foreach ll ($llist)
          #Get all labels from __lt.niml.lt
          set llset = `@MakeLabelTable -labeltable __lt.niml.lt \
-                              -word_label_match $ll`
+                              -word_label_match -match_label $ll`
          echo "Notice: labels $llset map to grouped label $ll"
          set subsel = ""
          set psets = ''

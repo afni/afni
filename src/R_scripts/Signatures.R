@@ -15,6 +15,43 @@ keylabel.labeltable <- function (key=NULL, ltfile=NULL) {
    return(lab);
 }
 
+labelkey.labeltable <- function (label=NULL, ltfile=NULL) {
+   kk <- vector()
+   for (ll in label) {
+      com <- sprintf(
+     '@MakeLabelTable -word_label_match -quiet_death -labeltable %s -lkeys %s',
+                  ltfile, ll)
+      lab <- system(com, ignore.stderr = TRUE, intern=TRUE)
+      if (length(lab) == 0) {
+         err.AFNI(paste("Failed to get key of label", 
+                        label," from labeltable.\n",
+                        "Command ",com,"Failed"));
+         return(NULL);
+      }
+      kk <- c(kk, as.numeric(lab))
+      
+      if (is.na(kk[length(kk)])) {
+         err.AFNI(paste("Failed to get key of label", 
+                        label," from labeltable.\n",
+                        "Command ",com,"Failed"));
+         return(NULL);
+      }
+   }
+   return(kk)
+}
+
+build.labeltable <- function(labeltable=NULL, keys=NULL) {
+   lt <- list(labels=NULL, keys=keys)
+   for (key in keys) {
+      if (is.null(lab <- keylabel.labeltable(key=key, ltfile=labeltable))) {
+         return(NULL);
+      }
+
+      lt$labels <- c(lt$labels, lab) 
+   }
+   return(lt)
+}
+
 labels.labeltable  <- function(ltfile=NULL) {
    com <- paste('@MakeLabelTable -labeltable ', ltfile,
                 '-all_labels',
@@ -53,7 +90,7 @@ dice.vollabels  <- function(basevol=NULL,
    
    note.AFNI(com)
    system(com, ignore.stderr = TRUE, intern=TRUE)
-   system(sprintf("echo '#Command: %s' >> %s", com, diceout));
+   #system(sprintf("echo '#Command: %s' >> %s", com, diceout));
    dd <- read.AFNI.matrix(diceout)
    ll <- list(command=com, coef=dd[,2])
    names(ll$coef) <- labels.labeltable(labeltable)
@@ -83,17 +120,5 @@ group.vollabels <- function(labelvol=NULL, pvol=NULL,
    
    if (is.null(pvol)) return(used.AFNI.prefix(grplabelpref))
    else return(used.AFNI.prefix(grplabelpref)*used.AFNI.prefix(grpppref))
-}
-
-build.labeltable <- function(labeltable=NULL, keys=NULL) {
-   lt <- list(labels=NULL, keys=keys)
-   for (key in keys) {
-      if (is.null(lab <- keylabel.labeltable(key=key, ltfile=labeltable))) {
-         return(NULL);
-      }
-
-      lt$labels <- c(lt$labels, lab) 
-   }
-   return(lt)
 }
 

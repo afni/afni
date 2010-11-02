@@ -28,9 +28,11 @@ first.in.path <- function(file) {
    return(gsub('//','/',ff[1], fixed=TRUE)) 
 }
 source(first.in.path('AFNIio.R'))
+source(first.in.path('Signatures.R'))
 source(first.in.path('AFNIplot.R'))
 
 
+ExecName <- '3dSignatures'
 
 greeting.SigsClassify <- function ()
    return( "#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -50,8 +52,9 @@ help.SigsClassify.opts <- function (params, alpha = TRUE, itspace='   ', adieu=F
 '
 Usage:
 ------ 
- SigsClassify is a program for plotting a 1D file'
-   
+ 3dSignatures is a program creating voxel membership priors based on
+              a collection of features termed "signatures".'
+
    ex1 <- 
 "
 Example 1 --- :
@@ -62,7 +65,7 @@ Example 1 --- :
                -ColumnGroups 'R:c(rep(1,10), rep(2,10), rep(3,10))' \\
                -GroupLabels CSF GM WM \\
                -NoZeros -NoOffsetBase \\
-               -filesuffix ZePlotIzSaved.pdf
+               -trainsuffix ZePlotIzSaved.pdf
 "   
 
    parnames <- names(params)
@@ -99,25 +102,85 @@ init.SigsClassify.lop <- function () {
    lop <- list()
    lop$tset <- list()
    lop$Tset <- list()
+   lop$odir = NULL;
+   lop$opref = 'test';
    lop$volsuffix = NULL;
-   lop$filesuffix = NULL;
+   lop$trainsuffix = 'train';
+   lop$testsuffix = 'test';
+   lop$thiskeyset= NULL;
    lop$thislabset= NULL;
-   lop$labeltable = NULL;
+   lop$labeltablefile = NULL;
+   lop$groupedlabeltablefile = NULL;
    lop$verb=0;
-   lop$noX11=FALSE;
+   lop$no_X11=FALSE;
+   lop$no_tune=FALSE;
    lop$svmscale=TRUE;
-   lop$reuseTrain=FALSE;
-   lop$loadTrain=NULL;
+   lop$reuse_train=FALSE;
+   lop$load_train=NULL;
    return(lop)
 }
 
-parse.Set.opts <- function (iset, op) {
+parse.TeSetSF.opts <- function (iset, op) {
    iset <- c(iset,
                     list( 
-                     list(sig=NULL,
-                     signame=op[1], 
+                     list(subj=op[1],
+                     anat=NULL,
+                     anatname=NULL,
+                     sig=NULL,
+                     signame=op[2], 
                      lab=NULL,
-                     labname=op[2], 
+                     labname=NULL, 
+                     labselecs=NULL)))
+   return(iset)
+}
+parse.TeSetSFL.opts <- function (iset, op) {
+   iset <- c(iset,
+                    list( 
+                     list(subj=op[1],
+                     anat=NULL,
+                     anatname=NULL,
+                     sig=NULL,
+                     signame=op[2], 
+                     lab=NULL,
+                     labname=op[3], 
+                     labselecs=NULL)))
+   return(iset)
+}
+
+parse.TeSetSAFL.opts <- function (iset, op) {
+   iset <- c(iset,
+                    list( 
+                     list(subj=op[1],
+                     anat=NULL,
+                     anatname=op[2],
+                     sig=NULL,
+                     signame=op[3], 
+                     lab=NULL,
+                     labname=op[4], 
+                     labselecs=NULL)))
+   return(iset)
+}
+
+parse.TrSetSFL.opts <- function (iset, op) {
+   iset <- c(iset,
+                    list( 
+                     list(subj=op[1],
+                     sig=NULL,
+                     signame=op[2], 
+                     lab=NULL,
+                     labname=op[3], 
+                     labselecs=NULL)))
+   return(iset)
+}
+
+parse.CSet.opts <- function (iset, op) {
+   iset <- c(iset,
+                    list( 
+                     list(subj=op[1],
+                     sig=NULL,
+                     signame=op[2], 
+                     lab=NULL,
+                     labname=NULL, 
                      labselecs=NULL)))
    return(iset)
 }
@@ -126,15 +189,49 @@ parse.Set.opts <- function (iset, op) {
 read.SigsClassify.opts.batch <- function (args=NULL, verb = 0) {
    
    params <- list (
-      '-train' = apl(n = 2, d = NA, dup = TRUE,  h = paste(
-   "-train sigsdset labeldset : labelvolume and signaturesvolume\n"
+      '-train' = apl(n = 3, d = NA, dup = TRUE,  h = paste(
+   "See -train_SFL"
                      ) ),
+      '-train_SFL' = apl(n = 3, d = NA, dup = TRUE,  h = paste(
+   "-train_SFL SUBJ FEATURES LABELS: Specify a training set's \n",
+   "                         subject ID, volume of signatures, and\n",
+   "                         volume of labels"
+                     ) ),
+      '-train_suffix' = apl(n = 1, d = NA,  h = paste(
+   "-train_suffix TRAINSUFFIX: Suffix of file containing training results\n"
+                     ) ),
+      '-no_tune' = apl(n=0, d = 0, h = paste(
+   "-no_tune : No tuning of training model\n"
+                        ) ),
       '-test' = apl(n = 2, d = NA,  dup = TRUE, h = paste(
-   "-test sigsdset labeldset: labelvolume and signaturesvolume\n"
+   "See -test_SF\n"
                      ) ),
-
-      '-class_inds' = apl(n = c(1,Inf), d = NA,  h = paste(
-   "-class_inds Ci1 Ci2 ...: \n"
+      '-test_SF' = apl(n = 2, d = NA,  dup = TRUE, h = paste(
+   "-test_S SUBJ FEATURES : Specify a test set's \n",
+   "                         subject ID, volume of signatures\n"
+                     ) ),
+      '-test_SFL' = apl(n = 3, d = NA,  dup = TRUE, h = paste(
+   "-test_SL SUBJ FEATURES LABELS: Specify a test set's \n",
+   "                         subject ID, volume of signatures, and\n",
+   "                         volume of labels"
+                     ) ),
+      '-test_SAFL' = apl(n = 4, d = NA,  dup = TRUE, h = paste(
+   "-test_ASL SUBJ ANAT FEATURES LABELS: Specify a test set's \n",
+   "                         subject ID, Anatomical, \n",
+   "                         volume of signatures, and volume of labels."
+                     ) ),
+      '-class' = apl(n = 2, d = NA,  dup = TRUE, h = paste(
+   "-test SUBJ SIGS LABELS: Specify a classification set's \n",
+   "                         subject ID, and volume of signatures"
+                     ) ),
+      '-odir' = apl(n = 1, d = NA, dup = FALSE, h = paste(
+   "-odir ODIR: Specify a directory for output of classification results"
+                     ) ),
+      '-class_labels' = apl(n = c(1,Inf), d = NA,  h = paste(
+   "-class_labels CS1 CS2 ...: \n"
+                     ) ),
+      '-class_keys' = apl(n = c(1,Inf), d = NA,  h = paste(
+   "-class_keys Ci1 Ci2 ...: \n"
                      ) ),
 
       '-parent_grouping' = apl(n = c(1,Inf), d = NA,  h = paste(
@@ -148,20 +245,20 @@ read.SigsClassify.opts.batch <- function (args=NULL, verb = 0) {
       '-labeltable' = apl(n = 1, d = NA,  h = paste(
    "-labeltable labletable: \n"
                      ) ),
-      '-volsuffix' = apl(n = 1, d = NA,  h = paste(
-   "-volsuffix PREFIX: Output suffix\n"
+      '-grouped_labeltable' = apl(n = 1, d = NA,  h = paste(
+   "-grouped_labeltable grouped_labletable: \n"
                      ) ),
-      '-filesuffix' = apl(n = 1, d = NA,  h = paste(
-   "-filesuffix PREFIX: Output suffix\n"
+      '-vol_suffix' = apl(n = 1, d = NA,  h = paste(
+   "-vol_suffix PREFIX: Output suffix\n"
                      ) ),
-      '-loadTrain' = apl(n = 1, d = NA,  h = paste(
-   "-loadTrain PREFIX: Output suffix\n"
+      '-load_train' = apl(n = 1, d = NA,  h = paste(
+   "-load_train PREFIX: Output suffix\n"
                      ) ),
-      '-noX11' = apl(n=0, d = 0, h = paste(
-   "-noX11 : No X11 display possible\n"
+      '-no_X11' = apl(n=0, d = 0, h = paste(
+   "-no_X11 : No X11 display possible\n"
                         ) ),
-      '-reuseTrain' = apl(n=0, d = 0, h = paste(
-   "-reuseTrain : Reuse training result, if it exists\n"
+      '-reuse_train' = apl(n=0, d = 0, h = paste(
+   "-reuse_train : Reuse training result, if it exists\n"
                         ) ),
       '-featscale' = apl(n=1, d = 1, h = paste(
    "-featscale : 0/[1] scaling of features\n"
@@ -182,7 +279,9 @@ read.SigsClassify.opts.batch <- function (args=NULL, verb = 0) {
                           )
    if (verb) show.AFNI.args(ops, verb=verb-1, hstr='');
    if (is.null(ops)) {
-      errex.AFNI('Error parsing arguments. See SigsClassify -help for details.');
+      errex.AFNI(paste(
+         'Error parsing arguments. See ',ExecName, 
+         'SigsClassify -help for details.', sep=''));
    }
    
    #Parse dems options
@@ -194,35 +293,98 @@ read.SigsClassify.opts.batch <- function (args=NULL, verb = 0) {
       opname <- strsplit(names(ops)[i],'^-')[[1]];
       opname <- opname[length(opname)];
       switch(opname,
-             train = lop$tset <- parse.Set.opts(lop$tset, ops[[i]]),
-             test = lop$Tset <- parse.Set.opts(lop$Tset, ops[[i]]),
-             volsuffix = lop$volsuffix  <- ops[[i]],
-             filesuffix = lop$filesuffix  <- ops[[i]],
-             loadTrain = lop$loadTrain <- ops[[i]],
-             class_inds = lop$thislabset <- read.AFNI.matrix(ops[[i]]),
+             train = lop$tset <- parse.TrSetSFL.opts(lop$tset, ops[[i]]),
+             train_SFL = lop$tset <- parse.TrSetSFL.opts(lop$tset, ops[[i]]),
+             test = lop$Tset <- parse.TeSetS.opts(lop$Tset, ops[[i]]),
+             test_SF = lop$Tset <- parse.TeSetS.opts(lop$Tset, ops[[i]]),
+             test_SFL = lop$Tset <- parse.TeSetSFL.opts(lop$Tset, ops[[i]]),
+             test_SAFL = lop$Tset <- parse.TeSetSAFL.opts(lop$Tset, ops[[i]]),
+             class = lop$Tset <- parse.CSet.opts(lop$Tset, ops[[i]]),
+             odir = lop$odir <- ops[[i]],
+             opref = lop$opref <- ops[[i]],
+             vol_suffix = lop$volsuffix  <- ops[[i]],
+             train_suffix = lop$trainsuffix  <- ops[[i]],
+             test_suffix = lop$testsuffix  <- ops[[i]],
+             load_train = lop$load_train <- ops[[i]],
+             class_labels = lop$thislabset <- ops[[i]],
+             class_keys = lop$thiskeyset <- read.AFNI.matrix(ops[[i]]),
              parent_grouping = lop$ColumnGroups <- read.AFNI.matrix(ops[[i]]),
              parent_group_labeling = lop$GroupLabels <- ops[[i]],
-             labeltable = lop$labeltable <- ops[[i]],
+             labeltable = lop$labeltablefile <- ops[[i]],
+             grouped_labeltable = lop$groupedlabeltablefile <- ops[[i]],
              verb = lop$verb <- ops[[i]],
              help = help.SigsClassify.opts(params, adieu=TRUE),
              show_allowed_options = show.AFNI.args(ops, verb=0, 
                                               hstr="SigsClassify's",adieu=TRUE),
-             noX11 = lop$noX11 <- TRUE,
-             reuseTrain = lop$reuseTrain <- TRUE,
+             no_X11 = lop$no_X11 <- TRUE,
+             no_tune = lop$no_tune <- TRUE,
+             reuse_train = lop$reuse_train <- TRUE,
              featscale = lop$svmscale <- as.logical(ops[[i]])
              )
    }
    if (lop$svmscale != FALSE && lop$svmscale != TRUE) {
-      err.AFNI("Bad -featscale value");
-      return(lop)
+      errex.AFNI("Bad -featscale value");
    }
-   if (lop$noX11 == FALSE) {
+   if (lop$no_X11 == FALSE) {
       #Make sure that is possible or turn option off. 
       if (!length(kk <- capabilities(what='x11')) || kk[1] == FALSE) {
-         lop$noX11 <- TRUE
+         lop$no_X11 <- TRUE
       }
    }
-
+   
+   if (!is.null(lop$odir) && !file_test('-d', lop$odir)) {
+      errex.AFNI(sprintf('Output directory "%s" does not exist', lop$odir));
+   }
+   
+   if (!is.null(lop$labeltablefile) && !file_test('-f', lop$labeltablefile)) {
+      errex.AFNI(sprintf('labeltable file "%s" does not exist', 
+                           lop$labeltablefile));
+   }
+   if (!is.null(lop$thislabset)) {
+      if (!is.null(lop$thiskeyset)) {
+         errex.AFNI("You have used both -class_keys and -class_labels")
+      }
+      lop$thiskeyset <- labelkey.labeltable(lop$thislabset, lop$labeltablefile) 
+      if (is.null(lop$thiskeyset)) {
+         errex.AFNI("Failed to create thiskeyset from labels");
+      }
+   }
+   
+   if (  !is.null(lop$groupedlabeltablefile) && 
+         !file_test('-f', lop$groupedlabeltablefile)) {
+      errex.AFNI(sprintf('labeltable file "%s" does not exist', 
+                           lop$groupedlabeltablefile));
+   }
+   
+   if (!is.null(lop$Tset) && length(lop$Tset) > 1) {
+      sv <- lop$Tset[[1]]$subj;
+      for (kk in 2:length(lop$Tset)) {
+         sv <- c(sv, lop$Tset[[kk]]$subj)
+      }
+      sv <- unique(sv)
+      if (length(sv) != length(lop$Tset)) {
+         
+         errex.AFNI(paste("Have", length(sv), "unique test subject labels (", 
+                          paste(sv, collapse=','),
+                       " ) but", length(lop$Tset)," '-test/-class' options"  ) )
+         
+      }
+   }
+   if (!is.null(lop$tset) && length(lop$tset) > 1) {
+      sv <- lop$tset[[1]]$subj;
+      for (kk in 2:length(lop$tset)) {
+         sv <- c(sv, lop$tset[[kk]]$subj)
+      }
+      sv <- unique(sv)
+      if (length(sv) != length(lop$tset)) {
+         
+         errex.AFNI(paste("Have", length(sv), "unique test subject labels (", 
+                          paste(sv, collapse=','),
+                          " ) but", length(lop$tset)," '-train' options"  ) )
+         
+      }
+   }
+   
    return(lop)
 }# end of read.SigsClassify.opts.batch
 
@@ -234,34 +396,52 @@ process.SigsClassify.opts <- function (lop, verb = 0) {
 
 Train.SigsClassify <- function (lvols, samples_frac=NULL, 
                            max_samples = Inf, min_samples = 0,
-                           thislabset=NULL, 
+                           thiskeyset=NULL, ltfile=NULL, 
                            PlotColumnGroups=NULL, PlotGroupLabels=NULL,
                            PlotTitle=NULL,
-                           noX11=FALSE,
+                           no_X11=FALSE,
                            svmscale=TRUE,
-                           verb = 1) {
+                           verb = 1, no_tune = FALSE) {
    if (length(samples_frac) != 1 || samples_frac > 1 || samples_frac <= 0) {
       err.AFNI("Bad sample fraction")
       return(NULL);
+   }
+   if (is.null(ltfile)) {
+      err.AFNI("ltfile is now mandatory")
+      return(NULL)
    } 
-   lsvm <- list(sigs = NULL, labs = NULL, Nlabsamp=NULL, model=NULL)
+   lsvm <- list(sigs = NULL, labs = NULL, Nlabsamp=NULL, model=NULL, labeltable=NULL)
    for (lvol in lvols) {
       #Load label thingy
       if (is.null(lvol$lab)) {
-         if (verb) note.AFNI(sprintf("Loading %s", lvol$labname),tic=1) 
+         if (verb) 
+            note.AFNI(sprintf("Loading labels volume %s", lvol$labname),tic=1) 
          lvol$lab <- dset.3DBRKarrayto1D(read.AFNI(lvol$labname))
       } else {
+         if (verb) note.AFNI(sprintf("Labels volume already loaded"))
          lvol$lab <- dset.3DBRKarrayto1D(lvol$lab)
       }
+      if (is.null(lvol$lab)) {
+         err.AFNI('Failed to get labels');
+         return(NULL)
+      }
       if (is.null(lvol$labselecs)) {
-         if (verb) note.AFNI(sprintf("Selecting set"),tic=1) 
-         if (is.null(thislabset)) {
+         if (verb > 1) note.AFNI(sprintf("Selecting set"),tic=1) 
+         if (is.null(thiskeyset)) {
             if (is.null(lvol$labset)) 
                lvol$labset <- setdiff(unique(lvol$lab$brk), 0)
          } else {
-            lvol$labset <- setdiff(thislabset, 0)
+            lvol$labset <- setdiff(thiskeyset, 0)
          }
-         if (verb) note.AFNI(sprintf("Forming labselecs"),tic=1) 
+         #name labset by the labels from the labeltable
+         lsvm$labeltable <- build.labeltable(labeltable=ltfile, 
+                                              keys=lvol$labset)
+         if (is.null(lsvm$labeltable)) {
+            err.AFNI("Failed to build label table list");
+            return(NULL)
+         }
+      
+         if (verb > 1) note.AFNI(sprintf("Forming labselecs"),tic=1) 
          lvol$labselecs <- list()
          for (lv in lvol$labset) {
             ilab <- which(lvol$lab$brk == lv)
@@ -273,7 +453,7 @@ Train.SigsClassify <- function (lvols, samples_frac=NULL,
                ii <- sample(1:nsmax, ns)
                ilab <- ilab[ii]
             } 
-            if (verb) 
+            if (verb > 1) 
                note.AFNI(
                   sprintf(
                      "  Got %d labels (%.2f%%) from max. of %d, for subclass %d",                           ns, ns/nsmax*100, nsmax, lv),tic=1) 
@@ -284,13 +464,19 @@ Train.SigsClassify <- function (lvols, samples_frac=NULL,
             names(lvol$labselecs[length(lvol$labselecs)]) <-
                                        sprintf('VoxSelection.%d', lv)
          }
+      } else {
+         errex.AFNI("Not expecting this here. Check logic before allowing");
       }
       #Load signatures
       if (is.null(lvol$sig)) {
-         if (verb) note.AFNI(sprintf("Loading %s", lvol$signame),tic=1) 
+         if (verb > 1) note.AFNI(sprintf("Loading %s", lvol$signame),tic=1) 
          lvol$sig <- dset.3DBRKarrayto1D(read.AFNI(lvol$signame))
       } else {
          lvol$sig <- dset.3DBRKarrayto1D(lvol$sig)
+      }
+      if (is.null(lvol$sig)) {
+         err.AFNI('Failed to get signatures');
+         return(NULL)
       }
       #Now build the set of features for each label
       if (verb) note.AFNI(sprintf("Building sigs and labs"),tic=1) 
@@ -331,10 +517,11 @@ Train.SigsClassify <- function (lvols, samples_frac=NULL,
    plot.1D(mm, OneSubplot=TRUE, OffsetBase=FALSE, 
                ColumnGroups=PlotColumnGroups, GroupLabels=PlotGroupLabels, 
                prefix =sprintf('%s.jpg',PlotTitle), Title=PlotTitle,
-               CloseAfterSave = noX11)
+               CloseAfterSave = no_X11)
                
    if (verb>1) browser() 
-   if (0) {
+   if (no_tune) {
+      if (verb) note.AFNI("NO fine tuning...")
       lsvm$model <- svm(lsvm$sigs, factor(lsvm$labs), 
                      scale = svmscale, probability=TRUE,
                      type="C-classification")
@@ -355,39 +542,68 @@ Train.SigsClassify <- function (lvols, samples_frac=NULL,
 }
 
 Test.SigsClassify <- function (lvols, lsvm=NULL, verb = 1, 
-                               ltfile=NULL, volsuffix=NULL,overwrite=FALSE) {
+                               ltfile=NULL, volsuffix=NULL,overwrite=FALSE,
+                               opath = NULL, opref = NULL,
+                               ltgroupedfile = NULL) {
    if (is.null(lsvm) || is.null(lsvm$model))  {
       err.AFNI("Bad input")
       return(NULL);
    } 
+   if (is.null(volsuffix)) volsuffix <- ''
+   else {
+      #make sure it has a .
+      if (length(grep ('^\\.', volsuffix)) == 0) {
+         volsuffix <- sprintf('.%s', volsuffix);
+      }
+   }
+   if (!is.null(opath)) {
+      if (!file_test('-d', opath)) {
+         err.AFNI(sprintf('Output path %s does not exist', opath));
+         return(NULL);
+      }
+   }
    lsvm <- c(lsvm, list(classy=NULL))
    for (i in 1:length(lvols)) {
       #prep names
-      if (is.null(volsuffix)) {
-         an <- parse.AFNI.name(lvols[i][[1]]$signame)
-         volout   <- sprintf('%s.cls%s'   , an$prefix, an$view)
-         voloutp  <- sprintf('%s.clsp%s'  , an$prefix, an$view)
-         voloutdv <- sprintf('%s.clsdv%s' , an$prefix, an$view)
+      an <- parse.AFNI.name(lvols[i][[1]]$signame)
+      if (is.null(opath)) ppo <- an$path
+      else ppo <- opath
+      if (is.null(opref)) {
+         ppp <- sprintf('%s.%s%s', lvols[i][[1]]$subj, an$prefix, volsuffix)
       } else {
-         an <- parse.AFNI.name(lvols[i][[1]]$signame)
-         volout   <- sprintf('%s.%s.cls%s'   , an$prefix, volsuffix, an$view)
-         voloutp  <- sprintf('%s.%s.clsp%s'  , an$prefix, volsuffix, an$view)
-         voloutdv <- sprintf('%s.%s.clsdv%s' , an$prefix, volsuffix, an$view)
+         ppp <- sprintf('%s.%s%s', lvols[i][[1]]$subj, opref, volsuffix)
       }
-      str(volout)
-      str(exists.AFNI.name(volout))
+      volout   <- sprintf('%s/%s.cls%s'  , ppo, ppp, an$view)
+      voloutp  <- sprintf('%s/%s.clsp%s' , ppo, ppp, an$view)
+      voloutdv <- sprintf('%s/%s.clsdv%s', ppo, ppp, an$view)
+      diceout  <- sprintf('%s/%s.cls.dice', ppo, ppp)
+      voloutgrp   <- sprintf('%s/%s.gcls%s'  , ppo, ppp, an$view)
+      voloutpgrp  <- sprintf('%s/%s.gclsp%s' , ppo, ppp, an$view)
+      voloutdvgrp <- sprintf('%s/%s.gclsdv%s', ppo, ppp, an$view)
+
+      diceout     <- sprintf('%s/%s.DiceCoef', ppo, ppp)
+      diceoutgrp  <- sprintf('%s/%s.gDiceCoef', ppo, ppp)
+      
+      goldout     <- sprintf('%s/%s.%s.cls%s', 
+                           ppo, lvols[i][[1]]$subj, 'gold',an$view)
+      goldoutgrp  <- sprintf('%s/%s.%s.gcls%s', 
+                           ppo, lvols[i][[1]]$subj, 'gold',an$view)
+      
+      anatout     <- sprintf('%s/%s.%s%s', 
+                           ppo, lvols[i][[1]]$subj, 'anat',an$view)                     
       if (!overwrite && exists.AFNI.name(volout)) {
          note.AFNI(sprintf("Volume %s exists. Skipping...", volout));
       } else {
-         note.AFNI(sprintf("About to load signatures %s", 
+         if (verb) note.AFNI(sprintf("About to load signatures %s", 
                            lvols[i][[1]]$signame));
          #Load signatures
          if (is.null(lvols[i][[1]]$sig)) {
-            if (verb) note.AFNI(sprintf("Loading %s", 
+            if (verb > 1) note.AFNI(sprintf("Loading %s", 
                               lvols[i][[1]]$signame),tic=1) 
             lvols[i][[1]]$sig <- 
                            dset.3DBRKarrayto1D(read.AFNI(lvols[i][[1]]$signame))
          } else {
+            if (verb > 1) note.AFNI(sprintf("signatures already loaded")) 
             lvols[i][[1]]$sig <- dset.3DBRKarrayto1D(lvols[i][[1]]$sig)
          }
          if (is.null(lvols[i][[1]]$sig)) {
@@ -451,7 +667,14 @@ Test.SigsClassify <- function (lvols, lsvm=NULL, verb = 1,
             brk[lvols[i][[1]]$ivox,] <- dv
             dv<-NULL
             dim(brk) <- dd
-            write.AFNI(voloutp, brk, label=paste('tprob', seq(1,dd[4]), sep='.'),
+            if (dd[4] != length(lsvm$labeltable$labels)) {
+               err.AFNI("paste have", dd[4], "subbricks, but ", 
+                        length(lsvm$labeltable$labels), "training labels\n",
+                        "Something is fishy here");
+               return(NULL);
+            }
+            write.AFNI(voloutp, brk, 
+                        label=paste('p', lsvm$labeltable$labels, sep='.'),
                         defhead=lvols[i][[1]]$sig$header,
                         verb = verb, scale=TRUE)
 
@@ -466,8 +689,65 @@ Test.SigsClassify <- function (lvols, lsvm=NULL, verb = 1,
          lvols[i][[1]]$sig$brk <- NULL;
          lvols[i][[1]]$classy <- NULL; gc(); 
          if (verb) memory.hogs(msg='Post NULLing')
+         
       }
+      
+      #Put a copy of the anat in place
+      if (!is.null(lvols[i][[1]]$anatname)) {
+         if (!copy.AFNI.dset(lvols[i][[1]]$anatname,anatout, overwrite = TRUE)) {
+            err.AFNI(sprintf(
+                  "Failed to create copy of anatomical volume %s", anatout))
+            return(NULL);
+         }
+      }
+      
+      #Create a merged version if necessary
+      if (!is.null(ltgroupedfile) && 
+            (  overwrite || 
+               !exists.AFNI.name(voloutgrp) || !exists.AFNI.name(voloutpgrp)) ) {
+         if (exists.AFNI.name(voloutgrp)) 
+            system(sprintf('\\rm -f %s.HEAD %s.BRIK*', voloutgrp, voloutgrp))
+         if (exists.AFNI.name(voloutpgrp)) 
+            system(sprintf('\\rm -f %s.HEAD %s.BRIK*', voloutpgrp, voloutpgrp))
+
+         if (group.vollabels(  labelvol = volout, pvol=voloutp,
+                           grptable=ltgroupedfile,
+                           grplabelpref=voloutgrp, 
+                           grpppref=voloutpgrp) == 0) {
+            err.AFNI("Failed to group labels");
+            return(NULL);                 
+         }
+                           
+      }
+      #Do some dice action
+      if (!is.null(lvols[i][[1]]$labname)) {
+         if (!copy.AFNI.dset(lvols[i][[1]]$labname,goldout, overwrite = TRUE)) {
+            err.AFNI(sprintf(
+                  "Failed to create copy of reference label volume %s", goldout))
+            return(NULL);
+         }
+         lvols[i][[1]]$dice <- dice.vollabels(basevol=goldout,
+                  labeltable=ltfile,
+                  prefix=diceout, labelvol=volout) 
+         if (!is.null(ltgroupedfile)) {
+            #first group the base
+            if (group.vollabels(  labelvol = goldout, pvol=NULL,
+                           grptable=ltgroupedfile,
+                           grplabelpref=goldoutgrp, 
+                           grpppref=NULL) == 0) {
+               err.AFNI("Failed to group labels");
+               return(NULL);                 
+            }
+            #Now do the dice
+            lvols[i][[1]]$gdice <- dice.vollabels(
+                  goldoutgrp,
+                  labeltable=ltgroupedfile,
+                  prefix=diceoutgrp, labelvol=voloutgrp)
+         } 
+      }
+      
    }
+   
    return(lvols)   
 }
 
@@ -478,8 +758,9 @@ Test.SigsClassify <- function (lvols, lsvm=NULL, verb = 1,
 
 
    if (!exists('.DBG_args')) { 
-      args = (commandArgs(TRUE))  
-      save(args, file=".SigsClassify.dbg.AFNI.args", ascii = TRUE) 
+      args = (commandArgs(TRUE))
+      rfile <- first.in.path(sprintf('%s.R',ExecName))  
+      save(args, rfile, file=".SigsClassify.dbg.AFNI.args", ascii = TRUE) 
    } else {
       note.AFNI("Using .DBG_args resident in workspace");
       args <- .DBG_args
@@ -488,47 +769,12 @@ Test.SigsClassify <- function (lvols, lsvm=NULL, verb = 1,
       BATCH_MODE <<- 0
       lop <- init.SigsClassify.lop()
       lop$verb=1
-      lop$labeltable = '~/LocalSeg/IBSR_V2.0/DepthSubClasses.niml.lt' 
-      lop$tset <- list()
-      if (1) {
-         sname <- '~/LocalSeg/IBSR_V2.0/SegResults/s01/IBSR_01_ana.median+orig'
-         lname <- '~/LocalSeg/IBSR_V2.0/SegResults/s01/IBSR_01_segTRI.DepthSubClasses+orig'
-         s2name <- '~/LocalSeg/IBSR_V2.0/SegResults/s02/IBSR_02_ana.median+orig'
-         l2name <- '~/LocalSeg/IBSR_V2.0/SegResults/s02/IBSR_02_segTRI.DepthSubClasses+orig'
-         labs=c(1,4,5, 11, 14, 15, 21, 24, 25)
-         ColumnGroups = c(1,1,1,2,2,2,3,3,3)
-         GroupLabels=c('CSF','GM','WM')  
-      } else {
-         sname <- '~/SUMA_test_dirs/3dsvm/trainvol.ftr+orig'
-         lname <- '~/SUMA_test_dirs/3dsvm/trainvol.lbl+orig'
-         s2name <- '~/SUMA_test_dirs/3dsvm/testvol.ftr+orig'
-         l2name <- '~/SUMA_test_dirs/3dsvm/testvol.lbl+orig'
-         labs=c(1,2,3)    
-         ColumnGroups = c(1,2,3)
-         GroupLabels=c('CSF','GM','WM')  
-      }
-      lop$tset <- c(lop$tset,
-                    list( 
-                     list(sig=NULL,
-                     signame=sname, 
-                     lab=NULL,
-                   labname=lname, 
-                     labselecs=NULL)))
-      lop$tset <- c(lop$tset,
-                    list( 
-                     list(sig=NULL, 
-                     signame = s2name, 
-                     lab=NULL,
-                   labname=l2name, 
-                     labselecs=NULL)))
-      
-      train <- Train.SigsClassify(lop$tset, samples_frac=0.06, 
-                              max_samples = 1000, min_samples = 100, 
-                              thislabset=labs, PlotColumnGroups=ColumnGroups,
-                              PlotGroupLabels=GroupLabels,PlotTitle='toy',
-                              verb=lop$verb, noX11=lop$noX11)
-      test <- Test.SigsClassify(lop$tset, lsvm=train, 
-                           verb=lop$verb, ltfile = lop$labeltable)
+      note.AFNI("I am not going to have a hard coded list of options here.
+   For testing, run the command line version once. Then launch R in that
+   directory and do the following:
+   source('~/AFNI/src/R_scripts/AFNIio.R');
+   load.debug.AFNI.args()
+   source('~/AFNI/src/R_scripts/3dSignatures.R');");
    } else {
       if (!exists('.DBG_args')) {
          BATCH_MODE <<- 1
@@ -548,54 +794,73 @@ Test.SigsClassify <- function (lvols, lsvm=NULL, verb = 1,
    }
    
    
-      if (!is.null(lop$loadTrain)) {
-         if (file.exists(lop$loadTrain)) {
+   if (!is.null(lop$load_train)) {
+      if (file.exists(lop$load_train)) {
+         note.AFNI(sprintf("Loading training set from pre-existing %s", 
+                    lop$load_train ))
+         if (exists('train')) { 
+            rm('train')            
+         }
+         load(lop$load_train);
+         if (!exists('train') || is.null(train)) {
+            warn.AFNI("Variable 'train' not found or null!")
+            train <- NULL
+         }
+      }
+   } else {
+      trainname <- sprintf("%s.Rdat",lop$trainsuffix);
+      train <- NULL
+      if (lop$reuse_train) {
+         if (file.exists(trainname)) {
             note.AFNI(sprintf("Loading training set from pre-existing %s", 
-                       lop$loadTrain ))
-            if (exists('train')) { 
-               rm('train')            
-            }
-            load(lop$loadTrain);
+                        trainname))
+            rm('train')            
+            load(trainname);
             if (!exists('train') || is.null(train)) {
                warn.AFNI("Variable 'train' not found or null!")
                train <- NULL
             }
          }
-      } else {
-         trainname <- sprintf("train%s.Rdat",lop$filesuffix);
-         train <- NULL
-         if (lop$reuseTrain) {
-            if (file.exists(trainname)) {
-               note.AFNI(sprintf("Loading training set from pre-existing %s", 
-                           trainname))
-               rm('train')            
-               load(trainname);
-               if (!exists('train') || is.null(train)) {
-                  warn.AFNI("Variable 'train' not found or null!")
-                  train <- NULL
-               }
-            }
-         }
       }
-      if (is.null(train)) {
-         note.AFNI("Creating new training object");
-         train <- Train.SigsClassify(lop$tset, samples_frac=0.03, 
-                              max_samples = 100, min_samples = 100, 
-                              thislabset=lop$thislabset,
-                              PlotColumnGroups=lop$ColumnGroups,
-                              PlotGroupLabels=lop$GroupLabels,
-                              PlotTitle=sprintf("trainset%s", lop$filesuffix),
-                              verb=lop$verb, noX11=lop$noX11,
-                              svmscale=lop$svmcale)
-         save(train, file=sprintf("train%s.Rdat",lop$filesuffix), ascii = TRUE) 
-      } else {
-         note.AFNI("Reusing/Or Reloaded train object");
-      }
-      
-      test <- Test.SigsClassify(lop$Tset, lsvm=train, 
-                           verb=lop$verb, ltfile = lop$labeltable,
-                           volsuffix = lop$volsuffix)
-                           
-      save(test, file=sprintf("test%s.Rdat",lop$filesuffix), ascii = TRUE) 
+   }
+   if (is.null(train)) {
+      note.AFNI("Creating new training object");
+      train <- Train.SigsClassify(lop$tset, samples_frac=0.03, 
+                           max_samples = 100, min_samples = 100, 
+                           thiskeyset=lop$thiskeyset, 
+                           ltfile = lop$labeltablefile,
+                           PlotColumnGroups=lop$ColumnGroups,
+                           PlotGroupLabels=lop$GroupLabels,
+                           PlotTitle=sprintf("trainset.%s", lop$trainsuffix),
+                           verb=lop$verb, no_X11=lop$no_X11,
+                           svmscale=lop$svmcale, no_tune = lop$no_tune)
+      if (is.null(train)) errex.AFNI("Failed to get training set");
+      save(train, file=sprintf("%s.Rdat",lop$trainsuffix), ascii = TRUE) 
+   } else {
+      note.AFNI("Reusing/Or Reloaded train object");
+      if (is.null(train$labeltable)) {
+         uk <- unique(train$labs)
+         warn.AFNI(paste("Old format training struct.\n",
+                         "Assuming ", lop$labeltablefile,
+                         "is the proper label table for label keys [",
+                         paste(uk,collapse=' '), "]",
+                         collapse=''));
 
-      
+         train$labeltable <- build.labeltable(
+                              labeltable=lop$labeltablefile, keys=uk)
+         if (is.null(train$labeltable)) {
+            err.AFNI("Failed to build test label table list");
+            return(NULL)
+         }
+      } 
+
+   }
+
+   test <- Test.SigsClassify(lop$Tset, lsvm=train, 
+                        verb=lop$verb, ltfile = lop$labeltablefile,
+                        volsuffix = lop$volsuffix,
+                        opath = lop$odir, opref = lop$opref,
+                        ltgroupedfile = lop$groupedlabeltablefile)  
+   save(test, file=sprintf("%s.Rdat",lop$testsuffix), ascii = TRUE)
+
+   note.AFNI("All done.");  
