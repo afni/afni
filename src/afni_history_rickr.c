@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  2, NOV, 2010, RCR, "3dTstat", MINOR, TYPE_ENHANCE,
+   "allow single volume input for functions mean, max, min, sum",
+   "Other functions can be added to this list as needed."
+ } ,
+
  { 29, OCT, 2010, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
    "added -show_indices_baseline, _motion and _interest",
    NULL

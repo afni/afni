@@ -58,6 +58,14 @@
 
 #define MAX_NUM_OF_METHS  32
 
+/* allow single inputs for some methods (test as we care to add) */
+#define NUM_1_INPUT_METHODS 4
+static int valid_1_input_methods[NUM_1_INPUT_METHODS]
+           = { METH_MEAN, METH_MAX, METH_MIN, METH_SUM };
+/* maybe add:  METH_ARGMAX, METH_ARGMIN, METH_ARGABSMAX,
+               METH_SUM, METH_ABSSUM, METH_NZMEAN, METH_SUM_SQUARES
+*/
+
 static int meth[MAX_NUM_OF_METHS]  = {METH_MEAN};
 static int nmeths                  = 0;
 static char prefix[THD_MAX_PREFIX] = "stat" ;
@@ -550,8 +558,28 @@ int main( int argc , char *argv[] )
    if( nopt < argc )
      WARNING_message("Trailing datasets on command line ignored: %s ...",argv[nopt]) ;
 
-   if( DSET_NVALS(old_dset) < 2 )
-     ERROR_exit("Can't use dataset with < 2 values per voxel!\n") ;
+   /* no input volumes is bad, 1 volume applies to only certain methods */
+   /*                                                2 Nov 2010 [rickr] */
+   if( DSET_NVALS(old_dset) == 0 ) {
+      ERROR_exit("Time series is of length 0?\n") ;
+   }
+   else if( DSET_NVALS(old_dset) == 1 ) {
+     int methOK, OK = 1;
+     /* see if each method is valid for nvals == 1 */
+     for( methIndex = 0; methIndex < nmeths; methIndex++ ) {
+        methOK = 0;
+        for( ii = 0; ii < NUM_1_INPUT_METHODS; ii++ ) {
+            if( meth[methIndex] == valid_1_input_methods[ii] ) {
+                methOK = 1;
+                break;
+            }
+        }
+        if( ! methOK )
+           ERROR_exit("Can't use dataset with < 2 values per voxel!\n") ;
+     }
+     /* tell the library function that this case is okay */
+     g_thd_maker_allow_1brick = 1;
+   }
 
    if( DSET_NUM_TIMES(old_dset) < 2 ){
      WARNING_message("Input dataset is not 3D+time; assuming TR=1.0") ;

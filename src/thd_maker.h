@@ -15,6 +15,8 @@ extern "C" {                    /* care of Greg Balls    7 Aug 2006 [rickr] */
 
 #define FREEUP(x) do{if((x) != NULL){free((x)); (x)=NULL;}}while(0)
 
+extern int g_thd_maker_allow_1brick;   /* 2 Nov 2010 [rickr] */
+
 extern THD_3dim_dataset *
     MAKER_4D_to_typed_fim( THD_3dim_dataset * old_dset ,
                            char * new_prefix , int new_datum ,
