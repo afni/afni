@@ -3091,12 +3091,13 @@ SUMA_DSET * SUMA_PaddedCopyofDset ( SUMA_DSET *odset, int MaxNodeIndex )
                               "domain_parent_idcode"),
                               MaxNodeIndex+1); 
    SUMA_free(new_name); new_name = NULL;
+   
    /* Here you can copy dsetwide attributes 
    This was done to test how one can pass dsetwide 
    attributes. For the moment, there are no such
    attributes being passed. The test was done with 
-   TR attribute.
-   SUMA_COPY_DSETWIDE_ATTRIBUTES(odset, ndset);*/
+   TR attribute. */
+   SUMA_COPY_DSETWIDE_ATTRIBUTES(odset, ndset);
 
    SUMA_LH("Adding indnew");
    if (!SUMA_AddDsetNelCol (ndset, 
@@ -3291,8 +3292,8 @@ SUMA_DSET * SUMA_MaskedCopyofDset(  SUMA_DSET *odset,
             This was done to test how one can pass dsetwide 
             attributes. For the moment, there are no such
             attributes being passed. The test was done with 
-            TR attribute.
-            SUMA_COPY_DSETWIDE_ATTRIBUTES(odset, ndset);*/
+            TR attribute.*/
+            SUMA_COPY_DSETWIDE_ATTRIBUTES(odset, ndset);
          }
          /* add the column */
          SUMA_LH("Getting the label");
