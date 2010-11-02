@@ -6,6 +6,10 @@
    
 #include "thd_maker.h"
 
+/* set this to allow single volume input, i.e. no < 2 requirement */
+/*                                             2 Nov 2010 [rickr] */
+int g_thd_maker_allow_1brick = 0;
+
 /*-------------------------------------------------------------------------
    Routine to create a 3D 'fbuc' dataset from a 3D+time dataset,
    using a user supplied function to process each time series.
@@ -138,7 +142,11 @@ THD_3dim_dataset * MAKER_4D_to_typed_fbuc( THD_3dim_dataset * old_dset ,
 
    old_datum = DSET_BRICK_TYPE( old_dset , 0 ) ;   /* get old dataset datum */
    nuse      = DSET_NUM_TIMES(old_dset) - ignore ; /* # of points on time axis */
-   if( nuse < 2 ) return NULL ;
+
+   /* maybe allow nuse == 1       2 Nov 2010 [rickr] */
+   if( nuse < 1 ) return NULL ;
+   if( nuse == 1 && ! g_thd_maker_allow_1brick ) return NULL ;
+   g_thd_maker_allow_1brick = 0;  /* and beware repeat calls from plugins */
 
    if( new_datum < 0 ) new_datum = old_datum ;   /* output datum = input */
    if( new_datum == MRI_complex ) return NULL ;  /* but complex = bad news */
