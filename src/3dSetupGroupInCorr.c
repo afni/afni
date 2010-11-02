@@ -350,9 +350,9 @@ int main( int argc , char * argv[] )
 
    /*-- read input dataset headers --*/
 
-   ndset = argc - nopt ;
-   if( ndset < 2 )
-     ERROR_exit("Must have at least 2 datasets on the command line!") ;
+   ndset = argc - nopt ;  /* all remaining args are dataset names */
+   if( ndset < 1 )
+     ERROR_exit("Must have at least 1 dataset on the command line!") ;
 
    if (LRpairs && (ndset % 2)) {
      ERROR_exit("With -LRpairs, you must have an even "
