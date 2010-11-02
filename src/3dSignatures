@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 set pp = $0:h
-#Run R in script more. Better than R CMD BATCH
+#Run R in script mode. Better than R CMD BATCH
 
 if ($#argv == 0) then
    set arglist = (-help)
@@ -12,11 +12,22 @@ endif
 
 set tname = `basename $0`.R
 if ( -f  $pp/${tname}) then
-   Rscript $pp/${tname} $arglist
+   set tname = $pp/${tname} 
 else if ( -f  $pp/R_scripts/${tname}) then
-   Rscript $pp/R_scripts/${tname} $arglist
+   set tname = $pp/R_scripts/${tname}
 else 
    echo "** Error `basename $0`:"
    echo "${tname} not found in $pp or $pp/R_scripts"
    echo ""
+endif
+   
+if (0) then
+   #This worked OK, except for the blasted -gSOMETHING problem 
+   Rscript ${tname} $arglist
+else
+   #command taken from Rscript --verbose ...
+   #by adding the --gui option explicitly here, I can 
+   #quiet the stupid message: WARNING: unknown gui ...
+   #every time there is a -gSOMETHING option in arglist  
+   R --slave --no-restore --file=${tname} --gui X11 --args $arglist
 endif

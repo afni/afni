@@ -1,6 +1,8 @@
 #!/bin/tcsh -fe
 
 set stat = 0
+set log = /tmp/MLT.log
+
 
 goto PARSE_COMMAND
 Ret_PARSE_COMMAND:
@@ -12,7 +14,15 @@ set outlist = ()
 set idset = 1
 foreach dset ($dsets) 
    set dparse = `@parse_afni_name $dset`
-   set vol2 = $dparse[1]/$dparse[2]
+   set vol2o = $dparse[1]/$dparse[2]
+   #mask by base
+   if ($maskbybase == 1) then
+      set vol2m = ___bma
+      3dcalc -a $vol1${view} -b $vol2o$view -overwrite -expr 'step(a)*b'   \
+                  -prefix $vol2m >& $log  
+   else
+      set vol2m = $vol2o
+   endif
    set iidset = `printf %02d $idset`
    if ($SaveEq) then
       set aib = $dparse[1]/$bparse[2].EQ.$dparse[2]
@@ -20,25 +30,24 @@ foreach dset ($dsets)
    if ($SaveDiff) then
       set anib = $dparse[1]/$bparse[2].DF.$dparse[2]
    endif
+   
+   #You don't need vol2m instead of vol2o these two commands because
+   # you are multiplying by a, effectively masking.
+   # Just keeps the history cleaner...
    3dcalc   -datum short -overwrite \
-            -a $vol1${view} -b $vol2${view} -expr 'a*equals(a,b)' \
-            -prefix  ${aib}   
+            -a $vol1${view} -b $vol2o${view} -expr 'a*equals(a,b)' \
+            -prefix  ${aib}  >& $log 
    3dcalc   -datum short -overwrite \
-            -a $vol1${view} -b $vol2${view} -expr 'a*(1-equals(a,b))' \
-            -prefix  ${anib}                        
-   if (1) then
+            -a $vol1${view} -b $vol2o${view} -expr 'a*(1-equals(a,b))' \
+            -prefix  ${anib} >& $log                      
+   
+   
       3dROIstats -1Dformat -mask_f2short -numROI ${numROI} -zerofill 0\
                   -nzvoxels -mask ${aib}$view ${aib}$view > ___aib.1D
       3dROIstats -1Dformat -mask_f2short -numROI ${numROI} -zerofill 0\
                   -nzvoxels -mask $vol1$view $vol1$view >> ___aib.1D
       3dROIstats -1Dformat -mask_f2short -numROI ${numROI} -zerofill 0\
-                  -nzvoxels -mask $vol2$view $vol2$view >> ___aib.1D
-   else 
-      #Not convenient for parsing further down
-      3dclust -isomerge 0 0 ${aib}$view > ___aib.1D
-      3dclust -isomerge 0 0  $vol1$view >> ___aib.1D
-      3dclust -isomerge 0 0  $vol2$view >> ___aib.1D
-   endif
+                  -nzvoxels -mask $vol2m$view $vol2m$view >> ___aib.1D
 
    set nvals = `3dnvals -all ___aib.1D`
    set N_cl = `ccalc -i $nvals[4] / 2`
@@ -61,6 +70,13 @@ foreach dset ($dsets)
             set dice = `ccalc "2*$nums[1]/($nums[2]+$nums[3])"`
             set clar = ($clar $cl_num)
             set dcar = ($dcar $dice)
+         else if ($#forced_list > 0) then
+            #Check if $cl is mandated
+            set mm = (`1dcat "1D:$forced_list $cl" | sort -n | uniq`)
+            if ($#mm == $#forced_list) then
+               set clar = ($clar $cl)
+               set dcar = ($dcar 0)
+            endif
          endif 
       endif
       @ cl ++
@@ -72,7 +88,7 @@ foreach dset ($dsets)
    else 
       set outlist = ("$outlist" ___dice_${iidset}.1D'[1]')
    endif
-   echo "#cl   #dice($vol2 VS $vol1)" > ___dice_${iidset}.1D
+   echo "#cl   #dice($vol2o VS $vol1)" > ___dice_${iidset}.1D
    set cnt = 1
    foreach cl ($clar)
       echo "$cl   $dcar[$cnt]" >> ___dice_${iidset}.1D
@@ -85,10 +101,16 @@ end
 
 COMBINE:
 if ("$prefix" !~ "") then
-   echo "#Col.0 = ROI number in $base" > $prefix.1D
+   echo '#Command: '`basename $0` "$argv[*]" > $prefix.1D
+   set lll = ''
+   if ($ltfile != '') then
+      set lll = (`@MakeLabelTable -all_labels -labeltable $ltfile`)
+   endif
+   echo "#Col.0 = ROI label in $base ($lll)" >> $prefix.1D
    set cnt = 1
    foreach dset ($dsets)
-      echo "#Col.$cnt = Dice(`@GetAfniPrefix $dset`)" >> $prefix.1D
+      set bp = $base:h
+      echo "#Col.$cnt = Dice(`@GetAfniPrefix $dset` VS $base (in $bp)) " >> $prefix.1D
       @ cnt ++
    end
    set noglob
@@ -101,7 +123,7 @@ goto END
 PARSE_COMMAND:
 	
    #continue parsing for new options
-   set numROI = 12
+   set numROI = 0
    set dsets = ()
    set base = ''
    set prefix = ''
@@ -111,7 +133,10 @@ PARSE_COMMAND:
    set anib = ___anib
    set SaveEq=0
    set SaveDiff=0
+   set forced_list = ()
    set Narg = $#argv
+   set maskbybase = 0
+   set ltfile = ''
    
    if ("$1" == '' || "$1" == '-h' || "$1" == '-help' || "$2" == '') then
 	   goto USAGE
@@ -143,6 +168,7 @@ PARSE_COMMAND:
             set donext = 0	
          endif	
       endif
+      
       if ($donext && "$argv[$cnt]" == "-base") then
          set pLoc = $cnt		
 		   if ($pLoc == $Narg) then
@@ -151,9 +177,36 @@ PARSE_COMMAND:
 			else
             @ cnt ++
             set base = "$argv[$cnt]"
+            if (`@CheckForAfniDset $base`<2) then
+               echo "Cannot find dset $argv[$cnt]"
+               goto BEND
+            endif
             set donext = 0	
          endif	
-      endif      
+      endif
+      
+      if ($donext && "$argv[$cnt]" == "-do_not_mask_by_base") then
+         set maskbybase = 0
+         set donext = 0	
+      endif
+      
+      if ($donext && "$argv[$cnt]" == "-mask_by_base") then
+         set maskbybase = 1
+         set donext = 0	
+      endif
+      
+      if ($donext && "$argv[$cnt]" == "-labeltable") then
+         set pLoc = $cnt		
+		   if ($pLoc == $Narg) then
+				echo "Need a file after -labeltable"
+            goto END
+			else
+            @ cnt ++
+            set ltfile = "$argv[$cnt]"
+            set donext = 0	
+         endif	
+      endif   
+         
       if ($donext && "$argv[$cnt]" == "-dsets") then
          set pLoc = $cnt		
 		   if ($pLoc == $Narg) then
@@ -219,7 +272,20 @@ PARSE_COMMAND:
       
 		@ cnt ++
 	end
-      
+   
+   if ($ltfile != '') then
+      if ($#forced_list == 0) then
+         set forced_list = (`@MakeLabelTable -all_keys -labeltable $ltfile`)
+      endif
+      if ($numROI == 0) then
+         set numROI = `@MakeLabelTable -max_key -labeltable $ltfile`
+      endif
+   endif
+   
+   if ($numROI == 0) then
+      set numROI=12
+   endif   
+   
 	goto Ret_PARSE_COMMAND
 
 
@@ -249,7 +315,20 @@ echo "          These two options are off by default. The output filenames"
 echo "          are formed this way:"
 echo "             PATH_DSET/PREFIX_BASE.EQ.PREFIX_DSET"
 echo "             PATH_DSET/PREFIX_BASE.DF.PREFIX_DSET"
-echo "   [-max_N_roi MAX_ROI]: The maximum possible roi index. Default is 12" echo "   [-prefix PREFIX]: Use PREFIX for the output table. "
+echo "   [-max_N_roi MAX_ROI]: The maximum possible roi index. Default is 12"
+echo "                         or based on LTFILE if specified" 
+echo "   [-labeltable LTFILE]: If given, the labeltable is used to set the "
+echo "                         default MAX_ROI parameter"
+echo "                         Also, this option forces an output for each"
+echo "                         key in the LTFILE"
+echo "   [-do_not_mask_by_base]: Do not mask dset by step(base) before computing"
+echo "                           Dice coefficient. This is the default behaviour"
+echo "                           for backward compatibility. "
+echo "   [-mask_by_base]: Mask dset by the step(base) before computing"
+echo "                           Dice coefficient. With this option,"
+echo "                           Voxels that are 0 in the base dataset are not" echo "                           considered in the computations."
+echo ""
+echo "   [-prefix PREFIX]: Use PREFIX for the output table. "
 echo "                     Default is separate results for each dset to stdout"
 echo "   [-keep_tmp]: Keep temporary files for debugging. Note that you should"
 echo "                delete temporary files before rerunning the script."
@@ -267,5 +346,7 @@ BEND:
    
 END:
 if ($cleanup) then
-   rm -f ___dice_*.1D ___aib.1D ___aib+????.*
+   rm -f ___dice_*.1D ___aib.1D ___aib+????.* ___bma+????.* 
 endif
+if ($stat == 0 && -f $log) \rm /tmp/$log:t
+exit $stat

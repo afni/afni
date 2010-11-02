@@ -32,7 +32,7 @@ short non_zero[IMAX];		/* Ugly; depends upon sizeof(short)=2 */
 
 void Error_Exit(char *message)
 {
-    fprintf(stderr, "\n\nError: %s\n", message);
+    fprintf(stderr, "\n\nError 3dROIstas: %s\n", message);
     exit(1);
 }
 
@@ -61,7 +61,8 @@ int main(int argc, char *argv[])
     int nfv = 0, perc = 0, nzperc = 0;
     int nobriklab=0 ;  /* 14 Mar 2008 */
     int disp1d=1;   /* ZSS May 2008 */
-    byte *roisel=NULL; 
+    byte *roisel=NULL;
+    char sbuf[257]={""}; 
     char zerofill[32]={" "};
     
     if (argc < 3 || strcmp(argv[1], "-help") == 0) {
@@ -462,10 +463,15 @@ int main(int argc, char *argv[])
     }  
     for (i = 0, num_ROI = 0; i < IMAX; i++)
 	if (non_zero[i]) {
-	    if (force_num_ROI && (((i - 32768) < 0) || ((i - 32768) > force_num_ROI)))
-		Error_Exit("You used the numROI option, yet in the mask there was a\n"
-			   "value in the mask outside the range [1 n].\n"
-            "Maybe you shouldn't use that option\n");
+	    if ( force_num_ROI && 
+            (((i - 32768) < 0) || ((i - 32768) > force_num_ROI))){
+		   snprintf(sbuf, 256,
+               "You used numROI %d, yet in the mask there was a\n"
+			      "value (%d) outside the range [1 %d].\n", 
+               force_num_ROI, (i - 32768), force_num_ROI);
+         Error_Exit(sbuf);
+       }
+         
 	    non_zero[i] = num_ROI;
 	    num_ROI++;
 	    if (!quiet && !summary && !force_num_ROI) {

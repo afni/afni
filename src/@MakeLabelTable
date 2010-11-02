@@ -1,11 +1,122 @@
 #!/bin/tcsh -f
-set stat = 1
+set stat = 0
+set log = /tmp/MLT.log
+
 if ("$1" == "" || "$1" == '-h' || "$1" == '-help') then
    goto HELP
 endif
 
 goto PARSE
 RETURN_PARSE:
+
+if ($ltdset != '') then
+    3dAttribute -ssep ' '  -name  VALUE_LABEL_DTABLE $ltdset \
+      | sed 's/^VALUE_LABEL_DTABLE = //' 
+    if ($status) then
+      if (! $quiet_death) echo "Failed to find VALUE_LABEL_DTABLE"
+      goto BEND
+    endif
+    goto END
+endif
+
+if ($showlabels) then
+   if ($word_match == 1) set gopt = ("$gopt" "-w")
+   if ($KeysLabel != '') then
+      niccc -quiet '-#' -stdout file:$labeltable \
+         | \grep $gopt $KeysLabel \
+         | \sed 's/^ //g' | \sed 's/"//g' \
+         | \cut -d ' ' -f 2
+   else
+      niccc -quiet '-#' -stdout file:$labeltable \
+         | \grep -v '^#' | sed '/^$/d' \
+         | \sed 's/^ //g' | \sed 's/"//g' \
+         | \cut -d ' ' -f 2
+   endif
+   goto END
+endif
+
+if ($showkeys) then
+   if ($word_match == 1) set gopt = ("$gopt" "-w")
+   if ($KeysLabel != '') then
+      niccc -quiet '-#' -stdout file:$labeltable \
+         | \grep $gopt $KeysLabel \
+         | \sed 's/^ //g' | \sed 's/"//g' \
+         | \cut -d ' ' -f 1
+   else
+      niccc -quiet '-#' -stdout file:$labeltable \
+         | \grep -v '^#' | sed '/^$/d' \
+         | \sed 's/^ //g' | \sed 's/"//g' \
+         | \cut -d ' ' -f 1
+   endif
+   goto END
+endif
+
+if ($maxkey) then
+   niccc -quiet '-#' -stdout file:$labeltable \
+         | \grep -v '^#' \
+         | \sed 's/^ //g' | \sed 's/"//g' \
+         | \cut -d ' ' -f 1 > __kk.1D
+   set maxkey = `3dBrickStat -slow -max __kk.1D`
+   \rm -f __kk.1D
+   echo $maxkey
+   goto END
+endif
+
+
+if ($KeysLabel != '') then
+   if (! -f $labeltable) then
+      if (! $quiet_death) echo "Error: $labeltable not found"
+      goto BEND
+   endif
+   
+   #get the numbers
+   if ($word_match == 1) set gopt = ("$gopt" "-w")
+   set keys = `niccc -quiet '-#' -stdout file:$labeltable \
+      | \grep $gopt $KeysLabel \
+      | \sed 's/^ //g' | \sed 's/"//g' \
+      | \cut -d ' ' -f 1`
+   
+   if ($#keys < 1) then
+      if (! $quiet_death) \
+         echo "Error: Label $KeysLabel has no match in labeltable $labeltable"
+      goto BEND
+   endif
+   
+   if ($range) then
+      set range = `3dBrickStat -slow -min -max  "1D:$keys"`
+      echo $range
+   else
+      echo $keys
+   endif
+   goto END
+endif
+
+if ($LabelKey != '') then
+   if (! -f $labeltable) then
+      if (! $quiet_death) echo "Error: $labeltable not found"
+      goto BEND
+   endif
+   
+   #get the numbers
+   set labels = `niccc -quiet '-#' -stdout file:$labeltable \
+      | \grep '"'$LabelKey'"' \
+      | \sed 's/^ //g' | \sed 's/"//g' \
+      | \cut -d ' ' -f 2`
+   
+   if ($#labels < 1) then
+      if (! $quiet_death) \
+         echo "Error: Key $LabelKey has no match in labeltable $labeltable"
+      goto BEND
+   else if ($#labels > 1) then
+      if (! $quiet_death)  \
+echo "Error: Key $LabelKey has $#labels matches in labeltable $labeltable"
+      goto BEND
+   else
+      echo $labels
+   endif
+   
+   goto END
+endif
 
 MAKE_TABLE:
    set max_label = $llistmax[$#llistmax]
@@ -49,8 +160,9 @@ MAKE_TABLE:
    set nu = `wc -l /tmp/___llu.txt`
    set nu = $nu[1]
    if ($nu < $n) then
-      echo "ERROR: `ccalc -i $n -$nu` Labels dropped because of duplicates"
-      goto END
+      if (! $quiet_death) \
+         echo "ERROR: `ccalc -i $n -$nu` Labels dropped because of duplicates"
+      goto BEND
    endif
    set n = `wc -l /tmp/___kk.txt`
    set n = $n[1]
@@ -58,8 +170,9 @@ MAKE_TABLE:
    set nu = `wc -l /tmp/___kku.txt`
    set nu = $nu[1]
    if ($nu < $n) then
-      echo "ERROR: `ccalc -i $n -$nu` Keys dropped because of duplicates"
-      goto END
+      if (! $quiet_death) \
+         echo "ERROR: `ccalc -i $n -$nu` Keys dropped because of duplicates"
+      goto BEND
    endif
    
    
@@ -75,7 +188,6 @@ PUT_TABLE:
       3drefit -labeltable $labeltable $target_dset
    endif
    
-set stat = 0
 goto END
 
 PARSE:
@@ -85,116 +197,233 @@ PARSE:
    set llistmax = ''
 	set Narg = $#
    set target_dset = ''
+   set KeysLabel = ''
+   set LabelKey = ''
+   set verb = 0
+   set range = 0
+   set showlabels = 0
+   set showkeys = 0
+   set ltdset = ''
+   set quiet_death = 0
+   set maxkey = 0
+   set word_match = 0
+   set gopt = ()
 	set cnt = 1
    while ($cnt <= $Narg)
-      if ("$argv[$cnt]" == "-d") then
-         set NxtInd = $cnt
+      if ("$argv[$cnt]" == "-d" || "$argv[$cnt]" == "-echo") then
+         set verb = 1
          set echo
+         goto CONTINUE
       endif
+      
+      if ("$argv[$cnt]" == "-verb") then
+         set verb = 1
+         goto CONTINUE
+      endif
+      if ("$argv[$cnt]" == "-max_key") then
+         set maxkey = 1
+         goto CONTINUE
+      endif
+      if ("$argv[$cnt]" == "-quiet_death") then
+         set quiet_death = 1
+         goto CONTINUE
+      endif
+      if ("$argv[$cnt]" == "-labeltable_of_dset") then
+         set SubLoc = $cnt		
+		   if ($SubLoc == $Narg) then
+				if (! $quiet_death) echo "Need label after -labeltable_of_dset"
+            goto BEND
+			else
+				@ cnt ++
+				set ltdset = "$argv[$cnt]"
+            if (`@CheckForAfniDset $ltdset ` < 1) then
+               if (! $quiet_death) echo "Failed to find $ltdset"
+               goto BEND
+            endif 
+			endif
+         goto CONTINUE
+      endif
+      
+      if ("$argv[$cnt]" == "-all_labels") then
+         set showlabels = 1
+         set KeysLabel = ""
+         goto CONTINUE
+      endif
+      
+      if ("$argv[$cnt]" == "-all_keys") then
+         set showkeys = 1
+         set KeysLabel = ""
+         goto CONTINUE
+      endif
+      
+      if ("$argv[$cnt]" == "-match_label") then
+         set showlabels = 1
+         set SubLoc = $cnt		
+		   if ($SubLoc == $Narg) then
+				if (! $quiet_death) echo "Need label after -match_label"
+            goto BEND
+			else
+				@ cnt ++
+				set KeysLabel = "$argv[$cnt]"
+			endif
+         goto CONTINUE
+      endif
+      
+      if ("$argv[$cnt]" == "-word_label_match") then
+         set word_match = 1
+         set SubLoc = $cnt		
+         goto CONTINUE
+      endif
+
       if ("$argv[$cnt]" == "-labeltable") then
          set SubLoc = $cnt		
 		   if ($SubLoc == $Narg) then
-				echo "Need file after -labeltable"
-            goto END
+				if (! $quiet_death) echo "Need file after -labeltable"
+            goto BEND
 			else
 				@ cnt ++
 				set labeltable = `@NoExt "$argv[$cnt]" .niml .niml.lt`
             set labeltable = $labeltable.niml.lt
-            set NxtInd = $cnt
 			endif
+         goto CONTINUE
+      endif
+      
+      if ("$argv[$cnt]" == "-klabel") then
+         set SubLoc = $cnt		
+		   if ($SubLoc == $Narg) then
+				if (! $quiet_death) echo "Need LABEL after -klabel"
+            goto BEND
+			else
+				@ cnt ++
+				set LabelKey = `printf %d "$argv[$cnt]"`
+            if ($LabelKey != $argv[$cnt]) then
+               echo "$argv[$cnt] is not interpreted as an integer key"
+               goto BEND
+            endif
+			endif
+         goto CONTINUE
+      endif
+      if ("$argv[$cnt]" == "-lkeys") then
+         set SubLoc = $cnt		
+		   if ($SubLoc == $Narg) then
+				if (! $quiet_death) echo "Need LABEL after -lkeys"
+            goto BEND
+			else
+				@ cnt ++
+				set KeysLabel = "$argv[$cnt]"
+			endif
+         goto CONTINUE
+      endif
+      if ("$argv[$cnt]" == "-rkeys") then
+         set SubLoc = $cnt		
+		   if ($SubLoc == $Narg) then
+				if (! $quiet_death) echo "Need LABEL after -rkeys"
+            goto BEND
+			else
+				@ cnt ++
+				set KeysLabel = "$argv[$cnt]"
+            set range = 1
+			endif
+         goto CONTINUE
       endif
       
 		if ("$argv[$cnt]" == "-lab_r" || "$argv[$cnt]" == "-label_range") then
          set nneed = `ccalc -i $cnt + 3`
          if ($nneed > $Narg) then
-				echo "Need 2 values after -label_range"
-            goto END
+				if (! $quiet_death) echo "Need 2 values after -label_range"
+            goto BEND
 			else
 				@ cnt ++
             if ($argv[$cnt] =~ -*) then
-               echo "Label name $argv[$cnt] cannot start with '-'"
-               goto END
+               if (! $quiet_death) \
+                  echo "Label name $argv[$cnt] cannot start with '-'"
+               goto BEND
             endif 
             set llist = ($llist $argv[$cnt])
             @ cnt ++
             if ($argv[$cnt] =~ -*) then
-               echo "Label min range $argv[$cnt] cannot be '-'"
-               goto END
+               if (! $quiet_death) \
+                  echo "Label min range $argv[$cnt] cannot be '-'"
+               goto BEND
             endif 
             set llistmin = ($llistmin `ccalc -i $argv[$cnt]`)
             @ cnt ++
             if ($argv[$cnt] =~ -*) then
-               echo "Label min range $argv[$cnt] cannot be '-'"
-               goto END
+               if (! $quiet_death) \
+                  echo "Label min range $argv[$cnt] cannot be '-'"
+               goto BEND
             endif 
             set llistmax = ($llistmax `ccalc -i $argv[$cnt]`)
             if ($llistmax[$#llistmax] == 0 ||   \
                 $llistmin[$#llistmin] == 0 ||   \
                 $llistmin[$#llistmin] > $llistmax[$#llistmax]) then
-               printf "Bad range values of [%d %d] for label '%s'\n" \
+               if (! $quiet_death) \
+                  printf "Bad range values of [%d %d] for label '%s'\n" \
                    $llistmin[$#llistmin] $llistmax[$#llistmax] $llist[$#llist] 
-               goto END
+               goto BEND
             endif
-            set NxtInd = $cnt
 			endif
+         goto CONTINUE
       endif
 		if (  "$argv[$cnt]" == "-lab" || \
             "$argv[$cnt]" == "-lab_v" || \
             "$argv[$cnt]" == "-label_value") then
          set nneed = `ccalc -i $cnt + 2`
          if ($nneed > $Narg) then
-				echo "Need 1 value after -label_value"
-            goto END
+				if (! $quiet_death) \
+               echo "Need 1 value after -label_value"
+            goto BEND
 			else
 				@ cnt ++
             if ($argv[$cnt] =~ -*) then
-               echo "Label name $argv[$cnt] cannot start with '-'"
-               goto END
+               if (! $quiet_death) \
+                  echo "Label name $argv[$cnt] cannot start with '-'"
+               goto BEND
             endif 
             set llist = ($llist $argv[$cnt])
             @ cnt ++
             if ($argv[$cnt] =~ -*) then
-               echo "Label min range $argv[$cnt] cannot be '-'"
-               goto END
+               if (! $quiet_death) \
+                  echo "Label min range $argv[$cnt] cannot be '-'"
+               goto BEND
             endif 
             set llistmin = ($llistmin `ccalc -i $argv[$cnt]`)
             set llistmax = ($llistmax `ccalc -i $argv[$cnt]`)
-            set NxtInd = $cnt
 			endif
+         goto CONTINUE
       endif
       if ("$argv[$cnt]" == "-dset") then
          if ($cnt > $Narg) then
-            echo "Need a dset after -dset"
-            goto END
+            if (! $quiet_death) \
+               echo "Need a dset after -dset"
+            goto BEND
          endif
          @ cnt ++
          set target_dset = $argv[$cnt]
          if (`@CheckForAfniDset $target_dset` < 2) then
-            echo "-dset $target_dset not found"
-            goto END
+            if (! $quiet_death) \
+               echo "-dset $target_dset not found"
+            goto BEND
          endif 
-         set NxtInd = $cnt
-      endif 		
+         goto CONTINUE
+      endif 
+      
+      
+      echo "Error: Option or parameter '$argv[$cnt]' not understood"
+      goto BEND
+      
+      CONTINUE:		
 		@ cnt ++
 	end
 
-   @ NxtInd ++
-   if ( $NxtInd > $#argv ) then
-      set others_list = ( )
-   else
-      set others_list = ( $argv[$NxtInd-$#argv] )
-   endif
-
-   if ($#others_list > 0) then
-      echo "Options $others_list not understood"
-      goto END
-   endif
  
    
-   echo "Have:"
-   echo $llist
-   echo $llistmin
-   echo $llistmax
+   if (0) then
+      echo "Have:"
+      echo $llist
+      echo $llistmin
+      echo $llistmax
+   endif
       
    goto RETURN_PARSE
 
@@ -232,12 +461,33 @@ HELP:
    echo "      @FS_roi_label  -sname occi \"
    echo "                     -surf_annot_cmap lh.aparc.a2005s.annot.1D.cmap "
    echo ""
+   echo "Usage mode 2: Get information about an existing labeltable"
+   echo "    `basename $0` <-labeltable LABELTABLE> "
+   echo "        <[-lkeys LABEL] | [-rkeys LABEL] | [-all_labels] | [-all_keys]>"
+   echo ""
+   echo "    -all_labels: Return a listing of the labels"
+   echo "    -all_keys:  Return a listing of all keys"
+   echo "    -lkeys LABEL: Return the keys whose labels match LABEL"
+   echo "    -rkeys LABEL: Return the range (min max) of keys whose "
+   echo "                  labels match LABEL"
+   echo "    -klabel KEY: Return the label associated with KEY"
+   echo "    -match_label LABEL: Return labels matching LABEL"
+   echo "    -labeltable_of_dset DSET: Dump the labeltable from DSET"
+   echo "    -word_label_match: Use word matching (grep's -w )"
+   echo "                       With this option, 'Out' matches 'Out.l1'"
+   echo "                       but no longer matches 'OutSk'"
+   echo "    -quiet_death: Do not give error messages when failing"
+   echo "   Options in usage 2 are mutually exclusive"
    echo ""
    
-   set stat = 0
    goto END
-   
+
+BEND:
+   set stat = 1
+   goto END
+      
 END:
+if ($stat == 0 && -f $log) \rm /tmp/$log:t
 exit $stat   
 
  
