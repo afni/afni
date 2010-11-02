@@ -639,6 +639,7 @@ int main( int argc , char *argv[] )
    MRI_IMAGE *axxim , *axxim_psinv , *axxim_xtxinv ;
    MRI_IMAGE *bxxim , *bxxim_psinv , *bxxim_xtxinv ;
    float **dtar=NULL ;
+   int no_ttest = 0 ;  /* 02 Nov 2010 */
 
 #ifdef COVTEST
    float *ctarA=NULL , *ctarB=NULL ; char *ctnam ;
@@ -780,6 +781,15 @@ int main( int argc , char *argv[] )
 #endif
       "   ++ None of these options means anything for a 1-sample t-test\n"
       "      (i.e., where you don't use -setB).\n"
+#if 0
+      "\n"
+      "*** Special Option for Ziad Saad (and His Ilk) ***\n"
+      "\n"
+      " -no_ttest = Don't do any t-tests at all.  Just compute the correlations\n"
+      "             at each voxel for each dataset and transmit those to the\n"
+      "             master program (AFNI or SUMA).\n"
+      "            ++ This really is a special case, and not for the normal user.\n"
+#endif
       "\n"
       "*** Dataset-Level Covariates [26 May 2010] ***\n"
       "\n"
