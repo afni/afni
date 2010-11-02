@@ -39,7 +39,7 @@ endif
 ONED:
    set Im = `ccalc -i $Nelecs -1`
    count -column -digits 1 0 $Im > /tmp/ielec.1D
-   1deval -a /tmp/ielec.1D -expr 'gran(0,0.1)' > /tmp/yelec.1D
+   1deval -a /tmp/ielec.1D -expr 'a*0+gran(0,0.1)' > /tmp/yelec.1D
    1dcat /tmp/ielec.1D /tmp/yelec.1D /tmp/ielec.1D > /tmp/xyielec.1D
    goto MERGE_COORDS
 
@@ -118,10 +118,11 @@ PARSE:
          endif	
       endif
       
-      if ($donext && "$argv[$cnt]" == "-array") then
+      if ($donext && ("$argv[$cnt]" == "-array" || \
+                      "$argv[$cnt]" == "-strip" ) ) then
          set pLoc = $cnt		
 		   if ($pLoc == $Narg) then
-				echo "Need an integer after -array"
+				echo "Need an integer after -strip (-array)"
             goto END
 			else
             @ cnt ++
@@ -166,16 +167,16 @@ PARSE:
 HELP:
 echo ""
 echo "Usage: "
-echo "`basename $0` <[-array Nx] | [-grid Nx Ny]> "
+echo "`basename $0` <[-strip Nx] | [-grid Nx Ny]> "
 echo "              [-prefix PREFIX] [-coords XYZ.1D] "
 echo "              [-echo]"
 echo ""
 echo "Creates a mesh representation of an electrode grid for use with SUMA"
 echo ""
 echo "Mandatory parameters:"
-echo "   One of the two options -array or -grid"    
+echo "   One of the two options -strip or -grid"    
 echo ""      
-echo "   -array Nx: Make an Nx array of electrodes."
+echo "   -strip Nx: Make an Nx strip (array) of electrodes."
 echo ""          
 echo "   -grid Nx Ny: Make an Nx by Ny grid of electrodes."
 echo "                A node at (i,j) has a node ID = i+Nx*j with "
@@ -216,13 +217,13 @@ echo "   Node X coordinates are regularly spaced from 0 to 3."
 echo "   Node Y coordinates are small and random, to allow array "
 echo "   representation as a surface"
 echo ""
-echo "      @ElectroGrid -prefix flat4 -array 4"
+echo "      @ElectroGrid -prefix flat4 -strip 4"
 echo "      suma -i flat4.gii"
 echo ""
 echo "   Make a flat 4 electrode array and assign anatomical coordinates"
 echo "   in first three columns of file:   HPelectrodes_AF.1D"
 echo ""
-echo "      @ElectroGrid -prefix HP_array -array 4 \"
+echo "      @ElectroGrid -prefix HP_array -strip 4 \"
 echo "                   -coords  HPelectrodes_AF.1D'[0,1,2]'"
 echo "      suma -i HP_array.gii"
 echo ""    
