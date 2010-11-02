@@ -20,7 +20,7 @@ int main( int argc , char *argv[] )
    NI_stream ns ;
    void *nini = NULL, *vel=NULL;
    char *strm=NULL;
-   int nn, mode = NI_TEXT_MODE;
+   int nn, mode = NI_TEXT_MODE, shhh=0;
    int dodup = 0, nodata=0, dostderr=1;
    
    if( argc < 2 || !strcmp(argv[1], "-help") || !strcmp(argv[1], "-h")){
@@ -42,6 +42,8 @@ int main( int argc , char *argv[] )
               "         This is to test NI_duplicate function.\n"
               "   -nodata: Show header parts only in output\n"
               "   -stdout: write elements to stdout, instead of stderr\n"
+              "   -#: put the # at the beginning of lines with no data\n"
+              "   -quiet: quiet stderr messages\n"
               "\n");
       exit(0);
    }
@@ -55,6 +57,14 @@ int main( int argc , char *argv[] )
       }
       if (!strcmp(argv[nn],"-stdout")) {
          dostderr = 0; ++nn; continue;
+      }
+      if (!strcmp(argv[nn],"-#")) {
+         mode = mode|NI_HEADERSHARP_FLAG; 
+         ++nn; continue;
+      }
+      if (!strcmp(argv[nn],"-quiet")) {
+         shhh=1; 
+         ++nn; continue;
       }
       fprintf(stderr,
                "Bad option %s. See niccc -help for details.\n", 
@@ -91,12 +101,13 @@ int main( int argc , char *argv[] )
          fprintf(stderr,"*** niccc: read returns NULL\n");
        } else {
          if (dodup) {
-            fprintf(stderr,"*** niccc: duplicated returned element:\n");
+            if (!shhh) fprintf(stderr,
+                           "*** niccc: duplication returned element:\n");
             vel = NI_duplicate(nini, 1);
             NI_free_element( nini ) ; nini=NULL;
             NIML_to_terminal( vel, mode, dostderr ) ;
          } else {
-           fprintf(stderr,"*** niccc: read returned an element:\n") ;
+           if (!shhh) fprintf(stderr,"*** niccc: reading returned element:\n") ;
             NIML_to_terminal( nini, mode, dostderr ) ;
          }
          if (nini) NI_free_element( nini ) ; nini=NULL;
