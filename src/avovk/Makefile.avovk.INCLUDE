@@ -90,15 +90,15 @@ Aclustering:Aclustering_floatNOMASK.c cluster_floatNOMASK.o
          ${AVOVK_INCLUDE_PATH} ${AVOVK_LINK_PATH} \
          ${AVOVKLIB} ${AVOVK_LINK_LIB} -lgsl -lgslcblas 
          
-3dAclustering_fNM:3dAclustering_floatNM.c ${AFNI_3dOBJS} ${AVOVKLIB}
+3dkmeans:3dkmeans.c ${AFNI_3dOBJS} ${AVOVKLIB}
 	$(RM) $@
-	${CC} -o $@ 3dAclustering_floatNM.c \
+	${CC} -o $@ 3dkmeans.c \
          ${AFNI_3dOBJS} ${CCOPT} ${WARNOPT}   \
          ${AVOVK_INCLUDE_PATH} ${AVOVK_LINK_PATH} \
          ${AVOVKLIB} ${AVOVK_LINK_LIB} -lf2c -lgsl -lgslcblas 
 	
 
-progs: fit_onesign Aclustering 3dfit_onesign 3dAclustering_fNM  # 3dAclustering
+progs: fit_onesign Aclustering 3dfit_onesign 3dkmeans  # 3dAclustering
 
 
 all: ${AVOVKLIB} progs install 
@@ -112,4 +112,4 @@ install:
 	@if [ -f  Aclustering ]; then mv Aclustering ${INSTALLDIR}; fi;
 	@if [ -f  3dfit_onesign ]; then mv 3dfit_onesign ${INSTALLDIR}; fi;
 #	@if [ -f  3dAclustering ]; then mv 3dAclustering ${INSTALLDIR}; fi;
-	@if [ -f  3dAclustering_fNM ]; then mv 3dAclustering_fNM ${INSTALLDIR}; fi;	
+	@if [ -f  3dkmeans ]; then mv 3dkmeans ${INSTALLDIR}; fi;	
