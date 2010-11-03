@@ -30,6 +30,8 @@ static int                     TCAT_rlt   = 0 ;     /* remove linear trend? */
 static int                     TCAT_rqt   = 0 ;     /* 15 Nov 1999 */
 static int                     TCAT_rct   = 0 ;     /* 15 Nov 1999 */
 
+static int                     TCAT_relabel = 0 ;   /* 03 Nov 2010 */
+
 static char TCAT_output_prefix[THD_MAX_PREFIX] = "tcat" ;
 static char TCAT_session[THD_MAX_NAME]         = "./"   ;
 
@@ -44,9 +46,9 @@ static char TCAT_session[THD_MAX_NAME]         = "./"   ;
 
 /*--------------------------- prototypes ---------------------------*/
 
-void TCAT_read_opts( int , char ** ) ;
-void TCAT_Syntax(void) ;
-int * TCAT_get_subv( int , char * ) ;
+void  TCAT_read_opts( int , char ** ) ;
+void  TCAT_Syntax   ( void ) ;
+int * TCAT_get_subv ( int , char * ) ;
 
 /*--------------------------------------------------------------------
    read the arguments, load the global variables
@@ -67,6 +69,12 @@ void TCAT_read_opts( int argc , char *argv[] )
    INIT_XTARR(TCAT_subv) ;  /* array of sub-brick selector arrays */
 
    while( nopt < argc ){
+
+      /**** -relabel ****/
+
+      if( strcmp(argv[nopt],"-relabel") == 0 ){  /* 03 Nov 2010 */
+        TCAT_relabel++ ; nopt++ ; continue ;
+      }
 
       /**** -prefix prefix ****/
 
@@ -154,50 +162,50 @@ void TCAT_read_opts( int argc , char *argv[] )
         if( nopt >= argc )
           ERROR_exit("need argument after -glueto!") ;
 
-	 /*----- Verify that file name ends in View Type -----*/
-	 ok = 1;
-	 nlen = strlen(argv[nopt]);
-	 if (nlen <= 5) ok = 0;
+    /*----- Verify that file name ends in View Type -----*/
+    ok = 1;
+    nlen = strlen(argv[nopt]);
+    if (nlen <= 5) ok = 0;
 
 #define BACKASS   /* 03 Oct 2002 -- RWCox */
 
-	 if (ok)
-	   {
+    if (ok)
+      {
 #ifndef BACKASS
-	     for (ilen = 0;  ilen < nlen;  ilen++)     /* BDW: scan forward */
+        for (ilen = 0;  ilen < nlen;  ilen++)     /* BDW: scan forward */
 #else
              for( ilen=nlen-3 ; ilen >= 0 ; ilen-- )   /* RWC: scan backward */
 #endif
-	       {
-		 str = argv[nopt] + ilen;
-		 if (str[0] == '+') break;
-	       }
+          {
+       str = argv[nopt] + ilen;
+       if (str[0] == '+') break;
+          }
 #ifndef BACKASS
-	     if (ilen == nlen)  ok = 0;
+        if (ilen == nlen)  ok = 0;
 #else
              if (ilen <= 0   )  ok = 0;
 #endif
-	   }
+      }
 
-	 if (ok)
-	   {
-	     str = argv[nopt] + ilen + 1;
+    if (ok)
+      {
+        str = argv[nopt] + ilen + 1;
 
-	     for (ii=FIRST_VIEW_TYPE ; ii <= LAST_VIEW_TYPE ; ii++)
-	       if (! strncmp(str,VIEW_codestr[ii],4)) break ;
-	
-	     if( ii > LAST_VIEW_TYPE )  ok = 0;
-	   }
+        for (ii=FIRST_VIEW_TYPE ; ii <= LAST_VIEW_TYPE ; ii++)
+          if (! strncmp(str,VIEW_codestr[ii],4)) break ;
 
-	 if (! ok)
-	     ERROR_exit(
-	       "File name must end in +orig, +acpc, or +tlrc after -glueto");
+        if( ii > LAST_VIEW_TYPE )  ok = 0;
+      }
 
-	 /*----- Remove View Type from string to make output prefix -----*/
+    if (! ok)
+        ERROR_exit(
+          "File name must end in +orig, +acpc, or +tlrc after -glueto");
+
+    /*----- Remove View Type from string to make output prefix -----*/
          MCW_strncpy( TCAT_output_prefix , argv[nopt] , ilen+1) ;
 
-	 /*----- Note: no "continue" statement here.  File name will now
-	   be processed as an input dataset -----*/
+    /*----- Note: no "continue" statement here.  File name will now
+      be processed as an input dataset -----*/
       }
 
       if( argv[nopt][0] == '-' ) ERROR_exit("Unknown option: %s",argv[nopt]) ;
@@ -280,7 +288,7 @@ void TCAT_read_opts( int argc , char *argv[] )
 
 int * TCAT_get_subv( int nvals , char *str )
 {
-   int * subv = NULL ;
+   int *subv = NULL ;
    int ii , ipos , nout , slen ;
    int ibot,itop,istep , nused ;
    char * cpt ;
@@ -444,6 +452,9 @@ void TCAT_Syntax(void)
     "                    (4) -rlt can be used on datasets that contain shorts\n"
     "                          or floats, but not on complex- or byte-valued\n"
     "                          datasets.\n"
+    "     -relabel      = Replace any sub-brick labels in an input dataset\n"
+    "                       with the input dataset name -- this might help\n"
+    "                       identify the sub-bricks in the output dataset.\n"
     "\n"
     "Command line arguments after the above are taken as input datasets.\n"
     "A dataset is specified using one of these forms:\n"
@@ -673,17 +684,17 @@ int main( int argc , char *argv[] )
          jv = SUBV(ids,iv) ;                /* which sub-brick to use */
 
          if( ! TCAT_dry ){
-            EDIT_substitute_brick( new_dset , ivout ,
-                                   DSET_BRICK_TYPE(dset,jv) , DSET_ARRAY(dset,jv) ) ;
+           EDIT_substitute_brick( new_dset , ivout ,
+                                  DSET_BRICK_TYPE(dset,jv) , DSET_ARRAY(dset,jv) ) ;
 
        /*----- If this sub-brick is from a bucket dataset,
                     preserve the label for this sub-brick -----*/
 
-       if( DSET_HAS_LABEL(dset,jv) )   
-         sprintf (buf, "%s", DSET_BRICK_LABEL(dset,jv));
-       else
-         sprintf(buf,"%.12s[%d]",DSET_PREFIX(dset),jv) ;
-            EDIT_dset_items( new_dset, ADN_brick_label_one+ivout, buf, ADN_none );
+         if( !TCAT_relabel && DSET_HAS_LABEL(dset,jv) )
+           sprintf (buf, "%s", DSET_BRICK_LABEL(dset,jv));
+         else
+           sprintf(buf,"%.16s[%d]",DSET_PREFIX(dset),jv) ;
+         EDIT_dset_items( new_dset, ADN_brick_label_one+ivout, buf, ADN_none );
 
 #if 0
             sprintf(buf,"%s[%d]",DSET_FILECODE(dset),jv) ;
@@ -691,7 +702,7 @@ int main( int argc , char *argv[] )
               new_dset, ADN_brick_keywords_replace_one+ivout, buf, ADN_none ) ;
 #endif
 
-            EDIT_dset_items(
+         EDIT_dset_items(
               new_dset ,
                 ADN_brick_fac_one            +ivout, DSET_BRICK_FACTOR(dset,jv),
 #if 0
