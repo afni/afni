@@ -448,7 +448,7 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
 
    if( verb ) verb = (blk->total_bytes > print_size) ;
    if( verb )
-     fprintf(stderr,"reading dataset %s (%s bytes)",
+     fprintf(stderr,"reading %s (%s bytes)",
              dkptr->filecode ,
              approximate_number_string((double)blk->total_bytes) ) ;
 
@@ -826,6 +826,11 @@ ENTRY("THD_alloc_datablock") ;
       /** malloc space for each brick separately **/
 
       STATUS("trying to malloc sub-bricks") ;
+
+      if( verbose && blk->total_bytes >= 1000000000ll )
+        fprintf(stderr,"malloc(%s bytes)",
+                approximate_number_string((double)blk->total_bytes) ) ;
+
       for( nbad=ibr=0 ; ibr < nv ; ibr++ ){
         if( DBLK_ARRAY(blk,ibr) == NULL ){
           ptr = AFMALL(char, DBLK_BRICK_BYTES(blk,ibr) ) ;
