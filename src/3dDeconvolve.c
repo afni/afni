@@ -4632,6 +4632,11 @@ void check_for_valid_inputs
       }
     }
 
+  if( N < nt )  /* 03 Nov 2010 [Tea Party Day] */
+    INFO_message("Number of time points: %d (before censor) ; %d (after)",nt,N) ;
+  else
+    INFO_message("Number of time points: %d (no censoring)",nt) ;
+  ININFO_message("Number of parameters:  %d [%d baseline ; %d signal]",p,q,p-q) ;
 
   /*----- Check for sufficient data -----*/
   if (N == 0)  DC_error ("No usable time points?");
