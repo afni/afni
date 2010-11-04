@@ -219,9 +219,10 @@ g_history = """
         - create sum_ideal.1D is now the default
         - allow varying basis functions (affects ideals/iresp output)
         - added -regress_no_ideal_sum, -regress_basis_multi
+    2.39 Nov 04 2010 : no X.full_length.xmat.1D, use X.uncensored.xmat.1D
 """
 
-g_version = "version 2.38, Nov 4, 2010"
+g_version = "version 2.39, Nov 4, 2010"
 
 # version of AFNI required for script execution
 g_requires_afni = "4 Nov 2010"
