@@ -215,13 +215,16 @@ g_history = """
         - allow married timing files (needed for -test_stim_files)
         - added -keep_script_on_err (NEW default: delete script on error)
     2.37 Oct 20 2010 : added -tcat_remove_last_trs, -ricor_regs_rm_nlast
-        
+    2.38 Nov 04 2010 :
+        - create sum_ideal.1D is now the default
+        - allow varying basis functions (affects ideals/iresp output)
+        - added -regress_no_ideal_sum, -regress_basis_multi
 """
 
-g_version = "version 2.37, Oct 20, 2010"
+g_version = "version 2.38, Nov 4, 2010"
 
 # version of AFNI required for script execution
-g_requires_afni = "19 Jul 2010"
+g_requires_afni = "4 Nov 2010"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
@@ -552,6 +555,8 @@ class SubjProcSream:
                         helpstr="apply the mask in regression")
         self.valid_opts.add_opt('-regress_basis', 1, [],
                         helpstr="basis function to use in regression")
+        self.valid_opts.add_opt('-regress_basis_multi', -1, [],
+                        helpstr="one basis function per stimulus class")
         self.valid_opts.add_opt('-regress_basis_normall', 1, [],
                         helpstr="specify magnitude of basis functions")
 
@@ -612,6 +617,8 @@ class SubjProcSream:
                         helpstr="apply -local_times option to 3dDeconvolve")
         self.valid_opts.add_opt('-regress_make_ideal_sum', 1, [],
                         helpstr="filename for sum of ideal regressors")
+        self.valid_opts.add_opt('-regress_no_ideal_sum', 0, [],
+                        helpstr="do not compute the sum of regressors")
         self.valid_opts.add_opt('-regress_no_fitts', 0, [],
                         helpstr="do not output a fit timeseries dataset")
         self.valid_opts.add_opt('-regress_no_ideals', 0, [],
