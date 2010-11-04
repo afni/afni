@@ -6772,6 +6772,8 @@ int AFNI_set_dset_pbar(XtPointer *vp_im3d)
 
 /*   if (!AFNI_yesenv("AFNI_CMAP_AUTO")) RETURN(0);*/
 
+   if( AFNI_noenv("AFNI_CMAP_AUTO") || AFNI_noenv("AFNI_PBAR_AUTO") ) RETURN(0);
+
    im3d = (Three_D_View *)vp_im3d;
    if( !IM3D_OPEN(im3d) ) RETURN(0) ;
 

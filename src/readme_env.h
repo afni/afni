@@ -2325,6 +2325,12 @@ static char * readme_env[] = {
    "coordinated.  Changes to one locked pbar will be reflected in the\n" ,
    "others immediately.\n" ,
    "\n" ,
+   "------------------------\n" ,
+   "Variable: AFNI_PBAR_AUTO  (or AFNI_CMAP_AUTO)\n" ,
+   "------------------------\n" ,
+   "If this variable is set to NO, then the automatic color bar switching\n" ,
+   "(that was introduced by Ziad Saad) will be turned off.\n" ,
+   "\n" ,
    "-------------------------\n" ,
    "Variable: AFNI_RANGE_LOCK (editable)\n" ,
    "-------------------------\n" ,
@@ -3125,4 +3131,4 @@ static char * readme_env[] = {
    "behavior, set this variable to YES.\n" ,
    "\n" ,
    NULL } ;
-#define NUM_readme_env 3125
+#define NUM_readme_env 3131

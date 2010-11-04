@@ -45,6 +45,10 @@ afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
  { 4 , NOV , 2010 , RWC , "afni" , MICRO , TYPE_NEW_ENV ,
+   "Re-invoked AFNI_PBAR_AUTO / AFNI_CMAP_AUTO" ,
+   "Which Ziad had commented out for reasons he won't explain." } ,
+
+ { 4 , NOV , 2010 , RWC , "afni" , MICRO , TYPE_NEW_ENV ,
    "Add AFNI_THRESH_TOP_EXPON to allow larger range of thresholds." ,
    "For Phil Kohn." } ,
 
