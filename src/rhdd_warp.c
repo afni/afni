@@ -31,7 +31,11 @@ typedef struct {
 /*----------------------------------------------------------------------------*/
 
 typedef struct {
-  mat44 amat ;
+  mat44 amat ;                /*    12 params */
+  mat33 dmat ;                /*     9 params */
+  int    nrh ;
+  float *xrh , *yrh , *zrh ;  /* 3*nrh params */
+  RHDD_array *rar ;
 } RHDD_warp ;
 
 /*----------------------------------------------------------------------------*/
