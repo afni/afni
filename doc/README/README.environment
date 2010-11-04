@@ -1995,6 +1995,13 @@ If this YES/NO variable is set to YES, then whenever you switch overlay datasets
 the function threshold slider will automatically change to some value that may
 be appropriate for the values in the new dataset.  [This is for Ziad!]
 
+-------------------------------
+Variable: AFNI_THRESH_TOP_EXPON
+-------------------------------
+This variable defines the top value for the '**' setting underneath the Overlay
+threshold slider.  By default, this value is 4, but you can change that to 5
+or 6 with this variable.  [This is for Phil Kohn]
+
 ------------------------------
 Variable: AFNI_SNAPFILE_PREFIX
 ------------------------------
