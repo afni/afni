@@ -502,9 +502,9 @@ ENTRY("AFNI_thrdrag_lock_carryout") ;
 
    busy = 1 ;  /* don't let this routine be called recursively */
 
-   ival   = rint(im3d->vinfo->func_threshold/THR_FACTOR) ;
+   ival   = rint(im3d->vinfo->func_threshold/THR_factor) ;
    thresh = im3d->vinfo->func_threshold * im3d->vinfo->func_thresh_top ;
-   stop   = (int)( rint( pow(10.0,THR_TOP_EXPON) ) - 1.0 ) ;
+   stop   = (int)( rint( pow(10.0,THR_top_expon) ) - 1.0 ) ;
 
    if( dopval ){
      pval = THD_stat_to_pval( thresh ,
@@ -531,7 +531,7 @@ ENTRY("AFNI_thrdrag_lock_carryout") ;
            tval = THD_pval_to_stat( pval ,
                     DSET_BRICK_STATCODE(qq3d->fim_now,qq3d->vinfo->thr_index),
                     DSET_BRICK_STATAUX (qq3d->fim_now,qq3d->vinfo->thr_index) );
-           ival = rint( tval/(THR_FACTOR*qq3d->vinfo->func_thresh_top) ) ;
+           ival = rint( tval/(THR_factor*qq3d->vinfo->func_thresh_top) ) ;
            if( ival < 0 ) ival = 0 ; else if( ival > stop ) ival = stop ;
 
          } else if( !dothresh ){
@@ -541,7 +541,7 @@ ENTRY("AFNI_thrdrag_lock_carryout") ;
          /* set the slider and pval marker */
 
          XmScaleSetValue( qq3d->vwid->func->thr_scale , ival ) ;
-         qq3d->vinfo->func_threshold = THR_FACTOR * ival ;
+         qq3d->vinfo->func_threshold = THR_factor * ival ;
          AFNI_set_thr_pval( qq3d ) ;
        }
      }

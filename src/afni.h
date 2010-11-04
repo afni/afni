@@ -608,9 +608,21 @@ typedef struct {
 
 #define THR_PVAL_LABEL_NONE " [N/A] "
 
+#if 0
 #define THR_TOP_EXPON  4         /* 30 Nov 1997 */
 #define THR_FACTOR     0.0001    /* pow(10,-THR_TOP_EXPON) */
 #define THR_TOP_VALUE  9999.0    /* pow(10,THR_TOP_EXPON)-1 */
+#endif
+
+#ifdef MAIN
+int   THR_top_expon = 4       ;
+float THR_factor    = 0.0001f ;
+float THR_top_value = 9999.0f ;
+#else
+extern int   THR_top_expon ;
+extern float THR_factor    ;
+extern float THR_top_value ;
+#endif
 
 #undef USE_FUNC_FIM              /* 09 Dec 1997 */
 

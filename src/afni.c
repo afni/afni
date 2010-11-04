@@ -1620,6 +1620,18 @@ int main( int argc , char *argv[] )
      AFNI_mark_environ_done() ;                           /* 16 Apr 2000 */
    }
 
+   /* set top exponent for threshold slider [04 Nov 2010] */
+
+   { static float tval[9] = { 1.0f , 10.0f , 100.0f , 1000.0f , 10000.0f ,
+                              100000.0f , 1000000.0f , 10000000.0f , 100000000.0f } ;
+     ii = AFNI_numenv("AFNI_THRESH_TOP_EXPON") ;
+          if( ii < 4 ) ii = 4 ;
+     else if( ii > 6 ) ii = 6 ;
+     THR_top_expon = ii ;
+     THR_factor    = 1.0f / tval[ii] ;
+     THR_top_value = tval[ii] - 1.0f ;
+   }
+
 /* INFO_message("AFNI_IMAGE_SAVESQUARE = %s",getenv("AFNI_IMAGE_SAVESQUARE")); */
 
    AFNI_load_defaults( MAIN_shell ) ;
@@ -3922,12 +3934,12 @@ if(PRINT_TRACING)
           case '}':{   /* Change the threshold slider up or down */
             int scl ; float fff,dff,nff ;
             XmScaleGetValue( im3d->vwid->func->thr_scale , &scl ) ;
-            fff = scl * im3d->vinfo->func_thresh_top * THR_FACTOR ;
+            fff = scl * im3d->vinfo->func_thresh_top * THR_factor ;
             dff = im3d->vinfo->func_thresh_top * 0.01f ;
             if( cbs->key == '{' ) dff = -dff ;
             nff = fff+dff ;
                  if( nff < 0.0f          ) nff = 0.0f ;
-            else if( nff > THR_TOP_VALUE ) nff = THR_TOP_VALUE ;
+            else if( nff > THR_top_value ) nff = THR_top_value ;
             if( nff != fff ) AFNI_set_threshold( im3d , nff ) ;
           }
           break ;
@@ -7847,7 +7859,7 @@ STATUS(" -- set threshold to zero for FIM (once only)") ;
       /** Mar 1996: modify the threshold scale stuff **/
       /** Oct 1996: increase decim by 1 to allow for
                     new precision 0..999 of scale (used to be 0..99) **/
-      /** Nov 1997: the scale precision is now set by macro THR_TOP_EXPON,
+      /** Nov 1997: the scale precision is now set by macro THR_top_expon,
                     and its settings are done in routine AFNI_set_thresh_top **/
 
       if( have_thr ){

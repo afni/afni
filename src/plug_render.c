@@ -4898,7 +4898,7 @@ void REND_func_widgets(void)
    XmStringFree(xstr) ;
 
  { int smax , stop , decim , sstep ;                  /* 30 Nov 1997:       */
-   decim = THR_TOP_EXPON ;                            /* compute parameters */
+   decim = THR_top_expon ;                            /* compute parameters */
    smax  = (int)( pow(10.0,decim) + 0.001 ) ;         /* for scale display. */
    stop  = smax - 1 ;
    sstep = smax / 1000 ;  if( sstep < 1 ) sstep = 1 ;
@@ -4975,7 +4975,7 @@ void REND_func_widgets(void)
    wfunc_thr_top_av = new_MCW_arrowval( wfunc_thr_rowcol ,
                                         "**" ,
                                         MCW_AV_optmenu ,
-                                        0,THR_TOP_EXPON,0 ,
+                                        0,THR_top_expon,0 ,
                                         MCW_AV_notext , 0 ,
                                         REND_thresh_top_CB , NULL ,
                                         REND_thresh_tlabel_CB , NULL ) ;
@@ -5760,7 +5760,7 @@ void REND_thr_scale_CB( Widget w, XtPointer client_data, XtPointer call_data )
    XmScaleCallbackStruct * cbs = (XmScaleCallbackStruct *) call_data ;
    float fff ;
 
-   fff = THR_FACTOR * cbs->value ;  /* between 0 and 1 now */
+   fff = THR_factor * cbs->value ;  /* between 0 and 1 now */
    if( fff >= 0.0 && fff <= 1.0 ) func_threshold = fff ; else return ;
    REND_set_thr_pval() ;
    MCW_discard_events_all( w , ButtonPressMask ) ;  /* 20 Mar 2007 */
@@ -5779,7 +5779,7 @@ void REND_thr_scale_drag_CB( Widget w, XtPointer client_data, XtPointer call_dat
    XmScaleCallbackStruct * cbs = (XmScaleCallbackStruct *) call_data ;
    float fff ;
 
-   fff = THR_FACTOR * cbs->value ;  /* between 0 and 1 now */
+   fff = THR_factor * cbs->value ;  /* between 0 and 1 now */
    if( fff >= 0.0 && fff <= 1.0 ) func_threshold = fff ; else return ;
    REND_set_thr_pval() ;
 
@@ -5837,7 +5837,7 @@ void REND_thresh_top_CB( MCW_arrowval * av , XtPointer cd )
 
    tval = dval[av->ival] ; if( tval <= 0.0 ) tval = 1.0 ;
 
-   decim = (2*THR_TOP_EXPON) - (int)(THR_TOP_EXPON + 0.01 + log10(tval)) ;
+   decim = (2*THR_top_expon) - (int)(THR_top_expon + 0.01 + log10(tval)) ;
    if( decim < 0 ) decim = 0 ;
 
    XtVaSetValues( wfunc_thr_scale, XmNdecimalPoints, decim, NULL ) ;
@@ -7878,8 +7878,8 @@ fprintf(stderr,"** New overlay dataset doesn't match underlay dimensions!\n") ;
       { static float dval[9] = { 1.0 , 10.0 , 100.0 , 1000.0 , 10000.0 ,
                                  100000.0 , 1000000.0 , 10000000.0 , 100000000.0 } ;
 
-        if( RSOK(func_thresh_top,1.0,dval[THR_TOP_EXPON]) ){
-           for( ii=THR_TOP_EXPON ; ii > 0 ; ii-- )
+        if( RSOK(func_thresh_top,1.0,dval[THR_top_expon]) ){
+           for( ii=THR_top_expon ; ii > 0 ; ii-- )
               if( rs->func_thresh_top >= dval[ii] ) break ;
 
            AV_assign_ival( wfunc_thr_top_av , ii ) ;
@@ -7889,7 +7889,7 @@ fprintf(stderr,"** New overlay dataset doesn't match underlay dimensions!\n") ;
 
       if( RSOK(func_threshold,0.0,0.9999) ){
          XmScaleCallbackStruct cbs ;
-         cbs.value = (int)( rs->func_threshold / THR_FACTOR + 0.01 ) ;
+         cbs.value = (int)( rs->func_threshold / THR_factor + 0.01 ) ;
          REND_thr_scale_CB( NULL,NULL , &cbs ) ;
          XmScaleSetValue( wfunc_thr_scale , cbs.value ) ;  /* oops, forgot this! 12 Apr 2000 */
       }
