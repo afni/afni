@@ -132,7 +132,7 @@ def make_outlier_commands(proc):
         cs0 = '\n'                                                            \
           '    # censor outlier TRs per run, ignoring the first %d TRs\n'     \
           '    # - censor when more than %g of automask voxels are outliers\n'\
-          '    # - step() defines which TRs to remove\n'                      \
+          '    # - step() defines which TRs to remove via censoring\n'        \
           '    1deval -a outcount_r$run.1D '                                  \
           '-expr "1-step(a-%g)%s" > rm.out.cen.r$run.1D\n'                    \
           % (nskip, censor, censor, dstr)
@@ -234,8 +234,7 @@ def db_cmd_align(proc, block):
         return
 
     # first note EPI alignment base and sub-brick, as done in volreg block
-    # ## rcr: alignEA EPI and base might be given externally
-    #         via -align_epi_base_dset
+    # (alignEA EPI and base might be given externally via -align_epi_base_dset)
     if proc.align_ebase != None:
         basevol = "%s%s" % (proc.align_epre,proc.view)
         bind = 0
@@ -1617,7 +1616,8 @@ def db_mod_regress(block, proc, user_opts):
 
         block.opts.add_opt('-regress_opts_3dD', -1, [])
         block.opts.add_opt('-regress_opts_reml', -1, [])
-        block.opts.add_opt('-regress_make_ideal_sum', 1, [])
+        block.opts.add_opt('-regress_make_ideal_sum', 1, ['sum_ideal.1D'],
+                                                       setpar=1)
         block.opts.add_opt('-regress_errts_prefix', 1, [])
         block.opts.add_opt('-regress_fitts_prefix', 1, ['fitts.$subj'],
                                                        setpar=1)
@@ -1629,14 +1629,36 @@ def db_mod_regress(block, proc, user_opts):
     bopt = block.opts.find_opt('-regress_basis')
     if uopt and bopt:
         bopt.parlist[0] = uopt.parlist[0]
+        # rcr - may have many basis functions, if any have unknown response
+        #       curve, set iresp prefix for them
+        # add iresp output for any unknown response curves
         if not UTIL.basis_has_known_response(bopt.parlist[0], warn=1):
             if not user_opts.find_opt('-regress_iresp_prefix'):
                 block.opts.add_opt('-regress_iresp_prefix',1,['iresp'],setpar=1)
-        uopt = user_opts.find_opt('-regress_make_ideal_sum')
-        if uopt and not UTIL.basis_has_known_response(bopt.parlist[0]):
-            print '** -regress_make_ideal_sum is inappropriate for basis %s'\
-                  % bopt.parlist[0]
-            errs += 1
+        # rcr - maybe let 1d_tool.py compute sum in any case
+        #       1d_tool -infile X.xmat.1D -show_indices_interest
+        # uopt = user_opts.find_opt('-regress_make_ideal_sum')
+        # if uopt and not UTIL.basis_has_known_response(bopt.parlist[0]):
+        #    print '** -regress_make_ideal_sum is inappropriate for basis %s'\
+        #          % bopt.parlist[0]
+        #    errs += 1
+
+    # handle processing one basis functions per class
+    uopt = user_opts.find_opt('-regress_basis_multi')
+    if uopt:
+        # either add or modify block version of option
+        bopt = block.opts.find_opt('-regress_basis_multi')
+        if bopt: bopt.parlist = uopt.parlist
+        else: block.opts.add_opt('-regress_basis_multi', -1, uopt.parlist,
+                                 setpar=1)
+        bopt = block.opts.find_opt('-regress_basis_multi')
+
+        # if any basis has unknown response curve, set iresp prefix
+        for basis in bopt.parlist:
+           if not UTIL.basis_has_known_response(basis, warn=1):
+              if not user_opts.find_opt('-regress_iresp_prefix'):
+                block.opts.add_opt('-regress_iresp_prefix',1,['iresp'],setpar=1)
+              break
 
     # set basis_normall only via user option
     uopt = user_opts.find_opt('-regress_basis_normall')
@@ -1716,6 +1738,11 @@ def db_mod_regress(block, proc, user_opts):
     bopt = block.opts.find_opt('-regress_make_ideal_sum')
     if uopt and bopt:
         bopt.parlist = uopt.parlist
+
+    uopt = user_opts.find_opt('-regress_no_ideal_sum')
+    if uopt:
+        bopt = block.opts.find_opt('-regress_no_ideal_sum')
+        if not bopt: block.opts.add_opt('-regress_no_ideal_sum', 0,[],setpar=1)
 
     uopt = user_opts.find_opt('-regress_opts_3dD')      # 3dDeconvolve
     bopt = block.opts.find_opt('-regress_opts_3dD')
@@ -1974,7 +2001,21 @@ def db_mod_regress(block, proc, user_opts):
 def db_cmd_regress(proc, block):
     cmd = ''
     opt = block.opts.find_opt('-regress_basis')
-    basis = opt.parlist[0]
+    basis = opt.parlist  # as a list, to incorporate -regress_basis_multi
+
+    opt = block.opts.find_opt('-regress_basis_multi')
+    if opt: basis = opt.parlist # override any -regress_basis
+
+    # expand the basis list to match stims
+    if len(proc.stims) != len(basis):
+        # if just one basis function, duplicate for each stim, else error
+        if len(basis) == 1:
+            if proc.verb > 2: print '-- duplicating single basis function'
+            basis = [basis[0] for ind in range(len(proc.stims))]
+        else:
+            print '** error: have %d basis functions but %d stim classes' \
+                  % (len(basis), len(proc.stims))
+            return
 
     opt = block.opts.find_opt('-regress_basis_normall')
     if opt: normall = '    -basis_normall %s \\\n' % opt.parlist[0]
@@ -2105,24 +2146,26 @@ def db_cmd_regress(proc, block):
                   "   have: %s" % (nregs, roni_list)
             return
 
-    # we need labels for iresp
+    # add iresp options for basis functions without known response functions
     opt = block.opts.find_opt('-regress_iresp_prefix')
     if not opt or not opt.parlist: iresp = ''
     else:
         iresp = ''
         for index in range(len(labels)):
-            iresp = iresp + "    -iresp %d %s_%s.$subj \\\n" % \
-                            (index+1, opt.parlist[0], labels[index])
+            if not UTIL.basis_has_known_response(basis[index]):
+                iresp = iresp + "    -iresp %d %s_%s.$subj \\\n" % \
+                                (index+1, opt.parlist[0], labels[index])
 
     # write out stim lines (add -stim_base to any RONI)
-
     sfiles = block.opts.find_opt('-regress_no_stim_times')
     for ind in range(len(proc.stims)):
+        # rcr - allow -stim_times_AM/IM here?  make user choose one?
+        #       (so mabye -stim_times can be set from proc.stim_times_opt)
         if sfiles:  # then -stim_file and no basis function
             cmd = cmd + "    -stim_file %d %s \\\n" % (ind+1,proc.stims[ind])
         else:
             cmd = cmd + "    -stim_times %d %s '%s' \\\n"  % \
-                        (ind+1, proc.stims[ind], basis)
+                        (ind+1, proc.stims[ind], basis[ind])
         # and add the label
         if ind+1 in roni_list: rstr = '-stim_base %d ' % (ind+1)
         else:                  rstr = ''
@@ -2287,27 +2330,38 @@ def db_cmd_regress(proc, block):
 
     # extract ideal regressors, and possibly make a sum
     opt = block.opts.find_opt('-regress_no_ideals')
-    if not opt and UTIL.basis_has_known_response(basis):
-        # then we compute individual ideal files for each stim
-        cmd = cmd + "# create ideal files for each stim type\n"
-        first = (polort+1) * proc.runs
-        for ind in range(len(labels)):
-            cmd = cmd + "1dcat %s'[%d]' > ideal_%s.1D\n" % \
-                        (proc.xmat, first+ind, labels[ind])
-        cmd = cmd + '\n'
+    if not opt and len(basis) > 0:
+        if len(labels) != len(basis):
+            print '** internal error: label and basis arrays not equal lengths'
+            print '   (%d labels, %d basis functions)'%(len(labels),len(basis))
+            return
+        # while basis functions are known, extract ideals
+        # (so no ideal after unknown, and therefore first must be known)
+        if UTIL.basis_has_known_response(basis[0]):
+            cmd = cmd + "# create ideal files for fixed response stim types\n"
+            first = (polort+1) * proc.runs
+            for ind in range(len(labels)):
+                # once unknown, quit
+                if not UTIL.basis_has_known_response(basis[ind]): break
+                cmd = cmd + "1dcat %s'[%d]' > ideal_%s.1D\n" % \
+                            (proc.xmat, first+ind, labels[ind])
+            cmd = cmd + '\n'
+        else: print '-- classes have multiple regressors, so not making ideals'
 
     opt = block.opts.find_opt('-regress_make_ideal_sum')
-    if opt and opt.parlist:
+    nopt = block.opts.find_opt('-regress_no_ideal_sum')
+    # opt should always be set, so let nopt override
+    if opt and opt.parlist and not nopt:
         first = (polort+1) * proc.runs
         last = first + len(proc.stims) - 1
-        if first == last: # use 1dcat to extract just the one column
-           cmd = cmd + '# only 1 regressor for ideal "sum", so use 1dcat\n'
-           cmd = cmd + "1dcat %s'[%d]' > %s\n\n" % \
-                       (proc.xmat, first, opt.parlist[0])
-        else:
-           cmd = cmd + "# compute sum of ideals from X-matrix\n"
-           cmd = cmd + "3dTstat -sum -prefix %s %s'[%d..%d]'\n\n" % \
-                       (opt.parlist[0], proc.xmat, first, last)
+        # get regressors of interest from X-matrix, rather than in python
+        # (this requires check_date of 2 Nov 2010)
+        cmd = cmd +                                                        \
+               "# compute sum of non-baseline regressors from the X-matrix\n" \
+               "# (use 1d_tool.py to get list of regressor colums)\n"      \
+               "set reg_cols = `1d_tool.py -infile %s -show_%s`\n"         \
+               '3dTstat -sum -prefix %s %s"[$reg_cols]"\n\n' %             \
+               (proc.xmat, "indices_interest", opt.parlist[0], proc.xmat)
 
     # check for blur estimates
     bcmd = db_cmd_blur_est(proc, block)
@@ -2794,7 +2848,7 @@ def valid_file_types(proc, stims, file_type):
         if file_type == 10: file_type = 2
 
         if file_type == 1:
-            adata.looks_like_1D(run_lens=proc.reps_all, tr=proc.tr, verb=3)
+            adata.looks_like_1D(run_lens=proc.reps_all, verb=3)
         elif file_type == 2:
             adata.looks_like_local_times(run_lens=proc.reps_all, tr=proc.tr,
                                          verb=3)
@@ -3058,7 +3112,6 @@ g_help_string = """
                             -glt_label 2 face_contrast                     \\
                             -gltsym 'SYM: tpos epos fpos -tneg -eneg -fneg'\\
                             -glt_label 3 pos_vs_neg                        \\
-                        -regress_make_ideal_sum sum_ideal.1D               \\
                         -regress_est_blur_epits                            \\
                         -regress_est_blur_errts
 
@@ -3134,7 +3187,6 @@ g_help_string = """
                         -regress_stim_labels tneg tpos tneu eneg epos      \\
                                              eneu fneg fpos fneu           \\
                         -regress_basis 'BLOCK(30,1)'                       \\
-                        -regress_make_ideal_sum sum_ideal.1D               \\
                         -regress_est_blur_epits                            \\
                         -regress_est_blur_errts
 
@@ -3174,13 +3226,61 @@ g_help_string = """
                         -regress_opts_3dD                                  \\
                             -gltsym 'SYM: +eneg -fneg'                     \\
                             -glt_label 1 eneg_vs_fneg                      \\
-                        -regress_make_ideal_sum sum_ideal.1D               \\
                         -regress_est_blur_epits                            \\
                         -regress_est_blur_errts
 
            To process in orig space, remove -volreg_tlrc_warp.
            To apply manual tlrc transformation, use -volreg_tlrc_adwarp.
            To process as anat aligned to EPI, remove -volreg_align_e2a.
+
+        7. Similar to 6, but get a little more esoteric.
+
+           a. Let the basis functions vary.  For some reason, we expect the
+              BOLD responses to the positive classes to vary across the brain.
+              So we have decided to use TENT functions there.  Since the TR is
+              3.0s and we might expect a 45 second response curve (max).
+
+              Use 'TENT(0,45,16)' for those 3 out of 9 basis functions.
+
+              This means using -regress_basis_multi instead of -regress_basis,
+              and specifying all 9 basis functions appropriately.
+
+           b. Not only censor motion, but censor outliers when above 10% of the
+              automasked brain.  Add -regress_censor_outliers.
+
+           c. Save on RAM by computing the fitts only after 3dDeconvolve.
+              Add -regress_compute_fitts.
+
+           4. Speed things up.  Have 3dDeconvolve use 4 CPUs.  Also, skip the
+              single subject 3dClustSim execution.  So add '-jobs 4' to the
+              -regress_opts_3dD option and add '-regress_run_clustsim no'.
+
+                afni_proc.py -subj_id sb23.e7.esoteric                     \\
+                        -dsets sb23/epi_r??+orig.HEAD                      \\
+                        -do_block align tlrc                               \\
+                        -copy_anat sb23/sb23_mpra+orig                     \\
+                        -tcat_remove_first_trs 3                           \\
+                        -volreg_align_to last                              \\
+                        -volreg_align_e2a                                  \\
+                        -volreg_tlrc_warp                                  \\
+                        -regress_stim_times sb23/stim_files/blk_times.*.1D \\
+                        -regress_stim_labels tneg tpos tneu                \\
+                                             eneg epos eneu                \\
+                                             fneg fpos fneu                \\
+                        -regress_basis_multi                               \\
+                           'BLOCK(30,1)' 'TENT(0,45,16)' 'BLOCK(30,1)'     \\
+                           'BLOCK(30,1)' 'TENT(0,45,16)' 'BLOCK(30,1)'     \\
+                           'BLOCK(30,1)' 'TENT(0,45,16)' 'BLOCK(30,1)'     \\
+                        -regress_censor_motion 1.0                         \\
+                        -regress_censor_outliers 0.1                       \\
+                        -regress_compute_fitts                             \\
+                        -regress_opts_3dD                                  \\
+                            -gltsym 'SYM: +eneg -fneg'                     \\
+                            -glt_label 1 eneg_vs_fneg                      \\
+                            -jobs 4                                        \\
+                        -regress_run_clustsim no                           \\
+                        -regress_est_blur_epits                            \\
+                        -regress_est_blur_errts
 
     --------------------------------------------------
     -ask_me EXAMPLES:
@@ -4993,19 +5093,32 @@ g_help_string = """
 
                 e.g. -regress_make_ideal_sum ideal_all.1D
 
-            If the -regress_basis function is a single parameter function
-            (either GAM or some form of BLOCK), then this option can be
-            applied to create an ideal response curve which is the sum of
-            the individual stimulus response curves.
+            By default, afni_proc.py will compute a 'sum_ideal.1D' file that
+            is the sum of non-polort and non-motion regressors from the
+            X-matrix.  This -regress_make_ideal_sum option is used to specify
+            the output file for that sum (if sum_idea.1D is not desired).
 
-            Use of this option will add a 3dTstat command to sum the regressor
-            (of interest) columns of the 1D X-matrix, output by 3dDeconvolve.
+            Note that if there is nothing in the X-matrix except for polort and
+            motion regressors, or if 1d_tool.py cannot tell what is in there
+            (if there is no header information), then all columns will be used.
 
-            This is similar to the default behavior of creating ideal_STIM.1D
-            files for each stimulus label, STIM.
+            Computing the sum means adding a 1d_tool.py command to figure out
+            which columns should be used in the sum (since mixing GAM, TENT,
+            etc., makes it harder to tell up front), and a 3dTstat command to
+            actually sum those columns of the 1D X-matrix (the X-matrix is
+            output by 3dDeconvolve).
 
-            Please see '3dDeconvolve -help' and '3dTstat -help'.
-            See also -regress_basis, -regress_no_ideals.
+            Please see '3dDeconvolve -help', '1d_tool.py -help' and
+            '3dTstat -help'.
+            See also -regress_basis, -regress_no_ideal_sum.
+
+        -regress_no_ideal_sum      : do not create sum_ideal.1D from regressors
+
+            By default, afni_proc.py will compute a 'sum_ideal.1D' file that
+            is the sum of non-polort and non-motion regressors from the
+            X-matrix.  This option prevents that step.
+
+            See also -regress_make_ideal_sum.
 
         -regress_motion_file FILE.1D  : use FILE.1D for motion parameters
 
