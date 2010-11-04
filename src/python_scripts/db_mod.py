@@ -2271,7 +2271,9 @@ def db_cmd_regress(proc, block):
     cmd = cmd + iresp
     cmd = cmd + other_opts
     cmd = cmd + "    %s-tout -x1D %s -xjpeg X.jpg \\\n" % (fout_str, proc.xmat)
-    if proc.censor_file: cmd += "    -x1D_uncensored X.uncensored.xmat.1D \\\n"
+    if proc.censor_file:
+        newmat = 'X.uncensored.xmat.1D'
+        cmd += "    -x1D_uncensored %s \\\n" % newmat
     cmd = cmd + fitts + errts + stop_opt
     cmd = cmd + "    -bucket stats.$subj\n\n\n"
 
@@ -2291,6 +2293,10 @@ def db_cmd_regress(proc, block):
                "1d_tool.py -show_cormat_warnings -infile %s"                  \
                " |& tee out.cormat_warn.txt\n\n" % proc.xmat
         cmd = cmd + rcmd
+
+    # if we have a censor file, then set it as the xmat
+    # (we waited until after the cormat warnings)
+    if proc.censor_file: proc.xmat = newmat
 
     # possibly run the REML script
     if block.opts.find_opt('-regress_reml_exec'):
@@ -2318,15 +2324,6 @@ def db_cmd_regress(proc, block):
                         "3dcalc -a %s%s -b %s\_REML%s -expr a-b \\\n"   \
                         "       -prefix %s\_REML\n\n"                   \
                         % (all_runs, proc.view, errts_pre, proc.view, fitts_pre)
-
-    # if censoring create an uncensored X-matrix file
-    if proc.censor_file:
-        newmat = "X.full_length.xmat.1D"
-        cmd = cmd +     \
-            "# in case of censoring, create full length X-matrix\n"     \
-            "1d_tool.py -infile %s -censor_fill -write %s\n\n"          \
-                % (proc.xmat, newmat)
-        proc.xmat = newmat
 
     # extract ideal regressors, and possibly make a sum
     opt = block.opts.find_opt('-regress_no_ideals')

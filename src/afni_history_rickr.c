@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  4, NOV, 2010, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
+   "use X.uncensored.xmat.1D instead of X.full_length.xmat.1D",
+   NULL
+ } ,
+
  {  4, NOV, 2010, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "added regress_basis_multi, -regress_no_ideal_sum",
    "One can specify either one basis function or one per stim_times file."
