@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 4 , NOV , 2010 , RWC , "afni" , MICRO , TYPE_NEW_ENV ,
+   "Add AFNI_THRESH_TOP_EXPON to allow larger range of thresholds." ,
+   "For Phil Kohn." } ,
+
  { 1 , NOV , 2010 , RWC , "afni" , MICRO , TYPE_GENERAL ,
    "Remove the large notice about 'Define Markers' being gone" ,
    NULL } ,
