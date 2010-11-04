@@ -64,7 +64,7 @@ examples (very basic for now):
 
        b. Display indices of regressors of interest.
 
-         1d_tool.py -infile ricor_r02.1D -show_indices_interest
+         1d_tool.py -infile X.xmat.1D -show_indices_interest
 
    6.  Show correlation matrix warnings for this matrix.
 
@@ -427,9 +427,10 @@ g_history = """
         - small change to looks_like text formatting
         - removed useless TR from looks_like_1D function
    0.21 Oct 29, 2010 - added -show_indices_baseline, _motion and _interest
+   0.22 Nov  4, 2010 - fixed print vs. return problem in -show_indices
 """
 
-g_version = "1d_tool.py version 0.21, October 29, 2010"
+g_version = "1d_tool.py version 0.22, November 4, 2010"
 
 
 class A1DInterface:
@@ -1033,7 +1034,8 @@ class A1DInterface:
       if self.show_labels: self.adata.show_labels()
 
       if self.show_indices:
-         self.adata.show_indices(self.show_indices)
+         istr = self.adata.get_indices_str(self.show_indices)
+         print istr
 
       if self.show_rows_cols: self.adata.show_rows_cols(verb=self.verb)
 
