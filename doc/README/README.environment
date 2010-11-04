@@ -2324,6 +2324,12 @@ If this variable is set to YES, then the Define Overlay color bars
 coordinated.  Changes to one locked pbar will be reflected in the
 others immediately.
 
+------------------------
+Variable: AFNI_PBAR_AUTO  (or AFNI_CMAP_AUTO)
+------------------------
+If this variable is set to NO, then the automatic color bar switching
+(that was introduced by Ziad Saad) will be turned off.
+
 -------------------------
 Variable: AFNI_RANGE_LOCK (editable)
 -------------------------
