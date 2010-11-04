@@ -1721,7 +1721,7 @@ ENTRY("AFNI_finalsave_layout_CB") ;
           fprintf(gp,"OPEN_PANEL %c.Define_Overlay\n" , abet[cc] ) ;
 
         fprintf(gp,"SET_THRESHOLD %c.%04d %d\n" , abet[cc] ,
-                    (int)(zm3d->vinfo->func_threshold/THR_FACTOR) ,
+                    (int)(zm3d->vinfo->func_threshold/THR_factor) ,
                     (int)(log10(zm3d->vinfo->func_thresh_top)+.01) ) ;
 
         if( !pbar->bigmode ){

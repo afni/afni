@@ -30,6 +30,12 @@ typedef struct {
 
 /*----------------------------------------------------------------------------*/
 
+typedef struct {
+  mat44 amat ;
+} RHDD_warp ;
+
+/*----------------------------------------------------------------------------*/
+
 RHDD_plist * RHDD_plist_create( int   nx , int   ny , int   nz ,
                                 float dx , float dy , float dz ,
                                 float asiz, float xcen, float ycen, float zcen,
@@ -61,16 +67,16 @@ ENTRY("RHDD_plist_create") ;
    zbot = zcen - 2.0f*asiz; kbot = (int)(zbot/dz)  ; if( kbot < 0  ) kbot = 0 ;
    ztop = zcen + 2.0f*asiz; ktop = (int)(ztop/dz)+2; if( ktop > nz ) ktop = nz;
 
-   for( kk=kbot ; kk < ktop ; kk++ ){
+   for( kk=kbot ; kk <= ktop ; kk++ ){
      zz = (kk*dz - zcen) / asiz ;
-     for( jj=jbot ; jj < jtop ; jj++ ){
+     for( jj=jbot ; jj <= jtop ; jj++ ){
        yy = (jj*dy - ycen) / asiz ;
-       for( ii=ibot ; ii < itop ; ii++ ){
+       for( ii=ibot ; ii <= itop ; ii++ ){
          xx = (ii*dx - xcen) / asiz ;
          val = rhddc2(xx,yy,zz) ;
-         if( val != 0.0f ){
+         if( fabsf(val) > 0.01f ){
            if( num == nall ){
-             nall = 3*num/2 + 16 ;
+             nall = 2*num + 16 ;
              rpl->ijk  = (int *  )realloc(rpl->ijk ,sizeof(int  )*nall) ;
              rpl->vijk = (float *)realloc(rpl->vijk,sizeof(float)*nall) ;
            }
@@ -106,11 +112,12 @@ RHDD_array * RHDD_array_create( int   nx , int   ny , int   nz ,
 
 ENTRY("RHDD_array_create") ;
 
-   if( nx < 3 || ny < 3 || nz < 3 ) RETURN(NULL) ;
+   if( nx < 9 || ny < 9 || nz < 9 ) RETURN(NULL) ;
    if( dx <= 0.0f ) dx = 1.0f ;
    if( dy <= 0.0f ) dy = 1.0f ;
    if( dz <= 0.0f ) dz = 1.0f ;
-   if( asiz <= dx || asiz <= dy || asiz <= dz ) RETURN(NULL) ;
+   xt = MAX(dx,dy) ; xt = MAX(xt,dz) ;
+   if( asiz < 3.0f*xt ) RETURN(NULL) ;
 
    /* find range of (p,q,r) indexes needed to cover volume,
       by checking out all 7 corners besides (0,0,0) (where p=q=r=0) */
@@ -156,6 +163,9 @@ ENTRY("RHDD_array_create") ;
    qq = (int)floorf( pqr.xyz[1] ) ; qb = MIN(qb,qq) ; qq++ ; qt = MAX(qt,qq) ;
    rr = (int)floorf( pqr.xyz[2] ) ; rb = MIN(rb,rr) ; rr++ ; rt = MAX(rt,rr) ;
 
+   pb-- ; qb-- ; rb-- ;  /* push outwards, for luck */
+   pt++ ; qt++ ; rt++ ;
+
    /* Lattice index range is (p,q,r) = (pb..pt,qb..qt,rb..rt) inclusive */
 
    np = pt-pb+1 ;                /* number of p values to consider */
@@ -184,7 +194,7 @@ ENTRY("RHDD_array_create") ;
      DESTROY_RHDD_array(rar) ; RETURN(NULL) ;
    }
 
-   nmax /= 2 ;
+   nmax = (int)(0.3456789f*nmax) ;
    for( ngood=pp=0 ; pp < npqr ; pp++ ){
      if( rar->rhdd[pp] != NULL ){
        if( rar->rhdd[pp]->num_in_mask < nmax ){

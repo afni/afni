@@ -2826,7 +2826,7 @@ STATUS("making func->rowcol") ;
    char zork[2] ;
 
    int smax , stop , decim , sstep ;                  /* 30 Nov 1997:       */
-   decim = THR_TOP_EXPON ;                            /* compute parameters */
+   decim = THR_top_expon ;                            /* compute parameters */
    smax  = (int)( pow(10.0,decim) + 0.001 ) ;         /* for scale display. */
    stop  = smax - 1 ;
    sstep = smax / 1000 ;
@@ -2954,7 +2954,7 @@ STATUS("making func->rowcol") ;
    func->thr_top_av = new_MCW_arrowval( func->thr_rowcol ,
                                         "**" ,
                                         AVOPT_STYLE ,
-                                        0,THR_TOP_EXPON,0 ,
+                                        0,THR_top_expon,0 ,
                                         MCW_AV_notext , 0 ,
                                         AFNI_thresh_top_CB , (XtPointer)im3d ,
                                         AFNI_thresh_tlabel_CB , NULL ) ;
