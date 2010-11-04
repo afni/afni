@@ -143,27 +143,27 @@ void AFNI_set_threshold( Three_D_View *im3d , float val )
 
 ENTRY("AFNI_set_threshold") ;
 
-   if( !IM3D_OPEN(im3d) || val < 0.0f || val > THR_TOP_VALUE ) EXRETURN;
+   if( !IM3D_OPEN(im3d) || val < 0.0f || val > THR_top_value ) EXRETURN;
 
    /* get current scale decimal setting */
 
    olddec = (int)rint( log10(im3d->vinfo->func_thresh_top) ) ;
         if( olddec < 0             ) olddec = 0 ;
-   else if( olddec > THR_TOP_EXPON ) olddec = THR_TOP_EXPON ;
+   else if( olddec > THR_top_expon ) olddec = THR_top_expon ;
    newdec = olddec ;
 
    if( val > 0.0f ){
      newdec = (int)( log10(val) + 1.0 ) ;
           if( newdec < 0             ) newdec = 0 ;
-     else if( newdec > THR_TOP_EXPON ) newdec = THR_TOP_EXPON ;
+     else if( newdec > THR_top_expon ) newdec = THR_top_expon ;
      if( newdec != olddec )
        AFNI_set_thresh_top( im3d , tval[newdec] ) ;
    }
 
-   smax  = (int)rint( pow(10.0,THR_TOP_EXPON) ) ;
+   smax  = (int)rint( pow(10.0,THR_top_expon) ) ;
    stop  = smax - 1 ;                             /* max slider value */
 
-   ival = rint( val/(THR_FACTOR*tval[newdec]) ) ;
+   ival = rint( val/(THR_factor*tval[newdec]) ) ;
         if( ival < 0    ) ival = 0    ;
    else if( ival > stop ) ival = stop ;
 
@@ -195,7 +195,7 @@ ENTRY("AFNI_thr_scale_CB") ;
    if( cbs != NULL ) ival = cbs->value ;
    else              XmScaleGetValue( w , &ival ) ;
 
-   fff = THR_FACTOR * ival ;
+   fff = THR_factor * ival ;
    if( fff >= 0.0 && fff <= 1.0 ) im3d->vinfo->func_threshold = fff ;
 
    FIX_SCALE_VALUE(im3d) ;
@@ -230,7 +230,7 @@ ENTRY("AFNI_thr_scale_drag CB") ;
 
    if( IM3D_OPEN(im3d) && ISVALID_3DIM_DATASET(im3d->fim_now) ){
 
-      fff = THR_FACTOR * cbs->value ;
+      fff = THR_factor * cbs->value ;
       if( fff >= 0.0 && fff <= 1.0 ) im3d->vinfo->func_threshold = fff ;
 
       FIX_SCALE_VALUE(im3d) ;
@@ -257,7 +257,7 @@ ENTRY("AFNI_set_thresh_top") ;
 
    if( tval <= 0.0 ) tval = 1.0 ;
 
-   decim = (2*THR_TOP_EXPON) - (int)(THR_TOP_EXPON + 0.01 + log10(tval)) ;
+   decim = (2*THR_top_expon) - (int)(THR_top_expon + 0.01 + log10(tval)) ;
    if( decim < 0 ) decim = 0 ;
 
    XtVaSetValues( im3d->vwid->func->thr_scale, XmNdecimalPoints, decim, NULL ) ;
@@ -270,7 +270,7 @@ ENTRY("AFNI_set_thresh_top") ;
 
    /** fix the option menu at the bottom of the scale **/
 
-   decim = THR_TOP_EXPON - decim ;
+   decim = THR_top_expon - decim ;
    if( decim != im3d->vwid->func->thr_top_av->ival )
      AV_assign_ival( im3d->vwid->func->thr_top_av , decim ) ;
 

@@ -1996,6 +1996,13 @@ static char * readme_env[] = {
    "the function threshold slider will automatically change to some value that may\n" ,
    "be appropriate for the values in the new dataset.  [This is for Ziad!]\n" ,
    "\n" ,
+   "-------------------------------\n" ,
+   "Variable: AFNI_THRESH_TOP_EXPON\n" ,
+   "-------------------------------\n" ,
+   "This variable defines the top value for the '**' setting underneath the Overlay\n" ,
+   "threshold slider.  By default, this value is 4, but you can change that to 5\n" ,
+   "or 6 with this variable.  [This is for Phil Kohn]\n" ,
+   "\n" ,
    "------------------------------\n" ,
    "Variable: AFNI_SNAPFILE_PREFIX\n" ,
    "------------------------------\n" ,
@@ -3118,4 +3125,4 @@ static char * readme_env[] = {
    "behavior, set this variable to YES.\n" ,
    "\n" ,
    NULL } ;
-#define NUM_readme_env 3118
+#define NUM_readme_env 3125

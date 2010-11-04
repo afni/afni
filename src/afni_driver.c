@@ -1811,8 +1811,8 @@ ENTRY("AFNI_drive_set_threshold") ;
 
    if( cmd[dadd] != '.' ) RETURN(-1) ;
    val = strtod( cmd+dadd , &cpt ) ;
-   ival = rint(val/THR_FACTOR) ;
-   smax = (int)( pow(10.0,THR_TOP_EXPON) + 0.001 ) - 1 ;
+   ival = rint(val/THR_factor) ;
+   smax = (int)( pow(10.0,THR_top_expon) + 0.001 ) - 1 ;
    if( ival < 0 || ival > smax ) RETURN(-1) ;
    XmScaleSetValue( im3d->vwid->func->thr_scale , ival ) ;
 
@@ -1820,7 +1820,7 @@ ENTRY("AFNI_drive_set_threshold") ;
 
    sscanf(cpt,"%d",&dec) ;
 
-   if( dec >= 0 && dec <= THR_TOP_EXPON )
+   if( dec >= 0 && dec <= THR_top_expon )
      AFNI_set_thresh_top( im3d , tval[dec] ) ;
 
    AFNI_thr_scale_CB( im3d->vwid->func->thr_scale, (XtPointer)im3d, NULL ) ;
@@ -1860,16 +1860,16 @@ ENTRY("AFNI_drive_set_threshnew") ;
    /* get val from command line */
 
    val = strtod( cmd+dadd , &cpt ) ;
-   if( val < 0.0 || val > THR_TOP_VALUE ) RETURN(-1) ; /* stupid user */
+   if( val < 0.0 || val > THR_top_value ) RETURN(-1) ; /* stupid user */
 
    /* get current scale decimal setting */
 
    olddec = (int)rint( log10(im3d->vinfo->func_thresh_top) ) ;
         if( olddec < 0             ) olddec = 0 ;
-   else if( olddec > THR_TOP_EXPON ) olddec = THR_TOP_EXPON ;
+   else if( olddec > THR_top_expon ) olddec = THR_top_expon ;
    newdec = olddec ;
 
-   smax  = (int)rint( pow(10.0,THR_TOP_EXPON) ) ;
+   smax  = (int)rint( pow(10.0,THR_top_expon) ) ;
    stop  = smax - 1 ;                             /* max slider value */
 
    dopval = (val >= 0.0) && (val <= 1.0) && (strchr(cpt,'p') != NULL) &&
@@ -1888,13 +1888,13 @@ ENTRY("AFNI_drive_set_threshnew") ;
 
      newdec = (int)( log10(val) + 1.0 ) ;
           if( newdec < 0             ) newdec = 0 ;
-     else if( newdec > THR_TOP_EXPON ) newdec = THR_TOP_EXPON ;
+     else if( newdec > THR_top_expon ) newdec = THR_top_expon ;
    }
 
    if( newdec != olddec )
      AFNI_set_thresh_top( im3d , tval[newdec] ) ;
 
-   ival = rint( val/(THR_FACTOR*tval[newdec]) ) ;
+   ival = rint( val/(THR_factor*tval[newdec]) ) ;
         if( ival < 0    ) ival = 0    ;
    else if( ival > stop ) ival = stop ;
 
