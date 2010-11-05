@@ -1162,6 +1162,24 @@ int AFNI_is_Easter( int yy , int mm , int dd )
 }
 
 /*------------------------------------------------------------------------------*/
+
+static yymmdd DiwaliDate[] = {
+ {2011,10,26} , {2012,11,13} , {2013,11,3}  , {2014,10,23} , {2015,11,11} ,
+ {2016,10,30} , {2017,10,19} , {2018,11,7}  , {2019,10,27} , {2020,11,14} ,
+ {2021,11,4}  , {2022,10,24}
+} ;
+
+#define DIWALI_FIRST 2011
+#define DIWALI_LAST  2022  /* I hope AFNI lasts until this year -- at least! */
+
+int AFNI_is_Diwali( int yy , int mm , int dd )
+{
+   if( yy < DIWALI_FIRST || yy > DIWALI_LAST ) return 0 ;
+   yy = yy - DIWALI_FIRST ;
+   return ( mm == DiwaliDate[yy].mm && dd == DiwaliDate[yy].dd ) ;
+}
+
+/*------------------------------------------------------------------------------*/
 /*! Return one of today's date trivia string. */
 
 char * AFNI_get_date_trivia(void)
@@ -1216,6 +1234,11 @@ char * AFNI_get_date_trivia(void)
 
    if( ntar < NTMAX && AFNI_is_Easter(lt->tm_year+1900,lt->tm_mon+1,lt->tm_mday) )
       tar[ntar++] = "Easter (Western rite)" ;
+
+   /* Diwali? */
+
+   if( ntar < NTMAX && AFNI_is_Diwali(lt->tm_year+1900,lt->tm_mon+1,lt->tm_mday) )
+      tar[ntar++] = "Diwali / Deepavali" ;
 
    ncall++ ;
    if( ntar == 0 || (ntar < NTMAX && ncall > 3) ){  /* 04 Oct 2007 */
