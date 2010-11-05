@@ -44,6 +44,11 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 5 , NOV , 2010 , RWC , "afni" , MICRO , TYPE_GENERAL ,
+   "Make colorscale switching go to AFNI_COLORSCALE_DEFAULT" ,
+   "Rather than Ziad's pitiful fixed choice that screws up the user's setup\n"
+   "for no good reason at all." } ,
+
  { 4 , NOV , 2010 , RWC , "afni" , MICRO , TYPE_NEW_ENV ,
    "Re-invoked AFNI_PBAR_AUTO / AFNI_CMAP_AUTO" ,
    "Which Ziad had commented out for reasons he won't explain." } ,
