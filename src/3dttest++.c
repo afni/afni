@@ -145,6 +145,8 @@ void display_help_menu(void)
       "* With 2 sets, the difference in means across each set is tested\n"
       "   against 0.  The 1 sample results for each set are also provided, since\n"
       "   these are often of interest to the investigator (e.g., YOU).\n"
+      "  ++ With 2 sets, the default is to produce the difference as setA - setB.\n"
+      "  ++ You can use the option '-BminusA' to get the signs reversed.\n"
       "\n"
       "* Covariates can be per-dataset (input=1 number) and/or per-voxel/per-dataset\n"
       "   (input=1 dataset sub-brick).\n"
@@ -212,12 +214,16 @@ void display_help_menu(void)
       "                   the sub-brick labels in the output dataset.  If you don't\n"
       "                   give a SETNAME, then '-setA' will be named 'SetA', etc.\n"
       "\n"
-      "  ***** NOTE WELL: The sign of a two sample test is A - B           *****\n"
+      "  ***** NOTE WELL: The sign of a two sample test is A - B.          *****\n"
       "  ***              Thus, '-setB' corresponds to '-set1' in 3dttest,   ***\n"
       "  ***                and '-setA' corresponds to '-set2' in 3dttest.   ***\n"
       "  *****            This ordering of A and B matches 3dGroupInCorr.  *****\n"
+      "  *****-------------------------------------------------------------*****\n"
+      "  ***** ALSO NOTE: You can reverse this sign by using the option    *****\n"
+      "  ***              '-BminusA', in which case the test is B - A.       ***\n"
+      "  ***              The option '-AminusB' can be used to explicitly    ***\n"
+      "  *****            specify the standard subtraction order.          *****\n"
       "\n"
-
       "--------------------------------------\n"
       "COVARIATES - per dataset and per voxel\n"
       "--------------------------------------\n"
@@ -481,6 +487,9 @@ void display_help_menu(void)
       "* In the above, 'wrt' is standard mathematical shorthand for the\n"
       "   phrase 'with respect to'.\n"
       "\n"
+      "* If option '-BminusA' is given, then the 'SetA-SetB' sub-bricks would\n"
+      "   be labeled 'SetB-SetA' instead, of course.\n"
+      "\n"
       "* If option '-toz' is used, the 'Tstat' will be replaced with 'Zscr'\n"
       "   in the statistical sub-brick labels.\n"
       "\n"
@@ -643,6 +652,8 @@ int main( int argc , char *argv[] )
    THD_3dim_dataset *outset ;
    char blab[64] , *stnam ;
    float dof_AB=0.0f , dof_A=0.0f , dof_B=0.0f ;
+   int BminusA=-1 , ntwosam=0 ;  /* 05 Nov 2010 */
+   char *snam_PPP , *snam_MMM ;
 
    /*--- help the piteous luser? ---*/
 
@@ -661,6 +672,15 @@ int main( int argc , char *argv[] )
 
    nopt = 1 ;
    while( nopt < argc ){
+
+     /*----- BminusA -----*/
+
+     if( strcasecmp(argv[nopt],"-BminusA") == 0 ){  /* 05 Nov 2010 */
+       BminusA = 1 ; nopt++ ; continue ;
+     }
+     if( strcasecmp(argv[nopt],"-AminusB") == 0 ){
+       BminusA = 0 ; nopt++ ; continue ;
+     }
 
      /*----- zskip -----*/
 
@@ -982,6 +1002,21 @@ int main( int argc , char *argv[] )
    if( snam_BBB == NULL )
      snam_BBB = (lnam_BBB != NULL) ? lnam_BBB : strdup("SetB") ;
 
+   if( BminusA == 1 && !twosam ){
+     WARNING_message("-BminusA disabled: you didn't input setB!") ;
+     BminusA = 0 ;
+   }
+   if( BminusA == -1 ){
+     BminusA = 0 ;
+     if( twosam ) INFO_message("2-sample test: '-AminusB' option is assumed") ;
+   }
+
+   if( twosam ){
+     snam_PPP = (BminusA) ? snam_BBB : snam_AAA ;
+     snam_MMM = (BminusA) ? snam_AAA : snam_BBB ;
+     INFO_message("2-sample test: results are %s - %s",snam_PPP,snam_MMM) ;
+   }
+
    /*----- convert each input set of datasets to a vectim -----*/
 
    INFO_message("loading input datasets") ;
@@ -1214,8 +1249,9 @@ int main( int argc , char *argv[] )
           if( toz ) EDIT_BRICK_TO_FIZT(outset,1) ;
           else      EDIT_BRICK_TO_FITT(outset,1,dof_A) ;
      } else {
-       sprintf(blab,"%s-%s_mean",snam_AAA,snam_BBB)      ; EDIT_BRICK_LABEL(outset,0,blab);
-       sprintf(blab,"%s-%s_%s"  ,snam_AAA,snam_BBB,stnam); EDIT_BRICK_LABEL(outset,1,blab);
+       ntwosam = 2 ;
+       sprintf(blab,"%s-%s_mean",snam_PPP,snam_MMM)      ; EDIT_BRICK_LABEL(outset,0,blab);
+       sprintf(blab,"%s-%s_%s"  ,snam_PPP,snam_MMM,stnam); EDIT_BRICK_LABEL(outset,1,blab);
           if( toz ) EDIT_BRICK_TO_FIZT(outset,1) ;
           else      EDIT_BRICK_TO_FITT(outset,1,dof_AB) ;
        sprintf(blab,"%s_mean",snam_AAA)                  ; EDIT_BRICK_LABEL(outset,2,blab);
@@ -1230,17 +1266,18 @@ int main( int argc , char *argv[] )
    } else {                            /*--- have covariates ---*/
      kk = 0 ;
      if( testAB ){
-       sprintf(blab,"%s-%s_mean",snam_AAA,snam_BBB);
+       ntwosam = 2*(mcov+1) ;
+       sprintf(blab,"%s-%s_mean",snam_PPP,snam_MMM);
          EDIT_BRICK_LABEL(outset,kk,blab); kk++;
-       sprintf(blab,"%s-%s_%s"  ,snam_AAA,snam_BBB,stnam);
+       sprintf(blab,"%s-%s_%s"  ,snam_PPP,snam_MMM,stnam);
          EDIT_BRICK_LABEL(outset,kk,blab);
          if( toz ) EDIT_BRICK_TO_FIZT(outset,kk) ;
          else      EDIT_BRICK_TO_FITT(outset,kk,dof_AB) ;
          kk++;
        for( jj=1 ; jj <= mcov ; jj++ ){
-         sprintf(blab,"%s-%s_%s",snam_AAA,snam_BBB,covlab->str[jj]) ;
+         sprintf(blab,"%s-%s_%s",snam_PPP,snam_MMM,covlab->str[jj]) ;
            EDIT_BRICK_LABEL(outset,kk,blab); kk++;
-         sprintf(blab,"%s-%s_%s_%s",snam_AAA,snam_BBB,covlab->str[jj],stnam) ;
+         sprintf(blab,"%s-%s_%s_%s",snam_PPP,snam_MMM,covlab->str[jj],stnam) ;
            EDIT_BRICK_LABEL(outset,kk,blab);
          if( toz ) EDIT_BRICK_TO_FIZT(outset,kk) ;
          else      EDIT_BRICK_TO_FITT(outset,kk,dof_AB) ;
@@ -1381,7 +1418,10 @@ int main( int argc , char *argv[] )
                     mcov ,
                     Axx , Axx_psinv , Axx_xtxinv ,
                     Bxx , Bxx_psinv , Bxx_xtxinv , resar , workspace ) ;
+     }
 
+     if( BminusA && ntwosam ){  /* 05 Nov 2010 */
+       for( ii=0 ; ii < ntwosam ; ii++ ) resar[ii] = -resar[ii] ;
      }
 
      kout++ ;
@@ -1447,7 +1487,12 @@ int main( int argc , char *argv[] )
    else
      WARNING_message("Failed to add FDR curves to dataset?!") ;
 
-   DSET_write(outset) ; WROTE_DSET(outset) ; exit(0) ;
+   if( twosam )
+     INFO_message("2-sample test: results are %s - %s",snam_PPP,snam_MMM) ;
+
+   DSET_write(outset) ; WROTE_DSET(outset) ;
+
+   exit(0) ;
 
 } /* end of main program */
 
