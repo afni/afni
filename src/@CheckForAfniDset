@@ -3,22 +3,25 @@ set stat = 0
 if ("$1" == '' || "$1" == '-h' || "$1" == '-help') then
 	goto USAGE
 endif
+
+set iname = 1
+
 #save path
 
-set lll = `@parse_afni_name "$1"`
+set lll = `@parse_afni_name "$argv[$iname]"`
 set pt = $lll[1]
 
-set pref = `@GetAfniPrefix "$1"`
-set view = `@GetAfniView "$1"`
+set pref = `@GetAfniPrefix "$argv[$iname]"`
+set view = `@GetAfniView "$argv[$iname]"`
 
-set ext = "$1:e"
+set ext = "$argv[$iname]:e"
 if ("$ext" == "gz" || "$ext" == "bz2" || "$ext" == "Z" ) then
-   set Name2 = "$1:r"
+   set Name2 = "$argv[$iname]:r"
    set ext = "$Name2:e"
 endif
 
 if ("$ext" =~ "nii*") then
-   if ( -f "$1" || -f "$lll[1]/$lll[2]") then
+   if ( -f "$argv[$iname]" || -f "$lll[1]/$lll[2]") then
       set cnt = 3
    else 
       set cnt = 0
@@ -29,7 +32,7 @@ endif
    
 if ("$view" == "" && "$ext" !~ "nii*") then
    echo 0
-   #echo "Error: No view specified in dset name $1"
+   #echo "Error: No view specified in dset name $argv[$iname]"
    #echo "Make sure you are not passing a prefix instead"
    #echo "of a dataset name"
    set stat = 1

@@ -135,6 +135,9 @@ int main( int argc , char * argv[] )
       PRINT_COMPILE_DATE ; exit(0) ;
    }
 
+   mainENTRY("3dhistog") ; machdep() ; AFNI_logger("3dhistog",argc,argv) ;
+   PRINT_VERSION("3dhistog") ;
+
    HI_read_opts( argc , argv ) ;
    nopt = HI_nopt ;
 
@@ -237,12 +240,18 @@ int main( int argc , char * argv[] )
       fout = fopen(HI_unq,"r");
       if (fout) {
          fclose(fout);
-         fprintf(stderr,"** ERROR: Output file %s exists, will not overwrite.\n", HI_unq) ;
-      exit(1) ;
+         if (!THD_ok_overwrite()) {
+            fprintf(stderr,
+                     "** ERROR: Output file %s exists, will not overwrite.\n", 
+                     HI_unq) ;
+            exit(1) ;
+         }
       }
       fout = fopen(HI_unq,"w");
       if (!fout) {
-         fprintf(stderr,"** ERROR: Could not open %s for write operation.\nCheck your directory permissions\n", HI_unq) ;
+         fprintf(stderr,
+                  "** ERROR: Could not open %s for write operation.\n"
+                  "Check your directory permissions\n", HI_unq) ;
       exit(1) ;
       }
    }
@@ -274,7 +283,8 @@ int main( int argc , char * argv[] )
                exit(1) ;
             }
             fprintf(fout,"# %d unique values in %s\n", n_unq, argv[iarg] );
-            for (ii=0; ii<n_unq; ++ii) fprintf(fout,"%d\n", funq[ii]);
+            for (ii=0; ii<n_unq; ++ii) 
+               if (KEEP(funq[ii])) fprintf(fout,"%d\n", funq[ii]);
             fclose(fout); fout = NULL;
             free(funq); funq = NULL;
          }
@@ -299,7 +309,8 @@ int main( int argc , char * argv[] )
                exit(1) ;
             }
             fprintf(fout,"# %d unique values in %s\n", n_unq, argv[iarg] );
-            for (ii=0; ii<n_unq; ++ii) fprintf(fout,"%d\n", funq[ii]);
+            for (ii=0; ii<n_unq; ++ii) 
+               if (KEEP(funq[ii])) fprintf(fout,"%d\n", funq[ii]);
             fclose(fout); fout = NULL;
             free(funq); funq = NULL;
          }
