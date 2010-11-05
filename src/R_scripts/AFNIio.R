@@ -775,6 +775,30 @@ memory.hogs <- function (n=10, top_frac=0.9, test=FALSE, msg=NULL) {
    invisible(m)
 }
 
+sys.AFNI <- function(com=NULL, fout=NULL, ferr=NULL, echo=FALSE,
+                     CoS=errex.AFNI ) {
+   ss <- list(stat=1, err='', out='')
+   if (is.null(com)) return(ss)
+   rmfout <- FALSE
+   if (is.null(fout)) {
+      fout <- '/tmp/fout'
+      rmfout <- TRUE
+   }
+   rmferr <- FALSE
+   if (is.null(ferr)) {
+      ferr <- '/tmp/ferr'
+      rmferr <- TRUE
+   }
+   if (echo) note.AFNI(paste("Executing shell command",com))
+   ss$stat<-try(system(paste(com,' 1>', fout,' 2>', ferr, collapse='')))
+   ss$out <- readLines(fout, n=-1, ok=TRUE, warn=FALSE, encoding='unknown')
+   if (rmfout) unlink(fout); 
+   ss$err <- readLines(ferr, n=-1, ok=TRUE, warn=FALSE, encoding='unknown')
+   if (rmfout) unlink(ferr); 
+   if (ss$stat && !is.null(CoS)) CoS(paste("Error status executing:\n",com))  
+   invisible(ss)
+}
+
 who.called.me <- function (quiet_inquisitor=FALSE, trim = 0) {
    mm <- (as.list(sys.calls()))
    #str(mm)
@@ -785,6 +809,9 @@ who.called.me <- function (quiet_inquisitor=FALSE, trim = 0) {
    callstr <- ''
    for (i in (N_mm-skp):1 ) {
       caller <- as.character(mm[i])
+      if (length(caller) == 0) {
+         caller <- 'R_prompt'
+      }
       if (trim==-1) { #function only
          caller <-  strsplit(caller[1],'(', fixed=TRUE)[[1]][1]
       } else if (trim>0) {
@@ -793,11 +820,19 @@ who.called.me <- function (quiet_inquisitor=FALSE, trim = 0) {
          par <- strsplit(par,'')[[1]]
          n_char <- min(length(par),trim)
          if (n_char < length(par)) ell <- '...'
-         else ell <- ''
-         caller <-  paste(fun, '(', paste(par[1:n_char],collapse=''),
-                          ell, ')', collapse='')
+         else {
+            ell <- ''
+            #and remove last parentheses
+            par <- sub(')$','',par)
+         }
+         if (is.na(par[1])) {
+            caller <-  paste(fun, collapse='', sep='')
+         } else {
+            caller <-  paste(fun, '(', paste(par[1:n_char],collapse='', sep=''),
+                          ell, ')', collapse='', sep='')
+         }
       }
-      spc = '         '
+      spc = '    '
       if (i == N_mm-skp) {
          callstr <- paste(callstr, caller[1])
       } else {
@@ -821,7 +856,7 @@ warn.AFNI <- function (str='Consider yourself warned',
    if (newline) nnn <- '\n'
    if (BATCH_MODE) ff <- stderr()
    else ff <- ''
-   cat(  '\n', 'oo Warning from: ',  callstr,'\n   ', 
+   cat(  '\n', 'oo Warning: ',  callstr,'\n   ', 
          paste(str, collapse=''), nnn, 
        sep='', file = ff);
 }
@@ -834,7 +869,7 @@ err.AFNI <- function (str='Danger Danger Will Robinson',
    if (newline) nnn <- '\n'
    if (BATCH_MODE) ff <- stderr()
    else ff <- ''
-   cat(  '\n', '** Error from: ',  callstr,'\n   ', 
+   cat(  '\n', '** Error: ',  callstr,'\n   ', 
          paste(str, collapse=''), nnn, 
        sep='', file = ff);
 }
@@ -853,7 +888,7 @@ note.AFNI <- function (str='May I speak frankly?',
       tm <- format(Sys.time(), " @ %a %b %d %H:%M:%S %Y")
    } else tm <- ''
    
-   cat(  '\n', '++ Note from: ',  callstr,
+   cat(  '\n', '++ Note: ',  callstr,
          sprintf('%s\n   ', tm), 
          paste(str, collapse=''),nnn, 
        sep='', file = ff);
@@ -864,15 +899,15 @@ errex.AFNI <- function (str='Alas this must end',
    if (is.null(callstr)) callstr <- who.called.me(TRUE)
       
    err.AFNI(str,callstr, newline)
-   exit.AFNI(stat=1)
+   exit.AFNI(str='\n   Execution halted',stat=1)
 }
 
 exit.AFNI <- function(str='The piano has been drinking.', stat=0) {
    if (BATCH_MODE) {
       quit(save='no', status = stat);
    } else {
-      note.AFNI(str)
-      stop(stat)
+      #note.AFNI(str)
+      stop(str)
    }
 }
 

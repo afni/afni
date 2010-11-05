@@ -185,7 +185,9 @@ char* clusterlib_setjobname(const char* basename, int strip)
 
 int clusterlib_readnumber(const char word[])
 { char* error = 0;
-  long value = strtol(word,&error,0);
+  long value = 0;
+  if (word[0] == '0' && word[1] != '\0') ++word;
+  value = strtol(word,&error,0);
   if (*error=='\0') return (int)value;
   else return -1;
 }

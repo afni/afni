@@ -69,7 +69,7 @@ labels.labeltable  <- function(ltfile=NULL) {
 dice.vollabels  <- function(basevol=NULL,
                         labeltable=NULL,
                         prefix=NULL, labelvol=NULL,
-                        diceout=NULL, maskbybase = TRUE) {
+                        diceout=NULL, maskby = 'BASE') {
    if (is.null(diceout)) {
       diceout <- sprintf('%s.1D', prefix)
    }
@@ -77,9 +77,16 @@ dice.vollabels  <- function(basevol=NULL,
       err.AFNI("Need labelvol")
       return(NULL)
    }
-   if (maskbybase) mm <- '-mask_by_base'
-   else mm <- ''
-   
+   if (is.null(maskby) || maskby == '') {
+      mm <- ''
+   } else if (maskby == 'BASE') {
+      mm <- '-mask_by_base'
+   } else if (maskby == 'LABEL') {
+      mm <- '-mask_by_dset_vals'
+   } else {
+      err.AFNI(paste("Bad value ", maskby))
+      return(NULL)
+   }
    com <- paste('@DiceMetric -base ', basevol,
                 '-save_match -save_diff ', mm,
                 '-prefix ', prefix,
@@ -88,8 +95,7 @@ dice.vollabels  <- function(basevol=NULL,
                 '> ', diceout,
                 collapse = ' ')
    
-   note.AFNI(com)
-   system(com, ignore.stderr = TRUE, intern=TRUE)
+   sys.AFNI(com, echo = TRUE)
    #system(sprintf("echo '#Command: %s' >> %s", com, diceout));
    dd <- read.AFNI.matrix(diceout)
    ll <- list(command=com, coef=dd[,2])

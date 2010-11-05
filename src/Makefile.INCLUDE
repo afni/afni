@@ -195,7 +195,7 @@ vastness:all plugins install install_plugins install_lib
 
 ### Make many things
 
-all:$(LIBDL) libmri.a libmrix.a libcoxplot.a libvolpack.a programs
+all:$(LIBDL) libmri.a libmrix.a libcoxplot.a libvolpack.a programs segtools
 
 ### Make afni binaries
 
@@ -2674,6 +2674,14 @@ tsdsolve:tsdsolve.c
 
 
 #-------------------------------------------------------------------------------
+#############
+#segtools
+
+segtools:
+	( cd avovk ;	\
+	./@MakeLocalMake	;\
+	$(MAKE) anew  ;	\
+	cd ../	;		)
 
 #############
 #SUMA

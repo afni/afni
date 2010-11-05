@@ -123,6 +123,8 @@ extern int AFNI_set_func_range_nval( XtPointer *vp_im3d, float val);
 extern int AFNI_set_dset_pbar(XtPointer *vp_im3d);          /* 26 Feb 2010 ZSS */
 extern int AFNI_get_dset_val_label(THD_3dim_dataset *dset,  /* 26 Feb 2010 ZSS */
                                     double val, char *str);
+extern int AFNI_get_dset_label_val(THD_3dim_dataset *dset, 
+                                    double *val, char *str);/* 02 Nov 2010 ZSS */
 
 #ifdef  __cplusplus
 }
