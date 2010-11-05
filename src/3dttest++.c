@@ -431,7 +431,7 @@ void display_help_menu(void)
       "                 before the t-test is carried out.  If you don't give\n"
       "                 this value, its default is 5 (for no good reason).\n"
       "             ++ At this time, you can't use -zskip with -covariates,\n"
-      "                 because that would require more extensive re-thinkg\n"
+      "                 because that would require more extensive re-thinking\n"
       "                 and then re-programming.\n"
       "             ++ You can't use -zskip with -paired, for obvious reasons.\n"
       "             ++ [This option added 06 Oct 2010 -- RWCox]\n"
