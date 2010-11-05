@@ -6830,7 +6830,7 @@ int AFNI_set_dset_pbar(XtPointer *vp_im3d)
 }
 
 /*
-   Put the label associate with value val in string str
+   Put the label associated with value val in string str
       (64 chars are copied into str)
 */
 int AFNI_get_dset_val_label(THD_3dim_dataset *dset, double val, char *str)
@@ -6866,6 +6866,45 @@ int AFNI_get_dset_val_label(THD_3dim_dataset *dset, double val, char *str)
 
    RETURN(0);
 }
+
+/*
+   Put the value associated with label in val
+   Unlike AFNI_get_dset_val_label,
+   This function has not been tested. 
+*/
+int AFNI_get_dset_label_val(THD_3dim_dataset *dset, double *val, char *str)
+{
+/*   MCW_pbar *pbar = NULL;*/
+   ATR_string *atr=NULL;
+/*   char *pbar_name=NULL;*/
+   char *str_lab=NULL;
+
+   ENTRY("AFNI_get_dset_label_val") ;
+
+   if (!str) RETURN(1);
+ 
+   *val = 0;
+    
+   if (!dset) RETURN(1);
+
+   if (!dset->Label_Dtable &&
+       (atr = THD_find_string_atr( dset->dblk ,
+                              "VALUE_LABEL_DTABLE" ))) {
+      dset->Label_Dtable = Dtable_from_nimlstring(atr->ch);
+   }
+ 
+   if (dset->Label_Dtable) {
+      /* Have hash, will travel */
+      str_lab = findin_Dtable_b(str,
+                                dset->Label_Dtable);
+      /* fprintf(stderr,"ZSS: Have value '%s' for label '%s'\n",
+                     str_lab ? str_lab:"NULL", str); */
+      if (str_lab) *val = strtol(str_lab,NULL, 10);
+   }
+
+   RETURN(0);
+}
+
 
 /*-------------------------------------------------------------------------*/
 

@@ -300,6 +300,7 @@ if ($build) then
       make all
       cd ../ 
    endif
+   
 endif
 
 CHECK:
@@ -339,6 +340,7 @@ if ($build) then
 endif
 
 CHECK_SCRIPT:
+   cd $CurDir
    set frun = `\which @new_dist`
    set fref = "$tdir/src/SUMA/@new_dist.ref"
    set dd = `\diff -q $frun $fref`
@@ -349,7 +351,8 @@ CHECK_SCRIPT:
       echo "Try:"
       echo "diff $frun $fref"
       echo ""
-   endif   
+   endif 
+   cd -  
    goto END
 
 

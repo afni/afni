@@ -15,14 +15,40 @@ set idset = 1
 foreach dset ($dsets) 
    set dparse = `@parse_afni_name $dset`
    set vol2o = $dparse[1]/$dparse[2]
+   # A way to add view to dparse[3] even if none exists
+   set dparse = ($dparse[1] $dparse[2] `@GetAfniView $dset`)
    #mask by base
-   if ($maskbybase == 1) then
-      set vol2m = ___bma
-      3dcalc -a $vol1${view} -b $vol2o$view -overwrite -expr 'step(a)*b'   \
+   switch  ($maskby)
+      case 2:
+         set vol2m = ___bma
+         if ($usedsetvals == 1) then
+            3dhistog -omit 0 -overwrite -unq /tmp/unq.1D $dset >& /dev/null
+            if ($status) goto BEND
+            set klist = `1dcat -form '%d,' /tmp/unq.1D\' | sed 's/,$//'`
+            rm -f /tmp/unq.1D
+         endif
+         3dcalc -a $vol1${view} -b $vol2o$view -overwrite \
+                  -expr "amongst(a,$klist)*b"   \
                   -prefix $vol2m >& $log  
-   else
-      set vol2m = $vol2o
+         breaksw
+      case 1:
+         set vol2m = ___bma
+         3dcalc -a $vol1${view} -b $vol2o$view -overwrite -expr 'step(a)*b'   \
+                  -prefix $vol2m >& $log  
+         breaksw
+      case 0:
+         set vol2m = $vol2o
+         breaksw
+      default:
+         echo "Bad maskby of $maskby"
+         goto BEND
+         breaksw
+   endsw
+   if (`@CheckForAfniDset $vol2m$dparse[3]` < 2) then
+      echo "Failed to create masked set $vol2m"
+      goto BEND
    endif
+   
    set iidset = `printf %02d $idset`
    if ($SaveEq) then
       set aib = $dparse[1]/$bparse[2].EQ.$dparse[2]
@@ -83,38 +109,61 @@ foreach dset ($dsets)
       @ icl ++
    end
 
+   set labar = ()
+   foreach cl ($clar)
+      if ($ltfile != '') then
+         set labar = ($labar `@MakeLabelTable -word_label_match \
+                                       -labeltable $ltfile -klabel $cl` ',')
+      else
+         set labar = ($labar DOH.$cl,)
+      endif
+      set labar = `echo $labar | sed 's/,$//'`
+   end
+   
    if ($idset == 1) then
       set outlist = ($outlist ___dice_${iidset}.1D)
    else 
       set outlist = ("$outlist" ___dice_${iidset}.1D'[1]')
    endif
    echo "#cl   #dice($vol2o VS $vol1)" > ___dice_${iidset}.1D
+   echo "#Labels: $labar" >> ___dice_${iidset}.1D
    set cnt = 1
    foreach cl ($clar)
-      echo "$cl   $dcar[$cnt]" >> ___dice_${iidset}.1D
+      echo "$cl   $dcar[$cnt]  #$labar[$cnt]" >> ___dice_${iidset}.1D
       @ cnt ++
    end
    cat ___dice_${iidset}.1D
    @ idset ++
 end
 
-
 COMBINE:
 if ("$prefix" !~ "") then
-   echo '#Command: '`basename $0` "$argv[*]" > $prefix.1D
    set lll = ''
    if ($ltfile != '') then
       set lll = (`@MakeLabelTable -all_labels -labeltable $ltfile`)
    endif
-   echo "#Col.0 = ROI label in $base ($lll)" >> $prefix.1D
+   echo '#<DICE' > $prefix.1D
+   echo "#ni_type = 'int,$#dsets*float'" >> $prefix.1D
+   echo "#ni_dimen= '$#clar'" >> $prefix.1D
+   echo "#Command='`basename $0` $argv[*]'" >> $prefix.1D
+   echo "#Col.0 = 'ROI label in $base ($lll)'" >> $prefix.1D
    set cnt = 1
    foreach dset ($dsets)
       set bp = $base:h
-      echo "#Col.$cnt = Dice(`@GetAfniPrefix $dset` VS $base (in $bp)) " >> $prefix.1D
+   echo "#Col.$cnt.Command = 'Dice(`@GetAfniPrefix $dset` VS $base (in $bp))' " \
+           >> $prefix.1D
+   echo "#Col.$cnt.Dset = '$dset'" >> $prefix.1D   
       @ cnt ++
    end
+   set cnt=1
+   foreach cl ($clar)
+      echo "#Label.$cl = '$labar[$cnt]'">> $prefix.1D
+      @ cnt ++
+   end
+   echo "#>" >> $prefix.1D
    set noglob
    1dcat $outlist >> $prefix.1D
+   echo "#</DICE>" >> $prefix.1D
    unset noglob
 endif 
 
@@ -135,8 +184,10 @@ PARSE_COMMAND:
    set SaveDiff=0
    set forced_list = ()
    set Narg = $#argv
-   set maskbybase = 0
+   set maskby = 0
    set ltfile = ''
+   set llist = ()
+   set usedsetvals = 0
    
    if ("$1" == '' || "$1" == '-h' || "$1" == '-help' || "$2" == '') then
 	   goto USAGE
@@ -186,12 +237,37 @@ PARSE_COMMAND:
       endif
       
       if ($donext && "$argv[$cnt]" == "-do_not_mask_by_base") then
-         set maskbybase = 0
+         set maskby = 0
          set donext = 0	
       endif
       
       if ($donext && "$argv[$cnt]" == "-mask_by_base") then
-         set maskbybase = 1
+         set maskby = 1
+         set donext = 0	
+      endif
+      
+      if ($donext && "$argv[$cnt]" == "-mask_by_dset_vals") then
+         set maskby = 2
+         set usedsetvals = 1
+         set donext = 0	
+      endif
+      
+      if ($donext && "$argv[$cnt]" == "-mask_by_labels") then
+         set maskby = 2
+         set nneed = `ccalc -i $cnt + 1`
+         if ($nneed > $Narg) then
+				echo "Need at least 1 label after -mask_by_labels"
+            goto BEND
+			else
+				@ cnt ++
+            set llist = ()
+            while (("$argv[$cnt]" !~ -*) && ($cnt <= $Narg))
+               set llist = ($llist $argv[$cnt])
+               @ cnt ++
+            end
+            if ("$argv[$cnt]" =~ -*) @ cnt --
+            set NxtInd = $cnt
+			endif
          set donext = 0	
       endif
       
@@ -282,6 +358,17 @@ PARSE_COMMAND:
       endif
    endif
    
+   if ($ltfile == '' && $maskby == 2) then
+      echo "Must use -labeltable with -mask_by_labels"
+      goto BEND
+   else
+      set klist = ()
+      foreach l ($llist) 
+         set klist = ($klist `@MakeLabelTable -word_label_match \
+                                       -labeltable $ltfile -lkeys $l` ',')
+      end
+      set klist = `echo $klist | sed 's/,$//'`       
+   endif
    if ($numROI == 0) then
       set numROI=12
    endif   

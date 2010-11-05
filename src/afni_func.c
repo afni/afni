@@ -2225,7 +2225,7 @@ void AFNI_choose_dataset_CB( Widget w , XtPointer cd , XtPointer cb )
    int browse_select = 0 ;
    int is_other = 0 ;       /* 18 Dec 2007 */
    void (*cbfun)(Widget,XtPointer,MCW_choose_cbs *)=AFNI_finalize_dataset_CB;
-   THD_3dim_dataset *temp_dset;
+   THD_3dim_dataset *temp_dset=NULL;
 
 ENTRY("AFNI_choose_dataset_CB") ;
 
@@ -2386,7 +2386,7 @@ if( first ){
    /*--- make a list of function names ---*/
 
    } else {
-      int nn=0 , ndset=0 ; THD_3dim_dataset **dset_list=NULL , *dset ;
+      int nn=0 , ndset=0 ; THD_3dim_dataset **dset_list=NULL , *dset=NULL;
 
       is_other = !( w == im3d->vwid->view->choose_func_pb ||
                     w == im3d->vwid->view->popchoose_func_pb ) ;
