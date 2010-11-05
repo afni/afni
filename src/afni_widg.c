@@ -5590,7 +5590,7 @@ void AFNI_initialize_controller( Three_D_View *im3d )
    int ii , sss=0 ;
    char ttl[16] , *eee ;
    THD_3dim_dataset *temp_dset = NULL;
-   
+
 ENTRY("AFNI_initialize_controller") ;
 
    /*--- check for various criminal behavior;
@@ -5665,7 +5665,7 @@ ENTRY("AFNI_initialize_controller") ;
      for( jj=0 ; jj < im3d->ss_now->num_dsset ; jj++ ) {
        temp_dset = GET_SESSION_DSET(im3d->ss_now, jj,0);
        if( ISANAT(temp_dset) ) break ;
-     }  
+     }
      if( jj < im3d->ss_now->num_dsset ) im3d->vinfo->anat_num = jj ;
 
      for( jj=0 ; jj < im3d->ss_now->num_dsset ; jj++ ) {
@@ -6701,7 +6701,7 @@ int AFNI_set_func_range_nval(XtPointer *vp_im3d, float rval)
    Three_D_View *im3d=NULL;
 
    ENTRY("AFNI_set_func_range_nval") ;
- 
+
    im3d = (Three_D_View *)vp_im3d;
    if(im3d->first_integral!=0) {
      im3d->cont_bbox = MCW_val_bbox(im3d->vwid->func->range_bbox);
@@ -6813,15 +6813,18 @@ int AFNI_set_dset_pbar(XtPointer *vp_im3d)
          PBAR_set_bigmap( im3d->vwid->func->inten_pbar , "ROI_i256" ) ;
       }
       else {
-         PBAR_set_bigmap( im3d->vwid->func->inten_pbar , "Spectrum:red_to_blue" ) ;
-         AFNI_reset_func_range_cont((XtPointer *)im3d);
+       char *eee = getenv("AFNI_COLORSCALE_DEFAULT") ;
+       if( eee == NULL ) eee = getenv("AFNI_COLOR_SCALE_DEFAULT") ;
+       if( eee == NULL ) eee = "Spectrum:red_to_blue" ;
+       PBAR_set_bigmap( im3d->vwid->func->inten_pbar , eee ) ;
+       AFNI_reset_func_range_cont((XtPointer *)im3d);
       }
       switched = 1;
    }
 
    if (switched) {
-      AFNI_inten_pbar_CB( im3d->vwid->func->inten_pbar , im3d , 0 ) ;
-      POPUP_cursorize(im3d->vwid->func->inten_pbar->panew ) ;
+     AFNI_inten_pbar_CB( im3d->vwid->func->inten_pbar , im3d , 0 ) ;
+     POPUP_cursorize(im3d->vwid->func->inten_pbar->panew ) ;
    }
    RETURN(0);
 }
@@ -6840,9 +6843,9 @@ int AFNI_get_dset_val_label(THD_3dim_dataset *dset, double val, char *str)
    ENTRY("AFNI_get_dset_val_label") ;
 
    if (!str) RETURN(1);
- 
+
    str[0]='\0';
-    
+ 
    if (!dset) RETURN(1);
 
    if (!dset->Label_Dtable &&
@@ -6850,7 +6853,7 @@ int AFNI_get_dset_val_label(THD_3dim_dataset *dset, double val, char *str)
                               "VALUE_LABEL_DTABLE" ))) {
       dset->Label_Dtable = Dtable_from_nimlstring(atr->ch);
    }
- 
+
    if (dset->Label_Dtable) {
       /* Have hash, will travel */
       sprintf(sval,"%d", (int)val);
