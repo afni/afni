@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 5 , NOV , 2010 , RWC , "3dttest++" , MINOR , TYPE_NEW_OPT ,
+   "New -BminusA option" ,
+   "This is Ziad's fault (again)." } ,
+
  { 5 , NOV , 2010 , RWC , "afni" , MICRO , TYPE_GENERAL ,
    "Make colorscale switching go to AFNI_COLORSCALE_DEFAULT" ,
    "Rather than Ziad's pitiful fixed choice that screws up the user's setup\n"
