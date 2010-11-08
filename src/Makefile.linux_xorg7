@@ -94,7 +94,7 @@ EXPROGS = gifti_tool $(GSLPROGS)
 
 # for static linking to Motif, dynamic to all else
 
-LLIBS  = -lmri $(XLIBS) -lXft -lXp -lXpm -lXext -lXmu -lSM -lICE -lX11 -ljpeg -lpng $(LZLIB) $(LGIFTI) -lm  -ldl -lc
+LLIBS  = -lmri $(XLIBS) -lXft -lXp -lXpm -lXext -lXmu -lSM -lICE -lX11 -ljpeg -lpng $(LZLIB) $(LGIFTI) -lm  -ldl -lc -L/usr/local/lib
 
 # for static linking, as far as possible
 
