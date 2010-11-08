@@ -65,6 +65,21 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 5, NOV , 2010 , ZSS , "niccc" , MINOR , TYPE_NEW_OPT,
+   "Added -attribute, -match, and -f options to niccc",
+   "See niccc -help for details."
+ } ,
+
+ { 5, NOV , 2010 , ZSS , "3dkmeans" , MAJOR , TYPE_NEW_PROG,
+   "3dkmeans is a program for performing kmeans clustering",
+   "Program was written by A. Vovk and Z. Saad, based on \n"
+   "  The C clustering library.\n"
+   "Copyright (C) 2002 Michiel Jan Laurens de Hoon.\n"
+   "See suma -sources for copyright details\n"
+   "\n"
+   "See 3dkmeans -help for usage details.\n"
+ } ,
+
  { 1, NOV , 2010 , ZSS , "3dBrickStat" , MINOR , TYPE_BUG_FIX,
    "3dBrickStat's precentile option did not work with byte datasets",
    NULL
