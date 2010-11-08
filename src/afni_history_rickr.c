@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  8, NOV, 2010, RCR, "gen_group_command.py", MAJOR, TYPE_NEW_OPT,
+   "can now generate 3dttest++ commands",
+   NULL
+ } ,
+
  {  4, NOV, 2010, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
    "use X.uncensored.xmat.1D instead of X.full_length.xmat.1D",
    NULL
