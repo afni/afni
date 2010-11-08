@@ -116,13 +116,13 @@ static void display_help(void)
   printf ("  -r number     For k-means clustering, the number of times the\n"
           "                k-means clustering algorithm is run\n"
           "                (default: 1)\n");
-  printf ("  -m [msca]     Specifies which hierarchical clustering method to\n"
+/*  printf ("  -m [msca]     Specifies which hierarchical clustering method to\n"
           "                use:\n"
           "                m: Pairwise complete-linkage\n"
           "                s: Pairwise single-linkage\n"
           "                c: Pairwise centroid-linkage\n"
           "                a: Pairwise average-linkage\n"
-          "                (default: m)\n");
+          "                (default: m)\n"); */
   printf ("  -rsigs SIGS   Calculate distances from each voxel's signature\n"
           "                to the signatures in SIGS. \n"
           "                SIGS is a multi-column 1D file with each column\n"
