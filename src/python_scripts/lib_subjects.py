@@ -5,6 +5,7 @@ import copy
 import afni_util as UTIL
 
 g_mema_tests = [None, 'paired', 'unpaired']
+g_ttpp_tests = ['-AminusB', '-BminusA']
 
 class VarsObject(object):
    """a general class for holding variables, essentially treated as a
@@ -206,6 +207,91 @@ class SubjectList(object):
       Subject._order = order      # 1 for small first, -1 for reverse
       self.subjects.sort(cmp=subj_compare)
 
+   def make_ttestpp_command(self, set_labs=None, bsubs=None, subjlist2=None,
+                             prefix=None, comp_dir=None, options=None, verb=1):
+      """create a basic 3dttest++ command
+
+         Note: this is almost identical to make_mema_command, except for use 
+               of tsubs.
+
+         ** labs, bsubs should be lists of strings, even if they are integral
+            sub-bricks
+
+         if set_labs=None, use defaults depending on # of subject lists
+         else, set_labs must have 1 or 2 elements, for 1 or 2 sets of subjects
+         bsubs can be of length 1 even with 2 set_labs, in that case:
+            - length 1: must have subjlist2 set, and apply to it
+            - length 2: no subjlist2, use with subjlist 1
+         attach options after subject lists
+
+            set_labs       - set labels (None, 1 or 2 labels)
+            bsubs          - beta sub-bricks (length 1 or 2, matching labels)
+            subjlist2      - second subject list for 2-sample test (want if the
+                             datasets differ across sets)
+            prefix         - prefix for 3dtest++ output
+            comp_dir       - comparison direction, either -AminusB or -BminusA
+                             (if 2 sets)
+            options        - other options added to the 3dtest++ command
+            verb           - verbose level
+
+         return None on failure, command on success
+      """
+
+      if prefix == '' or prefix == None: prefix = 'ttest++_result'
+      if verb > 1: print '-- make_ttest++_command: have prefix %s' % prefix
+
+      if set_labs == None:
+         if subjlist2 == None: set_labs = ['setA']
+         else:                 set_labs = ['setA', 'setB']
+         if verb > 2: print '-- tt++_cmd: adding default set labels'
+      if bsubs == None: bsubs, tsubs = ['0'], ['1']
+
+      indent = 10  # minimum indent: spaces to following -set option
+
+      # want any '-AminusB' option at top of command
+      if len(set_labs) > 1: copt = '%*s%s \\\n' % (indent, '', comp_dir)
+      else:                 copt = ''
+
+      # command and first set of subject files
+      cmd = '3dttest++ -prefix %s \\\n'    \
+            '%s'                           \
+            '          -setA %s \\\n%s' %  (prefix, copt, set_labs[0],
+                                self.make_ttpp_set_list(bsubs[0], indent+3))
+
+      # maybe add second set of subject files
+      if len(set_labs) > 1:
+         if verb > 2: print '-- tt++_cmd: have labels for second subject set'
+
+         # separate tests for bad test types
+         if comp_dir == None:
+            print '** make_tt++_cmd: missing test type, should be in %s' \
+                  % g_ttpp_tests
+            return      # failure
+         if comp_dir not in g_ttpp_tests:
+            print '** make_tt++_cmd: comp_dir (%s) must be in the list %s' \
+                  % (comp_dir, g_ttpp_tests)
+            return      # failure
+
+         # note subject list and sub-brick labels
+         if subjlist2 != None:
+            S = subjlist2
+            if verb > 2: print '-- second subject list was passed'
+         else:
+            S = self
+            if verb > 2: print '-- no second subject list, using same list'
+         if len(bsubs) > 1: b = bsubs[1]
+         else:
+            if S != subjlist2:
+               print '** make_tt++_cmd: same subject list in comparison'
+            b = bsubs[0]
+         cmd += '%*s-setB %s \\\n%s' % \
+                (indent, ' ', set_labs[1], S.make_ttpp_set_list(b, indent+3))
+
+      if len(options) > 0: cmd += '%*s%s' % (indent, '', ' '.join(options))
+      cmd += '\n\n'
+
+      return cmd
+
    def make_mema_command(self, set_labs=None, bsubs=None, tsubs=None,
                          subjlist2=None, prefix=None, ttype=None, options=None,
                          verb=1):
@@ -256,10 +342,10 @@ class SubjectList(object):
          # note subject list and sub-brick labels
          if subjlist2 != None:
             S = subjlist2
-            if verb > 3: print '-- second subject list was passed'
+            if verb > 2: print '-- second subject list was passed'
          else:
             S = self
-            if verb > 3: print '-- no second subject list, using same list'
+            if verb > 2: print '-- no second subject list, using same list'
          if len(bsubs) > 1: b, t = bsubs[1], tsubs[1]
          else:
             if S != subjlist2:
@@ -302,18 +388,21 @@ class SubjectList(object):
                   indent+ml, '',           subj.dset, tsub)
       return sstr
 
-   def make_ttest_set_list(self, bsub, indent=0):
+   def make_ttpp_set_list(self, bsub, indent=0):
       """return a multi-line string of the form:
-                "dset1[bsub]"
-                "dset2[bsub]"
+                SID1 "dset1[bsub]"
+                SID2 "dset2[bsub]"
                 ...
          indent is the initial indentation
       """
+      # note the max subject ID length
+      ml = 0
+      for subj in self.subjects:
+         if len(subj.sid) > ml: ml = len(subj.sid)
 
       sstr = ''
       for subj in self.subjects:
-         sstr += '%*s"%s[%s]" \\\n' % \
-                 (indent,    '', subj.dset, bsub)
+         sstr += '%*s%s "%s[%s]" \\\n' % (indent, '', subj.sid, subj.dset, bsub)
       return sstr
 
 if __name__ == '__main__':
