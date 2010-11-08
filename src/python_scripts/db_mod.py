@@ -3232,23 +3232,26 @@ g_help_string = """
 
         7. Similar to 6, but get a little more esoteric.
 
-           a. Let the basis functions vary.  For some reason, we expect the
+           a. Blur only within the brain, as far as an automask can tell.  So
+              add -blur_in_automask to blur only within an automatic mask
+              created internally by 3dBlurInMask (akin to 3dAutomask).
+
+           b. Let the basis functions vary.  For some reason, we expect the
               BOLD responses to the positive classes to vary across the brain.
               So we have decided to use TENT functions there.  Since the TR is
-              3.0s and we might expect a 45 second response curve (max).
-
-              Use 'TENT(0,45,16)' for those 3 out of 9 basis functions.
+              3.0s and we might expect up to a 45 second BOLD response curve,
+              use 'TENT(0,45,16)' for those 3 out of 9 basis functions.
 
               This means using -regress_basis_multi instead of -regress_basis,
               and specifying all 9 basis functions appropriately.
 
-           b. Not only censor motion, but censor outliers when above 10% of the
-              automasked brain.  Add -regress_censor_outliers.
+           c. Not only censor motion, but censor TRs when more than 10% of the
+              automasked brain are outliers.  So add -regress_censor_outliers.
 
-           c. Save on RAM by computing the fitts only after 3dDeconvolve.
-              Add -regress_compute_fitts.
+           d. Save on RAM by computing the fitts only after 3dDeconvolve.
+              So add -regress_compute_fitts.
 
-           4. Speed things up.  Have 3dDeconvolve use 4 CPUs.  Also, skip the
+           e. Speed things up.  Have 3dDeconvolve use 4 CPUs and skip the
               single subject 3dClustSim execution.  So add '-jobs 4' to the
               -regress_opts_3dD option and add '-regress_run_clustsim no'.
 
@@ -3260,6 +3263,7 @@ g_help_string = """
                         -volreg_align_to last                              \\
                         -volreg_align_e2a                                  \\
                         -volreg_tlrc_warp                                  \\
+                        -blur_in_automask                                  \\
                         -regress_stim_times sb23/stim_files/blk_times.*.1D \\
                         -regress_stim_labels tneg tpos tneu                \\
                                              eneg epos eneu                \\
