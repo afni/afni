@@ -13,8 +13,8 @@ import lib_subjects as SUBJ
 
 g_help_string = """
 =============================================================================
-gen_group_command.py    - generate group commands: 3dMEMA
-                        - todo: 3dttest, 3dttest++, 3dANOVA2, 3dANOVA3
+gen_group_command.py    - generate group commands: 3dttest++, 3dMEMA
+                        - todo: 3dANOVA2, 3dANOVA3, 3dttest?, GroupAna?
 
    This program is to assist in writing group commands.  The hardest part (or
    most tedious) is generally listing datasets and such, and that is the main
@@ -29,7 +29,72 @@ gen_group_command.py    - generate group commands: 3dMEMA
 ------------------------------------------
 examples (by program)
 
-   A. 3dMEMA
+   A. 3dttest++ (not 3dttest)
+
+      Note: these commands apply to the sample group data under
+            AFNI_data6/group_results.
+
+    * Note: The 3dttest++ program defaults to setA minus setB, which is the
+            opposite of 3dttest and 3dMEMA (though it might be more natural).
+            The direction of the test can be further specified using either
+            -AminusB or -BminusA, which is always included in the resulting
+            command if there are 2 sets of data.
+
+            This program will always supply one of -AminusB or -BminusA, to be
+            clear.  If the user does not provide one, -AminusB will be used.
+
+            Note also that 3dttest uses sub-brick labels which should make
+            this clear.
+
+      1. The most simple case, providing just the datasets.  The subject IDs
+         will be extracted from the dataset names.  Since no sub-bricks are
+         provided, the betas will default to sub-brick 0 and the test will be
+         the mean compared with 0.
+
+            gen_group_command.py -command 3dttest++        \\
+                                 -dsets REML*.HEAD
+
+      2. Specify the sub-bricks and set labels to compare Vrel vs. Arel.
+         Write the command to the file cmd.tt++.2.
+
+            gen_group_command.py -command 3dttest++        \\
+                                 -write_script cmd.tt++.2  \\
+                                 -prefix tt++.2_V-A        \\
+                                 -dsets REML*.HEAD         \\
+                                 -set_labels Vrel Arel     \\
+                                 -subs_betas 'Vrel#0_Coef' 'Arel#0_Coef'
+
+      3. Request a paired t-test and apply a mask.
+
+            gen_group_command.py -command 3dttest++                         \\
+                                 -write_script cmd.tt++.3                   \\
+                                 -prefix tt++.3_V-A_paired                  \\
+                                 -dsets REML*.HEAD                          \\
+                                 -set_labels Vrel Arel                      \\
+                                 -subs_betas  'Vrel#0_Coef' 'Arel#0_Coef'   \\
+                                 -options                                   \\
+                                    -paired -mask mask+tlrc
+
+      4. Exclude voxels that are identically zero across more than 20% of the
+         input datasets (presumably masked at the single subject level).
+         Convert output directly to z, since the DOF will vary across space.
+
+            gen_group_command.py -command 3dttest++                         \\
+                                 -write_script cmd.tt++.4                   \\
+                                 -prefix tt++.4_V-A_zskip                   \\
+                                 -dsets REML*.HEAD                          \\
+                                 -set_labels Vrel Arel                      \\
+                                 -subs_betas  'Vrel#0_Coef' 'Arel#0_Coef'   \\
+                                 -options                                   \\
+                                    -zskip 0.8 -toz
+
+      5. With covariates, coming sometime within the next decade...  Probably.
+
+   See "3dttest++ -help" for details on its options.
+
+   --------------------
+
+   B. 3dMEMA
 
       Note: these commands apply to the sample group data under
             AFNI_data6/group_results.
@@ -156,9 +221,10 @@ g_history = """
    0.0  Sep 09, 2010    - initial version
    0.1  Oct 25, 2010    - handle some 3dMEMA cases
    0.2  Oct 26, 2010    - MEMA updates
+   0.3  Nov 08, 2010    - can generate 3dttest++ commands
 """
 
-g_version = "gen_group_command.py version 0.2, Oct 26, 2010"
+g_version = "gen_group_command.py version 0.3, November 8, 2010"
 
 
 class CmdInterface:
@@ -174,6 +240,7 @@ class CmdInterface:
       # general variables
       self.command         = ''         # program name to make command for
       self.ttype           = None       # test type (e.g. paired)
+      self.comp_dir        = '-AminusB' # contrast direction (or -BminusA)
       self.prefix          = None       # prefix for command result
       self.write_script    = None       # file to write output to (else stdout)
       self.betasubs        = None       # list of beta weight sub-brick indices
@@ -234,6 +301,10 @@ class CmdInterface:
                       helpstr='specify a list of input datasets')
 
       # other options
+      self.valid_opts.add_opt('-AminusB', 0, [], 
+                      helpstr='apply 3dttest++ test as set A minus set B')
+      self.valid_opts.add_opt('-BminusA', 0, [], 
+                      helpstr='apply 3dttest++ test as set B minus set A')
       self.valid_opts.add_opt('-options', -1, [], 
                       helpstr='specify options to pass to the command')
       self.valid_opts.add_opt('-prefix', 1, [], 
@@ -300,6 +371,14 @@ class CmdInterface:
       for opt in uopts.olist:
 
          # main options
+         if opt.name == '-AminusB':
+            self.comp_dir = opt.name
+            continue
+
+         if opt.name == '-BminusA':
+            self.comp_dir = opt.name
+            continue
+
          if opt.name == '-command':
             val, err = uopts.get_string_opt('', opt=opt)
             if val == None or err: return 1
@@ -398,12 +477,17 @@ class CmdInterface:
       cmd = None
       if self.command == '3dMEMA':
          cmd = self.get_mema_command()
+      elif self.command == '3dttest++':
+         cmd = self.get_ttpp_command()
       elif self.command == '3dttest':
          print '** 3dttest command not yet implemented'
       else:
          print '** unrecognized command: %s' % self.command
 
-      if cmd == None: return 1
+      # bail on failure, else wrap command
+      if cmd == None:
+         print '** failed making %s command' % self.command
+         return 1
       cmd = UTIL.add_line_wrappers(cmd)
 
       # either write to file or print
@@ -420,11 +504,18 @@ class CmdInterface:
       else:                   s2 = None
       if (self.betasubs != None and self.tstatsubs == None) or \
          (self.betasubs == None and self.tstatsubs != None):
-         print '** -subs_betas and -subs_tstats must be used together'
+         print '** MEMA: -subs_betas and -subs_tstats must be used together'
          return None
       return self.slist[0].make_mema_command(set_labs=self.lablist,
                      bsubs=self.betasubs, tsubs=self.tstatsubs, subjlist2=s2,
                      prefix=self.prefix, ttype=self.ttype, options=self.options)
+
+   def get_ttpp_command(self):
+      if len(self.slist) > 1: s2 = self.slist[1]
+      else:                   s2 = None
+      return self.slist[0].make_ttestpp_command(set_labs=self.lablist,
+                     bsubs=self.betasubs, subjlist2=s2, prefix=self.prefix,
+                     comp_dir=self.comp_dir, options=self.options)
 
    def help_mema_command(self):
       helpstr = """
