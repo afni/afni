@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 8 , NOV , 2010 , RWC , "3dttest++" , MICRO , TYPE_GENERAL ,
+   "Allow -zskip option to take a fraction (or %-age)." ,
+   "Per the request of the esteemed and estimable Rick Reynolds." } ,
+
  { 5 , NOV , 2010 , RWC , "3dttest++" , MINOR , TYPE_NEW_OPT ,
    "New -BminusA option" ,
    "This is Ziad's fault (again)." } ,

@@ -92,7 +92,7 @@ EXPROGS = gifti_tool $(GSLPROGS)
 
 # link choices are made above
 
-LLIBS  = -lmri $(XLIBS) -lXft -lXp -lXpm -lXext -lXmu -lSM -lICE -lX11 -lpng -ljpeg $(LZLIB) $(LGIFTI) -lm  -ldl -lc
+LLIBS  = -lmri $(XLIBS) -lXft -lXp -lXpm -lXext -lXmu -lSM -lICE -lX11 -lpng -ljpeg $(LZLIB) $(LGIFTI) -lm  -ldl -lc -L/usr/local/lib
 
 # for static linking, as far as possible
 

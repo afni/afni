@@ -41,7 +41,6 @@ void TT_matrix_setup( int kout ) ;  /* 30 Jul 2010 */
 
 static int toz    = 0 ;  /* convert t-statistics to z-scores? */
 static int twosam = 0 ;
-static int zskip  = 0 ;  /* 06 Oct 2010 [a dark day at Weathertop] */
 
 static NI_element         *covnel=NULL ;       /* covariates */
 static NI_str_array       *covlab=NULL ;
@@ -52,6 +51,11 @@ static MRI_vectim   **covvim_AAA=NULL ;
 static MRI_vectim   **covvim_BBB=NULL ;
 static floatvec     **covvec_AAA=NULL ;
 static floatvec     **covvec_BBB=NULL ;
+
+static int   zskip_AAA = 0 ;  /* 06 Oct 2010 [a dark day at Weathertop] */
+static int   zskip_BBB = 0 ;
+static float zskip_fff = 0.0f ;
+static int   do_zskip  = 0 ;
 
 static unsigned int testA, testB, testAB ;
 
@@ -429,12 +433,20 @@ void display_help_menu(void)
       "                 then that is the minimum number of nonzero values (in\n"
       "                 each of setA and setB, separately) that must be present\n"
       "                 before the t-test is carried out.  If you don't give\n"
-      "                 this value, its default is 5 (for no good reason).\n"
+      "                 this value, but DO use '-zskip', then its default is 5\n"
+      "                 (for no good reason).\n"
       "             ++ At this time, you can't use -zskip with -covariates,\n"
       "                 because that would require more extensive re-thinking\n"
       "                 and then re-programming.\n"
       "             ++ You can't use -zskip with -paired, for obvious reasons.\n"
       "             ++ [This option added 06 Oct 2010 -- RWCox]\n"
+      "             ++ You can also put a decimal fraction between 0 and 1 in\n"
+      "                 place of 'n' (e.g., '0.9', or '90%%').  Such a value\n"
+      "                 indicates that at least 90%% (e.g.) of the values in each\n"
+      "                 set must be nonzero for the t-test to proceed. [08 Nov 2010]\n"
+      "                 -- In no case will the number of values tested fall below 2!\n"
+      "                 -- You can use '100%' for 'n', to indicate that all data\n"
+      "                    values must be nonzero for the test to proceed.\n"
       "\n"
       " -mask mmm = Only compute results for voxels in the specified mask.\n"
       "             ++ Voxels not in the mask will be set to 0 in the output.\n"
@@ -686,9 +698,23 @@ int main( int argc , char *argv[] )
 
      if( strcmp(argv[nopt],"-zskip")     == 0 ||
          strcmp(argv[nopt],"-skip_zero") == 0   ){  /* 06 Oct 2010 */
-       zskip = 5 ; nopt++ ;
-       if( nopt < argc && isdigit(argv[nopt][0]) ){
-         zskip = (int)strtod(argv[nopt++],NULL) ; if( zskip < 2 ) zskip = 2 ;
+       nopt++ ;
+       if( nopt < argc && (isdigit(argv[nopt][0]) || argv[nopt][0] == '.') ){
+         float zzz ; char *cpt ;
+         zzz = (float)strtod(argv[nopt++],&cpt) ;
+         if( zzz > 1.0f && *cpt == '%' ) zzz *= 0.01f ;
+         if( zzz > 1.0f ){
+           zskip_AAA = zskip_BBB = (int)zzz ; zskip_fff = 0.0f ; do_zskip = 1 ;
+         } else {
+           if( zzz <= 0.0f || zzz > 1.0f ){
+             WARNING_message("Illegal value after '-zskip' -- ignoring this option :-(") ;
+             zskip_AAA = zskip_BBB = 0 ; zskip_fff = 0.0f ; do_zskip = 0 ;
+           } else {
+             zskip_AAA = zskip_BBB = 0 ; zskip_fff = zzz  ; do_zskip = 1 ;
+           }
+         }
+       } else {
+         zskip_AAA = zskip_BBB = 5 ; zskip_fff = 0.0f ; do_zskip = 1 ;
        }
        continue ;
      }
@@ -951,19 +977,34 @@ int main( int argc , char *argv[] )
    if( nmask > 0 && nmask != nvox )
      ERROR_exit("-mask doesn't match datasets number of voxels") ;
 
-   if( zskip && mcov > 0 )
+   if( do_zskip && mcov > 0 )
      ERROR_exit("-zskip and -covariates cannot be used together [yet] :-(") ;
 
-   if( zskip && ttest_opcode == 2 )
+   if( do_zskip && ttest_opcode == 2 )
      ERROR_exit("-zskip and -paired cannot be used together :-(") ;
 
-   if( zskip && nval_AAA < zskip )
-     ERROR_exit("-zskip %d is more than number of data values in setA (%d)",
-                zskip , nval_AAA ) ;
+   if( do_zskip && zskip_fff > 0.0f && zskip_fff <= 1.0f ){
+     zskip_AAA = (int)(zskip_fff*nval_AAA) ; if( zskip_AAA < 2 ) zskip_AAA = 2 ;
+     if( nval_BBB > 0 ){
+       zskip_BBB = (int)(zskip_fff*nval_BBB) ; if( zskip_BBB < 2 ) zskip_BBB = 2 ;
+     }
+   }
 
-   if( zskip && nval_BBB > 0 && nval_BBB < zskip )
-     ERROR_exit("-zskip %d is more than number of data values in setB (%d)",
-                zskip , nval_BBB ) ;
+   if( do_zskip && nval_AAA < zskip_AAA )
+     ERROR_exit("-zskip (%d) is more than number of data values in setA (%d)",
+                zskip_AAA , nval_AAA ) ;
+
+   if( do_zskip && nval_BBB > 0 && nval_BBB < zskip_BBB )
+     ERROR_exit("-zskip (%d) is more than number of data values in setB (%d)",
+                nval_BBB ) ;
+
+   if( do_zskip ){
+     INFO_message("-zskip: require %d (out of %d) nonzero values for setA",
+                  zskip_AAA,nval_AAA) ;
+     if( nval_BBB > 0 )
+       ININFO_message("    and require %d (out of %d) nonzero values for setB",
+                      zskip_BBB,nval_BBB) ;
+   }
 
    if( nval_AAA - mcov < 2 ||
        ( twosam && (nval_BBB - mcov < 2) ) )
@@ -985,7 +1026,7 @@ int main( int argc , char *argv[] )
      ttest_opcode = 0 ;
    }
 
-   if( zskip && !toz ){
+   if( do_zskip && !toz ){
      toz = 1 ; INFO_message("-zskip also turns on -toz") ;
    }
    if( ttest_opcode == 1 && !toz ){
@@ -1360,11 +1401,11 @@ int main( int argc , char *argv[] )
      if( mcov == 0 ){  /*--- no covariates ==> standard t-tests ---*/
        float *zAAA=datAAA, *zBBB=datBBB ; int nAAA=nval_AAA, nBBB=nval_BBB, nz,qq ;
 
-       if( zskip ){  /* 06 Oct 2010: skip zero values? */
+       if( do_zskip ){  /* 06 Oct 2010: skip zero values? */
          for( ii=nz=0 ; ii < nval_AAA ; ii++ ) nz += (datAAA[ii] == 0.0f) ;
          if( nz > 0 ){            /* copy nonzero vals to a new array */
            nAAA = nval_AAA - nz ;
-           if( nAAA < zskip ){
+           if( nAAA < zskip_AAA ){
              memset( resar , 0 , sizeof(float)*nvout ) ; kout++ ; nzskip++ ; continue ;
            }
            zAAA = (float *)malloc(sizeof(float)*nAAA) ;
@@ -1375,7 +1416,7 @@ int main( int argc , char *argv[] )
            for( ii=nz=0 ; ii < nval_BBB ; ii++ ) nz += (datBBB[ii] == 0.0f) ;
            if( nz > 0 ){            /* copy nonzero vals to a new array */
              nBBB = nval_BBB - nz ;
-             if( nBBB < zskip ){
+             if( nBBB < zskip_BBB ){
                if( zAAA != datAAA && zAAA != NULL ) free(zAAA) ;
                memset( resar , 0 , sizeof(float)*nvout ) ; kout++ ; nzskip++ ; continue ;
              }
@@ -1430,16 +1471,16 @@ int main( int argc , char *argv[] )
    if( vstep > 0 ){ fprintf(stderr,"!\n") ; MEMORY_CHECK ; }
 
    if( nconst > 0 )
-     INFO_message("skipped %d voxel%s for having constant data" ,
+     INFO_message("skipped %d voxel%s completely for having constant data" ,
                   nconst , (nconst==1) ? "\0" : "s" ) ;
 
    if( nzred > 0 )
-     INFO_message("-zskip: %d voxel%s had some values skipped in the t-test",
+     INFO_message("-zskip: %d voxel%s had some values skipped in their t-tests",
                   nzred , (nzred==1) ? "\0" : "s" ) ;
 
    if( nzskip > 0 )
-     INFO_message("-zskip: skipped %d voxel%s for having fewer than %d nonzero values" ,
-                  nzskip , (nzskip==1) ? "\0" : "s" , zskip ) ;
+     INFO_message("-zskip: skipped %d voxel%s completely for having too few nonzero values" ,
+                  nzskip , (nzskip==1) ? "\0" : "s" ) ;
 
    /*-------- get rid of the input data now --------*/
 
@@ -1483,12 +1524,12 @@ int main( int argc , char *argv[] )
    mri_fdr_setmask(mask) ;
    kk = THD_create_all_fdrcurves(outset) ;
    if( kk > 0 )
-     INFO_message("Added %d FDR curve%s to dataset",kk,(kk==1)?"\0":"s");
+     ININFO_message("Added %d FDR curve%s to dataset",kk,(kk==1)?"\0":"s");
    else
      WARNING_message("Failed to add FDR curves to dataset?!") ;
 
    if( twosam )
-     INFO_message("2-sample test: results are %s - %s",snam_PPP,snam_MMM) ;
+     ININFO_message("2-sample test: results are %s - %s",snam_PPP,snam_MMM) ;
 
    DSET_write(outset) ; WROTE_DSET(outset) ;
 
