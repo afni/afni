@@ -4,6 +4,9 @@
 #include <omp.h>
 #endif
 
+#undef  VECTIM_scan
+#define VECTIM_scan(vv) thd_floatscan((vv)->nvals*(vv)->nvec,(vv)->fvec)
+
 /*--------------------------------------------------------------------------*/
 /*! Convert a dataset to the MRI_vectim format, where each time
     series is a contiguous set of values in an array, and the
@@ -88,6 +91,8 @@ ENTRY("THD_dset_to_vectim") ;
    if( mrv->dt <= 0.0f ) mrv->dt = 1.0f ;
 
    if( mmm != mask ) free(mmm) ;
+
+   VECTIM_scan(mrv) ; /* 09 Nov 2010 */
    RETURN(mrv) ;
 }
 
@@ -230,6 +235,7 @@ ENTRY("THD_2dset_to_vectim") ;
      }
    }
 
+   VECTIM_scan(mrv) ; /* 09 Nov 2010 */
    RETURN(mrv) ;
 }
 
