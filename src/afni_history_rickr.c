@@ -462,8 +462,11 @@ afni_history_struct rickr_history[] = {
    NULL
  } ,
 
- { 19, MAY, 2010, RCR, "Makefile.*", MINOR, TYPE_MODIFY,
+ { 19, MAY, 2010, RCR, "Makefile.*", MINOR, TYPE_BUG_FIX,
    "add CCOLD to all for compiling nifticdf.o on linux_xorg7_64 using gcc v3",
+   "This is a bug in the gcc compiler code, not in AFNI.  So the workaround\n"
+   "is to compile nifticdf.o with a different version of the compiler.\n"
+   "\n"
    "The gcc compiler versions 4.1-4.3 (at least) had an optimization bug\n"
    "when compiling nifticdf.o.  The result was an inaccurate conversion\n"
    "from F-stats to p-values (in some cases).\n"
