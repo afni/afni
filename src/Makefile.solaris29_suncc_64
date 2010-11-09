@@ -13,8 +13,8 @@ CCMIN  = cc -xarch=generic64 -xcode=pic32
 CCD    = $(CC) $(CCDEBS)
 CCOLD  = $(CC)
 
-IFLAGS = -I. -I/usr/dt/include -I/usr/openwin/include -I/usr/openwin/share/include/X11
-LFLAGS = -s -L. -L/usr/dt/lib -L/usr/openwin/lib
+IFLAGS = -I. -I$(HOME) -I/usr/dt/include -I/usr/openwin/include -I/usr/openwin/share/include/X11
+LFLAGS = -s -L. -L$(HOME) -L/usr/dt/lib -L/usr/openwin/lib
 
 CCSVD  = cc -xarch=generic64 -xcode=pic32 -Xa
 
