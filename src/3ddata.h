@@ -4924,7 +4924,7 @@ extern float THD_pearson_corr ( int,float *,float *) ;
 extern float THD_ktaub_corr   ( int,float *,float *) ;  /* 29 Apr 2010 */
 extern float THD_eta_squared  ( int,float *,float *) ;  /* 25 Jun 2010 */
 
-extern float THD_pearson_corr_wt( int,float *,float *,float *) ; /* 13 Sep 2006 */
+extern float THD_pearson_corr_wt(int,float *,float *,float *); /* 13 Sep 2006 */
 
 extern float THD_spearman_corr_nd( int,float *,float *) ;  /* 23 Aug 2006 */
 extern float THD_quadrant_corr_nd( int,float *,float *) ;
@@ -4935,6 +4935,9 @@ extern float spearman_rank_prepare( int , float * );
 extern float quadrant_corr_prepare( int , float * );
 extern float spearman_rank_corr   ( int , float * , float , float * );
 extern float quadrant_corr        ( int , float * , float , float * );
+
+extern void rank_order_float_arrays( int , int * , float ** ); /* 10 Nov 2010 */
+extern void rank_order_2floats( int , float * , int , float * ) ;
 
 extern float THD_mutual_info_scl( int, float,float,float *,    /* 16 Aug 2006 */
                                        float,float,float *, float * ) ;
