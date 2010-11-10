@@ -281,15 +281,15 @@ void example_hierarchical( int nrows, int ncols,
   
   char* filename;
   //char* filename2;
+  FILE *out1; int n;
 
 
   for (i = 0; i < ncols; i++) weight[i] = 1.0;
   printf("\n");
 
 
-  FILE *out1;
 
-  int n = 1 + strlen(jobname) + strlen("_C") + strlen(".ext");
+  n = 1 + strlen(jobname) + strlen("_C") + strlen(".ext");
 
   if (k)
     { int dummy = k;

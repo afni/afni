@@ -11607,15 +11607,15 @@ int SUMA_q_wrap( int npt , float * xyz , int ** ijk , int fliporient,
    char qbuf[128] ;
    SUMA_Boolean LocalHead = NOPE;
    
-   SUMA_ENTRY;
-   
-   SUMA_LHv("qprog = %s\nqopt = %s\n", qprog, qopt);
-   
 #ifndef DONT_USE_MKSTEMP
    char fname[] = "/tmp/afniXXXXXX" ;
 #else
    char *fname ;
 #endif
+   
+   SUMA_ENTRY;
+   
+   SUMA_LHv("qprog = %s\nqopt = %s\n", qprog, qopt);
 
    if( npt < 3 || xyz == NULL || ijk == NULL ){
       SUMA_S_Err(" bad inputs\n") ;
