@@ -620,6 +620,7 @@ static mday holiday[] = {
    {NOV, 9,"Benjamin Banneker's birthday"                            } ,
    {NOV, 9,"Cambodia Independence Day"                               } ,
    {NOV,10,"Martin Luther's birthday"                                } ,
+   {NOV,10,"Anniversary of USMC"                                     } ,
    {NOV,11,"Veteran's & Remembrance Day"                             } ,
    {NOV,11,"Poland Independence Day"                                 } ,
    {NOV,12,"Sun Yat Sen's birthday"                                  } ,

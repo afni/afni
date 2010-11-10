@@ -38,7 +38,7 @@ void rank_order_float( int n , float *a )
    n1 = n-1 ;
    for( ii=0 ; ii < n1 ; ii++ ){
      if( a[ii] == a[ii+1] ){                  /* handle ties */
-       cs = 2*ii+1 ; ns = 2 ; ib=ii ; ii++ ;
+       cs = 2*ii+1 ; ns = 2 ; ib = ii ; ii++ ;
        while( ii < n1 && a[ii] == a[ii+1] ){ ii++ ; ns++ ; cs += ii ; }
        for( cs/=ns ; ib <= ii ; ib++ ) c[ib] = cs ;
      }
@@ -1406,4 +1406,84 @@ float_quad THD_helmicra_scl( int n , float xbot,float xtop,float *x ,
 float_quad THD_helmicra( int n , float *x , float *y )
 {
    return THD_helmicra_scl( n, 1.0f,-1.0f, x, 1.0f,-1.0f, y, NULL ) ;
+}
+
+/*---------------------------------------------------------------------------*/
+/*! Rank orders a collection of float arrays; ties get the average rank.
+    The output overwrites the input.
+*//*-------------------------------------------------------------------------*/
+
+void rank_order_float_arrays( int nar , int *nn , float **aa )
+{
+   int ii,jj,kk , jbase , ntot,nmax,n1,ns,ib ;
+   int   *b ;  /* workspaces */
+   float *a , *c , cs ;
+
+   /*- handle special cases -*/
+
+   if( nar < 1 || nn == NULL || aa == NULL ) return ;  /* junk inputs */
+   if( nar == 1 ){
+     rank_order_float( nn[0] , aa[0] ) ; return ;      /* just one input */
+   }
+
+   ntot = nmax = 0 ;
+   for( jj=0 ; jj < nar ; jj++ ){
+     ntot += nn[jj] ; if( nn[jj] > nmax ) nmax = nn[jj] ;
+   }
+   if( ntot < nar ) return ;                           /* bad inputs */
+
+   /*- make workspaces -*/
+
+   a = (float *)malloc(sizeof(float)*ntot) ;
+   b = (int   *)malloc(sizeof(int  )*ntot) ;
+   c = (float *)malloc(sizeof(float)*ntot) ;
+
+   for( kk=jj=0 ; jj < nar ; jj++ ){
+     jbase = jj*nmax ;
+     for( ii=0 ; ii < nn[jj] ; ii++,kk++ ){
+       a[kk] = aa[jj][ii] ;  /* data */
+       b[kk] = ii + jbase ;  /* where it came from */
+       c[kk] = (float)kk ;   /* default rank of kk-th value after sorting */
+     }
+   }
+
+   /*- sort input, carrying b along -*/
+
+   qsort_floatint( ntot , a , b ) ;
+
+   /* c[kk] now contains the global rank of the kk-th element,
+      but c[] perhaps needs to modified to allow for ties ==> average rank */
+
+   n1 = ntot-1 ;
+   for( ii=0 ; ii < n1 ; ii++ ){
+     if( a[ii] == a[ii+1] ){                  /* handle ties */
+       cs = (ii)+(ii+1) ; ns = 2 ; ib = ii ; ii++ ;
+       while( ii < n1 && a[ii] == a[ii+1] ){ ii++ ; ns++ ; cs += ii ; }
+       for( cs/=ns ; ib <= ii ; ib++ ) c[ib] = cs ;
+     }
+   }
+
+   /* put c[] results back into the original arrays */
+
+   for( kk=0 ; kk < ntot ; kk++ ){
+     jj = b[kk] / nmax ;  /* which array did it come from? */
+     ii = b[kk] % nmax ;  /* which element in that arrary? */
+     aa[jj][ii] = c[kk] ; /* replace data with rank */
+   }
+
+   free(c) ; free(b) ; free(a) ; return ;
+}
+
+/*---------------------------------------------------------------------------*/
+
+void rank_order_2floats( int n1 , float *a1 , int n2 , float *a2 )
+{
+   int nn[2] ; float *aa[2] ;
+
+   if( n1 <= 0 || n2 <= 0 || a1 == NULL || a2 == NULL ) return ;
+
+   nn[0] = n1 ; nn[1] = n2 ;
+   aa[0] = a1 ; aa[1] = a2 ;
+   rank_order_float_arrays( 2 , nn , aa ) ;
+   return ;
 }
