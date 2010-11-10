@@ -57,6 +57,10 @@ static int   zskip_BBB = 0 ;
 static float zskip_fff = 0.0f ;
 static int   do_zskip  = 0 ;
 
+#define ALLOW_RANKS
+static int   do_ranks  = 0 ;  /* 10 Nov 2010 */
+static int   do_1sam   = 1 ;  /* 10 Nov 2010 */
+
 static unsigned int testA, testB, testAB ;
 
 #define CENTER_NONE 0
@@ -447,6 +451,25 @@ void display_help_menu(void)
       "                 -- In no case will the number of values tested fall below 2!\n"
       "                 -- You can use '100%' for 'n', to indicate that all data\n"
       "                    values must be nonzero for the test to proceed.\n"
+#ifdef ALLOW_RANK
+      "\n"
+      " -rankize  = Convert the data (and covariates, if any) into ranks before\n"
+      "              doing the 2-sample analyses.  This option is intended to make\n"
+      "              the statistics more 'robust', and is inspired by the paper\n"
+      "                WJ Conover and RL Iman.\n"
+      "                Analysis of Covariance Using the Rank Transformation.\n"
+      "                Biometrics 38: 715-724 (1982).\n"
+      "                http://www.jstor.org/stable/2530051\n"
+      "             ++ Using '-rankize' also implies '-no1sam' (infra), since it\n"
+      "                 doesn't make sense to do 1-sample t-tests on ranks.\n"
+      "             ++ Don't use this option unless you understand what it does!\n"
+#endif
+      "\n"
+      " -no1sam   = When you input two samples (setA and setB), normally the\n"
+      "              program outputs the 1-sample test results for each set\n"
+      "              (comparing to zero), as well as the 2-sample test results\n"
+      "              for differences between the sets.  With '-no1sam', these\n"
+      "              1-sample test results will NOT be calculated or saved.\n"
       "\n"
       " -mask mmm = Only compute results for voxels in the specified mask.\n"
       "             ++ Voxels not in the mask will be set to 0 in the output.\n"
@@ -514,8 +537,9 @@ void display_help_menu(void)
       "   in non-AFNI programs will probably cause these labels to be lost\n"
       "   (along with other AFNI niceties, such as the history field).\n"
       "\n"
-      "* Although you might not care about some of the results, there is no\n"
-      "   option to turn off the output of all the sub-bricks described above.\n"
+      "* If you are doing a 2-sample run and don't want the 1-sample results,\n"
+      "   then the '-no1sam' option can be used to eliminate these sub-bricks\n"
+      "   from the output.\n"
       "\n"
       "* The largest Tstat that will be output is 99.\n"
       "* The largest Zscr that will be output is 13.\n"
@@ -684,6 +708,20 @@ int main( int argc , char *argv[] )
 
    nopt = 1 ;
    while( nopt < argc ){
+
+     /*----- no1sam -----*/
+
+     if( strcasecmp(argv[nopt],"-no1sam") == 0 ){   /* 10 Nov 2010 */
+       do_1sam = 0 ; nopt++ ; continue ;
+     }
+
+#ifdef ALLOW_RANKS
+     /*----- rankize -----*/
+
+     if( strcasecmp(argv[nopt],"-rankize") == 0 ){  /* 10 Nov 2010 */
+       do_ranks = 1 ; do_1sam = 0 ; nopt++ ; continue ;
+     }
+#endif
 
      /*----- BminusA -----*/
 
@@ -1033,6 +1071,23 @@ int main( int argc , char *argv[] )
      toz = 1 ; INFO_message("-unpooled also turns on -toz") ;
    }
 
+   if( !do_1sam && !twosam ){
+     WARNING_message("-no1sam and no -setB datasets?  What do you mean?") ;
+     do_1sam = 1 ;
+   }
+
+#ifdef ALLOW_RANKS
+   if( do_ranks && !twosam ){
+     WARNING_message("-rankize only works with two-sample tests ==> ignoring") ;
+     do_ranks = 0 ; do_1sam = 1 ;
+   }
+#else
+   if( do_ranks ){
+     WARNING_message("-rankize is disabled at this time") ;
+     do_ranks = 0 ;
+   }
+#endif
+
    if( nmask == 0 ){
      INFO_message("no mask ==> processing all %d voxels",nvox) ;
      nmask_hits = nvox ;
@@ -1245,7 +1300,7 @@ int main( int argc , char *argv[] )
 
    /*-------------------- create empty output dataset ---------------------*/
 
-   nvout  = ((twosam) ? 6 : 2) * (mcov+1) ;  /* number of output volumes */
+   nvout  = ((twosam && do_1sam) ? 6 : 2) * (mcov+1) ; /* # of output volumes */
 
    outset = EDIT_empty_copy( dset_AAA[0] ) ;
 
@@ -1266,11 +1321,12 @@ int main( int argc , char *argv[] )
    /* make up some brick labels [[[man, this is tediously boring work]]] */
 
    if( mcov > 0 ){
-     nws       = sizeof(float)*(2*mcov+nval_AAA+nval_BBB+32) ;
+     nws       = sizeof(float)*(4*mcov+2*nval_AAA+2*nval_BBB+32) ;
      workspace = (float *)malloc(nws) ;
 
      if( twosam ){
        testAB = testA = testB = (unsigned int)(-1) ;
+       if( !do_1sam ) testA = testB = 0 ;            /* 10 Nov 2010 */
      } else {
        testAB = testB = 0 ; testA = (unsigned int)(-1) ;
      }
@@ -1295,18 +1351,20 @@ int main( int argc , char *argv[] )
        sprintf(blab,"%s-%s_%s"  ,snam_PPP,snam_MMM,stnam); EDIT_BRICK_LABEL(outset,1,blab);
           if( toz ) EDIT_BRICK_TO_FIZT(outset,1) ;
           else      EDIT_BRICK_TO_FITT(outset,1,dof_AB) ;
-       sprintf(blab,"%s_mean",snam_AAA)                  ; EDIT_BRICK_LABEL(outset,2,blab);
-       sprintf(blab,"%s_%s"  ,snam_AAA,stnam)            ; EDIT_BRICK_LABEL(outset,3,blab);
-          if( toz ) EDIT_BRICK_TO_FIZT(outset,3) ;
-          else      EDIT_BRICK_TO_FITT(outset,3,dof_A) ;
-       sprintf(blab,"%s_mean",snam_BBB)                  ; EDIT_BRICK_LABEL(outset,4,blab);
-       sprintf(blab,"%s_%s"  ,snam_BBB,stnam)            ; EDIT_BRICK_LABEL(outset,5,blab);
-          if( toz ) EDIT_BRICK_TO_FIZT(outset,5) ;
-          else      EDIT_BRICK_TO_FITT(outset,5,dof_B) ;
+       if( do_1sam ){
+         sprintf(blab,"%s_mean",snam_AAA)                  ; EDIT_BRICK_LABEL(outset,2,blab);
+         sprintf(blab,"%s_%s"  ,snam_AAA,stnam)            ; EDIT_BRICK_LABEL(outset,3,blab);
+            if( toz ) EDIT_BRICK_TO_FIZT(outset,3) ;
+            else      EDIT_BRICK_TO_FITT(outset,3,dof_A) ;
+         sprintf(blab,"%s_mean",snam_BBB)                  ; EDIT_BRICK_LABEL(outset,4,blab);
+         sprintf(blab,"%s_%s"  ,snam_BBB,stnam)            ; EDIT_BRICK_LABEL(outset,5,blab);
+            if( toz ) EDIT_BRICK_TO_FIZT(outset,5) ;
+            else      EDIT_BRICK_TO_FITT(outset,5,dof_B) ;
+       }
      }
    } else {                            /*--- have covariates ---*/
      kk = 0 ;
-     if( testAB ){
+     if( testAB ){                     /* 2-sample results */
        ntwosam = 2*(mcov+1) ;
        sprintf(blab,"%s-%s_mean",snam_PPP,snam_MMM);
          EDIT_BRICK_LABEL(outset,kk,blab); kk++;
@@ -1325,7 +1383,7 @@ int main( int argc , char *argv[] )
          kk++;
        }
      }
-     if( testA ){
+     if( testA ){                      /* 1-sample results */
        sprintf(blab,"%s_mean",snam_AAA) ;
          EDIT_BRICK_LABEL(outset,kk,blab); kk++;
        sprintf(blab,"%s_%s",snam_AAA,stnam) ;
@@ -1343,7 +1401,7 @@ int main( int argc , char *argv[] )
            kk++;
        }
      }
-     if( testB ){
+     if( testB ){                      /* 1-sample results */
        sprintf(blab,"%s_mean",snam_BBB) ;
          EDIT_BRICK_LABEL(outset,kk,blab); kk++;
        sprintf(blab,"%s_%s",snam_BBB,stnam) ;
@@ -1430,12 +1488,17 @@ int main( int argc , char *argv[] )
        }
 
        if( twosam ){
+         if( do_1sam ){
+           tpair = ttest_toz( nAAA,zAAA , 0 ,NULL   , ttest_opcode ) ;
+           resar[2] = tpair.a ; resar[3] = tpair.b ;
+           tpair = ttest_toz( nBBB,zBBB , 0 ,NULL   , ttest_opcode ) ;
+           resar[4] = tpair.a ; resar[5] = tpair.b ;
+         }
+#ifdef ALLOW_RANKS
+         if( do_ranks ) rank_order_2floats( nAAA,zAAA , nBBB,zBBB ) ;
+#endif
          tpair = ttest_toz( nAAA,zAAA , nBBB,zBBB , ttest_opcode ) ;
          resar[0] = tpair.a ; resar[1] = tpair.b ;
-         tpair = ttest_toz( nAAA,zAAA , 0 ,NULL   , ttest_opcode ) ;
-         resar[2] = tpair.a ; resar[3] = tpair.b ;
-         tpair = ttest_toz( nBBB,zBBB , 0 ,NULL   , ttest_opcode ) ;
-         resar[4] = tpair.a ; resar[5] = tpair.b ;
        } else {
          tpair = ttest_toz( nAAA,zAAA , 0 ,NULL   , ttest_opcode ) ;
          resar[0] = tpair.a ; resar[1] = tpair.b ;
@@ -1455,6 +1518,9 @@ int main( int argc , char *argv[] )
 
        if( nws > 0 ) memset(workspace,0,nws) ;
 
+#ifdef ALLOW_RANKS
+       if( do_ranks ) rank_order_2floats( nval_AAA, datAAA, nval_BBB, datBBB ) ;
+#endif
        regress_toz( nval_AAA , datAAA , nval_BBB , datBBB , ttest_opcode ,
                     mcov ,
                     Axx , Axx_psinv , Axx_xtxinv ,
@@ -2080,6 +2146,17 @@ ENTRY("TT_matrix_setup") ;
        for( kk=0 ; kk < nval_BBB ; kk++ ) BXX(kk,jj) = fpt[kk] ;
      }
    }
+
+#ifdef ALLOW_RANKS
+   if( do_ranks ){
+     for( jj=1 ; jj <= mcov ; jj++ ){
+       if( twosam && ttest_opcode != 2 )
+         rank_order_2floats( nval_AAA , &(AXX(0,jj)) , nval_BBB , &(BXX(0,jj)) ) ;
+       else
+         rank_order_float( nval_AAA , &(AXX(0,jj)) ) ;
+     }
+   }
+#endif
 
    TT_centerize() ; /* column de-mean-ization? */
 
