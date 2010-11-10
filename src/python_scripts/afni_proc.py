@@ -220,9 +220,10 @@ g_history = """
         - allow varying basis functions (affects ideals/iresp output)
         - added -regress_no_ideal_sum, -regress_basis_multi
     2.39 Nov 04 2010 : no X.full_length.xmat.1D, use X.uncensored.xmat.1D
+    2.40 Nov 10 2010 : added new NOTE sections for ANAT/EPI ALIGNMENT to -help
 """
 
-g_version = "version 2.39, Nov 4, 2010"
+g_version = "version 2.40, Nov 10, 2010"
 
 # version of AFNI required for script execution
 g_requires_afni = "4 Nov 2010"
