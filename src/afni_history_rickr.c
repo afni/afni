@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 10, NOV, 2010, RCR, "afni_proc.py", MICRO, TYPE_GENERAL,
+   "added new NOTE sections for ANAT/EPI ALIGNMENT to -help output",
+   NULL
+ } ,
+
  {  8, NOV, 2010, RCR, "gen_group_command.py", MAJOR, TYPE_NEW_OPT,
    "can now generate 3dttest++ commands",
    NULL

@@ -2950,8 +2950,10 @@ g_help_string = """
         DEFAULTS                : basic default operations, per block
         EXAMPLES                : various examples of running this program
         NOTE sections           : details on various topics
-            TIMING FILE NOTE, MASKING NOTE, WARP TO TLRC NOTE, RETROICOR NOTE,
-            RUNS OF DIFFERENT LENGTHS NOTE, SCRIPT EXECUTION NOTE
+            TIMING FILE NOTE, MASKING NOTE,
+            ANAT/EPI ALIGNMENT CASES NOTE, ANAT/EPI ALIGNMENT CORRECTIONS NOTE,
+            WARP TO TLRC NOTE, RETROICOR NOTE, RUNS OF DIFFERENT LENGTHS NOTE,
+            SCRIPT EXECUTION NOTE
         OPTIONS                 : desriptions of all program options
             informational       : options to get quick info and quit
             general execution   : options not specific to a processing block
@@ -3475,6 +3477,140 @@ g_help_string = """
     changes could result.  Because large values would be a detriment to the
     numerical resolution of the scaled short data, the default is to truncate
     scaled values at 200 (percent), which should not occur in the brain.
+
+    --------------------------------------------------
+    ANAT/EPI ALIGNMENT CASES NOTE:
+
+    This outlines the effects of alignment options, to help decide what options
+    seem appropriate for various cases.
+
+    1. EPI to EPI alignment (the volreg block)
+
+        Alignment of the EPI data to a single volume is based on the 3 options
+        -volreg_align_to, -volreg_base_dset and -volreg_base_ind, where the
+        first option is by far the most commonly used.
+
+        The logic of EPI alignment in afni_proc.py is:
+
+            a. if -volreg_base_dset is given, align to that
+               (this volume is copied locally as the dataset ext_align_epi)
+            b. otherwise, use the -volreg_align_to or -volreg_base_ind volume
+
+        The typical case is to align the EPI to one of the volumes used in
+        pre-processing (where the dataset is provided by -dsets and where the
+        particular TR is not removed by -tcat_remove_first_trs).  If the base
+        volume is the first or third (TR 0 or 2) from the first run, or is the
+        last TR of the last run, then -volreg_align_to can be used.
+
+        To specify a TR that is not one of the 3 just stated (first, third or
+        last), -volreg_base_ind can be used.
+
+        To specify a volume that is NOT one of those used in pre-processing
+        (such as a pre-steady state volume that will be excluded by the option
+        -tcat_remove_first_trs), use -volreg_base_dset.
+
+    2. anat to EPI alignment cases (the align block)
+
+        This is specific to the 'align' processing block, where the anatomy is
+        aligned to the EPI.  The focus is on which EPI volume the anat gets
+        aligned to.  Whether this transformation is inverted in the volreg
+        block (to instead align the EPI to the anat via -volreg_align_e2a) is
+        an independent consideration.
+
+        The logic of which volume the anatomy gets aligned to is as follows:
+            a. if -align_epi_ext_dset is given, use that for anat alignment
+            b. otherwise, if -volreg_base_dset, use that
+            c. otherwise, use the EPI base from the EPI alignment choice
+
+        To restate this: the anatomy gets aligned to the same volume the EPI
+        gets aligned to *unless* -align_epi_ext_dset is given, in which case
+        that volume is used.
+
+        The entire purpose of -align_epi_ext_dset is for the case where the
+        user might want to align the anat to a different volume than what is
+        used for the EPI (e.g. align anat to a pre-steady state TR but the EPI
+        to a steady state one).
+
+        Output:
+
+           The result of the align block is an 'anat_al' dataset.  This will be
+           in alignment with the EPI base (or -align_epi_ext_dset).
+
+           Additionally, if the -volreg_align_e2a option is used (thus aligning
+           the EPI to the original anat), then the anat_al dataset is no longer
+           very useful.  At that point the pb*.volreg.* datasets are aligned
+           with the original anat (and possibly in Talairach space, if the
+           -volreg_tlrc_warp or _adwarp option was applied).
+
+         Checking the results:
+
+           The pb*.volreg.* volumes should be aligned with the anat.  If
+           -volreg_align_e2a was used, it will be with the original anat.
+           If not, then it will be with anat_al.
+
+           So compare the volreg EPI with the appropriate anatomical dataset.
+
+    --------------------------------------------------
+    ANAT/EPI ALIGNMENT CORRECTIONS NOTE:
+
+    Aligning the anatomy and EPI is sometimes difficult, particularly depending
+    on the contrast of the EPI data (between tissue types).  If the alignment
+    fails to do a good job, it may be necessary to run align_epi_anat.py in a
+    separate location, find options that help it to succeed, and then apply
+    those options to re-process the data with afni_proc.py.
+
+    1. If the anat and EPI base do not start off fairly close in alignment,
+       the -giant_move option may be needed for align_epi_anat.py.  Pass this
+       option to AEA.py via the afni_proc.py option -align_opts_aea:
+
+            afni_proc.py ... -align_opts_aea -giant_move
+
+    2. The default cost function used by align_epi_anat.py is lpc (local
+       Pearson correlation).  If this cost function does not work (probably due
+       to poor or unusual EPI contrast), then consider cost functions such as
+       lpa (absolute lpc), lpc+ (lpc plus fractions of other cost functions) or
+       lpc+ZZ (approximate with lpc+, but finish with pure lpc).
+
+       The lpa and lpc+ZZ cost functions are common alternatives.  The 
+       -giant_move option may be necessary independently.
+
+       Examples of some helpful options:
+
+         -align_opts_aea -cost lpa
+         -align_opts_aea -giant_move
+         -align_opts_aea -cost lpc+ZZ -giant_move
+         -align_opts_aea -cost lpc+ZZ -giant_move -resample off
+
+    3. Testing alignment with align_epi_anat.py directly.
+
+       When having alignment problems, it may be more efficient to copy the
+       anat and EPI alignment base to a new directory, figure out a good cost
+       function or other options, and then apply them in a new afni_proc.py
+       command.
+
+       For testing purposes, it helps to test many cost functions at once.
+       Besides the cost specified by -cost, other cost functions can be applied
+       via -multi_cost.  This is efficient, since all of the other processing
+       does not need to be repeated.  For example:
+
+         align_epi_anat.py -anat2epi                    \\
+                -anat subj99_anat+orig                  \\
+                -epi pb01.subj99.r01.tshift+orig        \\
+                -epi_base 0 -volreg off -tshift off     \\
+                -giant_move                             \\
+                -cost lpc -multi_cost lpa lpc+ZZ mi
+                           
+       That adds -giant_move, and uses the basic lpc cost function along with
+       3 additional cost functions (lpa, lpc+ZZ, mi).  The result is 4 new
+       anatomies aligned to the EPI, 1 per cost function:
+
+               subj99_anat_al+orig         - cost func lpc      (see -cost opt)
+               subj99_anat_al_lpa+orig     - cost func lpa         (additional)
+               subj99_anat_al_lpc+ZZ+orig  - cost func lpc+ZZ      (additional)
+               subj99_anat_al_mi+orig      - cost func mi          (additional)
+
+       Also, if part of the dataset gets clipped in the case of -giant_move,
+       consider the align_epi_anat.py option '-resample off'.
 
     --------------------------------------------------
     WARP TO TLRC NOTE:
