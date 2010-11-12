@@ -634,6 +634,9 @@ ENTRY("GA_scalar_fitter") ;
   val = GA_scalar_costfun( gstup->match_code, gstup->npt_match, avm,bvm,wvm ) ;
 
   free((void *)avm) ;    /* toss the trash */
+#if 0
+  ININFO_message("costfun = %.7g",val) ;
+#endif
   RETURN(val);
 }
 
@@ -2071,6 +2074,8 @@ void mri_genalign_bilinear( int npar, float *wpar ,
    /** new parameters ==> setup matrix */
 
    if( npar >= 43 && wpar != NULL ){  /* 39 'real' parameters, 4 'fake' ones */
+     float dmag , emag ;
+
      xcen   = wpar[39] ;              /* the fake (non-varying) parameters */
      ycen   = wpar[40] ;
      zcen   = wpar[41] ;
@@ -2081,44 +2086,60 @@ void mri_genalign_bilinear( int npar, float *wpar ,
      dd_for[0][0][0] = wpar[12] * dd_fac ;  /* the real parameters */
      dd_for[0][0][1] = wpar[13] * dd_fac ;
      dd_for[0][0][2] = wpar[14] * dd_fac ;
+     emag = fabsf(wpar[12])+fabsf(wpar[13])+fabsf(wpar[14]) ;
 
      dd_for[0][1][0] = wpar[15] * dd_fac ;
      dd_for[0][1][1] = wpar[16] * dd_fac ;
      dd_for[0][1][2] = wpar[17] * dd_fac ;
      ddiag = (wpar[15]==0.0f) && (wpar[16]==0.0f) && (wpar[17]==0.0f) ;
+     dmag  = fabsf(wpar[15])+fabsf(wpar[16])+fabsf(wpar[17]) ;
 
      dd_for[0][2][0] = wpar[18] * dd_fac ;
      dd_for[0][2][1] = wpar[19] * dd_fac ;
      dd_for[0][2][2] = wpar[20] * dd_fac ;
      ddiag = ddiag && (wpar[18]==0.0f) && (wpar[19]==0.0f) && (wpar[20]==0.0f) ;
+     dmag += fabsf(wpar[18])+fabsf(wpar[19])+fabsf(wpar[20]) ;
 
      dd_for[1][0][0] = wpar[21] * dd_fac ;
      dd_for[1][0][1] = wpar[22] * dd_fac ;
      dd_for[1][0][2] = wpar[23] * dd_fac ;
      ddiag = ddiag && (wpar[21]==0.0f) && (wpar[22]==0.0f) && (wpar[23]==0.0f) ;
+     dmag += fabsf(wpar[21])+fabsf(wpar[22])+fabsf(wpar[23]) ;
 
      dd_for[1][1][0] = wpar[24] * dd_fac ;
      dd_for[1][1][1] = wpar[25] * dd_fac ;
      dd_for[1][1][2] = wpar[26] * dd_fac ;
+     emag += fabsf(wpar[24])+fabsf(wpar[25])+fabsf(wpar[26]) ;
 
      dd_for[1][2][0] = wpar[27] * dd_fac ;
      dd_for[1][2][1] = wpar[28] * dd_fac ;
      dd_for[1][2][2] = wpar[29] * dd_fac ;
      ddiag = ddiag && (wpar[27]==0.0f) && (wpar[28]==0.0f) && (wpar[29]==0.0f) ;
+     dmag += fabsf(wpar[27])+fabsf(wpar[28])+fabsf(wpar[29]) ;
 
      dd_for[2][0][0] = wpar[30] * dd_fac ;
      dd_for[2][0][1] = wpar[31] * dd_fac ;
      dd_for[2][0][2] = wpar[32] * dd_fac ;
      ddiag = ddiag && (wpar[30]==0.0f) && (wpar[31]==0.0f) && (wpar[32]==0.0f) ;
+     dmag += fabsf(wpar[30])+fabsf(wpar[31])+fabsf(wpar[32]) ;
 
      dd_for[2][1][0] = wpar[33] * dd_fac ;
      dd_for[2][1][1] = wpar[34] * dd_fac ;
      dd_for[2][1][2] = wpar[35] * dd_fac ;
      ddiag = ddiag && (wpar[33]==0.0f) && (wpar[34]==0.0f) && (wpar[35]==0.0f) ;
+     dmag += fabsf(wpar[33])+fabsf(wpar[34])+fabsf(wpar[35]) ;
+     dmag /= 18.0f ;
 
      dd_for[2][2][0] = wpar[36] * dd_fac ;
      dd_for[2][2][1] = wpar[37] * dd_fac ;
      dd_for[2][2][2] = wpar[38] * dd_fac ;
+     emag += fabsf(wpar[36])+fabsf(wpar[37])+fabsf(wpar[38]) ;
+     emag /= 9.0f ;
+
+#if 0
+INFO_message("bilinear warp %s diagonal: %.7g %.7g %.3g",
+             ddiag ? "is" : "isn't" , emag , dmag , (emag>0.0f)?(dmag/emag):(-1.0f) ) ;
+#endif
    }
 
    /* nothing to transform? */
@@ -2173,6 +2194,100 @@ void mri_genalign_bilinear( int npar, float *wpar ,
        xo[ii] = ee.mat[0][0] * uu ;  /* diagonal dd matrix case */
        yo[ii] = ee.mat[1][1] * vv ;
        zo[ii] = ee.mat[2][2] * ww ;
+     }
+
+   } /* end of loop over input points */
+ AFNI_OMP_END ;
+ }
+
+   return ;
+}
+
+/*--------------------------------------------------------------------------*/
+
+#define LP2(x) ((x)*(x)-0.3333333f)
+#define LP3(x) (((x)*(x)-0.6f)*(x))
+
+#define P2_xx(x,y,z) LP2(x)
+#define P2_xy(x,y,z) (x)*(y)
+#define P2_xz(x,y,z) (x)*(z)
+#define P2_yy(x,y,z) LP2(y)
+#define P2_yz(x,y,z) (y)*(z)
+#define P2_zz(x,y,z) LP2(z)
+
+#define P3_xxx(x,y,z) LP3(x)
+#define P3_xxy(x,y,z) LP2(x)*(y)
+#define P3_xxz(x,y,z) LP2(x)*(z)
+#define P3_xyy(x,y,z) (x)*LP2(y)
+#define P3_xzz(x,y,z) (x)*LP2(z)
+#define P3_xyz(x,y,z) (x)*(y)*(z)
+#define P3_yyy(x,y,z) LP3(y)
+#define P3_yyz(x,y,z) LP2(y)*(z)
+#define P3_yzz(x,y,z) (y)*LP2(z)
+#define P3_zzz(x,y,z) LP3(z)
+
+/*--------------------------------------------------------------------------*/
+/*! A wfunc function for cubic polynomials. */
+
+void mri_genalign_cubic( int npar, float *wpar ,
+                         int npt , float *xi, float *yi, float *zi ,
+                                   float *xo, float *yo, float *zo  )
+{
+   static mat44 gam ;  /* saved general affine matrix */
+   static float xcen,ycen,zcen,xyzfac , ppar[48] ;
+
+   /** new parameters ==> setup matrix */
+
+   if( npar >= 64 && wpar != NULL ){  /* 60 'real' parameters, 4 'fake' ones */
+
+     xcen   = wpar[60] ;  /* the fake (non-varying) parameters */
+     ycen   = wpar[61] ;
+     zcen   = wpar[62] ;
+     xyzfac = wpar[63] ;
+
+     gam = GA_setup_affine( 12 , wpar ) ;  /* affine param setup */
+
+ #pragma omp critical (MEMCPY)
+     memcpy( ppar , wpar+12 , sizeof(float)*48 ) ;  /* save polynomial params */
+   }
+
+   /* nothing to transform? */
+
+   if( npt <= 0 || xi == NULL || xo == NULL ) return ;
+
+   /*--- do some work ---*/
+
+#pragma omp parallel if( npt > 6666 )
+ { int ii,jj ; float aa,bb,cc , uu,vv,ww , pv[16] ;
+ AFNI_OMP_START ;
+#pragma omp for
+   for( ii=0 ; ii < npt ; ii++ ){
+
+     aa = xi[ii] ; bb = yi[ii] ; cc = zi[ii] ;
+
+     MAT44_VEC( gam , aa,bb,cc, xo[ii],yo[ii],zo[ii] ) ;  /* affine part */
+
+     if( aff_use_before ){
+       MAT44_VEC( aff_before , aa,bb,cc , uu,vv,ww ) ;
+     } else {
+       uu = aa ; vv = bb ; ww = cc ;
+     }
+     uu = (uu-xcen)*xyzfac ; vv = (vv-ycen)*xyzfac ; ww = (ww-zcen)*xyzfac ;
+
+     pv[ 0] = P2_xx (uu,vv,ww) ; pv[ 1] = P2_xy (uu,vv,ww) ;
+     pv[ 2] = P2_xz (uu,vv,ww) ; pv[ 3] = P2_yy (uu,vv,ww) ;
+     pv[ 4] = P2_yz (uu,vv,ww) ; pv[ 5] = P2_zz (uu,vv,ww) ;
+
+     pv[ 6] = P3_xxx(uu,vv,ww) ; pv[ 7] = P3_xxy(uu,vv,ww) ;
+     pv[ 8] = P3_xxz(uu,vv,ww) ; pv[ 9] = P3_xyy(uu,vv,ww) ;
+     pv[10] = P3_xzz(uu,vv,ww) ; pv[11] = P3_xyz(uu,vv,ww) ;
+     pv[12] = P3_yyy(uu,vv,ww) ; pv[13] = P3_yyz(uu,vv,ww) ;
+     pv[14] = P3_yzz(uu,vv,ww) ; pv[15] = P3_zzz(uu,vv,ww) ;
+
+     for( jj=0 ; jj < 15 ; jj++ ){
+       xo[ii] += ppar[3*jj+0] * pv[jj] ;
+       yo[ii] += ppar[3*jj+1] * pv[jj] ;
+       zo[ii] += ppar[3*jj+2] * pv[jj] ;
      }
 
    } /* end of loop over input points */
