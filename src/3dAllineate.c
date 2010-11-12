@@ -153,6 +153,33 @@ static char *meth_costfunctional[NMETH] =  /* describe cost functional */
 
 /*---------------------------------------------------------------------------*/
 
+#define OUTVAL(k) stup.wfunc_param[k].val_out
+
+static float BILINEAR_diag_norm(GA_setup stup)
+{
+   float sum ;
+   sum  = fabsf(OUTVAL(12))+fabsf(OUTVAL(13))+fabsf(OUTVAL(14)) ;
+   sum += fabsf(OUTVAL(24))+fabsf(OUTVAL(25))+fabsf(OUTVAL(26)) ;
+   sum += fabsf(OUTVAL(36))+fabsf(OUTVAL(37))+fabsf(OUTVAL(38)) ;
+   return (sum/9.0f) ;
+}
+
+static float BILINEAR_offdiag_norm(GA_setup stup)
+{
+   float dmag ;
+   dmag  = fabsf(OUTVAL(15))+fabsf(OUTVAL(16))+fabsf(OUTVAL(17)) ;
+   dmag += fabsf(OUTVAL(18))+fabsf(OUTVAL(19))+fabsf(OUTVAL(20)) ;
+   dmag += fabsf(OUTVAL(21))+fabsf(OUTVAL(22))+fabsf(OUTVAL(23)) ;
+   dmag += fabsf(OUTVAL(27))+fabsf(OUTVAL(28))+fabsf(OUTVAL(29)) ;
+   dmag += fabsf(OUTVAL(30))+fabsf(OUTVAL(31))+fabsf(OUTVAL(32)) ;
+   dmag += fabsf(OUTVAL(33))+fabsf(OUTVAL(34))+fabsf(OUTVAL(35)) ;
+   return (dmag/18.0f) ;
+}
+
+#undef OUTVAL
+
+/*---------------------------------------------------------------------------*/
+
 int main( int argc , char *argv[] )
 {
    THD_3dim_dataset *dset_out=NULL ;
@@ -3896,7 +3923,7 @@ int main( int argc , char *argv[] )
          }
          if( verb ) ctim = COX_cpu_time() ;
          brad = MAX(conv_rad,0.001f) ;
-              if( rad > 33.3f*brad ) rad = 33.3f*brad ;
+              if( rad > 55.5f*brad ) rad = 55.5f*brad ;
          else if( rad < 22.2f*brad ) rad = 22.2f*brad ;
          crad = (nwarp_flags&1 == 0) ? (11.1f*brad) : (2.22f*brad) ;
          nbf = mri_genalign_scalar_optim( &stup , rad, crad, 555 );
@@ -3910,11 +3937,19 @@ int main( int argc , char *argv[] )
          /* do the second pass, with more parameters varying */
 
          if( (nwarp_flags&1) == 0 ){
-           for( jj=12 ; jj < NPBIL ; jj++ )   /* now free up all B elements */
-             stup.wfunc_param[jj].fixed = 0 ;
+           float dnor , onor ;
+
            for( jj=0  ; jj < NPBIL ; jj++ )
              stup.wfunc_param[jj].val_init = stup.wfunc_param[jj].val_out;
-           nbf = mri_genalign_scalar_optim( &stup, 22.2f*brad, 3.33f*brad,2222 );
+#if 1
+           for( jj=0 ; jj < 12 ; jj++ ){      /* fix affine params */
+             stup.wfunc_param[jj].val_fixed = stup.wfunc_param[jj].val_out ;
+             stup.wfunc_param[jj].fixed = 1 ;
+           }
+#endif
+           for( jj=12 ; jj < NPBIL ; jj++ )   /* now free up all B elements */
+             stup.wfunc_param[jj].fixed = 0 ;
+           nbf = mri_genalign_scalar_optim( &stup, 33.3f*brad, 2.22f*brad,1111 );
            if( verb ){
              dtim = COX_cpu_time() ;
              ININFO_message("- Bilinear#2 cost = %f ; %d funcs ; CPU = %.1f s",
@@ -3922,16 +3957,20 @@ int main( int argc , char *argv[] )
              ctim = dtim ;
            }
 
-           /* run it again to see if it improves any more */
+           /* run it again to see if it improves any more? */
 
-           for( jj=0  ; jj < NPBIL ; jj++ )
-             stup.wfunc_param[jj].val_init = stup.wfunc_param[jj].val_out;
-           nbf = mri_genalign_scalar_optim( &stup, 4.44f*brad, brad, 222 );
-           if( verb ){
-             dtim = COX_cpu_time() ;
-             ININFO_message("- Bilinear#3 cost = %f ; %d funcs ; CPU = %.1f s",
-                            stup.vbest,nbf,dtim-ctim) ;
-             ctim = dtim ;
+           dnor = BILINEAR_diag_norm   (stup) ;
+           onor = BILINEAR_offdiag_norm(stup) ;
+           if( onor > 0.0333f * dnor ){
+             for( jj=0  ; jj < NPBIL ; jj++ )
+               stup.wfunc_param[jj].val_init = stup.wfunc_param[jj].val_out;
+             nbf = mri_genalign_scalar_optim( &stup, 4.44f*brad, brad, 222 );
+             if( verb ){
+               dtim = COX_cpu_time() ;
+               ININFO_message("- Bilinear#3 cost = %f ; %d funcs ; CPU = %.1f s",
+                              stup.vbest,nbf,dtim-ctim) ;
+               ctim = dtim ;
+             }
            }
          }
          if( verb > 1 ) PAROUT("- Bilinear final") ;
