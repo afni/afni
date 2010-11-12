@@ -8,11 +8,17 @@ endif
 goto PARSE
 Ret_PARSE:
 
-if ($dim[1] < 1 || $dim[2] < 1) then
-   echo "Bad dim [ $dim[1], $dim[2] ]"
-   goto BEND
+if (($dim[1] < 1 || $dim[2] < 1)) then
+   if ("$coords" == '') then 
+      echo "Bad dim [ $dim[1], $dim[2] ], and no coords."
+      echo "You must use at least one of -coords, -array, -strip, or -grid"
+      goto BEND
+   else
+      goto COORDS_BASED
+   endif
 endif
 
+DIM_BASED:
 set Nelecs = `ccalc -i "$dim[1] * $dim[2]"`
 if ("$coords" == '') then
    set Ncoords = ($Nelecs 1 1 3)
@@ -67,12 +73,19 @@ MERGE_COORDS:
 
 goto END
 
+COORDS_BASED:
+   1dcat "$coords" > /tmp/xyz.1D
+   ConvexHull  -input_1D /tmp/xyz.1D \
+               -q_opt triangulate_xy -proj_xy -orig_coord \
+               -o_gifti_asc $prefix
+goto END
+
 PARSE:
 	
    #continue parsing for new options
    set prefix = 'salsa'
    set coords = ''
-   set dim = ( 1 1 )
+   set dim = ( 0 1 )
    set cleanup = 1;		
    set cnt = 1
    set Narg = $#argv
@@ -241,6 +254,13 @@ echo "      @ElectroGrid -prefix HP_grid \"
 echo "                   -coords HPelectrodes_Grid.1D'[0,1,2]' \"
 echo "                   -grid 8 8  "
 echo "      suma -i HP_grid.gii"
+echo ""
+echo "   Say you're too lazy to know the grid (or strip) count "
+echo "   and you have a file with the electrode's coordinates."
+echo ""
+echo "      @ElectroGrid -prefix HP_grid2 \"
+echo "                   -coords HPelectrodes_Grid.1D'[0,1,2]' "
+echo "      suma -i HP_grid2.gii"
 echo ""
 echo "Ziad Saad (saadz@mail.nih.gov)"
 echo "SSCC/NIMH/ National Institutes of Health, Bethesda Maryland"
