@@ -1816,6 +1816,9 @@ extern void mri_genalign_bilinear( int, float *,
 extern void mri_genalign_cubic( int, float *,
                                 int, float *, float *, float *,
                                      float *, float *, float * ) ;
+extern void mri_genalign_quintic( int, float *,
+                                  int, float *, float *, float *,
+                                       float *, float *, float * ) ;
 
 void mri_genalign_set_targmask( MRI_IMAGE *, GA_setup * ) ; /* 07 Aug 2007 */
 void mri_genalign_set_basemask( MRI_IMAGE *, GA_setup * ) ; /* 25 Feb 2010 */
@@ -1829,6 +1832,7 @@ extern void GA_set_outval( float ) ;
 extern float GA_get_outval(void) ;
 extern void GA_allow_ccount( int ) ; /* 22 Feb 2010 */
 extern void GA_setup_micho( double,double,double,double,double ) ; /* 24 Feb 2010 */
+extern void GA_set_nperval( int ) ; /* 15 Nov 2010 */
 
 /**------ these functions are now in mri_genalign_util.c [10 Dec 2008] ------**/
 

@@ -63,6 +63,9 @@ static void myunif_reset(unsigned long long x){ MYx = x; return; }
 #undef  NPER
 #define NPER 262144  /* 1 Mbyte per float array */
 
+static int nperval = NPER ;
+void GA_set_nperval( int i ){ nperval = (i > 666) ? i : 16777216 ; }
+
 /*--------------------------------------------------------------------*/
 /*! Interpolate target image to control points in base image space.
     - Results go into avm, which must be pre-allocated.
@@ -72,16 +75,17 @@ static void myunif_reset(unsigned long long x){ MYx = x; return; }
 
 void GA_get_warped_values( int nmpar , double *mpar , float *avm )
 {
-   int    npar , ii,jj,kk,qq,pp,npp,mm,nx,ny,nxy , clip=0 , npt , nall ;
-   float *wpar , v ;
-   float *imf=NULL , *jmf=NULL , *kmf=NULL ;
-   float *imw , *jmw , *kmw ;
+   int    npar, ii,jj,kk,qq,pp,npp,mm,nx,ny,nxy, clip=0, npt, nall, nper ;
+   float *wpar, v ;
+   float *imf=NULL, *jmf=NULL, *kmf=NULL ;
+   float *imw, *jmw, *kmw ;
    MRI_IMAGE *aim ;
 
 ENTRY("GA_get_warped_values") ;
 
    npar = gstup->wfunc_numpar ;
    wpar = (float *)calloc(sizeof(float),npar) ;
+   nper = MAX(nperval,NPER) ;
 
    /* load ALL the warping parameters, including the fixed values */
 
@@ -103,12 +107,12 @@ ENTRY("GA_get_warped_values") ;
    /* create space for unwarped indexes, if none given */
 
    if( mpar == NULL || gstup->im == NULL ){
-     npt = gstup->bsim->nvox ; nall = MIN(NPER,npt) ;
+     npt = gstup->bsim->nvox ; nall = MIN(nper,npt) ;
      imf = (float *)calloc(sizeof(float),nall) ;
      jmf = (float *)calloc(sizeof(float),nall) ;
      kmf = (float *)calloc(sizeof(float),nall) ;
    } else {
-     npt = gstup->npt_match ; nall = MIN(NPER,npt) ;
+     npt = gstup->npt_match ; nall = MIN(nper,npt) ;
    }
 
    /* create space for indexes of warped control points */
@@ -620,6 +624,7 @@ double GA_scalar_fitter( int npar , double *mpar )
 {
   double val ;
   float *avm , *bvm , *wvm ;
+  static double vsmall=1.e+37 ;
 
 ENTRY("GA_scalar_fitter") ;
 
@@ -635,7 +640,11 @@ ENTRY("GA_scalar_fitter") ;
 
   free((void *)avm) ;    /* toss the trash */
 #if 0
-  ININFO_message("costfun = %.7g",val) ;
+  if( AFNI_yesenv("ALLIN_DEBUG") ){
+    char cc = ' ' ;
+    if( vsmall > val ){ vsmall = val ; cc = '*' ; }
+    ININFO_message(" costfun = %.7g %c",val,cc) ;
+  }
 #endif
   RETURN(val);
 }
@@ -1618,7 +1627,7 @@ MRI_IMAGE * mri_genalign_scalar_warpone( int npar, float *wpar, GA_warpfunc *wfu
                                          MRI_IMAGE *imtarg ,
                                          int nnx , int nny , int nnz , int icode )
 {
-   int   ii,jj,kk,qq,pp,npp,mm,nx,ny,nxy,nz , npt,nall ;
+   int   ii,jj,kk,qq,pp,npp,mm,nx,ny,nxy,nz , npt,nall , nper ;
    float x,y,z ;
    float *imf , *jmf , *kmf ;
    float *imw , *jmw , *kmw ;
@@ -1629,6 +1638,7 @@ MRI_IMAGE * mri_genalign_scalar_warpone( int npar, float *wpar, GA_warpfunc *wfu
 ENTRY("mri_genalign_scalar_warpone") ;
 
    if( wfunc == NULL || imtarg == NULL ) RETURN(NULL) ;
+   nper = MAX(nperval,NPER) ;
 
    /* send parameters to warping function, for setup */
 
@@ -1654,7 +1664,7 @@ ENTRY("mri_genalign_scalar_warpone") ;
 
    /* ijk coordinates in base image to be warped to target ijk */
 
-   nall = MIN(NPER,npt) ;
+   nall = MIN(nper,npt) ;
 
    imf = (float *)calloc(sizeof(float),nall) ;
    jmf = (float *)calloc(sizeof(float),nall) ;
@@ -2205,26 +2215,74 @@ INFO_message("bilinear warp %s diagonal: %.7g %.7g %.3g",
 
 /*--------------------------------------------------------------------------*/
 
-#define LP2(x) ((x)*(x)-0.3333333f)
-#define LP3(x) (((x)*(x)-0.6f)*(x))
+/* Legendre polynomials */
+
+#define LP1(x) (x)
+#define LP2(x) ((x)*(x)-0.3333333f)                         /* 2/3 of P2(x) */
+#define LP3(x) (((x)*(x)-0.6f)*(x))                         /* 2/5 of P3(x) */
+#define LP4(x) ((x)*(x)*((x)*(x)-0.857143f)+0.0857143f)     /* 8/35 of P4(x) */
+#define LP5(x) (((x)*(x)*((x)*(x)-1.11111f)+0.238095f)*(x)) /* 8/63 of P5(x) */
+
+/* 3D product functions of various orders */
 
 #define P2_xx(x,y,z) LP2(x)
-#define P2_xy(x,y,z) (x)*(y)
-#define P2_xz(x,y,z) (x)*(z)
+#define P2_xy(x,y,z) LP1(x)*LP1(y)
+#define P2_xz(x,y,z) LP1(x)*LP1(z)
 #define P2_yy(x,y,z) LP2(y)
-#define P2_yz(x,y,z) (y)*(z)
+#define P2_yz(x,y,z) LP1(y)*LP1(z)
 #define P2_zz(x,y,z) LP2(z)
 
 #define P3_xxx(x,y,z) LP3(x)
-#define P3_xxy(x,y,z) LP2(x)*(y)
-#define P3_xxz(x,y,z) LP2(x)*(z)
-#define P3_xyy(x,y,z) (x)*LP2(y)
-#define P3_xzz(x,y,z) (x)*LP2(z)
-#define P3_xyz(x,y,z) (x)*(y)*(z)
+#define P3_xxy(x,y,z) LP2(x)*LP1(y)
+#define P3_xxz(x,y,z) LP2(x)*LP1(z)
+#define P3_xyy(x,y,z) LP1(x)*LP2(y)
+#define P3_xzz(x,y,z) LP1(x)*LP2(z)
+#define P3_xyz(x,y,z) LP1(x)*LP1(y)*LP1(z)
 #define P3_yyy(x,y,z) LP3(y)
-#define P3_yyz(x,y,z) LP2(y)*(z)
-#define P3_yzz(x,y,z) (y)*LP2(z)
+#define P3_yyz(x,y,z) LP2(y)*LP1(z)
+#define P3_yzz(x,y,z) LP1(y)*LP2(z)
 #define P3_zzz(x,y,z) LP3(z)
+
+#define P4_xxxx(x,y,z) LP4(x)
+#define P4_xxxy(x,y,z) LP3(x)*LP1(y)
+#define P4_xxxz(x,y,z) LP3(x)*LP1(z)
+#define P4_xxyy(x,y,z) LP2(x)*LP2(y)
+#define P4_xxzz(x,y,z) LP2(x)*LP2(z)
+#define P4_xxyz(x,y,z) LP2(x)*LP1(y)*LP1(z)
+#define P4_xyyy(x,y,z) LP1(x)*LP3(y)
+#define P4_xyyz(x,y,z) LP1(x)*LP2(y)*LP1(z)
+#define P4_xyzz(x,y,z) LP1(x)*LP1(y)*LP2(z)
+#define P4_xzzz(x,y,z) LP1(x)*LP3(z)
+#define P4_yyyy(x,y,z) LP4(y)
+#define P4_yyyz(x,y,z) LP3(y)*LP1(z)
+#define P4_yyzz(x,y,z) LP2(y)*LP2(z)
+#define P4_yzzz(x,y,z) LP1(y)*LP3(z)
+#define P4_zzzz(x,y,z) LP4(z)
+
+#define P5_xxxxx(x,y,z) LP5(x)
+#define P5_xxxxy(x,y,z) LP4(x)*LP1(y)
+#define P5_xxxxz(x,y,z) LP4(x)*LP1(z)
+#define P5_xxxyy(x,y,z) LP3(x)*LP2(y)
+#define P5_xxxzz(x,y,z) LP3(x)*LP2(z)
+#define P5_xxxyz(x,y,z) LP3(x)*LP1(y)*LP1(z)
+#define P5_xxyyy(x,y,z) LP2(x)*LP3(y)
+#define P5_xxyyz(x,y,z) LP2(x)*LP2(y)*LP1(z)
+#define P5_xxyzz(x,y,z) LP2(x)*LP1(y)*LP2(z)
+#define P5_xxzzz(x,y,z) LP2(x)*LP3(z)
+#define P5_xyyyy(x,y,z) LP1(x)*LP4(y)
+#define P5_xyyyz(x,y,z) LP1(x)*LP3(y)*LP1(z)
+#define P5_xyyzz(x,y,z) LP1(x)*LP2(y)*LP2(z)
+#define P5_xyzzz(x,y,z) LP1(x)*LP1(y)*LP3(z)
+#define P5_xzzzz(x,y,z) LP1(x)*LP4(z)
+#define P5_yyyyy(x,y,z) LP5(y)
+#define P5_yyyyz(x,y,z) LP4(y)*LP1(z)
+#define P5_yyyzz(x,y,z) LP3(y)*LP2(z)
+#define P5_yyzzz(x,y,z) LP2(y)*LP3(z)
+#define P5_yzzzz(x,y,z) LP1(y)*LP4(z)
+#define P5_zzzzz(x,y,z) LP5(z)
+
+#define NPARCUB   16  /* = 6+10       */
+#define NPARQUINT 52  /* = 6+10+15+21 */
 
 /*--------------------------------------------------------------------------*/
 /*! A wfunc function for cubic polynomials. */
@@ -2234,60 +2292,339 @@ void mri_genalign_cubic( int npar, float *wpar ,
                                    float *xo, float *yo, float *zo  )
 {
    static mat44 gam ;  /* saved general affine matrix */
-   static float xcen,ycen,zcen,xyzfac , ppar[48] ;
+   static float xcen,ycen,zcen,xyzfac,xyzinv , ppar[3*NPARCUB] ;
+   static int puse[NPARCUB] , pall ;
 
    /** new parameters ==> setup matrix */
 
-   if( npar >= 64 && wpar != NULL ){  /* 60 'real' parameters, 4 'fake' ones */
+   if( npar >= 3*NPARCUB+16 && wpar != NULL ){
+     int aa=aff_use_after , ab=aff_use_before , jj ;
 
-     xcen   = wpar[60] ;  /* the fake (non-varying) parameters */
-     ycen   = wpar[61] ;
-     zcen   = wpar[62] ;
-     xyzfac = wpar[63] ;
+     xcen   = wpar[12+3*NPARCUB] ;  /* the fake (non-varying) parameters */
+     ycen   = wpar[13+3*NPARCUB] ;
+     zcen   = wpar[14+3*NPARCUB] ;
+     xyzfac = wpar[15+3*NPARCUB] ; xyzinv = 1.0f / xyzfac ;
 
+     aff_use_before = aff_use_after = 0;
      gam = GA_setup_affine( 12 , wpar ) ;  /* affine param setup */
+     aff_use_before = ab; aff_use_after = aa;
 
- #pragma omp critical (MEMCPY)
-     memcpy( ppar , wpar+12 , sizeof(float)*48 ) ;  /* save polynomial params */
+     for( jj=0 ; jj < 3*NPARCUB ; jj++ )          /* save polynomial params */
+       ppar[jj] = wpar[jj+12] * xyzinv ;
+     for( pall=jj=0 ; jj < NPARCUB ; jj++ ){      /* mark which ones to use */
+       puse[jj] = (ppar[3*jj  ] != 0.0f) ||
+                  (ppar[3*jj+1] != 0.0f) || (ppar[3*jj+2] != 0.0f) ;
+       pall += puse[jj] ;
+     }
+     pall = ( pall >= (int)(0.9f*NPARCUB) ) ;
+
+#if 0
+     if( AFNI_yesenv("ALLIN_DEBUG") ){
+       fprintf(stderr,"++ cubic params: xyz_cen=%.4g,%.4g,%.4g fac=%.4g:",
+               xcen,ycen,zcen,xyzfac) ;
+       for( jj=0 ; jj < 60 ; jj++ )
+         fprintf(stderr,"%s%.4g",(jj==12||jj==30)?" | ":" ",wpar[jj]) ;
+       fprintf(stderr,"\n") ;
+     }
+#endif
+
    }
 
-   /* nothing to transform? */
+   /* nothing to transform? (a setup call) */
 
    if( npt <= 0 || xi == NULL || xo == NULL ) return ;
 
    /*--- do some work ---*/
 
 #pragma omp parallel if( npt > 6666 )
- { int ii,jj ; float aa,bb,cc , uu,vv,ww , pv[16] ;
+ { int ii,jj,kk ; float aa,bb,cc , uu,vv,ww , pv[NPARCUB] ;
  AFNI_OMP_START ;
 #pragma omp for
    for( ii=0 ; ii < npt ; ii++ ){
 
-     aa = xi[ii] ; bb = yi[ii] ; cc = zi[ii] ;
+     aa = xi[ii] ; bb = yi[ii] ; cc = zi[ii] ;  /* input indexes/coords */
 
-     MAT44_VEC( gam , aa,bb,cc, xo[ii],yo[ii],zo[ii] ) ;  /* affine part */
-
-     if( aff_use_before ){
+     if( aff_use_before ){             /* convert to 'real' coordinates */
        MAT44_VEC( aff_before , aa,bb,cc , uu,vv,ww ) ;
      } else {
        uu = aa ; vv = bb ; ww = cc ;
      }
+     MAT44_VEC( gam , uu,vv,ww, aa,bb,cc ) ;             /* affine part */
+
+     /* centered and scaled to run from -1..1 */
+
      uu = (uu-xcen)*xyzfac ; vv = (vv-ycen)*xyzfac ; ww = (ww-zcen)*xyzfac ;
 
-     pv[ 0] = P2_xx (uu,vv,ww) ; pv[ 1] = P2_xy (uu,vv,ww) ;
-     pv[ 2] = P2_xz (uu,vv,ww) ; pv[ 3] = P2_yy (uu,vv,ww) ;
-     pv[ 4] = P2_yz (uu,vv,ww) ; pv[ 5] = P2_zz (uu,vv,ww) ;
+     /* polynomials */
 
-     pv[ 6] = P3_xxx(uu,vv,ww) ; pv[ 7] = P3_xxy(uu,vv,ww) ;
-     pv[ 8] = P3_xxz(uu,vv,ww) ; pv[ 9] = P3_xyy(uu,vv,ww) ;
-     pv[10] = P3_xzz(uu,vv,ww) ; pv[11] = P3_xyz(uu,vv,ww) ;
-     pv[12] = P3_yyy(uu,vv,ww) ; pv[13] = P3_yyz(uu,vv,ww) ;
-     pv[14] = P3_yzz(uu,vv,ww) ; pv[15] = P3_zzz(uu,vv,ww) ;
+     if( pall ){
+       pv[ 0] = P2_xx (uu,vv,ww) ; pv[ 1] = P2_xy (uu,vv,ww) ;
+       pv[ 2] = P2_xz (uu,vv,ww) ; pv[ 3] = P2_yy (uu,vv,ww) ;
+       pv[ 4] = P2_yz (uu,vv,ww) ; pv[ 5] = P2_zz (uu,vv,ww) ;
+       pv[ 6] = P3_xxx(uu,vv,ww) ; pv[ 7] = P3_xxy(uu,vv,ww) ;
+       pv[ 8] = P3_xxz(uu,vv,ww) ; pv[ 9] = P3_xyy(uu,vv,ww) ;
+       pv[10] = P3_xzz(uu,vv,ww) ; pv[11] = P3_xyz(uu,vv,ww) ;
+       pv[12] = P3_yyy(uu,vv,ww) ; pv[13] = P3_yyz(uu,vv,ww) ;
+       pv[14] = P3_yzz(uu,vv,ww) ; pv[15] = P3_zzz(uu,vv,ww) ;
+       for( kk=jj=0 ; jj < NPARCUB ; jj++,kk+=3 ){
+         aa += ppar[kk  ] * pv[jj] ;
+         bb += ppar[kk+1] * pv[jj] ;
+         cc += ppar[kk+2] * pv[jj] ;
+       }
+     } else {
+       if( puse[ 0] ) pv[ 0] = P2_xx (uu,vv,ww) ;
+       if( puse[ 1] ) pv[ 1] = P2_xy (uu,vv,ww) ;
+       if( puse[ 2] ) pv[ 2] = P2_xz (uu,vv,ww) ;
+       if( puse[ 3] ) pv[ 3] = P2_yy (uu,vv,ww) ;
+       if( puse[ 4] ) pv[ 4] = P2_yz (uu,vv,ww) ;
+       if( puse[ 5] ) pv[ 5] = P2_zz (uu,vv,ww) ;
+       if( puse[ 6] ) pv[ 6] = P3_xxx(uu,vv,ww) ;
+       if( puse[ 7] ) pv[ 7] = P3_xxy(uu,vv,ww) ;
+       if( puse[ 8] ) pv[ 8] = P3_xxz(uu,vv,ww) ;
+       if( puse[ 9] ) pv[ 9] = P3_xyy(uu,vv,ww) ;
+       if( puse[10] ) pv[10] = P3_xzz(uu,vv,ww) ;
+       if( puse[11] ) pv[11] = P3_xyz(uu,vv,ww) ;
+       if( puse[12] ) pv[12] = P3_yyy(uu,vv,ww) ;
+       if( puse[13] ) pv[13] = P3_yyz(uu,vv,ww) ;
+       if( puse[14] ) pv[14] = P3_yzz(uu,vv,ww) ;
+       if( puse[15] ) pv[15] = P3_zzz(uu,vv,ww) ;
+       for( kk=jj=0 ; jj < NPARCUB ; jj++,kk+=3 ){
+         if( puse[jj] ){
+           aa += ppar[kk  ] * pv[jj] ;
+           bb += ppar[kk+1] * pv[jj] ;
+           cc += ppar[kk+2] * pv[jj] ;
+         }
+       }
+     }
 
-     for( jj=0 ; jj < 15 ; jj++ ){
-       xo[ii] += ppar[3*jj+0] * pv[jj] ;
-       yo[ii] += ppar[3*jj+1] * pv[jj] ;
-       zo[ii] += ppar[3*jj+2] * pv[jj] ;
+     if( aff_use_after ){                    /* convert back to indexes */
+       MAT44_VEC( aff_after , aa,bb,cc , xo[ii],yo[ii],zo[ii] ) ;
+     } else {
+       xo[ii] = aa ; yo[ii] = bb ; zo[ii] = cc ;
+     }
+
+   } /* end of loop over input points */
+ AFNI_OMP_END ;
+ }
+
+   return ;
+}
+
+/*--------------------------------------------------------------------------*/
+/*! A wfunc function for quintic polynomials. */
+
+void mri_genalign_quintic( int npar, float *wpar ,
+                           int npt , float *xi, float *yi, float *zi ,
+                                     float *xo, float *yo, float *zo  )
+{
+   static mat44 gam ;  /* saved general affine matrix */
+   static float xcen,ycen,zcen,xyzfac,xyzinv , ppar[3*NPARQUINT] ;
+   static int puse[NPARQUINT] , pall ;
+
+   /** new parameters ==> setup matrix */
+
+   if( npar >= 3*NPARQUINT+16 && wpar != NULL ){
+     int aa=aff_use_after , ab=aff_use_before , jj ;
+
+     xcen   = wpar[12+3*NPARQUINT] ;  /* the fake (non-varying) parameters */
+     ycen   = wpar[13+3*NPARQUINT] ;
+     zcen   = wpar[14+3*NPARQUINT] ;
+     xyzfac = wpar[15+3*NPARQUINT] ; xyzinv = 1.0f / xyzfac ;
+
+     aff_use_before = aff_use_after = 0;
+     gam = GA_setup_affine( 12 , wpar ) ;  /* affine param setup */
+     aff_use_before = ab; aff_use_after = aa;
+
+     for( jj=0 ; jj < 3*NPARQUINT ; jj++ )          /* save polynomial params */
+       ppar[jj] = wpar[jj+12] * xyzinv ;
+     for( pall=jj=0 ; jj < NPARQUINT ; jj++ ){      /* mark which ones to use */
+       puse[jj] = (ppar[3*jj  ] != 0.0f) ||
+                  (ppar[3*jj+1] != 0.0f) || (ppar[3*jj+2] != 0.0f) ;
+       pall += puse[jj] ;
+     }
+     pall = ( pall >= (int)(0.9f*NPARQUINT) ) ;
+
+#if 0
+     if( AFNI_yesenv("ALLIN_DEBUG") ){
+       fprintf(stderr,"++ quintic params: xyz_cen=%.4g,%.4g,%.4g fac=%.4g:",
+               xcen,ycen,zcen,xyzfac) ;
+       for( jj=0 ; jj < 168 ; jj++ )
+         fprintf(stderr,"%s%.4g",(jj==12||jj==30||jj==60||jj==105)?" | ":" ",wpar[jj]) ;
+       fprintf(stderr,"\n") ;
+     }
+#endif
+
+   }
+
+   /* nothing to transform? (a setup call) */
+
+   if( npt <= 0 || xi == NULL || xo == NULL ) return ;
+
+   /*--- do some work ---*/
+
+#pragma omp parallel if( npt > 6666 )
+ { int ii,jj,kk ; float aa,bb,cc , uu,vv,ww , pv[NPARQUINT] ;
+ AFNI_OMP_START ;
+#pragma omp for
+   for( ii=0 ; ii < npt ; ii++ ){
+
+     aa = xi[ii] ; bb = yi[ii] ; cc = zi[ii] ;  /* input indexes/coords */
+
+     if( aff_use_before ){             /* convert to 'real' coordinates */
+       MAT44_VEC( aff_before , aa,bb,cc , uu,vv,ww ) ;
+     } else {
+       uu = aa ; vv = bb ; ww = cc ;
+     }
+     MAT44_VEC( gam , uu,vv,ww, aa,bb,cc ) ;             /* affine part */
+
+     /* centered and scaled to run from -1..1 */
+
+     uu = (uu-xcen)*xyzfac ; vv = (vv-ycen)*xyzfac ; ww = (ww-zcen)*xyzfac ;
+
+     /* polynomials */
+
+     if( pall ){
+       float p1x,p2x,p3x,p4x,p5x , p1y,p2y,p3y,p4y,p5y , p1z,p2z,p3z,p4z,p5z ;
+       p1x = LP1(uu); p2x = LP2(uu); p3x = LP3(uu); p4x = LP4(uu); p5x = LP5(uu);
+       p1y = LP1(vv); p2y = LP2(vv); p3y = LP3(vv); p4y = LP4(vv); p5y = LP5(vv);
+       p1z = LP1(ww); p2z = LP2(ww); p3z = LP3(ww); p4z = LP4(ww); p5z = LP5(ww);
+
+#define q2_xx p2x
+#define q2_xy p1x*p1y
+#define q2_xz p1x*p1z
+#define q2_yy p2y
+#define q2_yz p1y*p1z
+#define q2_zz p2z
+#define q3_xxx p3x
+#define q3_xxy p2x*p1y
+#define q3_xxz p2x*p1z
+#define q3_xyy p1x*p2y
+#define q3_xzz p1x*p2z
+#define q3_xyz p1x*p1y*p1z
+#define q3_yyy p3y
+#define q3_yyz p2y*p1z
+#define q3_yzz p1y*p2z
+#define q3_zzz p3z
+#define q4_xxxx p4x
+#define q4_xxxy p3x*p1y
+#define q4_xxxz p3x*p1z
+#define q4_xxyy p2x*p2y
+#define q4_xxzz p2x*p2z
+#define q4_xxyz p2x*p1y*p1z
+#define q4_xyyy p1x*p3y
+#define q4_xyyz p1x*p2y*p1z
+#define q4_xyzz p1x*p1y*p2z
+#define q4_xzzz p1x*p3z
+#define q4_yyyy p4y
+#define q4_yyyz p3y*p1z
+#define q4_yyzz p2y*p2z
+#define q4_yzzz p1y*p3z
+#define q4_zzzz p4z
+#define q5_xxxxx p5x
+#define q5_xxxxy p4x*p1y
+#define q5_xxxxz p4x*p1z
+#define q5_xxxyy p3x*p2y
+#define q5_xxxzz p3x*p2z
+#define q5_xxxyz p3x*p1y*p1z
+#define q5_xxyyy p2x*p3y
+#define q5_xxyyz p2x*p2y*p1z
+#define q5_xxyzz p2x*p1y*p2z
+#define q5_xxzzz p2x*p3z
+#define q5_xyyyy p1x*p4y
+#define q5_xyyyz p1x*p3y*p1z
+#define q5_xyyzz p1x*p2y*p2z
+#define q5_xyzzz p1x*p1y*p3z
+#define q5_xzzzz p1x*p4z
+#define q5_yyyyy p5y
+#define q5_yyyyz p4y*p1z
+#define q5_yyyzz p3y*p2z
+#define q5_yyzzz p2y*p3z
+#define q5_yzzzz p1y*p4z
+#define q5_zzzzz p5z
+       pv[ 0] = q2_xx  ; pv[ 1] = q2_xy  ; pv[ 2] = q2_xz  ; pv[ 3] = q2_yy  ;
+       pv[ 4] = q2_yz  ; pv[ 5] = q2_zz  ; pv[ 6] = q3_xxx ; pv[ 7] = q3_xxy ;
+       pv[ 8] = q3_xxz ; pv[ 9] = q3_xyy ; pv[10] = q3_xzz ; pv[11] = q3_xyz ;
+       pv[12] = q3_yyy ; pv[13] = q3_yyz ; pv[14] = q3_yzz ; pv[15] = q3_zzz ;
+       pv[16] = q4_xxxx ; pv[17] = q4_xxxy ; pv[18] = q4_xxxz ; pv[19] = q4_xxyy ;
+       pv[20] = q4_xxzz ; pv[21] = q4_xxyz ; pv[22] = q4_xyyy ; pv[23] = q4_xyyz ;
+       pv[24] = q4_xyzz ; pv[25] = q4_xzzz ; pv[26] = q4_yyyy ; pv[27] = q4_yyyz ;
+       pv[28] = q4_yyzz ; pv[29] = q4_yzzz ; pv[30] = q4_zzzz ; pv[31] = q5_xxxxx ;
+       pv[32] = q5_xxxxy ; pv[33] = q5_xxxxz ; pv[34] = q5_xxxyy ; pv[35] = q5_xxxzz ;
+       pv[36] = q5_xxxyz ; pv[37] = q5_xxyyy ; pv[38] = q5_xxyyz ; pv[39] = q5_xxyzz ;
+       pv[40] = q5_xxzzz ; pv[41] = q5_xyyyy ; pv[42] = q5_xyyyz ; pv[43] = q5_xyyzz ;
+       pv[44] = q5_xyzzz ; pv[45] = q5_xzzzz ; pv[46] = q5_yyyyy ; pv[47] = q5_yyyyz ;
+       pv[48] = q5_yyyzz ; pv[49] = q5_yyzzz ; pv[50] = q5_yzzzz ; pv[51] = q5_zzzzz ;
+       for( kk=jj=0 ; jj < NPARQUINT ; jj++,kk+=3 ){
+         aa += ppar[kk  ] * pv[jj] ;
+         bb += ppar[kk+1] * pv[jj] ;
+         cc += ppar[kk+2] * pv[jj] ;
+       }
+     } else {
+       if( puse[ 0] ) pv[ 0] = P2_xx (uu,vv,ww) ;
+       if( puse[ 1] ) pv[ 1] = P2_xy (uu,vv,ww) ;
+       if( puse[ 2] ) pv[ 2] = P2_xz (uu,vv,ww) ;
+       if( puse[ 3] ) pv[ 3] = P2_yy (uu,vv,ww) ;
+       if( puse[ 4] ) pv[ 4] = P2_yz (uu,vv,ww) ;
+       if( puse[ 5] ) pv[ 5] = P2_zz (uu,vv,ww) ;
+       if( puse[ 6] ) pv[ 6] = P3_xxx(uu,vv,ww) ;
+       if( puse[ 7] ) pv[ 7] = P3_xxy(uu,vv,ww) ;
+       if( puse[ 8] ) pv[ 8] = P3_xxz(uu,vv,ww) ;
+       if( puse[ 9] ) pv[ 9] = P3_xyy(uu,vv,ww) ;
+       if( puse[10] ) pv[10] = P3_xzz(uu,vv,ww) ;
+       if( puse[11] ) pv[11] = P3_xyz(uu,vv,ww) ;
+       if( puse[12] ) pv[12] = P3_yyy(uu,vv,ww) ;
+       if( puse[13] ) pv[13] = P3_yyz(uu,vv,ww) ;
+       if( puse[14] ) pv[14] = P3_yzz(uu,vv,ww) ;
+       if( puse[15] ) pv[15] = P3_zzz(uu,vv,ww) ;
+       if( puse[16] ) pv[16] = P4_xxxx(uu,vv,ww) ;
+       if( puse[17] ) pv[17] = P4_xxxy(uu,vv,ww) ;
+       if( puse[18] ) pv[18] = P4_xxxz(uu,vv,ww) ;
+       if( puse[19] ) pv[19] = P4_xxyy(uu,vv,ww) ;
+       if( puse[20] ) pv[20] = P4_xxzz(uu,vv,ww) ;
+       if( puse[21] ) pv[21] = P4_xxyz(uu,vv,ww) ;
+       if( puse[22] ) pv[22] = P4_xyyy(uu,vv,ww) ;
+       if( puse[23] ) pv[23] = P4_xyyz(uu,vv,ww) ;
+       if( puse[24] ) pv[24] = P4_xyzz(uu,vv,ww) ;
+       if( puse[25] ) pv[25] = P4_xzzz(uu,vv,ww) ;
+       if( puse[26] ) pv[26] = P4_yyyy(uu,vv,ww) ;
+       if( puse[27] ) pv[27] = P4_yyyz(uu,vv,ww) ;
+       if( puse[28] ) pv[28] = P4_yyzz(uu,vv,ww) ;
+       if( puse[29] ) pv[29] = P4_yzzz(uu,vv,ww) ;
+       if( puse[30] ) pv[30] = P4_zzzz(uu,vv,ww) ;
+       if( puse[31] ) pv[31] = P5_xxxxx(uu,vv,ww) ;
+       if( puse[32] ) pv[32] = P5_xxxxy(uu,vv,ww) ;
+       if( puse[33] ) pv[33] = P5_xxxxz(uu,vv,ww) ;
+       if( puse[34] ) pv[34] = P5_xxxyy(uu,vv,ww) ;
+       if( puse[35] ) pv[35] = P5_xxxzz(uu,vv,ww) ;
+       if( puse[36] ) pv[36] = P5_xxxyz(uu,vv,ww) ;
+       if( puse[37] ) pv[37] = P5_xxyyy(uu,vv,ww) ;
+       if( puse[38] ) pv[38] = P5_xxyyz(uu,vv,ww) ;
+       if( puse[39] ) pv[39] = P5_xxyzz(uu,vv,ww) ;
+       if( puse[40] ) pv[40] = P5_xxzzz(uu,vv,ww) ;
+       if( puse[41] ) pv[41] = P5_xyyyy(uu,vv,ww) ;
+       if( puse[42] ) pv[42] = P5_xyyyz(uu,vv,ww) ;
+       if( puse[43] ) pv[43] = P5_xyyzz(uu,vv,ww) ;
+       if( puse[44] ) pv[44] = P5_xyzzz(uu,vv,ww) ;
+       if( puse[45] ) pv[45] = P5_xzzzz(uu,vv,ww) ;
+       if( puse[46] ) pv[46] = P5_yyyyy(uu,vv,ww) ;
+       if( puse[47] ) pv[47] = P5_yyyyz(uu,vv,ww) ;
+       if( puse[48] ) pv[48] = P5_yyyzz(uu,vv,ww) ;
+       if( puse[49] ) pv[49] = P5_yyzzz(uu,vv,ww) ;
+       if( puse[50] ) pv[50] = P5_yzzzz(uu,vv,ww) ;
+       if( puse[51] ) pv[51] = P5_zzzzz(uu,vv,ww) ;
+       for( kk=jj=0 ; jj < NPARQUINT ; jj++,kk+=3 ){
+         if( puse[jj] ){
+           aa += ppar[kk  ] * pv[jj] ;
+           bb += ppar[kk+1] * pv[jj] ;
+           cc += ppar[kk+2] * pv[jj] ;
+         }
+       }
+     }
+
+     if( aff_use_after ){                    /* convert back to indexes */
+       MAT44_VEC( aff_after , aa,bb,cc , xo[ii],yo[ii],zo[ii] ) ;
+     } else {
+       xo[ii] = aa ; yo[ii] = bb ; zo[ii] = cc ;
      }
 
    } /* end of loop over input points */

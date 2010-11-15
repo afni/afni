@@ -1355,6 +1355,8 @@ void AFNI_sigfunc_alrm(int sig)
      "Goodbyes are not forever"                                      ,
      "Dearest friends, alas, must part"                              ,
      "True goodbyes are the ones never said or explained"            ,
+     "Let the party begin"                                           ,
+     "Let us cross over the river and rest on the other side"        ,
      "Sometimes you've got to let go to see if there was anything worth holding onto" ,
      "Remember me and smile, for it's better to forget than remember me and cry"      ,
      "So now I say goodbye, but I feel sure we will meet again sometime"              ,
