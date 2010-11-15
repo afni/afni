@@ -1128,7 +1128,7 @@ mri_rbfinterp.o:mri_rbfinterp.c
 	$(RM) $@
 	$(CCOMP) -c mri_rbfinterp.c $(INFLAGS)
 
-3dAllineate.o:3dAllineate.c
+3dAllineate.o:3dAllineate.c mri_genalign.c mri_genalign_util.c thd_correlate.c
 	$(RM) $@
 	$(CCOMP) -c 3dAllineate.c $(INFLAGS)
 

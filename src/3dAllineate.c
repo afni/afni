@@ -40,6 +40,14 @@ typedef struct { int np,code; float vb,vt ; } param_opt ;
 
 #define WARP_BILINEAR 666
 
+#define NPCUB          60 /* 3*(1+3+6+10) */
+#define WARP_CUBIC    667
+#define APPLY_CUBIC     4
+
+#define NPQUINT       168 /* 3*(1+3+6+10+15+21) */
+#define WARP_QUINT    668
+#define APPLY_QUINT     5
+
 static float wt_medsmooth = 2.25f ;   /* for mri_weightize() */
 static float wt_gausmooth = 4.50f ;
 
@@ -128,6 +136,7 @@ static char *meth_costfunctional[NMETH] =  /* describe cost functional */
     "lpc + hel + mi + nmi + crA + overlap"                     ,
     "mutual compressibility (via zlib) -- doesn't work yet"
   } ;
+
 /*---------------------------------------------------------------------------*/
 
 #define SETUP_BILINEAR_PARAMS                                                \
@@ -176,7 +185,34 @@ static float BILINEAR_offdiag_norm(GA_setup stup)
    return (dmag/18.0f) ;
 }
 
-#undef OUTVAL
+/*---------------------------------------------------------------------------*/
+
+#define SETUP_NONLIN_PARAMS(nnl,ran,nam)                                     \
+ do{ char str[16] ;                                                          \
+     stup.wfunc_numpar = 16+(nnl) ;                                          \
+     stup.wfunc        = NULL ;                                              \
+     stup.wfunc_param  = (GA_param *)realloc( (void *)stup.wfunc_param,      \
+                                              (16+(nnl))*sizeof(GA_param) ); \
+     for( jj=12 ; jj < 12+(nnl) ; jj++ ){                                    \
+       sprintf(str,"%s%02d",(nam),jj+1) ;                                    \
+       DEFPAR( jj,str, -(ran),(ran) , 0.0f,0.0f,0.0f ) ;                     \
+       stup.wfunc_param[jj].fixed = 1 ;                                      \
+     }                                                                       \
+     DEFPAR(12+(nnl),"xcen" ,-1.0e9,1.0e9 , 0.0f,0.0f,0.0f ) ;               \
+     DEFPAR(13+(nnl),"ycen" ,-1.0e9,1.0e9 , 0.0f,0.0f,0.0f ) ;               \
+     DEFPAR(14+(nnl),"zcen" ,-1.0e9,1.0e9 , 0.0f,0.0f,0.0f ) ;               \
+     DEFPAR(15+(nnl),"xxfac", 0.0f ,1.0e9 , 1.0f,0.0f,0.0f ) ;               \
+     stup.wfunc_param[12+(nnl)].fixed = 2 ;                                  \
+     stup.wfunc_param[13+(nnl)].fixed = 2 ;                                  \
+     stup.wfunc_param[14+(nnl)].fixed = 2 ;                                  \
+     stup.wfunc_param[15+(nnl)].fixed = 2 ;                                  \
+ } while(0)
+
+#define SETUP_CUBIC_PARAMS do{ SETUP_NONLIN_PARAMS(48,0.07f,"cubic") ;       \
+                               stup.wfunc = mri_genalign_cubic ; } while(0)
+
+#define SETUP_QUINT_PARAMS do{ SETUP_NONLIN_PARAMS(156,0.07f,"quint") ;      \
+                               stup.wfunc = mri_genalign_quintic ; } while(0)
 
 /*---------------------------------------------------------------------------*/
 
@@ -1282,6 +1318,10 @@ int main( int argc , char *argv[] )
          } else if( strncasecmp(argv[iarg],"bil",3) == 0 ){
            nwarp_type = WARP_BILINEAR ;
            if( strstr(argv[iarg],"D") != NULL ) nwarp_flags = 1 ; /* 29 Oct 2010 */
+         } else if( strncasecmp(argv[iarg],"cub",3) == 0 ){       /* 13 Nov 2010 */
+           nwarp_type = WARP_CUBIC ;
+         } else if( strncasecmp(argv[iarg],"qui",3) == 0 ){       /* 15 Nov 2010 */
+           nwarp_type = WARP_QUINT ;
          } else {
            WARNING_message("unknown -nwarp type '%s' :-(",argv[iarg]) ;
          }
@@ -2732,7 +2772,7 @@ int main( int argc , char *argv[] )
      }
      if( verb > 1 ) ctim = COX_cpu_time() ;
      im_weig = mri_weightize(im_base,auto_weight,auto_dilation,auto_wclip,auto_wpow) ;
-     if( verb > 1 ) INFO_message("%s CPU time = %.1f s" ,
+     if( verb > 1 ) INFO_message("%s net CPU time = %.1f s" ,
                                  auto_string , COX_cpu_time()-ctim ) ;
    }
 
@@ -3526,7 +3566,7 @@ int main( int argc , char *argv[] )
          nrand = 17 + 4*tbest ; nrand = MAX(nrand,31) ;
          mri_genalign_scalar_ransetup( &stup , nrand ) ;  /* the initial search! */
 
-         if( verb > 1 ) ININFO_message("- Coarse startup search CPU time = %.1f s",COX_cpu_time()-ctim);
+         if( verb > 1 ) ININFO_message("- Coarse startup search net CPU time = %.1f s",COX_cpu_time()-ctim);
 
          /* unfreeze those that were temporarily frozen above */
 
@@ -3619,7 +3659,7 @@ int main( int argc , char *argv[] )
          } /* end of refinement loop (rr) */
 
          if( verb > 1 )
-           ININFO_message("- Total coarse refinement CPU time = %.1f s; %d funcs",
+           ININFO_message("- Total coarse refinement net CPU time = %.1f s; %d funcs",
                           COX_cpu_time()-ctim,nfunc ) ;
 
          /* end of '-twobest x' for x > 0 */
@@ -3643,7 +3683,7 @@ int main( int argc , char *argv[] )
          mri_genalign_scalar_setup( NULL,NULL,NULL , &stup ) ;
          nfunc += mri_genalign_scalar_optim( &stup , 0.0166 , 0.00166 , 666 ) ;
          if( verb > 2 ) PAROUT("--(c)") ;
-         if( verb > 1 ) ININFO_message("- Coarse CPU time = %.1f s; %d funcs",
+         if( verb > 1 ) ININFO_message("- Coarse net CPU time = %.1f s; %d funcs",
                                        COX_cpu_time()-ctim,nfunc) ;
          if( verb     ) ININFO_message("- Coarse optimization:  best cost=%f",
                                        stup.vbest) ;
@@ -3854,7 +3894,7 @@ int main( int argc , char *argv[] )
 
      if( verb ) ININFO_message("- Final    cost = %f ; %d funcs",stup.vbest,nfunc) ;
      if( verb > 1 && meth_check_count < 1 ) PAROUT("Final fine fit") ;
-     if( verb > 1 ) ININFO_message("- Fine CPU time = %.1f s",COX_cpu_time()-ctim) ;
+     if( verb > 1 ) ININFO_message("- Fine net CPU time = %.1f s",COX_cpu_time()-ctim) ;
 
      if( save_hist != NULL ) SAVEHIST("final",1) ;
 
@@ -3929,7 +3969,7 @@ int main( int argc , char *argv[] )
          nbf = mri_genalign_scalar_optim( &stup , rad, crad, 555 );
          if( verb ){
            dtim = COX_cpu_time() ;
-           ININFO_message("- Bilinear#1 cost = %f ; %d funcs ; CPU = %.1f s",
+           ININFO_message("- Bilinear#1 cost = %f ; %d funcs ; net CPU = %.1f s",
                           stup.vbest,nbf,dtim-ctim) ;
            ctim = dtim ;
          }
@@ -3952,7 +3992,7 @@ int main( int argc , char *argv[] )
            nbf = mri_genalign_scalar_optim( &stup, 33.3f*brad, 2.22f*brad,1111 );
            if( verb ){
              dtim = COX_cpu_time() ;
-             ININFO_message("- Bilinear#2 cost = %f ; %d funcs ; CPU = %.1f s",
+             ININFO_message("- Bilinear#2 cost = %f ; %d funcs ; net CPU = %.1f s",
                             stup.vbest,nbf,dtim-ctim) ;
              ctim = dtim ;
            }
@@ -3967,7 +4007,7 @@ int main( int argc , char *argv[] )
              nbf = mri_genalign_scalar_optim( &stup, 4.44f*brad, brad, 222 );
              if( verb ){
                dtim = COX_cpu_time() ;
-               ININFO_message("- Bilinear#3 cost = %f ; %d funcs ; CPU = %.1f s",
+               ININFO_message("- Bilinear#3 cost = %f ; %d funcs ; net CPU = %.1f s",
                               stup.vbest,nbf,dtim-ctim) ;
                ctim = dtim ;
              }
@@ -3977,8 +4017,118 @@ int main( int argc , char *argv[] )
 
          strcpy(warp_code_string,"bilinear") ;
 
+       } else if( nwarp_type == WARP_CUBIC ){  /*------ special case ------------*/
+
+         float rr , xcen,ycen,zcen , brad,crad ; int nbf ;
+
+         rr = MAX(xsize,ysize) ; rr = MAX(zsize,rr) ; rr = 0.95f / rr ;
+
+         SETUP_CUBIC_PARAMS ;  /* nonlinear params */
+
+         /* nonlinear transformation is centered at middle of base volume
+            indexes (xcen,ycen,zcen) and is scaled by reciprocal of size (rr) */
+
+         MAT44_VEC( stup.base_cmat,
+                    0.5f*nx_base, 0.5f*ny_base, 0.5f*nz_base,
+                    xcen        , ycen        , zcen         ) ;
+         stup.wfunc_param[NPCUB  ].val_fixed = stup.wfunc_param[NPCUB  ].val_init = xcen;
+         stup.wfunc_param[NPCUB+1].val_fixed = stup.wfunc_param[NPCUB+1].val_init = ycen;
+         stup.wfunc_param[NPCUB+2].val_fixed = stup.wfunc_param[NPCUB+2].val_init = zcen;
+         stup.wfunc_param[NPCUB+3].val_fixed = stup.wfunc_param[NPCUB+3].val_init = rr  ;
+
+         /* affine part is copied from results of work thus far */
+
+         for( jj=0 ; jj < 12 ; jj++ ){
+           stup.wfunc_param[jj].val_init = stup.wfunc_param[jj].val_out;
+#if 1
+           stup.wfunc_param[jj].val_fixed = stup.wfunc_param[jj].val_out ;
+           stup.wfunc_param[jj].fixed = 1 ;
+#endif
+         }
+
+         stup.need_hist_setup = 1 ;
+         mri_genalign_scalar_setup( NULL,NULL,NULL, &stup );
+
+         /* do the optimization */
+
+         if( verb > 0 ) INFO_message("Start Cubic warping") ;
+         /** if( verb > 1 ) PARINI("- Cubic initial") ; **/
+         for( jj=12 ; jj < NPCUB  ; jj++ ) stup.wfunc_param[jj].fixed = 0 ;
+         if( verb ) ctim = COX_cpu_time() ;
+         brad = MAX(conv_rad,0.001f) ;
+              if( rad > 33.3f*brad ) rad = 33.3f*brad ;
+         else if( rad < 22.2f*brad ) rad = 22.2f*brad ;
+         crad = 2.22f*brad ;
+         nbf = mri_genalign_scalar_optim( &stup , rad, crad, 1234 );
+         if( verb ){
+           dtim = COX_cpu_time() ;
+           ININFO_message("- Cubic cost = %f ; %d funcs ; net CPU = %.1f s",
+                          stup.vbest,nbf,dtim-ctim) ;
+           ctim = dtim ;
+         }
+
+         if( verb > 1 ) PAROUT("- Cubic final") ;
+         strcpy(warp_code_string,"cubic") ;
+
+       } else if( nwarp_type == WARP_QUINT ){  /*------ special case ------------*/
+
+#define PARAM_SETUP(pp,ff,vv)                                                           \
+ do{ if( ff ){ stup.wfunc_param[pp].fixed = 1 ; stup.wfunc_param[pp].val_fixed = vv ; } \
+     else    { stup.wfunc_param[pp].fixed = 0 ; }                                       \
+     stup.wfunc_param[pp].val_init = vv ;                                               \
+ } while(0)
+
+         float rr , xcen,ycen,zcen , brad,crad ; int nbf ;
+
+         rr = MAX(xsize,ysize) ; rr = MAX(zsize,rr) ; rr = 0.95f / rr ;
+
+         SETUP_QUINT_PARAMS ;  /* nonlinear params */
+
+         /* nonlinear transformation is centered at middle of base volume
+            indexes (xcen,ycen,zcen) and is scaled by reciprocal of size (rr) */
+
+         MAT44_VEC( stup.base_cmat,
+                    0.5f*nx_base, 0.5f*ny_base, 0.5f*nz_base,
+                    xcen        , ycen        , zcen         ) ;
+         PARAM_SETUP( NPQUINT   , 2 , xcen ) ;
+         PARAM_SETUP( NPQUINT+1 , 2 , ycen ) ;
+         PARAM_SETUP( NPQUINT+2 , 2 , zcen ) ;
+         PARAM_SETUP( NPQUINT+3 , 2 , rr   ) ;
+
+         /* affine part is copied from results of work thus far */
+
+         for( jj=0 ; jj < 12 ; jj++ ){
+           PARAM_SETUP( jj , 1 , stup.wfunc_param[jj].val_out ) ;
+         }
+
+         stup.need_hist_setup = 1 ;
+         mri_genalign_scalar_setup( NULL,NULL,NULL, &stup );
+         GA_set_nperval(0) ;
+
+         /* do the optimization */
+
+         if( verb > 0 ) INFO_message("Start Quintic warping") ;
+         /** if( verb > 1 ) PARINI("- Quintic initial") ; **/
+         for( jj=12 ; jj < NPQUINT ; jj++ ) stup.wfunc_param[jj].fixed = 0 ;
+         if( verb ) ctim = COX_cpu_time() ;
+         brad = MAX(conv_rad,0.001f) ;
+              if( rad > 33.3f*brad ) rad = 33.3f*brad ;
+         else if( rad < 22.2f*brad ) rad = 22.2f*brad ;
+         crad = 2.22f*brad ;
+         nbf = mri_genalign_scalar_optim( &stup , rad, crad, 1999 );
+         if( verb ){
+           dtim = COX_cpu_time() ;
+           ININFO_message("- Quintic cost = %f ; %d funcs ; net CPU = %.1f s",
+                          stup.vbest,nbf,dtim-ctim) ;
+           ctim = dtim ;
+         }
+
+         if( verb > 1 ) PAROUT("- Quintic final") ;
+         strcpy(warp_code_string,"quintic") ;
+
        } else {   /*----------------------- general nonlinear expansion -----*/
 
+#if 0
 #define GSIZ 3
 #define NHH  2
 
@@ -4066,7 +4216,7 @@ int main( int argc , char *argv[] )
              nbf  = mri_genalign_scalar_optim( &stup , rad, 2.345f*brad, 33*GSIZ );
              dtim = COX_cpu_time() ;
              if( verb ){
-               ININFO_message("- Warpfield#%d/%d cost = %f ; %d funcs ; CPU = %.1f s",
+               ININFO_message("- Warpfield#%d/%d cost = %f ; %d funcs ; net CPU = %.1f s",
                               hh*ngrp+gg+1,NHH*ngrp,stup.vbest,nbf,dtim-ctim) ;
                if( verb > 1 ) PAROUT("- Warpfield") ;
              }
@@ -4083,11 +4233,13 @@ int main( int argc , char *argv[] )
          nbf  = mri_genalign_scalar_optim( &stup , 6.66f*brad, brad, 11*wf->nfun );
          dtim = COX_cpu_time() ;
          if( verb ){
-           ININFO_message("- Warpfield final cost = %f ; %d funcs ; CPU = %.1f s",
+           ININFO_message("- Warpfield final cost = %f ; %d funcs ; net CPU = %.1f s",
                           stup.vbest,nbf,dtim-ctim) ;
            if( verb > 1 ) PAROUT("- Warpfield final") ;
          }
-
+#else
+         ERROR_message("Unknown nonlinear warp type!") ;
+#endif
        } /* end of Warpfield */
 
      } /* end of nonlinear warp */
@@ -4156,7 +4308,7 @@ int main( int argc , char *argv[] )
              meth_longname[mc-1] , meth_shortname[mc-1] , 100.0*dmax , 2000.0*conv_rad ) ;
          PAROUT("Check fit") ;
          if( verb > 1 )
-           ININFO_message("- Check CPU time=%.1f s; funcs=%d; dmax=%f jmax=%d",
+           ININFO_message("- Check net CPU time=%.1f s; funcs=%d; dmax=%f jmax=%d",
                           COX_cpu_time()-ctim , nfunc , dmax , jmax ) ;
          if( do_allcost != 0 ){
            PAR_CPY(val_out) ;  /* copy output parameters into allpar */
@@ -4290,6 +4442,7 @@ mri_genalign_set_pgmat(1) ;
          default:
          case APPLY_BILIN:
          case APPLY_PARAM:
+         case APPLY_CUBIC:
            AL_setup_warp_coords( epi_targ,epi_fe,epi_pe,epi_se,
                                  nxyz_dout, dxyz_dout, cmat_bout,
                                  nxyz_targ, dxyz_targ, cmat_tout ) ;
