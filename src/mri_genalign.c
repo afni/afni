@@ -2218,10 +2218,12 @@ INFO_message("bilinear warp %s diagonal: %.7g %.7g %.3g",
 /* Legendre polynomials */
 
 #define LP1(x) (x)
-#define LP2(x) ((x)*(x)-0.3333333f)                         /* 2/3 of P2(x) */
-#define LP3(x) (((x)*(x)-0.6f)*(x))                         /* 2/5 of P3(x) */
-#define LP4(x) ((x)*(x)*((x)*(x)-0.857143f)+0.0857143f)     /* 8/35 of P4(x) */
-#define LP5(x) (((x)*(x)*((x)*(x)-1.11111f)+0.238095f)*(x)) /* 8/63 of P5(x) */
+#define LP2(x) ((x)*(x)-0.3333333f)                                             /* 2/3    P2 */
+#define LP3(x) (((x)*(x)-0.6f)*(x))                                             /* 2/5    P3 */
+#define LP4(x) ((x)*(x)*((x)*(x)-0.857143f)+0.0857143f)                         /* 8/35   P4 */
+#define LP5(x) (((x)*(x)*((x)*(x)-1.11111f)+0.238095f)*(x))                     /* 8/63   P5 */
+#define LP6(x) ((x)*(x)*((x)*(x)*((x)*(x)-1.36364f)+0.454545f)-0.021645f)       /* 16/231 P6 */
+#define LP7(x) (((x)*(x)*((x)*(x)*((x)*(x)-1.61538f)+0.734266f)-0.081585f)*(x)) /* 16/429 P7 */
 
 /* 3D product functions of various orders */
 

@@ -4104,6 +4104,7 @@ int main( int argc , char *argv[] )
          stup.need_hist_setup = 1 ;
          mri_genalign_scalar_setup( NULL,NULL,NULL, &stup );
          GA_set_nperval(0) ;
+         /** powell_set_mfac(1.333f,2.0f) ; **/
 
          /* do the optimization */
 
