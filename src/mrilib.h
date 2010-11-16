@@ -1537,7 +1537,7 @@ extern void mri_warp3D_zerout( int ) ;
 
 extern void mri_warp3D_set_womask( MRI_IMAGE * ) ;  /* 19 Nov 2004 */
 
-extern MRI_IMAGE *mri_warp3D_quintic( MRI_IMAGE *, int,int,int , /* 06 Aug 2003 */
+extern MRI_IMAGE *mri_warp3D_quintic( MRI_IMAGE *, int,int,int ,
                                       void func( float,float,float,
                                                  float *,float *,float *) ) ;
 
@@ -1819,6 +1819,9 @@ extern void mri_genalign_cubic( int, float *,
 extern void mri_genalign_quintic( int, float *,
                                   int, float *, float *, float *,
                                        float *, float *, float * ) ;
+extern void mri_genalign_heptic( int, float *,
+                                 int, float *, float *, float *,
+                                      float *, float *, float * ) ;
 
 void mri_genalign_set_targmask( MRI_IMAGE *, GA_setup * ) ; /* 07 Aug 2007 */
 void mri_genalign_set_basemask( MRI_IMAGE *, GA_setup * ) ; /* 25 Feb 2010 */

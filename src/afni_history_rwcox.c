@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 16 , NOV , 2010 , RWC , "3dAllineate" , MICRO , TYPE_NEW_OPT ,
+   "Add cubic, quintic, and heptic polynomial warps." ,
+   NULL } ,
+
  { 10 , NOV , 2010 , RWC , "3dttest++" , MINOR , TYPE_NEW_OPT ,
    "Add -rankize and -no1sam options" ,
    NULL } ,
