@@ -11,7 +11,7 @@ strip.extension <- function (filename, extvec=NULL, verb=0) {
    if (is.null(extvec)) {
       ff <- strsplit(filename, '\\.')[[1]]
       if (length(ff) > 1) {
-         n$ext <- ff[length(ff)]
+         n$ext <- paste('.',ff[length(ff)], sep='')
          n$name_noext <- paste(ff[1:length(ff)-1],collapse='.')
       } else {
          n$ext <- ''
@@ -1224,7 +1224,9 @@ xmat.select.indices <- function(selstr, xmat, AFNIindex = FALSE) {
                            after=length(ilst))
          } else {
             #cat("processing as string: ",isel,'\n')
-            if (isel == 'ALL_TASKS') {
+            if (isel == 'ALL') {
+               ilst <- append(ilst, seq(1,ncol(xmat)))
+            } else if (isel == 'ALL_TASKS') {
                ilst <- append(ilst, 
                   xmat.alltasks.index(xmat, AFNIindex=FALSE))
             } else if (isel == 'RONI') {

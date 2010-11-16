@@ -130,11 +130,19 @@ init.ExamineXmat.lop <- function () {
    lop$input = NULL;
    lop$interactive = FALSE;
    lop$pprefix=NULL;
+   lop$cprefix=NULL;
    lop$select = 'ALL_TASKS';
    lop$verb=0
    return(lop)
 }
-
+set.both.prefix <- function (lop, pp) {
+   pp <- parse.name(pp)
+   lop$pprefix <- paste(pp$path,pp$name_noext,
+                     ".plt",pp$ext, sep='')
+   lop$cprefix <- paste(pp$path,pp$name_noext,
+                     ".cor",pp$ext, sep='')
+   return(lop)
+}  
 #Change command line arguments into an options list
 read.ExamineXmat.opts.batch <- function (args=NULL, verb = 0) {
    
@@ -142,11 +150,12 @@ read.ExamineXmat.opts.batch <- function (args=NULL, verb = 0) {
       '-input' = apl(n = c(1), d = NA,  h = paste(
    "-input 1Dfile: xmat file to plot\n"
                      ) ),
-      '-select' = apl(n = c(1, Inf), d = NA,  h = paste(
+      '-select' = apl(n = c(1, Inf), d = 'ALL_TASKS',  h = paste(
    "-select SELECTION_STRING: What to plot.\n",
    "     Selection Strings:\n",
    pad.string.lines(ExamineXmat.help.select(),'       '),
    "\n     Alternately you can specify special strings:\n",
+   "       'ALL': The entire matrix\n",
    "       'ALL_TASKS': All task regressors\n",
    "       'RONI': All regressors of no interest (baseline+motion)\n",
    "       'BASE': All baseline regressors\n",
@@ -154,7 +163,13 @@ read.ExamineXmat.opts.batch <- function (args=NULL, verb = 0) {
                      ) ),
                                           
       '-prefix' = apl(n = 1, d = NA,  h = paste(
-   "-prefix PREFIX: Prefix of plot image\n"
+   "-prefix PREFIX: Prefix of plot image and cor image \n"
+                     ) ),
+      '-pprefix' = apl(n = 1, d = NA,  h = paste(
+   "-pprefix PPREFIX: Prefix of plot image only \n"
+                     ) ),
+      '-cprefix' = apl(n = 1, d = NA,  h = paste(
+   "-cprefix CPREFIX: Prefix of cor image only \n"
                      ) ),
 
       '-interactive' = apl(n = 0, d = NA,  h = paste(
@@ -192,7 +207,9 @@ read.ExamineXmat.opts.batch <- function (args=NULL, verb = 0) {
       opname <- opname[length(opname)];
       switch(opname,
              input = lop$input <- ops[[i]],
-             prefix = lop$pprefix  <- ops[[i]],
+             prefix = lop <- set.both.prefix(lop,ops[[i]]),
+             pprefix = lop$pprefix <- ops[[i]],
+             cprefix = lop$cprefix <- ops[[i]],
              interactive = lop$interactive <- TRUE,
              select = lop$select <- ops[[i]],
              verb = lop$verb <- ops[[i]],
@@ -213,6 +230,8 @@ process.ExamineXmat.opts <- function (lop, verb = 0) {
    return(lop)
 }
 
+imgdev  <<- NULL
+plotdev <<- NULL
 #The plotting function
 show_xmat <- function (xmat, isel=1:1:ncol(xmat), descr="", interactive=TRUE) {
    #cat ('isel in show_xmat')
@@ -267,13 +286,20 @@ show_xmat <- function (xmat, isel=1:1:ncol(xmat), descr="", interactive=TRUE) {
                   'Rall-motion: ', sprintf('%.2f', all_cond_no_mot), '',
                   'Rall-roni: ', sprintf('%.2f', stim_cond),'',
                   'Rviewed: ', sprintf('%.2f', view_cond),'');
-                  
-   thisplot <- plot.1D( dmat = xmat, dmat.err=NULL,
+   maintit <-   sprintf('%s\n(%d/%d)', 
+                        trim.string(attr(xmat,'FileName'), 48), 
+                                       length(isel), ncol(xmat))            
+   maintitcorr <-   sprintf('cor(%s)\n(%d/%d)', 
+                        trim.string(attr(xmat,'FileName'), 48), 
+                                       length(isel), ncol(xmat))            
+   
+   if (!is.null(plotdev) && plotdev != 0) {
+      dev.set(plotdev)
+   }
+   plotdev <<- plot.1D( dmat = xmat, dmat.err=NULL,
             dmat.colsel = isel,  
             col.yoffset = TRUE,
-            ttl.main = sprintf('%s\n(%d/%d)', 
-                        trim.string(attr(xmat,'FileName'), 48), 
-                                       length(isel), ncol(xmat)),
+            ttl.main = maintit,
             ttl.sub=stit, multi.ncol=1,
             col.mean.line = FALSE,
             col.colors = colvec,
@@ -284,14 +310,19 @@ show_xmat <- function (xmat, isel=1:1:ncol(xmat), descr="", interactive=TRUE) {
             prefix = lop$pprefix, nodisp = !interactive
          )
    
-   
-   
    #update report window, if interactive mode
    if (interactive) {
       #title (paste('Xmat: ', attr(xmat,'FileName'),'\n'));
       title ('');
       ttc <<- condition_report(ttc, xmat, isel, descr=descr)
    } 
+   
+   #Need a device for correlation matrix display
+   imgdev <<- image.corr.1D(dmat = xmat, dmat.colsel = isel, 
+                 prefix = lop$cprefix, nodisp = !interactive,
+                 ttl.main = maintitcorr, dev.this = imgdev, dev.new=TRUE)
+
+   
    return(0)
 }
 
