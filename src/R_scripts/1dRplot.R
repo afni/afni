@@ -28,6 +28,7 @@ first.in.path <- function(file) {
 source(first.in.path('AFNIio.R'))
 source(first.in.path('AFNIplot.R'))
 
+ExecName <- '1dRplot'
 
 
 greeting.1dRplot <- function ()
@@ -59,9 +60,9 @@ Example 1 --- :
       1dRplot  -input IBSR_01.SubClasses.skew.1D.repsig    
 
       1dRplot  -input IBSR_01.SubClasses.skew.1D.repsig \\
-               -ColumnGroups 'R:c(rep(1,10), rep(2,10), rep(3,10))' \\
-               -GroupLabels CSF GM WM \\
-               -NoZeros -NoOffsetBase \\
+               -col.grp 'R:c(rep(1,10), rep(2,10), rep(3,10))' \\
+               -grp.labels CSF GM WM \\
+               -col.nozeros -Nocol.yoffset \\
                -prefix ZePlotIzSaved.pdf
 "   
 
@@ -102,13 +103,15 @@ init.1DRplot.lop <- function () {
    lop$x = NULL;
    lop$isel=NULL;
    lop$NoZeros=FALSE;
-   lop$ColumnGroups=NULL;
-   lop$OffsetBase=TRUE;
-   lop$GroupLabels=NULL;
+   lop$col.grp=NULL;
+   lop$col.yoffset=TRUE;
+   lop$grp.labels=NULL;
    lop$Title=NULL
    lop$CloseAfterSave=FALSE
-   lop$OneSubplot = FALSE
+   lop$oneplot = FALSE
    lop$xlim=NULL
+   lop$xtext=NULL
+   lop$ytext=NULL
    lop$ylim=NULL
    lop$addavg=FALSE
    lop$verb=0
@@ -119,7 +122,7 @@ init.1DRplot.lop <- function () {
    lop$ColumnNames=NULL
    lop$LegendNames=NULL
    lop$LegendPosition="topright"
-   lop$LegendFontSize = 1.0
+   lop$LegendFontSize = 14.0
    lop$LegendNumColumns = 4
    lop$ltypes=NULL
    return(lop)
@@ -154,8 +157,8 @@ read.1dRplot.opts.batch <- function (args=NULL, verb = 0) {
    "-title TITLE: Graph title\n"
                      ) ),
             
-      '-GroupLabels' = apl(n = c(1,Inf), d = NULL, h = paste(
-   "-GroupLabels GROUP1 [GROUP2]: Labels to column grouping.\n",
+      '-grp.labels' = apl(n = c(1,Inf), d = NULL, h = paste(
+   "-grp.labels GROUP1 [GROUP2]: Labels to column grouping.\n",
    "                         Default is no labeling\n"
                      ) ),
       '-ColumnSymbs' = apl(n = c(1,Inf), d = NULL, h = paste(
@@ -197,22 +200,22 @@ read.1dRplot.opts.batch <- function (args=NULL, verb = 0) {
    "-Zeros:  Do  plot all zeros time series"
                         ) ),
                         
-      '-OffsetBase' = apl (n = 0, d = TRUE, h = paste (
-   "-OffsetBase:  "
+      '-col.yoffset' = apl (n = 0, d = TRUE, h = paste (
+   "-col.yoffset:  "
                         ) ),
-      '-NoOffsetBase' = apl (n = 0, d = FALSE, h = paste (
-   "-NoOffsetBase:  "
+      '-Nocol.yoffset' = apl (n = 0, d = FALSE, h = paste (
+   "-Nocol.yoffset:  "
                         ) ),
       
-      '-OneSubplot' = apl (n = 0, d = FALSE, h = paste (
-   "-OneSubplot:  "
+      '-oneplot' = apl (n = 0, d = FALSE, h = paste (
+   "-oneplot:  "
                         ) ),   
                         
       '-one' = apl (n = 0, d = FALSE, h = paste (
    "-one:  "
                         ) ),                                     
-      '-ColumnGroups' = apl(n = c(1), h = paste (
-   "-ColumnGroups 1Dfile or Rexp: integer labels defining column belonging\n",
+      '-col.grp' = apl(n = c(1), h = paste (
+   "-col.grp 1Dfile or Rexp: integer labels defining column belonging\n",
    "                For example: 1D\n"   
                   ) ), 
       '-xlim' = apl(n = c(2,3), h = paste (
@@ -231,8 +234,16 @@ read.1dRplot.opts.batch <- function (args=NULL, verb = 0) {
    "-xlabel\n",
    "                For example: 1D\n"   
                   ) ), 
+      '-xtext' = apl(n = c(1, Inf), h = paste (
+   "-xtext\n",
+   "                For example: 1D\n"   
+                  ) ), 
       '-ylabel' = apl(n = 1, h = paste (
    "-ylabel\n",
+   "                For example: 1D\n"   
+                  ) ), 
+      '-ytext' = apl(n = c(1, Inf), h = paste (
+   "-ytext\n",
    "                For example: 1D\n"   
                   ) ), 
       '-verb' = apl(n=1, d = 0, h = paste(
@@ -269,19 +280,21 @@ read.1dRplot.opts.batch <- function (args=NULL, verb = 0) {
              save = {lop$pprefix <- ops[[i]]; lop$CloseAfterSave=TRUE;} ,
              NoZeros = lop$NoZeros <- TRUE,
              Zeros = lop$NoZeros <- FALSE,
-             OneSubplot = lop$OneSubplot <- TRUE,
-             one = lop$OneSubplot <- TRUE,
-             ColumnGroups = 
-               lop$ColumnGroups <- parse.1dRplot.Groups(ops[[i]]),
-             NoOffsetBase = lop$OffsetBase <- FALSE,
-             OffsetBase = lop$OffsetBase <- TRUE,
-             GroupLabels = lop$GroupLabels <- ops[[i]],
+             oneplot = lop$oneplot <- TRUE,
+             one = lop$oneplot <- TRUE,
+             col.grp = 
+               lop$col.grp <- parse.1dRplot.Groups(ops[[i]]),
+             Nocol.yoffset = lop$col.yoffset <- FALSE,
+             col.yoffset = lop$col.yoffset <- TRUE,
+             grp.labels = lop$grp.labels <- ops[[i]],
              xlim = lop$xlim <- ops[[i]],
              ylim = lop$ylim <- ops[[i]],
              addavg = lop$addavg <- TRUE,
              title  = lop$Title <- ops[[i]],
              xlabel  = lop$xlabel <- ops[[i]],
+             xtext = lop$xtext <- ops[[i]],
              ylabel  = lop$ylabel <- ops[[i]],
+             ytext = lop$ytext <- ops[[i]],
              verb = lop$verb <- ops[[i]],
              ColumnSymbs = lop$ColumnSymbs <- parse.1dRplot.Groups(ops[[i]]),
              ColumnCols = lop$ColumnCols <- parse.1dRplot.Groups(ops[[i]]),
@@ -317,7 +330,8 @@ process.1dRplot.opts <- function (lop, verb = 0) {
 
    if (!exists('.DBG_args')) { 
       args = (commandArgs(TRUE))  
-      save(args, file=".1dRplot.dbg.AFNI.args", ascii = TRUE) 
+      rfile <- first.in.path(sprintf('%s.R',ExecName))  
+      save(args, rfile, file=".1dRplot.dbg.AFNI.args", ascii = TRUE) 
    } else {
       note.AFNI("Using .DBG_args resident in workspace");
       args <- .DBG_args
@@ -328,9 +342,9 @@ process.1dRplot.opts <- function (lop, verb = 0) {
       lop$ff = c('all.sc5.mMs.tr_s051114.tfs1.DSC.dice.03302317.1D',
                  'all.sc5.mMs.tr_s051114.tfs1.DSC.dice.03302317.1D')
       lop$NoZeros = TRUE
-      lop$ColumnGroups = c(rep(1,10), rep(2,10), rep(3,10))
-      lop$OffsetBase = FALSE
-      lop$GroupLabels = c('CSF','GM','WM')
+      lop$col.grp = c(rep(1,10), rep(2,10), rep(3,10))
+      lop$col.yoffset = FALSE
+      lop$grp.labels = c('CSF','GM','WM')
       lop$CloseAfterSave = FALSE
    } else {
       if (!exists('.DBG_args')) {
@@ -351,28 +365,28 @@ process.1dRplot.opts <- function (lop, verb = 0) {
    }
    thisplot <- plot.1D( ff = lop$ff, ffd=lop$ffdelta,
             isel = lop$isel, descr = "",  
-            NoZeros = lop$NoZeros, 
-            ColumnGroups = lop$ColumnGroups,
-            OffsetBase = lop$OffsetBase,
-            GroupLabels = lop$GroupLabels,
-            Title = lop$Title, 
+            col.nozeros = lop$NoZeros, 
+            col.grp = lop$col.grp,
+            col.yoffset = lop$col.yoffset,
+            grp.labels = lop$grp.labels,
+            ttl = lop$Title, 
             prefix = lop$pprefix, 
-            CloseAfterSave = lop$CloseAfterSave,
-            OneSubplot = lop$OneSubplot,
-            addmean = lop$addavg,
-            xlim=lop$xlim,
-            ylim=lop$ylim,
-            xlabel=lop$xlabel,
-            ylabel=lop$ylabel, 
-            symbs=lop$ColumnSymbs,
-            cols = lop$ColumnCols,
-            ltypes = lop$ColumnLtypes,
-            cnames = lop$ColumnNames,
+            nodisp = lop$CloseAfterSave,
+            oneplot = lop$oneplot,
+            col.mean.line = lop$addavg,
+            xax.range=lop$xlim, xax.tic.text = lop$xtext,
+            yax.range=lop$ylim, yax.tic.text = lop$ytext,
+            xax.label=lop$xlabel,
+            yax.label=lop$ylabel, 
+            col.symbs=lop$ColumnSymbs,
+            col.colors = lop$ColumnCols,
+            col.line.type = lop$ColumnLtypes,
+            col.names = lop$ColumnNames,
             leg.names = lop$LegendNames,
             leg.position = lop$LegendPosition,
             leg.fontsize = lop$LegendFontSize,
             leg.ncol = lop$LegendNumColumns,
-            x = lop$x)
+            dmat.xval = lop$x)
 
    if (BATCH_MODE) { #do not quit until device is closed
       while (length(which(dev.list()==thisplot))) Sys.sleep(0.25);

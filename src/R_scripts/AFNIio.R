@@ -848,6 +848,30 @@ who.called.me <- function (quiet_inquisitor=FALSE, trim = 0) {
 }
 
 #print warnings a la AFNI
+prompt.AFNI <- function (str, choices, vals=NULL) {
+   if (!is.null(vals) && length(vals) != length(choices)) {
+      err.AFNI(paste("Have ", length(choices), "options, but",
+                     length(vals), "values to return"));
+      return(0)
+   }
+   choices[1]<-toupper(choices[1])
+   kk<-vector(length=0);
+   while (length(kk) == 0) {
+      cat(str," [",paste(choices, collapse='|'),"]:", sep='')
+      bb <- readLines(n=1)
+      if (bb == '') {
+         kk <- 1;
+      } else {
+         kk <-which(tolower(choices) == tolower(bb))
+      }
+   }
+   if (!is.null(vals)) {
+      return(vals[kk])
+   } else {
+      return(kk)
+   }
+}
+
 warn.AFNI <- function (str='Consider yourself warned',
                        callstr=NULL, 
                        newline=TRUE) {
@@ -951,6 +975,43 @@ deblank.string <- function(s, start=TRUE, end=TRUE, middle=FALSE) {
    }
    return(s);
 }
+
+pad.string.lines <- function(s, pre='   ', post=NULL) {
+   if (!is.null(pre)) {
+      s = sub('^',pre,s);
+      s = gsub('\n',sprintf('\n%s',pre),s);
+   }
+   if (!is.null(post)) {
+      s = sub('$',post,s);
+      s = gsub('\n',sprintf('%s\n',post),s);
+   }
+   
+   return(s);
+}
+
+trim.string <- function (s, nchar=32, left=TRUE, strim='...')
+{
+   ss <- strsplit(s,'')[[1]]
+   if (length(ss)>nchar) {
+      #try deblanking
+      s <- deblank.string(s)
+      ss <- strsplit(s,'')[[1]]
+      nc <- length(ss)
+      if (nc>nchar) {
+         nstrim = length(strsplit(strim,'')[[1]])
+         if (left) {
+            ns <- nc - nchar - nstrim
+            ss <- ss[ns:nc] 
+            s<-paste(strim,paste(ss,collapse=''), sep='')
+            return(s)
+         }else {
+            ns <- nchar - nstrim
+            ss <- ss[1:ns]
+            s<-paste(paste(ss,collapse=''), strim, sep='') 
+         }
+      } else return(s)
+   } else return(s)
+}
  
 as.num.vec <- function(ss, addcount=TRUE, sepstr='.', reset=FALSE) {
    if (is.list(ss) || length(ss) > 1) {
@@ -1039,6 +1100,162 @@ as.char.vec <- function(ss) {
 #------------------------------------------------------------------
 #   Functions to read 1D and other tables
 #------------------------------------------------------------------
+expand_1D_string <- function (t) {
+   vvf = vector(length = 0, mode="numeric")
+   #replace .. with : and split at ,
+   s = strsplit(sub("..",":",t, fixed=TRUE), ",")[[1]]
+
+   #Now loop and form vector of components
+   for (si in s) {
+      #cat ("working ", si, "\n")
+      if (length(grep(":",si))) {
+         vv = eval(parse(text=si))
+      } else if (length(grep("@",si))) {
+         ssi = as.numeric(strsplit(si,"@")[[1]])
+         #cat ("ssi = ", ssi, "\n")
+         vv = rep(ssi[2], ssi[1])
+      } else {
+         vv = as.numeric(si)
+      }
+      #cat(si," = ",vv, "\n")
+      vvf <- c(vvf, vv)
+      #cat("vvnow = ",vvf, "\n")
+   }
+   return(vvf)
+}
+
+read.AFNI.xmat <- function (xmatfile, nheadmax=10) {
+   if (!file.exists(xmatfile)) {
+      err.AFNI(paste("xmatfile ",xmatfile,"not found"));
+      return(NULL);
+   }
+   #Get first few lines
+   ff <- scan(xmatfile, what = 'character', nmax = nheadmax, sep = '\n')
+
+   #Search for ColumnLabels and split string
+   icl = grep('ColumnLabels', ff)
+   if (length(icl)){
+      ffs <- strsplit(ff[icl], '=')[[1]][2]
+         #remove bad chars and split into labels
+         ffs <- gsub("[;\"]","", ffs)
+         ffsv <- strsplit(ffs," ")[[1]]
+         #some components are blanks to be killed
+         labels <- ffsv[which(nchar(ffsv)!=0)]
+   }else {
+      labels = ""
+   }
+   #Get the TR
+   ffs <- strsplit(ff[grep('RowTR', ff)], '=')[[1]][2]
+      #remove bad chars and change to number
+      TR = as.double(gsub("[;\" *]","", ffs))
+      
+   #Get the ColumnGroups
+   ffs <- strsplit(ff[grep('ColumnGroups', ff)], '=')[[1]][2]
+   colg = expand_1D_string (gsub("[;\" *]","", ffs))
+
+   #Now load the whole deal, comments are skipped by defaults
+   ff <- ts(as.matrix(read.table(xmatfile)), names = labels, deltat = TR)
+   
+   #Put the column groups in
+   #cat ("insterting colg: ", colg, "\n")
+   attr(ff,'ColumnGroups') <- colg
+   
+   #add TR for the record
+   attr(ff, 'TR') <- TR
+      
+   #add filename for the record
+   attr(ff,'FileName') <- xmatfile
+   
+   #Get the task names
+   llv <- vector(length=0,mode="numeric")
+   tcolg <- unique(colg)
+   for (i in tcolg) {
+      if (i>0) {
+         ll <- which(colg == i)
+         llv <- c(llv,ll[1])
+      }
+   }
+   tnames <-paste(strsplit(labels[llv],"#0"))
+   attr(ff,'TaskNames') <- tnames
+   
+   return(ff)
+}
+
+xmat.base.index <- function (xmat, AFNIindex = FALSE) {
+   cg <- attr(xmat,'ColumnGroups')
+   an <- which(cg == -1)
+   if (AFNIindex) an <- an -1
+   return(an)
+}
+xmat.motion.index <- function (xmat, AFNIindex = FALSE) {
+   cg <- attr(xmat,'ColumnGroups')
+   an <- which(cg == 0)
+   if (AFNIindex) an <- an -1
+   return(an)
+}
+xmat.roni.index <- function (xmat, AFNIindex = FALSE) {
+   cg <- attr(xmat,'ColumnGroups')
+   an <- which(cg <= 0)
+   if (AFNIindex) an <- an -1
+   return(an)
+}
+xmat.alltasks.index <- function (xmat, AFNIindex = FALSE) {
+   cg <- attr(xmat,'ColumnGroups')
+   an <- which(cg > 0)
+   if (AFNIindex) an <- an -1
+   return(an)
+}
+
+xmat.select.indices <- function(selstr, xmat, AFNIindex = FALSE) {
+   #paste(selstr, collapse=" ") is used because at times selstr is a vector
+   sel <- strsplit(paste(selstr, collapse=" "), 
+                     " ")[[1]]   
+   #str(sel)
+   #cat(sel, 'length:' , length(sel), '\n')
+   ilst = vector('integer');
+   if (length(sel)) {
+      for (isel in sel) {
+         #cat("processing: ",isel,'\n')
+         if (!inherits( e <- try(as.integer(eval(parse(text=isel))),
+                                 silent=TRUE),
+                        "try-error")) {
+            ilst <- append(ilst, 
+                           e+1,       
+                           after=length(ilst))
+         } else {
+            #cat("processing as string: ",isel,'\n')
+            if (isel == 'ALL_TASKS') {
+               ilst <- append(ilst, 
+                  xmat.alltasks.index(xmat, AFNIindex=FALSE))
+            } else if (isel == 'RONI') {
+               ilst <- append(ilst, xmat.roni.index(xmat, AFNIindex=FALSE))
+            } else if (isel == 'MOTION') {
+               ilst <- append(ilst, xmat.motion.index(xmat, AFNIindex=FALSE))
+            } else if (isel == 'BASE') {
+               ilst <- append(ilst, xmat.base.index(xmat, AFNIindex=FALSE))
+            } else {
+               if (0) { #Too lose 
+                  ilst <- append(ilst, grep(isel, colnames(xmat)), 
+                              after=length(ilst))
+               } else {
+                  ilst <- append(ilst, 
+                              grep(sprintf('^%s',isel), colnames(xmat)), 
+                              after=length(ilst))
+               }
+            }
+         }
+      }
+   } else {
+      ilst = 0:(ncol(xmat)-1)
+   }
+   
+   if (length(ilst) && AFNIindex) ilst <- ilst -1
+   
+   return(ilst)
+}
+
+
+
 read.AFNI.matrix.test <- function(verb=1) {
       cat ( 'Running read.AFNI.matrix in test mode\n',
             'See read.AFNI.matrix.test for details' )
@@ -1158,12 +1375,18 @@ read.AFNI.matrix <- function (fname,
    
    if (!is.null(mm <- eval.AFNI.string(fname))) {
       #Might need to add some names someday...
+      attr(mm,'FileName') <- paste('STR<',fname,'>',sep='')
       return(as.matrix(mm))
    }
    
    if (verb) print(who.called.me())
    
-   if (is.character(fname)) fname <- parse.AFNI.name(fname)
+   if (is.character(fname)) {
+      fname <- parse.AFNI.name(fname)
+      fnameattr <- fname
+   }else{
+      fnameattr <- 'NONAME'
+   }
    #str(fname)
    #fname$file
    brk <- read.table(fname$file, colClasses='character');
@@ -1284,7 +1507,8 @@ read.AFNI.matrix <- function (fname,
       colnames(mm) <- usercolnames
       covMatrix <- mm
    }
-
+   
+   attr(mm,'FileName') <- fnameattr
    return(covMatrix)
 }   
 

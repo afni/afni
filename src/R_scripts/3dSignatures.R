@@ -64,7 +64,7 @@ Example 1 --- :
       SigsClassify  -input IBSR_01.SubClasses.skew.1D.repsig \\
                -ColumnGroups 'R:c(rep(1,10), rep(2,10), rep(3,10))' \\
                -GroupLabels CSF GM WM \\
-               -NoZeros -NoOffsetBase \\
+               -NoZeros -Nocol.yoffset \\
                -trainsuffix ZePlotIzSaved.pdf
 "   
 
@@ -523,8 +523,8 @@ Train.SigsClassify <- function (lvols, samples_frac=NULL,
          }
       }
    }
-   plot.1D(mm, OneSubplot=TRUE, OffsetBase=FALSE, 
-               ColumnGroups=PlotColumnGroups, GroupLabels=PlotGroupLabels, 
+   plot.1D(mm, oneplot=TRUE, col.yoffset=FALSE, 
+               col.grp=PlotColumnGroups, grp.labels=PlotGroupLabels, 
                prefix =sprintf('%s.jpg',PlotTitle), Title=PlotTitle,
                CloseAfterSave = no_X11)
                
@@ -822,19 +822,37 @@ Test.SigsClassify <- function (lvols, lsvm=NULL, verb = 1,
    
    
    if (!is.null(lop$load_train)) {
-      if (file.exists(lop$load_train)) {
-         note.AFNI(sprintf("Loading training set from pre-existing %s", 
-                    lop$load_train ))
-         if (exists('train')) { 
-            rm('train')            
-         }
-         load(lop$load_train);
-         if (!exists('train') || is.null(train)) {
-            warn.AFNI("Variable 'train' not found or null!")
-            train <- NULL
-         }
+      if (!file.exists(lop$load_train)) {
+         
+         if (file.exists(kk <- sprintf('%s.Rdat',lop$load_train))) {
+            lop$load_train <- kk
+         } else {
+            errex.AFNI(c(lop$load_train, " does not exist."));
+         }   
       }
+          
+      note.AFNI(sprintf("Loading training set from pre-existing %s", 
+                 lop$load_train ))
+      if (exists('train')) { 
+         rm('train')            
+      }
+      #Cannot override existing lop !, some .Rdat files
+      #contain lop <- stupid thing to do
+      lop_buf <- lop; rm('lop');
+      load(lop_buf$load_train);
+      if (!exists('train') || is.null(train)) {
+         warn.AFNI("Variable 'train' not found or null!")
+         train <- NULL
+      }
+      if (exists('lop')) {#part of the bug fix above
+         lop_train <- lop; 
+         rm('lop');
+      }
+      lop <- lop_buf; rm('lop_buf'); 
    } else {
+      if (is.null(lop$trainsuffix)) {
+         errex.AFNI("Have no trainsuffix");
+      }
       trainname <- sprintf("%s.Rdat",lop$trainsuffix);
       train <- NULL
       if (lop$reuse_train) {
@@ -842,11 +860,17 @@ Test.SigsClassify <- function (lvols, lsvm=NULL, verb = 1,
             note.AFNI(sprintf("Loading training set from pre-existing %s", 
                         trainname))
             rm('train')            
-            load(trainname);
+         lop_buf <- lop; rm('lop');
+         load(trainname);
             if (!exists('train') || is.null(train)) {
                warn.AFNI("Variable 'train' not found or null!")
                train <- NULL
             }
+         if (exists(lop)) {#part of the bug fix above
+            lop_train <- lop; 
+            rm('lop');
+         }
+         lop <- lop_buf; rm('lop_buf'); 
          }
       }
    }
@@ -864,7 +888,9 @@ Test.SigsClassify <- function (lvols, lsvm=NULL, verb = 1,
                            svmscale=lop$svmcale, no_tune = lop$no_tune,
                            doprob = lop$doprob)
       if (is.null(train)) errex.AFNI("Failed to get training set");
-      save(train, lop, file=sprintf("%s.Rdat",lop$trainsuffix), ascii = TRUE)
+      lop_train <- lop
+      save(train, lop_train, 
+            file=sprintf("%s.Rdat",lop$trainsuffix), ascii = TRUE)
    } else {
       note.AFNI("Reusing/Or Reloaded train object");
       if (is.null(train$labeltable)) {
@@ -884,12 +910,16 @@ Test.SigsClassify <- function (lvols, lsvm=NULL, verb = 1,
       } 
 
    }
-
+   if (is.null(train)) {
+      errex.AFNI("End of the line, no train here");
+   }
+   browser()
    test <- Test.SigsClassify(lop$Tset, lsvm=train, 
                         verb=lop$verb, ltfile = lop$labeltablefile,
                         volsuffix = lop$volsuffix,
                         opath = lop$odir, opref = lop$opref,
                         ltgroupedfile = lop$groupedlabeltablefile,
                         doprob = lop$doprob)  
-   save(test, lop, file=sprintf("%s.Rdat",lop$testsuffix), ascii = TRUE)
+   lop_test <- lop
+   save(test, lop_test, file=sprintf("%s.Rdat",lop$testsuffix), ascii = TRUE)
    note.AFNI("All done.");  
