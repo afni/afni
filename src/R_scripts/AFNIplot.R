@@ -145,10 +145,80 @@ plot.1D.multifunc <- function(x, col, bg, pch, type, ...) {
    PLO$iplt <<- PLO$iplt + 1
 }
 
-#This function just puts the options into one options list
-#and calls the real plotting function.
-#Any new user variable should be added to the bottom of the list below
-plot.1D <- function (dmat=NULL, dmat.err=NULL, dmat.colsel=NULL, 
+is.good.dev <- function (dd=NULL) {
+   if (is.null(dd) || dd == 0) return(FALSE)
+   if (length(which(dev.list()==dd))) return(TRUE)
+}
+
+plot.1D.setupdevice <- function (P) {
+   if (!is.null(P$prefix) && P$nodisp) { #render to device directly
+      pp <- parse.name(P$prefix)
+      if (tolower(pp$ext) == 'jpg') 
+         jpeg(P$prefix, width=P$img.width, height=P$img.height, 
+                  quality=P$img.qual, 
+                  res=P$img.dpi, pointsize=P$img.def.fontsize)
+      else if (tolower(pp$ext) == 'png') 
+         png(P$prefix, width=P$img.width, height=P$img.height,
+                  res=P$img.dpi, pointsize=P$img.def.fontsize)
+      else if (tolower(pp$ext) == 'pdf') 
+         pdf(P$prefix, width=P$img.width, height=P$img.height,
+                  res=P$img.dpi, pointsize=P$img.def.fontsize)
+      else {
+        if (0) {
+         pdf(paste(P$prefix,'.pdf',sep=''))   #best, but not always present       
+        } else {
+         jpeg(  paste(P$prefix,'.jpg',sep=''), 
+               width=P$img.width, height=P$img.height, quality=P$img.qual, 
+               res=P$img.dpi, pointsize=P$img.def.fontsize)   
+        }
+      }
+   } else {
+      if (is.good.dev(P$dev.this)) {
+         dev.set(P$dev.this)
+      } else if (P$dev.new) {
+         #give me new one
+         x11()
+      } else {
+         #Only get new if list is empty
+         if (is.null(dev.list())) x11()
+      }
+   }
+   return(dev.cur())
+}   
+
+plot.1D.unsetupdevice <- function(P) {
+   #Might want to save and restore current dev...
+   if (is.good.dev(P$dev.this)) dev.set(P$dev.this)
+   thisplot <- dev.cur()
+   if (!is.null(P$prefix)) {
+      if (!P$nodisp) {  #Need a copy
+         pp <- parse.name(P$prefix)
+         if (tolower(pp$ext) == 'jpg') dev.copy(jpeg,P$prefix)
+         else if (tolower(pp$ext) == 'png') dev.copy(png,P$prefix)
+         else if (tolower(pp$ext) == 'pdf') dev.copy(pdf,P$prefix)
+         else dev.copy(pdf,paste(P$prefix,'.pdf',sep=''))
+         dev.off()
+      } else { #rendered directly to image
+         dev.off()
+         thisplot <- 0
+      }
+   }
+   return(thisplot)
+}
+
+plot.1D.puttitle <- function (P) {   
+   if (!is.null(P$ttl.main) || !is.null(P$ttl.sub)) {
+      opar <- par();
+      par(font.main = P$ttl.main.fontsize)
+      par(font.sub = P$ttl.sub.fontsize) 
+      title(main=P$ttl.main, sub=P$ttl.sub)
+      par(font.main = opar$font.main)
+      par(font.sub = opar$font.sub)
+   }
+}   
+
+plot.1D.optlist <- function(...) {
+   ll <- list(dmat=NULL, dmat.err=NULL, dmat.colsel=NULL, 
             dmat.xval=NULL,
             col.grp = NULL, col.yoffset=TRUE, col.nozeros=FALSE, 
             col.names=NULL, col.names.x=NULL, col.names.y=NULL,
@@ -158,7 +228,7 @@ plot.1D <- function (dmat=NULL, dmat.err=NULL, dmat.colsel=NULL,
             grp.labels=NULL,
             ttl.main=NULL, ttl.main.fontsize = 10,
             ttl.sub=NULL, ttl.sub.fontsize = 10,
-            prefix = NULL, 
+            prefix = NULL, showval=FALSE,
             nodisp = FALSE, oneplot = FALSE, boxtype = 'n', multi.ncol=2,
             colorset = seq(1,20),
             xax.lim=NULL, xax.step = NULL, xax.label=NULL, xax.tic.text = NULL, 
@@ -171,45 +241,36 @@ plot.1D <- function (dmat=NULL, dmat.err=NULL, dmat.colsel=NULL,
             col.text.rym.fontsize = 10, 
             img.width=2000, img.height=2000, img.qual = 98, 
             img.dpi = 300, img.def.fontsize=12,
-            verb = 0) {
-   #User set variables begin at dmat
-   PLO <<- list ( iplt=1,
-                  mat2plt=NULL, mat2plt.colmeans=NULL,  
-                  mat2plt.minus=NULL, mat2plt.plus=NULL,
-            dmat = dmat, dmat.err=dmat.err, dmat.colsel=dmat.colsel, 
-            dmat.xval = dmat.xval,
-            col.grp = col.grp, col.yoffset=col.yoffset, col.nozeros=col.nozeros, 
-            col.names=col.names, 
-            col.names.x=col.names.x, col.names.y=col.names.y,
-            col.colors = col.colors, col.plot.char=col.plot.char,
-            col.plot.type = col.plot.type, col.line.type = col.line.type, 
-            col.line.width=col.line.width,
-            col.mean.line=col.mean.line,
-            grp.labels=grp.labels,
-            ttl.main=ttl.main, ttl.main.fontsize = ttl.main.fontsize,
-            ttl.sub=ttl.sub, ttl.sub.fontsize = ttl.sub.fontsize,
-            prefix = prefix, 
-            nodisp = nodisp, oneplot = oneplot, boxtype = boxtype, 
-            multi.ncol=multi.ncol,
-            colorset = colorset,
-            xax.lim=xax.lim, xax.step = xax.step, 
-            xax.label=xax.label, xax.tic.text = xax.tic.text, 
-            yax.lim=yax.lim, yax.step = yax.step, 
-            yax.label=yax.label, yax.tic.text = yax.tic.text,
-            leg.show=leg.show, leg.ncol = leg.ncol, leg.names=leg.names, 
-            leg.position=leg.position, leg.fontsize = leg.fontsize,
-            col.text.lym = col.text.lym, col.text.lym.at = col.text.lym.at, 
-            col.text.lym.fontsize = col.text.lym.fontsize, 
-            col.text.rym = col.text.rym, col.text.rym.at = col.text.rym.at, 
-            col.text.rym.fontsize = col.text.rym.fontsize, 
-            img.width = img.width, img.height = img.height, img.qual = img.qual, 
-            img.dpi = img.dpi, img.def.fontsize = img.def.fontsize,
-            verb = verb)
+            dev.this=NULL, dev.new=FALSE,
+            verb = 0);
+  #Add user specifics
+  if( length(list(...)) ){
+      up <- list(...)
+      for (iu in 1:length(up)) {
+         wiu <- which(names(ll) == names(up)[iu])
+         if (length(wiu)) ll[wiu] <- up[iu]
+         else {
+            warn.AFNI(sprintf("User variable %s not good for plot variables",
+                              names(up)[iu]))
+         }
+      }
+   }
+
+   return(ll)
+}
+
+#see plot.1D.optlist for allowed options
+plot.1D <- function (...) {
+   PLO <<- plot.1D.optlist(...)
+   #Set some more variables
+   PLO <<- c(PLO, iplt=1, mat2plt=NULL, mat2plt.colmeans=NULL,  
+                  mat2plt.minus=NULL, mat2plt.plus=NULL)
    
    return(plot.1D.eng(PLO))
 }
 
 plot.1D.eng <- function (P) {
+   thisplot <- NULL
    #Load DATA
    if (is.null(P$dmat)) {
       note.AFNI("Plot.1D in hardwired test mode")
@@ -312,7 +373,8 @@ plot.1D.eng <- function (P) {
             P$col.yoffset <- rep(P$col.yoffset, ncol(P$dmat))
          else {
             err.AFNI(
-               paste("P$col.yoffset must either have one or",ncol(P$dmat),"values",
+               paste("P$col.yoffset must either have one or",
+                     ncol(P$dmat),"values",
                      "Have ", length(P$col.yoffset)));
             return(0);
          }
@@ -332,10 +394,12 @@ plot.1D.eng <- function (P) {
       }
    } else {
       if (length(P$col.colors) != ncol(P$dmat)) {
-         if (length(P$col.colors) == 1) P$col.colors <- rep(P$col.colors, ncol(P$dmat))
+         if (length(P$col.colors) == 1) 
+            P$col.colors <- rep(P$col.colors, ncol(P$dmat))
          else {
             err.AFNI(
-               paste("P$col.colors must either have one or",ncol(P$dmat),"values",
+               paste("P$col.colors must either have one or",
+                     ncol(P$dmat),"values",
                      "Have ", length(P$col.colors)));
             return(0);
          }
@@ -473,31 +537,8 @@ plot.1D.eng <- function (P) {
    
    
    #setup rendering device
-   if (!is.null(P$prefix) && P$nodisp) { #render to device directly
-      pp <- parse.name(P$prefix)
-      if (tolower(pp$ext) == 'jpg') 
-         jpeg(P$prefix, width=P$img.width, height=P$img.height, 
-                  quality=P$img.qual, 
-                  res=P$img.dpi, pointsize=P$img.def.fontsize)
-      else if (tolower(pp$ext) == 'png') 
-         png(P$prefix, width=P$img.width, height=P$img.height,
-                  res=P$img.dpi, pointsize=P$img.def.fontsize)
-      else if (tolower(pp$ext) == 'pdf') 
-         pdf(P$prefix, width=P$img.width, height=P$img.height,
-                  res=P$img.dpi, pointsize=P$img.def.fontsize)
-      else {
-        if (0) {
-         pdf(paste(P$prefix,'.pdf',sep=''))   #best, but not always present       
-        } else {
-         jpeg(  paste(P$prefix,'.jpg',sep=''), 
-               width=P$img.width, height=P$img.height, quality=P$img.qual, 
-               res=P$img.dpi, pointsize=P$img.def.fontsize)   
-        }
-      }
-   } else {
-      if (is.null(dev.list())) x11()
-   }
-   
+   P$dev.this <- plot.1D.setupdevice(P) 
+
    #Create matrix to be plotted
    P$mat2plt <- plot.1D.setmat2plt (P$dmat, P$dmat.colsel, P$col.yoffset)
    #Get the mean of each column
@@ -722,28 +763,188 @@ plot.1D.eng <- function (P) {
    
    cat(stit)
    
-   if (!is.null(P$ttl.main) || !is.null(P$ttl.sub)) {
-      opar <- par();
-      par(font.main = P$ttl.main.fontsize)
-      par(font.sub = P$ttl.sub.fontsize) 
-      title(main=P$ttl.main, sub=P$ttl.sub)
-      par(font.main = opar$font.main)
-      par(font.sub = opar$font.sub)
-   }
+   plot.1D.puttitle(P)
+
+   P$dev.this <- plot.1D.unsetupdevice(P)
       
-   if (!is.null(P$prefix)) {
-      if (!P$nodisp) {  #Need a copy
-         pp <- parse.name(P$prefix)
-         if (tolower(pp$ext) == 'jpg') dev.copy(jpeg,P$prefix)
-         else if (tolower(pp$ext) == 'png') dev.copy(png,P$prefix)
-         else if (tolower(pp$ext) == 'pdf') dev.copy(pdf,P$prefix)
-         else dev.copy(pdf,paste(P$prefix,'.pdf',sep=''))
-         dev.off()
-      } else { #rendered directly to image
-         dev.off()
-         thisplot <- 0
-      }
-   }
-   
+  
    return(thisplot)
+}
+
+image.corr.1D <- function(...) {
+   p <- plot.1D.optlist(...)
+   return(image.corr.1D.eng(p))
+}
+
+image.corr.1D.eng <- function(P) {
+   
+   if (is.null(P$dmat)) return(NULL)
+   if (is.null(P$dmat.colsel) || length(P$dmat.colsel)==0) 
+      P$dmat.colsel <- seq(1,ncol(P$dmat))
+   if (length(P$dmat.colsel) < 2) {
+      warn.AFNI("Have less than 2 columns, nothing to correlate")
+      return(NULL)  
+   }
+   cc <- cor(P$dmat[,P$dmat.colsel])
+   for (i in 1:length(P$dmat.colsel)) cc[i,i]=0
+   
+   if (is.null(P$showval)) {
+      if (length(P$dmat.colsel) < 20) ShowVal <- TRUE
+      else ShowVal <- FALSE
+   } else ShowVal <- P$showval
+   
+   P$dev.this <- plot.1D.setupdevice(P) 
+   
+   matrix.AFNI.show(cc, zlim=c(-1,1), ShowVal=ShowVal)
+   
+   plot.1D.puttitle(P)
+   
+   P$dev.this <- plot.1D.unsetupdevice(P) 
+   return(P$dev.this)
+}
+
+make.col.map <- function (fids=NULL, ncols=32, hex=FALSE) {
+   if (is.null(fids)) {
+      fids <- matrix(0,3,3)
+      for(i in 1:3) fids[i,i]<-1
+   }
+   rr <- ncols%%(nrow(fids)-1)
+   nc <- ncols/(nrow(fids)-1)
+   if (rr) {
+      err.AFNI(paste("Can't create colormap of ", ncols, "colors from ",
+                        nrow(fids), "fiducials. I suggest you use ", 
+                        ncols-rr, "or " , ceiling(nc)*(nrow(fids)-1),
+                        "colors instead"))
+      return(NULL);
+   }
+   m <- matrix(0,ncols,3)
+   for (j in 1:3) {
+      r <- vector()
+      for (i in 1:(nrow(fids)-1)) {
+         nc <- ncols/(nrow(fids)-1)
+         fr <- fids[i,j]
+         ft <- fids[i+1,j]
+         bb <- (ft-fr)/nc
+         if (bb != 0) {
+            r <- c(r,seq(from=fr,to=ft, by = bb))
+         } else {
+            r <- c(r,rep(fr, nc)) 
+         }
+      }
+      #browser()
+      m[,j] <- r[1:ncols]
+   }
+   if (hex) m <- rgb(m)
+   return(m)
+}
+
+#This function is based on
+#www.phaget4.org/R/mymatrix.AFNI.show.R
+# possibly written by Chris Seidel
+matrix.AFNI.show <- function(x, ...){
+     min <- min(x)
+     max <- max(x)
+     yLabels <- rownames(x)
+     xLabels <- colnames(x)
+     title <-c()
+     tt <- NULL
+     xt <- NULL
+     yt <- NULL
+  # check for additional function arguments
+  if( length(list(...)) ){
+    Lst <- list(...)
+    if( !is.null(Lst$zlim) ){
+       min <- Lst$zlim[1]
+       max <- Lst$zlim[2]
+    }
+    if( !is.null(Lst$yLabels) ){
+       yLabels <- c(Lst$yLabels)
+    }
+    if( !is.null(Lst$xLabels) ){
+       xLabels <- c(Lst$xLabels)
+    }
+    if( !is.null(Lst$title) ){
+       title <- Lst$title
+    }
+    if( !is.null(Lst$text) ) {
+      tt <- Lst$text
+      if (is.null(Lst$test.x) || is.null(Lst$text.y)) {
+         err.AFNI("Can't pass text without text.x|y");
+         return(NULL)
+      }
+      if (length(Lst$text.x) != length(Lst$text.y) ||
+          length(Lst$text.x) != length(Lst$text)) {
+         err.AFNI("Length mismatch between text and text.x|y");
+         return(NULL)   
+      }
+      xt <- Lst$text.x
+      yt <- Lst$text.y
+    }
+    if( !is.null(Lst$ShowVal)) {
+      if (Lst$ShowVal) {
+         tt <- vector(length=ncol(x)*nrow(x))
+         xt <- vector(length=ncol(x)*nrow(x))
+         yt <- vector(length=ncol(x)*nrow(x))
+         cn <- 1
+         for (i in 1:ncol(x)) {
+            for (j in 1:nrow(x)) {
+               xt[cn] <- i
+               yt[cn] <- j
+               tt[cn] <- sprintf('%.2f',x[i,j])
+               cn <- cn+1
+            }
+         }
+      }
+    }
+    
+  }
+# check for null values
+if( is.null(xLabels) ){
+   xLabels <- c(1:ncol(x))
+}
+if( is.null(yLabels) ){
+   yLabels <- c(1:nrow(x))
+}
+
+layout(matrix(data=c(1,2), nrow=1, ncol=2), widths=c(4,1), heights=c(1,1))
+
+ # Red and green range from 0 to 1 while Blue ranges from 1 to 0
+ ColorRamp <- rgb( seq(0,1,length=256),  # Red
+                   seq(0,1,length=256),  # Green
+                   seq(1,0,length=256))  # Blue
+ ColorRamp <- make.col.map(ncols=256,hex=TRUE)
+ ColorLevels <- seq(min, max, length=length(ColorRamp))
+
+ # Reverse Y axis
+ reverse <- nrow(x) : 1
+ yLabels <- yLabels[reverse]
+ x <- x[reverse,]
+
+ # Data Map
+ par(mar = c(3,5,2.5,2))
+ image(1:length(xLabels), 1:length(yLabels), t(x), col=ColorRamp, xlab="",
+ ylab="", axes=FALSE, zlim=c(min,max))
+ if( !is.null(title) ){
+    title(main=title)
+ }
+ 
+ axis(BELOW<-1, at=1:length(xLabels), labels=xLabels, cex.axis=0.7, las=2)
+ axis(LEFT <-2, at=1:length(yLabels), labels=yLabels, las= HORIZONTAL<-1,
+      cex.axis=0.7)
+
+ if (!is.null(tt)) {
+      opar <- par();
+      par(ps = 12)  
+   text(xt,yt,tt)
+      par(ps=opar$ps)
+ }
+
+ # Color Scale
+ par(mar = c(3,2.5,2.5,2))
+ image(1, ColorLevels,
+      matrix(data=ColorLevels, ncol=length(ColorLevels),nrow=1),
+      col=ColorRamp,
+      xlab="",ylab="",
+      xaxt="n")
+ layout(1)
 }
