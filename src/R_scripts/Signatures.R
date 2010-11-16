@@ -24,7 +24,7 @@ labelkey.labeltable <- function (label=NULL, ltfile=NULL) {
       lab <- system(com, ignore.stderr = TRUE, intern=TRUE)
       if (length(lab) == 0) {
          err.AFNI(paste("Failed to get key of label", 
-                        label," from labeltable.\n",
+                        label," from labeltable",ltfile, ".\n",
                         "Command ",com,"Failed"));
          return(NULL);
       }
