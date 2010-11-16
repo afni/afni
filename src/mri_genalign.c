@@ -211,6 +211,7 @@ ENTRY("GA_get_warped_values") ;
    EXRETURN ;
 }
 
+#if 0
 /*---------------------------------------------------------------------------*/
 /* Stuff for calling a user-supplied function every time the cost
    function is smaller than the previous minimal value (vbest).
@@ -261,6 +262,7 @@ void GA_fitter_params( int n , double *mpar )
 void GA_do_params( int x ){
    GA_reset_fit_callback( (x)?GA_fitter_params:NULL );
 }
+#endif
 
 /*---------------------------------------------------------------------------*/
 
@@ -2225,6 +2227,16 @@ INFO_message("bilinear warp %s diagonal: %.7g %.7g %.3g",
 #define LP6(x) ((x)*(x)*((x)*(x)*((x)*(x)-1.36364f)+0.454545f)-0.021645f)       /* 16/231 P6 */
 #define LP7(x) (((x)*(x)*((x)*(x)*((x)*(x)-1.61538f)+0.734266f)-0.081585f)*(x)) /* 16/429 P7 */
 
+#define LP8(x) ( (x)*(x) * \
+               ( (x)*(x) * \
+               ( (x)*(x) * \
+               ( (x)*(x) - 1.86667f ) + 1.07692f ) - 0.195804f ) + 0.0054390f )
+
+#define LP9(x) ( ( (x)*(x) * \
+                 ( (x)*(x) * \
+                 ( (x)*(x) * \
+                 ( (x)*(x) - 2.11765f ) + 1.48235f ) - 0.380090f ) + 0.0259153f ) * (x) )
+
 /* 3D product functions of various orders */
 
 #define P2_xx(x,y,z) LP2(x)
@@ -2558,71 +2570,71 @@ void mri_genalign_quintic( int npar, float *wpar ,
        p1y = LP1(vv); p2y = LP2(vv); p3y = LP3(vv); p4y = LP4(vv); p5y = LP5(vv);
        p1z = LP1(ww); p2z = LP2(ww); p3z = LP3(ww); p4z = LP4(ww); p5z = LP5(ww);
 
-#define q2_xx p2x
-#define q2_xy p1x*p1y
-#define q2_xz p1x*p1z
-#define q2_yy p2y
-#define q2_yz p1y*p1z
-#define q2_zz p2z
-#define q3_xxx p3x
-#define q3_xxy p2x*p1y
-#define q3_xxz p2x*p1z
-#define q3_xyy p1x*p2y
-#define q3_xzz p1x*p2z
-#define q3_xyz p1x*p1y*p1z
-#define q3_yyy p3y
-#define q3_yyz p2y*p1z
-#define q3_yzz p1y*p2z
-#define q3_zzz p3z
-#define q4_xxxx p4x
-#define q4_xxxy p3x*p1y
-#define q4_xxxz p3x*p1z
-#define q4_xxyy p2x*p2y
-#define q4_xxzz p2x*p2z
-#define q4_xxyz p2x*p1y*p1z
-#define q4_xyyy p1x*p3y
-#define q4_xyyz p1x*p2y*p1z
-#define q4_xyzz p1x*p1y*p2z
-#define q4_xzzz p1x*p3z
-#define q4_yyyy p4y
-#define q4_yyyz p3y*p1z
-#define q4_yyzz p2y*p2z
-#define q4_yzzz p1y*p3z
-#define q4_zzzz p4z
-#define q5_xxxxx p5x
-#define q5_xxxxy p4x*p1y
-#define q5_xxxxz p4x*p1z
-#define q5_xxxyy p3x*p2y
-#define q5_xxxzz p3x*p2z
-#define q5_xxxyz p3x*p1y*p1z
-#define q5_xxyyy p2x*p3y
-#define q5_xxyyz p2x*p2y*p1z
-#define q5_xxyzz p2x*p1y*p2z
-#define q5_xxzzz p2x*p3z
-#define q5_xyyyy p1x*p4y
-#define q5_xyyyz p1x*p3y*p1z
-#define q5_xyyzz p1x*p2y*p2z
-#define q5_xyzzz p1x*p1y*p3z
-#define q5_xzzzz p1x*p4z
-#define q5_yyyyy p5y
-#define q5_yyyyz p4y*p1z
-#define q5_yyyzz p3y*p2z
-#define q5_yyzzz p2y*p3z
-#define q5_yzzzz p1y*p4z
-#define q5_zzzzz p5z
-       pv[ 0] = q2_xx  ; pv[ 1] = q2_xy  ; pv[ 2] = q2_xz  ; pv[ 3] = q2_yy  ;
-       pv[ 4] = q2_yz  ; pv[ 5] = q2_zz  ; pv[ 6] = q3_xxx ; pv[ 7] = q3_xxy ;
-       pv[ 8] = q3_xxz ; pv[ 9] = q3_xyy ; pv[10] = q3_xzz ; pv[11] = q3_xyz ;
-       pv[12] = q3_yyy ; pv[13] = q3_yyz ; pv[14] = q3_yzz ; pv[15] = q3_zzz ;
-       pv[16] = q4_xxxx ; pv[17] = q4_xxxy ; pv[18] = q4_xxxz ; pv[19] = q4_xxyy ;
-       pv[20] = q4_xxzz ; pv[21] = q4_xxyz ; pv[22] = q4_xyyy ; pv[23] = q4_xyyz ;
-       pv[24] = q4_xyzz ; pv[25] = q4_xzzz ; pv[26] = q4_yyyy ; pv[27] = q4_yyyz ;
-       pv[28] = q4_yyzz ; pv[29] = q4_yzzz ; pv[30] = q4_zzzz ; pv[31] = q5_xxxxx ;
-       pv[32] = q5_xxxxy ; pv[33] = q5_xxxxz ; pv[34] = q5_xxxyy ; pv[35] = q5_xxxzz ;
-       pv[36] = q5_xxxyz ; pv[37] = q5_xxyyy ; pv[38] = q5_xxyyz ; pv[39] = q5_xxyzz ;
-       pv[40] = q5_xxzzz ; pv[41] = q5_xyyyy ; pv[42] = q5_xyyyz ; pv[43] = q5_xyyzz ;
-       pv[44] = q5_xyzzz ; pv[45] = q5_xzzzz ; pv[46] = q5_yyyyy ; pv[47] = q5_yyyyz ;
-       pv[48] = q5_yyyzz ; pv[49] = q5_yyzzz ; pv[50] = q5_yzzzz ; pv[51] = q5_zzzzz ;
+#define Q2_xx p2x
+#define Q2_xy p1x*p1y
+#define Q2_xz p1x*p1z
+#define Q2_yy p2y
+#define Q2_yz p1y*p1z
+#define Q2_zz p2z
+#define Q3_xxx p3x
+#define Q3_xxy p2x*p1y
+#define Q3_xxz p2x*p1z
+#define Q3_xyy p1x*p2y
+#define Q3_xzz p1x*p2z
+#define Q3_xyz p1x*p1y*p1z
+#define Q3_yyy p3y
+#define Q3_yyz p2y*p1z
+#define Q3_yzz p1y*p2z
+#define Q3_zzz p3z
+#define Q4_xxxx p4x
+#define Q4_xxxy p3x*p1y
+#define Q4_xxxz p3x*p1z
+#define Q4_xxyy p2x*p2y
+#define Q4_xxzz p2x*p2z
+#define Q4_xxyz p2x*p1y*p1z
+#define Q4_xyyy p1x*p3y
+#define Q4_xyyz p1x*p2y*p1z
+#define Q4_xyzz p1x*p1y*p2z
+#define Q4_xzzz p1x*p3z
+#define Q4_yyyy p4y
+#define Q4_yyyz p3y*p1z
+#define Q4_yyzz p2y*p2z
+#define Q4_yzzz p1y*p3z
+#define Q4_zzzz p4z
+#define Q5_xxxxx p5x
+#define Q5_xxxxy p4x*p1y
+#define Q5_xxxxz p4x*p1z
+#define Q5_xxxyy p3x*p2y
+#define Q5_xxxzz p3x*p2z
+#define Q5_xxxyz p3x*p1y*p1z
+#define Q5_xxyyy p2x*p3y
+#define Q5_xxyyz p2x*p2y*p1z
+#define Q5_xxyzz p2x*p1y*p2z
+#define Q5_xxzzz p2x*p3z
+#define Q5_xyyyy p1x*p4y
+#define Q5_xyyyz p1x*p3y*p1z
+#define Q5_xyyzz p1x*p2y*p2z
+#define Q5_xyzzz p1x*p1y*p3z
+#define Q5_xzzzz p1x*p4z
+#define Q5_yyyyy p5y
+#define Q5_yyyyz p4y*p1z
+#define Q5_yyyzz p3y*p2z
+#define Q5_yyzzz p2y*p3z
+#define Q5_yzzzz p1y*p4z
+#define Q5_zzzzz p5z
+       pv[ 0] = Q2_xx  ; pv[ 1] = Q2_xy  ; pv[ 2] = Q2_xz  ; pv[ 3] = Q2_yy  ;
+       pv[ 4] = Q2_yz  ; pv[ 5] = Q2_zz  ; pv[ 6] = Q3_xxx ; pv[ 7] = Q3_xxy ;
+       pv[ 8] = Q3_xxz ; pv[ 9] = Q3_xyy ; pv[10] = Q3_xzz ; pv[11] = Q3_xyz ;
+       pv[12] = Q3_yyy ; pv[13] = Q3_yyz ; pv[14] = Q3_yzz ; pv[15] = Q3_zzz ;
+       pv[16] = Q4_xxxx ; pv[17] = Q4_xxxy ; pv[18] = Q4_xxxz ; pv[19] = Q4_xxyy ;
+       pv[20] = Q4_xxzz ; pv[21] = Q4_xxyz ; pv[22] = Q4_xyyy ; pv[23] = Q4_xyyz ;
+       pv[24] = Q4_xyzz ; pv[25] = Q4_xzzz ; pv[26] = Q4_yyyy ; pv[27] = Q4_yyyz ;
+       pv[28] = Q4_yyzz ; pv[29] = Q4_yzzz ; pv[30] = Q4_zzzz ; pv[31] = Q5_xxxxx ;
+       pv[32] = Q5_xxxxy ; pv[33] = Q5_xxxxz ; pv[34] = Q5_xxxyy ; pv[35] = Q5_xxxzz ;
+       pv[36] = Q5_xxxyz ; pv[37] = Q5_xxyyy ; pv[38] = Q5_xxyyz ; pv[39] = Q5_xxyzz ;
+       pv[40] = Q5_xxzzz ; pv[41] = Q5_xyyyy ; pv[42] = Q5_xyyyz ; pv[43] = Q5_xyyzz ;
+       pv[44] = Q5_xyzzz ; pv[45] = Q5_xzzzz ; pv[46] = Q5_yyyyy ; pv[47] = Q5_yyyyz ;
+       pv[48] = Q5_yyyzz ; pv[49] = Q5_yyzzz ; pv[50] = Q5_yzzzz ; pv[51] = Q5_zzzzz ;
        for( kk=jj=0 ; jj < NPARQUINT ; jj++,kk+=3 ){
          aa += ppar[kk  ] * pv[jj] ;
          bb += ppar[kk+1] * pv[jj] ;
@@ -2773,107 +2785,107 @@ void mri_genalign_heptic( int npar, float *wpar ,
        p1y=LP1(vv); p2y=LP2(vv); p3y=LP3(vv); p4y=LP4(vv); p5y=LP5(vv); p6y=LP6(vv); p7y=LP7(vv);
        p1z=LP1(ww); p2z=LP2(ww); p3z=LP3(ww); p4z=LP4(ww); p5z=LP5(ww); p6z=LP6(ww); p7z=LP7(ww);
 
-#define q6_xxxxxx p6x
-#define q6_xxxxxy p5x*p1y
-#define q6_xxxxxz p5x*p1z
-#define q6_xxxxyy p4x*p2y
-#define q6_xxxxzz p4x*p2z
-#define q6_xxxxyz p4x*p1y*p1z
-#define q6_xxxyyy p3x*p3y
-#define q6_xxxyyz p3x*p2y*p1z
-#define q6_xxxyzz p3x*p1y*p2z
-#define q6_xxxzzz p3x*p3z
-#define q6_xxyyyy p2x*p4y
-#define q6_xxyyyz p2x*p3y*p1z
-#define q6_xxyyzz p2x*p2y*p2z
-#define q6_xxyzzz p2x*p1y*p3z
-#define q6_xxzzzz p2x*p4z
-#define q6_xyyyyy p1x*p5y
-#define q6_xyyyyz p1x*p4y*p1z
-#define q6_xyyyzz p1x*p3y*p2z
-#define q6_xyyzzz p1x*p2y*p3z
-#define q6_xyzzzz p1x*p1y*p4z
-#define q6_xzzzzz p1x*p5z
-#define q6_yyyyyy p6y
-#define q6_yyyyyz p5y*p1z
-#define q6_yyyyzz p4y*p2z
-#define q6_yyyzzz p3y*p3z
-#define q6_yyzzzz p2y*p4z
-#define q6_yzzzzz p1y*p5z
-#define q6_zzzzzz p6z
-#define q7_xxxxxxx p7x
-#define q7_xxxxxxy p6x*p1y
-#define q7_xxxxxxz p6x*p1z
-#define q7_xxxxxyy p5x*p2y
-#define q7_xxxxxzz p5x*p2z
-#define q7_xxxxxyz p5x*p1y*p1z
-#define q7_xxxxyyy p4x*p3y
-#define q7_xxxxyyz p4x*p2y*p1z
-#define q7_xxxxyzz p4x*p1y*p2z
-#define q7_xxxxzzz p4x*p3z
-#define q7_xxxyyyy p3x*p4y
-#define q7_xxxyyyz p3x*p3y*p1z
-#define q7_xxxyyzz p3x*p2y*p2z
-#define q7_xxxyzzz p3x*p1y*p3z
-#define q7_xxxzzzz p3x*p4z
-#define q7_xxyyyyy p2x*p5y
-#define q7_xxyyyyz p2x*p4y*p1z
-#define q7_xxyyyzz p2x*p3y*p2z
-#define q7_xxyyzzz p2x*p2y*p3z
-#define q7_xxyzzzz p2x*p1y*p4z
-#define q7_xxzzzzz p2x*p5z
-#define q7_xyyyyyy p1x*p6y
-#define q7_xyyyyyz p1x*p5y*p1z
-#define q7_xyyyyzz p1x*p4y*p2z
-#define q7_xyyyzzz p1x*p3y*p3z
-#define q7_xyyzzzz p1x*p2y*p4z
-#define q7_xyzzzzz p1x*p1y*p5z
-#define q7_xzzzzzz p1x*p6z
-#define q7_yyyyyyy p7y
-#define q7_yyyyyyz p6y*p1z
-#define q7_yyyyyzz p5y*p2z
-#define q7_yyyyzzz p4y*p3z
-#define q7_yyyzzzz p3y*p4z
-#define q7_yyzzzzz p2y*p5z
-#define q7_yzzzzzz p1y*p6z
-#define q7_zzzzzzz p7z
+#define Q6_xxxxxx p6x
+#define Q6_xxxxxy p5x*p1y
+#define Q6_xxxxxz p5x*p1z
+#define Q6_xxxxyy p4x*p2y
+#define Q6_xxxxzz p4x*p2z
+#define Q6_xxxxyz p4x*p1y*p1z
+#define Q6_xxxyyy p3x*p3y
+#define Q6_xxxyyz p3x*p2y*p1z
+#define Q6_xxxyzz p3x*p1y*p2z
+#define Q6_xxxzzz p3x*p3z
+#define Q6_xxyyyy p2x*p4y
+#define Q6_xxyyyz p2x*p3y*p1z
+#define Q6_xxyyzz p2x*p2y*p2z
+#define Q6_xxyzzz p2x*p1y*p3z
+#define Q6_xxzzzz p2x*p4z
+#define Q6_xyyyyy p1x*p5y
+#define Q6_xyyyyz p1x*p4y*p1z
+#define Q6_xyyyzz p1x*p3y*p2z
+#define Q6_xyyzzz p1x*p2y*p3z
+#define Q6_xyzzzz p1x*p1y*p4z
+#define Q6_xzzzzz p1x*p5z
+#define Q6_yyyyyy p6y
+#define Q6_yyyyyz p5y*p1z
+#define Q6_yyyyzz p4y*p2z
+#define Q6_yyyzzz p3y*p3z
+#define Q6_yyzzzz p2y*p4z
+#define Q6_yzzzzz p1y*p5z
+#define Q6_zzzzzz p6z
+#define Q7_xxxxxxx p7x
+#define Q7_xxxxxxy p6x*p1y
+#define Q7_xxxxxxz p6x*p1z
+#define Q7_xxxxxyy p5x*p2y
+#define Q7_xxxxxzz p5x*p2z
+#define Q7_xxxxxyz p5x*p1y*p1z
+#define Q7_xxxxyyy p4x*p3y
+#define Q7_xxxxyyz p4x*p2y*p1z
+#define Q7_xxxxyzz p4x*p1y*p2z
+#define Q7_xxxxzzz p4x*p3z
+#define Q7_xxxyyyy p3x*p4y
+#define Q7_xxxyyyz p3x*p3y*p1z
+#define Q7_xxxyyzz p3x*p2y*p2z
+#define Q7_xxxyzzz p3x*p1y*p3z
+#define Q7_xxxzzzz p3x*p4z
+#define Q7_xxyyyyy p2x*p5y
+#define Q7_xxyyyyz p2x*p4y*p1z
+#define Q7_xxyyyzz p2x*p3y*p2z
+#define Q7_xxyyzzz p2x*p2y*p3z
+#define Q7_xxyzzzz p2x*p1y*p4z
+#define Q7_xxzzzzz p2x*p5z
+#define Q7_xyyyyyy p1x*p6y
+#define Q7_xyyyyyz p1x*p5y*p1z
+#define Q7_xyyyyzz p1x*p4y*p2z
+#define Q7_xyyyzzz p1x*p3y*p3z
+#define Q7_xyyzzzz p1x*p2y*p4z
+#define Q7_xyzzzzz p1x*p1y*p5z
+#define Q7_xzzzzzz p1x*p6z
+#define Q7_yyyyyyy p7y
+#define Q7_yyyyyyz p6y*p1z
+#define Q7_yyyyyzz p5y*p2z
+#define Q7_yyyyzzz p4y*p3z
+#define Q7_yyyzzzz p3y*p4z
+#define Q7_yyzzzzz p2y*p5z
+#define Q7_yzzzzzz p1y*p6z
+#define Q7_zzzzzzz p7z
 
-       pv[ 0] = q2_xx  ; pv[ 1] = q2_xy  ; pv[ 2] = q2_xz  ; pv[ 3] = q2_yy  ;
-       pv[ 4] = q2_yz  ; pv[ 5] = q2_zz  ; pv[ 6] = q3_xxx ; pv[ 7] = q3_xxy ;
-       pv[ 8] = q3_xxz ; pv[ 9] = q3_xyy ; pv[10] = q3_xzz ; pv[11] = q3_xyz ;
-       pv[12] = q3_yyy ; pv[13] = q3_yyz ; pv[14] = q3_yzz ; pv[15] = q3_zzz ;
-       pv[16] = q4_xxxx ; pv[17] = q4_xxxy ; pv[18] = q4_xxxz ; pv[19] = q4_xxyy ;
-       pv[20] = q4_xxzz ; pv[21] = q4_xxyz ; pv[22] = q4_xyyy ; pv[23] = q4_xyyz ;
-       pv[24] = q4_xyzz ; pv[25] = q4_xzzz ; pv[26] = q4_yyyy ; pv[27] = q4_yyyz ;
-       pv[28] = q4_yyzz ; pv[29] = q4_yzzz ; pv[30] = q4_zzzz ; pv[31] = q5_xxxxx ;
-       pv[32] = q5_xxxxy ; pv[33] = q5_xxxxz ; pv[34] = q5_xxxyy ; pv[35] = q5_xxxzz ;
-       pv[36] = q5_xxxyz ; pv[37] = q5_xxyyy ; pv[38] = q5_xxyyz ; pv[39] = q5_xxyzz ;
-       pv[40] = q5_xxzzz ; pv[41] = q5_xyyyy ; pv[42] = q5_xyyyz ; pv[43] = q5_xyyzz ;
-       pv[44] = q5_xyzzz ; pv[45] = q5_xzzzz ; pv[46] = q5_yyyyy ; pv[47] = q5_yyyyz ;
-       pv[48] = q5_yyyzz ; pv[49] = q5_yyzzz ; pv[50] = q5_yzzzz ; pv[51] = q5_zzzzz ;
+       pv[ 0] = Q2_xx  ; pv[ 1] = Q2_xy  ; pv[ 2] = Q2_xz  ; pv[ 3] = Q2_yy  ;
+       pv[ 4] = Q2_yz  ; pv[ 5] = Q2_zz  ; pv[ 6] = Q3_xxx ; pv[ 7] = Q3_xxy ;
+       pv[ 8] = Q3_xxz ; pv[ 9] = Q3_xyy ; pv[10] = Q3_xzz ; pv[11] = Q3_xyz ;
+       pv[12] = Q3_yyy ; pv[13] = Q3_yyz ; pv[14] = Q3_yzz ; pv[15] = Q3_zzz ;
+       pv[16] = Q4_xxxx ; pv[17] = Q4_xxxy ; pv[18] = Q4_xxxz ; pv[19] = Q4_xxyy ;
+       pv[20] = Q4_xxzz ; pv[21] = Q4_xxyz ; pv[22] = Q4_xyyy ; pv[23] = Q4_xyyz ;
+       pv[24] = Q4_xyzz ; pv[25] = Q4_xzzz ; pv[26] = Q4_yyyy ; pv[27] = Q4_yyyz ;
+       pv[28] = Q4_yyzz ; pv[29] = Q4_yzzz ; pv[30] = Q4_zzzz ; pv[31] = Q5_xxxxx ;
+       pv[32] = Q5_xxxxy ; pv[33] = Q5_xxxxz ; pv[34] = Q5_xxxyy ; pv[35] = Q5_xxxzz ;
+       pv[36] = Q5_xxxyz ; pv[37] = Q5_xxyyy ; pv[38] = Q5_xxyyz ; pv[39] = Q5_xxyzz ;
+       pv[40] = Q5_xxzzz ; pv[41] = Q5_xyyyy ; pv[42] = Q5_xyyyz ; pv[43] = Q5_xyyzz ;
+       pv[44] = Q5_xyzzz ; pv[45] = Q5_xzzzz ; pv[46] = Q5_yyyyy ; pv[47] = Q5_yyyyz ;
+       pv[48] = Q5_yyyzz ; pv[49] = Q5_yyzzz ; pv[50] = Q5_yzzzz ; pv[51] = Q5_zzzzz ;
        kk = 52 ;
-       pv[kk++] = q6_xxxxxx ; pv[kk++] = q6_xxxxxy ; pv[kk++] = q6_xxxxxz ;
-       pv[kk++] = q6_xxxxyy ; pv[kk++] = q6_xxxxzz ; pv[kk++] = q6_xxxxyz ;
-       pv[kk++] = q6_xxxyyy ; pv[kk++] = q6_xxxyyz ; pv[kk++] = q6_xxxyzz ;
-       pv[kk++] = q6_xxxzzz ; pv[kk++] = q6_xxyyyy ; pv[kk++] = q6_xxyyyz ;
-       pv[kk++] = q6_xxyyzz ; pv[kk++] = q6_xxyzzz ; pv[kk++] = q6_xxzzzz ;
-       pv[kk++] = q6_xyyyyy ; pv[kk++] = q6_xyyyyz ; pv[kk++] = q6_xyyyzz ;
-       pv[kk++] = q6_xyyzzz ; pv[kk++] = q6_xyzzzz ; pv[kk++] = q6_xzzzzz ;
-       pv[kk++] = q6_yyyyyy ; pv[kk++] = q6_yyyyyz ; pv[kk++] = q6_yyyyzz ;
-       pv[kk++] = q6_yyyzzz ; pv[kk++] = q6_yyzzzz ; pv[kk++] = q6_yzzzzz ;
-       pv[kk++] = q6_zzzzzz ;
-       pv[kk++] = q7_xxxxxxx ; pv[kk++] = q7_xxxxxxy ; pv[kk++] = q7_xxxxxxz ;
-       pv[kk++] = q7_xxxxxyy ; pv[kk++] = q7_xxxxxzz ; pv[kk++] = q7_xxxxxyz ;
-       pv[kk++] = q7_xxxxyyy ; pv[kk++] = q7_xxxxyyz ; pv[kk++] = q7_xxxxyzz ;
-       pv[kk++] = q7_xxxxzzz ; pv[kk++] = q7_xxxyyyy ; pv[kk++] = q7_xxxyyyz ;
-       pv[kk++] = q7_xxxyyzz ; pv[kk++] = q7_xxxyzzz ; pv[kk++] = q7_xxxzzzz ;
-       pv[kk++] = q7_xxyyyyy ; pv[kk++] = q7_xxyyyyz ; pv[kk++] = q7_xxyyyzz ;
-       pv[kk++] = q7_xxyyzzz ; pv[kk++] = q7_xxyzzzz ; pv[kk++] = q7_xxzzzzz ;
-       pv[kk++] = q7_xyyyyyy ; pv[kk++] = q7_xyyyyyz ; pv[kk++] = q7_xyyyyzz ;
-       pv[kk++] = q7_xyyyzzz ; pv[kk++] = q7_xyyzzzz ; pv[kk++] = q7_xyzzzzz ;
-       pv[kk++] = q7_xzzzzzz ; pv[kk++] = q7_yyyyyyy ; pv[kk++] = q7_yyyyyyz ;
-       pv[kk++] = q7_yyyyyzz ; pv[kk++] = q7_yyyyzzz ; pv[kk++] = q7_yyyzzzz ;
-       pv[kk++] = q7_yyzzzzz ; pv[kk++] = q7_yzzzzzz ; pv[kk++] = q7_zzzzzzz ;
+       pv[kk++] = Q6_xxxxxx ; pv[kk++] = Q6_xxxxxy ; pv[kk++] = Q6_xxxxxz ;
+       pv[kk++] = Q6_xxxxyy ; pv[kk++] = Q6_xxxxzz ; pv[kk++] = Q6_xxxxyz ;
+       pv[kk++] = Q6_xxxyyy ; pv[kk++] = Q6_xxxyyz ; pv[kk++] = Q6_xxxyzz ;
+       pv[kk++] = Q6_xxxzzz ; pv[kk++] = Q6_xxyyyy ; pv[kk++] = Q6_xxyyyz ;
+       pv[kk++] = Q6_xxyyzz ; pv[kk++] = Q6_xxyzzz ; pv[kk++] = Q6_xxzzzz ;
+       pv[kk++] = Q6_xyyyyy ; pv[kk++] = Q6_xyyyyz ; pv[kk++] = Q6_xyyyzz ;
+       pv[kk++] = Q6_xyyzzz ; pv[kk++] = Q6_xyzzzz ; pv[kk++] = Q6_xzzzzz ;
+       pv[kk++] = Q6_yyyyyy ; pv[kk++] = Q6_yyyyyz ; pv[kk++] = Q6_yyyyzz ;
+       pv[kk++] = Q6_yyyzzz ; pv[kk++] = Q6_yyzzzz ; pv[kk++] = Q6_yzzzzz ;
+       pv[kk++] = Q6_zzzzzz ;
+       pv[kk++] = Q7_xxxxxxx ; pv[kk++] = Q7_xxxxxxy ; pv[kk++] = Q7_xxxxxxz ;
+       pv[kk++] = Q7_xxxxxyy ; pv[kk++] = Q7_xxxxxzz ; pv[kk++] = Q7_xxxxxyz ;
+       pv[kk++] = Q7_xxxxyyy ; pv[kk++] = Q7_xxxxyyz ; pv[kk++] = Q7_xxxxyzz ;
+       pv[kk++] = Q7_xxxxzzz ; pv[kk++] = Q7_xxxyyyy ; pv[kk++] = Q7_xxxyyyz ;
+       pv[kk++] = Q7_xxxyyzz ; pv[kk++] = Q7_xxxyzzz ; pv[kk++] = Q7_xxxzzzz ;
+       pv[kk++] = Q7_xxyyyyy ; pv[kk++] = Q7_xxyyyyz ; pv[kk++] = Q7_xxyyyzz ;
+       pv[kk++] = Q7_xxyyzzz ; pv[kk++] = Q7_xxyzzzz ; pv[kk++] = Q7_xxzzzzz ;
+       pv[kk++] = Q7_xyyyyyy ; pv[kk++] = Q7_xyyyyyz ; pv[kk++] = Q7_xyyyyzz ;
+       pv[kk++] = Q7_xyyyzzz ; pv[kk++] = Q7_xyyzzzz ; pv[kk++] = Q7_xyzzzzz ;
+       pv[kk++] = Q7_xzzzzzz ; pv[kk++] = Q7_yyyyyyy ; pv[kk++] = Q7_yyyyyyz ;
+       pv[kk++] = Q7_yyyyyzz ; pv[kk++] = Q7_yyyyzzz ; pv[kk++] = Q7_yyyzzzz ;
+       pv[kk++] = Q7_yyzzzzz ; pv[kk++] = Q7_yzzzzzz ; pv[kk++] = Q7_zzzzzzz ;
 
        for( kk=jj=0 ; jj < NPARHEPT ; jj++,kk+=3 ){
          aa += ppar[kk  ] * pv[jj] ;
