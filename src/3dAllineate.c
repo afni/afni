@@ -2584,7 +2584,6 @@ int main( int argc , char *argv[] )
      }
    }
 
-
    /* open target from last argument, if not already open */
 
    if( dset_targ == NULL ){
@@ -2596,6 +2595,8 @@ int main( int argc , char *argv[] )
    }
 
    INFO_message("Source dataset: %s",DSET_HEADNAME(dset_targ)) ;
+   INFO_message("Base dataset:   %s",
+                (dset_base != NULL) ? DSET_HEADNAME(dset_base) : "(not given)" ) ;
 
    if( nwarp_pass && DSET_NVALS(dset_targ) > 1 )
      ERROR_exit("Can't use -nwarp on more than 1 sub-brick :-(") ;
@@ -2719,7 +2720,6 @@ int main( int argc , char *argv[] )
      dz_base = fabsf(DSET_DZ(dset_base)) ;
      if( im_base->nx < 2 || im_base->ny < 2 )
        ERROR_exit("Base dataset has nx=%d ny=%d ???",im_base->nx,im_base->ny) ;
-     INFO_message("Base dataset: %s",DSET_HEADNAME(dset_base)) ;
    } else {
      if( apply_mode == 0 )
        INFO_message("no -base option ==> base is #0 sub-brick of source") ;
@@ -4134,7 +4134,7 @@ int main( int argc , char *argv[] )
          for( jj=12 ; jj < NPCUB  ; jj++ ) stup.wfunc_param[jj].fixed = 0 ;
          if( verb ) ctim = COX_cpu_time() ;
          rad = 0.01f ; crad = 0.002f ;
-         nbf = mri_genalign_scalar_optim( &stup , rad, crad, 1234 );
+         nbf = mri_genalign_scalar_optim( &stup , rad, crad, 2222 );
          if( verb ){
            dtim = COX_cpu_time() ;
            ININFO_message("- Cubic cost = %f ; %d funcs ; net CPU = %.1f s",
@@ -4186,7 +4186,7 @@ int main( int argc , char *argv[] )
          for( jj=12 ; jj < NPQUINT ; jj++ ) stup.wfunc_param[jj].fixed = 0 ;
          if( verb ) ctim = COX_cpu_time() ;
          rad = 0.01f ; crad = 0.002f ;
-         nbf = mri_genalign_scalar_optim( &stup , rad, crad, 1999 );
+         nbf = mri_genalign_scalar_optim( &stup , rad, crad, 2444 );
          if( verb ){
            dtim = COX_cpu_time() ;
            ININFO_message("- Quintic cost = %f ; %d funcs ; net CPU = %.1f s",
@@ -4232,7 +4232,7 @@ int main( int argc , char *argv[] )
          for( jj=12 ; jj < NPHEPT ; jj++ ) stup.wfunc_param[jj].fixed = 0 ;
          if( verb ) ctim = COX_cpu_time() ;
          rad = 0.01f ; crad = 0.002f ;
-         nbf = mri_genalign_scalar_optim( &stup , rad, crad, 2444 );
+         nbf = mri_genalign_scalar_optim( &stup , rad, crad, 2555 );
          if( verb ){
            dtim = COX_cpu_time() ;
            ININFO_message("- Heptic cost = %f ; %d funcs ; net CPU = %.1f s",
