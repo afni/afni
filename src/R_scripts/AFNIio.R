@@ -1510,7 +1510,7 @@ read.AFNI.matrix <- function (fname,
       covMatrix <- mm
    }
    
-   attr(mm,'FileName') <- fnameattr
+   attr(covMatrix,'FileName') <- fnameattr
    return(covMatrix)
 }   
 
