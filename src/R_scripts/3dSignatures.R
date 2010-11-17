@@ -64,7 +64,7 @@ Example 1 --- :
       SigsClassify  -input IBSR_01.SubClasses.skew.1D.repsig \\
                -ColumnGroups 'R:c(rep(1,10), rep(2,10), rep(3,10))' \\
                -GroupLabels CSF GM WM \\
-               -NoZeros -Nocol.yoffset \\
+               -NoZeros -Nocol.ystack \\
                -trainsuffix ZePlotIzSaved.pdf
 "   
 
@@ -419,7 +419,8 @@ Train.SigsClassify <- function (lvols, samples_frac=NULL,
       err.AFNI("ltfile is now mandatory")
       return(NULL)
    } 
-   lsvm <- list(sigs = NULL, labs = NULL, Nlabsamp=NULL, model=NULL, labeltable=NULL)
+   lsvm <- list(sigs = NULL, labs = NULL, Nlabsamp=NULL, 
+                  model=NULL, labeltable=NULL)
    for (lvol in lvols) {
       #Load label thingy
       if (is.null(lvol$lab)) {
@@ -523,7 +524,7 @@ Train.SigsClassify <- function (lvols, samples_frac=NULL,
          }
       }
    }
-   plot.1D(mm, oneplot=TRUE, col.yoffset=FALSE, 
+   plot.1D(mm, oneplot=TRUE, col.ystack=FALSE, 
                col.grp=PlotColumnGroups, grp.labels=PlotGroupLabels, 
                prefix =sprintf('%s.jpg',PlotTitle), Title=PlotTitle,
                CloseAfterSave = no_X11)

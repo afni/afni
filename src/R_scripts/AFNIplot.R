@@ -76,27 +76,27 @@ plot.1D.demo <- function(demo=0) {
          plot.1D( dmat = plot.1D.testmat(100, 10), 
                col.nozeros=TRUE, 
                col.grp=c(rep(1,3), rep(2,3), rep(3,4)), 
-               col.yoffset=FALSE, grp.labels=c('CSF', 'GM','WM'),
+               col.ystack=FALSE, grp.labels=c('CSF', 'GM','WM'),
                prefix = 't1.jpg', verb = 1)
       } else if (d==2){
          plot.1D( dmat = plot.1D.testmat(100, 10), 
                col.nozeros=TRUE, 
                col.grp=c(rep(1,3), rep(2,3), rep(3,4)), 
-               col.yoffset=FALSE, multi.ncol = 2, 
+               col.ystack=FALSE, multi.ncol = 2, 
                grp.labels=c('CSF', 'GM','WM'),
                prefix = 't2.jpg', verb = 1)
       } else if (d==3) {
          plot.1D( dmat = plot.1D.testmat(100, 3), 
                   col.nozeros=TRUE, 
                   col.grp=c(rep(1,2), rep(2,1)), 
-                  col.yoffset=FALSE, grp.labels=c('CSF', 'GM'),
+                  col.ystack=FALSE, grp.labels=c('CSF', 'GM'),
                   oneplot=TRUE,
                   prefix = 't3.jpg', verb = 1)
       }else if (d==4) {
          plot.1D( dmat = plot.1D.testmat(100, 3), 
                   col.nozeros=TRUE, 
                   col.grp=c(rep(1,2), rep(2,1)), 
-                  col.yoffset=FALSE, grp.labels=c('CSF', 'GM'),
+                  col.ystack=FALSE, grp.labels=c('CSF', 'GM'),
                   oneplot=TRUE, leg.show = TRUE,
                   prefix = 't4.jpg', verb = 1)
       }
@@ -220,7 +220,7 @@ plot.1D.puttitle <- function (P) {
 plot.1D.optlist <- function(...) {
    ll <- list(dmat=NULL, dmat.err=NULL, dmat.colsel=NULL, 
             dmat.xval=NULL,
-            col.grp = NULL, col.yoffset=TRUE, col.nozeros=FALSE, 
+            col.grp = NULL, col.ystack=FALSE, col.nozeros=FALSE, 
             col.names=NULL, col.names.x=NULL, col.names.y=NULL,
             col.colors = NULL, col.plot.char=NULL,
             col.plot.type ='l', col.line.type = 1, col.line.width=3,
@@ -290,14 +290,22 @@ plot.1D.eng <- function (P) {
          }
          #str(dmatc)
          if (i==1) { 
-            dmat<-dmatc; 
+            P$dmat<-dmatc; 
          }else {
             if (dim(dmatc)[1] < dim(P$dmat)[1]) {
+               note.AFNI("Padding dmatc with NA to match nrows in dmat")
                dmatna <- matrix(NA, dim(P$dmat)[1], dim(dmatc)[2])
                dmatna[1:dim(dmatc)[1],1:dim(dmatc)[2]] <- dmatc
                dmatc <- dmatna
             }
-            P$dmat <- cbind(dmat, dmatc)
+            if (nrow(P$dmat) !=nrow(dmatc)) {
+               err.AFNI(paste("Don't know what to do about catting matrices.\n",
+                        "Currently have ",nrow(P$dmat), " rows and trying to",
+                        "append ", nrow(dmatc), 
+                        " rows from", dmatv[i]))
+               return(0)
+            }
+            P$dmat <- cbind(P$dmat, dmatc)
          }
       }
    }
@@ -330,8 +338,8 @@ plot.1D.eng <- function (P) {
    }
    
    if (!is.null(P$dmat.err)) {
-      if (!is.null(P$dmat.err) && P$col.yoffset) {
-         err.AFNI("Error bars with P$col.yoffset?");
+      if (!is.null(P$dmat.err) && P$col.ystack) {
+         err.AFNI("Error bars with P$col.ystack?");
          return(0);
       }
       if (dim(P$dmat.err)[1] != dim(P$dmat)[1] ||
@@ -357,11 +365,12 @@ plot.1D.eng <- function (P) {
    #Check for P$grp.labels
    if (!is.null(P$grp.labels)) {
       if (is.null(P$col.grp)) {
-         err.AFNI("Habe P$grp.labels, but no P$col.grp");
+         err.AFNI("Have P$grp.labels, but no P$col.grp");
+         return(0)
       }
       if (length(P$grp.labels) != length(unique(P$col.grp))) {
          err.AFNI(paste("Have ", length(P$grp.labels), "group labels and",
-               length(unique(P$col.grp),"unique group flags")));
+               length(unique(P$col.grp)),"unique group flags"));
          return(0)
       }
    } else {
@@ -370,23 +379,7 @@ plot.1D.eng <- function (P) {
       }
    }
    
-   #Set Offset flag
-   if (!is.null(P$col.yoffset)) {
-      if (length(P$col.yoffset) != ncol(P$dmat)) {
-         if (length(P$col.yoffset) == 1) 
-            P$col.yoffset <- rep(P$col.yoffset, ncol(P$dmat))
-         else {
-            err.AFNI(
-               paste("P$col.yoffset must either have one or",
-                     ncol(P$dmat),"values",
-                     "Have ", length(P$col.yoffset)));
-            return(0);
-         }
-      }
-   } else {
-      P$col.yoffset <- rep(FALSE, ncol(P$dmat))
-   }
-   
+      
    #Set colors 
    if (is.null(P$col.colors)) {
       if (is.null(P$col.grp)) {
@@ -539,12 +532,38 @@ plot.1D.eng <- function (P) {
       P$oneplot <- TRUE
    }
    
+   #Set Offset flag
+   if (!is.null(P$col.ystack)) {
+      if (length(P$col.ystack) != ncol(P$dmat)) {
+         if (length(P$col.ystack) == 1) 
+            P$col.ystack <- rep(P$col.ystack, ncol(P$dmat))
+         else {
+            err.AFNI(
+               paste("P$col.ystack must either have one or",
+                     ncol(P$dmat),"values",
+                     "Have ", length(P$col.ystack)));
+            return(0);
+         }
+      }
+   } else {
+      P$col.ystack <- rep(FALSE, ncol(P$dmat))
+   }
+
+   #Make sure col.ystack is allowed
+   if (!P$oneplot || length(P$dmat.colsel) == 1) {
+      if (P$col.ystack[1]) {
+         note.AFNI("Stacking ignored, either multiplot or single column", 
+                     callstr='');
+      }
+      #No stack allowed if multiplot, or just one column
+      P$col.ystack <- rep(FALSE, ncol(P$dmat))
+   }
    
    #setup rendering device
    P$dev.this <- plot.1D.setupdevice(P) 
 
    #Create matrix to be plotted
-   P$mat2plt <- plot.1D.setmat2plt (P$dmat, P$dmat.colsel, P$col.yoffset)
+   P$mat2plt <- plot.1D.setmat2plt (P$dmat, P$dmat.colsel, P$col.ystack)
    #Get the mean of each column
    P$mat2plt.colmeans <- plot.1D.colmean (P$mat2plt)
    #Set plus or minus values
@@ -589,7 +608,7 @@ plot.1D.eng <- function (P) {
       }
       xaxtinit <- "n" #Plot it later
    }
-   if (is.null(P$yax.tic.text) && !prod(P$col.yoffset)) {
+   if (is.null(P$yax.tic.text) && !prod(P$col.ystack)) {
       yaxtinit <- "s" #Plot axis at first pass
                   #unless all columns are offset. 
                   #YAXIS becomes meaningless then
@@ -733,6 +752,10 @@ plot.1D.eng <- function (P) {
             col = plot.1D.colorOFgroups(P$col.grp, P$col.colors) 
             legend("topright", legend=P$grp.labels, 
                      text.col=col,lwd=2, col=col)
+         } else {
+            err.AFNI(paste("Can't show legend.",
+                     "Have no col.names, no leg.names, and no grp.labels"));
+            
          }
       } else {
          if (is.null(P$leg.names)) P$leg.names <- P$col.names
@@ -741,7 +764,7 @@ plot.1D.eng <- function (P) {
          legend(P$leg.position, legend=P$leg.names, 
                   text.col=P$col.colors[P$dmat.colsel],
                   col=P$col.colors[P$dmat.colsel], 
-                  pch=plot.P$col.char[P$dmat.colsel], lwd=2, lty=P$col.line.type,
+                  pch=P$col.plot.char[P$dmat.colsel], lwd=2, lty=P$col.line.type,
                   ncol=P$leg.ncol, bty='n')
          par(ps = opar$ps)
       }
@@ -786,12 +809,13 @@ image.corr.1D.eng <- function(P) {
    if (is.null(P$dmat.colsel) || length(P$dmat.colsel)==0) 
       P$dmat.colsel <- seq(1,ncol(P$dmat))
    if (length(P$dmat.colsel) < 2) {
-      warn.AFNI("Have less than 2 columns, nothing to correlate")
-      return(NULL)  
+      #warn.AFNI("Have less than 2 columns, nothing to correlate")
+      #return(NULL)  
+      cc <- as.matrix(1)
+   } else {
+      cc <- cor(P$dmat[,P$dmat.colsel])
+      for (i in 1:length(P$dmat.colsel)) cc[i,i]=0
    }
-   cc <- cor(P$dmat[,P$dmat.colsel])
-   for (i in 1:length(P$dmat.colsel)) cc[i,i]=0
-   
    if (is.null(P$showval)) {
       if (length(P$dmat.colsel) < 20) ShowVal <- TRUE
       else ShowVal <- FALSE

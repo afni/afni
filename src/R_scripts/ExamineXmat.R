@@ -298,7 +298,7 @@ show_xmat <- function (xmat, isel=1:1:ncol(xmat), descr="", interactive=TRUE) {
    }
    plotdev <<- plot.1D( dmat = xmat, dmat.err=NULL,
             dmat.colsel = isel,  
-            col.yoffset = TRUE,
+            col.ystack = TRUE,
             ttl.main = maintit,
             ttl.sub=stit, multi.ncol=1,
             col.mean.line = FALSE,

@@ -62,7 +62,7 @@ Example 1 --- :
       1dRplot  -input IBSR_01.SubClasses.skew.1D.repsig \\
                -col.grp 'R:c(rep(1,10), rep(2,10), rep(3,10))' \\
                -grp.labels CSF GM WM \\
-               -col.nozeros -Nocol.yoffset \\
+               -col.nozeros -Nocol.ystack \\
                -prefix ZePlotIzSaved.pdf
 "   
 
@@ -106,16 +106,15 @@ read.1dRplot.opts.batch <- function (args=NULL, verb = 0) {
    
    params <- list (
       '-input' = apl(n = c(1, Inf), d = NA,  h = paste(
-   "-input 1Dfile: file to plot\n"
+   "-input 1D_INPUT: file to plot.\n"
                      ) ),
                      
       '-input_delta' = apl(n = c(1, Inf), d = NA,  h = paste(
-   "-input_delta 1Dfile: file containing value for error bars\n"
+   "-input_delta 1D_INPUT: file containing value for error bars\n"
                      ) ),
                      
       '-x' = apl(n = c(1), h = paste (
-   "-x 1Dfile or Rexp: x axis\n",
-   "                For example: 1D\n"   
+   "-x 1D_INPUT: x axis\n"
                   ) ), 
 
       '-save' = apl(n = 1, d = NA,  h = paste(
@@ -123,7 +122,7 @@ read.1dRplot.opts.batch <- function (args=NULL, verb = 0) {
                      ) ),
                      
       '-prefix' = apl(n = 1, d = NA,  h = paste(
-   "-prefix PREFIX: Output prefix (just prefix, no view+suffix needed)\n"
+   "-prefix PREFIX: Output prefix \n"
                      ) ),
 
       '-title' = apl(n = 1, d = NULL,  h = paste(
@@ -131,39 +130,47 @@ read.1dRplot.opts.batch <- function (args=NULL, verb = 0) {
                      ) ),
             
       '-grp.labels' = apl(n = c(1,Inf), d = NULL, h = paste(
-   "-grp.labels GROUP1 [GROUP2]: Labels to column grouping.\n",
+   "-grp.labels GROUP1 [GROUP2]: Labels assigned to each group.\n",
    "                         Default is no labeling\n"
                      ) ),
       '-col.plot.char' = apl(n = c(1,Inf), d = NULL, h = paste(
-   "-col.plot.char : Symbols for each column.\n"
+   "-col.plot.char : Symbols for each column in -input.\n"
                      ) ),
                      
       '-col.colors' = apl(n = c(1,Inf), d = NULL, h = paste(
-   "-col.colors : Symbols for each column.\n"
+   "-col.colors : Colors for each column in -input.\n"
                      ) ),
                      
       '-col.line.types' = apl(n = c(1,Inf), d = NULL, h = paste(
-   "-col.line.types : Symbols for each column.\n"
+   "-col.line.types : Line type for each column in -input.\n"
                      ) ),
                      
       '-col.names' = apl(n = c(1,Inf), d = NULL, h = paste(
-   "-col.names : Symbols for each column.\n"
+   "-col.names : Name of each column in -input.\n"
                      ) ),
 
       '-leg.names' = apl(n = c(1,Inf), d = NULL, h = paste(
-   "-leg.names : Symbols for each column.\n"
+   "-leg.names : Names to use for items in legend.\n",
+   "             Default is taken from column names.\n"
                      ) ),
 
       '-leg.position' = apl(n = c(1,Inf), d = NULL, h = paste(
-   "-leg.position : Symbols for each column.\n"
+   "-leg.position : Legend position. Choose from:\n",
+   "                bottomright, bottom, bottomleft\n",
+   "                left, topleft, top, topright, right,\n", 
+   "                and center"
                      ) ),
       
       '-leg.fontsize' = apl(n = 1, d = 1.0, h = paste(
-   "-leg.fontsize : Symbols for each column.\n"
+   "-leg.fontsize : fontsize for legend text.\n"
                      ) ),
 
       '-leg.ncol' = apl(n = 1, d = 4, h = paste(
-   "-leg.ncol : Symbols for each column.\n"
+   "-leg.ncol : Number of columns in legend.\n"
+                     ) ),
+                     
+      '-leg.show' = apl(n = 0, d = FALSE, h = paste(
+   "-leg.show : Show legend.\n"
                      ) ),
                      
       '-NoZeros' = apl (n = 0, d = FALSE, h = paste (
@@ -173,11 +180,14 @@ read.1dRplot.opts.batch <- function (args=NULL, verb = 0) {
    "-Zeros:  Do  plot all zeros time series"
                         ) ),
                         
-      '-col.yoffset' = apl (n = 0, d = TRUE, h = paste (
-   "-col.yoffset:  "
+      '-col.ystack' = apl (n = 0, d = TRUE, h = paste (
+   "-col.ystack:  Scale each column and offset it based on its",
+   "               column index. This is useful for stacking",
+   "               a large number of columns on one plot."
                         ) ),
-      '-Nocol.yoffset' = apl (n = 0, d = FALSE, h = paste (
-   "-Nocol.yoffset:  "
+                        
+      '-Nocol.ystack' = apl (n = 0, d = FALSE, h = paste (
+   "-Nocol.ystack:  "
                         ) ),
       
       '-oneplot' = apl (n = 0, d = FALSE, h = paste (
@@ -187,8 +197,16 @@ read.1dRplot.opts.batch <- function (args=NULL, verb = 0) {
       '-one' = apl (n = 0, d = FALSE, h = paste (
    "-one:  "
                         ) ),                                     
-      '-col.grp' = apl(n = c(1), h = paste (
+      '-col.grp' = apl(n = c(1, Inf), h = paste (
    "-col.grp 1Dfile or Rexp: integer labels defining column belonging\n",
+   "                For example: 1D\n"   
+                  ) ), 
+      '-col.text.lym' = apl(n = c(1, Inf), h = paste (
+   "-col.text.lym 1Dfile or Rexp: integer labels defining column belonging\n",
+   "                For example: 1D\n"   
+                  ) ), 
+      '-col.text.rym' = apl(n = c(1, Inf), h = paste (
+   "-col.text.rym 1Dfile or Rexp: integer labels defining column belonging\n",
    "                For example: 1D\n"   
                   ) ), 
       '-xax.lim' = apl(n = c(2,3), h = paste (
@@ -245,6 +263,7 @@ read.1dRplot.opts.batch <- function (args=NULL, verb = 0) {
    for (i in 1:length(ops)) {
       opname <- strsplit(names(ops)[i],'^-')[[1]];
       opname <- opname[length(opname)];
+      
       switch(opname,
              input = lop$dmat <- ops[[i]],
              input_delta = lop$dmat.err <- ops[[i]],
@@ -255,10 +274,10 @@ read.1dRplot.opts.batch <- function (args=NULL, verb = 0) {
              Zeros = lop$col.nozeros <- FALSE,
              oneplot = lop$oneplot <- TRUE,
              one = lop$oneplot <- TRUE,
-             col.groups = 
+             col.grp = 
                lop$col.grp <- parse.1dRplot.Groups(ops[[i]]),
-             Nocol.yoffset = lop$col.yoffset <- FALSE,
-             col.yoffset = lop$col.yoffset <- TRUE,
+             Nocol.ystack = lop$col.ystack <- FALSE,
+             col.ystack = lop$col.ystack <- TRUE,
              grp.labels = lop$grp.labels <- ops[[i]],
              xlim = lop$xax.lim <- ops[[i]],
              ylim = lop$yax.lim <- ops[[i]],
@@ -274,6 +293,9 @@ read.1dRplot.opts.batch <- function (args=NULL, verb = 0) {
              col.line.types = lop$col.line.type <- 
                                     parse.1dRplot.Groups(ops[[i]]),
              col.names = lop$col.names <- ops[[i]],
+             col.text.lym = lop$col.text.lym <- ops[[i]],
+             col.text.rym = lop$col.text.rym <- ops[[i]],
+             leg.show = lop$leg.show <- TRUE,
              leg.names = lop$leg.names <- ops[[i]],
              leg.position = lop$leg.position <- ops[[i]],
              leg.fontsize = lop$leg.fontsize <- ops[[i]],
@@ -329,12 +351,13 @@ process.1dRplot.opts <- function (lop, verb = 0) {
    }
    if (lop$verb) { 
       str(lop);
-   }
+   }      
+
    thisplot <- plot.1D( dmat = lop$dmat, dmat.err=lop$dmat.err,
             dmat.colsel = lop$dmat.colsel,  
             col.nozeros = lop$col.nozeros, 
             col.grp = lop$col.grp,
-            col.yoffset = lop$col.yoffset,
+            col.ystack = lop$col.ystack,
             grp.labels = lop$grp.labels,
             ttl.main = lop$ttl.main, 
             prefix = lop$pprefix, 
@@ -349,6 +372,9 @@ process.1dRplot.opts <- function (lop, verb = 0) {
             col.colors = lop$col.colors,
             col.line.type = lop$col.line.types,
             col.names = lop$col.names,
+            col.text.lym = lop$col.text.lym,
+            col.text.rym = lop$col.text.rym,
+            leg.show = lop$leg.show,
             leg.names = lop$leg.names,
             leg.position = lop$leg.position,
             leg.fontsize = lop$leg.fontsize,
