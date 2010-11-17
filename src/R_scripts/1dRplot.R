@@ -97,34 +97,7 @@ parse.1dRplot.Groups <- function(op) {
 }
 
 init.1DRplot.lop <- function () {
-   lop <- list()
-   lop$ff = NULL;
-   lop$ffdelta = NULL;
-   lop$x = NULL;
-   lop$isel=NULL;
-   lop$NoZeros=FALSE;
-   lop$col.grp=NULL;
-   lop$col.yoffset=TRUE;
-   lop$grp.labels=NULL;
-   lop$Title=NULL
-   lop$CloseAfterSave=FALSE
-   lop$oneplot = FALSE
-   lop$xlim=NULL
-   lop$xtext=NULL
-   lop$ytext=NULL
-   lop$ylim=NULL
-   lop$addavg=FALSE
-   lop$verb=0
-   lop$xlabel=NULL
-   lop$ylabel=NULL
-   lop$ColumnSymbs=NULL
-   lop$ColumnCols=NULL
-   lop$ColumnNames=NULL
-   lop$LegendNames=NULL
-   lop$LegendPosition="topright"
-   lop$LegendFontSize = 14.0
-   lop$LegendNumColumns = 4
-   lop$ltypes=NULL
+   lop <- plot.1D.optlist()
    return(lop)
 }
 
@@ -161,36 +134,36 @@ read.1dRplot.opts.batch <- function (args=NULL, verb = 0) {
    "-grp.labels GROUP1 [GROUP2]: Labels to column grouping.\n",
    "                         Default is no labeling\n"
                      ) ),
-      '-ColumnSymbs' = apl(n = c(1,Inf), d = NULL, h = paste(
-   "-ColumnSymbs : Symbols for each column.\n"
+      '-col.plot.char' = apl(n = c(1,Inf), d = NULL, h = paste(
+   "-col.plot.char : Symbols for each column.\n"
                      ) ),
                      
-      '-ColumnCols' = apl(n = c(1,Inf), d = NULL, h = paste(
-   "-ColumnCols : Symbols for each column.\n"
+      '-col.colors' = apl(n = c(1,Inf), d = NULL, h = paste(
+   "-col.colors : Symbols for each column.\n"
                      ) ),
                      
-      '-ColumnLtypes' = apl(n = c(1,Inf), d = NULL, h = paste(
-   "-ColumnLtypes : Symbols for each column.\n"
+      '-col.line.types' = apl(n = c(1,Inf), d = NULL, h = paste(
+   "-col.line.types : Symbols for each column.\n"
                      ) ),
                      
-      '-ColumnNames' = apl(n = c(1,Inf), d = NULL, h = paste(
-   "-ColumnNames : Symbols for each column.\n"
+      '-col.names' = apl(n = c(1,Inf), d = NULL, h = paste(
+   "-col.names : Symbols for each column.\n"
                      ) ),
 
-      '-LegendNames' = apl(n = c(1,Inf), d = NULL, h = paste(
-   "-LegendNames : Symbols for each column.\n"
+      '-leg.names' = apl(n = c(1,Inf), d = NULL, h = paste(
+   "-leg.names : Symbols for each column.\n"
                      ) ),
 
-      '-LegendPosition' = apl(n = c(1,Inf), d = NULL, h = paste(
-   "-LegendPosition : Symbols for each column.\n"
+      '-leg.position' = apl(n = c(1,Inf), d = NULL, h = paste(
+   "-leg.position : Symbols for each column.\n"
                      ) ),
       
-      '-LegendFontSize' = apl(n = 1, d = 1.0, h = paste(
-   "-LegendFontSize : Symbols for each column.\n"
+      '-leg.fontsize' = apl(n = 1, d = 1.0, h = paste(
+   "-leg.fontsize : Symbols for each column.\n"
                      ) ),
 
-      '-LegendNumColumns' = apl(n = 1, d = 4, h = paste(
-   "-LegendNumColumns : Symbols for each column.\n"
+      '-leg.ncol' = apl(n = 1, d = 4, h = paste(
+   "-leg.ncol : Symbols for each column.\n"
                      ) ),
                      
       '-NoZeros' = apl (n = 0, d = FALSE, h = paste (
@@ -218,32 +191,32 @@ read.1dRplot.opts.batch <- function (args=NULL, verb = 0) {
    "-col.grp 1Dfile or Rexp: integer labels defining column belonging\n",
    "                For example: 1D\n"   
                   ) ), 
-      '-xlim' = apl(n = c(2,3), h = paste (
-   "-xlim\n",
+      '-xax.lim' = apl(n = c(2,3), h = paste (
+   "-xax.lim\n",
    "                For example: 1D\n"   
                   ) ), 
-      '-ylim' = apl(n = c(2,3), h = paste (
-   "-ylim\n",
+      '-yax.lim' = apl(n = c(2,3), h = paste (
+   "-yax.lim\n",
    "                For example: 1D\n"   
                   ) ),  
       '-addavg' = apl (n = 0, d = FALSE, h = paste (
    "-addavg:  "
                         ) ),              
       
-      '-xlabel' = apl(n = 1, h = paste (
-   "-xlabel\n",
+      '-xax.label' = apl(n = 1, h = paste (
+   "-xax.label\n",
    "                For example: 1D\n"   
                   ) ), 
-      '-xtext' = apl(n = c(1, Inf), h = paste (
-   "-xtext\n",
+      '-xax.tic.text' = apl(n = c(1, Inf), h = paste (
+   "-xax.tic.text\n",
    "                For example: 1D\n"   
                   ) ), 
-      '-ylabel' = apl(n = 1, h = paste (
-   "-ylabel\n",
+      '-yax.label' = apl(n = 1, h = paste (
+   "-yax.label\n",
    "                For example: 1D\n"   
                   ) ), 
-      '-ytext' = apl(n = c(1, Inf), h = paste (
-   "-ytext\n",
+      '-yax.tic.text' = apl(n = c(1, Inf), h = paste (
+   "-yax.tic.text\n",
    "                For example: 1D\n"   
                   ) ), 
       '-verb' = apl(n=1, d = 0, h = paste(
@@ -273,37 +246,38 @@ read.1dRplot.opts.batch <- function (args=NULL, verb = 0) {
       opname <- strsplit(names(ops)[i],'^-')[[1]];
       opname <- opname[length(opname)];
       switch(opname,
-             input = lop$ff <- ops[[i]],
-             input_delta = lop$ffdelta <- ops[[i]],
-             x = lop$x <- parse.1dRplot.Groups(ops[[i]]),
-             prefix = lop$pprefix  <- ops[[i]],
-             save = {lop$pprefix <- ops[[i]]; lop$CloseAfterSave=TRUE;} ,
-             NoZeros = lop$NoZeros <- TRUE,
-             Zeros = lop$NoZeros <- FALSE,
+             input = lop$dmat <- ops[[i]],
+             input_delta = lop$dmat.err <- ops[[i]],
+             x = lop$dmat.xval <- parse.1dRplot.Groups(ops[[i]]),
+             prefix = lop$prefix  <- ops[[i]],
+             save = {lop$prefix <- ops[[i]]; lop$nodisp=TRUE;} ,
+             NoZeros = lop$col.nozeros <- TRUE,
+             Zeros = lop$col.nozeros <- FALSE,
              oneplot = lop$oneplot <- TRUE,
              one = lop$oneplot <- TRUE,
-             col.grp = 
+             col.groups = 
                lop$col.grp <- parse.1dRplot.Groups(ops[[i]]),
              Nocol.yoffset = lop$col.yoffset <- FALSE,
              col.yoffset = lop$col.yoffset <- TRUE,
              grp.labels = lop$grp.labels <- ops[[i]],
-             xlim = lop$xlim <- ops[[i]],
-             ylim = lop$ylim <- ops[[i]],
-             addavg = lop$addavg <- TRUE,
-             title  = lop$Title <- ops[[i]],
-             xlabel  = lop$xlabel <- ops[[i]],
-             xtext = lop$xtext <- ops[[i]],
-             ylabel  = lop$ylabel <- ops[[i]],
-             ytext = lop$ytext <- ops[[i]],
+             xlim = lop$xax.lim <- ops[[i]],
+             ylim = lop$yax.lim <- ops[[i]],
+             addavg = lop$col.mean.line <- TRUE,
+             title  = lop$ttl.main <- ops[[i]],
+             xlabel  = lop$xax.label <- ops[[i]],
+             xtext = lop$xax.tic.text <- ops[[i]],
+             ylabel  = lop$yax.label <- ops[[i]],
+             ytext = lop$yax.tic.text <- ops[[i]],
              verb = lop$verb <- ops[[i]],
-             ColumnSymbs = lop$ColumnSymbs <- parse.1dRplot.Groups(ops[[i]]),
-             ColumnCols = lop$ColumnCols <- parse.1dRplot.Groups(ops[[i]]),
-             ColumnLtypes = lop$ColumnLtypes <- parse.1dRplot.Groups(ops[[i]]),
-             ColumnNames = lop$ColumnNames <- ops[[i]],
-             LegendNames = lop$LegendNames <- ops[[i]],
-             LegendPosition = lop$LegendPosition <- ops[[i]],
-             LegendFontSize = lop$LegendFontSize <- ops[[i]],
-             LegendNumColumns = lop$LegendNumColumns <- ops[[i]],
+             col.plot.char = lop$col.plot.char <- parse.1dRplot.Groups(ops[[i]]),
+             col.colors = lop$col.colors <- parse.1dRplot.Groups(ops[[i]]),
+             col.line.types = lop$col.line.type <- 
+                                    parse.1dRplot.Groups(ops[[i]]),
+             col.names = lop$col.names <- ops[[i]],
+             leg.names = lop$leg.names <- ops[[i]],
+             leg.position = lop$leg.position <- ops[[i]],
+             leg.fontsize = lop$leg.fontsize <- ops[[i]],
+             leg.ncol = lop$leg.ncol <- ops[[i]],
              help = help.1dRplot.opts(params, adieu=TRUE),
              show_allowed_options = show.AFNI.args(ops, verb=0, 
                                               hstr="1dRplot's",adieu=TRUE)
@@ -338,14 +312,7 @@ process.1dRplot.opts <- function (lop, verb = 0) {
    }
    if (!length(args)) {
       BATCH_MODE <<- 0
-      lop <- init.1DRplot.lop()
-      lop$ff = c('all.sc5.mMs.tr_s051114.tfs1.DSC.dice.03302317.1D',
-                 'all.sc5.mMs.tr_s051114.tfs1.DSC.dice.03302317.1D')
-      lop$NoZeros = TRUE
-      lop$col.grp = c(rep(1,10), rep(2,10), rep(3,10))
-      lop$col.yoffset = FALSE
-      lop$grp.labels = c('CSF','GM','WM')
-      lop$CloseAfterSave = FALSE
+      err.AFNI("No parameters");
    } else {
       if (!exists('.DBG_args')) {
          BATCH_MODE <<- 1
@@ -363,30 +330,30 @@ process.1dRplot.opts <- function (lop, verb = 0) {
    if (lop$verb) { 
       str(lop);
    }
-   thisplot <- plot.1D( ff = lop$ff, ffd=lop$ffdelta,
-            isel = lop$isel, descr = "",  
-            col.nozeros = lop$NoZeros, 
+   thisplot <- plot.1D( dmat = lop$dmat, dmat.err=lop$dmat.err,
+            dmat.colsel = lop$dmat.colsel,  
+            col.nozeros = lop$col.nozeros, 
             col.grp = lop$col.grp,
             col.yoffset = lop$col.yoffset,
             grp.labels = lop$grp.labels,
-            ttl = lop$Title, 
+            ttl.main = lop$ttl.main, 
             prefix = lop$pprefix, 
-            nodisp = lop$CloseAfterSave,
+            nodisp = lop$nodisp,
             oneplot = lop$oneplot,
-            col.mean.line = lop$addavg,
-            xax.range=lop$xlim, xax.tic.text = lop$xtext,
-            yax.range=lop$ylim, yax.tic.text = lop$ytext,
-            xax.label=lop$xlabel,
-            yax.label=lop$ylabel, 
-            col.symbs=lop$ColumnSymbs,
-            col.colors = lop$ColumnCols,
-            col.line.type = lop$ColumnLtypes,
-            col.names = lop$ColumnNames,
-            leg.names = lop$LegendNames,
-            leg.position = lop$LegendPosition,
-            leg.fontsize = lop$LegendFontSize,
-            leg.ncol = lop$LegendNumColumns,
-            dmat.xval = lop$x)
+            col.mean.line = lop$col.mean.line,
+            xax.lim=lop$xax.lim, xax.tic.text = lop$xax.tic.text,
+            yax.lim=lop$yax.lim, yax.tic.text = lop$yax.tic.text,
+            xax.label=lop$xax.label,
+            yax.label=lop$yax.label, 
+            col.plot.char=lop$col.plot.char,
+            col.colors = lop$col.colors,
+            col.line.type = lop$col.line.types,
+            col.names = lop$col.names,
+            leg.names = lop$leg.names,
+            leg.position = lop$leg.position,
+            leg.fontsize = lop$leg.fontsize,
+            leg.ncol = lop$leg.ncol,
+            dmat.xval = lop$dmat.xval)
 
    if (BATCH_MODE) { #do not quit until device is closed
       while (length(which(dev.list()==thisplot))) Sys.sleep(0.25);
