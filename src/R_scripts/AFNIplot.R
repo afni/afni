@@ -70,30 +70,30 @@ plot.1D.colorOFgroups <- function(col.grp, col.colors) {
 }
 
 plot.1D.demo <- function(demo=0) {
-   if (demo == 0) demo <- c(1,3)
+   if (demo == 0) demo <- seq(1,4)
    for (d in demo) {
       if (d==1) {
-         plot.1D( plot.1D.testmat(100, 10), 
+         plot.1D( dmat = plot.1D.testmat(100, 10), 
                col.nozeros=TRUE, 
                col.grp=c(rep(1,3), rep(2,3), rep(3,4)), 
                col.yoffset=FALSE, grp.labels=c('CSF', 'GM','WM'),
                prefix = 't1.jpg', verb = 1)
       } else if (d==2){
-         plot.1D( plot.1D.testmat(100, 10), 
+         plot.1D( dmat = plot.1D.testmat(100, 10), 
                col.nozeros=TRUE, 
                col.grp=c(rep(1,3), rep(2,3), rep(3,4)), 
                col.yoffset=FALSE, multi.ncol = 2, 
                grp.labels=c('CSF', 'GM','WM'),
                prefix = 't2.jpg', verb = 1)
       } else if (d==3) {
-         plot.1D( plot.1D.testmat(100, 3), 
+         plot.1D( dmat = plot.1D.testmat(100, 3), 
                   col.nozeros=TRUE, 
                   col.grp=c(rep(1,2), rep(2,1)), 
                   col.yoffset=FALSE, grp.labels=c('CSF', 'GM'),
                   oneplot=TRUE,
                   prefix = 't3.jpg', verb = 1)
       }else if (d==4) {
-         plot.1D( plot.1D.testmat(100, 3), 
+         plot.1D( dmat = plot.1D.testmat(100, 3), 
                   col.nozeros=TRUE, 
                   col.grp=c(rep(1,2), rep(2,1)), 
                   col.yoffset=FALSE, grp.labels=c('CSF', 'GM'),
@@ -261,6 +261,11 @@ plot.1D.optlist <- function(...) {
 
 #see plot.1D.optlist for allowed options
 plot.1D <- function (...) {
+   if (length(list(...)) == 0) {
+      note.AFNI("Plot.1D in hardwired test mode")
+      plot.1D.demo()
+      return(1)
+   }
    PLO <<- plot.1D.optlist(...)
    #Set some more variables
    PLO <<- c(PLO, iplt=1, mat2plt=NULL, mat2plt.colmeans=NULL,  
@@ -273,9 +278,8 @@ plot.1D.eng <- function (P) {
    thisplot <- NULL
    #Load DATA
    if (is.null(P$dmat)) {
-      note.AFNI("Plot.1D in hardwired test mode")
-      plot.1D.demo()
-      return(1) 
+      err.AFNI("NULL dmat");
+      return(0)  
    } else if (is.character(P$dmat)) {
       dmatv <- P$dmat
       if (is.null(P$ttl.main)) ttl.main<-paste(P$dmat, collapse='\n')
