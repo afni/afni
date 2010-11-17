@@ -1366,6 +1366,16 @@ read.AFNI.matrix.test <- function(verb=1) {
       }
 }
 
+AFNI.matrix.input.help.string <- function() {
+   s<-
+'You specify 1D input in a variety of ways:
+FILE.1D : Name of 1D file
+1D_EXPR: A 1D expression a la AFNI "1D: 1,2,5"
+R_EXPR: An R expression, "R: rep(seq(1,3),2)"
+'
+   return(s)
+}
+
 read.AFNI.matrix <- function (fname, 
                               usercolnames=NULL, 
                               userrownames=NULL,
@@ -1425,12 +1435,18 @@ read.AFNI.matrix <- function (fname,
          covMatrix <- as.matrix(as.numeric(brk[istrt:dim(brk)[1],1]))
       } else {
          for (ii in 1:(dim(brk)[2])) { #Add one column at a time
+            ccc <- tryCatch(
+               {as.numeric(brk[istrt:dim(brk)[1],1:dim(brk)[2]][[ii]])},
+                        warning=function(aa) {} ) 
+            if (is.null(ccc)) {
+               warn.AFNI(paste("Failed to process column ",
+                                ii-1, ". Using NA instead"))
+               ccc <- NA*vector(length=dim(brk)[1]-istrt+1)
+            }
             if (ii==1) {
-               covMatrix <- cbind(
-                  as.numeric(brk[istrt:dim(brk)[1],1:dim(brk)[2]][[ii]]));
+               covMatrix <- cbind(ccc);
             } else {
-               covMatrix <- cbind(covMatrix,
-                  as.numeric(brk[istrt:dim(brk)[1],1:dim(brk)[2]][[ii]]));
+               covMatrix <- cbind(covMatrix,ccc);
             }
          }
       }
@@ -1462,7 +1478,7 @@ read.AFNI.matrix <- function (fname,
                     dim(covMatrix)[1]-1, fname$file));
          return(NULL); 
       } 
-      covMatrix <- covMatrix[rosel,, drop=FALSE]
+      covMatrix <- covMatrix[rosel+1,, drop=FALSE]
    }
    if (!is.null(fname$rasel)) {
       err.AFNI('Not ready to deal with range selection');
