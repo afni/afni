@@ -228,9 +228,9 @@ int main( int argc , char *argv[] )
 
    /* 27 Jun 2010: OpenMP-ize over columns in ysim */
 
+ AFNI_OMP_START ;
 #pragma omp parallel if( ny > 1 )
  { float *ysar, *xsar, *fcar, *ydar, val ; int ii, kk, jj ; short *scar ;
- AFNI_OMP_START ;
 
 #ifdef USE_OMP
    if( omp_get_thread_num() == 0 )
@@ -276,8 +276,8 @@ int main( int argc , char *argv[] )
    } /* end of loop over ysim columns */
 
    free(ydar) ; free(xsar) ;
- AFNI_OMP_END ;
  } /* end OpenMP */
+ AFNI_OMP_END ;
 
    if( ny > 1 ) fprintf(stderr,"\n") ;
    DSET_unload(xset) ;  /* no longer needful */

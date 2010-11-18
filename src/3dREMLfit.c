@@ -2649,13 +2649,12 @@ STATUS("make GLTs from matrix file") ;
     if( vstep ) fprintf(stderr,"start %d OpenMP threads",maxthr) ;
 
 #ifdef USE_OMP
+  AFNI_OMP_START ;
 #pragma omp parallel
   {
     int ss,vv,rv,ii,kbest , ithr ;
     float *iv ; vector y ;  /* private arrays for each thread */
     MTYPE *ws ;
-
-  AFNI_OMP_START ;
 
 #pragma omp critical (MALLOC)
  {
@@ -2702,8 +2701,8 @@ STATUS("make GLTs from matrix file") ;
 #pragma omp critical (MALLOC)
    { free(ws) ; free(iv) ; vector_destroy(&y) ; } /* destroy private copies */
 
-  AFNI_OMP_END ;
   } /* end OpenMP */
+  AFNI_OMP_END ;
 #else
   ERROR_exit("This code should never be executed!!!") ;
 #endif

@@ -23,9 +23,9 @@ static MRI_IMAGE * mri_make_xxt( MRI_IMAGE *fim )
 
    /** setup m x m [A] = [X]'[X] matrix to eigensolve **/
 
+ AFNI_OMP_START ;
 #pragma omp parallel if( mm > 7 && nn > 999 )
  { int jj , kk , ii ; register double sum ; register float *xj,*xk ;
-   AFNI_OMP_START ;
 #pragma omp for
    for( jj=0 ; jj < mm ; jj++ ){
      xj = xx + jj*nn ;               /* j-th column */
@@ -36,8 +36,8 @@ static MRI_IMAGE * mri_make_xxt( MRI_IMAGE *fim )
        A(jj,kk) = sum ; if( kk < jj ) A(kk,jj) = sum ;
      }
    }
-   AFNI_OMP_END ;
  } /* end OpenMP */
+ AFNI_OMP_END ;
 
    return aim ;
 }

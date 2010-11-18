@@ -1914,13 +1914,12 @@ int main (int argc, char ** argv)
 	      &power_thr, &fim, &arfim, &freq_table, &max_table);
 
 
+ AFNI_OMP_START ;
 #pragma omp parallel if( niter > 99 )
  {
    int iter , qqq=quiet ; float *fim , *arfim=NULL ;
    long count=0; double sum=0.0, sumsq=0.0 ;
    long *mt , *ft ; int ithr=0 ; unsigned short xran[3] ;
-
- AFNI_OMP_START ;
 
   /* create separate tables for each thread, if using OpenMP */
 #ifdef USE_OMP
@@ -2009,14 +2008,14 @@ int main (int argc, char ** argv)
     if( arfim != NULL ) free(arfim) ;  /* toss the local trash */
     free(fim) ;
 
- AFNI_OMP_END ;
- } /* end OpenMP parallelization */
+  } /* end OpenMP parallelization */
+  AFNI_OMP_END ;
 
 #ifdef USE_OMP      /* sum tables from various threads into one result */
    if( nthr == 1 ){
      memcpy(freq_table,ftab[0],sizeof(long)*g_max_cluster_size) ;
      memcpy(max_table ,mtab[0],sizeof(long)*g_max_cluster_size) ;
-   } else {
+   } else {         /* note this is outside of OpenMP! */
      int ithr , ii ; long *ft , *mt ;
      for( ithr=0 ; ithr < nthr ; ithr++ ){
        ft = ftab[ithr] ; mt = mtab[ithr] ;

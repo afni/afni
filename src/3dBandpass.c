@@ -464,16 +464,16 @@ int main( int argc , char * argv[] )
 #if 1
    THD_vectim_to_dset( mrv , outset ) ;
 #else
+ AFNI_OMP_START ;
 #pragma omp parallel
  { float *far , *var ; int *ivec=mrv->ivec ; int vv,kk ;
- AFNI_OMP_START ;
 #pragma omp for
    for( vv=0 ; vv < ntime ; vv++ ){
      far = DSET_BRICK_ARRAY(outset,vv) ; var = mrv->fvec + vv ;
      for( kk=0 ; kk < nmask ; kk++ ) far[ivec[kk]] = var[kk*ntime] ;
    }
- AFNI_OMP_END ;
  }
+ AFNI_OMP_END ;
 #endif
    VECTIM_destroy(mrv) ;
    DSET_write(outset) ; if( verb ) WROTE_DSET(outset) ;

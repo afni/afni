@@ -94,12 +94,12 @@ void GA_interp_NN( MRI_IMAGE *fim ,
 {
 ENTRY("GA_interp_NN") ;
 
+ AFNI_OMP_START ;
 #pragma omp parallel if(npp > 9999)
  {
    int nx=fim->nx , ny=fim->ny , nz=fim->nz , nxy=nx*ny , ii,jj,kk , pp ;
    float nxh=nx-0.501f , nyh=ny-0.501f , nzh=nz-0.501f , xx,yy,zz ;
    float *far = MRI_FLOAT_PTR(fim) ;
- AFNI_OMP_START ;
 #pragma omp for
    for( pp=0 ; pp < npp ; pp++ ){
      xx = ip[pp] ; if( xx < -0.499f || xx > nxh ){ vv[pp]=outval; continue; }
@@ -109,8 +109,8 @@ ENTRY("GA_interp_NN") ;
      ii = (int)(xx+0.5f) ; jj = (int)(yy+0.5f) ; kk = (int)(zz+0.5f) ;
      vv[pp] = FAR(ii,jj,kk) ;
    }
- AFNI_OMP_END ;
  } /* end OpenMP */
+ AFNI_OMP_END ;
 
    EXRETURN ;
 }
@@ -128,6 +128,7 @@ ENTRY("GA_interp_linear") ;
     ERROR_message("NULL pointer on entry to GA_interp_linear :-(") ;
 #endif
 
+ AFNI_OMP_START ;
 #pragma omp parallel if(npp > 9999)
  {
    int nx=fim->nx , ny=fim->ny , nz=fim->nz , nxy=nx*ny , pp ;
@@ -142,7 +143,6 @@ ENTRY("GA_interp_linear") ;
    float wt_00,wt_p1 ;       /* interpolation weights */
    float f_j00_k00, f_jp1_k00, f_j00_kp1, f_jp1_kp1, f_k00, f_kp1 ;
 
- AFNI_OMP_START ;
 #pragma omp for
    for( pp=0 ; pp < npp ; pp++ ){
      xx = ip[pp] ; if( xx < -0.499f || xx > nxh ){ vv[pp]=outval; continue; }
@@ -178,8 +178,8 @@ ENTRY("GA_interp_linear") ;
      vv[pp] = (1.0f-fz) * f_k00 + fz * f_kp1 ;
    }
 
- AFNI_OMP_END ;
  } /* end OpenMP */
+ AFNI_OMP_END ;
 
    EXRETURN ;
 }
@@ -207,6 +207,7 @@ void GA_interp_cubic( MRI_IMAGE *fim ,
 {
 ENTRY("GA_interp_cubic") ;
 
+ AFNI_OMP_START ;
 #pragma omp parallel if(npp > 9999)
  {
    int nx=fim->nx , ny=fim->ny , nz=fim->nz , nxy=nx*ny , pp ;
@@ -225,7 +226,6 @@ ENTRY("GA_interp_cubic") ;
          f_jm1_kp2, f_j00_kp2, f_jp1_kp2, f_jp2_kp2,
          f_km1    , f_k00    , f_kp1    , f_kp2     ;
 
- AFNI_OMP_START ;
 #pragma omp for
    for( pp=0 ; pp < npp ; pp++ ){
      xx = ip[pp] ; if( xx < -0.499f || xx > nxh ){ vv[pp]=outval; continue; }
@@ -286,8 +286,8 @@ ENTRY("GA_interp_cubic") ;
                           + wt_p1 * f_kp1 + wt_p2 * f_kp2 ) ;
    }
 
- AFNI_OMP_END ;
  } /* end OpenMP */
+ AFNI_OMP_END ;
 
    EXRETURN ;
 }
@@ -514,6 +514,7 @@ void GA_interp_wsinc5p( MRI_IMAGE *fim ,
 {
 ENTRY("GA_interp_wsinc5p") ;
 
+ AFNI_OMP_START ;
 #pragma omp parallel if(npp > 9999)
  {
    int nx=fim->nx , ny=fim->ny , nz=fim->nz , nxy=nx*ny , pp ;
@@ -529,7 +530,6 @@ ENTRY("GA_interp_wsinc5p") ;
    int   iqq[2*IRAD]  ;
    /*----- loop over points -----*/
 
-   AFNI_OMP_START ;
 #pragma omp for
    for( pp=0 ; pp < npp ; pp++ ){
      xx = ip[pp] ; if( xx < -0.499f || xx > nxh ){ vv[pp]=outval; continue; }
@@ -622,8 +622,8 @@ ENTRY("GA_interp_wsinc5p") ;
      vv[pp] = sum / wfac ;
    }
 
- AFNI_OMP_END ;
  } /* end OpenMP */
+ AFNI_OMP_END ;
 
    EXRETURN ;
 }
@@ -670,6 +670,7 @@ void GA_interp_quintic( MRI_IMAGE *fim ,
 {
 ENTRY("GA_interp_quintic") ;
 
+ AFNI_OMP_START ;
 #pragma omp parallel if(npp > 9999)
  {
    int nx=fim->nx , ny=fim->ny , nz=fim->nz , nxy=nx*ny , pp ;
@@ -691,7 +692,6 @@ ENTRY("GA_interp_quintic") ;
          f_jm2_kp3, f_jm1_kp3, f_j00_kp3, f_jp1_kp3, f_jp2_kp3, f_jp3_kp3,
          f_km2    , f_km1    , f_k00    , f_kp1    , f_kp2    , f_kp3     ;
 
- AFNI_OMP_START ;
 #pragma omp for
    for( pp=0 ; pp < npp ; pp++ ){
      xx = ip[pp] ; if( xx < -0.499f || xx > nxh ){ vv[pp]=outval; continue; }
@@ -787,8 +787,8 @@ ENTRY("GA_interp_quintic") ;
              + wt_p1 * f_kp1 + wt_p2 * f_kp2 + wt_p3 * f_kp3 ;
    }
 
- AFNI_OMP_END ;
  } /* end OpenMP */
+ AFNI_OMP_END ;
 
    EXRETURN ;
 }

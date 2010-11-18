@@ -249,13 +249,12 @@ ENTRY("mri_blur3d_vectim") ;
    mmm  = (byte *)calloc(sizeof(byte),nvox) ;
    for( kk=0 ; kk < vim->nvec ; kk++ ) mmm[ivar[kk]] = 1 ;
 
+ AFNI_OMP_START ;
 #pragma omp parallel if( vim->nvals > 1 )
  {
    MRI_IMAGE *qim ;
    float     *qar , *var ;
    int iv , jj ;
-
- AFNI_OMP_START ;
 
 #pragma omp critical (BLUR3D_vectim)
    { qim = mri_new_vol( nx,ny,nz , MRI_float ) ; qar = MRI_FLOAT_PTR(qim) ; }
@@ -276,8 +275,8 @@ ENTRY("mri_blur3d_vectim") ;
 #pragma omp critical (BLUR3D_vectim)
    { mri_free(qim) ; }
 
- AFNI_OMP_END ;
  } /* end OpenMP */
+ AFNI_OMP_END ;
 
    free(mmm) ; EXRETURN ;
 }

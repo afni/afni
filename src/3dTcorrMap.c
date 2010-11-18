@@ -1169,9 +1169,9 @@ int main( int argc , char *argv[] )
        xsar = Mseedar ;             /* assign computed array to seed pointer */
      }
 
+ AFNI_OMP_START ;
 #pragma omp parallel
  { int vv,uu ; float *ysar ; float qcc ;
- AFNI_OMP_START ;
 #pragma omp for
      for( vv=0 ; vv < nmask ; vv++ ){ /*------- inner loop over voxels -------*/
 
@@ -1189,8 +1189,8 @@ int main( int argc , char *argv[] )
        }
        ccar[vv] = qcc ; /* save correlation in ccar for later (OpenMP mod) */
      } /* end of inner loop over voxels (vv) */
- AFNI_OMP_END ;
  } /* end OpenMP */
+ AFNI_OMP_END ;
 
      /** combine results in ccar to give output values **/
 

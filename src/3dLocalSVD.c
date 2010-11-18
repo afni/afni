@@ -336,6 +336,7 @@ int main( int argc , char *argv[] )
 
    /*** the real work now begins ***/
 
+ AFNI_OMP_START ;
 #pragma omp parallel if( nmask > 666 )  /* parallelization 16 Jul 2009 [disabled] */
  { int kk , xx,yy,zz , vv,ii ;
    MRI_IMARR *imar ; MRI_IMAGE *pim ;
@@ -344,7 +345,6 @@ int main( int argc , char *argv[] )
    if( rebase ) coef = (float *)malloc(sizeof(float)*(polort+1)) ;
    else         coef = NULL ;
 
- AFNI_OMP_START ;
    for( kk=0 ; kk < nxyz ; kk++ ){
 #ifndef USE_OMP
      if( vstep && kk%vstep==vstep-1 ) vstep_print() ;
@@ -383,8 +383,8 @@ int main( int argc , char *argv[] )
    }
 
    if( coef != NULL ) free(coef) ;
- AFNI_OMP_END ;
  } /* end OpenMP */
+ AFNI_OMP_END ;
 
 #ifndef USE_OMP
    if( vstep ) fprintf(stderr,"\n") ;

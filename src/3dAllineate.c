@@ -16,13 +16,18 @@
 
 #ifdef USE_OMP
 #include <omp.h>
+# if 0
+#  ifdef USING_MCW_MALLOC
+#   include "mcw_malloc.c"
+#  endif
+#endif
 #endif
 
 #ifdef SOLARIS
 # define strcasestr strstr  /* stupid Solaris */
 #endif
 
-#define MAXPAR   199
+#define MAXPAR   999
 #define PARC_FIX 1
 #define PARC_INI 2
 #define PARC_RAN 3
@@ -37,29 +42,26 @@ typedef struct { int np,code; float vb,vt ; } param_opt ;
 #define APPLY_AFF12   2
 
 #define NPBIL          39 /* plus 4 */
-#define WARP_BILINEAR 666
+#define WARP_BILINEAR 661
 #define APPLY_BILIN     3
 
 #define NPCUB          60 /* 3*(1+3+6+10) */
-#define WARP_CUBIC    667
+#define WARP_CUBIC    663
 #define APPLY_CUBIC     4
 
 #define NPQUINT       168 /* 3*(1+3+6+10+15+21) */
-#define WARP_QUINT    668
+#define WARP_QUINT    664
 #define APPLY_QUINT     5
 
 #define NPHEPT        360 /* 3*(1+3+6+10+15+21+28+36) */
-#define WARP_HEPT     669
+#define WARP_HEPT     665
 #define APPLY_HEPT      6
 
-#define NONLINEAR_APPLY(aa) ( (aa) >= APPLY_BILIN )
+#define NPNONI        660 /* 3*(1+3+6+10+15+21+28+36+45+55) */
+#define WARP_NONI     666
+#define APPLY_NONI      7
 
-#define CUBIC_FIRST    12
-#define CUBIC_LAST     (NPCUB-1)
-#define QUINT_FIRST    (CUBIC_LAST+1)
-#define QUINT_LAST     (NPQUINT-1)
-#define HEPT_FIRST     (QUINT_LAST+1)
-#define HEPT_LAST      (NPHEPT-1)
+#define NONLINEAR_APPLY(aa) ( (aa) >= APPLY_BILIN )
 
 static float wt_medsmooth = 2.25f ;   /* for mri_weightize() */
 static float wt_gausmooth = 4.50f ;
@@ -227,8 +229,11 @@ static float BILINEAR_offdiag_norm(GA_setup stup)
 #define SETUP_QUINT_PARAMS do{ SETUP_NONLIN_PARAMS(156,0.08f,"quint") ;      \
                                stup.wfunc = mri_genalign_quintic ; } while(0)
 
-#define SETUP_HEPT_PARAMS do{ SETUP_NONLIN_PARAMS(348,0.08f,"hept") ;        \
+#define SETUP_HEPT_PARAMS do{ SETUP_NONLIN_PARAMS(348,0.08f,"heptic") ;      \
                               stup.wfunc = mri_genalign_heptic ; } while(0)
+
+#define SETUP_NONI_PARAMS do{ SETUP_NONLIN_PARAMS(648,0.08f,"nonic") ;       \
+                              stup.wfunc = mri_genalign_nonic ; } while(0)
 
 /*---------------------------------------------------------------------------*/
 
@@ -1226,6 +1231,7 @@ int main( int argc , char *argv[] )
         "                warps: 'cubic', 'quintic', and 'heptic' (using\n"
         "                3rd, 5th, and 7th order Legendre polynomials); e.g.,\n"
         "                   -nwarp heptic\n"
+        "              * Or you can call them 'poly3', 'poly5', 'poly7' if desired.\n"
         "              * If you wish to apply a nonlinear warp, you have to supply\n"
         "                a parameter file with -1Dparam_apply and also specify the\n"
         "                warp type with -nwarp.  The number of parameters in the\n"
@@ -1308,6 +1314,10 @@ int main( int argc , char *argv[] )
 
 #if defined(USING_MCW_MALLOC) && !defined(USE_OMP)
    enable_mcw_malloc() ;
+#else
+# if 0
+   if( AFNI_yesenv("ALLIN_DEBUG") ) enable_mcw_malloc() ;
+# endif
 #endif
 
    mainENTRY("3dAllineate"); machdep();
@@ -1342,14 +1352,20 @@ int main( int argc , char *argv[] )
          } else if( strncasecmp(argv[iarg],"bil",3) == 0 ){
            nwarp_type = WARP_BILINEAR ;
            if( strstr(argv[iarg],"D") != NULL ) nwarp_flags = 1 ; /* 29 Oct 2010 */
-         } else if( strncasecmp(argv[iarg],"cub",3) == 0 ){       /* 13 Nov 2010 */
+         } else if( strncasecmp(argv[iarg],"cub",3) == 0 ||
+                    strcasecmp(argv[iarg],"poly3")  == 0   ){       /* 13 Nov 2010 */
            nwarp_type = WARP_CUBIC ;
-         } else if( strncasecmp(argv[iarg],"qui",3) == 0 ){       /* 15 Nov 2010 */
+         } else if( strncasecmp(argv[iarg],"qui",3) == 0 ||
+                    strcasecmp(argv[iarg],"poly5")  == 0   ){       /* 15 Nov 2010 */
            nwarp_type = WARP_QUINT ;
-         } else if( strncasecmp(argv[iarg],"hep",3) == 0 ){       /* 15 Nov 2010 */
+         } else if( strncasecmp(argv[iarg],"hep",3) == 0 ||
+                    strcasecmp(argv[iarg],"poly7")  == 0   ){       /* 15 Nov 2010 */
            nwarp_type = WARP_HEPT ;
+         } else if( strncasecmp(argv[iarg],"non",3) == 0 ||
+                    strcasecmp(argv[iarg],"poly9")  == 0   ){       /* 17 Nov 2010 */
+           nwarp_type = WARP_NONI ;
          } else {
-           WARNING_message("unknown -nwarp type '%s' :-(",argv[iarg]) ;
+           ERROR_exit("unknown -nwarp type '%s' :-(",argv[iarg]) ;
          }
          warp_code = WARP_AFFINE ; iarg++ ;
        }
@@ -2524,7 +2540,7 @@ int main( int argc , char *argv[] )
 
    if( apply_mode > 0 && nwarp_pass ){
      switch( nwarp_pass ){
-       default: ERROR_exit("Can't apply that nonlinear warp :-(") ;
+       default: ERROR_exit("Can't apply that nonlinear warp :-(  [%d]",nwarp_pass) ;
 
        case WARP_BILINEAR:{
          if( apply_nx == NPBIL+4 ){
@@ -2544,11 +2560,11 @@ int main( int argc , char *argv[] )
          if( apply_nx == NPCUB+4 ){
            apply_mode = APPLY_CUBIC ;
            INFO_message(
-            "found %d param/row in param file '%s'; applying cubic warp",
+            "found %d param/row in param file '%s'; applying cubic/poly3 warp",
             apply_nx , apply_1D) ;
          } else {
            ERROR_exit(
-            "found %d param/row in param file '%s'; not right for cubic warp",
+            "found %d param/row in param file '%s'; not right for cubic/poly3 warp",
             apply_nx , apply_1D) ;
          }
        }
@@ -2558,11 +2574,11 @@ int main( int argc , char *argv[] )
          if( apply_nx == NPQUINT+4 ){
            apply_mode = APPLY_QUINT ;
            INFO_message(
-            "found %d param/row in param file '%s'; applying quintic warp",
+            "found %d param/row in param file '%s'; applying quintic/poly5 warp",
             apply_nx , apply_1D) ;
          } else {
            ERROR_exit(
-            "found %d param/row in param file '%s'; not right for quintic warp",
+            "found %d param/row in param file '%s'; not right for quintic/poly5 warp",
             apply_nx , apply_1D) ;
          }
        }
@@ -2572,16 +2588,30 @@ int main( int argc , char *argv[] )
          if( apply_nx == NPHEPT+4 ){
            apply_mode = APPLY_HEPT ;
            INFO_message(
-            "found %d param/row in param file '%s'; applying heptic warp",
+            "found %d param/row in param file '%s'; applying heptic/poly7 warp",
             apply_nx , apply_1D) ;
          } else {
            ERROR_exit(
-            "found %d param/row in param file '%s'; not right for heptic warp",
+            "found %d param/row in param file '%s'; not right for heptic/poly7 warp",
             apply_nx , apply_1D) ;
          }
        }
        break ;
-     }
+
+       case WARP_NONI:{
+         if( apply_nx == NPNONI+4 ){
+           apply_mode = APPLY_NONI ;
+           INFO_message(
+            "found %d param/row in param file '%s'; applying nonic/poly9 warp",
+            apply_nx , apply_1D) ;
+         } else {
+           ERROR_exit(
+            "found %d param/row in param file '%s'; not right for nonic/poly9 warp",
+            apply_nx , apply_1D) ;
+         }
+       }
+       break ;
+     } /* end of switch on nwarp_pass */
    }
 
    /* open target from last argument, if not already open */
@@ -3254,6 +3284,7 @@ int main( int argc , char *argv[] )
      case APPLY_CUBIC: SETUP_CUBIC_PARAMS    ; break ;
      case APPLY_QUINT: SETUP_QUINT_PARAMS    ; break ;
      case APPLY_HEPT : SETUP_HEPT_PARAMS     ; break ;
+     case APPLY_NONI : SETUP_NONI_PARAMS     ; break ;
    }
 
    /*****------ create shell of output dataset ------*****/
@@ -4099,7 +4130,7 @@ int main( int argc , char *argv[] )
 
          float rr , xcen,ycen,zcen , brad,crad ; int nbf ;
 
-         rr = MAX(xsize,ysize) ; rr = MAX(zsize,rr) ; rr = 0.95f / rr ;
+         rr = MAX(xsize,ysize) ; rr = MAX(zsize,rr) ; rr = 0.85f / rr ;
 
          SETUP_CUBIC_PARAMS ;  /* nonlinear params */
 
@@ -4129,11 +4160,11 @@ int main( int argc , char *argv[] )
 
          /* do the optimization */
 
-         if( verb > 0 ) INFO_message("Start Cubic warping") ;
+         if( verb > 0 ) INFO_message("Start Cubic warping: %d parameters",NPCUB-12) ;
          /** if( verb > 1 ) PARINI("- Cubic initial") ; **/
          for( jj=12 ; jj < NPCUB  ; jj++ ) stup.wfunc_param[jj].fixed = 0 ;
          if( verb ) ctim = COX_cpu_time() ;
-         rad = 0.01f ; crad = 0.002f ;
+         rad = 0.01f ; crad = 0.003f ;
          nbf = mri_genalign_scalar_optim( &stup , rad, crad, 2222 );
          if( verb ){
            dtim = COX_cpu_time() ;
@@ -4147,15 +4178,15 @@ int main( int argc , char *argv[] )
 
        } else if( nwarp_type == WARP_QUINT ){  /*------ special case ------------*/
 
-#define PARAM_SETUP(pp,ff,vv)                                                           \
- do{ if( ff ){ stup.wfunc_param[pp].fixed = 1 ; stup.wfunc_param[pp].val_fixed = vv ; } \
-     else    { stup.wfunc_param[pp].fixed = 0 ; }                                       \
-     stup.wfunc_param[pp].val_init = vv ;                                               \
+#define PARAM_SETUP(pp,ff,vv)                                                          \
+ do{ if( ff ){ stup.wfunc_param[pp].fixed = ff; stup.wfunc_param[pp].val_fixed = vv; } \
+     else    { stup.wfunc_param[pp].fixed = 0; }                                       \
+     stup.wfunc_param[pp].val_init = vv;                                               \
  } while(0)
 
          float rr , xcen,ycen,zcen , brad,crad ; int nbf ;
 
-         rr = MAX(xsize,ysize) ; rr = MAX(zsize,rr) ; rr = 0.95f / rr ;
+         rr = MAX(xsize,ysize) ; rr = MAX(zsize,rr) ; rr = 0.85f / rr ;
 
          SETUP_QUINT_PARAMS ;  /* nonlinear params */
 
@@ -4182,10 +4213,10 @@ int main( int argc , char *argv[] )
 
          /* do the optimization */
 
-         if( verb > 0 ) INFO_message("Start Quintic warping") ;
+         if( verb > 0 ) INFO_message("Start Quintic warping: %d parameters",NPQUINT-12) ;
          for( jj=12 ; jj < NPQUINT ; jj++ ) stup.wfunc_param[jj].fixed = 0 ;
          if( verb ) ctim = COX_cpu_time() ;
-         rad = 0.01f ; crad = 0.002f ;
+         rad = 0.01f ; crad = 0.003f ;
          nbf = mri_genalign_scalar_optim( &stup , rad, crad, 2444 );
          if( verb ){
            dtim = COX_cpu_time() ;
@@ -4201,7 +4232,7 @@ int main( int argc , char *argv[] )
 
          float rr , xcen,ycen,zcen , brad,crad ; int nbf ;
 
-         rr = MAX(xsize,ysize) ; rr = MAX(zsize,rr) ; rr = 0.95f / rr ;
+         rr = MAX(xsize,ysize) ; rr = MAX(zsize,rr) ; rr = 0.85f / rr ;
 
          SETUP_HEPT_PARAMS ;  /* nonlinear params */
 
@@ -4228,10 +4259,10 @@ int main( int argc , char *argv[] )
 
          /* do the optimization */
 
-         if( verb > 0 ) INFO_message("Start Heptic warping") ;
+         if( verb > 0 ) INFO_message("Start Heptic warping: %d parameters",NPHEPT-12) ;
          for( jj=12 ; jj < NPHEPT ; jj++ ) stup.wfunc_param[jj].fixed = 0 ;
          if( verb ) ctim = COX_cpu_time() ;
-         rad = 0.01f ; crad = 0.002f ;
+         rad = 0.01f ; crad = 0.003f ;
          nbf = mri_genalign_scalar_optim( &stup , rad, crad, 2555 );
          if( verb ){
            dtim = COX_cpu_time() ;
@@ -4242,6 +4273,52 @@ int main( int argc , char *argv[] )
 
          /** if( verb > 1 ) PAROUT("- Heptic final") ; **/
          strcpy(warp_code_string,"heptic") ;
+
+       } else if( nwarp_type == WARP_NONI ){  /*------ special case ------------*/
+
+         float rr , xcen,ycen,zcen , brad,crad ; int nbf ;
+
+         rr = MAX(xsize,ysize) ; rr = MAX(zsize,rr) ; rr = 0.85f / rr ;
+
+         SETUP_NONI_PARAMS ;  /* nonlinear params */
+
+         /* nonlinear transformation is centered at middle of base volume
+            indexes (xcen,ycen,zcen) and is scaled by reciprocal of size (rr) */
+
+         MAT44_VEC( stup.base_cmat,
+                    0.5f*nx_base, 0.5f*ny_base, 0.5f*nz_base,
+                    xcen        , ycen        , zcen         ) ;
+         PARAM_SETUP( NPNONI   , 2 , xcen ) ;
+         PARAM_SETUP( NPNONI+1 , 2 , ycen ) ;
+         PARAM_SETUP( NPNONI+2 , 2 , zcen ) ;
+         PARAM_SETUP( NPNONI+3 , 2 , rr   ) ;
+
+         /* affine part is copied from results of work thus far */
+
+         for( jj=0 ; jj < 12 ; jj++ ){
+           PARAM_SETUP( jj , 1 , stup.wfunc_param[jj].val_out ) ;
+         }
+
+         stup.need_hist_setup = 1 ;
+         mri_genalign_scalar_setup( NULL,NULL,NULL, &stup );
+         GA_set_nperval(0) ;
+
+         /* do the optimization */
+
+         if( verb > 0 ) INFO_message("Start Nonic warping: %d parameters",NPNONI-12) ;
+         for( jj=12 ; jj < NPNONI ; jj++ ) stup.wfunc_param[jj].fixed = 0 ;
+         if( verb ) ctim = COX_cpu_time() ;
+         rad = 0.01f ; crad = 0.003f ;
+         nbf = mri_genalign_scalar_optim( &stup , rad, crad, 3333 );
+         if( verb ){
+           dtim = COX_cpu_time() ;
+           ININFO_message("- Nonic cost = %f ; %d funcs ; net CPU = %.1f s",
+                          stup.vbest,nbf,dtim-ctim) ;
+           ctim = dtim ;
+         }
+
+         /** if( verb > 1 ) PAROUT("- Nonic final") ; **/
+         strcpy(warp_code_string,"nonic") ;
 
        } else {   /*----------------------- general nonlinear expansion -----*/
 
@@ -4557,9 +4634,6 @@ mri_genalign_set_pgmat(1) ;
 
        switch( apply_mode ){
          default:
-         case APPLY_BILIN:
-         case APPLY_PARAM:
-         case APPLY_CUBIC:
            AL_setup_warp_coords( epi_targ,epi_fe,epi_pe,epi_se,
                                  nxyz_dout, dxyz_dout, cmat_bout,
                                  nxyz_targ, dxyz_targ, cmat_tout ) ;
