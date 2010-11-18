@@ -1757,6 +1757,27 @@ def vec_range_limit(vec, minv, maxv):
    return 0
 
 # for now, make 2 vectors and return their correlation
+def test_polort_const(ntrs, nruns, verb=1):
+    """compute the correlation between baseline regressors of length ntrs*nruns
+       - make vectors of 11...10000...0 and 00...011...100..0 that are as the
+         constant polort terms of the first 2 runs
+       - return their correlation
+    """
+
+    if ntrs <= 0 or nruns <= 2: return -1  # flag
+
+    # lazy way to make vectors
+    v0 = [1] * ntrs + [0] * ntrs + [0] * (ntrs * (nruns-2))
+    v1 = [0] * ntrs + [1] * ntrs + [0] * (ntrs * (nruns-2))
+
+    if verb > 1:
+        print '++ test_polort_const, vectors are:\n' \
+              '   v0 : %s \n'                        \
+              '   v1 : %s' % (v0, v1)
+
+    return correlation_p(v0, v1)
+
+# for now, make 2 vectors and return their correlation
 def test_tent_vecs(val, freq, length):
     a = []
     b = []
