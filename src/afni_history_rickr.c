@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 18, NOV, 2010, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
+   "fixed stim_files to stim_times conversion after multi_basis change",
+   "problem noted by M Weber"
+ } ,
+
  { 18, NOV, 2010, RCR, "make_stim_times.py", MICRO, TYPE_BUG_FIX,
    "fix for '*' in max 1 stim per run case",
    NULL

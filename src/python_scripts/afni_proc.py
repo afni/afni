@@ -221,9 +221,12 @@ g_history = """
         - added -regress_no_ideal_sum, -regress_basis_multi
     2.39 Nov 04 2010 : no X.full_length.xmat.1D, use X.uncensored.xmat.1D
     2.40 Nov 10 2010 : added new NOTE sections for ANAT/EPI ALIGNMENT to -help
+    2.41 Nov 18 2010 :
+        - fixed stim_files to stim_times conversion after multi_basis change
+        - problem noted by M Weber
 """
 
-g_version = "version 2.40, Nov 10, 2010"
+g_version = "version 2.41, Nov 18, 2010"
 
 # version of AFNI required for script execution
 g_requires_afni = "4 Nov 2010"
