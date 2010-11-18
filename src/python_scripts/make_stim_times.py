@@ -125,16 +125,15 @@ g_mst_history = """
     1.1  Feb 02, 2007:
          - only print needed '*' (or two) for first run
          - added options -hist, -ver
-    1.2  May 21, 2008:
-         - added -amplitudes for Rutvik Desai
+    1.2  May 21, 2008: added -amplitudes for Rutvik Desai
     1.3  June 19, 2008:
          - help update and change ':' separator to '*' when using -amplitudes
          - added -show_valid_opts
-    1.4  Sep 17, 2008:
-         - added -labels option
+    1.4  Sep 17, 2008: added -labels option
+    1.5  Nov 18, 2010: fix for '*' in max one stim per run case
 """
 
-g_mst_version = "version 1.3, May 21, 2008"
+g_mst_version = "version 1.5, Nov 18, 2010"
 
 def get_opts():
     global g_help_string
@@ -280,7 +279,6 @@ def proc_mats(uopts):
             if newfile == None: return
             fp = open(newfile, 'w')
 
-            need_ast = 1         # '*' filler in case of 1 stim per run, max
             for run in range(nruns):
                 rindex = run * nt   # point to start of run
 
@@ -289,6 +287,7 @@ def proc_mats(uopts):
                     if run == 0: fp.write('* *\n')  # first run gets 2
                     else:        fp.write('*\n')
                     continue
+                # print '=== have stim in run, row = %s' % row[rindex:rindex+nt]
                 time = 0        # in this run
                 nstim = 0       # be sure we have more than 1 somewhere
                 for lcol in range(nt):
@@ -301,10 +300,8 @@ def proc_mats(uopts):
                         else:
                             fp.write('%s ' % str(time+offset))
                     time += tr
-                if run == 1 and need_ast and nstim == 1:
+                if run == 0 and nstim == 1:
                     fp.write('*')   # if first time has 1 stim, add '*'
-                    need_ast = 0
-                elif nstim > 1: need_ast = 0     # no worries
                 fp.write('\n')
 
             fp.close()

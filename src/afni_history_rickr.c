@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 18, NOV, 2010, RCR, "make_stim_times.py", MICRO, TYPE_BUG_FIX,
+   "fix for '*' in max 1 stim per run case",
+   NULL
+ } ,
+
  { 10, NOV, 2010, RCR, "afni_proc.py", MICRO, TYPE_GENERAL,
    "added new NOTE sections for ANAT/EPI ALIGNMENT to -help output",
    NULL
