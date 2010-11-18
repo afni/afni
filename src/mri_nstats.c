@@ -398,6 +398,7 @@ ENTRY("THD_localstat") ;
      if( vstep ) fprintf(stderr,"++ voxel loop [%d]:",iv) ;
 #endif
 
+ AFNI_OMP_START ;
 #pragma omp parallel if( nxyz > 1111 )    /* parallelization: 13 Jul 2009 */
  {
    int ijk,kk,jj,ii,cc ;
@@ -405,8 +406,6 @@ ENTRY("THD_localstat") ;
    THD_fvec3 fwv ;
    double perc[MAX_CODE_PARAMS], mpv[MAX_CODE_PARAMS] ;  /* no longer static */
    float *nbar ; int nbar_num ;
-   
- AFNI_OMP_START ;
 
    /* 17 Jul 2009: create workspace for neighborhood data */
 
@@ -488,8 +487,8 @@ ENTRY("THD_localstat") ;
 
      if( nbar != NULL ) free(nbar) ;
 
- AFNI_OMP_END ;
  } /* end OpenMP */
+ AFNI_OMP_END ;
 
 #ifndef USE_OMP
      if( vstep ) fprintf(stderr,"\n") ;

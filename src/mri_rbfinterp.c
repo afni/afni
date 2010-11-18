@@ -85,6 +85,7 @@ ENTRY("RBF_evaluate") ;
 
    ct = COX_clock_time() ;
 
+ AFNI_OMP_START ;
 #pragma omp parallel if(npt*nk > 9999)
  {
    int ii , jj , uselin=rbk->uselin ;
@@ -92,8 +93,6 @@ ENTRY("RBF_evaluate") ;
    float  xk , yk , zk , sum , *ev ;
    float b0,bx,by,bz , rai ;
    RBFKINT *kfirst , *klast ; int kbot,ktop ;
-
- AFNI_OMP_START ;
 
    /* load some local variables */
 
@@ -123,8 +122,8 @@ ENTRY("RBF_evaluate") ;
        val[ii] += b0 + bx*(xt-xm)*xd + by*(yt-ym)*yd + bz*(zt-zm)*zd ;
    }
 
- AFNI_OMP_END ;
  } /* end OpenMP */
+ AFNI_OMP_END ;
 
    if( verb ) ININFO_message("              Elapsed = %.1f",COX_clock_time()-ct) ;
    RETURN(1) ;
@@ -471,13 +470,12 @@ ENTRY("RBF_setup_kranges") ;
 
    ct = COX_clock_time() ;
 
+ AFNI_OMP_START ;
 #pragma omp parallel if(npt*nk > 9999)
  {
    int ii,jj , kbot,ktop ;
    float xt,yt,zt, rqq, xk,yk,zk, rr, *xx,*yy,*zz ;
    RBFKINT *klast , *kfirst ;
-
- AFNI_OMP_START ;
 
    rqq = rbk->rqq ; xx = rbk->xknot; yy = rbk->yknot; zz = rbk->zknot;
    kfirst = rbg->kfirst ; klast  = rbg->klast  ;
@@ -497,8 +495,8 @@ ENTRY("RBF_setup_kranges") ;
      }
    }
 
- AFNI_OMP_END ;
  } /* end OpenMP */
+ AFNI_OMP_END ;
 
    if( verb > 1 ){
      float ntot=0.0f ; int ii ;

@@ -134,7 +134,7 @@ int powell_newuoa( int ndim , double *x ,
    rhobeg = (doublereal)rstart ;
    rhoend = (doublereal)rend   ;
 
-   icode   = (npt+14)*(npt+n) + 3*n*(n+3)/2 + 666 ;
+   icode   = (npt+14)*(npt+n) + 3*n*(n+3)/2 + 6666 ;
    w       = (doublereal *)malloc(sizeof(doublereal)*icode) ; /* workspace */
    icode   = 0 ;
    userfun = ufunc ;

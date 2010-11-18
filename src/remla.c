@@ -1064,10 +1064,10 @@ reml_collection * REML_setup_all( matrix *X , int *tau ,
     }
 #endif
 
+ AFNI_OMP_START ;
 #pragma omp parallel if( maxthr > 1 )
  { int iab , nab , ii,jj,kk , ithr=0 ;
    MTYPE bb,aa, lam ; float avg ;
-  AFNI_OMP_START ;
 #ifdef USE_OMP
    ithr = omp_get_thread_num() ;
 #endif
@@ -1095,8 +1095,8 @@ reml_collection * REML_setup_all( matrix *X , int *tau ,
        }
      } /* end loop over (aa,bb) pairs */
 
-  AFNI_OMP_END ;
  } /* end OpenMP */
+ AFNI_OMP_END ;
 
 #ifdef USE_OMP
    for( ii=0 ; ii < nthr ; ii++ ){

@@ -286,11 +286,11 @@ int main( int argc , char *argv[] )
 
    use_qsar = (do_preserve || mmask != NULL) ; /* 19 Oct 20090 */
 
+ AFNI_OMP_START ;
 #pragma omp parallel if( nvals > 1 )
  {
    MRI_IMAGE *dsim ; int ids ; byte *qmask=NULL ; register int vv ;
    MRI_IMAGE *qim=NULL, *qsim=NULL; float *qar, *dsar, *qsar;
- AFNI_OMP_START ;
 #pragma omp critical (MALLOC)
    { if( use_qsar ){
        qsim  = mri_new_conforming(DSET_BRICK(inset,0),MRI_float); qsar = MRI_FLOAT_PTR(qsim);
@@ -370,8 +370,8 @@ int main( int argc , char *argv[] )
    { if( qsim   != NULL ) mri_free(qsim);
      if( immask != NULL ){ free(qmask); mri_free(qim); }
    }
- AFNI_OMP_END ;
  } /* end OpenMP */
+ AFNI_OMP_END ;
 
    if(   mask != NULL )     free(  mask) ;
    if( immask != NULL ) mri_free(immask) ;
