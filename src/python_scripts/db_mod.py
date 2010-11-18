@@ -2006,17 +2006,6 @@ def db_cmd_regress(proc, block):
     opt = block.opts.find_opt('-regress_basis_multi')
     if opt: basis = opt.parlist # override any -regress_basis
 
-    # expand the basis list to match stims
-    if len(proc.stims) != len(basis):
-        # if just one basis function, duplicate for each stim, else error
-        if len(basis) == 1:
-            if proc.verb > 2: print '-- duplicating single basis function'
-            basis = [basis[0] for ind in range(len(proc.stims))]
-        else:
-            print '** error: have %d basis functions but %d stim classes' \
-                  % (len(basis), len(proc.stims))
-            return
-
     opt = block.opts.find_opt('-regress_basis_normall')
     if opt: normall = '    -basis_normall %s \\\n' % opt.parlist[0]
     else:   normall = ''
@@ -2042,6 +2031,7 @@ def db_cmd_regress(proc, block):
                 "# run the regression analysis\n" % block_header('regress')
 
     # possibly add a make_stim_times.py command
+    # (convert -stim_file to -stim_times)
     opt = block.opts.find_opt('-regress_stim_times')
     convert = (block.opts.find_opt('-regress_no_stim_times') == None) and \
                 len(proc.stims) > 0
@@ -2049,6 +2039,18 @@ def db_cmd_regress(proc, block):
         newcmd = db_cmd_regress_sfiles2times(proc, block)
         if not newcmd: return
         cmd = cmd + newcmd
+
+    # expand the basis list to match stims
+    # (this should be done after any conversion from -stim_files)
+    if len(proc.stims) != len(basis):
+        # if just one basis function, duplicate for each stim, else error
+        if len(basis) == 1:
+            if proc.verb > 2: print '-- duplicating single basis function'
+            basis = [basis[0] for ind in range(len(proc.stims))]
+        else:
+            print '** error: have %d basis functions but %d stim classes' \
+                  % (len(basis), len(proc.stims))
+            return
 
     # if the user wants to censor large motion, create a censor.1D file
     if block.opts.find_opt('-regress_censor_motion'):
