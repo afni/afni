@@ -44,6 +44,12 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 18 , NOV , 2010 , RWC , "3dAllineate" , MICRO , TYPE_GENERAL ,
+   "Add 9th order (nonic) polynomial warp." ,
+   "And fixed a couple of annoying bugs in the other polynomial warp codes:\n"
+   "* Memory overrun because MAXPAR was exceeded.\n"
+   "* Indexing error because I used kk++ instead of ++kk." } ,
+
  { 17 , NOV , 2010 , RWC , "many programs" , MICRO , TYPE_BUG_FIX ,
    "Move AFNI_OMP_START / _END macros outside of OpenMP sections" ,
    "Otherwise tracing control on/off doesn't work - D'oh!" } ,
