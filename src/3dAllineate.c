@@ -223,16 +223,16 @@ static float BILINEAR_offdiag_norm(GA_setup stup)
      stup.wfunc_param[15+(nnl)].fixed = 2 ;                                  \
  } while(0)
 
-#define SETUP_CUBIC_PARAMS do{ SETUP_NONLIN_PARAMS(48,0.08f,"cubic") ;       \
+#define SETUP_CUBIC_PARAMS do{ SETUP_NONLIN_PARAMS(48,0.10f,"cubic") ;       \
                                stup.wfunc = mri_genalign_cubic ; } while(0)
 
-#define SETUP_QUINT_PARAMS do{ SETUP_NONLIN_PARAMS(156,0.08f,"quint") ;      \
+#define SETUP_QUINT_PARAMS do{ SETUP_NONLIN_PARAMS(156,0.10f,"quint") ;      \
                                stup.wfunc = mri_genalign_quintic ; } while(0)
 
-#define SETUP_HEPT_PARAMS do{ SETUP_NONLIN_PARAMS(348,0.08f,"heptic") ;      \
+#define SETUP_HEPT_PARAMS do{ SETUP_NONLIN_PARAMS(348,0.10f,"heptic") ;      \
                               stup.wfunc = mri_genalign_heptic ; } while(0)
 
-#define SETUP_NONI_PARAMS do{ SETUP_NONLIN_PARAMS(648,0.08f,"nonic") ;       \
+#define SETUP_NONI_PARAMS do{ SETUP_NONLIN_PARAMS(648,0.10f,"nonic") ;       \
                               stup.wfunc = mri_genalign_nonic ; } while(0)
 
 /*---------------------------------------------------------------------------*/
@@ -1227,11 +1227,13 @@ int main( int argc , char *argv[] )
         "                that has a single sub-brick!\n"
         "              * -1Dparam_save and -1Dparam_apply work with\n"
         "                bilinear warps; see the Notes for more information.\n"
-        "             ** Nov 2010: I have now added the following polynomial\n"
-        "                warps: 'cubic', 'quintic', and 'heptic' (using\n"
-        "                3rd, 5th, and 7th order Legendre polynomials); e.g.,\n"
+        "        ==>> ** Nov 2010: I have now added the following polynomial\n"
+        "                warps: 'cubic', 'quintic', 'heptic', 'nonic' (using\n"
+        "                3rd, 5th, 7th, and 9th order Legendre polynomials); e.g.,\n"
         "                   -nwarp heptic\n"
-        "              * Or you can call them 'poly3', 'poly5', 'poly7' if desired.\n"
+        "              * Or you can call them 'poly3', 'poly5', 'poly7', and 'poly9',\n"
+        "                  for simplicity and non-Hellenistic clarity.\n"
+        "              * Higher and higher order polynomials will take longer and longer.\n"
         "              * If you wish to apply a nonlinear warp, you have to supply\n"
         "                a parameter file with -1Dparam_apply and also specify the\n"
         "                warp type with -nwarp.  The number of parameters in the\n"
@@ -1240,14 +1242,16 @@ int main( int argc , char *argv[] )
         "                   cubic    =  64   [4 'parameters' are fixed values to]\n"
         "                   quintic  = 172   [normalize the coordinates to -1..1]\n"
         "                   heptic   = 364   [for the nonlinear warp functions. ]\n"
+        "                   nonic    = 664\n"
         "                In all these cases, the first 12 parameters are the\n"
         "                affine parameters (shifts, rotations, etc.), and the\n"
-        "                remaining parameters define the nonlinear part of the warp.\n"
+        "                remaining parameters define the nonlinear part of the warp\n"
+        "                (polynomial coefficients).\n"
         "-nwarp NOTES:\n"
         "-------------\n"
-        "* -nwarp is slow!\n"
+        "* -nwarp is slow - reeeaaallll slow!\n"
         "* Check the results to make sure the optimizer didn't run amok!\n"
-        "   (You should always do this with any registration software.)\n"
+        "   (You should ALWAYS do this with any registration software.)\n"
         "* If you use -1Dparam_save, then you can apply the nonlinear\n"
         "   warp to another dataset using -1Dparam_apply in a later\n"
         "   3dAllineate run. To do so, use '-nwarp xxx' in both runs\n"
@@ -4130,7 +4134,7 @@ int main( int argc , char *argv[] )
 
          float rr , xcen,ycen,zcen , brad,crad ; int nbf ;
 
-         rr = MAX(xsize,ysize) ; rr = MAX(zsize,rr) ; rr = 0.85f / rr ;
+         rr = MAX(xsize,ysize) ; rr = MAX(zsize,rr) ; rr = 1.2f / rr ;
 
          SETUP_CUBIC_PARAMS ;  /* nonlinear params */
 
@@ -4186,7 +4190,7 @@ int main( int argc , char *argv[] )
 
          float rr , xcen,ycen,zcen , brad,crad ; int nbf ;
 
-         rr = MAX(xsize,ysize) ; rr = MAX(zsize,rr) ; rr = 0.85f / rr ;
+         rr = MAX(xsize,ysize) ; rr = MAX(zsize,rr) ; rr = 1.2f / rr ;
 
          SETUP_QUINT_PARAMS ;  /* nonlinear params */
 
@@ -4217,7 +4221,7 @@ int main( int argc , char *argv[] )
          for( jj=12 ; jj < NPQUINT ; jj++ ) stup.wfunc_param[jj].fixed = 0 ;
          if( verb ) ctim = COX_cpu_time() ;
          rad = 0.01f ; crad = 0.003f ;
-         nbf = mri_genalign_scalar_optim( &stup , rad, crad, 2444 );
+         nbf = mri_genalign_scalar_optim( &stup , rad, crad, 3333 );
          if( verb ){
            dtim = COX_cpu_time() ;
            ININFO_message("- Quintic cost = %f ; %d funcs ; net CPU = %.1f s",
@@ -4232,7 +4236,7 @@ int main( int argc , char *argv[] )
 
          float rr , xcen,ycen,zcen , brad,crad ; int nbf ;
 
-         rr = MAX(xsize,ysize) ; rr = MAX(zsize,rr) ; rr = 0.85f / rr ;
+         rr = MAX(xsize,ysize) ; rr = MAX(zsize,rr) ; rr = 1.2f / rr ;
 
          SETUP_HEPT_PARAMS ;  /* nonlinear params */
 
@@ -4263,7 +4267,7 @@ int main( int argc , char *argv[] )
          for( jj=12 ; jj < NPHEPT ; jj++ ) stup.wfunc_param[jj].fixed = 0 ;
          if( verb ) ctim = COX_cpu_time() ;
          rad = 0.01f ; crad = 0.003f ;
-         nbf = mri_genalign_scalar_optim( &stup , rad, crad, 2555 );
+         nbf = mri_genalign_scalar_optim( &stup , rad, crad, 4444 );
          if( verb ){
            dtim = COX_cpu_time() ;
            ININFO_message("- Heptic cost = %f ; %d funcs ; net CPU = %.1f s",
@@ -4278,7 +4282,7 @@ int main( int argc , char *argv[] )
 
          float rr , xcen,ycen,zcen , brad,crad ; int nbf ;
 
-         rr = MAX(xsize,ysize) ; rr = MAX(zsize,rr) ; rr = 0.85f / rr ;
+         rr = MAX(xsize,ysize) ; rr = MAX(zsize,rr) ; rr = 1.2f / rr ;
 
          SETUP_NONI_PARAMS ;  /* nonlinear params */
 
@@ -4309,7 +4313,7 @@ int main( int argc , char *argv[] )
          for( jj=12 ; jj < NPNONI ; jj++ ) stup.wfunc_param[jj].fixed = 0 ;
          if( verb ) ctim = COX_cpu_time() ;
          rad = 0.01f ; crad = 0.003f ;
-         nbf = mri_genalign_scalar_optim( &stup , rad, crad, 3333 );
+         nbf = mri_genalign_scalar_optim( &stup , rad, crad, 5555 );
          if( verb ){
            dtim = COX_cpu_time() ;
            ININFO_message("- Nonic cost = %f ; %d funcs ; net CPU = %.1f s",
