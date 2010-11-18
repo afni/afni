@@ -102,6 +102,8 @@ extern AFD_dicom_header **MRILIB_dicom_header ;
     "  OMP_NUM_THREADS to some smaller value (including 1).\n"                     \
     "* Un-setting OMP_NUM_THREADS resets OpenMP back to its default state of\n"    \
     "  using all CPUs available.\n"                                                \
+    "  ++ However, on some systems (such as the NIH Biowulf), it seems to be\n"    \
+    "     necessary to set OMP_NUM_THREADS explicitly, or you only get one CPU.\n" \
     "* You must set OMP_NUM_THREADS in the shell BEFORE running the program,\n"    \
     "  since OpenMP queries this variable before the program actually is started\n"\
     "  -- you can't usefully set this variable in your ~/.afnirc file or on the\n" \
