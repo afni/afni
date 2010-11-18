@@ -641,7 +641,6 @@ double GA_scalar_fitter( int npar , double *mpar )
 {
   double val ;
   float *avm , *bvm , *wvm ;
-  static double vsmall=1.e+37 ;
 
 ENTRY("GA_scalar_fitter") ;
 
@@ -656,13 +655,20 @@ ENTRY("GA_scalar_fitter") ;
   val = GA_scalar_costfun( gstup->match_code, gstup->npt_match, avm,bvm,wvm ) ;
 
   free((void *)avm) ;    /* toss the trash */
-#if 0
-  if( AFNI_yesenv("ALLIN_DEBUG") ){
-    char cc = ' ' ;
-    if( vsmall > val ){ vsmall = val ; cc = '*' ; }
-    ININFO_message("  costfun = %.7g %c",val,cc) ;
+
+#if 1
+  if( mverb > 1 ){
+    static double vsmall=1.e+37 ; static int first=1 ;
+    if( vsmall > val ){
+      if( !first ){
+        if( mverb == 2 ) fprintf(stderr,"*") ;
+        else             fprintf(stderr,"*[%.6g] ",val) ;
+      }
+      vsmall = val ; first = 0 ;
+    }
   }
 #endif
+
   RETURN(val);
 }
 
@@ -1255,6 +1261,10 @@ ENTRY("mri_genalign_scalar_optim") ;
                           rstart , rend , nstep , GA_scalar_fitter ) ;
 
    stup->vbest = GA_scalar_fitter( stup->wfunc_numfree , wpar ) ;
+
+#if 1
+  if( mverb > 1 ) fprintf(stderr,"\n") ;
+#endif
 
    /* copy+scale output parameter values back to stup struct */
 
@@ -2244,22 +2254,22 @@ INFO_message("bilinear warp %s diagonal: %.7g %.7g %.3g",
 /* Legendre polynomials */
 
 #define LP1(x) (x)
-#define LP2(x) ((x)*(x)-0.3333333f)                                             /* 2/3    P2 */
-#define LP3(x) (((x)*(x)-0.6f)*(x))                                             /* 2/5    P3 */
-#define LP4(x) ((x)*(x)*((x)*(x)-0.857143f)+0.0857143f)                         /* 8/35   P4 */
-#define LP5(x) (((x)*(x)*((x)*(x)-1.11111f)+0.238095f)*(x))                     /* 8/63   P5 */
-#define LP6(x) ((x)*(x)*((x)*(x)*((x)*(x)-1.36364f)+0.454545f)-0.021645f)       /* 16/231 P6 */
-#define LP7(x) (((x)*(x)*((x)*(x)*((x)*(x)-1.61538f)+0.734266f)-0.081585f)*(x)) /* 16/429 P7 */
+#define LP2(x) ((x)*(x)-0.3333333f)
+#define LP3(x) (((x)*(x)-0.6f)*(x))*1.5f
+#define LP4(x) ((x)*(x)*((x)*(x)-0.857143f)+0.0857143f)*2.0f
+#define LP5(x) (((x)*(x)*((x)*(x)-1.11111f)+0.238095f)*(x))*3.0f
+#define LP6(x) ((x)*(x)*((x)*(x)*((x)*(x)-1.36364f)+0.454545f)-0.021645f)*5.0f
+#define LP7(x) (((x)*(x)*((x)*(x)*((x)*(x)-1.61538f)+0.734266f)-0.081585f)*(x))*9.0f
 
 #define LP8(x) ( (x)*(x) * \
                ( (x)*(x) * \
                ( (x)*(x) * \
-               ( (x)*(x) - 1.86667f ) + 1.07692f ) - 0.195804f ) + 0.0054390f )
+               ( (x)*(x) - 1.86667f ) + 1.07692f ) - 0.195804f ) + 0.0054390f )*14.0f
 
 #define LP9(x) ( ( (x)*(x) * \
                  ( (x)*(x) * \
                  ( (x)*(x) * \
-                 ( (x)*(x) - 2.11765f ) + 1.48235f ) - 0.380090f ) + 0.0259153f ) * (x) )
+                 ( (x)*(x) - 2.11765f ) + 1.48235f ) - 0.380090f ) + 0.0259153f ) * (x) )*25.0f
 
 /* Gegenbauer (alpha=-0.5) polynomials */
 
@@ -2273,7 +2283,7 @@ INFO_message("bilinear warp %s diagonal: %.7g %.7g %.3g",
 #define GP8(x) (-0.0390625f+(1.09375f+(-4.921875f+(7.21875f-3.3515625f*(x)*(x))*(x)*(x))*(x)*(x))*(x)*(x))
 #define GP9(x) ((-0.2734375f+(3.28125f+(-10.828125f+(13.40625f-5.5859375f*(x)*(x))*(x)*(x))*(x)*(x))*(x)*(x))*(x))
 
-/* 3D product functions of various orders */
+/* 3D product functions of various orders 2..9 */
 
 #define P2_xx(x,y,z) LP2(x)
 #define P2_xy(x,y,z) LP1(x)*LP1(y)
@@ -2499,10 +2509,14 @@ INFO_message("bilinear warp %s diagonal: %.7g %.7g %.3g",
 #define P9_yzzzzzzzz(x,y,z) LP1(y)*LP8(z)
 #define P9_zzzzzzzzz(x,y,z) LP9(z)
 
-#define NPARCUB    16  /* = 6+10 */
-#define NPARQUINT  52  /* = 6+10+15+21 */
-#define NPARHEPT  116  /* = 6+10+15+21+28+36 */
-#define NPARNONI  216  /* = 6+10+15+21+28+36+45+55 */
+/* number of polynomials in each set; number of params is times 3 (for x,y,z) */
+
+#define NPOLCUBI   16  /* = 6+10 */
+#define NPOLQUIN   52  /* = 6+10+15+21 */
+#define NPOLHEPT  116  /* = 6+10+15+21+28+36 */
+#define NPOLNONI  216  /* = 6+10+15+21+28+36+45+55 */
+
+/* FIXYZ macro makes sure arg is between -1 and 1 */
 
 #define PRAMP(x) ( 0.8f + ((x)-0.8f) / (1.0f + 5.0f*((x)-0.8f)) )
 #define NRAMP(x) (-0.8f + ((x)+0.8f) / (1.0f - 5.0f*((x)+0.8f)) )
@@ -2516,31 +2530,31 @@ void mri_genalign_cubic( int npar, float *wpar ,
                                    float *xo, float *yo, float *zo  )
 {
    static mat44 gam ;  /* saved general affine matrix */
-   static float xcen,ycen,zcen,xyzfac,xyzinv , ppar[3*NPARCUB] ;
-   static int puse[NPARCUB] , pall ;
+   static float xcen,ycen,zcen,xyzfac,xyzinv , ppar[3*NPOLCUBI] ;
+   static int puse[NPOLCUBI] , pall ;
 
    /** new parameters ==> setup matrix */
 
-   if( npar >= 3*NPARCUB+16 && wpar != NULL ){
+   if( npar >= 3*NPOLCUBI+16 && wpar != NULL ){
      int aa=aff_use_after , ab=aff_use_before , jj ;
 
-     xcen   = wpar[12+3*NPARCUB] ;  /* the fake (non-varying) parameters */
-     ycen   = wpar[13+3*NPARCUB] ;
-     zcen   = wpar[14+3*NPARCUB] ;
-     xyzfac = wpar[15+3*NPARCUB] ; xyzinv = 1.0f / xyzfac ;
+     xcen   = wpar[12+3*NPOLCUBI] ;  /* the fake (non-varying) parameters */
+     ycen   = wpar[13+3*NPOLCUBI] ;
+     zcen   = wpar[14+3*NPOLCUBI] ;
+     xyzfac = wpar[15+3*NPOLCUBI] ; xyzinv = 1.0f / xyzfac ;
 
      aff_use_before = aff_use_after = 0;
      gam = GA_setup_affine( 12 , wpar ) ;  /* affine param setup */
      aff_use_before = ab; aff_use_after = aa;
 
-     for( jj=0 ; jj < 3*NPARCUB ; jj++ )          /* save polynomial params */
+     for( jj=0 ; jj < 3*NPOLCUBI ; jj++ )          /* save polynomial params */
        ppar[jj] = wpar[jj+12] * xyzinv ;
-     for( pall=jj=0 ; jj < NPARCUB ; jj++ ){      /* mark which ones to use */
+     for( pall=jj=0 ; jj < NPOLCUBI ; jj++ ){      /* mark which ones to use */
        puse[jj] = (ppar[3*jj  ] != 0.0f) ||
                   (ppar[3*jj+1] != 0.0f) || (ppar[3*jj+2] != 0.0f) ;
        pall += puse[jj] ;
      }
-     pall = ( pall >= (int)(0.9f*NPARCUB) ) ;
+     pall = ( pall >= (int)(0.9f*NPOLCUBI) ) ;
 
 #if 0
      if( AFNI_yesenv("ALLIN_DEBUG") ){
@@ -2562,7 +2576,7 @@ void mri_genalign_cubic( int npar, float *wpar ,
 
  AFNI_OMP_START ;
 #pragma omp parallel if( npt > 6666 )
- { int ii,jj,kk ; float aa,bb,cc , uu,vv,ww , pv[NPARCUB] ;
+ { int ii,jj,kk ; float aa,bb,cc , uu,vv,ww , pv[NPOLCUBI] ;
 #pragma omp for
    for( ii=0 ; ii < npt ; ii++ ){
 
@@ -2578,13 +2592,7 @@ void mri_genalign_cubic( int npar, float *wpar ,
      /* centered and scaled to run from -1..1 */
 
      uu = (uu-xcen)*xyzfac ; vv = (vv-ycen)*xyzfac ; ww = (ww-zcen)*xyzfac ;
-#if 1
      FIXYZ(uu) ; FIXYZ(vv) ; FIXYZ(ww) ;
-#else
-     if( uu < -1.0f ) uu = -1.0f ; else if( uu > 1.0f ) uu = 1.0f ;
-     if( vv < -1.0f ) vv = -1.0f ; else if( vv > 1.0f ) vv = 1.0f ;
-     if( ww < -1.0f ) ww = -1.0f ; else if( ww > 1.0f ) ww = 1.0f ;
-#endif
 
      /* polynomials */
 
@@ -2597,7 +2605,7 @@ void mri_genalign_cubic( int npar, float *wpar ,
        pv[10] = P3_xzz(uu,vv,ww) ; pv[11] = P3_xyz(uu,vv,ww) ;
        pv[12] = P3_yyy(uu,vv,ww) ; pv[13] = P3_yyz(uu,vv,ww) ;
        pv[14] = P3_yzz(uu,vv,ww) ; pv[15] = P3_zzz(uu,vv,ww) ;
-       for( kk=jj=0 ; jj < NPARCUB ; jj++,kk+=3 ){
+       for( kk=jj=0 ; jj < NPOLCUBI ; jj++,kk+=3 ){
          aa += ppar[kk  ] * pv[jj] ;
          bb += ppar[kk+1] * pv[jj] ;
          cc += ppar[kk+2] * pv[jj] ;
@@ -2619,7 +2627,7 @@ void mri_genalign_cubic( int npar, float *wpar ,
        if( puse[13] ) pv[13] = P3_yyz(uu,vv,ww) ;
        if( puse[14] ) pv[14] = P3_yzz(uu,vv,ww) ;
        if( puse[15] ) pv[15] = P3_zzz(uu,vv,ww) ;
-       for( kk=jj=0 ; jj < NPARCUB ; jj++,kk+=3 ){
+       for( kk=jj=0 ; jj < NPOLCUBI ; jj++,kk+=3 ){
          if( puse[jj] ){
            aa += ppar[kk  ] * pv[jj] ;
            bb += ppar[kk+1] * pv[jj] ;
@@ -2649,31 +2657,31 @@ void mri_genalign_quintic( int npar, float *wpar ,
                                      float *xo, float *yo, float *zo  )
 {
    static mat44 gam ;  /* saved general affine matrix */
-   static float xcen,ycen,zcen,xyzfac,xyzinv , ppar[3*NPARQUINT] ;
-   static int puse[NPARQUINT] , pall ;
+   static float xcen,ycen,zcen,xyzfac,xyzinv , ppar[3*NPOLQUIN] ;
+   static int puse[NPOLQUIN] , pall ;
 
    /** new parameters ==> setup matrix */
 
-   if( npar >= 3*NPARQUINT+16 && wpar != NULL ){
+   if( npar >= 3*NPOLQUIN+16 && wpar != NULL ){
      int aa=aff_use_after , ab=aff_use_before , jj ;
 
-     xcen   = wpar[12+3*NPARQUINT] ;  /* the fake (non-varying) parameters */
-     ycen   = wpar[13+3*NPARQUINT] ;
-     zcen   = wpar[14+3*NPARQUINT] ;
-     xyzfac = wpar[15+3*NPARQUINT] ; xyzinv = 1.0f / xyzfac ;
+     xcen   = wpar[12+3*NPOLQUIN] ;  /* the fake (non-varying) parameters */
+     ycen   = wpar[13+3*NPOLQUIN] ;
+     zcen   = wpar[14+3*NPOLQUIN] ;
+     xyzfac = wpar[15+3*NPOLQUIN] ; xyzinv = 1.0f / xyzfac ;
 
      aff_use_before = aff_use_after = 0;
      gam = GA_setup_affine( 12 , wpar ) ;  /* affine param setup */
      aff_use_before = ab; aff_use_after = aa;
 
-     for( jj=0 ; jj < 3*NPARQUINT ; jj++ )          /* save polynomial params */
+     for( jj=0 ; jj < 3*NPOLQUIN ; jj++ )          /* save polynomial params */
        ppar[jj] = wpar[jj+12] * xyzinv ;
-     for( pall=jj=0 ; jj < NPARQUINT ; jj++ ){      /* mark which ones to use */
+     for( pall=jj=0 ; jj < NPOLQUIN ; jj++ ){      /* mark which ones to use */
        puse[jj] = (ppar[3*jj  ] != 0.0f) ||
                   (ppar[3*jj+1] != 0.0f) || (ppar[3*jj+2] != 0.0f) ;
        pall += puse[jj] ;
      }
-     pall = ( pall >= (int)(0.9f*NPARQUINT) ) ;
+     pall = ( pall >= (int)(0.9f*NPOLQUIN) ) ;
 
 #if 0
      if( AFNI_yesenv("ALLIN_DEBUG") ){
@@ -2695,7 +2703,7 @@ void mri_genalign_quintic( int npar, float *wpar ,
 
  AFNI_OMP_START ;
 #pragma omp parallel if( npt > 6666 )
- { int ii,jj,kk ; float aa,bb,cc , uu,vv,ww , pv[NPARQUINT] ;
+ { int ii,jj,kk ; float aa,bb,cc , uu,vv,ww , pv[NPOLQUIN] ;
 #pragma omp for
    for( ii=0 ; ii < npt ; ii++ ){
 
@@ -2711,13 +2719,7 @@ void mri_genalign_quintic( int npar, float *wpar ,
      /* centered and scaled to run from -1..1 */
 
      uu = (uu-xcen)*xyzfac ; vv = (vv-ycen)*xyzfac ; ww = (ww-zcen)*xyzfac ;
-#if 1
      FIXYZ(uu) ; FIXYZ(vv) ; FIXYZ(ww) ;
-#else
-     if( uu < -1.0f ) uu = -1.0f ; else if( uu > 1.0f ) uu = 1.0f ;
-     if( vv < -1.0f ) vv = -1.0f ; else if( vv > 1.0f ) vv = 1.0f ;
-     if( ww < -1.0f ) ww = -1.0f ; else if( ww > 1.0f ) ww = 1.0f ;
-#endif
 
      /* polynomials */
 
@@ -2792,7 +2794,7 @@ void mri_genalign_quintic( int npar, float *wpar ,
        pv[40] = Q5_xxzzz ; pv[41] = Q5_xyyyy ; pv[42] = Q5_xyyyz ; pv[43] = Q5_xyyzz ;
        pv[44] = Q5_xyzzz ; pv[45] = Q5_xzzzz ; pv[46] = Q5_yyyyy ; pv[47] = Q5_yyyyz ;
        pv[48] = Q5_yyyzz ; pv[49] = Q5_yyzzz ; pv[50] = Q5_yzzzz ; pv[51] = Q5_zzzzz ;
-       for( kk=jj=0 ; jj < NPARQUINT ; jj++,kk+=3 ){
+       for( kk=jj=0 ; jj < NPOLQUIN ; jj++,kk+=3 ){
          aa += ppar[kk  ] * pv[jj] ;
          bb += ppar[kk+1] * pv[jj] ;
          cc += ppar[kk+2] * pv[jj] ;
@@ -2850,7 +2852,7 @@ void mri_genalign_quintic( int npar, float *wpar ,
        if( puse[49] ) pv[49] = P5_yyzzz(uu,vv,ww) ;
        if( puse[50] ) pv[50] = P5_yzzzz(uu,vv,ww) ;
        if( puse[51] ) pv[51] = P5_zzzzz(uu,vv,ww) ;
-       for( kk=jj=0 ; jj < NPARQUINT ; jj++,kk+=3 ){
+       for( kk=jj=0 ; jj < NPOLQUIN ; jj++,kk+=3 ){
          if( puse[jj] ){
            aa += ppar[kk  ] * pv[jj] ;
            bb += ppar[kk+1] * pv[jj] ;
@@ -2880,31 +2882,31 @@ void mri_genalign_heptic( int npar, float *wpar ,
                                     float *xo, float *yo, float *zo  )
 {
    static mat44 gam ;  /* saved general affine matrix */
-   static float xcen,ycen,zcen,xyzfac,xyzinv , ppar[3*NPARHEPT] ;
-   static int puse[NPARHEPT] , pall ;
+   static float xcen,ycen,zcen,xyzfac,xyzinv , ppar[3*NPOLHEPT] ;
+   static int puse[NPOLHEPT] , pall ;
 
    /** new parameters ==> setup matrix */
 
-   if( npar >= 3*NPARHEPT+16 && wpar != NULL ){
+   if( npar >= 3*NPOLHEPT+16 && wpar != NULL ){
      int aa=aff_use_after , ab=aff_use_before , jj ;
 
-     xcen   = wpar[12+3*NPARHEPT] ;  /* the fake (non-varying) parameters */
-     ycen   = wpar[13+3*NPARHEPT] ;
-     zcen   = wpar[14+3*NPARHEPT] ;
-     xyzfac = wpar[15+3*NPARHEPT] ; xyzinv = 1.0f / xyzfac ;
+     xcen   = wpar[12+3*NPOLHEPT] ;  /* the fake (non-varying) parameters */
+     ycen   = wpar[13+3*NPOLHEPT] ;
+     zcen   = wpar[14+3*NPOLHEPT] ;
+     xyzfac = wpar[15+3*NPOLHEPT] ; xyzinv = 1.0f / xyzfac ;
 
      aff_use_before = aff_use_after = 0;
      gam = GA_setup_affine( 12 , wpar ) ;  /* affine param setup */
      aff_use_before = ab; aff_use_after = aa;
 
-     for( jj=0 ; jj < 3*NPARHEPT ; jj++ )          /* save polynomial params */
+     for( jj=0 ; jj < 3*NPOLHEPT ; jj++ )          /* save polynomial params */
        ppar[jj] = wpar[jj+12] * xyzinv ;
-     for( pall=jj=0 ; jj < NPARHEPT ; jj++ ){      /* mark which ones to use */
+     for( pall=jj=0 ; jj < NPOLHEPT ; jj++ ){      /* mark which ones to use */
        puse[jj] = (ppar[3*jj  ] != 0.0f) ||
                   (ppar[3*jj+1] != 0.0f) || (ppar[3*jj+2] != 0.0f) ;
        pall += puse[jj] ;
      }
-     pall = ( pall >= (int)(0.9f*NPARHEPT) ) ;
+     pall = ( pall >= (int)(0.9f*NPOLHEPT) ) ;
    }
 
    /* nothing to transform? (a setup call) */
@@ -2915,7 +2917,7 @@ void mri_genalign_heptic( int npar, float *wpar ,
 
  AFNI_OMP_START ;
 #pragma omp parallel if( npt > 6666 )
- { int ii,jj,kk ; float aa,bb,cc , uu,vv,ww , pv[NPARHEPT] ;
+ { int ii,jj,kk ; float aa,bb,cc , uu,vv,ww , pv[NPOLHEPT] ;
 #pragma omp for
    for( ii=0 ; ii < npt ; ii++ ){
 
@@ -2931,13 +2933,7 @@ void mri_genalign_heptic( int npar, float *wpar ,
      /* centered and scaled to run from -1..1 */
 
      uu = (uu-xcen)*xyzfac ; vv = (vv-ycen)*xyzfac ; ww = (ww-zcen)*xyzfac ;
-#if 1
      FIXYZ(uu) ; FIXYZ(vv) ; FIXYZ(ww) ;
-#else
-     if( uu < -1.0f ) uu = -1.0f ; else if( uu > 1.0f ) uu = 1.0f ;
-     if( vv < -1.0f ) vv = -1.0f ; else if( vv > 1.0f ) vv = 1.0f ;
-     if( ww < -1.0f ) ww = -1.0f ; else if( ww > 1.0f ) ww = 1.0f ;
-#endif
 
      /* polynomials */
 
@@ -3051,7 +3047,7 @@ void mri_genalign_heptic( int npar, float *wpar ,
        pv[kk++] = Q7_yyyyyzz ; pv[kk++] = Q7_yyyyzzz ; pv[kk++] = Q7_yyyzzzz ;
        pv[kk++] = Q7_yyzzzzz ; pv[kk++] = Q7_yzzzzzz ; pv[kk++] = Q7_zzzzzzz ;
 
-       for( kk=jj=0 ; jj < NPARHEPT ; jj++,kk+=3 ){
+       for( kk=jj=0 ; jj < NPOLHEPT ; jj++,kk+=3 ){
          aa += ppar[kk  ] * pv[jj] ;
          bb += ppar[kk+1] * pv[jj] ;
          cc += ppar[kk+2] * pv[jj] ;
@@ -3173,7 +3169,7 @@ void mri_genalign_heptic( int npar, float *wpar ,
        if( puse[++kk] ) pv[kk] = P7_yyzzzzz(uu,vv,ww) ;
        if( puse[++kk] ) pv[kk] = P7_yzzzzzz(uu,vv,ww) ;
        if( puse[++kk] ) pv[kk] = P7_zzzzzzz(uu,vv,ww) ;
-       for( kk=jj=0 ; jj < NPARHEPT ; jj++,kk+=3 ){
+       for( kk=jj=0 ; jj < NPOLHEPT ; jj++,kk+=3 ){
          if( puse[jj] ){
            aa += ppar[kk  ] * pv[jj] ;
            bb += ppar[kk+1] * pv[jj] ;
@@ -3215,37 +3211,37 @@ void mri_genalign_nonic( int npar, float *wpar ,
                                    float *xo, float *yo, float *zo  )
 {
    static mat44 gam ;  /* saved general affine matrix */
-   static float xcen,ycen,zcen,xyzfac,xyzinv , ppar[3*NPARNONI] ;
-   static int puse[NPARNONI] , pall ;
+   static float xcen,ycen,zcen,xyzfac,xyzinv , ppar[3*NPOLNONI] ;
+   static int puse[NPOLNONI] , pall ;
 
 ENTRY("mri_genalign_nonic") ;
 
    /** new parameters ==> setup matrix */
 
-   if( npar >= 3*NPARNONI+16 && wpar != NULL ){
+   if( npar >= 3*NPOLNONI+16 && wpar != NULL ){
      int aa=aff_use_after , ab=aff_use_before , jj ;
 
 #if 0
 STATUS("setup params") ;
 #endif
 
-     xcen   = wpar[12+3*NPARNONI] ;  /* the fake (non-varying) parameters */
-     ycen   = wpar[13+3*NPARNONI] ;
-     zcen   = wpar[14+3*NPARNONI] ;
-     xyzfac = wpar[15+3*NPARNONI] ; xyzinv = 1.0f / xyzfac ;
+     xcen   = wpar[12+3*NPOLNONI] ;  /* the fake (non-varying) parameters */
+     ycen   = wpar[13+3*NPOLNONI] ;
+     zcen   = wpar[14+3*NPOLNONI] ;
+     xyzfac = wpar[15+3*NPOLNONI] ; xyzinv = 1.0f / xyzfac ;
 
      aff_use_before = aff_use_after = 0;
      gam = GA_setup_affine( 12 , wpar ) ;  /* affine param setup */
      aff_use_before = ab; aff_use_after = aa;
 
-     for( jj=0 ; jj < 3*NPARNONI ; jj++ )          /* save polynomial params */
+     for( jj=0 ; jj < 3*NPOLNONI ; jj++ )          /* save polynomial params */
        ppar[jj] = wpar[jj+12] * xyzinv ;
-     for( pall=jj=0 ; jj < NPARNONI ; jj++ ){      /* mark which ones to use */
+     for( pall=jj=0 ; jj < NPOLNONI ; jj++ ){      /* mark which ones to use */
        puse[jj] = (ppar[3*jj  ] != 0.0f) ||
                   (ppar[3*jj+1] != 0.0f) || (ppar[3*jj+2] != 0.0f) ;
        pall += puse[jj] ;
      }
-     pall = ( pall >= (int)(0.9f*NPARNONI) ) ;
+     pall = ( pall >= (int)(0.9f*NPOLNONI) ) ;
 
 #if 0
 STATUS("setup finished") ;
@@ -3265,7 +3261,7 @@ STATUS("setup finished") ;
      STATUS("not pall") ;
      if( PRINT_TRACING ){
        fprintf(stderr,"   ppar:") ;
-       for( jj=0 ; jj < 3*NPARNONI ; jj++ )
+       for( jj=0 ; jj < 3*NPOLNONI ; jj++ )
          if( ppar[jj] != 0.0f ) fprintf(stderr," [%d]=%.5g",jj,ppar[jj]) ;
        fprintf(stderr,"\n") ;
      }
@@ -3274,7 +3270,7 @@ STATUS("setup finished") ;
 
  AFNI_OMP_START ;
 #pragma omp parallel if( npt > 6666 )
- { int ii,jj,kk ; float aa,bb,cc , uu,vv,ww , pv[NPARNONI] ;
+ { int ii,jj,kk ; float aa,bb,cc , uu,vv,ww , pv[NPOLNONI] ;
 #pragma omp for
    for( ii=0 ; ii < npt ; ii++ ){
 
@@ -3290,13 +3286,7 @@ STATUS("setup finished") ;
      /* centered and scaled to run from -1..1 */
 
      uu = (uu-xcen)*xyzfac ; vv = (vv-ycen)*xyzfac ; ww = (ww-zcen)*xyzfac ;
-#if 1
      FIXYZ(uu) ; FIXYZ(vv) ; FIXYZ(ww) ;
-#else
-     if( uu < -1.0f ) uu = -1.0f ; else if( uu > 1.0f ) uu = 1.0f ;
-     if( vv < -1.0f ) vv = -1.0f ; else if( vv > 1.0f ) vv = 1.0f ;
-     if( ww < -1.0f ) ww = -1.0f ; else if( ww > 1.0f ) ww = 1.0f ;
-#endif
 
      /* polynomials */
 
@@ -3480,7 +3470,7 @@ STATUS("setup finished") ;
        pv[kk++] = Q9_yyyzzzzzz ; pv[kk++] = Q9_yyzzzzzzz ; pv[kk++] = Q9_yzzzzzzzz ;
        pv[kk++] = Q9_zzzzzzzzz ;
 
-       for( kk=jj=0 ; jj < NPARNONI ; jj++,kk+=3 ){
+       for( kk=jj=0 ; jj < NPOLNONI ; jj++,kk+=3 ){
          aa += ppar[kk  ] * pv[jj] ;
          bb += ppar[kk+1] * pv[jj] ;
          cc += ppar[kk+2] * pv[jj] ;
@@ -3703,7 +3693,7 @@ STATUS("setup finished") ;
        if( puse[++kk] ) pv[kk] = P9_yzzzzzzzz(uu,vv,ww) ;
        if( puse[++kk] ) pv[kk] = P9_zzzzzzzzz(uu,vv,ww) ;
 
-       for( kk=jj=0 ; jj < NPARNONI ; jj++,kk+=3 ){
+       for( kk=jj=0 ; jj < NPOLNONI ; jj++,kk+=3 ){
          if( puse[jj] ){
            aa += ppar[kk  ] * pv[jj] ;
            bb += ppar[kk+1] * pv[jj] ;
