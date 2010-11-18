@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 17 , NOV , 2010 , RWC , "many programs" , MICRO , TYPE_BUG_FIX ,
+   "Move AFNI_OMP_START / _END macros outside of OpenMP sections" ,
+   "Otherwise tracing control on/off doesn't work - D'oh!" } ,
+
  { 16 , NOV , 2010 , RWC , "3dAllineate" , MICRO , TYPE_NEW_OPT ,
    "Add cubic, quintic, and heptic polynomial warps." ,
    NULL } ,

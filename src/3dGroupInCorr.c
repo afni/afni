@@ -476,16 +476,16 @@ void GRINCOR_dotprod( MRI_shindss *shd, int ids, float *vv, float *dp )
 void GRINCOR_many_dotprod( MRI_shindss *shd , float **vv , float **ddp )
 {
 
+ AFNI_OMP_START ;
 #pragma omp parallel
  { int ids , ndset=shd->ndset ;
-   AFNI_OMP_START ;
 #pragma omp for
    for( ids=0 ; ids < ndset ; ids++ ){
      if( verb > 3 ) fprintf(stderr," +   start correlation on dataset #%d\n",ids) ;
      GRINCOR_dotprod( shd , ids , vv[ids] , ddp[ids] ) ;
    }
-   AFNI_OMP_END ;
  }
+ AFNI_OMP_END ;
 
 #ifdef isfinite
    if( debug ){
@@ -2062,9 +2062,9 @@ void GRINCOR_many_ttest( int nvec , int numx , float **xxar ,
 {
    if( numy > 0 && yyar != NULL ){  /*--- 2 sample t-test ---*/
 
+ AFNI_OMP_START ;
 #pragma omp parallel
  { int ii,kk ; float *xar,*yar ; float_pair delzsc ;
-   AFNI_OMP_START ;
    xar = (float *)malloc(sizeof(float)*numx) ;
    yar = (float *)malloc(sizeof(float)*numy) ;
 #pragma omp for
@@ -2075,14 +2075,14 @@ void GRINCOR_many_ttest( int nvec , int numx , float **xxar ,
        dar[kk] = delzsc.a ; zar[kk] = delzsc.b ;
      }
    free(yar) ; free(xar) ;
-   AFNI_OMP_END ;
  }
+ AFNI_OMP_END ;
 
    } else {  /*--- 1 sample t-test ---*/
 
+ AFNI_OMP_START ;
 #pragma omp parallel
  { int kk,ii ; float *xar ; float_pair delzsc ;
-   AFNI_OMP_START ;
    xar = (float *)malloc(sizeof(float)*numx) ;
 #pragma omp for
      for( kk=0 ; kk < nvec ; kk++ ){
@@ -2091,8 +2091,8 @@ void GRINCOR_many_ttest( int nvec , int numx , float **xxar ,
        dar[kk] = delzsc.a ; zar[kk] = delzsc.b ;
      }
    free(xar) ;      /* oopsie [13 Sep 2010] */
-   AFNI_OMP_END ;
  }
+ AFNI_OMP_END ;
 
    }
 
@@ -2397,9 +2397,9 @@ void GRINCOR_many_regress( int nvec , int numx , float **xxar ,
                                       int nout , float **dtar  )
 {
    if( numy > 0 && yyar != NULL ){  /*--- 2 sample ---*/
+   AFNI_OMP_START ;
 #pragma omp parallel
    { int ii,kk ; float *xar,*yar,*var,*wss ;
-     AFNI_OMP_START ;
      xar = (float *)malloc(sizeof(float)*numx) ;
      yar = (float *)malloc(sizeof(float)*numy) ;
      var = (float *)malloc(sizeof(float)*nout) ;
@@ -2415,13 +2415,15 @@ void GRINCOR_many_regress( int nvec , int numx , float **xxar ,
        for( ii=0 ; ii < nout ; ii++ ) dtar[ii][kk] = var[ii] ;
      }
      free(wss) ; free(var) ; free(yar) ; free(xar) ;
-     AFNI_OMP_END ;
 
-   }} else {  /*--- 1 sample ---*/
+   }
+   AFNI_OMP_END ;
 
+   } else {  /*--- 1 sample ---*/
+
+   AFNI_OMP_START ;
 #pragma omp parallel
    { int ii,kk ; float *xar,*var,*wss ;
-     AFNI_OMP_START ;
      xar = (float *)malloc(sizeof(float)*numx) ;
      var = (float *)malloc(sizeof(float)*nout) ;
      wss = (float *)malloc(sizeof(float)*(2*mcov+numx+9)) ;
@@ -2435,8 +2437,10 @@ void GRINCOR_many_regress( int nvec , int numx , float **xxar ,
        for( ii=0 ; ii < nout ; ii++ ) dtar[ii][kk] = var[ii] ;
      }
      free(wss) ; free(var) ; free(xar) ;
-     AFNI_OMP_END ;
-   }}
+   }
+   AFNI_OMP_END ;
+
+   }
 
    return ;
 }

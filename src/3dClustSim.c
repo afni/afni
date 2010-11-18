@@ -983,13 +983,12 @@ int main( int argc , char **argv )
     }
   }
 
+ AFNI_OMP_START ;
 #pragma omp parallel
  {
    int iter, ithr, ipthr, **mt[4] , nnn ;
    float *fim ; byte *bfim ; unsigned short xran[3] ;
    int vstep , vii ;
-
- AFNI_OMP_START ;
 
   /* create separate tables for each thread, if using OpenMP */
 #ifdef USE_OMP
@@ -1080,8 +1079,8 @@ int main( int argc , char **argv )
 
   if( ithr == 0 && verb ) fprintf(stderr,"\n") ;
 
- AFNI_OMP_END ;
  } /* end OpenMP parallelization */
+ AFNI_OMP_END ;
 
    /*-------- sum tables from various threads into one result ----------*/
 

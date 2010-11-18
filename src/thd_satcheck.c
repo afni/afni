@@ -33,9 +33,9 @@ float THD_saturation_check( THD_3dim_dataset *dset , byte *xmask )
    }
    nbig = (byte *)calloc(sizeof(byte),nvox) ;
 
+ AFNI_OMP_START ;
 #pragma omp parallel if( nvox > 666 )
  { float med,mad,thp,thm,*far ; int kk , vv ;
- AFNI_OMP_START ;
 
 #pragma omp critical(MALLOC)
    far = (float *)malloc(sizeof(float)*nvals) ;
@@ -56,8 +56,8 @@ float THD_saturation_check( THD_3dim_dataset *dset , byte *xmask )
    }
    free(far) ;
 
- AFNI_OMP_END ;
  }
+ AFNI_OMP_END ;
 
    if( mask != xmask ) free(mask) ;
    for( sum=0.0f,qq=0 ; qq < nvox ; qq++ ) sum += nbig[qq] ;

@@ -500,12 +500,11 @@ int main( int argc , char *argv[] )
 
    /*---------- loop over mask voxels, correlate ----------*/
 
+AFNI_OMP_START ;
 #pragma omp parallel if( nmask > 999 )
 {
    int ii,jj,kout , ithr,nthr , vstep,vii ;
    float *xsar , *ysar ; short *car ;
-
-AFNI_OMP_START ;
 
 #ifdef USE_OMP
    ithr = omp_get_thread_num() ;
@@ -565,8 +564,8 @@ AFNI_OMP_START ;
    if( do_mmap ) free(car) ;             /* workspace for each thread */
    if( ithr == 0 ) fprintf(stderr,".") ;
 
-AFNI_OMP_END ;
 } /* end OpenMP */
+AFNI_OMP_END ;
 
    /*----------  Finish up ---------*/
 

@@ -213,9 +213,10 @@ int main( int argc , char * argv[] )
 
       if( strlen(expr) == 0 || *expr == '\n' ) continue ;
       if( strcasestr(expr,"quit") != NULL ) exit(0) ;
+      if( strncmp   (expr,":q",2) == 0    ) exit(0) ;  /* 17 Nov 2010 */
       if( strcasestr(expr,"exit") != NULL ) exit(0) ;
       if( strcasestr(expr,"help") != NULL || expr[0] == '?' ){
-        printf(PARSER_HELP_STRING) ; continue ;  /* 22 Jan 2008 */
+        printf(PARSER_HELP_STRING) ; continue ;        /* 22 Jan 2008 */
       }
 
       if( strstr(expr,"=") != NULL ){

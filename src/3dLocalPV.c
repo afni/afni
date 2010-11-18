@@ -365,13 +365,12 @@ int main( int argc , char *argv[] )
 
    /*** the real work now begins ***/
 
+ AFNI_OMP_START ;
 #pragma omp parallel if( nmask > 666 )
  { int kk , xx,yy,zz , vv,ii , mm ;
    float *zar=NULL , *nbar ; int *ivar ;
    float *tsar , *uvec , *vvec=NULL , *ws=NULL ;
    unsigned short xran[3] ; int ithr=0 ; float sval,tval ;
-
- AFNI_OMP_START ;
 
 #ifdef USE_OMP
   ithr = omp_get_thread_num() ;
@@ -450,8 +449,8 @@ int main( int argc , char *argv[] )
    { free(uvec) ; free(nbar) ; free(ws) ; free(ivar) ;
      if( vvec != NULL ) free(vvec) ;
      if( zar  != NULL ) free(zar) ; }
- AFNI_OMP_END ;
  } /* end OpenMP */
+ AFNI_OMP_END ;
 
 #ifndef USE_OMP
    if( vstep ) fprintf(stderr,"\n") ;
