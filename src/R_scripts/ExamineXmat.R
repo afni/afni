@@ -76,27 +76,30 @@ Usage:
 "
 Examples --- :
 --------------
+      #Get some sample data
+      curl -o demo.xmat.1D afni.nimh.nih.gov/pub/dist/edu/data/samples/X.xmat.1D
       
       #PDF output may not work on some machines
-      ExamineXmat -prefix t1.pdf -input X.xmat.1D 
+      ExamineXmat -prefix t1.pdf -input demo.X.xmat.1D 
       
-      ExamineXmat -prefix t2.jpg -input X.xmat.1D -select ALL_TASKS  
+      ExamineXmat -prefix t2.jpg -input demo.X.xmat.1D -select ALL_TASKS  
       
-      ExamineXmat -prefix t3.png -input X.xmat.1D -select tneg tpos 
+      ExamineXmat -prefix t3.png -input demo.X.xmat.1D -select tneg tpos 
       
-      ExamineXmat -prefix t4.jpg -input X.xmat.1D -select MOTION tneg 
+      ExamineXmat -prefix t4.jpg -input demo.X.xmat.1D -select MOTION tneg 
 
-      ExamineXmat -prefix t5.jpg -input X.xmat.1D -select tneg 3 35:38 
+      ExamineXmat -prefix t5.jpg -input demo.X.xmat.1D -select tneg 3 35:38 
 
       #interactive mode
       ExamineXmat 
       
-      ExamineXmat -input X.xmat.1D
+      ExamineXmat -input demo.X.xmat.1D
       
-      ExamineXmat -input X.xmat.1D -select tneg
+      ExamineXmat -input demo.X.xmat.1D -select tneg
       
       #To save the last image you see interactively
-      ExamineXmat -input X.xmat.1D -interactive -prefix t6.jpg -select tneg tpos
+      ExamineXmat -input demo.X.xmat.1D -interactive \\
+                  -prefix t6.jpg -select tneg tpos
 "   
 
    parnames <- names(params)
@@ -300,7 +303,7 @@ show_xmat <- function (xmat, isel=1:1:ncol(xmat), descr="", interactive=TRUE) {
       dev.set(plotdev)
    }
    plotdev <<- plot.1D( dmat = xmat, dmat.err=NULL,
-            dmat.colsel = isel,  dmat.type = 'XMAT',
+            dmat.colsel = isel,  
             col.ystack = TRUE,
             ttl.main = maintit,
             ttl.sub=stit, multi.ncol=1,

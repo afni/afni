@@ -192,16 +192,16 @@ is.good.dev <- function (dd=NULL) {
 plot.1D.setupdevice <- function (P) {
    if (!is.null(P$prefix) && P$nodisp) { #render to device directly
       pp <- parse.name(P$prefix)
-      if (tolower(pp$ext) == 'jpg') 
+      if (tolower(pp$ext) == '.jpg') 
          jpeg(P$prefix, width=P$img.width, height=P$img.height, 
                   quality=P$img.qual, 
                   res=P$img.dpi, pointsize=P$img.def.fontsize)
-      else if (tolower(pp$ext) == 'png') 
+      else if (tolower(pp$ext) == '.png') 
          png(P$prefix, width=P$img.width, height=P$img.height,
                   res=P$img.dpi, pointsize=P$img.def.fontsize)
-      else if (tolower(pp$ext) == 'pdf') 
+      else if (tolower(pp$ext) == '.pdf') 
          pdf(P$prefix, width=P$img.width, height=P$img.height,
-                  res=P$img.dpi, pointsize=P$img.def.fontsize)
+                   pointsize=P$img.def.fontsize)
       else {
         if (0) {
          pdf(paste(P$prefix,'.pdf',sep=''))   #best, but not always present       
@@ -325,14 +325,22 @@ plot.1D.optlist <- function(...) {
       #Now, based on dmat.type, do some setup without overririding user's whishes
       if (!is.na(ll$dmat.type)) {
          if (ll$dmat.type == 'VOLREG') {
-            if (is.na(ll$col.name)) 
+            if (!is.null(ll$col.name) && is.na(ll$col.name)) 
                ll$col.name <- c('Roll', 'Pitch', 'Yaw', 'I-S', 'R-L', 'A-P')
-            if (is.na(ll$multi.ncol)) ll$multi.ncol <- 1
+            if (!is.null(ll$multi.ncol) && is.na(ll$multi.ncol)) 
+               ll$multi.ncol <- 1
          }
          if (ll$dmat.type == 'XMAT') {
-            if (is.na(ll$multi.ncol)) ll$multi.ncol <- 1
-            if (is.na(ll$col.ystack)) ll$col.ystack <- TRUE
-            if (is.na(ll$oneplot)) ll$oneplot <- TRUE
+            if (!is.null(ll$multi.ncol) && is.na(ll$multi.ncol)) 
+               ll$multi.ncol <- 1
+            if (!is.null(ll$col.ystack) && is.na(ll$col.ystack)) 
+               ll$col.ystack <- TRUE
+            if (!is.null(ll$oneplot) && is.na(ll$oneplot)) 
+               ll$oneplot <- TRUE
+            if (!is.null(ll$col.text.lym) && is.na(ll$col.text.lym)) 
+               ll$col.text.lym <- 'COL.NAME'
+            if (!is.null(ll$col.text.rym) && is.na(ll$col.text.rym)) 
+               ll$col.text.rym <- 'COL.IND'
          }
       }
       #Now, apply all defaults for what remains uninitialized
@@ -366,6 +374,10 @@ plot.1D <- function (...) {
                   mat2plt.minus=NULL, mat2plt.plus=NULL, 
                   mat2plt.xoffnames=NULL, mat2plt.yoffnames=NULL )
    
+   if (P$verb) {
+      note.AFNI("P list before calling plot.1D.eng");
+      str(P)
+   }
    return(plot.1D.eng(P))
 }
 
@@ -577,6 +589,28 @@ plot.1D.eng <- function (P) {
       }
    } 
    
+   #Some processing of col.name
+   if (!is.null(P$col.name)) {
+      if (length(P$col.name) == 1) {
+         if (P$col.name == 'VOLREG') {
+            if (ncol(P$dmat) != 6) {
+               err.AFNI(paste("Have VOLREG for col.name, but ", 
+                           ncol(P$dmat), 
+                           "columns in dmat. 6 columns are required."))
+            }
+            P$col.name <- c('Roll', 'Pitch', 'Yaw', 'I-S', 'R-L', 'A-P')
+         }
+      }
+   } else {
+      #Try colnames
+      P$col.name <- colnames(P$dmat)
+   }
+   
+   if (P$col.name.show && is.null(P$col.name)) {
+      err.AFNI("Want to show col.name but cannot find column names")
+      return(0);
+   }
+
    if(is.null(P$col.mean.line)) {
       P$col.mean.line <- rep(FALSE,ncol(P$dmat))
    } else if (length(P$col.mean.line) != ncol(P$dmat)) {
@@ -591,6 +625,17 @@ plot.1D.eng <- function (P) {
       }
    } 
    if (!is.null(P$col.text.lym)) {
+      if (length(P$col.text.lym) == 1) {
+         if (P$col.text.lym == 'COL.NAME' && !is.null(P$col.name)) 
+            P$col.text.lym <- P$col.name
+         else if (P$col.text.lym == 'COL.IND') 
+            P$col.text.lym <- paste('c', 
+                                    seq(0,ncol(P$dmat)-1), sep='')
+         else {
+            P$col.text.lym <- paste(P$col.text.lym, 
+                                    seq(0,ncol(P$dmat)-1), sep='')
+         }
+      }
       if (length(P$col.text.lym) != ncol(P$dmat)) {
          err.AFNI(
                paste("P$col.text.lym", P$col.text.lym, "must either have one or",
@@ -600,6 +645,17 @@ plot.1D.eng <- function (P) {
       }
    }
    if (!is.null(P$col.text.rym)) {
+      if (length(P$col.text.rym) == 1) {
+         if (P$col.text.rym == 'COL.NAME' && !is.null(P$col.name)) 
+            P$col.text.rym <- P$col.name
+         else if (P$col.text.rym == 'COL.IND') 
+            P$col.text.rym <- paste('c', 
+                                    seq(0,ncol(P$dmat)-1), sep='')
+         else {
+            P$col.text.rym <- paste(P$col.text.rym, 
+                                    seq(0,ncol(P$dmat)-1), sep='')
+         }
+      }
       if (length(P$col.text.rym) != ncol(P$dmat)) {
          err.AFNI(
                paste("P$col.text.rym", P$col.text.rym, "must either have one or",
@@ -724,27 +780,6 @@ plot.1D.eng <- function (P) {
       yaxtinit <- "n"
    }
    
-   #Some processing of col.name
-   if (!is.null(P$col.name)) {
-      if (length(P$col.name) == 1) {
-         if (P$col.name == 'VOLREG') {
-            if (ncol(P$dmat) != 6) {
-               err.AFNI(paste("Have VOLREG for col.name, but ", 
-                           ncol(P$dmat), 
-                           "columns in dmat. 6 columns are required."))
-            }
-            P$col.name <- c('Roll', 'Pitch', 'Yaw', 'I-S', 'R-L', 'A-P')
-         }
-      }
-   } else {
-      #Try colnames
-      P$col.name <- colnames(P$dmat)
-   }
-   
-   if (P$col.name.show && is.null(P$col.name)) {
-      err.AFNI("Want to show col.name but cannot find column names")
-      return(0);
-   }
    
    #Automatic positioning of column names?
    if (P$col.name.show) {

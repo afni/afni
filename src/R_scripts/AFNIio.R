@@ -53,6 +53,18 @@ is.AFNI.1D.string <- function(t) {
    return(FALSE)
 }
 
+eval.AFNI.string.help <- function() {
+   return("
+Data Strings:
+-------------
+You can specify input matrices and vectors in a variety of
+ways. The simplest is by specifying a .1D file with all 
+the trimmings of column and row selectors. You can also
+specify a string that gets evaluated on the fly. 
+For example: '1D: 1 4 8' evaluates to a vector of values 1 4 and 8.
+Also, you can use R expressions such as: 'R: seq(0,10,3)'   
+")
+}
 eval.AFNI.1D.string <- function (t, verb=0, nmax=0) {
    
    #remove 1D:
