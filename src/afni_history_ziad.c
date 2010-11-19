@@ -65,6 +65,11 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 16, NOV , 2010 , ZSS , "ExamineXmat" , MINOR , TYPE_NEW_OPT,
+   "A major rewrite of ExamineXmat",
+   "see ExamineXmat -help for details"
+ } ,
+
  { 5, NOV , 2010 , ZSS , "niccc" , MINOR , TYPE_NEW_OPT,
    "Added -attribute, -match, and -f options to niccc",
    "See niccc -help for details."
@@ -1098,7 +1103,7 @@ afni_history_struct ziad_history[] = {
    "The programs demonstrate time series processing and plotting in R."
  },
   
- { 29 , AUG , 2008 , ZSS , "ExamineXmatR" , MAJOR,  TYPE_NEW_PROG,
+ { 29 , AUG , 2008 , ZSS , "ExamineXmat" , MAJOR,  TYPE_NEW_PROG,
    "An interactive tool to examine a design matrix",
    NULL
  },

@@ -278,6 +278,8 @@ read.SigsClassify.opts.batch <- function (args=NULL, verb = 0) {
       '-help' = apl(n=0, h = '-help: this help message\n'),
       '-show_allowed_options' = apl(n=0, h=
    "-show_allowed_options: list of allowed options\n" )
+      '-msg.trace' = apl(n=0, h=
+   "-msg.trace: Output trace information along with errors and notices\n" )
 
          );
                      
@@ -323,6 +325,7 @@ read.SigsClassify.opts.batch <- function (args=NULL, verb = 0) {
              help = help.SigsClassify.opts(params, adieu=TRUE),
              show_allowed_options = show.AFNI.args(ops, verb=0, 
                                               hstr="SigsClassify's",adieu=TRUE),
+             msg.trace = set.AFNI.msg.trace(TRUE),
              no_prob = lop$doprob <- FALSE,
              no_X11 = lop$no_X11 <- TRUE,
              no_tune = lop$no_tune <- TRUE,
@@ -525,11 +528,11 @@ Train.SigsClassify <- function (lvols, samples_frac=NULL,
       }
    }
    plot.1D(mm, oneplot=TRUE, col.ystack=FALSE, 
-               col.grp=PlotColumnGroups, grp.labels=PlotGroupLabels, 
+               col.grp=PlotColumnGroups, grp.label=PlotGroupLabels, 
                prefix =sprintf('%s.jpg',PlotTitle), Title=PlotTitle,
                CloseAfterSave = no_X11)
                
-   if (verb>1) browser() 
+   #if (verb>1) browser() 
    if (no_tune) {
       if (verb) note.AFNI(sprintf("NO fine tuning. Probability=%d", doprob))
       lsvm$model <- svm(lsvm$sigs, factor(lsvm$labs), 
@@ -618,13 +621,13 @@ Test.SigsClassify <- function (lvols, lsvm=NULL, verb = 1,
          }
          if (is.null(lvols[i][[1]]$sig)) {
             err.AFNI("NULL sig");
-            if (verb>1) browser()
+            #if (verb>1) browser()
             else return(NULL);
          }  
          #Now do the testing
          note.AFNI(sprintf("About to test on %s, probability = %d",
                         lvols[i][[1]]$signame, doprob));
-         if (verb>1) browser()
+         #if (verb>1) browser()
          ii <- dset.nonzero.indices(lvols[i][[1]]$sig)
          lvols[i][[1]] <- c(lvols[i][[1]],
                     list(classy=predict(lsvm$model, lvols[i][[1]]$sig$brk[ii,],
@@ -914,7 +917,7 @@ Test.SigsClassify <- function (lvols, lsvm=NULL, verb = 1,
    if (is.null(train)) {
       errex.AFNI("End of the line, no train here");
    }
-   browser()
+   #browser()
    test <- Test.SigsClassify(lop$Tset, lsvm=train, 
                         verb=lop$verb, ltfile = lop$labeltablefile,
                         volsuffix = lop$volsuffix,

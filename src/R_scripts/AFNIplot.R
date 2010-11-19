@@ -1,118 +1,22 @@
+PLO <<- NULL
 
-plot1D.colindex <- function (ivec, 
-                  collist=c(1:10)   
-                  ) {
-   N_collist = length(collist)
-   return(collist[(ivec) %% N_collist + 1])
-}
+set.plot.1D.global.P <- function(P) { PLO <<- P }
+get.plot.1D.global.P <- function() { return(PLO) }
 
-plot.1D.testmat <- function(nrow = 100, ncol=10) {
-   mm <- matrix(nrow=nrow, ncol= ncol)
-   for (i in 1:ncol) {
-      mm[,i] <- sin(i*seq(from=0, by=0.1, length.out=nrow))
-   }
-   return(mm)
-}
-
-
-plot.1D.mapcolors <- function (colvec, collist=c(3,4,5,6,8,1,2,7,9)) {
-   cg <- colvec
-   ugr <- unique(colvec)
-   if (length(ugr) > 1) {
-      cnt <- 1
-      for (i in ugr) {
-         colvec[cg == i] <- cnt
-         cnt <- cnt+1
-      }
-   }
-   #now color regressors of interest
-   collist <- seq(1,20) 
-   for (i in min(colvec[colvec > 0]):max(colvec[colvec > 0])) {
-      colvec[cg == i] <- plot1D.colindex(i, collist)
-   }
-   return(colvec)
-}
-
-plot.1D.setmat2plt <- function (dmat, isel, stack) {
-   mat2plt <- as.matrix(dmat[,isel])
-   #Calculate column range
-   ra = matrix(nrow=ncol(mat2plt), ncol=3)
-   for (i in 1:ncol(mat2plt)) {
-      ra[i,] <- as.vector(quantile(mat2plt[,i], c(0,1,0.5), na.rm='TRUE'))
-   }
-   for (i in 1:ncol(mat2plt)) {
-      if (stack[i]) {
-         mat2plt[,i] <- (mat2plt[,i]-ra[i,1])/(ra[i,2]-ra[i,1])+1.4*i
-      } 
-      mat2plt[is.nan(mat2plt[,i]),i] <- 0
-   }
-   return(mat2plt)
-}
-
-plot.1D.colmean <- function (mat2plt) {
-   colmeans <- vector(length = ncol(mat2plt), mode="numeric")
-   for (i in 1:ncol(mat2plt)) colmeans[i] = mean(mat2plt[,i])
-   return(colmeans) 
-}
-
-plot.1D.colorOFgroups <- function(col.grp, col.colors) {
-   grp <- unique(col.grp);
-   col <- vector(length = length(grp));
-   for (gg in 1:length(col)) {
-      kk <- which(col.grp==grp[gg])
-      if (length(kk) < 1) {
-         err.AFNI("COuld not find color of group");
-         return(0)
-      }
-      col[gg] <- col.colors[kk[1]]
-   }
-   return(col)
-}
-
-plot.1D.demo <- function(demo=0) {
-   if (demo == 0) demo <- seq(1,4)
-   for (d in demo) {
-      if (d==1) {
-         plot.1D( dmat = plot.1D.testmat(100, 10), 
-               col.nozeros=TRUE, 
-               col.grp=c(rep(1,3), rep(2,3), rep(3,4)), 
-               col.ystack=FALSE, grp.labels=c('CSF', 'GM','WM'),
-               prefix = 't1.jpg', verb = 1)
-      } else if (d==2){
-         plot.1D( dmat = plot.1D.testmat(100, 10), 
-               col.nozeros=TRUE, 
-               col.grp=c(rep(1,3), rep(2,3), rep(3,4)), 
-               col.ystack=FALSE, multi.ncol = 2, 
-               grp.labels=c('CSF', 'GM','WM'),
-               prefix = 't2.jpg', verb = 1)
-      } else if (d==3) {
-         plot.1D( dmat = plot.1D.testmat(100, 3), 
-                  col.nozeros=TRUE, 
-                  col.grp=c(rep(1,2), rep(2,1)), 
-                  col.ystack=FALSE, grp.labels=c('CSF', 'GM'),
-                  oneplot=TRUE,
-                  prefix = 't3.jpg', verb = 1)
-      }else if (d==4) {
-         plot.1D( dmat = plot.1D.testmat(100, 3), 
-                  col.nozeros=TRUE, 
-                  col.grp=c(rep(1,2), rep(2,1)), 
-                  col.ystack=FALSE, grp.labels=c('CSF', 'GM'),
-                  oneplot=TRUE, leg.show = TRUE,
-                  prefix = 't4.jpg', verb = 1)
-      }
-      if (d!=demo[length(demo)]) {
-         if (prompt.AFNI("Waiting for your desire",c('g','s')) == 2) return()
-      }
-   }
-   return()
-}
-
-PLO <<- list(iplt = 0)
-
+#You can't pass P to plot.1D.multifunc, so I resort to
+# a temp copy into PLO 
 plot.1D.multifunc <- function(x, col, bg, pch, type, ...) {
+   
    lines(x=x,col=col[PLO$iplt],bg=bg,
          pch=pch[PLO$iplt], type=type[PLO$iplt],
          ...)
+   
+   if (PLO$col.name.show) {
+         text (PLO$mat2plt.xoffnames[PLO$iplt], PLO$mat2plt.yoffnames[PLO$iplt], 
+               PLO$col.name[PLO$dmat.colsel[PLO$iplt]], 
+               col = PLO$col.color[PLO$dmat.colsel[PLO$iplt]], adj=c(0,0))
+   }
+   
    if (!is.null(PLO$col.text.lym)) {
       if (PLO$col.text.lym.at == 'YOFF') {
          ym.at <- PLO$mat2plt.colmeans
@@ -142,8 +46,141 @@ plot.1D.multifunc <- function(x, col, bg, pch, type, ...) {
             las=2, adj=0)
       par(ps = opar$ps)
    }
+   
+   plot.1D.drawmeanlines(PLO, thissel = PLO$iplt)
+   
    PLO$iplt <<- PLO$iplt + 1
 }
+
+plot1D.colindex <- function (ivec, 
+                  collist=c(1:10)   
+                  ) {
+   N_collist = length(collist)
+   return(collist[(ivec) %% N_collist + 1])
+}
+
+plot.1D.testmat <- function(nrow = 100, ncol=10) {
+   mm <- matrix(nrow=nrow, ncol= ncol)
+   for (i in 1:ncol) {
+      if (i != 10) mm[,i] <- sin(i*seq(from=0, by=0.1, length.out=nrow))
+      else mm[,i] <- rep(0, nrow)
+   }
+   return(mm)
+}
+
+
+plot.1D.mapcolors <- function (colvec, collist=c(3,4,5,6,8,1,2,7,9)) {
+   cg <- colvec
+   ugr <- unique(colvec)
+   if (length(ugr) > 1) {
+      cnt <- 1
+      for (i in ugr) {
+         colvec[cg == i] <- cnt
+         cnt <- cnt+1
+      }
+   }
+   #now color regressors of interest
+   collist <- seq(1,20) 
+
+   for (i in min(colvec[colvec > 0]):max(colvec[colvec > 0])) {
+      colvec[cg == i] <- plot1D.colindex(i, collist)
+   }
+   return(colvec)
+}
+
+plot.1D.setmat2plt <- function (dmat, isel, stack) {
+   mat2plt <- as.matrix(dmat[,isel])
+   #Calculate column range
+   ra = matrix(nrow=ncol(mat2plt), ncol=3)
+   for (i in 1:ncol(mat2plt)) {
+      ra[i,] <- as.vector(quantile(mat2plt[,i], c(0,1,0.5), na.rm='TRUE'))
+   }
+   for (i in 1:ncol(mat2plt)) {
+      if (stack[i]) {
+         mat2plt[,i] <- (mat2plt[,i]-ra[i,1])/(ra[i,2]-ra[i,1])+1.4*i
+      } 
+      mat2plt[is.nan(mat2plt[,i]),i] <- 0
+   }
+   return(mat2plt)
+}
+
+plot.1D.colmean <- function (mat2plt) {
+   colmeans <- vector(length = ncol(mat2plt), mode="numeric")
+   for (i in 1:ncol(mat2plt)) colmeans[i] = mean(mat2plt[,i])
+   return(colmeans) 
+}
+
+plot.1D.colorOFgroups <- function(col.grp, col.color) {
+   grp <- unique(col.grp);
+   col <- vector(length = length(grp));
+   for (gg in 1:length(col)) {
+      kk <- which(col.grp==grp[gg])
+      if (length(kk) < 1) {
+         err.AFNI("COuld not find color of group");
+         return(0)
+      }
+      col[gg] <- col.color[kk[1]]
+   }
+   return(col)
+}
+
+#When you add to this one, add to
+#examples.1dRplot
+plot.1D.demo.str <- function(demo=0) {
+   if (demo == 0) {
+      err.AFNI("demo not set")
+      return('')
+   }  
+   if (demo==1) {
+      s <- "plot.1D( dmat = plot.1D.testmat(100, 10), 
+               col.nozeros=TRUE, 
+               col.grp=c(rep(1,3), rep(2,3), rep(3,4)), 
+               col.ystack=FALSE, grp.label=c('CSF', 'GM','WM'),
+               prefix = 't1.jpg', verb = 1)"
+   } else if (demo==2){
+      s <- "plot.1D( dmat = plot.1D.testmat(100, 10), 
+               col.nozeros=TRUE, 
+               col.grp=c(rep(1,3), rep(2,3), rep(3,4)), 
+               col.ystack=FALSE, multi.ncol = 2, 
+               grp.label=c('CSF', 'GM','WM'),
+               prefix = 't2.jpg', verb = 1)"
+   } else if (demo==3) {
+      s <- "plot.1D( dmat = plot.1D.testmat(100, 3), 
+               col.nozeros=TRUE, 
+               col.grp=c(rep(1,2), rep(2,1)), 
+               col.ystack=FALSE, grp.label=c('CSF', 'GM'),
+               oneplot=TRUE,
+               prefix = 't3.jpg', verb = 1)"
+   }else if (demo==4) {
+      s <- "plot.1D( dmat = plot.1D.testmat(100, 3), 
+               col.nozeros=TRUE, 
+               col.grp=c(rep(1,2), rep(2,1)), 
+               col.ystack=FALSE, grp.label=c('CSF', 'GM'),
+               oneplot=TRUE, leg.show = TRUE,
+               prefix = 't4.jpg', verb = 1)"
+   }else {
+      err.AFNI("No such demo")
+      return('')
+   }
+   
+   
+   return(s)
+   
+}
+
+plot.1D.demo <- function(demo=0) {
+   if (demo == 0) demo <- seq(1,4)
+   for (d in demo) {
+      s <- plot.1D.demo.str(demo=d)
+      eval(parse(text=s))
+      if (d!=demo[length(demo)]) {
+         if (prompt.AFNI("Waiting for your desire",c('g','s')) == 2) return()
+      }
+   }
+   return()
+}
+
+
 
 is.good.dev <- function (dd=NULL) {
    if (is.null(dd) || dd == 0) return(FALSE)
@@ -217,19 +254,34 @@ plot.1D.puttitle <- function (P) {
    }
 }   
 
+plot.1D.drawmeanlines <- function (P, thissel=NULL) {
+      if (is.null(thissel)) selv <- 1:length(P$col.mean.line[P$dmat.colsel])
+      else selv <- thissel
+      for (i in selv) {
+         if (P$col.mean.line[P$dmat.colsel[i]]) {
+               #note.AFNI(paste ("Called ", P$mat2plt.colmeans[i]));
+               vv <- rep(P$mat2plt.colmeans[i], dim(P$mat2plt)[1])
+               lines(x=P$dmat.xval, y=vv, 
+                  col = P$col.color[P$dmat.colsel[i]],  lty=3)
+         }
+      }
+      return()
+}
+ 
 plot.1D.optlist <- function(...) {
    ll <- list(dmat=NULL, dmat.err=NULL, dmat.colsel=NULL, 
-            dmat.xval=NULL,
+            dmat.xval=NULL, dmat.TR = NULL,
             col.grp = NULL, col.ystack=FALSE, col.nozeros=FALSE, 
-            col.names=NULL, col.names.x=NULL, col.names.y=NULL,
-            col.colors = NULL, col.plot.char=NULL,
+            col.name=NULL, col.name.show=FALSE, col.name.x=NULL, col.name.y=NULL,
+            col.color = NULL, col.plot.char=NULL,
             col.plot.type ='l', col.line.type = 1, col.line.width=3,
             col.mean.line=FALSE,
-            grp.labels=NULL,
+            grp.label=NULL,
             ttl.main=NULL, ttl.main.fontsize = 10,
             ttl.sub=NULL, ttl.sub.fontsize = 10,
             prefix = NULL, showval=FALSE,
             nodisp = FALSE, oneplot = FALSE, boxtype = 'n', multi.ncol=2,
+            NAval = 0, NANval = 0,
             colorset = seq(1,20),
             xax.lim=NULL, xax.step = NULL, xax.label=NULL, xax.tic.text = NULL, 
             yax.lim=NULL, yax.step = NULL, yax.label=NULL, yax.tic.text = NULL,
@@ -242,6 +294,7 @@ plot.1D.optlist <- function(...) {
             img.width=2000, img.height=2000, img.qual = 98, 
             img.dpi = 300, img.def.fontsize=12,
             dev.this=NULL, dev.new=FALSE,
+            showcond = FALSE,
             verb = 0);
   #Add user specifics
   if( length(list(...)) ){
@@ -259,6 +312,12 @@ plot.1D.optlist <- function(...) {
    return(ll)
 }
 
+plot.1D.freq <- function(P) {
+   if (!is.null(P$dmat.TR) && P$dmat.TR) freq <- 1/P$dmat.TR
+   else freq <- 1
+   return(freq)
+}      
+
 #see plot.1D.optlist for allowed options
 plot.1D <- function (...) {
    if (length(list(...)) == 0) {
@@ -266,12 +325,13 @@ plot.1D <- function (...) {
       plot.1D.demo()
       return(1)
    }
-   PLO <<- plot.1D.optlist(...)
+   P <- plot.1D.optlist(...)
    #Set some more variables
-   PLO <<- c(PLO, iplt=1, mat2plt=NULL, mat2plt.colmeans=NULL,  
-                  mat2plt.minus=NULL, mat2plt.plus=NULL)
+   P <- c(P, iplt=1, mat2plt=NULL, mat2plt.colmeans=NULL,  
+                  mat2plt.minus=NULL, mat2plt.plus=NULL, 
+                  mat2plt.xoffnames=NULL, mat2plt.yoffnames=NULL )
    
-   return(plot.1D.eng(PLO))
+   return(plot.1D.eng(P))
 }
 
 plot.1D.eng <- function (P) {
@@ -309,12 +369,20 @@ plot.1D.eng <- function (P) {
          }
       }
    }
-    
+   
    if (is.null(P$dmat)) {
       err.AFNI("Null input");
-      return(FALSE)
+      return(0)
    }
    
+   #SET TR 
+   if (is.null(P$dmat.TR)) {
+      P$dmat.TR <- attr(P$dmat,"TR")
+   }
+   if (is.null(P$dmat.TR)) {
+      P$dmat.TR <- 0 
+   }
+    
    #Load the error matrix
    if (!is.null(P$dmat.err) && is.character(P$dmat.err)) {
       dmatv <- P$dmat.err
@@ -360,44 +428,50 @@ plot.1D.eng <- function (P) {
             return(0);
          }
       }
-   } 
+   } else {
+      #Try from the attributes, else all is 1
+      if (is.null(P$col.grp <- attr(P$dmat,'ColumnGroups'))) 
+         P$col.grp <- rep(1,ncol(P$dmat))
+      
+   }
    
-   #Check for P$grp.labels
-   if (!is.null(P$grp.labels)) {
+   #Check for P$grp.label
+   if (!is.null(P$grp.label)) {
       if (is.null(P$col.grp)) {
-         err.AFNI("Have P$grp.labels, but no P$col.grp");
+         err.AFNI("Have P$grp.label, but no P$col.grp");
          return(0)
       }
-      if (length(P$grp.labels) != length(unique(P$col.grp))) {
-         err.AFNI(paste("Have ", length(P$grp.labels), "group labels and",
+      if (length(P$grp.label) != length(unique(P$col.grp))) {
+         err.AFNI(paste("Have ", length(P$grp.label), "group labels and",
                length(unique(P$col.grp)),"unique group flags"));
          return(0)
       }
    } else {
       if (!is.null(P$col.grp)) {
-         P$grp.labels <- paste('Grp', P$col.grp, sep='')
+         P$grp.label <- paste('Grp', P$col.grp, sep='')
       }
    }
    
       
    #Set colors 
-   if (is.null(P$col.colors)) {
+   if (is.null(P$col.color)) {
       if (is.null(P$col.grp)) {
-         if (is.null(P$col.colors <- attr(dmat,'ColumnGroups'))) {
-            P$col.colors <- (1:ncol(P$dmat))%%5+1 
-         }
+         P$col.color <- (1:ncol(P$dmat))%%5+1 
       } else {
-         P$col.colors <- P$col.grp
+         gu <- unique(P$col.grp)
+         P$col.color <- vector(length=length(P$col.grp))
+         for (i in 1:length(gu))
+            P$col.color[which(P$col.grp==gu[i])] <- i
       }
    } else {
-      if (length(P$col.colors) != ncol(P$dmat)) {
-         if (length(P$col.colors) == 1) 
-            P$col.colors <- rep(P$col.colors, ncol(P$dmat))
+      if (length(P$col.color) != ncol(P$dmat)) {
+         if (length(P$col.color) == 1) 
+            P$col.color <- rep(P$col.color, ncol(P$dmat))
          else {
             err.AFNI(
-               paste("P$col.colors must either have one or",
+               paste("P$col.color must either have one or",
                      ncol(P$dmat),"values",
-                     "Have ", length(P$col.colors)));
+                     "Have ", length(P$col.color)));
             return(0);
          }
       }
@@ -405,11 +479,11 @@ plot.1D.eng <- function (P) {
    
    
    #remap colors to a unique set of decent colors
-   P$col.colors <- plot.1D.mapcolors(P$col.colors, P$colorset) 
+   P$col.color <- plot.1D.mapcolors(P$col.color, P$colorset) 
      
    #Set plot characters
    if(is.null(P$col.plot.char)) {
-      P$col.plot.char <- 19+P$col.colors
+      P$col.plot.char <- 19+P$col.color
    } else if (length(P$col.plot.char) != ncol(P$dmat)) {
       if (length(P$col.plot.char) == 1) {
          if (P$col.plot.char == -1) {
@@ -506,13 +580,20 @@ plot.1D.eng <- function (P) {
          P$yax.step=P$yax.lim[3]
    
    #Setup default labels
-   if (is.null(P$xax.label)) P$xax.label <- 'sample'
+   if (is.null(P$xax.label)) {
+      if (P$dmat.TR==0) P$xax.label <- 'sample'
+      else P$xax.label <- 'time'
+   }
    if (is.null(P$yax.label)) P$yax.label <- ''
    
    #Column selectors 
    if (is.null(P$dmat.colsel)) {
       P$dmat.colsel=1:1:ncol(P$dmat) 
    }
+   
+   #Set all NA, NAN, to P$NAval, and P$NANval
+   P$dmat[is.na(P$dmat)] = P$NAval
+   P$dmat[is.nan(P$dmat)] = P$NANval
    
    #Remove all zeros
    if (P$col.nozeros) {
@@ -531,6 +612,11 @@ plot.1D.eng <- function (P) {
                "Reverting to one plot mode"));
       P$oneplot <- TRUE
    }
+   
+   #Also, multiplot does not behave well, meaning it does not call the 
+   #panel function if it is plotting just one colum, so force oneplot
+   #for single column selections
+   if (length(P$dmat.colsel)==1) P$oneplot <- TRUE
    
    #Set Offset flag
    if (!is.null(P$col.ystack)) {
@@ -572,15 +658,12 @@ plot.1D.eng <- function (P) {
       P$mat2plt.minus <- as.matrix(P$dmat.err[,P$dmat.colsel])
       P$mat2plt.plus <- as.matrix(P$dmat.err[,P$dmat.colsel])
    }
-   #Stick these matrices in PLO, the global structure
-   PLO$mat2plt <<- P$mat2plt
-   PLO$mat2plt.colmeans <<- P$mat2plt.colmeans
-   PLO$mat2plt.minus <<- P$mat2plt.minus
-   PLO$mat2plt.plus <<- P$mat2plt.plus
-      
+   
    #Axes
    if (is.null(P$dmat.xval) || length(P$dmat.xval) != dim(P$mat2plt)[1]) {
-      P$dmat.xval=seq(0,dim(P$mat2plt)[1]-1)/frequency(P$dmat);
+      
+      P$dmat.xval=seq(from=0,
+                      to = dim(P$mat2plt)[1]-1)/plot.1D.freq(P);
    }
    #Tick locations
    xat = NULL; yat = NULL;
@@ -594,58 +677,58 @@ plot.1D.eng <- function (P) {
    if (is.null(P$xax.tic.text)) {
       xaxtinit <- "s" #Plot axis at first pass
    } else {
-      #setup axis ticks based on text, override existing tick locations
-      if (!is.null(P$xax.lim)) {
-         xat <- seq(from=P$xax.lim[1], to=P$xax.lim[2], 
-                     by=(P$xax.lim[2]-P$xax.lim[1])/length(P$xax.tic.text)); 
-      } else {
-         xat <- seq(from=0, to=length(P$xax.tic.text)-1, by=1); 
-      }
-      if (length(xat) != length(P$xax.tic.text)) {
-         err.AFNI(paste(length(xat), "X ticks", 
-                  length(P$xax.tic.text),"X tick text"));
-         return(0)
-      }
       xaxtinit <- "n" #Plot it later
    }
+   
    if (is.null(P$yax.tic.text) && !prod(P$col.ystack)) {
       yaxtinit <- "s" #Plot axis at first pass
                   #unless all columns are offset. 
                   #YAXIS becomes meaningless then
    } else {
-      if (!is.null(P$yax.tic.text)) {
-         if (!is.null(P$yax.lim)) {
-            yat <- seq(from=P$yax.lim[1], to=P$yax.lim[2],
-                 by=(P$yax.lim[2]-P$yax.lim[1])/length(P$yax.tic.text));
-         } else {
-            yat <- seq(from=0, to=length(P$yax.tic.text)-1, by=1); 
-         }
-         if (length(yat) != length(P$yax.tic.text)) {
-            err.AFNI(paste(length(yat), "Y ticks", 
-                     length(P$yax.tic.text),"Y tick text"));
-            return(0)
-         }
-      }
+      
       yaxtinit <- "n"
    }
    
+   #Some processing of col.name
+   if (!is.null(P$col.name)) {
+      if (length(P$col.name) == 1) {
+         if (P$col.name == 'VOLREG') {
+            if (ncol(P$dmat) != 6) {
+               err.AFNI(paste("Have VOLREG for col.name, but ", 
+                           ncol(P$dmat), 
+                           "columns in dmat. 6 columns are required."))
+            }
+            P$col.name <- c('Roll', 'Pitch', 'Yaw', 'I-S', 'R-L', 'A-P')
+         }
+      }
+   } else {
+      #Try colnames
+      P$col.name <- colnames(P$dmat)
+   }
+   
+   if (P$col.name.show && is.null(P$col.name)) {
+      err.AFNI("Want to show col.name but cannot find column names")
+      return(0);
+   }
+   
    #Automatic positioning of column names?
-   if (!is.null(P$col.names)) {
-      if (is.null(P$col.names.x)) {
+   if (P$col.name.show) {
+      if (is.null(P$col.name.x)) {
          xofi <- ((1:length(P$dmat.colsel))%%5)*(length(P$dmat[,1])/5) +
                      (1:length(P$dmat.colsel))%/%5
-         xoffnames <- xofi/frequency(P$dmat)
+         P$mat2plt.xoffnames <- xofi/plot.1D.freq(P)
       } else {
-         xoffnames <- P$col.names.x[P$dmat.colsel] 
-         xofi <- round(xoffnames*frequency(P$dmat))
+         P$mat2plt.xoffnames <- P$col.name.x[P$dmat.colsel] 
+         xofi <- round(P$mat2plt.xoffnames*plot.1D.freq(P))
          xofi[xofi < 1] <- 1
          xofi[xofi > nrow(P$mat2plt)] <- nrow(P$mat2plt)  
       }
-      if (is.null(P$col.names.y)) {
-         yoffnames <- vector('numeric', length(P$dmat.colsel))
-         for (i in 1:length(P$dmat.colsel)) yoffnames[i] <- P$mat2plt[xofi[i], i]
+      if (is.null(P$col.name.y)) {
+         P$mat2plt.yoffnames <- vector('numeric', length(P$dmat.colsel))
+         for (i in 1:length(P$dmat.colsel)) 
+            P$mat2plt.yoffnames[i] <- P$mat2plt[xofi[i], i]
       } else {
-         yoffnames <- P$col.names.y[P$dmat.colsel]
+         P$mat2plt.yoffnames <- P$col.name.y[P$dmat.colsel]
       }
    }
    
@@ -653,8 +736,9 @@ plot.1D.eng <- function (P) {
       if (P$verb) note.AFNI("Singleplotmode");
       tp = 'single'
       par(bty=P$boxtype)
-      matplot(x=P$dmat.xval, P$mat2plt, 
-           col = P$col.colors[P$dmat.colsel], main = '',
+      
+      matplot(x=P$dmat.xval, P$mat2plt,             
+           col = P$col.color[P$dmat.colsel], main = '',
            xlim=P$xax.lim[1:2], ylim=P$yax.lim[1:2], 
            xlab=P$xax.label, ylab=P$yax.label,
            type= P$col.plot.type[P$dmat.colsel], 
@@ -662,8 +746,24 @@ plot.1D.eng <- function (P) {
            lty=P$col.line.type[P$dmat.colsel], 
            lwd =P$col.line.width[P$dmat.colsel], xaxt=xaxtinit, yaxt=yaxtinit)
       thisplot <- dev.cur()
+      
       if (P$verb>1) {
-         note.AFNI("Post matplot browser"); browser()
+         note.AFNI("Post matplot browser");
+         #browser() does nothing, or so we think, when running 
+         #in batch mode. However, If you uncomment the next line, 
+         #and you run from CSH prompt with -verb 2, you get this output
+         #from this section:
+         # ++ Note:  @ 16:36:28
+         #Post matplot browser
+         #Called from: plot.1D.eng(P)
+         #
+         #The last line is produced by note.AFNI, when SHOW_TRC is set
+         #to TRUE. But here it was not, so that is puzzling.
+         #
+         #Should not leave uncommented browser commands.
+         #They should be manually inserted when running from R prompt
+          
+         #browser()
       }
       if (!is.null(P$xax.step)) {
          axis(1,seq(from=P$xax.lim[1],to=P$xax.lim[2],by=P$xax.step));
@@ -672,25 +772,56 @@ plot.1D.eng <- function (P) {
          axis(2,seq(from=P$yax.lim[1],to=P$yax.lim[2],by=P$yax.step));
       }
       if (!is.null(P$xax.tic.text)) {
+         #setup axis ticks based on text, override existing tick locations
+         if (!is.null(P$xax.lim)) {
+            xat <- seq(from=P$xax.lim[1], to=P$xax.lim[2], 
+                        by=(P$xax.lim[2]-P$xax.lim[1])/length(P$xax.tic.text)); 
+         } else {
+            xt <- axTicks(1)
+            if (length(P$xax.tic.text) == length(xt)) {
+               xat <- xt
+            } else {
+               xat <- seq(from=xt[1], to=xt[length(xt)], 
+                           length.out=length(P$xax.tic.text));
+            }
+         }
+         if (length(xat) != length(P$xax.tic.text)) {
+            err.AFNI(paste(length(xat), "X ticks", 
+                     length(P$xax.tic.text),"X tick text"));
+            return(0)
+         }
          axis(1,at=xat,labels=P$xax.tic.text);
       }
       if (!is.null(P$yax.tic.text)) { 
-         axis(2,at=yat,labels=P$yax.tic.text);
-      }
-      for (i in 1:length(P$col.mean.line[P$dmat.colsel])) {
-         if (P$col.mean.line[P$dmat.colsel[i]]) {
-            ravg <- matrix(nrow=nrow(P$mat2plt), ncol=ncol(P$mat2plt))
-            for (i in 1:ncol(P$mat2plt)) {
-               ravg[,i] <- rep(P$mat2plt.colmeans[i], dim(P$mat2plt)[1])
-               lines(ravg[,i], col = P$col.colors[P$dmat.colsel[i]],  lty=3)
+         if (!is.null(P$yax.lim)) {
+            yat <- seq(from=P$yax.lim[1], to=P$yax.lim[2],
+                 by=(P$yax.lim[2]-P$yax.lim[1])/length(P$yax.tic.text));
+         } else {
+            yt <- axTicks(2)
+            if (length(P$yax.tic.text) == length(yt)) {
+               yat <- yt
+            } else {
+               yat <- seq(from=yt[1], to=yt[length(yt)], 
+                           length.out=length(P$yax.tic.text));
             }
          }
+         if (length(yat) != length(P$yax.tic.text)) {
+            note.AFNI(paste(length(yat), "Y ticks", 
+                     length(P$yax.tic.text),"Y tick text."));
+            return(0)
+         }
+         axis(2,at=yat,labels=P$yax.tic.text);
       }
+
+      if (P$verb>1) {
+         note.AFNI("Drawing meanlines"); 
+      }
+      plot.1D.drawmeanlines(P)
       
-      if (!is.null(P$col.names)) {
-         text (xoffnames, yoffnames, 
-               P$col.names[P$dmat.colsel], 
-               col = P$col.colors[P$dmat.colsel], adj=c(0,0))
+      if (P$col.name.show) {
+         text (P$mat2plt.xoffnames, P$mat2plt.yoffnames, 
+               P$col.name[P$dmat.colsel], 
+               col = P$col.color[P$dmat.colsel], adj=c(0,0))
       }
        
       if (!is.null(P$mat2plt.minus) && !is.null(P$mat2plt.plus)) {
@@ -698,7 +829,7 @@ plot.1D.eng <- function (P) {
             arrows(x0=x, y0=P$mat2plt[, i]-P$mat2plt.minus[,i], 
                    x1=x, y1=P$mat2plt[, i]+P$mat2plt.plus[,i],
                    length=.05, angle=90, code = 3,
-                   col = P$col.colors[P$dmat.colsel[i]] ) 
+                   col = P$col.color[P$dmat.colsel[i]] ) 
          } 
       }  
       #Margin text handled here for single plot, 
@@ -734,61 +865,73 @@ plot.1D.eng <- function (P) {
       if (P$verb) note.AFNI("Multiplotmode");
       tp = 'multiple'
       
-      if (is.null(P$col.names)) multinames <- colnames(P$dmat[,P$dmat.colsel])
-      else multinames <- P$col.names[P$dmat.colsel]
-      plot( as.ts(P$mat2plt), plot.type = tp, 
+      if (is.null(P$col.name)) 
+         multinames <- paste('Series', P$dmat.colsel-1, sep='')       
+      else multinames <- P$col.name[P$dmat.colsel]
+
+      set.plot.1D.global.P(P)
+      #ylab does not work here. Plot insists on using 'Series...' for ylabel
+      plot( ts(P$mat2plt, start=0, frequency= plot.1D.freq(P)), 
+            plot.type = tp, 
             type= P$col.plot.type[P$dmat.colsel],
-            xy.labels = multinames, xy.lines = TRUE, 
-            panel = plot.1D.multifunc, nc = P$multi.ncol, yax.flip = FALSE,
-            axes = TRUE, col = P$col.colors[P$dmat.colsel], main = '',
+            xy.labels = FALSE, xy.lines = TRUE, 
+            panel = plot.1D.multifunc, xlab = P$xax.label, ylab = P$yax.label,
+            nc = P$multi.ncol, yax.flip = FALSE,
+            axes = TRUE, col = P$col.color[P$dmat.colsel], main = '',
             pch=P$col.plot.char[P$dmat.colsel]) 
       thisplot <- dev.cur()
+      P <- get.plot.1D.global.P()
    }
    
+   if (P$verb>1) {
+      note.AFNI("Legend under consideration"); 
+   }
    
    if (P$leg.show) {
-      if (is.null(P$col.names) && is.null(P$leg.names)) {
-         if (!is.null(P$grp.labels)) {
-            col = plot.1D.colorOFgroups(P$col.grp, P$col.colors) 
-            legend("topright", legend=P$grp.labels, 
-                     text.col=col,lwd=2, col=col)
+      if (is.null(P$col.name) && is.null(P$leg.names)) {
+         if (!is.null(P$grp.label)) {
+            col = plot.1D.colorOFgroups(P$col.grp, P$col.color) 
+            legend(P$leg.position, legend=P$grp.label, 
+                     text.col=col, lwd=2, col=col)
          } else {
             err.AFNI(paste("Can't show legend.",
-                     "Have no col.names, no leg.names, and no grp.labels"));
+                     "Have no col.name, no leg.names, and no grp.label"));
             
          }
       } else {
-         if (is.null(P$leg.names)) P$leg.names <- P$col.names
+         if (is.null(P$leg.names)) P$leg.names <- P$col.name
          opar <- par();
          par(ps = P$leg.fontsize)  
          legend(P$leg.position, legend=P$leg.names, 
-                  text.col=P$col.colors[P$dmat.colsel],
-                  col=P$col.colors[P$dmat.colsel], 
+                  text.col=P$col.color[P$dmat.colsel],
+                  col=P$col.color[P$dmat.colsel], 
                   pch=P$col.plot.char[P$dmat.colsel], lwd=2, lty=P$col.line.type,
                   ncol=P$leg.ncol, bty='n')
          par(ps = opar$ps)
       }
    }
    
-   view_cond <- 0
-   all_cond <- 0
-   if (length(P$dmat.colsel)) {
-      if (length(which(is.na(P$dmat[,P$dmat.colsel])))==0) {
-         view_cond <- kappa(P$dmat[,P$dmat.colsel], exact=TRUE)
-      } else {
-         view_cond <- -1
-      }  
-      if (length(which(is.na(P$dmat)))==0) {
-         all_cond <- kappa(P$dmat, exact=TRUE)
-      } else {
-        all_cond  <- -1
-      } 
+   if (P$showcond) {
+      view_cond <- 0
+      all_cond <- 0
+      if (length(P$dmat.colsel)) {
+         if (length(which(is.na(P$dmat[,P$dmat.colsel])))==0) {
+            view_cond <- kappa(P$dmat[,P$dmat.colsel], exact=TRUE)
+         } else {
+            view_cond <- -1
+         }  
+         if (length(which(is.na(P$dmat)))==0) {
+            all_cond <- kappa(P$dmat, exact=TRUE)
+         } else {
+           all_cond  <- -1
+         } 
+      }
+      stit = paste ( 'Condition Numbers:\n',
+                     'All          : ', sprintf('%.2f', all_cond), '\n',
+                     'Viewed       : ', sprintf('%.2f', view_cond),'\n', sep='');
+
+      cat(stit)
    }
-   stit = paste ( 'Condition Numbers:\n',
-                  'All          : ', sprintf('%.2f', all_cond), '\n',
-                  'Viewed       : ', sprintf('%.2f', view_cond),'\n', sep='');
-   
-   cat(stit)
    
    plot.1D.puttitle(P)
 
@@ -896,7 +1039,7 @@ matrix.AFNI.show <- function(x, ...){
     }
     if( !is.null(Lst$text) ) {
       tt <- Lst$text
-      if (is.null(Lst$test.x) || is.null(Lst$text.y)) {
+      if (is.null(Lst$text.x) || is.null(Lst$text.y)) {
          err.AFNI("Can't pass text without text.x|y");
          return(NULL)
       }

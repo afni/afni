@@ -48,6 +48,11 @@ parse.name <- function (filename, extvec=NULL, verb=0) {
    return(n)
 }
 
+is.AFNI.1D.string <- function(t) {
+   if (length(grep('^1D:',t))) return(TRUE)
+   return(FALSE)
+}
+
 eval.AFNI.1D.string <- function (t, verb=0, nmax=0) {
    
    #remove 1D:
@@ -100,14 +105,19 @@ eval.AFNI.1D.string <- function (t, verb=0, nmax=0) {
    else return(vvf)
 }
 
+is.AFNI.R.string <- function(t) {
+   if (length(grep('^R:',t))) return(TRUE)
+   return(FALSE)
+}
+
 eval.AFNI.R.string <- function (t) {
    t <- sub("^R:","",t)
    return(eval(parse(text=t)))
 }
 
 eval.AFNI.string <- function (t) {
-   if (length(grep('^1D:',t))) return(eval.AFNI.1D.string(t))
-   else if (length(grep('^R:',t))) return(eval.AFNI.R.string(t))
+   if (is.AFNI.1D.string(t)) return(eval.AFNI.1D.string(t))
+   else if (is.AFNI.R.string(t)) return(eval.AFNI.R.string(t))
    else return(NULL)
 }
 
@@ -247,7 +257,8 @@ parse.AFNI.name <- function(filename, verb = 0) {
    an$path <- dirname(an$orig_name)
    
   if (verb > 2) {
-   browser()
+   note.AFNI("Browser not active");
+   # browser()
   }
   
   return(an)
@@ -528,9 +539,11 @@ load.debug.AFNI.args <- function ( fnm = NULL) {
       return(FASLE);
    }
    load(fnm)
+   ok_auto <- FALSE
    if (exists('rfile')) {
       ss <- sprintf("\n   Start interactive code with:\n\nsource('%s')\n",
                      rfile);
+      ok_auto <- TRUE
    } else {
       ss <- 
          sprintf("\n   Start interactive code with:\n\nsource('yourRfile')\n");
@@ -543,6 +556,11 @@ load.debug.AFNI.args <- function ( fnm = NULL) {
       return(FALSE)
    }
    
+   if (ok_auto) {
+      if (prompt.AFNI("Execute source command?", c('y','n')) == 1) {
+         source(rfile)
+      }
+   }
    return(TRUE)
 }
 
@@ -872,10 +890,17 @@ prompt.AFNI <- function (str, choices, vals=NULL) {
    }
 }
 
+SHOW_TRC <<- FALSE
+
+set.AFNI.msg.trace <- function (vv=FALSE) { SHOW_TRC <<- vv }
+
 warn.AFNI <- function (str='Consider yourself warned',
                        callstr=NULL, 
                        newline=TRUE) {
-   if (is.null(callstr)) callstr <- who.called.me(TRUE)
+   if (is.null(callstr)) {
+      if (SHOW_TRC) callstr <- who.called.me(TRUE)
+      else callstr <- ''
+   }
    nnn<-''
    if (newline) nnn <- '\n'
    if (BATCH_MODE) ff <- stderr()
@@ -888,7 +913,10 @@ warn.AFNI <- function (str='Consider yourself warned',
 err.AFNI <- function (str='Danger Danger Will Robinson',
                         callstr=NULL, 
                       newline=TRUE) {
-   if (is.null(callstr)) callstr <- who.called.me(TRUE)
+   if (is.null(callstr)) {
+      if (SHOW_TRC) callstr <- who.called.me(TRUE)
+      else callstr <- ''
+   }
    nnn<-''
    if (newline) nnn <- '\n'
    if (BATCH_MODE) ff <- stderr()
@@ -901,7 +929,10 @@ err.AFNI <- function (str='Danger Danger Will Robinson',
 note.AFNI <- function (str='May I speak frankly?',
                        callstr=NULL, newline=TRUE, tic=1,
                        trimtrace=30) {
-   if (is.null(callstr)) callstr <- who.called.me(TRUE, trim=trimtrace)
+   if (is.null(callstr)) {
+      if (SHOW_TRC)  callstr <- who.called.me(TRUE, trim=trimtrace)
+      else callstr <- ''
+   }
    nnn<-''
    if (newline) nnn <- '\n'
    if (BATCH_MODE) ff <- stderr()
@@ -920,8 +951,10 @@ note.AFNI <- function (str='May I speak frankly?',
 
 errex.AFNI <- function (str='Alas this must end',
                         callstr=NULL, newline=TRUE) {
-   if (is.null(callstr)) callstr <- who.called.me(TRUE)
-      
+   if (is.null(callstr)) {
+      if (SHOW_TRC) callstr <- who.called.me(TRUE)
+      else callstr <- ''
+   }
    err.AFNI(str,callstr, newline)
    exit.AFNI(str='\n   Execution halted',stat=1)
 }
@@ -1109,13 +1142,13 @@ expand_1D_string <- function (t) {
    for (si in s) {
       #cat ("working ", si, "\n")
       if (length(grep(":",si))) {
-         vv = eval(parse(text=si))
+         vv <- eval(parse(text=si))
       } else if (length(grep("@",si))) {
          ssi = as.numeric(strsplit(si,"@")[[1]])
          #cat ("ssi = ", ssi, "\n")
-         vv = rep(ssi[2], ssi[1])
+         vv <- rep(ssi[2], ssi[1])
       } else {
-         vv = as.numeric(si)
+         vv <- as.numeric(si)
       }
       #cat(si," = ",vv, "\n")
       vvf <- c(vvf, vv)
@@ -1124,14 +1157,25 @@ expand_1D_string <- function (t) {
    return(vvf)
 }
 
-read.AFNI.xmat <- function (xmatfile, nheadmax=10) {
-   if (!file.exists(xmatfile)) {
-      err.AFNI(paste("xmatfile ",xmatfile,"not found"));
-      return(NULL);
+apply.AFNI.matrix.header <- function (fname, mat, 
+                              brsel=NULL, rosel=NULL,rasel=NULL, 
+                              nheadmax = 10) {
+   attr(mat,'FileName') <- fname
+   
+   fnp <- parse.AFNI.name(fname)
+   
+   if (!file.exists(fnp$file)) {
+      return(mat)
    }
+  
    #Get first few lines
-   ff <- scan(xmatfile, what = 'character', nmax = nheadmax, sep = '\n')
+   ff <- scan(fnp$file, what = 'character', nmax = nheadmax, sep = '\n')
 
+   #Does this look 1D nimly?
+   if (!length(grep('^[[:space:]]*#[[:space:]]*<', ff))) {
+      return(mat)
+   }
+   
    #Search for ColumnLabels and split string
    icl = grep('ColumnLabels', ff)
    if (length(icl)){
@@ -1141,30 +1185,26 @@ read.AFNI.xmat <- function (xmatfile, nheadmax=10) {
          ffsv <- strsplit(ffs," ")[[1]]
          #some components are blanks to be killed
          labels <- ffsv[which(nchar(ffsv)!=0)]
+         #apply rosel
+         if (!is.null(brsel)) labels <- labels[brsel+1]
+         #Overwrite colnames if labels are available
+         if (length(labels) == ncol(mat)) colnames(mat) <- labels
    }else {
       labels = ""
    }
+   attr(mat,'labels') <- labels
+   
    #Get the TR
    ffs <- strsplit(ff[grep('RowTR', ff)], '=')[[1]][2]
       #remove bad chars and change to number
       TR = as.double(gsub("[;\" *]","", ffs))
+   attr(mat, 'TR') <- TR
       
    #Get the ColumnGroups
    ffs <- strsplit(ff[grep('ColumnGroups', ff)], '=')[[1]][2]
    colg = expand_1D_string (gsub("[;\" *]","", ffs))
-
-   #Now load the whole deal, comments are skipped by defaults
-   ff <- ts(as.matrix(read.table(xmatfile)), names = labels, deltat = TR)
-   
-   #Put the column groups in
-   #cat ("insterting colg: ", colg, "\n")
-   attr(ff,'ColumnGroups') <- colg
-   
-   #add TR for the record
-   attr(ff, 'TR') <- TR
-      
-   #add filename for the record
-   attr(ff,'FileName') <- xmatfile
+   if (!is.null(brsel)) colg <- colg[brsel+1]
+   attr(mat,'ColumnGroups') <- colg
    
    #Get the task names
    llv <- vector(length=0,mode="numeric")
@@ -1176,7 +1216,25 @@ read.AFNI.xmat <- function (xmatfile, nheadmax=10) {
       }
    }
    tnames <-paste(strsplit(labels[llv],"#0"))
-   attr(ff,'TaskNames') <- tnames
+   attr(mat,'TaskNames') <- tnames
+   
+   return(mat)
+}
+
+read.AFNI.xmat <- function (xmatfile, nheadmax=10) {
+   if (!file.exists(xmatfile)) {
+      err.AFNI(paste("xmatfile ",xmatfile,"not found"));
+      return(NULL);
+   }
+
+   #Now load the whole deal, comments are skipped by defaults
+   ff <- as.matrix(read.table(xmatfile))
+   
+   #Check for attributes
+   ff <- apply.AFNI.matrix.header(xmatfile, ff)
+   
+   #Make matrix be ts
+   ff <- ts(ff, names=attr(ff,"labels"), deltat=attr(ff,"TR"))
    
    return(ff)
 }
@@ -1380,6 +1438,11 @@ read.AFNI.matrix <- function (fname,
                               usercolnames=NULL, 
                               userrownames=NULL,
                               verb = 0) {
+   if (length(fname)>1) {
+      err.AFNI(paste("Cannot handle more than one name.\nHave ",
+                     paste(fname,collapse=' '), sep=''))
+      return(NULL);
+   }
    if (fname == '-self_test') {
       read.AFNI.matrix.test()
       return(NULL);
@@ -1391,11 +1454,11 @@ read.AFNI.matrix <- function (fname,
       return(as.matrix(mm))
    }
    
-   if (verb) print(who.called.me())
+   if (verb) cat(who.called.me())
    
    if (is.character(fname)) {
       fname <- parse.AFNI.name(fname)
-      fnameattr <- fname
+      fnameattr <- fname$orig_name
    }else{
       fnameattr <- 'NONAME'
    }
@@ -1440,7 +1503,8 @@ read.AFNI.matrix <- function (fname,
                         warning=function(aa) {} ) 
             if (is.null(ccc)) {
                warn.AFNI(paste("Failed to process column ",
-                                ii-1, ". Using NA instead"))
+                                ii-1, " in ", fnameattr,
+                                ". Using NA instead"))
                ccc <- NA*vector(length=dim(brk)[1]-istrt+1)
             }
             if (ii==1) {
@@ -1454,7 +1518,8 @@ read.AFNI.matrix <- function (fname,
 
 
    if (verb>2) {
-      browser()
+      note.AFNI("Browser here, not active");
+      #browser()
    }
    rownames(covMatrix) <- subjCol;
    colnames(covMatrix) <- covNames;
@@ -1469,7 +1534,8 @@ read.AFNI.matrix <- function (fname,
          return(NULL); 
       } 
       covMatrix <- covMatrix[,sbsel+1, drop=FALSE]
-   }
+   } else sbsel <- NULL
+   
    if (!is.null(fname$rosel)) {
       rosel <- eval.AFNI.1D.string(fname$rosel, nmax=dim(covMatrix)[1]-1)
       if (min(rosel) < 0 || max(rosel)>=dim(covMatrix)[1]) {
@@ -1479,11 +1545,12 @@ read.AFNI.matrix <- function (fname,
          return(NULL); 
       } 
       covMatrix <- covMatrix[rosel+1,, drop=FALSE]
-   }
+   } else rosel <- NULL
+   
    if (!is.null(fname$rasel)) {
       err.AFNI('Not ready to deal with range selection');
       return(NULL); 
-   }
+   } else rasel <- NULL
    
    #Now, reorder per user*names 
    if (!is.null(userrownames)) {
@@ -1526,7 +1593,10 @@ read.AFNI.matrix <- function (fname,
       covMatrix <- mm
    }
    
-   attr(covMatrix,'FileName') <- fnameattr
+   covMatrix <- apply.AFNI.matrix.header(fnameattr, covMatrix, 
+                            brsel=sbsel, rosel=rosel, 
+                            rasel=rasel)
+
    return(covMatrix)
 }   
 
