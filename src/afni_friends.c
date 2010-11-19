@@ -639,6 +639,7 @@ static mday holiday[] = {
    {NOV,19,"Anniversary of Gettysburg Address"                       } ,
    {NOV,19,"Monaco National Fete"                                    } ,
    {NOV,20,"Edwin Hubble's birthday"                                 } ,
+   {NOV,20,"World Statistics Day!"                                   } ,
    {NOV,21,"Francois-Marie Arouet's birthday"                        } ,
    {NOV,22,"Anniversary of Kennedy's assasination"                   } ,
    {NOV,22,"Lebanon Independence Day"                                } ,
