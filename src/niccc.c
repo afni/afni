@@ -19,8 +19,9 @@ int main( int argc , char *argv[] )
 {
    NI_stream ns ;
    void *nini = NULL, *vel=NULL;
+   NI_element *nel=NULL;
    char *strm=NULL, *attr=NULL;
-   int nn, mode = NI_TEXT_MODE, shhh=0;
+   int nn, mode = NI_TEXT_MODE, shhh=0, exact=1;
    int dodup = 0, nodata=0, dostderr=1, isfile=0;
    
    if( argc < 2 || !strcmp(argv[1], "-help") || !strcmp(argv[1], "-h")){
@@ -42,6 +43,12 @@ int main( int argc , char *argv[] )
               "         This is to test NI_duplicate function.\n"
               "   -nodata: Show header parts only in output\n"
               "   -attribute ATTR: Dump the value of attribute ATTR\n"
+              "   -match MATCH: If MATCH is exact, then attribute name\n"
+              "                 is matched exactly. If MATCH is partial,\n"
+              "                 then a match of all the characters in ATTR\n"
+              "                 is enough. For example, an ATTR of COEF would\n" 
+              "                 match any of COEF COEF.1 COEF.2, etc.\n"
+              "            Default is -match exact\n"
               "   -f: streamspec is a filename.\n"
               "   -stdout: write elements to stdout, instead of stderr\n"
               "   -#: put the # at the beginning of lines with no data\n"
@@ -80,6 +87,21 @@ int main( int argc , char *argv[] )
             exit(1);
          }  
          attr=argv[nn]; 
+         ++nn; continue;
+      }
+      if (!strcmp(argv[nn],"-match")) {
+         ++nn;
+         if (nn >= argc) {
+            fprintf(stderr,"Need parameter after -match\n");
+            exit(1);
+         }  
+         if (!strcmp(argv[nn],"exact")) exact = 1;
+         else if (!strcmp(argv[nn],"partial")) exact = 0;
+         else {
+            fprintf(stderr,"%s is not a valid value for -match. \n"
+                           "Use either exact or partial\n", argv[nn]);
+            exit(1);
+         } 
          ++nn; continue;
       }
       fprintf(stderr,
@@ -127,14 +149,43 @@ int main( int argc , char *argv[] )
          char *aa=NULL;
          if (dostderr) outf = stderr;
          if (attr) {
-            aa = NI_get_attribute(nini, attr);
-            if (aa) {
-               if (shhh) fprintf(outf,"%s\n", aa); 
-               else fprintf(outf,"%s: %s\n",attr, aa); 
-               exit(0);
+            if (exact) {
+               aa = NI_get_attribute(nini, attr);
+               if (aa) {
+                  if (shhh) fprintf(outf,"%s\n", aa); 
+                  else fprintf(outf,"%s: %s\n",attr, aa); 
+                  exit(0);
+               } else {
+                  if (!shhh) fprintf(stderr,"%s: Not found.\n", attr);
+                  exit(1);
+               }
             } else {
-               fprintf(stderr,"%s: Not found.\n", attr);
-               exit(1);
+               int tt=NI_element_type(nini) ;
+               int nn, nfound=0;
+               if( tt == NI_ELEMENT_TYPE ){
+                  nel=(NI_element *)nini;
+                  for( nn=0 ; nn < nel->attr_num ; nn++ ) {
+                     if( strncmp(nel->attr_lhs[nn],attr, 
+                                 strlen(attr)) == 0 ) {
+                        if (shhh) fprintf(outf,"%s\n", nel->attr_rhs[nn]); 
+                        else fprintf(outf,"%s: %s\n",
+                                    nel->attr_lhs[nn], nel->attr_rhs[nn]); 
+                        ++nfound;
+                     }
+                  }
+                  if (nfound) exit(0);
+                  else {
+                     if (!shhh) fprintf(stderr,"%s: Not found.\n", attr);
+                     exit(1);
+                  }
+               } else {
+                  if (strncmp(strm,"file:",5)) {
+                     fprintf(stderr,"\n*** niccc: not ready for non elements\n");
+                     exit(1);
+                   } else {
+                     exit(1);
+                   }   
+               }
             }
          }
          if (dodup) {

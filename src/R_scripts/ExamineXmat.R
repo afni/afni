@@ -185,7 +185,9 @@ read.ExamineXmat.opts.batch <- function (args=NULL, verb = 0) {
       '-help' = apl(n=0, h = '-help: this help message\n'),
       '-h' = apl(n=0, h = '-h: this help message\n'),
       '-show_allowed_options' = apl(n=0, h=
-   "-show_allowed_options: list of allowed options\n" )
+   "-show_allowed_options: list of allowed options\n" ),
+      '-msg.trace' = apl(n=0, h=
+   "-msg.trace: Output trace information along with errors and notices\n" )
 
          );
                      
@@ -216,7 +218,8 @@ read.ExamineXmat.opts.batch <- function (args=NULL, verb = 0) {
              help = help.ExamineXmat.opts(params, adieu=TRUE),
              h = help.ExamineXmat.opts(params, adieu=TRUE),
              show_allowed_options = show.AFNI.args(ops, verb=0, 
-                                              hstr="ExamineXmat's",adieu=TRUE)
+                                              hstr="ExamineXmat's",adieu=TRUE),
+             msg.trace = set.AFNI.msg.trace(TRUE)
              )
    }
 
@@ -302,7 +305,7 @@ show_xmat <- function (xmat, isel=1:1:ncol(xmat), descr="", interactive=TRUE) {
             ttl.main = maintit,
             ttl.sub=stit, multi.ncol=1,
             col.mean.line = FALSE,
-            col.colors = colvec,
+            col.color = colvec,
             col.plot.char = -1, col.plot.type = 'l', leg.show = FALSE,
             col.text.lym = text.lym, col.text.lym.at = 'YOFF',
             col.text.rym = text.rym, col.text.rym.at = 'YOFF',
