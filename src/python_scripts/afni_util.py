@@ -48,6 +48,64 @@ def write_text_to_file(fname, text, mode='w', wrap=0, wrapstr='\n'):
 
     return 0
 
+def write_to_timing_file(data, fname='', nplaces=-1, verb=1):
+   """write the data in stim_times format, over rows
+      (this is not for use with married timing, but for simple times)"""
+
+   if fname == '': return
+
+   fp = open(fname, 'w')
+   if not fp:
+      print "** failed to open '%s' for writing timing" % fname
+      return 1
+
+   if verb > 0:
+      print "++ writing %d timing rows to %s" % (len(data), fname)
+
+   fp.write(make_timing_data_string(data, nplaces=nplaces, flag_empty=1,
+                                    verb=verb))
+   fp.close()
+
+   return 0
+
+def make_timing_data_string(data, row=-1, nplaces=3, flag_empty=0,
+                            mesg='', verb=1):
+   """return a string of row data, to the given number of decimal places
+      if row is non-negative, return a string for the given row, else
+      return a string of all rows"""
+
+   if verb > 2:
+      print '++ make_data_string: row = %d, nplaces = %d, flag_empty = %d' \
+            % (row, nplaces, flag_empty)
+
+   if row >= 0:
+      return make_single_row_string(data[row], row, nplaces, flag_empty)
+
+   # make it for all rows
+   if len(mesg) > 0: rstr = "%s :\n" % mesg
+   else:             rstr = ''
+   for ind in range(len(data)):
+      rstr += make_single_row_string(data[ind], ind, nplaces, flag_empty)
+
+   return rstr
+
+def make_single_row_string(data, row, nplaces=3, flag_empty=0):
+   """return a string of row data, to the given number of decimal places
+      if row is non-negative, return a string for the given row"""
+
+   rstr = ''
+
+   # if flagging an empty run, use '*' characters
+   if len(data) == 0 and flag_empty:
+      if row == 0: rstr += '* *'
+      else:        rstr += '*'
+
+   for val in data:
+      if nplaces >= 0: rstr += '%.*f ' % (nplaces, val)
+      else:            rstr += '%g ' % (val)
+
+   return rstr + '\n'
+
 def quotize_list(list, opt_prefix, skip_first=0, quote_wild=0):
     """given a list of text elements, return a new list where any existing
        quotes are escaped, and then if there are special characters, put the
