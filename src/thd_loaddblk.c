@@ -828,7 +828,7 @@ ENTRY("THD_alloc_datablock") ;
       STATUS("trying to malloc sub-bricks") ;
 
       if( verbose && blk->total_bytes >= 1000000000ll )
-        fprintf(stderr,"malloc(%s bytes)",
+        fprintf(stderr,"malloc(%s bytes",
                 approximate_number_string((double)blk->total_bytes) ) ;
 
       for( nbad=ibr=0 ; ibr < nv ; ibr++ ){
@@ -838,6 +838,7 @@ ENTRY("THD_alloc_datablock") ;
           if( ptr == NULL ) nbad++ ;
         }
       }
+      if( verbose && blk->total_bytes >= 1000000000ll ) fprintf(stderr,")") ;
       if( nbad == 0 ) RETURN(1) ;   /* things are cool */
 
       /* at least one malloc() failed, so possibly try to free some space */

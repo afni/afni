@@ -658,14 +658,15 @@ ENTRY("GA_scalar_fitter") ;
 
 #if 1
   if( mverb > 1 ){
-    static double vsmall=1.e+37 ; static int first=1 ;
+    static double vsmall=1.e+37 ; static int ncall=0 ;
     if( vsmall > val ){
-      if( !first ){
+      if( ncall > 0 ){
         if( mverb == 2 ) fprintf(stderr,"*") ;
-        else             fprintf(stderr,"*[%.6g] ",val) ;
+        else             fprintf(stderr,"*[#%d=%.6g] ",ncall,val) ;
       }
-      vsmall = val ; first = 0 ;
+      vsmall = val ;
     }
+    ncall++ ;
   }
 #endif
 
