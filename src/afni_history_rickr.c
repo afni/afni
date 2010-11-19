@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 19, NOV, 2010, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "add -write_all_rest_times, moved write_to_timing_file to afni_util.py",
+   "option added for J Poore"
+ } ,
+
  { 18, NOV, 2010, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
    "fixed stim_files to stim_times conversion after multi_basis change",
    "problem noted by M Weber"

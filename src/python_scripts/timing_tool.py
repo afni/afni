@@ -251,6 +251,7 @@ options with both single and multi versions (all single first):
             -multi_show_timing_ele
             -multi_stim_dur
             -run_len
+            -write_all_rest_times
 
    -multi_show_isi_stats        : display timing and ISI statistics
 
@@ -258,6 +259,8 @@ options with both single and multi versions (all single first):
         multiple timing files.
 
         If -tr is included, TR offset statistics are also shown.
+
+        If -write_all_rest_times is included, write a file of rest durations.
 
    -multi_show_timing_ele       : display info on the multiple timing elements
 
@@ -594,6 +597,15 @@ general options:
         This option allows the user to specify how verbose the program is.
         The default level is 1, 0 is quiet, and the maximum is (currently) 4.
 
+   -write_all_rest_times        : write all rest durations to 'timing' file
+
+        e.g. -write_all_rest_times all_rest.txt
+
+        In the case of a show_isi_stats option, the user can opt to save all
+        rest (pre-stim, isi, post-stim) durations to a timing-style file.  Each
+        row (run) would have one more entry than the number of stimuli (for 
+        pre- and post- rest).  Note that pre- and post- might be 0.
+
 -----------------------------------------------------------------------------
 R Reynolds    December 2008
 =============================================================================
@@ -617,9 +629,12 @@ g_history = """
           (added for N Adleman)
    1.10 Oct 16, 2010 - fixed timing_to_1D fractions
    1.11 Oct 21, 2010 - added -shift_to_run_offset
+   1.12 Nov 19, 2010
+        - moved write_to_timing_file to afni_util.py
+        - added -write_all_rest_times (for J Poore)
 """
 
-g_version = "timing_tool.py version 1.11, October 21, 2010"
+g_version = "timing_tool.py version 1.12, November 19, 2010"
 
 
 class ATInterface:
@@ -643,6 +658,7 @@ class ATInterface:
       # user options - single var
       self.timing          = None       # main timing element
       self.fname           = 'no file selected'
+      self.all_rest_file   = ''         # for -write_all_rest_times
       self.stim_dur        = 0 
 
       # user options - multi var
@@ -881,6 +897,8 @@ class ATInterface:
                          helpstr='specify output timing resolution (seconds)')
       self.valid_opts.add_opt('-verb', 1, [], 
                          helpstr='set the verbose level (default is 1)')
+      self.valid_opts.add_opt('-write_all_rest_times', 1, [], 
+                         helpstr='in isi_stats, save rest durations to file')
 
       return 0
 
@@ -968,6 +986,9 @@ class ATInterface:
          if type(val) == type([]) and not err:
             self.multi_set_stim_durs(val)
 
+         val, err = uopts.get_string_opt('-write_all_rest_times')
+         if val and not err:
+            self.all_rest_file = val
 
       # ------------------------------------------------------------
       # selection and process options:
@@ -1041,6 +1062,12 @@ class ATInterface:
                val, err = self.user_opts.get_type_opt(int, '', opt=opt)
                if val != None and err: return 1
                else: self.verb = val
+               continue
+
+            elif opt.name == '-write_all_rest_times':
+               val, err = self.user_opts.get_string_opt('', opt=opt)
+               if val != None and err: return 1
+               else: self.all_rest_file = val
                continue
 
          #---------- action options, always chronological ----------
@@ -1140,7 +1167,8 @@ class ATInterface:
                return 1
             if self.verb > 0:
                print '++ timing (%d runs)\n' % len(self.timing.data)
-            print self.timing.make_data_string(nplaces=self.nplaces)
+            print UTIL.make_timing_data_string(self.timing.data,
+                          nplaces=self.nplaces, verb=self.verb)
 
          elif opt.name == '-show_isi_stats':
             if not self.timing:
@@ -1408,7 +1436,7 @@ class ATInterface:
       amt = LT.AfniMarriedTiming(from_at=1, at=self.timing)
 
       rv = amt.show_isi_stats(mesg='single element', run_len=self.run_len,
-                              tr=self.tr)
+                              tr=self.tr, rest_file=self.all_rest_file)
       if rv and self.verb > 2:
          amt.make_data_string(nplaces=self.nplaces,mesg='SHOW ISI FAILURE')
 
@@ -1429,7 +1457,7 @@ class ATInterface:
       if self.verb > 2: amt.show('final AMT')
 
       rv = amt.show_isi_stats(mesg='%d elements'%nele, run_len=self.run_len,
-                              tr=self.tr)
+                              tr=self.tr, rest_file=self.all_rest_file)
       if rv and self.verb > 2:
          print amt.make_data_string(nplaces=self.nplaces,mesg='ISI FAILURE')
 
