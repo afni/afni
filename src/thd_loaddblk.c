@@ -448,7 +448,7 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
 
    if( verb ) verb = (blk->total_bytes > print_size) ;
    if( verb )
-     fprintf(stderr,"reading %s (%s bytes)",
+     fprintf(stderr,"reading %s(%s bytes)",
              dkptr->filecode ,
              approximate_number_string((double)blk->total_bytes) ) ;
 
