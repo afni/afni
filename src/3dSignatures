@@ -11,13 +11,17 @@ else
 endif
 
 set tname = `basename $0`.R
+set afpath = `which afni`
+set afpath = `dirname $afpath`
 if ( -f  $pp/${tname}) then
    set tname = $pp/${tname} 
 else if ( -f  $pp/R_scripts/${tname}) then
    set tname = $pp/R_scripts/${tname}
+else if ( -f  $afpath/${tname}) then
+   set tname = $afpath/${tname} 
 else 
    echo "** Error `basename $0`:"
-   echo "${tname} not found in $pp or $pp/R_scripts"
+   echo "${tname} not found in $pp or $pp/R_scripts or $afpath"
    echo ""
 endif
    
