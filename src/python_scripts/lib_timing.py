@@ -53,49 +53,6 @@ class AfniTiming:
 
       return 0
 
-   def make_single_row_string(self, row=-1, nplaces=3, flag_empty=0):
-      """return a string of row data, to the given number of decimal places
-         if row is non-negative, return a string for the given row"""
-      if not self.ready: return ''
-      if row < 0 or row >= self.nrows:
-         if self.verb > 0: print '** row %d out of range for printing' % row
-         return ''
-
-      data = self.data[row]
-      rstr = ''
-      if self.verb > 2 and not flag_empty: rstr += 'run %02d : ' % (row+1)
-
-      # if flagging an empty run, use '*' characters
-      if len(data) == 0 and flag_empty:
-         if row == 0: rstr += '* *'
-         else:        rstr += '*'
-
-      for val in data:
-         if nplaces >= 0: rstr += '%.*f ' % (nplaces, val)
-         else:            rstr += '%g ' % (val)
-
-      return rstr + '\n'
-
-   def make_data_string(self, row=-1, nplaces=3, flag_empty=0, mesg=''):
-      """return a string of row data, to the given number of decimal places
-         if row is non-negative, return a string for the given row, else
-         return a string of all rows"""
-
-      if self.verb > 2:
-         print '++ make_data_string: row = %d, nplaces = %d, flag_empty = %d' \
-               % (row, nplaces, flag_empty)
-
-      if row >=0:
-         return self.make_single_row_string(row, nplaces, flag_empty)
-
-      # make it for all rows
-      if len(mesg) > 0: rstr = "%s :\n" % mesg
-      else:             rstr = ''
-      for ind in range(self.nrows):
-         rstr += self.make_single_row_string(ind, nplaces, flag_empty)
-
-      return rstr
-
    def write_times(self, fname='', nplaces=-1):
       """write the current timing out, with nplaces right of the decimal"""
       if not self.ready:
@@ -104,18 +61,7 @@ class AfniTiming:
 
       if fname == '': fname = self.fname
 
-      fp = open(fname, 'w')
-      if not fp:
-         print "** failed to open '%s' for writing timing" % fname
-         return 1
-
-      if self.verb > 0:
-         print "++ writing %d timing rows to %s" % (self.nrows, fname)
-
-      fp.write(self.make_data_string(nplaces=nplaces, flag_empty=1))
-      fp.close()
-
-      return 0
+      return UTIL.write_to_timing_file(self.data, fname, nplaces, self.verb)
 
    def extend_rows(self, brows):
       """extend each row by the corresponding row of brows"""
@@ -837,13 +783,14 @@ class AfniMarriedTiming:
 
       return '', result
 
-   def show_isi_stats(self, mesg='', run_len=[], tr=0):
+   def show_isi_stats(self, mesg='', run_len=[], tr=0, rest_file=''):
       """display ISI timing statistics
 
             mesg        : display the user message first
             run_len     : can be empty, length 1 or length nrows
             tr          : if > 0: show mean/stdev for stimuli within TRs
                           (so 0 <= mean < tr)
+            rest_file   : if set, save all rest durations
 
          display these statistics:
             - total time, total stim time, total rest time
@@ -888,6 +835,10 @@ class AfniMarriedTiming:
          print '** invalid len(run_len)=%d, must be one of 0,1,%d' % \
                (len(run_len), self.nrows)
          return 1
+
+      if self.verb > 1:
+         print '-- show_isi_stats, run_len = %s, tr = %s, rest_file = %s' \
+               % (run_len, tr, rest_file)
 
       if self.verb > 3:
          print scopy.make_data_string(nplaces=1, flag_empty=0, check_simple=0,
@@ -1006,6 +957,14 @@ class AfniMarriedTiming:
 
       # and possibly print out offset info
       if tr > 0: self.show_TR_offset_stats(tr, '')
+
+      # maybe write all rest durations
+      if rest_file:
+         all_rest = copy.deepcopy(all_isi)
+         for run, rest in enumerate(all_rest):
+             rest[:0] = [pre_time[run]]
+             rest.append(post_time[run])
+         UTIL.write_to_timing_file(all_rest, rest_file)
 
       # clean up, just to be kind
       del(all_stim); del(all_isi); del(pre_time); del(post_time); del(run_time)
