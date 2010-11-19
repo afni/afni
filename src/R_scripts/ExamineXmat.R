@@ -300,7 +300,7 @@ show_xmat <- function (xmat, isel=1:1:ncol(xmat), descr="", interactive=TRUE) {
       dev.set(plotdev)
    }
    plotdev <<- plot.1D( dmat = xmat, dmat.err=NULL,
-            dmat.colsel = isel,  
+            dmat.colsel = isel,  dmat.type = 'XMAT',
             col.ystack = TRUE,
             ttl.main = maintit,
             ttl.sub=stit, multi.ncol=1,

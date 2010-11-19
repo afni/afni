@@ -10,8 +10,10 @@ plot.1D.multifunc <- function(x, col, bg, pch, type, ...) {
    lines(x=x,col=col[PLO$iplt],bg=bg,
          pch=pch[PLO$iplt], type=type[PLO$iplt],
          ...)
-   
-   if (PLO$col.name.show) {
+
+   if (0 && PLO$col.name.show) { 
+         #autoffset computations currently used are bad for multiplots.
+         #Fix them before enabling
          text (PLO$mat2plt.xoffnames[PLO$iplt], PLO$mat2plt.yoffnames[PLO$iplt], 
                PLO$col.name[PLO$dmat.colsel[PLO$iplt]], 
                col = PLO$col.color[PLO$dmat.colsel[PLO$iplt]], adj=c(0,0))
@@ -268,9 +270,18 @@ plot.1D.drawmeanlines <- function (P, thissel=NULL) {
       return()
 }
  
+#If you pass no parameters to this function
+#You get a list that has all the elements of lldef
+#but with NA values everywhere
+#
+#If you pass parameters, they replace their namesakes in
+#the returned list and the uninitialized ones get the defaults
+#from lldef
 plot.1D.optlist <- function(...) {
-   ll <- list(dmat=NULL, dmat.err=NULL, dmat.colsel=NULL, 
-            dmat.xval=NULL, dmat.TR = NULL,
+   #list of all variables in default value
+   #
+   lldef <- list(dmat=NULL, dmat.err=NULL, dmat.colsel=NULL, 
+            dmat.xval=NULL, dmat.TR = NULL, dmat.type = NULL,
             col.grp = NULL, col.ystack=FALSE, col.nozeros=FALSE, 
             col.name=NULL, col.name.show=FALSE, col.name.x=NULL, col.name.y=NULL,
             col.color = NULL, col.plot.char=NULL,
@@ -296,8 +307,12 @@ plot.1D.optlist <- function(...) {
             dev.this=NULL, dev.new=FALSE,
             showcond = FALSE,
             verb = 0);
-  #Add user specifics
+   
+   #Same list, but all flagged with NA as not user initialized
+   ll <- lldef; ll[1:length(ll)] <- NA
+   
   if( length(list(...)) ){
+      #Add user specifics
       up <- list(...)
       for (iu in 1:length(up)) {
          wiu <- which(names(ll) == names(up)[iu])
@@ -307,8 +322,28 @@ plot.1D.optlist <- function(...) {
                               names(up)[iu]))
          }
       }
+      #Now, based on dmat.type, do some setup without overririding user's whishes
+      if (!is.na(ll$dmat.type)) {
+         if (ll$dmat.type == 'VOLREG') {
+            if (is.na(ll$col.name)) 
+               ll$col.name <- c('Roll', 'Pitch', 'Yaw', 'I-S', 'R-L', 'A-P')
+            if (is.na(ll$multi.ncol)) ll$multi.ncol <- 1
+         }
+         if (ll$dmat.type == 'XMAT') {
+            if (is.na(ll$multi.ncol)) ll$multi.ncol <- 1
+            if (is.na(ll$col.ystack)) ll$col.ystack <- TRUE
+            if (is.na(ll$oneplot)) ll$oneplot <- TRUE
+         }
+      }
+      #Now, apply all defaults for what remains uninitialized
+      for (i in 1:length(ll)) 
+         if (is.na(ll[i])) ll[i] <- lldef[i]
+      
+   } else {
+      #Returning with all set as NA
    }
-
+   
+   
    return(ll)
 }
 
@@ -870,15 +905,17 @@ plot.1D.eng <- function (P) {
       else multinames <- P$col.name[P$dmat.colsel]
 
       set.plot.1D.global.P(P)
-      #ylab does not work here. Plot insists on using 'Series...' for ylabel
+      #ylab does not work here. Plot insists on using colnames() of
+      #what is being plotted for ylabel
+      colnames(P$mat2plt) <- multinames
       plot( ts(P$mat2plt, start=0, frequency= plot.1D.freq(P)), 
-            plot.type = tp, 
-            type= P$col.plot.type[P$dmat.colsel],
-            xy.labels = FALSE, xy.lines = TRUE, 
-            panel = plot.1D.multifunc, xlab = P$xax.label, ylab = P$yax.label,
-            nc = P$multi.ncol, yax.flip = FALSE,
-            axes = TRUE, col = P$col.color[P$dmat.colsel], main = '',
-            pch=P$col.plot.char[P$dmat.colsel]) 
+         plot.type = tp, 
+         type= P$col.plot.type[P$dmat.colsel],
+         xy.labels = FALSE, xy.lines = TRUE, 
+         panel = plot.1D.multifunc, xlab = P$xax.label, ylab = P$yax.label,
+         nc = P$multi.ncol, yax.flip = FALSE,
+         axes = TRUE, col = P$col.color[P$dmat.colsel], main = '',
+         pch=P$col.plot.char[P$dmat.colsel]) 
       thisplot <- dev.cur()
       P <- get.plot.1D.global.P()
    }

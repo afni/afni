@@ -46,6 +46,17 @@ reference.1dRplot <- function ()
 examples.1dRplot <- function (demo=0) {
    s <- vector()
    ii <- 0
+
+   ii <- ii + 1; s <- c(s,paste(
+"
+Example ", ii," --- :
+-------------------------------- 
+wget -O demo.X.xmat.1D afni.nimh.nih.gov/pub/dist/edu/data/samples/X.xmat.1D
+1dRplot -input demo.X.xmat.1D",
+      sep = '')
+   )
+   
+
    ii <- ii + 1; s <- c(s,paste(
 "
 Example ", ii," --- :
@@ -261,6 +272,11 @@ read.1dRplot.opts.batch <- function (args=NULL, verb = 0) {
    "-input 1D_INPUT: file to plot.\n"
                      ) ),
                      
+      '-input_type' = apl(n = c(1, Inf), d = NA,  h = paste(
+   "-input_type 1D_TYPE: Type of data in 1D file.\n",
+   "            Choose from 'VOLREG', or 'XMAT'" 
+                     ) ),
+                     
       '-input_delta' = apl(n = c(1, Inf), d = NA,  h = paste(
    "-input_delta 1D_INPUT: file containing value for error bars\n"
                      ) ),
@@ -442,6 +458,7 @@ read.1dRplot.opts.batch <- function (args=NULL, verb = 0) {
       
       switch(opname,
              input = lop$dmat <- ops[[i]],
+             input_type = lop$dmat.type <- ops[[i]],
              input_delta = lop$dmat.err <- ops[[i]],
              x = lop$dmat.xval <- parse.1dRplot.colinput(ops[[i]]),
              TR = lop$dmat.TR <- ops[[i]],
@@ -529,18 +546,20 @@ process.1dRplot.opts <- function (lop, verb = 0) {
       if (is.null(lop <- read.1dRplot.opts.batch(args, verb = 0))) {
          stop('Error parsing input');
       }
+      if (is.null(lop$verb) || is.na(lop$verb)) lop$verb <- 0
       #str(lop);
       if (is.null(lop <- process.1dRplot.opts(lop, verb = lop$verb))) {
          stop('Error processing input');
       }
    }
+   
    if (lop$verb) { 
       str(lop);
    }      
 
    thisplot <- plot.1D( dmat = lop$dmat, dmat.err=lop$dmat.err,
             dmat.colsel = lop$dmat.colsel, dmat.xval = lop$dmat.xval,
-            dmat.TR = lop$dmat.TR, 
+            dmat.TR = lop$dmat.TR, dmat.type = lop$dmat.type,
             col.nozeros = lop$col.nozeros, 
             col.grp = lop$col.grp,
             col.ystack = lop$col.ystack,
