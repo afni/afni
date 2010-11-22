@@ -2081,7 +2081,7 @@ STATUS("call 14") ;
                           "++         the 'DataDir' label, above 'Underlay'.  ++\n"
                           "+++++++++++++++++++++++++++++++++++++++++++++++++++++\n") ;
 #else
-          REPORT_PROGRESS("++ N.B.: 'Define Markers' panel is now hidden.\n") ;
+          REPORT_PROGRESS("++ N.B.: 'Define Markers' is hidden: right-click 'DataDir' to see it.\n") ;
 #endif
 
       }
