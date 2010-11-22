@@ -2,11 +2,11 @@
 
 int main( int argc , char * argv[] )
 {
-   int iarg=1 , dcode=0 , maxgap=9 , nftot=0 ;
+   int iarg=1 , dcode=0 , maxgap=9 , nftot=0, i=0;
    char * prefix="rowfillin" , * dstr=NULL;
    THD_3dim_dataset * inset , * outset ;
    MRI_IMAGE * brim ;
-   int verb=0 ;
+   int verb=0, bin=0;
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
       printf("Usage: 3dRowFillin [options] dataset\n"
@@ -22,10 +22,22 @@ int main( int argc , char * argv[] )
              "                will be filled in to 'N' [default=9].\n"
              " -dir D     = set the direction of fill to 'D', which can\n"
              "                be one of the following:\n"
-             "                  A-P, P-A, I-S, S-I, L-R, R-L, x, y, z\n"
+             "                  A-P, P-A, I-S, S-I, L-R, R-L, x, y, z, \n"
+             "                  XYZ.OR, XYZ.AND\n"
              "                The first 6 are anatomical directions;\n"
-             "                the last 3 are reference to the dataset\n"
-             "                internal axes [no default value].\n"
+             "                x,y, and z, are reference to the dataset\n"
+             "                internal axes. \n"
+             "             XYZ.OR means do the fillin in x, followed by y,\n"
+             "                followed by z directions.\n"
+             "             XYZ.AND is like XYZ.OR but only accept voxels that\n"
+             "                would have been filled in each of the three fill\n"
+             "                calls. \n"
+             "         Note that with XYZ* options, the fill value depends on\n"
+             "         on the axis orientation. So you're better off sticking\n"
+             "         to single valued dsets when using them. \n"
+             "         See also -binary option below\n"
+             " -binary: Turn input dataset to 0 and 1 before filling in.\n"
+             "          Output will also be a binary valued dataset.\n"
              " -prefix P  = set the prefix to 'P' for the output dataset.\n"
              "\n"
              "N.B.: If the input dataset has more than one sub-brick,\n"
@@ -40,7 +52,8 @@ int main( int argc , char * argv[] )
       PRINT_COMPILE_DATE ; exit(0) ;
    }
 
-   mainENTRY("3dRowFillin main"); machdep(); AFNI_logger("3dRowFillin",argc,argv);
+   mainENTRY("3dRowFillin main"); machdep();
+   AFNI_logger("3dRowFillin",argc,argv);
    PRINT_VERSION("3dRowFillin") ;
 
    /*-- scan args --*/
@@ -49,6 +62,10 @@ int main( int argc , char * argv[] )
 
       if( strncmp(argv[iarg],"-verb",5) == 0 ){
          verb++ ; iarg++ ; continue ;
+      }
+
+      if( strncmp(argv[iarg],"-bin",4) == 0 ){
+         bin=1; iarg++ ; continue ;
       }
 
       if( strcmp(argv[iarg],"-prefix") == 0 ){
@@ -111,21 +128,24 @@ int main( int argc , char * argv[] )
       exit(1) ;
    }
 
-   switch( *dstr ){
-      case 'x': dcode = 1 ; break ;
-      case 'y': dcode = 2 ; break ;
-      case 'z': dcode = 3 ; break ;
+   if (strcmp(dstr,"XYZ.OR")==0) dcode = 4;
+   else if (strcmp(dstr,"XYZ.AND")==0) dcode = 5;
+   else {
+      switch( *dstr ){
+         case 'x': dcode = 1 ; break ;
+         case 'y': dcode = 2 ; break ;
+         case 'z': dcode = 3 ; break ;
+         default:
+           if( *dstr == ORIENT_tinystr[outset->daxes->xxorient][0] ||
+               *dstr == ORIENT_tinystr[outset->daxes->xxorient][1]  ) dcode = 1 ;
 
-      default:
-        if( *dstr == ORIENT_tinystr[outset->daxes->xxorient][0] ||
-            *dstr == ORIENT_tinystr[outset->daxes->xxorient][1]   ) dcode = 1 ;
+           if( *dstr == ORIENT_tinystr[outset->daxes->yyorient][0] ||
+               *dstr == ORIENT_tinystr[outset->daxes->yyorient][1]  ) dcode = 2 ;
 
-        if( *dstr == ORIENT_tinystr[outset->daxes->yyorient][0] ||
-            *dstr == ORIENT_tinystr[outset->daxes->yyorient][1]   ) dcode = 2 ;
-
-        if( *dstr == ORIENT_tinystr[outset->daxes->zzorient][0] ||
-            *dstr == ORIENT_tinystr[outset->daxes->zzorient][1]   ) dcode = 3 ;
-      break ;
+           if( *dstr == ORIENT_tinystr[outset->daxes->zzorient][0] ||
+               *dstr == ORIENT_tinystr[outset->daxes->zzorient][1]  ) dcode = 3 ;
+         break ;
+      }
    }
    if( dcode == 0 ){
       fprintf(stderr,"*** Illegal -dir direction!\n") ; exit(1) ;
@@ -133,12 +153,101 @@ int main( int argc , char * argv[] )
    if( verb )
       fprintf(stderr,"++ Direction = axis %d in dataset\n",dcode) ;
 
+   if (bin) DSET_mallocize(inset);
    DSET_load(inset) ; CHECK_LOAD_ERROR(inset) ;
-   brim = mri_copy( DSET_BRICK(inset,0) ) ;
-   DSET_unload(inset) ;
-   EDIT_substitute_brick( outset , 0 , brim->kind , mri_data_pointer(brim) ) ;
-   nftot = THD_dataset_rowfillin( outset , 0 , dcode , maxgap ) ;
-   fprintf(stderr,"++ Number of voxels filled = %d\n",nftot) ;
+   
+   
+   /* binarize input */
+   if (bin) {
+      switch(DSET_BRICK_TYPE(inset,0)) {
+         case MRI_short: {
+            short *dp;
+            dp = DSET_ARRAY(inset, 0);
+            for (i=0; i<DSET_NVOX(inset); ++i) {
+               if (dp[i]) dp[i]=1;  
+            }
+            break;
+         }
+         case MRI_byte: {
+            byte *dp;
+            dp = DSET_ARRAY(inset, 0);
+            for (i=0; i<DSET_NVOX(inset); ++i) {
+               if (dp[i]) dp[i]=1;  
+            }
+            break;
+         }
+         default:
+            fprintf(stderr,"*** Illegal brick type!\n") ; exit(1) ;   
+      }
+   }
+
+   if (dcode < 4) {
+      brim = mri_copy( DSET_BRICK(inset,0) ) ;
+      EDIT_substitute_brick( outset , 0 , brim->kind , mri_data_pointer(brim) ) ;
+      DSET_unload(inset) ;
+      nftot = THD_dataset_rowfillin( outset , 0 , dcode , maxgap ) ;
+      fprintf(stderr,"++ Number of voxels filled = %d\n",nftot) ;
+   } else if (dcode == 4) {
+      brim = mri_copy( DSET_BRICK(inset,0) ) ;
+      EDIT_substitute_brick( outset , 0 , brim->kind , mri_data_pointer(brim) ) ;
+      DSET_unload(inset) ;
+      nftot = 0; dcode=0;
+      for (dcode=1; dcode<4; ++dcode) {
+         nftot = nftot + 
+                  THD_dataset_rowfillin( outset , 0 , dcode , maxgap ) ;
+      }
+      fprintf(stderr,"++ Number of voxels OR filled = %d\n",nftot) ;
+   }  else if (dcode == 5) {
+      int nf=0;
+      THD_3dim_dataset *otmp[3]={NULL, NULL, NULL};
+      MRI_IMAGE *brimtmp=NULL;
+      
+      brim = mri_copy( DSET_BRICK(inset,0) ) ;
+      EDIT_substitute_brick( outset , 0 , brim->kind , mri_data_pointer(brim) ) ;
+      for (i=0; i<3; ++i) {
+         otmp[i] = EDIT_empty_copy( outset ) ;
+         brimtmp = mri_copy( DSET_BRICK(inset,0) ) ;
+         EDIT_substitute_brick( otmp[i] , 0 , 
+                        brimtmp->kind, mri_data_pointer(brimtmp) ) ;
+         THD_dataset_rowfillin( otmp[i] , 0 , i+1 , maxgap);
+      }
+      DSET_unload(inset) ;
+
+      switch(DSET_BRICK_TYPE(outset,0)) {
+         case MRI_short: {
+            short * dp[3], *doo;
+            nftot = 0;
+            doo = DSET_ARRAY(outset, 0);
+            for (i=0; i<3; ++i) dp[i] = DSET_ARRAY(otmp[i], 0);
+            for (i=0; i<DSET_NVOX(outset); ++i) {
+               if ( !doo[i] &&  (dp[0][i] == dp[1][i]) &&
+                    (dp[0][i] == dp[2][i]) && dp[0][i] ) {
+                  doo[i] = dp[0][i]; ++nftot;   
+               }  
+            }
+            break;
+         }
+         case MRI_byte: {
+            byte * dp[3], *doo;
+            nftot = 0;
+            doo = DSET_ARRAY(outset, 0);
+            for (i=0; i<3; ++i) dp[i] = DSET_ARRAY(otmp[i], 0);
+            for (i=0; i<DSET_NVOX(outset); ++i) {
+               if ( !doo[i] && (dp[0][i] == dp[1][i]) &&
+                    (dp[0][i] == dp[2][i]) && dp[0][i] ) {
+                  doo[i] = dp[0][i]; ++nftot;   
+               }  
+            }
+            break;
+         }
+         default:
+            fprintf(stderr,"*** Illegal brick type!\n") ; exit(1) ;   
+      }
+      
+      for (i=0; i<3; ++i) DSET_delete(otmp[i]); otmp[i] = NULL;
+      fprintf(stderr,"++ Number of voxels AND filled = %d\n",nftot) ;
+   }
+   
    DSET_write(outset) ;
    exit(0) ;
 }
