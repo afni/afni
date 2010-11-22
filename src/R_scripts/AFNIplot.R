@@ -200,8 +200,7 @@ plot.1D.setupdevice <- function (P) {
          png(P$prefix, width=P$img.width, height=P$img.height,
                   res=P$img.dpi, pointsize=P$img.def.fontsize)
       else if (tolower(pp$ext) == '.pdf') 
-         pdf(P$prefix, width=P$img.width, height=P$img.height,
-                   pointsize=P$img.def.fontsize)
+         pdf(P$prefix, pointsize=P$img.def.fontsize)
       else {
         if (0) {
          pdf(paste(P$prefix,'.pdf',sep=''))   #best, but not always present       

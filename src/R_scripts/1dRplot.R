@@ -50,6 +50,22 @@ curl -o demo.xmat.1D afni.nimh.nih.gov/pub/dist/edu/data/samples/X.xmat.1D
 curl -o demo.motion.1D afni.nimh.nih.gov/pub/dist/edu/data/samples/motion.1D
 ")
 }
+
+run.1dRplot.examples <- function () {
+   ii <- 1
+   while (!is.null(s <- examples.1dRplot(ii))) {
+      s <- strsplit(s,'1dRplot')[[1]][2]
+      #str(s)
+      sys.AFNI(paste('1dRplot ', s, '&'), echo=TRUE)
+      if (prompt.AFNI("Continue ?", c('y','n'))==1) {
+         ii <- ii + 1
+      } else {
+         break;
+      }      
+   }
+   return()
+}
+
 examples.1dRplot <- function (demo=0) {
    s <- vector()
    ii <- 0
@@ -169,8 +185,7 @@ Example ", ii," --- :
 1dRplot  -input 'R:plot.1D.testmat(100, 2)' \\
          -one \\
          -col.plot.char 2 \\
-         -col.plot.type p 
-         ",
+         -col.plot.type p  ",
       sep = '')
    )
    
@@ -181,8 +196,7 @@ Example ", ii," --- :
 1dRplot  -input 'R:plot.1D.testmat(100, 2)' \\
          -one \\
          -col.line.type 3 \\
-         -col.plot.type l 
-",
+         -col.plot.type l ",
       sep = '')
    )
    
@@ -194,8 +208,7 @@ Example ", ii," --- :
          -one \\
          -col.plot.char 2 \\
          -col.line.type 3 \\
-         -col.plot.type b 
-",
+         -col.plot.type b ",
       sep = '')
    )  
      
@@ -208,8 +221,7 @@ Example ", ii," --- :
          -col.plot.char 2 5\\
          -col.line.type 3 4\\
          -col.plot.type b \\
-         -TR 2
-",
+         -TR 2 ",
       sep = '')
    )   
 
@@ -221,13 +233,13 @@ Example ", ii," --- :
          -one -col.plot.char 2 -col.line.type 3 \\
          -col.plot.type b -TR 2 \\
          -yax.tic.text 'numa numa numa numaei' \\
-         -xax.tic.text 'Alo'  'Salut' 'sunt eu' 'un haiduc'
-",
+         -xax.tic.text 'Alo'  'Salut' 'sunt eu' 'un haiduc'",
       sep = '')
    )   
    
    if (demo==0) demo=1:length(s)
-   return (s[demo])
+   if (max(demo) > length(s)) return(NULL)
+   else return (s[demo])
 }
 
 #The help function for 1dRplot batch (command line mode)
@@ -408,12 +420,16 @@ read.1dRplot.opts.batch <- function (args=NULL, verb = 0) {
                   
       '-col.text.lym' = apl(n = c(1, Inf), h = paste (
    "-col.text.lym LYM_TEXT: Text to be placed at left Y margin.\n",
-   "                              You need one string per column.\n"
+   "                        You need one string per column.\n",
+   "        Special Flags: You can also use COL.NAME to use column\n",
+   "                        names for the margin text, or you can use\n",
+   "                        COL.IND to use the colum's index in the file\n"
                   ) ), 
                   
       '-col.text.rym' = apl(n = c(1, Inf), h = paste (
    "-col.text.rym RYM_TEXT: Text to be placed at right Y margin.\n",
-   "                              You need one string per column.\n"
+   "                        You need one string per column.\n",
+   "       See also Special Flags section under -col.text.lym\n"     
                   ) ), 
                   
       '-col.plot.type' = apl(n = c(1, Inf), h = paste (
@@ -458,8 +474,13 @@ read.1dRplot.opts.batch <- function (args=NULL, verb = 0) {
    "            0 for quiet (Default). 1 or more: talkative.\n"
                         ) ),
       '-help' = apl(n=0, h = '-help: this help message\n'),
+      
+      '-run_examples' = apl(n=0, h = 
+   '-run_examples: Run all examples, one after the other.\n'),
+   
       '-show_allowed_options' = apl(n=0, h=
    "-show_allowed_options: list of allowed options\n" ),
+   
       '-msg.trace' = apl(n=0, h=
    "-msg.trace: Output trace information along with errors and notices\n" )
 
@@ -528,6 +549,7 @@ read.1dRplot.opts.batch <- function (args=NULL, verb = 0) {
              msg.trace = set.AFNI.msg.trace(TRUE),
              show_allowed_options = show.AFNI.args(ops, verb=0, 
                                               hstr="1dRplot's",adieu=TRUE),
+             run_examples = run.1dRplot.examples(),
              other = {},
              allowed_options = {},
              errex.AFNI(paste("Option '", opname,"' not recognized", sep=''))  
@@ -591,7 +613,7 @@ process.1dRplot.opts <- function (lop, verb = 0) {
             col.ystack = lop$col.ystack,
             grp.label = lop$grp.label,
             ttl.main = lop$ttl.main, 
-            prefix = lop$pprefix, 
+            prefix = lop$prefix, 
             nodisp = lop$nodisp,
             oneplot = lop$oneplot,
             col.mean.line = lop$col.mean.line,
