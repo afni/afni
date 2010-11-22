@@ -356,7 +356,7 @@ ENTRY("THD_write_1D") ;
       fprintf(fp, "%c  ni_stat     = \"",shp) ;
       for( iv=0 ; iv < nv ; iv++ ){
         ii = DSET_BRICK_STATCODE(dset,iv) ;
-        if( ii <=0 ){
+        if( ii <= 0 ){
           fprintf(fp,"none") ;
         } else {
           fprintf(fp,"%s(",NI_stat_distname(ii)) ;
@@ -367,7 +367,7 @@ ENTRY("THD_write_1D") ;
           }
           fprintf(fp,")") ;
         }
-        if( ii < nv-1 ) fprintf(fp,";") ;
+        if( iv < nv-1 ) fprintf(fp,";") ;
       }
       fprintf(fp,"\"\n") ;
    }

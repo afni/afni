@@ -3474,14 +3474,14 @@ ENTRY("read_input_data") ;
       }
 
       if( option_data->force_TR > 0.0 || (*dset_time)->taxis == NULL ){   /* 18 Aug 2008 */
-        float ttt = option_data->force_TR ; if( ttt <= 0.0 ) ttt = 1.0f ;
+        float ttt = option_data->force_TR ; if( ttt <= 0.0f ) ttt = 1.0f ;
         EDIT_dset_items( *dset_time ,
                            ADN_ttdel , ttt ,
                            ADN_ntt   , DSET_NVALS(*dset_time) ,
                            ADN_tunits, UNITS_SEC_TYPE ,
                          ADN_none ) ;
         INFO_message("forcibly using TR=%.4f seconds for -input dataset" ,
-                     option_data->force_TR) ;
+                     ttt) ;
       }
 
       nt   = DSET_NUM_TIMES (*dset_time);
