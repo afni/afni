@@ -26,6 +26,12 @@ else
    exit 1
 endif
 
+set Rpath = `which R`
+if ($status) then
+   echo "Error: R not found. You need R to run `basename $0`"
+   exit 1
+endif
+
 if (0) then
    #This worked OK, except for the blasted -gSOMETHING problem 
    Rscript ${tname} $arglist

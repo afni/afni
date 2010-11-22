@@ -255,7 +255,7 @@ plot.1D.puttitle <- function (P) {
    }
 }   
 
-plot.1D.drawmeanlines <- function (P, thissel=NULL) {
+plot.1D.drawmeanlines <- function (P, thissel=NULL, addval=TRUE) {
       if (is.null(thissel)) selv <- 1:length(P$col.mean.line[P$dmat.colsel])
       else selv <- thissel
       for (i in selv) {
@@ -264,6 +264,12 @@ plot.1D.drawmeanlines <- function (P, thissel=NULL) {
                vv <- rep(P$mat2plt.colmeans[i], dim(P$mat2plt)[1])
                lines(x=P$dmat.xval, y=vv, 
                   col = P$col.color[P$dmat.colsel[i]],  lty=3)
+               if (addval) {
+                  it <- max(1,length(P$dmat.xval)-2)
+                  text( x=P$dmat.xval[it],
+                        y=vv[it], sprintf('%.2f',vv[it]),
+                        adj=c(1,0))
+               }
          }
       }
       return()

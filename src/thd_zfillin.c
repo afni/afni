@@ -42,7 +42,7 @@ int THD_dataset_zfillin( THD_3dim_dataset * dset, int ival, int dcode, int maxst
    int kind , xx,yy,zz , nrow , nx,ny,nz ;
    int xtop,ytop,ztop , nff , nfftot=0 ;
 
-ENTRY("THD_dataset_rowfillin") ;
+ENTRY("THD_dataset_zfillin") ;
 
    if( !ISVALID_DSET(dset)      ||
        ival < 0                 ||
