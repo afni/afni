@@ -77,7 +77,8 @@ Usage:
 Examples --- :
 --------------
       #Get some sample data
-      curl -o demo.xmat.1D afni.nimh.nih.gov/pub/dist/edu/data/samples/X.xmat.1D
+      curl -o demo.X.xmat.1D  \\
+               afni.nimh.nih.gov/pub/dist/edu/data/samples/X.xmat.1D
       
       #PDF output may not work on some machines
       ExamineXmat -prefix t1.pdf -input demo.X.xmat.1D 

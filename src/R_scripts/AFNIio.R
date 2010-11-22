@@ -65,8 +65,8 @@ For example: '1D: 1 4 8' evaluates to a vector of values 1 4 and 8.
 Also, you can use R expressions such as: 'R: seq(0,10,3)'   
 ")
 }
+
 eval.AFNI.1D.string <- function (t, verb=0, nmax=0) {
-   
    #remove 1D:
    t <- sub("^1D:","",t)
    #any transpose?
@@ -353,6 +353,7 @@ compressed.AFNI.name <- function(an) {
    }
 
 }
+
 uncompress.AFNI <- function(an, verb = 1) {
    if (is.character(an)) an <- parse.AFNI.name(an);
    
@@ -886,19 +887,31 @@ prompt.AFNI <- function (str, choices, vals=NULL) {
    }
    choices[1]<-toupper(choices[1])
    kk<-vector(length=0);
-   while (length(kk) == 0) {
-      cat(str," [",paste(choices, collapse='|'),"]:", sep='')
-      bb <- readLines(n=1)
-      if (bb == '') {
-         kk <- 1;
-      } else {
-         kk <-which(tolower(choices) == tolower(bb))
+   spr <- paste(str," [",paste(choices, collapse='|'),"]:", sep='')
+   if (BATCH_MODE) { #Only two choices available for this one!
+      if (length(choices)!=2) {
+         err.AFNI("This one can't run in batch mode for more than 2 choices")
+         return(0)
       }
-   }
-   if (!is.null(vals)) {
-      return(vals[kk])
+      ss <- sys.AFNI(paste(
+         "prompt_user -pause '", spr,"'", sep='' ))
+      if (ss$out == "0") return(2) #The not default
+      else return(1) #The default
    } else {
-      return(kk)
+      while (length(kk) == 0) {
+         cat(spr)
+         bb <- readLines(n=1)
+         if (bb == '') {
+            kk <- 1;
+         } else {
+            kk <-which(tolower(choices) == tolower(bb))
+         }
+      }
+      if (!is.null(vals)) {
+         return(vals[kk])
+      } else {
+         return(kk)
+      }
    }
 }
 
@@ -1169,6 +1182,132 @@ expand_1D_string <- function (t) {
    return(vvf)
 }
 
+r.NI_get_attribute <- function (nel,name, brsel=NULL, 
+                                 colwise=FALSE, is1Dstr=FALSE) {
+   ffs <- NULL
+   for (i in 1:length(nel$atlist)) {
+      if (nel$atlist[[i]]$lhs == name) {
+         ffs <- nel$atlist[[i]]$rhs
+         break
+      }
+   }
+   
+   if (is.null(ffs)) return(NULL)
+   
+   ffs <- gsub("[;\"]","", ffs)
+   if (colwise) { #a per column deal, process it
+      #remove bad chars and split into one for each column
+      if (is1Dstr) {
+         ffs = expand_1D_string (ffs)
+      } else {
+         ffsv <- strsplit(ffs," ")[[1]]
+         #some components are blanks to be killed
+         ffs <- ffsv[which(nchar(ffsv)!=0)]
+      }
+      if (!is.null(brsel)) {
+         if (max(brsel+1) > length(ffs)) {
+            err.AFNI(paste("Have ", length(ffs), 
+               "attribute elements in ", paste(ffs,collapse=' '), 
+               ".\nBrick selection calls for max. of ",
+               max(brsel+1)," columns\n"
+                       ));
+         }
+         ffs <- ffs[brsel+1]
+         return(ffs)
+      } else {
+         #No selection, return all
+         return(ffs)
+      }
+   } else {
+      return(ffs)
+   }
+   return(NULL)
+}
+
+r.NI_set_attribute <- function (nel,name, val) {
+   nel$atlist <- c (nel$atlist,
+         list(list(lhs=deblank.string(name), rhs=deblank.string(val))))
+   return(nel)
+}
+
+# A very basic parser, works only on simple elements 
+#of ascii headersharp niml files . Needs lots of work!
+r.NI_read_element <- function (fname, HeadOnly = TRUE) {
+   
+   nel <- list(atlist=NULL, dat=NULL)
+   
+   fnp <- parse.AFNI.name(fname)
+   
+   if (!file.exists(fnp$file)) {
+      return(NULL)
+   }
+   
+   ff <- scan(fnp$file, what = 'character', sep = '\n')
+   
+   #Remove #
+   ff <- gsub('^[[:space:]]*#[[:space:]]*', '',ff)
+   if (!length(grep('^<', ff))) {
+      return(NULL)
+   }
+   #strt markers
+   strv <- grep ('<', ff)
+   #stp markers
+   stpv <- grep ('>', ff)
+   #check
+   if (length(strv) != length(stpv)) {
+      err.AFNI("Have extra brackets");
+      return(NULL)
+   }
+   if (length(strv) < 1) {
+      err.AFNI("Have nothing");
+      return(NULL)
+   }
+   #Get only the first element, for now
+   for (i in 1:1) {
+      shead <- ff[strv[i]:stpv[i]]
+      #get the name
+      nel$name <- strsplit(shead[1],'<')[[1]][2]
+      nel$atlist <- vector()
+      for (j in 2:length(shead)) {
+         attr <- strsplit(shead[j],'=')[[1]]
+         nel <- r.NI_set_attribute(nel, attr[1], attr[2])
+      }
+   }
+   
+   if (HeadOnly) return(nel)
+   
+   #Get the data part, the lazy way 
+   #All the content here is text. Not sure what to do with 
+   #this next. Wait till context arises
+   for (i in (stpv[1]+1):(strv[2]-1)) {
+      #browser()
+      if (is.null(nel$dat)) 
+         nel$dat <- rbind(strsplit(deblank.string(ff[i]),split=' ')[[1]])
+      else nel$dat <- rbind(nel$dat,
+                           strsplit(deblank.string(ff[i]),split=' ')[[1]])
+   }
+   return(nel)
+}
+
+is.NI.file <- function (fname, asc=TRUE, hs=TRUE) {
+   fnp <- parse.AFNI.name(fname)
+   
+   if (!file.exists(fnp$file)) {
+      return(FALSE)
+   }
+   
+   ff <- scan(fnp$file, what = 'character', nmax = 2, sep = '\n')
+   
+   if (asc && hs) {
+      if (!length(grep('^[[:space:]]*#[[:space:]]*<', ff))) {
+         return(FALSE)
+      } else {
+         return(TRUE)
+      }
+   }
+   return(FALSE)
+}
+
 apply.AFNI.matrix.header <- function (fname, mat, 
                               brsel=NULL, rosel=NULL,rasel=NULL, 
                               nheadmax = 10) {
@@ -1180,55 +1319,46 @@ apply.AFNI.matrix.header <- function (fname, mat,
       return(mat)
    }
   
-   #Get first few lines
-   ff <- scan(fnp$file, what = 'character', nmax = nheadmax, sep = '\n')
-
    #Does this look 1D nimly?
-   if (!length(grep('^[[:space:]]*#[[:space:]]*<', ff))) {
+   if (!is.NI.file(fnp$file, asc=TRUE, hs=TRUE)) {
       return(mat)
    }
    
-   #Search for ColumnLabels and split string
-   icl = grep('ColumnLabels', ff)
-   if (length(icl)){
-      ffs <- strsplit(ff[icl], '=')[[1]][2]
-         #remove bad chars and split into labels
-         ffs <- gsub("[;\"]","", ffs)
-         ffsv <- strsplit(ffs," ")[[1]]
-         #some components are blanks to be killed
-         labels <- ffsv[which(nchar(ffsv)!=0)]
-         #apply rosel
-         if (!is.null(brsel)) labels <- labels[brsel+1]
-         #Overwrite colnames if labels are available
+   nel <- r.NI_read_element(fnp$file, HeadOnly = TRUE)
+
+   if (nel$name == 'matrix') {
+      if (!is.null(labels <- 
+            r.NI_get_attribute(nel, 'ColumnLabels', brsel, colwise=TRUE))){
          if (length(labels) == ncol(mat)) colnames(mat) <- labels
-   }else {
-      labels = ""
-   }
-   attr(mat,'labels') <- labels
-   
-   #Get the TR
-   ffs <- strsplit(ff[grep('RowTR', ff)], '=')[[1]][2]
-      #remove bad chars and change to number
-      TR = as.double(gsub("[;\" *]","", ffs))
-   attr(mat, 'TR') <- TR
-      
-   #Get the ColumnGroups
-   ffs <- strsplit(ff[grep('ColumnGroups', ff)], '=')[[1]][2]
-   colg = expand_1D_string (gsub("[;\" *]","", ffs))
-   if (!is.null(brsel)) colg <- colg[brsel+1]
-   attr(mat,'ColumnGroups') <- colg
-   
-   #Get the task names
-   llv <- vector(length=0,mode="numeric")
-   tcolg <- unique(colg)
-   for (i in tcolg) {
-      if (i>0) {
-         ll <- which(colg == i)
-         llv <- c(llv,ll[1])
       }
+
+      if (!is.null(colg <- 
+            r.NI_get_attribute(nel, 'ColumnGroups', brsel, 
+                                 colwise=TRUE, is1Dstr=TRUE))){
+         if (length(colg) == ncol(mat)) attr(mat,'ColumnGroups') <- colg
+         if (!is.null(labels)) {
+            llv <- vector(length=0,mode="numeric")
+            tcolg <- unique(colg)
+            for (i in tcolg) {
+               if (i>0) {
+                  ll <- which(colg == i)
+                  llv <- c(llv,ll[1])
+               }
+            }
+            tnames <-paste(strsplit(labels[llv],"#0"))
+            attr(mat,'TaskNames') <- tnames
+         }
+      }
+
+      if (!is.null(TR <- r.NI_get_attribute(nel, 'RowTR'))){
+         attr(mat, 'TR') <- as.double(TR)
+      }
+   } else if (nel$name == 'DICE') {
+      
+   } else {
+      warn.AFNI(paste(
+         "Don't know what to do with attribute of element ", nel$name));
    }
-   tnames <-paste(strsplit(labels[llv],"#0"))
-   attr(mat,'TaskNames') <- tnames
    
    return(mat)
 }
@@ -1246,7 +1376,7 @@ read.AFNI.xmat <- function (xmatfile, nheadmax=10) {
    ff <- apply.AFNI.matrix.header(xmatfile, ff)
    
    #Make matrix be ts
-   ff <- ts(ff, names=attr(ff,"labels"), deltat=attr(ff,"TR"))
+   ff <- ts(ff, names=colnames(ff), deltat=attr(ff,"TR"))
    
    return(ff)
 }
