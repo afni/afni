@@ -65,6 +65,11 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 22, NOV , 2010 , ZSS , "3dRowFillin" , MINOR , TYPE_NEW_OPT,
+   "Added XYZ.OR, and XYZ.AND to 3dRowFillin",
+   NULL
+ } ,
+
  { 16, NOV , 2010 , ZSS , "ExamineXmat" , MINOR , TYPE_NEW_OPT,
    "A major rewrite of ExamineXmat",
    "see ExamineXmat -help for details"
