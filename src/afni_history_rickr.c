@@ -49,7 +49,7 @@
 
 afni_history_struct rickr_history[] = {
 
- { 19, NOV, 2010, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+ { 19, NOV, 2010, RCR, "timing_tool.py", MINOR, TYPE_NEW_OPT,
    "add -write_all_rest_times, moved write_to_timing_file to afni_util.py",
    "option added for J Poore"
  } ,
