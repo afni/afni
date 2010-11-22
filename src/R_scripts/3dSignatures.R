@@ -277,7 +277,7 @@ read.SigsClassify.opts.batch <- function (args=NULL, verb = 0) {
                         ) ),
       '-help' = apl(n=0, h = '-help: this help message\n'),
       '-show_allowed_options' = apl(n=0, h=
-   "-show_allowed_options: list of allowed options\n" )
+   "-show_allowed_options: list of allowed options\n" ),
       '-msg.trace' = apl(n=0, h=
    "-msg.trace: Output trace information along with errors and notices\n" )
 
@@ -621,7 +621,7 @@ Test.SigsClassify <- function (lvols, lsvm=NULL, verb = 1,
          }
          if (is.null(lvols[i][[1]]$sig)) {
             err.AFNI("NULL sig");
-            #if (verb>1) browser()
+            if (verb>1 && 0) browser()
             else return(NULL);
          }  
          #Now do the testing
