@@ -224,9 +224,10 @@ g_history = """
     2.41 Nov 18 2010 :
         - fixed stim_files to stim_times conversion after multi_basis change
         - problem noted by M Weber
+    2.42 Nov 22 2010 : improved line wrapping
 """
 
-g_version = "version 2.41, Nov 18, 2010"
+g_version = "version 2.42, Nov 22, 2010"
 
 # version of AFNI required for script execution
 g_requires_afni = "4 Nov 2010"

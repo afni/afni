@@ -5,6 +5,7 @@
 import sys, os, math
 import afni_base as BASE
 import lib_textdata as TD
+import pdb
 
 # this file contains various afni utilities   17 Nov 2006 [rickr]
 
@@ -859,6 +860,7 @@ def insert_wrappers(command, start=0, end=-1, wstring='\\\n', verb=1):
 
     nfirst = num_leading_line_spaces(command,start,1) # note initial indent
     prefix = get_next_indentation(command,start,end)
+    sskip  = nfirst             # number of init spaces expected
     plen   = len(prefix)
     maxlen = 78
     newcmd = ''
@@ -867,19 +869,23 @@ def insert_wrappers(command, start=0, end=-1, wstring='\\\n', verb=1):
     if verb > 1: print "+d insert wrappers: nfirst=%d, prefix='%s', plen=%d" \
                        % (nfirst, prefix, plen)
 
+    #pdb.set_trace()
+
     # rewrite: create new command strings after each wrap     29 May 2009
     while needs_wrapper(command,maxlen,cur,end):
         endposn = command.find('\n',cur)
         if needs_wrapper(command,maxlen,cur,endposn):  # no change on this line
 
-            lposn = find_last_space(command, cur, endposn, maxlen)
+            lposn = find_last_space(command, cur+sskip, endposn, maxlen-sskip)
 
             # if the last space is farther in than next indent, wrap
-            if nfirst+plen+cur < lposn:   # woohoo, wrap away (at lposn)
+            # (adjust initial skip for any indent)
+            if sskip+cur < lposn:   # woohoo, wrap away (at lposn)
                 newcmd = newcmd + command[cur:lposn+1] + wstring
                 # modify command to add prefix, reset end and cur
                 command = prefix + command[lposn+1:]
                 end = end + plen - (lposn+1)
+                sskip = nfirst + plen   # now there is a prefix to skip
                 cur = 0
                 continue
 
@@ -929,14 +935,16 @@ def needs_wrapper(command, maxlen=78, start=0, end=-1):
             remain = end_posn - cur_posn
             continue
 
-        # find next '\n'
+        # else find next '\n'
         posn = command.find('\n', cur_posn)
         if 0 <= posn-cur_posn <= maxlen: # adjust and continue
             cur_posn = posn + 1
             remain = end_posn - cur_posn
             continue
 
-        return 1
+        # otherwise, space means wrap, else not
+        if find_next_space(command, cur_posn, 1) > cur_posn: return 1
+        return 0
 
     return 0        # if we get here, line wrapping is not needed
 
