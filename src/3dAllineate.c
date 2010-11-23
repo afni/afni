@@ -223,16 +223,16 @@ static float BILINEAR_offdiag_norm(GA_setup stup)
      stup.wfunc_param[15+(nnl)].fixed = 2 ;                                  \
  } while(0)
 
-#define SETUP_CUBIC_PARAMS do{ SETUP_NONLIN_PARAMS(48,0.12f,"cubic") ;       \
+#define SETUP_CUBIC_PARAMS do{ SETUP_NONLIN_PARAMS(48,0.10f,"cubic") ;       \
                                stup.wfunc = mri_genalign_cubic ; } while(0)
 
-#define SETUP_QUINT_PARAMS do{ SETUP_NONLIN_PARAMS(156,0.12f,"quint") ;      \
+#define SETUP_QUINT_PARAMS do{ SETUP_NONLIN_PARAMS(156,0.10f,"quint") ;      \
                                stup.wfunc = mri_genalign_quintic ; } while(0)
 
-#define SETUP_HEPT_PARAMS do{ SETUP_NONLIN_PARAMS(348,0.12f,"heptic") ;      \
+#define SETUP_HEPT_PARAMS do{ SETUP_NONLIN_PARAMS(348,0.10f,"heptic") ;      \
                               stup.wfunc = mri_genalign_heptic ; } while(0)
 
-#define SETUP_NONI_PARAMS do{ SETUP_NONLIN_PARAMS(648,0.12f,"nonic") ;       \
+#define SETUP_NONI_PARAMS do{ SETUP_NONLIN_PARAMS(648,0.10f,"nonic") ;       \
                               stup.wfunc = mri_genalign_nonic ; } while(0)
 
 /*---------------------------------------------------------------------------*/
