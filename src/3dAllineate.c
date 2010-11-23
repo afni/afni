@@ -223,16 +223,16 @@ static float BILINEAR_offdiag_norm(GA_setup stup)
      stup.wfunc_param[15+(nnl)].fixed = 2 ;                                  \
  } while(0)
 
-#define SETUP_CUBIC_PARAMS do{ SETUP_NONLIN_PARAMS(48,0.10f,"cubic") ;       \
+#define SETUP_CUBIC_PARAMS do{ SETUP_NONLIN_PARAMS(48,0.12f,"cubic") ;       \
                                stup.wfunc = mri_genalign_cubic ; } while(0)
 
-#define SETUP_QUINT_PARAMS do{ SETUP_NONLIN_PARAMS(156,0.10f,"quint") ;      \
+#define SETUP_QUINT_PARAMS do{ SETUP_NONLIN_PARAMS(156,0.12f,"quint") ;      \
                                stup.wfunc = mri_genalign_quintic ; } while(0)
 
-#define SETUP_HEPT_PARAMS do{ SETUP_NONLIN_PARAMS(348,0.10f,"heptic") ;      \
+#define SETUP_HEPT_PARAMS do{ SETUP_NONLIN_PARAMS(348,0.12f,"heptic") ;      \
                               stup.wfunc = mri_genalign_heptic ; } while(0)
 
-#define SETUP_NONI_PARAMS do{ SETUP_NONLIN_PARAMS(648,0.10f,"nonic") ;       \
+#define SETUP_NONI_PARAMS do{ SETUP_NONLIN_PARAMS(648,0.12f,"nonic") ;       \
                               stup.wfunc = mri_genalign_nonic ; } while(0)
 
 /*---------------------------------------------------------------------------*/
@@ -764,6 +764,8 @@ int main( int argc , char *argv[] )
 "               but the weight for a voxel is set to either 0 or 1.\n"
 "       **N.B.: '-automask+3' means to compute the mask function, and\n"
 "               then dilate it outwards by 3 voxels (e.g.).\n"
+"               ** Note that '+' means something very different\n"
+"                  for '-automask' and '-autoweight'!!\n"
 " -autobox    = Expand the -automask function to enclose a rectangular\n"
 "               box that holds the irregular mask.\n"
 "       **N.B.: This is the default mode of operation!\n"
