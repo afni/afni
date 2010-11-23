@@ -5454,12 +5454,16 @@ static char * AFNI_arrowpad_hint[] = {
   "Close/open crosshairs gap"
 } ;
 
+#undef  WID2EV
+#define WID2EV(w,ev) XtVaSetValues( (w), XmNx,(int)((ev)->x_root)-24,       \
+                                         XmNy,(int)((ev)->y_root)-4 , NULL )
+
 /*.........................................................................*/
 
 void AFNI_view_xyz_CB( Widget w ,
                        XtPointer client_data , XtPointer call_data )
 {
-   Three_D_View *im3d = (Three_D_View *) client_data ;
+   Three_D_View *im3d = (Three_D_View *)client_data ;
    MCW_imseq   *sxyz , *syzx , *szxy , **snew = NULL ;
    MCW_grapher *gxyz , *gyzx , *gzxy , **gnew = NULL ;
    Widget        pboff , pb_xyz , pb_yzx , pb_zxy ;
@@ -5468,10 +5472,14 @@ void AFNI_view_xyz_CB( Widget w ,
    int mirror=0 ;
    int m2m=0 ;     /* 04 Nov 2003 */
    int c2c=0 ;     /* 17 Sep 2007 */
+   XmPushButtonCallbackStruct *cbs = (XmPushButtonCallbackStruct *)call_data ;
+   XButtonEvent *event = NULL ;
 
 ENTRY("AFNI_view_xyz_CB") ;
 
    if( ! IM3D_VALID(im3d) ) EXRETURN ;
+
+   if( cbs != NULL ) event = (XButtonEvent *)cbs->event ;
 
     sxyz = im3d->s123 ; gxyz = im3d->g123 ;
     syzx = im3d->s231 ; gyzx = im3d->g231 ;
@@ -5707,6 +5715,7 @@ STATUS("setting image viewer 'sides'") ;
       AFNI_view_setter ( im3d , *snew ) ;
       AFNI_range_setter( im3d , *snew ) ;  /* 04 Nov 2003 */
       AFNI_sleep(17) ;                     /* 17 Oct 2005 */
+      if( event != NULL ) WID2EV( (*snew)->wtop , event ) ;  /* 23 Nov 2010 */
 
     } /* end of creating a new image viewer */
 
@@ -5765,6 +5774,10 @@ STATUS("realizing new grapher") ;
          drive_MCW_grapher( gr , graDR_icon , (XtPointer) pm ) ;
       }
 #endif
+
+      AFNI_sleep(17) ;
+      if( event != NULL ) WID2EV( gr->fdw_graph , event ) ;  /* 23 Nov 2010 */
+
     } /* end of creating a new graph viewer */
 
    /*-- force a jump to the viewpoint of the current location --*/
