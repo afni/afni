@@ -747,6 +747,10 @@ int main( int argc , char *argv[] )
 "                 increase the weight of high-intensity regions).\n"
 "               These two processing steps can be combined, as in\n"
 "                 '-autoweight+100**1.5'\n"
+"               ** Note that that '**' must be enclosed in quotes;\n"
+"                  otherwise, the shell will treat it as a wildcard\n"
+"                  and you will get an error message before 3dAllineate\n"
+"                  even starts!!\n"
       ) ;
       if( visible_noweights ){
          printf(
