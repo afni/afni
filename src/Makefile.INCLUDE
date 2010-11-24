@@ -630,6 +630,10 @@ from3d:from3d.o
 	$(RM) $@
 	$(CC) -o 3dRank 3dRank.o $(LFLAGS) $(LLIBS)
 
+3dRankizer:3dRankizer.o
+	$(RM) $@
+	$(CC) -o 3dRankizer 3dRankizer.o $(LFLAGS) $(LLIBS)
+
 p2t:p2t.o
 	$(RM) $@
 	$(CC) -o p2t p2t.o $(LFLAGS) $(LLIBS)
