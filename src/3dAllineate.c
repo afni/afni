@@ -362,6 +362,7 @@ int main( int argc , char *argv[] )
    float nwarp_order           = 2.9f ;
    int   nwarp_flags           = 0 ;             /* 29 Oct 2010 */
    int   nwarp_itemax          = 0 ;
+   int   nwarp_fixaff          = 0 ;             /* 26 Nov 2010 */
 
    int    micho_zfinal          = 0 ;            /* 24 Feb 2010 */
    double micho_mi              = 0.2 ;          /* -lpc+ stuff */
@@ -1364,21 +1365,22 @@ int main( int argc , char *argv[] )
        } else if( strncasecmp(argv[iarg],"bil",3) == 0 ){
          nwarp_type = WARP_BILINEAR ;
          if( strstr(argv[iarg],"D") != NULL ) nwarp_flags = 1 ; /* 29 Oct 2010 */
-       } else if( strncasecmp(argv[iarg],"cub",3) == 0 ||
-                  strcasecmp(argv[iarg],"poly3")  == 0   ){     /* 13 Nov 2010 */
+       } else if( strncasecmp(argv[iarg],"cub",3)   == 0 ||
+                  strncasecmp(argv[iarg],"poly3",5) == 0   ){   /* 13 Nov 2010 */
          nwarp_type = WARP_CUBIC ;
-       } else if( strncasecmp(argv[iarg],"qui",3) == 0 ||
-                  strcasecmp(argv[iarg],"poly5")  == 0   ){     /* 15 Nov 2010 */
+       } else if( strncasecmp(argv[iarg],"qui",3)   == 0 ||
+                  strncasecmp(argv[iarg],"poly5",5) == 0   ){   /* 15 Nov 2010 */
          nwarp_type = WARP_QUINT ;
-       } else if( strncasecmp(argv[iarg],"hep",3) == 0 ||
-                  strcasecmp(argv[iarg],"poly7")  == 0   ){     /* 15 Nov 2010 */
+       } else if( strncasecmp(argv[iarg],"hep",3)   == 0 ||
+                  strncasecmp(argv[iarg],"poly7",5) == 0   ){   /* 15 Nov 2010 */
          nwarp_type = WARP_HEPT ;
-       } else if( strncasecmp(argv[iarg],"non",3) == 0 ||
-                  strcasecmp(argv[iarg],"poly9")  == 0   ){     /* 17 Nov 2010 */
+       } else if( strncasecmp(argv[iarg],"non",3)   == 0 ||
+                  strncasecmp(argv[iarg],"poly9",5) == 0   ){   /* 17 Nov 2010 */
          nwarp_type = WARP_NONI ;
        } else {
          ERROR_exit("unknown -nwarp type '%s' :-(",argv[iarg]) ;
        }
+       nwarp_fixaff = ( strstr(argv[iarg],"FA") != NULL ) ;
        warp_code = WARP_AFFINE ; iarg++ ;
 
        if( iarg < argc && isdigit(argv[iarg][0]) ){      /** really secret **/
@@ -4037,6 +4039,12 @@ int main( int argc , char *argv[] )
      /*----------------------------------------------------------------------*/
      /*--------------- Nonlinear warp improvement? --------------------------*/
 
+#define PARAM_SETUP(pp,ff,vv)                                                          \
+ do{ if( ff ){ stup.wfunc_param[pp].fixed = ff; stup.wfunc_param[pp].val_fixed = vv; } \
+     else    { stup.wfunc_param[pp].fixed = 0; }                                       \
+     stup.wfunc_param[pp].val_init = vv;                                               \
+ } while(0)
+
      if( nwarp_pass ){
 
        if( nwarp_type == WARP_BILINEAR ){  /*------ special case ------------*/
@@ -4155,11 +4163,7 @@ int main( int argc , char *argv[] )
          /* affine part is copied from results of work thus far */
 
          for( jj=0 ; jj < 12 ; jj++ ){
-           stup.wfunc_param[jj].val_init = stup.wfunc_param[jj].val_out;
-#if 1
-           stup.wfunc_param[jj].val_fixed = stup.wfunc_param[jj].val_out ;
-           stup.wfunc_param[jj].fixed = 1 ;
-#endif
+           PARAM_SETUP( jj , nwarp_fixaff , stup.wfunc_param[jj].val_out ) ;
          }
 
          stup.need_hist_setup = 1 ;
@@ -4167,7 +4171,9 @@ int main( int argc , char *argv[] )
 
          /* do the optimization */
 
-         if( verb > 0 ) INFO_message("Start Cubic/Poly3 warping: %d parameters",NPCUB-12) ;
+         if( verb > 0 )
+           INFO_message("Start Cubic/Poly3 warping: %d parameters",NPCUB-12*nwarp_fixaff) ;
+
          /** if( verb > 1 ) PARINI("- Cubic/Poly3 initial") ; **/
          for( jj=12 ; jj < NPCUB  ; jj++ ) stup.wfunc_param[jj].fixed = 0 ;
          if( verb ) ctim = COX_cpu_time() ;
@@ -4186,12 +4192,6 @@ int main( int argc , char *argv[] )
 
        } else if( nwarp_type == WARP_QUINT ){  /*------ special case ------------*/
 
-#define PARAM_SETUP(pp,ff,vv)                                                          \
- do{ if( ff ){ stup.wfunc_param[pp].fixed = ff; stup.wfunc_param[pp].val_fixed = vv; } \
-     else    { stup.wfunc_param[pp].fixed = 0; }                                       \
-     stup.wfunc_param[pp].val_init = vv;                                               \
- } while(0)
-
          float rr , xcen,ycen,zcen , brad,crad ; int nbf , nite ;
 
          rr = MAX(xsize,ysize) ; rr = MAX(zsize,rr) ; rr = 1.2f / rr ;
@@ -4209,10 +4209,10 @@ int main( int argc , char *argv[] )
          PARAM_SETUP( NPQUINT+2 , 2 , zcen ) ;
          PARAM_SETUP( NPQUINT+3 , 2 , rr   ) ;
 
-         /* affine part is copied from results of work thus far, and fixed */
+         /* affine part is copied from results of work thus far */
 
          for( jj=0 ; jj < 12 ; jj++ ){
-           PARAM_SETUP( jj , 1 , stup.wfunc_param[jj].val_out ) ;
+           PARAM_SETUP( jj , nwarp_fixaff , stup.wfunc_param[jj].val_out ) ;
          }
 
          stup.need_hist_setup = 1 ;
@@ -4221,7 +4221,9 @@ int main( int argc , char *argv[] )
 
          /* do the optimization */
 
-         if( verb > 0 ) INFO_message("Start Quintic/Poly5 warping: %d parameters",NPQUINT-12) ;
+         if( verb > 0 )
+           INFO_message("Start Quintic/Poly5 warping: %d parameters",NPQUINT-12*nwarp_fixaff) ;
+
          for( jj=12 ; jj < NPQUINT ; jj++ ) stup.wfunc_param[jj].fixed = 0 ;
          if( verb ) ctim = COX_cpu_time() ;
          rad  = 0.01f ; crad = 0.003f ;
@@ -4259,7 +4261,7 @@ int main( int argc , char *argv[] )
          /* affine part is copied from results of work thus far */
 
          for( jj=0 ; jj < 12 ; jj++ ){
-           PARAM_SETUP( jj , 1 , stup.wfunc_param[jj].val_out ) ;
+           PARAM_SETUP( jj , nwarp_fixaff , stup.wfunc_param[jj].val_out ) ;
          }
 
          stup.need_hist_setup = 1 ;
@@ -4268,7 +4270,8 @@ int main( int argc , char *argv[] )
 
          /* do the optimization */
 
-         if( verb > 0 ) INFO_message("Start Heptic/Poly7 warping: %d parameters",NPHEPT-12) ;
+         if( verb > 0 )
+           INFO_message("Start Heptic/Poly7 warping: %d parameters",NPHEPT-12*nwarp_fixaff) ;
          for( jj=12 ; jj < NPHEPT ; jj++ ) stup.wfunc_param[jj].fixed = 0 ;
          if( verb ) ctim = COX_cpu_time() ;
          rad  = 0.01f ; crad = 0.003f ;
@@ -4306,7 +4309,7 @@ int main( int argc , char *argv[] )
          /* affine part is copied from results of work thus far */
 
          for( jj=0 ; jj < 12 ; jj++ ){
-           PARAM_SETUP( jj , 1 , stup.wfunc_param[jj].val_out ) ;
+           PARAM_SETUP( jj , nwarp_fixaff , stup.wfunc_param[jj].val_out ) ;
          }
 
          stup.need_hist_setup = 1 ;
@@ -4315,7 +4318,8 @@ int main( int argc , char *argv[] )
 
          /* do the optimization */
 
-         if( verb > 0 ) INFO_message("Start Nonic/Poly9 warping: %d parameters",NPNONI-12) ;
+         if( verb > 0 )
+           INFO_message("Start Nonic/Poly9 warping: %d parameters",NPNONI-12*nwarp_fixaff);
          for( jj=12 ; jj < NPNONI ; jj++ ) stup.wfunc_param[jj].fixed = 0 ;
          if( verb ) ctim = COX_cpu_time() ;
          rad  = 0.01f ; crad = 0.003f ;
