@@ -362,7 +362,7 @@ int main( int argc , char *argv[] )
    float nwarp_order           = 2.9f ;
    int   nwarp_flags           = 0 ;             /* 29 Oct 2010 */
    int   nwarp_itemax          = 0 ;
-   int   nwarp_fixaff          = 0 ;             /* 26 Nov 2010 */
+   int   nwarp_fixaff          = 1 ;             /* 26 Nov 2010 */
 
    int    micho_zfinal          = 0 ;            /* 24 Feb 2010 */
    double micho_mi              = 0.2 ;          /* -lpc+ stuff */
@@ -1380,7 +1380,7 @@ int main( int argc , char *argv[] )
        } else {
          ERROR_exit("unknown -nwarp type '%s' :-(",argv[iarg]) ;
        }
-       nwarp_fixaff = ( strstr(argv[iarg],"FA") != NULL ) ;
+       nwarp_fixaff = ( strstr(argv[iarg],"FA") == NULL ) ;
        warp_code = WARP_AFFINE ; iarg++ ;
 
        if( iarg < argc && isdigit(argv[iarg][0]) ){      /** really secret **/
