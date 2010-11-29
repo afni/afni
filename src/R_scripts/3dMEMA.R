@@ -516,7 +516,7 @@ greeting.MEMA <- function ()
           ================== Welcome to 3dMEMA.R ==================          
              AFNI Mixed-Effects Meta-Analysis Modeling Package!
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.1.8,  Aug 2, 2010
+Version 0.1.9,  Nov 29, 2010
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MEMA.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -2336,9 +2336,12 @@ tTop <- 100   # upper bound for t-statistic
    statpar <- "3drefit"
    if(lop$anaType==4) {
       for (ii in 1:lop$nGrp) statpar <- paste(statpar, " -substatpar ",
-          2*(ii-1)+1, " fitt ", lop$nSubj[ii]-lop$nCov-1)  # each group is modeled separately, thus different DFs	  statpar <- paste(statpar, " -substatpar ", 5, " fitt ", nDF)
+          2*(ii-1)+1, " fitt ", lop$nSubj[ii]-lop$nCov-1)  # each group is modeled separately, thus different DFs
    } else for (ii in 1:(2*lop$nGrp-1)) statpar <- paste(statpar, " -substatpar ",
                                                  2*(ii-1)+1, " fitt ", nDF)
+   
+   if(lop$nGrp==2) statpar <- paste(statpar, " -substatpar 5 ", " fitt ", nDF)  # DF for group diff
+   
    if(anyCov) for(ii in 1:lop$nCov) statpar <- paste( statpar, " -substatpar ",
        nBrick0-3-2*(lop$nCov-ii), " fitt ", nDF)
    
