@@ -1867,16 +1867,6 @@ extern MRI_IMAGE * GA_indexwarp_plus( MRI_IMAGE *, int, MRI_IMAGE *,
 extern void GA_affine_edit_warp( mat44 aff , MRI_IMAGE *wpim ) ;
 /*----------------------------------------------------------------------------*/
 
-extern void mri_genalign_set_boxsize( float xbot, float xtop,
-                                      float ybot, float ytop,
-                                      float zbot, float ztop ) ;
-extern Warpfield * mri_genalign_warpfield_setup( int, float, int ) ;
-extern Warpfield * mri_genalign_warpfield_get(void) ;
-extern void mri_genalign_warpfield_set(Warpfield *) ;
-extern void mri_genalign_warpfield( int, float *,
-                                    int, float *, float *, float *,
-                                         float *, float *, float * ) ;
-
 extern floatvec * mri_genalign_scalar_allcosts( GA_setup * , float * ); /* 19 Sep 2007 */
 
 #define MATORDER_SDU  1  /* matrix multiplication order: */
