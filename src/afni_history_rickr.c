@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 30, NOV, 2010, RCR, "afni_history", MINOR, TYPE_NEW_OPT,
+   "added option -final_sort_by_prog",
+   NULL
+ } ,
+
  { 22, NOV, 2010, RCR, "afni_proc.py", MICRO, TYPE_GENERAL,
    "small improvements to line wrapping",
    NULL
