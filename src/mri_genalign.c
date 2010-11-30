@@ -2272,6 +2272,7 @@ INFO_message("bilinear warp %s diagonal: %.7g %.7g %.3g",
                  ( (x)*(x) * \
                  ( (x)*(x) - 2.11765f ) + 1.48235f ) - 0.380090f ) + 0.0259153f ) * (x) )*32.0f
 
+#if 0
 /* Gegenbauer (alpha=-0.5) polynomials */
 
 #define GP1(x) (x)
@@ -2283,6 +2284,7 @@ INFO_message("bilinear warp %s diagonal: %.7g %.7g %.3g",
 #define GP7(x) ((0.3125f+(-2.1875f+(3.9375f-2.0625f*(x)*(x))*(x)*(x))*(x)*(x))*(x))
 #define GP8(x) (-0.0390625f+(1.09375f+(-4.921875f+(7.21875f-3.3515625f*(x)*(x))*(x)*(x))*(x)*(x))*(x)*(x))
 #define GP9(x) ((-0.2734375f+(3.28125f+(-10.828125f+(13.40625f-5.5859375f*(x)*(x))*(x)*(x))*(x)*(x))*(x)*(x))*(x))
+#endif
 
 /* 3D product functions of various orders 2..9 */
 
@@ -2516,6 +2518,10 @@ INFO_message("bilinear warp %s diagonal: %.7g %.7g %.3g",
 #define NPOLQUIN   52  /* = 6+10+15+21 */
 #define NPOLHEPT  116  /* = 6+10+15+21+28+36 */
 #define NPOLNONI  216  /* = 6+10+15+21+28+36+45+55 */
+
+/* number of nonlinear terms at order k (in each dimension) */
+
+#define NPOL(k) (((k)+1)*((k)+2)*((k)+3)/6-4)
 
 /* FIXYZ macro makes sure arg is between -1 and 1 */
 
