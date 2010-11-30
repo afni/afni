@@ -26,9 +26,10 @@ static char g_history[] =
   "1.7  29 Mar 2010 [RWCox] : add '-dline' option\n"
   "1.8   3 Jun 2010 [rickr] : added TYPE_ENHANCE\n"
   "1.9  19 Jul 2010 [rickr] : added -check_date option\n"
+  "1.10 30 Nov 2010 [rickr] : added -final_sort_by_prog option\n"
 };
 
-static char g_version[] = "afni_history version 1.7, 29 Mar 2010";
+static char g_version[] = "afni_history version 1.10, 30 Nov 2010";
 
 static  char * g_author_list[] = {
     "rwcox",    "RWC",  RWC,
@@ -171,6 +172,8 @@ int process_options(int argc, char * argv[], global_data * gd)
             gd->program = argv[ac];
         } else if( !strcmp(argv[ac], "-reverse" ) ) {
             gd->sort_dir = -1;
+        } else if( !strcmp(argv[ac], "-final_sort_by_prog" ) ) {
+            gd->final_sort_by_prog = 1;
         } else if( !strcmp(argv[ac], "-type" ) ) {
             ac++;
             CHECK_NEXT_OPT2(ac, argc, "-type", "TYPE");
@@ -316,6 +319,28 @@ int restrict_results(global_data * gd, hist_type *** H, int * Hlen)
     if( !rv && hlen>0 && (gd->past_days || gd->past_months || gd->past_years) )
         rv = restrict_by_date(gd, &hlist, &hlen);
 
+    /* to show the past_entries, restrict the indices based on sort_dir */
+    /*                                              25 Jun 2008 [rickr] */
+    if( gd->past_entries > 0 && gd->past_entries < hlen ) {
+        int first = 0;
+        if( gd->sort_dir == 1 ) first = hlen - gd->past_entries;
+
+        if( gd->verb > 1 )
+            fprintf(stderr,"++ restricting to entires from %d to %d\n",
+                    hlen, gd->past_entries);
+
+        if( restrict_hlist(&hlist, first, hlen, gd->past_entries) ) return 1;
+
+        hlen = gd->past_entries;
+    }
+
+    /* maybe resort by program name first */
+    if( !rv && hlen > 0 && gd->final_sort_by_prog ) {
+        gd->sort_by_prog = 1;
+        qsort(hlist, hlen, sizeof(hist_type *), compare_hlist);
+        gd->sort_by_prog = 0;
+    }
+
     *H = hlist;
     *Hlen = hlen;
 
@@ -422,6 +447,7 @@ int show_history(global_data * gd, hist_type ** hlist, int len)
         return 1;
     }
 
+#if 0
     /* to show the past_entries, restrict the indices based on sort_dir */
     /*                                              25 Jun 2008 [rickr] */
     if( gd->past_entries > 0 && gd->past_entries < len ) {
@@ -431,6 +457,7 @@ int show_history(global_data * gd, hist_type ** hlist, int len)
             fprintf(stderr,"++ restricting to entires from %d to %d\n",
                     first, len-1);
     }
+#endif
 
     if( gd->sort_dir == 1 )
         printf("  ----  log of AFNI updates (most recent last)  ----\n\n");
@@ -887,6 +914,11 @@ int compare_hlist(const void *v0, const void *v1)
     hist_type * h1 = *(hist_type **)v1;
     int         rv = 0;
 
+    if( GD.sort_by_prog ) {
+       if( h0->program && h1->program ) rv = strcmp(h0->program, h1->program);
+       if( rv ) return MY_INT_COMPARE(rv, 0);
+    }
+
     if( h0->yyyy != h1->yyyy ) return MY_INT_COMPARE(h0->yyyy, h1->yyyy);
     if( h0->mm   != h1->mm   ) return MY_INT_COMPARE(h0->mm  , h1->mm  );
     if( h0->dd   != h1->dd   ) return MY_INT_COMPARE(h0->dd  , h1->dd  );
@@ -895,12 +927,14 @@ int compare_hlist(const void *v0, const void *v1)
     /*                                             19 May 2008 [rickr] */
 
     if( h0->author && h1->author ) rv = strcmp(h0->author, h1->author);
-    if( rv ) return (rv < 0 ? -GD.sort_dir : GD.sort_dir);
+    if( rv ) return MY_INT_COMPARE(rv, 0);
 
     if( h0->level != h1->level ) return MY_INT_COMPARE(h0->level, h1->level);
 
-    if( h0->program && h1->program ) rv = strcmp(h0->program, h1->program);
-    if( rv ) return (rv < 0 ? -GD.sort_dir : GD.sort_dir);
+    if( ! GD.sort_by_prog ) {
+       if( h0->program && h1->program ) rv = strcmp(h0->program, h1->program);
+       if( rv ) return MY_INT_COMPARE(rv, 0);
+    }
 
     return 0;
 }
@@ -951,6 +985,53 @@ int add_to_hlist(hist_type *** hlist, hist_type * hadd,
 }
 
 
+/* reallocate space, and fill the array of struct pointers
+ * (fill from first of length newlen) */
+int restrict_hlist(hist_type *** hlist, int first, int oldlen, int newlen)
+{
+    hist_type ** horig = *hlist;        /* store the current list */
+    int c;
+
+    if( GD.verb > 2 )
+        fprintf(stderr,"++ making new len %d (of %d) list at offset %d\n",
+                newlen, oldlen, first);
+
+    if( newlen < 0 || first < 0 || oldlen < 0) {
+        fprintf(stderr,"** restrict_hlist: bad newlen, first, old = %d, %d, %d\n",
+                newlen, first, oldlen);
+        return 1;
+    } else if( newlen+first > oldlen ) {
+        fprintf(stderr,"** restrict_hlist: newlen+first (%d+%d) > oldlen (%d)\n",
+                newlen, first, oldlen);
+        return 1;
+    }
+
+    if( newlen == oldlen ) return 0;    /* easy... */
+
+    *hlist = (hist_type **)malloc(newlen*sizeof(hist_type *));
+    if( !*hlist ) {
+        fprintf(stderr,"** RH: failed to malloc hlist ptrs of len %d\n", newlen);
+        return 1;
+    }
+
+    for(c = 0; c < newlen; c++)
+        (*hlist)[c] = horig[first+c];   /* applies struct offsets */
+
+    if( GD.verb > 5 && newlen > 2 ) {
+        fprintf(stderr,"++ RH: first 3 new addresses are: %p, %p, %p\n",
+                (*hlist)[0], (*hlist)[1], (*hlist)[2]);
+        fprintf(stderr,"   programs are %s, %s, %s\n",
+                CHECK_NULL_STR((*hlist)[0]->program),
+                CHECK_NULL_STR((*hlist)[1]->program),
+                CHECK_NULL_STR((*hlist)[2]->program)); 
+    }
+
+    free(horig);        /* incoming list is garbage */
+
+    return 0;
+}
+
+
 int disp_global_data(char * mesg, global_data * gd)
 {
     if( mesg ) fputs(mesg, stderr);
@@ -966,14 +1047,16 @@ int disp_global_data(char * mesg, global_data * gd)
             "    level, min_level          = %d, %d\n"
             "    past_days, months, years  = %d, %d, %d\n"
             "    past_entries              = %d\n"
-            "    sort_dir, verb, plen      = %d, %d, %d\n",
+            "    sort_dir, final_by_prog   = %d, %d\n"
+            "    verb, SBP, plen           = %d, %d, %d\n",
             CHECK_NULL_STR(gd->author), CHECK_NULL_STR(gd->program),
             gd->check_date, CHECK_NULL_STR(gd->cd_day),
             CHECK_NULL_STR(gd->cd_month), CHECK_NULL_STR(gd->cd_year), 
             gd->html, gd->dline, gd->type,
             gd->level, gd->min_level,
             gd->past_days, gd->past_months, gd->past_years,
-            gd->past_entries, gd->sort_dir, gd->verb, gd->plen);
+            gd->past_entries, gd->sort_dir, gd->final_sort_by_prog,
+            gd->verb, gd->sort_by_prog, gd->plen);
 
     return 0;
 }

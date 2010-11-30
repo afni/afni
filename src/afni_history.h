@@ -109,9 +109,11 @@ typedef struct {
     int        min_level;
     int        past_days, past_months, past_years, past_entries;
     int        sort_dir;
+    int        final_sort_by_prog;
     int        verb;
 
     /* assigned variables */
+    int        sort_by_prog;
     int        plen;
     histpair * histpairs;
 
