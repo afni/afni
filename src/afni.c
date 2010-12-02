@@ -2665,7 +2665,7 @@ STATUS("defining surface drawing parameters") ;
       /* threshold for determining which axis this slice is along */
 
       dxyz = MIN(br->del1,br->del2) ;
-      dxyz = MIN(dxyz    ,br->del3) ; dxyz *= 0.1 ;
+      dxyz = MIN(dxyz    ,br->del3) ; dxyz *= 0.1f ;
 
       set_color_memplot(rr_box,gg_box,bb_box) ;  /* box drawing colors */
       set_thick_memplot(0.0) ;
