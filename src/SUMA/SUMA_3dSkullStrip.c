@@ -1,12 +1,7 @@
 #include "SUMA_suma.h"
 #include "../thd_brainormalize.h"
-#undef STAND_ALONE
 
-#if defined SUMA_BrainWrap_STANDALONE
-#define STAND_ALONE 
-#endif
-
-#ifdef STAND_ALONE
+#if 1
 /* these global variables must be declared even if they will not be used by this main */
 SUMA_SurfaceViewer *SUMAg_cSV = NULL; /*!< Global pointer to current Surface Viewer structure*/
 SUMA_SurfaceViewer *SUMAg_SVv = NULL; /*!< Global pointer to the vector containing the various Surface Viewer Structures 
@@ -15,15 +10,9 @@ int SUMAg_N_SVv = 0; /*!< Number of SVs realized by X */
 SUMA_DO *SUMAg_DOv = NULL;   /*!< Global pointer to Displayable Object structure vector*/
 int SUMAg_N_DOv = 0; /*!< Number of DOs stored in DOv */
 SUMA_CommonFields *SUMAg_CF = NULL; /*!< Global pointer to structure containing info common to all viewers */
-#else
-extern SUMA_CommonFields *SUMAg_CF;
-extern SUMA_DO *SUMAg_DOv;
-extern SUMA_SurfaceViewer *SUMAg_SVv;
-extern int SUMAg_N_SVv; 
-extern int SUMAg_N_DOv;  
 #endif
 
-#ifdef SUMA_BrainWrap_STANDALONE
+#if 1
 void usage_SUMA_BrainWrap (SUMA_GENERIC_ARGV_PARSE *ps)
    {
       static char FuncName[]={"usage_SUMA_BrainWrap"};

@@ -2007,6 +2007,11 @@ STATUS("call 14") ;
                                   AFNI_startup_layout_CB , GLOBAL_argopt.layout_fname ) ;
 
           nodown = 1 ;  /* splashdown will be done in AFNI_startup_layout_CB */
+        } else if (MAIN_im3d->type == AFNI_3DDATA_VIEW){ /* ZSS Dec 02 2010. */
+          (void) XtAppAddTimeOut( MAIN_app , 123 ,
+                                  AFNI_startup_layout_CB , 
+                                  "GIMME_SOMETHING" ) ;
+          nodown = 1 ; 
         }
 
         /* 21 Jan 2003: this function will be called 0.246 seconds

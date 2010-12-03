@@ -75,6 +75,7 @@ void EDIT_substscale_brick(THD_3dim_dataset *dset, int ival,
                            int ftype,void *fim , int stype,float fac )
 {
    float *far ;
+   double *dar;
    int ii,nvox ;
 
 ENTRY("EDIT_substscale_brick") ;
@@ -102,84 +103,163 @@ ENTRY("EDIT_substscale_brick") ;
 
    /** at this time, can only scale float inputs to shorts or bytes **/
 
-   if( ftype != MRI_float ){
-     ERROR_message("EDIT_substscale_brick: non-float input!"); EXRETURN;
+   if( ftype != MRI_float && ftype != MRI_double ){ /* ZSS Dec 2010 */
+     ERROR_message("EDIT_substscale_brick: non-float and non-double input!"); 
+     EXRETURN;
    }
    if( stype != MRI_short && stype != MRI_byte ){
      ERROR_message("EDIT_substscale_brick: non-short/byte output!"); EXRETURN;
    }
 
-   far = (float *)fim ; nvox = DSET_NVOX(dset) ;
+   if (ftype == MRI_float) {
+      far = (float *)fim ; nvox = DSET_NVOX(dset) ;
 
-   /** compute factor, if not supplied by user **/
+      /** compute factor, if not supplied by user **/
 
-   if( fac <= 0.0f ){
-     float bot,top , abot,atop,mmm ; int isin ;
-     bot = top = far[0] ;
-     for( ii=1 ; ii < nvox ; ii++ ){
-            if( far[ii] < bot ) bot = far[ii] ;
-       else if( far[ii] > top ) top = far[ii] ;
-     }
-     abot = fabsf(bot); atop = fabsf(top); mmm = MAX(abot,atop);
-     if( mmm == 0.0f ){  /** data values are all zero! **/
-       fac = 1.0f ;
-     } else if( stype == MRI_short ){
-       isin = is_integral_data( nvox , MRI_float , far ) ;
-       fac = (isin && mmm <= 32767.0f) ? 1.0f : 32767.0f / mmm ;
-     } else if( stype == MRI_byte ){
-       if( bot < 0.0f ){
-         for( ii=0 ; ii < nvox ; ii++ ) if( far[ii] < 0.0f ) far[ii] = 0.0f ;
-       }
-       if( top > 0.0f ){
-         isin = is_integral_data( nvox , MRI_float , far ) ;
-         fac = (isin && top <= 255.0f) ? 1.0f : 255.0f / top ;
-       } else {
-         WARNING_message("EDIT_substscale_brick: no positive data for -> byte");
-         fac = 1.0f ;
-       }
-     }
-   }
+      if( fac <= 0.0f ){
+        float bot,top , abot,atop,mmm ; int isin ;
+        bot = top = far[0] ;
+        for( ii=1 ; ii < nvox ; ii++ ){
+               if( far[ii] < bot ) bot = far[ii] ;
+          else if( far[ii] > top ) top = far[ii] ;
+        }
+        abot = fabsf(bot); atop = fabsf(top); mmm = MAX(abot,atop);
+        if( mmm == 0.0f ){  /** data values are all zero! **/
+          fac = 1.0f ;
+        } else if( stype == MRI_short ){
+          isin = is_integral_data( nvox , MRI_float , far ) ;
+          fac = (isin && mmm <= 32767.0f) ? 1.0f : 32767.0f / mmm ;
+        } else if( stype == MRI_byte ){
+          if( bot < 0.0f ){
+            for( ii=0 ; ii < nvox ; ii++ ) if( far[ii] < 0.0f ) far[ii] = 0.0f ;
+          }
+          if( top > 0.0f ){
+            isin = is_integral_data( nvox , MRI_float , far ) ;
+            fac = (isin && top <= 255.0f) ? 1.0f : 255.0f / top ;
+          } else {
+            WARNING_message("EDIT_substscale_brick: "
+                            "no positive data for -> byte");
+            fac = 1.0f ;
+          }
+        }
+      }
 
-   /*-- now do the scaling and substitution --*/
+      /*-- now do the scaling and substitution --*/
 
-   if( stype == MRI_short ){
+      if( stype == MRI_short ){
 
-     short *sar = (short *)malloc(sizeof(short)*nvox) ;
-     float val ;
-     if( fac == 1.0f ){
-       STATUS("storing to shorts") ;
-       for( ii=0 ; ii < nvox ; ii++ ){
-         sar[ii] = SHORTIZE(far[ii]) ;
-       }
-     } else {
-       STATUS("scaling to shorts") ;
-       for( ii=0 ; ii < nvox ; ii++ ){
-         val = fac*far[ii] ; sar[ii] = SHORTIZE(val) ;
-       }
-     }
-     STATUS("putting into dataset") ;
-     EDIT_substitute_brick( dset,ival,MRI_short,sar ) ;
-     fac = (fac==1.0f) ? 0.0f : 1.0f/fac ;
-     STATUS("setting scale factor") ;
-     EDIT_BRICK_FACTOR( dset,ival,fac ) ;
+        short *sar = (short *)malloc(sizeof(short)*nvox) ;
+        float val ;
+        if( fac == 1.0f ){
+          STATUS("storing to shorts") ;
+          for( ii=0 ; ii < nvox ; ii++ ){
+            sar[ii] = SHORTIZE(far[ii]) ;
+          }
+        } else {
+          STATUS("scaling to shorts") ;
+          for( ii=0 ; ii < nvox ; ii++ ){
+            val = fac*far[ii] ; sar[ii] = SHORTIZE(val) ;
+          }
+        }
+        STATUS("putting into dataset") ;
+        EDIT_substitute_brick( dset,ival,MRI_short,sar ) ;
+        fac = (fac==1.0f) ? 0.0f : 1.0f/fac ;
+        STATUS("setting scale factor") ;
+        EDIT_BRICK_FACTOR( dset,ival,fac ) ;
 
-     EDIT_misfit_report( DSET_FILECODE(dset), ival,
-                         nvox , fac , sar , far  ) ;
+        EDIT_misfit_report( DSET_FILECODE(dset), ival,
+                            nvox , fac , sar , far  ) ;
 
-   } else if( stype == MRI_byte ){
+      } else if( stype == MRI_byte ){
 
-     byte *bar = (byte *)malloc(sizeof(byte)*nvox) ;
-     float val ;
-     if( fac == 1.0f ){
-       for( ii=0 ; ii < nvox ; ii++ ) bar[ii] = BYTEIZE(far[ii]) ;
-     } else {
-       for( ii=0 ; ii < nvox ; ii++ ){
-         val = fac*far[ii] ; bar[ii] = BYTEIZE(val) ;
-       }
-     }
-     EDIT_substitute_brick( dset,ival,MRI_byte,bar ) ;
-     fac = (fac==1.0f) ? 0.0f : 1.0f/fac ;
-     EDIT_BRICK_FACTOR( dset,ival,fac ) ;
+        byte *bar = (byte *)malloc(sizeof(byte)*nvox) ;
+        float val ;
+        if( fac == 1.0f ){
+          for( ii=0 ; ii < nvox ; ii++ ) bar[ii] = BYTEIZE(far[ii]) ;
+        } else {
+          for( ii=0 ; ii < nvox ; ii++ ){
+            val = fac*far[ii] ; bar[ii] = BYTEIZE(val) ;
+          }
+        }
+        EDIT_substitute_brick( dset,ival,MRI_byte,bar ) ;
+        fac = (fac==1.0f) ? 0.0f : 1.0f/fac ;
+        EDIT_BRICK_FACTOR( dset,ival,fac ) ;
+      }
+   } else if (ftype == MRI_double) {   /* ZSS Dec 2010 */
+      dar = (double *)fim ; nvox = DSET_NVOX(dset) ;
+
+      /** compute factor, if not supplied by user **/
+
+      if( fac <= 0.0f ){
+        double bot,top , abot,atop,mmm ; int isin ;
+        bot = top = dar[0] ;
+        for( ii=1 ; ii < nvox ; ii++ ){
+               if( dar[ii] < bot ) bot = dar[ii] ;
+          else if( dar[ii] > top ) top = dar[ii] ;
+        }
+        abot = fabs(bot); atop = fabs(top); mmm = MAX(abot,atop);
+        if( mmm == 0.0f ){  /** data values are all zero! **/
+          fac = 1.0f ;
+        } else if( stype == MRI_short ){
+          isin = is_integral_data( nvox , MRI_double , dar ) ;
+          fac = (isin && mmm <= 32767.0f) ? 1.0f : 32767.0f / mmm ;
+        } else if( stype == MRI_byte ){
+          if( bot < 0.0f ){
+            for( ii=0 ; ii < nvox ; ii++ ) if( dar[ii] < 0.0f ) dar[ii] = 0.0f ;
+          }
+          if( top > 0.0f ){
+            isin = is_integral_data( nvox , MRI_double , dar ) ;
+            fac = (isin && top <= 255.0f) ? 1.0f : 255.0f / top ;
+          } else {
+            WARNING_message("EDIT_substscale_brick: "
+                            "no positive data for -> byte");
+            fac = 1.0f ;
+          }
+        }
+      }
+
+      /*-- now do the scaling and substitution --*/
+
+      if( stype == MRI_short ){
+
+        short *sar = (short *)malloc(sizeof(short)*nvox) ;
+        double val ;
+        if( fac == 1.0f ){
+          STATUS("storing to shorts") ;
+          for( ii=0 ; ii < nvox ; ii++ ){
+            sar[ii] = SHORTIZE(dar[ii]) ;
+          }
+        } else {
+          STATUS("scaling to shorts") ;
+          for( ii=0 ; ii < nvox ; ii++ ){
+            val = fac*dar[ii] ; sar[ii] = SHORTIZE(val) ;
+          }
+        }
+        STATUS("putting into dataset") ;
+        EDIT_substitute_brick( dset,ival,MRI_short,sar ) ;
+        fac = (fac==1.0f) ? 0.0f : 1.0f/fac ;
+        STATUS("setting scale factor") ;
+        EDIT_BRICK_FACTOR( dset,ival,fac ) ;
+
+        /* Skip the misfit report. None exists for double
+        input at the moment.  
+         EDIT_misfit_report( ) ;*/
+
+      } else if( stype == MRI_byte ){
+
+        byte *bar = (byte *)malloc(sizeof(byte)*nvox) ;
+        double val ;
+        if( fac == 1.0f ){
+          for( ii=0 ; ii < nvox ; ii++ ) bar[ii] = BYTEIZE(dar[ii]) ;
+        } else {
+          for( ii=0 ; ii < nvox ; ii++ ){
+            val = fac*dar[ii] ; bar[ii] = BYTEIZE(val) ;
+          }
+        }
+        EDIT_substitute_brick( dset,ival,MRI_byte,bar ) ;
+        fac = (fac==1.0f) ? 0.0f : 1.0f/fac ;
+        EDIT_BRICK_FACTOR( dset,ival,fac ) ;
+      }
    }
 
    EXRETURN ;

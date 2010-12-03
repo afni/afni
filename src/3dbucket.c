@@ -295,7 +295,7 @@ void BUCK_read_opts( int argc , char * argv[] )
       cpt = strstr(argv[nopt],"[") ;
       if( cpt == NULL ){
          strcpy(dname,argv[nopt]) ;
-         subv[0] = '\0' ;
+         subv[0] = '\0' ;  /* make sure subv is reset ZSS Nov. 2010*/
       } else if( cpt == argv[nopt] ){
          fprintf(stderr,"illegal dataset specifier: %s\n",argv[nopt]) ;
          exit(1) ;

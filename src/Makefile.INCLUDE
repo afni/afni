@@ -730,6 +730,10 @@ whereami:whereami.c
 	$(RM) $@
 	$(CC) -o 3dSegment 3dSegment.c parser.o parser_int.o $(INFLAGS) $(LFLAGS) -lmri -lf2c $(LLIBS)
 
+3dGenPriors:3dGenPriors.c
+	$(RM) $@
+	$(CC) -o 3dGenPriors 3dGenPriors.c parser.o parser_int.o $(INFLAGS) $(LFLAGS) -lmri -lf2c $(LLIBS)
+
 3dUniformize:3dUniformize.o
 	$(RM) $@
 	$(CC) -o 3dUniformize 3dUniformize.o $(PLFLAGS) -lmri -lf2c $(LLIBS)
