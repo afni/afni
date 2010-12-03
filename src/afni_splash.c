@@ -1124,8 +1124,8 @@ void AFNI_startup_layout_CB( XtPointer client_data , XtIntervalId *id )
    char def_layout[]={"\n"
                       " ***LAYOUT\n"
                       "  A geom=+0+44\n"
-                      "  A.axialimage geom=307x391+3+455 ifrac=0.8\n"
-                      "  A.sagittalimage geom=396x303+311+455 ifrac=0.8\n"
+                      "  A.axialimage geom=+3+455 ifrac=0.8\n"
+                      "  A.sagittalimage geom=+311+455 ifrac=0.8\n"
                       "\n"};
    Three_D_View *im3d         = GLOBAL_library.controllers[0] ; /* already open */
 
