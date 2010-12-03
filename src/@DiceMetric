@@ -1,7 +1,8 @@
 #!/bin/tcsh -fe
 
 set stat = 0
-set log = /tmp/MLT.log
+set RNS = `3dnewid -fun`
+set log = /tmp/${RNS}.MLT.log
 
 
 goto PARSE_COMMAND
@@ -20,19 +21,20 @@ foreach dset ($dsets)
    #mask by base
    switch  ($maskby)
       case 2:
-         set vol2m = ___bma
+         set vol2m = {$RNS}.bma
          if ($usedsetvals == 1) then
-            3dhistog -omit 0 -overwrite -unq /tmp/unq.1D $dset >& /dev/null
+            3dhistog -omit 0 -overwrite \
+                     -unq /tmp/${RNS}.unq.1D $dset >& /dev/null
             if ($status) goto BEND
-            set klist = `1dcat -form '%d,' /tmp/unq.1D\' | sed 's/,$//'`
-            rm -f /tmp/unq.1D
+            set klist = `1dcat -form '%d,' /tmp/${RNS}.unq.1D\' | sed 's/,$//'`
+            rm -f /tmp/${RNS}.unq.1D
          endif
          3dcalc -a $vol1${view} -b $vol2o$view -overwrite \
                   -expr "amongst(a,$klist)*b"   \
                   -prefix $vol2m >& $log  
          breaksw
       case 1:
-         set vol2m = ___bma
+         set vol2m = {$RNS}.bma
          3dcalc -a $vol1${view} -b $vol2o$view -overwrite -expr 'step(a)*b'   \
                   -prefix $vol2m >& $log  
          breaksw
@@ -69,13 +71,13 @@ foreach dset ($dsets)
    
    
       3dROIstats -1Dformat -mask_f2short -numROI ${numROI} -zerofill 0\
-                  -nzvoxels -mask ${aib}$view ${aib}$view > ___aib.1D
+                  -nzvoxels -mask ${aib}$view ${aib}$view > {$RNS}.aib.1D
       3dROIstats -1Dformat -mask_f2short -numROI ${numROI} -zerofill 0\
-                  -nzvoxels -mask $vol1$view $vol1$view >> ___aib.1D
+                  -nzvoxels -mask $vol1$view $vol1$view >> {$RNS}.aib.1D
       3dROIstats -1Dformat -mask_f2short -numROI ${numROI} -zerofill 0\
-                  -nzvoxels -mask $vol2m$view $vol2m$view >> ___aib.1D
+                  -nzvoxels -mask $vol2m$view $vol2m$view >> {$RNS}.aib.1D
 
-   set nvals = `3dnvals -all ___aib.1D`
+   set nvals = `3dnvals -all {$RNS}.aib.1D`
    set N_cl = `ccalc -i $nvals[4] / 2`
 
    set cl = 1
@@ -84,7 +86,7 @@ foreach dset ($dsets)
    set clar = ()
    while ($cl <= $N_cl)
       set in = `ccalc -i "2*$icl"`
-      set cl_num = `1dcat ___aib.1D"[$in]" | uniq`
+      set cl_num = `1dcat {$RNS}.aib.1D"[$in]" | uniq`
       if ("$#cl_num" != 1 && "$#cl_num" != 0) then
          echo "#Bad table $cl_num, filling with 0s"
          set clar = ($clar $cl)
@@ -92,7 +94,7 @@ foreach dset ($dsets)
       else      
          if ("$cl_num" != 0) then
             set in = `ccalc -i "2*$icl+1"`
-            set nums = `1dcat ___aib.1D"[$in]"`
+            set nums = `1dcat {$RNS}.aib.1D"[$in]"`
             set dice = `ccalc "2*$nums[1]/($nums[2]+$nums[3])"`
             set clar = ($clar $cl_num)
             set dcar = ($dcar $dice)
@@ -121,18 +123,18 @@ foreach dset ($dsets)
    end
    
    if ($idset == 1) then
-      set outlist = ($outlist ___dice_${iidset}.1D)
+      set outlist = ($outlist {$RNS}.dice_${iidset}.1D)
    else 
-      set outlist = ("$outlist" ___dice_${iidset}.1D'[1]')
+      set outlist = ("$outlist" {$RNS}.dice_${iidset}.1D'[1]')
    endif
-   echo "#cl   #dice($vol2o VS $vol1)" > ___dice_${iidset}.1D
-   echo "#Labels: $labar" >> ___dice_${iidset}.1D
+   echo "#cl   #dice($vol2o VS $vol1)" > {$RNS}.dice_${iidset}.1D
+   echo "#Labels: $labar" >> {$RNS}.dice_${iidset}.1D
    set cnt = 1
    foreach cl ($clar)
-      echo "$cl   $dcar[$cnt]  #$labar[$cnt]" >> ___dice_${iidset}.1D
+      echo "$cl   $dcar[$cnt]  #$labar[$cnt]" >> {$RNS}.dice_${iidset}.1D
       @ cnt ++
    end
-   cat ___dice_${iidset}.1D
+   cat {$RNS}.dice_${iidset}.1D
    @ idset ++
 end
 
@@ -178,8 +180,8 @@ PARSE_COMMAND:
    set prefix = ''
    set cleanup = 1
    set cnt = 1
-   set aib = ___aib
-   set anib = ___anib
+   set aib = {$RNS}.aib
+   set anib = {$RNS}.anib
    set SaveEq=0
    set SaveDiff=0
    set forced_list = ()
@@ -433,7 +435,7 @@ BEND:
    
 END:
 if ($cleanup) then
-   rm -f ___dice_*.1D ___aib.1D ___aib+????.* ___bma+????.* 
+   rm -f {$RNS}.dice_*.1D {$RNS}.aib.1D {$RNS}.aib+????.* {$RNS}.bma+????.* 
 endif
-if ($stat == 0 && -f $log) \rm /tmp/$log:t
+if ($stat == 0 && -f $log) \rm /tmp/${RNS}.MLT.log
 exit $stat

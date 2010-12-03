@@ -1,6 +1,8 @@
 #!/bin/tcsh -fe
 
 set stat = 0
+set RNS = `3dnewid -fun`
+
 if ("$1" == "" || "$1" == '-h' || "$1" == '-help') then
    goto HELP
 endif
@@ -24,8 +26,8 @@ if ("$coords" == '') then
    set Ncoords = ($Nelecs 1 1 3)
    set tcopt = ''
 else
-   1dcat "$coords" > /tmp/xyz.1D
-   set Ncoords = `3dnvals -all /tmp/xyz.1D`
+   1dcat "$coords" > /tmp/${RNS}.xyz.1D
+   set Ncoords = `3dnvals -all /tmp/${RNS}.xyz.1D`
    if ($Ncoords[4] != 3) then
       echo "Must have three columns in $coords. Have $Ncoords[4]"
       goto BEND
@@ -34,7 +36,7 @@ else
       echo "Have $Nelecs electrodes, $Ncoords[1] coordinates!"
       goto BEND
    endif
-   set tcopt = '-these_coords /tmp/xyz.1D'
+   set tcopt = '-these_coords /tmp/${RNS}.xyz.1D'
 endif
 if ($dim[2] == 1) then
    goto ONED
@@ -44,38 +46,40 @@ endif
 
 ONED:
    set Im = `ccalc -i $Nelecs -1`
-   count -column -digits 1 0 $Im > /tmp/ielec.1D
-   1deval -a /tmp/ielec.1D -expr 'a*0+gran(0,0.1)' > /tmp/yelec.1D
-   1dcat /tmp/ielec.1D /tmp/yelec.1D /tmp/ielec.1D > /tmp/xyielec.1D
+   count -column -digits 1 0 $Im > /tmp/${RNS}.ielec.1D
+   1deval -a /tmp/${RNS}.ielec.1D -expr 'a*0+gran(0,0.1)' > /tmp/${RNS}.yelec.1D
+   1dcat /tmp/${RNS}.ielec.1D /tmp/${RNS}.yelec.1D /tmp/${RNS}.ielec.1D \
+            > /tmp/${RNS}.xyielec.1D
    goto MERGE_COORDS
 
 TWOD:
    set Im = `ccalc -i $Nelecs -1`
-   count -column -digits 1 0 $Im > /tmp/ielec.1D
+   count -column -digits 1 0 $Im > /tmp/${RNS}.ielec.1D
    set Im = ($dim)
    set Im[1] = `ccalc -i $dim[1]-1`
    set Im[2] = `ccalc -i $dim[1]-1`
-   if (-f /tmp/xelec.1D) rm /tmp/xelec.1D
-   if (-f /tmp/yelec.1D) rm /tmp/yelec.1D
+   if (-f /tmp/${RNS}.xelec.1D) rm /tmp/${RNS}.xelec.1D
+   if (-f /tmp/${RNS}.yelec.1D) rm /tmp/${RNS}.yelec.1D
    set i=0
    while ($i < $dim[2])
-      count -column -digits 1 0 $Im[1] >> /tmp/xelec.1D
-      count -column -digits 1 $i $i  R$dim[1]  >> /tmp/yelec.1D
+      count -column -digits 1 0 $Im[1] >> /tmp/${RNS}.xelec.1D
+      count -column -digits 1 $i $i  R$dim[1]  >> /tmp/${RNS}.yelec.1D
       @ i ++
    end
-   1dcat /tmp/xelec.1D /tmp/yelec.1D /tmp/ielec.1D > /tmp/xyielec.1D
+   1dcat /tmp/${RNS}.xelec.1D /tmp/${RNS}.yelec.1D /tmp/${RNS}.ielec.1D \
+               > /tmp/${RNS}.xyielec.1D
    
    goto MERGE_COORDS
    
 MERGE_COORDS:
-   ConvexHull -input_1D /tmp/xyielec.1D -q_opt triangulate_xy \
+   ConvexHull -input_1D /tmp/${RNS}.xyielec.1D -q_opt triangulate_xy \
               $tcopt  -o_gii $prefix
 
 goto END
 
 COORDS_BASED:
-   1dcat "$coords" > /tmp/xyz.1D
-   ConvexHull  -input_1D /tmp/xyz.1D \
+   1dcat "$coords" > /tmp/${RNS}.xyz.1D
+   ConvexHull  -input_1D /tmp/${RNS}.xyz.1D \
                -q_opt triangulate_xy -proj_xy -orig_coord \
                -o_gifti_asc $prefix
 goto END

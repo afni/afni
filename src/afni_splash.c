@@ -1121,7 +1121,12 @@ void AFNI_startup_layout_CB( XtPointer client_data , XtIntervalId *id )
    int *  plugin_cont = NULL ;
    char **plugin_geom = NULL ;
    int ipl ;
-
+   char def_layout[]={"\n"
+                      " ***LAYOUT\n"
+                      "  A geom=+0+44\n"
+                      "  A.axialimage geom=307x391+3+455 ifrac=0.8\n"
+                      "  A.sagittalimage geom=396x303+311+455 ifrac=0.8\n"
+                      "\n"};
    Three_D_View *im3d         = GLOBAL_library.controllers[0] ; /* already open */
 
 #ifdef ALLOW_PLUGINS
@@ -1134,9 +1139,14 @@ ENTRY("AFNI_startup_layout_CB") ;
 
    if( fname == NULL || fname[0] == '\0' ){ AFNI_splashdown(); EXRETURN; }
 
-   /* read layout file */
-
-   fbuf = AFNI_suck_file(fname); if( fbuf == NULL ){ AFNI_splashdown(); EXRETURN; }
+   /* read layout file */ 
+   if (strcmp(fname,"GIMME_SOMETHING")) {
+      fbuf = AFNI_suck_file(fname); 
+   } else {                         /* ZSS Dec 2010. */
+      fbuf = (char *)malloc(strlen(def_layout)+1);
+      strcpy(fbuf, def_layout);
+   }
+   if( fbuf == NULL ){ AFNI_splashdown(); EXRETURN; }
    nbuf = strlen(fbuf) ;         if( nbuf == 0    ){ AFNI_splashdown(); EXRETURN; }
 
    fptr = fbuf ; linbuf = (char *) malloc(sizeof(char)*(NLBUF+1)) ;

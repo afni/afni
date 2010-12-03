@@ -1,6 +1,7 @@
 #!/bin/tcsh -f
 set stat = 0
-set log = /tmp/MLT.log
+set RNS = `3dnewid -fun`
+set log = /tmp/${RNS}.MLT.log
 
 if ("$1" == "" || "$1" == '-h' || "$1" == '-help') then
    goto HELP
@@ -131,9 +132,9 @@ MAKE_TABLE:
       set pbar = "ROI_i256"
    endif
    
-   if ( -f /tmp/___lt.txt) rm -f /tmp/___lt.txt
-   if ( -f /tmp/___ll.txt) rm -f /tmp/___ll.txt
-   if ( -f /tmp/___kk.txt) rm -f /tmp/___kk.txt
+   if ( -f /tmp/${RNS}.___lt.txt) rm -f /tmp/${RNS}.___lt.txt
+   if ( -f /tmp/${RNS}.___ll.txt) rm -f /tmp/${RNS}.___ll.txt
+   if ( -f /tmp/${RNS}.___kk.txt) rm -f /tmp/${RNS}.___kk.txt
    set cnt = 1
    foreach ll ($llist)
       set inds = `count -digits 1 $llistmin[$cnt] $llistmax[$cnt]`
@@ -141,34 +142,34 @@ MAKE_TABLE:
          set ci = 1
          foreach ind ($inds)
             printf '"%d" "%s%02d"\n' $ind $llist[$cnt] $ci  \
-               >> /tmp/___lt.txt
-            printf '%d\n' $ind >> /tmp/___kk.txt
-            printf '%s%02d\n' $llist[$cnt] $ci >> /tmp/___ll.txt
+               >> /tmp/${RNS}.___lt.txt
+            printf '%d\n' $ind >> /tmp/${RNS}.___kk.txt
+            printf '%s%02d\n' $llist[$cnt] $ci >> /tmp/${RNS}.___ll.txt
             @ ci ++
          end
       else
          printf '"%d" "%s"\n' $llistmin[$cnt] $llist[$cnt] \
-               >> /tmp/___lt.txt
-         printf '%d\n' $llistmin[$cnt] >> /tmp/___kk.txt
-         printf '%s\n' $llist[$cnt] >> /tmp/___ll.txt
+               >> /tmp/${RNS}.___lt.txt
+         printf '%d\n' $llistmin[$cnt] >> /tmp/${RNS}.___kk.txt
+         printf '%s\n' $llist[$cnt] >> /tmp/${RNS}.___ll.txt
       endif
       @ cnt ++
    end
    
-   set n = `wc -l /tmp/___ll.txt`
+   set n = `wc -l /tmp/${RNS}.___ll.txt`
    set n = $n[1]
-   uniq /tmp/___ll.txt > /tmp/___llu.txt
-   set nu = `wc -l /tmp/___llu.txt`
+   uniq /tmp/${RNS}.___ll.txt > /tmp/${RNS}.___llu.txt
+   set nu = `wc -l /tmp/${RNS}.___llu.txt`
    set nu = $nu[1]
    if ($nu < $n) then
       if (! $quiet_death) \
          echo "ERROR: `ccalc -i $n -$nu` Labels dropped because of duplicates"
       goto BEND
    endif
-   set n = `wc -l /tmp/___kk.txt`
+   set n = `wc -l /tmp/${RNS}.___kk.txt`
    set n = $n[1]
-   uniq /tmp/___kk.txt > /tmp/___kku.txt
-   set nu = `wc -l /tmp/___kku.txt`
+   uniq /tmp/${RNS}.___kk.txt > /tmp/${RNS}.___kku.txt
+   set nu = `wc -l /tmp/${RNS}.___kku.txt`
    set nu = $nu[1]
    if ($nu < $n) then
       if (! $quiet_death) \
@@ -181,7 +182,7 @@ MAKE_TABLE:
       printf 'ni_type="2*String"\n' >> $labeltable
       printf 'ni_dimen="%d"\n' $nu[1] >> $labeltable
       printf 'pbar_name="%s">\n' $pbar >> $labeltable
-      uniq /tmp/___lt.txt >> $labeltable
+      uniq /tmp/${RNS}.___lt.txt >> $labeltable
       printf '</VALUE_LABEL_DTABLE>\n' >> $labeltable
 
 PUT_TABLE:
@@ -488,7 +489,7 @@ BEND:
    goto END
       
 END:
-if ($stat == 0 && -f $log) \rm /tmp/$log:t
+if ($stat == 0 && -f $log) \rm /tmp/${RNS}.$log:t
 exit $stat   
 
  

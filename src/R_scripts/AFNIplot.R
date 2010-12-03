@@ -58,7 +58,7 @@ plot1D.colindex <- function (ivec,
                   collist=c(1:10)   
                   ) {
    N_collist = length(collist)
-   return(collist[(ivec) %% N_collist + 1])
+   return(collist[(ivec) %% N_collist])
 }
 
 plot.1D.testmat <- function(nrow = 100, ncol=10) {
@@ -71,7 +71,7 @@ plot.1D.testmat <- function(nrow = 100, ncol=10) {
 }
 
 
-plot.1D.mapcolors <- function (colvec, collist=c(3,4,5,6,8,1,2,7,9)) {
+plot.1D.mapcolors <- function (colvec, collist=c(3,4,5,6,8,1,2,7,9,seq(10:20))) {
    cg <- colvec
    ugr <- unique(colvec)
    if (length(ugr) > 1) {
@@ -82,8 +82,6 @@ plot.1D.mapcolors <- function (colvec, collist=c(3,4,5,6,8,1,2,7,9)) {
       }
    }
    #now color regressors of interest
-   collist <- seq(1,20) 
-
    for (i in min(colvec[colvec > 0]):max(colvec[colvec > 0])) {
       colvec[cg == i] <- plot1D.colindex(i, collist)
    }
@@ -187,9 +185,14 @@ plot.1D.demo <- function(demo=0) {
 is.good.dev <- function (dd=NULL) {
    if (is.null(dd) || dd == 0) return(FALSE)
    if (length(which(dev.list()==dd))) return(TRUE)
+   return(FALSE)
 }
 
 plot.1D.setupdevice <- function (P) {
+   if (is.null(P$prefix) && P$nodisp) {
+      err.AFNI("Nothing to do");
+      return(0)
+   }
    if (!is.null(P$prefix) && P$nodisp) { #render to device directly
       pp <- parse.name(P$prefix)
       if (tolower(pp$ext) == '.jpg') 
@@ -199,11 +202,11 @@ plot.1D.setupdevice <- function (P) {
       else if (tolower(pp$ext) == '.png') 
          png(P$prefix, width=P$img.width, height=P$img.height,
                   res=P$img.dpi, pointsize=P$img.def.fontsize)
-      else if (tolower(pp$ext) == '.pdf') 
+      else if (tolower(pp$ext) == '.pdf') {
          pdf(P$prefix, pointsize=P$img.def.fontsize)
-      else {
+      } else {
         if (0) {
-         pdf(paste(P$prefix,'.pdf',sep=''))   #best, but not always present       
+         pdf(paste(P$prefix,'.pdf',sep='')) #best, but perhaps not always present       
         } else {
          jpeg(  paste(P$prefix,'.jpg',sep=''), 
                width=P$img.width, height=P$img.height, quality=P$img.qual, 
@@ -231,9 +234,9 @@ plot.1D.unsetupdevice <- function(P) {
    if (!is.null(P$prefix)) {
       if (!P$nodisp) {  #Need a copy
          pp <- parse.name(P$prefix)
-         if (tolower(pp$ext) == 'jpg') dev.copy(jpeg,P$prefix)
-         else if (tolower(pp$ext) == 'png') dev.copy(png,P$prefix)
-         else if (tolower(pp$ext) == 'pdf') dev.copy(pdf,P$prefix)
+         if (tolower(pp$ext) == '.jpg') dev.copy(jpeg,P$prefix)
+         else if (tolower(pp$ext) == '.png') dev.copy(png,P$prefix)
+         else if (tolower(pp$ext) == '.pdf') dev.copy(pdf,P$prefix)
          else dev.copy(pdf,paste(P$prefix,'.pdf',sep=''))
          dev.off()
       } else { #rendered directly to image
@@ -244,6 +247,27 @@ plot.1D.unsetupdevice <- function(P) {
    return(thisplot)
 }
 
+plot.1D.save <- function (prefix='plot.pdf', dev=NULL) {
+   if (!is.good.dev(dev)) dev = dev.cur()
+   if (!is.good.dev(dev)) {
+      err.AFNI("NO good device");
+      return(0)
+   }
+   pp <- parse.name(prefix)
+   if (tolower(pp$ext) == '.jpg') dev.copy(jpeg,prefix)
+   else if (tolower(pp$ext) == '.png') dev.copy(png,prefix)
+   else if (tolower(pp$ext) == '.pdf') dev.copy(pdf,prefix)
+   else {
+      prefix <- paste(prefix,'.pdf',sep='')
+      dev.copy(pdf,prefix)
+   }
+   dev.off()
+   if (!file.exists(prefix)) {
+      err.AFNI(paste("Failed to write", prefix))
+      return(0)
+   }
+   return(1)
+}
 plot.1D.puttitle <- function (P) {   
    if (!is.null(P$ttl.main) || !is.null(P$ttl.sub)) {
       opar <- par();
@@ -295,7 +319,7 @@ plot.1D.optlist <- function(...) {
             grp.label=NULL,
             ttl.main=NULL, ttl.main.fontsize = 10,
             ttl.sub=NULL, ttl.sub.fontsize = 10,
-            prefix = NULL, showval=FALSE,
+            prefix = NULL, showval=FALSE, save.Rdat=FALSE,
             nodisp = FALSE, oneplot = FALSE, boxtype = 'n', multi.ncol=2,
             NAval = 0, NANval = 0,
             colorset = seq(1,20),
@@ -323,8 +347,10 @@ plot.1D.optlist <- function(...) {
          wiu <- which(names(ll) == names(up)[iu])
          if (length(wiu)) ll[wiu] <- up[iu]
          else {
-            warn.AFNI(sprintf("User variable %s not good for plot variables",
-                              names(up)[iu]))
+            warn.AFNI(paste("User variable '", names(up)[iu] ,
+                            "' not good for plot variables.\n",
+                            "All variables must be named.",
+                            sep = ''))
          }
       }
       #Now, based on dmat.type, do some setup without overririding user's whishes
@@ -493,14 +519,15 @@ plot.1D.eng <- function (P) {
          err.AFNI("Have P$grp.label, but no P$col.grp");
          return(0)
       }
-      if (length(P$grp.label) != length(unique(P$col.grp))) {
-         err.AFNI(paste("Have ", length(P$grp.label), "group labels and",
-               length(unique(P$col.grp)),"unique group flags"));
+      if (length(P$grp.label) < max(unique(P$col.grp))) {
+         err.AFNI(paste("Have ", length(P$grp.label), 
+                        "group labels and a reference to grp ",
+                        max(unique(P$col.grp))));
          return(0)
       }
    } else {
       if (!is.null(P$col.grp)) {
-         P$grp.label <- paste('Grp', P$col.grp, sep='')
+         P$grp.label <- paste('Grp', unique(P$col.grp), sep='')
       }
    }
    
@@ -1014,7 +1041,13 @@ plot.1D.eng <- function (P) {
 
    P$dev.this <- plot.1D.unsetupdevice(P)
       
-  
+   if (P$save.Rdat) {
+      if (is.null(P$prefix)) {
+         save(P, file="plot.1D.eng.Rdat", ascii=TRUE);
+      } else {
+         save(P, file=sprintf('%s.Rdat', P$prefix), ascii=TRUE);
+      } 
+   }  
    return(thisplot)
 }
 

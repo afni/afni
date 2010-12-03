@@ -324,11 +324,18 @@ read.1dRplot.opts.batch <- function (args=NULL, verb = 0) {
                   ) ), 
 
       '-save' = apl(n = 1, d = NA,  h = paste(
-   "-save SAVE_PREFIX: Save plot and quit\n"
+   "-save PREFIX: Save plot and quit\n",
+   "                   No need for -prefix with this option\n"
+                     ) ),
+                     
+      '-save.Rdat' = apl(n = 0, d = NA,  h = paste(
+   "-save.Rdat : Save data list for reproducing plot.\n",
+   "             You need to specify -prefix or -save\n",
+   "             along with this option to set the prefix."
                      ) ),
                      
       '-prefix' = apl(n = 1, d = NA,  h = paste(
-   "-prefix PREFIX: Output prefix \n"
+   "-prefix PREFIX: Output prefix. See also -save. \n"
                      ) ),
 
       '-title' = apl(n = 1, d = NULL,  h = paste(
@@ -511,6 +518,7 @@ read.1dRplot.opts.batch <- function (args=NULL, verb = 0) {
              TR = lop$dmat.TR <- ops[[i]],
              prefix = lop$prefix  <- ops[[i]],
              save = {lop$prefix <- ops[[i]]; lop$nodisp=TRUE;} ,
+             save.Rdat = {lop$save.Rdat=TRUE;} ,
              nozeros = lop$col.nozeros <- TRUE,
              col.nozeros = lop$col.nozeros <- TRUE,
              zeros = lop$col.nozeros <- FALSE,
@@ -613,7 +621,8 @@ process.1dRplot.opts <- function (lop, verb = 0) {
             col.ystack = lop$col.ystack,
             grp.label = lop$grp.label,
             ttl.main = lop$ttl.main, 
-            prefix = lop$prefix, 
+            prefix = lop$prefix,
+            save.Rdat = lop$save.Rdat, 
             nodisp = lop$nodisp,
             oneplot = lop$oneplot,
             col.mean.line = lop$col.mean.line,
