@@ -527,10 +527,10 @@ Train.SigsClassify <- function (lvols, samples_frac=NULL,
          }
       }
    }
-   plot.1D(mm, oneplot=TRUE, col.ystack=FALSE, 
+   plot.1D(dmat = mm, oneplot=TRUE, col.ystack=FALSE, 
                col.grp=PlotColumnGroups, grp.label=PlotGroupLabels, 
-               prefix =sprintf('%s.jpg',PlotTitle), Title=PlotTitle,
-               CloseAfterSave = no_X11)
+               prefix =sprintf('%s.jpg',PlotTitle), ttl.main=PlotTitle,
+               nodisp = no_X11, save_Rdat=TRUE)
                
    #if (verb>1) browser() 
    if (no_tune) {
@@ -870,7 +870,7 @@ Test.SigsClassify <- function (lvols, lsvm=NULL, verb = 1,
                warn.AFNI("Variable 'train' not found or null!")
                train <- NULL
             }
-         if (exists(lop)) {#part of the bug fix above
+         if (exists('lop')) {#part of the bug fix above
             lop_train <- lop; 
             rm('lop');
          }

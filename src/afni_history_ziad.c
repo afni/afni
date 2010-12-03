@@ -65,6 +65,22 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 2, DEC , 2010 , ZSS , "afni" , MICRO , TYPE_MODIFY,
+   "Made afni startup with two windows when no layout is present",
+   NULL
+ } ,
+
+ { 24, NOV , 2010 , ZSS , "3dTcat" , MICRO , TYPE_BUG_FIX,
+   "3dTcat was forcing sub-brick selection at times",
+   "Say each of dset1 and dset2 has 10 subbricks. \n"
+   "A command like this:\n"
+   " 3dTcat dset1+orig[0..8] dset2+orig \n"
+   "used to produce a dataset that is 18 sub-bricks, not\n"
+   "19. That is because the [0..8] selection was applied\n"
+   "to dset1 and all subsequent dsets on the command that\n"
+   "did not explicitly have selectors in their name."
+ } ,
+
  { 22, NOV , 2010 , ZSS , "3dRowFillin" , MINOR , TYPE_NEW_OPT,
    "Added XYZ.OR, and XYZ.AND to 3dRowFillin",
    NULL

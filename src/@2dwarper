@@ -7,7 +7,7 @@
 ### In this example with 'barney', the output
 ### dataset will be 'barney_reg+orig'.
 
-set inp = barney
+set inp = $1
 
 ### extract number of slices into nz
 
@@ -63,4 +63,4 @@ echo "======= Assembling registered 3D dataset ${inp}_reg+orig ======="
 
 ### remove the single-slice datasets
 
-/bin/rm -f ${inp}_*0*+orig.*
+#/bin/rm -f ${inp}_*0*+orig.*

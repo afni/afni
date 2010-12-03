@@ -1,7 +1,9 @@
 #!/bin/tcsh -f
 
 set stat = 0
-set log = /tmp/RL.log
+set RNS = `3dnewid -fun`
+set log = /tmp/${RNS}.RL.log
+
 if ("$1" == "" || "$1" == '-h' || "$1" == '-help') then
    goto HELP
 endif
@@ -292,5 +294,5 @@ BEND:
       
 END:
 if ($stat == 0 && -f __lt.niml.lt) \rm -f __lt.niml.lt
-if ($stat == 0 && -f $log) \rm /tmp/$log:t
+if ($stat == 0 && -f $log) \rm /tmp/${RNS}.RL.log
 exit $stat   
