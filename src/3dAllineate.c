@@ -884,6 +884,10 @@ int main( int argc , char *argv[] )
        " -maxshr dd    = Allow maximum shearing factor to be 'dd'. Equivalent\n"
        "                 to '-parang 10 -dd dd -parang 11 -dd dd -parang 12 -dd dd'\n"
        "                 [Default=0.1111 for no good reason]\n"
+       "\n"
+       " NOTE: If the datasets being registered have only 1 slice, 3dAllineate\n"
+       "       will automatically fix the 6 out-of-plane motion parameters to\n"
+       "       their 'do nothing' values, so you don't have to specify '-parfix'.\n"
 #if 0
        "\n"
        " -matini mmm   = Initialize 3x4 affine transformation matrix to 'mmm',\n"
