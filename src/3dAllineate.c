@@ -273,6 +273,7 @@ int main( int argc , char *argv[] )
    float     allpar[MAXPAR] ;
    float xsize , ysize , zsize ;  /* 06 May 2008: box size */
    float bfac ;                   /* 14 Oct 2008: brick factor */
+   int twodim_code = 0 ;
 
    /*----- input parameters, to be filled in from the options -----*/
 
@@ -874,12 +875,15 @@ int main( int argc , char *argv[] )
        "                 [Default=30 degrees]\n"
        " -maxshf dd    = Allow maximum shift of 'dd' millimeters.  Equivalent\n"
        "                 to '-parang 1 -dd dd -parang 2 -dd dd -parang 3 -dd dd'\n"
-       "                 [Default=33%% of the size of the base image]\n"
+       "                 [Default=32%% of the size of the base image]\n"
        "         **N.B.: This max shift setting is relative to the center-of-mass\n"
        "                 shift, if the '-cmass' option is used.\n"
        " -maxscl dd    = Allow maximum scaling factor to be 'dd'.  Equivalent\n"
        "                 to '-parang 7 1/dd dd -parang 8 1/dd dd -paran2 9 1/dd dd'\n"
        "                 [Default=1.2=image can go up or down 20%% in size]\n"
+       " -maxshr dd    = Allow maximum shearing factor to be 'dd'. Equivalent\n"
+       "                 to '-parang 10 -dd dd -parang 11 -dd dd -parang 12 -dd dd'\n"
+       "                 [Default=0.1111 for no good reason]\n"
 #if 0
        "\n"
        " -matini mmm   = Initialize 3x4 affine transformation matrix to 'mmm',\n"
@@ -2204,6 +2208,28 @@ int main( int argc , char *argv[] )
 
      /*-----*/
 
+     if( strcmp(argv[iarg],"-maxshr") == 0 ){  /* 03 Dec 2010 */
+       float vv ;
+       if( ++iarg >= argc ) ERROR_exit("no argument after '%s' :-(",argv[iarg-1]) ;
+       if( nparopt+2 >= MAXPAR ) ERROR_exit("too many -par... options :-(") ;
+       vv = (float)strtod(argv[iarg],NULL) ;
+       if( vv <= 0.0f || vv > 1.0f ) ERROR_exit("-maxshr %f is illegal :-(",vv) ;
+       paropt[nparopt].np   = 9 ;
+       paropt[nparopt].code = PARC_RAN ;
+       paropt[nparopt].vb   = -vv ;
+       paropt[nparopt].vt   =  vv ; nparopt++ ;
+       paropt[nparopt].np   = 10 ;
+       paropt[nparopt].code = PARC_RAN ;
+       paropt[nparopt].vb   = -vv ;
+       paropt[nparopt].vt   =  vv ; nparopt++ ;
+       paropt[nparopt].np   = 11 ;
+       paropt[nparopt].code = PARC_RAN ;
+       paropt[nparopt].vb   = -vv ;
+       paropt[nparopt].vt   =  vv ; nparopt++ ; iarg++ ; continue ;
+     }
+
+     /*-----*/
+
      if( strcmp(argv[iarg],"-maxshf") == 0 ){
        float vv ;
        if( ++iarg >= argc ) ERROR_exit("no argument after '%s' :-(",argv[iarg-1]) ;
@@ -2771,6 +2797,9 @@ int main( int argc , char *argv[] )
    ny_base = im_base->ny ; nxy_base  = nx_base *ny_base ;
    nz_base = im_base->nz ; nvox_base = nxy_base*nz_base ;
 
+   if( nx_base < 9 || ny_base < 9 )
+     ERROR_exit("Base volume i- and/or j-axis dimension < 9") ;
+
    dxyz_top = dx_base ;
    dxyz_top = MAX(dxyz_top,dy_base) ; dxyz_top = MAX(dxyz_top,dz_base) ;
    dxyz_top = MAX(dxyz_top,dx_targ) ;
@@ -2822,9 +2851,9 @@ int main( int argc , char *argv[] )
          if( pad_xm > 0 || pad_xp > 0 )
            INFO_message("Zero-pad: xbot=%d xtop=%d",pad_xm,pad_xp) ;
          if( pad_ym > 0 || pad_yp > 0 )
-           INFO_message("zero-pad: ybot=%d ytop=%d",pad_ym,pad_yp) ;
+           INFO_message("Zero-pad: ybot=%d ytop=%d",pad_ym,pad_yp) ;
          if( pad_zm > 0 || pad_zp > 0 )
-           INFO_message("zero-pad: zbot=%d ztop=%d",pad_zm,pad_zp) ;
+           INFO_message("Zero-pad: zbot=%d ztop=%d",pad_zm,pad_zp) ;
        } else {
          INFO_message("Zero-pad: not needed") ;
        }
@@ -2845,6 +2874,20 @@ int main( int argc , char *argv[] )
    nxyz_base[0] = nx_base; nxyz_base[1] = ny_base; nxyz_base[2] = nz_base;
    dxyz_base[0] = dx_base; dxyz_base[1] = dy_base; dxyz_base[2] = dz_base;
 
+   if( nz_base == 1 ){  /* 2D input image */
+     THD_3dim_dataset *dset = (dset_base != NULL) ? dset_base : dset_targ ;
+     switch( dset->daxes->zzorient ){
+       case ORI_R2L_TYPE:
+       case ORI_L2R_TYPE: twodim_code = 1 ; break ;
+       case ORI_P2A_TYPE:
+       case ORI_A2P_TYPE: twodim_code = 2 ; break ;
+       case ORI_I2S_TYPE:
+       case ORI_S2I_TYPE: twodim_code = 3 ; break ;
+
+       default: ERROR_exit("Base dataset has illegal zxorient code") ;
+     }
+   }
+
    /* check for base:target dimensionality mismatch */
 
    if( nz_base >  1 && nz_targ == 1 )
@@ -2857,6 +2900,7 @@ int main( int argc , char *argv[] )
    /* load weight dataset if defined */
 
    if( dset_weig != NULL ){
+STATUS("load weight dataset") ;
      DSET_load(dset_weig) ; CHECK_LOAD_ERROR(dset_weig) ;
      im_weig = mri_scale_to_float( DSET_BRICK_FACTOR(dset_weig,0) ,
                                    DSET_BRICK(dset_weig,0)         ) ;
@@ -2865,6 +2909,7 @@ int main( int argc , char *argv[] )
      /* zeropad weight to match base? */
 
      if( zeropad ){
+STATUS("zeropad weight dataset") ;
        qim = mri_zeropad_3D( pad_xm,pad_xp , pad_ym,pad_yp ,
                                              pad_zm,pad_zp , im_weig ) ;
        mri_free(im_weig) ; im_weig = qim ;
@@ -3071,9 +3116,9 @@ int main( int argc , char *argv[] )
 
    /*-- compute range of shifts allowed --*/
 
-   xxx = 0.321 * (nx_base-1) ;
-   yyy = 0.321 * (ny_base-1) ;
-   zzz = 0.321 * (nz_base-1) ; xxx_m = yyy_m = zzz_m = 0.0f ;
+   xxx = 0.321f * (nx_base-1) ;
+   yyy = 0.321f * (ny_base-1) ;
+   zzz = 0.321f * (nz_base-1) ; xxx_m = yyy_m = zzz_m = 0.01f ;
    for( ii=-1 ; ii <= 1 ; ii+=2 ){
     for( jj=-1 ; jj <= 1 ; jj+=2 ){
       for( kk=-1 ; kk <= 1 ; kk+=2 ){
@@ -3165,15 +3210,26 @@ int main( int argc , char *argv[] )
    DEFPAR( 10, "z/x-shear" , -0.1111 , 0.1111 , 0.0 , 0.0 , 0.0 ) ;
    DEFPAR( 11, "z/y-shear" , -0.1111 , 0.1111 , 0.0 , 0.0 , 0.0 ) ;
 
-   if( nz_base == 1 ){                 /* 2D images */
-     stup.wfunc_param[ 2].fixed = 2 ;  /* fixed==2 means cannot be un-fixed */
-     stup.wfunc_param[ 4].fixed = 2 ;  /* fixed==1 is 'temporarily fixed'   */
-     stup.wfunc_param[ 5].fixed = 2 ;
-     stup.wfunc_param[ 8].fixed = 2 ;
-     stup.wfunc_param[10].fixed = 2 ;
-     stup.wfunc_param[11].fixed = 2 ;
-     if( verb && apply_mode == 0 )
-       INFO_message("base dataset is 2D ==> froze z-parameters") ;
+   if( twodim_code > 0 ){               /* 03 Dec 2010 */
+     int i1=0,i2=0,i3=0,i4=0,i5=0,i6=0 ;
+     switch( twodim_code ){             /* 2D images: freeze some parameters */
+       case 3:                               /* axial slice == k-axis is I-S */
+         i1=3 ; i2=5 ; i3=6 ; i4=9 ; i5=11 ; i6=12 ; break ;
+       case 2:                             /* coronal slice == k-axis is A-P */
+         i1=2 ; i2=4 ; i3=5 ; i4=8 ; i5=10 ; i6=12 ; break ;
+       case 1:                            /* sagittal slice == k-axis is L-R */
+         i1=1 ; i2=4 ; i3=6 ; i4=7 ; i5=10 ; i6=11 ; break ;
+     }
+     if( i1 > 0 ){
+       stup.wfunc_param[i1-1].fixed = 2 ; /* fixed==2 means cannot be unfixed */
+       stup.wfunc_param[i2-1].fixed = 2 ; /* fixed==1 is 'temporarily fixed'  */
+       stup.wfunc_param[i3-1].fixed = 2 ;
+       stup.wfunc_param[i4-1].fixed = 2 ;
+       stup.wfunc_param[i5-1].fixed = 2 ;
+       stup.wfunc_param[i6-1].fixed = 2 ;
+       if( verb && apply_mode == 0 )
+         INFO_message("base dataset is 2D ==> froze out-of-plane parameters") ;
+     }
    }
 
    /*-- apply any parameter-altering user commands --*/
@@ -3213,7 +3269,7 @@ int main( int argc , char *argv[] )
                case 2: vb += zc ; vt += zc ; break ;
              }
            }
-           stup.wfunc_param[jj].fixed = 0 ;
+           /** stup.wfunc_param[jj].fixed = 0 ; **/
            stup.wfunc_param[jj].min   = vb;
            stup.wfunc_param[jj].max   = vt;
            if( verb > 1 )

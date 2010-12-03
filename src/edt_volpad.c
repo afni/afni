@@ -158,7 +158,12 @@ MRI_IMAGE * mri_zeropad_3D( int nxbot , int nxtop ,
 
 ENTRY("mri_zeropad_3D") ;
 
-   if( im == NULL || !MRI_IS_3D(im) ) RETURN(NULL) ; /* bad */
+   if( im == NULL ) RETURN(NULL) ; /* bad */
+
+   if( !MRI_IS_3D(im) ){
+     jm = mri_zeropad_2D( nxbot,nxtop , nybot,nytop , im ) ;
+     RETURN(jm) ;
+   }
 
    /* do the padding work */
 

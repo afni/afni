@@ -665,6 +665,8 @@ ENTRY("GA_scalar_fitter") ;
         else             fprintf(stderr,"*[#%d=%.6g] ",ncall,val) ;
       }
       vsmall = val ;
+    } else if( mverb > 6 ){
+                         fprintf(stderr," [#%d=%.6g] ",ncall,val) ;
     }
     ncall++ ;
   }
