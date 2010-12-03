@@ -1139,9 +1139,9 @@ ENTRY("AFNI_startup_layout_CB") ;
 
    if( fname == NULL || fname[0] == '\0' ){ AFNI_splashdown(); EXRETURN; }
 
-   /* read layout file */ 
-   if (strcmp(fname,"GIMME_SOMETHING")) {
-      fbuf = AFNI_suck_file(fname); 
+   /* read layout file */
+   if( strcmp(fname,"GIMME_SOMETHING") != 0 ){
+      fbuf = AFNI_suck_file(fname);
    } else {                         /* ZSS Dec 2010. */
       fbuf = (char *)malloc(strlen(def_layout)+1);
       strcpy(fbuf, def_layout);
