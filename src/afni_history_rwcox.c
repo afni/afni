@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 6 , DEC , 2010 , RWC , "@2dwarper" , MINOR , TYPE_GENERAL ,
+   "Modify script to deal with non-axial slices" ,
+   NULL } ,
+
  { 18 , NOV , 2010 , RWC , "3dAllineate" , MICRO , TYPE_GENERAL ,
    "Add 9th order (nonic) polynomial warp." ,
    "And fixed a couple of annoying bugs in the other polynomial warp codes:\n"

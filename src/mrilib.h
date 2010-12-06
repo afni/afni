@@ -870,6 +870,7 @@ extern int mri_write_1D( char * , MRI_IMAGE * ) ;        /* 16 Nov 1999 */
 extern MRI_IMAGE * mri_read_1D_stdin(void) ;             /* 25 Jan 2008 */
 extern MRI_IMAGE * mri_copy_1D_stdin(void) ;             /* 05 Mar 2010 */
 extern void        mri_clear_1D_stdin(void);
+extern char * mri_read_1D_headerlines( char * ) ;        /* 05 Dec 2010 */
 
 extern MRI_IMAGE * mri_read_4x4AffXfrm_1D( char *fname );/* 24 Nov 2009 */
 extern MRI_IMAGE * mri_1D_fromstring( char * ) ;         /* 28 Apr 2003 */
@@ -1827,6 +1828,8 @@ extern void mri_genalign_heptic( int, float *,
 extern void mri_genalign_nonic( int, float *,
                                 int, float *, float *, float *,
                                      float *, float *, float * ) ;
+
+extern int GA_polywarp_coordcode( int pnum ) ; /* 06 Dec 2010 */
 
 void mri_genalign_set_targmask( MRI_IMAGE *, GA_setup * ) ; /* 07 Aug 2007 */
 void mri_genalign_set_basemask( MRI_IMAGE *, GA_setup * ) ; /* 25 Feb 2010 */

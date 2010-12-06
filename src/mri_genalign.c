@@ -1124,7 +1124,7 @@ ENTRY("mri_genalign_set_targmask") ;
      stup->ajmask = mri_to_byte(im_tmask) ;
      nvox = stup->ajmask->nvox ;
      stup->najmask = nmask = THD_countmask( nvox , MRI_BYTE_PTR(stup->ajmask) ) ;
-     if( nmask < 999 ){
+     if( nmask < 999 && nmask/(float)nvox < 0.1f ){
        WARNING_message(
         "mri_genalign_set_targmask: mask has %d voxels out of %d total ==> ignored!",
         nmask , nvox ) ;
@@ -1159,7 +1159,7 @@ ENTRY("mri_genalign_set_basemask") ;
      stup->bsmask = mri_to_byte(im_bmask) ;
      nvox = stup->bsmask->nvox ;
      stup->nbsmask = nmask = THD_countmask( nvox , MRI_BYTE_PTR(stup->bsmask) ) ;
-     if( nmask < 999 ){
+     if( nmask < 999 && nmask/(float)nvox < 0.1f ){
        WARNING_message(
         "mri_genalign_set_basemask: mask has %d voxels out of %d total ==> ignored!",
         nmask , nvox ) ;
@@ -2530,6 +2530,42 @@ INFO_message("bilinear warp %s diagonal: %.7g %.7g %.3g",
 #define PRAMP(x) ( 0.8f + ((x)-0.8f) / (1.0f + 5.0f*((x)-0.8f)) )
 #define NRAMP(x) (-0.8f + ((x)+0.8f) / (1.0f - 5.0f*((x)+0.8f)) )
 #define FIXYZ(q) if(q > 0.8f) q=PRAMP(q); else if(q < -0.8f) q=NRAMP(q)
+
+
+/*--------------------------------------------------------------------------*/
+#define CCx   1
+#define CCy   2
+#define CCz   4
+#define CCxy  3
+#define CCxz  5
+#define CCyz  6
+#define CCxyz 7
+
+static byte CCoordCCode[NPOLNONI] = {
+  CCx, CCxy, CCxz, CCy, CCyz, CCz, CCx, CCxy, CCxz, CCxy, CCxz, CCxyz,
+  CCy, CCyz, CCyz, CCz, CCx, CCxy, CCxz, CCxy, CCxz, CCxyz, CCxy, CCxyz,
+  CCxyz, CCxz, CCy, CCyz, CCyz, CCyz, CCz, CCx, CCxy, CCxz, CCxy, CCxz, CCxyz,
+  CCxy, CCxyz, CCxyz, CCxz, CCxy, CCxyz, CCxyz, CCxyz, CCxz, CCy, CCyz, CCyz, CCyz,
+  CCyz, CCz, CCx, CCxy, CCxz, CCxy, CCxz, CCxyz, CCxy, CCxyz, CCxyz, CCxz,
+  CCxy, CCxyz, CCxyz, CCxyz, CCxz, CCxy, CCxyz, CCxyz, CCxyz, CCxyz, CCxz, CCy,
+  CCyz, CCyz, CCyz, CCyz, CCyz, CCz, CCx, CCxy, CCxz, CCxy, CCxz, CCxyz,
+  CCxy, CCxyz, CCxyz, CCxz, CCxy, CCxyz, CCxyz, CCxyz, CCxz, CCxy, CCxyz, CCxyz,
+  CCxyz, CCxyz, CCxz, CCxy, CCxyz, CCxyz, CCxyz, CCxyz, CCxyz, CCxz, CCy, CCyz,
+  CCyz, CCyz, CCyz, CCyz, CCyz, CCz, CCx, CCxy, CCxz, CCxy, CCxz, CCxyz,
+  CCxy, CCxyz, CCxyz, CCxz, CCxy, CCxyz, CCxyz, CCxyz, CCxz, CCxy, CCxyz, CCxyz,
+  CCxyz, CCxyz, CCxz, CCxy, CCxyz, CCxyz, CCxyz, CCxyz, CCxyz, CCxz, CCxy, CCxyz,
+  CCxyz, CCxyz, CCxyz, CCxyz, CCxyz, CCxz, CCy, CCyz, CCyz, CCyz, CCyz, CCyz,
+  CCyz, CCyz, CCz, CCx, CCxy, CCxz, CCxy, CCxz, CCxyz, CCxy, CCxyz, CCxyz,
+  CCxz, CCxy, CCxyz, CCxyz, CCxyz, CCxz, CCxy, CCxyz, CCxyz, CCxyz, CCxyz, CCxz,
+  CCxy, CCxyz, CCxyz, CCxyz, CCxyz, CCxyz, CCxz, CCxy, CCxyz, CCxyz, CCxyz, CCxyz,
+  CCxyz, CCxyz, CCxz, CCxy, CCxyz, CCxyz, CCxyz, CCxyz, CCxyz, CCxyz, CCxyz, CCxz,
+  CCy, CCyz, CCyz, CCyz, CCyz, CCyz, CCyz, CCyz, CCyz, CCz } ;
+
+int GA_polywarp_coordcode( int pnum )
+{
+   if( pnum < 0 || pnum >= NPOLNONI ) return 0 ;
+   return (int)CCoordCCode[pnum] ;
+}
 
 /*--------------------------------------------------------------------------*/
 /*! A wfunc function for cubic polynomials. */
