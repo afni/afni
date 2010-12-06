@@ -1343,7 +1343,7 @@ int main( int argc , char *argv[] )
 
    mainENTRY("3dAllineate"); machdep();
    AFNI_logger("3dAllineate",argc,argv);
-   PRINT_VERSION("3dAllineate"); AUTHOR("Emperor Zhark");
+   PRINT_VERSION("3dAllineate"); AUTHOR("Zhark the Registrator");
    THD_check_AFNI_version("3dAllineate");
    (void)COX_clock_time() ;
 
@@ -2661,9 +2661,11 @@ int main( int argc , char *argv[] )
        ERROR_exit("Can't open source dataset '%s'",argv[iarg]) ;
    }
 
-   INFO_message("Source dataset: %s",DSET_HEADNAME(dset_targ)) ;
-   INFO_message("Base dataset:   %s",
-                (dset_base != NULL) ? DSET_HEADNAME(dset_base) : "(not given)" ) ;
+   if( verb ){
+     INFO_message("Source dataset: %s",DSET_HEADNAME(dset_targ)) ;
+     INFO_message("Base dataset:   %s",
+                  (dset_base != NULL) ? DSET_HEADNAME(dset_base) : "(not given)" ) ;
+   }
 
    if( nwarp_pass && DSET_NVALS(dset_targ) > 1 )
      ERROR_exit("Can't use -nwarp on more than 1 sub-brick :-(") ;
@@ -2880,16 +2882,18 @@ int main( int argc , char *argv[] )
 
    if( nz_base == 1 ){  /* 2D input image */
      THD_3dim_dataset *dset = (dset_base != NULL) ? dset_base : dset_targ ;
+     char *tnam = NULL ;
      switch( dset->daxes->zzorient ){
        case ORI_R2L_TYPE:
-       case ORI_L2R_TYPE: twodim_code = 1 ; break ;
+       case ORI_L2R_TYPE: twodim_code = 1 ; tnam = "sagittal" ; break ;
        case ORI_P2A_TYPE:
-       case ORI_A2P_TYPE: twodim_code = 2 ; break ;
+       case ORI_A2P_TYPE: twodim_code = 2 ; tnam = "coronal"  ; break ;
        case ORI_I2S_TYPE:
-       case ORI_S2I_TYPE: twodim_code = 3 ; break ;
+       case ORI_S2I_TYPE: twodim_code = 3 ; tnam = "axial"    ; break ;
 
        default: ERROR_exit("Base dataset has illegal zxorient code") ;
      }
+     if( verb ) ININFO_message("2D image: %s orientation",tnam) ;
    }
 
    /* check for base:target dimensionality mismatch */
@@ -3241,9 +3245,9 @@ STATUS("zeropad weight dataset") ;
    for( ii=0 ; ii < nparopt ; ii++ ){
      jj = paropt[ii].np ;
      if( jj < stup.wfunc_numpar ){
-       if( stup.wfunc_param[jj].fixed )
-         WARNING_message("Altering fixed param#%d [%s]" ,
-                          jj+1 , stup.wfunc_param[jj].name ) ;
+       if( stup.wfunc_param[jj].fixed && verb )
+         ININFO_message("Altering fixed param#%d [%s]" ,
+                        jj+1 , stup.wfunc_param[jj].name ) ;
 
        switch( paropt[ii].code ){
          case PARC_FIX: stup.wfunc_param[jj].fixed     = 2 ; /* permanent fix */
@@ -3431,7 +3435,7 @@ STATUS("zeropad weight dataset") ;
 #ifdef USE_OMP
 #pragma omp parallel
  {
-  if( omp_get_thread_num() == 0 )
+  if( verb && omp_get_thread_num() == 0 )
     INFO_message("OpenMP thread count = %d",omp_get_num_threads()) ;
  }
 #endif
@@ -4708,8 +4712,9 @@ DUMP_MAT44("aff12_ijk",qmat) ;
      if( fp == NULL ) ERROR_exit("Can't open -1Dparam_save %s for output!?",param_save_1D);
      fprintf(fp,"# 3dAllineate parameters:\n") ;
      fprintf(fp,"#") ;
-     for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )
-       fprintf(fp," %s",stup.wfunc_param[jj].name) ;
+     for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )         /* 04 Dec 2010 */
+       fprintf(fp," %s%c" , stup.wfunc_param[jj].name ,  /* add '$' for fixed */
+                stup.wfunc_param[jj].fixed ? '$' : ' ' ) ;
      fprintf(fp,"\n") ;
      for( kk=0 ; kk < DSET_NVALS(dset_targ) ; kk++ ){
        for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )

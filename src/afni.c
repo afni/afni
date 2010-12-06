@@ -1326,6 +1326,7 @@ void AFNI_sigfunc_alrm(int sig)
    static char *msg[] = {
      "Farewell, my friend"                                           ,
      "We shall meet again, when the fields are white with daisies"   ,
+     "We part as friends, to meet again in some happy hour"          ,
      "Parting is such sweet sorrow"                                  ,
      "Gone, and a cloud in my heart"                                 ,
      "Happy trails to you, until we meet again"                      ,
@@ -1357,6 +1358,7 @@ void AFNI_sigfunc_alrm(int sig)
      "True goodbyes are the ones never said or explained"            ,
      "Let the party begin"                                           ,
      "Let us cross over the river and rest on the other side"        ,
+     "Good night, Mrs Calabash, wherever you are"                    ,
      "Sometimes you've got to let go to see if there was anything worth holding onto" ,
      "Remember me and smile, for it's better to forget than remember me and cry"      ,
      "So now I say goodbye, but I feel sure we will meet again sometime"              ,
