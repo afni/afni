@@ -61,6 +61,8 @@ typedef struct { int np,code; float vb,vt ; } param_opt ;
 #define WARP_NONI     666
 #define APPLY_NONI      7
 
+#define NONLINEAR_IS_POLY(aa) ( (aa) >= WARP_CUBIC && (aa) <= WARP_NONI )
+
 #define NONLINEAR_APPLY(aa) ( (aa) >= APPLY_BILIN )
 
 static float wt_medsmooth = 2.25f ;   /* for mri_weightize() */
@@ -234,6 +236,18 @@ static float BILINEAR_offdiag_norm(GA_setup stup)
 
 #define SETUP_NONI_PARAMS do{ SETUP_NONLIN_PARAMS(648,0.10f,"nonic") ;       \
                               stup.wfunc = mri_genalign_nonic ; } while(0)
+
+/* For 2D images: cc = 1,2,3 for x,y,z being the 3rd dimension:
+     parameters that go with functions that vary in that direction,
+     and parameters that directly warp in that direction, are frozen. */
+
+#define FREEZE_NONLIN_PARAMS(cc)                                            \
+  do{ int pp , qq , cm=(1 << ((cc)-1)) ;                                    \
+      for( pp=12 ; pp < stup.wfunc_numpar ; pp++ ){                         \
+        qq = GA_polywarp_coordcode( (pp-12)/3 ) ;                           \
+        if( (qq & cm) || (pp%3+1 == (cc)) ) stup.wfunc_param[pp].fixed = 2; \
+      }                                                                     \
+  } while(0)
 
 /*---------------------------------------------------------------------------*/
 
@@ -1363,13 +1377,8 @@ int main( int argc , char *argv[] )
      if( strcmp(argv[iarg],"-nwarp") == 0 ){     /* 03 Apr 2008 = SECRET */
        nwarp_pass = 1 ; iarg++ ;
 
-       if( iarg >= argc ) ERROR_exit("need a warp type after '-nwarp' :-(") ;
-       if( strncasecmp(argv[iarg],"tri",3) == 0 ){
-         nwarp_type = WARPFIELD_TRIG_TYPE ;
-       } else if( strncasecmp(argv[iarg],"leg",3) == 0 ){
-         nwarp_type = WARPFIELD_LEGEN_TYPE ;
-       } else if( strncasecmp(argv[iarg],"geg",3) == 0 ){
-         nwarp_type = WARPFIELD_GEGEN_TYPE ;
+       if( iarg >= argc ){
+         ERROR_exit("need a warp type after '-nwarp' :-(") ;
        } else if( strncasecmp(argv[iarg],"bil",3) == 0 ){
          nwarp_type = WARP_BILINEAR ;
          if( strstr(argv[iarg],"D") != NULL ) nwarp_flags = 1 ; /* 29 Oct 2010 */
@@ -2902,8 +2911,8 @@ int main( int argc , char *argv[] )
      ERROR_exit("Can't register 2D source into 3D base :-(") ;
    if( nz_base == 1 && nz_targ >  1 )
      ERROR_exit("Can't register 3D source onto 2D base :-(") ;
-   if( nz_base == 1 && nwarp_pass )
-     ERROR_exit("Can't use -nwarp on 2D images :-(") ;  /* 03 Apr 2008 */
+   if( nz_base == 1 && nwarp_pass && !NONLINEAR_IS_POLY(nwarp_type) )
+     ERROR_exit("Can't use non-polynomial -nwarp on 2D images :-(") ;
 
    /* load weight dataset if defined */
 
@@ -4240,6 +4249,7 @@ STATUS("zeropad weight dataset") ;
 
          /** if( verb > 1 ) PARINI("- Cubic/Poly3 initial") ; **/
          for( jj=12 ; jj < NPCUB  ; jj++ ) stup.wfunc_param[jj].fixed = 0 ;
+         if( twodim_code ) FREEZE_NONLIN_PARAMS(twodim_code) ; /* 06 Dec 2010 */
          if( verb ) ctim = COX_cpu_time() ;
          rad  = 0.01f ; crad = 0.003f ;
          nite = MAX(2222,nwarp_itemax) ;
@@ -4289,6 +4299,7 @@ STATUS("zeropad weight dataset") ;
            INFO_message("Start Quintic/Poly5 warping: %d parameters",NPQUINT-12*nwarp_fixaff) ;
 
          for( jj=12 ; jj < NPQUINT ; jj++ ) stup.wfunc_param[jj].fixed = 0 ;
+         if( twodim_code ) FREEZE_NONLIN_PARAMS(twodim_code) ; /* 06 Dec 2010 */
          if( verb ) ctim = COX_cpu_time() ;
          rad  = 0.01f ; crad = 0.003f ;
          nite = MAX(3333,nwarp_itemax) ;
@@ -4310,6 +4321,7 @@ STATUS("zeropad weight dataset") ;
          rr = MAX(xsize,ysize) ; rr = MAX(zsize,rr) ; rr = 1.2f / rr ;
 
          SETUP_HEPT_PARAMS ;  /* nonlinear params */
+         if( twodim_code ) FREEZE_NONLIN_PARAMS(twodim_code) ; /* 06 Dec 2010 */
 
          /* nonlinear transformation is centered at middle of base volume
             indexes (xcen,ycen,zcen) and is scaled by reciprocal of size (rr) */
@@ -4337,6 +4349,7 @@ STATUS("zeropad weight dataset") ;
          if( verb > 0 )
            INFO_message("Start Heptic/Poly7 warping: %d parameters",NPHEPT-12*nwarp_fixaff) ;
          for( jj=12 ; jj < NPHEPT ; jj++ ) stup.wfunc_param[jj].fixed = 0 ;
+         if( twodim_code ) FREEZE_NONLIN_PARAMS(twodim_code) ; /* 06 Dec 2010 */
          if( verb ) ctim = COX_cpu_time() ;
          rad  = 0.01f ; crad = 0.003f ;
          nite = MAX(4444,nwarp_itemax) ;
@@ -4358,6 +4371,7 @@ STATUS("zeropad weight dataset") ;
          rr = MAX(xsize,ysize) ; rr = MAX(zsize,rr) ; rr = 1.2f / rr ;
 
          SETUP_NONI_PARAMS ;  /* nonlinear params */
+         if( twodim_code ) FREEZE_NONLIN_PARAMS(twodim_code) ; /* 06 Dec 2010 */
 
          /* nonlinear transformation is centered at middle of base volume
             indexes (xcen,ycen,zcen) and is scaled by reciprocal of size (rr) */
@@ -4385,6 +4399,7 @@ STATUS("zeropad weight dataset") ;
          if( verb > 0 )
            INFO_message("Start Nonic/Poly9 warping: %d parameters",NPNONI-12*nwarp_fixaff);
          for( jj=12 ; jj < NPNONI ; jj++ ) stup.wfunc_param[jj].fixed = 0 ;
+         if( twodim_code ) FREEZE_NONLIN_PARAMS(twodim_code) ; /* 06 Dec 2010 */
          if( verb ) ctim = COX_cpu_time() ;
          rad  = 0.01f ; crad = 0.003f ;
          nite = MAX(5555,nwarp_itemax) ;
