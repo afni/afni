@@ -237,17 +237,44 @@ static float BILINEAR_offdiag_norm(GA_setup stup)
 #define SETUP_NONI_PARAMS do{ SETUP_NONLIN_PARAMS(648,0.10f,"nonic") ;       \
                               stup.wfunc = mri_genalign_nonic ; } while(0)
 
-/* For 2D images: cc = 1,2,3 for x,y,z being the 3rd dimension:
-     parameters that go with functions that vary in that direction,
-     and parameters that directly warp in that direction, are frozen. */
+/* cc = 1,2,3 for x,y,z directions:
+   freeze parameters that cause motion in that direction. */
 
-#define FREEZE_NONLIN_PARAMS(cc)                                            \
-  do{ int pp , qq , cm=(1 << ((cc)-1)) ;                                    \
-      for( pp=12 ; pp < stup.wfunc_numpar ; pp++ ){                         \
-        qq = GA_polywarp_coordcode( (pp-12)/3 ) ;                           \
-        if( (qq & cm) || (pp%3+1 == (cc)) ) stup.wfunc_param[pp].fixed = 2; \
-      }                                                                     \
+#define FREEZE_NONLIN_PARAMS_MOT(cc)                           \
+  do{ int pp ;                                                 \
+      for( pp=12 ; pp < stup.wfunc_numpar ; pp++ ){            \
+        if( 1+pp%3 == (cc) ) stup.wfunc_param[pp].fixed = 2 ;  \
+      }                                                        \
   } while(0)
+
+/* cc = 1,2,3 for x,y,z directions:
+   freeze parameters whose basis funcs are dependent on that coordinate */
+
+#define FREEZE_NONLIN_PARAMS_DEP(cc)                           \
+  do{ int pp , qq , cm=(1 << ((cc)-1)) ;                       \
+      for( pp=12 ; pp < stup.wfunc_numpar ; pp++ ){            \
+        qq = GA_polywarp_coordcode( (pp-12)/3 ) ;              \
+        if( qq & cm ) stup.wfunc_param[pp].fixed = 2 ;         \
+      }                                                        \
+  } while(0)
+
+/* overall parameter freeze box, based on user options */
+
+#define FREEZE_NONLIN_PARAMS                                   \
+ do{ if( nwarp_fixmotX ) FREEZE_NONLIN_PARAMS_MOT(1) ;         \
+     if( nwarp_fixmotY ) FREEZE_NONLIN_PARAMS_MOT(2) ;         \
+     if( nwarp_fixmotZ ) FREEZE_NONLIN_PARAMS_MOT(3) ;         \
+     if( nwarp_fixdepX ) FREEZE_NONLIN_PARAMS_DEP(1) ;         \
+     if( nwarp_fixdepY ) FREEZE_NONLIN_PARAMS_DEP(2) ;         \
+     if( nwarp_fixdepZ ) FREEZE_NONLIN_PARAMS_DEP(3) ; } while(0)
+
+/* count free params into variable 'nf' */
+
+#define COUNT_FREE_PARAMS(nf)                                  \
+ do{ int jj ;                                                  \
+     for( (nf)=jj=0 ; jj < stup.wfunc_numpar ; jj++ )          \
+       if( !stup.wfunc_param[jj].fixed ) (nf)++ ;              \
+ } while(0)
 
 /*---------------------------------------------------------------------------*/
 
@@ -287,7 +314,7 @@ int main( int argc , char *argv[] )
    float     allpar[MAXPAR] ;
    float xsize , ysize , zsize ;  /* 06 May 2008: box size */
    float bfac ;                   /* 14 Oct 2008: brick factor */
-   int twodim_code = 0 ;
+   int twodim_code=0 , xx_code=0 , yy_code=0 , zz_code=0 ;
 
    /*----- input parameters, to be filled in from the options -----*/
 
@@ -378,15 +405,27 @@ int main( int argc , char *argv[] )
    int   nwarp_flags           = 0 ;             /* 29 Oct 2010 */
    int   nwarp_itemax          = 0 ;
    int   nwarp_fixaff          = 1 ;             /* 26 Nov 2010 */
+   int   nwarp_fixmotX         = 0 ;             /* 07 Dec 2010 */
+   int   nwarp_fixdepX         = 0 ;
+   int   nwarp_fixmotY         = 0 ;
+   int   nwarp_fixdepY         = 0 ;
+   int   nwarp_fixmotZ         = 0 ;
+   int   nwarp_fixdepZ         = 0 ;
+   int   nwarp_fixmotI         = 0 ;
+   int   nwarp_fixdepI         = 0 ;
+   int   nwarp_fixmotJ         = 0 ;
+   int   nwarp_fixdepJ         = 0 ;
+   int   nwarp_fixmotK         = 0 ;
+   int   nwarp_fixdepK         = 0 ;
 
-   int    micho_zfinal          = 0 ;            /* 24 Feb 2010 */
-   double micho_mi              = 0.2 ;          /* -lpc+ stuff */
-   double micho_nmi             = 0.2 ;
-   double micho_crA             = 0.4 ;
-   double micho_hel             = 0.4 ;
-   double micho_ov              = 0.4 ;          /* 02 Mar 2010 */
+   int    micho_zfinal         = 0 ;             /* 24 Feb 2010 */
+   double micho_mi             = 0.2 ;           /* -lpc+ stuff */
+   double micho_nmi            = 0.2 ;
+   double micho_crA            = 0.4 ;
+   double micho_hel            = 0.4 ;
+   double micho_ov             = 0.4 ;           /* 02 Mar 2010 */
 
-   int do_zclip                 = 0 ;            /* 29 Oct 2010 */
+   int do_zclip                = 0 ;             /* 29 Oct 2010 */
 
    /**----------------------------------------------------------------------*/
    /**----------------- Help the pitifully ignorant user? -----------------**/
@@ -696,7 +735,7 @@ int main( int argc , char *argv[] )
 "               millimeters.  [Default == 11 mm]\n"
 "       **N.B.: You may want to change this from the default if\n"
 "               your voxels are unusually small or unusually large\n"
-"               (e.g., outside the range 1-4 mm on each axis).\n"
+"               (e.g., outside the range 1-4 mm along each axis).\n"
 " -twofirst   = Use -twopass on the first image to be registered, and\n"
 "               then on all subsequent images from the source dataset,\n"
 "               use results from the first image's coarse pass to start\n"
@@ -1257,7 +1296,7 @@ int main( int argc , char *argv[] )
         "                that has a single sub-brick!\n"
         "              * -1Dparam_save and -1Dparam_apply work with\n"
         "                bilinear warps; see the Notes for more information.\n"
-        "        ==>> ** Nov 2010: I have now added the following polynomial\n"
+        "        ==>>*** Nov 2010: I have now added the following polynomial\n"
         "                warps: 'cubic', 'quintic', 'heptic', 'nonic' (using\n"
         "                3rd, 5th, 7th, and 9th order Legendre polynomials); e.g.,\n"
         "                   -nwarp heptic\n"
@@ -1278,6 +1317,47 @@ int main( int argc , char *argv[] )
         "                affine parameters (shifts, rotations, etc.), and the\n"
         "                remaining parameters define the nonlinear part of the warp\n"
         "                (polynomial coefficients).\n"
+        "        ==>>*** You can further control the form of the polynomial warps\n"
+        "                (but not the bilinear warp) by restricting their degrees\n"
+        "                of freedom in 2 different ways.\n"
+        "                ++ You can remove the freedom to have the nonlinear\n"
+        "                   deformation move along the DICOM x, y, and/or z axes.\n"
+        "                ++ You can remove the dependence of the nonlinear\n"
+        "                   deformation on the DICOM x, y, and/or z coordinates.\n"
+        "                ++ To illustrate with the six second order polynomials:\n"
+        "                      p2_xx(x,y,z) = x*x  p2_xy(x,y,z) = x*y\n"
+        "                      p2_xz(x,y,z) = x*z  p2_yy(x,y,z) = y*y\n"
+        "                      p2_yz(x,y,z) = y*z  p2_zz(x,y,z) = z*z\n"
+        "                   Unrestricted, there are 18 parameters associated with\n"
+        "                   these polynomials, one for each direction of motion (x,y,z)\n"
+        "                   * If you remove the freedom of the nonlinear warp to move\n"
+        "                     data in the z-direction (say), then there would be 12\n"
+        "                     parameters left.\n"
+        "                   * If you instead remove the freedom of the nonlinear warp\n"
+        "                     to depend on the z-coordinate, you would be left with\n"
+        "                     3 basis functions (p2_xz, p2_yz, and p2_zz would be\n"
+        "                     eliminated), each of which would have x-motion, y-motion,\n"
+        "                     and z-motion parameters, so there would be 9 parameters.\n"
+        "                ++ To fix motion along the x-direction, use the option\n"
+        "                   '-nwarp_fixmotX' (and '-nwarp_fixmotY' and '-nwarp_fixmotZ).\n"
+        "                ++ To fix dependence of the polynomial warp on the x-coordinate,\n"
+        "                   use the option '-nwarp_fixdepX' (et cetera).\n"
+        "                ++ These coordinate labels in the options (X Y Z) refer to the\n"
+        "                   DICOM directions (X=R-L, Y=A-P, Z=I-S).  If you would rather\n"
+        "                   fix things along the dataset storage axes, you can use\n"
+        "                   the symbols I J K to indicate the fastest to slowest varying\n"
+        "                   array dimensions (e.g., '-nwarp_fixdepK').\n"
+        "                   * Mixing up the X Y Z and I J K forms of parameter freezing\n"
+        "                     (e.g., '-nwarp_fixmotX -nwarp_fixmotJ') may cause trouble!\n"
+        "                ++ If you input a 2D dataset (a single slice) to be registered\n"
+        "                   with '-nwarp', the program automatically assumes '-nwarp_fixmotK'\n"
+        "                   and '-nwarp_fixdepK' so there are no out-of-plane parameters.\n"
+        "                ++ Note that these '-nwarp_fix' options have no effect on the\n"
+        "                   affine part of the warp -- if you want to constrain that as\n"
+        "                   well, you'll have to use the '-parfix' option.\n"
+        "                   * For 2D images, the affine part will automatically be\n"
+        "                     restricted to in-plane (6 parameter) motion.\n"
+        "\n"
         "-nwarp NOTES:\n"
         "-------------\n"
         "* -nwarp is slow - reeeaaallll slow!\n"
@@ -1370,6 +1450,38 @@ int main( int argc , char *argv[] )
 
      if( strcmp(argv[iarg],"-zclip") == 0 ){     /* 29 Oct 2010 */
        do_zclip++ ; iarg++ ; continue ;
+     }
+
+     /*-----*/
+
+     if( strncmp(argv[iarg],"-nwarp_fix",10) == 0 ){  /* 07 Dec 2010 = SECRET */
+       char *aaa = argv[iarg]+10 , dcod ;
+       if( strlen(aaa) < 4 ) ERROR_exit("don't understand option %s",argv[iarg]) ;
+       dcod = toupper(aaa[3]) ;
+       if( strncmp(aaa,"mot",3) == 0 ){            /* -nwarp_fixmot */
+         switch( dcod ){
+           case 'X': nwarp_fixmotX = 1 ; break ;
+           case 'Y': nwarp_fixmotY = 1 ; break ;
+           case 'Z': nwarp_fixmotZ = 1 ; break ;
+           case 'I': nwarp_fixmotI = 1 ; break ;
+           case 'J': nwarp_fixmotJ = 1 ; break ;
+           case 'K': nwarp_fixmotK = 1 ; break ;
+           default:  ERROR_exit("can't decode option %s",argv[iarg]) ;
+         }
+       } else if( strncmp(aaa,"dep",3) == 0 ){     /* -nwarp_fixdep */
+         switch( dcod ){
+           case 'X': nwarp_fixdepX = 1 ; break ;
+           case 'Y': nwarp_fixdepY = 1 ; break ;
+           case 'Z': nwarp_fixdepZ = 1 ; break ;
+           case 'I': nwarp_fixdepI = 1 ; break ;
+           case 'J': nwarp_fixdepJ = 1 ; break ;
+           case 'K': nwarp_fixdepK = 1 ; break ;
+           default:  ERROR_exit("can't decode option %s",argv[iarg]) ;
+         }
+       } else {
+         ERROR_exit("don't know option %s",argv[iarg]) ;
+       }
+       iarg++ ; continue ;
      }
 
      /*-----*/
@@ -2889,20 +3001,81 @@ int main( int argc , char *argv[] )
    nxyz_base[0] = nx_base; nxyz_base[1] = ny_base; nxyz_base[2] = nz_base;
    dxyz_base[0] = dx_base; dxyz_base[1] = dy_base; dxyz_base[2] = dz_base;
 
-   if( nz_base == 1 ){  /* 2D input image */
-     THD_3dim_dataset *dset = (dset_base != NULL) ? dset_base : dset_targ ;
-     char *tnam = NULL ;
-     switch( dset->daxes->zzorient ){
-       case ORI_R2L_TYPE:
-       case ORI_L2R_TYPE: twodim_code = 1 ; tnam = "sagittal" ; break ;
-       case ORI_P2A_TYPE:
-       case ORI_A2P_TYPE: twodim_code = 2 ; tnam = "coronal"  ; break ;
-       case ORI_I2S_TYPE:
-       case ORI_S2I_TYPE: twodim_code = 3 ; tnam = "axial"    ; break ;
+   { THD_3dim_dataset *qset = (dset_base != NULL) ? dset_base : dset_targ ;
+     xx_code = ORIENT_xyzint[ qset->daxes->xxorient ] ;
+     yy_code = ORIENT_xyzint[ qset->daxes->yyorient ] ;
+     zz_code = ORIENT_xyzint[ qset->daxes->zzorient ] ;
+   }
 
-       default: ERROR_exit("Base dataset has illegal zxorient code") ;
+   if( nz_base == 1 ){  /* 2D input image */
+     char *tnam ;
+     twodim_code = zz_code ;
+     tnam = (twodim_code == 1) ? "sagittal"
+           :(twodim_code == 2) ? "coronal"
+           :(twodim_code == 3) ? "axial"
+           :                     "UNKNOWABLE" ;
+     if( twodim_code < 1 || twodim_code > 3 )
+       ERROR_exit("2D image: orientation is %s",tnam) ;
+     else if( verb )
+       ININFO_message("2D image: orientation is %s",tnam) ;
+
+     if( nwarp_pass ){ nwarp_fixaff = nwarp_fixmotK = nwarp_fixdepK = 1 ; }
+   }
+
+   /* set parameter freeze directions for -nwarp_fix* now [07 Dec 2010] */
+
+   if( nwarp_pass ){
+     if( twodim_code ){ nwarp_fixmotK = nwarp_fixdepK = 1 ; }  /* 2D images */
+     if( nwarp_fixmotI ){
+       switch( xx_code ){
+         case 1: nwarp_fixmotX=1;break; case 2: nwarp_fixmotY=1;break; case 3: nwarp_fixmotZ=1;break;
+       }
      }
-     if( verb ) ININFO_message("2D image: %s orientation",tnam) ;
+     if( nwarp_fixmotJ ){
+       switch( yy_code ){
+         case 1: nwarp_fixmotX=1;break; case 2: nwarp_fixmotY=1;break; case 3: nwarp_fixmotZ=1;break;
+       }
+     }
+     if( nwarp_fixmotK ){
+       switch( zz_code ){
+         case 1: nwarp_fixmotX=1;break; case 2: nwarp_fixmotY=1;break; case 3: nwarp_fixmotZ=1;break;
+       }
+     }
+     if( nwarp_fixdepI ){
+       switch( xx_code ){
+         case 1: nwarp_fixdepX=1;break; case 2: nwarp_fixdepY=1;break; case 3: nwarp_fixdepZ=1;break;
+       }
+     }
+     if( nwarp_fixdepJ ){
+       switch( yy_code ){
+         case 1: nwarp_fixdepX=1;break; case 2: nwarp_fixdepY=1;break; case 3: nwarp_fixdepZ=1;break;
+       }
+     }
+     if( nwarp_fixdepK ){
+       switch( zz_code ){
+         case 1: nwarp_fixdepX=1;break; case 2: nwarp_fixdepY=1;break; case 3: nwarp_fixdepZ=1;break;
+       }
+     }
+
+     if( nwarp_fixmotX && nwarp_fixmotY && nwarp_fixmotZ )
+       ERROR_exit("-nwarp_fixmot has frozen all nonlinear warping parameters :-(") ;
+
+     if( nwarp_fixdepX && nwarp_fixdepY && nwarp_fixdepZ )
+       ERROR_exit("-nwarp_fixdep has frozen all nonlinear warping parameters :-(") ;
+
+     if( (nwarp_fixmotX || nwarp_fixmotY || nwarp_fixmotZ ||
+          nwarp_fixdepX || nwarp_fixdepY || nwarp_fixdepZ   ) &&
+        !NONLINEAR_IS_POLY(nwarp_type)                           )
+       ERROR_exit("-nwarp_fix... cannot be used with non-polynomial -nwarp types") ;
+
+     if( verb ){
+       if( nwarp_fixmotX ) ININFO_message("-nwarp: X motions are frozen") ;
+       if( nwarp_fixmotY ) ININFO_message("-nwarp: Y motions are frozen") ;
+       if( nwarp_fixmotZ ) ININFO_message("-nwarp: Z motions are frozen") ;
+       if( nwarp_fixdepX ) ININFO_message("-nwarp: X dependencies are frozen") ;
+       if( nwarp_fixdepY ) ININFO_message("-nwarp: Y dependencies are frozen") ;
+       if( nwarp_fixdepZ ) ININFO_message("-nwarp: Z dependencies are frozen") ;
+     }
    }
 
    /* check for base:target dimensionality mismatch */
@@ -3245,7 +3418,7 @@ STATUS("zeropad weight dataset") ;
        stup.wfunc_param[i5-1].fixed = 2 ;
        stup.wfunc_param[i6-1].fixed = 2 ;
        if( verb && apply_mode == 0 )
-         INFO_message("base dataset is 2D ==> froze out-of-plane parameters") ;
+         INFO_message("base dataset is 2D ==> froze out-of-plane affine parameters") ;
      }
    }
 
@@ -4244,12 +4417,14 @@ STATUS("zeropad weight dataset") ;
 
          /* do the optimization */
 
-         if( verb > 0 )
-           INFO_message("Start Cubic/Poly3 warping: %d parameters",NPCUB-12*nwarp_fixaff) ;
-
          /** if( verb > 1 ) PARINI("- Cubic/Poly3 initial") ; **/
          for( jj=12 ; jj < NPCUB  ; jj++ ) stup.wfunc_param[jj].fixed = 0 ;
-         if( twodim_code ) FREEZE_NONLIN_PARAMS(twodim_code) ; /* 06 Dec 2010 */
+         FREEZE_NONLIN_PARAMS ; /* 07 Dec 2010 */
+
+         COUNT_FREE_PARAMS(nbf) ;
+         if( verb > 0 )
+           INFO_message("Start Cubic/Poly3 warping: %d free parameters",nbf) ;
+
          if( verb ) ctim = COX_cpu_time() ;
          rad  = 0.01f ; crad = 0.003f ;
          nite = MAX(2222,nwarp_itemax) ;
@@ -4295,11 +4470,13 @@ STATUS("zeropad weight dataset") ;
 
          /* do the optimization */
 
-         if( verb > 0 )
-           INFO_message("Start Quintic/Poly5 warping: %d parameters",NPQUINT-12*nwarp_fixaff) ;
-
          for( jj=12 ; jj < NPQUINT ; jj++ ) stup.wfunc_param[jj].fixed = 0 ;
-         if( twodim_code ) FREEZE_NONLIN_PARAMS(twodim_code) ; /* 06 Dec 2010 */
+         FREEZE_NONLIN_PARAMS ; /* 07 Dec 2010 */
+
+         COUNT_FREE_PARAMS(nbf) ;
+         if( verb > 0 )
+           INFO_message("Start Quintic/Poly5 warping: %d free parameters",nbf) ;
+
          if( verb ) ctim = COX_cpu_time() ;
          rad  = 0.01f ; crad = 0.003f ;
          nite = MAX(3333,nwarp_itemax) ;
@@ -4321,7 +4498,6 @@ STATUS("zeropad weight dataset") ;
          rr = MAX(xsize,ysize) ; rr = MAX(zsize,rr) ; rr = 1.2f / rr ;
 
          SETUP_HEPT_PARAMS ;  /* nonlinear params */
-         if( twodim_code ) FREEZE_NONLIN_PARAMS(twodim_code) ; /* 06 Dec 2010 */
 
          /* nonlinear transformation is centered at middle of base volume
             indexes (xcen,ycen,zcen) and is scaled by reciprocal of size (rr) */
@@ -4346,10 +4522,13 @@ STATUS("zeropad weight dataset") ;
 
          /* do the optimization */
 
-         if( verb > 0 )
-           INFO_message("Start Heptic/Poly7 warping: %d parameters",NPHEPT-12*nwarp_fixaff) ;
          for( jj=12 ; jj < NPHEPT ; jj++ ) stup.wfunc_param[jj].fixed = 0 ;
-         if( twodim_code ) FREEZE_NONLIN_PARAMS(twodim_code) ; /* 06 Dec 2010 */
+         FREEZE_NONLIN_PARAMS ; /* 07 Dec 2010 */
+
+         COUNT_FREE_PARAMS(nbf) ;
+         if( verb > 0 )
+           INFO_message("Start Heptic/Poly7 warping: %d free parameters",nbf) ;
+
          if( verb ) ctim = COX_cpu_time() ;
          rad  = 0.01f ; crad = 0.003f ;
          nite = MAX(4444,nwarp_itemax) ;
@@ -4371,7 +4550,6 @@ STATUS("zeropad weight dataset") ;
          rr = MAX(xsize,ysize) ; rr = MAX(zsize,rr) ; rr = 1.2f / rr ;
 
          SETUP_NONI_PARAMS ;  /* nonlinear params */
-         if( twodim_code ) FREEZE_NONLIN_PARAMS(twodim_code) ; /* 06 Dec 2010 */
 
          /* nonlinear transformation is centered at middle of base volume
             indexes (xcen,ycen,zcen) and is scaled by reciprocal of size (rr) */
@@ -4396,10 +4574,13 @@ STATUS("zeropad weight dataset") ;
 
          /* do the optimization */
 
-         if( verb > 0 )
-           INFO_message("Start Nonic/Poly9 warping: %d parameters",NPNONI-12*nwarp_fixaff);
          for( jj=12 ; jj < NPNONI ; jj++ ) stup.wfunc_param[jj].fixed = 0 ;
-         if( twodim_code ) FREEZE_NONLIN_PARAMS(twodim_code) ; /* 06 Dec 2010 */
+         FREEZE_NONLIN_PARAMS ; /* 07 Dec 2010 */
+
+         COUNT_FREE_PARAMS(nbf) ;
+         if( verb > 0 )
+           INFO_message("Start Nonic/Poly9 warping: %d free parameters",nbf) ;
+
          if( verb ) ctim = COX_cpu_time() ;
          rad  = 0.01f ; crad = 0.003f ;
          nite = MAX(5555,nwarp_itemax) ;
