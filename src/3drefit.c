@@ -87,6 +87,8 @@ void Syntax(char *str)
 "               ** N.B.: 'fac' must be positive, and using fac=1.0 is stupid.\n"
 "\n"
 "  -TR time        Changes the TR time to a new value (see 'to3d -help').\n"
+"               ** You can also put the name of a dataset in for 'time', in\n"
+"                  which case the TR for that dataset will be used.\n"
 "  -notoff         Removes the slice-dependent time-offsets.\n"
 "  -Torg ttt       Set the time origin of the dataset to value 'ttt'.\n"
 "                  (Time origins are set to 0 in to3d.)\n"
@@ -1044,10 +1046,26 @@ int main( int argc , char * argv[] )
       /** -TR **/
 
       if( strncmp(argv[iarg],"-TR",3) == 0 ){
-         char * eptr ;
-         if( iarg+1 >= argc ) Syntax("need an argument after -TR!");
-         TR = strtod( argv[++iarg]  , &eptr ) ;
-         if( TR <= 0.0 ) Syntax("argument after -TR must be positive!") ;
+         char *eptr = "\0" ;
+         if( ++iarg >= argc ) Syntax("need an argument after -TR!");
+
+         if( isalpha(argv[iarg][0])             ||
+             strstr(argv[iarg],"+orig") != NULL ||
+             strstr(argv[iarg],"+tlrc") != NULL ||
+             strstr(argv[iarg],".nii")  != NULL    ){
+           THD_3dim_dataset *qset = THD_open_dataset(argv[iarg]) ;
+           if( qset != NULL ){
+             DSET_UNMSEC(qset) ;
+             TR = DSET_TR(qset); tunits = DSET_TIMEUNITS(qset);
+             DSET_delete(qset) ; new_tunits = (tunits != ILLEGAL_TYPE) ;
+             if( verb && TR > 0.0f ) INFO_message("new TR will be %g",TR) ;
+           } else {
+             ERROR_exit("-TR: can't open '%s' as a dataset",argv[iarg]) ;
+           }
+         } else {
+           TR = strtod( argv[iarg]  , &eptr ) ;
+         }
+         if( TR <= 0.0 ) Syntax("argument after -TR must give a positive result!") ;
 
          if( strcmp(eptr,"ms")==0 || strcmp(eptr,"msec")==0 ){
             new_tunits = 1 ; tunits = UNITS_MSEC_TYPE ;
@@ -1899,7 +1917,7 @@ int main( int argc , char * argv[] )
          INFO_message("applying attributes");
          THD_datablock_from_atr(dset->dblk , DSET_DIRNAME(dset) ,
                                   dset->dblk->diskptr->header_name);
-         THD_datablock_apply_atr(dset ); 
+         THD_datablock_apply_atr(dset );
       }
 
       if( denote ){ THD_anonymize_write(1); did_something++; VINFO("denote");}   /* 08 Jul 2005 */

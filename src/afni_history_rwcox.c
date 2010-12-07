@@ -44,6 +44,14 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 7 , DEC , 2010 , RWC , "@2dwarper" , MICRO , TYPE_GENERAL ,
+   "Various mods for David Leopold" ,
+   "(a) Modify to allow general (non-axial) orientation of slices\n"
+   "(b) new script @2dwarper.Allin that uses polynomial warping via\n"
+   "3dAllineate to try and do a better job\n"
+   "(c) modify 3drefit to allow -TR option to take a dataset name to provide\n"
+   "the new TR (rather than require a numeric value on the command line)" } ,
+
  { 6 , DEC , 2010 , RWC , "@2dwarper" , MINOR , TYPE_GENERAL ,
    "Modify script to deal with non-axial slices" ,
    NULL } ,
