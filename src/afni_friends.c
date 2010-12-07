@@ -1102,7 +1102,6 @@ static mday holiday[] = {
    {DEC, 4, "National Cookie Day" } ,
    {DEC, 5, "National Sachertorte Day" } ,
    {DEC, 6, "National Microwave Oven Day" } ,
-   {DEC, 7, "National Cotton Candy Day" } ,
    {DEC, 8, "National Chocolate Brownie Day" } ,
    {DEC, 9, "National Pastry Day" } ,
    {DEC, 10, "Celebrate National Fruit Cake Month" } ,
