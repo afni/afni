@@ -1,0 +1,78 @@
+#!/bin/tcsh
+
+### script to do 2D registration on each slice of a 3D+time
+### dataset, and glue the results back together at the end
+
+### Modified 07 Dec 2010 by RWC to use 3dAllineate instead
+### of 3dWarpDrive, with nonlinear slice-wise warping.
+
+### Set prefix of input 3D+time dataset here.
+### In this example with 'wilma', the output
+### dataset will be 'wilma_reg+orig'.
+### The output registration parameters file will
+### be 'wilma_reg.psave.1D'.
+
+set inp = $1
+
+### extract number of slices into nz
+
+set qq  = ( `3dAttribute DATASET_DIMENSIONS ${inp}+orig` )
+set nz  = $qq[3]
+@ nz1   = $nz - 1
+
+### number of time points into nt
+
+set nt  = `3dnvals ${inp}+orig`
+@ nt1   = $nt - 1
+
+### use cubic polynomials for spatial warping
+
+set meth = poly5
+
+### Extract mean of input time series volumes
+
+echo "========== Computing mean dataset as registration target =========="
+
+3dTstat -mean -prefix ${inp}_mean ${inp}+orig
+
+### extract each slice in turn, and register it in 2D only
+
+foreach zz ( `count 0 $nz1` )
+
+  echo "==================== processing slice #$zz ===================="
+
+  3dZcutup -keep $zz $zz -prefix ${inp}_${zz}      ${inp}+orig
+  3dZcutup -keep $zz $zz -prefix ${inp}_mean_${zz} ${inp}_mean+orig
+
+### process each time point in turn
+
+  foreach tt ( `count 0 $nt1` )
+
+    3dAllineate -warp affine_general -final quintic    \
+                -prefix ${inp}_reg_${zz}_${tt}         \
+                -base ${inp}_mean_${zz}+orig           \
+                -input ${inp}_${zz}+orig"[$tt]"        \
+                -autoweight -ls -onepass -nmatch 100%  \
+                -maxrot 10 -maxshf 10                  \
+                -maxscl 1.05 -maxshr 0.09              \
+                -overwrite                             \
+                -nwarp $meth
+  end
+
+### cat all the time points back together
+
+  3dTcat -prefix ${inp}_reg_${zz} ${inp}_reg_${zz}_????+orig.HEAD
+  \rm -f ${inp}_reg_${zz}_????+orig.*
+
+end
+
+### glue the slices back together
+
+echo "======= Assembling registered 3D dataset ${inp}_reg+orig ======="
+
+3dZcat -prefix ${inp}_reg ${inp}_reg_????+orig.HEAD
+3drefit -TR ${inp}+orig ${inp}_reg+orig
+
+### remove the single-slice datasets
+
+\rm -f ${inp}_*????+orig.*
