@@ -10,6 +10,11 @@
 
 int MRILIB_verb = 0 ;
 
+/*--------------------------------------------------------------------*/
+
+static int be_quiet = 0 ;
+int machdep_be_quiet(void){ return be_quiet ; }
+
 /*--------------------------------------------------------------------
    Code to provide runtime fixups for various machines
    (things that can't be fixed by declarations in machdep.h).
@@ -34,6 +39,8 @@ void machdep()
    seed = AFNI_numenv("AFNI_RANDOM_SEEDVAL") ;
    if( seed != 0) srand48(seed) ;
 
+   be_quiet = AFNI_yesenv("AFNI_QUIET_STARTUP") ;  /* 08 Dec 2010 */
+   return ;
 }
 
 /*-------------------------------------------------------------------*/

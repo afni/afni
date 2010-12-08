@@ -413,4 +413,6 @@ extern void init_rand_seed( long int seed ) ; /* 15 Apr 2009 (cf machdep.c) */
 #undef  SET_RAND_SEED
 #define SET_RAND_SEED init_rand_seed(0)
 
+extern int machdep_be_quiet(void) ;  /* 08 Dec 2010 */
+
 #endif /* _MCW_MACHDEP_ */

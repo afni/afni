@@ -25,9 +25,12 @@ set nz  = $qq[3]
 set nt  = `3dnvals ${inp}+orig`
 @ nt1   = $nt - 1
 
-### use cubic polynomials for spatial warping
+### use quintic polynomials for spatial warping
+### change this to 'poly3' for cubic warp, if desired
 
 set meth = poly5
+
+echo "======= Slicewise $meth warping: $nz slices, $nt time points ======"
 
 ### Extract mean of input time series volumes
 
@@ -37,9 +40,11 @@ echo "========== Computing mean dataset as registration target =========="
 
 ### extract each slice in turn, and register it in 2D only
 
+setenv AFNI_QUIET_STARTUP YES
+
 foreach zz ( `count 0 $nz1` )
 
-  echo "==================== processing slice #$zz ===================="
+  echo "____________________ processing slice #$zz ____________________"
 
   3dZcutup -keep $zz $zz -prefix ${inp}_${zz}      ${inp}+orig
   3dZcutup -keep $zz $zz -prefix ${inp}_mean_${zz} ${inp}_mean+orig
@@ -55,24 +60,28 @@ foreach zz ( `count 0 $nz1` )
                 -autoweight -ls -onepass -nmatch 100%  \
                 -maxrot 10 -maxshf 10                  \
                 -maxscl 1.05 -maxshr 0.09              \
-                -overwrite                             \
-                -nwarp $meth
+                -overwrite -nwarp $meth -quiet
   end
 
-### cat all the time points back together
+### cat all the time points from this slice back together
 
   3dTcat -prefix ${inp}_reg_${zz} ${inp}_reg_${zz}_????+orig.HEAD
   \rm -f ${inp}_reg_${zz}_????+orig.*
 
 end
 
-### glue the slices back together
+### now glue the slices back together
 
 echo "======= Assembling registered 3D dataset ${inp}_reg+orig ======="
 
 3dZcat -prefix ${inp}_reg ${inp}_reg_????+orig.HEAD
 3drefit -TR ${inp}+orig ${inp}_reg+orig
+3dNotes -h "@2dwarper.Allin $inp (meth=$meth)" ${inp}_reg+orig
+
+unsetenv AFNI_QUIET_STARTUP
 
 ### remove the single-slice datasets
 
 \rm -f ${inp}_*????+orig.*
+
+### Free at last!!!
