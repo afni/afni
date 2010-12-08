@@ -178,7 +178,7 @@ STATUS("making history") ;
 STATUS("writing output") ;
 
    if (DSET_write(outset) != False) {
-      fprintf(stderr,"++ output dataset: %s\n",DSET_BRIKNAME(outset)) ;
+      WROTE_DSET(outset) ;
       exit(0) ;
    } else {
       fprintf(stderr,
