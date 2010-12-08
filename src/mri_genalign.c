@@ -1159,11 +1159,11 @@ ENTRY("mri_genalign_set_basemask") ;
      stup->bsmask = mri_to_byte(im_bmask) ;
      nvox = stup->bsmask->nvox ;
      stup->nbsmask = nmask = THD_countmask( nvox , MRI_BYTE_PTR(stup->bsmask) ) ;
-     if( nmask < 999 && nmask/(float)nvox < 0.1f ){
+     if( nmask < 999 && nmask/(float)nvox < 0.09f ){
        WARNING_message(
         "mri_genalign_set_basemask: mask has %d voxels out of %d total ==> ignored!",
         nmask , nvox ) ;
-       mri_free(stup->bsmask) ; stup->bsmask = NULL ; stup->nbsmask = 0 ;
+       mri_free(stup->bsmask); stup->bsmask = NULL; stup->nbsmask = 0;
      } else if( mverb > 2 ) {
        ININFO_message("base mask has %d [out of %d] voxels",nmask,nvox) ;
      }
