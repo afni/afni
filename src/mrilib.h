@@ -1590,8 +1590,8 @@ extern float mri_scaled_diff( MRI_IMAGE *bim, MRI_IMAGE *nim, MRI_IMAGE *msk ) ;
  do{ if( !machdep_be_quiet() ) INFO_message("Authored by: %s",aa) ; } while(0)
 
 #undef  WROTE_DSET_MSG
-#define WROTE_DSET_MSG(dd,ss)                 \
-  do{ if( THD_is_file(DSET_BRIKNAME(dd)) )    \
+#define WROTE_DSET_MSG(dd,ss)                                        \
+  do{ if( THD_is_file(DSET_BRIKNAME(dd)) && !machdep_be_quiet() )    \
        INFO_message("Output dataset %s {%s}",DSET_BRIKNAME(dd),(ss)); } while(0)
 
 #undef  WROTE_DSET
