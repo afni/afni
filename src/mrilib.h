@@ -1576,15 +1576,18 @@ extern float mri_scaled_diff( MRI_IMAGE *bim, MRI_IMAGE *nim, MRI_IMAGE *msk ) ;
 
 #include "AFNI_label.h"
 #undef  PRINT_VERSION
-#define PRINT_VERSION(pp)                                       \
-  INFO_message("%s: AFNI version=%s (" __DATE__ ") [%d-bit]",   \
-               (pp),AFNI_VERSION_LABEL,(int)(sizeof(void *)*8))
+#define PRINT_VERSION(pp)                                             \
+ do{ if( !machdep_be_quiet() )                                        \
+      INFO_message("%s: AFNI version=%s (" __DATE__ ") [%d-bit]",     \
+                   (pp),AFNI_VERSION_LABEL,(int)(sizeof(void *)*8)) ; \
+ } while(0)
 
 #undef  PRINT_COMPILE_DATE
 #define PRINT_COMPILE_DATE printf("\n++ Compile date = " __DATE__ "\n\n")
 
 #undef  AUTHOR
-#define AUTHOR(aa) INFO_message("Authored by: %s",aa)
+#define AUTHOR(aa) \
+ do{ if( !machdep_be_quiet() ) INFO_message("Authored by: %s",aa) ; } while(0)
 
 #undef  WROTE_DSET_MSG
 #define WROTE_DSET_MSG(dd,ss)                 \
@@ -1592,8 +1595,8 @@ extern float mri_scaled_diff( MRI_IMAGE *bim, MRI_IMAGE *nim, MRI_IMAGE *msk ) ;
        INFO_message("Output dataset %s {%s}",DSET_BRIKNAME(dd),(ss)); } while(0)
 
 #undef  WROTE_DSET
-#define WROTE_DSET(dd)                        \
-  do{ if( THD_is_file(DSET_BRIKNAME(dd)) )    \
+#define WROTE_DSET(dd)                                                  \
+  do{ if( !machdep_be_quiet() && THD_is_file(DSET_BRIKNAME(dd)) )       \
         INFO_message("Output dataset %s",DSET_BRIKNAME(dd)); } while(0)
 
 #undef  CHECK_OPEN_ERROR
