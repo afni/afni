@@ -14,6 +14,7 @@
            4 5  6  7
            8 9 10 11
    At this time, all the images must be the same dimensions and kind.
+   Also see mri_catvol.c for linear catenation of 3D images.
 ----------------------------------------------------------------------*/
 static byte OK_wrap = 0;
 static byte WrapZero = 0;
