@@ -1080,6 +1080,8 @@ void mri_Set_OK_catwrap(void);
 extern MRI_IMAGE * mri_cat2D( int,int,int,void *,MRI_IMARR *) ;
 extern MRI_IMARR * mri_uncat2D( int , int , MRI_IMAGE * im ) ; /* 09 May 2000 */
 
+extern MRI_IMAGE * mri_catvol_1D( MRI_IMARR *imar , int dir ); /* 08 Dec 2010 */
+
 extern MRI_IMAGE * mri_shift_1D( MRI_IMAGE * im , float shift ) ;
 
 /*** image alignment procedures and constants ***/
