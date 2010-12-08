@@ -1,11 +1,15 @@
 #include "mrilib.h"
 
 /*----------------------------------------------------------------------------*/
+/* For putting 3D images together in a line (1D catenation).
+   Also see mri_cat2D.c for 1D or 2D catenation of 2D images. */
 
 #define OUTPTR(i,j,k) ( cout + dsize*( ((k)*nyout+(j))*nxout+(i) ) )
 #define INPTR(i,j,k)  ( cin  + dsize*( ((k)*nyin +(j))*nxin +(i) ) )
 
-MRI_IMAGE * mri_catvol_1D_xx( MRI_IMARR *imar )
+/*----------------------------------------------------------------------------*/
+
+static MRI_IMAGE * mri_catvol_1D_xx( MRI_IMARR *imar )
 {
    int nxin,nyin,nzin , nxout,nyout,nzout , nim , ii,jj,kk,nn , datum,dsize ;
    MRI_IMAGE *imout , *imin ;
@@ -50,7 +54,7 @@ ENTRY("mri_catvol_1D_xx") ;
 
 /*----------------------------------------------------------------------------*/
 
-MRI_IMAGE * mri_catvol_1D_yy( MRI_IMARR *imar )
+static MRI_IMAGE * mri_catvol_1D_yy( MRI_IMARR *imar )
 {
    int nxin,nyin,nzin , nxout,nyout,nzout , nim , ii,jj,kk,nn , datum,dsize ;
    MRI_IMAGE *imout , *imin ;
@@ -93,7 +97,7 @@ ENTRY("mri_catvol_1D_yy") ;
 
 /*----------------------------------------------------------------------------*/
 
-MRI_IMAGE * mri_catvol_1D_zz( MRI_IMARR *imar )
+static MRI_IMAGE * mri_catvol_1D_zz( MRI_IMARR *imar )
 {
    int nxin,nyin,nzin , nxout,nyout,nzout , nim , ii,jj,kk,nn , datum,dsize ;
    MRI_IMAGE *imout , *imin ;
@@ -138,11 +142,11 @@ MRI_IMAGE * mri_catvol_1D( MRI_IMARR *imar , int dir )
 {
    MRI_IMAGE *imout ;
 
-ENTRY("mri_catvol") ;
+ENTRY("mri_catvol_1D") ;
 
-        if( dir <= 1 ) imout = mri_catvol_1D_xx( imar ) ;
-   else if( dir == 2 ) imout = mri_catvol_1D_yy( imar ) ;
-   else                imout = mri_catvol_1D_zz( imar ) ;
+        if( dir <= 1 ) imout = mri_catvol_1D_xx(imar) ;
+   else if( dir == 2 ) imout = mri_catvol_1D_yy(imar) ;
+   else                imout = mri_catvol_1D_zz(imar) ;
 
    RETURN(imout) ;
 }
