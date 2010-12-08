@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 8 , DEC , 2010 , RWC , "3dXYZcat" , MINOR , TYPE_NEW_PROG ,
+   "Generalized 3dZcat." ,
+   "No generalized 3dZcutup yet, though." } ,
+
  { 7 , DEC , 2010 , RWC , "@2dwarper" , MICRO , TYPE_GENERAL ,
    "Various mods for David Leopold" ,
    "(a) Modify to allow general (non-axial) orientation of slices\n"
