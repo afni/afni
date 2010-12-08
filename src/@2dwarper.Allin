@@ -30,7 +30,7 @@ set nt  = `3dnvals ${inp}+orig`
 
 set meth = poly5
 
-echo "======= Slicewise $meth warping: $nz slices, $nt time points ======"
+echo "======= Slicewise $meth warping: $nz slices, $nt time points ======="
 
 ### Extract mean of input time series volumes
 
