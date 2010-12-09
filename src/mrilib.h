@@ -1834,7 +1834,8 @@ extern void mri_genalign_nonic( int, float *,
                                 int, float *, float *, float *,
                                      float *, float *, float * ) ;
 
-extern int GA_polywarp_coordcode( int pnum ) ; /* 06 Dec 2010 */
+extern int    GA_polywarp_coordcode( int pnum ) ; /* 06 Dec 2010 */
+extern char * GA_polywarp_funcname ( int pnum ) ; /* 09 Dec 2010 */
 
 void mri_genalign_set_targmask( MRI_IMAGE *, GA_setup * ) ; /* 07 Aug 2007 */
 void mri_genalign_set_basemask( MRI_IMAGE *, GA_setup * ) ; /* 25 Feb 2010 */

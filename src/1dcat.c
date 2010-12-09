@@ -15,6 +15,7 @@ int main( int argc , char * argv[] )
    char *formatstr=NULL;
    int nonconst=0 , ncol,ncold , cc , nonfixed=0 ;
    intvec *ncv=NULL ;
+   char *hline=NULL ;
 
    mainENTRY("1dcat:main");
    
@@ -163,6 +164,10 @@ int main( int argc , char * argv[] )
                 for( kk=0 ; kk < inim[jj]->ny ; kk++ ){
                   spt = strchr(sar->str[kk],'$') ;
                   if( spt != NULL && spt[1] == '\0' ) ncv->ar[ncold+kk] = 0 ;
+                  else {
+                    if( hline == NULL ) hline = strdup("#") ;
+                    hline = THD_zzprintf( hline , " %s" , sar->str[kk] ) ;
+                  }
                 }
               }
               NI_delete_str_array(sar) ;
@@ -175,7 +180,10 @@ int main( int argc , char * argv[] )
 
    /* now do the output */
 
+   if( hline != NULL ) printf("%s\n",hline) ;
+
    nx = inim[0]->nx ;
+
    if (oform == CCALC_NOT_SET) {
       for( ii=0 ; ii < nx ; ii++ ){
          for( cc=jj=0 ; jj < nim ; jj++ ){
