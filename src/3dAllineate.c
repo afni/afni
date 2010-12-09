@@ -204,14 +204,16 @@ static float BILINEAR_offdiag_norm(GA_setup stup)
 
 /*---------------------------------------------------------------------------*/
 
-#define SETUP_NONLIN_PARAMS(nnl,ran,nam)                                     \
- do{ char str[16] ;                                                          \
+#define SETUP_POLYNO_PARAMS(nnl,ran,nam)                                     \
+ do{ char str[32] , *spt , xyz[3] = { 'x', 'y', 'z' } ;                     \
      stup.wfunc_numpar = 16+(nnl) ;                                          \
      stup.wfunc        = NULL ;                                              \
      stup.wfunc_param  = (GA_param *)realloc( (void *)stup.wfunc_param,      \
                                               (16+(nnl))*sizeof(GA_param) ); \
      for( jj=12 ; jj < 12+(nnl) ; jj++ ){                                    \
-       sprintf(str,"%s%02d",(nam),jj+1) ;                                    \
+       spt = GA_polywarp_funcname( (jj-12)/3 ) ;                             \
+       if( spt != NULL ) sprintf(str,"%s:%s:%c"  ,(nam),spt ,xyz[jj%3]) ;    \
+       else              sprintf(str,"%s:%03d:%c",(nam),jj+1,xyz[jj%3]) ;    \
        DEFPAR( jj,str, -(ran),(ran) , 0.0f,0.0f,0.0f ) ;                     \
        stup.wfunc_param[jj].fixed = 1 ;                                      \
      }                                                                       \
@@ -225,22 +227,22 @@ static float BILINEAR_offdiag_norm(GA_setup stup)
      stup.wfunc_param[15+(nnl)].fixed = 2 ;                                  \
  } while(0)
 
-#define SETUP_CUBIC_PARAMS do{ SETUP_NONLIN_PARAMS(48,0.10f,"cubic") ;       \
+#define SETUP_CUBIC_PARAMS do{ SETUP_POLYNO_PARAMS(48,0.10f,"cubic") ;       \
                                stup.wfunc = mri_genalign_cubic ; } while(0)
 
-#define SETUP_QUINT_PARAMS do{ SETUP_NONLIN_PARAMS(156,0.10f,"quint") ;      \
+#define SETUP_QUINT_PARAMS do{ SETUP_POLYNO_PARAMS(156,0.10f,"quint") ;      \
                                stup.wfunc = mri_genalign_quintic ; } while(0)
 
-#define SETUP_HEPT_PARAMS do{ SETUP_NONLIN_PARAMS(348,0.10f,"heptic") ;      \
+#define SETUP_HEPT_PARAMS do{ SETUP_POLYNO_PARAMS(348,0.10f,"heptic") ;      \
                               stup.wfunc = mri_genalign_heptic ; } while(0)
 
-#define SETUP_NONI_PARAMS do{ SETUP_NONLIN_PARAMS(648,0.10f,"nonic") ;       \
+#define SETUP_NONI_PARAMS do{ SETUP_POLYNO_PARAMS(648,0.10f,"nonic") ;       \
                               stup.wfunc = mri_genalign_nonic ; } while(0)
 
 /* cc = 1,2,3 for x,y,z directions:
-   freeze parameters that cause motion in that direction. */
+   permanently freeze parameters that cause motion in that direction */
 
-#define FREEZE_NONLIN_PARAMS_MOT(cc)                           \
+#define FREEZE_POLYNO_PARAMS_MOT(cc)                           \
   do{ int pp ;                                                 \
       for( pp=12 ; pp < stup.wfunc_numpar ; pp++ ){            \
         if( 1+pp%3 == (cc) ) stup.wfunc_param[pp].fixed = 2 ;  \
@@ -250,7 +252,7 @@ static float BILINEAR_offdiag_norm(GA_setup stup)
 /* cc = 1,2,3 for x,y,z directions:
    freeze parameters whose basis funcs are dependent on that coordinate */
 
-#define FREEZE_NONLIN_PARAMS_DEP(cc)                           \
+#define FREEZE_POLYNO_PARAMS_DEP(cc)                           \
   do{ int pp , qq , cm=(1 << ((cc)-1)) ;                       \
       for( pp=12 ; pp < stup.wfunc_numpar ; pp++ ){            \
         qq = GA_polywarp_coordcode( (pp-12)/3 ) ;              \
@@ -260,13 +262,13 @@ static float BILINEAR_offdiag_norm(GA_setup stup)
 
 /* overall parameter freeze box, based on user options */
 
-#define FREEZE_NONLIN_PARAMS                                   \
- do{ if( nwarp_fixmotX ) FREEZE_NONLIN_PARAMS_MOT(1) ;         \
-     if( nwarp_fixmotY ) FREEZE_NONLIN_PARAMS_MOT(2) ;         \
-     if( nwarp_fixmotZ ) FREEZE_NONLIN_PARAMS_MOT(3) ;         \
-     if( nwarp_fixdepX ) FREEZE_NONLIN_PARAMS_DEP(1) ;         \
-     if( nwarp_fixdepY ) FREEZE_NONLIN_PARAMS_DEP(2) ;         \
-     if( nwarp_fixdepZ ) FREEZE_NONLIN_PARAMS_DEP(3) ; } while(0)
+#define FREEZE_POLYNO_PARAMS                                   \
+ do{ if( nwarp_fixmotX ) FREEZE_POLYNO_PARAMS_MOT(1) ;         \
+     if( nwarp_fixmotY ) FREEZE_POLYNO_PARAMS_MOT(2) ;         \
+     if( nwarp_fixmotZ ) FREEZE_POLYNO_PARAMS_MOT(3) ;         \
+     if( nwarp_fixdepX ) FREEZE_POLYNO_PARAMS_DEP(1) ;         \
+     if( nwarp_fixdepY ) FREEZE_POLYNO_PARAMS_DEP(2) ;         \
+     if( nwarp_fixdepZ ) FREEZE_POLYNO_PARAMS_DEP(3) ; } while(0)
 
 /* count free params into variable 'nf' */
 
@@ -3044,7 +3046,7 @@ int main( int argc , char *argv[] )
    /* set parameter freeze directions for -nwarp_fix* now [07 Dec 2010] */
 
    if( nwarp_pass ){
-     if( twodim_code ){ nwarp_fixmotK = nwarp_fixdepK = 1 ; }  /* 2D images */
+     if( twodim_code ){ nwarp_fixmotK = nwarp_fixdepK = 1 ; }  /* 2D images: no out-of-plane stuff */
      if( nwarp_fixmotI ){
        switch( xx_code ){
          case 1: nwarp_fixmotX=1;break; case 2: nwarp_fixmotY=1;break; case 3: nwarp_fixmotZ=1;break;
@@ -4302,7 +4304,9 @@ STATUS("zeropad weight dataset") ;
 #endif
 
      /*----------------------------------------------------------------------*/
-     /*--------------- Nonlinear warp improvement? --------------------------*/
+     /*------------ Nonlinear warp improvement to the above results? --------*/
+
+/* macro to (re)setup some parameters in the work below */
 
 #define PARAM_SETUP(pp,ff,vv)                                                          \
  do{ if( ff ){ stup.wfunc_param[pp].fixed = ff; stup.wfunc_param[pp].val_fixed = vv; } \
@@ -4312,7 +4316,7 @@ STATUS("zeropad weight dataset") ;
 
      if( nwarp_pass ){
 
-       if( nwarp_type == WARP_BILINEAR ){  /*------ special case ------------*/
+       if( nwarp_type == WARP_BILINEAR ){  /*------ special case [old] ------*/
 
          float rr , xcen,ycen,zcen , brad,crad ; int nbf , nite ;
 
@@ -4428,7 +4432,8 @@ STATUS("zeropad weight dataset") ;
          /* affine part is copied from results of work thus far */
 
          for( jj=0 ; jj < 12 ; jj++ ){
-           PARAM_SETUP( jj , nwarp_fixaff , stup.wfunc_param[jj].val_out ) ;
+           nbf = (stup.wfunc_param[jj].fixed) ? stup.wfunc_param[jj].fixed : nwarp_fixaff ;
+           PARAM_SETUP( jj , nbf , stup.wfunc_param[jj].val_out ) ;
          }
 
          stup.need_hist_setup = 1 ;
@@ -4438,7 +4443,7 @@ STATUS("zeropad weight dataset") ;
 
          /** if( verb > 1 ) PARINI("- Cubic/Poly3 initial") ; **/
          for( jj=12 ; jj < NPCUB  ; jj++ ) stup.wfunc_param[jj].fixed = 0 ;
-         FREEZE_NONLIN_PARAMS ; /* 07 Dec 2010 */
+         FREEZE_POLYNO_PARAMS ; /* 07 Dec 2010 */
 
          COUNT_FREE_PARAMS(nbf) ;
          if( verb > 0 )
@@ -4480,7 +4485,8 @@ STATUS("zeropad weight dataset") ;
          /* affine part is copied from results of work thus far */
 
          for( jj=0 ; jj < 12 ; jj++ ){
-           PARAM_SETUP( jj , nwarp_fixaff , stup.wfunc_param[jj].val_out ) ;
+           nbf = (stup.wfunc_param[jj].fixed) ? stup.wfunc_param[jj].fixed : nwarp_fixaff ;
+           PARAM_SETUP( jj , nbf , stup.wfunc_param[jj].val_out ) ;
          }
 
          stup.need_hist_setup = 1 ;
@@ -4490,7 +4496,7 @@ STATUS("zeropad weight dataset") ;
          /* do the optimization */
 
          for( jj=12 ; jj < NPQUINT ; jj++ ) stup.wfunc_param[jj].fixed = 0 ;
-         FREEZE_NONLIN_PARAMS ; /* 07 Dec 2010 */
+         FREEZE_POLYNO_PARAMS ; /* 07 Dec 2010 */
 
          COUNT_FREE_PARAMS(nbf) ;
          if( verb > 0 )
@@ -4532,7 +4538,8 @@ STATUS("zeropad weight dataset") ;
          /* affine part is copied from results of work thus far */
 
          for( jj=0 ; jj < 12 ; jj++ ){
-           PARAM_SETUP( jj , nwarp_fixaff , stup.wfunc_param[jj].val_out ) ;
+           nbf = (stup.wfunc_param[jj].fixed) ? stup.wfunc_param[jj].fixed : nwarp_fixaff ;
+           PARAM_SETUP( jj , nbf , stup.wfunc_param[jj].val_out ) ;
          }
 
          stup.need_hist_setup = 1 ;
@@ -4542,7 +4549,7 @@ STATUS("zeropad weight dataset") ;
          /* do the optimization */
 
          for( jj=12 ; jj < NPHEPT ; jj++ ) stup.wfunc_param[jj].fixed = 0 ;
-         FREEZE_NONLIN_PARAMS ; /* 07 Dec 2010 */
+         FREEZE_POLYNO_PARAMS ; /* 07 Dec 2010 */
 
          COUNT_FREE_PARAMS(nbf) ;
          if( verb > 0 )
@@ -4584,7 +4591,8 @@ STATUS("zeropad weight dataset") ;
          /* affine part is copied from results of work thus far */
 
          for( jj=0 ; jj < 12 ; jj++ ){
-           PARAM_SETUP( jj , nwarp_fixaff , stup.wfunc_param[jj].val_out ) ;
+           nbf = (stup.wfunc_param[jj].fixed) ? stup.wfunc_param[jj].fixed : nwarp_fixaff ;
+           PARAM_SETUP( jj , nbf , stup.wfunc_param[jj].val_out ) ;
          }
 
          stup.need_hist_setup = 1 ;
@@ -4594,7 +4602,7 @@ STATUS("zeropad weight dataset") ;
          /* do the optimization */
 
          for( jj=12 ; jj < NPNONI ; jj++ ) stup.wfunc_param[jj].fixed = 0 ;
-         FREEZE_NONLIN_PARAMS ; /* 07 Dec 2010 */
+         FREEZE_POLYNO_PARAMS ; /* 07 Dec 2010 */
 
          COUNT_FREE_PARAMS(nbf) ;
          if( verb > 0 )
@@ -4928,8 +4936,8 @@ DUMP_MAT44("aff12_ijk",qmat) ;
      fprintf(fp,"# 3dAllineate parameters:\n") ;
      fprintf(fp,"#") ;
      for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )         /* 04 Dec 2010 */
-       fprintf(fp," %s%c" , stup.wfunc_param[jj].name ,  /* add '$' for fixed */
-                stup.wfunc_param[jj].fixed ? '$' : ' ' ) ;
+       fprintf(fp," %s%c" , stup.wfunc_param[jj].name ,  /* add '$' for frozen */
+                (stup.wfunc_param[jj].fixed == 2) ? '$' : ' ' ) ;
      fprintf(fp,"\n") ;
      for( kk=0 ; kk < DSET_NVALS(dset_targ) ; kk++ ){
        for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )

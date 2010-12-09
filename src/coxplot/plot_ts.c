@@ -420,6 +420,8 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
 
       /* data each in its own box */
 
+      if( ny > 9 ) plotpak_labmod( 0 , 6 ) ;  /* 09 Dec 2010 */
+
       for( jj=ny-1 ; jj >= 0 ; jj-- ){
          yll = yobot + jj*(1.0+SY)*dyo ; yhh = yll + dyo ;
          floatfix(ylo[jj]) ; floatfix(yhi[jj]) ;
