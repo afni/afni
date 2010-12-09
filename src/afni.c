@@ -1325,6 +1325,10 @@ void AFNI_sigfunc_alrm(int sig)
 #define NMSG (sizeof(msg)/sizeof(char *))
    static char *msg[] = {
      "Farewell, my friend"                                           ,
+     "Farewell?  A long farewell to all my greatness"                ,
+     "Sweet is the memory of distant friends"                        ,
+     "A memory lasts forever, never does it die - Adieu"             ,
+     "Fate ordains that dearest friends must part"                   ,
      "We shall meet again, when the fields are white with daisies"   ,
      "We part as friends, to meet again in some happy hour"          ,
      "Parting is such sweet sorrow"                                  ,

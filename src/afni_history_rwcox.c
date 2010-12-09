@@ -44,6 +44,12 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 9 , DEC , 2010 , RWC , "@2dwarper.Allin" , MICRO , TYPE_GENERAL ,
+   "Added saved of warping parameters (slice-wise) to 1D files" ,
+   "Modified 3dAllineate to give meaningful-ish symbolic names to polynomial\n"
+   "warp parameters.  Modified 1dcat to use and preserve these with the\n"
+   "-nonfixed option." } ,
+
  { 8 , DEC , 2010 , RWC , "3dXYZcat" , MINOR , TYPE_NEW_PROG ,
    "Generalized 3dZcat." ,
    "No generalized 3dZcutup yet, though." } ,
