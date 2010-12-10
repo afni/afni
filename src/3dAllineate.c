@@ -419,6 +419,7 @@ int main( int argc , char *argv[] )
    int   nwarp_fixdepJ         = 0 ;
    int   nwarp_fixmotK         = 0 ;
    int   nwarp_fixdepK         = 0 ;
+   char *nwarp_save_prefix     = NULL ;          /* 10 Dec 2010 */
 
    int    micho_zfinal         = 0 ;             /* 24 Feb 2010 */
    double micho_mi             = 0.2 ;           /* -lpc+ stuff */
@@ -1493,6 +1494,17 @@ int main( int argc , char *argv[] )
 
      if( strcmp(argv[iarg],"-zclip") == 0 ){     /* 29 Oct 2010 */
        do_zclip++ ; iarg++ ; continue ;
+     }
+
+     /*-----*/
+
+     if( strncmp(argv[iarg],"-nwarp_save",11) == 0 ){  /* 10 Dec 2010 = SECRET */
+       if( ++iarg >= argc ) ERROR_exit("no argument after '%s' :-(",argv[iarg-1]) ;
+       if( !THD_filename_ok(argv[iarg]) )
+         ERROR_exit("badly formed filename: '%s' '%s' :-(",argv[iarg-1],argv[iarg]) ;
+       if( strcmp(argv[iarg],"NULL") == 0 ) nwarp_save_prefix = NULL ;
+       else                                 nwarp_save_prefix = argv[iarg] ;
+       iarg++ ; continue ;
      }
 
      /*-----*/
@@ -2834,6 +2846,11 @@ int main( int argc , char *argv[] )
    if( nwarp_pass && DSET_NVALS(dset_targ) > 1 )
      ERROR_exit("Can't use -nwarp on more than 1 sub-brick :-(") ;
 
+   if( nwarp_save_prefix != NULL && !nwarp_pass ){
+     WARNING_message("Can't use -nwarp_save without -nwarp! :-(") ;
+     nwarp_save_prefix = NULL ;
+   }
+
    switch( tb_mast ){                        /* 19 Jul 2007 */
      case 1: dset_mast = dset_targ ; break ;
      case 2: dset_mast = dset_base ; break ;
@@ -3653,6 +3670,11 @@ STATUS("zeropad weight dataset") ;
      nzout = DSET_NZ(dset_out) ; dzout = fabsf(DSET_DZ(dset_out)) ;
      nxyz_dout[0] = nxout; nxyz_dout[1] = nyout; nxyz_dout[2] = nzout;
      dxyz_dout[0] = dxout; dxyz_dout[1] = dyout; dxyz_dout[2] = dzout;
+   }
+
+   if( dset_out == NULL && nwarp_save_prefix != NULL ){
+     WARNING_message("Can't use -nwarp_save without -prefix! :-(") ;
+     nwarp_save_prefix = NULL ;
    }
 
    /***---------------------- start alignment process ----------------------***/
@@ -4855,19 +4877,35 @@ mri_genalign_set_pgmat(1) ;
            im_targ = mri_genalign_scalar_warpone(
                                  stup.wfunc_numpar , parsave[kk] , stup.wfunc ,
                                  aim , nxout,nyout,nzout, final_interp ) ;
+
+           if( nwarp_save_prefix != NULL ){
+             THD_3dim_dataset *wset ; MRI_IMARR *wimar ;
+             wset = EDIT_empty_copy(dset_out) ;
+             EDIT_dset_items( wset ,
+                                ADN_prefix    , nwarp_save_prefix ,
+                                ADN_nvals     , 3 ,
+                                ADN_ntt       , 0 ,
+                                ADN_datum_all , MRI_float ,
+                              ADN_none ) ;
+             EDIT_BRICK_LABEL( wset , 0 , "x_delta" ) ;
+             EDIT_BRICK_LABEL( wset , 1 , "y_delta" ) ;
+             EDIT_BRICK_LABEL( wset , 2 , "z_delta" ) ;
+             wimar = mri_genalign_scalar_xyzwarp(
+                                 stup.wfunc_numpar , parsave[kk] , stup.wfunc ,
+                                 nxout , nyout , nzout ) ;
+             EDIT_substitute_brick(wset,0,MRI_float,MRI_FLOAT_PTR(IMARR_SUBIM(wimar,0))) ;
+             EDIT_substitute_brick(wset,1,MRI_float,MRI_FLOAT_PTR(IMARR_SUBIM(wimar,1))) ;
+             EDIT_substitute_brick(wset,2,MRI_float,MRI_FLOAT_PTR(IMARR_SUBIM(wimar,2))) ;
+             FREE_IMARR(wimar) ;
+             DSET_write(wset) ; WROTE_DSET(wset) ; DSET_delete(wset) ;
+           }
          break ;
 
          case APPLY_AFF12:{
            float ap[12] ;
-#if 0
-DUMP_MAT44("aff12_xyz",aff12_xyz) ;
-#endif
            wmat = MAT44_MUL(aff12_xyz,mast_cmat) ;
            qmat = MAT44_MUL(targ_cmat_inv,wmat) ;  /* index transform matrix */
            UNLOAD_MAT44_AR(qmat,ap) ;
-#if 0
-DUMP_MAT44("aff12_ijk",qmat) ;
-#endif
            im_targ = mri_genalign_scalar_warpone(
                                  12 , ap , mri_genalign_mat44 ,
                                  aim , nxout,nyout,nzout, final_interp ) ;

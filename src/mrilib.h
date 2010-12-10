@@ -1897,10 +1897,17 @@ extern void mri_genalign_affine_get_befafter( mat44 *, mat44 * ) ;
 extern void mri_genalign_affine_get_gammaijk( mat44 * ) ; /* 04 Apr 2007 */
 extern void mri_genalign_affine_get_gammaxyz( mat44 * ) ;
 
+void mri_genalign_affine_use_befafter(int,int) ; /* 10 Dec 2010 */
+
 extern MRI_IMAGE * mri_genalign_scalar_warpone(      /* 26 Sep 2006 */
                     int npar, float *wpar, GA_warpfunc *wfunc,
                     MRI_IMAGE *imtarg ,
                     int nnx , int nny , int nnz , int icode ) ;
+
+extern MRI_IMARR * mri_genalign_scalar_xyzwarp(      /* 10 Dec 2010 */
+                    int npar, float *wpar, GA_warpfunc *wfunc,
+                    int nnx , int nny , int nnz ) ;
+
 
 extern void mri_genalign_scalar_clrwght( GA_setup * ) ;  /* 18 Oct 2006 */
 
