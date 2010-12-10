@@ -1642,6 +1642,88 @@ ENTRY("mri_genalign_scalar_warpim") ;
 }
 
 /*-------------------------------------------------------------------------*/
+
+MRI_IMARR * mri_genalign_scalar_xyzwarp( int npar, float *wpar, GA_warpfunc *wfunc,
+                                         int nnx , int nny , int nnz )
+{
+   MRI_IMAGE *xim , *yim , *zim ;
+   float     *xar , *yar , *zar ;
+   MRI_IMARR *imar ;
+   int   qq,pp,npp,nx,ny,nxy,nz , npt,nall , nper , ab,aa ;
+   float x,y,z ;
+   float *xbb , *ybb , *zbb ;
+
+ENTRY("mri_genalign_scalar_xyzwarp") ;
+
+   if( wfunc == NULL ) RETURN(NULL) ;
+
+   /* send parameters to warping function, for setup */
+
+   wfunc( npar , wpar , 0,NULL,NULL,NULL , NULL,NULL,NULL ) ;
+
+   /* dimensions of output images */
+
+   nx = nnx ; ny = nny ; nz = nnz ; nxy = nx*ny ; npt = nxy * nz ;
+   xim = mri_new_vol( nx,ny,nz , MRI_float ) ; xar = MRI_FLOAT_PTR(xim) ;
+   yim = mri_new_vol( nx,ny,nz , MRI_float ) ; yar = MRI_FLOAT_PTR(yim) ;
+   zim = mri_new_vol( nx,ny,nz , MRI_float ) ; zar = MRI_FLOAT_PTR(zim) ;
+   INIT_IMARR(imar) ;
+   ADDTO_IMARR(imar,xim) ; ADDTO_IMARR(imar,yim) ; ADDTO_IMARR(imar,zim) ;
+
+   /* ijk coordinates in base image to be warped to target xyz */
+
+   nper = MAX(nperval,NPER) ; nall = MIN(nper,npt) ;
+   xbb  = (float *)calloc(sizeof(float),nall) ;
+   ybb  = (float *)calloc(sizeof(float),nall) ;
+   zbb  = (float *)calloc(sizeof(float),nall) ;
+
+   /* set wfunc to do xyz -> xyz transform, not ijk -> ijk */
+
+   ab = aff_use_before ; aa = aff_use_after ;
+   mri_genalign_affine_use_befafter( 0 , 0 ) ;
+
+   /*--- do (up to) nall points at a time ---*/
+
+   for( pp=0 ; pp < npt ; pp+=nall ){
+     npp = MIN( nall , npt-pp ) ;      /* number to do */
+
+     /* get base xyz coords */
+
+ AFNI_OMP_START ;
+#pragma omp parallel if( npt > 33333 )
+ { int qq , mm , ii,jj,kk ;
+#pragma omp for
+     for( qq=0 ; qq < npp ; qq++ ){
+       mm = pp+qq ;
+       ii = mm % nx ; kk = mm / nxy ; jj = (mm-kk*nxy) / nx ;
+       if( ab ){
+         MAT44_VEC( aff_before , ii,jj,kk , xbb[qq],ybb[qq],zbb[qq] ) ;
+       } else {
+         xbb[qq] = ii ; ybb[qq] = jj ; zbb[qq] = kk ;
+       }
+     }
+ }
+ AFNI_OMP_END ;
+
+     /**** warp base points to new locations ****/
+
+     wfunc( npar , NULL , npp  , xbb,ybb,zbb , xar+pp,yar+pp,zar+pp ) ;
+
+     /* convert result to shifts rather than absolute coordinates */
+
+     for( qq=0 ; qq < npp ; qq++ ){
+       xar[pp+qq] -= xbb[qq] ;
+       yar[pp+qq] -= ybb[qq] ;
+       zar[pp+qq] -= zbb[qq] ;
+     }
+   }
+
+   mri_genalign_affine_use_befafter( ab , aa ) ;
+   free(zbb) ; free(ybb) ; free(xbb) ;
+   RETURN(imar) ;
+}
+
+/*-------------------------------------------------------------------------*/
 /*! Warp an image to base coords, on an nnx X nny X nnz grid.
      - The mapping between ijk and base xyz coords, and
        the mapping between target xyz and ijk coords must have
@@ -1849,21 +1931,15 @@ void mri_genalign_affine_setup( int mmmm , int dddd , int ssss )
 void mri_genalign_affine_set_befafter( mat44 *ab , mat44 *af )
 {
    if( ab == NULL || !ISVALID_MAT44(*ab) ){
-     aff_use_before = 0 ;
+     aff_use_before = 0 ; INVALIDATE_MAT44(aff_before) ;
    } else {
      aff_use_before = 1 ; aff_before = *ab ;
-#if 0
-     if( AFNI_yesenv("ALLIN_DEBUG") ) DUMP_MAT44("set aff_before",aff_before) ;
-#endif
    }
 
    if( af == NULL || !ISVALID_MAT44(*af) ){
-     aff_use_after = 0 ;
+     aff_use_after = 0 ; INVALIDATE_MAT44(aff_after) ;
    } else {
      aff_use_after = 1 ; aff_after = *af ;
-#if 0
-     if( AFNI_yesenv("ALLIN_DEBUG") ) DUMP_MAT44("set aff_after ",aff_after ) ;
-#endif
    }
    return ;
 }
@@ -1882,6 +1958,12 @@ void mri_genalign_affine_get_gammaijk( mat44 *gg )
 void mri_genalign_affine_get_gammaxyz( mat44 *gg )
 {
   if( gg != NULL ) *gg = aff_gamxyz ;
+}
+
+void mri_genalign_affine_use_befafter( int bb , int aa )
+{
+   aff_use_before = ISVALID_MAT44(aff_before) && bb ;
+   aff_use_after  = ISVALID_MAT44(aff_after)  && aa ;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -2782,7 +2864,7 @@ void mri_genalign_quintic( int npar, float *wpar ,
    /*--- do some work ---*/
 
  AFNI_OMP_START ;
-#pragma omp parallel if( npt > 6666 )
+#pragma omp parallel if( npt > 5555 )
  { int ii,jj,kk ; float aa,bb,cc , uu,vv,ww , pv[NPOLQUIN] ;
 #pragma omp for
    for( ii=0 ; ii < npt ; ii++ ){
@@ -2996,7 +3078,7 @@ void mri_genalign_heptic( int npar, float *wpar ,
    /*--- do some work ---*/
 
  AFNI_OMP_START ;
-#pragma omp parallel if( npt > 6666 )
+#pragma omp parallel if( npt > 4444 )
  { int ii,jj,kk ; float aa,bb,cc , uu,vv,ww , pv[NPOLHEPT] ;
 #pragma omp for
    for( ii=0 ; ii < npt ; ii++ ){
@@ -3349,7 +3431,7 @@ STATUS("setup finished") ;
 #endif
 
  AFNI_OMP_START ;
-#pragma omp parallel if( npt > 6666 )
+#pragma omp parallel if( npt > 3333 )
  { int ii,jj,kk ; float aa,bb,cc , uu,vv,ww , pv[NPOLNONI] ;
 #pragma omp for
    for( ii=0 ; ii < npt ; ii++ ){

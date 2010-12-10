@@ -1518,6 +1518,9 @@ extern mat44 THD_mat44_sqrt( mat44 A ) ;  /* matrix square root [30 Jul 2007] */
 #undef  ISVALID_MAT44
 #define ISVALID_MAT44(AA) ((AA).m[3][3] != 0.0f)
 
+#undef  INVALIDATE_MAT44
+#define INVALIDATE_MAT44(AA) ((AA).m[3][3] = 0.0f)
+
 /* load the top 3 rows of a mat44 matrix,
    and set the 4th row to [ 0 0 0 1], as required */
 
