@@ -2521,6 +2521,14 @@ in the past.  However, if you are doing a vast number of commands inside
 a script, the log file might eventually become gigantic (the Kevin Murphy
 effect).
 
+-------------------------------
+Variable: AFNI_ECHO_COMMANDLINE
+-------------------------------
+If this is YES, then the command line logger will also echo the command
+line of each AFNI program to stderr, as it starts up.  This feature
+is explicitly for Daniel Handwerker, and may well eventually be considered
+his ultimate claim to fame in the Macrocosmic All.
+
 -------------------------
 Variable: AFNI_WRITE_NIML
 -------------------------
