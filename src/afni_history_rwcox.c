@@ -44,6 +44,14 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 13 , DEC , 2010 , RWC , "many" , MICRO , TYPE_NEW_ENV ,
+   "Add AFNI_ECHO_COMMANDLINE environment variable" ,
+   "Runs inside afni_logger, for Daniel Handwerker" } ,
+
+ { 13 , DEC , 2010 , RWC , "3dAllineate" , MICRO , TYPE_GENERAL ,
+   "Add hexahedron volume warp to output of 3D warp displacments" ,
+   NULL } ,
+
  { 9 , DEC , 2010 , RWC , "@2dwarper.Allin" , MICRO , TYPE_GENERAL ,
    "Added saved of warping parameters (slice-wise) to 1D files" ,
    "Modified 3dAllineate to give meaningful-ish symbolic names to polynomial\n"
