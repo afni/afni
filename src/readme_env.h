@@ -2522,6 +2522,14 @@ static char * readme_env[] = {
    "a script, the log file might eventually become gigantic (the Kevin Murphy\n" ,
    "effect).\n" ,
    "\n" ,
+   "-------------------------------\n" ,
+   "Variable: AFNI_ECHO_COMMANDLINE\n" ,
+   "-------------------------------\n" ,
+   "If this is YES, then the command line logger will also echo the command\n" ,
+   "line of each AFNI program to stderr, as it starts up.  This feature\n" ,
+   "is explicitly for Daniel Handwerker, and may well eventually be considered\n" ,
+   "his ultimate claim to fame in the Macrocosmic All.\n" ,
+   "\n" ,
    "-------------------------\n" ,
    "Variable: AFNI_WRITE_NIML\n" ,
    "-------------------------\n" ,
@@ -3131,4 +3139,4 @@ static char * readme_env[] = {
    "behavior, set this variable to YES.\n" ,
    "\n" ,
    NULL } ;
-#define NUM_readme_env 3131
+#define NUM_readme_env 3139

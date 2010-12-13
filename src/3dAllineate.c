@@ -3070,7 +3070,7 @@ int main( int argc , char *argv[] )
    if( nz_base == 1 ){  /* 2D input image */
      char *tnam ;
      twodim_code = zz_code ;
-     tnam = (twodim_code == 1) ? "sagittal"
+     tnam = (twodim_code == 1) ? "sagittal"         /* twodim_code = slice direction */
            :(twodim_code == 2) ? "coronal"
            :(twodim_code == 3) ? "axial"
            :                     "UNKNOWABLE" ;
@@ -4878,27 +4878,46 @@ mri_genalign_set_pgmat(1) ;
                                  stup.wfunc_numpar , parsave[kk] , stup.wfunc ,
                                  aim , nxout,nyout,nzout, final_interp ) ;
 
-           if( nwarp_save_prefix != NULL ){
-             THD_3dim_dataset *wset ; MRI_IMARR *wimar ;
-             wset = EDIT_empty_copy(dset_out) ;
-             EDIT_dset_items( wset ,
-                                ADN_prefix    , nwarp_save_prefix ,
-                                ADN_nvals     , 3 ,
-                                ADN_ntt       , 0 ,
-                                ADN_datum_all , MRI_float ,
-                              ADN_none ) ;
-             EDIT_BRICK_LABEL( wset , 0 , "x_delta" ) ;
-             EDIT_BRICK_LABEL( wset , 1 , "y_delta" ) ;
-             EDIT_BRICK_LABEL( wset , 2 , "z_delta" ) ;
+           if( nwarp_save_prefix != NULL ){  /* 10 Dec 2010: save map of warp itself */
+             THD_3dim_dataset *wset; MRI_IMARR *wimar;
+             MRI_IMAGE *xim,*yim,*zim,*vim=NULL; int iv=0,nw;
              wimar = mri_genalign_scalar_xyzwarp(
                                  stup.wfunc_numpar , parsave[kk] , stup.wfunc ,
                                  nxout , nyout , nzout ) ;
-             EDIT_substitute_brick(wset,0,MRI_float,MRI_FLOAT_PTR(IMARR_SUBIM(wimar,0))) ;
-             EDIT_substitute_brick(wset,1,MRI_float,MRI_FLOAT_PTR(IMARR_SUBIM(wimar,1))) ;
-             EDIT_substitute_brick(wset,2,MRI_float,MRI_FLOAT_PTR(IMARR_SUBIM(wimar,2))) ;
+             nw = IMARR_COUNT(wimar) ;
+             wset = EDIT_empty_copy(dset_out) ;
+             EDIT_dset_items( wset ,
+                                ADN_prefix    , nwarp_save_prefix ,
+                                ADN_nvals     , (twodim_code) ? nw-1 : nw ,
+                                ADN_ntt       , 0 ,
+                                ADN_datum_all , MRI_float ,
+                              ADN_none ) ;
+             xim = IMARR_SUBIM(wimar,0); yim = IMARR_SUBIM(wimar,1);
+             zim = IMARR_SUBIM(wimar,2); if( nw == 4 ) vim = IMARR_SUBIM(wimar,3) ;
              FREE_IMARR(wimar) ;
+             if( twodim_code != 1 ){
+               EDIT_BRICK_LABEL( wset , iv , "x_delta" ) ;
+               EDIT_substitute_brick(wset,iv,MRI_float,MRI_FLOAT_PTR(xim)) ;
+               mri_clear_data_pointer(xim) ; iv++ ;
+             }
+             if( twodim_code != 2 ){
+               EDIT_BRICK_LABEL( wset , iv , "y_delta" ) ;
+               EDIT_substitute_brick(wset,iv,MRI_float,MRI_FLOAT_PTR(yim)) ;
+               mri_clear_data_pointer(yim) ; iv++ ;
+             }
+             if( twodim_code != 3 ){
+               EDIT_BRICK_LABEL( wset , iv , "z_delta" ) ;
+               EDIT_substitute_brick(wset,iv,MRI_float,MRI_FLOAT_PTR(zim)) ;
+               mri_clear_data_pointer(zim) ; iv++ ;
+             }
+             if( vim != NULL ){
+               EDIT_BRICK_LABEL( wset , iv , "hexvol" ) ;
+               EDIT_substitute_brick(wset,iv,MRI_float,MRI_FLOAT_PTR(vim)) ;
+               mri_clear_data_pointer(vim) ; mri_free(vim) ; iv++ ;
+             }
+             mri_free(xim) ; mri_free(yim) ; mri_free(zim) ;
              DSET_write(wset) ; WROTE_DSET(wset) ; DSET_delete(wset) ;
-           }
+           } /* end of nwarp_save */
          break ;
 
          case APPLY_AFF12:{
