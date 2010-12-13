@@ -1642,88 +1642,6 @@ ENTRY("mri_genalign_scalar_warpim") ;
 }
 
 /*-------------------------------------------------------------------------*/
-
-MRI_IMARR * mri_genalign_scalar_xyzwarp( int npar, float *wpar, GA_warpfunc *wfunc,
-                                         int nnx , int nny , int nnz )
-{
-   MRI_IMAGE *xim , *yim , *zim ;
-   float     *xar , *yar , *zar ;
-   MRI_IMARR *imar ;
-   int   qq,pp,npp,nx,ny,nxy,nz , npt,nall , nper , ab,aa ;
-   float x,y,z ;
-   float *xbb , *ybb , *zbb ;
-
-ENTRY("mri_genalign_scalar_xyzwarp") ;
-
-   if( wfunc == NULL ) RETURN(NULL) ;
-
-   /* send parameters to warping function, for setup */
-
-   wfunc( npar , wpar , 0,NULL,NULL,NULL , NULL,NULL,NULL ) ;
-
-   /* dimensions of output images */
-
-   nx = nnx ; ny = nny ; nz = nnz ; nxy = nx*ny ; npt = nxy * nz ;
-   xim = mri_new_vol( nx,ny,nz , MRI_float ) ; xar = MRI_FLOAT_PTR(xim) ;
-   yim = mri_new_vol( nx,ny,nz , MRI_float ) ; yar = MRI_FLOAT_PTR(yim) ;
-   zim = mri_new_vol( nx,ny,nz , MRI_float ) ; zar = MRI_FLOAT_PTR(zim) ;
-   INIT_IMARR(imar) ;
-   ADDTO_IMARR(imar,xim) ; ADDTO_IMARR(imar,yim) ; ADDTO_IMARR(imar,zim) ;
-
-   /* ijk coordinates in base image to be warped to target xyz */
-
-   nper = MAX(nperval,NPER) ; nall = MIN(nper,npt) ;
-   xbb  = (float *)calloc(sizeof(float),nall) ;
-   ybb  = (float *)calloc(sizeof(float),nall) ;
-   zbb  = (float *)calloc(sizeof(float),nall) ;
-
-   /* set wfunc to do xyz -> xyz transform, not ijk -> ijk */
-
-   ab = aff_use_before ; aa = aff_use_after ;
-   mri_genalign_affine_use_befafter( 0 , 0 ) ;
-
-   /*--- do (up to) nall points at a time ---*/
-
-   for( pp=0 ; pp < npt ; pp+=nall ){
-     npp = MIN( nall , npt-pp ) ;      /* number to do */
-
-     /* get base xyz coords */
-
- AFNI_OMP_START ;
-#pragma omp parallel if( npt > 33333 )
- { int qq , mm , ii,jj,kk ;
-#pragma omp for
-     for( qq=0 ; qq < npp ; qq++ ){
-       mm = pp+qq ;
-       ii = mm % nx ; kk = mm / nxy ; jj = (mm-kk*nxy) / nx ;
-       if( ab ){
-         MAT44_VEC( aff_before , ii,jj,kk , xbb[qq],ybb[qq],zbb[qq] ) ;
-       } else {
-         xbb[qq] = ii ; ybb[qq] = jj ; zbb[qq] = kk ;
-       }
-     }
- }
- AFNI_OMP_END ;
-
-     /**** warp base points to new locations ****/
-
-     wfunc( npar , NULL , npp  , xbb,ybb,zbb , xar+pp,yar+pp,zar+pp ) ;
-
-     /* convert result to shifts rather than absolute coordinates */
-
-     for( qq=0 ; qq < npp ; qq++ ){
-       xar[pp+qq] -= xbb[qq] ;
-       yar[pp+qq] -= ybb[qq] ;
-       zar[pp+qq] -= zbb[qq] ;
-     }
-   }
-
-   mri_genalign_affine_use_befafter( ab , aa ) ;
-   free(zbb) ; free(ybb) ; free(xbb) ;
-   RETURN(imar) ;
-}
-
-/*-------------------------------------------------------------------------*/
 /*! Warp an image to base coords, on an nnx X nny X nnz grid.
      - The mapping between ijk and base xyz coords, and
        the mapping between target xyz and ijk coords must have
@@ -1862,6 +1780,212 @@ ENTRY("mri_genalign_scalar_warpone") ;
    if( inim != imtarg ) mri_free(inim) ;
 
    RETURN(wim) ;
+}
+
+/*----------------------------------------------------------------------------*/
+/* Volume of a hexahedron (distorted cube) given by 8 corners.
+   Looking down from the top, the bottom plane points are numbered so:
+       2 -- 3
+       |    |  and the top plane is similar (add 4 to each index),
+       0 -- 1  with point #(i+4) 'above' point #i.
+*//*..........................................................................*/
+
+#undef  TRIPROD
+#define TRIPROD(ax,ay,az,bx,by,bz,cx,cy,cz) ( (ax)*((by)*(cz)-(bz)*(cy)) \
+                                             +(bx)*((cy)*(az)-(cz)*(ay)) \
+                                             +(cx)*((ay)*(bz)-(az)*(by))  )
+#undef  DA
+#undef  DB
+#undef  DC
+#define DA(p,q) (p.a-q.a)
+#define DB(p,q) (p.b-q.b)
+#define DC(p,q) (p.c-q.c)
+
+static float hexahedron_volume( float_triple x0 , float_triple x1 ,
+                                float_triple x2 , float_triple x3 ,
+                                float_triple x4 , float_triple x5 ,
+                                float_triple x6 , float_triple x7  )
+{
+   float xa,ya,za , xb,yb,zb , xc,yc,zc , vol ;
+
+   xa = DA(x7,x1)+DA(x6,x0); ya = DB(x7,x1)+DB(x6,x0); za = DC(x7,x1)+DC(x6,x0);
+   xb = DA(x7,x2)          ; yb = DB(x7,x2)          ; zb = DC(x7,x2) ;
+   xc = DA(x3,x0)          ; yc = DB(x3,x0)          ; zc = DC(x3,x0) ;
+   vol = TRIPROD(xa,ya,za,xb,yb,zb,xc,yc,zc) ;
+   xa = DA(x6,x0)          ; ya = DB(x6,x0)          ; za = DC(x6,x0) ;
+   xb = DA(x7,x2)+DA(x5,x0); yb = DB(x7,x2)+DB(x5,x0); zb = DC(x7,x2)+DC(x5,x0);
+   xc = DA(x7,x4)          ; yc = DB(x7,x4)          ; zc = DC(x7,x4) ;
+   vol += TRIPROD(xa,ya,za,xb,yb,zb,xc,yc,zc) ;
+   xa = DA(x7,x1)          ; ya = DB(x7,x1)          ; za = DC(x7,x1) ;
+   xb = DA(x5,x0)          ; yb = DB(x5,x0)          ; zb = DC(x5,x0) ;
+   xc = DA(x7,x4)+DA(x3,x0); yc = DB(x7,x4)+DB(x3,x0); zc = DC(x7,x4)+DC(x3,x0);
+   vol += TRIPROD(xa,ya,za,xb,yb,zb,xc,yc,zc) ;
+   return (0.08333333f*vol) ;
+}
+#undef TRIPROD
+#undef DA
+#undef DB
+#undef DC
+
+/*----------------------------------------------------------------------------*/
+
+#undef IJK
+#undef C2F
+#undef D2F
+
+#define IJK(p,q,r)    ((p)+(q)*nx+(r)*nxy)
+#define C2F(p,q,r,xx) MAT44_VEC(cmat,(p),(q),(r),(xx).a,(xx).b,(xx).c)
+#define D2F(pqr,xx)   ( (xx).a+=dxar[pqr], (xx).b+=dyar[pqr], (xx).c+=dzar[pqr] )
+
+MRI_IMAGE * mri_genalign_xyzwarp_volmap( MRI_IMARR *dxyzar , mat44 cmat )
+{
+   int nx,ny,nz,nxy,nxyz ;
+   float *dxar, *dyar, *dzar, *var ; MRI_IMAGE *vim ;
+
+ENTRY("mri_genalign_xyzwarp_volmap") ;
+
+   if( dxyzar == NULL || IMARR_COUNT(dxyzar) < 3 ) RETURN(NULL) ;
+
+   nx = IMARR_SUBIM(dxyzar,0)->nx ;
+   ny = IMARR_SUBIM(dxyzar,0)->ny ;
+   nz = IMARR_SUBIM(dxyzar,0)->nz ; nxy = nx*ny ; nxyz = nxy*nz ;
+
+   /* must have at least 2 dimensions bigger than 1 */
+
+   if( nxyz <= nx || nxyz <= ny || nxyz <= nz ) RETURN(NULL) ;
+
+   dxar = MRI_FLOAT_PTR(IMARR_SUBIM(dxyzar,0)) ;
+   dyar = MRI_FLOAT_PTR(IMARR_SUBIM(dxyzar,1)) ;
+   dzar = MRI_FLOAT_PTR(IMARR_SUBIM(dxyzar,2)) ;
+
+   vim = mri_new_conforming( IMARR_SUBIM(dxyzar,0) , MRI_float ) ;
+   var = MRI_FLOAT_PTR(vim) ;
+
+   if( !ISVALID_MAT44(cmat) ) LOAD_DIAG_MAT44(cmat,1,1,1) ;
+
+ AFNI_OMP_START ;
+#pragma omp parallel if( nxyz > 33333 )
+ { float_triple x0,x1,x2,x3,x4,x5,x6,x7 ;
+   int ii,jj,kk , ip,jp,kp , ijk , qq ;
+#pragma omp for
+   for( qq=0 ; qq < nxyz ; qq++ ){
+     ii = qq % nx ; kk = qq / nxy ; jj = (qq-kk*nxy) / nx ;
+     ip = ii+1 ; jp = jj+1 ; kp = kk+1 ;
+     C2F(ii,jj,kk,x0); C2F(ip,jj,kk,x1); C2F(ii,jp,kk,x2); C2F(ip,jp,kk,x3);
+     C2F(ii,jj,kp,x4); C2F(ip,jj,kp,x5); C2F(ii,jp,kp,x6); C2F(ip,jp,kp,x7);
+     if( ip == nx ) ip-- ; if( jp == ny ) jp-- ; if( kp == nz ) kp-- ;
+     ijk = IJK(ip,jj,kk) ; D2F(ijk,x1) ;
+     ijk = IJK(ii,jp,kk) ; D2F(ijk,x2) ;
+     ijk = IJK(ip,jp,kk) ; D2F(ijk,x3) ;
+     ijk = IJK(ii,jj,kp) ; D2F(ijk,x4) ;
+     ijk = IJK(ip,jj,kp) ; D2F(ijk,x5) ;
+     ijk = IJK(ii,jp,kp) ; D2F(ijk,x6) ;
+     ijk = IJK(ip,jp,kp) ; D2F(ijk,x7) ;
+     ijk = qq            ; D2F(ijk,x0) ;
+     var[qq] = hexahedron_volume(x0,x1,x2,x3,x4,x5,x6,x7) ;
+   }
+ }
+ AFNI_OMP_END ;
+
+   RETURN(vim) ;
+}
+#undef IJK
+#undef C2F
+#undef D2F
+
+/*----------------------------------------------------------------------------*/
+/* Get the 3 axes (xyz) deltas at each point in the input grid.
+   That is, for each grid point (x,y,z), the source dataset should be
+   evaluated at (x+dx,y+dy,z+dz) to make it match the base dataset.
+*//*--------------------------------------------------------------------------*/
+
+MRI_IMARR * mri_genalign_scalar_xyzwarp( int npar, float *wpar,
+                                         GA_warpfunc *wfunc,
+                                         int nnx , int nny , int nnz )
+{
+   MRI_IMAGE *xim , *yim , *zim ;
+   float     *xar , *yar , *zar ;
+   MRI_IMARR *imar ;
+   int   qq,pp,npp,nx,ny,nxy,nz , npt,nall , nper , ab,aa ;
+   float x,y,z , *xbb , *ybb , *zbb ;
+   mat44 cmat ;
+
+ENTRY("mri_genalign_scalar_xyzwarp") ;
+
+   if( wfunc == NULL ) RETURN(NULL) ;
+
+   /* send parameters to warping function, for setup */
+
+   wfunc( npar , wpar , 0,NULL,NULL,NULL , NULL,NULL,NULL ) ;
+
+   /* dimensions of output images */
+
+   nx = nnx ; ny = nny ; nz = nnz ; nxy = nx*ny ; npt = nxy * nz ;
+   xim = mri_new_vol( nx,ny,nz , MRI_float ) ; xar = MRI_FLOAT_PTR(xim) ;
+   yim = mri_new_vol( nx,ny,nz , MRI_float ) ; yar = MRI_FLOAT_PTR(yim) ;
+   zim = mri_new_vol( nx,ny,nz , MRI_float ) ; zar = MRI_FLOAT_PTR(zim) ;
+   INIT_IMARR(imar) ;
+   ADDTO_IMARR(imar,xim) ; ADDTO_IMARR(imar,yim) ; ADDTO_IMARR(imar,zim) ;
+
+   /* ijk coordinates in base image to be warped to target xyz */
+
+   nper = MAX(nperval,NPER) ; nall = MIN(nper,npt) ;
+   xbb  = (float *)calloc(sizeof(float),nall) ;
+   ybb  = (float *)calloc(sizeof(float),nall) ;
+   zbb  = (float *)calloc(sizeof(float),nall) ;
+
+   /* set wfunc to do xyz -> xyz transform, not ijk -> ijk */
+
+   ab = aff_use_before ; aa = aff_use_after ;
+   mri_genalign_affine_use_befafter( 0 , 0 ) ;
+
+   /*--- do (up to) nall points at a time ---*/
+
+   for( pp=0 ; pp < npt ; pp+=nall ){
+     npp = MIN( nall , npt-pp ) ;      /* number to do */
+
+     /* get base (unwarped) xyz coords into xbb,ybb,zbb */
+
+ AFNI_OMP_START ;
+#pragma omp parallel if( npt > 33333 )
+ { int qq , mm , ii,jj,kk ;
+#pragma omp for
+     for( qq=0 ; qq < npp ; qq++ ){
+       mm = pp+qq ;
+       ii = mm % nx ; kk = mm / nxy ; jj = (mm-kk*nxy) / nx ;
+       if( ab ){
+         MAT44_VEC( aff_before , ii,jj,kk , xbb[qq],ybb[qq],zbb[qq] ) ;
+       } else {
+         xbb[qq] = ii ; ybb[qq] = jj ; zbb[qq] = kk ;
+       }
+     }
+ }
+ AFNI_OMP_END ;
+
+     /**** warp base points to new locations, in xar,yar,zar ****/
+
+     wfunc( npar , NULL , npp  , xbb,ybb,zbb , xar+pp,yar+pp,zar+pp ) ;
+
+     /* convert result to shifts rather than absolute coordinates,
+        store back into xar,yar,zar (output arrays inside output images) */
+
+     for( qq=0 ; qq < npp ; qq++ ){
+       xar[pp+qq] -= xbb[qq] ;
+       yar[pp+qq] -= ybb[qq] ;
+       zar[pp+qq] -= zbb[qq] ;
+     }
+   }
+
+   mri_genalign_affine_use_befafter( ab , aa ) ;  /* status quo ante */
+   free(zbb) ; free(ybb) ; free(xbb) ;            /* tossola trashola */
+
+   /* 13 Dec 2010: save the volumes as well */
+
+   if( ab ) cmat = aff_before ;
+   else     INVALIDATE_MAT44(cmat) ;
+   zim = mri_genalign_xyzwarp_volmap( imar , cmat ) ;
+   if( zim != NULL ) ADDTO_IMARR(imar,zim) ;
+   RETURN(imar) ;
 }
 
 /*--------------------------------------------------------------------------*/

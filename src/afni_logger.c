@@ -39,7 +39,7 @@ void AFNI_sleep( int msec )
 
 int AFNI_logger( char *pname , int argc , char **argv )
 {
-   char *cline, *cdate , *eh , *fn , *logfile=LOGFILE ;
+   char *cline, *cdate , *eh , *fn , *logfile=LOGFILE , *eee ;
    FILE *fp ;
    int ll ; unsigned long fll ;
 
@@ -53,7 +53,8 @@ int AFNI_logger( char *pname , int argc , char **argv )
    fn = AFMALL(char,  strlen(eh)+strlen(logfile)+8) ;
    strcpy(fn,eh) ; strcat(fn,"/") ; strcat(fn,logfile) ;
    if( (fll=THD_filesize(fn)) > 100000000 )   /* 01 Jun 2005: for Kevin */
-     fprintf(stderr,"++ WARNING: file %s is now %lu bytes long!\n",fn,fll) ;
+     fprintf(stderr,"++ WARNING: file %s is now %lu (%s) bytes long!\n",
+             fn, fll, approximate_number_string((double)fll) ) ;
    fp = fopen(fn,"a") ;
    if( fp == NULL ){ free(fn); free(cdate); free(cline); return -1; }
    ll = LOCK_file(fp) ;
@@ -68,6 +69,9 @@ int AFNI_logger( char *pname , int argc , char **argv )
    fseek(fp,0,SEEK_END) ;
    fprintf(fp,"[%s] %s\n",cdate,cline) ;
    UNLOCK_file(fp) ; fclose(fp) ;
+   eee = getenv("AFNI_ECHO_COMMANDLINE") ;
+   if( eee != NULL && (*eee == 'Y' || *eee == 'y') )  /* 13 Dec 2010 */
+     fprintf(stderr,"+++++===== %s\n",cline) ;
    free(fn); free(cdate); free(cline) ; return 0;
 }
 
