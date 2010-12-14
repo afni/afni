@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 14, DEC, 2010, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
+   "fixed problem with timing file tests on 'empty' files with '*'",
+   "problem noted by C Deveney and R Momenan"
+ } ,
+
  { 30, NOV, 2010, RCR, "afni_history", MINOR, TYPE_NEW_OPT,
    "added option -final_sort_by_prog",
    NULL

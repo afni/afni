@@ -225,9 +225,12 @@ g_history = """
         - fixed stim_files to stim_times conversion after multi_basis change
         - problem noted by M Weber
     2.42 Nov 22 2010 : improved line wrapping
+    2.43 Dec 14 2010 :
+        - fixed problem with timing file tests on 'empty' files with '*'
+        - problem noted by C Deveney and R Momenan
 """
 
-g_version = "version 2.42, Nov 22, 2010"
+g_version = "version 2.43, Dec 14, 2010"
 
 # version of AFNI required for script execution
 g_requires_afni = "4 Nov 2010"

@@ -1720,12 +1720,16 @@ class AfniData:
       self.mdata    = mdata
       self.clines   = clines
       self.fname    = fname
-      
+
       self.nrows    = len(self.data)
       self.row_lens = [len(row) for row in self.data]
 
+      # empty data includes existing but empty runs
+      if len(self.data) == 0: maxlen = 0
+      else:                   maxlen = max([len(drow) for drow in self.data])
+
       # accept an empty file?
-      if self.nrows == 0:
+      if self.nrows == 0 or maxlen == 0:
          self.empty = 1
          self.ready = 1
          return 0
