@@ -2834,6 +2834,10 @@ def valid_file_types(proc, stims, file_type):
             print '** valid_file_types: bad type %d' % file_type
             return 0
 
+        # if empty, warn user (3dD will fail)
+        if ok and adata.empty:
+            print '** empty stim file %s (consider 3dD -GOFORIT)\n' % fname
+
         # if current file is good, move on
         if ok: continue
 
