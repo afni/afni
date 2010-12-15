@@ -15,6 +15,7 @@ if module_test_lib.num_import_failures(g_testlibs): sys.exit(1)
 import math
 import copy
 import afni_util as UTIL
+import lib_afni1D as LD
 
 # ----------------------------------------------------------------------
 # two timing classes: AfniTiming and AfniMarriedTiming
@@ -28,6 +29,7 @@ class AfniTiming:
       self.data    = []           # actual data (python list of floats)
       self.dur     = dur          # optional stimulus duration
       self.fname   = ''           # name of timing file
+      self.empty   = 0            # maybe there are no times
       self.ready   = 0            # have a matrix
 
       self.nrows   = 0
@@ -151,15 +153,27 @@ class AfniTiming:
 
    def is_rect(self):
       if not self.ready: return 0
+      if self.empty:     return 1           # empty is rectangular
 
       nrows = len(self.data)
-      if nrows == 0: return 0
 
       rlen = len(self.data[0])
       for row in self.data:
          if len(row) != rlen: return 0
 
       return 1
+
+   def is_empty(self):
+      """empty is either nrows == 0 or each row is empty"""
+      if not self.ready: return 1       # seems safer
+
+      if self.nrows < 1: return 1
+
+      # now check each row
+      for row in self.data:
+         if len(row) > 0: return 0      # found something
+
+      return 1                          # did not find anything
 
    def transpose(self):
       """the tranpose operation requires rectangular data"""
@@ -171,8 +185,10 @@ class AfniTiming:
       if self.verb > 1: print '-- Timing: taking transpose...'
 
       newdata = []
-      for col in range(len(self.data[0])):
-         newdata.append([self.data[row][col] for row in range(self.nrows)])
+
+      if not self.empty:
+         for col in range(len(self.data[0])):
+            newdata.append([self.data[row][col] for row in range(self.nrows)])
 
       del(self.data)
       self.data = newdata
@@ -303,30 +319,53 @@ class AfniTiming:
 
       rect = self.is_rect()
       rstr = ''
-      if rect: rstr = ' (row length %d)' % len(self.data[0])
+      if rect:
+         if self.empty: rstr = ' (row length 0)'
+         else:          rstr = ' (row length %d)' % len(self.data[0])
 
       if len(mesg) > 0: umesg = '%s : ' % mesg
       else:             umesg = ''
 
       mstr = "----------- %stiming element ------------\n"   \
              "   fname    : %s\n" \
+             "   empty    : %d\n" \
              "   ready    : %d\n" \
              "   nrows    : %d\n" \
              "   dur      : %f\n" \
              "   rect     : %d%s\n" \
              "   verb     : %d\n" % \
-             (umesg, self.fname, self.ready, self.nrows, self.dur, rect, rstr,
-              self.verb)
+             (umesg, self.fname, self.empty, self.ready, self.nrows,
+              self.dur, rect, rstr, self.verb)
 
       return mstr
 
    def init_from_1D(self, fname):
       """initialize AfniTiming from a 1D file"""
       self.fname  = fname
+
+      adata = LD.AfniData(filename=fname, verb=self.verb)
+      if adata == None: return
+
+      self.data = adata.data
+      self.nrows = adata.nrows
+      self.ready = adata.ready
+      self.empty = self.is_empty()
+
+      del(adata)
+
+      if self.verb > 1:
+         print '++ initialized timing from file %s' % fname
+         if self.verb > 3: self.show()
+
+   def init_from_1D_OLD(self, fname):
+      """initialize AfniTiming from a 1D file"""
+      self.fname  = fname
       data, clines = read_timing_file(fname)
-      if not data: return
+      if data == None: return
       self.data  = data
       self.nrows = len(data)
+      self.empty = self.is_empty()
+
       self.ready = 1
 
       if self.verb > 1:
@@ -421,12 +460,37 @@ class AfniMarriedTiming:
       self.nrows   = 0
       self.mtype   = 0            # MTYPE_INT or MTYPE_MAG
       self.int_len = -1           # if MTYPE_INT, length of equal intervals
+                                  # (rcr: if constant)
 
       self.verb    = verb
 
       # initialize...
       if from_at: self.init_from_at(at)
-      # todo: elif filename: self.init_from_1D(filename)
+      elif filename: self.init_from_file(filename)
+
+   def init_from_file(self, fname):
+      """initialize AfniMarriedTiming from a text file"""
+      self.fname  = fname
+
+      # start with general format
+      adata = LD.AfniData(filename=fname, verb=self.verb)
+      if adata == None: return
+      if not adata.ready: return
+
+      # put into new format [start_time, end_time]   (should alter this)
+      self.data = []
+      for row in adata.data:
+         self.data.append([[val[0],val[0]+val[2]] for val in row])
+
+      self.nrows = adata.nrows
+      self.mtype = MTYPE_INT
+      self.ready = adata.ready
+
+      del(adata)
+
+      if self.verb > 1:
+         print '++ initialized timing from file %s' % fname
+         if self.verb > 3: self.show()
 
    def init_from_at(self, timing):
       """initialize from AfniTiming element (implies MTYPE_INT)"""
@@ -498,7 +562,7 @@ class AfniMarriedTiming:
       if not self.ready: return 0
 
       nrows = len(self.data)
-      if nrows == 0: return 0
+      if nrows == 0: return 1                   # empty is rectagular
 
       rlen = len(self.data[0])
       for row in self.data:

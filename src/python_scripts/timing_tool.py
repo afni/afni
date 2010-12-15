@@ -632,9 +632,12 @@ g_history = """
    1.12 Nov 19, 2010
         - moved write_to_timing_file to afni_util.py
         - added -write_all_rest_times (for J Poore)
+   1.13 Dec 15, 2010
+        - use lib_textdata.py for reading timing files
+        - allow empty files as valid (for C Deveney)
 """
 
-g_version = "timing_tool.py version 1.12, November 19, 2010"
+g_version = "timing_tool.py version 1.13, December 15, 2010"
 
 
 class ATInterface:
