@@ -136,6 +136,7 @@ int main( int argc , char *argv[] )
    /*---- official startup ---*/
 
    PRINT_VERSION("3dFWHMx"); mainENTRY("3dFWHMx main"); machdep(); AUTHOR("The Bob");
+   AFNI_logger("3dFWHMx",argc,argv) ;
 
    /*---- loop over options ----*/
 

@@ -3,14 +3,14 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 /********************************************************
  * 3dROIstats                                           *
  * T. Ross 5/99                                         *
  *------------------------------------------------------*
  * Code for -summary added by M.S. Beauchamp, 12/1999   *
  *------------------------------------------------------*
- * Code for -numROI added by T. ROss 5/00               * 
+ * Code for -numROI added by T. ROss 5/00               *
  *------------------------------------------------------*
  * Code for -minmax,-nzminmax added by R Reynolds  7/04 *
  *------------------------------------------------------*
@@ -49,7 +49,7 @@ int main(int argc, char *argv[])
     int num_ROI, ROI, mask_f2s = 0;
     int force_num_ROI = 0;	/* Added 5/00 */
     int narg = 1;
-    double *sum=NULL, *sumsq=NULL, *nzsum=NULL, sig, *sumallbriks=NULL; 
+    double *sum=NULL, *sumsq=NULL, *nzsum=NULL, sig, *sumallbriks=NULL;
     double  *min=NULL, *max=NULL, *nzsumsq=NULL,
             *nzmin=NULL, *nzmax=NULL;		/* 07 July, 2004 [rickr] */
     long *voxels=NULL, *nzvoxels=NULL;
@@ -62,9 +62,9 @@ int main(int argc, char *argv[])
     int nobriklab=0 ;  /* 14 Mar 2008 */
     int disp1d=1;   /* ZSS May 2008 */
     byte *roisel=NULL;
-    char sbuf[257]={""}; 
+    char sbuf[257]={""};
     char zerofill[32]={" "};
-    
+
     if (argc < 3 || strcmp(argv[1], "-help") == 0) {
 	printf("Usage: 3dROIstats -mask[n] mset [options] datasets\n"
 "\n"
@@ -125,7 +125,7 @@ int main(int argc, char *argv[])
 "  -roisel SEL.1D Only considers ROIs denoted by values found in SEL.1D\n"
 "                 Note that the order of the ROIs as specified in SEL.1D\n"
 "                 is not preserved. So an SEL.1D of '2 8 20' produces the\n"
-"                 same output as '8 20 2'\n" 
+"                 same output as '8 20 2'\n"
 "\n"
 "  -debug        Print out debugging information\n"
 "  -quiet        Do not print out labels for columns or rows\n"
@@ -170,7 +170,8 @@ int main(int argc, char *argv[])
 
    /*-- 20 Apr 2001: addto the arglist, if user wants to [RWCox] --*/
 
-   machdep() ; 
+   machdep() ; AFNI_logger("3dROIstats",argc,argv) ;
+
    { int new_argc ; char ** new_argv ;
      addto_args( argc , argv , &new_argc , &new_argv ) ;
      if( new_argv != NULL ){ argc = new_argc ; argv = new_argv ; }
@@ -192,11 +193,11 @@ int main(int argc, char *argv[])
       float *far=NULL;
 	    if (narg + 1 >= argc)
 		Error_Exit("-roisel option requires a following argument!");
-       
+
        if (!(im = mri_read_1D (argv[++narg]))) {
          Error_Exit("Could not load -roisel file");
        }
-       
+
        /* allocate for roisel */
        roisel = (byte *)calloc(IMAX, sizeof(byte));
        far = MRI_FLOAT_PTR(im);
@@ -207,9 +208,9 @@ int main(int argc, char *argv[])
          }
        }
        mri_clear_data_pointer(im) ;
-       mri_free(im); im = NULL; 
+       mri_free(im); im = NULL;
        free(far); far=NULL;
-      
+
 	    narg++;
 	    continue;
 	}
@@ -359,7 +360,7 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    if (roisel) DSET_mallocize(mask_dset); 
+    if (roisel) DSET_mallocize(mask_dset);
     DSET_load(mask_dset);
     if (DSET_ARRAY(mask_dset, mask_subbrik) == NULL)
       Error_Exit("Cannot read in mask dataset BRIK!");
@@ -397,7 +398,7 @@ int main(int argc, char *argv[])
 		    non_zero[mask_data[i] + 32768] = 1;
         } else {
          if (debug)
-			fprintf(stderr, "Ignoring mask voxel %d with value %d not in ROISEL\n", 
+			fprintf(stderr, "Ignoring mask voxel %d with value %d not in ROISEL\n",
                          i, mask_data[i]);
          /* cancel that */
          mask_data[i] = 0;
@@ -420,7 +421,7 @@ int main(int argc, char *argv[])
 		    non_zero[mask_data[i] + 32768] = 1;
         } else {
          if (debug)
-			fprintf(stderr, "Ignoring mask voxel %d with value %d not in ROISEL\n", 
+			fprintf(stderr, "Ignoring mask voxel %d with value %d not in ROISEL\n",
                          i, mask_data[i]);
          /* cancel that */
          mask_data[i] = 0;
@@ -444,7 +445,7 @@ int main(int argc, char *argv[])
 		    non_zero[mask_data[i] + 32768] = 1;
         } else {
          if (debug)
-			fprintf(stderr, "Ignoring mask voxel %d with value %d not in ROISEL\n", 
+			fprintf(stderr, "Ignoring mask voxel %d with value %d not in ROISEL\n",
                          i, mask_data[i]);
          /* cancel that */
          mask_data[i] = 0;
@@ -460,18 +461,18 @@ int main(int argc, char *argv[])
 	   if (disp1d == 1) fprintf(stdout, "#File\tSub-brick\n\t\t#");
       else if (disp1d == 2) fprintf(stdout, "name\t\t");
       else fprintf(stdout, "File\tSub-brick");
-    }  
+    }
     for (i = 0, num_ROI = 0; i < IMAX; i++)
 	if (non_zero[i]) {
-	    if ( force_num_ROI && 
+	    if ( force_num_ROI &&
             (((i - 32768) < 0) || ((i - 32768) > force_num_ROI))){
 		   snprintf(sbuf, 256,
                "You used numROI %d, yet in the mask there was a\n"
-			      "value (%d) outside the range [1 %d].\n", 
+			      "value (%d) outside the range [1 %d].\n",
                force_num_ROI, (i - 32768), force_num_ROI);
          Error_Exit(sbuf);
        }
-         
+
 	    non_zero[i] = num_ROI;
 	    num_ROI++;
 	    if (!quiet && !summary && !force_num_ROI) {
@@ -544,8 +545,8 @@ int main(int argc, char *argv[])
     if (debug)
 	fprintf(stderr, "Total Number of ROIs are %d\n", num_ROI);
 
-    /* Now, num_ROI is the number of ROIs from the mask to deal with, 
-       and non_zero[mask_data[i]+32768] can be used as in index to 
+    /* Now, num_ROI is the number of ROIs from the mask to deal with,
+       and non_zero[mask_data[i]+32768] can be used as in index to
        a 0..num_ROI array */
 
     if ((sum = (double *) malloc(num_ROI * sizeof(double))) == NULL)
@@ -672,7 +673,7 @@ int main(int argc, char *argv[])
 
 	    /* do the stats */
 
-	    
+	
        for (i = 0; i < nvox; i++) {
 		if (mask_data[i]) {
 		    ROI = non_zero[mask_data[i] + 32768];
@@ -713,12 +714,12 @@ int main(int argc, char *argv[])
             nfv = 0;
             for (i = 0; i < nvox; i++) { /* i */
                if (mask_data[i] && ROI == non_zero[mask_data[i] + 32768]) {
-                  if (perc) { 
-                     fv[nfv] = input_data[i]; ++nfv; 
+                  if (perc) {
+                     fv[nfv] = input_data[i]; ++nfv;
                   } else { /* non zero only */
-                     if (input_data[i] != 0.0) { 
-                        fv[nfv] = input_data[i]; ++nfv; 
-                     }  
+                     if (input_data[i] != 0.0) {
+                        fv[nfv] = input_data[i]; ++nfv;
+                     }
                   }
                }
             }/* i */
@@ -727,7 +728,7 @@ int main(int argc, char *argv[])
          } /* ROI */
          free(fv); fv = NULL;
 	    }
-       
+
        /* print the next line of results */
 	    if (!quiet && !summary){
          if( nobriklab )
@@ -735,9 +736,9 @@ int main(int argc, char *argv[])
            else if (disp1d == 2) fprintf(stdout, "%s_%d\t\t", argv[narg], brik);
            else fprintf(stdout, "%s\t%d", argv[narg], brik);
          else
-           if (disp1d == 1) fprintf(stdout, "#%s\t%d[%-.9s]\n\t\t",   
+           if (disp1d == 1) fprintf(stdout, "#%s\t%d[%-.9s]\n\t\t",
                            argv[narg],brik,DSET_BRICK_LABEL(input_dset,brik));
-           else if (disp1d == 2) fprintf(stdout, "%s_%d[%-.9s]\t\t",   
+           else if (disp1d == 2) fprintf(stdout, "%s_%d[%-.9s]\t\t",
                            argv[narg],brik,DSET_BRICK_LABEL(input_dset,brik));
            else fprintf(stdout, "%s\t%d[%-.9s]",   /* 14 Mar 2008 */
                            argv[narg],brik,DSET_BRICK_LABEL(input_dset,brik));
@@ -768,9 +769,9 @@ int main(int argc, char *argv[])
 			       if (nzvoxels[i] == 1)
 				   sig = 1e30;	/* a really big number */
 			       else
-				   sig = sqrt( (nzvoxels[i] / (nzvoxels[i] - 1)) * 
+				   sig = sqrt( (nzvoxels[i] / (nzvoxels[i] - 1)) *
                            (nzsumsq[i] - mean * mean) );
-             } 
+             }
 			    fprintf(stdout, "\t%f", sig);
 			}
 			if (minmax) {

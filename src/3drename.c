@@ -10,10 +10,10 @@
 
 static int THD_rename_dataset_files( char * , char * , int ) ;
 
-int main( int argc , char * argv[] )
+int main( int argc , char *argv[] )
 {
    int nopt=1 , old_view , new_view , vbot,vtop ;
-   char * old_name , * new_name ;
+   char *old_name , *new_name ;
    char old_prefix[THD_MAX_PREFIX] , new_prefix[THD_MAX_PREFIX] ;
    int ii , old_len , new_len ;
 
@@ -33,7 +33,7 @@ int main( int argc , char * argv[] )
       PRINT_COMPILE_DATE ; exit(0) ;
    }
 
-   machdep() ;
+   machdep() ; AFNI_logger("3drename",argc,argv) ;
 
    /* input arguments */
 
