@@ -68,7 +68,7 @@ void  help_message(void)
 
 /*--------------------------------------------------------------------------*/
 
-int main (int argc, char *argv[])
+int main(int argc, char *argv[])
 {
 	int j, narg=1, autocorr=FALSE, retrend=FALSE, ignore=1;
 	char *prefix=NULL, *err;
@@ -78,6 +78,8 @@ int main (int argc, char *argv[])
 	if( argc < 2 || strcmp(argv[1],"-help") == 0 ){ help_message(); exit(0); }
 
    g_argc = argc ; g_argv = argv ;  /* Jul 2010: save global copies */
+
+   machdep(); PRINT_VERSION("3dFourier"); AFNI_logger("3dFourier",argc,argv);
 
 	/* Loop over arguements and pull out what we need */
 	while( narg < argc && argv[narg][0] == '-' ){

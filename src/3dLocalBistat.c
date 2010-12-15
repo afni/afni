@@ -107,6 +107,7 @@ int main( int argc , char *argv[] )
    /*---- official startup ---*/
 
    PRINT_VERSION("3dLocalstat"); mainENTRY("3dLocalstat main"); machdep();
+   AFNI_logger("3dLocalstat",argc,argv) ;
 
    /*---- loop over options ----*/
 

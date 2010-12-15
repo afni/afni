@@ -442,6 +442,7 @@ int main( int argc , char * argv[] )
    /*-- 20 Apr 2001: addto the arglist, if user wants to [RWCox] --*/
 
    mainENTRY("3dDetrend main"); machdep() ; PRINT_VERSION("3dDetrend");
+   AFNI_logger("3dDetrend",argc,argv) ;
    { int new_argc ; char ** new_argv ;
      addto_args( argc , argv , &new_argc , &new_argv ) ;
      if( new_argv != NULL ){ argc = new_argc ; argv = new_argv ; }
