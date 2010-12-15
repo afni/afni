@@ -280,6 +280,19 @@ static float BILINEAR_offdiag_norm(GA_setup stup)
 
 /*---------------------------------------------------------------------------*/
 
+int meth_name_to_code( char *nam )  /* 15 Dec 2010 */
+{
+   int ii ;
+   if( nam == NULL || *nam == '\0' ) return 0 ;
+   for( ii=0 ; ii < NMETH ; ii++ ){
+     if( strcasecmp (nam,meth_shortname[ii])  == 0 ) return (ii+1) ;
+     if( strncasecmp(nam,meth_longname[ii],7) == 0 ) return (ii+1) ;
+   }
+   return 0 ;
+}
+
+/*---------------------------------------------------------------------------*/
+
 int main( int argc , char *argv[] )
 {
    THD_3dim_dataset *dset_out=NULL ;
@@ -420,6 +433,7 @@ int main( int argc , char *argv[] )
    int   nwarp_fixmotK         = 0 ;
    int   nwarp_fixdepK         = 0 ;
    char *nwarp_save_prefix     = NULL ;          /* 10 Dec 2010 */
+   int   nwarp_meth_code       = 0 ;             /* 15 Dec 2010 */
 
    int    micho_zfinal         = 0 ;             /* 24 Feb 2010 */
    double micho_mi             = 0.2 ;           /* -lpc+ stuff */
@@ -733,7 +747,7 @@ int main( int argc , char *argv[] )
 "       **N.B.: On the other hand, some cost functionals give better\n"
 "               results than others for specific problems, and so\n"
 "               a warning that 'mi' was significantly different than\n"
-"               'hel' might not actually mean anything (e.g.).\n"
+"               'hel' might not actually mean anything useful (e.g.).\n"
 #if 0
 "       **N.B.: If you use '-CHECK' instead of '-check', AND there are\n"
 "               at least two extra check functions specified (in addition\n"
@@ -1340,7 +1354,9 @@ int main( int argc , char *argv[] )
         "                In all these cases, the first 12 parameters are the\n"
         "                affine parameters (shifts, rotations, etc.), and the\n"
         "                remaining parameters define the nonlinear part of the warp\n"
-        "                (polynomial coefficients).\n"
+        "                (polynomial coefficients); thus, the number of nonlinear\n"
+        "                parameters over which the optimization takes place is\n"
+        "                the number in the table above minus 16.\n"
         "               * The actual polynomial functions used are products of\n"
         "                 Legendre polynomials, but the symbolic names used in\n"
         "                 the header line in the '-1Dparam_save' output just\n"
@@ -1386,12 +1402,15 @@ int main( int argc , char *argv[] )
         "                     (e.g., '-nwarp_fixmotX -nwarp_fixmotJ') may cause trouble!\n"
         "                ++ If you input a 2D dataset (a single slice) to be registered\n"
         "                   with '-nwarp', the program automatically assumes '-nwarp_fixmotK'\n"
-        "                   and '-nwarp_fixdepK' so there are no out-of-plane parameters.\n"
+        "                   and '-nwarp_fixdepK' so there are no out-of-plane parameters\n"
+        "                   or dependence.  The number of nonlinear parameters is then:\n"
+        "                     2D: cubic = 14 ; quintic =  36 ; heptic =  66 ; nonic = 104.\n"
+        "                     3D: cubic = 48 ; quintic = 156 ; heptic = 348 ; nonic = 648.\n"
         "                ++ Note that these '-nwarp_fix' options have no effect on the\n"
         "                   affine part of the warp -- if you want to constrain that as\n"
         "                   well, you'll have to use the '-parfix' option.\n"
-        "                   * For 2D images, the affine part will automatically be\n"
-        "                     restricted to in-plane (6 parameter) motion.\n"
+        "                   * However, for 2D images, the affine part will automatically\n"
+        "                     be restricted to in-plane (6 parameter) 'motions'.\n"
         "              **++ The mapping from I J K to X Y Z (DICOM coordinates), where the\n"
         "                   '-nwarp_fix' constraints are actually applied, is very simple:\n"
         "                   given the command to fix K (say), the coordinate X, or Y, or Z\n"
@@ -1404,7 +1423,7 @@ int main( int argc , char *argv[] )
         "\n"
         "-nwarp NOTES:\n"
         "-------------\n"
-        "* -nwarp is slow - reeeaaallll slow!\n"
+        "* -nwarp is slow - reeeaaallll slow - use it with OpenMP!\n"
         "* Check the results to make sure the optimizer didn't run amok!\n"
         "   (You should ALWAYS do this with any registration software.)\n"
         "* If you use -1Dparam_save, then you can apply the nonlinear\n"
@@ -1570,6 +1589,11 @@ int main( int argc , char *argv[] )
        if( iarg < argc && isdigit(argv[iarg][0]) ){      /** really secret **/
          nwarp_itemax = (int)strtod(argv[iarg],NULL) ;
          iarg++ ;
+       }
+
+       if( iarg < argc && isalpha(argv[iarg][0]) ){
+         nwarp_meth_code = meth_name_to_code(argv[iarg]) ;
+         if( nwarp_meth_code > 0 ) iarg++ ;
        }
 
        /* change some other parameters from their defaults */
@@ -1911,42 +1935,18 @@ int main( int argc , char *argv[] )
 
      /*----- Check the various cost options -----*/
 
-     /** -shortname **/
-
-     for( jj=ii=0 ; ii < NMETH ; ii++ ){
-       if( strcasecmp(argv[iarg]+1,meth_shortname[ii]) == 0 ){
-         meth_code = jj = ii+1 ; break ;
-       }
+     jj = meth_name_to_code( argv[iarg]+1 ) ; /* check for match after the '-' */
+     if( jj > 0 ){
+       meth_code = jj ; iarg++ ; continue ;   /* there was a match */
      }
-     if( jj > 0 ){ iarg++ ; continue ; }  /* there was a match */
-
-     /** -longname **/
-
-     for( jj=ii=0 ; ii < NMETH ; ii++ ){
-       if( strncasecmp(argv[iarg]+1,meth_longname[ii],7) == 0 ){
-         meth_code = jj = ii+1 ; break ;
-       }
-     }
-     if( jj > 0 ){ iarg++ ; continue ; }  /* there was a match */
 
      /** -cost shortname  *OR*  -cost longname **/
 
      if( strcmp(argv[iarg],"-cost") == 0 || strcmp(argv[iarg],"-meth") == 0 ){
        if( ++iarg >= argc ) ERROR_exit("no argument after '-cost' :-(") ;
 
-       for( jj=ii=0 ; ii < NMETH ; ii++ ){
-         if( strcasecmp(argv[iarg],meth_shortname[ii]) == 0 ){
-           meth_code = jj = ii+1 ; break ;
-         }
-       }
-       if( jj > 0 ){ iarg++ ; continue ; } /* there was a match */
-
-       for( jj=ii=0 ; ii < NMETH ; ii++ ){
-         if( strncasecmp(argv[iarg],meth_longname[ii],7) == 0 ){
-           meth_code = jj = ii+1 ; break ;
-         }
-       }
-       if( jj >=0 ){ iarg++ ; continue ; } /* there was a match */
+       jj = meth_name_to_code( argv[iarg] ) ;
+       if( jj > 0 ){ meth_code = jj ; iarg++ ; continue ; }
 
        ERROR_exit("Unknown code '%s' after -cost :-(",argv[iarg]) ;
      }
@@ -1969,25 +1969,15 @@ int main( int argc , char *argv[] )
      /*----- -check costname -----*/
 
      if( strncasecmp(argv[iarg],"-check",5) == 0 ){
-       /** if( strncmp(argv[iarg],"-CHECK",5) == 0 ) meth_median_replace = 1 ; **/
+#if 0
+       if( strncmp(argv[iarg],"-CHECK",5) == 0 ) meth_median_replace = 1 ; /* not good */
+#endif
        if( ++iarg >= argc ) ERROR_exit("no argument after '%s' :-(",argv[iarg-1]) ;
 
        for( ; iarg < argc && argv[iarg][0] != '-' ; iarg++ ){
          if( meth_check_count == NMETH ) continue ; /* malicious user? */
-         for( jj=ii=0 ; ii < NMETH ; ii++ ){
-           if( strcasecmp(argv[iarg],meth_shortname[ii]) == 0 ){
-             jj = ii+1 ; break ;
-           }
-         }
-         if( jj > 0 ){ meth_check[ meth_check_count++ ] = jj; continue ;}
-
-         for( jj=ii=0 ; ii < NMETH ; ii++ ){
-           if( strncasecmp(argv[iarg],meth_longname[ii],7) == 0 ){
-             jj = ii+1 ; break ;
-           }
-         }
-         if( jj >=0 ){ meth_check[ meth_check_count++ ] = jj; continue ;}
-
+         jj = meth_name_to_code(argv[iarg]) ;
+         if( jj > 0 ){ meth_check[meth_check_count++] = jj; continue; }
          WARNING_message("Unknown code '%s' after -check :-(",argv[iarg]) ;
        }
        continue ;
@@ -2549,19 +2539,8 @@ int main( int argc , char *argv[] )
          replace_meth = 0 ; iarg++ ; continue ;  /* special case */
        }
 
-       for( jj=ii=0 ; ii < NMETH ; ii++ ){
-         if( strcasecmp(argv[iarg],meth_shortname[ii]) == 0 ){
-           replace_meth = jj = ii+1 ; break ;
-         }
-       }
-       if( jj > 0 ){ iarg++ ; continue ; }
-
-       for( jj=ii=0 ; ii < NMETH ; ii++ ){
-         if( strncasecmp(argv[iarg],meth_longname[ii],7) == 0 ){
-           replace_meth = jj = ii+1 ; break ;
-         }
-       }
-       if( jj >=0 ){ iarg++ ; continue ; }
+       jj = meth_name_to_code(argv[iarg]) ;
+       if( jj > 0 ){ replace_meth = jj ; iarg++ ; continue ; }
 
        ERROR_exit("Unknown code '%s' after -replacemeth :-(",argv[iarg]) ;
        iarg++ ; continue ;
@@ -2825,6 +2804,11 @@ int main( int argc , char *argv[] )
        }
        break ;
      } /* end of switch on nwarp_pass */
+   }
+
+   if( nwarp_pass && meth_check_count > 0 ){  /* 15 Dec 2010 */
+     meth_check_count = 0 ;
+     if( verb ) WARNING_message("-check disabled because of -nwarp") ;
    }
 
    /* open target from last argument, if not already open */
@@ -3323,7 +3307,7 @@ STATUS("zeropad weight dataset") ;
    stup.wfunc_param = (GA_param *)calloc(12,sizeof(GA_param)) ;
 
    if( nwarp_pass && warp_code != WARP_AFFINE ){
-     WARNING_message("Use of -nwarp ==> must use all 12 affine parameters") ;
+     WARNING_message("Use of -nwarp ==> must allow all 12 affine parameters") ;
      warp_code = WARP_AFFINE ;
    }
 
@@ -4359,6 +4343,17 @@ STATUS("zeropad weight dataset") ;
  } while(0)
 
      if( nwarp_pass ){
+
+       /* 15 Dec 2010: change cost functional here? */
+
+       if( nwarp_meth_code > 0 ){
+         if( verb ) INFO_message( "-nwarp setup: switch method to '%s' from '%s'",
+                                  meth_shortname[nwarp_meth_code-1] ,
+                                  meth_shortname[stup.match_code-1]  ) ;
+         stup.match_code = nwarp_meth_code ;
+       }
+
+       /*--- different blocks of code for the different types of warps ---*/
 
        if( nwarp_type == WARP_BILINEAR ){  /*------ special case [old] ------*/
 
