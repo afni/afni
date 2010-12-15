@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 15, DEC, 2010, RCR, "timing_tool.py", MINOR, TYPE_ENHANCE,
+   "use lib_textdata.py for reading timing files, allow empty file",
+   "empty file update for C Deveney"
+ } ,
+
  { 14, DEC, 2010, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
    "fixed problem with timing file tests on 'empty' files with '*'",
    "problem noted by C Deveney and R Momenan"
