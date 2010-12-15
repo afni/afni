@@ -1,9 +1,9 @@
 /*---------------------------------------------------------------------------*/
 /*
-  Program to calculate the delay between FMRI time series and the the ideal 
-  reference time series. 
-  This program, which is a command line version of the plugin Hilbert Delay 98, 
-  uses Doug Ward's 3dfim+'s skeleton to read and write the bricks. 
+  Program to calculate the delay between FMRI time series and the the ideal
+  reference time series.
+  This program, which is a command line version of the plugin Hilbert Delay 98,
+  uses Doug Ward's 3dfim+'s skeleton to read and write the bricks.
 */
 
 /*---------------------------------------------------------------------------*/
@@ -29,7 +29,7 @@
 /*--------------------- strings for output format --------------------*/
 /* do not change the order in this string*/
 static char * method_strings[] = { "Seconds" , "Degrees" , "Radians"} ;
-static char * yn_strings[] = { "n" , "y" }; 
+static char * yn_strings[] = { "n" , "y" };
 
 /* for printing potentially NULL strings         22 July 2005 [rickr] */
 #undef  CHECK_NULL_STR
@@ -37,11 +37,11 @@ static char * yn_strings[] = { "n" , "y" };
 
 /*#define ZDBG*/
 #ifdef ZDBG
-	#define IPOSx 8 
+	#define IPOSx 8
 	#define IPOSy 38
 	#define IPOSz 7
 #endif
- 
+
 #define NUM_METHOD_STRINGS (sizeof(method_strings)/sizeof(char *))
 #define NUM_YN_STRINGS (sizeof(yn_strings)/sizeof(char *))
 
@@ -89,7 +89,7 @@ static char * DELAY_OUTPUT_TYPE_name[NBUCKETS] =
 /*---------------------------------------------------------------------------*/
 
 typedef struct DELAY_options
-{ 
+{
 	float fs;			/* Sampling frequency */
 		  			/* it is only used for the log file in this version*/
 		  			/* the ts_func, gives TR automatically */
@@ -103,7 +103,7 @@ typedef struct DELAY_options
 	int ignore;		/* number ofpoints to ignore from time courses */
 	int Pover;		/* Percent overlap */
 	int ln;			/* length of FMRI vector */
-	/* int dtrnd; */		/* remove linear trend or just the mean */ 
+	/* int dtrnd; */		/* remove linear trend or just the mean */
 	int biasrem;		/* flag for removing delay bias */
 	int Dsamp;		/* flag for correction of non uniform sampling start time */
 	int errcode;		/* error code number returned from hdelay */
@@ -124,11 +124,11 @@ typedef struct DELAY_options
 	int num_ortts;           /* number of ort time series */
 	int num_idealts;         /* number of ideal time series */
 	int q;                   /* number of parameters in the baseline model */
-	int p;                   /* number of parameters in the baseline model 
+	int p;                   /* number of parameters in the baseline model
 		      	  plus number of ideals */
 
 	float fim_thr;           /* threshold for internal fim mask */
-	float cdisp;             /* minimum correlation coefficient for display */ 
+	float cdisp;             /* minimum correlation coefficient for display */
 
 	char * outname; /* Name of ascii output files */
 	char * outnamets; /* Name of ascii output files */
@@ -154,7 +154,7 @@ typedef struct DELAY_options
   Get the time series for one voxel from the AFNI 3d+time data set.
 */
 
-void extract_ts_array 
+void extract_ts_array
 (
   THD_3dim_dataset * dset_time,      /* input 3d+time dataset */
   int iv,                            /* get time series for this voxel */
@@ -199,13 +199,13 @@ void display_help_menu()
 "     The programs assumes that there is one value per line and that all  \n"
 "     values in the file are part of the reference vector.                \n"
 "     PS: Unlike with 3dfim, and FIM in AFNI, values over 33333 are treated\n"
-"     as part of the time series.                                          \n" 
-"-fs fs             Sampling frequency in Hz. of data time series (1/TR). \n"  
+"     as part of the time series.                                          \n"
+"-fs fs             Sampling frequency in Hz. of data time series (1/TR). \n"
 "-T  Tstim          Stimulus period in seconds. \n"
 "                   If the stimulus is not periodic, you can set Tstim to 0.\n"
-"[-prefix bucket]   The prefix for the results Brick.\n"   
+"[-prefix bucket]   The prefix for the results Brick.\n" 
 "                   The first subbrick is for Delay.\n"
-"                   The second subbrick is for Covariance, which is an \n" 
+"                   The second subbrick is for Covariance, which is an \n"
 "                   estimate of the power in voxel time series at the\n"
 "                   frequencies present in the reference time series.\n"
 "                   The third subbrick is for the Cross Correlation \n"
@@ -229,17 +229,17 @@ void display_help_menu()
 "                   You can't use Degrees or Radians as units unless \n"
 "                   you specify a value for Tstim > 0.\n"
 "[-phzwrp]          Delay (or phase) wrap.\n"
-"                   This switch maps delays from: \n" 
-"                   (Seconds) 0->T/2 to 0->T/2 and T/2->T to -T/2->0\n"  
-"                   (Degrees) 0->180 to 0->180 and 180->360 to -180->0\n"   
-"                   (Radians) 0->pi to 0->pi and pi->2pi to -pi->0\n" 
+"                   This switch maps delays from: \n"
+"                   (Seconds) 0->T/2 to 0->T/2 and T/2->T to -T/2->0\n"
+"                   (Degrees) 0->180 to 0->180 and 180->360 to -180->0\n" 
+"                   (Radians) 0->pi to 0->pi and pi->2pi to -pi->0\n"
 "                   You can't use this option unless you specify a \n"
 "                   value for Tstim > 0.\n"
 "[-nophzwrp]        Do not wrap phase (default).\n"
 "\n"
 "[-bias]            Do not correct for the bias in the estimates [1][2]\n"
 "[-nobias | -correct_bias] Do correct for the bias in the estimates\n"
-"                          (default).\n" 
+"                          (default).\n"
 "\n"
 "[-dsamp]           Correct for slice timing differences        (default).\n"
 "[-nodsamp ]        Do not correct for slice timing differences .\n"
@@ -319,7 +319,7 @@ void display_help_menu()
 "         Hum Brain Mapp, 2001. 13(2): p. 74-93.\n"
 "   [4] : Saad, Z.S., E.A. DeYoe, and K.M. Ropella, Estimation of FMRI \n"
 "         Response Delays.  Neuroimage, 2003. 18(2): p. 494-504.\n"
-"\n"   
+"\n" 
     );
 
   PRINT_COMPILE_DATE ; exit(0);
@@ -359,7 +359,7 @@ typedef struct {
 
 
 /***********************************************************************
-  Plugin to compute a 3D+time dataset voxelwise delay with respect to 
+  Plugin to compute a 3D+time dataset voxelwise delay with respect to
   a reference waveform
 ************************************************************************/
 
@@ -386,12 +386,12 @@ void writets ( DELAY_options* ud,float * ts);
 /*
   Routine to initialize the input options.
 */
- 
-void initialize_options 
+
+void initialize_options
 (
   DELAY_options * option_data    /* fim program options */
 )
- 
+
 {
   int is=-1;                     /* index */
 
@@ -440,19 +440,19 @@ void initialize_options
 
 
   for (is=0; is<NBUCKETS; ++is) option_data->output_type[is] = -1;
-  
+
   /*----- Initialize file names -----*/
   option_data->input_filename = NULL;
-  option_data->mask_filename = NULL;  
+  option_data->mask_filename = NULL;
   option_data->input1D_filename = NULL;
   option_data->bucket_filename = NULL;
-  option_data->outname = NULL;  
-  option_data->outnamets = NULL;  
-  option_data->outnamelog = NULL;  
+  option_data->outname = NULL;
+  option_data->outnamets = NULL;
+  option_data->outnamelog = NULL;
   option_data->bmask = NULL;
-  
+
   for (is = 0;  is < MAX_FILES;  is++)
-    {  
+    {
       option_data->ort_filename[is] = NULL;
       option_data->ideal_filename[is] = NULL;
     }
@@ -468,7 +468,7 @@ void initialize_options
 void get_options
 (
   int argc,                        /* number of input arguments */
-  char ** argv,                    /* array of input arguments */ 
+  char ** argv,                    /* array of input arguments */
   DELAY_options * option_data        /* fim program options */
 )
 
@@ -481,18 +481,18 @@ void get_options
 
 
   /*----- does user request help menu? -----*/
-  if (argc < 2 || strcmp(argv[1], "-help") == 0)  display_help_menu();  
+  if (argc < 2 || strcmp(argv[1], "-help") == 0)  display_help_menu();
 
-  
+
   /*----- initialize the input options -----*/
-  initialize_options (option_data); 
+  initialize_options (option_data);
 
-  
+
   /*----- main loop over input options -----*/
   while (nopt < argc )
     {
 
-      if (strcmp(argv[nopt], "-polort") == 0 || 
+      if (strcmp(argv[nopt], "-polort") == 0 ||
           strcmp(argv[nopt], "-Nort") == 0)
 		{
 		  nopt++;
@@ -525,7 +525,7 @@ void get_options
 		  nopt++;
 		  continue;
 		}
-            
+  
 
       /*-----   -nfirst num  -----*/
       if (strcmp(argv[nopt], "-nfirst") == 0)
@@ -566,8 +566,8 @@ void get_options
 		  nopt++;
 		  continue;
 		}
-      
-      
+ 
+ 
 
       /*-----   -T num  -----*/
       if (strcmp(argv[nopt], "-T") == 0)
@@ -591,12 +591,12 @@ void get_options
 		  k = option_data->num_ideal_files;
 		  if (k+1 > MAX_FILES)
 	   	 {
-	      	sprintf (message, "Too many ( > %d ) ideal time series files. ", 
+	      	sprintf (message, "Too many ( > %d ) ideal time series files. ",
 		      	 MAX_FILES);
 	      	FIM_error (message);
 	   	 }
 
-		  option_data->ideal_filename[k] 
+		  option_data->ideal_filename[k]
 	   	 = malloc (sizeof(char)*THD_MAX_NAME);
 		  MTEST (option_data->ideal_filename[k]);
 		  strcpy (option_data->ideal_filename[k], argv[nopt]);
@@ -604,7 +604,7 @@ void get_options
 		  nopt++;
 		  continue;
 		}
-      
+ 
 
       /*-----   -prefix filename   -----*/
       if (strcmp(argv[nopt], "-prefix") == 0)
@@ -617,7 +617,7 @@ void get_options
 		  nopt++;
 		  continue;
 		}
-      
+ 
 		
       /*-----   -uS  -----*/
       if (strcmp(argv[nopt], "-uS") == 0)
@@ -664,8 +664,8 @@ void get_options
 		  nopt++;
 		  continue;
 		}
-      if (strcmp(argv[nopt], "-nobias") == 0 || 
-          strcmp(argv[nopt], "-No_bias") == 0 || 
+      if (strcmp(argv[nopt], "-nobias") == 0 ||
+          strcmp(argv[nopt], "-No_bias") == 0 ||
           strcmp(argv[nopt], "-correct_bias") == 0)
 		{
 		  option_data->biasrem = 1;
@@ -694,7 +694,7 @@ void get_options
 		  nopt++;
 		  continue;
 		}
-     
+
        /*-----   -co num -----*/
       if (strcmp(argv[nopt], "-co") == 0)
 		{
@@ -713,19 +713,19 @@ void get_options
 		{
 		  nopt++;
 		  option_data->out = 1;
-		  if (nopt >= argc)  { 
-		  	option_data->outname = NULL; 
+		  if (nopt >= argc)  {
+		  	option_data->outname = NULL;
 			 option_data->outnamelog = NULL;
 			
 			continue; }
 		  if (strncmp(argv[nopt], "-", 1) == 0) {
-		  	option_data->outname = NULL; 
+		  	option_data->outname = NULL;
 			option_data->outnamelog = NULL;
 			continue; }
 		  	
 		  option_data->outname = malloc (sizeof(char)*THD_MAX_NAME);
 		  option_data->outnamelog = malloc (sizeof(char)*(THD_MAX_NAME+4));
-		  
+		
 		  MTEST (option_data->outname);
 		  MTEST (option_data->outnamelog);
 		  strcpy (option_data->outname, argv[nopt]);
@@ -741,7 +741,7 @@ void get_options
 		  nopt++;
 		  option_data->out = 1;
 		  option_data->outts = 1;
-		  if (nopt >= argc)  { 
+		  if (nopt >= argc)  {
 		  	option_data->outname = NULL;
 			 option_data->outnamelog = NULL;
 			option_data->outnamets = NULL;
@@ -749,7 +749,7 @@ void get_options
 		  if (strncmp(argv[nopt], "-", 1) == 0) {
 			 option_data->outnamelog = NULL;
 			option_data->outnamets = NULL;
-		  	option_data->outname = NULL; 
+		  	option_data->outname = NULL;
 			continue; }
 		  	
 		  option_data->outname = malloc (sizeof(char)*THD_MAX_NAME);
@@ -759,22 +759,22 @@ void get_options
 		  MTEST (option_data->outname);
 		 MTEST (option_data->outnamets);
 		  MTEST (option_data->outnamelog);
-	  
+	
 		  strcpy (option_data->outname, argv[nopt]);
 		  sprintf (option_data->outnamets, "%s.ts", option_data->outname);
 		  sprintf (option_data->outnamelog, "%s.log", option_data->outname);
-		  
+		
 		  nopt++;
 		  continue;
 		}
 
-      
+ 
 		
 		
 		/*----- unknown command -----*/
       sprintf(message,"Unrecognized command line option: %s\n", argv[nopt]);
       FIM_error (message);
-      
+ 
     }
 
 }
@@ -786,7 +786,7 @@ void get_options
   a column selector attached.
 */
 
-float * read_one_time_series 
+float * read_one_time_series
 (
   char * ts_filename,          /* time series file name (plus column index) */
   int * ts_length              /* output value for time series length */
@@ -797,7 +797,7 @@ float * read_one_time_series
   char * cpt;                    /* pointer to column suffix */
   char filename[THD_MAX_NAME];   /* time series file name w/o column index */
   char subv[THD_MAX_NAME];       /* string containing column index */
-  MRI_IMAGE * im, * flim;  /* pointers to image structures 
+  MRI_IMAGE * im, * flim;  /* pointers to image structures
 			      -- used to read 1D ASCII */
   float * far=NULL;             /* pointer to MRI_IMAGE floating point data */
   int nx;                  /* number of time points in time series */
@@ -815,7 +815,7 @@ float * read_one_time_series
       FIM_error (message);
     }
 
-  
+
   /*----- Set pointer to data, and set dimensions -----*/
   far = MRI_FLOAT_PTR(flim);
   nx = flim->nx;
@@ -824,16 +824,16 @@ float * read_one_time_series
     fprintf(stderr,"WARNING: time series %s has %d columns\n",ts_filename,ny);
   }
 
-  
+
 
   /*----- Save the time series data -----*/
   *ts_length = nx;
   ts_data = (float *) malloc (sizeof(float) * nx);
   MTEST (ts_data);
   for (ipt = 0;  ipt < nx;  ipt++)
-    ts_data[ipt] = far[ipt + iy*nx];   
-  
-  
+    ts_data[ipt] = far[ipt + iy*nx]; 
+
+
   mri_free (flim);  flim = NULL;
 
   return (ts_data);
@@ -846,7 +846,7 @@ float * read_one_time_series
   a column selector attached.
 */
 
-MRI_IMAGE * read_time_series 
+MRI_IMAGE * read_time_series
 (
   char * ts_filename,      /* time series file name (plus column selectors) */
   int ** column_list       /* list of selected columns */
@@ -857,7 +857,7 @@ MRI_IMAGE * read_time_series
   char * cpt;                    /* pointer to column suffix */
   char filename[THD_MAX_NAME];   /* time series file name w/o column index */
   char subv[THD_MAX_NAME];       /* string containing column index */
-  MRI_IMAGE * im, * flim;  /* pointers to image structures 
+  MRI_IMAGE * im, * flim;  /* pointers to image structures
 			      -- used to read 1D ASCII */
   float * far;             /* pointer to MRI_IMAGE floating point data */
   int nx;                  /* number of time points in time series */
@@ -872,7 +872,7 @@ MRI_IMAGE * read_time_series
       FIM_error (message);
     }
 
-  
+
   far = MRI_FLOAT_PTR(flim);
   nx = flim->nx;
   ny = flim->ny;
@@ -910,12 +910,12 @@ void read_input_data
   int num_ortts;           /* number of ort time series */
   int num_idealts;         /* number of ideal time series */
   int q;                   /* number of parameters in the baseline model */
-  int p;                   /* number of parameters in the baseline model 
+  int p;                   /* number of parameters in the baseline model
 			      				plus number of ideals */
   int nref_in=-1  ;
   int nmsk = 0;
-  float **ref_in=NULL  ; 
-  THD_3dim_dataset *newset=NULL;           
+  float **ref_in=NULL  ;
+  THD_3dim_dataset *newset=NULL; 
   MRI_IMARR *corder_inar=NULL ;
 
 
@@ -929,14 +929,14 @@ void read_input_data
   if (option_data->input1D_filename != NULL)
     {
       /*----- Read the input fMRI 1D time series -----*/
-      *fmri_data = read_one_time_series (option_data->input1D_filename, 
+      *fmri_data = read_one_time_series (option_data->input1D_filename,
 					 fmri_length);
-      if (*fmri_data == NULL)  
-	{ 
-	  sprintf (message,  "Unable to read time series file: %s", 
+      if (*fmri_data == NULL)
+	{
+	  sprintf (message,  "Unable to read time series file: %s",
 		   option_data->input1D_filename);
 	  FIM_error (message);
-	}  
+	}
       *dset_time = NULL;
     }
 
@@ -944,42 +944,42 @@ void read_input_data
     {
       /*----- Read the input 3d+time dataset -----*/
       *dset_time = THD_open_one_dataset (option_data->input_filename);
-      if (!ISVALID_3DIM_DATASET(*dset_time))  
-	{ 
-	  sprintf (message,  "Unable to open data file: %s", 
+      if (!ISVALID_3DIM_DATASET(*dset_time))
+	{
+	  sprintf (message,  "Unable to open data file: %s",
 		   option_data->input_filename);
 	  FIM_error (message);
-	}  
+	}
       DSET_load(*dset_time); CHECK_LOAD_ERROR(*dset_time);
 
       if (option_data->mask_filename != NULL)
 	{
 	  /*----- Read the input mask dataset -----*/
 	  *mask_dset = THD_open_dataset (option_data->mask_filename);
-	  if (!ISVALID_3DIM_DATASET(*mask_dset))  
-	    { 
-	      sprintf (message,  "Unable to open mask file: %s", 
+	  if (!ISVALID_3DIM_DATASET(*mask_dset))
+	    {
+	      sprintf (message,  "Unable to open mask file: %s",
 		       option_data->mask_filename);
 	      FIM_error (message);
-	    }  
+	    }
 	  DSET_load(*mask_dset); CHECK_LOAD_ERROR(*mask_dset);
      nmsk = thd_mask_from_brick(*mask_dset, 0, 0, &(option_data->bmask), 1);
      if (!nmsk) {
-         sprintf (message,  "Empty mask from %s nothing to do", 
+         sprintf (message,  "Empty mask from %s nothing to do",
 		       option_data->mask_filename);
 	      FIM_error (message);
      }
      if (DSET_NX(*mask_dset) != DSET_NX(*dset_time) ||
          DSET_NX(*mask_dset) != DSET_NX(*dset_time) ||
          DSET_NX(*mask_dset) != DSET_NX(*dset_time) ) {
-         sprintf (message,  "Mask %s and Time series %s dimensions mismatch.", 
+         sprintf (message,  "Mask %s and Time series %s dimensions mismatch.",
 		       option_data->mask_filename, option_data->input_filename);
-	      FIM_error (message);    
-     } 
+	      FIM_error (message);
+     }
 	}
-   
+ 
    {
-      
+ 
       /* detrend that baby */
       if (option_data->polort == -1) { /* choose your goose */
          option_data->polort = DSET_NVALS(*dset_time)/150+1;
@@ -993,36 +993,36 @@ void read_input_data
       ref_in = THD_build_polyref( nref_in , DSET_NVALS(*dset_time) ) ;
       if( ref_in == NULL ) ERROR_exit("THD_build_trigref failed!") ;
       if (!(newset = THD_detrend_dataset( *dset_time , nref_in ,
-                                          ref_in , 2 , 
-                                          0 , 
+                                          ref_in , 2 ,
+                                          0 ,
                                           option_data->bmask , &corder_inar )))
-      { 
+      {
          sprintf (message,  "detrending failed!");
-         FIM_error (message);    
+         FIM_error (message);
       }
-      
+ 
       DSET_delete(*dset_time); *dset_time=newset; newset = NULL;
    }
     }
   else
     FIM_error ("Must specify input measurement data");
 
-  
+
   /*----- Read the input ideal time series files -----*/
   for (is = 0;  is < num_ideal_files;  is++)
     {
-      ideal_array[is] = read_time_series (option_data->ideal_filename[is], 
+      ideal_array[is] = read_time_series (option_data->ideal_filename[is],
 					  &(ideal_list[is]));
 
       if (ideal_array[is] == NULL)
 	{
-	  sprintf (message,  "Unable to read ideal time series file: %s", 
+	  sprintf (message,  "Unable to read ideal time series file: %s",
 		   option_data->ideal_filename[is]);
 	  FIM_error (message);
 	}
     }
 
-  
+
   /*----- Count number of ort and number of ideal time series -----*/
   num_ortts = 0;
   for (is = 0;  is < num_ort_files;  is++)
@@ -1049,7 +1049,7 @@ void read_input_data
   option_data->q = q;
   option_data->p = p;
 
- 
+
 }
 
 
@@ -1058,7 +1058,7 @@ void read_input_data
   Routine to check whether one output file already exists.
 */
 
-void check_one_output_file 
+void check_one_output_file
 (
   THD_3dim_dataset * dset_time,     /* input 3d+time data set */
   char * filename                   /* name of output file */
@@ -1069,27 +1069,27 @@ void check_one_output_file
   THD_3dim_dataset * new_dset=NULL;   /* output afni data set pointer */
   int ierror;                         /* number of errors in editing data */
 
-  
+
   /*----- make an empty copy of input dataset -----*/
   new_dset = EDIT_empty_copy( dset_time ) ;
-  
-  
+
+
   ierror = EDIT_dset_items( new_dset ,
 			    ADN_prefix , filename ,
 			    ADN_label1 , filename ,
 			    ADN_self_name , filename ,
-			    ADN_type , ISHEAD(dset_time) ? HEAD_FUNC_TYPE : 
+			    ADN_type , ISHEAD(dset_time) ? HEAD_FUNC_TYPE :
                                			           GEN_FUNC_TYPE ,
 			    ADN_none ) ;
-  
+
   if( ierror > 0 )
     {
       sprintf (message,
-	       "*** %d errors in attempting to create output dataset!\n", 
+	       "*** %d errors in attempting to create output dataset!\n",
 	       ierror);
       FIM_error (message);
     }
-  
+
   if( THD_is_file(new_dset->dblk->diskptr->header_name) )
     {
       sprintf (message,
@@ -1098,10 +1098,10 @@ void check_one_output_file
 	       new_dset->dblk->diskptr->header_name);
       FIM_error (message);
     }
-  
-  /*----- deallocate memory -----*/   
+
+  /*----- deallocate memory -----*/ 
   THD_delete_3dim_dataset( new_dset , False ) ; new_dset = NULL ;
-  
+
 }
 
 
@@ -1110,7 +1110,7 @@ void check_one_output_file
   Routine to check whether output files already exist.
 */
 
-void check_output_files 
+void check_output_files
 (
   DELAY_options * option_data,       /* fim program options */
   THD_3dim_dataset * dset_time     /* input 3d+time data set */
@@ -1121,7 +1121,7 @@ void check_output_files
   if ((option_data->bucket_filename != NULL)
       && (option_data->input1D_filename == NULL))
     check_one_output_file (dset_time, option_data->bucket_filename);
-  
+
 }
 
 
@@ -1129,8 +1129,8 @@ void check_output_files
 /*
   Routine to check for valid inputs.
 */
-  
-void check_for_valid_inputs 
+
+void check_for_valid_inputs
 (
   DELAY_options * option_data,      /* fim program options */
   THD_3dim_dataset * dset_time,   /* input 3d+time data set */
@@ -1152,7 +1152,7 @@ void check_for_valid_inputs
   int N;                   /* number of usable time points */
 	int lncheck;
    byte LocalHead = 0;
-   
+ 
   /*----- Initialize local variables -----*/
   if (option_data->input1D_filename != NULL)
     nt = fmri_length;
@@ -1166,7 +1166,7 @@ void check_for_valid_inputs
 
   NFirst = option_data->NFirst;
 
-  NLast = option_data->NLast;   
+  NLast = option_data->NLast; 
   if (NLast > nt-1)  NLast = nt-1;
   option_data->NLast = NLast;
 
@@ -1199,7 +1199,7 @@ void check_for_valid_inputs
 
   /*----- Check whether any of the output files already exist -----*/
   if( THD_deathcon() ) check_output_files (option_data, dset_time);
- 
+
   /*----- Read in reference time series -----*/
    option_data->ln = option_data->NLast - option_data->NFirst + 1;
 	option_data->rvec = (float *)    malloc (sizeof(float) * option_data->ln+1);       MTEST (option_data->rvec);
@@ -1212,15 +1212,15 @@ if (LocalHead) fprintf(stderr,"Checking ref\n");
 		printf("Error: Reference filename contains %d values.\n %d values were expected.\n", lncheck, nt);
 		exit (1);
 	}
-  
+
 if (LocalHead) fprintf(stderr,"Checking ref2\n");
 	if (Read_part_file_delay (option_data->rvec, option_data->ideal_filename[0], option_data->NFirst,option_data->NLast) <= 0) {
       printf("Error: Reference filename could not be read or contain too few values.\n");
 		exit (1);
-   }  
+   }
 
-if (LocalHead) fprintf(stderr,"Bucket names\n");	 
-  /* --- decide on the bucket name ----*/ 
+if (LocalHead) fprintf(stderr,"Bucket names\n");	
+  /* --- decide on the bucket name ----*/
 	if (option_data->bucket_filename == NULL)
 	{
  		option_data->bucket_filename = malloc (sizeof(char)*THD_MAX_NAME);
@@ -1230,7 +1230,7 @@ if (LocalHead) fprintf(stderr,"Bucket names\n");
 		check_output_files (option_data, dset_time);
 	}
   	
-  /* --- decide on the output name ----*/ 
+  /* --- decide on the output name ----*/
 	/* The log file is created no matter what */
 	if (option_data->outname == NULL)
 		{
@@ -1256,7 +1256,7 @@ if (LocalHead) fprintf(stderr,"Bucket names\n");
 	
  /* ------- Open files for writing -------------*/
  	
-if (LocalHead) fprintf(stderr,"Output files\n");	 
+if (LocalHead) fprintf(stderr,"Output files\n");	
 	option_data->outlogfile = fopen (option_data->outnamelog,"w"); /* open log file regardless */
 	
 	if (option_data->out == YUP)									/* open outfile */
@@ -1293,7 +1293,7 @@ if (LocalHead) fprintf(stderr,"Output files\n");
   Allocate memory for output volumes.
 */
 
-void allocate_memory 
+void allocate_memory
 (
   DELAY_options * option_data,  /* fim program options */
   THD_3dim_dataset * dset,    /* input 3d+time data set */
@@ -1311,13 +1311,13 @@ void allocate_memory
 
 
   /*----- Allocate memory space for fim parameters -----*/
-  *fim_params_vol  = (float **) malloc (sizeof(float *) * NBUCKETS);   
+  *fim_params_vol  = (float **) malloc (sizeof(float *) * NBUCKETS); 
   MTEST(*fim_params_vol);
 
   for (ip = 0;  ip < NBUCKETS;  ip++)
     {
 				  (*fim_params_vol)[ip]  = (float *) malloc (sizeof(float) * nxyz);
-				  MTEST((*fim_params_vol)[ip]);    
+				  MTEST((*fim_params_vol)[ip]);
 				  for (ixyz = 0;  ixyz < nxyz;  ixyz++)
 	   			 {
 	      			(*fim_params_vol)[ip][ixyz]  = 0.0;
@@ -1334,10 +1334,10 @@ void allocate_memory
   Perform all program initialization.
 */
 
-void initialize_program 
+void initialize_program
 (
   int argc,                         /* number of input arguments */
-  char ** argv,                     /* array of input arguments */ 
+  char ** argv,                     /* array of input arguments */
   DELAY_options ** option_data,       /* fim algorithm options */
   THD_3dim_dataset ** dset_time,    /* input 3d+time data set */
   THD_3dim_dataset ** mask_dset,    /* input mask data set */
@@ -1349,15 +1349,15 @@ void initialize_program
   int ** ideal_list,                /* list of ideal time series */
   float *** fim_params_vol    /* array of volumes containing fim parameters */
 )
-     
+
 {
   byte LocalHead = 0;
-  
+
    if (LocalHead) fprintf(stderr,"In init prog.\n");
   /*----- Allocate memory -----*/
   *option_data = (DELAY_options *) malloc (sizeof(DELAY_options));
 
-   
+ 
   /*----- Get command line inputs -----*/
   get_options (argc, argv, *option_data);
 
@@ -1369,9 +1369,9 @@ void initialize_program
 
 
   /*----- Check for valid inputs -----*/
-  check_for_valid_inputs (*option_data, *dset_time, *mask_dset, 
+  check_for_valid_inputs (*option_data, *dset_time, *mask_dset,
 			  *fmri_length, ort_array, ideal_array);
-  
+
 
   /*----- Allocate memory for output volumes -----*/
    if (LocalHead) fprintf(stderr,"Allocation\n");
@@ -1387,7 +1387,7 @@ void initialize_program
   Get the time series for one voxel from the AFNI 3d+time data set.
 */
 
-void extract_ts_array 
+void extract_ts_array
 (
   THD_3dim_dataset * dset_time,      /* input 3d+time dataset */
   int iv,                            /* get time series for this voxel */
@@ -1429,15 +1429,15 @@ void extract_ts_array
   Save results for this voxel.
 */
 
-void save_voxel 
+void save_voxel
 (
-  int iv,                      /* current voxel index */      
+  int iv,                      /* current voxel index */ 
   float * fim_params,          /* array of fim parameters */
   float ** fim_params_vol      /* array of volumes of fim output parameters */
 )
 
 {
-  int ip;                   /* parameter index */ 
+  int ip;                   /* parameter index */
 
 
   /*----- Saved user requested fim parameters -----*/
@@ -1457,7 +1457,7 @@ void save_voxel
   Calculate the response delay for each voxel.
 */
 
-void calculate_results 
+void calculate_results
 (
   DELAY_options * option_data,  /* dela program options */
   THD_3dim_dataset * dset,    /* input 3d+time data set */
@@ -1470,13 +1470,13 @@ void calculate_results
   int ** ideal_list,          /* list of ideal time series */
   float ** fim_params_vol     /* array of volumes of fim output parameters */
 )
-  
+
 {
   float * ts_array = NULL;    /* array of measured data for one voxel */
   float mask_val[1];          /* value of mask at current voxel */
 
   int q=-1;                      /* number of parameters in the baseline model */
-  int p=-1;                      /* number of parameters in the baseline model 
+  int p=-1;                      /* number of parameters in the baseline model
 			         plus number of ideals */
   int m=-1;                      /* parameter index */
   int n=-1;                      /* data point index */
@@ -1486,9 +1486,9 @@ void calculate_results
    matrix x_base;              /* extracted X matrix    for baseline model */
    matrix xtxinvxt_base;       /* matrix:  (1/(X'X))X'  for baseline model */
    matrix x_ideal[MAX_FILES];  /* extracted X matrices  for ideal models */
-   matrix xtxinvxt_ideal[MAX_FILES];     
+   matrix xtxinvxt_ideal[MAX_FILES];
                               /* matrix:  (1/(X'X))X'  for ideal models */
-   vector y;                   /* vector of measured data */       
+   vector y;                   /* vector of measured data */
 
    int ixyz=-1;                   /* voxel index */
    int nxyz=-1;                   /* number of voxels per dataset */
@@ -1496,26 +1496,26 @@ void calculate_results
    int nt=-1;                  /* number of images in input 3d+time dataset */
    int NFirst=-1;              /* first image from input 3d+time dataset to use */
    int NLast=-1;               /* last image from input 3d+time dataset to use */
-   int N=-1;                   /* number of usable data points */  
+   int N=-1;                   /* number of usable data points */
 
    int num_ort_files=-1;       /* number of ort time series files */
    int num_ideal_files=-1;     /* number of ideal time series files */
    int polort=-1;              /* degree of polynomial ort */
    int num_ortts=-1;           /* number of ort time series */
    int num_idealts=-1;         /* number of ideal time series */
-  
+
    int i=-1;                   /* data point index */
    int is=-1;                  /* ideal index */
    int ilag=-1;                /* time lag index */
    float stddev=-1.0;            /* normalized parameter standard deviation */
    char * label=NULL;            /* string containing stat. summary of results */
-   int xpos=-1, ypos=-1, zpos=-1; 
+   int xpos=-1, ypos=-1, zpos=-1;
    double tzero=0.0 , tdelta=0.0 , ts_mean=0.0 , ts_slope=0.0;
    int   ii=-1,  iz=-1,izold=-1, nxy=-1, nuse=-1, use_fac=-1, kk=-1;
    float * x_bot = NULL;    /* minimum of stimulus time series */
    float * x_ave = NULL;    /* average of stimulus time series */
    float * x_top = NULL;    /* maximum of stimulus time series */
-   int * good_list = NULL;  /* list of good (usable) time points */ 
+   int * good_list = NULL;  /* list of good (usable) time points */
    float ** rarray = NULL;  /* ranked arrays of ideal time series */
    float FimParams[NBUCKETS];  /* output delay parameters */
    float *  dtr  = NULL ;  /* will be array of detrending coeff */
@@ -1532,7 +1532,7 @@ void calculate_results
 		xyzTOindex (option_data, &iposdbg, IPOSx,  IPOSy , IPOSz);
 		printf ("Debug for %d: %d, %d, %d\n\n", iposdbg, IPOSx,  IPOSy , IPOSz);
 	#endif
-   
+ 
 
   /*----- Initialize matrices and vectors -----*/
   matrix_initialize (&xdata);
@@ -1554,12 +1554,12 @@ void calculate_results
     }
   else
     {
-      nxyz = dset->daxes->nxx * dset->daxes->nyy * dset->daxes->nzz;       
+      nxyz = dset->daxes->nxx * dset->daxes->nyy * dset->daxes->nzz;
       nt = DSET_NUM_TIMES (dset);
     }
 
   NFirst = option_data->NFirst;
-  NLast = option_data->NLast;   
+  NLast = option_data->NLast; 
   N = option_data->N;
   p = option_data->p;
   q = option_data->q;
@@ -1578,19 +1578,19 @@ void calculate_results
   good_list = (int *)  malloc (sizeof(int) * N);         MTEST (good_list);
   rarray = (float **)  malloc (sizeof(float *) * num_idealts);  MTEST (rarray);
   vox_vect = (float *)    malloc (sizeof(float) * nt);       MTEST (vox_vect);
-  
+
   /*----- Initialize the independent variable matrix -----*/
-  N = init_indep_var_matrix (q, p, NFirst, N, polort, 
-			     num_ort_files, num_ideal_files, 
-			     ort_array, ort_list, ideal_array, ideal_list, 
+  N = init_indep_var_matrix (q, p, NFirst, N, polort,
+			     num_ort_files, num_ideal_files,
+			     ort_array, ort_list, ideal_array, ideal_list,
 			     x_bot, x_ave, x_top, good_list, &xdata);
   option_data->N = N;
 
 
 
- 
+
   /*----- Initialization for the regression analysis -----*/
-  init_delay (q, p, N, num_idealts, xdata, &x_base, 
+  init_delay (q, p, N, num_idealts, xdata, &x_base,
 			    &xtxinvxt_base, x_ideal, xtxinvxt_ideal, rarray);
 
 
@@ -1603,12 +1603,12 @@ void calculate_results
    if( tdelta == 0.0 ) tdelta = 1.0 ;
    izold  = -666 ;
    nxy    = dset->daxes->nxx * dset->daxes->nyy ;
-  
-  
+
+
    /*--- get scaling factors for input sub-bricks ---*/
 	nuse      = option_data->NLast - option_data->NFirst + 1;
    fac = (float *) malloc( sizeof(float) * nuse ) ;   /* factors */ MTEST (fac);
-   
+ 
 
    use_fac = 0 ;
    for( kk=0 ; kk < nuse ; kk++ ){
@@ -1621,7 +1621,7 @@ void calculate_results
    /*--- setup for detrending ---*/
 
    dtr = (float *) malloc( sizeof(float) * nuse ) ;MTEST (dtr);
-   
+ 
 
    d0fac = 1.0 / nuse ;
    d1fac = 12.0 / nuse / (nuse*nuse - 1.0) ;
@@ -1644,7 +1644,7 @@ void calculate_results
       if (mask != NULL)
 			{
 			  extract_ts_array (mask, ixyz, mask_val);
-			  if (mask_val[0] == 0.0)  continue; 
+			  if (mask_val[0] == 0.0)  continue;
 			}
 		
 		#ifdef ZDBG
@@ -1657,7 +1657,7 @@ void calculate_results
 
      /*----- Extract Y-data for this voxel -----*/
    	
-      
+ 
       if (option_data->input1D_filename != NULL)
 			{
 			  for (i = 0;  i < N;  i++)
@@ -1703,7 +1703,7 @@ void calculate_results
 			
       if( use_fac )
          for( kk=0 ; kk < nuse ; kk++ ) vox_vect[kk] *= fac[kk] ;
-      
+ 
 
       #if 0 /* now detrending is done at input, kill this block someday*/
 		   /** compute mean and slope **/
@@ -1755,8 +1755,8 @@ void calculate_results
          izold = iz ;
 
          if( DSET_TIMEUNITS(dset) == UNITS_MSEC_TYPE ) tzero *= 0.001 ;
-     
-	  if (option_data->Dsamp == YUP) 
+
+	  if (option_data->Dsamp == YUP)
    			dtx = (float) (tzero / tdelta) - option_data->NFirst;
    		else
    			dtx = 0.0;
@@ -1835,11 +1835,11 @@ void calculate_results
       /*----- Save results for this voxel -----*/
       if (option_data->input1D_filename == NULL)
 	save_voxel (ixyz, FimParams, fim_params_vol);
-      
-      
-      
+ 
+ 
+ 
     }  /*----- Loop over voxels -----*/
-  
+
 
    if (option_data->out == YUP)									/* close outfile and outlogfile*/
 				{
@@ -1859,7 +1859,7 @@ void calculate_results
     {
       matrix_destroy (&xtxinvxt_ideal[is]);
       matrix_destroy (&x_ideal[is]);
-    } 
+    }
   matrix_destroy (&xtxinvxt_base);
   matrix_destroy (&x_base);
   matrix_destroy (&xdata);
@@ -1872,13 +1872,13 @@ void calculate_results
   free (x_top);        x_top = NULL;
   free (good_list);    good_list = NULL;
   free (vox_vect); 		vox_vect = NULL;
-  
+
   for (is = 0;  is < num_idealts;  is++)
     {
       free (rarray[is]);   rarray[is] = NULL;
     }
   free (rarray);       rarray = NULL;
-  
+
 }
 
 /*---------------------------------------------------------------------------*/
@@ -1894,10 +1894,10 @@ void attach_sub_brick
   int nxyz,                 /* total number of voxels */
   int brick_type,           /* indicates statistical type of sub-brick */
   char * brick_label,       /* character string label for sub-brick */
-  int nsam, 
-  int nfit, 
+  int nsam,
+  int nfit,
   int nort,                 /* degrees of freedom */
-  short ** bar              /* bar[ib] points to data for sub-brick #ib */  
+  short ** bar              /* bar[ib] points to data for sub-brick #ib */
 )
 
 {
@@ -1910,7 +1910,7 @@ void attach_sub_brick
   MTEST (bar[ibrick]);
   factor = EDIT_coerce_autoscale_new (nxyz, MRI_float, volume,
 				      MRI_short, bar[ibrick]);
-  
+
   if (factor < EPSILON)  factor = 0.0;
   else factor = 1.0 / factor;
 
@@ -1923,8 +1923,8 @@ void attach_sub_brick
 
   if (brick_type == FUNC_COR_TYPE)
     EDIT_BRICK_TO_FICO (new_dset, ibrick, nsam, nfit, nort);
-  
-  
+
+
   /*----- attach bar[ib] to be sub-brick #ibrick -----*/
   EDIT_substitute_brick (new_dset, ibrick, MRI_short, bar[ibrick]);
 
@@ -1935,10 +1935,10 @@ void attach_sub_brick
   Routine to write one bucket data set.
 */
 
-void write_bucket_data 
+void write_bucket_data
 (
   int argc,                         /* number of input arguments */
-  char ** argv,                     /* array of input arguments */ 
+  char ** argv,                     /* array of input arguments */
   DELAY_options * option_data,        /* fim program options */
   float ** fim_params_vol      /* array of volumes of fim output parameters */
 )
@@ -1964,8 +1964,8 @@ void write_bucket_data
   int ip;                   /* parameter index */
   int nxyz;                 /* total number of voxels */
   int ibrick;               /* sub-brick index */
-  int nsam; 
-  int nfit; 
+  int nsam;
+  int nfit;
   int nort;                 /* degrees of freedom */
   char label[THD_MAX_NAME];   /* general label for sub-bricks */
 
@@ -1973,9 +1973,9 @@ void write_bucket_data
   /*----- read prototype dataset -----*/
   old_dset = THD_open_one_dataset (option_data->input_filename);
 
-    
+
   /*----- Initialize local variables -----*/
-  nxyz = old_dset->daxes->nxx * old_dset->daxes->nyy * old_dset->daxes->nzz;  
+  nxyz = old_dset->daxes->nxx * old_dset->daxes->nyy * old_dset->daxes->nzz;
   num_idealts = option_data->num_idealts;
   q = option_data->q;
   N = option_data->N;
@@ -1986,12 +1986,12 @@ void write_bucket_data
 
   strcpy (output_prefix, option_data->bucket_filename);
   strcpy (output_session, "./");
-  
- 
+
+
   /*----- allocate memory -----*/
   bar  = (short **) malloc (sizeof(short *) * nbricks);
   MTEST (bar);
-  
+
 
   /*-- make an empty copy of prototype dataset, for eventual output --*/
   new_dset = EDIT_empty_copy (old_dset);
@@ -2003,8 +2003,8 @@ void write_bucket_data
   sprintf (label, "Output prefix: %s", output_prefix);
   tross_Append_History ( new_dset, label);
 
-  
-  /*----- delete prototype dataset -----*/ 
+
+  /*----- delete prototype dataset -----*/
   THD_delete_3dim_dataset( old_dset , False );  old_dset = NULL ;
 
 
@@ -2015,33 +2015,33 @@ void write_bucket_data
 			    ADN_directory_name,  output_session,
 			    ADN_type,            HEAD_FUNC_TYPE,
 			    ADN_func_type,       FUNC_BUCK_TYPE,
-			    ADN_datum_all,       MRI_short ,   
+			    ADN_datum_all,       MRI_short , 
                             ADN_ntt,             0,               /* no time */
 			    ADN_nvals,           nbricks,
-			    ADN_malloc_type,     DATABLOCK_MEM_MALLOC ,  
+			    ADN_malloc_type,     DATABLOCK_MEM_MALLOC ,
 			    ADN_none ) ;
-  
+
   if( ierror > 0 )
     {
-      fprintf(stderr, 
-	      "*** %d errors in attempting to create bucket dataset!\n", 
+      fprintf(stderr,
+	      "*** %d errors in attempting to create bucket dataset!\n",
 	      ierror);
       exit(1);
     }
-  
-  if (!THD_ok_overwrite() && THD_is_ondisk(DSET_HEADNAME(new_dset))) 
+
+  if (!THD_ok_overwrite() && THD_is_ondisk(DSET_HEADNAME(new_dset)))
     {
       fprintf(stderr,
 	      "*** Output dataset file %s already exists--cannot continue!\n",
 	      DSET_HEADNAME(new_dset));
       exit(1);
     }
-  
+
 
   /*----- Attach individual sub-bricks to the bucket dataset -----*/
   ibrick = 0;
-  for (ip = 0;  ip < NBUCKETS;  ip++)        
-    {                                 
+  for (ip = 0;  ip < NBUCKETS;  ip++)
+    {                       
       strcpy (brick_label, DELAY_OUTPUT_TYPE_name[ip]);
 
       if (ip == COFINDX)
@@ -2056,9 +2056,9 @@ void write_bucket_data
 			  nsam = 0; nfit = 0; nort = 0;
 			}
 
-      volume = fim_params_vol[ip];		  
-      attach_sub_brick (new_dset, ibrick, volume, nxyz, 
-			brick_type, brick_label, nsam, nfit, nort, bar);  
+      volume = fim_params_vol[ip];		
+      attach_sub_brick (new_dset, ibrick, volume, nxyz,
+			brick_type, brick_label, nsam, nfit, nort, bar);
 
       ibrick++;
     }
@@ -2069,17 +2069,17 @@ void write_bucket_data
      if ((ip = THD_create_all_fdrcurves( new_dset )) != 1) {
       fprintf(stderr,"*** Failed to add fdr curves! (%d)\n", ip);
      }else{
-      fprintf(stderr,"+++ added %d fdrcurves\n",ip); 
+      fprintf(stderr,"+++ added %d fdrcurves\n",ip);
      }
   }
-  
+
   THD_load_statistics (new_dset);
   THD_write_3dim_dataset( NULL,NULL , new_dset , True ) ;
   fprintf(stderr,"Wrote bucket dataset ");
   fprintf(stderr,"into %s\n", DSET_PREFIX(new_dset));
 
-  
-  /*----- deallocate memory -----*/   
+
+  /*----- deallocate memory -----*/ 
   THD_delete_3dim_dataset( new_dset , False ) ; new_dset = NULL ;
 
 }
@@ -2093,7 +2093,7 @@ void write_bucket_data
 void output_results
 (
   int argc,                         /* number of input arguments */
-  char ** argv,                     /* array of input arguments */ 
+  char ** argv,                     /* array of input arguments */
   DELAY_options * option_data,        /* fim algorithm options */
   float ** fim_params_vol      /* array of volumes of fim output parameters */
 )
@@ -2209,9 +2209,9 @@ void write_ud (struct DELAY_options* option_data)
 		return;
 	}
 
-/* ************************************************************ */ 
+/* ************************************************************ */
 /* function to compute x, y, z coordinates from the index       */
-/* ************************************************************ */ 
+/* ************************************************************ */
 
 void indexTOxyz (struct DELAY_options* option_data, int ncall, int *xpos , int *ypos , int *zpos)  	
 	{
@@ -2234,10 +2234,10 @@ void xyzTOindex (struct DELAY_options* option_data, int *ncall, int xpos , int y
 /* instantaneously, and need not be logged 							 */
 /* ************************************************************ */
 
-void error_report (struct DELAY_options* option_data, int ncall ) 
+void error_report (struct DELAY_options* option_data, int ncall )
 	{
 		int xpos,ypos,zpos;
-		indexTOxyz (option_data, ncall, &xpos , &ypos , &zpos); 
+		indexTOxyz (option_data, ncall, &xpos , &ypos , &zpos);
 
 		switch (option_data->errcode)
 			{
@@ -2302,14 +2302,14 @@ void terminate_program
   num_idealts = (*option_data)->num_idealts;
 
 
-  /*----- Deallocate memory for option data -----*/   
+  /*----- Deallocate memory for option data -----*/ 
   free (*option_data);  *option_data = NULL;
 
 
   /*----- Deallocate memory for ideal time series -----*/
   /*
   for (is = 0;  is < num_idealts;  is++)
-    { free (ideal[is]);  ideal[is] = NULL; } 
+    { free (ideal[is]);  ideal[is] = NULL; }
   */
 
 
@@ -2322,20 +2322,20 @@ void terminate_program
 	    { free ((*fim_params_vol)[ip]);   (*fim_params_vol)[ip] = NULL; }
 	}
 
-      free (*fim_params_vol);   *fim_params_vol  = NULL; 
+      free (*fim_params_vol);   *fim_params_vol  = NULL;
     }
-	 
-		 
+	
+		
 
 }
 
 
 /*---------------------------------------------------------------------------*/
 
-int main 
+int main
 (
   int argc,                /* number of input arguments */
-  char ** argv             /* array of input arguments */ 
+  char ** argv             /* array of input arguments */
 )
 
 {
@@ -2352,39 +2352,41 @@ int main
   float ** fim_params_vol = NULL;
                                 /* array of volumes of fim output parameters */
   byte LocalHead = 0;
-  
+
   /*----- Identify software -----*/
 #if 0
   printf ("\n\n");
   printf ("Program: %s \n", PROGRAM_NAME);
-  printf ("Author:  %s \n", PROGRAM_AUTHOR); 
+  printf ("Author:  %s \n", PROGRAM_AUTHOR);
   printf ("Date:    %s \n", PROGRAM_DATE);
   printf ("\n");
 #endif
 
-   PRINT_VERSION("3ddelay") ; AUTHOR(PROGRAM_AUTHOR) ; mainENTRY("3ddelay main") ; machdep() ;
+   PRINT_VERSION("3ddelay") ; AUTHOR(PROGRAM_AUTHOR) ;
+   mainENTRY("3ddelay main") ; machdep() ;
+   AFNI_logger("3ddelay",argc,argv) ;
 
   /*----- Program initialization -----*/
   if (LocalHead) fprintf(stderr,"Initializing ...");
-  initialize_program (argc, argv, &option_data, &dset_time, &mask_dset, 
-		      &fmri_data, &fmri_length, 
-		      ort_array, ort_list, ideal_array, ideal_list, 
+  initialize_program (argc, argv, &option_data, &dset_time, &mask_dset,
+		      &fmri_data, &fmri_length,
+		      ort_array, ort_list, ideal_array, ideal_list,
 		      &fim_params_vol);
   if (LocalHead) fprintf(stderr,"\n");
 
 
   /*----- Perform fim analysis -----*/
   if (LocalHead) fprintf(stderr,"Calculating ...");
-  calculate_results (option_data, dset_time, mask_dset, 
+  calculate_results (option_data, dset_time, mask_dset,
 		     fmri_data, fmri_length,
-		     ort_array, ort_list, ideal_array, ideal_list, 
+		     ort_array, ort_list, ideal_array, ideal_list,
 		     fim_params_vol);
   if (LocalHead) fprintf(stderr,"\n");
 
-  /*----- Deallocate memory for input datasets -----*/   
-  if (dset_time != NULL)  
+  /*----- Deallocate memory for input datasets -----*/ 
+  if (dset_time != NULL)
     { THD_delete_3dim_dataset (dset_time, False);  dset_time = NULL; }
-  if (mask_dset != NULL)  
+  if (mask_dset != NULL)
     { THD_delete_3dim_dataset (mask_dset, False);  mask_dset = NULL; }
 
 
@@ -2396,8 +2398,8 @@ int main
 
 
   /*----- Terminate program -----*/
-  terminate_program (&option_data, 
-		     ort_array, ort_list, ideal_array, ideal_list, 
-		     &fim_params_vol); 
+  terminate_program (&option_data,
+		     ort_array, ort_list, ideal_array, ideal_list,
+		     &fim_params_vol);
 
 }
