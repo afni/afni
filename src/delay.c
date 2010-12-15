@@ -367,7 +367,7 @@ int Read_part_file_delay_OLD (float *x,
          }
      
      if (a > b || a==0) {
-     				printf ("\a\n\33[1mError in (from , to) line numbers\n\33\[0m");
+     				printf ("\a\n** Error in (from , to) line numbers\n");
      				printf ("Exiting @Read_part_file function \n");
      				exit (0);
      		   }
