@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 16, DEC, 2010, RCR, "@ANATICOR", MICRO, TYPE_GENERAL,
+   "HJ change: small updates to the help",
+   NULL
+ } ,
+
  { 16, DEC, 2010, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
    "updates to file type (looks like) errors and warnings",
    NULL
