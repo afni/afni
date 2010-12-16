@@ -51,7 +51,7 @@ afni_history_struct rickr_history[] = {
 
  { 16, DEC, 2010, RCR, "@ANATICOR", MICRO, TYPE_GENERAL,
    "HJ change: small updates to the help",
-   NULL
+   "changes were submitted for Hang Joon Jo"
  } ,
 
  { 16, DEC, 2010, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
