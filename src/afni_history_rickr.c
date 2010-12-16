@@ -49,6 +49,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 16, DEC, 2010, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "updates to file type (looks like) errors and warnings",
+   NULL
+ } ,
+
+ { 16, DEC, 2010, RCR, "1d_tool.py", MINOR, TYPE_ENHANCE,
+   "updates to file type (looks like) errors and warnings",
+   NULL
+ } ,
+
  { 15, DEC, 2010, RCR, "timing_tool.py", MINOR, TYPE_ENHANCE,
    "use lib_textdata.py for reading timing files, allow empty file",
    "empty file update for C Deveney"

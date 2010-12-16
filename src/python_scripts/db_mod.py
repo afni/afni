@@ -2792,7 +2792,9 @@ def valid_file_types(proc, stims, file_type):
          3 : global
         10 : local or global
 
-       If invalid, print messages (so run the check twice).
+       If invalid, print messages.
+       If valid, print any warning messages.
+       So checks are always run twice.
 
        return 1 if valid, 0 otherwise
     """
@@ -2817,26 +2819,36 @@ def valid_file_types(proc, stims, file_type):
         ok = 0  # prudent
         if   file_type == 1: # check 1D, just compare against total reps
             ok = adata.looks_like_1D(run_lens=proc.reps_all, verb=0)
+            if ok: adata.file_type_warnings_1D(run_lens=proc.reps_all)
         elif file_type == 2: # check local
             ok = adata.looks_like_local_times(run_lens=proc.reps_all,
                                                 tr=proc.tr, verb=0)
+            if ok: adata.file_type_warnings_local(run_lens=proc.reps_all,
+                                                tr=proc.tr)
         elif file_type == 3: # check global
             ok = adata.looks_like_global_times(run_lens=proc.reps_all,
                                                 tr=proc.tr, verb=0)
+            if ok: adata.file_type_warnings_global(run_lens=proc.reps_all,
+                                                tr=proc.tr)
         elif file_type == 10: # check both local and global
-            # if not local, check global
+            # first test as local
             ok = adata.looks_like_local_times(run_lens=proc.reps_all,
                                                 tr=proc.tr, verb=0)
+            if ok: adata.file_type_warnings_local(run_lens=proc.reps_all,
+                                                tr=proc.tr)
+            # if not local, then check as global
             if not ok:
                 ok = adata.looks_like_global_times(run_lens=proc.reps_all,
                                                 tr=proc.tr,verb=0)
+                if ok:adata.file_type_warnings_global(run_lens=proc.reps_all,
+                                                tr=proc.tr)
         else: # error
             print '** valid_file_types: bad type %d' % file_type
             return 0
 
         # if empty, warn user (3dD will fail)
         if ok and adata.empty:
-            print '** empty stim file %s (consider 3dD -GOFORIT)\n' % fname
+            print '** empty stim file %s (consider 3dD -GOFORIT ...)\n' % fname
 
         # if current file is good, move on
         if ok: continue
