@@ -3489,7 +3489,7 @@ ENTRY("mri_read_ascii_ragged_complex") ;
 /*---------------------------------------------------------------------------*/
 /*! Decode vectors of numbers separated by a single non-space character;
     return value is number of values actually decoded.
-    vec==NULL is OK for testing (then no values are assigned to it).
+    vec==NULL is OK for testing (then no values are assigned to it, duh).
 *//*-------------------------------------------------------------------------*/
 
 static int decode_fvect( char *str, float filler, int vdim, float *vec )
@@ -3499,7 +3499,12 @@ static int decode_fvect( char *str, float filler, int vdim, float *vec )
    if( vec != NULL ) for( ii=0 ; ii < vdim ; ii++ ) vec[ii] = filler ;
    if( str == NULL || *str == '\0' ) return 0 ;
 
-   if( *str == '*' ) return 1 ;  /* 23 Dec 2008 */
+   if( *str == '*' ){                         /* 23 Dec 2008 */
+     ii = 1 ;
+     if( str[1] == '*' && isdigit(str[2]) )   /* 16 Dec 2010 */
+       ii = (int)strtod(str+2,NULL) ;
+     return ii ;
+   }
 
    for( ii=0 ; ii < vdim ; ii++ ){
      nn = 0 ; mm = sscanf( str , "%f%n" , &aa , &nn ) ;
