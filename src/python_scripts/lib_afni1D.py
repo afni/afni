@@ -1511,24 +1511,43 @@ class AfniData:
       self.row_lens = run_lengths
 
    def looks_like_1D(self, run_lens=[], nstim=0, verb=1):
-      """return whether data looks like 1D (stim_file) format
+      """check if the file looks like 1D
+         - if so and verb, show warnings, too"""
+
+      # negative result is terminal, positive can continue with warnings
+      errs = self.file_type_errors_1D(run_lens=run_lens, nstim=nstim, verb=verb)
+      if errs < 0:
+         if verb > 0: print '== BAD: %s does not look like 1D' % self.fname
+         return 0
+      else:
+         if verb > 0:
+            self.file_type_warnings_1D(run_lens=run_lens, nstim=nstim)
+            print '== GOOD: %s looks like 1D' % self.fname
+         if errs > 0: return 0
+         return 1
+
+
+   def file_type_errors_1D(self, run_lens=[], nstim=0, verb=1):
+      """return whether errors exist for 1D (stim_file) format
                 - data should be rectangular
                   (what else can we even check?)
          if run_lens is passed,
                 - nrows should be at least sum(run_lens)
-                - warn if too many and verb > 0
          if nstim is passed,
                 - number of columns should equal nstim
 
+         return -1 on fatal error
+                 0 on OK
+                 1 on non-fatal error
       """
 
       if not self.ready:
          print '** looks_like_1D: data not ready'
-         return 0
+         return -1
 
       if self.empty:
          if verb > 1: print "-- empty file %s okay as 1D file" % self.fname
-         return 1
+         return 0
 
       # error occur only as singles, to test against verb > 1
 
@@ -1551,31 +1570,76 @@ class AfniData:
             if verb > 1:
                print "** file %s: nrows too small for run dur: %d < %d" \
                                % (self.fname, self.nrows, tot_dur)
-         elif tot_dur < self.nrows:
-            if verb > 0:
-               print "** warning for 1D file %s, more rows than TRs: %d > %d" \
-                     % (self.fname, self.nrows, tot_dur)
 
       if nstim > 0 and nstim != self.ncols:
          errors |= ERR_ANY_MISC
          if verb > 1: print "** file %s: ncols %d != nstim %d" \
                             % (self.fname, self.ncols, nstim)
 
-      if errors == 0:
-         if verb > 0: print '== GOOD: %s looks like 1D' % self.fname
+      if errors: return -1
+      else:      return  0
+
+   def file_type_warnings_1D(self, run_lens=[], nstim=0):
+      """akin to ft_errors_1D, but just show any warnings
+         if run_lens is passed,
+                - warn if too many
+         if nstim is passed,
+                - number of columns should equal nstim
+         return whether warnings are shown
+      """
+
+      if self.file_type_errors_1D(run_lens=run_lens, nstim=nstim, verb=0) < 0:
+         print '** file %s is not valid as a 1D format' % self.name
          return 1
-      else:
-         if verb > 0: print '== BAD: %s does not look like 1D' % self.fname
+
+      if self.empty:
+         print "-- empty file %s okay as 1D file" % self.fname
          return 0
 
+      # keep same local variable
+      rlens = run_lens
+
+      nruns = len(rlens)
+      if nruns > 0:
+         # if TR, scale it in
+         tot_dur = sum(rlens)
+
+         if tot_dur < self.nrows:
+            print "** warning for 1D file %s, more rows than TRs: %d > %d" \
+                  % (self.fname, self.nrows, tot_dur)
+            return 1
+
+      return 0
+
    def looks_like_local_times(self, run_lens=[], tr=0.0, verb=1):
-      """return whether data looks like local stim_times format
+      """check if the file looks like local times
+         - if so and verb, show warnings, too"""
+
+      # negative result is terminal, positive can continue with warnings
+      errs = self.file_type_errors_local(run_lens=run_lens, tr=tr, verb=verb)
+      if errs < 0:
+         if verb > 0:
+            print '== BAD: %s does not look like local stim_times' % self.fname
+         return 0
+      else:
+         if verb > 0:
+            self.file_type_warnings_local(run_lens=run_lens, tr=tr)
+            print '== GOOD: %s looks like local stim_times' % self.fname
+         if errs > 0: return 0
+         return 1
+
+   def file_type_errors_local(self, run_lens=[], tr=0.0, verb=1):
+      """return whether data has errors for local stim_times format
                 - times should be non-negative
                 - times should be unique per run
          if run_lens is passed, 
                 - number of runs should match nrows
                 - maximum should be less than current run_length
          if tr is passed, scale the run lengths
+
+         return -1 on fatal erros
+                 0 on OK
+                 1 on non-fatal errors
       """
 
       # possibly scale run_lengths
@@ -1586,21 +1650,78 @@ class AfniData:
 
       if not self.ready:
          print '** looks_like_local_times: data not ready'
-         return 0
+         return -1
 
       if self.empty:
          if verb > 1: print "-- empty file %s okay as local_times" % self.fname
-         return 1
+         return 0
 
       # in case we know nothing, just check that values are non-negative
       # and unique
       # - if we have run lengths, check the number of runs and maximums, too
       errors = 0
+
+      # allow bad nruns (but warn)
+
+      for rind in range(len(self.data)):
+         # start with row copy
+         row = self.data[rind][:]
+         if len(row) == 0: continue
+         row.sort()
+         first = row[0]
+         last = row[-1]
+         # allow negatives (but warn)
+         if not UTIL.vals_are_increasing(row):
+            errors |= ERR_ST_NON_UNIQUE
+            if verb > 1: print "** file %s, row %d has repetitive times" \
+                               % (self.fname, rind)
+         # allow times after end of run (but warn)
+
+         del(row)
+
+      if errors: return 1
+      else:      return 0
+
+
+   def file_type_warnings_local(self, run_lens=[], tr=0.0):
+      """warn about any oddities in local timing
+                - times should be non-negative
+                - times should be unique per run
+         if run_lens is passed, 
+                - number of runs should match nrows
+                - maximum should be less than current run_length
+         if tr is passed, scale the run lengths
+         return whether any warnings are printed
+      """
+
+      # possibly scale run_lengths
+      if tr > 0.0: rlens = [tr*rl for rl in run_lens]
+      else:        rlens = run_lens
+
+      nruns = len(rlens)
+
+      if not self.ready:
+         print '** looks_like_local_times_warn: data not ready'
+         return 1
+
+      if self.file_type_errors_local(run_lens=run_lens,tr=tr,verb=0) < 0:
+         print '** file %s is not valid as local times format' % self.name
+         return 1
+
+      if self.empty:
+         print "-- empty file %s okay as local_times" % self.fname
+         return 0
+
+      # make a list of warnings to print at the end
+      warnings = []
+
+      # - if we have run lengths, check the number of runs and maximums, too
       if nruns > 0:
          if nruns != self.nrows:
-            errors |= ERR_ST_NUM_RUNS
-            if verb > 2: print "** %d rows does not match %d runs" \
-                               % (self.nrows, nruns)
+            warnings.append("   - %d rows does not match %d runs" \
+                           % (self.nrows, nruns))
+
+      wcount = [0,0,0]  # limit warnings of each type (to 2 for now)
       for rind in range(len(self.data)):
          # start with row copy
          row = self.data[rind][:]
@@ -1609,47 +1730,67 @@ class AfniData:
          first = row[0]
          last = row[-1]
          if first < 0:
-            errors |= ERR_ST_NEGATIVES
-            if verb > 2: print "** row %d has negative time %g" % (rind, first)
+            wcount[0] += 1
+            if wcount[0] <= 2:
+               warnings.append("   - row %d has negative time %g"%(rind, first))
          if not UTIL.vals_are_increasing(row):
-            errors |= ERR_ST_NON_UNIQUE
-            if verb > 2: print "** row %d has repetitive times" % rind
+            wcount[1] += 1
+            if wcount[1] <= 2:
+               warnings.append("   - row %d has repetitive times" % (rind))
          if nruns > 0 and rind < nruns:
             if last >= rlens[rind]:
-               errors |= ERR_ST_TOO_BIG
-               if verb > 2:
-                  print "** row %d has time %g exceeding run duration %g" \
-                               % (rind, last, rlens[rind])
-
+               wcount[2] += 1
+               if wcount[2] <= 2:
+                  warnings.append("   - row %d : time %g exceeds run dur %g" \
+                                  % (rind, last, rlens[rind]))
          del(row)
 
-      if verb > 1:
-         if errors:
-            print "** file '%s' is not in -local_times format" % self.fname
-            if errors & ERR_ST_NEGATIVES:  print '   - has negative times'
-            if errors & ERR_ST_NON_UNIQUE: print '   - times are not unique'
-            if errors & ERR_ST_NUM_RUNS:   print '   - num rows != num runs'
-            if errors & ERR_ST_TOO_BIG:    print '   - times exceed run lengths'
-         else: print '++ data looks like stim times'
+      # if any type exceeded the limit (of 2), print a general count
+      if wcount[0] > 2:
+         warnings.append("   * %d rows with negative times ..."%wcount[0])
+      if wcount[1] > 2:
+         warnings.append("   * %d rows with repetitive times ..."%wcount[1])
+      if wcount[2] > 2:
+         warnings.append("   * %d row times exceed run dur %g ..." \
+                         % (wcount[2], rlens[rind]))
 
-      if errors == 0:
-         if verb>0: print '== GOOD: %s looks like local stim_times'%self.fname
+      if len(warnings) > 0:
+         print '** warnings for local stim_times format of file %s' % self.fname
+         for w in warnings: print w
          return 1
-      else:
-         if verb > 0:
-            print '== BAD: %s does not look like local stim_times' % self.fname
-         return 0
+      else: return 0
 
 
    def looks_like_global_times(self, run_lens=[], tr=0.0, verb=1):
+      """check if the file looks like global times
+         - if so and verb, show warnings, too"""
+
+      # negative result is terminal, positive can continue with warnings
+      errs = self.file_type_errors_global(run_lens=run_lens, tr=tr, verb=verb)
+      if errs < 0:
+         if verb > 0:
+            print '== BAD: %s does not look like global stim_times' % self.fname
+         return 0
+      else:
+         if verb > 0:
+            self.file_type_warnings_global(run_lens=run_lens, tr=tr)
+            print '== GOOD: %s looks like global stim_times' % self.fname
+         if errs > 0: return 0
+         return 1
+
+   def file_type_errors_global(self, run_lens=[], tr=0.0, verb=1):
+      """ return -1 on fatal erros
+                  0 on OK
+                  1 on non-fatal errors
+      """
 
       if not self.ready:
          print '** looks_like_1D: data not ready'
-         return 0
+         return -1
 
       if self.empty:
          if verb > 1: print "-- empty file %s okay as global_times" % self.fname
-         return 1
+         return 0
 
       errors = 0
 
@@ -1658,10 +1799,40 @@ class AfniData:
          errors |= ERR_ANY_MISC
          if verb > 1: print "** file %s is not a single column" % self.fname
 
-      # must rectangular
+      # must be rectangular
       if not self.rect:
          errors |= ERR_ANY_MISC
          if verb > 1: print "** file %s is not a rectangular" % self.fname
+
+      # negative times are not errors, but warnings
+
+      # possibly scale run_lengths
+
+      # note the total duration (tr == -1 implies just count TRs)
+
+      # late times are not errors, but warnings
+
+      # repetition times are not errors, but warnings
+
+      if errors: return 1
+      else:      return 0
+
+   def file_type_warnings_global(self, run_lens=[], tr=0.0, verb=1):
+
+      if not self.ready:
+         print '** looks_like_1D: data not ready'
+         return 1
+
+      if self.empty:
+         if verb > 1: print "-- empty file %s okay as global_times" % self.fname
+         return 0
+
+      if self.file_type_errors_global(run_lens=run_lens,tr=tr,verb=0) < 0:
+         print '** file %s is not valid as global times format' % self.name
+         return 1
+
+      # make a list of warnings to print at the end
+      warnings = []
 
       # get a single sequence of numbers, depending on the direction
       if self.nrows == 1: data = self.data[0]
@@ -1670,9 +1841,7 @@ class AfniData:
       data.sort()
 
       if data[0] < 0.0:
-         errors |= ERR_ANY_MISC
-         if verb > 1: print "** file %s has negative time %g" \
-                            % (self.fname, data[0])
+         warnings.append("   - negative stim time %g" % (data[0]))
 
       # possibly scale run_lengths
       if tr > 0.0: rlens = [tr*rl for rl in run_lens]
@@ -1683,22 +1852,17 @@ class AfniData:
       if tr > 0.0: endoftime *= tr
 
       if data[-1] >= endoftime:
-         errors |= ERR_ANY_MISC
-         if verb > 1: print "** file %s has time %g after all runs, %g" \
-                            % (self.fname, data[-1], endoftime)
+         warnings.append("   - time %g after all runs, %g" 
+                            % (data[-1], endoftime))
 
       if not UTIL.vals_are_increasing(data):
-            errors |= ERR_ANY_MISC
-            if verb > 1: print "** file %s has repeat times" % self.fname
+            warnings.append("   - has repeated times")
 
-      if errors == 0:
-         if verb > 0: print '== GOOD: %s looks like global stim_times' \
-                            % self.fname
+      if len(warnings) > 0:
+         print '** warnings for global stim_times format of file %s'%self.fname
+         for w in warnings: print w
          return 1
-      else:
-         if verb > 0: print '== BAD: %s does not look like global stim_times' \
-                            % self.fname
-         return 0
+      else: return 0
 
    def init_from_filename(self, fname):
       """file could be 1D, timing or married timing data

@@ -428,9 +428,10 @@ g_history = """
         - removed useless TR from looks_like_1D function
    0.21 Oct 29, 2010 - added -show_indices_baseline, _motion and _interest
    0.22 Nov  4, 2010 - fixed print vs. return problem in -show_indices
+   0.23 Dec 16, 2010 - updates to file type (looks like) errors and warnings
 """
 
-g_version = "1d_tool.py version 0.22, November 4, 2010"
+g_version = "1d_tool.py version 0.23, December 16, 2010"
 
 
 class A1DInterface:
