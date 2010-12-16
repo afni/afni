@@ -44,6 +44,12 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 16 , DEC , 2010 , RWC , "mri_read" , MICRO , TYPE_GENERAL ,
+   "Modify ragged read to allow for empty vectors" ,
+   "That is, a string like '**8' means '8 filler values'.  This is for the\n"
+   "case where someone needs to provide a -stim_times_AM2 file with all '*'\n"
+   "times (and with -allzero_OK), but with no actual stimulus times." } ,
+
  { 13 , DEC , 2010 , RWC , "many" , MICRO , TYPE_NEW_ENV ,
    "Add AFNI_ECHO_COMMANDLINE environment variable" ,
    "Runs inside afni_logger, for Daniel Handwerker" } ,
