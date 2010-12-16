@@ -228,9 +228,10 @@ g_history = """
     2.43 Dec 14 2010 :
         - fixed problem with timing file tests on 'empty' files with '*'
         - problem noted by C Deveney and R Momenan
+    2.44 Dec 16 2010 : small changes to file type warnings
 """
 
-g_version = "version 2.43, Dec 14, 2010"
+g_version = "version 2.44, Dec 16, 2010"
 
 # version of AFNI required for script execution
 g_requires_afni = "4 Nov 2010"
