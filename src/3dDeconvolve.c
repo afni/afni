@@ -2447,8 +2447,11 @@ void get_options
               sopt , ival , nopt ) ;
             else
               ERROR_exit(
-              "'%s %d' file '%s' doesn't have any auxiliary values per time point! [nopt=%d] :-(\n",
-              sopt , ival , argv[nopt] , nopt ) ;
+              "'%s %d' file '%s' doesn't have any auxiliary values per time point! [nopt=%d] :-(\n%s",
+              sopt , ival , argv[nopt] , nopt ,
+              (nc > 0) ? " ==> You need at least 1 extra value 'married' to each stimulus start time\n"
+                       : " ==> To have NO valid times, use a time of '-1' and 'marry' it as desired\n"
+              ) ;
           }
           else if( vdim-1 > BASIS_MAX_VDIM ) /* over the limit */
             ERROR_exit(
