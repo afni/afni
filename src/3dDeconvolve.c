@@ -2356,6 +2356,7 @@ void get_options
       }
 
       /*-----  -stim_times k sname rtype [10 Aug 2004]  -----*/
+
       if( strncmp(argv[nopt],"-stim_times",11) == 0 ){
         char *suf = argv[nopt]+11 , *sopt=argv[nopt] ;
         int nc=0,vdim=0,vmod=0 ; MRI_IMAGE *tim ;
@@ -2442,16 +2443,16 @@ void get_options
           if( vdim < 2 ){                /* need at least 2 (time & amplitude) */
             if( strncmp(argv[nopt],"1D:",3) == 0 )
               ERROR_exit(
-              "'%s %d' doesn't allow '1D:' type of input -- use a file [nopt=%d]",
+              "'%s %d' doesn't allow '1D:' type of input -- use a file [nopt=%d] :-(",
               sopt , ival , nopt ) ;
             else
               ERROR_exit(
-              "'%s %d' file '%s' doesn't have auxiliary values per time point! [nopt=%d]",
+              "'%s %d' file '%s' doesn't have any auxiliary values per time point! [nopt=%d] :-(\n",
               sopt , ival , argv[nopt] , nopt ) ;
           }
           else if( vdim-1 > BASIS_MAX_VDIM ) /* over the limit */
             ERROR_exit(
-              "'%s %d' file '%s' has too many auxiliary values per time point! [nopt=%d]",
+              "'%s %d' file '%s' has too many auxiliary values per time point! [nopt=%d] :-(",
               sopt , ival , argv[nopt] , nopt ) ;
           else                               /* juuusst right */
             INFO_message(
