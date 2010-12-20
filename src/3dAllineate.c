@@ -344,7 +344,7 @@ int main( int argc , char *argv[] )
    char *auto_string           = "-autobox" ;
    int auto_dilation           = 0 ;            /* for -automask+N */
    int wtspecified             = 0 ;            /* 10 Sep 2007 */
-   double dxyz_mast            = 0.0f ;         /* implemented 24 Jul 2007 */
+   double dxyz_mast            = 0.0  ;         /* implemented 24 Jul 2007 */
    int meth_code               = GA_MATCH_HELLINGER_SCALAR ;
    int sm_code                 = GA_SMOOTH_GAUSSIAN ;
    float sm_rad                = 0.0f ;
@@ -3597,7 +3597,7 @@ STATUS("zeropad weight dataset") ;
      if( dxyz_mast > 0.0 )
        WARNING_message("-mast_dxyz %g option was meaningless :-(",dxyz_mast) ;
    } else {
-     if( dset_mast == NULL ){
+     if( dset_mast == NULL ){ /* pick a master dataset to control output grid */
        if( dset_base != NULL ){
          if( verb ) INFO_message("master dataset for output = base") ;
          dset_mast = dset_base ;
@@ -3606,7 +3606,7 @@ STATUS("zeropad weight dataset") ;
          dset_mast = dset_targ ;
        }
      }
-     if( dxyz_mast > 0.0 ){   /* 24 Jul 2007 */
+     if( dxyz_mast > 0.0 ){   /* 24 Jul 2007 -- alter grid size */
        THD_3dim_dataset *qset ;
        qset = r_new_resam_dset( dset_mast , NULL ,
                                 dxyz_mast,dxyz_mast,dxyz_mast ,
@@ -3618,14 +3618,14 @@ STATUS("zeropad weight dataset") ;
            INFO_message("changing output grid spacing to %.3f mm",dxyz_mast) ;
        }
      }
-     if( !ISVALID_MAT44(dset_mast->daxes->ijk_to_dicom) )
-       THD_daxes_to_mat44(dset_mast->daxes) ;
+     if( !ISVALID_MAT44(dset_mast->daxes->ijk_to_dicom) ) /* make sure have */
+       THD_daxes_to_mat44(dset_mast->daxes) ;      /* index-to-DICOM matrix */
 
      mast_cmat     = dset_mast->daxes->ijk_to_dicom ;  /* 24 Jul 2007 */
      mast_cmat_inv = MAT44_INV(mast_cmat) ;
 
-     dset_out = EDIT_empty_copy( dset_mast ) ;
-     EDIT_dset_items( dset_out ,
+     dset_out = EDIT_empty_copy( dset_mast ) ;  /* create the output dataset! */
+     EDIT_dset_items( dset_out ,                /* and patch it up */
                         ADN_prefix    , prefix ,
                         ADN_nvals     , DSET_NVALS(dset_targ) ,
                         ADN_datum_all , MRI_float ,
@@ -3645,14 +3645,14 @@ STATUS("zeropad weight dataset") ;
 
      /* copy brick info into output */
 
-     THD_copy_datablock_auxdata( dset_targ->dblk , dset_out->dblk ) ; /* 20 Nov 2007 */
+     THD_copy_datablock_auxdata( dset_targ->dblk , dset_out->dblk ) ;
      for( kk=0 ; kk < DSET_NVALS(dset_out) ; kk++ )
        EDIT_BRICK_FACTOR(dset_out,kk,0.0);
 
-     tross_Copy_History( dset_targ , dset_out ) ;
+     tross_Copy_History( dset_targ , dset_out ) ;        /* historic records */
      tross_Make_History( "3dAllineate" , argc,argv , dset_out ) ;
 
-     THD_daxes_to_mat44(dset_out->daxes) ;
+     THD_daxes_to_mat44(dset_out->daxes) ;          /* save coord transforms */
      cmat_tout = dset_targ->daxes->ijk_to_dicom ;
      cmat_bout = dset_out ->daxes->ijk_to_dicom ;
      nxout = DSET_NX(dset_out) ; dxout = fabsf(DSET_DX(dset_out)) ;
@@ -3662,11 +3662,14 @@ STATUS("zeropad weight dataset") ;
      dxyz_dout[0] = dxout; dxyz_dout[1] = dyout; dxyz_dout[2] = dzout;
    }
 
+   /* check if have dataset prefix for saving the 3D warp */
+
    if( dset_out == NULL && nwarp_save_prefix != NULL ){
      WARNING_message("Can't use -nwarp_save without -prefix! :-(") ;
      nwarp_save_prefix = NULL ;
    }
 
+   /***~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~***/
    /***---------------------- start alignment process ----------------------***/
 
 #ifdef USE_OMP
@@ -3706,7 +3709,7 @@ STATUS("zeropad weight dataset") ;
         allpar[jj] = stup.wfunc_param[jj].xxx ;   \
   } while(0)
 
-   /*-- the annunciation --*/
+   /*-- the Annunciation --*/
 
    if( do_allcost >= 0 && verb ){
      if( apply_1D == NULL )
