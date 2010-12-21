@@ -605,16 +605,18 @@ parse.AFNI.args <- function ( args, params = NULL,
    #find locations of -*
    ii <- grep ('^-.*', args);
    iflg <- vector('numeric')
-   for (i in 1:length(ii)) {
-      if (!is.num.string(args[[ii[i]]])) {
-         if (!length(allowed_options)) {
-            iflg <- append(iflg, ii[i]);
-         } else { #Make sure it is an acceptable name
-            if (length(which(args[[ii[i]]] == allowed_options))) {
+   if (length(ii) > 0) {
+      for (i in 1:length(ii)) {
+         if (!is.num.string(args[[ii[i]]])) {
+            if (!length(allowed_options)) {
                iflg <- append(iflg, ii[i]);
+            } else { #Make sure it is an acceptable name
+               if (length(which(args[[ii[i]]] == allowed_options))) {
+                  iflg <- append(iflg, ii[i]);
+               }
             }
-         }
-      }     
+         }     
+      }
    }
    
    if (verb) note.AFNI(paste(args[iflg]))
@@ -923,6 +925,7 @@ prompt.AFNI <- function (str='I await', choices=c('y','n'), vals=NULL) {
          return(kk)
       }
    }
+   return(0)
 }
 
 SHOW_TRC <<- FALSE
@@ -1197,7 +1200,8 @@ r.NI_get_attribute <- function (nel,name, brsel=NULL,
                                  sep=' ; ', num=FALSE) {
    ffs <- NULL
    for (i in 1:length(nel$atlist)) {
-      if (nel$atlist[[i]]$lhs == name) {
+      if (!is.na(nel$atlist[[i]]$lhs) && 
+            nel$atlist[[i]]$lhs == name) {
          ffs <- nel$atlist[[i]]$rhs
          break
       }
@@ -1267,7 +1271,7 @@ r.NI_read_element <- function (fname, HeadOnly = TRUE) {
       return(NULL)
    }
    
-   ff <- scan(fnp$file, what = 'character', sep = '\n')
+   ff <- scan(fnp$file, what = 'character', sep = '\n', quiet=TRUE)
    
    #Remove #
    ff <- gsub('^[[:space:]]*#[[:space:]]*', '',ff)
@@ -1297,7 +1301,13 @@ r.NI_read_element <- function (fname, HeadOnly = TRUE) {
       shead[length(shead)] <- sub('>$','',shead[length(shead)]) 
       for (j in 2:length(shead)) {
          attr <- strsplit(shead[j],'=')[[1]]
-         nel <- r.NI_set_attribute(nel, attr[1], attr[2])
+         if (length(attr) == 1) {
+            nel <- r.NI_set_attribute(nel, attr[1], "")
+         } else if (length(attr) == 2) {
+            nel <- r.NI_set_attribute(nel, attr[1], attr[2])
+         } else if (length(attr) > 2) {
+            err.AFNI(paste("Parse error for ", shead[j]));
+         }
       }
    }
    
@@ -1324,7 +1334,7 @@ is.NI.file <- function (fname, asc=TRUE, hs=TRUE) {
       return(FALSE)
    }
    
-   ff <- scan(fnp$file, what = 'character', nmax = 2, sep = '\n')
+   ff <- scan(fnp$file, what = 'character', nmax = 2, sep = '\n', quiet=TRUE)
    
    if (asc && hs) {
       if (!length(grep('^[[:space:]]*#[[:space:]]*<', ff))) {
@@ -1339,6 +1349,7 @@ is.NI.file <- function (fname, asc=TRUE, hs=TRUE) {
 apply.AFNI.matrix.header <- function (fname, mat, 
                               brsel=NULL, rosel=NULL,rasel=NULL, 
                               nheadmax = 10) {
+   attr(mat,'name') <- 'noname'
    attr(mat,'FileName') <- fname
    
    fnp <- parse.AFNI.name(fname)
@@ -1354,12 +1365,14 @@ apply.AFNI.matrix.header <- function (fname, mat,
    
    nel <- r.NI_read_element(fnp$file, HeadOnly = TRUE)
 
-   if (nel$name == 'matrix') {
-      if (!is.null(labels <- 
+   # Common attributes
+   attr(mat,'name') <- nel$name
+   if (!is.null(labels <- 
             r.NI_get_attribute(nel, 'ColumnLabels', brsel, colwise=TRUE))){
          if (length(labels) == ncol(mat)) colnames(mat) <- labels
-      }
-
+   }
+   
+   if (nel$name == 'matrix') {
       if (!is.null(colg <- 
             r.NI_get_attribute(nel, 'ColumnGroups', brsel, 
                                  colwise=TRUE, is1Dstr=TRUE))){
@@ -1382,11 +1395,17 @@ apply.AFNI.matrix.header <- function (fname, mat,
          attr(mat, 'TR') <- as.double(TR)
       }
    } else if (nel$name == 'DICE') {
-      
+   } else if (nel$name == '3dhistog') {
+      if (!is.null(bw <- r.NI_get_attribute(nel, 'BinWidth'))){
+         attr(mat, 'BinWidth') <- as.double(bw)
+      }
    } else {
-      warn.AFNI(paste(
-         "Don't know what to do with attribute of element ", nel$name));
+      if (0) { #No need to whine 
+         warn.AFNI(paste(
+            "Don't know what to do with attribute of element ", nel$name));
+      }
    }
+   
    
    return(mat)
 }

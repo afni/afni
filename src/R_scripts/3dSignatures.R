@@ -683,9 +683,9 @@ Test.SigsClassify <- function (lvols, lsvm=NULL, verb = 1,
                dv<-NULL
                dim(brk) <- dd
                if (dd[4] != length(lsvm$labeltable$labels)) {
-                  err.AFNI("paste have", dd[4], "subbricks, but ", 
+                  err.AFNI(paste ("have", dd[4], "subbricks, but ", 
                            length(lsvm$labeltable$labels), "training labels\n",
-                           "Something is fishy here");
+                           "Something is fishy here"));
                   return(NULL);
                }
                write.AFNI(voloutp, brk, 

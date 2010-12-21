@@ -23,7 +23,7 @@ GETLABELS:
    endif
    
    #Get labeltable of label_dset
-   @MakeLabelTable -labeltable_of_dset $label_dset > __lt.niml.lt
+   @MakeLabelTable -labeltable_of_dset $label_dset > /tmp/${RNS}.__lt.niml.lt
    if ($status) then
       echo "Failed to get labeltable of $label_dset"
       goto BEND
@@ -35,21 +35,21 @@ GETLABELS:
    foreach ll ($llist)
       #use range, easier than getting each value
       set rng = `@MakeLabelTable -word_label_match \
-                                 -labeltable __lt.niml.lt -rkeys $ll`
+                                 -labeltable /tmp/${RNS}.__lt.niml.lt -rkeys $ll`
       set com = ("$com" + "$vlist[$c]*within(a,$rng[1],$rng[2])" )
       @ c ++
    end
    
    if ($mask_dset != '') then
       3dcalc -a $label_dset -b $mask_dset \
-             -expr "step(b)*($com)" -prefix $grpd_labprefix >& $log
+             -expr "step(b)*($com)" -prefix $grpd_labprefix >>& $log
       if ($status) then
          echo "3dcalc command failed"
          cat $log
          goto BEND
       endif   
    else
-      3dcalc -a $label_dset -expr "($com)" -prefix $grpd_labprefix >& $log
+      3dcalc -a $label_dset -expr "($com)" -prefix $grpd_labprefix >>& $log
       if ($status) then
          echo "3dcalc command failed"
          cat $log
@@ -58,58 +58,85 @@ GETLABELS:
    endif
    
       
-   3drefit -labeltable $grpd_labeltable $grpd_labprefix >& $log
+   3drefit -labeltable $grpd_labeltable $grpd_labprefix >>& $log
    
    #Now combine the probabilities
    if ($p_dset != '') then
       set v = `@GetAfniView $p_dset`
-      if (`@CheckForAfniDset __gg$v` > 0) \rm -f __gg*
+      if (`@CheckForAfniDset /tmp/${RNS}.__gg$v` > 0) \rm -f /tmp/${RNS}.__gg*
       foreach ll ($llist)
-         #Get all labels from __lt.niml.lt
-         set llset = `@MakeLabelTable -labeltable __lt.niml.lt \
+         #Get all labels from /tmp/${RNS}.__lt.niml.lt
+         set llset = `@MakeLabelTable -labeltable /tmp/${RNS}.__lt.niml.lt \
                               -word_label_match -match_label $ll`
          echo "Notice: labels $llset map to grouped label $ll"
          set subsel = ""
          set psets = ''
          set c = 1
          while ($c <= $#llset)
-            3dAttribute -quote -ssep ' ' \
-                        -name BRICK_LABS $p_dset | \
-                     \grep -w $llset[$c] >& $log
+            set att = `3dAttribute -quote -ssep ';' \
+                         BRICK_LABS $p_dset           | \
+                       tr ';' '\n'                    | \
+                       sed "s/^'//g" | sed "s/'"'$//g'   ` 
+            echo $att | \grep -w $llset[$c] >>& $log
             if ($status) then
                echo "Ignoring label $llset[$c], not in $p_dset ..."
             else
-               set subsel = ($subsel p.$llset[$c])
-               set psets = ("$psets" $p_dset'['p.$llset[$c]']')
+               foreach attr ($att)
+                  echo $attr | \grep -w $llset[$c] >>& $log
+                  if ($status) then
+                  else
+                     set subsel = ($subsel $attr)
+                     set psets = ("$psets" $p_dset'['$attr']')
+                  endif
+               end   
             endif
+            
             @ c ++
          end
          if ($#subsel > 1) then
             #a little slow a selection process, but safe
-            3dbucket -overwrite -prefix __tt $psets >& $log
+            3dbucket -overwrite -prefix /tmp/${RNS}.__tt $psets >>& $log
+            if ($status) goto BEND
             3dTstat -max \
-                  -overwrite -prefix __ttm \
-                  __tt$v >& $log
-            3drefit  -sublabel 0 "p.$ll" __ttm$v  >& $log
-            3dbucket -aglueto __gg$v  \
-                     __ttm$v >& $log
+                  -overwrite -prefix /tmp/${RNS}.__ttm \
+                  /tmp/${RNS}.__tt$v >>& $log
+            if ($status) goto BEND
+            3drefit  -sublabel 0 "p.$ll" /tmp/${RNS}.__ttm$v  >>& $log
+            3dbucket -aglueto /tmp/${RNS}.__gg$v  \
+                     /tmp/${RNS}.__ttm$v >>& $log
+            if ($status) goto BEND
          endif
          unset noglob
-         if ( `@CheckForAfniDset __tt$v+orig` >= 2) \rm -f __tt*
+         if ( `@CheckForAfniDset /tmp/${RNS}.__tt$v+orig` >= 2) \
+                        \rm -f /tmp/${RNS}.__tt*
          set noglob
       end
-      if (`@CheckForAfniDset __gg$v` >= 2) then
+      if (`@CheckForAfniDset /tmp/${RNS}.__gg$v` >= 2) then
          #calc sum
-         3dTstat -sum -prefix __ss __gg$v >& $log
-         #scale
+         3dTstat -sum -prefix /tmp/${RNS}.__ss /tmp/${RNS}.__gg$v >>& $log
          if ($status) then
             echo "Something went wrong"
             goto BEND
          endif
-         3dcalc -overwrite -a __gg$v -b __ss$v -expr "step(b)*a/b"   \
-               -prefix $grpd_pprefix >& $log
+         set mbs = `3dBrickStat -min -max /tmp/${RNS}.__ss$v`
+         set mbs[1] = `ccalc -i "isnegative($mbs[1])"`
+         set mbs[2] = `ccalc -i "step(isnegative($mbs[2])+iszero($mbs[2]))"`
+         if ($mbs[1] == 1 && $mbs[2] == 1) then
+            echo "WARNING: Log p being grouped the STUPID way"
+            echo "YOU SHOULD BE DOING THE grouping in 3dGenPriors"
+            goto BEND
+            #scale
+            3dcalc -overwrite -a /tmp/${RNS}.__gg$v \
+                           -b /tmp/${RNS}.__ss$v -expr "bool(b)*(1-a/b)"   \
+                  -prefix $grpd_pprefix >>& $log
+         else
+            #scale
+            3dcalc -overwrite -a /tmp/${RNS}.__gg$v \
+                           -b /tmp/${RNS}.__ss$v -expr "step(b)*a/b"   \
+                  -prefix $grpd_pprefix >>& $log
+         endif
          unset noglob
-         \rm -f __gg* __ss* __tt*
+         \rm -f /tmp/${RNS}.__gg* /tmp/${RNS}.__ss* /tmp/${RNS}.__tt*
          set noglob
       endif
    endif
@@ -289,10 +316,11 @@ HELP:
    goto END
 
 BEND:
+   if ( -f $log) cat $log
    set stat = 1
    goto END
       
 END:
-if ($stat == 0 && -f __lt.niml.lt) \rm -f __lt.niml.lt
+if ($stat == 0 && -f /tmp/${RNS}.__lt.niml.lt) \rm -f /tmp/${RNS}.__lt.niml.lt
 if ($stat == 0 && -f $log) \rm /tmp/${RNS}.RL.log
 exit $stat   

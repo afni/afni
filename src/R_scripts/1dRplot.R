@@ -287,6 +287,9 @@ parse.1dRplot.colinput <- function(op) {
    if (length(op) > 1 || 
        is.numeric(op) ) return(op)
    
+   if (is.character(op)) {
+      if (op == "ENUM") return(op)
+   }
    #If filename, or 1D or R expression
    if (is.AFNI.R.string(op) || is.AFNI.1D.string(op) ||
       file.exists(op)) {
@@ -294,6 +297,17 @@ parse.1dRplot.colinput <- function(op) {
       return(mm)
    } 
    return(op)
+}
+
+parse.1dRplot.other <- function(op, ll) {
+   if (length(op)) {
+      if (is.null(ll$dmat) || is.na(ll$dmat)) {
+         ll$dmat <- op
+      } else {
+         ll$dmat <- c(ll$dmat, op)
+      }
+   }
+   return(ll)
 }
 
 init.1DRplot.lop <- function () {
@@ -305,9 +319,13 @@ init.1DRplot.lop <- function () {
 read.1dRplot.opts.batch <- function (args=NULL, verb = 0) {
    
    params <- list (
-      '-input' = apl(n = c(1, Inf), d = NA,  h = paste(
-   "-input 1D_INPUT: file to plot. This field can have multiple\n",
+      '-i' = apl(n = c(1, Inf), d = NA,  h = paste(
+   "-i 1D_INPUT: file to plot. This field can have multiple\n",
    "                 formats. See Data Strings section below.\n"
+                     ) ),
+                     
+      '-input' = apl(n = c(1, Inf), d = NA,  h = paste(
+   "-input 1D_INPUT: Same as -i\n"
                      ) ),
                      
       '-input_type' = apl(n = c(1, Inf), d = NA,  h = paste(
@@ -320,7 +338,9 @@ read.1dRplot.opts.batch <- function (args=NULL, verb = 0) {
                      ) ),
                      
       '-x' = apl(n = c(1), h = paste (
-   "-x 1D_INPUT: x axis\n"
+   "-x 1D_INPUT: x axis. You can also use the string 'ENUM'\n",
+   "             to indicate that the x axis should go from\n",
+   "             1 to N, the number of samples in -input\n"
                   ) ), 
 
       '-save' = apl(n = 1, d = NA,  h = paste(
@@ -475,7 +495,11 @@ read.1dRplot.opts.batch <- function (args=NULL, verb = 0) {
       '-TR' = apl(n=1, d=0, h=paste(
    "-TR TR: Sampling period, in seconds. \n"
                   ) ),
-                  
+            
+      '-grid.show' = apl(n = 0, d = FALSE, h = paste(
+   "-grid.show : Show grid.\n"
+                     ) ),
+                    
       '-verb' = apl(n=1, d = 0, h = paste(
    "-verb VERB: VERB is an integer specifying verbosity level.\n",
    "            0 for quiet (Default). 1 or more: talkative.\n"
@@ -494,7 +518,7 @@ read.1dRplot.opts.batch <- function (args=NULL, verb = 0) {
          );
                      
    ops <- parse.AFNI.args(args,  params,
-                          other_ok=FALSE, verb=verb
+                          other_ok=TRUE, verb=verb
                           )
    if (verb) show.AFNI.args(ops, verb=verb-1, hstr='');
    if (is.null(ops)) {
@@ -511,6 +535,7 @@ read.1dRplot.opts.batch <- function (args=NULL, verb = 0) {
       opname <- opname[length(opname)];
       
       switch(opname,
+             i = lop$dmat <- ops[[i]],
              input = lop$dmat <- ops[[i]],
              input_type = lop$dmat.type <- ops[[i]],
              input_delta = lop$dmat.err <- ops[[i]],
@@ -553,12 +578,13 @@ read.1dRplot.opts.batch <- function (args=NULL, verb = 0) {
              leg.position = lop$leg.position <- ops[[i]],
              leg.fontsize = lop$leg.fontsize <- ops[[i]],
              leg.ncol = lop$leg.ncol <- ops[[i]],
+             grid.show = lop$grid.show <- TRUE,
              help = help.1dRplot.opts(params, adieu=TRUE),
              msg.trace = set.AFNI.msg.trace(TRUE),
              show_allowed_options = show.AFNI.args(ops, verb=0, 
                                               hstr="1dRplot's",adieu=TRUE),
              run_examples = run.1dRplot.examples(),
-             other = {},
+             other = lop <- parse.1dRplot.other(ops[[i]], lop),
              allowed_options = {},
              errex.AFNI(paste("Option '", opname,"' not recognized", sep=''))  
              )
@@ -643,6 +669,7 @@ process.1dRplot.opts <- function (lop, verb = 0) {
             leg.position = lop$leg.position,
             leg.fontsize = lop$leg.fontsize,
             leg.ncol = lop$leg.ncol,
+            grid.show = lop$grid.show,
             verb=lop$verb)
 
    if (BATCH_MODE) { #do not quit until device is closed

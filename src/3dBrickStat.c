@@ -26,13 +26,13 @@ int main( int argc , char * argv[] )
    byte * mmm=NULL ;
    int    mmvox=0 ;
    int nxyz, i;
-   float *dvec = NULL;
+   float *dvec = NULL, mmin=0.0, mmax=0.0;
    int N_mp;
    double *mpv=NULL, *perc = NULL;
    double mp =0.0f, mp0 = 0.0f, mps = 0.0f, mp1 = 0.0f, di =0.0f ;
    byte *mmf = NULL;
    MRI_IMAGE *anat_im = NULL;
-
+   char *mask_dset_name=NULL;
 
    /*----- Read command line -----*/
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
@@ -66,6 +66,10 @@ int main( int argc , char * argv[] )
 "         not NaN, or inf. -nan forces -slow mode.\n"
 "  -nonan =exclude voxel values that are not numbers\n"
 "  -mask dset = use dset as mask to include/exclude voxels\n"
+"  -mrange MIN MAX = Only accept values between MIN and MAX (inclusive)\n"
+"                    from the mask. Default it to accept all non-zero\n"
+"                    voxels.\n"
+"  -mvalue VAL = Only accept values equal to VAL from the mask.\n"
 "  -automask = automatically compute mask for dataset\n"
 "    Can not be combined with -mask\n"
 "  -percentile p0 ps p1 write the percentile values starting\n"
@@ -101,6 +105,9 @@ int main( int argc , char * argv[] )
    zero_flag = -1;
    nan_flag = -1;
    perc_flag = 0;
+   mmin = 1.0;
+   mmax = -1.0;
+   mask_dset_name = NULL;      
    
    datum = MRI_float;
    while( nopt < argc && argv[nopt][0] == '-' ){
@@ -274,26 +281,59 @@ int main( int argc , char * argv[] )
          automask = 1 ; nopt++ ; continue ;
       }
 
-      if( strcmp(argv[nopt],"-mask") == 0 ){
-         THD_3dim_dataset * mask_dset ;
-         if( automask ){
-           ERROR_exit(" ERROR: can't use -mask with -automask!");
-           
+      if( strcmp(argv[nopt],"-mrange") == 0 ){
+         if (nopt+2 >= argc) {
+            ERROR_exit(" ERROR: Need two values after -mrange");
          }
-         mask_dset = THD_open_dataset(argv[++nopt]) ;
-         CHECK_OPEN_ERROR(mask_dset,argv[nopt]) ;
-         if( mmm != NULL )
-           ERROR_exit(" ERROR: can't have 2 -mask options!"); 
-         mmm = THD_makemask( mask_dset , 0 , 1.0,-1.0 ) ;
-         mmvox = DSET_NVOX( mask_dset ) ;
-
-         DSET_delete(mask_dset) ; nopt++ ; continue ;
+         mmin = atof(argv[++nopt]);
+         mmax = atof(argv[++nopt]);
+         if (mmax < mmin) {
+            ERROR_exit(
+               "1st value in -mrange %s %s should be the smallest one",
+               argv[nopt-1], argv[nopt]);
+         } 
+         nopt++ ; continue ;
+      }
+      
+      if( strcmp(argv[nopt],"-mvalue") == 0 ){
+         if (nopt+1 >= argc) {
+            ERROR_exit(" ERROR: Need 1 value after -mvalue");
+         }
+         mmin = atof(argv[++nopt]);
+         mmax = mmin ;
+         nopt++ ; continue ;
+      }
+      
+      if( strcmp(argv[nopt],"-mask") == 0 ){
+         if( mask_dset_name != NULL )
+            ERROR_exit(" ERROR: can't have 2 -mask options!");         
+         mask_dset_name = argv[++nopt];
+         nopt++ ; continue ;
       }
 
       ERROR_exit( " Error - unknown option %s", argv[nopt]);
       
    }
 
+   if (mask_dset_name) {
+      int ninmask = 0;
+      THD_3dim_dataset * mask_dset ;
+      if( automask ){
+        ERROR_exit(" ERROR: can't use -mask with -automask!");
+      }
+      mask_dset = THD_open_dataset(mask_dset_name) ;
+      CHECK_OPEN_ERROR(mask_dset,mask_dset_name) ;
+       
+      mmm = THD_makemask( mask_dset , 0 , mmin, mmax ) ;
+      mmvox = DSET_NVOX( mask_dset ) ;
+      ninmask = THD_countmask (mmvox, mmm);
+      if (!ninmask) {
+         ERROR_exit(" No voxels in mask !");
+      }  
+      INFO_message("%d voxels in mask\n", ninmask);
+      DSET_delete(mask_dset) ; 
+   }
+         
    if(((mmm!=NULL) && (quick_flag))||(automask &&quick_flag)) {
       if(quick_flag==1)
          WARNING_message( "+++ Warning - can't have quick option with mask");
@@ -461,7 +501,7 @@ int Minflag, Maxflag;
 THD_3dim_dataset * dset;
 {
   int ival, nval_per;
-  float tf; 
+  float tf=0.0; 
   double scaledmin, scaledmax, internalmin, internalmax, overallmin, overallmax;
 
   overallmin = 1E10;
