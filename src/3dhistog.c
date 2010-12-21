@@ -52,6 +52,7 @@ static double  HI_min = BIG_NUMBER;
 static double  HI_max = -BIG_NUMBER;
 
 static char *  HI_unq = NULL;
+static char *  HI_ni = NULL;
 
 #define KEEP(x) ( (HI_nomit==0) ? 1 :  \
                   (HI_nomit==1) ? ((x) != HI_omit[0]) : HI_keep(x) )
@@ -121,10 +122,15 @@ int main( int argc , char * argv[] )
              "            This option is not allowed for float data\n"
              "            If you have a problem with this, write\n"
              "            Ziad S. Saad (saadz@mail.nih.gov)\n"
+             "  -prefix HOUT: Write a copy of the histogram into file HOUT.1D\n"
+             "                you can plot the file with:\n"
+             "             1dplot -sepscl -x HOUT.1D'[0]' HOUT.1D'[1,2]' \n"
+             "        or   \n"
+             "             1dRplot -input HOUT.1D\n"
              "\n"
-             "The histogram is written to stdout.  Use redirection '>' if you\n"
-             "want to save it to a file.  The format is a title line, then\n"
-             "three numbers printed per line:\n"
+             "Without -prefix, the histogram is written to stdout.  \n"
+             "Use redirection '>' if you want to save it to a file.\n"
+             "The format is a title line, then three numbers printed per line:\n"
              "  bottom-of-interval  count-in-interval  cumulative-count\n"
              "\n"
              "-- by RW Cox (V Roopchansingh added the -mask option)\n"
@@ -336,27 +342,63 @@ int main( int argc , char * argv[] )
 
    /*** print something ***/
 
-   cumfbin = 0;
+   if (!HI_ni) {
+      cumfbin = 0;
 
-   if( HI_log ){
-     if( ! HI_notit )
-       printf ("%12s %13s %13s\n", "#Magnitude", "Log_Freq", "Log_Cum_Freq");
+      if( HI_log ){
+        if( ! HI_notit )
+          printf ("%12s %13s %13s\n", "#Magnitude", "Log_Freq", "Log_Cum_Freq");
 
-     for( kk=0 ; kk < nbin ; kk++ ){
+        for( kk=0 ; kk < nbin ; kk++ ){
+          cumfbin += fbin[kk];
+          printf ("%12.6f %13.6f %13.6f\n",
+                  fbot+kk*df,
+                  log10((double)fbin[kk]+1.0), log10((double)cumfbin+1.0));
+        }
+      } else {
+        if( ! HI_notit )
+          printf ("%12s %13s %13s\n",  "#Magnitude", "Freq", "Cum_Freq");
+
+        for( kk=0 ; kk < nbin ; kk++ ){
+          cumfbin += fbin[kk];
+          printf ("%12.6f %13d %13ld\n",
+                  fbot+kk*df, fbin[kk], cumfbin);
+        }
+      }
+   } else { /*                ZSS Dec. 2010 */
+      NI_stream ns=NULL;
+      NI_element *hni=NULL;
+      char sstr[strlen(HI_ni)+32];
+      float *bb=(float*)calloc(nbin, sizeof(float));
+      double *cf=(double*)calloc(nbin, sizeof(double));
+      cumfbin = 0.0;
+      for( kk=0 ; kk < nbin ; kk++ ){
        cumfbin += fbin[kk];
-       printf ("%12.6f %13.6f %13.6f\n",
-               fbot+kk*df,
-               log10((double)fbin[kk]+1.0), log10((double)cumfbin+1.0));
-     }
-   } else {
-     if( ! HI_notit )
-       printf ("%12s %13s %13s\n",  "#Magnitude", "Freq", "Cum_Freq");
-
-     for( kk=0 ; kk < nbin ; kk++ ){
-       cumfbin += fbin[kk];
-       printf ("%12.6f %13d %13ld\n",
-               fbot+kk*df, fbin[kk], cumfbin);
-     }
+       cf[kk] = cumfbin;
+       bb[kk] = fbot+kk*df;
+      }
+      hni = NI_new_data_element("3dhistog", nbin);
+      NI_add_column(hni, NI_FLOAT, bb); 
+      NI_add_column(hni, NI_INT, fbin);
+      NI_add_column(hni, NI_DOUBLE, cf);
+      if (HI_log) 
+         NI_set_attribute(hni, "ColumnLabels", 
+                     "Magnitude ; Log_Freq ; Log_Cum_Freq");
+      else 
+         NI_set_attribute(hni, "ColumnLabels", 
+                     "Magnitude ; Freq ; Cum_Freq");
+      sprintf(sstr,"%f",df);
+      NI_set_attribute(hni, "BinWidth", sstr);
+      
+      sprintf(sstr,"file:%s.1D", HI_ni);
+      if (!(ns = NI_stream_open(sstr,"w"))) {
+         ERROR_message("Failed to open stream %s\n", sstr);
+         exit(1);
+      }
+      NI_write_element(ns,hni,NI_TEXT_MODE | NI_HEADERSHARP_FLAG );
+      NI_stream_close(ns);
+      NI_free_element(hni);
+      free(bb); free(cf);
    }
    exit(0) ;
 }
@@ -439,6 +481,12 @@ void HI_read_opts( int argc , char * argv[] )
          nopt++ ; continue ;
       }
 
+      if( strncmp(argv[nopt],"-prefix",5) == 0 ){
+         nopt++ ;
+         if( nopt >= argc ) HI_syntax("need argument after -prefix!") ;         
+         HI_ni = argv[nopt] ;
+         nopt++ ; continue ;
+      }
       /* ----- -mask ----- */
 
       if( strncmp(argv[nopt],"-mask",5) == 0 )

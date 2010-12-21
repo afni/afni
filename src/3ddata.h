@@ -99,8 +99,7 @@ extern "C" {
 
 #define THD_MAX_PREFIX     (255+1)  /* must be more than THD_MAX_LABEL
                                     (  ZSS Jan 07 need room for path specified
-                                       with prefix on command line   (why that +1,
-                                       I don't know) ) */
+                                       with prefix on command line    ) */
 
 /*! Max length of a "name" of a file, or stuff like that. */
 

@@ -511,7 +511,33 @@ pdf.gam <- function (x,ash,brt, uns=0) {
    return(an)
 }
 
-disp.train.pdist <- function (lsamp, feats=NULL, clss=NULL) {
+area.gam <- function (x, binw=0.1, shape, rate, meth=1) {
+   #reference
+   if (meth != 2) 
+      a0 <- (pgamma(x-binw/2.0, 
+               shape=shape, rate=rate,
+               lower.tail=FALSE)       - 
+           pgamma(x+binw/2.0, 
+               shape=shape, rate=rate,
+               lower.tail=FALSE));
+   #approx
+   if (meth != 1)
+      a1 <- (pdf.gam((x-binw/2.0), shape, rate)+pdf.gam((x+binw/2.0), shape, rate))/2.0*binw;
+      
+   if (meth == 0) {
+      #debug
+      cat ('Reference, Approx = ', a0, ',', a1, '\n');
+      return(-1.0);
+   } else if (meth == 1) {
+      #reference
+      return(a0)
+   } else {
+      #approx
+      return(a1)
+   }
+}
+
+disp.train.pdist <- function (lsamp, feats=NULL, clss=NULL, stp=0.1) {
    if (is.null(feats)) feats <- lsamp$feat.labels
    if (is.null(clss)) clss <- lsamp$class.set
    imax <- length(clss)*length(feats)
@@ -520,9 +546,15 @@ disp.train.pdist <- function (lsamp, feats=NULL, clss=NULL) {
       for (feat in feats) {
          k <- k + 1
          plot(par <- get.train.pdist(lsamp, feat, cls, verb=0))
-         if (k<imax) prompt.AFNI(paste("Showing ", feat, cls, 
-                           "[",par$estimate['shape'], ',' , par$estimate['rate'],
+         s<-0.0;
+         for (x in seq(1,10,stp)) 
+            s<-s+pdf.gam(x,20.8156340614560, 3.5370637717458)*stp;
+         if (k<imax) ans <- prompt.AFNI(paste("Showing ", feat, cls, 
+                  "[shape=",par$estimate['shape'], 
+                  ',rate=' , par$estimate['rate'],
+                  ', sum = ', s,
                            "]\n   Hit enter to proceed."))
+         if (ans != 1) return(0)
       }
    }
 }
@@ -592,6 +624,31 @@ disp.train.samples <- function (smp, fitprms=NULL) {
          xlab=xlab,ylab="Density",cex.lab=1.5,cex.axis=1.5)
    title(paste('pdf(',attr(smp,"feature"),',',attr(smp,"seg.class"),')'))
    
+}
+
+lp.norm <- function (dv) {
+   if (0) {
+      #method 0, unstable
+      dvn <- vector(length=length(dv))
+      ddf <- 0.0
+      for (i in 1:length(dv)) {
+         ddf <- ddf+exp(dv[i])
+      }
+      for (i in 1:length(dv)) {
+         dvn[i] = exp(dv[i])/ddf
+      }
+   } else {
+      #method 1
+      dvn <- vector(length=length(dv))
+      for (i in 1:length(dv)) {
+         ddf <- 1.0
+         for (ii in 1:length(dv)) {
+            if (ii != i) ddf <- ddf + exp(dv[ii]-dv[i])
+         }
+         dvn[i] = 1.0 / ddf
+      }
+   }
+   return(dvn) 
 }
  
 fit.pdist <- function (smp, dist="gamma", verb=1) {

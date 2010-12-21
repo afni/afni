@@ -65,6 +65,22 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 21, DEC , 2010 , ZSS , "@help.AFNI" , MINOR , TYPE_NEW_PROG,
+   "A simple script to look at AFNI's all help page",
+   NULL
+ } ,
+
+ { 10, DEC , 2010 , ZSS , "3BrickStat" , MINOR , TYPE_NEW_OPT,
+   "Added -mrange and -mvalue options to 3dBrickStat",
+   NULL
+ } ,
+
+ { 9, DEC , 2010 , ZSS , "3dhistog" , MINOR , TYPE_NEW_OPT,
+   "Made 3dhistog output NIML 1D format with -prefix option",
+   "With -prefix's output users can get properly labeled \n"
+   "output with a simple command like 1dRplot -input hist.1D"
+ } ,
+
  { 2, DEC , 2010 , ZSS , "afni" , MICRO , TYPE_MODIFY,
    "Made afni startup with two windows when no layout is present",
    NULL
