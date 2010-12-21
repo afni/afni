@@ -123,7 +123,7 @@ int main( int argc , char *argv[] )
  " -mean   = compute mean of input voxels\n"
  " -sum    = compute sum of input voxels\n"
  " -abssum = compute absolute sum of input voxels\n"
- " -slope  = compute mean slope of input voxels vs. time\n"
+ " -slope  = compute the slope of input voxels vs. time\n"
  " -sos    = compute sum of squares\n"
  " -stdev  = compute standard deviation of input voxels\n"
  "             [N.B.: this is computed after    ]\n"

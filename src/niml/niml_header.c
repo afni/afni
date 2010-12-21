@@ -328,11 +328,12 @@ intpair decode_type_field( char *tf )
 
 /*--------------------------------------------------------------------*/
 /*! Decode a single string into a bunch of strings, separated
-    by characters from the list in sep.
+    by characters from the list in sep or by a space.
     - Passing sep in as NULL means to use "," as the separator.
     - In each sub-string, leading and trailing blanks will be excised.
     - This can result in 0 length strings (e.g., "1,,2," will result
       in the second and fourth output strings having 0 length).
+    (see also NI_strict_decode_string_list           ZSS Dec 2010 )
 ----------------------------------------------------------------------*/
 
 NI_str_array * NI_decode_string_list( char *ss , char *sep )
@@ -363,6 +364,59 @@ NI_str_array * NI_decode_string_list( char *ss , char *sep )
       /* skip ahead until ss[id] is a separator [or a space - 10 Dec 2002] */
 
       while( id < lss && strchr(sep,ss[id]) == NULL && !isspace(ss[id]) ) id++;
+      if( id == jd ){ id++; continue; }    /* is only a separator? */
+
+      /* new sub-string runs from ss[jd] to ss[id-1] */
+
+      sar->str = NI_realloc( sar->str , char*, sizeof(char *)*(num+1) ) ;
+
+      nn = id-jd ;                                   /* length of sub-string */
+#if 0
+      while( nn > 0 && isspace(ss[jd+nn-1]) ) nn-- ; /* clip trailing blanks */
+#endif
+      sar->str[num] = NI_malloc(char, nn+1) ;        /* make output string  */
+      if( nn > 0 ) memcpy(sar->str[num],ss+jd,nn) ;  /* copy sub-string    */
+      sar->str[num++][nn] = '\0' ;                   /* terminate output  */
+
+      id++ ;                                         /* skip separator  */
+   }
+
+   sar->num = num ; return sar ;
+}
+
+/*--------------------------------------------------------------------*/
+/*! Like NI_decode_string_list, but will not use space as a delimiter
+                                                      ZSS Dec 2010 
+----------------------------------------------------------------------*/
+
+NI_str_array * NI_strict_decode_string_list( char *ss , char *sep )
+{
+   NI_str_array *sar ;
+   int num , nn,id,jd , lss ;
+
+   if( ss == NULL || ss[0] == '\0' ) return NULL ; /* bad input */
+
+   if( sep == NULL || sep[0] == '\0' ) sep = "," ;  /* default sep */
+
+   sar = NI_malloc(NI_str_array, sizeof(NI_str_array)) ;  /* create output */
+   sar->num = 0 ; sar->str = NULL ;
+
+   /* scan for sub-strings */
+
+   lss = NI_strlen(ss) ;
+   num = id = 0 ;
+   while( id < lss ){
+
+      /* skip current position ahead over whitespace */
+
+      while( id < lss && isspace(ss[id]) ) id++ ;
+      if( id == lss ) break ;                           /* ran out of string */
+
+      jd = id ;               /* save current position (start of new string) */
+
+      /* skip ahead until ss[id] is a separator  */
+
+      while( id < lss && strchr(sep,ss[id]) == NULL  ) id++;
       if( id == jd ){ id++; continue; }    /* is only a separator? */
 
       /* new sub-string runs from ss[jd] to ss[id-1] */

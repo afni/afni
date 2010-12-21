@@ -327,6 +327,7 @@ plot.1D.optlist <- function(...) {
             yax.lim=NULL, yax.step = NULL, yax.label=NULL, yax.tic.text = NULL,
             leg.show=FALSE, leg.ncol = 4, leg.names=NULL, 
             leg.position="topright", leg.fontsize = 12,
+            grid.show=FALSE, 
             col.text.lym = NULL, col.text.lym.at = 'YOFF', 
             col.text.lym.fontsize = 10, 
             col.text.rym = NULL, col.text.rym.at = 'YOFF', 
@@ -353,6 +354,40 @@ plot.1D.optlist <- function(...) {
                             sep = ''))
          }
       }
+      #If the user specified dmat, read it now, it won't get read again
+      if (!is.null(ll$dmat) && is.character(ll$dmat)) {
+         dmatv <- ll$dmat
+         if (!is.null(ll$ttl.main) && is.na(ll$ttl.main)) 
+                     ll$ttl.main<-paste(ll$dmat, collapse='\n')
+         for (i in 1:length(dmatv)) { #Won't work for different row numbers...
+            if (is.null(dmatc <- read.AFNI.matrix(dmatv[i]))) {
+               err.AFNI("Failed to read test file")
+               return(0) 
+            }
+            #str(dmatc)
+            if (i==1) { 
+               ll$dmat<-dmatc; 
+            }else {
+               if (dim(dmatc)[1] < dim(ll$dmat)[1]) {
+                  note.AFNI("Padding dmatc with NA to match nrows in dmat")
+                  dmatna <- matrix(NA, dim(ll$dmat)[1], dim(dmatc)[2])
+                  dmatna[1:dim(dmatc)[1],1:dim(dmatc)[2]] <- dmatc
+                  dmatc <- dmatna
+               }
+               if (nrow(ll$dmat) !=nrow(dmatc)) {
+                  err.AFNI(
+                     paste("Don't know what to do about catting matrices.\n",
+                           "Currently have ",nrow(ll$dmat), 
+                           " rows and trying to",
+                           "append ", nrow(dmatc), 
+                           " rows from", dmatv[i]))
+                  return(0)
+               }
+               ll$dmat <- cbind(ll$dmat, dmatc)
+            }
+         }
+      }
+
       #Now, based on dmat.type, do some setup without overririding user's whishes
       if (!is.na(ll$dmat.type)) {
          if (ll$dmat.type == 'VOLREG') {
@@ -373,6 +408,21 @@ plot.1D.optlist <- function(...) {
             if (!is.null(ll$col.text.rym) && is.na(ll$col.text.rym)) 
                ll$col.text.rym <- 'COL.IND'
          }
+      } else { #Try information from dmat's attributes
+        if (!is.null(nm <- attr(ll$dmat,"name"))) {
+           if (attr(ll$dmat,"name") == '3dhistog') {
+              if (dim(ll$dmat)[2] == 3) { 
+                  #Don't go here if users send in a partial file
+                  #like hist.1D[1,2]
+                 if (!is.null(ll$dmat.xval) && is.na(ll$dmat.xval)) 
+                     ll$dmat.xval <- ll$dmat[,1]
+                 if (!is.null(ll$dmat.colsel) && is.na(ll$dmat.colsel)) 
+                     ll$dmat.colsel <- c(2,3)
+                 if (!is.null(ll$xax.label) && is.na(ll$xax.label)) 
+                     ll$xax.label <- colnames(ll$dmat)[1]
+              }
+           }
+        }   
       }
       #Now, apply all defaults for what remains uninitialized
       for (i in 1:length(ll)) 
@@ -387,8 +437,15 @@ plot.1D.optlist <- function(...) {
 }
 
 plot.1D.freq <- function(P) {
+   freq <- 1
    if (!is.null(P$dmat.TR) && P$dmat.TR) freq <- 1/P$dmat.TR
-   else freq <- 1
+   else if (!is.null(nn <- attr(P$dmat,"name"))) {
+      if (nn == '3dhistog') {
+         if (!is.null(bw <-attr(P$dmat,"BinWidth"))) {
+            freq <- 1/bw
+         }
+      }
+   }
    return(freq)
 }      
 
@@ -420,7 +477,7 @@ plot.1D.eng <- function (P) {
       return(0)  
    } else if (is.character(P$dmat)) {
       dmatv <- P$dmat
-      if (is.null(P$ttl.main)) ttl.main<-paste(P$dmat, collapse='\n')
+      if (is.null(P$ttl.main)) P$ttl.main<-paste(P$dmat, collapse='\n')
       for (i in 1:length(dmatv)) { #Won't work for different row numbers...
          if (is.null(dmatc <- read.AFNI.matrix(dmatv[i]))) {
             err.AFNI("Failed to read test file")
@@ -787,7 +844,11 @@ plot.1D.eng <- function (P) {
       
       P$dmat.xval=seq(from=0,
                       to = dim(P$mat2plt)[1]-1)/plot.1D.freq(P);
+   } else if (is.character(P$dmat.xval) && P$dmat.xval == "ENUM") {
+      P$dmat.xval=seq(from=1,
+                      to = dim(P$mat2plt)[1]);
    }
+
    #Tick locations
    xat = NULL; yat = NULL;
    if (!is.null(P$xax.step)) {
@@ -838,7 +899,6 @@ plot.1D.eng <- function (P) {
       if (P$verb) note.AFNI("Singleplotmode");
       tp = 'single'
       par(bty=P$boxtype)
-      
       matplot(x=P$dmat.xval, P$mat2plt,             
            col = P$col.color[P$dmat.colsel], main = '',
            xlim=P$xax.lim[1:2], ylim=P$yax.lim[1:2], 
@@ -867,7 +927,7 @@ plot.1D.eng <- function (P) {
           
          #browser()
       }
-      if (!is.null(P$xax.step)) {
+      if (!is.null(P$xax.step) && is.null(P$xax.tic.text)) {
          axis(1,seq(from=P$xax.lim[1],to=P$xax.lim[2],by=P$xax.step));
       }
       if (!is.null(P$yax.step)) { 
@@ -877,17 +937,20 @@ plot.1D.eng <- function (P) {
          #setup axis ticks based on text, override existing tick locations
          if (!is.null(P$xax.lim)) {
             xat <- seq(from=P$xax.lim[1], to=P$xax.lim[2], 
-                        by=(P$xax.lim[2]-P$xax.lim[1])/length(P$xax.tic.text)); 
+                    by=(P$xax.lim[2]-P$xax.lim[1])/(length(P$xax.tic.text)-1)); 
          } else {
             xt <- axTicks(1)
             if (length(P$xax.tic.text) == length(xt)) {
                xat <- xt
+            } else if (length(P$xax.tic.text) == length(P$dmat.xval)) {
+               xat <- P$dmat.xval
             } else {
                xat <- seq(from=xt[1], to=xt[length(xt)], 
                            length.out=length(P$xax.tic.text));
             }
          }
          if (length(xat) != length(P$xax.tic.text)) {
+            
             err.AFNI(paste(length(xat), "X ticks", 
                      length(P$xax.tic.text),"X tick text"));
             return(0)
@@ -897,7 +960,7 @@ plot.1D.eng <- function (P) {
       if (!is.null(P$yax.tic.text)) { 
          if (!is.null(P$yax.lim)) {
             yat <- seq(from=P$yax.lim[1], to=P$yax.lim[2],
-                 by=(P$yax.lim[2]-P$yax.lim[1])/length(P$yax.tic.text));
+                 by=(P$yax.lim[2]-P$yax.lim[1])/(length(P$yax.tic.text)-1));
          } else {
             yt <- axTicks(2)
             if (length(P$yax.tic.text) == length(yt)) {
@@ -975,7 +1038,7 @@ plot.1D.eng <- function (P) {
       #ylab does not work here. Plot insists on using colnames() of
       #what is being plotted for ylabel
       colnames(P$mat2plt) <- multinames
-      plot( ts(P$mat2plt, start=0, frequency= plot.1D.freq(P)), 
+      plot( ts(P$mat2plt, start=P$dmat.xval[1], frequency= plot.1D.freq(P)), 
          plot.type = tp, 
          type= P$col.plot.type[P$dmat.colsel],
          xy.labels = FALSE, xy.lines = TRUE, 
@@ -987,6 +1050,10 @@ plot.1D.eng <- function (P) {
       P <- get.plot.1D.global.P()
    }
    
+   if (P$grid.show) {
+      grid()
+   }
+ 
    if (P$verb>1) {
       note.AFNI("Legend under consideration"); 
    }

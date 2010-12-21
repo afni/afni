@@ -707,7 +707,7 @@ int main( int argc , char * argv[] )
            ERROR_exit("-mrange option requires 2 following arguments!\n");
          mask_bot = strtod( argv[++iarg] , NULL ) ;
          mask_top = strtod( argv[++iarg] , NULL ) ;
-         if( mask_top < mask_top )
+         if( mask_top < mask_bot )
            ERROR_exit("-mrange inputs are illegal!\n") ;
          iarg++ ; continue ;
       }

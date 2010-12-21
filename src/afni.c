@@ -123,7 +123,8 @@ static Boolean        MAIN_workprocess( XtPointer ) ;
 /*----- Stuff saved from the '-com' command line arguments [29 Jul 2005] -----*/
 
 static int   COM_num = 0 ;
-static char *COM_com[1024] ;  /* max of 1024 commands allowed!!! */
+#define MAX_N_COM 1024
+static char *COM_com[MAX_N_COM] ;  /* max of 1024 commands allowed!!! */
 static char comsep = ';' ;    /* command separator: 22 Feb 2007 */
 
 static int   recursed_ondot = 0 ;  /* 18 Feb 2007 */
@@ -748,10 +749,12 @@ ENTRY("AFNI_parse_args") ;
         int ii , ll ; char *cm , *cs , *cq ;
         if( ++narg >= argc ) ERROR_exit("need an argument after -com!");
         cm = argv[narg] ; ll = strlen(cm) ; cs = strchr(cm,comsep) ;
-             if( ll > 255   ) ERROR_message("argument after -com is too long" );
+             if( ll > 1024   ) ERROR_message("argument after -com is too long" );
         else if( ll <   3   ) ERROR_message("argument after -com is too short");
-        else if( cs == NULL ) COM_com[ COM_num++ ] = strdup(argv[narg]) ;
-        else {  /* 22 Feb 2007: break into sub-commands */
+        else if( cs == NULL ) {
+           if (COM_num < MAX_N_COM) COM_com[ COM_num++ ] = strdup(argv[narg]) ;
+           else ERROR_message("Too many commands");
+        } else {  /* 22 Feb 2007: break into sub-commands */
           cq = cm = strdup(argv[narg]) ;
           for( ii=ll-1 ; isspace(cm[ii]) ; ii-- ) cm[ii] = '\0' ; /* trim end */
           cs = strchr(cm,comsep) ;
@@ -759,8 +762,10 @@ ENTRY("AFNI_parse_args") ;
             *cs = '\0' ;  /* NUL terminate command at separator */
             for( ; *cm != '\0' && isspace(*cm) ; cm++ ) ; /* trim front */
             ll = strlen(cm) ;
-            if( ll > 2 && ll <= 255 ) COM_com[ COM_num++ ] = strdup(cm) ;
-            cm = cs+1 ; if( *cm == '\0' ) break ;  /* reached the end */
+            if( ll > 2 && ll <= 1024 ) {
+               if (COM_num < MAX_N_COM) COM_com[ COM_num++ ] = strdup(cm) ;
+               else ERROR_message("Too many commands in total.");
+            } cm = cs+1 ; if( *cm == '\0' ) break ;  /* reached the end */
             cs = strchr(cm,comsep) ;               /* search for next sep */
             if( cs == NULL ) cs = cm + strlen(cm) ;
           }

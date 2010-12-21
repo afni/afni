@@ -1216,6 +1216,7 @@ typedef struct { int num; char **str;} NI_str_array ;
   } while(0)
 
 extern NI_str_array * NI_decode_string_list( char *ss , char *sep ) ;
+extern NI_str_array * NI_strict_decode_string_list( char *ss , char *sep );
 #define NI_decode_str_array NI_decode_string_list
 
 extern int NI_str_array_find( char *, NI_str_array *) ; /* 20 May 2010 */

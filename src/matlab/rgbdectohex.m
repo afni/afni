@@ -1,9 +1,11 @@
-function [Cs] = rgbdectohex (Mrgb,strg)
+function [Cs, sall] = rgbdectohex (Mrgb,strg, prompt)
 %
 %  Mode 1:
-%        [Cs] = rgbdectohex (Mrgb,[string])
+%        [Cs, sall] = rgbdectohex (Mrgb,[string])
 %  Mode 2:
-%        rgbdectohex 
+%        rgbdectohex
+%  Mode 3:
+%       Mrgb = rgbdectohex (sall) 
 %
 % Mode 1:
 %This function takes as an input the rgb matrix Mrgb (size is Nx3)
@@ -45,6 +47,10 @@ function [Cs] = rgbdectohex (Mrgb,strg)
 % Mode 2:
 % Interactive mode for showing RGB colors. Enter RGB values to see color.
 %
+%
+% Mode 3:
+% Inverse of mode 1
+%
 % see also MakeColorMap, TellAfni, ROIcmap
 %
 %		Ziad Saad Nov 26 97/  Dec 4 97/ Jan 06
@@ -66,6 +72,22 @@ if (nargin == 0),
       ShowRGBcol(Mrgb);
       fprintf(1,'        Color: %s\n', RGBtoXhex(Mrgb, 0, ''));
    end
+end
+
+if (ischar(Mrgb)),
+   %mode 3
+   %skip to 1st #
+   i1 = find (Mrgb=='#')
+   if (length(i1)==0), Cs = []; return; end
+   Mrgb = Mrgb(i1(1):length(Mrgb));
+   [ss, Mrgb]  = strtok(Mrgb,'#');
+   Mhex = [];
+   while (~isempty(ss)),
+      Mhex = [Mhex; XhextoRGB(ss)];
+      [ss, Mrgb]  = strtok(Mrgb,'#');
+   end
+   Cs = Mhex;
+   return;
 end
 
 if (size (Mrgb,2) ~= 3)
@@ -198,4 +220,13 @@ function sret = RGBtoXhex(rgb, son, strg),
 		else
 			sret = sprintf ('#%s%s%s',s1,s2,s3);
 		end
+return;
+
+function rgb = XhextoRGB(shex),
+      shex = zdeblankall(shex);
+      nc = length(shex);
+      strim = shex(nc-5:nc) 
+      rgb(3) = hex2dec(strim(5:6));
+      rgb(2) = hex2dec(strim(3:4));
+      rgb(1) = hex2dec(strim(1:2));
 return;
