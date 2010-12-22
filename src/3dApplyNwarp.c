@@ -13,7 +13,10 @@ int main( int argc , char *argv[] )
    char *prefix     = NULL ;
    double dxyz_mast = 0.0 ;
    int interp_code  = MRI_QUINTIC ;
-   int iarg ;
+   int iarg , kk , verb=1 ;
+   mat44 src_cmat,src_cmat_inv , nwarp_cmat,nwarp_cmat_inv ,
+                                 mast_cmat ,mast_cmat_inv   ;
+   THD_3dim_dataset *dset_out ;
 
    /**----------------------------------------------------------------------*/
    /**----------------- Help the pitifully ignorant user? -----------------**/
@@ -33,6 +36,8 @@ int main( int argc , char *argv[] )
       " -newgrid dd  = 'dd' is the new grid spacing (in mm)\n"
       " -interp iii  = 'iii' is the interpolation method\n"
       " -prefix ppp  = 'ppp' is the name of the new output dataset\n"
+      " -quiet       = Don't be verbose.\n"
+      " -verb        = Be extra verbose.\n"
      ) ;
      exit(0) ;
    }
@@ -49,6 +54,16 @@ int main( int argc , char *argv[] )
 
    iarg = 1 ;
    while( iarg < argc && argv[iarg][0] == '-' ){
+
+     /*---------------*/
+
+     if( strcasecmp(argv[iarg],"-quiet") == 0 ){
+       verb = 0 ; iarg++ ; continue ;
+     }
+
+     if( strcasecmp(argv[iarg],"-verb") == 0 ){
+       verb++ ; iarg++ ; continue ;
+     }
 
      /*---------------*/
 
@@ -153,6 +168,89 @@ int main( int argc , char *argv[] )
      ERROR_exit("Unknown and Illegal option '%s' :-( :-( :-(",argv[iarg]) ;
    }
 
-   /*---------- check inputs to see if the user is demented ----------*/
+   /*---------- check inputs to see if the user is completely demented ----------*/
+
+   if( dset_nwarp == NULL )
+     ERROR_exit("No -nwarp option?  How do you want to warp? :-(") ;
+
+   if( dset_src == NULL ){
+     if( ++iarg < argc ){
+       dset_src = THD_open_dataset( argv[iarg] ) ;
+       if( dset_src == NULL ) ERROR_exit("can't open source dataset '%s' :-(",argv[iarg]);
+     } else {
+       ERROR_exit("No source dataset?  What do you want to warp? :-(") ;
+     }
+   }
+
+   if( dset_mast == NULL ) dset_mast = dset_src ;
+
+   if( prefix == NULL ){
+     prefix = (char *)malloc(sizeof(char)*THD_MAX_NAME) ;
+     strcpy( prefix , DSET_PREFIX(dset_src) ) ;
+     strcat( prefix , "_nwarp" ) ;
+     INFO_message("No '-prefix' option ==> using '%s'",prefix) ;
+   }
+
+   /*---------- manufacture the empty shell of the output dataset ----------*/
+
+   if( !ISVALID_MAT44(dset_src->daxes->ijk_to_dicom) )
+     THD_daxes_to_mat44(dset_src->daxes) ;
+   src_cmat     = dset_src->daxes->ijk_to_dicom ;
+   src_cmat_inv = MAT44_INV(src_cmat) ;
+
+   if( !ISVALID_MAT44(dset_nwarp->daxes->ijk_to_dicom) )
+     THD_daxes_to_mat44(dset_nwarp->daxes) ;
+   nwarp_cmat     = dset_nwarp->daxes->ijk_to_dicom ;
+   nwarp_cmat_inv = MAT44_INV(nwarp_cmat) ;
+
+   if( dxyz_mast > 0.0 ){
+     THD_3dim_dataset *qset ;
+     qset = r_new_resam_dset( dset_mast , NULL ,
+                              dxyz_mast,dxyz_mast,dxyz_mast ,
+                              NULL , RESAM_NN_TYPE , NULL , 0 ) ;
+     if( qset != NULL ){
+       dset_mast = qset ;
+       THD_daxes_to_mat44(dset_mast->daxes) ;
+       if( verb )
+         INFO_message("changing output grid spacing to %.3f mm",dxyz_mast) ;
+     }
+   }
+
+   if( !ISVALID_MAT44(dset_mast->daxes->ijk_to_dicom) ) /* make sure have */
+     THD_daxes_to_mat44(dset_mast->daxes) ;      /* index-to-DICOM matrix */
+
+   mast_cmat     = dset_mast->daxes->ijk_to_dicom ;
+   mast_cmat_inv = MAT44_INV(mast_cmat) ;
+
+   dset_out = EDIT_empty_copy( dset_mast ) ;  /* create the output dataset! */
+   EDIT_dset_items( dset_out ,                /* and patch it up */
+                      ADN_prefix    , prefix ,
+                      ADN_nvals     , DSET_NVALS(dset_src) ,
+                      ADN_datum_all , MRI_float ,
+                    ADN_none ) ;
+   if( DSET_NUM_TIMES(dset_src) > 1 )
+     EDIT_dset_items( dset_out ,
+                        ADN_ntt   , DSET_NVALS(dset_src) ,
+                        ADN_ttdel , DSET_TR(dset_src) ,
+                        ADN_tunits, UNITS_SEC_TYPE ,
+                        ADN_nsl   , 0 ,
+                      ADN_none ) ;
+   else
+     EDIT_dset_items( dset_out ,
+                        ADN_func_type , ISANAT(dset_out) ? ANAT_BUCK_TYPE
+                                                         : FUNC_BUCK_TYPE ,
+                      ADN_none ) ;
+
+   /* copy brick info into output */
+
+   THD_copy_datablock_auxdata( dset_src->dblk , dset_out->dblk ) ;
+   for( kk=0 ; kk < DSET_NVALS(dset_out) ; kk++ )
+     EDIT_BRICK_FACTOR(dset_out,kk,0.0) ;
+
+   tross_Copy_History( dset_src , dset_out ) ;        /* historic records */
+   tross_Make_History( "3dApplyNwarp" , argc,argv , dset_out ) ;
+
+   THD_daxes_to_mat44(dset_out->daxes) ;          /* save coord transforms */
+
 
 }
