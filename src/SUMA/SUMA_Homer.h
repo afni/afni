@@ -11,8 +11,8 @@ typedef struct Point3Struct {
 	double x, y, z;
 } Point3;
 
-float * SUMA_HomerVertex(Point3 *Vert, int sz_vect, int *N);
-int * SUMA_HomerFace(long *face, int sz_vect, int *N);
+float * SUMA_HomerVertex(Point3 *Vert, int *N);
+int * SUMA_HomerFace(long *face, int *N);
 
 
 
