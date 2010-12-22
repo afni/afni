@@ -1,14 +1,6 @@
 #include "SUMA_suma.h"
 #include "SUMA_Macros.h"
 
-SUMA_SurfaceViewer *SUMAg_cSV; 
-SUMA_SurfaceViewer *SUMAg_SVv; 
-int SUMAg_N_SVv = 0; 
-SUMA_DO *SUMAg_DOv;  
-int SUMAg_N_DOv = 0; 
-SUMA_CommonFields *SUMAg_CF; 
-
-
 void SUMA_MapIcosahedron_usage ()
 {/*Usage*/
    static char FuncName[]={"SUMA_MapIcosahedron_usage"};

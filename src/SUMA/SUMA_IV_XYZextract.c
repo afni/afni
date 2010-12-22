@@ -305,7 +305,7 @@ float * SUMA_IV_XYZextract (char *IV_filename, int *N_NodeList, int IncludeIndex
 	
 }/* SUMA_IV_XYZextract */
 
-#ifdef SUMA_IV_XYZextract_STANDALONE 
+#if 0 
 void usage ()
  
   {/*Usage*/

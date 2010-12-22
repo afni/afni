@@ -1,13 +1,6 @@
 #include "SUMA_suma.h"
 #include "SUMA_plot.h"
 
-/* extern SUMA_SurfaceViewer *SUMAg_cSV; */ /* no longer in use Tue Aug 13 15:55:29 EDT 2002 */
-extern int SUMAg_N_DOv; 
-extern SUMA_DO *SUMAg_DOv;
-extern SUMA_CommonFields *SUMAg_CF; 
-extern SUMA_SurfaceViewer *SUMAg_SVv;
-extern int SUMAg_N_SVv;
-
 /*!
    Return the code for the key that is specified in keyin
 */

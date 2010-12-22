@@ -2834,4 +2834,11 @@ typedef struct {
    int exists;
 }  SUMA_FORM_AFNI_DSET_STRUCT;
  
+extern SUMA_SurfaceViewer *SUMAg_cSV; /*!< Global pointer to current Surface Viewer structure*/
+extern SUMA_SurfaceViewer *SUMAg_SVv; /*!< Global pointer to the vector containing the various Surface Viewer Structures */
+extern int SUMAg_N_SVv; /*!< Number of SVs stored in SVv */
+extern SUMA_DO *SUMAg_DOv;	/*!< Global pointer to Displayable Object structure vector*/
+extern int SUMAg_N_DOv; /*!< Number of DOs stored in DOv */
+extern SUMA_CommonFields *SUMAg_CF; /*!< Global pointer to structure containing info common to all viewers */
+
 #endif

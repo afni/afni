@@ -6,26 +6,6 @@
 
 #define SURFPATCH_MAX_SURF 1  /*!< Maximum number of input surfaces */
 
-#ifdef SUMA_SampBias_STAND_ALONE
-#define STAND_ALONE
-#endif
-
-#ifdef STAND_ALONE
-/* these global variables must be declared even if they will not be used by this main */
-SUMA_SurfaceViewer *SUMAg_cSV = NULL; /*!< Global pointer to current Surface Viewer structure*/
-SUMA_SurfaceViewer *SUMAg_SVv = NULL; /*!< Global pointer to the vector containing the various Surface Viewer Structures 
-                                    SUMAg_SVv contains SUMA_MAX_SURF_VIEWERS structures */
-int SUMAg_N_SVv = 0; /*!< Number of SVs realized by X */
-SUMA_DO *SUMAg_DOv = NULL;   /*!< Global pointer to Displayable Object structure vector*/
-int SUMAg_N_DOv = 0; /*!< Number of DOs stored in DOv */
-SUMA_CommonFields *SUMAg_CF = NULL; /*!< Global pointer to structure containing info common to all viewers */
-#else
-extern SUMA_CommonFields *SUMAg_CF;
-extern SUMA_DO *SUMAg_DOv;
-extern SUMA_SurfaceViewer *SUMAg_SVv;
-extern int SUMAg_N_SVv; 
-extern int SUMAg_N_DOv;  
-#endif
 SUMA_Boolean LocalHead = NOPE;
 
 
@@ -309,7 +289,7 @@ void calcWithOffsets(SUMA_SurfaceObject *SO, SUMA_KUBATEST_OPTIONS* Opt)
    SUMA_RETURNe;
 }
 
-#ifdef SUMA_SampBias_STAND_ALONE
+#if 1
 int main (int argc,char *argv[])
 {/* Main */    
    static char FuncName[]={"SampBias"};
