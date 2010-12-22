@@ -2,14 +2,6 @@
 #include "coxplot.h"
 #include "SUMA_plot.h"
  
-extern SUMA_SurfaceViewer *SUMAg_SVv; /*!< Global pointer to the vector containing the various Surface Viewer Structures 
-                                    SUMAg_SVv contains SUMA_MAX_SURF_VIEWERS structures */
-extern int SUMAg_N_SVv; /*!< Number of SVs realized by X  */
-/* extern SUMA_SurfaceViewer *SUMAg_cSV; */ /* This variable is no longer used in this file Tue Aug 13 15:27:53 EDT 2002*/ 
-extern int SUMAg_N_DOv; 
-extern SUMA_DO *SUMAg_DOv;
-extern SUMA_CommonFields *SUMAg_CF; 
-
 /*! Parts of the code in this file are based on code from the motif programming manual.
     This fact is mentioned at relevant spots in the code but the complete copyright 
     notice is only copied here for brevity:

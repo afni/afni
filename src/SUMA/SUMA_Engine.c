@@ -23,13 +23,6 @@
    
 #include "SUMA_suma.h"
 
-/* extern SUMA_SurfaceViewer *SUMAg_cSV; */   /* no longer used Tue Aug 13 16:07:41 EDT 2002 */
-extern SUMA_DO *SUMAg_DOv;   
-extern int SUMAg_N_DOv; 
-extern SUMA_CommonFields *SUMAg_CF;
-extern SUMA_SurfaceViewer *SUMAg_SVv;
-extern int SUMAg_N_SVv;
-
 /*!
    \brief This is the function that runs the viewers. 
    success = SUMA_Engine (listp);
