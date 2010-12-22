@@ -2,68 +2,7 @@
 /* Header FILES */
 #include "SUMA_suma.h"
    
-#undef STAND_ALONE
-
-#if defined SUMA_StripPath_STAND_ALONE
-#define STAND_ALONE 
-#elif defined SUMA_ParseName_STAND_ALONE
-#define STAND_ALONE
-#endif
-
-#ifdef STAND_ALONE
-/* these global variables must be declared even if they will not be used by this main */
-SUMA_SurfaceViewer *SUMAg_cSV; /*!< Global pointer to current Surface Viewer structure*/
-SUMA_SurfaceViewer *SUMAg_SVv = NULL; /*!< Global pointer to the vector containing the various Surface Viewer Structures 
-                                    SUMAg_SVv contains SUMA_MAX_SURF_VIEWERS structures */
-int SUMAg_N_SVv = 0; /*!< Number of SVs realized by X */
-SUMA_DO *SUMAg_DOv;   /*!< Global pointer to Displayable Object structure vector*/
-int SUMAg_N_DOv = 0; /*!< Number of DOs stored in DOv */
-SUMA_CommonFields *SUMAg_CF; /*!< Global pointer to structure containing info common to all viewers */
-#else
-extern SUMA_CommonFields *SUMAg_CF; 
-#endif
-   
-   
-#ifdef SUMA_StripPath_STAND_ALONE
-void usageSUMA_StripPath ()
-   
-  {/*Usage*/
-          printf ("\nUsage:  SUMA_StripPath <Name> \n");
-          printf ("\t  \n\n");
-          printf ("To Compile:\ngcc -DSUMA_StripPath_STAND_ALONE -Wall -o $1 $1.c -SUMA_lib.a -I/usr/X11R6/include -I./ \n\n");
-          printf ("\t\t Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov \tThu Jan 24 10:55:18 EST 2002 \n");
-          exit (0);
-  }/*Usage*/
-   
-int main (int argc,char *argv[])
-{/* Main */
-   char FuncName[100]; 
-	SUMA_FileName Test;
-   
-   /* initialize Main function name for verbose output */
-   sprintf (FuncName,"SUMA_StripPath-Main-");
-   
-   
-   if (argc < 2)
-       {
-          usageSUMA_StripPath ();
-          exit (1);
-       }
-
-	Test = SUMA_StripPath (argv[1]);
-	if (Test.Path)
-		{
-			fprintf(stdout,"%s %s", Test.Path, Test.FileName);
-			SUMA_free(Test.Path);
-			if (Test.FileName) SUMA_free(Test.FileName);
-		}
-	fprintf (stdout,"\n");
-	
-	return (0);
-}/* Main */
-#endif
-
-#ifdef SUMA_ParseName_STAND_ALONE
+#if 1
 void usageParseName_Main ()
   {/*Usage*/
 printf (

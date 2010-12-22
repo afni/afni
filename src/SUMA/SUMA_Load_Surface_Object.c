@@ -22,37 +22,6 @@
    #define DO_SCALE 319.7   /*!< scale node coordinates by specified factor. Useful for tesscon coordinate system in iv files*/
 #endif
 
-#undef STAND_ALONE
-
-#if defined SUMA_Read_SpecFile_STAND_ALONE
-#define STAND_ALONE
-#elif defined SUMA_Load_Surface_Object_STAND_ALONE
-#define STAND_ALONE
-#elif defined SUMA_SurfaceMetrics_STAND_ALONE
-#define STAND_ALONE 
-#elif defined SUMA_inspec_STAND_ALONE
-#define STAND_ALONE 
-#elif defined SUMA_quickspec_STAND_ALONE
-#define STAND_ALONE 
-#endif
-
-#ifdef STAND_ALONE
-/* these global variables must be declared even if they will not be used by this main */
-SUMA_SurfaceViewer *SUMAg_cSV; /*!< Global pointer to current Surface Viewer structure*/
-SUMA_SurfaceViewer *SUMAg_SVv; /*!< Global pointer to the vector containing the various Surface Viewer Structures 
-                                    SUMAg_SVv contains SUMA_MAX_SURF_VIEWERS structures */
-int SUMAg_N_SVv = 0; /*!< Number of SVs realized by X */
-SUMA_DO *SUMAg_DOv;   /*!< Global pointer to Displayable Object structure vector*/
-int SUMAg_N_DOv = 0; /*!< Number of DOs stored in DOv */
-SUMA_CommonFields *SUMAg_CF; /*!< Global pointer to structure containing info common to all viewers */
-#else
-extern SUMA_CommonFields *SUMAg_CF;
-extern SUMA_DO *SUMAg_DOv;
-extern SUMA_SurfaceViewer *SUMAg_SVv;
-extern int SUMAg_N_SVv; 
-extern int SUMAg_N_DOv;  
-#endif
-
 /* CODE */
 
 /*!
@@ -4242,100 +4211,7 @@ SUMA_Boolean SUMA_SurfaceMetrics_eng (
 }
 
 
-#ifdef SUMA_Read_SpecFile_STAND_ALONE
 
-void usage_SUMA_Read_SpecFile ()
-   
-  {/*Usage*/
-          printf ("\nUsage:  SUMA_Read_SpecFile <fname> \n");
-          printf ("\t <fname> Filename of Surface Specs file\n");
-          printf ("To compile: \ngcc -DSUMA_Read_SpecFile_STAND_ALONE -Wall -o SUMA_Load_Surface_Object  SUMA_Load_Surface_Object.c ");
-          printf ("SUMA_lib.a libmri.a -I/usr/X11R6/include -I./ -L/usr/lib -L/usr/X11R6/lib -lm \n");
-          printf ("\t\t\t Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov \n");
-          exit (0);
-  }/*Usage*/
-  
-int main (int argc,char *argv[])
-{/* Main */
-   char FuncName[]={"Main_SUMA_Read_SpecFile"};
-   SUMA_SurfSpecFile Spec;   
-   
-   if (argc < 2)
-       {
-          usage_SUMA_Read_SpecFile ();
-          exit (1);
-       }
-
-   /* allocate space for CommonFields structure */
-   SUMAg_CF = SUMA_Create_CommonFields ();
-   if (SUMAg_CF == NULL) {
-      fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_Create_CommonFields\n", FuncName);
-      exit(1);
-   }
-   
-   if (!SUMA_AllocSpecFields(&Spec)) { SUMA_S_Err("Error initing"); exit(1); }
-   if (!SUMA_Read_SpecFile (argv[1], &Spec)) {
-      fprintf(SUMA_STDERR,"Error %s: Error in SUMA_Read_SpecFile\n", FuncName);
-      if (!SUMA_FreeSpecFields(&Spec)) { SUMA_S_Err("Error freeing"); return(1); }
-      if (!SUMA_Free_CommonFields(SUMAg_CF)) SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);
-      return (1);
-   }   else    {      
-      if (!SUMA_FreeSpecFields(&Spec)) { SUMA_S_Err("Error freeing"); return(1); }
-      if (!SUMA_Free_CommonFields(SUMAg_CF)) SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);
-      return (0);
-   }
-} /* Main */
-
-#endif
-
-#ifdef SUMA_Load_Surface_Object_STAND_ALONE
-
-void usage_SUMA_Load_Surface_Object_STAND_ALONE ()
-   
-  {/*Usage*/
-          printf ("\nUsage:  SUMA_Load_Surface_Object <SurfName> [<Type> <format>]\n");
-          printf ("\t <SurfName> Filename of Surface Object\n");
-          printf ("\t <Type>: 2 (hard coded at the moment for SUMA_INVENTOR_GENERIC)\n");
-          printf ("\t <format>: 0 (hard coded at the moment for SUMA_ASCII\n"); 
-          printf ("To compile: \ngcc -DSUMA_Load_Surface_Object_STAND_ALONE -Wall -o SUMA_Load_Surface_Object SUMA_Load_Surface_Object.c ");
-          printf ("SUMA_lib.a  -I/usr/X11R6/include -I./ -L/usr/lib -L/usr/X11R6/lib -lm \n");
-          printf ("-lGL -lGLU -lGLw -lXmu -lXm -lXt -lXext -lX11 -lMesaGLw -lMesaGLw\n");
-          printf ("\t\t\t Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov \tWed Jan 23 15:18:12 EST 2002 \n");
-          exit (0);
-  }/*Usage*/
-   
-int main (int argc,char *argv[])
-{/* Main */
-   char FuncName[100]; 
-   SUMA_SurfaceObject *SO;
-   
-   /* allocate space for CommonFields structure */
-   SUMAg_CF = SUMA_Create_CommonFields ();
-   if (SUMAg_CF == NULL) {
-      fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_Create_CommonFields\n", FuncName);
-      exit(1);
-   }
-   
-   /* initialize Main function name for verbose output */
-   sprintf (FuncName,"SUMA_Load_Surface_Object-Main-");
-   
-   
-   
-   if (argc < 2)
-       {
-          usage_SUMA_Load_Surface_Object_STAND_ALONE ();
-          exit (1);
-       }
-   
-   SO = SUMA_Load_Surface_Object((void *)argv[1], SUMA_INVENTOR_GENERIC, SUMA_ASCII, NULL);
-   SUMA_Print_Surface_Object (SO, stdout);
-   SUMA_Free_Surface_Object (SO);
-
-   if (!SUMA_Free_CommonFields(SUMAg_CF)) SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);
-
-   return (0);
-}/* Main */
-#endif
 
 /*! function to return a string containing the name of the files 
 defining a surface object

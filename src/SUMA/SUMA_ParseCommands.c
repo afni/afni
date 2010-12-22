@@ -10,12 +10,6 @@
 #include "SUMA_suma.h"
 #include "../thd_brainormalize.h"
 
-#ifdef STAND_ALONE
-   SUMA_CommonFields *SUMAg_CF;
-#else
-   extern SUMA_CommonFields *SUMAg_CF; 
-#endif
-
 /* CODE */
 
 
@@ -5002,54 +4996,3 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
     
    SUMA_RETURN(ps);
 }
-
-
- 
-#ifdef STAND_ALONE
-void usage ()
-   
-  {/*Usage*/
-          printf ("\nUsage:  SUMA_GetNextCommand ..... \n");
-          printf ("\t ..... \n\n");
-          printf ("\t To Compile:\ngcc -DSTAND_ALONE -Wall -o $1 $1.c -I/usr/X11R6/include -I./\n");
-          printf ("\t\t Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov \tTue Feb 5 10:39:02 EST 2002 \n");
-          exit (0);
-  }/*Usage*/
-   
-int main (int argc,char *argv[])
-{/* Main */
-   char FuncName[100]; 
-   char Scom[500], S[500], term, d;
-
-   /* initialize Main function name for verbose output */
-   sprintf (FuncName,"SUMA_GetNextCommand-Main-");
-   
-   term = '~';
-   d = '|';
-   
-   if (argc < 2)
-       {
-          usage ();
-          exit (1);
-       }
-   
-   /* copy argc into string */
-   sprintf (S,"%s", argv[1]);
-   fprintf(stderr,"INITIAL: %s, \n", S);
-
-   if(!SUMA_RegisterCommand (S,  d, term, "Newly Registered Append", NOPE)) {
-      fprintf (stderr, "%s Error: Failed to register new command\n", FuncName);
-   }
-   if(!SUMA_RegisterCommand (S,  d, term, "Newly Registered Prepend", YUP)) {
-      fprintf (stderr, "%s Error: Failed to register new command\n", FuncName);
-   }
-
-   /*repeat until nothing left */
-   fprintf(stderr,"%s\n", S);
-   while (SUMA_GetNextCommand (S, d, term, Scom) != SE_Empty)  {
-       fprintf (stdout, "Command->%s<-\n", Scom);   
-       fprintf(stderr,"%s\n", S);
-   }
-return(0);
-}/* Main */
-#endif
