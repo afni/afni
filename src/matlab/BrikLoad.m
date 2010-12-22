@@ -98,6 +98,20 @@ function [err, V, Info, ErrMessage] = BrikLoad (BrikName, param1, param2)
 %   swapping but will cause more hard drive seeking when reading the data. 
 %   In the current implementation, either both fields must be present or 
 %   both must be absent. 
+%
+%   .Voxels: vector of 1D indices of voxels to load. This is a new option 
+%            added by NNO Dec. 2010. It allows one to read data from a select
+%            set of voxels only.  This saves memory and speeds up loading data 
+%            in vectorized format only (.Format would be set to 'vector'). 
+%       Note this feature is not compatible with Opt.Slices, or the Opt.Pix* 
+%            options.
+%            Also, the very first voxel in the dataset is indexed 1 in .Voxels
+%            as opposed to 0 in AFNI. To find the 1D index of a voxel in AFNI,
+%            you can right click in the top left corner of the main controller
+%            and select 'Voxel Indexes'. The AFNI 1D index is displayed to the 
+%            right of 'index'. To referring to the same voxel in .Voxels you
+%            should add +1 to the number displayed next to 'index'. 
+%
 %   -------------------------------------------------------------------------
 %   
 %   
@@ -316,7 +330,35 @@ end
    if (~isfield(Opt,'Frames') | isempty(Opt.Frames)),   Opt.Frames = []; end 
    if (~isfield(Opt,'FileFormat') | isempty(Opt.FileFormat)),   Opt.FileFormat = ''; end
    if (~isfield(Opt,'OutPrecision') | isempty(Opt.OutPrecision)),   Opt.OutPrecision = ''; end
+   if (~isfield(Opt,'PixX') || isempty(Opt.PixX)), Opt.PixX=[]; end 
+   if (~isfield(Opt,'PixY') || isempty(Opt.PixY)), Opt.PixY=[]; end 
+   if (~isfield(Opt,'Voxels') || isempty(Opt.Voxels)), Opt.Voxels=[]; end % NNO Dec 2010 added
 
+% NNO Dec 2010 
+if ~isempty(Opt.Voxels)
+    % Opt.Voxels is not compatible with .Slices or .Pix{X,Y}
+    if ~isempty(Opt.Slices) || ~isempty(Opt.PixX) || ~isempty(Opt.PixY)
+        ErrMessage = sprintf ('%s: Opt.Voxels cannot be used with Opt.Slices, Opt.PixX, or Opt.PixY\n', FuncName);
+        err = ErrEval(FuncName,'Err_Opt.Voxels cannot be used with Opt.Slices, Opt.PixX, or Opt.PixY');
+        return
+    end
+    
+    % set output format to vector, if necessary
+    if ~strcmp(Opt.Format,'vector')
+        fprintf(2,'Warning: Opt.Voxels specified; Opt.Format set to ''vector''\n');
+        Opt.Format='vector';
+    end
+    
+    % check that Opt.Voxels is a vector (otherwise it may be too confusing)
+    % TODO: maybe at some point allow for Px3 vector with subindices, and
+    % convert these to linear ones.
+    if sum(size(Opt.Voxels)>1)>1
+        ErrMessage = sprintf ('%s: Opt.Voxels is not a vector\n', FuncName);
+        err = ErrEval(FuncName,'Err_Opt.Voxels is not a vector');
+        return;
+    end
+end
+   
 %Check for conflicts between OutPrecision and Scale
 if (Opt.Scale & ~isempty(Opt.OutPrecision)),
    ErrMessage = sprintf ('%s: Opt.Scale = 1 cannot be used with Opt.OutPrecision\n', FuncName);
@@ -327,8 +369,16 @@ end
 %check on OutPrecision
 if (~isempty(Opt.OutPrecision)),
    if (~strcmp(Opt.OutPrecision,'*')),
-      ErrMessage = sprintf ('%s: Allowed OutPrecision value is ''*''\n', FuncName);
-      err = ErrEval(FuncName,'Err_Bad value for Opt.OutPrecision');
+      if isempty(Opt.Voxels) % NNO Dec 2010
+          % original code
+          ErrMessage = sprintf ('%s: Allowed OutPrecision value is ''*''\n', FuncName);
+          err = ErrEval(FuncName,'Err_Bad value for Opt.OutPrecision');
+      else
+          % Opt.Voxels is specified, thus assume outprecision is meant to
+          % be '*'
+          fprintf(2,'Warning: Opt.Voxels specified; Opt.Outprecision set to ''*''');
+          Opt.OutPrecision='*';
+      end 
    end
 end
 
@@ -377,7 +427,7 @@ end
    
 %get Brik info and setup for slice and frame selectors (for FMRISTAT)
    [err, Info] = BrikInfo(BrikName);
-
+   
    allslices=1:Info.DATASET_DIMENSIONS(3);
    if  (~isfield(Opt,'Slices') | isempty(Opt.Slices)),   
       Opt.Slices = allslices; 
@@ -388,6 +438,20 @@ end
       Opt.Frames = allframes; 
    end
    isallframes=all(ismember(allframes,Opt.Frames));
+   
+   
+   % NNO Dec 2010 - ensure that Opt.Voxels is specified properly
+   if ~isempty(Opt.Voxels)
+       brikvoxelcount=prod(Info.DATASET_DIMENSIONS(1:3));
+       if sum(~isfinite(Opt.Voxels))                       ...
+                 || min(Opt.Voxels)<1                      ...
+                 || max(Opt.Voxels)>brikvoxelcount         ...
+                 || ~isequal(round(Opt.Voxels),Opt.Voxels),
+            ErrMessage = sprintf ('%s: Opt.Voxels has non-integer values, or values out of range (1..%s)\n', FuncName,brikvoxelcount);
+            err = ErrEval(FuncName,sprintf('Err_Opt.Voxels has non-integer values, or values out of range (1..%d)',brikvoxelcount));
+            return;
+       end
+   end
 
    if (~strcmp(Info.ByteOrder,'unspecified')),
       %found byte order specs, make sure it does not conflict with the user option
@@ -450,28 +514,42 @@ end
    if allpixels
        numpixX=Info.DATASET_DIMENSIONS(1);
        numpixY=Info.DATASET_DIMENSIONS(2);
-       Opt.PixX = [1:1:Info.DATASET_DIMENSIONS(1)];
-       Opt.PixY = [1:1:Info.DATASET_DIMENSIONS(2)];
+       Opt.PixX = 1:Info.DATASET_DIMENSIONS(1);
+       Opt.PixY = 1:Info.DATASET_DIMENSIONS(2);
    else
        numpixX=length(Opt.PixX);
        numpixY=length(Opt.PixY);
    end
-   numpix=numpixX*numpixY;
    
+   % NNO Dec 2010 added
+   onlysomevoxels=~isempty(Opt.Voxels);
+   somevoxelcount=numel(Opt.Voxels);
+   
+   numpix=numpixX*numpixY;
    numslices=length(Opt.Slices);
    numframes=length(Opt.Frames);
 
-   if isallslices && isallframes && allpixels
+   if isallslices && isallframes && allpixels && ~onlysomevoxels
       V = fread(fidBRIK, (Info.DATASET_DIMENSIONS(1) .* Info.DATASET_DIMENSIONS(2) .* Info.DATASET_DIMENSIONS(3) .* Info.DATASET_RANK(2)) , [Opt.OutPrecision,typestr]);
    else
-      V=zeros(1,numpix*numslices*numframes);
+       % NNO Dec 2010
+      if onlysomevoxels
+         V=zeros(somevoxelcount,numframes); % limited memory consumption (if .Voxels does not contain all voxel indices)
+      else
+         V=zeros(1,numpix*numslices*numframes); % the original allocation
+      end
       for k=1:numframes
          frame=Opt.Frames(k);
          if isallslices && allpixels
             fseek(fidBRIK, numpix*Info.DATASET_DIMENSIONS(3)*(frame-1)*Info.TypeBytes, 'bof');
-            istrt=1+numpix*numslices*(k-1);
-            istp=istrt-1+numpix*numslices;
-            V(istrt:istp)=fread(fidBRIK,numpix*numslices,[Opt.OutPrecision,typestr]);
+            Vframe=fread(fidBRIK,numpix*numslices,[Opt.OutPrecision,typestr]); % all values in this frame
+            if onlysomevoxels
+                V(:,k)=Vframe(Opt.Voxels); % only keep the voxel values specified
+            else
+                istrt=1+numpix*numslices*(k-1);
+                istp=istrt-1+numpix*numslices;
+                V(istrt:istp)=Vframe;
+            end
          else
             consecutivex=isequal(min(Opt.PixX):max(Opt.PixX), Opt.PixX); %true iff Opt.PixX = [n, n+1, ..., n+k] 
             
@@ -542,13 +620,14 @@ end
       end
    end
 
-%NNO
-if DoVect,
-    V = reshape(V, numpixX * numpixY * numslices, numframes);
-else
-    V = reshape(V, numpixX, numpixY, numslices, numframes);
-end
-    
+%NNO Dec 2010 - only resize for the original implementation (no Opt.Voxels)
+if ~onlysomevoxels
+    if DoVect,
+        V = reshape(V, numpixX * numpixY * numslices, numframes);
+    else
+        V = reshape(V, numpixX, numpixY, numslices, numframes);
+    end
+end    
     
 if (isNIFTI),
    if (filexist(obrik(1).name)) delete(obrik(1).name);
