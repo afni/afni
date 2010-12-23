@@ -60,7 +60,7 @@ static int get_posns_from_elist(char *plist[], char *elist[], char *text,
 #include "mri_process_siemens.c"
 
 static int obl_info_set = 0;
-static int debugprint = 0;      /* rcr */
+static int debugprint = 1;
 
 /*-----------------------------------------------------------------------------------*/
 /* Save the Siemens extra info string in case the caller wants to get it. */
@@ -1374,8 +1374,8 @@ ENTRY("mri_imcount_dicom") ;
    }
 
   if(debugprint) {
-    printf("str_sexinfo initially set to %d\n", PTOI(str_sexinfo) );
-    printf("length %d\n", (int) strlen(str_sexinfo));
+    fprintf(stderr,"str_sexinfo initially set to %d\n", PTOI(str_sexinfo) );
+    if( str_sexinfo ) fprintf(stderr,"length %d\n", (int) strlen(str_sexinfo));
   }
 
 
@@ -1395,7 +1395,7 @@ ENTRY("mri_imcount_dicom") ;
         sexi_start2 = strstr(sexi_start+21, "### ASCCONV BEGIN ###");
         sexi_end = strstr(sexi_start, "### ASCCONV END ###");
         if(debugprint)
-           printf("sexi_start %d sexi_start2 %d sexi_end %d\n",
+           fprintf(stderr, "sexi_start %d sexi_start2 %d sexi_end %d\n",
                   PTOI(sexi_start), PTOI(sexi_start2),PTOI(sexi_end) );
         if (sexi_end != NULL) {
            char *sexi_tmp;
@@ -1416,9 +1416,9 @@ ENTRY("mri_imcount_dicom") ;
 	   free(str_sexinfo);
 	   str_sexinfo = sexi_tmp;
 	   if(debugprint)  {
-	     printf("str_sexinfo now moved to %d\n", PTOI(str_sexinfo));
-	     printf("sexi_size %d\n", (int) sexi_size);
-	     printf("length %d\n", (int) strlen(str_sexinfo));
+	     fprintf(stderr,"str_sexinfo now moved to %d\n", PTOI(str_sexinfo));
+	     fprintf(stderr,"sexi_size %d\n", (int) sexi_size);
+	     fprintf(stderr,"length %d\n", (int) strlen(str_sexinfo));
 	     }
         }
      }
