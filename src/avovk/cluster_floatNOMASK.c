@@ -2038,7 +2038,7 @@ centroid.
 ========================================================================
 */
 { int i, j, k;
-  for (j = 0; j < nclusters; j++) errors[j] = DBL_MAX;
+  for (j = 0; j < nclusters; j++) errors[j] = FLT_MAX;
   for (i = 0; i < nelements; i++)
   { float d = 0.0;
     j = clusterid[i];
@@ -2077,10 +2077,10 @@ kmeans(int nclusters, int nrows, int ncolumns, float** data,
   
   if (saved==NULL) return -1;
 
-  *error = DBL_MAX;
+  *error = FLT_MAX;
 
   do
-  { float total = DBL_MAX;
+  { float total = FLT_MAX;
     int counter = 0;
     int period = 10;
 
@@ -2185,10 +2185,10 @@ kmedians(int nclusters, int nrows, int ncolumns, float** data,
   int* saved = malloc(nelements*sizeof(int));
   if (saved==NULL) return -1;
 
-  *error = DBL_MAX;
+  *error = FLT_MAX;
 
   do
-  { float total = DBL_MAX;
+  { float total = FLT_MAX;
     int counter = 0;
     int period = 10;
 
@@ -2605,9 +2605,9 @@ to 0. If kmedoids fails due to a memory allocation error, ifound is set to -1.
     }
   }
 
-  *error = DBL_MAX;
+  *error = FLT_MAX;
   do /* Start the loop */
-  { float total = DBL_MAX;
+  { float total = FLT_MAX;
     int counter = 0;
     int period = 10;
 
@@ -2628,7 +2628,7 @@ to 0. If kmedoids fails due to a memory allocation error, ifound is set to -1.
 
       for (i = 0; i < nelements; i++)
       /* Find the closest cluster */
-      { float distance = DBL_MAX;
+      { float distance = FLT_MAX;
         for (icluster = 0; icluster < nclusters; icluster++)
         { float tdistance;
           j = centroids[icluster];
@@ -3244,7 +3244,7 @@ If a memory error occurs, pslcluster returns NULL.
 
   for (i = 0; i < nnodes; i++)
   { vector[i] = i;
-    result[i].distance = DBL_MAX;
+    result[i].distance = FLT_MAX;
   }
 
   if(distmatrix)
@@ -3932,7 +3932,7 @@ when microarrays are being clustered.
     case 's':
     { int i1, i2, j1, j2;
       const int n = (transpose==0) ? ncolumns : nrows;
-      float mindistance = DBL_MAX;
+      float mindistance = FLT_MAX;
       for (i1 = 0; i1 < n1; i1++)
         for (i2 = 0; i2 < n2; i2++)
         { float distance;
