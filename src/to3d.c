@@ -2969,6 +2969,13 @@ printf("decoded %s to give zincode=%d bot=%f top=%f\n",Argv[nopt],
          nopt++ ; continue ;  /* go to next arg */
       }
 
+      /*----- -use_old_mosaic_code -----*/  /* 23 Dec 2010 [rickr] */
+
+      if( strcmp(Argv[nopt],"-use_old_mosaic_code") == 0 ){
+         use_new_mosaic_code = 0 ;  /* forget mri_process_siemens.c funcs */
+         nopt++ ; continue ;  /* go to next arg */
+      }
+
       /*--- illegal option ---*/
 
       printf("** ILLEGAL OPTION: %s\n\n",Argv[nopt]) ;
@@ -3500,6 +3507,9 @@ void Syntax()
     "  -use_last_elem\n"
     "    If present, search DICOM images for the last occurance of each\n"
     "    element, not the first.\n"
+    "  -use_old_mosaic_code\n"
+    "    If present, do not use the Dec 2010 updates to siemens mosaic code.\n"
+    "    By default, use the new code if this option is not provided.\n"
    ) ;
 
    printf(

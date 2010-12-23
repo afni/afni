@@ -49,6 +49,13 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 23, DEC, 2010, RCR, "to3d", MINOR, TYPE_NEW_OPT,
+   "added -use_old_mosaic_code",
+   "This is phase 1 of dealing with Siemens mosaic format in Dimon.\n"
+   "Siemens mosaic functions we moved to new mri_process_siemens.c,\n"
+   "with the ability to use the old code preserved with this option."
+ } ,
+
  { 16, DEC, 2010, RCR, "@ANATICOR", MICRO, TYPE_GENERAL,
    "HJ change: small updates to the help",
    "changes were submitted for Hang Joon Jo"

@@ -13,17 +13,6 @@
    ( fabs(a - b) < EPSILON)
 
 typedef struct {
-  int good ;                       /* data in here is good? */
-  int have_data[3] ;               /* do we have slices 0 and 1 in           *
-				    * each dimension to determine z-spacing? *
-				    * added 25 Feb 2003 KRH                  */
-  int mos_ix, mos_nx, mos_ny; /* mosaic properties */
-  int mosaic_num ;                 /* how many slices in 1 'image' */
-  float slice_xyz[NMOMAX][3] ;     /* Sag, Cor, Tra coordinates */
-  int ImageNumbSag, ImageNumbTra, ImageNumbCor; /* reverse the slices */
-} Siemens_extra_info ;
-
-typedef struct {
    THD_fvec3 xvec, yvec;            /* Image Orientation fields */
    THD_fvec3 dfpos1;                /* image origin for first two slices*/
    THD_fvec3 dfpos2;
@@ -41,10 +30,19 @@ oblique_info obl_info;
 
 /* mod -16 May 2007 */
 /* compute Tr transformation matrix for oblique data */
+#if 0
 static int read_mosaic_data( FILE *fp, MRI_IMAGE *im, MRI_IMARR *imar,
           int datum, Siemens_extra_info *mi, int * flip_slices,
           int bpp, int kor, int swap, float dx, float dy, float dz, float dt);
 static int flip_slices_mosaic (Siemens_extra_info *mi, int kor);
+static char * extract_bytes_from_file( FILE *fp, off_t start, size_t len, int strize ) ;
+static void get_siemens_extra_info( char *str , Siemens_extra_info *mi ) ;
+#endif
+
+/*---------------------------------------------------------------------------*/
+
+#include "mri_dicom_elist.h"  /** elist now defined elsewhere [05 May 2008] **/
+#include "mri_process_siemens.h"
 
 static float *ComputeObliquity(oblique_info *obl_info);
 static void Clear_obl_info(oblique_info *obl_info);
@@ -52,17 +50,17 @@ static void Fill_obl_info(oblique_info *obl_info, char **epos, Siemens_extra_inf
 void mri_read_dicom_reset_obliquity();
 void mri_read_dicom_get_obliquity(float *);
 
-static char * extract_bytes_from_file( FILE *fp, off_t start, size_t len, int strize ) ;
-static void get_siemens_extra_info( char *str , Siemens_extra_info *mi ) ;
 static float get_dz(  char **epos);
 
 static int CheckObliquity(float xc1, float xc2, float xc3, float yc1, float yc2, float yc3);
 static int get_posns_from_elist(char *plist[], char *elist[], char *text,
                                 int nume);
 
-static int obl_info_set = 0;
+/* dicom crap is such a mess... */
+#include "mri_process_siemens.c"
 
-static int debugprint = 0;
+static int obl_info_set = 0;
+static int debugprint = 0;      /* rcr */
 
 /*-----------------------------------------------------------------------------------*/
 /* Save the Siemens extra info string in case the caller wants to get it. */
@@ -87,9 +85,6 @@ static void RWC_set_endianosity(void)
    }
 }
 
-/*---------------------------------------------------------------------------*/
-
-#include "mri_dicom_elist.h"  /** elist now defined elsewhere [05 May 2008] **/
 
 /*---------------------------------------------------------------------------*/
 /* global set via 'to3d -assume_dicom_mosaic'            13 Mar 2006 [rickr] */
@@ -111,8 +106,8 @@ MRI_IMARR * mri_read_dicom( char *fname )
    off_t poff ;
    unsigned int plen ;
    char *epos[NUM_ELIST] ;
-   int ii,jj , ee , bpp , datum ;
-   int nx,ny,nz , swap , shift=0 ;
+   int ii,jj , bpp , datum ;
+   int nx,ny,nz , swap ;
    float dx,dy,dz,dt ;
    MRI_IMARR *imar ;
    MRI_IMAGE *im=NULL ;
@@ -390,6 +385,31 @@ ENTRY("mri_read_dicom") ;
      free(ppp) ; RETURN(NULL);
    }
 
+ /* use new functions (moved code)           21 Dec 2010 [rickr] */
+ if( use_new_mosaic_code ) {
+    int verb = 1 + debugprint;
+    int rv = process_siemens_mosaic(&sexinfo, &str_sexinfo, epos, fname,
+                                    assume_dicom_mosaic, nx, ny, nz, verb);
+    if( debugprint ) fprintf(stderr,"-- used process_siemens_mosaic...\n");
+    if( rv  < 0 ) { free(ppp); RETURN(NULL); }   /* fatal */
+    if( rv == 1 ) {
+       /* have Siemens Mosaic, set follower variables */
+
+       mosaic = 1;
+       mos_ix = sexinfo.mos_ix;
+       mos_iy = sexinfo.mos_ix;
+       mos_nx = sexinfo.mos_nx;
+       mos_ny = sexinfo.mos_ny;
+       mos_nz = sexinfo.mos_ix * sexinfo.mos_ix ;  /* total slices in mosaic */
+
+       if( debugprint )
+          fprintf(stderr,"   mos_ix, iy, nx ,ny, nz = (%d, %d, %d, %d, %d)\n",
+                  mos_ix, mos_iy, mos_nx, mos_ny, mos_nz);
+    }  /* else not mosaic */
+ } else {       /* eventually delete this else condition */
+
+   if( debugprint ) fprintf(stderr,"-- not using process_siemens_mosaic...\n");
+
    /*-- 28 Oct 2002: Check if this is a Siemens mosaic.        --*/
    /*-- 02 Dec 2002: Don't use Acquisition Matrix anymore;
                      instead, use the Siemens extra info
@@ -410,6 +430,7 @@ ENTRY("mri_read_dicom") ;
        }
      }
    }
+
 /*********Siemens mosaic section ***********************/
    /*-- process str_sexinfo only if this is marked as a mosaic image --*/
    /*-- preliminary processing of sexinfo EVEN IF NOT MARKED AS MOSAIC, --*/
@@ -451,7 +472,7 @@ ENTRY("mri_read_dicom") ;
      sexinfo.good = 0 ;  /* start by marking it as bad */
      for(ii = 0; ii < 3; ii++) sexinfo.have_data[ii] = 0; /* 25 Feb 03 Initialize new member KRH */
 
-     get_siemens_extra_info( str_sexinfo , &sexinfo ) ;
+     get_siemens_extra_info( str_sexinfo , &sexinfo, 1+debugprint ) ;
 
      if( sexinfo.good ){                                   /* if data is good */
 
@@ -521,7 +542,10 @@ ENTRY("mri_read_dicom") ;
          nwarn++ ;
        }
    } /* end of if str_sexinfo exists */
+
 /*********end of Siemens mosaic section ***********************/
+
+ } /* end of if use_new_mosaic_code */
 
    /*-- try to get dx, dy, dz, dt --*/
 
@@ -706,9 +730,15 @@ fprintf(stderr,"MRILIB_orients=%s (from IMAGE_ORIENTATION)\n",MRILIB_orients) ;
 
    /*-- try to get image offset (position), if have orientation from above --*/
 
-   if( nzoff == 0 && have_orients && mosaic && sexinfo.good ){  /* 01 Nov 2002: use Siemens mosaic info */
-     int qq ;
+ if( nzoff == 0 && have_orients && mosaic && sexinfo.good ){  /* 01 Nov 2002: use Siemens mosaic info */
      float z0=0.0, z1=0.0 ;
+
+   /* use new functions (moved code)           21 Dec 2010 [rickr] */
+   if( use_new_mosaic_code ) {
+      int rv = apply_z_orient(&sexinfo, MRILIB_orients, &kor,
+                              &MRILIB_zoff, 1+debugprint);
+      if( ! rv ) use_MRILIB_zoff = 1;
+   } else {     /* eventually delete this else condition */
      /* 25 Feb 2003 changing error checking for mosaics missing one or more *
       * dimension of slice coordinates                                 KRH  */
      if (sexinfo.have_data[kor-1]) {
@@ -754,7 +784,8 @@ fprintf(stderr,"z0=%f z1=%f kor=%d MRILIB_orients=%s\n",z0,z1,kor,MRILIB_orients
 
      MRILIB_zoff = z0 ; use_MRILIB_zoff = 1 ;
      if( kor > 0 ) MRILIB_zoff = -MRILIB_zoff ;
-   }
+   } /* else (not use_new_mosaic_code) */
+ } /* if have_orients && mosaic ... */
 
    /** use image position vector to set offsets,
        and (2cd time in) the z-axis orientation **/
@@ -977,9 +1008,11 @@ fprintf(stderr,"SLICE_LOCATION = %f\n",zz) ;
     }
 
    }
-   else {         /*copy images from mosaic data into an image array */
-      read_mosaic_data( fp, im, imar, datum, &sexinfo, &obl_info.flip_slices,
-                        bpp, kor, swap,dx,dy,dz, dt);
+   else {
+      /* read images into the image array (fill im, imar, flip_slices) */
+      /* moved to mri_process_siemens.c            22 Dec 2010 [rickr] */
+      read_mosaic_data( fp, im, imar, &obl_info.flip_slices, &sexinfo, datum,
+                        bpp, kor, swap,dx,dy,dz, dt, 1+debugprint);
    }
    fclose(fp) ;     /* 10 Sep 2002: oopsie - forgot to close file */
 
@@ -1393,7 +1426,7 @@ ENTRY("mri_imcount_dicom") ;
      /* end KRH 25 Jul 2003 change */
 
      sexinfo.good = 0 ;  /* start by marking it as bad */
-     get_siemens_extra_info( str_sexinfo , &sexinfo ) ;
+     get_siemens_extra_info( str_sexinfo , &sexinfo , 1+debugprint ) ;
 
      if( sexinfo.good ){                                   /* if data is good */
 
@@ -1434,7 +1467,7 @@ static int get_posns_from_elist(char *plist[], char *elist[], char *text,
    int    ee;
    char * cp;
 
-   ENTRY("flip_slices_mosaic");
+   ENTRY("get_posns_from_elist");
 
    if( check_env && !use_last_elem ) {
         check_env = 0;
@@ -1456,6 +1489,7 @@ static int get_posns_from_elist(char *plist[], char *elist[], char *text,
    RETURN(0);
 }
 
+# if 0 /* moved to mri_process_siemens.c */
 /*--------------------------------------------------------------------------------*/
 /*! Read some bytes from an open file at a given offset.  Return them in a
     newly malloc()-ed array.  If return value is NULL, something bad happened.
@@ -1479,6 +1513,10 @@ static char * extract_bytes_from_file( FILE *fp, off_t start, size_t len, int st
    return ar ;
 }
 
+# endif  /* moved to mri_process_siemens.c */
+
+
+#if 0  /* moved to mri_process_siemens.c        22 Dec 2010 [rickr] */
 /*--------------------------------------------------------------------------------*/
 /*! Parse the Siemens extra stuff for mosaic information.
     Ad hoc, based on sample data and no documentation.
@@ -1491,7 +1529,7 @@ static void get_siemens_extra_info( char *str , Siemens_extra_info *mi )
    int have_x[2] = {0,0},
        have_y[2] = {0,0},
        have_z[2] = {0,0};
-   float x,y,z , val ;
+   float val ;
    char name[1024] ;
 
    /*-- check for good inputs --*/
@@ -1610,6 +1648,7 @@ static void get_siemens_extra_info( char *str , Siemens_extra_info *mi )
 
    return ;
 }
+
 /* determine if slice order is reversed in Siemens mosaic files */
 static int
 flip_slices_mosaic (Siemens_extra_info *mi, int kor)
@@ -1639,7 +1678,9 @@ flip_slices_mosaic (Siemens_extra_info *mi, int kor)
          RETURN(0);
   }
 }
+#endif  /* moved to mri_process_siemens.c */
 
+# if 0  /* moved to mri_process_siemens.c       21 Dec 2010 [rickr] */
 /* copy data from mosaic input to image array */
 static int
 read_mosaic_data( FILE *fp, MRI_IMAGE *im, MRI_IMARR *imar, int datum,
@@ -1724,6 +1765,7 @@ MCHECK ;
    RETURN(0);
 }
 
+# endif   /* end moved read_mosaic_data() */
 
 /*--------------------------------------------------------------------------*/
 /*! Test if a file is possibly a DICOM file.  -- RWCox - 07 May 2003
@@ -1819,7 +1861,7 @@ Fill_obl_info(oblique_info *obl_info, char **epos, Siemens_extra_info *siem)
 {
     float *xyz ; int qq ;
     char *ddd;
-    float dx, dy, th, sp, dz;
+    float dx, dy, dz;
 /*    float xc1, xc2, xc3, yc1, yc2, yc3, xn, yn;*/
     int nx, ny, mos_ix, mos_iy;
     int ii;
@@ -1959,8 +2001,6 @@ static float *ComputeObliquity(oblique_info *obl_info)
    THD_fvec3 offsetxvec, offsetyvec,offsetzvec, Cm, Orgin, Cx;
 /*   double dotp, angle, aangle;*/
    float fac=1;
-   int altsliceinfo = 0;
-   Siemens_extra_info *siem;
    int ii,jj;
    double Cxx, Cxy, Cxz;
 
