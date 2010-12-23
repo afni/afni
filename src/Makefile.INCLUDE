@@ -830,7 +830,7 @@ strblast:strblast.o
 
 3dPolyfit:3dPolyfit.o
 	$(RM) $@
-	$(CC) -o 3dPolyfit 3dPolyfit.o $(LFLAGS) $(LLIBS)
+	$(CC) -o 3dPolyfit 3dPolyfit.o $(LFLAGS) -lmri -lf2c $(LLIBS)
 
 3drotate:3drotate.o
 	$(RM) $@
