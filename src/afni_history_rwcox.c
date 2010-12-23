@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 23 , DEC , 2010 , RWC , "3dPolyfit" , MINOR , TYPE_NEW_PROG ,
+   "Fits a polynomial (spatially) to a dataset" ,
+   NULL } ,
+
  { 16 , DEC , 2010 , RWC , "mri_read" , MICRO , TYPE_GENERAL ,
    "Modify ragged read to allow for empty vectors" ,
    "That is, a string like '**8' means '8 filler values'.  This is for the\n"

@@ -87,7 +87,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            3dBlurInMask 3dRank 3dFFT 1dgenARMA11 3dPeriodogram 1dAstrip         \
            3dLocalPV 3dBandpass 3dSetupGroupInCorr 3dGroupInCorr 3dTcorr1D      \
            3dClustSim 3dRetinoPhase 3dMaskToASCII 3dttest++ 3dDTtoDWI           \
-           niccc rbox qdelaunay 3dkmeans 3dXYZcat                               \
+           niccc rbox qdelaunay 3dkmeans 3dXYZcat 3dPolyfit                     \
            $(EXTRAS)
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge      \
@@ -118,7 +118,8 @@ PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge  
                   3dLocalSVD 3dFFT  1dcat  3dErrtsCormat 3dREMLfit 3dTcorrMap       \
                   afni_history 3dUpsample 1dUpsample 3dmatmult 3dABoverlap          \
                   3dmaskSVD 3dRank 3dLocalPV 3dTcorr1D 3dClustSim 3dRetinoPhase     \
-                  3dMaskToASCII 3dttest++ 3dDTtoDWI niccc 3dXYZcat $(EXTRAS)
+                  3dMaskToASCII 3dttest++ 3dDTtoDWI niccc 3dXYZcat 3dPolyfit        \
+                  $(EXTRAS)
 
 # For CYGWIN (look for "exe" to find various places below)
 #  Note that 3dNLfim and 3dTSgen are missing for now
@@ -826,6 +827,10 @@ strblast:strblast.o
 3dMedianFilter:3dMedianFilter.o
 	$(RM) $@
 	$(CC) -o 3dMedianFilter 3dMedianFilter.o $(LFLAGS) $(LLIBS)
+
+3dPolyfit:3dPolyfit.o
+	$(RM) $@
+	$(CC) -o 3dPolyfit 3dPolyfit.o $(LFLAGS) $(LLIBS)
 
 3drotate:3drotate.o
 	$(RM) $@
@@ -1814,7 +1819,7 @@ MRI_OBJS = mri_cfft.o mri_complex_arith.o mri_fft_complex.o mri_free.o    \
            mri_pcvector.o mri_fdrize.o mri_floatvec.o mri_sort.o               \
            mri_warpfield.o mri_dicom_stuff.o mri_check.o mri_allzero.o         \
            mri_subset.o mri_to_fvect.o mri_genalign_util.o rcmat.o dmat44.o    \
-           mri_rbfinterp.o mri_genARMA11.o mri_catvol.o
+           mri_rbfinterp.o mri_genARMA11.o mri_catvol.o mri_polyfit.o
 
 THD_OBJS = thd_atr.o thd_dsetto1D.o thd_initalldir.o thd_reconpar.o \
            thd_auxdata.o thd_editdaxes.o thd_initdblk.o thd_sarr.o  \

@@ -735,7 +735,7 @@ static mday holiday[] = {
    {DEC,21,"Jan Lukasiewicz' birthday"                               } ,
    {DEC,21,"Nepal Independence Day"                                  } ,
    {DEC,22,"Srinivasa Ramanujan's birthday"                          } ,
-   {DEC,23,"Emperoro Akihito's birthday"                             } ,
+   {DEC,23,"Emperor Akihito's birthday"                              } ,
    {DEC,24,"Adam Mickiewicz's birthday"                              } ,
    {DEC,24,"Ignatius Loyola's birthday"                              } ,
    {DEC,24,"Kit Carson's birthday"                                   } ,
