@@ -60,7 +60,7 @@ static int get_posns_from_elist(char *plist[], char *elist[], char *text,
 #include "mri_process_siemens.c"
 
 static int obl_info_set = 0;
-static int debugprint = 1;
+static int debugprint = 0;
 
 /*-----------------------------------------------------------------------------------*/
 /* Save the Siemens extra info string in case the caller wants to get it. */
