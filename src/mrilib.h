@@ -41,6 +41,7 @@ extern int MRILIB_DomainMaxNodeIndex ;         /* 32 Dec 2007 */
 
 extern int   assume_dicom_mosaic ;   /* mri_read_dicom.c  13 Mar 2006 [rickr] */
 extern int   use_last_elem;          /* mri_read_dicom.c  10 Apr 2009 [rickr] */
+extern int   use_new_mosaic_code;    /* mri_process_siemens.c 23 Dec 2010 [r] */
 
 #ifdef  __cplusplus
 }
@@ -1055,8 +1056,6 @@ extern float * mri_delayed_lsqfit( MRI_IMAGE * , MRI_IMARR * , double * ) ;
 extern float * lsqfit( int , float * , float * , int , float *ref[] ) ;
 extern double * startup_lsqfit( int , float * , int , float *ref[] ) ;
 extern float * delayed_lsqfit( int , float * , int , float *ref[] , double * ) ;
-
-extern MRI_IMAGE * mri_polyfit( MRI_IMAGE *, int, byte *, float, int ) ;
 
 extern MRI_IMAGE * mri_pcvector  ( MRI_IMARR *imar , int,int ) ;
 extern MRI_IMAGE * mri_meanvector( MRI_IMARR *imar , int,int ) ;
