@@ -66,7 +66,7 @@ ENTRY("mri_medianfilter") ;
    nx = imin->nx ; ny = imin->ny ; nz = imin->nz ; nxy = nx*ny ;
 
    if( verb ){
-     fprintf(stderr,"++ Median mask=%d",nd) ;
+     fprintf(stderr," + median filter mask=%d",nd) ;
      if( mask != NULL )
        fprintf(stderr," Data mask=%d",THD_countmask(nxy*nz,mask)) ;
    }
