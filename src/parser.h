@@ -97,6 +97,8 @@ extern "C" {                    /* care of Greg Balls    7 Aug 2006 [rickr] */
 #define PARSER_HELP_STRING                                                     \
   " Arithmetic expressions are allowed, using + - * / ** ^ and parentheses.\n" \
   " C relational, boolean, and conditional expressions are NOT implemented!\n" \
+  "* Note that the expression evaluator is designed not to fail;  illegal  *\n" \
+  "* operations like 'sqrt(-1)' are changed to legal ones to avoid crashes.*\n" \
   " Built in functions include:\n"                                             \
   "\n"                                                                         \
   "    sin  , cos  , tan  , asin  , acos  , atan  , atan2,       \n"           \
