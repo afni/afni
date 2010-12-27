@@ -44,6 +44,13 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 27 , DEC , 2010 , RWC , "plugout_drive" , MICRO , TYPE_NEW_OPT ,
+   "-maxwait option limits amount of time waiting for AFNI" ,
+   "Instead of old fixed value of 9 s.\n"
+   "Also, if program can't connect to AFNI at all, exit status will be 1. \n"
+   "This feature can be used in a script to check if AFNI is running with\n"
+   "plugouts enabled, and if not, then start a copy." } ,
+
  { 23 , DEC , 2010 , RWC , "3dPolyfit" , MINOR , TYPE_NEW_PROG ,
    "Fits a polynomial (spatially) to a dataset" ,
    NULL } ,
