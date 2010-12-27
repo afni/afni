@@ -49,183 +49,6 @@ static int  I_com = 0;    /* 22 Mar 2005 - RWCox */
 static char *com[1024];
 /***** Prototype *****/
 
-int afni_io(void) ;
-
-/*===================================================================
-   Main program:
-     Read command line for options
-     Call afni_io routine forever
-=====================================================================*/
-
-int main( int argc , char *argv[] )
-{
-   int narg , ii;
-
-   /***** See if the pitiful user wants help *****/
-
-   if( argc == 2 && strncmp(argv[1],"-help",5) == 0 ){
-      printf("Usage: plugout_drive [-host name] [-v]\n"
-             "This program connects to AFNI and sends commands\n"
-             " that the user specifies interactively or on command line\n"
-             " over to AFNI to be executed.\n"
-             "\n"
-             "Options:\n"
-             "  -host name  Means to connect to AFNI running on the computer\n"
-             "                'name' using TCP/IP.  The default is to connect\n"
-             "                on the current host 'localhost' using TCP/IP.\n"
-             "  -shm        Means to connect to the current host using shared\n"
-             "                memory.  There is no reason to do this unless\n"
-             "                you are transferring huge quantities of data.\n"
-             "                N.B.:  '-host .' is equivalent to '-shm'.\n"
-             "  -v          Verbose mode.\n"
-             "  -port pp    Use TCP/IP port number 'pp'.  The default is\n"
-             "                8099, but if two plugouts are running on the\n"
-             "                same computer, they must use different ports.\n"
-             "  -name sss   Use the string 'sss' for the name that AFNI assigns\n"
-             "                to this plugout.  The default is something stupid.\n"
-             "  -com 'ACTION DATA'  Execute the following command. For example:\n"
-             "                       -com 'SET_FUNCTION SomeFunction'\n"
-             "                       will switch AFNI's function (overlay) to\n"
-             "                       dataset with prefix SomeFunction. \n"
-             "                      Make sure ACTION and DATA are together enclosed\n"
-             "                       in one pair of single quotes.\n"
-             "                      There are numerous actions listed in AFNI's\n"
-             "                       README.driver file.\n"
-             "                      You can use the option -com repeatedly. \n"
-             "  -quit  Quit after you are done with all the -com commands.\n"
-             "         The default is for the program to wait for more\n"
-             "          commands to be typed at the terminal's prompt.\n"
-             "\n"
-             "NOTE:\n"
-             "You will need to turn plugouts on in AFNI using one of the\n"
-             "following methods: \n"
-             " 1. Including '-yesplugouts' as an option on AFNI's command line\n"
-             " 2. From AFNI GUI: Define Datamode->Misc->Start Plugouts\n"
-             " 3. From AFNI GUI: Press the 'NIML+PO' button (near 'Overlay')\n"
-             " 4. Set environment variable AFNI_YESPLUGOUTS to YES in .afnirc\n"
-             "Otherwise, AFNI won't be listening for a plugout connection.\n"
-             "  [AFNI does't listen for socket connections unless]\n"
-             "  [it is told to, in order to avoid the overhead of]\n"
-             "  [checking for incoming data all the time.        ]\n"
-             "\n"
-            ) ;
-      exit(0) ;
-   }
-
-   /***** Process command line options *****/
-
-   N_com = 0;
-   DontWait = 0;
-   narg = 1 ;
-   while( narg < argc ){
-
-      /** -shm [20 May 2008] **/
-
-      if( strcmp(argv[narg],"-shm") == 0 ){
-        strcpy( afni_host , "." ) ;
-        narg++ ; continue ;
-      }
-
-      /** -host name **/
-
-      if( strncmp(argv[narg],"-host",5) == 0 ){
-         narg++ ;
-         if( narg >= argc ){
-            fprintf(stderr,"** -host needs a following name!\a\n"); exit(1);
-         }
-         strcpy( afni_host , argv[narg] ) ;
-         narg++ ; continue ;
-      }
-
-      /** -name sss **/
-
-      if( strncmp(argv[narg],"-name",5) == 0 ){
-         narg++ ;
-         if( narg >= argc ){
-            fprintf(stderr,"** -name needs a following string!\a\n"); exit(1);
-         }
-         strcpy( afni_name , argv[narg] ) ;
-         narg++ ; continue ;
-      }
-
-      /** -v **/
-
-      if( strncmp(argv[narg],"-v",2) == 0 ){
-         afni_verbose = 1 ;
-         narg++ ; continue ;
-      }
-
-      /** -port pp **/
-
-      if( strncmp(argv[narg],"-port",4) == 0 ){
-         narg++ ;
-         if( narg >= argc ){
-            fprintf(stderr,"** -port needs a following argument!\a\n"); exit(1);
-         }
-         afni_port = strtol( argv[narg] , NULL , 10 ) ;
-         if( afni_port <= 1024 ){
-            fprintf(stderr,"** -port needs an argument > 1024!\a\n"); exit(1);
-         }
-         if( strcmp(afni_host,".") == 0 ) strcpy(afni_host,"localhost") ;
-         narg++ ; continue ;
-      }
-
-      /*** -com 'command this' */
-      if( strncmp(argv[narg],"-com",4) == 0 ){
-         narg++ ;
-         if( narg >= argc ){
-            fprintf(stderr,"** -com needs a following argument!\a\n"); exit(1);
-         }
-
-         if (argv[narg] && strlen(argv[narg]) >= PLUGOUT_COM_LENGTH) {
-            fprintf(stderr,
-               "** Command length must be smaller than %d characters.\n"
-               "   If you really need a longer command let us know.\n"
-               "   Your command is %d characters long.\n" , 
-               PLUGOUT_COM_LENGTH, (int)strlen(argv[narg]));
-            exit(1);
-         }
-
-         if (N_com < 1024) {
-            com[N_com] = argv[narg];
-            ++N_com;
-         } else {
-            fprintf( stderr,
-                     "** Only 1024 -com options allowed. Are you nuts?\a\n"); 
-            exit(1);
-         }
-
-         narg++ ; continue ;
-      }
-
-      /*** -quit */
-      if( strncmp(argv[narg],"-quit",5) == 0 ){
-         DontWait = 1 ;
-         narg++ ; continue ;
-      }
-
-      /** Je ne sais pas **/
-
-      fprintf(stderr,"** Unrecognized option: %s\a\n",argv[narg]) ;
-      exit(1) ;
-   }
-
-   if (DontWait && !N_com) {
-      fprintf( stderr,
-               "** WARNING: -quit option is meaningless without -com option.\n");
-      DontWait = 0;
-   }
-
-   /***** Loop and check in with AFNI every 100 msec *****/
-
-   while( 1 ){
-      ii = afni_io() ;        /* commune with AFNI  */
-      if( ii < 0 ) exit(0) ;  /* bad trip? then die */
-      iochan_sleep(100) ;     /* perchance to dream */
-   }
-
-}
-
 /*===================================================================
   This routine handles all communications with AFNI.
   The only input is the global variable afni_host, which determines
@@ -263,13 +86,17 @@ int main( int argc , char *argv[] )
 #define PO_ACK_OK(ic)   iochan_sendall( (ic) , "OK!" , POACKSIZE )
 #define PO_SEND(ic,str) iochan_sendall( (ic) , (str) , strlen((str))+1 )
 
+static int afni_mode = AFNI_OPEN_CONTROL_MODE ;  /* status variable */
+
+static int exit_status = 1 ;  /* 1 if never connected, 0 if connected */
+
+static float maxwait = 9.0f ; /* 27 Dec 2010 */
 
 int afni_io(void)
 {
-   static int afni_mode = AFNI_OPEN_CONTROL_MODE ;  /* status variable */
-   static IOCHAN * afni_ioc = NULL ;                /* connection to AFNI */
-   static float delta_t = -1.0;                     /* time spent waiting */
-   float Time_Fact = 1000000.0;
+   static IOCHAN *afni_ioc = NULL ;                /* connection to AFNI */
+   static float delta_t = -1.0;                    /* time spent waiting */
+   float Time_Fact = 1000000.0;           /* one meeelllion microseconds */
    static struct  timeval  tw;
    struct  timeval  tn;
    int ii ;
@@ -332,9 +159,8 @@ int afni_io(void)
       } else {
          delta_t = (((float)(tn.tv_sec  - tw.tv_sec )*Time_Fact) +     /* time spent waiting */
                      (float)(tn.tv_usec - tw.tv_usec))/Time_Fact ;
-         if (delta_t > 9.0) {
-            fprintf(stderr,"** Waited 9 seconds to no avail.\n"
-                           "   I quit.\n");
+         if (delta_t > maxwait) {
+            fprintf(stderr,"** Waited %g seconds to no avail ==> I quit.\n",maxwait);
             IOCHAN_CLOSE(afni_ioc) ;
             afni_mode = 0 ;
             return -1 ;
@@ -351,6 +177,8 @@ int afni_io(void)
       char afni_iocname[128] ;
       char afni_buf[256] ;
       char shmstr[256];
+
+      exit_status = 0 ;
 
       /** decide name of data channel:
             use shared memory (shm:) on ".",
@@ -498,4 +326,213 @@ int afni_io(void)
    }
 
    return 0 ;
+}
+
+/*===================================================================
+   Main program:
+     Read command line for options
+     Call afni_io routine forever
+=====================================================================*/
+
+int main( int argc , char *argv[] )
+{
+   int narg , ii;
+
+   /***** See if the pitiful user wants help *****/
+
+   if( argc == 2 && strncmp(argv[1],"-help",5) == 0 ){
+      printf("Usage: plugout_drive [-host name] [-v]\n"
+             "This program connects to AFNI and sends commands\n"
+             " that the user specifies interactively or on command line\n"
+             " over to AFNI to be executed.\n"
+             "\n"
+             "Options:\n"
+             "  -host name    Means to connect to AFNI running on the computer\n"
+             "                'name' using TCP/IP.  The default is to connect\n"
+             "                on the current host 'localhost' using TCP/IP.\n"
+             "\n"
+             "  -shm          Means to connect to the current host using shared\n"
+             "                memory.  There is no reason to do this unless\n"
+             "                you are transferring huge quantities of data.\n"
+             "                N.B.:  '-host .' is equivalent to '-shm'.\n"
+             "\n"
+             "  -v            Verbose mode.\n"
+             "\n"
+             "  -port pp      Use TCP/IP port number 'pp'.  The default is\n"
+             "                8099, but if two plugouts are running on the\n"
+             "                same computer, they must use different ports.\n"
+             "\n"
+             "  -maxwait t    Wait a maximum of 't' seconds for AFNI to connect;\n"
+             "                if the connection doesn't happen in that time, exit.\n"
+             "                [default wait time is 9 seconds]\n"
+             "\n"
+             "  -name sss     Use the string 'sss' for the name that AFNI assigns\n"
+             "                to this plugout.  The default is something stupid.\n"
+             "\n"
+             "  -com 'ACTION DATA'  Execute the following command. For example:\n"
+             "                       -com 'SET_FUNCTION SomeFunction'\n"
+             "                       will switch AFNI's function (overlay) to\n"
+             "                       dataset with prefix SomeFunction. \n"
+             "                      Make sure ACTION and DATA are together enclosed\n"
+             "                       in one pair of single quotes.\n"
+             "                      There are numerous actions listed in AFNI's\n"
+             "                       README.driver file.\n"
+             "                      You can use the option -com repeatedly. \n"
+             "\n"
+             "  -quit         Quit after you are done with all the -com commands.\n"
+             "                The default is for the program to wait for more\n"
+             "                commands to be typed at the terminal's prompt.\n"
+             "\n"
+             "NOTES:\n"
+             "You will need to turn plugouts on in AFNI using one of the\n"
+             "following methods: \n"
+             " 1. Including '-yesplugouts' as an option on AFNI's command line\n"
+             " 2. From AFNI GUI: Define Datamode->Misc->Start Plugouts\n"
+             " 3. From AFNI GUI: Press the 'NIML+PO' button (near 'Overlay')\n"
+             " 4. Set environment variable AFNI_YESPLUGOUTS to YES in .afnirc\n"
+             "Otherwise, AFNI won't be listening for a plugout connection.\n"
+             "  [AFNI does't listen for socket connections, unless]\n"
+             "  [it is told to,  in order to avoid the overhead of]\n"
+             "  [checking for incoming data every few milliseconds]\n"
+             "\n"
+             "This program's exit status will be 1 if it couldn't connect\n"
+             "to AFNI at all.  Otherwise, the exit status will be 0.\n"
+             "You could use this feature in a script to check if a copy of\n"
+             "AFNI is ready to rumble, and if not then start one, as in the\n"
+             "following csh fragment:\n"
+             "    plugout_drive -maxwait 1 -com 'OPEN_WINDOW axialimage'\n"
+             "    if( $status == 1 )then\n"
+             "      afni -yesplugouts &\n"
+             "      sleep 2 ; plugout_drive -com 'OPEN_WINDOW axialimage'\n"
+             "    endif\n"
+             "\n"
+            ) ;
+      exit(0) ;
+   }
+
+   /***** Process command line options *****/
+
+   N_com = 0;
+   DontWait = 0;
+   narg = 1 ;
+   while( narg < argc ){
+
+      /** -maxwait [27 Dec 2010] **/
+
+      if( strcmp(argv[narg],"-maxwait") == 0 ){
+        if( ++narg >= argc ){
+           fprintf(stderr,"** -maxwait needs a following number!\a\n"); exit(1);
+        }
+        maxwait = (float)strtod(argv[narg],NULL) ;
+        if( maxwait <= 0.0f ) maxwait = 9.0f ;
+        narg++ ; continue ;
+      }
+
+      /** -shm [20 May 2008] **/
+
+      if( strcmp(argv[narg],"-shm") == 0 ){
+        strcpy( afni_host , "." ) ;
+        narg++ ; continue ;
+      }
+
+      /** -host name **/
+
+      if( strncmp(argv[narg],"-host",5) == 0 ){
+         narg++ ;
+         if( narg >= argc ){
+            fprintf(stderr,"** -host needs a following name!\a\n"); exit(1);
+         }
+         strcpy( afni_host , argv[narg] ) ;
+         narg++ ; continue ;
+      }
+
+      /** -name sss **/
+
+      if( strncmp(argv[narg],"-name",5) == 0 ){
+         narg++ ;
+         if( narg >= argc ){
+            fprintf(stderr,"** -name needs a following string!\a\n"); exit(1);
+         }
+         strcpy( afni_name , argv[narg] ) ;
+         narg++ ; continue ;
+      }
+
+      /** -v **/
+
+      if( strncmp(argv[narg],"-v",2) == 0 ){
+         afni_verbose = 1 ;
+         narg++ ; continue ;
+      }
+
+      /** -port pp **/
+
+      if( strncmp(argv[narg],"-port",4) == 0 ){
+         narg++ ;
+         if( narg >= argc ){
+            fprintf(stderr,"** -port needs a following argument!\a\n"); exit(1);
+         }
+         afni_port = strtol( argv[narg] , NULL , 10 ) ;
+         if( afni_port <= 1024 ){
+            fprintf(stderr,"** -port needs an argument > 1024!\a\n"); exit(1);
+         }
+         if( strcmp(afni_host,".") == 0 ) strcpy(afni_host,"localhost") ;
+         narg++ ; continue ;
+      }
+
+      /*** -com 'command this' */
+      if( strncmp(argv[narg],"-com",4) == 0 ){
+         narg++ ;
+         if( narg >= argc ){
+            fprintf(stderr,"** -com needs a following argument!\a\n"); exit(1);
+         }
+
+         if (argv[narg] && strlen(argv[narg]) >= PLUGOUT_COM_LENGTH) {
+            fprintf(stderr,
+               "** Command length must be smaller than %d characters.\n"
+               "   If you really need a longer command let us know.\n"
+               "   Your command is %d characters long.\n" ,
+               PLUGOUT_COM_LENGTH, (int)strlen(argv[narg]));
+            exit(1);
+         }
+
+         if (N_com < 1024) {
+            com[N_com] = argv[narg];
+            ++N_com;
+         } else {
+            fprintf( stderr,
+                     "** Only 1024 -com options allowed. Are you nuts?\a\n");
+            exit(1);
+         }
+
+         narg++ ; continue ;
+      }
+
+      /*** -quit */
+      if( strncmp(argv[narg],"-quit",5) == 0 ){
+         DontWait = 1 ;
+         narg++ ; continue ;
+      }
+
+      /** Je ne sais pas **/
+
+      fprintf(stderr,"** Unrecognized option: %s\a\n",argv[narg]) ;
+      exit(1) ;
+   }
+
+   if (DontWait && !N_com) {
+      fprintf( stderr,
+               "** WARNING: -quit option is meaningless without -com option.\n");
+      DontWait = 0;
+   }
+
+   /***** Loop and check in with AFNI every 100 msec *****/
+
+   iochan_enable_perror(0) ;  /* 27 Dec 2010 */
+
+   while( 1 ){
+      ii = afni_io() ;                  /* commune with AFNI  */
+      if( ii < 0 ) exit(exit_status) ;  /* bad trip? then die */
+      iochan_sleep(100) ;               /* perchance to dream */
+   }
+
 }

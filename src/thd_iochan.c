@@ -74,7 +74,7 @@ void iochan_enable_perror( int q ){ pron = q; }   /* ditto */
 #  define PERROR(x)                                                    \
      do{ if( (x) != NULL && pron ){                                    \
            double qtim = COX_clock_time() ;                            \
-           int skip = ( qtim-pqtim < 0.666 &&                          \
+           int skip = ( qtim-pqtim < 3.333 &&                          \
                         pqlast     != NULL && strcmp(pqlast,x) == 0 ); \
            if( !skip ){                                                \
              perror(x); pqtim = qtim;                                  \
