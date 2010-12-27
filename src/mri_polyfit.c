@@ -1,5 +1,8 @@
 #include "mrilib.h"
 
+static int verb = 0 ;
+void mri_polyfit_verb( int ii ){ verb = ii ; }
+
 /*----------------------------------------------------------------------------*/
 /* define some polynomials over the domain [-1..1] */
 
@@ -101,12 +104,19 @@ ENTRY("mri_polyfit") ;
 
    if( imin == NULL || nord < 0 || nord > 9 ) RETURN(NULL) ;
 
-   ii = mri_dimensionality(imin) ; if( ii < 2 || ii > 3 ) RETURN(NULL) ;
+   ii = mri_dimensionality(imin) ;
+   if( ii < 2 || ii > 3 ){
+     if( verb ) ERROR_message("mri_polyfit: dimensionality = %d",ii) ;
+     RETURN(NULL) ;
+   }
 
    if( mask != NULL ) nmask = THD_countmask( imin->nvox , mask ) ;
    else               nmask = imin->nvox ;
    jj = 8*(int)rint( pow( (double)(nord+1) , (double)ii ) ) ;
-   if( nmask < jj ) RETURN(NULL) ;
+   if( nmask < jj ){
+     if( verb ) ERROR_message("mri_polyfit: #points=%d < %d",nmask,jj) ;
+     RETURN(NULL) ;
+   }
 
 #undef  GOOD
 #define GOOD(i) (mask == NULL || mask[i])
@@ -164,6 +174,9 @@ ENTRY("mri_polyfit") ;
        }
    }}}
 
+   if( verb )
+     ININFO_message("create %d polynomial regressors",nref) ;
+
    ref = (float **)malloc(sizeof(float *)*nref) ;
    for( kk=0 ; kk < nref ; kk++ ){
      ref[kk] = (float *)malloc(sizeof(float)*nmask) ;
@@ -173,7 +186,8 @@ ENTRY("mri_polyfit") ;
 
    fim = mri_to_float(imin) ;  /* convert input to float */
    if( mrad > 0.0f ){
-     MRI_IMAGE *qim = mri_medianfilter(fim,mrad,mask,0) ;
+     MRI_IMAGE *qim ;
+     qim =  mri_medianfilter(fim,mrad,mask,verb) ;
      if( qim != NULL ){ mri_free(fim) ; fim = qim ; }
    }
    far = MRI_FLOAT_PTR(fim) ;  /* will later be output image */
@@ -185,6 +199,7 @@ ENTRY("mri_polyfit") ;
      fdat = far ;
    }
 
+   if( verb ) ININFO_message("fit polynomial field to data") ;
         if( meth < 1 ) meth = 1 ;
    else if( meth > 2 ) meth = 2 ;
    fvit = THD_fitter( nmask , fdat , nref , ref , meth , NULL ) ;
@@ -199,6 +214,7 @@ ENTRY("mri_polyfit") ;
      RETURN(NULL) ;
    }
 
+   if( verb ) ININFO_message("compute final fit polynomial field") ;
    xx = (float *)malloc(sizeof(float)*nxyz) ;
    yy = (float *)malloc(sizeof(float)*nxyz) ;
    zz = (float *)malloc(sizeof(float)*nxyz) ;
