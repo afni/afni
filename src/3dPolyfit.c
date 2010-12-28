@@ -17,23 +17,26 @@ int main( int argc , char * argv[] )
              "Fits a polynomial in space to the dataset and outputs that.\n"
              "\n"
              "Options:\n"
-             "  -nord n    = Maximum polynomial order (0..9) [default=3]\n"
-             "  -blur f    = Blur (inside mask) with a Gaussian blur of FWHM='f' (mm)\n"
-             "  -mrad r    = Radius (in voxels) of preliminary median filter [default=0]\n"
+             "  -nord n    = Maximum polynomial order (0..9) [default order=3]\n"
+             "  -blur f    = Gaussian blur (inside mask) with FWHM='f' (mm)\n"
+             "  -mrad r    = Radius (voxels) of preliminary median filter\n"
+             "                [default is no blurring of either type; you can]\n"
+             "                [do both types (Gaussian and median), but why??]\n"
+             "                [N.B.: median blur is much slower than Gaussian]\n"
              "  -prefix pp = Use 'pp' for prefix of output dataset\n"
              "  -automask  = Create a mask (a la 3dAutomask)\n"
              "  -mask mset = Create a mask from nonzero voxels in 'mset'.\n"
              "  -mone      = Scale the mean value of the fit (inside the mask) to 1.\n"
              "  -mclip     = Clip values outside the box containing the mask\n"
              "               to the edge of the box, to avoid weird artifacts.\n"
-             "  -meth mm   = Set 'mm' to 2 for least squares fit; set it\n"
-             "               to 1 for L1 fit [default=2]\n"
-             "  -verb      = Print fun and useful progress reports!\n"
+             "  -meth mm   = Set 'mm' to 2 for least squares fit;\n"
+             "               set it to 1 for L1 fit [default method=2]\n"
+             "  -verb      = Print fun and useful progress reports :-)\n"
              "\n"
              "Output dataset is always stored in float format.  If the input\n"
              "dataset has more than 1 sub-brick, only sub-brick #0 is processed.\n"
              "\n"
-             "-- Dec 2010 - RWCox - for no good reason\n"
+             "-- Dec 2010 - RWCox - beats workin' for a living\n"
             ) ;
       PRINT_COMPILE_DATE ; exit(0) ;
    }
@@ -140,6 +143,19 @@ int main( int argc , char * argv[] )
      if( verb ) ININFO_message("Number of voxels in automask = %d",nmask) ;
    }
 
+   if( mask != NULL && (fwhm > 0.0f || mrad > 0.0f) ){
+     int ii ;
+     ii = THD_mask_remove_isolas( DSET_NX(inset),DSET_NY(inset),DSET_NZ(inset),mask ) ;
+     if( ii > 0 ){
+       nmask = THD_countmask( nvmask , mask ) ;
+       if( verb )
+         ININFO_message("Removed %d isola%s from mask, leaving %d voxels" ,
+                        ii,(ii==1)?"\0":"s" , nmask ) ;
+       if( nmask < 99 )
+         ERROR_exit("Too few voxels left in mask after isola removal :-(") ;
+     }
+   }
+
    /* convert input to float, which is simpler to deal with */
 
    imin = THD_extract_float_brick(0,inset) ;
@@ -149,7 +165,7 @@ int main( int argc , char * argv[] )
    if( verb ) INFO_message("Start fitting process") ;
 
    if( fwhm > 0.0f ){
-     if( verb ) ININFO_message("Gaussian blur") ;
+     if( verb ) ININFO_message("Gaussian blur: FWHM=%g mm",fwhm) ;
      imin->dx = fabsf(DSET_DX(inset)) ;
      imin->dy = fabsf(DSET_DY(inset)) ;
      imin->dz = fabsf(DSET_DZ(inset)) ;
@@ -172,7 +188,7 @@ int main( int argc , char * argv[] )
      }
      if( nsum > 0 && sum != 0.0f ){
        sum = nsum / sum ;
-       if( verb ) INFO_message("-mone: scaling fit by %g",sum) ;
+       if( verb ) ININFO_message("-mone: scaling fit by %g",sum) ;
        for( ii=0 ; ii < nvox ; ii++ ) par[ii] *= sum ;
      }
    }
@@ -185,7 +201,7 @@ int main( int argc , char * argv[] )
      int xm,xp,ym,yp,zm,zp , ii,jj,kk , nx,ny,nz,nxy ; float *par ;
      MRI_IMAGE *bim = mri_empty_conforming( imout , MRI_byte ) ;
      mri_fix_data_pointer(mask,bim) ;
-     if( verb ) INFO_message("-mclip: polynomial fit to autobox of mask") ;
+     if( verb ) ININFO_message("-mclip: polynomial fit to autobox of mask") ;
      MRI_autobbox( bim , &xm,&xp , &ym,&yp , &zm,&zp ) ;
      mri_clear_data_pointer(bim) ; mri_free(bim) ;
      nx = imout->nx ; ny = imout->ny ; nz = imout->nz ; nxy = nx*ny ;
