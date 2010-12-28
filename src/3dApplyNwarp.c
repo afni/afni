@@ -6,6 +6,103 @@
 #include "mri_genalign_util.c"
 #endif
 
+/*----------------------------------------------------------------------------*/
+
+MRI_IMAGE * mri_interp_floatim( MRI_IMAGE *fim ,
+                                float *ip,float *jp,float *kp , int code )
+{
+   int nvox ; MRI_IMAGE *outim ; float *outar ;
+
+ENTRY("mri_interp_floatim") ;
+
+   outim = mri_new_conforming(fim,MRI_float) ; outar = MRI_FLOAT_PTR(outim) ;
+   nvox  = fim->nvox ;
+
+   switch( code ){
+     case MRI_NN:      GA_interp_NN     ( fim, nvox,ip,jp,kp, outar ) ; break ;
+     case MRI_LINEAR:  GA_interp_linear ( fim, nvox,ip,jp,kp, outar ) ; break ;
+     case MRI_CUBIC:   GA_interp_cubic  ( fim, nvox,ip,jp,kp, outar ) ; break ;
+     default:
+     case MRI_QUINTIC: GA_interp_quintic( fim, nvox,ip,jp,kp, outar ) ; break ;
+     case MRI_WSINC5:  GA_interp_wsinc5 ( fim, nvox,ip,jp,kp, outar ) ; break ;
+   }
+
+   RETURN(outim) ;
+}
+
+/*----------------------------------------------------------------------------*/
+
+MRI_IMARR * mri_setup_nwarp( MRI_IMARR *bimar, mat44 cmat_bim , int incode ,
+                             mat44 cmat_src  , mat44 cmat_mast,
+                             int nx_mast     , int ny_mast    , int nz_mast )
+{
+   mat44 tmat , imat_mast_to_bim ;
+   int ii,jj,kk , nx,ny,nz,nxy,nxyz ;
+   float *xp, *yp, *zp ;
+   MRI_IMAGE *wxim, *wyim, *wzim ; MRI_IMARR *wimar ;
+
+ENTRY("mri_apply_nwarp") ;
+
+   if( bimar == NULL ) RETURN(NULL) ;
+
+   nx = nx_mast ; ny = ny_mast ; nz = nz_mast ; nxy = nx*ny ; nxyz = nxy*nz ;
+
+   xp = (float *)malloc(sizeof(float)*nxyz) ;
+   yp = (float *)malloc(sizeof(float)*nxyz) ;
+   zp = (float *)malloc(sizeof(float)*nxyz) ;
+
+   tmat = MAT44_INV(cmat_bim) ; imat_mast_to_bim = MAT44_MUL(tmat,cmat_mast) ;
+
+   /* compute indexes of each point in output image
+      (the _mast grid) in the warp space (the _bim grid),
+      using the imat_mast_to_bim matrix computed just above */
+
+ AFNI_OMP_START ;
+#pragma omp parallel if( nxyz > 33333 )
+ { int qq ;
+#pragma omp for
+   for( qq=0 ; qq < nxyz ; qq++ ){
+     ii = qq % nx ; kk = qq / nxy ; jj = (qq-kk*nxy) / nx ;
+     MAT44_VEC( imat_mast_to_bim , ii,jj,kk , xp[qq],yp[qq],zp[qq] ) ;
+   }
+ }
+ AFNI_OMP_END ;
+
+   /* now interpolate the warp volumes */
+
+   wxim = mri_interp_floatim( IMARR_SUBIM(bimar,0) , xp,yp,zp , incode ) ;
+   wyim = mri_interp_floatim( IMARR_SUBIM(bimar,1) , xp,yp,zp , incode ) ;
+   wzim = mri_interp_floatim( IMARR_SUBIM(bimar,2) , xp,yp,zp , incode ) ;
+
+   free(zp) ; zp = MRI_FLOAT_PTR(wzim) ;
+   free(yp) ; yp = MRI_FLOAT_PTR(wyim) ;
+   free(xp) ; xp = MRI_FLOAT_PTR(wxim) ;
+
+   /* now convert to index warp from src to mast space */
+
+   tmat = MAT44_INV(cmat_src) ;  /* takes (x,y,z) to (i,j,k) in src space */
+
+ AFNI_OMP_START ;
+#pragma omp parallel if( nxyz > 33333 )
+ { int qq ; float xx,yy,zz ;
+#pragma omp for
+   for( qq=0 ; qq < nxyz ; qq++ ){
+     ii = qq % nx ; kk = qq / nxy ; jj = (qq-kk*nxy) / nx ;
+     MAT44_VEC( cmat_mast , ii,jj,kk , xx,yy,zz ) ;
+     xx += xp[qq] ; yy += yp[qq] ; zz += zp[qq] ;
+     MAT44_VEC( tmat , xx,yy,zz , xp[qq],yp[qq],zp[qq] ) ;
+   }
+ }
+ AFNI_OMP_END ;
+
+   INIT_IMARR(wimar) ;
+   ADDTO_IMARR(wimar,wxim) ; ADDTO_IMARR(wimar,wyim) ; ADDTO_IMARR(wimar,wzim) ;
+
+   RETURN(wimar) ;
+}
+
+/*----------------------------------------------------------------------------*/
+
 int main( int argc , char *argv[] )
 {
    THD_3dim_dataset *dset_nwarp=NULL , *dset_src=NULL , *dset_mast=NULL ;
@@ -13,10 +110,11 @@ int main( int argc , char *argv[] )
    char *prefix     = NULL ;
    double dxyz_mast = 0.0 ;
    int interp_code  = MRI_QUINTIC ;
-   int iarg , kk , verb=1 ;
+   int iarg , kk , verb=1 , iv ;
    mat44 src_cmat,src_cmat_inv , nwarp_cmat,nwarp_cmat_inv ,
                                  mast_cmat ,mast_cmat_inv   ;
    THD_3dim_dataset *dset_out ;
+   MRI_IMAGE *fim , *wim ;
 
    /**----------------------------------------------------------------------*/
    /**----------------- Help the pitifully ignorant user? -----------------**/
@@ -47,7 +145,6 @@ int main( int argc , char *argv[] )
    mainENTRY("3dApplyNwarp"); machdep();
    AFNI_logger("3dApplyNwarp",argc,argv);
    PRINT_VERSION("3dApplyNwarp"); AUTHOR("Zhark the Warped");
-   THD_check_AFNI_version("3dApplyNwarp");
    (void)COX_clock_time() ;
 
    /**--- process command line options ---**/
@@ -168,7 +265,7 @@ int main( int argc , char *argv[] )
      ERROR_exit("Unknown and Illegal option '%s' :-( :-( :-(",argv[iarg]) ;
    }
 
-   /*---------- check inputs to see if the user is completely demented ----------*/
+   /*-------- check inputs to see if the user is completely demented ---------*/
 
    if( dset_nwarp == NULL )
      ERROR_exit("No -nwarp option?  How do you want to warp? :-(") ;
@@ -176,7 +273,8 @@ int main( int argc , char *argv[] )
    if( dset_src == NULL ){
      if( ++iarg < argc ){
        dset_src = THD_open_dataset( argv[iarg] ) ;
-       if( dset_src == NULL ) ERROR_exit("can't open source dataset '%s' :-(",argv[iarg]);
+       if( dset_src == NULL )
+         ERROR_exit("can't open source dataset '%s' :-(",argv[iarg]);
      } else {
        ERROR_exit("No source dataset?  What do you want to warp? :-(") ;
      }
@@ -247,10 +345,19 @@ int main( int argc , char *argv[] )
    for( kk=0 ; kk < DSET_NVALS(dset_out) ; kk++ )
      EDIT_BRICK_FACTOR(dset_out,kk,0.0) ;
 
-   tross_Copy_History( dset_src , dset_out ) ;        /* historic records */
+   tross_Copy_History( dset_src , dset_out ) ;        /* hysterical records */
    tross_Make_History( "3dApplyNwarp" , argc,argv , dset_out ) ;
 
-   THD_daxes_to_mat44(dset_out->daxes) ;          /* save coord transforms */
+   THD_daxes_to_mat44(dset_out->daxes) ;           /* save coord transforms */
 
+   /*-----*/
 
+   DSET_load(dset_src)   ; CHECK_LOAD_ERROR(dset_src)   ;
+   DSET_load(dset_nwarp) ; CHECK_LOAD_ERROR(dset_nwarp) ;
+
+   for( iv=0 ; iv < DSET_NVALS(dset_src) ; iv++ ){
+     fim = THD_extract_float_brick(iv,dset_src) ;
+   }
+
+   exit(0) ;
 }
