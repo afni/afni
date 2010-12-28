@@ -4,7 +4,7 @@
 
 int main( int argc , char * argv[] )
 {
-   float mrad=0.0f ;
+   float mrad=0.0f , fwhm=0.0f ;
    int nrep=1 ;
    char *prefix = "Polyfit" ;
    int iarg , verb=0 , do_automask=0 , nord=3 , meth=2 , do_mclip=0 ;
@@ -18,7 +18,8 @@ int main( int argc , char * argv[] )
              "\n"
              "Options:\n"
              "  -nord n    = Maximum polynomial order (0..9) [default=3]\n"
-             "  -mrad x    = Radius in voxels of preliminary median filter\n"
+             "  -blur f    = Blur (inside mask) with a Gaussian blur of FWHM='f' (mm)\n"
+             "  -mrad r    = Radius (in voxels) of preliminary median filter [default=0]\n"
              "  -prefix pp = Use 'pp' for prefix of output dataset\n"
              "  -automask  = Create a mask (a la 3dAutomask)\n"
              "  -mask mset = Create a mask from nonzero voxels in 'mset'.\n"
@@ -100,6 +101,10 @@ int main( int argc , char * argv[] )
        mrad = strtod( argv[++iarg] , NULL ) ; iarg++ ; continue ;
      }
 
+     if( strcmp(argv[iarg],"-blur") == 0 ){
+       fwhm = strtod( argv[++iarg] , NULL ) ; iarg++ ; continue ;
+     }
+
      if( strcmp(argv[iarg],"-prefix") == 0 ){
        prefix = argv[++iarg] ;
        if( !THD_filename_ok(prefix) )
@@ -142,6 +147,15 @@ int main( int argc , char * argv[] )
    DSET_unload(inset) ;
 
    if( verb ) INFO_message("Start fitting process") ;
+
+   if( fwhm > 0.0f ){
+     if( verb ) ININFO_message("Gaussian blur") ;
+     imin->dx = fabsf(DSET_DX(inset)) ;
+     imin->dy = fabsf(DSET_DY(inset)) ;
+     imin->dz = fabsf(DSET_DZ(inset)) ;
+     mri_blur3D_addfwhm( imin , mask , fwhm ) ;
+   }
+
    mri_polyfit_verb(verb) ;
    imout = mri_polyfit( imin , nord , mask , mrad , meth ) ;
 
