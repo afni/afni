@@ -1130,6 +1130,10 @@ AlphaSim:AlphaSim.o
 	$(RM) $@
 	$(CCOMP) -o 3dAllineate 3dAllineate.o $(LFLAGS) -lmri -lf2c $(LLIBS)
 
+3dApplyNwarp:3dApplyNwarp.o
+	$(RM) $@
+	$(CCOMP) -o 3dApplyNwarp 3dApplyNwarp.o $(LFLAGS) -lmri -lf2c $(LLIBS)
+
 3dRBFdset:3dRBFdset.o mri_rbfinterp.o
 	$(RM) $@
 	$(CCOMP) -o 3dRBFdset 3dRBFdset.o $(LFLAGS) $(LLIBS) -lf2c
@@ -1149,6 +1153,10 @@ mri_rbfinterp.o:mri_rbfinterp.c
 3dAllineate.o:3dAllineate.c mri_genalign.c mri_genalign_util.c thd_correlate.c
 	$(RM) $@
 	$(CCOMP) -c 3dAllineate.c $(INFLAGS)
+
+3dApplyNwarp.o:3dApplyNwarp.c
+	$(RM) $@
+	$(CCOMP) -c 3dApplyNwarp.c $(INFLAGS)
 
 3dTcorrMap.o:3dTcorrMap.c
 	$(RM) $@
