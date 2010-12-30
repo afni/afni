@@ -5147,6 +5147,19 @@ STATUS("making prog->rowcol") ;
 
       /*----------*/
 
+      prog->hidden_uscon_pb =
+            XtVaCreateManagedWidget(
+               "dialog" , xmPushButtonWidgetClass , prog->hidden_menu ,
+                  LABEL_ARG("US Constitution") ,
+                  XmNmarginHeight , 0 ,
+                  XmNtraversalOn , True  ,
+                  XmNinitialResourcesPersistent , False ,
+               NULL ) ;
+      XtAddCallback( prog->hidden_uscon_pb , XmNactivateCallback ,
+                     AFNI_hidden_CB , im3d ) ;
+
+      /*----------*/
+
 #ifdef USE_SONNETS
       if( ! NO_frivolities ){
          prog->hidden_sonnet_pb =

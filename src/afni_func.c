@@ -5691,7 +5691,7 @@ STATUS("got func info") ;
 
    else if( w == im3d->vwid->dmode->misc_license_pb ){  /* 03 Dec 2000 */
 #include "license.h"
-      char *inf = NULL ; int ii ;
+      char *inf=NULL ; int ii ;
 
       for( ii=0 ; license[ii] != NULL ; ii++ )
          inf = THD_zzprintf( inf , "%s" , license[ii] ) ;
@@ -5703,8 +5703,7 @@ STATUS("got func info") ;
 
    else if( w == im3d->vwid->dmode->misc_readme_env_pb ){  /* 05 Aug 2004 */
 #include "readme_env.h"
-      char *inf = NULL ; int ii ;
-
+      char *inf=NULL ; int ii ;
       for( ii=0 ; readme_env[ii] != NULL ; ii++ )
         inf = THD_zzprintf( inf , "%s" , readme_env[ii] ) ;
       (void) new_MCW_textwin( im3d->vwid->imag->topper , inf , TEXT_READONLY ) ;
@@ -6274,6 +6273,15 @@ ENTRY("AFNI_hidden_CB") ;
                                     " stop bugging me with their\n"
                                     " pitiful 'quick questions'.\n " ,
                                  MCW_USER_KILL | MCW_TIMER_KILL ) ;
+   }
+
+   else if( w == im3d->vwid->prog->hidden_uscon_pb ){  /* 30 Dec 2010 */
+#include "uscon.h"
+     char *inf=NULL ; int ii ;
+     for( ii=0 ; uscon[ii] != NULL ; ii++ )
+       inf = THD_zzprintf( inf , "%s" , uscon[ii] ) ;
+     (void) new_MCW_textwin( im3d->vwid->imag->topper , inf , TEXT_READONLY ) ;
+     free(inf) ;
    }
 
    else if( w == im3d->vwid->prog->hidden_gamberi_pb ){
