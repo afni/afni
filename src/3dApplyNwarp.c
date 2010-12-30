@@ -13,7 +13,8 @@ void mri_interp_floatim( MRI_IMAGE *fim ,
                          int np , float *ip , float *jp , float *kp ,
                          int code, float *outar )
 {
-ENTRY("mri_interp_floatim") ;
+   ENTRY("mri_interp_floatim") ;
+
    switch( code ){
      case MRI_NN:      GA_interp_NN     ( fim, np,ip,jp,kp, outar ) ; break ;
      case MRI_LINEAR:  GA_interp_linear ( fim, np,ip,jp,kp, outar ) ; break ;
@@ -22,6 +23,16 @@ ENTRY("mri_interp_floatim") ;
      case MRI_QUINTIC: GA_interp_quintic( fim, np,ip,jp,kp, outar ) ; break ;
      case MRI_WSINC5:  GA_interp_wsinc5 ( fim, np,ip,jp,kp, outar ) ; break ;
    }
+
+   if( MRI_HIGHORDER(code) ){
+     int ii,nn=fim->nvox ; float bot,top , *far=MRI_FLOAT_PTR(fim) ;
+     bot = top = far[0] ;
+     for( ii=1 ; ii < nn ; ii++ ) if( bot > far[ii] ) bot = far[ii] ;
+                             else if( top < far[ii] ) top = far[ii] ;
+     for( ii=0 ; ii < np ; ii++ ) if( outar[ii] < bot ) outar[ii] = bot ;
+                             else if( outar[ii] > top ) outar[ii] = top ;
+   }
+
    EXRETURN ;
 }
 
@@ -49,10 +60,9 @@ MRI_IMARR * mri_setup_nwarp( MRI_IMARR *bimar, mat44 cmat_bim , int incode ,
                              mat44 cmat_src  , mat44 cmat_out ,
                              int nx_out      , int ny_out     , int nz_out  )
 {
-   mat44 tmat , imat_out_to_bim ;
-   int ii,jj,kk , nx,ny,nz,nxy,nxyz ;
+   int nx,ny,nz,nxy,nxyz ;
    float *xp, *yp, *zp ;
-   MRI_IMAGE *wxim, *wyim, *wzim ; MRI_IMARR *wimar ;
+   MRI_IMAGE *wxim, *wyim, *wzim ; MRI_IMARR *wimar ; mat44 tmat ;
 
 ENTRY("mri_apply_nwarp") ;
 
@@ -66,22 +76,29 @@ ENTRY("mri_apply_nwarp") ;
    yp = (float *)malloc(sizeof(float)*nxyz) ;
    zp = (float *)malloc(sizeof(float)*nxyz) ;
 
-   tmat = MAT44_INV(cmat_bim) ; imat_out_to_bim = MAT44_MUL(tmat,cmat_out) ;
+   if( !MAT44_FLEQ(cmat_bim,cmat_out) ){
+     int qq,ii,jj,kk ; mat44 imat_out_to_bim ;
 
-   /* compute indexes of each point in output image
-      (the _out grid) in the warp space (the _bim grid),
-      using the imat_out_to_bim matrix computed just above */
+     tmat = MAT44_INV(cmat_bim) ; imat_out_to_bim = MAT44_MUL(tmat,cmat_out) ;
 
- AFNI_OMP_START ;
-#pragma omp parallel if( nxyz > 33333 )
- { int qq ;
-#pragma omp for
-   for( qq=0 ; qq < nxyz ; qq++ ){
-     ii = qq % nx ; kk = qq / nxy ; jj = (qq-kk*nxy) / nx ;
-     MAT44_VEC( imat_out_to_bim , ii,jj,kk , xp[qq],yp[qq],zp[qq] ) ;
+     /* compute indexes of each point in output image
+        (the _out grid) in the warp space (the _bim grid),
+        using the imat_out_to_bim matrix computed just above */
+
+     for( qq=0 ; qq < nxyz ; qq++ ){
+       ii = qq % nx ; kk = qq / nxy ; jj = (qq-kk*nxy) / nx ;
+       MAT44_VEC( imat_out_to_bim , ii,jj,kk , xp[qq],yp[qq],zp[qq] ) ;
+     }
+
+   } else {   /* case where cmat_bim and cmat_out are equal */
+     int qq,ii,jj,kk ;
+
+     for( qq=0 ; qq < nxyz ; qq++ ){
+       ii = qq % nx ; kk = qq / nxy ; jj = (qq-kk*nxy) / nx ;
+       xp[qq] = ii ; yp[qq] = jj ; zp[qq] = kk ;
+     }
+
    }
- }
- AFNI_OMP_END ;
 
    /* now interpolate the warp delta volumes from the bim
       grid to the out grid, using the indexes computed just above */
@@ -90,10 +107,10 @@ ENTRY("mri_apply_nwarp") ;
    mri_interp_floatim( IMARR_SUBIM(bimar,0), nxyz,xp,yp,zp,
                                              incode, MRI_FLOAT_PTR(wxim) ) ;
    wyim = mri_new_vol(nx,ny,nz,MRI_float) ;
-   mri_interp_floatim( IMARR_SUBIM(bimar,0), nxyz,xp,yp,zp,
+   mri_interp_floatim( IMARR_SUBIM(bimar,1), nxyz,xp,yp,zp,
                                              incode, MRI_FLOAT_PTR(wyim) ) ;
    wzim = mri_new_vol(nx,ny,nz,MRI_float) ;
-   mri_interp_floatim( IMARR_SUBIM(bimar,0), nxyz,xp,yp,zp,
+   mri_interp_floatim( IMARR_SUBIM(bimar,2), nxyz,xp,yp,zp,
                                              incode, MRI_FLOAT_PTR(wzim) ) ;
 
    free(zp) ; zp = MRI_FLOAT_PTR(wzim) ;
@@ -106,12 +123,12 @@ ENTRY("mri_apply_nwarp") ;
 
  AFNI_OMP_START ;
 #pragma omp parallel if( nxyz > 33333 )
- { int qq ; float xx,yy,zz ;
+ { int qq,ii,jj,kk ; float xx,yy,zz ;
 #pragma omp for
    for( qq=0 ; qq < nxyz ; qq++ ){
      ii = qq % nx ; kk = qq / nxy ; jj = (qq-kk*nxy) / nx ;
      MAT44_VEC( cmat_out , ii,jj,kk , xx,yy,zz ) ;      /* compute (xo,yo,zo) */
-     xx += xp[qq] ; yy += yp[qq] ; zz += zp[qq] ;        /* add to the deltas */
+     xx += xp[qq] ; yy += yp[qq] ; zz += zp[qq] ;        /* add in the deltas */
      MAT44_VEC( tmat, xx,yy,zz, xp[qq],yp[qq],zp[qq] ) ; /* ==> to (is,js,ks) */
    }
  }
@@ -135,8 +152,7 @@ int main( int argc , char *argv[] )
    double dxyz_mast = 0.0 ;
    int interp_code  = MRI_QUINTIC ;
    int iarg , kk , verb=1 , iv ;
-   mat44 src_cmat,src_cmat_inv , nwarp_cmat,nwarp_cmat_inv ,
-                                 mast_cmat ,mast_cmat_inv   ;
+   mat44 src_cmat, nwarp_cmat, mast_cmat ;
    THD_3dim_dataset *dset_out ;
    MRI_IMAGE *fim , *wim ; float *ip,*jp,*kp ;
    int nx,ny,nz,nxyz ;
@@ -161,6 +177,16 @@ int main( int argc , char *argv[] )
       " -prefix ppp  = 'ppp' is the name of the new output dataset\n"
       " -quiet       = Don't be verbose.\n"
       " -verb        = Be extra verbose.\n"
+      "\n"
+      "NOTES:\n"
+      "------\n"
+      "* At present this program doesn't work with 2D warps, only with 3D.\n"
+      "* Default interpolation mode is 'quintic'; available modes are the\n"
+      "   same as in 3dAllineate:  NN  linear  cubic  quintic  wsinc5\n"
+      "* The same interpolation mode is used for the warp itself (if needed)\n"
+      "   and then for the data being warped.\n"
+      "* At present, the output is always in float format, no matter what\n"
+      "   data type the input uses.\n"
      ) ;
      exit(0) ;
    }
@@ -319,13 +345,11 @@ int main( int argc , char *argv[] )
 
    if( !ISVALID_MAT44(dset_src->daxes->ijk_to_dicom) )
      THD_daxes_to_mat44(dset_src->daxes) ;
-   src_cmat     = dset_src->daxes->ijk_to_dicom ;
-   src_cmat_inv = MAT44_INV(src_cmat) ;
+   src_cmat = dset_src->daxes->ijk_to_dicom ;
 
    if( !ISVALID_MAT44(dset_nwarp->daxes->ijk_to_dicom) )
      THD_daxes_to_mat44(dset_nwarp->daxes) ;
-   nwarp_cmat     = dset_nwarp->daxes->ijk_to_dicom ;
-   nwarp_cmat_inv = MAT44_INV(nwarp_cmat) ;
+   nwarp_cmat = dset_nwarp->daxes->ijk_to_dicom ;
 
    if( dxyz_mast > 0.0 ){
      THD_3dim_dataset *qset ;
@@ -343,8 +367,7 @@ int main( int argc , char *argv[] )
    if( !ISVALID_MAT44(dset_mast->daxes->ijk_to_dicom) ) /* make sure have */
      THD_daxes_to_mat44(dset_mast->daxes) ;      /* index-to-DICOM matrix */
 
-   mast_cmat     = dset_mast->daxes->ijk_to_dicom ;
-   mast_cmat_inv = MAT44_INV(mast_cmat) ;
+   mast_cmat = dset_mast->daxes->ijk_to_dicom ;
 
    dset_out = EDIT_empty_copy( dset_mast ) ;  /* create the output dataset! */
    EDIT_dset_items( dset_out ,                /* and patch it up */
@@ -378,6 +401,9 @@ int main( int argc , char *argv[] )
 
    /*----- create warping indexes from warp dataset -----*/
 
+   if( verb )
+     INFO_message("Setting up index-to-index warp from xyz-to-xyz warp") ;
+
    DSET_load(dset_nwarp) ; CHECK_LOAD_ERROR(dset_nwarp) ;
    INIT_IMARR(imar_nwarp) ;
    fim = THD_extract_float_brick(0,dset_nwarp) ; ADDTO_IMARR(imar_nwarp,fim) ;
@@ -401,6 +427,8 @@ int main( int argc , char *argv[] )
    /*----- warp each sub-brick of the input -----*/
 
    DSET_load(dset_src) ; CHECK_LOAD_ERROR(dset_src) ;
+
+   INFO_message("Starting warp of source dataset sub-bricks") ;
 
    for( iv=0 ; iv < DSET_NVALS(dset_src) ; iv++ ){
      fim = THD_extract_float_brick(iv,dset_src) ; DSET_unload_one(dset_src,iv) ;
