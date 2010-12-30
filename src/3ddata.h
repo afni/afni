@@ -1520,6 +1520,22 @@ extern mat44 THD_mat44_sqrt( mat44 A ) ;  /* matrix square root [30 Jul 2007] */
 #undef  INVALIDATE_MAT44
 #define INVALIDATE_MAT44(AA) ((AA).m[3][3] = 0.0f)
 
+/* check if 2 mat44 matrices are equal-ish */
+
+#undef  FLEQ
+#define FLEQ(a,b) (fabsf((a)-(b)) < 0.0001f)
+
+#undef  MAT44_FLEQ
+#define MAT44_FLEQ(AA,BB)                                        \
+ ( FLEQ(AA.m[0][0],BB.m[0][0]) && FLEQ(AA.m[0][1],BB.m[0][1]) && \
+   FLEQ(AA.m[0][2],BB.m[0][2]) && FLEQ(AA.m[0][3],BB.m[0][3]) && \
+   FLEQ(AA.m[1][0],BB.m[1][0]) && FLEQ(AA.m[1][1],BB.m[1][1]) && \
+   FLEQ(AA.m[1][2],BB.m[1][2]) && FLEQ(AA.m[1][3],BB.m[1][3]) && \
+   FLEQ(AA.m[2][0],BB.m[2][0]) && FLEQ(AA.m[2][1],BB.m[2][1]) && \
+   FLEQ(AA.m[2][2],BB.m[2][2]) && FLEQ(AA.m[2][3],BB.m[2][3]) && \
+   FLEQ(AA.m[3][0],BB.m[3][0]) && FLEQ(AA.m[3][1],BB.m[3][1]) && \
+   FLEQ(AA.m[3][2],BB.m[3][2]) && FLEQ(AA.m[3][3],BB.m[3][3])   )
+
 /* load the top 3 rows of a mat44 matrix,
    and set the 4th row to [ 0 0 0 1], as required */
 
@@ -3543,7 +3559,7 @@ int get_nspaces(void);
         for( vv=0 ; vv < get_nspaces() ; vv++ )                              \
            SET_SESSION_DSET(NULL, ss, id, vv);                                \
   }
- 
+
 /*      for( id=0 ; id < THD_MAX_SESSION_SIZE ; id++ )                          \
         for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ )                             \
            SET_SESSION_DSET(NULL, ss, id, vv);                       \*/

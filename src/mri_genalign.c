@@ -1942,7 +1942,7 @@ ENTRY("mri_genalign_scalar_xyzwarp") ;
    /*--- do (up to) nall points at a time ---*/
 
    for( pp=0 ; pp < npt ; pp+=nall ){
-     npp = MIN( nall , npt-pp ) ;      /* number to do */
+     npp = MIN( nall , npt-pp ) ;      /* number to do in this group */
 
      /* get base (unwarped) xyz coords into xbb,ybb,zbb */
 
@@ -1974,12 +1974,13 @@ ENTRY("mri_genalign_scalar_xyzwarp") ;
        yar[pp+qq] -= ybb[qq] ;
        zar[pp+qq] -= zbb[qq] ;
      }
-   }
 
-   mri_genalign_affine_use_befafter( ab , aa ) ;  /* status quo ante */
+   } /* end of loop over groups of points */
+
    free(zbb) ; free(ybb) ; free(xbb) ;            /* tossola trashola */
+   mri_genalign_affine_use_befafter( ab , aa ) ;  /* status quo ante */
 
-   /* 13 Dec 2010: save the volumes as well */
+   /* 13 Dec 2010: save the cell volumes as well */
 
    if( ab ) cmat = aff_before ;
    else     INVALIDATE_MAT44(cmat) ;
