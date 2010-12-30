@@ -275,6 +275,7 @@ static mday holiday[] = {
    {MAR,15,"The Ides of March"                                       } ,
    {MAR,16,"James Madison's birthday"                                } ,
    {MAR,17,"Saint Patrick's Day"                                     } ,
+   {MAR,18,"Aruba National Day"                                      } ,
    {MAR,19,"Saint Joseph's Day"                                      } ,
    {MAR,19,"Liechtenstein National Day"                              } ,
    {MAR,20,"Anniversary of Uncle Tom's Cabin"                        } ,
