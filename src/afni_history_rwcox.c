@@ -44,6 +44,11 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 30 , DEC , 2010 , RWC , "3dApplyNwarp" , MINOR , TYPE_NEW_PROG ,
+   "Applies -nwarp_save output from 3dAllineate" ,
+   "Lets you apply a 3D nonlinear deformation to another file.  Works OK,\n"
+   "but changes will come." } ,
+
  { 27 , DEC , 2010 , RWC , "plugout_drive" , MICRO , TYPE_NEW_OPT ,
    "-maxwait option limits amount of time waiting for AFNI" ,
    "Instead of old fixed value of 9 s.\n"
