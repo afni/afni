@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 3 , JAN , 2011 , RWC , "3dNwarpApply" , MICRO , TYPE_GENERAL ,
+   "change name from 3dApplyNwarp" ,
+   "Will be the first in a series of 3dNwarp* programs." } ,
+
  { 30 , DEC , 2010 , RWC , "3dApplyNwarp" , MINOR , TYPE_NEW_PROG ,
    "Applies -nwarp_save output from 3dAllineate" ,
    "Lets you apply a 3D nonlinear deformation to another file.  Works OK,\n"
