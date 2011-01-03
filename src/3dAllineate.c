@@ -1445,7 +1445,7 @@ int main( int argc , char *argv[] )
         "      pre-computed scaling factor applied to parameters #13..39.\n"
         "* The option '-nwarp_save sss' lets you save a 3D dataset of the\n"
         "  the displacement field used to create the output dataset.  This\n"
-        "  dataset can be used in program 3dApplyNwarp to warp other datasets.\n"
+        "  dataset can be used in program 3dNwarpApply to warp other datasets.\n"
         "  ++ If the warp is symbolized by x -> w(x) [here, x is a DICOM 3-vector],\n"
         "     then the '-nwarp_save' dataset contains w(x)-x; that is, it contains\n"
         "     the warp displacement of each grid point from its grid location.\n"
