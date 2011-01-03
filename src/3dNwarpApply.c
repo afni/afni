@@ -150,7 +150,7 @@ int main( int argc , char *argv[] )
    MRI_IMARR *imar_nwarp=NULL , *im_src ;
    char *prefix     = NULL ;
    double dxyz_mast = 0.0 ;
-   int interp_code  = MRI_QUINTIC ;
+   int interp_code  = MRI_WSINC5 ;
    int iarg , kk , verb=1 , iv ;
    mat44 src_cmat, nwarp_cmat, mast_cmat ;
    THD_3dim_dataset *dset_out ;
@@ -181,12 +181,16 @@ int main( int argc , char *argv[] )
       "NOTES:\n"
       "------\n"
       "* At present this program doesn't work with 2D warps, only with 3D.\n"
-      "* Default interpolation mode is 'quintic'; available modes are the\n"
+      "* Default interpolation mode is 'wsinc5'; available modes are the\n"
       "   same as in 3dAllineate:  NN  linear  cubic  quintic  wsinc5\n"
       "* The same interpolation mode is used for the warp itself (if needed)\n"
       "   and then for the data being warped.\n"
       "* At present, the output is always in float format, no matter what\n"
       "   data type the input uses.\n"
+      "* Program 3dNwarpCalc could be used to operate on 3D warps:\n"
+      "  ++ Catenate them, invert them, pre- or post-apply an affine warp.\n"
+      "  ++ Alas!  3dNwarpCalc has yet to be written.  If AFNI survives the\n"
+      "     coming budget cuts, then it will be forthcoming later in 2011.\n"
      ) ;
      exit(0) ;
    }
