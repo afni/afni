@@ -49,6 +49,21 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  4, JAN, 2011, RCR, "Dimon", MAJOR, TYPE_ENHANCE,
+   "version 3.0 : handle Siemens Mosaic formatted files",
+   "- depend on libmri, return MRI_IMARR from mri_read_dicom, changes\n"
+   "  for oblique and mosaic processing\n"
+   "- mri_read_dicom.c: g_info (process control), g_image_info (Dimon)\n"
+   "  replaced DEBUG_ON/debugprint with g_info.verb, many small changes\n"
+   "- mri_dicom_elist.h: merged with dimon_afni.h\n"
+   "- mcw_glob.[ch]: control sort direction via rglob_set_sort_dir()"
+ } ,
+
+ {  4, JAN, 2011, RCR, "afni", MICRO, TYPE_GENERAL,
+   "do not open default windows in case of real-time",
+   NULL
+ } ,
+
  { 23, DEC, 2010, RCR, "to3d", MINOR, TYPE_NEW_OPT,
    "added -use_old_mosaic_code",
    "This is phase 1 of dealing with Siemens mosaic format in Dimon.\n"
