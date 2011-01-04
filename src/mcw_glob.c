@@ -96,6 +96,10 @@ typedef void * ptr_t;
 
 #include "mcw_glob.h"
 
+/* added for direction control on sorting                14 Feb 2005 [rickr] */
+/* (copied from rickr/l_mcw_glob.c)                       4 Jan 2011 [rickr] */
+static int g_sort_dir = 1 ;       /* 1 = small to large, -1 = large to small */
+
 #ifndef S_ISDIR
 #define S_ISDIR(a)	(((a) & S_IFMT) == S_IFDIR)
 #endif
@@ -271,6 +275,17 @@ qprintf(Char *s)
 }
 #endif /* DEBUG */
 
+/*! set the direction of the sort (either small to large, or the reverse)    */
+/*  (copied from rickr/l_mcw_glob.c)                      4 Jan 2011 [rickr] */
+int rglob_set_sort_dir( int dir )                     /* 14 Feb 2005 [rickr] */
+{
+   if ( dir == 1 )       g_sort_dir =  1;
+   else if ( dir == -1 ) g_sort_dir = -1;
+   else                  return 1;          /* else, ignore and signal error */
+
+   return 0;
+}
+
 static int
 compare(const ptr_t p, const ptr_t q)
 {
@@ -280,9 +295,11 @@ compare(const ptr_t p, const ptr_t q)
     errno = 0;  /* strcoll sets errno, another brain-damage */
 #endif
 
-    return (strcoll(*(char **) p, *(char **) q));
+    /* allow reversing the sort direction  4 Jan 2011 [rickr] */
+
+    return (g_sort_dir * strcoll(*(char **) p, *(char **) q));
 #else
-    return (strcmp(*(char **) p, *(char **) q));
+    return (g_sort_dir * strcmp(*(char **) p, *(char **) q));
 #endif /* NLS && !NOSTRCOLL */
 }
 

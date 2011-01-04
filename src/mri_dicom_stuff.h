@@ -1,6 +1,8 @@
 #ifndef _MRILIB_DICOM_STUFF_
 #define _MRILIB_DICOM_STUFF_
 
+#include "vecmat.h"
+
 /*-- manufacturer codes --*/
 
 #undef  AFD_MAN_OFFSET
@@ -39,6 +41,42 @@ typedef struct {
   void *extra_info ;                        /* whatever   */
   char  manufacturer_string[128] ;
 } AFD_dicom_header ;
+
+typedef struct {
+   THD_fvec3 xvec, yvec;            /* Image Orientation fields */
+   THD_fvec3 dfpos1;                /* image origin for first two slices*/
+   THD_fvec3 dfpos2;
+   THD_fvec3 del;                   /* voxel dimensions */
+   int mosaic;                      /* data is mosaic */
+   int mos_ix, mos_nx, mos_ny, mos_nslice; /* mosaic properties */
+   int nx, ny;                      /* overall mosaic dimensions */
+   float Tr_dicom[4][4];            /* transformation matrix */
+   float slice_xyz[2][3];           /* coordinates for 1st and last slices */
+   int mos_sliceinfo;               /* flag for existence of coordinate info */
+   int flip_slices;
+} oblique_info;
+
+extern oblique_info obl_info;
+
+/*-- global processing structs (image fields and env vars) --*/
+typedef struct {
+   int     study, series, image, image_index; /* DICOM image values  */
+   float   acq_time;                    /* acquisition time, if set  */
+   int     is_obl, is_mosaic;           /* oblique flag, mosaic flag */
+   int     mos_nslice, mos_nx, mos_ny;  /* mosaic dimensions         */
+} dicom_image_globals_t;
+extern dicom_image_globals_t g_image_info;
+
+/* persistent globals (not per image) to control processing */
+typedef struct {
+   int     init;                /* have the vars been initialized?       */
+   int     read_data;           /* flag: do we read data at all?      */
+   int     verb;                /* AFNI_DICOM_VERBOSE               */
+   int     rescale;             /* AFNI_DICOM_RESCALE              */
+   int     window;              /* AFNI_DICOM_WINDOW              */
+   int     use_last_elem;       /* AFNI_DICOM_USE_LAST_ELEMENT   */
+} dicom_globals_t;
+extern dicom_globals_t g_info;
 
 /*-- extra_info from Siemens --*/
 
@@ -108,6 +146,7 @@ extern void AFD_dicom_header_free( AFD_dicom_header *adh ) ;
 extern int AFD_manufacturer_string_to_code( char * ) ;
 extern AFD_dicom_header * AFD_scanfor_header( char * ) ;
 extern char * AFD_format_header( AFD_dicom_header *adh ) ;
+extern int disp_dicom_globals(char * mesg);
 
 extern MultiFrame_info * AFD_scanfor_MultiFrame( char *ppp ) ;
 

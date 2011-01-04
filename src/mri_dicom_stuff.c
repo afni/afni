@@ -1,6 +1,13 @@
 #include "mrilib.h"
 #include "mri_dicom_elist.h"
 
+oblique_info obl_info;  /* oblique info struct (from mri_read_dicom.c) */
+
+/* persistent and image only global dicom vars */
+/* (init to 0 except for read_data and verb) */
+dicom_globals_t g_info = { 0, 1, 1, 0, 0, 0 };
+dicom_image_globals_t g_image_info;     /* clear on mri_read_dicom() */
+
 /*--------------------------------------------------------------------------*/
 
 static char *manf[] = {
@@ -342,3 +349,20 @@ MultiFrame_info * AFD_scanfor_MultiFrame( char *ppp )
 
    return mfi ;
 }
+
+int disp_dicom_globals(char * mesg)
+{
+   fprintf(stderr,"-- dicom_globals_t : %s\n"
+                  "   init            = %d\n"
+                  "   read_data       = %d\n"
+                  "   verb            = %d\n"
+                  "   rescale         = %d\n"
+                  "   window          = %d\n"
+                  "   use_last_elem   = %d\n",
+          mesg ? mesg : "",
+          g_info.init, g_info.read_data, g_info.verb, g_info.rescale,
+          g_info.window, g_info.use_last_elem);
+
+   return 0;
+}
+

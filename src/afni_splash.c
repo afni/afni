@@ -1098,7 +1098,7 @@ void AFNI_startup_layout_CB( XtPointer client_data , XtIntervalId *id )
 {
    char *fname = (char *) client_data ;
    int   nbuf , ii , goslow ;
-   char *fbuf , *fptr ;
+   char *fbuf=NULL , *fptr ;
    char lword[NWBUF] ;
 
    int  controller_mask[MAX_CONTROLLERS]           ;
@@ -1142,7 +1142,9 @@ ENTRY("AFNI_startup_layout_CB") ;
    /* read layout file */
    if( strcmp(fname,"GIMME_SOMETHING") != 0 ){
       fbuf = AFNI_suck_file(fname);
-   } else {                         /* ZSS Dec 2010. */
+   } else if ( ALLOW_realtime ) {
+      AFNI_splashdown(); EXRETURN;  /* no default in RT   4 Jan 2011 [rickr] */
+   } else {    /* ZSS Dec 2010. */
       fbuf = (char *)malloc(strlen(def_layout)+1);
       strcpy(fbuf, def_layout);
    }

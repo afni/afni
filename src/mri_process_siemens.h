@@ -16,18 +16,18 @@ typedef struct {
 
 int process_siemens_mosaic(
         Siemens_extra_info * Sinfo, char ** Sstr, char ** epos,
-        char * fname, int assume, int nx, int ny, int nz, int verb);
+        char * fname, int assume, int nx, int ny, int nz);
 
-int get_siemens_extra_info(char *str, Siemens_extra_info *mi, int verb) ;
+int get_siemens_extra_info(char *str, Siemens_extra_info *mi) ;
 
 
 int read_mosaic_data(FILE *fp, MRI_IMAGE *im, MRI_IMARR *imar,
    int *flip_slices, Siemens_extra_info *mi, int datum, int bpp, int kor,
-   int swap, float dx, float dy, float dz, float dt, int verb);
+   int swap, float dx, float dy, float dz, float dt);
 
-int flip_slices_mosaic (Siemens_extra_info *mi, int kor, int verb);
+int flip_slices_mosaic (Siemens_extra_info *mi, int kor);
 int apply_z_orient(Siemens_extra_info * Sinfo, char * orients, int * kor,
-                   float * zoff, int verb);
+                   float * zoff);
 
 
 #endif  /* ifndef  _MRI_PROCESS_SIEMENS_H_ */
