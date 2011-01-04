@@ -32,6 +32,7 @@ static char *elist[] = {
  "0028 1051" ,  /* Window width */
 
  "0008 0008" ,  /* ID Image type */
+ "0008 0032" ,  /* ID Acquisition Time (Philips)        20 Oct 2010 [rickr] */
  "0008 0070" ,  /* ID Manufacturer */
  "0018 1310" ,  /* Acquisition Matrix */
 
@@ -43,10 +44,14 @@ static char *elist[] = {
  /*--- The following are for multi-frame DICOM files [RWC - 02 May 2008] ---*/
 
  "0020 0105" ,  /* Number of temporal positions */
- "0020 0013" ,  /* Instance number */
+ "0020 0010" ,  /* study number  */
+ "0020 0011" ,  /* series number */
+ "0020 0013" ,  /* Instance (image) number */
  "0020 0100" ,  /* Temporal position index identifier */
  "0020 9128" ,  /* Temporal position index */
  "0020 9057" ,  /* Stack position index */
+
+ "0054 1330" ,  /* image index  */
 
 NULL } ;
 
@@ -81,19 +86,25 @@ NULL } ;
 #define E_WINDOW_WIDTH               22
 
 #define E_ID_IMAGE_TYPE              23    /* 28 Oct 2002: for Siemens mosaic */
-#define E_ID_MANUFACTURER            24
-#define E_ACQ_MATRIX                 25
+#define E_ID_ACQUISITION_TIME        24    /* 20 Oct 2010: Philips sorting */
+#define E_ID_MANUFACTURER            25
+#define E_ACQ_MATRIX                 26
 
-#define E_SIEMENS_1                  26    /* 31 Oct 2002 */
-#define E_SIEMENS_2                  27
+#define E_SIEMENS_1                  27    /* 31 Oct 2002 */
+#define E_SIEMENS_2                  28
 
-#define E_TRANSFER_SYNTAX            28    /* 05 Jul 2006 */
+#define E_TRANSFER_SYNTAX            29    /* 05 Jul 2006 */
 
-#define E_NUMBER_OF_TIMES            29    /* 02 May 2008 */
-#define E_INSTANCE_NUMBER            30
-#define E_TIME_INDEX_ID              31
-#define E_TIME_INDEX                 32
-#define E_STACK_INDEX                33
+#define E_NUMBER_OF_TIMES            30    /* 02 May 2008 */
+#define E_RS_STUDY_NUM               31    /* 10 Feb 2005: for Imon [rickr] */
+#define E_RS_SERIES_NUM              32
+#define E_INSTANCE_NUMBER            33
+#define E_TIME_INDEX_ID              34
+#define E_TIME_INDEX                 35
+#define E_STACK_INDEX                36
+
+#define E_RS_IMAGE_INDEX             37    /* 06 May 2010: for PET [rickr] */
+
 
 /*----------------------------------------------------------------------------*/
 

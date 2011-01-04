@@ -51,10 +51,16 @@ static char * g_history[] =
     "      - allow negatives in -sort_by_num_suffix\n"
     " 2.21 Oct 20, 2010 [rickr] - added -sort_by_acq_time for -dicom_org\n"
     "                             (for Manjula)\n"
+    " 3.0  Oct 20, 2010 [rickr] - handle Siemens Mosaic formatted files\n"
+    "      - Dimon now depends on libmri.a to make the processing consistent\n"
+    "        (many changes to DICOM processing in libmri)\n"
+    "      - get MRI_IMARR from mri_read_dicom (data or not)\n"
+    "      - modifications for oblique data processing\n"
+    "      - for mosaic: figure mosaic origin, nslices, but not orients\n"
     "----------------------------------------------------------------------\n"
 };
 
-#define DIMON_VERSION "version 2.21 (Oct 20, 2010)"
+#define DIMON_VERSION "version 3.0 (Jan 4, 2011)"
 
 /*----------------------------------------------------------------------
  * Dimon - monitor real-time aquisition of Dicom or I-files
@@ -104,22 +110,39 @@ static char * g_history[] =
 #define IFM_PROG_NAME   "Dimon"
 
 #include "Imon.h"
+#include "mrilib.h"
+#include "realtime.h"
+
+
+/* ---------------------------------------------------------------------------
+ * link to libmri for consistent DICOM processing           4 Jan 2010 [rickr]
+
 #include "l_mcw_glob.h"
 #include "thd_iochan.h"
-#include "realtime.h"
 #include "mri_image.h"
 #include "dbtrace.h"
 
 extern char  DI_MRL_orients[8];
 extern float DI_MRL_tr;
-extern int   g_use_last_elem;
 
 extern struct dimon_stuff_t { int study, series, image, image_index;
                               float acq_time; } gr_dimon_stuff;
+ * ---------------------------------------------------------------------------
+ */
+
+/* globals from mri_read_dicom.c */
+extern int          obl_info_set;
+extern int          g_is_oblique;
+extern oblique_info obl_info;
+extern float        g_image_posn[3];
+extern int          g_image_ori_ind[3];
+
+static int          read_obl_info = 1;  /* only process obl_info once */
 
 static int         clear_float_zeros( char * str );
 int                compare_finfo( const void * v0, const void * v1 );
 int                compare_by_num_suff( const void * v0, const void * v1 );
+static int         copy_image_data(finfo_t * fp, MRI_IMARR * imarr);
 static int         dicom_order_files( param_t * p );
 static int         get_num_suffix( char * str );
 extern MRI_IMAGE * r_mri_read_dicom( char *fname, int debug, void ** data );
@@ -129,8 +152,9 @@ static int         sort_by_num_suff( char ** names, int nnames);
 /* oblique function protos */
 extern void   mri_read_dicom_reset_obliquity();
 extern int    mri_read_dicom_get_obliquity(float *, int);
-extern int    data_is_oblique(void);
-extern int    disp_obl_info(char * mesg);
+
+int disp_obl_info(char * mesg);
+
 
 /*----------------------------------------------------------------------*/
 /* static function declarations */
@@ -188,6 +212,7 @@ static int idisp_vol_t          ( char * info, vol_t * v );
 static int idisp_ge_extras      ( char * info, ge_extras * E );
 static int idisp_ge_header_info ( char * info, ge_header_info * I );
 static int idisp_im_store_t     ( char * info, im_store_t * is );
+static int idisp_mosaic_info    ( char * info, mosaic_info * I );
 
 static int usage                ( char * prog, int level );
 
@@ -601,10 +626,15 @@ static int volume_search(
         /* One volume exists from slice 'first' to slice 'last'. */
 
         /* note obliquity */
-        mri_read_dicom_get_obliquity(gAC.oblique_xform, gD.level>1);
+        if( read_obl_info ) {
+            read_obl_info = 0;
+            mri_read_dicom_get_obliquity(gAC.oblique_xform, gD.level>1);
+            if (gD.level>2)disp_obl_info("postV mri_read_dicom_get_obliquity ");
+        }
 
         V->geh      = p->flist[first].geh;         /* copy GE structure  */
         V->gex      = p->flist[first].gex;         /* copy GE extras     */
+        V->minfo    = p->flist[first].minfo;       /* copy mosaic info   */
         V->nim      = last - first + 1;
         V->fl_1     = first;
         V->fn_1     = p->flist[first].index;
@@ -615,13 +645,14 @@ static int volume_search(
         V->z_last   = p->flist[last].geh.zoff;
         V->z_delta  = delta;
         V->image_dz = V->geh.dz;
-        V->oblique  = data_is_oblique();
+        V->oblique  = g_is_oblique;
         V->seq_num  = -1;                               /* uninitialized */
         V->run      = V->geh.uv17;
 
         /* store obliquity */
-        if( gD.level > 0 && V->oblique != gAC.is_oblique ) {
-            fprintf(stderr,"-- data is %soblique\n", V->oblique ? "" : "not ");
+        if( V->oblique != gAC.is_oblique ) {
+            if( gD.level > 1 )
+               fprintf(stderr,"-- data is %soblique\n",V->oblique ? "":"not ");
             gAC.is_oblique = V->oblique;
         }
 
@@ -743,12 +774,18 @@ int check_one_volume(param_t *p, int start, int *fl_start, int bound, int state,
             if( gD.level > 1 ) fprintf(stderr,"+d found single slice volume\n");
             *r_first = *r_last = first;
             *r_delta = 1.0;   /* make one up, zero may be bad */
+
+            /* if we have a mosaic, try to set dz properly */
+            if( p->flist[first].minfo.is_mosaic )
+                *r_delta = p->flist[first].geh.dz;
+
             return 1;         /* success */
         }
 
         if ( gD.level > 1 )
             fprintf( stderr, "-- skipping single slice volume <%s>\n",
                      p->fnames[p->flist[first].index] );
+
         first++;
         delta = p->flist[first+1].geh.zoff - p->flist[first].geh.zoff;
         run0  = run1;
@@ -1023,6 +1060,23 @@ static int volume_match( vol_t * vin, vol_t * vout, param_t * p, int start )
         }
     }
 
+    /* check mosaic case */
+    if( fp->minfo.is_mosaic ) {
+        if( fp->minfo.nslices != vin->minfo.nslices ||
+            fp->minfo.mos_nx  != vin->minfo.mos_nx  ||
+            fp->minfo.mos_ny  != vin->minfo.mos_ny  ) {
+            fprintf(stderr, "** mosaic mis-match, not sure how to proceed!\n");
+            fprintf(stderr, "   is_mosaic = %d, %d\n",
+                    fp->minfo.is_mosaic, vin->minfo.is_mosaic);
+            fprintf(stderr, "   nslices   = %d, %d\n",
+                    fp->minfo.nslices, vin->minfo.nslices);
+            fprintf(stderr, "   (nx, ny)  = (%d, %d), (%d, %d)\n",
+                    fp->minfo.mos_nx, fp->minfo.mos_ny,
+                    vin->minfo.mos_nx, vin->minfo.mos_ny);
+            return -2;
+        }
+    }
+
     if ( next_start < 0)
         next_start = start + vin->nim - missing;
 
@@ -1035,6 +1089,7 @@ static int volume_match( vol_t * vin, vol_t * vout, param_t * p, int start )
 
     vout->geh      = p->flist[start].geh;
     vout->gex      = p->flist[start].gex;
+    vout->minfo    = p->flist[start].minfo;
     vout->nim      = next_start - start;
     vout->fl_1     = start;
     vout->fn_1     = p->flist[start].index;
@@ -1045,6 +1100,7 @@ static int volume_match( vol_t * vin, vol_t * vout, param_t * p, int start )
     vout->z_last   = vin->z_last;
     vout->z_delta  = vin->z_delta;
     vout->image_dz = vout->geh.dz;
+    vout->oblique  = g_is_oblique;
     vout->seq_num  = -1;                                /* uninitialized */
     vout->run      = vout->geh.uv17;
 
@@ -1444,6 +1500,7 @@ static int scan_ge_files (
             {
                 idisp_ge_header_info( p->fnames[fp->index], &fp->geh );
                 idisp_ge_extras( p->fnames[fp->index], &fp->gex );
+                idisp_mosaic_info( p->fnames[fp->index], &fp->minfo );
             }
         }
     }
@@ -1795,6 +1852,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
     memset( &gD, 0, sizeof(gD)  );      /* debug struct     */
     memset( &gS, 0, sizeof(gS)  );      /* stats struct     */
     memset(  A,  0, sizeof(gAC) );      /* afni comm struct */
+    memset( &g_info, 0, sizeof(g_info) );   /* from mri_dicom_stuff.c */
 
     ART_init_AC_struct( A );            /* init for no real-time comm */
     A->param = p;                       /* store the param_t pointer  */
@@ -2199,7 +2257,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
         else if ( ! strncmp( argv[ac], "-use_last_elem", 11 ) )
         {
             p->opts.use_last_elem = 1;
-            g_use_last_elem = 1;        /* for external function */
+            g_info.use_last_elem = 1;        /* for external function */
         }
         else if ( ! strncmp( argv[ac], "-zorder", 6 ) )
         {
@@ -2478,46 +2536,82 @@ int dir_expansion_form( char * sin, char ** sexp )
  *---------------------------------------------------------------------- */
 static int read_dicom_image( char * pathname, finfo_t * fp, int get_data )
 {
+    MRI_IMARR * imarr;
     MRI_IMAGE * im;
+    int         rv = 0;
 
-    im = r_mri_read_dicom( pathname, gD.level, get_data ? &fp->image : NULL);
-    if ( !im )
+    /* now use mri_read_dicom() directly                     4 Jan 2011 */
+    /* im = r_mri_read_dicom( pathname, gD.level,    
+                              get_data ? &fp->image : NULL);            */
+
+    /* init globals to be used in mri_read_dicom.c           4 Jan 2011 */
+    if( ! g_info.init ) {
+        g_info.init    = 1;
+        g_info.verb    = gD.level - 1; /* be quieter at the DICOM level */
+        g_info.rescale = 1;
+    }
+
+    g_info.read_data = get_data;        /* do we actually want data?    */
+
+    imarr = mri_read_dicom( pathname ); /* return a whole MRI_IMARR     */
+    if ( !imarr || !imarr->imarr || !imarr->imarr[0] )
     {
         fprintf(stderr,"** failed to read file '%s' as dicom\n", pathname);
         return 1;
     }
 
-    if ( gD.level > 2 )
-    {
-        fprintf(stderr,"+d dinfo (%s): std, ser, im, im_ind, time = "
-                       "(%d, %d, %3d, %3d, %.3f)\n",
-            pathname,
-            gr_dimon_stuff.study, gr_dimon_stuff.series,
-            gr_dimon_stuff.image, gr_dimon_stuff.image_index,
-            gr_dimon_stuff.acq_time );
-        fprintf(stderr,"          im->xo,yo,zo =    (%6.1f,%6.1f,%6.1f)\n",
-                im->xo, im->yo, im->zo);
+    im = imarr->imarr[0];       /* for convenience */
+
+    /* process oblique info only once */
+    if( obl_info_set == 2 && read_obl_info ) {
+        read_obl_info = 0;
+        mri_read_dicom_get_obliquity(gAC.oblique_xform, gD.level>1);
+        if ( gD.level > 2 ) disp_obl_info("post mri_read_dicom_get_obliquity ");
     }
 
-    /* fill the finfo_t struct */
+    /* print lots of image info */
+    if ( gD.level > 3 )
+    {
+        fprintf(stderr,"+d dinfo (%s):\n   std, ser, im, im_ind, time = "
+                "(%d, %d, %3d, %3d, %.3f)\n"
+                "   is_obl=%d, is_mos=%d, (mnx, mny, mnslice) = (%d, %d, %d)\n",
+            pathname,
+            g_image_info.study, g_image_info.series,
+            g_image_info.image, g_image_info.image_index, g_image_info.acq_time,
+            g_image_info.is_obl, g_image_info.is_mosaic, 
+            g_image_info.mos_nx, g_image_info.mos_ny, g_image_info.mos_nslice
+               );
+        fprintf(stderr,"   GIPx, GIPy, GIPz (M_z) (%6.1f, %6.1f, %6.1f (%f))\n",
+                g_image_posn[0], g_image_posn[1], g_image_posn[2], MRILIB_zoff);
+        fprintf(stderr,"   OIPx, OIPy, OIPz       (%6.1f, %6.1f, %6.1f)\n",
+                obl_info.dfpos1.xyz[0], obl_info.dfpos1.xyz[1],
+                obl_info.dfpos1.xyz[2]);
+        fprintf(stderr,"   ior, jor, kor (%d, %d, %d)\n",
+                g_image_ori_ind[0], g_image_ori_ind[1], g_image_ori_ind[2]);
+        fprintf(stderr,"   g_is_oblique = %d\n", g_is_oblique);
+    } else if ( gD.level > 1 && (g_image_info.is_obl||g_image_info.is_mosaic))
+        fprintf(stderr,"-- is_oblique = %d, is_mosaic = %d\n",
+                g_image_info.is_obl, g_image_info.is_mosaic);
+
+    /* fill the finfo_t struct (always based on first image) */
 
     fp->geh.good  = 1;
     fp->geh.nx    = im->nx;
     fp->geh.ny    = im->ny;
-    fp->geh.uv17  = gr_dimon_stuff.series;
-    fp->geh.index = gr_dimon_stuff.image;            /* image number */
-    fp->geh.im_index = gr_dimon_stuff.image_index;   /* image index number */
-    fp->geh.atime = gr_dimon_stuff.acq_time;         /* acquisition time */
+    fp->geh.uv17  = g_image_info.series;
+    fp->geh.index = g_image_info.image;            /* image number */
+    fp->geh.im_index = g_image_info.image_index;   /* image index number */
+    fp->geh.atime = g_image_info.acq_time;         /* acquisition time */
     fp->geh.dx    = im->dx;
     fp->geh.dy    = im->dy;
     fp->geh.dz    = im->dz;
-    fp->geh.zoff  = im->zo;
+    fp->geh.zoff  = g_image_posn[2];
 
     /* get some stuff from mrilib */
-    fp->geh.tr = DI_MRL_tr;
+    fp->geh.tr = MRILIB_tr;
     fp->geh.te = 0; /* rcr - none to set? */
-    memset(fp->geh.orients, 0, 8);
-    strncpy(fp->geh.orients, DI_MRL_orients, 7);
+    strncpy(fp->geh.orients, MRILIB_orients, 7);
+    fp->geh.orients[7] = '\0';
 
     /* ge_extras */
     fp->gex.bpp    = im->pixel_size;
@@ -2526,14 +2620,98 @@ static int read_dicom_image( char * pathname, finfo_t * fp, int get_data )
     fp->gex.skip   = -1;
     fp->gex.swap   = im->was_swapped;
     fp->gex.kk     = 0;
-    fp->gex.xorg   = im->xo;
-    fp->gex.yorg   = im->yo;
+    fp->gex.xorg   = g_image_posn[0];
+    fp->gex.yorg   = g_image_posn[1];
+    memset(fp->gex.xyz, 0, 9*sizeof(float)); /* skip xyz[9] */
 
-    /* skip xyz[9] */
+    /* mosaic info use Tr_dicom field for given axis order */
+    memset(&fp->minfo, 0, sizeof(mosaic_info));
+    if( g_image_info.is_mosaic ) {
+        if( ! g_image_ori_ind[0] || ! obl_info_set ) {
+            if( gD.level > 0 )
+                fprintf(stderr, "** mosaic missing ori_end or obl_info\n");
+        }
+        fp->gex.xorg = obl_info.Tr_dicom[abs(g_image_ori_ind[0])-1][3];
+        fp->gex.yorg = obl_info.Tr_dicom[abs(g_image_ori_ind[1])-1][3];
+        fp->geh.zoff = obl_info.Tr_dicom[abs(g_image_ori_ind[2])-1][3];
 
-    fp->bytes = im->nvox * im->pixel_size;
+        if( gD.level > 2 )
+           fprintf(stderr,"-- setting origin from Tr_dicom: %f, %f, %f\n",
+                   fp->gex.xorg, fp->gex.yorg, fp->geh.zoff);
 
-    free(im);  /* do not free data, of course */
+        fp->minfo.is_mosaic = g_image_info.is_mosaic;
+        fp->minfo.nslices   = g_image_info.mos_nslice;
+        fp->minfo.mos_nx    = g_image_info.mos_nx;
+        fp->minfo.mos_ny    = g_image_info.mos_ny;
+    }
+
+    if( get_data )
+        rv = copy_image_data(fp, imarr); /* fill fp->bytes and fp->image */
+
+    DESTROY_IMARR(imarr);  /* image data has been copied */
+
+    return rv;
+}
+
+
+/*----------------------------------------------------------------------
+ *  copy_image_data     (set fp->bytes and image, or just fill image)
+ *
+ *  if a mosaic, copy all images into a sequence of them
+ *  else, just copy the single image over
+ *
+ *  If image is already allocated, just check that bytes is correct.
+ *  Else, allocate it.
+ *
+ *  return: 0 on success
+ *          1 on failure
+ *----------------------------------------------------------------------
+*/
+static int copy_image_data(finfo_t * fp, MRI_IMARR * imarr)
+{
+    MRI_IMAGE * im = imarr->imarr[0];
+    void      * dp = NULL;
+    int         ind, imbytes, arrbytes;
+
+    im = imarr->imarr[0];
+    imbytes = im->nvox * im->pixel_size;        /* image bytes */
+    arrbytes = imarr->num * imbytes;            /* image array bytes */
+
+    if( gD.level > 3) {
+        fprintf(stderr,"-- CID: have imarr @ %p, im @ %p\n", imarr, im);
+        fprintf(stderr,"   num, nvox, pix_size = %d, %d, %d (prod %d)\n",
+                imarr->num, im->nvox, im->pixel_size, arrbytes );
+    }
+
+    /* verify num images against mosaic */
+    if( imarr->num > 1 && ! fp->minfo.is_mosaic )
+        fprintf(stderr,"** CID: have non-mosaic with %d images\n", imarr->num);
+
+    /* first verify or allocate space */
+    if( fp->image ) {
+        /* no allocation, but verify num bytes */
+        if( arrbytes != fp->bytes ) {
+            fprintf(stderr,"** CID: bytes mismatch, %d != %d\n",
+                    arrbytes,fp->bytes);
+            return 1;
+        }
+    } else {
+        /* allocate image space */
+        fp->bytes = arrbytes;
+        fp->image = malloc( fp->bytes );
+        if( ! fp->image ) {
+            fprintf(stderr,"** CID: failed to alloc %d bytes for image\n",
+                    fp->bytes);
+            return 1;
+        }
+    }
+
+    /* now copy data */
+    for( ind = 0; ind < imarr->num; ind++ ) {
+        /* point to data destination, offset by any mosaic image index */
+        dp = (char *)fp->image + ind*imbytes;
+        memcpy(dp, mri_data_pointer(imarr->imarr[ind]), imbytes);
+    }
 
     return 0;
 }
@@ -2556,6 +2734,9 @@ static int read_ge_image( char * pathname, finfo_t * fp,
    char orients[8] , str[8] ;
    int nx , ny , bpp , cflag , hdroff ;
    float uv17 = -1.0;
+
+   /* nuke mosaic structs */
+   memset(&fp->minfo, 0, sizeof(mosaic_info));
         
    if( hi == NULL ) return -1;            /* bad */
    hi->good = 0 ;                       /* not good yet */
@@ -2974,6 +3155,7 @@ static int idisp_vol_t( char * info, vol_t * v )
 
     idisp_ge_header_info( info, &v->geh );
     idisp_ge_extras( info, &v->gex );
+    idisp_mosaic_info( info, &v->minfo );
 
     return 0;
 }
@@ -3047,6 +3229,31 @@ static int idisp_ge_header_info( char * info, ge_header_info * I )
             I->dx, I->dy, I->dz, I->zoff, I->tr, I->te,
             CHECK_NULL_STR(I->orients)
           );
+
+    return 0;
+}
+
+/*------------------------------------------------------------
+ *  Display the contents of the ge_header_info struct.
+ *  (copied from file_tool.c)
+ *------------------------------------------------------------
+*/
+static int idisp_mosaic_info( char * info, mosaic_info * I )
+{
+    if ( info )
+        fputs( info, stdout );
+
+    if ( I == NULL )
+    {
+        printf( "idisp_mosaic_info: I == NULL\n" );
+        return -1;
+    }
+
+    printf( "mosaic_info at %p :\n"
+            "    is_mosaic   = %d\n"
+            "    nslices     = %d\n"
+            "    mos_nx, ny  = %d, %d\n",
+            I, I->is_mosaic, I->nslices, I->mos_nx, I->mos_ny);
 
     return 0;
 }
@@ -3926,6 +4133,7 @@ static int set_volume_stats( param_t * p, stats_t * s, vol_t * v )
         s->nused   = 0;
         s->nvols   = gP.opts.nt;        /* init with any user input value */
         s->oblique = v->oblique;
+        s->mos_nslices = v->minfo.nslices;
 
         if ( gD.level > 1 )
             fprintf( stderr, "\n-- svs: init alloc - vol %d, run %d, file %s\n",
@@ -4106,13 +4314,17 @@ static int create_gert_dicom( stats_t * s, param_t * p )
 
             if( s->runs[c].volumes > 1 )
             {
+                /* set nslices gert_nz, else mosaic, else volume stats */
+                int nslices = s->slices;
                 if( opts->gert_nz && s->slices != 1 )
                     fprintf(stderr,"** warning: overriding %d slices with %d"
                                    " in script %s\n",
                             s->slices, opts->gert_nz, sfile);
+                if( opts->gert_nz ) nslices = opts->gert_nz;
+                else if ( s->mos_nslices > 1 ) nslices = s->mos_nslices;
+
                 fprintf(fp, "     -time:zt %d %d %ssec %s   \\\n",
-                        opts->gert_nz ? opts->gert_nz : s->slices,
-                        s->runs[c].volumes, TR, spat);
+                        nslices, s->runs[c].volumes, TR, spat);
             }
 
             if( opts->use_last_elem )
@@ -4288,15 +4500,17 @@ static int show_run_stats( stats_t * s )
 
     printf( "\n\n"
             "final run statistics:\n"
-            "    volume info  :\n"
-            "        slices   : %d\n"
-            "        z_first  : %.4g\n"
-            "        z_last   : %.4g\n"
-            "        z_delta  : %.4g\n"
-            "        oblique  : %s\n\n",  /* display obliquity  25 Jun 2009 */
+            "    volume info     :\n"
+            "        slices      : %d\n"
+            "        z_first     : %.4g\n"
+            "        z_last      : %.4g\n"
+            "        z_delta     : %.4g\n"
+            "        oblique     : %s\n"    /* display obliquity  25 Jun 2009 */
+            "        mos_nslices : %d %s\n\n",                 /* 30 Dec 2010 */
             s->slices, s->z_first, s->z_last,
             s->oblique ? s->image_dz : s->z_delta,
-            s->oblique ? "yes" : "no" );
+            s->oblique ? "yes" : "no",
+            s->mos_nslices, (s->mos_nslices > 1) ? "(mosaic)" : "" );
 
     for ( c = 0; c < s->nused; c++ )
     {
@@ -4609,11 +4823,18 @@ static int complete_orients_str( vol_t * v, param_t * p )
         return -1;
     }
 
+    if ( v->minfo.is_mosaic ) {
+        /* orients string should already be complete */
+        if ( gD.level > 2 )
+            fprintf(stderr,"-- mosaic orients string: %s", v->geh.orients);
+        return 0;
+    }
+
     if ( gD.level > 2 )
         fprintf(stderr,"completing orients from '%s' to", v->geh.orients);
 
     if ( p->ftype == IFM_IM_FTYPE_DICOM )
-        strncpy(v->geh.orients + 4, DI_MRL_orients + 4, 2 );
+        strncpy(v->geh.orients + 4, MRILIB_orients + 4, 2 );
     else
     {
         kk = p->flist[v->fl_1].gex.kk;
@@ -4869,4 +5090,24 @@ static int empty_string_list( string_list * list, int free_mem )
     return 0;
 }
 
+int disp_obl_info(char * mesg)
+{
+    int i, j;
+    if( mesg ) fputs(mesg, stderr);
+
+    if(! obl_info_set) {
+        fprintf(stderr,"** oblique info is not set\n");
+        return 1;
+    }
+
+    fprintf(stderr,"-- oblique info = %d\n", obl_info_set);
+
+    for(i = 0; i < 4; i++) {
+        fprintf(stderr,"    ");
+        for(j=0; j<4; j++) fprintf(stderr,"%10.4f  ", obl_info.Tr_dicom[i][j]);
+        fputc('\n', stderr);
+    }
+
+    return 0;
+}
 
