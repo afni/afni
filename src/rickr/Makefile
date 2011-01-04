@@ -15,9 +15,9 @@ Imon: Imon.o $(IMON_OBJS) Imon.h realtime.h
 	$(RM) $@
 	$(CC) -o Imon Imon.o $(IMON_OBJS) ../thd_iochan.o $(LFLAGS) -L.. -lm $(EXTRA_LIBS_2)
 
-Dimon: Dimon.o dimon_afni.o mri_dicom_hdr.o $(IMON_OBJS)
+Dimon: Dimon.o realtime.o
 	$(RM) $@
-	$(CC) -o Dimon Dimon.o dimon_afni.o mri_dicom_hdr.o ../thd_iochan.o $(IMON_OBJS) $(LFLAGS) -L.. -lm $(EXTRA_LIBS_2)
+	$(CC) -o Dimon Dimon.o realtime.o $(LFLAGS) -L.. $(EXTRA_LIBS_2) -lmri -lXt -lexpat -lz -lm
 
 serial_helper: serial_helper.o
 	$(RM) $@
@@ -34,6 +34,7 @@ Dimon.o: Dimon.c Imon.h
 	$(RM) $@
 	$(CC) $(WARN_OPT) -DDONT_USE_MCW_MALLOC -c Dimon.c -I.. $(IFLAGS)
 
+# no longer needed, but let's make sure...
 dimon_afni.o: dimon_afni.c ../mri_image.h
 	$(RM) $@
 	$(CC) $(WARN_OPT) -DDONT_USE_MCW_MALLOC -c dimon_afni.c -I.. $(IFLAGS)

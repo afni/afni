@@ -68,8 +68,16 @@ typedef struct                      /* extra stuff from mri_read.c     */
 
 typedef struct
 {
+    int   is_mosaic;                /* mostly from g_image_info */
+    int   nslices;
+    int   mos_nx, mos_ny;
+} mosaic_info;
+
+typedef struct
+{
     ge_header_info   geh;           /* ge_header_info struct for this file */
     ge_extras        gex;           /* ge_extras struct for this file     */
+    mosaic_info      minfo;         /* info describing mosaic structure */
     int              index;         /* index into fnames array           */
     int              bytes;         /* size of image in bytes           */
     void           * image;         /* actual image data               */
@@ -175,6 +183,7 @@ typedef struct                  /* used to output statistics at the end */
     int     nused;              /* number of run_t structures in use    */
     int     nvols;              /* number of volumes in a run           */
     int     oblique;            /* is the data oblique                  */
+    int     mos_nslices;        /* number of slices in mosaic           */
     run_t * runs;               /* array of run_t strcutrues            */
 } stats_t;
 
@@ -182,6 +191,7 @@ typedef struct
 {
     ge_header_info geh;                  /* first GE header structure        */
     ge_extras      gex;                  /* first GE extras structure        */
+    mosaic_info    minfo;                /* info describing mosaic structure */
     int            nim;                  /* number of images in this volume  */
     int            fl_1;                 /* first index into flist           */
     int            fn_1, fn_n;           /* indicies into the fnames list    */
