@@ -164,7 +164,7 @@ static char *meth_costfunctional[NMETH] =  /* describe cost functional */
                                               (NPBIL+4)*sizeof(GA_param) ) ; \
      for( jj=12 ; jj < NPBIL ; jj++ ){                                       \
        sprintf(str,"blin%02d",jj+1) ;                                        \
-       DEFPAR( jj,str, -0.1999f,0.1999f , 0.0f,0.0f,0.0f ) ;                 \
+       DEFPAR( jj,str, -nwarp_parmax,nwarp_parmax , 0.0f,0.0f,0.0f ) ;       \
        stup.wfunc_param[jj].fixed = 1 ;                                      \
      }                                                                       \
      DEFPAR(NPBIL  ,"xcen" ,-1.0e9,1.0e9 , 0.0f,0.0f,0.0f ) ;                \
@@ -227,16 +227,16 @@ static float BILINEAR_offdiag_norm(GA_setup stup)
      stup.wfunc_param[15+(nnl)].fixed = 2 ;                                  \
  } while(0)
 
-#define SETUP_CUBIC_PARAMS do{ SETUP_POLYNO_PARAMS(48,0.10f,"cubic") ;       \
+#define SETUP_CUBIC_PARAMS do{ SETUP_POLYNO_PARAMS(48,nwarp_parmax,"cubic");  \
                                stup.wfunc = mri_genalign_cubic ; } while(0)
 
-#define SETUP_QUINT_PARAMS do{ SETUP_POLYNO_PARAMS(156,0.10f,"quint") ;      \
+#define SETUP_QUINT_PARAMS do{ SETUP_POLYNO_PARAMS(156,nwarp_parmax,"quint"); \
                                stup.wfunc = mri_genalign_quintic ; } while(0)
 
-#define SETUP_HEPT_PARAMS do{ SETUP_POLYNO_PARAMS(348,0.10f,"heptic") ;      \
+#define SETUP_HEPT_PARAMS do{ SETUP_POLYNO_PARAMS(348,nwarp_parmax,"heptic"); \
                               stup.wfunc = mri_genalign_heptic ; } while(0)
 
-#define SETUP_NONI_PARAMS do{ SETUP_POLYNO_PARAMS(648,0.10f,"nonic") ;       \
+#define SETUP_NONI_PARAMS do{ SETUP_POLYNO_PARAMS(648,nwarp_parmax,"nonic");  \
                               stup.wfunc = mri_genalign_nonic ; } while(0)
 
 /* cc = 1,2,3 for x,y,z directions:
@@ -415,8 +415,8 @@ int main( int argc , char *argv[] )
    char *allcostX1D_outname    = NULL ;
 
    int   nwarp_pass            = 0 ;
-   int   nwarp_type            = WARP_BILINEAR ;
-   float nwarp_order           = 2.9f ;
+   int   nwarp_type            = WARP_CUBIC ;
+   float nwarp_parmax          = 0.10f ;         /* 05 Jan 2011 */
    int   nwarp_flags           = 0 ;             /* 29 Oct 2010 */
    int   nwarp_itemax          = 0 ;
    int   nwarp_fixaff          = 1 ;             /* 26 Nov 2010 */
@@ -1337,6 +1337,7 @@ int main( int argc , char *argv[] )
         "                warps: 'cubic', 'quintic', 'heptic', 'nonic' (using\n"
         "                3rd, 5th, 7th, and 9th order Legendre polynomials); e.g.,\n"
         "                   -nwarp heptic\n"
+        "              * These are the nonlinear warps that I now am supporting.\n"
         "              * Or you can call them 'poly3', 'poly5', 'poly7', and 'poly9',\n"
         "                  for simplicity and non-Hellenistic clarity.\n"
         "              * These names are not case sensitive: 'nonic' == 'Nonic', etc.\n"
@@ -1432,6 +1433,11 @@ int main( int argc , char *argv[] )
         "* -nwarp is slow - reeeaaallll slow - use it with OpenMP!\n"
         "* Check the results to make sure the optimizer didn't run amok!\n"
         "   (You should ALWAYS do this with any registration software.)\n"
+        "* For the nonlinear warps, the largest coefficient allowed is\n"
+        "   set to 0.10 by default.  If you wish to change this, use an\n"
+        "   option like '-nwarp_parmax 0.05' (to make the allowable amount\n"
+        "   of nonlinear deformation half the default).\n"
+        "  ++ N.B.: Increasing the maximum past 0.10 may give very bad results!!\n"
         "* If you use -1Dparam_save, then you can apply the nonlinear\n"
         "   warp to another dataset using -1Dparam_apply in a later\n"
         "   3dAllineate run. To do so, use '-nwarp xxx' in both runs\n"
@@ -1443,12 +1449,15 @@ int main( int argc , char *argv[] )
         "  ++ The final 'extra' 4 values are used to specify\n"
         "      the center of coordinates (vector Xc below), and a\n"
         "      pre-computed scaling factor applied to parameters #13..39.\n"
+        "  ++ For polynomial warps, a similar format is used (mutatis mutandis).\n"
         "* The option '-nwarp_save sss' lets you save a 3D dataset of the\n"
         "  the displacement field used to create the output dataset.  This\n"
         "  dataset can be used in program 3dNwarpApply to warp other datasets.\n"
         "  ++ If the warp is symbolized by x -> w(x) [here, x is a DICOM 3-vector],\n"
         "     then the '-nwarp_save' dataset contains w(x)-x; that is, it contains\n"
         "     the warp displacement of each grid point from its grid location.\n"
+        "  ++ Also see program 3dNwarpCalc for other things you can do with this file.\n"
+        "\n"
         "* Bilinear warp formula:\n"
         "   Xout = inv[ I + {D1 (Xin-Xc) | D2 (Xin-Xc) | D3 (Xin-Xc)} ] [ A Xin ]\n"
         "  where Xin  = input vector  (base dataset coordinates)\n"
@@ -1535,6 +1544,16 @@ int main( int argc , char *argv[] )
          ERROR_exit("badly formed filename: '%s' '%s' :-(",argv[iarg-1],argv[iarg]) ;
        if( strcmp(argv[iarg],"NULL") == 0 ) nwarp_save_prefix = NULL ;
        else                                 nwarp_save_prefix = argv[iarg] ;
+       iarg++ ; continue ;
+     }
+
+     /*-----*/
+
+     if( strcmp(argv[iarg],"-nwarp_parmax") == 0 ){    /* 05 Jan 2011 = SECRET */
+       if( ++iarg >= argc ) ERROR_exit("no argument after '%s' :-(",argv[iarg-1]) ;
+       nwarp_parmax = (float)strtod(argv[iarg],NULL) ;
+       if( nwarp_parmax <= 0.0f || nwarp_parmax > 1.0f )
+         ERROR_exit("Illegal value (%g) after '%s' :-(",nwarp_parmax,argv[iarg-1]) ;
        iarg++ ; continue ;
      }
 
