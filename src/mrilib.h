@@ -793,10 +793,14 @@ extern char *      mri_dicom_sexinfo( void ) ;   /* 23 Dec 2002 */
 extern char *      mri_dicom_sex1010( void ) ;
 extern int         mri_possibly_dicom( char * ) ;        /* 07 May 2003 */
 
-
 /*! Set the data pointer in an MRI_IMAGE to NULL. */
 
 #define mri_clear_data_pointer(iq) mri_fix_data_pointer(NULL,(iq))
+
+/*! Clear the data pointer and free the MRI_IMAGE shell */
+
+#define mri_clear_and_free(iq) \
+ do{ mri_fix_data_pointer(NULL,(iq)); mri_free((iq)); } while(0)
 
 /*! Set all pixels in MRI_IMAGE to zero. */
 
