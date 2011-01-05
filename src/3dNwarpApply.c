@@ -155,7 +155,7 @@ int main( int argc , char *argv[] )
    mat44 src_cmat, nwarp_cmat, mast_cmat ;
    THD_3dim_dataset *dset_out ;
    MRI_IMAGE *fim , *wim ; float *ip,*jp,*kp ;
-   int nx,ny,nz,nxyz ;
+   int nx,ny,nz,nxyz , nvals ;
 
    /**----------------------------------------------------------------------*/
    /**----------------- Help the pitifully ignorant user? -----------------**/
@@ -169,24 +169,31 @@ int main( int argc , char *argv[] )
       "\n"
       "OPTIONS:\n"
       "--------\n"
-      " -nwarp  www  = 'www' is the name of the warp dataset\n"
+      " -nwarp  www  = 'www' is the name of the 3D warp dataset\n"
       " -source sss  = 'sss' is the name of the source dataset\n"
+      "                ++ That is, the dataset to be warped\n"
       " -master mmm  = 'mmm  is the name of the master dataset\n"
+      "                ++ Defines the output grid.\n"
+      "                ++ If '-master' is not used, then output\n"
+      "                   grid is the same as the source dataset grid.\n"
       " -newgrid dd  = 'dd' is the new grid spacing (in mm)\n"
+      "                ++ This lets you resize the grid without\n"
+      "                   needing to use '-master'.\n"
       " -interp iii  = 'iii' is the interpolation mode\n"
+      "                ++ Default interpolation mode is 'wsinc5'\n"
+      "                ++ Available modes are the same as in 3dAllineate:\n"
+      "                     NN  linear  cubic  quintic  wsinc5\n"
+      "                ++ The same interpolation mode is used for the warp\n"
+      "                   itself (if needed) and then for the data being warped.\n"
       " -prefix ppp  = 'ppp' is the name of the new output dataset\n"
-      " -quiet       = Don't be verbose.\n"
-      " -verb        = Be extra verbose.\n"
+      " -quiet       = Don't be verbose :-(\n"
+      " -verb        = Be extra verbose :-)\n"
       "\n"
       "NOTES:\n"
       "------\n"
       "* At present, this program doesn't work with 2D warps, only with 3D.\n"
-      "* Default interpolation mode is 'wsinc5'; available modes are the\n"
-      "   same as in 3dAllineate:  NN  linear  cubic  quintic  wsinc5\n"
-      "* The same interpolation mode is used for the warp itself (if needed)\n"
-      "   and then for the data being warped.\n"
       "* At present, the output is always in float format, no matter what\n"
-      "   absurd data type the input uses.\n"
+      "   absurd data type is in the input.\n"
       "* Program 3dNwarpCalc could be used to operate on 3D warps:\n"
       "  ++ Catenate them; invert them; pre- or post-apply an affine warp.\n"
       "  ++ Alas!  3dNwarpCalc has yet to be written.  If AFNI survives the\n"
@@ -212,7 +219,6 @@ int main( int argc , char *argv[] )
      if( strcasecmp(argv[iarg],"-quiet") == 0 ){
        verb = 0 ; iarg++ ; continue ;
      }
-
      if( strcasecmp(argv[iarg],"-verb") == 0 ){
        verb++ ; iarg++ ; continue ;
      }
@@ -326,7 +332,7 @@ int main( int argc , char *argv[] )
    if( dset_nwarp == NULL )
      ERROR_exit("No -nwarp option?  How do you want to warp? :-(") ;
 
-   if( dset_src == NULL ){
+   if( dset_src == NULL ){  /* check last argument if no -source option */
      if( ++iarg < argc ){
        dset_src = THD_open_dataset( argv[iarg] ) ;
        if( dset_src == NULL )
@@ -336,12 +342,14 @@ int main( int argc , char *argv[] )
      }
    }
 
-   if( dset_mast == NULL ) dset_mast = dset_src ;
+   if( dset_mast == NULL ) dset_mast = dset_src ;  /* default master */
 
-   if( prefix == NULL ){
+   if( prefix == NULL ){                         /* fake up a prefix */
+     char *cpt ;
      prefix = (char *)malloc(sizeof(char)*THD_MAX_NAME) ;
      strcpy( prefix , DSET_PREFIX(dset_src) ) ;
-     strcat( prefix , "_nwarp" ) ;
+     cpt = strstr(prefix,".nii") ; if( cpt != NULL ) *cpt = '\0' ;
+     strcat( prefix , "_nwarp" ) ; if( cpt != NULL ) strcat(prefix,".nii") ;
      INFO_message("No '-prefix' option ==> using '%s'",prefix) ;
    }
 
@@ -373,15 +381,16 @@ int main( int argc , char *argv[] )
 
    mast_cmat = dset_mast->daxes->ijk_to_dicom ;
 
+   nvals    = DSET_NVALS(dset_src) ;
    dset_out = EDIT_empty_copy( dset_mast ) ;  /* create the output dataset! */
    EDIT_dset_items( dset_out ,                /* and patch it up */
                       ADN_prefix    , prefix ,
-                      ADN_nvals     , DSET_NVALS(dset_src) ,
+                      ADN_nvals     , nvals ,
                       ADN_datum_all , MRI_float ,
                     ADN_none ) ;
    if( DSET_NUM_TIMES(dset_src) > 1 )
      EDIT_dset_items( dset_out ,
-                        ADN_ntt   , DSET_NVALS(dset_src) ,
+                        ADN_ntt   , nvals ,
                         ADN_ttdel , DSET_TR(dset_src) ,
                         ADN_tunits, UNITS_SEC_TYPE ,
                         ADN_nsl   , 0 ,
@@ -395,7 +404,7 @@ int main( int argc , char *argv[] )
    /* copy brick info into output */
 
    THD_copy_datablock_auxdata( dset_src->dblk , dset_out->dblk ) ;
-   for( kk=0 ; kk < DSET_NVALS(dset_out) ; kk++ )
+   for( kk=0 ; kk < nvals ; kk++ )
      EDIT_BRICK_FACTOR(dset_out,kk,0.0) ;
 
    tross_Copy_History( dset_src , dset_out ) ;        /* hysterical records */
@@ -419,6 +428,8 @@ int main( int argc , char *argv[] )
    ny = DSET_NY(dset_out) ;
    nz = DSET_NZ(dset_out) ; nxyz = nx*ny*nz ;
 
+   /* the actual work of setting up the warp */
+
    im_src = mri_setup_nwarp( imar_nwarp , nwarp_cmat , interp_code ,
                              src_cmat , mast_cmat , nx , ny , nz    ) ;
 
@@ -432,15 +443,20 @@ int main( int argc , char *argv[] )
 
    DSET_load(dset_src) ; CHECK_LOAD_ERROR(dset_src) ;
 
-   INFO_message("Starting warp of source dataset sub-bricks") ;
+   if( verb == 1 || (verb > 0 && nvals == 1) )
+     INFO_message("Starting warp of source dataset sub-bricks") ;
+   else if( verb > 1 && nvals > 1 )
+     fprintf(stderr,"Sub-brick warp loop") ;
 
-   for( iv=0 ; iv < DSET_NVALS(dset_src) ; iv++ ){
+   for( iv=0 ; iv < nvals ; iv++ ){
      fim = THD_extract_float_brick(iv,dset_src) ; DSET_unload_one(dset_src,iv) ;
      wim = mri_new_conforming( fim , MRI_float ) ;
      mri_interp_floatim( fim, nxyz,ip,jp,kp, interp_code, MRI_FLOAT_PTR(wim) ) ;
      EDIT_substitute_brick( dset_out , iv , MRI_float , MRI_FLOAT_PTR(wim) ) ;
-     mri_clear_data_pointer(wim) ; mri_free(wim) ;
+     mri_clear_and_free(wim) ;
+     if( verb > 1 && nvals > 1 ) fprintf(stderr,".") ;
    }
+   if( verb > 1 && nvals > 1 ) fprintf(stderr,"\n") ;
 
    DSET_unload(dset_src) ; DESTROY_IMARR(im_src) ;
    DSET_write(dset_out) ; WROTE_DSET(dset_out) ;
