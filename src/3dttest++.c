@@ -348,7 +348,7 @@ void display_help_menu(void)
       "    to understand what your model is and what effect the covariates\n"
       "    are likely to have on the data.  You shouldn't just blindly us\n"
       "    covariates 'just in case'.  That way lies statistical madness.\n"
-      "  -- If the two sample don't differ much in the mean values of their\n"
+      "  -- If the two samples don't differ much in the mean values of their\n"
       "      covariates, then the results with '-center SAME' and '-center DIFF'\n"
       "      should be nearly the same.\n"
       "  -- For fixed covariates (not those taken from datasets), the program\n"
