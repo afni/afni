@@ -300,7 +300,7 @@ void PDF_trim (float lower_per, float upper_per, pdf * p)
   float * fbin = NULL;
   float cum_prob;
   float lower_bnd, upper_bnd;
-  int lo_bin, hi_bin;
+  int lo_bin=0, hi_bin=0;
 
 
   /*----- Trim lower values -----*/
@@ -519,7 +519,6 @@ void PDF_float_to_pdf (int npts, float * farray, int num_bins, pdf * p)
 
   /*----- Create PDF -----*/
   PDF_create (num_bins, fbin, min_val, max_val, p);
-
 
   /*----- Release memory -----*/
   free (fbin);   fbin = NULL;

@@ -361,7 +361,7 @@ plot.1D.optlist <- function(...) {
                      ll$ttl.main<-paste(ll$dmat, collapse='\n')
          for (i in 1:length(dmatv)) { #Won't work for different row numbers...
             if (is.null(dmatc <- read.AFNI.matrix(dmatv[i]))) {
-               err.AFNI("Failed to read test file")
+               err.AFNI(sprintf("Failed to read file %s", dmatv[i]))
                return(0) 
             }
             #str(dmatc)
@@ -387,7 +387,17 @@ plot.1D.optlist <- function(...) {
             }
          }
       }
-
+      
+      #Do we need to load xval ? 
+      if (!is.null(ll$dmat.xval) && 
+           is.character(ll$dmat.xval) && ll$dmat.xval != "ENUM") {
+         ff <- ll$dmat.xval
+         if (is.null(ll$dmat.xval <- read.AFNI.matrix(ff))) {
+            err.AFNI(sprintf("Failed to read X file %s", ff))
+            return(0) 
+         }
+      }
+      
       #Now, based on dmat.type, do some setup without overririding user's whishes
       if (!is.na(ll$dmat.type)) {
          if (ll$dmat.type == 'VOLREG') {

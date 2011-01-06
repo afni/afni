@@ -789,23 +789,7 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (
          outname = argv[kar];
 			brk = YUP;
 		}
-      #if 0 /* -overwrite now processed secretly by mainENTRY(); */
-         
-      if (!brk && (strcmp(argv[kar], "-overwrite") == 0)) {
-         kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -overwrite\n");
-				exit (1);
-			}
-			if (Opt->surf_out || outname) {
-            fprintf (SUMA_STDERR, "options -surf_out, -output, and -ovewrite are mutually exclusive\n");
-				exit (1);
-         }
-         outname = argv[kar];
-         Opt->overwrite = 1;
-			brk = YUP;
-		}
-      #endif
+
       if (!brk && (strcmp(argv[kar], "-add_index") == 0)) {
 			Opt->AddIndex = 1;
 			brk = YUP;
@@ -816,44 +800,6 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (
 			brk = YUP;
 		}
       
-      
-      #if 0    /* Now handled in default parsing */
-      if (!brk && (strcmp(argv[kar], "-spec") == 0)) {
-         kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -spec \n");
-				exit (1);
-			}
-			Opt->spec_file = argv[kar];
-         if (!Opt->insurf_method) Opt->insurf_method = 2;
-         else {
-            fprintf (SUMA_STDERR, "already specified spec file.\n");
-            exit(1);
-         }
-			brk = YUP;
-		}
-      
-      if (!brk && (strncmp(argv[kar], "-surf_", 6) == 0)) {
-			if (kar + 1>= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -surf_X SURF_NAME \n");
-				exit (1);
-			}
-			ind = argv[kar][6] - 'A';
-         if (ind < 0 || ind >= SURFSMOOTH_MAX_SURF) {
-            fprintf (SUMA_STDERR, "-surf_X SURF_NAME option is out of range,\n"
-                                  "   only surf_A allowed.\n");
-				exit (1);
-         }
-         kar ++;
-         Opt->surf_names[ind] = argv[kar];
-			if (Opt->insurf_method && Opt->insurf_method != 2) {
-            fprintf (SUMA_STDERR, "-surf_X SURF_NAME option must be used with -spec option.\n");
-            exit(1);
-         }
-         brk = YUP;
-		}
-      
-      #endif
       
       if (!brk && (strcmp(argv[kar], "-lim") == 0)) {
          kar ++;
@@ -943,14 +889,22 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (
 		  		fprintf (SUMA_STDERR, "need argument after -met \n");
 				exit (1);
 			}
-			if (strcmp(argv[kar], "LB_FEM_1D") == 0)  Opt->Method = SUMA_LB_FEM_1D;
-         else if (strcmp(argv[kar], "LB_FEM") == 0)  Opt->Method = SUMA_LB_FEM;
-         else if (strcmp(argv[kar], "LM") == 0)  Opt->Method = SUMA_LM;
-         else if (strcmp(argv[kar], "BF") == 0)  Opt->Method = SUMA_BRUTE_FORCE;
-         else if (strcmp(argv[kar], "NN_geom") == 0)  Opt->Method = SUMA_NN_GEOM;
-         else if (strcmp(argv[kar], "HEAT_1D") == 0)  Opt->Method = SUMA_HEAT_05_1D;
-         else if (strcmp(argv[kar], "HEAT_05") == 0)  Opt->Method = SUMA_HEAT_05_Pre_07;
-         else if (strcmp(argv[kar], "HEAT_07") == 0)  Opt->Method = SUMA_HEAT_07;
+			if (strcmp(argv[kar], "LB_FEM_1D") == 0)  
+                     Opt->Method = SUMA_LB_FEM_1D;
+         else if (strcmp(argv[kar], "LB_FEM") == 0)  
+                     Opt->Method = SUMA_LB_FEM;
+         else if (strcmp(argv[kar], "LM") == 0)  
+                     Opt->Method = SUMA_LM;
+         else if (strcmp(argv[kar], "BF") == 0)  
+                     Opt->Method = SUMA_BRUTE_FORCE;
+         else if (strcmp(argv[kar], "NN_geom") == 0)  
+                     Opt->Method = SUMA_NN_GEOM;
+         else if (strcmp(argv[kar], "HEAT_1D") == 0)  
+                     Opt->Method = SUMA_HEAT_05_1D;
+         else if (strcmp(argv[kar], "HEAT_05") == 0)  
+                     Opt->Method = SUMA_HEAT_05_Pre_07;
+         else if (strcmp(argv[kar], "HEAT_07") == 0)  
+                     Opt->Method = SUMA_HEAT_07;
          else if (strcmp(argv[kar], "HEAT") == 0)  {
             fprintf (SUMA_STDERR,"Option HEAT has been changed considerably.\n"
                                  "It is recommended you use HEAT_07 or HEAT_05\n"
@@ -973,7 +927,9 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (
 		}
       
       if (!brk && !ps->arg_checked[kar]) {
-			fprintf (SUMA_STDERR,"Error %s:\nOption %s not understood. Try -help for usage\n", FuncName, argv[kar]);
+			fprintf (SUMA_STDERR,
+                  "Error %s:\nOption %s not understood. Try -help for usage\n", 
+                  FuncName, argv[kar]);
 			exit (1);
 		} else {	
 			brk = NOPE;
@@ -1024,9 +980,10 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (
                (Opt->N_iter < 0 && Opt->fwhm < 0) ||
                (Opt->N_iter < 0 && Opt->sigma < 0)||
                (Opt->fwhm < 0 && Opt->sigma < 0) ) {
-            fprintf (SUMA_STDERR,"Error %s:\n"
-                                 "Need to specify two and only two out of the three options:\n"
-                                 "-N_iter, -fwhm, -sigma\n", FuncName);
+            fprintf (SUMA_STDERR,
+                  "Error %s:\n"
+                  "Need to specify two and only two out of the three options:\n"
+                  "-N_iter, -fwhm, -sigma\n", FuncName);
             exit (1);
          }
          if (Opt->N_iter < 0) {
@@ -1056,28 +1013,36 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (
    if (Opt->Method != SUMA_HEAT_05_Pre_07 && Opt->Method != SUMA_HEAT_07) {
       if (Opt->N_iter == -1) { /* default */ Opt->N_iter = 100; }
       if (Opt->N_iter < 1) {
-         fprintf (SUMA_STDERR,"Error %s:\nWith -Niter N option, N must be > 1\n", FuncName);
+         fprintf (SUMA_STDERR,
+                  "Error %s:\nWith -Niter N option, N must be > 1\n", FuncName);
          exit (1);
       }
    } else {
-      if (Opt->N_iter == -1) {Opt->N_iter = -2; }/* let it slide, we'll take care of it after surface is loaded in main */
+      if (Opt->N_iter == -1) {
+         Opt->N_iter = -2; /* leave it, will handle after surface is loaded  */
+      }
    }
    
    if ( (Opt->N_iter % 2) &&
         (Opt->Method == SUMA_LB_FEM_1D || Opt->Method == SUMA_LB_FEM || 
         Opt->Method == SUMA_HEAT_05_1D  ||
         Opt->Method == SUMA_LM) ) {
-      fprintf (SUMA_STDERR, "Number of iterations must be a multiple of 2.\n%d is not a multiple of 2.\n", Opt->N_iter);
+      fprintf (SUMA_STDERR, 
+               "Number of iterations must be a multiple of 2.\n"
+               "%d is not a multiple of 2.\n", Opt->N_iter);
       exit(1);
    }
    
    if (Opt->ShowNode < 0 && Opt->ShowOffset_DBG) {
-      fprintf (SUMA_STDERR,"Error %s:\nBad debug node index (%d) in option -dbg_n\n", FuncName, Opt->ShowNode);
+      fprintf (SUMA_STDERR,
+               "Error %s:\nBad debug node index (%d) in option -dbg_n\n", 
+               FuncName, Opt->ShowNode);
       exit (1);
    }
    
    if (Opt->insurf_method == 1) {
-      SUMA_SL_Err("Obsolete method for surface specification.\nShould not have gotten here.");
+      SUMA_SL_Err("Obsolete method for surface specification.\n"
+                  "Should not have gotten here.");
       exit(1);
    }
       
@@ -1094,26 +1059,35 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (
      
    if (Opt->insurf_method == 2) {
       if (!Opt->surf_names[0] || !Opt->spec_file) {
-         fprintf (SUMA_STDERR,   "failed to specify either -spec or -surf_X options.\n");
+         fprintf (SUMA_STDERR,   
+                  "failed to specify either -spec or -surf_X options.\n");
          exit(1);  
       }
    }
     
    if (outname) {
       if (SUMA_filexists(outname) && !Opt->overwrite) {
-         fprintf (SUMA_STDERR,"Error %s:\noutput file %s exists.\n", FuncName, outname);
+         fprintf (SUMA_STDERR,
+                  "Error %s:\noutput file %s exists.\n", 
+                  FuncName, outname);
          exit(1);
       }
       Opt->out_name = SUMA_copy_string(outname);
       Opt->oform = SUMA_GuessFormatFromExtension(Opt->out_name, Opt->in_name);
-      SUMA_LHv("Format with %s, %s is %d\n", Opt->out_name, Opt->in_name, Opt->oform);
+      SUMA_LHv("Format with %s, %s is %d\n", 
+               Opt->out_name, Opt->in_name, Opt->oform);
    } else {
       switch (Opt->Method) {
          case SUMA_LB_FEM_1D:
             /* form autoname  */
-            Opt->out_name = SUMA_Extension(Opt->in_name, ".1D", YUP); /*remove .1D */
-            Opt->out_name = SUMA_append_replace_string(Opt->out_name,"_sm", "", 1); /* add _sm to prefix */
-            Opt->out_name = SUMA_append_replace_string(Opt->out_name,".1D", "", 1); /* add .1D */
+            Opt->out_name = SUMA_Extension(Opt->in_name, ".1D", YUP); 
+                                                            /*remove .1D */
+            Opt->out_name = 
+               SUMA_append_replace_string(Opt->out_name,"_sm", "", 1); 
+                                                   /* add _sm to prefix */
+            Opt->out_name = 
+               SUMA_append_replace_string(Opt->out_name,".1D", "", 1); 
+                                                            /* add .1D */
             break;
          case SUMA_LB_FEM:
             /* form autoname  */
@@ -1345,8 +1319,9 @@ int main (int argc,char *argv[])
    SUMA_DSET *dset = NULL;
    SUMA_SurfSpecFile *Spec = NULL;
    int N_Spec=-1;
-   int iform;
+   int iform, N_volmask=0;
    char *ooo=NULL;
+   byte *volmask=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_STANDALONE_INIT;
@@ -1799,10 +1774,22 @@ int main (int argc,char *argv[])
 
                }
 
+               /* change bytemask from one defined for each node
+                  to one defined foreach 'vox' in the afnidset version
+                  of the input set. This is necessary when input data
+                  are sparse. nmask is defined from 0 --> SO->N_Node,
+                  but the afni functions only know of a subset of voxels 
+                  (nodes) in the dset. You need a mask from 0 --> DSET_NVOX() */
+               if (!(volmask = SUMA_Meshbmask_2_IndexListbmask(
+                                 Opt->nmask , SO->N_Node,
+                                 inset->dblk->node_list, inset->dblk->nnodes,
+                                 &N_volmask))) {
+                     ERROR_exit("Failed to build input's volmask");
+               }
                if (!(newset = THD_detrend_dataset( inset , nref_in ,
                                                    ref_in , 2 , 
                                                    Opt->scaleinput , 
-                                                   Opt->nmask , &corder_inar )))
+                                                   volmask , &corder_inar )))
                { 
                   SUMA_S_Err("detrending failed!") ;
                   exit(1);
@@ -1810,7 +1797,8 @@ int main (int argc,char *argv[])
       
                SUMA_LH("detrending of input done") ;
                DSET_delete(inset); inset=newset; newset = NULL;
-               
+               if (volmask) SUMA_free(volmask); volmask=NULL;
+
                /* Now back to SUMA_DSET */
                dset = SUMA_afnidset2sumadset(&inset, 1, 1); /* don't need afni
                                                                volume anymore */
@@ -1919,22 +1907,31 @@ int main (int argc,char *argv[])
                         ERROR_exit("THD_build_trigref failed!") ;
 
                   }
+                  
+                  if (!(volmask = SUMA_Meshbmask_2_IndexListbmask(
+                                 Opt->nmask , SO->N_Node,
+                                 inset->dblk->node_list, inset->dblk->nnodes,
+                                 &N_volmask))) {
+                     ERROR_exit("Failed to build master's volmask");
+                  }
 
                   if (!(newset = THD_detrend_dataset( 
                               inset , nref_master , ref_master , 2 ,
-                              Opt->scalemaster , Opt->nmask , NULL ))) { 
+                              Opt->scalemaster , volmask , NULL ))) { 
                      SUMA_S_Err("detrending failed!") ;
                      exit(1);
                   }
-
+                  
                   SUMA_LH("detrending of master done") ;
                   DSET_delete(inset); inset=newset; newset = NULL;
                   for(jj=0;jj<nref_master;jj++) 
                      free(ref_master[jj]) ; 
                   free(ref_master); 
-
+                  if (volmask) SUMA_free(volmask); volmask=NULL;
+                  
                   /* Now back to SUMA_DSET, and kill afni volume*/
                   master_dset = SUMA_afnidset2sumadset(&inset, 1, 1); 
+
                   /* write out detrended master? */
                   if (Opt->detprefix_master) {
                      /* Add the history line */

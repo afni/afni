@@ -60,7 +60,7 @@ int main( int argc , char *argv[] )
    int ncode=0 , code[MAX_NCODE] , iarg=1 , ii ;
    float codeparams[MAX_NCODE][MAX_CODE_PARAMS+1];
    MCW_cluster *nbhd=NULL ;
-   byte *mask=NULL ; int mask_nx,mask_ny,mask_nz , automask=0 ;
+   byte *mask=NULL ; int mask_nx=0,mask_ny=0,mask_nz=0 , automask=0 ;
    char *prefix="./localstat" ;
    int ntype=0 ; float na=0.0f,nb=0.0f,nc=0.0f ;
    int do_fwhm=0 , verb=1 ;
@@ -288,6 +288,7 @@ int main( int argc , char *argv[] )
        else if( strcasecmp(cpt,"median")== 0 ) code[ncode++] = NSTAT_MEDIAN;
        else if( strcasecmp(cpt,"MAD")   == 0 ) code[ncode++] = NSTAT_MAD   ;
        else if( strcasecmp(cpt,"P2skew")== 0 ) code[ncode++] = NSTAT_P2SKEW;
+       else if( strcasecmp(cpt,"kurt")  == 0 ) code[ncode++] = NSTAT_KURT  ;
        else if( strcasecmp(cpt,"min")   == 0 ) code[ncode++] = NSTAT_MIN   ;
        else if( strcasecmp(cpt,"max")   == 0 ) code[ncode++] = NSTAT_MAX   ;
        else if( strcasecmp(cpt,"absmax")== 0 ) code[ncode++] = NSTAT_ABSMAX;
@@ -340,7 +341,7 @@ int main( int argc , char *argv[] )
          code[ncode++] = NSTAT_FWHMx ; code[ncode++] = NSTAT_FWHMy ;
          code[ncode++] = NSTAT_FWHMz ; do_fwhm++ ;
          code[ncode++] = NSTAT_RANK  ; code[ncode++] = NSTAT_FRANK ; 
-         code[ncode++] = NSTAT_P2SKEW; 
+         code[ncode++] = NSTAT_P2SKEW; code[ncode++] = NSTAT_KURT  ;
        }
        else
          ERROR_exit("-stat '%s' is an unknown statistic type",argv[iarg]) ;
@@ -495,7 +496,7 @@ int main( int argc , char *argv[] )
      lcode[NSTAT_FWHMy]  = "FWHMy"; lcode[NSTAT_SUM]    = "SUM"    ;
      lcode[NSTAT_FWHMz]  = "FWHMz";
      lcode[NSTAT_RANK]   = "RANK" ; lcode[NSTAT_FRANK]  = "FRANK";
-     lcode[NSTAT_P2SKEW] = "P2skew"; 
+     lcode[NSTAT_P2SKEW] = "P2skew";lcode[NSTAT_KURT]   = "KURT"; 
      
      if( DSET_NVALS(inset) == 1 ){
        ii=0;
