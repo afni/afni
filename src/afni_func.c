@@ -6184,6 +6184,8 @@ static int    num_poem  = 0 ;    /* 15 Oct 2003 */
 static char **fname_poem=NULL ;
 static void AFNI_find_poem_files(void) ;
 
+#include "uscon.h"
+
 /*---------------------------------------------------------------
   Callback for all actions in the hidden popup
 -----------------------------------------------------------------*/
@@ -6276,10 +6278,17 @@ ENTRY("AFNI_hidden_CB") ;
    }
 
    else if( w == im3d->vwid->prog->hidden_uscon_pb ){  /* 30 Dec 2010 */
-#include "uscon.h"
      char *inf=NULL ; int ii ;
      for( ii=0 ; uscon[ii] != NULL ; ii++ )
        inf = THD_zzprintf( inf , "%s" , uscon[ii] ) ;
+     (void) new_MCW_textwin( im3d->vwid->imag->topper , inf , TEXT_READONLY ) ;
+     free(inf) ;
+   }
+
+   else if( w == im3d->vwid->prog->hidden_usdecl_pb ){  /* 06 Jan 2011 */
+     char *inf=NULL ; int ii ;
+     for( ii=0 ; usdecl[ii] != NULL ; ii++ )
+       inf = THD_zzprintf( inf , "%s" , usdecl[ii] ) ;
      (void) new_MCW_textwin( im3d->vwid->imag->topper , inf , TEXT_READONLY ) ;
      free(inf) ;
    }
