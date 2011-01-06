@@ -44,6 +44,14 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 6 , JAN , 2011 , RWC , "3dDeconvolve" , MICRO , TYPE_BUG_FIX ,
+   "Fix problem with auto-catenation of datasets with length 1" ,
+   "Bug is that each dataset is a separate run, so you have lots of baseline\n"
+   "models!  Patch is to find shortest length of the component datasets --\n"
+   "if this is 1, then treat them as one big happy run.  Also, the new\n"
+   "-noblock option will do the same regardless of the structure of the\n"
+   "inputs." } ,
+
  { 6 , JAN , 2011 , RWC , "afni" , MICRO , TYPE_BUG_FIX ,
    "Fix crash when using '-img' with dataset files (.HEAD or .nii)" ,
    "Problem was mri_imcount didn't give a correct count, but mri_read_file\n"
