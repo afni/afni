@@ -8034,7 +8034,34 @@ int SUMA_Float2DsetCol (SUMA_DSET *dset, int ind,
          break;
       case SUMA_float:
          fv = (float *)dset->dnel->vec[ind];
-         SUMA_COL_FILL(fv, V, float);
+         #if 1 /* Assuming MACRO is not causing trouble */
+            SUMA_COL_FILL(fv, V, float);
+         #else /* Try this block to test optimizer bug */
+   if (!replacemask) {
+      if (nip) { for (i=0; i<N_read; ++i) { fv[i] = (float)V[nip[i]]; } }
+      else { for (i=0; i<N_read; ++i) { fv[i] = (float)V[i]; } }
+   } else { 
+     if (nip) { 
+         for (i=0; i<N_read; ++i)  { 
+            if (replacemask[nip[i]]) { 
+               fv[i] = (float)V[nip[i]]; 
+                /* That call was turned off again because 
+                  this macro misbehaved again Jan. 2011.
+                  Putting brackets at all spots seems to have
+                  fixed the problem, and that call below seems
+                  unnecessary for now.    ZSS Jan 04 2011 */   
+               /* SUMA_BadOptimizerBadBad();  Dec. 03 07 */ 
+            }  
+         }  
+     } else {  
+         for (i=0; i<N_read; ++i) { 
+            if (replacemask[i]) { 
+               fv[i] = (float)V[i];  /* (int) --> (float) ZSS Jan 04 2011 */ 
+            } 
+         }  
+     }   
+   }  
+         #endif
          break;
       default:
          SUMA_SL_Err("This type is not supported.\n");
