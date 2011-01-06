@@ -673,6 +673,8 @@ typedef struct DC_options
   int   nodata_NT ;     /* optional values after -nodata [27 Apr 2005] */
   float nodata_TR ;
 
+  int tcat_noblock ;    /* 06 Jan 2011 */
+
   column_metadata *coldat ; /* info about each column [06 Mar 2007] */
 } DC_options;
 
@@ -819,10 +821,10 @@ void display_help_menu()
     "                                                                       \n"
     "**** Input data and control options:                                   \n"
     "-input fname         fname = filename of 3D+time input dataset         \n"
-    "                       (more than  one filename  can be  given)        \n"
-    "                       (here,   and  these  datasets  will  be)        \n"
-    "                       (catenated  in time;   if you do this, )        \n"
-    "                       ('-concat' is not needed and is ignored)        \n"
+    "                       [more than  one filename  can  be  given]       \n"
+    "                       [here,   and  these  datasets  will   be]       \n"
+    "                       [auto-catenated in time; if you do this,]       \n"
+    "                       ['-concat' is not needed and is ignored.]       \n"
     "                  ** You can input a 1D time series file here,         \n"
     "                     but the time axis should run along the            \n"
     "                     ROW direction, not the COLUMN direction as        \n"
@@ -840,6 +842,15 @@ void display_help_menu()
     "                   * You should use '-force_TR' to set the TR of       \n"
     "                     the 1D 'dataset' if you use '-input' rather       \n"
     "                     than '-input1D' [the default is 1.0 sec].         \n"
+    "[-noblock]           Normally, if you input multiple datasets with     \n"
+    "                     '-input', then the separate datasets are taken to \n"
+    "                     be separate image runs that get separate baseline \n"
+    "                     models.  If you want to have the program consider \n"
+    "                     these to be all one big run, use -noblock.        \n"
+    "                   * If any of the input dataset has only 1 sub-brick, \n"
+    "                     then this option is automatically invoked!        \n"
+    "                   * If the auto-catenation feature isn't used, then   \n"
+    "                     this option has no effect, no how, no way.        \n"
     "[-force_TR TR]       Use this value of TR instead of the one in        \n"
     "                     the -input dataset.                               \n"
     "                     (It's better to fix the input using 3drefit.)     \n"
@@ -1623,6 +1634,8 @@ void initialize_options
   option_data->force_TR = 0.0;  /* 18 Aug 2008 */
   option_data->coldat   = NULL; /* 06 Mar 2007 */
 
+  option_data->tcat_noblock = 0 ; /* 06 Jan 2011 */
+
   option_data->xjpeg_filename = NULL ;  /* 21 Jul 2004 */
   option_data->x1D_filename   = NULL ;
   option_data->x1D_unc        = NULL ;
@@ -1919,6 +1932,11 @@ void get_options
         if( strstr(option_data->x1D_unc,"1D") == NULL )
           strcat( option_data->x1D_unc , ".xmat.1D" ) ;
         nopt++; continue;
+      }
+
+      /*-----    06 Jan 2011    -----*/
+      if( strcmp(argv[nopt],"-noblock") == 0 ){
+        option_data->tcat_noblock = 1 ; nopt++ ; continue ;
       }
 
       /*-----   -input filename   -----*/
@@ -3563,23 +3581,37 @@ ENTRY("read_input_data") ;
       }
 
       if( DSET_IS_TCAT(*dset_time) ){  /** 04 Aug 2004: manufacture block list **/
+        int lmin=9999 ;
         if( option_data->concat_filename != NULL ){
           WARNING_message(
              "'-concat %s' ignored: input dataset is auto-catenated\n" ,
              option_data->concat_filename ) ;
           option_data->concat_filename = NULL ;
         }
-        *num_blocks = (*dset_time)->tcat_num ;
-        *block_list = (int *) malloc (sizeof(int) * (*num_blocks));
-        (*block_list)[0] = 0;
-        for( it=0 ; it < (*num_blocks)-1 ; it++ )
-          (*block_list)[it+1] = (*block_list)[it] + (*dset_time)->tcat_len[it] ;
-        if( verb ){
-          char *buf=calloc((*num_blocks),8) ;
-          for( it=0 ; it < (*num_blocks) ; it++ )
-            sprintf(buf+strlen(buf)," %d",(*block_list)[it]) ;
-          INFO_message("Auto-catenated datasets start at: %s", buf) ;
-          free(buf) ;
+        if( !option_data->tcat_noblock ){
+          for( it=0 ; it < (*dset_time)->tcat_num ; it++ )
+            lmin = MIN( lmin , (*dset_time)->tcat_len[it] ) ;
+          option_data->tcat_noblock = (lmin < 2) ;
+        }
+        if( option_data->tcat_noblock ){
+          INFO_message("Auto-catenated input datasets treated as one imaging run") ;
+          *num_blocks = 1;
+          *block_list = (int *) malloc (sizeof(int) * 1);
+          (*block_list)[0] = 0;
+        } else {
+          INFO_message("Auto-catenated input datasets treated as multiple imaging runs") ;
+          *num_blocks = (*dset_time)->tcat_num ;
+          *block_list = (int *) malloc (sizeof(int) * (*num_blocks));
+          (*block_list)[0] = 0;
+          for( it=0 ; it < (*num_blocks)-1 ; it++ )
+            (*block_list)[it+1] = (*block_list)[it] + (*dset_time)->tcat_len[it] ;
+          if( verb ){
+            char *buf=calloc((*num_blocks),8) ;
+            for( it=0 ; it < (*num_blocks) ; it++ )
+              sprintf(buf+strlen(buf)," %d",(*block_list)[it]) ;
+            INFO_message("Auto-catenated datasets start at: %s", buf) ;
+            free(buf) ;
+          }
         }
       }
 
