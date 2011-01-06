@@ -1112,6 +1112,9 @@ ENTRY("AFNI_parse_args") ;
       /*----- -im option -----*/
 
       if( strncmp(argv[narg],"-im",3) == 0 ){
+         fprintf(stderr,
+          "\n** WARNING: option '%s' for viewing plain images is old and not very useful\n" ,
+          argv[narg] ) ;
          GLOBAL_argopt.read_images   = True ;
          GLOBAL_argopt.read_sessions = False ;
          GLOBAL_argopt.read_dsets    = False ;       /* 17 Mar 2000 */
@@ -3375,6 +3378,7 @@ STATUS("read first file") ;
 
    /*--- read all files, convert if needed, put in the cube ---*/
 
+   REPORT_PROGRESS("\nReading unoriented image data") ;
    kz = 0 ;
    for( lf=0 ; lf < nf ; lf++ ){
 
@@ -3424,12 +3428,12 @@ STATUS("read next file") ;
          kz++ ;
 
          mri_free(shim) ;
-         if( kz%10 == 5 ) REPORT_PROGRESS(".") ;
+         if( kz%100 == 1 ) REPORT_PROGRESS(".") ;
       }
       FREE_IMARR(arr) ;  /* not DESTROY_IMARR, since images are already gone */
    }
 
-   /*** special case of one input image ***/
+   /*** special case of one input image: duplicate the image data ***/
 
    if( kz == 1 && nz == 2 ){
      memcpy( bar + dsize*npix , bar , dsize*npix ) ;
