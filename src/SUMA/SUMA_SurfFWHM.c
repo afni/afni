@@ -428,7 +428,8 @@ int main (int argc,char *argv[])
    SUMA_DSET_FORMAT iform = SUMA_NO_DSET_FORMAT;
    SUMA_DSET *din=NULL, *dout=NULL;
    SUMA_SurfSpecFile *Spec = NULL;
-   int i, N_Spec, N_inmask = -1;
+   int i, N_Spec, N_inmask = -1, N_volmask=0;
+   byte *volmask=NULL;
    float *fwhmv=NULL, fwhmg_max;
    double MinArea = -1.0;
    char *ooo=NULL;
@@ -558,8 +559,14 @@ int main (int argc,char *argv[])
 
       }
       
+      if (!(volmask = SUMA_Meshbmask_2_IndexListbmask(
+                                 Opt->nmask , SO->N_Node,
+                                 inset->dblk->node_list, inset->dblk->nnodes,
+                                 &N_volmask))) {
+                     ERROR_exit("Failed to build input's volmask");
+      }      
       if (!(newset = THD_detrend_dataset( inset , nref , 
-                                          ref , 2 , 1 , Opt->nmask , NULL ))) { 
+                                          ref , 2 , 1 , volmask , NULL ))) { 
          SUMA_S_Err("detrending failed!") ;
          exit(1);
       }
@@ -574,6 +581,7 @@ int main (int argc,char *argv[])
 
       /* Now back to SUMA_DSET,  don't need afni volume anymore*/
       din = SUMA_afnidset2sumadset(&inset, 1, 1); 
+      if (volmask) SUMA_free(volmask); volmask=NULL;
 
    }
    if( Opt->out_vol_prefix != NULL ){     /** for debugging,  keep it outside**/

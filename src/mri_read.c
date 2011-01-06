@@ -2016,18 +2016,24 @@ static int linebufdied = 0;      /*   ZSS: Oct 19 2009 */
 static int doublelinebufdied = 0;/*   ZSS: Oct 19 2009 */
 /*--------------------------------------------------------------*/
 
+/* Consider an 'i' to be a complex number flag if it is right after a digit
+   ZSS Jan 2011*/
+#define ISCOMPLEXi(b,t) ((b[t] == 'i' && t != 0 && b[t-1]>= '0' && b[t-1]<='9'))
+
 /* return a 1 if c is a not a valid first non-white char of a
    non-comment 1D line */
-byte iznogood_1D (char c)
+byte iznogood_1D (char *cv, int t)
 {
+   char c=cv[t];
    if ( (c < '0' || c > '9')  &&
          c != '+' && c != '-' && c != '.' && c != 'e' &&
-         c != 'i' && c != ',' && /* allow for complex input */
+         !ISCOMPLEXi(cv,t) && c != ',' && /* allow for complex input */
          c != '@' && c != '*'  /* allow for special 1D trickery */
       ) return 1;
    else return 0;
 
 }
+
 /*! Decode a line buffer into an array of floats.               */
 static floatvec * decode_linebuf( char *buf )  /* 20 Jul 2004 */
 {
@@ -2058,7 +2064,7 @@ static floatvec * decode_linebuf( char *buf )  /* 20 Jul 2004 */
 
       /* convert some alphabetic characters to space (:,i)
          if they are not followed by other alphabetics */
-         if((incr<=0) &&( buf[temppos] == ',' || buf[temppos] == 'i') ||
+         if((incr<=0) &&( buf[temppos] == ',' || ISCOMPLEXi(buf, temppos)) ||
             buf[temppos] == ':' )
              buf[temppos] = ' ' ;
          /* turn on "slow mo" reading if non-numeric */
@@ -2081,7 +2087,7 @@ static floatvec * decode_linebuf( char *buf )  /* 20 Jul 2004 */
      val = 0.0 ; count = 1 ;
      if (slowmo) {   /* trickery */
         sscanf( buf+bpos , "%63s" , vbuf ) ;
-        if (!oktext && iznogood_1D(vbuf[0])) {/* Morality Police Oct 16 09 */
+        if (!oktext && iznogood_1D(buf, bpos)) {/* Morality Police Oct 16 09 */
             if (vbuf[0] != '#') { /* not a comment, die */
                linebufdied = 1;
                fv->nar = 0; /* this will cause a clean up on the way out */
@@ -2161,7 +2167,7 @@ static doublevec * decode_double_linebuf( char *buf )  /* 20 Jul 2004 */
 
       /* convert some alphabetic characters to space (:,i)
          if they are not followed by other alphabetics */
-         if((incr<=0) &&( buf[temppos] == ',' || buf[temppos] == 'i') ||
+         if((incr<=0) &&( buf[temppos] == ',' || ISCOMPLEXi(buf, temppos)) ||
             buf[temppos] == ':' )
              buf[temppos] = ' ' ;
          /* turn on "slow mo" reading if non-numeric */
@@ -2184,7 +2190,7 @@ static doublevec * decode_double_linebuf( char *buf )  /* 20 Jul 2004 */
      val = 0.0 ; count = 1 ;
      if (slowmo) {   /* trickery */
         sscanf( buf+bpos , "%63s" , vbuf ) ;
-        if (!oktext && iznogood_1D(vbuf[0])) {/* Morality Police Oct 16 09 */
+        if (!oktext && iznogood_1D(buf, bpos)) {/* Morality Police Oct 16 09 */
             if (vbuf[0] != '#') { /* not a comment, die */
                doublelinebufdied = 1;
                dv->nar = 0; /* for comment, see same section in decode_linebuf */

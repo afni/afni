@@ -53,7 +53,7 @@ void get_linear_trend( int npt, float *xx, float *f0, float *f1 )
 void THD_linear_detrend( int npt, float *far, float *xx0, float *xx1 )
 {
    register int ii ;
-   float f0 , f1 ;
+   float f0=0.0, f1=0.0;
 
    if( npt < 3 || far == NULL ) return ;
 

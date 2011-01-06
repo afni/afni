@@ -22,7 +22,7 @@
 #define PROGRAM_NAME "3dUniformize"                  /* name of this program */
 #define PROGRAM_AUTHOR "B. D. Ward"                        /* program author */
 #define PROGRAM_INITIAL "28 January 2000" /* date of initial program release */
-#define PROGRAM_LATEST  "26 September 2005 [rickr, zss]"   /* date of latest program revision */
+#define PROGRAM_LATEST  "03 January 2010 [zss]" /* date of latest program revision */
 
 /*---------------------------------------------------------------------------*/
 /*
@@ -108,20 +108,24 @@ void display_help_menu()
      "                                                                      \n"
      "[-clip_low LOW]   Use LOW as the voxel intensity separating           \n"
      "                  brain from air.                                     \n"
+     "   NOTE: The historic clip_low value was 25.                          \n"
+     "      But that only works for certain types of input data and can     \n"
+     "      result in bad output depending on the range of values in        \n"
+     "      the input dataset.                                              \n"
+     "      The new default sets -clip_low via -auto_clip option.           \n"
      "[-clip_high HIGH] Do not include voxels with intensity higher         \n"
      "                  than HIGH in calculations.                          \n"
      "[-auto_clip]      Automatically set the clip levels.                  \n"
      "                  LOW in a procedure similar to 3dClipLevel,          \n"
-     "                  HIGH is set to 3*LOW.                               \n"
-     "NOTE: The default (historic) clip_low value is 25. But that only works\n"
-     "      for certain types of input data and can result in bad output    \n"
-     "      depending on the range of values in the input dataset.          \n"
-     "      It is best you use -clip_low or -auto_clip options instead.     \n"
-     "[-niter NITER]    Set the number of iterations for concentrating PDF\n"
-     "                  Default is 5.\n"
+     "                  HIGH is set to 3*LOW. (Default since Jan. 2011)     \n"
+     "[-niter NITER]    Set the number of iterations for concentrating PDF  \n"
+     "                  Default is 5.                                       \n"
      "[-quiet]          Suppress output to screen                           \n"
      "                                                                      \n"
      "-prefix pname     Prefix name for file to contain corrected image     \n"
+     "\n"
+     "Versions of this program postdating Jan. 3rd 2010 can handle byte, short\n"
+     "or float input and output the result in the data type as the input\n"
       );
 
   printf("\n" MASTER_SHORTHELP_STRING ) ;
@@ -145,7 +149,10 @@ void initialize_options
   option_data->anat_filename = NULL;    /* file name for input anat dataset */
   option_data->prefix_filename = NULL;  /* prefix name for output dataset */
   option_data->quiet = FALSE;           /* flag for suppress screen output */
-  option_data->lower_limit = 0;        /* voxel intensity lower limit, used to be 25 always ZSS Sept. 36 05 */
+  option_data->lower_limit = -1;        /* voxel intensity lower limit, 
+                                           used to be 25 
+                                           -1 is default flag for auto_clip 
+                                                       ZSS Jan 2011 */
   option_data->upper_limit = 0;
   option_data->rpts = 200000;   /* #voxels in sub-sampled image (for pdf) */
   option_data->spts = 10000;    /* #voxels in subsub-sampled image 
@@ -207,32 +214,29 @@ void get_options
 	    } 
 	  DSET_load(anat_dset) ; CHECK_LOAD_ERROR(anat_dset) ;
 
-          /** RWCox [16 Apr 2003]
-              If input is a byte dataset, make a short copy of it. **/
+     
 
-          if( DSET_BRICK_TYPE(anat_dset,0) == MRI_byte ){
+      /* if input is not float, float it */
+     input_datum = DSET_BRICK_TYPE(anat_dset,0);
+     if( input_datum != MRI_float ){ 
+         THD_3dim_dataset *qset ;
+         register float *far ;
+         register int ii,nvox ;
+         MRI_IMAGE *imf=NULL;
 
-            THD_3dim_dataset *qset ;
-            register byte *bar ; register short *sar ;
-            register int ii,nvox ;
+         INFO_message("converting input dataset to float") ;
+         qset = EDIT_empty_copy(anat_dset) ;
+         nvox = DSET_NVOX(anat_dset) ;
+         imf = THD_extract_float_brick(0,anat_dset) ; 
+         far = (float *)malloc(sizeof(float)*nvox) ;
+         memcpy(far, MRI_FLOAT_PTR(imf), sizeof(float)*nvox) ;
+         mri_free(imf); imf=NULL;
+         EDIT_substitute_brick( qset , 0 , MRI_float, far);
+         DSET_delete(anat_dset) ; anat_dset = qset ;
+     }
+     
 
-            fprintf(stderr,"++ WARNING: converting input dataset from byte to short\n") ;
-            qset = EDIT_empty_copy(anat_dset) ;
-            nvox = DSET_NVOX(anat_dset) ;
-            bar  = (byte *) DSET_ARRAY(anat_dset,0) ;
-            sar  = (short *)malloc(sizeof(short)*nvox) ;
-            for( ii=0 ; ii < nvox ; ii++ ) sar[ii] = (short) bar[ii] ;
-            EDIT_substitute_brick( qset , 0 , MRI_short , sar ) ;
-            DSET_delete(anat_dset) ; anat_dset = qset ; input_datum = MRI_byte ;
-
-          } else if ( DSET_BRICK_TYPE(anat_dset,0) != MRI_short ){
-
-            fprintf(stderr,"** ERROR: input dataset not short or byte type!\n") ;
-            exit(1) ;
-
-          }
-
-	  nopt++;
+     nopt++;
 	  continue;
 	}
       
@@ -459,7 +463,7 @@ void initialize_program
   int argc,                        /* number of input arguments */
   char ** argv,                    /* array of input arguments */ 
   UN_options ** option_data,       /* uniformization program options */
-  short ** sfim                    /* output image volume */
+  float ** ffim                    /* output image volume */
 )
 
 {
@@ -493,8 +497,8 @@ void initialize_program
 
   /*----- Allocate memory for output volume -----*/
   nxyz = DSET_NX(anat_dset) * DSET_NY(anat_dset) * DSET_NZ(anat_dset);
-  *sfim = (short *) malloc (sizeof(short) * nxyz);
-  MTEST (*sfim);
+  *ffim = (float *) calloc (nxyz, sizeof(float));
+  MTEST (*ffim);
 }
 
 
@@ -537,7 +541,7 @@ void resample
 )
 
 {
-  short * anat_data = NULL;
+  float * anat_data = NULL;
   int nxyz;
   int rpts;
   int lower_limit;
@@ -546,7 +550,7 @@ void resample
 
   /*----- Initialize local variables -----*/
   nxyz = DSET_NX(anat_dset) * DSET_NY(anat_dset) * DSET_NZ(anat_dset);
-  anat_data = (short *) DSET_BRICK_ARRAY(anat_dset,0);
+  anat_data = (float *) DSET_BRICK_ARRAY(anat_dset,0);
   lower_limit = option_data->lower_limit;
   rpts = option_data->rpts;
 
@@ -994,9 +998,9 @@ void estimate_field (UN_options * option_data,
   Remove the nonuniformity field.
 */
 
-void remove_field (UN_options * option_data, float * fpar, short * sfim)
+void remove_field (UN_options * option_data, float * fpar, float * ffim)
 {
-  short * anat_data = NULL;
+  float * anat_data = NULL;
   int rpts;
   int npar;
   int lower_limit;
@@ -1006,14 +1010,11 @@ void remove_field (UN_options * option_data, float * fpar, short * sfim)
   float * xrow;
   float f;
 
-  double d, dmax = 0.0;
-  int    tcount  = 0;
-
 
   /*----- Initialize local variables -----*/
   nx = DSET_NX(anat_dset);  ny = DSET_NY(anat_dset);  nz = DSET_NZ(anat_dset);
   nxyz = nx*ny*nz;
-  anat_data = (short *) DSET_BRICK_ARRAY(anat_dset,0);
+  anat_data = (float *) DSET_BRICK_ARRAY(anat_dset,0);
   rpts = option_data->rpts;
   npar = option_data->npar;
   lower_limit = option_data->lower_limit;
@@ -1023,7 +1024,6 @@ void remove_field (UN_options * option_data, float * fpar, short * sfim)
 
   for (ixyz = 0;  ixyz < nxyz;  ixyz++)
     {
-      if (anat_data[ixyz] > lower_limit) 
 	   {
 	     create_row (ixyz, nx, ny, nz, xrow);
 
@@ -1031,30 +1031,11 @@ void remove_field (UN_options * option_data, float * fpar, short * sfim)
 	     for (jpar = 1;  jpar < npar;  jpar++)
 	       f += fpar[jpar] * xrow[jpar];
 
-          /* monitor the results for short range (rickr) */
-          {
-            d = exp( log(anat_data[ixyz]) - f);
-            if ( d > 32767.0 )
-            {
-                if ( d > dmax ) dmax = d;
-                sfim[ixyz] = 32767;
-                tcount++;
-            } else sfim[ixyz] = d;
-          }
+          ffim[ixyz] = exp( log(anat_data[ixyz]) - f);
 	   }
-      else
-	   sfim[ixyz] = anat_data[ixyz];
+      
     }
 
-  if ( dmax > 32767.0 && !option_data->quiet )  /* then report an overflow */
-      fprintf(stderr,
-        "\n"
-        "** warning: %d values exceeded the maximum dataset value of %d\n"
-        "            (max overflow value of %.1f)\n"
-        "** such values were set to the maximum %d\n"
-        "** check your results!\n",
-        tcount, 32767, dmax, 32767);
-  
   
   return;
 }
@@ -1065,7 +1046,7 @@ void remove_field (UN_options * option_data, float * fpar, short * sfim)
   Correct for image intensity nonuniformity.
 */
 
-void uniformize (UN_options * option_data, short * sfim)
+void uniformize (UN_options * option_data, float * ffim)
 
 {
   int * ir = NULL;
@@ -1103,7 +1084,9 @@ void uniformize (UN_options * option_data, short * sfim)
   if( 0 && !quiet ){
    fprintf (stderr,"     removing field... \n");
   }
-  remove_field (option_data, fpar, sfim);
+
+  
+  remove_field (option_data, fpar, ffim);
 
  
   /*----- Deallocate memory -----*/
@@ -1124,7 +1107,7 @@ void uniformize (UN_options * option_data, short * sfim)
 void write_afni_data 
 (
   UN_options * option_data,
-  short * sfim
+  float * ffim
 )
 
 {
@@ -1133,16 +1116,13 @@ void write_afni_data
   int ierror;                         /* number of errors in editing data */
   int ibuf[32];                       /* integer buffer */
   float fbuf[MAX_STAT_AUX];           /* float buffer */
-  float fimfac;                       /* scale factor for short data */
   int output_datum;                   /* data type for output data */
   char * filename;                    /* prefix filename for output */
   byte *bfim = NULL ;                 /* 16 Apr 2003 */
 
-
   /*----- initialize local variables -----*/
   nxyz = DSET_NX(anat_dset) * DSET_NY(anat_dset) * DSET_NZ(anat_dset);
 
-  
 
   /*----- Record history of dataset -----*/
   tross_Copy_History( anat_dset , option_data->new_dset ) ;
@@ -1153,27 +1133,9 @@ void write_afni_data
   /*----- deallocate memory -----*/   
   THD_delete_3dim_dataset (anat_dset, False);   anat_dset = NULL ;
 
-  /*-- 16 Apr 2003 - RWCox:
-       see if we can convert output back to bytes, if input was bytes --*/
-
-  output_datum = MRI_short ;             /* default, in sfim */
-
-  if( input_datum == MRI_byte ){         /* if input was byte */
-    short stop = sfim[0] ;
-    for( ii=1 ; ii < nxyz ; ii++ )
-      if( sfim[ii] > stop ) stop = sfim[ii] ;
-    output_datum = MRI_byte ;
-    bfim = malloc(sizeof(byte)*nxyz) ;
-    if( stop <= 255 ){                   /* output fits into byte range */
-      for( ii=0 ; ii < nxyz ; ii++ ) bfim[ii] = (byte) sfim[ii] ;
-    } else {                             /* must scale output down */
-      float sfac = 255.9 / stop ;
-      fprintf(stderr,"++ WARNING: scaling by %g back down to byte data\n",sfac);
-      for( ii=0 ; ii < nxyz ; ii++ ) bfim[ii] = (byte)(sfim[ii]*sfac) ;
-    }
-    free(sfim) ;
-  }
- 
+  output_datum = input_datum ;
+           
+  
   /*-- we now return control to your regular programming --*/ 
   ibuf[0] = output_datum ;
   
@@ -1199,28 +1161,9 @@ void write_afni_data
   }
   
   
-  /*----- attach bricks to new data set -----*/
-
-  if( output_datum == MRI_short )
-    mri_fix_data_pointer (sfim, DSET_BRICK(option_data->new_dset,0)); 
-  else if( output_datum == MRI_byte )
-    mri_fix_data_pointer (bfim, DSET_BRICK(option_data->new_dset,0));    /* 16 Apr 2003 */
-
-  fimfac = 1.0;
-
-  /*----- write afni data set -----*/
-  if (!quiet)
-    {
-      printf ("\nWriting anatomical dataset: ");
-      printf("%s\n", DSET_BRIKNAME(option_data->new_dset) ) ;
-      printf("data type = %s\n",MRI_TYPE_name[output_datum]) ;
-    }
-
-
-  for( ii=0 ; ii < MAX_STAT_AUX ; ii++ ) fbuf[ii] = 0.0 ;
-  (void) EDIT_dset_items( option_data->new_dset , ADN_stat_aux , fbuf , ADN_none ) ;
-  fbuf[0] = (output_datum == MRI_short && fimfac != 1.0 ) ? fimfac : 0.0 ;
-  (void) EDIT_dset_items( option_data->new_dset , ADN_brick_fac , fbuf , ADN_none ) ;
+  EDIT_substscale_brick(option_data->new_dset,0,
+                        MRI_float,ffim , output_datum, -1.0 ); 
+  
   THD_load_statistics( option_data->new_dset ) ;
   THD_write_3dim_dataset( NULL,NULL , option_data->new_dset , True ) ;
 
@@ -1244,7 +1187,7 @@ int main
 
 {
   UN_options * option_data = NULL;     /* uniformization program options */
-  short * sfim = NULL;                 /* output uniformized image */
+  float * ffim = NULL;                 /* output uniformized image */
 
 
   { int ii ;                           /* 16 Apr 2003 */
@@ -1273,7 +1216,7 @@ int main
   if( !quiet ){
    fprintf (stderr,"  Initializing... \n");
   }
-  initialize_program (argc, argv, &option_data, &sfim);
+  initialize_program (argc, argv, &option_data, &ffim);
 
 
   /*----- Perform uniformization -----*/
@@ -1281,14 +1224,14 @@ int main
   if( !quiet ){
    fprintf (stderr,"  Uniformizing... \n");
   }
-  uniformize (option_data, sfim);
+  uniformize (option_data, ffim);
 
 
   /*----- Write out the results -----*/
   if( !quiet ){
    fprintf (stderr,"  Writing results... \n");
   }
-  write_afni_data (option_data, sfim);
+  write_afni_data (option_data, ffim);
   
 
   exit(0);

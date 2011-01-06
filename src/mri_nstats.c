@@ -74,6 +74,25 @@ float mri_nstat( int code , int npt , float *far , float voxval)
        }
      break ;
 
+     case NSTAT_KURT:
+       /* Kurtosis estimate, unbiased under normality condition */
+       {
+          register double mm,vv,vv2,pp, sig; register int ii ;
+          if( npt < 4  ) break ;                     /* will return 0.0 */
+          for( mm=0.0,ii=0 ; ii < npt ; ii++ ) mm += far[ii] ;
+          mm /= npt ;  
+          for( vv=0.0,vv2=0.0,ii=0 ; ii < npt ; ii++ ) {
+                                 pp = (far[ii]-mm)*(far[ii]-mm) ;
+                                 vv += pp; vv2 += pp*pp;
+          }
+          if (vv != 0.0f) {
+            ii = npt-1;
+            vv2 = (vv2/(vv*vv))*(npt+1.0)*npt*ii - 3.0*ii*ii;
+            outval = (float)(vv2/((npt-2)*(npt-3)));
+          } else outval = 0.0;
+       }
+     break ;
+
      case NSTAT_MAX:{
        register int ii ;
        outval = far[0] ;
@@ -405,7 +424,7 @@ ENTRY("THD_localstat") ;
    MRI_IMAGE *nbim=NULL ;
    THD_fvec3 fwv ;
    double perc[MAX_CODE_PARAMS], mpv[MAX_CODE_PARAMS] ;  /* no longer static */
-   float *nbar ; int nbar_num ;
+   float *nbar ; int nbar_num=0;
 
    /* 17 Jul 2009: create workspace for neighborhood data */
 
@@ -478,7 +497,7 @@ ENTRY("THD_localstat") ;
          } else {   /* the "usual" (catchall) case */
 
            aar[cc][ijk] = mri_nstat( code[cc] , nbar_num , nbar, brick[ijk] ) ;
-
+           
          }
 
        } /* end of loop over cc */
