@@ -2200,11 +2200,17 @@ static float *ComputeObliquity(oblique_info *obl_info)
 
    /*  Siemens mosaic with full slice information */
 
-/* will rely on ImagePosition method for now*/
+   /* will rely on ImagePosition method for now*/
    /*  Siemens mosaic with limited slice information - rely on ImagePosition*/
    /* compute central mosaic point - in funny way */
-   offsetxvec = SCALE_FVEC3(dc1, ((obl_info->nx)/2.0));
-   offsetyvec = SCALE_FVEC3(dc2, ((obl_info->ny)/2.0));
+   
+   /* get center of mass, starting from center of corner voxel and shift by */
+   /*    (N-1)*vox_dim/2 in each of the 3 directions                        */
+
+   /* shift should be dcK*(nK-1)/2 in each direction, since we start at the
+    * first voxel center, not the edge of the FOV        6 Jan 2011 [rickr]  */
+   offsetxvec = SCALE_FVEC3(dc1, ((obl_info->nx-1)/2.0));
+   offsetyvec = SCALE_FVEC3(dc2, ((obl_info->ny-1)/2.0));
 
    offsetzvec = SCALE_FVEC3(dc3, ((obl_info->mos_nslice - 1.0)*fac/2.0));
    if( obl_info->flip_slices ) 
