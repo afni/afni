@@ -183,7 +183,9 @@ endif
 #Turn off openmp, require gcc4.2 which does not work with fink yet
 if ($openmp < 1) then
    #sed 's/OMPFLAG/# OMPFLAG/' Makefile > ___mm
-   sed 's/^CCMIN/OMPFLAG = -fopenmp -DUSE_OMP*CCMIN/' Makefile | tr '*' '\n' \
+            #use \a as a char flag for where to insert the new line.
+            #\a is unlikely to occur in the Makefiles
+   sed 's/^CCMIN/OMPFLAG = -fopenmp -DUSE_OMP\aCCMIN/' Makefile | tr '\a' '\n' \
       > ___mm
    mv ___mm Makefile
 endif
