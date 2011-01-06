@@ -302,7 +302,10 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfFWHM_ParseInput(char *argv[], int arg
          
          Opt->r = atof(argv[++kar]);
          if (Opt->r <= 0.0 && Opt->r != -1.0f) {
-            fprintf (SUMA_STDERR,"Error %s:\nneighborhood radius is not valid (have %f from %s).\n", FuncName, Opt->r, argv[kar]);
+            fprintf (SUMA_STDERR,
+                     "Error %s:\n"
+                     "neighborhood radius is not valid (have %f from %s).\n", 
+                     FuncName, Opt->r, argv[kar]);
 		      exit (1);
          }
          brk = YUP;
@@ -318,7 +321,10 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfFWHM_ParseInput(char *argv[], int arg
          
          Opt->d1 = atof(argv[++kar]);
          if (Opt->d1 <= 0.0) {
-            fprintf (SUMA_STDERR,"Error %s:\nvoxel dimension is not valid (have %f from %s).\n", FuncName, Opt->d1, argv[kar]);
+            fprintf (SUMA_STDERR,
+                     "Error %s:\n"
+                     "voxel dimension is not valid (have %f from %s).\n", 
+                     FuncName, Opt->d1, argv[kar]);
 		      exit (1);
          }
          brk = YUP;
@@ -341,7 +347,8 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfFWHM_ParseInput(char *argv[], int arg
          if( kar < argc-1 && isdigit(argv[kar+1][0]) ){
             Opt->corder = (int)strtod(argv[++kar],NULL) ;
             if( Opt->corder == 0 ){ /* Use poly of order 0 (mean) */
-              Opt->poly = 0 ; fprintf(SUMA_STDOUT,"-detrend 0 replaced by -detpoly 0") ;
+              Opt->poly = 0 ; 
+              fprintf(SUMA_STDOUT,"-detrend 0 replaced by -detpoly 0") ;
               Opt->corder = -2;
             }
          }
@@ -365,12 +372,14 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfFWHM_ParseInput(char *argv[], int arg
          Opt->geom = 0 ; brk = YUP;
       }
       if( strncmp(argv[kar],"-dmed",5) == 0 ){         
-         SUMA_S_Errv("Option %s not supported.\nUse -detrend instead.\n", argv[kar]);
+         SUMA_S_Errv("Option %s not supported.\n"
+                     "Use -detrend instead.\n", argv[kar]);
          exit(1);
          Opt->dmed = 1 ; brk = YUP ;
       }
       if( strncmp(argv[kar],"-unif",5) == 0 ){          
-         SUMA_S_Errv("Option %s not supported.\nUse -detrend instead.\n", argv[kar]);
+         SUMA_S_Errv("Option %s not supported.\n"
+                     "Use -detrend instead.\n", argv[kar]);
          exit(1);
          Opt->unif = Opt->dmed = 1 ; brk = YUP ;
       }
@@ -384,7 +393,9 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfFWHM_ParseInput(char *argv[], int arg
          brk = YUP;
      }
       if (!brk && !ps->arg_checked[kar]) {
-			fprintf (SUMA_STDERR,"Error %s:\nOption %s not understood. Try -help for usage\n", FuncName, argv[kar]);
+			fprintf (SUMA_STDERR,
+                  "Error %s:\nOption %s not understood. Try -help for usage\n", 
+                  FuncName, argv[kar]);
 			exit (1);
 		} else {	
 			brk = NOPE;
@@ -397,7 +408,9 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfFWHM_ParseInput(char *argv[], int arg
    }
 
    if (Opt->r > 0.0 && Opt->d1 > 0.0) {
-      if (Opt->r / Opt->d1 < 2.99) {   /* no magic reason for 3 other than it results in approx. pi*(3*d)2 mm2 area, which would be approx. pi*3*3 voxels. */
+      if (Opt->r / Opt->d1 < 2.99) {   /* no magic reason for 3 other than it 
+                                       results in approx. pi*(3*d)2 mm2 area, 
+                                       which would be approx. pi*3*3 voxels. */
          SUMA_S_Warnv(  "\n"
                         "**********************************************\n"
                         "The neighborhood radius of %.3fmm is likely too\n"
@@ -406,7 +419,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfFWHM_ParseInput(char *argv[], int arg
                         " A radius of at least %.3f would be more \n"
                         " appropriate. Use -ok_warn to proceed despite\n"
                         " warning.\n"
-                        " ZSS. DC CC and its vanilla suburbs.\n"
+                        " ZSS. DC CC.\n"
                         "***********************************************\n"
                         "\n", 
                         Opt->r, Opt->d1, Opt->d1*3.0 ); 
@@ -451,7 +464,8 @@ int main (int argc,char *argv[])
 
    if (Opt->debug > 2) LocalHead = YUP;
    if (Opt->ps->N_dsetname != 1) {
-      SUMA_S_Errv("Need one and only one dset please. Have %d on command line.\n", Opt->ps->N_dsetname);
+      SUMA_S_Errv("Need one and only one dset please. "
+                  "Have %d on command line.\n", Opt->ps->N_dsetname);
       exit(1);
    }
    if (!(din = SUMA_LoadDset_s (Opt->ps->dsetname[0], &iform, 0))) {
@@ -643,12 +657,16 @@ int main (int argc,char *argv[])
       float fwhmg;
       if (Opt->geom < 0 || Opt->geom == 0) {
          SUMA_FWHM_MEAN(fwhmv, N_icols, fwhmg, "arit", N);
-         if (!Opt->iopt) fprintf(stdout,"Arithmetic Mean (non-zero fwhm only)= %.4f\n", fwhmg);
+         if (!Opt->iopt) 
+            fprintf(stdout,"Arithmetic Mean (non-zero fwhm only)= %.4f\n", 
+                     fwhmg);
          else fprintf(stdout,"#Arit_mean   %.4f\n", fwhmg);
       }
       if (Opt->geom < 0 || Opt->geom == 1) {
          SUMA_FWHM_MEAN(fwhmv, N_icols, fwhmg, "geom", N);
-         if (!Opt->iopt) fprintf(stdout,"Geometric  Mean (non-zero fwhm only)= %.4f\n", fwhmg);
+         if (!Opt->iopt) 
+            fprintf(stdout,
+                  "Geometric  Mean (non-zero fwhm only)= %.4f\n", fwhmg);
          else fprintf(stdout,"#Geo_mean   %.4f\n", fwhmg);
       }
    }
@@ -660,7 +678,9 @@ int main (int argc,char *argv[])
       Opt->r = SUMA_MAX_PAIR(2.5 * fwhmg_max, 5.5*SO->EL->AvgLe);
       /* Now make sure this covers more than about three voxels */
       if (Opt->d1 > 0.0) {
-         SUMA_LHv("Have Opt->r %f and Opt->d1 %f. Making sure hood >= 3*voxels (%f)\n", Opt->r, Opt->d1, Opt->d1*3.0);
+         SUMA_LHv("Have Opt->r %f and Opt->d1 %f. \n"
+                  "Making sure hood >= 3*voxels (%f)\n", 
+                  Opt->r, Opt->d1, Opt->d1*3.0);
          if (Opt->r < Opt->d1*3.0) Opt->r = Opt->d1*3.0;
       }
       SUMA_S_Notev("Neighborhood radius set to %f\n", Opt->r);
