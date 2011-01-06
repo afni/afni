@@ -1261,6 +1261,16 @@ ENTRY("mri_imcount") ;
    new_fname = imsized_fname( tname ) ;
    if( new_fname == NULL ) RETURN( 0 );
 
+   /*** a 3D dataset [06 Jan 2011] ***/
+
+   if( strstr(new_fname,".HEAD") != NULL || strstr(new_fname,".nii") != NULL ){
+     THD_3dim_dataset *dset = THD_open_dataset(new_fname) ;
+     if( dset != NULL ){
+       nz = DSET_NZ(dset) * DSET_NVALS(dset) ; DSET_delete(dset) ;
+       RETURN(nz) ;
+     }
+   }
+
    /*** a 3D filename ***/
 
    if( strlen(new_fname) > 9 && new_fname[0] == '3' && new_fname[1] == 'D' &&
