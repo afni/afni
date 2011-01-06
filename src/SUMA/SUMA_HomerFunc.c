@@ -5,9 +5,9 @@
 #include "SUMA_HomerDefine.c"
 
 int is_END_vert (Point3 Vert) {
-   if ( Vert.x == 11111.11111f &&
-        Vert.y == 22222.22222f &&
-        Vert.z == 33333.33333f ) return(1);
+   if ( SUMA_ABS(Vert.x-11111.11111f)<0.01 &&
+        SUMA_ABS(Vert.y-22222.22222f)<0.01 &&
+        SUMA_ABS(Vert.z-33333.33333f)<0.01) return(1);
    return(0);
 }  
 /*!
@@ -163,7 +163,9 @@ int * SUMA_HomerFace(long *face, int *N)
       }
    
    
-   if (LocalHead) fprintf(SUMA_STDERR,"%s: Returning (iFS3 = %d, N = %d...)\n", FuncName, iFS3, *N);
+   if (LocalHead) 
+      fprintf(SUMA_STDERR,"%s: Returning (iFS3 = %d, N = %d...)\n", 
+                  FuncName, iFS3, *N);
    
    SUMA_RETURN(FaceSetList); 
 }
@@ -249,12 +251,15 @@ SUMA_SurfaceObject *SUMA_HJS_Surface(int ipart)
          FaceSetList = SUMA_HomerFace(X1_X5_X120_X127_X158_face, &N_FaceSet);
          break;
       case 17:
-         NodeList = SUMA_HomerVertex(X1_X5_X120_X127_X164_Sphere_vertex, &N_Node);
-         FaceSetList = SUMA_HomerFace(X1_X5_X120_X127_X164_Sphere_face, &N_FaceSet);
+         NodeList = SUMA_HomerVertex(X1_X5_X120_X127_X164_Sphere_vertex, 
+                                       &N_Node);
+         FaceSetList = SUMA_HomerFace(X1_X5_X120_X127_X164_Sphere_face, 
+                                       &N_FaceSet);
          break;
       case 18:
          NodeList = SUMA_HomerVertex(X1_X5_X120_X127_X177_Torus_vertex, &N_Node);
-         FaceSetList = SUMA_HomerFace(X1_X5_X120_X127_X177_Torus_face, &N_FaceSet);
+         FaceSetList = SUMA_HomerFace(X1_X5_X120_X127_X177_Torus_face, 
+                                       &N_FaceSet);
          break;
       default:
          SUMA_SL_Err("No more parts");
@@ -267,15 +272,18 @@ SUMA_SurfaceObject *SUMA_HJS_Surface(int ipart)
    if (LocalHead) {
       int tmpmin=-100, n3, itmp;
       n3 = 3 * N_FaceSet;
-      fprintf (SUMA_STDERR,"%s: N_Node %d, N_FaceSet %d\n", FuncName, N_Node, N_FaceSet);
+      fprintf (SUMA_STDERR,"%s: part %d, N_Node %d, N_FaceSet %d\n", 
+                                 FuncName, ipart, N_Node, N_FaceSet);
       SUMA_MIN_VEC (FaceSetList, n3, tmpmin);
       fprintf (SUMA_STDERR,"Minimum index is %d\n", tmpmin);
       if (tmpmin < 0) {
-         fprintf (SUMA_STDERR,"Error %s: Bad in return ass negative number\n", FuncName);
+         fprintf (SUMA_STDERR,
+               "Error %s: Bad in return ass negative number\n", FuncName);
          for (itmp=0; itmp<n3; ++itmp) {
             fprintf (SUMA_STDERR, "%d: %d\n", itmp, FaceSetList[itmp]);
             if (FaceSetList[itmp] < 0) {
-               fprintf (SUMA_STDERR,"%s: Min of %d, at %d\n", FuncName, FaceSetList[itmp], itmp);
+               fprintf (SUMA_STDERR,
+                  "%s: Min of %d, at %d\n", FuncName, FaceSetList[itmp], itmp);
             }
          } 
       }
