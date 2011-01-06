@@ -7441,12 +7441,64 @@ byte * SUMA_indexlist_2_bytemask(
    }
 
    if (ign) {
-      fprintf(SUMA_STDERR,"%s:   %d values in indexlist ignored because they are >= N_mask of %d\n", FuncName, ign, N_mask);
+      fprintf(SUMA_STDERR,
+   "%s:   %d values in indexlist ignored because they are >= N_mask of %d\n",
+         FuncName, ign, N_mask);
    }
    
    BYE:
    if (N_inmask) *N_inmask = cnt;
    SUMA_RETURN(bmask);
+}
+
+byte * SUMA_Meshbmask_2_IndexListbmask(
+   byte *Mbmask, int N_Mbmask, int *ind_list, int N_ind_list, int *N_ILbmask)
+{
+   static char FuncName[]={"SUMA_Meshbmask_2_IndexListbmask"};
+   int i = 0, cnt, ign = 0; 
+   byte *ILbmask = NULL;
+
+   SUMA_ENTRY; 
+
+   cnt = -1; 
+   if (!ind_list) {
+      SUMA_S_Err("NULL ind_list");
+      goto BYE;
+   }
+   
+   if (!(ILbmask = (byte *)SUMA_calloc(N_ind_list, sizeof(byte)))) { 
+      SUMA_SL_Crit("Failed to allocate (macro)"); 
+      goto BYE;
+   }
+   
+   if (!Mbmask) { /* default, take whole thing */
+      memset(ILbmask, 1, sizeof(byte)*N_ind_list);
+      cnt = N_ind_list; 
+      goto BYE;
+   }
+   
+   for (i=0; i<N_ind_list; ++i) {
+      if (ind_list[i] < N_Mbmask) {
+         if (Mbmask[ind_list[i]]) {
+            ILbmask[i]=1; ++cnt;
+         }
+      } else {
+         if (!ign) {
+            SUMA_S_Warn("Values in ind_list exceed N_mask!\n"); 
+         }
+         ++ign;
+      }
+   }
+   
+   if (ign) {
+      fprintf(SUMA_STDERR,
+   "%s:   %d values in indexlist ignored because they are >= N_mask of %d\n",
+         FuncName, ign, N_Mbmask);
+   }
+   
+   BYE:
+   if (N_ILbmask) *N_ILbmask = cnt;
+   SUMA_RETURN(ILbmask);
 }
 
 /*!
@@ -7907,25 +7959,37 @@ void SUMA_BadOptimizerBadBad(void){ return; }
 
 #define SUMA_COL_FILL(vv, VV, tp){\
    if (!replacemask) {\
-      if (nip)  for (i=0; i<N_read; ++i) vv[i] = (tp)VV[nip[i]]; \
-      else for (i=0; i<N_read; ++i) vv[i] = (tp)VV[i];  \
+      if (nip) { for (i=0; i<N_read; ++i) { vv[i] = (tp)VV[nip[i]]; } }\
+      else { for (i=0; i<N_read; ++i) { vv[i] = (tp)VV[i]; } }\
    } else { \
-     if (nip)  \
-         for (i=0; i<N_read; ++i)   \
+     if (nip) { \
+         for (i=0; i<N_read; ++i)  { \
             if (replacemask[nip[i]]) { \
                vv[i] = (tp)VV[nip[i]]; \
-               SUMA_BadOptimizerBadBad(); /* Dec. 03 07 */ \
+                /* That call was turned off again because 
+                  this macro misbehaved again Jan. 2011.
+                  Putting brackets at all spots seems to have
+                  fixed the problem, and that call below seems
+                  unnecessary for now.    ZSS Jan 04 2011 */   \
+               /* SUMA_BadOptimizerBadBad();  Dec. 03 07 */ \
             }  \
-      else for (i=0; i<N_read; ++i) \
-            if (replacemask[i]) vv[i] = (int)VV[i];   \
+         }  \
+     } else {  \
+         for (i=0; i<N_read; ++i) { \
+            if (replacemask[i]) { \
+               vv[i] = (tp)VV[i];  /* (int) --> (tp) ZSS Jan 04 2011 */ \
+            } \
+         }  \
+     }   \
    }  \
 }
+
 int SUMA_Float2DsetCol (SUMA_DSET *dset, int ind, 
                         float *V, int FilledOnly, 
                         byte *replacemask)
 {
    static char FuncName[]={"SUMA_Float2DsetCol"};
-   int i = -1, N_read = -1, *iv = NULL, *nip=NULL, nnn=-1;
+   int i = -1, N_read = -1, *iv = NULL, *nip=NULL, nnn=-1, NodeDBG=0;
    float *fv = NULL;
    SUMA_COL_TYPE ctp;
    SUMA_VARTYPE vtp;
@@ -7947,6 +8011,19 @@ int SUMA_Float2DsetCol (SUMA_DSET *dset, int ind,
    }
    
    if (LocalHead) SUMA_ShowDset(dset, 0, NULL);
+
+   #if 0
+      /* MACROS below have given me hell with optimizer related troubles
+         Code left here for sanity checks */
+   NodeDBG =  136029;     
+   if (LocalHead) fprintf(stderr,"%s: Pre replacement, node %d=%f\n"
+                     "New value %f, mask = %d\n",
+               FuncName, NodeDBG, 
+               SUMA_GetDsetNodeValInCol2(dset,ind, 
+                                          NodeDBG, -1),
+               V[NodeDBG], replacemask ? replacemask[NodeDBG]:1);
+   #endif
+   
    ctp = SUMA_TypeOfDsetColNumb(dset, ind); 
    vtp = SUMA_ColType2TypeCast (ctp) ;
    nip = SUMA_GetNodeDef(dset);
@@ -7965,6 +8042,14 @@ int SUMA_Float2DsetCol (SUMA_DSET *dset, int ind,
          break;
    }
    
+   #if 0
+   if (LocalHead) fprintf(stderr,"%s: Post replacement, node %d=%f\n"
+                     "New value %f, mask = %d\n",
+               FuncName, NodeDBG, 
+               SUMA_GetDsetNodeValInCol2(dset,ind, 
+                                          NodeDBG, -1),
+               V[NodeDBG], replacemask ? replacemask[NodeDBG]:1);
+   #endif
    /* reset generic attributes */
    SUMA_AddGenDsetColAttr (dset, ctp, dset->dnel->vec[ind], 1, ind, 0);
   

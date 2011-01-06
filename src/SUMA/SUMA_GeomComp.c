@@ -5429,7 +5429,7 @@ SUMA_Boolean SUMA_Chung_Smooth_07_dset (SUMA_SurfaceObject *SO, double **wgt,
                }/* for j*/
                fout[n] = fin[n] * wgt[n][0] +  dfp;
                #if 0
-                  if (LocalHead && n == SUMA_SSidbg) 
+                  if ((LocalHead && n == SUMA_SSidbg)) 
                      SUMA_LHv("node %d, fin %g, fout %g\n", n, fin[n], fout[n]);
                #endif
             }/* for n */ 
@@ -5456,7 +5456,7 @@ SUMA_Boolean SUMA_Chung_Smooth_07_dset (SUMA_SurfaceObject *SO, double **wgt,
                   fout[n] = fin[n];
                }
                #if 0
-                  if (LocalHead && n == SUMA_SSidbg) 
+                  if ((LocalHead && n == SUMA_SSidbg)) 
                      SUMA_LHv("node %d, fin %g, fout %g\n", n, fin[n], fout[n]);
                #endif
             }/* for n */ 
@@ -5464,7 +5464,8 @@ SUMA_Boolean SUMA_Chung_Smooth_07_dset (SUMA_SurfaceObject *SO, double **wgt,
          if (cs && cs->Send && k == 0) { /*  IF YOU CHANGE THIS CONDITION, 
                                              CHANGE IT IN next block! */
             /* Must do this stupid copy */
-            if (!fsend) { fsend = (float*)SUMA_malloc(sizeof(float)*SO->N_Node); }
+            if (!fsend) { 
+               fsend = (float*)SUMA_malloc(sizeof(float)*SO->N_Node); }
             for (n=0; n < SO->N_Node; ++n) { fsend[n] = (float)fout[n]; }
             kth_buf = cs->kth;
             if (niter == *N_iter -1) {
@@ -5477,7 +5478,8 @@ SUMA_Boolean SUMA_Chung_Smooth_07_dset (SUMA_SurfaceObject *SO, double **wgt,
          }
          if (*N_iter < 0) {
             /* base on fwhm */
-            if (!fsend) { fsend = (float*)SUMA_malloc(sizeof(float)*SO->N_Node); }
+            if (!fsend) { 
+               fsend = (float*)SUMA_malloc(sizeof(float)*SO->N_Node); }
             if (!(cs && cs->Send && k == 0)) {/* Else fsend is setup above */
                for (n=0; n < SO->N_Node; ++n) { fsend[n] = (float)fout[n]; }
             }
@@ -5513,7 +5515,12 @@ SUMA_Boolean SUMA_Chung_Smooth_07_dset (SUMA_SurfaceObject *SO, double **wgt,
          SUMA_S_Err("Failed to update dset's values");
          SUMA_RETURN(NOPE);      
       }
-      
+      if (LocalHead &&  SUMA_SSidbg >= 0 && SUMA_SSidbg <= SO->N_Node) {
+         SUMA_LHv("In Dset, node %d=%f\n",
+               SUMA_SSidbg, 
+               SUMA_GetDsetNodeValInCol2(dset,icols[k], 
+                                          SUMA_SSidbg, SO->N_Node));
+      }
       if (fin_float) SUMA_free(fin_float); fin_float = NULL;
       
       if (niter == 0) {

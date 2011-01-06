@@ -65,6 +65,34 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 04, JAN , 2011 , ZSS , "SurfFWHM" , MINOR , TYPE_BUG_FIX,
+   "Fixed SurfFWHM which had the same masking problem as SurfSmooth.",
+   NULL
+ } ,
+
+ { 04, JAN , 2011 , ZSS , "SurfSmooth" , MINOR , TYPE_BUG_FIX,
+   "Fixed SurfSmooth to work with the combination HEAT07+Sparse Dsets+cmask ",
+   "The problem was caused by a bad masking operation at the detrending\n"
+   "function when sparse datasets with cmask option are used. The detrending\n"
+   "is used to estimate the FWHM in the blurmaster. As a result, SurfSmooth \n"
+   "would not converge under such circumstances.\n"
+   "In addition there was an optimizer related bug in the macro SUMA_COL_FILL\n"
+   "Thanks to Christopher Ackerman from JHMI for reporting the bug."
+ } ,
+
+ { 03, JAN , 2011 , ZSS , "afni-general" , MICRO , TYPE_BUG_FIX,
+   "Modified decode_*linebuf to better treat the 'i' character in 1D files",
+   NULL
+ } ,
+
+ { 03, JAN , 2011 , ZSS , "3dUniformize" , MINOR , TYPE_NEW_OPT,
+   "Changed 3dUniformize to accept byte, short, or float input.",
+   "These changes also avoid data clipping that was necessary\n"
+   "when output data was handled as shorts.\n"
+   "The output format is similar to that of the input.\n"
+   "-auto_clip is now the default.\n"
+ } ,
+
  { 21, DEC , 2010 , ZSS , "@help.AFNI" , MINOR , TYPE_NEW_PROG,
    "A simple script to look at AFNI's all help page",
    NULL
