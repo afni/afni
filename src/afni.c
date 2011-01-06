@@ -2020,9 +2020,9 @@ STATUS("call 14") ;
           nodown = 1 ;  /* splashdown will be done in AFNI_startup_layout_CB */
         } else if (MAIN_im3d->type == AFNI_3DDATA_VIEW){ /* ZSS Dec 02 2010. */
           (void) XtAppAddTimeOut( MAIN_app , 123 ,
-                                  AFNI_startup_layout_CB , 
+                                  AFNI_startup_layout_CB ,
                                   "GIMME_SOMETHING" ) ;
-          nodown = 1 ; 
+          nodown = 1 ;
         }
 
         /* 21 Jan 2003: this function will be called 0.246 seconds
@@ -2084,7 +2084,8 @@ STATUS("call 14") ;
           }
         }
 
-        if( !AFNI_yesenv("AFNI_ENABLE_MARKERS") )  /* 28 Apr 2010 */
+        if( MAIN_im3d->type == AFNI_3DDATA_VIEW &&
+            !AFNI_yesenv("AFNI_ENABLE_MARKERS")    )  /* 28 Apr 2010 */
 #if 0
           REPORT_PROGRESS("\n"
                           "+++++++++++++++++++++++++++++++++++++++++++++++++++++\n"
@@ -2314,7 +2315,9 @@ ENTRY("AFNI_startup_timeout_CB") ;
                               "++ so its subdirectories were searched  ++\n"
                               "++ for dataset files.                   ++\n " ,
                               MCW_USER_KILL | MCW_TIMER_KILL ) ;
-   else if( !ALLOW_realtime && GLOBAL_library.have_dummy_dataset ){
+   else if( !ALLOW_realtime                    &&
+            GLOBAL_library.have_dummy_dataset  &&
+            MAIN_im3d->type == AFNI_3DDATA_VIEW   ){
     int horz = MAIN_im3d->vwid->view->session_horz ; /* 29 Apr 2010 */
     char hstr[1024] ;
     sprintf( hstr ,
@@ -3306,8 +3309,7 @@ THD_3dim_dataset * AFNI_read_images( int nf , char *fname[] )
 {
    MRI_IMAGE *im , *shim ;
    char *bar ;
-   register int     npix , ii ;
-   int nx , ny , nz , lf , kz , kim ;
+   int nx , ny , nz , lf , kz , kim , npix,ii ;
    MRI_IMARR *arr ;
    char str[256] ;
    THD_3dim_dataset *dset ;
@@ -3341,9 +3343,10 @@ ENTRY("AFNI_read_images") ;
 
    /*--- read 1st file to get sizes ---*/
 
+STATUS("read first file") ;
    arr = mri_read_file( fname[0] ) ;
    if( arr == NULL || arr->num == 0 )
-      ERROR_exit("Cannot read first image file: %s",fname[0]) ;
+     ERROR_exit("Cannot read first image file: %s",fname[0]) ;
 
    im = arr->imarr[0] ;
    nx = im->nx ;
@@ -3359,10 +3362,8 @@ ENTRY("AFNI_read_images") ;
 
    dsize = mri_datum_size( (MRI_TYPE) datum ) ;
    bar   = (char *) malloc( dsize * nx*ny*nz ) ;
-   if( bar == NULL ){
-      fprintf(stderr,"\n** Can't malloc memory for image input!\a\n") ;
-      exit(1) ;
-   }
+   if( bar == NULL )
+     ERROR_exit("Can't malloc memory for image input :-( !!!") ;
 
    /*--- read all files, convert if needed, put in the cube ---*/
 
@@ -3372,6 +3373,7 @@ ENTRY("AFNI_read_images") ;
       /** read the file (except the first, which we already have **/
 
       if( lf != 0 ){
+STATUS("read next file") ;
          arr = mri_read_file( fname[lf] ) ;
          if( arr == NULL || arr->num == 0 )
            ERROR_exit("Cannot read image file: %s",fname[lf]) ;
@@ -3413,7 +3415,7 @@ ENTRY("AFNI_read_images") ;
          memcpy( bar + dsize*npix*kz , mri_data_pointer(shim) , dsize*npix ) ;
          kz++ ;
 
-         KILL_1MRI(shim) ;
+         mri_free(shim) ;
          if( kz%10 == 5 ) REPORT_PROGRESS(".") ;
       }
       FREE_IMARR(arr) ;  /* not DESTROY_IMARR, since images are already gone */
@@ -3422,7 +3424,7 @@ ENTRY("AFNI_read_images") ;
    /*** special case of one input image ***/
 
    if( kz == 1 && nz == 2 ){
-      memcpy( bar + dsize*npix , bar , dsize*npix ) ;
+     memcpy( bar + dsize*npix , bar , dsize*npix ) ;
    }
 
    /*** tell the user what all we've read ***/
