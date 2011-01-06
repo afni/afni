@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  6, JAN, 2011, RCR, "afni-general", MICRO, TYPE_BUG_FIX,
+   "ComputeObliquity() mosaic shift should be dcK*(nK-1)/2 in each direction",
+   NULL
+ } ,
+
  {  4, JAN, 2011, RCR, "Dimon", MAJOR, TYPE_ENHANCE,
    "version 3.0 : handle Siemens Mosaic formatted files",
    "- depend on libmri, return MRI_IMARR from mri_read_dicom, changes\n"
