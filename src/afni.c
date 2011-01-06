@@ -1357,6 +1357,7 @@ void AFNI_sigfunc_alrm(int sig)
      "A star will shine upon the hour of our next meeting"           ,
      "May we meet again in happier times"                            ,
      "Adieu, auf Wiedersehen, Adios, Cheerio, and Bon Voyage"        ,
+     "Ta ta, Hooroo, Catch ya 'round"                                ,
      "Meeting again is certain for those who are friends"            ,
      "Au revoir, Ciao, Ma'alsalam, Hasta luego, Czesc, and Zai jian" ,
      "Don't cry -- a farewell is necessary before we can meet again" ,
@@ -1368,10 +1369,17 @@ void AFNI_sigfunc_alrm(int sig)
      "Let the party begin"                                           ,
      "Let us cross over the river and rest on the other side"        ,
      "Good night, Mrs Calabash, wherever you are"                    ,
+     "Onen i Estel Edain, u-chebin estel anim"                       ,
+     "I will not say 'do not weep', for not all tears are an evil"   ,
+     "Calo anor na ven -- May the sun shine upon your road"          ,
+     "Little by little, one travels far"                             ,
+     "May it be a light to you in dark places, when all other lights go out"          ,
+     "No in elenath hilar nan had gin -- May the stars shine upon your path"          ,
+     "There is a time for departure even when there is no place to go"                ,
      "Sometimes you've got to let go to see if there was anything worth holding onto" ,
      "Remember me and smile, for it's better to forget than remember me and cry"      ,
      "So now I say goodbye, but I feel sure we will meet again sometime"              ,
-     "If you're anything like me, you're both smart and incredibly good looking"
+     "If you're anything like me, you're both smart and incredibly good looking"      ,
    } ;
    int nn = (lrand48()>>3) % NMSG ;
    if( !AFNI_yesenv("AFNI_NEVER_SAY_GOODBYE") ){
