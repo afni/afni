@@ -44,6 +44,12 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 6 , JAN , 2011 , RWC , "afni" , MICRO , TYPE_BUG_FIX ,
+   "Fix crash when using '-img' with dataset files (.HEAD or .nii)" ,
+   "Problem was mri_imcount didn't give a correct count, but mri_read_file\n"
+   "did.  Easily patched up in time for tiffin.  And we take tiffin mighty\n"
+   "durn early in these parts, buckaroo." } ,
+
  { 3 , JAN , 2011 , RWC , "3dNwarpApply" , MICRO , TYPE_GENERAL ,
    "change name from 3dApplyNwarp" ,
    "Will be the first in a series of 3dNwarp* programs." } ,
