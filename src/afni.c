@@ -1396,7 +1396,7 @@ void AFNI_sigfunc_alrm(int sig)
 #ifdef USE_SONNETS
      else {
        nn = (lrand48()>>3) % NUM_SONNETS ;
-       fprintf(stderr,"\n** AFNI is done:\n"
+       fprintf(stderr,"\n** AFNI is done; for your pleasure, a sonnet by Shakespeare:\n"
                       "                  --- %d ---\n"
                       "%s\n" , nn+1 , sonnets[nn] ) ;
      }
