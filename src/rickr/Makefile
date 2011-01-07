@@ -17,7 +17,7 @@ Imon: Imon.o $(IMON_OBJS) Imon.h realtime.h
 
 Dimon: Dimon.o realtime.o
 	$(RM) $@
-	$(CC) -o Dimon Dimon.o realtime.o $(LFLAGS) -L.. $(EXTRA_LIBS_2) -lmri -lXt -lexpat -lz -lm
+	$(CC) -o Dimon Dimon.o realtime.o $(LFLAGS) -L.. $(EXTRA_LIBS_2) -lmri -lXt $(LGIFTI) -lz -lm
 
 serial_helper: serial_helper.o
 	$(RM) $@

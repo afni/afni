@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  7, JAN, 2011, RCR, "rickr/Makefile", MICRO, TYPE_BUG_FIX,
+   "forgot to reconcile use of expat (with LGIFTI)",
+   NULL
+ } ,
+
  {  6, JAN, 2011, RCR, "afni-general", MICRO, TYPE_BUG_FIX,
    "ComputeObliquity() mosaic shift should be dcK*(nK-1)/2 in each direction",
    NULL
