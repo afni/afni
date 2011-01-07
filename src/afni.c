@@ -102,8 +102,6 @@
 #  define USE_TRACING
 #endif
 
-#define AFexit AFNI_sigfunc_alrm
-
 /*----------------------------------------------------------------
    Global variables that used to be local variables in main()
 ------------------------------------------------------------------*/
@@ -1384,9 +1382,25 @@ void AFNI_sigfunc_alrm(int sig)
      "So now I say goodbye, but I feel sure we will meet again sometime"              ,
      "If you're anything like me, you're both smart and incredibly good looking"      ,
    } ;
-   int nn = (lrand48()>>3) % NMSG ;
+#undef NTOP
+#ifdef USE_SONNETS
+# define NTOP (NMSG+9)
+#else
+# define NTOP NMSG
+#endif
+   int nn = (lrand48()>>3) % NTOP ;
    if( !AFNI_yesenv("AFNI_NEVER_SAY_GOODBYE") ){
-     fprintf(stderr,"\n** AFNI is done: %s!\n\n",msg[nn]);
+     if( nn < NMSG ){
+       fprintf(stderr,"\n** AFNI is done: %s!\n\n",msg[nn]) ;
+     }
+#ifdef USE_SONNETS
+     else {
+       nn = (lrand48()>>3) % NUM_SONNETS ;
+       fprintf(stderr,"\n** AFNI is done:\n"
+                      "                  --- %d ---\n"
+                      "%s\n" , nn+1 , sonnets[nn] ) ;
+     }
+#endif
      /** MCHECK ; **/
    }
    exit(sig);
@@ -10965,7 +10979,7 @@ void AFNI_popup_sonnet( Widget w , int ii )  /* 12 Dec 2001 */
    if( w == NULL ) return ;
 
    if( ii < 1 || ii > NUM_SONNETS ){
-      ii  = (lrand48()&NUM_SONNETS) + 1 ;
+      ii  = (lrand48()%NUM_SONNETS) + 1 ;
       jj |= MCW_TIMER_KILL ;
    }
 

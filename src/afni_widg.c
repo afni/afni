@@ -5178,7 +5178,7 @@ STATUS("making prog->rowcol") ;
          prog->hidden_sonnet_pb =
             XtVaCreateManagedWidget(
                "dialog" , xmPushButtonWidgetClass , prog->hidden_menu ,
-                  LABEL_ARG("Shakespeare") ,
+                  LABEL_ARG("Pick a Sonnet") ,
                   XmNmarginHeight , 0 ,
                   XmNtraversalOn , True  ,
                   XmNinitialResourcesPersistent , False ,
