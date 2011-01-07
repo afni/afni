@@ -663,7 +663,7 @@ int main (int argc, char ** argv)
   PRINT_VERSION("3dFWHM") ;
   AUTHOR(PROGRAM_AUTHOR);
   mainENTRY("3dFWHM main") ;
-  WARNING_message("This program is obsolete!  Use 3dFWHMx instead!") ;
+  WARNING_message("This program is obsolete!  Use 3dFWHMx instead!!") ;
   machdep() ;
 
   /*----- program initialization -----*/
