@@ -275,10 +275,10 @@ void * SUMA_Prefix2SurfaceName ( char *prefix_in, char *path, char *vp_name,
       case SUMA_SUREFIT:
          SF_name = (SUMA_SFname *) SUMA_malloc(sizeof(SUMA_SFname));
          snprintf(SF_name->name_coord, 
-                  (SUMA_MAX_FILENAME_LENGTH+1)*sizeof(char),
+                  (SUMA_MAX_FILENAME_LENGTH)*sizeof(char),
                    "%s.coord", ppref);
          snprintf(SF_name->name_topo,  
-                  (SUMA_MAX_FILENAME_LENGTH+1)*sizeof(char),
+                  (SUMA_MAX_FILENAME_LENGTH)*sizeof(char),
                    "%s.topo", ppref); 
          if (  SUMA_filexists(SF_name->name_topo) || 
                SUMA_filexists(SF_name->name_coord)) *exists = YUP;
@@ -288,7 +288,7 @@ void * SUMA_Prefix2SurfaceName ( char *prefix_in, char *path, char *vp_name,
          }
          else {
             snprintf(SF_name->name_param, 
-                     (SUMA_MAX_FILENAME_LENGTH+1)*sizeof(char),
+                     (SUMA_MAX_FILENAME_LENGTH)*sizeof(char),
                      "%s", vp_name);
          }
          SO_name = (void *)SF_name;
@@ -297,10 +297,10 @@ void * SUMA_Prefix2SurfaceName ( char *prefix_in, char *path, char *vp_name,
          if (SF_name) SUMA_free(SF_name);
          SF_name = (SUMA_SFname *) SUMA_malloc(sizeof(SUMA_SFname));
          snprintf(SF_name->name_coord,
-                  (SUMA_MAX_FILENAME_LENGTH+1)*sizeof(char),
+                  (SUMA_MAX_FILENAME_LENGTH)*sizeof(char),
                    "%s.1D.coord", ppref);
          snprintf(SF_name->name_topo,
-                  (SUMA_MAX_FILENAME_LENGTH+1)*sizeof(char),
+                  (SUMA_MAX_FILENAME_LENGTH)*sizeof(char),
                    "%s.1D.topo", ppref); 
          if (  SUMA_filexists(SF_name->name_topo) || 
                SUMA_filexists(SF_name->name_coord)) *exists = YUP;
