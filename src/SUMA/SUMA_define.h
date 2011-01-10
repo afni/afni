@@ -2385,9 +2385,9 @@ typedef struct {
 
 /* structure containing SureFit name*/
 typedef struct {
-   char name_coord[SUMA_MAX_DIR_LENGTH+SUMA_MAX_NAME_LENGTH];
-   char name_topo[SUMA_MAX_DIR_LENGTH+SUMA_MAX_NAME_LENGTH]; 
-   char name_param[SUMA_MAX_DIR_LENGTH+SUMA_MAX_NAME_LENGTH];
+   char name_coord[SUMA_MAX_FILENAME_LENGTH];
+   char name_topo[SUMA_MAX_FILENAME_LENGTH]; 
+   char name_param[SUMA_MAX_FILENAME_LENGTH];
 } SUMA_SFname;
 
 typedef enum {    SMT_Nothing, 
