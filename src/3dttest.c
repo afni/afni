@@ -285,7 +285,11 @@ DUMP2 ;
          INIT_SARR( TT_set2 ) ;
          for( kk=nopt+1 ; kk < argc ; kk++ ){
 #if 1
-            if( argv[kk][0] == '-' ) break ;
+            /* if -set2 must be last, warn the user about trailing args */
+            if( argv[kk][0] == '-' ) {
+              fprintf(stderr,"** have trailing arg #%d = '%s'\n", kk, argv[kk]);
+              TT_syntax("-set2 must be the last option (see: 3dttest -help)");
+            }
 #endif
             if( strstr(argv[kk],"[") == NULL ){
               ADDTO_SARR( TT_set2 , argv[kk] ) ;
