@@ -49,8 +49,13 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 10, JAN, 2011, RCR, "3dttest", MICRO, TYPE_GENERAL,
+   "fail with error message when -set2 is not the final option",
+   "It had already been assumed to be the final option."
+ } ,
+
  {  7, JAN, 2011, RCR, "rickr/Makefile", MICRO, TYPE_BUG_FIX,
-   "forgot to reconcile use of expat (with LGIFTI)",
+   "Dimon: forgot to reconcile use of expat (with LGIFTI)",
    NULL
  } ,
 
