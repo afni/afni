@@ -45,22 +45,25 @@ static char * g_history[] =
     " 2.17 Nov 24, 2008 [rickr] - added -infile_list and -show_sorted_list\n"
     " 2.18 Jun 25, 2009 [rickr] - fixed dz sent to RT plugin for oblique data\n"
     " 2.19 Nov  4, 2009 [rickr] - small change to sort test\n"
-    " 2.20 May  6, 2010 [rickr]\n"
+    " 2.20 May  6, 2010 [rickr]\n",
     "      - look for field 0054 1330 (Image Index) in image sorting\n"
     "        (for S Kippenhan, S Wei, G Alarcon)\n"
     "      - allow negatives in -sort_by_num_suffix\n"
     " 2.21 Oct 20, 2010 [rickr] - added -sort_by_acq_time for -dicom_org\n"
     "                             (for Manjula)\n"
-    " 3.0  Oct 20, 2010 [rickr] - handle Siemens Mosaic formatted files\n"
+    " 3.0  Oct 20, 2010 [rickr] - handle Siemens Mosaic formatted files\n",
     "      - Dimon now depends on libmri.a to make the processing consistent\n"
     "        (many changes to DICOM processing in libmri)\n"
     "      - get MRI_IMARR from mri_read_dicom (data or not)\n"
     "      - modifications for oblique data processing\n"
     "      - for mosaic: figure mosaic origin, nslices, but not orients\n"
+    " 3.1  Jan 13, 2011 [rickr] - added GERT_Reco execution and naming options\n",
+    "      - added -gert_write_as_nifti and -gert_create_dataset\n"
+    "        (requested by V Roopchansingh)\n"
     "----------------------------------------------------------------------\n"
 };
 
-#define DIMON_VERSION "version 3.0 (Jan 4, 2011)"
+#define DIMON_VERSION "version 3.1 (Jan 13, 2011)"
 
 /*----------------------------------------------------------------------
  * Dimon - monitor real-time aquisition of Dicom or I-files
@@ -1905,6 +1908,10 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
                 errors++;
             }
         }
+        else if ( ! strncmp( argv[ac], "-gert_create_dataset", 20) )
+        {
+            p->opts.gert_exec = 1;      /* execute GERT_Reco script     */
+        }
         else if ( ! strncmp( argv[ac], "-gert_filename", 10 ) )
         {
             if ( ++ac >= argc )
@@ -1944,6 +1951,10 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             }
 
             p->opts.gert_prefix = argv[ac];
+        }
+        else if ( ! strcmp( argv[ac], "-gert_write_as_nifti") )
+        {
+            p->opts.gert_format = 1;    /* NIFTI format */
         }
         else if ( ! strncmp( argv[ac], "-help", 5 ) )
         {
@@ -3057,6 +3068,8 @@ static int idisp_opts_t( char * info, opts_t * opt )
             "   gert_filename      = %s\n"
             "   gert_prefix        = %s\n"
             "   gert_nz            = %d\n"
+            "   gert_format        = %d\n"
+            "   gert_exec          = %d\n"
             "   dicom_org          = %d\n"
             "   sort_num_suff      = %d\n"
             "   sort_acq_time      = %d\n"
@@ -3081,7 +3094,8 @@ static int idisp_opts_t( char * info, opts_t * opt )
             opt->debug, opt->quit, opt->use_dicom, opt->use_last_elem,
             opt->show_sorted_list, opt->gert_reco,
             CHECK_NULL_STR(opt->gert_filename),
-            CHECK_NULL_STR(opt->gert_prefix), opt->gert_nz,
+            CHECK_NULL_STR(opt->gert_prefix),
+            opt->gert_nz, opt->gert_format, opt->gert_exec,
             opt->dicom_org, opt->sort_num_suff, opt->sort_acq_time,
             opt->rev_org_dir, opt->rev_sort_dir,
             CHECK_NULL_STR(opt->flist_file),
@@ -3368,6 +3382,22 @@ static int usage ( char * prog, int level )
       "    %s -infile_pattern 'data/*.dcm' -GERT_Reco -quit \\\n"
       "          -use_last_elem -dicom_org -sort_by_acq_time\n"
       "\n"
+      "  B2. Simple examples for NIH scanners (GE or Siemens).\n"
+      "\n"
+      "      o  create GERT_Reco script to put data into AFNI format\n"
+      "      o  create GERT_Reco script AND execute it (running to3d)\n"
+      "      o  create and execute script, but make a NIfTI dataset\n"
+      "      o  also, store the datasets under a 'MRI_dsets' directory\n"
+      "\n"
+      "    %s -infile_pattern 'mr_0015/*.dcm' -GERT_Reco -quit \n"
+      "    %s -infile_pattern 'mr_0003/*.dcm' -GERT_Reco -quit \\\n"
+      "          -gert_create_dataset\n"
+      "    %s -infile_pattern 'mr_0003/*.dcm' -GERT_Reco -quit \\\n"
+      "          -gert_write_as_nifti -gert_create_dataset\n"
+      "    %s -infile_pattern 'mr_0003/*.dcm' -GERT_Reco -quit \\\n"
+      "          -gert_outdir MRI_dsets                           \\\n"
+      "          -gert_write_as_nifti -gert_create_dataset\n"
+      "\n"
       "  C. with real-time options:\n"
       "\n"
       "    %s -infile_prefix s8912345/i -rt \n"
@@ -3512,7 +3542,7 @@ static int usage ( char * prog, int level )
       "\n"
       "  ---------------------------------------------------------------\n",
       prog, prog, prog, prog, prog, prog, prog, prog, prog, prog, prog, prog,
-      prog, prog, prog, prog, prog,
+      prog, prog, prog, prog, prog, prog, prog, prog, prog,
       prog, prog, prog, prog, prog, prog,
       prog, prog, prog, prog, prog, prog, prog );
           
@@ -3977,6 +4007,15 @@ static int usage ( char * prog, int level )
           "        one that Ifile creates.  This script may be run to create\n"
           "        the AFNI datasets corresponding to the I-files.\n"
           "\n"
+          "    -gert_create_dataset     : actually create the output dataset\n"
+          "\n"
+          "        Execute any GERT_Reco script, creating the AFNI or NIfTI\n"
+          "        datasets.\n"
+          "\n"
+          "        By default, the script is created but not executed.\n"
+          "\n"
+          "        See also -gert_write_as_nifti.\n"
+          "\n"
           "    -gert_filename FILENAME : save GERT_Reco as FILENAME\n"
           "\n"
           "        e.g. -gert_filename gert_reco_anat\n"
@@ -4032,6 +4071,15 @@ static int usage ( char * prog, int level )
           "\n"
           "      * Caution: this option should only be used when the output\n"
           "        is for a single run.\n"
+          "\n"
+          "    -gert_write_as_nifti     : output dataset should be in NIFTI format\n"
+          "\n"
+          "        By default, datasets created by the GERT_Reco script will be in \n"
+          "        afni format.  Use this option to create them in NIfTI format,\n"
+          "        instead.  These merely appends a .nii to the -prefix option of\n"
+          "        the to3d command.\n"
+          "\n"
+          "        See also -gert_create_dataset.\n"
           "\n"
           "  ---------------------------------------------------------------\n"
           "\n"
@@ -4218,7 +4266,7 @@ static int create_gert_dicom( stats_t * s, param_t * p )
     char     outfile[32];                 /* run files */
     char     TR[16];                      /* for printing TR w/out zeros */
     int      num_valid, c, findex;
-    int      first_run = -1;
+    int      first_run = -1, nspaces = 0;
 
     /* if the user did not give a slice pattern string, use the default */
     spat = opts->sp ? opts->sp : IFM_SLICE_PAT;
@@ -4310,7 +4358,13 @@ static int create_gert_dicom( stats_t * s, param_t * p )
             } else
                 pname = opts->gert_prefix;
 
-            fprintf(fp, "to3d -prefix %s  \\\n", pname );
+            /* if we add a .nii extension, try to adjust backslashes */
+            if( opts->gert_format == 1 ) nspaces = 4;
+            else                         nspaces = 0;
+
+            /* if gert_format = 1, write as NIfTI */
+            fprintf(fp, "to3d -prefix %s%s  \\\n", pname,
+                    opts->gert_format==1 ? ".nii" : "" );
 
             if( s->runs[c].volumes > 1 )
             {
@@ -4323,8 +4377,8 @@ static int create_gert_dicom( stats_t * s, param_t * p )
                 if( opts->gert_nz ) nslices = opts->gert_nz;
                 else if ( s->mos_nslices > 1 ) nslices = s->mos_nslices;
 
-                fprintf(fp, "     -time:zt %d %d %ssec %s   \\\n",
-                        nslices, s->runs[c].volumes, TR, spat);
+                fprintf(fp, "     -time:zt %d %d %ssec %s %*s  \\\n",
+                        nslices, s->runs[c].volumes, TR, spat, nspaces, "");
             }
 
             if( opts->use_last_elem )
@@ -4342,6 +4396,12 @@ static int create_gert_dicom( stats_t * s, param_t * p )
     /* now make it an executable */
     sprintf(command, "chmod u+x %s", sfile );
     system( command );
+
+    /* and maybe the user wants to actually execute it */
+    if( opts->gert_exec ) {
+        sprintf(command, "./%s", sfile);
+        system(command);
+    }
 
     return 0;
 }
@@ -4417,6 +4477,8 @@ static int create_gert_reco( stats_t * s, opts_t * opts )
     char * spat;                        /* slice acquisition pattern */
     char   cdir[4], csuff[IFM_SUFFIX_LEN];
     int    num_valid, c;
+    char   command[64];                 /* for system command */
+
 
     /* if the user did not give a slice pattern string, use the default */
     spat = opts->sp ? opts->sp : IFM_SLICE_PAT;
@@ -4475,6 +4537,12 @@ static int create_gert_reco( stats_t * s, opts_t * opts )
 
     /* now make it an executable */
     system( "chmod u+x " IFM_GERT_SCRIPT );
+
+    /* and maybe the user wants to actually execute it */
+    if( opts->gert_exec ) {
+        sprintf(command, "./%s", IFM_GERT_SCRIPT);
+        system(command);
+    }
 
     return 0;
 }

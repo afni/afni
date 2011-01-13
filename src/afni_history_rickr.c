@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 13, JAN, 2011, RCR, "Dimon", MINOR, TYPE_NEW_OPT,
+   "added -gert_write_as_nifti and -gert_create_dataset",
+   "requested by V Roopchansingh"
+ } ,
+
  { 10, JAN, 2011, RCR, "3dttest", MICRO, TYPE_GENERAL,
    "fail with error message when -set2 is not the final option",
    "It had already been assumed to be the final option."
