@@ -3,9 +3,13 @@
 
 #define C(i) (gsl_vector_get(c,(i)))
 
+extern int *z_idoubleqsort (double *x , int nx );
+
 THD_3dim_dataset *thd_polyfit(THD_3dim_dataset *in_set,
                               byte *mask, int polorder,
                               char *prefix, int verb);
+
+typedef enum { NONE = 0, COUNT, iCOUNT, MAG, iMAG } REMAPS;
    
 /**********************************************************************
    BEGIN: functions based on command.c code from The C clustering library.
@@ -14,7 +18,7 @@ void example_kmeans( int nrows, int ncols,
                      float** data, 
                      int nclusters, int npass, 
                      char dist, char* jobname,
-                     int *clusterid, float **vcdata);
+                     int *clusterid, float **vcdata, REMAPS remap);
 void clusterlib_display_version(void);
 char* clusterlib_setjobname(const char* basename, int strip);
 int clusterlib_readnumber(const char word[]);
@@ -38,7 +42,7 @@ void color_palette(int nclusters, char* jobname);
 /**********************************************************************
    END: functions based on command.c code from The C clustering library.
 **********************************************************************/
-                    
+                     
 typedef struct {
    int k;
    int kh;
@@ -48,6 +52,10 @@ typedef struct {
    int voxdebug[4];
    int verb;
    unsigned int rand_seed;
+   int remap;
+   char *user_labeltable;
+   char **clabels;
+   int nclabels;
 } OPT_KMEANS;
 
 int thd_Adist (  THD_3dim_dataset *in_set,
@@ -60,6 +68,7 @@ int thd_Acluster (  THD_3dim_dataset *in_set,
                   byte *mask, int nmask,
                   THD_3dim_dataset **clust_set,
                   THD_3dim_dataset **dist_set,
+                  THD_3dim_dataset *clust_init,
                   OPT_KMEANS oc , 
                   float **Dp, int Dp_ncol);
 

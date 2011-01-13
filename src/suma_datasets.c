@@ -7959,8 +7959,11 @@ void SUMA_BadOptimizerBadBad(void){ return; }
 
 #define SUMA_COL_FILL(vv, VV, tp){\
    if (!replacemask) {\
-      if (nip) { for (i=0; i<N_read; ++i) { vv[i] = (tp)VV[nip[i]]; } }\
-      else { for (i=0; i<N_read; ++i) { vv[i] = (tp)VV[i]; } }\
+      if (nip) { \
+         for (i=0; i<N_read; ++i) { vv[i] = (tp)VV[nip[i]]; } \
+      } else { \
+         for (i=0; i<N_read; ++i) { vv[i] = (tp)VV[i]; } \
+      }\
    } else { \
      if (nip) { \
          for (i=0; i<N_read; ++i)  { \

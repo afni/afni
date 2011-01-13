@@ -1,8 +1,6 @@
 #include "SUMA_suma.h"
-#define MAIN     /* need this to read in color info from afni.h */
 #include "../afni.h"
 #include "../pbardefs.h"
-#undef MAIN
   
 
 extern SUMA_CommonFields *SUMAg_CF;

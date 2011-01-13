@@ -1472,11 +1472,17 @@ int main (int argc,char *argv[])
    
    if (opt->dbg_flag > 1) {
       SUMA_S_Note("Writing debug files in DBG_out");
-      system("mkdir DBG_out");
+      if( ! THD_is_directory("DBG_out") ){
+         if( mkdir( "DBG_out" , THD_MKDIR_MODE ) != 0 ){
+            SUMA_S_Err("Failed to create DBG_out");
+            exit(1);
+         }
+      }      
    }
 
    if (ps->s_N_surfnames + ps->i_N_surfnames + ps->t_N_surfnames > 1) {
-      SUMA_S_Err("Multiple surface specifications used. Only one surface allowed.");
+      SUMA_S_Err( "Multiple surface specifications used. "
+                  "Only one surface allowed.");
       exit(1);
    }
 

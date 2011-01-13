@@ -108,7 +108,6 @@ typedef struct {
 #define SUMA_Boolean byte
 #define NOPE 0
 #define YUP 1
-/* typedef enum { NOPE, YUP} SUMA_Boolean;     make sure SUMA_Boolean is byte */ 
 
 typedef enum { SUMA_NO_NUM_UNITS = 0, 
                SUMA_MM_UNITS,

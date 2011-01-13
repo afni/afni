@@ -285,7 +285,10 @@ PARSE:
       echo "Options $others_list not understood"
       goto BEND
    endif
- 
+   if ($grpd_labeltable == '') then
+      echo "Have not grouped_labeltable"
+      goto BEND
+   endif 
    
    if (0) then
       echo "Have:"
@@ -300,9 +303,9 @@ HELP:
    echo ""
    echo "Script used to create a label table "
    echo ""
-   echo "Usage: `basename $0` <-grpd_labeltable LABELTABLE> "
+   echo "Usage: `basename $0` <-grouped_labeltable LABELTABLE> "
    echo "                     <-labdset DSET> <-grpd_grpd_labprefix PREFIX>"
-   echo "   -grpd_labeltable LABELTABLE: Name of label table providing"
+   echo "   -grouped_labeltable LABELTABLE: Name of label table providing"
    echo "                                grouped categories"
    echo ""
    echo "Example 1:"
