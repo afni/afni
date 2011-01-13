@@ -130,6 +130,9 @@ typedef struct  /* user options */
     char           * gert_filename; /* GERT_Reco script name            */
     char           * gert_prefix;   /* to3d prefix in GERT_Reco script  */
     int              gert_nz;       /* override nz=1 in script          */
+    int              gert_format;   /* dataset format: 0=AFNI, 1=NIFTI  */
+                                    /* (see -gert_write_as_*)           */
+    int              gert_exec;     /* execute the reco script          */
 
     /* DICOM organization options */
     int              dicom_org;     /* flag to organize dicom files     */
