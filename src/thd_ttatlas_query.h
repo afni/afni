@@ -141,6 +141,7 @@ char * get_atlas_dirname(void) ; /* 31 Jan 2008 -- RWCox */
 char Is_Side_Label(char *str, char *opt);
 int *z_rand_order(int bot, int top, long int seed);
 int *z_iqsort (float *x , int nx );
+int *z_idoubleqsort (double *x , int nx );
 int *z_idqsort (int *x , int nx );
 void Show_Atlas_Region (AFNI_ATLAS_REGION *aar);
 AFNI_ATLAS_REGION * Free_Atlas_Region (AFNI_ATLAS_REGION *aar);

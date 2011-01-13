@@ -298,6 +298,18 @@ static float median_float9(float *p)
 
 /*************** General purpose sorty functions ZSS 06********************/
 
+int compare_Z_IQSORT_DOUBLE (Z_QSORT_DOUBLE *a, Z_QSORT_DOUBLE *b )
+{
+   if (a->x < b->x)
+      return (1);
+   else if (a->x == b->x)
+      return (0);
+   else if (a->x > b->x)
+      return (-1);
+   /* this will never be reached but it will shut the compiler up */
+   return (0);
+}
+
 int compare_Z_IQSORT_FLOAT (Z_QSORT_FLOAT *a, Z_QSORT_FLOAT *b )
 {
    if (a->x < b->x)

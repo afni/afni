@@ -1930,6 +1930,51 @@ int *z_iqsort (float *x , int nx )
 
 }/*z_iqsort*/
 
+/* inverse sort doubles */
+int *z_idoubleqsort (double *x , int nx )
+{/*z_idoubleqsort*/
+   static char FuncName[]={"z_idoubleqsort"};
+   int *I, k;
+   Z_QSORT_DOUBLE *Z_Q_doubleStrct;
+
+   ENTRY("z_idoubleqsort");
+
+   /* allocate for the structure */
+   Z_Q_doubleStrct = (Z_QSORT_DOUBLE *) calloc(nx, sizeof (Z_QSORT_DOUBLE));
+   I = (int *) calloc (nx, sizeof(int));
+
+   if (!Z_Q_doubleStrct || !I)
+      {
+         ERROR_message("Allocation problem");
+         RETURN (NULL);
+      }
+
+   for (k=0; k < nx; ++k) /* copy the data into a structure */
+      {
+         Z_Q_doubleStrct[k].x = x[k];
+         Z_Q_doubleStrct[k].Index = k;
+      }
+
+   /* sort the structure by it's field value */
+   qsort(Z_Q_doubleStrct, nx, sizeof(Z_QSORT_DOUBLE), 
+         (int(*) (const void *, const void *)) compare_Z_IQSORT_DOUBLE);
+
+   /* recover the index table */
+   for (k=0; k < nx; ++k) /* copy the data into a structure */
+      {
+         x[k] = Z_Q_doubleStrct[k].x;
+         I[k] = Z_Q_doubleStrct[k].Index;
+      }
+
+   /* free the structure */
+   free(Z_Q_doubleStrct);
+
+   /* return */
+   RETURN (I);
+
+
+}/*z_idoubleqsort*/
+
 /* return the unique values in y
    y : Vector of values
    ysz: Number of elements in y

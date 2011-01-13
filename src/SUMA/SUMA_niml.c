@@ -3715,10 +3715,12 @@ SUMA_Boolean SUMA_SendToSuma (SUMA_SurfaceObject *SO, SUMA_COMM_STRUCT *cs, void
       /* make sure stream is till OK */
       if (NI_stream_goodcheck ( SUMAg_CF->ns_v[cs->istream] , 1 ) < 0) {
          cs->GoneBad = YUP;
-         SUMA_SL_Warn("Communication stream gone bad.\nShutting down communication.");
+         SUMA_SL_Warn("Communication stream gone bad.\n"
+                      "Shutting down communication.");
          cs->Send = NOPE;
          SUMA_SEND_TO_SUMA_FUNC_CLEANUP;
-         SUMA_RETURN(YUP); /* returning without error since program should continue */
+         SUMA_RETURN(YUP); 
+            /* returning without error since program should continue */
       }
 
       
@@ -3728,7 +3730,8 @@ SUMA_Boolean SUMA_SendToSuma (SUMA_SurfaceObject *SO, SUMA_COMM_STRUCT *cs, void
             /* colorize data */
             nel = SUMA_NodeVal2irgba_nel (SO, f, SO->idcode_str, 0);
             if (!nel) {
-               SUMA_SL_Err("Failed in SUMA_NodeVal2irgba_nel.\nCommunication off.")
+               SUMA_SL_Err("Failed in SUMA_NodeVal2irgba_nel.\n"
+                           "Communication off.")
                cs->Send = NOPE;
                SUMA_RETURN(NOPE);
             }
@@ -3738,7 +3741,8 @@ SUMA_Boolean SUMA_SendToSuma (SUMA_SurfaceObject *SO, SUMA_COMM_STRUCT *cs, void
             /* turn XYZ to nel  */
             nel =  SUMA_NodeXYZ2NodeXYZ_nel(SO, f, NOPE, dtype);
             if (!nel) {
-               SUMA_SL_Err("Failed in SUMA_NodeXYZ2NodeXYZ_nel.\nCommunication off.")
+               SUMA_SL_Err("Failed in SUMA_NodeXYZ2NodeXYZ_nel.\n"
+                           "Communication off.")
                cs->Send = NOPE;
                SUMA_RETURN(NOPE);
             }
@@ -3749,7 +3753,8 @@ SUMA_Boolean SUMA_SendToSuma (SUMA_SurfaceObject *SO, SUMA_COMM_STRUCT *cs, void
             /* turn IJK to nel  */
             nel =  SUMA_Mesh_IJK2Mesh_IJK_nel(SO, ip, NOPE, dtype);
             if (!nel) {
-               SUMA_SL_Err("Failed in SUMA_Mesh_IJK2Mesh_IJK_nel.\nCommunication off.")
+               SUMA_SL_Err("Failed in SUMA_Mesh_IJK2Mesh_IJK_nel.\n"
+                           "Communication off.")
                cs->Send = NOPE;
                SUMA_RETURN(NOPE);
             }
@@ -3759,8 +3764,10 @@ SUMA_Boolean SUMA_SendToSuma (SUMA_SurfaceObject *SO, SUMA_COMM_STRUCT *cs, void
             NI_set_attribute (nel, "surface_idcode", SO->idcode_str);
             if (SO->VolPar) {
                char *vppref=NULL;
-               vppref = SUMA_append_replace_string(SO->VolPar->dirname, SO->VolPar->filecode, "/", 0);
-               NI_set_attribute(nel, "VolParFilecode", vppref); SUMA_free(vppref); vppref = NULL;
+               vppref = SUMA_append_replace_string(SO->VolPar->dirname, 
+                                       SO->VolPar->filecode, "/", 0);
+               NI_set_attribute(nel, "VolParFilecode", vppref); 
+               SUMA_free(vppref); vppref = NULL;
                if (cs->Feed2Afni) NI_set_attribute(nel, "Send2Afni", "DoItBaby");
             }
             break;
@@ -3991,8 +3998,10 @@ SUMA_Boolean SUMA_SendToAfni (SUMA_COMM_STRUCT *cs, void *data, int action)
       
       SUMA_LH("Setting up for communication with AFNI ...");
       cs->afni_Send = YUP;
-      if(!SUMA_Assign_HostName (SUMAg_CF, cs->afni_host_name, cs->afni_istream)) {
-		   fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_Assign_HostName", FuncName);
+      if(!SUMA_Assign_HostName (SUMAg_CF, 
+                           cs->afni_host_name, cs->afni_istream)) {
+		   fprintf (SUMA_STDERR, 
+                     "Error %s: Failed in SUMA_Assign_HostName", FuncName);
 		   exit (1);
 	   }
       if (!SUMA_niml_call (SUMAg_CF, cs->afni_istream, NOPE)) {
@@ -4012,7 +4021,9 @@ SUMA_Boolean SUMA_SendToAfni (SUMA_COMM_STRUCT *cs, void *data, int action)
    
    if (action == 1) { /* action == 1,  send data mode */
       if (!i_in) {
-         SUMA_SL_Err("You must call SUMA_SendToAfni with action 0 before action 1.\nNo Communcation cleanup done.");
+         SUMA_SL_Err(
+            "You must call SUMA_SendToAfni with action 0 before action 1.\n"
+            "No Communcation cleanup done.");
          cs->afni_Send = NOPE;
          SUMA_RETURN(NOPE);
       }
@@ -4022,12 +4033,15 @@ SUMA_Boolean SUMA_SendToAfni (SUMA_COMM_STRUCT *cs, void *data, int action)
       /* make sure stream is till OK */
       if (NI_stream_goodcheck ( SUMAg_CF->ns_v[cs->afni_istream] , 1 ) < 0) {
          cs->afni_GoneBad = YUP;
-         SUMA_SL_Warn("Communication stream with afni gone bad.\nShutting down communication.");
+         SUMA_SL_Warn("Communication stream with afni gone bad.\n"
+                      "Shutting down communication.");
          cs->afni_Send = NOPE;
-         SUMA_RETURN(YUP); /* returning without error since program should continue */
+         SUMA_RETURN(YUP); /* returning without error since program 
+                                    should continue */
       }
 
-      if (!SUMA_SendDset_Afni( SUMAg_CF->ns_v[cs->afni_istream], (THD_3dim_dataset *)data, 1)) {
+      if (!SUMA_SendDset_Afni( SUMAg_CF->ns_v[cs->afni_istream], 
+                                 (THD_3dim_dataset *)data, 1)) {
          SUMA_SL_Err("Failed to send dset");
          cs->afni_Send = NOPE;
          SUMA_RETURN(NOPE);
@@ -4039,7 +4053,8 @@ SUMA_Boolean SUMA_SendToAfni (SUMA_COMM_STRUCT *cs, void *data, int action)
    
    if (action == 2) {
       if (i_in < 2) {
-         SUMA_SL_Err("You must call SUMA_SendToAfni with action 0 and 1 before action 2.\nNo Communcation cleanup done.");
+         SUMA_SL_Err("You must call SUMA_SendToAfni with action 0 and 1 "
+                     "before action 2.\nNo Communcation cleanup done.");
          cs->afni_Send = NOPE;
          SUMA_RETURN(NOPE);
       }

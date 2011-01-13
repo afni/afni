@@ -127,6 +127,11 @@ extern int strcmp_aboot( char * , char * ) ;        /* 12 Mar 2007 */
 #endif
 
 typedef struct {
+      double x;
+      int Index;
+} Z_QSORT_DOUBLE;
+
+typedef struct {
       float x;
       int Index;
 } Z_QSORT_FLOAT;
@@ -136,6 +141,7 @@ typedef struct {
       int Index;
 } Z_QSORT_INT;
 
+extern int compare_Z_IQSORT_DOUBLE (Z_QSORT_DOUBLE *a, Z_QSORT_DOUBLE *b );
 extern int compare_Z_IQSORT_FLOAT (Z_QSORT_FLOAT *a, Z_QSORT_FLOAT *b );
 extern int compare_Z_IQSORT_INT (Z_QSORT_INT *a, Z_QSORT_INT *b );
 extern int compare_double (double *a, double *b );
