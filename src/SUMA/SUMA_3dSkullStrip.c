@@ -1100,11 +1100,13 @@ int main (int argc,char *argv[])
    static char FuncName[]={"3dSkullStrip"}; 
 	int i, N_in = 0, i3, kth_buf, hull_ld;
    int ii,jj,kk,ll,ijk , nx,ny,nz , nn, nint = 0 , nseg;
-   void *SO_name=NULL, *SO_name_hull=NULL, *SO_name_bhull = NULL, *SO_name_iskull = NULL, *SO_name_oskull = NULL;
+   void *SO_name=NULL, *SO_name_hull=NULL, *SO_name_bhull = NULL, 
+         *SO_name_iskull = NULL, *SO_name_oskull = NULL;
    float vol, *isin_float=NULL, pint, *dsmooth = NULL, XYZrai_shift[3];
    SUMA_SurfaceObject *SO = NULL, *SOhull=NULL;
    SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt;  
-   char  stmp[200], stmphull[200], *hullprefix=NULL, *prefix=NULL, *spatprefix=NULL, cbuf,
+   char  stmp[200], stmphull[200], *hullprefix=NULL, 
+         *prefix=NULL, *spatprefix=NULL, cbuf,
          *bhullprefix=NULL, *oskullprefix=NULL, *iskullprefix=NULL;
    SUMA_Boolean exists = NOPE;
    SUMA_GENERIC_ARGV_PARSE *ps=NULL;
