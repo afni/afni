@@ -2366,8 +2366,6 @@ number of clusters is larger than the number of elements being clustered,
   float** cdata;
   
   int* counts;
-  int* counts_bck;
-  int* xclusterid;
   int verb = 1;
   
   if (nelements < nclusters)
@@ -2381,7 +2379,6 @@ number of clusters is larger than the number of elements being clustered,
   /* This will contain the number of elements in each cluster, which is
    * needed to check for empty clusters. */
   counts = malloc(nclusters*sizeof(int));
-  counts_bck = malloc(nclusters*sizeof(int));
   if(!counts) return;
 
   /* Find out if the user specified an initial clustering */
@@ -2402,8 +2399,6 @@ number of clusters is larger than the number of elements being clustered,
     for (i = 0; i < nelements; i++) clusterid[i] = 0;
   }
 
-  /*avovk*/
-  xclusterid = malloc(nelements*sizeof(int));
 
   /* Allocate space to store the centroid data */
   if (transpose==0) ok = makedatamask(nclusters, ndata, &cdata);
@@ -2433,54 +2428,14 @@ number of clusters is larger than the number of elements being clustered,
                      transpose, npass, dist, cdata, clusterid, error,
                      tclusterid, counts, mapping);
   }  
-  /*avovk; here rearange clusterids depending on counts*/
-  if (verb) fprintf(stderr,"rearranging \n"); 
-  for (i = 0; i < nrows; i++)
-    xclusterid[i] = clusterid[i];
-
-  for (i = 0; i < nclusters; i++)
-    counts_bck[i] = counts[i];
-
-
-  /* first sort counts - number of voxels per cluster */
-  qsort(counts, nclusters, sizeof(int), comp);
   
-  for (i = 0; i < nclusters; i++)
-    printf("%d\t%d\n",counts_bck[i],counts[i]);
-
-  /*IMPORTANT although almoast impossible, should check if equal numbers exists*/
-
-  for (i = 0; i < nclusters; i++)
-    {
-      
-      for (j = 0; j < nclusters; j++)
-	{
-	  if (counts[i] == counts_bck[j]) 
-	    {
-	      if (i!=j)
-		{
-		  printf("changing %d to %d\n",j,i);
-		  /* I guess not good clusterid[tclusterid == j] = i; */
-		  for (ii = 0; ii < nrows; ii++)
-		    {
-		      if (xclusterid[ii] == j) 
-			{
-			  clusterid[ii] = i;
-			}
-		    }
-		}
-	      /* exit*/
-	      /*	  j = nclusters;*/
-	    }
-	}
-    }
-
+  /* remapping is done in calling function now (see thd_segtools_fNM.c)   
+            ZSS Jan 2011*/
 
   /* Deallocate temporarily used space */
   if (npass > 1)
   { free(mapping);
     free(tclusterid);
-    free(xclusterid);
   }
 
   if (transpose==0) freedatamask(nclusters, cdata);

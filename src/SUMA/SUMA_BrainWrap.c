@@ -37,11 +37,14 @@ float SUMA_LoadPrepInVol (SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, SUMA_SurfaceObj
    
    Opt->nvox = DSET_NVOX( Opt->in_vol );
    if (DSET_NVALS( Opt->in_vol) != 1) {
-      SUMA_SL_Err("Input volume can only have one sub-brick in it.\nUse [.] selectors to choose sub-brick needed.");
+      SUMA_SL_Err("Input volume can only have one sub-brick in it.\n"
+                  "Use [.] selectors to choose sub-brick needed.");
       SUMA_RETURN(vol);
    }
    
-   Opt->VolCM[0] = THD_BN_xcm(); Opt->VolCM[1] = THD_BN_ycm(); Opt->VolCM[2] = THD_BN_zcm();
+   Opt->VolCM[0] = THD_BN_xcm(); 
+   Opt->VolCM[1] = THD_BN_ycm(); 
+   Opt->VolCM[2] = THD_BN_zcm();
    
    Opt->fvec = (float *)SUMA_malloc(sizeof(float) * Opt->nvox);
    if (!Opt->fvec) {
@@ -49,13 +52,16 @@ float SUMA_LoadPrepInVol (SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, SUMA_SurfaceObj
       SUMA_RETURN(NOPE);
    }
    EDIT_coerce_scale_type( Opt->nvox , DSET_BRICK_FACTOR(Opt->in_vol,0) ,
-                           DSET_BRICK_TYPE(Opt->in_vol,0), DSET_ARRAY(Opt->in_vol, 0) ,      /* input  */
-                           MRI_float               , Opt->fvec  ) ;   /* output */
+                           DSET_BRICK_TYPE(Opt->in_vol,0), 
+                           DSET_ARRAY(Opt->in_vol, 0) ,      /* input  */
+                           MRI_float, Opt->fvec  ) ;   /* output */
    
-   /* estimate the t2, t98 and tm parameters, should do them regionally by Bob's octant method */
+   /* estimate the t2, t98 and tm parameters, 
+      should do them regionally by Bob's octant method */
    if (Opt->t2 < 0) {
       PercRange[0] = 2; PercRange[1] = 98;
-      fvec_sort = SUMA_PercRange (Opt->fvec, NULL, Opt->nvox, PercRange, PercRangeVal, iPercRangeVal);
+      fvec_sort = SUMA_PercRange (Opt->fvec, NULL, Opt->nvox, PercRange, 
+                                  PercRangeVal, iPercRangeVal);
       if (!fvec_sort) {
          SUMA_SL_Err("Failed to find range");
          SUMA_RETURN(NOPE);
@@ -285,27 +291,39 @@ float SUMA_LoadPrepInVol (SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, SUMA_SurfaceObj
                if (SOhullp->EL) SUMA_free_Edge_List(SOhullp->EL); 
                SOhullp->EL = NULL; 
             }
-            if (!orient) { fprintf(SUMA_STDERR,"Error %s:\nFailed in SUMA_OrientTriangles\n", FuncName); }
+            if (!orient) { 
+               fprintf(SUMA_STDERR,"Error %s:\nFailed in SUMA_OrientTriangles\n",
+                        FuncName); 
+               }
             if (LocalHead) {
                if (orient < 0) { SUMA_SL_Note("Hull was reoriented"); }
                else { SUMA_SL_Note("Hull was properly oriented"); }
             }
             #endif 
                
-            if (LocalHead) fprintf(SUMA_STDERR,"%s: Refining hull surface.\n", FuncName);
-            if (LocalHead) fprintf(SUMA_STDERR,"%s: %d nodes, %d triangles.\n", FuncName, SOhullp->N_Node, SOhullp->N_FaceSet);
+            if (LocalHead) 
+               fprintf(SUMA_STDERR,"%s: Refining hull surface.\n", FuncName);
+            if (LocalHead) 
+               fprintf(SUMA_STDERR,"%s: %d nodes, %d triangles.\n", 
+                        FuncName, SOhullp->N_Node, SOhullp->N_FaceSet);
             /* SUMA_Print_Surface_Object(SOhullp, stderr); */
-            /* if (!SUMA_Subdivide_Mesh(&(SOhullp->NodeList), &(SOhullp->N_Node), &(SOhullp->FaceSetList), &(SOhullp->N_FaceSet), 50)) { */
+            /* if (!SUMA_Subdivide_Mesh(&(SOhullp->NodeList), 
+                                 &(SOhullp->N_Node), &(SOhullp->FaceSetList), 
+                                 &(SOhullp->N_FaceSet), 50)) { */
             if (0) {
                SUMA_SL_Err("Failed to subdivide mesh");
                SUMA_Free_Surface_Object (SOhullp); 
                *SOhull = NULL;
             } else {
                /* SUMA_Print_Surface_Object(SOhullp, stderr); */
-               if (SOhullp->NodeNormList) SUMA_free(SOhullp->NodeNormList); SOhullp->NodeNormList = NULL;
-               if (SOhullp->FaceNormList) SUMA_free(SOhullp->FaceNormList); SOhullp->FaceNormList = NULL;
-               if (SOhullp->glar_NodeList) SUMA_free(SOhullp->glar_NodeList); SOhullp->glar_NodeList = NULL;
-               if (SOhullp->glar_FaceSetList) SUMA_free(SOhullp->glar_FaceSetList); SOhullp->glar_FaceSetList = NULL;
+               if (SOhullp->NodeNormList) 
+                  SUMA_free(SOhullp->NodeNormList); SOhullp->NodeNormList = NULL;
+               if (SOhullp->FaceNormList) 
+                  SUMA_free(SOhullp->FaceNormList); SOhullp->FaceNormList = NULL;
+               if (SOhullp->glar_NodeList) 
+                  SUMA_free(SOhullp->glar_NodeList);SOhullp->glar_NodeList= NULL;
+               if (SOhullp->glar_FaceSetList) SUMA_free(SOhullp->glar_FaceSetList); 
+                  SOhullp->glar_FaceSetList = NULL;
                if (SOhullp->glar_FaceNormList) SUMA_free(SOhullp->glar_FaceNormList); SOhullp->glar_FaceNormList = NULL;
                if (SOhullp->glar_NodeNormList) SUMA_free(SOhullp->glar_NodeNormList); SOhullp->glar_NodeNormList = NULL;
                if (LocalHead) fprintf(SUMA_STDERR,"%s: %d nodes, %d triangles.\n", FuncName, SOhullp->N_Node, SOhullp->N_FaceSet);

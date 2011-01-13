@@ -692,7 +692,7 @@ void example_kmeans( int nrows, int ncols,
                      float** data, 
                      int nclusters, int npass, 
                      char dist, char* jobname,
-                     int *clusterid, float **vcdata)
+                     int *clusterid, float **vcdata, REMAPS remap)
 /* Perform k-means clustering on genes */
 { 
    int i, j, ii, nl, nc;
@@ -744,7 +744,7 @@ void example_kmeans( int nrows, int ncols,
     do n++; while (dummy/=10);
    }
     
-   //avovk 
+   /* avovk */
    printf("a je u omari :) \n");
    filename = (char *)malloc(n*sizeof(char));
    filename2 = (char *)malloc(n*sizeof(char));
@@ -770,7 +770,6 @@ void example_kmeans( int nrows, int ncols,
 
    printf ("\n");
    printf ("----- doing %d pass-es... go stretch your legs...\n",npass);
-   //npass = 3;
 
    kcluster(   nclusters,
                nrows,ncols,data,
@@ -778,6 +777,76 @@ void example_kmeans( int nrows, int ncols,
                transpose,npass,
                method,dist,
                clusterid, &error, &ifound);
+   switch (remap) {
+      case COUNT:
+      case iCOUNT:
+       { double count[nclusters];
+         int *isort=NULL, imap[nclusters];
+         
+         /* count number of voxels */
+         for (i=0; i<nclusters; ++i) count[i]=0;
+         for (i=0; i<nrows; ++i) {
+            ++count[clusterid[i]];
+         }
+         /* sort result */
+         isort = z_idoubleqsort(count, nclusters);
+         for (i=0; i<nclusters; ++i) {
+         if (remap==COUNT) {
+            imap[isort[i]] = nclusters -i -1;
+         } else {
+            imap[isort[i]] = i;
+         } 
+         fprintf(stderr,"Remapping cluster %d (count %ld) --> %d\n", 
+                  isort[i], (long)count[i], imap[isort[i]]);
+       }
+         for (i=0; i<nrows; ++i) {
+            clusterid[i] = imap[clusterid[i]];
+         }
+         free(isort); isort=NULL; 
+       }
+       break;
+      case MAG:
+      case iMAG:
+       { double mg[nclusters];
+         int *isort=NULL, imap[nclusters];
+       if (!getclustercentroids( nclusters, nrows, ncols,
+                                 data, clusterid, cdata, 
+                                 0, 'a')) {
+         fprintf(stderr,"Failed to get centroids");
+       }
+       for (i=0; i<nclusters; ++i) {
+         mg[i]=0.0;
+         for (j=0; j<ncols; ++j) {
+            mg[i] += cdata[i][j]*cdata[i][j];
+         }
+         mg[i] = sqrt(mg[i]);
+       }
+       isort = z_idoubleqsort(mg, nclusters);
+       fprintf(stderr,"ncols = %d\n", ncols);
+       for (i=0; i<nclusters; ++i) {
+         if (remap==MAG) {
+            imap[isort[i]] = nclusters -i -1;
+         } else {
+            imap[isort[i]] = i;
+         } 
+         fprintf(stderr,"Remapping cluster %d (mag %f) --> %d\n", 
+                  isort[i], mg[i], imap[isort[i]]);
+       }
+      
+         for (i=0; i<nrows; ++i) {
+            clusterid[i] = imap[clusterid[i]];
+         }
+       
+       free(isort);
+       }
+         break;
+      case NONE:
+         break;
+      default: 
+         fprintf(stderr,
+            "REMAPPING flag of %d unknown. No remapping done.\n", remap);
+   }
+   
    printf ("Solution found %d times; ", ifound);
    printf ("within-cluster sum of distances is %f\n", error);
 
@@ -1059,6 +1128,7 @@ int thd_Acluster (  THD_3dim_dataset *in_set,
                   byte *mask, int nmask,
                   THD_3dim_dataset **clust_set,
                   THD_3dim_dataset **dist_set,
+                  THD_3dim_dataset *clust_init,
                   OPT_KMEANS oc,
                   float **Dp, int D_ncol)
 {
@@ -1073,6 +1143,8 @@ int thd_Acluster (  THD_3dim_dataset *in_set,
    float *fc = NULL;
    float** vcdata = NULL; 
    int nvc; /*this will be for number of columns in vcdata matrix*/
+   int *vals = NULL, *vmap=NULL, N_vmap=0;
+   char *label_table=NULL;
    char lll[25]={"buffer"};
 
 
@@ -1138,6 +1210,41 @@ int thd_Acluster (  THD_3dim_dataset *in_set,
       RETURN(0);
    }
 
+   /* initialize clusterid */
+   if (clust_init) {
+      if (oc.remap != NONE) {
+         ERROR_message("Cannot use -clust_init, along with "
+                       "-remap other than NONE");
+         RETURN (0);
+      }
+      if (oc.verb) {
+         ININFO_message("Initializing cluster per %s\n", 
+                     DSET_PREFIX(clust_init));
+      }
+      if (!(vals = THD_unique_rank(clust_init, 0, mask, 
+                                    "Lamour.1D", &vmap, &N_vmap))) {
+         ERROR_message("Failed to rank\n");
+         RETURN (0);
+      }
+      nl=0;
+      for (ii=0; ii<DSET_NVOX(clust_init); ++ii) {
+         if (!mask || mask[ii]) {
+            /* -1 is because clusterid starts at 0 */
+            clusterid[nl] = vals[ii]-1;
+            ++nl;
+         }
+      }
+      if (N_vmap-1 != oc.k) {
+         ERROR_message( "Initializing with a dset of %d clusters\n"
+                        " but asking for %d clusters in return", N_vmap-1, oc.k);
+         RETURN(0);
+      }
+      if (!label_table) {
+         label_table = Dtable_to_nimlstring(clust_init->Label_Dtable, 
+                                            "VALUE_LABEL_DTABLE");
+      }
+   }
+   
    nvc = oc.k+2;
    /* allocate for answer array distance voxel centroid */
    vcdata = (float **)calloc(sizeof(float*), nmask);
@@ -1148,10 +1255,7 @@ int thd_Acluster (  THD_3dim_dataset *in_set,
      }
    }
 
-   /* now do the clustering 
-     (ANDREJ: I do not know why the counting skipped 1st row and 1st col....)
-   ZIAD: because input file was made this way that we had numbered lines in 1st
-   column and column labels in first row. We should change this I agree.*/
+   /* now do the clustering */
    if (oc.k > 0) {
       if (oc.verb) {
          ININFO_message("Going to cluster: k=%d, r=%d\n"
@@ -1160,7 +1264,7 @@ int thd_Acluster (  THD_3dim_dataset *in_set,
       }
       example_kmeans(   nmask, ncol, D, 
                         oc.k, oc.r, oc.distmetric, 
-                        oc.jobname, clusterid, vcdata);
+                        oc.jobname, clusterid, vcdata, oc.remap);
    } else if (oc.kh > 0) {
       if (oc.verb) {
          ININFO_message("Going to h cluster: kh=%d\n"
@@ -1187,6 +1291,18 @@ int thd_Acluster (  THD_3dim_dataset *in_set,
       RETURN(0);
    }
    
+   /* remap clusterid if needed */
+   if (vmap) {
+      if (oc.verb) {
+         ININFO_message("Remapping output to cluster_init\n");
+      }
+      for (ii=0; ii<nmask; ++ii) {
+         clusterid[ii] = vmap[clusterid[ii]+1];
+      }
+   } else { /* just add 1 because cluster ids start at 0 */
+      for (ii=0; ii<nmask; ++ii) clusterid[ii] += 1;
+   }
+   
    /* create output datasets, if required*/
    *clust_set = EDIT_empty_copy(in_set ) ;
    EDIT_dset_items(  *clust_set ,
@@ -1206,14 +1322,97 @@ int thd_Acluster (  THD_3dim_dataset *in_set,
    ii = 0;
    for (nl=0; nl<DSET_NVOX(in_set); ++nl) {
       if (!mask || mask[nl]) {
-         sc[nl] = (short)clusterid[ii]+1;
+         sc[nl] = (short)clusterid[ii];
          ++ii;
       }
    }
    free(clusterid); clusterid = NULL;
    EDIT_substitute_brick( *clust_set , 0 , MRI_short , sc ) ;
    sc = NULL; /* array now in brick */
-     
+   
+   /* add the labeltable if it exists */
+   if (label_table) {
+      ININFO_message("Adding labeltable from initializing dset");
+      (*clust_set)->Label_Dtable = Dtable_from_nimlstring(label_table);
+      if (!(*clust_set)->Label_Dtable) {
+         ERROR_message("Failed to create Label_Dtable");
+         RETURN(0);
+      }
+      /* and stick it in the header. Label_Dtable is not preserved 
+         by dset writing function */
+      THD_set_string_atr( (*clust_set)->dblk , 
+                        "VALUE_LABEL_DTABLE" ,  label_table) ;
+
+      free(label_table); label_table=NULL;
+   }  
+   
+   if (oc.user_labeltable) {
+      Dtable *vl_dtable=NULL ;
+
+      ININFO_message("Applying labeltable from %s", oc.user_labeltable) ;
+      if ((*clust_set)->Label_Dtable) {
+         destroy_Dtable((*clust_set)->Label_Dtable); 
+         (*clust_set)->Label_Dtable=NULL;
+      }
+      /* read the table */
+      if (!(label_table = AFNI_suck_file( oc.user_labeltable))) {
+         ERROR_message("Failed to read %s", oc.user_labeltable);
+         RETURN(0);
+      }
+      if (!(vl_dtable = Dtable_from_nimlstring(label_table))) {
+         ERROR_message("Could not parse labeltable");
+         RETURN(0);
+      }
+      destroy_Dtable(vl_dtable); vl_dtable = NULL;
+      THD_set_string_atr( (*clust_set)->dblk , 
+                           "VALUE_LABEL_DTABLE" , label_table ) ;
+      free(label_table); label_table = NULL;
+   }
+   
+   if (!THD_find_atr( (*clust_set)->dblk , "VALUE_LABEL_DTABLE")) {
+      /* Still no blasted labeltable */
+      Dtable *vl_dtable=new_Dtable(5);
+      char slab[256], sval[64], skmet[64];
+      int nclusters=0; 
+      ININFO_message("Creating new labeltable") ;
+      if (oc.k > 0) {
+         nclusters = oc.k;
+         sprintf(skmet, "kclust");
+      } else {
+         nclusters = oc.kh;
+         sprintf(skmet, "hclust");
+      }
+      for (ii=0; ii<nclusters; ++ii) {
+         if (!oc.clabels) {
+            if (vmap) {
+               sprintf(sval,"%d", vmap[ii+1]);
+               sprintf(slab,"%s%d",skmet, vmap[ii+1]);
+            } else {
+               sprintf(sval,"%d", ii+1);
+               sprintf(slab,"%s%d",skmet, ii+1);
+            }
+            addto_Dtable( sval , slab , vl_dtable ) ; 
+         } else {
+            if (vmap) {
+               sprintf(sval,"%d", vmap[ii+1]);
+            } else {
+               sprintf(sval,"%d", ii+1);
+            }
+            snprintf(slab,128,"%s",oc.clabels[ii]);
+            if (findin_Dtable_b( slab , vl_dtable )) {
+               ERROR_message("Label %s already used.\n"
+                             " No labeltable will be added\n", slab);
+               RETURN(0);
+            }
+            addto_Dtable( sval , slab , vl_dtable ) ; 
+         }
+      }
+      label_table = Dtable_to_nimlstring(vl_dtable, "VALUE_LABEL_DTABLE");
+      destroy_Dtable(vl_dtable); vl_dtable = NULL;
+      THD_set_string_atr( (*clust_set)->dblk , 
+                        "VALUE_LABEL_DTABLE" , label_table ) ;
+      free(label_table); label_table = NULL;
+   }
    
    /* prepare output */
    *dist_set = EDIT_empty_copy(in_set) ;
@@ -1234,38 +1433,13 @@ int thd_Acluster (  THD_3dim_dataset *in_set,
 
    for (j = 0; j < nvc; j++) {
       ININFO_message("...%d,", j);
-   #if 0 /* ZSS: Andrej, this may have caused some trouble for certain metrics
-                 You don't want to just type cast a float value to short because
-                 you may loose a whole lot of precision. THis will be especially
-                 bad for the correlation metrics! 
-                 I left this code here for you to see what happened and how it
-                 may affect your impression of how well correlation might work 
-                 
-                 */  
-      /* transfer data in vcdata to shorts array */
-      /* LOOP to pick vcdata[][fromclust] */
-         sc = (short *)calloc(sizeof(short),DSET_NVOX(in_set));
-         ii = 0;
-         for (nl=0; nl<DSET_NVOX(in_set); ++nl) {
-	         if (!mask || mask[nl]) {
-	            sc[nl] = (short)vcdata[ii][j]+1;
-	            ++ii;
-	         }
-         }
-         EDIT_substitute_brick( *dist_set , j , MRI_short , sc ) ; 
-                                          /* stick result in output */
-	      sc = NULL;  /*array now in brick */
-
-   #else /* proper scaling */
       
       /* transfer data in vcdata to full float array */
       fc = (float *)calloc(sizeof(float),DSET_NVOX(in_set));
       ii = 0;
       for (nl=0; nl<DSET_NVOX(in_set); ++nl) {
 	      if (!mask || mask[nl]) {
-	         fc[nl] = (float)vcdata[ii][j]; /* ZSS: I took the +1 out here, 
-                   I think you had it here because you cut and pasted the line
-                   from the clust_dset ?  */
+	         fc[nl] = (float)vcdata[ii][j]; 
 	         ++ii;
 	      }
       }
@@ -1284,7 +1458,7 @@ int thd_Acluster (  THD_3dim_dataset *in_set,
          ININFO_message("Subbrick factor for %d is %f\n ",
                         j, factor);
       }
-   #endif
+
       /* label bricks */
       if (j==0) 
          EDIT_dset_items (*dist_set, ADN_brick_label_one + j, "Dc", ADN_none);

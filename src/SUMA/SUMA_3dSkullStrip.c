@@ -1032,7 +1032,8 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_BrainWrap_ParseInput (
       } else  Opt->fillhole = 0;
    }
    
-   /* transfer some options to Opt from ps. Clunky because this is retrofitting */
+   /* transfer some options to Opt from ps. 
+      Clunky because this is retrofitting */
    if (ps->o_N_surfnames) {
       Opt->out_prefix = SUMA_copy_string(ps->o_surfnames[0]);
       Opt->SurfFileType = ps->o_FT[0];
@@ -1047,7 +1048,10 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_BrainWrap_ParseInput (
       exit(1);
    }
    if (Opt->DoSkulls && !ps->o_N_surfnames) {
-      fprintf (SUMA_STDERR,"Error %s:\n-skulls must be used in conjunction with -o_TYPE option\n", FuncName);
+      fprintf (SUMA_STDERR,
+               "Error %s:\n"
+               "-skulls must be used in conjunction with -o_TYPE option\n", 
+               FuncName);
       exit(1);
    }
    
@@ -1280,12 +1284,12 @@ int main (int argc,char *argv[])
       mri_brainormalize_verbose( Opt->debug ) ;
       if (Opt->fillhole) {
          imout = mri_brainormalize( imin , Opt->iset->daxes->xxorient,
-                                        Opt->iset->daxes->yyorient,
-                                        Opt->iset->daxes->zzorient, &imout_orig, NULL) ;
+                               Opt->iset->daxes->yyorient,
+                               Opt->iset->daxes->zzorient, &imout_orig, NULL) ;
       } else {
          imout = mri_brainormalize( imin , Opt->iset->daxes->xxorient,
-                                        Opt->iset->daxes->yyorient,
-                                        Opt->iset->daxes->zzorient, &imout_orig, NULL) ;
+                               Opt->iset->daxes->yyorient,
+                               Opt->iset->daxes->zzorient, &imout_orig, NULL) ;
       }
       mri_free( imin ) ;
 
@@ -1294,31 +1298,50 @@ int main (int argc,char *argv[])
       }
       
       if (imout_orig) {
-         if (Opt->debug > 1) SUMA_S_Note("Creating an output dataset in original grid...");
+         if (Opt->debug > 1) 
+            SUMA_S_Note("Creating an output dataset in original grid...");
          /* me needs the origin of this dset in RAI world */
-         LOAD_FVEC3(originRAIfv , Opt->iset->daxes->xxorg , Opt->iset->daxes->yyorg , Opt->iset->daxes->zzorg) ;
+         LOAD_FVEC3( originRAIfv , Opt->iset->daxes->xxorg , 
+                     Opt->iset->daxes->yyorg , Opt->iset->daxes->zzorg) ;
          originRAIfv = THD_3dmm_to_dicomm( Opt->iset , originRAIfv ) ;
 
-         LOAD_FVEC3(fv2 , Opt->iset->daxes->xxorg + (Opt->iset->daxes->nxx-1)*Opt->iset->daxes->xxdel ,
-                    Opt->iset->daxes->yyorg + (Opt->iset->daxes->nyy-1)*Opt->iset->daxes->yydel ,
-                    Opt->iset->daxes->zzorg + (Opt->iset->daxes->nzz-1)*Opt->iset->daxes->zzdel  ) ;
+         LOAD_FVEC3( fv2 , Opt->iset->daxes->xxorg + 
+                        (Opt->iset->daxes->nxx-1)*Opt->iset->daxes->xxdel ,
+                     Opt->iset->daxes->yyorg + 
+                        (Opt->iset->daxes->nyy-1)*Opt->iset->daxes->yydel ,
+                     Opt->iset->daxes->zzorg + 
+                        (Opt->iset->daxes->nzz-1)*Opt->iset->daxes->zzdel  ) ;
          fv2 = THD_3dmm_to_dicomm( Opt->iset , fv2 ) ;
 
-         if( originRAIfv.xyz[0] > fv2.xyz[0] ) { float tf; tf = originRAIfv.xyz[0]; originRAIfv.xyz[0] = fv2.xyz[0]; fv2.xyz[0] = tf; } 
-         if( originRAIfv.xyz[1] > fv2.xyz[1] ) { float tf; tf = originRAIfv.xyz[1]; originRAIfv.xyz[1] = fv2.xyz[1]; fv2.xyz[1] = tf; }
-         if( originRAIfv.xyz[2] > fv2.xyz[2] ) { float tf; tf = originRAIfv.xyz[2]; originRAIfv.xyz[2] = fv2.xyz[2]; fv2.xyz[2] = tf; }
+         if( originRAIfv.xyz[0] > fv2.xyz[0] ) { 
+            float tf; 
+            tf = originRAIfv.xyz[0]; 
+            originRAIfv.xyz[0] = fv2.xyz[0]; fv2.xyz[0] = tf; } 
+         if( originRAIfv.xyz[1] > fv2.xyz[1] ) { 
+            float tf; 
+            tf = originRAIfv.xyz[1]; 
+            originRAIfv.xyz[1] = fv2.xyz[1]; fv2.xyz[1] = tf; }
+         if( originRAIfv.xyz[2] > fv2.xyz[2] ) { 
+            float tf; 
+            tf = originRAIfv.xyz[2]; 
+            originRAIfv.xyz[2] = fv2.xyz[2]; fv2.xyz[2] = tf; }
 
          if (LocalHead) {
-            fprintf(stderr,"++3dSpatNorm (ZSS): RAI origin info: %f %f %f\n", originRAIfv.xyz[0], originRAIfv.xyz[1], originRAIfv.xyz[2]);
+            fprintf(stderr,"++3dSpatNorm (ZSS): RAI origin info: %f %f %f\n", 
+                     originRAIfv.xyz[0], originRAIfv.xyz[1], originRAIfv.xyz[2]);
          }
 
          Opt->OrigSpatNormedSet = EDIT_empty_copy( NULL ) ;
          tross_Copy_History( Opt->iset , Opt->OrigSpatNormedSet ) ;
-         tross_Make_History( "3dSkullStrip" , argc,argv , Opt->OrigSpatNormedSet ) ;
+         tross_Make_History( "3dSkullStrip" , 
+                              argc,argv , Opt->OrigSpatNormedSet ) ;
 
-         LOAD_IVEC3( nxyz   , imout_orig->nx    , imout_orig->ny    , imout_orig->nz    ) ;
-         LOAD_FVEC3( dxyz   , imout_orig->dx    , imout_orig->dy    , imout_orig->dz    ) ;
-         LOAD_FVEC3( orgxyz , originRAIfv.xyz[0]    , originRAIfv.xyz[1]    , originRAIfv.xyz[2]    ) ;
+         LOAD_IVEC3( nxyz   , imout_orig->nx    , 
+                              imout_orig->ny    , imout_orig->nz    ) ;
+         LOAD_FVEC3( dxyz   , imout_orig->dx    , 
+                              imout_orig->dy    , imout_orig->dz    ) ;
+         LOAD_FVEC3( orgxyz , originRAIfv.xyz[0]    , 
+                              originRAIfv.xyz[1]    , originRAIfv.xyz[2]    ) ;
          LOAD_IVEC3( orixyz , ORI_R2L_TYPE , ORI_A2P_TYPE , ORI_I2S_TYPE ) ;
 
          prefix = SUMA_AfniPrefix(Opt->in_name, NULL, NULL, NULL); 
@@ -1337,8 +1360,10 @@ int main (int argc,char *argv[])
                             ADN_func_type   , ANAT_BUCK_TYPE ,
                           ADN_none ) ;
 
-         EDIT_substitute_brick( Opt->OrigSpatNormedSet , 0 , imout_orig->kind , mri_data_pointer(imout_orig) ) ;      
-         oset = r_new_resam_dset ( Opt->OrigSpatNormedSet, Opt->iset,	0,	0,	0,	NULL, MRI_LINEAR, NULL, 1);
+         EDIT_substitute_brick( Opt->OrigSpatNormedSet , 0 , imout_orig->kind , 
+                                 mri_data_pointer(imout_orig) ) ;      
+         oset = r_new_resam_dset ( Opt->OrigSpatNormedSet, Opt->iset,	0,	0,	0,	
+                                    NULL, MRI_LINEAR, NULL, 1);
          if (!oset) {
             fprintf(stderr,"**ERROR: Failed to reslice!?\n"); exit(1);
          }
@@ -1476,13 +1501,16 @@ int main (int argc,char *argv[])
          fprintf(SUMA_STDERR,"%s: Size factor = %f\n", FuncName, THD_BN_rat());
 
       Opt->iset_hand = SUMA_THD_handedness( Opt->in_vol );
-      if (LocalHead) fprintf(SUMA_STDERR,"%s: Handedness of orig dset %d\n", FuncName, Opt->iset_hand);
+      if (LocalHead) fprintf(SUMA_STDERR,"%s: Handedness of orig dset %d\n", 
+                                             FuncName, Opt->iset_hand);
 
    }
    
    /* set the travel step based on the resolution of the voxels */
-   Opt->travstp = SUMA_MIN_PAIR(SUMA_ABS(Opt->in_vol->daxes->xxdel), SUMA_ABS(Opt->in_vol->daxes->yydel));
-   Opt->travstp = SUMA_MIN_PAIR(Opt->travstp, SUMA_ABS(Opt->in_vol->daxes->zzdel));
+   Opt->travstp = SUMA_MIN_PAIR(
+      SUMA_ABS(Opt->in_vol->daxes->xxdel), SUMA_ABS(Opt->in_vol->daxes->yydel));
+   Opt->travstp = SUMA_MIN_PAIR(
+      Opt->travstp, SUMA_ABS(Opt->in_vol->daxes->zzdel));
     
    if (!ISVALID_DSET(Opt->in_vol)) {
       if (!Opt->in_name) {
@@ -1499,11 +1527,13 @@ int main (int argc,char *argv[])
 
    /* calculate an edge mask ? */
    if (Opt->Use_emask) {
-      float *emask_sort = NULL, PercRange[2]= { 10, 90 }, PercRangeVal[2] = { 0.0, 0.0 }, PercTh=-1.0;
+      float *emask_sort = NULL, PercRange[2]= { 10, 90 }, 
+               PercRangeVal[2] = { 0.0, 0.0 }, PercTh=-1.0;
       
       Opt->emask = (float *) SUMA_malloc( sizeof(float)*DSET_NVOX(Opt->in_vol));
       if (!Opt->emask) {
-         fprintf(SUMA_STDERR,"Error %s:\n Failed to allocate for edge mask\n", FuncName);
+         fprintf(SUMA_STDERR,
+                  "Error %s:\n Failed to allocate for edge mask\n", FuncName);
          exit(1);
       }
       {   
@@ -1560,26 +1590,36 @@ int main (int argc,char *argv[])
       }
       /* get the mask threshold */
       PercRange[0] = 92; PercRange[1] = 99.999;
-      emask_sort = SUMA_PercRange (Opt->emask, NULL, DSET_NVOX(Opt->in_vol), PercRange, PercRangeVal, NULL);
+      emask_sort = SUMA_PercRange (Opt->emask, NULL, DSET_NVOX(Opt->in_vol), 
+                                   PercRange, PercRangeVal, NULL);
       if (!emask_sort) {
          fprintf( stderr, "ERROR: mask sorting failed.\n" );
          exit( 1 );
       } else {
          SUMA_free(emask_sort); emask_sort = NULL;
       }
-      /* The minimum acceptable edge is at least one tenth of the 99.999 percentile edge */
-      if (PercRangeVal[0] < PercRangeVal[1]/10.0) PercRangeVal[0] = PercRangeVal[1]/10.0;
+      /* The minimum acceptable edge is at least one tenth 
+         of the 99.999 percentile edge */
+      if (PercRangeVal[0] < PercRangeVal[1]/10.0) 
+         PercRangeVal[0] = PercRangeVal[1]/10.0;
       
       if (Opt->efrac >= 0.0) {
          PercTh = PercRangeVal[0]+(PercRangeVal[1]-PercRangeVal[0])*Opt->efrac;
-         if (Opt->debug) fprintf (SUMA_STDERR,  "%s: Edge threshold set to %f. (minimum acceptable was %f)\n"
-                                             "      (%f percentile =%f, %f percentile = %f)\n", 
-                        FuncName, PercTh, PercRangeVal[1]/10.0, PercRange[0], PercRangeVal[0], PercRange[1], PercRangeVal[1]);
+         if (Opt->debug) 
+            fprintf (SUMA_STDERR,  
+               "%s: Edge threshold set to %f. (minimum acceptable was %f)\n"
+               "      (%f percentile =%f, %f percentile = %f)\n", 
+               FuncName, PercTh, PercRangeVal[1]/10.0, PercRange[0], 
+               PercRangeVal[0], PercRange[1], PercRangeVal[1]);
       } else {
          PercTh = PercRangeVal[0];
-         if (Opt->debug) fprintf (SUMA_STDERR,  "%s: Edge threshold set to %f. (minimum acceptable was %f)\n"
-                                             "      (%f percentile =%f, %f percentile = %f)\n", 
-                        FuncName, PercTh, PercRangeVal[1]/10.0, PercRange[0], PercRangeVal[0], PercRange[1], PercRangeVal[1]);
+         if (Opt->debug) 
+            fprintf (SUMA_STDERR,  
+               "%s: Edge threshold set to %f. (minimum acceptable was %f)\n"
+               "      (%f percentile =%f, %f percentile = %f)\n", 
+               FuncName, PercTh, 
+               PercRangeVal[1]/10.0, PercRange[0], PercRangeVal[0], 
+               PercRange[1], PercRangeVal[1]);
       }
       /* Now that we have an edge vector, select appropriate values */
       for (ii=0; ii<DSET_NVOX(Opt->in_vol); ++ii) {
@@ -1588,7 +1628,9 @@ int main (int argc,char *argv[])
       if (Opt->fatemask) {
          /* same for the fat mask */
          PercRange[0] = 90; PercRange[1] = 95;
-         emask_sort = SUMA_PercRange (Opt->fatemask, NULL, DSET_NVOX(Opt->in_vol), PercRange, PercRangeVal, NULL);
+         emask_sort = SUMA_PercRange (Opt->fatemask, NULL, 
+                           DSET_NVOX(Opt->in_vol), PercRange, 
+                           PercRangeVal, NULL);
          if (!emask_sort) {
             fprintf( stderr, "ERROR: mask sorting failed.\n" );
             exit( 1 );
@@ -1607,9 +1649,14 @@ int main (int argc,char *argv[])
   
    if (Opt->blur_fwhm) {
      if (Opt->debug) fprintf (SUMA_STDERR,"%s: Blurring...\n", FuncName);
-     EDIT_blur_volume(  DSET_NX(Opt->in_vol), DSET_NY(Opt->in_vol), DSET_NZ(Opt->in_vol),
-                        SUMA_ABS((DSET_DX(Opt->in_vol))), SUMA_ABS((DSET_DY(Opt->in_vol))),  SUMA_ABS((DSET_DZ(Opt->in_vol))),  
-                        DSET_BRICK_TYPE(Opt->in_vol,0), DSET_ARRAY(Opt->in_vol,0), 0.42466090*Opt->blur_fwhm) ;
+     EDIT_blur_volume(  DSET_NX(Opt->in_vol), 
+                        DSET_NY(Opt->in_vol), 
+                        DSET_NZ(Opt->in_vol),
+                        SUMA_ABS((DSET_DX(Opt->in_vol))), 
+                        SUMA_ABS((DSET_DY(Opt->in_vol))),  
+                        SUMA_ABS((DSET_DZ(Opt->in_vol))),  
+                        DSET_BRICK_TYPE(Opt->in_vol,0), 
+                        DSET_ARRAY(Opt->in_vol,0), 0.42466090*Opt->blur_fwhm) ;
    }
    
    if (Opt->UseSkull) { SOhull = SUMA_Alloc_SurfObject_Struct(1); }
@@ -1725,12 +1772,15 @@ int main (int argc,char *argv[])
       } else if (Opt->specie == MARMOSET) { }
 
    } 
-   if (Opt->debug) fprintf (SUMA_STDERR,"%s: Beginning brain extraction...\n", FuncName);
+   if (Opt->debug) 
+      fprintf (SUMA_STDERR,"%s: Beginning brain extraction...\n", FuncName);
    do {   
       /* Now create that little sphere that is about to expand */
       sprintf(stmp,"icobaby_ld%d", Opt->Icold);  
       if (SO) {
-         if (Opt->debug) fprintf (SUMA_STDERR,"%s: Have surface, OK for 1st entry.\n", FuncName);
+         if (Opt->debug) 
+            fprintf (SUMA_STDERR,"%s: Have surface, OK for 1st entry.\n", 
+                     FuncName);
       }  else {   
          if (Opt->debug) fprintf (SUMA_STDERR,"%s: Creating Ico.\n", FuncName);
          SO = SUMA_CreateIcosahedron (Opt->r/2.0, Opt->Icold, Opt->cog, "n", 1);

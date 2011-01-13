@@ -56,13 +56,13 @@ void EDIT_one_dataset( THD_3dim_dataset *dset , EDIT_options *edopt )
    byte    *bfim = NULL , *bthr = NULL ;
    void    *vfim = NULL , *vthr = NULL ;
    int nx,ny,nz,nxy,nxyz , jj,kk , ptmin , iclu,nclu , fim_max ;
-   int iv_fim , iv_thr , fim_type , thr_type, icl, ijk ;
+   int iv_fim=0, iv_thr=0, fim_type=0, thr_type=0, icl, ijk ;
    register int ii ;
    float dx,dy,dz , dxyz , rmm,vmul , val , vvv ;
    MCW_cluster_array *clar ;
    MCW_cluster       *blur=NULL ;
    int fimtype , thrtype ;
-   float fimfac , thrfac ;
+   float fimfac=0.0, thrfac=0.0;
 
    /** get the data from this dataset **/
 
@@ -215,7 +215,7 @@ ENTRY("EDIT_one_dataset") ;
 STATUS("dataset loaded") ;
 
    if( edit_thtoin && iv_thr >= 0 ){
-      float new_fimfac , scaling ;
+      float new_fimfac=0.0, scaling=0.0;
 
       if( verbose ) fprintf(stderr,"--- EDIT_one_dataset: copy thr over fim\n") ;
 
@@ -973,7 +973,7 @@ fprintf(stderr," -1zscore: retyping\n") ;
       if (!(THD_unique_rank_edit(dset ,
                               iv_fim,
                               edopt->fmask,
-                              edopt->rankmapname))) {
+                              edopt->rankmapname, NULL, NULL))) {
          fprintf(stderr,"*** Ranking error.\n");
       }
    }

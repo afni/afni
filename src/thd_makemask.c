@@ -422,7 +422,8 @@ the rank of the voxel value in mask_dset
 int *THD_unique_rank( THD_3dim_dataset *mask_dset ,
                         int miv,
                         byte *cmask,
-                        char *mapname)
+                        char *mapname, 
+                        int **unqp, int *N_unq)
 {
    int nvox , ii, *unq = NULL, *vals=NULL, imax=0;
    INT_HASH_DATUM *rmap=NULL, *hd=NULL;
@@ -432,6 +433,11 @@ int *THD_unique_rank( THD_3dim_dataset *mask_dset ,
    n_unique = 0;
    unq = NULL ;
 
+   if (unqp && *unqp!=NULL) {
+      fprintf(stderr,"** unqp (%p) not initialized properly to NULL", *unqp);
+      return (vals) ;
+   }
+   
    if( !ISVALID_DSET(mask_dset)    ||
        miv < 0                     ||
        miv >= DSET_NVALS(mask_dset)  ) {
@@ -514,9 +520,9 @@ int *THD_unique_rank( THD_3dim_dataset *mask_dset ,
       free(vals); return (NULL);
    }
 
-   /*fprintf(stderr,"-- Writing mapping to >>%s<<\n", mapname);*/
-   if (mapname[0]) {
-      if ((fout = fopen(mapname,"w"))) {
+   if (mapname && mapname[0]) {
+      /*fprintf(stderr,"-- Writing mapping to >>%s<<\n", mapname);*/
+     if ((fout = fopen(mapname,"w"))) {
          fprintf(fout, "#Rank Map (%d unique values)\n", n_unique);
          fprintf(fout, "#Col. 0: Rank\n");
          fprintf(fout, "#Col. 1: Input Dset Value\n");
@@ -568,7 +574,8 @@ int *THD_unique_rank( THD_3dim_dataset *mask_dset ,
 
    #endif
 
-   free(unq); unq = NULL;
+   if (!unqp) free(unq); else *unqp = unq; unq = NULL;
+   if (N_unq) *N_unq = n_unique;
    if (fout) fclose(fout); fout = NULL;
 
    return (vals) ;
@@ -581,11 +588,11 @@ int *THD_unique_rank( THD_3dim_dataset *mask_dset ,
 int THD_unique_rank_edit( THD_3dim_dataset *mask_dset ,
                            int miv,
                            byte *cmask,
-                           char *mapname)
+                           char *mapname, int **unqp, int *N_unq)
 {
    int *vals=NULL, nvox, mxval, ii;
 
-   if (!(vals = THD_unique_rank(mask_dset, miv, cmask, mapname))) {
+   if (!(vals = THD_unique_rank(mask_dset, miv, cmask, mapname, unqp, N_unq))) {
       fprintf(stderr,"** Failed to uniquate\n");
       return (0);
    }

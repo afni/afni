@@ -7,7 +7,6 @@
 #include "thd_segtools_fNM.h"
 
 
-// from command.c file
 
 static void display_help(void)
 { printf ("3d+t Clustering segmentation, command-line version.\n");
@@ -16,7 +15,7 @@ static void display_help(void)
   printf ("USAGE: 3dkmeans [options]\n");
   printf ("options:\n");
   printf ("  -v, --version Version information\n");
-  printf ("  -f filename   File loading\n");
+  printf ("  -f (or -input)  filename   File loading\n");
   printf ("                You can specify multiple filenames in sequence\n"
           "                and they will be catenated internally.\n"
           "         e.g: -f F1+orig F2+orig F3+orig ...\n"
@@ -109,6 +108,23 @@ static void display_help(void)
           "                instead of hierarchical clustering, and the number\n"
           "                of clusters k to use. \n"
           "                Default is kmeans with k = 3 clusters\n");
+  printf ("  -remap  METH  Reassign clusters numbers based on a method:\n"
+          "                   NONE: No remapping (default)\n"
+          "                   COUNT: based on cluster size ascending\n"
+          "                  iCOUNT: COUNT, descending\n"
+          "                   MAG:  based on ascending magnitude of centroid\n"
+          "                  iMAG: MAG, descending\n");
+  printf ("  -labeltable LTFILE: Attach labeltable LTFILE to clustering\n"
+          "                      output. This labeltable will overwrite\n"
+          "                      a table that is taken from CLUST_INIT\n"
+          "                      should you use -clust_init option.\n");
+  printf ("  -clabels LAB1 LAB2 ...: Provide a label for each cluster.\n"
+          "                          Labels cannot start with '-'.\n");
+  printf ("  -clust_init CLUST_INIT: Specify a dataset to initialize \n"
+          "                          clustering.\n"
+          "                          If CLUST_INIT has a labeltable and \n"
+          "                          you do not specify one then CLUST_INIT's\n"
+          "                          table is used for the output\n");
   printf ("  -c number     Force the program to do hierarchical clsutering\n"
           "                and specifies the number of clusters for tree\n"
           "                cutting after hierarchical clustering.\n"
@@ -145,9 +161,6 @@ static void display_help(void)
 int main(int argc, char **argv)
 { 
    int ii=0, ncol=0, nrow=0, nl=0, nc=0, posi=0, posj=0, posk=0;
-   //int nclust=atoi(argv[2]);
-
-   //from command.c
 
    int i = 1;
    char* filename[256];
@@ -164,7 +177,7 @@ int main(int argc, char **argv)
    int na = 0;
    char *prefix = NULL;
    char *signame=NULL;
-   THD_3dim_dataset *in_set=NULL, *clust_set=NULL;
+   THD_3dim_dataset *in_set=NULL, *clust_set=NULL, *clust_init=NULL;
    THD_3dim_dataset *mask_dset=NULL, *dist_set=NULL;
    byte *cmask=NULL ; int ncmask=0 ;
    byte *mask=NULL;
@@ -173,7 +186,7 @@ int main(int argc, char **argv)
    OPT_KMEANS oc;
    float *dvec=NULL, **D=NULL;
    int n = 0, Ncoltot=0, nc0=0, nx=0, ny=0, nz=0;
-   char *prefixvcd = NULL;
+   char *prefixvcd = NULL, *clust_init_name=NULL;
 
    
    mainENTRY("3dkmeans"); machdep();/* Used to be called 3dAclustering_fNM */
@@ -186,6 +199,11 @@ int main(int argc, char **argv)
    oc.distmetric = 'u';
    oc.verb = 0;
    oc.rand_seed = 1234567;
+   oc.remap = NONE;
+   oc.user_labeltable=NULL;
+   oc.clabels = NULL;
+   oc.nclabels=0;
+   
    for (i=0; i<4; ++i) oc.voxdebug[i] = -1;
    N_iset = 0;
    filename[N_iset] = NULL;
@@ -222,6 +240,30 @@ int main(int argc, char **argv)
     { oc.verb=1;
       continue;
     }
+    if(     !strcmp(argument,"--remap") 
+         || !strcmp(argument,"-remap") )
+    { 
+      if (i<argc) {
+       if (!strcmp("COUNT",argv[i])) {
+         oc.remap = COUNT;
+       } else if (!strcmp("iCOUNT",argv[i])) {
+         oc.remap = iCOUNT;
+       } else if (!strcmp("MAG",argv[i])) {
+         oc.remap = MAG;
+       } else if (!strcmp("iMAG",argv[i])) {
+         oc.remap = iMAG;
+       } else if (!strcmp("NONE",argv[i])) {
+         oc.remap = NONE;
+       } else { printf ("Error reading command line argument for -remap\n");
+        RETURN(1);
+       }
+      } else {
+         printf ("Need parameter after -remap\n");
+         RETURN(1);
+      }
+      i++;
+      continue;
+    }
     if(!strcmp(argument,"-cg"))
     { if (i==argc || strlen(argv[i])>1 || !strchr("am",argv[i][0]))
       { printf ("Error reading command line argument cg\n");
@@ -240,12 +282,30 @@ int main(int argc, char **argv)
       i++;
       continue;
     }
+    if(!strcmp(argument,"-labeltable"))
+    { if (i==argc)
+      { printf ("Error: Need filename after -labeltable\n");
+        RETURN(1);
+      }
+      oc.user_labeltable = argv[i];
+      i++;
+      continue;
+    }
     if(!strcmp(argument,"-prefix"))
     { if (i==argc)
       { printf ("Error: Need name after -prefix\n");
         RETURN(1);
       }
       prefix = argv[i];
+      i++;
+      continue;
+    }
+    if(!strcmp(argument,"-clust_init"))
+    { if (i==argc)
+      { printf ("Error: Need dset after -clust_init\n");
+        RETURN(1);
+      }
+      clust_init_name = argv[i];
       i++;
       continue;
     }
@@ -323,6 +383,43 @@ int main(int argc, char **argv)
     { na = 1;
       continue;
     }
+    
+    if(!strcmp(argument,"-f") || !strcmp(argument,"-input")) {
+         if (i==argc)
+        { printf ("Error reading command line argument -f (or -input): "
+                  "no file name specified\n");
+          RETURN(1);
+        }
+        do {
+         filename[N_iset] = argv[i];
+         if (N_iset > 100) {
+            printf ("Error: Too many input files!\n");
+            RETURN(1);
+         }
+         ++N_iset; filename[N_iset] = NULL;
+         i++;
+        } while (i< argc && argv[i][0] != '-');
+        continue;
+    }
+    if(!strcmp(argument,"-clabels")) {
+         if (i==argc)
+        { printf ("Error reading command line argument -clabels: "
+                  "no labels specified\n");
+          RETURN(1);
+        }
+        oc.clabels = (char **)calloc(500, sizeof(char *));
+        do {
+         oc.clabels[oc.nclabels] = argv[i];
+         if (oc.nclabels > 400) {
+            printf ("Error: Too many labels!\n");
+            RETURN(1);
+         }
+         ++oc.nclabels; 
+         i++;
+        } while (i< argc && argv[i][0] != '-');
+        continue;
+    }
+    
     switch (argument[1])
     { case 'l': l=1; break;
       case 'u':
@@ -335,6 +432,7 @@ int main(int argc, char **argv)
         i++;
         break;
       }
+      #if 0
       case 'f':
       { if (i==argc)
         { printf ("Error reading command line argument f: "
@@ -352,6 +450,7 @@ int main(int argc, char **argv)
         } while (i< argc && argv[i][0] != '-');
         break;
       }
+      #endif
       case 'g':
       { int g;
         if (i==argc)
@@ -440,6 +539,11 @@ int main(int argc, char **argv)
    
    if(oc.jobname == NULL) oc.jobname = clusterlib_setjobname(filename[0],1);
 
+   if (oc.nclabels && oc.nclabels != oc.k && oc.nclabels != oc.kh) {
+      ERROR_message("Have %d labels, but %d clusters\n",
+               oc.nclabels, oc.k > 0 ? oc.k : oc.kh);
+      RETURN(1);
+   }
    
    /* load dsets and prepare array data for sending to clustering functions */
    
@@ -533,8 +637,8 @@ int main(int argc, char **argv)
       Ncoltot=0;
       /* Read in dset(s) and create D */
       for (iset = 0; iset < N_iset; ++iset) {
-         if (oc.verb) fprintf(stderr,"Reading %s's header, ", 
-                                    filename[iset]);
+         if (oc.verb) fprintf(stderr,"Reading %s's header (%d/%d), ", 
+                                    filename[iset], iset+1, N_iset);
          in_set = THD_open_dataset(filename[iset]);
          CHECK_OPEN_ERROR(in_set,filename[iset]) ;
          if (oc.voxdebug[0] >= 0) {
@@ -610,11 +714,24 @@ int main(int argc, char **argv)
       }
       free(dvec); dvec = NULL;
 
+      /* Load initialization */
+      if (clust_init_name) {
+         if (oc.verb) fprintf(stderr,"Reading %s's header, ", 
+                                    clust_init_name);
+         if (!(clust_init = THD_open_dataset(clust_init_name))) {
+            ERROR_exit("Failed to read initialization dset %s\n",
+                        clust_init_name);
+         }
+         DSET_load(clust_init) ; 
+         CHECK_OPEN_ERROR(clust_init,clust_init_name) ;
+      }
+
       /* Now call clustering function */
       if (!thd_Acluster ( in_set,
                         mask, nmask,
                         &clust_set,
                         &dist_set ,
+                        clust_init,
                         oc, D, Ncoltot)) {
          ERROR_exit("Failed in thd_Acluster");                 
       }
@@ -658,7 +775,7 @@ int main(int argc, char **argv)
    
    if (mask) free(mask); mask = NULL;
    if (oc.jobname) free(oc.jobname); oc.jobname = NULL;
-   
+   if (oc.clabels) free(oc.clabels); oc.clabels = NULL;
 
    fprintf (stderr,"\n");
    RETURN(0);
