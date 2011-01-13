@@ -2810,8 +2810,13 @@ def valid_file_types(proc, stims, file_type):
     for fname in stims:
         adata = LD.AfniData(fname, verb=proc.verb)
         if adata == None:
-            print "** failed to read data file '%s'" % fname
-            return 0
+            print "** failed to load stim timing file '%s'" % fname
+            ok_all = 0
+            continue
+        if not adata.ready:
+            print "** failed to load stimulus timing file '%s'" % fname
+            ok_all = 0
+            continue
 
         if adata.married and proc.verb > 1:
             print '-- have married file %s' % fname

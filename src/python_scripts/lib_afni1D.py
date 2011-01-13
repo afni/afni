@@ -1872,7 +1872,7 @@ class AfniData:
 
       mdata, clines = TD.read_married_file(fname, verb=self.verb)
       if mdata == None:
-         print '** A1D: failed to read data file %s' % fname
+         if self.verb > 0: print '** A1D: failed to read data file %s' % fname
          return 1
 
       # note whether the data is married (modulation or duration)
