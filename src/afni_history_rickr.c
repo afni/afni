@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 13, JAN, 2011, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
+   "small changes to warnings for missing stimulus files",
+   NULL
+ } ,
+
  { 13, JAN, 2011, RCR, "Dimon", MINOR, TYPE_NEW_OPT,
    "added -gert_write_as_nifti and -gert_create_dataset",
    "requested by V Roopchansingh"
