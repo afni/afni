@@ -1981,6 +1981,7 @@ void CLU_setup_alpha_tables( Three_D_View *im3d )
    NI_element *nel ;
    CLU_threshtable *ctab ;
    ATR_string *atr ;
+   char *msg=NULL ; int ntab=0,nmask=0 ; static int ntabold=-1 ;
 
 ENTRY("CLU_setup_alpha_tables") ;
 
@@ -2009,6 +2010,7 @@ ENTRY("CLU_setup_alpha_tables") ;
      nel = NI_read_element_fromstring(atr->ch) ;  /* attribute string => NIML */
      ctab = format_cluster_table(nel) ;           /* NIML => C(p,alpha) table */
      im3d->vwid->func->clu_tabNN1 = ctab ;
+     msg = THD_zzprintf(msg," NN=1") ; ntab += 1 ;
 
      /*  search for ASCII mask string */
 
@@ -2027,6 +2029,8 @@ ENTRY("CLU_setup_alpha_tables") ;
        }
      }
      NI_free_element(nel) ;  /* get rid of the C(p,alpha) NIML element */
+     if( im3d->vwid->func->clu_mask != NULL )
+       nmask = THD_countmask( DSET_NVOX(dset) , im3d->vwid->func->clu_mask ) ;
    }
 
    /* NN2 and NN3 C(p,alpha) tables */
@@ -2036,6 +2040,7 @@ ENTRY("CLU_setup_alpha_tables") ;
      nel = NI_read_element_fromstring(atr->ch) ;
      ctab = format_cluster_table(nel) ; NI_free_element(nel) ;
      im3d->vwid->func->clu_tabNN2 = ctab ;
+     msg = THD_zzprintf(msg," NN=2") ; ntab += 2 ;
    }
 
    atr = THD_find_string_atr( dset->dblk , "AFNI_CLUSTSIM_NN3" ) ;
@@ -2043,6 +2048,24 @@ ENTRY("CLU_setup_alpha_tables") ;
      nel = NI_read_element_fromstring(atr->ch) ;
      ctab = format_cluster_table(nel) ; NI_free_element(nel) ;
      im3d->vwid->func->clu_tabNN3 = ctab ;
+     msg = THD_zzprintf(msg," NN=3") ; ntab += 4 ;
+   }
+
+   if( ntab != ntabold ){
+     if( ntabold < 0 ) fprintf(stderr,"\n") ;
+     if( msg != NULL ){
+       INFO_message("%s3dClustSim tables found:%s" ,
+                    AFNI_controller_label(im3d) , msg ) ;
+       if( ntab < 7 )
+         ININFO_message(" [if you require a missing NN table, will use%.5s]",msg);
+       free(msg) ;
+       if( nmask > 0 )
+         ININFO_message(" %d voxels in 3dClustSim mask",nmask) ;
+     } else {
+       INFO_message("%s3dClustSim tables found: none" ,
+                    AFNI_controller_label(im3d) ) ;
+     }
+     ntabold = ntab ;
    }
 
    EXRETURN ;
