@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 18 , JAN , 2011 , RWC , "3dClustSim" , MICRO , TYPE_BUG_FIX ,
+   "Fix NN buglets identified by Nick Oosterhof." ,
+   NULL } ,
+
  { 6 , JAN , 2011 , RWC , "3dDeconvolve" , MICRO , TYPE_BUG_FIX ,
    "Fix problem with auto-catenation of datasets with length 1" ,
    "Bug is that each dataset is a separate run, so you have lots of baseline\n"

@@ -532,8 +532,8 @@ void get_options( int argc , char **argv )
     if( strcasecmp(argv[nopt],"-NN") == 0 ){
       nopt++; if( nopt >= argc ) ERROR_exit("need argument after %s",argv[nopt-1]);
       do_NN[1] = (strchr(argv[nopt],'1') != NULL) ;
-      do_NN[2] = (strchr(argv[nopt],'1') != NULL) ;
-      do_NN[3] = (strchr(argv[nopt],'1') != NULL) ;
+      do_NN[2] = (strchr(argv[nopt],'2') != NULL) ;
+      do_NN[3] = (strchr(argv[nopt],'3') != NULL) ;
       ii = do_NN[1] + do_NN[2] + do_NN[3] ;
       if( !ii )
         ERROR_exit("argument after %s does not contain digits 1, 2, or 3",argv[nopt-1]) ;
