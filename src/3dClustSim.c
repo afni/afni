@@ -530,8 +530,10 @@ void get_options( int argc , char **argv )
       athr = (double *)realloc(athr,sizeof(double)*nathr) ;
       memcpy( athr , athr_lots , sizeof(double)*nathr ) ;
       do_niml = 1 ;
-      do_1D   = (strcasecmp(argv[nopt],"-both") == 0) ;
-      do_NN[1] = do_NN[2] = do_NN[3] = 1 ;   /* 19 Jan 2011 */
+      if( strcasecmp(argv[nopt],"-both") == 0 )
+        do_1D = 1 ;
+      else
+        do_NN[1] = do_NN[2] = do_NN[3] = 1 ;   /* 19 Jan 2011 */
       nopt++ ; continue ;
     }
 
