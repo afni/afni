@@ -44,6 +44,11 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 19 , JAN , 2011 , RWC , "3dClustSim" , MICRO , TYPE_MODIFY ,
+   "-niml now implies -NN 123 as well" ,
+   "Plus explain in the help output that afni_proc.py will automatically do\n"
+   "the ClustSim-ization of statistics datasets for you." } ,
+
  { 18 , JAN , 2011 , RWC , "3dClustSim" , MICRO , TYPE_BUG_FIX ,
    "Fix NN buglets identified by Nick Oosterhof." ,
    NULL } ,
