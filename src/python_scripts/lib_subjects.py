@@ -7,6 +7,9 @@ import afni_util as UTIL
 g_mema_tests = [None, 'paired', 'unpaired']
 g_ttpp_tests = ['-AminusB', '-BminusA']
 
+# simple types for VarsObject
+g_valid_simple_types = [int, float, str, list]
+
 class VarsObject(object):
    """a general class for holding variables, essentially treated as a
       struct to group variables"""
@@ -14,15 +17,163 @@ class VarsObject(object):
    def __init__(self, name='noname'):
       self.name = name
 
+   def __get_simple_type__(self, atr):
+      """return the simple type of an object
+         return one of int, float, str, list
+
+         - list is returned in the case of an empty list or None
+         - lists are only tested down the [0][0]... path
+      """
+
+      val = getattr(self, atr)
+      while type(val) == list:
+         if val == []: return list
+         try: val = val[0]
+         except: return list
+
+      if val == None: return list  # special: NoneType does not seem defined
+      if type(val) in g_valid_simple_types: return type(val)
+
+      return None       # not a simple type
+
+   def attributes(self):
+      """same as dir(), but return only those with:
+            - a name not starting with '_'
+            - a simple type
+      """
+      dlist = dir(self)
+      retlist = []
+      for atr in dlist:
+         if atr[0] == '_': continue
+         if self.__get_simple_type__(atr) == None: continue
+         retlist.append(atr)
+      retlist.sort()
+      return retlist
+
+   def make_copy(self, name=None):
+      """return a copy of this class item by creating a new instance
+         and copying all simple attributes
+      """
+
+      dupe = VarsObject(self.name)
+      for atr in self.attributes():
+         setattr(dupe, atr, self.valcopy(atr))
+
+      return dupe
+
+   def merge(self, v2):
+      """merge in attributes from v2"""
+
+      if v2 == None: return
+
+      if type(v2) != VarsObject:
+         print ("** trying to merge %s with VarsObject" % type(v2))
+         return
+
+      if self.verb > 4: self.show(mesg="++ pre-merge: ")
+
+      newatrs = v2.attributes()
+      for atr in newatrs:
+         if self.verb > 3:
+            print ("++ merge: updating VO atr %s: from %s to %s" \
+                   % (atr, self.val(atr), v2.val(atr)))
+         setattr(self, atr, v2.valcopy(atr))
+
+      if self.verb > 4: self.show(mesg="++ post-merge: ")
+
+   def valcopy(self, atr):
+      """use deepcopy to copy any value, since it may be a list"""
+      if self.__get_simple_type__(atr) == None:
+         print ("** attribute '%s' is not simple, copy may be bad" % atr)
+
+      return copy.deepcopy(self.val(atr))
+
+   def val(self, atr):
+      """convenience - return the attribute value (None if not found)"""
+      if hasattr(self, atr): return getattr(self, atr)
+      else:                  return None
+
+   def valid(atr):
+      """convenience - return whether the atr is in the class instance"""
+      if hasattr(self, atr): return 1
+      else:                  return 0
+
+   def valid_atr_type(self, atr='noname', atype=None, alevel=0, exists=0):
+      """check for the existence and type of the given variable 'atr'
+
+                atr     : attribute name
+                atype   : expected (simple) type of variable (no arrays)
+                          e.g. float, int, str
+                          (list is not a valid atr type)
+                alevel  : array level (N levels of array nesting before atype)
+
+         
+         if alevel > 0:
+            - assume array is consistent in depth and type
+              (so can focus on val[0][0][0]...
+            - being empty at some depth is valid
+
+         return 1 or 0"""
+
+      # make sure atr is a string
+      if type(atr) != str:
+         print "** valid_atr_type: 'atr' must be passed as a string"
+         return 0
+
+      # make sure atype is valid as well
+      if not atype in [float, int, str]:
+         print "** valid_atr_type: invalid atype %s" % atype
+         return 0
+
+      # first just check for existence
+      if not hasattr(self, atr): return 0
+
+      if exists: return 1       # since found, exists test is done
+
+      tt = self.__get_simple_type__(atr)
+      depth = self.atr_depth(atr)
+
+      if depth != alevel: return 0      # bad level is bad
+      if tt == list: return 1           # else, empty list is valid
+
+      # level is good, so just compare types
+      if tt == atype: return 1
+      else:           return 0
+
+   def atr_depth(self, atr='noname'):
+      """return the array 'depth' of the given atr
+
+         The depth of an empty array is considered 1, though there is no atr
+         type.
+
+         return -1: if the atr does not exist
+                 N: else, the number of array nestings"""
+
+      # first just check for existence
+      if not hasattr(self, atr): return -1
+
+      # get the variable value
+      val = getattr(self, atr)
+
+      # compute its depth
+      depth = 0
+      while type(val) == list:
+         depth += 1
+         try: val = val[0]
+         except: break
+
+      return depth
+
    def show(self, mesg='', prefix=None, pattern=None):
       print ("-- %s values in var '%s', prefix = '%s'"%(mesg,self.name,prefix))
-      for key in sorted(self.__dict__.keys()):
+      for atr in self.attributes():
          match = (prefix == None and pattern == None)
          if prefix:
-            if key.startswith(prefix): match = 1
+            if atr.startswith(prefix): match = 1
          if pattern:
-            if key.find(pattern) >= 0: match = 1
-         if match: print ("      %-15s : %s" % (key, self.__dict__[key]))
+            if atr.find(pattern) >= 0: match = 1
+         if match: print ("      %-15s : %s" % (atr, self.val(atr)))
+
 
 def subj_compare(subj0, subj1):
    """compare 2 Subject objects:        used for sorting a list of subjects
