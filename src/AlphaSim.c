@@ -121,7 +121,7 @@ void display_help_menu()
      " *** You may also be interested in program 3dClustSim, which does a ***\n"
      " *** similar simulation of the probability of noise-only clusters,  ***\n"
      " *** but also allows multiple '-pthr' values to be used in one run. ***\n"
-     " *** For most users' purposes, 3dClustSim superseded AlphaSim now!  ***\n"
+     " *** For most users' purposes, 3dClustSim supersedes AlphaSim now!  ***\n"
      "\n"
      "Usage: \n"
      "AlphaSim \n"
