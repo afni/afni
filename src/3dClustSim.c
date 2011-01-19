@@ -200,9 +200,9 @@ void display_help_menu()
    "                 clustering will be computed (as if you used '-NN 1').\n"
    "\n"
    "              ** The clustering method only makes a difference at higher **\n"
-   "              ** (less significant) values of pthr.  At small values of  **\n"
-   "              ** pthr (more significant), all 3 clustering methods will  **\n"
-   "              ** give about the same results.                            **\n"
+   "              ** (less significant) values of pthr.   At small values of **\n"
+   "              ** pthr (more significant),  all 3 clustering methods will **\n"
+   "              ** give very similar results.                              **\n"
    "\n"
    "-nodec         = normally, the program prints the cluster size threshold to\n"
    "                  1 decimal place (e.g., 27.2).  Of course, clusters only come\n"
@@ -214,11 +214,17 @@ void display_help_menu()
    "                  * if seed=0, then program will randomize it\n"
    "\n"
    "-niml          = Output the table in an XML/NIML format, rather than a .1D format.\n"
-   "                  * This option is for use with other software programs.\n"
+   "                  * This option is for use with other software programs;\n"
+   "                    see the NOTES section below for details.\n"
    "                  * '-niml' also implicitly means '-LOTS'.\n"
+   "                  * '-niml' also implicitly means '-NN 123'.\n"
+   "                    If you DON'T want all 3 NN methods, then use an explicit\n"
+   "                    '-NN' option AFTER the '-niml' option to choose what you want.\n"
    "-both          = Output the table in XML/NIML format AND in .1D format.\n"
    "                  * You probably want to use '-prefix' with this option!\n"
    "                    Otherwise, everything is mixed together on stdout.\n"
+   "                  * '-both' does NOT imply '-NN 123'; if you want all 3 NN\n"
+   "                    methods with '-both', you have to explicitly use '-NN 123'.\n"
    "\n"
    "-prefix ppp    = Write output for NN method #k to file 'ppp.NNk.1D' for k=1, 2, 3.\n"
    "                  * If '-prefix is not used, results go to standard output.\n"
@@ -263,6 +269,10 @@ void display_help_menu()
    "  AFNI's Clusterize GUI makes use of these attributes, if stored in a\n"
    "  statistics dataset (e.g., something from 3dDeconvolve, 3dREMLfit, etc.).\n"
    "\n"
+   "   ** Nota Bene: afni_proc.py will automatically run 3dClustSim,  and **\n"
+   "   ** put the results  into the statistical results  dataset for you. **\n"
+   "   ** Another reason to use afni_proc.py for single-subject analyses! **\n"
+   "\n"
    "* 3dClustSim will print (to stderr) a 3drefit command fragment, similar\n"
    "  to the one above, that you can use to add cluster tables to any\n"
    "  relevant statistical datasets you have lolling about.\n"
@@ -276,6 +286,9 @@ void display_help_menu()
    "* AFNI will use the NN1, NN2, NN3 tables as needed in its Clusterize\n"
    "  interface if they are all stored in the statistics dataset header,\n"
    "  depending on the NN level chosen in the Clusterize controller.\n"
+   "  ++ If only the NN1 table gets stored in the statistics dataset, then\n"
+   "     that table will be used even if you ask for NN3 clusterizing inside\n"
+   "     AFNI -- the idea being that to get SOME result is better than nothing.\n"
    "\n"
    "-- RW Cox -- July 2010\n"
   ) ;
@@ -518,6 +531,7 @@ void get_options( int argc , char **argv )
       memcpy( athr , athr_lots , sizeof(double)*nathr ) ;
       do_niml = 1 ;
       do_1D   = (strcasecmp(argv[nopt],"-both") == 0) ;
+      do_NN[1] = do_NN[2] = do_NN[3] = 1 ;   /* 19 Jan 2011 */
       nopt++ ; continue ;
     }
 
