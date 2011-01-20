@@ -44,6 +44,17 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 20 , JAN , 2011 , RWC , "3dClustSim" , MINOR , TYPE_BUG_FIX ,
+   "Small ROI masks could give weird and wrong results" ,
+   "Problem was when a desired alpha level (say 0.10) simply couldn't be\n"
+   "found -- e.g., only 6% of simulations had ANY above-threshold voxels in\n"
+   "the mask.  Bad-ositiness ensued since the program didn't check for this\n"
+   "case.  Now it checks, uses N=1 as the result in such cases, and\n"
+   "stderr-ifies a warning message also.\n"
+   "\n"
+   "The problem with developing software is users.  If we didn't have them,\n"
+   "life would be much easier." } ,
+
  { 19 , JAN , 2011 , RWC , "3dClustSim" , MICRO , TYPE_MODIFY ,
    "-niml now implies -NN 123 as well" ,
    "Plus explain in the help output that afni_proc.py will automatically do\n"

@@ -56,6 +56,8 @@ static int do_niml = 0 ;
 static int do_1D   = 1 ;
 static int do_ball = 0 ;
 
+static int do_lohi = 0 ;  /* 20 Jan 2011 -- for debugging */
+
 static int do_NN[4] = { 0 , 1 , 0 , 0 } ;
 
 static unsigned int gseed = 123456789 ;
@@ -290,6 +292,29 @@ void display_help_menu()
    "     that table will be used even if you ask for NN3 clusterizing inside\n"
    "     AFNI -- the idea being that to get SOME result is better than nothing.\n"
    "\n"
+   "-------------------\n"
+   "CAUTION and CAVEAT:\n"
+   "-------------------\n"
+   "* If you use a small ROI mask and also have a large FWHM, then it might happen\n"
+   "  that it is impossible to find a cluster size threshold N that works for a\n"
+   "  given (p,alpha) combination.\n"
+   " ++ For example, suppose that for p=0.0005 that only 6%% of the simulations\n"
+   "    have ANY above-threshold voxels inside the ROI mask.  In that case,\n"
+   "    N(p=0.0005,alpha=0.06) = 1.  There is no smaller value of N where 10%%\n"
+   "    of the simulations have a cluster of size N or larger.  Thus, it is\n"
+   "    impossible to find the cluster size threshold for the combination of\n"
+   "    p=0.0005 and alpha=0.10 in this case.\n"
+   " ++ 3dClustSim will report a cluster size threshold of N=1 for such cases.\n"
+   "    It will also print (to stderr) a warning message for all the (p,alpha)\n"
+   "    combinations that had this problem.\n"
+   " ++ This issue arises because 3dClustSim reports N for a given alpha.\n"
+   "    In contrast, AlphaSim reports alpha for each given N, and leaves\n"
+   "    you to interpret the resulting table.\n"
+   " ++ If you wish to see this effect in action, the following commands\n"
+   "    can be used as a starting point:\n"
+   "  3dClustSim -nxyz 8 8 8 -dxyz 2 2 2 -fwhm 8 -niter 10000\n"
+   "  AlphaSim -nxyz 8 8 8 -dxyz 2 2 2 -fwhm 8 -niter 10000 -quiet -fast -pthr 0.0005\n"
+   "\n"
    "-- RW Cox -- July 2010\n"
   ) ;
 
@@ -385,7 +410,7 @@ void get_options( int argc , char **argv )
       DSET_unload(mask_dset) ;
       mask_ngood = THD_countmask( mask_nvox , mask_vol ) ;
       if( mask_ngood < 128 ) ERROR_exit("-mask has only %d nonzero voxels!",mask_ngood) ;
-      if( verb ) INFO_message("%d voxels in mask (%.1f%% of total)",
+      if( verb ) INFO_message("%d voxels in mask (%.2f%% of total)",
                               mask_ngood,100.0*mask_ngood/(double)mask_nvox) ;
       nopt++ ; continue ;
     }
@@ -517,6 +542,10 @@ void get_options( int argc , char **argv )
 
     if( strcasecmp(argv[nopt],"-nodec") == 0 ){
       nodec = 1 ; nopt++ ; continue ;
+    }
+
+    if( strcasecmp(argv[nopt],"-alo") == 0 ){   /* 20 Jan 2011: debug stuff */
+      do_lohi = 1 ; nopt++ ; continue ;
     }
 
     /*----   -niml   ----*/
@@ -1126,6 +1155,7 @@ int main( int argc , char **argv )
     int ii , itop , iathr ;
     char *commandline = tross_commandline("3dClustSim",argc,argv) ;
     char fname[THD_MAX_NAME] , pname[THD_MAX_NAME] ;
+    char *amesg = NULL ;  /* 20 Jan 2011 */
 
     alpha        = (double *)malloc(sizeof(double)*(max_cluster_size+1)) ;
     clust_thresh = (float **)malloc(sizeof(float *)*npthr) ;
@@ -1140,41 +1170,62 @@ int main( int argc , char **argv )
           if( alpha[ii] > 0.0 ) itop = ii ;
         }
         for( ii=itop-1 ; ii >= 1 ; ii-- ) alpha[ii] += alpha[ii+1] ;
+#if 0
+INFO_message("pthr[%d]=%g itop=%d",ipthr,pthr[ipthr],itop) ;
+for( ii=1 ; ii <= itop ; ii++ )
+  fprintf(stderr," %d=%g",ii,alpha[ii]) ;
+fprintf(stderr,"\n") ;
+#endif
         for( iathr=0 ; iathr < nathr ; iathr++ ){
           aval = athr[iathr] ;
-          for( ii=1 ; ii < itop ; ii++ )
-            if( alpha[ii] > aval && alpha[ii+1] <= aval ) break ;
+          if( aval >= alpha[1] ){  /* unpleasant situation */
+            ii = 1 ;
+            amesg = THD_zzprintf( amesg ,
+                                  "    NN=%d  pthr=%9.6f  alpha=%6.3f\n" ,
+                                  nnn , pthr[ipthr] , aval ) ;
+          } else {
+            for( ii=1 ; ii < itop ; ii++ ){
+              if( alpha[ii] > aval && alpha[ii+1] <= aval ) break ;
+            }
+          }
 
           alo=alpha[ii] ; ahi=alpha[ii+1] ;
-          if( alo >= 1.0 ) alo = 1.0 - 0.1/niter ;
-          if( ahi <= 0.0 ) ahi = 0.1/niter ;
-          if( ahi >= alo ) ahi = 0.1*alo ;
-          aval = log(-log(1.0-aval)) ;
-          alo  = log(-log(1.0-alo)) ;
-          ahi  = log(-log(1.0-ahi)) ;
-          aval = ii + (aval-alo)/(ahi-alo) ;
-          if( nodec ) aval = (int)(aval+0.951) ;
+          if( do_lohi ){
+            aval = ii ;    /* for debugging */
+          } else {
+            if( alo >= 1.0 ) alo = 1.0 - 0.1/niter ;
+            if( ahi <= 0.0 ) ahi = 0.1/niter ;
+            if( ahi >= alo ) ahi = 0.1*alo ;
+            aval = log(-log(1.0-aval)) ;
+            alo  = log(-log(1.0-alo)) ;
+            ahi  = log(-log(1.0-ahi)) ;
+            aval = ii + (aval-alo)/(ahi-alo) ;
+                 if( aval < 1.0 ) aval = 1.0 ;
+            else if( nodec      ) aval = (int)(aval+0.951) ;
+          }
           clust_thresh[ipthr][iathr] = aval ;
 
           if( clust_thresh[ipthr][iathr] > cmax ) cmax = clust_thresh[ipthr][iathr] ;
         }
       }
 
-      /* edit each column to increase as pthr increases [shouldn't be needed] */
+      if( do_lohi == 0 ){
+        /* edit each column to increase as pthr increases [shouldn't be needed] */
 
-      for( iathr=0 ; iathr < nathr ; iathr++ ){
-        for( ipthr=npthr-2 ; ipthr >= 0 ; ipthr-- ){
-          if( clust_thresh[ipthr][iathr] < clust_thresh[ipthr+1][iathr] )
-            clust_thresh[ipthr][iathr] = clust_thresh[ipthr+1][iathr] ;
+        for( iathr=0 ; iathr < nathr ; iathr++ ){
+          for( ipthr=npthr-2 ; ipthr >= 0 ; ipthr-- ){
+            if( clust_thresh[ipthr][iathr] < clust_thresh[ipthr+1][iathr] )
+              clust_thresh[ipthr][iathr] = clust_thresh[ipthr+1][iathr] ;
+          }
         }
-      }
 
-      /* edit each row to increase as athr decreases [shouldn't be needed] */
+        /* edit each row to increase as athr decreases [shouldn't be needed] */
 
-      for( ipthr=0 ; ipthr < npthr ; ipthr++ ){
-        for( iathr=1 ; iathr < nathr ; iathr++ ){
-          if( clust_thresh[ipthr][iathr] < clust_thresh[ipthr][iathr-1] )
-            clust_thresh[ipthr][iathr] = clust_thresh[ipthr][iathr-1] ;
+        for( ipthr=0 ; ipthr < npthr ; ipthr++ ){
+          for( iathr=1 ; iathr < nathr ; iathr++ ){
+            if( clust_thresh[ipthr][iathr] < clust_thresh[ipthr][iathr-1] )
+              clust_thresh[ipthr][iathr] = clust_thresh[ipthr][iathr-1] ;
+          }
         }
       }
 
@@ -1295,7 +1346,24 @@ MPROBE ;
 
     } /* end of loop over nnn = NN degree */
 
-  } /* end of outputization */
+    if( amesg != NULL ){
+      WARNING_message("Simulation not effective for these cases:\n"
+                      "%s"
+                      "*+ This means that not enough clusters, of any size,\n"
+                      "     of voxels at or below each pthr threshold,\n"
+                      "     were found to estimate at each alpha level.\n"
+                      "*+ In other words, the probability that noise-only\n"
+                      "     data (of the given smoothness) will cause\n"
+                      "     above-threshold (at the given pthr) clusters\n"
+                      "     is smaller than the desired alpha levels.\n"
+                      "*+ This problem can arise when the masked region\n"
+                      "     being simulated is small and at the same time\n"
+                      "     the smoothness (FWHM) is large."
+                    , amesg ) ;
+      free(amesg) ;
+    }
+
+  } /* end of outputizationing */
 
   /*------- a minor aid for the pitiful helpless user [e.g., me] -------*/
 
