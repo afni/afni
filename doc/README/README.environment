@@ -49,6 +49,9 @@ N.B.: If you set an AFNI environment variable on the command line, or
       To turn off these warnings, set environment variable
       AFNI_ENVIRON_WARNINGS to NO.
 
+N.B.: You can allow the .afnirc file to re-set existing environment
+      variables by setting environment variable AFNI_ENVIRON_RESET to YES.
+
 ********************************************************
 June 1999: Setting environment variables in file .afnirc
 ********************************************************
