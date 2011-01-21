@@ -110,10 +110,10 @@ class VarsObject(object):
          
          if alevel > 0:
             - assume array is consistent in depth and type
-              (so can focus on val[0][0][0]...
+              (so can focus on val[0][0][0]...)
             - being empty at some depth is valid
 
-         return 1 or 0"""
+         return 1 if valid, else 0"""
 
       # make sure atr is a string
       if type(atr) != str:
