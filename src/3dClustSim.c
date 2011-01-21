@@ -1178,14 +1178,15 @@ fprintf(stderr,"\n") ;
 #endif
         for( iathr=0 ; iathr < nathr ; iathr++ ){
           aval = athr[iathr] ;
-          if( aval >= alpha[1] ){  /* unpleasant situation */
+          if( aval > alpha[1] ){  /* unpleasant situation */
             ii = 1 ;
-            amesg = THD_zzprintf( amesg ,
-                                  "    NN=%d  pthr=%9.6f  alpha=%6.3f\n" ,
-                                  nnn , pthr[ipthr] , aval ) ;
+            amesg = THD_zzprintf(
+                     amesg ,
+                     "   NN=%d  pthr=%9.6f  alpha=%6.3f [max simulated alpha=%6.3f]\n" ,
+                     nnn , pthr[ipthr] , aval , alpha[1] ) ;
           } else {
             for( ii=1 ; ii < itop ; ii++ ){
-              if( alpha[ii] > aval && alpha[ii+1] <= aval ) break ;
+              if( alpha[ii] >= aval && alpha[ii+1] <= aval ) break ;
             }
           }
 
