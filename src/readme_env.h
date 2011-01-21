@@ -50,6 +50,9 @@ static char * readme_env[] = {
    "      To turn off these warnings, set environment variable\n" ,
    "      AFNI_ENVIRON_WARNINGS to NO.\n" ,
    "\n" ,
+   "N.B.: You can allow the .afnirc file to re-set existing environment\n" ,
+   "      variables by setting environment variable AFNI_ENVIRON_RESET to YES.\n" ,
+   "\n" ,
    "********************************************************\n" ,
    "June 1999: Setting environment variables in file .afnirc\n" ,
    "********************************************************\n" ,
@@ -3139,4 +3142,4 @@ static char * readme_env[] = {
    "behavior, set this variable to YES.\n" ,
    "\n" ,
    NULL } ;
-#define NUM_readme_env 3139
+#define NUM_readme_env 3142

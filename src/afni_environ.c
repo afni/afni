@@ -151,8 +151,10 @@ ENTRY("AFNI_process_environ") ;
       /**-- ENVIRONMENT section [04 Jun 1999] --**/
 
       if( strcmp(str,"***ENVIRONMENT") == 0 ){ /* loop: find environment eqns */
-         char *enveqn , *eee=NULL; int nl , nr ;
+         char *enveqn , *eee; int nl , nr , allow_reset ;
          senv = 1 ;
+
+         eee = getenv("AFNI_ENVIRON_RESET") ; allow_reset = YESSISH(eee) ;
 
          while(1){                        /* loop, looking for 'name = value' */
             GETEQN ;
@@ -162,7 +164,7 @@ ENTRY("AFNI_process_environ") ;
             nl = strlen(left) ; nr = strlen(right) ;
             enveqn = (char *) malloc(nl+nr+4) ;
             strcpy(enveqn,left) ; strcat(enveqn,"=") ; strcat(enveqn,right) ;
-            if (!(eee = getenv(left))) {          /* ZSS Nov. 25 08 */
+            if( !(eee = getenv(left)) || allow_reset ){  /* ZSS Nov 25 2008 */
                putenv(enveqn) ;
             } else if( !AFNI_noenv("AFNI_ENVIRON_WARNINGS") &&
                         strcmp(right, eee)){
