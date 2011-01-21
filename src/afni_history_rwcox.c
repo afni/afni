@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 21 , JAN , 2011 , RWC , "afni" , MICRO , TYPE_NEW_ENV ,
+   "AFNI_ENVIRON_RESET allows .afnirc to re-set existing variables" ,
+   "Per the suggestion of Alex Waite of MCW." } ,
+
  { 20 , JAN , 2011 , RWC , "3dClustSim" , MINOR , TYPE_BUG_FIX ,
    "Small ROI masks could give weird and wrong results" ,
    "Problem was when a desired alpha level (say 0.10) simply couldn't be\n"
