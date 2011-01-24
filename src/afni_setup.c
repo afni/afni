@@ -114,13 +114,15 @@ if(PRINT_TRACING)
 
             if( mode == SETUP_INIT_MODE ){
                int jj ;
-               for( jj=0 ; jj < INIT_ncolovr ; jj++ )
+               for( jj=0 ; jj < INIT_ncolovr ; jj++ ) /* 24 Jan 2011 */
                  if( strcmp(left,INIT_labovr[jj]) == 0 ) break ;
-               if( jj < INIT_ncolovr ){
+               if( jj < INIT_ncolovr ){           /* re-define existing color */
                  ii = jj ;
-               } else if( INIT_ncolovr < MAX_NCOLOVR ){
+                 if( strcmp(right,INIT_colovr[ii]) != 0 )
+                   fprintf(stderr,"\n++ Setup file %s: redefine color '%s'",fname,left) ;
+               } else if( INIT_ncolovr < MAX_NCOLOVR ){     /* new color name */
                  ii = INIT_ncolovr++ ;
-               } else {
+               } else {                 /* may never happen in all of history */
                  fprintf(stderr,"\nIn setup file %s, color table overflow!\n",fname);
                  goto SkipSection ;
                }
