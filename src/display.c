@@ -7,8 +7,8 @@
 #include "display.h"
 #include "mrilib.h"
 
-static char * x11_vcl[] =  { "StaticGray"  , "GrayScale" , "StaticColor" ,
-                             "PseudoColor" , "TrueColor" , "DirectColor"  } ;
+static char *x11_vcl[] =  { "StaticGray"  , "GrayScale" , "StaticColor" ,
+                            "PseudoColor" , "TrueColor" , "DirectColor"  } ;
 
 MCW_DC *first_dc = NULL ;              /* 26 Jun 2003 */
 
@@ -31,7 +31,7 @@ static int highbit(unsigned long ul)
    be 3 or 4, depending on the server.  RWCox -- 23 Aug 1998.
 ---------------------------------------------------------------------------*/
 
-static void setup_byper( MCW_DC * dc )
+static void setup_byper( MCW_DC *dc )
 {
    XPixmapFormatValues * xpv ;
    int                  nxpv = 0 , ii ;
@@ -92,6 +92,10 @@ ENTRY("MCW_new_DC") ;
       fprintf(stderr,"\n*** MCW_new_DC: ILLEGAL number of colors: %d %d\n",ncol,novr) ;
       ncol = 4 ; novr = 0 ;
    }
+
+if(PRINT_TRACING){
+ char str[256]; sprintf(str,"ncol=%d novr=%d gam=%g",ncol,novr,gam); STATUS(str);
+}
 
    dc = myXtNew(MCW_DC) ;
 
@@ -617,7 +621,7 @@ Pixel Name_to_color( MCW_DC * dc , char * name )
    22 Aug 1998: modified for TrueColor support
 ----------------------------------------------------------------------------*/
 
-int DC_add_overlay_color( MCW_DC * dc , char * name , char * label )
+int DC_add_overlay_color( MCW_DC *dc , char *name , char *label )
 {
    int ii , ok , newcol ;
    Pixel newpix ;
@@ -628,6 +632,10 @@ ENTRY("DC_add_overlay_color") ;
    if( name == NULL || strlen(name) == 0 ) RETURN(-1) ;  /* error */
    if( label == NULL ) label = name ;
 
+if(PRINT_TRACING){
+ char str[256]; sprintf(str,"color=%s label=%s",name,label); STATUS(str);
+}
+
    /** see if label is already in the table **/
 
    for( ii=1 ; ii < dc->ovc->ncol_ov ; ii++ )
@@ -637,6 +645,8 @@ ENTRY("DC_add_overlay_color") ;
    if( ii == dc->ovc->ncol_ov ){           /** Yes **/
       unsigned int nplmsk = 0 ;
       unsigned long plane_masks[1] ;
+
+STATUS("creating new color table entry") ;
 
       if( ii >= MAX_COLORS ) RETURN(-1) ;   /* too many overlay colors! */
 
@@ -650,6 +660,8 @@ ENTRY("DC_add_overlay_color") ;
    } else {                                /** Reusing an old cell **/
 
       if( strcmp(name,dc->ovc->name_ov[ii]) == 0 ) RETURN(ii) ; /* no change! */
+
+STATUS("re-defining old color table entry") ;
 
       if( dc->visual_class == PseudoColor )  /* 22 Aug 1998 */
          cell.pixel = dc->ovc->pix_ov[ii] ;
@@ -672,6 +684,10 @@ ENTRY("DC_add_overlay_color") ;
    else if( dc->visual_class == TrueColor )
       XAllocColor( dc->display , dc->colormap , &cell ) ;
 
+if(PRINT_TRACING){
+ char str[256]; sprintf(str,"overlay color index=%d",ii); STATUS(str);
+}
+
    dc->ovc->xcol_ov[ii]  = cell ;                      /* save cell info */
    dc->ovc->pix_ov[ii]   = cell.pixel ;
    dc->ovc->name_ov[ii]  = XtNewString(name) ;
@@ -681,8 +697,8 @@ ENTRY("DC_add_overlay_color") ;
    dc->ovc->g_ov[ii] = INTEN_TO_BYTE(cell.green) ;
    dc->ovc->b_ov[ii] = INTEN_TO_BYTE(cell.blue) ;
 
-   if( dc->visual_class == PseudoColor )  /* 11 Feb 1999: */
-      FREE_DC_colordef(dc->cdef) ;        /* will need to be recomputed */
+   if( dc->visual_class == PseudoColor ) /* 11 Feb 1999: */
+     FREE_DC_colordef(dc->cdef) ;        /* will need to be recomputed */
 
    dc->ovc->bright_ov[ii] = BRIGHTNESS( DCOV_REDBYTE(dc,ii) ,       /* 20 Dec 1999 */
                                         DCOV_GREENBYTE(dc,ii) ,
