@@ -113,19 +113,24 @@ if(PRINT_TRACING)
             if( !THD_filename_pure(left) ) continue ;
 
             if( mode == SETUP_INIT_MODE ){
-               if( INIT_ncolovr < MAX_NCOLOVR ){
-                  ii = INIT_ncolovr++ ;
-                  INIT_labovr[ii] = XtNewString(left) ;
-                  INIT_colovr[ii] = XtNewString(right) ;
+               int jj ;
+               for( jj=0 ; jj < INIT_ncolovr ; jj++ )
+                 if( strcmp(left,INIT_labovr[jj]) == 0 ) break ;
+               if( jj < INIT_ncolovr ){
+                 ii = jj ;
+               } else if( INIT_ncolovr < MAX_NCOLOVR ){
+                 ii = INIT_ncolovr++ ;
+               } else {
+                 fprintf(stderr,"\nIn setup file %s, color table overflow!\n",fname);
+                 goto SkipSection ;
+               }
+               INIT_labovr[ii] = XtNewString(left) ;
+               INIT_colovr[ii] = XtNewString(right) ;
 
 if(PRINT_TRACING)
 { char str[256] ;
   sprintf(str,"setup into #%d",ii) ; STATUS(str);}
 
-               } else {
-                  fprintf(stderr,"\nIn setup file %s, color table overflow!\n",fname);
-                  goto SkipSection ;
-               }
             } else if( mode == SETUP_LATER_MODE ){
                ii = DC_add_overlay_color( dc , right , left ) ;
 
