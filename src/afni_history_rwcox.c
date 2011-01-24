@@ -44,6 +44,15 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 24 , JAN , 2011 , RWC , "afni_setup.c" , MICRO , TYPE_BUG_FIX ,
+   "Re-definition of pre-defined colors" ,
+   "Before this fix, when a user re-defined a pre-defined color in a\n"
+   "***COLORS section, this would go into a new entry for later setup in\n"
+   "MCW_new_DC.  But later, the duplicate labels (e.g., 'yellow') would\n"
+   "cause only 1 entry to actually be created -- which would screw up the\n"
+   "indexing of later new colors that were actually created de novo.  This\n"
+   "was fixed by re-defining the re-used color entries immediately." } ,
+
  { 21 , JAN , 2011 , RWC , "afni" , MICRO , TYPE_NEW_ENV ,
    "AFNI_ENVIRON_RESET allows .afnirc to re-set existing variables" ,
    "Per the suggestion of Alex Waite of MCW." } ,
