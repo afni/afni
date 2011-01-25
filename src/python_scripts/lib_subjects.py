@@ -7,8 +7,9 @@ import afni_util as UTIL
 g_mema_tests = [None, 'paired', 'unpaired']
 g_ttpp_tests = ['-AminusB', '-BminusA']
 
-# simple types for VarsObject
-g_valid_simple_types = [int, float, str, list]
+# atomic (type within nested list) and simple types for VarsObject
+g_valid_atomic_types = [int, float, str, list]
+g_simple_types = [int, float, str]
 
 class VarsObject(object):
    """a general class for holding variables, essentially treated as a
@@ -17,8 +18,8 @@ class VarsObject(object):
    def __init__(self, name='noname'):
       self.name = name
 
-   def __get_simple_type__(self, atr):
-      """return the simple type of an object
+   def __get_atomic_type__(self, atr):
+      """return the atomic type of an object
          return one of int, float, str, list
 
          - list is returned in the case of an empty list or None
@@ -32,9 +33,16 @@ class VarsObject(object):
          except: return list
 
       if val == None: return list  # special: NoneType does not seem defined
-      if type(val) in g_valid_simple_types: return type(val)
+      if type(val) in g_valid_atomic_types: return type(val)
 
-      return None       # not a simple type
+      return None       # not a simple atomic type
+
+   def has_simple_type(self, atr):
+      """attribute must exist and have type int, float or str (no list)
+         else return 0"""
+      val = getattr(self, atr)
+      if type(val) in g_simple_types: return 1
+      else:                           return 0
 
    def attributes(self):
       """same as dir(), but return only those with:
@@ -45,7 +53,8 @@ class VarsObject(object):
       retlist = []
       for atr in dlist:
          if atr[0] == '_': continue
-         if self.__get_simple_type__(atr) == None: continue
+         tt = self.__get_atomic_type__(atr)
+         if self.__get_atomic_type__(atr) == None: continue
          retlist.append(atr)
       retlist.sort()
       return retlist
@@ -83,7 +92,7 @@ class VarsObject(object):
 
    def valcopy(self, atr):
       """use deepcopy to copy any value, since it may be a list"""
-      if self.__get_simple_type__(atr) == None:
+      if self.__get_atomic_type__(atr) == None:
          print ("** attribute '%s' is not simple, copy may be bad" % atr)
 
       return copy.deepcopy(self.val(atr))
@@ -130,7 +139,7 @@ class VarsObject(object):
 
       if exists: return 1       # since found, exists test is done
 
-      tt = self.__get_simple_type__(atr)
+      tt = self.__get_atomic_type__(atr)
       depth = self.atr_depth(atr)
 
       if depth != alevel: return 0      # bad level is bad
