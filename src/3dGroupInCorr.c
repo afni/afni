@@ -10,11 +10,12 @@
     -- To output dataset to disk
     -- 3dTcorrMap-like scan through whole brain as seed
    ++ Per-subject covariates -- DONE!
+   ++ Send per-subject correlations to AFNI (as an option)
 ***/
 
 #include "mrilib.h"
 
-#ifdef USE_OMP
+#ifdef USE_OMP     /* this is important! */
 #include <omp.h>
 #endif
 
@@ -641,6 +642,9 @@ int main( int argc , char *argv[] )
    float **dtar=NULL ;
    int no_ttest = 0 ;  /* 02 Nov 2010 */
 
+   int do_sendall = 0 ; /* 22 Jan 2011 */
+   char *bricklabels = NULL ;
+
 #ifdef COVTEST
    float *ctarA=NULL , *ctarB=NULL ; char *ctnam ;
 #endif
@@ -757,6 +761,14 @@ int main( int argc , char *argv[] )
       "               from the -setA filename.\n"
       " -labelB bbb = Label to attach (in AFNI) to sub-bricks corresponding to setB.\n"
       "              ++ At most the first 11 characters of each label will be used!\n"
+#if 0
+      "\n"
+      " -sendall    = Send all individual subject results to AFNI, as well as the\n"
+      "               various statistics.\n"
+      "              ++ If there are a lot of datasets, then the results will be VERY\n"
+      "                 large and take up a lot of memory.  Use this option with some\n"
+      "                 judgment and wisdom, or bad things may happen!\n"
+#endif
       "\n"
       "*** Two-Sample Options ***\n"
       "\n"
@@ -962,6 +974,10 @@ int main( int argc , char *argv[] )
        do_shm = 0 ; nopt++ ; continue ;
      }
 #endif
+
+     if( strcasecmp(argv[nopt],"-sendall") == 0 ){  /* 22 Jan 2011 */
+       do_sendall++ ; nopt++ ; continue ;
+     }
 
      if( strcasecmp(argv[nopt],"-quiet") == 0 ){
        verb = 0 ; nopt++ ; continue ;
@@ -1507,8 +1523,8 @@ int main( int argc , char *argv[] )
 
    NI_set_attribute_int( nelcmd , "target_nvals" , nout ) ;
 
+   bricklabels = (char *)calloc(sizeof(char),(5*MAX_LABEL_SIZE+16)*(nout+1)) ;
    if( mcov == 0 ){
-     char bricklabels[32*MAX_LABEL_SIZE+64] ;
 
      if( shd_BBB == NULL ){  /* 1 sample */
        sprintf( bricklabels , "%s_mean ; %s_Zscr" , label_AAA , label_AAA ) ;
@@ -1520,10 +1536,8 @@ int main( int argc , char *argv[] )
                   " ; %s_mean ; %s_Zscr ; %s_mean ; %s_Zscr" ,
                   label_AAA , label_AAA , label_BBB , label_BBB ) ;
      }
-     NI_set_attribute( nelcmd , "target_labels" , bricklabels ) ;
 
    } else {  /* labels for the myriad of covariates results [23 May 2010] */
-     char *bricklabels = (char *)calloc(sizeof(char),(3*MAX_LABEL_SIZE+16)*(nout+1)) ;
 
      if( testAB ){
        sprintf( bricklabels , "%s-%s_mean ; %s-%s_Zscr ;" ,
@@ -1553,10 +1567,18 @@ int main( int argc , char *argv[] )
                   label_BBB , covlab->str[kk]  ) ;
      }
 
-     kk = strlen(bricklabels) ; bricklabels[kk-1] = '\0' ;
-     NI_set_attribute( nelcmd , "target_labels" , bricklabels ) ;
-     free(bricklabels) ;
+     kk = strlen(bricklabels) ; bricklabels[kk-1] = '\0' ;  /* truncate last ';' */
    }
+
+   /* add labels for the subject-level bricks, if needed */
+
+   if( do_sendall ){
+   }
+
+   /* set the brick labels into the header being sent to AFNI/SUMA */
+
+   NI_set_attribute( nelcmd , "target_labels" , bricklabels ) ;
+   free(bricklabels) ;
 
    /* ZSS: set surface attributes */
 
