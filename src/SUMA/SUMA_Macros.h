@@ -28,6 +28,9 @@
             drand48() + drand48() + drand48() + drand48() - 6.0) * s)
 
 
+/* return integer between 0 and t-1 */
+#define SUMA_IRAN(t) (lrand48() % (t))
+
 /*!
    Macro to create a new ID code at random (when strn = NULL) or a hash of a string
    written mostly to allow for the allocation of newcode with SUMA's functions

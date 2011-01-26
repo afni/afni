@@ -2710,6 +2710,13 @@ tsdsolve:tsdsolve.c
 	$(MAKE) afni_all  ;	\
 	cd ../	;		)
 
+libsegtools.a: avovk/cluster_floatNOMASK.c avovk/thd_segtools_fNM.c
+	( cd avovk ;	\
+	./@MakeLocalMake	;\
+	$(MAKE) libsegtools.a  ;	\
+	$(CP) libsegtools.a ../;	\
+	cd ../	;		)
+
 #############
 #SUMA
 
