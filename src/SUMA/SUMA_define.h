@@ -1290,7 +1290,8 @@ typedef struct {
    Widget ContROImode_tb;
    Widget Penmode_tb;   /*!< widget for toggling draw with Pen mode */
    Widget AfniLink_tb; /*!< widget for toggling link to Afni */
-   Widget ParentLabel_lb; /*!< widget for specifying a label for the parent surface */ 
+   Widget ParentLabel_lb; /*!< widget for specifying a label for 
+                              the parent surface */ 
    Widget Redo_pb;
    Widget Undo_pb;
    Widget Save_pb;
@@ -1299,18 +1300,28 @@ typedef struct {
    Widget Finish_pb;
    Widget Join_pb;
    Widget Delete_pb;
-   SUMA_Boolean Delete_first; /*! Flag indicating putton has been pressed for the first time */
+   SUMA_Boolean Delete_first; /*! Flag indicating putton has been 
+                                 pressed for the first time */
    SUMA_ARROW_TEXT_FIELD *ROIval; /*!< pointer to arrow field */
    SUMA_ARROW_TEXT_FIELD *ROIlbl; /*!< pointer to text field */
-   SUMA_DRAWN_ROI *curDrawnROI; /*!< A pointer to the DrawnROI structure currently in use by window.
-                                    This is a copy of another pointer, NEVER FREE IT*/
-   SUMA_LIST_WIDGET *SwitchROIlst; /*!< a structure containing widgets and options for the switch ROI list */
-   int SaveWhat;  /*!< option for determining what ROI to save, acceptable values are in SUMA_WIDGET_INDEX_DRAWROI_SAVEWHAT */
-   int SaveMode;  /*!< option for determining format of ROI to save, acceptable values are in SUMA_WIDGET_INDEX_DRAWROI_SAVEMODE */ 
-   int WhatDist;  /*!< option for determining format of ROI to save, acceptable values are in SUMA_WIDGET_INDEX_DRAWROI_SAVEMODE */ 
-   Widget SaveModeMenu[SW_N_DrawROI_SaveMode]; /*!< set of widgets for SaveMode menu */
-   Widget SaveWhatMenu[SW_N_DrawROI_SaveWhat]; /*!< set of widgets for SaveWhat menu */
-   Widget WhatDistMenu[SW_N_DrawROI_WhatDist]; /*!< set of widgets for SaveWhat menu */
+   SUMA_DRAWN_ROI *curDrawnROI; /*!< A pointer to the DrawnROI structure
+                                    currently in use by window.
+                                    This is a copy of another pointer, 
+                                    NEVER FREE IT*/
+   SUMA_LIST_WIDGET *SwitchROIlst; /*!< a structure containing widgets and 
+                                    options for the switch ROI list */
+   int SaveWhat;  /*!< option for determining what ROI to save, acceptable values
+                     are in SUMA_WIDGET_INDEX_DRAWROI_SAVEWHAT */
+   int SaveMode;  /*!< option for determining format of ROI to save, acceptable
+                     values are in SUMA_WIDGET_INDEX_DRAWROI_SAVEMODE */ 
+   int WhatDist;  /*!< option for determining format of ROI to save, acceptable  
+                        values are in SUMA_WIDGET_INDEX_DRAWROI_SAVEMODE */ 
+   Widget SaveModeMenu[SW_N_DrawROI_SaveMode]; /*!< set of widgets for SaveMode 
+                                                      menu */
+   Widget SaveWhatMenu[SW_N_DrawROI_SaveWhat]; /*!< set of widgets for SaveWhat 
+                                                      menu */
+   Widget WhatDistMenu[SW_N_DrawROI_WhatDist]; /*!< set of widgets for SaveWhat 
+                                                      menu */
 } SUMA_X_DrawROI;
 
                

@@ -108,7 +108,7 @@ static void display_help(void)
           "                instead of hierarchical clustering, and the number\n"
           "                of clusters k to use. \n"
           "                Default is kmeans with k = 3 clusters\n");
-  printf ("  -remap  METH  Reassign clusters numbers based on a method:\n"
+  printf ("  -remap  METH  Reassign clusters numbers based on METH:\n"
           "                   NONE: No remapping (default)\n"
           "                   COUNT: based on cluster size ascending\n"
           "                  iCOUNT: COUNT, descending\n"
@@ -121,7 +121,7 @@ static void display_help(void)
   printf ("  -clabels LAB1 LAB2 ...: Provide a label for each cluster.\n"
           "                          Labels cannot start with '-'.\n");
   printf ("  -clust_init CLUST_INIT: Specify a dataset to initialize \n"
-          "                          clustering.\n"
+          "                          clustering. This option sets -r 0 .\n"
           "                          If CLUST_INIT has a labeltable and \n"
           "                          you do not specify one then CLUST_INIT's\n"
           "                          table is used for the output\n");
@@ -131,7 +131,7 @@ static void display_help(void)
           "       Options -c and -k are mutually exclusive\n");
   printf ("  -r number     For k-means clustering, the number of times the\n"
           "                k-means clustering algorithm is run\n"
-          "                (default: 1)\n");
+          "                (default: 0 with -clust_init, 1 otherwise)\n");
 /*  printf ("  -m [msca]     Specifies which hierarchical clustering method to\n"
           "                use:\n"
           "                m: Pairwise complete-linkage\n"
@@ -192,7 +192,9 @@ int main(int argc, char **argv)
    mainENTRY("3dkmeans"); machdep();/* Used to be called 3dAclustering_fNM */
    PRINT_VERSION("3dkmeans"); AUTHOR("avovk") ;
    
-   oc.r = 1;
+   oc = new_kmeans_oc();
+   
+   oc.r = -1;
    oc.k = 0;
    oc.kh = 0;
    oc.jobname = NULL;
@@ -511,9 +513,9 @@ int main(int argc, char **argv)
           RETURN(1);
         }
         oc.r = clusterlib_readnumber(argv[i]);
-        if (oc.r < 1)
+        if (oc.r < 0)
         { printf ("Error reading command line argument r: "
-                  "a positive integer is required\n");
+                  "a >= 0 integer is required\n");
           RETURN(1);
         }
         i++;
@@ -536,6 +538,19 @@ int main(int argc, char **argv)
     
    }
    if (oc.k <= 0 && oc.kh <= 0) oc.k = 3;
+   
+   if (clust_init_name) {
+      if (oc.r > 0) {
+         ERROR_message("Can't use -clust_init and -r > 0");
+         RETURN(1);
+      } else {
+         oc.r = 0;
+      }
+   } 
+   
+   if (oc.r == -1) oc.r = 1;
+   
+   
    
    if(oc.jobname == NULL) oc.jobname = clusterlib_setjobname(filename[0],1);
 

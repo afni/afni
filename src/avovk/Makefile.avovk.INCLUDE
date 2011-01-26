@@ -106,7 +106,8 @@ all_exp: ${AVOVKLIB} progs_exp install
 
 all: ${AVOVKLIB} progs install 
  
-afni_all: clean progs
+afni_all: clean libsegtools.a progs
+	@if [ -f  libsegtools.a ]; then cp -p libsegtools.a ../; fi;	
 	@if [ -f  3dkmeans ]; then mv 3dkmeans ../; fi;	
  
 

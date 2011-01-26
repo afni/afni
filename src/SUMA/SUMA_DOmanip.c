@@ -680,7 +680,7 @@ char *SUMA_DOv_Info (SUMA_DO *dov, int N_dov, int detail)
    SUMA_SurfaceObject *so_op=NULL;   
    SUMA_VolumeObject *vo_op=NULL;   
    SUMA_STRING *SS=NULL;
-   
+   SUMA_Boolean LocalHead = NOPE;
    SUMA_ENTRY;
    
    SS = SUMA_StringAppend(NULL, NULL);
@@ -735,11 +735,14 @@ char *SUMA_DOv_Info (SUMA_DO *dov, int N_dov, int detail)
             case AO_type:
                {
                   SUMA_Axis* ao;
+                  SUMA_LH("HERE\n");
                   ao = (SUMA_Axis*) dov[i].OP;
                   SS = SUMA_StringAppend_va(SS,
                      "DOv ID: %d\n\tAxis Object\n"
                      "\tType: %d (%s), Axis Attachment %d\n", 
-                     i,dov[i].ObjectType, dov[i].CoordType);
+                     i,dov[i].ObjectType, 
+                     SUMA_ObjectTypeCode2ObjectTypeName(dov[i].ObjectType),
+                     dov[i].CoordType);
                   SS = SUMA_StringAppend_va(SS,
                      "\tName: %s\n\tidcode: %s\n", ao->Label, ao->idcode_str);
                }

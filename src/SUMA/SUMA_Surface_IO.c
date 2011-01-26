@@ -4858,18 +4858,20 @@ void SUMA_OpenDrawnROI (char *filename, void *data)
    int i, N_ROI;
    SUMA_SurfaceObject *SO=NULL, *SOp=NULL;
    SUMA_OVERLAYS *over=NULL;
-   
+   SUMA_SurfaceViewer *sv = (SUMA_SurfaceViewer *)data;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
 
    SUMA_LH("Called");   
-
+   
+   if (!sv) sv = &(SUMAg_SVv[0]);
+   
    /* check for type ... */
    
    if (SUMA_isExtension(filename, ".niml.roi")) {
       /* load niml ROI */
-      if (!( ROIv = SUMA_OpenDrawnROI_NIML (filename, &N_ROI, YUP))) {
+      if (!( ROIv = SUMA_OpenDrawnROI_NIML (filename, &N_ROI, YUP, sv))) {
          SUMA_SLP_Err("Failed to read NIML ROI.");
          SUMA_RETURNe;
       }
@@ -4877,7 +4879,7 @@ void SUMA_OpenDrawnROI (char *filename, void *data)
       /* load 1D ROI */
       /* You need to select a parent surface */
       SUMA_SLP_Warn("Assuming parent surface.");
-      SO = (SUMA_SurfaceObject *)(SUMAg_DOv[SUMAg_SVv[0].Focus_SO_ID].OP);
+      SO = (SUMA_SurfaceObject *)(SUMAg_DOv[sv->Focus_SO_ID].OP);
       if (SO->N_patchNode < SO->N_Node ||
           SO->patchNodeMask) {
          SUMA_S_Note("Assigning ROI to domain parent");
@@ -5535,7 +5537,8 @@ SUMA_DRAWN_ROI **SUMA_MultiColumnsToDrawnROI(
 */
 SUMA_DRAWN_ROI ** SUMA_OpenDrawnROI_NIML (char *filename, 
                                           int *N_ROI, 
-                                          SUMA_Boolean ForDisplay)
+                                          SUMA_Boolean ForDisplay,
+                                          SUMA_SurfaceViewer *sv)
 { /* begin embedded function */
    static char FuncName[]={"SUMA_OpenDrawnROI_NIML"};
    char stmp[SUMA_MAX_NAME_LENGTH+100], *nel_idcode, *att=NULL;
@@ -5553,6 +5556,14 @@ SUMA_DRAWN_ROI ** SUMA_OpenDrawnROI_NIML (char *filename,
    
    SUMA_ENTRY;
 
+   if (!sv) {
+      if (SUMAg_CF->PointerLastInViewer >= 0 && SUMAg_N_SVv > 1) {
+         sv = &(SUMAg_SVv[SUMAg_CF->PointerLastInViewer]);
+      }
+   } 
+   
+   if (!sv) sv = &(SUMAg_SVv[0]);
+   
    *N_ROI = 0;
    
    if (SUMAg_CF->nimlROI_Datum_type < 0) {
@@ -5655,7 +5666,7 @@ SUMA_DRAWN_ROI ** SUMA_OpenDrawnROI_NIML (char *filename,
                                 "version in file ?", 
                   NI_get_attribute( nel , "Label"), nel_idcode); 
 
-                  answer = SUMA_ForceUser_YesNo (SUMAg_SVv[0].X->TOPLEVEL, 
+                  answer = SUMA_ForceUser_YesNo (sv->X->TOPLEVEL, 
                                     stmp, 
                                     0, SWP_DONT_CARE);
                   if (LocalHead) 
@@ -5721,7 +5732,7 @@ SUMA_DRAWN_ROI ** SUMA_OpenDrawnROI_NIML (char *filename,
                }
               
                if (iDO < 0) {
-                  if (!iwarn) {
+                  if (!iwarn && !LocalHead) {
                      SUMA_S_Warnv(
                         "ROI's parent surface not loaded, or ROI is\n"
                         "unparented. Looking for adoptive parents...\n"
@@ -5730,9 +5741,18 @@ SUMA_DRAWN_ROI ** SUMA_OpenDrawnROI_NIML (char *filename,
                         , filename );
                      ++iwarn;
                   }
-                  iDO = SUMA_BiggestLocalDomainParent(SUMAg_DOv, SUMAg_N_DOv); 
+                  /* assume user has selected the proper surface first */
+                  if (sv->Focus_SO_ID >= 0) {
+                     SO = (SUMA_SurfaceObject *)(SUMAg_DOv[sv->Focus_SO_ID].OP);
+                     iDO = SUMA_findSO_inDOv(SO->LocalDomainParentID, 
+                                             SUMAg_DOv, SUMAg_N_DOv); 
+                  }
+                  if (iDO < 0) { /* try one more time */
+                     iDO = SUMA_BiggestLocalDomainParent(SUMAg_DOv, SUMAg_N_DOv);                   }
                   if (iDO < 0) {
-                     SUMA_S_Err("Can't find adoptive surface");
+                     SUMA_S_Err("Can't find adoptive surface\n"
+                                 "Try selecting adoptive surface before\n"
+                                 "opening ROI");
                      AddNel = NOPE;
                   } else {
                      SO = (SUMA_SurfaceObject *)SUMAg_DOv[iDO].OP;
