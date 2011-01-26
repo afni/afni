@@ -324,7 +324,7 @@ int main (int argc,char *argv[])
       if (SUMA_isExtension(input_name_v[i], ".niml.roi")) {
          /* load niml ROI */
          if (!( tROIv = SUMA_OpenDrawnROI_NIML (input_name_v[i], 
-                                                      &N_tROI, NOPE))) {
+                                                      &N_tROI, NOPE, NULL))) {
             SUMA_S_Err("Failed to read NIML ROI.");
             exit(1);
          }
