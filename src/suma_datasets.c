@@ -14168,6 +14168,32 @@ NI_str_array * SUMA_NI_decode_string_list( char *ss , char *sep )
    sar->num = num ; return sar ;
 }
 
+NI_str_array * SUMA_NI_string_vec_to_str_array( char **ss , int nss )
+{
+   static char FuncName[]={"SUMA_NI_string_vec_to_str_array"};
+   NI_str_array *sar ;
+   int num ,id, nn=0 ;
+
+   if( ss == NULL || nss == 0 ) return NULL ; /* bad input */
+
+   sar = NI_malloc(NI_str_array, sizeof(NI_str_array)) ;  /* create output */
+   sar->num = nss ; sar->str=NULL;
+   sar->str = NI_realloc( sar->str , char*, sizeof(char *)*nss ) ;
+
+   /* scan for sub-strings */
+
+   num = 0 ;
+   while( num < nss ){
+      if (ss[num]) nn = strlen(ss[num]);
+      else nn=0;
+      sar->str[num] = NI_malloc(char, (nn+1)*sizeof(char)) ;                 
+      memcpy(sar->str[num],ss[num], nn) ;  
+      sar->str[num++][nn] = '\0' ;                   
+   }
+
+   return sar ;
+}
+
 /*--------------------------------------------------------------------*/
 /*! \brief Returns a copy of the ith string in a string list. 
 \sa SUMA_NI_decode_string_list ( on which this function is based)

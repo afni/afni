@@ -1575,6 +1575,7 @@ int SUMA_AddColAtt_CompString(NI_element *nel, int col, char *lbl,
                               char *sep, int insert_mode);
 int SUMA_Remove_Sub_String(char *cs, char *sep, char *strn);
 NI_str_array * SUMA_NI_decode_string_list( char *ss , char *sep );
+NI_str_array * SUMA_NI_string_vec_to_str_array( char **ss , int nss );
 char  * SUMA_NI_get_ith_string( char *ss , char *sep, int i );
 SUMA_VARTYPE SUMA_CTypeName2VarType (char *vt);
 const char *SUMA_VarType2CTypeName (SUMA_VARTYPE vt);

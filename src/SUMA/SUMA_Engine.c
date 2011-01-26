@@ -239,8 +239,8 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             break;
          case SE_OpenDrawnROIFileSelection:
             /* opens the open ROI file selection window. 
-            Expects NULL in vp (to be used later and a position 
-            reference widget typecast to ip, the latter can be null.*/
+            Expects sv in vp, NULL is OK, and a position 
+            reference widget typecast to ip, the latter can also be null.*/
             {
                char sbuf[128];
                if (  EngineData->vp_Dest != NextComCode || 
@@ -263,6 +263,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                }
                /* open the ROI file */
                if (!sv) sv = &(SUMAg_SVv[0]);
+               if (!EngineData->vp) EngineData->vp = sv;
                if (!EngineData->ip) {
                   SUMAg_CF->X->FileSelectDlg = 
                      SUMA_CreateFileSelectionDialogStruct (
