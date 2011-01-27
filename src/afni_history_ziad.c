@@ -65,12 +65,27 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
- { 04, JAN , 2011 , ZSS , "SurfFWHM" , MINOR , TYPE_BUG_FIX,
+ { 27, JAN , 2011 , ZSS , "afni" , MICRO , TYPE_BUG_FIX,
+   "Fixed problem in THD_add_bricks when dset in AFNI is not malloced.",
+   NULL
+ } ,
+
+ { 26, JAN , 2011 , ZSS , "afni" , MICRO , TYPE_MODIFY,
+   "Made THD_add_bricks add labels to new bricks ",
+   NULL
+ } ,
+
+ { 25, JAN , 2011 , ZSS , "suma" , MICRO , TYPE_MODIFY,
+   "Improved logic for assigning ROI parent.",
+   NULL
+ } ,
+
+ { 4, JAN , 2011 , ZSS , "SurfFWHM" , MINOR , TYPE_BUG_FIX,
    "Fixed SurfFWHM which had the same masking problem as SurfSmooth.",
    NULL
  } ,
 
- { 04, JAN , 2011 , ZSS , "SurfSmooth" , MINOR , TYPE_BUG_FIX,
+ { 4, JAN , 2011 , ZSS , "SurfSmooth" , MINOR , TYPE_BUG_FIX,
    "Fixed SurfSmooth to work with the combination HEAT07+Sparse Dsets+cmask ",
    "The problem was caused by a bad masking operation at the detrending\n"
    "function when sparse datasets with cmask option are used. The detrending\n"
@@ -80,12 +95,12 @@ afni_history_struct ziad_history[] = {
    "Thanks to Christopher Ackerman from JHMI for reporting the bug."
  } ,
 
- { 03, JAN , 2011 , ZSS , "afni-general" , MICRO , TYPE_BUG_FIX,
+ { 3, JAN , 2011 , ZSS , "afni-general" , MICRO , TYPE_BUG_FIX,
    "Modified decode_*linebuf to better treat the 'i' character in 1D files",
    NULL
  } ,
 
- { 03, JAN , 2011 , ZSS , "3dUniformize" , MINOR , TYPE_NEW_OPT,
+ { 3, JAN , 2011 , ZSS , "3dUniformize" , MINOR , TYPE_NEW_OPT,
    "Changed 3dUniformize to accept byte, short, or float input.",
    "These changes also avoid data clipping that was necessary\n"
    "when output data was handled as shorts.\n"
