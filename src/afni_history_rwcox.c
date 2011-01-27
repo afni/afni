@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 27 , JAN , 2011 , RWC , "3dGroupInCorr" , MINOR , TYPE_NEW_OPT ,
+   "Add -sendall option, to palliate the Texan hordes." ,
+   NULL } ,
+
  { 24 , JAN , 2011 , RWC , "afni_setup.c" , MICRO , TYPE_BUG_FIX ,
    "Re-definition of pre-defined colors" ,
    "Before this fix, when a user re-defined a pre-defined color in a\n"

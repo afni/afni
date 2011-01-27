@@ -775,13 +775,16 @@ ENTRY("GICOR_setup_func") ;
    if( atr != NULL )
      labar = NI_decode_string_list( atr , ";" ) ;
 
+   /* for each sub-brick in the dataset-to-be */
+
    for( vv=0 ; vv < nvals ; vv++ ){
-     if( labar != NULL && vv < labar->num )
+     EDIT_substitute_brick( dset, vv, MRI_float, NULL ) ; /* calloc sub-brick */
+     if( labar != NULL && vv < labar->num )               /* and label-ize it */
        EDIT_BRICK_LABEL( dset , vv , labar->str[vv] ) ;
      else if( vv < 6 )
        EDIT_BRICK_LABEL( dset , vv , blab[vv] ) ;
-     EDIT_substitute_brick( dset, vv, MRI_float, NULL ) ; /* calloc sub-brick */
-     if( vv%2 == 1 ) EDIT_BRICK_TO_FIZT(dset,vv) ;   /* alternate ones are Z */
+     if( strstr( DSET_BRICK_LAB(dset,vv) , "_Zsc" ) != NULL )
+       EDIT_BRICK_TO_FIZT(dset,vv) ;                     /* mark as a Z score */
    }
    DSET_superlock( dset ) ;
    giset->nvox = DSET_NVOX(dset) ;
@@ -935,9 +938,21 @@ ENTRY("GICOR_process_dataset") ;
 
    /* copy NIML data into dataset */
 
+#if 0
+INFO_message("AFNI received %d vectors, length=%d",nel->vec_num,nvec) ;
+#endif
+
    for( vv=0 ; vv < DSET_NVALS(giset->dset) ; vv++ ){
      nelar = (float *)nel->vec[vv] ;                /* NIML array */
      dsdar = (float *)DSET_ARRAY(giset->dset,vv) ;  /* dataset array */
+
+#if 0
+     { float mm,ss ; int nf ;
+       nf = thd_floatscan( nvec , nelar ) ;
+       meansigma_float( nvec , nelar , &mm,&ss ) ;
+       ININFO_message("  #%02d nf=%d mean=%g sigma=%g",vv,nf,mm,ss) ;
+     }
+#endif
 
      if( giset->ivec == NULL ){               /* all voxels */
        nn = MIN( giset->nvox , nvec ) ;
