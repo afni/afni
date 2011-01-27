@@ -66,7 +66,7 @@
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
  { 27, JAN , 2011 , ZSS , "afni" , MICRO , TYPE_BUG_FIX,
-   "Fixed problem in THD_add_bricks when dset in AFNI is not malloced.",
+   "Fixed problem in THD_add_bricks when dset in AFNI is not malloc-ed.",
    NULL
  } ,
 

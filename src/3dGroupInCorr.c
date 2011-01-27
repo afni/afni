@@ -642,8 +642,9 @@ int main( int argc , char *argv[] )
    float **dtar=NULL ;
    int no_ttest = 0 ;  /* 02 Nov 2010 */
 
-   int do_sendall = 0 ; /* 22 Jan 2011 */
-   char *bricklabels = NULL ;
+   int do_sendall=0 , nsaar=0 ; /* 22 Jan 2011 */
+   char *bricklabels=NULL ;
+   float **saar=NULL ;
 
 #ifdef COVTEST
    float *ctarA=NULL , *ctarB=NULL ; char *ctnam ;
@@ -759,16 +760,20 @@ int main( int argc , char *argv[] )
       " -labelA aaa = Label to attach (in AFNI) to sub-bricks corresponding to setA.\n"
       "               If you don't give this option, the label used will be the prefix\n"
       "               from the -setA filename.\n"
+      "\n"
       " -labelB bbb = Label to attach (in AFNI) to sub-bricks corresponding to setB.\n"
       "              ++ At most the first 11 characters of each label will be used!\n"
-#if 0
       "\n"
       " -sendall    = Send all individual subject results to AFNI, as well as the\n"
       "               various statistics.\n"
+      "              ++ These extra sub-bricks will be labeled like 'xxx_zcorr', where\n"
+      "                 'xxx' indicates which dataset the results came from; 'zcorr'\n"
+      "                 denotes that the values are the arctanh of the correlations.\n"
       "              ++ If there are a lot of datasets, then the results will be VERY\n"
-      "                 large and take up a lot of memory.  Use this option with some\n"
-      "                 judgment and wisdom, or bad things may happen!\n"
-#endif
+      "                 large and take up a lot of memory in AFNI.\n"
+      "              ++ Use this option with somejudgment and wisdom, or bad things\n"
+      "                 might happen! (e.g., your computer runs out of memory)\n"
+      "              ++ This option is known as the 'Tim Ellmore special'.\n"
       "\n"
       "*** Two-Sample Options ***\n"
       "\n"
@@ -1393,19 +1398,20 @@ int main( int argc , char *argv[] )
                    approximate_number_string((double)nbtot) ) ;
    }
 
-   /*-- Create VOLUME_DATA NIML element to hold the brick data --*/
+   /*-- Create NIML element to hold the output brick data --*/
 
-   nelset = NI_new_data_element( "3dGroupInCorr_dataset" , shd_AAA->nvec ) ;
+   nelset = NI_new_data_element( "3dGroupInCorr_dataset" , nvec ) ;
 
    /*----- if no covariates, do it the olden style way -----*/
 
-   if( mcov == 0 ){
+   if( mcov == 0 ){ /* create columns in nelset, 1 for each output sub-brick */
+
      NI_add_column( nelset, NI_FLOAT, NULL );
      NI_add_column( nelset, NI_FLOAT, NULL );
-     neldar = (float *)nelset->vec[0];  /* neldar = delta  sub-brick */
-     nelzar = (float *)nelset->vec[1];  /* nelzar = Zscore sub-brick */
+     neldar = (float *)nelset->vec[0];          /* neldar = delta  sub-brick */
+     nelzar = (float *)nelset->vec[1];          /* nelzar = Zscore sub-brick */
      if( neldar == NULL || nelzar == NULL )
-       ERROR_exit("Can't setup output dataset?") ; /* should never happen */
+       ERROR_exit("Can't setup output dataset?") ; /* should never transpire */
 
      /* for a 2-sample test, create arrays for the 1-sample results as well */
 
@@ -1428,14 +1434,29 @@ int main( int argc , char *argv[] )
      for( kk=0 ; kk < nout ; kk++ ){
        NI_add_column( nelset , NI_FLOAT , NULL ) ;
        dtar[kk] = (float *)nelset->vec[kk] ;
-       if( dtar[kk] == NULL ) ERROR_exit("Can't setup output dataset?!") ;
+       if( dtar[kk] == NULL )
+         ERROR_exit("Can't setup output dataset [#%d]?!",kk) ;
      }
-     if( shd_BBB != NULL ){
+     if( shd_BBB != NULL ){   /* bit masks for which tests to compute */
        testAB = (UINT32)(-1) ; testA  = testB = (dosix) ? testAB : 0 ;
      } else {
        testAB = testB = 0 ; testA = (UINT32)(-1) ;
      }
 
+   }
+
+   /* add columns for the individual dataset arctanh(corr) results */
+
+   if( do_sendall ){
+     int qq = nelset->vec_num ;                  /* # of columns at the start */
+     nsaar = ndset_AAA + ndset_BBB ;      /* number of -sendall arrays to add */
+     saar  = (float **)malloc(sizeof(float *)*nsaar) ;
+     for( kk=0 ; kk < nsaar ; kk++ ){
+       NI_add_column( nelset , NI_FLOAT , NULL ) ;
+       saar[kk] = (float *)nelset->vec[kk+qq] ;
+       if( saar[kk] == NULL )
+         ERROR_exit("Can't setup output dataset for -sendall [#%d]?!",kk) ;
+     }
    }
 
    /*========= message for the user =========*/
@@ -1491,7 +1512,7 @@ int main( int argc , char *argv[] )
    if( shd_AAA->nvec == shd_AAA->nvox ){
      nelcmd = NI_new_data_element( "3dGroupInCorr_setup" , 0 ) ;  /* no data */
    } else {
-     nelcmd = NI_new_data_element( "3dGroupInCorr_setup" , shd_AAA->nvec ) ;
+     nelcmd = NI_new_data_element( "3dGroupInCorr_setup" , nvec ) ;
      NI_add_column( nelcmd , NI_INT , shd_AAA->ivec ) ;    /* data = indexes */
    }
 
@@ -1503,7 +1524,7 @@ int main( int argc , char *argv[] )
    sprintf(buf,"%d",(shd_BBB != NULL) ? shd_BBB->ndset : 0 ) ;
    NI_set_attribute( nelcmd , "ndset_B" , buf ) ;
 
-   sprintf(buf,"%d",shd_AAA->nvec) ;
+   sprintf(buf,"%d",nvec) ;
    NI_set_attribute( nelcmd , "nvec" , buf ) ;
 
    sprintf(buf,"%.2f",seedrad) ;
@@ -1521,9 +1542,9 @@ int main( int argc , char *argv[] )
    if( shd_BBB != NULL )
      NI_set_attribute( nelcmd , "label_BBB" , label_BBB ) ;
 
-   NI_set_attribute_int( nelcmd , "target_nvals" , nout ) ;
+   NI_set_attribute_int( nelcmd , "target_nvals" , nout+nsaar ) ;
 
-   bricklabels = (char *)calloc(sizeof(char),(5*MAX_LABEL_SIZE+16)*(nout+1)) ;
+   bricklabels = (char *)calloc(sizeof(char),(5*MAX_LABEL_SIZE+16)*(nout+nsaar+1)) ;
    if( mcov == 0 ){
 
      if( shd_BBB == NULL ){  /* 1 sample */
@@ -1573,6 +1594,20 @@ int main( int argc , char *argv[] )
    /* add labels for the subject-level bricks, if needed */
 
    if( do_sendall ){
+     char buf[32] ;
+     for( kk=0 ; kk < ndset_AAA ; kk++ ){
+       if( shd_AAA->dslab != NULL ) sprintf(buf,"A_%.10s",shd_AAA->dslab[kk]) ;
+       else                         sprintf(buf,"%.9s#%02d",label_AAA,kk) ;
+       sprintf( bricklabels+strlen(bricklabels) , "%s_zcorr ; " , buf ) ;
+     }
+
+     for( kk=0 ; kk < ndset_BBB ; kk++ ){
+       if( shd_BBB->dslab != NULL ) sprintf(buf,"B_%.10s",shd_BBB->dslab[kk]) ;
+       else                         sprintf(buf,"%.9s#%02d",label_BBB,kk) ;
+       sprintf( bricklabels+strlen(bricklabels) , "%s_zcorr ; " , buf ) ;
+     }
+
+     kk = strlen(bricklabels) ; bricklabels[kk-1] = '\0' ;  /* truncate last ';' */
    }
 
    /* set the brick labels into the header being sent to AFNI/SUMA */
@@ -1580,7 +1615,7 @@ int main( int argc , char *argv[] )
    NI_set_attribute( nelcmd , "target_labels" , bricklabels ) ;
    free(bricklabels) ;
 
-   /* ZSS: set surface attributes */
+   /* ZSS: set surface attributes [note Ziad's terrible use of spaces] */
 
    if (shd_AAA->nnode[0] >= 0) {
       sprintf(buf,"%d, %d", shd_AAA->nnode[0], shd_AAA->nnode[1]);
@@ -1607,13 +1642,16 @@ int main( int argc , char *argv[] )
      if( nbhd != NULL && nbhd->num_pt < 2 ) KILL_CLUSTER(nbhd) ;
    }
 
-   /** make space for seed vectors and correlations **/
+   /** make space for seed vectors and arctanh(correlations) **/
 
    seedvec_AAA = (float **)malloc(sizeof(float *)*ndset_AAA) ;
    dotprod_AAA = (float **)malloc(sizeof(float *)*ndset_AAA) ;
    for( kk=0 ; kk < ndset_AAA ; kk++ ){
      seedvec_AAA[kk] = (float *)malloc(sizeof(float)*nvals_AAA[kk]) ;
-     dotprod_AAA[kk] = (float *)malloc(sizeof(float)*nvec) ;
+     if( nsaar == 0 )
+       dotprod_AAA[kk] = (float *)malloc(sizeof(float)*nvec) ;
+     else
+       dotprod_AAA[kk] = saar[kk] ;
    }
 
    if( shd_BBB != NULL ){
@@ -1621,7 +1659,10 @@ int main( int argc , char *argv[] )
      dotprod_BBB = (float **)malloc(sizeof(float *)*ndset_BBB) ;
      for( kk=0 ; kk < ndset_BBB ; kk++ ){
        seedvec_BBB[kk] = (float *)malloc(sizeof(float)*nvals_BBB[kk]) ;
-       dotprod_BBB[kk] = (float *)malloc(sizeof(float)*nvec) ;
+       if( nsaar == 0 )
+         dotprod_BBB[kk] = (float *)malloc(sizeof(float)*nvec) ;
+       else
+         dotprod_BBB[kk] = saar[kk+ndset_AAA] ;
      }
    }
 
@@ -1788,6 +1829,26 @@ int main( int argc , char *argv[] )
        GRINCOR_many_dotprod( shd_BBB , seedvec_BBB , dotprod_BBB ) ;
      }
 
+#if 0
+     if( verb > 4 ){
+       float mm,ss ; int nf ;
+       INFO_message("dotprod_AAA statistics") ;
+       for( kk=0 ; kk < ndset_AAA ; kk++ ){
+          nf = thd_floatscan( nvec , dotprod_AAA[kk] ) ;
+          meansigma_float( nvec , dotprod_AAA[kk] , &mm,&ss ) ;
+          ININFO_message(" #%02d nf=%d mean=%g sigma=%g",kk,nf,mm,ss) ;
+       }
+       if( ndset_BBB > 0 ){
+         INFO_message("dotprod_BBB statistics") ;
+         for( kk=0 ; kk < ndset_BBB ; kk++ ){
+            nf = thd_floatscan( nvec , dotprod_BBB[kk] ) ;
+            meansigma_float( nvec , dotprod_BBB[kk] , &mm,&ss ) ;
+            ININFO_message(" #%02d nf=%d mean=%g sigma=%g",kk,nf,mm,ss) ;
+         }
+       }
+     }
+#endif
+
 #ifdef COVTEST
      if( ctarA != NULL ){
        for( kk=0 ; kk < ndset_AAA ; kk++ )
@@ -1852,7 +1913,7 @@ int main( int argc , char *argv[] )
 #ifndef DONT_USE_SHM
      if( do_shm > 0 && strcmp(afnihost,"localhost") == 0 && !shm_active ){
        char nsnew[128] ;
-       kk = nout / 2 ; if( kk < 1 ) kk = 1 ; else if( kk > 3 ) kk = 3 ;
+       kk = (nout+nsaar) / 2 ; if( kk < 1 ) kk = 1 ; else if( kk > 3 ) kk = 3 ;
        sprintf( nsnew , "shm:GrpInCorr_%d:%dM+4K" , nport , kk ) ;
        INFO_message("Reconnecting to %s with shared memory channel %s",pname,nsnew) ;
        kk = NI_stream_reopen( GI_stream , nsnew ) ;
@@ -1867,6 +1928,26 @@ int main( int argc , char *argv[] )
 #endif
 
      /*** send the result to AFNI ***/
+
+#if 0
+     if( verb > 4 ){
+       float mm,ss ; int nf ;
+       INFO_message("dotprod_AAA statistics") ;
+       for( kk=0 ; kk < ndset_AAA ; kk++ ){
+          nf = thd_floatscan( nvec , dotprod_AAA[kk] ) ;
+          meansigma_float( nvec , dotprod_AAA[kk] , &mm,&ss ) ;
+          ININFO_message(" #%02d nf=%d mean=%g sigma=%g",kk,nf,mm,ss) ;
+       }
+       if( ndset_BBB > 0 ){
+         INFO_message("dotprod_BBB statistics") ;
+         for( kk=0 ; kk < ndset_BBB ; kk++ ){
+           nf = thd_floatscan( nvec , dotprod_BBB[kk] ) ;
+           meansigma_float( nvec , dotprod_BBB[kk] , &mm,&ss ) ;
+           ININFO_message(" #%02d nf=%d mean=%g sigma=%g",kk,nf,mm,ss) ;
+         }
+       }
+     }
+#endif
 
      if( verb > 3 ) ININFO_message(" sending results to %s",pname) ;
      kk = NI_write_element( GI_stream , nelset , NI_BINARY_MODE ) ;
