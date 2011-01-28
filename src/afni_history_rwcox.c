@@ -44,6 +44,12 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 28 , JAN , 2011 , RWC , "plug_aslA3D3" , MICRO , TYPE_GENERAL ,
+   "Remove CR (ctrl-M) characters from source code" ,
+   "For reasons known only to Satan, the Sun C compiler doesn't like\n"
+   "multiline macros with a CR character at the end of the line (after the\n"
+   "backslash)." } ,
+
  { 27 , JAN , 2011 , RWC , "3dGroupInCorr" , MINOR , TYPE_NEW_OPT ,
    "Add -sendall option, to palliate the Texan hordes." ,
    NULL } ,
