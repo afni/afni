@@ -184,8 +184,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 #undef  FREEUP
 #define FREEUP(x) do{ if((x) != NULL){free((x)); (x)=NULL;} } while(0)
 
-#define FREE_WORKSPACE  do{ ;                   \
-                            FREEUP(bptr) ;      \
+#define FREE_WORKSPACE  do{ FREEUP(bptr) ;      \
                             FREEUP(sptr) ;      \
                             FREEUP(fptr) ;      \
                             FREEUP(foutD3) ;    \
