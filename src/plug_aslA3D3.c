@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #include "afni.h"
 
 #ifndef ALLOW_PLUGINS
@@ -27,7 +27,7 @@ static char helpstring[] =
   "           Datum  = How to store results \n"
   "\n"
   "   Ignore Count:    How many time points to ignore at start\n"
-  " \n"  
+  " \n"
   "   Scale:  Scale the a3, d3 calculations\n"
   " \n"
   "   Notes: \n"
@@ -36,21 +36,21 @@ static char helpstring[] =
   "    d3- three point moving difference of the time series (Perfusion) \n"
   "         d3(i)=(-1*i)*(image(i-1)-2*image(i)+1*image(i+1)) \n"
   "\n"
-  "    Datum Type- be aware that rounding errors associated with scaling to \n" 
-  "		   byte/short can occur \n"
-  "   \n"      	 
+  "    Datum Type- be aware that rounding errors associated with scaling to \n"
+  "                byte/short can occur \n"
+  "   \n"
   "\n"
   " ASL A3/D3 Version 1.3 Written by Y.Behzadi 8/18/02\n"
   " fixed problem with odd # of time points and sign\n"
   "\n"
-  
+
 ;
 
 /*------------- strings for output format -------------*/
 
 static char * type_strings[]
   = { "Float" ,  "Byte" , "Short" , "as Input"  } ;
-  
+
 static char * type_stringsx[]
   = { "a3,d3,avg(d3)" } ;
 
@@ -158,7 +158,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
                        type_stringsx ,     /* list of strings to choose among */
                        0                  /* index of default string */
                    ) ;
-  
+
    PLUTO_add_option( plint , "Scale" , "Scale" , TRUE ) ;
 
    PLUTO_add_number( plint ,
@@ -184,34 +184,40 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 #undef  FREEUP
 #define FREEUP(x) do{ if((x) != NULL){free((x)); (x)=NULL;} } while(0)
 
-#define FREE_WORKSPACE                              \
-  do{ FREEUP(bptr) ; FREEUP(sptr) ; FREEUP(fptr) ;  \
-      FREEUP(foutD3) ; FREEUP(this) ;  FREEUP(tarD3);\
-      FREEUP(tarA3); FREEUP(taravgD3); FREEUP(foutA3) ;\
-      FREEUP(foutavgD3) ; \
-                  } while(0)
+#define FREE_WORKSPACE  do{                     \
+                            FREEUP(bptr) ;      \
+                            FREEUP(sptr) ;      \
+                            FREEUP(fptr) ;      \
+                            FREEUP(foutD3) ;    \
+                            FREEUP(this) ;      \
+                            FREEUP(tarD3) ;     \
+                            FREEUP(tarA3) ;     \
+                            FREEUP(taravgD3) ;  \
+                            FREEUP(foutA3) ;    \
+                            FREEUP(foutavgD3) ; \
+                        } while(0)
 
 /*-------------------------------------------------------------------------*/
 
 char * POWER_main( PLUGIN_interface * plint )
 {
    MCW_idcode * idc ;                          /* input dataset idcode */
-   THD_3dim_dataset * old_dset , * new_dsetD3 , * new_dsetA3, * new_dsetavgD3 ;		       /* input and output datasets */
+   THD_3dim_dataset * old_dset , * new_dsetD3 , * new_dsetA3, * new_dsetavgD3 ; /* input and output datasets */
    char * new_prefix , * str , * namestr, * filename;                 /* strings from user */
    int   new_datum , ignore , nfft , ninp ,    /* control parameters */
-         old_datum , nuse , ntaper , ktbot, 
-	 image_type, scale,OutputFlag ,numT,flip;
+         old_datum , nuse , ntaper , ktbot,
+         image_type, scale,OutputFlag ,numT,flip;
   float avFac;
 
    byte   ** bptr  = NULL ;  /* one of these will be the array of */
    short  ** sptr  = NULL ;  /* pointers to input dataset sub-bricks */
    float  ** fptr  = NULL ;  /* (depending on input datum type) */
 
-   
-    
+
+
    float   * this  = NULL ;  /* array loaded from input dataset */
-   
-  
+
+
    float  ** foutD3  = NULL ;  /* will be array of output floats */
    float  ** foutA3  = NULL ;  /* will be array of output floats */
    float  ** foutavgD3  = NULL ;  /* will be array of output floats */
@@ -219,15 +225,15 @@ char * POWER_main( PLUGIN_interface * plint )
    float   * tarD3   = NULL ;  /* will be array of taper coefficients */
    float   * tarA3   = NULL ;  /* will be array of taper coefficients */
    float   * taravgD3   = NULL ;  /* will be array of taper coefficients */
-   
-   
+
+
    /*float   * flip;*/
    float   * numAv;
    float dfreq , pfact , phi , xr,xi , yr,yi ;
    float x0,x1 , y0,y1 , d0fac,d1fac ;
    int   nfreq , nvox , perc , new_units ;
    int   istr , ii,iip , ibot,itop , kk , icx ;       /* temp variables */
-   
+
    new_prefix = (char *)calloc(100, sizeof(char));
    filename = (char *)calloc(100, sizeof(char));
    str = (char *)calloc(100, sizeof(char));
@@ -239,12 +245,12 @@ char * POWER_main( PLUGIN_interface * plint )
    /*--------- go to first input line ---------*/
 
    PLUTO_next_option(plint) ;
-   
+
    idc      = PLUTO_get_idcode(plint) ;   /* get dataset item */
    old_dset = PLUTO_find_dset(idc) ;      /* get ptr to dataset */
    namestr  = DSET_PREFIX(old_dset) ;
-   
-      
+
+
    if( old_dset == NULL )
       return "*************************\n"
              "Cannot find Input Dataset\n"
@@ -255,21 +261,21 @@ char * POWER_main( PLUGIN_interface * plint )
    PLUTO_next_option(plint) ;
 
   filename = PLUTO_get_string(plint) ;   /* get string item (the output prefix) */
- 
+
   sprintf(new_prefix,"%s%s",filename,"_D3");
 
-  if (strcmp(new_prefix,"_D3")==0){  
+  if (strcmp(new_prefix,"_D3")==0){
      OutputFlag=1;
      sprintf(new_prefix,"%s%s",namestr,"_D3");
-     	     }
-  
-  
-   if (! PLUTO_prefix_ok(new_prefix) ){ 
-	 PLUTO_popup_transient(plint,new_prefix);   
+  }
+
+
+   if (! PLUTO_prefix_ok(new_prefix) ){
+     PLUTO_popup_transient(plint,new_prefix);
      return "*************************\n"
              "Output filename already exists\n"
              "*************************"  ;
-	     }
+     }
 
 
    PLUTO_popup_transient(plint,"Output file tags set automatically");
@@ -294,16 +300,16 @@ char * POWER_main( PLUGIN_interface * plint )
 
    PLUTO_next_option(plint) ;                 /* skip to next line */
    ignore = PLUTO_get_number(plint) ;         /* get number item (ignore) */
-   
-  
-   
-      
+
+
+
+
    ninp = DSET_NUM_TIMES(old_dset) ;   /* number of values in input */
    nuse = ninp;              /* number of values to actually use */
    nfreq=nuse;
-   nfft=nuse;	
- 
- 
+   nfft=nuse;
+
+
    str  = PLUTO_get_string(plint) ;              /* get string item (the datum type) */
    istr = PLUTO_string_index( str ,              /* find it in the list it came from */
                               NUM_TYPE_STRINGSX ,
@@ -312,11 +318,11 @@ char * POWER_main( PLUGIN_interface * plint )
       default:
       case 0: image_type = 0; break;
            }
- 
+
   PLUTO_next_option(plint) ;                 /* skip to next line */
   scale = PLUTO_get_number(plint) ;         /* get number item (scale) */
-      
-   
+
+
    /*------------------------------------------------------*/
    /*---------- At this point, the inputs are OK ----------*/
 
@@ -374,26 +380,26 @@ char * POWER_main( PLUGIN_interface * plint )
    } /* end of switch on input type */
 
    /*---- allocate space for 2 voxel timeseries and 1 FFT ----*/
-  
-   
-  
+
+
+
    this = (float *)   malloc( sizeof(float) * nuse ) ;   /* input */
    tarD3 = (float *) malloc( sizeof(float) * MAX(nuse,nfreq) ) ;
    tarA3 = (float *) malloc( sizeof(float) * MAX(nuse,nfreq) ) ;
    taravgD3 = (float *) malloc( sizeof(float) * MAX(nuse,nfreq) ) ;
-   /*flip = (float *)malloc( sizeof(float) * 1);*/ 
-   numAv = (float *)malloc( sizeof(float) * 1); 
-  
- 
+   /*flip = (float *)malloc( sizeof(float) * 1);*/
+   numAv = (float *)malloc( sizeof(float) * 1);
+
+
   numT=nuse-ignore;
-	 
+
   if (OutputFlag==1)
   sprintf(new_prefix,"%s%s",namestr,"_D3");
   else
   sprintf(new_prefix,"%s%s",filename,"_D3");
-	
+
   new_dsetD3 = EDIT_empty_copy( old_dset );
-     
+
   { char * his = PLUTO_commandstring(plint) ;
   tross_Copy_History( old_dset , new_dsetD3 ) ;
   tross_Append_History( new_dsetD3 , his ) ; free(his) ;
@@ -407,19 +413,19 @@ char * POWER_main( PLUGIN_interface * plint )
          ADN_malloc_type , DATABLOCK_MEM_MALLOC , /* store in memory */
          ADN_datum_all   , new_datum ,            /* atomic datum */
 	 ADN_nvals	      , numT ,
-	 ADN_ntt	,numT,	
+	 ADN_ntt	,numT,
          ADN_none ) ;
-   
 
- 
+
+
   if (OutputFlag==1)
   sprintf(new_prefix,"%s%s",namestr,"_A3");
   else
   sprintf(new_prefix,"%s%s",filename,"_A3");
-	
+
   numT=nuse-ignore;
   new_dsetA3 = EDIT_empty_copy( old_dset );
-     
+
   { char * his = PLUTO_commandstring(plint) ;
   tross_Copy_History( old_dset , new_dsetA3 ) ;
   tross_Append_History( new_dsetA3 , his ) ; free(his) ;
@@ -433,18 +439,18 @@ char * POWER_main( PLUGIN_interface * plint )
          ADN_malloc_type , DATABLOCK_MEM_MALLOC , /* store in memory */
          ADN_datum_all   , new_datum ,            /* atomic datum */
 	 ADN_nvals	      , numT,
-	 ADN_ntt	,numT,	
+	 ADN_ntt	,numT,
          ADN_none ) ;
-  
-      
+
+
 
   if (OutputFlag==1)
   sprintf(new_prefix,"%s%s",namestr,"_avgD3");
   else
   sprintf(new_prefix,"%s%s",filename,"_avgD3");
-	
+
   new_dsetavgD3 = EDIT_empty_copy( old_dset );
-     
+
   { char * his = PLUTO_commandstring(plint) ;
   tross_Copy_History( old_dset , new_dsetavgD3 ) ;
   tross_Append_History( new_dsetavgD3 , his ) ; free(his) ;
@@ -458,18 +464,18 @@ char * POWER_main( PLUGIN_interface * plint )
           ADN_malloc_type , DATABLOCK_MEM_MALLOC , /* store in memory */
           ADN_datum_all   , new_datum ,            /* atomic datum */
 	  ADN_nvals	      , 1,
-	  ADN_ntt	,1,	
+	  ADN_ntt	,1,
           ADN_none ) ;
-  
 
-   
-   
-   
+
+
+
+
    /*---------------------- make a new dataset ----------------------*/
 
 /*-------------------making a new dataset------------------------------------*/
 
- 
+
 
 
 
@@ -505,9 +511,9 @@ char * POWER_main( PLUGIN_interface * plint )
 
    if( kk < nfreq ){
       for( ; kk >= 0 ; kk-- ){
-       FREEUP(foutD3[kk]) ;   
-       FREEUP(foutA3[kk]) ; 
-       FREEUP(foutavgD3[0]) ; 
+       FREEUP(foutD3[kk]) ;
+       FREEUP(foutA3[kk]) ;
+       FREEUP(foutavgD3[0]) ;
        }/* free all we did get */
       THD_delete_3dim_dataset( new_dsetD3 , False ) ;
       THD_delete_3dim_dataset( new_dsetA3 , False ) ;
@@ -529,7 +535,7 @@ char * POWER_main( PLUGIN_interface * plint )
    /*----- Setup has ended.  Now do some real work. -----*/
 
    /***** loop over voxels *****/
-   
+
 /* *(flip)=scale; */
 
 *(numAv)= nuse-ignore;
@@ -540,74 +546,73 @@ char * POWER_main( PLUGIN_interface * plint )
 
 	case MRI_byte:
             for( kk=0 ; kk < nuse ; kk++ ){
-            	this[kk] =  bptr[kk][ii] ; 
+            	this[kk] =  bptr[kk][ii] ;
              }
-	   
+
          break ;
 
          case MRI_short:
             for( kk=0 ; kk < nuse ; kk++ ){
-             this[kk] =  sptr[kk][ii] ; 
-           
+             this[kk] =  sptr[kk][ii] ;
+
             }
          break ;
 
          case MRI_float:
             for( kk=0 ; kk < nuse ; kk++ ){
-             this[kk] =  fptr[kk][ii] ; 
-                   
+             this[kk] =  fptr[kk][ii] ;
+
             }
-	
+
          break ;
-      } 
-      
+      }
+
       flip=scale*pow(-1,ignore+1);
-     
+
       for( kk=0 ; kk < nuse-ignore ; kk++ ){
-      
+
       		if (kk==nuse-1-ignore){
         		*(*(foutD3+kk)+ii)=
 			flip*( *(this+kk+ignore-1)-*(this+kk+ignore) );
-			
+
 			*(*(foutA3+kk)+ii)=
 			2*(*(this+kk+ignore-1)+*(this+kk+ignore));
-			
-			
+
+
 			}
-		else if (kk==0){ 
+		else if (kk==0){
 						/*D3 tag - control*/
         		*(*(foutD3+kk)+ii)=
 			flip*( *(this+kk+ignore)-*(this+kk+ignore+1) );
-			
+
 			*(*(foutA3+kk)+ii)=
 			2*(*(this+kk+ignore)+*(this+kk+ignore+1));
-								
-			}	
-			
+
+			}
+
 		else{
 			*(*(foutD3+kk)+ii)=
 			flip*( 1*(*(this+kk+ignore-1))+-2*(*(this+kk+ignore))+1*(*(this+kk+ignore+1)) );
-			
+
 			*(*(foutA3+kk)+ii)=
 			((*(this+kk+ignore-1))+2*(*(this+kk+ignore))+(*(this+kk+ignore+1)));
-			
+
 			flip=-1*flip;
-				
-									
+
+
 			}
-			
-      		
-	
+
+
 	}
-       
-         
-             
+
+
+
       for( kk=0 ; kk < nuse-ignore ; kk++ )
      *(*(foutavgD3)+ii)= *(*(foutavgD3)+ii)+(*(*(foutD3+kk)+ii));
-     	
+
      *(*(foutavgD3)+ii)=*(*(foutavgD3)+ii) / (*(numAv));
-          
-    	
+
+
       }
 
    DSET_unload( old_dset ) ;  /* don't need this no more */
@@ -656,7 +661,7 @@ char * POWER_main( PLUGIN_interface * plint )
             EDIT_substitute_brick( new_dsetD3 , kk , MRI_short , boutD3  ) ;
             tarD3 [kk] = facD3  ;
 
-            
+
          }
 
          /*-- save scale factor array into dataset --*/
@@ -700,7 +705,7 @@ char * POWER_main( PLUGIN_interface * plint )
             EDIT_substitute_brick( new_dsetD3 , kk , MRI_byte , boutD3  ) ;
             tarD3 [kk] = facD3  ;
 
-            
+
          }
 
          /*-- save scale factor array into dataset --*/
@@ -756,7 +761,7 @@ char * POWER_main( PLUGIN_interface * plint )
             EDIT_substitute_brick( new_dsetA3 , kk , MRI_short , boutA3 ) ;
             tarA3[kk] = facA3 ;
 
-           
+
          }
 
          /*-- save scale factor array into dataset --*/
@@ -800,7 +805,7 @@ char * POWER_main( PLUGIN_interface * plint )
             EDIT_substitute_brick( new_dsetA3 , kk , MRI_byte , boutA3 ) ;
             tarA3[kk]= facA3 ;
 
-            
+
          }
 
          /*-- save scale factor array into dataset --*/
@@ -815,10 +820,10 @@ char * POWER_main( PLUGIN_interface * plint )
      switch( new_datum ){
 
       case MRI_float:{
-         
+
             EDIT_substitute_brick( new_dsetavgD3 , 0 , MRI_float , foutavgD3[0] ) ;
-	    
-	    
+
+
     }
       break ;
 
@@ -840,14 +845,14 @@ char * POWER_main( PLUGIN_interface * plint )
                facavgD3 = 1.0 / facavgD3 ;
             }
 
-           
+
 
             EDIT_substitute_brick( new_dsetavgD3 , 0 , MRI_short , boutavgD3 ) ;
             taravgD3[0] = facavgD3 ;
 
              EDIT_dset_items( new_dsetavgD3 , ADN_brick_fac , taravgD3 , ADN_none ) ;
-	     
-	    
+
+
 
       }
       break ;
@@ -856,7 +861,7 @@ char * POWER_main( PLUGIN_interface * plint )
          byte * boutavgD3 ;
          float facavgD3 ;
 
-        
+
             boutavgD3 = (byte *) malloc( sizeof(byte) * nvox ) ;
             if( boutavgD3 == NULL ){
                fprintf(stderr,"\nFinal malloc error in plug_power!\n\a") ;
@@ -871,16 +876,16 @@ char * POWER_main( PLUGIN_interface * plint )
                facavgD3 = 1.0 / facavgD3 ;
             }
 
-            
+
 
             EDIT_substitute_brick( new_dsetavgD3 , 0 , MRI_byte , boutavgD3 ) ;
             taravgD3[0]= facavgD3 ;
-		
+
             EDIT_dset_items( new_dsetavgD3 , ADN_brick_fac , taravgD3 , ADN_none ) ;
-	    
-	    
-	    
-	    
+
+
+
+
       }
       break ;
 
@@ -891,7 +896,7 @@ char * POWER_main( PLUGIN_interface * plint )
 
    /*-------------- Cleanup and go home ----------------*/
 
-   
+
 
    PLUTO_add_dset( plint , new_dsetD3 , DSET_ACTION_NONE ) ;
   PLUTO_add_dset( plint , new_dsetA3 , DSET_ACTION_NONE ) ;
@@ -900,9 +905,9 @@ char * POWER_main( PLUGIN_interface * plint )
 
 
    FREE_WORKSPACE ;
-   free(numAv);	
-   
-   
+   free(numAv);
+
+
    return NULL ;  /* null string returned means all was OK */
 }
 
