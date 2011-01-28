@@ -64,9 +64,10 @@ class VarsObject(object):
          and copying all simple attributes
       """
 
-      dupe = VarsObject(self.name)
+      dupe = VarsObject()
       for atr in self.attributes():
          setattr(dupe, atr, self.valcopy(atr))
+      if name: dupe.name = name
 
       return dupe
 
@@ -173,9 +174,13 @@ class VarsObject(object):
 
       return depth
 
-   def show(self, mesg='', prefix=None, pattern=None):
-      print ("-- %s values in var '%s', prefix = '%s'"%(mesg,self.name,prefix))
+   def show(self, mesg='', prefix=None, pattern=None, name=1):
+      if prefix: pstr = ", prefix = '%s'" % prefix
+      else:      pstr = ''
+
+      print ("-- %s values in var '%s'%s" % (mesg, self.name, pstr))
       for atr in self.attributes():
+         if not name and atr == 'name': continue
          match = (prefix == None and pattern == None)
          if prefix:
             if atr.startswith(prefix): match = 1
