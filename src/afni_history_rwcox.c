@@ -43,6 +43,8 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 28 , JAN , 2011 , RWC , "afni" , MICRO , TYPE_GENERAL ,
+   "Make descendants for read-in sessions" , NULL } ,
 
  { 28 , JAN , 2011 , RWC , "plug_aslA3D3" , MICRO , TYPE_GENERAL ,
    "Remove CR (ctrl-M) characters from source code" ,
