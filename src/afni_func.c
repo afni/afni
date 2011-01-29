@@ -3217,6 +3217,8 @@ STATUS("adding new session to list") ;
                GLOBAL_library.sslist->ssar[GLOBAL_library.sslist->num_sess] = new_ss ;
                (GLOBAL_library.sslist->num_sess)++ ;
                THD_reconcile_parents( GLOBAL_library.sslist ) ;
+               AFNI_force_adoption( new_ss , GLOBAL_argopt.warp_4D ) ; /* 28 Jan 2011 */
+               AFNI_make_descendants( GLOBAL_library.sslist ) ;        /* 28 Jan 2011 */
 
                sprintf(str," \n Session #%2d"
                             "\n %s"
