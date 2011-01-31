@@ -1349,8 +1349,13 @@ def list_minus_glob_form(slist, hpad=0, tpad=0):
    if tlen == 0: return [ s[hlen:]      for s in slist ]
    else:         return [ s[hlen:-tlen] for s in slist ]
 
+def common_dir(flist):
+   """return the directory name that is common to all files"""
+   dir, junk = first_last_match_strs(flist)
+   return os.path.dirname(dir)
+
 # ----------------------------------------------------------------------
-# matematical functions:
+# mathematical functions:
 #    vector routines: sum, sum squares, mean, demean
 # ----------------------------------------------------------------------
 
@@ -1381,6 +1386,16 @@ def dotprod(v1,v2):
       print '** cannot take dotprod() of these elements'
       dsum = 0
    return dsum
+
+def maxabs(vals):
+   """convenience function for the maximum of the absolute values"""
+   return max([abs(v) for v in vals])
+
+def ndigits_lod(num, base=10):
+   """return the number of digits to the left of the decimal"""
+   anum = abs(num)
+   if base == 10: return 1+int(math.log10(anum))
+   else:          return 1+int(math.log10(anum)/math.log10(base))
 
 # almost identical to demean, but just return the mean
 def mean(vec, ibot=-1, itop=-1):
