@@ -718,6 +718,12 @@ int main( int argc , char *argv[] )
       "  has enough RAM, then the program should run pretty quickly.\n"
       " ++ If your computer DOESN'T have enough RAM to hold all the data,\n"
       "    then this program will be very slow -- buy more memory!\n"
+      " ++ Note that the .data file(s) are mapped directly into memory (mmap),\n"
+      "    rather than being read with standard input methods.  This operation\n"
+      "    may not work well on network-mounted drives, in which case you\n"
+      "    will have to run 3dGroupInCorr on the same computer with the data\n"
+      "    files.  However, 3dGroupInCorr does NOT need to be run on the same\n"
+      "    computer as AFNI or SUMA: see the '-ah' option (far below).\n"
 #ifdef USE_OMP
       "\n"
       "* One reason this program is a server (rather than being built in\n"
