@@ -305,6 +305,11 @@
 # define IS_GOOD_FLOAT(x) finite(x)
 #endif
 
+/* 01 Feb 2011 -- minor adjustments */
+
+#define myceil(x)   ceil((x)-0.000005)
+#define myfloor(x) floor((x)+0.000005)
+
 /*---------------------------------------------------------------------------*/
 /*--------- Global variables for multiple process execution - RWCox. --------*/
 /*--------- All names start with "proc_", so search for that string. --------*/
@@ -3738,7 +3743,7 @@ ENTRY("read_input_data") ;
       {
         *block_list = (int *) malloc (sizeof(int) * (*num_blocks));
         for (it = 0;  it < *num_blocks;  it++)
-          (*block_list)[it] = floor (f[it]+0.5);
+          (*block_list)[it] = myfloor (f[it]+0.5);
       }
     }
 
@@ -3757,7 +3762,7 @@ ENTRY("read_input_data") ;
      if( dtloc <= 0.0f ) dtloc = 1.0f ;
      dmax = dtloc * lmax ;                /* duration of longest block */
      /* removed special cases of 150->1, 300->2     3 Oct 2007 [rickr] */
-     ilen = 1+(int)floor(dmax/150.0) ;
+     ilen = 1+(int)myfloor(dmax/150.0) ;
      switch( option_data->polort ){
        default:                           /* user supplied non-negative polort */
          if( option_data->polort < ilen )
@@ -4124,8 +4129,8 @@ fprintf(stderr,"\n") ;
 
           /* range of indexes to load with the response model */
 
-          ibot = (int)ceil ( tt + dbot ) ; if( ibot < imin ) ibot = imin ;
-          itop = (int)floor( tt + dtop ) ; if( itop > imax ) itop = imax ;
+          ibot = (int)myceil ( tt + dbot ) ; if( ibot < imin ) ibot = imin ;
+          itop = (int)myfloor( tt + dtop ) ; if( itop > imax ) itop = imax ;
 
           if( vfun > 0 ){ /* set vfun params in basis functions [08 Dec 2008] */
             for( jj=0 ; jj < nf ; jj++ ){
@@ -11034,7 +11039,7 @@ void basis_write_iresp( int argc , char *argv[] ,
    else
      tross_Append_History ( out_dset, label);
 
-   ts_length = 1 + (int)ceil( (be->ttop - be->tbot)/dt ) ; /* 13 Apr 2005: +1 */
+   ts_length = 1 + (int)myceil( (be->ttop - be->tbot)/dt ) ; /* 13 Apr 2005: +1 */
 
    /* modify the output dataset appropriately */
 
@@ -11167,7 +11172,7 @@ void basis_write_iresp_1D( int argc , char *argv[] ,
 
    if( dt <= 0.0f ) dt = 1.0f ;
 
-   ts_length = 1 + (int)ceil( (be->ttop - be->tbot)/dt ) ; /* 13 Apr 2005: +1 */
+   ts_length = 1 + (int)myceil( (be->ttop - be->tbot)/dt ) ; /* 13 Apr 2005: +1 */
 
    /* create output bricks */
 
@@ -11282,7 +11287,7 @@ void basis_write_sresp( int argc , char *argv[] ,
    else
      tross_Append_History ( out_dset, label);
 
-   ts_length = 1 + (int)ceil( (be->ttop - be->tbot)/dt ) ;
+   ts_length = 1 + (int)myceil( (be->ttop - be->tbot)/dt ) ;
 
    /* modify the output dataset appropriately */
 

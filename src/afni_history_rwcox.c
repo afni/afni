@@ -43,7 +43,16 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
- { 28 , JAN , 2011 , RWC , "afni" , MICRO , TYPE_GENERAL ,
+  { 1 , FEB , 2011 , RWC , "3dDeconvolve" , MICRO , TYPE_GENERAL ,
+   "Adjust ceil and floor functions slightly" ,
+   "myceil(x)  =  ceil( x - 0.000005 )\n"
+   "myfloor(x) = floor( x + 0.000005 )\n"
+   "\n"
+   "The changes are in order to avoid very close situations from roundoff\n"
+   "error -- that is, don't want 6.0000001 being ceil-inged up to 7, or\n"
+   "5.9999999 being floor-ed down to 5." } ,
+
+{ 28 , JAN , 2011 , RWC , "afni" , MICRO , TYPE_GENERAL ,
    "Make descendants for read-in sessions" , NULL } ,
 
  { 28 , JAN , 2011 , RWC , "plug_aslA3D3" , MICRO , TYPE_GENERAL ,
