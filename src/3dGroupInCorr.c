@@ -791,7 +791,7 @@ int main( int argc , char *argv[] )
       "                 large and take up a lot of memory in AFNI.\n"
       "              ++ Use this option with some judgment and wisdom, or bad things\n"
       "                 might happen! (e.g., your computer runs out of memory.)\n"
-      "              ++ This option is known as the 'Tim Ellmore special'.\n"
+      "              ++ This option is also known as the 'Tim Ellmore special'.\n"
       "\n"
       "*** Two-Sample Options ***\n"
       "\n"
@@ -1614,6 +1614,7 @@ int main( int argc , char *argv[] )
 
    if( do_sendall ){
      char buf[32] ;
+     strcat(bricklabels,";") ;           /* 01 Feb 2011: oopsie */
      for( kk=0 ; kk < ndset_AAA ; kk++ ){
        if( shd_AAA->dslab != NULL ) sprintf(buf,"A_%.10s",shd_AAA->dslab[kk]) ;
        else                         sprintf(buf,"%.9s#%02d",label_AAA,kk) ;
