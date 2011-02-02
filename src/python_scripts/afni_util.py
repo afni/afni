@@ -1349,6 +1349,80 @@ def list_minus_glob_form(slist, hpad=0, tpad=0):
    if tlen == 0: return [ s[hlen:]      for s in slist ]
    else:         return [ s[hlen:-tlen] for s in slist ]
 
+def parse_as_stim_list(flist):
+   """parse filename list as PREFIX.INDEX.LABEL.SUFFIX, where the separators
+        can be '.', '_' or nothing (though ignore PREFIX and SUFFIX, as well
+        as those separators)
+
+        - strip PREFIX and SUFFIX (those are garbage)
+          (if SUFFIX has a '.' after position 0, adjust the SUFFIX)
+        - strip any leading digits as INDEXes
+
+      return Nx2 table where if one column entry is filled, they all are
+             (None on failure for form a complete table)
+             (note: blank INDEX or LABEL is okay, but they must all be)
+   """
+
+   if len(flist) < 1: return []
+
+   # first get PREFIX and SUFFIX
+   prefix, suffix = first_last_match_strs(flist)
+
+   # if suffix contains an extension, make the suffix into the extension
+   dot = suffix.find('.')
+
+   # strip prefix, suffix: might include part of 'suffix' in label
+   inner_list = list_minus_glob_form(flist, tpad=dot)
+
+   # then make table of the form <NUMBER><SEP><LABEL>
+   s_table = [list(_parse_leading_int(name)) for name in inner_list]
+
+   # if any number does not exist, just return inner_list as LABELs
+   for entry in s_table:
+      if entry[0] < 0: return [[-1, label] for label in inner_list]
+
+   # return INDEX and LABEL (no SEP)
+   return [[entry[0], entry[2]] for entry in s_table]
+
+def _parse_leading_int(name, seplist=['.','_','-']):
+   """assuming name is a string starting with digits, parse name into
+      val, sep, suffix
+
+        val    = -1 if name does not start with a digit
+        sep    = one of {'.', '_', '-', ''}
+        suffix = whatever remains after 'sep'
+   """
+
+   nlen = len(name)
+
+   if nlen < 1: return -1, '', ''
+
+   # first strip of any leading (non-negative) integer
+   posn = 0     # count leading digits
+   for char in name:
+      if char.isdigit(): posn += 1
+      else:              break
+
+   if posn == 0: val = -1
+   else:
+      try: val = int(name[0:posn])
+      except:
+         print "** _parse_leading_int: can't parse int from %s" % name
+         return
+
+   # if only a number, we're outta here
+   if posn == nlen: return val, '', ''
+
+   # note any separator
+   if name[posn] in seplist:
+      sep = name[posn]
+      posn += 1
+   else:
+      sep = ''
+
+   # aaaaaand, we're done
+   return val, sep, name[posn:]
+
 def common_dir(flist):
    """return the directory name that is common to all files"""
    dir, junk = first_last_match_strs(flist)
