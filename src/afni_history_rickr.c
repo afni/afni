@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 1, FEB, 2011, RCR, "afni_util.py", MINOR, TYPE_ENHANCE,
+   "updates for parsing a stim file list",
+   NULL
+ } ,
+
  { 31, JAN, 2011, RCR, "afni_util.py", MICRO, TYPE_ENHANCE,
    "updates for uber_subj.py",
    NULL
