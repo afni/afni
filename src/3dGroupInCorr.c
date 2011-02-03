@@ -1,16 +1,17 @@
-/* Group InstaCorr == GrpInCorr */
+/*** 3dGroupIncorr == Group InstaCorr == GrpInCorr ***/
 
 /***
   Ideas for making this program more cromulently embiggened:
    ++ 2-way case: produce 1-way result sub-bricks as well -- DONE!
    ++ Rank or other robust analog to t-test
    ++ Send sub-brick data as scaled shorts to reduce transmit time
-   ++ Fix shm: bug in AFNI libray
+   ++ Fix shm: bug in AFNI libray (but how?)
    ++ Have non-server modes:
-    -- To output dataset to disk
+    -- To input a 1D file as the seed vector set
+    -- To output dataset(s) to disk
     -- 3dTcorrMap-like scan through whole brain as seed
    ++ Per-subject covariates -- DONE!
-   ++ Send per-subject correlations to AFNI (as an option)
+   ++ Send per-subject correlations to AFNI (as an option) -- DONE!
 ***/
 
 #include "mrilib.h"
@@ -1071,9 +1072,9 @@ int main( int argc , char *argv[] )
        covnel = THD_simple_table_read( argv[nopt] ) ;
        if( covnel == NULL )
          ERROR_exit("Can't read table from -covariates file '%s'",argv[nopt]) ;
-       INFO_message("Covariates file: %d columns, each with %d rows",
-                    covnel->vec_num , covnel->vec_len ) ;
        mcov = covnel->vec_num - 1 ;
+       INFO_message("Covariates file: %d columns (%d covariates), each with %d rows",
+                    covnel->vec_num , mcov , covnel->vec_len ) ;
        if( mcov < 1 )
          ERROR_exit("Need at least 2 columns in -covariates file!") ;
        else if( mcov > MAXCOV )
@@ -1148,16 +1149,16 @@ int main( int argc , char *argv[] )
        } else if( STRING_HAS_SUFFIX(fname,".grpincorr") ){
          fname = (char *)realloc(fname,strlen(fname)+16) ;
          strcat(fname,".niml") ;
-         INFO_message("Added '.niml' to end of -setA filename") ;
+         if( verb ) INFO_message("Added '.niml' to end of -setA filename") ;
        } else if( STRING_HAS_SUFFIX(fname,".grpincorr.") ){
          fname = (char *)realloc(fname,strlen(fname)+16) ;
          strcat(fname,"niml") ;
-         INFO_message("Added 'niml' to end of -setA filename") ;
+         if( verb ) INFO_message("Added 'niml' to end of -setA filename") ;
        }
        shd_AAA = GRINCOR_read_input( fname ) ;
        if( shd_AAA == NULL ) ERROR_exit("Cannot continue after -setA input error") ;
        if( verb ) INFO_message("-setA opened, contains %d datasets, %d time series, %s bytes",
-                                shd_AAA->ndset , shd_AAA->nvec , commaized_integer_string(shd_AAA->nbytes));
+                               shd_AAA->ndset , shd_AAA->nvec , commaized_integer_string(shd_AAA->nbytes));
        qlab_AAA = fname ;
        cpt = strchr(qlab_AAA,'.') ; if( cpt != NULL && cpt != qlab_AAA ) *cpt = '\0' ;
        nopt++ ; continue ;
@@ -1170,20 +1171,20 @@ int main( int argc , char *argv[] )
        fname = strdup(argv[nopt]) ;
        if( STRING_HAS_SUFFIX(fname,".data") ){
          strcpy(fname+strlen(fname)-5,".niml") ;
-         WARNING_message("Replaced '.data' with '.niml' in -setA filename") ;
+         if( verb ) WARNING_message("Replaced '.data' with '.niml' in -setA filename") ;
        } else if( STRING_HAS_SUFFIX(fname,".grpincorr") ){
          fname = (char *)realloc(fname,strlen(fname)+16) ;
          strcat(fname,".niml") ;
-         INFO_message("Added '.niml' to end of -setB filename") ;
+         if( verb ) INFO_message("Added '.niml' to end of -setB filename") ;
        } else if( STRING_HAS_SUFFIX(fname,".grpincorr.") ){
          fname = (char *)realloc(fname,strlen(fname)+16) ;
          strcat(fname,"niml") ;
-         INFO_message("Added 'niml' to end of -setB filename") ;
+         if( verb ) INFO_message("Added 'niml' to end of -setB filename") ;
        }
        shd_BBB = GRINCOR_read_input( fname ) ;
        if( shd_BBB == NULL ) ERROR_exit("Cannot continue after -setB input error") ;
        if( verb ) INFO_message("-setB opened, contains %d datasets, %d time series, %s bytes",
-                                shd_BBB->ndset , shd_BBB->nvec , commaized_integer_string(shd_BBB->nbytes));
+                               shd_BBB->ndset , shd_BBB->nvec , commaized_integer_string(shd_BBB->nbytes));
        qlab_BBB = fname ;
        cpt = strchr(qlab_BBB,'.') ; if( cpt != NULL && cpt != qlab_BBB ) *cpt = '\0' ;
        nopt++ ; continue ;
@@ -1229,7 +1230,7 @@ int main( int argc , char *argv[] )
    }
 
    if( ttest_opcode == 1 && mcov > 0 ){
-     INFO_message("-covariates does not support unpooled variance (yet)") ;
+     WARNING_message("-covariates does not support unpooled variance (yet)") ;
      ttest_opcode = 0 ;
    }
 
@@ -1280,10 +1281,16 @@ int main( int argc , char *argv[] )
      }
 
      if( ndset_AAA < mcov+3 ){
-       ERROR_message("-setA has %d datasets, but you have %d covariates!") ; nbad++ ;
+       nbad++ ;
+       ERROR_message(
+         "-setA has %d datasets, but you have %d covariates (max would be %d)",
+         ndset_AAA,mcov,ndset_AAA-3) ;
      }
      if( ndset_BBB > 0 && ndset_BBB < mcov+3 ){
-       ERROR_message("-setB has %d datasets, but you have %d covariates!") ; nbad++ ;
+       nbad++ ;
+       ERROR_message(
+         "-setB has %d datasets, but you have %d covariates (max would be %d)",
+         ndset_BBB,mcov,ndset_BBB-3) ;
      }
 
      if( nbad ) ERROR_exit("Can't continue :-(") ;
@@ -1687,7 +1694,7 @@ int main( int argc , char *argv[] )
    }
 
    if( verb ){
-     INFO_message("3dGroupInCorr stands ready to do thy bidding :-) !!") ;
+     INFO_message("3dGroupInCorr stands ready to do thy bidding, O Master :-) !!") ;
 #ifdef USE_OMP
 #pragma omp parallel
  {
