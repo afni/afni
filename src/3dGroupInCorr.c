@@ -8,6 +8,7 @@
    ++ Fix shm: bug in AFNI libray (but how?)
    ++ Have non-server modes:
     -- To input a 1D file as the seed vector set
+    -- To input a mask file to define the seed vector set
     -- To output dataset(s) to disk
     -- 3dTcorrMap-like scan through whole brain as seed
    ++ Per-subject covariates -- DONE!
