@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 1 , FEB , 2011 , RWC , "3dDeconvolve" , MICRO , TYPE_GENERAL ,
+  { 7 , FEB , 2011 , RWC , "3dGroupInCorr" , MINOR , TYPE_NEW_OPT ,
+   "Added -batch mode of operation" ,
+   "To appease the Lebanese and Italian masses." } ,
+
+ { 1 , FEB , 2011 , RWC , "3dDeconvolve" , MICRO , TYPE_GENERAL ,
    "Adjust ceil and floor functions slightly" ,
    "myceil(x)  =  ceil( x - 0.000005 )\n"
    "myfloor(x) = floor( x + 0.000005 )\n"

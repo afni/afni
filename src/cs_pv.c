@@ -378,7 +378,7 @@ fprintf(stderr,"         bb=%.5g %.5g %.5g\n"
 
      /* check first eigenvalue in D for convergence */
 
-     if( nite > 99 ||
+     if( nite > 199 ||
          ( nite > 0 && fabs(ev[0]-evold) <= FEPS*(fabs(evold)+FEPS) ) ) break ;
 
      /* not done yet ==> iterate */
