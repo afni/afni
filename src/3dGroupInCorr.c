@@ -851,7 +851,7 @@ int main( int argc , char *argv[] )
    char *bricklabels=NULL ;
    float **saar=NULL ;
 
-   int   bmode=0 ;    /* 05 Feb 2011 -- stuff for batch mode */
+   int   bmode=0 , do_lpi=0 ;    /* 05 Feb 2011 -- stuff for batch mode */
    char *bname=NULL ;
    char *bfile=NULL , *bprefix=NULL ;
    FILE *bfp=NULL ;
@@ -1247,11 +1247,17 @@ int main( int argc , char *argv[] )
      "                 each input dataset at that voxel and use that as the seed\n"
      "                 vector for that dataset (if '-seedrad' is given, then the\n"
      "                 seed vector will be averaged as done in interactive mode).\n"
+     "              ** This is the same mode of operation as the interactive seed\n"
+     "                 picking via AFNI's 'InstaCorr Set' menu item.\n"
      "             -- FILE line format:  prefix i j k\n"
      "\n"
      "  ++ XYZ     ==> very similar to 'IJK', but instead of voxel indexes being\n"
      " or  XYZAVE      given to specify the seed vectors, the RAI (DICOM) (x,y,z)\n"
      "                 coordinates are given ('-seedrad' also applies).\n"
+     "              ** If you insist on using LPI (neurological) coordinates, as\n"
+     "                 Some other Programs (which are Fine Software tooLs) do,\n"
+     "                 set environmentment variable AFNI_INSTACORR_XYZ_LPI to YES,\n"
+     "                 before running this program.\n"
      "             -- FILE line format:  prefix x y z\n"
      "\n"
      "  ++ MASKAVE ==> each line on the command file specifies a mask dataset;\n"
@@ -1521,6 +1527,8 @@ int main( int argc , char *argv[] )
    }
 
    /*-- check inputs for OK-ness --*/
+
+   do_lpi = AFNI_yesenv("AFNI_INSTACORR_XYZ_LPI") ;  /* 07 Feb 2011 */
 
    if( bmode && !TalkToAfni )
      ERROR_exit("GIC: Alas, -batch and -suma are not compatible :-(") ;
@@ -2157,8 +2165,8 @@ int main( int argc , char *argv[] )
              k = (int)strtod(bsar->str[3],NULL) ;
            } else {
              float fi,fj,fk ;
-             x = (float)strtod(bsar->str[1],NULL) ;
-             y = (float)strtod(bsar->str[2],NULL) ;
+             x = (float)strtod(bsar->str[1],NULL) ; if( do_lpi ) x = -x ;
+             y = (float)strtod(bsar->str[2],NULL) ; if( do_lpi ) y = -y ;
              z = (float)strtod(bsar->str[3],NULL) ;
              MAT44_VEC( giset->dset->daxes->dicom_to_ijk , x,y,z , fi,fj,fk ) ;
              i = (int)rintf(fi) ; j = (int)rintf(fj) ; k = (int)rintf(fk) ;
@@ -2168,8 +2176,10 @@ int main( int argc , char *argv[] )
                k < 0 || k >= nz   ){
              if( bmode == IJK_MODE || bmode == IJKPV_MODE )
                ERROR_message("GIC: bad batch command line: %s (%d,%d,%d) illegal",bname,i,j,k);
-             else
+             else {
+               if( do_lpi ){ x = -x ; y = -y ; }
                ERROR_message("GIC: bad batch command line: %s (%g,%g,%g) illegal",bname,x,y,z);
+             }
              goto LoopBack ;
            }
            qijk = THREE_TO_IJK(i,j,k,nx,nxy) ;

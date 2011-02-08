@@ -2853,6 +2853,16 @@ static char * readme_env[] = {
    "cannot be set interactively, but can be set on the AFNI command line\n" ,
    "with the usual -DAFNI_INSTACORR_SEEDBLUR=YES method.\n" ,
    "\n" ,
+   "--------------------------------\n" ,
+   "Variable: AFNI_INSTACORR_XYZ_LPI\n" ,
+   "--------------------------------\n" ,
+   "In 3dGroupInCorr's batch mode, the XYZ method of operation sets the\n" ,
+   "seed coordinates using AFNI's standard RAI (DICOM) order.  If you\n" ,
+   "set this variable to YES, then the coordinates given will be\n" ,
+   "interpreted as being in LPI (AKA 'neurological') order; that is,\n" ,
+   "the given x and y values will be negated before being used inside\n" ,
+   "3dGroupInCorr to pick the seed voxel.\n" ,
+   "\n" ,
    "----------------------------------\n" ,
    "Variable: AFNI_BLUR_INTS_AS_OLD\n" ,
    "----------------------------------\n" ,
@@ -3142,4 +3152,4 @@ static char * readme_env[] = {
    "behavior, set this variable to YES.\n" ,
    "\n" ,
    NULL } ;
-#define NUM_readme_env 3142
+#define NUM_readme_env 3152

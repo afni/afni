@@ -2852,6 +2852,16 @@ by Gaussian blurring with the chosen FWHM: "SeedBlur".  This variable
 cannot be set interactively, but can be set on the AFNI command line
 with the usual -DAFNI_INSTACORR_SEEDBLUR=YES method.
 
+--------------------------------
+Variable: AFNI_INSTACORR_XYZ_LPI
+--------------------------------
+In 3dGroupInCorr's batch mode, the XYZ method of operation sets the
+seed coordinates using AFNI's standard RAI (DICOM) order.  If you
+set this variable to YES, then the coordinates given will be
+interpreted as being in LPI (AKA 'neurological') order; that is,
+the given x and y values will be negated before being used inside
+3dGroupInCorr to pick the seed voxel.
+
 ----------------------------------
 Variable: AFNI_BLUR_INTS_AS_OLD
 ----------------------------------
