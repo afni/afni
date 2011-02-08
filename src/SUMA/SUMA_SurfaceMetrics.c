@@ -232,7 +232,7 @@ int main (int argc,char *argv[])
 	/* Allocate space for DO structure */
 	SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);
 
-   if (argc < 4)
+   if (argc > 1 && argc < 4)
        {
           SUMA_S_Err("Too few parameters");
           usage_SUMA_SurfaceMetrics (ps);
