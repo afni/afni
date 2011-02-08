@@ -749,7 +749,7 @@ void GRINCOR_seedvec_ijklist_pvec( MRI_shindss *shd ,
 #define AFNI_NIML_PORT   53212          /* TCP/IP port that AFNI uses */
 #define SUMA_GICORR_PORT 53224          /* TCP/IP port that SUMA uses */
 
-static int nport = -1 ;                 /* 02 Aug 2010 */
+static int nport = 0 ;                  /* 02 Aug 2010 */
 
 NI_stream GI_stream = (NI_stream)NULL ;
 
