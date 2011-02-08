@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 7 , FEB , 2011 , RWC , "3dGroupInCorr" , MINOR , TYPE_NEW_OPT ,
+  { 8 , FEB , 2011 , RWC , "3dGroupInCorr" , MICRO , TYPE_NEW_ENV ,
+   "Add AFNI_INSTACORR_XYZ_LPI environment variable" ,
+   NULL } ,
+
+ { 7 , FEB , 2011 , RWC , "3dGroupInCorr" , MINOR , TYPE_NEW_OPT ,
    "Added -batch mode of operation" ,
    "To appease the Lebanese and Italian masses." } ,
 
