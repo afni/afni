@@ -2,16 +2,16 @@
 
 /***
   Ideas for making this program more cromulently embiggened:
-   ++ 2-way case: produce 1-way result sub-bricks as well -- DONE!
+   ++ 2-way case: produce 1-way result sub-bricks as well  -- DONE!
    ++ Rank or other robust analog to t-test
-   ++ Send sub-brick data as scaled shorts to reduce transmit time
+   ++ Send sub-brick data as scaled shorts
    ++ Fix shm: bug in AFNI libray (but how?)
    ++ Have non-server modes:
-    -- To input a 1D file as the seed vector set
-    -- To input a mask file to define the seed vector set
-    -- To output dataset(s) to disk
+    -- To input a 1D file as the seed vector set           -- DONE!
+    -- To input a mask file to define the seed vector set  -- DONE!
+    -- To output dataset(s) to disk                        -- DONE!
     -- 3dTcorrMap-like scan through whole brain as seed
-   ++ Per-subject covariates -- DONE!
+   ++ Per-subject covariates                               -- DONE!
    ++ Send per-subject correlations to AFNI (as an option) -- DONE!
 ***/
 
@@ -874,6 +874,10 @@ int main( int argc , char *argv[] )
       "  collections that have been prepared by 3dSetupGroupInCorr, and then\n"
       "  connects to the AFNI or SUMA GUI program (via TCP/IP).  Then it waits\n"
       "  for a command to be sent from AFNI/SUMA before it actually does anything.\n"
+      "\n"
+      " (-: However,  the new [Feb 2011] '-batch' option,  described far below, :-)\n"
+      " (-: lets you run 3dGroupInCorr by itself, without AFNI or SUMA, writing :-)\n"
+      " (-: results to disk instead of transmitting them to the client program. :-)\n"
       "\n"
       "* At the same time as you run 3dGroupInCorr, you also have to run the\n"
       "  AFNI GUI program, with a command like 'afni -niml'.  3dGroupInCorr\n"
