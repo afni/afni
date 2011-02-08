@@ -894,7 +894,7 @@ int main( int argc , char *argv[] )
       " ++ A lot of computing can be required if there are a lot of datasets\n"
       "    in the input collections.  3dGroupInCorr is carefully written to\n"
       "    be fast.  For example, on a Mac Pro with 8 3GHz CPUs, running\n"
-      "    with 1.2 GBytes of data (100 datasets time 69K voxels), each\n"
+      "    with 1.2 GBytes of data (100 datasets each with 69K voxels), each\n"
       "    group correlation map takes about 0.3 seconds to calculate and\n"
       "    transmit to AFNI -- this speed is why it's called 'Insta'.\n"
       "\n"
@@ -1038,13 +1038,11 @@ int main( int argc , char *argv[] )
       "               must be the same, and the datasets must have been input to\n"
       "               3dSetupGroupInCorr in the same relative order when each\n"
       "               collection was created. (Duh.)\n"
-#if 1
       " -nosix    = For a 2-sample situation, the program by default computes\n"
       "             not only the t-test for the difference between the samples,\n"
       "             but also the individual (setA and setB) 1-sample t-tests, giving\n"
       "             6 sub-bricks that are sent to AFNI.  If you don't want\n"
       "             these 4 extra 1-sample sub-bricks, use the '-nosix' option.\n"
-#endif
       "   ++ None of these 'two-sample' options means anything for a 1-sample\n"
       "      t-test (i.e., where you don't use -setB).\n"
 #if 0
@@ -1102,7 +1100,30 @@ int main( int argc , char *argv[] )
       "            is treated as a special covariate whose values are all 1).\n"
       "            -- At present, there is no way to tell 3dGroupInCorr not to send\n"
       "               all this information back to AFNI/SUMA.\n"
-      "        ++ A maximum of 31 covariates are allowed.  If you need more, then please\n"
+      "        ++ EXAMPLE:\n"
+      "           If there are 2 groups of datasets (with setA labeled 'Pat', and setB\n"
+      "           labeled 'Ctr'), and one covariate (labeled IQ), then the following\n"
+      "           sub-bricks will be produced:\n"
+      "       # 0  Pat-Ctr_mean    = mean difference in arctanh(correlation)\n"
+      "       # 1  Pat-Ctr_Zscr    = Z score of t-statistic for above difference\n"
+      "       # 2  Pat-Ctr_IQ      = difference in slope of arctanh(correlation) vs IQ\n"
+      "       # 3  Pat-Ctr_IQ_Zscr = Z score of t-statistic for above difference\n"
+      "       # 4  Pat_mean        = mean of arctanh(correlation) for setA\n"
+      "       # 5  Pat_Zscr        = Z score of t-statistic for above mean\n"
+      "       # 6  Pat_IQ          = slope of arctanh(correlation) vs IQ for setA\n"
+      "       # 7  Pat_IQ_Zscr     = Z score of t-statistic for above slope\n"
+      "       # 8  Ctr_mean        = mean of arctanh(correlation) for setB\n"
+      "       # 9  Ctr_Zscr        = Z score of t-statistic for above mean\n"
+      "       #10  Ctr_IQ          = slope of arctanh(correlation) vs IQ for setB\n"
+      "       #11  Ctr_IQ_Zscr     = Z score of t-statistic for above slope\n"
+      "        ++ However, the single-set results (sub-bricks #4-11) will NOT be\n"
+      "           computed if the '-nosix' option is used.\n"
+      "        ++ If '-sendall' is used, the individual dataset arctanh(correlation)\n"
+      "           maps (labeled with '_zcorr' at the end) will be appended to this\n"
+      "           list.  These setA sub-brick labels will start with 'A_' and these\n"
+      "           setB labels with 'B_'.\n"
+      "\n"
+      "      ++++ A maximum of 31 covariates are allowed.  If you need more, then please\n"
       "            consider the possibility that you are completely deranged or demented.\n"
       "\n"
       "---------------------------*** Other Options ***---------------------------\n"
@@ -1342,11 +1363,9 @@ int main( int argc , char *argv[] )
        TalkToAfni = 0 ; nopt++ ; continue ;
      }
 
-#if 1
      if( strcasecmp(argv[nopt],"-nosix") == 0 ){
        nosix = 1 ; nopt++ ; continue ;
      }
-#endif
 
      if( strcasecmp(argv[nopt],"-batch") == 0 ){  /* Feb 2011 */
        if( bmode )            ERROR_exit("GIC: can't use '%s' twice!",argv[nopt]) ;
