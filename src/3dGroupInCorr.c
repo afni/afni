@@ -891,6 +891,12 @@ int main( int argc , char *argv[] )
       "  series, then will compute the voxel-wise collection of t-tests of\n"
       "  that bunch of correlation maps, and return the resulting 3D volumes\n"
       "  to AFNI for display.\n"
+      " ++ A lot of computing can be required if there are a lot of datasets\n"
+      "    in the input collections.  3dGroupInCorr is carefully written to\n"
+      "    be fast.  For example, on a Mac Pro with 8 3GHz CPUs, running\n"
+      "    with 1.2 GBytes of data (100 datasets time 69K voxels), each\n"
+      "    group correlation map takes about 0.3 seconds to calculate and\n"
+      "    transmit to AFNI -- this speed is why it's called 'Insta'.\n"
       "\n"
       "* You must start AFNI with the '-niml' option to allow it to accept\n"
       "  incoming TCP/IP socket connections.\n"
@@ -958,6 +964,8 @@ int main( int argc , char *argv[] )
       " ++ However, this binary version is not compiled with OpenMP :-(\n"
       " ++ OpenMP is supported in gcc 4.2 and above (included on Mac OS X),\n"
       "    and in some commercial C compilers (e.g., Sun's, Intel's).\n"
+      " ++ If at all possible, use a version/compilation of 3dGroupInCorr\n"
+      "    with OpenMP; the speed difference is very appreciable!\n"
 #endif
       ) ;
 
@@ -1259,7 +1267,7 @@ int main( int argc , char *argv[] )
      " or  XYZAVE      given to specify the seed vectors, the RAI (DICOM) (x,y,z)\n"
      "                 coordinates are given ('-seedrad' also applies).\n"
      "              ** If you insist on using LPI (neurological) coordinates, as\n"
-     "                 Some other Programs (which are Fine Software tooLs) do,\n"
+     "                 Some other PrograMs (which are Fine Software tooLs) do,\n"
      "                 set environmentment variable AFNI_INSTACORR_XYZ_LPI to YES,\n"
      "                 before running this program.\n"
      "             -- FILE line format:  prefix x y z\n"
@@ -1300,7 +1308,7 @@ int main( int argc , char *argv[] )
 
    mainENTRY("3dGroupInCorr"); machdep();
    AFNI_logger("3dGroupInCorr",argc,argv);
-   PRINT_VERSION("3dGroupInCorr"); AUTHOR("The Mad Correlator");
+   PRINT_VERSION("3dGroupInCorr"); AUTHOR("Cox, the Mad Correlator");
 
    /*-- process command line options --*/
 
