@@ -175,10 +175,13 @@ class VarsObject(object):
       return depth
 
    def show(self, mesg='', prefix=None, pattern=None, name=1):
+      print self.make_show_str(mesg, prefix, pattern, name)
+
+   def make_show_str(self, mesg='', prefix=None, pattern=None, name=1):
       if prefix: pstr = ", prefix = '%s'" % prefix
       else:      pstr = ''
 
-      print ("-- %s values in var '%s'%s" % (mesg, self.name, pstr))
+      sstr = "-- %s values in var '%s'%s\n" % (mesg, self.name, pstr)
       for atr in self.attributes():
          if not name and atr == 'name': continue
          match = (prefix == None and pattern == None)
@@ -186,8 +189,10 @@ class VarsObject(object):
             if atr.startswith(prefix): match = 1
          if pattern:
             if atr.find(pattern) >= 0: match = 1
-         if match: print ("      %-15s : %s" % (atr, self.val(atr)))
+         if match:
+            sstr += "      %-15s : %s\n" % (atr, self.val(atr))
 
+      return sstr
 
 def subj_compare(subj0, subj1):
    """compare 2 Subject objects:        used for sorting a list of subjects
