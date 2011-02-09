@@ -2989,9 +2989,9 @@ static char * readme_env[] = {
    "--- END: variables specific to NIML I/O\n" ,
    "----------------------------------------------------------------------\n" ,
    "\n" ,
-   "----------------------------\n" ,
+   "-------------------------\n" ,
    "Variable: AFNI_GIFTI_VERB\n" ,
-   "----------------------------\n" ,
+   "-------------------------\n" ,
    "This integer sets the verbose level in the gifti I/O library routines.\n" ,
    "Level 1 is the default, 0 is \"quiet\", and values go up to 7.\n" ,
    "\n" ,
@@ -3002,9 +3002,9 @@ static char * readme_env[] = {
    "lines in the 'Dataset#N' plugin from the default of 9 up to a max of 49.\n" ,
    "(This one is for Shruti.)\n" ,
    "\n" ,
-   "----------------------------\n" ,
+   "---------------------------------\n" ,
    "Variable: AFNI_WRITE_1D_AS_PREFIX\n" ,
-   "----------------------------\n" ,
+   "---------------------------------\n" ,
    "If this variable is set to YES, then 1D formatted files will be written\n" ,
    "to the file based on the given prefix, rather than to an automatic 1D file.\n" ,
    "This allows writing surface files to NIfTI format, for example.\n" ,
@@ -3017,6 +3017,8 @@ static char * readme_env[] = {
    "| Department of Health & Human Services     |\n" ,
    "| United States of America                  |\n" ,
    "| Earth, United Federation of Planets       |\n" ,
+   "| Alpha Quadrant, Milky Way Galaxy          |\n" ,
+   "| Local Group, Virgo Supercluster           |\n" ,
    "=============================================\n" ,
    "\n" ,
    "############################################################################\n" ,
@@ -3152,4 +3154,4 @@ static char * readme_env[] = {
    "behavior, set this variable to YES.\n" ,
    "\n" ,
    NULL } ;
-#define NUM_readme_env 3152
+#define NUM_readme_env 3154
