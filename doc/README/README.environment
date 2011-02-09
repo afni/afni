@@ -2988,9 +2988,9 @@ to increase this past its default size of 255*1024=261120.
 --- END: variables specific to NIML I/O
 ----------------------------------------------------------------------
 
-----------------------------
+-------------------------
 Variable: AFNI_GIFTI_VERB
-----------------------------
+-------------------------
 This integer sets the verbose level in the gifti I/O library routines.
 Level 1 is the default, 0 is "quiet", and values go up to 7.
 
@@ -3001,9 +3001,9 @@ This numeric variable, if set, lets you expand the number of dataset
 lines in the 'Dataset#N' plugin from the default of 9 up to a max of 49.
 (This one is for Shruti.)
 
-----------------------------
+---------------------------------
 Variable: AFNI_WRITE_1D_AS_PREFIX
-----------------------------
+---------------------------------
 If this variable is set to YES, then 1D formatted files will be written
 to the file based on the given prefix, rather than to an automatic 1D file.
 This allows writing surface files to NIfTI format, for example.
@@ -3016,6 +3016,8 @@ This allows writing surface files to NIfTI format, for example.
 | Department of Health & Human Services     |
 | United States of America                  |
 | Earth, United Federation of Planets       |
+| Alpha Quadrant, Milky Way Galaxy          |
+| Local Group, Virgo Supercluster           |
 =============================================
 
 ############################################################################
