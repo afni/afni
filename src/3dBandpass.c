@@ -36,6 +36,8 @@ int main( int argc , char * argv[] )
        "   to 3dSetupGroupInCorr.  Other uses are left to your imagination.\n"
        "\n"
        "* 'dataset' is a 3D+time sequence of volumes\n"
+       "   ++ This must be a single imaging run -- that is, no discontinuities\n"
+       "       in time from 3dTcat-ing multiple datasets together.\n"
        "\n"
        "* fbot = lowest frequency in the passband, in Hz\n"
        "   ++ fbot can be 0 if you want to do a lowpass filter only;\n"
