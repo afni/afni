@@ -131,6 +131,7 @@ ENTRY("PLUGIN_init:Dataset#N") ;
    PLUTO_set_runlabels( plint , "Set+Keep" , "Set+Close" ) ;  /* 04 Nov 2003 */
 
    nmax = (int)AFNI_numenv("AFNI_DATASETN_NMAX") ;
+   /** INFO_message("AFNI_DATASETN_NMAX = %s",getenv("AFNI_DATASETN_NMAX")) ; **/
    if( nmax < 9 ) nmax = 9 ; else if( nmax > NMAX ) nmax = NMAX ;
 
    for( id=0 ; id < nmax ; id++ ){
