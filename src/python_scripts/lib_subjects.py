@@ -59,7 +59,7 @@ class VarsObject(object):
       retlist.sort()
       return retlist
 
-   def make_copy(self, name=None):
+   def copy(self, name=None):
       """return a copy of this class item by creating a new instance
          and copying all simple attributes
       """
@@ -80,16 +80,9 @@ class VarsObject(object):
          print ("** trying to merge %s with VarsObject" % type(v2))
          return
 
-      if self.verb > 4: self.show(mesg="++ pre-merge: ")
-
       newatrs = v2.attributes()
       for atr in newatrs:
-         if self.verb > 3:
-            print ("++ merge: updating VO atr %s: from %s to %s" \
-                   % (atr, self.val(atr), v2.val(atr)))
          setattr(self, atr, v2.valcopy(atr))
-
-      if self.verb > 4: self.show(mesg="++ post-merge: ")
 
    def valcopy(self, atr):
       """use deepcopy to copy any value, since it may be a list"""
