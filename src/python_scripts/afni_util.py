@@ -1269,6 +1269,10 @@ def first_last_match_strs(slist):
              return 'subj_' and '.txt'
    """
 
+   if type(slist) != list:
+      print '** FL match strings requires a list'
+      return '', ''
+
    if not slist: return '', ''
 
    maxlen = len(slist[0])
