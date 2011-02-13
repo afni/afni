@@ -1317,6 +1317,45 @@ def glob_form_from_list(slist):
 
    return globstr
 
+def glob_form_matches_list(slist, ordered=1):
+   """given a list of strings, make a glob form, and then test that against
+      the actual files on disk
+
+      if ordered: files must match exactly (i.e. slist must be sorted)
+      else:       slist does not need to be sorted
+   """
+
+   import glob
+
+   slen = len(slist)
+
+   # check trivial cases of lengths 0 and 1
+   if slen == 0: return 1
+   if slen == 1:
+      if os.path.isfile(slist[0]): return 1
+      else:                        return 0
+
+   globstr = glob_form_from_list(slist)
+   glist = glob.glob(globstr)
+   glist.sort()
+
+   # quick check: lengths must match
+   if len(glist) != slen: return 0
+
+   if ordered:
+      inlist = slist
+   else: 
+      inlist = slist[:]
+      inlist.sort()
+
+   # now files must match exactly (between inlist and glist)
+   for ind in range(slen):
+      if glist[ind] != inlist[ind]: return 0
+
+   # they must match
+   return 1
+   
+
 def list_minus_glob_form(slist, hpad=0, tpad=0):
    """given a list of strings, return the inner part of the list that varies
       (i.e. remove the consistent head and tail elements)
