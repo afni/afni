@@ -18,6 +18,23 @@ class VarsObject(object):
    def __init__(self, name='noname'):
       self.name = name
 
+   def set_var(self, name, newval):
+      """if the value has changed (or is not a simple type), update it
+         - use deepcopy (nuke it from orbit, it's the only way to be sure)
+
+         return 1 if an update is performed, else 0
+      """
+
+      oldval = getattr(self, name)
+
+      # if simple and unchanged, no update (mostly pertains to verb message)
+      if type(newval) in g_simple_types:
+         if oldval == newval: return 0
+
+      setattr(self, name, copy.deepcopy(newval))
+
+      return 1
+
    def __get_atomic_type__(self, atr):
       """return the atomic type of an object
          return one of int, float, str, list

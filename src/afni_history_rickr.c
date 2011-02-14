@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 14, FEB, 2011, RCR, "uber_proc.py", MINOR, TYPE_NEW_PROG,
+   "move uber program into main repository",
+   NULL
+ } ,
+
  { 12, FEB, 2011, RCR, "afni_util.py", MINOR, TYPE_ENHANCE,
    "updates for uber_subject.py",
    NULL
