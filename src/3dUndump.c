@@ -163,6 +163,10 @@ void Syntax(void)
     "   spaces (' ') before the line is interpreted.  This feature is for\n"
     "   convenience for people writing files in CSV (Comma Separated Values)\n"
     "   format.\n"
+    "   ++ [14 Feb 2010] Semicolons (';') and colons (':') are now changed\n"
+    "        to blanks, as well.  In addition, any line that starts with\n"
+    "        an alphabetic character, or with '#' or '/' will be skipped\n"
+    "        (presumably it is some kind of comment).\n"
     "\n"
     "* [31 Dec 2008] Inputs of 'NaN' are explicitly converted to zero, and\n"
     "  a warning message is printed.  AFNI programs do not deal with NaN\n"
@@ -581,10 +585,11 @@ int main( int argc , char * argv[] )
          /* find 1st nonblank */
 
          for( ii=0 ; ii < kk && isspace(linbuf[ii]) ; ii++ ) ; /* nada */
-         if( ii == kk ) continue ;                                 /* all blanks */
-         if( linbuf[ii] == '/' && linbuf[ii+1] == '/' ) continue ; /* comment */
-         if( linbuf[ii] == '#'                        ) continue ; /* comment */
-         if( isalpha(linbuf[ii])                      ) continue ; /* alphabetic */
+         if( ii == kk            ) continue ; /* all blanks */
+         if( linbuf[ii] == '/'   ) continue ; /* comment   */
+         if( linbuf[ii] == '#'   ) continue ; /* comment  */
+         if( linbuf[ii] == '<'   ) continue ; /* XML?    */
+         if( isalpha(linbuf[ii]) ) continue ; /* alphabetic */
 
          /* changes commas to blanks [10 Nov 2008] */
 
