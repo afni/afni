@@ -43,7 +43,12 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 8 , FEB , 2011 , RWC , "3dGroupInCorr" , MICRO , TYPE_NEW_ENV ,
+  { 14 , FEB , 2011 , RWC , "3dUndump" , MICRO , TYPE_BUG_FIX ,
+   "Fix comma -> blank conversion" ,
+   "Also make semicolons and colons into blanks.\n"
+   "Skip any line starting with an alphabetic character." } ,
+
+ { 8 , FEB , 2011 , RWC , "3dGroupInCorr" , MICRO , TYPE_NEW_ENV ,
    "Add AFNI_INSTACORR_XYZ_LPI environment variable" ,
    NULL } ,
 
