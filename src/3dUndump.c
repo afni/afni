@@ -584,10 +584,13 @@ int main( int argc , char * argv[] )
          if( ii == kk ) continue ;                                 /* all blanks */
          if( linbuf[ii] == '/' && linbuf[ii+1] == '/' ) continue ; /* comment */
          if( linbuf[ii] == '#'                        ) continue ; /* comment */
+         if( isalpha(linbuf[ii])                      ) continue ; /* alphabetic */
 
          /* changes commas to blanks [10 Nov 2008] */
 
-         for( jj=ii ; jj < kk ; jj++ ) if( linbuf[ii] == ',' ) linbuf[ii] = ' ' ;
+         for( jj=ii ; jj < kk ; jj++ )
+           if( linbuf[jj] == ',' || linbuf[jj] == ';' || linbuf[jj] == ':' )
+             linbuf[jj] = ' ' ;
 
          /* scan line for data */
 
@@ -595,7 +598,7 @@ int main( int argc , char * argv[] )
          vrad = srad ;         /* 19 Feb 2004: default sphere radius */
          nn   = sscanf(linbuf+ii , "%f%f%f%f%f" , &xx,&yy,&zz,&vv,&vrad ) ;
          if( nn < 3 ){
-           WARNING_message("File %s line %d: incomplete",argv[iarg],ll) ;
+           WARNING_message("File %s line %d: incomplete [%d]-- skipping",argv[iarg],ll,nn) ;
            continue ;
          }
          if( thd_floatscan(1,&vv) ){
