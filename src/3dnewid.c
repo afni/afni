@@ -38,7 +38,7 @@ void Syntax(void)
     "   provided that the first character is alphabetic and the other\n"
     "   2 alphanumeric; otherwise, the default prefix 'NIH_' will be\n"
     "   used.\n"
-    "The source code is function UNIQ_idcode() in file niml.c.\n"
+    "The source code is function UNIQ_idcode() in file niml_uuid.c\n"
    ) ;
    PRINT_COMPILE_DATE ; exit(0) ;
 }

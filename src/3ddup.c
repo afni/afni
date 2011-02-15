@@ -41,6 +41,7 @@ int main( int argc , char * argv[] )
        "   - allows AFNI to resample a dataset to a new grid without\n"
        "       destroying an existing data .BRIK\n"
        "   - change a functional dataset to anatomical, or vice-versa\n"
+       "   - THIS PROGRAM IS BASICALLY OBSOLETE !!\n"
        "\n"
        "OPTIONS:\n"
        "  -'type'           = Convert to the given 'type', which must be\n"
