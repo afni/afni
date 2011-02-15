@@ -399,6 +399,9 @@ void TT_syntax(char * msg)
     "  ** include covariates to be regressed out of the data.  **\n"
     " *** For most purposes, 3dttest++ is to be preferred over ***\n"
     "**** this program -- 3dttest will no longer be upgraded.  ****\n"
+    " *** Also consider program 3dMEMA, which can carry out a  ***\n"
+    "  ** more sophisticated type of 't-test' that also takes  **\n"
+    "   * into account the variance map of each input dataset. *\n"
     "\n"
 
     "OUTPUTS:\n"
