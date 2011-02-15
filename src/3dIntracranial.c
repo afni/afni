@@ -629,12 +629,11 @@ void write_afni_data
       if (write_mask) printf("\nWriting functional (mask) dataset: ");
       else            printf ("\nWriting anatomical dataset: ");
       printf("%s\n", DSET_BRIKNAME(new_dset) ) ;
-
-      printf("NOTE: You may get better results by trying\n"
-             "      3dSkullStrip -input %s -prefix %s\n"   ,
-             anat_filename , prefix_filename ) ;
     }
 
+  printf("NOTE: You will probably get better results by using\n"
+         "      3dSkullStrip -input %s -prefix %s\n"   ,
+         anat_filename , prefix_filename ) ;
 
   for( ii=0 ; ii < MAX_STAT_AUX ; ii++ ) fbuf[ii] = 0.0 ;
   (void) EDIT_dset_items( new_dset , ADN_stat_aux , fbuf , ADN_none ) ;
@@ -716,6 +715,7 @@ int main
 
   mainENTRY("3dIntracranial:main") ; machdep() ; PRINT_VERSION("3dIntracranial") ;
   AUTHOR(PROGRAM_AUTHOR) ;
+  INFO_message("3dSkullStrip is usually superior to 3dIntracranial") ;
 
   /*----- Program initialization -----*/
   initialize_program (argc, argv);
