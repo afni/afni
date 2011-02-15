@@ -1299,7 +1299,7 @@ process.MEMA.opts <- function (lop, verb = 0) {
                                              (lop$nSubj[1]+(ii-1)*lop$nSubj[2]),]
                                                       ), 1, "-", centerVal))
                }
-               lop$covData <- rbind(covList[[1]], covList[[2]])
+               lop$covData <- t(cbind(covList[[1]], covList[[2]]))
             } # if(lop$centerType == 1)
          } # if(lop$centerType2 == 3)
          
