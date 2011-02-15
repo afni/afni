@@ -3196,7 +3196,7 @@ extern int THD_count_fdrwork( THD_3dim_dataset *dset ) ; /* 12 Nov 2008 */
 #define DSET_FIX_NAMES(ds)                                       \
   ( strcpy((ds)->self_name,(ds)->dblk->diskptr->directory_name), \
     strcat((ds)->self_name,(ds)->dblk->diskptr->filecode)      , \
-    strcpy((ds)->label1   ,(ds)->dblk->diskptr->filecode)      , \
+    strncpy((ds)->label1   ,(ds)->dblk->diskptr->filecode, THD_MAX_LABEL-1)      , \
     strcpy((ds)->label2   ,THD_DEFAULT_LABEL) )
 
 /*! Macro to load brick statistics of a dataset if it
@@ -3296,6 +3296,12 @@ extern int THD_count_fdrwork( THD_3dim_dataset *dset ) ; /* 12 Nov 2008 */
 #define DSET_overwrite(ds)      \
  do{ THD_force_ok_overwrite(1); \
      DSET_write(ds); THD_force_ok_overwrite(0); } while(0)
+
+#define DSET_quiet_overwrite(ds)      \
+ do{ int m_q = THD_get_quiet_overwrite();  \
+     THD_force_ok_overwrite(1); THD_set_quiet_overwrite(1);\
+     DSET_write(ds); THD_force_ok_overwrite(0); \
+     THD_set_quiet_overwrite(m_q);} while(0)
 
 extern int THD_deathcon(void) ;             /* 06 Jun 2007 */
 extern int THD_ok_overwrite(void) ;         /* Jan 2008 */
@@ -4046,7 +4052,8 @@ extern Boolean THD_write_3dim_dataset( char *,char * ,
 
 extern void THD_use_3D_format   ( int ) ;  /* 21 Mar 2003 */
 extern void THD_use_NIFTI_format( int ) ;  /* 06 Apr 2005 */
-
+extern void THD_set_quiet_overwrite ( int ) ;  /* 31 Jan 2011 */
+extern int THD_get_quiet_overwrite (void );/* 31 Jan 2011 */
 extern Boolean THD_write_datablock( THD_datablock * , Boolean ) ;
 extern Boolean THD_write_atr( THD_datablock * ) ;
 extern Boolean THD_write_nimlatr( THD_datablock * ) ;  /* 01 Jun 2005 */
@@ -5082,7 +5089,7 @@ extern char     * THD_make_statsym_string(THD_3dim_dataset *, int);
 extern char     * unescape_unix_str(const char *);
 
 extern THD_3dim_dataset * THD_niml_to_dataset( NI_group * , int ) ;
-extern int THD_add_bricks( THD_3dim_dataset * , void * ) ;
+extern int THD_add_bricks( THD_3dim_dataset * , void *, THD_3dim_dataset * ) ;
 extern int THD_add_sparse_data( THD_3dim_dataset * , NI_group * ) ;
 extern int THD_add_sparse_bricks( THD_3dim_dataset *, NI_element *) ;
 
