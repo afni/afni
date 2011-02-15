@@ -25,17 +25,16 @@ class VarsObject(object):
          return 1 if an update is performed, else 0
       """
 
-      oldval = getattr(self, name)
-
-      # if simple and unchanged, no update (mostly pertains to verb message)
-      if type(newval) in g_simple_types:
+      # if the attribute exists and has a simple type, check for no change
+      if self.valid(name) and type(newval) in g_simple_types:
+         oldval = getattr(self, name)
          if oldval == newval: return 0
 
       setattr(self, name, copy.deepcopy(newval))
 
       return 1
 
-   def __get_atomic_type__(self, atr):
+   def get_atomic_type(self, atr):
       """return the atomic type of an object
          return one of int, float, str, list
 
@@ -70,8 +69,8 @@ class VarsObject(object):
       retlist = []
       for atr in dlist:
          if atr[0] == '_': continue
-         tt = self.__get_atomic_type__(atr)
-         if self.__get_atomic_type__(atr) == None: continue
+         tt = self.get_atomic_type(atr)
+         if self.get_atomic_type(atr) == None: continue
          retlist.append(atr)
       retlist.sort()
       return retlist
@@ -103,7 +102,7 @@ class VarsObject(object):
 
    def valcopy(self, atr):
       """use deepcopy to copy any value, since it may be a list"""
-      if self.__get_atomic_type__(atr) == None:
+      if self.get_atomic_type(atr) == None:
          print ("** attribute '%s' is not simple, copy may be bad" % atr)
 
       return copy.deepcopy(self.val(atr))
@@ -113,7 +112,7 @@ class VarsObject(object):
       if hasattr(self, atr): return getattr(self, atr)
       else:                  return None
 
-   def valid(atr):
+   def valid(self, atr):
       """convenience - return whether the atr is in the class instance"""
       if hasattr(self, atr): return 1
       else:                  return 0
@@ -150,7 +149,7 @@ class VarsObject(object):
 
       if exists: return 1       # since found, exists test is done
 
-      tt = self.__get_atomic_type__(atr)
+      tt = self.get_atomic_type(atr)
       depth = self.atr_depth(atr)
 
       if depth != alevel: return 0      # bad level is bad

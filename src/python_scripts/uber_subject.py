@@ -18,13 +18,12 @@ import afni_util as UTIL
 import lib_subjects as SUBJ
 import lib_uber_stuff as USTUFF
 import lib_qt_gui as QLIB
+import option_list as OPT
 
 # allow users to play with style
 g_styles = ["windows", "motif", "cde", "plastique", "cleanlooks"]
 g_style_index = 0
 g_style_index_def = 4
-
-__version__ = "0.0.0"
 
 g_design_str = """
 todo:  
@@ -56,10 +55,80 @@ for example, consider widgets/character_map.py
 
 """
 
-g_help_string = """
-help for uber_subject.py
+g_command_help = """
+===========================================================================
+uber_subject.py               - graphical interface to afni_proc.py
 
-This is basically a graphical interface to afni_proc.py.
+This help describes only the command-line options to this program, which
+enable use without the GUI (graphical user interface).
+
+- R Reynolds  Feb, 2011
+===========================================================================
+"""
+
+g_help_string = """
+===========================================================================
+help for uber_subject.py        - a graphical interface to afni_proc.py
+
+   purposes:
+
+      o  to run a single subject analysis or generate processing scripts
+      o  to help teach users:
+            - how to process data, including new methods or tools
+            - scripting techniques
+            - where to get more help
+
+   required inputs:
+
+      o  EPI datasets (in AFNI or NIfTI format)
+      o  stimulus timing files (time=0.0 refers to start of steady state)
+
+   optional inputs:
+
+      o  anatomical dataset
+      o  stim file labels and basis functions
+      o  whether to use wildcards
+      o  many processing options
+
+---------------------------------------------------------------------------
+Overview:
+
+   One generally goes through the following steps:
+
+      0. specify overview variables (subject and group ID codes)
+      1. specify input files (anat, EPI, stim timing)
+      2. specify some additional options
+      3. view the resulting afni_proc.py command
+      4. process the subject
+
+   The graphical interface is set up for users to specify the most pertinent
+   inputs first.  In the future, one should be able to initialize the interface
+   based on a previous subject.
+
+   Step 0. Optional subject and group ID codes are specified at the very top,
+           in the 'general subject info' section.
+
+              inputs: subject ID, group ID
+
+   Step 1. Specify input files.  The anatomy, EPI and stimulus timing files can
+           be specified via file browsers.  File names can be altered after
+           being set.
+
+           Be careful of the EPI and stimulus timing file orders.  The ordering
+           can come from any column the user clicks the heading for.  If the
+           indices are found from the file names, that order is likely to be
+           appropriate.
+
+              inputs: anat, EPI, stimulus timing files
+
+   Step 2. Specify additional options as desired.  
+
+   Step 3. click to generate the afni_proc.py command
+
+   Step 4. click to process the subject (run AP command and execute proc script)
+
+- R Reynolds  Feb, 2011
+===========================================================================
 """
 
 # other help strings
@@ -236,6 +305,17 @@ description:
 
 """
 
+g_history = """
+  uber_subject.py history
+
+    0.0  Feb 14, 2011: initial revision
+         - functional GUI for anat/epi/stim, generates simple AP command
+    0.1  Feb 15, 2011:
+         - added CLI (command line interface)
+         - additional help
+"""
+g_version = "0.1"
+
 g_LineEdittype = None                   # set this type later
 
 # ======================================================================
@@ -256,9 +336,8 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       self.verb  = verb
       self.gvars = SUBJ.VarsObject('uber_subject gui vars')
 
-      # initialize the subject variables, possibly from a passed dictionary
-      self.svars = None   # will start with a copy of USTUFF.g_subj_defs
-      self.reset_svars(subj_vars)
+      # initialize the subject variables as empty, update at the end
+      self.svars = USTUFF.g_subj_defs.copy('uber_subject subject vars')
 
       # ------------------------------
       # L1 - main menubar and layout
@@ -294,6 +373,9 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       self.make_extra_widgets()
 
       self.gvars.style = g_styles[g_style_index_def]
+
+      # widgets are done, so apply pass subject vars
+      self.apply_svars(subj_vars)
 
       # ap_status : 0 = must create ap command, 1 = have ap, need proc script,
       #             2 = have proc script, ready to execute
@@ -679,21 +761,16 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       else:               epi = epilist
       nrows = len(epi)
 
-      epi_dir = UTIL.common_dir(epi)
-      dirlen = len(epi_dir)
-      if dirlen > 0:
-         short_names = [dset[dirlen+1:] for dset in epi]
-      else: 
-         short_names = epi
+      if nrows <= 0: return
+
+      # parse the EPI list into directory, short names, glob string
+      epi_dir, globstr, short_names = self.dlist_to_table_pieces(epi)
 
       table.setRowCount(0)                      # init, add rows per file
       table.setSortingEnabled(False)            # sort only after filling table
 
-      if nrows <= 0: return
-
       # ------------------------------------------------------------
       # note wildcard form and try to create index list
-      globstr = UTIL.glob_form_from_list(short_names)
       indlist = UTIL.list_minus_glob_form(short_names)
 
       # indlist list is either list of string integers or empty strings
@@ -769,6 +846,24 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       self.gvars.Table_stim = table
       self.stim_list_to_table()
 
+   def dlist_to_table_pieces(self, dlist):
+      """return:
+           - common directory name
+           - glob string of short names
+           - short dlist names (after removing directory name)
+         note: short list might be dlist
+      """
+      if len(dlist) == 0: return '', []
+
+      ddir = UTIL.common_dir(dlist)
+      dirlen = len(ddir)
+      if dirlen > 0: snames = [dset[dirlen+1:] for dset in dlist]
+      else:          snames = dlist
+
+      globstr = UTIL.glob_form_from_list(snames)
+
+      return ddir, globstr, snames
+
    def resize_table_cols(self, table, stretch_cols):
       """resize to column contents, unless it is in strech_cols"""
 
@@ -783,7 +878,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
            table.horizontalHeader().setResizeMode(col,
                                     QtGui.QHeaderView.ResizeToContents)
 
-   def stim_list_to_table(self, stimlist=None):
+   def stim_list_to_table(self, stimlist=None, make_labs=0):
       """update Table_stim from stim array
 
          Try to parse filenames into the form PREFIX.INDEX.LABEL.SUFFIX,
@@ -794,30 +889,24 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       else:                stim = stimlist
       nrows = len(stim)
 
-      stim_dir = UTIL.common_dir(stim)
-      dirlen = len(stim_dir)
-      if dirlen > 0:
-         short_names = [dset[dirlen+1:] for dset in stim]
-      else: 
-         short_names = stim
+      if nrows <= 0: return
+
+      # parse the stim list into directory, short names, glob string
+      stim_dir, globstr, short_names = self.dlist_to_table_pieces(stim)
 
       table.setRowCount(0)                      # init, add rows per file
       table.setSortingEnabled(False)            # sort only after filling table
 
-      if nrows <= 0: return
-
       # ------------------------------------------------------------
-      # note wildcard form and try to create stim label list
-      globstr = UTIL.glob_form_from_list(short_names)
 
       # get index and label lists
       stim_table = UTIL.parse_as_stim_list(short_names)
       indlist = [entry[0] for entry in stim_table]
-      lablist = [entry[1] for entry in stim_table]
 
-      # if lablist looks bad and we already have one, use it
-      if lablist[0] == '' and len(self.svars.stim_label) == nrows:
-         lablist = self.svars.stim_label
+      # if we don't have the correct number of labels, override make_labs
+      if len(self.svars.stim_label) != nrows: make_labs = 1
+      if make_labs: lablist = [entry[1] for entry in stim_table]
+      else: lablist = self.svars.stim_label
 
       if self.verb > 2:
          print "== stim table, ndsets = %d, dir = %s" % (nrows, stim_dir)
@@ -990,7 +1079,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
             self.set_svar('stim', [str(name) for name in fnames])
             self.set_svar('stim_label', [])
             self.set_svar('stim_basis', [])
-            self.stim_list_to_table()
+            self.stim_list_to_table(make_labs=1)
 
       elif text == 'clear stim':
          self.set_svar('stim', [])
@@ -1233,7 +1322,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
 
    def cb_help_about(self):
       """display g_help_string in Text_Help window"""
-      text = "uber_subject.py, version %s" % __version__
+      text = "uber_subject.py, version %s" % g_version
       self.update_help_window(text, title='about uber_subject.py')
 
    def cb_help_browse_progs(self):
@@ -1355,15 +1444,18 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       self.gvars.act_exec_ap.setEnabled(False)
       self.gvars.act_exec_proc.setEnabled(False)
 
-   def reset_svars(self, svars=None):
-      """initialize the subject variables, possibly from svars
+   def apply_svars(self, svars=None):
+      """apply to the svars object and to the gui
 
          first init to defaults
          if svars is passed, make further updates"""
 
-      self.svars = USTUFF.g_subj_defs.copy('uber_subject subject vars')
+      if svars == None: return
 
-      if svars != None: self.update_svars(svars)
+      # merge with current vars and apply everything to GUI
+      self.svars.merge(svars)
+      for var in self.svars.attributes():
+         self.apply_svar_in_gui(var)
 
       # if there is no results directory, set it
       if not self.svars.uber_dir:
@@ -1371,9 +1463,40 @@ class SingleSubjectWindow(QtGui.QMainWindow):
 
       if self.verb > 2: self.svars.show("post reset subject vars")
 
-   def update_svars(self, svars=None):
-      """merge the passed VarsObject with the subject VarsObject"""
-      self.svars.merge(svars)
+   def apply_svar_in_gui(self, svar):
+      """this is a single interface to apply any subject variable in the GUI
+
+         if a variable is not handled in the interface, ignore it
+
+         return 1 if processed
+      """
+
+      rv = 1
+      if   svar == 'uber_dir':             rv = 0       # todo
+      elif svar == 'blocks':               rv = 0       # todo
+      elif svar == 'sid':         self.gvars.Line_sid.setText(self.svars.sid)
+      elif svar == 'gid':         self.gvars.Line_gid.setText(self.svars.gid)
+      elif svar == 'anat':        self.gvars.Line_anat.setText(self.svars.anat)
+      elif svar == 'get_tlrc':
+                                  obj = self.gvars.gbox_anat.checkBox
+                                  obj.setChecked(self.svars.get_tlrc)
+      elif svar == 'epi':         self.epi_list_to_table()
+      elif svar == 'epi_wildcard':         
+                                  obj = self.gvars.gbox_epi.checkBox_wildcard
+                                  obj.setChecked(self.svars.epi_wildcard)
+      elif svar == 'stim':        self.stim_list_to_table()
+      elif svar == 'stim_wildcard':        
+                                  obj = self.gvars.gbox_stim.checkBox_wildcard
+                                  obj.setChecked(self.svars.stim_wildcard)
+      elif svar == 'label':       self.stim_list_to_table()
+      elif svar == 'basis':       self.stim_list_to_table()
+      else:
+         if self.verb > 1: print '** apply_svar_in_gui: unhandled %s' % svar
+         rv = 0
+
+      if rv and self.verb > 2: print '++ apply_svar_in_gui: process %s' % svar
+
+      return rv
 
 def ap_command_from_svars(svars, verb=1):
    """create an afni_proc.py command
@@ -1398,9 +1521,186 @@ def ap_command_from_svars(svars, verb=1):
 
    return status, wstr, mesg
 
-def run_gui():
+def get_valid_opts():
+   """return an OptionsList of valid program options"""
+
+   # terminal, informative options
+   vopts = OPT.OptionList('uber_subject.py options')
+   vopts.add_opt('-help', 0, [], helpstr='show this help')
+   vopts.add_opt('-help_gui', 0, [], helpstr='show help for GUI')
+   vopts.add_opt('-hist', 0, [], helpstr='show revision history')
+   vopts.add_opt('-show_valid_opts',0,[],helpstr='show all valid options')
+   vopts.add_opt('-ver', 0, [], helpstr='show module version')
+
+   vopts.add_opt('-verb', 1, [], helpstr='set verbose level')
+
+   vopts.add_opt('-no_gui', 0, [], helpstr='do not open graphical interface')
+   vopts.add_opt('-print_ap_command',0,[],helpstr='show afni_proc.py script')
+   vopts.add_opt('-svar', -2, [], helpstr='set subject variable to value')
+
+   vopts.trailers = 0   # do not allow unknown options
+
+   return vopts
+
+def process_options(valid_opts, argv):
+   """return status and a VarsObject struct of subject variables
+
+        - given list of valid options, read and process the user options
+        - if terminal option or -no_gui, return 0 (succesful quit)
+
+      return  1 : on success and terminate
+              0 : on success and continue with GUI
+             -1 : on error condition
+   """
+
+   # a quick out
+   if len(argv) == 0: return 0, None
+
+   # process any optlist_ options
+   valid_opts.check_special_opts(argv)
+
+   # ------------------------------------------------------------
+   # check for terminal options before processing the rest
+   if '-help' in sys.argv:
+      print g_command_help
+      return 1, None
+
+   if '-help_gui' in sys.argv:
+      print g_help_string
+      return 1, None
+
+   if '-hist' in sys.argv:
+      print g_history
+      return 1, None
+
+   if '-show_valid_opts' in sys.argv:
+      valid_opts.show('', 1)
+      return 1, None
+
+   if '-ver' in sys.argv:
+      print 'uber_subject.py: version %s' % g_version
+      return 1, None
+
+   # ------------------------------------------------------------
+   # read and process user options (no check for terminal opts)
+   uopts = OPT.read_options(argv, valid_opts)
+   if not uopts: return -1, None
+
+   # init subject options struct
+   svars = SUBJ.VarsObject('subject vars from command line')
+   defs  = USTUFF.g_subj_defs
+
+   # first set verbose level
+   val, err = uopts.get_type_opt(int, '-verb')
+   if val != None and not err: verb = val
+   else: verb = 1
+
+   use_gui = 1 # assume GUI unless we hear otherwise
+
+   # first process all setup options
+   errs = 0
+   for opt in uopts.olist:
+      # skip -verb and any terminal option (though they should not be here)
+      if opt.name == '-help':              continue
+      elif opt.name == '-help_gui':        continue
+      elif opt.name == '-hist':            continue
+      elif opt.name == '-show_valid_opts': continue
+      elif opt.name == '-ver':             continue
+
+      elif opt.name == '-verb':            continue
+
+      # and skip any post-setup options ...
+      elif opt.name == '-print_ap_command':continue
+
+      # now go after "normal" options
+
+      if opt.name == '-no_gui':
+         use_gui = 0
+         continue
+
+      # svar requires at least 2 parameters, name and value
+      elif opt.name == '-svar':
+         val, err = uopts.get_string_list('', opt=opt)
+         if val != None and err: return -1, None
+         # and set it from the form name = [value_list]
+         if set_svar_from_def(val[0], val[1:], svars, defs, verb=verb):
+            errs += 1
+            continue
+
+   if not errs:         # then we can handle any processing options
+      if uopts.find_opt('-print_ap_command'):
+         print_ap_command(svars)
+
+   if errs:    return -1, None
+   if use_gui: return  0, svars
+   else:       return  1, svars
+
+def set_svar_from_def(name, vlist, svars, defs, verb=1):
+   """try to set name = value based on vlist
+      if name is not known by the defaults, return failure
+
+      return 0 on success, else 1
+   """
+
+   if not defs.valid(name):
+      print '** invalid subject variable: %s' % name
+      return 1
+
+   dtype = type(defs.val(name))
+   if dtype not in SUBJ.g_valid_atomic_types:
+      print '** unknown subject variable type for %s' % name
+      return 1
+
+   # if simple type but have list, fail
+   if dtype != list and len(vlist) > 1:
+      print "** have list for simple type, name='%s', dtype=%s, list=%s" \
+            % (name, dtype, vlist)
+      return 1
+
+   # ----------------------------------------
+   # try to apply the value (list)
+
+   val = None
+
+   # process only simple int, float, str and strlist
+   if dtype == int:
+      try: val = int(vlist[0])
+      except:
+         print "** failed to set svar %s to int value from '%s'"%(name,vlist[0])
+         return 1
+   elif dtype == float:
+      try: val = float(vlist[0])
+      except:
+         print "** failed to set svar %s to float value from '%s'" \
+               % (name, vlist[0])
+         return 1
+   elif dtype == str: # easy case
+      val = vlist[0]
+   elif dtype == list: # another easy case
+      val = vlist
+   else:
+      print '** set_svar_from_def: unprocessed type %s for %s' % (dtype, name)
+      return 1
+
+   rv = svars.set_var(name, val)
+   if verb > 1:
+      if rv: print '++ svar: updating %s to %s' % (name, val)
+      else:  print '++ svar: no update for %s to %s' % (name, val)
+
+def print_ap_command(svars):
+
+   # create command, save it (init directory tree?), show it
+   status, wstr, mesg = ap_command_from_svars(svars)
+
+   if status == -1:  # then only mention errors
+      print '****** ERRORS:\n\n%s\n', mesg
+   else:
+      if wstr: print '** Warnings:\n\n%s\n\n' % wstr
+      print '### afni_proc.py script:\n\n%s\n' % mesg
+
+def run_gui(svars=None):
    app = QtGui.QApplication(sys.argv)
-   dialog = SingleSubjectWindow()
+   dialog = SingleSubjectWindow(subj_vars=svars)
    QtGui.QApplication.setStyle(QtGui.QStyleFactory.create(dialog.gvars.style))
    dialog.show()
    app.exec_()
@@ -1409,7 +1709,17 @@ def run_gui():
 
 def main():
 
-   return run_gui()
+   # - set any subject variables or options
+   # - run the gui unless -no_gui is given
+
+   valid_opts = get_valid_opts()
+   rv, svars  = process_options(valid_opts, sys.argv)
+
+   if   rv > 0: return 0        # terminal success
+   elif rv < 0: return 1        # terminal failure
+   # else rv == 0, so continue with GUI
+
+   return run_gui(svars)
 
 if __name__ == '__main__':
    sys.exit(main())
