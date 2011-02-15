@@ -133,6 +133,10 @@ void display_help_menu(void)
    printf(
       "Gosset (Student) t-test of sets of 3D datasets.\n"
       "\n"
+      "      [* Also consider program 3dMEMA, which can carry out a  *]\n"
+      "      [* more sophisticated type of 't-test' that also takes  *]\n"
+      "      [* into account the variance map of each input dataset. *]\n"
+      "\n"
       "* Usage can be similar (but not identical) to the old 3dttest; for example:\n"
       "\n"
       "    3dttest++ -setA a+tlrc'[3]' b+tlrc'[3]' ...\n"
