@@ -3,21 +3,23 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #include "mrilib.h"
 
 void Syntax(void)
 {
    printf(
     "Usage: 3dnvals [-all] [-verbose] dataset [dataset dataset ...]\n"
-    "Prints out the number of sub-bricks in a 3D dataset\n"
-    "If -all is specified, prints out all 4 dimensions\n"
-    "Nx, Ny, Nz, Nvals\n"
-    "If -verbose is used then the header name of the dataset is printed first.\n"
-    "\n"
+    "* Prints (to stdout) the number of sub-bricks in a 3D dataset.\n"
+    "* If -all is specified, prints out all 4 dimensions:\n"
+    "    Nx, Ny, Nz, Nvals\n"
+    "* If -verbose is used then the header name of the dataset is printed first.\n"
+    "* The function of this simple program is to help in scripting.\n"
    ) ;
    PRINT_COMPILE_DATE ; exit(0) ;
 }
+
+/*---------------------------------------------------------------------------*/
 
 int main( int argc , char * argv[] )
 {
@@ -49,13 +51,13 @@ int main( int argc , char * argv[] )
          }
       } else {
          if (verbose) {
-            printf("%s: %d %d %d %d\n", 
+            printf("%s: %d %d %d %d\n",
                      DSET_HEADNAME(dset),
-                     DSET_NX(dset), DSET_NY(dset), DSET_NZ(dset), 
+                     DSET_NX(dset), DSET_NY(dset), DSET_NZ(dset),
                      DSET_NVALS(dset)) ;
          } else {
-            printf("%d %d %d %d\n", 
-                     DSET_NX(dset), DSET_NY(dset), DSET_NZ(dset), 
+            printf("%d %d %d %d\n",
+                     DSET_NX(dset), DSET_NY(dset), DSET_NZ(dset),
                      DSET_NVALS(dset)) ;
          }
       }
