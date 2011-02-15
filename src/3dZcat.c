@@ -208,6 +208,8 @@ void ZCAT_Syntax(void)
     "    can be used to take a dataset apart into single slice datasets,\n"
     "    analyze them separately, and then assemble the results into\n"
     "    new 3D datasets.\n"
+    "* Also see program 3dXYZcat for a version that can catenate along\n"
+    "    the x and y axes as well (with some limitations).\n"
    ) ;
 
    PRINT_COMPILE_DATE ; exit(0) ;
