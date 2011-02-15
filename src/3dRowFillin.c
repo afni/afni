@@ -43,10 +43,12 @@ int main( int argc , char * argv[] )
              "N.B.: If the input dataset has more than one sub-brick,\n"
              "      only the first one will be processed.\n"
              "\n"
-             "The intention of this program is to let you fill in slice gaps\n"
-             "made when drawing ROIs with the 'Draw Dataset' plugin.  If you\n"
-             "draw every 5th coronal slice, say, then you could fill in using\n"
-             "  3dRowFillin -maxgap 4 -dir A-P -prefix fredfill fred+orig\n"
+             "* The intention of this program is to let you fill in slice gaps\n"
+             "  made when drawing ROIs with the 'Draw Dataset' plugin.  If you\n"
+             "  draw every 5th coronal slice, say, then you could fill in using\n"
+             "    3dRowFillin -maxgap 4 -dir A-P -prefix fredfill fred+orig\n"
+             "* This program is moderately obsolescent, since I later added\n"
+             "    the 'Linear Fillin' controls to the 'Draw Dataset' plugin.\n"
              "\n"
             ) ;
       PRINT_COMPILE_DATE ; exit(0) ;
