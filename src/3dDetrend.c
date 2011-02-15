@@ -320,6 +320,8 @@ void DT_Syntax(void)
     "  provided by the '-vector', '-polort', et cetera options.\n"
     "* The input dataset may have a sub-brick selector string; otherwise,\n"
     "  all sub-bricks will be used.\n\n"
+    "\n"
+    "  *** You might also want to consider using program 3dBandpass ***\n"
    ) ;
 
    printf(
