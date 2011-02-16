@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 16, FEB, 2011, RCR, "howto", MINOR, TYPE_MODIFY,
+   "updated the main page and basic Linux instructions",
+   NULL
+ } ,
+
  { 15, FEB, 2011, RCR, "uber_subject.py", SUPER, TYPE_NEW_PROG,
    "added CLI (command-line interface), generates basic afni_proc.py script",
    "Many enhancements yet to come."
