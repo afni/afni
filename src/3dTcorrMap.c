@@ -184,7 +184,8 @@ int main( int argc , char *argv[] )
        "  -polort m  = Remove polynomial trend of order 'm', for m=-1..19.\n"
        "                [default is m=1; removal is by least squares].\n"
        "             ** Using m=-1 means no detrending; this is only useful\n"
-       "                for data/information that has been pre-processed.\n"
+       "                for data/information that has been pre-processed\n"
+       "                (e.g., using the 3dBandpass program).\n"
        "\n"
        "  -bpass L H = Bandpass the data between frequencies L and H (in Hz).\n"
        "             ** If the input dataset does not have a time step defined,\n"
@@ -321,6 +322,12 @@ int main( int argc , char *argv[] )
       ) ;
 
       PRINT_AFNI_OMP_USAGE("3dTcorrMap",NULL) ;
+#ifndef USE_OMP
+      printf(" * You REALLY want to use an OpenMP version of this program,\n"
+             "    and run on a fast multi-CPU computer system!  Otherwise,\n"
+             "    you will wait a long long time for the results.\n"
+            ) ;
+#endif
       PRINT_COMPILE_DATE ; exit(0) ;
    }
 
@@ -528,8 +535,8 @@ int main( int argc , char *argv[] )
         nopt++ ; continue ;
       }
 
-      if(   (strcasecmp(argv[nopt],"-base") == 0) || 
-            (strcasecmp(argv[nopt],"-seed") == 0)    ){ 
+      if(   (strcasecmp(argv[nopt],"-base") == 0) ||
+            (strcasecmp(argv[nopt],"-seed") == 0)    ){
                      /* Added -seed to fit with -help text. Don't know how -base
                      got in here.      ZSS: Emergency patch. Jan 25 09 */
         if( sset != NULL ) ERROR_exit("Can't use -seed twice!") ;
@@ -663,7 +670,7 @@ int main( int argc , char *argv[] )
    if( COprefix != NULL ){
      int iii, jjj, kkk, nxy, dig=0;
      float *lesfac=(float*)calloc(DSET_NVOX(xset), sizeof(float));
-     for (ii=0; ii<DSET_NVOX(xset); ++ii) lesfac[ii]=1/10000.0; 
+     for (ii=0; ii<DSET_NVOX(xset); ++ii) lesfac[ii]=1/10000.0;
      COset = EDIT_empty_copy( xset ) ;
      EDIT_dset_items( COset ,
                         ADN_prefix    , COprefix        ,
@@ -887,10 +894,10 @@ int main( int argc , char *argv[] )
    dy = fabsf(DSET_DY(xset)) ;
    dz = fabsf(DSET_DZ(xset)) ;
 
-   if ( (Mseedr > 0.0f || Mseedr < 0.0f) && 
+   if ( (Mseedr > 0.0f || Mseedr < 0.0f) &&
         !DSET_IS_VOL(xset)) {
       ERROR_exit("Can't use -Mseed with non-volumetric input datasets");
-   } 
+   }
    if( Mseedr > 0.0f){
      Mseed_nbhd = MCW_spheremask( dx,dy,dz , Mseedr ) ;
      if( Mseed_nbhd == NULL || Mseed_nbhd->num_pt < 2 )
@@ -938,7 +945,7 @@ int main( int argc , char *argv[] )
                           "input datasets");
          }
       }
-   }  
+   }
 
    /* remove trends (-polort and -ort) now (if not bandpassing later) */
 
@@ -1197,7 +1204,7 @@ int main( int argc , char *argv[] )
      Tcount = Mcsum = Zcsum = Qcsum = 0.0f ;
      for( iv=0 ; iv < N_iv ; ++iv ) Tvcount[iv] = 0.0f ;
      Pcsum = 0.0f ; nPcsum = 0 ;
-     
+
      if (COset) {
          COar = DSET_ARRAY(COset,indx[ii]);
          for( jj=0 ; jj < nmask ; jj++ ) {
