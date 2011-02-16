@@ -1204,8 +1204,8 @@ int main( int argc , char *argv[] )
      /** combine results in ccar to give output values **/
 
      Tcount = Mcsum = Zcsum = Qcsum = 0.0f ;
-     for( iv=0 ; iv < N_iv ; ++iv ) Tvcount[iv] = 0.0f ;
      Pcsum = 0.0f ; nPcsum = 0 ;
+     for( iv=0 ; iv < N_iv ; ++iv ) Tvcount[iv] = 0.0f ;
 
      if (COset) {
          COar = DSET_ARRAY(COset,indx[ii]);
@@ -1219,9 +1219,9 @@ int main( int argc , char *argv[] )
        if( jj == ii ) continue ;
        cc = ccar[jj] ;
        Mcsum += cc ;
-       Zcsum += 0.5f * logf((1.0001f+cc)/(1.0001f-cc));
        Qcsum += cc*cc ;
-       if( cc > 0.0f ){ Pcsum += cc*cc ; nPcsum++ ; }
+       if( Par != NULL && cc > 0.0f ){ Pcsum += cc*cc ; nPcsum++ ; }
+       if( Zar != NULL ) Zcsum += 0.5f * logf((1.0001f+cc)/(1.0001f-cc));
        acc = (cc < 0) ? -cc : cc ;
        if( acc >= Thresh ) Tcount++ ;
        if( Threshv ){
