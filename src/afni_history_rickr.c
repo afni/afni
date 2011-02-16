@@ -50,8 +50,8 @@
 afni_history_struct rickr_history[] = {
 
  { 16, FEB, 2011, RCR, "uber_subject.py", MINOR, TYPE_MODIFY,
-   "file reorg",
-   NULL
+   "epi or stim list from command line can init order/labels; file reorg",
+   "Also, initiated regression testing tree."
  } ,
 
  { 16, FEB, 2011, RCR, "howto", MINOR, TYPE_MODIFY,
