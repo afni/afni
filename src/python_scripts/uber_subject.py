@@ -187,10 +187,22 @@ def set_svar_from_def(name, vlist, svars, defs, verb=1):
       print '** set_svar_from_def: unprocessed type %s for %s' % (dtype, name)
       return 1
 
+   # actually set the value
    rv = svars.set_var(name, val)
    if verb > 1:
       if rv: print '++ svar: updating %s to %s' % (name, val)
       else:  print '++ svar: no update for %s to %s' % (name, val)
+
+   # if no update, we're outta here
+   if rv == 0: return 0
+
+   # ----------------------------------------------------------------------
+   # handle some special cases, such as indices and labels, which might
+   # come with file name lists
+
+   USUBJ.update_svars_from_special(name, svars, check_sort=1)
+
+   return 0
 
 def print_ap_command(svars):
 
@@ -198,9 +210,9 @@ def print_ap_command(svars):
    status, wstr, mesg = USUBJ.ap_command_from_svars(svars)
 
    if status == -1:  # then only mention errors
-      print '****** ERRORS:\n\n%s\n' % mesg
+      print '%s\nERRORS:\n\n%s\n' % (75*'*', mesg)
    else:
-      if wstr: print '%s\n** Warnings:\n\n%s\n%s\n' % (75*'-', wstr, 75*'-')
+      if wstr: print '%s\n**** Warnings:\n\n%s\n%s\n' % (75*'-', wstr, 75*'-')
       print '### afni_proc.py script:\n\n%s\n' % mesg
 
 def run_gui(svars=None):

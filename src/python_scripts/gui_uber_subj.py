@@ -681,7 +681,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       if nrows <= 0: return
 
       # parse the EPI list into directory, short names, glob string
-      epi_dir, globstr, short_names = self.dlist_to_table_pieces(epi)
+      epi_dir, short_names, globstr = USUBJ.flist_to_table_pieces(epi)
 
       # ------------------------------------------------------------
       # note wildcard form and try to create index list
@@ -760,24 +760,6 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       self.gvars.Table_stim = table
       self.stim_list_to_table()
 
-   def dlist_to_table_pieces(self, dlist):
-      """return:
-           - common directory name
-           - glob string of short names
-           - short dlist names (after removing directory name)
-         note: short list might be dlist
-      """
-      if len(dlist) == 0: return '', []
-
-      ddir = UTIL.common_dir(dlist)
-      dirlen = len(ddir)
-      if dirlen > 0: snames = [dset[dirlen+1:] for dset in dlist]
-      else:          snames = dlist
-
-      globstr = UTIL.glob_form_from_list(snames)
-
-      return ddir, globstr, snames
-
    def resize_table_cols(self, table, stretch_cols):
       """resize to column contents, unless it is in strech_cols"""
 
@@ -809,7 +791,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       if nrows <= 0: return
 
       # parse the stim list into directory, short names, glob string
-      stim_dir, globstr, short_names = self.dlist_to_table_pieces(stim)
+      stim_dir, short_names, globstr = USUBJ.flist_to_table_pieces(stim)
 
       # ------------------------------------------------------------
 

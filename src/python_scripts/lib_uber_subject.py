@@ -20,9 +20,10 @@ g_history = """
          - added CLI (command line interface)
          - additional help
     0.2  Feb 16, 2011: reorg (move files and functions around)
+    0.3  Feb 16, 2011: epi or stim list from command line can init order/labels
 """
 
-g_version = '0.2'
+g_version = '0.3'
 
 # ----------------------------------------------------------------------
 # global definition of default processing blocks
@@ -132,7 +133,7 @@ class AP_Subject(object):
                    % (self.LV.indent, '', self.svars.stim_basis[0])
 
       if slen != len(self.svars.stim):
-         self.errors.append('** error: num stim files != num basis')
+         self.errors.append('** error: num stim files != num stim basis')
          return ''
          
       return "%*s-regress_basis_multi \\\n%*s%s \\\n" %         \
@@ -144,12 +145,12 @@ class AP_Subject(object):
       if slen == 0: return ''
 
       if slen != len(self.svars.stim):
-         self.errors.append('** error: num stim files != num labels')
+         self.errors.append('** error: num stim files != num stim labels')
          return ''
          
       return "%*s-regress_stim_labels \\\n%*s%s \\\n" %         \
                 (self.LV.indent, '', self.LV.indent+4, '',
-                 ' '.join(["'%s'"%b for b in self.svars.stim_label]))
+                 ' '.join(["%s"%b for b in self.svars.stim_label]))
 
    def script_ap_stim(self):
       """- check for existence of stimulus timing files
@@ -573,13 +574,114 @@ def ap_command_from_svars(svars, verb=1):
 
    return status, wstr, mesg
 
+def update_svars_from_special(name, svars, check_sort=0):
+   """in special cases, a special svar might need updates, and might suggest
+      making other updates
+
+      if check_sort, attempt to sort known file name lists by their
+      implied indices
+
+        epi:    - sort by index list (if check_sort)
+        stim:   - sort by index list (if check_sort)
+                - if labels are not yet set, try to init from file names
+
+      return the number of applied changes
+   """
+
+   # quick check for field to work with
+   if not name in ['epi', 'stim'] : return 0
+
+   changes = 0
+
+   if name == 'epi':
+      fnames = svars.epi
+      nf = len(fnames)
+      if nf < 2: return 0       # nothing to do
+
+      if check_sort: # try to sort by implied index list
+         dir, snames, gstr = flist_to_table_pieces(fnames)
+         indlist = UTIL.list_minus_glob_form(snames)
+         apply = 0
+         try:
+            indlist = [int(val) for val in indlist]
+            apply = 1
+         except: pass
+         # might as well check if already sorted
+         if apply and UTIL.vals_are_increasing(indlist): apply = 0
+         if apply and UTIL.vals_are_unique(indlist):
+            # attach index and name in 2-D array, sort, extract names
+            vlist = [[indlist[ind], fnames[ind]] for ind in range(nf)]
+            vlist.sort()
+            svars.set_var(name, [val[1] for val in vlist])
+            changes += 1
+
+   elif name == 'stim':
+      fnames = svars.stim
+      nf = len(fnames)
+      if nf < 2: return 0               # nothing to do
+
+      # stim file names are more complex...
+      dir, snames, gstr = flist_to_table_pieces(fnames)
+      stable = UTIL.parse_as_stim_list(snames)
+
+      if len(stable) != nf: return 0    # nothing to do
+
+      # if sorting, extract and process indlist
+      if check_sort: # try to sort by implied index list
+         indlist = [entry[0] for entry in stable]
+         apply = 0
+         try:
+            indlist = [int(val) for val in indlist]
+            apply = 1
+         except: pass
+         # might as well check if already sorted
+         if apply and UTIL.vals_are_increasing(indlist): apply = 0
+         if apply and UTIL.vals_are_unique(indlist):
+            # attach index and name in 2-D array, sort, extract names
+            vlist = [[indlist[ind], fnames[ind]] for ind in range(nf)]
+            vlist.sort()
+            svars.set_var(name, [val[1] for val in vlist])
+            changes += 1
+
+      # apply labels unless some already exist
+      apply = 1
+      if svars.valid('stim_label'):
+         if len(svars.stim_label) > 0: apply = 0
+
+      if apply:
+         labs = [entry[1] for entry in stable]
+         if not '' in labs:
+            svars.set_var('stim_label', labs)
+            changes += 1
+
+   return changes
+
+def flist_to_table_pieces(flist):
+      """return:
+           - common directory name
+           - short dlist names (after removing directory name)
+           - glob string of short names
+         note: short names will be new data (not pointers to flist)
+      """
+      if len(flist) == 0: return '', [], ''
+
+      ddir = UTIL.common_dir(flist)
+      dirlen = len(ddir)
+      if dirlen > 0: snames = [dset[dirlen+1:] for dset in flist]
+      else:          snames = [dset[:]         for dset in flist]
+
+      globstr = UTIL.glob_form_from_list(snames)
+
+      return ddir, snames, globstr
+
+
 # ===========================================================================
 # help strings accessed both from command-line and GUI
 # ===========================================================================
 
 helpstr_usubj_gui = """
 ===========================================================================
-help for uber_subject.py        - a graphical interface to afni_proc.py
+uber_subject.py GUI             - a graphical interface to afni_proc.py
 
    purposes:
 
