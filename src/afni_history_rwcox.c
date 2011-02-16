@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 14 , FEB , 2011 , RWC , "3dUndump" , MICRO , TYPE_BUG_FIX ,
+  { 16 , FEB , 2011 , RWC , "3dTcorrMap" , MICRO , TYPE_GENERAL ,
+   "Minor change to increase speed by 5% or so, with OpenMP." ,
+   NULL } ,
+
+ { 14 , FEB , 2011 , RWC , "3dUndump" , MICRO , TYPE_BUG_FIX ,
    "Fix comma -> blank conversion" ,
    "Also make semicolons and colons into blanks.\n"
    "Skip any line starting with an alphabetic character." } ,
