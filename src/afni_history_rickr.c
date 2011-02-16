@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 16, FEB, 2011, RCR, "uber_subject.py", MINOR, TYPE_MODIFY,
+   "file reorg",
+   NULL
+ } ,
+
  { 16, FEB, 2011, RCR, "howto", MINOR, TYPE_MODIFY,
    "updated the main page and basic Linux instructions",
    NULL
