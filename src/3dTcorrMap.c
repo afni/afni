@@ -1131,6 +1131,8 @@ int main( int argc , char *argv[] )
 #else
  INFO_message("Starting long long loop through all voxels: %s Flops" ,
               approximate_number_string(ctime) ) ;
+ ININFO_message("You would be happier if you used an OpenMP-ized version") ;
+ ININFO_message("of this program, and a multiple CPU computer system.") ;
 #endif
 
    for( ii=0 ; ii < nmask ; ii++ ){  /* outer loop over voxels: */
