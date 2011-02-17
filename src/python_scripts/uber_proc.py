@@ -8,7 +8,7 @@ import signal
 signal.signal(signal.SIGINT, signal.SIG_DFL)
 
 import lib_subjects as SUBJ
-import lib_uber_stuff as USTUFF
+import lib_uber_subject as USUBJ
 import lib_qt_gui as QLIB
 import gui_uber_subject as GUS    # single subject GUI
 
@@ -87,7 +87,7 @@ class MainWindow(QtGui.QMainWindow):
    def init_dirs(self, results_dir=None):
       """work from the uber_results directory"""
 
-      self.vars.results_dir = USTUFF.get_uber_results_dir(results_dir)
+      self.vars.results_dir = USUBJ.get_uber_results_dir(results_dir)
 
       # rcr - when should we create the results directory?
 
