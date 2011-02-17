@@ -2109,23 +2109,6 @@ STATUS("call 14") ;
           }
         }
 
-        if( MAIN_im3d->type == AFNI_3DDATA_VIEW &&
-            !AFNI_yesenv("AFNI_ENABLE_MARKERS")    )  /* 28 Apr 2010 */
-#if 0
-          REPORT_PROGRESS("\n"
-                          "+++++++++++++++++++++++++++++++++++++++++++++++++++++\n"
-                          "++ NOTICE: 'Define Markers' panel is turned off.   ++\n"
-                          "++ ------  To control Talairach markers, you must  ++\n"
-                          "++         re-start AFNI with environment variable ++\n"
-                          "++         AFNI_ENABLE_MARKERS set to YES, as in   ++\n"
-                          "++           afni -DAFNI_ENABLE_MARKERS=YES        ++\n"
-                          "++   _OR_  Right-click with the mouse cursor over  ++\n"
-                          "++         the 'DataDir' label, above 'Underlay'.  ++\n"
-                          "+++++++++++++++++++++++++++++++++++++++++++++++++++++\n") ;
-#else
-          REPORT_PROGRESS("++ N.B.: 'Define Markers' is hidden: right-click 'DataDir' to see it.\n") ;
-#endif
-
       }
       break ;  /* end of 14th entry case */
 
@@ -2351,10 +2334,15 @@ ENTRY("AFNI_startup_timeout_CB") ;
              "++ No valid datasets were found.  A dummy dataset has been   ++\n"
              "++ created for your viewing pleasure :-)  To read in a real  ++\n"
              "%s"
+             "\n"
+             "** Or, quit AFNI and restart it with the name of a dataset   **\n"
+             "** directory on the command line, as in                      **\n"
+             "\n"
+             "     afni name_of_data_directory                               \n"
              "                                                               \n"
              "++ For general AFNI program help, see the Web page           ++\n"
-             "++                                                           ++\n"
-             "++ http://afni.nimh.nih.gov/afni/doc/program_help/index.html ++\n"
+             "\n"
+             "   http://afni.nimh.nih.gov/afni/doc/program_help/index.html   \n"
              "%s" ,
       (horz)
            ? "++ data directory, use the 'Read' button near 'DataDir'.     ++\n"
@@ -2362,7 +2350,7 @@ ENTRY("AFNI_startup_timeout_CB") ;
              "++ located below the 'Data Directory' label.                 ++\n" ,
       (GLOBAL_browser == NULL)
            ? " "
-           : "++                                                           ++\n"
+           : "\n"
              "++ which you can open by right-clicking on the logo space to ++\n"
              "++ the right of the 'done' button, and from the resulting    ++\n"
              "++ popup menu, choose the 'Web Browser: Help' item.          ++\n"
@@ -2456,6 +2444,9 @@ ENTRY("AFNI_startup_timeout_CB") ;
    /*- 12 May 2010: As the last printout, say when this version was created -*/
 
    fprintf(stderr,"\n++ This version of AFNI was built " __DATE__ " ++\n" ) ;
+   if( MAIN_im3d->type == AFNI_3DDATA_VIEW &&
+      !AFNI_yesenv("AFNI_ENABLE_MARKERS")    )
+     fprintf(stderr,"++ 'Define Markers' is hidden: right-click 'DataDir' to see it\n") ;
 
    MPROBE ;                       /* check mcw_malloc() for integrity */
    EXRETURN ;
