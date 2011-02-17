@@ -17,6 +17,7 @@ extern int AFNI_suck_file_len(void) ;       /* 27 Feb 2009 */
 extern char * my_getenv( char * ) ;
 extern void AFNI_mark_environ_done(void) ;  /* 16 Apr 2000 */
 extern void AFNI_mark_environ_undone(void); /* 26 Nov 2008 */
+extern int  AFNI_check_environ_done(void);  /* 17 Feb 2010 */
 extern int AFNI_yesenv( char * ) ;          /* 21 Jun 2000 */
 extern int AFNI_noenv ( char * ) ;          /* 21 Jun 2000 */
 extern double AFNI_numenv( char * ) ;       /* 23 Aug 2003 */

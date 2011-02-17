@@ -3244,7 +3244,7 @@ void get_options
     if( nzr > 0 && nzr < num_CENSOR )
       WARNING_message(
         "%d -CENSORTR commands have 'run:' numbers and %d do not!\n"
-        "   (either all must have 'run:' numbers or none)",nzr,num_CENSOR-nzr);
+        "   (either all should have 'run:' numbers or none)",nzr,num_CENSOR-nzr);
   }
 
   /*-- check if we can continue! --*/
