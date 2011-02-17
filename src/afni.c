@@ -2006,10 +2006,12 @@ STATUS("call 14") ;
 
         MCW_help_CB( MAIN_im3d->vwid->top_shell,NULL,NULL ); /* initialize help */
 
+#if 0
         { char str[64] ;
           sprintf(str,"\n -orient       = %s", GLOBAL_library.cord.orcode ) ;
           REPORT_PROGRESS(str) ;
         }
+#endif
 
         /* initialize hints */
 
@@ -2329,7 +2331,7 @@ ENTRY("AFNI_startup_timeout_CB") ;
     int horz = MAIN_im3d->vwid->view->session_horz ; /* 29 Apr 2010 */
     char hstr[1024] ;
     sprintf( hstr ,
-             "   *** NOTICE ***                                              \n"
+             "***** NOTICE *** UWAGA *** AVVISO *** WARNUNG *** RABHADH *****\n"
              "                                                               \n"
              "++ No valid datasets were found.  A dummy dataset has been   ++\n"
              "++ created for your viewing pleasure :-)  To read in a real  ++\n"
@@ -2343,10 +2345,13 @@ ENTRY("AFNI_startup_timeout_CB") ;
              "++ For general AFNI program help, see the Web page           ++\n"
              "\n"
              "   http://afni.nimh.nih.gov/afni/doc/program_help/index.html   \n"
-             "%s" ,
+             "%s"
+             "\n"
+             "++ [To close this message window, left-click inside of it.]  ++\n"
+            ,
       (horz)
-           ? "++ data directory, use the 'Read' button near 'DataDir'.     ++\n"
-           : "++ data directory, use the 'Read New Directory' button,      ++\n"
+           ? "++ dataset directory, use the 'Read' button near 'DataDir'.  ++\n"
+           : "++ dataset directory, use the 'Read New Directory' button,   ++\n"
              "++ located below the 'Data Directory' label.                 ++\n" ,
       (GLOBAL_browser == NULL)
            ? " "
