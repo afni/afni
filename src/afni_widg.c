@@ -4500,16 +4500,16 @@ STATUS("making dmode->rowcol") ;
 
    MCW_reghelp_children( dmode->saveas_rowcol ,
                          "The 'SaveAs' buttons let you write out one\n"
-                         "of the current dataset (UnderLay or OverLay)\n"
+                         "of the current datasets (UnderLay or OverLay)\n"
                          "under a new name.  These datasets will be\n"
                          "written at the spatial resolution they are\n"
                          "stored in -- they won't be resampled.\n\n"
-                         "+ Datasets that are 'warp-on-demand' (don't\n"
+                         "* Datasets that are 'warp-on-demand' (don't\n"
                          "   have their own data) cannot be 'SaveAs'-ed!\n"
-                         "+ It is possible to over-write an existing\n"
+                         "* It is possible to over-write an existing\n"
                          "   dataset with 'SaveAs' -- but this is\n"
-                         "   usually not advisable, unless you are\n"
-                         "   going to quit AFNI shortly."
+                         "   usually NOT advisable, unless you are\n"
+                         "   going to quit AFNI almost immediately."
                        ) ;
 
    /*---- 23 Nov 1996: Row of Buttons for Rescan Session ----*/

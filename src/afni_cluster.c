@@ -2052,7 +2052,6 @@ ENTRY("CLU_setup_alpha_tables") ;
    }
 
    if( ntab != ntabold ){
-     if( ntabold < 0 ) fprintf(stderr,"\n") ;
      if( msg != NULL ){
        INFO_message("%s3dClustSim tables found:%s" ,
                     AFNI_controller_label(im3d) , msg ) ;
@@ -2061,7 +2060,7 @@ ENTRY("CLU_setup_alpha_tables") ;
        free(msg) ;
        if( nmask > 0 )
          ININFO_message(" %d voxels in 3dClustSim mask",nmask) ;
-     } else {
+     } else if( ntabold >= 0 ){
        INFO_message("%s3dClustSim tables found: none" ,
                     AFNI_controller_label(im3d) ) ;
      }
