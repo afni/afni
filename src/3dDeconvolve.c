@@ -3242,8 +3242,9 @@ void get_options
     for( ic=0 ; ic < num_CENSOR ; ic++ ) /* count number with run != 0 */
       if( abc_CENSOR[ic].i ) nzr++ ;
     if( nzr > 0 && nzr < num_CENSOR )
-      WARNING_message("%d -CENSORTR commands have run: numbers and %d do not!" ,
-                      nzr , num_CENSOR-nzr ) ;
+      WARNING_message(
+        "%d -CENSORTR commands have 'run:' numbers and %d do not!\n"
+        "   (either all must have 'run:' numbers or none)",nzr,num_CENSOR-nzr);
   }
 
   /*-- check if we can continue! --*/
