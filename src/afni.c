@@ -1670,8 +1670,6 @@ int main( int argc , char *argv[] )
      THR_top_value = tval[ii] - 1.0f ;
    }
 
-/* INFO_message("AFNI_IMAGE_SAVESQUARE = %s",getenv("AFNI_IMAGE_SAVESQUARE")); */
-
    AFNI_load_defaults( MAIN_shell ) ;
 
    if( ! GLOBAL_argopt.skip_afnirc ){          /* this line added 14 Jul 1998 */
@@ -2449,9 +2447,16 @@ ENTRY("AFNI_startup_timeout_CB") ;
    /*- 12 May 2010: As the last printout, say when this version was created -*/
 
    fprintf(stderr,"\n++ This version of AFNI was built " __DATE__ " ++\n" ) ;
+
    if( MAIN_im3d->type == AFNI_3DDATA_VIEW &&
       !AFNI_yesenv("AFNI_ENABLE_MARKERS")    )
      fprintf(stderr,"++ 'Define Markers' is hidden: right-click 'DataDir' to see it\n") ;
+
+   if( AFNI_check_environ_done() == 0 )
+     fprintf(stderr,
+       "++ NOTE: you may want to consider creating a '.afnirc' file in your home\n"
+       "         directory, to control AFNI's setup.  For more details, see\n"
+       "   http://afni.nimh.nih.gov/pub/dist/doc/program_help/README.environment.html\n") ;
 
    MPROBE ;                       /* check mcw_malloc() for integrity */
    EXRETURN ;

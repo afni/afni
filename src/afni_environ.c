@@ -81,6 +81,7 @@ static int afni_env_done = 0 ;
 
 void AFNI_mark_environ_done(void)   { afni_env_done = 1 ; return ; }
 void AFNI_mark_environ_undone(void) { afni_env_done = 0 ; return ; }
+int  AFNI_check_environ_done(void)  { return afni_env_done ; }
 
 /*---------------------------------------------------------------------------*/
 
@@ -125,8 +126,10 @@ ENTRY("AFNI_process_environ") ;
    }
    strcpy(fname_str,str) ; /* ZSS: Nov. 25 08 */
 
-   fbuf = AFNI_suck_file( str ) ; if( fbuf == NULL ){ blocked=0; RETURN(nenv); }
-   nbuf = strlen(fbuf) ;          if( nbuf == 0    ){ blocked=0; RETURN(nenv); }
+   fbuf = AFNI_suck_file( str ) ;
+   if( fbuf == NULL ){ blocked=0; if(fname==NULL)afni_env_done=0; RETURN(nenv); }
+   nbuf = strlen(fbuf) ;
+   if( nbuf == 0    ){ blocked=0; if(fname==NULL)afni_env_done=0; RETURN(nenv); }
 
    fptr = fbuf ; nused = 0 ;
 
