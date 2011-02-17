@@ -32,7 +32,7 @@ short non_zero[IMAX];		/* Ugly; depends upon sizeof(short)=2 */
 
 void Error_Exit(char *message)
 {
-    fprintf(stderr, "\n\nError 3dROIstas: %s\n", message);
+    fprintf(stderr, "\nError 3dROIstats: %s\n", message);
     exit(1);
 }
 
@@ -344,6 +344,7 @@ int main(int argc, char *argv[])
 	    narg++;
 	    continue;
 	}
+        fprintf(stderr,"\n** have option %s\n", argv[narg]);
 	Error_Exit("Unknown option");
     }
 
