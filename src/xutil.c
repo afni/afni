@@ -2291,5 +2291,7 @@ void MCW_melt_widget( Widget w , int slow )
         XSync(dpy, 0);
         free(heights); return;
       }
+      gcvals.foreground = (lrand48()%3) ? BlackPixel(dpy,screen) : WhitePixel(dpy,screen) ;
+      XChangeGC(dpy, fillgc , GCForeground, &gcvals);
    }
 }

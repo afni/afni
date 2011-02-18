@@ -6295,6 +6295,10 @@ ENTRY("AFNI_hidden_CB") ;
      free(inf) ;
    }
 
+   else if( w == im3d->vwid->prog->hidden_melter_pb ){   /* 18 Feb 2011 */
+     MCW_melt_widget( im3d->vwid->top_form , (lrand48()%5-2) ) ;
+   }
+
    else if( w == im3d->vwid->prog->hidden_gamberi_pb ){
      AFNI_speak( "The Rime of the Gamberi Cattivi" , 0 ) ;
      (void) MCW_popup_message( im3d->vwid->imag->topper ,
