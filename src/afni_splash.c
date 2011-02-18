@@ -90,16 +90,21 @@ ENTRY("AFNI_splashdown") ;
    if( ppp != NULL ){
 #ifdef USE_FADING
     if( ISQ_REALZ(ppp->seq) && imspl != NULL ){  /* fade gently away */
-      byte *bspl ; int ii , nv , kk ; double et ;
-      bspl = mri_data_pointer(imspl) ;
-      nv   = (imspl->pixel_size) * (imspl->nvox) ;
-      et   = COX_clock_time() ;
-      do_write = 0 ;
-      for( kk=0 ; kk < 10 ; kk++ ){
-        for( ii=0 ; ii < nv ; ii++ ) bspl[ii] = (15*bspl[ii]) >> 4 ;
-        SPLASH_popup_image(handle,imspl) ;
-        drive_MCW_imseq( ppp->seq , isqDR_reimage , (XtPointer) 0 ) ;
-        if( COX_clock_time()-et > 1.234 ) break ;
+      if( AFNI_yesenv("AFNI_SPLASH_MELT") ){
+        int slow = (lrand48()%2 == 0) ? 99 : -99 ;
+        MCW_melt_widget( ppp->seq->wform , slow ) ;
+      } else {
+        byte *bspl ; int ii , nv , kk ; double et ;
+        bspl = mri_data_pointer(imspl) ;
+        nv   = (imspl->pixel_size) * (imspl->nvox) ;
+        et   = COX_clock_time() ;
+        do_write = 0 ;
+        for( kk=0 ; kk < 10 ; kk++ ){
+          for( ii=0 ; ii < nv ; ii++ ) bspl[ii] = (15*bspl[ii]) >> 4 ;
+          SPLASH_popup_image(handle,imspl) ;
+          drive_MCW_imseq( ppp->seq , isqDR_reimage , (XtPointer) 0 ) ;
+          if( COX_clock_time()-et > 1.234 ) break ;
+        }
       }
     }
 #endif

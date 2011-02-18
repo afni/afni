@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 16 , FEB , 2011 , RWC , "3dTcorrMap" , MICRO , TYPE_GENERAL ,
+  { 18 , FEB , 2011 , RWC , "afni" , MICRO , TYPE_GENERAL ,
+   "Whatever you do, don't press F5 in an image or graph viewer!" ,
+   NULL } ,
+
+ { 16 , FEB , 2011 , RWC , "3dTcorrMap" , MICRO , TYPE_GENERAL ,
    "Minor change to increase speed by 5% or so, with OpenMP." ,
    NULL } ,
 
