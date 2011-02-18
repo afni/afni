@@ -840,6 +840,7 @@ typedef struct {
    Widget hidden_splashes_pb;  /* 12 Sep 2007 */
    Widget hidden_uscon_pb   ;  /* 30 Dec 2010 */
    Widget hidden_usdecl_pb  ;  /* 06 Jan 2011 */
+   Widget hidden_melter_pb  ;  /* 18 Feb 2011 */
 
 #endif  /* USE_HIDDEN */
 

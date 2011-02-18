@@ -4989,7 +4989,7 @@ STATUS("making prog->rowcol") ;
 
 /***
       XtVaSetValues( prog->hidden_menu ,
-                        XmNspacing      , 1 ,
+                        XmNspacing      , 0 ,
                         XmNmarginHeight , 0 ,
                         XmNmarginWidth  , 0 ,
                      NULL ) ;
@@ -5200,6 +5200,19 @@ STATUS("making prog->rowcol") ;
                   XmNinitialResourcesPersistent , False ,
                NULL ) ;
       XtAddCallback( prog->hidden_gamberi_pb , XmNactivateCallback ,
+                     AFNI_hidden_CB , im3d ) ;
+
+      /*----------*/
+
+      prog->hidden_melter_pb =
+            XtVaCreateManagedWidget(
+               "dialog" , xmPushButtonWidgetClass , prog->hidden_menu ,
+                  LABEL_ARG("AFNI Meltdown") ,
+                  XmNmarginHeight , 0 ,
+                  XmNtraversalOn , True  ,
+                  XmNinitialResourcesPersistent , False ,
+               NULL ) ;
+      XtAddCallback( prog->hidden_melter_pb , XmNactivateCallback ,
                      AFNI_hidden_CB , im3d ) ;
 
       /*----------*/
