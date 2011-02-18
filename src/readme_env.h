@@ -543,6 +543,11 @@ static char * readme_env[] = {
    "If this variable is NO, then the splash screen animation will be disabled.\n" ,
    "Otherwise, it will run.\n" ,
    "\n" ,
+   "--------------------------\n" ,
+   "Variable: AFNI_SPLASH_MELT\n" ,
+   "--------------------------\n" ,
+   "If this variable is YES, then the splash screen will close via 'melting'.\n" ,
+   "\n" ,
    "--------------------------------\n" ,
    "Variable: AFNI_FIM_PERCENT_LIMIT (editable)\n" ,
    "--------------------------------\n" ,
@@ -3154,4 +3159,4 @@ static char * readme_env[] = {
    "behavior, set this variable to YES.\n" ,
    "\n" ,
    NULL } ;
-#define NUM_readme_env 3154
+#define NUM_readme_env 3159

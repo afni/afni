@@ -2256,7 +2256,7 @@ void MCW_melt_widget( Widget w , int slow )
    copygc = XCreateGC(dpy, win,
                       GCForeground | GCBackground | GCGraphicsExposures, &gcvals);
 
-   gcvals.foreground = (slow >=0) ? BlackPixel(dpy,screen) : WhitePixel(dpy,screen) ;
+   gcvals.foreground = (slow>=0) ? BlackPixel(dpy,screen) : WhitePixel(dpy,screen) ;
    fillgc = XCreateGC(dpy, win, GCForeground, &gcvals);
 
    XSync(dpy, 0); if( slow < 0 ) slow = -slow ;
@@ -2267,8 +2267,7 @@ void MCW_melt_widget( Widget w , int slow )
       depth = rnd(planes);
       width = rnd(MIN_WIDTH) + WIDTH_ADD;
 
-      xloc = calc_xloc(width,rww);
-      yloc = rhh ;
+      xloc = calc_xloc(width,rww); yloc = rhh ;
       for (i = xloc; i < (xloc + width); i++) yloc = MIN(yloc, heights[i]);
       if (yloc == rhh) continue;
 
@@ -2276,12 +2275,9 @@ void MCW_melt_widget( Widget w , int slow )
       size = rnd(MAX(yloc + MIN_SIZE, MAX_SIZE));
 
       XCopyArea(dpy, win, win, copygc,
-         xloc, yloc,
-         width, size,
-         xloc, yloc + dist);
+                xloc, yloc, width, size, xloc, yloc + dist);
       XFillRectangle(dpy, win, fillgc,
-         xloc, yloc,
-         width, dist);
+                     xloc, yloc, width, dist);
       XSync(dpy, 0); if( slow > 0 && rnd(slow)==0 ) RWC_sleep(1);
       yloc += dist;
       for (i = xloc; i < (xloc + width); i++){
