@@ -542,6 +542,11 @@ Variable: AFNI_SPLASH_ANIMATE
 If this variable is NO, then the splash screen animation will be disabled.
 Otherwise, it will run.
 
+--------------------------
+Variable: AFNI_SPLASH_MELT
+--------------------------
+If this variable is YES, then the splash screen will close via 'melting'.
+
 --------------------------------
 Variable: AFNI_FIM_PERCENT_LIMIT (editable)
 --------------------------------

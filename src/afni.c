@@ -1403,6 +1403,13 @@ void AFNI_sigfunc_alrm(int sig)
 #endif
      /** MCHECK ; **/
    }
+
+   if( sig == 0 ){
+     Three_D_View *im3d = AFNI_find_open_controller() ;
+     if( im3d != NULL && AFNI_yesenv("AFNI_SPLASH_MELT") )
+       MCW_melt_widget( im3d->vwid->top_form , 0 ) ;
+   }
+
    exit(sig);
 }
 #undef NMSG

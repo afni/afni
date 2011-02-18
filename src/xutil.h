@@ -256,6 +256,8 @@ extern void AFNI_speak_setvoice( char *vvv ) ;
 # define XtDestroyWidget XtUnrealizeWidget
 #endif
 
+extern void MCW_melt_widget( Widget w , int slow ) ;
+
 #ifdef  __cplusplus
 }
 #endif
