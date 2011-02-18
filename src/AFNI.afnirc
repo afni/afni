@@ -89,6 +89,7 @@
 // AFNI_NOSPLASH            = NO      // YES==turn off the AFNI splash window
    AFNI_SPLASH_XY           = 444:222 // x:y coordinates for splash window
 // AFNI_SPLASHTIME          = 3       // how many seconds splash window stays up
+// AFNI_SPLASH_MELT         = NO      // whether to use the 'melt' effect
 
 // AFNI_NOTES_DLINES        = 11   // # of text entry lines in the Notes plugin
 // AFNI_MARKERS_NOQUAL      = NO   // YES==AFNI won't do 'quality' for markers
