@@ -6296,7 +6296,7 @@ ENTRY("AFNI_hidden_CB") ;
    }
 
    else if( w == im3d->vwid->prog->hidden_melter_pb ){   /* 18 Feb 2011 */
-     MCW_melt_widget( im3d->vwid->top_form , (lrand48()%5-2) ) ;
+     MCW_melt_widget( im3d->vwid->top_form , 0 ) ;
    }
 
    else if( w == im3d->vwid->prog->hidden_gamberi_pb ){

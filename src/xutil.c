@@ -2220,7 +2220,7 @@ void MCW_melt_widget( Widget w , int slow )
    Display *dpy;
    Window win , rin ;
    GC copygc, fillgc;
-   int screen,depth , rww,rhh,planes ;
+   int screen , rww,rhh,planes ;
    unsigned long vmask;
    XSetWindowAttributes xswat;
    XGCValues gcvals;
@@ -2254,10 +2254,16 @@ void MCW_melt_widget( Widget w , int slow )
    gcvals.foreground = 1;
    gcvals.background = 0;
    copygc = XCreateGC(dpy, win,
-                      GCForeground | GCBackground | GCGraphicsExposures, &gcvals);
+                      GCForeground | GCBackground | GCGraphicsExposures,
+                      &gcvals);
 
-   gcvals.foreground = (slow>=0) ? BlackPixel(dpy,screen)
-                                 : WhitePixel(dpy,screen) ;
+   if( slow == 0 )
+     gcvals.foreground = (lrand48()%2==0) ? BlackPixel(dpy,screen)
+                                          : WhitePixel(dpy,screen) ;
+   else
+     gcvals.foreground = (slow > 0) ? BlackPixel(dpy,screen)
+                                    : WhitePixel(dpy,screen) ;
+
    fillgc = XCreateGC(dpy, win, GCForeground, &gcvals);
 
    XSync(dpy, 0); if( slow < 0 ) slow = -slow ;
@@ -2265,14 +2271,13 @@ void MCW_melt_widget( Widget w , int slow )
    heights = (short *) calloc(sizeof(short), rww+1 );
 
    while (1){
-      depth = rnd(planes);
       width = rnd(MIN_WIDTH) + WIDTH_ADD;
 
       xloc = calc_xloc(width,rww); yloc = rhh ;
       for (i = xloc; i < (xloc + width); i++) yloc = MIN(yloc, heights[i]);
       if (yloc == rhh) continue;
 
-      dist = rnd(yloc/32 + MIN_DIST);
+      dist = rnd(yloc/8 + MIN_DIST);
       size = rnd(MAX(yloc/4 + MIN_SIZE, MAX_SIZE));
 
       XCopyArea(dpy, win, win, copygc,
@@ -2292,7 +2297,9 @@ void MCW_melt_widget( Widget w , int slow )
         XSync(dpy, 0);
         free(heights); return;
       }
+#if 0
       gcvals.foreground = (lrand48()%3) ? BlackPixel(dpy,screen) : WhitePixel(dpy,screen) ;
       XChangeGC(dpy, fillgc , GCForeground, &gcvals);
+#endif
    }
 }
