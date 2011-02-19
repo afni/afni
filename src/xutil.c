@@ -2197,10 +2197,10 @@ void AFNI_speak_setvoice( char *vvv ){ return; }
 #endif
 
 /****************************************************************************/
-#define MIN_SIZE   8
-#define MAX_SIZE  66
+#define MIN_SIZE   6
+#define MAX_SIZE  22
 #define MIN_DIST   4
-#define MIN_WIDTH  8
+#define MIN_WIDTH  6
 #define WIDTH_ADD  4
 #define FINISHED  50
 #define rnd(x)    (lrand48() % (x))
@@ -2256,7 +2256,8 @@ void MCW_melt_widget( Widget w , int slow )
    copygc = XCreateGC(dpy, win,
                       GCForeground | GCBackground | GCGraphicsExposures, &gcvals);
 
-   gcvals.foreground = (slow>=0) ? BlackPixel(dpy,screen) : WhitePixel(dpy,screen) ;
+   gcvals.foreground = (slow>=0) ? BlackPixel(dpy,screen)
+                                 : WhitePixel(dpy,screen) ;
    fillgc = XCreateGC(dpy, win, GCForeground, &gcvals);
 
    XSync(dpy, 0); if( slow < 0 ) slow = -slow ;
@@ -2271,8 +2272,8 @@ void MCW_melt_widget( Widget w , int slow )
       for (i = xloc; i < (xloc + width); i++) yloc = MIN(yloc, heights[i]);
       if (yloc == rhh) continue;
 
-      dist = rnd(yloc/10 + MIN_DIST);
-      size = rnd(MAX(yloc + MIN_SIZE, MAX_SIZE));
+      dist = rnd(yloc/32 + MIN_DIST);
+      size = rnd(MAX(yloc/4 + MIN_SIZE, MAX_SIZE));
 
       XCopyArea(dpy, win, win, copygc,
                 xloc, yloc, width, size, xloc, yloc + dist);
