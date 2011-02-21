@@ -2197,11 +2197,11 @@ void AFNI_speak_setvoice( char *vvv ){ return; }
 #endif
 
 /****************************************************************************/
-#define MIN_SIZE   6
-#define MAX_SIZE  22
+#define MIN_SIZE   4
+#define MAX_SIZE  26
 #define MIN_DIST   4
-#define MIN_WIDTH  6
-#define WIDTH_ADD  4
+#define MIN_WIDTH  8
+#define WIDTH_ADD  8
 #define FINISHED  50
 #define rnd(x)    (lrand48() % (x))
 
@@ -2284,7 +2284,8 @@ void MCW_melt_widget( Widget w , int slow )
                 xloc, yloc, width, size, xloc, yloc + dist);
       XFillRectangle(dpy, win, fillgc,
                      xloc, yloc, width, dist);
-      XSync(dpy, 0); if( slow > 0 && rnd(slow)==0 ) RWC_sleep(1);
+      if( rnd(33) == 0 ) XSync(dpy,0) ;
+      if( slow > 0 && rnd(slow)==0 ) RWC_sleep(1);
       yloc += dist;
       for (i = xloc; i < (xloc + width); i++){
         if( (heights[i] < (rhh - MIN_SIZE)) && (yloc >= (rhh - MIN_SIZE)) )
