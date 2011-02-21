@@ -12056,7 +12056,7 @@ ENTRY("ISQ_handle_keypress") ;
        break ;
 
        case XK_F5:
-         MCW_melt_widget( seq->wform , 999 ) ;
+         MCW_melt_widget( seq->wform , 0 ) ;
        break ;
 
        default:
