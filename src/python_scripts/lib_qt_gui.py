@@ -214,6 +214,65 @@ def create_display_label_pair(name, text):
 
    return name_label, text_label
 
+def valid_as_int(text, name, warn=0, wparent=None, empty_ok=1):
+   """the text can be either empty (if empty_ok) or be an int
+      if not and 'warn' is set, show a warning message
+      return 1 if valid, 0 otherwise
+   """
+   # search for valid cases
+   valid = 1
+   if len(text) == 0:
+      if empty_ok: return 1  
+      extext = "<empty>"
+   else:
+      # rcr - here
+      try: fval = int(text)
+      except:
+         valid = 0
+         extext = '   <not valid as a int>'
+
+   if valid: return 1
+
+   if warn: 
+      wmesg = warningMessage(                                           \
+               "Error: invalid identifier",                             \
+               "bad text: %s%s\n\n"                                     \
+               "Characters in field '%s' must be alphabetic, numeric\n" \
+               "or '_' (underscore), starting with alphabetic."         \
+               % (text, extext, name), wparent)
+      wmesg.show()
+
+   return 0
+
+def valid_as_float(text, name, warn=0, wparent=None, empty_ok=1):
+   """the text can be either empty (if empty_ok) or be a float
+      if not and 'warn' is set, show a warning message
+      return 1 if valid, 0 otherwise
+   """
+   # search for valid cases
+   valid = 1
+   if len(text) == 0:
+      if empty_ok: return 1  
+      extext = "<empty>"
+   else:
+      try: fval = float(text)
+      except:
+         valid = 0
+         extext = '   <not valid as a float>'
+
+   if valid: return 1
+
+   if warn: 
+      wmesg = warningMessage(                                           \
+               "Error: invalid identifier",                             \
+               "bad text: %s%s\n\n"                                     \
+               "Characters in field '%s' must be alphabetic, numeric\n" \
+               "or '_' (underscore), starting with alphabetic."         \
+               % (text, extext, name), wparent)
+      wmesg.show()
+
+   return 0
+
 def valid_as_identifier(text, name, warn=0, wparent=None, empty_ok=1):
    """the text can be either empty (if empty_ok) or be of the form:
         alpha, (alphanum|_)*
