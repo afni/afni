@@ -91,7 +91,7 @@ ENTRY("AFNI_splashdown") ;
 #ifdef USE_FADING
     if( ISQ_REALZ(ppp->seq) && imspl != NULL ){  /* fade gently away */
       if( AFNI_yesenv("AFNI_SPLASH_MELT") ){
-        MCW_melt_widget( ppp->seq->wform , 0 ) ;
+        MCW_melt_widget( ppp->seq->wform ) ;
       } else {
         byte *bspl ; int ii , nv , kk ; double et ;
         bspl = mri_data_pointer(imspl) ;
