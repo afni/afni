@@ -218,6 +218,7 @@ ENTRY("new_MCW_grapher") ;
                        "L      = turn AFNI logo on/off\n"
                        "v/V    = Video up/down in time\n"
                        "r/R    = Video ricochet up/down in time\n"
+                       "F5     = Meltdown!\n"
                        "\n"
                        "See the 'Opt' menu for other keypress actions\n"
                        "and for other options to control graph display."
