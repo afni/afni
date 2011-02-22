@@ -3754,7 +3754,7 @@ ENTRY("T3D_quit_CB") ;
      EXRETURN ;
   }
   if( lrand48()%5 == 0 )
-    MCW_melt_widget( wset.topform , 0 ) ;  /* 18 Feb 2011 */
+    MCW_melt_widget( wset.topform ) ;  /* 18 Feb 2011 */
   exit(0) ;
 }
 
