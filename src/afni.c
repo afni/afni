@@ -1407,7 +1407,7 @@ void AFNI_sigfunc_alrm(int sig)
    if( sig == 0 && !NO_frivolities ){
      Three_D_View *im3d = AFNI_find_open_controller() ;
      if( im3d != NULL && (lrand48()%9==0 || AFNI_yesenv("AFNI_SPLASH_MELT")) )
-       MCW_melt_widget( im3d->vwid->top_form , 0 ) ;
+       MCW_melt_widget( im3d->vwid->top_form ) ;
    }
 
    exit(sig);
