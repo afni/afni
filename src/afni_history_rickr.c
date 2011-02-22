@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 22, FEB, 2011, RCR, "uber_subject.py", MINOR, TYPE_MODIFY,
+   "added interfaces for 'expected' option",
+   NULL
+ } ,
+
  { 17, FEB, 2011, RCR, "3dDeconvolve", MICRO, TYPE_MODIFY,
    "make -CENSORTR run: warning more clear",
    NULL

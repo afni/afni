@@ -6,6 +6,7 @@ import sys, os
 from time import asctime
 import glob
 
+import afni_base as BASE
 import afni_util as UTIL
 import lib_subjects as SUBJ
 
@@ -21,20 +22,34 @@ g_history = """
          - additional help
     0.2  Feb 16, 2011: reorg (move files and functions around)
     0.3  Feb 16, 2011: epi or stim list from command line can init order/labels
+    0.4  Feb 20, 2011:
+         - added interfaces for 'expected' options
+           (tcat_nfirst, volreg_base, motion_limit)
+         - added corresponding volreg_warp abilities
+         - small changes to top_dir use
 """
 
-g_version = '0.3'
+g_version = '0.4'
 
 # ----------------------------------------------------------------------
 # global definition of default processing blocks
 g_def_blocks      = ['tshift', 'volreg', 'blur', 'mask', 'scale', 'regress']
 g_def_blocks_anat = ['tshift', 'align', 'tlrc', 'volreg', 'blur', 'mask',
                      'scale', 'regress']
+g_vreg_base_list  = ['first', 'third', 'last']
+g_def_vreg_base   = 'third'
+
+
+# ----------------------------------------------------------------------
+# a global definition of subject defaults for single subject analysis
+g_ctrl_defs = SUBJ.VarsObject("uber_subject control defaults")
+g_ctrl_defs.uber_dir      = DEF_UBER_DIR
+g_ctrl_defs.uber_dir      = DEF_UBER_DIR
+g_ctrl_defs.uber_dir      = DEF_UBER_DIR
 
 # ----------------------------------------------------------------------
 # a global definition of subject defaults for single subject analysis
 g_subj_defs = SUBJ.VarsObject("Single Subject Dialog defaults")
-g_subj_defs.uber_dir      = DEF_UBER_DIR
 g_subj_defs.blocks        = []
 g_subj_defs.sid           = ''          # subject ID    (no spaces - required)
 g_subj_defs.gid           = ''          # group ID      (no spaces)
@@ -47,6 +62,10 @@ g_subj_defs.stim_wildcard = 0           # use wildcard form for EPIs
 g_subj_defs.stim_label    = []          # label for each stim file
 g_subj_defs.stim_basis    = []          # basis functions: empty=GAM,
                                         #   valid lengths: 0, 1, len(stim)
+g_subj_defs.tcat_nfirst   = 0           # first TRs to remove from each run
+g_subj_defs.volreg_base   = g_def_vreg_base  # in g_vreg_base_list, or ''
+g_subj_defs.motion_limit  = 0.3         # in mm
+
 
 # note: short vars (e.g. with epi)
 #   use_dirs      - should we set any directory at all
@@ -64,8 +83,11 @@ class AP_Subject(object):
       # for now, leave errors, warnings and ap_command out of LV
 
       self.LV = SUBJ.VarsObject("local AP_Subject vars")
-      self.LV.verb = verb
-      self.LV.indent = 8             # default indent for AP options
+      self.LV.verb   = verb
+      self.LV.indent = 8                # default indent for AP options
+      self.LV.istr   = ' '*self.LV.indent
+      self.LV.warp   = ''               # '', 'adwarp', 'warp'
+                                        # (how to get to tlrc space)
 
       self.svars = g_subj_defs.copy()   # start with default subject vars
       self.svars.merge(svars)           # expand to include those passed
@@ -98,10 +120,10 @@ class AP_Subject(object):
       self.ap_command += self.script_ap_init()
       self.ap_command += self.script_ap_blocks()
       self.ap_command += self.script_ap_anat()
+      self.ap_command += self.script_ap_tcat()
       self.ap_command += self.script_ap_epi()
-      self.ap_command += self.script_ap_stim()
-      self.ap_command += self.script_ap_stim_labels()
-      self.ap_command += self.script_ap_stim_basis()
+      self.ap_command += self.script_ap_volreg()
+      self.ap_command += self.script_ap_regress()
 
       # alter ap_command, removing last '\'
       self.ap_command = self.script_ap_nuke_last_LC(self.ap_command)
@@ -124,20 +146,41 @@ class AP_Subject(object):
 
       return cmd[0:ind+1]+'\n\n'
 
+   def script_ap_regress(self):
+      """add any -regress_* options
+         - start with stim files, labels and basis function(s)
+      """
+      # stim files, labels, basis functions
+      cmd  = self.script_ap_stim()
+      cmd += self.script_ap_stim_labels()
+      cmd += self.script_ap_stim_basis()
+
+      # motion
+      if self.svars.motion_limit > 0.0:
+         cmd += '%s-regress_censor_motion %g \\\n' \
+                % (self.LV.istr, self.svars.motion_limit)
+
+      # ------------------------------------------------------------
+      # at end, add post 3dD options
+         cmd += '%s-regress_est_blur_epits \\\n' \
+                '%s-regress_est_blur_errts \\\n' % (self.LV.istr, self.LV.istr)
+
+      return cmd
+
    def script_ap_stim_basis(self):
       slen = len(self.svars.stim_basis)
       if slen == 0: return ''
 
       if UTIL.vals_are_constant(self.svars.stim_basis):
-         return "%*s-regress_basis '%s' \\\n"  \
-                   % (self.LV.indent, '', self.svars.stim_basis[0])
+         return "%s-regress_basis '%s' \\\n"  \
+                   % (self.LV.istr, self.svars.stim_basis[0])
 
       if slen != len(self.svars.stim):
-         self.errors.append('** error: num stim files != num stim basis')
+         self.errors.append('** error: num stim files != num stim basis\n')
          return ''
          
-      return "%*s-regress_basis_multi \\\n%*s%s \\\n" %         \
-                (self.LV.indent, '', self.LV.indent+4, '',
+      return "%s-regress_basis_multi \\\n%*s%s \\\n" %         \
+                (self.LV.istr, self.LV.indent+4, '',
                 ' '.join(["'%s'"%b for b in self.svars.stim_basis]))
 
    def script_ap_stim_labels(self):
@@ -145,11 +188,11 @@ class AP_Subject(object):
       if slen == 0: return ''
 
       if slen != len(self.svars.stim):
-         self.errors.append('** error: num stim files != num stim labels')
+         self.errors.append('** error: num stim files != num stim labels\n')
          return ''
          
-      return "%*s-regress_stim_labels \\\n%*s%s \\\n" %         \
-                (self.LV.indent, '', self.LV.indent+4, '',
+      return "%s-regress_stim_labels \\\n%*s%s \\\n" %          \
+                (self.LV.istr, self.LV.indent+4, '',
                  ' '.join(["%s"%b for b in self.svars.stim_label]))
 
    def script_ap_stim(self):
@@ -158,10 +201,10 @@ class AP_Subject(object):
               matches the list of stim names (else warning)
       """
       if not self.svars.stim:
-         self.errors.append('** error: no stim timing files given')
+         self.errors.append('** error: no stim timing files given\n')
          return ''
       if len(self.svars.stim) == 0:
-         self.errors.append('** error: no stim timing files given')
+         self.errors.append('** error: no stim timing files given\n')
          return ''
 
       # if wildcard, input files must exist, and expansion must match list
@@ -172,22 +215,49 @@ class AP_Subject(object):
             cstr = '%s/%s' % (self.LV.var_sdir, self.LV.stim_wildform)
          else: cstr = self.LV.stim_wildform
 
-         return '%*s-regress_stim_times %s \\\n' % (self.LV.indent, '', cstr)
+         return '%s-regress_stim_times %s \\\n' % (self.LV.istr, cstr)
 
       # no wildcarding, so check for just one stim
       if len(self.svars.stim) == 1:
          if self.LV.var_sdir:
             cstr = '%s/%s' % (self.LV.var_sdir, self.LV.short_stim[0])
          else: cstr = self.LV.short_stim[0]
-         return '%*s-regress_stim_times %s \\\n' % (self.LV.indent, '', cstr)
+         return '%s-regress_stim_times %s \\\n' % (self.LV.istr, cstr)
 
       # so we have multiple stim file, use just one per line
-      cmd = '%*s-regress_stim_times \\\n' % (self.LV.indent, '')
-      indent = self.LV.indent + 4
+      cmd = '%s-regress_stim_times \\\n' % (self.LV.istr)
+      istr = self.LV.istr + (' '*4)
       for name in self.LV.short_stim:
          if self.LV.var_sdir:
-            cmd += ('%*s%s/%s \\\n' % (indent,'',self.LV.var_sdir, name))
-         else: cmd += ('%*s%s \\\n' % (indent,'',name))
+            cmd += ('%s%s/%s \\\n' % (istr, self.LV.var_sdir, name))
+         else: cmd += ('%s%s \\\n' % (istr, name))
+
+      return cmd
+
+   def script_ap_volreg(self):
+      """- possibly set the following options:
+           -volreg_align_to, -volreg_align_e2a, -volreg_tlrc_(ad)warp
+      """
+
+      # volreg base, default is third
+      if self.svars.volreg_base == '': vrbase = 'third'
+      elif self.svars.volreg_base in g_vreg_base_list:
+         vrbase = self.svars.volreg_base
+      else:
+         err = '** error: unknown volreg base: %s\n' % self.svars.volreg_base
+         self.errors.append(err)
+         return ''
+
+      cmd = '%s-volreg_align_to %s \\\n' % (self.LV.istr, vrbase)
+
+      # if align block, align epi and anat
+      if 'align' in self.svars.blocks:
+         cmd += '%s-volreg_align_e2a \\\n' % self.LV.istr
+
+      if self.LV.warp == 'warp':
+         cmd += '%s-volreg_tlrc_warp \\\n' % self.LV.istr
+      elif self.LV.warp == 'adwarp':
+         cmd += '%s-volreg_tlrc_adwarp \\\n' % self.LV.istr
 
       return cmd
 
@@ -197,61 +267,95 @@ class AP_Subject(object):
               matches the list of EPI names (else warning)
       """
       if not self.svars.epi:
-         self.errors.append('** error: no EPI datasets given')
+         self.errors.append('** error: no EPI datasets given\n')
          return ''
 
       # if wildcard, input files must exist, and expansion must match list
       if self.svars.epi_wildcard:
          self.LV.epi_wildform=UTIL.glob_form_from_list(self.LV.short_epi)
          if self.check_wildcard_errors('EPI', self.svars.epi): return ''
-         if self.LV.var_edir: cstr = '$epi_dir/%s' % self.LV.epi_wildform
-         else:                cstr = self.LV.epi_wildform
+         if self.LV.var_edir:
+            cstr = '%s/%s' % (self.LV.var_edir, self.LV.epi_wildform)
+         else: cstr = self.LV.epi_wildform
 
-         return '%*s-dsets %s \\\n' % (self.LV.indent, '', cstr)
+         return '%s-dsets %s \\\n' % (self.LV.istr, cstr)
 
       # no wildcarding, so check for just one EPI
       if len(self.svars.epi) == 1:
          if self.LV.var_edir:
             cstr = '%s/%s' % (self.LV.var_edir, self.LV.short_epi[0])
          else: cstr = self.LV.short_epi[0]
-         return '%*s-dsets %s \\\n' % (self.LV.indent, '', cstr)
+         return '%s-dsets %s \\\n' % (self.LV.istr, cstr)
 
       # so we have multiple EPI datasets, use just one per line
-      cmd = '%*s-dsets \\\n' % (self.LV.indent, '')
-      indent = self.LV.indent + 4
+      cmd = '%s-dsets \\\n' % (self.LV.istr)
+      istr = self.LV.istr + (' '*4)
       for name in self.LV.short_epi:
          if self.LV.var_edir:
-            cmd += ('%*s%s/%s \\\n' % (indent, '', self.LV.var_edir, name))
-         else: cmd += ('%*s%s \\\n' % (indent,'',name))
+            cmd += ('%s%s/%s \\\n' % (istr, self.LV.var_edir, name))
+         else: cmd += ('%s%s \\\n' % (istr, name))
 
       return cmd
+
+   def script_ap_tcat(self):
+      return '%s-tcat_remove_first_trs %s \\\n' \
+             % (self.LV.istr, self.svars.tcat_nfirst)
 
    def script_ap_blocks(self):
       if not self.svars.blocks: return ''
 
-      return '%*s-blocks %s \\\n' \
-             % (self.LV.indent, '', ' '.join(self.svars.blocks))
+      return '%s-blocks %s \\\n' \
+             % (self.LV.istr, ' '.join(self.svars.blocks))
 
    def script_ap_anat(self):
-      if not self.svars.anat: return ''
+      """set LV.warp and add -copy_anat command"""
 
-      anat = self.svars.anat
-      if self.svars.get_tlrc:   # require existence and remove +orig extension
-         plus = anat.rfind('+orig')
-         if plus < 0:
-            print '** missing +orig in anat %s, cannot copy tlrc dset' % anat
-         else:
-            anat = anat[0:plus]
-         # check for +tlrc dset?  (or let afni_proc.py?)
+      if not self.svars.anat:
+         self.LV.warp = ''      # not going to tlrc space
+         return ''
 
-         # rcr - here
-         # ?? how to tell if anat+tlrc is from manual or @auto_tlrc?
+      self.LV.warp = 'warp'     # unless 'get' and manual
+      aset = BASE.afni_name(self.svars.anat)
+      if self.svars.get_tlrc:   # require existence and +orig extension
+         if not aset.exist():
+            self.errors.append('** get_tlrc: orig version not found\n')
+            return ''
+         if not aset.view == '+orig':
+            self.errors.append('** get_tlrc: requires orig version dset\n')
+            return ''
+         # now check that tlrc view exists
+         tset = aset.new(new_view='+tlrc')
+         if not aset.exist():
+            self.errors.append('** get_tlrc: tlrc version not found\n')
+            return ''
+         # check WARP_DATA attribute
+         # len 30 -> @auto_tlrc, 360 -> manual
+         wd = BASE.read_attribute(tset.ppv(), 'WARP_DATA')
+         if not wd:
+            err  = '** failed to read WARP_DATA attr from %s\n' % tset.ppv()
+            err += '   (failing to get_tlrc...)\n'
+            self.errors.append(err)
+            return ''
 
-      if self.LV.var_adir:
-         file = '%s/%s' % (self.LV.var_adir, os.path.basename(anat))
-      else: file = anat
+         # finally, some happy cases, first note file name, then set LV.warp
+         
+         if self.LV.var_adir: file = '%s/%s' % (self.LV.var_adir, aset.prefix)
+         else:                file = aset.prefix
 
-      return '%*s-copy_anat %s \\\n' % (self.LV.indent, '', file)
+         if len(wd) == 30:      self.LV.warp = 'warp'   # @auto_tlrc
+         elif len(wd) == 360:   self.LV.warp = 'adwarp' # manual
+         else:                  # unknown
+            err  = '** bad WARP_DATA: %s\n' % wd
+            err += '   (failing to get_tlrc...)\n'
+            self.errors.append(err)
+            return ''
+      else:
+         if self.LV.var_adir: file = '%s/%s' % (self.LV.var_adir, aset.pv())
+         else:                file = aset.pv()
+
+      if self.LV.verb > 2: print '-- tlrc file = %s' % file
+
+      return '%s-copy_anat %s \\\n' % (self.LV.istr, file)
 
    def check_wildcard_errors(self, name, flist):
       """if any error, report the error and return
@@ -302,7 +406,7 @@ class AP_Subject(object):
       if not self.svars.sid:
          # use SUBJ, but warn user
          self.svars.sid = 'SUBJ'
-         warn = "** missing subject ID, using default %s" % self.svars.sid
+         warn = "** missing subject ID, using default %s\n" % self.svars.sid
          self.warnings.append(warn)
 
       cmd  = '# set subject and group identifiers\n'
@@ -372,10 +476,18 @@ class AP_Subject(object):
       if self.use_dir(self.LV.epi_dir):  self.LV.var_edir = '$epi_dir'
       if self.use_dir(self.LV.stim_dir): self.LV.var_sdir = '$stim_dir'
 
+      # decide whether to use top_dir
+      # (it exists and is long enough or replaces all child dirs)
+      self.LV.use_tdir = 0
+      if self.LV.top_dir.count('/') > 1: self.LV.use_tdir = 1
+      elif self.use_dir(self.LV.top_dir):
+         if UTIL.vals_are_constant( [self.LV.anat_dir, self.LV.epi_dir,
+                                     self.LV.stim_dir] ) :
+            self.LV.use_tdir = 1
+
       # make short versions, but preserve long ones
       # maybe $epi_dir should be replaced with $top_dir
-      if self.LV.top_dir.count('/') > 1:
-         self.LV.use_tdir       = 1
+      if self.LV.use_tdir:
          self.LV.short_anat_dir = self.child_dir_name(self.LV.anat_dir)
          if self.LV.short_anat_dir == '.': self.LV.var_adir = '$top_dir'
 
@@ -385,7 +497,6 @@ class AP_Subject(object):
          self.LV.short_stim_dir = self.child_dir_name(self.LV.stim_dir)
          if self.LV.short_stim_dir == '.': self.LV.var_sdir = '$top_dir'
       else:
-         self.LV.use_tdir       = 0
          self.LV.short_anat_dir = self.LV.anat_dir
          self.LV.short_epi_dir  = self.LV.epi_dir
          self.LV.short_stim_dir = self.LV.stim_dir

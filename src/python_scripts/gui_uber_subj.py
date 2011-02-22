@@ -25,211 +25,6 @@ g_styles = ["windows", "motif", "cde", "plastique", "cleanlooks"]
 g_style_index = 0
 g_style_index_def = 4
 
-
-g_help_gui_design = """
-todo:  
-
-1. update EPI datasets and stim files from tables when edits are made
-
-2. *** update this ...
-
-     - QLIB: add QGroupBox containing 4x4 grid of:
-             buttons (browse, etc), QTableWidget,
-             QCheckBob,             Label/LineEdit HBox
-
-QDialog
-   QVBoxLayout
-      QGroupBox (general subject info)
-      QGroupBox (other)
-         QVBoxLayout (scrollabel)
-            QGroupBox (anatomy)
-               QGridLayout (2x2)
-                  buttons (browse, clear,...)      QTableWidget
-                  QCheckBox                        Label/LinEdit HBox
-            QGroupBox (EPI)
-            QGroupBox (stim files)
-            .
-            .
-            .
-
-for example, consider widgets/character_map.py
-
-"""
-
-# other help strings
-g_help_anat = """
-Specifying the anatomical dataset:
-
-   goals:
-
-      1. choose an anatomical dataset
-      2. decide whether to include a copy of an existing +tlrc version
-
-   description:
-
-      Use 'browse anat' to pick an anatomical dataset that corresponds to
-      the EPI datasets.  If 'include copy' is set, then if the anat is in
-      +orig space and a +tlrc version already exists (from either a manual
-      transformation or @auto_tlrc), the +tlrc version will be included.
-
-   typical use in processing:
-
-      1. copy anat (and possibly +tlrc version) into results directory
-      2. if no +tlrc anatomy, create one via @auto_tlrc
-      3. align EPI to anat (via align_epi_anat.py)
-      4. transform EPI to +tlrc space (according to anat transformation)
-
-      note: the EPI transformations are applied in the 'volreg' block
-"""
-
-g_help_epi = """
-Specifying the EPI datasets:
-
-   goals:
-
-      1. choose a set of EPI datasets (from a single directory)
-      2. decide whether to use the 'wildcard form' in the afni_proc.py
-         command (rather than listing individual EPI datasets)
-
-   description:
-
-      Use 'browse EPI' to choose a list of EPI datasets from some directory.
-      When the names are chosen, the directory will be separated from the
-      dataset names, with the resulting names formed as a wildcard string.
-      If the names do not have a fixed prefix and suffix, the wildcard string
-      will probably not be appropriate.
-
-      The default order is the 'scan index' order, if indices are found.
-      The datasets can be sored by either column by clicking on the column
-      header (e.g. 'scan index').
-
-   typical use in processing:
-
-      1. remove pre-steady state TRs (specified farther down the GUI)
-      2. pre-process the EPI: time shift, align to other EPI, align to anat,
-           warp to standard space, blur, scale to percent of mean
-      3. compute motion parameters based on EPI to EPI alignment (volreg)
-      4. regress against model
-
-   file naming habits:
-
-      suggested example: epi_r07+orig.HEAD
-
-      It is a good habit to have the EPI dataset names be the same except for
-      the run index.  It is also preferable (though not necessary) to zero-pad
-      those indicies so they have the same number of digits.  That makes the
-      numeric scan order equal to the alphabetical order.
-
-      For example, ordering these files by run (scan) index gives:
-
-        epi_r1+orig.HEAD
-        epi_r7+orig.HEAD
-        epi_r9+orig.HEAD
-        epi_r10+orig.HEAD
-        epi_r11+orig.HEAD
-
-      But if they were sorted alphabetically (which would happen when using
-      the wildcard form), the order would be (likely incorrect):
-
-        epi_r1+orig.HEAD
-        epi_r10+orig.HEAD
-        epi_r11+orig.HEAD
-        epi_r7+orig.HEAD
-        epi_r9+orig.HEAD
-
-     While this GUI would figure out the 'scan index' order of 1, 7, 9, 10, 11,
-     it is a safer habit to zero pad the index values: 01, 07, 09, 10, 11.
-     That would make the index order the same as the alphabetical order, which
-     would also allow for the safe use of wildcards.  In that case, the order
-     would be (for either scan index or alphabetical order):
-
-        epi_r01+orig.HEAD
-        epi_r07+orig.HEAD
-        epi_r09+orig.HEAD
-        epi_r10+orig.HEAD
-        epi_r11+orig.HEAD
-
-    Again, the zero padded order would be allow for wildcard use, specifying
-    all five datasets by: "epi_r*+orig.HEAD".
-
-    Note that the wildcard use would also be inappropriate if there were some
-    dataset that is not supposed to be used, such as if epi_r08+orig existed,
-    but was for an aborted scan.
-"""
-
-g_help_stim = """
-Specifying the stimulus timing files:
-
-   goals:
-
-      1. choose a set of stimulus timing files (from a single directory)
-      2. decide whether to use the 'wildcard form' in the afni_proc.py
-         command (rather than listing individual files)
-      3. choose a basis function (possibly for each timing file)
-  
-   description:
-
-      Use 'browse stim' to choose a list of timing files from some directory.
-      When the names are chosen, the directory will be separated from each
-      dataset name, with the resulting names formed as a wildcard string
-      (which might not be appropriate).  The GUI will attempt to separate the
-      file names into a list of: prefix, index, label, suffix.
-      If this is possible, the index and label fields will be populated.
-
-      The default sort order is by 'index', if indices are found.  The files
-      can be sorted by any column by clicking on the column header ('index').
-
-      If the wildcard form seems appropriate, it can be applied in the
-      afni_proc.py script by setting 'use wildcard form'.
-
-      A basis functions will applied to each timing file (stimulus class).
-      They can all be set at once via 'init basis funcs', or they can be
-      modified individually in the table.
-
-   ** Note: no stimulus should be given during the pre-steady state TRs.
-            The stimulus times should match times after the pre-SS TRs that
-            are removed from the EPI data.
-
-   typical use in processing:
-
-      1. use the timing files and basis functions to create regressors of
-         interest to be used in the regress processing block (by 3dDeconvolve).
-      2. if the basis functions are fixed shapes (e.g. GAM/BLOCK), generate
-         'ideal' curves per stimulus class (from the X-matrix columns)
-
-   file naming habits:
-
-      suggested example: stim_07_pizza.txt
-
-      a. To group files together, start them with the same prefix.
-      b. To order them expectedly, add a zero-padded (as needed) index number,
-         so the numerical order matches the alphabetical order.
-      c. To be clear about what files they are, add the exact label that should
-         be used in the 3dDeconvolve command.
-      d. Optionally, add a useful file suffix.
-
-      See the 'help: EPI' section for details about numerical vs. alphabetical
-      sorting and wildcard use.
-
-      Other reasonable naming examples:
-
-            stim7_pizza.txt
-            7pizza
-            stim07.1D
-
-      Bad examples:
-
-            faces.txt    (alphabetical order comes from labels)
-            stim7        (it is not clear what stimulus class this is)
-"""
-
-g_help_eg = """
-goals:
-
-description:
-
-"""
-
 g_LineEdittype = None                   # set this type later
 
 # ======================================================================
@@ -242,7 +37,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
          subj_vars      VarsObject for init of gui fields
    """
 
-   def __init__(self, parent=None, verb=1, subj_vars=None):
+   def __init__(self, parent=None, verb=1, subj_vars=None, ctrl_vars=None):
       super(SingleSubjectWindow, self).__init__(parent)
 
       # ------------------------------
@@ -252,6 +47,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
 
       # initialize the subject variables as empty, update at the end
       self.svars = USUBJ.g_subj_defs.copy('uber_subject subject vars')
+      self.cvars = USUBJ.g_ctrl_defs.copy('uber_subject control vars')
 
       # ------------------------------
       # L1 - main menubar and layout
@@ -290,6 +86,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
 
       # widgets are done, so apply pass subject vars
       self.apply_svars(subj_vars)
+      self.apply_cvars(ctrl_vars)
 
       # ap_status : 0 = must create ap command, 1 = have ap, need proc script,
       #             2 = have proc script, ready to execute
@@ -411,6 +208,26 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       elif obj == self.gvars.Line_apply_basis:
          self.update_basis_function(obj.text())
 
+      elif obj == self.gvars.Line_tcat_nfirst:
+         self.update_textLine_check(obj, obj.text(), 'tcat_nfirst',
+                                    'first TRs to remove', QLIB.valid_as_int)
+
+      # maybe we need to write a valid_in_list validator...
+      elif obj == self.gvars.Line_volreg_base:
+         text = str(obj.text())
+         if text == '' or text in USUBJ.g_vreg_base_list:
+            self.set_svar('volreg_base', text)
+         else: # reset to previous value
+            self.gvars.Line_volreg_base.setText(self.svars.volreg_base)
+            wmesg = QLIB.warningMessage("Error: invalid volreg base",
+                        "base '%s' not in %s\n\n" \
+                        % (text, ', '.join(USUBJ.g_vreg_base_list)), obj)
+            wmesg.show()
+          
+      elif obj == self.gvars.Line_motion_limit:
+         self.update_textLine_check(obj, obj.text(), 'motion_limit',
+                                    'motion censor limit', QLIB.valid_as_float)
+
       else: print '** CB_line_text: unknown sender'
 
    def make_l3_group_boxes(self):
@@ -419,10 +236,71 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       self.gvars.gbox_anat = self.group_box_anat()
       self.gvars.gbox_epi  = self.group_box_epi()
       self.gvars.gbox_stim = self.group_box_stim()
+      self.gvars.gbox_expected = self.group_box_expected()
 
       self.gvars.m2_vlayout.addWidget(self.gvars.gbox_anat)
       self.gvars.m2_vlayout.addWidget(self.gvars.gbox_epi)
       self.gvars.m2_vlayout.addWidget(self.gvars.gbox_stim)
+      self.gvars.m2_vlayout.addWidget(self.gvars.gbox_expected)
+
+   def group_box_expected(self):
+      """create a group box with a VBox layout:
+         for controlling sujbect vars: tcat_nfirst, volreg_base, motion_limit
+      """
+
+      gbox = self.get_styled_group_box("expected options")
+
+      # put frame inside gbox, which we can hide via toggled button
+      glayout = QtGui.QVBoxLayout(gbox)
+      frame = QtGui.QFrame(gbox)
+      frame.setFrameShape(QtGui.QFrame.NoFrame)
+      gbox.frame = frame
+      gbox.setCheckable(1)
+      gbox.toggled.connect(self.gbox_toggle_frame)
+
+      layout = QtGui.QGridLayout(frame)         # now a child of frame
+
+      # --------------------------------------------------
+      # tcat_nfirst
+      label = QtGui.QLabel("first TRs to remove (per run)")
+      label.setToolTip("the number of pre-steady state TRs to remove")
+      self.gvars.Line_tcat_nfirst = QtGui.QLineEdit()
+      self.gvars.Line_tcat_nfirst.setText('%d'%self.svars.tcat_nfirst)
+      self.gvars.Line_tcat_nfirst.editingFinished.connect(self.CB_line_text)
+
+      layout.addWidget(label, 0, 0)
+      layout.addWidget(self.gvars.Line_tcat_nfirst, 0, 2)
+
+      # --------------------------------------------------
+      # volreg_base
+      label = QtGui.QLabel("volume registration base")
+      label.setToolTip("EPI volume to use as registration base")
+      self.gvars.Line_volreg_base = QtGui.QLineEdit()
+      # choose button
+      blist = ['vr base: %s' % base for base in USUBJ.g_vreg_base_list]
+      pbut = QLIB.create_menu_button(frame, "choose", blist,
+                call_back=self.CB_gbox_PushB)
+      self.gvars.Line_volreg_base.setText(self.svars.volreg_base)
+      self.gvars.Line_volreg_base.editingFinished.connect(self.CB_line_text)
+
+      layout.addWidget(label, 1, 0)
+      layout.addWidget(pbut, 1, 1)
+      layout.addWidget(self.gvars.Line_volreg_base, 1, 2)
+
+      # --------------------------------------------------
+      # motion_limit
+      label = QtGui.QLabel("motion censor limit (per TR)")
+      label.setToolTip("censor TRs with motion exceeding this mm distance")
+      self.gvars.Line_motion_limit = QtGui.QLineEdit()
+      self.gvars.Line_motion_limit.setText('%g'%self.svars.motion_limit)
+      self.gvars.Line_motion_limit.editingFinished.connect(self.CB_line_text)
+      layout.addWidget(label, 2, 0)
+      layout.addWidget(self.gvars.Line_motion_limit, 2, 2)
+
+      frame.setLayout(layout)
+      glayout.addWidget(frame)
+      gbox.setLayout(glayout)
+      return gbox
 
    def group_box_anat(self):
       """create a group box with a VBox layout:
@@ -435,7 +313,15 @@ class SingleSubjectWindow(QtGui.QMainWindow):
 
       gbox = self.get_styled_group_box("anatomical dataset")
 
-      layout = QtGui.QVBoxLayout(gbox)
+      # put frame inside gbox, which we can hide via toggled button
+      glayout = QtGui.QVBoxLayout(gbox)
+      frame = QtGui.QFrame(gbox)
+      frame.setFrameShape(QtGui.QFrame.NoFrame)
+      gbox.frame = frame
+      gbox.setCheckable(1)
+      gbox.toggled.connect(self.gbox_toggle_frame)
+
+      layout = QtGui.QVBoxLayout(frame) # now a child of frame
 
       # create an HBox Widget with 2 buttons
       labels = ['browse anat', 'clear anat', 'help: anat']
@@ -463,8 +349,15 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       gbox.checkBox.clicked.connect(self.CB_checkbox)
       layout.addWidget(gbox.checkBox)
 
-      gbox.setLayout(layout)
+      frame.setLayout(layout)
+      glayout.addWidget(frame)
+      gbox.setLayout(glayout)
       return gbox
+
+   def gbox_toggle_frame(self):
+      obj = self.sender()
+      if obj.isChecked(): obj.frame.show()
+      else: obj.frame.hide()
 
    def group_box_epi(self):
       """create a group box with a VBox layout for EPI datasets:
@@ -482,7 +375,16 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       # --------------------------------------------------
       gbox = self.get_styled_group_box("EPI datasets")
 
-      mainlayout = QtGui.QVBoxLayout(gbox)
+      # put frame inside gbox, which we can hide via toggled button
+      glayout = QtGui.QVBoxLayout(gbox)
+      frame = QtGui.QFrame(gbox)
+      frame.setFrameShape(QtGui.QFrame.NoFrame)
+      glayout.addWidget(frame)
+      gbox.frame = frame
+      gbox.setCheckable(1)
+      gbox.toggled.connect(self.gbox_toggle_frame)
+
+      mainlayout = QtGui.QVBoxLayout(frame)     # now a child of frame
 
       # --------------------------------------------------
       # create an HBox Widget with 2 buttons
@@ -535,7 +437,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       mainlayout.addWidget(gbox.checkBox_wildcard)
 
       # --------------------------------------------------
-      gbox.setLayout(mainlayout)
+      frame.setLayout(mainlayout)
       return gbox
 
    def group_box_stim(self):
@@ -554,7 +456,16 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       # --------------------------------------------------
       gbox = self.get_styled_group_box("stimulus timing files")
 
-      mainlayout = QtGui.QVBoxLayout(gbox)
+      # put frame inside gbox, which we can hide via toggled button
+      glayout = QtGui.QVBoxLayout(gbox)
+      frame = QtGui.QFrame(gbox)
+      frame.setFrameShape(QtGui.QFrame.NoFrame)
+      glayout.addWidget(frame)
+      gbox.frame = frame
+      gbox.setCheckable(1)
+      gbox.toggled.connect(self.gbox_toggle_frame)
+
+      mainlayout = QtGui.QVBoxLayout(frame)     # now a child of frame
 
       # --------------------------------------------------
       # create an HBox Widget with 2 buttons
@@ -632,7 +543,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       mainlayout.addWidget(gbox.checkBox_wildcard)
 
       # --------------------------------------------------
-      gbox.setLayout(mainlayout)
+      frame.setLayout(mainlayout)
 
       return gbox
 
@@ -916,8 +827,9 @@ class SingleSubjectWindow(QtGui.QMainWindow):
          if type(obj) == g_LineEdittype: obj.setText(text)
          else: print '** update_textLine_check: not a LineEdit type'
       else:
-         # error
-         obj.clear()
+         # error, reset to previous attribute
+         # obj.clear()
+         obj.setText(self.svars.val(attr))
          obj.setFocus()
 
    def CB_gbox_PushB(self):
@@ -983,6 +895,12 @@ class SingleSubjectWindow(QtGui.QMainWindow):
 
       elif text[0:7] == 'basis: ':
          self.update_basis_function(text[7:])
+
+      # expected
+      elif text[0:9] == 'vr base: ':
+         base = text[9:]
+         self.set_svar('volreg_base', base)
+         self.gvars.Line_volreg_base.setText(base)
 
       else: print "** unexpected button text: %s" % text
 
@@ -1083,7 +1001,6 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       self.gvars.act_exec_ap = act2
       self.gvars.act_exec_proc = act3
 
-      # rcr - enable upon successful gen AP command
       self.gvars.act_exec_ap.setEnabled(False)
       self.gvars.act_exec_proc.setEnabled(False)
 
@@ -1354,10 +1271,6 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       for var in self.svars.attributes():
          self.apply_svar_in_gui(var)
 
-      # if there is no results directory, set it
-      if not self.svars.uber_dir:
-         self.set_svar('uber_dir', USUBJ.get_uber_results_dir())
-
       if self.verb > 2: self.svars.show("post reset subject vars")
 
    def apply_svar_in_gui(self, svar):
@@ -1387,6 +1300,16 @@ class SingleSubjectWindow(QtGui.QMainWindow):
                                   obj.setChecked(self.svars.stim_wildcard)
       elif svar == 'label':       self.stim_list_to_table()
       elif svar == 'basis':       self.stim_list_to_table()
+
+      elif svar == 'tcat_nfirst': 
+                                   obj = self.gvars.Line_tcat_nfirst
+                                   obj.setText('%d'%self.svars.tcat_nfirst)
+      elif svar == 'volreg_base':  
+                                   obj = self.gvars.Line_volreg_base
+                                   obj.setText(self.svars.volreg_base)
+      elif svar == 'motion_limit':
+                                   obj = self.gvars.Line_motion_limit
+                                   obj.setText('%g'%self.svars.motion_limit)
       else:
          if self.verb > 1: print '** apply_svar_in_gui: unhandled %s' % svar
          rv = 0
@@ -1395,7 +1318,254 @@ class SingleSubjectWindow(QtGui.QMainWindow):
 
       return rv
 
+   def apply_cvars(self, cvars=None):
+      """apply to the cvars object and to the gui
+
+         first init to defaults
+         if cvars is passed, make further updates"""
+
+      if cvars == None: return
+
+      # merge with current vars and apply everything to GUI
+      self.cvars.merge(cvars)
+      for var in self.cvars.attributes():
+         self.apply_cvar_in_gui(var)
+
+      # rcr - if there is no results directory, set it
+      #if not self.cvars.uber_dir:
+      #   self.set_cvar('uber_dir', USUBJ.get_uber_results_dir())
+
+      if self.verb > 2: self.cvars.show("post reset control vars")
+
+   def apply_cvar_in_gui(self, cvar):
+      """this is a single interface to apply any control variable in the GUI
+
+         if a variable is not handled in the interface, ignore it
+
+         return 1 if processed
+      """
+
+      rv = 1
+      if   gvar == 'uber_dir':             rv = 0       # todo
+      else:
+         if self.verb > 1: print '** apply_cvar_in_gui: unhandled %s' % cvar
+         rv = 0
+
+      if rv and self.verb > 2: print '++ apply_cvar_in_gui: process %s' % cvar
+
+      return rv
+
 # --- post SingleSubjectWindow class
+
+# ===========================================================================
+# help strings
+
+g_help_gui_design = """
+todo:  
+
+1. update EPI datasets and stim files from tables when edits are made
+
+2. *** update this ...
+
+     - QLIB: add QGroupBox containing 4x4 grid of:
+             buttons (browse, etc), QTableWidget,
+             QCheckBob,             Label/LineEdit HBox
+
+QDialog
+   QVBoxLayout
+      QGroupBox (general subject info)
+      QGroupBox (other)
+         QVBoxLayout (scrollabel)
+            QGroupBox (anatomy)
+               QGridLayout (2x2)
+                  buttons (browse, clear,...)      QTableWidget
+                  QCheckBox                        Label/LinEdit HBox
+            QGroupBox (EPI)
+            QGroupBox (stim files)
+            .
+            .
+            .
+
+for example, consider widgets/character_map.py
+
+"""
+
+# other help strings
+g_help_anat = """
+Specifying the anatomical dataset:
+
+   goals:
+
+      1. choose an anatomical dataset
+      2. decide whether to include a copy of an existing +tlrc version
+
+   description:
+
+      Use 'browse anat' to pick an anatomical dataset that corresponds to
+      the EPI datasets.  If 'include copy' is set, then if the anat is in
+      +orig space and a +tlrc version already exists (from either a manual
+      transformation or @auto_tlrc), the +tlrc version will be included.
+
+   typical use in processing:
+
+      1. copy anat (and possibly +tlrc version) into results directory
+      2. if no +tlrc anatomy, create one via @auto_tlrc
+      3. align EPI to anat (via align_epi_anat.py)
+      4. transform EPI to +tlrc space (according to anat transformation)
+
+      note: the EPI transformations are applied in the 'volreg' block
+"""
+
+g_help_epi = """
+Specifying the EPI datasets:
+
+   goals:
+
+      1. choose a set of EPI datasets (from a single directory)
+      2. decide whether to use the 'wildcard form' in the afni_proc.py
+         command (rather than listing individual EPI datasets)
+
+   description:
+
+      Use 'browse EPI' to choose a list of EPI datasets from some directory.
+      When the names are chosen, the directory will be separated from the
+      dataset names, with the resulting names formed as a wildcard string.
+      If the names do not have a fixed prefix and suffix, the wildcard string
+      will probably not be appropriate.
+
+      The default order is the 'scan index' order, if indices are found.
+      The datasets can be sored by either column by clicking on the column
+      header (e.g. 'scan index').
+
+   typical use in processing:
+
+      1. remove pre-steady state TRs (specified farther down the GUI)
+      2. pre-process the EPI: time shift, align to other EPI, align to anat,
+           warp to standard space, blur, scale to percent of mean
+      3. compute motion parameters based on EPI to EPI alignment (volreg)
+      4. regress against model
+
+   file naming habits:
+
+      suggested example: epi_r07+orig.HEAD
+
+      It is a good habit to have the EPI dataset names be the same except for
+      the run index.  It is also preferable (though not necessary) to zero-pad
+      those indicies so they have the same number of digits.  That makes the
+      numeric scan order equal to the alphabetical order.
+
+      For example, ordering these files by run (scan) index gives:
+
+        epi_r1+orig.HEAD
+        epi_r7+orig.HEAD
+        epi_r9+orig.HEAD
+        epi_r10+orig.HEAD
+        epi_r11+orig.HEAD
+
+      But if they were sorted alphabetically (which would happen when using
+      the wildcard form), the order would be (likely incorrect):
+
+        epi_r1+orig.HEAD
+        epi_r10+orig.HEAD
+        epi_r11+orig.HEAD
+        epi_r7+orig.HEAD
+        epi_r9+orig.HEAD
+
+     While this GUI would figure out the 'scan index' order of 1, 7, 9, 10, 11,
+     it is a safer habit to zero pad the index values: 01, 07, 09, 10, 11.
+     That would make the index order the same as the alphabetical order, which
+     would also allow for the safe use of wildcards.  In that case, the order
+     would be (for either scan index or alphabetical order):
+
+        epi_r01+orig.HEAD
+        epi_r07+orig.HEAD
+        epi_r09+orig.HEAD
+        epi_r10+orig.HEAD
+        epi_r11+orig.HEAD
+
+    Again, the zero padded order would be allow for wildcard use, specifying
+    all five datasets by: "epi_r*+orig.HEAD".
+
+    Note that the wildcard use would also be inappropriate if there were some
+    dataset that is not supposed to be used, such as if epi_r08+orig existed,
+    but was for an aborted scan.
+"""
+
+g_help_stim = """
+Specifying the stimulus timing files:
+
+   goals:
+
+      1. choose a set of stimulus timing files (from a single directory)
+      2. decide whether to use the 'wildcard form' in the afni_proc.py
+         command (rather than listing individual files)
+      3. choose a basis function (possibly for each timing file)
+  
+   description:
+
+      Use 'browse stim' to choose a list of timing files from some directory.
+      When the names are chosen, the directory will be separated from each
+      dataset name, with the resulting names formed as a wildcard string
+      (which might not be appropriate).  The GUI will attempt to separate the
+      file names into a list of: prefix, index, label, suffix.
+      If this is possible, the index and label fields will be populated.
+
+      The default sort order is by 'index', if indices are found.  The files
+      can be sorted by any column by clicking on the column header ('index').
+
+      If the wildcard form seems appropriate, it can be applied in the
+      afni_proc.py script by setting 'use wildcard form'.
+
+      A basis functions will applied to each timing file (stimulus class).
+      They can all be set at once via 'init basis funcs', or they can be
+      modified individually in the table.
+
+   ** Note: no stimulus should be given during the pre-steady state TRs.
+            The stimulus times should match times after the pre-SS TRs that
+            are removed from the EPI data.
+
+   typical use in processing:
+
+      1. use the timing files and basis functions to create regressors of
+         interest to be used in the regress processing block (by 3dDeconvolve).
+      2. if the basis functions are fixed shapes (e.g. GAM/BLOCK), generate
+         'ideal' curves per stimulus class (from the X-matrix columns)
+
+   file naming habits:
+
+      suggested example: stim_07_pizza.txt
+
+      a. To group files together, start them with the same prefix.
+      b. To order them expectedly, add a zero-padded (as needed) index number,
+         so the numerical order matches the alphabetical order.
+      c. To be clear about what files they are, add the exact label that should
+         be used in the 3dDeconvolve command.
+      d. Optionally, add a useful file suffix.
+
+      See the 'help: EPI' section for details about numerical vs. alphabetical
+      sorting and wildcard use.
+
+      Other reasonable naming examples:
+
+            stim7_pizza.txt
+            7pizza
+            stim07.1D
+
+      Bad examples:
+
+            faces.txt    (alphabetical order comes from labels)
+            stim7        (it is not clear what stimulus class this is)
+"""
+
+g_help_eg = """
+goals:
+
+description:
+
+"""
+
+# end: help strings
+# ===========================================================================
 
 def main():
 
