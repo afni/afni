@@ -4191,6 +4191,7 @@ typedef struct FD_brick {
    THD_3dim_dataset * dset ;    /*!< pointer to parent dataset */
    int resam_code ;             /*!< how to resample normal sub-bricks */
    int thr_resam_code ;         /*!< how to resample statistical sub-bricks */
+   int deltival ;               /*!< how much to shift the sub-brick index */
 
    char namecode[32] ;          /*!< June 1997 */
 

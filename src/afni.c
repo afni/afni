@@ -2519,10 +2519,17 @@ if(PRINT_TRACING){ char str[256] ; sprintf(str,"n=%d type=%d",n,type) ; STATUS(s
 
    if( n < 0 || n >= br->n3 ) RETURN(NULL) ;
 
+   /*--- set the sub-brick (ival) index shift ---*/
+
+   if( type == isqCR_deltival ){  /* 23 Feb 2011 */
+     br->deltival = n ;
+     RETURN( NULL ) ;
+   }
+
    /*--- overlay # n ---*/
 
    if( type == isqCR_getoverlay  ){
-      Three_D_View *im3d = (Three_D_View *) br->parent ;
+      Three_D_View *im3d = (Three_D_View *)br->parent ;
 
 STATUS("get overlay") ;
 
@@ -3200,6 +3207,11 @@ STATUS("drawing crosshairs") ;
         ival = im3d->vinfo->fim_index ;
       else
         ival = 0 ;                                     /* shouldn't happen */
+
+      if( br->deltival != 0 ){                         /* 23 Feb 2011 */
+        ival += br->deltival ;
+        if( ival < 0 || ival >= DSET_NVALS(brr->dset) ) RETURN( NULL ) ;
+      }
 
            if( type == isqCR_getqimage       ) ival = -1; /* get empty image */
       else if( ival >= DSET_NVALS(brr->dset) ) ival = brr->dset->dblk->nvals-1;
