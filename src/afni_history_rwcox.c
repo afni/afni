@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 18 , FEB , 2011 , RWC , "afni" , MICRO , TYPE_GENERAL ,
+  { 23 , FEB , 2011 , RWC , "afni" , MICRO , TYPE_GENERAL ,
+   "Adjust default grayscale values (ncol and gamma)" ,
+   NULL } ,
+
+ { 18 , FEB , 2011 , RWC , "afni" , MICRO , TYPE_GENERAL ,
    "Whatever you do, don't press F5 in an image or graph viewer!" ,
    NULL } ,
 
