@@ -1654,6 +1654,7 @@ if( PRINT_TRACING ){
    newseq->mont_gap      = newseq->mont_gap_old      = 0 ;
    newseq->mont_gapcolor = newseq->mont_gapcolor_old = 0 ;
    newseq->mont_periodic = 1 ;                             /* default = periodic */
+   newseq->mont_temporal = 0 ;
 
 STATUS("creation: widgets created") ;
 
@@ -7140,6 +7141,7 @@ ENTRY("ISQ_but_cnorm_CB") ;
                          montage information back via isqCR_newmontage
 
 *    isqDR_periodicmont (int) tells whether to use periodic montages
+*    isqDR_temporalmont (int) tells whether to use temporal montages
 
 *    isqDR_button2_enable  (ignored) tells to enable processing of Button2 events
 *    isqDR_button2_disable (ignored) tells to disable such processing
@@ -7892,6 +7894,18 @@ static unsigned char record_bits[] = {
 
         if( per != seq->mont_periodic ){
            seq->mont_periodic = per ;
+           seq->mont_temporal = 0 ;
+           if( ISQ_REALZ(seq) ) ISQ_redisplay( seq , -1 , isqDR_display ) ;
+        }
+        RETURN( True );
+      }
+
+      case isqDR_temporalmont:{
+        int per = (PTOI(drive_data)) != 0 ;
+
+        if( per != seq->mont_temporal ){
+           seq->mont_temporal = per ;
+           seq->mont_periodic = 0 ;
            if( ISQ_REALZ(seq) ) ISQ_redisplay( seq , -1 , isqDR_display ) ;
         }
         RETURN( True );
