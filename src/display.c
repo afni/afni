@@ -81,7 +81,7 @@ MCW_DC * MCW_new_DC( Widget wid , int ncol ,
                      int novr , char * covr[] , char * lovr[] ,
                      double gam , int newcmap )
 {
-   MCW_DC * dc ;
+   MCW_DC *dc ;
    int ok , ii , new_ovc ;
    unsigned int nplmsk = 0 ;  /* dummy arguments for XAllocColorCells */
    unsigned long plane_masks[1] ;
@@ -123,7 +123,7 @@ if(PRINT_TRACING){
 
    /** 07 Aug 1998: get more information about the visual **/
 
-   { XVisualInfo vinfo , * vinfo_list ;
+   { XVisualInfo vinfo , *vinfo_list ;
      int count ;
 
      dc->visual_id  = XVisualIDFromVisual( dc->visual ) ;
@@ -140,7 +140,7 @@ if(PRINT_TRACING){
 #if defined(__cplusplus) || defined(c_plusplus)
         dc->visual_class      = dc->visual_info->c_class ;
 #else
-	dc->visual_class      = dc->visual_info->class ;
+        dc->visual_class      = dc->visual_info->class ;
 #endif
         if( dc->visual_class != PseudoColor &&
             dc->visual_class != TrueColor      ){
@@ -205,6 +205,10 @@ if(PRINT_TRACING){
 
    dc->width   = WidthOfScreen(  dc->screen ) ;
    dc->height  = HeightOfScreen( dc->screen ) ;
+
+   if( dc->visual_class == TrueColor ){   /* 23 Feb 2011 */
+     if( ncol < 160 ) ncol = 160 ;
+   }
 
    dc->ncol_im = ncol ;
    dc->gamma   = dc->gamma_init = gam  ;
@@ -350,7 +354,7 @@ if(PRINT_TRACING){
    Set the image display to grayscale
 -------------------------------------------------------------------------*/
 
-void DC_palette_setgray( MCW_DC * dc )
+void DC_palette_setgray( MCW_DC *dc )
 {
    dc->use_xcol_im = False ;
    DC_set_image_colors( dc ) ;  /* 22 Aug 1998 */
@@ -361,7 +365,7 @@ void DC_palette_setgray( MCW_DC * dc )
    Set the image display to colorscale
 -------------------------------------------------------------------------*/
 
-void DC_palette_setcolor( MCW_DC * dc )
+void DC_palette_setcolor( MCW_DC *dc )
 {
    dc->use_xcol_im = True ;
    DC_set_image_colors( dc ) ;  /* 22 Aug 1998 */
@@ -372,7 +376,7 @@ void DC_palette_setcolor( MCW_DC * dc )
    Restore the color and grayscale palettes to their defaults
 -------------------------------------------------------------------------*/
 
-void DC_palette_restore( MCW_DC * dc , double new_gamma )
+void DC_palette_restore( MCW_DC *dc , double new_gamma )
 {
    dc->gamma = (new_gamma > 0 ) ? new_gamma : dc->gamma_init ;
    DC_init_im_col( dc ) ;
@@ -394,13 +398,13 @@ static double mypow( double x , double y )  /* replaces the math library pow */
    return b ;
 }
 
-void DC_init_im_gry( MCW_DC * dc )
+void DC_init_im_gry( MCW_DC *dc )
 {
    int i, k, m, nc ;
    float a , gamm , b ;
 
-   char * env ;              /* 11 Apr 2000 */
-   float atop=255.0 , abot=55.0 ;
+   char *env ;                    /* 11 Apr 2000 */
+   float atop=255.0 , abot=33.0 ;
 
 #if 0
    env = getenv("AFNI_GRAYSCALE_TOP") ;
@@ -536,7 +540,7 @@ rgbyte DC_spectrum_AJJ( double an , double gamm )
    Modified 22 Aug 1998 for TrueColor support.
 -------------------------------------------------------------------------*/
 
-void DC_init_im_col( MCW_DC * dc )
+void DC_init_im_col( MCW_DC *dc )
 {
    double da, an, c, s, sb, cb, ak, ab , a1,a2 , gamm ;
    int i, r=0, g=0, b=0, nc ;
@@ -585,7 +589,7 @@ void DC_init_im_col( MCW_DC * dc )
    Given an triple of bytes (0..255), make a color and return its pixel value
 -----------------------------------------------------------------------------*/
 
-Pixel RGB_byte_to_color( MCW_DC * dc , int r , int g , int b )
+Pixel RGB_byte_to_color( MCW_DC *dc , int r , int g , int b )
 {
    XColor  any_col;
 
@@ -601,7 +605,7 @@ Pixel RGB_byte_to_color( MCW_DC * dc , int r , int g , int b )
   Given a color named by a string, allocate it and return its pixel value
 ----------------------------------------------------------------------------*/
 
-Pixel Name_to_color( MCW_DC * dc , char * name )
+Pixel Name_to_color( MCW_DC *dc , char * name )
 {
    XColor cell , exact ;
    int ok ;
@@ -775,7 +779,7 @@ void load_tmp_colors( int nc , XColor *ccc )
   rotate active palette k steps
 -------------------------------------------------------------------------*/
 
-void DC_palette_rotate( MCW_DC * dc , int kk )
+void DC_palette_rotate( MCW_DC *dc , int kk )
 {
    register int i , j , nc , k ;
    XColor * xc ;
@@ -811,7 +815,7 @@ void DC_palette_rotate( MCW_DC * dc , int kk )
 
 /*------------------------------------------------------------------------*/
 
-void DC_palette_swap( MCW_DC * dc )
+void DC_palette_swap( MCW_DC *dc )
 {
    register int i, k , nc ;
    XColor * xc ;
@@ -844,7 +848,7 @@ void DC_palette_swap( MCW_DC * dc )
 
 /*-----------------------------------------------------------------------*/
 
-void DC_palette_bright(  MCW_DC * dc , int dd )
+void DC_palette_bright(  MCW_DC *dc , int dd )
 {
    if( dc->use_xcol_im ) DC_color_bright( dc ,    dd ) ;
    else                  DC_gray_change(  dc , -2*dd ) ;
@@ -853,7 +857,7 @@ void DC_palette_bright(  MCW_DC * dc , int dd )
 
 /*-----------------------------------------------------------------------*/
 
-void DC_color_bright( MCW_DC * dc , int dlev )
+void DC_color_bright( MCW_DC *dc , int dlev )
 {
    register int i ;
    double c ;
@@ -873,7 +877,7 @@ void DC_color_bright( MCW_DC * dc , int dlev )
 
 /*------------------------------------------------------------------------*/
 
-void DC_gray_change( MCW_DC * dc , int dlev )
+void DC_gray_change( MCW_DC *dc , int dlev )
 {
    register int i, k, delta ;
    int      nc = dc->ncol_im ;
@@ -894,7 +898,7 @@ void DC_gray_change( MCW_DC * dc , int dlev )
 
 /*------------------------------------------------------------------------*/
 
-void DC_palette_squeeze( MCW_DC * dc , int dd )
+void DC_palette_squeeze( MCW_DC *dc , int dd )
 {
    if( dc->use_xcol_im ) DC_color_squeeze( dc ,    dd ) ;
    else                  DC_gray_contrast( dc , -2*dd ) ;
@@ -903,14 +907,14 @@ void DC_palette_squeeze( MCW_DC * dc , int dd )
 
 /*------------------------------------------------------------------------*/
 
-void DC_color_squeeze( MCW_DC * dc , int dlev )
+void DC_color_squeeze( MCW_DC *dc , int dlev )
 {
    return ;  /* not implemented */
 }
 
 /*------------------------------------------------------------------------*/
 
-void DC_gray_contrast( MCW_DC * dc , int dlev )
+void DC_gray_contrast( MCW_DC *dc , int dlev )
 {
    register int i, k, delta ;
    int      nc = dc->ncol_im ;
@@ -955,7 +959,7 @@ void DC_gray_conbrio( MCW_DC *dc , int dlev )  /* 23 Oct 2003 */
 
 /*-------------------------------------------------------------------*/
 
-Boolean MCW_check_iconsize( int width , int height , MCW_DC * dc )
+Boolean MCW_check_iconsize( int width , int height , MCW_DC *dc )
 {
    int ii ;
    Boolean good ;
@@ -991,7 +995,7 @@ Boolean MCW_check_iconsize( int width , int height , MCW_DC * dc )
                 the internal dc color arrays
 -----------------------------------------------------------------------------*/
 
-XColor * DCpix_to_XColor( MCW_DC * dc , Pixel pp , int use_cmap )
+XColor * DCpix_to_XColor( MCW_DC *dc , Pixel pp , int use_cmap )
 {
    XColor * ulc , * ovc ;
    int ii ;
@@ -1021,25 +1025,25 @@ XColor * DCpix_to_XColor( MCW_DC * dc , Pixel pp , int use_cmap )
 
 /*-------------------------------------------------------------------------*/
 
-void DC_fg_color( MCW_DC * dc , int nov )
+void DC_fg_color( MCW_DC *dc , int nov )
 {
    XSetForeground( dc->display , dc->myGC , dc->ovc->pix_ov[nov] ) ;
    return ;
 }
 
-void DC_bg_color( MCW_DC * dc , int nov )
+void DC_bg_color( MCW_DC *dc , int nov )
 {
    XSetBackground( dc->display , dc->myGC , dc->ovc->pix_ov[nov] ) ;
    return ;
 }
 
-void DC_fg_colorpix( MCW_DC * dc , Pixel pix )
+void DC_fg_colorpix( MCW_DC *dc , Pixel pix )
 {
    XSetForeground( dc->display , dc->myGC , pix ) ;
    return ;
 }
 
-void DC_fg_colortext( MCW_DC * dc , char * cname )
+void DC_fg_colortext( MCW_DC *dc , char * cname )
 {
    XColor any_col , rgb_col ;
 
@@ -1053,7 +1057,7 @@ void DC_fg_colortext( MCW_DC * dc , char * cname )
    return ;
 }
 
-void DC_linewidth( MCW_DC * dc , int lw )
+void DC_linewidth( MCW_DC *dc , int lw )
 {
    XGCValues gcv ;
 
@@ -1065,7 +1069,7 @@ void DC_linewidth( MCW_DC * dc , int lw )
    return ;
 }
 
-void DC_linestyle( MCW_DC * dc , int lw )
+void DC_linestyle( MCW_DC *dc , int lw )
 {
    XGCValues gcv ;
    gcv.line_style = lw ;
@@ -1142,7 +1146,7 @@ void OVC_mostest( MCW_DCOV * ovc )
    22 Aug 1998 -- RWCox.
 ---------------------------------------------------------------------------------*/
 
-void DC_set_image_colors( MCW_DC * dc )
+void DC_set_image_colors( MCW_DC *dc )
 {
    int ii , nc ;
    XColor * xc ;
@@ -1191,7 +1195,7 @@ void DC_set_image_colors( MCW_DC * dc )
    Yoke the widget to the DC -- 14 Sep 1998
 ----------------------------------------------------------------*/
 
-void DC_yokify( Widget w , MCW_DC * dc )
+void DC_yokify( Widget w , MCW_DC *dc )
 {
    if( w == NULL || dc == NULL || !XtIsWidget(w) ) return ;
 
@@ -1210,7 +1214,7 @@ void DC_yokify( Widget w , MCW_DC * dc )
    Load the colordef structure in the DC -- 11 Feb 1999
 -----------------------------------------------------------------------*/
 
-void reload_DC_colordef( MCW_DC * dc )
+void reload_DC_colordef( MCW_DC *dc )
 {
    XVisualInfo * vin ;
    DC_colordef * cd ;   /* will be the output */
@@ -1361,9 +1365,9 @@ ENTRY("reload_DC_colordef") ;
    Compute the Pixel that is closest to the given (r,g,b) color
 -----------------------------------------------------------------------*/
 
-Pixel DC_rgb_to_pixel( MCW_DC * dc, byte rr, byte gg, byte bb )
+Pixel DC_rgb_to_pixel( MCW_DC *dc, byte rr, byte gg, byte bb )
 {
-   static MCW_DC * dcold=NULL ;
+   static MCW_DC *dcold=NULL ;
    DC_colordef * cd = dc->cdef ;
 
    if( cd == NULL ){ reload_DC_colordef(dc) ; cd = dc->cdef ; }
@@ -1455,9 +1459,9 @@ Pixel DC_rgb_to_pixel( MCW_DC * dc, byte rr, byte gg, byte bb )
    the specified set of overlay colors.  [20 Dec 1999 - RW Cox]
 -----------------------------------------------------------------------*/
 
-Pixel DC_rgb_to_ovpix( MCW_DC * dc, byte rr, byte gg, byte bb )
+Pixel DC_rgb_to_ovpix( MCW_DC *dc, byte rr, byte gg, byte bb )
 {
-   static MCW_DC * dcold=NULL ;
+   static MCW_DC *dcold=NULL ;
    static Pixel pold=0 ;
    static int rold=0,gold=0,bold=0 ;
    int ii , rdif,gdif,bdif,dif , ibest,dbest ;
@@ -1498,7 +1502,7 @@ Pixel DC_rgb_to_ovpix( MCW_DC * dc, byte rr, byte gg, byte bb )
    Convert color to triple in overlay color list that is closest.
 -----------------------------------------------------------------------*/
 
-void DC_rgb_to_ovrgb( MCW_DC * dc , int nlist , int * list , int shade ,
+void DC_rgb_to_ovrgb( MCW_DC *dc , int nlist , int * list , int shade ,
                                     byte *rrin , byte *ggin, byte *bbin )
 {
    int jj,jtop,ii , rdif,gdif,bdif,dif , ibest,dbest ;
@@ -1548,7 +1552,7 @@ void DC_rgb_to_ovrgb( MCW_DC * dc , int nlist , int * list , int shade ,
    Compute the (r,g,b) color corresponding to a given Pixel
 -----------------------------------------------------------------------*/
 
-void DC_pixel_to_rgb( MCW_DC * dc , Pixel ppp ,
+void DC_pixel_to_rgb( MCW_DC *dc , Pixel ppp ,
                       byte * rr , byte * gg , byte * bb )
 {
    DC_colordef * cd = dc->cdef ;
@@ -1640,10 +1644,10 @@ int NJ_bigmaps_init(int bigmap_num, char ***bigmap_namep, rgbyte ***bigmapp)
    char **bigmap_name=NULL;
    rgbyte **bigmap = NULL;
    int ii=0;
-   
-   if (  !bigmap_namep || !bigmapp || 
+
+   if (  !bigmap_namep || !bigmapp ||
          bigmap_num != NBIGMAP_INIT) return 1;
-         
+
    {
      bigmap_name    = (char **) malloc(sizeof(char *)*bigmap_num) ;
      bigmap_name[0] = strdup(BIGMAP_NAMES[0]) ;
