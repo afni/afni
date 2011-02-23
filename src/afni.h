@@ -2070,7 +2070,7 @@ extern int  AFNI_needs_dset_tin(void) ;
 /*** June 1995: modified to allow input via XGetDefault ***/
 
 #define DEFAULT_NGRAY   80
-#define DEFAULT_GAMMA   1.666
+#define DEFAULT_GAMMA   1.888
 
 #define DEFAULT_NCOLOVR 40
 #define MAX_NCOLOVR     199
