@@ -1654,7 +1654,12 @@ if( PRINT_TRACING ){
    newseq->mont_gap      = newseq->mont_gap_old      = 0 ;
    newseq->mont_gapcolor = newseq->mont_gapcolor_old = 0 ;
    newseq->mont_periodic = 1 ;                             /* default = periodic */
-   newseq->mont_temporal = 0 ;
+   newseq->mont_mode     = 0 ;
+
+if( AFNI_yesenv("TMONT") ){
+   newseq->mont_mode = 1 ;
+INFO_message("TMONT is on") ;
+}
 
 STATUS("creation: widgets created") ;
 
@@ -7141,7 +7146,7 @@ ENTRY("ISQ_but_cnorm_CB") ;
                          montage information back via isqCR_newmontage
 
 *    isqDR_periodicmont (int) tells whether to use periodic montages
-*    isqDR_temporalmont (int) tells whether to use temporal montages
+*    isqDR_montmode     (int) sets the montage mode
 
 *    isqDR_button2_enable  (ignored) tells to enable processing of Button2 events
 *    isqDR_button2_disable (ignored) tells to disable such processing
@@ -7894,18 +7899,16 @@ static unsigned char record_bits[] = {
 
         if( per != seq->mont_periodic ){
            seq->mont_periodic = per ;
-           seq->mont_temporal = 0 ;
            if( ISQ_REALZ(seq) ) ISQ_redisplay( seq , -1 , isqDR_display ) ;
         }
         RETURN( True );
       }
 
-      case isqDR_temporalmont:{
-        int per = (PTOI(drive_data)) != 0 ;
+      case isqDR_montmode:{
+        int mmm = (PTOI(drive_data)) != 0 ;
 
-        if( per != seq->mont_temporal ){
-           seq->mont_temporal = per ;
-           seq->mont_periodic = 0 ;
+        if( mmm != seq->mont_mode ){
+           seq->mont_mode = mmm ;
            if( ISQ_REALZ(seq) ) ISQ_redisplay( seq , -1 , isqDR_display ) ;
         }
         RETURN( True );
@@ -9054,6 +9057,10 @@ ENTRY("ISQ_manufacture_one") ;
    (version of ISQ_make_image when more than one is needed).
 -----------------------------------------------------------------------------*/
 
+#define ISQ_set_deltival(sss,dv)        \
+  AFNI_CALL_VOID_3ARG( (sss)->getim ,   \
+                       int,(dv), int,isqCR_deltival, XtPointer,(sss)->getaux )
+
 void ISQ_make_montage( MCW_imseq *seq )
 {
    MRI_IMAGE *im , *ovim , *tim ;
@@ -9065,6 +9072,7 @@ void ISQ_make_montage( MCW_imseq *seq )
    void  *gapval ;
    int   isrgb ;
    int   isrgb_ov ;    /* 07 Mar 2001 */
+   int   div=0 ;
 
 ENTRY("ISQ_make_montage");
 
@@ -9108,19 +9116,26 @@ ENTRY("ISQ_make_montage");
                 must be changed in a number of other places,
                 including the AFNI multiple crosshairs code! **/
 
+if( AFNI_yesenv("TMONT") )
+INFO_message("Start Montagizing") ;
       isrgb = 0 ;
       ijcen = (seq->mont_nx)/2 + (seq->mont_ny/2) * seq->mont_nx ;
-      for( ij=0 ; ij < nmont ; ij++ ){
-         nim = seq->im_nr + (seq->mont_skip + 1)* (ij - ijcen) ;
+      for( ij=0 ; ij < nmont ; ij++ ){  /* loop to get all montage underlays */
+         if( seq->mont_mode > 0 ){
+           nim = seq->im_nr ;
+           div = (seq->mont_skip + 1) * (ij - ijcen) ;
+ININFO_message("set deltival=%d  nim=%d",div,nim) ;
+           ISQ_set_deltival( seq , div ) ;
+         } else {
+           nim = seq->im_nr + (seq->mont_skip + 1) * (ij - ijcen) ;
+         }
 
-DPRI(" Getting montage underlay",nim) ;
-
-         seq->set_orim = (seq->need_orim != 0 && nim == seq->im_nr) ;  /* 30 Dec 1998 */
+         seq->set_orim = (seq->need_orim != 0 && nim == seq->im_nr && div == 0) ;
          tim = ISQ_manufacture_one( nim , 0 , seq ) ;
-         seq->set_orim = 0 ;                                           /* 30 Dec 1998 */
+         seq->set_orim = 0 ;
          ADDTO_IMARR(mar,tim) ;
 
-         if( nim == seq->im_nr ){
+         if( nim == seq->im_nr && div == 0 && tim != NULL ){
             new_width_mm  = IM_WIDTH(tim)  ; nxim = tim->nx ;
             new_height_mm = IM_HEIGHT(tim) ; nyim = tim->ny ;
             seq->last_image_type = tim->kind ;
@@ -9135,13 +9150,12 @@ DPRI(" Getting montage underlay",nim) ;
             nxyim++ ;
          }
       }
+      if( seq->mont_mode > 0 ){ div = 0; ISQ_set_deltival(seq,div); }
 
-      if( nxyim == 0 ){                                        /* bad bad bad bad bad */
+      if( nxyim == 0 ){                                /* bad bad bad bad bad */
          fprintf(stderr,"** Montage error: no images found!\n") ;
          DESTROY_IMARR(mar) ; EXRETURN ;
       }
-
-DPRI(" Making underlay cat2D from",nxyim) ;
 
       if( isrgb ){                       /* 11 Feb 1999 */
          if( seq->mont_gapcolor > 0 )
@@ -9236,9 +9250,13 @@ STATUS("Destroying underlay image array") ;
          isrgb_ov = 0 ;  /* 07 Mar 2001 */
 
          for( ij=0 ; ij < nmont ; ij++ ){
-            nim = seq->im_nr + (seq->mont_skip + 1) * (ij - ijcen) ;
-
-DPRI(" Getting montage overlay",nim) ;
+            if( seq->mont_mode > 0 ){
+              nim = seq->im_nr ;
+              div = (seq->mont_skip + 1) * (ij - ijcen) ;
+              ISQ_set_deltival( seq , div ) ;
+            } else {
+              nim = seq->im_nr + (seq->mont_skip + 1) * (ij - ijcen) ;
+            }
 
             tim = ISQ_manufacture_one( nim , 1 , seq ) ;
             ADDTO_IMARR(mar,tim) ;
@@ -9246,8 +9264,7 @@ DPRI(" Getting montage overlay",nim) ;
                nov++ ; isrgb_ov = isrgb_ov || tim->kind == MRI_rgb ;
             }
          }
-
-DPRI(" Making overlay cat2D from",nov) ;
+         if( seq->mont_mode > 0 ){ div = 0; ISQ_set_deltival(seq,div); }
 
          /* 07 Mar 2001: deal with possible RGB overlays */
 

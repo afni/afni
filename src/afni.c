@@ -2517,14 +2517,18 @@ if(PRINT_TRACING){ char str[256] ; sprintf(str,"n=%d type=%d",n,type) ; STATUS(s
    /*----------------------------------------*/
    /*-------- Now do imseq callbacks --------*/
 
-   if( n < 0 || n >= br->n3 ) RETURN(NULL) ;
-
    /*--- set the sub-brick (ival) index shift ---*/
 
    if( type == isqCR_deltival ){  /* 23 Feb 2011 */
+     Three_D_View *im3d = (Three_D_View *)br->parent ;
+     FD_brick *brfim ;
      br->deltival = n ;
+     brfim = UNDERLAY_TO_OVERLAY(im3d,br) ;
+     if( brfim != NULL ) brfim->deltival = n ;
      RETURN( NULL ) ;
    }
+
+   if( n < 0 || n >= br->n3 ) RETURN(NULL) ;
 
    /*--- overlay # n ---*/
 
@@ -3208,8 +3212,9 @@ STATUS("drawing crosshairs") ;
       else
         ival = 0 ;                                     /* shouldn't happen */
 
-      if( br->deltival != 0 ){                         /* 23 Feb 2011 */
+      if( br->deltival != 0 && DSET_NVALS(brr->dset) > 1 ){  /* 23 Feb 2011 */
         ival += br->deltival ;
+ININFO_message("afni: deltival changes ival to %d",ival) ;
         if( ival < 0 || ival >= DSET_NVALS(brr->dset) ) RETURN( NULL ) ;
       }
 
@@ -5679,6 +5684,7 @@ STATUS("realizing new image viewer") ;
       drive_MCW_imseq( *snew, isqDR_realize, NULL ) ;
       AFNI_sleep(17) ;                                                /* 17 Oct 2005 */
       drive_MCW_imseq( *snew, isqDR_title, (XtPointer) im3d->window_title ) ;
+if( !AFNI_yesenv("TMONT") )
       drive_MCW_imseq( *snew, isqDR_periodicmont,
                       (XtPointer)ITOP(im3d->vinfo->xhairs_periodic) );
 
