@@ -43,7 +43,17 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 23 , FEB , 2011 , RWC , "afni" , MICRO , TYPE_GENERAL ,
+  { 25 , FEB , 2011 , RWC , "3dTcorrMap" , MICRO , TYPE_MODIFY ,
+   "Changes to -CorrMap output" ,
+   "1) Make output dataset 3D+time rather than a bucket\n"
+   "2) Add -CorrMask option to eliminate all-zero sub-bricks from output\n"
+   "Per the request of Jonathan O'Muircheartaigh" } ,
+
+ { 25 , FEB , 2011 , RWC , "afni" , MICRO , TYPE_MODIFY ,
+   "add sub-brick label to graph window subtext" ,
+   NULL } ,
+
+ { 23 , FEB , 2011 , RWC , "afni" , MICRO , TYPE_GENERAL ,
    "Adjust default grayscale values (ncol and gamma)" ,
    NULL } ,
 

@@ -79,7 +79,7 @@ static int mybsearch_int( int tt , int nar , int *ar )
 
 int main( int argc , char *argv[] )
 {
-   THD_3dim_dataset *xset=NULL ; int nx,ny,nz,nxy ;
+   THD_3dim_dataset *xset=NULL ; int nx,ny,nz,nxy,nxyz ;
    THD_3dim_dataset *sset=NULL ;
    int nopt=1 , do_automask=0 ;
    int nvox , nvals , ii,jj,kk , polort=1 , ntime ;
@@ -95,6 +95,7 @@ int main( int argc , char *argv[] )
    char *Tprefix=NULL ; THD_3dim_dataset *Tset=NULL ; float *Tar=NULL ;
    char *Pprefix=NULL ; THD_3dim_dataset *Pset=NULL ; float *Par=NULL ;
    char *COprefix=NULL; THD_3dim_dataset *COset=NULL ; short *COar=NULL ;
+   int COmask=0 ;
    float Thresh=0.0f ;
    char *Tvprefix=NULL ; THD_3dim_dataset *Tvset=NULL ;
    float **Tvar=NULL ; float *Threshv=NULL, *Tvcount=NULL ;
@@ -272,6 +273,15 @@ int main( int argc , char *argv[] )
        "         Essentially this does what 3dAutoTcorrelate would,\n"
        "         with some of the additional options offered here.\n"
        "       ** N.B.: Output dataset will be HUGE in most cases.\n"
+       "  -CorrMask\n"
+       "         By default, -CorrMap outputs a sub-brick for EACH\n"
+       "         input dataset voxel, even those that are NOT in\n"
+       "         the mask (such sub-bricks will be all zero).\n"
+       "         If you want to eliminate these sub-bricks, use\n"
+       "         this option.\n"
+       "       ** N.B.: The label for the sub-brick that was seeded\n"
+       "                from voxel (i,j,k) will be of the form\n"
+       "                v032.021.003 (when i=32, j=21, k=3).\n"
        "\n"
        "\n"
        "  -Aexpr expr ppp\n"
@@ -462,11 +472,13 @@ int main( int argc , char *argv[] )
 
          nopt++ ; need_acc = 1 ; continue ;
       }
+      if( strcasecmp(argv[nopt],"-CorrMask") == 0 ){  /* 25 Feb 2011 */
+        COmask++ ; nopt++ ; continue ;
+      }
       if( strcasecmp(argv[nopt],"-CorrMap") == 0 ){
 
-         if (nopt+1 >= argc) {
+         if (nopt+1 >= argc)
             ERROR_exit("Need a prefix after -CorrMap");
-         }
 
          COprefix = argv[++nopt] ; nout++ ;
          if( !THD_filename_ok(COprefix) )
@@ -618,8 +630,8 @@ int main( int argc , char *argv[] )
    /*-- compute mask array, if desired --*/
 
    nx = DSET_NX(xset) ;
-   ny = DSET_NY(xset) ; nxy = nx*ny ;
-   nz = DSET_NZ(xset) ; nvox = nxy*nz ;
+   ny = DSET_NY(xset) ; nxy  = nx*ny ;
+   nz = DSET_NZ(xset) ; nxyz = nvox = nxy*nz ;
 
    if( do_automask ){
      if (!DSET_IS_VOL(xset)) {
@@ -640,6 +652,12 @@ int main( int argc , char *argv[] )
      memset( mask  , 1 , sizeof(byte)*nmask ) ;
      INFO_message("computing for all %d voxels!",nmask) ;
    }
+
+   /* create indx[jj] = voxel index in dataset whence
+                        jj-th extracted time series comes from */
+
+   indx = (int *)malloc(sizeof(int)*nmask) ;
+   for( ii=jj=0 ; ii < nvox ; ii++ ) if( mask[ii] ) indx[jj++] = ii ;
 
    /*-- check PCort mask (if any) for matchingness --*/
 
@@ -670,22 +688,23 @@ int main( int argc , char *argv[] )
    }
 
    if( COprefix != NULL ){
-     int iii, jjj, kkk, nxy, dig=0;
-     float *lesfac=(float*)calloc(DSET_NVOX(xset), sizeof(float));
-     for (ii=0; ii<DSET_NVOX(xset); ++ii) lesfac[ii]=1/10000.0;
+     int iii, jjj, kkk, ijk , dig=0 , nv=(COmask) ? nmask : nxyz ;
+     float *lesfac=(float*)calloc(nv,sizeof(float));
+     for (ii=0; ii<nv; ++ii) lesfac[ii]=1/10000.0;
      COset = EDIT_empty_copy( xset ) ;
      EDIT_dset_items( COset ,
-                        ADN_prefix    , COprefix        ,
-                        ADN_nvals     , DSET_NVOX(xset),
-                        ADN_ntt       , 0,
-                        ADN_brick_fac , lesfac           ,
-                        ADN_type      , HEAD_FUNC_TYPE ,
-                        ADN_func_type , FUNC_BUCK_TYPE ,
+                        ADN_prefix    , COprefix      ,
+                        ADN_nvals     , nv            ,
+                        ADN_ntt       , nv            ,
+                        ADN_ttdel     , 1.0           ,
+                        ADN_nsl       , 0             ,
+                        ADN_brick_fac , lesfac        ,
+                        ADN_type      , HEAD_FUNC_TYPE,
+                        ADN_func_type , FUNC_FIM_TYPE ,
                       ADN_none ) ;
      free(lesfac); lesfac = NULL;
-     dig = (int)ceil(log(DSET_NVOX(xset))/log(10));
-     nxy = DSET_NX(COset)*DSET_NY(COset);
-     for (ii=0; ii<DSET_NVOX(xset); ++ii) {
+     dig = (int)ceil(log((double)nv)/log(10.0));
+     for (ii=0; ii<nv; ++ii) {
       EDIT_substitute_brick( COset , ii , MRI_short , NULL ) ;
       EDIT_BRICK_TO_NOSTAT(COset,ii) ;
       if (!DSET_IS_VOL(xset)) {
@@ -709,11 +728,12 @@ int main( int argc , char *argv[] )
                break;
          }
       } else {
-         kkk = ii/nxy;
-         jjj = ii%nxy;
-         iii = jjj % DSET_NX(COset);
-         jjj = jjj / DSET_NX(COset);
-         sprintf(stmp,"v%03d%03d%03d",iii, jjj, kkk) ;
+         ijk = (COmask) ? indx[ii] : ii ;
+         kkk = ijk / nxy ;
+         jjj = ijk % nxy ;
+         iii = jjj % nx  ;
+         jjj = jjj / nx  ;
+         sprintf(stmp,"v%03d.%03d.%03d",iii, jjj, kkk) ;
       }
       EDIT_BRICK_LABEL(COset,ii,stmp) ;
      }
@@ -964,12 +984,6 @@ int main( int argc , char *argv[] )
      if( rmask != mask ) free(rmask) ;
    }
 
-   /* create indx[jj] = voxel index in dataset whence
-                        jj-th extracted time series came */
-
-   indx = (int *)malloc(sizeof(int)*nmask) ;
-   for( ii=jj=0 ; ii < nvox ; ii++ ) if( mask[ii] ) indx[jj++] = ii ;
-
    /* extract dataset time series into an array of
       time series vectors, for ease and speed of access */
 
@@ -1211,7 +1225,8 @@ int main( int argc , char *argv[] )
      for( iv=0 ; iv < N_iv ; ++iv ) Tvcount[iv] = 0.0f ;
 
      if (COset) {
-         COar = DSET_ARRAY(COset,indx[ii]);
+         int ijk = (COmask) ? ii : indx[ii] ;
+         COar = DSET_ARRAY(COset,ijk);
          for( jj=0 ; jj < nmask ; jj++ ) {
             cc = ccar[jj] * 10000.0f;   /* scale up because output is short */
             COar[indx[jj]] = cc < 0.0f ? (short)(cc-0.5f):(short)(cc+0.5f);
@@ -1346,6 +1361,11 @@ int main( int argc , char *argv[] )
      DSET_write(HHset) ; WROTE_DSET(HHset) ; DSET_delete(HHset) ;
    }
    if ( COset != NULL ) {
+      THD_set_write_compression(COMPRESS_NONE) ;
+      AFNI_setenv("AFNI_AUTOGZIP NO") ;
+      if( DSET_TOTALBYTES(COset) > 1000000000 )
+        ININFO_message("Writing big [%s bytes] -CorrMap output dataset",
+                       approximate_number_string((double)DSET_TOTALBYTES(COset)) ) ;
       DSET_write(COset) ; WROTE_DSET(COset) ; DSET_delete(COset) ;
    }
    INFO_message("total CPU time = %.2f s",COX_cpu_time()) ; exit(0) ;
