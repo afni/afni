@@ -1245,20 +1245,20 @@ void GRA_draw_circle( MCW_grapher *grapher , int xc , int yc , int rad )
 
 #define SHORT_NAME_WIDTH 384
 
-static char * long_index_name  = "index="  ;
-static char * short_index_name = "#"       ;
-static char * long_value_name  = " value=" ;
-static char * short_value_name = "="       ;
-static char * long_time_name   = " at "    ;
-static char * short_time_name  = "@"       ;
+static char *long_index_name  = "indx=" ;
+static char *short_index_name = "#"     ;
+static char *long_value_name  = " val=" ;
+static char *short_value_name = "="     ;
+static char *long_time_name   = " at "  ;
+static char *short_time_name  = "@"     ;
 
-void GRA_redraw_overlay( MCW_grapher * grapher )
+void GRA_redraw_overlay( MCW_grapher *grapher )
 {
-   Window    win ;
-   Display * dis ;
-   int       ii , xxx , jj ;
-   float     val ;
-   char buf[16] , strp[128] ;
+   Window   win ;
+   Display *dis ;
+   int      ii , xxx , jj ;
+   float    val ;
+   char buf[16] , strp[256] ;
    char * vbuf , *iname , *vname ;
 
 ENTRY("GRA_redraw_overlay") ;
@@ -1325,8 +1325,7 @@ ENTRY("GRA_redraw_overlay") ;
         val = grapher->cen_tsim->xo + ii * grapher->cen_tsim->dx ;
         AV_fval_to_char( val , buf ) ;
         vbuf = (buf[0]==' ') ? buf+1 : buf ;
-        ii = strlen(strp) ;
-        sprintf( strp+ii , "%s%s" ,
+        sprintf( strp+strlen(strp) , "%s%s" ,
                  (grapher->fWIDE < SHORT_NAME_WIDTH) ? short_time_name
                                                      : long_time_name, vbuf ) ;
       }
@@ -1336,6 +1335,14 @@ ENTRY("GRA_redraw_overlay") ;
 
       if( grapher->init_ignore > 0 ) xxx = MAX( xxx , grapher->xx_text_2p ) ;
 
+#ifdef BE_AFNI_AWARE
+      if( grapher->fWIDE >= SHORT_NAME_WIDTH ){      /* 24 Feb 2011 */
+        FD_brick *br = (FD_brick *)grapher->getaux ;
+        char *vlab = DSET_BRICK_LABEL(br->dset,grapher->time_index) ;
+        if( vlab != NULL && strcmp(vlab,NO_LAB_FLAG) != 0 )
+          sprintf(strp+strlen(strp)," [%s]",vlab) ;
+      }
+#endif
       DC_fg_color( grapher->dc , IDEAL_COLOR(grapher) ) ;
       overlay_txt( grapher, xxx , GB_DLY-15 , strp ) ;
    }
@@ -2271,8 +2278,8 @@ STATUS("starting time series graph loop") ;
           if( DATA_BOXED(grapher) ){          /* 26 Jun 2007 */
             XPoint q_line[4] ; short xb,xt ; float delt=ftemp/tsim->ny ;
             for( i=0 ; i < qnum ; i++ ){
-              xb = (short)(a_line[i].x + tt*delt + 0.49f) ;
-              xt = (short)(xb + delt-0.99f) ;
+              xb = (short)(a_line[i].x + tt*delt + 0.499f) ;
+              xt = (short)(xb + delt-0.999f) ;
               q_line[0].x = xb ; q_line[0].y = yoff ;
               q_line[1].x = xb ; q_line[1].y = a_line[i].y ;
               q_line[2].x = xt ; q_line[2].y = a_line[i].y ;
