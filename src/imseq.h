@@ -330,6 +330,12 @@ typedef struct {
 #define MONT_UOLAY   3
 #define MONT_UOT2    4
 
+static char *mont_types[5] = { "Space (xyz)" ,
+                               "Time: ULay"  ,
+                               "Time: OLay"  ,
+                               "Time: UOLay" ,
+                               "Time: UOT+2"  } ;
+
 extern void ISQ_montage_CB( Widget , XtPointer , XtPointer ) ;
 extern void ISQ_montage_action_CB( Widget , XtPointer , XtPointer ) ;
 extern void ISQ_set_anim_dup( int ) ;  /* 09 Feb 2009 */

@@ -1654,7 +1654,7 @@ if( PRINT_TRACING ){
    newseq->mont_gap      = newseq->mont_gap_old      = 0 ;
    newseq->mont_gapcolor = newseq->mont_gapcolor_old = 0 ;
    newseq->mont_periodic = 1 ;                             /* default = periodic */
-   newseq->mont_mode     = 0 ;
+   newseq->mont_mode     = MONT_SPATIAL ;
 
 if( AFNI_yesenv("TMONT") ){
    newseq->mont_mode = 1 ;
