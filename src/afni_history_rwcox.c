@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 25 , FEB , 2011 , RWC , "3dTcorrMap" , MICRO , TYPE_MODIFY ,
+  { 28 , FEB , 2011 , RWC , "afni" , MINOR , TYPE_MODIFY ,
+   "Clusterize: add scatterplot ('S:') options" ,
+   "For Rasmus" } ,
+
+ { 25 , FEB , 2011 , RWC , "3dTcorrMap" , MICRO , TYPE_MODIFY ,
    "Changes to -CorrMap output" ,
    "1) Make output dataset 3D+time rather than a bucket\n"
    "2) Add -CorrMask option to eliminate all-zero sub-bricks from output\n"

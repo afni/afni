@@ -5054,6 +5054,9 @@ static float p10( float x )
 
 #define STGOOD(s) ( (s) != NULL && (s)[0] != '\0' )
 
+static int xpush=1 , ypush=1 ;
+void PLUTO_set_xypush( int a, int b ){ xpush=a; ypush=b; }
+
 /*-----------------------------------------------------------------
    Plot a scatterplot.
      npt  = # of points in x[] and y[]
@@ -5076,7 +5079,7 @@ void PLUTO_scatterplot( int npt , float *x , float *y ,
    float *xar , *yar , *zar=NULL , **yzar ;
    float dsq , rx,ry ;
    char str[32] ;
-   MEM_plotdata * mp ;
+   MEM_plotdata *mp ;
 
 ENTRY("PLUTO_scatterplot") ;
 
@@ -5100,7 +5103,7 @@ ENTRY("PLUTO_scatterplot") ;
    /*-- push range of x outwards --*/
 
    pbot = p10(xbot) ; ptop = p10(xtop) ; if( ptop < pbot ) ptop = pbot ;
-   if( ptop != 0.0 ){
+   if( ptop != 0.0 && xpush > 0 ){
       np = (xtop-xbot) / ptop + 0.5 ;
       switch( np ){
          case 1:  ptop *= 0.1  ; break ;
@@ -5121,7 +5124,7 @@ ENTRY("PLUTO_scatterplot") ;
    /*-- push range of y outwards --*/
 
    pbot = p10(ybot) ; ptop = p10(ytop) ; if( ptop < pbot ) ptop = pbot ;
-   if( ptop != 0.0 ){
+   if( ptop != 0.0 && ypush > 0 ){
       np = (ytop-ybot) / ptop + 0.5 ;
       switch( np ){
          case 1:  ptop *= 0.1  ; break ;
@@ -5179,8 +5182,13 @@ ENTRY("PLUTO_scatterplot") ;
 
 #define DSQ 0.001
 
+   set_color_memplot( 0.0 , 0.0 , 0.5 ) ;        /* 28 Feb 2011 */
    dsq = AFNI_numenv( "AFNI_SCATPLOT_FRAC" ) ;   /* 15 Feb 2005 */
-   if( dsq <= 0.0 || dsq >= 0.01 ) dsq = DSQ ;
+   if( dsq <= 0.0 || dsq >= 0.01 ){
+     dsq = 64.0f*DSQ / sqrtf((float)npt) ;
+     if     ( dsq < 0.5f*DSQ ) dsq = 0.5f*DSQ ;
+     else if( dsq > 5.0f*DSQ ) dsq = 5.0f*DSQ ;
+   }
 
    dx = dsq*(xtop-xbot) ;
    dy = dsq*(ytop-ybot) * (xotop-xobot)/(yotop-yobot) ;

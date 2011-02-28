@@ -445,6 +445,9 @@ typedef struct {
   int coord_mode ;
   int receive_on ;
   float hbot,htop ;
+
+  Widget     splot_pb , splot_clear_pb ;
+  MRI_IMAGE *splotim ;       /* selected from spplot_pb */
 } AFNI_clu_widgets ;      /** not yet used **/
 
 extern void CLU_free_table( CLU_threshtable *ctab ) ;

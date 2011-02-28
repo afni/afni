@@ -330,11 +330,13 @@ typedef struct {
 #define MONT_UOLAY   3
 #define MONT_UOT2    4
 
-static char *mont_types[5] = { "Space (xyz)" ,
-                               "Time: ULay"  ,
-                               "Time: OLay"  ,
-                               "Time: UOLay" ,
-                               "Time: UOT+2"  } ;
+#define MONT_LAST_TYPE 4  /* last of the list above */
+
+static char *mont_types[MONT_LAST_TYPE+1] = { "Space (xyz)" ,
+                                              "Time: ULay"  ,
+                                              "Time: OLay"  ,
+                                              "Time: UOLay" ,
+                                              "Time: U1OT2"  } ;
 
 extern void ISQ_montage_CB( Widget , XtPointer , XtPointer ) ;
 extern void ISQ_montage_action_CB( Widget , XtPointer , XtPointer ) ;
@@ -409,9 +411,10 @@ typedef struct MCW_imseq {
 
      int mont_nx    , mont_ny    , mont_skip    , mont_gap    , mont_gapcolor    ;
      int mont_nx_old, mont_ny_old, mont_skip_old, mont_gap_old, mont_gapcolor_old;
-     int mont_periodic , mont_mode ;
+     int mont_periodic , mont_mode , mont_mode_old ;
      MCW_arrowval *mont_across_av , *mont_down_av , *mont_skip_av ,
                   *mont_gap_av , *mont_gapcolor_av ;
+     MCW_arrowval *mont_type_av ;  /* 25 Feb 2011 */
 
      float image_frac ;  /* 25 Oct 1996 */
 
