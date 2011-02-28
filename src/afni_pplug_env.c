@@ -481,6 +481,10 @@ PLUGIN_interface * ENV_init(void)
                     "Max clusters sent to 'whereami'" ,
                     1,99,0,20 , NULL ) ;
 
+   /* 28 Feb 2011 [RWCox] */
+   ENV_add_yesno( "AFNI_CLUSTER_EBAR" ,
+                  "Error bars in Clusterize plots?" ) ;
+
    /* 03 Jun 2008 [RWCox] */
    ENV_add_yesno( "AFNI_IMAGE_TICK_DIV_IN_MM" ,
                   "Image tick divisions count is in mm?" ) ;
@@ -506,14 +510,13 @@ PLUGIN_interface * ENV_init(void)
                     "Cropped image panning step size" ,
                     -9,9,0,1 , NULL ) ;
 
-   /* 06 Oct 2010 [RWcox] */
+   /* 06 Oct 2010 [RWCox] */
    ENV_add_string( "AFNI_IDEAL_COLORS" ,
                    "Colors for the FIM Ideal in AFNI Graph viewer" ,
                    0,NULL , NULL ) ;
    ENV_add_string( "AFNI_ORT_COLORS" ,
                    "Colors for the FIM Ort in AFNI Graph viewer" ,
                    0,NULL , NULL ) ;
-
 
    /*--------- Sort list of variables [21 Feb 2007]  -----------*/
 
