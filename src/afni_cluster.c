@@ -1746,7 +1746,7 @@ ENTRY("AFNI_clus_action_CB") ;
          sprintf(tlab,"\\noesc %s[%d..%d]",
                  THD_trailname(DSET_HEADNAME(cwid->dset),SESSTRAIL),ibot,itop);
          if( pcor != 0.0f ) sprintf(tlab+strlen(tlab)," R=%.3f",pcor) ;
-         PLUTO_set_xypush(1,0) ;
+         PLUTO_set_xypush( cwid->splotim == NULL , 0 ) ;
          PLUTO_scatterplot( nixy,xar,yar , xlab,ylab,tlab , a,b ) ;
          PLUTO_set_xypush(1,1) ;
          free(xar) ; free(yar) ;
