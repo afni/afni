@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 28 , FEB , 2011 , RWC , "afni" , MINOR , TYPE_MODIFY ,
+  { 1 , MAR , 2011 , RWC , "afni" , MICRO , TYPE_GENERAL ,
+   "Add correlation and its 5%..95%  interval to Clusterize S:mean" ,
+   "Via new bootstrapping THD_pearson_boot() function in thd_correlate.c" } ,
+
+ { 28 , FEB , 2011 , RWC , "afni" , MINOR , TYPE_MODIFY ,
    "Clusterize: add scatterplot ('S:') options" ,
    "For Rasmus" } ,
 

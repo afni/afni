@@ -1707,7 +1707,7 @@ ENTRY("AFNI_clus_action_CB") ;
            sim = mri_MMBvector( imar,ibot,itop,2 ) ;
        } else if( doscat ){  /* scatterplot */
          float *xar, *yar ; int nix, niy, nixy, jj,kk ;
-         float a=0,b=0,pcor=0 ;
+         float a=0,b=0,pcor=0,p05=0,p95=0 ;
          char xlab[64] , ylab[64] , tlab[THD_MAX_NAME+2] ;
          if( dosmea ){
            im = mri_meanvector( imar , ibot,itop ) ; xar = MRI_FLOAT_PTR(im) ;
@@ -1738,23 +1738,18 @@ ENTRY("AFNI_clus_action_CB") ;
              WARNING_message("Scat.1D file [%s] too short [%d] for dataset [%d]",
                              cwid->splotim->name , cwid->splotim->nx , nix+ibot  ) ;
          }
-         if( niy == 1 ){
-           float xbar=0,ybar=0, xq=0,yq=0,xyq=0 ;
-           for( jj=0 ; jj < nix ; jj++ ){ xbar += xar[jj]; ybar += yar[jj]; }
-           xbar /= nix ; ybar /= nix ;
-           for( jj=0 ; jj < nix ; jj++ ){
-             xq  += (xar[jj]-xbar)*(xar[jj]-xbar) ;
-             yq  += (yar[jj]-ybar)*(yar[jj]-ybar) ;
-             xyq += (xar[jj]-xbar)*(yar[jj]-ybar) ;
-           }
-           if( xq > 0.0f && yq > 0.0f ){
-             pcor = xyq/sqrtf(xq*yq); a = xyq/xq; b = (xq*ybar-xbar*xyq)/xq;
-           }
+         if( niy == 1 && nix >= 9 ){
+           float_triple aaa,bbb,rrr ;
+           THD_pearson_corr_boot( nix,xar,yar , &rrr,&aaa,&bbb ) ;
+           pcor = rrr.a ; p05 = rrr.b ; p95 = rrr.c ; a = aaa.a ; b = bbb.a ;
          }
          sprintf(ylab,"Cluster #%d = %d voxels",ii+1,IMARR_COUNT(imar)) ;
          sprintf(tlab,"\\noesc %s[%d..%d]",
-                 THD_trailname(DSET_HEADNAME(cwid->dset),SESSTRAIL),ibot,itop);
-         if( pcor != 0.0f ) sprintf(tlab+strlen(tlab)," R=%.3f",pcor) ;
+                 THD_trailname(DSET_HEADNAME(cwid->dset),
+                               (pcor == 0.0f) ? SESSTRAIL : 0 ) ,
+                 ibot,itop ) ;
+         if( pcor != 0.0f )
+           sprintf(tlab+strlen(tlab)," R=%.2f [%.2f..%.2f]",pcor,p05,p95) ;
          PLUTO_set_xypush( cwid->splotim == NULL , 0 ) ;
          PLUTO_scatterplot( nixy,xar,yar , xlab,ylab,tlab , a,b ) ;
          PLUTO_set_xypush(1,1) ;
