@@ -711,8 +711,8 @@ ENTRY("AFNI_clus_make_widgets") ;
                        "** Pointwise median:                     'Median'\n"
                        "** Compute first principal component:    'PC#1'\n"
                        "** Histogram all the values:             'Histog'\n"
-                       "** Scatterplot all values:               'S:all'\n"
                        "** Scatterplot mean from each sub-brick: 'S:mean'\n"
+                       "** Scatterplot all values:               'S:all'\n"
                        "   [-- Scat.1D button chooses x-axis for 'S:' --]\n"
                        "And then either 'Plot' or 'Save' these results\n"
                        "** If you 'Save' these results, the text field\n"
@@ -745,7 +745,7 @@ ENTRY("AFNI_clus_make_widgets") ;
 
    /* row #2: data processing method */
 
-   { static char *clab[6] = { "Mean", "Median", "PC#1", "Histog", "S:all", "S:mean" } ;
+   { static char *clab[6] = { "Mean", "Median", "PC#1", "Histog", "S:mean", "S:all" } ;
      cwid->aver_av = new_MCW_optmenu( rc , " " , 0,5,0,0 ,
                                       NULL,NULL , MCW_av_substring_CB,clab ) ;
      MCW_reghint_children( cwid->aver_av->wrowcol ,
@@ -1546,8 +1546,8 @@ ENTRY("AFNI_clus_action_CB") ;
        int domedn = (cwid->aver_av->ival == 1) ;
        int dopc   = (cwid->aver_av->ival == 2) ;
        int dohist = (cwid->aver_av->ival == 3) ;
-       int dosall = (cwid->aver_av->ival == 4) ;
-       int dosmea = (cwid->aver_av->ival == 5) ;
+       int dosmea = (cwid->aver_av->ival == 4) ;
+       int dosall = (cwid->aver_av->ival == 5) ;
        int doscat = (dosall || dosmea) ;
        MRI_IMARR *imar ; MRI_IMAGE *im=NULL ; int nx,ibot,itop ;
        MRI_IMAGE *sim=NULL ;
@@ -1700,7 +1700,8 @@ ENTRY("AFNI_clus_action_CB") ;
          if( !dosave && AFNI_yesenv("AFNI_CLUSTER_EBAR") )
            sim = mri_MMBvector( imar,ibot,itop,2 ) ;
        } else if( doscat ){  /* scatterplot */
-         float *xar , *yar ; int nix , niy , nixy , jj,kk ;
+         float *xar, *yar ; int nix, niy, nixy, jj,kk ;
+         float a=0,b=0,pcor=0 ;
          char xlab[64] , ylab[64] , tlab[THD_MAX_NAME+2] ;
          if( dosmea ){
            im = mri_meanvector( imar , ibot,itop ) ; xar = MRI_FLOAT_PTR(im) ;
@@ -1728,11 +1729,25 @@ ENTRY("AFNI_clus_action_CB") ;
              for( jj=0 ; jj < nix ; jj++ ) xar[jj+kk*nix] = jj+ibot ;
            strcpy(xlab,"Index") ;
          }
+         if( niy == 1 ){
+           float xbar=0,ybar=0, xq=0,yq=0,xyq=0 ;
+           for( jj=0 ; jj < nix ; jj++ ){ xbar += xar[jj]; ybar += yar[jj]; }
+           xbar /= nix ; ybar /= nix ;
+           for( jj=0 ; jj < nix ; jj++ ){
+             xq  += (xar[jj]-xbar)*(xar[jj]-xbar) ;
+             yq  += (yar[jj]-ybar)*(yar[jj]-ybar) ;
+             xyq += (xar[jj]-xbar)*(yar[jj]-ybar) ;
+           }
+           if( xq > 0.0f && yq > 0.0f ){
+             pcor = xyq/sqrtf(xq*yq); a = xyq/xq; b = (xq*ybar-xbar*xyq)/xq;
+           }
+         }
          sprintf(ylab,"Cluster #%d = %d voxels",ii+1,IMARR_COUNT(imar)) ;
          sprintf(tlab,"\\noesc %s[%d..%d]",
-                 THD_trailname(DSET_HEADNAME(cwid->dset),SESSTRAIL+1),ibot,itop);
+                 THD_trailname(DSET_HEADNAME(cwid->dset),SESSTRAIL),ibot,itop);
+         if( pcor != 0.0f ) sprintf(tlab+strlen(tlab)," R=%.3f",pcor) ;
          PLUTO_set_xypush(1,0) ;
-         PLUTO_scatterplot( nixy,xar,yar , xlab,ylab,tlab , 0.0f,0.0f ) ;
+         PLUTO_scatterplot( nixy,xar,yar , xlab,ylab,tlab , a,b ) ;
          PLUTO_set_xypush(1,1) ;
          free(xar) ; free(yar) ;
        }  /* end of scatterplot */
