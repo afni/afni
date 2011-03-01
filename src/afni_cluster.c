@@ -745,6 +745,8 @@ ENTRY("AFNI_clus_make_widgets") ;
 
    /* row #2: data processing method */
 
+   VLINE(rc) ;
+
    { static char *clab[6] = { "Mean", "Median", "PC#1", "Histog", "S:mean", "S:all" } ;
      cwid->aver_av = new_MCW_optmenu( rc , " " , 0,5,0,0 ,
                                       NULL,NULL , MCW_av_substring_CB,clab ) ;
