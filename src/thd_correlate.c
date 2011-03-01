@@ -235,6 +235,75 @@ float THD_pearson_corr( int n, float *x , float *y )
 
 /*----------------------------------------------------------------*/
 
+static float_triple THD_pearson_indexed( int nix, int *ix, float *x, float *y )
+{
+   float xbar=0,ybar=0, xq=0,yq=0,xyq=0, a=0,b=0,r=0;
+   int jj,ii; float_triple abr;
+
+   for( jj=0 ; jj < nix ; jj++ ){
+     ii = ix[jj]; xbar += x[ii]; ybar += y[ii];
+   }
+   xbar /= nix ; ybar /= nix ;
+   for( jj=0 ; jj < nix ; jj++ ){
+     ii   = ix[jj] ;
+     xq  += (x[ii]-xbar)*(x[ii]-xbar) ;
+     yq  += (y[ii]-ybar)*(y[ii]-ybar) ;
+     xyq += (x[ii]-xbar)*(y[ii]-ybar) ;
+   }
+   if( xq > 0.0f && yq > 0.0f ){
+     r = xyq/sqrtf(xq*yq); a = xyq/xq; b = (xq*ybar-xbar*xyq)/xq;
+   }
+   abr.a = a ; abr.b = b ; abr.c = r ; return abr ;
+}
+
+/*----------------------------------------------------------------*/
+
+#undef  NBOOT
+#undef  NB5
+#define NBOOT 200
+#define NB5    10  /* 5% of the above */
+
+void THD_pearson_corr_boot( int n , float *x , float *y ,
+                            float_triple *rrr ,
+                            float_triple *aaa ,
+                            float_triple *bbb  )
+{
+   int ii,kk ; float aa,bb,rr ; float_triple abr ;
+   int ix[NBOOT] ; float ax[NBOOT] , bx[NBOOT] , rx[NBOOT] ;
+
+   if( n < 5 || x == NULL || y == NULL ) return ;
+   if( rrr == NULL && aaa == NULL && bbb == NULL ) return ;
+
+   for( ii=0 ; ii < n ; ii++ ) ix[ii] = ii ;
+   abr = THD_pearson_indexed( n , ix , x, y ) ;
+   aa = abr.a ; bb = abr.b ; rr = abr.c ;
+
+   for( kk=0 ; kk < NBOOT ; kk++ ){
+     for( ii=0 ; ii < n ; ii++ ) ix[ii] = lrand48() % n ;
+     abr = THD_pearson_indexed( n , ix , x, y ) ;
+     ax[kk] = abr.a ; bx[kk] = abr.b ; rx[kk] = abr.c ;
+   }
+
+   if( rrr != NULL ){
+     qsort_float( NBOOT , rx ) ;
+     rrr->a = rr ; rrr->b = rx[NB5-1] ; rrr->c = rx[NBOOT-NB5] ;
+   }
+
+   if( aaa != NULL ){
+     qsort_float( NBOOT , ax ) ;
+     aaa->a = aa ; aaa->b = ax[NB5-1] ; aaa->c = ax[NBOOT-NB5] ;
+   }
+
+   if( bbb != NULL ){
+     qsort_float( NBOOT , bx ) ;
+     bbb->a = bb ; bbb->b = bx[NB5-1] ; bbb->c = ax[NBOOT-NB5] ;
+   }
+
+   return ;
+}
+
+/*----------------------------------------------------------------*/
+
 float THD_pearson_corr_wt( int n, float *x , float *y , float *wt )
 {
    float xv=0.0f , yv=0.0f , xy=0.0f , vv,ww ;

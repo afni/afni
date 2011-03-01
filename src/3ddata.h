@@ -4956,6 +4956,11 @@ extern float THD_eta_squared  ( int,float *,float *) ;  /* 25 Jun 2010 */
 
 extern float THD_pearson_corr_wt(int,float *,float *,float *); /* 13 Sep 2006 */
 
+extern void THD_pearson_corr_boot( int n, float *x, float *y,
+                            float_triple *rrr ,
+                            float_triple *aaa ,
+                            float_triple *bbb  ) ;         /* 01 Mar 2011 */
+
 extern float THD_spearman_corr_nd( int,float *,float *) ;  /* 23 Aug 2006 */
 extern float THD_quadrant_corr_nd( int,float *,float *) ;
 #define THD_pearson_corr_nd THD_pearson_corr
