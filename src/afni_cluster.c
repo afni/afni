@@ -1732,6 +1732,9 @@ ENTRY("AFNI_clus_action_CB") ;
            for( kk=0 ; kk < niy ; kk++ )
              for( jj=0 ; jj < nix ; jj++ ) xar[jj+kk*nix] = jj+ibot ;
            strcpy(xlab,"Index") ;
+           if( cwid->splotim != NULL )
+             WARNING_message("Scat.1D file [%s] too short [%d] for dataset [%d]",
+                             cwid->splotim->name , cwid->splotim->nx , nix+ibot  ) ;
          }
          if( niy == 1 ){
            float xbar=0,ybar=0, xq=0,yq=0,xyq=0 ;
