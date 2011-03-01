@@ -477,7 +477,7 @@ ENTRY("AFNI_clus_make_widgets") ;
 #define VLINE(rr)                                                           \
      (void) XtVaCreateManagedWidget( "menu", xmSeparatorWidgetClass, (rr) , \
                                         XmNorientation   , XmVERTICAL    ,  \
-                                        XmNseparatorType , XmSINGLE_LINE ,  \
+                                        XmNseparatorType , XmDOUBLE_LINE ,  \
                                      NULL )
 #define HLINE(rr)                                                           \
    (void) XtVaCreateManagedWidget( "dialog", xmSeparatorWidgetClass, (rr) , \
@@ -711,8 +711,8 @@ ENTRY("AFNI_clus_make_widgets") ;
                        "** Pointwise median:                     'Median'\n"
                        "** Compute first principal component:    'PC#1'\n"
                        "** Histogram all the values:             'Histog'\n"
-                       "** Scatterplot mean from each sub-brick: 'S:mean'\n"
-                       "** Scatterplot all values:               'S:all'\n"
+                       "** Scatterplot MEAN from each sub-brick: 'S:mean'\n"
+                       "** Scatterplot ALL values:               'S:all'\n"
                        "   [-- Scat.1D button chooses x-axis for 'S:' --]\n"
                        "And then either 'Plot' or 'Save' these results\n"
                        "** If you 'Save' these results, the text field\n"
@@ -774,7 +774,7 @@ ENTRY("AFNI_clus_make_widgets") ;
                          ) ;
    }
 
-   VLINE(rc) ; VLINE(rc) ;
+   VLINE(rc) ;
 
    /* row #2: splot choosers */
 
@@ -796,7 +796,11 @@ ENTRY("AFNI_clus_make_widgets") ;
                       "   initial 'From' lines will be skipped.\n"
                       "* The purpose is to let you plot the\n"
                       "   beta values from multiple subjects\n"
-                      "   vs. some subject-level covariate."
+                      "   vs. some subject-level covariate.\n"
+                      "* If you don't choose a Scat.1D file,\n"
+                      "   (or 'Clear' it later), then the\n"
+                      "   sub-brick index is used to define\n"
+                      "   the x-axis values."
                     ) ;
 
    xstr = XmStringCreateLtoR( "Clear" , XmFONTLIST_DEFAULT_TAG ) ;
