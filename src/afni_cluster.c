@@ -341,7 +341,7 @@ ENTRY("AFNI_clus_dsetlabel") ;
    if( !ISVALID_DSET(cwid->dset) )
      strcpy(str," [No Aux Dataset chosen]") ;
    else
-     sprintf(str,"Aux=%s",THD_trailname(DSET_HEADNAME(cwid->dset),SESSTRAIL+1)) ;
+     sprintf(str,"Aux=%s",THD_trailname(DSET_HEADNAME(cwid->dset),SESSTRAIL)) ;
 
    if( cwid->splotim != NULL )
      sprintf(str+strlen(str)," Scat.1D=%s",cwid->splotim->name) ;
@@ -1633,7 +1633,7 @@ ENTRY("AFNI_clus_action_CB") ;
            sprintf(ylab,"Cluster #%d = %d vox", ii+1 , IMARR_COUNT(imar) ) ;
            strcat(ylab,(dosqrt)?" [SqrtHist]" : " [Hist]") ;
            sprintf(tlab,"\\noesc %s[%d..%d]",
-                   THD_trailname(DSET_HEADNAME(cwid->dset),SESSTRAIL+1) , ibot,itop ) ;
+                   THD_trailname(DSET_HEADNAME(cwid->dset),SESSTRAIL) , ibot,itop ) ;
            plot_ts_xypush(0,-1) ; plot_ts_setthik(0.005f) ;
            PLUTO_histoplot_f( nbin,hbot,htop , hbin , xlab,ylab,tlab , 0,NULL ) ;
 
@@ -1764,7 +1764,7 @@ ENTRY("AFNI_clus_action_CB") ;
                    (dopc) ? "PC#1" : (domean) ? "Mean" : "Median" ,
                    ii+1 , IMARR_COUNT(imar) ) ;
            sprintf(tlab,"\\noesc %s[%d..%d]",
-                   THD_trailname(DSET_HEADNAME(cwid->dset),SESSTRAIL+1),
+                   THD_trailname(DSET_HEADNAME(cwid->dset),SESSTRAIL),
                    ibot,itop) ;
            plot_ts_xypush(1,0) ; plot_ts_setthik(0.006f) ;
            xax = (float *)malloc(sizeof(float)*im->nx) ;
