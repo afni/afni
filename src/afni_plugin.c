@@ -5119,6 +5119,9 @@ ENTRY("PLUTO_scatterplot") ;
                         : (nnax < 6) ? 5 : 2 ;
    } else {
       nnax = 1 ; mmax = 10 ;
+      dx = 0.02*(xtop-xbot) ;
+      if( xtop-floorf(xtop) > 0.001f ) xtop += dx ;
+      if( xbot-floorf(xbot) > 0.001f ) xbot -= dx ;
    }
 
    /*-- push range of y outwards --*/
@@ -5140,12 +5143,14 @@ ENTRY("PLUTO_scatterplot") ;
                         : (nnay < 6) ? 5 : 2 ;
    } else {
       nnay = 1 ; mmay = 10 ;
+      dy = 0.02*(ytop-ybot) ;
+      if( ytop-floorf(ytop) > 0.001f ) ytop += dy ;
+      if( ybot-floorf(ybot) > 0.001f ) ybot -= dy ;
    }
 
    /*-- setup to plot --*/
 
    create_memplot_surely( "ScatPlot" , 1.3 ) ;
-   set_thick_memplot( 0.0 ) ;
 
    /*-- plot labels, if any --*/
 
@@ -5156,25 +5161,23 @@ ENTRY("PLUTO_scatterplot") ;
 
    /* x-axis label? */
 
-   set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
+   set_color_memplot( 0.0 , 0.0 , 0.0 ) ; set_thick_memplot( 0.002f ) ;
    if( STGOOD(xlab) )
       plotpak_pwritf( 0.5*(xobot+xotop) , yobot-0.06 , xlab , 16 , 0 , 0 ) ;
 
    /* y-axis label? */
 
-   set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
    if( STGOOD(ylab) )
       plotpak_pwritf( xobot-0.12 , 0.5*(yobot+yotop) , ylab , 16 , 90 , 0 ) ;
 
    /* label at top? */
 
-   set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
    if( STGOOD(tlab) )
       plotpak_pwritf( xobot+0.01 , yotop+0.01 , tlab , 18 , 0 , -2 ) ;
 
    /* plot axes */
 
-   set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
+   set_thick_memplot( 0.0f ) ;
    plotpak_set( xobot,xotop , yobot,yotop , xbot,xtop , ybot,ytop , 1 ) ;
    plotpak_periml( nnax,mmax , nnay,mmay ) ;
 
@@ -5182,12 +5185,12 @@ ENTRY("PLUTO_scatterplot") ;
 
 #define DSQ 0.001
 
-   set_color_memplot( 0.0 , 0.0 , 0.5 ) ;        /* 28 Feb 2011 */
+   set_color_memplot( 0.0 , 0.0 , 0.4 ) ;        /* 28 Feb 2011 */
    dsq = AFNI_numenv( "AFNI_SCATPLOT_FRAC" ) ;   /* 15 Feb 2005 */
    if( dsq <= 0.0 || dsq >= 0.01 ){
      dsq = 64.0f*DSQ / sqrtf((float)npt) ;
-     if     ( dsq < 0.5f*DSQ ) dsq = 0.5f*DSQ ;
-     else if( dsq > 5.0f*DSQ ) dsq = 5.0f*DSQ ;
+     if     ( dsq < 0.5f*DSQ )  dsq = 0.5f*DSQ ;
+     else if( dsq > 5.0f*DSQ ){ dsq = 5.0f*DSQ ; set_thick_memplot(0.002f) ; }
    }
 
    dx = dsq*(xtop-xbot) ;
@@ -5210,7 +5213,7 @@ ENTRY("PLUTO_scatterplot") ;
    }
 
    if( a != 0.0f || b != 0.0f ){              /* 02 May 2005 */
-     set_color_memplot( 0.8 , 0.0 , 0.0 ) ;
+     set_color_memplot( 0.8 , 0.0 , 0.0 ) ; set_thick_memplot( 0.003f ) ;
      plotpak_line( xbot,a*xbot+b , xtop,a*xtop+b ) ;
    }
 
