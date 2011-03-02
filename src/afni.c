@@ -6071,8 +6071,8 @@ ENTRY("AFNI_view_setter") ;
 
 /*------------------------------------------------------------------------*/
 
-void AFNI_set_index_viewpoint ( Three_D_View *im3d ,
-                             int ijk, int redisplay_option )  /* ZSS July 2010 */
+void AFNI_set_index_viewpoint( Three_D_View *im3d ,
+                               int ijk, int redisplay_option )  /* ZSS July 2010 */
 {
    int nij, ni, ii, jj, kk;
 
@@ -6104,6 +6104,7 @@ void AFNI_set_viewpoint( Three_D_View *im3d ,
    int old_i1 , old_j2 , old_k3 , i1,j2,k3 ;
    int dim1,dim2,dim3 , isq_driver , do_lock , new_xyz ;
    int newti ; /* 24 Jan 2001 */
+   int ihave ;
 
    THD_dataxes *daxes ;
    THD_fvec3 fv ;
@@ -6149,11 +6150,12 @@ if(PRINT_TRACING)
 
    if( !redisplay_option && !new_xyz ) EXRR ;
 
+   ihave = (im3d->s123 != NULL || im3d->s231 != NULL || im3d->s312 != NULL) ;
+
    isq_driver = (redisplay_option == REDISPLAY_ALL) ? isqDR_display
                                                     : isqDR_overlay ;
 
-   if( !AFNI_noenv("AFNI_VALUE_LABEL") && new_xyz &&
-       (im3d->s123 == NULL || im3d->s231 == NULL || im3d->s312 == NULL) )
+   if( !AFNI_noenv("AFNI_VALUE_LABEL") && new_xyz && !ihave )
      isq_driver = isqDR_display ;         /* 08 Mar 2002 */
 
    LOAD_IVEC3(old_id,old_i1,old_j2,old_k3) ;
@@ -6182,7 +6184,8 @@ DUMP_IVEC3("  new_id",new_id) ;
 
    /*--- 05 Sep 2006: volume edit on demand? ---*/
 
-   if( IM3D_IMAGIZED(im3d) && im3d->vinfo->thr_onoff ){
+   if( IM3D_IMAGIZED(im3d) && im3d->vinfo->thr_onoff    &&
+       ihave               && im3d->vinfo->func_visible    ){
      int changed=0 ;
      if( VEDIT_good(im3d->vedset) ){
        im3d->vedset.ival = im3d->vinfo->fim_index ;
@@ -6306,12 +6309,7 @@ DUMP_IVEC3("             new_ib",new_ib) ;
 
    /* 24 Jan 2001: set grapher index based on type of dataset */
 
-#if 0
-   if( DSET_NUM_TIMES(im3d->anat_now) > 1 )
-      newti = im3d->vinfo->time_index ;
-   else
-#endif
-      newti = im3d->vinfo->anat_index ;
+   newti = im3d->vinfo->anat_index ;
 
    if( newti >= 0 ){
      drive_MCW_grapher( im3d->g123, graDR_setindex, (XtPointer)ITOP(newti) );
@@ -6328,7 +6326,6 @@ DUMP_IVEC3("             new_ib",new_ib) ;
    if( new_xyz ) AFNI_process_viewpoint( im3d ) ;
    else          AFNI_process_redisplay( im3d ) ;
 
-/*   if( new_xyz && im3d->vwid->imag->pop_whereami_twin != NULL ){*/
    if( im3d->vwid->imag->pop_whereami_twin != NULL ){
 
       char *tlab = AFNI_ttatlas_query( im3d ) ;

@@ -522,19 +522,19 @@ typedef struct {
 /*---*/
 
 typedef struct {
-      Widget     frame , rowcol ;
-      MCW_bbox * view_bbox ;
+      Widget    frame , rowcol ;
+      MCW_bbox *view_bbox ;
 
-      Widget     marks_frame , marks_rowcol ;
-      Widget     define_marks_pb ;
-      MCW_bbox * see_marks_bbox ;
-      int        marks_enabled ;
+      Widget    marks_frame , marks_rowcol ;
+      Widget    define_marks_pb ;
+      MCW_bbox *see_marks_bbox ;
+      int       marks_enabled ;
 
-      Widget     func_frame , func_rowcol ;
-      Widget     define_func_pb ;
-      MCW_bbox * see_func_bbox ;
+      Widget    func_frame , func_rowcol ;
+      Widget    define_func_pb ;
+      MCW_bbox *see_func_bbox ;
 
-      Widget     define_dmode_pb ;
+      Widget    define_dmode_pb ;
 
       Widget dataset_frame     , dataset_rowcol    ,
              choose_anat_pb    , choose_func_pb    ,
@@ -1005,6 +1005,10 @@ typedef struct {
                                        (ii)->type==AFNI_3DDATA_VIEW ) )
 
 #define IM3D_OPEN(ii)  (IM3D_VALID(ii) && (ii)->opened)
+
+#define IM3D_HAVEIM(ii) ((ii)->s123 != NULL || (ii)->s231 != NULL || (ii)->s312 != NULL)
+#define IM3D_HAVEGR(ii) ((ii)->g123 != NULL || (ii)->g231 != NULL || (ii)->g312 != NULL)
+#define IM3D_FUNKY(ii)  (IM3D_OPEN(ii) && IM3D_HAVEIM(ii) && (ii)->vinfo->func_visible)
 
 #define ISVALID_IM3D(ii) IM3D_VALID(ii)
 
@@ -1698,6 +1702,9 @@ extern Boolean AFNI_refashion_dataset( Three_D_View * ,
 #define REDISPLAY_OPTIONAL 0
 #define REDISPLAY_OVERLAY  1
 #define REDISPLAY_ALL      2
+
+#define REDISPLAY_CODE_MASK   255
+#define REDISPLAY_NOLINK_MASK (1<<8)
 
 extern void AFNI_set_viewpoint( Three_D_View * , int,int,int , int ) ;
 extern void AFNI_set_index_viewpoint( Three_D_View *, int, int );
