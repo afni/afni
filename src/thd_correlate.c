@@ -235,17 +235,20 @@ float THD_pearson_corr( int n, float *x , float *y )
 
 /*----------------------------------------------------------------*/
 
-static float_triple THD_pearson_indexed( int nix, int *ix, float *x, float *y )
+#undef  IX
+#define IX(i) ( ((ix) == NULL) ? (i) : ix[(i)] )
+
+float_triple THD_pearson_indexed( int nix, int *ix, float *x, float *y )
 {
    float xbar=0,ybar=0, xq=0,yq=0,xyq=0, a=0,b=0,r=0;
    int jj,ii; float_triple abr;
 
    for( jj=0 ; jj < nix ; jj++ ){
-     ii = ix[jj]; xbar += x[ii]; ybar += y[ii];
+     ii = IX(jj); xbar += x[ii]; ybar += y[ii];
    }
    xbar /= nix ; ybar /= nix ;
    for( jj=0 ; jj < nix ; jj++ ){
-     ii   = ix[jj] ;
+     ii   = IX(jj) ;
      xq  += (x[ii]-xbar)*(x[ii]-xbar) ;
      yq  += (y[ii]-ybar)*(y[ii]-ybar) ;
      xyq += (x[ii]-xbar)*(y[ii]-ybar) ;
@@ -255,6 +258,8 @@ static float_triple THD_pearson_indexed( int nix, int *ix, float *x, float *y )
    }
    abr.a = a ; abr.b = b ; abr.c = r ; return abr ;
 }
+
+#undef IX
 
 /*-------------------------------------------------------------------------*/
 /* Correlates and also returns 2.5%..97.5% confidence interval, via bootstrap.
@@ -274,13 +279,14 @@ void THD_pearson_corr_boot( int n , float *x , float *y ,
                             float_triple *bbb  )
 {
    int ii,kk ; float aa,bb,rr ; float_triple abr ;
-   int ix[NBOOT] ; float ax[NBOOT] , bx[NBOOT] , rx[NBOOT] ;
+   int *ix ; float ax[NBOOT] , bx[NBOOT] , rx[NBOOT] ;
 
    if( n < 5 || x == NULL || y == NULL ) return ;
    if( rrr == NULL && aaa == NULL && bbb == NULL ) return ;
 
    /* standard results */
 
+   ix = (int *)malloc(sizeof(int)*n) ;
    for( ii=0 ; ii < n ; ii++ ) ix[ii] = ii ;
    abr = THD_pearson_indexed( n , ix , x, y ) ;
    aa = abr.a ; bb = abr.b ; rr = abr.c ;
@@ -292,6 +298,7 @@ void THD_pearson_corr_boot( int n , float *x , float *y ,
      abr = THD_pearson_indexed( n , ix , x, y ) ;
      ax[kk] = abr.a ; bx[kk] = abr.b ; rx[kk] = abr.c ;
    }
+   free(ix) ;
 
    /* sort, then find 2.5% and 97.5% points, save into output structs */
 
