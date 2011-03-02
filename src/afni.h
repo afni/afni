@@ -1702,9 +1702,7 @@ extern Boolean AFNI_refashion_dataset( Three_D_View * ,
 #define REDISPLAY_OPTIONAL 0
 #define REDISPLAY_OVERLAY  1
 #define REDISPLAY_ALL      2
-
-#define REDISPLAY_CODE_MASK   255
-#define REDISPLAY_NOLINK_MASK (1<<8)
+#define REDISPLAY_FLASH    3
 
 extern void AFNI_set_viewpoint( Three_D_View * , int,int,int , int ) ;
 extern void AFNI_set_index_viewpoint( Three_D_View *, int, int );

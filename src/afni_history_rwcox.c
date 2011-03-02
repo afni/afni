@@ -43,7 +43,23 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 1 , MAR , 2011 , RWC , "afni" , MICRO , TYPE_GENERAL ,
+  { 2 , MAR , 2011 , RWC , "afni" , MICRO , TYPE_BUG_FIX ,
+   "Clusterize: attempt to fix Flash bug" ,
+   "If 2 controllers are open (and crosshairs are locked together), then\n"
+   "Clusterize Flash doesn't work right.  This problem is rooted in an\n"
+   "interaction of the way the clusterized dataset is stored and the way the\n"
+   "locks are carried out.  This change is an attempt to fix this -- let me\n"
+   "know if it introduces problems -- the code for these things is\n"
+   "complicated and hard to figure out (and I wrote it!).\n"
+   "\n"
+   "I know that there is a clusterize display bug with 2 controllers open to\n"
+   "the same overlay -- that is, the clusterized overlay may suddenly become\n"
+   "un-clusterized and then go back to the clusterized state.  This is also\n"
+   "related to the above interaction, but I don't see how to avoid this\n"
+   "without a major restructuring of the clusterization mechanics in AFNI,\n"
+   "and I just don't think this issue is worth the effort." } ,
+
+ { 1 , MAR , 2011 , RWC , "afni" , MICRO , TYPE_GENERAL ,
    "Add correlation and its 5%..95%  interval to Clusterize S:mean" ,
    "Via new bootstrapping THD_pearson_boot() function in thd_correlate.c" } ,
 
