@@ -1831,6 +1831,16 @@ ENTRY("AFNI_clus_action_CB") ;
        THD_3dim_dataset  *fset = im3d->fim_now ;
        MCW_cluster_array *clar = im3d->vwid->func->clu_list ; int jj ;
        STATUS("flashing") ;
+       if( ISVALID_DSET(fset) && fset->dblk->vedim == NULL ){
+         im3d->vedset.ival     = im3d->vinfo->fim_index ;
+         im3d->vedset.param[0] = (float)im3d->vinfo->thr_index ;
+         im3d->vedset.param[1] = im3d->vinfo->func_threshold
+                                *im3d->vinfo->func_thresh_top ;
+         im3d->vedset.param[4] = im3d->vinfo->thr_sign ;
+         im3d->vedset.param[5] = im3d->vinfo->use_posfunc ;
+         im3d->vedset.exinfo   = NULL ;
+         (void) AFNI_vedit( fset, im3d->vedset, im3d->vwid->func->clu_mask ) ;
+       }
        if( ISVALID_DSET(fset) && fset->dblk->vedim != NULL && clar != NULL ){
          double tz , tt ; int ss ;
          MRI_IMAGE *vm = fset->dblk->vedim ;
@@ -1839,13 +1849,13 @@ ENTRY("AFNI_clus_action_CB") ;
            MCW_invert_widget(w) ;
            MCW_vol_to_cluster(vm->nx,vm->ny,vm->nz ,
                               vm->kind,mri_data_pointer(vm) , clar->clar[ii] );
-           AFNI_set_viewpoint( im3d , -1,-1,-1 , REDISPLAY_ALL ) ;
+           AFNI_set_viewpoint( im3d , -1,-1,-1 , REDISPLAY_FLASH ) ;
            tt = PLUTO_elapsed_time() ; ss = 66-(int)(tt-tz) ; tz = tt ;
            if( ss > 0 ) NI_sleep(ss) ;
            MCW_invert_widget(w) ;
            MCW_cluster_to_vol(vm->nx,vm->ny,vm->nz ,
                               vm->kind,mri_data_pointer(vm) , clar->clar[ii] );
-           AFNI_set_viewpoint( im3d , -1,-1,-1 , REDISPLAY_ALL ) ;
+           AFNI_set_viewpoint( im3d , -1,-1,-1 , REDISPLAY_FLASH ) ;
            tt = PLUTO_elapsed_time() ; ss = 66-(int)(tt-tz) ; tz = tt ;
            if( ss > 0 ) NI_sleep(ss) ;
          }
