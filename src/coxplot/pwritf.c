@@ -7,7 +7,7 @@
 
 /* Common Block Declarations */
 
-extern struct {
+struct {
     real xpgmin, ypgmin, xpgmax, ypgmax, xclbot, yclbot, xcltop, ycltop, xbot,
 	     ybot, xtop, ytop, xmin, ymin, xmax, ymax;
     integer ixcoor, iycoor;
@@ -18,7 +18,7 @@ extern struct {
 
 #define zzzplt_1 zzzplt_
 
-extern struct {
+struct {
     real xphmax, yphmax;
     integer ixpmax, iypmax;
     real xpscal, ypscal;
@@ -37,6 +37,9 @@ extern struct {
     /* System generated locals */
     integer i__1, i__2;
     real r__1, r__2;
+
+    /* Builtin functions */
+    double cos(doublereal), sin(doublereal);
 
     /* Local variables */
     static real xold, yold, size, xorg, yorg;
@@ -1085,6 +1088,14 @@ L100:
 	}
 	--nsupb;
 /* CC            WRITE(*,666) ' end compound super/subscript' */
+/* ...................................................................
+.... */
+/*  Special case: \esc turns LESC back on */
+
+    } else if (! lesc && inc + 4 <= *nchin && s_cmp(chin + (inc - 1), chesc, 
+	    4L, 15L) == 0) {
+	lesc = TRUE_;
+	nused = 4;
 /* ...................................................................
 .... */
 /*  Anything else that doesn't start with a \ is passed straight throu
