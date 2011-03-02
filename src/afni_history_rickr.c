@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  2, MAR, 2011, RCR, "uber_subject.py", MINOR, TYPE_ENHANCE,
+   "many updates, including write and exec of proc script",
+   "There is still much to do before first release version."
+ } ,
+
  { 22, FEB, 2011, RCR, "uber_subject.py", MINOR, TYPE_MODIFY,
    "added interfaces for 'expected' option",
    NULL

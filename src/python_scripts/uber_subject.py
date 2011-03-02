@@ -207,9 +207,15 @@ def set_svar_from_def(name, vlist, svars, defs, verb=1):
 def print_ap_command(svars):
 
    # create command, save it (init directory tree?), show it
-   status, wstr, mesg = USUBJ.ap_command_from_svars(svars)
+   # status, wstr, mesg = USUBJ.ap_command_from_svars(svars)
 
-   if status == -1:  # then only mention errors
+   # create the subject, check warnings and either a command or errors
+   apsubj = USUBJ.AP_Subject(svars)
+   nwarn, wstr = apsubj.get_ap_warnings()
+   status, mesg = apsubj.get_ap_command()
+
+
+   if status:  # then only mention errors
       print '%s\nERRORS:\n\n%s\n' % (75*'*', mesg)
    else:
       if wstr: print '%s\n**** Warnings:\n\n%s\n%s\n' % (75*'-', wstr, 75*'-')
