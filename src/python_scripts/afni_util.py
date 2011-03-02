@@ -38,14 +38,18 @@ def write_text_to_file(fname, text, mode='w', wrap=0, wrapstr='\n'):
 
     if wrap: text = add_line_wrappers(text, warpstr)
     
-    try:
-        fp = open(fname, mode)
-    except:
-        print "** failed to open text file '%s' for writing" % fname
-        return 1
+    if fname == 'stdout':   fp = sys.stdout
+    elif fname == 'stderr': fp = sys.stderr
+    else:
+       try:
+           fp = open(fname, mode)
+       except:
+           print "** failed to open text file '%s' for writing" % fname
+           return 1
 
     fp.write(text)
-    fp.close()
+
+    if fname != 'stdout' and fname != 'stderr': fp.close()
 
     return 0
 

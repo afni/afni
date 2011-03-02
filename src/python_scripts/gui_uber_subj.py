@@ -15,6 +15,7 @@ signal.signal(signal.SIGINT, signal.SIG_DFL)
 
 from PyQt4 import QtCore, QtGui
 
+import afni_base as BASE
 import afni_util as UTIL
 import lib_subjects as SUBJ
 import lib_uber_subject as USUBJ
@@ -42,12 +43,13 @@ class SingleSubjectWindow(QtGui.QMainWindow):
 
       # ------------------------------
       # init main vars structs
-      self.verb  = verb
-      self.gvars = SUBJ.VarsObject('uber_subject gui vars')
+      self.verb   = verb
+      self.apsubj = None        # AP_Subject class element
+      self.gvars  = SUBJ.VarsObject('uber_subject gui vars')
 
       # initialize the subject variables as empty, update at the end
-      self.svars = USUBJ.g_subj_defs.copy('uber_subject subject vars')
-      self.cvars = USUBJ.g_ctrl_defs.copy('uber_subject control vars')
+      self.svars  = USUBJ.g_subj_defs.copy('uber_subject subject vars')
+      self.cvars  = USUBJ.g_ctrl_defs.copy('uber_subject control vars')
 
       # ------------------------------
       # L1 - main menubar and layout
@@ -225,6 +227,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
             wmesg.show()
           
       elif obj == self.gvars.Line_motion_limit:
+
          self.update_textLine_check(obj, obj.text(), 'motion_limit',
                                     'motion censor limit', QLIB.valid_as_float)
 
@@ -971,6 +974,33 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       self.addActions(self.gvars.MBar_file, [actFileQuit])
 
       # ----------------------------------------------------------------------
+      # View menu
+      self.gvars.MBar_view = self.menuBar().addMenu("&View")
+
+      act1 = self.createAction("afni_proc.py command",
+        slot=self.cb_view,
+        tip="display current afni_proc.py command")
+
+      act2 = self.createAction("resulting proc script",
+        slot=self.cb_view,
+        tip="display script output by afni_proc.py")
+
+      act4 = self.createAction("subject options",
+        slot=self.cb_view,
+        tip="display current subject options")
+
+      act5 = self.createAction("control options",
+        slot=self.cb_view,
+        tip="display control options")
+
+      self.addActions(self.gvars.MBar_view, [act1, act2, act4, act5])
+
+      self.gvars.act_view_ap_cmd = act1
+      self.gvars.act_view_proc   = act2
+      self.gvars.act_view_svars  = act4
+      self.gvars.act_view_cvars  = act5
+
+      # ----------------------------------------------------------------------
       # Hidden menu
       self.gvars.MBar_hidden = self.menuBar().addMenu("H&idden")
 
@@ -1032,13 +1062,15 @@ class SingleSubjectWindow(QtGui.QMainWindow):
 
       # add browse actions to browse sub-menu
       self.gvars.Menu_browse = self.gvars.MBar_help.addMenu("&Browse")
-      act1 = self.createAction("browse: all AFNI programs",
+      act1 = self.createAction("web: all AFNI programs",
           slot=self.cb_help_browse_progs, tip="browse AFNI program help")
-      act2 = self.createAction("browse: afni_proc.py help",
+      act2 = self.createAction("web: afni_proc.py help",
           slot=self.cb_help_browse_AP, tip="browse afni_proc.py help")
-      act3 = self.createAction("browse: tutorial-single subject analysis",
+      act3 = self.createAction("web: tutorial-single subject analysis",
           slot=self.cb_help_browse_tutorial, tip="browse AFNI_data6 tutorial")
-      self.addActions(self.gvars.Menu_browse, [act1, act2, act3])
+      act4 = self.createAction("web: AFNI Message Board",
+          slot=self.cb_help_browse_MBoard, tip="browse Message Board")
+      self.addActions(self.gvars.Menu_browse, [act1, act2, act3, act4])
 
       actHelpAbout = self.createAction("about uber_subject.py",
           slot=self.cb_help_about, tip="about uber_subject.py")
@@ -1085,7 +1117,6 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       # self.gvars.Text_help = None
       self.gvars.Text_help      = QLIB.TextWindow(parent=self)
       self.gvars.Text_AP_result = QLIB.TextWindow(parent=self)
-      #self.gvars.Text_AP_warn   = QLIB.TextWindow(parent=self)
 
       # note whether we have a browser via import
       self.gvars.browser = None
@@ -1103,11 +1134,20 @@ class SingleSubjectWindow(QtGui.QMainWindow):
          wbox.show()
       else: self.gvars.browser.open(site)
 
-   def update_AP_result_window(self, text, title=''):
-      if title != '': self.gvars.Text_AP_result.setWindowTitle(title)
-      self.gvars.Text_AP_result.editor.setText(text)
-      self.gvars.Text_AP_result.show()
-      self.gvars.Text_AP_result.raise_()
+   def update_AP_result_window(self, win=None, text='', title='', fname=''):
+      """default window is Text_AP_result
+         - if fname, read file
+           else use text"""
+      if win: window = win
+      else:   window = self.gvars.Text_AP_result
+
+      if title: window.setWindowTitle(title)
+      if fname: # then read from file
+         window.filename = fname
+         window.readfile()
+      else: window.editor.setText(text)
+      window.show()
+      window.raise_()
 
    def update_AP_error_window(self, text, title='ERROR - cannot proceed'):
       wbox = QLIB.errorMessage(title, text, self)
@@ -1143,6 +1183,9 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       self.open_web_site('http://afni.nimh.nih.gov/afni/doc'    \
                          '/program_help/index.html/view')
 
+   def cb_help_browse_MBoard(self):
+      self.open_web_site('http://afni.nimh.nih.gov/afni/community/board')
+
    def cb_help_browse_AP(self):
       self.open_web_site(
         'http://afni.nimh.nih.gov/pub/dist/doc/program_help/afni_proc.py.html')
@@ -1155,7 +1198,14 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       self.update_svars_from_tables()
 
       # create command, save it (init directory tree?), show it
-      status,wstr,mesg = USUBJ.ap_command_from_svars(self.svars,verb=self.verb)
+
+      # create the subject, check warnings and either a command or errors
+      self.apsubj = USUBJ.AP_Subject(self.svars, self.cvars)
+      nwarn, wstr = self.apsubj.get_ap_warnings()
+      status, mesg = self.apsubj.get_ap_command()
+
+      # status,wstr,mesg = USUBJ.ap_command_from_svars(self.svars,
+      #                                                cvars=self.cvars)
 
       if status == -1:  # then only mention errors
          self.update_AP_error_window(mesg)
@@ -1164,8 +1214,14 @@ class SingleSubjectWindow(QtGui.QMainWindow):
          #     - how do we control the filename for saving?
          #     - maybe we write both files, then open the applied version
          #       in the result window
-         self.update_AP_result_window(mesg, "Success!  afni_proc.py command:")
-         if status > 0: wbox = self.update_AP_warn_window(wstr)
+
+         self.gvars.ap_status = 1       # now have afni_proc.py command script
+         self.apsubj.write_ap_command(orig_copy=1)
+
+         self.update_AP_result_window(text='',
+                title="Success!  afni_proc.py command:",
+                fname=self.apsubj.cvars.file_ap)
+         if nwarn > 0: self.update_AP_warn_window(wstr)
          self.gvars.act_exec_ap.setEnabled(True)
          self.gvars.act_exec_proc.setEnabled(True)
 
@@ -1210,16 +1266,109 @@ class SingleSubjectWindow(QtGui.QMainWindow):
 
    def cb_exec_ap_command(self):
       # create command, save it, show it
-      print '== execute afni_proc.py command'
+      if not self.apsubj:
+         print '** no subject class for running AP command'
+         return
+      cmd = self.exec_ap_command()
+      if cmd == None: return
+      self.update_AP_result_window(text='\n'.join(cmd.so),
+                                   title="output text from afni_proc.py")
+
+   def exec_ap_command(self):
+      # run afni_proc.py command script and return the shell_com object
+      if not self.apsubj:
+         print '** no subject class for running AP command'
+         return None
+      if self.gvars.ap_status < 1:
+         # rcr - show in GUI
+         print '** need to first generate command'
+         return None
+      cstr = 'tcsh %s'%self.apsubj.cvars.file_ap
+      print '++ executing: %s' % cstr
+      cmd = BASE.shell_com('tcsh -c "%s"'%cstr, capture=1)
+      cmd.run()
+      self.gvars.ap_status = 2          # now have proc script
+      return cmd
 
    def cb_exec_proc_script(self):
-      # create command, save it, show it
-      print '== execute results proc script'
+      # execute the proc script in a new terminal window
+      if not self.apsubj:
+         print '** no subject class for running proc script...'
+         return
+      if self.gvars.ap_status < 1:
+         # rcr - show in GUI
+         print '** need to first generate command'
+         return None
+      if self.gvars.ap_status == 1:
+         cmd = self.exec_ap_command()
+         if cmd == None: return
+
+      if not self.apsubj.cvars.file_proc:
+         print '** no proc file to execute...'
+         return
+
+      rdir = '%s.results' % self.apsubj.svars.sid
+      if os.path.isdir(rdir):
+         print "** nuking old results dir %s" % rdir
+         os.system('rm -fr %s' % rdir)
+
+      pfile = self.apsubj.cvars.file_proc
+      cstr = 'tcsh -xef %s |& tee output.%s' % (pfile, pfile)
+      print '++ executing: %s' % cstr
+
+      fullstr = 'tcsh -c "%s"' % cstr
+      fullstr = 'xterm -e %s' % fullstr
+      
+      cmd = BASE.shell_com(fullstr, capture=1)
+      cmd.run()
+      if len(cmd.se) > 0:
+         self.update_AP_result_window(text='\n'.join(cmd.se),
+                                      title="output text from afni_proc.py")
+      else: self.gvars.ap_status = 3 
 
    def cb_show_gvars(self):
       sstr = self.gvars.make_show_str('GUI vars', name=0)
       self.update_help_window(sstr, title='GUI variables')
       if self.verb > 1: print sstr
+
+   def cb_view(self):
+      """create permanent windows with given text"""
+      obj = self.sender()
+
+
+      if obj == self.gvars.act_view_ap_cmd:
+         if self.apsubj == None:        # check for generated command
+            self.update_AP_warn_window('** afni_proc.py command must be\n' \
+                                       '   generated first')
+            return
+         file = self.apsubj.cvars.val('file_ap')
+         if not file:
+            self.update_AP_warn_window('** no afni_proc.py script to show')
+            return
+         else:
+            title = 'afni_proc.py command: %s' % file
+            QLIB.static_TextWindow(title=title, fname=file, parent=self)
+
+      elif obj == self.gvars.act_view_proc:
+         if self.apsubj == None:        # check for generated command
+            self.update_AP_warn_window('** afni_proc.py command must be\n' \
+                                       '   executed first')
+            return
+         file = self.apsubj.cvars.val('file_proc')
+         if not file:
+            self.update_AP_warn_window('** no proc script to show')
+            return
+         else:
+            title = 'processing script: %s' % file
+            QLIB.static_TextWindow(title=title, fname=file, parent=self)
+
+      elif obj == self.gvars.act_view_svars:
+         sstr = self.svars.make_show_str('current subject', name=0)
+         QLIB.static_TextWindow(title='subject vars', text=sstr, parent=self)
+
+      elif obj == self.gvars.act_view_cvars:
+         sstr = self.cvars.make_show_str('current subject', name=0)
+         QLIB.static_TextWindow(title='control vars', text=sstr, parent=self)
 
    def cb_show_subj_options(self):
       sstr = self.svars.make_show_str('current subject', name=0)
@@ -1243,6 +1392,16 @@ class SingleSubjectWindow(QtGui.QMainWindow):
             QtGui.QApplication.setStyle(QtGui.QStyleFactory.create(text))
          except: print "** failed to set style '%s'" % text
       else: print "** style '%s' not in style list" % text
+
+   def set_cvar(self, name, newval):
+      """if the value has changed (or is not a simple type), update it
+         - use deepcopy (nuke it from orbit, it's the only way to be sure)"""
+
+      if not self.cvars.set_var(name, newval): return
+
+      # so the value has changed...
+
+      if self.verb > 3 : print "++ set_cvar: update [%s] to '%s'"%(name,newval)
 
    def set_svar(self, name, newval):
       """if the value has changed (or is not a simple type), update it
@@ -1328,12 +1487,9 @@ class SingleSubjectWindow(QtGui.QMainWindow):
 
       # merge with current vars and apply everything to GUI
       self.cvars.merge(cvars)
+      self.set_cvar('verb', self.verb)          # to pass verb along
       for var in self.cvars.attributes():
          self.apply_cvar_in_gui(var)
-
-      # rcr - if there is no results directory, set it
-      #if not self.cvars.uber_dir:
-      #   self.set_cvar('uber_dir', USUBJ.get_uber_results_dir())
 
       if self.verb > 2: self.cvars.show("post reset control vars")
 

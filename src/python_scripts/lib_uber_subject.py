@@ -27,9 +27,20 @@ g_history = """
            (tcat_nfirst, volreg_base, motion_limit)
          - added corresponding volreg_warp abilities
          - small changes to top_dir use
+    0.5  Mar  2, 2011
+         - added actual write and execution of proc script
+           (the exec method will probably change to be asynchronous)
+         - added cvars instance to GUI
+         - specify script name and overwrite in AP command
+         - added control vars file_ap, file_proc and verb
+         - write ap_command through AP_Subject class
+         - allow numeric subject vars as text
+         - store AP_Subject instance in GUI instance
+         - added View menu to GUI
+         - added menu item for browsing AFNI Message Board
 """
 
-g_version = '0.4'
+g_version = '0.5 (March 2, 2011)'
 
 # ----------------------------------------------------------------------
 # global definition of default processing blocks
@@ -43,9 +54,11 @@ g_def_vreg_base   = 'third'
 # ----------------------------------------------------------------------
 # a global definition of subject defaults for single subject analysis
 g_ctrl_defs = SUBJ.VarsObject("uber_subject control defaults")
-g_ctrl_defs.uber_dir      = DEF_UBER_DIR
-g_ctrl_defs.uber_dir      = DEF_UBER_DIR
-g_ctrl_defs.uber_dir      = DEF_UBER_DIR
+g_ctrl_defs.subj_dir      = '.'         # destination for scripts and results
+g_ctrl_defs.make_sdir     = 1           # create subj_dir, if it does not exist
+g_ctrl_defs.file_ap       = ''          # file name for afni_proc.py command
+g_ctrl_defs.file_proc     = ''          # file name for proc script
+g_ctrl_defs.verb          = 1           # verbose level
 
 # ----------------------------------------------------------------------
 # a global definition of subject defaults for single subject analysis
@@ -77,17 +90,30 @@ g_subj_defs.motion_limit  = 0.3         # in mm
 #   short_epi     - epi names under epi_dir
 
 class AP_Subject(object):
-   """subject for single-subject analysis scripting by afni_proc.py"""
-   def __init__(self, svars=None, verb=1):
+   """subject for single-subject analysis scripting by afni_proc.py
+        - svars : single subject variables
+        - cvars : control variables
 
-      # for now, leave errors, warnings and ap_command out of LV
+        variables:
+           LV            - local variables
+           cvars         - control variables
+           svars         - subject variables
+           ap_command    - generated afni_proc.py command
+           errors            --> array of resulting error messages
+           warnings          --> array of resulting warning messages
+   """
+   def __init__(self, svars=None, cvars=None):
 
+
+      # LV: variables local to this interface, not passed
       self.LV = SUBJ.VarsObject("local AP_Subject vars")
-      self.LV.verb   = verb
       self.LV.indent = 8                # default indent for AP options
       self.LV.istr   = ' '*self.LV.indent
       self.LV.warp   = ''               # '', 'adwarp', 'warp'
                                         # (how to get to tlrc space)
+
+      self.cvars = g_ctrl_defs.copy()   # start with default control vars
+      self.cvars.merge(cvars)           # expand to include those passed
 
       self.svars = g_subj_defs.copy()   # start with default subject vars
       self.svars.merge(svars)           # expand to include those passed
@@ -99,7 +125,7 @@ class AP_Subject(object):
 
       self.set_short_names()            # short data dirs: e.g. short_anat
 
-      if self.LV.verb > 3: self.LV.show('ready to start script')
+      if self.cvars.verb > 3: self.LV.show('ready to start script')
 
       self.set_ap_command()             # fill ap_command, warnings, errors
 
@@ -134,6 +160,28 @@ class AP_Subject(object):
 
       return
 
+   def write_ap_command(self, fname='', orig_copy=0):
+      """if fname is set, use it, else cvar.file_ap, else generate
+         if orig_copy, also write .orig.FILE"""
+
+      if not self.ap_command:
+         print '** no afni_proc.py command to write out'
+         return 1
+      if fname: name = fname
+      elif self.cvars.file_ap: name = self.cvars.file_ap
+      else:
+         if self.svars.sid: name = 'cmd.ap.%s' % self.svars.sid
+         else:              name = 'cmd.ap'
+
+      self.cvars.file_ap = name # store which file we have written to
+
+      if self.cvars.verb>0: print '++ writing afni_proc.py command to %s'%name
+
+      # if requiested, make an original copy
+      if orig_copy: UTIL.write_text_to_file('.orig.%s'%name, self.ap_command)
+         
+      return UTIL.write_text_to_file(name, self.ap_command)
+
    def script_ap_nuke_last_LC(self, cmd):
       """Find last useful character (not in {space, newline, '\\'}).
          That should end the command (insert newline).
@@ -156,9 +204,13 @@ class AP_Subject(object):
       cmd += self.script_ap_stim_basis()
 
       # motion
-      if self.svars.motion_limit > 0.0:
-         cmd += '%s-regress_censor_motion %g \\\n' \
-                % (self.LV.istr, self.svars.motion_limit)
+      try: mlimit = float(self.svars.motion_limit)
+      except:
+         self.errors.append("** motion_limit is not float, have %s" \
+                            % self.svars.motion_limit)
+         return ''
+      if mlimit > 0.0:
+         cmd += '%s-regress_censor_motion %g \\\n' % (self.LV.istr, mlimit)
 
       # ------------------------------------------------------------
       # at end, add post 3dD options
@@ -298,8 +350,13 @@ class AP_Subject(object):
       return cmd
 
    def script_ap_tcat(self):
-      return '%s-tcat_remove_first_trs %s \\\n' \
-             % (self.LV.istr, self.svars.tcat_nfirst)
+      try: nfirst = int(self.svars.tcat_nfirst)
+      except:
+         self.errors.append("** tcat_nfirst is not int, have %s" \
+                            % self.svars.tcat_nfirst)
+         return ''
+        
+      return '%s-tcat_remove_first_trs %d \\\n' % (self.LV.istr, nfirst)
 
    def script_ap_blocks(self):
       if not self.svars.blocks: return ''
@@ -353,7 +410,7 @@ class AP_Subject(object):
          if self.LV.var_adir: file = '%s/%s' % (self.LV.var_adir, aset.pv())
          else:                file = aset.pv()
 
-      if self.LV.verb > 2: print '-- tlrc file = %s' % file
+      if self.cvars.verb > 2: print '-- tlrc file = %s' % file
 
       return '%s-copy_anat %s \\\n' % (self.LV.istr, file)
 
@@ -397,8 +454,10 @@ class AP_Subject(object):
       return 0
 
    def script_ap_init(self):
+      self.cvars.file_proc = 'proc.%s' % self.svars.sid
       cmd  = '# run afni_proc.py to create a single subject processing script\n'
-      cmd += 'afni_proc.py -subj_id $subj \\\n'
+      cmd += 'afni_proc.py -subj_id $subj \\\n'         \
+             '%s-script proc.$subj -scr_overwrite \\\n' % self.LV.istr
 
       return cmd
 
@@ -436,9 +495,9 @@ class AP_Subject(object):
       return cmd + '\n'
 
    def script_init(self):
-      return '#!/usr/bin/env tcsh\n\n'           \
-             '# created by uber_subject.py: version %s, %s\n\n' \
-                % (g_version, asctime())
+      return '#!/usr/bin/env tcsh\n\n'                          \
+             '# created by uber_subject.py: version %s\n'       \
+             '# creation date: %s\n\n' % (g_version, asctime())
 
    def use_dir(self, dir):
       if dir and dir != '.': return 1
@@ -506,7 +565,7 @@ class AP_Subject(object):
          self.LV.var_edir or self.LV.var_sdir: self.LV.use_dirs = 1
       else: self.LV.use_dirs = 0
 
-      if self.LV.verb > 3:
+      if self.cvars.verb > 3:
          print ("++ APS.top_dir = %s\n   adir = %s\n   edir = %s\n   sdir = %s"\
                 % (self.LV.top_dir, self.LV.anat_dir,
                    self.LV.epi_dir, self.LV.stim_dir))
@@ -662,7 +721,7 @@ def missing_files(flist):
       if not os.path.isfile(file): missing.append(file)
    return missing
 
-def ap_command_from_svars(svars, verb=1):
+def ap_command_from_svars(svars, cvars):
    """create an afni_proc.py command
 
       This might be run from the GUI or command line.
@@ -674,7 +733,7 @@ def ap_command_from_svars(svars, verb=1):
    """
 
    # create command, save it (init directory tree?), show it
-   apsubj = AP_Subject(svars, verb=verb)
+   apsubj = AP_Subject(svars)
    nwarn, wstr = apsubj.get_ap_warnings()
    status, mesg = apsubj.get_ap_command()
 

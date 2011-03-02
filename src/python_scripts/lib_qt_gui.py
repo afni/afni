@@ -3,6 +3,15 @@ import sys, os
 from PyQt4 import QtCore, QtGui
 import copy
 
+g_history = """
+  ...         : previous version
+  Mar 02, 2011:
+     - added static_TextWindow function
+     - added open and save actions to TextWindow
+     - process local vars in string format, not QString
+     - current font is courier bold
+"""
+
 class TextWindow(QtGui.QMainWindow):
 
     def __init__(self, fname='', text='', title='', viewonly=False,
@@ -25,16 +34,27 @@ class TextWindow(QtGui.QMainWindow):
         # self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
 
         self.status = 0                 # non-zero means error
+        self.filename = ''              # associated file name
         self.editor = QtGui.QTextEdit()
         self.setCentralWidget(self.editor)
 
-        SaveAsAct = self.new_action("&Save As", self.saveas,
-                shortcut=QtGui.QKeySequence.Save, tip="write out to new file")
+        OpenAct = self.new_action("&Open", self.openfile,
+                shortcut=QtGui.QKeySequence.Open, tip="read new file")
+        SaveAct = self.new_action("&Save", self.save,
+                shortcut=QtGui.QKeySequence.Save, tip="write file to disk")
+        SaveAsAct = self.new_action("Save &As", self.saveas,
+                shortcut=QtGui.QKeySequence.SaveAs, tip="write out to new file")
         CloseAct = self.new_action("&Close", self.close,
                 shortcut=QtGui.QKeySequence.Close, tip="close this window")
 
         fileMenu = self.menuBar().addMenu("&File")
-        self.add_actions(fileMenu, [SaveAsAct, CloseAct])
+        self.add_actions(fileMenu, [OpenAct, SaveAct, SaveAsAct, CloseAct])
+
+        # try to set a fixed-width font
+        font = self.editor.currentFont()
+        font.setFamily('courier')
+        font.setBold(True)
+        self.editor.setCurrentFont(font)
 
         # open the window with:
         #   - content from given file
@@ -43,9 +63,9 @@ class TextWindow(QtGui.QMainWindow):
         #   - or nothing
 
         # store filename in QString format
-        self.filename = QtCore.QString(fname)
-        if not self.filename.isEmpty():
-            print('-- reading file: %s' % self.filename)
+        self.filename = fname
+        if self.filename != '':
+            self.editor.document().setModified(False)
             if not self.readfile(): self.status = 1
         elif text != '':
             self.editor.setPlainText(text)
@@ -55,11 +75,7 @@ class TextWindow(QtGui.QMainWindow):
 
         self.resize(700,500)
 
-        # try to set a fixed-width font
-        font = self.editor.currentFont()
-        font.setFamily('courier')
-        self.editor.setCurrentFont(font)
-        # print "-- have font family = %s" % font.family()
+        self.setWindowTitle(title)
 
     def new_action(self, text, slot=None, shortcut=None,
                      tip=None, signal="triggered()"):
@@ -93,28 +109,33 @@ class TextWindow(QtGui.QMainWindow):
         filename = QtGui.QFileDialog.getOpenFileName(self, "Open File")
         if filename.isEmpty(): return False
 
-        self.filename = filename
+        self.filename = str(filename)
         return self.readfile()
 
     def readfile(self):
+        if self.filename == '':
+           print '** readfile: no filename set'
+           return False
         fp = None
         ret = True
         try:
             fp = QtCore.QFile(self.filename)
             if not fp.open(QtCore.QIODevice.ReadOnly):
                 raise IOError, unicode(fp.errorString())
-            stream = QtCore.QTextStream(fp)
-            stream.setCodec("UTF-8")
-            self.editor.setPlainText(stream.readAll())
-            self.editor.document().setModified(False)
         except (IOError, OSError), e:
            QtGui.QMessageBox.warning(self, "Text Editor: Load Error",
                     "Failed to load %s: %s" % (self.filename, e))
            ret = False
-        finally:
-            if fp is not None:
-                fp.close()
+
+        if not ret: return ret  # bail on error
+
+        stream = QtCore.QTextStream(fp)
+        stream.setCodec("UTF-8")
+        print '-- reading file %s...' % self.filename
+        self.editor.setPlainText(stream.readAll())
         self.editor.document().setModified(False)
+        fp.close()
+
         self.setWindowTitle("file: %s" % \
                 QtCore.QFileInfo(self.filename).fileName())
 
@@ -125,14 +146,23 @@ class TextWindow(QtGui.QMainWindow):
                         "Save File As", self.filename,
                         "Text files (*.txt *.* )")
         if not filename.isEmpty():
-            self.filename = filename
+            self.filename = str(filename)
             self.setWindowTitle("Text Editor: %s" % \
                     QtCore.QFileInfo(self.filename).fileName())
             return self.writefile()
         return False
 
+    def save(self):
+        if self.filename == '':
+            print '** no filename set for save'
+            return False
+        return self.writefile()
+
     def writefile(self):
-        if self.filename.isEmpty(): return False
+        if self.filename == '':
+           print '** no filename to write'
+           return False
+        print '++ writing as file %s ...' % self.filename
         fp = None
         try:
             fp = QtCore.QFile(self.filename)
@@ -147,6 +177,19 @@ class TextWindow(QtGui.QMainWindow):
         finally:
             if fp is not None: fp.close()
         return True
+
+def static_TextWindow(fname='', text='', title='', parent=None):
+   """create a 'delete on exit' TextWindow"""
+   stitle = '(static) %s' % title
+   win = TextWindow(text=text, title=stitle, fname=fname, parent=parent)
+   if win.status:
+      print '** failure creating TextWindow'
+      del(win)
+      return None
+   else:
+      win.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+      win.show()
+      return win
 
 def create_button_list_widget(labels, cb=None, dir=0, hstr=0):
    """create a layout of buttons within a QWidget
