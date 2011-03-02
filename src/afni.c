@@ -6203,7 +6203,7 @@ DUMP_IVEC3("  new_id",new_id) ;
          changed = AFNI_vedit( im3d->fim_now , im3d->vedset ,
                                im3d->vwid->func->clu_mask    ) ;
        if( !DSET_VEDIT_good(im3d->fim_now) ){
-         UNCLUSTERIZE(im3d) ;
+         if( recurse == 0 ) UNCLUSTERIZE(im3d) ;
        } else if( changed ){
          mri_cluster_detail *cld ; int nc ; char *rrr ;
          VEDIT_cluster_helpize(im3d);
@@ -6217,7 +6217,7 @@ DUMP_IVEC3("  new_id",new_id) ;
          AFNI_cluster_dispize(im3d,0);  /* display the results */
        }
      } else {
-       UNCLUSTERIZE(im3d) ;  /* macro-ized 13 Feb 2008 */
+       if( recurse == 0 ) UNCLUSTERIZE(im3d) ;  /* macro-ized 13 Feb 2008 */
      }
    }
 
