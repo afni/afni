@@ -802,7 +802,14 @@ ENTRY("AFNI_clus_make_widgets") ;
                       "* If you don't choose a Scat.1D file,\n"
                       "   (or 'Clear' it later), then the\n"
                       "   sub-brick index is used to define\n"
-                      "   the x-axis values."
+                      "   the x-axis values.\n"
+                      "* For the 'S:mean' option, the program\n"
+                      "   computes the correlation coefficient\n"
+                      "   between the x-axis and y-axis values\n"
+                      "   (R) and displays that on top of the\n"
+                      "   scatterplot.  It also shows a\n"
+                      "   95%% confidence interval for R,\n"
+                      "   computed via a bootstrap method."
                     ) ;
 
    xstr = XmStringCreateLtoR( "Clear" , XmFONTLIST_DEFAULT_TAG ) ;
@@ -1707,7 +1714,7 @@ ENTRY("AFNI_clus_action_CB") ;
            sim = mri_MMBvector( imar,ibot,itop,2 ) ;
        } else if( doscat ){  /* scatterplot */
          float *xar, *yar ; int nix, niy, nixy, jj,kk ;
-         float a=0,b=0,pcor=0,p05=0,p95=0 ;
+         float a=0,b=0,pcor=0,p025=0,p975=0 ;
          char xlab[64] , ylab[64] , tlab[THD_MAX_NAME+2] ;
          if( dosmea ){
            im = mri_meanvector( imar , ibot,itop ) ; xar = MRI_FLOAT_PTR(im) ;
@@ -1741,7 +1748,7 @@ ENTRY("AFNI_clus_action_CB") ;
          if( niy == 1 && nix >= 9 ){
            float_triple aaa,bbb,rrr ;
            THD_pearson_corr_boot( nix,xar,yar , &rrr,&aaa,&bbb ) ;
-           pcor = rrr.a ; p05 = rrr.b ; p95 = rrr.c ; a = aaa.a ; b = bbb.a ;
+           pcor = rrr.a ; p025 = rrr.b ; p975 = rrr.c ; a = aaa.a ; b = bbb.a ;
          }
          sprintf(ylab,"Cluster #%d = %d voxels",ii+1,IMARR_COUNT(imar)) ;
          sprintf(tlab,"\\noesc %s[%d..%d]",
@@ -1749,7 +1756,8 @@ ENTRY("AFNI_clus_action_CB") ;
                                (pcor == 0.0f) ? SESSTRAIL : 0 ) ,
                  ibot,itop ) ;
          if( pcor != 0.0f )
-           sprintf(tlab+strlen(tlab)," R=%.2f [%.2f..%.2f]",pcor,p05,p95) ;
+           sprintf(tlab+strlen(tlab),
+                   "\\esc\\red  R=%.2f\\in[%.2f..%.2f]_{95%%}\\black",pcor,p025,p975) ;
          PLUTO_set_xypush( cwid->splotim == NULL , 0 ) ;
          PLUTO_scatterplot( nixy,xar,yar , xlab,ylab,tlab , a,b ) ;
          PLUTO_set_xypush(1,1) ;

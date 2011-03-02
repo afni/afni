@@ -912,6 +912,13 @@ C
             NSUPB = NSUPB - 1
 CCC            WRITE(*,666) ' end compound super/subscript'
 C.......................................................................
+C  Special case: \esc turns LESC back on
+C
+      ELSEIF( .NOT.LESC .AND. INC+4 .LE. NCHIN .AND.
+     X        CHIN(INC:INC+3) .EQ. CHESC            )THEN
+        LESC = .TRUE.
+        NUSED = 4
+C.......................................................................
 C  Anything else that doesn't start with a \ is passed straight through
 C
       ELSEIF( .NOT.LESC .OR. CHIN(INC:INC) .NE. '\\' )THEN
