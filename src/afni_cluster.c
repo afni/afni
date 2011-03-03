@@ -1752,12 +1752,15 @@ ENTRY("AFNI_clus_action_CB") ;
          }
          sprintf(ylab,"Cluster #%d = %d voxels",ii+1,IMARR_COUNT(imar)) ;
          sprintf(tlab,"\\noesc %s[%d..%d]",
-                 THD_trailname(DSET_HEADNAME(cwid->dset),
-                               (pcor == 0.0f) ? SESSTRAIL : 0 ) ,
-                 ibot,itop ) ;
-         if( pcor != 0.0f )
-           sprintf(tlab+strlen(tlab),
-                   "\\esc\\red  R=%.2f\\in[%.2f..%.2f]_{95%%}\\black",pcor,p025,p975) ;
+                 DSET_FILECODE(cwid->dset), ibot,itop ) ;
+         if( pcor != 0.0f ){
+           if( strlen(tlab) > 30 )
+             sprintf(tlab+strlen(tlab),
+                     "\\esc\\red  R=%.2f\\in[%.2f..%.2f]_{95%%}\\black",pcor,p025,p975) ;
+           else
+             sprintf(tlab+strlen(tlab),
+                     "\\esc\\red  R=%.3f\\in[%.3f..%.3f]_{95%%}\\black",pcor,p025,p975) ;
+         }
          PLUTO_set_xypush( cwid->splotim == NULL , 0 ) ;
          PLUTO_scatterplot( nixy,xar,yar , xlab,ylab,tlab , a,b ) ;
          PLUTO_set_xypush(1,1) ;
