@@ -154,29 +154,30 @@ int main( int argc , char *argv[] )
        "  -input dd = Read 3D+time dataset 'dd' (a mandatory option).\n"
        "               This provides the time series to be correlated\n"
        "               en masse.\n"
+       "            ** This is a non-optional 'option': you MUST supply\n"
+       "               and input dataset!\n"
        "\n"
        "  -seed bb  = Read 3D+time dataset 'bb'.\n"
-       "             * If you use this option, for each voxel in the\n"
+       "            ** If you use this option, for each voxel in the\n"
        "                -seed dataset, its time series is correlated\n"
        "                with every voxel in the -input dataset, and\n"
        "                then that collection of correlations is processed\n"
        "                to produce the output for that voxel.\n"
-       "             * If you don't use -seed, then the -input dataset\n"
-       "                is the -seed dataset.\n"
-       "             * The -seed and -input datasets must have the\n"
+       "            ** If you don't use -seed, then the -input dataset\n"
+       "                is the -seed dataset [i.e., the normal usage].\n"
+       "            ** The -seed and -input datasets must have the\n"
        "                same number of time points and the same number\n"
        "                of voxels!\n"
-       "             * Unlike the -input dataset, the -seed dataset is not\n"
+       "            ** Unlike the -input dataset, the -seed dataset is not\n"
        "                preprocessed (i.e., no detrending/bandpass or blur).\n"
        "                 (The main purpose of this -seed option is to)\n"
        "                 (allow you to preprocess the seed voxel time)\n"
        "                 (series in some personalized and unique way.)\n"
        "\n"
        "  -mask mmm = Read dataset 'mmm' as a voxel mask.\n"
-       "\n"
        "  -automask = Create a mask from the input dataset.\n"
-       "             * -mask and -automask are mutually exclusive!\n"
-       "             * If you don't use one of these masking options, then\n"
+       "            ** -mask and -automask are mutually exclusive!\n"
+       "            ** If you don't use one of these masking options, then\n"
        "               all voxels will be processed, and the program will\n"
        "               probably run for a VERY long time.\n"
        "\n"
@@ -184,6 +185,7 @@ int main( int argc , char *argv[] )
        "Time Series Preprocessing Options: (applied only to -input, not to -seed)\n"
        "----------------------------------\n"
        "TEMPORAL FILTERING:\n"
+       "-------------------\n"
        "  -polort m  = Remove polynomial trend of order 'm', for m=-1..19.\n"
        "                [default is m=1; removal is by least squares].\n"
        "             ** Using m=-1 means no detrending; this is only useful\n"
@@ -202,7 +204,7 @@ int main( int argc , char *argv[] )
        "             ** -ort can be used with -polort and/or -bandpass.\n"
        "             ** You can use programs like 3dmaskave and 3dmaskSVD\n"
        "                 to create reference files from regions of the\n"
-       "                 input dataset.\n"
+       "                 input dataset (e.g., white matter, CSF).\n"
 #if 0
        "\n"
        "  -PCort n mmm = From the -input dataset, extract the time series\n"
@@ -218,6 +220,7 @@ int main( int argc , char *argv[] )
 #endif
        "\n"
        "SPATIAL FILTERING: (only for volumetric input datasets) \n"
+       "-----------------\n"
        "  -Gblur ff  = Gaussian blur the -input dataset (inside the mask)\n"
        "                using a kernel width of 'ff' mm.\n"
        "            ** Uses the same approach as program 3dBlurInMask.\n"
@@ -270,8 +273,8 @@ int main( int argc , char *argv[] )
        "  -CorrMap pp\n"
        "         Output at each voxel the entire correlation map, into\n"
        "         a dataset with prefix 'pp'.\n"
-       "         Essentially this does what 3dAutoTcorrelate would,\n"
-       "         with some of the additional options offered here.\n"
+       "       **  Essentially this does what 3dAutoTcorrelate would,\n"
+       "           with some of the additional options offered here.\n"
        "       ** N.B.: Output dataset will be HUGE in most cases.\n"
        "  -CorrMask\n"
        "         By default, -CorrMap outputs a sub-brick for EACH\n"
@@ -283,6 +286,11 @@ int main( int argc , char *argv[] )
        "                from voxel (i,j,k) will be of the form\n"
        "                v032.021.003 (when i=32, j=21, k=3).\n"
        "\n"
+       "  --** The following 3 options let you create a customized **--\n"
+       "  --** method of combining the correlations, if the above  **--\n"
+       "  --** techniques do not meet your needs.  (Of course, you **--\n"
+       "  --** could also use '-CorrMap' and then process the big  **--\n"
+       "  --** output dataset yourself later, in some clever way.) **--\n"
        "\n"
        "  -Aexpr expr ppp\n"
        "            = For each correlation 'r', compute the calc-style\n"
@@ -316,10 +324,9 @@ int main( int argc , char *argv[] )
        "            * N=200 is good; then D=0.01, yielding a decent resolution.\n"
        "           ** The output dataset is short format; thus, the maximum\n"
        "              count in any bin will be 32767.\n"
-       "           ** The output from this option will probably require\n"
-       "              further processing before it can be useful -- but it is\n"
-       "              kind of fun to surf through these histograms in AFNI's\n"
-       "              graph viewer.\n"
+       "           ** The output from this option will probably require further\n"
+       "              processing before it can be useful -- but it is fun to\n"
+       "              surf through these histograms in AFNI's graph viewer.\n"
        "\n"
        "----------------\n"
        "Random Thoughts:\n"
@@ -337,7 +344,7 @@ int main( int argc , char *argv[] )
 #ifndef USE_OMP
       printf(" * You REALLY want to use an OpenMP version of this program,\n"
              "    and run on a fast multi-CPU computer system!  Otherwise,\n"
-             "    you will wait a long long time for the results.\n"
+             "    you will wait a LONG LONG time for the results.\n"
             ) ;
 #endif
       PRINT_COMPILE_DATE ; exit(0) ;
@@ -1082,7 +1089,7 @@ int main( int argc , char *argv[] )
    }
 
    /* normalize -input vectors so sum of squares is 1,
-      for speed in computing correlations (and we like speed) */
+      for speed in computing correlations (and we need speed) */
 
    ININFO_message("normalizing extracted time series") ;
    for( ii=0 ; ii < nmask ; ii++ ){
@@ -1147,8 +1154,8 @@ int main( int argc , char *argv[] )
 #else
  INFO_message("Starting long long loop through all voxels: %s Flops" ,
               approximate_number_string(ctime) ) ;
- ININFO_message("You would be happier if you used an OpenMP-ized version") ;
- ININFO_message("of this program, and a multiple CPU computer system.") ;
+ ININFO_message(" [You would be happier if you  used an OpenMP-ized version]") ;
+ ININFO_message(" [of this program, and had a multiple CPU computer system.]") ;
 #endif
 
    for( ii=0 ; ii < nmask ; ii++ ){  /* outer loop over voxels: */
