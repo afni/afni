@@ -64,8 +64,8 @@ double student_t2z( double tt , double dof )
 /*---------------------------------------------------------------------
    Correlation coefficient statistic:
      nsam = # of samples used to compute rho ( > nfit+nort )
-     nfit = # of fitting parameters  ( >= 1 )
-     nort = # of nuisance parameters ( >= 1 )
+     nfit = # of fitting parameters 
+     nort = # of nuisance parameters ( nfit+nort >= 1 )
 -----------------------------------------------------------------------*/
 
 double correl_p2t( double pp , double nsam , double nfit , double nort )
@@ -87,8 +87,7 @@ double correl_t2p( double rho , double nsam , double nfit , double nort )
 {
    double bb , xx , pp ;
 
-   if( rho <= 0.0 ||
-       nsam <= nfit+nort || nfit < 1.0 || nort < 1.0 ) return 1.0 ;
+   if( rho <= 0.0 || nsam <= nfit+nort || nfit+nort < 1.0 ) return 1.0 ;
 
    if( rho >= 0.9999999 ) return 0.0 ;
 
@@ -151,7 +150,7 @@ double studave_t2p( double tt , double dof , double nn )
 double studave_t2z( double tt , double dof , double nn )
 {
    static int nc = 0 ;
-   if( nc < 9 ){
+   if( nc < 3 ){
       fprintf(stderr,"*** studave_t2z: NOT IMPLEMENTED YET!\n") ; nc++ ;
    }
    return 0.0 ;
