@@ -389,9 +389,17 @@ def valid_as_filepath(text, name, warn=0, wparent=None, empty_ok=1):
 
    return 0
 
+def guiWarning(title, text, parent):
+   mbox = warningMessage(title, text, parent)
+   mbox.show()
+
 def warningMessage(title, text, parent):
    return QtGui.QMessageBox(QtGui.QMessageBox.Warning,
                             title, text, QtGui.QMessageBox.NoButton, parent)
+
+def guiError(title, text, parent):
+   mbox = errorMessage(title, text, parent)
+   mbox.show()
 
 def errorMessage(title, text, parent):
    return QtGui.QMessageBox(QtGui.QMessageBox.Critical,

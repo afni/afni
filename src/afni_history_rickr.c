@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  3, MAR, 2011, RCR, "uber_subject.py", MINOR, TYPE_ENHANCE,
+   "updates: control vars, subj dir, view actions, result vars, ...",
+   "See -hist for version 0.6."
+ } ,
+
  {  2, MAR, 2011, RCR, "uber_subject.py", MINOR, TYPE_ENHANCE,
    "many updates, including write and exec of proc script",
    "There is still much to do before first release version."

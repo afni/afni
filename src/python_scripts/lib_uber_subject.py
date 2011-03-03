@@ -38,9 +38,20 @@ g_history = """
          - store AP_Subject instance in GUI instance
          - added View menu to GUI
          - added menu item for browsing AFNI Message Board
+    0.6  Mar  3, 2011
+         - applied subj_dir control var, for location of output files
+           (actions will be: cd sdir ; actions... ; cd -)
+         - added -exec_ap_command/-exec_proc_script for command line actions
+         - added -qt_gui for PyQt4 options
+         - added -cvar to set control vars
+         - added copy_script control var
+         - added view 'proc output' and 'rvars' actions to View menu
+         - created rvars, for access of subject results variables
+         - wrote a little more command line help
+         - moved exec functions to subject object
 """
 
-g_version = '0.5 (March 2, 2011)'
+g_version = '0.6 (March 3, 2011)'
 
 # ----------------------------------------------------------------------
 # global definition of default processing blocks
@@ -52,13 +63,20 @@ g_def_vreg_base   = 'third'
 
 
 # ----------------------------------------------------------------------
-# a global definition of subject defaults for single subject analysis
+# global definitions of subject defaults for single subject analysis
+
+# ---- control values passed in for class actions ----
 g_ctrl_defs = SUBJ.VarsObject("uber_subject control defaults")
 g_ctrl_defs.subj_dir      = '.'         # destination for scripts and results
-g_ctrl_defs.make_sdir     = 1           # create subj_dir, if it does not exist
-g_ctrl_defs.file_ap       = ''          # file name for afni_proc.py command
-g_ctrl_defs.file_proc     = ''          # file name for proc script
+g_ctrl_defs.copy_scripts  = 0           # do we make .orig copies of scripts?
 g_ctrl_defs.verb          = 1           # verbose level
+
+# ---- resulting values returned after class actions ----
+g_res_defs = SUBJ.VarsObject("uber_subject result variables")
+g_res_defs.file_ap       = ''           # file name for afni_proc.py command
+g_res_defs.file_proc     = ''           # file name for proc script
+g_res_defs.results_dir   = ''           # results directory from proc script
+g_res_defs.output_proc   = ''           # output from running proc script
 
 # ----------------------------------------------------------------------
 # a global definition of subject defaults for single subject analysis
@@ -93,6 +111,7 @@ class AP_Subject(object):
    """subject for single-subject analysis scripting by afni_proc.py
         - svars : single subject variables
         - cvars : control variables
+        - rvars : return variables
 
         variables:
            LV            - local variables
@@ -111,12 +130,15 @@ class AP_Subject(object):
       self.LV.istr   = ' '*self.LV.indent
       self.LV.warp   = ''               # '', 'adwarp', 'warp'
                                         # (how to get to tlrc space)
+      self.LV.retdir = ''               # return directory (for jumping around)
 
       self.cvars = g_ctrl_defs.copy()   # start with default control vars
       self.cvars.merge(cvars)           # expand to include those passed
 
       self.svars = g_subj_defs.copy()   # start with default subject vars
       self.svars.merge(svars)           # expand to include those passed
+
+      self.rvars = g_res_defs.copy()    # init result vars
 
       self.set_blocks()                 # choose processing blocks
 
@@ -160,27 +182,146 @@ class AP_Subject(object):
 
       return
 
-   def write_ap_command(self, fname='', orig_copy=0):
-      """if fname is set, use it, else cvar.file_ap, else generate
-         if orig_copy, also write .orig.FILE"""
+   def write_ap_command(self, fname=''):
+      """if fname is set, use it, else generate"""
 
       if not self.ap_command:
          print '** no afni_proc.py command to write out'
          return 1
       if fname: name = fname
-      elif self.cvars.file_ap: name = self.cvars.file_ap
       else:
          if self.svars.sid: name = 'cmd.ap.%s' % self.svars.sid
          else:              name = 'cmd.ap'
 
-      self.cvars.file_ap = name # store which file we have written to
+      self.rvars.file_ap = name # store which file we have written to
 
       if self.cvars.verb>0: print '++ writing afni_proc.py command to %s'%name
 
       # if requiested, make an original copy
-      if orig_copy: UTIL.write_text_to_file('.orig.%s'%name, self.ap_command)
+      self.goto_subj_dir()              # if set
+      if self.cvars.copy_scripts:       # make an orig copy
+         UTIL.write_text_to_file('.orig.%s'%name, self.ap_command)
+      rv = UTIL.write_text_to_file(name, self.ap_command)
+      self.ret_from_subj_dir()  # if set
          
-      return UTIL.write_text_to_file(name, self.ap_command)
+      return rv
+
+   def goto_subj_dir(self):
+      """if cvars.subj_dir is set
+            - if subj_dir does not exist, create it
+            - set LV.retdir and cd
+         (should be called 'atomically' with ret_from_subj_dir)"""
+      self.LV.retdir = ''  # init to no return
+      sdir = self.cvars.subj_dir
+      if sdir == '' or sdir == '.': return
+
+      retdir = os.getcwd()
+
+      # if the directory does not yet exist, create it
+      if not os.path.isdir(sdir):
+         try: os.makedirs(sdir)
+         except:
+            print '** failed makedirs(%s)' % sdir
+            return
+
+      # now try to go there
+      try: os.chdir(sdir)
+      except:
+         self.LV.retdir = ''
+         print '** failed to go to subject dir, %s' % sdir
+         return
+
+      self.LV.retdir = retdir   # only set on success
+
+   def ret_from_subj_dir(self):
+      """if cvars.subj_dir and LV.retdir are set, cd to LV.retdir
+         (should be called 'atomically' with goto_subj_dir)"""
+
+      if self.cvars.subj_dir == '' or self.cvars.subj_dir == '.': return
+      if self.LV.retdir      == '' or self.LV.retdir      == '.': return
+
+      try: os.chdir(self.LV.retdir)
+      except:
+         print '** failed to return to %s from subject dir' % self.LV.retdir
+
+      self.LV.retdir = ''       # either way, nuke old var
+
+   def exec_ap_command(self):
+      """execute the script rvars.file_ap, if set
+         - return status and command output
+      """
+
+      if self.rvars.file_ap == '':
+         return 1, '** no file set as afni_proc.py command'
+
+      self.goto_subj_dir()
+      cstr = 'tcsh %s' % self.rvars.file_ap
+      if self.cvars.verb > 0:
+         print "++ executing: %s" % cstr
+      cmd = BASE.shell_com('tcsh -c "%s"' % cstr, capture=1)
+      cmd.run()
+      self.ret_from_subj_dir()
+
+      # possibly make a backup file
+      if self.cvars.copy_scripts: self.copy_orig_proc()
+
+      return cmd.status, '\n'.join(cmd.so)
+
+   def exec_proc_script(self, xterm=0):
+      """execute the script rvars.file_proc, if set
+         - if the results dir exists, nuke it
+         - execute script (if xterm: run in a new xterm)
+         - store results directory
+         - return status and command output
+      """
+
+      if self.rvars.file_proc == '':
+         return 1, '** no file set as proc script'
+
+      self.goto_subj_dir() # ---------- do the work ----------
+
+      # set results directory
+      self.rvars.results_dir = '%s.results' % self.svars.sid
+
+      # if old results exist, nuke them
+      if os.path.isdir(self.rvars.results_dir):
+         print "** nuking old results dir %s" % self.rvars.results_dir
+         os.system('rm -fr %s' % self.rvars.results_dir)
+
+      # execute script
+      pfile = self.rvars.file_proc
+      ofile = 'output.%s' % pfile
+      cstr = 'tcsh -xef %s |& tee %s' % (pfile, ofile)
+      print '++ executing: %s' % cstr
+
+      capture = 0       # init as output to terminal
+      cstr = 'tcsh -c "%s"' % cstr
+      if xterm:
+         capture = 1
+         cstr = 'xterm -e %s' % cstr
+
+      self.rvars.output_proc = ofile
+
+      cmd = BASE.shell_com(cstr, capture=capture)
+      cmd.run()
+
+      self.ret_from_subj_dir() # ---------- done ----------
+
+      # rcr, return anything?  want to show output.proc.SUBJ?
+      return cmd.status, '\n'.join(cmd.so)
+
+   def copy_orig_proc(self):
+      """if the proc script exists, copy to .orig.SCRIPTNAME"""
+      if self.rvars.file_proc == '': return
+      pfile = self.rvars.file_proc
+
+      self.goto_subj_dir()      # if set
+      if os.path.isfile(pfile):
+         cmd = 'cp -f %s .orig.%s' % (pfile, pfile)
+         if self.cvars.verb > 1: print '++ exec: %s' % cmd
+         os.system(cmd)
+      elif self.cvars.verb > 1: print "** no proc '%s' to copy" % pfile
+      self.ret_from_subj_dir()  # if set
 
    def script_ap_nuke_last_LC(self, cmd):
       """Find last useful character (not in {space, newline, '\\'}).
@@ -454,7 +595,7 @@ class AP_Subject(object):
       return 0
 
    def script_ap_init(self):
-      self.cvars.file_proc = 'proc.%s' % self.svars.sid
+      self.rvars.file_proc = 'proc.%s' % self.svars.sid
       cmd  = '# run afni_proc.py to create a single subject processing script\n'
       cmd += 'afni_proc.py -subj_id $subj \\\n'         \
              '%s-script proc.$subj -scr_overwrite \\\n' % self.LV.istr
@@ -575,8 +716,6 @@ class AP_Subject(object):
          --> these are the names used in the script
              e.g. '$anat_dir/%s' % short_anat
       """
-      # rcr - maybe this is not needed
-
       # anat (one name)
       if self.LV.var_adir:
          dlen = len(self.LV.anat_dir)
@@ -743,6 +882,16 @@ def ap_command_from_svars(svars, cvars):
       status = -1               # have errors
 
    return status, wstr, mesg
+
+def update_vars_from_special(obj, name, vars, check_sort=0):
+   """call one of the updates based on obj"""
+   if   obj == 'svars': update_svars_from_special(name, vars, check_sort)
+   elif obj == 'cvars': update_cvars_from_special(name, vars, check_sort)
+   else: print '** ULIB,UVFS: unknown obj type %s' % obj
+
+def update_cvars_from_special(name, cvars, check_sort=0):
+   """nothing special to do here yet"""
+   return 0
 
 def update_svars_from_special(name, svars, check_sort=0):
    """in special cases, a special svar might need updates, and might suggest
