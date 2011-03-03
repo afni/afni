@@ -233,7 +233,13 @@ float THD_pearson_corr( int n, float *x , float *y )
    return xy/sqrtf(xv*yv) ;
 }
 
-/*----------------------------------------------------------------*/
+/*-------------------------------------------------------------------------*/
+/* Returns a float_triple with (a,b,r) where
+     y = a*x + b
+   is the L2 regression result and r = Pearson correlation coeff.
+   For bootstrapping, ix[i] is the i-th index in x[] and y[] to use.
+   For non-bootstrapping, pass in ix==NULL.
+*//*-----------------------------------------------------------------------*/
 
 #undef  IX
 #define IX(i) ( ((ix) == NULL) ? (i) : ix[(i)] )
@@ -261,17 +267,24 @@ float_triple THD_pearson_indexed( int nix, int *ix, float *x, float *y )
 
 #undef IX
 
-/*-------------------------------------------------------------------------*/
+/*---------------------------------------------------------------------------*/
 /* Correlates and also returns 2.5%..97.5% confidence interval, via bootstrap.
-     rrr = correlation coefficient, 2.5% level, 97.5% level
-     aaa = regression 'a' coefficient, in y=ax+b
-     bbb = regression 'b' coefficient
-*//*-----------------------------------------------------------------------*/
+     rrr = correlation coefficient, 2.5% level, 97.5% level  [in that order]
+     aaa = regression 'a' coefficient, in y=ax+b             [as .a .b .c  ]
+     bbb = regression 'b' coefficient                        [components   ]
+*//*-------------------------------------------------------------------------*/
 
 #undef  NBOOT
 #undef  NB5
+
 #define NBOOT 600
-#define NB5    15  /* 2.5% of the above */
+#define NB5    15  /* must be 2.5% of the above */
+
+#undef  PHI
+#define PHI(x) (1.0-qg(x))       /* CDF of N(0,1) */
+
+#undef  PHINV
+#define PHINV(x) qginv(1.0-(x))  /* inverse CDF of N(0,1) */
 
 void THD_pearson_corr_boot( int n , float *x , float *y ,
                             float_triple *rrr ,
@@ -284,14 +297,13 @@ void THD_pearson_corr_boot( int n , float *x , float *y ,
    if( n < 5 || x == NULL || y == NULL ) return ;
    if( rrr == NULL && aaa == NULL && bbb == NULL ) return ;
 
-   /* standard results */
+   /* compute standard results */
 
-   ix = (int *)malloc(sizeof(int)*n) ;
-   for( ii=0 ; ii < n ; ii++ ) ix[ii] = ii ;
-   abr = THD_pearson_indexed( n , ix , x, y ) ;
-   aa = abr.a ; bb = abr.b ; rr = abr.c ;
+   abr = THD_pearson_indexed( n , NULL , x, y ) ;
+   aa  = abr.a ; bb = abr.b ; rr = abr.c ;  /* non-bootstrapped answers */
+   ix  = (int *)malloc(sizeof(int)*n) ;
 
-   /* bootstrap results */
+   /* compute bootstrap results */
 
    for( kk=0 ; kk < NBOOT ; kk++ ){
      for( ii=0 ; ii < n ; ii++ ) ix[ii] = lrand48() % n ;
@@ -301,6 +313,7 @@ void THD_pearson_corr_boot( int n , float *x , float *y ,
    free(ix) ;
 
    /* sort, then find 2.5% and 97.5% points, save into output structs */
+   /* [at this time, there is no bias correction applied ... later?]  */
 
    if( rrr != NULL ){
      qsort_float( NBOOT , rx ) ;
