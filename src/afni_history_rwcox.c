@@ -43,7 +43,12 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 2 , MAR , 2011 , RWC , "afni" , MICRO , TYPE_BUG_FIX ,
+  { 3 , MAR , 2011 , RWC , "mri_nstats.c" , MICRO , TYPE_BUG_FIX ,
+   "Fix bug in correl_xxx functions" ,
+   "Didn't allow nort == 0, which is a mistake; the real constraint is\n"
+   "nfit+nort >= 1.  Fixed for Yisheng Xu of NIDCD." } ,
+
+ { 2 , MAR , 2011 , RWC , "afni" , MICRO , TYPE_BUG_FIX ,
    "Clusterize: attempt to fix Flash bug" ,
    "If 2 controllers are open (and crosshairs are locked together), then\n"
    "Clusterize Flash doesn't work right.  This problem is rooted in an\n"
