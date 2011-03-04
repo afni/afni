@@ -1754,12 +1754,16 @@ ENTRY("AFNI_clus_action_CB") ;
          sprintf(tlab,"\\noesc %s[%d..%d]",
                  DSET_FILECODE(cwid->dset), ibot,itop ) ;
          if( pcor != 0.0f ){
-           if( strlen(tlab) > 30 )
-             sprintf(tlab+strlen(tlab),
-                     "\\esc\\red  R=%.2f\\in[%.2f..%.2f]_{95%%}\\black",pcor,p025,p975) ;
-           else
-             sprintf(tlab+strlen(tlab),
-                     "\\esc\\red  R=%.3f\\in[%.3f..%.3f]_{95%%}\\black",pcor,p025,p975) ;
+           if( p025 < pcor && p975 > pcor ){
+             if( strlen(tlab) > 30 )
+               sprintf(tlab+strlen(tlab),
+                       "\\esc\\red  R=%.2f\\in[%.2f..%.2f]_{95%%}\\black",pcor,p025,p975) ;
+             else
+               sprintf(tlab+strlen(tlab),
+                       "\\esc\\red  R=%.3f\\in[%.3f..%.3f]_{95%%}\\black",pcor,p025,p975) ;
+           } else {
+               sprintf(tlab+strlen(tlab),"\\esc\\red  R=%.3f\\black",pcor) ;
+           }
          }
          PLUTO_set_xypush( cwid->splotim == NULL , 0 ) ;
          PLUTO_scatterplot( nixy,xar,yar , xlab,ylab,tlab , a,b ) ;
