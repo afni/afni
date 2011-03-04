@@ -4963,6 +4963,7 @@ extern void THD_pearson_corr_boot( int n, float *x, float *y,
 extern float_triple THD_pearson_indexed( int nix, int *ix, float *x, float *y ) ;
 extern float_triple THD_bootstrap_confinv( float estim , float alpha ,
                                            int nboot   , float *eboot ) ;
+extern float THD_bootstrap_biascorr( float estim , int nboot , float *eboot ) ;
 
 extern float THD_spearman_corr_nd( int,float *,float *) ;  /* 23 Aug 2006 */
 extern float THD_quadrant_corr_nd( int,float *,float *) ;

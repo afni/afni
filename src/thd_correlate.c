@@ -1651,3 +1651,25 @@ float_triple THD_bootstrap_confinv( float estim , float alpha ,
 
    return rval ;
 }
+
+/*----------------------------------------------------------------------------*/
+
+float THD_bootstrap_biascorr( float estim , int nboot , float *eboot )
+{
+   int ii ; float z0 , pp ;
+
+   if( nboot < 50 || eboot == NULL ) return estim ;             /* bad user */
+
+   qsort_float( nboot , eboot ) ;                       /* increasing order */
+
+   for( ii=0 ; ii < nboot && eboot[ii] < estim ; ii++ ) ;             /*nada*/
+   if( ii <= 1 || ii >= nboot-1 ) return estim ;             /* crummy data */
+   z0 = PHINV( (ii+0.5f) / nboot ) ;                /* ii = #values < estim */
+   if( z0 < -ZLIM ) z0 = -ZLIM ; else if( z0 > ZLIM ) z0 = ZLIM ; /* limits */
+
+   pp = PHI( 2.0*z0 ) * nboot ;
+   ii = (int)pp ; pp = pp - ii ; if( ii >= nboot-1 ) ii = nboot-2 ;
+   pp = (1.0f-pp)*eboot[ii] + pp*eboot[ii+1] ;
+
+   return pp ;
+}
