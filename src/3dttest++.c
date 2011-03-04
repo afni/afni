@@ -57,7 +57,7 @@ static int   zskip_BBB = 0 ;
 static float zskip_fff = 0.0f ;
 static int   do_zskip  = 0 ;
 
-#undef ALLOW_RANK
+#define ALLOW_RANK
 static int   do_ranks  = 0 ;  /* 10 Nov 2010 */
 static int   do_1sam   = 1 ;  /* 10 Nov 2010 */
 
