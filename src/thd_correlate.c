@@ -311,9 +311,9 @@ void THD_pearson_corr_boot( int n , float *x , float *y ,
 
    if( rrr != NULL ){
      float_triple qqq = THD_bootstrap_confinv( rr , 0.05f , NBOOT , rx ) ;
-     rrr->a = rr ;      /* would be qqq.b for bias-corrected estimate */
-     rrr->b = qqq.a ;   /* lower bound */
-     rrr->c = qqq.c ;   /* upper bound */
+     rrr->a = rr ;      /* would use qqq.b for bias-corrected estimate */
+     rrr->b = qqq.a ;   /* lower edge of confidence interval */
+     rrr->c = qqq.c ;   /* upper edge */
    }
 
    if( aaa != NULL ){
@@ -1593,7 +1593,20 @@ void rank_order_2floats( int n1 , float *a1 , int n2 , float *a2 )
    return ;
 }
 
-/*---------------------------------------------------------------------------*/
+/*----------------------------------------------------------------------------*/
+/* Given a set of bootstrap replicates, find the bias-corrected (BC)
+   estimates of the 1-alpha confidence interval and the central value.
+     * estim = actual estimate from the data
+     * alpha = 0.05 is a typical value
+     * nboot = number of replicates in eboot[] -- at least MAX(100,10/alpha)
+     * eboot = array of replicates; will be sorted on output
+   The return value (rval) is a triple:
+     * rval.a = lower edge of confidence interval
+     * rval.b = middle value = bias-corrected estimate
+     * rval.c = upper edge of confidence interval
+   If all values are returned as 0, the inputs were bad bad bad.
+*//*--------------------------------------------------------------------------*/
+
 
 #undef  PHI
 #define PHI(x) (1.0-qg(x))       /* CDF of N(0,1) */
@@ -1607,34 +1620,34 @@ void rank_order_2floats( int n1 , float *a1 , int n2 , float *a2 )
 float_triple THD_bootstrap_confinv( float estim , float alpha ,
                                     int nboot   , float *eboot )
 {
-   float_triple retval = {0.0f,0.0f,0.0f} ;
+   float_triple rval = {0.0f,0.0f,0.0f} ;
    int ii ; float z0 , zal , pp ;
 
-   if( nboot < 100 || eboot == NULL ) return retval ;           /* bad user */
+   if( nboot < 100 || eboot == NULL ) return rval ;             /* bad user */
 
    if( alpha <= 0.001f || alpha >= 0.9f ) alpha = 0.05f ;    /* stupid user */
    alpha *= 0.5f ;                                          /* 1-sided tail */
    if( (int)(alpha*nboot) < 5 ) alpha = 5.0f / nboot ;     /* upward adjust */
    zal = PHINV(alpha) ;                               /* should be negative */
 
-   qsort_float( nboot , eboot ) ;
+   qsort_float( nboot , eboot ) ;                       /* increasing order */
 
    for( ii=0 ; ii < nboot && eboot[ii] < estim ; ii++ ) ;             /*nada*/
-   if( ii <= 1 || ii >= nboot-1 ) return retval ;            /* crummy data */
-   z0 = PHINV( (ii-0.5f) / nboot ) ;
+   if( ii <= 1 || ii >= nboot-1 ) return rval ;              /* crummy data */
+   z0 = PHINV( (ii+0.5f) / nboot ) ;                /* ii = #values < estim */
    if( z0 < -ZLIM ) z0 = -ZLIM ; else if( z0 > ZLIM ) z0 = ZLIM ; /* limits */
 
-   pp = PHI( 2.0*z0 + zal ) * nboot ;                        /* lower bound */
+   pp = PHI( 2.0*z0 + zal ) * nboot ;                         /* lower edge */
    ii = (int)pp ; pp = pp - ii ; if( ii >= nboot-1 ) ii = nboot-2 ;
-   retval.a = (1.0f-pp)*eboot[ii] + pp*eboot[ii+1] ;
+   rval.a = (1.0f-pp)*eboot[ii] + pp*eboot[ii+1] ;
 
-   pp = PHI( 2.0*z0 - zal ) * nboot ;                        /* lower bound */
+   pp = PHI( 2.0*z0 - zal ) * nboot ;                         /* upper edge */
    ii = (int)pp ; pp = pp - ii ; if( ii >= nboot-1 ) ii = nboot-2 ;
-   retval.c = (1.0f-pp)*eboot[ii] + pp*eboot[ii+1] ;
+   rval.c = (1.0f-pp)*eboot[ii] + pp*eboot[ii+1] ;
 
-   pp = PHI( 2.0*z0 ) * nboot ;
+   pp = PHI( 2.0*z0 ) * nboot ;          /* bias-corrected central estimate */
    ii = (int)pp ; pp = pp - ii ; if( ii >= nboot-1 ) ii = nboot-2 ;
-   retval.b = (1.0f-pp)*eboot[ii] + pp*eboot[ii+1] ;
+   rval.b = (1.0f-pp)*eboot[ii] + pp*eboot[ii+1] ;
 
-   return retval ;
+   return rval ;
 }

@@ -529,10 +529,13 @@ char * SCAT_main( PLUGIN_interface *plint )
      if( strlen(tlab) > 25 && p025 < pcor && p975 > pcor ){
        sprintf(tlab+strlen(tlab),"\\esc\\red  R=%.2f",pcor) ;
        sprintf(tlab+strlen(tlab),"\\in[%.2f..%.2f]_{95%%}",p025,p975) ;
+       if( p025*p975 > 0.0f ) strcat(tlab,"^{*}") ;
      } else {
        sprintf(tlab+strlen(tlab),"\\esc\\red  R=%.3f",pcor) ;
-       if( p025 < pcor && p975 > pcor )
+       if( p025 < pcor && p975 > pcor ){
          sprintf(tlab+strlen(tlab),"\\in[%.3f..%.3f]_{95%%}",p025,p975) ;
+         if( p025*p975 > 0.0f ) strcat(tlab,"^{*}") ;
+       }
      }
      sprintf(tlab+strlen(tlab),"\\black") ;
    }
