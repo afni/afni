@@ -43,7 +43,12 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 3 , MAR , 2011 , RWC , "mri_nstats.c" , MICRO , TYPE_BUG_FIX ,
+  { 4 , MAR , 2011 , RWC , "3dttest++" , MINOR , TYPE_BUG_FIX ,
+   "Fixed bug with 1-sample results in -paired run" ,
+   "Forgot to turn off the 'paired' opcode for the 1-sample (no covariates)\n"
+   "analyses, so results were all zero!" } ,
+
+ { 3 , MAR , 2011 , RWC , "mri_nstats.c" , MICRO , TYPE_BUG_FIX ,
    "Fix bug in correl_xxx functions" ,
    "Didn't allow nort == 0, which is a mistake; the real constraint is\n"
    "nfit+nort >= 1.  Fixed for Yisheng Xu of NIDCD." } ,
