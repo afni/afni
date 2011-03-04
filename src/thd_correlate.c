@@ -280,12 +280,6 @@ float_triple THD_pearson_indexed( int nix, int *ix, float *x, float *y )
 #define NBOOT 600
 #define NB5    15  /* must be 2.5% of the above */
 
-#undef  PHI
-#define PHI(x) (1.0-qg(x))       /* CDF of N(0,1) */
-
-#undef  PHINV
-#define PHINV(x) qginv(1.0-(x))  /* inverse CDF of N(0,1) */
-
 void THD_pearson_corr_boot( int n , float *x , float *y ,
                             float_triple *rrr ,
                             float_triple *aaa ,
@@ -313,27 +307,27 @@ void THD_pearson_corr_boot( int n , float *x , float *y ,
    free(ix) ;
 
    /* sort, then find 2.5% and 97.5% points, save into output structs */
-   /* [at this time, there is no bias correction applied ... later?]  */
+   /*    [bootstrap confidence intervals are now bias-corrected!]     */
 
    if( rrr != NULL ){
-     qsort_float( NBOOT , rx ) ;
-     rrr->a = rr ;
-     rrr->b = 0.5f * (rx[NB5-1]+rx[NB5]) ;
-     rrr->c = 0.5f * (rx[NBOOT-NB5]+rx[NBOOT-NB5-1]) ;
+     float_triple qqq = THD_bootstrap_confinv( rr , 0.05f , NBOOT , rx ) ;
+     rrr->a = rr ;      /* would be qqq.b for bias-corrected estimate */
+     rrr->b = qqq.a ;   /* lower bound */
+     rrr->c = qqq.c ;   /* upper bound */
    }
 
    if( aaa != NULL ){
-     qsort_float( NBOOT , ax ) ;
+     float_triple qqq = THD_bootstrap_confinv( aa , 0.05f , NBOOT , ax ) ;
      aaa->a = aa ;
-     aaa->b = 0.5f * (ax[NB5-1]+ax[NB5]) ;
-     aaa->c = 0.5f * (ax[NBOOT-NB5]+ax[NBOOT-NB5-1]) ;
+     aaa->b = qqq.a ;
+     aaa->c = qqq.c ;
    }
 
    if( bbb != NULL ){
-     qsort_float( NBOOT , bx ) ;
+     float_triple qqq = THD_bootstrap_confinv( bb , 0.05f , NBOOT , bx ) ;
      bbb->a = bb ;
-     bbb->b = 0.5f * (bx[NB5-1]+bx[NB5]) ;
-     bbb->c = 0.5f * (bx[NBOOT-NB5]+bx[NBOOT-NB5-1]) ;
+     bbb->b = qqq.a ;
+     bbb->c = qqq.c ;
    }
 
    return ;
@@ -1597,4 +1591,50 @@ void rank_order_2floats( int n1 , float *a1 , int n2 , float *a2 )
    aa[0] = a1 ; aa[1] = a2 ;
    rank_order_float_arrays( 2 , nn , aa ) ;
    return ;
+}
+
+/*---------------------------------------------------------------------------*/
+
+#undef  PHI
+#define PHI(x) (1.0-qg(x))       /* CDF of N(0,1) */
+
+#undef  PHINV
+#define PHINV(x) qginv(1.0-(x))  /* inverse CDF of N(0,1) */
+
+#undef  ZLIM
+#define ZLIM 0.5f
+
+float_triple THD_bootstrap_confinv( float estim , float alpha ,
+                                    int nboot   , float *eboot )
+{
+   float_triple retval = {0.0f,0.0f,0.0f} ;
+   int ii ; float z0 , zal , pp ;
+
+   if( nboot < 100 || eboot == NULL ) return retval ;           /* bad user */
+
+   if( alpha <= 0.001f || alpha >= 0.9f ) alpha = 0.05f ;    /* stupid user */
+   alpha *= 0.5f ;                                          /* 1-sided tail */
+   if( (int)(alpha*nboot) < 5 ) alpha = 5.0f / nboot ;     /* upward adjust */
+   zal = PHINV(alpha) ;                               /* should be negative */
+
+   qsort_float( nboot , eboot ) ;
+
+   for( ii=0 ; ii < nboot && eboot[ii] < estim ; ii++ ) ;             /*nada*/
+   if( ii <= 1 || ii >= nboot-1 ) return retval ;            /* crummy data */
+   z0 = PHINV( (ii-0.5f) / nboot ) ;
+   if( z0 < -ZLIM ) z0 = -ZLIM ; else if( z0 > ZLIM ) z0 = ZLIM ; /* limits */
+
+   pp = PHI( 2.0*z0 + zal ) * nboot ;                        /* lower bound */
+   ii = (int)pp ; pp = pp - ii ; if( ii >= nboot-1 ) ii = nboot-2 ;
+   retval.a = (1.0f-pp)*eboot[ii] + pp*eboot[ii+1] ;
+
+   pp = PHI( 2.0*z0 - zal ) * nboot ;                        /* lower bound */
+   ii = (int)pp ; pp = pp - ii ; if( ii >= nboot-1 ) ii = nboot-2 ;
+   retval.c = (1.0f-pp)*eboot[ii] + pp*eboot[ii+1] ;
+
+   pp = PHI( 2.0*z0 ) * nboot ;
+   ii = (int)pp ; pp = pp - ii ; if( ii >= nboot-1 ) ii = nboot-2 ;
+   retval.b = (1.0f-pp)*eboot[ii] + pp*eboot[ii+1] ;
+
+   return retval ;
 }

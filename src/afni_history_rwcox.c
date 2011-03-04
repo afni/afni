@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 4 , MAR , 2011 , RWC , "3dttest++" , MINOR , TYPE_BUG_FIX ,
+  { 4 , MAR , 2011 , RWC , "afni Clusterize" , MICRO , TYPE_MODIFY ,
+   "Replace S:mean correlation confidence intervals" ,
+   "From simple bootstrap to bias-corrected (BC, not BCa) bootstrap." } ,
+
+ { 4 , MAR , 2011 , RWC , "3dttest++" , MINOR , TYPE_BUG_FIX ,
    "Fixed bug with 1-sample results in -paired run" ,
    "Forgot to turn off the 'paired' opcode for the 1-sample (no covariates)\n"
    "analyses, so results were all zero!" } ,
