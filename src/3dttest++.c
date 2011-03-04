@@ -57,7 +57,7 @@ static int   zskip_BBB = 0 ;
 static float zskip_fff = 0.0f ;
 static int   do_zskip  = 0 ;
 
-#define ALLOW_RANKS
+#undef ALLOW_RANK
 static int   do_ranks  = 0 ;  /* 10 Nov 2010 */
 static int   do_1sam   = 1 ;  /* 10 Nov 2010 */
 
@@ -544,7 +544,7 @@ void display_help_menu(void)
       "\n"
       "* If you are doing a 2-sample run and don't want the 1-sample results,\n"
       "   then the '-no1sam' option can be used to eliminate these sub-bricks\n"
-      "   from the output.\n"
+      "   from the output, saving space and time.\n"
       "\n"
       "* The largest Tstat that will be output is 99.\n"
       "* The largest Zscr that will be output is 13.\n"
@@ -720,7 +720,7 @@ int main( int argc , char *argv[] )
        do_1sam = 0 ; nopt++ ; continue ;
      }
 
-#ifdef ALLOW_RANKS
+#ifdef ALLOW_RANK
      /*----- rankize -----*/
 
      if( strcasecmp(argv[nopt],"-rankize") == 0 ){  /* 10 Nov 2010 */
@@ -1081,7 +1081,7 @@ int main( int argc , char *argv[] )
      do_1sam = 1 ;
    }
 
-#ifdef ALLOW_RANKS
+#ifdef ALLOW_RANK
    if( do_ranks && !twosam ){
      WARNING_message("-rankize only works with two-sample tests ==> ignoring") ;
      do_ranks = 0 ; do_1sam = 1 ;
@@ -1494,12 +1494,12 @@ int main( int argc , char *argv[] )
 
        if( twosam ){
          if( do_1sam ){
-           tpair = ttest_toz( nAAA,zAAA , 0 ,NULL   , ttest_opcode ) ;
+           tpair = ttest_toz( nAAA,zAAA , 0 ,NULL   , 0 ) ;
            resar[2] = tpair.a ; resar[3] = tpair.b ;
-           tpair = ttest_toz( nBBB,zBBB , 0 ,NULL   , ttest_opcode ) ;
+           tpair = ttest_toz( nBBB,zBBB , 0 ,NULL   , 0 ) ;
            resar[4] = tpair.a ; resar[5] = tpair.b ;
          }
-#ifdef ALLOW_RANKS
+#ifdef ALLOW_RANK
          if( do_ranks ) rank_order_2floats( nAAA,zAAA , nBBB,zBBB ) ;
 #endif
          tpair = ttest_toz( nAAA,zAAA , nBBB,zBBB , ttest_opcode ) ;
@@ -1523,7 +1523,7 @@ int main( int argc , char *argv[] )
 
        if( nws > 0 ) memset(workspace,0,nws) ;
 
-#ifdef ALLOW_RANKS
+#ifdef ALLOW_RANK
        if( do_ranks ) rank_order_2floats( nval_AAA, datAAA, nval_BBB, datBBB ) ;
 #endif
        regress_toz( nval_AAA , datAAA , nval_BBB , datBBB , ttest_opcode ,
@@ -2156,7 +2156,7 @@ ENTRY("TT_matrix_setup") ;
      }
    }
 
-#ifdef ALLOW_RANKS
+#ifdef ALLOW_RANK
    if( do_ranks ){
      for( jj=1 ; jj <= mcov ; jj++ ){
        if( twosam && ttest_opcode != 2 )
