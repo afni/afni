@@ -453,7 +453,7 @@ void display_help_menu(void)
       "                 indicates that at least 90%% (e.g.) of the values in each\n"
       "                 set must be nonzero for the t-test to proceed. [08 Nov 2010]\n"
       "                 -- In no case will the number of values tested fall below 2!\n"
-      "                 -- You can use '100%' for 'n', to indicate that all data\n"
+      "                 -- You can use '100%%' for 'n', to indicate that all data\n"
       "                    values must be nonzero for the test to proceed.\n"
 #ifdef ALLOW_RANK
       "\n"
@@ -1658,6 +1658,8 @@ void regress_toz( int numA , float *zA ,
 
 ENTRY("regress_toz") ;
 
+   if( numB == 0 ) opcode = 0 ;  /* 03 Mar 2011 */
+
    nws = 0 ;
    if( testA || testAB ){
      betA  = workspace + nws ; nws += mm ;
@@ -1820,9 +1822,11 @@ float_pair ttest_toz( int numx, float *xar, int numy, float *yar, int opcode )
    float_pair result = {0.0f,0.0f} ;
    register int ii ; register float val ;
    float avx,sdx , avy,sdy , dof , tstat=0.0f,delta=0.0f ;
-   int paired=(opcode==2) , pooled=(opcode==0) ;
+   int paired,pooled ;
 
 ENTRY("ttest_toz") ;
+   if( numy == 0 || yar == NULL ) opcode = 0 ;  /* 03 Mar 2011 */
+   paired = (opcode==2) ; pooled = (opcode==0) ;
 
 #if 1
    /* check inputs for stoopidities or other things that need to be changed */
