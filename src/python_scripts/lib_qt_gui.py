@@ -12,6 +12,7 @@ g_history = """
      - current font is courier bold
 """
 
+# ---------------------------------------------------------------------------
 class TextWindow(QtGui.QMainWindow):
 
     def __init__(self, fname='', text='', title='', viewonly=False,
@@ -178,6 +179,10 @@ class TextWindow(QtGui.QMainWindow):
             if fp is not None: fp.close()
         return True
 
+# end TextWindow class
+# ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
 def static_TextWindow(fname='', text='', title='', parent=None):
    """create a 'delete on exit' TextWindow"""
    stitle = '(static) %s' % title
@@ -431,6 +436,10 @@ class TableWidget(QtGui.QTableWidget):
             entries     : 2D set of values (any # rows, but cols should match)
       """
 
+# end TableWidget class
+# ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
 class label_opt_exec_widget(object):
    """QWidget containing row of label, item menu, pushbutton
 
@@ -473,6 +482,7 @@ class label_opt_exec_widget(object):
       """return the selected menu index (comboBox)"""
       return self.menu.currentIndex()
 
+# ---------------------------------------------------------------------------
 class button_list_widget(object):
    """QWidget containing array of buttons
 
@@ -514,6 +524,10 @@ class button_list_widget(object):
  
       return 'NO_SUCH_BUTTON'
 
+# end button_list_widget class
+# ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
 class radio_group_box(object):
    """QGroupBox with radio buttons of the labels
 
@@ -551,6 +565,344 @@ class radio_group_box(object):
          if rb.isChecked(): return ind
       print("** no button in radio_group_box '%s' isChecked" % self.title)
       return 0  
+
+# end radio_group_box class
+# ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
+class TcshCommandWindow(QtGui.QMainWindow):
+
+   def __init__(self, command, dir='', outfile='', sepwin=0, parent=None):
+      """Create a window to display the processing of a given tcsh command.
+
+         The command is executed via 'tcsh -c command'.
+
+         command        - command to execute
+         dir            - if set, use as processing directory
+         sepwin         - if set, use separate windows for stdout and stderr
+
+      """
+
+      super(TcshCommandWindow, self).__init__(parent)
+
+      # set up widgets
+      self.widget = QtGui.QWidget()
+      self.Edit_out = QtGui.QTextEdit()   # stdout, and maybe stderr
+      self.Bstart = QtGui.QPushButton('Start')
+      self.Bstop = QtGui.QPushButton('Stop')
+
+      # create layout, for either 1 or 2 sub-windows
+      layout = QtGui.QGridLayout()
+
+      if sepwin:
+         offset = 8
+         self.Edit_err = QtGui.QTextEdit()
+         layout.addWidget(self.Edit_out, 0, 0, offset, 5)
+         layout.addWidget(self.Edit_err, offset, 0, offset, 5)
+         offset += 8
+      else:
+         offset = 16
+         layout.addWidget(self.Edit_out, 0, 0, offset, 5)
+         self.Edit_err = self.Edit_out  # same edit window
+
+      if dir != '':
+         clabel, slabel = create_display_label_pair('exec directory:', dir)
+         layout.addWidget(clabel, offset, 0)
+         layout.addWidget(slabel, offset, 1, 1, 4)
+         offset += 1
+
+      clabel, slabel = create_display_label_pair('exec command:', command)
+      layout.addWidget(clabel, offset, 0)
+      layout.addWidget(slabel, offset, 1, 1, 4)
+      offset += 1
+
+      layout.addWidget(self.Bstart, offset, 2, 1, 1)
+      layout.addWidget(self.Bstop, offset, 3, 1, 1)
+      offset += 1
+
+      self.widget.setLayout(layout)
+
+      self.setCentralWidget(self.widget)
+      self.resize(700,500)
+
+      # updates to QTextEdit widgets
+      self.Edit_out.setLineWrapMode(QtGui.QTextEdit.NoWrap)
+      self.Edit_err.setLineWrapMode(QtGui.QTextEdit.NoWrap)
+
+      # set callbacks
+      self.Bstart.clicked.connect(self.cb_start)
+      self.Bstop.clicked.connect(self.cb_stop)
+
+      self.process = QtCore.QProcess()
+      self.process.readyReadStandardError.connect(self.readstderr)
+      self.process.readyReadStandardOutput.connect(self.readstdout)
+      self.process.finished.connect(self.finished)
+      self.status  = 0
+
+      self.setWindowTitle('processing command: %s' % command)
+
+      self.command = command
+      self.dir = dir
+
+      self.cb_start()
+
+   def finished(self):
+      self.readstderr()
+      self.readstdout()
+      print '-- processed finished, state = %d, status = %d' \
+            % (self.process.state(), self.process.exitStatus())
+
+   def readstdout(self):
+      text = str(self.process.readAllStandardOutput())
+      if len(text) == 0: return
+      editor = self.Edit_out
+      editor.moveCursor(QtGui.QTextCursor.End, QtGui.QTextCursor.MoveAnchor)
+      editor.insertPlainText(text)
+      editor.moveCursor(QtGui.QTextCursor.End, QtGui.QTextCursor.MoveAnchor)
+      editor.ensureCursorVisible()
+
+   def readstderr(self):
+      text = str(self.process.readAllStandardError())
+      if len(text) == 0: return
+      editor = self.Edit_err
+      editor.moveCursor(QtGui.QTextCursor.End, QtGui.QTextCursor.MoveAnchor)
+      editor.insertPlainText(text)
+      editor.moveCursor(QtGui.QTextCursor.End, QtGui.QTextCursor.MoveAnchor)
+      editor.ensureCursorVisible()
+
+   def cb_start(self, cmd=''):
+      if cmd == '' or cmd == False: cmd = self.command
+      if cmd == '' or cmd == False:
+         print '** SPW: no command to execute'
+         return
+
+      # note directory
+      if self.dir != '':
+         print '-- setting working dir to %s' % self.dir
+         self.process.setWorkingDirectory(self.dir)
+
+      print 'starting command: %s\n' % cmd
+      args = ['-c', cmd]
+
+      self.process.start('tcsh', args)
+      if self.process.waitForStarted():
+         print '++ process is started, pid = %d' % self.process.pid()
+         self.status = 0
+      else:
+         print '** failed to start'
+         self.status = -1
+
+   def cb_stop(self):
+      print 'stopping command %s ...' % self.command
+      self.process.kill()
+
+# end TcshCommandWindow class
+# ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
+class ProcessWindow(QtGui.QMainWindow):
+
+   def __init__(self, command='', dir='', title='', parent=None, sepwin=1):
+      """Create a window to display the processing of a passed command, or of
+         those specified by the user.
+
+         command        - if set, execute the command
+         dir            - if set, use as processing directory
+         sepwin         - if set, use separate windows for stdout and stderr
+
+      """
+      if title == '': title = 'command process'
+
+      super(ProcessWindow, self).__init__(parent)
+
+      # track commands
+      self.commandlist = []
+
+      # set up widgets
+      self.widget = QtGui.QWidget()
+      self.Edit_out = QtGui.QTextEdit()   # stdout, and maybe stderr
+      self.Edit_hist = QtGui.QTextEdit()
+      self.lineedit = QtGui.QLineEdit()
+      self.Bstart = QtGui.QPushButton('Start')
+      self.Bstop = QtGui.QPushButton('Stop')
+      clabel = QtGui.QLabel('command: ')
+
+      # create layout, for either 1 or 2 sub-windows
+      layout = QtGui.QGridLayout()
+
+      if sepwin:
+         offset = 8
+         self.Edit_err = QtGui.QTextEdit()
+         layout.addWidget(self.Edit_out, 0, 0, offset, 5)
+         layout.addWidget(self.Edit_err, offset, 0, offset, 5)
+         offset += 8
+      else:
+         offest = 16
+         layout.addWidget(self.Edit_out, 0, 0, offest, 5)
+         self.Edit_err = self.Edit_out  # same edit window
+
+      layout.addWidget(clabel, offset, 0)
+      layout.addWidget(self.lineedit, offset, 1, 1, 4)
+      offset += 1
+      layout.addWidget(self.Bstart, offset, 2, 1, 1)
+      layout.addWidget(self.Bstop, offset, 3, 1, 1)
+      offset += 1
+
+      nlines = 3
+      self.Edit_hist.setMaximumSize(700,60)
+      layout.addWidget(self.Edit_hist, offset, 0, nlines, 5)
+      offset += nlines
+
+      self.widget.setLayout(layout)
+
+
+      self.setCentralWidget(self.widget)
+      self.resize(700,500)
+
+      # updates to QTextEdit widgets
+      self.Edit_out.setLineWrapMode(QtGui.QTextEdit.NoWrap)
+      self.Edit_err.setLineWrapMode(QtGui.QTextEdit.NoWrap)
+
+      # set callbacks
+      self.lineedit.editingFinished.connect(self.cb_newcommand)
+      self.Bstart.clicked.connect(self.cb_start)
+      self.Bstop.clicked.connect(self.cb_stop)
+
+      self.process = QtCore.QProcess()
+      self.process.readyReadStandardError.connect(self.readstderr)
+      self.process.readyReadStandardOutput.connect(self.readstdout)
+      self.process.finished.connect(self.finished)
+      self.status  = 0
+
+      if title != '': self.setWindowTitle(title)
+      else:           self.setWindowTitle('command processing')
+
+      self.command = command
+      self.dir = dir
+
+      if command != '':
+         self.lineedit.setText(command)
+         self.cb_start()
+
+   def finished(self):
+      self.readstderr()
+      self.readstdout()
+      print '-- processed finished, state = %d, status = %d' \
+            % (self.process.state(), self.process.exitStatus())
+
+   def readstdout(self):
+      text = str(self.process.readAllStandardOutput())
+      if len(text) == 0: return
+      editor = self.Edit_out
+      editor.moveCursor(QtGui.QTextCursor.End, QtGui.QTextCursor.MoveAnchor)
+      editor.insertPlainText(text)
+      editor.moveCursor(QtGui.QTextCursor.End, QtGui.QTextCursor.MoveAnchor)
+      editor.ensureCursorVisible()
+
+   def readstderr(self):
+      text = str(self.process.readAllStandardError())
+      if len(text) == 0: return
+      editor = self.Edit_err
+      editor.moveCursor(QtGui.QTextCursor.End, QtGui.QTextCursor.MoveAnchor)
+      editor.insertPlainText(text)
+      editor.moveCursor(QtGui.QTextCursor.End, QtGui.QTextCursor.MoveAnchor)
+      editor.ensureCursorVisible()
+
+   def cb_newcommand(self):
+      self.lineedit.clearFocus()
+      pstate = self.process.state()
+      print '-- trying command %d' % len(self.commandlist)
+      if pstate == QtCore.QProcess.NotRunning:
+         return self.cb_start()
+      else:
+         return
+         print '** will not run new command until old one is finished'
+         print '== state is %s\n' % pstate
+
+   def cb_start(self, cmd=''):
+      if cmd == '' or cmd == False:
+         cmd = self.lineedit.text()
+         if cmd == '': return
+         cmd = str(cmd)
+
+      targs = cmd.split(' ')
+      if len(targs) < 1: return
+
+      # note directory
+      if self.dir != '':
+         print '-- setting working dir to %s' % self.dir
+         self.process.setWorkingDirectory(self.dir)
+
+      print 'starting command: %s\n' % str(cmd)
+      self.commandlist.append(cmd)
+      self.Edit_hist.append(cmd)
+      self.lineedit.clear()
+
+      self.process.start(targs[0], targs[1:])
+      if self.process.waitForStarted():
+         print '++ process is started, pid = %d' % self.process.pid()
+         self.status = 0
+      else:
+         print '** failed to start'
+         self.status = -1
+
+   def cb_stop(self):
+      print 'stopping'
+      self.process.kill()
+
+# end ProcessWindow class
+# ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
+class PyCommandWindow(QtGui.QMainWindow):
+
+   def __init__(self, title='', callback=None, parent=None):
+      """open a text window for executing internal python commands
+
+         The callback function should be set.  Note that variables used will
+         be with respect to that function.
+
+         The window will be used for a history of commands.
+      """
+
+      if title == '': title = 'text view'
+
+      super(PyCommandWindow, self).__init__(parent)
+      # self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+
+      self.widget = QtGui.QWidget()           # main widget
+      self.editor = QtGui.QTextEdit()         # history frame
+      self.lineedit = QtGui.QLineEdit()       # new command line
+      clabel = QtGui.QLabel('command: ')
+
+      layout = QtGui.QVBoxLayout()
+      self.editor.resize(300,300)
+      layout.addWidget(self.editor)
+      
+      hwidget = QtGui.QWidget()
+      hlayout = QtGui.QHBoxLayout()
+      hlayout.addWidget(clabel)
+      hlayout.addWidget(self.lineedit)
+      hwidget.setLayout(hlayout)
+
+      layout.addWidget(hwidget)
+
+      self.widget.setLayout(layout)
+      self.setCentralWidget(self.widget)
+
+      self.callback = callback
+
+      if callback != None:
+         self.lineedit.editingFinished.connect(self.process_command)
+
+   def process_command(self):
+      command = str(self.lineedit.text())
+      self.lineedit.clearFocus()
+      if self.callback != None: self.callback(command)
+      self.editor.append(command)
+
+# end PyCommandWindow class
+# ---------------------------------------------------------------------------
 
 if __name__ == '__main__':
    app = QtGui.QApplication(sys.argv)

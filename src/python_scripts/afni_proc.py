@@ -230,9 +230,10 @@ g_history = """
         - problem noted by C Deveney and R Momenan
     2.44 Dec 16 2010 : small changes to file type warnings
     2.45 Jan 13 2011 : small changes to warnings for missing stimulus files
+    2.46 Mar 07 2011 : make proc script executable
 """
 
-g_version = "version 2.45, Jan 13, 2010"
+g_version = "version 2.46, Mar 7, 2011"
 
 # version of AFNI required for script execution
 g_requires_afni = "4 Nov 2010"
@@ -1028,6 +1029,7 @@ class SubjProcSream:
         if rv: errs += 1
 
         if self.fp: self.fp.close()
+        os.chmod(self.script, 0755)     # make executable
 
         if errs > 0:
             # default to removing any created script
