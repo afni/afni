@@ -49,6 +49,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  7, MAR, 2011, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
+   "make proc script executable",
+   NULL
+ } ,
+
+ {  7, MAR, 2011, RCR, "uber_subject.py", MINOR, TYPE_ENHANCE,
+   "updates: command and pycommand windows, new Process classes, ...",
+   "See -hist for version 0.7."
+ } ,
+
  {  3, MAR, 2011, RCR, "uber_subject.py", MINOR, TYPE_ENHANCE,
    "updates: control vars, subj dir, view actions, result vars, ...",
    "See -hist for version 0.6."

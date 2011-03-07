@@ -35,31 +35,35 @@ enables one to:
         - initialize control variables for control of execution
         - pass PyQt4 options directly to the GUI
 
+----------------------------------------------------------------------
 Examples:
 
-  GUI examples:
-    uber_subject.py
-    uber_subject.py -qt_opts -style=motif
-    uber_subject.py -svar sid FT -svar gid idiots  \\
-                    -svar anat FT_anat+orig.HEAD   \\
-                    -svar epi FT_epi_r*.HEAD       \\
-                    -svar stim AV*.txt             \\
-                    -svar stim_basis 'BLOCK(15,1)'
-    uber_subject.py -cvar subj_dir my/subject/dir
+   GUI examples:
 
-  Informational examples:
-    uber_subject.py -help
-    uber_subject.py -help_gui
-    uber_subject.py -hist
-    uber_subject.py -show_valid_opts
+      uber_subject.py
+      uber_subject.py -qt_opts -style=motif
+      uber_subject.py -svar sid FT -svar gid idiots  \\
+                      -svar anat FT_anat+orig.HEAD   \\
+                      -svar epi FT_epi_r*.HEAD       \\
+                      -svar stim AV*.txt             \\
+                      -svar stim_basis 'BLOCK(15,1)'
+      uber_subject.py -cvar subj_dir my/subject/dir
 
-  Non-GUI examples (all have -no_gui):
-    uber_subject.py -no_gui -print_ap_command                   \\
-        -svar sid FT -svar gid idiots                           \\
-        -svar anat FT_anat+orig.HEAD -svar epi FT_epi_r*.HEAD   \\
-        -svar stim AV*.txt -svar stim_basis 'BLOCK(15,1)'       \\
-        -cvar subj_dir my/subject/dir -exec_ap_command
-    
+   Informational examples:
+
+      uber_subject.py -help
+      uber_subject.py -help_gui
+      uber_subject.py -hist
+      uber_subject.py -show_valid_opts
+
+   Non-GUI examples (all have -no_gui):
+
+      uber_subject.py -no_gui -print_ap_command                   \\
+          -svar sid FT -svar gid idiots                           \\
+          -svar anat FT_anat+orig.HEAD -svar epi FT_epi_r*.HEAD   \\
+          -svar stim AV*.txt -svar stim_basis 'BLOCK(15,1)'       \\
+          -cvar subj_dir my/subject/dir -exec_ap_command
+----------------------------------------------------------------------
 
 - R Reynolds  Feb, 2011
 ===========================================================================
@@ -335,8 +339,6 @@ def run_gui(svars=None, cvars=None, guiopts=[]):
 
    # if the above worked, let any GUI import errors show normally
    import gui_uber_subj as GUS
-
-   print '-- have GUI options: %s' % guiopts
 
    app = QtGui.QApplication(guiopts)
    dialog = GUS.SingleSubjectWindow(subj_vars=svars, ctrl_vars=cvars)

@@ -49,6 +49,14 @@ g_history = """
          - created rvars, for access of subject results variables
          - wrote a little more command line help
          - moved exec functions to subject object
+    0.7  Mar  7, 2011
+         - added menu items to show: py command and command windows
+         - exec proc script via new TcshCommandWindow class
+         - added ProcessWindow class (exec system commands (not shell))
+         - added PyCommandWindow class (exec internal python commands)
+         - init rvars file names early, rather than at exec use time
+         - improved file application
+         - do not copy orig files, do that only via uber_proc.py
 """
 
 g_version = '0.6 (March 3, 2011)'
@@ -251,8 +259,11 @@ class AP_Subject(object):
          - return status and command output
       """
 
-      if self.rvars.file_ap == '':
+      pfile = self.subj_dir_filename('file_ap')
+      if not pfile:
          return 1, '** no file set as afni_proc.py command'
+      elif not os.path.isfile(pfile):
+         return 1, '** afni_proc.py script not found: %s' % pfile
 
       self.goto_subj_dir()
       cstr = 'tcsh %s' % self.rvars.file_ap
@@ -265,6 +276,10 @@ class AP_Subject(object):
       # possibly make a backup file
       if self.cvars.copy_scripts: self.copy_orig_proc()
 
+      # set results_dir, since we might not be the ones to exec proc script
+      if not self.rvars.results_dir:
+         self.rvars.results_dir = '%s.results' % self.svars.sid
+
       return cmd.status, '\n'.join(cmd.so)
 
    def exec_proc_script(self, xterm=0):
@@ -275,23 +290,21 @@ class AP_Subject(object):
          - return status and command output
       """
 
-      if self.rvars.file_proc == '':
-         return 1, '** no file set as proc script'
+      pfile = self.subj_dir_filename('file_proc')
+      if not pfile: 
+         return 1, '** proc script file not set'
+      elif not os.path.isfile(pfile):
+         return 1, '** proc script not found: %s' % pfile
+
+      self.nuke_old_results()   # nuke any old results
 
       self.goto_subj_dir() # ---------- do the work ----------
 
-      # set results directory
-      self.rvars.results_dir = '%s.results' % self.svars.sid
-
-      # if old results exist, nuke them
-      if os.path.isdir(self.rvars.results_dir):
-         print "** nuking old results dir %s" % self.rvars.results_dir
-         os.system('rm -fr %s' % self.rvars.results_dir)
-
       # execute script
       pfile = self.rvars.file_proc
-      ofile = 'output.%s' % pfile
-      cstr = 'tcsh -xef %s |& tee %s' % (pfile, ofile)
+      ofile = self.rvars.output_proc
+      if ofile: cstr = 'tcsh -xef %s |& tee %s' % (pfile, ofile)
+      else:     cstr = 'tcsh -xef %s' % (pfile)
       print '++ executing: %s' % cstr
 
       capture = 0       # init as output to terminal
@@ -300,15 +313,27 @@ class AP_Subject(object):
          capture = 1
          cstr = 'xterm -e %s' % cstr
 
-      self.rvars.output_proc = ofile
-
       cmd = BASE.shell_com(cstr, capture=capture)
       cmd.run()
 
       self.ret_from_subj_dir() # ---------- done ----------
 
-      # rcr, return anything?  want to show output.proc.SUBJ?
+      # rcr - return anything?  want to show output.proc.SUBJ?
       return cmd.status, '\n'.join(cmd.so)
+
+   def nuke_old_results(self):
+      """if the results directory exists, remove it"""
+
+      if self.rvars.results_dir == '': return
+
+      self.goto_subj_dir()      # ---------- do the work ----------
+      
+      if os.path.isdir(self.rvars.results_dir):
+         print '-- nuking old results: %s' % self.rvars.results_dir
+         os.system('rm -fr %s' % self.rvars.results_dir)
+
+      self.ret_from_subj_dir()  # ---------- done ----------
+
 
    def copy_orig_proc(self):
       """if the proc script exists, copy to .orig.SCRIPTNAME"""
@@ -595,6 +620,11 @@ class AP_Subject(object):
       return 0
 
    def script_ap_init(self):
+      # init all proc variables right away
+      self.rvars.file_proc = 'proc.%s' % self.svars.sid
+      self.rvars.output_proc = 'output.proc.%s' % self.svars.sid
+      self.rvars.results_dir = '%s.results' % self.svars.sid
+
       self.rvars.file_proc = 'proc.%s' % self.svars.sid
       cmd  = '# run afni_proc.py to create a single subject processing script\n'
       cmd += 'afni_proc.py -subj_id $subj \\\n'         \
@@ -775,6 +805,17 @@ class AP_Subject(object):
       mesg = ''
       for mm in mlist: mesg += (mm + '\n')
       return mesg
+
+   def subj_dir_filename(self, fname):
+      """file is either fname or subj_dir/fname (if results is set)
+         fname : results file variable
+      """
+      dir = self.cvars.val('subj_dir')
+      fname = self.rvars.val(fname)
+      if fname == None or fname == '': return None
+      # if no directory, just use fname, else append it to directory
+      if dir == None or dir == '' or dir == '.': return fname
+      else:                                      return '%s/%s' % (dir, fname)
 
 def get_dir_and_glob_form(flist):
    """return the common directory and glob form string of a list"""
