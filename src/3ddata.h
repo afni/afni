@@ -4280,6 +4280,8 @@ extern void THD_vectim_spearman( MRI_vectim *mrv, float *vec, float *dp ) ; /* 0
 extern void THD_vectim_quadrant( MRI_vectim *mrv, float *vec, float *dp ) ; /* 01 Mar 2010 */
 extern void THD_vectim_ktaub   ( MRI_vectim *mrv, float *vec, float *dp ) ; /* 29 Apr 2010 */
 
+extern void THD_vectim_pearsonBC( MRI_vectim *mrv, float srad, int sijk, int pv, float *par ) ;
+
 extern float kendallNlogN ( float *arr1, float *arr2, int len ) ;  /* in ktaub.c */
 extern float kendallSmallN( float *arr1, float *arr2, int len ) ;
 
@@ -4960,10 +4962,13 @@ extern void THD_pearson_corr_boot( int n, float *x, float *y,
                             float_triple *rrr ,
                             float_triple *aaa ,
                             float_triple *bbb  ) ;         /* 01 Mar 2011 */
-extern float_triple THD_pearson_indexed( int nix, int *ix, float *x, float *y ) ;
+extern float_triple THD_pearson_indexed( int nix, int *ix, float *x, float *y );
 extern float_triple THD_bootstrap_confinv( float estim , float alpha ,
                                            int nboot   , float *eboot ) ;
 extern float THD_bootstrap_biascorr( float estim , int nboot , float *eboot ) ;
+
+extern float THD_bootstrap_vectcorr( int nlen, int nboot, int use_pv, int xtyp,
+                                     int xnum, void *xp , int ynum  , void *yp );
 
 extern float THD_spearman_corr_nd( int,float *,float *) ;  /* 23 Aug 2006 */
 extern float THD_quadrant_corr_nd( int,float *,float *) ;

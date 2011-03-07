@@ -749,6 +749,9 @@ extern MRI_IMAGE ** mri_stat_seq( MRI_IMAGE * ) ;
 #define NBISTAT_NCD                66612
 #define NBISTAT_KENDALL_TAUB       66613 /* 29 Apr 2010 */
 
+#define NBISTAT_BC_PEARSON_M       66691
+#define NBISTAT_BC_PEARSON_V       66692
+
 extern float mri_nstat  ( int , int , float * , float) ;  /* 19 Aug 2005 */
 extern float mri_nbistat( int , MRI_IMAGE *, MRI_IMAGE * ) ; /* 26 Oct 2006 */
 extern void mri_nbistat_setclip( float, float , float, float ) ;
