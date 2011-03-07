@@ -194,8 +194,8 @@ ENTRY("THD_instacorr") ;
        qjk = qi + qj*nx + qk*nxy ;
        qq  = THD_vectim_ifind( qjk , iset->mv ) ;
        if( qq >= 0 ){
-         register float wt=1.0f ;
-         if( gblur ){ float rad=smask->mag[kk]; wt = exp(-fac*rad*rad); }
+         register float wt ;
+         if( gblur ){ float rad=smask->mag[kk]; wt = exp(-fac*rad*rad); } else wt = 1.0f;
           wtsum += wt ; qar = VECTIM_PTR(iset->mv,qq) ;
           for( tt=0 ; tt < iset->mv->nvals  ; tt++ ) sar[tt] += wt * qar[tt] ;
          }
@@ -230,6 +230,12 @@ ENTRY("THD_instacorr") ;
 
      case NBISTAT_KENDALL_TAUB:
        THD_vectim_ktaub( iset->mv , tsar , dar ) ; break ;  /* 29 Apr 2010 */
+
+     case NBISTAT_BC_PEARSON_M:
+       THD_vectim_pearsonBC( iset->mv , sblur , ijk , 0 , dar ) ; break ; /* 07 Mar 2011 */
+
+     case NBISTAT_BC_PEARSON_V:
+       THD_vectim_pearsonBC( iset->mv , sblur , ijk , 1 , dar ) ; break ; /* 07 Mar 2011 */
    }
 
    /** put them into the output image **/
