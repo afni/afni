@@ -213,20 +213,19 @@ float THD_quadrant_corr_nd( int n , float *x , float *y )
 }
 #endif
 
-/*----------------------------------------------------------------*/
+/*--------------------------------------------------------------------------*/
 /*! Pearson correlation of x[] and y[] (x and y are NOT modified. */
 
 float THD_pearson_corr( int n, float *x , float *y )
 {
    float xv=0.0f , yv=0.0f , xy=0.0f , vv,ww ;
    float xm=0.0f , ym=0.0f ;
-   int ii ;
+   register int ii ;
 
    for( ii=0 ; ii < n ; ii++ ){ xm += x[ii] ; ym += y[ii] ; }
    xm /= n ; ym /= n ;
    for( ii=0 ; ii < n ; ii++ ){
-     vv = x[ii]-xm ; ww = y[ii]-ym ;
-     xv += vv*vv ; yv += ww*ww ; xy += vv*ww ;
+     vv = x[ii]-xm; ww = y[ii]-ym; xv += vv*vv; yv += ww*ww; xy += vv*ww;
    }
 
    if( xv <= 0.0f || yv <= 0.0f ) return 0.0f ;
@@ -234,11 +233,11 @@ float THD_pearson_corr( int n, float *x , float *y )
 }
 
 /*-------------------------------------------------------------------------*/
-/* Returns a float_triple with (a,b,r) where
-     y = a*x + b
-   is the L2 regression result and r = Pearson correlation coeff.
-   For bootstrapping, ix[i] is the i-th index in x[] and y[] to use.
-   For non-bootstrapping, pass in ix==NULL.
+/*! Returns a float_triple with (a,b,r) where
+      y = a*x + b
+    is the L2 regression result and r = Pearson correlation coeff.
+    For bootstrapping, ix[i] is the i-th index in x[] and y[] to use.
+    For non-bootstrapping, pass in ix==NULL.
 *//*-----------------------------------------------------------------------*/
 
 #undef  IX
@@ -1672,4 +1671,121 @@ float THD_bootstrap_biascorr( float estim , int nboot , float *eboot )
    pp = (1.0f-pp)*eboot[ii] + pp*eboot[ii+1] ;
 
    return pp ;
+}
+
+/*----------------------------------------------------------------------------*/
+#undef  DEMEAN
+#define DEMEAN(n,v) do{ register int i ; register float s ;            \
+                        for( s=i=0 ; i < n ; i++ ) s += v[i] ;         \
+                        s /= n ; for( i=0 ; i < n ; i++ ) v[i] -= s ;  \
+                    } while(0)
+
+#undef  XPT
+#define XPT(q) ( (xtyp<=0) ? xx+(q)*nlen : xpt[q] )
+
+#undef  YPT
+#define YPT(q) ( (xtyp<=0) ? yy+(q)*nlen : ypt[q] )
+
+/*----------------------------------------------------------------------------*/
+/* Return bootstrap BC estimate for correlation of a bunch of vectors.
+*//*--------------------------------------------------------------------------*/
+
+float THD_bootstrap_vectcorr( int nlen, int nboot, int use_pv, int xtyp,
+                              int xnum, void *xp , int ynum  , void *yp )
+{
+   float rval, rxy, **xar, **yar, *rboot, *xbar, *ybar, *uvec, *vvec ;
+   int kb,ii,jj , dox,doy ;
+   unsigned short xran[3] ;
+   float *xx=NULL, **xpt=NULL, *yy=NULL, **ypt=NULL ; void *pvw=NULL ;
+
+ENTRY("THD_bootstrap_vectcorr") ;
+
+   if( nlen < 3 || xnum < 1 || ynum < 1 || xp == NULL || yp == NULL )
+     RETURN(0.0f) ;
+
+   if( xtyp <= 0 ){ xx  = (float *) xp ; yy  = (float *) yp ; }
+   else           { xpt = (float **)xp ; ypt = (float **)yp ; }
+
+   /* trivial case */
+
+   if( xnum == 1 && ynum == 1 ){
+     rval = THD_pearson_corr(nlen,XPT(0),YPT(0)) ; RETURN(rval) ;
+   }
+
+   /* compute mean vectors */
+
+#pragma omp critical (MALLOC)
+   { xbar = (float *)malloc(sizeof(float)*nlen) ;
+     ybar = (float *)malloc(sizeof(float)*nlen) ; }
+
+   (void)mean_vector( nlen , xnum , xtyp , xp , xbar ) ;
+   (void)mean_vector( nlen , ynum , xtyp , yp , ybar ) ;
+
+   dox = (xnum > 5) ; doy = (ynum > 5) ;  /* which to bootstrap */
+
+   if( !dox && !doy ){
+     rval = THD_pearson_corr(nlen,xbar,ybar) ;
+#pragma omp critical (MALLOC)
+     { free(ybar) ; free(xbar) ; }
+     RETURN(rval) ;
+   }
+
+   if( nboot < 50 ) nboot = 50 ;
+
+#pragma omp critical (MALLOC)
+   { xar   = (float **)malloc(sizeof(float *)*xnum ) ;
+     yar   = (float **)malloc(sizeof(float *)*ynum ) ;
+     rboot = (float * )malloc(sizeof(float)  *nboot) ;
+     uvec  = (float * )malloc(sizeof(float)  *nlen ) ;
+     vvec  = (float * )malloc(sizeof(float)  *nlen ) ;
+   }
+
+   /* correlation with no resampling at all */
+
+   if( use_pv ){
+     pvw = pv_get_workspace( nlen , MAX(xnum,ynum) ) ;
+     xran[0] = (unsigned short)(xnum+ynum+nlen) ;
+     xran[1] = 42731 ; xran[2] = 23172 ;
+     (void)principal_vector( nlen, xnum, xtyp, xp, uvec, xbar, pvw, xran) ;
+     (void)principal_vector( nlen, ynum, xtyp, yp, vvec, ybar, pvw, xran) ;
+   } else {
+     for( ii=0 ; ii < nlen ; ii++ ){ uvec[ii] = xbar[ii]; vvec[ii] = ybar[ii]; }
+   }
+   rxy = THD_pearson_corr( nlen , uvec , vvec ) ;
+
+   /* bootstrap correlations [selecting subsets from each set of vectors] */
+
+   for( kb=0 ; kb < nboot ; kb++ ){
+     if( dox ){
+       for( ii=0 ; ii < xnum ; ii++ ){  /* resample xx vectors */
+         jj = nrand48(xran) % xnum ; xar[ii] = XPT(jj) ;
+       }
+       if( use_pv )
+         (void)principal_vector( nlen, xnum, 1, xar, uvec, xbar, pvw, xran) ;
+       else
+          mean_vector( nlen , xnum , 1 , xar , uvec ) ;
+     }
+     if( doy ){
+       for( ii=0 ; ii < ynum ; ii++ ){  /* resample yy vectors */
+         jj = nrand48(xran) % ynum ; yar[ii] = YPT(jj) ;
+       }
+       if( use_pv )
+         (void)principal_vector( nlen, ynum, 1, yar, vvec, ybar, pvw, xran) ;
+       else
+         mean_vector( nlen , ynum , 1 , yar , vvec ) ;
+     }
+     rboot[kb] = THD_pearson_corr( nlen , uvec , vvec ) ;
+   }
+
+   /* final answer */
+
+   rval = THD_bootstrap_biascorr( rxy , nboot , rboot ) ;
+
+   /* cleanup the trash */
+
+#pragma omp critical (MALLOC)
+   { free(vvec); free(uvec); free(rboot);
+     free(yar); free(xar); free(ybar); free(xbar); if(use_pv)free(pvw); }
+
+   RETURN(rval) ;
 }
