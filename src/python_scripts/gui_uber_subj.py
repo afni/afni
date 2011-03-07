@@ -835,6 +835,24 @@ class SingleSubjectWindow(QtGui.QMainWindow):
          obj.setText(self.svars.val(attr))
          obj.setFocus()
 
+   def cb_command_window(self, cmd):
+      print '++ python exec command: %s' % cmd
+      exec(cmd)
+
+   def cb_show_py_command_window(self):
+      """show the python command window"""
+      self.gvars.PCW.show()
+      self.gvars.PCW.raise_()
+
+   def cb_show_command_window(self):
+      """show the shell command window"""
+      # start a new window?
+      if not self.gvars.valid('CW'):
+         self.gvars.CW = QLIB.ProcessWindow(title='command window',
+                                            parent=self, sepwin=1)
+      self.gvars.CW.show()
+      self.gvars.CW.raise_()
+
    def CB_gbox_PushB(self):
       """these buttons are associated with anat/EPI/stim file group boxes
          - the sender (button) text must be unique"""
@@ -1037,6 +1055,16 @@ class SingleSubjectWindow(QtGui.QMainWindow):
           slot=QLIB.print_icon_names,
           tip="display standard Icon names")
 
+      # create command window, and set call back for it
+      self.gvars.PCW = QLIB.PyCommandWindow(callback=self.cb_command_window)
+      act7 = self.createAction("python command window",
+          slot=self.cb_show_py_command_window,
+          tip="open command window for local python commands")
+
+      act8 = self.createAction("shell command window",
+          slot=self.cb_show_command_window,
+          tip="open command window for shell commands")
+
       self.gvars.act_show_ap = act1
       self.gvars.act_exec_ap = act2
       self.gvars.act_exec_proc = act3
@@ -1049,7 +1077,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
 
       # add show sub-menu
       self.gvars.Menu_show = self.gvars.MBar_hidden.addMenu("&Show")
-      self.addActions(self.gvars.Menu_show, [act4, act5, act6])
+      self.addActions(self.gvars.Menu_show, [act4, act5, act6, act7, act8])
 
       # create Style sub-menu
       self.gvars.Menu_format = self.gvars.MBar_hidden.addMenu("set Style")
@@ -1214,22 +1242,27 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       nwarn, wstr = self.apsubj.get_ap_warnings()
       status, mesg = self.apsubj.get_ap_command()
 
-      if status == -1:  # then only mention errors
+      if status:        # then only mention errors
          self.update_AP_error_window(mesg)
-      else:
-         # rcr - save orig and applied versions
-         #     - how do we control the filename for saving?
-         #     - maybe we write both files, then open the applied version
-         #       in the result window
+         return
 
-         self.gvars.ap_status = 1       # now have afni_proc.py command script
-         self.apsubj.write_ap_command(orig_copy=1)
+      self.gvars.ap_status = 1       # now have afni_proc.py command script
+      self.apsubj.write_ap_command()
 
-         self.update_AP_result_window(title="Success!  afni_proc.py command:",
-                                      fname=self.apsubj.rvars.file_ap)
-         if nwarn > 0: self.update_AP_warn_window(wstr)
-         self.gvars.act_exec_ap.setEnabled(True)
-         self.gvars.act_exec_proc.setEnabled(True)
+      fname = self.apsubj.subj_dir_filename('file_ap')
+      if not fname:
+         self.update_AP_warn_window('** no proc script to show')
+         return
+      elif not os.path.isfile(fname):
+         self.update_AP_warn_window('** proc script not found\n' \
+                                    '   (should be file %s)' % fname)
+         return
+
+      self.update_AP_result_window(title="Success!  afni_proc.py command:",
+                                   fname=fname)
+      if nwarn > 0: self.update_AP_warn_window(wstr)
+      self.gvars.act_exec_ap.setEnabled(True)
+      self.gvars.act_exec_proc.setEnabled(True)
 
    def update_svars_from_tables(self):
       """get updates from the EPI and stim tables"""
@@ -1290,7 +1323,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
          QLIB.guiError('Error', fmesg, self)
          return 1
 
-      status, mesg = self.apsubj.exec_ap_command(copy=1)
+      status, mesg = self.apsubj.exec_ap_command()
       if status:
          QLIB.guiError('Error', mesg, self)
          return 1
@@ -1319,13 +1352,32 @@ class SingleSubjectWindow(QtGui.QMainWindow):
          # execute afni_proc.py command, return on failure
          if self.exec_ap_command(): return
 
-      # execute the script
-      status, mesg = self.apsubj.exec_proc_script()
+      # make sure there is a script to execute
 
-      # rcr - display any results?  output.proc.subj?
-      # self.update_AP_result_window(text=mesg,
-      #                              title="output text from proc script")
-      if not status: self.gvars.ap_status = 3 
+      fname = self.apsubj.subj_dir_filename('file_proc')
+      if not fname:
+         self.update_AP_warn_window('** proc file not set')
+         return
+      elif not os.path.isfile(fname):
+         self.update_AP_warn_window('** proc file not found: %s\n' % fname)
+         return
+
+      self.apsubj.nuke_old_results()    # get rid of any previous results
+
+      # start a new window?
+      if self.gvars.valid('SPW'):
+         self.gvars.SPW.close()
+         del(self.gvars.SPW)
+
+      # actually run script, piping output if we have an output file
+      sname = self.apsubj.rvars.file_proc
+      oname = self.apsubj.rvars.output_proc
+      command= 'tcsh -xef %s' % sname
+      if oname: command = '%s |& tee %s' % (command, oname)
+      self.gvars.SPW = QLIB.TcshCommandWindow(command,
+                           dir=self.apsubj.cvars.subj_dir, parent=self)
+      self.gvars.SPW.show()
+      self.gvars.ap_status = 3 
 
    def cb_show_gvars(self):
       sstr = self.gvars.make_show_str('GUI vars', name=0)
@@ -1336,45 +1388,14 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       """create permanent windows with given text"""
       obj = self.sender()
 
-
       if obj == self.gvars.act_view_ap_cmd:
-         if self.apsubj == None:        # check for generated command
-            self.update_AP_warn_window('** afni_proc.py command must be\n' \
-                                       '   generated first')
-            return
-         file = self.apsubj.rvars.val('file_ap')
-         if not file:
-            self.update_AP_warn_window('** no afni_proc.py script to show')
-            return
-         else:
-            title = 'afni_proc.py command: %s' % file
-            QLIB.static_TextWindow(title=title, fname=file, parent=self)
+         self.show_static_file('file_ap', 'afni_proc.py script')
 
       elif obj == self.gvars.act_view_proc:
-         if self.apsubj == None:        # check for generated command
-            self.update_AP_warn_window('** afni_proc.py command must be\n' \
-                                       '   executed first')
-            return
-         file = self.apsubj.rvars.val('file_proc')
-         if not file:
-            self.update_AP_warn_window('** no proc script to show')
-            return
-         else:
-            title = 'processing script: %s' % file
-            QLIB.static_TextWindow(title=title, fname=file, parent=self)
+         self.show_static_file('file_proc', 'proc script')
 
       elif obj == self.gvars.act_view_outproc:
-         if self.apsubj == None:        # check for generated command
-            self.update_AP_warn_window('** afni_proc.py command must be\n' \
-                                       '   executed first')
-            return
-         file = self.apsubj.rvars.val('output_proc')
-         if not file:
-            self.update_AP_warn_window('** no proc output to show')
-            return
-         else:
-            title = 'proc output file: %s' % file
-            QLIB.static_TextWindow(title=title, fname=file, parent=self)
+         self.show_static_file('output_proc', 'proc output')
 
       elif obj == self.gvars.act_view_svars:
          sstr = self.svars.make_show_str('current subject', name=0)
@@ -1390,6 +1411,25 @@ class SingleSubjectWindow(QtGui.QMainWindow):
             return
          sstr = self.apsubj.rvars.make_show_str('current subject', name=0)
          QLIB.static_TextWindow(title='return vars', text=sstr, parent=self)
+
+   def show_static_file(self, var_name, var_desc):
+      """display the var according to var_name
+         - use description in var_desc if any error"""
+      if self.apsubj == None:        # check for generated command
+         self.update_AP_warn_window('** afni_proc.py command must be\n' \
+                                    '   executed first')
+         return
+      file = self.apsubj.subj_dir_filename(var_name)
+      if not file:
+         self.update_AP_warn_window('** file not set: %s' % var_desc)
+         return
+      elif not os.path.isfile(file):
+         self.update_AP_warn_window('** file not found: %s\n' \
+                                    '   (used for %s)'%(file, var_desc))
+         return
+      else:
+         title = '%s %s' % (var_desc, file)
+         QLIB.static_TextWindow(title=title, fname=file, parent=self)
 
    def cb_show_subj_options(self):
       sstr = self.svars.make_show_str('current subject', name=0)
