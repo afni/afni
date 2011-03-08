@@ -154,14 +154,15 @@ class TextWindow(QtGui.QMainWindow):
         return False
 
     def save(self):
+        print '++ TW save: "%s"' % self.filename
         if self.filename == '':
-            print '** no filename set for save'
-            return False
+           guiWarning("Error", "** no file set for 'Save'", self)
+           return False
         return self.writefile()
 
     def writefile(self):
         if self.filename == '':
-           print '** no filename to write'
+           guiWarning("Error", "** no file set for 'Write'", self)
            return False
         print '++ writing as file %s ...' % self.filename
         fp = None
@@ -281,14 +282,12 @@ def valid_as_int(text, name, warn=0, wparent=None, empty_ok=1):
 
    if valid: return 1
 
-   if warn: 
-      wmesg = warningMessage(                                           \
+   if warn: guiWarning(                                                 \
                "Error: invalid identifier",                             \
                "bad text: %s%s\n\n"                                     \
                "Characters in field '%s' must be alphabetic, numeric\n" \
                "or '_' (underscore), starting with alphabetic."         \
                % (text, extext, name), wparent)
-      wmesg.show()
 
    return 0
 
@@ -310,14 +309,12 @@ def valid_as_float(text, name, warn=0, wparent=None, empty_ok=1):
 
    if valid: return 1
 
-   if warn: 
-      wmesg = warningMessage(                                           \
+   if warn: guiWarning(                                                 \
                "Error: invalid identifier",                             \
                "bad text: %s%s\n\n"                                     \
                "Characters in field '%s' must be alphabetic, numeric\n" \
                "or '_' (underscore), starting with alphabetic."         \
                % (text, extext, name), wparent)
-      wmesg.show()
 
    return 0
 
@@ -350,14 +347,12 @@ def valid_as_identifier(text, name, warn=0, wparent=None, empty_ok=1):
 
    # if here, invalid
 
-   if warn: 
-      wmesg = warningMessage(                                           \
+   if warn: guiWarning(                                                 \
                "Error: invalid identifier",                             \
                "bad text: %s%s\n\n"                                     \
                "Characters in field '%s' must be alphabetic, numeric\n" \
                "or '_' (underscore), starting with alphabetic."         \
                % (text, extext, name), wparent)
-      wmesg.show()
 
    return 0
 
@@ -384,31 +379,23 @@ def valid_as_filepath(text, name, warn=0, wparent=None, empty_ok=1):
 
    # if here, invalid
 
-   if warn: 
-      wmesg = warningMessage(                                              \
+   if warn: guiWarning(                                                    \
                "Error: invalid as filename",                               \
                "bad text: %s%s\n\n"                                        \
                "Name in field '%s' must exist and not contain whitespace." \
                % (text, extext, name), wparent)
-      wmesg.show()
 
    return 0
 
 def guiWarning(title, text, parent):
-   mbox = warningMessage(title, text, parent)
-   mbox.show()
-
-def warningMessage(title, text, parent):
-   return QtGui.QMessageBox(QtGui.QMessageBox.Warning,
+   mbox = QtGui.QMessageBox(QtGui.QMessageBox.Warning,
                             title, text, QtGui.QMessageBox.NoButton, parent)
+   mbox.show()
 
 def guiError(title, text, parent):
-   mbox = errorMessage(title, text, parent)
-   mbox.show()
-
-def errorMessage(title, text, parent):
-   return QtGui.QMessageBox(QtGui.QMessageBox.Critical,
+   mbox = QtGui.QMessageBox(QtGui.QMessageBox.Critical,
                             title, text, QtGui.QMessageBox.NoButton, parent)
+   mbox.show()
 
 class TableWidget(QtGui.QTableWidget):
    """sized widget containing a grid of entries"""

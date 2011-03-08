@@ -221,10 +221,9 @@ class SingleSubjectWindow(QtGui.QMainWindow):
             self.set_svar('volreg_base', text)
          else: # reset to previous value
             self.gvars.Line_volreg_base.setText(self.svars.volreg_base)
-            wmesg = QLIB.warningMessage("Error: invalid volreg base",
-                        "base '%s' not in %s\n\n" \
-                        % (text, ', '.join(USUBJ.g_vreg_base_list)), obj)
-            wmesg.show()
+            QLIB.guiWarning("Error: invalid volreg base",
+                            "base '%s' not in %s\n\n" \
+                            % (text, ', '.join(USUBJ.g_vreg_base_list)), obj)
           
       elif obj == self.gvars.Line_motion_limit:
 
@@ -841,6 +840,8 @@ class SingleSubjectWindow(QtGui.QMainWindow):
 
    def cb_show_py_command_window(self):
       """show the python command window"""
+      if not self.gvars.valid('PCW'):
+         self.gvars.PCW = QLIB.PyCommandWindow(callback=self.cb_command_window)
       self.gvars.PCW.show()
       self.gvars.PCW.raise_()
 
@@ -985,14 +986,37 @@ class SingleSubjectWindow(QtGui.QMainWindow):
    def add_menu_bar(self):
 
       # ----------------------------------------------------------------------
+      # main process actions
+
+      act1 = self.createAction("gen: afni_proc.py command",
+        slot=self.cb_show_ap_command,
+        tip="generate afni_proc.py command",
+        icon=self.style().standardIcon(QtGui.QStyle.SP_FileDialogDetailedView))
+      act2 = self.createAction("view: processing script",
+        slot=self.cb_exec_ap_command,
+        tip="show proc script: display output from afni_proc.py",
+        icon=self.style().standardIcon(QtGui.QStyle.SP_FileDialogContentsView))
+      act3 = self.createAction("process this subject",
+          slot=self.cb_exec_proc_script,
+          tip="process this subject: execute proc script",
+          icon=self.style().standardIcon(QtGui.QStyle.SP_DialogYesButton))
+
+      self.gvars.act_show_ap = act1
+      self.gvars.act_exec_ap = act2
+      self.gvars.act_exec_proc = act3
+
+      self.gvars.act_exec_ap.setEnabled(False)
+      self.gvars.act_exec_proc.setEnabled(False)
+
+      # ----------------------------------------------------------------------
       # File menu
       self.gvars.MBar_file = self.menuBar().addMenu("&File")
       actFileQuit = self.createAction("&Quit", slot=self.close,
-          shortcut="Ctrl+Q", tip="close the application")
-      self.addActions(self.gvars.MBar_file, [actFileQuit])
+          shortcut="Ctrl+q", tip="close the application")
+      self.addActions(self.gvars.MBar_file, [act1, act2, act3, actFileQuit])
 
       # ----------------------------------------------------------------------
-      # View menu
+      # View menu - all for static view windows
       self.gvars.MBar_view = self.menuBar().addMenu("&View")
 
       act1 = self.createAction("afni_proc.py command",
@@ -1007,77 +1031,55 @@ class SingleSubjectWindow(QtGui.QMainWindow):
         slot=self.cb_view,
         tip="display text output from execution of proc script")
 
-      act4 = self.createAction("subject options",
-        slot=self.cb_view,
-        tip="display current subject options")
+      act4 = self.createAction("view: uber_subject.py command",
+          slot=self.cb_view,
+          tip="show command to populate this interface")
 
-      act5 = self.createAction("control options",
-        slot=self.cb_view,
-        tip="display control options")
+      self.addActions(self.gvars.MBar_view, [act1, act2, act3, act4])
 
-      act6 = self.createAction("result vars",
-        slot=self.cb_view,
-        tip="display vars resulting from actions")
-
-      self.addActions(self.gvars.MBar_view, [act1,act2,act3, act4,act5,act6])
-
-      self.gvars.act_view_ap_cmd  = act1
-      self.gvars.act_view_proc    = act2
-      self.gvars.act_view_outproc = act3
-      self.gvars.act_view_svars   = act4
-      self.gvars.act_view_cvars   = act5
-      self.gvars.act_view_rvars   = act6
+      self.gvars.act_view_ap_cmd   = act1
+      self.gvars.act_view_proc     = act2
+      self.gvars.act_view_outproc  = act3
+      self.gvars.act_view_uber_cmd = act4
 
       # ----------------------------------------------------------------------
       # Hidden menu
-      self.gvars.MBar_hidden = self.menuBar().addMenu("H&idden")
+      self.gvars.MBar_hidden = self.menuBar().addMenu("Hidde&n")
 
-      act1 = self.createAction("gen: afni_proc.py command",
-        slot=self.cb_show_ap_command,
-        tip="generate afni_proc.py command",
-        icon=self.style().standardIcon(QtGui.QStyle.SP_FileDialogDetailedView))
-      act2 = self.createAction("show: processing script",
-        slot=self.cb_exec_ap_command,
-        tip="show proc script: display output from afni_proc.py",
-        icon=self.style().standardIcon(QtGui.QStyle.SP_FileDialogContentsView))
-      act3 = self.createAction("process this subject",
-          slot=self.cb_exec_proc_script,
-          tip="process this subject: execute proc script",
-          icon=self.style().standardIcon(QtGui.QStyle.SP_DialogYesButton))
+      # create command window, and set call back for it
+      act1 = self.createAction("shell command window",
+          slot=self.cb_show_command_window,
+          tip="open command window for shell commands")
 
-      act4 = self.createAction("show: subject options",
-          slot=self.cb_show_subj_options,
-          tip="display current subject options from GUI")
-      act5 = self.createAction("show: GUI vars",
-          slot=self.cb_show_gvars,
-          tip="display current GUI options")
+      act2 = self.createAction("python command window",
+          slot=self.cb_show_py_command_window,
+          tip="open command window for local python commands")
+
+      act3 = self.createAction("view: subject vars",
+        slot=self.cb_view,
+        tip="display current subject option variables")
+
+      act4 = self.createAction("view: control vars",
+        slot=self.cb_view,
+        tip="display control option variables")
+
+      act5 = self.createAction("view: result vars",
+        slot=self.cb_view,
+        tip="display variables resulting from actions")
+
       act6 = self.createAction("show: Icon keys",
           slot=QLIB.print_icon_names,
           tip="display standard Icon names")
 
-      # create command window, and set call back for it
-      self.gvars.PCW = QLIB.PyCommandWindow(callback=self.cb_command_window)
-      act7 = self.createAction("python command window",
-          slot=self.cb_show_py_command_window,
-          tip="open command window for local python commands")
+      self.gvars.act_view_svars   = act3
+      self.gvars.act_view_cvars   = act4
+      self.gvars.act_view_rvars   = act5
 
-      act8 = self.createAction("shell command window",
-          slot=self.cb_show_command_window,
-          tip="open command window for shell commands")
-
-      self.gvars.act_show_ap = act1
-      self.gvars.act_exec_ap = act2
-      self.gvars.act_exec_proc = act3
-
-      self.gvars.act_exec_ap.setEnabled(False)
-      self.gvars.act_exec_proc.setEnabled(False)
-
-      # add button-equivalent actions to hidden menu
-      self.addActions(self.gvars.MBar_hidden, [act1, act2, act3])
+      self.addActions(self.gvars.MBar_hidden, [act3, act4, act5])
 
       # add show sub-menu
-      self.gvars.Menu_show = self.gvars.MBar_hidden.addMenu("&Show")
-      self.addActions(self.gvars.Menu_show, [act4, act5, act6, act7, act8])
+      self.gvars.Menu_commands = self.gvars.MBar_hidden.addMenu("&Commands")
+      self.addActions(self.gvars.Menu_commands, [act1, act2])
 
       # create Style sub-menu
       self.gvars.Menu_format = self.gvars.MBar_hidden.addMenu("set Style")
@@ -1089,6 +1091,8 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       actlist.append(self.createAction("Default", slot=self.cb_setStyle,
                                 tip="revert Sylte to default 'cleanlooks'"))
       self.addActions(self.gvars.Menu_format, actlist)
+
+      self.addActions(self.gvars.MBar_hidden, [act6])
 
       # ----------------------------------------------------------------------
       # Help menu
@@ -1167,9 +1171,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
 
    def open_web_site(self, site):
       if self.gvars.browser == None:
-         wbox = QLIB.warningMessage('Error',
-                                    'no browser to use for site: %s'%site,self)
-         wbox.show()
+         QLIB.guiWarning('Error', 'no browser to use for site: %s'%site,self)
       else: self.gvars.browser.open(site)
 
    def update_AP_result_window(self, win=None, text='', title='', fname=''):
@@ -1188,12 +1190,10 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       window.raise_()
 
    def update_AP_error_window(self, text, title='ERROR - cannot proceed'):
-      wbox = QLIB.errorMessage(title, text, self)
-      wbox.show()
+      QLIB.guiError(title, text, self)
 
    def update_AP_warn_window(self, text, title='WARNING'):
-      wbox = QLIB.warningMessage(title, text, self)
-      wbox.show()
+      QLIB.guiWarning(title, text, self)
 
    def update_help_window(self, text, title=''):
       # if no permanent window, make a new one each time
@@ -1379,11 +1379,6 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       self.gvars.SPW.show()
       self.gvars.ap_status = 3 
 
-   def cb_show_gvars(self):
-      sstr = self.gvars.make_show_str('GUI vars', name=0)
-      self.update_help_window(sstr, title='GUI variables')
-      if self.verb > 1: print sstr
-
    def cb_view(self):
       """create permanent windows with given text"""
       obj = self.sender()
@@ -1407,10 +1402,59 @@ class SingleSubjectWindow(QtGui.QMainWindow):
 
       elif obj == self.gvars.act_view_rvars:
          if self.apsubj == None:
-            QLIB.guiWarning('Error', '** return vars not yet set', self)
+            QLIB.guiWarning('Error', '** result vars not yet set', self)
             return
          sstr = self.apsubj.rvars.make_show_str('current subject', name=0)
          QLIB.static_TextWindow(title='return vars', text=sstr, parent=self)
+
+      elif obj == self.gvars.act_view_uber_cmd:
+         sstr = self.make_uber_command()
+         QLIB.static_TextWindow(title='corresponding uber_subject.py command',
+                                text=sstr, parent=self)
+
+   def make_uber_command(self):
+      """generate a script that would invoke the uber_subject.py interface
+         with subject and control vars set (and so fields filled)
+
+         Put any key elements in quotes, such as basis functions.
+      """
+
+      cmd = 'uber_subject.py'
+
+      # control vars first
+      prefix = ' \\\n    -cvar '     # append before next command
+      for atr in self.cvars.attributes():
+         if atr == 'name': continue     # skip
+         if self.cvars.vals_are_equal(atr, USUBJ.g_ctrl_defs): continue
+         # show this one
+         val = self.cvars.val(atr)
+         if self.cvars.has_simple_type(atr):
+            cmd += (prefix + '%s %s' % (atr, val))
+         elif type(val) == list:
+            cmd += (prefix + '%s %s' % (atr, ' '.join(val)))
+         else:
+            print '** make_uber_command: bad attr %s' % atr
+
+      # then subject vars
+      prefix = ' \\\n    -svar '     # append before next command
+      for atr in self.svars.attributes():
+         if atr == 'name': continue     # skip
+         if self.svars.vals_are_equal(atr, USUBJ.g_subj_defs): continue
+         # show this one
+         val = self.svars.val(atr)
+         
+         if atr == 'stim_basis':        # special case
+            val = ["'%s'" % v for v in val]
+            cmd += (prefix + '%s %s' % (atr, ' '.join(val)))
+
+         elif self.svars.has_simple_type(atr):
+            cmd += (prefix + '%s %s' % (atr, val))
+         elif type(val) == list:
+            cmd += (prefix + '%s %s' % (atr, ' '.join(val)))
+         else:
+            print '** make_uber_command: bad attr %s' % atr
+
+      return UTIL.add_line_wrappers(cmd + '\n')
 
    def show_static_file(self, var_name, var_desc):
       """display the var according to var_name
@@ -1430,11 +1474,6 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       else:
          title = '%s %s' % (var_desc, file)
          QLIB.static_TextWindow(title=title, fname=file, parent=self)
-
-   def cb_show_subj_options(self):
-      sstr = self.svars.make_show_str('current subject', name=0)
-      self.update_help_window(sstr, title='subject variables')
-      if self.verb > 1: print sstr
 
    def cb_setStyle(self):
       text = ''

@@ -60,18 +60,19 @@ class VarsObject(object):
       if type(val) in g_simple_types: return 1
       else:                           return 0
 
-   def attributes(self):
+   def attributes(self, getall=0):
       """same as dir(), but return only those with:
             - a name not starting with '_'
             - a simple type
+         if getall: will be more like dir()
       """
       dlist = dir(self)
       retlist = []
       for atr in dlist:
          if atr[0] == '_': continue
-         tt = self.get_atomic_type(atr)
-         if self.get_atomic_type(atr) == None: continue
-         retlist.append(atr)
+         if not getall:
+            if self.get_atomic_type(atr) == None: continue
+            retlist.append(atr)
       retlist.sort()
       return retlist
 
@@ -116,6 +117,18 @@ class VarsObject(object):
       """convenience - return whether the atr is in the class instance"""
       if hasattr(self, atr): return 1
       else:                  return 0
+
+   def vals_are_equal(self, atr, vobj):
+      """direct comparison is okay for any valid atomic type
+      """
+      if type(vobj) != VarsObject:
+         print '** vals_are_equal: no VarsObject'
+         return False
+
+      if self.get_atomic_type(atr) not in g_valid_atomic_types: return False
+      if vobj.get_atomic_type(atr) not in g_valid_atomic_types: return False
+
+      return self.val(atr) == vobj.val(atr)
 
    def valid_atr_type(self, atr='noname', atype=None, alevel=0, exists=0):
       """check for the existence and type of the given variable 'atr'
@@ -183,15 +196,15 @@ class VarsObject(object):
 
       return depth
 
-   def show(self, mesg='', prefix=None, pattern=None, name=1):
-      print self.make_show_str(mesg, prefix, pattern, name)
+   def show(self, mesg='', prefix=None, pattern=None, name=1, all=0):
+      print self.make_show_str(mesg, prefix, pattern, name, all=all)
 
-   def make_show_str(self, mesg='', prefix=None, pattern=None, name=1):
+   def make_show_str(self, mesg='', prefix=None, pattern=None, name=1, all=0):
       if prefix: pstr = ", prefix = '%s'" % prefix
       else:      pstr = ''
 
       sstr = "-- %s values in var '%s'%s\n" % (mesg, self.name, pstr)
-      for atr in self.attributes():
+      for atr in self.attributes(getall=all):
          if not name and atr == 'name': continue
          match = (prefix == None and pattern == None)
          if prefix:
@@ -199,7 +212,10 @@ class VarsObject(object):
          if pattern:
             if atr.find(pattern) >= 0: match = 1
          if match:
-            sstr += "      %-15s : %s\n" % (atr, self.val(atr))
+            if all and self.get_atomic_type(atr) == None:
+               sstr += "      %-15s : not atomic type...\n" % (atr)
+            else:
+               sstr += "      %-15s : %s\n" % (atr, self.val(atr))
 
       return sstr
 
