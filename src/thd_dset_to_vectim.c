@@ -469,8 +469,13 @@ ENTRY("THD_vectim_pearsonBC") ;
 
    if( mrv == NULL || par == NULL ) EXRETURN ;
    sqq = THD_vectim_ifind( sijk , mrv ) ; if( sqq < 0 ) EXRETURN ;
-   srad = MAX(srad,mrv->dx); srad = MAX(srad,mrv->dy); srad = MAX(srad,mrv->dz);
-   smask = MCW_spheremask(mrv->dx,mrv->dy,mrv->dz,1.001f*srad) ;
+   if( srad >= 0.0f ){
+     srad  = MAX(srad,mrv->dx); srad = MAX(srad,mrv->dy); srad = MAX(srad,mrv->dz);
+     smask = MCW_spheremask(mrv->dx,mrv->dy,mrv->dz,1.001f*srad) ;
+   } else {
+     srad  = MAX(-srad,1.01f) ;
+     smask = MCW_spheremask(1.0f,1.0f,1.0f,srad) ;
+   }
    nmask = smask->num_pt ;
    nlen = mrv->nvals ;
 
