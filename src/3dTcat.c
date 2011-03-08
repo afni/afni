@@ -588,7 +588,7 @@ int main( int argc , char *argv[] )
                       ADN_directory_name, TCAT_session ,
                       ADN_type          , TCAT_type ,
                       ADN_func_type     , ISANATTYPE(TCAT_type) ? ANAT_EPI_TYPE
-                                                                : FUNC_FIM_TYPE ,
+                                                                : FUNC_BUCK_TYPE ,
                       ADN_ntt           , new_nvals ,  /* both ntt and nvals */
                       ADN_nvals         , new_nvals ,  /* must be altered    */
                     ADN_none ) ;
@@ -686,84 +686,50 @@ int main( int argc , char *argv[] )
            EDIT_substitute_brick( new_dset , ivout ,
                                   DSET_BRICK_TYPE(dset,jv) , DSET_ARRAY(dset,jv) ) ;
 
-       /*----- If this sub-brick is from a bucket dataset,
-                    preserve the label for this sub-brick -----*/
+           /*----- If this sub-brick is from a bucket dataset,
+                        preserve the label for this sub-brick -----*/
 
-         if( !TCAT_relabel && DSET_HAS_LABEL(dset,jv) )
-           sprintf (buf, "%s", DSET_BRICK_LABEL(dset,jv));
-         else
-           sprintf(buf,"%.16s[%d]",DSET_PREFIX(dset),jv) ;
-         EDIT_dset_items( new_dset, ADN_brick_label_one+ivout, buf, ADN_none );
+           if( !TCAT_relabel && DSET_HAS_LABEL(dset,jv) )
+             sprintf (buf, "%s", DSET_BRICK_LABEL(dset,jv));
+           else
+             sprintf(buf,"%.16s[%d]",DSET_PREFIX(dset),jv) ;
+           EDIT_dset_items( new_dset, ADN_brick_label_one+ivout, buf, ADN_none );
 
-#if 0
-            sprintf(buf,"%s[%d]",DSET_FILECODE(dset),jv) ;
-            EDIT_dset_items(
-              new_dset, ADN_brick_keywords_replace_one+ivout, buf, ADN_none ) ;
-#endif
-
-         EDIT_dset_items(
-              new_dset ,
-                ADN_brick_fac_one            +ivout, DSET_BRICK_FACTOR(dset,jv),
-#if 0
-                ADN_brick_keywords_append_one+ivout, DSET_BRICK_KEYWORDS(dset,jv),
-#endif
-              ADN_none ) ;
+           EDIT_dset_items( new_dset ,
+                              ADN_brick_fac_one+ivout, DSET_BRICK_FACTOR(dset,jv),
+                            ADN_none ) ;
 
             /** possibly write statistical parameters for this sub-brick **/
 
-            kv = DSET_BRICK_STATCODE(dset,jv) ;
+           kv = DSET_BRICK_STATCODE(dset,jv) ;
 
-            if( FUNC_IS_STAT(kv) ){ /* input sub-brick has stat params */
+           if( FUNC_IS_STAT(kv) ){ /* input sub-brick has stat params */
+             int npar = FUNC_need_stat_aux[kv] , lv ;
+             float *par = (float *) malloc( sizeof(float) * (npar+2) ) ;
+             float *sax = DSET_BRICK_STATAUX(dset,jv) ;
+             par[0] = kv ;
+             par[1] = npar ;
+             for( lv=0 ; lv < npar ; lv++ )
+                par[lv+2] = (sax != NULL) ? sax[lv] : 0.0 ;
 
-               int npar = FUNC_need_stat_aux[kv] , lv ;
-               float * par = (float *) malloc( sizeof(float) * (npar+2) ) ;
-               float * sax = DSET_BRICK_STATAUX(dset,jv) ;
-               par[0] = kv ;
-               par[1] = npar ;
-               for( lv=0 ; lv < npar ; lv++ )
-                  par[lv+2] = (sax != NULL) ? sax[lv] : 0.0 ;
+             EDIT_dset_items(new_dset ,
+                              ADN_brick_stataux_one+ivout , par ,
+                             ADN_none ) ;
+             free(par) ;
+           }
 
-               EDIT_dset_items(new_dset ,
-                                ADN_brick_stataux_one+ivout , par ,
-                               ADN_none ) ;
-               free(par) ;
-#if 0
-            /* 2: if the input dataset has statistical parameters */
+           /** print a message? **/
 
-            } else if( ISFUNC(dset)                        &&   /* dset has stat */
-                       FUNC_IS_STAT(dset->func_type)       &&   /* params        */
-                       jv == FUNC_ival_thr[dset->func_type]  ){ /* thr sub-brick */
-
-               int npar , lv ;
-               float * par , * sax ;
-               kv  = dset->func_type ;
-               npar = FUNC_need_stat_aux[kv] ;
-               par  = (float *) malloc( sizeof(float) * (npar+2) ) ;
-               sax  = dset->stat_aux ;
-               par[0] = kv ;
-               par[1] = npar ;
-               for( lv=0 ; lv < npar ; lv++ )
-                  par[lv+2] = (sax != NULL) ? sax[lv] : 0.0 ;
-
-               EDIT_dset_items(new_dset ,
-                                ADN_brick_stataux_one+ivout , par ,
-                               ADN_none ) ;
-               free(par) ;
-#endif
-            }
-
-            /** print a message? **/
-
-            if( TCAT_verb > 1 ) printf("-verb: copied %s[%d] into %s[%d]\n" ,
-                                       DSET_FILECODE(dset) , jv ,
-                                       DSET_FILECODE(new_dset) , ivout ) ;
+           if( TCAT_verb > 1 ) printf("-verb: copied %s[%d] into %s[%d]\n" ,
+                                      DSET_FILECODE(dset) , jv ,
+                                      DSET_FILECODE(new_dset) , ivout ) ;
          } else {
             printf("-dry: would copy %s[%d] into %s[%d]\n" ,
                     DSET_FILECODE(dset) , jv ,
                     DSET_FILECODE(new_dset) , ivout ) ;
-         }
+      }
 
-         ivout++ ;
+      ivout++ ;
       }
       ivtop = ivout ;  /* new_dset[ivbot..ivtop-1] are from the current dataset */
 
@@ -778,13 +744,7 @@ int main( int argc , char *argv[] )
                jv = SUBV(ids,iv) ;
                if( jv == kv ) break ;                 /* input matches output */
             }
-            if( iv == nv ){
-               mri_free( DSET_BRICK(dset,kv) ) ;
-#if 0
-               if( TCAT_verb ) printf("-verb: unloaded unused %s[%d]\n" ,
-                                      DSET_FILECODE(dset) , kv ) ;
-#endif
-            }
+            if( iv == nv ) mri_free( DSET_BRICK(dset,kv) ) ;
          }
       }
 
