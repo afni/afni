@@ -441,6 +441,22 @@ STATUS("loop") ;
    free(qv) ; free(bv) ; free(aav) ; free(av) ; EXRETURN ;
 }
 
+#define USE_VSTEP
+#ifdef  USE_VSTEP
+/*---------------------------------------------------------------------------*/
+/*! For voxel loop progress report. */
+
+static int vstep = 0 ;
+
+static void vstep_print(void)
+{
+   static char xx[10] = "0123456789" ; static int vn=0 ;
+   fprintf(stderr , "%c" , xx[vn%10] ) ;
+   if( vn%10 == 9) fprintf(stderr,".") ;
+   vn++ ;
+}
+#endif
+
 /*----------------------------------------------------------------------------*/
 
 void THD_vectim_pearsonBC( MRI_vectim *mrv, float srad, int sijk, int pv, float *par )
@@ -473,8 +489,16 @@ ENTRY("THD_vectim_pearsonBC") ;
      if( qq >= 0 ) sar[nsar++] = VECTIM_PTR(mrv,qq) ;
    }
 
+#ifdef USE_VSTEP
+   vstep = (mrv->nvec > 999) ? mrv->nvec/50 : 0 ;
+   if( vstep ) fprintf(stderr," + Voxel loop [nmask=%d]: ",nmask) ;
+#endif
+
    for( pp=0 ; pp < mrv->nvec ; pp++ ){
      if( pp == sqq ){ par[pp] = 1.0f ; continue ; }
+#ifdef USE_VSTEP
+     if( vstep && pp%vstep==vstep-1 ) vstep_print() ;
+#endif
      pijk = mrv->ivec[pp] ;
      ii = pijk % nx ; ik = pijk / nxy ; ij = (pijk-ik*nxy) / nx ;
      for( nyar=mm=0 ; mm < nmask ; mm++ ){
@@ -488,6 +512,9 @@ ENTRY("THD_vectim_pearsonBC") ;
      par[pp] = THD_bootstrap_vectcorr( nlen , 50 , pv , 1 ,
                                        nsar,sar , nyar,yar ) ;
    }
+#ifdef USE_VSTEP
+   fprintf(stderr,"\n") ;
+#endif
 
    EXRETURN ;
 }
