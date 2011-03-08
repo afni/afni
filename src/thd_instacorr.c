@@ -232,10 +232,10 @@ ENTRY("THD_instacorr") ;
        THD_vectim_ktaub( iset->mv , tsar , dar ) ; break ;  /* 29 Apr 2010 */
 
      case NBISTAT_BC_PEARSON_M:
-       THD_vectim_pearsonBC( iset->mv , sblur , ijk , 0 , dar ) ; break ; /* 07 Mar 2011 */
+       THD_vectim_pearsonBC( iset->mv,sblur,ijk,0,dar ); break; /* 07 Mar 2011 */
 
      case NBISTAT_BC_PEARSON_V:
-       THD_vectim_pearsonBC( iset->mv , sblur , ijk , 1 , dar ) ; break ; /* 07 Mar 2011 */
+       THD_vectim_pearsonBC( iset->mv,sblur,ijk,1,dar ); break; /* 07 Mar 2011 */
    }
 
    /** put them into the output image **/
