@@ -57,9 +57,14 @@ g_history = """
          - init rvars file names early, rather than at exec use time
          - improved file application
          - do not copy orig files, do that only via uber_proc.py
+    0.8  Mar  8, 2011
+         - moved menu items around
+         - added 'view: uber_subject.py command' menu item
+         - replaced warningMessage/errorMessage with guiWarning/guiError
+         - small changes to lib_subjects.py
 """
 
-g_version = '0.6 (March 3, 2011)'
+g_version = '0.8 (March 8, 2011)'
 
 # ----------------------------------------------------------------------
 # global definition of default processing blocks
