@@ -170,15 +170,18 @@ ENTRY("THD_instacorr") ;
 
    sblur = iset->sblur ;
 
-   if( sblur > 0.0f ){
+   if( sblur != 0.0f ){
      int gblur = AFNI_yesenv("AFNI_INSTACORR_SEEDBLUR") ;
      int grad  = (gblur) ? 1.2345f*sblur : 1.0001f*sblur ;
-
-     MCW_cluster *smask=MCW_spheremask( iset->mv->dx , iset->mv->dy ,
-                                        iset->mv->dz , grad ) ;
+     MCW_cluster *smask ;
      float wtsum=1.0f , fac , *qar ;
      float *sar=(float *)malloc(sizeof(float)*iset->mv->nvals)  ;
      int qi,qj,qk , ii,ij,ik , qjk,qq , nx,ny,nz,nxy ; register int tt ;
+
+     if( grad > 0.0f )
+       smask = MCW_spheremask( iset->mv->dx, iset->mv->dy, iset->mv->dz, grad ) ;
+     else
+       smask = MCW_spheremask( 1.0f, 1.0f, 1.0f, -grad ) ;
 
      nx = iset->mv->nx ; ny = iset->mv->ny ; nz = iset->mv->nz ; nxy = nx*ny ;
      ii = ijk % nx ; ik = ijk / nxy ; ij = (ijk-ik*nxy) / nx ;

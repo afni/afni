@@ -213,7 +213,8 @@ PLUGIN_interface * ICOR_init( char *lab )
 #endif
 
    PLUTO_add_option( plint , "Misc Opts" , "MiscOpts" , FALSE ) ;
-   PLUTO_add_number( plint , (gblur) ? "SeedBlur" : "SeedRad" , 0,10,0,0,TRUE ) ;
+   if( gblur ) PLUTO_add_number( plint , "SeedBlur" , 0,10,0,0,TRUE ) ;
+   else        PLUTO_add_number( plint , "SeedRad" , -10,10,0,0,TRUE ) ;
    PLUTO_add_number( plint , "Polort" , -1,2,0,2 , FALSE ) ;
    { char *un = tross_username() ;
      PLUTO_add_string( plint , "Method" ,
