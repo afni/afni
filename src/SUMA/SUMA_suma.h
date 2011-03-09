@@ -5,7 +5,8 @@
 #include "SUMA_DataSets.h"
 
 /* memory allocation section, SUMA_COMPILED-specific */
-   #ifndef  DONT_USE_MCW_MALLOC
+   /* #ifndef  DONT_USE_MCW_MALLOC */
+   #if defined(USING_MCW_MALLOC) && !defined(USE_OMP)
       #ifdef SUMA_COMPILED
          #undef SUMA_MEMTRACE_ON
          #undef SUMA_MEMTRACE_TOGGLE

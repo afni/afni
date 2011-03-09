@@ -11,7 +11,7 @@ void segtools_verb( int ii ){ verb = ii ; }
 OPT_KMEANS new_kmeans_oc(void) 
 {
    OPT_KMEANS oc;
-   
+   int i;
    memset(&(oc), 0, sizeof(OPT_KMEANS));
    
    oc.r = 1;
@@ -23,7 +23,7 @@ OPT_KMEANS new_kmeans_oc(void)
    oc.rand_seed = 1234567;
    oc.remap = NONE;
    oc.user_labeltable=NULL;
-   oc.clabels = NULL;
+   for (i=0; i<400; ++i) oc.clabels[i] = NULL;
    oc.nclabels=0;
    oc.voxdebug[0]=oc.voxdebug[1]=oc.voxdebug[2]=oc.voxdebug[3]=-1;
    return(oc);
@@ -1539,7 +1539,7 @@ int thd_Acluster (  THD_3dim_dataset *in_set,
          sprintf(skmet, "hclust");
       }
       for (ii=0; ii<nclusters; ++ii) {
-         if (!oc.clabels) {
+         if (!oc.nclabels) {
             if (vmap) {
                sprintf(sval,"%d", vmap[ii+1]);
                sprintf(slab,"%s%d",skmet, vmap[ii+1]);

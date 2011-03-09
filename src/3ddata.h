@@ -5104,8 +5104,7 @@ extern char     * THD_make_statsym_string(THD_3dim_dataset *, int);
 extern char     * unescape_unix_str(const char *);
 
 extern THD_3dim_dataset * THD_niml_to_dataset( NI_group * , int ) ;
-extern int THD_add_bricks( THD_3dim_dataset * , void * ) ;
-/*extern int THD_add_bricks( THD_3dim_dataset * , void *, THD_3dim_dataset * ) ;*/
+extern int THD_add_bricks( THD_3dim_dataset * , void *, THD_3dim_dataset * ) ;
 extern int THD_add_sparse_data( THD_3dim_dataset * , NI_group * ) ;
 extern int THD_add_sparse_bricks( THD_3dim_dataset *, NI_element *) ;
 

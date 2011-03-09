@@ -9,14 +9,18 @@ typedef struct {
    char **label;
    int *keys;
    int nP;
-   double *P;
+   double **Pv;
    char **pname;
-} SUMA_CLASS_STAT;  
+} SUMA_CLASS_STAT;
+  
 
 typedef struct {
+   void (*helpfunc)(void);
    char *aset_name;
    char *mset_name;
    char *sig_name;
+   char *gold_name;
+   char *gold_bias_name;
    char *this_pset_name;
    char *this_cset_name;
    char *this_fset_name;
@@ -37,17 +41,35 @@ typedef struct {
    THD_3dim_dataset *fset;
    THD_3dim_dataset *xset;
    THD_3dim_dataset *gset;
+   THD_3dim_dataset *gold;
+   THD_3dim_dataset *gold_bias;
+   THD_3dim_dataset *priCgA;
+   double wA;
+   THD_3dim_dataset *priCgL;
+   double wL;
+   THD_3dim_dataset *pCgN;
+   char *priCgLname;
+   char *priCgAname;
+   THD_3dim_dataset *priCgALL;
+   char *priCgALLname;
+   THD_3dim_dataset *Bset;
+   char *Bsetname;
+   THD_3dim_dataset *pstCgALL;
+   char *pstCgALLname;
    NI_element *ndist;
    int debug;
    int idbg, jdbg, kdbg;
    float binwidth;
    NI_str_array *feats, *clss;
+   int Other;
    int *keys;
    
    float *mixfrac;
+   char *mixopt;
    int UseTmp;
    byte logp;
    int VoxDbg;
+   int VoxDbg3[3];
    FILE *VoxDbgOut;
    byte rescale_p;
    byte openmp;
@@ -55,7 +77,8 @@ typedef struct {
    char *labeltable_name;
    
    int smode;
-   int Lpo;
+   float bias_param;
+   char *bias_meth;
    char *bias_classes;
    byte pweight;
    int N_biasgroups;
@@ -73,7 +96,8 @@ typedef struct {
    byte DO_r;
    
    int fitmeth;
-   int N_ibias;
+   int N_enhance_cset_init;
+   int N_main;
    NI_str_array *group_classes;
    int *group_keys;
    SUMA_GENERIC_ARGV_PARSE *ps;
@@ -83,9 +107,15 @@ typedef struct {
    
    double B;
    double T;
+   
+   int edge;
+   float na;
+   
+   char *hist;
 } SEG_OPTS;
 
 void GenPriors_usage(void) ;
+void Seg_usage(void) ;
 SEG_OPTS *Seg_ParseInput (SEG_OPTS *Opt, char *argv[], int argc);
 byte *MaskSetup(SEG_OPTS *Opt, THD_3dim_dataset *aset, 
                 THD_3dim_dataset **msetp, byte **cmaskp, int dimcmask, 
@@ -96,6 +126,6 @@ void *Seg_NI_read_file(char *fname);
 SEG_OPTS *free_SegOpts(SEG_OPTS *);
 int Seg_ClssAndKeys_from_dset(THD_3dim_dataset *dset, 
                               NI_str_array **nstrp, int **keysp);
-
+int SUMA_ShortizeDset(THD_3dim_dataset **dsetp, float thisfac);
 
 #endif

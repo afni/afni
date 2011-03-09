@@ -57,7 +57,7 @@ typedef struct {
    unsigned int rand_seed;
    int remap;
    char *user_labeltable;
-   char **clabels;
+   char *clabels[500]; /* overkill */
    int nclabels;
 } OPT_KMEANS;
 

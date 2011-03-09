@@ -46,6 +46,9 @@ static char shelp_GenPriors[] = {
 "             You'd be deranged to use anything else at the moment.\n"
 "   -debug DBG: Set debug level\n"
 "   -vox_debug 1D_DBG_INDEX: 1D index of voxel to debug.\n"
+"       OR\n"
+"   -vox_debug I J K: where I, J, K are the 3D voxel indices \n"
+"                     (not RAI coordinates in mm)\n"
 "   -vox_debug_file DBG_OUTPUT_FILE: File in which debug information is output\n"
 "   -uid UID : User identifier string. It is used to generate names for\n"
 "              temporary files to speed up the process. \n"
@@ -62,24 +65,109 @@ static char shelp_GenPriors[] = {
 "                                be named something like C1.*, C2.*, etc.\n"
 "        This option can be used to replace @RegroupLabels script.\n"
 "        For example:\n"
-"        3dGenPriors      -sig sigs+orig \\n"
-"                         -tdist train.niml.td \\n"
-"                         -pprefix anat.p \\n"
-"                         -cprefix anat.c   \\n"
-"                         -labeltable DSC.niml.lt \\n"
-"                         -do pc   \\n"
+"        3dGenPriors      -sig sigs+orig \\\n"
+"                         -tdist train.niml.td \\\n"
+"                         -pprefix anat.p \\\n"
+"                         -cprefix anat.c   \\\n"
+"                         -labeltable DSC.niml.lt \\\n"
+"                         -do pc   \\\n"
 "                         -regroup_classes  'CSF GM WM Out'\n"
 "\n"
 "    or if you have the output already, you can do:\n"
 "\n"
-"       3dGenPriors      -sig sigs+orig \\n"
-"                         -tdist train.niml.td \\n"
-"                         -pset anat.p \\n"
-"                         -cset anat.c   \\n"
-"                         -labeltable DSC.niml.lt \\n"
-"                         -do pc   \\n"
+"       3dGenPriors      -sig sigs+orig \\\n"
+"                         -tdist train.niml.td \\\n"
+"                         -pset anat.p \\\n"
+"                         -cset anat.c   \\\n"
+"                         -labeltable DSC.niml.lt \\\n"
+"                         -do pc   \\\n"
 "                         -regroup_classes  'CSF GM WM Out'\n"           
 "\n"
+};
+
+static char shelp_Seg[] = {
+"3dSeg segments brain volumes into tissue classes.\n"
+"\n"
+"Examples: (All examples can do without the -gold* options)\n"
+"  Case A: Segmenting a T1 volume with a brain mask available\n"
+"  A.1:  Brain mask and MRF only.\n"
+"  3dSeg    -anat banat+orig     \\\n"
+"           -mask anat.ns+orig   \\\n"
+"           -gold goldseg+orig   -gold_bias goldbias+orig   \\\n"
+"           -classes 'CSF ; GM ; WM' \\\n"
+"           -Bmrf 1.0            \\\n"
+"           -bias_classes 'GM ; WM' -bias_fwhm 25 \\\n"
+"           -prefix caseA.1  -overwrite    \\\n"
+"\n"
+"  A.2:  Adding average mixing fraction constraint derived from\n"
+"        population based spatial priors, and preserving the weighting\n"
+"        throughout the segmentation.\n"
+"  3dSeg    -anat banat+orig     \\\n"
+"           -mask anat.ns+orig   \\\n"
+"           -gold goldseg+orig   -gold_bias goldbias+orig   \\\n"
+"           -classes 'CSF ; GM ; WM' \\\n"
+"           -bias_classes 'GM ; WM' -bias_fwhm 25 \\\n"
+"           -prefix caseA.2  -overwrite    \\\n"
+"           -mixfrac WHOLE_BRAIN -priCgL INIT_MIXFRAC \\\n"
+"           -Bmrf 1.0 -main_N 4           \\\n"
+"\n"
+#if 0
+"           -debug 
+"           -labeltable orig.niml.lt \
+            -gold goldstd+orig \
+            -gold_bias TrueBiasField+orig. \
+
+            -prefix crap -overwrite \
+            -mixfrac WHOLE_VOLUME -priCgL INIT_MIXFRAC \
+            -Bmrf 1 -main_N 4 \
+            -debug 2 -vox_debug 40 9 69 \\n"
+#endif
+"\n"
+};
+
+static HELP_OPT SegOptList[] = {
+   {  "-anat", 
+      "-anat ANAT: ANAT is the volume to segment", 
+      NULL },
+   {  "-mask", 
+      "-mask MASK: MASK only non-zero voxels in MASK are analyzed.\n"
+      "            MASK is necessary when no voxelwise priors are\n"
+      "            available.\n", 
+      NULL },
+   {  "-classes", 
+      "-classes 'CLASS_STRING': CLASS_STRING is a semicolon delimited\n"
+      "                         string of class labels. At the moment\n"
+      "                         CLASS_STRING can only be 'CSF; GM; WM'\n", 
+      NULL},
+   {  "-Bmrf",
+      "-Bmrf BMRF: Weighting factor controlling influence of MRF step. \n"
+      "            BMRF = 0.0 means no MRF, 1.0 is typical, the larger BMRF\n"
+      "            the stronger the MRF. Use -Bmrf when you have no voxelwise\n"
+      "            priors.\n",
+      "1.0" },           
+   {  "-bias_classes",
+      "-bias_classes 'BIAS_CLASS_STRING': A semcolon demlimited string of \n"
+      "                                   classes that contribute to the \n"
+      "                                   estimation of the bias field.\n",
+      "'GM; WM'" },
+   {  "-bias_fwhm BIAS_FWHM: The amount of blurring used when estimating the\n"
+      "                      field bias with the Wells method [].\n",
+      "25.0" },
+   {  "-prefix PREF: PREF is the prefix for all output volume that are not \n"
+      "              debugging related.\n", 
+      "Segsy" },
+   {  "-overwrite",
+      "-overwrite: An option common to almost all AFNI programs. It is \n"
+      "            automatically turned on if you provide no PREF.\n",
+      NULL },
+   {  "-mixfrac 'MIXFRAC': MIXFRAC sets up the volume-wide (within mask)\n"
+      "                    tissue fractions while initializing the \n"
+      "                    segmentation. You can specify the mixing fractions\n"
+      "                    directly such as with '0.1 0.45 0.45', or with\n"
+      "                    the following special flags:\n"
+      "              XXX\n",
+      "UNI" },    
+   {  NULL, NULL, NULL  }
 };
 
 void GenPriors_usage(void) 
@@ -93,6 +181,17 @@ void GenPriors_usage(void)
    EXRETURN;
 }
 
+void Seg_usage(void) 
+{
+   int i = 0;
+   
+   ENTRY("Seg_usage");
+   printf( "%s", shelp_Seg );
+   
+   
+   EXRETURN;
+}
+
 SEG_OPTS *SegOpt_Struct()
 {
    SEG_OPTS *Opt=NULL;
@@ -101,9 +200,12 @@ SEG_OPTS *SegOpt_Struct()
    Opt = (SEG_OPTS *)calloc(1, sizeof(SEG_OPTS));
    
    Opt->ps = NULL;
+   Opt->helpfunc = NULL;
    Opt->aset_name = NULL;
    Opt->mset_name = NULL;
    Opt->sig_name = NULL;
+   Opt->gold_name = NULL;
+   Opt->gold_bias_name = NULL;
    Opt->this_pset_name = NULL;
    Opt->this_cset_name = NULL;
    Opt->this_fset_name = NULL;
@@ -111,6 +213,8 @@ SEG_OPTS *SegOpt_Struct()
    Opt->ndist_name = NULL;
    Opt->uid[0] = '\0';
    Opt->prefix = NULL;
+   Opt->gold = NULL;
+   Opt->gold_bias = NULL;
    Opt->aset = NULL;
    Opt->mset = NULL;
    Opt->gset = NULL;
@@ -123,12 +227,16 @@ SEG_OPTS *SegOpt_Struct()
    Opt->debug = 0;
    Opt->idbg = Opt->kdbg = Opt->jdbg = -1;
    Opt->binwidth = 0; 
-   Opt->feats=Opt->clss=NULL;
+   Opt->feats=NULL;
+   Opt->clss=NULL;
+   Opt->Other=0;
    Opt->keys=NULL;
+   Opt->mixopt = NULL;
    Opt->mixfrac=NULL;
    Opt->UseTmp = 0; 
    Opt->logp = 0;
    Opt->VoxDbg = -1;
+   Opt->VoxDbg3[0] = Opt->VoxDbg3[1] = Opt->VoxDbg3[2] = -1;
    Opt->VoxDbgOut = stdout;
    Opt->rescale_p = 0;
    Opt->openmp = 0;
@@ -137,7 +245,8 @@ SEG_OPTS *SegOpt_Struct()
    Opt->bias_classes = NULL;
    Opt->pweight = 0;
    Opt->N_biasgroups=0;
-   Opt->Lpo = 0;
+   Opt->bias_param = 25;
+   Opt->bias_meth = "Wells";
    Opt->cmask = NULL;
    Opt->dimcmask = 0;
    Opt->cmask_count=0;
@@ -152,7 +261,8 @@ SEG_OPTS *SegOpt_Struct()
    Opt->group_keys = NULL;
    
    Opt->fitmeth = 0;
-   Opt->N_ibias = 0;
+   Opt->N_enhance_cset_init = 0;
+   Opt->N_main = 0;
    Opt->clust_cset_init = 0;
    
    Opt->cs = NULL;
@@ -160,11 +270,35 @@ SEG_OPTS *SegOpt_Struct()
    Opt->B = 1.0;
    Opt->T = 1.0;
    
+   Opt->na = 8.0;
+   
+   Opt->edge = 0.0;
+   
+   Opt->hist = NULL;
+   
+   Opt->priCgA = NULL; /* Prob. class given features */
+   Opt->wA=-1.0;
+   Opt->priCgAname = NULL;
+   
+   Opt->priCgL = NULL; /* Prob. class given location */
+   Opt->wL=-1.0;
+   Opt->priCgLname = NULL;
+   
+   Opt->priCgALL = NULL; /* Prob. class */
+   Opt->priCgALLname = NULL;
+   
+   Opt->Bset = NULL;
+   Opt->pstCgALL = NULL;
+   Opt->pCgN = NULL;
+   Opt->pstCgALLname = NULL;
+   Opt->Bsetname = NULL;
    RETURN(Opt);
 }
 
 SEG_OPTS *free_SegOpts(SEG_OPTS *Opt) {
    if (!Opt) return(NULL);
+   if (Opt->gold) DSET_delete(Opt->gold); Opt->gold = NULL;
+   if (Opt->gold_bias) DSET_delete(Opt->gold_bias); Opt->gold_bias = NULL;
    if (Opt->aset) DSET_delete(Opt->aset); Opt->aset = NULL;
    if (Opt->mset) DSET_delete(Opt->mset); Opt->mset = NULL;
    if (Opt->pset) DSET_delete(Opt->pset); Opt->pset = NULL;
@@ -173,6 +307,9 @@ SEG_OPTS *free_SegOpts(SEG_OPTS *Opt) {
    if (Opt->xset) DSET_delete(Opt->xset); Opt->xset = NULL;
    if (Opt->gset) DSET_delete(Opt->gset); Opt->gset = NULL;
    if (Opt->sig)  DSET_delete(Opt->sig); Opt->sig = NULL;
+   if (Opt->priCgA)  DSET_delete(Opt->priCgA); Opt->priCgA = NULL;
+   if (Opt->priCgL)  DSET_delete(Opt->priCgL); Opt->priCgL = NULL;
+   if (Opt->priCgALL)  DSET_delete(Opt->priCgALL); Opt->priCgALL = NULL;
    if (Opt->feats) NI_delete_str_array(Opt->feats);Opt->feats = NULL;
    if (Opt->clss)  NI_delete_str_array(Opt->clss );Opt->clss = NULL;
    if (Opt->keys) free(Opt->keys); Opt->keys = NULL;
@@ -190,6 +327,8 @@ SEG_OPTS *free_SegOpts(SEG_OPTS *Opt) {
       Opt->group_classes = NULL;
    if (Opt->group_keys) free(Opt->group_keys); Opt->group_keys = NULL;
    if (Opt->cs) Opt->cs = SUMA_Free_Class_Stat(Opt->cs);  
+   if (Opt->hist) free(Opt->hist); Opt->hist=NULL;
+   
    free(Opt); Opt = NULL;
    return(NULL);
 }
@@ -210,7 +349,7 @@ SEG_OPTS *Seg_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
 	while (kar < argc) { /* loop accross command ine options */
 		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
 		if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
-			 GenPriors_usage();
+			 Opt->helpfunc();
           exit (0);
 		}
       
@@ -284,13 +423,37 @@ SEG_OPTS *Seg_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
          brk = 1;
 		}      
 
+      if (!brk && (strcmp(argv[kar], "-no_edge") == 0)) {
+			Opt->edge = 0;
+         brk = 1;
+		}      
+
+      if (!brk && (strcmp(argv[kar], "-edge") == 0)) {
+			Opt->edge = 1;
+         brk = 1;
+		}      
+
       if (!brk && (strcmp(argv[kar], "-vox_debug") == 0)) {
          kar ++;
 			if (kar >= argc)  {
 		  		fprintf (stderr, "need 1D vox index after -vox_debug \n");
 				exit (1);
 			}
-			Opt->VoxDbg = atoi(argv[kar]);
+         if (kar+2<argc) { /* see if we have ijk */
+            int iii, jjj, kkk;
+            if (argv[kar][0]!='-' && argv[kar][1]!='-' && argv[kar][2]!='-' &&
+                (iii = atoi(argv[kar  ])) >= 0 &&
+                (jjj = atoi(argv[kar+1])) >= 0 && 
+                (kkk = atoi(argv[kar+2])) >= 0 ) {
+               Opt->VoxDbg3[0]=iii;
+               Opt->VoxDbg3[1]=jjj;
+               Opt->VoxDbg3[2]=kkk;    
+               ++kar; ++kar;
+            } 
+         }
+			if (Opt->VoxDbg3[0] < 0) {
+            Opt->VoxDbg = atoi(argv[kar]);
+         }
          brk = 1;
 		}      
 
@@ -396,6 +559,94 @@ SEG_OPTS *Seg_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
          brk = 1;
 		}
       
+      if (!brk && (strcmp(argv[kar], "-gold") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (stderr, "need argument after -gold \n");
+				exit (1);
+			}
+			Opt->gold_name = argv[kar];
+         brk = 1;
+		}
+
+      if (!brk && (strcmp(argv[kar], "-gold_bias") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (stderr, "need argument after -gold_bias \n");
+				exit (1);
+			}
+			Opt->gold_bias_name = argv[kar];
+         brk = 1;
+		}
+
+      if (!brk && (strcmp(argv[kar], "-pstCgALL") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (stderr, "need argument after -pstCgALL \n");
+				exit (1);
+			}
+			Opt->pstCgALLname = argv[kar];
+         brk = 1;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-priCgL") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (stderr, "need argument after -priCgL \n");
+				exit (1);
+			}
+			Opt->priCgLname = argv[kar];
+         brk = 1;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-priCgALL") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (stderr, "need argument after -priCgALL \n");
+				exit (1);
+			}
+			Opt->priCgALLname = argv[kar];
+         brk = 1;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-wL") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (stderr, "need argument after -wL \n");
+				exit (1);
+			}
+			Opt->wL = atof(argv[kar]);
+         if (Opt->wL < 0.0 || Opt->wL > 1.0) {
+            SUMA_S_Errv("-wL must be between 0 and 1.0, have %s", argv[kar]);
+            exit(1);
+         }
+         brk = 1;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-priCgA") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (stderr, "need argument after -priCgA \n");
+				exit (1);
+			}
+			Opt->priCgAname = argv[kar];
+         brk = 1;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-wA") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (stderr, "need argument after -wA \n");
+				exit (1);
+			}
+			Opt->wA = atof(argv[kar]);
+         if (Opt->wA < 0.0 || Opt->wA > 1.0) {
+            SUMA_S_Errv("-wA must be between 0 and 1.0, have %s", argv[kar]);
+            exit(1);
+         }
+         brk = 1;
+		}
+      
       if (!brk && (strcmp(argv[kar], "-cset") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -446,6 +697,16 @@ SEG_OPTS *Seg_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
          brk = 1;
 		}
 
+      if (!brk && (strcmp(argv[kar], "-sphere_hood") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (stderr, "need argument after -sphere_hood \n");
+				exit (1);
+			}
+			Opt->na = atof(argv[kar]);
+         brk = 1;
+		} 
+      
       if (!brk && (strcmp(argv[kar], "-mask") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -566,7 +827,7 @@ SEG_OPTS *Seg_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
 		  		fprintf (stderr, "need argument after -group_classes \n");
 				exit (1);
 			}
-			Opt->group_classes = NI_strict_decode_string_list(argv[kar] ,";, ");
+			Opt->group_classes = NI_strict_decode_string_list(argv[kar] ,";");
          brk = 1;
 		}
 
@@ -597,6 +858,16 @@ SEG_OPTS *Seg_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
          brk = 1;
 		}
 
+      if (!brk && (strcmp(argv[kar], "-other") == 0)) {
+         Opt->Other = 1;
+         brk = 1;
+      }
+      
+      if (!brk && (strcmp(argv[kar], "-no_other") == 0)) {
+         Opt->Other = 0;
+         brk = 1;
+      }
+      
       if (!brk && (strcmp(argv[kar], "-keys") == 0)) {
          NI_str_array *nstr=NULL; int ii;
          kar ++;
@@ -620,17 +891,40 @@ SEG_OPTS *Seg_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
 		  		fprintf (stderr, "need integer after -bias_order \n");
 				exit (1);
 			}
-			Opt->Lpo = atoi(argv[kar]);
+			Opt->bias_param = atof(argv[kar]);
+         Opt->bias_meth = "Poly";
          brk = 1;
 		}
       
-      if (!brk && (strcmp(argv[kar], "-bias_N_init") == 0)) {
+      if (!brk && (strcmp(argv[kar], "-bias_fwhm") == 0)) {
          kar ++;
 			if (kar >= argc)  {
-		  		fprintf (stderr, "need integer after -bias_N_init \n");
+		  		fprintf (stderr, "need integer after -bias_fwhm \n");
 				exit (1);
 			}
-			Opt->N_ibias = atoi(argv[kar]);
+			Opt->bias_param = atof(argv[kar]);
+         Opt->bias_meth = "Wells";
+         brk = 1;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-enhance_cset_init") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (stderr, "need integer after -enhance_cset_init \n");
+				exit (1);
+			}
+			Opt->N_enhance_cset_init = atoi(argv[kar]);
+         SUMA_S_Err("Option not in use at the moment");
+         brk = 1;
+		}
+
+      if (!brk && (strcmp(argv[kar], "-main_N") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (stderr, "need integer after -main_N \n");
+				exit (1);
+			}
+			Opt->N_main = atoi(argv[kar]);
          brk = 1;
 		}
       
@@ -651,6 +945,26 @@ SEG_OPTS *Seg_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
 				exit (1);
 			}
 			snprintf(Opt->uid,128,"%s",argv[kar]);
+         brk = 1;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-mixfrac") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (stderr, "need argument after -mixfrac \n");
+				exit (1);
+			}
+			Opt->mixopt = argv[kar];
+         brk = 1;
+		}
+
+      if (!brk && (strcmp(argv[kar], "-Bmrf") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (stderr, "need value after -Bmrf \n");
+				exit (1);
+			}
+			Opt->B = atof(argv[kar]);
          brk = 1;
 		}
       
@@ -754,6 +1068,30 @@ void *Seg_NI_read_file(char *fname) {
    
    RETURN(nel);
 }
+
+int SUMA_ShortizeDset(THD_3dim_dataset **dsetp, float thisfac) {
+   static char FuncName[]={"SUMA_ShortizeDset"};
+   char sprefix[THD_MAX_PREFIX+10];
+   int i;
+   THD_3dim_dataset *cpset=NULL, *dset=*dsetp;
+   
+   SUMA_ENTRY;
+   
+   if (!dset) {
+      SUMA_S_Err("NULL *dsetp at input!");
+      SUMA_RETURN(0);
+   }
+   sprintf(sprefix, "%s.s", dset->dblk->diskptr->prefix);
+   NEW_SHORTY(dset, DSET_NVALS(dset), "ss.cp", cpset);      
+   for (i=0; i<DSET_NVALS(dset); ++i) {
+      EDIT_substscale_brick(cpset, i, DSET_BRICK_TYPE(dset,i), 
+                            DSET_ARRAY(dset,i), MRI_short, thisfac);
+   }
+   DSET_delete(dset); dset = NULL; 
+   *dsetp=cpset;
+
+   SUMA_RETURN(1);
+}
    
 THD_3dim_dataset *Seg_load_dset( char *set_name ) {
    THD_3dim_dataset *dset=NULL, *sdset=NULL;
@@ -772,20 +1110,17 @@ THD_3dim_dataset *Seg_load_dset( char *set_name ) {
    
    for (i=0; i<DSET_NVALS(dset); ++i) {
       if (DSET_BRICK_TYPE(dset,i) != MRI_short) {
-         INFO_message("Sub-brick %d not of type short.\n"
-                       "Creating new short copy of dset ", i);
+         INFO_message("Sub-brick %d in %s not of type short.\n"
+                       "Creating new short copy of dset ", 
+                       i, DSET_PREFIX(dset));
          make_cp=1; break;
       }
    }
    
    if (make_cp) {
-      sprintf(sprefix, "%s.s", sdset->dblk->diskptr->prefix);
-      NEW_SHORTY(dset, DSET_NVALS(dset), "ss.cp", sdset);      
-      for (i=0; i<DSET_NVALS(dset); ++i) {
-         EDIT_substscale_brick(sdset, i, DSET_BRICK_TYPE(dset,i), 
-                               DSET_ARRAY(dset,i), MRI_short, -1.0);
+      if (!SUMA_ShortizeDset(&dset, -1.0)) {
+         ERROR_exit("**ERROR: Failed to shortize");
       }
-      DSET_delete(dset); dset = sdset; sdset=NULL;
    }
    
    RETURN(dset);

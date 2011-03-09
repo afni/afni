@@ -1246,7 +1246,7 @@ SUMA_Boolean SUMA_GICOR_setup_func( NI_stream nsg , NI_element *nel )
      giset = (GICOR_setup *)SUMA_calloc(1,sizeof(GICOR_setup)) ;
      SUMAg_CF->giset = giset;
    } else {
-     memset(giset,sizeof(GICOR_setup),0) ;
+     memset(giset,0, sizeof(GICOR_setup)) ;
    }
    
    giset->ns    = nsg ;  /* save socket for I/O back to 3dGroupInCorr */
@@ -1367,7 +1367,8 @@ SUMA_Boolean SUMA_GICOR_process_dataset( NI_element *nel  )
    SUMA_OVERLAYS *ov[2]={NULL, NULL};
    SUMA_Boolean LocalHead = NOPE;
    
-
+   SUMA_ENTRY;
+   
    if( nel == NULL || nel->vec_num < 2 ){  /* should never happen */
      ERROR_message("badly formatted dataset from 3dGroupInCorr!") ;
      SUMA_RETURN(NOPE) ;
