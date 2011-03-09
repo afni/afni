@@ -49,6 +49,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  9, MAR, 2011, RCR, "uber_subject.py", MICRO, TYPE_ENHANCE,
+   "updates to uber_subject.py, how could I possibly remember what they are...",
+   "See -hist for version 0.9."
+ } ,
+
+ {  9, MAR, 2011, RCR, "make_random_timing.py", MICRO, TYPE_BUG_FIX,
+   "fixed bug writing comment text in 3dD script",
+   "Problem noted by Z Saad and P Kaskan."
+ } ,
+
  {  8, MAR, 2011, RCR, "uber_subject.py", MINOR, TYPE_ENHANCE,
    "uber_subject.py command menu item, ...",
    "See -hist for version 0.8."
