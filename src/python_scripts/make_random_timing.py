@@ -671,9 +671,11 @@ g_history = """
     1.1  May 01, 2010: added -max_consec for Liat of Cornell
     1.2  Aug 24, 2010: small updates for 3dDeconvolve -nodata script
          - update polort and write -nodata TR using 3 decimal places
+    1.3  Mar 09, 2011: fixed bug writing comment text in 3dD script
+         - noted by Z Saad and P Kaskan
 """
 
-g_version = "version 1.2, August 24, 2010"
+g_version = "version 1.3, March 9, 2011"
 
 gDEF_VERB       = 1      # default verbose level
 gDEF_T_GRAN     = 0.1    # default time granularity, in seconds
@@ -1182,9 +1184,9 @@ class RandTiming:
             c2 += self.make_3dd_contr_str(prefix='    ')
         c2 += '    -x1D X.xmat.1D\n\n'
 
+        first = (polort+1) * len(self.run_time)
         if len(self.run_time) > 1:
             # note first non-poly baseline index
-            first = (polort+1) * len(self.run_time)
             c2 += '# compute the sum of non-baseline regressors\n'           \
                   "3dTstat -sum -prefix sum_ideal.1D X.xmat.1D'[%d..$]'\n\n" \
                   % first
