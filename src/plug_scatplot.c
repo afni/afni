@@ -515,6 +515,7 @@ char * SCAT_main( PLUGIN_interface *plint )
        rrr = THD_pearson_indexed( mcount,NULL , xar,yar ) ;
        pcor = rrr.c ; a = rrr.a ; b = rrr.b ; p025 = 6.66f ; p975 = -6.66f ;
      }
+     INFO_message("Scatterplot: R=%.3f  a=%.3f  b=%.3f",pcor,a,b) ;
    }
 
    if( label != NULL ){
