@@ -43,7 +43,14 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 4 , MAR , 2011 , RWC , "afni Clusterize" , MICRO , TYPE_MODIFY ,
+  { 9 , MAR , 2011 , RWC , "3dTcat" , MICRO , TYPE_MODIFY ,
+   "2 small changes" ,
+   "(1) Bug fix -- change output type from FIM to FBUC -- to allow sub-brick\n"
+   "statistics codes to properly used.\n"
+   "(2) Add sub-bricks selector preservation to wildcard expansion\n"
+   "(mcw_glob.c) and then add this internal globbing to 3dTcat.c" } ,
+
+ { 4 , MAR , 2011 , RWC , "afni Clusterize" , MICRO , TYPE_MODIFY ,
    "Replace S:mean correlation confidence intervals" ,
    "From simple bootstrap to bias-corrected (BC, not BCa) bootstrap." } ,
 

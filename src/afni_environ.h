@@ -11,6 +11,18 @@
 extern "C" {
 #endif
 
+/*-- macro to set environment variable if not already defined --*/
+/*-- moved here from afni.c on 09 Mar 2011 for general usage  --*/
+/*-- originally created there on 31 Jan 2008                  --*/
+
+#undef  PUTENV
+#define PUTENV(nm,val) do{ if( getenv((nm)) == NULL ){           \
+                             char *str = (char *)malloc(256) ;   \
+                             strcpy(str,(nm)); strcat(str,"=");  \
+                             strcat(str,val);  putenv(str);      \
+                             if( PRINT_TRACING ) STATUS(str) ;   \
+                           }} while(0)
+
 extern int AFNI_process_environ( char * ) ;
 extern char * AFNI_suck_file( char * ) ;
 extern int AFNI_suck_file_len(void) ;       /* 27 Feb 2009 */

@@ -1630,16 +1630,6 @@ int main( int argc , char *argv[] )
    REPORT_PROGRESS(".") ;
 
    /** set default values of some environment variables [22 Jun 2004] **/
-   /** moved here and made conditional on being empty -- 31 Jan 2008  **/
-   /** fixed to alloc new str for each putenv         -- 09 May 2008  **/
-
-#undef  PUTENV  /* 31 Jan 2008 */
-#define PUTENV(nm,val) do{ if( getenv((nm)) == NULL ){           \
-                             char *str = (char *)malloc(256) ;   \
-                             strcpy(str,(nm)); strcat(str,"=");  \
-                             strcat(str,val);  putenv(str);      \
-                             if( PRINT_TRACING ) STATUS(str) ;   \
-                           }} while(0)
 
    PUTENV("AFNI_CROSSHAIR_LINES","YES") ;
    PUTENV("AFNI_ALWAYS_LOCK","YES") ;
