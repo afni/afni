@@ -60,6 +60,12 @@ typedef struct {
    char *envval;  /* This is the default */
 }ENV_SPEC;
 
+typedef struct {
+   char *name;
+   char *help;
+   char *val;  /* This is the default */
+}HELP_OPT;
+
 
 #define SUMA_MAX_NAME_LENGTH 500   /*!< Maximum number of characters in a filename */
 #define SUMA_MAX_DIR_LENGTH 2000    /*!< Maximum number of characters in a directory name */
