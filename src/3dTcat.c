@@ -68,6 +68,8 @@ void TCAT_read_opts( int argc , char *argv[] )
    INIT_3DARR(TCAT_dsar) ;  /* array of datasets */
    INIT_XTARR(TCAT_subv) ;  /* array of sub-brick selector arrays */
 
+   PUTENV("AFNI_GLOB_SELECTORS","YES") ;  /* 09 Mar 2011 */
+
    while( nopt < argc ){
 
       /**** -relabel ****/
@@ -204,66 +206,84 @@ void TCAT_read_opts( int argc , char *argv[] )
     /*----- Remove View Type from string to make output prefix -----*/
          MCW_strncpy( TCAT_output_prefix , argv[nopt] , ilen+1) ;
 
-    /*----- Note: no "continue" statement here.  File name will now
-      be processed as an input dataset -----*/
-      }
+    /*----- Note: no "continue" statement here.  File name 
+                  will now be processed as an input dataset -----*/
+
+      } /* end of -glueto prefatory actions */
+
+      /*-- does this look like another option?  that's bad! --*/
 
       if( argv[nopt][0] == '-' ) ERROR_exit("Unknown option: %s",argv[nopt]) ;
 
-      /**** read dataset ****/
+      /*-- 09 Mar 2011: do filename expansion --*/
 
-      cpt = strstr(argv[nopt],"[") ;  /* look for the sub-brick selector */
+      { int nexp,ee,ebad=0 ; char **fexp ;
 
-      subv = NULL;   /* Need to resest this variable ZSS Nov. 24 2010 */
-      if( cpt == NULL ){              /* no selector */
-         strcpy(dname,argv[nopt]) ;
-      } else if( cpt == argv[nopt] ){ /* can't be at start!*/
-         ERROR_exit("Illegal dataset specifier: %s",argv[nopt]) ;
-      } else {                        /* found selector */
-         ii = cpt - argv[nopt] ;
-         memcpy(dname,argv[nopt],ii) ; dname[ii] = '\0' ;
-         subv = cpt;   /* no length limit    17 Jun 2010 [rickr] */
-      }
-      nopt++ ;
+        MCW_file_expand( 1 , argv+nopt , &nexp , &fexp ) ;
 
-      dset = THD_open_one_dataset( dname ) ;
-      if( dset == NULL ) ERROR_exit("Can't open dataset %s",dname) ;
-      THD_force_malloc_type( dset->dblk , DATABLOCK_MEM_MALLOC ) ;
+        if( nexp == 0 ){ ebad = nexp = 1 ; fexp = argv+nopt ; }
+        nopt++ ;
 
-      if( TCAT_type < 0 ) TCAT_type = dset->type ;
+        for( ee=0 ; ee < nexp ; ee++ ){ 
 
-      TCAT_ccode = COMPRESS_filecode(dset->dblk->diskptr->brick_name) ; /* 16 Mar 2010 */
+          /**** read dataset ****/
 
-      /* check if voxel counts match */
+          cpt = strstr(fexp[ee],"[") ;  /* look for the sub-brick selector */
 
-      ii = dset->daxes->nxx * dset->daxes->nyy * dset->daxes->nzz ;
-      if( TCAT_nvox < 0 ){
-        TCAT_nvox = ii ; fset = dset ;
-      } else if( ii != TCAT_nvox ){
-        ERROR_exit("Dataset %s differs in size from first one!",dname);
-      } else if( !EQUIV_GRIDS(dset,fset) ){
-        WARNING_message("Dataset %s grid differs from first one!",dname);
-      }
-      ADDTO_3DARR(TCAT_dsar,dset) ;  /* list of datasets */
+          subv = NULL;   /* Need to resest this variable ZSS Nov. 24 2010 */
+          if( cpt == NULL ){              /* no selector */
+            strcpy(dname,fexp[ee]) ;
+          } else if( cpt == fexp[ee] ){ /* can't be at start!*/
+            ERROR_exit("Illegal dataset specifier: %s",fexp[ee]) ;
+          } else {                        /* found selector */
+            ii = cpt - fexp[ee] ;
+            memcpy(dname,fexp[ee],ii) ; dname[ii] = '\0' ;
+            subv = cpt;   /* no length limit    17 Jun 2010 [rickr] */
+          }
 
-      if (subv == NULL || subv[0] == '\0') { /* lazy way for 3dTcat special */
-         svar = TCAT_get_subv( DSET_NVALS(dset) , subv ) ; /* ZSS March 2010 */
-      } else {
-         svar = MCW_get_thd_intlist (dset, subv);          /* ZSS March 2010 */
-      }
-      if( svar == NULL || svar[0] <= 0 ){
-         ERROR_exit("can't decipher index codes from %s%s\n",dname,subv) ;
-      }
-      ADDTO_XTARR(TCAT_subv,svar) ;  /* list of sub-brick selectors */
+          dset = THD_open_one_dataset( dname ) ;
+          if( dset == NULL ) ERROR_exit("Can't open dataset %s",dname) ;
+          THD_force_malloc_type( dset->dblk , DATABLOCK_MEM_MALLOC ) ;
 
-      max_nsub = MAX( max_nsub , svar[0] ) ;
+          if( TCAT_type < 0 ) TCAT_type = dset->type ;
 
-      if( TCAT_rlt == 3 && svar[0] < 3 )  /* 16 Sep 1999 */
-        WARNING_message(
-                 "-rlt++ option won't work properly with"
-                 " less than 3 sub-bricks per input dataset!") ;
+          TCAT_ccode = COMPRESS_filecode(dset->dblk->diskptr->brick_name) ; /* 16 Mar 2010 */
 
-   }  /* end of loop over command line arguments */
+          /* check if voxel counts match */
+
+          ii = dset->daxes->nxx * dset->daxes->nyy * dset->daxes->nzz ;
+          if( TCAT_nvox < 0 ){
+            TCAT_nvox = ii ; fset = dset ;
+          } else if( ii != TCAT_nvox ){
+            ERROR_exit("Dataset %s differs in size from first one!",dname);
+          } else if( !EQUIV_GRIDS(dset,fset) ){
+            WARNING_message("Dataset %s grid differs from first one!",dname);
+          }
+          ADDTO_3DARR(TCAT_dsar,dset) ;  /* list of datasets */
+
+          if (subv == NULL || subv[0] == '\0') { /* lazy way for 3dTcat special */
+            svar = TCAT_get_subv( DSET_NVALS(dset) , subv ) ; /* ZSS March 2010 */
+          } else {
+            svar = MCW_get_thd_intlist (dset, subv);          /* ZSS March 2010 */
+          }
+          if( svar == NULL || svar[0] <= 0 ){
+            ERROR_exit("can't decipher index codes from %s%s\n",dname,subv) ;
+          }
+          ADDTO_XTARR(TCAT_subv,svar) ;  /* list of sub-brick selectors */
+
+          max_nsub = MAX( max_nsub , svar[0] ) ;
+
+          if( TCAT_rlt == 3 && svar[0] < 3 )  /* 16 Sep 1999 */
+            WARNING_message(
+                     "-rlt++ option won't work properly with"
+                     " less than 3 sub-bricks per input dataset!") ;
+        } /* end of loop over filename expansion*/
+
+        if( !ebad ) MCW_free_expand( nexp , fexp ) ;
+
+      } /* end of filename expansion stuff */
+
+   }  /* end of while loop over command line arguments */
 
    /*--- final sanity checks ---*/
 
@@ -512,6 +532,24 @@ void TCAT_Syntax(void)
     "\n"
     "* You may wish/need to use the 3drefit program on the output\n"
     "  dataset to modify some of the .HEAD file parameters.\n"
+    "\n"
+    "* The program does internal wildcard expansion on the filenames\n"
+    "  provided to define the datasets.  The software first strips the\n"
+    "  sub-brick selector string '[...]' off the end of each filename\n"
+    "  BEFORE wildcard expansion, then re-appends it to the results\n"
+    "  AFTER the expansion; for example, '*+orig.HEAD[4..7]' might\n"
+    "  expand to 'fred+orig.HEAD[4..7]' and 'wilma+orig.HEAD[4..7]'.\n"
+    " ++ However, the '[...]' construct is also a shell wildcard,\n"
+    "    It is not practicable to use this feature for filename\n"
+    "    selection with 3dTcat if you are also using sub-brick\n"
+    "    selectors.\n"
+    " ++ Since wildcard expansion looks for whole filenames, you must\n"
+    "    use wildcard expansion in the form (e.g.) of '*+orig.HEAD',\n"
+    "    NOT '*+orig' -- since the latter form doesn't match filenames.\n"
+    " ++ Don't use '*+orig.*' since that will match both the .BRIK and\n"
+    "    .HEAD files, and each dataset will end up being read in twice!\n"
+    " ++ If you want to see the filename expansion results, run 3dTcat\n"
+    "    with the option '-DAFNI_GLOB_DEBUG=YES'\n"
    ) ;
 
    PRINT_COMPILE_DATE ; exit(0) ;
