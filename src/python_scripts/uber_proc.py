@@ -242,12 +242,13 @@ class MainWindow(QtGui.QMainWindow):
       if label.startswith("New Subj"):
          print("pushed 'New Subject' button")
          if self.SSD == None:
-            self.SSD = GUS.SingleSubjectWindow()
+            self.SSD = GUS.SingleSubjectWindow(set_sdir=1)
             self.SSD.show()
          else:
             print '-- showing SSD...'
+            self.SSD.reset_vars(set_sdir=1)
             self.SSD.show()
-         
+            self.SSD.raise_()
          
       elif label.startswith("Re"):
          print("pushed 'Reprocess Subject' button")

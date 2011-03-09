@@ -1058,8 +1058,9 @@ uber_subject.py GUI             - a graphical interface to afni_proc.py
 
    required inputs:
 
-      o  EPI datasets (in AFNI or NIfTI format)
-      o  stimulus timing files (time=0.0 refers to start of steady state)
+      o  subject ID and group ID (codes for file naming)
+      o  EPI datasets            (in AFNI or NIfTI format)
+      o  stimulus timing files   (time=0.0 refers to start of steady state)
 
    optional inputs:
 
@@ -1083,8 +1084,8 @@ Overview:
    inputs first.  In the future, one should be able to initialize the interface
    based on a previous subject.
 
-   Step 0. Optional subject and group ID codes are specified at the very top,
-           in the 'general subject info' section.
+   Step 0. subject and group ID codes are specified at the very top, in the
+           'general subject info' section.
 
               inputs: subject ID, group ID
 

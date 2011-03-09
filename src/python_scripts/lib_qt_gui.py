@@ -689,7 +689,7 @@ class TcshCommandWindow(QtGui.QMainWindow):
 # ---------------------------------------------------------------------------
 class ProcessWindow(QtGui.QMainWindow):
 
-   def __init__(self, command='', dir='', title='', parent=None, sepwin=1):
+   def __init__(self, command='', dir='', title='', parent=None, sepwin=0):
       """Create a window to display the processing of a passed command, or of
          those specified by the user.
 
@@ -698,7 +698,7 @@ class ProcessWindow(QtGui.QMainWindow):
          sepwin         - if set, use separate windows for stdout and stderr
 
       """
-      if title == '': title = 'command process'
+      if title == '': title = 'tcsh: shell command window'
 
       super(ProcessWindow, self).__init__(parent)
 
@@ -712,7 +712,7 @@ class ProcessWindow(QtGui.QMainWindow):
       self.lineedit = QtGui.QLineEdit()
       self.Bstart = QtGui.QPushButton('Start')
       self.Bstop = QtGui.QPushButton('Stop')
-      clabel = QtGui.QLabel('command: ')
+      clabel = QtGui.QLabel('tcsh command: ')
 
       # create layout, for either 1 or 2 sub-windows
       layout = QtGui.QGridLayout()
@@ -724,8 +724,8 @@ class ProcessWindow(QtGui.QMainWindow):
          layout.addWidget(self.Edit_err, offset, 0, offset, 5)
          offset += 8
       else:
-         offest = 16
-         layout.addWidget(self.Edit_out, 0, 0, offest, 5)
+         offset = 16
+         layout.addWidget(self.Edit_out, 0, 0, offset, 5)
          self.Edit_err = self.Edit_out  # same edit window
 
       layout.addWidget(clabel, offset, 0)
@@ -751,7 +751,7 @@ class ProcessWindow(QtGui.QMainWindow):
       self.Edit_err.setLineWrapMode(QtGui.QTextEdit.NoWrap)
 
       # set callbacks
-      self.lineedit.editingFinished.connect(self.cb_newcommand)
+      self.lineedit.returnPressed.connect(self.cb_newcommand)
       self.Bstart.clicked.connect(self.cb_start)
       self.Bstop.clicked.connect(self.cb_stop)
 
@@ -796,7 +796,9 @@ class ProcessWindow(QtGui.QMainWindow):
       editor.ensureCursorVisible()
 
    def cb_newcommand(self):
-      self.lineedit.clearFocus()
+      cmd = str(self.lineedit.text())
+      if cmd == '': return
+
       pstate = self.process.state()
       print '-- trying command %d' % len(self.commandlist)
       if pstate == QtCore.QProcess.NotRunning:
@@ -808,12 +810,11 @@ class ProcessWindow(QtGui.QMainWindow):
 
    def cb_start(self, cmd=''):
       if cmd == '' or cmd == False:
-         cmd = self.lineedit.text()
-         if cmd == '': return
-         cmd = str(cmd)
+         cmd = str(self.lineedit.text())
+      if cmd == '': return
 
-      targs = cmd.split(' ')
-      if len(targs) < 1: return
+      # execute command via "tcsh -c COMMAND"
+      args = ['-c', cmd]
 
       # note directory
       if self.dir != '':
@@ -825,7 +826,7 @@ class ProcessWindow(QtGui.QMainWindow):
       self.Edit_hist.append(cmd)
       self.lineedit.clear()
 
-      self.process.start(targs[0], targs[1:])
+      self.process.start('tcsh', args)
       if self.process.waitForStarted():
          print '++ process is started, pid = %d' % self.process.pid()
          self.status = 0
@@ -880,7 +881,7 @@ class PyCommandWindow(QtGui.QMainWindow):
       self.callback = callback
 
       if callback != None:
-         self.lineedit.editingFinished.connect(self.process_command)
+         self.lineedit.returnPressed.connect(self.process_command)
 
    def process_command(self):
       command = str(self.lineedit.text())

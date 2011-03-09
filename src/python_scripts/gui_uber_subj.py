@@ -28,17 +28,23 @@ g_style_index_def = 4
 
 g_LineEdittype = None                   # set this type later
 
+# default subj dir should read like: subject_results/group_A/SUBJ
+g_def_subj_parent  = 'subject_results'
+
 # ======================================================================
 # main module class
 class SingleSubjectWindow(QtGui.QMainWindow):
    """class for a single subject main window
 
          parent         parent Widget, can be None if this is main Widget
-         verb           verbose level, default of 1
          subj_vars      VarsObject for init of gui fields
+         ctrl_vars      VarsObject for init of control vars
+         set_sdir       upon GUI exec, set cvars.subj_dir bases on sid
+         verb           verbose level, default of 1
    """
 
-   def __init__(self, parent=None, verb=1, subj_vars=None, ctrl_vars=None):
+   def __init__(self, parent=None, subj_vars=None, ctrl_vars=None, 
+                set_sdir=0, verb=-1):
       super(SingleSubjectWindow, self).__init__(parent)
 
       # ------------------------------
@@ -50,6 +56,8 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       # initialize the subject variables as empty, update at the end
       self.svars  = USUBJ.g_subj_defs.copy('uber_subject subject vars')
       self.cvars  = USUBJ.g_ctrl_defs.copy('uber_subject control vars')
+      if self.verb < 0: self.verb = self.cvars.verb
+      self.set_sdir = set_sdir
 
       # ------------------------------
       # L1 - main menubar and layout
@@ -87,8 +95,8 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       self.gvars.style = g_styles[g_style_index_def]
 
       # widgets are done, so apply pass subject vars
-      self.apply_svars(subj_vars)
-      self.apply_cvars(ctrl_vars)
+      self.reset_vars(svars=subj_vars, cvars=ctrl_vars,
+                      set_sdir=set_sdir, verb=verb)
 
       # ap_status : 0 = must create ap command, 1 = have ap, need proc script,
       #             2 = have proc script, ready to execute
@@ -96,6 +104,21 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       self.gvars.ap_status = 0
 
       if self.verb > 1: print '-- finished Single Subject Dialog setup'
+
+   def reset_vars(self, svars=None, cvars=None, set_sdir=0, verb=-1):
+      """replace old svars/cvars with new"""
+
+      if self.verb < 0: self.verb = self.cvars.verb
+      self.set_sdir = set_sdir
+
+      del(self.svars)
+      del(self.cvars)
+
+      self.svars = USUBJ.g_subj_defs.copy()
+      self.cvars = USUBJ.g_ctrl_defs.copy()
+
+      self.apply_svars(svars)
+      self.apply_cvars(cvars)
 
    def make_l2_widgets(self):
       """create 'general subject info' box and scroll area for the
@@ -849,8 +872,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       """show the shell command window"""
       # start a new window?
       if not self.gvars.valid('CW'):
-         self.gvars.CW = QLIB.ProcessWindow(title='command window',
-                                            parent=self, sepwin=1)
+         self.gvars.CW = QLIB.ProcessWindow(parent=self)
       self.gvars.CW.show()
       self.gvars.CW.raise_()
 
@@ -1235,8 +1257,15 @@ class SingleSubjectWindow(QtGui.QMainWindow):
    def cb_show_ap_command(self):
       self.update_svars_from_tables()
 
-      # create command, save it (init directory tree?), show it
+      if self.svars.is_empty('sid') or self.svars.is_empty('gid'):
+         QLIB.guiError('Error', "** subject and group IDs must be set", self)
+         return
 
+      if self.set_sdir and self.cvars.is_empty('subj_dir'):
+         sdir =  '%s/%s/%s'%(g_def_subj_parent, self.cvars.gid, self.cvars.sid)
+         print '-- setting subj_dir to %s' % sdir
+         self.set_cvar('subj_dir', sdir)
+        
       # create the subject, check warnings and either a command or errors
       self.apsubj = USUBJ.AP_Subject(self.svars, self.cvars)
       nwarn, wstr = self.apsubj.get_ap_warnings()

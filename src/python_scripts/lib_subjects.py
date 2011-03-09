@@ -118,6 +118,13 @@ class VarsObject(object):
       if hasattr(self, atr): return 1
       else:                  return 0
 
+   def is_empty(self, atr):
+      """true if not set or is '' or []"""
+      val = self.val(atr)
+      if val == None: return True
+      if val == '' or val == []: return True
+      return False
+
    def vals_are_equal(self, atr, vobj):
       """direct comparison is okay for any valid atomic type
       """
