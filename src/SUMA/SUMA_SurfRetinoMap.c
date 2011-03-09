@@ -20,6 +20,7 @@ float SUMA_LocalRetinoGrad (SUMA_SurfaceObject *SO,
    float vfr = 0.0;
    char *tp="not set";
    
+   SUMA_ENTRY;
    
    /* phi(x,y) = b0 x + b1 y + const for each of the dsets */
    /* PHI = X B + e */

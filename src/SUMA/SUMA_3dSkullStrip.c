@@ -1882,8 +1882,10 @@ int main (int argc,char *argv[])
          } else {
             /* send in_vol to afni */
             if (Opt->DoSpatNorm && ps->cs->afni_Send) {
+               SUMA_SEND_2AFNI SS2A;
                SUMA_SL_Note("Sending spatnormed volume to AFNI");
-               if (!SUMA_SendToAfni(ps->cs, Opt->in_vol, 1)) {
+               SS2A.dset = Opt->in_vol; SS2A.at_sb=-1;
+               if (!SUMA_SendToAfni(ps->cs, &SS2A, 1)) {
                   SUMA_SL_Err("Failed to send volume to AFNI");
                   ps->cs->afni_Send = NOPE;
                }

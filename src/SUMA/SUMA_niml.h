@@ -1,6 +1,12 @@
 #ifndef SUMA_NIML_DEFINED
 #define SUMA_NIML_DEFINED
 
+typedef struct {
+   THD_3dim_dataset *dset;
+   int at_sb;
+} SUMA_SEND_2AFNI;
+
+
 NI_element * SUMA_makeNI_SurfIXYZ (SUMA_SurfaceObject *SO);
 NI_element * SUMA_makeNI_SurfIJK (SUMA_SurfaceObject *SO);
 NI_element * SUMA_makeNI_SurfINORM (SUMA_SurfaceObject *SO);
@@ -31,7 +37,7 @@ SUMA_Boolean SUMA_Mesh_IJK_nel2Mesh_IJK(SUMA_SurfaceObject *SO, NI_element *nel)
 NI_element * SUMA_NodeXYZ2NodeXYZ_nel (SUMA_SurfaceObject *SO, float *val, SUMA_Boolean cleanup, SUMA_DSET_TYPE dtype);
 SUMA_Boolean SUMA_NodeXYZ_nel2NodeXYZ (SUMA_SurfaceObject *SO, NI_element *nel);
 SUMA_Boolean SUMA_Assign_HostName (SUMA_CommonFields *cf, char *HostName, int istream);
-SUMA_Boolean SUMA_SendDset_Afni( NI_stream ns, THD_3dim_dataset *dset, int all);
+SUMA_Boolean SUMA_SendDset_Afni( NI_stream ns,  SUMA_SEND_2AFNI *SS2A, int all);
 NI_element *SUMA_SOVolPar2VolPar_nel (SUMA_SurfaceObject *SO, SUMA_VOLPAR *VolPar, SUMA_DSET_TYPE dtype);
 SUMA_Boolean SUMA_VolPar_nel2SOVolPar(SUMA_SurfaceObject *SO, NI_element *nel);
 void SUMA_Wait_Till_Stream_Goes_Bad(SUMA_COMM_STRUCT *cs, int slp, int WaitMax, int verb);

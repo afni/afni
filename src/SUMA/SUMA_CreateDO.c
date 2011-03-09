@@ -742,7 +742,11 @@ SUMA_DO_Types SUMA_Guess_DO_Type(char *s)
       dotp = SBT_type;
    } else if (strstr(sbuf,"nido_head")) {
       dotp = NIDO_type;
-   } 
+   } else if (strstr(sbuf,"<") || strstr(sbuf,">")) {
+      SUMA_S_Warnv("Bad format likely in niml file %s.\n"
+                   "Could not find element '<nido_head'\n",
+                   s);
+   }
    if (LocalHead) {
       fprintf( SUMA_STDERR,
                "%s: Searched header string:\n>>>%s<<<\ndotp = %d\n", 

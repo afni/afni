@@ -26,7 +26,8 @@ THD_3dim_dataset * THD_open_nifti( char *pathname )
    mat44 ijk_to_dicom44 ;
    char *ppp , prefix[THD_MAX_PREFIX] ;
    char form_priority = 'S' ;             /* 23 Mar 2006 */
-
+   static int n_xform_warn=0;
+   
 ENTRY("THD_open_nifti") ;
 
    /*-- open input file --*/
@@ -114,11 +115,19 @@ ENTRY("THD_open_nifti") ;
 #endif
    }
 
-   if( xform_data )
-     fprintf(stderr,
+   if( xform_data ) {
+      if (!n_xform_warn || AFNI_yesenv("AFNI_NIFTI_TYPE_WARN")) {/* ZSS 04/11 */
+         fprintf(stderr,
              "** AFNI converts NIFTI_datatype=%d (%s) in file %s to FLOAT32\n",
              nim->datatype, nifti_datatype_string(nim->datatype), pathname );
-
+         if (!AFNI_yesenv("AFNI_NIFTI_TYPE_WARN")) {
+            fprintf(stderr,
+               "     Warnings of this type will be muted for this session.\n"
+               "     Set AFNI_NIFTI_TYPE_WARN to YES to see them all.\n");
+         }
+      }
+      ++n_xform_warn;
+   }
    /* check for statistics code */
 
    if( nim->intent_code >= NIFTI_FIRST_STATCODE &&

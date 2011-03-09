@@ -33,15 +33,18 @@ void usage_3dBRAIN_VOYAGERtoAFNI (SUMA_GENERIC_ARGV_PARSE *ps)
                "%s"
                "%s"
                "\n", sio,  s);
-      SUMA_free(s); s = NULL; SUMA_free(st); st = NULL; SUMA_free(sio); sio = NULL;       
+      SUMA_free(s); s = NULL; SUMA_free(st); st = NULL; 
+      SUMA_free(sio); sio = NULL;       
       s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL;
       printf("       Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov     \n");
       exit(0);
 }
 
-SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_3dBRAIN_VOYAGERtoAFNI_ParseInput(char *argv[], int argc, SUMA_GENERIC_ARGV_PARSE *ps)
+SUMA_GENERIC_PROG_OPTIONS_STRUCT *
+   SUMA_3dBRAIN_VOYAGERtoAFNI_ParseInput(char *argv[], int argc, 
+                                          SUMA_GENERIC_ARGV_PARSE *ps)
 {
-   static char FuncName[]={"SUMA_BrainWrap_ParseInput"}; 
+   static char FuncName[]={"SUMA_3dBRAIN_VOYAGERtoAFNI_ParseInput"}; 
    SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt=NULL;
    int kar;
    SUMA_Boolean brk;

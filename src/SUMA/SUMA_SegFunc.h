@@ -20,6 +20,30 @@
    EDIT_BRICK_FACTOR(p1,i,m_f2);   \
 }
 
+/*! Macros to get (and put) value from sub-brick k, vox ijk
+   
+   DSET_ARRAY calls mri_data_pointer, 
+   this can perhaps be sped up with direct access
+   to im with:
+   *(dset->dblk->brick->imarr[k]->im+ijk) 
+*/
+#define GVAL(dset,k,ijk,V) {\
+   short *cc = (short *)DSET_ARRAY(dset,k);   \
+   V = cc[ijk];   \
+}
+#define GSCVAL(dset,k,ijk,sf,V) {\
+   short *cc = (short *)DSET_ARRAY(dset,k);   \
+   V = cc[ijk]*sf;   \
+}
+#define PVAL(dset,k,ijk,V) {\
+   short *cc = (short *)DSET_ARRAY(dset,k);   \
+   cc[ijk] = (short)V;   \
+}
+#define PSCVAL(dset,k,ijk,sf,V) {\
+   short *cc = (short *)DSET_ARRAY(dset,k);   \
+   cc[ijk] = (short)(V/sf);   \
+}
+
 /*!
    Get a sub-brick index from label
 */
@@ -64,6 +88,18 @@
    }  \
 }
 
+#define MAX_SC_AT_VOX(pout, j, imax, max) {   \
+   int m_i;   \
+   short *m_p=(short *)DSET_ARRAY(pout, 0);   \
+   float m_f = DSET_BRICK_FACTOR(pout,0); if (m_f == 0.0f) m_f = 1.0; \
+   max = m_p[j]*m_f; imax = 0;   \
+   for (m_i=1; m_i<DSET_NVALS(pout); ++m_i) {   \
+      m_p = (short *)DSET_ARRAY(pout, m_i);   \
+      m_f = DSET_BRICK_FACTOR(pout,m_i); if (m_f == 0.0f) m_f = 1.0;   \
+      if (m_p[j]*m_f > max) { imax=m_i; max = m_p[j]*m_f; }  \
+   }  \
+}
+
 #define PUT_VEC_AT_VOX(pout, j, dv, bf) {   \
    int m_i;   \
    short *m_p;   \
@@ -90,6 +126,7 @@
                     ADN_func_type   , ANAT_BUCK_TYPE ,   \
                     ADN_none ) ; \
    for(m_i=0;m_i<nsb;++m_i) EDIT_substitute_brick( pb, m_i, MRI_short, NULL ) ; \
+   tross_Copy_History( par , pb ) ; \
 }
 
 #define NEW_FLOATY(par,nsb,nm,pb){  \
@@ -105,6 +142,7 @@
                     ADN_func_type   , ANAT_BUCK_TYPE ,   \
                     ADN_none ) ; \
    for(m_i=0;m_i<nsb;++m_i) EDIT_substitute_brick( pb, m_i, MRI_float, NULL ) ; \
+   tross_Copy_History( par , pb ) ; \
 }
 
 #define EPS 0.000001
@@ -241,43 +279,77 @@
    } else {  } /* No neighbor, neutral contribution */   \
 }
 
-#define E_l_GIV_NEIGHBS(c, ijkn_vec, cijk, Nvicinity, E, BoT) {\
+#define E_l_GIV_NEIGHBS(c, ijkn_vec, cijk, Nvicinity, E) {\
    static int m_i, m_E, m_NE;\
    m_E = 0; m_NE = 0;  \
    for (m_i=0; m_i<Nvicinity; ++m_i) { \
       E_ADD_CONTRIB(c,ijkn_vec[m_i],cijk,m_E,m_NE);   \
    }  \
-   if (m_NE) { E = BoT*m_E/(double)m_NE; } else {E=0.0;}\
+   if (m_NE) { E = m_E/(double)m_NE; } else {E=0.0;}\
 }
 
-#define AFNI_FEED(cs, sstr, iter, dset) {\
+#define AFNI_FEED(cs, sstr, iter, mdset) {\
    if (cs->talk_suma) { \
-      SUMA_S_Notev("Sending %s volume to AFNI, iter %d\n", \
+      SUMA_SEND_2AFNI SS2A;   \
+      char *opref = SUMA_copy_string(DSET_PREFIX(mdset)); \
+      char *m_pref = SUMA_append_string("t.",DSET_PREFIX(mdset)); \
+      char *oid = SUMA_copy_string(DSET_IDCODE_STR(mdset));   \
+      char lbuf[strlen(sstr)+10];   \
+      if (Opt->debug > 1) SUMA_S_Notev("Sending %s volume to AFNI, iter %d\n", \
                    sstr, iter); \
-      if (!SUMA_SendToAfni(cs, dset, 1)) { \
+      if (iter >=0) sprintf(lbuf, "%s.%d", sstr, iter); \
+      else sprintf(lbuf, "%s", sstr); \
+      EDIT_BRICK_LABEL( mdset, 0, lbuf);      \
+      EDIT_dset_items(  mdset , ADN_prefix  , m_pref, ADN_none);  \
+      strcpy(DSET_IDCODE_STR(mdset), UNIQ_hashcode(m_pref)); \
+      SS2A.dset = mdset; SS2A.at_sb = iter;   \
+      if (!SUMA_SendToAfni(cs, &SS2A, 1)) { \
          SUMA_SL_Err("Failed to send volume to AFNI");   \
          cs->afni_Send = NOPE;   \
       }  \
+      EDIT_dset_items(  mdset , ADN_prefix  , opref, ADN_none);  \
+      strcpy(DSET_IDCODE_STR(mdset), oid); \
+      SUMA_free(opref); SUMA_free(oid);\
    }  \
 }      
       
-#define SUMA_SEG_WRITE_DSET(pref, dset, iter) {\
-   char m_pref[512];   \
+#define SUMA_SEG_WRITE_DSET(pref, dset, iter, hh) {\
+   char m_pref[512]; int ovw;   \
    char *opref = SUMA_copy_string(DSET_PREFIX(dset)); \
+   char *oid = SUMA_copy_string(DSET_IDCODE_STR(dset));   \
+   char *ohist = tross_Get_History(dset); \
    if (iter >=0) sprintf(m_pref, "%s.%d", pref, iter); \
    else sprintf(m_pref, "%s", pref); \
    SUMA_S_Notev("Writing %s\n", m_pref);   \
    EDIT_dset_items(  dset , ADN_prefix  , m_pref, ADN_none);  \
    UNIQ_idcode_fill(DSET_IDCODE_STR(dset));/* new id */   \
-   DSET_overwrite(dset);   \
+   if (hh) tross_Append_History(dset, hh);/*add history*/   \
+   DSET_quiet_overwrite(dset);   \
    EDIT_dset_items(  dset , ADN_prefix  , opref, ADN_none);  \
-   SUMA_free(opref); \
+   strcpy(DSET_IDCODE_STR(dset), oid); \
+   if (ohist) tross_Replace_History(dset, ohist); \
+   SUMA_free(opref); SUMA_free(oid); free(ohist); ohist=NULL;\
 }
 
+#define GRID_MISMATCH(a,b) (   (DSET_NX(a) != DSET_NX(b)) \
+                            || (DSET_NY(a) != DSET_NY(b)) \
+                            || (DSET_NZ(a) != DSET_NZ(b)) )
+
+#define SUMA_IposBOUND  1
+#define SUMA_InegBOUND  2
+#define SUMA_I_HOLE     3
+#define SUMA_JposBOUND  4
+#define SUMA_JnegBOUND  8
+#define SUMA_J_HOLE     12
+#define SUMA_kposBOUND  16
+#define SUMA_knegBOUND  32
+#define SUMA_K_HOLE     48
+
+
 int SUMA_KeyofLabel_Dtable(Dtable *vl_dtable, char *label);
-void SUMA_ShowClssKeys(NI_str_array *clss, int *keys);
-char *SUMA_LabelsKeys2labeltable_str(NI_str_array *clss, int *keys);
-Dtable *SUMA_LabelsKeys2Dtable (NI_str_array *clss, int *keys);
+void SUMA_ShowClssKeys(char **label, int N_label, int *keys);
+char *SUMA_LabelsKeys2labeltable_str(char **label, int N_label, int *keys);
+Dtable *SUMA_LabelsKeys2Dtable (char **label, int N_label, int *keys);
 
 int get_train_pdist(SEG_OPTS *Opt, char *feat, char *cls, 
                      double *par, double *scpar) ;
@@ -301,24 +373,33 @@ int Regroup_classes (SEG_OPTS *Opt,
                      THD_3dim_dataset *cset,
                      THD_3dim_dataset **gpset, 
                      THD_3dim_dataset **gcset); 
-THD_3dim_dataset *assign_classes (SEG_OPTS *Opt, THD_3dim_dataset *pset);
+int SUMA_assign_classes (THD_3dim_dataset *pset, 
+                         SUMA_CLASS_STAT *cs,
+                         byte *cmask,
+                         THD_3dim_dataset **csetp);
+int SUMA_assign_classes_eng(THD_3dim_dataset *pset, 
+                         char **label, int N_label, int *keys,
+                         byte *cmask,
+                         THD_3dim_dataset **csetp);
 int  group_mean (SEG_OPTS *Opt, THD_3dim_dataset *aset,
                  byte *mm, THD_3dim_dataset *pset, int N_cl,
                  double *M_v, int scl);          
-THD_3dim_dataset *estimate_bias_field_NoCross (SEG_OPTS *Opt, 
-                                       THD_3dim_dataset *aset,
-                                       THD_3dim_dataset *cset,
-                                       THD_3dim_dataset *pset) ;
 THD_3dim_dataset *SUMA_estimate_bias_field (SEG_OPTS *Opt,
                                        int polorder, 
                                        THD_3dim_dataset *aset,
                                        THD_3dim_dataset *cset,
                                        THD_3dim_dataset *pset,
                                        THD_3dim_dataset *pout);
-THD_3dim_dataset *SUMA_apply_bias_field (SEG_OPTS *Opt, 
-                                       THD_3dim_dataset *aset,
-                                       THD_3dim_dataset *fset,
-                                       THD_3dim_dataset *pout);
+int SUMA_estimate_bias_field_Wells (SEG_OPTS *Opta, 
+                                       byte *cmask, SUMA_CLASS_STAT *cs,
+                                       float fwhm, char *bias_classes,
+                                       THD_3dim_dataset *Aset,
+                                       THD_3dim_dataset *pstCgALL,
+                                       THD_3dim_dataset **Bsetp);
+int SUMA_apply_bias_field (SEG_OPTS *Opt, 
+                           THD_3dim_dataset *aset,
+                           THD_3dim_dataset *fset,
+                           THD_3dim_dataset **pout);
 THD_3dim_dataset *SUMA_SegEnhanceInitCset(THD_3dim_dataset *aseti, 
                                           THD_3dim_dataset *cset, 
                                  byte *cmask, int cmask_count, 
@@ -327,29 +408,104 @@ THD_3dim_dataset *SUMA_SegEnhanceInitCset(THD_3dim_dataset *aseti,
 int bias_stats (SEG_OPTS *Opt, 
                 THD_3dim_dataset *aset, THD_3dim_dataset *gset, 
                 THD_3dim_dataset *xset, int N_cl);
+double SUMA_CompareBiasDsets(THD_3dim_dataset *gold_bias, THD_3dim_dataset *bias,
+                         byte *cmask, int cmask_count, 
+                         float thresh, THD_3dim_dataset *prat );
 int SUMA_show_Class_Stat(SUMA_CLASS_STAT *cs, char *h);
+int SUMA_dump_Class_Stat(SUMA_CLASS_STAT *cs, char *head, FILE *Out);
+char *SUMA_Class_Stat_Info(SUMA_CLASS_STAT *cs, char *head);
 int SUMA_set_Stat(SUMA_CLASS_STAT *cs, char *label, char *pname, double val);
 double SUMA_get_Stat(SUMA_CLASS_STAT *cs, char *label, char *pname);
+double *SUMA_get_Stats(SUMA_CLASS_STAT *cs,  char *pname);
+int SUMA_MixFrac_from_ClassStat(SUMA_CLASS_STAT *cs, float *mf);
 int SUMA_Stat_position (SUMA_CLASS_STAT *cs, char *label, char *pname, int pp[]);
 SUMA_CLASS_STAT *SUMA_Free_Class_Stat(SUMA_CLASS_STAT *cs);
 SUMA_CLASS_STAT *SUMA_New_Class_Stat(NI_str_array *clss, int *keys, 
                                     int nP, NI_str_array *pnames);
 int SUMA_Class_stats(THD_3dim_dataset *aset, 
                      THD_3dim_dataset *cset, 
-                     byte *cmask, 
-                     THD_3dim_dataset *wset, 
+                     byte *cmask, int cmask_count,
+                     THD_3dim_dataset *wset,
+                     THD_3dim_dataset *pC, 
+                     THD_3dim_dataset *gold,
                      SUMA_CLASS_STAT *cs);
+double SUMA_mixopt_2_mixfrac(char *mixopt, char *label, int key, int N_clss,
+                             byte *cmask, THD_3dim_dataset *cset);
 double pdfnorm(double x, double mean, double stdv);
 THD_3dim_dataset *SUMA_p_Y_GIV_C_B_O(
                            THD_3dim_dataset *aset, THD_3dim_dataset *cset,
                                  byte *cmask, SUMA_CLASS_STAT *cs, 
                                  THD_3dim_dataset *pygc); 
-THD_3dim_dataset *SUMA_MAP_labels(THD_3dim_dataset *aset, 
-                        byte *cmask, THD_3dim_dataset *pygcbo, 
+int SUMA_MAP_labels(THD_3dim_dataset *aset, 
+                        byte *cmask, 
                         SUMA_CLASS_STAT *cs, int neighopt, 
-                        THD_3dim_dataset *cset, SEG_OPTS *Opt);
-THD_3dim_dataset *SUMA_p_c_GIV_y(THD_3dim_dataset *aset, THD_3dim_dataset *cset, 
-                                 byte *cmask, SUMA_CLASS_STAT *cs, int neighopt,
-                                 THD_3dim_dataset *pcgy, SEG_OPTS *Opt);
-
+                        THD_3dim_dataset **csetp, 
+                        THD_3dim_dataset **pCgN, 
+                        SEG_OPTS *Opt);
+int SUMA_pst_C_giv_ALL(THD_3dim_dataset *aset,  
+                                 byte *cmask, int cmask_count,
+                                 SUMA_CLASS_STAT *cs, 
+                                 THD_3dim_dataset *pC, THD_3dim_dataset *pCgN, 
+                                 THD_3dim_dataset **pstCgALLp, SEG_OPTS *Opt);
+int SUMA_CompareSegDsets(THD_3dim_dataset *base, THD_3dim_dataset *seg,
+                         byte *cmask, byte mask_by_base,
+                         SUMA_CLASS_STAT *cs );
+int SUMA_VolumeInFill(THD_3dim_dataset *aset,
+                      THD_3dim_dataset **filledp,
+                      int method);
+int SUMA_mri_volume_infill(MRI_IMAGE *imin);
+int SUMA_mri_volume_infill_zoom(MRI_IMAGE *imin, byte thorough);
+int SUMA_VolumeBlurInMask(THD_3dim_dataset *aset,
+                                     byte *cmask,
+                                     THD_3dim_dataset **blrdp,
+                                     float FWHM, float unifac);
+double SUMA_EdgeEnergy(short *a, float af, short *b, float bf,
+                      int Ni, int Nj, int Nk,
+                      short *c, short c1, short c2, 
+                      byte *mask,
+                      short *skel, 
+                      int *n_en);
+double SUMA_DsetEdgeEnergy(THD_3dim_dataset *aset,
+                      short *c,
+                      byte *mask, 
+                      THD_3dim_dataset *fset,
+                      SUMA_CLASS_STAT *cs);
+double SUMA_MAP_EdgeEnergy(THD_3dim_dataset *aset, byte *cmask, 
+                        THD_3dim_dataset *fset, SUMA_CLASS_STAT *cs, 
+                        THD_3dim_dataset *cset, SEG_OPTS * Opt,
+                        short *thisc);
+int SUMA_ShortizeProbDset(THD_3dim_dataset **csetp, 
+                        SUMA_CLASS_STAT *cs, 
+                        byte *cmask, int cmask_count, 
+                        SEG_OPTS *Opt, 
+                        THD_3dim_dataset **psetp);
+int SUMA_OtherizeProbDset(THD_3dim_dataset *pC, 
+                          byte *cmask, int cmask_count);
+int SUMA_FlattenProb(THD_3dim_dataset *pC, 
+                     byte *cmask, int cmask_count, 
+                     int mode);
+int SUMA_AddOther(  NI_str_array *clss, int **keys, 
+                    byte *cmask, int cmask_count,
+                    THD_3dim_dataset *cset, THD_3dim_dataset *pstCgALL,
+                    THD_3dim_dataset *pCgA, THD_3dim_dataset *pCgL,
+                    SUMA_CLASS_STAT *cs);
+int SUMA_Class_k_Selector(
+   SUMA_CLASS_STAT *cs, char *action, char *value, int *UseK);
+int SUMA_Class_k_Label_Locator(SUMA_CLASS_STAT *cs, char *label); 
+int SUMA_Class_k_Key_Locator(SUMA_CLASS_STAT *cs, int key);
+int SUMA_InitDset(THD_3dim_dataset  *aset, float *val, int nval,
+                  byte *cmask, byte setsf);
+int SUMA_MergeCpriors(SUMA_CLASS_STAT *cs, byte *cmask,
+                                      THD_3dim_dataset  *Aset,
+                                      THD_3dim_dataset  *priCgA, float wA,
+                                      THD_3dim_dataset  *priCgL, float wL,
+                                      THD_3dim_dataset  **priCgALLp,
+                                      SEG_OPTS *Opt);
+int SUMA_SegInitCset(THD_3dim_dataset *aseti, 
+                     THD_3dim_dataset **csetp, 
+                     byte *cmask, int cmask_count,
+                     char *mixopt, 
+                     SUMA_CLASS_STAT *cs,
+                     SEG_OPTS *Opt);
+                     
 #endif

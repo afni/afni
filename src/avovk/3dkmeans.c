@@ -203,7 +203,6 @@ int main(int argc, char **argv)
    oc.rand_seed = 1234567;
    oc.remap = NONE;
    oc.user_labeltable=NULL;
-   oc.clabels = NULL;
    oc.nclabels=0;
    
    for (i=0; i<4; ++i) oc.voxdebug[i] = -1;
@@ -409,7 +408,6 @@ int main(int argc, char **argv)
                   "no labels specified\n");
           RETURN(1);
         }
-        oc.clabels = (char **)calloc(500, sizeof(char *));
         do {
          oc.clabels[oc.nclabels] = argv[i];
          if (oc.nclabels > 400) {
@@ -790,9 +788,8 @@ int main(int argc, char **argv)
    
    if (mask) free(mask); mask = NULL;
    if (oc.jobname) free(oc.jobname); oc.jobname = NULL;
-   if (oc.clabels) free(oc.clabels); oc.clabels = NULL;
 
    fprintf (stderr,"\n");
    RETURN(0);
-   }
+}
 

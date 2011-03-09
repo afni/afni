@@ -223,7 +223,7 @@ ENTRY("THD_load_niml");
                 fprintf(stderr,"** failed to load niml file '%s'\n",fname);
                 RETURN(1);
             }
-            rv = THD_add_bricks(dblk->parent, nel);
+            rv = THD_add_bricks(dblk->parent, nel, NULL);
             NI_free_element(nel);  /* in any case */
             if( rv <= 0 ){
                 fprintf(stderr,"** add bricks returned %d for '%s'\n",rv,fname);

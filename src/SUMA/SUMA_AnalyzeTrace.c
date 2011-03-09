@@ -558,7 +558,8 @@ int SUMA_AnalyzeTraceFunc(char *fname, SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt) {
    
 }
 
-char *SUMA_NextFunc(char *ss, char *sslim, int *io, char *func, char *file, int *line, int *error) {
+char *SUMA_NextFunc(char *ss, char *sslim, int *io, char *func, char *file, 
+                     int *line, int *error) {
    #if 0 /* static is not mandatory */
    char *key[] = { "static", "char", "FuncName", "=", "{" , "}", ";", NULL}; 
    int max_gap[] = {  -1,     5,       5,         5,    5,   -1, 20, -1 };  
@@ -585,6 +586,7 @@ char *SUMA_NextFunc(char *ss, char *sslim, int *io, char *func, char *file, int 
    *line = -1;
    *error = -1;
    ss_init = ss;
+   func[0] = '\0';
    
    #if 0   /* doing search via strstr */
    /* search from ss for key sequence */
@@ -596,13 +598,16 @@ char *SUMA_NextFunc(char *ss, char *sslim, int *io, char *func, char *file, int 
       ss_func = strstr(ss, key[found]);
       if (ss_func && ss_func >= ss) {
          if (LocalHead) fprintf(SUMA_STDERR," Found ");
-         if (!found || max_gap[found] < 0 || ss_func - ss < max_gap[found]) { /* inside gap limit, OK */
+         if (!found || max_gap[found] < 0 || 
+               ss_func - ss < max_gap[found]) { /* inside gap limit, OK */
             if (LocalHead) fprintf(SUMA_STDERR," in gap ");
             ss = ss_func+strlen(key[found]);
             if (!found) ss_entry = ss_func;
             ++found;
          } else {
-            if (LocalHead) fprintf(SUMA_STDERR," out of gap (%d, Augment by %d) ", ss_func - ss, (int)strlen(key[0]));
+            if (LocalHead) fprintf(SUMA_STDERR,
+                                    " out of gap (%d, Augment by %d) ", 
+                                    ss_func - ss, (int)strlen(key[0]));
             /* move SS past first key found */
             found = 0;
             ss = ss_entry + strlen(key[0]);
@@ -625,10 +630,11 @@ char *SUMA_NextFunc(char *ss, char *sslim, int *io, char *func, char *file, int 
          exit(1);
       }
    }
-   #else /* doing search via more flexible macro to test the latter. (both should give same results)*/
+   #else /* doing search via more flexible macro to test the latter. 
+            (both should give same results)*/
    SUMA_ADVANCE_PAST_SEQUENCE(ss, sslim, ss_entry, key, max_gap,  found, 0);
    if (!found) {
-      SUMA_LH("Done.");
+      SUMA_LH("Done, not found.");
       SUMA_RETURN(ss_init);
    } else {
       
@@ -654,7 +660,9 @@ char *SUMA_NextFunc(char *ss, char *sslim, int *io, char *func, char *file, int 
 
 int SUMA_AnalyzeSumaFunc(char *fname, SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt) {
    static char FuncName[]={"SUMA_AnalyzeSumaFunc"};
-   char *fl = NULL, rkey[100], *flc = NULL, *fls = NULL, *flo = NULL, *fln = NULL, *fle = NULL, func[100], file[100], ctmp, *sret, *sent;
+   char  *fl = NULL, rkey[100], *flc = NULL, *fls = NULL, 
+         *flo = NULL, *fln = NULL, *fle = NULL, func[100], 
+         file[100], ctmp, *sret, *sent;
    int level, cur_level, io, nread, its, line, error;
    SUMA_TRACE_STRUCT TS[100];
    SUMA_Boolean LocalHead = NOPE;
@@ -683,7 +691,8 @@ int SUMA_AnalyzeSumaFunc(char *fname, SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt) {
    fln = SUMA_NextFunc(flc, fle, &io, func, file, &line, &error);
    do {
       flc = fln; /* set current location */
-      fprintf(SUMA_STDERR,"Analyzing function %s in %s:%d, ", func, fname, SUMA_LineNumbersFromTo(fl, flc));
+      fprintf(SUMA_STDERR,"Analyzing function %s in %s:%d, ", 
+                        func, fname, SUMA_LineNumbersFromTo(fl, flc));
       fln = SUMA_NextFunc(flc, fle, &io, func, file, &line, &error) ;
       fprintf(SUMA_STDERR,"(next function %s): ", func); 
       if (fln == flc) {
@@ -741,10 +750,8 @@ int SUMA_AnalyzeSumaFunc(char *fname, SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt) {
                fprintf(SUMA_STDERR,"  Note: not using ENTRY or RETURN\n");
             }
          } else { 
-            fprintf(SUMA_STDERR,"  No RETURN or exit here\n");
-
-            SUMA_ShowFromTo(flc, fln, NULL);
-            SUMA_RETURN(NOPE);
+            fprintf(SUMA_STDERR,"  Note No RETURN or exit here\n");
+            SUMA_ShowFromTo(flc, SUMA_MIN_PAIR(fln, flc+500), NULL);
          }
       } 
       
@@ -780,13 +787,13 @@ int main (int argc,char *argv[])
    
    for (i=0; i<Opt->n_in_namev; ++i) {
       if (Opt->obj_type == 0) {
-         fprintf( SUMA_STDOUT,
+         fprintf( SUMA_STDERR,
                   "\n"
                   "Processing file %s\n"
                   , Opt->in_namev[i]);
          if (!SUMA_AnalyzeTraceFunc(Opt->in_namev[i], Opt)) break;
       } else {
-         fprintf( SUMA_STDOUT,
+         fprintf( SUMA_STDERR,
                   "\n"
                   "Processing file %s\n"
                   , Opt->in_namev[i]);

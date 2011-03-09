@@ -1,21 +1,28 @@
 #!/bin/tcsh
 
-### script to do 2D registration on each slice of a 3D+time
-### dataset, and glue the results back together at the end
+if ("$1" =~ "" || "$1" =~ -h*)  goto HELP
+goto START
 
-### This script is structured to operate only on an AFNI
-### +orig.HEAD dataset.  The one input on the command line
-### is the prefix for the dataset.
+HELP:
+echo " script to do 2D registration on each slice of a 3D+time"
+echo " dataset, and glue the results back together at the end"
+echo ""
+echo " This script is structured to operate only on an AFNI"
+echo " +orig.HEAD dataset.  The one input on the command line"
+echo " is the prefix for the dataset."
+echo ""
+echo " Modified 07 Dec 2010 by RWC to use 3dAllineate instead"
+echo " of 3dWarpDrive, with nonlinear slice-wise warping."
+echo ""
+echo " Set prefix of input 3D+time dataset here."
+echo " In this example with 'wilma' as the command line"
+echo " argument, the output dataset will be 'wilma_reg+orig'."
+echo " The output registration parameters files will"
+echo " be 'wilma_param_ssss.1D', where 'ssss' is the slice number."
+echo ""
+goto END
 
-### Modified 07 Dec 2010 by RWC to use 3dAllineate instead
-### of 3dWarpDrive, with nonlinear slice-wise warping.
-
-### Set prefix of input 3D+time dataset here.
-### In this example with 'wilma' as the command line
-### argument, the output dataset will be 'wilma_reg+orig'.
-### The output registration parameters files will
-### be 'wilma_param_ssss.1D', where 'ssss' is the slice number.
-
+START:
 set inp = $1
 
 ### extract number of slices into nz
@@ -95,4 +102,5 @@ unsetenv AFNI_QUIET_STARTUP
 
 \rm -f ${inp}_*????+orig.*
 
+END:
 ### Free at last!!!

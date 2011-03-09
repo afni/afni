@@ -2374,7 +2374,7 @@ STATUS("redisplay Node_ROI function") ;
 static void process_NIML_AFNI_dataset( NI_group *ngr , int ct_start )
 {
    Three_D_View *im3d = AFNI_find_open_controller() ;
-   THD_3dim_dataset *dset , *old_dset ;
+   THD_3dim_dataset *adset=NULL, *idset=NULL, *old_dset=NULL ;
    THD_slist_find find ;
    THD_session *ss ;
    int ii , vv ;
@@ -2388,8 +2388,8 @@ ENTRY("process_NIML_AFNI_dataset") ;
 
    /* convert the group element contents into a dataset */
 
-   dset = THD_niml_to_dataset( ngr , 1 ) ;  /* 1 ==> don't load sub-bricks */
-   if( dset == NULL ){
+   idset = THD_niml_to_dataset( ngr , 1 ) ;  /* 1 ==> don't load sub-bricks */
+   if( idset == NULL ){
      AFNI_popup_message("\n*** ERROR:\n"
                         " Received bad '<AFNI_dataset ...>'\n"
                         " Discarding data and continuing.\n"  ) ;
@@ -2398,39 +2398,41 @@ ENTRY("process_NIML_AFNI_dataset") ;
 
    /* now see if this dataset idcode is already stored in AFNI somewhere */
 
-   find = PLUTO_dset_finder( dset->idcode.str ) ; old_dset = find.dset ;
+   find = PLUTO_dset_finder( idset->idcode.str ) ; old_dset = find.dset ;
 
    if( old_dset == NULL ){     /********* this is a new dataset *************/
 
      ss = GLOBAL_library.sslist->ssar[im3d->vinfo->sess_num] ;  /* session  */
      ii = ss->num_dsset ;                                       /* row      */
-     vv = dset->view_type ;                                     /* and view */
+     vv = idset->view_type ;                                     /* and view */
 
      if( ii >= THD_MAX_SESSION_SIZE ){                 /* session overflow! */
-       DSET_delete(dset) ;
+       DSET_delete(idset) ;
        AFNI_popup_message("\n*** ERROR:\n"
                           " Received new dataset but am out of space!\n\n" ) ;
        EXRETURN ;
      }
 
-     SET_SESSION_DSET(dset, ss, ii, vv);     /*** insert dataset into session here ***/
-     /*ss->dsset_xform_table[ii][vv] = dset ;*/    
+     SET_SESSION_DSET(idset, ss, ii, vv); /*** insert dataset into session here ***/
+     /*ss->dsset_xform_table[ii][vv] = idset ;*/    
      ss->num_dsset++ ;
      POPDOWN_strlist_chooser ;
-
+     adset = idset; /* The input dataset in AFNI */
    } else {                  /************* have an old dataset *************/
 
-     DSET_delete(dset) ;                             /* delete the new copy */
-     dset = old_dset ;     /* instead, will replace contents of old dataset */
+     /* DSET_delete(idset) ;   ZSS, Jan 2011 do not delete yet */
+     adset = old_dset ;     /* instead, will replace contents of old dataset */
    }
 
-   DSET_superlock(dset) ;  /*-- make sure will not be purged from memory! --*/
+   DSET_superlock(adset) ;  /*-- make sure will not be purged from memory! --*/
 
    /* load any data bricks present in the group element */
 
-   (void)THD_add_bricks( dset , ngr ) ;
-   THD_update_statistics( dset ) ;
-
+   (void)THD_add_bricks( adset , ngr, idset ) ;
+   THD_update_statistics( adset ) ;
+   if (adset != idset) {
+      DSET_delete(idset) ; idset = NULL;
+   }
    /** wrapup **/
 
    if( ct_start >= 0 )                      /* keep track    */
@@ -2438,7 +2440,7 @@ ENTRY("process_NIML_AFNI_dataset") ;
 
    if( old_dset == NULL )
      sprintf(msg,"\n+++ NOTICE: New AFNI dataset received.\n\n") ;
-   else
+   else 
      sprintf(msg,"\n+++ NOTICE: Replacement AFNI dataset received.\n\n") ;
 
    if( ct_tot > 0 ) sprintf(msg+strlen(msg),
@@ -2556,7 +2558,7 @@ ENTRY("process_NIML_AFNI_volumedata") ;
 
    /** actually put this data into the dataset **/
 
-   (void)THD_add_bricks( dset , nini ) ;
+   (void)THD_add_bricks( dset , nini, NULL ) ;
    THD_update_statistics( dset ) ;
 
    /** if anyone is looking at this dataset, need to change stuff **/

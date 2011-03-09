@@ -4041,7 +4041,7 @@ SUMA_Boolean SUMA_SendToAfni (SUMA_COMM_STRUCT *cs, void *data, int action)
       }
 
       if (!SUMA_SendDset_Afni( SUMAg_CF->ns_v[cs->afni_istream], 
-                                 (THD_3dim_dataset *)data, 1)) {
+                                 (SUMA_SEND_2AFNI *)data, 1)) {
          SUMA_SL_Err("Failed to send dset");
          cs->afni_Send = NOPE;
          SUMA_RETURN(NOPE);
@@ -4083,7 +4083,7 @@ SUMA_Boolean SUMA_SendToAfni (SUMA_COMM_STRUCT *cs, void *data, int action)
    SUMA_RETURN(NOPE);
 }
 
-SUMA_Boolean SUMA_SendDset_Afni( NI_stream ns, THD_3dim_dataset *dset, int all)
+SUMA_Boolean SUMA_SendDset_Afni( NI_stream ns, SUMA_SEND_2AFNI *SS2A, int all)
 {
    static char FuncName[]={"SUMA_SendDset_Afni"};
    NI_group *ngr = NULL;
@@ -4093,27 +4093,35 @@ SUMA_Boolean SUMA_SendDset_Afni( NI_stream ns, THD_3dim_dataset *dset, int all)
    
    SUMA_ENTRY;
    
-   if (!dset) {
+   if (!SS2A->dset) {
       SUMA_SL_Warn("NULL dset, nothing to do");
       SUMA_RETURN(YUP);
    }
    
    if (all == 1) {
       SUMA_LH("Sending all dset at once");
-      ngr = THD_dataset_to_niml( dset ) ;
-      NI_set_attribute( ngr , "AFNI_prefix" , DSET_PREFIX(dset) ) ;
+      ngr = THD_dataset_to_niml( SS2A->dset ) ;
+      NI_set_attribute( ngr , "AFNI_prefix" , DSET_PREFIX(SS2A->dset) ) ;
+      if (SS2A->at_sb >= 0) {
+         if (DSET_NVALS(SS2A->dset) != 1) {
+            SUMA_S_Warn("Not sure what happens when using"
+                        "at_sb with more than one sub-brick");
+         }
+         nel = SUMA_FindNgrNamedElement(ngr, "VOLUME_DATA");
+         NI_SET_INT(nel, "AFNI_index", SS2A->at_sb);
+      }
       NI_write_element(ns, ngr, NI_BINARY_MODE);
       NI_free_element(ngr); ngr = NULL;
       SUMA_LH("Done.");
    } else {
       SUMA_SL_Warn("Sending one sub-brick at a time NOT TESTED IN SUMA YET");
-      ngr = THD_nimlize_dsetatr( dset ) ;   /* header only */
-      NI_set_attribute( ngr , "AFNI_prefix" , DSET_PREFIX(dset) ) ;
+      ngr = THD_nimlize_dsetatr( SS2A->dset ) ;   /* header only */
+      NI_set_attribute( ngr , "AFNI_prefix" , DSET_PREFIX(SS2A->dset) ) ;
       NI_write_procins( ns , "keep_reading" ) ;
       NI_write_element( ns, ngr, NI_BINARY_MODE ) ;
       NI_free_element( ngr ) ; ngr = NULL;
-      for( iv=0 ; iv < DSET_NVALS(dset) ; iv++ ){
-         nel = THD_subbrick_to_niml( dset , iv , SBFLAG_INDEX ) ;
+      for( iv=0 ; iv < DSET_NVALS(SS2A->dset) ; iv++ ){
+         nel = THD_subbrick_to_niml( SS2A->dset , iv , SBFLAG_INDEX ) ;
          NI_write_element( ns , nel , NI_BINARY_MODE ) ;
          NI_free_element(nel) ; nel = NULL;
       }
