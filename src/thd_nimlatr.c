@@ -286,7 +286,7 @@ ENTRY("THD_niml_to_dataset") ;
    /* now scan the group element for data elements that fill sub-bricks */
 
    if( !nodata ){
-     (void)THD_add_bricks( dset , ngr ) ;
+     (void)THD_add_bricks( dset , ngr, NULL ) ;
      THD_update_statistics( dset ) ;
    }
 
@@ -325,13 +325,16 @@ ENTRY("THD_niml_to_dataset") ;
        set the scale factor for all sub-bricks loaded from the element.
        Otherwise, any scale factor previously set will remain in effect.
      - Elements that are not named 'VOLUME_DATA' will be ignored here.
+     - hdset is used to provide header attributes for sub-bricks that
+       would be added from '<VOLUME_DATA ...>'   ZSS, Jan 2011
 *//*-------------------------------------------------------------------------*/
 
-int THD_add_bricks( THD_3dim_dataset *dset , void *nini )
+int THD_add_bricks( THD_3dim_dataset *dset , void *nini, 
+                    THD_3dim_dataset *hdset )
 {
    int nbr=0 , tt=NI_element_type(nini) ;
    NI_element *nel ;
-   int nxyz , ii , jj , nbar , vlen , kk , bb ;
+   int nxyz , ii=-2, jj , nbar , vlen , kk , bb=-2;
    void *bar ;
    char *str ;
    float fac ;
@@ -346,7 +349,7 @@ ENTRY("THD_add_bricks") ;
      NI_group *ngr = (NI_group *)nini ;
      int ip ;
      for( ip=0 ; ip < ngr->part_num ; ip++ )  /* loop over parts */
-       nbr += THD_add_bricks( dset , ngr->part[ip] ) ;
+       nbr += THD_add_bricks( dset , ngr->part[ip], hdset ) ;
      RETURN(nbr) ;
    }
 
@@ -427,10 +430,17 @@ ENTRY("THD_add_bricks") ;
 
      } else {                       /* append new sub-brick */
        bb = DSET_NVALS(dset) ;
+       if (dset->dblk->malloc_type != DATABLOCK_MEM_MALLOC) {
+         DSET_mallocize(dset); DSET_load(dset);
+       }
        EDIT_add_brick( dset , nel->vec_typ[jj] , 0.0 , bar ) ;
      }
+     if (hdset) { /* copy some attributes ZSS, Jan 2011 */
+      if (DSET_BRICK_LABEL(hdset,jj)) {
+         EDIT_BRICK_LABEL( dset, bb, DSET_BRICK_LABEL(hdset,jj));
+      }
+     }
      nbr++ ;   /* 1 more sub-brick! */
-
           if( fac >  0.0 ) EDIT_BRICK_FACTOR(dset,bb,fac) ;
      else if( fac <= 0.0 ) EDIT_BRICK_FACTOR(dset,bb,0.0) ;
 

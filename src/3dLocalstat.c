@@ -494,7 +494,7 @@ int main( int argc , char *argv[] )
      lcode[NSTAT_VAR]    = "VAR"  ; lcode[NSTAT_NUM]    = "NUM"    ;
      lcode[NSTAT_FWHMx]  = "FWHMx"; lcode[NSTAT_PERCENTILE] = "PERC";
      lcode[NSTAT_FWHMy]  = "FWHMy"; lcode[NSTAT_SUM]    = "SUM"    ;
-     lcode[NSTAT_FWHMz]  = "FWHMz";
+     lcode[NSTAT_FWHMz]  = "FWHMz"; lcode[NSTAT_FWHMbar]  = "FWHMavg"; 
      lcode[NSTAT_RANK]   = "RANK" ; lcode[NSTAT_FRANK]  = "FRANK";
      lcode[NSTAT_P2SKEW] = "P2skew";lcode[NSTAT_KURT]   = "KURT"; 
      

@@ -726,6 +726,8 @@ void SUMA_LoadSegDO (char *s, void *csvp )
    /* what type are we dealing with ? */
    dotp = SUMA_Guess_DO_Type(s);
    if (dotp == no_type) {
+      SUMA_S_Warnv("Could not determine DO type of %s, assuming segments.",
+                     s);
       /* assume segments */
       dotp = LS_type;
    }
@@ -7893,7 +7895,8 @@ void SUMA_ATF_SetValue (SUMA_ARROW_TEXT_FIELD * AF)
          } else {
             SUMA_CLIP_VALUE(AF->value, AF->min, AF->max);
          }
-         /* It is still nice to call SetString because it puts the cursor at the beginning of the field */
+         /* It is still nice to call SetString because it puts the 
+            cursor at the beginning of the field */
          SUMA_ATF_SetString (AF);
          
       }
@@ -7906,7 +7909,8 @@ void SUMA_ATF_SetValue (SUMA_ARROW_TEXT_FIELD * AF)
    \brief Callback for Group button
    -Expects sv in data
 */
-void SUMA_cb_ViewerCont_SwitchGroup (Widget w, XtPointer data, XtPointer call_data)
+void SUMA_cb_ViewerCont_SwitchGroup (  Widget w, XtPointer data, 
+                                       XtPointer call_data)
 {
    static char FuncName[]={"SUMA_cb_ViewerCont_SwitchGroup"};
    SUMA_SurfaceViewer *sv=NULL;

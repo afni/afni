@@ -1060,7 +1060,7 @@ SUMA_Boolean SUMA_RestSym_setup_func( NI_stream nsg , NI_element *nel )
      giset = (GICOR_setup *)SUMA_calloc(1,sizeof(GICOR_setup)) ;
      SUMAg_CF->giset = giset;
    } else {
-     memset(giset,sizeof(GICOR_setup),0) ;
+     memset(giset, 0, sizeof(GICOR_setup)) ;
    }
    
    giset->ns    = nsg ;  /* save socket for I/O back to 3dGroupInCorr */
@@ -1200,6 +1200,8 @@ SUMA_Boolean RestSym_Proc (NI_element *nel, int inode, int flg, int inode_dbg)
    SUMA_DSET *mxsets[2]={NULL, NULL};
    MAXINFO mxinf[2];
    SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
    
    SUMA_LHv("In at node %d\n", inode);
 
@@ -1422,6 +1424,7 @@ int main( int argc , char *argv[] )
    }
    
    SUMA_STANDALONE_INIT;
+	SUMA_mainENTRY;
    SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);
 
    

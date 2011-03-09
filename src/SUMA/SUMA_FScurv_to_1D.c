@@ -5,6 +5,9 @@ void usage_SUMA_FScurv_to_1D_Main ()
   {/*Usage*/
       static char FuncName[]={"usage_FScurv_to_1D"};
       char * s = NULL;
+      
+      SUMA_ENTRY;
+      
           printf ("\n"
                   "Usage:  FScurv_to_1D [-skip_coords] [-output outfile] -input curv_name.asc  \n"
                   "   Reads in a FreeSurfer curvature file and writes it out in 1D format. \n"

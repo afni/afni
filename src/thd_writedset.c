@@ -10,10 +10,12 @@
 
 static int use_3D_format    = 0 ;  /* 21 Mar 2003 */
 static int use_NIFTI_format = 0 ;  /* 06 Apr 2005 */
+static int quiet_overwrite  = 0 ;  /* 31 Jan 2011 */
 
 void THD_use_3D_format   ( int uu ){ use_3D_format    = uu; }
 void THD_use_NIFTI_format( int uu ){ use_NIFTI_format = uu; }
-
+void THD_set_quiet_overwrite ( int uu ){ quiet_overwrite = uu; }
+int THD_get_quiet_overwrite () { return(quiet_overwrite);}
 /*----------------------------------------------------------------*/
 /*! This routine writes all the header data in the struct to
     the datablock attributes, then writes the dataset to disk.
@@ -146,7 +148,10 @@ ENTRY("THD_write_3dim_dataset") ;
      }
    } else if( THD_is_file(dset->dblk->diskptr->header_name) ||
               THD_is_file(dset->dblk->diskptr->brick_name)    ){
-     WARNING_message("Over-writing dataset %s",dset->dblk->diskptr->header_name);
+     if (!quiet_overwrite) {
+      WARNING_message("Over-writing dataset %s",
+                        dset->dblk->diskptr->header_name);
+     }
    }
 
    /*------ 06 Apr 2005: write a NIFTI-1 dataset??? -----*/

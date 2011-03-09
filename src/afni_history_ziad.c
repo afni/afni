@@ -65,6 +65,11 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 27, JAN , 2011 , ZSS , "@DiceMetric" , MICRO , TYPE_BUG_FIX,
+   "Allow @DiceMetric to take .nii volumes in -dsets option",
+   NULL
+ } ,
+
  { 27, JAN , 2011 , ZSS , "afni" , MICRO , TYPE_BUG_FIX,
    "Fixed problem in THD_add_bricks when dset in AFNI is not malloc-ed.",
    NULL
