@@ -1485,7 +1485,7 @@ int SUMA_VolumeBlurInMask(THD_3dim_dataset *aset,
                                      THD_3dim_dataset **blurredp,
                                      float FWHM, float unifac) 
 {
-   static char FuncName[]={"SUMA_VolumeBlurInMask_old"};
+   static char FuncName[]={"SUMA_VolumeBlurInMask"};
    float fac = 0.0, *fa=NULL;
    MRI_IMAGE *imin=NULL;
    int k=0;
@@ -1524,116 +1524,6 @@ int SUMA_VolumeBlurInMask(THD_3dim_dataset *aset,
       EDIT_BRICK_LABEL(blurred,k,"BlurredInMask"); 
    }
    
-   SUMA_RETURN(1);
-}
-/*! 
-   Brute force blurring, trying to speed blurring up
-*/
-int SUMA_VolumeBlurBruteInMask(THD_3dim_dataset *aset,
-                                     byte *cmask,
-                                     THD_3dim_dataset **blurredp,
-                                     int nrep, float unifac) 
-{
-   static char FuncName[]={"SUMA_VolumeBlurBruteInMask"};
-   float fac = 0.0;
-   THD_3dim_dataset *blurred = *blurredp;
-   SUMA_Boolean LocalHead = NOPE;
-   
-   SUMA_ENTRY;
-   
-   
-   
-   /* get data into float image, preserve scale */
-   fac = -1.0;
-
-#pragma omp parallel if ( DSET_NVALS(aset) > 1)
-   {
-      int k=0, nn, ijk, ii, jj, kk, nxyz, nx, ny, nz, nxy;
-      float faset, *qar=NULL, *iar=NULL;
-      float w[7]={   1/7.0, 
-                                       1/7.0, 1/7.0, 
-                                       1/7.0, 1/7.0,
-                                       1/7.0, 1/7.0 }, ws;
-      short *ias=NULL;
-      
-      nxyz = DSET_NVOX(aset);
-      nx = DSET_NX(aset); ny = DSET_NY(aset); nz = DSET_NZ(aset);
-      nxy = nx*ny; 
-        
-      for (k=0; k<DSET_NVALS(aset); ++k) {
-         faset = DSET_BRICK_FACTOR(aset, k); 
-         if (faset==0.0) faset = 1.0;
-         ias = (short *)DSET_ARRAY(aset,k);
-   #pragma omp critical (MALLOC)
-      iar = (float *)calloc(sizeof(float),nxyz) ;
-      for( ijk=0; ijk<nxyz; ++ijk) {
-         if (IN_MASK(cmask, ijk)) iar[ijk] = ias[ijk]*faset;
-      }
-   #pragma omp critical (MALLOC)
-      qar = (float *)calloc(sizeof(float),nxyz) ;
-
-      for( nn=0 ; nn < nrep ; nn++ ){
-        for( ijk=kk=0 ; kk < nz ; kk++ ){
-         for( jj=0 ; jj < ny ; jj++ ){
-          for( ii=0 ; ii < nx ; ii++,ijk++ ){
-            if( !IN_MASK(cmask,ijk) ) continue ;
-            qar[ijk] = w[0]*ias[ijk] ; ws = w[0];
-            {    /* x-direction */
-              if( ii-1 >= 0 && IN_MASK(cmask, ijk-1) ){
-                qar[ijk] += w[1]*iar[ijk-1]; ws += w[1];
-              }
-              if( ii+1 < nx && IN_MASK(cmask,ijk+1) ){
-                qar[ijk] += w[2]*iar[ijk+1]; ws += w[2];
-              }
-            }
-            {    /*  y-direction */
-              if( jj-1 >= 0 && IN_MASK(cmask,ijk-nx) ){
-                qar[ijk] += w[3]*iar[ijk-nx]; ws += w[3];  
-              }
-              if( jj+1 < ny && IN_MASK(cmask,ijk+nx) ){
-                qar[ijk] += w[4]*iar[ijk+nx]; ws += w[4];  
-              }
-            }
-            {    /*  z-direction */
-              if( kk-1 >= 0 && IN_MASK(cmask,ijk-nxy) ){
-                qar[ijk] += w[5]*iar[ijk-nxy]; ws += w[5];
-              }
-              if( kk+1 < nz && IN_MASK(cmask,ijk+nxy) ){
-                qar[ijk] += w[6]*iar[ijk+nxy]; ws += w[6];
-              }
-            }
-
-            qar[ijk] = qar[ijk]*faset/ws ;  
-        }}}
-   #pragma omp critical (MEMCPY)
-        memcpy(iar,qar,sizeof(float)*nxyz) ;
-      }
-
-   #pragma omp critical (MALLOC)
-      free((void *)qar) ;
-
-
-         /* Put result in output dset */
-         if (!blurred) {
-            blurred = EDIT_full_copy(aset, FuncName);
-            *blurredp = blurred;
-         }
-
-         if (unifac > 0.0) fac = unifac;
-         else if (unifac == -1.0) {
-            if (k==0) fac = -1.0; /* auto at 1st sub-brick */
-            else fac = DSET_BRICK_FACTOR(blurred, k - 1);
-         } else fac = -1.0;
-
-         SUMA_LHv("k %d, fac %f\n", k, fac);
-         EDIT_substscale_brick(blurred, k, MRI_float, iar, 
-                                 DSET_BRICK_TYPE(blurred,k), fac);
-
-         EDIT_BRICK_LABEL(blurred,k,"BlurredInMask"); 
-      #pragma omp critical (MALLOC)
-      free((void *)iar) ;
-      }
-   }  /* end OpenMP */  
    SUMA_RETURN(1);
 }
 
@@ -2154,21 +2044,27 @@ int SUMA_estimate_bias_field_Wells (SEG_OPTS *Opt,
    SUMA_etime (&tti, 0);
    /* Blur the two sets */
    SUMA_LH("Blur Rset");
-   if (!(SUMA_VolumeBlurInMask(Rset,
-                         cmask,
-                         &Rset, fwhm, 0.0))) {
-      SUMA_S_Err("Failed to blur");
-      SUMA_RETURN(0);                       
-   } 
-      
-   SUMA_LH("Blur Psset");
-   if (!(SUMA_VolumeBlurInMask(Psset,
-                         cmask,
-                         &Psset, fwhm, 0.0))) {
-      SUMA_S_Err("Failed to blur");
-      SUMA_RETURN(0);                       
-   } 
+   
 
+#ifdef USE_OMP
+#pragma omp parallel
+{
+   THD_3dim_dataset *bb[2];
+   int is=0;
+   
+   bb[0] = Rset;
+   bb[1] = Psset;   
+#pragma omp for
+   for (is=0; is<2; ++is) {
+      SUMA_LHv("Blur Set %d\n", is);
+      if (!(SUMA_VolumeBlurInMask(bb[is],
+                            cmask,
+                            bb+is, fwhm, 0.0))) {
+         SUMA_S_Err("Failed to blur");
+      } 
+   }   
+} /* end OpenMP */
+#endif
    if (1 || Opt->debug) { SUMA_S_Notev("Smoothing duration %f seconds\n", 
                                     SUMA_etime (&tti, 1)); }
                                     
@@ -3304,7 +3200,10 @@ int SUMA_MAP_labels(THD_3dim_dataset *aset,
    SUMA_RETURN(1);
 }
 
-
+/*!
+   Posterior distribution of class given the whole enchilada
+   
+*/
 int SUMA_pst_C_giv_ALL(THD_3dim_dataset *aset,  
                                  byte *cmask, int cmask_count,
                                  SUMA_CLASS_STAT *cs,
