@@ -2366,7 +2366,7 @@ number of clusters is larger than the number of elements being clustered,
   float** cdata;
   
   int* counts;
-  int verb = 1;
+  int verb = 0;
   
   if (nelements < nclusters)
   { *ifound = 0;

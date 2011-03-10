@@ -591,7 +591,8 @@ void color_palette(int nclusters, char* jobname)
   float a, c;
   int nsteps, step, colorv, hexp1, hexp2;
   char* hexnumbers=NULL;
-  
+  int verb = 0;
+    
   hexnumbers = (char *)malloc(32*sizeof(char)); /* ANDREJ: you had 16 here, but that is too short
                                            because sprintf will add a terminating NULL character
                                            = '\0' at the end, pushing you to 17 chars .
@@ -703,7 +704,7 @@ void color_palette(int nclusters, char* jobname)
     printf("COLOR PALETTE CAN HANDLE MAX & CLUSTERS FOR NOW!!!");
   }
   
-  printf ("------- Color palette written to file:\t\t"
+  if (verb) printf ("------- Color palette written to file:\t\t"
 	  "%s_K%d.pal\n",jobname,nclusters);
 
   fclose(out); out=NULL;
@@ -849,14 +850,14 @@ void example_kmeans( int nrows, int ncols,
          mg[i] = sqrt(mg[i]);
        }
        isort = z_idoubleqsort(mg, nclusters);
-       fprintf(stderr,"ncols = %d\n", ncols);
+       if (verb) fprintf(stderr,"ncols = %d\n", ncols);
        for (i=0; i<nclusters; ++i) {
          if (remap==MAG) {
             imap[isort[i]] = nclusters -i -1;
          } else {
             imap[isort[i]] = i;
          } 
-         fprintf(stderr,"Remapping cluster %d (mag %f) --> %d\n", 
+         if (verb) fprintf(stderr,"Remapping cluster %d (mag %f) --> %d\n", 
                   isort[i], mg[i], imap[isort[i]]);
        }
       
