@@ -526,7 +526,7 @@ char * SCAT_main( PLUGIN_interface *plint )
       sprintf(tlab,"\\noesc Scatterplot: %d Voxels (%s)",
               mcount , DSET_FILECODE(mask_dset)   ) ;
    }
-   if( pcor != 0.0 ){
+   if( pcor != 0.0f ){
      if( strlen(tlab) > 25 && p025 < pcor && p975 > pcor ){
        sprintf(tlab+strlen(tlab),"\\esc\\red  R=%.2f",pcor) ;
        sprintf(tlab+strlen(tlab),"\\in[%.2f..%.2f]_{95%%}",p025,p975) ;
@@ -539,6 +539,11 @@ char * SCAT_main( PLUGIN_interface *plint )
        }
      }
      sprintf(tlab+strlen(tlab),"\\black") ;
+
+     if( strlen(xlab) < 60 )
+       sprintf(xlab+strlen(xlab),
+               "\\esc\\red  \\{y\\approx %.3g*x%s%.3g\\}\\black" ,
+               a , (b<0.0f)?"-":"+" , fabs(b) ) ;
    }
 
    /*-- actually plot data (cf. afni_plugin.c) --*/
