@@ -471,7 +471,7 @@ int main(int argc, char **argv)
    
    if (!Opt->keys) {
       /* add default keys */
-      SUMA_S_Note("Keys not available, assuming defaults");
+      if (Opt->debug) SUMA_S_Note("Keys not available, assuming defaults");
       Opt->keys = (int *)calloc(Opt->clss->num, sizeof(int));
       for (i=0; i<Opt->clss->num; ++i) {
          Opt->keys[i] = i+1;
