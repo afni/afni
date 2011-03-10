@@ -3304,6 +3304,7 @@ int SUMA_MAP_labels(THD_3dim_dataset *aset,
    SUMA_RETURN(1);
 }
 
+
 int SUMA_pst_C_giv_ALL(THD_3dim_dataset *aset,  
                                  byte *cmask, int cmask_count,
                                  SUMA_CLASS_STAT *cs,
@@ -3349,16 +3350,8 @@ int SUMA_pst_C_giv_ALL(THD_3dim_dataset *aset,
    }
 
    /* get the global (average) mixing fraction */
-   if (!icall) SUMA_S_Note("Should you always apply w, even when priC is used?");
    w = SUMA_get_Stats(cs, "mix");
-   #if 0
-   if (pCgN || pC) {
-      /* block application of average mixing fraction, 
-         but I get better results if I do not do so*/
-      SUMA_S_Note("TEMP-TEST");
-      for (k=0; k<cs->N_label; ++k) w[k] = 1.0/(double)cs->N_label;
-   }
-   #endif
+
    /* prepare the voxelwise mixing fraction denominator */
    fpCw = 1/10000.0;
    NEW_SHORTY(aset,cs->N_label,"pCw",pCw); 
