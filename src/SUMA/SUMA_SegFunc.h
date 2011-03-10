@@ -455,11 +455,11 @@ int SUMA_VolumeInFill(THD_3dim_dataset *aset,
                       int method);
 int SUMA_mri_volume_infill(MRI_IMAGE *imin);
 int SUMA_mri_volume_infill_zoom(MRI_IMAGE *imin, byte thorough);
-int SUMA_VolumeBlurInMask_old(THD_3dim_dataset *aset,
+int SUMA_VolumeBlurInMask(THD_3dim_dataset *aset,
                                      byte *cmask,
                                      THD_3dim_dataset **blrdp,
                                      float FWHM, float unifac);
-int SUMA_VolumeBlurInMask(THD_3dim_dataset **asetv, int N_asetv,
+int SUMA_VolumeLSBlurInMask(THD_3dim_dataset *aset ,
                                      byte *cmask,
                                      THD_3dim_dataset **blurredp,
                                      float FWHM);
