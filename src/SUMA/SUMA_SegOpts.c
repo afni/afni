@@ -112,15 +112,15 @@ static char shelp_Seg[] = {
 "           -Bmrf 1.0 -main_N 4           \\\n"
 "\n"
 #if 0
-"           -debug 
-"           -labeltable orig.niml.lt \
-            -gold goldstd+orig \
-            -gold_bias TrueBiasField+orig. \
-
-            -prefix crap -overwrite \
-            -mixfrac WHOLE_VOLUME -priCgL INIT_MIXFRAC \
-            -Bmrf 1 -main_N 4 \
-            -debug 2 -vox_debug 40 9 69 \\n"
+"           -debug "
+"           -labeltable orig.niml.lt \"
+"            -gold goldstd+orig \"
+"            -gold_bias TrueBiasField+orig. \"
+""
+"            -prefix crap -overwrite \"
+"            -mixfrac WHOLE_VOLUME -priCgL INIT_MIXFRAC \"
+"            -Bmrf 1 -main_N 4 \"
+"            -debug 2 -vox_debug 40 9 69 \\n"
 #endif
 "\n"
 };

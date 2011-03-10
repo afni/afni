@@ -653,7 +653,7 @@ char *SUMA_NextFunc(char *ss, char *sslim, int *io, char *func, char *file,
       fprintf(SUMA_STDERR, "\n"
                            "Next Function:\n"
                            "ss_entry -ss = %ld\n"
-                           "func = %s\n", ss_entry - ss, func);
+                           "func = %s\n", (long int)(ss_entry - ss), func);
    }      
    SUMA_RETURN(ss);
 }
