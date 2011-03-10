@@ -1531,7 +1531,7 @@ int thd_Acluster (  THD_3dim_dataset *in_set,
       Dtable *vl_dtable=new_Dtable(5);
       char slab[256], sval[64], skmet[64];
       int nclusters=0; 
-      ININFO_message("Creating new labeltable") ;
+      if (oc.verb) ININFO_message("Creating new labeltable") ;
       if (oc.k > 0) {
          nclusters = oc.k;
          sprintf(skmet, "kclust");

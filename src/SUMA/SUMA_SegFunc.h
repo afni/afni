@@ -463,10 +463,6 @@ int SUMA_VolumeLSBlurInMask(THD_3dim_dataset *aset ,
                                      byte *cmask,
                                      THD_3dim_dataset **blurredp,
                                      float FWHM);
-int SUMA_VolumeBlurBruteInMask(THD_3dim_dataset *aset,
-                                     byte *cmask,
-                                     THD_3dim_dataset **blurredp,
-                                     int nrep, float unifac);
 double SUMA_EdgeEnergy(short *a, float af, short *b, float bf,
                       int Ni, int Nj, int Nk,
                       short *c, short c1, short c2, 
