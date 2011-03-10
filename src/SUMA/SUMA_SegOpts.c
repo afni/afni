@@ -111,7 +111,7 @@ static char shelp_Seg[] = {
 "           -mixfrac WHOLE_BRAIN -priCgL INIT_MIXFRAC \\\n"
 "           -Bmrf 1.0 -main_N 4           \\\n"
 "\n"
-#if 0
+/*
 "           -debug "
 "           -labeltable orig.niml.lt \"
 "            -gold goldstd+orig \"
@@ -121,7 +121,7 @@ static char shelp_Seg[] = {
 "            -mixfrac WHOLE_VOLUME -priCgL INIT_MIXFRAC \"
 "            -Bmrf 1 -main_N 4 \"
 "            -debug 2 -vox_debug 40 9 69 \\n"
-#endif
+*/
 "\n"
 };
 
