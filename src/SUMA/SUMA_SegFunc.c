@@ -1402,32 +1402,31 @@ int SUMA_VolumeInFill(THD_3dim_dataset *aset,
               = -1.0: Auto factor for 0th brick, other bricks
                      get same factor.
 */
-int SUMA_VolumeBlurInMask(THD_3dim_dataset **asetv, int N_asetv,
-                                     byte *cmask,
-                                     THD_3dim_dataset **blurredp,
-                                     float FWHM) 
+int SUMA_VolumeBlurInMask(THD_3dim_dataset *aset, 
+                                  byte *cmask,
+                                  THD_3dim_dataset **blurredp,
+                                  float FWHM) 
 {
    static char FuncName[]={"SUMA_VolumeBlurInMask"};
-   int k=0, id = 0;
+   int k=0, id = 0, kt=0, sbtot, ijk;
    MRI_vectim *vecim=NULL;
+   float fac, *fout;
+   short *sin, *sout;
+   THD_3dim_dataset *pout = NULL;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
-   SUMA_LH("BROKEN");
-    
-    vecim = THD_dset_list_to_vectim(1, asetv, cmask);
-    mri_blur3D_vectim(vecim, FWHM);
-    for (id=0; id<N_asetv; ++id) {
-      if (!blurredp[id]) {
-         blurredp[id] = EDIT_full_copy(asetv[id], FuncName);
-      }
-      THD_vectim_to_dset(vecim, blurredp[id]);
-      for (k=0; k<DSET_NVALS(blurredp[id]); ++k) {
-         EDIT_BRICK_LABEL(blurredp[id],k,"BlurredInMask"); 
-      }
+   
+    if (!*blurredp) {
+      NEW_SHORTY(aset, DSET_NVALS(aset), 
+                        FuncName, (*blurredp));
     }
-    
+    vecim = THD_dset_to_vectim(aset, cmask, 0);
+SUMA_S_Notev("vecim->nvals = %d\n", vecim->nvals);
+    mri_blur3D_vectim(vecim, FWHM);
+    THD_vectim_to_dset(vecim, *blurredp);
+        
    VECTIM_destroy(vecim); 
    
    SUMA_RETURN(1);
@@ -2048,6 +2047,7 @@ int SUMA_estimate_bias_field_Wells (SEG_OPTS *Opt,
    MRI_IMAGE *imout=NULL, *imin=NULL;
    double df, sdf, Ai, Gik, Ri, *Mg, *Sg;
    static int iter = 0;
+   struct  timeval tti;
    SUMA_Boolean LocalHead = YUP;
    
    SUMA_ENTRY;
@@ -2110,21 +2110,28 @@ int SUMA_estimate_bias_field_Wells (SEG_OPTS *Opt,
       SUMA_SEG_WRITE_DSET("Psset-PreBlur", Psset, iter, Opt->hist);   
    }
    
-   #if 0
+   SUMA_etime (&tti, 0);
+   #if 1
    {/* Blur the two sets */
-   THD_3dim_dataset *Dlist[2]={Rset, Psset};
    SUMA_LH("Blur Rset New");
    
-   if (!(SUMA_VolumeBlurInMask(Dlist, 2,
+   if (!(SUMA_VolumeBlurInMask(Rset,
                          cmask,
-                         Dlist, fwhm))) {
+                         &Rset, fwhm))) {
       SUMA_S_Err("Failed to blur");
       SUMA_RETURN(0);                       
    } 
       
+   SUMA_LH("Blur Psset New");
+   if (!(SUMA_VolumeBlurInMask(Psset,
+                         cmask,
+                         &Psset, fwhm))) {
+      SUMA_S_Err("Failed to blur");
+      SUMA_RETURN(0);                       
+   }  
    
    } 
-   #elif 1
+   #elif 0
    /* Blur the two sets */
    SUMA_LH("Blur Rset");
    if (!(SUMA_VolumeBlurInMask_old(Rset,
@@ -2159,6 +2166,8 @@ int SUMA_estimate_bias_field_Wells (SEG_OPTS *Opt,
       SUMA_RETURN(0);                       
    } 
    #endif
+   if (1 || Opt->debug) { SUMA_S_Notev("Smoothing duration %f seconds\n", 
+                                    SUMA_etime (&tti, 1)); }
    if (Opt->debug > 1) {/* store scaled intensities */
       SUMA_SEG_WRITE_DSET("Rset-PostBlur", Rset, iter, Opt->hist);   
       SUMA_SEG_WRITE_DSET("Psset-PostBlur", Psset, iter, Opt->hist);   
