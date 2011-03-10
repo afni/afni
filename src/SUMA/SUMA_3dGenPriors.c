@@ -1,6 +1,7 @@
 #define MAIN
 
 #include "SUMA_suma.h"
+#include "thd_segtools_fNM.h"
 #include "SUMA_SegOpts.h"
 #include "SUMA_SegFunc.h"
 #include "matrix.h"
