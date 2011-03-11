@@ -2,8 +2,21 @@
 
 /*----------------------------------------------------------------------------*/
 
+/** note that flam will always be positive (never 0) **/
+
 static float flam = 0.01f ;
 void THD_lasso_fixlam( float x ){ if( x > 0.0f ) flam = x ; }
+
+static floatvec *vlam = NULL ;
+void THD_lasso_setlamvec( int nref , float *lam )
+{
+   KILL_floatvec(vlam) ;
+   if( nref > 0 && lam != NULL ){
+     MAKE_floatvec(vlam,nref) ;
+     memcpy(vlam->ar,lam,sizeof(float)*nref) ;
+   }
+   return ;
+}
 
 /*----------------------------------------------------------------------------*/
 /* LASSO (L2 fit + L1 penalty) fit a vector to a set of reference vectors.
@@ -59,8 +72,21 @@ ENTRY("THD_lasso_linearfit") ;
      }
    }
    if( nfree == nref ){
-     for( jj=0 ; jj < nref ; jj++ ) mylam[jj] = flam ;
      nfree = 0 ;
+     if( vlam != NULL ){
+       int nvlam = vlam->nar ;
+       for( jj=0 ; jj < nref ; jj++ ){
+         if( jj < nvlam ){
+           mylam[jj] = vlam->ar[jj] ;
+                if( mylam[jj] <  0.0f ) mylam[jj] = flam ;
+           else if( mylam[jj] == 0.0f ) nfree++ ;
+         } else {
+           mylam[jj] = flam ;
+         }
+       }
+     } else {
+       for( jj=0 ; jj < nref ; jj++ ) mylam[jj] = flam ;
+     }
    } else if( nfree >= npt ){         /* too many un-penalized parameters */
      free(mylam) ; RETURN(NULL) ;
    }
@@ -110,15 +136,15 @@ ENTRY("THD_lasso_linearfit") ;
      rsq[jj] = 1.0f / pj ;   /* save 1/(sum of squares) of each column */
    }
 
-   /*-- outer iteration loop --*/
+   /*---- outer iteration loop ----*/
 
 #undef  CON
 #define CON(j) (ccon != NULL && ppar[j]*ccon[j] < 0.0f)
 
-   nimax = 2*nref + 111 ; dsum = 1.0f ;
-   for( nite=0 ; nite < nimax && dsum > 0.0005f ; nite++ ){
+   nimax = 3*nref + 66 ; dsum = 1.0f ;
+   for( nite=0 ; nite < nimax && dsum > 0.0002f ; nite++ ){
 
-     /*- cyclic inner loop over parameters -*/
+     /*-- cyclic inner loop over parameters --*/
 
      for( dsum=ndel=jj=0 ; jj < nref ; jj++ ){  /* dsum = sum of param deltas */
 
@@ -152,17 +178,21 @@ ENTRY("THD_lasso_linearfit") ;
          for( ii=0 ; ii < npt ; ii++ ) resd[ii] -= rj[ii] * dg ;
        }
 
-     } /*- end of loop over parameters -*/
+     } /*-- end of loop over parameters --*/
 
      /**** test for convergence somehow ***/
 
      if( ndel > 0 ) dsum /= ndel ;
 
-   } /*-- end of outer iteration loop --*/
+   } /*---- end of outer iteration loop ----*/
 
-INFO_message("LASSO: nite=%d dsum=%g",nite,dsum) ;
+   { static int ncall=0 ;
+     if( ncall == 0 ){
+       INFO_message("LASSO: nite=%d dsum=%g",nite,dsum) ; ncall++ ;
+     }
+   }
 
-   /*--- loading up the truck and heading to Beverlee ---*/
+   /*--- Loading up the truck and heading to Beverlee ---*/
 
    MAKE_floatvec(qfit,nref) ;
    memcpy( qfit->ar , ppar , sizeof(float)*nref ) ;

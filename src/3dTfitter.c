@@ -38,6 +38,9 @@ int main( int argc , char *argv[] )
 
    float vthresh=0.0f ; /* 18 May 2010 */
 
+   intvec *lasso_ivec = NULL ;  /* 11 Mar 2011 */
+   float lasso_flam = 0.001f ;
+
    /*------- help the pitifully ignorant user? -------*/
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
@@ -297,13 +300,25 @@ int main( int argc , char *argv[] )
       "               noise is KNOWN to be normally (Gaussian) distributed\n"
       "               (and a bunch of other assumptions are also made).\n"
       "\n"
-      "  -l2lasso lam = Solve equations via least squares with a LASSO (L1)\n"
-      "                 penalty on the coefficients.  The positive value 'lam'\n"
-      "                 after the option name is the weight given to the penalty.\n"
-      "                * This option should be considered highly experimental,\n"
-      "                  and it's implementation is subject to change!\n"
-      "                * At present, 3dTfitter doesn't do anything to select\n"
-      "                  'lam' for you ... maybe someday?\n"
+      "  -l2lasso lam [i j k ...]\n"
+      "            = Solve equations via least squares with a LASSO (L1)\n"
+      "              penalty on the coefficients.\n"
+      "             * The positive value 'lam' after the option name is the\n"
+      "               weight given to the penalty.\n"
+      "              ++ At present, 3dTfitter doesn't do anything to select\n"
+      "                'lam' for you ... maybe someday (if you're nice to me)?\n"
+      "             * Optionally, you can supply a list of parameter indexes\n"
+      "               (after 'lam') that should NOT be penalized in the\n"
+      "               the fitting process (e.g., traditionally, the mean value\n"
+      "               is not included in the L1 penalty.)  Indexes start at 1,\n"
+      "               as in 'consign' (below) and do not include the '-FALTUNG'\n"
+      "               parameters, if deconvolution is used.\n"
+      "             * LASSO-ing here should be considered highly experimental,\n"
+      "               and its implementation is subject to change!\n"
+      "              ++ TT Wu and K Lange.\n"
+      "                 Coordinate descent algorithms for LASSO penalized regression.\n"
+      "                 Annals of Applied Statistics, 2: 224-244 (2008).\n"
+      "                 http://arxiv.org/abs/0803.3876\n"
       "\n"
       "  -consign  = Follow this option with a list of LHS parameter indexes\n"
       "              to indicate that the sign of some output LHS parameters\n"
@@ -719,13 +734,27 @@ int main( int argc , char *argv[] )
        meth = 1 ; iarg++ ; continue ;
      }
 
-     if( strcasecmp(argv[iarg],"-l2lasso") == 0 ){  /* experimental */
-       float lam ;
+     if( strcasecmp(argv[iarg],"-l2lasso") == 0 ){  /* experimental [11 Mar 2011] */
        meth = -2 ;
-       lam = (float)strtod(argv[++iarg],NULL) ;
-       if( lam <= 0.0f ) ERROR_exit("%s %s: illegal lambda",argv[iarg-1],argv[iarg]) ;
-       THD_lasso_fixlam(lam) ;
-       iarg++ ; continue ;
+       if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]);
+       lasso_flam = (float)strtod(argv[iarg],NULL) ;
+       if( lasso_flam <= 0.0f ) ERROR_exit("%s %s: illegal lam",argv[iarg-1],argv[iarg]) ;
+       THD_lasso_fixlam(lasso_flam) ;
+       iarg++ ;
+       if( iarg < argc && isdigit(argv[iarg][0]) ){
+         MAKE_intvec(lasso_ivec,0) ;
+         for( ; iarg < argc && isdigit(argv[iarg][0]) ; iarg++ ){
+           jj = (int)strtod(argv[iarg],NULL) ;
+           if( jj > 0 ){
+             kk = lasso_ivec->nar ; RESIZE_intvec(lasso_ivec,kk+1) ;
+             lasso_ivec->ar[kk] = jj ;
+           } else {
+             WARNING_message("Illegal index value after -l2lasso: %d",jj) ;
+           }
+         }
+         if( lasso_ivec->nar == 0 ) KILL_intvec(lasso_ivec) ;
+       }
+       continue ;
      }
 
      if( strncasecmp(argv[iarg],"-prefix",5) == 0 ){
@@ -988,6 +1017,20 @@ int main( int argc , char *argv[] )
 
      for( jj=0 ; jj < ntime ; jj++ ) /* create empty bricks to be filled below */
        EDIT_substitute_brick( defal_set , jj , MRI_float , NULL ) ;
+   }
+
+   /*-- finalize LASSO setup? --*/
+
+   if( meth == -2 ){
+     if( lasso_ivec != NULL ){
+       float *lam = (float *)malloc(sizeof(float)*(nvar+nvoff)) ;
+       for( ii=0 ; ii < nvar+nvoff ; ii++ ) lam[ii] = lasso_flam ;
+       for( jj=0 ; jj < lasso_ivec->nar ; jj++ ){
+         ii = lasso_ivec->ar[jj] -1 ;
+         if( ii >- 0 && ii < nvar ) lam[ii+nvoff] = 0.0f ;
+       }
+       THD_lasso_setlamvec( nvar+nvoff , lam ) ; free(lam) ;
+     }
    }
 
    /*------- loop over voxels and process them one at a time ---------*/
