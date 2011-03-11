@@ -32,7 +32,7 @@ AFOBJS  = afni.o afni_func.o afni_widg.o afni_warp.o afni_fimmer.o \
             afni_ttren.o afni_pplug_1dfunc.o afni_driver.o         \
             afni_niml.o afni_sumafunc.o afni_slice_rgbyte.o        \
             afni_version.o afni_lock.o afni_vol2surf.o             \
-            afni_pplug_instacorr.o afni_pplug_instacalc.o  
+            afni_pplug_instacorr.o afni_pplug_instacalc.o
 
 SOMEAFOBJS = parser_int.o afni_warp.o afni_slice_byte.o afni_slice_short.o \
              afni_slice_float.o afni_slice_complex.o afni_slice_rgbyte.o   \
@@ -172,7 +172,7 @@ SCRIPTS = @4Daverage @CommandGlobb @GetAfniOrient @DTI_studio_reposition        
           @FS_roi_label @demo_prompt @ScriptCheck @NoPound @Reorder               \
           3dMEMA @DiceMetric @R_funclist @TimeDiff @FullPath @RetinoProc          \
           @ANATICOR @MakeLabelTable @ElectroGrid ExamineXmat 1dRplot              \
-          @2dwarper.Allin @help.AFNI 
+          @2dwarper.Allin @help.AFNI
 
 PY_DIR = python_scripts
 PY_SCRIPTS = afni_base.py @DoPerRoi.py
@@ -198,7 +198,7 @@ vastness:all plugins install install_plugins install_lib
 
 ### Make many things
 
-all:$(LIBDL) libmri.a libmrix.a libcoxplot.a libvolpack.a programs 
+all:$(LIBDL) libmri.a libmrix.a libcoxplot.a libvolpack.a programs
 
 ### Make afni binaries
 
@@ -500,7 +500,7 @@ dsetdup:dsetdup.o
 	$(CC) -o 3dTstat 3dTstat.o parser.o parser_int.o $(LFLAGS) \
           -lmri -lf2c $(LLIBS)
 
-3dTfitter:3dTfitter.o
+3dTfitter:3dTfitter.o thd_fitter.o thd_lasso.o
 	$(RM) $@
 	$(CC) -o 3dTfitter 3dTfitter.o $(LFLAGS) $(LLIBS) -lf2c -lmri
 
@@ -1256,7 +1256,7 @@ afni+:$(AFOBJS) libcoxplot.a libmri.a libmrix.a coxplot.h niml.h
 	$(RM) $@
 	$(CC) -o afni+ $(AFOBJS) $(PLFLAGS) -lmrix -lcoxplot -lmri -lf2c $(LLIBS) -lm -lc
 
-motiftoy: afni motiftoy.c 
+motiftoy: afni motiftoy.c
 	$(RM) $@
 	$(CC) -o motiftoy motiftoy.c $(INFLAGS) $(SHOWOFF) $(PLFLAGS) -lmrix -lcoxplot -lmri -lvolpack -lf2c $(LLIBS) -lm -lc
 
@@ -1801,6 +1801,10 @@ thd_fitter.o:thd_fitter.c
 	$(RM) $@
 	$(CCFAST) -c thd_fitter.c $(INFLAGS)
 
+thd_lasso.o:thd_lasso.c
+	$(RM) $@
+	$(CCFAST) -c thd_lasso.c $(INFLAGS)
+
 MRI_OBJS = mri_cfft.o mri_complex_arith.o mri_fft_complex.o mri_free.o    \
            mri_max.o mri_new.o mri_read.o mri_swapbytes.o mri_dup.o        \
            mri_to_byte.o mri_to_complex.o mri_to_float.o mri_to_short.o     \
@@ -1855,7 +1859,7 @@ THD_OBJS = thd_atr.o thd_dsetto1D.o thd_initalldir.o thd_reconpar.o \
            thd_niml.o afni_vedit.o thd_fdrcurve.o thd_dset_to_vectim.o    \
            thd_bandpass.o thd_instacorr.o thd_svdblur.o thd_satcheck.o    \
            thd_dumdset.o ktaub.o bilinear_warp3D.o thd_table.o            \
-           thd_atlas.o thd_warp_tables.o
+           thd_atlas.o thd_warp_tables.o thd_lasso.o
 
 # these are now included in NIML
 
