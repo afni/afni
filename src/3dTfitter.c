@@ -312,8 +312,10 @@ int main( int argc , char *argv[] )
       "               the fitting process (e.g., traditionally, the mean value\n"
       "               is not included in the L1 penalty.)  Indexes start at 1,\n"
       "               as in 'consign' (below) and do not include the '-FALTUNG'\n"
-      "               parameters, if deconvolution is used.\n"
-      "             * LASSO-ing here should be considered highly experimental,\n"
+      "               parameters, if deconvolution is used.  The deconvolution\n"
+      "               estimates all have the 'lam' penalty applied, in addition\n"
+      "               to the penalty described under '-FALTUNG'.\n"
+      "             * LASSO-ing herein should be considered highly experimental,\n"
       "               and its implementation is subject to change!\n"
       "              ++ TT Wu and K Lange.\n"
       "                 Coordinate descent algorithms for LASSO penalized regression.\n"
@@ -1024,7 +1026,7 @@ int main( int argc , char *argv[] )
    if( meth == -2 ){
      if( lasso_ivec != NULL ){
        float *lam = (float *)malloc(sizeof(float)*(nvar+nvoff)) ;
-       for( ii=0 ; ii < nvar+nvoff ; ii++ ) lam[ii] = lasso_flam ;
+       for( ii=0 ; ii < nvar+nvoff ; ii++ ) lam[ii+nvoff] = lasso_flam ;
        for( jj=0 ; jj < lasso_ivec->nar ; jj++ ){
          ii = lasso_ivec->ar[jj] -1 ;
          if( ii >- 0 && ii < nvar ) lam[ii+nvoff] = 0.0f ;
