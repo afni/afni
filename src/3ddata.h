@@ -4355,10 +4355,13 @@ extern floatvec * THD_retrieve_fitts(void) ;
 extern void       THD_fitter_voxid( int i ) ;       /* 10 Sep 2008 */
 extern void       THD_fitter_set_vthresh( float ) ; /* 18 May 2010 */
 
+/* 11 Mar 2011: LASSO regression stuff (thd_lasso.c) */
+
 extern floatvec * THD_lasso_L2fit( int npt    , float *far   ,
                                    int nref   , float *ref[] ,
-                                   float *lam , float *ccon   ) ;  /* 11 Mar 2011 */
+                                   float *lam , float *ccon   ) ;
 extern void THD_lasso_fixlam( float x ) ;
+extern void THD_lasso_setlamvec( int nref , float *lam ) ;
 
 /*--------------- routines that are in thd_detrend.c ---------------*/
 
@@ -4459,7 +4462,7 @@ extern int *THD_unique_vals( THD_3dim_dataset *mask_dset, int miv,
 extern int *THD_unique_rank( THD_3dim_dataset *mask_dset ,
                         int miv,
                         byte *cmask,
-                        char *mapname, 
+                        char *mapname,
                         int **unqp, int *N_unq);
 int is_integral_dset ( THD_3dim_dataset *dset, int check_data);
 int is_integral_sub_brick ( THD_3dim_dataset *dset, int isb, int check_data);
