@@ -249,7 +249,7 @@ class MainWindow(QtGui.QMainWindow):
             self.SSD.reset_vars(set_sdir=1)
             self.SSD.show()
             self.SSD.raise_()
-         
+
       elif label.startswith("Re"):
          print("pushed 'Reprocess Subject' button")
       elif label.startswith("Import"):

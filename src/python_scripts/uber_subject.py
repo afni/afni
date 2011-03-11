@@ -330,11 +330,35 @@ def print_ap_command(svars, cvars):
       if wstr: print '%s\n**** Warnings:\n\n%s\n%s\n' % (75*'-',wstr,75*'-')
       print '### afni_proc.py script:\n\n%s\n' % mesg
 
+g_install_str = """
+   ------------------------------------------------------------------
+   A. Linux install:
+
+      1. yum install PyQt4
+
+   B. OS X 10.6 install (from nokia and riverbank computing):
+
+      0. XCode and python (2.6?) should already be installed
+      1. Qt SDK for mac:
+         - http://qt.nokia.com/downloads
+      2. SIP (interface between C++ and python)
+         - http://www.riverbankcomputing.co.uk/software/sip/download
+         - cd sip-4.12.1    (for example)
+         - python configure.py -d /Library/Python/2.6/site-packages
+         - make
+         - sudo make install
+      3. PyQt:
+         - http://www.riverbankcomputing.co.uk/software/pyqt/download
+   ------------------------------------------------------------------
+"""
+
 def run_gui(svars=None, cvars=None, guiopts=[]):
    try: from PyQt4 import QtGui
    except:
-      print '** failed to import PyQt4.QtGui **' \
-            '   (PyQt4 must be installed to run the uber_subject.py GUI)'
+      print '\n**** failed to import PyQt4.QtGui ****\n\n' \
+            '   (PyQt4 must be installed to run the uber_subject.py GUI)\n'
+      print g_install_str
+      
       return 1
 
    # if the above worked, let any GUI import errors show normally
