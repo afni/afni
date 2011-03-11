@@ -145,6 +145,16 @@ ENTRY("THD_fitter") ;
 
      default: free(qmag) ; RETURN(NULL) ;  /* stupid user */
 
+     /*-- least squares with LASSO [experimental] --*/
+
+     case -2:{
+       floatvec *lfit ;
+       lfit = THD_lasso_L2fit( npt , far , nref , ref , NULL , ccon ) ;
+       if( lfit == NULL ){ free(qmag) ; RETURN(NULL) ; }
+       qfit = lfit->ar ; lfit->ar = NULL ; KILL_floatvec(lfit) ;
+     }
+     break ;
+
      /*-- least squares --*/
 
      case 2:

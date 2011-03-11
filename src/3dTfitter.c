@@ -297,6 +297,14 @@ int main( int argc , char *argv[] )
       "               noise is KNOWN to be normally (Gaussian) distributed\n"
       "               (and a bunch of other assumptions are also made).\n"
       "\n"
+      "  -l2lasso lam = Solve equations via least squares with a LASSO (L1)\n"
+      "                 penalty on the coefficients.  The positive value 'lam'\n"
+      "                 after the option name is the weight given to the penalty.\n"
+      "                * This option should be considered highly experimental,\n"
+      "                  and it's implementation is subject to change!\n"
+      "                * At present, 3dTfitter doesn't do anything to select\n"
+      "                  'lam' for you ... maybe someday?\n"
+      "\n"
       "  -consign  = Follow this option with a list of LHS parameter indexes\n"
       "              to indicate that the sign of some output LHS parameters\n"
       "              should be constrained in the solution; for example:\n"
@@ -706,8 +714,18 @@ int main( int argc , char *argv[] )
          strcmp     (argv[iarg],"-L2")       == 0   ){
        meth = 2 ; iarg++ ; continue ;
      }
+
      if( strcasecmp(argv[iarg],"-l1fit") == 0 || strcmp(argv[iarg],"-L1") == 0 ){
        meth = 1 ; iarg++ ; continue ;
+     }
+
+     if( strcasecmp(argv[iarg],"-l2lasso") == 0 ){  /* experimental */
+       float lam ;
+       meth = -2 ;
+       lam = (float)strtod(argv[++iarg],NULL) ;
+       if( lam <= 0.0f ) ERROR_exit("%s %s: illegal lambda",argv[iarg-1],argv[iarg]) ;
+       THD_lasso_fixlam(lam) ;
+       iarg++ ; continue ;
      }
 
      if( strncasecmp(argv[iarg],"-prefix",5) == 0 ){
