@@ -62,9 +62,16 @@ g_history = """
          - added 'view: uber_subject.py command' menu item
          - replaced warningMessage/errorMessage with guiWarning/guiError
          - small changes to lib_subjects.py
+    0.9  Mar  9, 2011
+         - minor command window changes
+         - some prep for uber_proc.py control
+         - subject and group ID are now required
+    0.10 Mar 11, 2011
+         - add gltsym help web link
+         - added PyQt4 install notes and changed about format
 """
 
-g_version = '0.8 (March 8, 2011)'
+g_version = '0.10 (March 11, 2011)'
 
 # ----------------------------------------------------------------------
 # global definition of default processing blocks
