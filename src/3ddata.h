@@ -4355,6 +4355,11 @@ extern floatvec * THD_retrieve_fitts(void) ;
 extern void       THD_fitter_voxid( int i ) ;       /* 10 Sep 2008 */
 extern void       THD_fitter_set_vthresh( float ) ; /* 18 May 2010 */
 
+extern floatvec * THD_lasso_L2fit( int npt    , float *far   ,
+                                   int nref   , float *ref[] ,
+                                   float *lam , float *ccon   ) ;  /* 11 Mar 2011 */
+extern void THD_lasso_fixlam( float x ) ;
+
 /*--------------- routines that are in thd_detrend.c ---------------*/
 
 extern void get_linear_trend     ( int, float *, float *, float * ) ;

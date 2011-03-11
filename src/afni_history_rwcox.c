@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 9 , MAR , 2011 , RWC , "3dTcat" , MICRO , TYPE_MODIFY ,
+  { 11 , MAR , 2011 , RWC , "3dTfitter" , MICRO , TYPE_NEW_OPT ,
+   "Add L2+LASSO regression option" ,
+   "Mostly for experimentation at this moment in time." } ,
+
+ { 9 , MAR , 2011 , RWC , "3dTcat" , MICRO , TYPE_MODIFY ,
    "2 small changes" ,
    "(1) Bug fix -- change output type from FIM to FBUC -- to allow sub-brick\n"
    "statistics codes to properly used.\n"

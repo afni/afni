@@ -32,12 +32,12 @@ void THD_lasso_fixlam( float x ){ if( x > 0.0f ) flam = x ; }
    http://arxiv.org/abs/0803.3876
 *//*--------------------------------------------------------------------------*/
 
-floatvec * THD_lasso_linearfit( int npt    , float *far   ,
-                                int nref   , float *ref[] ,
-                                float *lam , float *ccon   )
+floatvec * THD_lasso_L2fit( int npt    , float *far   ,
+                            int nref   , float *ref[] ,
+                            float *lam , float *ccon   )
 {
-   int ii,jj, nfree ;
-   float *mylam, *ppar, *resd, *rsq , *rj,pj,dg ;
+   int ii,jj, nfree,nite,nimax,ndel ;
+   float *mylam, *ppar, *resd, *rsq, *rj, pj,dg,dsum ;
    floatvec *qfit ;
 
 ENTRY("THD_lasso_linearfit") ;
@@ -72,18 +72,21 @@ ENTRY("THD_lasso_linearfit") ;
    rsq  = (float *)calloc(sizeof(float),nref) ;
 
    /* if any parameters are free (no L1 penalty),
-      initialize them by un-penalized least squares */
+      initialize them by un-penalized least squares
+      (implicitly assuming all other parameters are zero) */
 
    if( nfree > 0 ){
-     float **qref , *qcon=NULL ;
+     float **qref , *qcon=NULL ; int nc ;
      qref = (float **)malloc(sizeof(float *)*nfree) ;
-     if( ccon != NULL )
-       qcon = (float *)malloc(sizeof(float)*nfree) ;
-     for( ii=jj=0 ; jj < nref ; jj++ ){
-       if( mylam[jj] > 0.0f ) continue ;
-       qref[ii] = ref[jj] ; if( qcon != NULL ) qcon[ii] = ccon[ii] ;
-       ii++ ;
+     if( ccon != NULL ) qcon = (float *)calloc(sizeof(float),nfree) ;
+     for( nc=ii=jj=0 ; jj < nref ; jj++ ){
+       if( mylam[jj] <= 0.0f ){              /* use this parameter */
+         qref[ii] = ref[jj] ;
+         if( ccon != NULL && ccon[ii] != 0 ){ qcon[ii] = ccon[ii]; nc++; }
+         ii++ ;
+       }
      }
+     if( nc == 0 ){ free(qcon); qcon = NULL; }
      qfit = THD_fitter( npt , far , nfree , qref , 2 , qcon ) ;
      if( qfit != NULL ){
        for( ii=jj=0 ; jj < nref ; jj++ ){
@@ -96,16 +99,15 @@ ENTRY("THD_lasso_linearfit") ;
 
    /* initialize residuals */
 
-   for( ii=0 ; ii < npt ; ii++ ) resd[ii] = far[ii] ;
-   for( jj=0 ; jj < nref ; jj++ ){
+   for( ii=0 ; ii < npt ; ii++ ) resd[ii] = far[ii] ;          /* data */
+   for( jj=0 ; jj < nref ; jj++ ){  /* subtract off fit of each column */
      pj = ppar[jj] ; rj = ref[jj] ;
      if( pj != 0.0f ){
        for( ii=0 ; ii < npt ; ii++ ) resd[ii] -= rj[ii]*pj ;
      }
-     pj = 0.0f ;
-     for( ii=0 ; ii < npt ; ii++ ) pj += rj[ii]*rj[ii] ;
-     if( pj == 0.0f ) pj = 1.0f ;
-     rsq[jj] = 1.0f / pj ;
+     for( pj=ii=0 ; ii < npt ; ii++ ) pj += rj[ii]*rj[ii] ;
+     if( pj == 0.0f ) pj = 1.0f ;             /* column of all zeros!? */
+     rsq[jj] = 1.0f / pj ;   /* save 1/(sum of squares) of each column */
    }
 
    /*-- outer iteration loop --*/
@@ -113,52 +115,57 @@ ENTRY("THD_lasso_linearfit") ;
 #undef  CON
 #define CON(j) (ccon != NULL && ppar[j]*ccon[j] < 0.0f)
 
-   while(1){
-     float dg,dp,dm ;
+   nimax = 2*nref + 111 ; dsum = 1.0f ;
+   for( nite=0 ; nite < nimax && dsum > 0.0005f ; nite++ ){
 
-     /*- inner loop over parameters -*/
+     /*- cyclic inner loop over parameters -*/
 
-     for( jj=0 ; jj < nref ; jj++ ){
+     for( dsum=ndel=jj=0 ; jj < nref ; jj++ ){  /* dsum = sum of param deltas */
 
-       rj = ref[jj] ; pj = ppar[jj] ;
+       rj = ref[jj] ;   /* j-th reference column */
+       pj = ppar[jj] ;  /* current value of j-th parameter */
 
-       for( dg=ii=0 ; ii < npt ; ii++ ) dg -= resd[ii] * rj[ii] ;
+       /* compute dg = -gradient of un-penalized function wrt ppar[jj] */
+
+       for( dg=ii=0 ; ii < npt ; ii++ ) dg += resd[ii] * rj[ii] ;
 
        if( mylam[jj] == 0.0f ){   /* un-penalized parameter */
 
-         ppar[jj] -= dg*rsq[jj] ; if( CON(jj) ) ppar[jj] = 0.0f ;
+         ppar[jj] += dg*rsq[jj] ; if( CON(jj) ) ppar[jj] = 0.0f ;
 
        } else {                   /* penalized parameter */
 
-         dp = dg + mylam[jj] ;
-         dm = dg - mylam[jj] ;
-         if( ppar[jj] > 0.0f || (ppar[jj] == 0.0f && dp < 0.0f) ){
-           ppar[jj] -= dp*rsq[jj] ;
+         if( pj > 0.0f || (pj == 0.0f && dg > 0.0f) ){        /* on the + side */
+           dg -= mylam[jj] ; ppar[jj] += dg*rsq[jj] ;         /* shrink - way */
            if( ppar[jj] < 0.0f || CON(jj) ) ppar[jj] = 0.0f ;
-         } else if( ppar[jj] < 0.0f || (ppar[jj] == 0.0f && dm < 0.0f) ){
-           ppar[jj] -= dm*rsq[jj] ;
+         } else if( pj < 0.0f || (pj == 0.0f && dg < 0.0f) ){ /* on the - side */
+           dg += mylam[jj] ; ppar[jj] += dg*rsq[jj] ;         /* shrink + way */
            if( ppar[jj] > 0.0f || CON(jj) ) ppar[jj] = 0.0f ;
          }
 
        }
 
-       dg = ppar[jj] - pj ;
+       dg = ppar[jj] - pj ;   /* change in parameter */
        if( dg != 0.0f ){
-         for( ii=0 ; ii < npt ; ii++ ) resd[ii] += rj[ii] * dg ;
+         pj    = fabsf(ppar[jj]) ; if( pj < 0.01f ) pj = 0.01f ;
+         dsum += fabsf(dg) / pj ; ndel++ ;
+         for( ii=0 ; ii < npt ; ii++ ) resd[ii] -= rj[ii] * dg ;
        }
 
      } /*- end of loop over parameters -*/
 
      /**** test for convergence somehow ***/
 
+     if( ndel > 0 ) dsum /= ndel ;
+
    } /*-- end of outer iteration loop --*/
+
+INFO_message("LASSO: nite=%d dsum=%g",nite,dsum) ;
 
    /*--- loading up the truck and heading to Beverlee ---*/
 
    MAKE_floatvec(qfit,nref) ;
    memcpy( qfit->ar , ppar , sizeof(float)*nref ) ;
-
-   /*-- toss out the trash and vamoose the ranch --*/
 
    free(rsq) ; free(resd) ; free(ppar) ; free(mylam) ;
 
