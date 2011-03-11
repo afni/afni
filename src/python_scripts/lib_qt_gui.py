@@ -387,14 +387,19 @@ def valid_as_filepath(text, name, warn=0, wparent=None, empty_ok=1):
 
    return 0
 
+def guiMessage(title, text, parent):
+   mbox = QtGui.QMessageBox(QtGui.QMessageBox.Information,
+                            title, text, QtGui.QMessageBox.Ok, parent)
+   mbox.show()
+
 def guiWarning(title, text, parent):
    mbox = QtGui.QMessageBox(QtGui.QMessageBox.Warning,
-                            title, text, QtGui.QMessageBox.NoButton, parent)
+                            title, text, QtGui.QMessageBox.Ok, parent)
    mbox.show()
 
 def guiError(title, text, parent):
    mbox = QtGui.QMessageBox(QtGui.QMessageBox.Critical,
-                            title, text, QtGui.QMessageBox.NoButton, parent)
+                            title, text, QtGui.QMessageBox.Ok, parent)
    mbox.show()
 
 class TableWidget(QtGui.QTableWidget):
