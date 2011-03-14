@@ -1065,6 +1065,7 @@ typedef struct Three_D_View {
       int cont_pos_only ;
       int cont_autorange;
       float cont_range_fval;
+      int cont_pbar_index, int_pbar_index;
       int first_integral;
 } Three_D_View ;
 

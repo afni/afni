@@ -3267,6 +3267,8 @@ STATUS("making func->rowcol") ;
        if( eee == NULL || strcmp(eee,"NO") != 0 ){
          PBAR_set_bigmode( func->inten_pbar , 1 , pmin,pmax ) ;
          PBAR_set_bigmap( func->inten_pbar , eee ) ;
+         im3d->cont_pbar_index = func->inten_pbar->bigmap_index;
+         im3d->int_pbar_index = PBAR_get_bigmap_index("ROI_i256");
        }
      }
    }
@@ -5599,7 +5601,6 @@ ENTRY("new_AFNI_controller") ;
    im3d->cont_autorange = 1;
    im3d->cont_range_fval = 1.0;
    im3d->first_integral = -1;
-
    RETURN(im3d) ;
 }
 
@@ -6742,11 +6743,13 @@ int AFNI_set_func_range_nval(XtPointer *vp_im3d, float rval)
    ENTRY("AFNI_set_func_range_nval") ;
 
    im3d = (Three_D_View *)vp_im3d;
-   if(im3d->first_integral!=0) {
+   if(im3d->first_integral!=0) {  /* must be switching from a continuous color scale */
      im3d->cont_bbox = MCW_val_bbox(im3d->vwid->func->range_bbox);
      im3d->cont_autorange = im3d->vinfo->use_autorange;
      im3d->cont_range_fval = im3d->vwid->func->range_av->fval;
      im3d->cont_pos_only = MCW_val_bbox( im3d->vwid->func->inten_bbox) ;
+     im3d->cont_pbar_index = im3d->vwid->func->inten_pbar->bigmap_index;
+     
      im3d->first_integral = 0;
    }
 
@@ -6778,9 +6781,11 @@ int AFNI_reset_func_range_cont(XtPointer *vp_im3d)
    if(im3d->first_integral<0)
       RETURN(0);
 
-   MCW_set_bbox( im3d->vwid->func->range_bbox , im3d->cont_bbox ) ;   /* autoRange box */
-   im3d->vinfo->use_autorange = im3d->cont_autorange ;
+   /* reset the continuous color scale back to whatever it was */
+   PBAR_set_bigmap_index( im3d->vwid->func->inten_pbar ,
+                          im3d->cont_pbar_index ) ;
 
+   /* reset range */
    AV_SENSITIZE( im3d->vwid->func->range_av , 1 ) ;
    AV_assign_fval( im3d->vwid->func->range_av , im3d->cont_range_fval ) ;
    AFNI_range_av_CB( im3d->vwid->func->range_av , im3d ) ;
@@ -6789,6 +6794,12 @@ int AFNI_reset_func_range_cont(XtPointer *vp_im3d)
    MCW_set_bbox( im3d->vwid->func->inten_bbox , im3d->cont_pos_only ) ;
    AFNI_inten_bbox_CB( im3d->vwid->func->inten_bbox->wbut[PBAR_MODEBUT] ,
                        (XtPointer)im3d , NULL ) ;
+
+   /* reset auto-range - redisplays if auto-ranging */
+   MCW_set_bbox( im3d->vwid->func->range_bbox , im3d->cont_bbox ) ;   /* autoRange box */
+   AFNI_range_bbox_CB( im3d->vwid->func->range_bbox->wbut[RANGE_AUTOBUT],
+                       (XtPointer)im3d , NULL ) ;
+   im3d->vinfo->use_autorange = im3d->cont_autorange ;
 
    im3d->first_integral = 1;
 
@@ -6831,7 +6842,9 @@ int AFNI_set_dset_pbar(XtPointer *vp_im3d)
       if (icmap >=0 ) {
          PBAR_set_bigmap( im3d->vwid->func->inten_pbar ,  pbar_name) ;
       } else {
-         PBAR_set_bigmap( im3d->vwid->func->inten_pbar , "ROI_i256" ) ;
+         PBAR_set_bigmap_index( im3d->vwid->func->inten_pbar ,
+                              im3d->int_pbar_index ) ;
+/*         PBAR_set_bigmap( im3d->vwid->func->inten_pbar , "ROI_i256" ) ; */
       }
       switched = 1;
       /* Problem is that when you switch back to a non  ROI dset,
@@ -6852,10 +6865,11 @@ int AFNI_set_dset_pbar(XtPointer *vp_im3d)
          PBAR_set_bigmap( im3d->vwid->func->inten_pbar , "ROI_i256" ) ;
       }
       else {
+#if 0
        char *eee = getenv("AFNI_COLORSCALE_DEFAULT") ;
        if( eee == NULL ) eee = getenv("AFNI_COLOR_SCALE_DEFAULT") ;
        if( eee == NULL ) eee = "Spectrum:red_to_blue" ;
-       PBAR_set_bigmap( im3d->vwid->func->inten_pbar , eee ) ;
+#endif
        AFNI_reset_func_range_cont((XtPointer *)im3d);
       }
       switched = 1;

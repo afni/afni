@@ -543,7 +543,7 @@ void DRAW_make_widgets(void)
    { Widget rc ;
      static char *cbox_label[1]   = { "Copy Dataset" } ;
      static char *cmode_label[2]  = { "Data"  , "Zero" } ;
-     static char *ctype_label[3]  = { "As Is" , "Func" , "Anat" } ;
+     static char *ctype_label[3]  = { "Show as Olay" , "Show as Ulay" } ;
      static char *cdatum_label[4] = { "As Is" , "Byte" , "Short" , "Float" } ;
 
      /*** rowcol to hold Copy widgets ***/
@@ -581,14 +581,14 @@ void DRAW_make_widgets(void)
                            "Zero => fill dataset with zeros" ) ;
 
      copy_type_av = new_MCW_optmenu( rc , NULL ,
-                                     0 , 2 , 1 , 0 , NULL,NULL ,
+                                     0 , 1 , 0 , 0 , NULL,NULL ,
                                      MCW_av_substring_CB , ctype_label ) ;
 
      MCW_reghint_children( copy_type_av->wrowcol ,
-                           "Copy is Functional overlay or Anatomical underlay" ) ;
+                           "Copy is shown as overlay or underlay" ) ;
      MCW_reghelp_children( copy_type_av->wrowcol ,
-                           "Copy will be Functional overlay\n"
-                           "or will be Anatomical underlay" ) ;
+                           "Copy will be shown as the overlay\n"
+                           "or will be shown as the underlay" ) ;
 
      copy_datum_av= new_MCW_optmenu( rc , NULL ,
                                      0 , 3 , 0 , 0 , NULL,NULL ,
@@ -1281,9 +1281,8 @@ void DRAW_help_CB( Widget w, XtPointer client_data, XtPointer call_data )
   "            of this let you control how the input dataset is copied:\n"
   "            (a)  Data => data value are copied\n"
   "                 Zero => copy is full of zeros\n"
-  "            (b) As Is => copy is same dataset type as input dataset\n"
-  "                 Func => copy is a functional overlay (fim) dataset\n"
-  "                 Anat => copy is an anatomical underlay dataset\n"
+  "            (b)  Show as Olay => put copy in Overlay (the usual case)\n"
+  "                 Show as Ulay => put copy in Underlay\n"
   "            (c) As Is => copy is stored as input dataset is stored\n"
   "                 Byte => copy is stored as bytes\n"
   "                Short => copy is stored as shorts\n"
@@ -1698,9 +1697,9 @@ void DRAW_finalize_dset_CB( Widget w, XtPointer fd, MCW_choose_cbs *cbs )
       zfill = (copy_mode_av->ival == 1) ;     /* zero fill? */
 
       switch( copy_type_av->ival ){
-         default: ftype = -1 ; break ;        /* As Is */
-         case 1:  ftype =  1 ; break ;        /* Func  */
-         case 2:  ftype =  2 ; break ;        /* Anat  */
+         default: ftype = -1 ; break ;        /* As Is  - should never get here */
+         case 0:  ftype =  1 ; break ;        /* Func  */
+         case 1:  ftype =  2 ; break ;        /* Anat  */
       }
 
       switch( copy_datum_av->ival ){
@@ -1970,11 +1969,23 @@ static int Check_value(void)
 
 static void dump_vallab(void)
 {
+
 #if 0
-   char *str = Dtable_to_nimlstring( vl_dtable , "VALUE_LABEL_DTABLE" ) ;
-   if( str != NULL ){ printf("%s\n",str); free(str); }
-   return ;
+   char str[256]={""};
+   char *cstr;
+   int i;
+   
+   if( dset == NULL ) return ;
+
+   for(i=1;i<=3;i++){
+      AFNI_get_dset_val_label(dset, i, str);
+      printf("roi %d: %s\n", i,str);
+   }
+
+   cstr = Dtable_to_nimlstring( vl_dtable , "VALUE_LABEL_DTABLE" ) ;
+   if( cstr != NULL ){ printf("%s\n",cstr); free(cstr); }
 #endif
+   return ;
 }
 
 /*---------------------------------------------------------------------*/
@@ -2072,6 +2083,8 @@ void DRAW_label_CB( Widget wtex , XtPointer cld, XtPointer cad )
 
    addto_Dtable( str_val , str_lab , vl_dtable ) ;
    free(str_lab) ;
+   DRAW_attach_dtable( vl_dtable, "VALUE_LABEL_DTABLE",  dset ) ;
+   dset_changed = 1;
 
    dump_vallab() ;
    return ;
@@ -2208,6 +2221,9 @@ void DRAW_attach_dtable( Dtable *dt, char *atname, THD_3dim_dataset *ds )
 {
    char *str ;
    if( dt == NULL || atname == NULL || ds == NULL ) return ;
+   if (ds->Label_Dtable) {
+      destroy_Dtable(ds->Label_Dtable); ds->Label_Dtable=NULL;
+   }
    str = Dtable_to_nimlstring( dt , atname ) ;
    if( str == NULL ) return ;
    THD_set_string_atr( ds->dblk , atname , str ) ;
@@ -3246,6 +3262,9 @@ THD_3dim_dataset * DRAW_copy_dset( THD_3dim_dataset *dset ,
        THD_set_char_atr( new_dset->dblk , "VALUE_LABEL_DTABLE" ,
                          atr->nch , atr->ch                     ) ;
    }
+
+   new_dset->int_cmap = 1;
+   THD_set_int_atr(new_dset->dblk, "INT_CMAP", 1, &new_dset->int_cmap);
 
    /*-- done successfully!!! --*/
 
