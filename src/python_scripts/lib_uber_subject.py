@@ -11,6 +11,9 @@ import afni_util as UTIL
 import lib_subjects as SUBJ
 
 DEF_UBER_DIR = 'uber_results'        # top directory for output
+DEF_TOP_SDIR = 'subject_results'     # top subject dir under uber_results
+DEF_SUBJ_ID  = 'SUBJ'                # default subject, if none is known
+DEF_GROUP_ID = 'group_A'             # default group, if none is known
 
 g_history = """
   uber_subject.py history
@@ -66,12 +69,13 @@ g_history = """
          - minor command window changes
          - some prep for uber_proc.py control
          - subject and group ID are now required
-    0.10 Mar 11, 2011
+    0.10 Mar 14, 2011
          - add gltsym help web link
          - added PyQt4 install notes and changed about format
+         - other random updates
 """
 
-g_version = '0.10 (March 11, 2011)'
+g_version = '0.10 (March 14, 2011)'
 
 # ----------------------------------------------------------------------
 # global definition of default processing blocks
@@ -851,6 +855,22 @@ def get_uber_results_dir(topdir=None):
    if base == DEF_UBER_DIR: return cwd
    else:                    return '%s/%s' % (cwd, DEF_UBER_DIR)
 
+def get_def_subj_path(topdir=None, subj=None, gid=None, sid=None):
+   """return something of the form subject_results/group_A/SUBJ"""
+
+   if subj: # init from subject instance
+      sid = subj.svars.val('sid')
+      gid = subj.svars.val('gid')
+
+   # if not set from any parameter, use defaults
+   if sid == None: sid = DEF_SUBJ_ID
+   if gid == None: gid = DEF_GROUP_ID
+
+   sdir = '%s/%s/%s' % (DEF_TOP_SDIR, gid, sid)
+
+   if topdir: return '%s/%s' % (topdir, sdir)
+   else:      return sdir
+
 # ===========================================================================
 # end class AP_Subject
 # ===========================================================================
@@ -1075,6 +1095,14 @@ uber_subject.py GUI             - a graphical interface to afni_proc.py
       o  stim file labels and basis functions
       o  whether to use wildcards
       o  many processing options
+
+   typical outputs:
+
+      o  output from single subject processing (e.g. SUBJ.results)
+      o  scripts to get there:
+            - afni_proc.py command script (e.g. cmd.ap.SUBJ)
+            - single subject processing script (e.g. proc.SUBJ)
+            - text output from processing script (e.g. output.proc.SUBJ)
 
 ---------------------------------------------------------------------------
 Overview:

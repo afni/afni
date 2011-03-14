@@ -125,6 +125,12 @@ class VarsObject(object):
       if val == '' or val == []: return True
       return False
 
+   def is_non_trivial_dir(self, atr):
+      """return true of atr is set to non-empty and not a '.'"""
+      if self.is_empty(atr):   return False
+      if self.val(atr) == '.': return False
+      return True
+
    def vals_are_equal(self, atr, vobj):
       """direct comparison is okay for any valid atomic type
       """
