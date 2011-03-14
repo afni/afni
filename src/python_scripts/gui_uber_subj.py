@@ -28,8 +28,6 @@ g_style_index_def = 4
 
 g_LineEdittype = None                   # set this type later
 
-# default subj dir should read like: subject_results/group_A/SUBJ
-g_def_subj_parent  = 'subject_results'
 
 # ======================================================================
 # main module class
@@ -1273,10 +1271,15 @@ class SingleSubjectWindow(QtGui.QMainWindow):
          QLIB.guiError('Error', "** subject and group IDs must be set", self)
          return
 
-      if self.set_sdir and self.cvars.is_empty('subj_dir'):
-         sdir =  '%s/%s/%s'%(g_def_subj_parent, self.cvars.gid, self.cvars.sid)
+      if self.set_sdir:
+         # default subj dir should read like: subject_results/group_A/SUBJ
+         sdir =  USUBJ.get_def_subj_path(gid=self.svars.gid, sid=self.svars.sid)
          print '-- setting subj_dir to %s' % sdir
          self.set_cvar('subj_dir', sdir)
+
+      # if we have a subject directory, make backup scripts
+      if self.cvars.is_non_trivial_dir('subj_dir'):
+         self.set_cvar('copy_scripts', 1)
         
       # create the subject, check warnings and either a command or errors
       self.apsubj = USUBJ.AP_Subject(self.svars, self.cvars)
