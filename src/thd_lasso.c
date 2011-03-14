@@ -2,18 +2,40 @@
 
 /*----------------------------------------------------------------------------*/
 
-/** note that flam will always be positive (never 0) **/
+/** set the fixed value of lambda (flam);
+    note that flam will always be positive (never 0) **/
 
 static float flam = 0.01f ;
 void THD_lasso_fixlam( float x ){ if( x > 0.0f ) flam = x ; }
 
+/*............................................................................*/
+
+/** set the convergence parameter (deps) **/
+
+static float deps = 0.0002f ;
+void THD_lasso_setdeps( float x ){ if( x > 0.0f ) deps = x ; }
+
+/*............................................................................*/
+
+/** set this to 1 to do 'post-LASSO' re-regression **/
+
+static int do_post = 0 ;
+void THD_lasso_dopost( int x ){ do_post = x ; }
+
+/*............................................................................*/
+
+/** set the entire lambda vector **/
+
 static floatvec *vlam = NULL ;
 void THD_lasso_setlamvec( int nref , float *lam )
 {
-   KILL_floatvec(vlam) ;
+#pragma omp critical (MALLOC)
+   { KILL_floatvec(vlam) ; }
    if( nref > 0 && lam != NULL ){
-     MAKE_floatvec(vlam,nref) ;
-     memcpy(vlam->ar,lam,sizeof(float)*nref) ;
+#pragma omp critical (MALLOC)
+     { MAKE_floatvec(vlam,nref) ; }
+#pragma omp critical (MEMCPY)
+     { memcpy(vlam->ar,lam,sizeof(float)*nref) ; }
    }
    return ;
 }
@@ -33,11 +55,11 @@ void THD_lasso_setlamvec( int nref , float *lam )
                                             > 0 == coef #k must be >= 0
                                             < 0 == coef #k must be <= 0
    Unlike standard linear fitting, nref can be more than npt, since the
-   L1 penalty can force some coefficients to be exactl zero.  However,
-   at most npt-1 values of lam[] can be zero!
+   L1 penalty can force some coefficients to be exactly zero.  However,
+   at most npt-1 values of lam[] can be zero (or the problem is unsolvable).
 
    The return vector contains the nref coefficients.  If NULL is returned,
-   then something bad bad bad occurred and you should hang your head.
+   then something bad bad bad transpired and you should hang your head.
 
    TT Wu and K Lange.
    Coordinate descent algorithms for LASSO penalized regression.
@@ -53,9 +75,9 @@ floatvec * THD_lasso_L2fit( int npt    , float *far   ,
    float *mylam, *ppar, *resd, *rsq, *rj, pj,dg,dsum ;
    floatvec *qfit ;
 
-ENTRY("THD_lasso_linearfit") ;
+ENTRY("THD_lasso_L2fit") ;
 
-   /* check inputs for stupid users */
+   /* check inputs for stupidities */
 
    if( npt  <= 1 || far == NULL || nref <= 0 || ref == NULL ) RETURN(NULL) ;
 
@@ -63,17 +85,19 @@ ENTRY("THD_lasso_linearfit") ;
 
    /* construct a local copy of lam[], and edit it softly */
 
-   mylam = (float *)malloc(sizeof(float)*nref) ;
+#pragma omp critical (MALLOC)
+   { mylam = (float *)malloc(sizeof(float)*nref) ; }
 
    nfree = nref ;
-   if( lam != NULL ){
+   if( lam != NULL ){                       /* copy input lam */
      for( nfree=jj=0 ; jj < nref ; jj++ ){
        mylam[jj] = MAX(0.0f,lam[jj]) ; if( mylam[jj] == 0.0f ) nfree++ ;
      }
    }
-   if( nfree == nref ){
+
+   if( nfree >= nref || nfree >= npt ){ /* no input lam, so make one up */
      nfree = 0 ;
-     if( vlam != NULL ){
+     if( vlam != NULL ){     /* take from user-supplied vector */
        int nvlam = vlam->nar ;
        for( jj=0 ; jj < nref ; jj++ ){
          if( jj < nvlam ){
@@ -84,18 +108,22 @@ ENTRY("THD_lasso_linearfit") ;
            mylam[jj] = flam ;
          }
        }
-     } else {
+       if( nfree >= npt ){   /* too many free values */
+         for( jj=0 ; jj < nref ; jj++ )
+           if( mylam[jj] <= 0.0f ) mylam[jj] = flam ;
+         nfree = 0 ;
+       }
+     } else {                /* fixed value of lam */
        for( jj=0 ; jj < nref ; jj++ ) mylam[jj] = flam ;
      }
-   } else if( nfree >= npt ){         /* too many un-penalized parameters */
-     free(mylam) ; RETURN(NULL) ;
    }
 
    /* space for parameter iterates (initialized to zero) */
 
-   ppar = (float *)calloc(sizeof(float),nref) ;  /* old params */
-   resd = (float *)calloc(sizeof(float),npt ) ;  /* residuals  */
-   rsq  = (float *)calloc(sizeof(float),nref) ;
+#pragma omp critical (MALLOC)
+   { ppar = (float *)calloc(sizeof(float),nref) ;  /* old params */
+     resd = (float *)calloc(sizeof(float),npt ) ;  /* residuals  */
+     rsq  = (float *)calloc(sizeof(float),nref) ; }
 
    /* if any parameters are free (no L1 penalty),
       initialize them by un-penalized least squares
@@ -103,8 +131,9 @@ ENTRY("THD_lasso_linearfit") ;
 
    if( nfree > 0 ){
      float **qref , *qcon=NULL ; int nc ;
-     qref = (float **)malloc(sizeof(float *)*nfree) ;
-     if( ccon != NULL ) qcon = (float *)calloc(sizeof(float),nfree) ;
+#pragma omp critical (MALLOC)
+     { qref = (float **)malloc(sizeof(float *)*nfree) ;
+       if( ccon != NULL ) qcon = (float *)calloc(sizeof(float),nfree) ; }
      for( nc=ii=jj=0 ; jj < nref ; jj++ ){
        if( mylam[jj] <= 0.0f ){              /* use this parameter */
          qref[ii] = ref[jj] ;
@@ -112,15 +141,18 @@ ENTRY("THD_lasso_linearfit") ;
          ii++ ;
        }
      }
-     if( nc == 0 ){ free(qcon); qcon = NULL; }
+#pragma omp critical (MALLOC)
+     { if( nc == 0 ){ free(qcon); qcon = NULL; } }
      qfit = THD_fitter( npt , far , nfree , qref , 2 , qcon ) ;
      if( qfit != NULL ){
        for( ii=jj=0 ; jj < nref ; jj++ ){
          if( mylam[jj] <= 0.0f ) ppar[jj] = qfit->ar[ii++] ;
        }
-       KILL_floatvec(qfit) ;
+#pragma omp critical (MALLOC)
+       { KILL_floatvec(qfit) ; }
      }
-     free(qref) ; if( qcon != NULL ) free(qcon) ;
+#pragma omp critical (MALLOC)
+     { free(qref) ; if( qcon != NULL ) free(qcon) ; }
    }
 
    /* initialize residuals */
@@ -141,8 +173,8 @@ ENTRY("THD_lasso_linearfit") ;
 #undef  CON
 #define CON(j) (ccon != NULL && ppar[j]*ccon[j] < 0.0f)
 
-   nimax = 3*nref + 66 ; dsum = 1.0f ;
-   for( nite=0 ; nite < nimax && dsum > 0.0002f ; nite++ ){
+   nimax = 2*nref + 66 ; dsum = 1.0f ;
+   for( nite=0 ; nite < nimax && dsum > deps ; nite++ ){
 
      /*-- cyclic inner loop over parameters --*/
 
@@ -154,6 +186,8 @@ ENTRY("THD_lasso_linearfit") ;
        /* compute dg = -gradient of un-penalized function wrt ppar[jj] */
 
        for( dg=ii=0 ; ii < npt ; ii++ ) dg += resd[ii] * rj[ii] ;
+
+       /* modify parameter down the gradient */
 
        if( mylam[jj] == 0.0f ){   /* un-penalized parameter */
 
@@ -172,32 +206,76 @@ ENTRY("THD_lasso_linearfit") ;
        }
 
        dg = ppar[jj] - pj ;   /* change in parameter */
-       if( dg != 0.0f ){
+       if( dg != 0.0f ){      /* update convergence test and residuals */
          pj    = fabsf(ppar[jj]) ; if( pj < 0.01f ) pj = 0.01f ;
          dsum += fabsf(dg) / pj ; ndel++ ;
          for( ii=0 ; ii < npt ; ii++ ) resd[ii] -= rj[ii] * dg ;
        }
 
-     } /*-- end of loop over parameters --*/
+     } /*-- end of inner loop over parameters --*/
 
      /**** test for convergence somehow ***/
 
-     if( ndel > 0 ) dsum /= ndel ;
+     if( ndel > 0 ) dsum /= ndel ; /* average fractional change per parameter */
 
    } /*---- end of outer iteration loop ----*/
 
    { static int ncall=0 ;
-     if( ncall == 0 ){
+     if( ncall < 1 ){
        INFO_message("LASSO: nite=%d dsum=%g",nite,dsum) ; ncall++ ;
      }
    }
 
+   /*--- if 'post' computation is ordered, re-do the
+         regression without constraints, but using only 
+         the references with non-zero weights from above ---*/
+
+   if( do_post ){
+     byte *fr ;
+#pragma omp critical (MALLOC)
+     { fr = (byte *)calloc(sizeof(int),nref) ; }
+     nfree = 0 ;
+     for( jj=0 ; jj < nref ; jj++ ){            /* count and mark */
+       if( ppar[jj] != 0.0f ) fr[nfree++] = 1 ; /* params to use */
+     }
+     if( nfree > 0 && nfree < npt ){
+       float **qref , *qcon=NULL ; int nc ;
+#pragma omp critical (MALLOC)
+       { qref = (float **)malloc(sizeof(float *)*nfree) ;
+         if( ccon != NULL ) qcon = (float *)calloc(sizeof(float),nfree) ; }
+       for( nc=ii=jj=0 ; jj < nref ; jj++ ){
+         if( fr[jj] ){         /* use this parameter */
+           qref[ii] = ref[jj] ;
+           if( ccon != NULL && ccon[ii] != 0 ){ qcon[ii] = ccon[ii]; nc++; }
+           ii++ ;
+         }
+       }
+#pragma omp critical (MALLOC)
+       { if( nc == 0 ){ free(qcon); qcon = NULL; } }
+       qfit = THD_fitter( npt , far , nfree , qref , 2 , qcon ) ;  /* re-fit */
+       if( qfit != NULL ){
+         for( ii=jj=0 ; jj < nref ; jj++ ){
+           if( fr[jj] ) ppar[jj] = qfit->ar[ii++] ;    /* over-write results */
+         }
+#pragma omp critical (MALLOC)
+         { KILL_floatvec(qfit) ; }
+       }
+#pragma omp critical (MALLOC)
+       { free(qref) ; if( qcon != NULL ) free(qcon) ; }
+     }
+#pragma omp critical (MALLOC)
+     { free(fr) ; }
+   }
+
    /*--- Loading up the truck and heading to Beverlee ---*/
 
-   MAKE_floatvec(qfit,nref) ;
-   memcpy( qfit->ar , ppar , sizeof(float)*nref ) ;
+#pragma omp critical (MALLOC)
+   { MAKE_floatvec(qfit,nref) ; }
+#pragma omp critical (MEMCPY)
+   { memcpy( qfit->ar , ppar , sizeof(float)*nref ) ; }
 
-   free(rsq) ; free(resd) ; free(ppar) ; free(mylam) ;
+#pragma omp critical (MALLOC)
+   { free(rsq) ; free(resd) ; free(ppar) ; free(mylam) ; }
 
    RETURN(qfit) ;
 }
