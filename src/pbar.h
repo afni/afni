@@ -112,6 +112,7 @@ void PBAR_make_bigmap( char *,
                        int, float *, rgbyte *, MCW_DC * );  /* 02 Feb 2003 */
 
 void PBAR_set_bigmap( MCW_pbar * , char * ) ;               /* 03 Feb 2003 */
+void PBAR_set_bigmap_index( MCW_pbar * , int ) ;            /* 11 Mar 2011 */
 char * PBAR_get_bigmap( MCW_pbar * ) ;                      /* 03 Feb 2003 */
 int PBAR_define_bigmap( char *cmd ) ;                       /* 07 Feb 2003 */
 void PBAR_flip( MCW_pbar * ) ;                              /* 07 Feb 2004 */
