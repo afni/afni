@@ -49,6 +49,22 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 14 , MAR, 2011 , DRG , "Draw Dataset Plugin" , 
+    MINOR , TYPE_MODIFY, 
+    "Update Draw Dataset for clarity and ROI labels",
+    "Draw Dataset is clearer with regards to overlay/underlay drawing\n"
+    "instead of the older func/anat terminology. Also an ROI color scale\n"
+    "is used for drawing and labels are updated in the AFNI Overlay GUI\n"
+    "immediately. Need to set AFNI_INT_CMAP or AFNI_INT_PBAR to use."
+} ,
+
+{ 14 , MAR, 2011 , DRG , "afni GUI" , 
+    MINOR , TYPE_BUG_FIX, 
+    "Fixed bugs when switching between ROI and continuous overlay datasets",
+    "Colorscale (scale, range) is restored with continuous overlay dataset.\n"
+    "Need to set AFNI_INT_CMAP or AFNI_INT_PBAR to use."
+} ,
+
 { 12 , OCT, 2010 , DRG , "3dDTtoDWI" , 
     MINOR , TYPE_NEW_PROG, 
     "Program to compute DWI images from diffusion tensor",
