@@ -6,6 +6,7 @@
     note that flam will always be positive (never 0) **/
 
 static float flam = 0.01f ;
+
 void THD_lasso_fixlam( float x ){ if( x > 0.0f ) flam = x ; }
 
 /*............................................................................*/
@@ -13,6 +14,7 @@ void THD_lasso_fixlam( float x ){ if( x > 0.0f ) flam = x ; }
 /** set the convergence parameter (deps) **/
 
 static float deps = 0.0002f ;
+
 void THD_lasso_setdeps( float x ){ if( x > 0.0f ) deps = x ; }
 
 /*............................................................................*/
@@ -20,6 +22,7 @@ void THD_lasso_setdeps( float x ){ if( x > 0.0f ) deps = x ; }
 /** set this to 1 to do 'post-LASSO' re-regression **/
 
 static int do_post = 0 ;
+
 void THD_lasso_dopost( int x ){ do_post = x ; }
 
 /*............................................................................*/
@@ -27,6 +30,7 @@ void THD_lasso_dopost( int x ){ do_post = x ; }
 /** set the entire lambda vector **/
 
 static floatvec *vlam = NULL ;
+
 void THD_lasso_setlamvec( int nref , float *lam )
 {
 #pragma omp critical (MALLOC)
@@ -77,13 +81,13 @@ floatvec * THD_lasso_L2fit( int npt    , float *far   ,
 
 ENTRY("THD_lasso_L2fit") ;
 
-   /* check inputs for stupidities */
+   /*--- check inputs for stupidities ---*/
 
    if( npt  <= 1 || far == NULL || nref <= 0 || ref == NULL ) RETURN(NULL) ;
 
    for( jj=0 ; jj < nref ; jj++ ) if( ref[jj] == NULL ) RETURN(NULL) ;
 
-   /* construct a local copy of lam[], and edit it softly */
+   /*--- construct a local copy of lam[], and edit it softly ---*/
 
 #pragma omp critical (MALLOC)
    { mylam = (float *)malloc(sizeof(float)*nref) ; }
@@ -118,32 +122,40 @@ ENTRY("THD_lasso_L2fit") ;
      }
    }
 
-   /* space for parameter iterates (initialized to zero) */
+   /*--- space for parameter iterates (initialized to zero) ---*/
 
 #pragma omp critical (MALLOC)
    { ppar = (float *)calloc(sizeof(float),nref) ;  /* old params */
      resd = (float *)calloc(sizeof(float),npt ) ;  /* residuals  */
      rsq  = (float *)calloc(sizeof(float),nref) ; }
 
-   /* if any parameters are free (no L1 penalty),
-      initialize them by un-penalized least squares
-      (implicitly assuming all other parameters are zero) */
+   /*--- Save 1/(sum of squares) of each ref column ---*/
+   for( jj=0 ; jj < nref ; jj++ ){
+     rj = ref[jj] ;
+     for( pj=ii=0 ; ii < npt ; ii++ ) pj += rj[ii]*rj[ii] ;
+     if( pj > 0.0f ) rsq[jj] = 1.0f / pj ;
+   }
+
+   /*--- if any parameters are free (no L1 penalty),
+         initialize them by un-penalized least squares
+         (implicitly assuming all other parameters are zero) ---*/
 
    if( nfree > 0 ){
-     float **qref , *qcon=NULL ; int nc ;
+     float **qref , *qcon=NULL ; int nc,nf ;
 #pragma omp critical (MALLOC)
      { qref = (float **)malloc(sizeof(float *)*nfree) ;
        if( ccon != NULL ) qcon = (float *)calloc(sizeof(float),nfree) ; }
-     for( nc=ii=jj=0 ; jj < nref ; jj++ ){
-       if( mylam[jj] <= 0.0f ){              /* use this parameter */
-         qref[ii] = ref[jj] ;
-         if( ccon != NULL && ccon[ii] != 0 ){ qcon[ii] = ccon[ii]; nc++; }
-         ii++ ;
+     for( nc=nf=jj=0 ; jj < nref ; jj++ ){
+       if( mylam[jj] <= 0.0f && rsq[jj] > 0.0f ){  /* use this parameter */
+         qref[nf] = ref[jj] ;
+         if( ccon != NULL && ccon[nf] != 0 ){ qcon[nf] = ccon[jj]; nc++; }
+         nf++ ;
        }
      }
 #pragma omp critical (MALLOC)
      { if( nc == 0 ){ free(qcon); qcon = NULL; } }
-     qfit = THD_fitter( npt , far , nfree , qref , 2 , qcon ) ;
+     if( nf > 0 ) qfit = THD_fitter( npt , far , nf , qref , 2 , qcon ) ;
+     else         qfit = NULL ;
      if( qfit != NULL ){
        for( ii=jj=0 ; jj < nref ; jj++ ){
          if( mylam[jj] <= 0.0f ) ppar[jj] = qfit->ar[ii++] ;
@@ -155,17 +167,15 @@ ENTRY("THD_lasso_L2fit") ;
      { free(qref) ; if( qcon != NULL ) free(qcon) ; }
    }
 
-   /* initialize residuals */
+   /*--- initialize residuals ---*/
 
    for( ii=0 ; ii < npt ; ii++ ) resd[ii] = far[ii] ;          /* data */
+
    for( jj=0 ; jj < nref ; jj++ ){  /* subtract off fit of each column */
      pj = ppar[jj] ; rj = ref[jj] ;
      if( pj != 0.0f ){
        for( ii=0 ; ii < npt ; ii++ ) resd[ii] -= rj[ii]*pj ;
      }
-     for( pj=ii=0 ; ii < npt ; ii++ ) pj += rj[ii]*rj[ii] ;
-     if( pj == 0.0f ) pj = 1.0f ;             /* column of all zeros!? */
-     rsq[jj] = 1.0f / pj ;   /* save 1/(sum of squares) of each column */
    }
 
    /*---- outer iteration loop ----*/
@@ -180,8 +190,9 @@ ENTRY("THD_lasso_L2fit") ;
 
      for( dsum=ndel=jj=0 ; jj < nref ; jj++ ){  /* dsum = sum of param deltas */
 
-       rj = ref[jj] ;   /* j-th reference column */
-       pj = ppar[jj] ;  /* current value of j-th parameter */
+       if( rsq[jj] == 0.0f ) continue ; /* all zero column!? */
+       rj = ref[jj] ;                   /* j-th reference column */
+       pj = ppar[jj] ;                  /* current value of j-th parameter */
 
        /* compute dg = -gradient of un-penalized function wrt ppar[jj] */
 
