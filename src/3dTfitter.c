@@ -855,7 +855,7 @@ int main( int argc , char *argv[] )
    if( mask != NULL && (mnx != nx || mny != ny || mnz != nz) )
      ERROR_exit("mask and RHS datasets don't match in grid size") ;
 
-   if( nvar >= ntime )
+   if( nvar >= ntime && meth > 0 )
      ERROR_exit("too many (%d) LHS time series for %d time points",nvar,ntime) ;
 
    npol = (polort < 0) ? 0 : polort+1 ;  /* number of polynomial columns */
