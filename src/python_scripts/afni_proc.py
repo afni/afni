@@ -231,9 +231,10 @@ g_history = """
     2.44 Dec 16 2010 : small changes to file type warnings
     2.45 Jan 13 2011 : small changes to warnings for missing stimulus files
     2.46 Mar 07 2011 : make proc script executable
+    2.47 Mar 14 2011 : if no mask but have extents, apply in scale
 """
 
-g_version = "version 2.46, Mar 7, 2011"
+g_version = "version 2.47, Mar 14, 2011"
 
 # version of AFNI required for script execution
 g_requires_afni = "4 Nov 2010"

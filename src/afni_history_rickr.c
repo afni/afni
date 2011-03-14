@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 14, MAR, 2011, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
+   "if no mask but extents, apply in scale step",
+   NULL
+ } ,
+
  { 14, MAR, 2011, RCR, "uber_subject.py", MICRO, TYPE_ENHANCE,
    "a handful of minor updates",
    "See -hist for version 0.10."

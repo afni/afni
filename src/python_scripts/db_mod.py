@@ -1566,12 +1566,18 @@ def db_cmd_scale(proc, block):
     if max > 100: valstr = 'min(%d, a/b*100)*step(a)*step(b)' % max
     else:         valstr = 'a/b*100*step(a)'
 
-    if proc.mask and proc.regmask:
-        mask_dset = '           -c %s%s \\\n' % (proc.mask.prefix, proc.view)
-        expr      = 'c * %s' % valstr
+    # choose a mask: either passed, extents, or none
+    mset = None
+    if proc.mask and proc.regmask:  mset = proc.mask
+    elif proc.mask_extents != None: mset = proc.mask_extents
+  
+    # if have a mask, apply it, else use any extents mask
+    if mset != None:
+        mask_str = '           -c %s%s \\\n' % (mset.prefix, proc.view)
+        expr     = 'c * %s' % valstr
     else:
-        mask_dset = ''
-        expr      = valstr
+        mask_str = ''
+        expr     = valstr
 
     if max > 100: maxstr = '# (subject to a range of [0,%d])\n' % max
     else        : maxstr = ''
@@ -1590,7 +1596,7 @@ def db_cmd_scale(proc, block):
                 "           -prefix %s\n"                               \
                 "end\n\n" %                                             \
                 (block_header('scale'), maxstr, prev, prev, proc.view,
-                 mask_dset, expr, prefix)
+                 mask_str, expr, prefix)
     proc.have_rm = 1            # rm.* files exist
 
     proc.bindex += 1            # increment block index
