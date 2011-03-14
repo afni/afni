@@ -665,7 +665,6 @@ ENTRY("PBAR_bigmap_finalize") ;
    pbar->bigflip      = 0 ;                 /* 07 Feb 2004 */
    pbar->bigrota      = 0 ;
    pbar->bigname      = bigmap_name[ind] ;  /* 22 Oct 2003 */
-   pbar->bigmap_index = ind ;
    for( ii=0 ; ii < NPANE_BIG ; ii++ )
      pbar->bigcolor[ii] = bigmap[ind][ii] ;
 
@@ -685,6 +684,7 @@ ENTRY("PBAR_bigmap_finalize") ;
         AFNI_set_func_range_nval(pbar->parent, 256.0);
      }
    }
+   pbar->bigmap_index = ind ;
 
    MCW_kill_XImage(pbar->bigxim) ; pbar->bigxim = NULL ;
    PBAR_bigexpose_CB(NULL,pbar,NULL) ;
@@ -722,6 +722,21 @@ ENTRY("PBAR_set_bigmap") ;
      cbs.ival = ii ;
      PBAR_bigmap_finalize( NULL , pbar , &cbs ) ;
    }
+   EXRETURN ;
+}
+
+/* set the color bar by index rather than name */
+void PBAR_set_bigmap_index( MCW_pbar *pbar , int pbar_index )  /* 08 Mar 2011 */
+{
+   int ii ;
+   MCW_choose_cbs cbs ;
+
+ENTRY("PBAR_set_bigmap_index") ;
+
+   if( pbar == NULL  || pbar_index > bigmap_num ) EXRETURN ;
+   cbs.ival = pbar_index ;
+   PBAR_bigmap_finalize( NULL , pbar , &cbs ) ;
+
    EXRETURN ;
 }
 
