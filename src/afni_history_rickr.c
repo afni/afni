@@ -49,9 +49,9 @@
 
 afni_history_struct rickr_history[] = {
 
- { 11, MAR, 2011, RCR, "uber_subject.py", MICRO, TYPE_ENHANCE,
-   "PyQt4 install details, more web links, ...",
-   NULL
+ { 14, MAR, 2011, RCR, "uber_subject.py", MICRO, TYPE_ENHANCE,
+   "a handful of minor updates",
+   "See -hist for version 0.10."
  } ,
 
  {  9, MAR, 2011, RCR, "uber_subject.py", MICRO, TYPE_ENHANCE,

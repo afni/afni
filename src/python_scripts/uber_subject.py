@@ -268,7 +268,7 @@ def set_var_from_def(obj, name, vlist, vars, verb=1):
    # actually set the value
    rv = vars.set_var(name, val)
    if verb > 1:
-      if rv: print '++ %s: updating %s to %s' % (obj, name, val)
+      if rv: print '++ %s: updating %s to %s %s' % (obj, name, val, type(val))
       else:  print '++ %s: no update for %s to %s' % (obj, name, val)
 
    # if no update, we're outta here
@@ -365,7 +365,8 @@ def run_gui(svars=None, cvars=None, guiopts=[]):
    import gui_uber_subj as GUS
 
    app = QtGui.QApplication(guiopts)
-   dialog = GUS.SingleSubjectWindow(subj_vars=svars, ctrl_vars=cvars)
+   dialog = GUS.SingleSubjectWindow(subj_vars=svars, ctrl_vars=cvars,
+                                    set_sdir=1)
    QtGui.QApplication.setStyle(QtGui.QStyleFactory.create(dialog.gvars.style))
    dialog.show()
    app.exec_()
