@@ -232,6 +232,7 @@ g_history = """
     2.45 Jan 13 2011 : small changes to warnings for missing stimulus files
     2.46 Mar 07 2011 : make proc script executable
     2.47 Mar 14 2011 : if no mask but have extents, apply in scale
+    2.48 Mar 15 2011 : use X.nocensor.1D (just to save 2 spaces)
 """
 
 g_version = "version 2.47, Mar 14, 2011"
