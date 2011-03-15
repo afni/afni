@@ -1408,7 +1408,7 @@ void AFNI_sigfunc_alrm(int sig)
      Three_D_View *im3d = AFNI_find_open_controller() ;
      char *eee = getenv("AFNI_SPLASH_MELT") ;
      if( eee == NULL ) eee = "?" ; else eee[0] = toupper(eee[0]) ;
-     if( im3d != NULL && eee[0] != 'N' && (eee[0] == 'Y' || lrand48()%5==0) )
+     if( im3d != NULL && eee[0] != 'N' && (eee[0] == 'Y' || lrand48()%9==0) )
        MCW_melt_widget( im3d->vwid->top_form ) ;
    }
 
