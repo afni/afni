@@ -73,9 +73,13 @@ g_history = """
          - add gltsym help web link
          - added PyQt4 install notes and changed about format
          - other random updates
+    0.11 Mar 15, 2011 :
+         - added -regress_make_ideal_sum
+         - added more subject variables
+         - minor GUI text changes
 """
 
-g_version = '0.10 (March 14, 2011)'
+g_version = '0.11 (March 15, 2011)'
 
 # ----------------------------------------------------------------------
 # global definition of default processing blocks
@@ -120,6 +124,19 @@ g_subj_defs.stim_basis    = []          # basis functions: empty=GAM,
 g_subj_defs.tcat_nfirst   = 0           # first TRs to remove from each run
 g_subj_defs.volreg_base   = g_def_vreg_base  # in g_vreg_base_list, or ''
 g_subj_defs.motion_limit  = 0.3         # in mm
+
+
+# newer
+g_subj_defs.stim_file        = []       # stim_files (not timing)
+g_subj_defs.stim_file_label  = []       # corresponding labels
+g_subj_defs.gltsym_text      = ''       # text for any -gltsym options
+g_subj_defs.outlier_limit    = 0.0
+g_subj_defs.regress_jobs     = 1
+g_subj_defs.regress_GOFORIT  = 0
+g_subj_defs.compute_fitts    = 'no'     # only 'yes' or 'no'
+g_subj_defs.exec_reml        = 'no'     # only 'yes' or 'no'
+g_subj_defs.run_clustsim     = 'yes'    # only 'yes' or 'no'
+g_subj_defs.regress_opts_3dD = ''       # extra options for 3dDeconvolve
 
 
 # note: short vars (e.g. with epi)
@@ -185,7 +202,7 @@ class AP_Subject(object):
       self.warnings = []                # list of warning strings
 
       # first assign directories
-      self.ap_command = self.script_init()
+      self.ap_command  = self.script_init()
       self.ap_command += self.script_set_dirs()
       self.ap_command += self.script_set_vars()
 
@@ -384,7 +401,17 @@ class AP_Subject(object):
       cmd  = self.script_ap_stim()
       cmd += self.script_ap_stim_labels()
       cmd += self.script_ap_stim_basis()
+      cmd += self.script_ap_regress_censor()
 
+      # ------------------------------------------------------------
+      # at end, add post 3dD options
+      cmd += '%s-regress_make_ideal_sum sum_ideal.1D \\\n' % self.LV.istr
+      cmd += '%s-regress_est_blur_epits \\\n' \
+             '%s-regress_est_blur_errts \\\n' % (self.LV.istr, self.LV.istr)
+
+      return cmd
+
+   def script_ap_regress_censor(self):
       # motion
       try: mlimit = float(self.svars.motion_limit)
       except:
@@ -392,14 +419,8 @@ class AP_Subject(object):
                             % self.svars.motion_limit)
          return ''
       if mlimit > 0.0:
-         cmd += '%s-regress_censor_motion %g \\\n' % (self.LV.istr, mlimit)
-
-      # ------------------------------------------------------------
-      # at end, add post 3dD options
-         cmd += '%s-regress_est_blur_epits \\\n' \
-                '%s-regress_est_blur_errts \\\n' % (self.LV.istr, self.LV.istr)
-
-      return cmd
+         return '%s-regress_censor_motion %g \\\n' % (self.LV.istr, mlimit)
+      else: return ''
 
    def script_ap_stim_basis(self):
       slen = len(self.svars.stim_basis)
@@ -1079,7 +1100,7 @@ uber_subject.py GUI             - a graphical interface to afni_proc.py
 
       o  to run a single subject analysis or generate processing scripts
       o  to help teach users:
-            - how to process data, including new methods or tools
+            - how to process data, including use of new methods or tools
             - scripting techniques
             - where to get more help
 
