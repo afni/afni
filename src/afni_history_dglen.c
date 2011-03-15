@@ -49,6 +49,12 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 15 , MAR, 2011 , DRG , "lpc_align.py" , 
+    MICRO , TYPE_GENERAL, 
+    "lpc_align.py is superceded by align_epi_anat.py",
+    "Program now exits with short message to use align_epi_anat.py"
+} ,
+
 { 14 , MAR, 2011 , DRG , "Draw Dataset Plugin" , 
     MINOR , TYPE_MODIFY, 
     "Update Draw Dataset for clarity and ROI labels",
