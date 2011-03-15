@@ -2280,7 +2280,7 @@ def db_cmd_regress(proc, block):
     cmd = cmd + other_opts
     cmd = cmd + "    %s-tout -x1D %s -xjpeg X.jpg \\\n" % (fout_str, proc.xmat)
     if proc.censor_file:
-        newmat = 'X.uncensored.xmat.1D'
+        newmat = 'X.nocensor.xmat.1D'
         cmd += "    -x1D_uncensored %s \\\n" % newmat
     cmd = cmd + fitts + errts + stop_opt
     cmd = cmd + "    -bucket stats.$subj\n\n\n"
@@ -5358,7 +5358,7 @@ g_help_string = """
 
                 e.g. -regress_opts_3dD -gltsym ../contr/contrast1.txt  \\
                                        -glt_label 1 FACEvsDONUT        \\
-                                       -xjpeg Xmat                     \\
+                                       -jobs 6                         \\
                                        -GOFORIT 8
 
             This option allows the user to add extra options to the 3dDeconvolve

@@ -312,7 +312,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
 
       # --------------------------------------------------
       # motion_limit
-      label = QtGui.QLabel("motion censor limit (per TR)")
+      label = QtGui.QLabel("motion censor limit (mm, per TR)")
       label.setToolTip("censor TRs with motion exceeding this mm distance")
       self.gvars.Line_motion_limit = QtGui.QLineEdit()
       self.gvars.Line_motion_limit.setText('%g'%self.svars.motion_limit)
@@ -334,7 +334,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
          for controlling sujbect vars: anat, get_tlrc
       """
 
-      gbox = self.get_styled_group_box("anatomical dataset")
+      gbox = self.get_styled_group_box("anatomical dataset (optional)")
 
       # put frame inside gbox, which we can hide via toggled button
       glayout = QtGui.QVBoxLayout(gbox)
@@ -1663,30 +1663,30 @@ class SingleSubjectWindow(QtGui.QMainWindow):
 g_help_gui_design = """
 todo:  
 
-1. update EPI datasets and stim files from tables when edits are made
+0. write uber_subj.py command file in subj dir (.orig.cmd.usubj)
 
-2. *** update this ...
+1. group box: extra regressors and gltsym options
+        - so all regressors would be known when writing GLTs
+        - help: given label list, show some GLT lines
+           - base help on actual labels (for stim_times and extras)
+2. group box: other 3dD options
+        - outlier limit
+        - jobs
+        - GOFORIT
+        - compute_fitts
+        - exec_reml
+        - run cluststim (def = yes)
+        - extra 3dD opts
+3. group box: align options
+        - giant_move
+        - cost function (choose or set)
+        - extra aea opts (examples: -AddEdge)
+        - tlrc opts: -tlrc_opts_at -OK_maxite, -tlrc_no_ss, template
+4. other
+   - choose blocks
 
-     - QLIB: add QGroupBox containing 4x4 grid of:
-             buttons (browse, etc), QTableWidget,
-             QCheckBob,             Label/LineEdit HBox
 
-QDialog
-   QVBoxLayout
-      QGroupBox (general subject info)
-      QGroupBox (other)
-         QVBoxLayout (scrollabel)
-            QGroupBox (anatomy)
-               QGridLayout (2x2)
-                  buttons (browse, clear,...)      QTableWidget
-                  QCheckBox                        Label/LinEdit HBox
-            QGroupBox (EPI)
-            QGroupBox (stim files)
-            .
-            .
-            .
-
-for example, consider widgets/character_map.py
+... update layout design
 
 """
 

@@ -49,6 +49,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 15, MAR, 2011, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
+   "changed uncensored Xmat to X.nocensor.1D",
+   NULL
+ } ,
+
+ { 15, MAR, 2011, RCR, "uber_subject.py", MICRO, TYPE_MODIFY,
+   "added -regress_make_ideal_sum, subject variables, GUI text changes",
+   NULL
+ } ,
+
  { 14, MAR, 2011, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
    "if no mask but extents, apply in scale step",
    NULL
