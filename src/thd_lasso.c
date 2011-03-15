@@ -1,5 +1,11 @@
 #include "mrilib.h"
 
+   /*-------------------------------------------------------------------*/
+   /*** LASSO functions for AFNI programs.                            ***/
+   /*** We start with some utilities for setting LASSO parameters.    ***/
+   /*** Then some internal (static) functions for common necessities. ***/
+   /*-------------------------------------------------------------------*/
+
 /*----------------------------------------------------------------------------*/
 
 /** set the fixed value of lambda (flam);
@@ -15,7 +21,7 @@ void THD_lasso_fixlam( float x ){ if( x > 0.0f ) flam = x ; }
 
 static float deps = 0.0002f ;
 
-void THD_lasso_setdeps( float x ){ if( x > 0.0f ) deps = x ; }
+void THD_lasso_setdeps( float x ){ if( x > 0.0f && x <= 0.1f ) deps = x ; }
 
 /*............................................................................*/
 
@@ -41,6 +47,102 @@ void THD_lasso_setlamvec( int nref , float *lam )
 #pragma omp critical (MEMCPY)
      { memcpy(vlam->ar,lam,sizeof(float)*nref) ; }
    }
+   return ;
+}
+
+/*----------------------------------------------------------------------------*/
+/* Construct a local copy of lam[], and edit it softly. */
+
+static float * edit_lamvec( int npt , int nref , float *lam )
+{
+   float *mylam ;
+   int nfree , jj ;
+
+#pragma omp critical (MALLOC)
+   { mylam = (float *)calloc(sizeof(float),nref) ; }
+
+   nfree = nref ;
+   if( lam != NULL ){                       /* copy input lam */
+     for( nfree=jj=0 ; jj < nref ; jj++ ){
+       mylam[jj] = MAX(0.0f,lam[jj]) ; if( mylam[jj] == 0.0f ) nfree++ ;
+     }
+   }
+
+   if( nfree >= MIN(nref,npt) ){ /* no good input lam, so make one up */
+     nfree = 0 ;
+     if( vlam != NULL ){         /* take from user-supplied vector */
+       int nvlam = vlam->nar ;
+       for( jj=0 ; jj < nref ; jj++ ){
+         if( jj < nvlam ){
+           mylam[jj] = vlam->ar[jj] ;
+                if( mylam[jj] <  0.0f ) mylam[jj] = flam ;
+           else if( mylam[jj] == 0.0f ) nfree++ ;
+         } else {
+           mylam[jj] = flam ;
+         }
+       }
+       if( nfree >= npt ){               /* too many free values */
+         for( jj=0 ; jj < nref ; jj++ )
+           if( mylam[jj] == 0.0f ) mylam[jj] = flam ;
+       }
+     } else {                            /* fixed value of lam */
+       for( jj=0 ; jj < nref ; jj++ ) mylam[jj] = flam ;
+     }
+   }
+
+   return mylam ;
+}
+
+/*----------------------------------------------------------------------------*/
+/* Compute the un-penalized solution to only the 'free' parameters,
+   as marked in fr[].  The results are stored back into ppar[]; un-free
+   parameters in ppar[] are not altered.
+*//*--------------------------------------------------------------------------*/
+
+static void compute_free_param( int npt  , float *far   ,
+                                int nref , float *ref[] ,
+                                int meth , float *ccon  ,
+                                int nfree, byte  *fr    , float *ppar )
+{
+   float **qref,*qcon=NULL ; floatvec *qfit ; int nc,ii,jj ;
+
+   if( nfree <= 0 || nfree >= npt || fr == NULL || ppar == NULL ) return ;
+
+#pragma omp critical (MALLOC)
+   {                    qref = (float **)calloc(sizeof(float *),nfree) ;
+     if( ccon != NULL ) qcon = (float * )calloc(sizeof(float)  ,nfree) ; }
+
+   /* select the marked regressors and constraints */
+
+   for( nc=ii=jj=0 ; jj < nref ; jj++ ){
+     if( fr[jj] ){  /* use this parameter */
+       if( ccon != NULL && ccon[jj] != 0 ){ qcon[ii] = ccon[jj]; nc++; }
+       qref[ii++] = ref[jj] ;
+     }
+   }
+
+#pragma omp critical (MALLOC)
+   { if( nc == 0 ){ free(qcon); qcon = NULL; } }
+
+   /* regress-ifization */
+
+   qfit = THD_fitter( npt , far , nfree , qref , meth , qcon ) ;
+
+   /* copy results into output */
+
+   if( qfit != NULL ){
+     for( ii=jj=0 ; jj < nref ; jj++ ){
+       if( fr[jj] ) ppar[jj] = qfit->ar[ii++] ;
+     }
+   }
+
+   /* vamoose the ranch */
+
+#pragma omp critical (MALLOC)
+   { free(qref) ;
+     if( qcon != NULL ) free(qcon) ;
+     if( qfit != NULL ) KILL_floatvec(qfit) ; }
+
    return ;
 }
 
@@ -75,115 +177,85 @@ floatvec * THD_lasso_L2fit( int npt    , float *far   ,
                             int nref   , float *ref[] ,
                             float *lam , float *ccon   )
 {
-   int ii,jj, nfree,nite,nimax,ndel ;
+   int ii,jj, nfree,nite,nimax,ndel , do_slam ;
    float *mylam, *ppar, *resd, *rsq, *rj, pj,dg,dsum ;
-   floatvec *qfit ;
+   floatvec *qfit ; byte *fr ;
 
 ENTRY("THD_lasso_L2fit") ;
 
    /*--- check inputs for stupidities ---*/
 
-   if( npt  <= 1 || far == NULL || nref <= 0 || ref == NULL ) RETURN(NULL) ;
+   if( npt <= 1 || far == NULL || nref <= 0 || ref == NULL ){
+     static int ncall=0 ;
+     if( ncall == 0 ){ ERROR_message("LASSO: bad data and/or model"); ncall++; }
+     RETURN(NULL) ;
+   }
 
-   for( jj=0 ; jj < nref ; jj++ ) if( ref[jj] == NULL ) RETURN(NULL) ;
+   for( jj=0 ; jj < nref ; jj++ ){
+     if( ref[jj] == NULL ){
+       static int ncall=0 ;
+       if( ncall == 0 ){ ERROR_message("LASSO: bad data and/or model"); ncall++; }
+       RETURN(NULL) ;
+     }
+   }
 
    /*--- construct a local copy of lam[], and edit it softly ---*/
 
-#pragma omp critical (MALLOC)
-   { mylam = (float *)malloc(sizeof(float)*nref) ; }
+   mylam = edit_lamvec( npt , nref , lam ) ;
 
-   nfree = nref ;
-   if( lam != NULL ){                       /* copy input lam */
-     for( nfree=jj=0 ; jj < nref ; jj++ ){
-       mylam[jj] = MAX(0.0f,lam[jj]) ; if( mylam[jj] == 0.0f ) nfree++ ;
-     }
-   }
-
-   if( nfree >= nref || nfree >= npt ){ /* no input lam, so make one up */
-     nfree = 0 ;
-     if( vlam != NULL ){     /* take from user-supplied vector */
-       int nvlam = vlam->nar ;
-       for( jj=0 ; jj < nref ; jj++ ){
-         if( jj < nvlam ){
-           mylam[jj] = vlam->ar[jj] ;
-                if( mylam[jj] <  0.0f ) mylam[jj] = flam ;
-           else if( mylam[jj] == 0.0f ) nfree++ ;
-         } else {
-           mylam[jj] = flam ;
-         }
-       }
-       if( nfree >= npt ){   /* too many free values */
-         for( jj=0 ; jj < nref ; jj++ )
-           if( mylam[jj] <= 0.0f ) mylam[jj] = flam ;
-         nfree = 0 ;
-       }
-     } else {                /* fixed value of lam */
-       for( jj=0 ; jj < nref ; jj++ ) mylam[jj] = flam ;
-     }
-   }
-
-   /*--- space for parameter iterates (initialized to zero) ---*/
+   /*--- space for parameter iterates, etc (initialized to zero) ---*/
 
 #pragma omp critical (MALLOC)
-   { ppar = (float *)calloc(sizeof(float),nref) ;  /* old params */
-     resd = (float *)calloc(sizeof(float),npt ) ;  /* residuals  */
-     rsq  = (float *)calloc(sizeof(float),nref) ; }
+   { MAKE_floatvec(qfit,nref) ; ppar = qfit->ar ;   /* parameters = output */
+     resd = (float *)calloc(sizeof(float),npt ) ;   /* residuals */
+     rsq  = (float *)calloc(sizeof(float),nref) ;   /* sums of squares */
+     fr   = (byte  *)calloc(sizeof(byte) ,nref) ; } /* free list */
 
    /*--- Save 1/(sum of squares) of each ref column ---*/
+
+   nfree = 0 ;                    /* number of unconstrained parameters */
    for( jj=0 ; jj < nref ; jj++ ){
      rj = ref[jj] ;
      for( pj=ii=0 ; ii < npt ; ii++ ) pj += rj[ii]*rj[ii] ;
-     if( pj > 0.0f ) rsq[jj] = 1.0f / pj ;
+     if( pj > 0.0f ){
+       rsq[jj] = 1.0f / pj ;
+       if( mylam[jj] == 0.0f ){   /* unconstrained parameter */
+         fr[jj] = 1 ;  nfree++ ;
+       }
+     }
    }
 
    /*--- if any parameters are free (no L1 penalty),
          initialize them by un-penalized least squares
          (implicitly assuming all other parameters are zero) ---*/
 
-   if( nfree > 0 ){
-     float **qref , *qcon=NULL ; int nc,nf ;
-#pragma omp critical (MALLOC)
-     { qref = (float **)malloc(sizeof(float *)*nfree) ;
-       if( ccon != NULL ) qcon = (float *)calloc(sizeof(float),nfree) ; }
-     for( nc=nf=jj=0 ; jj < nref ; jj++ ){
-       if( mylam[jj] <= 0.0f && rsq[jj] > 0.0f ){  /* use this parameter */
-         qref[nf] = ref[jj] ;
-         if( ccon != NULL && ccon[nf] != 0 ){ qcon[nf] = ccon[jj]; nc++; }
-         nf++ ;
-       }
-     }
-#pragma omp critical (MALLOC)
-     { if( nc == 0 ){ free(qcon); qcon = NULL; } }
-     if( nf > 0 ) qfit = THD_fitter( npt , far , nf , qref , 2 , qcon ) ;
-     else         qfit = NULL ;
-     if( qfit != NULL ){
-       for( ii=jj=0 ; jj < nref ; jj++ ){
-         if( mylam[jj] <= 0.0f ) ppar[jj] = qfit->ar[ii++] ;
-       }
-#pragma omp critical (MALLOC)
-       { KILL_floatvec(qfit) ; }
-     }
-#pragma omp critical (MALLOC)
-     { free(qref) ; if( qcon != NULL ) free(qcon) ; }
-   }
+   compute_free_param( npt,far,nref,ref,2,ccon , nfree,fr , ppar ) ;
 
    /*--- initialize residuals ---*/
 
    for( ii=0 ; ii < npt ; ii++ ) resd[ii] = far[ii] ;          /* data */
 
    for( jj=0 ; jj < nref ; jj++ ){  /* subtract off fit of each column */
-     pj = ppar[jj] ; rj = ref[jj] ;
+     pj = ppar[jj] ; rj = ref[jj] ; /* with a nonzero parameter value */
      if( pj != 0.0f ){
        for( ii=0 ; ii < npt ; ii++ ) resd[ii] -= rj[ii]*pj ;
      }
    }
 
-   /*---- outer iteration loop ----*/
+   /*--- if have a lot of references (relative to number of data points),
+         then increase lam[] for the first iteration to speed convergence ---*/
 
-#undef  CON
+   do_slam = (nref > npt/2) ;
+   if( do_slam ){
+     for( jj=0 ; jj < nref ; jj++ ) mylam[jj] *= 4.0f ;
+   }
+
+   /*---- outer iteration loop (until we are happy or worn out) ----*/
+
+#undef  CON    /* CON(j) is true if the constraint on ppar[j] is violated */
 #define CON(j) (ccon != NULL && ppar[j]*ccon[j] < 0.0f)
 
-   nimax = 2*nref + 66 ; dsum = 1.0f ;
+   nimax = 29*nref + 66 ; dsum = 1.0f ;
    for( nite=0 ; nite < nimax && dsum > deps ; nite++ ){
 
      /*-- cyclic inner loop over parameters --*/
@@ -195,16 +267,21 @@ ENTRY("THD_lasso_L2fit") ;
        pj = ppar[jj] ;                  /* current value of j-th parameter */
 
        /* compute dg = -gradient of un-penalized function wrt ppar[jj] */
+       /*            = direction we want to step in                    */
 
        for( dg=ii=0 ; ii < npt ; ii++ ) dg += resd[ii] * rj[ii] ;
 
-       /* modify parameter down the gradient */
+       /*- modify parameter down the gradient -*/
 
        if( mylam[jj] == 0.0f ){   /* un-penalized parameter */
 
          ppar[jj] += dg*rsq[jj] ; if( CON(jj) ) ppar[jj] = 0.0f ;
 
        } else {                   /* penalized parameter */
+
+         /* Extra -gradient is -lambda for pj > 0, and is +lambda for pj < 0. */
+         /* Merge this with dg, change ppar[jj], then see if we stepped thru */
+         /* zero (or hit a constraint) -- if so, stop ppar[jj] at zero.     */
 
          if( pj > 0.0f || (pj == 0.0f && dg > 0.0f) ){        /* on the + side */
            dg -= mylam[jj] ; ppar[jj] += dg*rsq[jj] ;         /* shrink - way */
@@ -218,8 +295,8 @@ ENTRY("THD_lasso_L2fit") ;
 
        dg = ppar[jj] - pj ;   /* change in parameter */
        if( dg != 0.0f ){      /* update convergence test and residuals */
-         pj    = fabsf(ppar[jj]) ; if( pj < 0.01f ) pj = 0.01f ;
-         dsum += fabsf(dg) / pj ; ndel++ ;
+         pj    = fabsf(ppar[jj]) ;
+         dsum += fabsf(dg) / MAX(pj,0.01f) ; ndel++ ;
          for( ii=0 ; ii < npt ; ii++ ) resd[ii] -= rj[ii] * dg ;
        }
 
@@ -229,64 +306,51 @@ ENTRY("THD_lasso_L2fit") ;
 
      if( ndel > 0 ) dsum /= ndel ; /* average fractional change per parameter */
 
+     if( do_slam ){     /* shrink lam[] back, if it was augmented */
+       do_slam = 0 ; dsum = 1.0f ;
+       for( jj=0 ; jj < nref ; jj++ ) mylam[jj] *= 0.25f ;
+     }
+
    } /*---- end of outer iteration loop ----*/
 
+#if 1
    { static int ncall=0 ;
      if( ncall < 1 ){
        INFO_message("LASSO: nite=%d dsum=%g",nite,dsum) ; ncall++ ;
      }
    }
+#endif
 
    /*--- if 'post' computation is ordered, re-do the
-         regression without constraints, but using only 
+         regression without constraints, but using only
          the references with non-zero weights from above ---*/
 
    if( do_post ){
-     byte *fr ;
-#pragma omp critical (MALLOC)
-     { fr = (byte *)calloc(sizeof(int),nref) ; }
      nfree = 0 ;
-     for( jj=0 ; jj < nref ; jj++ ){            /* count and mark */
-       if( ppar[jj] != 0.0f ) fr[nfree++] = 1 ; /* params to use */
+     for( jj=0 ; jj < nref ; jj++ ){  /* count and mark params to use */
+       fr[jj] = (ppar[jj] != 0.0f) ; nfree += fr[jj] ;
      }
-     if( nfree > 0 && nfree < npt ){
-       float **qref , *qcon=NULL ; int nc ;
-#pragma omp critical (MALLOC)
-       { qref = (float **)malloc(sizeof(float *)*nfree) ;
-         if( ccon != NULL ) qcon = (float *)calloc(sizeof(float),nfree) ; }
-       for( nc=ii=jj=0 ; jj < nref ; jj++ ){
-         if( fr[jj] ){         /* use this parameter */
-           qref[ii] = ref[jj] ;
-           if( ccon != NULL && ccon[ii] != 0 ){ qcon[ii] = ccon[ii]; nc++; }
-           ii++ ;
-         }
-       }
-#pragma omp critical (MALLOC)
-       { if( nc == 0 ){ free(qcon); qcon = NULL; } }
-       qfit = THD_fitter( npt , far , nfree , qref , 2 , qcon ) ;  /* re-fit */
-       if( qfit != NULL ){
-         for( ii=jj=0 ; jj < nref ; jj++ ){
-           if( fr[jj] ) ppar[jj] = qfit->ar[ii++] ;    /* over-write results */
-         }
-#pragma omp critical (MALLOC)
-         { KILL_floatvec(qfit) ; }
-       }
-#pragma omp critical (MALLOC)
-       { free(qref) ; if( qcon != NULL ) free(qcon) ; }
-     }
-#pragma omp critical (MALLOC)
-     { free(fr) ; }
+     compute_free_param( npt,far,nref,ref,2,ccon , nfree,fr , ppar ) ;
    }
 
    /*--- Loading up the truck and heading to Beverlee ---*/
 
 #pragma omp critical (MALLOC)
-   { MAKE_floatvec(qfit,nref) ; }
-#pragma omp critical (MEMCPY)
-   { memcpy( qfit->ar , ppar , sizeof(float)*nref ) ; }
-
-#pragma omp critical (MALLOC)
-   { free(rsq) ; free(resd) ; free(ppar) ; free(mylam) ; }
+   { free(fr) ; free(rsq) ; free(resd) ; free(mylam) ; }
 
    RETURN(qfit) ;
+}
+
+/*----------------------------------------------------------------------------*/
+/* At some point in the future, this will be the Square Root LASSO:
+
+   A Belloni, V Chernozhukov, and L Wang.
+   Square-root LASSO: Pivotal recovery of sparse signals via conic programming.
+   http://arxiv.org/abs/1009.5689
+*//*--------------------------------------------------------------------------*/
+
+floatvec * THD_sqrtlasso_L2fit( int npt    , float *far   ,
+                                int nref   , float *ref[] ,
+                                float *lam , float *ccon   )
+{
 }
