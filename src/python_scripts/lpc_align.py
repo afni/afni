@@ -15,6 +15,12 @@ import ask_me
 
 g_help_string = """
     ===========================================================================
+    This script is superceded by align_epi_anat.py. 
+    Please use that program instead.
+    ===========================================================================      
+"""
+
+old_g_help_string = """    
     This script is used to align an anatomical T1 to an epi (T2/T2*) volume.
     Alignment parameters are set presuming the two volumes to be in close
     alignment. 
@@ -554,6 +560,8 @@ if __name__ == '__main__':
 
 
    ps = RegWrap('lpc_align.py')
+   print g_help_string
+   ps.ciao(0)  # terminate
    ps.init_opts()
 
    rv = ps.get_user_opts()
