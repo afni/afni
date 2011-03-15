@@ -1322,6 +1322,12 @@ typedef struct { int nar ; double *ar , dx,x0 ; } doublevec ;
      memcpy( (ev)->ar, (fv)->ar, sizeof(float)*n ) ;  \
  } while(0)
 
+#define RESIZE_floatvec(fv,m)                                     \
+  do{ if( (fv)->nar != (m) ){                                     \
+        (fv)->nar = (m) ;                                         \
+        (fv)->ar  = (float *)realloc((fv)->ar,sizeof(float)*(m)); \
+  }} while(0)
+
 extern float  interp_floatvec ( floatvec  *fv , float  x ) ;
 extern double interp_doublevec( doublevec *dv , double x ) ;
 

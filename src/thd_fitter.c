@@ -101,7 +101,8 @@ ENTRY("THD_fitter") ;
    /* check inputs for stupid users */
 
    if( npt  <= 1 || far == NULL ||
-       nref <= 0 || ref == NULL || nref >= npt-1 ) RETURN(NULL) ;
+       nref <= 0 || ref == NULL ||
+       (nref >= npt-1 && meth > 0) ) RETURN(NULL) ;
 
    for( jj=0 ; jj < nref ; jj++ ) if( ref[jj] == NULL ) RETURN(NULL) ;
 
