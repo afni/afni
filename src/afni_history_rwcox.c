@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 11 , MAR , 2011 , RWC , "3dTfitter" , MICRO , TYPE_NEW_OPT ,
+  { 17 , MAR , 2011 , RWC , "afni" , MICRO , TYPE_MODIFY ,
+   "modify mri_read() to fully read datasets as images (not just #0)" ,
+   NULL } ,
+
+ { 11 , MAR , 2011 , RWC , "3dTfitter" , MICRO , TYPE_NEW_OPT ,
    "Add L2+LASSO regression option" ,
    "Mostly for experimentation at this moment in time." } ,
 

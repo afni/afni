@@ -321,7 +321,7 @@ void AFNI_syntax(void)
      "        -tim or -zim, since there is no way to change this from\n"
      "        within an AFNI run (the FIM menus are disabled).\n"
      " N.B.: The program 'aiv' (AFNI image viewer) can also be used to\n"
-     "        look at images.\n"
+     "        get a quick look at images (but not time series graphs).\n"
    ) ;
 
    printf(
