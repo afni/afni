@@ -245,7 +245,7 @@ ENTRY("THD_lasso_L2fit") ;
    /*--- if have a lot of references (relative to number of data points),
          then increase lam[] for the first iteration to speed convergence ---*/
 
-   do_slam = (nref > npt/2) ;
+   do_slam = 2 * (nref > npt/2) ;
    if( do_slam ){
      for( jj=0 ; jj < nref ; jj++ ) mylam[jj] *= 4.0f ;
    }
@@ -307,8 +307,8 @@ ENTRY("THD_lasso_L2fit") ;
      if( ndel > 0 ) dsum /= ndel ; /* average fractional change per parameter */
 
      if( do_slam ){     /* shrink lam[] back, if it was augmented */
-       do_slam = 0 ; dsum = 1.0f ;
-       for( jj=0 ; jj < nref ; jj++ ) mylam[jj] *= 0.25f ;
+       do_slam-- ; dsum = 1.0f ;
+       for( jj=0 ; jj < nref ; jj++ ) mylam[jj] *= 0.5f ;
      }
 
    } /*---- end of outer iteration loop ----*/
