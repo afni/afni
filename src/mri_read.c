@@ -1665,14 +1665,17 @@ void init_MCW_sizes(void)
 
       /* try to find environment variable with the num-th name */
 
-      sprintf( ename , "AFNI_IMSIZE_%d" , num+1 ) ;
-      str = my_getenv( ename ) ;
-
+        sprintf( ename , "AFNI_IMSIZE_%d", num+1 ) ; str = my_getenv(ename) ;
       if( str == NULL ){
-         sprintf( ename , "MCW_IMSIZE_%d" , num+1 ) ;
-         str = my_getenv( ename ) ;
-         if( str == NULL ) continue ;
+        sprintf( ename , "MCW_IMSIZE_%d" , num+1 ) ; str = my_getenv(ename) ;
       }
+      if( str == NULL ){
+        sprintf( ename, "AFNI_IMSIZE_%02d",num+1 ) ; str = my_getenv(ename) ;
+      }
+      if( str == NULL ){
+        sprintf( ename, "MCW_IMSIZE_%02d" ,num+1 ) ; str = my_getenv(ename) ;
+      }
+      if( str == NULL ) continue ;  /* no luck */
 
       imsize[num].prefix = (char *) malloc( sizeof(char) * strlen(str) ) ;
       if( imsize[num].prefix == NULL ){
