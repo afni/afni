@@ -4364,6 +4364,14 @@ extern void THD_lasso_fixlam( float x ) ;
 extern void THD_lasso_setlamvec( int nref , float *lam ) ;
 extern void THD_lasso_dopost( int x ) ;
 extern void THD_lasso_setdeps( float x ) ;
+extern floatvec * THD_lasso( int meth   ,
+                             int npt    , float *far   ,
+                             int nref   , float *ref[] ,
+                             float *lam , float *ccon   ) ;
+extern floatvec * THD_sqrtlasso_L2fit( int npt    , float *far   ,
+                                       int nref   , float *ref[] ,
+                                       float *lam , float *ccon   ) ;
+
 
 /*--------------- routines that are in thd_detrend.c ---------------*/
 

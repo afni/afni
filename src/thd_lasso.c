@@ -11,7 +11,7 @@
 /** set the fixed value of lambda (flam);
     note that flam will always be positive (never 0) **/
 
-static float flam = 0.01f ;
+static float flam = 0.666f ;
 
 void THD_lasso_fixlam( float x ){ if( x > 0.0f ) flam = x ; }
 
@@ -144,6 +144,74 @@ static void compute_free_param( int npt  , float *far   ,
      if( qfit != NULL ) KILL_floatvec(qfit) ; }
 
    return ;
+}
+
+/*----------------------------------------------------------------------------*/
+
+floatvec * THD_lasso( int meth   ,
+                      int npt    , float *far   ,
+                      int nref   , float *ref[] ,
+                      float *lam , float *ccon   )
+{
+   float **qref,*qfac, *rj,*qj, val ;
+   floatvec *qfit ;
+   int ii,jj ;
+
+ENTRY("THD_lasso") ;
+
+   /*--- check inputs for stupidities ---*/
+
+   if( npt <= 1 || far == NULL || nref <= 0 || ref == NULL ){
+     static int ncall=0 ;
+     if( ncall == 0 ){ ERROR_message("LASSO: bad data and/or model"); ncall++; }
+     RETURN(NULL) ;
+   }
+
+   for( jj=0 ; jj < nref ; jj++ ){
+     if( ref[jj] == NULL ){
+       static int ncall=0 ;
+       if( ncall == 0 ){ ERROR_message("LASSO: bad data and/or model"); ncall++; }
+       RETURN(NULL) ;
+     }
+   }
+
+   /*--- scale refs ---*/
+
+   qfac = (float * )malloc(sizeof(float)  *nref) ;
+   qref = (float **)malloc(sizeof(float *)*nref) ;
+   for( jj=0 ; jj < nref ; jj++ ){
+     rj = ref[jj] ; val = 0.0f ;
+     for( ii=0 ; ii < npt ; ii++ ) val += rj[ii]*rj[ii] ;
+     if( val > 0.0f ) val = sqrtf(npt/val) ;
+     qfac[jj] = val ;
+     qj = qref[jj] = (float * )malloc(sizeof(float)*nref) ;
+     for( ii=0 ; ii < npt ; ii++ ) qj[ii] = val * rj[ii] ;
+   }
+
+   switch( meth ){
+     default:
+     case -2:
+     case  2:
+       qfit = THD_lasso_L2fit( npt, far, nref, qref, lam, ccon ) ;
+     break ;
+
+     case -1:
+     case  1:
+       qfit = THD_sqrtlasso_L2fit( npt, far, nref, qref, lam, ccon ) ;
+     break ;
+   }
+
+   if( qfit != NULL ){
+     for( jj=0 ; jj < nref ; jj++ ){
+       val = qfac[jj] ;
+       qfit->ar[jj] = (val > 0.0f) ? qfit->ar[jj]/val : 0.0f ;
+     }
+   }
+
+   for( jj=0 ; jj < nref ; jj++ ) free(qref[jj]) ;
+   free(qref) ; free(qfac) ;
+
+   RETURN(qfit) ;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -353,4 +421,5 @@ floatvec * THD_sqrtlasso_L2fit( int npt    , float *far   ,
                                 int nref   , float *ref[] ,
                                 float *lam , float *ccon   )
 {
+   return NULL ;
 }
