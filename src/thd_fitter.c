@@ -150,6 +150,7 @@ ENTRY("THD_fitter") ;
 
      /*-- least squares with LASSO [experimental] --*/
 
+     case -1:
      case -2:{
        floatvec *lfit ;
        lfit = THD_lasso_L2fit( npt , far , nref , ref , NULL , ccon ) ;
