@@ -27,7 +27,7 @@ int main( int argc , char *argv[] )
    int verb=1 ;
 
    THD_3dim_dataset *fal_set=NULL ; MRI_IMAGE *fal_im=NULL ;
-   char *fal_pre=NULL ; int fal_pencod=1, fal_klen=0 , fal_dcon=0 ;
+   char *fal_pre=NULL ; int fal_pencod=3, fal_klen=0 , fal_dcon=0 ;
    float *fal_kern=NULL , fal_penfac=0.0f ;
    THD_3dim_dataset *defal_set=NULL ;
    int nvoff=0 ;
@@ -190,7 +190,8 @@ int main( int argc , char *argv[] )
       "              ++ The following penalty functions are available:\n"
       "                   P0[s] = f^q * sum{ |s(t)|^q }\n"
       "                   P1[s] = f^q * sum{ |s(t)-s(t-1)|^q }\n"
-      "                   P2[s] = f^q * sum{ |s(t)-0.5*s(t-1)-0.5*s(t+1)|^q }\n"
+      "                   P2[s] = f^q * sum{ |2*s(t)-s(t-1)-s(t+1)|^q }\n"
+      "                   P3[s] = f^q * sum{ |3*s(t)-3*s(t-1)-s(t+1)+s(t-2)|^q }\n"
       "                 where s(t) is the deconvolved time series;\n"
       "                 where q=1 for L1 fitting, q=2 for L2 fitting;\n"
       "                 where f is the value of 'fac' (defined below).\n"
@@ -199,23 +200,29 @@ int main( int argc , char *argv[] )
       "                      in s(t) small (1st derivative)\n"
       "                   P2 tries to keep 3 point fluctuations\n"
       "                      in s(t) small (2nd derivative)\n"
-      "              ++ In L2 regression, these penalties are like Wiener\n"
-      "                 deconvolution with noise spectra proportional to\n"
-      "                   P0 ==> f^2 (constant in frequency)\n"
-      "                   P1 ==> f^2 * freq^2\n"
-      "                   P2 ==> f^2 * freq^4\n"
+      "                   P3 tries to keep 4 point fluctuations\n"
+      "                      in s(t) small (3nd derivative)\n"
+      "              ++ In L2 regression, these penalties are analogous to Wiener\n"
+      "                 deconvolution, with noise spectra proportional to\n"
+      "                   P0 ==> fac^2 (constant in frequency)\n"
+      "                   P1 ==> fac^2 * freq^2\n"
+      "                   P2 ==> fac^2 * freq^4\n"
+      "                   P3 ==> fac^2 * freq^6\n"
       "                 However, 3dTfitter does deconvolution in the time\n"
       "                 domain, not the frequency domain, and you can choose\n"
       "                 to use L2 or L1 regression.\n"
-      "              ++ The value of 'pen' is one of the following 7 cases:\n"
+      "              ++ The value of 'pen' is a combination of the digits\n"
+      "                 '0', '1', '2', and/or '3'; for example:\n"
       "                     0 = use P0 only\n"
       "                     1 = use P1 only\n"
       "                     2 = use P2 only\n"
+      "                     3 = use P3 only\n"
       "                    01 = use P0+P1 (the sum of these two functions)\n"
       "                    02 = use P0+P2\n"
       "                    12 = use P1+P2\n"
       "                   012 = use P0+P1+P2 (sum of three penalty functions)\n"
-      "                 If 'pen' does not contain any of the digits 0, 1, or 2,\n"
+      "                  0123 = use P0+P1+P2 (et cetera)\n"
+      "                 If 'pen' does not contain any of the digits 0..3,\n"
       "                 then '01' will be used.\n"
       "\n"
       "         -->** 'fac' is the positive weight 'f' for the penalty function:\n"
@@ -230,6 +237,10 @@ int main( int argc , char *argv[] )
       "                 problems for each voxel and then chooses what it likes.\n"
       "                 setenv AFNI_TFITTER_VERBOSE YES to get some progress\n"
       "                 reports, if you want to see what it is doing.\n"
+      "              ++ Instead of using fac = 0, a useful alternative is to\n"
+      "                 do some test runs with several negative values of fac,\n"
+      "                 [e.g., -1, -2, and -3] and then look at the results to\n"
+      "                 determine which one is most suitable for your purposes.\n"
       "              ++ SOME penalty has to be applied, since otherwise the\n"
       "                 set of linear equations for s(t) is under-determined\n"
       "                 and/or ill-conditioned!\n"
@@ -430,6 +441,8 @@ int main( int argc , char *argv[] )
       "                          this value (e.g., to count it more)\n"
       " AFNI_TFITTER_P2SCALE  =  number > 0 will scale the P2 penalty by\n"
       "                          this value\n"
+      " AFNI_TFITTER_P3SCALE  =  number > 0 will scale the P3 penalty by\n"
+      "                          this value\n"
       " You could set these values on the command line using the AFNI standard\n"
       " '-Dvariablename=value' command line option.\n"
       "\n"
@@ -614,7 +627,7 @@ int main( int argc , char *argv[] )
      }
 
      if( strcasecmp(argv[iarg],"-faltung") == 0 ){
-       int p0,p1,p2 ;
+       int p0,p1,p2,p3 ;
        if( fal_set != NULL || fal_im != NULL )
          ERROR_exit("Can't have two -FALTUNG arguments") ;
        if( iarg+4 >= argc )
@@ -655,12 +668,13 @@ int main( int argc , char *argv[] )
        p0 = (strchr(argv[iarg],'0') != NULL) ;
        p1 = (strchr(argv[iarg],'1') != NULL) ;
        p2 = (strchr(argv[iarg],'2') != NULL) ;
-       if( p0==0 && p1==0 && p2==0 ){
+       p3 = (strchr(argv[iarg],'3') != NULL) ;
+       if( p0==0 && p1==0 && p2==0 && p3==0 ){
          WARNING_message(
            "-FALTUNG 'pen' value '%s' illegal: defaulting to '01'",argv[iarg]);
          p0 = p1 = 1 ;
        }
-       fal_pencod = p0 + 2*p1 + 4*p2 ; /* encode in bits */
+       fal_pencod = p0 + 2*p1 + 4*p2 + 8*p3 ; /* encode in bits */
        fal_penfac = (float)strtod(argv[++iarg],NULL) ;
        if( fal_penfac == 0.0f ) fal_penfac = -666.0f ;  /* autopen */
        iarg++ ; continue ;
@@ -705,7 +719,7 @@ int main( int argc , char *argv[] )
          ERROR_exit("Can't have two '%s' options",argv[iarg-1]);
        rhsnam = malloc(sizeof(char)*(strlen(argv[iarg])+4)) ;
        strcpy(rhsnam,argv[iarg]) ;
-       if( STRING_HAS_SUFFIX_CASE(rhsnam,"1D") ||
+       if( STRING_HAS_SUFFIX_CASE(rhsnam,"1D") ||  /* transpose 1D files */
            strncmp(rhsnam,"1D:",3) == 0          ) strcat(rhsnam,"'");
        rhset = THD_open_dataset( rhsnam ) ;
        if( rhset == NULL )
@@ -853,7 +867,8 @@ int main( int argc , char *argv[] )
    nx = DSET_NX(rhset); ny = DSET_NY(rhset); nz = DSET_NZ(rhset);
    nvox = nx*ny*nz;
 
-   if( my_getenv("AFNI_TFITTER_VERBOSE") == NULL )  /* 31 Dec 2008 */
+   if( (nvox == 1 || rhs1D) &&
+       my_getenv("AFNI_TFITTER_VERBOSE") == NULL )  /* 31 Dec 2008 */
      AFNI_setenv("AFNI_TFITTER_VERBOSE=YES") ;
 
    if( mask != NULL && (mnx != nx || mny != ny || mnz != nz) )

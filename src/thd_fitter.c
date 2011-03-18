@@ -275,8 +275,8 @@ floatvec ** THD_deconvolve_multipen( int npt    , float *far   ,
    float val,kernsum, *zar , *zcon=NULL ;
    floatvec **fvv ;
    int nref,nlag,npen,nplu ; float **ref ;
-   int p0,p1,p2 , np0,np1,np2 , rp0,rp1,rp2 , ipf ;
-   float penfac,fmed,fsig , *qfac , p1scl,p2scl,p1fac,p2fac ;
+   int p0,p1,p2,p3 , np0,np1,np2,np3 , rp0,rp1,rp2,rp3 , ipf ;
+   float penfac,fmed,fsig , *qfac , p1scl,p2scl,p3scl,p1fac,p2fac,p3fac ;
 
 ENTRY("THD_deconvolve_multipen") ;
 
@@ -309,20 +309,17 @@ ENTRY("THD_deconvolve_multipen") ;
    p0   = (pencode & 1) ;    /* which penalty functions are enabled */
    p1   = (pencode & 2) ;
    p2   = (pencode & 4) ;
-   if( p0==0 && p1==0 & p2==0 ) p0 = 1 ;  /* must have some penalty */
+   p3   = (pencode & 8) ;
+   if( p0==0 && p1==0 && p2==0 && p3==0 ) p0 = 1 ;  /* some penalty */
    np0  = (p0) ? npt   : 0 ;   /* number of equations for each case */
    np1  = (p1) ? npt-1 : 0 ;
    np2  = (p2) ? npt-2 : 0 ;
+   np3  = (p3) ? npt-3 : 0 ;
    rp0  = npt ;                      /* row offset for p0 functions */
    rp1  = rp0 + np0 ;                /* row offset for p1 functions */
    rp2  = rp1 + np1 ;                /* row offset for p2 functions */
-   npen = np0+np1+np2 ;        /* total number of penalty equations */
-
-#if 0
-   if( AFNI_yesenv("AFNI_TFITTER_VERBOSE") )
-     ININFO_message("penalty: P0=%d@%d equations P1=%d@%d P2=%d@%d",
-                    np0,rp0,np1,rp1,np2,rp2) ;
-#endif
+   rp3  = rp2 + np2 ;                /* row offset for p3 functions */
+   npen = np0+np1+np2+np3 ;    /* total number of penalty equations */
 
    /* set scale level for negative pfac values */
 
@@ -412,6 +409,7 @@ ENTRY("THD_deconvolve_multipen") ;
 
    p1scl = AFNI_numenv("AFNI_TFITTER_P1SCALE"); if( p1scl <= 0.0f ) p1scl=1.0f ;
    p2scl = AFNI_numenv("AFNI_TFITTER_P2SCALE"); if( p2scl <= 0.0f ) p2scl=1.0f ;
+   p3scl = AFNI_numenv("AFNI_TFITTER_P3SCALE"); if( p3scl <= 0.0f ) p3scl=1.0f ;
 
    for( ipf=0 ; ipf < npfac ; ipf++ ){
 
@@ -421,7 +419,8 @@ ENTRY("THD_deconvolve_multipen") ;
      if( penfac == 0.0f ) penfac = -0.999f ;
      if( penfac <  0.0f ) penfac = -penfac * fmed ;
      p1fac = p1scl * penfac ;
-     p2fac = p2scl * penfac ;
+     p2fac = p2scl * penfac * 2.0f ;
+     p3fac = p3scl * penfac * 3.0f ;
 
      if( p0 ){
        for( jj=0 ; jj < npt   ; jj++ ) ref[jj][rp0+jj]   =  penfac ;
@@ -431,10 +430,17 @@ ENTRY("THD_deconvolve_multipen") ;
        for( jj=1 ; jj < npt   ; jj++ ) ref[jj][rp1+jj-1] =  p1fac ;
      }
      if( p2 ){
-       val = -0.5f*p2fac ;
-       for( jj=0 ; jj < npt-2 ; jj++ ) ref[jj][rp2+jj]   = val ;
-       for( jj=1 ; jj < npt-1 ; jj++ ) ref[jj][rp2+jj-1] = p2fac ;
-       for( jj=2 ; jj < npt   ; jj++ ) ref[jj][rp2+jj-2] = val ;
+       val = 0.5f*p2fac ;
+       for( jj=0 ; jj < npt-2 ; jj++ ) ref[jj][rp2+jj]   = -val ;
+       for( jj=1 ; jj < npt-1 ; jj++ ) ref[jj][rp2+jj-1] =  p2fac ;
+       for( jj=2 ; jj < npt   ; jj++ ) ref[jj][rp2+jj-2] = -val ;
+     }
+     if( p3 ){
+       val = 0.3333333f*p3fac ;
+       for( jj=0 ; jj < npt-3 ; jj++ ) ref[jj][rp3+jj]   = -val ;
+       for( jj=1 ; jj < npt-2 ; jj++ ) ref[jj][rp3+jj-1] =  p3fac ;
+       for( jj=2 ; jj < npt-1 ; jj++ ) ref[jj][rp3+jj-2] = -p3fac ;
+       for( jj=3 ; jj < npt   ; jj++ ) ref[jj][rp3+jj-3] =  val ;
      }
 
      /***** actually fit the parameters (deconvolution + baseline) *****/
@@ -452,14 +458,14 @@ ENTRY("THD_deconvolve_multipen") ;
            for( ii=0; ii < npt; ii++ ){
              rsum += fabsf(rar[ii]); ssum += fabsf(sar[ii]);
            }
-           if( p1 || p2 )
+           if( p1 || p2 || p3 )
             for( ii=1 ; ii < npt ; ii++ ) ssum += fabsf(sar[ii]-sar[ii-1]) ;
          break ;
          case 2:
            for( ii=0; ii < npt; ii++ ){
              rsum += rar[ii]*rar[ii] ; ssum += sar[ii]*sar[ii] ;
            }
-           if( p1 || p2 )
+           if( p1 || p2 || p3 )
             for( ii=1 ; ii < npt ; ii++ ) ssum += SQR(sar[ii]-sar[ii-1]) ;
            rsum = sqrtf(rsum) ; ssum = sqrtf(ssum) ;
          break ;
@@ -629,8 +635,10 @@ ENTRY("THD_deconvolve_autopen") ;
    for( ii=0 ; ii < NPFAC ; ii++ ) if( ii != ipk ) KILL_floatvec(fvv[ii]) ;
    free((void *)fvv) ;
    if( penfac_used != NULL ) *penfac_used = pfac[ipk] ;
+#if 1
    if( AFNI_yesenv("AFNI_TFITTER_VERBOSE") )
      ININFO_message("optimal penfac_used#%d = %g",ipk,pfac[ipk]) ;
+#endif
 
    /*--- refinement step in pfac: scan around best one found above ---*/
 
