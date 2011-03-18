@@ -77,6 +77,7 @@ void THD_fitter_set_vthresh( float vvv ){
     - meth =  1 ==> L1 fit
     - meth =  2 ==> L2 fit
     - meth = -2 ==> L2 fit with LASSO [11 Mar 2011]
+    - meth = -1 ==> L2 fit with SQRT(LASSO) [not yet implemented]
     - ccon != NULL ==> ccon[i] is sign constraint on coef #i
                        ccon[i] = 0 == no constraint
                                > 0 == coef #i must be >= 0
@@ -454,14 +455,14 @@ ENTRY("THD_deconvolve_multipen") ;
        fitv = THD_fitter_fitts( nplu,fvv[ipf] , nref,ref , zar ) ;
        rar = fitv->ar ; sar = fvv[ipf]->ar ;
        switch(meth){
-         case 1:
+         case 1: case -1:
            for( ii=0; ii < npt; ii++ ){
              rsum += fabsf(rar[ii]); ssum += fabsf(sar[ii]);
            }
            if( p1 || p2 || p3 )
             for( ii=1 ; ii < npt ; ii++ ) ssum += fabsf(sar[ii]-sar[ii-1]) ;
          break ;
-         case 2:
+         case 2: case -2:
            for( ii=0; ii < npt; ii++ ){
              rsum += rar[ii]*rar[ii] ; ssum += sar[ii]*sar[ii] ;
            }
