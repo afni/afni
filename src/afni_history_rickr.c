@@ -49,12 +49,17 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 20, MAR, 2011, RCR, "uber_subject.py", MAJOR, TYPE_ENHANCE,
+   "handle symbolic GLTs, etc.",
+   "See -hist for version 0.12."
+ } ,
+
  { 15, MAR, 2011, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
    "changed uncensored Xmat to X.nocensor.1D",
    NULL
  } ,
 
- { 15, MAR, 2011, RCR, "uber_subject.py", MICRO, TYPE_MODIFY,
+ { 15, MAR, 2011, RCR, "uber_subject.py", MICRO, TYPE_ENHANCE,
    "added -regress_make_ideal_sum, subject variables, GUI text changes",
    NULL
  } ,

@@ -10,6 +10,18 @@ g_history = """
      - added open and save actions to TextWindow
      - process local vars in string format, not QString
      - current font is courier bold
+
+- glt box:
+   - write make_gltsym_table -> to self.gvars.Table_gltsym
+   - wrte self.gltsym_list_to_table
+   - set as global (call group_box_gltsym)
+
+   - gbox_toggle_frame (close symbolic GLTs box)
+   - handle push buttons in CB_gbox_PushB callback
+   - be able to update self.gvars.Label_gltsym_len
+   - update g_help_gltsym (add info based on sample stim labels, or those
+                           for the given subject)
+      
 """
 
 # ---------------------------------------------------------------------------
@@ -132,7 +144,7 @@ class TextWindow(QtGui.QMainWindow):
 
         stream = QtCore.QTextStream(fp)
         stream.setCodec("UTF-8")
-        print '-- reading file %s...' % self.filename
+        print '-- reading file %s' % self.filename
         self.editor.setPlainText(stream.readAll())
         self.editor.document().setModified(False)
         fp.close()
@@ -197,9 +209,10 @@ def static_TextWindow(fname='', text='', title='', parent=None):
       win.show()
       return win
 
-def create_button_list_widget(labels, cb=None, dir=0, hstr=0):
+def create_button_list_widget(labels, tips=None, cb=None, dir=0, hstr=0):
    """create a layout of buttons within a QWidget
         - buttons will be stored as 'blist' within the returned QWidget
+        - if tips is set (length should match), setStatusTip
         - if cb is set, connect all call-backs to it
         - if dir = 1, layout direction is vertical, else horizontal
         - hstr is for Horizontal stretch policy, 1 to stretch
@@ -208,6 +221,12 @@ def create_button_list_widget(labels, cb=None, dir=0, hstr=0):
 
    # main widget to return
    bwidget = QtGui.QWidget()
+
+   if tips != None:
+      if len(tips) != len(labels):
+         print '** CBLW: %d labels does not match %d tips, discarding...' \
+               % (len(labels), len(tips))
+         tips = None
 
    if dir: layout  = QtGui.QVBoxLayout()
    else:   layout  = QtGui.QHBoxLayout()
@@ -218,6 +237,7 @@ def create_button_list_widget(labels, cb=None, dir=0, hstr=0):
       policy = button.sizePolicy()
       policy.setHorizontalPolicy(hstr)
       button.setSizePolicy(policy)
+      if tips != None: button.setStatusTip(tips[ind])
       _set_button_style(button)
       layout.addWidget(button)
 
@@ -274,8 +294,7 @@ def valid_as_int(text, name, warn=0, wparent=None, empty_ok=1):
       if empty_ok: return 1  
       extext = "<empty>"
    else:
-      # rcr - here
-      try: fval = int(text)
+      try: val = int(text)
       except:
          valid = 0
          extext = '   <not valid as a int>'
@@ -302,7 +321,7 @@ def valid_as_float(text, name, warn=0, wparent=None, empty_ok=1):
       if empty_ok: return 1  
       extext = "<empty>"
    else:
-      try: fval = float(text)
+      try: val = float(text)
       except:
          valid = 0
          extext = '   <not valid as a float>'

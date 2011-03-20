@@ -77,9 +77,16 @@ g_history = """
          - added -regress_make_ideal_sum
          - added more subject variables
          - minor GUI text changes
+    0.12 Mar 20, 2011 :
+         - added hidden menu item to view GUI vars
+         - process new subject variables gltsym, gltsym_label
+         - added group box for symbolic GLTs (init to hidden)
+         - added help tips to gbox buttons
+         - if subj_dir, save uber_subject.py command
+         - process toggle boxes as yes/no, rather than 1/0
 """
 
-g_version = '0.11 (March 15, 2011)'
+g_version = '0.12 (March 20, 2011)'
 
 # ----------------------------------------------------------------------
 # global definition of default processing blocks
@@ -113,7 +120,7 @@ g_subj_defs.blocks        = []
 g_subj_defs.sid           = ''          # subject ID    (no spaces - required)
 g_subj_defs.gid           = ''          # group ID      (no spaces)
 g_subj_defs.anat          = ''          # anat dset name (probably .HEAD)
-g_subj_defs.get_tlrc      = 0           # toggle, include anat+tlrc
+g_subj_defs.get_tlrc      = 'no'        # yes/no: include anat+tlrc
 g_subj_defs.epi           = []          # EPI dset name list
 g_subj_defs.epi_wildcard  = 0           # use wildcard form for EPIs
 g_subj_defs.stim          = []          # EPI dset name list
@@ -127,9 +134,10 @@ g_subj_defs.motion_limit  = 0.3         # in mm
 
 
 # newer
-g_subj_defs.stim_file        = []       # stim_files (not timing)
-g_subj_defs.stim_file_label  = []       # corresponding labels
-g_subj_defs.gltsym_text      = ''       # text for any -gltsym options
+g_subj_defs.gltsym           = []       # list of -gltsym options (sans SYM:)
+g_subj_defs.gltsym_label     = []       # list of -gltsym options (sans SYM:)
+
+# ...
 g_subj_defs.outlier_limit    = 0.0
 g_subj_defs.regress_jobs     = 1
 g_subj_defs.regress_GOFORIT  = 0
@@ -320,7 +328,8 @@ class AP_Subject(object):
          - if the results dir exists, nuke it
          - execute script (if xterm: run in a new xterm)
          - store results directory
-         - return status and command output
+
+         return status and command output
       """
 
       pfile = self.subj_dir_filename('file_proc')
@@ -351,7 +360,6 @@ class AP_Subject(object):
 
       self.ret_from_subj_dir() # ---------- done ----------
 
-      # rcr - return anything?  want to show output.proc.SUBJ?
       return cmd.status, '\n'.join(cmd.so)
 
    def nuke_old_results(self):
@@ -402,6 +410,7 @@ class AP_Subject(object):
       cmd += self.script_ap_stim_labels()
       cmd += self.script_ap_stim_basis()
       cmd += self.script_ap_regress_censor()
+      cmd += self.script_ap_regress_opts_3dD()
 
       # ------------------------------------------------------------
       # at end, add post 3dD options
@@ -410,6 +419,75 @@ class AP_Subject(object):
              '%s-regress_est_blur_errts \\\n' % (self.LV.istr, self.LV.istr)
 
       return cmd
+
+   def script_ap_regress_opts_3dD(self):
+      """apply -regress_opts_3dD, including explicit variables:
+
+            gltsym, gltsym_label,
+            outlier_limit, regress_jobs, regress_GOFORIT,
+            compute_fitts, exec_reml, run_clustsim
+         
+         Anything extra will be in regress_opts_3dD.
+      """
+
+      rstr = ''
+
+      # apply any GLTs
+      rstr += self.script_ap_regress_opts_gltsym()
+
+      # if we have anything, create a formal string
+      if rstr != '':
+         ostr = '%s-regress_opts_3dD \\\n' % self.LV.istr
+         return ostr + rstr
+      else: return rstr
+
+   def script_ap_regress_opts_gltsym(self):
+      """apply any -gltsym and -glt_label options"""
+
+      rstr = ''                         # init return string
+      istr = '    ' + self.LV.istr      # 4 extra indentation spaces
+      nglt = len(self.svars.gltsym)
+      if nglt != len(self.svars.gltsym_label):
+         self.errors.append("** have %d GLTs but %d GLT labels" \
+                            % (nglt, len(self.svars.gltsym_label)))
+      elif nglt > 0:
+         gltsym = self.svars.gltsym
+         if nglt > 10: rstr += '%s-num_glt %d \\\n' % (istr, nglt)
+         for ind, label in enumerate(self.svars.gltsym_label):
+            rv, estr = self.check_valid_gltsym(gltsym[ind])
+            if rv:
+               self.errors.append(estr)
+               continue
+            rv, estr = self.check_valid_label(label)
+            if rv:
+               self.errors.append(estr)
+               continue
+
+            rstr += "%s-gltsym 'SYM: %s' -glt_label %d %s \\\n" \
+                    % (istr, gltsym[ind], ind, label)
+
+      return rstr
+
+   def check_valid_label(self, label):
+      """check for bad characters in label:
+           - whitespace for now
+         return status (0=success) and error string
+      """
+      for c in label:
+         if ' ' in label or '\t' in label or '\n' in label: 
+            return 1, '** GLT labels cannot contain whitespace'
+      return 0, ''
+
+   def check_valid_gltsym(self, gltsym):
+      """text should be list of entries of form:
+                [+-][float*]LABEL[[index list]]  or  '\'
+
+         don't work too hard here
+
+         return status (0=success) and error string
+      """
+      # rcr - todo??
+      return 0, ''
 
    def script_ap_regress_censor(self):
       # motion
@@ -576,7 +654,7 @@ class AP_Subject(object):
 
       self.LV.warp = 'warp'     # unless 'get' and manual
       aset = BASE.afni_name(self.svars.anat)
-      if self.svars.get_tlrc:   # require existence and +orig extension
+      if self.svars.get_tlrc == 'yes': # require existence and +orig extension
          if not aset.exist():
             self.errors.append('** get_tlrc: orig version not found\n')
             return ''
@@ -716,7 +794,7 @@ class AP_Subject(object):
 
       if self.svars.anat:
          blocks = default_block_order(anat=1)
-         if self.svars.get_tlrc: blocks.remove('tlrc')
+         if self.svars.get_tlrc == 'yes': blocks.remove('tlrc')
       else:
          blocks = default_block_order(anat=0)
 
@@ -891,6 +969,50 @@ def get_def_subj_path(topdir=None, subj=None, gid=None, sid=None):
 
    if topdir: return '%s/%s' % (topdir, sdir)
    else:      return sdir
+
+def make_gltsym_examples(labels):
+   """given a list of labels, make a few gltsym examples
+
+      exactly 2 labels: return a diff and a mean
+      3 or more labels: return 3 pairwise diffs and a mean
+
+      return a list of gltsym entries (sans SYM:) and labels
+   """
+
+   llen = len(labels)
+   if llen < 2: return [], []
+
+   if llen == 2:
+      glist = []
+      glist.append('%s -%s' % (labels[0], labels[1]))
+      glist.append('0.5*%s +0.5*%s' % (labels[0], labels[1]))
+      llist = []
+      a = labels[0][0].upper()
+      b = labels[1][0].upper()
+      llist.append('%s-%s' % (a, b))
+      llist.append('mean.%s.%s' % (a, b))
+
+      return glist, llist
+
+   # so len > 2
+   glist = []
+   glist.append('%s -%s' % (labels[0], labels[1]))
+   glist.append('%s -%s' % (labels[0], labels[2]))
+   glist.append('%s -%s' % (labels[1], labels[2]))
+   glist.append('0.333*%s +0.333*%s +0.333*%s'%(labels[0],labels[1],labels[2]))
+   glist.append('%s -0.5*%s -0.5*%s'%(labels[0],labels[1],labels[2]))
+   llist = []
+   a = labels[0][0].upper()
+   b = labels[1][0].upper()
+   c = labels[2][0].upper()
+   llist.append('%s-%s' % (labels[0], labels[1]))
+   llist.append('%s-%s' % (labels[0], labels[2]))
+   llist.append('%s-%s' % (labels[1], labels[2]))
+   llist.append('mean.%s.%s.%s' % (a,b,c))
+   llist.append('%s-%s.%s' % (a,b,c))
+
+   return glist, llist
+
 
 # ===========================================================================
 # end class AP_Subject
@@ -1091,6 +1213,33 @@ def flist_to_table_pieces(flist):
 # ===========================================================================
 # help strings accessed both from command-line and GUI
 # ===========================================================================
+
+helpstr_todo = """
+---------------------------------------------------------------------------
+                        todo list:  
+
+1. group box: gltsym options
+        - help: given label list, show some GLT lines
+           - base help on actual labels (for stim_times and extras)
+2. group box: other 3dD options
+        - outlier limit
+        - jobs
+        - GOFORIT
+        - compute_fitts
+        - exec_reml
+        - run cluststim (def = yes)
+        - extra 3dD opts
+3. group box: align options
+        - giant_move
+        - cost function (choose or set)
+        - extra aea opts (examples: -AddEdge)
+        - tlrc opts: -tlrc_opts_at -OK_maxite, -tlrc_no_ss, template
+4. other
+   - choose blocks
+
+- allow stim_file regressors and labels
+---------------------------------------------------------------------------
+"""
 
 helpstr_usubj_gui = """
 ===========================================================================
