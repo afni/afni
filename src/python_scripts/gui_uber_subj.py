@@ -260,11 +260,13 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       self.gvars.gbox_epi  = self.group_box_epi()
       self.gvars.gbox_stim = self.group_box_stim()
       self.gvars.gbox_expected = self.group_box_expected()
+      self.gvars.gbox_gltsym   = self.group_box_gltsym()
 
       self.gvars.m2_vlayout.addWidget(self.gvars.gbox_anat)
       self.gvars.m2_vlayout.addWidget(self.gvars.gbox_epi)
       self.gvars.m2_vlayout.addWidget(self.gvars.gbox_stim)
       self.gvars.m2_vlayout.addWidget(self.gvars.gbox_expected)
+      self.gvars.m2_vlayout.addWidget(self.gvars.gbox_gltsym)
 
    def group_box_expected(self):
       """create a group box with a VBox layout:
@@ -278,7 +280,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       frame = QtGui.QFrame(gbox)
       frame.setFrameShape(QtGui.QFrame.NoFrame)
       gbox.frame = frame
-      gbox.setCheckable(1)
+      self.init_gbox_viewable(gbox, True)       # default to viewable
       gbox.toggled.connect(self.gbox_toggle_frame)
 
       layout = QtGui.QGridLayout(frame)         # now a child of frame
@@ -341,15 +343,18 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       frame = QtGui.QFrame(gbox)
       frame.setFrameShape(QtGui.QFrame.NoFrame)
       gbox.frame = frame
-      gbox.setCheckable(1)
+      self.init_gbox_viewable(gbox, True)       # default to viewable
       gbox.toggled.connect(self.gbox_toggle_frame)
 
       layout = QtGui.QVBoxLayout(frame) # now a child of frame
 
       # create an HBox Widget with 2 buttons
       labels = ['browse anat', 'clear anat', 'help: anat']
-      bwidget = QLIB.create_button_list_widget(labels, self.CB_gbox_PushB,
-                        dir=0, hstr=0)
+      tips = ['browse file system for anatomical dataset',
+              'clear anatomical dataset entry',
+              'display help for this section' ]
+      bwidget = QLIB.create_button_list_widget(labels, cb=self.CB_gbox_PushB,
+                                               tips=tips)
       gbox.blist = bwidget.blist
       gbox.blist[2].setIcon(self.style().standardIcon(
                 QtGui.QStyle.SP_MessageBoxQuestion))
@@ -368,7 +373,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
 
       # add a checkbox for including tlrc, init with get_tlrc
       gbox.checkBox = QtGui.QCheckBox("include copy of anat+tlrc")
-      gbox.checkBox.setChecked(self.svars.get_tlrc)
+      gbox.checkBox.setChecked(self.svars.get_tlrc=='yes')
       gbox.checkBox.clicked.connect(self.CB_checkbox)
       layout.addWidget(gbox.checkBox)
 
@@ -376,6 +381,12 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       glayout.addWidget(frame)
       gbox.setLayout(glayout)
       return gbox
+
+   def init_gbox_viewable(self, box, view):
+      box.setCheckable(True)
+      box.setChecked(view)
+      if view: box.frame.show()
+      else:    box.frame.hide()
 
    def gbox_toggle_frame(self):
       obj = self.sender()
@@ -404,7 +415,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       frame.setFrameShape(QtGui.QFrame.NoFrame)
       glayout.addWidget(frame)
       gbox.frame = frame
-      gbox.setCheckable(1)
+      self.init_gbox_viewable(gbox, True)       # default to viewable
       gbox.toggled.connect(self.gbox_toggle_frame)
 
       mainlayout = QtGui.QVBoxLayout(frame)     # now a child of frame
@@ -412,7 +423,11 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       # --------------------------------------------------
       # create an HBox Widget with 2 buttons
       labels = ['browse EPI', 'clear EPI', 'help: EPI']
-      bwidget = QLIB.create_button_list_widget(labels, self.CB_gbox_PushB, 0)
+      tips = ['browse file system for EPI datasets',
+              'clear EPI dataset entries',
+              'display help for this section' ]
+      bwidget = QLIB.create_button_list_widget(labels, cb=self.CB_gbox_PushB,
+                                               tips=tips)
       gbox.blist = bwidget.blist
       gbox.blist[2].setIcon(self.style().standardIcon(
                             QtGui.QStyle.SP_MessageBoxQuestion))
@@ -485,7 +500,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       frame.setFrameShape(QtGui.QFrame.NoFrame)
       glayout.addWidget(frame)
       gbox.frame = frame
-      gbox.setCheckable(1)
+      self.init_gbox_viewable(gbox, True)       # default to viewable
       gbox.toggled.connect(self.gbox_toggle_frame)
 
       mainlayout = QtGui.QVBoxLayout(frame)     # now a child of frame
@@ -493,7 +508,11 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       # --------------------------------------------------
       # create an HBox Widget with 2 buttons
       labels = ['browse stim', 'clear stim', 'help: stim']
-      bwidget = QLIB.create_button_list_widget(labels, self.CB_gbox_PushB, 0)
+      tips = ['browse file system for stimulus timing files',
+              'clear stim file entries',
+              'display help for this section' ]
+      bwidget = QLIB.create_button_list_widget(labels, cb=self.CB_gbox_PushB,
+                                               tips=tips)
       gbox.blist = bwidget.blist
       gbox.blist[2].setIcon(self.style().standardIcon(
                 QtGui.QStyle.SP_MessageBoxQuestion))
@@ -570,6 +589,146 @@ class SingleSubjectWindow(QtGui.QMainWindow):
 
       return gbox
 
+   def group_box_gltsym(self):
+      """create a group box with a VBox layout for symbolic GLTs
+                HBox:  QPushB(clear GLTs)  QPushB(help: gltsym)
+                QTableWidget(label SYM:)
+                QWidget, 3x2 Grid Layout
+                    QLabel(dataset count)   QLabel(shadow text)
+
+         for controlling sujbect vars: gltsym, gltsym_label
+      """
+
+      # --------------------------------------------------
+      gbox = self.get_styled_group_box("symbolic GLTs")
+
+      # put frame inside gbox, which we can hide via toggled button
+      glayout = QtGui.QVBoxLayout(gbox)
+      frame = QtGui.QFrame(gbox)
+      frame.setFrameShape(QtGui.QFrame.NoFrame)
+      glayout.addWidget(frame)
+      gbox.frame = frame
+      self.init_gbox_viewable(gbox, False)      # default to hidden
+      gbox.toggled.connect(self.gbox_toggle_frame)
+
+      mainlayout = QtGui.QVBoxLayout(frame)     # now a child of frame
+
+      # --------------------------------------------------
+      # create an HBox Widget with 3 action buttons
+      labels = ['insert glt row', 'init with glt examples']
+      tips = ['append a blank row to the table',
+              'initialize table with GLTs from stim labels' ]
+      bwidget = QLIB.create_button_list_widget(labels, cb=self.CB_gbox_PushB,
+                                               tips=tips)
+      gbox.blist = bwidget.blist
+      mainlayout.addWidget(bwidget)
+
+      # --------------------------------------------------
+      # create an HBox Widget with 2 buttons
+      labels = ['resize glt table', 'clear glt table', 'help: gltsym']
+      tips = ['delete any blank rows from table',
+              'clear all entries from table',
+              'display help for this section' ]
+      bwidget = QLIB.create_button_list_widget(labels, cb=self.CB_gbox_PushB,
+                                               tips=tips)
+      gbox.blist.extend(bwidget.blist)
+      icon = self.style().standardIcon(QtGui.QStyle.SP_MessageBoxQuestion)
+      gbox.blist[4].setIcon(icon)
+      mainlayout.addWidget(bwidget)
+
+      # --------------------------------------------------
+      # add a table for the stim names, init to stim
+      self.make_gltsym_table(gbox)
+      mainlayout.addWidget(self.gvars.Table_gltsym)
+
+      # --------------------------------------------------
+      # add lines for the number of datasets and wildcard form
+      bwidget = QtGui.QWidget()
+      layout = QtGui.QGridLayout()
+
+      nlabel, tlabel = QLIB.create_display_label_pair('GLT count',
+                                            '%s' % len(self.svars.gltsym))
+      layout.addWidget(nlabel, 0, 0)
+      layout.addWidget(tlabel, 0, 1)
+      self.gvars.Label_gltsym_len = tlabel
+
+      # basically fix column 0 and let column 1 grow
+      layout.setColumnStretch(0, 1)
+      layout.setColumnStretch(1, 20)
+
+      bwidget.setLayout(layout)
+      mainlayout.addWidget(bwidget)
+
+      # --------------------------------------------------
+      frame.setLayout(mainlayout)
+
+      return gbox
+
+   def make_gltsym_table(self, parent=None):
+      """init table from gltsym and _label arrays
+         - 3 columns: index, label, SYM:
+      """
+      col_heads = ["label", "symbolic GLT"]
+      nrows = len(self.svars.gltsym)             # one row per gltsym
+      ncols = len(col_heads)
+
+      table = QtGui.QTableWidget(nrows, ncols)
+      table.stretch_cols = [1]                   # columns that should stretch
+
+      table.setSelectionBehavior(QtGui.QAbstractItemView.SelectRows)
+      table.setHorizontalHeaderLabels(col_heads)
+
+      self.resize_table_cols(table)
+
+      # set and fill the table
+      self.gvars.Table_gltsym = table
+      self.gltsym_list_to_table()
+
+   def gltsym_list_to_table(self, symlist=None, symlabs=None):
+      """update Table_gltsym from gltsym and _label arrays
+      """
+      table = self.gvars.Table_gltsym           # convenience
+      if symlist == None: sym  = self.svars.gltsym
+      else:               sym  = symlist
+      if symlabs == None: labs = self.svars.gltsym_label
+      else:               labs = symlabs
+
+      nrows = len(sym)
+
+      table.setRowCount(0)                      # init, add rows per file
+      table.setSortingEnabled(False)            # sort only after filling table
+
+      if nrows <= 0: return
+
+      # if we don't have the correct number of labels, start from scratch
+      if len(labs) != nrows:
+         labs = ['' for glt in sym]
+
+      if self.verb > 2: print "== gltsym table, nGLT = %d" % (nrows)
+
+      # ------------------------------------------------------------
+      # now fill table with label and GLTs
+
+      for ind, glt in enumerate(sym):
+         labItem = QtGui.QTableWidgetItem(labs[ind])
+         nameItem = QtGui.QTableWidgetItem(glt)
+         table.insertRow(ind)           # insert at end
+         table.setItem(ind, 0, labItem)
+         table.setItem(ind, 1, nameItem)
+
+      table.resizeRowsToContents()
+      table.setAlternatingRowColors(True)
+
+      # set min size base on ~25 per row, with min of 75 and max of 200
+      table.setMinimumSize(100, self.max_table_size(nrows))
+
+      # no sorting here
+      table.setSortingEnabled(False)
+
+      # ------------------------------------------------------------
+      # and fill in Label_stim_ndsets, stim_dir, and stim_wildcard (form)
+      self.gvars.Label_gltsym_len.setText('%d' % nrows)
+
    def make_file_dialog(self, title, dir, filter):
       fileD = QtGui.QFileDialog(self)
       fileD.setWindowTitle(QtCore.QString(title))
@@ -582,24 +741,18 @@ class SingleSubjectWindow(QtGui.QMainWindow):
          - only update epi array on directory scan and 'update AP command'
       """
       col_heads = ['scan index', 'EPI dataset']  # column headings
-      stretch_cols = [1]                         # columns that should stretch
       nrows = len(self.svars.epi)                # one row per EPI dataset
       ncols = len(col_heads)
 
       table = QtGui.QTableWidget(nrows, ncols)
+      table.stretch_cols = [1]                  # columns that should stretch
 
       table.setSelectionBehavior(QtGui.QAbstractItemView.SelectRows)
       table.setHorizontalHeaderLabels(col_heads)
 
-      for col in stretch_cols:
-         if col < 0 or col >= ncols:
-            print ("** Table_epi: stretch_cols outside range of headings" \
-                   "   num headings = %d, col = %d" % (ncols, col))
-            continue
-         table.horizontalHeader().setResizeMode(col, QtGui.QHeaderView.Stretch)
+      self.resize_table_cols(table)
 
       self.gvars.Table_epi = table
-
       self.epi_list_to_table()
 
    def epi_list_to_table(self, epilist=None):
@@ -679,30 +832,29 @@ class SingleSubjectWindow(QtGui.QMainWindow):
          - 3 columns: index, label, filename
       """
       col_heads = ['index', 'label', 'basis func', 'stim timing file']
-      stretch_cols = [3]                         # columns that should stretch
-      nrows = len(self.svars.stim)               # one row per stim file
+      nrows = len(self.svars.stim)              # one row per stim file
       ncols = len(col_heads)
 
       table = QtGui.QTableWidget(nrows, ncols)
+      table.stretch_cols = [3]                  # columns that should stretch
 
       table.setSelectionBehavior(QtGui.QAbstractItemView.SelectRows)
       table.setHorizontalHeaderLabels(col_heads)
 
-      self.resize_table_cols(table, stretch_cols)
+      self.resize_table_cols(table)
 
       # set and fill the table
       self.gvars.Table_stim = table
       self.stim_list_to_table()
 
-   def resize_table_cols(self, table, stretch_cols):
+   def resize_table_cols(self, table):
       """resize to column contents, unless it is in strech_cols"""
 
       ncols = table.columnCount()
 
       # resize columns to fit data
-      for col in range(ncols):
-         if col in stretch_cols:
-           if col < 0 or col >= ncols: continue # be safe
+      for col in range(ncols):          # to be safe, work on column indices
+         if col in table.stretch_cols:
            table.horizontalHeader().setResizeMode(col,QtGui.QHeaderView.Stretch)
          else:
            table.horizontalHeader().setResizeMode(col,
@@ -822,8 +974,8 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       """call-back for any check boxes"""
       obj = self.sender()
       if   obj == self.gvars.gbox_anat.checkBox:
-         if obj.isChecked(): self.set_svar('get_tlrc', 1)
-         else:               self.set_svar('get_tlrc', 0)
+         if obj.isChecked(): self.set_svar('get_tlrc', 'yes')
+         else:               self.set_svar('get_tlrc', 'no')
       elif obj == self.gvars.gbox_epi.checkBox_wildcard:
          if obj.isChecked(): self.set_svar('epi_wildcard', 1)
          else:               self.set_svar('epi_wildcard', 0)
@@ -944,7 +1096,74 @@ class SingleSubjectWindow(QtGui.QMainWindow):
          self.set_svar('volreg_base', base)
          self.gvars.Line_volreg_base.setText(base)
 
+      # GLT table buttons
+
+      elif text == 'insert glt row':
+         table = self.gvars.Table_gltsym
+         nrows = table.rowCount()
+         table.insertRow(nrows)
+         self.resize_table(table, self.gvars.Label_gltsym_len)
+
+      elif text == 'init with glt examples':
+
+         # get labels to apply
+         if self.update_stim_from_table(): return
+         if len(self.svars.stim_label) < 2: 
+            QLIB.guiWarning('Sorry', '** need at least 2 stim labels for GLTs',
+                            self)
+            return
+         gltsym, gltlabs = USUBJ.make_gltsym_examples(self.svars.stim_label)
+         self.gltsym_list_to_table(gltsym, gltlabs)
+         self.resize_table(self.gvars.Table_gltsym, self.gvars.Label_gltsym_len)
+
+      elif text == 'help: gltsym':
+         self.update_help_window(g_help_gltsym, title='symbolic GLTs')
+
+      elif text == 'resize glt table':
+         """delete any rows without text"""
+         self.remove_blank_table_rows(self.gvars.Table_gltsym,
+                                      self.gvars.Label_gltsym_len)
+
+      elif text == 'clear glt table':
+         self.set_svar('gltsym', [])
+         self.set_svar('gltsym_label', [])
+         self.gltsym_list_to_table()
+         self.resize_table(self.gvars.Table_gltsym, self.gvars.Label_gltsym_len)
+
       else: print "** unexpected button text: %s" % text
+
+   def resize_table(self, table, countLabel=None):
+      nrows = table.rowCount()
+      table.setAlternatingRowColors(True)
+      table.setFixedHeight(self.max_table_size(nrows))
+      table.resizeRowsToContents()
+      self.resize_table_cols(table)
+
+      if countLabel != None: countLabel.setText('%d' % nrows)
+
+   def remove_blank_table_rows(self, table, countLabel=None):
+
+      # --------------------------------------------------
+      # gltsym table (get labels and GLTs)
+      table = self.gvars.Table_gltsym           # convenience
+      nrows = table.rowCount()
+      ncols = table.columnCount()
+
+      # work from row = nrows-1 down to 0, so deletion does not affect indices
+      for row in range(nrows-1, -1, -1):
+         found = 0
+         # search for something in this row
+         for col in range(ncols):
+            item = table.item(row, col)
+            if item != None:
+               if str(item.text()) != '':
+                  found = 1
+                  break
+         if not found: table.removeRow(row)
+
+      self.resize_table(table, countLabel)
+
+      return 0
 
    def pick_base_dir(self, dtype):
       """return something useful or an empty string"""
@@ -1091,9 +1310,14 @@ class SingleSubjectWindow(QtGui.QMainWindow):
           slot=QLIB.print_icon_names,
           tip="display standard Icon names")
 
+      act7 = self.createAction("view: GUI vars",
+        slot=self.cb_view,
+        tip="display GUI variables")
+
       self.gvars.act_view_svars   = act3
       self.gvars.act_view_cvars   = act4
       self.gvars.act_view_rvars   = act5
+      self.gvars.act_view_gvars   = act7
 
       self.addActions(self.gvars.MBar_hidden, [act3, act4, act5])
 
@@ -1112,7 +1336,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
                                 tip="revert Sylte to default 'cleanlooks'"))
       self.addActions(self.gvars.Menu_format, actlist)
 
-      self.addActions(self.gvars.MBar_hidden, [act6])
+      self.addActions(self.gvars.MBar_hidden, [act6, act7])
 
       # ----------------------------------------------------------------------
       # Help menu
@@ -1132,8 +1356,8 @@ class SingleSubjectWindow(QtGui.QMainWindow):
           slot=self.cb_help_browse, tip="browse AFNI_data6 tutorial")
       act4 = self.createAction("web: AFNI Message Board",
           slot=self.cb_help_browse, tip="browse Message Board")
-      act5 = self.createAction("web: decon updates 2004",
-          slot=self.cb_help_browse, tip="update describing GLT usage")
+      act5 = self.createAction("web: gltsym and stim times",
+          slot=self.cb_help_browse, tip="2004 update describing GLT usage")
 
       self.addActions(self.gvars.Menu_browse, [act1, act2, act3, act4, act5])
 
@@ -1261,11 +1485,11 @@ class SingleSubjectWindow(QtGui.QMainWindow):
          self.open_web_site('http://afni.nimh.nih.gov/afni/community/board')
       elif obj == self.gvars.act_browse_D2004_glt:
          self.open_web_site('http://afni.nimh.nih.gov/pub/dist/doc'     \
-                            '/misc/Decon/DeconSpring2007.html')
+                            '/misc/Decon/DeconSummer2004.html')
       else: print '** cb_help_browse: invalid sender'
 
    def cb_show_ap_command(self):
-      self.update_svars_from_tables()
+      if self.update_svars_from_tables(): return
 
       if self.svars.is_empty('sid') or self.svars.is_empty('gid'):
          QLIB.guiError('Error', "** subject and group IDs must be set", self)
@@ -1305,11 +1529,36 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       self.update_AP_result_window(title="Success!  afni_proc.py command:",
                                    fname=fname)
       if nwarn > 0: self.update_AP_warn_window(wstr)
+
+      # if we have a subject dir that exists, save the US.py command there
+      self.write_uber_subj_command()
+
       self.gvars.act_exec_ap.setEnabled(True)
       self.gvars.act_exec_proc.setEnabled(True)
 
+   def write_uber_subj_command(self):
+      if self.apsubj.cvars.is_non_trivial_dir('subj_dir'):
+         sdir = self.apsubj.cvars.val('subj_dir')
+         
+         if os.path.isdir(sdir):
+            sstr = self.make_uber_command()
+            sid = self.apsubj.svars.val('sid')
+            UTIL.write_text_to_file('%s/.orig.cmd.usubj.%s'%(sdir,sid), sstr)
+
    def update_svars_from_tables(self):
-      """get updates from the EPI and stim tables"""
+      """get updates from the EPI, stim and gltsym tables
+         
+         return 0 on success, 1 on error"""
+
+      if self.update_EPI_from_table(): return 1
+      if self.update_stim_from_table(): return 1
+      if self.update_gltsym_from_table(): return 1
+
+      return 0
+
+   def update_EPI_from_table(self):
+
+      # --------------------------------------------------
       # get the EPI directory and the number of rows
       # --> for each row append dir/entry to svars.epi
       dir = str(self.gvars.Label_epi_dir.text())
@@ -1324,6 +1573,12 @@ class SingleSubjectWindow(QtGui.QMainWindow):
          dlist.append('%s%s' % (pre, dset))
       self.svars.epi = dlist    # replace the old list
 
+      return 0
+
+   def update_stim_from_table(self):
+
+      # --------------------------------------------------
+      # stim table
       dir = str(self.gvars.Label_stim_dir.text())
       table = self.gvars.Table_stim             # convenience
       nrows = table.rowCount()
@@ -1346,6 +1601,48 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       self.svars.stim_label = llist
       self.svars.stim_basis = blist
       self.svars.stim = dlist 
+
+      return 0
+
+   def update_gltsym_from_table(self):
+
+      # --------------------------------------------------
+      # gltsym table (get labels and GLTs)
+      table = self.gvars.Table_gltsym           # convenience
+      nrows = table.rowCount()
+      llist = []
+      dlist = []
+      err = ''
+      for row in range(nrows):
+         # get label, gltsym
+         item = table.item(row, 0)
+         if item != None: lab = str(item.text())
+         else:            lab = ''
+         item = table.item(row, 1)
+         if item != None: glt = str(item.text())
+         else:            glt = ''
+
+         # nuke any leading 'SYM: ' from the glt
+         if glt[0:5] == 'SYM: ': glt = glt[5:]
+
+         if lab == '' or glt == '':
+            if lab != '':
+               err += '** GLT #%d, skipping label without GLT...\n' % (row+1)
+            if glt != '':
+               err += '** GLT #%d, skipping GLT without label...\n' % (row+1)
+            continue
+
+         llist.append(lab)
+         dlist.append(glt)
+
+      if err != '':
+         QLIB.guiError('GLT Errors', err, self)
+         return 1
+
+      self.svars.gltsym_label = llist
+      self.svars.gltsym = dlist
+
+      return 0
 
    def cb_exec_ap_command(self):
       """execute afni_proc.py command script"""
@@ -1456,11 +1753,17 @@ class SingleSubjectWindow(QtGui.QMainWindow):
          QLIB.static_TextWindow(title='corresponding uber_subject.py command',
                                 text=sstr, parent=self)
 
+      elif obj == self.gvars.act_view_gvars:
+         sstr = self.gvars.make_show_str('GUI vars', name=0, all=1)
+         QLIB.static_TextWindow(title='GUI vars', text=sstr, parent=self)
+
    def make_uber_command(self):
       """generate a script that would invoke the uber_subject.py interface
          with subject and control vars set (and so fields filled)
 
-         Put any key elements in quotes, such as basis functions.
+         Put any key elements in quotes:
+            basis functions
+            gltsym
       """
 
       cmd = 'uber_subject.py'
@@ -1487,7 +1790,12 @@ class SingleSubjectWindow(QtGui.QMainWindow):
          # show this one
          val = self.svars.val(atr)
          
-         if atr == 'stim_basis':        # special case
+         # special cases first: stim_basis, gltsym
+         if atr == 'gltsym':            # special case
+            val = ["'%s'" % v for v in val]
+            cmd += (prefix + '%s %s' % (atr, ' '.join(val)))
+
+         elif atr == 'stim_basis':      # special case
             val = ["'%s'" % v for v in val]
             cmd += (prefix + '%s %s' % (atr, ' '.join(val)))
 
@@ -1592,7 +1900,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       elif svar == 'anat':        self.gvars.Line_anat.setText(self.svars.anat)
       elif svar == 'get_tlrc':
                                   obj = self.gvars.gbox_anat.checkBox
-                                  obj.setChecked(self.svars.get_tlrc)
+                                  obj.setChecked(self.svars.get_tlrc=='yes')
       elif svar == 'epi':         self.epi_list_to_table()
       elif svar == 'epi_wildcard':         
                                   obj = self.gvars.gbox_epi.checkBox_wildcard
@@ -1613,6 +1921,8 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       elif svar == 'motion_limit':
                                    obj = self.gvars.Line_motion_limit
                                    obj.setText('%g'%self.svars.motion_limit)
+      elif svar == 'gltsym':       self.gltsym_list_to_table()
+      elif svar == 'gltsym_label': self.gltsym_list_to_table()
       else:
          if self.verb > 1: print '** apply_svar_in_gui: unhandled %s' % svar
          rv = 0
@@ -1660,37 +1970,6 @@ class SingleSubjectWindow(QtGui.QMainWindow):
 # ===========================================================================
 # help strings
 
-g_help_gui_design = """
-todo:  
-
-0. write uber_subj.py command file in subj dir (.orig.cmd.usubj)
-
-1. group box: extra regressors and gltsym options
-        - so all regressors would be known when writing GLTs
-        - help: given label list, show some GLT lines
-           - base help on actual labels (for stim_times and extras)
-2. group box: other 3dD options
-        - outlier limit
-        - jobs
-        - GOFORIT
-        - compute_fitts
-        - exec_reml
-        - run cluststim (def = yes)
-        - extra 3dD opts
-3. group box: align options
-        - giant_move
-        - cost function (choose or set)
-        - extra aea opts (examples: -AddEdge)
-        - tlrc opts: -tlrc_opts_at -OK_maxite, -tlrc_no_ss, template
-4. other
-   - choose blocks
-
-
-... update layout design
-
-"""
-
-# other help strings
 g_help_anat = """
 Specifying the anatomical dataset:
 
@@ -1857,10 +2136,62 @@ Specifying the stimulus timing files:
             stim7        (it is not clear what stimulus class this is)
 """
 
-g_help_eg = """
-goals:
+g_help_gltsym = """
 
-description:
+   goals:
+
+      1. specify symbolic GLTs (general linear tests)
+      2. specify corresponding labels (used for sub-brick selection in results)
+
+   description:
+
+      To add a symbolic GLT, either "insert glt row" to add a blank row to
+      the table, or "init with glt examples" to add some samples from the input
+      stimulus list.  Since these are symbolic GLTs, they should be expressed
+      as computations on the stimulus labels.
+
+      buttons:
+
+         insert glt row         : append a blank row
+         init with glt examples : initialize table with GLTs from stim labels
+         resize glt table       : delete blank rows (neither label nor GLT)
+         clear glt table        : delete all table rows
+         help: gltsym           : show this help
+
+   typical use in processing:
+
+      GLTs in this table will be passed along directly to the 3dDeconvolve
+      command in the single subject processing script.  Each GLT label will
+      become the sub-brick label of the resulting stats dataset, output from
+      the linear regression.
+
+      For example, suppose one has stimulus labels: houses, faces and donuts.
+      One might want to compare houses to donuts, or create a contrast which
+      compares donuts with the mean of houses and faces.  Such labels and
+      symbolic GLTs could be:
+
+         label          symbolic GLT
+         -----          ------------
+         H.vs.D         houses -donuts
+         D.vs.HF        donuts -0.5*houses -0.5*faces
+
+      These would eventually be given to 3dDeconvolve as:
+
+        -gltsym 'SYM: houses -donuts' -glt_label 1 H-D
+        -gltsym 'SYM: donuts -0.5*houses -0.5*faces' -glt_label 2 D.vs.HF
+
+      Note that the leading SYM: in the symbolic GLT is applied by the program,
+      and need not be specified by the user.
+"""
+
+# this example should be displayed if we do not yet have stim labels set
+g_help_gltsym_eg = """
+"""
+
+g_help_eg = """
+   goals:
+
+   description:
 
 """
 

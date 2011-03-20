@@ -72,7 +72,7 @@ class VarsObject(object):
          if atr[0] == '_': continue
          if not getall:
             if self.get_atomic_type(atr) == None: continue
-            retlist.append(atr)
+         retlist.append(atr)
       retlist.sort()
       return retlist
 
@@ -226,9 +226,9 @@ class VarsObject(object):
             if atr.find(pattern) >= 0: match = 1
          if match:
             if all and self.get_atomic_type(atr) == None:
-               sstr += "      %-15s : not atomic type...\n" % (atr)
+               sstr += "      %-20s : not atomic type...\n" % (atr)
             else:
-               sstr += "      %-15s : %s\n" % (atr, self.val(atr))
+               sstr += "      %-20s : %s\n" % (atr, self.val(atr))
 
       return sstr
 
