@@ -147,7 +147,7 @@ static void compute_free_param( int npt  , float *far   ,
 }
 
 /*----------------------------------------------------------------------------*/
-
+#if 0
 floatvec * THD_lasso( int meth   ,
                       int npt    , float *far   ,
                       int nref   , float *ref[] ,
@@ -188,6 +188,8 @@ ENTRY("THD_lasso") ;
      for( ii=0 ; ii < npt ; ii++ ) qj[ii] = val * rj[ii] ;
    }
 
+   /*--- solve ---*/
+
    switch( meth ){
      default:
      case -2:
@@ -201,18 +203,20 @@ ENTRY("THD_lasso") ;
      break ;
    }
 
+   /*--- scale results the same way as refs ---*/
+
    if( qfit != NULL ){
-     for( jj=0 ; jj < nref ; jj++ ){
-       val = qfac[jj] ;
-       qfit->ar[jj] = (val > 0.0f) ? qfit->ar[jj]/val : 0.0f ;
-     }
+     for( jj=0 ; jj < nref ; jj++ ) qfit->ar[jj] *= qfac[jj] ;
    }
+
+   /*--- exit, pursued by a bear ---*/
 
    for( jj=0 ; jj < nref ; jj++ ) free(qref[jj]) ;
    free(qref) ; free(qfac) ;
 
    RETURN(qfit) ;
 }
+#endif
 
 /*----------------------------------------------------------------------------*/
 /* LASSO (L2 fit + L1 penalty) fit a vector to a set of reference vectors.
@@ -408,6 +412,24 @@ ENTRY("THD_lasso_L2fit") ;
 
    RETURN(qfit) ;
 }
+
+/*----------------------------------------------------------------------------*/
+/**------ minimizers of f(x) = sqrt(a*x*x+b*x+c) + d*x
+          valid for d*d < a and for 4*a*c-b*b > 0  [positive quadratic] -----**/
+
+#undef  XPLU             /* for a > d > 0 */
+#define XPLU(a,b,c,d)                                               \
+   ( -( (b) * ((a)-(d)*(d))                                         \
+       + sqrtf( (d)*(d) * ((a)-(d)*(d)) * (4.0f*(a)*(c)-(b)*(b)) )  \
+      ) / ( 2.0f * (a) * ((a)-(d)*(d)) )                            \
+   )
+
+#undef  XMIN             /* for -a < d < 0 */
+#define XMIN(a,b,c,d)                                               \
+   ( -( (b) * ((a)-(d)*(d))                                         \
+       - sqrtf( (d)*(d) * ((a)-(d)*(d)) * (4.0f*(a)*(c)-(b)*(b)) )  \
+      ) / ( 2.0f * (a) * ((a)-(d)*(d)) )                            \
+   )
 
 /*----------------------------------------------------------------------------*/
 /* At some point in the future, this will be the Square Root LASSO:
