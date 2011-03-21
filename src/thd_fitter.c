@@ -121,22 +121,23 @@ ENTRY("THD_fitter") ;
    for( nbad=jj=0 ; jj < nref ; jj++ ) if( qmag[jj] <= qmax ) nbad++ ;
 
    if( nbad > 0 ){  /*-- must excise the tiny columns before solving --*/
-     int    ngood = nref-nbad ;
+     int    ngood = nref-nbad , nc ;
      float **qref = (float **)calloc(sizeof(float *),ngood) ;
      floatvec *qv ; float *qcon=NULL ;
      if( ccon != NULL ) qcon = (float *)calloc(sizeof(float),ngood) ;
-     for( ii=jj=0 ; jj < nref ; jj++ ){
+     for( nc=ii=jj=0 ; jj < nref ; jj++ ){
        if( qmag[jj] > qmax ){
-         if( qcon != NULL ) qcon[ii] = ccon[jj] ;
+         if( ccon != NULL && ccon[jj] != 0.0f ){ qcon[ii] = ccon[jj] ; nc++ ; }
          qref[ii++] = ref[jj] ;
        }
      }
-     qv = THD_fitter( npt , far , ngood , qref , meth , qcon ) ;  /* recurse! */
+     if( nc == 0 ){ free(qcon) ; qcon = NULL ; }
+     qv = THD_fitter( npt , far , ngood , qref , meth , qcon ) ; /* recurse! */
      if( qcon != NULL ) free((void *)qcon) ;
      free((void *)qref) ;
      if( qv == NULL ){ free(qmag); RETURN(NULL); } /* bad solve? */
-     MAKE_floatvec(fv,nref) ;                        /* will be all zero */
-     for( ii=jj=0 ; jj < nref ; jj++ ){      /* load results into output */
+     MAKE_floatvec(fv,nref) ;                            /* will be all zero */
+     for( ii=jj=0 ; jj < nref ; jj++ ){          /* load results into output */
        if( qmag[jj] > qmax ) fv->ar[jj] = qv->ar[ii++] ;
      }
      KILL_floatvec(qv) ; free(qmag) ; RETURN(fv) ;
@@ -148,9 +149,16 @@ ENTRY("THD_fitter") ;
 
      default: free(qmag) ; RETURN(NULL) ;  /* stupid user */
 
-     /*-- least squares with LASSO [experimental] --*/
+     /*-- least squares with LASSO-ish things [experimental] --*/
 
-     case -1:
+     case -1:{           /* not implemented yet */
+       floatvec *lfit ;
+       lfit = THD_sqrtlasso_L2fit( npt , far , nref , ref , NULL , ccon ) ;
+       if( lfit == NULL ){ free(qmag) ; RETURN(NULL) ; }
+       qfit = lfit->ar ; lfit->ar = NULL ; KILL_floatvec(lfit) ;
+     }
+     break ;
+
      case -2:{
        floatvec *lfit ;
        lfit = THD_lasso_L2fit( npt , far , nref , ref , NULL , ccon ) ;
@@ -159,7 +167,7 @@ ENTRY("THD_fitter") ;
      }
      break ;
 
-     /*-- least squares --*/
+     /*-- straightforward least squares --*/
 
      case 2:
        if( ccon == NULL ){                            /* unconstrained */
