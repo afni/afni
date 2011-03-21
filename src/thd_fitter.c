@@ -344,7 +344,7 @@ ENTRY("THD_deconvolve_multipen") ;
    fmed = 0.333f * kernsum ;
 #endif
 
-#if 0
+#if 1
    if( AFNI_yesenv("AFNI_TFITTER_VERBOSE") )
      ININFO_message("default penalty scale factor=%g",fmed) ;
 #endif
@@ -361,6 +361,8 @@ ENTRY("THD_deconvolve_multipen") ;
 
    /* deconvolution equations (rows and columns #0..npt-1) */
 
+STATUS("setup deconvolution") ;
+
    for( jj=0 ; jj < npt ; jj++ ){
      ref[jj] = (float *)calloc(sizeof(float),nplu) ;
      for( ii=0 ; ii < npt ; ii++ ){
@@ -369,6 +371,8 @@ ENTRY("THD_deconvolve_multipen") ;
      }
    }
 
+STATUS("setup baseline") ;
+
    /* baseline equations, if any (columns #npt..nref-1, rows #0..npt-1) */
 
    for( jj=0 ; jj < nbase ; jj++ ){
@@ -376,12 +380,16 @@ ENTRY("THD_deconvolve_multipen") ;
      memcpy( ref[jj+npt] , base[jj] , sizeof(float)*npt ) ;
    }
 
+STATUS("copy data") ;
+
    /* copy data (rows #0..npt-1) */
 
    zar = (float *)calloc(sizeof(float),nplu) ;
    memcpy(zar,far,sizeof(float)*npt) ;
 
    /* copy constraints? */
+
+STATUS("copy constraints?") ;
 
    if( ccon != NULL || dcon != 0 ){
      zcon = (float *)calloc(sizeof(float),nref) ;
@@ -394,6 +402,7 @@ ENTRY("THD_deconvolve_multipen") ;
    /* make up some penalty factors if not supplied by user */
 
    if( pfac == NULL ){
+STATUS("make up penalty factors") ;
      qfac = (float *)malloc(sizeof(float)*npfac) ;
      if( npfac == 1 ){
        qfac[0] = -1.0f ;
@@ -421,6 +430,8 @@ ENTRY("THD_deconvolve_multipen") ;
    p2scl = AFNI_numenv("AFNI_TFITTER_P2SCALE"); if( p2scl <= 0.0f ) p2scl=1.0f ;
    p3scl = AFNI_numenv("AFNI_TFITTER_P3SCALE"); if( p3scl <= 0.0f ) p3scl=1.0f ;
 
+STATUS("loop over ipf") ;
+
    for( ipf=0 ; ipf < npfac ; ipf++ ){
 
      /* penalty eqations for deconv (columns #0..npt-1, rows #npt..nplu-1) */
@@ -433,19 +444,23 @@ ENTRY("THD_deconvolve_multipen") ;
      p3fac = p3scl * penfac * 3.0f ;
 
      if( p0 ){
+STATUS(" setup p0") ;
        for( jj=0 ; jj < npt   ; jj++ ) ref[jj][rp0+jj]   =  penfac ;
      }
      if( p1 ){
+STATUS(" setup p1") ;
        for( jj=0 ; jj < npt-1 ; jj++ ) ref[jj][rp1+jj]   = -p1fac ;
        for( jj=1 ; jj < npt   ; jj++ ) ref[jj][rp1+jj-1] =  p1fac ;
      }
      if( p2 ){
+STATUS(" setup p2") ;
        val = 0.5f*p2fac ;
        for( jj=0 ; jj < npt-2 ; jj++ ) ref[jj][rp2+jj]   = -val ;
        for( jj=1 ; jj < npt-1 ; jj++ ) ref[jj][rp2+jj-1] =  p2fac ;
        for( jj=2 ; jj < npt   ; jj++ ) ref[jj][rp2+jj-2] = -val ;
      }
      if( p3 ){
+STATUS(" setup p3") ;
        val = 0.3333333f*p3fac ;
        for( jj=0 ; jj < npt-3 ; jj++ ) ref[jj][rp3+jj]   = -val ;
        for( jj=1 ; jj < npt-2 ; jj++ ) ref[jj][rp3+jj-1] =  p3fac ;
@@ -457,10 +472,15 @@ ENTRY("THD_deconvolve_multipen") ;
 
      fvv[ipf] = THD_fitter( nplu , zar , nref , ref , meth , zcon ) ;
 
-     if( do_fitv ) COPY_floatvec( ggfitvv[ipf] , gfitv ) ;
+     if( do_fitv && fvv[ipf] != NULL && gfitv != NULL ){
+STATUS("copy fitvec") ;
+       COPY_floatvec( ggfitvv[ipf] , gfitv ) ;
+STATUS(" end copy fitvec") ;
+     }
 
      if( pres != NULL && psiz != NULL && fvv[ipf] != NULL ){
        floatvec *fitv ; float *rar , *sar , rsum=0.0f,ssum=0.0f ;
+STATUS("computing pres + psiz") ;
        fitv = THD_fitter_fitts( nplu,fvv[ipf] , nref,ref , zar ) ;
        rar = fitv->ar ; sar = fvv[ipf]->ar ;
        switch(meth){
@@ -481,16 +501,19 @@ ENTRY("THD_deconvolve_multipen") ;
          break ;
        }
        KILL_floatvec(fitv) ; pres[ipf] = rsum ; psiz[ipf] = ssum ;
-#if 0
+#if 1
        if( AFNI_yesenv("AFNI_TFITTER_VERBOSE") )
          ININFO_message("qfac=%g penfac=%g resid=%g norm=%g",
                         qfac[ipf],penfac,rsum,ssum) ;
 #endif
      }
 
+STATUS("at end of ipf loop") ;
    }
 
    /* free the enslaved memory and return to the user */
+
+STATUS("free-ing") ;
 
    if( qfac != pfac ) free((void *)qfac) ;
    if( zcon != NULL ) free((void *)zcon) ;
@@ -498,6 +521,7 @@ ENTRY("THD_deconvolve_multipen") ;
    for( jj=0 ; jj < nref ; jj++ ) free((void *)ref[jj]) ;
    free((void *)ref) ;
 
+STATUS("done") ;
    RETURN(fvv) ;
 }
 
@@ -624,7 +648,7 @@ ENTRY("THD_deconvolve_autopen") ;
    for( ii=1 ; ii < NPFAC-1 ; ii++ ){
      val = ellish( pres[ii-1],pres[ii],pres[ii+1] ,
                    psiz[ii-1],psiz[ii],psiz[ii+1]  ) ;
-#if 0
+#if 1
      if( AFNI_yesenv("AFNI_TFITTER_VERBOSE") ) ININFO_message("ellish[%d] = %g",ii,val) ;
 #endif
      if( val > ppk && psiz[ii] > 1.e-5 ){ ipk = ii; ppk = val; }
@@ -687,7 +711,7 @@ ENTRY("THD_deconvolve_autopen") ;
    for( ii=1 ; ii < NPFAC-1 ; ii++ ){
      val = ellish( pres[ii-1],pres[ii],pres[ii+1] ,
                    psiz[ii-1],psiz[ii],psiz[ii+1]  ) ;
-#if 0
+#if 1
      if( AFNI_yesenv("AFNI_TFITTER_VERBOSE") ) ININFO_message("ellish[%d] = %g",ii,val) ;
 #endif
      if( val > ppk && psiz[ii] > 1.e-5 ){ ipk = ii; ppk = val; }
@@ -708,7 +732,7 @@ ENTRY("THD_deconvolve_autopen") ;
    for( ii=0 ; ii < NPFAC ; ii++ ) if( ii != ipk ) KILL_floatvec(fvv[ii]) ;
    free((void *)fvv) ;
    if( penfac_used != NULL ) *penfac_used = pfac[ipk] ;
-#if 0
+#if 1
    if( AFNI_yesenv("AFNI_TFITTER_VERBOSE") )
      ININFO_message("Optimal penfac_used#%d = %g",ipk,pfac[ipk]) ;
 #endif
