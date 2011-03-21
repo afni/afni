@@ -76,20 +76,30 @@ class VarsObject(object):
       retlist.sort()
       return retlist
 
-   def copy(self, name=None):
+   def copy(self, name=None, as_strings=0):
       """return a copy of this class item by creating a new instance
          and copying all simple attributes
+
+         if as_strings: copy any simple type (int, float) as string
       """
 
       dupe = VarsObject()
       for atr in self.attributes():
+         if as_strings:
+            val = getattr(self, atr)
+            if type(val) == int or type(val) == float:
+               setattr(dupe, atr, '%s'%val)
+               continue
+         # if wasn't converted from int or float, just copy
          setattr(dupe, atr, self.valcopy(atr))
       if name: dupe.name = name
 
       return dupe
 
-   def merge(self, v2):
-      """merge in attributes from v2"""
+   def merge(self, v2, typedef=None, verb=1):
+      """merge in attributes from v2
+         if typedef is a VarsObject, convert any simple type atrs based on it
+      """
 
       if v2 == None: return
 
@@ -97,9 +107,35 @@ class VarsObject(object):
          print ("** trying to merge %s with VarsObject" % type(v2))
          return
 
+      if typedef != None:
+         if type(typedef) != VarsObject:
+            print ("** invalid object used for typedef in merge")
+            return
+
       newatrs = v2.attributes()
       for atr in newatrs:
-         setattr(self, atr, v2.valcopy(atr))
+         newval = v2.valcopy(atr)
+         val = newval  # default is no conversion
+         dtype = '<default type>'
+
+         # if we have a type definition, try to convert
+         if typedef != None:
+            dtype = type(typedef.val(atr))
+            if dtype == int:
+               try: val = int(newval)
+               except:
+                  print "** failed to merge %s '%s' as int" % (atr, newval)
+                  val = newval
+            elif dtype == float:
+               try: val = float(newval)
+               except:
+                  print "** failed to merge %s '%s' as float" % (atr, newval)
+                  val = newval
+
+         setattr(self, atr, val)
+
+         if verb > 1:
+            print "== merge: setting %s %s = %s" % (atr, dtype, val)
 
    def valcopy(self, atr):
       """use deepcopy to copy any value, since it may be a list"""
