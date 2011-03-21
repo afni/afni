@@ -84,9 +84,18 @@ g_history = """
          - added help tips to gbox buttons
          - if subj_dir, save uber_subject.py command
          - process toggle boxes as yes/no, rather than 1/0
+    0.13 Mar 21, 2011 :
+         - GUI/command vars are all strings, convert when creating AP_Subject
+         - added group box for extra regress options, more to fill
+         - new subject variables outlier_limit, regress_jobs, regress_GOFORIT
+         - slight change to format of gltsym labels
+         - toggle buttons are yes/no strings
+         - added -save_ap_command option
+         - can apply types when merging VarsObject instances 
+         - moved set_var_str_from_def to lib_uber_subject.py
 """
 
-g_version = '0.12 (March 20, 2011)'
+g_version = '0.13 (March 21, 2011)'
 
 # ----------------------------------------------------------------------
 # global definition of default processing blocks
@@ -103,7 +112,7 @@ g_def_vreg_base   = 'third'
 # ---- control values passed in for class actions ----
 g_ctrl_defs = SUBJ.VarsObject("uber_subject control defaults")
 g_ctrl_defs.subj_dir      = '.'         # destination for scripts and results
-g_ctrl_defs.copy_scripts  = 0           # do we make .orig copies of scripts?
+g_ctrl_defs.copy_scripts  = 'yes'       # do we make .orig copies of scripts?
 g_ctrl_defs.verb          = 1           # verbose level
 
 # ---- resulting values returned after class actions ----
@@ -122,18 +131,17 @@ g_subj_defs.gid           = ''          # group ID      (no spaces)
 g_subj_defs.anat          = ''          # anat dset name (probably .HEAD)
 g_subj_defs.get_tlrc      = 'no'        # yes/no: include anat+tlrc
 g_subj_defs.epi           = []          # EPI dset name list
-g_subj_defs.epi_wildcard  = 0           # use wildcard form for EPIs
+g_subj_defs.epi_wildcard  = 'no'        # use wildcard form for EPIs
 g_subj_defs.stim          = []          # EPI dset name list
-g_subj_defs.stim_wildcard = 0           # use wildcard form for EPIs
+g_subj_defs.stim_wildcard = 'no'        # use wildcard form for EPIs
 g_subj_defs.stim_label    = []          # label for each stim file
 g_subj_defs.stim_basis    = []          # basis functions: empty=GAM,
                                         #   valid lengths: 0, 1, len(stim)
+# expected
 g_subj_defs.tcat_nfirst   = 0           # first TRs to remove from each run
 g_subj_defs.volreg_base   = g_def_vreg_base  # in g_vreg_base_list, or ''
 g_subj_defs.motion_limit  = 0.3         # in mm
-
-
-# newer
+# symbolic GLTs
 g_subj_defs.gltsym           = []       # list of -gltsym options (sans SYM:)
 g_subj_defs.gltsym_label     = []       # list of -gltsym options (sans SYM:)
 
@@ -141,11 +149,15 @@ g_subj_defs.gltsym_label     = []       # list of -gltsym options (sans SYM:)
 g_subj_defs.outlier_limit    = 0.0
 g_subj_defs.regress_jobs     = 1
 g_subj_defs.regress_GOFORIT  = 0
+
 g_subj_defs.compute_fitts    = 'no'     # only 'yes' or 'no'
 g_subj_defs.exec_reml        = 'no'     # only 'yes' or 'no'
 g_subj_defs.run_clustsim     = 'yes'    # only 'yes' or 'no'
 g_subj_defs.regress_opts_3dD = ''       # extra options for 3dDeconvolve
 
+# string versions of subject variables, to be used by GUI
+g_cdef_strs = g_ctrl_defs.copy(as_strings=1)
+g_sdef_strs = g_subj_defs.copy(as_strings=1)
 
 # note: short vars (e.g. with epi)
 #   use_dirs      - should we set any directory at all
@@ -161,6 +173,8 @@ class AP_Subject(object):
         - svars : single subject variables
         - cvars : control variables
         - rvars : return variables
+
+        ** input vars might be string types, convert on merge
 
         variables:
            LV            - local variables
@@ -182,10 +196,10 @@ class AP_Subject(object):
       self.LV.retdir = ''               # return directory (for jumping around)
 
       self.cvars = g_ctrl_defs.copy()   # start with default control vars
-      self.cvars.merge(cvars)           # expand to include those passed
+      self.cvars.merge(cvars, typedef=g_ctrl_defs) # include those passed
 
       self.svars = g_subj_defs.copy()   # start with default subject vars
-      self.svars.merge(svars)           # expand to include those passed
+      self.svars.merge(svars, typedef=g_subj_defs) # include those passed
 
       self.rvars = g_res_defs.copy()    # init result vars
 
@@ -248,7 +262,7 @@ class AP_Subject(object):
 
       # if requiested, make an original copy
       self.goto_subj_dir()              # if set
-      if self.cvars.copy_scripts:       # make an orig copy
+      if self.cvars.copy_scripts == 'yes': # make an orig copy
          UTIL.write_text_to_file('.orig.%s'%name, self.ap_command)
       rv = UTIL.write_text_to_file(name, self.ap_command)
       self.ret_from_subj_dir()  # if set
@@ -315,7 +329,7 @@ class AP_Subject(object):
       self.ret_from_subj_dir()
 
       # possibly make a backup file
-      if self.cvars.copy_scripts: self.copy_orig_proc()
+      if self.cvars.copy_scripts == 'yes': self.copy_orig_proc()
 
       # set results_dir, since we might not be the ones to exec proc script
       if not self.rvars.results_dir:
@@ -409,7 +423,7 @@ class AP_Subject(object):
       cmd  = self.script_ap_stim()
       cmd += self.script_ap_stim_labels()
       cmd += self.script_ap_stim_basis()
-      cmd += self.script_ap_regress_censor()
+      cmd += self.script_ap_regress_other()
       cmd += self.script_ap_regress_opts_3dD()
 
       # ------------------------------------------------------------
@@ -420,26 +434,72 @@ class AP_Subject(object):
 
       return cmd
 
-   def script_ap_regress_opts_3dD(self):
-      """apply -regress_opts_3dD, including explicit variables:
+   def script_ap_regress_other(self):
+      """apply items with their own -regress_* options:
 
-            gltsym, gltsym_label,
-            outlier_limit, regress_jobs, regress_GOFORIT,
-            compute_fitts, exec_reml, run_clustsim
-         
-         Anything extra will be in regress_opts_3dD.
+           motion_limit, outlier_limit, compute_fitts, exec_reml, run_clustsim
       """
 
       rstr = ''
+      rstr += self.script_ap_apply_svar_1('motion_limit', vtype=float, 
+                        defval=0.0, oname='-regress_censor_motion')
+      rstr += self.script_ap_apply_svar_1('outlier_limit', vtype=float, 
+                        defval=0.0, oname='-regress_censor_outliers')
+      return rstr
+
+   def script_ap_regress_opts_3dD(self):
+      """apply -regress_opts_3dD, including explicit variables:
+
+            gltsym, gltsym_label, regress_jobs, regress_GOFORIT
+         
+         Anything extra will be appended from regress_opts_3dD.
+      """
+
+      rstr = ''
+      istr = '    ' + self.LV.istr      # 4 extra indentation spaces
+
+      val = self.svars.val('regress_jobs')
+      if val > 1: rstr += '%s-jobs %d \\\n' % (istr, val)
+
+      val = self.svars.val('regress_GOFORIT')
+      if val > 0: rstr += '%s-GOFORIT %d \\\n' % (istr, val)
 
       # apply any GLTs
       rstr += self.script_ap_regress_opts_gltsym()
 
       # if we have anything, create a formal string
-      if rstr != '':
-         ostr = '%s-regress_opts_3dD \\\n' % self.LV.istr
-         return ostr + rstr
-      else: return rstr
+      if rstr == '': return ''
+
+      ostr = '%s-regress_opts_3dD \\\n' % self.LV.istr
+      return ostr + rstr
+
+   def script_ap_apply_svar_1(self, vname, vtype=None, defval=None, oname=None):
+      """make one AP line based on varable name and type
+           vtype:  if given, check type
+           defval: if given, only apply if differs
+           oname:  if given, actual afni_proc.py option name
+
+         note: this function applies to simple types only, not lists
+
+         return an additional option line
+      """
+      
+      val = self.svars.val(vname)
+
+      # first check for valid type
+      if vtype != None:
+         if type(val) != vtype:
+            self.errors.append("** %s is not %s, have %s"%(vname, vtype, val))
+            return ''
+
+      # if default, skip
+      if defval != None and val == defval: return ''
+
+      # use oname (possibly vname) for AP option
+      if oname == None: oname = vname
+
+      # return option line
+      return "%s%s %s \\\n" % (self.LV.istr, oname, val)
 
    def script_ap_regress_opts_gltsym(self):
       """apply any -gltsym and -glt_label options"""
@@ -464,7 +524,7 @@ class AP_Subject(object):
                continue
 
             rstr += "%s-gltsym 'SYM: %s' -glt_label %d %s \\\n" \
-                    % (istr, gltsym[ind], ind, label)
+                    % (istr, gltsym[ind], ind+1, label)
 
       return rstr
 
@@ -488,17 +548,6 @@ class AP_Subject(object):
       """
       # rcr - todo??
       return 0, ''
-
-   def script_ap_regress_censor(self):
-      # motion
-      try: mlimit = float(self.svars.motion_limit)
-      except:
-         self.errors.append("** motion_limit is not float, have %s" \
-                            % self.svars.motion_limit)
-         return ''
-      if mlimit > 0.0:
-         return '%s-regress_censor_motion %g \\\n' % (self.LV.istr, mlimit)
-      else: return ''
 
    def script_ap_stim_basis(self):
       slen = len(self.svars.stim_basis)
@@ -541,7 +590,7 @@ class AP_Subject(object):
          return ''
 
       # if wildcard, input files must exist, and expansion must match list
-      if self.svars.stim_wildcard:
+      if self.svars.stim_wildcard == 'yes':
          self.LV.stim_wildform = UTIL.glob_form_from_list(self.LV.short_stim)
          if self.check_wildcard_errors('stim', self.svars.stim): return ''
          if self.LV.var_sdir:
@@ -604,7 +653,7 @@ class AP_Subject(object):
          return ''
 
       # if wildcard, input files must exist, and expansion must match list
-      if self.svars.epi_wildcard:
+      if self.svars.epi_wildcard == 'yes':
          self.LV.epi_wildform=UTIL.glob_form_from_list(self.LV.short_epi)
          if self.check_wildcard_errors('EPI', self.svars.epi): return ''
          if self.LV.var_edir:
@@ -990,7 +1039,7 @@ def make_gltsym_examples(labels):
       a = labels[0][0].upper()
       b = labels[1][0].upper()
       llist.append('%s-%s' % (a, b))
-      llist.append('mean.%s.%s' % (a, b))
+      llist.append('mean.%s%s' % (a, b))
 
       return glist, llist
 
@@ -1008,8 +1057,8 @@ def make_gltsym_examples(labels):
    llist.append('%s-%s' % (labels[0], labels[1]))
    llist.append('%s-%s' % (labels[0], labels[2]))
    llist.append('%s-%s' % (labels[1], labels[2]))
-   llist.append('mean.%s.%s.%s' % (a,b,c))
-   llist.append('%s-%s.%s' % (a,b,c))
+   llist.append('mean.%s%s%s' % (a,b,c))
+   llist.append('%s-%s%s' % (a,b,c))
 
    return glist, llist
 
@@ -1108,6 +1157,140 @@ def update_vars_from_special(obj, name, vars, check_sort=0):
 def update_cvars_from_special(name, cvars, check_sort=0):
    """nothing special to do here yet"""
    return 0
+
+def set_var_str_from_def(obj, name, vlist, vars, verb=1, spec=0, csort=1):
+   """try to set name = value based on vlist
+        (just set as string)
+      if name is not known by the defaults, return failure
+
+      if spec: update_vars_from_special(csort)
+
+      return 1 on change, 0 on unchanged, -1 on error
+   """
+
+   if   obj == 'svars': defs = g_subj_defs
+   elif obj == 'cvars': defs = g_ctrl_defs
+   else:
+      print '** set_var_str_from_def: invalid obj name: %s' % obj
+      return -1
+
+   if not defs.valid(name):
+      print '** invalid %s variable: %s' % (obj, name)
+      return -1
+
+   dtype = type(defs.val(name))
+   if dtype not in SUBJ.g_valid_atomic_types:
+      print '** unknown %s variable type for %s' % (obj, name)
+      return -1
+
+   # if simple type but have list, fail
+   if dtype != list and len(vlist) > 1:
+      print "** have list for simple type, name='%s', dtype=%s, list=%s" \
+            % (name, dtype, vlist)
+      return -1
+
+   # ----------------------------------------
+   # try to apply the value (list)
+
+   val = None
+
+   # process only simple int, float, str and strlist
+   if defs.has_simple_type(name): val = vlist[0]
+   elif dtype == list: # another easy case
+      val = vlist
+   else:
+      print '** set_var_str_from_def: unprocessed type %s for %s'%(dtype,name)
+      return -1
+
+   # actually set the value
+   rv = vars.set_var(name, val)
+   if verb > 1:
+      if rv: print '++ %s: updating %s to %s %s' % (obj, name, val, type(val))
+      else:  print '++ %s: no update for %s to %s' % (obj, name, val)
+
+   # if no update, we're outta here
+   if rv == 0: return rv
+
+   # ----------------------------------------------------------------------
+   # handle some special cases, such as indices and labels, which might
+   # come with file name lists
+
+   if spec: update_vars_from_special(obj, name, vars, check_sort=csort)
+
+   return rv
+
+def UNUSED_set_var_from_def(obj, name, vlist, vars, verb=1, spec=0, csort=1):
+   """try to set name = value based on vlist
+      if name is not known by the defaults, return failure
+
+      if spec: update_vars_from_special(csort)
+
+      return 1 on change, 0 on unchanged, -1 on error
+   """
+
+   if   obj == 'svars': defs = g_subj_defs
+   elif obj == 'cvars': defs = g_ctrl_defs
+   else:
+      print '** set_var_from_def: invalid obj name: %s' % obj
+      return -1
+
+   if not defs.valid(name):
+      print '** invalid %s variable: %s' % (obj, name)
+      return -1
+
+   dtype = type(defs.val(name))
+   if dtype not in SUBJ.g_valid_atomic_types:
+      print '** unknown %s variable type for %s' % (obj, name)
+      return -1
+
+   # if simple type but have list, fail
+   if dtype != list and len(vlist) > 1:
+      print "** have list for simple type, name='%s', dtype=%s, list=%s" \
+            % (name, dtype, vlist)
+      return -1
+
+   # ----------------------------------------
+   # try to apply the value (list)
+
+   val = None
+
+   # process only simple int, float, str and strlist
+   if dtype == int:
+      try: val = int(vlist[0])
+      except:
+         print "** failed to set %s %s to int value from '%s'" \
+               % (obj, name,vlist[0])
+         return -1
+   elif dtype == float:
+      try: val = float(vlist[0])
+      except:
+         print "** failed to set %s %s to float value from '%s'" \
+               % (obj, name, vlist[0])
+         return -1
+   elif dtype == str: # easy case
+      val = vlist[0]
+   elif dtype == list: # another easy case
+      val = vlist
+   else:
+      print '** set_var_from_def: unprocessed type %s for %s' % (dtype, name)
+      return -1
+
+   # actually set the value
+   rv = vars.set_var(name, val)
+   if verb > 1:
+      if rv: print '++ %s: updating %s to %s %s' % (obj, name, val, type(val))
+      else:  print '++ %s: no update for %s to %s' % (obj, name, val)
+
+   # if no update, we're outta here
+   if rv == 0: return rv
+
+   # ----------------------------------------------------------------------
+   # handle some special cases, such as indices and labels, which might
+   # come with file name lists
+
+   if spec: update_vars_from_special(obj, name, vars, check_sort=csort)
+
+   return rv
 
 def update_svars_from_special(name, svars, check_sort=0):
    """in special cases, a special svar might need updates, and might suggest
@@ -1218,9 +1401,13 @@ helpstr_todo = """
 ---------------------------------------------------------------------------
                         todo list:  
 
-1. group box: gltsym options
-        - help: given label list, show some GLT lines
-           - base help on actual labels (for stim_times and extras)
+1. reset to defaults
+        - clear GUI (via defaults)
+        - deactivate process buttons
+1a. reset all but input files (reset, but keep anat, EPI, stim)
+1b. more verb output
+2. in run proc script command window
+        - add status line (not running, running..., finished (success or ERROR)
 2. group box: other 3dD options
         - outlier limit
         - jobs

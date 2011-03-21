@@ -49,9 +49,14 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 21, MAR, 2011, RCR, "uber_subject.py", MINOR, TYPE_ENHANCE,
+   "many updates, including part of 'extra regress options' box",
+   NULL
+ } ,
+
  { 20, MAR, 2011, RCR, "uber_subject.py", MAJOR, TYPE_ENHANCE,
    "handle symbolic GLTs, etc.",
-   "See -hist for version 0.12."
+   NULL
  } ,
 
  { 15, MAR, 2011, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
@@ -71,12 +76,12 @@ afni_history_struct rickr_history[] = {
 
  { 14, MAR, 2011, RCR, "uber_subject.py", MICRO, TYPE_ENHANCE,
    "a handful of minor updates",
-   "See -hist for version 0.10."
+   NULL
  } ,
 
  {  9, MAR, 2011, RCR, "uber_subject.py", MICRO, TYPE_ENHANCE,
    "updates to uber_subject.py, how could I possibly remember what they are...",
-   "See -hist for version 0.9."
+   NULL
  } ,
 
  {  9, MAR, 2011, RCR, "make_random_timing.py", MICRO, TYPE_BUG_FIX,
@@ -86,7 +91,7 @@ afni_history_struct rickr_history[] = {
 
  {  8, MAR, 2011, RCR, "uber_subject.py", MINOR, TYPE_ENHANCE,
    "uber_subject.py command menu item, ...",
-   "See -hist for version 0.8."
+   NULL
  } ,
 
  {  7, MAR, 2011, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
@@ -96,12 +101,12 @@ afni_history_struct rickr_history[] = {
 
  {  7, MAR, 2011, RCR, "uber_subject.py", MINOR, TYPE_ENHANCE,
    "updates: command and pycommand windows, new Process classes, ...",
-   "See -hist for version 0.7."
+   NULL
  } ,
 
  {  3, MAR, 2011, RCR, "uber_subject.py", MINOR, TYPE_ENHANCE,
    "updates: control vars, subj dir, view actions, result vars, ...",
-   "See -hist for version 0.6."
+   NULL
  } ,
 
  {  2, MAR, 2011, RCR, "uber_subject.py", MINOR, TYPE_ENHANCE,
