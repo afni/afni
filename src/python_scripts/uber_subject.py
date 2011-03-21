@@ -58,7 +58,7 @@ Examples:
 
    Non-GUI examples (all have -no_gui):
 
-      uber_subject.py -no_gui -print_ap_command                   \\
+      uber_subject.py -no_gui -save_ap_command cmd.AP             \\
           -svar sid FT -svar gid idiots                           \\
           -svar anat FT_anat+orig.HEAD -svar epi FT_epi_r*.HEAD   \\
           -svar stim AV*.txt -svar stim_basis 'BLOCK(15,1)'       \\
@@ -85,6 +85,7 @@ def get_valid_opts():
    vopts.add_opt('-no_gui', 0, [], helpstr='do not open graphical interface')
    vopts.add_opt('-qt_opts', -1, [], helpstr='pass the given options to PyQt')
    vopts.add_opt('-print_ap_command',0,[],helpstr='show afni_proc.py script')
+   vopts.add_opt('-save_ap_command',1,[],helpstr='save afni_proc.py script')
    vopts.add_opt('-exec_ap_command',0,[],helpstr='run afni_proc.py command')
    vopts.add_opt('-exec_proc_script',0,[],helpstr='run proc script')
    vopts.add_opt('-cvar', -2, [], helpstr='set control variable to value')
@@ -164,6 +165,7 @@ def process_options(valid_opts, argv):
 
       # and skip any post-setup options ...
       elif opt.name == '-print_ap_command':continue
+      elif opt.name == '-save_ap_command':continue
       elif opt.name == '-exec_ap_command': continue
       elif opt.name == '-exec_proc_script':continue
 
@@ -184,22 +186,31 @@ def process_options(valid_opts, argv):
          val, err = uopts.get_string_list('', opt=opt)
          if val != None and err: return -1, None, None, None
          # and set it from the form name = [value_list]
-         if set_var_from_def('cvars', val[0], val[1:], cvars, verb=verb):
+         if USUBJ.set_var_str_from_def('cvars', val[0], val[1:],
+                                   cvars, verb=verb, spec=1) < 0:
             errs += 1
             continue
 
       # svar requires at least 2 parameters, name and value
       elif opt.name == '-svar':
          val, err = uopts.get_string_list('', opt=opt)
-         if val != None and err: return -1, None, None, None
+         if val == None or err: return -1, None, None, None
          # and set it from the form name = [value_list]
-         if set_var_from_def('svars', val[0], val[1:], svars, verb=verb):
+         if USUBJ.set_var_str_from_def('svars', val[0], val[1:],
+                                   svars, verb=verb, spec=1) < 0:
             errs += 1
             continue
 
    if not errs:         # then we can handle any processing options
       if uopts.find_opt('-print_ap_command'):
          print_ap_command(svars, cvars)
+
+   if not errs:         # then we can handle any processing options
+      opt = uopts.find_opt('-save_ap_command')
+      if opt != None:
+         val, err = uopts.get_string_opt('', opt=opt)
+         if val == None or err: return -1, None, None, None
+         save_ap_command(svars, cvars, val)
 
    if not errs:         # then we can handle any processing options
       if uopts.find_opt('-exec_ap_command'):
@@ -211,92 +222,12 @@ def process_options(valid_opts, argv):
    if use_gui: return  0, svars, cvars, guiopts
    else:       return  1, svars, cvars, guiopts
 
-def set_var_from_def(obj, name, vlist, vars, verb=1):
-   """try to set name = value based on vlist
-      if name is not known by the defaults, return failure
-
-      return 0 on success, else 1
-   """
-
-   if   obj == 'svars': defs = USUBJ.g_subj_defs
-   elif obj == 'cvars': defs = USUBJ.g_ctrl_defs
-   else:
-      print '** set_var_from_def: invalid obj name: %s' % obj
-      return 1
-
-   if not defs.valid(name):
-      print '** invalid %s variable: %s' % (obj, name)
-      return 1
-
-   dtype = type(defs.val(name))
-   if dtype not in SUBJ.g_valid_atomic_types:
-      print '** unknown %s variable type for %s' % (obj, name)
-      return 1
-
-   # if simple type but have list, fail
-   if dtype != list and len(vlist) > 1:
-      print "** have list for simple type, name='%s', dtype=%s, list=%s" \
-            % (name, dtype, vlist)
-      return 1
-
-   # ----------------------------------------
-   # try to apply the value (list)
-
-   val = None
-
-   # process only simple int, float, str and strlist
-   if dtype == int:
-      try: val = int(vlist[0])
-      except:
-         print "** failed to set %s %s to int value from '%s'" \
-               % (obj, name,vlist[0])
-         return 1
-   elif dtype == float:
-      try: val = float(vlist[0])
-      except:
-         print "** failed to set %s %s to float value from '%s'" \
-               % (obj, name, vlist[0])
-         return 1
-   elif dtype == str: # easy case
-      val = vlist[0]
-   elif dtype == list: # another easy case
-      val = vlist
-   else:
-      print '** set_var_from_def: unprocessed type %s for %s' % (dtype, name)
-      return 1
-
-   # actually set the value
-   rv = vars.set_var(name, val)
-   if verb > 1:
-      if rv: print '++ %s: updating %s to %s %s' % (obj, name, val, type(val))
-      else:  print '++ %s: no update for %s to %s' % (obj, name, val)
-
-   # if no update, we're outta here
-   if rv == 0: return 0
-
-   # ----------------------------------------------------------------------
-   # handle some special cases, such as indices and labels, which might
-   # come with file name lists
-
-   USUBJ.update_vars_from_special(obj, name, vars, check_sort=1)
-
-   return 0
-
 def run_ap_command(svars, cvars):
    """create and run the afni_proc.py command
       return the subject object, or None on failure"""
 
-   # create the subject, check warnings and either a command or errors
-   subj = USUBJ.AP_Subject(svars=svars, cvars=cvars)
-   nwarn, wstr = subj.get_ap_warnings()
-   status, mesg = subj.get_ap_command()
-
-   if status:  # then only mention errors
-      print '%s\nERRORS:\n\n%s\n' % (75*'*', mesg)
-      return None
-
-   # first show any warnings
-   if wstr: print '%s\n**** Warnings:\n\n%s\n%s\n' % (75*'-',wstr,75*'-')
+   # get command (writes warnings and errors to terminal)
+   subj, cmd = get_ap_command(svars, cvars)
 
    # write command to file
    if subj.write_ap_command():
@@ -318,6 +249,21 @@ def run_ap_command(svars, cvars):
 def print_ap_command(svars, cvars):
    """run and optionally display the afni_proc.py command"""
 
+   subj, cmd = get_ap_command(svars, cvars)
+   print cmd
+
+def save_ap_command(svars, cvars, fname):
+   """run and optionally display the afni_proc.py command"""
+
+   subj, cmd = get_ap_command(svars, cvars)
+   if subj.write_ap_command(fname=fname):
+      print '** failed to write afni_proc.py command to disk'
+      return None
+
+def get_ap_command(svars, cvars):
+   """return the subject and command string
+      (print warnings and errors to screen)"""
+
    # create the subject, check warnings and either a command or errors
    apsubj = USUBJ.AP_Subject(svars=svars, cvars=cvars)
 
@@ -326,9 +272,12 @@ def print_ap_command(svars, cvars):
 
    if status:  # then only mention errors
       print '%s\nERRORS:\n\n%s\n' % (75*'*', mesg)
+      cmd = ''
    else:
       if wstr: print '%s\n**** Warnings:\n\n%s\n%s\n' % (75*'-',wstr,75*'-')
-      print '### afni_proc.py script:\n\n%s\n' % mesg
+      cmd = '### afni_proc.py script:\n\n%s\n' % mesg
+
+   return apsubj, cmd
 
 g_install_str = """
    ------------------------------------------------------------------
