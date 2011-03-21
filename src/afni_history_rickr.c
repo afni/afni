@@ -50,7 +50,7 @@
 afni_history_struct rickr_history[] = {
 
  { 21, MAR, 2011, RCR, "uber_subject.py", MINOR, TYPE_ENHANCE,
-   "many updates, including part of 'extra regress options' box",
+   "many updates, including extra regress options box",
    NULL
  } ,
 

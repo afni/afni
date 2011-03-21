@@ -86,8 +86,9 @@ g_history = """
          - process toggle boxes as yes/no, rather than 1/0
     0.13 Mar 21, 2011 :
          - GUI/command vars are all strings, convert when creating AP_Subject
-         - added group box for extra regress options, more to fill
-         - new subject variables outlier_limit, regress_jobs, regress_GOFORIT
+         - added group box for extra regress options
+         - new subject variables outlier_limit, regress_jobs, regress_GOFORIT,
+                                 reml_exec, run_clustsim, compute_fitts
          - slight change to format of gltsym labels
          - toggle buttons are yes/no strings
          - added -save_ap_command option
@@ -150,9 +151,9 @@ g_subj_defs.outlier_limit    = 0.0
 g_subj_defs.regress_jobs     = 1
 g_subj_defs.regress_GOFORIT  = 0
 
-g_subj_defs.compute_fitts    = 'no'     # only 'yes' or 'no'
-g_subj_defs.exec_reml        = 'no'     # only 'yes' or 'no'
+g_subj_defs.reml_exec        = 'no'     # only 'yes' or 'no'
 g_subj_defs.run_clustsim     = 'yes'    # only 'yes' or 'no'
+g_subj_defs.compute_fitts    = 'no'     # only 'yes' or 'no'
 g_subj_defs.regress_opts_3dD = ''       # extra options for 3dDeconvolve
 
 # string versions of subject variables, to be used by GUI
@@ -437,7 +438,7 @@ class AP_Subject(object):
    def script_ap_regress_other(self):
       """apply items with their own -regress_* options:
 
-           motion_limit, outlier_limit, compute_fitts, exec_reml, run_clustsim
+           motion_limit, outlier_limit, compute_fitts, reml_exec, run_clustsim
       """
 
       rstr = ''
@@ -445,6 +446,12 @@ class AP_Subject(object):
                         defval=0.0, oname='-regress_censor_motion')
       rstr += self.script_ap_apply_svar_1('outlier_limit', vtype=float, 
                         defval=0.0, oname='-regress_censor_outliers')
+      if self.svars.val('reml_exec') == 'yes':          # default is 'no'
+         rstr += '%s-regress_reml_exec \\\n' % self.LV.istr
+      if self.svars.val('run_clustsim') == 'no':        # default is 'yes'
+         rstr += '%s-regress_run_clustsim no \\\n' % self.LV.istr
+      if self.svars.val('compute_fitts') == 'yes':      # default is 'no'
+         rstr += '%s-regress_compute_fitts \\\n' % self.LV.istr
       return rstr
 
    def script_ap_regress_opts_3dD(self):
@@ -1413,7 +1420,7 @@ helpstr_todo = """
         - jobs
         - GOFORIT
         - compute_fitts
-        - exec_reml
+        - reml_exec
         - run cluststim (def = yes)
         - extra 3dD opts
 3. group box: align options

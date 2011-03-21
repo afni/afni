@@ -285,7 +285,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       """create a group box with a VBox layout:
          for controlling sujbect vars:
             outlier_limit, regress_jobs, regress_GOFORIT, compute_fitts,
-            exec_reml, run_clustsim, regress_opts_3dD
+            reml_exec, run_clustsim, regress_opts_3dD
       """
 
       gbox = self.get_styled_group_box("extra regress options")
@@ -301,6 +301,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       layout = QtGui.QGridLayout(frame)         # now a child of frame
 
       # --------------------------------------------------
+
       # outlier_limit
       label = QtGui.QLabel("outlier censor limit (per TR)")
       label.setStatusTip("censor TRs exceeding this fraction (range [0,1])")
@@ -311,7 +312,6 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       layout.addWidget(label, 0, 0)
       layout.addWidget(self.gvars.Line_outlier_limit, 0, 1)
 
-      # --------------------------------------------------
       # jobs
       label = QtGui.QLabel("jobs for regression (num CPUs)")
       label.setStatusTip("number of CPUs to use in 3dDeconvolve")
@@ -322,7 +322,6 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       layout.addWidget(label, 1, 0)
       layout.addWidget(self.gvars.Line_regress_jobs, 1, 1)
 
-      # --------------------------------------------------
       # GOFORIT
       label = QtGui.QLabel("GOFORIT level (override 3dD warnings)")
       label.setStatusTip("number of 3dDeconvolve warnings to override")
@@ -333,6 +332,29 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       layout.addWidget(label, 2, 0)
       layout.addWidget(self.gvars.Line_regress_GOFORIT, 2, 1)
 
+      # checkbox : reml_exec
+      cbox = QtGui.QCheckBox("reml_exec")
+      cbox.setStatusTip("execute 3dREMLfit regression script")
+      cbox.setChecked(self.svars.reml_exec=='yes')
+      cbox.clicked.connect(self.CB_checkbox)
+      layout.addWidget(cbox, 4, 0)
+      gbox.checkBox_reml_exec = cbox
+
+      # checkbox : run_clustsim
+      cbox = QtGui.QCheckBox("run_clustsim")
+      cbox.setStatusTip("store 3dClustSim table in stats results")
+      cbox.setChecked(self.svars.run_clustsim=='yes')
+      cbox.clicked.connect(self.CB_checkbox)
+      layout.addWidget(cbox, 5, 0)
+      gbox.checkBox_run_clustsim = cbox
+
+      # checkbox : compute_fitts
+      cbox = QtGui.QCheckBox("compute fitts dataset")
+      cbox.setStatusTip("save RAM in 3dD, compute fitts = all_runs - errts")
+      cbox.setChecked(self.svars.compute_fitts=='yes')
+      cbox.clicked.connect(self.CB_checkbox)
+      layout.addWidget(cbox, 3, 0)
+      gbox.checkBox_compute_fitts = cbox
 
       # --------------------------------------------------
       # and finish group box
@@ -1054,6 +1076,15 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       elif obj == self.gvars.gbox_stim.checkBox_wildcard:
          if obj.isChecked(): self.set_svar('stim_wildcard', 'yes')
          else:               self.set_svar('stim_wildcard', 'no')
+      elif obj == self.gvars.gbox_regress.checkBox_reml_exec:
+         if obj.isChecked(): self.set_svar('reml_exec', 'yes')
+         else:               self.set_svar('reml_exec', 'no')
+      elif obj == self.gvars.gbox_regress.checkBox_run_clustsim:
+         if obj.isChecked(): self.set_svar('run_clustsim', 'yes')
+         else:               self.set_svar('run_clustsim', 'no')
+      elif obj == self.gvars.gbox_regress.checkBox_compute_fitts:
+         if obj.isChecked(): self.set_svar('compute_fitts', 'yes')
+         else:               self.set_svar('compute_fitts', 'no')
       else: print "** CB_checkbox: unknown sender"
 
    def update_textLine_check(self, obj, text, attr, button_name, check_func):
@@ -2011,9 +2042,18 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       elif svar == 'regress_GOFORIT':
                                    obj = self.gvars.Line_regress_GOFORIT
                                    obj.setText(self.svars.regress_GOFORIT)
-
-      elif svar == 'gltsym':       self.gltsym_list_to_table()
-      elif svar == 'gltsym_label': self.gltsym_list_to_table()
+      elif svar == 'reml_exec':        
+                             var = self.svars.reml_exec
+                             obj = self.gvars.gbox_regress
+                             obj.checkBox_reml_exec.setChecked(var=='yes')
+      elif svar == 'run_clustsim':        
+                             var = self.svars.run_clustsim
+                             obj = self.gvars.gbox_regress
+                             obj.checkBox_run_clustsim.setChecked(var=='yes')
+      elif svar == 'compute_fitts':        
+                             var = self.svars.compute_fitts
+                             obj = self.gvars.gbox_regress
+                             obj.checkBox_compute_fitts.setChecked(var=='yes')
 
       else:
          if self.verb > 1: print '** apply_svar_in_gui: unhandled %s' % svar
