@@ -332,16 +332,26 @@ int main( int argc , char *argv[] )
       "               parameters, if deconvolution is used.  The deconvolution\n"
       "               estimates all have the 'lam' penalty applied, in addition\n"
       "               to the penalty described under '-FALTUNG'.\n"
-      "             * LASSO-ing herein should be considered highly experimental,\n"
+      "            ** LASSO-ing herein should be considered highly experimental,\n"
       "               and its implementation is subject to change!\n"
       "              ++ TT Wu and K Lange.\n"
       "                 Coordinate descent algorithms for LASSO penalized regression.\n"
       "                 Annals of Applied Statistics, 2: 224-244 (2008).\n"
       "                 http://arxiv.org/abs/0803.3876\n"
-      "            ** The LASSO method is the only way to solve a under-determined\n"
+      "           *** LASSO methods are the only way to solve a under-determined\n"
       "               system with 3dTfitter -- one with more vectors on the RHS\n"
       "               than time points.  However, a 'solution' to such a problem\n"
       "               doesn't necessarily mean anything -- be careful!\n"
+      "\n"
+      "  -l2sqrtlasso lam [i j k ...]\n"
+      "            = Similar to above option, but uses 'Square Root LASSO' instead:\n"
+      "             * A Belloni, V Chernozhukov, and L Wang.\n"
+      "               Square-root LASSO: Pivotal recovery of sparse signals via\n"
+      "               conic programming (2010).  http://arxiv.org/abs/1009.5689\n"
+      "            ** The reasonable range of 'lam' to use is from 2 to 8;\n"
+      "               I suggest you start with 5 and see how well that works.\n"
+      "               In my limited experience, 5 gave pretty nice results \n"
+      "               for a DSC-MRI deconvolution problem.\n"
       "\n"
       "---------------------\n"
       "SOLUTION CONSTRAINTS:\n"
@@ -777,8 +787,33 @@ int main( int argc , char *argv[] )
        meth = 1 ; iarg++ ; continue ;
      }
 
-     if( strcasecmp(argv[iarg],"-l2lasso") == 0 ){  /* experimental [11 Mar 2011] */
+     if( strcasecmp(argv[iarg],"-l2lasso") == 0 ||
+         strcasecmp(argv[iarg],"-LASSO"  ) == 0   ){  /* experimental [11 Mar 2011] */
        meth = -2 ;
+       if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]);
+       lasso_flam = (float)strtod(argv[iarg],NULL) ;
+       if( lasso_flam <= 0.0f ) ERROR_exit("%s %s: illegal lam",argv[iarg-1],argv[iarg]) ;
+       THD_lasso_fixlam(lasso_flam) ;
+       iarg++ ;
+       if( iarg < argc && isdigit(argv[iarg][0]) ){
+         MAKE_intvec(lasso_ivec,0) ;
+         for( ; iarg < argc && isdigit(argv[iarg][0]) ; iarg++ ){
+           jj = (int)strtod(argv[iarg],NULL) ;
+           if( jj > 0 ){
+             kk = lasso_ivec->nar ; RESIZE_intvec(lasso_ivec,kk+1) ;
+             lasso_ivec->ar[kk] = jj ;
+           } else {
+             WARNING_message("Illegal index value after -l2lasso: %d",jj) ;
+           }
+         }
+         if( lasso_ivec->nar == 0 ) KILL_intvec(lasso_ivec) ;
+       }
+       continue ;
+     }
+
+     if( strcasecmp(argv[iarg],"-l2sqrtlasso") == 0 ||
+         strcasecmp(argv[iarg],"-SQRTLASSO"  ) == 0   ){  /* hidden */
+       meth = -1 ;
        if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]);
        lasso_flam = (float)strtod(argv[iarg],NULL) ;
        if( lasso_flam <= 0.0f ) ERROR_exit("%s %s: illegal lam",argv[iarg-1],argv[iarg]) ;
@@ -1065,13 +1100,13 @@ int main( int argc , char *argv[] )
 
    /*-- finalize LASSO setup? --*/
 
-   if( meth == -2 ){
+   if( meth == -2 || meth == -1 ){
      if( lasso_ivec != NULL ){
        float *lam = (float *)malloc(sizeof(float)*(nvar+nvoff)) ;
-       for( ii=0 ; ii < nvar+nvoff ; ii++ ) lam[ii+nvoff] = lasso_flam ;
+       for( ii=0 ; ii < nvar+nvoff ; ii++ ) lam[ii] = lasso_flam ;
        for( jj=0 ; jj < lasso_ivec->nar ; jj++ ){
          ii = lasso_ivec->ar[jj] -1 ;
-         if( ii >- 0 && ii < nvar ) lam[ii+nvoff] = 0.0f ;
+         if( ii > 0 && ii < nvar ) lam[ii+nvoff] = 0.0f ;
        }
        THD_lasso_setlamvec( nvar+nvoff , lam ) ; free(lam) ;
      }

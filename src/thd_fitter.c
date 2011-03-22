@@ -53,7 +53,7 @@ ENTRY("new_lsqfit") ;
 /*------------------------------------------------------------------*/
 
 #undef  GOOD_METH
-#define GOOD_METH(m) ( (m)==1 || (m)==2 || (m)==-2 )
+#define GOOD_METH(m) ( (m)==1 || (m)==2 || (m)==-2 || (m)==-1 )
 
 /**--- 05 Mar 2008: stuff to get the fitted model back ---**/
 
