@@ -26,6 +26,7 @@ typedef struct {
    char *this_fset_name;
    char *this_xset_name;
    char *ndist_name;
+   char *proot;
    char *prefix;
    char *crefix;
    char *frefix;
@@ -104,6 +105,7 @@ typedef struct {
    
    int clust_cset_init;
    SUMA_CLASS_STAT *cs;
+   SUMA_CLASS_STAT *Gcs;
    
    double B;
    double T;
@@ -112,6 +114,7 @@ typedef struct {
    float na;
    
    char *hist;
+   int *Split;
 } SEG_OPTS;
 
 void GenPriors_usage(void) ;

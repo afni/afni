@@ -65,8 +65,14 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
- { 27, JAN , 2011 , ZSS , "@DiceMetric" , MICRO , TYPE_BUG_FIX,
-   "Allow @DiceMetric to take .nii volumes in -dsets option",
+ { 22, MAR , 2011 , ZSS , "afni-general" , MICRO , TYPE_NEW_ENV,
+   "AFNI_NIFTI_TYPE_WARN controls frequency of NIFTI type conversion warnings",
+   "Default is to warn once per session. \n"
+   "Search for AFNI_NIFTI_TYPE_WARN in README.environment for details."
+ } ,
+
+ { 22, MAR , 2011 , ZSS , "3dhistog" , MINOR , TYPE_NEW_OPT,
+   "-roi_mask allows creation of separate histogram for each ROI in mask.",
    NULL
  } ,
 

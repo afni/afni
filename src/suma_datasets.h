@@ -517,7 +517,24 @@ typedef struct {
 #define SUMA_COUNTER_SUFFIX(ic)  ( ((ic) == 1) ? "st" : ((ic) == 2) ? "nd" : ((ic) == 3) ? "rd" : "th" )
 #define SUMA_COUNTER_PLURAL(ic)  ( ((ic) == 1) ? "" : "s" )
 
+#define SUMA_ECHO_EDU(brk, kar) {   \
+   if (!brk && (strcmp(argv[kar], "-echo_edu") == 0)) {  \
+      int m_jj;  \
+      fprintf(SUMA_STDOUT,"\n+++ Now running:\n   "); \
+      for (m_jj=0; m_jj<argc; ++m_jj) {   \
+         if (m_jj != kar) {   \
+            fprintf(SUMA_STDOUT,"%s ", argv[m_jj]);   \
+         }  \
+      }  \
+      fprintf(SUMA_STDOUT,"\n+++\n");  \
+      brk = YUP;   \
+   }  \
+}
+   
+
+
 #define SUMA_SKIP_COMMON_OPTIONS(m_brk, m_kar) {\
+   SUMA_ECHO_EDU(m_brk, m_kar);  \
    if (!m_brk &&                                     \
        ( (strcmp(argv[m_kar], "-memdbg") == 0) ||    \
          (strcmp(argv[m_kar], "-iodbg") == 0)  ||    \
