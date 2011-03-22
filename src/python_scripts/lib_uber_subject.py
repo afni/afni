@@ -94,9 +94,13 @@ g_history = """
          - added -save_ap_command option
          - can apply types when merging VarsObject instances 
          - moved set_var_str_from_def to lib_uber_subject.py
+    0.14 Mar 22, 2011 :
+         - show processing status in 'exec proc script' window
+         - added clear all options/fields File menu items
+         - added -todo option
 """
 
-g_version = '0.13 (March 21, 2011)'
+g_version = '0.14 (March 22, 2011)'
 
 # ----------------------------------------------------------------------
 # global definition of default processing blocks
@@ -145,6 +149,8 @@ g_subj_defs.motion_limit  = 0.3         # in mm
 # symbolic GLTs
 g_subj_defs.gltsym           = []       # list of -gltsym options (sans SYM:)
 g_subj_defs.gltsym_label     = []       # list of -gltsym options (sans SYM:)
+
+      # rcr - add error checking for many variables
 
 # ...
 g_subj_defs.outlier_limit    = 0.0
@@ -974,7 +980,9 @@ class AP_Subject(object):
    def make_message_list_string(self, mlist, title):
       if len(mlist) == 0: return ''
       mesg = ''
-      for mm in mlist: mesg += (mm + '\n')
+      for ind, mm in enumerate(mlist):
+         if ind == 0: mesg += mm
+         else:        mesg += ('\n' + mm)
       return mesg
 
    def subj_dir_filename(self, fname):
@@ -1408,30 +1416,25 @@ helpstr_todo = """
 ---------------------------------------------------------------------------
                         todo list:  
 
-1. reset to defaults
-        - clear GUI (via defaults)
-        - deactivate process buttons
-1a. reset all but input files (reset, but keep anat, EPI, stim)
-1b. more verb output
-2. in run proc script command window
-        - add status line (not running, running..., finished (success or ERROR)
-2. group box: other 3dD options
-        - outlier limit
-        - jobs
-        - GOFORIT
-        - compute_fitts
-        - reml_exec
-        - run cluststim (def = yes)
+- help buttons for expected and extra regress options
+- does tcsh exist?
+- make UberInterface class in uber_subject.py?
+- more verb output
+- group box: other 3dD options
         - extra 3dD opts
-3. group box: align options
+- group box: align options
         - giant_move
         - cost function (choose or set)
         - extra aea opts (examples: -AddEdge)
         - tlrc opts: -tlrc_opts_at -OK_maxite, -tlrc_no_ss, template
-4. other
-   - choose blocks
+- other : choose blocks
 
 - allow stim_file regressors and labels
+
+
+tools (maybe put in uber_proc.py, instead):
+   - compute average blur
+   - plot regressors of interest (run xmat_tool.py or ExamineXmat?)
 ---------------------------------------------------------------------------
 """
 
