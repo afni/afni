@@ -39,6 +39,7 @@ static floatvec *vlam = NULL ;
 
 void THD_lasso_setlamvec( int nref , float *lam )
 {
+ENTRY("THD_lasso_setlamvec") ;
 #pragma omp critical (MALLOC)
    { KILL_floatvec(vlam) ; }
    if( nref > 0 && lam != NULL ){
@@ -47,7 +48,7 @@ void THD_lasso_setlamvec( int nref , float *lam )
 #pragma omp critical (MEMCPY)
      { memcpy(vlam->ar,lam,sizeof(float)*nref) ; }
    }
-   return ;
+   EXRETURN ;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -57,6 +58,8 @@ static float * edit_lamvec( int npt , int nref , float *lam )
 {
    float *mylam ;
    int nfree , jj ;
+
+ENTRY("edit_lamvec") ;
 
 #pragma omp critical (MALLOC)
    { mylam = (float *)calloc(sizeof(float),nref) ; }
@@ -90,7 +93,7 @@ static float * edit_lamvec( int npt , int nref , float *lam )
      }
    }
 
-   return mylam ;
+   RETURN(mylam) ;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -106,7 +109,9 @@ static void compute_free_param( int npt  , float *far   ,
 {
    float **qref,*qcon=NULL ; floatvec *qfit ; int nc,ii,jj ;
 
-   if( nfree <= 0 || nfree >= npt || fr == NULL || ppar == NULL ) return ;
+ENTRY("compute_free_param") ;
+
+   if( nfree <= 0 || nfree >= npt || fr == NULL || ppar == NULL ) EXRETURN ;
 
 #pragma omp critical (MALLOC)
    {                    qref = (float **)calloc(sizeof(float *),nfree) ;
@@ -143,7 +148,7 @@ static void compute_free_param( int npt  , float *far   ,
      if( qcon != NULL ) free(qcon) ;
      if( qfit != NULL ) KILL_floatvec(qfit) ; }
 
-   return ;
+   EXRETURN ;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -443,7 +448,7 @@ floatvec * THD_sqrtlasso_L2fit( int npt    , float *far   ,
                                 int nref   , float *ref[] ,
                                 float *lam , float *ccon   )
 {
-   int ii,jj, nfree,nite,nimax,ndel , do_slam ;
+   int ii,jj, nfree,nite,nimax,ndel ;
    float *mylam, *ppar, *resd, *rsq, *rj, pj,dg,dsum ;
    float rqsum,aa,bb,cc,ll , npinv ;
    floatvec *qfit ; byte *fr ;
@@ -493,11 +498,11 @@ ENTRY("THD_sqrtlasso_L2fit") ;
 
    /* edit mylam to make sure it isn't too big */
 
-   cc = 1.0f / sqrtf((float)npt) ;
+   cc = sqrtf(npinv) ;
    for( jj=0 ; jj < nref ; jj++ ){
      ll = mylam[jj] ;
      if( ll > 0.0f ){
-       ll *= cc ; aa = 0.666f * sqrtf(rsq[jj]) ; if( ll > aa ) ll = aa ;
+       aa = sqrtf(rsq[jj]); ll *= aa*npinv; if( ll > 0.666f*aa ) ll = 0.666f*aa;
        mylam[jj] = ll ;
      }
    }
@@ -520,14 +525,6 @@ ENTRY("THD_sqrtlasso_L2fit") ;
    }
    for( rqsum=ii=0 ; ii < npt ; ii++ ) rqsum += resd[ii]*resd[ii] ;
    rqsum *= npinv ;
-
-   /*--- if have a lot of references (relative to number of data points),
-         then increase lam[] for the first iterations to speed convergence ---*/
-
-   do_slam = 3 * (nref > npt/2) ;                        /* first 3 */
-   if( do_slam ){                                        /*       | */
-     for( jj=0 ; jj < nref ; jj++ ) mylam[jj] *= 8.0f ;  /* 8 = 2^3 */
-   }
 
    /*---- outer iteration loop (until we are happy or worn out) ----*/
 
@@ -583,17 +580,12 @@ ENTRY("THD_sqrtlasso_L2fit") ;
 
      if( ndel > 0 ) dsum *= (2.0f/ndel) ;
 
-     if( do_slam ){     /* shrink lam[] back, if it was augmented */
-       do_slam-- ; dsum = 1.0f ;
-       for( jj=0 ; jj < nref ; jj++ ) mylam[jj] *= 0.5f ;
-     }
-
    } /*---- end of outer iteration loop ----*/
 
 #if 1
    { static int ncall=0 ;
      if( ncall < 1 ){
-       INFO_message("LASSO: nite=%d dsum=%g",nite,dsum) ; ncall++ ;
+       INFO_message("SQRTLASSO: nite=%d dsum=%g",nite,dsum) ; ncall++ ;
      }
    }
 #endif
