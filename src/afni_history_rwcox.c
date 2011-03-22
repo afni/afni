@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 22 , MAR , 2011 , RWC , "3dAllineate" , MINOR , TYPE_BUG_FIX ,
+  { 22 , MAR , 2011 , RWC , "3dTfitter" , MICRO , TYPE_NEW_OPT ,
+   "Add -l2sqrtlasso option" ,
+   "Yet another solution method, this time with SQRT(LASSO) penalty." } ,
+
+ { 22 , MAR , 2011 , RWC , "3dAllineate" , MINOR , TYPE_BUG_FIX ,
    "nwarp_pass != nwarp_type :-(" ,
    "Causing bug in application of nonlinear warps from external files." } ,
 
