@@ -602,6 +602,8 @@ class TcshCommandWindow(QtGui.QMainWindow):
       self.Bstart = QtGui.QPushButton('Start')
       self.Bstop = QtGui.QPushButton('Stop')
 
+      self.Bstart.setEnabled(False)     # no use in this context?
+
       # create layout, for either 1 or 2 sub-windows
       layout = QtGui.QGridLayout()
 
@@ -625,6 +627,12 @@ class TcshCommandWindow(QtGui.QMainWindow):
       clabel, slabel = create_display_label_pair('exec command:', command)
       layout.addWidget(clabel, offset, 0)
       layout.addWidget(slabel, offset, 1, 1, 4)
+      offset += 1
+
+      clabel, slabel = create_display_label_pair('status:', 'starting...')
+      layout.addWidget(clabel, offset, 0)
+      layout.addWidget(slabel, offset, 1, 1, 4)
+      self.Label_status = slabel
       offset += 1
 
       layout.addWidget(self.Bstart, offset, 2, 1, 1)
@@ -657,11 +665,18 @@ class TcshCommandWindow(QtGui.QMainWindow):
 
       self.cb_start()
 
+   def update_status(self, status):
+      self.Label_status.setText(status)
+
    def finished(self):
       self.readstderr()
       self.readstdout()
+      status = self.process.exitStatus()
       print '-- processed finished, state = %d, status = %d' \
-            % (self.process.state(), self.process.exitStatus())
+            % (self.process.state(), status)
+      
+      if status: self.update_status('process finished: FAILURE')
+      else:      self.update_status('process finished: SUCCESS')
 
    def readstdout(self):
       text = str(self.process.readAllStandardOutput())
@@ -698,9 +713,11 @@ class TcshCommandWindow(QtGui.QMainWindow):
       self.process.start('tcsh', args)
       if self.process.waitForStarted():
          print '++ process is started, pid = %d' % self.process.pid()
+         self.update_status('process running, pid = %d' % self.process.pid())
          self.status = 0
       else:
          print '** failed to start'
+         self.update_status('** error: failed to start')
          self.status = -1
 
    def cb_stop(self):

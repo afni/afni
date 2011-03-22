@@ -55,6 +55,7 @@ Examples:
       uber_subject.py -help_gui
       uber_subject.py -hist
       uber_subject.py -show_valid_opts
+      uber_subject.py -todo
 
    Non-GUI examples (all have -no_gui):
 
@@ -62,7 +63,8 @@ Examples:
           -svar sid FT -svar gid idiots                           \\
           -svar anat FT_anat+orig.HEAD -svar epi FT_epi_r*.HEAD   \\
           -svar stim AV*.txt -svar stim_basis 'BLOCK(15,1)'       \\
-          -cvar subj_dir my/subject/dir -exec_ap_command
+          -cvar subj_dir my/subject/dir
+
 ----------------------------------------------------------------------
 
 - R Reynolds  Feb, 2011
@@ -130,6 +132,10 @@ def process_options(valid_opts, argv):
       valid_opts.show('', 1)
       return 1, None, None, None
 
+   if '-todo' in sys.argv:
+      print USUBJ.helpstr_todo
+      return 1, None, None, None
+
    if '-ver' in sys.argv:
       print 'uber_subject.py: version %s' % USUBJ.g_version
       return 1, None, None, None
@@ -155,10 +161,11 @@ def process_options(valid_opts, argv):
    errs = 0
    for opt in uopts.olist:
       # skip -verb and any terminal option (though they should not be here)
-      if opt.name == '-help':              continue
+      if   opt.name == '-help':              continue
       elif opt.name == '-help_gui':        continue
       elif opt.name == '-hist':            continue
       elif opt.name == '-show_valid_opts': continue
+      elif opt.name == '-todo':            continue
       elif opt.name == '-ver':             continue
 
       elif opt.name == '-verb':            continue
