@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 17 , MAR , 2011 , RWC , "afni" , MICRO , TYPE_MODIFY ,
+  { 22 , MAR , 2011 , RWC , "3dAllineate" , MINOR , TYPE_BUG_FIX ,
+   "nwarp_pass != nwarp_type :-(" ,
+   "Causing bug in application of nonlinear warps from external files." } ,
+
+ { 17 , MAR , 2011 , RWC , "afni" , MICRO , TYPE_MODIFY ,
    "modify mri_read() to fully read datasets as images (not just #0)" ,
    NULL } ,
 

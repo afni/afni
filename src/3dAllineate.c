@@ -2763,8 +2763,8 @@ int main( int argc , char *argv[] )
    if( warp_freeze ) twofirst = 1 ;  /* 10 Oct 2006 */
 
    if( apply_mode > 0 && nwarp_pass ){
-     switch( nwarp_pass ){
-       default: ERROR_exit("Can't apply that nonlinear warp :-(  [%d]",nwarp_pass) ;
+     switch( nwarp_type ){
+       default: ERROR_exit("Can't apply that nonlinear warp :-(  [%d]",nwarp_type) ;
 
        case WARP_BILINEAR:{
          if( apply_nx == NPBIL+4 ){
@@ -2835,7 +2835,7 @@ int main( int argc , char *argv[] )
          }
        }
        break ;
-     } /* end of switch on nwarp_pass */
+     } /* end of switch on nwarp_type */
    }
 
    if( nwarp_pass && meth_check_count > 0 ){  /* 15 Dec 2010 */
