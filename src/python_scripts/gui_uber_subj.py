@@ -106,7 +106,16 @@ class SingleSubjectWindow(QtGui.QMainWindow):
    def reset_vars(self, svars=None, cvars=None, set_sdir=0, verb=-1):
       """replace old svars/cvars with new"""
 
-      if self.verb < 0: self.verb = int(self.cvars.verb)
+      # get verb from one of 4 places: passed, cvars, self, init to 1
+      vv = -1
+      if cvars != None:
+         vv = cvars.val('verb')
+         if vv == None: vv = -1
+      if   verb >= 0:     self.verb = verb
+      elif vv   >= 0:     self.verb = vv
+      elif self.verb > 0: pass                  # leave unchanged
+      else:               self.verb = 1
+       
       self.set_sdir = set_sdir
 
       del(self.svars)
@@ -117,6 +126,8 @@ class SingleSubjectWindow(QtGui.QMainWindow):
 
       self.apply_svars(svars)
       self.apply_cvars(cvars)
+
+      self.set_cvar('verb', self.verb)  # since might not come from cvars
 
    def make_l2_widgets(self):
       """create 'general subject info' box and scroll area for the
@@ -301,6 +312,8 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       layout = QtGui.QGridLayout(frame)         # now a child of frame
 
       # --------------------------------------------------
+
+      # rcr - here: add help buttons for expected and extra regress options
 
       # outlier_limit
       label = QtGui.QLabel("outlier censor limit (per TR)")
@@ -792,7 +805,11 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       table.setRowCount(0)                      # init, add rows per file
       table.setSortingEnabled(False)            # sort only after filling table
 
-      if nrows <= 0: return
+      if nrows <= 0:    # clear extra fields (if created) and return
+         if self.gvars.valid('Label_gltsym_len'):
+            self.gvars.Label_gltsym_len.setText('0')
+            self.resize_table(table)
+         return
 
       # if we don't have the correct number of labels, start from scratch
       if len(labs) != nrows:
@@ -859,7 +876,13 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       table.setRowCount(0)                      # init, add rows per file
       table.setSortingEnabled(False)            # sort only after filling table
 
-      if nrows <= 0: return
+      if nrows <= 0:    # clear extra fields (if created) and return
+         if self.gvars.valid('Label_epi_ndsets'):
+            self.gvars.Label_epi_ndsets.setText('0')
+            self.gvars.Label_epi_dir.setText('')
+            self.gvars.Label_epi_wildcard.setText('')
+            self.resize_table(table)
+         return
 
       # parse the EPI list into directory, short names, glob string
       epi_dir, short_names, globstr = USUBJ.flist_to_table_pieces(epi)
@@ -968,7 +991,13 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       table.setRowCount(0)                      # init, add rows per file
       table.setSortingEnabled(False)            # sort only after filling table
 
-      if nrows <= 0: return
+      if nrows <= 0:    # clear extra fields (if created) and return
+         if self.gvars.valid('Label_stim_ndsets'):
+            self.gvars.Label_stim_ndsets.setText('0')
+            self.gvars.Label_stim_dir.setText('')
+            self.gvars.Label_stim_wildcard.setText('')
+            self.resize_table(table)
+         return
 
       # parse the stim list into directory, short names, glob string
       stim_dir, short_names, globstr = USUBJ.flist_to_table_pieces(stim)
@@ -1347,9 +1376,20 @@ class SingleSubjectWindow(QtGui.QMainWindow):
           tip="process this subject: execute proc script",
           icon=self.style().standardIcon(QtGui.QStyle.SP_DialogYesButton))
 
-      self.gvars.act_show_ap = act1
-      self.gvars.act_exec_ap = act2
-      self.gvars.act_exec_proc = act3
+      act4 = self.createAction("clear all options",
+          slot=self.cb_clear_options,
+          tip="keep datasets: restore all GUI options to defaults",
+          icon=self.style().standardIcon(QtGui.QStyle.SP_TrashIcon))
+      act5 = self.createAction("clear all fields",
+          slot=self.cb_clear_fields,
+          tip="restore all GUI fields to defaults",
+          icon=self.style().standardIcon(QtGui.QStyle.SP_TrashIcon))
+
+      self.gvars.act_show_ap    = act1
+      self.gvars.act_exec_ap    = act2
+      self.gvars.act_exec_proc  = act3
+      self.gvars.act_clear_opts = act4
+      self.gvars.act_clear_all  = act5
 
       self.gvars.act_exec_ap.setEnabled(False)
       self.gvars.act_exec_proc.setEnabled(False)
@@ -1359,7 +1399,8 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       self.gvars.MBar_file = self.menuBar().addMenu("&File")
       actFileQuit = self.createAction("&Quit", slot=self.close,
           shortcut="Ctrl+q", tip="close the application")
-      self.addActions(self.gvars.MBar_file, [act1, act2, act3, actFileQuit])
+      self.addActions(self.gvars.MBar_file, [act1, act2, act3, None,
+                                             act4, act5, None, actFileQuit])
 
       # ----------------------------------------------------------------------
       # View menu - all for static view windows
@@ -1381,7 +1422,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
           slot=self.cb_view,
           tip="show command to populate this interface")
 
-      self.addActions(self.gvars.MBar_view, [act1, act2, act3, act4])
+      self.addActions(self.gvars.MBar_view, [act1, act2, act3, None, act4])
 
       self.gvars.act_view_ap_cmd   = act1
       self.gvars.act_view_proc     = act2
@@ -1426,7 +1467,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       self.gvars.act_view_rvars   = act5
       self.gvars.act_view_gvars   = act7
 
-      self.addActions(self.gvars.MBar_hidden, [act3, act4, act5])
+      self.addActions(self.gvars.MBar_hidden, [act3, act4, act5, None])
 
       # add show sub-menu
       self.gvars.Menu_commands = self.gvars.MBar_hidden.addMenu("&Commands")
@@ -1443,7 +1484,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
                                 tip="revert Sylte to default 'cleanlooks'"))
       self.addActions(self.gvars.Menu_format, actlist)
 
-      self.addActions(self.gvars.MBar_hidden, [act6, act7])
+      self.addActions(self.gvars.MBar_hidden, [None, act6, act7])
 
       # ----------------------------------------------------------------------
       # Help menu
@@ -1827,6 +1868,20 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       self.gvars.SPW.show()
       self.gvars.ap_status = 3 
 
+   def cb_clear_options(self):
+      """set cvars, svars from defaults and redisplay GUI
+         EXCEPT: keep dataset fields from subject"""
+
+      svars = SUBJ.VarsObject()
+      for atr in ['anat', 'epi', 'stim']:
+         svars.set_var(atr, self.svars.val(atr))
+      
+      self.reset_vars(svars=svars, set_sdir=self.set_sdir)
+
+   def cb_clear_fields(self):
+      """set cvars, svars from defaults and redisplay GUI"""
+      self.reset_vars(set_sdir=self.set_sdir)
+
    def cb_view(self):
       """create permanent windows with given text"""
       obj = self.sender()
@@ -1982,8 +2037,6 @@ class SingleSubjectWindow(QtGui.QMainWindow):
          first init to defaults
          if svars is passed, make further updates"""
 
-      if svars == None: return
-
       # merge with current vars and apply everything to GUI
       self.svars.merge(svars)
       for var in self.svars.attributes():
@@ -2068,25 +2121,6 @@ class SingleSubjectWindow(QtGui.QMainWindow):
 
          first init to defaults
          if cvars is passed, make further updates"""
-
-      if cvars == None: return
-
-      # merge with current vars and apply everything to GUI
-      else:
-         if self.verb > 1: print '** apply_svar_in_gui: unhandled %s' % svar
-         rv = 0
-
-      if rv and self.verb > 2: print '++ apply_svar_in_gui: process %s' % svar
-
-      return rv
-
-   def apply_cvars(self, cvars=None):
-      """apply to the cvars object and to the gui
-
-         first init to defaults
-         if cvars is passed, make further updates"""
-
-      if cvars == None: return
 
       # merge with current vars and apply everything to GUI
       self.cvars.merge(cvars)
