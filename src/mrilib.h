@@ -1957,7 +1957,10 @@ extern THD_fvec3 mri_nstat_fwhmxyz( int,int,int ,
 extern void mri_blur3D_variable( MRI_IMAGE * , byte * ,
                                  MRI_IMAGE * , MRI_IMAGE * , MRI_IMAGE * ) ;
 extern void mri_blur3D_inmask( MRI_IMAGE *, byte *, float,float,float,int );
+extern void mri_blur3D_inmask_speedy( MRI_IMAGE *, byte *, 
+                                      float,float,float,int );
 extern void mri_blur3D_addfwhm( MRI_IMAGE *, byte *, float ) ;
+extern void mri_blur3D_addfwhm_speedy( MRI_IMAGE *, byte *, float ) ;
 extern void mri_blur3D_getfac ( float, float, float, float,
                                 int *, float *, float *, float * ) ;
 

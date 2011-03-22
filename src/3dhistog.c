@@ -54,6 +54,10 @@ static double  HI_max = -BIG_NUMBER;
 static char *  HI_unq = NULL;
 static char *  HI_ni = NULL;
 
+static short * HI_roi_unq = NULL; /* ZSS March 2011 */
+static int     HI_N_roi_unq = 0; 
+static THD_3dim_dataset *HI_roi=NULL;
+
 #define KEEP(x) ( (HI_nomit==0) ? 1 :  \
                   (HI_nomit==1) ? ((x) != HI_omit[0]) : HI_keep(x) )
 
@@ -74,7 +78,7 @@ int HI_keep(float x)  /* check if value x is in the omitted list */
 
 int main( int argc , char * argv[] )
 {
-   int iarg ;
+   int iarg, i_roi_unq;
    THD_3dim_dataset *dset ;
 
    int nx,ny,nz , nxyz , ii , kk , nopt , nbin ;
@@ -97,43 +101,47 @@ int main( int argc , char * argv[] )
    int n_unq=0;
 
    if( argc < 2 || strncmp(argv[1],"-help",4) == 0 ){
-      printf("Compute histogram of 3D Dataset\n"
-             "Usage: 3dhistog [editing options] [histogram options] dataset\n"
-             "\n"
-             "The editing options are the same as in 3dmerge\n"
-             " (i.e., the options starting with '-1').\n"
-             "\n"
-             "The histogram options are:\n"
-             "  -nbin #   Means to use '#' bins [default=100]\n"
-             "            Special Case: for short or byte dataset bricks,\n"
-             "                          set '#' to zero to have the number\n"
-             "                          of bins set by the brick range.\n"
-             "  -dind i   Means to take data from sub-brick #i, rather than #0\n"
-             "  -omit x   Means to omit the value 'x' from the count;\n"
-             "              -omit can be used more than once to skip multiple values.\n"
-             "  -mask m   Means to use dataset 'm' to determine which voxels to use\n"
-             "  -doall    Means to include all sub-bricks in the calculation;\n"
-             "              otherwise, only sub-brick #0 (or that from -dind) is used.\n"
-             "  -notit    Means to leave the title line off the output.\n"
-             "  -log10    Output log10() of the counts, instead of the count values.\n"
-             "  -min x    Means specify minimum of histogram.\n"
-             "  -max x    Means specify maximum of histogram.\n"
-             "  -unq U.1D Writes out the sorted unique values to file U.1D.\n"
-             "            This option is not allowed for float data\n"
-             "            If you have a problem with this, write\n"
-             "            Ziad S. Saad (saadz@mail.nih.gov)\n"
-             "  -prefix HOUT: Write a copy of the histogram into file HOUT.1D\n"
-             "                you can plot the file with:\n"
-             "             1dplot -sepscl -x HOUT.1D'[0]' HOUT.1D'[1,2]' \n"
-             "        or   \n"
-             "             1dRplot -input HOUT.1D\n"
-             "\n"
-             "Without -prefix, the histogram is written to stdout.  \n"
-             "Use redirection '>' if you want to save it to a file.\n"
-             "The format is a title line, then three numbers printed per line:\n"
-             "  bottom-of-interval  count-in-interval  cumulative-count\n"
-             "\n"
-             "-- by RW Cox (V Roopchansingh added the -mask option)\n"
+      printf(
+   "Compute histogram of 3D Dataset\n"
+   "Usage: 3dhistog [editing options] [histogram options] dataset\n"
+   "\n"
+   "The editing options are the same as in 3dmerge\n"
+   " (i.e., the options starting with '-1').\n"
+   "\n"
+   "The histogram options are:\n"
+   "  -nbin #   Means to use '#' bins [default=100]\n"
+   "            Special Case: for short or byte dataset bricks,\n"
+   "                          set '#' to zero to have the number\n"
+   "                          of bins set by the brick range.\n"
+   "  -dind i   Means to take data from sub-brick #i, rather than #0\n"
+   "  -omit x   Means to omit the value 'x' from the count;\n"
+   "              -omit can be used more than once to skip multiple values.\n"
+   "  -mask m   Means to use dataset 'm' to determine which voxels to use\n"
+   "  -roi_mask r Means to create a histogram for each non-zero value in \n"
+   "              dataset 'r'. If -mask option is also used, dataset 'r' is \n"
+   "              masked by 'm' before creating the histograms.\n"
+   "  -doall    Means to include all sub-bricks in the calculation;\n"
+   "              otherwise, only sub-brick #0 (or that from -dind) is used.\n"
+   "  -notit    Means to leave the title line off the output.\n"
+   "  -log10    Output log10() of the counts, instead of the count values.\n"
+   "  -min x    Means specify minimum of histogram.\n"
+   "  -max x    Means specify maximum of histogram.\n"
+   "  -unq U.1D Writes out the sorted unique values to file U.1D.\n"
+   "            This option is not allowed for float data\n"
+   "            If you have a problem with this, write\n"
+   "            Ziad S. Saad (saadz@mail.nih.gov)\n"
+   "  -prefix HOUT: Write a copy of the histogram into file HOUT.1D\n"
+   "                you can plot the file with:\n"
+   "             1dplot -sepscl -x HOUT.1D'[0]' HOUT.1D'[1,2]' \n"
+   "        or   \n"
+   "             1dRplot -input HOUT.1D\n"
+   "\n"
+   "Without -prefix, the histogram is written to stdout.  \n"
+   "Use redirection '>' if you want to save it to a file.\n"
+   "The format is a title line, then three numbers printed per line:\n"
+   "  bottom-of-interval  count-in-interval  cumulative-count\n"
+   "\n"
+   "-- by RW Cox (V Roopchansingh added the -mask option)\n"
          ) ;
 
       printf("\n" MASTER_SHORTHELP_STRING ) ;
@@ -241,165 +249,211 @@ int main( int argc , char * argv[] )
    df  = (ftop-fbot) / (nbin-1) ;
    dfi = 1.0 / df ;
 
-   /* loop over all bricks and accumulate histogram */
-   if (HI_unq) {
-      fout = fopen(HI_unq,"r");
-      if (fout) {
-         fclose(fout);
-         if (!THD_ok_overwrite()) {
-            fprintf(stderr,
-                     "** ERROR: Output file %s exists, will not overwrite.\n", 
-                     HI_unq) ;
-            exit(1) ;
-         }
-      }
-      fout = fopen(HI_unq,"w");
-      if (!fout) {
+   if (HI_roi) {
+      if (DSET_NVOX(HI_roi) != nxyz) {
          fprintf(stderr,
-                  "** ERROR: Could not open %s for write operation.\n"
-                  "Check your directory permissions\n", HI_unq) ;
-      exit(1) ;
+            "** ERROR: Grid mismatch\n"
+            "-roi_mask dset has %d voxels while dataset has %d\n",
+            DSET_NVOX(HI_roi) ,  nxyz);
+         exit(1);
+      }
+      if (HI_mask) { /* apply mask to HI_roi */
+         short *c=DSET_ARRAY(HI_roi,0);
+         for( ii=0 ; ii < nxyz ; ii++ ){
+            if (!HI_mask[ii]) c[ii] = 0;
+         }
+      } else { /* Need a mask to play with */
+         HI_mask = (byte *)calloc(sizeof(byte), nxyz);
       }
    }
-   if (!fout) HI_unq = NULL; /* safety valve */
+   
+   i_roi_unq = 0;
+   do {
+      if (HI_roi) {
+         short *c=DSET_ARRAY(HI_roi,0);
+         if (!HI_roi_unq[i_roi_unq]) {
+            ++i_roi_unq;
+            continue; /* skipping zero ROI */
+         } 
+         /* prepare mask */
+         HI_mask_hits = 0;
+         for( ii=0 ; ii < nxyz ; ii++ ){
+            if (c[ii] == HI_roi_unq[i_roi_unq]) {
+               HI_mask[ii] = 1; ++HI_mask_hits;
+            } else {
+               HI_mask[ii] = 0;
+            }
+         }
+         /* flush fbin */
+         memset(fbin, 0, sizeof(int)*HI_nbin);
+         /* fprintf(stderr,"Processing ROI %d\n", HI_roi_unq[i_roi_unq]); */
+      }
+      /* loop over all bricks and accumulate histogram */
+      if (HI_unq) {
+         fout = fopen(HI_unq,"r");
+         if (fout) {
+            fclose(fout);
+            if (!THD_ok_overwrite()) {
+               fprintf(stderr,
+                        "** ERROR: Output file %s exists, will not overwrite.\n", 
+                        HI_unq) ;
+               exit(1) ;
+            }
+         }
+         fout = fopen(HI_unq,"w");
+         if (!fout) {
+            fprintf(stderr,
+                     "** ERROR: Could not open %s for write operation.\n"
+                     "Check your directory permissions\n", HI_unq) ;
+         exit(1) ;
+         }
+      }
+      if (!fout) HI_unq = NULL; /* safety valve */
 
    for( iv_fim=iv_bot ; iv_fim <= iv_top ; iv_fim++ ){
      fimfac = DSET_BRICK_FACTOR(dset,iv_fim) ;
      if (fimfac == 0.0)  fimfac = 1.0;
      vfim = DSET_ARRAY(dset,iv_fim) ;
 
-     switch( fim_type ){
+        switch( fim_type ){
 
-       case MRI_short:{
-         short *fim = (short *)vfim ;
-         short *funq=NULL;
-         for( ii=0 ; ii < nxyz ; ii++ ){
-           fval = fim[ii]*fimfac ;
-           /* make sure we stay in range       28 Apr 2006 [rickr] */
-           if( (fval >= fbot && fval <= ftop) &&
-                KEEP(fval) && (HI_mask == NULL || HI_mask[ii]) ){
-             kk = (int)( (fval-fbot)*dfi ) ; /* use real value */
-             fbin[kk]++ ;
-           }
-         }
-         if (HI_unq) {
-            funq = UniqueShort(fim, nxyz, &n_unq, 0);
-            if (!funq) {
-               fprintf(stderr,"** ERROR: Failed to uniquate.\n") ;
-               exit(1) ;
+          case MRI_short:{
+            short *fim = (short *)vfim ;
+            short *funq=NULL;
+            for( ii=0 ; ii < nxyz ; ii++ ){
+              fval = fim[ii]*fimfac ;
+              /* make sure we stay in range       28 Apr 2006 [rickr] */
+              if( (fval >= fbot && fval <= ftop) &&
+                   KEEP(fval) && (HI_mask == NULL || HI_mask[ii]) ){
+                kk = (int)( (fval-fbot)*dfi ) ; /* use real value */
+                fbin[kk]++ ;
+              }
             }
-            fprintf(fout,"# %d unique values in %s\n", n_unq, argv[iarg] );
-            for (ii=0; ii<n_unq; ++ii) 
-               if (KEEP(funq[ii])) fprintf(fout,"%d\n", funq[ii]);
-            fclose(fout); fout = NULL;
-            free(funq); funq = NULL;
-         }
-      }
-      break ;
-
-       case MRI_byte:{
-         byte *fim = (byte *)vfim ;
-         byte *funq=NULL;
-         for( ii=0 ; ii < nxyz ; ii++ ){
-           fval = fim[ii]*fimfac ;
-           if( (fval >= fbot && fval <= ftop) &&
-                KEEP(fval) && (HI_mask == NULL || HI_mask[ii]) ){
-             kk = (int)( (fval-fbot)*dfi ) ;
-             fbin[kk]++ ;
-           }
-         }
-         if (HI_unq) {
-            funq = UniqueByte(fim, nxyz, &n_unq, 0);
-            if (!funq) {
-               fprintf(stderr,"** ERROR: Failed to uniquate.\n") ;
-               exit(1) ;
+            if (HI_unq) {
+               funq = UniqueShort(fim, nxyz, &n_unq, 0);
+               if (!funq) {
+                  fprintf(stderr,"** ERROR: Failed to uniquate.\n") ;
+                  exit(1) ;
+               }
+               fprintf(fout,"# %d unique values in %s\n", n_unq, argv[iarg] );
+               for (ii=0; ii<n_unq; ++ii) 
+                  if (KEEP(funq[ii])) fprintf(fout,"%d\n", funq[ii]);
+               fclose(fout); fout = NULL;
+               free(funq); funq = NULL;
             }
-            fprintf(fout,"# %d unique values in %s\n", n_unq, argv[iarg] );
-            for (ii=0; ii<n_unq; ++ii) 
-               if (KEEP(funq[ii])) fprintf(fout,"%d\n", funq[ii]);
-            fclose(fout); fout = NULL;
-            free(funq); funq = NULL;
          }
-       }
-       break ;
+         break ;
 
-       case MRI_float:{
-         float *fim = (float *)vfim ;
-         for( ii=0 ; ii < nxyz ; ii++ ){
-	   fval = fim[ii]*fimfac ;  /* thanks to Tom Holroyd for noticing this*/
-           if( (fval >= fbot && fval <= ftop) &&
-                KEEP(fval) && (HI_mask == NULL || HI_mask[ii]) ){
-             kk = (int)( (fval-fbot)*dfi ) ;
-             fbin[kk]++ ;
+          case MRI_byte:{
+            byte *fim = (byte *)vfim ;
+            byte *funq=NULL;
+            for( ii=0 ; ii < nxyz ; ii++ ){
+              fval = fim[ii]*fimfac ;
+              if( (fval >= fbot && fval <= ftop) &&
+                   KEEP(fval) && (HI_mask == NULL || HI_mask[ii]) ){
+                kk = (int)( (fval-fbot)*dfi ) ;
+                fbin[kk]++ ;
+              }
+            }
+            if (HI_unq) {
+               funq = UniqueByte(fim, nxyz, &n_unq, 0);
+               if (!funq) {
+                  fprintf(stderr,"** ERROR: Failed to uniquate.\n") ;
+                  exit(1) ;
+               }
+               fprintf(fout,"# %d unique values in %s\n", n_unq, argv[iarg] );
+               for (ii=0; ii<n_unq; ++ii) 
+                  if (KEEP(funq[ii])) fprintf(fout,"%d\n", funq[ii]);
+               fclose(fout); fout = NULL;
+               free(funq); funq = NULL;
+            }
+          }
+          break ;
+
+          case MRI_float:{
+            float *fim = (float *)vfim ;
+            for( ii=0 ; ii < nxyz ; ii++ ){
+	      fval = fim[ii]*fimfac ;  /* thanks to Tom Holroyd for noticing this*/
+              if( (fval >= fbot && fval <= ftop) &&
+                   KEEP(fval) && (HI_mask == NULL || HI_mask[ii]) ){
+                kk = (int)( (fval-fbot)*dfi ) ;
+                fbin[kk]++ ;
+              }
+            }
+          }
+          break ;
+        }  /* end of switch on data brick type */
+
+        if (!HI_roi) DSET_unload_one(dset,iv_fim) ;
+      }
+
+      /*** print something ***/
+
+      if (!HI_ni) {
+         cumfbin = 0;
+
+         if( HI_log ){
+           if( ! HI_notit )
+             printf ("%12s %13s %13s\n", 
+                     "#Magnitude", "Log_Freq", "Log_Cum_Freq");
+
+           for( kk=0 ; kk < nbin ; kk++ ){
+             cumfbin += fbin[kk];
+             printf ("%12.6f %13.6f %13.6f\n",
+                     fbot+kk*df,
+                     log10((double)fbin[kk]+1.0), log10((double)cumfbin+1.0));
+           }
+         } else {
+           if( ! HI_notit )
+             printf ("%12s %13s %13s\n",  "#Magnitude", "Freq", "Cum_Freq");
+
+           for( kk=0 ; kk < nbin ; kk++ ){
+             cumfbin += fbin[kk];
+             printf ("%12.6f %13d %13ld\n",
+                     fbot+kk*df, fbin[kk], cumfbin);
            }
          }
-       }
-       break ;
-     }  /* end of switch on data brick type */
-
-     DSET_unload_one(dset,iv_fim) ;
-   }
-
-   /*** print something ***/
-
-   if (!HI_ni) {
-      cumfbin = 0;
-
-      if( HI_log ){
-        if( ! HI_notit )
-          printf ("%12s %13s %13s\n", "#Magnitude", "Log_Freq", "Log_Cum_Freq");
-
-        for( kk=0 ; kk < nbin ; kk++ ){
+      } else { /*                ZSS Dec. 2010 */
+         NI_stream ns=NULL;
+         NI_element *hni=NULL;
+         char sstr[strlen(HI_ni)+64];
+         float *bb=(float*)calloc(nbin, sizeof(float));
+         double *cf=(double*)calloc(nbin, sizeof(double));
+         cumfbin = 0.0;
+         for( kk=0 ; kk < nbin ; kk++ ){
           cumfbin += fbin[kk];
-          printf ("%12.6f %13.6f %13.6f\n",
-                  fbot+kk*df,
-                  log10((double)fbin[kk]+1.0), log10((double)cumfbin+1.0));
-        }
-      } else {
-        if( ! HI_notit )
-          printf ("%12s %13s %13s\n",  "#Magnitude", "Freq", "Cum_Freq");
+          cf[kk] = cumfbin;
+          bb[kk] = fbot+kk*df;
+         }
+         hni = NI_new_data_element("3dhistog", nbin);
+         NI_add_column(hni, NI_FLOAT, bb); 
+         NI_add_column(hni, NI_INT, fbin);
+         NI_add_column(hni, NI_DOUBLE, cf);
+         if (HI_log) 
+            NI_set_attribute(hni, "ColumnLabels", 
+                        "Magnitude ; Log_Freq ; Log_Cum_Freq");
+         else 
+            NI_set_attribute(hni, "ColumnLabels", 
+                        "Magnitude ; Freq ; Cum_Freq");
+         sprintf(sstr,"%f",df);
+         NI_set_attribute(hni, "BinWidth", sstr);
 
-        for( kk=0 ; kk < nbin ; kk++ ){
-          cumfbin += fbin[kk];
-          printf ("%12.6f %13d %13ld\n",
-                  fbot+kk*df, fbin[kk], cumfbin);
-        }
+         if (HI_roi) {
+            sprintf(sstr,"file:%s.%03d.1D", HI_ni, HI_roi_unq[i_roi_unq]);
+         } else {
+            sprintf(sstr,"file:%s.1D", HI_ni);
+         }
+         if (!(ns = NI_stream_open(sstr,"w"))) {
+            ERROR_message("Failed to open stream %s\n", sstr);
+            exit(1);
+         }
+         NI_write_element(ns,hni,NI_TEXT_MODE | NI_HEADERSHARP_FLAG );
+         NI_stream_close(ns);
+         NI_free_element(hni);
+         free(bb); free(cf);
       }
-   } else { /*                ZSS Dec. 2010 */
-      NI_stream ns=NULL;
-      NI_element *hni=NULL;
-      char sstr[strlen(HI_ni)+32];
-      float *bb=(float*)calloc(nbin, sizeof(float));
-      double *cf=(double*)calloc(nbin, sizeof(double));
-      cumfbin = 0.0;
-      for( kk=0 ; kk < nbin ; kk++ ){
-       cumfbin += fbin[kk];
-       cf[kk] = cumfbin;
-       bb[kk] = fbot+kk*df;
-      }
-      hni = NI_new_data_element("3dhistog", nbin);
-      NI_add_column(hni, NI_FLOAT, bb); 
-      NI_add_column(hni, NI_INT, fbin);
-      NI_add_column(hni, NI_DOUBLE, cf);
-      if (HI_log) 
-         NI_set_attribute(hni, "ColumnLabels", 
-                     "Magnitude ; Log_Freq ; Log_Cum_Freq");
-      else 
-         NI_set_attribute(hni, "ColumnLabels", 
-                     "Magnitude ; Freq ; Cum_Freq");
-      sprintf(sstr,"%f",df);
-      NI_set_attribute(hni, "BinWidth", sstr);
-      
-      sprintf(sstr,"file:%s.1D", HI_ni);
-      if (!(ns = NI_stream_open(sstr,"w"))) {
-         ERROR_message("Failed to open stream %s\n", sstr);
-         exit(1);
-      }
-      NI_write_element(ns,hni,NI_TEXT_MODE | NI_HEADERSHARP_FLAG );
-      NI_stream_close(ns);
-      NI_free_element(hni);
-      free(bb); free(cf);
-   }
+      ++i_roi_unq;
+   } while (i_roi_unq < HI_N_roi_unq);
    exit(0) ;
 }
 
@@ -512,6 +566,42 @@ void HI_read_opts( int argc , char * argv[] )
           HI_mask_hits = mc ;
           nopt++ ; continue ;
 
+      }
+      
+      if( strncmp(argv[nopt],"-roi_mask",5) == 0 )
+      {
+          THD_3dim_dataset * rset ; int ii,mc ;
+          nopt++ ;
+
+          if( nopt >= argc ) HI_syntax("need argument after -roi_mask!") ;
+
+          rset = THD_open_dataset( argv[nopt] ) ;
+          if( rset == NULL ) HI_syntax("can't open -roi_mask dataset!") ;
+          DSET_load( rset ) ;  CHECK_LOAD_ERROR(rset) ;
+          if (DSET_NVALS(rset)!=1) {
+            HI_syntax("-roi_mask must have one sub-brick");
+          }
+          HI_roi = EDIT_empty_copy(rset); 
+          EDIT_dset_items( HI_roi ,   
+                          ADN_nvals, 1, 
+                          ADN_ntt, 1, 
+                          ADN_malloc_type , DATABLOCK_MEM_MALLOC ,   
+                          ADN_none ) ; 
+          EDIT_substscale_brick( HI_roi, 0, DSET_BRICK_TYPE(rset,0), 
+                                 DSET_ARRAY(rset,0), MRI_short, 1.0);
+          /* There can be a leak here if rset is not short 
+             But that's OK */
+          /* Now get unique values */
+          HI_roi_unq = UniqueShort(DSET_ARRAY(HI_roi,0), DSET_NVOX(HI_roi), 
+                                    &HI_N_roi_unq, 0);
+          if (!HI_roi_unq) {
+             fprintf(stderr,"** ERROR: Failed to uniquate.\n") ;
+             exit(1) ;
+          }
+          fprintf(stdout,"# %d unique values in roi_mask %s\n", 
+                              HI_roi_unq[0] ? HI_N_roi_unq:HI_N_roi_unq-1, 
+                              argv[nopt] );
+          nopt++ ; continue ;
       }
 
       if( strncmp(argv[nopt],"-min",4) == 0 ){

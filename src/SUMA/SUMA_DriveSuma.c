@@ -1276,7 +1276,8 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
    SUMA_RETURN(YUP);
 }
 
-SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_DriveSuma_ParseInput(char *argv[], int argc, SUMA_GENERIC_ARGV_PARSE *ps)
+SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_DriveSuma_ParseInput(
+                  char *argv[], int argc, SUMA_GENERIC_ARGV_PARSE *ps)
 {
    static char FuncName[]={"SUMA_DriveSuma_ParseInput"}; 
    SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt=NULL;
@@ -1301,19 +1302,6 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_DriveSuma_ParseInput(char *argv[], int ar
 		
 		SUMA_SKIP_COMMON_OPTIONS(brk, kar);
       
-      if (!brk && (strcmp(argv[kar], "-echo_edu") == 0)) {
-         int jj;
-         fprintf(SUMA_STDOUT,"\n+++ Now running:\n   ");
-         for (jj=0; jj<argc; ++jj) {
-            if (jj != kar) {
-               fprintf(SUMA_STDOUT,"%s ", argv[jj]);
-            }
-         } 
-         fprintf(SUMA_STDOUT,"\n+++\n");
-         brk = YUP;   
-      }
-   
-
       if (!brk && (strcmp(argv[kar], "-debug") == 0))
       {
          if (kar+1 >= argc)

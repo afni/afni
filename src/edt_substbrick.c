@@ -104,7 +104,7 @@ ENTRY("EDIT_substscale_brick") ;
    /** at this time, can only scale float inputs to shorts or bytes **/
 
    if( ftype != MRI_float && ftype != MRI_double ){ /* ZSS Dec 2010 */
-     ERROR_message("EDIT_substscale_brick: non-float and non-double input!"); 
+     ERROR_message("EDIT_substscale_brick: non-float and non-double input! (%d %d %d)", ftype, stype, MRI_short); 
      EXRETURN;
    }
    if( stype != MRI_short && stype != MRI_byte ){

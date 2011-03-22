@@ -17,6 +17,59 @@ static void vstep_print(void)
    VN++ ;
 }
 
+static int debug = 0;
+static int VoxDbg3[3];
+static int VoxDbg = -1;
+static FILE *VoxDbgOut=NULL;
+
+void SUMA_set_SegFunc_debug(int dbg, int vdbg, int *vdbg3, FILE *out) {
+   debug = dbg;
+   VoxDbg = vdbg;
+   if (vdbg3) { 
+      VoxDbg3[0] = vdbg3[0]; VoxDbg3[1] = vdbg3[1]; VoxDbg3[2] = vdbg3[2]; 
+   }
+   if (out) { VoxDbgOut=out; }
+   else {VoxDbgOut= SUMA_STDERR;}
+} 
+
+int SUMA_Seg_Write_Dset(char *proot, char *prefi, THD_3dim_dataset *dset, 
+                        int iter, char *hh) 
+{
+   static char FuncName[]={"SUMA_Seg_Write_Dset"};
+   char pref[512]; 
+   int ovw;   
+   char *opref = NULL, *oid = NULL, *ohist = NULL;
+   
+   SUMA_ENTRY;
+   
+   opref = SUMA_copy_string(DSET_PREFIX(dset)); 
+   oid = SUMA_copy_string(DSET_IDCODE_STR(dset));   
+   ohist = tross_Get_History(dset); 
+   if (proot != NULL) {
+      if (iter >=0) { snprintf(pref, 500, "%s/%s.%d", 
+                                       proot, prefi, iter); }
+      else { snprintf(pref, 500, "%s/%s", proot, prefi); }
+   } else { 
+      if (iter >=0) snprintf(pref, 500, "%s.%d",  prefi, iter); 
+      else snprintf(pref, 500, "%s", prefi); 
+   }  
+   
+   if (debug) SUMA_S_Notev("Writing %s\n", pref);
+      
+   EDIT_dset_items(  dset , ADN_prefix  , pref, ADN_none);  
+   UNIQ_idcode_fill(DSET_IDCODE_STR(dset));/* new id */   
+   if (hh) tross_Append_History(dset, hh);/*add history*/ 
+     
+   DSET_quiet_overwrite(dset);   
+   
+   EDIT_dset_items(  dset , ADN_prefix  , opref, ADN_none);  
+   strcpy(DSET_IDCODE_STR(dset), oid); 
+   
+   if (ohist) tross_Replace_History(dset, ohist); 
+   SUMA_free(opref); SUMA_free(oid); free(ohist); ohist=NULL;
+   
+   SUMA_RETURN(1);
+}
 
 int SUMA_KeyofLabel_Dtable(Dtable *vl_dtable, char *label) {
    static char FuncName[]={"SUMA_KeyofLabel_Dtable"};
@@ -53,6 +106,20 @@ Dtable *SUMA_LabelsKeys2Dtable (char **str, int num, int *keys)
    SUMA_RETURN(vl_dtable);
 }
 
+int SUMA_SetDsetLabeltable(THD_3dim_dataset *dset, char **labels, 
+                           int N_labels, int *keys)
+{
+   static char FuncName[]={"SUMA_SetDsetLabeltable"};
+   char *labeltable_str=NULL;
+   SUMA_ENTRY;
+   
+   labeltable_str = SUMA_LabelsKeys2labeltable_str(labels, N_labels, keys);
+   THD_set_string_atr( dset->dblk , "VALUE_LABEL_DTABLE" , labeltable_str );
+   free(labeltable_str); labeltable_str=NULL;
+   
+   SUMA_RETURN(1);
+}
+
 char *SUMA_LabelsKeys2labeltable_str(char **str, int num, int *keys)
 {
    static char FuncName[]={"SUMA_LabelsKeys2labeltable_str"};
@@ -76,8 +143,8 @@ void SUMA_ShowClssKeys(char **str, int num, int *keys)
    SUMA_ENTRY;
 
    for (i=0; i<num; ++i) {
-      if (keys) fprintf(SUMA_STDOUT, "  %s --> %d\n", str[i], keys[i]);
-      else fprintf(SUMA_STDOUT, "  %s --> %d (assumed)\n", str[i], i+1);
+      if (keys) fprintf(SUMA_STDERR, "  %s --> %d\n", str[i], keys[i]);
+      else fprintf(SUMA_STDERR, "  %s --> %d (assumed)\n", str[i], i+1);
    }  
 
    SUMA_RETURNe;
@@ -503,29 +570,30 @@ THD_3dim_dataset *p_C_GIV_A (SEG_OPTS *Opt) {
    RETURN(pout);
 }
 
-int LabelToGroupedIndex(char *cls_str, NI_str_array *group_clss)
+int SUMA_LabelToGroupedIndex(char *cls_str, char **group_lbls, int N_group_lbls)
 {
+   static char FuncName[]={"SUMA_LabelToGroupedKey"};
    int mtch=0, j,  ng=0, jmatch=-1;
    
-   ENTRY("LabelToGroupedKey");
+   SUMA_ENTRY;
    
    mtch = 0;
-   for (j=0; j<group_clss->num; ++j) {
-      ng = strlen(group_clss->str[j]);
+   for (j=0; j<N_group_lbls; ++j) {
+      ng = strlen(group_lbls[j]);
       if (strlen(cls_str) >= ng) {
-         if (!strcmp(cls_str, group_clss->str[j])) {
+         if (!strcmp(cls_str, group_lbls[j])) {
                /* ININFO_message("%s --> %s (%d)", 
-                                 cls_str, group_clss->str[j], j); */
+                                 cls_str, group_lbls[j], j); */
                jmatch = j;
                mtch += 1;
-         } else if (!strncmp(cls_str, group_clss->str[j], 
-                                    strlen(group_clss->str[j])) && 
+         } else if (!strncmp(cls_str, group_lbls[j], 
+                                    strlen(group_lbls[j])) && 
                         ( cls_str[ng] == ',' ||
                           cls_str[ng] == '.' ||
                           cls_str[ng] == '-' ||
                           cls_str[ng] == '_') ) {
                /* ININFO_message("%s --> %s (%d)", 
-                              cls_str, group_clss->str[j], j); */
+                              cls_str, group_lbls[j], j); */
                jmatch = j;
                mtch += 1;
          }   
@@ -533,62 +601,73 @@ int LabelToGroupedIndex(char *cls_str, NI_str_array *group_clss)
    }
    if (mtch == 0) {
       /* ININFO_message("Could not find match for %s\n", cls_str); */
-      RETURN(-1);
+      SUMA_RETURN(-1);
    }
    if (mtch > 1) {
       /* ERROR_message("Found more than one match"); */
-      RETURN(-mtch);
+      SUMA_RETURN(-mtch);
    }
    
-   RETURN(jmatch);
+   SUMA_RETURN(jmatch);
 }
 
-int LabelToGroupedKey(char *cls_str, NI_str_array *group_clss, 
+int SUMA_LabelToGroupedKey(char *cls_str, char **group_lbls, int N_group_lbls, 
                       int *group_keys) {
-   int j =    LabelToGroupedIndex(cls_str, group_clss );
+   int j = SUMA_LabelToGroupedIndex(cls_str,  group_lbls, N_group_lbls);
    
    if (j<0) return(j);
    else return(group_keys[j]);               
 }
 
 
-int GroupLabelMapping (NI_str_array *clss , NI_str_array *grpclss, 
+int SUMA_GroupLabelMapping (char **clss_lbls , int N_clss_lbls, 
+                        char **grpclss_lbls, int N_grpclss_lbls, 
                         int *map, int verb) 
 {
+   static char FuncName[]={"SUMA_GroupLabelMapping"};
    int j, i;
    
-   ENTRY("GroupLabelMapping");
+   SUMA_ENTRY;
+   
    /* make sure you can map one to the other */
-   for (i=0; i<clss->num; ++i) map[i] = -1;
+   for (i=0; i<N_clss_lbls; ++i) map[i] = -1;
    {
-      for (i=0; i<clss->num; ++i) {
-         j = LabelToGroupedIndex(clss->str[i], grpclss);
+      for (i=0; i<N_clss_lbls; ++i) {
+         j = SUMA_LabelToGroupedIndex(clss_lbls[i], grpclss_lbls, 
+                                       N_grpclss_lbls);
          if (j >= 0) { map[i] = j; }
          
       }
    }
    if (verb) {
-      for (i=0; i<clss->num; ++i) {
+      for (i=0; i<N_clss_lbls; ++i) {
          if (map[i]>=0) {
-            fprintf(stderr,"%s --> %s\n", clss->str[i] , grpclss->str[map[i]]);
+            fprintf(stderr,"%s --> %s\n", clss_lbls[i] , grpclss_lbls[map[i]]);
          } else {
-            fprintf(stderr,"%s --> NO MATCH\n", clss->str[i]);
+            fprintf(stderr,"%s --> NO MATCH\n", clss_lbls[i]);
          }
       }
    }
-   RETURN(1);
+   SUMA_RETURN(1);
 }
 
 /*!
    Regroup classes.
 */
-int Regroup_classes (SEG_OPTS *Opt, 
-                     NI_str_array * group_clss,
+int SUMA_Regroup_classes (SEG_OPTS *Opt,
+                     char **clss_lbls,
+                     int N_clss_lbls,
+                     int *keys, 
+                     char **group_clss_lbls,
+                     int N_group_clss_lbls,
                      int  * ugroup_keys,
+                     byte *cmask,
                      THD_3dim_dataset *pset, 
                      THD_3dim_dataset *cset,
                      THD_3dim_dataset **gpsetp, 
-                     THD_3dim_dataset **gcsetp) { 
+                     THD_3dim_dataset **gcsetp) 
+{ 
+   static char FuncName[]={"SUMA_Regroup_classes"};
    int i,c, v,gc, imax=0, dtable_key[1024], ckey=0, gkey = 0;
    short *p=NULL, *pg=NULL;
    double max=0.0;
@@ -597,14 +676,14 @@ int Regroup_classes (SEG_OPTS *Opt,
    THD_3dim_dataset *gpset=NULL,*gcset=NULL;
    char sval[256], *group_labeltable_str=NULL;
    Dtable *vl_dtable=NULL;
+   SUMA_Boolean LocalHead = NOPE;
    
-   ENTRY("Regroup_classes");
-   
+   SUMA_ENTRY;
    /* checks */
-   if (group_clss==NULL) {
-      ERROR_message("Regroup_classes Bad input %p \n", 
-                  group_clss);
-      RETURN(0);
+   if (group_clss_lbls==NULL) {
+      SUMA_S_Errv("Bad input %p \n", 
+                  group_clss_lbls);
+      SUMA_RETURN(0);
    }
    
    mapverb=0;
@@ -613,49 +692,51 @@ int Regroup_classes (SEG_OPTS *Opt,
    } 
    
    /* figure out the mapping between one and the other */
-   if (!GroupLabelMapping (Opt->clss, group_clss, igrp, mapverb)) {
+   if (!SUMA_GroupLabelMapping (clss_lbls, N_clss_lbls, 
+                                group_clss_lbls, N_group_clss_lbls, 
+                                igrp, mapverb)) {
       ERROR_message("Failed to group map");
-      RETURN(0);
+      SUMA_RETURN(0);
    }
    
    if (!cset && !pset) {
       /* just called to be sure conversion is OK */
-      RETURN(1);
+      SUMA_RETURN(1);
    } 
    
    if (!gcsetp || *gcsetp) {
       ERROR_message("You must send the address of a null pointer for gcsetp");
-      RETURN(0);
+      SUMA_RETURN(0);
    }
    if (gpsetp && *gpsetp) {
       ERROR_message("If you send gpsetp it must be the address to null pointer");
-      RETURN(0);
+      SUMA_RETURN(0);
    }
    
    if (pset && !gpsetp) {
       ERROR_message("Nothing to return grouped probs in");
-      RETURN(0);
+      SUMA_RETURN(0);
    }
    gcset = *gcsetp;
-   NEW_SHORTY(Opt->cset, DSET_NVALS(Opt->cset), Opt->cgrefix, gcset);
+   NEW_SHORTY(cset, DSET_NVALS(cset), Opt->cgrefix, gcset);
 
    /* get the key of each group_clss, and form dtable */
    vl_dtable = new_Dtable(5);
-   for (i=0; i<group_clss->num; ++i) {
+   for (i=0; i<N_group_clss_lbls; ++i) {
       if (ugroup_keys) group_keys[i] = ugroup_keys[i];
       else group_keys[i] = i+1;
       sprintf(sval,"%d", group_keys[i]);
-      addto_Dtable( sval , group_clss->str[i] , vl_dtable ) ;
+      addto_Dtable( sval , group_clss_lbls[i] , vl_dtable ) ;
    }   
    
    p = (short *)DSET_ARRAY(cset,0);
    pg = (short *)DSET_ARRAY(gcset,0);
    
    for (i=0; i<DSET_NVOX(cset); ++i) { pg[i] = p[i]; } /* init */
-   for (c=0; c<Opt->clss->num; ++c) {
-      ckey = Opt->keys[c];
-      if ((gkey = LabelToGroupedKey(Opt->clss->str[c],
-                                    group_clss,group_keys)) < 0) {
+   for (c=0; c<N_clss_lbls; ++c) {
+      ckey = keys[c];
+      if ((gkey = SUMA_LabelToGroupedKey(clss_lbls[c],
+                        group_clss_lbls, N_group_clss_lbls,group_keys)) < 0) {
       
          /* ERROR_message("Failed to get group key" ); */
          /* that's OK, mask it */
@@ -680,25 +761,19 @@ int Regroup_classes (SEG_OPTS *Opt,
    
    /* if we have probabilities, need to group those too */
    if (pset && gpsetp) {
-      double dv[Opt->clss->num], gdv[group_clss->num], sgdv;
-      float bfi[Opt->clss->num];
+      double dv[N_clss_lbls], gdv[N_group_clss_lbls], sgdv;
+      float bfi[N_clss_lbls];
       gpset = *gpsetp;
-      NEW_SHORTY(Opt->pset, group_clss->num, Opt->pgrefix, gpset);
-      GET_BFs(Opt->pset, bfi);
-      for (c=1; c<Opt->clss->num; ++c) {
-         if (bfi[c]!=bfi[0]) {
-            ERROR_message("Mismatch in float factors ([%d]%f [0]%f)!"
-                           "They should all be equal.",c,bfi[c], bfi[0]);
-            RETURN(0);
-         }
-      } 
-      for (v=0; v<DSET_NVOX(Opt->pset); ++v) {
-         if (IN_MASK(Opt->cmask, v)) {
-            GET_VEC_AT_VOX(Opt->pset, v, dv, bfi);
+      NEW_SHORTY(pset, N_group_clss_lbls, Opt->pgrefix, gpset);
+      GET_BFs(pset, bfi);
+      
+      for (v=0; v<DSET_NVOX(pset); ++v) {
+         if (IN_MASK(cmask, v)) {
+            GET_VEC_AT_VOX(pset, v, dv, bfi);
             sgdv=0.0;
-            for (gc=0; gc<group_clss->num; ++gc) {
+            for (gc=0; gc<N_group_clss_lbls; ++gc) {
                gdv[gc] = 0.0; 
-               for (c=0; c<Opt->clss->num; ++c) {
+               for (c=0; c<N_clss_lbls; ++c) {
                   if (igrp[c] == gc) {
                      if (dv[c] > gdv[gc]) {
                         gdv[gc] = dv[c]; 
@@ -708,7 +783,7 @@ int Regroup_classes (SEG_OPTS *Opt,
                sgdv += gdv[gc];
             }
             if (sgdv) {
-               for (gc=0; gc<group_clss->num; ++gc) {
+               for (gc=0; gc<N_group_clss_lbls; ++gc) {
                   gdv[gc] /= sgdv;
                }
             }
@@ -719,15 +794,170 @@ int Regroup_classes (SEG_OPTS *Opt,
       }
       
       PUT_BFs(gpset, bfi);   
-      for (gc=0; gc<group_clss->num; ++gc) {
-         sprintf(sval,"p.%s",group_clss->str[gc]);
+      for (gc=0; gc<N_group_clss_lbls; ++gc) {
+         sprintf(sval,"p.%s",group_clss_lbls[gc]);
          EDIT_BRICK_LABEL(gpset,gc,sval);
       }
       
       *gpsetp = gpset; gpset=NULL;
    }
    
-   RETURN(1);
+   SUMA_RETURN(1);
+}
+
+int SUMA_SplitClass_ind(int ig, int ks, int N_Glbls, int *Split)
+{
+   int i, k, l=0;
+   for (i=0; i<N_Glbls; ++i) {
+      for (k=0; k<Split[i]; ++k) {
+         if (i==ig && k==ks) return(l);
+         ++l;
+      }
+   } 
+   return(-1);
+}
+
+int SUMA_Split_Classes(char **Glbls, int N_Glbls, int *Gkeys, int *Split,
+                       THD_3dim_dataset *aset, THD_3dim_dataset *Gcset,
+                       byte *cmask, 
+                       THD_3dim_dataset **Scsetp, SUMA_CLASS_STAT **Scs,
+                       SEG_OPTS *Opt) 
+{
+   static char FuncName[]={"SUMA_Split_Classes"};
+   char **Slbls, snum[64];
+   int N_Slbls, *Skeys, *GRkey;
+   int i, j, k, l, ijk, smask_count, N_submax;
+   short *c=NULL, *ctmp=NULL, *sc=NULL;
+   byte *smask=NULL;
+   THD_3dim_dataset *Scset=NULL;
+   OPT_KMEANS oc;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+      
+   /* total number of resultant classes */
+   N_Slbls = 0; N_submax=0;
+   for (i=0; i<N_Glbls; ++i) {
+      N_Slbls += Split[i]; 
+      if (Split[i]>N_submax) N_submax = Split[i];
+   }   
+   
+   /* create output */
+         /* Using N_Slbls for Slbls was causing a 
+            MCW_malloc post-corruption error at free 
+            time. This would happen even if nothing
+            was done before freeing Slbls (search for BUG below). 
+            Valgrind found nothing. 
+            Not sure what to do, but adding a +1 seems to
+            fix the problem */
+   Slbls = (char **)SUMA_calloc(N_Slbls+1, sizeof(char*));   
+   Skeys = (int   *)SUMA_calloc(N_Slbls, sizeof(int)  );
+   GRkey = (int   *)SUMA_calloc(N_Slbls, sizeof(int)  );
+   
+   /* Fill the keys */
+   l = 0;
+   for (i=0; i<N_Glbls; ++i) {
+      for (k=0; k<Split[i]; ++k) {
+         sprintf(snum,"%02d", k);
+         Skeys[l] = 10*(i+(N_submax+1)/10)+k+1;
+         Slbls[l] = SUMA_append_replace_string(Glbls[i],snum,".",0);   
+         GRkey[l] = Gkeys[i];
+         ++l;
+      }
+   }
+   #if 0 /* BUG See BUG above  */
+      SUMA_LHv("%d, %d\n", l, N_Slbls);
+      for (l=0; l<N_Slbls; ++l) SUMA_ifree(Slbls[l]); 
+      SUMA_ifree(Slbls);
+      exit(1);
+   #endif
+      
+   if (LocalHead) {
+      for (l=0; l<N_Slbls; ++l) {
+         fprintf(SUMA_STDERR,"Slbls[%03d]=%s --> %d (parent %d)\n", 
+                           l, Slbls[l], Skeys[l], GRkey[l]); 
+      }
+   } 
+   /* a new class stats */
+   *Scs =  SUMA_New_Class_Stat(Slbls, N_Slbls, Skeys, 3, NULL);
+   
+   /* Add GRkey */
+   for (l=0; l<N_Slbls; ++l) {
+      SUMA_set_Stat(*Scs, Slbls[l], "GRkey",(double)GRkey[l]);
+   }
+   
+   
+   /* Here is where you split the actual classes */
+   if (Gcset) {
+      SUMA_LH("Working Gcset");
+      if (*Scsetp == NULL) {
+         NEW_SHORTY(Gcset,1,"split.classes",Scset); *Scsetp = Scset;
+      } else {
+         Scset = *Scsetp;
+      }
+      smask = (byte *)SUMA_calloc(sizeof(byte), DSET_NVOX(aset));
+      c = (short *)DSET_ARRAY(Gcset,0);
+      sc = (short *)SUMA_calloc(sizeof(short), DSET_NVOX(aset));
+      oc = new_kmeans_oc();
+      oc.remap = MAG; oc.verb = 0; oc.distmetric = 'e';
+      oc.r = 3;
+      for (i=0; i<N_Glbls; ++i) {
+         oc.k = Split[i]; 
+         snprintf(snum,60,"Split.%s.%02d",Glbls[i],oc.k);
+         oc.jobname = SUMA_copy_string(snum);
+         for (k=0; k<Split[i]; ++k) {
+            l = SUMA_SplitClass_ind(i,k, N_Glbls, Split);
+            oc.clabels[k] = Slbls[l];
+         }
+         smask_count = 0;
+         for (ijk=0; ijk<DSET_NVOX(aset); ++ijk) {
+            if (IN_MASK(cmask, ijk) && c[ijk] == Gkeys[i]) {
+               smask[ijk] = 1; ++smask_count;
+            } else smask[ijk] = 0;
+         }
+         SUMA_LHv("Splitting class %s (%d voxels) into %d\n", 
+                  Glbls[i], smask_count, Split[i]);
+         if (!(thd_Acluster1 (aset,
+               smask, smask_count,
+               &Scset,
+               NULL,
+               NULL,
+               oc))) {
+            SUMA_S_Err("Failed to split cluster");
+            SUMA_RETURN(0);           
+         }
+         SUMA_ifree(oc.jobname);
+         /* Now collect new clusters in new array sc*/
+         l = SUMA_SplitClass_ind(i, 0, N_Glbls, Split);
+         ctmp = (short *)DSET_ARRAY(Scset,0);
+         for (ijk=0; ijk<DSET_NVOX(aset); ++ijk) {
+            if (smask[ijk]) {
+               sc[ijk] = Skeys[l+ctmp[ijk]-1];
+            }
+         }  
+      } /* for each grouped class i */
+      SUMA_ifree(smask);
+      /* Now put the new array in Scset */
+      EDIT_substitute_brick(Scset,0,MRI_short,sc);
+
+
+      /* And a proper labeltable */
+      if (!SUMA_SetDsetLabeltable(Scset, Slbls, N_Slbls, Skeys)) {
+         SUMA_S_Err("Failed to set labeltable");
+         SUMA_RETURN(0);
+      }
+
+      if (LocalHead) {
+         SUMA_Seg_Write_Dset(Opt->proot, "Splitted", 
+                          Scset, -1, Opt->hist);
+      }
+   }
+   
+   SUMA_LH("Free temps");
+   for (l=0;l<N_Slbls; ++l) SUMA_ifree(Slbls[l]);
+   SUMA_ifree(Slbls); SUMA_ifree(Skeys); SUMA_ifree(GRkey);
+
+   SUMA_RETURN(1);
 }
 
 int SUMA_assign_classes (THD_3dim_dataset *pset, 
@@ -753,7 +983,6 @@ int SUMA_assign_classes_eng (THD_3dim_dataset *pset,
    THD_3dim_dataset *cset=*csetp;
    short *p=NULL;
    double max=0.0;
-   char *labeltable_str=NULL;
    SUMA_Boolean LocalHead = YUP;
    
    SUMA_ENTRY;
@@ -801,14 +1030,16 @@ int SUMA_assign_classes_eng (THD_3dim_dataset *pset,
          }
       }
    }
-   labeltable_str = SUMA_LabelsKeys2labeltable_str(label, N_label, 
-                                                   keys);
+   
+   if (!SUMA_SetDsetLabeltable(cset, label, N_label, keys)) {
+      SUMA_S_Err("Failed to set labeltable");
+      SUMA_RETURN(0);
+   }
    EDIT_BRICK_LABEL(cset,0,"maxprob_labels");
-   THD_set_string_atr( cset->dblk , "VALUE_LABEL_DTABLE" , labeltable_str );
-   free(labeltable_str); labeltable_str=NULL;
    
    SUMA_RETURN(1);
 }
+
 
 /*!
    Calculate group mean 
@@ -1500,7 +1731,7 @@ int SUMA_VolumeBlurInMask(THD_3dim_dataset *aset,
    for (k=0; k<DSET_NVALS(aset); ++k) {
       imin = THD_extract_float_brick(k,aset) ;
 
-      mri_blur3D_addfwhm(imin, cmask, FWHM);
+      mri_blur3D_addfwhm_speedy(imin, cmask, FWHM);
 
       /* put results in dset */   
       fa = MRI_FLOAT_PTR(imin);
@@ -1527,27 +1758,37 @@ int SUMA_VolumeBlurInMask(THD_3dim_dataset *aset,
    SUMA_RETURN(1);
 }
 
-/* Energy assigned to the contrast between voxel values a0 and a1 
-   Sign of contrast is irrelevant, ratio is to neutralize the 
-   bias factor, but low intensity values will cause some trouble.
-   Biger contast --> Higher energy*/
-#define EDGE_EN1(a1,a0, d0, d1) (SUMA_ABS((a1)-(a0))/((d1)+(d0)+0.000001))
-
+/*!Energy assigned to the contrast between voxel values a0 and a1. 
+   Sign of contrast is irrelevant
+   Bigger contrast --> Higher energy
+   Denominator is meant to neutralize the effect of bias field.
+*/
+   /* 
+   EDGE_EN1: First pass, seems to work. But division by bias estimate is
+   silly because bias estimate is kind of crappy, one would think. */
+   #define EDGE_EN1(a1,a0, d0, d1) (SUMA_ABS((a1)-(a0))/((d1)+(d0)+0.01))
+   #define EDGE_EN0(a1,a0) (SUMA_ABS((a1)-(a0)))
 double SUMA_EdgeEnergy(short *a, float af, short *b, float bf,
                       int Ni, int Nj, int Nk,
-                      short *c, short c1, short c2, 
-                      byte *mask,
-                      short *skel, 
+                      short *c, short k1, short k2, 
+                      byte *mask, SUMA_CLASS_STAT *cs,
+                      int method, short *skel, 
                       int *n_en) {
    static char FuncName[]={"SUMA_EdgeEnergy"};
    int ii, jj, kk, Nij, Nijk, off, n1, n0;
+   short c1, c2;
    double en = 0.0;
    
    SUMA_ENTRY;
    
+   c1 = cs->keys[k1];
+   c2 = cs->keys[k2];
+   
    *n_en = 0;
    Nij = Ni*Nj; Nijk = Nij*Nk;
    if (skel) memset(skel, 0, Nijk*sizeof(short));
+
+   if (!b) bf = 1.0;
    
    /* The i direction */
    for (kk=0; kk<Nk; ++kk) { for (jj=0; jj<Nj; ++jj) {
@@ -1562,7 +1803,46 @@ double SUMA_EdgeEnergy(short *a, float af, short *b, float bf,
             if (skel) {
                skel[n1] = c[n1]; skel[n0] = c[n0];
             }
-            en += EDGE_EN1(a[n1], a[n0], b[n1], b[n0]); ++(*n_en);
+            
+            switch (method) {
+               case 1:
+                  /* Passing bias estimate in denominator, not
+                  particularly exciting since those can be kind of crappy
+                  Has been tested in no bias case so far and works ok,
+                  also works well in presence of bias field, even when
+                  field is ignored. 
+                  Looking at edges in presence of bias field shows that 
+                  results not all that sensitive to bias. Though edges in 
+                  example below are not along boundaries, bias effect should
+                  be comparable:
+                  3dcalc   -a banat+orig. \
+                           -b 'a[-1,0,0,0]' -c 'a[1,0,0,0]' -d 'a[0,-1,0,0]' \
+                           -e 'a[0,1,0,0]' -f 'a[0,0,-1,0]' -g 'a[0,0,1,0]' \
+                           -h banat.ns+orig. \
+                           -expr '(a-(b+c+d+e+f+g)/6)*step(h)' -prefix 'contr'
+                  
+                  3dcalc   -a banat+orig. \
+                           -b 'a[-1,0,0,0]' -c 'a[1,0,0,0]' -d 'a[0,-1,0,0]' \
+                           -e 'a[0,1,0,0]' -f 'a[0,0,-1,0]' -g 'a[0,0,1,0]' \
+                           -h banat.ns+orig. \
+                        -expr '(a-(b+c+d+e+f+g)/6)/(a+(b+c+d+e+f+g)/6)*step(h)'\
+                        -prefix 'contr_rat'
+                  */
+                  if (b) { en += EDGE_EN1(a[n1], a[n0], b[n1], b[n0]); }
+                  else   { en += EDGE_EN0(a[n1], a[n0]); }
+                  break;
+               case 2:
+                  /* (a-b)/(a+b) is independent of bias field.
+                  However the ratio changes the energy rankings 
+                  from (a-b) alone. The energy sum is then multiplied
+                  by (Mean(a)+Mean(b). Works OK too, but not better than 1*/
+                  en += EDGE_EN1(a[n1], a[n0], a[n1], a[n0]); 
+                  break;
+            }
+            ++(*n_en);
+            /*fprintf(stderr,"%d %d, %d, %d, %f, %f, %f\n",
+                        a[n1], a[n0], b[n1], b[n0], af, bf,
+                        EDGE_EN1(a[n1], a[n0], b ? b[n1]:1.0, b ? b[n0]:1.0)); */
          }
       }
    } }
@@ -1580,7 +1860,16 @@ double SUMA_EdgeEnergy(short *a, float af, short *b, float bf,
             if (skel) {
                skel[n1] = c[n1]; skel[n0] = c[n0];
             }
-            en += EDGE_EN1(a[n1], a[n0], b[n1], b[n0]); ++(*n_en);
+            switch (method) {
+               case 1:
+                  if (b) { en += EDGE_EN1(a[n1], a[n0], b[n1], b[n0]); }
+                  else   { en += EDGE_EN0(a[n1], a[n0]); }
+                  break;
+               case 2:
+                  en += EDGE_EN1(a[n1], a[n0], a[n1], a[n0]);
+                  break;
+            }      
+            ++(*n_en);
          }
       }
    } }
@@ -1598,70 +1887,99 @@ double SUMA_EdgeEnergy(short *a, float af, short *b, float bf,
             if (skel) {
                skel[n1] = c[n1]; skel[n0] = c[n0];
             }
-            en += EDGE_EN1(a[n1], a[n0], b[n1], b[n0]); ++(*n_en);
+            switch (method) {
+               case 1:
+                  if (b) { en += EDGE_EN1(a[n1], a[n0], b[n1], b[n0]); }
+                  else   { en += EDGE_EN0(a[n1], a[n0]); }
+                  break;
+               case 2:
+                  en += EDGE_EN1(a[n1], a[n0], a[n1], a[n0]);
+                  break;
+            }  
+            ++(*n_en);
          }
       }
    } }
    
    en *= af/bf;
+    
+   switch (method) {
+      case 1:
+         en = 2.0* en / SUMA_ABS( SUMA_get_Stat(cs, cs->label[k2], "mean")-
+                                  SUMA_get_Stat(cs, cs->label[k1], "mean") );
+         break;
+      case 2:
+         en = en * (SUMA_get_Stat(cs, cs->label[k2], "mean")+
+                    SUMA_get_Stat(cs, cs->label[k1], "mean") );
+         break;
+      default:
+         SUMA_S_Errv("Stupid method %d\n", method);
+         SUMA_RETURN(0);
+   }
    SUMA_RETURN(en);
 }
 
 double SUMA_DsetEdgeEnergy(THD_3dim_dataset *aset,
-                      short *c,
+                      THD_3dim_dataset *cset,
                       byte *mask, 
                       THD_3dim_dataset *fset,
-                      SUMA_CLASS_STAT *cs)
+                      THD_3dim_dataset *skelset,
+                      SUMA_CLASS_STAT *cs, int method,
+                      int *UseK, int N_kok)
 {
    static char FuncName[]={"SUMA_DsetEdgeEnergy"};
    double en=0.0, env[64];
    short *a=NULL;
-   short *skel = NULL;
    short *f=NULL;
+   short *c=NULL;
+   short *skel=NULL;
    float af=1.0, ff= 1.0;
-   int c1,c2, ke, n_env[64], n_en=0, sum_n_en=0;
-   SUMA_Boolean LocalHead = YUP;
+   int c1,c2, ke, n_env[64], n_en=0, sum_n_en=0, kc1, kc2;
+   char slab[256];
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
-   if (!fset) {
-      SUMA_S_Warn("No bias se, substituting with anatomy");
-      fset = aset;
+   if (fset) {
+      f = (short *)DSET_ARRAY(fset, 0);
+      ff = DSET_BRICK_FACTOR(fset,0); if (ff == 0.0) ff = 1.0;
+   } else {
+      f = NULL;
    }
    a = (short *)DSET_ARRAY(aset, 0);
-   f = (short *)DSET_ARRAY(fset, 0);
    af = DSET_BRICK_FACTOR(aset,0); if (af == 0.0) af = 1.0;
-   ff = DSET_BRICK_FACTOR(fset,0); if (ff == 0.0) ff = 1.0;
+   c = (short *)DSET_ARRAY(cset,0);
    
    ke = 0; sum_n_en = 0.0;
-   for (c1=0; c1<cs->N_label; ++c1) {
-      for (c2=c1+1; c2<cs->N_label; ++c2) {
-         en = SUMA_EdgeEnergy(a, af, f, af,
+   for (kc1=0; kc1<N_kok; ++kc1) {
+      for (kc2=kc1+1; kc2<N_kok; ++kc2) {
+         c1 = UseK[kc1]; c2 = UseK[kc2];
+         snprintf(slab,64,"%s-e-%s", cs->label[c1], cs->label[c2]);
+         if (skelset) {
+            skel = (short *)DSET_ARRAY(skelset, ke);
+            EDIT_BRICK_LABEL(skelset,ke,slab);
+         }
+         
+         en = SUMA_EdgeEnergy(a, af, f, ff,
                   DSET_NX(aset), DSET_NY(aset), DSET_NZ(aset),
-                  c, cs->keys[c1], cs->keys[c2], mask, skel,  &n_en);
-         SUMA_LHv("%s %s: Energy %f, Nedges %d\n", 
-                           cs->label[c1], cs->label[c2], en, n_en);
-         /* Normalize by average intensity */
-         env[ke] = en/SUMA_ABS( SUMA_get_Stat(cs, cs->label[c2], "mean")+
-                           SUMA_get_Stat(cs, cs->label[c1], "mean") );
+                  c, c1, c2, mask, cs, method, skel,  &n_en);
+         env[ke] = en;
          n_env[ke] = n_en; sum_n_en += n_en; 
+         SUMA_LHv("%s %s:     Energy %f, Nedges %d,         E/N = %f\n",  
+                           cs->label[c1], cs->label[c2], 
+                           en,  n_en,
+                           env[ke]/(float)n_en);
          ++ke;    
       }
    }
    
-   #if 0
    /* combine energies from each combination, 
       weigh by number of edges involved */
-   en = 0;
-   for (c1=0; c1<ke; ++c1) {
-      en += (double)n_env[c1]/(double)sum_n_en*env[c1];
-   }
-   #else
+
    en = 0;
    for (c1=0; c1<ke; ++c1) {
       en += env[c1]/(double)n_env[c1];
    }
-   #endif
    SUMA_RETURN(en);
 }
 
@@ -1979,7 +2297,7 @@ int SUMA_estimate_bias_field_Wells (SEG_OPTS *Opt,
    double df, sdf, Ai, Gik, Ri, *Mg, *Sg;
    static int iter = 0;
    struct  timeval tti;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
@@ -2032,20 +2350,23 @@ int SUMA_estimate_bias_field_Wells (SEG_OPTS *Opt,
             }
          }
          R[ijk] = Ri;
-         Ps[ijk] = sdf;   
+         Ps[ijk] = sdf;
+           
       }      
    }
 
    if (Opt->debug > 1) {/* store scaled intensities */
-      SUMA_SEG_WRITE_DSET("Rset-PreBlur", Rset, iter, Opt->hist);   
-      SUMA_SEG_WRITE_DSET("Psset-PreBlur", Psset, iter, Opt->hist);   
+      SUMA_Seg_Write_Dset(Opt->proot, "Rset-PreBlur", Rset, iter, Opt->hist);   
+      SUMA_Seg_Write_Dset(Opt->proot, "Psset-PreBlur", Psset, iter, Opt->hist);   
    }
    
    SUMA_etime (&tti, 0);
-   /* Blur the two sets */
-   SUMA_LH("Blur Rset");
    
 
+   /* Blur the two sets */
+   if (LocalHead || Opt->debug > 1) {
+      SUMA_S_Note("Blurring Psset & Rset");      
+   }
 #ifdef USE_OMP
 #pragma omp parallel
 {
@@ -2056,7 +2377,6 @@ int SUMA_estimate_bias_field_Wells (SEG_OPTS *Opt,
    bb[1] = Psset;   
 #pragma omp for
    for (is=0; is<2; ++is) {
-      SUMA_LHv("Blur Set %d\n", is);
       if (!(SUMA_VolumeBlurInMask(bb[is],
                             cmask,
                             bb+is, fwhm, 0.0))) {
@@ -2065,12 +2385,13 @@ int SUMA_estimate_bias_field_Wells (SEG_OPTS *Opt,
    }   
 } /* end OpenMP */
 #endif
-   if (1 || Opt->debug) { SUMA_S_Notev("Smoothing duration %f seconds\n", 
+
+   if (Opt->debug) { SUMA_S_Notev("Smoothing duration %f seconds\n", 
                                     SUMA_etime (&tti, 1)); }
                                     
    if (Opt->debug > 1) {/* store scaled intensities */
-      SUMA_SEG_WRITE_DSET("Rset-PostBlur", Rset, iter, Opt->hist);   
-      SUMA_SEG_WRITE_DSET("Psset-PostBlur", Psset, iter, Opt->hist);   
+      SUMA_Seg_Write_Dset(Opt->proot, "Rset-PostBlur", Rset, iter, Opt->hist);   
+      SUMA_Seg_Write_Dset(Opt->proot, "Psset-PostBlur", Psset, iter, Opt->hist); 
    }
    
    fBset = 1.0/10000.0;
@@ -2084,13 +2405,13 @@ int SUMA_estimate_bias_field_Wells (SEG_OPTS *Opt,
    EDIT_BRICK_FACTOR(Bset, 0, fBset);
       
    if (Opt->debug > 1) {/* store scaled intensities */
-      SUMA_SEG_WRITE_DSET("Bset", Bset, iter, Opt->hist);   
+      SUMA_Seg_Write_Dset(Opt->proot, "Bset", Bset, iter, Opt->hist);   
    }
    
    
    SUMA_ifree(fpstCgALL); SUMA_ifree(UseK); 
    DSET_delete(Psset); DSET_delete(Rset);
-
+   
    ++iter;
    
    SUMA_RETURN(1);
@@ -2398,7 +2719,7 @@ int SUMA_Add_Class_Label(SUMA_CLASS_STAT *cs, char *label, int key)
 }
 
 
-SUMA_CLASS_STAT *SUMA_New_Class_Stat(NI_str_array *clss, int *keys, 
+SUMA_CLASS_STAT *SUMA_New_Class_Stat(char **clssl, int N_clssl, int *keys, 
                                     int nP, NI_str_array *pnames) 
 {
    static char FuncName[]={"SUMA_New_Class_Stat"};
@@ -2423,12 +2744,12 @@ SUMA_CLASS_STAT *SUMA_New_Class_Stat(NI_str_array *clss, int *keys,
          SUMA_RETURN(NULL);
       }
    }
-   cs->N_label = clss->num;
+   cs->N_label = N_clssl;
    cs->nP = 0; cs->pname=NULL, cs->Pv=NULL;
    cs->label = (char **)SUMA_calloc(cs->N_label,sizeof(char *));
    cs->keys = (int *)SUMA_calloc(cs->N_label, sizeof(int));
-   for (i=0; i<clss->num; ++i) {
-      cs->label[i] = SUMA_copy_string(clss->str[i]);
+   for (i=0; i<N_clssl; ++i) {
+      cs->label[i] = SUMA_copy_string(clssl[i]);
       if (keys) cs->keys[i] = keys[i];
       else cs->keys[i] = i+1;
    }
@@ -2547,12 +2868,15 @@ double *SUMA_get_Stats(SUMA_CLASS_STAT *cs,  char *pname)
    static char FuncName[]={"SUMA_get_Stats"};
    double *vv=NULL;
    int pp[2];
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
       
    if (!SUMA_Stat_position(cs, NULL,  pname, pp)) {
-      SUMA_S_Errv("Failed to locate %s\n",
+      if (LocalHead) {
+         SUMA_S_Notev("Failed to locate %s\n",
                   pname);
+      }
       SUMA_RETURN(NULL); 
    }
    SUMA_RETURN(cs->Pv[pp[1]]);
@@ -2581,8 +2905,19 @@ int SUMA_set_Stat(SUMA_CLASS_STAT *cs, char *label, char *pname, double val)    
    SUMA_RETURN(1);  
 }
 
-int SUMA_show_Class_Stat(SUMA_CLASS_STAT *cs, char *head) {
-   return(SUMA_dump_Class_Stat(cs, head, SUMA_STDOUT));
+int SUMA_show_Class_Stat(SUMA_CLASS_STAT *cs, char *head, char *fout) {
+   FILE *ff = NULL;
+   int a;
+   if (!fout) return(SUMA_dump_Class_Stat(cs, head, SUMA_STDERR));
+   else {
+      a = 0;
+      ff = fopen(fout,"w");
+      if (ff) {
+         a = SUMA_dump_Class_Stat(cs, head, ff);
+         fclose(ff); 
+      } 
+      return(a);
+   }
 }
 
 int SUMA_dump_Class_Stat(SUMA_CLASS_STAT *cs, char *head, FILE *Out)
@@ -2593,7 +2928,7 @@ int SUMA_dump_Class_Stat(SUMA_CLASS_STAT *cs, char *head, FILE *Out)
    SUMA_ENTRY;
    s = SUMA_Class_Stat_Info(cs, head);
 
-   if (!Out) Out = SUMA_STDOUT;
+   if (!Out) Out = SUMA_STDERR;
    
    fprintf(Out,"%s", s);
    
@@ -2667,24 +3002,45 @@ double SUMA_mixopt_2_mixfrac(char *mixopt, char *label, int key, int N_clss,
    
    SUMA_ENTRY;
    
+ 
    if (!mixopt || !strncmp(mixopt,"UNI",3)) {
       frac = 1.0/(double)N_clss;
    } else if (!strcmp(mixopt,"TOY_DEBUG")) {
            if (!strcmp(label, "CSF"))frac = 0.1;
       else if (!strcmp(label, "GM")) frac = 0.45;
       else if (!strcmp(label, "WM")) frac = 0.45;
+      else {
+         SUMA_S_Errv("Not ready for class %s in mixopt %s\n",
+               label, mixopt);
+         SUMA_RETURN(-1.0);
+      } 
    } else if (!strcmp(mixopt,"WHOLE_BRAIN")) {
            if (!strcmp(label, "CSF"))frac = 0.015;
       else if (!strcmp(label, "GM")) frac = 0.650;
       else if (!strcmp(label, "WM")) frac = 0.335;
+      else {
+         SUMA_S_Errv("Not ready for class %s in mixopt %s\n",
+               label, mixopt);
+         SUMA_RETURN(-1.0);
+      } 
    } else if (!strcmp(mixopt,"AVG152_BRAIN_MASK")) {
            if (!strcmp(label, "CSF"))frac = 0.155;
       else if (!strcmp(label, "GM")) frac = 0.550;
       else if (!strcmp(label, "WM")) frac = 0.295;
+      else {
+         SUMA_S_Errv("Not ready for class %s in mixopt %s\n",
+               label, mixopt);
+         SUMA_RETURN(-1.0);
+      } 
    } else if (!strcmp(mixopt,"AVG152p_BRAIN_MASK")) {
            if (!strcmp(label, "CSF"))frac = 0.149;
       else if (!strcmp(label, "GM")) frac = 0.480;
       else if (!strcmp(label, "WM")) frac = 0.371;
+      else {
+         SUMA_S_Errv("Not ready for class %s in mixopt %s\n",
+               label, mixopt);
+         SUMA_RETURN(-1.0);
+      } 
    } else if (!strcmp(mixopt,"CSET")) {
       if (!cset) {
          SUMA_S_Err("No -cset input to use with CSET");
@@ -2753,146 +3109,93 @@ THD_3dim_dataset *SUMA_p_Y_GIV_C_B_O(
    SUMA_RETURN(pout);
 }
 
-THD_3dim_dataset *SUMA_MAP_labels_old(THD_3dim_dataset *aset, 
-                        byte *cmask, 
-                        SUMA_CLASS_STAT *cs, int neighopt, 
-                        THD_3dim_dataset *cset, SEG_OPTS *Opt)
-{
-   static char FuncName[]={"SUMA_MAP_labels_old"};
-   THD_3dim_dataset *pout = cset;
-   float af=0.0;
-   int iter=0, i=0, k, ni, nj, nk, nij, ijkn[6];
-   int Niter = 3;
-   double lP[Niter], *mv, *sv, p1m, p2m, dd, *p1=NULL, *p2=NULL, sp1, sp2;
-   short *ci=NULL, *co=NULL, *a=NULL;
-   
-   SUMA_ENTRY;
-   
-   if (neighopt != 4 && neighopt != 6) {
-      SUMA_S_Errv("Allowing neighopt of 4 or 6 only. Have %d\n", neighopt);
-      SUMA_RETURN(NULL);
-   } 
-    
-   if (!pout) {
-      NEW_SHORTY(aset,1,"MAP_labels_old",pout);
-   }
-   
-   af = DSET_BRICK_FACTOR(aset,0); if (af == 0.0f) af = 1.0;
-   a = (short *)DSET_ARRAY(aset,0);
-   co = (short *)DSET_ARRAY(cset,0);
-   ci = (short *)malloc(sizeof(short)*DSET_NVOX(aset));
-   p1 = (double *)calloc(cs->N_label, sizeof(double));
-   p2 = (double *)calloc(cs->N_label, sizeof(double));
-   
-   ni = DSET_NX(aset);
-   nj = DSET_NY(aset);
-   nk = DSET_NZ(aset);
-   nij = ni*nj;
-   
-   /* get vector of parameters  */
-   mv = SUMA_get_Stats(cs, "mean");
-   sv = SUMA_get_Stats(cs, "stdv");
-   
-   for (iter=0; iter<Niter; ++iter) {
-      memcpy(ci, co, sizeof(short)*DSET_NVOX(aset));
-      lP[iter] = 0.0;
-      for (i=0; i<DSET_NVOX(aset); ++i) {
-         if (IN_MASK(cmask,i)) {
-            sp1 = 0.0; sp2 = 0.0;
-            for(k=0; k<cs->N_label; ++k) {
-               /* term 1, likelihood based on gaussians */
-               dd = ((double)a[i]*af-mv[k]); dd *= dd; 
-               p1[k] = exp(-dd/(2.0*sv[k]*sv[k]) -log(sv[k]))/SQ2PI ; 
-               sp1 += p1[k];
-               /* term 2, likelihood based on neighbors */
-               GET_NEIGHBS_IN_MASK( cmask, i, 
-                                    ni, nj, nk, nij, 
-                                    ijkn);
-               /* calculate the field likelihood */
-               P_l_GIV_NEIGHBS_NOTGOOD(ci, ijkn, cs->keys[k], neighopt, p2[k]);
-               sp2 += p2[k];
-            }
-            /* Marginalize ps, get max and corresponding class */
-            if (1) {
-               p1m=0.0; p2m=0.0; 
-               for(k=0; k<cs->N_label; ++k) { 
-                  p1[k] /= sp1; p2[k] /= sp2; 
-                  if (p1[k]+p2[k] > p1m+p2m) { 
-                     p1m = p1[k]; p2m=p2[k]; co[i] = cs->keys[k]; 
-                  } 
-               }
-            }
-            if (i == Opt->VoxDbg) {
-               fprintf(Opt->VoxDbgOut, "a=%d (%f)\n", a[i], a[i]*af);
-               for(k=0; k<cs->N_label; ++k) {
-                  fprintf(Opt->VoxDbgOut, "%d-->%d, %f, %f\n",
-                        k, cs->keys[k],
-                        cs->Pv[1][k], cs->Pv[2][k]);      
-               }
-               fprintf(Opt->VoxDbgOut, "p1:   ");
-               for(k=0; k<cs->N_label; ++k) {
-                  fprintf(Opt->VoxDbgOut, "%f   ", p1[k]);
-               }
-               fprintf(Opt->VoxDbgOut, "\n");
-               fprintf(Opt->VoxDbgOut, "p2:   ");
-               for(k=0; k<cs->N_label; ++k) {
-                  fprintf(Opt->VoxDbgOut, "%f   ", p2[k]);
-               }
-               fprintf(Opt->VoxDbgOut, "\n");
-            } 
-            if (p1m+p2m > 0.002) lP[iter] += log((p1m+p2m)/2.0);
-            else lP[iter] += log(0.001);
-         } else {
-            co[i] = 0;
-         }
-      }/* for i */
-      SUMA_S_Notev("Iter %d, lP=%f\n", iter, lP[iter]);
-   } /* for iter */
-     
-   SUMA_ifree(ci);   
-   SUMA_RETURN(pout);
-}
 
 typedef struct {
    SUMA_CLASS_STAT *cs;
    THD_3dim_dataset *aset;
-   THD_3dim_dataset *fset;
-   short *c;
+   THD_3dim_dataset *cset;
+   THD_3dim_dataset *Bset;
+   THD_3dim_dataset *pstCgALL;
+   THD_3dim_dataset *priCgALL;
+   THD_3dim_dataset *pCgN;
+   float mrfB;
+   float Temp;
    byte *cmask;
+   int cmask_count;
+   int method;
+   int *UseK;
+   int N_kok;
 } EEO_UD; /* user data for SUMA_EdgeEnergy_OptimCost */
 
 static EEO_UD eeoud;
 
 void SUMA_free_eeoud() {
-   if (eeoud.c) SUMA_ifree(eeoud.c);
+   if (eeoud.pstCgALL) DSET_delete(eeoud.pstCgALL); eeoud.pstCgALL=NULL;
+   if (eeoud.UseK) SUMA_ifree(eeoud.UseK); 
    return;
 }
 
 void SUMA_set_eeoud(SUMA_CLASS_STAT *cs, THD_3dim_dataset *aset,
-                    THD_3dim_dataset *fset,
-                    byte *cmask) {
+                    THD_3dim_dataset *Bset, THD_3dim_dataset *cset,
+                    THD_3dim_dataset *priCgAll, THD_3dim_dataset *pCgN,
+                    float mrfB, float Temp,
+                    byte *cmask, int cmask_count, 
+                    int method, char *classes) {
+   static char FuncName[]={"SUMA_set_eeoud"};
+   
+   SUMA_ENTRY;
+   
    SUMA_free_eeoud();
    eeoud.cs = cs;
    eeoud.aset = aset;
-   eeoud.fset = fset;
-   eeoud.c = (short *)SUMA_calloc(DSET_NVOX(aset),sizeof(short));
+   eeoud.Bset = Bset;
+   eeoud.cset = cset;
+   if (!eeoud.cset) {
+      SUMA_S_Err("Need cset"); SUMA_RETURNe;
+   }  
+   eeoud.mrfB = mrfB;
+   eeoud.Temp = Temp;
+   eeoud.priCgALL = priCgAll;
+   eeoud.pstCgALL = NULL;
+   eeoud.pCgN = pCgN;
    eeoud.cmask = cmask;
-   
-   return;
+   eeoud.method = method;
+   eeoud.UseK = (int *)SUMA_calloc(cs->N_label, sizeof(int));
+   if ((eeoud.N_kok = SUMA_Class_k_Selector(eeoud.cs, "classes_string", 
+                                          classes, eeoud.UseK))<0) {
+      SUMA_S_Err("Failed to find classes");
+      SUMA_RETURNe;
+   }
+
+   SUMA_RETURNe;
 }
 
 void SUMA_EdgeEnergy_Gassign(THD_3dim_dataset *aset, THD_3dim_dataset *fset,
-                        byte *cmask, SUMA_CLASS_STAT *cs, 
-                        double *par, int npar, short *cout)
+                        byte *cmask, SUMA_CLASS_STAT *cs, int *UseK, int N_kok,
+                        double *par, int npar, THD_3dim_dataset *cset)
 {
-   int i, k;
+   static char FuncName[]={"SUMA_EdgeEnergy_Gassign"};
+   int i, ku;
    double cost = 0.0, eem=0.0, dd=0.0, ee=0.0, mean=0.0, stdv=0.0;
-   short *a = (short *)DSET_ARRAY(aset,0);
-   float af = DSET_BRICK_FACTOR(aset, 0); 
-   short *f = (short *)DSET_ARRAY(fset,0);
-   float ff = DSET_BRICK_FACTOR(fset, 0); 
+   short *a=NULL, *fb=NULL;
+   short *cout=NULL;
+   float af, ff=1.0; 
    float aof;
+   SUMA_Boolean LocalHead = NOPE;
    
+   SUMA_ENTRY;
+   
+   SUMA_LHv("aset %p, fset %p\n", aset, fset);
+   
+   a = (short *)DSET_ARRAY(aset,0);
+   af = DSET_BRICK_FACTOR(aset, 0); 
+   
+   if (fset) {
+      fb = (short *)DSET_ARRAY(fset,0);
+      ff = DSET_BRICK_FACTOR(fset, 0);
+   }
+   cout = (short *)DSET_ARRAY(cset,0);
+    
    if (af == 0.0f) af = 1.0;
    if (ff == 0.0f) ff = 1.0;
    aof = af/ff;
@@ -2900,61 +3203,125 @@ void SUMA_EdgeEnergy_Gassign(THD_3dim_dataset *aset, THD_3dim_dataset *fset,
    for (i=0; i<DSET_NVOX(aset); ++i) {
       if (IN_MASK(cmask,i)) {
          eem = -1.0;
-         for (k=0; k<cs->N_label; ++k) {
-            mean = par[2*k]; stdv = par[2*k+1];
-            dd = ((double)a[i]/f[i]*aof-mean); dd *= dd;
+         for (ku=0; ku<N_kok; ++ku) {
+            mean = par[2*ku]; stdv = par[2*ku+1];
+            if (fset) dd = ((double)a[i]/fb[i]*aof-mean); 
+            else dd = ((double)a[i]*aof-mean);  
+            dd *= dd;
             ee = exp(-dd/(2.0*stdv*stdv) -log(stdv));
-            #if 0
-               if (i == 3247) {
+            if (LocalHead) {
+               if (i == 1631822) {
                   fprintf(stderr,
                      "%d: a=%f, f=%f, m=%f, s=%f, k=%d, ee=%f, eem=%f\n",
-                     iter, a[i]*af, f[i]*ff, mean, stdv, k, ee, eem);
+                     i, a[i]*af, fset ? fb[i]*ff:1.0, mean, stdv, ku, ee, eem);
                }
-            #endif
-            if (ee > eem) { eem = ee; cout[i] = cs->keys[k]; }
+            }
+            if (ee > eem) { eem = ee; cout[i] = cs->keys[UseK[ku]]; }
          }
       }
    }
    
-   return;
+   SUMA_RETURNe;
 }
+
  
 double SUMA_EdgeEnergy_OptimCost(int n, double *par) 
 {
+   static char FuncName[]={"SUMA_EdgeEnergy_OptimCost"};
    static int iter;
+   int i;
    double cost;
+   THD_3dim_dataset *pstCgALL=NULL;
+   THD_3dim_dataset *cset=NULL;
    
-   /* Assign classes based on Gaussians */
-   SUMA_EdgeEnergy_Gassign(eeoud.aset, eeoud.fset,
+   /* put parameters into cs */
+   for (i=0; i<eeoud.N_kok; ++i) {
+      SUMA_set_Stat(eeoud.cs, eeoud.cs->label[eeoud.UseK[i]], 
+                        "mean", par[2*i  ]);
+      SUMA_set_Stat(eeoud.cs, eeoud.cs->label[eeoud.UseK[i]], 
+                        "stdv", par[2*i+1]);
+   }
+   
+   #if 0
+   /* Assign classes based on Gaussians only */
+   SUMA_EdgeEnergy_Gassign(eeoud.aset, eeoud.Bset,
                         eeoud.cmask, eeoud.cs, 
-                        par, n, eeoud.c);
+                        eeoud.UseK, eeoud.N_kok,
+                        par, n, eeoud.cset);
+   #else 
+   /*SUMA_S_Warn("HAD NO EFFECT on RESULTS whether -edge was used or not\n"
+               "Not exactly sure why yet. Either a stupic coding mistake,\n"
+               "Or the priors are too powerful. Although the bug comes up\n"
+               "even at the simplest command such as: \n"
+               "3dSeg   -anat banat+orig -mask anat.ns+orig \n"
+               "        -gold goldseg+orig -gold_bias goldbias+orig \n"
+               "        -classes 'CSF ; GM ; WM' -Bmrf 0.0 -edge1 \n"
+               "        -bias_classes 'GM ; WM' -bias_fwhm 25 \n"
+               "-prefix case.A.1nopst.ss -overwrite");
+   */
+   /* stick par parameters parameters here */
    
+   /* compute posterior as would be done in main routine */
+   if (!SUMA_pst_C_giv_ALL( eeoud.aset, 
+                             eeoud.cmask, eeoud.cmask_count,
+                             eeoud.cs, eeoud.priCgALL, eeoud.pCgN, 
+                             eeoud.mrfB, eeoud.Temp, 1,
+                             &(pstCgALL))) {
+         fprintf(stderr,"Error SUMA_EdgeEnergy_OptimCost:\n"
+                        "Failed in SUMA_pst_C_giv_ALL\n");
+         return(0);
+   }
+   eeoud.pstCgALL = pstCgALL; pstCgALL = NULL;
+   
+   /* assign classes */
+   if (!(SUMA_assign_classes( eeoud.pstCgALL, eeoud.cs, 
+                              eeoud.cmask, &cset))) { 
+      fprintf(stderr,"Error SUMA_EdgeEnergy_OptimCost:\n"
+                        "Failed in SUMA_assign_classes\n");
+      return(0);
+   }
+   memcpy(DSET_ARRAY(eeoud.cset,0),
+          DSET_ARRAY(cset,0), sizeof(short)*DSET_NVOX(cset)); 
+   DSET_delete(cset); cset=NULL;
+   #endif
    /* call energy function */
    cost = -1.0 * SUMA_DsetEdgeEnergy(eeoud.aset,
-                       eeoud.c,
+                       eeoud.cset,
                        eeoud.cmask, 
-                       eeoud.fset,
-                       eeoud.cs);
+                       eeoud.Bset, NULL,
+                       eeoud.cs, eeoud.method,
+                       eeoud.UseK, eeoud.N_kok);
    
-   /* fprintf(stderr,"%d, %f\n", iter, cost); */ 
+   if (debug) fprintf(SUMA_STDERR,"%cMethod %d. iter %d, Edge Cost %f", 
+            0xd, eeoud.method, iter, cost); 
+   
+   
+
    ++iter; 
    return(cost);
 }
 
-double SUMA_MAP_EdgeEnergy(THD_3dim_dataset *aset, byte *cmask, 
-                        THD_3dim_dataset *fset, SUMA_CLASS_STAT *cs, 
-                        THD_3dim_dataset *cset, SEG_OPTS * Opt, 
-                        short *thiscmap)
+double SUMA_MAP_EdgeEnergy(THD_3dim_dataset *aset, byte *cmask, int cmask_count,
+                        THD_3dim_dataset *Bset, SUMA_CLASS_STAT *cs, 
+                        THD_3dim_dataset *cset, int method, 
+                        THD_3dim_dataset *priCgAll, THD_3dim_dataset *pCgN, 
+                        float mrfB, float Temp, 
+                        float deltamean, float deltastd,
+                        SEG_OPTS * Opt)
 {
    static char FuncName[]={"SUMA_MAP_EdgeEnergy"};
    int ncalls = 0, nparmax = 36, npar, i, nrand, ntry, nkeep, maxcall;
    double par[nparmax], bot[nparmax], top[nparmax], cost,
           gap[nparmax], rstart, rend;
    static int icall = 0;
-   SUMA_Boolean LocalHead = YUP;   
+   SUMA_Boolean LocalHead = NOPE;   
    
    SUMA_ENTRY;
    
+   /* load user data */
+   SUMA_set_eeoud(cs, aset, Bset, cset, priCgAll, pCgN, mrfB, Temp, 
+                  cmask, cmask_count, method, "CSF; GM; WM");
+                  
    /* load parameters into par, bot, top */
    if (cs->N_label*2 > nparmax) {
       SUMA_S_Err("Too many parameters");
@@ -2963,10 +3330,10 @@ double SUMA_MAP_EdgeEnergy(THD_3dim_dataset *aset, byte *cmask,
    
    /* initialize parameters and estimate gap between classes.
    For 1st and last class, assume gap is one stdv */
-   npar = cs->N_label*2;
-   for (i=0; i<cs->N_label; ++i) {
-      par[2*i  ] = SUMA_get_Stat(cs, cs->label[i], "mean");
-      par[2*i+1] = SUMA_get_Stat(cs, cs->label[i], "stdv");
+   npar = eeoud.N_kok*2;
+   for (i=0; i<eeoud.N_kok; ++i) {
+      par[2*i  ] = SUMA_get_Stat(cs, cs->label[eeoud.UseK[i]], "mean");
+      par[2*i+1] = SUMA_get_Stat(cs, cs->label[eeoud.UseK[i]], "stdv");
       if (i>0) {
          gap[i] = par[2*i  ] - par[2*(i-1)]; /* mean difference 
                                                      between classes i and i-1 */
@@ -2975,50 +3342,56 @@ double SUMA_MAP_EdgeEnergy(THD_3dim_dataset *aset, byte *cmask,
             SUMA_RETURN(0.0);
          }
       } else {
-         gap[0] = SUMA_get_Stat(cs, cs->label[0], "stdv")*2.0; 
+         gap[0] = SUMA_get_Stat(cs, cs->label[eeoud.UseK[0]], "stdv")*2.0; 
                      /* Can't compute mean difference, 
                       allow something function of stdv */
       }
    }
-   gap[cs->N_label] = SUMA_get_Stat(cs, cs->label[cs->N_label-1], "stdv")*2.0; 
+   gap[eeoud.N_kok] = SUMA_get_Stat(cs, 
+                        cs->label[eeoud.UseK[eeoud.N_kok-1]], "stdv")*2.0; 
    
    /* min and max params for mean parameters */
-   for (i=0; i<cs->N_label; ++i) {
-      if (i==0)   bot[2*i] = SUMA_MAX_PAIR(par[2*i] - gap[i]/10.0, 0.8*par[2*i]);
+   for (i=0; i<eeoud.N_kok; ++i) {
+      if (i==0)   bot[2*i] = SUMA_MAX_PAIR(par[2*i] - gap[i]/10.0, 
+                                          (1.0-deltamean/2.0)*par[2*i]);
       else        bot[2*i] = par[2*i] - gap[i]/10.0;
-      if (i==cs->N_label-1) 
-                  top[2*i] = SUMA_MIN_PAIR(par[2*i]+gap[i+1]/10.0, 1.2*par[2*i]);
+      if (i==eeoud.N_kok-1) 
+                  top[2*i] = SUMA_MIN_PAIR(par[2*i]+gap[i+1]/10.0, 
+                                          (1.0+deltamean/2.0)*par[2*i]);
       else        top[2*i] = par[2*i] + gap[i+1]/10.0;  
    }
    /* min and max params for stdv parameters */
-   for (i=0; i<cs->N_label; ++i) {
-      bot[2*i+1] = 0.8*par[2*i+1];
-      top[2*i+1] = 1.2*par[2*i+1];
+   for (i=0; i<eeoud.N_kok; ++i) { 
+      bot[2*i+1] = (1.0-deltastd/2.0)*par[2*i+1]; 
+      top[2*i+1] = (1.0+deltastd/2.0)*par[2*i+1];
    }
    
-   if (LocalHead) {
-      for (i=0; i<cs->N_label; ++i) {
-         fprintf(SUMA_STDERR,
-            "Pre Optimization:\n"
+   if (Opt->debug || LocalHead ) {
+      if (Opt->debug > 1 || LocalHead) {
+         for (i=0; i<eeoud.N_kok; ++i) {
+            fprintf(SUMA_STDERR,
+               "Pre Optimization:\n"
             "%3s:  mean [%.3f <- %.3f -> %.3f], stdv [%.3f <- %.3f -> %.3f]\n",
-                  cs->label[i],  bot[2*i  ], par[2*i  ], top[2*i  ],
-                                 bot[2*i+1], par[2*i+1], top[2*i+1]);
+                     cs->label[eeoud.UseK[i]],  
+                                    bot[2*i  ], par[2*i  ], top[2*i  ],
+                                    bot[2*i+1], par[2*i+1], top[2*i+1]);
+         }
+      } else {
+         fprintf(SUMA_STDERR,
+            "Pre Optimization: ");
+         for (i=0; i<eeoud.N_kok; ++i) {
+            fprintf(SUMA_STDERR,
+               "%3s:  mean %.3f, stdv %.3f   ",
+               cs->label[eeoud.UseK[i]],  par[2*i  ], par[2*i+1]);
+         }
+         fprintf(SUMA_STDERR, "\n");
       }
-      {
-        THD_3dim_dataset *pout=NULL; short *cc=NULL;
-        NEW_SHORTY(cset, 1, FuncName, pout);
-        cc=(short*)DSET_ARRAY(pout,0);
-         /* find out what things are like before optimization */
-         SUMA_EdgeEnergy_Gassign(Opt->aset, Opt->fset,
-                           Opt->cmask, Opt->cs, 
-                           par, npar, cc);
-        SUMA_SEG_WRITE_DSET("PreEdgeOptim", pout, icall, Opt->hist);
-        DSET_delete(pout);
+      
+      if (Opt->debug > 1){
+        SUMA_Seg_Write_Dset(Opt->proot, "PreEdgeOptim", cset, icall, Opt->hist);
       }
    }
    
-   /* load user data */
-   SUMA_set_eeoud(Opt->cs, Opt->aset, Opt->fset, Opt->cmask);
    nrand = 0; nkeep = 0; ntry = 2;
    rstart = 0.2; rend = 0.05;
    maxcall = 50;
@@ -3031,34 +3404,41 @@ double SUMA_MAP_EdgeEnergy(THD_3dim_dataset *aset, byte *cmask,
       SUMA_S_Err("Failed in optimization");
       SUMA_RETURN(0);
    }
+   if (debug) fprintf(SUMA_STDERR,"\n");
    
-   if (LocalHead) {
-      for (i=0; i<cs->N_label; ++i) {
+   if (Opt->debug || LocalHead ) {
+      if (Opt->debug > 1 || LocalHead) {
+         for (i=0; i<eeoud.N_kok; ++i) {
+            fprintf(SUMA_STDERR,
+               "Post Optimization:\n"
+            "%3s:  mean [%.3f <- %.3f -> %.3f], stdv [%.3f <- %.3f -> %.3f]\n",
+                     cs->label[eeoud.UseK[i]],  
+                                    bot[2*i  ], par[2*i  ], top[2*i  ],
+                                    bot[2*i+1], par[2*i+1], top[2*i+1]);
+         }
+      } else {
          fprintf(SUMA_STDERR,
-                  "Post Optimization:\n"
-                  "%s:  mean [%f <-- %f --> %f], stdv [%f <-- %f --> %f]\n",
-                  cs->label[i],  bot[2*i  ], par[2*i  ], top[2*i  ],
-                                 bot[2*i+1], par[2*i+1], top[2*i+1]);
+            "Post Optimization: ");
+         for (i=0; i<eeoud.N_kok; ++i) {
+            fprintf(SUMA_STDERR,
+               "%3s:  mean %.3f, stdv %.3f   ",
+               cs->label[eeoud.UseK[i]],  par[2*i  ], par[2*i+1]);
+         }
+         fprintf(SUMA_STDERR, "\n");
       }
       /* write out the classification result based on EdgeEnergy Optimization*/
-      {
-        THD_3dim_dataset *pout=NULL; short *cc=NULL;
-        NEW_SHORTY(cset, 1, FuncName, pout);
-        cc=(short *)DSET_ARRAY(pout,0);
-        memcpy(cc, eeoud.c, sizeof(short)*DSET_NVOX(cset));
-        SUMA_SEG_WRITE_DSET("PostEdgeOptim", pout, icall, Opt->hist);
-        DSET_delete(pout);
+      if (Opt->debug > 1){
+        SUMA_Seg_Write_Dset(Opt->proot, "PostEdgeOptim", 
+                            cset, icall, Opt->hist);
       }
    }
    
    /* reload optimized params into cs */
-   for (i=0; i<cs->N_label; ++i) {
-      SUMA_set_Stat(cs, cs->label[i], "mean", par[2*i  ]);
-      SUMA_set_Stat(cs, cs->label[i], "stdv", par[2*i+1]);
+   for (i=0; i<eeoud.N_kok; ++i) {
+      SUMA_set_Stat(cs, cs->label[eeoud.UseK[i]], "mean", par[2*i  ]);
+      SUMA_set_Stat(cs, cs->label[eeoud.UseK[i]], "stdv", par[2*i+1]);
    }
-   if (thiscmap) {
-      memcpy(thiscmap, eeoud.c, sizeof(short)*DSET_NVOX(cset));
-   }
+
    SUMA_free_eeoud();
    
    ++icall;
@@ -3069,6 +3449,7 @@ double SUMA_MAP_EdgeEnergy(THD_3dim_dataset *aset, byte *cmask,
 int SUMA_MAP_labels(THD_3dim_dataset *aset, 
                         byte *cmask, 
                         SUMA_CLASS_STAT *cs, int neighopt, 
+                        THD_3dim_dataset *pC,
                         THD_3dim_dataset **csetp, 
                         THD_3dim_dataset **pCgNp,
                         SEG_OPTS *Opt)
@@ -3076,10 +3457,10 @@ int SUMA_MAP_labels(THD_3dim_dataset *aset,
    static char FuncName[]={"SUMA_MAP_labels"};
    THD_3dim_dataset *cset = *csetp;
    THD_3dim_dataset *pCgN = *pCgNp;
-   float af=0.0, *fpCgN=NULL;
+   float af=0.0, *fpCgN=NULL, *fpC=NULL;
    int iter=0, i=0, k, ni, nj, nk, nij, ijkn[6];
    int Niter = 3, kmin;
-   double eG[Niter], e, eG1, eG2, *mv, *sv, dd, *e1=NULL, *e2=NULL, BoT, pp;
+   double eG[Niter], e, eG1, eG2, *mv, *sv, dd, *e1=NULL, *e2=NULL, BoT, pp, *wv;
    short *ci=NULL, *co=NULL, *a=NULL;
    
    SUMA_ENTRY;
@@ -3103,6 +3484,7 @@ int SUMA_MAP_labels(THD_3dim_dataset *aset,
    e1 = (double *)calloc(cs->N_label, sizeof(double));
    e2 = (double *)calloc(cs->N_label, sizeof(double));
    fpCgN = (float *)calloc(cs->N_label, sizeof(float));
+   fpC = (float *)calloc(cs->N_label, sizeof(float));
    
    if (!pCgN) {
       NEW_SHORTY(aset,cs->N_label, "pCgN", pCgN);
@@ -3118,10 +3500,15 @@ int SUMA_MAP_labels(THD_3dim_dataset *aset,
    nk = DSET_NZ(aset);
    nij = ni*nj;
 
+   if (pC) { /* The priors for the classes */
+      GET_BFs(pC, fpC);
+   }
+   
    /* get vector of parameters  */
    mv = SUMA_get_Stats(cs, "mean");
    sv = SUMA_get_Stats(cs, "stdv");
-
+   wv = SUMA_get_Stats(cs, "mix");
+   
    for (iter=0; iter<Niter; ++iter) {
       memcpy(ci, co, sizeof(short)*DSET_NVOX(aset));
       eG[iter] = 0.0; eG1=0.0; eG2 = 0.0;
@@ -3139,6 +3526,27 @@ int SUMA_MAP_labels(THD_3dim_dataset *aset,
                E_l_GIV_NEIGHBS(ci, ijkn, cs->keys[k], neighopt, e2[k]);
                e2[k] = e2[k]*BoT;
             }
+            
+            /* modulate e1 by pC and w, if specified*/
+            #if 1
+            if (i==0 && iter == 0) SUMA_S_Note("Check again");
+            /* KEEP or kill? w alone seems OK, pC needs some love, perhaps. 
+               Test again */
+            if (pC) {
+               e = 0.0; dd = 0.0;
+               for(k=0; k<cs->N_label; ++k) { 
+                  GSCVAL(pC, k, i, fpC[k], dd);
+                  e1[k] = exp(-e1[k])*dd*wv[k]; e += dd*wv[k];
+               }
+               for(k=0; k<cs->N_label; ++k) { e1[k] = -log(e1[k]/e); }
+            } else {
+               e = 0.0; dd = 0.0;
+               for(k=0; k<cs->N_label; ++k) { 
+                  e1[k] = exp(-e1[k])*wv[k]; e += wv[k];
+               }
+               for(k=0; k<cs->N_label; ++k) { e1[k] = -log(e1[k]/e); }
+            }
+            #endif
             /* find min e */
             e = e1[0]+e2[0]; kmin=0; 
             for(k=1; k<cs->N_label; ++k) { 
@@ -3182,11 +3590,11 @@ int SUMA_MAP_labels(THD_3dim_dataset *aset,
             /* store the prob. for each class p(c|Neighb) */
             pp = 0; 
             for (k=0; k<cs->N_label; ++k) { 
-               e1[k] = exp(-e1[k]); /* now e1 is a prob. * scaling factor*/
-               pp += e1[k];
+               e2[k] = exp(-e2[k]); /* now e2 is a prob. * scaling factor*/
+               pp += e2[k];
             }
             for (k=0; k<cs->N_label; ++k) {
-               PSCVAL(pCgN,k, i, fpCgN[k], e1[k]/pp);
+               PSCVAL(pCgN,k, i, fpCgN[k], e2[k]/pp);
             }
          } else {
             co[i] = 0;
@@ -3196,7 +3604,7 @@ int SUMA_MAP_labels(THD_3dim_dataset *aset,
    } /* for iter */
    
       
-   SUMA_ifree(ci);   SUMA_ifree(fpCgN);
+   SUMA_ifree(ci);   SUMA_ifree(fpCgN); SUMA_ifree(fpC); 
    SUMA_RETURN(1);
 }
 
@@ -3208,12 +3616,14 @@ int SUMA_pst_C_giv_ALL(THD_3dim_dataset *aset,
                                  byte *cmask, int cmask_count,
                                  SUMA_CLASS_STAT *cs,
                                  THD_3dim_dataset *pC, THD_3dim_dataset *pCgN,
-                                 THD_3dim_dataset **pcgallp, SEG_OPTS *Opt)
+                                 float mrfB, float Temp, byte mix, 
+                                 THD_3dim_dataset **pcgallp)
 {
    static char FuncName[]={"SUMA_pst_C_giv_ALL"};
    short *a=NULL;
    double *p=NULL, *m=NULL, *s=NULL,  *gd, *ds2, *ps=NULL, 
-            sp, BoT, x0, e, PP[64], PG[64], *w=NULL, eN=0.0, pp, pg;
+            sp,  BoT, x0, e, PP[64], PG[64], *w=NULL, eN=0.0, pp, pg,
+            wconst, wg;
    float af, fpCw, fpC, *fpCgN=NULL;
    int i, k, ni, nj, nk, nij, ijkn[6], shft;
    THD_3dim_dataset *pout = *pcgallp;
@@ -3227,7 +3637,8 @@ int SUMA_pst_C_giv_ALL(THD_3dim_dataset *aset,
       NEW_SHORTY(aset,cs->N_label,"SUMA_pst_C_giv_ALL",pout);
       *pcgallp = pout;
    }
-   BoT=Opt->B/Opt->T;
+   
+   BoT = mrfB/Temp; /* THIS is not being used ... Check before deleting*/
    
    ni = DSET_NX(aset);
    nj = DSET_NY(aset);
@@ -3250,7 +3661,8 @@ int SUMA_pst_C_giv_ALL(THD_3dim_dataset *aset,
 
    /* get the global (average) mixing fraction */
    w = SUMA_get_Stats(cs, "mix");
-
+   wconst=1.0/(double)cs->N_label;
+   
    /* prepare the voxelwise mixing fraction denominator */
    fpCw = 1/10000.0;
    NEW_SHORTY(aset,cs->N_label,"pCw",pCw); 
@@ -3263,8 +3675,10 @@ int SUMA_pst_C_giv_ALL(THD_3dim_dataset *aset,
          sp = 0.0;
          for (k=0; k<cs->N_label; ++k) {
             if (IN_MASK(cmask, i)) {
+               if (mix) wg = w[k];
+               else wg = wconst;
                GSCVAL(pC, k, i, fpC, e);
-               PP[k] = w[k]*e;
+               PP[k] = wg*e;
                if (pCgN) {
                   GSCVAL(pCgN, k, i, fpCgN[k], eN);
                   PP[k] *= eN;
@@ -3281,13 +3695,15 @@ int SUMA_pst_C_giv_ALL(THD_3dim_dataset *aset,
    } else {
       /* Just use the global mixing fractions */
       for (k=0; k<cs->N_label; ++k) {
+         if (mix) wg = w[k];
+         else wg = wconst;
          for (i=0; i<DSET_NVOX(aset); ++i) {
             if (IN_MASK(cmask, i)) {
                if (pCgN) {
                   GSCVAL(pCgN, k, i, fpCgN[k], eN);
-                  PSCVAL(pCw,k,i,fpCw, w[k]*eN);
+                  PSCVAL(pCw,k,i,fpCw, wg*eN);
                } else {
-                  PSCVAL(pCw,k,i,fpCw, w[k]);
+                  PSCVAL(pCw,k,i,fpCw, wg);
                }
             }
          }
@@ -3315,7 +3731,7 @@ int SUMA_pst_C_giv_ALL(THD_3dim_dataset *aset,
            
             p[i+shft] = (pg)*(pp);
             ps[i] += p[i+shft];
-               if (i == Opt->VoxDbg) { /* store for debugging */
+               if (i == VoxDbg) { /* store for debugging */
                   PP[k] = pp;
                   PG[k] = pg;
                }
@@ -3335,23 +3751,23 @@ int SUMA_pst_C_giv_ALL(THD_3dim_dataset *aset,
    SUMA_ifree(ps); SUMA_ifree(fpCgN);
    
              
-      if (Opt->VoxDbg >= 0) {
+      if (VoxDbg >= 0) {
          int IJK[3], pp;
-         i = Opt->VoxDbg;
+         i = VoxDbg;
          Vox1D2Vox3D(i,DSET_NX(aset), DSET_NX(aset)*DSET_NY(aset), IJK);
-         fprintf(Opt->VoxDbgOut, "at %d %d %d, a=%d (%f)\n", 
+         fprintf(VoxDbgOut, "at %d %d %d, a=%d (%f)\n", 
                                  IJK[0], IJK[1], IJK[2],
                                  a[i], a[i]*af);
-         fprintf(Opt->VoxDbgOut, "p(y|params)[]:   ");
+         fprintf(VoxDbgOut, "p(y|params)[]:   ");
          for(k=0; k<cs->N_label; ++k) {
-            fprintf(Opt->VoxDbgOut, "%f   ", PG[k]);
+            fprintf(VoxDbgOut, "%f   ", PG[k]);
          }
-         fprintf(Opt->VoxDbgOut, "\n");
-         fprintf(Opt->VoxDbgOut, "w[]:   ");
+         fprintf(VoxDbgOut, "\n");
+         fprintf(VoxDbgOut, "w[]:   ");
          for(k=0; k<cs->N_label; ++k) {
-            fprintf(Opt->VoxDbgOut, "%f   ", PP[k]);
+            fprintf(VoxDbgOut, "%f   ", PP[k]);
          }
-         fprintf(Opt->VoxDbgOut, "\n\n");
+         fprintf(VoxDbgOut, "\n\n");
       }   
    
    /* put vector back in pout */
@@ -3600,7 +4016,9 @@ int SUMA_ShortizeProbDset(THD_3dim_dataset **csetp,
       pset = cset; *csetp = NULL; /* to guard against multiple copies */
       /* make sure you don't get a crappy number of sub-bricks */
       if (DSET_NVALS(pset) != cs->N_label) {
-         SUMA_S_Err("Bad news in tennis shoes");
+         SUMA_S_Errv( "Bad news in tennis shoes, \n"
+                      "have %d sub-bricks in %s and %d labels",
+                      DSET_NVALS(pset), DSET_PREFIX(pset), cs->N_label);
          SUMA_RETURN(0);
       }
    }
@@ -3636,6 +4054,7 @@ int SUMA_FlattenProb(THD_3dim_dataset *pC,
    int i, k, nbrick=DSET_NVALS(pC);
    double ss, pp;
    float fpC[nbrick];
+   SUMA_Boolean LocalHead = YUP;
    
    SUMA_ENTRY;
    
@@ -3664,7 +4083,7 @@ int SUMA_FlattenProb(THD_3dim_dataset *pC,
          SUMA_RETURN(0);
    }
    
-   SUMA_SEG_WRITE_DSET("FLAT", pC, -1, NULL); 
+   if (LocalHead) SUMA_Seg_Write_Dset(NULL, "FLAT", pC, -1, NULL); 
 
    SUMA_RETURN(1);
 }
@@ -3767,7 +4186,8 @@ int SUMA_AddOther(  NI_str_array *clss, int **keysp,
          SUMA_S_Errv("Failed to otherize pCgA %s\n", DSET_PREFIX(pCgA));
          SUMA_RETURN(0);
       }
-      if (LocalHead) SUMA_SEG_WRITE_DSET("pCgA-Otherized", pCgA, -1, NULL);
+      if (LocalHead) SUMA_Seg_Write_Dset(NULL, "pCgA-Otherized", pCgA, 
+                                         -1, NULL);
    }
    if (pCgL) {
       if (!SUMA_OtherizeProbDset(pCgL, 
@@ -3775,7 +4195,7 @@ int SUMA_AddOther(  NI_str_array *clss, int **keysp,
          SUMA_S_Errv("Failed to otherize pCgL %s\n", DSET_PREFIX(pCgL));
          SUMA_RETURN(0);
       }
-      if (LocalHead) SUMA_SEG_WRITE_DSET("pCgL-Otherized", pCgL, -1, NULL);
+      if (LocalHead) SUMA_Seg_Write_Dset(NULL, "pCgL-Otherized", pCgL, -1, NULL);
    }
 
    /* cs ? */
@@ -3827,12 +4247,12 @@ int SUMA_InitDset(THD_3dim_dataset  *aset, float *val, int nval,
             break;
          case MRI_short:
             if (setsf) {
-               if (vv != 0.0) fsc = 32767.0/vv;
+               if (vv != 0.0) fsc = vv/32767.0;
                EDIT_BRICK_FACTOR(aset,k,fsc);
             }
             for (i=0; i<DSET_NVOX(aset); ++i) {
                if (IN_MASK(cmask,i)) {
-                  PSCVAL(aset, k, i, fsc, vv);
+                  PSCVAL(aset, k, i, fsc, 1.0);
                }
             }
             break; 
@@ -4089,16 +4509,19 @@ double SUMA_CompareBiasDsets(THD_3dim_dataset *gold_bias, THD_3dim_dataset *bias
    \param mask_by_base: If (1) then exclude locations where base == 0,
                         even if this location is in cmask
    \param cs: The Dice coefficient is stored as stat "DICE" in cs
+Options only used when Seg's classes are split into sub-classes of 
+   classes in base. It is assumed that cs contains stats for the 
+   all the split classes.
 */
 int SUMA_CompareSegDsets(THD_3dim_dataset *base, THD_3dim_dataset *seg,
                          byte *cmask, byte mask_by_base,
-                         SUMA_CLASS_STAT *cs )
+                         SUMA_CLASS_STAT *cs)
 {
    static char FuncName[]={"SUMA_CompareSegDsets"};
-   int ii=0, kk=0, nbb, nss, nmatch;
-   short *bb=NULL, *ss=NULL;
+   int ii=0, kk=0, nbb, nss, nmatch, gk=0;
+   short *bb=NULL, *ss=NULL, *ssc=NULL;
    float bf = 1.0, sf=1.0;
-   
+   double *sp2grp=NULL;
    SUMA_ENTRY;
    
    if (!base) {
@@ -4107,23 +4530,42 @@ int SUMA_CompareSegDsets(THD_3dim_dataset *base, THD_3dim_dataset *seg,
       }
    }
    
-   bf = DSET_BRICK_FACTOR(base,0); if (bf == 0.0f) bf = 1.0;
-   bb = (short *)DSET_ARRAY(base,0);
    sf = DSET_BRICK_FACTOR(seg,0); if (sf == 0.0f) sf = 1.0;
    ss = (short *)DSET_ARRAY(seg,0);
+   
+   sp2grp = SUMA_get_Stats(cs, "GRkey");
+   if (sp2grp) { /* have split classes, merge them */
+      ssc = (short *)SUMA_calloc(sizeof(short), DSET_NVOX(seg));
+      for (kk=0; kk<cs->N_label; ++kk) {
+         for (ii=0; ii<DSET_NVOX(seg); ++ii) {
+            if (IN_MASK(cmask,ii) && ss[ii]*(int)sf==cs->keys[kk]) {
+               ssc[ii] = (int)sp2grp[kk];
+            }
+         }
+      }
+      sf = 1.0;
+      ss = ssc;
+   }
+    
+   bf = DSET_BRICK_FACTOR(base,0); if (bf == 0.0f) bf = 1.0;
+   bb = (short *)DSET_ARRAY(base,0);
    for (kk=0; kk<cs->N_label; ++kk) {
       nmatch = 0; nss=0; nbb=0;
+      if (sp2grp) gk = (int)sp2grp[kk];
+         else gk = cs->keys[kk];
       for (ii=0; ii<DSET_NVOX(base); ++ii) {
          if ( IN_MASK(cmask, ii) && 
               (!mask_by_base || bb[ii]) ) {
-            if ((ss[ii]*(int)sf) == cs->keys[kk]) ++nss;
-            if ((bb[ii]*(int)bf) == cs->keys[kk]) {
+            if ((ss[ii]*(int)sf) == gk) ++nss;
+            if ((bb[ii]*(int)bf) == gk) {
                ++nbb;
                if (bb[ii] == ss[ii]) ++nmatch;
             }
          }
       }
       SUMA_set_Stat(cs, cs->label[kk], "DICE", (double)(nmatch*2)/(nss+nbb));
-   }   
+   }
+   
+   if (ssc) SUMA_free(ssc); ssc=NULL;    
    SUMA_RETURN(0);
 }

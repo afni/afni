@@ -212,6 +212,7 @@ SEG_OPTS *SegOpt_Struct()
    Opt->this_xset_name = NULL;
    Opt->ndist_name = NULL;
    Opt->uid[0] = '\0';
+   Opt->proot = NULL;
    Opt->prefix = NULL;
    Opt->gold = NULL;
    Opt->gold_bias = NULL;
@@ -266,6 +267,7 @@ SEG_OPTS *SegOpt_Struct()
    Opt->clust_cset_init = 0;
    
    Opt->cs = NULL;
+   Opt->Gcs = NULL;
    
    Opt->B = 1.0;
    Opt->T = 1.0;
@@ -292,6 +294,7 @@ SEG_OPTS *SegOpt_Struct()
    Opt->pCgN = NULL;
    Opt->pstCgALLname = NULL;
    Opt->Bsetname = NULL;
+   Opt->Split = NULL;
    RETURN(Opt);
 }
 
@@ -327,8 +330,9 @@ SEG_OPTS *free_SegOpts(SEG_OPTS *Opt) {
       Opt->group_classes = NULL;
    if (Opt->group_keys) free(Opt->group_keys); Opt->group_keys = NULL;
    if (Opt->cs) Opt->cs = SUMA_Free_Class_Stat(Opt->cs);  
+   if (Opt->Gcs) Opt->cs = SUMA_Free_Class_Stat(Opt->Gcs);  
    if (Opt->hist) free(Opt->hist); Opt->hist=NULL;
-   
+   if (Opt->Split) free(Opt->Split); Opt->Split=NULL;
    free(Opt); Opt = NULL;
    return(NULL);
 }
@@ -353,6 +357,8 @@ SEG_OPTS *Seg_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
           exit (0);
 		}
       
+ 		SUMA_SKIP_COMMON_OPTIONS(brk, kar);
+     
       #ifdef USE_TRACING
             if( strncmp(argv[kar],"-trace",5) == 0 ){
                DBG_trace = 1 ;
@@ -430,6 +436,16 @@ SEG_OPTS *Seg_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
 
       if (!brk && (strcmp(argv[kar], "-edge") == 0)) {
 			Opt->edge = 1;
+         brk = 1;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-edge1") == 0)) {
+			Opt->edge = 1;
+         brk = 1;
+		}      
+
+      if (!brk && (strcmp(argv[kar], "-edge2") == 0)) {
+			Opt->edge = 2;
          brk = 1;
 		}      
 
@@ -724,6 +740,7 @@ SEG_OPTS *Seg_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
 				exit (1);
 			}
 			Opt->smode = storage_mode_from_filename(argv[kar]);
+         Opt->proot = argv[kar];
          Opt->prefix = (char*)calloc(strlen(argv[kar])+20, sizeof(char));
          Opt->crefix = (char*)calloc(strlen(argv[kar])+20, sizeof(char));
          Opt->pgrefix = (char*)calloc(strlen(argv[kar])+20, sizeof(char));
@@ -855,6 +872,28 @@ SEG_OPTS *Seg_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
 				exit (1);
 			}
 			Opt->clss = NI_strict_decode_string_list(argv[kar] ,";, ");
+         brk = 1;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-split_classes") == 0)) {
+         NI_str_array *nstr=NULL; int ii;
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (stderr, "need argument after -split_classes \n");
+				exit (1);
+			}
+			nstr = NI_strict_decode_string_list(argv[kar] ,";, ");
+         Opt->Split = (int *)calloc(nstr->num+1, sizeof(int));
+         for (ii=0;ii<nstr->num; ++ii) {
+            Opt->Split[ii] = strtol(nstr->str[ii],NULL,10);
+            if (Opt->Split[ii]<1 || Opt->Split[ii]>9) {
+               SUMA_S_Errv("Bad split value of %d in %s\n", 
+                           Opt->Split[ii], argv[kar]);
+               exit(1);
+            }
+         }
+         Opt->Split[nstr->num]=-1; /* plug */
+         
          brk = 1;
 		}
 
