@@ -6476,6 +6476,14 @@ ENTRY("readVRLength") ;
     if (e->representation == DCM_DLM) {
 	explicitVR = FALSE;	/* Special rule for delimitors */
     }
+
+    if (explicitVR && !buf[0]) {  /* if there is no vrCode, skip explicitVR */
+        explicitVR = FALSE;       /*                    22 Mar 2011 [rickr] */
+        fprintf(stderr,
+                "** DICOM WARNING, missing VR code in element (%04x,%04x)\n", 
+                DCM_TAG_GROUP(e->tag), DCM_TAG_ELEMENT(e->tag) );
+    }
+
     if (explicitVR) {
 	vrCode[0] = buf[0];
 	vrCode[1] = buf[1];
