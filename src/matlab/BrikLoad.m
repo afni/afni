@@ -87,9 +87,9 @@ function [err, V, Info, ErrMessage] = BrikLoad (BrikName, param1, param2)
 %           see Read_1D -help for more info
 %   -------------------------------------------------------------------------
 %   (Non-standard options, implemented by Nick Oosterhof (NNO),
-%    noosterh@princeton.edu, n.oosterhof@bangor.ac.uk 
+%   n.oosterhof@bangor.ac.uk 
 %    ** If these options fail, you know who to blame ** )
-%
+% 
 %   .PixX   vector of pixels to read in x direction
 %   .PixY   "                         " y "       "
 %   Note for .PixX and .PixY: This is intended to reduce the amount of RAM
@@ -98,20 +98,30 @@ function [err, V, Info, ErrMessage] = BrikLoad (BrikName, param1, param2)
 %   swapping but will cause more hard drive seeking when reading the data. 
 %   In the current implementation, either both fields must be present or 
 %   both must be absent. 
+%                                ---- OR ---- (as of Dec 2010) 
 %
-%   .Voxels: vector of 1D indices of voxels to load. This is a new option 
+%   .Voxels: vector of 1D indices of voxels to load. This is a new option
 %            added by NNO Dec. 2010. It allows one to read data from a select
-%            set of voxels only.  This saves memory and speeds up loading data 
-%            in vectorized format only (.Format would be set to 'vector'). 
-%       Note this feature is not compatible with Opt.Slices, or the Opt.Pix* 
+%            set of voxels only.  This saves memory and speeds up loading data
+%            in vectorized format only (.Format would be set to 'vector').
+%       Note this feature is not compatible with Opt.Slices, or the Opt.Pix*
 %            options.
 %            Also, the very first voxel in the dataset is indexed 1 in .Voxels
 %            as opposed to 0 in AFNI. To find the 1D index of a voxel in AFNI,
 %            you can right click in the top left corner of the main controller
-%            and select 'Voxel Indexes'. The AFNI 1D index is displayed to the 
+%            and select 'Voxel Indexes'. The AFNI 1D index is displayed to the
 %            right of 'index'. To referring to the same voxel in .Voxels you
-%            should add +1 to the number displayed next to 'index'. 
+%            should add +1 to the number displayed next to 'index'.
 %
+% 
+%   BrikName can be a cell of filenames, or a string containing wildcard
+%   patterns ('?' for any character, or '*' for any string). This is useful
+%   for reading time series data from multiple Briks, as for example in 
+%   BrikLoad('s01.results/pb04.s01.r??.scale+orig.HEAD'). Use of wilcard
+%   patterns requires use the full file name with .HEAD extension. 
+%   Use of .Voxels, .Frames, .PixX and .PixY, or .OutPrecision and .Scale 
+%   options may be necessary for large datasets for memory reasons.
+%   
 %   -------------------------------------------------------------------------
 %   
 %   
@@ -143,8 +153,8 @@ function [err, V, Info, ErrMessage] = BrikLoad (BrikName, param1, param2)
 %     http://www.math.mcgill.ca/keith
 %     http://www.math.mcgill.ca/keith/fmristat/
 %
-%     .PixX and .PixY options were added by Nick Oosterhof
-%     noosterh@princeton.edu, n.oosterhof@bangor.ac.uk
+%     .PixX, .PixY, .Voxels options and BrikName cell and wildcard support 
+%     were added by Nick Oosterhof, n.oosterhof@bangor.ac.uk
 % 
 %     Author : Ziad Saad  Mon Oct 18 14:47:32 CDT 1999 
 %     Biomedical Engineering, Marquette University
@@ -154,7 +164,7 @@ function [err, V, Info, ErrMessage] = BrikLoad (BrikName, param1, param2)
 
 
 %Define the function name for easy referencing
-FuncName = 'BrikLoad';
+FuncName = mfilename();
 
 %Debug Flag
 DBG = 1;
@@ -202,32 +212,141 @@ switch nargin,
    return;
 end
 
-% Are we dealing with a .1D file ?
-is1D = 0;
-if (isempty(Opt.FileFormat)), % try to guess 
-   [St, xtr] = Remove1DExtension(BrikName);
-   if (~isempty(xtr)),
-      is1D = 1;
-   end
-elseif (strcmp(Opt.FileFormat, '1D') | strcmp(Opt.FileFormat, '1d')),
-   is1D = 1;
-end
-isNIFTI = 0;
-if (isempty(Opt.FileFormat)), % try to guess 
-   [St, xtr] = RemoveNiftiExtension(BrikName);
-   if (~isempty(xtr)),
-      isNIFTI = 1;
-   end
-elseif (   strcmp(Opt.FileFormat, 'NIFTI') ...
-         | strcmp(Opt.FileFormat, 'nifti') ...
-         | strcmp(Opt.FileFormat, 'Nifti') ...
-         | strcmp(Opt.FileFormat, 'Nii') ...
-         | strcmp(Opt.FileFormat, 'nii') ...
-         | strcmp(Opt.FileFormat, 'NII')),
-   isNIFTI = 1;
+% NNO Jan 2011 support for wildcards
+% see if BrikName has a wildcard '*' pattern
+% If so, make it a cell with the filenames matching the pattern
+if ischar(BrikName)
+    [p,n,e]=fileparts(BrikName);
+    if sum(BrikName=='*' | BrikName=='?') % contains a wildcard
+        pat=BrikName;
+        patstar=regexprep(pat,'?','*'); % replace '?' by '*', as DIR does not support the former
+        while strfind(patstar,'**') % multiple '**' slows down DIR considerably
+            patstar=strrep(patstar,'**','*'); % replace by single '*'
+        end
+        
+        [dummy,nm,ext]=fileparts(patstar); % get filename and extension
+        patreg=['^' regexptranslate('wildcard',[nm ext]) '$']; % translate to regular expression
+        
+        dpat=dir(patstar); % list of files matching pattern with '*' characters
+        nd=numel(dpat);
+        BrikName=cell(0); % make BrikName a cell
+        for k=1:nd
+            fn=dpat(k).name; % filename including extension
+            if numel(regexp(fn,patreg))>0 % filename matches the pattern?
+                BrikName{end+1}=fullfile(p, fn);  % add to BrikName
+            end
+        end
+        
+        % If only one file, use that as BrikName
+        if numel(BrikName)==1
+            BrikName=BrikName{1};
+        end
+    end
 end
 
+% Silently set format to vector if the .Voxels option is used
+if isfield(Opt,'Voxels') && ~isempty(Opt.Voxels)
+    Opt.Format='vector';
+end
+
+% NNO Jan 2011 support for a BrikName that is a cell of filenames
+if iscell(BrikName) % multiple file names; load each of them recursively
+    n=numel(BrikName);
+    nts=zeros(n,1);
+    V=NaN;
+    ErrMessage='';
+    for k=1:n
+        is1D=checkis1DNIFTI(BrikName{k},Opt);
+        if is1D 
+            ErrMessage=sprintf('%s: Not supported (yet): BrikName as cell for 1D files',FuncName);
+            err = ErrEval(FuncName,'Err_1D Not supported BrikName as cell option');
+            return
+        end
+            
+        [err,Info]=BrikInfo(BrikName{k});
+        if err,
+            ErrMessage=sprintf('%s: Fatal error in loading BrikInfo for %s', FuncName, BrikName{k});
+            return;
+        end
+        
+        % count number of volumes in each file
+        if isfield(Opt,'Frames') && ~isempty(Opt.Frames)
+            nts(k)=numel(Opt.Frames);
+        else
+            nts(k)=Info.DATASET_RANK(2); % number of time points
+        end
+        
+        dimk=Info.DATASET_DIMENSIONS(1:3);
+        deltak=Info.DELTA;
+        origink=Info.ORIGIN;
+        
+        if k==1
+            % store dimensions for first file
+            dim=dimk;
+            delta=deltak;
+            origin=origink;
+        else
+            % check that other files have the same dimensions
+            if ~isequal(dim,dimk) || ~isequal(delta,deltak) || ~isequal(origin,origink)
+                ErrMessage=sprintf('%s: Different origin, or voxel or volume dimensions, for files %s and %s ',FuncName, BrikName{1}, BrikName{k});
+                err = ErrEval(FuncName,'Different origin, or voxel or volume dimensions, for files %s and %s ',BrikName{1}, BrikName{k});
+                return;
+            end
+        end
+
+    end
+        
+    nt=sum(nts); % number of volumes
+    
+    fload=str2func(FuncName); % to allow for recursion, even if the file name changes
+
+    pos=0; % last free volume position in V
+    for k=1:n
+        [err,Vk,Ik,errMessagek]=fload(BrikName{k},Opt); % load using this function recursively
+        if err
+            ErrMessage=errMessagek;
+            return
+        end
+        
+        szk=size(Vk); % dimensions of this dataset
+        if k==1
+            sz=size(Vk); % dimensions of first dataset
+            sz(end)=nt;  % set number of time points (volumes) for output
+            szspace=sz(1:(end-1)); % space dimensions of first dataset
+            V=zeros(sz,class(Vk)); % allocate space for output
+            asvector=numel(sz)<=2; % data loaded vectorized (1D or 2D) or as volume (3D or 4D)?
+        elseif ~isequal(szspace,szk(1:(end-1))) || nts(k) ~= szk(end) % another check to ensure data sizes are correct
+            ErrMessage=sprintf('%s: Unexpected size mismatch for files %s and %s ',FuncName, BrikName{1}, BrikName{k});
+            err = ErrEval(FuncName,'Unexpected size mismatch for files %s and %s ',BrikName{1}, BrikName{k});
+            return
+        end
+        
+        tidxs=pos+(1:nts(k)); % indices in time domain (last dimension of V) to store data 
+        if asvector
+            V(:,tidxs)=Vk;
+        else
+            V(:,:,:,tidxs)=Vk;
+        end
+        pos=pos+nts(k);
+    end
+    
+    return
+end
+        
+    
+    
+
+% Are we dealing with a .1D file ?
+[is1D,isNIFTI]=checkis1DNIFTI(BrikName,Opt);
+
 if (is1D), % 1D land
+   %NNO Dec 2010 added
+   if isfield(Opt,'Voxels')
+       ErrMessage=sprintf('%s: Not supported (yet): Opt.Voxels option for 1D files',FuncName);
+       err = ErrEval(FuncName,'Err_1D Not supported .Voxels option');
+       return;
+   end
+    
    V = []; Info = []; ErrMessage = '';
    Opt.verb = 1;
    if (~isfield(Opt, 'method') | isempty(Opt.method)), Opt.method = 0; end
@@ -343,12 +462,7 @@ if ~isempty(Opt.Voxels)
         return
     end
     
-    % set output format to vector, if necessary
-    if ~strcmp(Opt.Format,'vector')
-        fprintf(2,'Warning: Opt.Voxels specified; Opt.Format set to ''vector''\n');
-        Opt.Format='vector';
-    end
-    
+        
     % check that Opt.Voxels is a vector (otherwise it may be too confusing)
     % TODO: maybe at some point allow for Px3 vector with subindices, and
     % convert these to linear ones.
@@ -532,11 +646,14 @@ end
    if isallslices && isallframes && allpixels && ~onlysomevoxels
       V = fread(fidBRIK, (Info.DATASET_DIMENSIONS(1) .* Info.DATASET_DIMENSIONS(2) .* Info.DATASET_DIMENSIONS(3) .* Info.DATASET_RANK(2)) , [Opt.OutPrecision,typestr]);
    else
+       Vq=fread(fidBRIK, 1, [Opt.OutPrecision,typestr]); %NNO Jan 2011 respect file type
+       fseek(fidBRIK,0,-1); % back to beginning of file
+       Vclass=class(Vq); % get type of data
        % NNO Dec 2010
       if onlysomevoxels
-         V=zeros(somevoxelcount,numframes); % limited memory consumption (if .Voxels does not contain all voxel indices)
+         V=zeros(somevoxelcount,numframes,Vclass); % limited memory consumption (if .Voxels does not contain all voxel indices)
       else
-         V=zeros(1,numpix*numslices*numframes); % the original allocation
+         V=zeros(1,numpix*numslices*numframes,Vclass); % the original allocation
       end
       for k=1:numframes
          frame=Opt.Frames(k);
@@ -620,7 +737,9 @@ end
       end
    end
 
-%NNO Dec 2010 - only resize for the original implementation (no Opt.Voxels)
+
+   
+%NNO Dec 2010 - only resize if Opt.Voxels is *not* used
 if ~onlysomevoxels
     if DoVect,
         V = reshape(V, numpixX * numpixY * numslices, numframes);
@@ -686,3 +805,30 @@ end
 end
 
 
+
+% NNO Jan 2011 put this functionality in a separate function
+function [is1D,isNIFTI]=checkis1DNIFTI(BrikName,Opt)
+
+is1D = 0;
+if (isempty(Opt.FileFormat)), % try to guess 
+   [St, xtr] = Remove1DExtension(BrikName);
+   if (~isempty(xtr)),
+      is1D = 1;
+   end
+elseif (strcmp(Opt.FileFormat, '1D') | strcmp(Opt.FileFormat, '1d')),
+   is1D = 1;
+end
+isNIFTI = 0;
+if (isempty(Opt.FileFormat)), % try to guess 
+   [St, xtr] = RemoveNiftiExtension(BrikName);
+   if (~isempty(xtr)),
+      isNIFTI = 1;
+   end
+elseif (   strcmp(Opt.FileFormat, 'NIFTI') ...
+         | strcmp(Opt.FileFormat, 'nifti') ...
+         | strcmp(Opt.FileFormat, 'Nifti') ...
+         | strcmp(Opt.FileFormat, 'Nii') ...
+         | strcmp(Opt.FileFormat, 'nii') ...
+         | strcmp(Opt.FileFormat, 'NII')),
+   isNIFTI = 1;
+end

@@ -1,12 +1,12 @@
-function S=afni_niml_readsimple(fn)
-% Reads an AFNI NIML file and returns a 'simple struct
+function S=afni_niml_readsimple(fn,full)
+% Reads an AFNI NIML file and returns a 'simple' struct
 %
 % S=AFNI_NIML_READSIMPLE(FN) reads the AFNI NIML ASCII file FN, and returns
 % a 'simple' struct S with the relevant data fields. (This is unlike
 % the function AFNI_NIML_READ, which returns all data fields and resembles
 % the original file content of FN better).
 %
-% If present, S will contain the following fields:
+% If the file is present, S will contain the following fields:
 %  .data           PxN data for P nodes and N columns (values per node).
 %  .node_indices   Px1 indices of P nodes that data refers to (base 0)
 %  .history        String with history information
@@ -15,6 +15,11 @@ function S=afni_niml_readsimple(fn)
 %  .labels         1xN cell with strings of the labels of the data columns
 %  .dset_type      String with the data set type
 %
+% S=AFNI_NIML_READSIMPLE(FN,true) returns a struct S but with a
+% full data matrix (rather than sparse) for all nodes; node indices not 
+% defined in the file are set to zero. S does not contain a field
+% .node_indices. 
+% 
 % Please note that this function is *VERY EXPERIMENTAL*, and has only been
 % tested with functional data NIML files.
 % 
@@ -22,7 +27,7 @@ function S=afni_niml_readsimple(fn)
 
 D=afni_niml_read(fn);
 
-if ~isstruct(D) || ~isfield(D,'dset_type')
+if ~isstruct(D) || ~isfield(D,'dset_type') 
     disp(D);
     error('Unrecognized data cell');
 end
@@ -68,6 +73,12 @@ for k=1:nodecount
     end    
 end
     
+if nargin>1 && full && isfield(S,'node_indices')
+    data=zeros(max(S.node_indices)+1,size(S.data,2));
+    data(S.node_indices+1,:)=S.data;
+    S.data=data;
+    S=rmfield(S,'node_indices');
+end
 
 
 
