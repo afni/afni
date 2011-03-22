@@ -315,11 +315,11 @@ ENTRY("THD_lasso_L2fit") ;
    }
 
    /*--- if have a lot of references (relative to number of data points),
-         then increase lam[] for the first iteration to speed convergence ---*/
+         then increase lam[] for the first iterations to speed convergence ---*/
 
-   do_slam = 2 * (nref > npt/2) ;
-   if( do_slam ){
-     for( jj=0 ; jj < nref ; jj++ ) mylam[jj] *= 4.0f ;
+   do_slam = 3 * (nref > npt/2) ;                        /* first 3 */
+   if( do_slam ){                                        /*       | */
+     for( jj=0 ; jj < nref ; jj++ ) mylam[jj] *= 8.0f ;  /* 8 = 2^3 */
    }
 
    /*---- outer iteration loop (until we are happy or worn out) ----*/
@@ -367,7 +367,7 @@ ENTRY("THD_lasso_L2fit") ;
 
        dg = ppar[jj] - pj ;   /* change in parameter */
        if( dg != 0.0f ){      /* update convergence test and residuals */
-         pj    = fabsf(ppar[jj]) ;
+         pj    = fabsf(ppar[jj]) + fabsf(pj) ;
          dsum += fabsf(dg) / MAX(pj,0.01f) ; ndel++ ;
          for( ii=0 ; ii < npt ; ii++ ) resd[ii] -= rj[ii] * dg ;
        }
@@ -376,7 +376,7 @@ ENTRY("THD_lasso_L2fit") ;
 
      /**** test for convergence somehow ***/
 
-     if( ndel > 0 ) dsum /= ndel ; /* average fractional change per parameter */
+     if( ndel > 0 ) dsum *= (2.0f/ndel) ;
 
      if( do_slam ){     /* shrink lam[] back, if it was augmented */
        do_slam-- ; dsum = 1.0f ;
@@ -443,5 +443,177 @@ floatvec * THD_sqrtlasso_L2fit( int npt    , float *far   ,
                                 int nref   , float *ref[] ,
                                 float *lam , float *ccon   )
 {
-   return NULL ;
+   int ii,jj, nfree,nite,nimax,ndel , do_slam ;
+   float *mylam, *ppar, *resd, *rsq, *rj, pj,dg,dsum ;
+   float rqsum,aa,bb,cc,ll , npinv ;
+   floatvec *qfit ; byte *fr ;
+
+ENTRY("THD_sqrtlasso_L2fit") ;
+
+   /*--- check inputs for stupidities ---*/
+
+   if( npt <= 1 || far == NULL || nref <= 0 || ref == NULL ){
+     static int ncall=0 ;
+     if( ncall == 0 ){ ERROR_message("LASSO: bad data and/or model"); ncall++; }
+     RETURN(NULL) ;
+   }
+
+   for( jj=0 ; jj < nref ; jj++ ){
+     if( ref[jj] == NULL ){
+       static int ncall=0 ;
+       if( ncall == 0 ){ ERROR_message("LASSO: bad data and/or model"); ncall++; }
+       RETURN(NULL) ;
+     }
+   }
+
+   /*--- construct a local copy of lam[], and edit it softly ---*/
+
+   mylam = edit_lamvec( npt , nref , lam ) ;
+
+   /*--- space for parameter iterates, etc (initialized to zero) ---*/
+
+#pragma omp critical (MALLOC)
+   { MAKE_floatvec(qfit,nref) ; ppar = qfit->ar ;   /* parameters = output */
+     resd = (float *)calloc(sizeof(float),npt ) ;   /* residuals */
+     rsq  = (float *)calloc(sizeof(float),nref) ;   /* sums of squares */
+     fr   = (byte  *)calloc(sizeof(byte) ,nref) ; } /* free list */
+
+   /*--- Save sum of squares of each ref column ---*/
+
+   npinv = 1.0f / (float)npt ;
+   nfree = 0 ;                    /* number of unconstrained parameters */
+   for( jj=0 ; jj < nref ; jj++ ){
+     rj = ref[jj] ;
+     for( pj=ii=0 ; ii < npt ; ii++ ) pj += rj[ii]*rj[ii] ;
+     rsq[jj] = pj * npinv ;
+     if( pj > 0.0f && mylam[jj] == 0.0f ){   /* unconstrained parameter */
+       fr[jj] = 1 ;  nfree++ ;
+     }
+   }
+
+   /* edit mylam to make sure it isn't too big */
+
+   cc = 1.0f / sqrtf((float)npt) ;
+   for( jj=0 ; jj < nref ; jj++ ){
+     ll = mylam[jj] ;
+     if( ll > 0.0f ){
+       ll *= cc ; aa = 0.666f * sqrtf(rsq[jj]) ; if( ll > aa ) ll = aa ;
+       mylam[jj] = ll ;
+     }
+   }
+
+   /*--- if any parameters are free (no L1 penalty),
+         initialize them by un-penalized least squares
+         (implicitly assuming all other parameters are zero) ---*/
+
+   compute_free_param( npt,far,nref,ref,2,ccon , nfree,fr , ppar ) ;
+
+   /*--- initialize residuals ---*/
+
+   for( ii=0 ; ii < npt ; ii++ ) resd[ii] = far[ii] ;          /* data */
+
+   for( jj=0 ; jj < nref ; jj++ ){  /* subtract off fit of each column */
+     pj = ppar[jj] ; rj = ref[jj] ; /* with a nonzero parameter value */
+     if( pj != 0.0f ){
+       for( ii=0 ; ii < npt ; ii++ ) resd[ii] -= rj[ii]*pj ;
+     }
+   }
+   for( rqsum=ii=0 ; ii < npt ; ii++ ) rqsum += resd[ii]*resd[ii] ;
+   rqsum *= npinv ;
+
+   /*--- if have a lot of references (relative to number of data points),
+         then increase lam[] for the first iterations to speed convergence ---*/
+
+   do_slam = 3 * (nref > npt/2) ;                        /* first 3 */
+   if( do_slam ){                                        /*       | */
+     for( jj=0 ; jj < nref ; jj++ ) mylam[jj] *= 8.0f ;  /* 8 = 2^3 */
+   }
+
+   /*---- outer iteration loop (until we are happy or worn out) ----*/
+
+#undef  CON    /* CON(j) is true if the constraint on ppar[j] is violated */
+#define CON(j) (ccon != NULL && ppar[j]*ccon[j] < 0.0f)
+
+   nimax = 29*nref + 66 ; dsum = 1.0f ;
+   for( nite=0 ; nite < nimax && dsum > deps ; nite++ ){
+
+     /*-- cyclic inner loop over parameters --*/
+
+     for( dsum=ndel=jj=0 ; jj < nref ; jj++ ){  /* dsum = sum of param deltas */
+
+       if( rsq[jj] == 0.0f ) continue ; /* all zero column!? */
+       rj = ref[jj] ;                   /* j-th reference column */
+       pj = ppar[jj] ;                  /* current value of j-th parameter */
+
+       for( dg=ii=0 ; ii < npt ; ii++ ) dg += resd[ii] * rj[ii] ;
+       dg *= npinv ;
+
+       aa = rsq[jj] ;
+       bb = -2.0f*dg - 2.0f*aa*pj ;
+       cc = rqsum + 2.0f*dg*pj + aa*pj*pj ;
+       ll = mylam[jj] ;
+
+       /*- modify parameter -*/
+
+       if( ll == 0.0f ){   /* un-penalized parameter */
+
+         ppar[jj] = -0.5 * bb / aa ; if( CON(jj) ) ppar[jj] = 0.0f ;
+
+       } else if( pj > 0.0f || (pj == 0.0f && dg > 0.0f) ){
+         ppar[jj] = XPLU(aa,bb,cc,ll) ;
+         if( ppar[jj] < 0.0f || CON(jj) ) ppar[jj] = 0.0f ;
+       } else if( pj < 0.0f || (pj == 0.0f && dg < 0.0f) ){
+         ppar[jj] = XMIN(aa,bb,cc,ll) ;
+         if( ppar[jj] > 0.0f || CON(jj) ) ppar[jj] = 0.0f ;
+       }
+
+       dg = ppar[jj] - pj ;   /* change in parameter */
+       if( dg != 0.0f ){      /* update convergence test and residuals */
+         pj    = fabsf(ppar[jj]) + fabsf(pj) ;
+         dsum += fabsf(dg) / MAX(pj,0.01f) ; ndel++ ;
+         for( rqsum=ii=0 ; ii < npt ; ii++ ){
+           resd[ii] -= rj[ii] * dg ; rqsum += resd[ii]*resd[ii] ;
+         }
+         rqsum *= npinv ;
+       }
+
+     } /*-- end of inner loop over parameters --*/
+
+     /**** test for convergence somehow ***/
+
+     if( ndel > 0 ) dsum *= (2.0f/ndel) ;
+
+     if( do_slam ){     /* shrink lam[] back, if it was augmented */
+       do_slam-- ; dsum = 1.0f ;
+       for( jj=0 ; jj < nref ; jj++ ) mylam[jj] *= 0.5f ;
+     }
+
+   } /*---- end of outer iteration loop ----*/
+
+#if 1
+   { static int ncall=0 ;
+     if( ncall < 1 ){
+       INFO_message("LASSO: nite=%d dsum=%g",nite,dsum) ; ncall++ ;
+     }
+   }
+#endif
+
+   /*--- if 'post' computation is ordered, re-do the
+         regression without constraints, but using only
+         the references with non-zero weights from above ---*/
+
+   if( do_post ){
+     nfree = 0 ;
+     for( jj=0 ; jj < nref ; jj++ ){  /* count and mark params to use */
+       fr[jj] = (ppar[jj] != 0.0f) ; nfree += fr[jj] ;
+     }
+     compute_free_param( npt,far,nref,ref,2,ccon , nfree,fr , ppar ) ;
+   }
+
+   /*--- Loading up the truck and heading to Beverlee ---*/
+
+#pragma omp critical (MALLOC)
+   { free(fr) ; free(rsq) ; free(resd) ; free(mylam) ; }
+
+   RETURN(qfit) ;
 }
