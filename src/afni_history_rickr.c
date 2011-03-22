@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 22, MAR, 2011, RCR, "to3d", MINOR, TYPE_BUG_FIX,
+   "mri_read_dicom: if there is no vrCode, skip explicitVR",
+   NULL
+ } ,
+
  { 21, MAR, 2011, RCR, "uber_subject.py", MINOR, TYPE_ENHANCE,
    "many updates, including extra regress options box",
    NULL
