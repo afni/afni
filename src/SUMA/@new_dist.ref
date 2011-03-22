@@ -71,6 +71,8 @@ if ("$package" == "") then
       set package = linux_xorg7${b64}
    else if ( "${thishost}" =~ sauron* ) then
       set package = linux_gcc32
+   else if ( "${thishost}" =~ kampos* ) then
+      set package = solaris29_suncc_64
    else if ( "${thishost}" =~ grima* ) then
       set package = linux_glibc22
    else if ( "${thishost}" =~ gimli* ) then
@@ -182,13 +184,18 @@ endif
 
 #Turn off openmp, require gcc4.2 which does not work with fink yet
 if ($openmp < 1) then
-   #sed 's/OMPFLAG/# OMPFLAG/' Makefile > ___mm
+   sed 's/^OMPFLAG/# OMPFLAG/' Makefile > ___mm
             #use ~ as a char flag for where to insert the new line.
             #~ is unlikely to occur in the Makefiles (\a does not work on mac)
+   mv ___mm Makefile
+endif
+
+if ($openmp > 0) then
    sed 's/^CCMIN/OMPFLAG = -fopenmp -DUSE_OMP~CCMIN/' Makefile | tr '~' '\n' \
       > ___mm
    mv ___mm Makefile
 endif
+
 
 #LocalX?
 if ($localX == 1) then
