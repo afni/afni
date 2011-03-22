@@ -325,7 +325,8 @@ plot.1D.optlist <- function(...) {
             colorset = seq(1,20),
             xax.lim=NULL, xax.step = NULL, xax.label=NULL, xax.tic.text = NULL, 
             yax.lim=NULL, yax.step = NULL, yax.label=NULL, yax.tic.text = NULL,
-            leg.show=FALSE, leg.ncol = 4, leg.names=NULL, 
+            leg.show=FALSE, leg.ncol = 4, leg.names=NULL, leg.line.type = NULL,
+            leg.line.color = NULL,
             leg.position="topright", leg.fontsize = 12,
             grid.show=FALSE, 
             col.text.lym = NULL, col.text.lym.at = 'YOFF', 
@@ -638,11 +639,13 @@ plot.1D.eng <- function (P) {
             P$col.plot.char <- rep(P$col.plot.char,ncol(P$dmat))
          }
       } else {
-         err.AFNI(
-            paste("P$col.plot.char must either have one or",
+         P$col.plot.char <- rep(P$col.plot.char,ncol(P$dmat))[1:ncol(P$dmat)]
+         
+         warn.AFNI(
+            paste("P$col.plot.char is recycled to fit number of columns. Need ",
                      ncol(P$dmat),"values",
                      "Have ", length(P$col.plot.char)));
-            return(0);
+         #   return(0);
       }
    }
    #Set plot types
@@ -1081,12 +1084,16 @@ plot.1D.eng <- function (P) {
          }
       } else {
          if (is.null(P$leg.names)) P$leg.names <- P$col.name
+         if (is.null(P$leg.line.type)) 
+                           P$leg.line.type <- P$col.line.type[P$dmat.colsel]
+         if (is.null(P$leg.line.color)) 
+                           P$leg.line.color <- P$col.color[P$dmat.colsel]
          opar <- par();
          par(ps = P$leg.fontsize)  
          legend(P$leg.position, legend=P$leg.names, 
-                  text.col=P$col.color[P$dmat.colsel],
-                  col=P$col.color[P$dmat.colsel], 
-                  pch=P$col.plot.char[P$dmat.colsel], lwd=2, lty=P$col.line.type,
+                  text.col=P$leg.line.color,
+                  col=P$leg.line.color, 
+                  pch=P$col.plot.char[P$dmat.colsel], lwd=2, lty=P$leg.line.type,
                   ncol=P$leg.ncol, bty='n')
          par(ps = opar$ps)
       }

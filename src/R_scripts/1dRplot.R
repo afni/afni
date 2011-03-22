@@ -358,7 +358,7 @@ read.1dRplot.opts.batch <- function (args=NULL, verb = 0) {
    "-prefix PREFIX: Output prefix. See also -save. \n"
                      ) ),
 
-      '-title' = apl(n = 1, d = NULL,  h = paste(
+      '-title' = apl(n = c(1, Inf), d = NULL,  h = paste(
    "-title TITLE: Graph title\n"
                      ) ),
             
@@ -394,6 +394,16 @@ read.1dRplot.opts.batch <- function (args=NULL, verb = 0) {
       '-leg.names' = apl(n = c(1,Inf), d = NULL, h = paste(
    "-leg.names : Names to use for items in legend.\n",
    "             Default is taken from column names.\n"
+                     ) ),
+
+      '-leg.line.type' = apl(n = c(1,Inf), d = NULL, h = paste(
+   "-leg.line.type : Line type to use for items in legend.\n",
+   "             Default is taken from column line types.\n"
+                     ) ),
+
+      '-leg.line.color' = apl(n = c(1,Inf), d = NULL, h = paste(
+   "-leg.line.color : Color to use for items in legend.\n",
+   "             Default is taken from column line color.\n"
                      ) ),
 
       '-leg.position' = apl(n = c(1,Inf), d = NULL, h = paste(
@@ -476,7 +486,7 @@ read.1dRplot.opts.batch <- function (args=NULL, verb = 0) {
    "-addavg:  Add line at average of column\n"
                         ) ),              
       
-      '-xax.label' = apl(n = 1, h = paste (
+      '-xax.label' = apl(n = c(1, Inf), h = paste (
    "-xax.label XLABEL: Label of X axis \n"
                   ) ), 
                   
@@ -484,7 +494,7 @@ read.1dRplot.opts.batch <- function (args=NULL, verb = 0) {
    "-xax.tic.text XTTEXT: X tics text\n"
                   ) ), 
                   
-      '-yax.label' = apl(n = 1, h = paste (
+      '-yax.label' = apl(n = c(1, Inf), h = paste (
    "-yax.label YLABEL: Label of Y axis\n"
                   ) ), 
                   
@@ -556,10 +566,10 @@ read.1dRplot.opts.batch <- function (args=NULL, verb = 0) {
              xax.lim = lop$xax.lim <- ops[[i]],
              yax.lim = lop$yax.lim <- ops[[i]],
              addavg = lop$col.mean.line <- TRUE,
-             title  = lop$ttl.main <- ops[[i]],
-             xax.label  = lop$xax.label <- ops[[i]],
+             title  = lop$ttl.main <- paste(ops[[i]], collapse=' '),
+             xax.label  = lop$xax.label <- paste(ops[[i]], collapse=' '),
              xax.tic.text = lop$xax.tic.text <- ops[[i]],
-             yax.label  = lop$yax.label <- ops[[i]],
+             yax.label  = lop$yax.label <- paste(ops[[i]], collapse=' '),
              yax.tic.text = lop$yax.tic.text <- ops[[i]],
              verb = lop$verb <- ops[[i]],
              col.plot.char = 
@@ -575,6 +585,8 @@ read.1dRplot.opts.batch <- function (args=NULL, verb = 0) {
              col.text.rym = lop$col.text.rym <- parse.1dRplot.colinput(ops[[i]]),
              leg.show = lop$leg.show <- TRUE,
              leg.names = lop$leg.names <- ops[[i]],
+             leg.line.type = lop$leg.line.type <- ops[[i]],
+             leg.line.color = lop$leg.line.color <- ops[[i]],
              leg.position = lop$leg.position <- ops[[i]],
              leg.fontsize = lop$leg.fontsize <- ops[[i]],
              leg.ncol = lop$leg.ncol <- ops[[i]],
@@ -666,6 +678,8 @@ process.1dRplot.opts <- function (lop, verb = 0) {
             col.text.rym = lop$col.text.rym,
             leg.show = lop$leg.show,
             leg.names = lop$leg.names,
+            leg.line.type = lop$leg.line.type,
+            leg.line.color = lop$leg.line.color,
             leg.position = lop$leg.position,
             leg.fontsize = lop$leg.fontsize,
             leg.ncol = lop$leg.ncol,

@@ -25,6 +25,8 @@ goto END
 START:
 set inp = $1
 
+#NEED TO ADD: mask option, base option
+
 ### extract number of slices into nz
 
 set qq  = ( `3dAttribute DATASET_DIMENSIONS ${inp}+orig` )

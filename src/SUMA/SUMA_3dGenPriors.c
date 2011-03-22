@@ -50,9 +50,11 @@ int GenPriors(SEG_OPTS *Opt)
    if (Opt->group_classes) {
       THD_3dim_dataset *gcset=NULL;
       THD_3dim_dataset *gpset=NULL;
-      if (!Regroup_classes (Opt, 
-                     Opt->group_classes,
-                     Opt->group_keys,
+      if (!SUMA_Regroup_classes (Opt, 
+                     Opt->clss->str, Opt->clss->num, Opt->keys,
+                     Opt->group_classes->str,
+                     Opt->group_classes->num,
+                     Opt->group_keys, Opt->cmask,
                      Opt->pset, 
                      Opt->cset,
                      &gpset, 
@@ -121,6 +123,9 @@ SEG_OPTS *GenPriors_Default(char *argv[], int argc)
    Opt->group_classes = NULL;
    Opt->group_keys = NULL;
    Opt->fitmeth = SEG_LSQFIT;
+   Opt->proot = "GenPriors";
+   Opt->cs = NULL;
+   Opt->Gcs = NULL;
    
    RETURN(Opt);
 }
@@ -303,8 +308,11 @@ int main(int argc, char **argv)
    
    
    if (Opt->group_classes) { /* just a check */
-      if (!Regroup_classes (Opt, Opt->group_classes, NULL,
-                     NULL, NULL, 
+      if (!SUMA_Regroup_classes (Opt, 
+                     Opt->clss->str, Opt->clss->num, Opt->keys,
+                     Opt->group_classes->str, 
+                     Opt->group_classes->num, NULL,
+                     NULL, NULL, NULL, 
                      NULL, NULL)) {
          ERROR_exit("Failed to determine mapping");
       }

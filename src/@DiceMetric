@@ -29,6 +29,7 @@ foreach dset ($dsets)
             set klist = `1dcat -form '%d,' /tmp/${RNS}.unq.1D\' | sed 's/,$//'`
             rm -f /tmp/${RNS}.unq.1D
          endif
+         echo $klist
          3dcalc -a $vol1${view} -b $vol2o$viewo -overwrite \
                   -expr "amongst(a,$klist)*b"   \
                   -prefix $vol2m >& $log  
@@ -91,9 +92,13 @@ foreach dset ($dsets)
       set in = `ccalc -i "2*$icl"`
       set cl_num = `1dcat {$RNS}.aib.1D"[$in]" | uniq`
       if ("$#cl_num" != 1 && "$#cl_num" != 0) then
-         echo "#Bad table $cl_num, filling with 0s"
-         set clar = ($clar $cl)
-         set dcar = ($dcar 0)
+         if ($ignore_bad) then
+            echo "#Bad table $cl_num, ignoring it"
+         else
+            echo "#Bad table $cl_num, filling with 0s"
+            set clar = ($clar $cl)
+            set dcar = ($dcar 0)
+         endif
       else      
          if ("$cl_num" != 0) then
             set in = `ccalc -i "2*$icl+1"`
@@ -193,6 +198,7 @@ PARSE_COMMAND:
    set ltfile = ''
    set llist = ()
    set usedsetvals = 0
+   set ignore_bad = 0
    
    if ("$1" == '' || "$1" == '-h' || "$1" == '-help' || "$2" == '') then
 	   goto USAGE
@@ -243,6 +249,11 @@ PARSE_COMMAND:
       
       if ($donext && "$argv[$cnt]" == "-do_not_mask_by_base") then
          set maskby = 0
+         set donext = 0	
+      endif
+
+      if ($donext && "$argv[$cnt]" == "-ignore_bad") then
+         set ignore_bad = 1
          set donext = 0	
       endif
       
@@ -423,6 +434,9 @@ echo "                           considered in the computations."
 echo ""
 echo "   [-prefix PREFIX]: Use PREFIX for the output table. "
 echo "                     Default is separate results for each dset to stdout"
+echo "   [-ignore_bad]: Warn if encountering bad scenarios, but do not create"
+echo "                  a zero entry. You should check for the cause of the"
+echo "                  warnings to be sure they are OK to ignore"
 echo "   [-keep_tmp]: Keep temporary files for debugging. Note that you should"
 echo "                delete temporary files before rerunning the script."
 echo "   [-echo]    : set echo "         

@@ -27,6 +27,7 @@ int SUMA_SegEngine(SEG_OPTS *Opt)
    THD_3dim_dataset *pygcbo=NULL;
    int iter=0, kk, UseK[500];
    char sinf[256];
+   char sreport[512]={"unset_report_name.txt"};
    SUMA_Boolean LocalHead = YUP;
    
    SUMA_ENTRY;
@@ -39,6 +40,21 @@ int SUMA_SegEngine(SEG_OPTS *Opt)
  }
 #endif
 
+   if (Opt->cset) {/* Hide Classes not for analysis */
+      int mm;
+      short *sc=NULL;
+      sc= (short *)DSET_ARRAY (Opt->cset, 0);
+      for (kk=0 ; kk<DSET_NVOX(Opt->cset); ++kk) {
+         for (mm=0; mm<Opt->cs->N_label; ++mm) {
+            if (sc[kk] == Opt->cs->keys[mm]) break;
+         }
+         if (mm >= Opt->cs->N_label) sc[kk] = 0;
+      }
+   } else {
+      SUMA_S_Err("Need cset");
+      SUMA_RETURN(0);
+   }
+   
    if (!Opt->priCgALL) {
       if ((Opt->priCgA || Opt->priCgL)) {
          if (!SUMA_MergeCpriors( Opt->cs, Opt->cmask, Opt->aset, 
@@ -60,25 +76,35 @@ int SUMA_SegEngine(SEG_OPTS *Opt)
          }
       }
       if (Opt->priCgALL && Opt->debug > 1) {
-         SUMA_SEG_WRITE_DSET("priCgALLmerged", Opt->priCgALL, -1, Opt->hist);
+         SUMA_Seg_Write_Dset(Opt->proot,"priCgALLmerged", 
+                             Opt->priCgALL, -1, Opt->hist);
       }
-   }
-      
-   if (Opt->cset) {/* Hide Classes not for analysis */
-      int mm;
-      short *sc=NULL;
-      sc= (short *)DSET_ARRAY (Opt->cset, 0);
-      for (kk=0 ; kk<DSET_NVOX(Opt->cset); ++kk) {
-         for (mm=0; mm<Opt->cs->N_label; ++mm) {
-            if (sc[kk] == Opt->cs->keys[mm]) break;
-         }
-         if (mm >= Opt->cs->N_label) sc[kk] = 0;
-      }
-   } else {
-      SUMA_S_Err("Need cset");
-      SUMA_RETURN(0);
    }
    
+   /* split the classes */
+   if (Opt->Split) { 
+      THD_3dim_dataset *Scset=NULL;
+      int N_split=0;
+      SUMA_CLASS_STAT *Scs=NULL;
+      SUMA_S_Warn("Splitting classes");
+      while (Opt->Split[N_split] > 0) ++N_split;
+      if (N_split != Opt->cs->N_label) {
+         SUMA_S_Errv("Split vector malformed.\n"
+                     "Have %d values in Split, but %d classes\n",
+                     N_split, Opt->cs->N_label);
+         SUMA_RETURN(0);
+      }
+      if (!SUMA_Split_Classes(Opt->cs->label, Opt->cs->N_label, Opt->cs->keys,
+                              Opt->Split, Opt->aset, Opt->cset, Opt->cmask,
+                              &Scset, &Scs, Opt)) {
+         SUMA_S_Err("Failed to split classes");
+         SUMA_RETURN(0);
+      }
+      /* Save old class stats and replace by split classes */
+      Opt->Gcs = Opt->cs; Opt->cs = Scs; Scs=NULL;
+      DSET_delete(Opt->cset); Opt->cset = Scset; Scset=NULL;
+   }
+      
    /* get the initial parameters pstCgALL is still null here normally 
       and priCgALL will not be used when that is the case.
       So these estimates are from cset alone */
@@ -88,13 +114,14 @@ int SUMA_SegEngine(SEG_OPTS *Opt)
       SUMA_S_Err("Failed in class stats");
       SUMA_RETURN(0);
    }
-   if (Opt->debug) SUMA_show_Class_Stat(Opt->cs, "Class Stat At Input:\n");
+   if (Opt->debug) SUMA_show_Class_Stat(Opt->cs, "Class Stat At Input:\n", NULL);
    
    if (!Opt->pstCgALL) { /* Compute initial posterior distribution */
       if (!(SUMA_pst_C_giv_ALL(Opt->aset, 
                                Opt->cmask, Opt->cmask_count,
-                               Opt->cs,  
-                               Opt->priCgALL, Opt->pCgN, &Opt->pstCgALL, Opt))) {
+                               Opt->cs, Opt->priCgALL, Opt->pCgN, 
+                               Opt->B, Opt->T, 1,
+                               &Opt->pstCgALL))) {
          SUMA_S_Err("Failed in SUMA_pst_C_giv_ALL");
          SUMA_RETURN(0);
       }
@@ -108,11 +135,70 @@ int SUMA_SegEngine(SEG_OPTS *Opt)
    }
    if (Opt->debug) 
       SUMA_show_Class_Stat(Opt->cs, 
-                           "Posterior Weighted Class Stat At Input:\n");
+                           "Posterior Weighted Class Stat At Input:\n", NULL);
    
    /* To begin iterations, we should have class stats and pstCgALL. 
       Also, need an initial cset if B > 0.0  */
    for (iter=0; iter<Opt->N_main; ++iter) {
+      /* improve parameters based on edge energy */
+      if (Opt->edge) {
+         double en;
+         float vv=1.0;
+         int *UseK, N_kok;
+         THD_3dim_dataset *skelset=NULL, *l_Bset=NULL, *l_aset=NULL;
+         NEW_SHORTY(Opt->aset, Opt->cs->N_label*(Opt->cs->N_label-1)/2, 
+                     "skelly", skelset);
+         UseK = (int *)SUMA_calloc(Opt->cs->N_label, sizeof(int));
+         if ((N_kok = SUMA_Class_k_Selector(Opt->cs, "classes_string", 
+                                          "CSF; GM; WM", UseK))<0) {
+            SUMA_S_Err("Failed to find classes");
+            SUMA_RETURN(0);
+         }
+         if (1) {
+            /* It should be the case that edge energy should not be affected
+            by the presence of bias field (METH2), for now, I will
+            pass a constant field here for testing */
+            NEW_SHORTY(Opt->aset, 1, "l_Bset", l_Bset);
+            if (!SUMA_InitDset(l_Bset, &vv, 1, Opt->cmask, 1)) {
+                     SUMA_S_Err("Failed to initialize l_Bset");
+                     SUMA_RETURN(0);
+            }
+            if (iter == 0) l_aset = Opt->aset;
+            else l_aset = Opt->xset; 
+         } else { /* old approach */
+            l_aset = Opt->aset; l_Bset = Opt->Bset;
+         }  
+         en = SUMA_DsetEdgeEnergy(l_aset, Opt->cset, 
+                                  Opt->cmask, l_Bset, 
+                                  skelset, Opt->cs, Opt->edge,
+                                  UseK, N_kok); 
+         SUMA_Seg_Write_Dset(Opt->proot, "PreSkel", skelset, iter, Opt->hist);
+         SUMA_S_Notev("Edge Enenergy, Pre MAP : %f\n", en);
+         
+         #if 1
+         if (!SUMA_MAP_EdgeEnergy(  l_aset, Opt->cmask, Opt->cmask_count,
+                                    l_Bset, Opt->cs, 
+                                    Opt->cset, Opt->edge, 
+                                    Opt->priCgALL, Opt->pCgN,
+                                    Opt->B, Opt->T, 0.4, 0.4,
+                                    Opt)) {
+            SUMA_S_Err("Failed in MAP_EdgeEnergy");
+            exit(1);
+         }  
+         
+         en = SUMA_DsetEdgeEnergy(l_aset, Opt->cset, 
+                                  Opt->cmask, 
+                                  l_Bset, skelset, Opt->cs, Opt->edge,
+                                  UseK, N_kok);
+         SUMA_Seg_Write_Dset(Opt->proot, "PstSkel", skelset, iter, Opt->hist); 
+         SUMA_S_Notev("Edge Enenergy, Post MAP : %f\n", en);
+         #endif
+
+         DSET_delete(skelset); skelset=NULL;
+         if (l_Bset && l_Bset != Opt->Bset) DSET_delete(l_Bset); l_Bset=NULL;
+         SUMA_ifree(UseK);
+      }
+
       if (Opt->bias_param > 0) {
          if (Opt->debug > 1) 
             SUMA_S_Notev("Wells Bias field correction, FWHM %f, iteration %d\n", 
@@ -151,44 +237,25 @@ int SUMA_SegEngine(SEG_OPTS *Opt)
             }
          }
       }
-      
-      /* improve parameters based on edge energy */
-      if (Opt->edge) {
-         double en;
-         short *cmap=NULL;
-         cmap = (short *)SUMA_calloc(DSET_NVOX(Opt->aset), sizeof(short));
-         en = SUMA_DsetEdgeEnergy(Opt->aset, (short *)DSET_ARRAY(Opt->cset, 0), 
-                                  Opt->cmask, 
-                                  Opt->fset, Opt->cs); 
-         SUMA_S_Notev("Edge Enenergy, Pre MAP : %f\n", en);
-         
-         if (!SUMA_MAP_EdgeEnergy(  Opt->aset, Opt->cmask, Opt->fset, 
-                                    Opt->cs, Opt->cset, Opt, cmap)) {
-            SUMA_S_Err("Failed in MAP_EdgeEnergy");
-            exit(1);
-         }  
-         
-         en = SUMA_DsetEdgeEnergy(Opt->aset, (short *)cmap, 
-                                  Opt->cmask, 
-                                  Opt->fset, Opt->cs); 
-         SUMA_S_Notev("Edge Enenergy, Post MAP : %f\n", en);
-         SUMA_ifree(cmap);
-      }
+
       
       
       if (Opt->B > 0) {
          if (Opt->debug > 1 && iter==0) {
-            SUMA_SEG_WRITE_DSET("MAPlabel.-1", Opt->cset, -1, Opt->hist);
+            SUMA_Seg_Write_Dset(Opt->proot, "MAPlabel.-1", Opt->cset, 
+                                 -1, Opt->hist);
          }
          if (!(SUMA_MAP_labels(Opt->xset, Opt->cmask, 
-                               Opt->cs, 6, &Opt->cset, 
+                               Opt->cs, 6, Opt->priCgALL, &Opt->cset, 
                                &Opt->pCgN, Opt))) {
             SUMA_S_Err("Failed in SUMA_MAP_labels");
             SUMA_RETURN(0);
          }
          if (Opt->debug > 1) {
-            SUMA_SEG_WRITE_DSET("MAPlabel", Opt->cset, iter, Opt->hist);
-            SUMA_SEG_WRITE_DSET("pCgN", Opt->pCgN, iter, Opt->hist);
+            SUMA_Seg_Write_Dset(Opt->proot, "MAPlabel", Opt->cset, 
+                                iter, Opt->hist);
+            SUMA_Seg_Write_Dset(Opt->proot, "pCgN", Opt->pCgN, iter, 
+                                 Opt->hist);
          }
          AFNI_FEED(Opt->ps->cs, "MAPlabel", iter, Opt->cset);
       }
@@ -197,12 +264,14 @@ int SUMA_SegEngine(SEG_OPTS *Opt)
                                Opt->cmask, Opt->cmask_count,
                                Opt->cs,  
                                Opt->priCgALL, Opt->pCgN,
-                               &Opt->pstCgALL, Opt))) {
+                               Opt->B, Opt->T, 1,
+                               &Opt->pstCgALL))) {
          SUMA_S_Err("Failed in SUMA_pst_C_giv_ALL");
          SUMA_RETURN(0);
       }
       if (Opt->debug > 1) {
-         SUMA_SEG_WRITE_DSET("pstCgALL", Opt->pstCgALL, iter, Opt->hist);
+         SUMA_Seg_Write_Dset(Opt->proot, "pstCgALL", Opt->pstCgALL, 
+                            iter, Opt->hist);
       }
       
       if (Opt->B <= 0.0f) { /* no need if B > 0 because cset is 
@@ -228,22 +297,54 @@ int SUMA_SegEngine(SEG_OPTS *Opt)
       
       if (Opt->debug || Opt->gold || Opt->gold_bias) {
          double bad_bias_thresh, bias_bad_count;
-         sprintf(sinf, "Class Stat iter %d:\n", iter);
+         char *sbig=NULL;
+         sprintf(sinf, "Class Stat iter %d:\n", iter+1);
          if (iter == Opt->N_main-1 || Opt->debug) {
-            SUMA_show_Class_Stat(Opt->cs, sinf);
+            SUMA_show_Class_Stat(Opt->cs, sinf, NULL);
+            if (Opt->proot) sprintf(sreport, 
+                     "%s/ClassStat.i%02d%s.txt", Opt->proot, 
+                                  iter+1, (iter==Opt->N_main-1) ? ".FINAL":"");
+            else snprintf(sreport, 500, 
+                     "%s.ClassStat.i%02d%s.txt",  
+                     Opt->prefix, iter+1, (iter==Opt->N_main-1) ? ".FINAL":"");
+            sbig = SUMA_append_replace_string(Opt->hist, sinf,"\n",0);
+            SUMA_show_Class_Stat(Opt->cs, sbig, sreport);
+            SUMA_ifree(sbig);
          }
+         
          /* Report on bias correction */
          bad_bias_thresh = 0.06;
          if ((Opt->gold_bias && Opt->Bset) && 
              (iter == Opt->N_main-1 || Opt->debug)) {
+            FILE *fout = fopen(sreport,"a");
             bias_bad_count = SUMA_CompareBiasDsets(Opt->gold_bias, Opt->Bset, 
                                  Opt->cmask, Opt->cmask_count, 
                                  bad_bias_thresh, NULL);
             SUMA_S_Notev("bad_count at thresh %f = %f%% of mask.\n",
                   bad_bias_thresh, bias_bad_count);
+            if (fout) {
+               fprintf(fout, "bad_count at thresh %f = %f%% of mask.\n",
+                  bad_bias_thresh, bias_bad_count);
+               fclose(fout); fout = NULL;
+            }
          }
       }
       
+   }
+   
+   if (Opt->Split) {
+      THD_3dim_dataset *Gcset=NULL;
+      THD_3dim_dataset *GpstCgALL=NULL;
+      /* need to put things back */
+      if (!SUMA_Regroup_classes(Opt, 
+                        Opt->cs->label, Opt->cs->N_label, Opt->cs->keys,
+                        Opt->Gcs->label, Opt->Gcs->N_label, Opt->Gcs->keys,
+                        Opt->cmask, Opt->pstCgALL, Opt->cset,
+                        &GpstCgALL, &Gcset)) {
+      }
+      /* switch dsets */
+      DSET_delete(Opt->pstCgALL); Opt->pstCgALL = GpstCgALL; GpstCgALL = NULL;
+      DSET_delete(Opt->cset); Opt->cset = Gcset; Gcset = NULL;
    }
    
    SUMA_RETURN(1);
@@ -334,6 +435,7 @@ SEG_OPTS *Seg_Default(char *argv[], int argc)
    Opt->pstCgALLname = NULL;
    Opt->Bsetname = NULL;
    
+   Opt->proot = "Seg";
    SUMA_RETURN(Opt);
 }
 
@@ -343,7 +445,16 @@ int Seg_CheckOpts(SEG_OPTS *Opt)
    
    SUMA_ENTRY;
    
-  SUMA_RETURN(1);
+   if( ! THD_is_directory(Opt->proot) ){
+      if( mkdir( Opt->proot , THD_MKDIR_MODE ) != 0 ){
+         SUMA_S_Errv("Failed to create %s\n", Opt->proot);
+         exit(1);
+      }
+   }
+   
+   SUMA_set_SegFunc_debug(Opt->debug, Opt->VoxDbg, Opt->VoxDbg3, Opt->VoxDbgOut);
+   
+   SUMA_RETURN(1);
 }
 
 int main(int argc, char **argv)
@@ -357,6 +468,7 @@ int main(int argc, char **argv)
    SUMA_SEND_2AFNI SS2A;
    SUMA_Boolean LocalHead = NOPE;
 
+   
    SUMA_STANDALONE_INIT;
 	SUMA_mainENTRY;
    
@@ -501,7 +613,8 @@ int main(int argc, char **argv)
       fprintf(Opt->VoxDbgOut, "\nDebug info for voxel %d\n", Opt->VoxDbg);
    }
    
-   Opt->cs = SUMA_New_Class_Stat(Opt->clss, Opt->keys, 3, NULL);
+   Opt->cs = SUMA_New_Class_Stat(Opt->clss->str, Opt->clss->num, 
+                                 Opt->keys, 3, NULL);
 
      
    /* Load prob. of class given features */
@@ -578,7 +691,8 @@ int main(int argc, char **argv)
          SUMA_RETURN(1);
       }
       if (Opt->debug > 1) {
-         SUMA_SEG_WRITE_DSET("classes_init", Opt->cset, -1, Opt->hist);
+         SUMA_Seg_Write_Dset(Opt->proot, "classes_init", Opt->cset, 
+                               -1, Opt->hist);
       }
    }
    
@@ -601,7 +715,7 @@ int main(int argc, char **argv)
       if ((ff = SUMA_mixopt_2_mixfrac(Opt->mixopt, Opt->cs->label[i], 
                                    Opt->cs->keys[i], Opt->cs->N_label,
                                    Opt->cmask, Opt->cset))<0.0) {
-         SUMA_S_Err("Can't get mixfrac");
+         SUMA_S_Errv("Can't get mixfrac for %s\n", Opt->mixopt);
          SUMA_RETURN(1);
       }
       SUMA_set_Stat(Opt->cs, Opt->cs->label[i], "init.mix", ff); 
@@ -616,24 +730,48 @@ int main(int argc, char **argv)
    }
    
    /* write output */
-   if (Opt->fset && !Opt->this_fset_name) {
-      tross_Append_History(Opt->fset, Opt->hist);
-      DSET_write(Opt->fset);
+   if (Opt->Bset && !Opt->this_fset_name) {
+      tross_Append_History(Opt->Bset, Opt->hist);
+      SUMA_Seg_Write_Dset(Opt->proot, "BiasField", /* DSET_PREFIX(Opt->Bset) */
+                              Opt->Bset, -1, Opt->hist);
    }
    if (Opt->xset && !Opt->this_xset_name) {
       AFNI_FEED(Opt->ps->cs, "BiasCorrect", -1, Opt->xset);
-      tross_Append_History(Opt->xset, Opt->hist);
-      DSET_write(Opt->xset);
+      SUMA_Seg_Write_Dset(Opt->proot, "AnatUB", /* DSET_PREFIX(Opt->xset)*/
+                              Opt->xset, -1, Opt->hist);
    }
    if (Opt->cset) {
-      SUMA_SEG_WRITE_DSET(Opt->crefix, Opt->cset, -1, Opt->hist);
+      SUMA_Seg_Write_Dset(Opt->proot, "Classes", /* Opt->crefix */ 
+                          Opt->cset, -1, Opt->hist);
       AFNI_FEED(Opt->ps->cs, "FinalClasses", -1, Opt->cset);
    }
    if (Opt->pstCgALL) {
-      SUMA_SEG_WRITE_DSET(Opt->prefix, Opt->pstCgALL, -1, Opt->hist);
+      SUMA_Seg_Write_Dset(Opt->proot, "Posterior",  /* Opt->prefix */
+                          Opt->pstCgALL, -1, Opt->hist);
       AFNI_FEED(Opt->ps->cs, "pstCgALL-final", -1, Opt->pstCgALL);
    }
    
+   SUMA_S_Warn("Unmodulated output");
+   if (!(SUMA_pst_C_giv_ALL(Opt->xset, 
+                               Opt->cmask, Opt->cmask_count,
+                               Opt->cs,  
+                               NULL, NULL,
+                               Opt->B, Opt->T, 0,
+                               &Opt->pstCgALL))) {
+         SUMA_S_Err("Failed in SUMA_pst_C_giv_ALL unmodulated");
+         SUMA_RETURN(1);
+   }
+   SUMA_Seg_Write_Dset(Opt->proot, "Unmodulated.p", 
+                        Opt->pstCgALL, -1, Opt->hist);
+   
+   if (!(SUMA_assign_classes( Opt->pstCgALL, Opt->cs, 
+                              Opt->cmask, &Opt->cset))) { 
+      SUMA_S_Err("Failed in assign_classes");
+      SUMA_RETURN(1);
+   }
+   SUMA_Seg_Write_Dset(Opt->proot, "Unmodulated.c", 
+                       Opt->cset, -1, Opt->hist);
+                       
    /* all done, free */
    Opt = free_SegOpts(Opt);
   
