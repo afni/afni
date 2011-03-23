@@ -157,7 +157,7 @@ int main( int argc , char *argv[] )
             " -jpgs SIZE fname } = setenv AFNI_1DPLOT_IMSIZE SIZE and \n"
             " -jpegs SIZE fname} = -png (or -jpg) fname\n"
             "\n"
-            "-ytran 'expr'    = Transform the data along the y-axis by\n"
+            " -ytran 'expr'   = Transform the data along the y-axis by\n"
             "                   applying the expression to each input value.\n"
             "                   For example:\n"
             "                     -ytran 'log10(z)'\n"
@@ -213,6 +213,7 @@ int main( int argc , char *argv[] )
             " -thick          = Each time you give this, it makes the line\n"
             "                   thickness used for plotting a little larger.\n"
             "                   [An alternative to using '-DAFNI_1DPLOT_THIK=...']\n"
+            " -THICK          = Twice the power of '-thick' at no extra cost!!\n"
             "\n"
             " -Dname=val      = Set environment variable 'name' to 'val'\n"
             "                   for this run of the program only:\n"
@@ -299,7 +300,8 @@ int main( int argc , char *argv[] )
      }
 
      if( strncasecmp(argv[iarg],"-thi",4) == 0 ){  /* 15 Apr 2009: thickness */
-       thik += 0.005f ; iarg++ ; continue ;
+       thik += 0.005f ; if( argv[iarg][1] == 'T' ) thik += 0.005f ;
+       iarg++ ; continue ;
      }
 
      if( strcmp(argv[iarg],"-norm2") == 0 ){  /* 26 Mar 2008 */
