@@ -85,11 +85,12 @@ int main( int argc , char *argv[] )
       "  (different for each voxel).\n"
       "\n"
       "* The fitting approximation can be done in the L2 sense (least sum of\n"
-      "  square of errors), possibly with a LASSO (L1) penalty term, or in\n"
+      "  square of errors) [possibly with a LASSO (L1) penalty term], or in\n"
       "  the L1 sense (least sum of absolute errors).  Which one is better?\n"
       "  The answer to that question depends strongly on what you are\n"
       "  going to use the results for!  And on the quality of the data.\n"
-      " ++ 3dTfitter is not for the casual user.\n"
+      "\n"
+      "***** 3dTfitter is not for the casual user! *****\n"
       "\n"
       "----------------------------------\n"
       "SPECIFYING THE EQUATIONS AND DATA:\n"
@@ -322,11 +323,14 @@ int main( int argc , char *argv[] )
       "              penalty on the coefficients.\n"
       "             * The positive value 'lam' after the option name is the\n"
       "               weight given to the penalty.\n"
-      "              ++ At present, 3dTfitter doesn't do anything to select\n"
-      "                'lam' for you ... maybe someday (if you're nice to me)?\n"
       "              ++ As a rule of thumb, you can try lam = 5 * sigma, where\n"
       "                 sigma = standard deviation of noise, but that requires\n"
       "                 you to have some idea what the noise level is.\n"
+      "              ++ If you enter 'lam' as a negative number, then the code\n"
+      "                 will *crudely* estimate sigma and then scale abs(lam) by\n"
+      "                 that value -- in which case, you can try lam = -5 (or so)\n"
+      "                 and see if that works well for you.  Or you can use the\n"
+      "                 Square Root LASSO option (next).\n"
       "             * Optionally, you can supply a list of parameter indexes\n"
       "               (after 'lam') that should NOT be penalized in the\n"
       "               the fitting process (e.g., traditionally, the mean value\n"
@@ -357,6 +361,9 @@ int main( int argc , char *argv[] )
       "               In my limited experience, 5 gave pretty nice results \n"
       "               for a DSC-MRI deconvolution problem, combined with\n"
       "               the -FALTUNG penalty parameters set to '012 -1'.\n"
+      "              ++ Unlike the pure LASSO option above, do NOT give a\n"
+      "                 negative value for lam here -- there is no need for\n"
+      "                 scaling by sigma (as described below).\n"
       "             * The theoretical advantange of Square Root LASSO over\n"
       "               standard LASSO is that a good choice of 'lam' doesn't\n"
       "               depend on knowing the noise level in the data (that's\n"
@@ -802,7 +809,8 @@ int main( int argc , char *argv[] )
        meth = -2 ;
        if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]);
        lasso_flam = (float)strtod(argv[iarg],NULL) ;
-       if( lasso_flam <= 0.0f ) ERROR_exit("%s %s: illegal lam",argv[iarg-1],argv[iarg]) ;
+       if( lasso_flam == 0.0f ) ERROR_exit("%s %s: illegal lam",argv[iarg-1],argv[iarg]) ;
+       if( lasso_flam < 0.0f ){ THD_lasso_dosigest(1); lasso_flam = -lasso_flam; }
        THD_lasso_fixlam(lasso_flam) ;
        iarg++ ;
        if( iarg < argc && isdigit(argv[iarg][0]) ){
