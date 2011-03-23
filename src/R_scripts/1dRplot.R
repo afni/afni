@@ -368,7 +368,10 @@ read.1dRplot.opts.batch <- function (args=NULL, verb = 0) {
                      ) ),
       '-col.plot.char' = apl(n = c(1,Inf), d = NULL, h = paste(
    "-col.plot.char CHAR1 [CHAR2 ...] : Symbols for each column in -input.\n",
-   "                            CHAR? are integers for now.\n"
+   "                            CHAR? are integers (usually 0-127), or\n",
+   "                            characters + - I etc.\n",
+   "     See the following link for what CHAR? values you can use:\n",
+   "http://stat.ethz.ch/R-manual/R-patched/library/graphics/html/points.html\n"
                      ) ),
                      
       '-col.color' = apl(n = c(1,Inf), d = NULL, h = paste(
