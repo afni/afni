@@ -1391,12 +1391,16 @@ void AFNI_sigfunc_alrm(int sig)
    int nn = (lrand48()>>3) % NTOP ;
    if( !AFNI_yesenv("AFNI_NEVER_SAY_GOODBYE") ){
      if( nn < NMSG ){
-       fprintf(stderr,"\n** AFNI is done: %s!\n\n",msg[nn]) ;
+#undef  NDUN
+#define NDUN (sizeof(dun)/sizeof(char *))
+       static char *dun[] = { "is done" , "wraps up"   , "concludes" ,
+                              "is over" , "terminates" , "finishes"   } ;
+       fprintf(stderr,"\n** AFNI %s: %s!\n\n",dun[lrand48()%NDUN],msg[nn]) ;
      }
 #ifdef USE_SONNETS
      else {
        nn = (lrand48()>>3) % NUM_SONNETS ;
-       fprintf(stderr,"\n** AFNI is done; for your pleasure, a sonnet by Shakespeare:\n"
+       fprintf(stderr,"\n** Exeunt AFNI: for your delectation, a sonnet by Shakespeare:\n"
                       "                  --- %d ---\n"
                       "%s\n" , nn+1 , sonnets[nn] ) ;
      }
