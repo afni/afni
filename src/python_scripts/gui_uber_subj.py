@@ -281,15 +281,15 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       self.gvars.gbox_anat = self.group_box_anat()
       self.gvars.gbox_epi  = self.group_box_epi()
       self.gvars.gbox_stim = self.group_box_stim()
-      self.gvars.gbox_expected = self.group_box_expected()
       self.gvars.gbox_gltsym   = self.group_box_gltsym()
+      self.gvars.gbox_expected = self.group_box_expected()
       self.gvars.gbox_regress  = self.group_box_regress_opts()
 
       self.gvars.m2_vlayout.addWidget(self.gvars.gbox_anat)
       self.gvars.m2_vlayout.addWidget(self.gvars.gbox_epi)
       self.gvars.m2_vlayout.addWidget(self.gvars.gbox_stim)
-      self.gvars.m2_vlayout.addWidget(self.gvars.gbox_expected)
       self.gvars.m2_vlayout.addWidget(self.gvars.gbox_gltsym)
+      self.gvars.m2_vlayout.addWidget(self.gvars.gbox_expected)
       self.gvars.m2_vlayout.addWidget(self.gvars.gbox_regress)
 
    def group_box_regress_opts(self):

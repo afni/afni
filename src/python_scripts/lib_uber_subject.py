@@ -98,9 +98,13 @@ g_history = """
          - show processing status in 'exec proc script' window
          - added clear all options/fields File menu items
          - added -todo option
+    0.15 Mar 23, 2011 :
+         - moved gltsym group box to below stim
+         - save output from afni_proc.py command
+         - small mac install update
 """
 
-g_version = '0.14 (March 22, 2011)'
+g_version = '0.15 (March 23, 2011)'
 
 # ----------------------------------------------------------------------
 # global definition of default processing blocks
@@ -125,6 +129,7 @@ g_res_defs = SUBJ.VarsObject("uber_subject result variables")
 g_res_defs.file_ap       = ''           # file name for afni_proc.py command
 g_res_defs.file_proc     = ''           # file name for proc script
 g_res_defs.results_dir   = ''           # results directory from proc script
+g_res_defs.output_ap     = ''           # output from running AP command
 g_res_defs.output_proc   = ''           # output from running proc script
 
 # ----------------------------------------------------------------------
@@ -263,7 +268,8 @@ class AP_Subject(object):
          if self.svars.sid: name = 'cmd.ap.%s' % self.svars.sid
          else:              name = 'cmd.ap'
 
-      self.rvars.file_ap = name # store which file we have written to
+      self.rvars.file_ap   = name # store which file we have written to
+      self.rvars.output_ap = 'output.%s' % name # file for command output
 
       if self.cvars.verb>0: print '++ writing afni_proc.py command to %s'%name
 
@@ -321,14 +327,18 @@ class AP_Subject(object):
          - return status and command output
       """
 
-      pfile = self.subj_dir_filename('file_ap')
+      self.goto_subj_dir() # ---------- do the work ----------
+
+      pfile = self.rvars.val('file_ap')
+      ofile = self.rvars.val('output_ap')
       if not pfile:
          return 1, '** no file set as afni_proc.py command'
       elif not os.path.isfile(pfile):
          return 1, '** afni_proc.py script not found: %s' % pfile
 
-      self.goto_subj_dir()
-      cstr = 'tcsh %s' % self.rvars.file_ap
+      if ofile: cstr = 'tcsh %s |& tee %s' % (pfile, ofile)
+      else:     cstr = 'tcsh %s' % pfile
+
       if self.cvars.verb > 0:
          print "++ executing: %s" % cstr
       cmd = BASE.shell_com('tcsh -c "%s"' % cstr, capture=1)
@@ -353,19 +363,18 @@ class AP_Subject(object):
          return status and command output
       """
 
-      pfile = self.subj_dir_filename('file_proc')
+      self.nuke_old_results()   # nuke any old results
+
+      self.goto_subj_dir() # ---------- do the work ----------
+
+      pfile = self.rvars.file_proc
+      ofile = self.rvars.output_proc
       if not pfile: 
          return 1, '** proc script file not set'
       elif not os.path.isfile(pfile):
          return 1, '** proc script not found: %s' % pfile
 
-      self.nuke_old_results()   # nuke any old results
-
-      self.goto_subj_dir() # ---------- do the work ----------
-
       # execute script
-      pfile = self.rvars.file_proc
-      ofile = self.rvars.output_proc
       if ofile: cstr = 'tcsh -xef %s |& tee %s' % (pfile, ofile)
       else:     cstr = 'tcsh -xef %s' % (pfile)
       print '++ executing: %s' % cstr
@@ -1430,7 +1439,10 @@ helpstr_todo = """
 - other : choose blocks
 
 - allow stim_file regressors and labels
-
+- add range error checking for many variables
+  (types are done when converting from str)
+- be able to change font (individual windows?  whole GUI?)
+   - ctrl/shift/+ and ctrl/- to increase and decrease size?
 
 tools (maybe put in uber_proc.py, instead):
    - compute average blur
