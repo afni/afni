@@ -171,7 +171,7 @@ ENTRY("THD_fitter") ;
 
      case 2:
        if( ccon == NULL ){                            /* unconstrained */
-         if( use_rcmat ){
+         if( use_rcmat && nref > 9 ){
            int first=1 ;
            qfit = rcmat_lsqfit( npt, far, nref, ref ) ; /* 30 Dec 2008 */
            if( qfit == NULL && first ){
