@@ -2386,8 +2386,8 @@ int SUMA_estimate_bias_field_Wells (SEG_OPTS *Opt,
 } /* end OpenMP */
 #endif
 
-   if (Opt->debug) { SUMA_S_Notev("Smoothing duration %f seconds\n", 
-                                    SUMA_etime (&tti, 1)); }
+   if (Opt->debug) { SUMA_S_Notev("%f smoothing duration %f seconds\n", 
+                                   fwhm, SUMA_etime (&tti, 1)); }
                                     
    if (Opt->debug > 1) {/* store scaled intensities */
       SUMA_Seg_Write_Dset(Opt->proot, "Rset-PostBlur", Rset, iter, Opt->hist);   

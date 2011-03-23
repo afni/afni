@@ -202,6 +202,7 @@ ENTRY("mri_blur3D_inmask_speedy") ;
        for( ii=0 ; ii < nx ; ii++,ijk++ ){
          if( !INMASK(ijk) ) continue ;
          if (  ii == 0    || jj == 0    || kk == 0 || 
+               ii == nx-1 || jj == ny-1 || jj == nz-1 ||
                ijk < nxy || ijk > ijkm) {
             skin[ijk] = 1; /* in mask, on edge of volume, 
                               or close to boundary slices */

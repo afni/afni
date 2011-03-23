@@ -2481,6 +2481,15 @@ from within AFNI, a 'Rescan: This' operation should probably be performed,
 which will force a re-reading of the datasets and so force an elicitation
 of the NIfTI debug messages (for .nii files, that is).
 
+------------------------------
+Variable: AFNI_NIFTI_TYPE_WARN 
+------------------------------
+AFNI converts 'byte' NIFTI data types to 'short', and 'int' to 'float'.
+Programs that do so will issue a warning each time such a conversion is 
+carried out. When this variable is set to NO, as it is now by default, 
+each program would issue just one warning at the first occurrence of a type conversion. 
+Set this variable to YES if you want to see all conversion warnings.  
+
 --------------------------
 Variable: AFNI_DEBUG_PLUG_VOL2SURF
 --------------------------
