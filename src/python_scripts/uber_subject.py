@@ -305,6 +305,9 @@ g_install_str = """
          - sudo make install
       3. PyQt:
          - http://www.riverbankcomputing.co.uk/software/pyqt/download
+         - cd PyQt-mac-gpl-4.8.3    (for example)
+         - make
+         - sudo make install
    ------------------------------------------------------------------
 """
 

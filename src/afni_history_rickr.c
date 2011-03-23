@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 23, MAR, 2011, RCR, "uber_subject.py", MINOR, TYPE_ENHANCE,
+   "moved gltsym box to below stim, save AP output, small mac install update",
+   NULL
+ } ,
+
  { 22, MAR, 2011, RCR, "uber_subject.py", MINOR, TYPE_ENHANCE,
    "processing status, clear options/fields menu items, etc...",
    NULL
