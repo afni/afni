@@ -4363,6 +4363,7 @@ extern floatvec * THD_lasso_L2fit( int npt    , float *far   ,
 extern void THD_lasso_fixlam( float x ) ;
 extern void THD_lasso_setlamvec( int nref , float *lam ) ;
 extern void THD_lasso_dopost( int x ) ;
+extern void THD_lasso_dosigest( int x ) ;
 extern void THD_lasso_setdeps( float x ) ;
 extern floatvec * THD_lasso( int meth   ,
                              int npt    , float *far   ,

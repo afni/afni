@@ -33,6 +33,14 @@ void THD_lasso_dopost( int x ){ do_post = x ; }
 
 /*............................................................................*/
 
+/** set this to 1 to scale LASSO lambda by estimated sigma **/
+
+static int do_sigest = 0 ;
+
+void THD_lasso_dosigest( int x ){ do_sigest = x ; }
+
+/*............................................................................*/
+
 /** set the entire lambda vector **/
 
 static floatvec *vlam = NULL ;
@@ -49,6 +57,28 @@ ENTRY("THD_lasso_setlamvec") ;
      { memcpy(vlam->ar,lam,sizeof(float)*nref) ; }
    }
    EXRETURN ;
+}
+
+/*----------------------------------------------------------------------------*/
+
+static float estimate_sigma( int npt , float *far )
+{
+   float *dif , mad1,mad2 ; int ii ;
+
+   if( npt < 9 || far == NULL ) return 0.0f ;
+
+#pragma omp critical (MALLOC)
+   { dif = (float *)malloc(sizeof(float)*npt) ; }
+
+   for( ii=0 ; ii < npt-1 ; ii++ ) dif[ii] = far[ii+1]-far[ii] ;
+   qmedmad_float( npt-1 , dif , NULL , &mad1 ) ; mad1 *= 1.05f ;
+   for( ii=0 ; ii < npt-2 ; ii++ ) dif[ii] = 0.5f*(far[ii+2]+far[ii]) - far[ii+1] ;
+   qmedmad_float( npt-2 , dif , NULL , &mad2 ) ; mad2 *= 1.21f ;
+
+#pragma omp critical (MALLOC)
+   { free(dif) ; }
+
+   return MAX(mad1,mad2) ;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -238,6 +268,8 @@ ENTRY("THD_lasso_L2fit") ;
 
    /*--- Save 1/(sum of squares) of each ref column ---*/
 
+   dsum = (do_sigest) ? estimate_sigma(npt,far) : 1.0f ;
+
    nfree = 0 ;                    /* number of unconstrained parameters */
    for( jj=0 ; jj < nref ; jj++ ){
      rj = ref[jj] ;
@@ -247,7 +279,7 @@ ENTRY("THD_lasso_L2fit") ;
        if( mylam[jj] == 0.0f ){   /* unconstrained parameter */
          fr[jj] = 1 ;  nfree++ ;
        } else {
-         mylam[jj] *= sqrtf(pj) ; /* scale to allow for size of regressors */
+         mylam[jj] *= dsum * sqrtf(pj) ; /* scale for size of regressors */
        }
      }
    }
