@@ -93,7 +93,16 @@ foreach dset ($dsets)
       set cl_num = `1dcat {$RNS}.aib.1D"[$in]" | uniq`
       if ("$#cl_num" != 1 && "$#cl_num" != 0) then
          if ($ignore_bad) then
-            echo "#Bad table $cl_num, ignoring it"
+            if ($#forced_list > 0) then
+               #Check if $cl is mandated
+               set mm = (`1dcat "1D:$forced_list $cl" | sort -n | uniq`)
+               if ($#mm == $#forced_list) then
+                  set clar = ($clar $cl)
+                  set dcar = ($dcar 0)
+               endif
+            else
+               echo "#Bad table $cl_num, ignoring it"
+            endif
          else
             echo "#Bad table $cl_num, filling with 0s"
             set clar = ($clar $cl)
@@ -299,6 +308,19 @@ PARSE_COMMAND:
          endif	
       endif   
          
+      if ($donext && "$argv[$cnt]" == "-forceoutput") then
+         set pLoc = $cnt		
+		   if ($pLoc == $Narg) then
+				echo "Need a file after -forceoutput"
+            goto END
+			else
+            @ cnt ++
+            set forced_list = \
+               (`@MakeLabelTable -all_keys -labeltable $argv[$cnt]`)
+            set donext = 0	
+         endif	
+      endif   
+         
       if ($donext && "$argv[$cnt]" == "-dsets") then
          set pLoc = $cnt		
 		   if ($pLoc == $Narg) then
@@ -424,6 +446,7 @@ echo "   [-labeltable LTFILE]: If given, the labeltable is used to set the "
 echo "                         default MAX_ROI parameter"
 echo "                         Also, this option forces an output for each"
 echo "                         key in the LTFILE"
+echo "   [-forceoutput LTFILE]: If given force output for each class in LTFILE"
 echo "   [-do_not_mask_by_base]: Do not mask dset by step(base) before computing"
 echo "                           Dice coefficient. This is the default behaviour"
 echo "                           for backward compatibility. "
