@@ -26,6 +26,10 @@ g_styles = ["windows", "motif", "cde", "plastique", "cleanlooks"]
 g_style_index = 0
 g_style_index_def = 4
 
+g_spacing = 1
+g_glayout_spacing = 1
+g_grid_spacing = 6
+
 g_LineEdittype = None                   # set this type later
 
 
@@ -249,7 +253,8 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       # maybe we need to write a valid_in_list validator...
       elif obj == self.gvars.Line_volreg_base:
          text = str(obj.text())
-         if text == '' or text in USUBJ.g_vreg_base_list:
+         if text == '': text = USUBJ.g_def_vreg_base
+         if text in USUBJ.g_vreg_base_list:
             self.set_svar('volreg_base', text)
          else: # reset to previous value
             self.gvars.Line_volreg_base.setText(self.svars.volreg_base)
@@ -273,6 +278,30 @@ class SingleSubjectWindow(QtGui.QMainWindow):
          self.update_textLine_check(obj, obj.text(), 'regress_GOFORIT',
                                  'GOFORIT warning override', QLIB.valid_as_int)
 
+      elif obj == self.gvars.Line_align_cost:
+         text = str(obj.text())
+         if text == '': text = USUBJ.g_def_align_cost
+         if text in USUBJ.g_align_cost_list:
+            self.set_svar('align_cost', text)
+         else: # reset to previous value
+            # keep self.gvars.Line_align_cost.setText(self.svars.align_cost)
+            self.set_svar('align_cost', text)  # apply anyway
+            QLIB.guiWarning("Warning: unknown alignment cost function",
+                            "cost '%s' not in %s\n\n" \
+                            % (text, ', '.join(USUBJ.g_align_cost_list)), obj)
+
+      elif obj == self.gvars.Line_tlrc_base:
+         text = str(obj.text())
+         if text == '': text = USUBJ.g_def_tlrc_base
+         if text in USUBJ.g_tlrc_base_list:
+            self.set_svar('tlrc_base', text)
+         else: # reset to previous value
+            # keep self.gvars.Line_tlrc_base.setText(self.svars.tlrc_base)
+            self.set_svar('tlrc_base', text)  # apply anyway
+            QLIB.guiWarning("Warning: unknown template",
+                            "tlrc_base '%s' not in %s\n\n" \
+                            % (text, ', '.join(USUBJ.g_tlrc_base_list)), obj)
+
       else: print '** CB_line_text: unknown sender'
 
    def make_l3_group_boxes(self):
@@ -284,6 +313,8 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       self.gvars.gbox_gltsym   = self.group_box_gltsym()
       self.gvars.gbox_expected = self.group_box_expected()
       self.gvars.gbox_regress  = self.group_box_regress_opts()
+      self.gvars.gbox_align    = self.group_box_align()
+      self.gvars.gbox_tlrc     = self.group_box_tlrc()
 
       self.gvars.m2_vlayout.addWidget(self.gvars.gbox_anat)
       self.gvars.m2_vlayout.addWidget(self.gvars.gbox_epi)
@@ -291,6 +322,133 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       self.gvars.m2_vlayout.addWidget(self.gvars.gbox_gltsym)
       self.gvars.m2_vlayout.addWidget(self.gvars.gbox_expected)
       self.gvars.m2_vlayout.addWidget(self.gvars.gbox_regress)
+      self.gvars.m2_vlayout.addWidget(self.gvars.gbox_align)
+      self.gvars.m2_vlayout.addWidget(self.gvars.gbox_tlrc)
+
+   def group_box_align(self):
+      """create a group box with a VBox layout:
+            align_giant_move, align_cost,
+            tlrc_ss, tlrc_base, tlrc_ok_maxite
+            (rcr - later: maybe general align_opts_aea, tlrc_opts_at)
+      """
+
+      gbox = self.get_styled_group_box("extra align/tlrc options")
+
+      # put frame inside gbox, which we can hide via toggled button
+      glayout = QtGui.QVBoxLayout(gbox)
+      frame = QtGui.QFrame(gbox)
+      frame.setFrameShape(QtGui.QFrame.NoFrame)
+      gbox.frame = frame
+      self.init_gbox_viewable(gbox, False)      # default to hidden
+      gbox.toggled.connect(self.gbox_toggle_frame)
+
+      layout = QtGui.QGridLayout(frame)         # now a child of frame
+      voffset = 0                               # vertical position in layout
+
+      # --------------------------------------------------
+      # align_cost, with chooser
+      label = QtGui.QLabel("align: cost function")
+      label.setStatusTip("cost funtion for aligning EPI to anat")
+      LE = QtGui.QLineEdit()
+      # choose button
+      blist = ['cost: %s' % cost for cost in USUBJ.g_align_cost_list]
+      pbut = QLIB.create_menu_button(frame, "choose", blist,
+                                     call_back=self.CB_gbox_PushB)
+      LE.setText(self.svars.align_cost)
+      LE.editingFinished.connect(self.CB_line_text)
+
+      layout.addWidget(label, voffset, 0)
+      layout.addWidget(pbut, voffset, 1)
+      layout.addWidget(LE, voffset, 2)
+      self.gvars.Line_align_cost = LE
+      voffset += 1
+
+      # --------------------------------------------------
+      # checkbox: giant_move
+      cbox = QtGui.QCheckBox("align: use giant_move")
+      cbox.setStatusTip("use -giant_move in align_epi_anat.py")
+      cbox.setChecked(self.svars.align_giant_move=='yes')
+      cbox.clicked.connect(self.CB_checkbox)
+
+      layout.addWidget(cbox, voffset, 0)
+      gbox.checkBox_align_giant_move = cbox
+      voffset += 1
+
+      # --------------------------------------------------
+      # and finish group box
+      layout.setSpacing(g_spacing)
+      glayout.addWidget(frame)
+      glayout.setSpacing(g_glayout_spacing)
+      gbox.setLayout(glayout)
+      return gbox
+
+   def group_box_tlrc(self):
+      """create a group box with a VBox layout:
+            align_giant_move, align_cost,
+            tlrc_ss, tlrc_base, tlrc_ok_maxite
+            (rcr - later: maybe general align_opts_aea, tlrc_opts_at)
+      """
+
+      gbox = self.get_styled_group_box("extra align/tlrc options")
+
+      # put frame inside gbox, which we can hide via toggled button
+      glayout = QtGui.QVBoxLayout(gbox)
+      frame = QtGui.QFrame(gbox)
+      frame.setFrameShape(QtGui.QFrame.NoFrame)
+      gbox.frame = frame
+      self.init_gbox_viewable(gbox, False)      # default to hidden
+      gbox.toggled.connect(self.gbox_toggle_frame)
+
+      layout = QtGui.QGridLayout(frame)         # now a child of frame
+      voffset = 0                               # vertical position in layout
+
+      # --------------------------------------------------
+      # tlrc_base, with chooser
+      label = QtGui.QLabel("tlrc: template")
+      label.setStatusTip("anatomical group registration template")
+      LE = QtGui.QLineEdit()
+      # choose button
+      blist = ['template: %s' % tt for tt in USUBJ.g_tlrc_base_list]
+      pbut = QLIB.create_menu_button(frame, "choose", blist,
+                                     call_back=self.CB_gbox_PushB)
+      LE.setText(self.svars.tlrc_base)
+      LE.editingFinished.connect(self.CB_line_text)
+
+      layout.addWidget(label, voffset, 0)
+      layout.addWidget(pbut, voffset, 1)
+      layout.addWidget(LE, voffset, 2)
+      self.gvars.Line_tlrc_base = LE
+      voffset += 1
+
+      # --------------------------------------------------
+      # checkbox: tlrc_ss
+      cbox = QtGui.QCheckBox("tlrc: strip anat skull")
+      cbox.setStatusTip("if not, use -tlrc_no_ss for @auto_tlrc")
+      cbox.setChecked(self.svars.tlrc_ss=='yes')
+      cbox.clicked.connect(self.CB_checkbox)
+
+      layout.addWidget(cbox, voffset, 0)
+      gbox.checkBox_tlrc_ss = cbox
+      voffset += 1
+
+      # --------------------------------------------------
+      # checkbox: OK maxite
+      cbox = QtGui.QCheckBox("tlrc: OK maxite")
+      cbox.setStatusTip("allow max iterations in @auto_tlrc skull strip")
+      cbox.setChecked(self.svars.tlrc_ok_maxite=='yes')
+      cbox.clicked.connect(self.CB_checkbox)
+
+      layout.addWidget(cbox, voffset, 0)
+      gbox.checkBox_tlrc_ok_maxite = cbox
+      voffset += 1
+
+      # --------------------------------------------------
+      # and finish group box
+      layout.setSpacing(g_spacing)
+      glayout.addWidget(frame)
+      glayout.setSpacing(g_glayout_spacing)
+      gbox.setLayout(glayout)
+      return gbox
 
    def group_box_regress_opts(self):
       """create a group box with a VBox layout:
@@ -371,7 +529,9 @@ class SingleSubjectWindow(QtGui.QMainWindow):
 
       # --------------------------------------------------
       # and finish group box
+      layout.setSpacing(g_spacing)
       glayout.addWidget(frame)
+      glayout.setSpacing(g_glayout_spacing)
       gbox.setLayout(glayout)
       return gbox
 
@@ -395,7 +555,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       # --------------------------------------------------
       # tcat_nfirst
       label = QtGui.QLabel("first TRs to remove (per run)")
-      label.setToolTip("the number of pre-steady state TRs to remove")
+      label.setStatusTip("the number of pre-steady state TRs to remove")
       self.gvars.Line_tcat_nfirst = QtGui.QLineEdit()
       self.gvars.Line_tcat_nfirst.setText(self.svars.tcat_nfirst)
       self.gvars.Line_tcat_nfirst.editingFinished.connect(self.CB_line_text)
@@ -406,7 +566,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       # --------------------------------------------------
       # volreg_base
       label = QtGui.QLabel("volume registration base")
-      label.setToolTip("EPI volume to use as registration base")
+      label.setStatusTip("EPI volume to use as registration base")
       self.gvars.Line_volreg_base = QtGui.QLineEdit()
       # choose button
       blist = ['vr base: %s' % base for base in USUBJ.g_vreg_base_list]
@@ -422,7 +582,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       # --------------------------------------------------
       # motion_limit
       label = QtGui.QLabel("motion censor limit (mm, per TR)")
-      label.setToolTip("censor TRs with motion exceeding this mm distance")
+      label.setStatusTip("censor TRs with motion exceeding this mm distance")
       self.gvars.Line_motion_limit = QtGui.QLineEdit()
       self.gvars.Line_motion_limit.setText(self.svars.motion_limit)
       self.gvars.Line_motion_limit.editingFinished.connect(self.CB_line_text)
@@ -430,7 +590,9 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       layout.addWidget(self.gvars.Line_motion_limit, 2, 2)
 
       frame.setLayout(layout)
+      layout.setSpacing(g_spacing)
       glayout.addWidget(frame)
+      glayout.setSpacing(g_glayout_spacing)
       gbox.setLayout(glayout)
       return gbox
 
@@ -484,8 +646,10 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       gbox.checkBox.clicked.connect(self.CB_checkbox)
       layout.addWidget(gbox.checkBox)
 
+      layout.setSpacing(g_spacing)
       frame.setLayout(layout)
       glayout.addWidget(frame)
+      glayout.setSpacing(g_glayout_spacing)
       gbox.setLayout(glayout)
       return gbox
 
@@ -571,6 +735,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       layout.setColumnStretch(0, 1)
       layout.setColumnStretch(1, 20)
 
+      layout.setSpacing(g_grid_spacing)
       bwidget.setLayout(layout)
       mainlayout.addWidget(bwidget)
 
@@ -582,6 +747,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       mainlayout.addWidget(gbox.checkBox_wildcard)
 
       # --------------------------------------------------
+      mainlayout.setSpacing(g_spacing)
       frame.setLayout(mainlayout)
       return gbox
 
@@ -628,7 +794,15 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       # --------------------------------------------------
       # add a table for the stim names, init to stim
       self.make_stim_table(gbox)
-      mainlayout.addWidget(self.gvars.Table_stim)
+
+      # put table in its own HBox
+      bwidget = QtGui.QWidget()
+      layout = QtGui.QHBoxLayout()
+      layout.addWidget(self.gvars.Table_stim)
+      layout.setSpacing(g_spacing)
+      bwidget.setLayout(layout)
+      mainlayout.addWidget(bwidget)
+      # mainlayout.addWidget(self.gvars.Table_stim)
 
       # --------------------------------------------------
       # add lines for the number of datasets and wildcard form
@@ -655,6 +829,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       layout.setColumnStretch(0, 1)
       layout.setColumnStretch(1, 20)
 
+      layout.setSpacing(g_grid_spacing)
       bwidget.setLayout(layout)
       mainlayout.addWidget(bwidget)
 
@@ -665,7 +840,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       layout = QtGui.QHBoxLayout()
 
       nlabel = QtGui.QLabel("init basis funcs:")
-      nlabel.setToolTip("initialization for all stim files")
+      nlabel.setStatusTip("initialization for all stim files")
       layout.addWidget(nlabel)
 
       blist = ['GAM', 'BLOCK(5,1)', 'BLOCK(5)', 'TENT(0,15,6)', 'SPMG2']
@@ -681,6 +856,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       self.gvars.Line_apply_basis.editingFinished.connect(self.CB_line_text)
       layout.addWidget(self.gvars.Line_apply_basis)
 
+      layout.setSpacing(g_spacing)
       bwidget.setLayout(layout)
       mainlayout.addWidget(bwidget)
 
@@ -692,6 +868,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       mainlayout.addWidget(gbox.checkBox_wildcard)
 
       # --------------------------------------------------
+      mainlayout.setSpacing(g_spacing)
       frame.setLayout(mainlayout)
 
       return gbox
@@ -714,6 +891,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       frame = QtGui.QFrame(gbox)
       frame.setFrameShape(QtGui.QFrame.NoFrame)
       glayout.addWidget(frame)
+      glayout.setSpacing(g_glayout_spacing)
       gbox.frame = frame
       self.init_gbox_viewable(gbox, False)      # default to hidden
       gbox.toggled.connect(self.gbox_toggle_frame)
@@ -743,10 +921,31 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       gbox.blist[4].setIcon(icon)
       mainlayout.addWidget(bwidget)
 
+      ##### should we use a grid instead?
+      # labels = ['insert glt row', 'init with glt examples', None,
+      #           'resize glt table', 'clear glt table', 'help: gltsym']
+      # tips   = ['append a blank row to the table',
+      #           'initialize table with GLTs from stim labels', None,
+      #           'delete any blank rows from table',
+      #           'clear all entries from table',
+      #           'display help for this section' ]
+      # bwidget =QLIB.create_button_grid(labels,tips=tips,cb=self.CB_gbox_PushB)
+      # icon = self.style().standardIcon(QtGui.QStyle.SP_MessageBoxQuestion)
+      # gbox.blist = bwidget.blist
+      # gbox.blist[4].setIcon(icon)
+      # mainlayout.addWidget(bwidget)
+
       # --------------------------------------------------
       # add a table for the stim names, init to stim
       self.make_gltsym_table(gbox)
-      mainlayout.addWidget(self.gvars.Table_gltsym)
+
+      # put table in its own HBox
+      bwidget = QtGui.QWidget()
+      layout = QtGui.QHBoxLayout()
+      layout.addWidget(self.gvars.Table_gltsym)
+      bwidget.setLayout(layout)
+      mainlayout.addWidget(bwidget)
+      # mainlayout.addWidget(self.gvars.Table_gltsym)
 
       # --------------------------------------------------
       # add lines for the number of datasets and wildcard form
@@ -767,6 +966,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       mainlayout.addWidget(bwidget)
 
       # --------------------------------------------------
+      mainlayout.setSpacing(g_spacing)
       frame.setLayout(mainlayout)
 
       return gbox
@@ -831,7 +1031,9 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       table.setAlternatingRowColors(True)
 
       # set min size base on ~25 per row, with min of 75 and max of 200
-      table.setMinimumSize(100, self.max_table_size(nrows))
+      # table.setMinimumSize(100, self.max_table_size(nrows))
+      table.setMinimumSize(100, 75)
+      self.resize_table(table)
 
       # no sorting here
       table.setSortingEnabled(False)
@@ -930,7 +1132,9 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       # table.setDragDropMode(QtGui.QAbstractItemView.InternalMove)
 
       # set min size base on ~25 per row, with min of 200 and max of 325
-      table.setMinimumSize(100, self.max_table_size(nrows))
+      # table.setMinimumSize(100, self.max_table_size(nrows))
+      table.setMinimumSize(100, 75)
+      self.resize_table(table)
 
       # if we have a scan index, default to using it for sorting
       table.setSortingEnabled(True)
@@ -1071,7 +1275,9 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       # table.setDragEnabled(True)
 
       # set min size base on ~25 per row, with min of 75 and max of 200
-      table.setMinimumSize(100, self.max_table_size(nrows))
+      # table.setMinimumSize(100, self.max_table_size(nrows))
+      table.setMinimumSize(100, 75)
+      self.resize_table(table)
 
       # if we have a stim index, default to using it for sorting
       table.setSortingEnabled(True)
@@ -1114,6 +1320,15 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       elif obj == self.gvars.gbox_regress.checkBox_compute_fitts:
          if obj.isChecked(): self.set_svar('compute_fitts', 'yes')
          else:               self.set_svar('compute_fitts', 'no')
+      elif obj == self.gvars.gbox_align.checkBox_align_giant_move:
+         if obj.isChecked(): self.set_svar('align_giant_move', 'yes')
+         else:               self.set_svar('align_giant_move', 'no')
+      elif obj == self.gvars.gbox_tlrc.checkBox_tlrc_ss:
+         if obj.isChecked(): self.set_svar('tlrc_ss', 'yes')
+         else:               self.set_svar('tlrc_ss', 'no')
+      elif obj == self.gvars.gbox_tlrc.checkBox_tlrc_ok_maxite:
+         if obj.isChecked(): self.set_svar('tlrc_ok_maxite', 'yes')
+         else:               self.set_svar('tlrc_ok_maxite', 'no')
       else: print "** CB_checkbox: unknown sender"
 
    def update_textLine_check(self, obj, text, attr, button_name, check_func):
@@ -1266,6 +1481,12 @@ class SingleSubjectWindow(QtGui.QMainWindow):
          self.gltsym_list_to_table()
          self.resize_table(self.gvars.Table_gltsym, self.gvars.Label_gltsym_len)
 
+      elif text[0:6] == 'cost: ':
+         self.update_align_cost(text[6:])
+
+      elif text[0:10] == 'template: ':
+         self.update_tlrc_base(text[10:])
+
       else: print "** unexpected button text: %s" % text
 
    def resize_table(self, table, countLabel=None):
@@ -1329,6 +1550,22 @@ class SingleSubjectWindow(QtGui.QMainWindow):
 
       return ''
 
+   def update_align_cost(self, cost):
+      if len(cost) == 0: return
+      if self.verb > 1: print '++ applying cost function %s' % cost
+      self.gvars.Line_align_cost.setText(cost)
+
+      if self.svars.val('align_cost') != cost:  # update on change
+         self.set_svar('align_cost', cost)
+
+   def update_tlrc_base(self, base):
+      if len(base) == 0: return
+      if self.verb > 1: print '++ applying tlrc_base %s' % base
+      self.gvars.Line_tlrc_base.setText(base)
+
+      if self.svars.val('tlrc_base') != base:  # update on change
+         self.set_svar('tlrc_base', base)
+
    def update_basis_function(self, basis):
       if len(basis) > 0 and not self.basis_func_is_current(basis):
          if self.verb > 1: print '++ applying basis function %s' % basis
@@ -1376,11 +1613,11 @@ class SingleSubjectWindow(QtGui.QMainWindow):
           tip="process this subject: execute proc script",
           icon=self.style().standardIcon(QtGui.QStyle.SP_DialogYesButton))
 
-      act4 = self.createAction("clear all options",
+      act4 = self.createAction("reset all options",
           slot=self.cb_clear_options,
-          tip="keep datasets: restore all GUI options to defaults",
+          tip="keep datasets: restore all other GUI options to defaults",
           icon=self.style().standardIcon(QtGui.QStyle.SP_TrashIcon))
-      act5 = self.createAction("clear all fields",
+      act5 = self.createAction("reset all fields",
           slot=self.cb_clear_fields,
           tip="restore all GUI fields to defaults",
           icon=self.style().standardIcon(QtGui.QStyle.SP_TrashIcon))
@@ -1873,7 +2110,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
          EXCEPT: keep dataset fields from subject"""
 
       svars = SUBJ.VarsObject()
-      for atr in ['anat', 'epi', 'stim']:
+      for atr in ['sid', 'gid', 'anat', 'epi', 'stim']:
          svars.set_var(atr, self.svars.val(atr))
       
       self.reset_vars(svars=svars, set_sdir=self.set_sdir)
@@ -2096,17 +2333,35 @@ class SingleSubjectWindow(QtGui.QMainWindow):
                                    obj = self.gvars.Line_regress_GOFORIT
                                    obj.setText(self.svars.regress_GOFORIT)
       elif svar == 'reml_exec':        
-                             var = self.svars.reml_exec
-                             obj = self.gvars.gbox_regress
-                             obj.checkBox_reml_exec.setChecked(var=='yes')
+                          var = self.svars.reml_exec
+                          obj = self.gvars.gbox_regress
+                          obj.checkBox_reml_exec.setChecked(var=='yes')
       elif svar == 'run_clustsim':        
-                             var = self.svars.run_clustsim
-                             obj = self.gvars.gbox_regress
-                             obj.checkBox_run_clustsim.setChecked(var=='yes')
+                          var = self.svars.run_clustsim
+                          obj = self.gvars.gbox_regress
+                          obj.checkBox_run_clustsim.setChecked(var=='yes')
       elif svar == 'compute_fitts':        
-                             var = self.svars.compute_fitts
-                             obj = self.gvars.gbox_regress
-                             obj.checkBox_compute_fitts.setChecked(var=='yes')
+                          var = self.svars.compute_fitts
+                          obj = self.gvars.gbox_regress
+                          obj.checkBox_compute_fitts.setChecked(var=='yes')
+      elif svar == 'align_cost':        
+                          obj = self.gvars.Line_align_cost
+                          obj.setText(self.svars.align_cost)
+      elif svar == 'tlrc_base':        
+                          obj = self.gvars.Line_tlrc_base
+                          obj.setText(self.svars.tlrc_base)
+      elif svar == 'align_giant_move':        
+                          var = self.svars.align_giant_move
+                          obj = self.gvars.gbox_align
+                          obj.checkBox_align_giant_move.setChecked(var=='yes')
+      elif svar == 'tlrc_ss':        
+                          var = self.svars.tlrc_ss
+                          obj = self.gvars.gbox_tlrc
+                          obj.checkBox_tlrc_ss.setChecked(var=='yes')
+      elif svar == 'tlrc_ok_maxite':        
+                          var = self.svars.tlrc_ok_maxite
+                          obj = self.gvars.gbox_tlrc
+                          obj.checkBox_tlrc_ok_maxite.setChecked(var=='yes')
 
       else:
          if self.verb > 1: print '** apply_svar_in_gui: unhandled %s' % svar

@@ -245,6 +245,56 @@ def create_button_list_widget(labels, tips=None, cb=None, dir=0, hstr=0):
 
    return bwidget
 
+def create_button_grid(labels, tips=None, cb=None, rlen=4):
+   """create a layout of buttons within a QWidget
+        - buttons will be stored as 'blist' within the returned QWidget
+        - if tips is set (length should match), setStatusTip
+        - if cb is set, connect all call-backs to it
+        - rlen = number of buttons per row
+          (if any label is None: start a new row)
+      return a QWidget (with layout and buttons in blist)
+   """
+
+   # main widget to return
+   bwidget = QtGui.QWidget()
+
+   if tips != None:
+      if len(tips) != len(labels):
+         print '** CBG: %d labels does not match %d tips, discarding...' \
+               % (len(labels), len(tips))
+         tips = None
+
+   layout = QtGui.QGridLayout()
+
+   # bwidget.blist = [QtGui.QPushButton(lab) for lab in labels]
+   bwidget.blist = []
+   row, col = 0, 0
+   for ind, label in enumerate(labels):
+      if label == None:         # start a new row
+         col = 0
+         row += 1
+         continue
+      if col == 4: # but keep going
+         col = 0
+         row += 1
+
+      button = QtGui.QPushButton(label)
+      bwidget.blist.append(button)
+
+      if cb: button.clicked.connect(cb)
+      policy = button.sizePolicy()
+      policy.setHorizontalPolicy(0)
+      button.setSizePolicy(policy)
+      if tips != None: button.setStatusTip(tips[ind])
+      _set_button_style(button)
+      layout.addWidget(button, row, col)
+      col += 1
+
+   layout.setSpacing(1)
+   bwidget.setLayout(layout)
+
+   return bwidget
+
 def _set_button_style(button):
 
    # maybe...
