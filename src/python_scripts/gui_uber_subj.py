@@ -332,7 +332,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
             (rcr - later: maybe general align_opts_aea, tlrc_opts_at)
       """
 
-      gbox = self.get_styled_group_box("extra align/tlrc options")
+      gbox = self.get_styled_group_box("extra align options")
 
       # put frame inside gbox, which we can hide via toggled button
       glayout = QtGui.QVBoxLayout(gbox)
@@ -389,7 +389,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
             (rcr - later: maybe general align_opts_aea, tlrc_opts_at)
       """
 
-      gbox = self.get_styled_group_box("extra align/tlrc options")
+      gbox = self.get_styled_group_box("extra tlrc options")
 
       # put frame inside gbox, which we can hide via toggled button
       glayout = QtGui.QVBoxLayout(gbox)
@@ -605,7 +605,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
          for controlling sujbect vars: anat, get_tlrc
       """
 
-      gbox = self.get_styled_group_box("anatomical dataset (optional)")
+      gbox = self.get_styled_group_box("anatomical dataset")
 
       # put frame inside gbox, which we can hide via toggled button
       glayout = QtGui.QVBoxLayout(gbox)
