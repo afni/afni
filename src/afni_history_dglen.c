@@ -49,6 +49,16 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 24 , MAR, 2011 , DRG , "whereami" , 
+    MINOR , TYPE_BUG_FIX, 
+    "Fixed bug for case of MNI_ANAT space as not processed"
+} ,
+
+{ 19 , MAR, 2011 , DRG , "align_epi_anat.py" , 
+    MINOR , TYPE_BUG_FIX, 
+    "Fixed bug for case master_dset2_dxyz was accidentally ignored"
+} ,
+
 { 15 , MAR, 2011 , DRG , "lpc_align.py" , 
     MICRO , TYPE_GENERAL, 
     "lpc_align.py is superceded by align_epi_anat.py",
