@@ -78,6 +78,7 @@ def get_valid_opts():
    vopts = OPT.OptionList('uber_subject.py options')
    vopts.add_opt('-help', 0, [], helpstr='show this help')
    vopts.add_opt('-help_gui', 0, [], helpstr='show help for GUI')
+   vopts.add_opt('-help_install', 0, [], helpstr='show install notes')
    vopts.add_opt('-hist', 0, [], helpstr='show revision history')
    vopts.add_opt('-show_valid_opts',0,[],helpstr='show all valid options')
    vopts.add_opt('-ver', 0, [], helpstr='show module version')
@@ -122,6 +123,10 @@ def process_options(valid_opts, argv):
 
    if '-help_gui' in sys.argv:
       print USUBJ.helpstr_usubj_gui
+      return 1, None, None, None
+
+   if '-help_install' in sys.argv:
+      print g_install_str
       return 1, None, None, None
 
    if '-hist' in sys.argv:
@@ -294,7 +299,7 @@ g_install_str = """
 
    B. OS X 10.6 install (from nokia and riverbank computing):
 
-      0. XCode and python (2.6?) should already be installed
+      0. XCode and python (2.6) should already be installed
       1. Qt SDK for mac:
          - http://qt.nokia.com/downloads
       2. SIP (interface between C++ and python)
@@ -306,18 +311,25 @@ g_install_str = """
       3. PyQt:
          - http://www.riverbankcomputing.co.uk/software/pyqt/download
          - cd PyQt-mac-gpl-4.8.3    (for example)
+         - python configure.py -d /Library/Python/2.6/site-packages
          - make
          - sudo make install
+
+      notes:
+         - I have not tested this on Mac systems earlier than 10.6
+         - python 2.6 may be required
+         - it can be more difficult to set up upgraded systems (say
+           10.4->10.5->10.6) than ones with clean installs
+         - it may be necessary to set PYTHONPATH in the shell
    ------------------------------------------------------------------
 """
 
 def run_gui(svars=None, cvars=None, guiopts=[]):
    try: from PyQt4 import QtGui
    except:
-      print '\n**** failed to import PyQt4.QtGui ****\n\n' \
-            '   (PyQt4 must be installed to run the uber_subject.py GUI)\n'
-      print g_install_str
-      
+      print '\n**** failed to import PyQt4.QtGui ****\n\n'                \
+            '   PyQt4 must be installed to run the uber_subject.py GUI\n' \
+            '   --> see the output of: uber_subject.py -help_install\n'
       return 1
 
    # if the above worked, let any GUI import errors show normally

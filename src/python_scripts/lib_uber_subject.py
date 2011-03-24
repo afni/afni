@@ -102,9 +102,13 @@ g_history = """
          - moved gltsym group box to below stim
          - save output from afni_proc.py command
          - small mac install update
+    0.16 Mar 24, 2011 :
+         - added align option box: cost, giant_move
+         - added tlrc option box: base, skull strip, OK_maxite
+         - adjusted table resizing
 """
 
-g_version = '0.15 (March 23, 2011)'
+g_version = '0.16 (March 24, 2011)'
 
 # ----------------------------------------------------------------------
 # global definition of default processing blocks
@@ -113,6 +117,11 @@ g_def_blocks_anat = ['tshift', 'align', 'tlrc', 'volreg', 'blur', 'mask',
                      'scale', 'regress']
 g_vreg_base_list  = ['first', 'third', 'last']
 g_def_vreg_base   = 'third'
+g_align_cost_list = ['lpc', 'lpc+ZZ', 'lpc+', 'lpa', 'nmi', 'ls']
+g_def_align_cost  = 'lpc'
+g_tlrc_base_list  = ['TT_N27+tlrc', 'TT_avg152T1+tlrc', 'TT_icbm452+tlrc',
+                     'MNI_avg152T1+tlrc']
+g_def_tlrc_base   = 'TT_N27+tlrc'
 
 
 # ----------------------------------------------------------------------
@@ -154,18 +163,25 @@ g_subj_defs.motion_limit  = 0.3         # in mm
 # symbolic GLTs
 g_subj_defs.gltsym           = []       # list of -gltsym options (sans SYM:)
 g_subj_defs.gltsym_label     = []       # list of -gltsym options (sans SYM:)
-
-      # rcr - add error checking for many variables
-
-# ...
+# extra regress opts
 g_subj_defs.outlier_limit    = 0.0
 g_subj_defs.regress_jobs     = 1
 g_subj_defs.regress_GOFORIT  = 0
-
 g_subj_defs.reml_exec        = 'no'     # only 'yes' or 'no'
 g_subj_defs.run_clustsim     = 'yes'    # only 'yes' or 'no'
 g_subj_defs.compute_fitts    = 'no'     # only 'yes' or 'no'
+
+g_subj_defs.align_cost       = g_def_align_cost # -cost in align_opts_aea
+g_subj_defs.tlrc_base        = g_def_tlrc_base  # template base for -tlrc_base
+g_subj_defs.align_giant_move = 'no'     # y/n: -giant_move in align_opts_aea
+g_subj_defs.tlrc_ss          = 'yes'    # y/n : 'no' implies -tlrc_no_ss
+g_subj_defs.tlrc_ok_maxite   = 'no'     # pass -OK_maxite to @auto_tlrc
+
+# ...
 g_subj_defs.regress_opts_3dD = ''       # extra options for 3dDeconvolve
+g_subj_defs.align_opts_aea   = ''       # extra aea opts, e.g. -AddEdge
+g_subj_defs.tlrc_opts_at     = ''       # extra at opts
+
 
 # string versions of subject variables, to be used by GUI
 g_cdef_strs = g_ctrl_defs.copy(as_strings=1)
@@ -245,6 +261,8 @@ class AP_Subject(object):
       self.ap_command += self.script_ap_anat()
       self.ap_command += self.script_ap_tcat()
       self.ap_command += self.script_ap_epi()
+      self.ap_command += self.script_ap_align()
+      self.ap_command += self.script_ap_tlrc()
       self.ap_command += self.script_ap_volreg()
       self.ap_command += self.script_ap_regress()
 
@@ -435,6 +453,9 @@ class AP_Subject(object):
       """add any -regress_* options
          - start with stim files, labels and basis function(s)
       """
+
+      if 'regress' not in self.svars.blocks: return ''
+
       # stim files, labels, basis functions
       cmd  = self.script_ap_stim()
       cmd += self.script_ap_stim_labels()
@@ -518,7 +539,7 @@ class AP_Subject(object):
       if defval != None and val == defval: return ''
 
       # use oname (possibly vname) for AP option
-      if oname == None: oname = vname
+      if oname == None: oname = '-' + vname
 
       # return option line
       return "%s%s %s \\\n" % (self.LV.istr, oname, val)
@@ -638,10 +659,65 @@ class AP_Subject(object):
 
       return cmd
 
+   def script_ap_align(self):
+      """process align options
+
+         possibly set -align_opts_aea:
+             -cost COST, -giant_move
+      """
+
+      if 'align' not in self.svars.blocks: return ''
+
+      rstr = '' # for now, will be part of '-align_opts_aea'
+
+      # add each option after a space
+
+      cost = self.svars.val('align_cost')
+      if not self.svars.is_empty('align_cost') and cost != g_def_align_cost:
+         rstr += ' -cost %s' % cost
+
+      if self.svars.val('align_giant_move') == 'yes':
+         rstr += ' -giant_move'
+
+      if rstr != '': return '%s-align_opts_aea%s \\\n' % (self.LV.istr, rstr)
+      else:          return ''
+
+   def script_ap_tlrc(self):
+      """process tlrc options
+
+         possibly set:  -tlrc_base, -tlrc_no_ss,
+                        -tlrc_opts_at: -OK_maxite
+      """
+
+      if 'tlrc' not in self.svars.blocks: return ''
+
+      rstr = ''
+
+      base = self.svars.val('tlrc_base')
+      if not self.svars.is_empty('tlrc_base') and base != g_subj_defs.tlrc_base:
+         rstr += self.script_ap_apply_svar_1('tlrc_base', vtype=str,
+                        defval=g_subj_defs.tlrc_base)
+
+      if self.svars.val('tlrc_ss') == 'no':
+         rstr += '%s-tlrc_no_ss \\\n' % self.LV.istr
+                 
+      # now fill any -tlrc_opts_at options (put a space before each)
+      topts = ''
+      if self.svars.val('tlrc_ok_maxite') == 'yes':
+         topts += ' -OK_maxite'
+
+      if topts != '':
+         rstr += '%s-tlrc_opts_at%s \\\n' % (self.LV.istr, topts)
+                 
+
+      return rstr
+
    def script_ap_volreg(self):
       """- possibly set the following options:
            -volreg_align_to, -volreg_align_e2a, -volreg_tlrc_(ad)warp
       """
+
+      if 'volreg' not in self.svars.blocks: return ''
 
       # volreg base, default is third
       if self.svars.volreg_base == '': vrbase = 'third'
@@ -779,7 +855,7 @@ class AP_Subject(object):
       # existence
       missing = missing_files(flist)
       if len(missing) > 0:
-         err = '** cannot use %s wildcard form with missing files: \n' % name
+         err = '** cannot use %s wildcard form with missing files:\n\n' % name
          for file in missing: err += ('      %s\n' % file)
          self.errors.append(err)
          return 1
@@ -791,16 +867,19 @@ class AP_Subject(object):
 
       # sorted
       if not UTIL.vals_are_sorted(flist):
-         self.errors.append('** %s filenames are not in alphabetical order\n'\
-                            '   (so wildcard order would differ)\n' % name)
+         self.errors.append(                                    \
+                '** cannot use %s wildcard form\n\n'            \
+                '   filenames are not in alphabetical order,\n' \
+                '   so wildcard order would differ\n' % name)
          return 1
 
       # now check that expansion matches files
       # (make wildcard form, then expand it and compare with flist)
       if not UTIL.glob_form_matches_list(flist):
-         self.errors.append(                                              \
-                '** %s wildcard form does not exactly match file list\n'  \
-                '   (so use of wildcard form is not appropriate)\n' % name)
+         self.errors.append(                                            \
+                '** cannot use %s wildcard form\n\n'                    \
+                '   file list from shell does not match list in GUI\n'  \
+                '   (e.g. maybe 3 files in GUI, but 5 match wildcard)\n' % name)
          return 1
 
       return 0
@@ -1425,6 +1504,10 @@ helpstr_todo = """
 ---------------------------------------------------------------------------
                         todo list:  
 
+- make align/tlrc options into 2
+- regression cases for new subj vars
+- better error message for bad wildcards
+- bad stim table overlap on macs?
 - help buttons for expected and extra regress options
 - does tcsh exist?
 - make UberInterface class in uber_subject.py?
