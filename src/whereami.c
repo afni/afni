@@ -1038,6 +1038,8 @@ int main(int argc, char **argv)
       fprintf(stdout,"++ Input coordinates space set by user to TLRC\n");
    } else if (mni == 1) {
       fprintf(stdout,"++ Input coordinates space set by user to MNI\n");
+   } else if (mni == 2) {
+      fprintf(stdout,"++ Input coordinates space set by user to MNI_ANAT\n");
    } else {
       fprintf(stderr,"** Error: Should not happen!\n"); return(1);
    }
@@ -1401,6 +1403,16 @@ int main(int argc, char **argv)
       /* coords here are now in RAI */
       
       if (mni == 1) { /* go from mni to tlrc */
+         LOAD_FVEC3( tv , -x, -y, z ) ;   /* next call expects input in MNI, LPI*/
+         m = THD_mni_to_tta( tv );  /* m units are in RAI */
+         if (ixyz == 0) {
+            fprintf(stdout,"++ Input coordinates being transformed from MNI  RAI ([%.2f %.2f %.2f]) \n"
+                           "                                         to TLRC RAI ([%.2f %.2f %.2f]).\n", 
+                                                               x, y, z, m.xyz[0],  m.xyz[1], m.xyz[2]);
+         }
+         x = m.xyz[0]; y = m.xyz[1]; z = m.xyz[2];
+      }
+      else if (mni == 2) { /* go from mni_anat to tlrc */
          LOAD_FVEC3( tv , -x, -y, z ) ;   /* next call expects input in MNI, LPI*/
          m = THD_mni_to_tta( tv );  /* m units are in RAI */
          if (ixyz == 0) {
