@@ -84,9 +84,9 @@ int main( int argc , char *argv[] )
       "  can be .1D files (fixed for all voxels) or 3D+time datasets\n"
       "  (different for each voxel).\n"
       "\n"
-      "* The fitting approximation can be done in the L2 sense (least sum of\n"
-      "  square of errors) [possibly with a LASSO (L1) penalty term], or in\n"
-      "  the L1 sense (least sum of absolute errors).  Which one is better?\n"
+      "* The fitting approximation can be done in the L2 sense -- least sum of\n"
+      "  square of errors [possibly with a LASSO (L1) penalty term] -- or in\n"
+      "  the L1 sense -- least sum of absolute errors.  Which method is better?\n"
       "  The answer to that question depends strongly on what you are\n"
       "  going to use the results for!  And on the quality of the data.\n"
       "\n"
@@ -171,47 +171,52 @@ int main( int argc , char *argv[] )
       "               the known kernel of the convolution.\n"
       "             * fset's time point [0] is the 0-lag point in the kernel,\n"
       "               [1] is the 1-lag into the past point, etc.\n"
-      "              ++ Call the data z(t), the unknown signal s(t), and the\n"
-      "                 known kernel h(t).  The equations being solved for\n"
-      "                 the set of all s(t) values are of the form\n"
-      "                   z(t) = h(0)s(t) + h(1)s(t-1) + ... + h(L)s(t-L) + noise\n"
-      "                 where L is the last value in the kernel function.\n"
-      "            ++++ N.B.: The TR of 'fset' and the TR of the RHS dataset\n"
-      "                       MUST be the same, or the deconvolution results\n"
-      "                       will be revoltingly meaningless drivel (or worse)!\n"
+      "              ++ Call the data Z(t), the unknown signal S(t), and the\n"
+      "                 known kernel H(t).  The equations being solved for\n"
+      "                 the set of all S(t) values are of the form\n"
+      "                   Z(t) = H(0)S(t) + H(1)S(t-1) + ... + H(L)S(t-L) + noise\n"
+      "                 where L is the last index in the kernel function.\n"
+      "            ++++ N.B.: The TR of 'fset' (the source of H) and the TR of the\n"
+      "                       RHS dataset (the source of Z) MUST be the same, or\n"
+      "                       the deconvolution results will be revoltingly\n"
+      "                        meaningless drivel (or worse)!\n"
       "\n"
-      "         -->** 'fpre' is the prefix for the output time series to\n"
-      "               be created -- it will have the same length as the\n"
-      "               input 'rset' time series.\n"
+      "         -->** 'fpre' is the prefix for the output time series to be\n"
+      "               created -- it will have the same length as the input\n"
+      "               'rset' time series.\n"
       "              ++ If you don't want this time series (why?), set 'fpre'\n"
       "                 to be the string 'NULL'.\n"
       "\n"
       "         -->** 'pen' selects the type of penalty function to be\n"
       "               applied to constrain the deconvolved time series:\n"
       "              ++ The following penalty functions are available:\n"
-      "                   P0[s] = f^q * sum{ |s(t)|^q }\n"
-      "                   P1[s] = f^q * sum{ |s(t)-s(t-1)|^q }\n"
-      "                   P2[s] = f^q * sum{ |2*s(t)-s(t-1)-s(t+1)|^q }\n"
-      "                   P3[s] = f^q * sum{ |3*s(t)-3*s(t-1)-s(t+1)+s(t-2)|^q }\n"
-      "                 where s(t) is the deconvolved time series;\n"
+      "                   P0[s] = f^q * sum{ |S(t)|^q }\n"
+      "                   P1[s] = f^q * sum{ |S(t)-S(t-1)|^q }\n"
+      "                   P2[s] = f^q * sum{ |2*S(t)-S(t-1)-S(t+1)|^q }\n"
+      "                   P3[s] = f^q * sum{ |3*S(t)-3*S(t-1)-S(t+1)+S(t-2)|^q }\n"
+      "                 where S(t) is the deconvolved time series;\n"
       "                 where q=1 for L1 fitting, q=2 for L2 fitting;\n"
       "                 where f is the value of 'fac' (defined below).\n"
-      "                   P0 tries to keep s(t) itself small\n"
+      "                   P0 tries to keep S(t) itself small\n"
       "                   P1 tries to keep point-to-point fluctuations\n"
-      "                      in s(t) small (1st derivative)\n"
+      "                      in S(t) small (1st derivative)\n"
       "                   P2 tries to keep 3 point fluctuations\n"
-      "                      in s(t) small (2nd derivative)\n"
+      "                      in S(t) small (2nd derivative)\n"
       "                   P3 tries to keep 4 point fluctuations\n"
-      "                      in s(t) small (3nd derivative)\n"
+      "                      in S(t) small (3nd derivative)\n"
+      "              ++ Higher digits try to make the result function S(t)\n"
+      "                 smoother.  If a smooth result makes sense, then use"
+      "                 '012' or '0123' for 'pen'."
       "              ++ In L2 regression, these penalties are analogous to Wiener\n"
-      "                 deconvolution, with noise spectra proportional to\n"
+      "                 (frequency space) deconvolution, with noise spectra\n"
+      "                 proportional to\n"
       "                   P0 ==> fac^2 (constant in frequency)\n"
       "                   P1 ==> fac^2 * freq^2\n"
       "                   P2 ==> fac^2 * freq^4\n"
       "                   P3 ==> fac^2 * freq^6\n"
       "                 However, 3dTfitter does deconvolution in the time\n"
       "                 domain, not the frequency domain, and you can choose\n"
-      "                 to use L2 or L1 regression.\n"
+      "                 to use L2, L1, or LASSO regression.\n"
       "              ++ The value of 'pen' is a combination of the digits\n"
       "                 '0', '1', '2', and/or '3'; for example:\n"
       "                     0 = use P0 only\n"
@@ -243,7 +248,7 @@ int main( int argc , char *argv[] )
       "                 [e.g., -1, -2, and -3] and then look at the results to\n"
       "                 determine which one is most suitable for your purposes.\n"
       "              ++ SOME penalty has to be applied, since otherwise the\n"
-      "                 set of linear equations for s(t) is under-determined\n"
+      "                 set of linear equations for S(t) is under-determined\n"
       "                 and/or ill-conditioned!\n"
       "\n"
       "            ** If '-LHS' is used with '-FALTUNG', those basis vectors can\n"
@@ -251,7 +256,7 @@ int main( int argc , char *argv[] )
       "               same time the convolution model is fitted.\n"
       "              ++ When '-LHS' supplies a baseline, it is important\n"
       "                 that penalty type 'pen' include '0', so that the\n"
-      "                 collinearity between convolution with a constant s(t)\n"
+      "                 collinearity between convolution with a constant S(t)\n"
       "                 and a constant baseline can be resolved!\n"
       "              ++ Instead of using a baseline here, you could project the\n"
       "                 baseline out of a dataset or 1D file using 3dDetrend,\n"
@@ -313,8 +318,9 @@ int main( int argc , char *argv[] )
       "             * L1 fitting is usually slower than L2 fitting, but\n"
       "               is perhaps less sensitive to outliers in the data.\n"
       "              ++ L1 deconvolution might give nicer looking results\n"
-      "                 when you expect the deconvolved signal s(t) to\n"
-      "                 have large-ish sections where s(t) = 0.\n"
+      "                 when you expect the deconvolved signal S(t) to\n"
+      "                 have large-ish sections where S(t) = 0.\n"
+      "                 [Square Root LASSO deconvolution also has this property.]\n"
       "             * L2 fitting is statistically more efficient when the\n"
       "               noise is KNOWN to be normally (Gaussian) distributed\n"
       "               (and a bunch of other assumptions are also made).\n"
@@ -330,41 +336,52 @@ int main( int argc , char *argv[] )
       "              ++ If you enter 'lam' as a negative number, then the code\n"
       "                 will *crudely* estimate sigma and then scale abs(lam) by\n"
       "                 that value -- in which case, you can try lam = -5 (or so)\n"
-      "                 and see if that works well for you.  Or you can use the\n"
-      "                 Square Root LASSO option (next).\n"
+      "                 and see if that works well for you.\n"
+      "              ++ Or you can use the Square Root LASSO option (next), which\n"
+      "                 does not need any knowledge of sigma when setting lam.\n"
       "             * Optionally, you can supply a list of parameter indexes\n"
       "               (after 'lam') that should NOT be penalized in the\n"
       "               the fitting process (e.g., traditionally, the mean value\n"
       "               is not included in the L1 penalty.)  Indexes start at 1,\n"
-      "               as in 'consign' (below) and do not include the '-FALTUNG'\n"
+      "               as in 'consign' (below) and do NOT include the '-FALTUNG'\n"
       "               parameters, if deconvolution is used.  The deconvolution\n"
-      "               estimates all have the 'lam' penalty applied, in addition\n"
-      "               to the penalty described under '-FALTUNG'.\n"
+      "               estimates all have the L1 'lam' penalty applied, in addition\n"
+      "               to the L2 penalties described under '-FALTUNG'.\n"
       "            ** LASSO-ing herein should be considered experimental, and\n"
       "               its implementation is subject to change!  Algorithm is here:\n"
       "              ++ TT Wu and K Lange.\n"
       "                 Coordinate descent algorithms for LASSO penalized regression.\n"
       "                 Annals of Applied Statistics, 2: 224-244 (2008).\n"
       "                 http://arxiv.org/abs/0803.3876\n"
-      "           *** LASSO methods are the only way to solve a under-determined\n"
+      "             * '-LASSO' is a synonym for this option.\n"
+      "  ------>>**** GENERAL NOTES ABOUT LASSO (and SQUARE ROOT LASSO) ****<<------\n"
+      "             * LASSO methods are the only way to solve a under-determined\n"
       "               system with 3dTfitter -- one with more vectors on the RHS\n"
       "               than time points.  However, a 'solution' to such a problem\n"
       "               doesn't necessarily mean anything -- be careful out there!\n"
-      "            ** LASSO methods will tend to push small coefficients down\n"
+      "             * LASSO methods will tend to push small coefficients down\n"
       "               to zero.  This feature can be useful when doing deconvolution,\n"
       "               if you expect the result to be zero over large-ish intervals.\n"
-      "             * '-LASSO' is a synonym for this option.\n"
+      "             * The actual penalty factor lambda used for a given coefficient\n"
+      "               is lam scaled by the the L2 norm of the corresponding regression\n"
+      "               column.  The purpose of this is to keep the penalties scale-free:\n"
+      "               if a regression column were doubled, then the corresponding fit\n"
+      "               coefficient would be cut in half, so to keep the same penalty\n"
+      "               level, lambda should also be doubled.\n"
+      "             * For '-l2lasso', a negative lam additionally means to scale\n"
+      "               by the estimate of sigma, as described above.  This feature\n"
+      "               does not apply to Square Root LASSO, however.\n"
       "\n"
       "  -l2sqrtlasso lam [i j k ...]\n"
       "            = Similar to above option, but uses 'Square Root LASSO' instead:\n"
       "             * Approximately speaking, LASSO minimizes E = Q2+lam*L1,\n"
       "               where Q2=sum of squares of residuals and L1=sum of absolute\n"
       "               values of all fit parameters, while Square Root LASSO minimizes\n"
-      "               sqrt(Q2)+lam*L1; the method is described here:\n"
+      "               sqrt(Q2)+lam*L1; the method and motivation is described here:\n"
       "              ++ A Belloni, V Chernozhukov, and L Wang.\n"
       "                 Square-root LASSO: Pivotal recovery of sparse signals via\n"
       "                 conic programming (2010).  http://arxiv.org/abs/1009.5689\n"
-      "            ** The reasonable range of 'lam' to use is from 2 to 8;\n"
+      "            ** A reasonable range of 'lam' to use is from 2 to 20 (or so);\n"
       "               I suggest you start with 5 and see how well that works.\n"
       "               In my limited experience, 5 gave pretty nice results\n"
       "               with a DSC-MRI deconvolution problem, combined with\n"
@@ -374,7 +391,7 @@ int main( int argc , char *argv[] )
       "                 scaling by sigma.\n"
       "             * The theoretical advantange of Square Root LASSO over\n"
       "               standard LASSO is that a good choice of 'lam' doesn't\n"
-      "               depend on knowing the noise level in the data (that's\n"
+      "               depend on knowing the noise level in the data (that is\n"
       "               what 'Pivotal' means in the paper's title).\n"
       "             * '-SQRTLASSO' is a synonym for this option.\n"
       "\n"
@@ -407,7 +424,7 @@ int main( int argc , char *argv[] )
       "              to be positive if 'c' is '+' or to be negative if\n"
       "              'c' is '-'.\n"
       "             * There is no way at present to constrain the deconvolved\n"
-      "               time series s(t) to be positive in some regions and\n"
+      "               time series S(t) to be positive in some regions and\n"
       "               negative in others.\n"
       "             * If '-consFAL' is not used, the sign of the deconvolved\n"
       "               time series is not constrained.\n"
@@ -638,10 +655,12 @@ int main( int argc , char *argv[] )
    PRINT_VERSION("3dTfitter"); AUTHOR("RWCox") ;
    AFNI_logger("3dTfitter",argc,argv);
 
-   /*------- read command line args -------*/
+   /*------------ read command line args ------------*/
 
    iarg = 1 ; INIT_XTARR(dsar) ;
    while( iarg < argc ){
+
+     /*-----*/
 
      if( strcasecmp(argv[iarg],"-vthr"   ) == 0 ||
          strcasecmp(argv[iarg],"-vthresh") == 0   ){  /* 18 May 2010 */
@@ -656,6 +675,8 @@ int main( int argc , char *argv[] )
        iarg++ ; continue ;
      }
 
+     /*-----*/
+
      if( strcasecmp(argv[iarg],"-polort") == 0 ){  /* 20 Mar 2008 */
        if( polort >= 0 )
          WARNING_message("you have more than 1 -polort option!") ;
@@ -666,6 +687,8 @@ int main( int argc , char *argv[] )
          WARNING_message("-polort value is negative ==> ignoring") ;
        iarg++ ; continue ;
      }
+
+     /*-----*/
 
      if( strcasecmp(argv[iarg],"-faltung") == 0 ){
        int p0,p1,p2,p3 ;
@@ -721,6 +744,8 @@ int main( int argc , char *argv[] )
        iarg++ ; continue ;
      }
 
+     /*-----*/
+
      if( strncasecmp(argv[iarg],"-consFAL",7) == 0 ){
             if( argv[iarg][8] == '+' ) fal_dcon =  1 ;
        else if( argv[iarg][8] == '-' ) fal_dcon = -1 ;
@@ -734,6 +759,8 @@ int main( int argc , char *argv[] )
        }
        iarg++ ; continue ;
      }
+
+     /*-----*/
 
      if( strcasecmp(argv[iarg],"-mask") == 0 ){
        THD_3dim_dataset *mset ;
@@ -753,6 +780,8 @@ int main( int argc , char *argv[] )
        iarg++ ; continue ;
      }
 
+     /*-----*/
+
      if( strcasecmp(argv[iarg],"-rhs") == 0 ){
        if( ++iarg >= argc )
          ERROR_exit("Need argument after '%s'",argv[iarg-1]);
@@ -768,6 +797,8 @@ int main( int argc , char *argv[] )
        rhs1D = DSET_IS_1D(rhset) ;  /* 05 Mar 2008 */
        iarg++ ; continue ;
      }
+
+     /*-----*/
 
      if( strcasecmp(argv[iarg],"-lhs") == 0 ){
        if( ++iarg >= argc )
@@ -796,6 +827,8 @@ int main( int argc , char *argv[] )
        continue ;
      }
 
+     /*-----*/
+
      if( strncasecmp(argv[iarg],"-label",4) == 0 ){
        if( ++iarg >= argc )
          ERROR_exit("Need argument after '%s'",argv[iarg-1]);
@@ -808,15 +841,21 @@ int main( int argc , char *argv[] )
        continue ;
      }
 
+     /*-----*/
+
      if( strncasecmp(argv[iarg],"-lsqfit",4) == 0 ||
          strncasecmp(argv[iarg],"-l2fit",4)  == 0 ||
          strcmp     (argv[iarg],"-L2")       == 0   ){
        meth = 2 ; iarg++ ; continue ;
      }
 
+     /*-----*/
+
      if( strcasecmp(argv[iarg],"-l1fit") == 0 || strcmp(argv[iarg],"-L1") == 0 ){
        meth = 1 ; iarg++ ; continue ;
      }
+
+     /*-----*/
 
      if( strcasecmp(argv[iarg],"-l2lasso") == 0 ||
          strcasecmp(argv[iarg],"-LASSO"  ) == 0   ){  /* experimental [11 Mar 2011] */
@@ -825,9 +864,9 @@ int main( int argc , char *argv[] )
        lasso_flam = (float)strtod(argv[iarg],NULL) ;
        if( lasso_flam == 0.0f ) ERROR_exit("%s %s: illegal lam",argv[iarg-1],argv[iarg]) ;
        if( lasso_flam < 0.0f ){ THD_lasso_dosigest(1); lasso_flam = -lasso_flam; }
-       THD_lasso_fixlam(lasso_flam) ;
+       THD_lasso_fixlam(lasso_flam) ;  /* cf. thd_lasso.c */
        iarg++ ;
-       if( iarg < argc && isdigit(argv[iarg][0]) ){
+       if( iarg < argc && isdigit(argv[iarg][0]) ){ /* get 'free' indexes */
          MAKE_intvec(lasso_ivec,0) ;
          for( ; iarg < argc && isdigit(argv[iarg][0]) ; iarg++ ){
            jj = (int)strtod(argv[iarg],NULL) ;
@@ -843,15 +882,21 @@ int main( int argc , char *argv[] )
        continue ;
      }
 
+     /*-----*/
+
      if( strcasecmp(argv[iarg],"-l2sqrtlasso") == 0 ||
          strcasecmp(argv[iarg],"-SQRTLASSO"  ) == 0   ){  /* hidden */
        meth = -1 ;
        if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]);
        lasso_flam = (float)strtod(argv[iarg],NULL) ;
-       if( lasso_flam <= 0.0f ) ERROR_exit("%s %s: illegal lam",argv[iarg-1],argv[iarg]) ;
-       THD_lasso_fixlam(lasso_flam) ;
+       if( lasso_flam == 0.0f ) ERROR_exit("%s %s: illegal lam",argv[iarg-1],argv[iarg]) ;
+       if( lasso_flam < 0.0f ){
+         WARNING_message("%s has lam = %g; changing sign!",argv[iarg-1],lasso_flam) ;
+         lasso_flam = -lasso_flam ;
+       }
+       THD_lasso_fixlam(lasso_flam) ;  /* cf. thd_lasso.c */
        iarg++ ;
-       if( iarg < argc && isdigit(argv[iarg][0]) ){
+       if( iarg < argc && isdigit(argv[iarg][0]) ){ /* get 'free' indexes */
          MAKE_intvec(lasso_ivec,0) ;
          for( ; iarg < argc && isdigit(argv[iarg][0]) ; iarg++ ){
            jj = (int)strtod(argv[iarg],NULL) ;
@@ -866,6 +911,8 @@ int main( int argc , char *argv[] )
        }
        continue ;
      }
+
+     /*-----*/
 
      if( strncasecmp(argv[iarg],"-prefix",5) == 0 ){
        if( ++iarg >= argc )
@@ -876,6 +923,8 @@ int main( int argc , char *argv[] )
        iarg++ ; continue ;
      }
 
+     /*-----*/
+
      if( strncasecmp(argv[iarg],"-fitts",5) == 0 ){
        if( ++iarg >= argc )
          ERROR_exit("Need argument after '%s'",argv[iarg-1]);
@@ -885,6 +934,8 @@ int main( int argc , char *argv[] )
        do_fitts = 1 ; iarg++ ; continue ;
      }
 
+     /*-----*/
+
      if( strncasecmp(argv[iarg],"-errsum",5) == 0 ){ /* 23 Jul 2009 */
        if( ++iarg >= argc )
          ERROR_exit("Need argument after '%s'",argv[iarg-1]);
@@ -893,6 +944,8 @@ int main( int argc , char *argv[] )
          ERROR_exit("Illegal string after -ersum: '%s'",ersum_prefix) ;
        do_fitts = 1 ; iarg++ ; continue ;
      }
+
+     /*-----*/
 
      if( strncasecmp(argv[iarg],"-consign",7) == 0 ){
        char *cpt , nvec ;
@@ -916,14 +969,18 @@ int main( int argc , char *argv[] )
        continue ;
      }
 
+     /*-----*/
+
      if( strncasecmp(argv[iarg],"-quiet",2) == 0 ){
        verb = 0 ; iarg++ ; continue ;
      }
 
+     /*-----*/
+
      ERROR_exit("Unknown argument on command line: '%s'",argv[iarg]) ;
    }
 
-   /*------- check options for completeness and consistency -----*/
+   /*------------ check options for completeness and consistency ----------*/
 
    if( rhset == NULL )
      ERROR_exit("No RHS dataset input!?") ;
