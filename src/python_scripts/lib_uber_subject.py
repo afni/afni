@@ -106,6 +106,7 @@ g_history = """
          - added align option box: cost, giant_move
          - added tlrc option box: base, skull strip, OK_maxite
          - adjusted table resizing
+         - added -help_install
 """
 
 g_version = '0.16 (March 24, 2011)'
