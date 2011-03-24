@@ -1520,7 +1520,7 @@ class RegWrap:
 
       opt = self.user_opts.find_opt('-master_epi_dxyz')
       if opt == None:
-         opt = self.user_opts.find_opt('-master_dset1_dxyz')
+         opt = self.user_opts.find_opt('-master_dset2_dxyz')
       if opt != None:
          if(isFloat(opt.parlist[0])):
             mast_dxyz = '-mast_dxyz %s' % opt.parlist[0]
@@ -1533,7 +1533,7 @@ class RegWrap:
       self.master_epi_option = \
           "-master %s %s" % (mast_dset, mast_dxyz) 
       self.master_epi_dset = mast_dset
-      
+
       # output resolution options 
       # EPI output in TLRC dataset's bounding box
       # voxel size is minimum dimension of EPI by default 
