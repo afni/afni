@@ -233,7 +233,7 @@ floatvec * THD_lasso_L2fit( int npt    , float *far   ,
                             float *lam , float *ccon   )
 {
    int ii,jj, nfree,nite,nimax,ndel , do_slam ;
-   float *mylam, *ppar, *resd, *rsq, *rj, pj,dg,dsum ;
+   float *mylam, *ppar, *resd, *rsq, *rj, pj,dg,dsum,ll ;
    floatvec *qfit ; byte *fr ;
 
 ENTRY("THD_lasso_L2fit") ;
@@ -324,6 +324,7 @@ ENTRY("THD_lasso_L2fit") ;
        if( rsq[jj] == 0.0f ) continue ; /* all zero column!? */
        rj = ref[jj] ;                   /* j-th reference column */
        pj = ppar[jj] ;                  /* current value of j-th parameter */
+       ll = mylam[jj] ;
 
        /* compute dg = -gradient of un-penalized function wrt ppar[jj] */
        /*            = direction we want to step in                    */
@@ -332,7 +333,7 @@ ENTRY("THD_lasso_L2fit") ;
 
        /*- modify parameter down the gradient -*/
 
-       if( mylam[jj] == 0.0f ){   /* un-penalized parameter */
+       if( ll == 0.0f ){          /* un-penalized parameter */
 
          ppar[jj] += dg*rsq[jj] ; if( CON(jj) ) ppar[jj] = 0.0f ;
 
@@ -342,11 +343,11 @@ ENTRY("THD_lasso_L2fit") ;
          /* Merge this with dg, change ppar[jj], then see if we stepped thru */
          /* zero (or hit a constraint) -- if so, stop ppar[jj] at zero.     */
 
-         if( pj > 0.0f || (pj == 0.0f && dg > 0.0f) ){        /* on the + side */
-           dg -= mylam[jj] ; ppar[jj] += dg*rsq[jj] ;         /* shrink - way */
+         if( pj > 0.0f || (pj == 0.0f && dg > ll) ){         /* on the + side */
+           dg -= ll ; ppar[jj] += dg*rsq[jj] ;               /* shrink - way */
            if( ppar[jj] < 0.0f || CON(jj) ) ppar[jj] = 0.0f ;
-         } else if( pj < 0.0f || (pj == 0.0f && dg < 0.0f) ){ /* on the - side */
-           dg += mylam[jj] ; ppar[jj] += dg*rsq[jj] ;         /* shrink + way */
+         } else if( pj < 0.0f || (pj == 0.0f && dg < -ll) ){ /* on the - side */
+           dg += ll ; ppar[jj] += dg*rsq[jj] ;               /* shrink + way */
            if( ppar[jj] > 0.0f || CON(jj) ) ppar[jj] = 0.0f ;
          }
 
@@ -432,7 +433,7 @@ floatvec * THD_sqrtlasso_L2fit( int npt    , float *far   ,
 {
    int ii,jj, nfree,nite,nimax,ndel ;
    float *mylam, *ppar, *resd, *rsq, *rj, pj,dg,dsum ;
-   float rqsum,aa,bb,cc,ll , npinv ;
+   float rqsum,aa,bb,cc,ll,all , npinv ;
    floatvec *qfit ; byte *fr ;
 
 ENTRY("THD_sqrtlasso_L2fit") ;
@@ -538,12 +539,15 @@ ENTRY("THD_sqrtlasso_L2fit") ;
 
          ppar[jj] = -0.5 * bb / aa ; if( CON(jj) ) ppar[jj] = 0.0f ;
 
-       } else if( pj > 0.0f || (pj == 0.0f && dg > 0.0f) ){
-         ppar[jj] = XPLU(aa,bb,cc,ll) ;
-         if( ppar[jj] < 0.0f || CON(jj) ) ppar[jj] = 0.0f ;
-       } else if( pj < 0.0f || (pj == 0.0f && dg < 0.0f) ){
-         ppar[jj] = XMIN(aa,bb,cc,ll) ;
-         if( ppar[jj] > 0.0f || CON(jj) ) ppar[jj] = 0.0f ;
+       } else {
+         float qq = ll * sqrtf(4.0f*aa*cc/(aa-ll*ll)) ;
+         if( pj > 0.0f || (pj == 0.0f && bb+qq < 0.0f) ){
+           ppar[jj] = -0.5f*(bb+qq) / aa ;   /* solution on positive side */
+           if( ppar[jj] < 0.0f || CON(jj) ) ppar[jj] = 0.0f ;
+         } else if( pj < 0.0f || (pj == 0.0f && bb-qq > 0.0f) ){
+           ppar[jj] = -0.5f*(bb-qq) / aa ;   /* solution on negative side */
+           if( ppar[jj] > 0.0f || CON(jj) ) ppar[jj] = 0.0f ;
+         }
        }
 
        dg = ppar[jj] - pj ;   /* change in parameter */
