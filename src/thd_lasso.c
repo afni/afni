@@ -311,10 +311,17 @@ ENTRY("THD_lasso_L2fit") ;
 
    /*---- outer iteration loop (until we are happy or worn out) ----*/
 
-#undef  CON    /* CON(j) is true if the constraint on ppar[j] is violated */
-#define CON(j) (ccon != NULL && ppar[j]*ccon[j] < 0.0f)
+#undef  CON     /* CON(j) is true if the constraint on ppar[j] is violated */
+#define CON(j)  (ccon != NULL && ppar[j]*ccon[j] < 0.0f)
 
-   nimax = 31*nref + npt + 66 ; dsum = 1.0f ;
+#undef  CONP    /* CONP(j) is true if ppar[j] is supposed to be >= 0 */
+#define CONP(j) (ccon != NULL && ccon[j] > 0.0f)
+
+#undef  CONN    /* CONN(j) is true if ppar[j] is supposed to be <= 0 */
+#define CONN(j) (ccon != NULL && ccon[j] < 0.0f)
+
+   ii = MAX(nref,npt) ; jj = MIN(nref,npt) ; nimax = 17 + 5*ii + 31*jj ;
+   dsum = 1.0f ;
    for( nite=0 ; nite < nimax && dsum > deps ; nite++ ){
 
      /*-- cyclic inner loop over parameters --*/
@@ -356,7 +363,7 @@ ENTRY("THD_lasso_L2fit") ;
        dg = ppar[jj] - pj ;   /* change in parameter */
        if( dg != 0.0f ){      /* update convergence test and residuals */
          pj    = fabsf(ppar[jj]) + fabsf(pj) ;
-         dsum += fabsf(dg) / MAX(pj,0.01f) ; ndel++ ;
+         dsum += fabsf(dg) / MAX(pj,0.001f) ; ndel++ ;
          for( ii=0 ; ii < npt ; ii++ ) resd[ii] -= rj[ii] * dg ;
        }
 
@@ -420,11 +427,10 @@ ENTRY("THD_lasso_L2fit") ;
    )
 
 /*----------------------------------------------------------------------------*/
-/* At some point in the future, this will be the Square Root LASSO:
-
-   A Belloni, V Chernozhukov, and L Wang.
-   Square-root LASSO: Pivotal recovery of sparse signals via conic programming.
-   http://arxiv.org/abs/1009.5689
+/* Square Root L2 LASSO, similar to L2 LASSO function directly above; see
+     A Belloni, V Chernozhukov, and L Wang.
+     Square-root LASSO: Pivotal recovery of sparse signals via conic programming.
+     http://arxiv.org/abs/1009.5689
 *//*--------------------------------------------------------------------------*/
 
 floatvec * THD_sqrtlasso_L2fit( int npt    , float *far   ,
@@ -433,7 +439,7 @@ floatvec * THD_sqrtlasso_L2fit( int npt    , float *far   ,
 {
    int ii,jj, nfree,nite,nimax,ndel ;
    float *mylam, *ppar, *resd, *rsq, *rj, pj,dg,dsum ;
-   float rqsum,aa,bb,cc,ll,all , npinv ;
+   float rqsum,aa,bb,cc,ll,all , npinv , *ain,*qal ;
    floatvec *qfit ; byte *fr ;
 
 ENTRY("THD_sqrtlasso_L2fit") ;
@@ -442,14 +448,14 @@ ENTRY("THD_sqrtlasso_L2fit") ;
 
    if( npt <= 1 || far == NULL || nref <= 0 || ref == NULL ){
      static int ncall=0 ;
-     if( ncall == 0 ){ ERROR_message("LASSO: bad data and/or model"); ncall++; }
+     if( ncall == 0 ){ ERROR_message("SQRT LASSO: bad data and/or model"); ncall++; }
      RETURN(NULL) ;
    }
 
    for( jj=0 ; jj < nref ; jj++ ){
      if( ref[jj] == NULL ){
        static int ncall=0 ;
-       if( ncall == 0 ){ ERROR_message("LASSO: bad data and/or model"); ncall++; }
+       if( ncall == 0 ){ ERROR_message("SQRT LASSO: bad data and/or model"); ncall++; }
        RETURN(NULL) ;
      }
    }
@@ -464,7 +470,10 @@ ENTRY("THD_sqrtlasso_L2fit") ;
    { MAKE_floatvec(qfit,nref) ; ppar = qfit->ar ;   /* parameters = output */
      resd = (float *)calloc(sizeof(float),npt ) ;   /* residuals */
      rsq  = (float *)calloc(sizeof(float),nref) ;   /* sums of squares */
-     fr   = (byte  *)calloc(sizeof(byte) ,nref) ; } /* free list */
+     fr   = (byte  *)calloc(sizeof(byte) ,nref) ;   /* free list */
+     ain  = (float *)calloc(sizeof(float),nref) ;
+     qal  = (float *)calloc(sizeof(float),nref) ;
+   }
 
    /*--- Save sum of squares of each ref column ---*/
 
@@ -474,12 +483,13 @@ ENTRY("THD_sqrtlasso_L2fit") ;
      rj = ref[jj] ;
      for( pj=ii=0 ; ii < npt ; ii++ ) pj += rj[ii]*rj[ii] ;
      rsq[jj] = pj * npinv ;
-     if( pj > 0.0f && mylam[jj] == 0.0f ){   /* unconstrained parameter */
-       fr[jj] = 1 ;  nfree++ ;
+     if( pj > 0.0f ){
+       if( mylam[jj] == 0.0f ){ fr[jj] = 1 ; nfree++ ; }  /* unconstrained */
+       ain[jj] = -0.5f / rsq[jj] ;
      }
    }
 
-   /* edit mylam to make sure it isn't too big */
+   /* scale and edit mylam to make sure it isn't too big */
 
    cc = sqrtf(npinv) ;
    for( jj=0 ; jj < nref ; jj++ ){
@@ -487,6 +497,7 @@ ENTRY("THD_sqrtlasso_L2fit") ;
      if( ll > 0.0f ){
        aa = sqrtf(rsq[jj]); ll *= aa*npinv; if( ll > 0.666f*aa ) ll = 0.666f*aa;
        mylam[jj] = ll ;
+       qal[jj]   = ll*ll * 4.0f*rsq[jj]/(rsq[jj]-ll*ll) ;
      }
    }
 
@@ -514,7 +525,8 @@ ENTRY("THD_sqrtlasso_L2fit") ;
 #undef  CON    /* CON(j) is true if the constraint on ppar[j] is violated */
 #define CON(j) (ccon != NULL && ppar[j]*ccon[j] < 0.0f)
 
-   nimax = 31*nref + npt + 66 ; dsum = 1.0f ;
+   ii = MAX(nref,npt) ; jj = MIN(nref,npt) ; nimax = 17 + 5*ii + 31*jj ;
+   dsum = 1.0f ;
    for( nite=0 ; nite < nimax && dsum > deps ; nite++ ){
 
      /*-- cyclic inner loop over parameters --*/
@@ -528,32 +540,53 @@ ENTRY("THD_sqrtlasso_L2fit") ;
        for( dg=ii=0 ; ii < npt ; ii++ ) dg += resd[ii] * rj[ii] ;
        dg *= npinv ;
 
+       /* want to minimize (wrt x) function sqrt(aa*x*x+bb*x+cc) + ll*abs(x) */
+
        aa = rsq[jj] ;
-       bb = -2.0f*dg - 2.0f*aa*pj ;
-       cc = rqsum + 2.0f*dg*pj + aa*pj*pj ;
+       bb = -2.0f * (dg+aa*pj) ;
+       cc = rqsum + (2.0f*dg + aa*pj)*pj ;
        ll = mylam[jj] ;
 
        /*- modify parameter -*/
 
        if( ll == 0.0f ){   /* un-penalized parameter */
 
-         ppar[jj] = -0.5 * bb / aa ; if( CON(jj) ) ppar[jj] = 0.0f ;
+         ppar[jj] = bb * ain[jj] ; if( CON(jj) ) ppar[jj] = 0.0f ;
 
        } else {
+#if 0
          float qq = ll * sqrtf(4.0f*aa*cc/(aa-ll*ll)) ;
          if( pj > 0.0f || (pj == 0.0f && bb+qq < 0.0f) ){
-           ppar[jj] = -0.5f*(bb+qq) / aa ;   /* solution on positive side */
+           ppar[jj] = (bb+qq) * ain[jj] ;      /* solution on positive side */
            if( ppar[jj] < 0.0f || CON(jj) ) ppar[jj] = 0.0f ;
          } else if( pj < 0.0f || (pj == 0.0f && bb-qq > 0.0f) ){
-           ppar[jj] = -0.5f*(bb-qq) / aa ;   /* solution on negative side */
+           ppar[jj] = (bb-qq) * ain[jj] ;      /* solution on negative side */
            if( ppar[jj] > 0.0f || CON(jj) ) ppar[jj] = 0.0f ;
          }
+#else
+         float qq = qal[jj] * cc ;              /* positive by construction */
+         if( pj > 0.0f ){
+           ppar[jj] = (bb+sqrtf(qq)) * ain[jj] ;           /* positive side */
+           if( ppar[jj] < 0.0f || CON(jj) ) ppar[jj] = 0.0f ;
+         } else if( pj < 0.0f ){
+           ppar[jj] = (bb-sqrtf(qq)) * ain[jj] ;           /* negative side */
+           if( ppar[jj] > 0.0f || CON(jj) ) ppar[jj] = 0.0f ;
+         } else {                                        /* initial pj == 0 */
+           if( bb*bb > qq ){         /* gradient step overpowers L1 penalty */
+             if( bb < 0.0f && !CONN(jj) ){
+               ppar[jj] = (bb+sqrtf(qq)) * ain[jj] ;      /* step to + side */
+             } else if( !CONP(jj) ){
+               ppar[jj] = (bb-sqrtf(qq)) * ain[jj] ;      /* step to - side */
+             }
+           }
+         }
+#endif
        }
 
        dg = ppar[jj] - pj ;   /* change in parameter */
        if( dg != 0.0f ){      /* update convergence test and residuals */
          pj    = fabsf(ppar[jj]) + fabsf(pj) ;
-         dsum += fabsf(dg) / MAX(pj,0.01f) ; ndel++ ;
+         dsum += fabsf(dg) / MAX(pj,0.001f) ; ndel++ ;
          for( rqsum=ii=0 ; ii < npt ; ii++ ){
            resd[ii] -= rj[ii] * dg ; rqsum += resd[ii]*resd[ii] ;
          }
@@ -591,7 +624,7 @@ ENTRY("THD_sqrtlasso_L2fit") ;
    /*--- Loading up the truck and heading to Beverlee ---*/
 
 #pragma omp critical (MALLOC)
-   { free(fr) ; free(rsq) ; free(resd) ; free(mylam) ; }
+   { free(qal) ; free(ain) ; free(fr) ; free(rsq) ; free(resd) ; free(mylam) ; }
 
    RETURN(qfit) ;
 }

@@ -52,7 +52,7 @@ static int gcd( int m , int n ){
 }
 static int find_relprime_random( int n ) /* find one relatively prime to n */
 {
-   int dj , n5=n/5 , n2=3*n5 ;
+   int dj , n5=n/5 ;
    if( n5 < 2 ) return 1 ;
    do{ dj = lrand48() % n + 1 ; } while( gcd(n,dj) > 1 ) ;
    return dj ;
