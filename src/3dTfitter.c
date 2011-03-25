@@ -404,6 +404,8 @@ int main( int argc , char *argv[] )
       "               procedure to follow would be to use several different values of\n"
       "               lam and see how the results vary; for example, the values\n"
       "               of lam = -2 -6 -10 -14 -18 might be a good starting point.\n"
+      "             * Data with a smaller signal-to-noise ratio will probably need\n"
+      "               larger values of lam -- you'll have to experiment.\n"
       "             * Recall that \"3dTfitter is not for the casual user!\"\n"
       "\n"
       "---------------------\n"
@@ -902,7 +904,8 @@ int main( int argc , char *argv[] )
        lasso_flam = (float)strtod(argv[iarg],NULL) ;
        if( lasso_flam == 0.0f ) ERROR_exit("%s %s: illegal lam",argv[iarg-1],argv[iarg]) ;
        if( lasso_flam < 0.0f ){
-         WARNING_message("%s has lam = %g; changing sign!",argv[iarg-1],lasso_flam) ;
+         WARNING_message("%s has lam = %g ==> changing sign ==> don't worry",
+                         argv[iarg-1],lasso_flam) ;
          lasso_flam = -lasso_flam ;
        }
        THD_lasso_fixlam(lasso_flam) ;  /* cf. thd_lasso.c */
