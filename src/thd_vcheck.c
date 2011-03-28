@@ -8,7 +8,10 @@
 
 static void THD_death_now_now_now(int sig)
 {
-  fprintf(stderr,"\n** program exits via safety timer **\n") ; _exit(0) ;
+#if 0
+  fprintf(stderr,"\n** AFNI version check exits via safety timer **\n") ;
+#endif
+  _exit(0) ;
 }
 
 /***-------------------------------------------------------------------***/

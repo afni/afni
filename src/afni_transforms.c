@@ -255,9 +255,17 @@ void hrfdecon_func( int num , double to,double dt , float *vec )
    }
 
    despike9_func( num , to,dt , vec ) ;
+
+   { float *vlam = (float *)malloc(sizeof(float)*(nbase+num)) ;
+     for( ii=0 ; ii < num   ; ii++ ) vlam[ii]     = 9.999f ;
+     for( ii=0 ; ii < nbase ; ii++ ) vlam[ii+num] = 0.0f ;
+     THD_lasso_fixlam(9.999f) ;
+     THD_lasso_setlamvec( nbase+num , vlam ) ; free(vlam) ;
+   }
+
    bfit = THD_deconvolve( num , vec ,
                           0 , nkern-1 , kern ,
-                          nbase , base , 2 , NULL , 0 , 7 , -666.0f ) ;
+                          nbase , base , -1 , NULL , 0 , 7 , -3.333f ) ;
 
    if( bfit != NULL ){
      memcpy(vec,bfit->ar,sizeof(float)*num) ;
