@@ -1873,18 +1873,30 @@ class SingleSubjectWindow(QtGui.QMainWindow):
                             '/misc/Decon/DeconSummer2004.html')
       else: print '** cb_help_browse: invalid sender'
 
-   def cb_show_ap_command(self):
-      if self.update_svars_from_tables(): return
+   def update_svars_from_gui(self, warn=0):
+      """set what we can, if warn, report error
+         return 0 on success, 1 on error"""
 
+      # first process tables
+      if self.update_svars_from_tables(): return 1
+
+      # then process sid and gid
       if self.svars.is_empty('sid') or self.svars.is_empty('gid'):
-         QLIB.guiError('Error', "** subject and group IDs must be set", self)
-         return
+         if warn: QLIB.guiError('Error', 
+                                "** subject and group IDs must be set", self)
+         return 1
 
       if self.set_sdir:
-         # default subj dir should read like: subject_results/group_A/SUBJ
+         # subj dir should read: subject_results/group.gA/subj.SUBJ
          sdir =  USUBJ.get_def_subj_path(gid=self.svars.gid, sid=self.svars.sid)
          print '-- setting subj_dir to %s' % sdir
          self.set_cvar('subj_dir', sdir)
+
+      return 0
+
+   def cb_show_ap_command(self):
+
+      if self.update_svars_from_gui(): return
 
       # if we have a subject directory, make backup scripts
       if self.cvars.is_non_trivial_dir('subj_dir'):
@@ -1922,13 +1934,11 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       self.gvars.act_exec_proc.setEnabled(True)
 
    def write_uber_subj_command(self):
-      if self.apsubj.cvars.is_non_trivial_dir('subj_dir'):
-         sdir = self.apsubj.cvars.val('subj_dir')
-         
-         if os.path.isdir(sdir):
-            sstr = self.make_uber_command()
-            sid = self.apsubj.svars.val('sid')
-            UTIL.write_text_to_file('%s/.orig.cmd.usubj.%s'%(sdir,sid), sstr)
+      sdir = self.apsubj.cvars.val('subj_dir')
+      if os.path.isdir(sdir):
+         sstr = self.make_uber_command()
+         sid = self.apsubj.svars.val('sid')
+         UTIL.write_text_to_file('%s/.orig.cmd.usubj.%s'%(sdir,sid), sstr)
 
    def update_svars_from_tables(self):
       """get updates from the EPI, stim and gltsym tables
@@ -2164,6 +2174,9 @@ class SingleSubjectWindow(QtGui.QMainWindow):
             basis functions
             gltsym
       """
+
+      # first apply subject variables
+      self.update_svars_from_gui()
 
       cmd = 'uber_subject.py'
 

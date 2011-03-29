@@ -13,7 +13,7 @@ import lib_subjects as SUBJ
 DEF_UBER_DIR = 'uber_results'        # top directory for output
 DEF_TOP_SDIR = 'subject_results'     # top subject dir under uber_results
 DEF_SUBJ_ID  = 'SUBJ'                # default subject, if none is known
-DEF_GROUP_ID = 'group_A'             # default group, if none is known
+DEF_GROUP_ID = 'G1'                  # default group, if none is known
 
 g_history = """
   uber_subject.py history
@@ -107,9 +107,10 @@ g_history = """
          - added tlrc option box: base, skull strip, OK_maxite
          - adjusted table resizing
          - added -help_install
+    0.17 Mar 29, 2011 : changed subject directory to group.GROUP/subj.SUBJ
 """
 
-g_version = '0.16 (March 24, 2011)'
+g_version = '0.17 (March 29, 2011)'
 
 # ----------------------------------------------------------------------
 # global definition of default processing blocks
@@ -307,8 +308,9 @@ class AP_Subject(object):
             - set LV.retdir and cd
          (should be called 'atomically' with ret_from_subj_dir)"""
       self.LV.retdir = ''  # init to no return
+      # if subj_dir is not worth pondering, bail
+      if not self.cvars.is_non_trivial_dir('subj_dir'): return
       sdir = self.cvars.subj_dir
-      if sdir == '' or sdir == '.': return
 
       retdir = os.getcwd()
 
@@ -332,8 +334,9 @@ class AP_Subject(object):
       """if cvars.subj_dir and LV.retdir are set, cd to LV.retdir
          (should be called 'atomically' with goto_subj_dir)"""
 
-      if self.cvars.subj_dir == '' or self.cvars.subj_dir == '.': return
-      if self.LV.retdir      == '' or self.LV.retdir      == '.': return
+      # if subj_dir or retdir are useless, bail
+      if not self.cvars.is_non_trivial_dir('subj_dir'): return
+      if self.LV.retdir == '' or self.LV.retdir == '.': return
 
       try: os.chdir(self.LV.retdir)
       except:
@@ -1108,7 +1111,7 @@ def get_uber_results_dir(topdir=None):
    else:                    return '%s/%s' % (cwd, DEF_UBER_DIR)
 
 def get_def_subj_path(topdir=None, subj=None, gid=None, sid=None):
-   """return something of the form subject_results/group_A/SUBJ"""
+   """return something of the form subject_results/group.g1/subj.SUBJ"""
 
    if subj: # init from subject instance
       sid = subj.svars.val('sid')
@@ -1118,7 +1121,7 @@ def get_def_subj_path(topdir=None, subj=None, gid=None, sid=None):
    if sid == None: sid = DEF_SUBJ_ID
    if gid == None: gid = DEF_GROUP_ID
 
-   sdir = '%s/%s/%s' % (DEF_TOP_SDIR, gid, sid)
+   sdir = '%s/group.%s/subj.%s' % (DEF_TOP_SDIR, gid, sid)
 
    if topdir: return '%s/%s' % (topdir, sdir)
    else:      return sdir
@@ -1505,22 +1508,19 @@ helpstr_todo = """
 ---------------------------------------------------------------------------
                         todo list:  
 
-- make align/tlrc options into 2
-- regression cases for new subj vars
-- better error message for bad wildcards
-- bad stim table overlap on macs?
+- rename subject and group directories
+- change print statements to LOG statements
+   - optionally store to pass up to GUI
+   - GUI could process (display as html?) and clear log
+   - maybe register callback function to let GUI know?
+- regression cases for new subj vars (gltsym ?!?)
+- table size might need to depend on font
 - help buttons for expected and extra regress options
 - does tcsh exist?
 - make UberInterface class in uber_subject.py?
 - more verb output
-- group box: other 3dD options
-        - extra 3dD opts
-- group box: align options
-        - giant_move
-        - cost function (choose or set)
-        - extra aea opts (examples: -AddEdge)
-        - tlrc opts: -tlrc_opts_at -OK_maxite, -tlrc_no_ss, template
-- other : choose blocks
+- group box : choose blocks
+   - alt: fix order, given choices of to do or not?
 
 - allow stim_file regressors and labels
 - add range error checking for many variables
