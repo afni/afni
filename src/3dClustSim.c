@@ -162,8 +162,9 @@ void display_help_menu()
    "                  you are doing, and IF you are willing to live life on\n"
    "                  the edge of statistical catastrophe, then you can use\n"
    "                  this option to allow smaller masks -- in a sense, this\n"
-   "                  is the 'consent form' for such strange behavior.\n"
+   "                  is the 'consent form' for such strange shenanigans.\n"
    "                 * If you use this option, it must come BEFORE '-mask'.\n"
+   "                 * Also read the 'CAUTION and CAVEAT' section, far below.\n"
    "\n"
    "    ** '-mask' means that '-nxyz' & '-dxyz' & '-BALL' will be ignored. **\n"
    "\n"
@@ -261,14 +262,23 @@ void display_help_menu()
    "------\n"
    "* This program is like running AlphaSim once for each '-pthr' value and then\n"
    "  extracting the relevant information from its 'Alpha' output column.\n"
+   " ++ One reason for 3dClustSim to be used in place of AlphaSim is that it will\n"
+   "    be faster than running AlphaSim multiple times.\n"
+   " ++ Another reason is that the resulting table can be stored in an AFNI\n"
+   "    dataset's header, and used in the AFNI Clusterize GUI to see estimated\n"
+   "    cluster significance (alpha) levels.\n"
    "\n"
    "* To be clear, the C(p,alpha) thresholds that are calculated are for\n"
-   "  alpha = probability of a noise-only smooth random field, after thresholding\n"
-   "  at the per-voxel p value, produces a cluster of voxels at least this big.\n"
-   "  So if your cluster is well above the C(p,0.05) threshold in size (say),\n"
-   "  then it is very unlikely that noise BY ITSELF produced this result.  This\n"
-   "  statement does not mean that all the voxels in the cluster are 'truly'\n"
-   "  active -- it means that at least SOME of them are (probably) truly active.\n"
+   "  alpha = probability of a noise-only smooth random field, after masking\n"
+   "  and then thresholding at the given per-voxel p value, produces a cluster\n"
+   "  of voxels at least this big.\n"
+   " ++ So if your cluster is larger than the C(p,0.05) threshold in size (say),\n"
+   "    then it is very unlikely that noise BY ITSELF produced this result.\n"
+   " ++ This statement does not mean that ALL the voxels in the cluster are\n"
+   "    'truly' active -- it means that at least SOME of them are (very probably)\n"
+   "    active.  The statement of low probability (0.01 in this example) of a\n"
+   "    false positive result applies to the cluster as a whole, not to each\n"
+   "    voxel within the cluster.\n"
    "\n"
    "* To add the cluster simulation C(p,alpha) table to the header of an AFNI\n"
    "  dataset, something like the following can be done [tcsh syntax]:\n"
@@ -282,8 +292,8 @@ void display_help_menu()
    "  statistics dataset (e.g., something from 3dDeconvolve, 3dREMLfit, etc.).\n"
    "\n"
    "   ** Nota Bene: afni_proc.py will automatically run 3dClustSim,  and **\n"
-   "   ** put the results  into the statistical results  dataset for you. **\n"
-   "   ** Another reason to use afni_proc.py for single-subject analyses! **\n"
+   "  *** put the results  into the statistical results  dataset for you. ***\n"
+   " **** Another reason to use afni_proc.py for single-subject analyses! ****\n"
    "\n"
    "* 3dClustSim will print (to stderr) a 3drefit command fragment, similar\n"
    "  to the one above, that you can use to add cluster tables to any\n"
@@ -306,29 +316,29 @@ void display_help_menu()
    "CAUTION and CAVEAT: [January 2011]\n"
    "-------------------\n"
    "* If you use a small ROI mask and also have a large FWHM, then it might happen\n"
-   "  that it is impossible to find a cluster size threshold N that works for a\n"
+   "  that it is impossible to find a cluster size threshold C that works for a\n"
    "  given (p,alpha) combination.\n"
    "\n"
-   "* Generally speaking, N(p,alpha) gets smaller as p gets smaller and N(p,alpha)\n"
+   "* Generally speaking, C(p,alpha) gets smaller as p gets smaller and C(p,alpha)\n"
    "  gets smaller as alpha gets larger.  As a result, in a small mask with small p\n"
-   "  and large alpha, N(p,alpha) might shrink below 1.  But clusters of size N\n"
+   "  and large alpha, C(p,alpha) might shrink below 1.  But clusters of size C\n"
    "  less than don't make any sense!\n"
    "\n"
    "* For example, suppose that for p=0.0005 that only 6%% of the simulations\n"
    "  have ANY above-threshold voxels inside the ROI mask.  In that case,\n"
-   "  N(p=0.0005,alpha=0.06) = 1.  There is no smaller value of N where 10%%\n"
-   "  of the simulations have a cluster of size N or larger.  Thus, it is\n"
+   "  C(p=0.0005,alpha=0.06) = 1.  There is no smaller value of C where 10%%\n"
+   "  of the simulations have a cluster of size C or larger.  Thus, it is\n"
    "  impossible to find the cluster size threshold for the combination of\n"
    "  p=0.0005 and alpha=0.10 in this case.\n"
    "\n"
-   "* 3dClustSim will report a cluster size threshold of N=1 for such cases.\n"
+   "* 3dClustSim will report a cluster size threshold of C=1 for such cases.\n"
    "  It will also print (to stderr) a warning message for all the (p,alpha)\n"
    "  combinations that had this problem.\n"
    "\n"
-   "* This issue arises because 3dClustSim reports N for a given alpha.\n"
-   "  In contrast, AlphaSim reports alpha for each given N, and leaves\n"
-   "  you to interpret the resulting table; it doesn't try to find N(p,alpha)\n"
-   "  for a given alpha, but finds alpha for various values of N.\n"
+   "* This issue arises because 3dClustSim reports C for a given alpha.\n"
+   "  In contrast, AlphaSim reports alpha for each given C, and leaves\n"
+   "  you to interpret the resulting table; it doesn't try to find C(p,alpha)\n"
+   "  for a given alpha, but finds alpha for various values of C.\n"
    "\n"
    "* If you wish to see this effect in action, the following commands\n"
    "  can be used as a starting point:\n"
@@ -724,16 +734,26 @@ void get_options( int argc , char **argv )
 void generate_image( float *fim , unsigned short xran[] )
 {
   register int ii ; register float sum ;
+
+  /* random N(0,1) stuff */
+
   for( ii=0 ; ii < nxyz ; ii++ ) fim[ii] = zgaussian_sss(xran) ;
+
+  /* smoothization */
+
   if( do_blur ){
     FIR_blur_volume_3d(nx,ny,nz,dx,dy,dz,fim,sigmax,sigmay,sigmaz) ;
     for( sum=0.0f,ii=0 ; ii < nxyz ; ii++ ) sum += fim[ii]*fim[ii] ;
-    sum = sqrtf( nxyz / sum ) ;
+    sum = sqrtf( nxyz / sum ) ;  /* fix stdev back to 1 */
     for( ii=0 ; ii < nxyz ; ii++ ) fim[ii] *= sum ;
   }
+
+  /* maskizing */
+
   if( mask_vol != NULL ){
     for( ii=0 ; ii < nxyz ; ii++ ) if( !mask_vol[ii] ) fim[ii] = 0.0f ;
   }
+
   return ;
 }
 
