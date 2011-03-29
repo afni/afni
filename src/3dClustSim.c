@@ -87,6 +87,8 @@ static double *athr = NULL ;
 static int verb = 1 ;
 static int nthr = 1 ;
 
+static int minmask = 128 ;   /* 29 Mar 2011 */
+
 static char *prefix = NULL ;
 
 #undef  PSMALL
@@ -154,6 +156,14 @@ void display_help_menu()
    "-mask mset     = Use the 0 sub-brick of dataset 'mset' as a mask\n"
    "                  to indicate which voxels to analyze (a sub-brick\n"
    "                  selector '[]' is allowed) \n"
+   "\n"
+   "-OKsmallmask   = Allow small masks. Normally, a mask volume must have\n"
+   "                  128 or more nonzero voxels.  However, IF you know what\n"
+   "                  you are doing, and IF you are willing to live life on\n"
+   "                  the edge of statistical catastrophe, then you can use\n"
+   "                  this option to allow smaller masks -- in a sense, this\n"
+   "                  is the 'consent form' for such strange behavior.\n"
+   "                 * If you use this option, it must come BEFORE '-mask'.\n"
    "\n"
    "    ** '-mask' means that '-nxyz' & '-dxyz' & '-BALL' will be ignored. **\n"
    "\n"
@@ -299,6 +309,11 @@ void display_help_menu()
    "  that it is impossible to find a cluster size threshold N that works for a\n"
    "  given (p,alpha) combination.\n"
    "\n"
+   "* Generally speaking, N(p,alpha) gets smaller as p gets smaller and N(p,alpha)\n"
+   "  gets smaller as alpha gets larger.  As a result, in a small mask with small p\n"
+   "  and large alpha, N(p,alpha) might shrink below 1.  But clusters of size N\n"
+   "  less than don't make any sense!\n"
+   "\n"
    "* For example, suppose that for p=0.0005 that only 6%% of the simulations\n"
    "  have ANY above-threshold voxels inside the ROI mask.  In that case,\n"
    "  N(p=0.0005,alpha=0.06) = 1.  There is no smaller value of N where 10%%\n"
@@ -312,7 +327,8 @@ void display_help_menu()
    "\n"
    "* This issue arises because 3dClustSim reports N for a given alpha.\n"
    "  In contrast, AlphaSim reports alpha for each given N, and leaves\n"
-   "  you to interpret the resulting table.\n"
+   "  you to interpret the resulting table; it doesn't try to find N(p,alpha)\n"
+   "  for a given alpha, but finds alpha for various values of N.\n"
    "\n"
    "* If you wish to see this effect in action, the following commands\n"
    "  can be used as a starting point:\n"
@@ -409,6 +425,12 @@ void get_options( int argc , char **argv )
       continue ;
     }
 
+    /**** -OKsmallmask ****/
+
+    if( strcmp(argv[nopt],"-OKsmallmask") == 0 ){  /* 29 Mar 2011 */
+      minmask = 2 ; nopt++ ; continue ;
+    }
+
     /**** -mask mset ****/
 
     if( strcmp(argv[nopt],"-mask") == 0 ){
@@ -421,7 +443,20 @@ void get_options( int argc , char **argv )
       mask_nvox = DSET_NVOX(mask_dset) ;
       DSET_unload(mask_dset) ;
       mask_ngood = THD_countmask( mask_nvox , mask_vol ) ;
-      if( mask_ngood < 128 ) ERROR_exit("-mask has only %d nonzero voxels!",mask_ngood) ;
+      if( mask_ngood < minmask ){
+        if( minmask > 2 && mask_ngood > 2 ){
+          ERROR_message("-mask has only %d nonzero voxels; minimum allowed is %d.",
+                        mask_ngood , minmask ) ;
+          ERROR_message("To run this simulation, please read the CAUTION and CAVEAT in -help,") ;
+          ERROR_message("and then you can use the '-OKsmallmask' option if you so desire.") ;
+          ERROR_exit("Cannot continue -- may we meet under happier circumstances!") ;
+        } else if( mask_ngood == 0 ){
+          ERROR_exit("-mask has no nonzero voxels -- cannot use this at all :-(") ;
+        } else {
+          ERROR_exit("-mask has only %d nonzero voxel%s -- cannot use this :-(",
+                     mask_ngood , (mask_ngood > 1) ? "s" : "\0" ) ;
+        }
+      }
       if( verb ) INFO_message("%d voxels in mask (%.2f%% of total)",
                               mask_ngood,100.0*mask_ngood/(double)mask_nvox) ;
       nopt++ ; continue ;
@@ -1360,18 +1395,20 @@ MPROBE ;
     } /* end of loop over nnn = NN degree */
 
     if( amesg != NULL ){
-      WARNING_message("Simulation not effective for these cases:\n"
-                      "%s"
-                      "*+ This means that not enough clusters, of any size,\n"
-                      "     of voxels at or below each pthr threshold,\n"
-                      "     were found to estimate at each alpha level.\n"
-                      "*+ In other words, the probability that noise-only\n"
-                      "     data (of the given smoothness) will cause\n"
-                      "     above-threshold (at the given pthr) clusters\n"
-                      "     is smaller than the desired alpha levels.\n"
-                      "*+ This problem can arise when the masked region\n"
-                      "     being simulated is small and at the same time\n"
-                      "     the smoothness (FWHM) is large."
+      WARNING_message("Simulation not effective for these cases:\n\n"
+                      "%s\n"
+                      "*+ This means that not enough clusters, of any size, +*\n"
+                      "     of voxels at or below each pthr threshold, were +*\n"
+                      "     found to estimate at each alpha level.          +*\n"
+                      "*+ In other words, the probability that noise-only   +*\n"
+                      "     data (of the given smoothness) will cause       +*\n"
+                      "     above-threshold (at the given pthr) clusters is +*\n"
+                      "     smaller than the desired alpha levels.          +*\n"
+                      "*+ This problem can arise when the masked region     +*\n"
+                      "     being simulated is small and at the same time   +*\n"
+                      "     the smoothness (FWHM) is large.                 +*\n"
+                      "*+ Read the 'CAUTION and CAVEAT' section at the end  +*\n"
+                      "   of the '-help' output for a longer explanation.   +*\n\n"
                     , amesg ) ;
       free(amesg) ;
     }
