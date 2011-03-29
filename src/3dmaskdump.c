@@ -354,7 +354,7 @@ int main( int argc , char * argv[] )
          temp = strtod( argv[++narg] , NULL ) ;
          nrandseed = temp ;
          if( nrandseed == 0 ){  /* 29 Mar 2011 */
-           nrandseed = ((unsigned int)time(NULL)) + 17*(unsigned int)getpid() ;
+           nrandseed = ((unsigned int)time(NULL))%666667u + 17u*(unsigned int)getpid() ;
            INFO_message("nrandseed initialized to %u",nrandseed) ;
          }
          narg++ ; continue ;
