@@ -115,6 +115,11 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       if cvars != None:
          vv = cvars.val('verb')
          if vv == None: vv = -1
+         else:
+            try: vv = int(vv)
+            except:
+               '** reset vars bad verb %s %s' % (vv, type(vv))
+               vv = -1
       if   verb >= 0:     self.verb = verb
       elif vv   >= 0:     self.verb = vv
       elif self.verb > 0: pass                  # leave unchanged
@@ -131,7 +136,8 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       self.apply_svars(svars)
       self.apply_cvars(cvars)
 
-      self.set_cvar('verb', self.verb)  # since might not come from cvars
+      # since might not come from cvars, cvars are all strings
+      self.set_cvar('verb', str(self.verb))
 
    def make_l2_widgets(self):
       """create 'general subject info' box and scroll area for the
