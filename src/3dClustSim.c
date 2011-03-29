@@ -272,7 +272,7 @@ void display_help_menu()
    "  alpha = probability of a noise-only smooth random field, after masking\n"
    "  and then thresholding at the given per-voxel p value, produces a cluster\n"
    "  of voxels at least this big.\n"
-   " ++ So if your cluster is larger than the C(p,0.05) threshold in size (say),\n"
+   " ++ So if your cluster is larger than the C(p,0.01) threshold in size (say),\n"
    "    then it is very unlikely that noise BY ITSELF produced this result.\n"
    " ++ This statement does not mean that ALL the voxels in the cluster are\n"
    "    'truly' active -- it means that at least SOME of them are (very probably)\n"
