@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 29, MAR, 2011, RCR, "uber_subject.py", MICRO, TYPE_ENHANCE,
+   "changed subject directory to group.GROUP/subj.SUBJ",
+   NULL
+ } ,
+
  { 24, MAR, 2011, RCR, "uber_subject.py", MINOR, TYPE_ENHANCE,
    "added align and tlrc option boxes, adjusted spacing",
    NULL
