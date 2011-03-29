@@ -43,7 +43,12 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 22 , MAR , 2011 , RWC , "3dTfitter" , MICRO , TYPE_NEW_OPT ,
+  { 29 , MAR , 2011 , RWC , "3dClustSim" , MICRO , TYPE_NEW_OPT ,
+   "Add -OKsmallmask option" ,
+   "To let deranged users take their statistical fortunes into their own\n"
+   "hands." } ,
+
+ { 22 , MAR , 2011 , RWC , "3dTfitter" , MICRO , TYPE_NEW_OPT ,
    "Add -l2sqrtlasso option" ,
    "Yet another solution method, this time with SQRT(LASSO) penalty." } ,
 
