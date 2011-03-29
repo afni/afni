@@ -347,12 +347,16 @@ int main( int argc , char * argv[] )
          narg++ ; continue ;
       }
 
-      if( strcmp(argv[narg],"-n_randseed") == 0 ){
+      if( strcmp(argv[narg],"-n_randseed") == 0 || strcmp(argv[narg],"-nrandseed") == 0 ){
          double temp ;
          if( narg+1 >= argc )
            ERROR_exit("-n_randseed option requires 1 argument!\n");
          temp = strtod( argv[++narg] , NULL ) ;
          nrandseed = temp ;
+         if( nrandseed == 0 ){  /* 29 Mar 2011 */
+           nrandseed = ((unsigned int)time(NULL)) + 17*(unsigned int)getpid() ;
+           INFO_message("nrandseed initialized to %u",nrandseed) ;
+         }
          narg++ ; continue ;
       }
 
