@@ -395,6 +395,7 @@ void display_help_menu()
   ) ;
 
   PRINT_AFNI_OMP_USAGE("3dClustSim",NULL) ;
+  PRINT_COMPILE_DATE ;
   exit(0);
 }
 
