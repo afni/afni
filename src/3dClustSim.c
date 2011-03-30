@@ -390,8 +390,8 @@ void display_help_menu()
    "size threshold would be 9 -- that is, you would keep all NN clusters with\n"
    "9 or more voxels.\n"
    "\n"
-   "The header lines start with the '#' character so that the result is a\n"
-   "correctly formatted AFNI .1D file -- it can be used in 1dplot, etc.\n"
+   "The header lines start with the '#' (commenting) character so that the result\n"
+   "is a correctly formatted AFNI .1D file -- it can be used in 1dplot, etc.\n"
   ) ;
 
   PRINT_AFNI_OMP_USAGE("3dClustSim",NULL) ;
