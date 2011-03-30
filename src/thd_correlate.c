@@ -130,6 +130,47 @@ float quadrant_corr( int n , float *x , float rv , float *r )
    return ( ss/sqrtf(rv*xv) ) ;
 }
 
+/*---------------------------------------------------------------------------*/
+/*! Prepare for tictactoe correlation with a[].
+-----------------------------------------------------------------------------*/
+
+float tictactoe_corr_prepare( int n , float *a )
+{
+   register int ii ;
+   register float rb , rs , rt ;
+
+   rank_order_float( n , a ) ;
+
+   rb = rintf(0.333333f*(n-1)) ; rt = n-1 - rb ; rs = 0.0f ;
+   for( ii=0 ; ii < n ; ii++ ){
+          if( a[ii] > rt ){ a[ii] =  1.0f ; rs += 1.0f ; }
+     else if( a[ii] < rb ){ a[ii] = -1.0f ; rs += 1.0f ; }
+     else                 { a[ii] =  0.0f ;              }
+   }
+
+   return rs ;
+}
+
+/*------------------------------------------------------------------------------*/
+/*! To do tictactoe correlation of x[] with r[], first do
+      rv = tictactoe_corr_prepare(n,r) ;
+    then
+      corr = tictactoe_corr(n,x,rv,r) ;
+    Note that these 2 routines are destructive (r and x are modified).
+-------------------------------------------------------------------------------*/
+
+float tictactoe_corr( int n , float *x , float rv , float *r )
+{
+   register int ii ;
+   register float ss ; float xv ;
+
+   xv = tictactoe_corr_prepare( n , x ) ; if( xv <= 0.0f ) return 0.0f ;
+
+   for( ii=0,ss=0.0f ; ii < n ; ii++ ) ss += x[ii] * r[ii] ;
+
+   return ( ss/sqrtf(rv*xv) ) ;
+}
+
 /*=============================================================================
   Compute correlations, destructively (i.e., mangling the input arrays)
 ===============================================================================*/
