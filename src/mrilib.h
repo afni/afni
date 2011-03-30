@@ -112,7 +112,8 @@ extern AFD_dicom_header **MRILIB_dicom_header ;
     "* How many threads are useful?  That varies with the program, and how well\n" \
     "   it was coded.  You'll have to experiment on your own systems!\n"           \
     "* The number of CPUs on this particular computer system is ...... %d.\n"      \
-    "%s\n"                                                                         \
+    "%s"                                                                           \
+    " =========================================================================\n" \
     , (pnam) , omp_get_num_procs() , (extra==NULL) ? "\0" : extra                  \
   )
 #else
@@ -129,7 +130,8 @@ extern AFD_dicom_header **MRILIB_dicom_header ;
     "* If you wish to compile this program with OpenMP, see the man page for\n"    \
     "   your C compiler, and (if needed) consult the AFNI message board, and\n"    \
     "   http://afni.nimh.nih.gov/pub/dist/doc/misc/OpenMP.html\n"                  \
-    , (pnam) )
+    , (pnam)                                                                       \
+  )
 #endif
 
 /*----------------------------------------------------------------------------*/
@@ -1958,7 +1960,7 @@ extern THD_fvec3 mri_nstat_fwhmxyz( int,int,int ,
 extern void mri_blur3D_variable( MRI_IMAGE * , byte * ,
                                  MRI_IMAGE * , MRI_IMAGE * , MRI_IMAGE * ) ;
 extern void mri_blur3D_inmask( MRI_IMAGE *, byte *, float,float,float,int );
-extern void mri_blur3D_inmask_speedy( MRI_IMAGE *, byte *, 
+extern void mri_blur3D_inmask_speedy( MRI_IMAGE *, byte *,
                                       float,float,float,int );
 extern void mri_blur3D_addfwhm( MRI_IMAGE *, byte *, float ) ;
 extern void mri_blur3D_addfwhm_speedy( MRI_IMAGE *, byte *, float ) ;
