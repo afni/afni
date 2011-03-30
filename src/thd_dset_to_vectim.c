@@ -405,6 +405,33 @@ void THD_vectim_quadrant( MRI_vectim *mrv , float *vec , float *dp )
    free(bv) ; free(av) ; return ;
 }
 
+/*---------------------------------------------------------------------*/
+/* 30 Mar 2011: TicTacToe correlation. */
+
+void THD_vectim_tictactoe( MRI_vectim *mrv , float *vec , float *dp )
+{
+   float *av , *bv , sav ;
+   int nvec, nvals, iv ;
+
+   if( mrv == NULL || vec == NULL || dp == NULL ) return ;
+
+   nvec = mrv->nvec ; nvals = mrv->nvals ;
+   av   = (float *)malloc(sizeof(float)*nvals) ;
+   bv   = (float *)malloc(sizeof(float)*nvals) ;
+
+#pragma omp critical (MEMCPY)
+   memcpy( av , vec , sizeof(float)*nvals ) ;
+   sav = tictactoe_corr_prepare( nvals , av ) ; if( sav <= 0.0f ) sav = 1.e+9f ;
+
+   for( iv=0 ; iv < nvec ; iv++ ){
+#pragma omp critical (MEMCPY)
+     memcpy( bv , VECTIM_PTR(mrv,iv) , sizeof(float)*nvals ) ;
+     dp[iv] = tictactoe_corr( nvals , bv , sav , av ) ;
+   }
+
+   free(bv) ; free(av) ; return ;
+}
+
 /*----------------------------------------------------------------------------*/
 /* 29 Apr 2010: Kendall Tau-b correlation. */
 
