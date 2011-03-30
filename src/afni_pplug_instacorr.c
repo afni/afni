@@ -166,8 +166,9 @@ PLUGIN_interface * ICOR_init( char *lab )
 {
    PLUGIN_interface *plint ;     /* will be the output of this routine */
    static char *yn[2] = { "No" , "Yes" } ;
-   static char *meth_string[6] = { "Pearson" , "Spearman" ,
-                                   "Quadrant", "Ken Tau_b", "BCpearson" , "VCpearson"  } ;
+   static char *meth_string[7] = { "Pearson" , "Spearman" ,
+                                   "Quadrant", "Ken Tau_b", "TicTacToe" ,
+                                   "BCpearson" , "VCpearson"  } ;
    char sk[32] , sc[32] ;
    int gblur = AFNI_yesenv("AFNI_INSTACORR_SEEDBLUR") ;
 
@@ -218,7 +219,7 @@ PLUGIN_interface * ICOR_init( char *lab )
    PLUTO_add_number( plint , "Polort" , -1,2,0,2 , FALSE ) ;
    { char *un = tross_username() ;
      PLUTO_add_string( plint , "Method" ,
-                       (un != NULL && strstr(un,"cox") != NULL) ? 6 : 4 ,
+                       (un != NULL && strstr(un,"cox") != NULL) ? 7 : 5 ,
                        meth_string , 0 ) ;
    }
 
@@ -319,6 +320,7 @@ static char * ICOR_main( PLUGIN_interface *plint )
          case 'K': cmeth = NBISTAT_KENDALL_TAUB  ; break ;
          case 'B': cmeth = NBISTAT_BC_PEARSON_M  ; break ; /* 07 Mar 2011 */
          case 'V': cmeth = NBISTAT_BC_PEARSON_V  ; break ; /* 07 Mar 2011 */
+         case 'T': cmeth = NBISTAT_TICTACTOE_CORR; break ; /* 30 Mar 2011 */
        }
        continue ;
      }

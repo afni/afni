@@ -4275,10 +4275,11 @@ extern void THD_vectim_to_dset( MRI_vectim *mrv , THD_3dim_dataset *dset ) ;
 
 extern void mri_blur3D_vectim( MRI_vectim *vim , float fwhm ) ;
 extern void THD_vectim_normalize( MRI_vectim *mrv ) ;
-extern void THD_vectim_dotprod ( MRI_vectim *mrv, float *vec, float *dp, int ata ) ;
-extern void THD_vectim_spearman( MRI_vectim *mrv, float *vec, float *dp ) ; /* 01 Mar 2010 */
-extern void THD_vectim_quadrant( MRI_vectim *mrv, float *vec, float *dp ) ; /* 01 Mar 2010 */
-extern void THD_vectim_ktaub   ( MRI_vectim *mrv, float *vec, float *dp ) ; /* 29 Apr 2010 */
+extern void THD_vectim_dotprod  ( MRI_vectim *mrv, float *vec, float *dp, int ata ) ;
+extern void THD_vectim_spearman ( MRI_vectim *mrv, float *vec, float *dp ) ; /* 01 Mar 2010 */
+extern void THD_vectim_quadrant ( MRI_vectim *mrv, float *vec, float *dp ) ; /* 01 Mar 2010 */
+extern void THD_vectim_ktaub    ( MRI_vectim *mrv, float *vec, float *dp ) ; /* 29 Apr 2010 */
+extern void THD_vectim_tictactoe( MRI_vectim *mrv, float *vec, float *dp ) ; /* 30 Mar 2011 */
 
 extern void THD_vectim_pearsonBC( MRI_vectim *mrv, float srad, int sijk, int pv, float *par ) ;
 
@@ -4998,6 +4999,8 @@ extern float spearman_rank_prepare( int , float * );
 extern float quadrant_corr_prepare( int , float * );
 extern float spearman_rank_corr   ( int , float * , float , float * );
 extern float quadrant_corr        ( int , float * , float , float * );
+extern float tictactoe_corr_prepare( int , float * );
+extern float tictactoe_corr        ( int , float * , float , float * );
 
 extern void rank_order_float_arrays( int , int * , float ** ); /* 10 Nov 2010 */
 extern void rank_order_2floats( int , float * , int , float * ) ;
