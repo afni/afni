@@ -131,6 +131,17 @@ float quadrant_corr( int n , float *x , float rv , float *r )
 }
 
 /*---------------------------------------------------------------------------*/
+
+static float ttt_bot = 0.3333333f ;
+static float ttt_top = 0.6666667f ;
+
+void tictactoe_set_thresh( float bb , float tt )
+{
+   if( bb >= 0.0f && bb < tt && tt <= 1.0f ){ ttt_bot = bb; ttt_top = tt; }
+   else                     { ttt_bot = 0.3333333f; ttt_top = 0.6666667f; }
+}
+
+/*---------------------------------------------------------------------------*/
 /*! Prepare for tictactoe correlation with a[].
 -----------------------------------------------------------------------------*/
 
@@ -141,7 +152,9 @@ float tictactoe_corr_prepare( int n , float *a )
 
    rank_order_float( n , a ) ;
 
-   rb = rintf(0.333333f*(n-1)) ; rt = n-1 - rb ; rs = 0.0f ;
+   rb = ttt_bot * (n-1) ;
+   rt = ttt_top * (n-1) ;
+   rs = 0.0f ;
    for( ii=0 ; ii < n ; ii++ ){
           if( a[ii] > rt ){ a[ii] =  1.0f ; rs += 1.0f ; }
      else if( a[ii] < rb ){ a[ii] = -1.0f ; rs += 1.0f ; }

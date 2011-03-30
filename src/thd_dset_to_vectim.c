@@ -419,6 +419,12 @@ void THD_vectim_tictactoe( MRI_vectim *mrv , float *vec , float *dp )
    av   = (float *)malloc(sizeof(float)*nvals) ;
    bv   = (float *)malloc(sizeof(float)*nvals) ;
 
+   { float tbot , ttop ;
+     tbot = (float)AFNI_numenv("AFNI_TICTACTOE_BOT") ;
+     ttop = (float)AFNI_numenv("AFNI_TICTACTOE_TOP") ;
+     tictactoe_set_thresh( tbot , ttop ) ;
+   }
+
 #pragma omp critical (MEMCPY)
    memcpy( av , vec , sizeof(float)*nvals ) ;
    sav = tictactoe_corr_prepare( nvals , av ) ; if( sav <= 0.0f ) sav = 1.e+9f ;
