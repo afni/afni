@@ -4999,8 +4999,10 @@ extern float spearman_rank_prepare( int , float * );
 extern float quadrant_corr_prepare( int , float * );
 extern float spearman_rank_corr   ( int , float * , float , float * );
 extern float quadrant_corr        ( int , float * , float , float * );
+
 extern float tictactoe_corr_prepare( int , float * );
 extern float tictactoe_corr        ( int , float * , float , float * );
+extern void  tictactoe_set_thresh  ( float bb , float tt ) ;
 
 extern void rank_order_float_arrays( int , int * , float ** ); /* 10 Nov 2010 */
 extern void rank_order_2floats( int , float * , int , float * ) ;

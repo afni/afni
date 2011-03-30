@@ -219,7 +219,7 @@ PLUGIN_interface * ICOR_init( char *lab )
    PLUTO_add_number( plint , "Polort" , -1,2,0,2 , FALSE ) ;
    { char *un = tross_username() ;
      PLUTO_add_string( plint , "Method" ,
-                       (un != NULL && strstr(un,"cox") != NULL) ? 7 : 5 ,
+                       (un != NULL && strstr(un,"cox") != NULL) ? 7 : 4 ,
                        meth_string , 0 ) ;
    }
 
