@@ -54,13 +54,15 @@ for (i=1:1:nc),
    M(i,:) = rand(1,3);
    cnt = 0;
    %reject if too gray or too close to previous color
-   while (toogray(M(i,:), g_lim, d_lim, b_lim) | tooclose(M,i, 0.6, alldiff_lim) | (~isempty(opt.avoid) & (sum(abs(M(i,:)-opt.avoid)) < 0.6))),
+   while (  toogray(M(i,:), g_lim, d_lim, b_lim) | 
+            tooclose(M,i, 0.6, alldiff_lim) | 
+            (~isempty(opt.avoid) & (sum(abs(M(i,:)-opt.avoid)) < 0.6))),
       M(i,:) = rand(1,3);
       cnt = cnt + 1;
       if (cnt > 2000), % too tight, relax
-         alldiff_lim = max([0.95.*alldiff_lim 0.1]) ;
-         d_lim = max([0.95.*d_lim 0.05]);
-         b_lim = min([b_lim*1.05, 3.0]);
+         alldiff_lim = max([0.95.*alldiff_lim 0.02]) ;
+         d_lim = max([0.95.*d_lim 0.01]);
+         b_lim = min([b_lim*1.05, 8.0]);
          if (opt.verb) fprintf(1,'Reduced alldiff_lim to %g, d_lim to %g, b_lim to %g\n', alldiff_lim, d_lim, b_lim); end
          cnt = 0;
       end

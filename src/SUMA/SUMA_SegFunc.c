@@ -1764,8 +1764,7 @@ int SUMA_VolumeBlurInMask(THD_3dim_dataset *aset,
    Denominator is meant to neutralize the effect of bias field.
 */
    /* 
-   EDGE_EN1: First pass, seems to work. But division by bias estimate is
-   silly because bias estimate is kind of crappy, one would think. */
+   EDGE_EN1: First pass, seems to work.  */
    #define EDGE_EN1(a1,a0, d0, d1) (SUMA_ABS((a1)-(a0))/((d1)+(d0)+0.01))
    #define EDGE_EN0(a1,a0) (SUMA_ABS((a1)-(a0)))
 double SUMA_EdgeEnergy(short *a, float af, short *b, float bf,
@@ -1807,7 +1806,7 @@ double SUMA_EdgeEnergy(short *a, float af, short *b, float bf,
             switch (method) {
                case 1:
                   /* Passing bias estimate in denominator, not
-                  particularly exciting since those can be kind of crappy
+                  particularly exciting since those can be lousy
                   Has been tested in no bias case so far and works ok,
                   also works well in presence of bias field, even when
                   field is ignored. 
@@ -4014,7 +4013,7 @@ int SUMA_ShortizeProbDset(THD_3dim_dataset **csetp,
    } else {
       /* cset is considered to be a probs. dset */
       pset = cset; *csetp = NULL; /* to guard against multiple copies */
-      /* make sure you don't get a crappy number of sub-bricks */
+      /* make sure you don't get a bad number of sub-bricks */
       if (DSET_NVALS(pset) != cs->N_label) {
          SUMA_S_Errv( "Bad news in tennis shoes, \n"
                       "have %d sub-bricks in %s and %d labels",

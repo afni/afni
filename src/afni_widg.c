@@ -5319,20 +5319,7 @@ STATUS("making prog->rowcol") ;
 
       /*---------- modified 30 Dec 2005 ----------*/
 
-      GLOBAL_browser = getenv("AFNI_WEB_BROWSER") ;
-#ifdef DARWIN
-      if( GLOBAL_browser == NULL )
-        GLOBAL_browser = strdup("open") ;  /* for Mac OS X */
-#endif
-      if( GLOBAL_browser == NULL )
-        GLOBAL_browser = THD_find_executable( "firefox" ) ;
-      if( GLOBAL_browser == NULL )
-        GLOBAL_browser = THD_find_executable( "mozilla" ) ;
-      if( GLOBAL_browser == NULL )
-        GLOBAL_browser = THD_find_executable( "netscape" ) ;
-      if( GLOBAL_browser == NULL )
-        GLOBAL_browser = THD_find_executable( "opera" ) ;
-
+      GLOBAL_browser = GetAfniWebBrowser();
       if( GLOBAL_browser != NULL ){
         prog->hidden_browser_pb =
               XtVaCreateManagedWidget(

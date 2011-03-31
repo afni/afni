@@ -45,6 +45,27 @@ void machdep()
 
 /*-------------------------------------------------------------------*/
 
+char * GetAfniWebBrowser(void)
+{
+   char *awb=NULL;
+   awb = getenv("AFNI_WEB_BROWSER") ;
+#ifdef DARWIN
+   if( awb == NULL )
+     awb = strdup("open") ;  /* for Mac OS X */
+#endif
+   if( awb == NULL )
+     awb = THD_find_executable( "firefox" ) ;
+   if( awb == NULL )
+     awb = THD_find_executable( "mozilla" ) ;
+   if( awb == NULL )
+     awb = THD_find_executable( "netscape" ) ;
+   if( awb == NULL )
+     awb = THD_find_executable( "opera" ) ;
+   return(awb);
+}
+
+/*-------------------------------------------------------------------*/
+
 void init_rand_seed( long int seed )
 {
    if( seed == 0 ) seed = (long)time(NULL)+(long)getpid() ;

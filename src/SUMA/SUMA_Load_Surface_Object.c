@@ -1335,7 +1335,6 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (
       }
       SO->normdir = -SO->normdir;
    }
-   
    if (SO->isSphere == SUMA_GEOM_NOT_SET) { 
       SUMA_SetSphereParams(SO, -0.1); 
    }  /* sets the spheriosity parameters */
@@ -3159,6 +3158,8 @@ SUMA_SurfaceObject * SUMA_Load_Spec_Surf(
    }
 
    /* assign its Group and State and Side*/
+   SUMA_LHv("Assigning group %s , state %s, and EmbedDim %d\n",
+            Spec->Group[i], Spec->State[i], Spec->EmbedDim[i]);
    SO->Group = (char *)SUMA_calloc(strlen(Spec->Group[i])+1, sizeof(char));
    SO->State = (char *)SUMA_calloc(strlen(Spec->State[i])+1, sizeof(char));
    if (Spec->SurfaceLabel[i][0] == '\0') {
@@ -4495,9 +4496,18 @@ int SUMA_SetSphereParams(SUMA_SurfaceObject *SO, float tol)
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
-   
+     
    isSphere = SUMA_GEOM_NOT_SET;
    if (tol < 0.0) tol = 0.2;
+   
+   SUMA_LHv("Setting spheriosity for %s (EmbedDim=%d)\n", 
+      SO->Label ? SO->Label:"NULL", SO->EmbedDim);
+   
+   /* Can't rely on SO->EmbedDim for this function. 
+      It is not set when you get here, and you could 
+      get the default of 3, but check it anyway
+   */
+   if (SO->EmbedDim > 0 && SO->EmbedDim < 3) SUMA_RETURN(SUMA_GEOM_IRREGULAR);
    
    /* has this been determined ? */
    if (SUMA_IS_GEOM_SYMM(SO->isSphere)) {
@@ -4586,6 +4596,15 @@ int SUMA_SetSphereParams(SUMA_SurfaceObject *SO, float tol)
          SUMA_S_Warn("Failed to guess at spheriosity.");
          SUMA_RETURN(NOPE);
       }
+      /* is this center inside the bounding box or are we fitting
+      spheres to flat surfaces */ 
+      if (  centmed[0] <= SO->MinDims[0] || centmed[0] >= SO->MaxDims[0] ||
+            centmed[1] <= SO->MinDims[1] || centmed[1] >= SO->MaxDims[1] ||
+            centmed[2] <= SO->MinDims[2] || centmed[2] >= SO->MaxDims[2] ) {
+         SUMA_LH("Failed center test, outside boundig box. Flat surface?\n");
+            isSphere  = SUMA_GEOM_IRREGULAR;
+            goto DONE;
+      }
       /* have center, verify that all nodes are within 1/1000 of Rad */
       SUMA_LHv("Have a center of [%f   %f   %f] for %s\n", 
                centmed[0] , centmed[1], centmed[2] , 
@@ -4627,6 +4646,7 @@ int SUMA_SetSphereParams(SUMA_SurfaceObject *SO, float tol)
                isSphere , SUMA_IS_GEOM_SYMM(isSphere), SO->SphereRadius);
    }  
    
+   DONE:
    SO->isSphere = isSphere;
    SUMA_RETURN (YUP);
 }

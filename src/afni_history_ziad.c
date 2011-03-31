@@ -65,6 +65,23 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 29, MAR , 2011 , ZSS , "suma" , MINOR , TYPE_BUG_FIX,
+   "Fixed bug in default view of flat surfaces.",
+   "The problem manifested itself when large rotations were present\n"
+   "in the transform of the sv volume, resulting in flat meshes\n"
+   "being incorrectly labeled as spherical."
+ } ,
+
+ { 29, MAR , 2011 , ZSS , "ConvexHull" , MINOR , TYPE_BUG_FIX,
+   "Fixed error with proj_xy option.",
+   NULL
+ } ,
+
+ { 29, MAR , 2011 , ZSS , "afni-general" , MINOR , TYPE_MODIFY,
+   "Basic support for HTTP/1.1",
+   "See functions read_URL_http11, and page_* in thd_http.c."
+ } ,
+
  { 22, MAR , 2011 , ZSS , "afni-general" , MICRO , TYPE_NEW_ENV,
    "AFNI_NIFTI_TYPE_WARN controls frequency of NIFTI type conversion warnings",
    "Default is to warn once per session. \n"

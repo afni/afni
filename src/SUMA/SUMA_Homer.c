@@ -24,7 +24,7 @@ int main (int argc,char *argv[])
    SUMA_OVERLAYS *NewColPlane=NULL;
    SUMA_SurfaceObject **SOv=NULL;
    FILE *SpecOut = NULL;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
 	SUMA_STANDALONE_INIT;
    SUMA_mainENTRY;

@@ -1,5 +1,7 @@
 #include "SUMA_suma.h"
 
+extern int *z_rand_order(int bot, int top, long int seed) ;
+
 /*!
    \brief Find boundary triangles, 
    those that have an edge that is shared by less than 2 triangles.
@@ -6160,9 +6162,13 @@ float *SUMA_Project_Coords_PCA (float *xyz, int N_xyz, int iref,
       SUMA_RETURN(NULL);
    }
    
-   /* make a copy to avoid destroying xyz in PCA and further down */
+   /* Need to go column major */
    xyzp = (float *)SUMA_calloc(N_xyz*3, sizeof(float));
-   memcpy(xyzp, xyz, N_xyz*3*sizeof(float));
+   for (i=0; i<N_xyz; ++i) {
+      xyzp[i]         = xyz[3*i];
+      xyzp[i+N_xyz]   = xyz[3*i+1];
+      xyzp[i+2*N_xyz] = xyz[3*i+2];
+   }
    
    if ((trace = pca_fast3(xyzp, N_xyz, 1, pc_vec, pc_eig)) < 0){
       SUMA_S_Err("Failed calculating PC\n");
@@ -6178,7 +6184,17 @@ float *SUMA_Project_Coords_PCA (float *xyz, int N_xyz, int iref,
             pc_eig[1], pc_vec[1], pc_vec[4], pc_vec[7],
             pc_eig[2], pc_vec[2], pc_vec[5], pc_vec[8]);
             
-            
+   /* need to transpose xyzp again for the remainder  */         
+   {
+      float *xxx=(float *)SUMA_calloc(N_xyz*3, sizeof(float));
+      memcpy(xxx, xyzp,3*N_xyz*sizeof(float));
+      for (i=0; i<N_xyz; ++i) {
+         xyzp[3*i] = xxx[i];
+         xyzp[3*i+1] = xxx[i+N_xyz];
+         xyzp[3*i+2] = xxx[i+2*N_xyz];
+      }
+      SUMA_free(xxx); xxx=NULL;
+   }  
    
    /* Find equation of plane passing by node iref and having the PC 
       for a normal */
@@ -6259,7 +6275,80 @@ float *SUMA_Project_Coords_PCA (float *xyz, int N_xyz, int iref,
    }
    
    SUMA_RETURN(xyzp); 
-}   
+}
+
+int SUMA_is_Constant_Z_Coord(float *NodeList, int N_Node, float tol)
+{
+   double sz=0.0, z=0.0;
+   int i; 
+   if (tol <= 0.0) tol = 0.01;
+   for (i=0; i<N_Node; ++i) sz += NodeList[3*i+2];
+   for (i=0; i<N_Node; ++i) z += SUMA_ABS(NodeList[3*i+2]-sz);
+   if (z/(double)N_Node < tol) return(1);
+   return(0);
+}
+
+int SUMA_is_Flat_Surf_Coords_PCA (float *xyz, int N_xyz, float tol, 
+                                  float sampfrac)  
+{
+   static char FuncName[]={"SUMA_is_Flat_Surf_Coords_PCA"};
+   int i, i3, *ir=NULL, n_samp = 0;
+   double trace, pc_vec[9], pc_eig[3], Eq[4], pc0[3], proj[3];
+   float *xyzp=NULL, fv[3], **fm=NULL, *p1, pcf0[3];
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+
+   SUMA_LH("Xforming");
+   
+   if (tol <= 0.0) tol = 0.01;
+   if (sampfrac <= 0.0) sampfrac = 0.01;
+   
+   /* select subset of nodes */
+   if (!(ir = z_rand_order(0, N_xyz-1, 111111311))) {
+      SUMA_S_Err("Misere"); SUMA_RETURN(0);
+   }
+   n_samp = (int)(sampfrac*N_xyz);
+   if (n_samp < 1000) n_samp = SUMA_MIN_PAIR(N_xyz, 1000);
+   if (n_samp > N_xyz) n_samp = N_xyz;
+   
+   /*load data */
+   xyzp = (float *)SUMA_calloc(n_samp*3, sizeof(float));
+   i=0;
+   do {
+      xyzp[i  ] = xyz[3*ir[i]  ];
+      xyzp[i+n_samp] = xyz[3*ir[i]+1];   
+      xyzp[i+2*n_samp] = xyz[3*ir[i]+2]+SUMA_GRAN(0,1);   
+      ++i;
+   } while (i<n_samp);
+   SUMA_free(ir); ir=NULL;
+   
+   for (i=0; i<10; ++i) {
+      fprintf(stderr,"%d: %f %f %f\n", 
+               i, xyzp[3*i], xyzp[3*i+1], xyzp[3*i+2]);
+   }
+   if ((trace = pca_fast3(xyzp, n_samp, 0, pc_vec, pc_eig)) < 0){
+      SUMA_S_Err("Failed calculating PC\n");
+      SUMA_free(xyzp); xyzp=NULL;
+      SUMA_RETURN(0); 
+   }
+   SUMA_free(xyzp);
+   
+   SUMA_LHv("PCA results:\n"
+            "Eig[0]=%f     pc[0]=[%f %f %f]\n"
+            "Eig[1]=%f     pc[1]=[%f %f %f]\n"
+            "Eig[2]=%f     pc[2]=[%f %f %f]\n",
+            pc_eig[0], pc_vec[0], pc_vec[3], pc_vec[6],
+            pc_eig[1], pc_vec[1], pc_vec[4], pc_vec[7],
+            pc_eig[2], pc_vec[2], pc_vec[5], pc_vec[8]);
+            
+   if (pc_eig[2] / pc_eig[0] < tol) {
+      SUMA_RETURN(1);
+   } 
+   
+   SUMA_RETURN(0);
+}
+   
  
 static int UseSliceFWHM = 0;
 void SUMA_Set_UseSliceFWHM(int v) { UseSliceFWHM = v; }
@@ -11107,7 +11196,8 @@ int *SUMA_NodePath_to_TriPath_Inters_OLD (SUMA_SurfaceObject *SO, SUMA_TRI_BRANC
 }   
 
 
-SUMA_Boolean SUMA_CenterOfSphere(double *p1, double *p2, double *p3, double *p4, double *c)
+SUMA_Boolean SUMA_CenterOfSphere(double *p1, double *p2, double *p3, 
+                                 double *p4, double *c)
 {
    static char FuncName[]={"SUMA_CenterOfSphere"};
    double pp1[3], pp2[3], pp3[3], pp4[3];
@@ -11213,7 +11303,6 @@ SUMA_Boolean SUMA_CenterOfSphere(double *p1, double *p2, double *p3, double *p4,
    }
 }
 
-extern int *z_rand_order(int bot, int top, long int seed) ;
 
 SUMA_Boolean SUMA_GetCenterOfSphereSurface(SUMA_SurfaceObject *SO, int Nquads, double *cs, double *cm)
 {

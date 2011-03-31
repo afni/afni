@@ -882,7 +882,18 @@ SUMA_Boolean SUMA_Align_to_VolPar (SUMA_SurfaceObject *SO, void * S_Struct)
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
+   
+   SUMA_LHv("Working %s\n",SO->Name.FileName);
 
+   /* don't bother if surface is flat */
+   if (SUMA_is_Constant_Z_Coord(SO->NodeList, SO->N_Node, 0.001)) {
+      /* you can also use the more generic :
+         SUMA_is_Flat_Surf_Coords_PCA(SO->NodeList, SO->N_Node, 0.001, 0.01)
+         but that one's slower */
+      SUMA_LH("This one's flat\n");
+      SO->APPLIED_A2Exp_XFORM = NO_WARP;
+      SUMA_RETURN(YUP);
+   }
    /* allocate for cord structure */
    cord_surf = (THD_coorder *)SUMA_malloc(sizeof(THD_coorder));
    cord_RAI = (THD_coorder *)SUMA_malloc(sizeof(THD_coorder));

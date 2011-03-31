@@ -272,6 +272,10 @@ SUMA_Boolean SUMA_FillRandXform(double xform[][4], int seed, int type);
 
 float *SUMA_Project_Coords_PCA (float *xyz, int N_xyz, int iref, 
                                 int compnum, int rotate);
+                                
+int SUMA_is_Flat_Surf_Coords_PCA (float *xyz, int N_xyz, 
+                                  float tol, float sampfrac); 
+int SUMA_is_Constant_Z_Coord(float *NodeList, int N_Node, float tol);
 
 /*!
    Macros to merge / join two lists together

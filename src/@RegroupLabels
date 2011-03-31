@@ -36,7 +36,11 @@ GETLABELS:
       #use range, easier than getting each value
       set rng = `@MakeLabelTable -word_label_match \
                                  -labeltable /tmp/${RNS}.__lt.niml.lt -rkeys $ll`
-      set com = ("$com" + "$vlist[$c]*within(a,$rng[1],$rng[2])" )
+      if ( $status == 0) then
+         set com = ("$com" + "$vlist[$c]*within(a,$rng[1],$rng[2])" )
+      else
+         echo "Key $ll not found in labeltable of $label_dset, ignoring it"
+      endif
       @ c ++
    end
    

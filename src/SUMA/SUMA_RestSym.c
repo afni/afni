@@ -1447,7 +1447,7 @@ int main( int argc , char *argv[] )
 			            exit(1);
 		            }
    if (SUMAg_N_DOv<2) {
-      ERROR_exit("Crap!");
+      ERROR_exit("DOH!");
    }  
    if (LocalHead) SUMA_Show_DOv (SUMAg_DOv, SUMAg_N_DOv, NULL);
    

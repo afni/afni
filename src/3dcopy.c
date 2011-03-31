@@ -313,7 +313,8 @@ int main( int argc , char *argv[] )
       }
    }
 
-   if( nfound == 0 ) ERROR_message("no datasets found!");
+   if( nfound == 0 ) 
+      ERROR_exit("no datasets found!"); /* ZSS, changed from ERROR_message */
 
    /*-- get to here means all datasets are ready to be
         written back out to disk under their new names --*/
