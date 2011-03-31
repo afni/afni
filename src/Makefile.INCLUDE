@@ -731,7 +731,7 @@ d3dmerge:3dmerge.c
 	  cd .. ;)
 whereami:whereami.c
 	$(RM) $@
-	$(CC) -o whereami whereami.c parser.o parser_int.o $(INFLAGS) $(LFLAGS) -lmri -lf2c $(LLIBS)
+	$(CC) -o whereami whereami.c parser.o parser_int.o $(INFLAGS) $(LFLAGS) -lmri -lf2c $(LLIBS) 
 
 3dSegment:3dSegment.c
 	$(RM) $@

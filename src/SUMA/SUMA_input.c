@@ -4906,7 +4906,7 @@ int SUMA_MarkLineCutplaneIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
    SUMA_SurfaceObject **SOv = NULL;
    SUMA_VolumeObject *VO=NULL;
    SUMA_Boolean NodeIgnored = NOPE;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
 

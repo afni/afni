@@ -8595,7 +8595,7 @@ SUMA_Boolean SUMA_AddDsetVolumeObject( SUMA_VolumeObject *VO,
    static char FuncName[]={"SUMA_AddDsetVolumeObject"};
    THD_3dim_dataset *dset=NULL;
    int n_VE=0;
-   SUMA_Boolean LocalHead=YUP;
+   SUMA_Boolean LocalHead=NOPE;
    
    SUMA_ENTRY;
    
