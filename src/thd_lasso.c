@@ -47,14 +47,34 @@ static floatvec *vlam = NULL ;
 
 void THD_lasso_setlamvec( int nref , float *lam )
 {
+   register int ii ;
 ENTRY("THD_lasso_setlamvec") ;
 #pragma omp critical (MALLOC)
    { KILL_floatvec(vlam) ; }
    if( nref > 0 && lam != NULL ){
 #pragma omp critical (MALLOC)
      { MAKE_floatvec(vlam,nref) ; }
-#pragma omp critical (MEMCPY)
-     { memcpy(vlam->ar,lam,sizeof(float)*nref) ; }
+     for( ii=0 ; ii < nref ; ii++ ) vlam->ar[ii] = lam[ii] ;
+   }
+   EXRETURN ;
+}
+
+/*............................................................................*/
+
+/** set initial parameters estimates **/
+
+static floatvec *vpar = NULL ;
+
+void THD_lasso_setparvec( int nref , float *par )
+{
+   register int ii ;
+ENTRY("THD_lasso_setparvec") ;
+#pragma omp critical (MALLOC)
+   { KILL_floatvec(vpar) ; }
+   if( nref > 0 && par != NULL ){
+#pragma omp critical (MALLOC)
+     { MAKE_floatvec(vpar,nref) ; }
+     for( ii=0 ; ii < nref ; ii++ ) vpar->ar[ii] = par[ii] ;
    }
    EXRETURN ;
 }
@@ -182,6 +202,18 @@ ENTRY("compute_free_param") ;
 }
 
 /*----------------------------------------------------------------------------*/
+/* Check inputs for stupidities */
+
+static int check_inputs( int npt  , float *far ,
+                         int nref , float *ref[] )
+{
+   int jj ;
+   if( npt <= 1 || far == NULL || nref <= 0 || ref == NULL ) return 1 ;
+   for( jj=0 ; jj < nref ; jj++ ) if( ref[jj] == NULL ) return 2 ;
+   return 0 ;
+}
+
+/*----------------------------------------------------------------------------*/
 
 floatvec * THD_lasso( int meth   ,
                       int npt    , float *far   ,
@@ -238,20 +270,11 @@ floatvec * THD_lasso_L2fit( int npt    , float *far   ,
 
 ENTRY("THD_lasso_L2fit") ;
 
-   /*--- check inputs for stupidities ---*/
-
-   if( npt <= 1 || far == NULL || nref <= 0 || ref == NULL ){
+   jj = check_inputs( npt , far , nref , ref ) ;
+   if( jj ){
      static int ncall=0 ;
      if( ncall == 0 ){ ERROR_message("LASSO: bad data and/or model"); ncall++; }
      RETURN(NULL) ;
-   }
-
-   for( jj=0 ; jj < nref ; jj++ ){
-     if( ref[jj] == NULL ){
-       static int ncall=0 ;
-       if( ncall == 0 ){ ERROR_message("LASSO: bad data and/or model"); ncall++; }
-       RETURN(NULL) ;
-     }
    }
 
    /*--- construct a local copy of lam[], and edit it softly ---*/
@@ -288,7 +311,11 @@ ENTRY("THD_lasso_L2fit") ;
          initialize them by un-penalized least squares
          (implicitly assuming all other parameters are zero) ---*/
 
-   compute_free_param( npt,far,nref,ref,2,ccon , nfree,fr , ppar ) ;
+   if( vpar == NULL || vpar->nar < nref ){
+     compute_free_param( npt,far,nref,ref,2,ccon , nfree,fr , ppar ) ;
+   } else {
+     for( ii=0 ; ii < nref ; ii++ ) ppar[ii] = vpar->ar[ii] ;
+   }
 
    /*--- initialize residuals ---*/
 
@@ -446,18 +473,11 @@ ENTRY("THD_sqrtlasso_L2fit") ;
 
    /*--- check inputs for stupidities ---*/
 
-   if( npt <= 1 || far == NULL || nref <= 0 || ref == NULL ){
+   jj = check_inputs( npt , far , nref , ref ) ;
+   if( jj ){
      static int ncall=0 ;
      if( ncall == 0 ){ ERROR_message("SQRT LASSO: bad data and/or model"); ncall++; }
      RETURN(NULL) ;
-   }
-
-   for( jj=0 ; jj < nref ; jj++ ){
-     if( ref[jj] == NULL ){
-       static int ncall=0 ;
-       if( ncall == 0 ){ ERROR_message("SQRT LASSO: bad data and/or model"); ncall++; }
-       RETURN(NULL) ;
-     }
    }
 
    /*--- construct a local copy of lam[], and edit it softly ---*/
@@ -505,7 +525,11 @@ ENTRY("THD_sqrtlasso_L2fit") ;
          initialize them by un-penalized least squares
          (implicitly assuming all other parameters are zero) ---*/
 
-   compute_free_param( npt,far,nref,ref,2,ccon , nfree,fr , ppar ) ;
+   if( vpar == NULL || vpar->nar < nref ){
+     compute_free_param( npt,far,nref,ref,2,ccon , nfree,fr , ppar ) ;
+   } else {
+     for( ii=0 ; ii < nref ; ii++ ) ppar[ii] = vpar->ar[ii] ;
+   }
 
    /*--- initialize residuals ---*/
 
@@ -573,7 +597,7 @@ ENTRY("THD_sqrtlasso_L2fit") ;
            if( ppar[jj] > 0.0f || CON(jj) ) ppar[jj] = 0.0f ;
          } else {                                        /* initial pj == 0 */
            if( bb*bb > qq ){         /* gradient step overpowers L1 penalty */
-             if( bb < 0.0f && !CONN(jj) ){
+             if( bb < 0.0f && !CONN(jj) ){                /* [note ain < 0] */
                ppar[jj] = (bb+sqrtf(qq)) * ain[jj] ;      /* step to + side */
              } else if( !CONP(jj) ){
                ppar[jj] = (bb-sqrtf(qq)) * ain[jj] ;      /* step to - side */
