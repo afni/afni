@@ -152,6 +152,25 @@ IOCHAN * open_URL_http( char * url , int msec )
 static int prog=0 ;
 void set_URL_progress( int p ){ prog=p; }  /* 20 Mar 2003 */
 
+/*!
+   strnstr is not standard 
+*/
+char *af_strnstr(char *s1, char *s2, size_t n) 
+{
+   int n1=0, n2=0;
+   char c1 = '\0', c2 = '\0', *cout=NULL;
+   
+   if (s1 && (n1 = strlen(s1)) > n) {c1=s1[n]; s1[n]='\0'; }
+   if (s2 && (n2 = strlen(s2)) > n) {c2=s2[n]; s2[n]='\0'; }
+   
+   cout = strstr(s1, s2);
+   
+   if (n1 > n) s1[n] = c1; 
+   if (n2 > n) s2[n] = c2;
+   
+   return(cout);
+}
+
 /* 
 A very simple parsing of HTTP1.1 header fields.
 Assumes buf and hname are all upper case.
@@ -164,13 +183,14 @@ char *HTTP_header_val(char *head, char *hname, size_t max_head)
    char *cpt = NULL;
    
    if (!hname || !head) return(NULL);
-   if (!strnstr(head,"HTTP/1.1", 36)) return(NULL);
+   
+   if (!af_strnstr(head,"HTTP/1.1", 36)) return(NULL);
    if (max_head <= 0) {
       if (strlen(head)<1024) max_head = strlen(head); 
       else max_head = 1024;
    }
    n_hname = strlen(hname);
-   cpt = strnstr(head,hname, max_head);
+   cpt = af_strnstr(head,hname, max_head);
    
    if (cpt) return(cpt+n_hname);
 
@@ -263,7 +283,7 @@ int page_parse_status(URL_PAGE *up) {
       ttt = (char *)realloc(ttt, (up->N_page+1)*sizeof(char));
       for (j=0; j< up->N_page; ++j) ttt[j] = toupper(up->page[j]);
       ttt[j] = '\0';
-      if (strnstr(ttt,"NOT FOUND", 255)) {
+      if (af_strnstr(ttt,"NOT FOUND", 255)) {
          up->status = 404;
       }
       up->status = 200; /* fake it */
