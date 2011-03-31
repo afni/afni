@@ -3878,7 +3878,8 @@ Side effects :
    
    
 ***/
-SUMA_ISINSPHERE SUMA_isinsphere (float * NodeList, int nr, float *S_cent , float S_rad , int BoundIn )
+SUMA_ISINSPHERE SUMA_isinsphere (float * NodeList, int nr, float *S_cent , 
+                                 float S_rad , int BoundIn )
 {/*SUMA_isinsphere*/
    static char FuncName[]={"SUMA_isinsphere"}; 
    float *t, t0, t1, t2, ta;

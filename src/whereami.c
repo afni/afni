@@ -8,6 +8,97 @@
 #include <stdlib.h>
 #include "thd_ttatlas_query.h"
 #include "matrix.h"
+
+#ifdef USE_CURL
+   /* Some demo code to show how curl can be used to read a URL
+      At the moment, we're not using it because we'd become 
+      dependent on libcurl . 
+      To toy with curl, replace the call to read_URL_http with
+      CURL_read_URL_http and just add -libcurl to whereami's compile
+      command */
+   #include <curl/curl.h>
+
+   typedef struct {
+      char *page;
+      size_t size; /* page is null terminated, and page[size]='\0'; */
+   } CURL_BUFFER_DATA;   
+
+   size_t CURL_buffer2data( void *buffer, size_t size, size_t nmemb, 
+                              void *ud) 
+   {
+      CURL_BUFFER_DATA *cbd=(CURL_BUFFER_DATA *)ud;
+      fprintf(stderr,"Curling %zu, %zu\n", size*nmemb, cbd->size);
+      if (!(cbd->page = 
+            (char *)realloc(cbd->page, cbd->size+(size*nmemb)+sizeof(char)))) {
+         ERROR_message("Failed to realloc for cbd->page (%d)\n",
+                  cbd->size+(size*nmemb));
+         return(-1);
+      }
+      memcpy(cbd->page+cbd->size, buffer, size*nmemb); 
+      cbd->size = cbd->size+(size*nmemb);
+      cbd->page[cbd->size] = '\0';
+      fprintf(stderr,"Returning\n");   
+      return(size*nmemb);
+   }
+
+   size_t CURL_read_URL_http ( char *url, char **data) 
+   {
+      CURL *curl;
+      CURLcode res;
+      CURL_BUFFER_DATA cbd;
+
+      curl = curl_easy_init();
+      cbd.page = (char *)calloc(1, sizeof(char)); cbd.size = 0;
+      curl_easy_setopt(curl, CURLOPT_URL, url);
+      curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, CURL_buffer2data);
+      curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&cbd); 
+      res = curl_easy_perform(curl);
+      curl_easy_cleanup(curl);
+
+      *data = cbd.page;
+      return(cbd.size);
+   }
+#endif /* CURL illustration */
+
+char * whereami_XML_get(char *data, char *name) {
+   char n0[512], n1[512], *s0, *s1, *sout=NULL;
+   if (strlen(name) > 500) return(NULL);
+   snprintf(n0,510,"<%s>", name);
+   snprintf(n1,510,"</%s>", name);
+   if (!(s0 = strstr(data, n0))) return(NULL);
+   if (!(s1 = strstr(s0, n1))) return(NULL);
+   s0 = s0+strlen(n0);
+   if (s1 > s0) {
+      sout = (char *)calloc(s1-s0+1, sizeof(char));
+      memcpy(sout,s0,sizeof(char)*(s1-s0));
+      sout[s1-s0]='\0';
+   }
+   return(sout);
+}
+
+int whereami_browser(char *url)
+{
+   char cmd[2345] ;
+   static int icall=0;
+   
+   if (!GLOBAL_browser && !icall) {
+      if (!(GLOBAL_browser = GetAfniWebBrowser())) {
+         ERROR_message("Have no browser set. "
+           "Specify one by adding the environment variable AFNI_WEB_BROWSER to\n"
+           "your ~/.afnirc. For example:  AFNI_WEB_BROWSER firefox\n"
+           "On a MAC you can also do: AFNI_WEB_BROWSER open\n"); 
+      }
+      icall = 1;
+   }
+   if (!GLOBAL_browser) return(0);
+   
+   sprintf(cmd ,
+          "%s '%s' &" ,
+          GLOBAL_browser, url ) ;
+   
+   return(system(cmd));
+}
+
 extern int * SUMA_Dijkstra_generic (int N_Node, 
                      float *NodeList, int NodeDim, int dist_metric,
                      int *N_Neighbv, int **FirstNeighb, float **FirstNeighbDist,
@@ -587,7 +678,8 @@ int main(int argc, char **argv)
             continue; 
          }
          if (strcmp(argv[iarg],"-ca_n27_version") == 0) { 
-            fprintf(stdout,"Anatomy Toolbox Version in AFNI is:\n%s\n", CA_EZ_VERSION_STR);  
+            fprintf(stdout,"Anatomy Toolbox Version in AFNI is:\n%s\n", 
+                           CA_EZ_VERSION_STR);  
             return(0);
          }
          
@@ -611,16 +703,23 @@ int main(int argc, char **argv)
          if (strcmp(argv[iarg],"-space") == 0) { 
             ++iarg;
             if (iarg >= argc) {
-               fprintf(stderr,"** Error: Need parameter after -space\n"); return(1);
+               fprintf( stderr,
+                        "** Error: Need parameter after -space\n"); return(1);
             }
             if (strcmp(argv[iarg],"MNI") == 0 || strcmp(argv[iarg],"mni") == 0) {
                mni = 1; 
             } else if (strcasecmp(argv[iarg],"MNI_ANAT") == 0){
                mni = 2;
-            } else if (strcmp(argv[iarg],"TLRC") == 0 || strcmp(argv[iarg],"tlrc") == 0) {
+            } else if ( strcmp(argv[iarg],"TLRC") == 0 || 
+                        strcmp(argv[iarg],"tlrc") == 0) {
                mni = 0; 
+            } else if ( strcmp(argv[iarg],"Paxinos_Rat_2007@Elsevier")==0 ) {
+               srcspace = "paxinos_rat_2007@Elsevier"; /* Just for testing now,
+                                                          debugging only */
             } else {
-               fprintf(stderr,"** Error: %s is invalid. Must use either MNI or TLRC\n", argv[iarg]);
+               fprintf(stderr,
+                  "** Error: %s is invalid. Must use either MNI or TLRC\n", 
+                  argv[iarg]);
                return(1);
             }
             ++iarg;
@@ -1026,13 +1125,51 @@ int main(int argc, char **argv)
          return 1;
       }
    } else {
-      if (dicom == 1) fprintf(stdout,"++ Input coordinates orientation set by user to %s\n", "RAI"); 
-      else if (dicom == 0) fprintf(stdout,"++ Input coordinates orientation set by user to %s\n", "LPI");
+      if (dicom == 1) 
+         fprintf(stdout,"++ Input coordinates orientation set by user to %s\n", 
+                     "RAI"); 
+      else if (dicom == 0) 
+         fprintf(stdout,"++ Input coordinates orientation set by user to %s\n", 
+                     "LPI");
       else { fprintf(stderr,"** Error: Should not happen!\n"); return(1); } 
    }
-   
+
+   if (srcspace && !strcmp(srcspace,"paxinos_rat_2007@Elsevier")) { 
+      /* for testing purposes. */
+      size_t nread;
+      char wamiqurl[512], *page=NULL, *sss=NULL;
+      char upath[]={"http://mrqlan.dyndns.org/bnapi/models/whereami.xml?"};
+
+      sprintf(wamiqurl,"%sspace=paxinos_rat_2007&x=%f&y=%f&z=%f&scope=full",
+            upath, xi, yi, zi);
+      fprintf(stdout,"Trying to open:\n%s\n", wamiqurl);
+
+      #ifdef USE_CURL
+         /* fprintf(stderr,"Using curl to read:\n%s\n", wamiqurl); */
+         nread = CURL_read_URL_http( wamiqurl , &page );
+      #else
+         /* fprintf(stderr,"Using read_URL to read:\n%s\n", wamiqurl); */
+         set_HTTP_11(1);
+         nread = read_URL_http( wamiqurl , 4448 , &page );
+      #endif
+      
+      if (page) {
+         /* Show page */
+         fprintf(stdout,"Page Content(%zu):\n%s\n\n", 
+                  nread, page);
+         if ((sss = whereami_XML_get(page, "bn_uri"))) {
+            fprintf(stdout, "open %s\n", sss); 
+            whereami_browser(sss); 
+            free(sss);
+         }
+         free(page); page = NULL;
+      }
+      exit(0);
+   } 
+
    if (mni == -1) {
-      fprintf(stdout,"++ Input coordinates space set by default rules to TLRC\n");
+      fprintf(stdout,
+         "++ Input coordinates space set by default rules to TLRC\n");
       mni = 0;
    } else if (mni == 0) {
       fprintf(stdout,"++ Input coordinates space set by user to TLRC\n");
@@ -1088,7 +1225,8 @@ int main(int argc, char **argv)
             ERROR_message("ROI string decoding failed.");
          } else {
             if (LocalHead) { 
-               fprintf(stderr,"User seeks the following region in atlas %s:\n", Atlas_Code_to_Atlas_Name(ac));
+               fprintf(stderr,"User seeks the following region in atlas %s:\n", 
+                        Atlas_Code_to_Atlas_Name(ac));
                Show_Atlas_Region(aar);  
             }
             /* is this an OK atlas */
@@ -1107,7 +1245,8 @@ int main(int argc, char **argv)
            
             if (LocalHead > 1) Show_Atlas(aa); 
             as = Find_Atlas_Regions(aa,aar, NULL);
-            /* analyze the matches, remember no left/right decisions made yet, and even if labels are present, 
+            /* analyze the matches, remember no left/right decisions made yet, 
+               and even if labels are present, 
                right/left sides may not have different ids in atlas...  */
             string = Report_Found_Regions(aa, aar, as, &nbest);
             if (string) {
@@ -1144,12 +1283,14 @@ int main(int argc, char **argv)
                            ADN_none ) ;
                   }
                   if( THD_deathcon() && THD_is_file(DSET_HEADNAME(maskset)) ) {
-                     ERROR_message("Output dataset %s already exists -- can't overwrite", DSET_HEADNAME(maskset)) ;
+                     ERROR_message("Output dataset %s already exists -- "
+                                   "can't overwrite", DSET_HEADNAME(maskset)) ;
                      exit(1);
                   }
 
                   if (LocalHead) {
-                     fprintf(stderr,"Writing ROI mask to %s...\n", DSET_HEADNAME(maskset));
+                     fprintf(stderr,"Writing ROI mask to %s...\n", 
+                              DSET_HEADNAME(maskset));
                   }
                   DSET_write(maskset) ;
                   DSET_delete(maskset); maskset = NULL;
@@ -1218,9 +1359,9 @@ int main(int argc, char **argv)
          if (dobin) {
             mset = mset_orig;
           /* turn the mask dataset to zeros and 1s */
-            if ((nonzero = THD_makedsetmask( mset , 0 , 1.0, 0.0 , cmask)) < 0) {  /* get all non-zero values */
-                  fprintf(stderr,"** Error: No mask for you.\n");
-                  return(1);
+            if ((nonzero = THD_makedsetmask( mset , 0 , 1.0, 0.0 , cmask)) < 0) {               /* get all non-zero values */
+              fprintf(stderr,"** Error: No mask for you.\n");
+              return(1);
             }
          } else {
             if (unq[iroi] == 0) { /* skip nonesense */
@@ -1228,12 +1369,16 @@ int main(int argc, char **argv)
                continue;
             } else {
                fprintf(stdout,
-               "++ ========================================================================\n") ;
+ "++ ========================================================================\n"
+                        ) ;
                fprintf(stdout,"++ Processing unique value of %d\n", unq[iroi]);
             }
             mset = EDIT_full_copy(mset_orig, "tmp_ccopy");
             /* turn the mask dataset to zeros and 1s */
-            if ((nonzero = THD_makedsetmask( mset , 0 , (float)unq[iroi], (float)unq[iroi] , cmask)) < 0) {  /* get all non-zero values */
+            if ((nonzero = 
+                     THD_makedsetmask( mset , 0 , (float)unq[iroi], 
+                                       (float)unq[iroi] , cmask)) < 0) {  
+                  /* get all non-zero values */
                   fprintf(stderr,"** Error: No mask for you either.\n");
                   return(1);
             }
@@ -1244,24 +1389,32 @@ int main(int argc, char **argv)
          for (k=0; k < N_atlaslist; ++k) {
             adh = Atlas_With_Trimming (atlaslist[k], 0);
             if (!adh.dset) {
-               fprintf(stderr,"** Warning: Atlas %s could not be loaded.\n", Atlas_Code_to_Atlas_Name(atlaslist[k]));
+               fprintf(stderr,"** Warning: Atlas %s could not be loaded.\n", 
+                        Atlas_Code_to_Atlas_Name(atlaslist[k]));
                continue;
             }
             if (adh.maxindexcode < 1) {
-               if (LocalHead) fprintf(stderr,"** Warning: Atlas %s not suitable for this application.\n", Atlas_Code_to_Atlas_Name(atlaslist[k]));
+               if (LocalHead) 
+                  fprintf(stderr,
+                     "** Warning: Atlas %s not suitable for this application.\n",
+                     Atlas_Code_to_Atlas_Name(atlaslist[k]));
                continue;
             }
             if (adh.maxindexcode > 255) {
-               fprintf(stderr,"** Warning: Max index code (%d) higher than expected.\n"
-                              "What's cracking?.\n", adh.maxindexcode);
+               fprintf(stderr,
+                     "** Warning: Max index code (%d) higher than expected.\n"
+                     "What's cracking?.\n", adh.maxindexcode);
             }  
-            /* resample mask per atlas, use linear interpolation, cut-off at 0.5 */
-            rset = r_new_resam_dset ( mset, adh.dset, 0, 0, 0, NULL, MRI_LINEAR, NULL, 1);
+            /* resample mask per atlas, use linear interpolation, 
+               cut-off at 0.5 */
+            rset = r_new_resam_dset (  mset, adh.dset, 0, 0, 0, NULL, 
+                                       MRI_LINEAR, NULL, 1);
             if (!rset) {
                fprintf(stderr,"** Error: Failed to reslice!?\n"); return(1);
             }
            /* get byte mask of regions > 0.5 */
-            if (!(bmask_vol = THD_makemask( rset , 0 , 0.5 , 2.0 ))) {  /* get all non-zero values */
+            if (!(bmask_vol = THD_makemask( rset , 0 , 0.5 , 2.0 ))) {  
+               /* get all non-zero values */
                fprintf(stderr,"** Error: No byte for you.\n");
                return(1);
             }
@@ -1269,7 +1422,8 @@ int main(int argc, char **argv)
             for (i=0; i<DSET_NVOX(adh.dset); ++i) {
                if (bmask_vol[i]) ++nvox_in_mask; 
             }
-            fprintf(stdout,"++    %d voxels in atlas-resampled mask\n", nvox_in_mask);
+            fprintf( stdout,"++    %d voxels in atlas-resampled mask\n", 
+                     nvox_in_mask);
             /* for each sub-brick sb */
             for (isb=0; isb< DSET_NVALS(adh.dset); ++isb) {
                ba = DSET_BRICK_ARRAY(adh.dset,isb); 
@@ -1281,27 +1435,35 @@ int main(int argc, char **argv)
                   case CA_EZ_N27_ML_ATLAS:
                   case CA_EZ_N27_LR_ATLAS:
                      for (i=0; i<DSET_NVOX(adh.dset); ++i) {
-                        if (bmask_vol[i] && ba[i] ) ++count[ba[i]]; /* Can't use 0 values, even if used in atlas codes */
-                                                                    /* such as for the AC/PC in TT_Daemon! They can't be*/
-                                                                    /* differentiated with this algorithm from non-brain, areas*/
+                        if (bmask_vol[i] && ba[i] ) ++count[ba[i]]; 
+                     /* Can't use 0 values, even if used in atlas codes */
+                     /* such as for the AC/PC in TT_Daemon! They can't be*/
+                     /* differentiated with this algorithm from non-brain areas*/
                      }
                      break;
                   case CA_EZ_N27_MPM_ATLAS:
                      for (i=0; i<DSET_NVOX(adh.dset); ++i) {
-                        if (bmask_vol[i] && ba[i] >= CA_EZ_MPM_MIN ) ++count[ba[i]]; 
+                        if (bmask_vol[i] && ba[i] >= CA_EZ_MPM_MIN ) 
+                           ++count[ba[i]]; 
                      }
                      break;
                   case CA_EZ_N27_PMAPS_ATLAS: /* not appropriate */
                      break;
                   default:
-                     fprintf(stderr,"** Error: What is this atlas code (%d)?\n", adh.atcode);
+                     fprintf( stderr,
+                              "** Error: What is this atlas code (%d)?\n", 
+                              adh.atcode);
                      return(1);
                }
                /* Now form percentages */
                if (!unq) {
-                  fprintf(stdout,"Intersection of ROI (all non-zero values) with atlas %s (sb%d):\n", Atlas_Code_to_Atlas_Name(atlaslist[k]), isb);
+                  fprintf(stdout,
+            "Intersection of ROI (all non-zero values) with atlas %s (sb%d):\n", 
+                           Atlas_Code_to_Atlas_Name(atlaslist[k]), isb);
                } else {
-                  fprintf(stdout,"Intersection of ROI (valued %d) with atlas %s (sb%d):\n", unq[iroi], Atlas_Code_to_Atlas_Name(atlaslist[k]), isb);
+                  fprintf(stdout,
+            "Intersection of ROI (valued %d) with atlas %s (sb%d):\n", 
+                     unq[iroi], Atlas_Code_to_Atlas_Name(atlaslist[k]), isb);
                }
                
                /* sort the count */
@@ -1317,7 +1479,9 @@ int main(int argc, char **argv)
                      sum += frac;
                      sprintf(tmps, "%3.1f", frac*100.0); 
                      fprintf(stdout, "   %-5s%% overlap with %s, code %d\n", 
-                              tmps, STR_PRINT(Atlas_Val_to_Atlas_Name(adh, ics[i])), ics[i] );
+                              tmps, 
+                              STR_PRINT(Atlas_Val_to_Atlas_Name(adh, ics[i])), 
+                              ics[i] );
                   }
                }
                sprintf(tmps, "%3.1f", sum*100.0);
@@ -1352,32 +1516,33 @@ int main(int argc, char **argv)
    }
 
    if (coord_file) { /* load the XYZ coordinates from a 1D file */
-         MRI_IMAGE * XYZ_im=NULL;
-         float *XYZv = NULL;
-         
-         XYZ_im = mri_read_1D( coord_file ) ;
-         if( XYZ_im == NULL ){
-            fprintf(stderr,"** Error: Can't read XYZ.1D file %s\n",coord_file);
-            return(1) ;
-         }
-         if (XYZ_im->ny != 3) {
-            fprintf(stderr,"** Error: Need three columns as input.\n   Found %d columns\n", XYZ_im->ny);
-            return(1) ;
-         }
-         XYZv = MRI_FLOAT_PTR(XYZ_im) ;
-         coord_list = (float *)calloc(3*XYZ_im->nx, sizeof(float));
-         if (!coord_list) {
-            fprintf(stderr,"** Error: Failed to allocate\n");
-            return(1) ;
-         }
-         /* copy to me own vectors */
-         nxyz = XYZ_im->nx;
-         for (ixyz=0; ixyz<nxyz; ++ixyz) {
-            coord_list[3*ixyz]   = XYZv[ixyz];
-            coord_list[3*ixyz+1] = XYZv[ixyz+XYZ_im->nx];
-            coord_list[3*ixyz+2] = XYZv[ixyz+XYZ_im->nx*2];
-         }
-         mri_free(XYZ_im); XYZ_im = NULL;
+      MRI_IMAGE * XYZ_im=NULL;
+      float *XYZv = NULL;
+
+      XYZ_im = mri_read_1D( coord_file ) ;
+      if( XYZ_im == NULL ){
+         fprintf(stderr,"** Error: Can't read XYZ.1D file %s\n",coord_file);
+         return(1) ;
+      }
+      if (XYZ_im->ny != 3) {
+         fprintf(stderr,"** Error: Need three columns as input.\n"
+                        "   Found %d columns\n", XYZ_im->ny);
+         return(1) ;
+      }
+      XYZv = MRI_FLOAT_PTR(XYZ_im) ;
+      coord_list = (float *)calloc(3*XYZ_im->nx, sizeof(float));
+      if (!coord_list) {
+         fprintf(stderr,"** Error: Failed to allocate\n");
+         return(1) ;
+      }
+      /* copy to me own vectors */
+      nxyz = XYZ_im->nx;
+      for (ixyz=0; ixyz<nxyz; ++ixyz) {
+         coord_list[3*ixyz]   = XYZv[ixyz];
+         coord_list[3*ixyz+1] = XYZv[ixyz+XYZ_im->nx];
+         coord_list[3*ixyz+2] = XYZv[ixyz+XYZ_im->nx*2];
+      }
+      mri_free(XYZ_im); XYZ_im = NULL;
    } else {
       coord_list = (float *)calloc(3, sizeof(float));
       coord_list[0] = xi; coord_list[1] = yi; coord_list[2] = zi; 
@@ -1403,31 +1568,35 @@ int main(int argc, char **argv)
       /* coords here are now in RAI */
       
       if (mni == 1) { /* go from mni to tlrc */
-         LOAD_FVEC3( tv , -x, -y, z ) ;   /* next call expects input in MNI, LPI*/
+         LOAD_FVEC3( tv , -x, -y, z ) ;  /* next call expects input in MNI, LPI*/
          m = THD_mni_to_tta( tv );  /* m units are in RAI */
          if (ixyz == 0) {
-            fprintf(stdout,"++ Input coordinates being transformed from MNI  RAI ([%.2f %.2f %.2f]) \n"
-                           "                                         to TLRC RAI ([%.2f %.2f %.2f]).\n", 
-                                                               x, y, z, m.xyz[0],  m.xyz[1], m.xyz[2]);
+            fprintf(stdout,
+   "++ Input coordinates being transformed from MNI  RAI ([%.2f %.2f %.2f]) \n"
+   "                                         to TLRC RAI ([%.2f %.2f %.2f]).\n", 
+                     x, y, z, m.xyz[0],  m.xyz[1], m.xyz[2]);
          }
          x = m.xyz[0]; y = m.xyz[1]; z = m.xyz[2];
       }
       else if (mni == 2) { /* go from mni_anat to tlrc */
-         LOAD_FVEC3( tv , -x, -y, z ) ;   /* next call expects input in MNI, LPI*/
+         LOAD_FVEC3( tv , -x, -y, z ) ;  /* next call expects input in MNI, LPI*/
          m = THD_mni_to_tta( tv );  /* m units are in RAI */
          if (ixyz == 0) {
-            fprintf(stdout,"++ Input coordinates being transformed from MNI  RAI ([%.2f %.2f %.2f]) \n"
-                           "                                         to TLRC RAI ([%.2f %.2f %.2f]).\n", 
-                                                               x, y, z, m.xyz[0],  m.xyz[1], m.xyz[2]);
+            fprintf(stdout,
+   "++ Input coordinates being transformed from MNI  RAI ([%.2f %.2f %.2f]) \n"
+   "                                         to TLRC RAI ([%.2f %.2f %.2f]).\n", 
+                                         x, y, z, m.xyz[0],  m.xyz[1], m.xyz[2]);
          }
          x = m.xyz[0]; y = m.xyz[1]; z = m.xyz[2];
       }
       
       if (OldMethod) {
         string = TT_whereami_old(x,y,z);
-        if (string == NULL ) {                              /* 30 Apr 2005 [rickr] */
-          fprintf(stderr,"** Error: whereami lookup failure: is TTatlas+tlrc/TTatlas.nii.gz available?\n");
-          fprintf(stderr,"   (the TTatlas+tlrc or TTatlas.nii.gz dataset must be in your PATH)\n");
+        if (string == NULL ) {                       /* 30 Apr 2005 [rickr] */
+          fprintf(stderr,
+   "** Error: whereami lookup failure: "
+   "is TTatlas+tlrc/TTatlas.nii.gz available?\n"
+   "   (the TTatlas+tlrc or TTatlas.nii.gz dataset must be in your PATH)\n");
           return 1;
         }
 
@@ -1466,7 +1635,7 @@ int main(int argc, char **argv)
         }
 #else
          if (output == 1) { 
-            /* ZSS: my best interpretation of the original intent of output == 1 */
+            /* ZSS: my  interpretation of the original intent of output == 1 */
             fstring = strdup(string);
             /* ignore everything up till Focus point */
             sfp = strstr(string,"Focus point");
@@ -1475,7 +1644,8 @@ int main(int argc, char **argv)
                               "This is a beuge please inform the authors.\n");
                return(1);
             }
-            /* copy all the rest, replacing each new line followed by a non blank with a tab. */
+            /* copy all the rest, replacing each new line followed by a 
+               non blank with a tab. */
             k = 0;
             while (*sfp != '\0' && sfp < string+strlen(string)) {
                if (*sfp == '\n') { /* new line encountered */

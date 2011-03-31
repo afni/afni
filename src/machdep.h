@@ -414,5 +414,6 @@ extern void init_rand_seed( long int seed ) ; /* 15 Apr 2009 (cf machdep.c) */
 #define SET_RAND_SEED init_rand_seed(0)
 
 extern int machdep_be_quiet(void) ;  /* 08 Dec 2010 */
+extern char * GetAfniWebBrowser(void);
 
 #endif /* _MCW_MACHDEP_ */

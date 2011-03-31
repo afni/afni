@@ -1398,7 +1398,7 @@ char * TT_whereami_genx( float xx , float yy , float zz, AFNI_STD_SPACES spc)
    char *rbuf = NULL, *strg = NULL ;
    int k;
 
-   ENTRY("TT_whereami") ;
+   ENTRY("TT_whereami_genx") ;
 
    /* build atlas list */
    if (TT_whereami_n_atlas_list == 0) {
@@ -3245,8 +3245,9 @@ ATLAS_ZONE *Get_Atlas_Zone(ATLAS_QUERY *aq, int level)
    while (ii<aq->N_zone) {
       if (aq->zone[ii]->level == level) {
          if (fnd) {
-            WARNING_message(  "More than one (%d) zone of level %d found in query.\n"
-                              "Function will ignore duplicates.\n", fnd, level ) ;
+            WARNING_message(  
+               "More than one (%d) zone of level %d found in query.\n"
+               "Function will ignore duplicates.\n", fnd, level ) ;
          }else {
             /* fprintf(stderr,"Zone with level %d found\n", level);  */
             zn = aq->zone[ii];
@@ -3270,21 +3271,27 @@ ATLAS_ZONE *Get_Atlas_Zone(ATLAS_QUERY *aq, int level)
 
    RETURN(zn);
 }
+
 /*!
    Create or Add to an Atlas Zone
    \param zn (ATLAS_ZONE *) If null then create a new one.
                             If a zone is given then add new labels to it
-   \param level (int) a classifier of zones, in a way, perhaps most cases, it is the equivalent
-                     of the within parameter.
+   \param level (int) a classifier of zones, in a way. 
+                      In most cases, it is the equivalent of the within 
+                      parameter.
    \param label (char *) a label string for this zone
    \param code (int) the integer code for this zone (not added if label is NULL)
-   \param prob (float) the probability of that zone being label (not added if label is NULL)
+   \param prob (float) the probability of that zone being label 
+                        (not added if label is NULL)
    \param within (float) radius of label's occurrence
-   \return zno (ATLAS_ZONE *) either a new structure (if zn == NULL) or a modified one (if zn != NULL)
+   \return zno (ATLAS_ZONE *) either a new structure (if zn == NULL) 
+                  or a modified one (if zn != NULL)
 
    \sa free with Free_Atlas_Zone
 */
-ATLAS_ZONE *Atlas_Zone(ATLAS_ZONE *zn, int level, char *label, int code, float prob, float within, AFNI_ATLAS_CODES atcode)
+ATLAS_ZONE *Atlas_Zone( ATLAS_ZONE *zn, int level, char *label, 
+                        int code, float prob, float within, 
+                        AFNI_ATLAS_CODES atcode)
 {
    ATLAS_ZONE *zno = NULL;
 
@@ -3433,7 +3440,8 @@ ATLAS_QUERY *Add_To_Atlas_Query(ATLAS_QUERY *aq, ATLAS_ZONE *zn)
       if (!fnd) {
          /* add zone */
          ++aqo->N_zone;
-         aqo->zone = (ATLAS_ZONE **)realloc(aqo->zone, sizeof(ATLAS_ZONE*)*aqo->N_zone);
+         aqo->zone = (ATLAS_ZONE **)realloc( aqo->zone, 
+                                             sizeof(ATLAS_ZONE*)*aqo->N_zone);
          aqo->zone[aqo->N_zone-1] = zn;
       }
    }
@@ -4056,30 +4064,34 @@ char *whereami_9yards(  ATLAS_COORD aci, ATLAS_QUERY **wamip,
             atcode == CA_EZ_N27_LR_ATLAS ) { /* the multi-radius searches */
          for (sb=0; sb < DSET_NVALS(adh.dset); ++sb) {
             if (LocalHead)
-               fprintf(stderr,"Processing sub-brick %d with %s\n",sb,  Atlas_Code_to_Atlas_Name(atcode));
-            ba = DSET_BRICK_ARRAY(adh.dset,sb); if (!ba) { ERROR_message("Unexpected NULL array"); RETURN(s); }
+               fprintf(stderr,
+                  "Processing sub-brick %d with %s\n",
+                  sb,  Atlas_Code_to_Atlas_Name(atcode));
+            ba = DSET_BRICK_ARRAY(adh.dset,sb); 
+            if (!ba) { ERROR_message("Unexpected NULL array"); RETURN(s); }
             if (WAMIRAD < 0.0) {
                WAMIRAD = Init_Whereami_Max_Rad();
             }
             if( wamiclust_CA_EZ == NULL ){
                wamiclust_CA_EZ = MCW_build_mask( 1.0,1.0,1.0 , WAMIRAD ) ;
-               if( wamiclust_CA_EZ == NULL ) RETURN(NULL) ;  /* should not happen! */
+               if( wamiclust_CA_EZ == NULL ) 
+                  RETURN(NULL) ;  /* should not happen! */
 
-               for( ii=0 ; ii < wamiclust_CA_EZ->num_pt ; ii++ )       /* load radius */
-                  wamiclust_CA_EZ->mag[ii] = (int)rint(sqrt((double)(
-                                                  wamiclust_CA_EZ->i[ii]*wamiclust_CA_EZ->i[ii]
-                                                 +wamiclust_CA_EZ->j[ii]*wamiclust_CA_EZ->j[ii]
-                                                 +wamiclust_CA_EZ->k[ii]*wamiclust_CA_EZ->k[ii]))) ;
+               for( ii=0 ; ii < wamiclust_CA_EZ->num_pt ; ii++ ) /* set radius */
+                  wamiclust_CA_EZ->mag[ii] = 
+                     (int)rint(sqrt((double)
+                           (wamiclust_CA_EZ->i[ii]*wamiclust_CA_EZ->i[ii] +
+                            wamiclust_CA_EZ->j[ii]*wamiclust_CA_EZ->j[ii] +
+                            wamiclust_CA_EZ->k[ii]*wamiclust_CA_EZ->k[ii]) )) ;
 
                MCW_sort_cluster( wamiclust_CA_EZ ) ;  /* sort by radius */
             }
 
             /*-- find locations near the given one that are in the Atlas --*/
+            ijk = THD_3dmm_to_3dind( adh.dset , TEMP_FVEC3(ac.x,ac.y,ac.z) ) ;
+            UNLOAD_IVEC3(ijk,ix,jy,kz) ;                               
 
-            ijk = THD_3dmm_to_3dind( adh.dset , TEMP_FVEC3(ac.x,ac.y,ac.z) ) ;  /* get indexes */
-            UNLOAD_IVEC3(ijk,ix,jy,kz) ;                               /* from coords */
-
-            nx = DSET_NX(adh.dset) ;               /* size of atlas dataset axes */
+            nx = DSET_NX(adh.dset) ;          /* size of atlas dataset axes */
             ny = DSET_NY(adh.dset) ;
             nz = DSET_NZ(adh.dset) ; nxy = nx*ny ;
 
@@ -4088,10 +4100,13 @@ char *whereami_9yards(  ATLAS_COORD aci, ATLAS_QUERY **wamip,
             /*-- check the exact input location --*/
 
             kk = ix + jy*nx + kz*nxy ;        /* index into brick arrays */
-            if( ba[kk] != 0 && !(atcode == CA_EZ_N27_MPM_ATLAS && ba[kk] < CA_EZ_MPM_MIN)){
+            if( ba[kk] != 0 && 
+               !(atcode == CA_EZ_N27_MPM_ATLAS && ba[kk] < CA_EZ_MPM_MIN)){
                b_find[0] = ba[kk] ;
                rr_find[0] = 0     ;
-               if (LocalHead)  fprintf(stderr,"Adding b_find[%d]=%d rr_find[%d]=%d\n",nfind, b_find[nfind], nfind, rr_find[nfind]);
+               if (LocalHead)  
+                  fprintf(stderr,"Adding b_find[%d]=%d rr_find[%d]=%d\n",
+                              nfind, b_find[nfind], nfind, rr_find[nfind]);
                nfind++ ;
             }
 
@@ -4101,9 +4116,12 @@ char *whereami_9yards(  ATLAS_COORD aci, ATLAS_QUERY **wamip,
 
                /* compute index of nearby location, skipping if outside atlas */
 
-               aa = ix + wamiclust_CA_EZ->i[ii] ; if( aa < 0 || aa >= nx ) continue ;
-               bb = jy + wamiclust_CA_EZ->j[ii] ; if( bb < 0 || bb >= ny ) continue ;
-               cc = kz + wamiclust_CA_EZ->k[ii] ; if( cc < 0 || cc >= nz ) continue ;
+               aa = ix + wamiclust_CA_EZ->i[ii] ; 
+                  if( aa < 0 || aa >= nx ) continue ;
+               bb = jy + wamiclust_CA_EZ->j[ii] ; 
+                  if( bb < 0 || bb >= ny ) continue ;
+               cc = kz + wamiclust_CA_EZ->k[ii] ; 
+                  if( cc < 0 || cc >= nz ) continue ;
 
                kk  = aa + bb*nx + cc*nxy ;   /* index into bricks */
                baf = ba[kk] ;                 /* Atlas structure marker there */
@@ -4114,7 +4132,7 @@ char *whereami_9yards(  ATLAS_COORD aci, ATLAS_QUERY **wamip,
                   if( baf == b_find[ff] ) baf = 0 ;  /* duplicate labels  */
                }
 
-               if (atcode == CA_EZ_N27_MPM_ATLAS) { /* cast out inappropriate values*/
+               if (atcode == CA_EZ_N27_MPM_ATLAS) { /* cast out bad values*/
                   if (baf < CA_EZ_MPM_MIN) baf = 0;
                }
 
@@ -4122,16 +4140,20 @@ char *whereami_9yards(  ATLAS_COORD aci, ATLAS_QUERY **wamip,
 
                b_find[nfind] = baf ;  /* save what we found */
                rr_find[nfind] = (int) wamiclust_CA_EZ->mag[ii] ;
-               if (LocalHead)  fprintf(stderr,"Adding b_find[%d]=%d rr_find[%d]=%d\n",nfind, b_find[nfind], nfind, rr_find[nfind]);
+               if (LocalHead)  
+                  fprintf(stderr,"Adding b_find[%d]=%d rr_find[%d]=%d\n",
+                              nfind, b_find[nfind], nfind, rr_find[nfind]);
                nfind++ ;
 
                if( nfind == MAX_FIND ) {
                  if (!getenv("AFNI_WHEREAMI_NO_WARN")) {
-                  INFO_message("Potentially more regions could be found than the %d reported.\n"
-                              "Set the environment variable AFNI_WHEREAMI_MAX_FIND to higher\n"
-                              "than %d if you desire a larger report.\n"
-                              "It behooves you to also checkout AFNI_WHEREAMI_MAX_SEARCH_RAD\n"
-                              "and AFNI_WHEREAMI_NO_WARN. See whereami -help for detail.\n", MAX_FIND, MAX_FIND);
+                  INFO_message(
+            "Potentially more regions could be found than the %d reported.\n"
+            "Set the environment variable AFNI_WHEREAMI_MAX_FIND to higher\n"
+            "than %d if you desire a larger report.\n"
+            "It behooves you to also checkout AFNI_WHEREAMI_MAX_SEARCH_RAD\n"
+            "and AFNI_WHEREAMI_NO_WARN. See whereami -help for detail.\n", 
+                                    MAX_FIND, MAX_FIND);
                  }
                  break ;  /* don't find TOO much */
                }
@@ -4145,8 +4167,12 @@ char *whereami_9yards(  ATLAS_COORD aci, ATLAS_QUERY **wamip,
                  swap=0 ;
                  for( ii=1 ; ii < nfind ; ii++ ){
                     if( rr_find[ii-1] > rr_find[ii] ){
-                      tmp = rr_find[ii-1]; rr_find[ii-1] = rr_find[ii]; rr_find[ii] = tmp;
-                      tmp = b_find[ii-1]; b_find[ii-1] = b_find[ii]; b_find[ii] = tmp;
+                      tmp = rr_find[ii-1]; 
+                        rr_find[ii-1] = rr_find[ii]; 
+                           rr_find[ii] = tmp;
+                      tmp = b_find[ii-1]; 
+                        b_find[ii-1] = b_find[ii]; 
+                           b_find[ii] = tmp;
                       swap++ ;
                     }
                  }
@@ -4160,29 +4186,39 @@ char *whereami_9yards(  ATLAS_COORD aci, ATLAS_QUERY **wamip,
 
             for( ff=0 ; ff < nfind ; ff++ ){
                baf = b_find[ff] ; blab = NULL ;
-
-               if( baf != 0 ){                               /* find label     */
-                  for( ii=0 ; ii < adh.mxelm ; ii++ ) {          /* in AFNI's atlas list */
-                     if( atcode == CA_EZ_N27_MPM_ATLAS && baf == CA_EZ_list[ii].tdval ) break ;
-                     else if( atcode == CA_EZ_N27_ML_ATLAS && baf == ML_EZ_list[ii].tdval ) break ;
-                     else if( atcode == CA_EZ_N27_LR_ATLAS && baf == LR_EZ_list[ii].tdval ) break ;
-                     else if( atcode == AFNI_TLRC_ATLAS && baf == TTO_list[ii].tdval ) break ;
+               if( baf != 0 ){            /* find label     */
+                  for( ii=0 ; ii < adh.mxelm ; ii++ ) { 
+                     if( atcode == CA_EZ_N27_MPM_ATLAS && 
+                         baf == CA_EZ_list[ii].tdval ) break ;
+                     else if( atcode == CA_EZ_N27_ML_ATLAS && 
+                              baf == ML_EZ_list[ii].tdval ) break ;
+                     else if( atcode == CA_EZ_N27_LR_ATLAS && 
+                              baf == LR_EZ_list[ii].tdval ) break ;
+                     else if( atcode == AFNI_TLRC_ATLAS && 
+                              baf == TTO_list[ii].tdval ) break ;
                   }
                   if( ii < adh.mxelm )  {                     /* always true? */
-                     if( atcode == CA_EZ_N27_MPM_ATLAS) blab = CA_EZ_list[ii].name;
-                     else if( atcode == CA_EZ_N27_ML_ATLAS) blab = ML_EZ_list[ii].name ;
-                     else if( atcode == CA_EZ_N27_LR_ATLAS) blab = LR_EZ_list[ii].name ;
-                     else if( atcode == AFNI_TLRC_ATLAS) blab =
-                              AddLeftRight(NoLeftRight(TTO_list[ii].name),(ac.x<0.0)?'R':'L');
+                     if( atcode == CA_EZ_N27_MPM_ATLAS) 
+                        blab = CA_EZ_list[ii].name;
+                     else if( atcode == CA_EZ_N27_ML_ATLAS) 
+                        blab = ML_EZ_list[ii].name ;
+                     else if( atcode == CA_EZ_N27_LR_ATLAS) 
+                        blab = LR_EZ_list[ii].name ;
+                     else if( atcode == AFNI_TLRC_ATLAS) 
+                        blab = AddLeftRight( NoLeftRight(TTO_list[ii].name),
+                                             (ac.x<0.0)?'R':'L');
                   }
                }
 
                if( blab == NULL  ) {
-                  WARNING_message("No label found for code %d in atlas %s\nContinuing...", baf, Atlas_Code_to_Atlas_Name(atcode));
+                  WARNING_message(
+                     "No label found for code %d in atlas %s\nContinuing...", 
+                                  baf, Atlas_Code_to_Atlas_Name(atcode));
                   continue ;  /* no labels? */
                }
 
-               zn = Get_Atlas_Zone (wami, (int)rr_find[ff] ); /* zone levels are based on search radius */
+               zn = Get_Atlas_Zone (wami, (int)rr_find[ff] ); 
+                        /* zone levels are based on search radius */
                zn = Atlas_Zone(  zn, zn->level,
                                  blab, baf, adh.probkey, rr_find[ff], atcode);
                wami = Add_To_Atlas_Query(wami, zn);
@@ -4191,54 +4227,71 @@ char *whereami_9yards(  ATLAS_COORD aci, ATLAS_QUERY **wamip,
             }
          } /* for each sub-brick */
       } else { /* the PMAPS */
-         if (LocalHead)  fprintf(stderr,"Processing with %s\n", Atlas_Code_to_Atlas_Name(atcode));
+         if (LocalHead)  
+            fprintf(stderr,"Processing with %s\n", 
+                           Atlas_Code_to_Atlas_Name(atcode));
 
          /*-- find locations near the given one that are in the Atlas --*/
-         ijk = THD_3dmm_to_3dind( adh.dset , TEMP_FVEC3(ac.x,ac.y,ac.z) ) ;  /* get indexes */
-         UNLOAD_IVEC3(ijk,ix,jy,kz) ;                               /* from coords */
+         ijk = THD_3dmm_to_3dind( adh.dset , TEMP_FVEC3(ac.x,ac.y,ac.z) ) ; 
+         UNLOAD_IVEC3(ijk,ix,jy,kz) ;                               
 
-         nx = DSET_NX(adh.dset) ;               /* size of atlas dataset axes */
+         nx = DSET_NX(adh.dset) ;        /* size of atlas dataset axes */
          ny = DSET_NY(adh.dset) ;
          nz = DSET_NZ(adh.dset) ; nxy = nx*ny ;
          kk = ix + jy*nx + kz*nxy ;        /* index into brick arrays */
 
          zn = Get_Atlas_Zone(wami, 0);    /* get the zero level zone */
          for (ii=0; ii<DSET_NVALS(adh.dset); ++ii) {
-            ba = DSET_BRICK_ARRAY(adh.dset,ii); if (!ba) { ERROR_message("Unexpected NULL array"); RETURN(s); }
-            if (LocalHead)  fprintf(stderr,"  ++ Sub-brick %d in %s ba[kk]=%d\n", ii, Atlas_Code_to_Atlas_Name(atcode), ba[kk]);
+            ba = DSET_BRICK_ARRAY(adh.dset,ii); 
+            if (!ba) { ERROR_message("Unexpected NULL array"); RETURN(s); }
+            if (LocalHead)  
+               fprintf(stderr,"  ++ Sub-brick %d in %s ba[kk]=%d\n", 
+                              ii, Atlas_Code_to_Atlas_Name(atcode), ba[kk]);
             if( ba[kk] != 0 ){
-               if( adh.dset->dblk->brick_lab == NULL || adh.dset->dblk->brick_lab[ii] == NULL) {
+               if( adh.dset->dblk->brick_lab == NULL || 
+                   adh.dset->dblk->brick_lab[ii] == NULL) {
                   if (LocalHead)  fprintf(stderr,"  ++ No Label!\n");
-                  zn = Atlas_Zone(zn, 0, "No Label", -1, (float)ba[kk]/250.0, 0, atcode);
+                  zn = Atlas_Zone(zn, 0, "No Label", -1, 
+                                 (float)ba[kk]/250.0, 0, atcode);
                } else {
                   int nn=0, nlab=0;
                   char *lab_buf; /* do not free this one */
-                  if( adh.dset->dblk->brick_lab[ii] && adh.dset->dblk->brick_lab[ii][0] != '\0' ){
-                     /* find the code that area label that goes with this sub-brick
+                  if( adh.dset->dblk->brick_lab[ii] && 
+                      adh.dset->dblk->brick_lab[ii][0] != '\0' ){
+                     /* find the code of area label that goes with this sub-brick
                         Remember to account for the '.'*/
-                     blab = NULL; nn = 0; nlab = strlen(adh.dset->dblk->brick_lab[ii]);
+                     blab = NULL; nn = 0; 
+                     nlab = strlen(adh.dset->dblk->brick_lab[ii]);
                      if (nlab > adh.mxlablen) {
                         ERROR_message("Dset labels too long!");
                      }
                      while( !blab && nn < adh.mxelm ) {
                         lab_buf = Clean_Atlas_Label(CA_EZ_list[nn].dsetpref);
-                        /* fprintf(stderr,"Key:>%s<, N:%d, Str:>%s<\n", adh.dset->dblk->brick_lab[ii], nlab, lab_buf); */
-                        if ((nlab == strlen(lab_buf)) && (strcmp(lab_buf, adh.dset->dblk->brick_lab[ii]) == 0) ) {
+                        /* fprintf(stderr,"Key:>%s<, N:%d, Str:>%s<\n", 
+                           adh.dset->dblk->brick_lab[ii], nlab, lab_buf); */
+                        if ((nlab == strlen(lab_buf)) && 
+                            (!strcmp(lab_buf, adh.dset->dblk->brick_lab[ii])) ) {
                            blab = CA_EZ_list[nn].name;
-                           if (LocalHead) fprintf(stderr," Matched %s with %s\n", adh.dset->dblk->brick_lab[ii], CA_EZ_list[nn].dsetpref);
+                           if (LocalHead) 
+                              fprintf(stderr," Matched %s with %s\n", 
+                                       adh.dset->dblk->brick_lab[ii], 
+                                       CA_EZ_list[nn].dsetpref);
                         }
                         ++nn;
                      }
                      --nn; /* go back one to get back to proper indexing */
                      if (blab) {
                         if (LocalHead) fprintf(stderr," blabing: %s\n", blab);
-                        zn = Atlas_Zone(zn, 0, blab, CA_EZ_list[nn].tdval , (float)ba[kk]/250.0, 0, atcode);
+                        zn = Atlas_Zone(zn, 0, blab, CA_EZ_list[nn].tdval , 
+                                       (float)ba[kk]/250.0, 0, atcode);
                      } else {
                         if (LocalHead) fprintf(stderr," no blabing:\n");
-                        zn = Atlas_Zone(zn, 0, "Unexpected trouble.", -1, -1.0, 0, atcode);
+                        zn = Atlas_Zone(  zn, 0, "Unexpected trouble.", 
+                                          -1, -1.0, 0, atcode);
                      }
                   } else {
-                     zn = Atlas_Zone(zn, 0, "Empty Label", -1, (float)ba[kk]/250.0, 0, atcode);
+                     zn = Atlas_Zone(zn, 0, "Empty Label", -1, 
+                                     (float)ba[kk]/250.0, 0, atcode);
                   }
                }
                wami = Add_To_Atlas_Query(wami, zn);

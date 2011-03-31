@@ -108,20 +108,9 @@ static char shelp_Seg[] = {
 "           -classes 'CSF ; GM ; WM' \\\n"
 "           -bias_classes 'GM ; WM' -bias_fwhm 25 \\\n"
 "           -prefix case.A.2  -overwrite    \\\n"
-"           -mixfrac WHOLE_BRAIN -priCgL INIT_MIXFRAC \\\n"
+"           -mixfrac WHOLE_BRAIN \\\n"
 "           -Bmrf 1.0 -main_N 4           \\\n"
 "\n"
-/*
-"           -debug "
-"           -labeltable orig.niml.lt \"
-"            -gold goldstd+orig \"
-"            -gold_bias TrueBiasField+orig. \"
-""
-"            -prefix crap -overwrite \"
-"            -mixfrac WHOLE_VOLUME -priCgL INIT_MIXFRAC \"
-"            -Bmrf 1 -main_N 4 \"
-"            -debug 2 -vox_debug 40 9 69 \\n"
-*/
 "\n"
 };
 
