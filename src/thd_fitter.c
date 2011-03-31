@@ -385,7 +385,7 @@ STATUS("copy data") ;
    /* copy data (rows #0..npt-1) */
 
    zar = (float *)calloc(sizeof(float),nplu) ;
-   memcpy(zar,far,sizeof(float)*npt) ;
+   memcpy(zar,far,sizeof(float)*npt) ;          /* the rest will be zero */
 
    /* copy constraints? */
 
