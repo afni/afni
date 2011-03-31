@@ -39,9 +39,10 @@ float Init_Whereami_Max_Rad(void) {
    char *eee = getenv("AFNI_WHEREAMI_MAX_SEARCH_RAD");
    if (eee) {
       if (atof(eee) > 9.5) {
-         WARNING_message(  "Maximum search radius cannot exceed 9.5. \n"
-                           "Complain to authors if you really need this changed.\n"
-                           "Clipping search radius to 9.5\n");
+         WARNING_message(  
+            "Maximum search radius cannot exceed 9.5. \n"
+            "Complain to authors if you really need this changed.\n"
+            "Clipping search radius to 9.5\n");
          return(9.5);
       }
       return(atof(eee));
