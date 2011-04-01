@@ -491,8 +491,8 @@ ENTRY("THD_sqrtlasso_L2fit") ;
      resd = (float *)calloc(sizeof(float),npt ) ;   /* residuals */
      rsq  = (float *)calloc(sizeof(float),nref) ;   /* sums of squares */
      fr   = (byte  *)calloc(sizeof(byte) ,nref) ;   /* free list */
-     ain  = (float *)calloc(sizeof(float),nref) ;
-     qal  = (float *)calloc(sizeof(float),nref) ;
+     ain  = (float *)calloc(sizeof(float),nref) ;   /* -0.5 / rsq */
+     qal  = (float *)calloc(sizeof(float),nref) ;   /* step adjustment */
    }
 
    /*--- Save sum of squares of each ref column ---*/
@@ -501,15 +501,15 @@ ENTRY("THD_sqrtlasso_L2fit") ;
    nfree = 0 ;                    /* number of unconstrained parameters */
    for( jj=0 ; jj < nref ; jj++ ){
      rj = ref[jj] ;
-     for( pj=ii=0 ; ii < npt ; ii++ ) pj += rj[ii]*rj[ii] ;
-     rsq[jj] = pj * npinv ;
+     for( pj=ii=0 ; ii < npt ; ii++ ) pj += rj[ii]*rj[ii] ; /* sum of squares */
+     rsq[jj] = pj * npinv ;                            /* average per data pt */
      if( pj > 0.0f ){
        if( mylam[jj] == 0.0f ){ fr[jj] = 1 ; nfree++ ; }  /* unconstrained */
        ain[jj] = -0.5f / rsq[jj] ;
      }
    }
 
-   /* scale and edit mylam to make sure it isn't too big */
+   /* scale and edit mylam to make sure it isn't too big for sqrt(quadratic) */
 
    cc = sqrtf(npinv) ;
    for( jj=0 ; jj < nref ; jj++ ){
@@ -517,7 +517,7 @@ ENTRY("THD_sqrtlasso_L2fit") ;
      if( ll > 0.0f ){
        aa = sqrtf(rsq[jj]); ll *= aa*npinv; if( ll > 0.666f*aa ) ll = 0.666f*aa;
        mylam[jj] = ll ;
-       qal[jj]   = ll*ll * 4.0f*rsq[jj]/(rsq[jj]-ll*ll) ;
+       qal[jj]   = ll*ll * 4.0f*rsq[jj]/(rsq[jj]-ll*ll) ; 
      }
    }
 
