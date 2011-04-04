@@ -39,7 +39,7 @@ int main( int argc , char *argv[] )
    float vthresh=0.0f ; /* 18 May 2010 */
 
    intvec *lasso_ivec = NULL ;  /* 11 Mar 2011 */
-   float lasso_flam = 0.001f ;
+   float lasso_flam = 8.0f ;
 
    /*------------------ help the pitifully ignorant user? ------------------*/
 
@@ -323,7 +323,7 @@ int main( int argc , char *argv[] )
       "              ++ L1 deconvolution might give nicer looking results\n"
       "                 when you expect the deconvolved signal S(t) to\n"
       "                 have large-ish sections where S(t) = 0.\n"
-      "                 [Square Root LASSO deconvolution also has this property.]\n"
+      "                 [The LASSO solution methods can also have this property.]\n"
       "             * L2 fitting is statistically more efficient when the\n"
       "               noise is KNOWN to be normally (Gaussian) distributed\n"
       "               (and a bunch of other assumptions are also made).\n"
@@ -351,7 +351,9 @@ int main( int argc , char *argv[] )
       "               estimates all have the L1 'lam' penalty applied, in addition\n"
       "               to the L2 penalties described under '-FALTUNG'.\n"
       "            ** LASSO-ing herein should be considered experimental, and\n"
-      "               its implementation is subject to change!  Algorithm is here:\n"
+      "               its implementation is subject to change!  You should definitely\n"
+      "               play with different 'lam' values to see how well they work for\n"
+      "               your particular types of problems.  Algorithm is here:\n"
       "              ++ TT Wu and K Lange.\n"
       "                 Coordinate descent algorithms for LASSO penalized regression.\n"
       "                 Annals of Applied Statistics, 2: 224-244 (2008).\n"
@@ -372,8 +374,8 @@ int main( int argc , char *argv[] )
       "               In my limited experience, 5 gave pretty nice results\n"
       "               with a DSC-MRI deconvolution problem, combined with\n"
       "               the -FALTUNG penalty parameters set to '012 -2'.\n"
-      "              ++ Unlike the pure LASSO option above, do NOT give a\n"
-      "                 negative value for lam here -- there is no need for\n"
+      "              ++ Unlike the pure LASSO option above, you do not need to give\n"
+      "                 give a negative value for lam here -- there is no need for\n"
       "                 scaling by sigma.\n"
       "             * The theoretical advantange of Square Root LASSO over\n"
       "               standard LASSO is that a good choice of 'lam' doesn't\n"
@@ -611,13 +613,15 @@ int main( int argc , char *argv[] )
       "\n"
       "(5) Add logistic noise (long tails) to the noise-free 1D time series, then\n"
       "    deconvolve and plot the results directly to the screen, using L1 and L2\n"
-      "    and Square Root LASSO fitting:\n"
+      "    and the two LASSO fitting methods:\n"
       "  1deval -a F101.1D -expr 'a+lran(.5)' > F101n.1D\n"
       "  3dTfitter -RHS F101n.1D -l1fit \\\n"
       "            -FALTUNG '1D: 0 1 2 3 2 1' stdout 01 -2 | 1dplot -stdin -THICK &\n"
       "  3dTfitter -RHS F101n.1D -l2fit \\\n"
       "            -FALTUNG '1D: 0 1 2 3 2 1' stdout 01 -2 | 1dplot -stdin -THICK &\n"
       "  3dTfitter -RHS F101n.1D -l2sqrtlasso 9 \\\n"
+      "            -FALTUNG '1D: 0 1 2 3 2 1' stdout 01 -2 | 1dplot -stdin -THICK &\n"
+      "  3dTfitter -RHS F101n.1D -l2lasso -1 \\\n"
       "            -FALTUNG '1D: 0 1 2 3 2 1' stdout 01 -2 | 1dplot -stdin -THICK &\n"
       "    For more fun, add the '-consfal +' option to the above commands,\n"
       "    to force the deconvolution results to be positive.\n"
@@ -873,9 +877,12 @@ int main( int argc , char *argv[] )
      if( strcasecmp(argv[iarg],"-l2lasso") == 0 ||
          strcasecmp(argv[iarg],"-LASSO"  ) == 0   ){  /* experimental [11 Mar 2011] */
        meth = -2 ;
-       if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]);
-       lasso_flam = (float)strtod(argv[iarg],NULL) ;
-       if( lasso_flam == 0.0f ) ERROR_exit("%s %s: illegal lam",argv[iarg-1],argv[iarg]) ;
+       if( ++iarg >= argc ){
+         lasso_flam = -8.0f ;
+       } else {
+         lasso_flam = (float)strtod(argv[iarg],NULL) ;
+         if( lasso_flam == 0.0f ) lasso_flam = -8.0f ;
+       }
        if( lasso_flam < 0.0f ){ THD_lasso_dosigest(1); lasso_flam = -lasso_flam; }
        THD_lasso_fixlam(lasso_flam) ;  /* cf. thd_lasso.c */
        iarg++ ;
@@ -900,13 +907,12 @@ int main( int argc , char *argv[] )
      if( strcasecmp(argv[iarg],"-l2sqrtlasso") == 0 ||
          strcasecmp(argv[iarg],"-SQRTLASSO"  ) == 0   ){  /* hidden */
        meth = -1 ;
-       if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]);
-       lasso_flam = (float)strtod(argv[iarg],NULL) ;
-       if( lasso_flam == 0.0f ) ERROR_exit("%s %s: illegal lam",argv[iarg-1],argv[iarg]) ;
-       if( lasso_flam < 0.0f ){
-         WARNING_message("%s has lam = %g ==> changing sign ==> don't worry",
-                         argv[iarg-1],lasso_flam) ;
-         lasso_flam = -lasso_flam ;
+       if( ++iarg >= argc ){
+         lasso_flam = 8.0f ;
+       } else {
+         lasso_flam = (float)strtod(argv[iarg],NULL) ;
+              if( lasso_flam == 0.0f ) lasso_flam =  8.0f ;
+         else if( lasso_flam <  0.0f ) lasso_flam = -lasso_flam ;
        }
        THD_lasso_fixlam(lasso_flam) ;  /* cf. thd_lasso.c */
        iarg++ ;
