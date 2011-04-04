@@ -93,7 +93,7 @@ float qmed_float( int n , float *ar )
 
          temp = a[left] ;            /* must find next largest element below */
          for( j=left+1 ; j < i ; j++ )
-            if( a[j] > temp ) temp = a[j] ;
+           if( a[j] > temp ) temp = a[j] ;
 
          return 0.5*(pivot+temp) ;   /* return average */
       }
