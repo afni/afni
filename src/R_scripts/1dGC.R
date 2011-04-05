@@ -2,14 +2,15 @@ print("#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 print("          ================== Welcome to 1dGC.R ==================          ")
 print("AFNI Vector (or Multivariate) Auto-Regressive (VAR or MAR) Modeling Package!")
 print("#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-print("Version 1.1.0,  Feb. 3, 2010")
+print("Version 1.2.0,  Apr. 5, 2011")
 print("Author: Gang Chen (gangchen@mail.nih.gov)")
 print("Website: http://afni.nimh.nih.gov/sscc/gangc/VAR.html")
 print("SSCC/NIMH, National Institutes of Health, Bethesda MD 20892")
 print("#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
 
 libLoad <- function(myLib) {
-   sucLoad <- FALSE
+   sucLoad <- FALSEplotNet(surviveR, selfLoop, surviveR*edgeScaleG, arrowScaleG, 3-sign(surviveR), "Network of Group2-Group1")
+
    sucCheck <- FALSE
    try(sucLoad <- library(myLib, character.only = TRUE, logical.return = TRUE))
    if (sucLoad) {print(sprintf("Package %s successfully loaded!", myLib)); sucCheck <- TRUE} else {
@@ -94,9 +95,15 @@ plotTS <- function(dataFrame, nCurves, msg) {
 plotNet <- function(net, selfLoop, edgeWd, arrScl, edgeCol, msg) {
 	netData <- network(net, loops=selfLoop, directed=TRUE)
 	dev.new()
+   
+   if(sum(abs(net)>10e-10)==1) # only ONE path in the network, it seems the matrix collapses into one number
+      plot.network(netData, displaylabels=selfLoop, mode="circle", edge.lwd=edgeWd,
+		arrowhead.cex=arrScl, edge.col=sum((abs(net)>10e-10)*(edgeCol)), loop.cex=5, 
+		boxed.label=FALSE, label.pos=0, vertex.col=3) else
 	plot.network(netData, displaylabels=selfLoop, mode="circle", edge.lwd=edgeWd,
 		arrowhead.cex=arrScl, edge.col=edgeCol, loop.cex=5, 
 		boxed.label=FALSE, label.pos=0, vertex.col=3)
+      
 	title(msg)
 }
 
