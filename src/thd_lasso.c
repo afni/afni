@@ -530,13 +530,23 @@ ENTRY("THD_sqrtlasso_L2fit") ;
 
    /* scale and edit mylam to make sure it isn't too big for sqrt(quadratic) */
 
-   cc = sqrtf(npinv) ;
+#undef  AFAC
+#define AFAC 0.222f
+
+   cc = sqrtf(npinv)*AFAC ;
    for( jj=0 ; jj < nref ; jj++ ){
      ll = mylam[jj] ;
      if( ll > 0.0f ){
-       aa = sqrtf(rsq[jj]); ll *= aa*npinv; if( ll > 0.666f*aa ) ll = 0.666f*aa;
+       aa = sqrtf(rsq[jj]); ll *= aa*cc; if( ll > AFAC*aa ) ll = AFAC*aa;
+#if 0
+       ININFO_message("lam[%d]=%g --> %g  aa=%g cc=%g npt=%d",jj,mylam[jj],ll,aa,cc,npt) ;
+#endif
        mylam[jj] = ll ;
        qal[jj]   = ll*ll * 4.0f*rsq[jj]/(rsq[jj]-ll*ll) ;
+     } else {
+#if 0
+       ININFO_message("lam[%d]=0",jj) ;
+#endif
      }
    }
 
