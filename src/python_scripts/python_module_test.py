@@ -85,9 +85,10 @@ g_history = """
     0.3  Nov 21, 2008:
          - removed R from basic test list
          - in base usage, set verb level to 2
+    0.4  Apr 05, 2011: added PyQt4 to test list
 """
 
-g_version = "version 0.3, November 21, 2008"
+g_version = "version 0.4, April 5, 2011"
 
 
 # main module for defining and processing use options

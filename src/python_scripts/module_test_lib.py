@@ -41,9 +41,9 @@
 import imp, sys
 
 # add 'R' if needed
-genlibs  = ['os', 'sys', 'string', 'glob', 'copy', 'gc']
+genlibs  = ['os', 'sys', 'string', 'glob', 'copy', 'gc', 'time', 'webbrowser']
 mathlibs = ['math', 'random', 'numpy', 'scipy']
-guilibs  = ['wx', 'matplotlib']
+guilibs  = ['PyQt4', 'wx', 'matplotlib']
 
 alllibs  = []
 alllibs.extend(genlibs)
@@ -80,6 +80,10 @@ g_mesglist = [
      -> consider downloading 'scipy' from www.scipy.org
            or on Linux: "sudo yum install scipy"
            or on OS X:  "sudo fink install scipy-py25"
+""" ],
+             [ 'PyQt4',
+"""
+     -> please see the output of "uber_subject.py -help_install"
 """ ],
              [ 'wx', 
 """
