@@ -49,6 +49,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 5, APR, 2011, RCR, "howto", MINOR, TYPE_ENHANCE,
+   "updated the class setup and basic Linux instructions for PyQt4",
+   NULL
+ } ,
+
+ { 5, APR, 2011, RCR, "python_module_test.py", MICRO, TYPE_NEW_OPT,
+   "added PyQt4 to test list",
+   NULL
+ } ,
+
  { 29, MAR, 2011, RCR, "uber_subject.py", MICRO, TYPE_ENHANCE,
    "changed subject directory to group.GROUP/subj.SUBJ",
    NULL
