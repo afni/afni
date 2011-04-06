@@ -385,6 +385,7 @@ int main( int argc , char *argv[] )
       "              ++ A Belloni, V Chernozhukov, and L Wang.\n"
       "                 Square-root LASSO: Pivotal recovery of sparse signals via\n"
       "                 conic programming (2010).  http://arxiv.org/abs/1009.5689\n"
+      "              ++ A coordinate descent algorithm is for this optimization.\n"
       "            ** A reasonable range of 'lam' to use is from 1 to 10 (or so);\n"
       "               I suggest you start with 2 and see how well that works.\n"
       "              ++ Unlike the pure LASSO option above, you do not need to give\n"
@@ -420,6 +421,9 @@ int main( int argc , char *argv[] )
       "               procedure to follow would be to use several different values of\n"
       "               lam and see how the results vary; for example, the list\n"
       "               lam = -1, -2, -4, -7, -10 might be a good starting point.\n"
+      "             * If you don't give ANY numeric value after the LASSO option\n"
+      "               (i.e., the next argument on the command line is another option),\n"
+      "               then the program will use '-3.1415926536' for the value of lam.\n"
       "             * A tiny value of lam (say 0.01) should give almost the same\n"
       "               results as pure L2 regression.\n"
       "             * Data with a smaller signal-to-noise ratio will probably need\n"
@@ -896,15 +900,17 @@ int main( int argc , char *argv[] )
 
 #undef  ISAL
 #define ISAL(s) (isalpha(s[0]) || isalpha(s[1]))
+#undef  DFAL
+#define DFAL 3.1415926536f
 
      if( strcasecmp(argv[iarg],"-l2lasso") == 0 ||
          strcasecmp(argv[iarg],"-LASSO"  ) == 0   ){  /* experimental [11 Mar 2011] */
        meth = -2 ; ii = 0 ; iarg++ ;
        if( iarg >= argc || ISAL(argv[iarg]) ){
-         lasso_flam = -3.0f ; ii = 1 ;
+         lasso_flam = -DFAL ; ii = 1 ;
        } else {
          lasso_flam = (float)strtod(argv[iarg],NULL) ;
-         if( lasso_flam == 0.0f ) lasso_flam = -3.0f ;
+         if( lasso_flam == 0.0f ) lasso_flam = -DFAL ;
        }
        if( lasso_flam < 0.0f ){ THD_lasso_dosigest(1); lasso_flam = -lasso_flam; }
        THD_lasso_fixlam(lasso_flam) ;  /* cf. thd_lasso.c */
@@ -933,10 +939,10 @@ int main( int argc , char *argv[] )
          strcasecmp(argv[iarg],"-SQRTLASSO"  ) == 0   ){  /* hidden */
        meth = -1 ; ii = 0 ; iarg++ ;
        if( iarg >= argc || ISAL(argv[iarg]) ){
-         lasso_flam = 3.0f ; ii = 1 ;
+         lasso_flam = DFAL ; ii = 1 ;
        } else {
          lasso_flam = (float)strtod(argv[iarg],NULL) ;
-              if( lasso_flam == 0.0f ) lasso_flam =  3.0f ;
+              if( lasso_flam == 0.0f ) lasso_flam =  DFAL ;
          else if( lasso_flam <  0.0f ) lasso_flam = -lasso_flam ;
        }
        THD_lasso_fixlam(lasso_flam) ;  /* cf. thd_lasso.c */
