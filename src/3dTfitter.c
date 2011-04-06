@@ -894,10 +894,13 @@ int main( int argc , char *argv[] )
 
      /*-----*/
 
+#undef  ISAL
+#define ISAL(s) (isalpha(s[0]) || isalpha(s[1]))
+
      if( strcasecmp(argv[iarg],"-l2lasso") == 0 ||
          strcasecmp(argv[iarg],"-LASSO"  ) == 0   ){  /* experimental [11 Mar 2011] */
-       meth = -2 ; ii = 0 ;
-       if( ++iarg >= argc || (argv[iarg][0] == '-' && isalpha(argv[iarg][1])) ){
+       meth = -2 ; ii = 0 ; iarg++ ;
+       if( iarg >= argc || ISAL(argv[iarg]) ){
          lasso_flam = -3.0f ; ii = 1 ;
        } else {
          lasso_flam = (float)strtod(argv[iarg],NULL) ;
@@ -928,8 +931,8 @@ int main( int argc , char *argv[] )
 
      if( strcasecmp(argv[iarg],"-l2sqrtlasso") == 0 ||
          strcasecmp(argv[iarg],"-SQRTLASSO"  ) == 0   ){  /* hidden */
-       meth = -1 ; ii = 0 ;
-       if( ++iarg >= argc || (argv[iarg][0] == '-' && isalpha(argv[iarg][1])) ){
+       meth = -1 ; ii = 0 ; iarg++ ;
+       if( iarg >= argc || ISAL(argv[iarg]) ){
          lasso_flam = 3.0f ; ii = 1 ;
        } else {
          lasso_flam = (float)strtod(argv[iarg],NULL) ;
