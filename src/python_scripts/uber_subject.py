@@ -297,6 +297,10 @@ g_install_str = """
 
       1. yum install PyQt4
 
+      * Note: if your system libraries are old enough where this step does not
+              simply work (e.g. RHEL 4 and 5, and therefore CentOS 4 and 5),
+              life becomes more difficult.  Hopefully, more details to come...
+
    B. OS X 10.6 install (from nokia and riverbank computing):
 
       0. XCode and python (2.6) should already be installed
@@ -321,12 +325,12 @@ g_install_str = """
          - make
          - sudo make install
 
-      notes:
-         - not tested on Mac systems earlier than 10.6
-         - python 2.6 may be required
-         - it can be more difficult to set up upgraded systems (say
-           10.4->10.5->10.6) than ones with clean installs
-            - it may be necessary to set PYTHONPATH in the shell
+
+      ** OS X 10.5 systems:
+
+         For python version 2.5, replace /Library/Python/2.6/site-packages in
+         the 2 'configure' commands below with directory Python/2.5, instead
+         (i.e. use /Library/Python/2.5/site-packages).
    ------------------------------------------------------------------
 """
 
