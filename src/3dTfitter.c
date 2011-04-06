@@ -57,13 +57,14 @@ int main( int argc , char *argv[] )
       "\n"
       "* Output is a bucket dataset with the beta parameters at each voxel.\n"
       "\n"
-      "* Can also get output of fitted time series at each voxel, and\n"
+      "* You can also get output of fitted time series at each voxel, and\n"
       "  the error sum of squares (e.g., for generating statistics).\n"
       "\n"
-      "* Can also deconvolve with a known kernel function (e.g., HRF model),\n"
+      "* You can also deconvolve with a known kernel function (e.g., an HRF\n"
+      "  model in FMRI, or an arterial input function in DSC-MRI, et cetera),\n"
       "  in which case the output dataset is a new time series dataset,\n"
-      "  with the estimate of the source function that, when convolved\n"
-      "  with the kernel function, fits the data (in each voxel).\n"
+      "  containing the estimate of the source function that, when convolved\n"
+      "  with your input kernel function, fits the data (in each voxel).\n"
       "\n"
       "* The basic idea is to compute the beta_i so that the following\n"
       "  is approximately true:\n"
@@ -71,7 +72,7 @@ int main( int argc , char *argv[] )
       "         RHS(t) = sum { beta_i * LHS_i(t) }\n"
       "                   i>=1\n"
       "\n"
-      "  With the '-FALTUNG' option, the model expands to be\n"
+      "  With the '-FALTUNG' (deconvolution) option, the model expands to be\n"
       "\n"
       "         RHS(t) = sum { K(j)*S(t-j) } + sum { beta_i * LHS_i(t) }\n"
       "                   j>=0                  i>=1\n"
@@ -81,14 +82,22 @@ int main( int argc , char *argv[] )
       "  (which can be thought of as the 'baseline' fit).\n"
       "\n"
       "* The model basis functions LHS_i(t) and the kernel function K(t)\n"
-      "  can be .1D files (fixed for all voxels) or 3D+time datasets\n"
+      "  can be .1D files (fixed for all voxels) and/or 3D+time datasets\n"
       "  (different for each voxel).\n"
       "\n"
-      "* The fitting approximation can be done in the L2 sense -- least sum of\n"
-      "  square of errors [possibly with a LASSO (L1) penalty term] -- or in\n"
-      "  the L1 sense -- least sum of absolute errors.  Which method is better?\n"
-      "  The answer to that question depends strongly on what you are\n"
-      "  going to use the results for!  And on the quality of the data.\n"
+      "* The fitting approximation can be done in 4 different ways, minimizing\n"
+      "  the errors (differences between RHS(t) and the fitted equation) in\n"
+      "  the following ways:\n"
+      "   ++ L2 [-l2fit option]   = least sum of squares of errors\n"
+      "   ++ L1 [-l1fit option]   = least sum of absolute values of errors\n"
+      "   ++ L2 LASSO             = least sum of squares of errors, with an added\n"
+      "       [-l2lasso option]     L1 penalty on the size of the solution parameters\n"
+      "   ++ L2 Square Root LASSO = least square root of the sum of squared errors\n"
+      "       [-l2sqrtlasso option] with an L1 penalty on the solution parameters\n"
+      "\n"
+      "***** Which fitting method is better?\n"
+      "      The answer to that question depends strongly on what you are\n"
+      "      going to use the results for!  And on the quality of the data.\n"
       "\n"
       "***** 3dTfitter is not for the casual user! *****\n"
       "\n"
@@ -124,7 +133,8 @@ int main( int argc , char *argv[] )
       "                 (e.g., 0 < vector#1 < 0.01  and  0 < vector#2 < 1000),\n"
       "                 then numerical errors in the calculations might cause the\n"
       "                 results to be unreliable.  To avoid this problem, you can\n"
-      "                 scale the vectors so that they have similar magnitudes.\n"
+      "                 scale the vectors (before running 3dTfitter) so that they\n"
+      "                 have similar magnitudes.\n"
       "            ** Note that if you are fitting a time series dataset that has\n"
       "                 nonzero mean, then at least some of your basis vectors\n"
       "                 should have nonzero mean, or you won't be able to get a\n"
@@ -158,7 +168,7 @@ int main( int argc , char *argv[] )
       "                will be ignored.\n"
       "             ** Prior to 18 May 2010, the built-in (and fixed) value of\n"
       "                'v' was 0.000333.  Thus, to get the old results, you should\n"
-      "                use option '-vthr 0.000333' -- this means YOU, Rasmus!\n"
+      "                use option '-vthr 0.000333' -- this means YOU, Rasmus Birn!\n"
       "\n"
       "--------------\n"
       "DECONVOLUTION:\n"
@@ -181,11 +191,14 @@ int main( int argc , char *argv[] )
       "                       the deconvolution results will be revoltingly\n"
       "                        meaningless drivel (or worse)!\n"
       "\n"
-      "         -->** 'fpre' is the prefix for the output time series to be\n"
-      "               created -- it will have the same length as the input\n"
+      "         -->** 'fpre' is the prefix for the output time series S(t) to\n"
+      "               be created -- it will have the same length as the input\n"
       "               'rset' time series.\n"
       "              ++ If you don't want this time series (why?), set 'fpre'\n"
       "                 to be the string 'NULL'.\n"
+      "              ++ If you want to see the fit of the model to the data\n"
+      "                 (a very good idea), use the '-fitts' option, which is\n"
+      "                 described later.\n"
       "\n"
       "         -->** 'pen' selects the type of penalty function to be\n"
       "               applied to constrain the deconvolved time series:\n"
@@ -205,18 +218,18 @@ int main( int argc , char *argv[] )
       "                   P3 tries to keep 4 point fluctuations\n"
       "                      in S(t) small (3nd derivative)\n"
       "              ++ Higher digits try to make the result function S(t)\n"
-      "                 smoother.  If a smooth result makes sense, then use"
-      "                 '012' or '0123' for 'pen'."
+      "                 smoother.  If a smooth result makes sense, then use\n"
+      "                 the string '012' or '0123' for 'pen'.\n"
       "              ++ In L2 regression, these penalties are analogous to Wiener\n"
       "                 (frequency space) deconvolution, with noise spectra\n"
       "                 proportional to\n"
-      "                   P0 ==> fac^2 (constant in frequency)\n"
+      "                   P0 ==> fac^2 * 1 (constant in frequency)\n"
       "                   P1 ==> fac^2 * freq^2\n"
       "                   P2 ==> fac^2 * freq^4\n"
       "                   P3 ==> fac^2 * freq^6\n"
       "                 However, 3dTfitter does deconvolution in the time\n"
       "                 domain, not the frequency domain, and you can choose\n"
-      "                 to use L2, L1, or LASSO regression.\n"
+      "                 to use L2, L1, or LASSO (L2+L1) regression.\n"
       "              ++ The value of 'pen' is a combination of the digits\n"
       "                 '0', '1', '2', and/or '3'; for example:\n"
       "                     0 = use P0 only\n"
@@ -235,6 +248,7 @@ int main( int argc , char *argv[] )
       "              ++ if fac < 0, then the program chooses a penalty factor\n"
       "                 for each voxel separately and then scales that by -fac.\n"
       "              ++ use fac = -1 to get this voxel-dependent factor unscaled.\n"
+      "                 (this is a very reasonable place to start, by the way :-)\n"
       "              ++ fac = 0 is a special case: the program chooses a range\n"
       "                 of penalty factors, does the deconvolution regression\n"
       "                 for each one, and then chooses the fit it likes best\n"
@@ -433,7 +447,7 @@ int main( int argc , char *argv[] )
       "             * Do NOT give the same index more than once after\n"
       "               '-consign' -- you can't specify that an coefficient\n"
       "               is both non-negative and non-positive, for example!\n"
-      "           *** Constraints can be used with '-l1fit' AND with '-l2fit'.\n"
+      "           *** Constraints can be used with any of the 4 fitting methods.\n"
       "           *** '-consign' constraints only apply to the '-LHS'\n"
       "               fit parameters.  To constrain the '-FALTUNG' output,\n"
       "               use the option below.\n"
@@ -882,28 +896,30 @@ int main( int argc , char *argv[] )
 
      if( strcasecmp(argv[iarg],"-l2lasso") == 0 ||
          strcasecmp(argv[iarg],"-LASSO"  ) == 0   ){  /* experimental [11 Mar 2011] */
-       meth = -2 ;
-       if( ++iarg >= argc ){
-         lasso_flam = -8.0f ;
+       meth = -2 ; ii = 0 ;
+       if( ++iarg >= argc || (argv[iarg][0] == '-' && isalpha(argv[iarg][1])) ){
+         lasso_flam = -3.0f ; ii = 1 ;
        } else {
          lasso_flam = (float)strtod(argv[iarg],NULL) ;
-         if( lasso_flam == 0.0f ) lasso_flam = -8.0f ;
+         if( lasso_flam == 0.0f ) lasso_flam = -3.0f ;
        }
        if( lasso_flam < 0.0f ){ THD_lasso_dosigest(1); lasso_flam = -lasso_flam; }
        THD_lasso_fixlam(lasso_flam) ;  /* cf. thd_lasso.c */
-       iarg++ ;
-       if( iarg < argc && isdigit(argv[iarg][0]) ){ /* get 'free' indexes */
-         MAKE_intvec(lasso_ivec,0) ;
-         for( ; iarg < argc && isdigit(argv[iarg][0]) ; iarg++ ){
-           jj = (int)strtod(argv[iarg],NULL) ;
-           if( jj > 0 ){
-             kk = lasso_ivec->nar ; RESIZE_intvec(lasso_ivec,kk+1) ;
-             lasso_ivec->ar[kk] = jj ;
-           } else {
-             WARNING_message("Illegal index value after -l2lasso: %d",jj) ;
+       if( ii == 0 ){
+         iarg++ ;
+         if( iarg < argc && isdigit(argv[iarg][0]) ){ /* get 'free' indexes */
+           MAKE_intvec(lasso_ivec,0) ;
+           for( ; iarg < argc && isdigit(argv[iarg][0]) ; iarg++ ){
+             jj = (int)strtod(argv[iarg],NULL) ;
+             if( jj > 0 ){
+               kk = lasso_ivec->nar ; RESIZE_intvec(lasso_ivec,kk+1) ;
+               lasso_ivec->ar[kk] = jj ;
+             } else {
+               WARNING_message("Illegal index value after -l2lasso: %d",jj) ;
+             }
            }
+           if( lasso_ivec->nar == 0 ) KILL_intvec(lasso_ivec) ;
          }
-         if( lasso_ivec->nar == 0 ) KILL_intvec(lasso_ivec) ;
        }
        continue ;
      }
@@ -912,28 +928,30 @@ int main( int argc , char *argv[] )
 
      if( strcasecmp(argv[iarg],"-l2sqrtlasso") == 0 ||
          strcasecmp(argv[iarg],"-SQRTLASSO"  ) == 0   ){  /* hidden */
-       meth = -1 ;
-       if( ++iarg >= argc ){
-         lasso_flam = 8.0f ;
+       meth = -1 ; ii = 0 ;
+       if( ++iarg >= argc || (argv[iarg][0] == '-' && isalpha(argv[iarg][1])) ){
+         lasso_flam = 3.0f ; ii = 1 ;
        } else {
          lasso_flam = (float)strtod(argv[iarg],NULL) ;
-              if( lasso_flam == 0.0f ) lasso_flam =  8.0f ;
+              if( lasso_flam == 0.0f ) lasso_flam =  3.0f ;
          else if( lasso_flam <  0.0f ) lasso_flam = -lasso_flam ;
        }
        THD_lasso_fixlam(lasso_flam) ;  /* cf. thd_lasso.c */
-       iarg++ ;
-       if( iarg < argc && isdigit(argv[iarg][0]) ){ /* get 'free' indexes */
-         MAKE_intvec(lasso_ivec,0) ;
-         for( ; iarg < argc && isdigit(argv[iarg][0]) ; iarg++ ){
-           jj = (int)strtod(argv[iarg],NULL) ;
-           if( jj > 0 ){
-             kk = lasso_ivec->nar ; RESIZE_intvec(lasso_ivec,kk+1) ;
-             lasso_ivec->ar[kk] = jj ;
-           } else {
-             WARNING_message("Illegal index value after -l2lasso: %d",jj) ;
+       if( ii == 0 ){
+         iarg++ ;
+         if( iarg < argc && isdigit(argv[iarg][0]) ){ /* get 'free' indexes */
+           MAKE_intvec(lasso_ivec,0) ;
+           for( ; iarg < argc && isdigit(argv[iarg][0]) ; iarg++ ){
+             jj = (int)strtod(argv[iarg],NULL) ;
+             if( jj > 0 ){
+               kk = lasso_ivec->nar ; RESIZE_intvec(lasso_ivec,kk+1) ;
+               lasso_ivec->ar[kk] = jj ;
+             } else {
+               WARNING_message("Illegal index value after -l2lasso: %d",jj) ;
+             }
            }
+           if( lasso_ivec->nar == 0 ) KILL_intvec(lasso_ivec) ;
          }
-         if( lasso_ivec->nar == 0 ) KILL_intvec(lasso_ivec) ;
        }
        continue ;
      }

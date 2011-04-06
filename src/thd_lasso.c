@@ -178,7 +178,7 @@ static void compute_free_param( int npt  , float *far   ,
 
 ENTRY("compute_free_param") ;
 
-   if( nfree <= 0 || nfree >= npt || fr == NULL || ppar == NULL ) EXRETURN ;
+   if( nfree <= 0 || nfree >= npt/2 || fr == NULL || ppar == NULL ) EXRETURN ;
 
 #pragma omp critical (MALLOC)
    {                    qref = (float **)calloc(sizeof(float *),nfree) ;
@@ -281,7 +281,7 @@ floatvec * THD_lasso_L2fit( int npt    , float *far   ,
                             int nref   , float *ref[] ,
                             float *lam , float *ccon   )
 {
-   int ii,jj, nfree,nite,nimax,ndel , do_slam ;
+   int ii,jj, nfree,nite,nimax,ndel , do_slam=0 ;
    float *mylam, *ppar, *resd, *rsq, *rj, pj,dg,dsum,dsumx,ll ;
    floatvec *qfit ; byte *fr ;
 
@@ -348,7 +348,7 @@ ENTRY("THD_lasso_L2fit") ;
    /*--- if have a lot of references (relative to number of data points),
          then increase lam[] for the first iterations to speed convergence ---*/
 
-   do_slam = 3 * (nref > npt/2) ;                        /* first 3 */
+   do_slam = 3 * (nref > npt/4) ;                        /* first 3 */
    if( do_slam ){                                        /*       | */
      for( jj=0 ; jj < nref ; jj++ ) mylam[jj] *= 8.0f ;  /* 8 = 2^3 */
    }
@@ -429,7 +429,9 @@ ENTRY("THD_lasso_L2fit") ;
 #if 1
    { static int ncall=0 ;
      if( ncall < 1 ){
-       INFO_message("LASSO: nite=%d dsum=%g dsumx=%g",nite,dsum,dsumx) ; ncall++ ;
+       for( nfree=jj=0 ; jj < nref ; jj++ ) nfree += (ppar[jj] != 0.0f) ;
+       INFO_message("LASSO: nite=%d dsum=%g dsumx=%g nfree=%d/%d",nite,dsum,dsumx,nfree,nref) ;
+       ncall++ ;
      }
    }
 #endif
@@ -483,7 +485,7 @@ floatvec * THD_sqrtlasso_L2fit( int npt    , float *far   ,
                                 int nref   , float *ref[] ,
                                 float *lam , float *ccon   )
 {
-   int ii,jj, nfree,nite,nimax,ndel ;
+   int ii,jj, nfree,nite,nimax,ndel , do_slam=0 ;
    float *mylam, *ppar, *resd, *rsq, *rj, pj,dg,dsum,dsumx ;
    float rqsum,aa,bb,cc,ll,all , npinv , *ain,*qal ;
    floatvec *qfit ; byte *fr ;
@@ -573,6 +575,15 @@ ENTRY("THD_sqrtlasso_L2fit") ;
    for( rqsum=ii=0 ; ii < npt ; ii++ ) rqsum += resd[ii]*resd[ii] ;
    rqsum *= npinv ;
 
+   /*-- start with a larger lambda to speed convergence --*/
+
+#if 0
+   do_slam = 2 * (nref > npt/4) ;                        /* first 2 */
+   if( do_slam ){                                        /*       | */
+     for( jj=0 ; jj < nref ; jj++ ) mylam[jj] *= 4.0f ;  /* 4 = 2^2 */
+   }
+#endif
+
    /*---- outer iteration loop (until we are happy or worn out) ----*/
 
 #undef  CON    /* CON(j) is true if the constraint on ppar[j] is violated */
@@ -654,12 +665,19 @@ ENTRY("THD_sqrtlasso_L2fit") ;
 
      if( ndel > 0 ) dsum *= (2.0f/ndel) ;
 
+     if( do_slam ){     /* shrink lam[] back, if it was augmented */
+       do_slam-- ; dsum = 1.0f ;
+       for( jj=0 ; jj < nref ; jj++ ) mylam[jj] *= 0.5f ;
+     }
+
    } /*---- end of outer iteration loop ----*/
 
 #if 1
    { static int ncall=0 ;
      if( ncall < 1 ){
-       INFO_message("SQRTLASSO: nite=%d dsum=%g dsumx=%g",nite,dsum,dsumx) ; ncall++ ;
+       for( nfree=jj=0 ; jj < nref ; jj++ ) nfree += (ppar[jj] != 0.0f) ;
+       INFO_message("SQRTLASSO: nite=%d dsum=%g dsumx=%g nfree=%d/%d",nite,dsum,dsumx,nfree,nref) ;
+       ncall++ ;
      }
    }
 #endif
