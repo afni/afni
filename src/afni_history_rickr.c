@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 6, APR, 2011, RCR, "uber_subject.py", MICRO, TYPE_ENHANCE,
+   "make table size depend on font",
+   NULL
+ } ,
+
  { 5, APR, 2011, RCR, "howto", MINOR, TYPE_ENHANCE,
    "updated the class setup and basic Linux instructions for PyQt4",
    NULL

@@ -1296,14 +1296,17 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       self.gvars.Label_stim_dir.setText(stim_dir)
       self.gvars.Label_stim_wildcard.setText(globstr)
 
-   def max_table_size(self, nrows):
+   def max_table_size(self, nrows, rheight=0):
       """return the number of pixels to use based on the number of rows
-         (consider scaling this by the font size)"""
+         (scale by any passed row height)"""
+      if rheight > 0: rowheight = rheight
+      else:           rowheight = 25
+
       if nrows <= 6:   show_rows = nrows
       elif nrows < 18: show_rows = 6+0.5*(nrows-6)  # after 6, add half, per
       else:            show_rows = 12
 
-      return min(200, max(75, 30+25*show_rows))
+      return min(200, max(75, rheight*(show_rows+1.25)))
 
    def CB_checkbox(self):
       """call-back for any check boxes"""
@@ -1497,8 +1500,11 @@ class SingleSubjectWindow(QtGui.QMainWindow):
 
    def resize_table(self, table, countLabel=None):
       nrows = table.rowCount()
+      if nrows > 0: rheight = table.rowHeight(0)
+      else        : rheight = 0
+      if self.verb > 2: print '-- resize_table: using row height %d' % rheight
       table.setAlternatingRowColors(True)
-      table.setFixedHeight(self.max_table_size(nrows))
+      table.setFixedHeight(self.max_table_size(nrows, rheight=rheight))
       table.resizeRowsToContents()
       self.resize_table_cols(table)
 
