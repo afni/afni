@@ -43,7 +43,12 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 29 , MAR , 2011 , RWC , "3dClustSim" , MICRO , TYPE_NEW_OPT ,
+  { 6 , APR , 2011 , RWC , "3dTfitter" , MICRO , TYPE_MODIFY ,
+   "Minor patches to the LASSO stuff, plus expand the help output." ,
+   "LASSO-ing during deconvolution now un-penalizes all baseline (-LHS)\n"
+   "parameters." } ,
+
+ { 29 , MAR , 2011 , RWC , "3dClustSim" , MICRO , TYPE_NEW_OPT ,
    "Add -OKsmallmask option" ,
    "To let deranged users take their statistical fortunes into their own\n"
    "hands." } ,
