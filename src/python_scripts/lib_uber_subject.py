@@ -108,9 +108,10 @@ g_history = """
          - adjusted table resizing
          - added -help_install
     0.17 Mar 29, 2011 : changed subject directory to group.GROUP/subj.SUBJ
+    0.18 Apr 06, 2011 : make table size depend on font
 """
 
-g_version = '0.17 (March 29, 2011)'
+g_version = '0.18 (April 6, 2011)'
 
 # ----------------------------------------------------------------------
 # global definition of default processing blocks
@@ -1508,13 +1509,11 @@ helpstr_todo = """
 ---------------------------------------------------------------------------
                         todo list:  
 
-- rename subject and group directories
 - change print statements to LOG statements
    - optionally store to pass up to GUI
    - GUI could process (display as html?) and clear log
    - maybe register callback function to let GUI know?
-- regression cases for new subj vars (gltsym ?!?)
-- table size might need to depend on font
+- reconcile 'anat has skull' between align and tlrc options
 - help buttons for expected and extra regress options
 - does tcsh exist?
 - make UberInterface class in uber_subject.py?
