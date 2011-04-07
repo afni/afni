@@ -1,6 +1,9 @@
 #include "mrilib.h"
 #include "afni.h"
-#include "thd_ttatlas_query.h"
+#include "thd_atlas.h"
+
+static ATLAS_DSET_HOLDER
+genx_load_atlas(ATLAS *atlas, int LoadLRMask);
 
 static int           have_dseTT = -1   ;
 static THD_3dim_dataset * dseTT = NULL ;
@@ -16,6 +19,8 @@ static THD_3dim_dataset * dseCA_EZ_LR = NULL ;
 
 #define MAX_FIND_DEFAULT 9            /* max number to find within WAMIRAD  */
 #define WAMIRAD_DEFAULT  7.5           /* search radius: must not exceed 9.5 */
+
+static int set_adh_old_way(ATLAS_DSET_HOLDER *adh, AFNI_ATLAS_CODES atcode);
 
 #if 0
 # define POPUP_MESSAGE(sss)  /*nuthin fer now -- RWC quick fix*/
@@ -88,248 +93,248 @@ added to libmri.a and accessible without restrictions. libmri.a and other
 binaries are fatter as a result. But you dont' get nothin for nothin.
 ZSS Feb. 2006 with a nod of approval by RickR */
 /* TTatlas by Jack Lancaster and Peter Fox */
-ATLAS_point TTO_list[TTO_COUNT] = {
-      {  0,"Anterior Commissure.....................",  0, -1, -1,0, "" } ,
-      {  0,"Posterior Commissure....................",  0, 23,  0,0, "" } ,
-      {  0,"Corpus Callosum.........................",  0,  7, 21,0, "" } ,
-      { 68,"Left  Hippocampus.......................", 30, 24, -9,4, "" } ,
-      { 68,"Right Hippocampus.......................",-30, 24, -9,4, "" } ,
-      { 71,"Left  Amygdala..........................", 23,  5,-15,4, "" } ,
-      { 71,"Right Amygdala..........................",-23,  5,-15,4, "" } ,
-      { 20,"Left  Posterior Cingulate...............", 10, 54, 14,2, "" } ,
-      { 20,"Right Posterior Cingulate...............",-10, 54, 14,2, "" } ,
-      { 21,"Left  Anterior Cingulate................",  8,-32,  7,2, "" } ,
-      { 21,"Right Anterior Cingulate................", -8,-32,  7,2, "" } ,
-      { 22,"Left  Subcallosal Gyrus.................", 11,-11,-12,2, "" } ,
-      { 22,"Right Subcallosal Gyrus.................",-11,-11,-12,2, "" } ,
-      { 24,"Left  Transverse Temporal Gyrus.........", 50, 22, 12,2, "" } ,
-      { 24,"Right Transverse Temporal Gyrus.........",-50, 22, 12,2, "" } ,
-      { 25,"Left  Uncus.............................", 25,  2,-28,2, "" } ,
-      { 25,"Right Uncus.............................",-25,  2,-28,2, "" } ,
-      { 26,"Left  Rectal Gyrus......................",  7,-30,-23,2, "" } ,
-      { 26,"Right Rectal Gyrus......................", -7,-30,-23,2, "" } ,
-      { 27,"Left  Fusiform Gyrus....................", 40, 48,-16,2, "" } ,
-      { 27,"Right Fusiform Gyrus....................",-40, 48,-16,2, "" } ,
-      { 28,"Left  Inferior Occipital Gyrus..........", 35, 86, -7,2, "" } ,
-      { 28,"Right Inferior Occipital Gyrus..........",-35, 86, -7,2, "" } ,
-      { 29,"Left  Inferior Temporal Gyrus...........", 56, 39,-13,2, "" } ,
-      { 29,"Right Inferior Temporal Gyrus...........",-56, 39,-13,2, "" } ,
-      { 30,"Left  Insula............................", 39,  7,  9,2, "" } ,
-      { 30,"Right Insula............................",-39,  7,  9,2, "" } ,
-      { 31,"Left  Parahippocampal Gyrus.............", 25, 25,-12,2, "" } ,
-      { 31,"Right Parahippocampal Gyrus.............",-25, 25,-12,2, "" } ,
-      { 32,"Left  Lingual Gyrus.....................", 14, 78, -3,2, "" } ,
-      { 32,"Right Lingual Gyrus.....................",-14, 78, -3,2, "" } ,
-      { 33,"Left  Middle Occipital Gyrus............", 35, 83,  9,2, "" } ,
-      { 33,"Right Middle Occipital Gyrus............",-35, 83,  9,2, "" } ,
-      { 34,"Left  Orbital Gyrus.....................", 11,-39,-25,2, "" } ,
-      { 34,"Right Orbital Gyrus.....................",-11,-39,-25,2, "" } ,
-      { 35,"Left  Middle Temporal Gyrus.............", 52, 39,  0,2, "" } ,
-      { 35,"Right Middle Temporal Gyrus.............",-52, 39,  0,2, "" } ,
-      { 36,"Left  Superior Temporal Gyrus...........", 51, 17,  0,2, "" } ,
-      { 36,"Right Superior Temporal Gyrus...........",-51, 17,  0,2, "" } ,
-      { 37,"Left  Superior Occipital Gyrus..........", 37, 82, 27,2, "" } ,
-      { 37,"Right Superior Occipital Gyrus..........",-37, 82, 27,2, "" } ,
-      { 39,"Left  Inferior Frontal Gyrus............", 44,-24,  2,2, "" } ,
-      { 39,"Right Inferior Frontal Gyrus............",-44,-24,  2,2, "" } ,
-      { 40,"Left  Cuneus............................", 13, 83, 18,2, "" } ,
-      { 40,"Right Cuneus............................",-13, 83, 18,2, "" } ,
-      { 41,"Left  Angular Gyrus.....................", 45, 64, 33,2, "" } ,
-      { 41,"Right Angular Gyrus.....................",-45, 64, 33,2, "" } ,
-      { 42,"Left  Supramarginal Gyrus...............", 51, 48, 31,2, "" } ,
-      { 42,"Right Supramarginal Gyrus...............",-51, 48, 31,2, "" } ,
-      { 43,"Left  Cingulate Gyrus...................", 10, 11, 34,2, "" } ,
-      { 43,"Right Cingulate Gyrus...................",-10, 11, 34,2, "" } ,
-      { 44,"Left  Inferior Parietal Lobule..........", 48, 41, 39,2, "" } ,
-      { 44,"Right Inferior Parietal Lobule..........",-48, 41, 39,2, "" } ,
-      { 45,"Left  Precuneus.........................", 14, 61, 41,2, "" } ,
-      { 45,"Right Precuneus.........................",-14, 61, 41,2, "" } ,
-      { 46,"Left  Superior Parietal Lobule..........", 27, 59, 53,2, "" } ,
-      { 46,"Right Superior Parietal Lobule..........",-27, 59, 53,2, "" } ,
-      { 47,"Left  Middle Frontal Gyrus..............", 37,-29, 26,2, "" } ,
-      { 47,"Right Middle Frontal Gyrus..............",-37,-29, 26,2, "" } ,
-      { 48,"Left  Paracentral Lobule................",  7, 32, 53,2, "" } ,
-      { 48,"Right Paracentral Lobule................", -7, 32, 53,2, "" } ,
-      { 49,"Left  Postcentral Gyrus.................", 43, 25, 43,2, "" } ,
-      { 49,"Right Postcentral Gyrus.................",-43, 25, 43,2, "" } ,
-      { 50,"Left  Precentral Gyrus..................", 44,  8, 38,2, "" } ,
-      { 50,"Right Precentral Gyrus..................",-44,  8, 38,2, "" } ,
-      { 51,"Left  Superior Frontal Gyrus............", 19,-40, 27,2, "" } ,
-      { 51,"Right Superior Frontal Gyrus............",-19,-40, 27,2, "" } ,
-      { 52,"Left  Medial Frontal Gyrus..............",  9,-24, 35,2, "" } ,
-      { 52,"Right Medial Frontal Gyrus..............", -9,-24, 35,2, "" } ,
-      { 70,"Left  Lentiform Nucleus.................", 22,  1,  2,2, "" } ,
-      { 70,"Right Lentiform Nucleus.................",-22,  1,  2,2, "" } ,
-      { 72,"Left  Hypothalamus......................",  4,  3, -9,4, "" } ,
-      { 72,"Right Hypothalamus......................", -4,  3, -9,4, "" } ,
-      { 73,"Left  Red Nucleus.......................",  5, 19, -4,4, "" } ,
-      { 73,"Right Red Nucleus.......................", -5, 19, -4,4, "" } ,
-      { 74,"Left  Substantia Nigra..................", 11, 18, -7,4, "" } ,
-      { 74,"Right Substantia Nigra..................",-11, 18, -7,4, "" } ,
-      { 75,"Left  Claustrum.........................", 32,  1,  5,2, "" } ,
-      { 75,"Right Claustrum.........................",-32,  1,  5,2, "" } ,
-      { 76,"Left  Thalamus..........................", 12, 19,  8,2, "" } ,
-      { 76,"Right Thalamus..........................",-12, 19,  8,2, "" } ,
-      { 77,"Left  Caudate...........................", 11, -7,  9,2, "" } ,
-      { 77,"Right Caudate...........................",-11, -7,  9,2, "" } ,
-      {124,"Left  Caudate Tail......................", 27, 35,  9,4, "" } ,
-      {124,"Right Caudate Tail......................",-27, 35,  9,4, "" } ,
-      {125,"Left  Caudate Body......................", 12, -6, 14,4, "" } ,
-      {125,"Right Caudate Body......................",-12, -6, 14,4, "" } ,
-      {126,"Left  Caudate Head......................",  9,-13,  0,4, "" } ,
-      {126,"Right Caudate Head......................", -9,-13,  0,4, "" } ,
-      {128,"Left  Ventral Anterior Nucleus..........", 11,  6,  9,4, "" } ,
-      {128,"Right Ventral Anterior Nucleus..........",-11,  6,  9,4, "" } ,
-      {129,"Left  Ventral Posterior Medial Nucleus..", 15, 20,  4,4, "" } ,
-      {129,"Right Ventral Posterior Medial Nucleus..",-15, 20,  4,4, "" } ,
-      {130,"Left  Ventral Posterior Lateral Nucleus.", 18, 19,  5,4, "" } ,
-      {130,"Right Ventral Posterior Lateral Nucleus.",-18, 19,  5,4, "" } ,
-      {131,"Left  Medial Dorsal Nucleus.............",  6, 16,  8,4, "" } ,
-      {131,"Right Medial Dorsal Nucleus.............", -6, 16,  8,4, "" } ,
-      {132,"Left  Lateral Dorsal Nucleus............", 12, 20, 16,4, "" } ,
-      {132,"Right Lateral Dorsal Nucleus............",-12, 20, 16,4, "" } ,
-      {133,"Left  Pulvinar..........................", 16, 27,  8,4, "" } ,
-      {133,"Right Pulvinar..........................",-16, 27,  8,4, "" } ,
-      {134,"Left  Lateral Posterior Nucleus.........", 17, 20, 14,4, "" } ,
-      {134,"Right Lateral Posterior Nucleus.........",-17, 20, 14,4, "" } ,
-      {135,"Left  Ventral Lateral Nucleus...........", 14, 12,  9,4, "" } ,
-      {135,"Right Ventral Lateral Nucleus...........",-14, 12,  9,4, "" } ,
-      {136,"Left  Midline Nucleus...................",  7, 18, 16,4, "" } ,
-      {136,"Right Midline Nucleus...................", -7, 18, 16,4, "" } ,
-      {137,"Left  Anterior Nucleus..................",  8,  8, 12,4, "" } ,   /* 04 Mar 2002 */
-      {137,"Right Anterior Nucleus..................", -8,  8, 12,4, "" } ,
-      {138,"Left  Mammillary Body...................", 11, 20,  2,4, "" } ,
-      {138,"Right Mammillary Body...................",-11, 20,  2,4, "" } ,
-      {144,"Left  Medial Globus Pallidus............", 15,  4, -2,4, "" } ,
-      {144,"Right Medial Globus Pallidus............",-15,  4, -2,4, "" } ,
-      {145,"Left  Lateral Globus Pallidus...........", 20,  5,  0,4, "" } ,
-      {145,"Right Lateral Globus Pallidus...........",-20,  5,  0,4, "" } ,
-      {151,"Left  Putamen...........................", 24,  0,  3,4, "" } ,
-      {151,"Right Putamen...........................",-24,  0,  3,4, "" } ,
-      {146,"Left  Nucleus Accumbens.................", 12, -8, -8,4, "" } , /* 20 Aug */
-      {146,"Right Nucleus Accumbens.................",-12, -8, -8,4, "" } , /* 2001 */
-      {147,"Left  Medial Geniculum Body.............", 17, 24, -2,4, "" } ,
-      {147,"Right Medial Geniculum Body.............",-17, 24, -2,4, "" } ,
-      {148,"Left  Lateral Geniculum Body............", 22, 24, -1,4, "" } ,
-      {148,"Right Lateral Geniculum Body............",-22, 24, -1,4, "" } ,
-      {149,"Left  Subthalamic Nucleus...............", 10, 13, -3,4, "" } ,
-      {149,"Right Subthalamic Nucleus...............",-10, 13, -3,4, "" } ,
-      { 81,"Left  Brodmann area 1...................", 53, 19, 50,4, "" } ,
-      { 81,"Right Brodmann area 1...................",-53, 19, 50,4, "" } ,
-      { 82,"Left  Brodmann area 2...................", 49, 26, 43,4, "" } ,
-      { 82,"Right Brodmann area 2...................",-49, 26, 43,4, "" } ,
-      { 83,"Left  Brodmann area 3...................", 39, 23, 50,4, "" } ,
-      { 83,"Right Brodmann area 3...................",-39, 23, 50,4, "" } ,
-      { 84,"Left  Brodmann area 4...................", 39, 18, 49,4, "" } ,
-      { 84,"Right Brodmann area 4...................",-39, 18, 49,4, "" } ,
-      { 85,"Left  Brodmann area 5...................", 16, 40, 57,4, "" } ,
-      { 85,"Right Brodmann area 5...................",-16, 40, 57,4, "" } ,
-      { 86,"Left  Brodmann area 6...................", 29,  0, 50,4, "" } ,
-      { 86,"Right Brodmann area 6...................",-29,  0, 50,4, "" } ,
-      { 87,"Left  Brodmann area 7...................", 16, 60, 48,4, "" } ,
-      { 87,"Right Brodmann area 7...................",-16, 60, 48,4, "" } ,
-      { 88,"Left  Brodmann area 8...................", 24,-30, 44,4, "" } ,
-      { 88,"Right Brodmann area 8...................",-24,-30, 44,4, "" } ,
-      { 89,"Left  Brodmann area 9...................", 32,-33, 30,4, "" } ,
-      { 89,"Right Brodmann area 9...................",-32,-33, 30,4, "" } ,
-      { 90,"Left  Brodmann area 10..................", 24,-56,  6,4, "" } ,
-      { 90,"Right Brodmann area 10..................",-24,-56,  6,4, "" } ,
-      { 91,"Left  Brodmann area 11..................", 17,-43,-18,4, "" } ,
-      { 91,"Right Brodmann area 11..................",-17,-43,-18,4, "" } ,
-      { 93,"Left  Brodmann area 13..................", 39,  4,  8,4, "" } ,
-      { 93,"Right Brodmann area 13..................",-39,  4,  8,4, "" } ,
-      { 94,"Left  Brodmann area 17..................", 10, 88,  5,4, "" } ,
-      { 94,"Right Brodmann area 17..................",-10, 88,  5,4, "" } ,
-      { 95,"Left  Brodmann area 18..................", 19, 85,  4,4, "" } ,
-      { 95,"Right Brodmann area 18..................",-19, 85,  4,4, "" } ,
-      { 96,"Left  Brodmann area 19..................", 34, 80, 18,4, "" } ,
-      { 96,"Right Brodmann area 19..................",-34, 80, 18,4, "" } ,
-      { 97,"Left  Brodmann area 20..................", 47, 21,-23,4, "" } ,
-      { 97,"Right Brodmann area 20..................",-47, 21,-23,4, "" } ,
-      { 98,"Left  Brodmann area 21..................", 58, 18,-10,4, "" } ,
-      { 98,"Right Brodmann area 21..................",-58, 18,-10,4, "" } ,
-      { 99,"Left  Brodmann area 22..................", 57, 23,  5,4, "" } ,
-      { 99,"Right Brodmann area 22..................",-57, 23,  5,4, "" } ,
-      {100,"Left  Brodmann area 23..................",  4, 37, 24,4, "" } ,
-      {100,"Right Brodmann area 23..................", -4, 37, 24,4, "" } ,
-      {101,"Left  Brodmann area 24..................",  6, -6, 30,4, "" } ,
-      {101,"Right Brodmann area 24..................", -6, -6, 30,4, "" } ,
-      {102,"Left  Brodmann area 25..................",  6,-15,-13,4, "" } ,
-      {102,"Right Brodmann area 25..................", -6,-15,-13,4, "" } ,
-      {103,"Left  Brodmann area 27..................", 15, 35,  0,4, "" } ,
-      {103,"Right Brodmann area 27..................",-15, 35,  0,4, "" } ,
-      {104,"Left  Brodmann area 28..................", 22, -2,-24,4, "" } ,
-      {104,"Right Brodmann area 28..................",-22, -2,-24,4, "" } ,
-      {105,"Left  Brodmann area 29..................",  6, 48, 11,4, "" } ,
-      {105,"Right Brodmann area 29..................", -6, 48, 11,4, "" } ,
-      {106,"Left  Brodmann area 30..................", 13, 62, 10,4, "" } ,
-      {106,"Right Brodmann area 30..................",-13, 62, 10,4, "" } ,
-      {107,"Left  Brodmann area 31..................",  9, 47, 32,4, "" } ,
-      {107,"Right Brodmann area 31..................", -9, 47, 32,4, "" } ,
-      {108,"Left  Brodmann area 32..................",  8,-24, 30,4, "" } ,
-      {108,"Right Brodmann area 32..................", -8,-24, 30,4, "" } ,
-      {109,"Left  Brodmann area 33..................",  5,-12, 24,4, "" } ,
-      {109,"Right Brodmann area 33..................", -5,-12, 24,4, "" } ,
-      {110,"Left  Brodmann area 34..................", 18,  0,-16,4, "" } ,
-      {110,"Right Brodmann area 34..................",-18,  0,-16,4, "" } ,
-      {111,"Left  Brodmann area 35..................", 23, 25,-15,4, "" } ,
-      {111,"Right Brodmann area 35..................",-23, 25,-15,4, "" } ,
-      {112,"Left  Brodmann area 36..................", 33, 33,-15,4, "" } ,
-      {112,"Right Brodmann area 36..................",-33, 33,-15,4, "" } ,
-      {113,"Left  Brodmann area 37..................", 48, 55, -7,4, "" } ,
-      {113,"Right Brodmann area 37..................",-48, 55, -7,4, "" } ,
-      {114,"Left  Brodmann area 38..................", 41,-12,-23,4, "" } ,
-      {114,"Right Brodmann area 38..................",-41,-12,-23,4, "" } ,
-      {115,"Left  Brodmann area 39..................", 48, 64, 28,4, "" } ,
-      {115,"Right Brodmann area 39..................",-48, 64, 28,4, "" } ,
-      {116,"Left  Brodmann area 40..................", 51, 40, 38,4, "" } ,
-      {116,"Right Brodmann area 40..................",-51, 40, 38,4, "" } ,
-      {117,"Left  Brodmann area 41..................", 47, 26, 11,4, "" } ,
-      {117,"Right Brodmann area 41..................",-47, 26, 11,4, "" } ,
-      {118,"Left  Brodmann area 42..................", 63, 22, 12,4, "" } ,
-      {118,"Right Brodmann area 42..................",-63, 22, 12,4, "" } ,
-      {119,"Left  Brodmann area 43..................", 58, 10, 16,4, "" } ,
-      {119,"Right Brodmann area 43..................",-58, 10, 16,4, "" } ,
-      {120,"Left  Brodmann area 44..................", 53,-11, 12,4, "" } ,
-      {120,"Right Brodmann area 44..................",-53,-11, 12,4, "" } ,
-      {121,"Left  Brodmann area 45..................", 54,-23, 10,4, "" } ,
-      {121,"Right Brodmann area 45..................",-54,-23, 10,4, "" } ,
-      {122,"Left  Brodmann area 46..................", 50,-38, 16,4, "" } ,
-      {122,"Right Brodmann area 46..................",-50,-38, 16,4, "" } ,
-      {123,"Left  Brodmann area 47..................", 38,-24,-11,4, "" } ,
-      {123,"Right Brodmann area 47..................",-38,-24,-11,4, "" } ,
-      { 53,"Left  Uvula of Vermis...................",  2, 65,-32,2, "" } ,
-      { 53,"Right Uvula of Vermis...................", -2, 65,-32,2, "" } ,
-      { 54,"Left  Pyramis of Vermis.................",  2, 73,-28,2, "" } ,
-      { 54,"Right Pyramis of Vermis.................", -2, 73,-28,2, "" } ,
-      { 55,"Left  Tuber of Vermis...................",  2, 71,-24,2, "" } ,
-      { 55,"Right Tuber of Vermis...................", -2, 71,-24,2, "" } ,
-      { 56,"Left  Declive of Vermis.................",  2, 72,-17,2, "" } ,
-      { 56,"Right Declive of Vermis.................", -2, 72,-17,2, "" } ,
-      { 57,"Left  Culmen of Vermis..................",  3, 63, -3,2, "" } ,
-      { 57,"Right Culmen of Vermis..................", -3, 63, -3,2, "" } ,
-      { 58,"Left  Cerebellar Tonsil.................", 28, 51,-36,2, "" } ,
-      { 58,"Right Cerebellar Tonsil.................",-28, 51,-36,2, "" } ,
-      { 59,"Left  Inferior Semi-Lunar Lobule........", 29, 71,-38,2, "" } ,
-      { 59,"Right Inferior Semi-Lunar Lobule........",-29, 71,-38,2, "" } ,
-      { 60,"Left  Fastigium.........................",  7, 54,-20,2, "" } ,
-      { 60,"Right Fastigium.........................", -7, 54,-20,2, "" } ,
-      { 61,"Left  Nodule............................",  7, 55,-27,2, "" } ,
-      { 61,"Right Nodule............................", -7, 55,-27,2, "" } ,
-      { 62,"Left  Uvula.............................", 21, 76,-26,2, "" } ,
-      { 62,"Right Uvula.............................",-21, 76,-26,2, "" } ,
-      { 63,"Left  Pyramis...........................", 27, 74,-30,2, "" } ,
-      { 63,"Right Pyramis...........................",-27, 74,-30,2, "" } ,
-      { 66,"Left  Culmen............................", 20, 46,-16,2, "" } ,
-      { 66,"Right Culmen............................",-20, 46,-16,2, "" } ,
-      { 65,"Left  Declive...........................", 26, 69,-17,2, "" } ,
-      { 65,"Right Declive...........................",-26, 69,-17,2, "" } ,
-      {127,"Left  Dentate...........................", 14, 54,-23,4, "" } ,
-      {127,"Right Dentate...........................",-14, 54,-23,4, "" } ,
-      { 64,"Left  Tuber.............................", 44, 71,-27,2, "" } ,
-      { 64,"Right Tuber.............................",-44, 71,-27,2, "" } ,
-      { 67,"Left  Cerebellar Lingual................",  4, 45,-13,2, "" } ,
-      { 67,"Right Cerebellar Lingual................", -4, 45,-13,2, "" }
+ATLAS_POINT TTO_list[TTO_COUNT] = {
+      {  0,"Anterior Commissure.....................",  0, -1, -1,0, -999, "" } ,
+      {  0,"Posterior Commissure....................",  0, 23,  0,0, -999, "" } ,
+      {  0,"Corpus Callosum.........................",  0,  7, 21,0, -999, "" } ,
+      { 68,"Left  Hippocampus.......................", 30, 24, -9,4, -999, "" } ,
+      { 68,"Right Hippocampus.......................",-30, 24, -9,4, -999, "" } ,
+      { 71,"Left  Amygdala..........................", 23,  5,-15,4, -999, "" } ,
+      { 71,"Right Amygdala..........................",-23,  5,-15,4, -999, "" } ,
+      { 20,"Left  Posterior Cingulate...............", 10, 54, 14,2, -999, "" } ,
+      { 20,"Right Posterior Cingulate...............",-10, 54, 14,2, -999, "" } ,
+      { 21,"Left  Anterior Cingulate................",  8,-32,  7,2, -999, "" } ,
+      { 21,"Right Anterior Cingulate................", -8,-32,  7,2, -999, "" } ,
+      { 22,"Left  Subcallosal Gyrus.................", 11,-11,-12,2, -999, "" } ,
+      { 22,"Right Subcallosal Gyrus.................",-11,-11,-12,2, -999, "" } ,
+      { 24,"Left  Transverse Temporal Gyrus.........", 50, 22, 12,2, -999, "" } ,
+      { 24,"Right Transverse Temporal Gyrus.........",-50, 22, 12,2, -999, "" } ,
+      { 25,"Left  Uncus.............................", 25,  2,-28,2, -999, "" } ,
+      { 25,"Right Uncus.............................",-25,  2,-28,2, -999, "" } ,
+      { 26,"Left  Rectal Gyrus......................",  7,-30,-23,2, -999, "" } ,
+      { 26,"Right Rectal Gyrus......................", -7,-30,-23,2, -999, "" } ,
+      { 27,"Left  Fusiform Gyrus....................", 40, 48,-16,2, -999, "" } ,
+      { 27,"Right Fusiform Gyrus....................",-40, 48,-16,2, -999, "" } ,
+      { 28,"Left  Inferior Occipital Gyrus..........", 35, 86, -7,2, -999, "" } ,
+      { 28,"Right Inferior Occipital Gyrus..........",-35, 86, -7,2, -999, "" } ,
+      { 29,"Left  Inferior Temporal Gyrus...........", 56, 39,-13,2, -999, "" } ,
+      { 29,"Right Inferior Temporal Gyrus...........",-56, 39,-13,2, -999, "" } ,
+      { 30,"Left  Insula............................", 39,  7,  9,2, -999, "" } ,
+      { 30,"Right Insula............................",-39,  7,  9,2, -999, "" } ,
+      { 31,"Left  Parahippocampal Gyrus.............", 25, 25,-12,2, -999, "" } ,
+      { 31,"Right Parahippocampal Gyrus.............",-25, 25,-12,2, -999, "" } ,
+      { 32,"Left  Lingual Gyrus.....................", 14, 78, -3,2, -999, "" } ,
+      { 32,"Right Lingual Gyrus.....................",-14, 78, -3,2, -999, "" } ,
+      { 33,"Left  Middle Occipital Gyrus............", 35, 83,  9,2, -999, "" } ,
+      { 33,"Right Middle Occipital Gyrus............",-35, 83,  9,2, -999, "" } ,
+      { 34,"Left  Orbital Gyrus.....................", 11,-39,-25,2, -999, "" } ,
+      { 34,"Right Orbital Gyrus.....................",-11,-39,-25,2, -999, "" } ,
+      { 35,"Left  Middle Temporal Gyrus.............", 52, 39,  0,2, -999, "" } ,
+      { 35,"Right Middle Temporal Gyrus.............",-52, 39,  0,2, -999, "" } ,
+      { 36,"Left  Superior Temporal Gyrus...........", 51, 17,  0,2, -999, "" } ,
+      { 36,"Right Superior Temporal Gyrus...........",-51, 17,  0,2, -999, "" } ,
+      { 37,"Left  Superior Occipital Gyrus..........", 37, 82, 27,2, -999, "" } ,
+      { 37,"Right Superior Occipital Gyrus..........",-37, 82, 27,2, -999, "" } ,
+      { 39,"Left  Inferior Frontal Gyrus............", 44,-24,  2,2, -999, "" } ,
+      { 39,"Right Inferior Frontal Gyrus............",-44,-24,  2,2, -999, "" } ,
+      { 40,"Left  Cuneus............................", 13, 83, 18,2, -999, "" } ,
+      { 40,"Right Cuneus............................",-13, 83, 18,2, -999, "" } ,
+      { 41,"Left  Angular Gyrus.....................", 45, 64, 33,2, -999, "" } ,
+      { 41,"Right Angular Gyrus.....................",-45, 64, 33,2, -999, "" } ,
+      { 42,"Left  Supramarginal Gyrus...............", 51, 48, 31,2, -999, "" } ,
+      { 42,"Right Supramarginal Gyrus...............",-51, 48, 31,2, -999, "" } ,
+      { 43,"Left  Cingulate Gyrus...................", 10, 11, 34,2, -999, "" } ,
+      { 43,"Right Cingulate Gyrus...................",-10, 11, 34,2, -999, "" } ,
+      { 44,"Left  Inferior Parietal Lobule..........", 48, 41, 39,2, -999, "" } ,
+      { 44,"Right Inferior Parietal Lobule..........",-48, 41, 39,2, -999, "" } ,
+      { 45,"Left  Precuneus.........................", 14, 61, 41,2, -999, "" } ,
+      { 45,"Right Precuneus.........................",-14, 61, 41,2, -999, "" } ,
+      { 46,"Left  Superior Parietal Lobule..........", 27, 59, 53,2, -999, "" } ,
+      { 46,"Right Superior Parietal Lobule..........",-27, 59, 53,2, -999, "" } ,
+      { 47,"Left  Middle Frontal Gyrus..............", 37,-29, 26,2, -999, "" } ,
+      { 47,"Right Middle Frontal Gyrus..............",-37,-29, 26,2, -999, "" } ,
+      { 48,"Left  Paracentral Lobule................",  7, 32, 53,2, -999, "" } ,
+      { 48,"Right Paracentral Lobule................", -7, 32, 53,2, -999, "" } ,
+      { 49,"Left  Postcentral Gyrus.................", 43, 25, 43,2, -999, "" } ,
+      { 49,"Right Postcentral Gyrus.................",-43, 25, 43,2, -999, "" } ,
+      { 50,"Left  Precentral Gyrus..................", 44,  8, 38,2, -999, "" } ,
+      { 50,"Right Precentral Gyrus..................",-44,  8, 38,2, -999, "" } ,
+      { 51,"Left  Superior Frontal Gyrus............", 19,-40, 27,2, -999, "" } ,
+      { 51,"Right Superior Frontal Gyrus............",-19,-40, 27,2, -999, "" } ,
+      { 52,"Left  Medial Frontal Gyrus..............",  9,-24, 35,2, -999, "" } ,
+      { 52,"Right Medial Frontal Gyrus..............", -9,-24, 35,2, -999, "" } ,
+      { 70,"Left  Lentiform Nucleus.................", 22,  1,  2,2, -999, "" } ,
+      { 70,"Right Lentiform Nucleus.................",-22,  1,  2,2, -999, "" } ,
+      { 72,"Left  Hypothalamus......................",  4,  3, -9,4, -999, "" } ,
+      { 72,"Right Hypothalamus......................", -4,  3, -9,4, -999, "" } ,
+      { 73,"Left  Red Nucleus.......................",  5, 19, -4,4, -999, "" } ,
+      { 73,"Right Red Nucleus.......................", -5, 19, -4,4, -999, "" } ,
+      { 74,"Left  Substantia Nigra..................", 11, 18, -7,4, -999, "" } ,
+      { 74,"Right Substantia Nigra..................",-11, 18, -7,4, -999, "" } ,
+      { 75,"Left  Claustrum.........................", 32,  1,  5,2, -999, "" } ,
+      { 75,"Right Claustrum.........................",-32,  1,  5,2, -999, "" } ,
+      { 76,"Left  Thalamus..........................", 12, 19,  8,2, -999, "" } ,
+      { 76,"Right Thalamus..........................",-12, 19,  8,2, -999, "" } ,
+      { 77,"Left  Caudate...........................", 11, -7,  9,2, -999, "" } ,
+      { 77,"Right Caudate...........................",-11, -7,  9,2, -999, "" } ,
+      {124,"Left  Caudate Tail......................", 27, 35,  9,4, -999, "" } ,
+      {124,"Right Caudate Tail......................",-27, 35,  9,4, -999, "" } ,
+      {125,"Left  Caudate Body......................", 12, -6, 14,4, -999, "" } ,
+      {125,"Right Caudate Body......................",-12, -6, 14,4, -999, "" } ,
+      {126,"Left  Caudate Head......................",  9,-13,  0,4, -999, "" } ,
+      {126,"Right Caudate Head......................", -9,-13,  0,4, -999, "" } ,
+      {128,"Left  Ventral Anterior Nucleus..........", 11,  6,  9,4, -999, "" } ,
+      {128,"Right Ventral Anterior Nucleus..........",-11,  6,  9,4, -999, "" } ,
+      {129,"Left  Ventral Posterior Medial Nucleus..", 15, 20,  4,4, -999, "" } ,
+      {129,"Right Ventral Posterior Medial Nucleus..",-15, 20,  4,4, -999, "" } ,
+      {130,"Left  Ventral Posterior Lateral Nucleus.", 18, 19,  5,4, -999, "" } ,
+      {130,"Right Ventral Posterior Lateral Nucleus.",-18, 19,  5,4, -999, "" } ,
+      {131,"Left  Medial Dorsal Nucleus.............",  6, 16,  8,4, -999, "" } ,
+      {131,"Right Medial Dorsal Nucleus.............", -6, 16,  8,4, -999, "" } ,
+      {132,"Left  Lateral Dorsal Nucleus............", 12, 20, 16,4, -999, "" } ,
+      {132,"Right Lateral Dorsal Nucleus............",-12, 20, 16,4, -999, "" } ,
+      {133,"Left  Pulvinar..........................", 16, 27,  8,4, -999, "" } ,
+      {133,"Right Pulvinar..........................",-16, 27,  8,4, -999, "" } ,
+      {134,"Left  Lateral Posterior Nucleus.........", 17, 20, 14,4, -999, "" } ,
+      {134,"Right Lateral Posterior Nucleus.........",-17, 20, 14,4, -999, "" } ,
+      {135,"Left  Ventral Lateral Nucleus...........", 14, 12,  9,4, -999, "" } ,
+      {135,"Right Ventral Lateral Nucleus...........",-14, 12,  9,4, -999, "" } ,
+      {136,"Left  Midline Nucleus...................",  7, 18, 16,4, -999, "" } ,
+      {136,"Right Midline Nucleus...................", -7, 18, 16,4, -999, "" } ,
+      {137,"Left  Anterior Nucleus..................",  8,  8, 12,4, -999, "" } ,   /* 04 Mar 2002 */
+      {137,"Right Anterior Nucleus..................", -8,  8, 12,4, -999, "" } ,
+      {138,"Left  Mammillary Body...................", 11, 20,  2,4, -999, "" } ,
+      {138,"Right Mammillary Body...................",-11, 20,  2,4, -999, "" } ,
+      {144,"Left  Medial Globus Pallidus............", 15,  4, -2,4, -999, "" } ,
+      {144,"Right Medial Globus Pallidus............",-15,  4, -2,4, -999, "" } ,
+      {145,"Left  Lateral Globus Pallidus...........", 20,  5,  0,4, -999, "" } ,
+      {145,"Right Lateral Globus Pallidus...........",-20,  5,  0,4, -999, "" } ,
+      {151,"Left  Putamen...........................", 24,  0,  3,4, -999, "" } ,
+      {151,"Right Putamen...........................",-24,  0,  3,4, -999, "" } ,
+      {146,"Left  Nucleus Accumbens.................", 12, -8, -8,4, -999, "" } , /* 20 Aug */
+      {146,"Right Nucleus Accumbens.................",-12, -8, -8,4, -999, "" } , /* 2001 */
+      {147,"Left  Medial Geniculum Body.............", 17, 24, -2,4, -999, "" } ,
+      {147,"Right Medial Geniculum Body.............",-17, 24, -2,4, -999, "" } ,
+      {148,"Left  Lateral Geniculum Body............", 22, 24, -1,4, -999, "" } ,
+      {148,"Right Lateral Geniculum Body............",-22, 24, -1,4, -999, "" } ,
+      {149,"Left  Subthalamic Nucleus...............", 10, 13, -3,4, -999, "" } ,
+      {149,"Right Subthalamic Nucleus...............",-10, 13, -3,4, -999, "" } ,
+      { 81,"Left  Brodmann area 1...................", 53, 19, 50,4, -999, "" } ,
+      { 81,"Right Brodmann area 1...................",-53, 19, 50,4, -999, "" } ,
+      { 82,"Left  Brodmann area 2...................", 49, 26, 43,4, -999, "" } ,
+      { 82,"Right Brodmann area 2...................",-49, 26, 43,4, -999, "" } ,
+      { 83,"Left  Brodmann area 3...................", 39, 23, 50,4, -999, "" } ,
+      { 83,"Right Brodmann area 3...................",-39, 23, 50,4, -999, "" } ,
+      { 84,"Left  Brodmann area 4...................", 39, 18, 49,4, -999, "" } ,
+      { 84,"Right Brodmann area 4...................",-39, 18, 49,4, -999, "" } ,
+      { 85,"Left  Brodmann area 5...................", 16, 40, 57,4, -999, "" } ,
+      { 85,"Right Brodmann area 5...................",-16, 40, 57,4, -999, "" } ,
+      { 86,"Left  Brodmann area 6...................", 29,  0, 50,4, -999, "" } ,
+      { 86,"Right Brodmann area 6...................",-29,  0, 50,4, -999, "" } ,
+      { 87,"Left  Brodmann area 7...................", 16, 60, 48,4, -999, "" } ,
+      { 87,"Right Brodmann area 7...................",-16, 60, 48,4, -999, "" } ,
+      { 88,"Left  Brodmann area 8...................", 24,-30, 44,4, -999, "" } ,
+      { 88,"Right Brodmann area 8...................",-24,-30, 44,4, -999, "" } ,
+      { 89,"Left  Brodmann area 9...................", 32,-33, 30,4, -999, "" } ,
+      { 89,"Right Brodmann area 9...................",-32,-33, 30,4, -999, "" } ,
+      { 90,"Left  Brodmann area 10..................", 24,-56,  6,4, -999, "" } ,
+      { 90,"Right Brodmann area 10..................",-24,-56,  6,4, -999, "" } ,
+      { 91,"Left  Brodmann area 11..................", 17,-43,-18,4, -999, "" } ,
+      { 91,"Right Brodmann area 11..................",-17,-43,-18,4, -999, "" } ,
+      { 93,"Left  Brodmann area 13..................", 39,  4,  8,4, -999, "" } ,
+      { 93,"Right Brodmann area 13..................",-39,  4,  8,4, -999, "" } ,
+      { 94,"Left  Brodmann area 17..................", 10, 88,  5,4, -999, "" } ,
+      { 94,"Right Brodmann area 17..................",-10, 88,  5,4, -999, "" } ,
+      { 95,"Left  Brodmann area 18..................", 19, 85,  4,4, -999, "" } ,
+      { 95,"Right Brodmann area 18..................",-19, 85,  4,4, -999, "" } ,
+      { 96,"Left  Brodmann area 19..................", 34, 80, 18,4, -999, "" } ,
+      { 96,"Right Brodmann area 19..................",-34, 80, 18,4, -999, "" } ,
+      { 97,"Left  Brodmann area 20..................", 47, 21,-23,4, -999, "" } ,
+      { 97,"Right Brodmann area 20..................",-47, 21,-23,4, -999, "" } ,
+      { 98,"Left  Brodmann area 21..................", 58, 18,-10,4, -999, "" } ,
+      { 98,"Right Brodmann area 21..................",-58, 18,-10,4, -999, "" } ,
+      { 99,"Left  Brodmann area 22..................", 57, 23,  5,4, -999, "" } ,
+      { 99,"Right Brodmann area 22..................",-57, 23,  5,4, -999, "" } ,
+      {100,"Left  Brodmann area 23..................",  4, 37, 24,4, -999, "" } ,
+      {100,"Right Brodmann area 23..................", -4, 37, 24,4, -999, "" } ,
+      {101,"Left  Brodmann area 24..................",  6, -6, 30,4, -999, "" } ,
+      {101,"Right Brodmann area 24..................", -6, -6, 30,4, -999, "" } ,
+      {102,"Left  Brodmann area 25..................",  6,-15,-13,4, -999, "" } ,
+      {102,"Right Brodmann area 25..................", -6,-15,-13,4, -999, "" } ,
+      {103,"Left  Brodmann area 27..................", 15, 35,  0,4, -999, "" } ,
+      {103,"Right Brodmann area 27..................",-15, 35,  0,4, -999, "" } ,
+      {104,"Left  Brodmann area 28..................", 22, -2,-24,4, -999, "" } ,
+      {104,"Right Brodmann area 28..................",-22, -2,-24,4, -999, "" } ,
+      {105,"Left  Brodmann area 29..................",  6, 48, 11,4, -999, "" } ,
+      {105,"Right Brodmann area 29..................", -6, 48, 11,4, -999, "" } ,
+      {106,"Left  Brodmann area 30..................", 13, 62, 10,4, -999, "" } ,
+      {106,"Right Brodmann area 30..................",-13, 62, 10,4, -999, "" } ,
+      {107,"Left  Brodmann area 31..................",  9, 47, 32,4, -999, "" } ,
+      {107,"Right Brodmann area 31..................", -9, 47, 32,4, -999, "" } ,
+      {108,"Left  Brodmann area 32..................",  8,-24, 30,4, -999, "" } ,
+      {108,"Right Brodmann area 32..................", -8,-24, 30,4, -999, "" } ,
+      {109,"Left  Brodmann area 33..................",  5,-12, 24,4, -999, "" } ,
+      {109,"Right Brodmann area 33..................", -5,-12, 24,4, -999, "" } ,
+      {110,"Left  Brodmann area 34..................", 18,  0,-16,4, -999, "" } ,
+      {110,"Right Brodmann area 34..................",-18,  0,-16,4, -999, "" } ,
+      {111,"Left  Brodmann area 35..................", 23, 25,-15,4, -999, "" } ,
+      {111,"Right Brodmann area 35..................",-23, 25,-15,4, -999, "" } ,
+      {112,"Left  Brodmann area 36..................", 33, 33,-15,4, -999, "" } ,
+      {112,"Right Brodmann area 36..................",-33, 33,-15,4, -999, "" } ,
+      {113,"Left  Brodmann area 37..................", 48, 55, -7,4, -999, "" } ,
+      {113,"Right Brodmann area 37..................",-48, 55, -7,4, -999, "" } ,
+      {114,"Left  Brodmann area 38..................", 41,-12,-23,4, -999, "" } ,
+      {114,"Right Brodmann area 38..................",-41,-12,-23,4, -999, "" } ,
+      {115,"Left  Brodmann area 39..................", 48, 64, 28,4, -999, "" } ,
+      {115,"Right Brodmann area 39..................",-48, 64, 28,4, -999, "" } ,
+      {116,"Left  Brodmann area 40..................", 51, 40, 38,4, -999, "" } ,
+      {116,"Right Brodmann area 40..................",-51, 40, 38,4, -999, "" } ,
+      {117,"Left  Brodmann area 41..................", 47, 26, 11,4, -999, "" } ,
+      {117,"Right Brodmann area 41..................",-47, 26, 11,4, -999, "" } ,
+      {118,"Left  Brodmann area 42..................", 63, 22, 12,4, -999, "" } ,
+      {118,"Right Brodmann area 42..................",-63, 22, 12,4, -999, "" } ,
+      {119,"Left  Brodmann area 43..................", 58, 10, 16,4, -999, "" } ,
+      {119,"Right Brodmann area 43..................",-58, 10, 16,4, -999, "" } ,
+      {120,"Left  Brodmann area 44..................", 53,-11, 12,4, -999, "" } ,
+      {120,"Right Brodmann area 44..................",-53,-11, 12,4, -999, "" } ,
+      {121,"Left  Brodmann area 45..................", 54,-23, 10,4, -999, "" } ,
+      {121,"Right Brodmann area 45..................",-54,-23, 10,4, -999, "" } ,
+      {122,"Left  Brodmann area 46..................", 50,-38, 16,4, -999, "" } ,
+      {122,"Right Brodmann area 46..................",-50,-38, 16,4, -999, "" } ,
+      {123,"Left  Brodmann area 47..................", 38,-24,-11,4, -999, "" } ,
+      {123,"Right Brodmann area 47..................",-38,-24,-11,4, -999, "" } ,
+      { 53,"Left  Uvula of Vermis...................",  2, 65,-32,2, -999, "" } ,
+      { 53,"Right Uvula of Vermis...................", -2, 65,-32,2, -999, "" } ,
+      { 54,"Left  Pyramis of Vermis.................",  2, 73,-28,2, -999, "" } ,
+      { 54,"Right Pyramis of Vermis.................", -2, 73,-28,2, -999, "" } ,
+      { 55,"Left  Tuber of Vermis...................",  2, 71,-24,2, -999, "" } ,
+      { 55,"Right Tuber of Vermis...................", -2, 71,-24,2, -999, "" } ,
+      { 56,"Left  Declive of Vermis.................",  2, 72,-17,2, -999, "" } ,
+      { 56,"Right Declive of Vermis.................", -2, 72,-17,2, -999, "" } ,
+      { 57,"Left  Culmen of Vermis..................",  3, 63, -3,2, -999, "" } ,
+      { 57,"Right Culmen of Vermis..................", -3, 63, -3,2, -999, "" } ,
+      { 58,"Left  Cerebellar Tonsil.................", 28, 51,-36,2, -999, "" } ,
+      { 58,"Right Cerebellar Tonsil.................",-28, 51,-36,2, -999, "" } ,
+      { 59,"Left  Inferior Semi-Lunar Lobule........", 29, 71,-38,2, -999, "" } ,
+      { 59,"Right Inferior Semi-Lunar Lobule........",-29, 71,-38,2, -999, "" } ,
+      { 60,"Left  Fastigium.........................",  7, 54,-20,2, -999, "" } ,
+      { 60,"Right Fastigium.........................", -7, 54,-20,2, -999, "" } ,
+      { 61,"Left  Nodule............................",  7, 55,-27,2, -999, "" } ,
+      { 61,"Right Nodule............................", -7, 55,-27,2, -999, "" } ,
+      { 62,"Left  Uvula.............................", 21, 76,-26,2, -999, "" } ,
+      { 62,"Right Uvula.............................",-21, 76,-26,2, -999, "" } ,
+      { 63,"Left  Pyramis...........................", 27, 74,-30,2, -999, "" } ,
+      { 63,"Right Pyramis...........................",-27, 74,-30,2, -999, "" } ,
+      { 66,"Left  Culmen............................", 20, 46,-16,2, -999, "" } ,
+      { 66,"Right Culmen............................",-20, 46,-16,2, -999, "" } ,
+      { 65,"Left  Declive...........................", 26, 69,-17,2, -999, "" } ,
+      { 65,"Right Declive...........................",-26, 69,-17,2, -999, "" } ,
+      {127,"Left  Dentate...........................", 14, 54,-23,4, -999, "" } ,
+      {127,"Right Dentate...........................",-14, 54,-23,4, -999, "" } ,
+      { 64,"Left  Tuber.............................", 44, 71,-27,2, -999, "" } ,
+      { 64,"Right Tuber.............................",-44, 71,-27,2, -999, "" } ,
+      { 67,"Left  Cerebellar Lingual................",  4, 45,-13,2, -999, "" } ,
+      { 67,"Right Cerebellar Lingual................", -4, 45,-13,2, -999, "" }
 } ;
 
 char * TTO_labels[TTO_COUNT] ;
@@ -421,7 +426,7 @@ char * get_atlas_dirname(void)  /* 31 Jan 2008 -- RWCox */
      epos += id ;
      ii = strlen(ename) ;
      if( ename[ii-1] != '/' ){ ename[ii] = '/'; ename[ii+1] = '\0'; }
-
+/* may want to not rely on this specific atlas for locations of all atlases */
      strcpy(dname,ename); strcat(dname,"TTatlas+tlrc.HEAD");
      if( THD_is_file(dname) ){
        free((void *)elocal); adnam = strdup(ename); return adnam;
@@ -439,28 +444,39 @@ char * get_atlas_dirname(void)  /* 31 Jan 2008 -- RWCox */
 
 THD_3dim_dataset * get_atlas(char *epath, char *aname)
 {
-   char dname[THD_MAX_NAME], ename[THD_MAX_NAME], *elocal=NULL, *eee;
+   char dname[THD_MAX_NAME], ename[THD_MAX_NAME], *elocal=NULL;
    THD_3dim_dataset *dset = NULL;
    int epos=0, ll=0, ii=0, id = 0;
+   byte LocalHead = 0;
 
    ENTRY("get_atlas");
-
+/* change to allow full path in dataset name, or current directory,
+   and not necessarily separate path*/
    if( epath != NULL ){ /* A path or dset was specified */
       if (aname == NULL) { /* all in epath */
          dset = THD_open_one_dataset( epath ) ;  /* try to open it */
+         if(dset!=NULL) {
+            DSET_mallocize (dset);
+            DSET_load (dset);	                /* load dataset */
+         }
       } else  {
          strncpy(dname,epath, (THD_MAX_NAME-2)*sizeof(char)) ;
          ii = strlen(dname);
          if (dname[ii-1] != '/') {
             dname[ii] = '/'; dname[ii+1] = '\0';
          }
-         strncat(dname,aname, THD_MAX_NAME - strlen(dname)) ;               /* add dataset name */
+         strncat(dname,aname, THD_MAX_NAME - strlen(dname)) ;
+                                                /* add dataset name */
          dset = THD_open_one_dataset( dname ) ;
+         if(dset!=NULL) {
+            DSET_mallocize (dset);
+            DSET_load (dset);	                /* load dataset */
+         }
       }
       if( !dset ){                     /* got it!!! */
          ERROR_message("Failed to read dset %s\n", epath);
-         RETURN(dset);
       }
+      RETURN(dset);   /* return NULL or dset for specified path input */
    } else { /* no path given */
       if (aname == NULL) { /* nothing to work with here !*/
          ERROR_message("No path, no name, no soup for you.\n");
@@ -505,18 +521,22 @@ THD_3dim_dataset * get_atlas(char *epath, char *aname)
          }
          strcpy(dname,ename) ;
          strcat(dname,aname) ;               /* add dataset name */
-
+         if(LocalHead)
+             INFO_message("trying to open dataset:%s", dname);
          dset = THD_open_one_dataset( dname ) ;      /* try to open it */
 
          if( dset != NULL ){                         /* got it!!! */
+            DSET_mallocize (dset);
+            DSET_load (dset);	                /* load dataset */
             free(elocal); RETURN(dset);
          }
 
-      } while( epos < ll ) ;  /* scan until 'epos' is after end of epath */
+      } while(( epos < ll ) || (dset!=NULL)) ;  /* scan until 'epos' is after end of epath */
 
 
    } /* No path given */
 
+   /* should only get here if no dataset found */
    RETURN(dset);
 }
 
@@ -586,7 +606,9 @@ void CA_EZ_LR_purge_atlas(void)
 /*----------------------------------------------------------------------
    Begin coordinate transformation functions
 ------------------------------------------------------------------------*/
+#if 0
 static THD_3dim_dataset *MNI_N27_to_TLRC_DSET = NULL;
+#endif
 
 /*------------------------------------------------------------------------
    Forward transform a vector following a warp
@@ -688,7 +710,7 @@ THD_fvec3 AFNI_backward_warp_vector( THD_warp * warp , THD_fvec3 old_fv )
 THD_fvec3 THD_mni__tta_N27( THD_fvec3 mv, int dir )
 {
    static THD_talairach_12_warp *ww=NULL;
-   float mx,my,mz , tx,ty,tz ;
+   float tx,ty,tz ;
    int iw, ioff;
    THD_fvec3 tv, tv2;
 
@@ -696,6 +718,7 @@ THD_fvec3 THD_mni__tta_N27( THD_fvec3 mv, int dir )
    LOAD_FVEC3( tv , tx,ty,tz ) ;
    LOAD_FVEC3( tv2 , tx,ty,tz ) ;
 
+#if 0
    if (0) { /* Meth. 1, Left here should we allow user someday to specify a .HEAD with their own transform... */
       INFO_message("What about the path?\nNeed something fool proof\n");
       if (!MNI_N27_to_TLRC_DSET) {
@@ -721,6 +744,7 @@ THD_fvec3 THD_mni__tta_N27( THD_fvec3 mv, int dir )
          INFO_message("tv(Meth 1): %f %f %f\n", tv.xyz[0], tv.xyz[1], tv.xyz[2]);
       }
    }
+#endif
 
    /* Meth 2, xform in code, more fool proof*/
    if (!ww) {
@@ -802,6 +826,7 @@ char MNI_Anatomical_Side(ATLAS_COORD ac)
 
    ENTRY("MNI_Anatomical_Side");
 
+/* allow for different input spaces - TLRC, MNI, MNI_ANAT and others */
    if (ac.space != AFNI_TLRC_SPC) {
       ERROR_message("Coordinates must be in AFNI_TLRC_SPC");
       RETURN('u');
@@ -865,8 +890,7 @@ char Atlas_Voxel_Side( THD_3dim_dataset *dset, int k1d, byte *lrmask)
 {
    THD_ivec3 ijk ;
    THD_fvec3 xyz ;
-   int  ix,jy,kz , nx,ny,nz,nxy, ii=0, kk=0;
-   byte LocalHead = 0;
+   int  ix,jy,kz , nx,ny,nz,nxy;
 
    ENTRY("Atlas_Voxel_Side");
 
@@ -955,7 +979,8 @@ char * Atlas_Query_to_String (ATLAS_QUERY *wami,
    /* the original starting space has the coordinates for that space */
    start_space = ac.space;  /* save the index of the original space */
    acv[ac.space] = ac;
-   
+/* use general transformation among spaces from NIML database here
+    if possible. Need which output spaces or show all available output spaces */  
    switch (ac.space) {
       default: ERROR_message("bad ac.space") ; RETURN(rbuf);
       case AFNI_TLRC_SPC:
@@ -1312,15 +1337,18 @@ void TT_whereami_set_outmode(WAMI_SORT_MODES md)
    return;
 }
 
+/* need to make atlas list flexibly sized.
+   Probably use NIML-based structure instead */
 static int TT_whereami_n_atlas_list = 0;
-static AFNI_ATLAS_CODES TT_whereami_atlas_list[NUMBER_OF_ATLASES] = { UNKNOWN_ATLAS, UNKNOWN_ATLAS, UNKNOWN_ATLAS, UNKNOWN_ATLAS };
+static AFNI_ATLAS_CODES TT_whereami_atlas_list[NUMBER_OF_ATLASES] = 
+      { UNKNOWN_ATLAS, UNKNOWN_ATLAS, UNKNOWN_ATLAS, UNKNOWN_ATLAS,
+        UNKNOWN_ATLAS, UNKNOWN_ATLAS, UNKNOWN_ATLAS };
 
 void TT_whereami_add_atlas(AFNI_ATLAS_CODES ac)
 {
    int i, fnd=0;
 
    if (ac <=  UNKNOWN_ATLAS || ac >= NUMBER_OF_ATLASES) {
-      ERROR_message("What are you doing?");
       return;
    }
 
@@ -1349,7 +1377,6 @@ void TT_whereami_remove_atlas(AFNI_ATLAS_CODES ac)
    int i, fnd=0;
 
    if (ac <=  UNKNOWN_ATLAS || ac >= NUMBER_OF_ATLASES) {
-      ERROR_message("What are you doing?");
       return;
    }
 
@@ -1389,75 +1416,22 @@ AFNI_STD_SPACES TT_whereami_default_spc (void)
       return(AFNI_TLRC_SPC);
    }
 }
-/* a new version of TT_whereami that can use the variety
-   of atlases */
-/****tbd spc is the input space here - for new atlas space, will use atlas_space structure instead */
-char * TT_whereami_genx( float xx , float yy , float zz, AFNI_STD_SPACES spc)
-{
-   ATLAS_COORD ac;
-   ATLAS_QUERY *wami = NULL;
-   char *rbuf = NULL, *strg = NULL ;
-   int k;
-
-   ENTRY("TT_whereami_genx") ;
-
-   /* build atlas list */
-   if (TT_whereami_n_atlas_list == 0) {
-      /* Uninitialized, get them all */
-      for (k=UNKNOWN_ATLAS+1; k<NUMBER_OF_ATLASES; ++k) {
-         TT_whereami_add_atlas(k);
-      }
-   }
-
-   switch (spc) {
-      case UNKNOWN_SPC:
-         spc = TT_whereami_default_spc();
-         break;
-      case MNI_SPC:
-      case MNI_ANAT_SPC:
-      case AFNI_TLRC_SPC:
-         /* OK, do nothing */
-         break;
-      default:
-         WARNING_message("Bad coordinate space %d\n", spc);
-         RETURN(rbuf) ;
-   }
-
-   /* build coord structure */
-   ac.x = xx; ac.y = yy; ac.z = zz; ac.space = spc;
-
-/* ***tbd whereami_9yards converts coordinates among spaces and
-      looks up coordinates through radius among atlases in atlas list */
-/* will need to change this to use new atlas_list from NIML database */ 
-/* modify whereami_9yards to use xform list */
-   strg = whereami_9yards( ac, &wami,
-                           TT_whereami_atlas_list, TT_whereami_n_atlas_list);
-   if (strg) {
-      WARNING_message("Unexpected string (%s) from whereami_9yards\n", strg);
-      free(strg); strg = NULL; /* nothing useful here */
-   }
-   if (!wami) {
-      ERROR_message("No atlas regions found.");
-      RETURN(rbuf) ;
-   }
-
-   /* Now form the string */
-   rbuf =  Atlas_Query_to_String (wami, ac, TT_whereami_mode);
-
-   /*cleanup*/
-   if (wami)  wami = Free_Atlas_Query(wami);
-
-   RETURN(rbuf) ;
-}
 
 char * TT_whereami( float xx , float yy , float zz, AFNI_STD_SPACES spc)
 {
    ATLAS_COORD ac;
    ATLAS_QUERY *wami = NULL;
    char *rbuf = NULL, *strg = NULL ;
-   int k;
+   int k = 1, i;
+   static int first_time = 1;
+   static ATLAS_LIST *atlas_alist;
+   int old_way = 1, iatlas;
+   int LocalHead = 0;
 
-   ENTRY("TT_whereami") ;
+   ENTRY("TT_whereami_genx") ;
+
+   /* initialize the single custom atlas entry */
+   init_custom_atlas();
 
    /* build atlas list */
    if (TT_whereami_n_atlas_list == 0) {
@@ -1466,6 +1440,47 @@ char * TT_whereami( float xx , float yy , float zz, AFNI_STD_SPACES spc)
          TT_whereami_add_atlas(k);
       }
    }
+
+   if (first_time) {
+      /* initialize atlas list */
+      atlas_alist = (ATLAS_LIST *) malloc(sizeof(ATLAS_LIST));
+      if(!atlas_alist){
+         ERROR_message("Could not initialize atlas list");
+         RETURN(NULL);
+      }
+      if (LocalHead) INFO_message("Allocating atlas table");
+ 
+      atlas_alist->natlases = NUMBER_OF_ATLASES;
+      atlas_alist->atlas = (ATLAS *) malloc(
+                              atlas_alist->natlases * sizeof(ATLAS));
+      for(i=0;i<atlas_alist->natlases;i++) {
+         atlas_alist->atlas[i].atlas_dset_name = NULL;
+         atlas_alist->atlas[i].atlas_space = NULL;
+         atlas_alist->atlas[i].atlas_dset = NULL;
+      }
+
+      if(old_way) {    /* populate atlas list from old fixed list of atlases */
+         if (LocalHead) INFO_message("Using old way to fill atlas table");
+         atlas_alist->natlases = TT_whereami_n_atlas_list;
+         for (iatlas=0; iatlas<TT_whereami_n_atlas_list; ++iatlas) {
+            atlas_alist->atlas[iatlas].atlas_dset_name = nifti_strdup(
+               Atlas_Code_to_Atlas_Dset_Name(TT_whereami_atlas_list[iatlas]));
+            if(LocalHead) INFO_message("adding atlas %s",
+                 atlas_alist->atlas[iatlas].atlas_dset_name);
+         }
+      }
+      else {           /* fill from NIML table files */
+      }
+         first_time = 0;
+   }
+#if 0
+
+      if(!init_space_structs(&atlas_xfl, &atlas_alist,
+                          &atlas_spaces, &atlas_templates))
+        ERROR_message("Could not initialize structures for template spaces");
+#endif
+  
+   if (LocalHead) INFO_message("Using old way to fill atlas spaces");
 
    switch (spc) {
       case UNKNOWN_SPC:
@@ -1488,8 +1503,11 @@ char * TT_whereami( float xx , float yy , float zz, AFNI_STD_SPACES spc)
       looks up coordinates through radius among atlases in atlas list */
 /* will need to change this to use new atlas_list from NIML database */ 
 /* modify whereami_9yards to use xform list */
-   strg = whereami_9yards( ac, &wami,
-                           TT_whereami_atlas_list, TT_whereami_n_atlas_list);
+   strg = whereami_9yards( ac, &wami, atlas_alist);
+
+
+/*   strg = whereami_9yards( ac, &wami,
+                           TT_whereami_atlas_list, TT_whereami_n_atlas_list);*/
    if (strg) {
       WARNING_message("Unexpected string (%s) from whereami_9yards\n", strg);
       free(strg); strg = NULL; /* nothing useful here */
@@ -1810,7 +1828,7 @@ char Is_Side_Label(char *str, char *opt)
 /* inverse sort ints */
 int *z_idqsort (int *x , int nx )
 {/*z_idqsort*/
-   static char FuncName[]={"z_idqsort"};
+/*   static char FuncName[]={"z_idqsort"};*/
    int *I, k;
    Z_QSORT_INT *Z_Q_fStrct;
 
@@ -1889,7 +1907,7 @@ int *z_rand_order(int bot, int top, long int seed) {
 /* inverse sort floats */
 int *z_iqsort (float *x , int nx )
 {/*z_iqsort*/
-   static char FuncName[]={"z_iqsort"};
+/*   static char FuncName[]={"z_iqsort"};*/
    int *I, k;
    Z_QSORT_FLOAT *Z_Q_fStrct;
 
@@ -1986,7 +2004,7 @@ int * UniqueInt (int *y, int ysz, int *kunq, int Sorted )
 {/*UniqueInt*/
    int  *xunq, *x;
    int k;
-   byte LocalHead = 0;
+/*   byte LocalHead = 0;*/
    static char FuncName[]={"UniqueInt"};
 
    ENTRY("UniqueInt");
@@ -2050,7 +2068,7 @@ short * UniqueShort (short *y, int ysz, int *kunq, int Sorted )
 {/*UniqueShort*/
    short  *xunq, *x;
    int k;
-   byte LocalHead = 0;
+/*   byte LocalHead = 0;*/
    static char FuncName[]={"UniqueShort"};
 
    ENTRY("UniqueShort");
@@ -2113,7 +2131,7 @@ byte * UniqueByte (byte *y, int ysz, int *kunq, int Sorted )
 {/*UniqueByte*/
    byte  *xunq, *x;
    int k;
-   byte LocalHead = 0;
+/*   byte LocalHead = 0;*/
    static char FuncName[]={"UniqueByte"};
 
    ENTRY("UniqueByte");
@@ -2381,10 +2399,77 @@ AFNI_ATLAS *Build_Atlas (AFNI_ATLAS_CODES ac)
 {
    AFNI_ATLAS *aa=NULL;
    int k = 0;
+   ATLAS_DSET_HOLDER adh;
+   int ii, pmap;
+   byte LocalHead = 0;
+   static int n_warn[NUMBER_OF_ATLASES];
+   THD_3dim_dataset *dset;
+   ATR_int *pmap_atr;
 
    ENTRY("Build_Atlas") ;
 
+   /* Load the dataset */
+   if (LocalHead) fprintf(stderr,"Loading %s\n", Atlas_Code_to_Atlas_Name(ac));
+   dset = load_atlas((char *) Atlas_Code_to_Atlas_Dset_Name(ac));
+   if (dset == NULL) {
+      if (!n_warn[ac]) 
+          WARNING_message(  "Could not read atlas dset1 %s+tlrc \n"
+                            "See whereami -help for help on installing\n"
+                            "atlases.\n",
+                        Atlas_Code_to_Atlas_Dset_Name(ac));
+      ++(n_warn[ac]);
+      RETURN(NULL);
+   }
+
+   if (LocalHead) fprintf(stderr,"%s loaded\n", Atlas_Code_to_Atlas_Name(ac));
+
+   adh.dset = dset;
+   adh.mxlablen = ATLAS_CMAX;
+   adh.probkey = -2;
+
+   if (LocalHead) fprintf(stderr,"Getting NIML attribute segmentation\n");
+   /* check to see if atlas dataset has NIML attributes for segmentation *****/
+   adh.apl2 = dset_niml_to_atlas_list(adh.dset);
+   if(adh.apl2 == NULL) {
+      if (LocalHead) fprintf(stderr,"No NIML attributes.\n"
+                          "Getting hard-coded segmentation\n");
+
+      if(set_adh_old_way(&adh, ac))
+         WARNING_message(  "Could not read atlas dset2 %s+tlrc \n"
+                            "See whereami -help for help on installing\n"
+                            "atlases.\n",
+                        Atlas_Code_to_Atlas_Dset_Name(ac));
+         ++(n_warn[ac]);
+   }
+   else {
+      if (LocalHead) fprintf(stderr,"NIML attributes being used.\n");
+
+      adh.mxelm = adh.apl2->n_points;
+
+      for (ii=0; ii<adh.mxelm; ++ii) {
+         if(adh.apl2->at_point[ii].tdval > adh.maxindexcode)
+             adh.maxindexcode = adh.apl2->at_point[ii].tdval;
+      }
+      adh.apl = adh.apl2->at_point;
+   }
+
+   if (LocalHead) fprintf(stderr, "assigned NIML attributes to apl.\n");
+   pmap_atr = THD_find_int_atr( adh.dset->dblk,"ATLAS_PROB_MAP" ) ;
+   if(pmap_atr!=NULL) {
+      pmap = pmap_atr->in[0] ;
+      if (pmap==1)
+         adh.probkey = 0;
+      else
+         adh.probkey = -1;
+      if (LocalHead) fprintf(stderr, "probability map %d\n", pmap);
+   }
+
+   adh.duplicateLRentries = 0; 
+   adh.build_lr = 0;
+
+
    switch (ac) {
+#if 0
       case AFNI_TLRC_ATLAS:
          aa = (AFNI_ATLAS *)malloc(sizeof(AFNI_ATLAS));
          aa->AtlasLabel = strdup(Atlas_Code_to_Atlas_Name(AFNI_TLRC_ATLAS));
@@ -2435,7 +2520,18 @@ AFNI_ATLAS *Build_Atlas (AFNI_ATLAS_CODES ac)
             /* Show_Atlas_Region (aa->reg[k]); */
          }
          break;
+#endif
+
       default:
+         aa = (AFNI_ATLAS *)malloc(sizeof(AFNI_ATLAS));
+         aa->AtlasLabel = strdup(Atlas_Code_to_Atlas_Name(AFNI_TLRC_ATLAS));
+         aa->N_regions = adh.mxelm;
+         aa->reg = (AFNI_ATLAS_REGION **)calloc(aa->N_regions, sizeof(AFNI_ATLAS_REGION *));
+         for (k=0; k<aa->N_regions; ++k) {
+            aa->reg[k] = Atlas_Chunk_Label(adh.apl[k].name, adh.apl[k].tdval);
+            /* Show_Atlas_Region (aa->reg[k]); */
+         }
+#if 0
          ERROR_message( "No such atlas code %d \n"
                         "Available names (codes) are:\n"
                         "%s (%d), %s (%d), %s (%d), %s (%d), %s (%d)\n", ac,
@@ -2445,6 +2541,8 @@ AFNI_ATLAS *Build_Atlas (AFNI_ATLAS_CODES ac)
                         Atlas_Code_to_Atlas_Name(CA_EZ_N27_ML_ATLAS), CA_EZ_N27_ML_ATLAS,
                         Atlas_Code_to_Atlas_Name(CA_EZ_N27_LR_ATLAS), CA_EZ_N27_LR_ATLAS);
          RETURN(aa);
+#endif
+
    }
 
    RETURN(aa);
@@ -2716,10 +2814,15 @@ ATLAS_SEARCH *Free_Atlas_Search(ATLAS_SEARCH *as)
 /*!
    Return a byte mask for a particular atlas region
 */
-THD_3dim_dataset *Atlas_Region_Mask(AFNI_ATLAS_CODES atcode, AFNI_ATLAS_REGION *aar, int *codes, int n_codes)
+THD_3dim_dataset *Atlas_Region_Mask(AFNI_ATLAS_CODES atcode,
+      AFNI_ATLAS_REGION *aar, int *codes, int n_codes)
 {
-      byte *bmask = NULL, *ba=NULL, LocalHead = 0;
-      int ii=0, sb, nxyz, nx, ny, nz, kk, ll = 0, fnd = -1, fnd2=-1;
+      short *ba=NULL, LocalHead = 0;
+      byte *bba = NULL;
+      float *fba = NULL;
+      byte *bmask = NULL;
+      int ii=0, sb, nxyz, kk, ll = 0, fnd = -1, fnd2=-1;
+      int ba_val, dset_kind, have_brik;
       THD_3dim_dataset * maskset = NULL;
       char madeupname[500], madeuplabel[40];
       ATLAS_DSET_HOLDER adh;
@@ -2741,51 +2844,122 @@ THD_3dim_dataset *Atlas_Region_Mask(AFNI_ATLAS_CODES atcode, AFNI_ATLAS_REGION *
 
       adh = Atlas_With_Trimming (atcode, 1);
       if (!adh.dset) {
-         ERROR_message("Failed getting atlas");
+         ERROR_message("Failed getting atlas for mask");
          RETURN(NULL);
       }
 
+      if (LocalHead)
+         fprintf(stderr,"Found atlas for mask\n   ");
+
       nxyz = DSET_NX(adh.dset) * DSET_NY(adh.dset) * DSET_NZ(adh.dset);
-      if (!(bmask = (byte*)calloc(nxyz, sizeof(byte)))) {
+      if (!(bmask = (byte *)calloc(nxyz, sizeof(byte)))) {
          ERROR_message("Failed to allocate for mask");
          RETURN(maskset);
       }
 
       if (atcode != CA_EZ_N27_PMAPS_ATLAS) {
          for (sb=0; sb < DSET_NVALS(adh.dset); ++sb) {
-            ba = DSET_BRICK_ARRAY(adh.dset,sb);
-            if (!ba) { ERROR_message("Unexpected NULL array"); free(bmask); bmask = NULL; RETURN(maskset); }
+            dset_kind = DSET_BRICK_TYPE(adh.dset,sb);
+            if(dset_kind == MRI_short) {
+               ba = DSET_BRICK_ARRAY(adh.dset,sb); /* short type */
+               if (!ba) { 
+                  ERROR_message("Unexpected NULL array");
+                  free(bmask); bmask = NULL;
+                  RETURN(maskset);
+               }
+            }
+            else {
+               bba = DSET_BRICK_ARRAY(adh.dset,sb); /* byte array */
+               if (!bba) { 
+                  ERROR_message("Unexpected NULL array");
+                  free(bmask); bmask = NULL;
+                  RETURN(maskset);
+               }
+            }
 
             for (kk=0; kk < n_codes; ++kk) {
                for (ii=0; ii< nxyz; ++ii) {
-                  if (ba[ii] == codes[kk]) bmask[ii] = codes[kk];
+                  if (dset_kind == MRI_short)
+                     ba_val = ba[ii];
+                  else
+                     ba_val = (int) bba[ii];
+                  /* if voxel value matches code value
+                     make byte mask 1 at that voxel */
+                  if (ba_val == codes[kk]) bmask[ii] = 1; 
+                   /* used to assign bmask[ii] = codes[kk]; */
                }
             }
 
          }
-      } else { /* got to dump a particular sub-brick */
+      } else { /* got to dump a particular sub-brick for probability maps*/
          if (LocalHead) INFO_message("Speciality");
+
+         /* assume all sub-bricks are the same type */
+         dset_kind = DSET_BRICK_TYPE(adh.dset,0);
+
          for (kk=0; kk < n_codes; ++kk) {
             /* find label to go with code */
             ll = 0;
             fnd = -1;
-            while (ll<CA_EZ_COUNT && fnd < 0) {
-               if (CA_EZ_list[ll].tdval == codes[kk]) fnd = ll;
+            while (ll<DSET_NVALS(adh.dset) && fnd < 0) {
+               if (adh.apl[ll].tdval == codes[kk]) fnd = ll;
                else ++ll;
             }
             if (fnd < 0) {ERROR_message("Unexpected negative find"); free(bmask); bmask = NULL; RETURN(maskset); }
 
-            if (LocalHead) INFO_message("Looking for sub-brick labeled %s\n", Clean_Atlas_Label(CA_EZ_list[fnd].dsetpref));
+            if (LocalHead)
+               INFO_message("Looking for sub-brick labeled %s\n",
+                      Clean_Atlas_Label(adh.apl[fnd].dsetpref));
             fnd2 = -1;
             sb = 0;
             while (sb < DSET_NVALS(adh.dset) && fnd2 < 0) { /* sb in question should be nothing but fnd. But be careful nonetheless */
-               if (DSET_BRICK_LAB(adh.dset,sb) && strcmp(DSET_BRICK_LAB(adh.dset,sb), Clean_Atlas_Label(CA_EZ_list[fnd].dsetpref)) == 0) fnd2 = sb;
+               if (DSET_BRICK_LAB(adh.dset,sb) && 
+                  strcmp(DSET_BRICK_LAB(adh.dset,sb), Clean_Atlas_Label(adh.apl[fnd].dsetpref)) == 0)
+                    fnd2 = sb;
                else ++sb;
             }
-            if (fnd2 < 0) {ERROR_message("Unexpected negative find"); free(bmask); bmask = NULL; RETURN(maskset); }
-            ba = DSET_BRICK_ARRAY(adh.dset,fnd2);
-            for (ii=0; ii< nxyz; ++ii) {
-               if (ba[ii]) bmask[ii] = ba[ii];
+            if (fnd2 < 0) {
+                ERROR_message("Unexpected negative find");
+                free(bmask); bmask = NULL; RETURN(maskset);
+            }
+
+            /* fill byte mask with values wherever probability is non-zero */
+            have_brik = 0;
+            switch(dset_kind) {
+              case MRI_short :
+                 ba = DSET_BRICK_ARRAY(adh.dset,fnd2); /* short type */
+                 if (ba) {
+                    have_brik = 1;
+                    for (ii=0; ii< nxyz; ++ii) {
+                       if (ba[ii]) bmask[ii] = ba[ii];
+                    }
+                 }
+                 break;
+              case MRI_byte :
+                 bba = DSET_BRICK_ARRAY(adh.dset,fnd2); /* byte array */
+                 if (bba) {
+                    have_brik = 1;
+                    for (ii=0; ii< nxyz; ++ii) {
+                       if (bba[ii]) bmask[ii] = bba[ii];
+                    }
+                 }
+                 break;
+              case MRI_float : /* floating point probability */
+                 fba = DSET_BRICK_ARRAY(adh.dset,fnd2); /* float array */
+                 if (fba) {
+                    have_brik = 1;
+                    for (ii=0; ii< nxyz; ++ii) {
+                       if (fba[ii]>0.0) bmask[ii] = 250.0*fba[ii]; /* save as 0-250 */
+                    }
+                 }
+                 break;
+              default :
+                 ERROR_message("Unexpected data type for probability maps");
+            }
+
+            if(have_brik==0){
+                ERROR_message("Could not get sub-brick from probability atlas");
+                free(bmask); bmask = NULL; RETURN(maskset);
             }
          }
       }
@@ -3144,7 +3318,7 @@ AFNI_ATLAS_CODES Atlas_Name_to_Atlas_Code (char *name)
 
 const char *Atlas_Code_to_Atlas_Dset_Name (AFNI_ATLAS_CODES cod)
 {
-   ENTRY("Atlas_Code_to_Atlas_Name");
+   ENTRY("Atlas_Code_to_Atlas_Dset_Name");
 
    switch(cod) {
       case UNKNOWN_ATLAS:
@@ -3160,7 +3334,7 @@ const char *Atlas_Code_to_Atlas_Dset_Name (AFNI_ATLAS_CODES cod)
       case CA_EZ_N27_PMAPS_ATLAS:
          RETURN(CA_EZ_N27_PMaps_TT_PREFIX);
       case CUSTOM_ATLAS :
-         RETURN("Custom atlas name");
+        RETURN(CUSTOM_ATLAS_PREFIX);
       case NUMBER_OF_ATLASES:
          RETURN("Flag for number of atlases");
       default:
@@ -3169,6 +3343,33 @@ const char *Atlas_Code_to_Atlas_Dset_Name (AFNI_ATLAS_CODES cod)
 
    RETURN("No way Bert.");
 }
+
+AFNI_ATLAS_CODES
+Atlas_Dset_Name_to_Atlas_Code (const char *dset_name)
+{
+   byte LocalHead = 0;
+
+   ENTRY("Atlas_Dset_Name_to_Atlas_Code");
+
+   if (LocalHead)
+      INFO_message("Finding code from dataset name %s", dset_name);
+   if(strcmp(dset_name, TT_DAEMON_TT_PREFIX)==0){
+      if(LocalHead) INFO_message("Code for AFNI_TLRC_ATLAS %d",AFNI_TLRC_ATLAS);
+      RETURN(AFNI_TLRC_ATLAS);
+   }
+   if(strcmp(dset_name, CA_EZ_N27_MPM_TT_PREFIX)==0)
+      RETURN(CA_EZ_N27_MPM_ATLAS);
+   if(strcmp(dset_name, CA_EZ_N27_ML_TT_PREFIX)==0)
+      RETURN(CA_EZ_N27_ML_ATLAS);
+   if(strcmp(dset_name, CA_EZ_N27_LR_TT_PREFIX)==0)
+      RETURN(CA_EZ_N27_LR_ATLAS);
+   if(strcmp(dset_name, CA_EZ_N27_PMaps_TT_PREFIX)==0)
+      RETURN(CA_EZ_N27_PMAPS_ATLAS);
+   if(strcmp(dset_name, CUSTOM_ATLAS_PREFIX)==0)
+      RETURN(CUSTOM_ATLAS);
+   RETURN(UNKNOWN_ATLAS);
+}
+
 const char *Atlas_Code_to_Atlas_Name (AFNI_ATLAS_CODES cod)
 {
    ENTRY("Atlas_Code_to_Atlas_Name");
@@ -3186,6 +3387,8 @@ const char *Atlas_Code_to_Atlas_Name (AFNI_ATLAS_CODES cod)
          RETURN("CA_N27_LR");
       case CA_EZ_N27_PMAPS_ATLAS:
          RETURN("CA_N27_PM");
+      case CUSTOM_ATLAS:
+         RETURN(CUSTOM_ATLAS_PREFIX);
       case NUMBER_OF_ATLASES:
          RETURN("Flag for number of atlases");
       default:
@@ -3196,7 +3399,7 @@ const char *Atlas_Code_to_Atlas_Name (AFNI_ATLAS_CODES cod)
 }
 const char *Atlas_Code_to_Atlas_Description (AFNI_ATLAS_CODES cod)
 {
-   ENTRY("Atlas_Code_to_Atlas_Name");
+   ENTRY("Atlas_Code_to_Atlas_Description");
 
    switch(cod) {
       case UNKNOWN_ATLAS:
@@ -3211,6 +3414,8 @@ const char *Atlas_Code_to_Atlas_Description (AFNI_ATLAS_CODES cod)
          RETURN("Left/Right (N27)");
       case CA_EZ_N27_PMAPS_ATLAS:
          RETURN("Cytoarch. Probabilistic Maps (N27)");
+      case CUSTOM_ATLAS:
+         RETURN(CUSTOM_ATLAS_PREFIX);
       case NUMBER_OF_ATLASES:
          RETURN("Flag for number of atlases");
       default:
@@ -3218,6 +3423,23 @@ const char *Atlas_Code_to_Atlas_Description (AFNI_ATLAS_CODES cod)
    }
 
    RETURN("No way Bert.");
+}
+
+void
+init_custom_atlas()
+{
+   char *cust_atlas_str;
+   byte LocalHead = 0;
+
+   ENTRY("init_custom_atlas");
+
+   cust_atlas_str = getenv("AFNI_CUSTOM_ATLAS");   
+
+   if(cust_atlas_str)
+      snprintf(CUSTOM_ATLAS_PREFIX, 255*sizeof(char), "%s", cust_atlas_str);
+   if(LocalHead)
+      INFO_message("CUSTOM_ATLAS_PREFIX = %s", CUSTOM_ATLAS_PREFIX);
+   EXRETURN;
 }
 
 /*!
@@ -3469,11 +3691,9 @@ ATLAS_QUERY *Free_Atlas_Query(ATLAS_QUERY *aq)
 int Check_Version_Match(THD_3dim_dataset * dset, AFNI_ATLAS_CODES ac)
 {
    ATR_int *notecount;
-   ATR_string *note;
-   int num_notes, i, j, num_char , mmm ;
-   char note_name[20], *chn , *chd, *mt ;
-   int k = 0;
-
+   int num_notes, i, j, mmm ;
+   char *chn , *chd, *mt ;
+ 
    ENTRY("Check_Version_Match");
    if (!dset) RETURN(0); /* not good */
 
@@ -3664,6 +3884,33 @@ int CA_EZ_PMaps_load_atlas(void)
    RETURN(0) ; /* got here -> didn't find it */
 }
 
+/* load any atlas (ignoring different environment variables
+   for alternate locations) */
+THD_3dim_dataset *load_atlas(char *dsetname)
+{
+   char *epath ;
+   char atpref[256];
+   THD_3dim_dataset *dset;
+   byte LocalHead = 0;
+
+   ENTRY("load_atlas");
+   /* suggested path, if any - if not set, then use afni, plugin or current dir*/
+   epath = getenv("AFNI_TTATLAS_DATASET") ;
+   /* try the AFNI format with +tlrc in the name */
+   snprintf(atpref, 255*sizeof(char), "%s+tlrc", dsetname);
+   if(LocalHead)
+      INFO_message("load_atlas: epath %s, atpref %s", epath, atpref);
+   dset = get_atlas( epath, atpref ) ;  /* try to open it */
+   if (!dset) { /* try NIFTI naming */
+      if(LocalHead)
+         INFO_message("load_atlas: no AFNI format found");
+      snprintf(atpref, 255*sizeof(char), "%s.nii.gz", dsetname);
+      dset = get_atlas( epath, atpref) ;
+   }
+   /* if not found, return null; otherwise, return dataset */
+   RETURN(dset) ;
+}
+
 
 #define IS_BLANK(c) ( ((c) == ' ' || (c) == '\t' || (c) == '\n' || (c) == '\v' || (c) == '\f' || (c) == '\r') ? 1 : 0 )
 
@@ -3783,10 +4030,12 @@ const char *Atlas_Val_to_Atlas_Name(ATLAS_DSET_HOLDER adh, int tdval)
 ATLAS_DSET_HOLDER Atlas_With_Trimming (AFNI_ATLAS_CODES atcode, int LoadLRMask)
 {
    ATLAS_DSET_HOLDER adh;
-   int ii;
-   byte build_lr = 1;
+   int ii, pmap;
+/*   byte build_lr = 1; */
    byte LocalHead = 0;
    static int n_warn[NUMBER_OF_ATLASES];
+   THD_3dim_dataset *dset;
+   ATR_int *pmap_atr;
 
    ENTRY("Atlas_With_Trimming");
 
@@ -3795,13 +4044,17 @@ ATLAS_DSET_HOLDER Atlas_With_Trimming (AFNI_ATLAS_CODES atcode, int LoadLRMask)
       adh.atcode = atcode;
       adh.mxlablen = -1;
       adh.mxelm = -1;
-      adh.probkey = -100.0;
+      adh.probkey = -100;
       adh.lrmask = NULL;
       adh.maxindexcode = -1;
-      adh.duplicateLRentries = 0; /* Are LR labels listed in adh.apl and under the same code? (only case I know of is in TTO_list*/
+      adh.duplicateLRentries = 0; /* Are LR labels listed in adh.apl and
+                    under the same code? (only case I know of is in TTO_list*/
       adh.apl = NULL;
-      build_lr = 1;
+      adh.apl2 = NULL;
+      adh.probkey = -1;
+      adh.build_lr = 0; /* assume we do *not* need to figure out left,right*/
       switch (atcode) {
+#if 0
          case CA_EZ_N27_MPM_ATLAS:
             /* Load the MPM */
             if (dseCA_EZ_MPM == NULL) {
@@ -3818,13 +4071,22 @@ ATLAS_DSET_HOLDER Atlas_With_Trimming (AFNI_ATLAS_CODES atcode, int LoadLRMask)
             }
             adh.dset = dseCA_EZ_MPM;
             adh.mxlablen = ATLAS_CMAX;
-            adh.mxelm = CA_EZ_COUNT;
-            adh.probkey = -2.0;
-            for (ii=0; ii<CA_EZ_COUNT; ++ii) {
-               if (CA_EZ_list[ii].tdval > adh.maxindexcode) adh.maxindexcode = CA_EZ_list[ii].tdval;
+/*           adh.mxelm = CA_EZ_COUNT;*/
+            adh.probkey = -2;
+            adh.apl2 = dset_niml_to_atlas_list(adh.dset);
+            adh.mxelm = adh.apl2->n_points;
+
+            for (ii=0; ii<adh.mxelm; ++ii) {
+               if(adh.apl2->at_point[ii].tdval > adh.maxindexcode)
+                   adh.maxindexcode = adh.apl2->at_point[ii].tdval;
+/*               if (CA_EZ_list[ii].tdval > adh.maxindexcode) 
+                     adh.maxindexcode = CA_EZ_list[ii].tdval;*/
             }
-            adh.apl = CA_EZ_list;
-            adh.duplicateLRentries = 0; /* Are LR labels listed in adh.apl and under the same code? (only case I know of is in TTO_list*/
+            adh.apl = adh.apl2->at_point;
+/*            adh.apl = CA_EZ_list;*/
+            /* Are LR labels listed in adh.apl and under the same code?
+              (only case I know of is in TTO_list - this will not be allowed */
+            adh.duplicateLRentries = 0; 
             build_lr = 1;
             break;
          case CA_EZ_N27_ML_ATLAS:
@@ -3847,9 +4109,10 @@ ATLAS_DSET_HOLDER Atlas_With_Trimming (AFNI_ATLAS_CODES atcode, int LoadLRMask)
             for (ii=0; ii<ML_EZ_COUNT; ++ii) {
                if (ML_EZ_list[ii].tdval > adh.maxindexcode) adh.maxindexcode = ML_EZ_list[ii].tdval;
             }
-            adh.probkey = -1.0;
+            adh.probkey = -1;
             adh.apl = ML_EZ_list;
-            adh.duplicateLRentries = 0; /* Are LR labels listed in adh.apl and under the same code? (only case I know of is in TTO_list*/
+            /* Are LR labels listed in adh.apl and under the same code? (only case I know of is in TTO_list*/
+            adh.duplicateLRentries = 0; 
             build_lr = 1;
             break;
          case CA_EZ_N27_LR_ATLAS:
@@ -3872,7 +4135,7 @@ ATLAS_DSET_HOLDER Atlas_With_Trimming (AFNI_ATLAS_CODES atcode, int LoadLRMask)
             for (ii=0; ii<LR_EZ_COUNT; ++ii) {
                if (LR_EZ_list[ii].tdval > adh.maxindexcode) adh.maxindexcode = LR_EZ_list[ii].tdval;
             }
-            adh.probkey = -1.0;
+            adh.probkey = -1;
             adh.apl = LR_EZ_list;
             adh.duplicateLRentries = 0; /* Are LR labels listed in adh.apl and under the same code? (only case I know of is in TTO_list*/
             build_lr = 1;
@@ -3895,7 +4158,7 @@ ATLAS_DSET_HOLDER Atlas_With_Trimming (AFNI_ATLAS_CODES atcode, int LoadLRMask)
             adh.mxlablen = ATLAS_CMAX;
             adh.mxelm = CA_EZ_COUNT;
             adh.maxindexcode = -1; /* not appropriate */
-            adh.probkey = 0.0;
+            adh.probkey = 0;
             adh.apl = NULL;
             adh.duplicateLRentries = 0; /* Are LR labels listed in adh.apl and under the same code? (only case I know of is in TTO_list*/
             build_lr = 1;
@@ -3919,13 +4182,9 @@ ATLAS_DSET_HOLDER Atlas_With_Trimming (AFNI_ATLAS_CODES atcode, int LoadLRMask)
             /* 01 Aug 2001: maybe use big dataset (so don't need both in memory) */
             adh.dset = (dseTT_big != NULL) ? dseTT_big : dseTT ; /* should always be the big one */
 
-            #if 0
-            if( adh.dset == dseTT_big ) fprintf(stderr,"TT_whereami using dseTT_big\n") ;
-            else                    fprintf(stderr,"TT_whereami using dseTT\n") ;
-            #endif
             adh.mxlablen = ATLAS_CMAX;
             adh.mxelm = TTO_COUNT;
-            adh.probkey = -1.0;
+            adh.probkey = -1;
             for (ii=0; ii<TTO_COUNT; ++ii) {
                if (TTO_list[ii].tdval > adh.maxindexcode) adh.maxindexcode = TTO_list[ii].tdval;
             }
@@ -3933,29 +4192,91 @@ ATLAS_DSET_HOLDER Atlas_With_Trimming (AFNI_ATLAS_CODES atcode, int LoadLRMask)
             adh.duplicateLRentries = 1; /* Are LR labels listed in adh.apl and under the same code? (only case I know of is in TTO_list*/
             build_lr = 0;
             break;
-         case CUSTOM_ATLAS :  /* need to update for custom atlases here *******/
-            return(adh);
-            break;
+#endif
+
+/*         case CUSTOM_ATLAS :*/  /* handle all atlases the same way now */
          default:
-            ERROR_message("Should not be here - atcode is %d", atcode);
-            RETURN(adh);
+            if(strcmp(Atlas_Code_to_Atlas_Dset_Name(atcode),"")==0) {
+               if(LocalHead) fprintf(stderr, "Blank atlas name");
+               adh.dset = NULL;
+               RETURN(adh);
+            }
+            /* Load the dataset */
+            if (LocalHead) fprintf(stderr,"Loading %s\n", Atlas_Code_to_Atlas_Name(atcode));
+            dset = load_atlas((char *) Atlas_Code_to_Atlas_Dset_Name(atcode));
+            if (dset == NULL) {
+               if (!n_warn[atcode]) 
+                   WARNING_message(  "Could not read atlas dset: %s+tlrc \n"
+                                     "See whereami -help for help on installing\n"
+                                     "atlases.\n",
+                                 Atlas_Code_to_Atlas_Dset_Name(atcode));
+               ++(n_warn[atcode]);
+               adh.dset = NULL;
+               RETURN(adh);
+            }
+            if (LocalHead) fprintf(stderr,"%s loaded\n", Atlas_Code_to_Atlas_Name(atcode));
+
+            adh.dset = dset;
+            adh.mxlablen = ATLAS_CMAX;
+            adh.probkey = -2;
+            if (LocalHead) fprintf(stderr,"Getting NIML attribute segmentation\n");
+            /* check to see if atlas dataset has NIML attributes for segmentation *****/
+            adh.apl2 = dset_niml_to_atlas_list(adh.dset);
+            if(adh.apl2 == NULL) {
+               if (LocalHead) fprintf(stderr,"No NIML attributes.\n"
+                                   "Getting hard-coded segmentation\n");
+
+               if(set_adh_old_way(&adh, atcode))
+                  WARNING_message(  "Could not read atlas dset4 %s+tlrc \n"
+                                     "See whereami -help for help on installing\n"
+                                     "atlases.\n",
+                                 Atlas_Code_to_Atlas_Dset_Name(atcode));
+                  ++(n_warn[atcode]);
+            }
+            else {
+               if (LocalHead) fprintf(stderr,"NIML attributes being used.\n");
+
+               adh.mxelm = adh.apl2->n_points;
+
+               for (ii=0; ii<adh.mxelm; ++ii) {
+                  if(adh.apl2->at_point[ii].tdval > adh.maxindexcode)
+                      adh.maxindexcode = adh.apl2->at_point[ii].tdval;
+
+               }
+               adh.apl = adh.apl2->at_point;
+               adh.duplicateLRentries = 0; 
+               adh.build_lr = 0;
+               if (LocalHead) print_atlas_point_list(adh.apl2);
+               pmap_atr = THD_find_int_atr( adh.dset->dblk,"ATLAS_PROB_MAP" ) ;
+               if(pmap_atr!=NULL) {
+                  pmap = pmap_atr->in[0] ;
+                  if (pmap==1)
+                     adh.probkey = 0;
+                  else
+                     adh.probkey = -1;
+                  if (LocalHead) fprintf(stderr, "probability map %d\n", pmap);
+               }
+
+            }
+            break;
       }
 
-      if (adh.maxindexcode > 255) {
+/*      if (adh.maxindexcode > 255) {
             fprintf(stderr,"** Warning: Max index code (%d) higher than expected.\n"
                            "What's cracking?.\n", adh.maxindexcode);
       }
+*/
+/*      if (!adh.dset) { RETURN(adh); }*/
 
-      if (!adh.dset) { RETURN(adh); }
-
-      /* load the dset */
+      /* load the dset  - may already be loaded */
       DSET_load(adh.dset);
-      if (LocalHead) INFO_message("   loaded dset");
+      if (LocalHead) INFO_message("   loaded atlas dset with trimming");
 
       /* have LR mask ? */
-      if (build_lr && LoadLRMask) {
+      /* check to see if dataset has to be distinguished left-right based on LR atlas */
+      if (adh.build_lr && LoadLRMask) {
          if (dseCA_EZ_LR == NULL) {
-            if (LocalHead) fprintf(stderr,"Loading %s\n",  Atlas_Code_to_Atlas_Name(atcode));
+            if (LocalHead) fprintf(stderr,"Loading CA_EZ_LR atlas\n");
             ii = CA_EZ_LR_load_atlas();
             if (ii == 0) {
                if (!n_warn[atcode]) WARNING_message(  "Could not read LR atlas (dset %s+tlrc)\n"
@@ -3974,25 +4295,268 @@ ATLAS_DSET_HOLDER Atlas_With_Trimming (AFNI_ATLAS_CODES atcode, int LoadLRMask)
    RETURN(adh);
 }
 
+static ATLAS_DSET_HOLDER
+genx_load_atlas(ATLAS *atlas, int LoadLRMask)
+{
+   ATLAS_DSET_HOLDER adh;
+   int ii, pmap;
+   byte LocalHead = 0;
+   ATR_int *pmap_atr;
+
+   /* initialize atlas dataset holder, adh, to null defaults */
+   adh.dset = NULL;
+   adh.atcode = 0;
+   adh.mxlablen = -1;
+   adh.mxelm = -1;
+   adh.probkey = -100;
+   adh.lrmask = NULL;
+   adh.maxindexcode = -1;
+   adh.duplicateLRentries = 0; /* Are LR labels listed in adh.apl and
+                 under the same code? (only case I know of is in TTO_list*/
+   adh.apl = NULL;
+   adh.apl2 = NULL;
+   adh.probkey = -1;
+   adh.build_lr = 0; /* assume we do *not* need to figure out left,right*/
+
+   /* Load the dataset */
+   if (LocalHead) fprintf(stderr,"genx loading %s\n", atlas->atlas_dset_name);
+   if(atlas->atlas_dset == NULL) {
+      atlas->atlas_dset = load_atlas(atlas->atlas_dset_name);
+      if (atlas->atlas_dset == NULL) {
+         WARNING_message(  "Could not read atlas dset: %s+tlrc \n"
+                               "See whereami -help for help on installing\n"
+                               "atlases.\n",
+                            atlas->atlas_dset_name);
+         RETURN(adh);
+      }
+   }
+
+   
+   adh.atcode = Atlas_Dset_Name_to_Atlas_Code(atlas->atlas_dset_name);
+   if (LocalHead) fprintf(stderr,"%s loaded with code %d\n",
+      atlas->atlas_dset_name, adh.atcode);
+   
+   adh.dset = atlas->atlas_dset;
+   adh.mxlablen = ATLAS_CMAX;
+   adh.probkey = -2;
+   if (LocalHead) fprintf(stderr,"Getting NIML attribute segmentation\n");
+   /* check to see if atlas dataset has NIML attributes for segmentation *****/
+   adh.apl2 = dset_niml_to_atlas_list(adh.dset);
+   if(adh.apl2 == NULL) {
+      if (LocalHead) fprintf(stderr,"No NIML attributes.\n"
+                          "Getting hard-coded segmentation\n");
+
+      if(set_adh_old_way(&adh, 
+           Atlas_Dset_Name_to_Atlas_Code(atlas->atlas_dset_name)))
+         WARNING_message(  "Could not read atlas dset4 %s+tlrc \n"
+                            "See whereami -help for help on installing\n"
+                            "atlases.\n", atlas->atlas_dset_name);
+   }
+   else {
+      if (LocalHead) fprintf(stderr,"NIML attributes being used.\n");
+
+      adh.mxelm = adh.apl2->n_points;
+
+      for (ii=0; ii<adh.mxelm; ++ii) {
+         if(adh.apl2->at_point[ii].tdval > adh.maxindexcode)
+             adh.maxindexcode = adh.apl2->at_point[ii].tdval;
+
+      }
+      adh.apl = adh.apl2->at_point;
+      adh.duplicateLRentries = 0; 
+      adh.build_lr = 0;
+      if (LocalHead) print_atlas_point_list(adh.apl2);
+      pmap_atr = THD_find_int_atr( adh.dset->dblk,"ATLAS_PROB_MAP" ) ;
+      if(pmap_atr!=NULL) {
+         pmap = pmap_atr->in[0] ;
+         if (pmap==1)
+            adh.probkey = 0;
+         else
+            adh.probkey = -1;
+         if (LocalHead) fprintf(stderr, "probability map %d\n", pmap);
+      }
+
+   }
+
+   if (LocalHead) INFO_message("genx_load_atlas dset");
+
+   /* have LR mask ? */
+   /* check to see if dataset has to be distinguished left-right based on LR atlas */
+   if (adh.build_lr && LoadLRMask) {
+      if (dseCA_EZ_LR == NULL) {
+         if (LocalHead) fprintf(stderr,"Loading CA_EZ_LR atlas\n");
+         ii = CA_EZ_LR_load_atlas();
+         if (ii == 0) {
+            WARNING_message(  "Could not read LR atlas\n"
+                              "LR decision will be based on coordinates.");
+         } else {
+            DSET_load(dseCA_EZ_LR);
+            adh.lrmask = DSET_BRICK_ARRAY(dseCA_EZ_LR,0);
+            if (!adh.lrmask) {
+               ERROR_message("Unexpected NULL array.\n"
+                             "Proceeding without LR mask");
+            }
+         }
+      }
+   }
+
+
+   RETURN(adh);
+}
+
+
+static int
+set_adh_old_way(ATLAS_DSET_HOLDER *adh, AFNI_ATLAS_CODES atcode)
+{
+   int ii;
+   byte LocalHead = 0;
+
+   ENTRY("set_adh_old_way");
+
+   adh->apl2 = NULL; /* don't set this field at all for the old way */
+   switch (atcode) {
+      case CA_EZ_N27_MPM_ATLAS:
+#if 0
+        /* Load the MPM */
+        if (dseCA_EZ_MPM == NULL) {
+           if (LocalHead) fprintf(stderr,"Loading %s\n", Atlas_Code_to_Atlas_Name(atcode));
+           ii = CA_EZ_MPM_load_atlas();
+           if (ii == 0) {
+              RETURN(1); /* couldn't load atlas */
+           }
+        }
+        adh->dset = dseCA_EZ_MPM;
+#endif
+        adh->mxlablen = ATLAS_CMAX;
+        adh->mxelm = CA_EZ_COUNT;
+        adh->probkey = -2;
+        adh->apl = CA_EZ_list;
+        /* Are LR labels listed in adh->apl and under the same code?
+          (only case I know of is in TTO_list - this will not be allowed */
+        adh->duplicateLRentries = 0; 
+        break;
+     case CA_EZ_N27_ML_ATLAS:
+        /* Load the MacroLabels */
+#if 0
+        if (dseCA_EZ_ML == NULL) {
+           if (LocalHead) fprintf(stderr,"Loading %s\n",  Atlas_Code_to_Atlas_Name(atcode));
+           ii = CA_EZ_ML_load_atlas();
+           if (ii == 0) {
+              RETURN(1); /* couldn't load atlas */
+           }
+        }
+        adh->dset = dseCA_EZ_ML;
+#endif
+        adh->mxlablen = ATLAS_CMAX;
+        adh->mxelm = ML_EZ_COUNT;
+        adh->probkey = -1;
+        adh->apl = ML_EZ_list;
+        adh->duplicateLRentries = 0;
+        break;
+     case CA_EZ_N27_LR_ATLAS:
+#if 0
+        /* Load the MacroLabels */
+        if (dseCA_EZ_LR == NULL) {
+           if (LocalHead) fprintf(stderr,"Loading %s\n",  Atlas_Code_to_Atlas_Name(atcode));
+           ii = CA_EZ_LR_load_atlas();
+           if (ii == 0) {
+              RETURN(1); /* couldn't load atlas */
+           }
+        }
+        adh->dset = dseCA_EZ_LR;
+#endif
+        adh->mxlablen = ATLAS_CMAX;
+        adh->mxelm = LR_EZ_COUNT;
+        adh->probkey = -1;
+        adh->apl = LR_EZ_list;
+        /* Are LR labels listed in adh->apl and under the same code? (only case I know of is in TTO_list*/
+        adh->duplicateLRentries = 0; 
+        break;
+     case CA_EZ_N27_PMAPS_ATLAS:
+#if 0
+        /* Load the PMaps */
+        if (dseCA_EZ_PMaps == NULL) {
+           if (LocalHead) fprintf(stderr,"Loading %s\n",  Atlas_Code_to_Atlas_Name(atcode));
+           ii = CA_EZ_PMaps_load_atlas();
+           if (ii == 0) {
+              RETURN(1); /* couldn't load atlas */
+           }
+        }
+        adh->dset = dseCA_EZ_PMaps;
+#endif
+        adh->mxlablen = ATLAS_CMAX;
+        adh->mxelm = CA_EZ_COUNT;
+        adh->maxindexcode = -1; /* not appropriate */
+        adh->probkey = 0;
+/*        adh->apl = NULL;*/
+        adh->apl = CA_EZ_list; /* use cytoarchitectonic list for probability maps*/
+        adh->duplicateLRentries = 0;
+        break;
+     case AFNI_TLRC_ATLAS:
+#if 0
+        /* Load the AFNI_TLRC atlas, work with big one only, need to match resolution of CA_ atlases
+           (ZSS: April 24 06)*/
+        if (dseTT_big == NULL) {
+           if (LocalHead) fprintf(stderr,"Loading %s\n", Atlas_Code_to_Atlas_Name(atcode));
+           TT_retrieve_atlas_big();
+           if (dseTT_big == NULL) {
+              RETURN(1); /* couldn't load atlas */
+           }
+        }
+        /* 01 Aug 2001: maybe use big dataset (so don't need both in memory) */
+        adh->dset = (dseTT_big != NULL) ? dseTT_big : dseTT ; /* should always be the big one */
+#endif
+
+        adh->mxlablen = ATLAS_CMAX;
+        adh->mxelm = TTO_COUNT;
+        adh->probkey = -1;
+        adh->apl = TTO_list;
+        adh->duplicateLRentries = 1;
+        break;
+    default:
+        RETURN(1); /* no old type atlas like this */
+#if 0
+           if (LocalHead) fprintf(stderr,"Loading %s\n", Atlas_Code_to_Atlas_Name(atcode));
+           ii = CA_EZ_MPM_load_atlas();
+           if (ii == 0) {
+              RETURN(1); /* couldn't load atlas */
+           }
+#endif
+    }
+
+    if(adh->probkey == 0) RETURN(0);
+   
+    for (ii=0; ii<adh->mxelm; ++ii) {
+       if(adh->apl[ii].tdval > adh->maxindexcode)
+           adh->maxindexcode = adh->apl[ii].tdval;
+/*               if (CA_EZ_list[ii].tdval > adh.maxindexcode) 
+             adh.maxindexcode = CA_EZ_list[ii].tdval;*/
+    }
+
+   RETURN(0);
+}
 char *whereami_9yards(  ATLAS_COORD aci, ATLAS_QUERY **wamip,
-                        AFNI_ATLAS_CODES *atlaslist, int N_atlaslist)
+                        ATLAS_LIST *atlas_alist)
+/*                        AFNI_ATLAS_CODES *atlaslist, int N_atlaslist)*/
 {
    char *s = NULL;
    int   ii,kk , ix,jy,kz , nx,ny,nz,nxy ,
          aa,bb,cc , ff,baf,rff, iatlas=0, sb = 0 ;
    THD_ivec3 ijk ;
-   byte *ba = NULL ;
-   THD_string_array *sar ;
+   short *ba = NULL ;
+   byte *bba = NULL ;
+   float *fba = NULL;
    char *blab ;
-   char lbuf[256] , *rbuf ;
    int nfind, *b_find=NULL, *rr_find=NULL ;
    ATLAS_QUERY *wami = NULL;
    ATLAS_ZONE *zn = NULL;
-   AFNI_ATLAS_CODES atcode=UNKNOWN_ATLAS;
+/*   AFNI_ATLAS_CODES atcode=UNKNOWN_ATLAS;*/
    THD_fvec3 vn3, vo3;
    ATLAS_COORD ac;
    ATLAS_DSET_HOLDER adh;
    byte LocalHead = 0;
+   int dset_kind;
+   float fbaf, fbaf_factor;
 
    ENTRY("whereami_9yards");
 
@@ -4001,7 +4565,8 @@ char *whereami_9yards(  ATLAS_COORD aci, ATLAS_QUERY **wamip,
       RETURN(s);
    }
 
-   if (!atlaslist || N_atlaslist == 0) {
+/*   if (!atlasalist || N_atlaslist == 0) {*/
+   if (!atlas_alist || atlas_alist->natlases == 0) {
       ERROR_message("Send me a non null or non empty atlaslist\n");
       RETURN(s);
    }
@@ -4048,28 +4613,64 @@ char *whereami_9yards(  ATLAS_COORD aci, ATLAS_QUERY **wamip,
    if (LocalHead)
       INFO_message("Coords: %f %f %f (%d)\n", ac.x, ac.y, ac.z, ac.space);
 
-
-   for (iatlas=0; iatlas<N_atlaslist; ++iatlas) {/* iatlas loop */
-      atcode = atlaslist[iatlas];
+/*   for (iatlas=0; iatlas<N_atlaslist; ++iatlas) {*/ /* iatlas loop */
+   for (iatlas=0; iatlas < atlas_alist->natlases; ++iatlas) {/* iatlas loop */
+/*      atcode = atlaslist[iatlas];*/
       if (LocalHead)
          INFO_message(  "Now Processing atlas %s (%d)",
-                        Atlas_Code_to_Atlas_Name(atcode), atcode);
+                        atlas_alist->atlas[iatlas].atlas_dset_name);
+/*                        Atlas_Code_to_Atlas_Name(atcode), atcode);*/
 
-      adh = Atlas_With_Trimming (atcode, 0);
+      if (strcmp(atlas_alist->atlas[iatlas].atlas_dset_name,"")==0) {
+         if(LocalHead)
+            INFO_message("Blank named atlas - skipping");
+         continue;
+      }
 
-      if (!adh.dset) continue;
+/*      atcode = Atlas_Name_to_Atlas_Code(
+                atlas_alist->atlas[iatlas].atlas_dset_name);*/
+      adh = genx_load_atlas(atlas_alist->atlas+iatlas, 0);
 
-      if (  atcode == CA_EZ_N27_ML_ATLAS ||
-            atcode == CA_EZ_N27_MPM_ATLAS ||
-            atcode == AFNI_TLRC_ATLAS ||
-            atcode == CA_EZ_N27_LR_ATLAS ) { /* the multi-radius searches */
+/*      adh = Atlas_With_Trimming (atcode, 0);*/
+      if (!adh.dset) {
+         if (LocalHead) 
+            INFO_message("No atlas dataset found for whereami location");
+         continue;
+      }
+
+      dset_kind = (int)DSET_BRICK_TYPE(adh.dset,0) ;
+
+      if (LocalHead)
+         INFO_message(  "3.1 Loaded atlas from disk %s",
+                        atlas_alist->atlas[iatlas].atlas_dset_name);
+
+      /* the multi-radius searches - not for probability maps*/
+      if(adh.probkey!=0) { 
+            if(dset_kind != MRI_short && dset_kind != MRI_byte ) {
+               ERROR_message("Atlas dataset %s may only be byte or short," 
+                             "not data type '%s'",
+                  DSET_BRIKNAME(adh.dset) , MRI_TYPE_name[dset_kind] ) ;
+               RETURN(s);
+            }
+
          for (sb=0; sb < DSET_NVALS(adh.dset); ++sb) {
             if (LocalHead)
-               fprintf(stderr,
-                  "Processing sub-brick %d with %s\n",
-                  sb,  Atlas_Code_to_Atlas_Name(atcode));
-            ba = DSET_BRICK_ARRAY(adh.dset,sb); 
-            if (!ba) { ERROR_message("Unexpected NULL array"); RETURN(s); }
+               fprintf(stderr,"Processing sub-brick %d with %s\n",
+                       sb, atlas_alist->atlas[iatlas].atlas_dset_name);
+            /* make dataset sub-brick integer - change from previous byte to allow values > 255 */
+            if(dset_kind == MRI_short) {
+               ba = DSET_BRICK_ARRAY(adh.dset,sb); /* short type */
+               if (!ba) { ERROR_message("Unexpected NULL array"); RETURN(s); }
+            }
+            else {
+               bba = DSET_BRICK_ARRAY(adh.dset,sb); /* byte array */
+               if (!bba) { ERROR_message("Unexpected NULL array"); RETURN(s); }
+               if (LocalHead) {
+		fprintf(stderr,"++ have bba = %p, kind = %d\n", bba, DSET_BRICK_TYPE(adh.dset,sb));
+                fprintf(stderr,"   (byte = %d, short = %d)\n", MRI_byte, MRI_short);
+               }
+            }
+
             if (WAMIRAD < 0.0) {
                WAMIRAD = Init_Whereami_Max_Rad();
             }
@@ -4101,16 +4702,28 @@ char *whereami_9yards(  ATLAS_COORD aci, ATLAS_QUERY **wamip,
             /*-- check the exact input location --*/
 
             kk = ix + jy*nx + kz*nxy ;        /* index into brick arrays */
-            if( ba[kk] != 0 && 
-               !(atcode == CA_EZ_N27_MPM_ATLAS && ba[kk] < CA_EZ_MPM_MIN)){
-               b_find[0] = ba[kk] ;
+
+            if(dset_kind == MRI_short)
+              baf = ba[kk];
+            else {
+              baf = bba[kk];
+              if (LocalHead)  fprintf(stderr,
+                  "Byte value at focus point %d, %d, %d, %f, %f, %f, %d, %d, %d, %d, baf=%d\n", 
+                    ix,jy,kz, ac.x, ac.y, ac.z, nx, ny, nz, kk, baf);
+            }
+
+            if( baf != 0){
+               b_find[0] = baf ;
                rr_find[0] = 0     ;
                if (LocalHead)  
                   fprintf(stderr,"Adding b_find[%d]=%d rr_find[%d]=%d\n",
                               nfind, b_find[nfind], nfind, rr_find[nfind]);
                nfind++ ;
             }
-
+            else{
+               if (LocalHead)  fprintf(stderr,
+                  "No value at focus point %d, %d, %d, ba=%d\n", ix,jy,kz, baf);
+            }
             /*-- check locations near it --*/
 
             for( ii=0 ; ii < wamiclust_CA_EZ->num_pt ; ii++ ){
@@ -4125,16 +4738,18 @@ char *whereami_9yards(  ATLAS_COORD aci, ATLAS_QUERY **wamip,
                   if( cc < 0 || cc >= nz ) continue ;
 
                kk  = aa + bb*nx + cc*nxy ;   /* index into bricks */
-               baf = ba[kk] ;                 /* Atlas structure marker there */
+
+               /* Atlas structure marker there - value at coordinate in atlas */
+               if(dset_kind == MRI_short)
+                 baf = ba[kk];
+               else
+                 baf = bba[kk];
+
 
                if( baf == 0 )                            continue ;
 
                for( ff=0 ; ff < nfind ; ff++ ){       /* cast out         */
                   if( baf == b_find[ff] ) baf = 0 ;  /* duplicate labels  */
-               }
-
-               if (atcode == CA_EZ_N27_MPM_ATLAS) { /* cast out bad values*/
-                  if (baf < CA_EZ_MPM_MIN) baf = 0;
                }
 
                if( baf == 0 )                            continue ;
@@ -4187,50 +4802,54 @@ char *whereami_9yards(  ATLAS_COORD aci, ATLAS_QUERY **wamip,
 
             for( ff=0 ; ff < nfind ; ff++ ){
                baf = b_find[ff] ; blab = NULL ;
-               if( baf != 0 ){            /* find label     */
-                  for( ii=0 ; ii < adh.mxelm ; ii++ ) { 
-                     if( atcode == CA_EZ_N27_MPM_ATLAS && 
-                         baf == CA_EZ_list[ii].tdval ) break ;
-                     else if( atcode == CA_EZ_N27_ML_ATLAS && 
-                              baf == ML_EZ_list[ii].tdval ) break ;
-                     else if( atcode == CA_EZ_N27_LR_ATLAS && 
-                              baf == LR_EZ_list[ii].tdval ) break ;
-                     else if( atcode == AFNI_TLRC_ATLAS && 
-                              baf == TTO_list[ii].tdval ) break ;
+
+               if( baf != 0 ){ 
+                  /* find label in AFNI's atlas list */
+                  if(LocalHead) INFO_message(
+                     "searching through atlas structure values");
+                      
+                  for( ii=0 ; ii < adh.mxelm ; ii++ ) {
+                     if (baf == adh.apl[ii].tdval) break;
                   }
-                  if( ii < adh.mxelm )  {                     /* always true? */
-                     if( atcode == CA_EZ_N27_MPM_ATLAS) 
-                        blab = CA_EZ_list[ii].name;
-                     else if( atcode == CA_EZ_N27_ML_ATLAS) 
-                        blab = ML_EZ_list[ii].name ;
-                     else if( atcode == CA_EZ_N27_LR_ATLAS) 
-                        blab = LR_EZ_list[ii].name ;
-                     else if( atcode == AFNI_TLRC_ATLAS) 
-                        blab = AddLeftRight( NoLeftRight(TTO_list[ii].name),
-                                             (ac.x<0.0)?'R':'L');
+
+                  if(strcmp(adh.apl[ii].name, "")==0) blab = NULL;
+                  else {
+                     if(adh.duplicateLRentries!=1)
+                        blab = adh.apl[ii].name;
+                     else
+                        blab = AddLeftRight(NoLeftRight(adh.apl[ii].name),(ac.x<0.0)?'R':'L');
+                     if(LocalHead) INFO_message("blab %s", blab);
                   }
                }
 
                if( blab == NULL  ) {
-                  WARNING_message(
-                     "No label found for code %d in atlas %s\nContinuing...", 
-                                  baf, Atlas_Code_to_Atlas_Name(atcode));
+                  if (LocalHead)
+                     WARNING_message(
+                       "No label found for code %d in atlas %s\n"
+                       "Continuing...", 
+                       baf, atlas_alist->atlas[iatlas].atlas_dset_name);
                   continue ;  /* no labels? */
                }
 
+               /* zone levels are based on search radius */
+               if(LocalHead)
+                   INFO_message("Getting atlas zone for finds");
                zn = Get_Atlas_Zone (wami, (int)rr_find[ff] ); 
-                        /* zone levels are based on search radius */
+               if(LocalHead)
+                   INFO_message("Atlas zone to query results");
                zn = Atlas_Zone(  zn, zn->level,
-                                 blab, baf, adh.probkey, rr_find[ff], atcode);
+                     blab, baf, (float) adh.probkey, rr_find[ff], adh.atcode);
+               if(LocalHead)
+                   INFO_message("Adding zone results to query results");
                wami = Add_To_Atlas_Query(wami, zn);
 
                rff = rr_find[ff] ;  /* save for next time around */
             }
          } /* for each sub-brick */
       } else { /* the PMAPS */
-         if (LocalHead)  
-            fprintf(stderr,"Processing with %s\n", 
-                           Atlas_Code_to_Atlas_Name(atcode));
+         if (LocalHead)  fprintf(stderr,
+            "Processing with %s for probability maps\n",
+            atlas_alist->atlas[iatlas].atlas_dset_name);
 
          /*-- find locations near the given one that are in the Atlas --*/
          ijk = THD_3dmm_to_3dind( adh.dset , TEMP_FVEC3(ac.x,ac.y,ac.z) ) ; 
@@ -4243,23 +4862,46 @@ char *whereami_9yards(  ATLAS_COORD aci, ATLAS_QUERY **wamip,
 
          zn = Get_Atlas_Zone(wami, 0);    /* get the zero level zone */
          for (ii=0; ii<DSET_NVALS(adh.dset); ++ii) {
-            ba = DSET_BRICK_ARRAY(adh.dset,ii); 
-            if (!ba) { ERROR_message("Unexpected NULL array"); RETURN(s); }
-            if (LocalHead)  
-               fprintf(stderr,"  ++ Sub-brick %d in %s ba[kk]=%d\n", 
-                              ii, Atlas_Code_to_Atlas_Name(atcode), ba[kk]);
-            if( ba[kk] != 0 ){
-               if( adh.dset->dblk->brick_lab == NULL || 
+            /* make dataset sub-brick integer - change from previous byte to allow values > 255 */
+            switch(dset_kind) {
+              case MRI_short :
+                 ba = DSET_BRICK_ARRAY(adh.dset,ii); /* short type */
+                 if (!ba) { ERROR_message("Unexpected NULL array"); RETURN(s); }
+                 fbaf = ba[kk];
+                 fbaf_factor = 250.0;
+                 break;
+              case MRI_byte :
+                 bba = DSET_BRICK_ARRAY(adh.dset,ii); /* byte array */
+                 if (!bba) { ERROR_message("Unexpected NULL array"); RETURN(s); }
+                 fbaf = bba[kk];
+                 fbaf_factor = 250.0;
+                 break;
+              case MRI_float :
+                 fba = DSET_BRICK_ARRAY(adh.dset,ii); /* float array */
+                 if (!fba) { ERROR_message("Unexpected NULL array"); RETURN(s); }
+                 fbaf = fba[kk];
+                 fbaf_factor = 1.0;  /* just to use as a floating point probability */
+                 break;
+              default :
+                 ERROR_message("Unexpected data type for probability maps"); RETURN(s);
+            }
+            if (LocalHead)  fprintf(stderr,
+                              "  ++ Sub-brick %d in %s ba[kk]=%d\n",
+                              ii, atlas_alist->atlas[iatlas].atlas_dset_name,
+                              (int)fbaf);
+            if( fbaf != 0 ){
+               if( adh.dset->dblk->brick_lab == NULL ||
                    adh.dset->dblk->brick_lab[ii] == NULL) {
                   if (LocalHead)  fprintf(stderr,"  ++ No Label!\n");
                   zn = Atlas_Zone(zn, 0, "No Label", -1, 
-                                 (float)ba[kk]/250.0, 0, atcode);
+                        (float)ba[kk]/250.0, 0, adh.atcode);
                } else {
                   int nn=0, nlab=0;
                   char *lab_buf; /* do not free this one */
                   if( adh.dset->dblk->brick_lab[ii] && 
                       adh.dset->dblk->brick_lab[ii][0] != '\0' ){
-                     /* find the code of area label that goes with this sub-brick
+                     if (LocalHead)  fprintf(stderr,"  ++ Checking area label against sub-brick.\n");
+                     /* find the code that area label that goes with this sub-brick
                         Remember to account for the '.'*/
                      blab = NULL; nn = 0; 
                      nlab = strlen(adh.dset->dblk->brick_lab[ii]);
@@ -4267,32 +4909,27 @@ char *whereami_9yards(  ATLAS_COORD aci, ATLAS_QUERY **wamip,
                         ERROR_message("Dset labels too long!");
                      }
                      while( !blab && nn < adh.mxelm ) {
-                        lab_buf = Clean_Atlas_Label(CA_EZ_list[nn].dsetpref);
-                        /* fprintf(stderr,"Key:>%s<, N:%d, Str:>%s<\n", 
-                           adh.dset->dblk->brick_lab[ii], nlab, lab_buf); */
-                        if ((nlab == strlen(lab_buf)) && 
-                            (!strcmp(lab_buf, adh.dset->dblk->brick_lab[ii])) ) {
-                           blab = CA_EZ_list[nn].name;
-                           if (LocalHead) 
-                              fprintf(stderr," Matched %s with %s\n", 
-                                       adh.dset->dblk->brick_lab[ii], 
-                                       CA_EZ_list[nn].dsetpref);
+                        lab_buf = Clean_Atlas_Label(adh.apl[nn].dsetpref);
+                        if ((nlab == strlen(lab_buf)) && (strcmp(lab_buf, adh.dset->dblk->brick_lab[ii]) == 0) ) {
+                           blab = adh.apl[nn].name;
+                           if (LocalHead) fprintf(stderr," Matched %s with %s\n",
+                                          adh.dset->dblk->brick_lab[ii], adh.apl[nn].dsetpref);
                         }
                         ++nn;
                      }
                      --nn; /* go back one to get back to proper indexing */
                      if (blab) {
                         if (LocalHead) fprintf(stderr," blabing: %s\n", blab);
-                        zn = Atlas_Zone(zn, 0, blab, CA_EZ_list[nn].tdval , 
-                                       (float)ba[kk]/250.0, 0, atcode);
+                        zn = Atlas_Zone(zn, 0, blab, adh.apl[nn].tdval , 
+                              (float)fbaf/250.0, 0, adh.atcode);
                      } else {
                         if (LocalHead) fprintf(stderr," no blabing:\n");
-                        zn = Atlas_Zone(  zn, 0, "Unexpected trouble.", 
-                                          -1, -1.0, 0, atcode);
+                        zn = Atlas_Zone(zn, 0, "Unexpected trouble.",
+                              -1, -1.0, 0, adh.atcode);
                      }
                   } else {
-                     zn = Atlas_Zone(zn, 0, "Empty Label", -1, 
-                                     (float)ba[kk]/250.0, 0, atcode);
+                     zn = Atlas_Zone(zn, 0, "Empty Label", -1,
+                             (float)fbaf/fbaf_factor, 0, adh.atcode);
                   }
                }
                wami = Add_To_Atlas_Query(wami, zn);
@@ -4394,7 +5031,7 @@ THD_3dim_dataset *THD_3dim_from_ROIstring(char *shar)
    /* Now we know what matches, give me a mask */
    if (nbest) {
       if (nbest > 2) {
-         ERROR_message( "More than 2 choices available. I am not use to this.\n"
+         ERROR_message( "More than 2 choices available. I am not used to this.\n"
                         "Please post a message explaining how you generated \n"
                         "this on the AFNI message board");
          RETURN(maskset);

@@ -1,6 +1,6 @@
 #include "afni.h"
 #include "vol2surf.h"
-#include "thd_ttatlas_query.h"
+#include "thd_atlas.h"
 
 /*----------------------------------------------------------------------
  * history:

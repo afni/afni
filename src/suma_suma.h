@@ -139,9 +139,16 @@
    }
    #define SUMA_LHv SUMA_LH
    
-   #define SUMA_S_Warn(msg) {\
+   #ifdef SUMA_noFunc
+     #define SUMA_S_Warn(msg) {\
+      fprintf (SUMA_STDERR, "Warning: %s\n", msg);  \
+     }
+   #else
+     #define SUMA_S_Warn(msg) {\
       fprintf (SUMA_STDERR, "Warning %s:\n %s\n", FuncName, msg);  \
-   }
+     }
+   #endif
+
    #define SUMA_S_Warnv SUMA_S_Warn 
    
    #define SUMA_S_Note(msg) {\

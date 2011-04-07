@@ -1,7 +1,7 @@
 /* functions to access tables of datasets within a session */
 /* made to deal with transformations across generic spaces */
 #include "afni.h"
-#include "thd_ttatlas_query.h"
+#include "thd_atlas.h"
 #undef DEBUG_WARPTABLES 1
 /* extern atlas_space_list atlas_spaces; */
 
