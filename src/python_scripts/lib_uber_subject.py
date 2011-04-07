@@ -109,9 +109,13 @@ g_history = """
          - added -help_install
     0.17 Mar 29, 2011 : changed subject directory to group.GROUP/subj.SUBJ
     0.18 Apr 06, 2011 : make table size depend on font
+    0.19 Apr 07, 2011 : backport for Ubuntu 9 (thanks to J Bodurka)
+         - call 'connect' from top-level, since old instances did not have
+           each signal as an attribute (use QtCore.SIGNAL(sig_name))
+         - no SaveAs QKeySequence in older version?
 """
 
-g_version = '0.18 (April 6, 2011)'
+g_version = '0.19 (April 7, 2011)'
 
 # ----------------------------------------------------------------------
 # global definition of default processing blocks

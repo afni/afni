@@ -55,13 +55,17 @@ class TextWindow(QtGui.QMainWindow):
                 shortcut=QtGui.QKeySequence.Open, tip="read new file")
         SaveAct = self.new_action("&Save", self.save,
                 shortcut=QtGui.QKeySequence.Save, tip="write file to disk")
-        SaveAsAct = self.new_action("Save &As", self.saveas,
-                shortcut=QtGui.QKeySequence.SaveAs, tip="write out to new file")
         CloseAct = self.new_action("&Close", self.close,
                 shortcut=QtGui.QKeySequence.Close, tip="close this window")
+        try:
+           SaveAsAct = self.new_action("Save &As", self.saveas,
+                shortcut=QtGui.QKeySequence.SaveAs, tip="write out to new file")
+           actlist = [OpenAct, SaveAct, SaveAsAct, CloseAct]
+        except:
+           actlist = [OpenAct, SaveAct, CloseAct]
 
         fileMenu = self.menuBar().addMenu("&File")
-        self.add_actions(fileMenu, [OpenAct, SaveAct, SaveAsAct, CloseAct])
+        self.add_actions(fileMenu, actlist)
 
         # try to set a fixed-width font
         font = self.editor.currentFont()
@@ -233,7 +237,8 @@ def create_button_list_widget(labels, tips=None, cb=None, dir=0, hstr=0):
 
    bwidget.blist = [QtGui.QPushButton(lab) for lab in labels]
    for ind, button in enumerate(bwidget.blist):
-      if cb: button.clicked.connect(cb)
+      # if cb: button.clicked.connect(cb)
+      if cb: bwidget.connect(button, QtCore.SIGNAL('clicked()'), cb)
       policy = button.sizePolicy()
       policy.setHorizontalPolicy(hstr)
       button.setSizePolicy(policy)
@@ -281,7 +286,8 @@ def create_button_grid(labels, tips=None, cb=None, rlen=4):
       button = QtGui.QPushButton(label)
       bwidget.blist.append(button)
 
-      if cb: button.clicked.connect(cb)
+      # if cb: button.clicked.connect(cb)
+      if cb: bwidget.connect(button, QtCore.SIGNAL('clicked()'), cb)
       policy = button.sizePolicy()
       policy.setHorizontalPolicy(0)
       button.setSizePolicy(policy)
@@ -312,9 +318,11 @@ def create_menu_button(parent, name, menu_list, call_back=None):
    pushb = QtGui.QPushButton(name)
 
    menu = QtGui.QMenu(parent)
+
    for item in menu_list:
       action = menu.addAction(item)
-      if call_back: action.triggered.connect(call_back)
+      # if call_back: action.triggered.connect(call_back)
+      if call_back: menu.connect(action,QtCore.SIGNAL('triggered()'),call_back)
    pushb.setMenu(menu)
 
    return pushb
@@ -699,13 +707,26 @@ class TcshCommandWindow(QtGui.QMainWindow):
       self.Edit_err.setLineWrapMode(QtGui.QTextEdit.NoWrap)
 
       # set callbacks
-      self.Bstart.clicked.connect(self.cb_start)
-      self.Bstop.clicked.connect(self.cb_stop)
+      # self.Bstart.clicked.connect(self.cb_start)
+      # self.Bstop.clicked.connect(self.cb_stop)
+      self.connect(self.Bstart, QtCore.SIGNAL('clicked()'), self.cb_start)
+      self.connect(self.Bstop,  QtCore.SIGNAL('clicked()'), self.cb_stop)
 
       self.process = QtCore.QProcess()
-      self.process.readyReadStandardError.connect(self.readstderr)
-      self.process.readyReadStandardOutput.connect(self.readstdout)
-      self.process.finished.connect(self.finished)
+      # self.process.readyReadStandardError.connect(self.readstderr)
+      # self.process.readyReadStandardOutput.connect(self.readstdout)
+      # self.process.finished.connect(self.finished)
+      self.connect(self.process, QtCore.SIGNAL('readyReadStandardError()'),
+                   self.readstderr)
+      self.connect(self.process, QtCore.SIGNAL('readyReadStandardOutput()'),
+                   self.readstdout)
+
+      # self.connect(self.process, QtCore.SIGNAL('finished()'), self.finished)
+      # 'finished' does not work via QtCore.SIGNAL, but funtion is not so
+      # necessary, so just 'try' the new way...
+      try: self.process.finished.connect(self.finished)
+      except: pass
+
       self.status  = 0
 
       self.setWindowTitle('processing command: %s' % command)
@@ -842,14 +863,29 @@ class ProcessWindow(QtGui.QMainWindow):
       self.Edit_err.setLineWrapMode(QtGui.QTextEdit.NoWrap)
 
       # set callbacks
-      self.lineedit.returnPressed.connect(self.cb_newcommand)
-      self.Bstart.clicked.connect(self.cb_start)
-      self.Bstop.clicked.connect(self.cb_stop)
+      # self.lineedit.returnPressed.connect(self.cb_newcommand)
+      # self.Bstart.clicked.connect(self.cb_start)
+      # self.Bstop.clicked.connect(self.cb_stop)
+      self.connect(self.lineedit, QtCore.SIGNAL('returnPressed()'),
+                   self.cb_newcommand)
+      self.connect(self.Bstart, QtCore.SIGNAL('clicked()'), self.cb_start)
+      self.connect(self.Bstop,  QtCore.SIGNAL('clicked()'), self.cb_stop)
 
       self.process = QtCore.QProcess()
-      self.process.readyReadStandardError.connect(self.readstderr)
-      self.process.readyReadStandardOutput.connect(self.readstdout)
-      self.process.finished.connect(self.finished)
+      # self.process.readyReadStandardError.connect(self.readstderr)
+      # self.process.readyReadStandardOutput.connect(self.readstdout)
+      # self.process.finished.connect(self.finished)
+      self.connect(self.process, QtCore.SIGNAL('readyReadStandardError()'),
+                   self.readstderr)
+      self.connect(self.process, QtCore.SIGNAL('readyReadStandardOutput()'),
+                   self.readstdout)
+
+      # self.connect(self.process, QtCore.SIGNAL('finished()'), self.finished)
+      # 'finished' does not work via QtCore.SIGNAL, but funtion is not so
+      # necessary, so just 'try' the new way...
+      try: self.process.finished.connect(self.finished)
+      except: pass
+
       self.status  = 0
 
       if title != '': self.setWindowTitle(title)
@@ -972,7 +1008,9 @@ class PyCommandWindow(QtGui.QMainWindow):
       self.callback = callback
 
       if callback != None:
-         self.lineedit.returnPressed.connect(self.process_command)
+         # self.lineedit.returnPressed.connect(self.process_command)
+         self.connect(self.lineedit, QtCore.SIGNAL('returnPressed()'),
+                      self.process_command)
 
    def process_command(self):
       command = str(self.lineedit.text())

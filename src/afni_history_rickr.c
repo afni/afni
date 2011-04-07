@@ -49,7 +49,12 @@
 
 afni_history_struct rickr_history[] = {
 
- { 6, APR, 2011, RCR, "uber_subject.py", MICRO, TYPE_ENHANCE,
+ { 7, APR, 2011, RCR, "uber_subject.py", MICRO, TYPE_MODIFY,
+   "backports for Ubuntu 9",
+   "requested by J Bodurka"
+ } ,
+
+ { 6, APR, 2011, RCR, "uber_subject.py", MICRO, TYPE_MODIFY,
    "make table size depend on font",
    NULL
  } ,
