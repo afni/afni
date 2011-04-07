@@ -1476,7 +1476,7 @@ char * TT_whereami( float xx , float yy , float zz, AFNI_STD_SPACES spc)
 #if 0
 
       if(!init_space_structs(&atlas_xfl, &atlas_alist,
-                          &atlas_spaces, &atlas_templates))
+                          &global_atlas_spaces, &atlas_templates))
         ERROR_message("Could not initialize structures for template spaces");
 #endif
   
