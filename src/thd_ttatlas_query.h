@@ -8,14 +8,22 @@
 /*----------------- be in afni.h. ZSS Feb. 06----------------*/
 #define ATLAS_CMAX    64   /* If you change this parameter,edit constant in CA_EZ_Prep.m (MaxLbl* checks) */
 #define TTO_LMAX    (ATLAS_CMAX+16)
-#define TTO_FORMAT  "%s [%3d,%3d,%3d]"
+#define TTO_FORMAT  "%s [%3.0f,%3.0f,%3.0f]"
 
 typedef struct {
+   /* tdval and tdlev stand for "Talairach Daemon" value and level */
+   /* these are kept for historical purposes  */
+   /* perhaps one day making an unusally boring PBS special */
    short tdval;         /* Leave this one to be the very first element */
    char name[ATLAS_CMAX] ;  /* Leave this one to be the second element */  
-   short xx,yy,zz,tdlev ;
+   float xx,yy,zz;     /* xx,yy,zz - RAI position of region  - now in float */
+   short tdlev,okey ;          /* tdlev = unknown, gyrus or area code */
+                               /* okey = original value in atlas */
+                               /*  this value was converted for TT daemon */
+                               /*  atlas values because left and right */
+                               /*  ROIs shared the same value */                               
    char dsetpref[ATLAS_CMAX];
-} ATLAS_point ;
+} ATLAS_POINT ;
 
 #define TTO_COUNT 241
 
@@ -27,7 +35,7 @@ typedef struct {
    restricted to when MAIN is defined */
 #else
 #endif
-extern ATLAS_point TTO_list[TTO_COUNT] ;
+extern ATLAS_POINT TTO_list[TTO_COUNT] ;
 extern char * TTO_labels[TTO_COUNT] ;
 extern int TTO_labeled ;
 extern int TTO_current ;
@@ -40,7 +48,7 @@ CA_EZ_Prep.m */
 #include "thd_ttatlas_CA_EZ.h"
 
 /* generic atlas functions and definitions - 03/13/2009 */
-#include "thd_atlas.h"
+/* #include "thd_atlas.h" */
 
 /*-------- End Atlas Tables ------------*/
 
@@ -120,15 +128,24 @@ typedef struct {
 } ATLAS_QUERY;
 
 typedef struct {
+   int n_points;
+   THD_3dim_dataset *dset;
+   ATLAS_POINT *at_point;
+} ATLAS_POINT_LIST;
+
+typedef struct {
    THD_3dim_dataset *dset; /* This is a copy of static atlas pointers. Do NOT Free! */
    AFNI_ATLAS_CODES atcode;
    int mxlablen;
    int mxelm;
-   float probkey;
-   byte *lrmask;        /* Do not free this one either */
-   int maxindexcode; /*!< Highest integral value in dset */
-   ATLAS_point *apl; /*!< Atlas point list, no free baby*/
-   byte duplicateLRentries; /*!< Are LR labels listed in adh.apl and under the same code? (only case I know of is in TTO_list*/
+   int probkey;
+   byte *lrmask;            /* Do not free this one either */
+   int maxindexcode;        /* Highest integral value in dset */
+   ATLAS_POINT *apl;        /* Atlas point list, no free baby*/
+   ATLAS_POINT_LIST *apl2;  /* use new list structure for segmentation */
+   byte duplicateLRentries; /* Are LR labels listed in adh.apl and under the same code?
+                               (only case I know of is in TTO_list*/
+   byte build_lr;
 } ATLAS_DSET_HOLDER;
 
 const char *Atlas_Val_to_Atlas_Name(ATLAS_DSET_HOLDER adh, int tdval);
@@ -168,13 +185,14 @@ void Show_Atlas_Zone(ATLAS_ZONE *zn);
 void Show_Atlas_Query(ATLAS_QUERY *aq);
 ATLAS_QUERY *Add_To_Atlas_Query(ATLAS_QUERY *aq, ATLAS_ZONE *zn);
 ATLAS_QUERY *Free_Atlas_Query(ATLAS_QUERY *aq);
+int CA_EZ_LR_load_atlas(void);
 int CA_EZ_ML_load_atlas(void);
 int CA_EZ_MPM_load_atlas(void);
 int CA_EZ_PMaps_load_atlas(void);
+THD_3dim_dataset *load_atlas(char *dsetname);
 void CA_EZ_MPM_purge_atlas(void);
 void CA_EZ_PMaps_purge_atlas(void);
 void CA_EZ_ML_purge_atlas(void);
-char *whereami_9yards(ATLAS_COORD ac, ATLAS_QUERY **wamip, AFNI_ATLAS_CODES *atlaslist, int N_atlaslist);
 char * Atlas_Query_to_String (ATLAS_QUERY *wami, ATLAS_COORD ac, WAMI_SORT_MODES Mode);
 char MNI_Anatomical_Side(ATLAS_COORD ac);
 void TT_whereami_set_outmode(WAMI_SORT_MODES md);
@@ -195,15 +213,19 @@ ATLAS_DSET_HOLDER Atlas_With_Trimming (AFNI_ATLAS_CODES atcode, int LoadLRMask);
 
 
 /* Transforms for going from one space to another */
+#if 0
 static char MNI_N27_to_AFNI_TLRC_HEAD[256] = {"TT_N27+tlrc"}; /*!<  TT_N27+tlrc was obtained by transforming N27 from MNI 
                                                     space to AFNI's Talairach space (manual transformation, 12 piece-wise-linear xforms) 
                                                     N27 was taken from Zilles' v12 database (colin_seg.hdr) before it got changed
                                                     to MNI anatomical (by simple shift) in v13 database*/
+#endif
 static char TT_DAEMON_TT_PREFIX[256] = {"TTatlas"}; /*!< Good old tlrc daemon */
 static char CA_EZ_N27_MPM_TT_PREFIX[256] = {"TT_N27_CA_EZ_MPM"};   /*!< Prefix of the Zilles Eickhoff Maximum Probability Maps in TT space */
 static char CA_EZ_N27_PMaps_TT_PREFIX[256] = {"TT_N27_CA_EZ_PMaps"};    /*!< Prefix of the Zilles Eickhoff Probability Maps in TT space */
 static char CA_EZ_N27_ML_TT_PREFIX[256] = {"TT_N27_EZ_ML"};  /*!< Prefix of the Zilles Eickhoff Macro Labels in TT space */
 static char CA_EZ_N27_LR_TT_PREFIX[256] = {"TT_N27_EZ_LR"};   /*!< Prefix of the Zilles Eickhoff Left/Right mask dset */
+static char CUSTOM_ATLAS_PREFIX[256] = {""}; /* default prefix of additional custom atlas */
+/* static char CUSTOM_ATLAS_PREFIX[256] = {"TTatlas_2010_master"};*/ /* default prefix of additional custom atlas */
 
 
 static float MNI_N27_to_AFNI_TLRC_WRP_VEC[360] = {       

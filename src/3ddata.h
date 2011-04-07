@@ -2466,10 +2466,12 @@ typedef struct THD_3dim_dataset {
       int   tcat_num ;
       int  *tcat_len ;
 
-   /* 26 Feb 2010: Pointer to VALUE_LABEL_DTABLE */
+   /* 26 Feb 2010: Pointer to VALUE_LABEL_DTABLE for ROI drawing labels*/
       void *Label_Dtable;
    /* 13 Mar 2009: atlas space */
       char atlas_space[THD_MAX_NAME] ;
+   /* 18 Nov 2010: Pointer to ATLAS_LABEL_TABLE for atlas segmentation */
+/*      atlas_point_list *atlas_label_table;*/
 
    /* 31 Mar 2009: integer colormap for ROIs and atlases */
       int int_cmap ;

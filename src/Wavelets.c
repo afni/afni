@@ -579,10 +579,10 @@ void wavelet_analysis
 /*---------------------------------------------------------------------------*/
 /*
   Convert F-value to p-value.  
-  This routine was copied from: mri_stats.c
+  This routine was copied from: mri_stats.c - linked with libmri.a?
 */
 
-
+#if 0
 double fstat_t2p( double ff , double dofnum , double dofden )
 {
    int which , status ;
@@ -600,6 +600,7 @@ double fstat_t2p( double ff , double dofnum , double dofden )
    if( status == 0 ) return q ;
    else              return 1.0 ;
 }
+#endif
 
 /*---------------------------------------------------------------------------*/
 /*
