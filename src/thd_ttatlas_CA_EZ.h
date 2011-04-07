@@ -8,7 +8,7 @@ Date: 31-Jul-2007*/
 /* ----------- Based on: Macro.mat -------------*/
 #define ML_EZ_COUNT   116
 
-extern ATLAS_point ML_EZ_list[ML_EZ_COUNT] ;
+extern ATLAS_POINT ML_EZ_list[ML_EZ_COUNT] ;
 extern char * ML_EZ_labels[ML_EZ_COUNT] ;
 extern int ML_EZ_labeled ;
 extern int ML_EZ_current ;
@@ -16,7 +16,7 @@ extern int ML_EZ_current ;
 /* ---- Based on my understanding -------------- */
 #define LR_EZ_COUNT   3
 
-extern ATLAS_point LR_EZ_list[LR_EZ_COUNT] ;
+extern ATLAS_POINT LR_EZ_list[LR_EZ_COUNT] ;
 extern char * LR_EZ_labels[LR_EZ_COUNT] ;
 extern int LR_EZ_labeled ;
 extern int LR_EZ_current ;
@@ -25,7 +25,7 @@ extern int LR_EZ_current ;
 /* ----------- Based on: AllAreas_v15_MPM.mat --------------*/
 #define CA_EZ_COUNT   29
 #define CA_EZ_MPM_MIN 100  /*!< minimum meaningful value in MPM atlas */
-extern ATLAS_point CA_EZ_list[CA_EZ_COUNT] ;
+extern ATLAS_POINT CA_EZ_list[CA_EZ_COUNT] ;
 extern char * CA_EZ_labels[CA_EZ_COUNT] ;
 extern int CA_EZ_labeled ;
 extern int CA_EZ_current ;

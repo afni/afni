@@ -49,6 +49,18 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 07 , APR, 2011 , DRG , "whereami" , 
+    MAJOR , TYPE_NEW_ENV, 
+    "Framework changes for generic atlases",
+    "Atlases now can have segmentation in a NIML structure attribute\n"
+    "in the atlas dataset header. The environment variable,\n"
+    "AFNI_CUSTOM_ATLAS, can contain a custom atlas prefix. Details on\n"
+    "NIML attributes will be forthcoming. In the meantime, existing\n"
+    "atlases should work as before with the minor exception of mask\n"
+    "datasets are now set to have voxel values of 1 rather than\n"
+    "the values from the atlas dataset." 
+} ,
+
 { 24 , MAR, 2011 , DRG , "whereami" , 
     MINOR , TYPE_BUG_FIX, 
     "Fixed bug for case of MNI_ANAT space as not processed"

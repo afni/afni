@@ -403,7 +403,7 @@ dsetdup:dsetdup.o
 
 3ddup:3ddup.o
 	$(RM) $@
-	$(CC) -o 3ddup 3ddup.o $(LFLAGS) $(LLIBS)
+	$(CC) -o 3ddup 3ddup.o $(LFLAGS) -lf2c -lmri $(LLIBS)
 
 3dZeropad:3dZeropad.o
 	$(RM) $@
@@ -424,7 +424,7 @@ dsetdup:dsetdup.o
 
 3dinfo:3dinfo.o
 	$(RM) $@
-	$(CC) -o 3dinfo 3dinfo.o $(LFLAGS) $(LLIBS) -lmri
+	$(CC) -o 3dinfo 3dinfo.o $(LFLAGS) -lf2c -lmri $(LLIBS)
 
 3dmaskave:3dmaskave.o
 	$(RM) $@
@@ -623,7 +623,7 @@ dsetdup:dsetdup.o
 
 from3d:from3d.o
 	$(RM) $@
-	$(CC) -o from3d from3d.o $(LFLAGS) $(LLIBS)
+	$(CC) -o from3d from3d.o $(LFLAGS) -lmri -lf2c $(LLIBS)
 
 3dfim:3dfim.o afni_pcor_float.o ts.o
 	$(RM) $@
@@ -659,11 +659,11 @@ hide:hide.o
 
 count:count.o
 	$(RM) $@
-	$(CC) -o count count.o $(LFLAGS) $(LLIBS)
+	$(CC) -o count count.o $(LFLAGS) -lmri -lf2c $(LLIBS)
 
 nsize:nsize.o
 	$(RM) $@
-	$(CC) -o nsize nsize.o $(LFLAGS) $(LLIBS)
+	$(CC) -o nsize nsize.o $(LFLAGS) -lmri -lf2c $(LLIBS)
 
 3dclust:3dclust.o parser.o parser_int.o
 	$(RM) $@
@@ -1390,7 +1390,7 @@ qtest:thd_bstrap_corr.o
 
 abut:abut.o
 	$(RM) $@
-	$(CC) -o abut abut.o $(LFLAGS) $(LLIBS)
+	$(CC) -o abut abut.o $(LFLAGS) -lmri -lf2c $(LLIBS)
 
 siemens_vision:siemens_vision.o
 	$(RM) $@
@@ -1414,15 +1414,15 @@ dicom_to_raw:dicom_to_raw.o
 
 sfim:sfim.o
 	$(RM) $@
-	$(CC) -o sfim sfim.o $(LFLAGS) $(LLIBS)
+	$(CC) -o sfim sfim.o $(LFLAGS) -lmri -lf2c $(LLIBS)
 
 tfim:tfim.o
 	$(RM) $@
-	$(CC) -o tfim tfim.o $(LFLAGS) $(LLIBS)
+	$(CC) -o tfim tfim.o $(LFLAGS) -lmri -lf2c $(LLIBS)
 
 ftosh:ftosh.o
 	$(RM) $@
-	$(CC) -o ftosh ftosh.o $(LFLAGS) $(LLIBS)
+	$(CC) -o ftosh ftosh.o $(LFLAGS) -lmri -lf2c $(LLIBS)
 
 ppmtoargb:ppmtoargb.o
 	$(RM) $@

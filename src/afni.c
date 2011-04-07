@@ -31,7 +31,7 @@
 #define MAIN
 
 #include "afni.h"
-#include "thd_ttatlas_query.h"
+#include "thd_atlas.h"
 #include <X11/keysym.h>  /* 20 Feb 2003 */
 #include "afni_plugout.h"
 

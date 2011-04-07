@@ -27,7 +27,7 @@
 #include <math.h>
 
 #include "mrilib.h"
-#include "thd_ttatlas_query.h"
+#include "thd_atlas.h"
 
 static EDIT_options HI_edopt ;
 

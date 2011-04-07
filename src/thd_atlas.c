@@ -5,6 +5,10 @@
 
 #include "mrilib.h"
 #include "thd_atlas.h"
+#define SUMA_noFunc
+#include "suma_suma.h"
+
+static int debug_niml = 1;
 
 static char *preferred_atlas_name = NULL;
 
@@ -149,9 +153,9 @@ THD_set_atlas_name(char *atlas_name)
 /* read atlas labels */
 
 /* read atlas color scale */
-atlas_lut *read_atlas_lut(THD_3dim_dataset *dset)
+ATLAS_LUT *read_atlas_lut(THD_3dim_dataset *dset)
 {
-   atlas_lut *atlasdset_lut;
+   ATLAS_LUT *atlasdset_lut;
    void *lut_atr;
      
    ENTRY("read_atlas_lut");
@@ -159,7 +163,7 @@ atlas_lut *read_atlas_lut(THD_3dim_dataset *dset)
    /* get lookup table from dataset */
    lut_atr = THD_find_atr(dset->dblk, "ATLAS_LUT");
    if(lut_atr) {
-      atlasdset_lut = malloc(sizeof(atlas_lut));
+      atlasdset_lut = malloc(sizeof(ATLAS_LUT));
       if(atlasdset_lut==NULL) {
          WARNING_message("Could not allocate memory for Atlas LUT\n");
          RETURN(NULL);
@@ -171,6 +175,132 @@ atlas_lut *read_atlas_lut(THD_3dim_dataset *dset)
      }
    RETURN(NULL);
 }
+
+/* free list of atlas points */
+void
+free_atlas_point_list(ATLAS_POINT_LIST *apl)
+{
+   if(apl==NULL)
+      return;
+   if(debug_niml) {
+      INFO_message("Freeing atlas point list with %d points", apl->n_points);
+      print_atlas_point_list(apl);
+   }
+
+   /* if there were any points, free the whole structure too */
+   if(apl->n_points >= 1)
+      free(apl->at_point);
+   free(apl);
+}
+
+/* print list of atlas points*/
+void
+print_atlas_point_list(ATLAS_POINT_LIST *apl)
+{
+   int i;
+   ATLAS_POINT *ap;
+   INFO_message("----- Atlas point list: -------");
+   
+   if(apl==NULL)
+      return;
+   for(i=0;i<apl->n_points;i++) {
+      ap = apl->at_point+i;
+      INFO_message("%d: \"%s\", \"%s\""
+                     " %5.1f %5.1f %5.1f\n",
+         ap->tdval, ap->name, ap->dsetpref,
+         ap->xx, ap->yy, ap->zz);
+   }
+   INFO_message("");
+}
+
+/* convert a NIML table from a dataset to an atlas list structure */
+ATLAS_POINT_LIST *
+dset_niml_to_atlas_list(THD_3dim_dataset *dset)
+{
+   ATLAS_POINT_LIST *apl;
+   int i, tdlev, tdval;
+   char *temp_str;
+   ATLAS_POINT *at_pt;
+   NI_element *nel=NULL;
+   NI_group *ngr=NULL;
+   byte LocalHead = 0;
+
+   float cog[3];
+   short okey;
+   ATR_string *atr=NULL;
+
+   ENTRY("dset_niml_to_atlas_list");
+
+   if (LocalHead) fprintf(stderr, "assigning NIML attributes to apl.\n");
+
+   atr = THD_find_string_atr( dset->dblk ,
+                              "ATLAS_LABEL_TABLE" ) ;
+
+   if (atr) {
+      if (LocalHead) fprintf(stderr, "Label table found in attributes.\n");
+
+      ngr = NI_read_element_fromstring(atr->ch);
+      if ((ngr==NULL) || (ngr->part_num == 0)) {
+         WARNING_message("** WARNING: Poorly formatted ATLAS_LABEL_TABLE\n");
+         if(ngr) NI_free_element(ngr) ;
+         RETURN(NULL);
+      }
+   }
+   else {
+      if (LocalHead) fprintf(stderr, "Label table NOT found in attributes.\n");
+      RETURN(NULL);
+   }
+
+   /* get each segmented region - the "atlas point" from 
+      a NIML formatted string */ 
+   apl = (ATLAS_POINT_LIST *) malloc(sizeof(ATLAS_POINT_LIST));
+   /* assume the number of elements in the group is the number of structures */
+   apl->n_points = ngr->part_num; 
+   apl->dset = dset; /* mark the dataset as the repository of segmentation */
+   apl->at_point = (ATLAS_POINT *) malloc(apl->n_points*sizeof(ATLAS_POINT));
+   if(apl->at_point == NULL) {         WARNING_message("** WARNING: Poorly formatted ATLAS_LABEL_DTABLE\n");
+         free(apl);
+         RETURN(NULL);
+      }
+
+   for(i=0;i<apl->n_points;i++){
+       /* read the NIML string from the NIML file */
+      nel = (NI_element *)ngr->part[i] ;
+/*      nel = SUMA_FindNgrDataElement(ngr, "ATLAS_POINT", "atlas_point");*/
+      if(!nel) {
+          NI_free_element(ngr) ;
+          RETURN(NULL);
+      }
+      NI_GET_INT(nel, "VAL", tdval);
+      NI_GET_INT(nel, "OKEY", okey);
+      NI_GET_INT(nel, "GYoAR", tdlev);
+      NI_GET_FLOATv(nel, "COG", cog, 3, 0);
+
+      temp_str = NI_get_attribute(nel, "STRUCT");
+      /* update the pointer for the current atlas point */
+      at_pt = &apl->at_point[i];
+      /* copy "STRUCT" name - segmentation name */
+      NI_strncpy(at_pt->name,temp_str,ATLAS_CMAX);
+      /* sub-brick label for probability maps */
+      temp_str = NI_get_attribute(nel, "DSETPREF");
+      if(temp_str==NULL)
+         NI_strncpy(at_pt->dsetpref,"",ATLAS_CMAX);
+      else
+         NI_strncpy(at_pt->dsetpref,temp_str,ATLAS_CMAX);
+
+      at_pt->tdval = tdval;
+      at_pt->okey = okey;
+      at_pt->tdlev = tdlev;
+      at_pt->xx = cog[0];
+      at_pt->yy = cog[1];
+      at_pt->zz = cog[2];
+   }    
+
+   NI_free_element(ngr) ;
+   RETURN(apl); 
+}
+
+
 
 /* write atlas labels */
 
@@ -228,3 +358,4 @@ option to take coordinate transformation - piecewise and combined
 functions to apply transforms to coordinates or volumes (already called in
 whereami)
 #endif
+
