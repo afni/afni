@@ -295,6 +295,8 @@ g_install_str = """
    ------------------------------------------------------------------
    A. Linux install:
 
+      { should work on: Fedora 10+, Ubuntu 9+ }
+
       1. yum install PyQt4
 
       * Note: if your system libraries are old enough where this step does not
@@ -303,6 +305,9 @@ g_install_str = """
 
    B. OS X 10.6 install (from nokia and riverbank computing):
 
+      { should work on: OS X 10.5, 10.6 }
+
+      1. yum install PyQt4
       0. XCode and python (2.6) should already be installed
 
       1. Qt SDK for mac (large: 1.1 GB download):
