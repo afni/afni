@@ -225,8 +225,12 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       layout.addWidget(self.gvars.Line_gid)
 
       # note callbacks for buttons
-      self.gvars.Line_sid.editingFinished.connect(self.CB_line_text)
-      self.gvars.Line_gid.editingFinished.connect(self.CB_line_text)
+      # ** cannot use new method on Ubuntu 9.04:
+      #    self.gvars.Line_sid.editingFinished.connect(self.CB_line_text)
+      self.connect(self.gvars.Line_sid, QtCore.SIGNAL('editingFinished()'),
+                   self.CB_line_text)
+      self.connect(self.gvars.Line_gid, QtCore.SIGNAL('editingFinished()'),
+                   self.CB_line_text)
 
       # and set layout
       bwidget.setLayout(layout)
@@ -346,7 +350,9 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       frame.setFrameShape(QtGui.QFrame.NoFrame)
       gbox.frame = frame
       self.init_gbox_viewable(gbox, False)      # default to hidden
-      gbox.toggled.connect(self.gbox_toggle_frame)
+      # gbox.toggled.connect(self.gbox_toggle_frame)
+      # no QtCore.SIGNAL('toggled()')?
+      self.connect(gbox, QtCore.SIGNAL('clicked()'), self.gbox_clicked)
 
       layout = QtGui.QGridLayout(frame)         # now a child of frame
       voffset = 0                               # vertical position in layout
@@ -361,7 +367,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       pbut = QLIB.create_menu_button(frame, "choose", blist,
                                      call_back=self.CB_gbox_PushB)
       LE.setText(self.svars.align_cost)
-      LE.editingFinished.connect(self.CB_line_text)
+      self.connect(LE, QtCore.SIGNAL('editingFinished()'), self.CB_line_text)
 
       layout.addWidget(label, voffset, 0)
       layout.addWidget(pbut, voffset, 1)
@@ -374,7 +380,8 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       cbox = QtGui.QCheckBox("align: use giant_move")
       cbox.setStatusTip("use -giant_move in align_epi_anat.py")
       cbox.setChecked(self.svars.align_giant_move=='yes')
-      cbox.clicked.connect(self.CB_checkbox)
+      # cbox.clicked.connect(self.CB_checkbox)
+      self.connect(cbox, QtCore.SIGNAL('clicked()'), self.CB_checkbox)
 
       layout.addWidget(cbox, voffset, 0)
       gbox.checkBox_align_giant_move = cbox
@@ -403,7 +410,8 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       frame.setFrameShape(QtGui.QFrame.NoFrame)
       gbox.frame = frame
       self.init_gbox_viewable(gbox, False)      # default to hidden
-      gbox.toggled.connect(self.gbox_toggle_frame)
+      # gbox.toggled.connect(self.gbox_toggle_frame)
+      self.connect(gbox, QtCore.SIGNAL('clicked()'), self.gbox_clicked)
 
       layout = QtGui.QGridLayout(frame)         # now a child of frame
       voffset = 0                               # vertical position in layout
@@ -418,7 +426,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       pbut = QLIB.create_menu_button(frame, "choose", blist,
                                      call_back=self.CB_gbox_PushB)
       LE.setText(self.svars.tlrc_base)
-      LE.editingFinished.connect(self.CB_line_text)
+      self.connect(LE, QtCore.SIGNAL('editingFinished()'), self.CB_line_text)
 
       layout.addWidget(label, voffset, 0)
       layout.addWidget(pbut, voffset, 1)
@@ -431,7 +439,8 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       cbox = QtGui.QCheckBox("tlrc: strip anat skull")
       cbox.setStatusTip("if not, use -tlrc_no_ss for @auto_tlrc")
       cbox.setChecked(self.svars.tlrc_ss=='yes')
-      cbox.clicked.connect(self.CB_checkbox)
+      # cbox.clicked.connect(self.CB_checkbox)
+      self.connect(cbox, QtCore.SIGNAL('clicked()'), self.CB_checkbox)
 
       layout.addWidget(cbox, voffset, 0)
       gbox.checkBox_tlrc_ss = cbox
@@ -442,7 +451,8 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       cbox = QtGui.QCheckBox("tlrc: OK maxite")
       cbox.setStatusTip("allow max iterations in @auto_tlrc skull strip")
       cbox.setChecked(self.svars.tlrc_ok_maxite=='yes')
-      cbox.clicked.connect(self.CB_checkbox)
+      # cbox.clicked.connect(self.CB_checkbox)
+      self.connect(cbox, QtCore.SIGNAL('clicked()'), self.CB_checkbox)
 
       layout.addWidget(cbox, voffset, 0)
       gbox.checkBox_tlrc_ok_maxite = cbox
@@ -471,7 +481,8 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       frame.setFrameShape(QtGui.QFrame.NoFrame)
       gbox.frame = frame
       self.init_gbox_viewable(gbox, False)      # default to hidden
-      gbox.toggled.connect(self.gbox_toggle_frame)
+      # gbox.toggled.connect(self.gbox_toggle_frame)
+      self.connect(gbox, QtCore.SIGNAL('clicked()'), self.gbox_clicked)
 
       layout = QtGui.QGridLayout(frame)         # now a child of frame
 
@@ -484,7 +495,8 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       label.setStatusTip("censor TRs exceeding this fraction (range [0,1])")
       self.gvars.Line_outlier_limit = QtGui.QLineEdit()
       self.gvars.Line_outlier_limit.setText(self.svars.outlier_limit)
-      self.gvars.Line_outlier_limit.editingFinished.connect(self.CB_line_text)
+      self.connect(self.gvars.Line_outlier_limit,
+                   QtCore.SIGNAL('editingFinished()'), self.CB_line_text)
 
       layout.addWidget(label, 0, 0)
       layout.addWidget(self.gvars.Line_outlier_limit, 0, 1)
@@ -494,7 +506,8 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       label.setStatusTip("number of CPUs to use in 3dDeconvolve")
       self.gvars.Line_regress_jobs = QtGui.QLineEdit()
       self.gvars.Line_regress_jobs.setText(self.svars.regress_jobs)
-      self.gvars.Line_regress_jobs.editingFinished.connect(self.CB_line_text)
+      self.connect(self.gvars.Line_regress_jobs,
+                   QtCore.SIGNAL('editingFinished()'), self.CB_line_text)
 
       layout.addWidget(label, 1, 0)
       layout.addWidget(self.gvars.Line_regress_jobs, 1, 1)
@@ -504,7 +517,8 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       label.setStatusTip("number of 3dDeconvolve warnings to override")
       self.gvars.Line_regress_GOFORIT = QtGui.QLineEdit()
       self.gvars.Line_regress_GOFORIT.setText(self.svars.regress_GOFORIT)
-      self.gvars.Line_regress_GOFORIT.editingFinished.connect(self.CB_line_text)
+      self.connect(self.gvars.Line_regress_GOFORIT,
+                   QtCore.SIGNAL('editingFinished()'), self.CB_line_text)
 
       layout.addWidget(label, 2, 0)
       layout.addWidget(self.gvars.Line_regress_GOFORIT, 2, 1)
@@ -513,7 +527,8 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       cbox = QtGui.QCheckBox("reml_exec")
       cbox.setStatusTip("execute 3dREMLfit regression script")
       cbox.setChecked(self.svars.reml_exec=='yes')
-      cbox.clicked.connect(self.CB_checkbox)
+      # cbox.clicked.connect(self.CB_checkbox)
+      self.connect(cbox, QtCore.SIGNAL('clicked()'), self.CB_checkbox)
       layout.addWidget(cbox, 4, 0)
       gbox.checkBox_reml_exec = cbox
 
@@ -521,7 +536,8 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       cbox = QtGui.QCheckBox("run_clustsim")
       cbox.setStatusTip("store 3dClustSim table in stats results")
       cbox.setChecked(self.svars.run_clustsim=='yes')
-      cbox.clicked.connect(self.CB_checkbox)
+      # cbox.clicked.connect(self.CB_checkbox)
+      self.connect(cbox, QtCore.SIGNAL('clicked()'), self.CB_checkbox)
       layout.addWidget(cbox, 5, 0)
       gbox.checkBox_run_clustsim = cbox
 
@@ -529,7 +545,8 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       cbox = QtGui.QCheckBox("compute fitts dataset")
       cbox.setStatusTip("save RAM in 3dD, compute fitts = all_runs - errts")
       cbox.setChecked(self.svars.compute_fitts=='yes')
-      cbox.clicked.connect(self.CB_checkbox)
+      # cbox.clicked.connect(self.CB_checkbox)
+      self.connect(cbox, QtCore.SIGNAL('clicked()'), self.CB_checkbox)
       layout.addWidget(cbox, 3, 0)
       gbox.checkBox_compute_fitts = cbox
 
@@ -554,7 +571,8 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       frame.setFrameShape(QtGui.QFrame.NoFrame)
       gbox.frame = frame
       self.init_gbox_viewable(gbox, True)       # default to viewable
-      gbox.toggled.connect(self.gbox_toggle_frame)
+      # gbox.toggled.connect(self.gbox_toggle_frame)
+      self.connect(gbox, QtCore.SIGNAL('clicked()'), self.gbox_clicked)
 
       layout = QtGui.QGridLayout(frame)         # now a child of frame
 
@@ -564,7 +582,8 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       label.setStatusTip("the number of pre-steady state TRs to remove")
       self.gvars.Line_tcat_nfirst = QtGui.QLineEdit()
       self.gvars.Line_tcat_nfirst.setText(self.svars.tcat_nfirst)
-      self.gvars.Line_tcat_nfirst.editingFinished.connect(self.CB_line_text)
+      self.connect(self.gvars.Line_tcat_nfirst,
+                   QtCore.SIGNAL('editingFinished()'), self.CB_line_text)
 
       layout.addWidget(label, 0, 0)
       layout.addWidget(self.gvars.Line_tcat_nfirst, 0, 2)
@@ -579,7 +598,8 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       pbut = QLIB.create_menu_button(frame, "choose", blist,
                 call_back=self.CB_gbox_PushB)
       self.gvars.Line_volreg_base.setText(self.svars.volreg_base)
-      self.gvars.Line_volreg_base.editingFinished.connect(self.CB_line_text)
+      self.connect(self.gvars.Line_volreg_base,
+                   QtCore.SIGNAL('editingFinished()'), self.CB_line_text)
 
       layout.addWidget(label, 1, 0)
       layout.addWidget(pbut, 1, 1)
@@ -591,7 +611,8 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       label.setStatusTip("censor TRs with motion exceeding this mm distance")
       self.gvars.Line_motion_limit = QtGui.QLineEdit()
       self.gvars.Line_motion_limit.setText(self.svars.motion_limit)
-      self.gvars.Line_motion_limit.editingFinished.connect(self.CB_line_text)
+      self.connect(self.gvars.Line_motion_limit,
+                   QtCore.SIGNAL('editingFinished()'), self.CB_line_text)
       layout.addWidget(label, 2, 0)
       layout.addWidget(self.gvars.Line_motion_limit, 2, 2)
 
@@ -619,7 +640,8 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       frame.setFrameShape(QtGui.QFrame.NoFrame)
       gbox.frame = frame
       self.init_gbox_viewable(gbox, True)       # default to viewable
-      gbox.toggled.connect(self.gbox_toggle_frame)
+      # gbox.toggled.connect(self.gbox_toggle_frame)
+      self.connect(gbox, QtCore.SIGNAL('clicked()'), self.gbox_clicked)
 
       layout = QtGui.QVBoxLayout(frame) # now a child of frame
 
@@ -643,13 +665,15 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       # add a line for the anat name, init to anat
       self.gvars.Line_anat = QtGui.QLineEdit()
       self.gvars.Line_anat.setText(self.svars.anat)
-      self.gvars.Line_anat.editingFinished.connect(self.CB_line_text)
+      self.connect(self.gvars.Line_anat,
+                   QtCore.SIGNAL('editingFinished()'), self.CB_line_text)
       layout.addWidget(self.gvars.Line_anat)
 
       # add a checkbox for including tlrc, init with get_tlrc
       gbox.checkBox = QtGui.QCheckBox("include copy of anat+tlrc")
       gbox.checkBox.setChecked(self.svars.get_tlrc=='yes')
-      gbox.checkBox.clicked.connect(self.CB_checkbox)
+      # gbox.checkBox.clicked.connect(self.CB_checkbox)
+      self.connect(gbox.checkBox, QtCore.SIGNAL('clicked()'), self.CB_checkbox)
       layout.addWidget(gbox.checkBox)
 
       layout.setSpacing(g_spacing)
@@ -666,6 +690,11 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       else:    box.frame.hide()
 
    def gbox_toggle_frame(self):
+      obj = self.sender()
+      if obj.isChecked(): obj.frame.show()
+      else: obj.frame.hide()
+
+   def gbox_clicked(self):
       obj = self.sender()
       if obj.isChecked(): obj.frame.show()
       else: obj.frame.hide()
@@ -693,7 +722,8 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       glayout.addWidget(frame)
       gbox.frame = frame
       self.init_gbox_viewable(gbox, True)       # default to viewable
-      gbox.toggled.connect(self.gbox_toggle_frame)
+      # gbox.toggled.connect(self.gbox_toggle_frame)
+      self.connect(gbox, QtCore.SIGNAL('clicked()'), self.gbox_clicked)
 
       mainlayout = QtGui.QVBoxLayout(frame)     # now a child of frame
 
@@ -748,7 +778,9 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       # --------------------------------------------------
       # add a checkbox for use wildcard form
       gbox.checkBox_wildcard = QtGui.QCheckBox("use wildcard form")
-      gbox.checkBox_wildcard.clicked.connect(self.CB_checkbox)
+      # gbox.checkBox_wildcard.clicked.connect(self.CB_checkbox)
+      self.connect(gbox.checkBox_wildcard, QtCore.SIGNAL('clicked()'),
+                   self.CB_checkbox)
       gbox.checkBox_wildcard.setChecked(self.svars.epi_wildcard=='yes')
       mainlayout.addWidget(gbox.checkBox_wildcard)
 
@@ -780,7 +812,8 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       glayout.addWidget(frame)
       gbox.frame = frame
       self.init_gbox_viewable(gbox, True)       # default to viewable
-      gbox.toggled.connect(self.gbox_toggle_frame)
+      # gbox.toggled.connect(self.gbox_toggle_frame)
+      self.connect(gbox, QtCore.SIGNAL('clicked()'), self.gbox_clicked)
 
       mainlayout = QtGui.QVBoxLayout(frame)     # now a child of frame
 
@@ -859,7 +892,8 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       if len(self.svars.stim_basis) > 0: basis = self.svars.stim_basis[0]
       else:                              basis = ''
       self.gvars.Line_apply_basis.setText(basis)
-      self.gvars.Line_apply_basis.editingFinished.connect(self.CB_line_text)
+      self.connect(self.gvars.Line_apply_basis,
+                   QtCore.SIGNAL('editingFinished()'), self.CB_line_text)
       layout.addWidget(self.gvars.Line_apply_basis)
 
       layout.setSpacing(g_spacing)
@@ -869,7 +903,9 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       # --------------------------------------------------
       # add a checkbox for use wildcard form
       gbox.checkBox_wildcard = QtGui.QCheckBox("use wildcard form")
-      gbox.checkBox_wildcard.clicked.connect(self.CB_checkbox)
+      # gbox.checkBox_wildcard.clicked.connect(self.CB_checkbox)
+      self.connect(gbox.checkBox_wildcard, QtCore.SIGNAL('clicked()'),
+                   self.CB_checkbox)
       gbox.checkBox_wildcard.setChecked(self.svars.stim_wildcard=='yes')
       mainlayout.addWidget(gbox.checkBox_wildcard)
 
@@ -900,7 +936,8 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       glayout.setSpacing(g_glayout_spacing)
       gbox.frame = frame
       self.init_gbox_viewable(gbox, False)      # default to hidden
-      gbox.toggled.connect(self.gbox_toggle_frame)
+      # gbox.toggled.connect(self.gbox_toggle_frame)
+      self.connect(gbox, QtCore.SIGNAL('clicked()'), self.gbox_clicked)
 
       mainlayout = QtGui.QVBoxLayout(frame)     # now a child of frame
 
