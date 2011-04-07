@@ -175,19 +175,19 @@ float principal_vector( int n , int m , int xtyp , void *xp ,
                     will give the corresponding column in [U], but scaled;
                     below, just L2-normalize the column to get output vector **/
 
-   if( nn <= mm ){                    /* copy eigenvector into output directly */
-                                      /* (e.g., more vectors than time points) */
+   if( nn <= mm ){                   /* copy eigenvector into output directly */
+                                     /* (e.g., more vectors than time points) */
 
-     (void)mean_vector( nsym , nsym , 0 , asym , uvec ) ;
+     (void)mean_vector( nsym , nsym , 0 , asym , uvec ) ;  /* initialize=mean */
      sval = symeig_sim1( nsym , asym , uvec , wws+nws , xran ) ;
 
-   } else {  /* n > m: transform eigenvector to get left singular vector */
-             /* (e.g., more time points than vectors) */
+   } else {       /* n > m: transform eigenvector to get left singular vector */
+                  /* (e.g., more time points than vectors) */
 
      float *qvec ;
 
      qvec = wws + nws ; nws += nsym ;
-     (void)mean_vector( nsym , nsym , 0 , asym , qvec ) ;
+     (void)mean_vector( nsym , nsym , 0 , asym , qvec ) ;  /* initialize=mean */
      sval = symeig_sim1( nsym , asym , qvec , wws+nws , xran ) ;
      for( qsum=0.0f,ii=0 ; ii < nn ; ii++ ){
        if( xtyp <= 0 )

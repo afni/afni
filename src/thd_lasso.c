@@ -21,7 +21,9 @@ void THD_lasso_fixlam( float x ){ if( x > 0.0f ) flam = x ; }
 
 static float deps = 0.0000654321f ;
 
-void THD_lasso_setdeps( float x ){ if( x > 0.0f && x <= 0.1f ) deps = x ; }
+void THD_lasso_setdeps( float x ){
+  deps = ( x >= 0.0000003f && x <= 0.1f ) ? x : 0.0000654321f ;
+}
 
 /*............................................................................*/
 
@@ -85,7 +87,7 @@ static float estimate_sigma( int npt , float *far )
 {
    float *dif , val,mad1=0.333f,mad2=0.333f ; int ii,nnz ;
 
-   if( npt < 9 || far == NULL ) return 0.333f ;  /* half a milli-beast */
+   if( npt < 5 || far == NULL ) return 0.333f ;  /* half a milli-beast */
 
 #pragma omp critical (MALLOC)
    { dif = (float *)malloc(sizeof(float)*npt) ; }
@@ -241,7 +243,7 @@ floatvec * THD_lasso( int meth   ,
 
      default:
      case  2:
-     case -2: return THD_lasso_L2fit( npt,far , nref,ref , lam,ccon ) ;
+     case -2: return THD_lasso_L2fit    ( npt,far , nref,ref , lam,ccon ) ;
 
      case  1:
      case -1: return THD_sqrtlasso_L2fit( npt,far , nref,ref , lam,ccon ) ;
@@ -479,6 +481,12 @@ ENTRY("THD_lasso_L2fit") ;
      A Belloni, V Chernozhukov, and L Wang.
      Square-root LASSO: Pivotal recovery of sparse signals via conic programming.
      http://arxiv.org/abs/1009.5689
+   This function uses a coordinate descent method similar to the pure
+   LASSO function earlier.  The key is that for 1 coordinate at a time, the
+   problem is reduced to minimizing a function of the form
+     f(x) = sqrt(a*x*x+b*x+c) + d*abs(x)
+   and the minimizer can be written in closed form as the solution to a
+   quadratic equation -- see XPLU and XMIN macros above.
 *//*--------------------------------------------------------------------------*/
 
 floatvec * THD_sqrtlasso_L2fit( int npt    , float *far   ,
@@ -540,15 +548,8 @@ ENTRY("THD_sqrtlasso_L2fit") ;
      ll = mylam[jj] ;
      if( ll > 0.0f ){
        aa = sqrtf(rsq[jj]); ll *= aa*cc; if( ll > AFAC*aa ) ll = AFAC*aa;
-#if 0
-       ININFO_message("lam[%d]=%g --> %g  aa=%g cc=%g npt=%d",jj,mylam[jj],ll,aa,cc,npt) ;
-#endif
        mylam[jj] = ll ;
        qal[jj]   = ll*ll * 4.0f*rsq[jj]/(rsq[jj]-ll*ll) ;
-     } else {
-#if 0
-       ININFO_message("lam[%d]=0",jj) ;
-#endif
      }
    }
 
@@ -585,9 +586,6 @@ ENTRY("THD_sqrtlasso_L2fit") ;
 #endif
 
    /*---- outer iteration loop (until we are happy or worn out) ----*/
-
-#undef  CON    /* CON(j) is true if the constraint on ppar[j] is violated */
-#define CON(j) (ccon != NULL && ppar[j]*ccon[j] < 0.0f)
 
    ii = MAX(nref,npt) ; jj = MIN(nref,npt) ; nimax = 17 + 5*ii + 31*jj ;
    dsumx = dsum = 1.0f ;
