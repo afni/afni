@@ -318,37 +318,6 @@ dset_niml_to_atlas_list(THD_3dim_dataset *dset)
 
 /* write atlas color scale */
 
-#if 0
-/* NIML file tests */
-void atlas_read_all()
-{
-   NI_stream space_niml;
-   atlas_xform_list *atlas_xfl;
-   
-   space_niml = NI_stream_open("file:AFNI_atlas_space.niml","r");
-   
-   /* read atlas transformation list */
-   atlas_xfl = read_space_xforms(space_niml);
-   
-   /* write out the list */
-   
-}
-
-/* read space transformations from niml file */
-atlas_xform_list *read_space_xforms(NI_stream space_niml)
-{
-   NI_element *nel;
-   
-   while ((nel = NI_read_element(space_niml, 1))) {
-      /* Now access parts of nel */
-      fprintf( stderr,"\nAccessing Attributes for element %s:\n", nel->name);
-      fprintf( stderr,
-               "Name attribute = %s\n",
-               NI_get_attribute(nel, "Name"));
-   }
-}
-#endif
-
 /* read transformation for space 1 to space 2 */
 
 /* write transformation for space 1 to space 2 */
@@ -362,11 +331,11 @@ x include space names and transforms defined on brainmap.org
 display network with SUMA using @DO.examples
 x start building transform combinations
 build toy working directory - user directory - supplemental monkey, child,
-single subject. Regression testing
+x single subject. Regression testing
 affine transformation for EPI 
   revisit with optimized transformations from Peter Fox
-whereami can provide reference for xforms used
-option to take coordinate transformation - piecewise and combined
+x whereami can provide reference for xforms used
+x option to take coordinate transformation - piecewise and combined
 functions to apply transforms to coordinates or volumes (already called in
 whereami)
 #endif
@@ -430,20 +399,20 @@ void atlas_read_all()
 
    if(debug_niml) 
       INFO_message("\nInitializing structures\n"); 
-   if(!init_space_structs(&atlas_xfl, &atlas_alist,
-                          &global_atlas_spaces, &atlas_templates))
+   if(!init_space_structs(&global_atlas_xfl, &global_atlas_alist,
+                          &global_atlas_spaces, &global_atlas_templates))
       ERROR_message("Could not initialize structures for template spaces");
 
 
 /*
-atlas_xfl = (ATLAS_XFORM_LIST *) malloc(sizeof(ATLAS_XFORM_LIST));
-atlas_xfl->nxforms = 0;
-atlas_alist = (ATLAS_LIST *) malloc(sizeof(ATLAS_LIST));
-atlas_alist->natlases = 0;
+global_atlas_xfl = (ATLAS_XFORM_LIST *) malloc(sizeof(ATLAS_XFORM_LIST));
+global_atlas_xfl->nxforms = 0;
+global_atlas_alist = (ATLAS_LIST *) malloc(sizeof(ATLAS_LIST));
+global_atlas_alist->natlases = 0;
 global_atlas_spaces = (ATLAS_SPACE_LIST *) malloc(sizeof(ATLAS_SPACE_LIST));
 global_atlas_spaces->nspaces = 0;
-atlas_templates = (ATLAS_TEMPLATE_LIST *) malloc(sizeof(ATLAS_TEMPLATE_LIST));
-atlas_templates->ntemplates = 0;
+global_atlas_templates = (ATLAS_TEMPLATE_LIST *) malloc(sizeof(ATLAS_TEMPLATE_LIST));
+global_atlas_templates->ntemplates = 0;
 */
    if(debug_niml) 
       INFO_message("opening AFNI_atlas_spaces.niml");   
@@ -455,8 +424,8 @@ atlas_templates->ntemplates = 0;
    }
 
    /* read atlas info from global atlas file */
-   valid_space_niml = read_space_niml(space_niml, atlas_xfl,
-          atlas_alist, global_atlas_spaces, atlas_templates);
+   valid_space_niml = read_space_niml(space_niml, global_atlas_xfl,
+          global_atlas_alist, global_atlas_spaces, global_atlas_templates);
 
    ept = my_getenv("AFNI_SUPP_ATLAS");
    if( ept ) {
@@ -470,8 +439,8 @@ atlas_templates->ntemplates = 0;
       }
       /* read atlas info from supplemental atlas file */
       /*  adding to existing structures */
-      valid_space_niml = read_space_niml(space_niml, atlas_xfl,
-             atlas_alist, global_atlas_spaces, atlas_templates);
+      valid_space_niml = read_space_niml(space_niml, global_atlas_xfl,
+             global_atlas_alist, global_atlas_spaces, global_atlas_templates);
 
    }
 
@@ -489,14 +458,14 @@ atlas_templates->ntemplates = 0;
       }
       /* read atlas info from local atlas file */
       /*  adding to existing structures */
-      valid_space_niml = read_space_niml(space_niml, atlas_xfl,
-             atlas_alist, global_atlas_spaces, atlas_templates);
+      valid_space_niml = read_space_niml(space_niml, global_atlas_xfl,
+             global_atlas_alist, global_atlas_spaces, global_atlas_templates);
    }
 
   
    /* set up the neighborhood for spaces */
    /*  how are the spaces related to each other */ 
-   if(make_space_neighborhood(global_atlas_spaces, atlas_xfl)!=0)
+   if(make_space_neighborhood(global_atlas_spaces, global_atlas_xfl)!=0)
      return;
    
 }
@@ -758,7 +727,8 @@ get_xform_chain(ATLAS_SPACE *at_space, ATLAS_SPACE *dest_space)
          fprintf(stderr, "\n");
       }
 
-      xfl = pathlist_to_xform_list(nPath, N_n, atlas_xfl, global_atlas_spaces);
+      xfl = pathlist_to_xform_list(nPath, N_n,
+                  global_atlas_xfl, global_atlas_spaces);
       free(nPath); nPath = NULL;
    }
 
@@ -984,10 +954,10 @@ identity_xform()
 /* free all the static lists */
 void free_atlas_structs()
 {
-   free_xform_list(atlas_xfl);
-   free_atlas_list(atlas_alist);
+   free_xform_list(global_atlas_xfl);
+   free_atlas_list(global_atlas_alist);
    free_space_list(global_atlas_spaces);
-   free_template_list(atlas_templates);
+   free_template_list(global_atlas_templates);
 }
 
 /* free list of xforms */

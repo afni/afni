@@ -69,6 +69,9 @@ typedef struct {
 
 
 ATLAS_SPACE_LIST *global_atlas_spaces;
+ATLAS_XFORM_LIST *global_atlas_xfl;
+ATLAS_LIST *global_atlas_alist;
+ATLAS_TEMPLATE_LIST *global_atlas_templates;
 
 void free_atlas_point_list(ATLAS_POINT_LIST *apl);
 void print_atlas_point_list(ATLAS_POINT_LIST *apl);
@@ -178,18 +181,9 @@ static void adjust_atlas_point_list(ATLAS_POINT_LIST *atp, char *match_str,
 static ATLAS_POINT_LIST *AFNI_atlas_list_to_atlas_point_list(
         ATLAS_POINT *afni_at_pts, int npts);
 
-
-static ATLAS_XFORM_LIST *atlas_xfl;
-/*static ATLAS_SPACE_LIST *atlas_spaces;*/
-static ATLAS_LIST *atlas_alist;
-static ATLAS_TEMPLATE_LIST *atlas_templates;
-
-
 #if 0
 char * THD_get_space(THD_3dim_dataset *dset);
 int THD_space_code(char *space);
-
-ATLAS_SPACE_LIST *global_atlas_spaces;
 
 THD_3dim_dataset *
 get_session_dset_id(THD_session *sess, MCW_idcode idcode, int space_index);
