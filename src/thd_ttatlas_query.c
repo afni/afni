@@ -1428,7 +1428,7 @@ char * TT_whereami( float xx , float yy , float zz, AFNI_STD_SPACES spc)
    int old_way = 1, iatlas;
    int LocalHead = 0;
 
-   ENTRY("TT_whereami_genx") ;
+   ENTRY("TT_whereami") ;
 
    /* initialize the single custom atlas entry */
    init_custom_atlas();
@@ -1470,8 +1470,9 @@ char * TT_whereami( float xx , float yy , float zz, AFNI_STD_SPACES spc)
          }
       }
       else {           /* fill from NIML table files */
+         atlas_read_all();
       }
-         first_time = 0;
+      first_time = 0;
    }
 #if 0
 
