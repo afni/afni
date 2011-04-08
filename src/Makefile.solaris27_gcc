@@ -45,8 +45,8 @@ INSTALLDIR = ./solaris27_gcc
 LIBDIR = $(INSTALLDIR)
 SHOWOFF = -DSHOWOFF=solaris27_gcc
 
-LLIBS  = -lmri -lXm -lXt -lX11 -lm $(EXTRA_LIBS)
-# LLIBS  = -lmri -lXm $(EXTRA_LIBS) -lm -lc
+LLIBS  = -lmri -lf2c -lXm -lXt -lX11 -lm $(EXTRA_LIBS)
+# LLIBS  = -lmri -lf2c -lXm $(EXTRA_LIBS) -lm -lc
 
 
 # vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv

@@ -40,7 +40,7 @@ LINT = /usr/bin/lint -b -u -v -x -Aa $(IFLAGS) $(CCDEFS)
 INSTALLDIR = ./solaris26_gcc
 LIBDIR = $(INSTALLDIR)
 
-LLIBS  = -lmri -lXm -lXt -lX11 -lm $(EXTRA_LIBS)
+LLIBS  = -lmri -lf2c -lXm -lXt -lX11 -lm $(EXTRA_LIBS)
 
 
 ######################################################################

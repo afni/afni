@@ -41,11 +41,11 @@ LIBDIR = $(INSTALLDIR)
 
 # for dynamic linking
 
-LLIBS  = -lmri -lXm -lXpm -lXext -lXmu -lXt -lX11 -lm  -ldl -lsocket -lSM -lICE
+LLIBS  = -lmri -lf2c -lXm -lXpm -lXext -lXmu -lXt -lX11 -lm  -ldl -lsocket -lSM -lICE
 
 # for static linking, as far as possible
 
-#LLIBS = -lmri -ldl               \
+#LLIBS = -lmri -lf2c -ldl               \
 	/usr/X11R6/lib/libXm.a   \
 	/usr/X11R6/lib/libXpm.a  \
 	/usr/X11R6/lib/libXext.a \
