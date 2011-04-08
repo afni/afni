@@ -998,13 +998,13 @@ int main(int argc, char **argv)
       if(cxfl)
         free_xform_list(cxfl);
       if(show_atlas)
-         print_atlas_list(atlas_alist);
+         print_atlas_list(global_atlas_alist);
       if(show_atlas_templates)
-         print_template_list(atlas_templates);
+         print_template_list(global_atlas_templates);
       if(show_atlas_spaces)
          print_space_list(global_atlas_spaces);
       if(show_atlas_xforms)
-         print_all_xforms(atlas_xfl);
+         print_all_xforms(global_atlas_xfl);
          
       free_atlas_structs(); 
       exit(0);
