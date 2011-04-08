@@ -23,7 +23,7 @@ CCSVD  = gcc -O0
 PLUGIN_SUFFIX = dll
 PLUGIN_LFLAGS = -Wl,-Bshareable -Wl,--export-all-symbols                    \
                 -L. -L/usr/X11R6/lib                                        \
-                -lcoxplot -lmri -lvolpack -lf2c -lmri -lXm -lXp -lXpm       \
+                -lcoxplot -lmri -lvolpack -lf2c -lXm -lXp -lXpm       \
                 -lXext -lXmu -lXt -lSM -lICE -lX11 -lc -lkernel32
 PLUGIN_CC     = $(CC)
 PLFLAGS       = -L. -L/usr/X11R6/lib
@@ -46,12 +46,12 @@ LIBDIR = $(INSTALLDIR)
 
 # for dynamic linking
 
-# LLIBS  = -lmri -lXm -lXp -lXpm -lXext -lXmu -lXt -lX11 $(LZLIB) -lm  -lc
+# LLIBS  = -lmri -lf2c -lXm -lXp -lXpm -lXext -lXmu -lXt -lX11 $(LZLIB) -lm  -lc
 
 # for static linking to Motif, dynamic to all else
 # Motif here is actually LessTif - www.lesstif.org
 
-LLIBS  = -lmri -lXm -lXp -lXpm -lXext -lXmu -lXt -lSM -lICE -lX11 $(LZLIB) -lm  -lc
+LLIBS  = -lmri -lf2c -lXm -lXp -lXpm -lXext -lXmu -lXt -lSM -lICE -lX11 $(LZLIB) -lm  -lc
 
 
 ###############################################################

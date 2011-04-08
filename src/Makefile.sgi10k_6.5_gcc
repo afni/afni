@@ -40,7 +40,7 @@ LINT = /usr/bin/lint -a -b -u -v -x $(IFLAGS) $(CCDEFS)
 INSTALLDIR = ./sgi10k_6.5_gcc
 LIBDIR = $(INSTALLDIR)
 
-LLIBS  = -lmri -lXm -lXt -lXext -lX11 $(LZLIB) -lm -lc
+LLIBS  = -lmri -lf2c -lXm -lXt -lXext -lX11 $(LZLIB) -lm -lc
 
 INSTALL_PREREQ = suma
 
