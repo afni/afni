@@ -39,7 +39,7 @@ LINT = /usr/bin/lint -a -b -u -v -x $(IFLAGS) $(CCDEFS)
 INSTALLDIR = ./rs6000
 LIBDIR = $(INSTALLDIR)
 
-LLIBS  = -lmri -lXm -lXt -lX11 -lm -lc
+LLIBS  = -lmri -lf2c -lXm -lXt -lX11 -lm -lc
 
 ###############################################################
 

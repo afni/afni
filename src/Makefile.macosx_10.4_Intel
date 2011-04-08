@@ -58,7 +58,7 @@ EXPROGS = gifti_tool $(GSLPROGS)
 
 # for dynamic linking
 
-LLIBS  = -lmri /sw/lib/libXm.a -lXm -lXmu -lXp -lXpm -lXext -lXt -lX11 $(LZLIB) $(LGIFTI) -lm -lmri -lc
+LLIBS  = -lmri -lf2c /sw/lib/libXm.a -lXm -lXmu -lXp -lXpm -lXext -lXt -lX11 $(LZLIB) $(LGIFTI) -lm -lc
 
 # vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 # For suma
@@ -70,7 +70,7 @@ GLw_LIB = libGLws.a
 
 SUMA_INCLUDE_PATH = $(GLw_IPATH) -I/sw/include -I/usr/X11R6/include -I./ -I../ -I../niml/ -Igts/src -I/sw/include/glib-2.0 -I/sw/lib/glib-2.0/include
 SUMA_LINK_PATH = -L/usr/lib -L/sw/lib -L/usr/X11R6/lib -L../ -L./ -L/usr/local/lib
-SUMA_LINK_LIB = /sw/lib/libXm.a -lXm $(GLw_LIB) -lGLU -lGL -lXmu -lXp -lXt -lXext -lX11 -lmri $(LZLIB) $(LGIFTI) -lm -lmx -lglib-2.0 -bind_at_load
+SUMA_LINK_LIB = /sw/lib/libXm.a -lXm $(GLw_LIB) -lGLU -lGL -lXmu -lXp -lXt -lXext -lX11 -lmri -lf2c $(LZLIB) $(LGIFTI) -lm -lmx -lglib-2.0 -bind_at_load
 SUMA_MAKEFILE_NAME = SUMA_Makefile
 SUMA_BIN_ARCHIVE = SUMA_MacOSX.tar
 

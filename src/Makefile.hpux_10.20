@@ -35,7 +35,7 @@ LINT = /usr/bin/lint -b -u -v -x -Aa $(IFLAGS) $(CCDEFS)
 INSTALLDIR = ./hpux_10.20
 LIBDIR = $(INSTALLDIR)
 
-LLIBS  = -lmri -lXm -lXt -lXext -lX11 -lm -ldld -lc
+LLIBS  = -lmri -lf2c -lXm -lXt -lXext -lX11 -lm -ldld -lc
 
 
 ######################################################################
