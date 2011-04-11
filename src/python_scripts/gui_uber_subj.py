@@ -1926,14 +1926,14 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       """set what we can, if warn, report error
          return 0 on success, 1 on error"""
 
-      # first process tables
-      if self.update_svars_from_tables(): return 1
-
-      # then process sid and gid
+      # first process sid and gid
       if self.svars.is_empty('sid') or self.svars.is_empty('gid'):
          if warn: QLIB.guiError('Error', 
                                 "** subject and group IDs must be set", self)
          return 1
+
+      # then process tables
+      if self.update_svars_from_tables(): return 1
 
       if self.set_sdir:
          # subj dir should read: subject_results/group.gA/subj.SUBJ
@@ -1945,7 +1945,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
 
    def cb_show_ap_command(self):
 
-      if self.update_svars_from_gui(): return
+      if self.update_svars_from_gui(warn=1): return
 
       # if we have a subject directory, make backup scripts
       if self.cvars.is_non_trivial_dir('subj_dir'):

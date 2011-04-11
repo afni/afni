@@ -160,6 +160,8 @@ def process_options(valid_opts, argv):
    if val != None and not err: verb = val
    else: verb = 1
 
+   USUBJ.set_var_str_from_def('cvars', 'verb', ['%d'%verb], cvars)
+
    use_gui = 1 # assume GUI unless we hear otherwise
 
    # first process all setup options
