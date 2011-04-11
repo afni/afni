@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 11, APR, 2011, RCR, "uber_subject.py", MICRO, TYPE_BUG_FIX,
+   "fixed lost warnings for no sid/gid",
+   NULL
+ } ,
+
  { 8, APR, 2011, RCR, "Makefile", MICRO, TYPE_MODIFY,
    "removed -lf2c from Makefile.INCLUDE, added to LLIBS in Makefile.*",
    "Also removed redundant -lmri from many Makefiles and Makefile.INCLUDE."

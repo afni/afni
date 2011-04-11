@@ -113,9 +113,10 @@ g_history = """
          - call 'connect' from top-level, since old instances did not have
            each signal as an attribute (use QtCore.SIGNAL(sig_name))
          - no SaveAs QKeySequence in older version?
+    0.20 Apr 11, 2011 : fixed lost warnings for no sid/gid
 """
 
-g_version = '0.19 (April 7, 2011)'
+g_version = '0.20 (April 11, 2011)'
 
 # ----------------------------------------------------------------------
 # global definition of default processing blocks
@@ -245,7 +246,7 @@ class AP_Subject(object):
 
       self.set_short_names()            # short data dirs: e.g. short_anat
 
-      if self.cvars.verb > 3: self.LV.show('ready to start script')
+      if self.cvars.verb > 3: self.LV.show('ready to start script:')
 
       self.set_ap_command()             # fill ap_command, warnings, errors
 
@@ -847,7 +848,7 @@ class AP_Subject(object):
          if self.LV.var_adir: file = '%s/%s' % (self.LV.var_adir, aset.pv())
          else:                file = aset.pv()
 
-      if self.cvars.verb > 2: print '-- tlrc file = %s' % file
+      if self.cvars.verb > 2: print '-- anat dset = %s' % file
 
       return '%s-copy_anat %s \\\n' % (self.LV.istr, file)
 
