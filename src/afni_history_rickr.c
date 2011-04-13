@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 13, APR, 2011, RCR, "to3d", MINOR, TYPE_NEW_OPT,
+   "added FROM_IMAGE timing pattern (for Siemens mosaic images)",
+   NULL
+ } ,
+
  { 11, APR, 2011, RCR, "uber_subject.py", MICRO, TYPE_BUG_FIX,
    "fixed lost warnings for no sid/gid",
    NULL
