@@ -68,6 +68,28 @@
 
 #include "mri_dicom_hdr.h"
 
+/* pass private(!) Siemens slice times back, if found 
+ * nused : number of slice times read                    8 Apr 2011 [rickr] */
+typedef struct {
+   int     nalloc;              /* number of times allocated for  */
+   int     nused;               /* actual length of 'times' array */
+   float * times;               /* list of slice times            */
+} siemens_slice_times_t;
+
+siemens_slice_times_t g_siemens_slice_times = { 0, 0, NULL };
+int g_MDH_verb = 1;             /* verbose level */
+
+/* interface to return slice timing info (calling function should copy data)
+ *                                                       12 Apr 2011 [rickr] */
+int mri_siemens_slice_times(int * nalloc, int * nused, float ** times)
+{
+   if( ! nalloc || ! nused || ! times ) return 1;
+   *nalloc = g_siemens_slice_times.nalloc;
+   *nused  = g_siemens_slice_times.nused;
+   *times  = g_siemens_slice_times.times;
+   return 0;
+}
+
 /* Dimon needs to compile without libmri     18 May 2006 */
 /* (this allows removal of rickr/l_mri_dicom_hdr.c)      */
 #ifndef FOR_DIMON
@@ -2341,6 +2363,165 @@ DCM_GetObjectSize(DCM_OBJECT ** callerObject, unsigned long *returnlength)
 **	    End for
 **	End for
 */
+
+/* -------------------------------------------------------- */
+/* functions to help look in memory dump for slice timing   */
+/*                                     08 Apr 2011 [rickr]  */
+
+/* quick strstr function, but limited by len (not NUL char) */
+static char * findstr(char * instr, char * sstr, int len)
+{
+   char * cptr = instr;
+   int    posn = 0, slen;
+
+   if( !instr || !sstr || len <= 0 ) return NULL;
+
+   slen = strlen(sstr);
+   len -= slen;
+
+   while( posn <= len ){
+      if( *cptr != *sstr ) { cptr++; posn++; continue; }
+      if( ! strncmp(cptr, sstr, slen) ) return cptr;
+      else { cptr++; posn++; }
+   }
+
+   return NULL;
+}
+
+/* return 1 if has form d+.d+ (digits, '.', digits)
+ * (require at least 6 digits, total) */
+static int looks_like_float(char * str)
+{
+   int c = 0;
+   int mindigs = 6;
+
+   if( ! isdigit(str[c++]) ) return 0;  /* must have a leading digit  */
+   while( isdigit(str[c]) ) c++;
+
+   if( str[c++] != '.' ) return 0;      /* must have a decimal        */
+
+   if( ! isdigit(str[c]) ) return 0;    /* must have a trailing digit */
+
+   while( isdigit(str[c]) && c <= mindigs ) c++; /* just count length */
+
+   if( c > mindigs ) return 1;
+   else              return 0;
+}
+
+static int insert_slice_time(float st)
+{
+   siemens_slice_times_t * ST = & g_siemens_slice_times;  /* global struct */
+
+   if( ST->nused == 0 && g_MDH_verb > 1 )
+      fprintf(stderr,"++ siemens slice times:");
+
+   ST->nused++;
+   if( ST->nused > ST->nalloc ) {
+      ST->nalloc = ST->nused + 4;       /* alloc a few extra */
+      ST->times = (float  *)realloc(ST->times, ST->nalloc*sizeof(float ));
+      if( ! ST->times ) {
+         fprintf(stderr,"** MIST: failed malloc of %d floats\n", ST->nalloc);
+         ST->nused = 0;
+         ST->nalloc = 0;
+         return 1;
+      }
+   }
+
+   if( g_MDH_verb > 1 ) fprintf(stderr," %f", st);
+
+   ST->times[ST->nused-1] = st;
+
+   return 0;
+}
+
+/* - search field '0x0029 1010' for string MosaicRefAcqTimes
+ * - from there, find text formatted floats
+ * - stop at AutoInlineImageFilterEnabled, if found
+ */
+static int check_for_mosaic_slice_times(PRV_ELEMENT_ITEM * elementItem)
+{
+   unsigned el_gr = DCM_TAG_GROUP(elementItem->element.tag);
+   unsigned el_el = DCM_TAG_ELEMENT(elementItem->element.tag);
+   int      el_len = elementItem->element.length;
+   char     start_txt[] = "MosaicRefAcqTimes";
+   char     end_txt[]   = "AutoInlineImageFilterEnabled";
+   siemens_slice_times_t * ST = & g_siemens_slice_times;  /* global struct */
+
+   char * instr, * mstr;  /* input string and Mosaic string addr         */
+   char * s2;             /* second search string, posn of AutoInline... */
+   char * pstr;           /* position pointer, for reading times         */
+   int    rem, rem2 = 0;  /* remainder counts                            */
+   int    off, c, diff;   /* offset and counter vars                     */
+   float  stime;          /* any read slice time                         */
+
+
+   /* if this is not the correct element, nothing to do */
+   if( el_gr != 0x0029 || el_el != 0x1010 ) return 0;
+
+   /* we are in the correct field, start by clearing old results */
+   ST->nused = 0;
+
+   /* input string is field text, mstr is resulting MosaicRef text pointer */
+   instr = (char *)elementItem->element.d.ot;
+   mstr = findstr(instr, start_txt, el_len);
+
+   if( ! mstr ) {
+      if( g_MDH_verb > 2 ) fprintf(stderr, "-- CFMST, no Mosaic string\n");
+      return;
+   }
+
+   off = mstr - instr;  /* offset of Mosaic string into field */
+   rem = el_len - off;  /* remaining length of field */
+
+   /* secondary remainder to be until any AutoInline... string */
+   s2 = findstr(mstr, end_txt, rem);
+   if( s2 ) rem2 = s2 - mstr;
+   else     rem2 = 0;
+
+   if( g_MDH_verb > 1 )
+      fprintf(stderr, "== found %s in 0x0029 1010\n"
+              "   off = %d of %d bytes (rem %d, %d)\n",
+              start_txt, off, el_len, rem, rem2);
+
+   if( s2 ) rem = rem2;  /* after verbose, update remaining length */
+
+   if( rem <= 0 ) return;
+
+   /* in verbose mode, print remaining text, converting non-print to '_' */
+   if( g_MDH_verb > 2 ) {
+      fprintf(stderr, "-- remaining (converted) text :\n");
+      for(c=0; c<rem; c++)
+        if( !isprint(mstr[c]) ) fputc('_', stderr);
+        else fputc(mstr[c], stderr);
+      fprintf(stderr, "(end)done\n");
+   }
+
+   /* actually read in the slice times */
+   c = 0;
+   while(c < rem) {
+      if( looks_like_float(mstr+c) ) {
+         stime = (float)strtod(mstr+c, &pstr);
+         diff = pstr-mstr-c;
+         if( diff > 0 ) {       /* found one */
+            if( insert_slice_time(stime) ) break;
+         }
+         else break;    /* quit looking */
+         c += diff;
+      }
+      else c++;
+   }
+
+   if( g_MDH_verb > 1 )
+      fprintf(stderr,"\n++ found %d slice times\n", ST->nused);
+
+   return 0;
+}
+
+/* end slice timing functions                               */
+/* -------------------------------------------------------- */
+
+static void dumpOB(unsigned char* c, long vm);
+
 CONDITION
 DCM_DumpElements(DCM_OBJECT ** callerObject, long vm)
 {
@@ -2555,6 +2736,9 @@ STATUS("looping over groupItem") ;
 		    dumpBinaryData(elementItem->element.d.ot,
 				       elementItem->element.representation,
 			       elementItem->element.length , MAX(rwc_vm,8));
+
+                    check_for_mosaic_slice_times(elementItem);
+
 		    break;
 
 		case DCM_OT:
@@ -7630,12 +7814,43 @@ dumpUL(U32 * ul, long vm)
     }
     RWC_printf("\n");
 }
+
+void swap_4bytes( size_t n , void *ar )
+{
+   register size_t ii ;
+   unsigned char * cp0 = (unsigned char *)ar, * cp1, * cp2 ;
+   register unsigned char tval ;
+
+   for( ii=0 ; ii < n ; ii++ ){
+       cp1 = cp0; cp2 = cp0+3;
+       tval = *cp1;  *cp1 = *cp2;  *cp2 = tval;
+       cp1++;  cp2--;
+       tval = *cp1;  *cp1 = *cp2;  *cp2 = tval;
+       cp0 += 4;
+   }
+   return ;
+}
+
 static void
 dumpOB(unsigned char* c, long vm)
 {
+  int swap = 1;
   long index = 0;
-  RWC_printf("hex OB:") ;
+  unsigned long * lp;
+  float         * fp;
+  RWC_printf("hex OB: (len %d)", vm) ;
+
   while (index < vm) {
+    if(!(index%8) && (vm-index)>=8) {
+        lp = (unsigned long *)c;
+        fp = (float *)c;
+        if(swap) swap_4bytes(2, c);
+        RWC_printf("   longs : %ld %ld\n", *lp, lp[1]);
+        RWC_printf("   float : %f %f\n", *fp, fp[1]);
+        if(swap) swap_4bytes(2, c);
+        RWC_printf("   char  : %c%c%c%c%c%c%c%c\n",
+                   *c, c[1], c[2], c[3], c[4], c[5], c[6], c[7]);
+    }
     RWC_printf("%02x ", *(c++));
     if ((++index) % 8 == 0)
       RWC_printf("\n");

@@ -43,6 +43,13 @@ extern int   assume_dicom_mosaic ;   /* mri_read_dicom.c  13 Mar 2006 [rickr] */
 extern int   use_last_elem;          /* mri_read_dicom.c  10 Apr 2009 [rickr] */
 extern int   use_new_mosaic_code;    /* mri_process_siemens.c 23 Dec 2010 [r] */
 
+/* siemens slice timing info from mri_read.c         13 Apr 2011 [rickr] */
+extern int     g_siemens_timing_nused;  /* number of times used          */
+extern float * g_siemens_timing_times;  /* actual list of times          */
+extern int     g_siemens_timing_units;  /* time units, UNITS_MSEC_TYPE?  */
+extern int     populate_g_siemens_times(int tunits);
+extern int     valid_g_siemens_times(int nz, float TR, int verb);
+
 #ifdef  __cplusplus
 }
 #endif
@@ -799,6 +806,7 @@ extern int         mri_imcount_dicom( char * ) ;
 extern char *      mri_dicom_sexinfo( void ) ;   /* 23 Dec 2002 */
 extern char *      mri_dicom_sex1010( void ) ;
 extern int         mri_possibly_dicom( char * ) ;        /* 07 May 2003 */
+extern int         mri_siemens_slice_times( int *, int *, float ** ); 
 
 /*! Set the data pointer in an MRI_IMAGE to NULL. */
 
