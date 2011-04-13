@@ -146,6 +146,136 @@ static MCW_imsize imsize[MAX_MCW_IMSIZE] ;
 
 static int MCW_imsize_good = -1 ;
 
+/*------------------------------------------------------------------------*/
+/* Siemens slice timing info and functions            13 Apr 2011 [rickr] */
+/* note: nalloc is not propagated, nused == nalloc here                   */
+
+int     g_siemens_timing_nused  = 0;
+float * g_siemens_timing_times  = NULL;
+int     g_siemens_timing_units  = UNITS_MSEC_TYPE;     /* not yet varying */
+
+static int cleanup_g_siemens_times()
+{
+    if( ! g_siemens_timing_nused ) return 0;
+
+    if( g_siemens_timing_times ) free(g_siemens_timing_times);
+    g_siemens_timing_nused = 0;
+    g_siemens_timing_times = NULL;
+
+    return 0;
+}
+
+static int alloc_g_siemens_times(int ntimes)
+{
+   if( ntimes <= 0 ) return cleanup_g_siemens_times();
+
+   /* if there is nothing to allocate, we're good */
+   if( ntimes == g_siemens_timing_nused ) return 0;
+
+   /* actually allocate memory */
+   g_siemens_timing_times = (float *)realloc(g_siemens_timing_times,
+                                             ntimes * sizeof(float));
+   if( ! g_siemens_timing_times ) {
+      fprintf(stderr,"** siemens AGST: failed to alloc %d floats\n", ntimes);
+      cleanup_g_siemens_times();
+      return 1;
+   }
+
+   /* and note the new size */
+   g_siemens_timing_nused = ntimes;
+
+   return 0;
+}
+
+int populate_g_siemens_times(int tunits)
+{
+   float * d_times, tfac = 1.0;
+   int     d_nalloc, d_nused;   /* to be copied from mri_dicom_hdr.c */
+   int     index;
+
+ENTRY("populate_g_siemens_times");
+
+   if( mri_siemens_slice_times(&d_nalloc, &d_nused, &d_times) ) {
+      /* odd failure */
+      fprintf(stderr,"** PGST: odd failure getting siemens slice times\n");
+      cleanup_g_siemens_times();
+      RETURN(1);
+   }
+
+   /* allocate any needed memory */
+   if( alloc_g_siemens_times(d_nused) ) RETURN(1);
+
+   /* if no times, we're done */
+   if( d_nused == 0 ) RETURN(0);
+
+   /* siemens units are ms, so if we want seconds, divide by 1000 */
+   if( tunits == UNITS_SEC_TYPE )        tfac = 0.001;
+   else if ( tunits == UNITS_MSEC_TYPE ) tfac = 1.0;
+   else fprintf(stderr,"** PGST: bad time units %d\n", tunits);
+
+   /* copy the data (one by one, to allow for time scalar) */
+   for( index = 0; index < d_nused; index++ )
+      g_siemens_timing_times[index] = d_times[index] * tfac;
+
+   RETURN(0);
+}
+
+/* given the number of slices, the volume TR and the time units:
+ * 1. verify that nz matches the number of times
+ * 2. verify that 0 <= min, max <= TR
+ * 3. maybe output which order the times seem to be in (future?)
+ *
+ * if verb, output time pattern to screen
+ *
+ * return 1 if valid, 0 otherwise
+ */
+int valid_g_siemens_times(int nz, float TR, int verb)
+{
+   float min, max, * times = g_siemens_timing_times;
+   int   ind, decimals=3;
+
+ENTRY("test_g_siemens_times");
+
+   if( nz != g_siemens_timing_nused ) {
+      if(verb)fprintf(stderr,"** ERROR: have %d siemens times but %d slices\n",
+                      g_siemens_timing_nused, nz);
+      RETURN(0);
+   }
+
+   if( nz < 1 ) RETURN(1);
+
+   /* get min and max */
+   min = max = times[0];
+   for( ind = 1; ind < nz; ind++ ) {
+      if( times[ind] < min ) min = times[ind];
+      if( times[ind] > max ) max = times[ind];
+   }
+
+   if( verb ) { /* print the times */
+      if( max > 100 ) decimals = 1;
+      else            decimals = 3;
+      printf("-- using Siemens slice timing (%d) :", nz);
+      for( ind = 0; ind < nz; ind++ ) printf(" %.*f", decimals, times[ind]);
+      putchar('\n');
+   }
+
+   /* use stdout to report issues here, to stick with times report */
+   if( min < 0.0 ) {
+      if( verb ) printf("** minimum time %.*f outside TR range [0.0, %.*f]\n",
+                        decimals, min, decimals, TR);
+   }
+   else if( max > TR ) {
+      if( verb ) printf("** maximum time %.*f outside TR range [0.0, %.*f]\n",
+                        decimals, max, decimals, TR);
+   } else RETURN(1); /* let the good times roll! */ 
+
+   RETURN(0); /* either min or max was bad (or both) */
+}
+
+/* end siemens slice timing globals and functions                         */
+/*------------------------------------------------------------------------*/
+
+
 /*---------------------------------------------------------------*/
 
 #undef swap_4
