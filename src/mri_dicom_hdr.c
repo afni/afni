@@ -77,7 +77,10 @@ typedef struct {
 } siemens_slice_times_t;
 
 siemens_slice_times_t g_siemens_slice_times = { 0, 0, NULL };
-int g_MDH_verb = 1;             /* verbose level */
+static int g_MDH_verb = 1;             /* verbose level */
+
+int mri_sst_get_verb(void) { return g_MDH_verb; }
+int mri_sst_set_verb(int verb) { g_MDH_verb = verb; return g_MDH_verb; }
 
 /* interface to return slice timing info (calling function should copy data)
  *                                                       12 Apr 2011 [rickr] */

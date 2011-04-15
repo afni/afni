@@ -8,6 +8,10 @@
 #define SUMA_noFunc
 #include "suma_suma.h"
 
+#ifdef SOLARIS
+# define strcasestr strstr  /* stupid Solaris */
+#endif
+
 extern int * SUMA_Dijkstra_generic (int N_Node, 
                      float *NodeList, int NodeDim, int dist_metric,
                      int *N_Neighbv, int **FirstNeighb, float **FirstNeighbDist,

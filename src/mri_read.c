@@ -225,7 +225,8 @@ ENTRY("populate_g_siemens_times");
  * 2. verify that 0 <= min, max <= TR
  * 3. maybe output which order the times seem to be in (future?)
  *
- * if verb, output time pattern to screen
+ * if verb, output any errors
+ * if verb > 1, output time pattern to screen
  *
  * return 1 if valid, 0 otherwise
  */
@@ -251,7 +252,7 @@ ENTRY("test_g_siemens_times");
       if( times[ind] > max ) max = times[ind];
    }
 
-   if( verb ) { /* print the times */
+   if( verb > 1 ) { /* print the times */
       if( max > 100 ) decimals = 1;
       else            decimals = 3;
       printf("-- using Siemens slice timing (%d) :", nz);
@@ -261,15 +262,39 @@ ENTRY("test_g_siemens_times");
 
    /* use stdout to report issues here, to stick with times report */
    if( min < 0.0 ) {
-      if( verb ) printf("** minimum time %.*f outside TR range [0.0, %.*f]\n",
-                        decimals, min, decimals, TR);
+      if(verb) printf("** min slice time %.*f outside TR range [0.0, %.*f]\n",
+                      decimals, min, decimals, TR);
    }
    else if( max > TR ) {
-      if( verb ) printf("** maximum time %.*f outside TR range [0.0, %.*f]\n",
-                        decimals, max, decimals, TR);
+      if(verb) printf("** max slice time %.*f outside TR range [0.0, %.*f]\n",
+                      decimals, max, decimals, TR);
    } else RETURN(1); /* let the good times roll! */ 
 
    RETURN(0); /* either min or max was bad (or both) */
+}
+
+int get_and_display_siemens_times(void)
+{
+   float * times;
+   int     ind, ntimes;
+
+ENTRY("get_and_display_siemens_times");
+
+   if( populate_g_siemens_times(UNITS_MSEC_TYPE) ) RETURN(1);
+
+   ntimes = g_siemens_timing_nused;
+   times = g_siemens_timing_times;
+
+   if( ntimes <= 0 ) {
+      printf("-- no Siemens timing found\n");
+      RETURN(0);
+   }
+
+   printf("-- Siemens timing (%d entries):", ntimes);
+   for( ind = 0; ind < ntimes; ind++ ) printf(" %.1f", times[ind]);
+   putchar('\n');
+
+   RETURN(0);
 }
 
 /* end siemens slice timing globals and functions                         */

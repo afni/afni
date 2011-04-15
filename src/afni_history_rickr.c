@@ -49,6 +49,21 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 15, APR, 2011, RCR, "Dimon", MINOR, TYPE_ENHANCE,
+   "added FROM_IMAGE as default Siemens slice pattern in to3d command",
+   NULL
+ } ,
+
+ { 15, APR, 2011, RCR, "dicom_hdr", MINOR, TYPE_NEW_OPT,
+   "added -slice_times and -slice_times_verb, to show siemens slice timing",
+   NULL
+ } ,
+
+ { 14, APR, 2011, RCR, "thd_atlas.c", MICRO, TYPE_BUG_FIX,
+   "for solaris, apply #def strcasestr strstr",
+   NULL
+ } ,
+
  { 13, APR, 2011, RCR, "to3d", MINOR, TYPE_NEW_OPT,
    "added FROM_IMAGE timing pattern (for Siemens mosaic images)",
    NULL
