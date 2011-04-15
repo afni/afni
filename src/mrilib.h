@@ -48,6 +48,7 @@ extern int     g_siemens_timing_nused;  /* number of times used          */
 extern float * g_siemens_timing_times;  /* actual list of times          */
 extern int     g_siemens_timing_units;  /* time units, UNITS_MSEC_TYPE?  */
 extern int     populate_g_siemens_times(int tunits);
+extern int     get_and_display_siemens_times(void);
 extern int     valid_g_siemens_times(int nz, float TR, int verb);
 
 #ifdef  __cplusplus
@@ -807,6 +808,8 @@ extern char *      mri_dicom_sexinfo( void ) ;   /* 23 Dec 2002 */
 extern char *      mri_dicom_sex1010( void ) ;
 extern int         mri_possibly_dicom( char * ) ;        /* 07 May 2003 */
 extern int         mri_siemens_slice_times( int *, int *, float ** ); 
+extern int         mri_sst_get_verb( void );
+extern int         mri_sst_set_verb( int );
 
 /*! Set the data pointer in an MRI_IMAGE to NULL. */
 

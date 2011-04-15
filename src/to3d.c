@@ -404,7 +404,7 @@ DUMP_MAT44("MRILIB_dicom_matrix",MRILIB_dicom_matrix) ;
                        && user_inputs.tpattern[0] == -666.0 ) {
       int ii;
       /* if Siemens times seem valid, use them */
-      if( valid_g_siemens_times(user_inputs.nzz, user_inputs.TR, 1) ) {
+      if( valid_g_siemens_times(user_inputs.nzz, user_inputs.TR, 2) ) {
          for( ii=0; ii < user_inputs.nzz ; ii++ )
             user_inputs.tpattern[ii] = g_siemens_timing_times[ii];
       } else all_good = False;
