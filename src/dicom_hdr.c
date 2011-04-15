@@ -4,6 +4,7 @@ int main(int argc, char **argv)
 {
    char *ppp=NULL , *sin ;
    int ii, iarg=1 , do_sin=0 , do_printf=0 , do_mul=0 ;
+   int do_stimes=0, do_stimes_verb=0 ;
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
      printf("Usage: dicom_hdr [options] fname [...]\n"
@@ -21,6 +22,9 @@ int main(int argc, char **argv)
 #if 0
             " -printf  = Use 'printf' directly, instead of an intermediate string.\n"
 #endif
+            "\n"
+            " -slice_times = Show slice times from Siemens mosaic images.\n"
+            " -slice_times_verb = Same, but be verbose about it.\n"
             "\n"
             "Based on program dcm_dump_file from the RSNA, developed at\n"
             "the Mallinckrodt Institute of Radiology.  See the source\n"
@@ -80,6 +84,15 @@ int main(int argc, char **argv)
        mri_dicom_noname(1) ; iarg++ ; continue ;
      }
 
+     if( strcmp(argv[iarg],"-slice_times") == 0 ){  /* 14 Apr 2010 [rickr] */
+       do_stimes++ ; iarg++ ; continue ;
+     }
+
+     if( strcmp(argv[iarg],"-slice_times_verb") == 0 ){ /* 15 Apr 2010 */
+       do_stimes++ ;    /* redundant, but for complete output */
+       do_stimes_verb++ ; iarg++ ; continue ;
+     }
+
      if( strcmp(argv[iarg],"-v") == 0 ){
        int vv = strtol( argv[++iarg] , NULL , 10 ) ;
        if( vv > 0 ) mri_dicom_setvm( vv ) ;
@@ -91,6 +104,7 @@ int main(int argc, char **argv)
    }
 
    mri_dicom_header_use_printf(do_printf) ;  /* 02 May 2008 */
+   if( do_stimes_verb ) mri_sst_set_verb(3); /* 15 Apr 2011 */
 
    for( ii=iarg ; ii < argc ; ii++ ){
      if( ii > iarg )
@@ -100,7 +114,10 @@ int main(int argc, char **argv)
 STATUS("calling funct mri_dicom_header()") ;
      if( ppp != NULL ) free(ppp) ;
      ppp = mri_dicom_header( argv[ii] ) ;
-STATUS("returned from mri_dicom_header()") ;
+
+     /* show slice times (in lieu of header)    14 Apr 2011 [rickr] */
+     if( do_stimes ) { get_and_display_siemens_times(); continue; }
+
      if( !do_printf && ppp != NULL ){
        off_t poff ; unsigned int plen ;
        printf("%s",ppp) ;

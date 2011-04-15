@@ -57,13 +57,17 @@ static char * g_history[] =
     "      - get MRI_IMARR from mri_read_dicom (data or not)\n"
     "      - modifications for oblique data processing\n"
     "      - for mosaic: figure mosaic origin, nslices, but not orients\n"
-    " 3.1  Jan 13, 2011 [rickr] - added GERT_Reco execution and naming options\n",
+    " 3.1  Jan 13, 2011 [rickr]\n"
+    "      - added GERT_Reco execution and naming options\n",
     "      - added -gert_write_as_nifti and -gert_create_dataset\n"
     "        (requested by V Roopchansingh)\n"
+    " 3.2  Apr 15, 2011 [rickr]\n"
+    "      - added FROM_IMAGE as the default slice timing pattern for to3d\n"
+    "        for the case of Siemens mosaic\n",
     "----------------------------------------------------------------------\n"
 };
 
-#define DIMON_VERSION "version 3.1 (Jan 13, 2011)"
+#define DIMON_VERSION "version 3.2 (Apr 15, 2011)"
 
 /*----------------------------------------------------------------------
  * Dimon - monitor real-time aquisition of Dicom or I-files
@@ -2549,7 +2553,8 @@ static int read_dicom_image( char * pathname, finfo_t * fp, int get_data )
 {
     MRI_IMARR * imarr;
     MRI_IMAGE * im;
-    int         rv = 0;
+    static int  check_timing = 1, tverb = 1;             /* 15 Apr 2011 */
+    int         rv = 0, ind;
 
     /* now use mri_read_dicom() directly                     4 Jan 2011 */
     /* im = r_mri_read_dicom( pathname, gD.level,    
@@ -2563,6 +2568,11 @@ static int read_dicom_image( char * pathname, finfo_t * fp, int get_data )
     }
 
     g_info.read_data = get_data;        /* do we actually want data?    */
+
+    if( check_timing && gD.level > 2 ) {    /* set verb for timing info */
+       tverb = mri_sst_get_verb();
+       mri_sst_set_verb(3);
+    }
 
     imarr = mri_read_dicom( pathname ); /* return a whole MRI_IMARR     */
     if ( !imarr || !imarr->imarr || !imarr->imarr[0] )
@@ -2578,6 +2588,22 @@ static int read_dicom_image( char * pathname, finfo_t * fp, int get_data )
         read_obl_info = 0;
         mri_read_dicom_get_obliquity(gAC.oblique_xform, gD.level>1);
         if ( gD.level > 2 ) disp_obl_info("post mri_read_dicom_get_obliquity ");
+    }
+
+    /* process any siemens timing info only once           15 Apr 2011 */
+    if( check_timing ) {
+        check_timing = 0;
+        populate_g_siemens_times(UNITS_SEC_TYPE);
+
+        /* finish with verbose stuff ... */
+        if( gD.level > 0 && g_siemens_timing_nused > 0 ) {
+           fprintf(stderr, "\n-- Siemens timing (%d entries):",
+                   g_siemens_timing_nused);
+           for(ind = 0; ind < g_siemens_timing_nused; ind++ )
+              fprintf(stderr," %.3f", g_siemens_timing_times[ind]);
+           fputc('\n', stderr);
+        }
+        if( gD.level > 2 ) mri_sst_set_verb(tverb);  /* and reset verb */
     }
 
     /* print lots of image info */
@@ -3342,6 +3368,18 @@ static int usage ( char * prog, int level )
       "  usage: %s [options] -infile_prefix PREFIX\n"
       "     OR: %s [options] -infile_pattern \"PATTERN\"\n"
       "     OR: %s [options] -infile_list FILES.txt\n"
+      "\n"
+      "  ---------------------------------------------------------------\n"
+      "  notes regarding Siemens mosaic images:\n"
+      "\n"
+      "    - Final run slices will be reported as 1 (since there is only 1\n"
+      "      actual image), but mos_nslices will show the mosaic slice count.\n"
+      "\n"
+      "    - Acquisition timing for the slices will depend on the number of\n"
+      "      slices (parity), as well as the mosiac ordering.  So users may\n"
+      "      need to rely on reading slice timing from the DICOM headers.\n"
+      "\n"
+      "    - If slice timing is detected, \n"
       "\n"
       "  ---------------------------------------------------------------\n"
       "  examples:\n"
@@ -4265,11 +4303,16 @@ static int create_gert_dicom( stats_t * s, param_t * p )
     char   * spat;                        /* slice acquisition pattern */
     char     outfile[32];                 /* run files */
     char     TR[16];                      /* for printing TR w/out zeros */
+    float    tr;
     int      num_valid, c, findex;
     int      first_run = -1, nspaces = 0;
 
-    /* if the user did not give a slice pattern string, use the default */
-    spat = opts->sp ? opts->sp : IFM_SLICE_PAT;
+    /* If the user did not give a slice pattern string, use the default *
+     * (default is "FROM_IMAGE" if siemens timing info).
+     * Check that siemens timing info has correct nz.      15 Apr 2011  */
+    
+    spat = (g_siemens_timing_nused > 0) ? "FROM_IMAGE" : IFM_SLICE_PAT;
+    if ( opts->sp ) spat = opts->sp;
 
     for ( c = 0, num_valid = 0; c < s->nused; c++ )
         if ( s->runs[c].volumes > 0 )
@@ -4342,7 +4385,8 @@ static int create_gert_dicom( stats_t * s, param_t * p )
             /*---------------------*/
 
             /* remove trailing zeros from TR printing */
-            sprintf(TR, "%.6f",opts->tr > 0 ? opts->tr : s->runs[c].geh.tr);
+            tr = opts->tr > 0 ? opts->tr : s->runs[c].geh.tr;
+            sprintf(TR, "%.6f", tr);
             clear_float_zeros(TR);
 
             /* and write to3d command */
@@ -4379,6 +4423,10 @@ static int create_gert_dicom( stats_t * s, param_t * p )
 
                 fprintf(fp, "     -time:zt %d %d %ssec %s %*s  \\\n",
                         nslices, s->runs[c].volumes, TR, spat, nspaces, "");
+
+                /* check siemens timing for errors, just to be sure */
+                if( !strcmp(spat, "FROM_IMAGE") )
+                    valid_g_siemens_times(nslices, tr, 1);
             }
 
             if( opts->use_last_elem )
