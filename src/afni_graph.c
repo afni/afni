@@ -895,10 +895,10 @@ ENTRY("new_MCW_grapher") ;
    /** initialize the internal parameters **/
 
 if(PRINT_TRACING)
-{ char str[128] ;
-  sprintf(str,"STATUS: num_series=%d nx=%d ny=%d",
-          grapher->status->num_series,grapher->status->nx,grapher->status->ny ) ;
-  STATUS(str) ; }
+ { char str[128] ;
+   sprintf(str,"STATUS: num_series=%d nx=%d ny=%d",
+           grapher->status->num_series,grapher->status->nx,grapher->status->ny ) ;
+   STATUS(str) ; }
 
    grapher->fscale      =  0 ;
    grapher->mat         =  0 ;
@@ -980,6 +980,21 @@ STATUS("realizing widgets") ;
         end_fd_graph_CB , (XtPointer) grapher ) ;
 
    RETURN(grapher) ;
+}
+
+/*--------------------------------------------------------------------------*/
+/* Get the label for a time point. [18 Apr 2011]
+*//*------------------------------------------------------------------------*/
+
+char * GRA_getlabel( MCW_grapher *grapher , int index )
+{
+   char *lab = NULL ;
+
+   CALL_getser( grapher , index,graCR_getlabel , char * , lab ) ;
+
+   if( lab == NULL || *lab == '\0' ) return NULL ;
+   if( *lab == '?' || *lab == '#'  ) return NULL ;
+   return lab ;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -1350,6 +1365,8 @@ ENTRY("GRA_redraw_overlay") ;
    /* draw text showing value at currently displayed time_index */
 
    if( ii >= 0 && grapher->cen_tsim != NULL && ii < grapher->cen_tsim->nx ){
+      char *ilab=NULL ;
+
       val = MRI_FLOAT_PTR(grapher->cen_tsim)[ii] ;
       AV_fval_to_char( val , buf ) ;
       vbuf = (buf[0]==' ') ? buf+1 : buf ;
@@ -1358,9 +1375,13 @@ ENTRY("GRA_redraw_overlay") ;
         iname = short_index_name ; vname = short_value_name ;
       } else {
         iname = long_index_name ; vname = long_value_name ;
+        ilab = GRA_getlabel( grapher , ii ) ;
       }
 
-      sprintf( strp , "%s%d%s%s" , iname,ii , vname,vbuf ) ;
+      if( ilab == NULL || *ilab == '\0' )
+        sprintf( strp , "%s%d%s%s" , iname,ii , vname,vbuf ) ;
+      else
+        sprintf( strp , "%s%d [%.31s]%s%s",iname,ii,ilab , vname,vbuf ) ;
 
       if( grapher->cen_tsim->dx != 0.0 ){
         val = grapher->cen_tsim->xo + ii * grapher->cen_tsim->dx ;
@@ -1372,18 +1393,10 @@ ENTRY("GRA_redraw_overlay") ;
       }
 
       xxx = MAX( grapher->xx_text_2 ,
-                 grapher->xorigin[grapher->xc][grapher->yc] ) ;
+                 grapher->xorigin[grapher->xc][grapher->yc]-39 ) ;
 
       if( grapher->init_ignore > 0 ) xxx = MAX( xxx , grapher->xx_text_2p ) ;
 
-#ifdef BE_AFNI_AWARE
-      if( grapher->fWIDE >= SHORT_NAME_WIDTH ){      /* 24 Feb 2011 */
-        FD_brick *br = (FD_brick *)grapher->getaux ;
-        char *vlab = DSET_BRICK_LABEL(br->dset,grapher->time_index) ;
-        if( vlab != NULL && strcmp(vlab,NO_LAB_FLAG) != 0 )
-          sprintf(strp+strlen(strp)," [%s]",vlab) ;
-      }
-#endif
       DC_fg_color( grapher->dc , IDEAL_COLOR(grapher) ) ;
       overlay_txt( grapher, xxx , GB_DLY-15 , strp ) ;
    }
@@ -1612,7 +1625,7 @@ ENTRY("redraw_graph") ;
    relative to lower left corner (!).
 --------------------------------------------------*/
 
-void fd_txt( MCW_grapher * grapher , int x , int y , char * str )
+void fd_txt( MCW_grapher *grapher , int x , int y , char * str )
 {
    XDrawString( grapher->dc->display, grapher->fd_pxWind,
                 grapher->dc->myGC , x , grapher->fHIGH-y ,
@@ -1620,10 +1633,32 @@ void fd_txt( MCW_grapher * grapher , int x , int y , char * str )
    return ;
 }
 
-/*-----------------------------------------------*/
+/*---------------------------------------------------------------------------*/
 
-void overlay_txt( MCW_grapher * grapher , int x , int y , char * str )
+void fd_txt_upwards( MCW_grapher *grapher , int x , int y , char *str )
 {
+   int ii , nn ; int_pair ad ;
+   if( str == NULL || *str == '\0' ) return ;
+   for( nn=strlen(str)-1 ; nn >= 0 && isspace(str[nn]) ; nn-- ) ; /*nada*/
+   for( ii=nn ; ii >= 0 ; ii-- ){
+     if( isgraph(str[ii]) ){
+       ad = DC_char_adscent(grapher->dc,str[ii]) ;
+       y -= ad.j ;
+       XDrawString( grapher->dc->display, grapher->fd_pxWind,
+                    grapher->dc->myGC , x , y , str+ii , 1 ) ;
+       y -= ad.i+2 ;
+     } else {
+       y -= 2 ;
+     }
+   }
+   return ;
+}
+
+/*---------------------------------------------------------------------------*/
+
+void overlay_txt( MCW_grapher *grapher , int x , int y , char *str )
+{
+   if( str == NULL || *str == '\0' ) return ;
    XDrawString( grapher->dc->display, XtWindow(grapher->draw_fd) ,
                 grapher->dc->myGC , x , grapher->fHIGH-y ,
                 str , strlen(str) ) ;
@@ -2294,6 +2329,21 @@ STATUS("starting time series graph loop") ;
           }
           if( DATA_BOXED(grapher) ){          /* 26 Jun 2007 */
             XPoint q_line[4] ; short xb,xt ; float delt=ftemp/tsim->ny ;
+            int labx=-1, aybas=0 ;
+            char *eblab=my_getenv("AFNI_GRAPH_BOXLAB"), ecode='\0' ;
+            if( eblab != NULL && grapher->mat == 1 ){
+              ecode = toupper(*eblab) ;
+              if( isgraph(ecode) ){
+                labx = DC_char_width(grapher->dc,ecode) ;
+                if( labx > 0 ) labx = (int)(0.5*(delt-labx)-1.0f) ;
+              }
+              if( ecode == 'M' ){
+                for( aybas=a_line[0].y,i=1 ; i < qnum ; i++ )
+                  if( a_line[i].y < aybas ) aybas = a_line[i].y ;
+              } else if( ecode == 'Z' ){
+                aybas = yoff ;
+              }
+            }
             for( i=0 ; i < qnum ; i++ ){
               xb = (short)(a_line[i].x + tt*delt + 0.499f) ;
               xt = (short)(xb + delt-0.999f) ;
@@ -2304,6 +2354,13 @@ STATUS("starting time series graph loop") ;
               XDrawLines( grapher->dc->display ,
                           grapher->fd_pxWind , grapher->dc->myGC ,
                           q_line , 4 ,  CoordModeOrigin ) ;
+              if( labx > 0 ){
+                char *lab = GRA_getlabel(grapher,pbot+i) ;
+                if( ecode == 'M' || ecode == 'Z' )
+                  fd_txt_upwards(grapher,xb+labx,aybas-3,lab) ;
+                else 
+                  fd_txt_upwards(grapher,xb+labx,a_line[i].y-3,lab) ;
+              }
             }
           }
 
