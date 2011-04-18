@@ -1386,7 +1386,27 @@ Variable: AFNI_GRAPH_CX2R (editable)
 This variable determines how the AFNI time series graphing window displays
 complex-valued datasets.  The possible values are ABS, PHASE, REAL, and IMAG.
 (Actually, only the first letter matters to the program.)  The default
-method is ABS.
+method is ABS.  (If you edit this method interactively, the graph won't
+automatically be redrawn -- you'll have to force a graph window redraw
+to see the effects.)
+
+---------------------------
+Variable: AFNI_GRAPH_BOXLAB (editable)
+---------------------------
+This variable determines if and how the AFNI grapher displays sub-brick
+labels on top of the Box graphs (from the 'Colors, Etc.' menu, or via
+the 'B' keypress).  If Box graphs are turned on, and if the graph matrix
+has only 1 graph, and if this environment variable is set properly, then
+sub-brick labels will be drawn on top of the graph boxes.  The settings
+for this variable are
+  ATOP (or A) = labels go on top of their boxes
+  MAX  (or M) = labels go at the level of the tallest box
+  ZERO (or Z) = labels go at the bottom of the graph
+Labels are drawn vertically, upwards from their starting point.  Play
+with this feature to see how it works and looks, and recall that beauty
+is in the eye of the beholder.  (If you edit this method interactively,
+the graph won't automatically be redrawn -- you'll have to force a graph
+window redraw to see the effects.)
 
 --------------------------
 Variable: AFNI_VALUE_LABEL (editable)
