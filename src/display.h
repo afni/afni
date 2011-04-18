@@ -210,15 +210,22 @@ extern MCW_DC *first_dc ;                     /* 26 Jun 2003 */
 /* fonts to try if the defaults fail */
 
 static char * tfont_hopefuls[] = {
+                 "-adobe-courier-bold-r-normal--12-120-75-75-m-70-iso8859-1"   ,
                  "-adobe-courier-medium-r-normal--12-120-75-75-m-70-iso8859-1" ,
-                 "-misc-fixed-medium-r-normal--13-100-100-100-c-70-iso8859-1" ,
-                 "lucidasanstypewriter-10" ,
-                 "7x14" , "6x13" , "fixed" ,
+                 "-misc-fixed-bold-r-normal--13-100-100-100-c-70-iso8859-1"    ,
+                 "-misc-fixed-medium-r-normal--13-100-100-100-c-70-iso8859-1"  ,
+                 "lucidasanstypewriter-bold-10" ,
+                 "lucidasanstypewriter-10"      ,
+                 "7x14bold" , "7x14" , "6x13" , "fixed" ,
               NULL } ;
 
 /*** Macro for text widths ***/
 
 #define DC_text_width(dc,str) XTextWidth((dc)->myFontStruct,(str),strlen((str)))
+
+extern int DC_char_height ( MCW_DC * , char ) ;  /* 18 Apr 2011 */
+extern int DC_char_width  ( MCW_DC * , char ) ;
+extern int_pair DC_char_adscent( MCW_DC * , char ) ;
 
 /*** prototypes ***/
 

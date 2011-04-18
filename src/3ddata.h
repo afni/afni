@@ -3067,12 +3067,13 @@ extern int    THD_deconflict_prefix( THD_3dim_dataset * ) ;          /* 23 Mar 2
     Will be zero for non-time-dependent datasets, and may be zero or positive
     for time-dependent datasets
 */
-#define DSET_NUM_TTOFF(ds)       ( ((ds)->taxis == NULL) ? 0 : (ds)->taxis->nsl )
+#define DSET_NUM_TTOFF(ds)    ( ((ds)->taxis == NULL) ? 0 : (ds)->taxis->nsl )
 
 /** 30 Nov 1997 **/
 
 #define NO_LAB_FLAG "?"
-#define DBLK_BRICK_LAB(db,iv) ( ((db)->brick_lab != NULL) ? ((db)->brick_lab[iv]) : NO_LAB_FLAG )
+#define DBLK_BRICK_LAB(db,iv) ( ((db)->brick_lab != NULL) ? ((db)->brick_lab[iv]) \
+                                                          : NO_LAB_FLAG )
 
 /*! Return the label string for sub-brick iv of dataset ds.
 

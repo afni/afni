@@ -142,6 +142,9 @@ static char *threshlock_list[] = { "NO" , "VALUE" , "P-VALUE" } ;
 #define  NUM_cx2r_list 4
 static char *cx2r_list[] = { "ABS" , "PHASE" , "REAL" , "IMAG" } ;
 
+#define  NUM_boxlab_list 3
+static char *boxlab_list[] = { "ATOP" , "MAX" , "ZERO" } ;
+
 /*--------- variables that can be edited ----------------------------------*/
 
 #define NAME_NMAX 64
@@ -393,13 +396,17 @@ PLUGIN_interface * ENV_init(void)
                     "Entropy threshold: below this, 2%-98% is off." ,
                     0,10,1,0 , NULL ) ;
 
-   ENV_add_string( "AFNI_THRESH_LOCK" ,                            /* 06 Feb 2004 */
+   ENV_add_string( "AFNI_THRESH_LOCK" ,                           /* 06 Feb 2004 */
                    "Lock Threshold slider values together?" ,
                    NUM_threshlock_list , threshlock_list , NULL  ) ;
 
    ENV_add_string( "AFNI_GRAPH_CX2R" ,                            /* 18 Apr 2011 */
                    "Graph display of complex time series" ,
                    NUM_cx2r_list , cx2r_list , NULL  ) ;
+
+   ENV_add_string( "AFNI_GRAPH_BOXLAB" ,                          /* 18 Apr 2011 */
+                   "Box graph display of brick labels" ,
+                   NUM_boxlab_list , boxlab_list , NULL  ) ;
 
    ENV_add_yesno( "AFNI_PBAR_LOCK" , "Lock Color Pbars together?" ) ; /* 07 Feb 2004 */
    ENV_add_yesno( "AFNI_RANGE_LOCK", "Lock OLay Ranges together?" ) ; /* 23 Feb 2004 */
