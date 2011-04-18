@@ -993,6 +993,9 @@ extern MRI_IMAGE * mri_scalize( MRI_IMAGE *, int, float * ) ; /* 20 Oct 2003 */
 extern MRI_IMAGE *mri_multiply_complex( int , MRI_IMAGE * , MRI_IMAGE * ) ;
 extern MRI_IMAGE *mri_complex_phase( MRI_IMAGE * ) ;
 
+extern MRI_IMAGE *mri_complex_imag( MRI_IMAGE *im ) ;  /* 18 Apr 2011 */
+extern MRI_IMAGE *mri_complex_real( MRI_IMAGE *im ) ;
+
 extern MRI_IMAGE *mri_to_mri( int , MRI_IMAGE * ) ;
 extern MRI_IMAGE *mri_to_mri_scl( int , double , MRI_IMAGE * ) ;
 extern MRI_IMAGE *mri_complex_abs( MRI_IMAGE * ) ;

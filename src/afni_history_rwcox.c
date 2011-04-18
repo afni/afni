@@ -43,7 +43,15 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 6 , APR , 2011 , RWC , "3dTfitter" , MICRO , TYPE_MODIFY ,
+  { 18 , APR , 2011 , RWC , "afni" , MICRO , TYPE_NEW_ENV ,
+   "Add AFNI_GRAPH_CX2R to allow for graphing complex time series" ,
+   NULL } ,
+
+ { 18 , APR , 2011 , RWC , "3dDFT" , MICRO , TYPE_GENERAL ,
+   "Small changes to help; -inverse option" ,
+   NULL } ,
+
+ { 6 , APR , 2011 , RWC , "3dTfitter" , MICRO , TYPE_MODIFY ,
    "Minor patches to the LASSO stuff, plus expand the help output." ,
    "LASSO-ing during deconvolution now un-penalizes all baseline (-LHS)\n"
    "parameters." } ,
