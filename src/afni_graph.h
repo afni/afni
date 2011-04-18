@@ -547,6 +547,7 @@ typedef struct {
 
 #define graCR_getstatus   7701
 #define graCR_getseries   7702
+#define graCR_getlabel    7703         /* 18 Apr 2011 */
 
 #define graCR_newxyzm     7711
 #define graCR_keypress    7714

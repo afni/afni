@@ -276,6 +276,7 @@ void Syntax(char *str)
    if( (ii-FIRST_ANAT_TYPE)%2 == 1 ) printf("\n") ;
 
    printf(           /* 08 Jun 2004 */
+    "\n"
     "  -copyaux auxset Copies the 'auxiliary' data from dataset 'auxset'\n"
     "                  over the auxiliary data for the dataset being\n"
     "                  modified.  Auxiliary data comprises sub-brick labels,\n"
@@ -283,6 +284,18 @@ void Syntax(char *str)
     "                  '-copyaux' occurs BEFORE the '-sub' operations below,\n"
     "                  so you can use those to alter the auxiliary data\n"
     "                  that is copied from auxset.\n"
+    "\n" ) ;
+
+   printf(
+    "  -relabel_all xx  Reads the file 'xx', breaks it into strings,\n"
+    "                   and puts these strings in as the sub-brick\n"
+    "                   labels.  Basically a batch way of doing\n"
+    "                   '-sublabel' many times, for n=0, 1, ...\n"
+    "                 ** This option is executed BEFORE '-sublabel',\n"
+    "                    so any labels from '-sublabel' will over-ride\n"
+    "                    labels from this file.\n"
+    "                 ** Strings in the 'xx' file are separated by\n"
+    "                    whitespace (blanks, tabs, new lines).\n"
     "\n" ) ;
 
    printf(
@@ -412,7 +425,8 @@ int main( int argc , char * argv[] )
    int   ndone=0 ;                   /* 18 Jul 2006 */
    int   verb =0 ;
    int   did_something ;             /* 30 Mar 2010 */
-   int cmap = -1;                     /* colormap handling */
+   int cmap = -1;                    /* colormap handling */
+   NI_str_array *sar_relab=NULL ;    /* 18 Apr 2011 */
 
 #define VINFO(x) if(verb)ININFO_message(x)
 
@@ -724,6 +738,22 @@ int main( int argc , char * argv[] )
             Syntax("illegal argument after -byteorder!") ;
 
          new_stuff++ ; iarg++ ; continue ;  /* go to next arg */
+      }
+
+      /*----- -relabel_all option -----*/
+
+      if( strcmp(argv[iarg],"-relabel_all") == 0 ){   /* 18 Apr 2011 */
+        char *str ;
+        if( ++iarg >= argc ) Syntax("Need argument after -relabel_all") ;
+        str = AFNI_suck_file(argv[iarg]) ;
+        if( str == NULL || *str == '\0' )
+          Syntax("Can't read file after -relabel_all") ;
+        sar_relab = NI_decode_string_list( str , "`" ) ; free(str) ;
+        if( sar_relab == NULL || sar_relab->num < 1 )
+          Syntax("Can't decode file after -relabel_all") ;
+        INFO_message("-relabel_all %s contains %d label%s" ,
+                     argv[iarg] , sar_relab->num , (sar_relab->num==1) ? "\0" : "s" ) ;
+        new_stuff++ ; iarg++ ; continue ;
       }
 
       /*----- -sublabel option -----*/
@@ -1803,6 +1833,18 @@ int main( int argc , char * argv[] )
           VINFO("null auxdata") ;
           did_something++ ; /* 30 Mar 2010 */
         }
+      }
+
+      /*-- relabel_all? [18 Apr 2011] --*/
+
+      if( sar_relab != NULL ){
+        for( ii=0 ; ii < sar_relab->num && ii < DSET_NVALS(dset) ; ii++ ){
+          if( sar_relab->str[ii][0] != '\0' ){
+            EDIT_BRICK_LABEL( dset , ii , sar_relab->str[ii] ) ;
+            did_something++ ;
+          }
+        }
+        VINFO("relabel_all") ;
       }
 
       /*-- new aux data? --*/

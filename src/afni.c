@@ -2483,6 +2483,11 @@ if(PRINT_TRACING){ char str[256] ; sprintf(str,"n=%d type=%d",n,type) ; STATUS(s
    /*-------------------------------------------------*/
    /*-------- May 1996: graph callbacks first --------*/
 
+   if( type == graCR_getlabel ){                  /* 18 Apr 2011 */
+     char *lab = DSET_BRICK_LABEL(br->dset,n) ;
+     RETURN( (XtPointer)lab ) ;
+   }
+
    if( type == graCR_getstatus ){
       MCW_grapher_status *grstat = myXtNew( MCW_grapher_status ) ;
 

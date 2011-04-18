@@ -43,7 +43,12 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 18 , APR , 2011 , RWC , "afni" , MICRO , TYPE_NEW_ENV ,
+  { 18 , APR , 2011 , RWC , "afni_graph" , MICRO , TYPE_GENERAL ,
+   "Box graphs get sub-brick labels" ,
+   "If matrix=1 and user sets AFNI_GRAPH_BOXLAB to 'ATOP', 'MAX', or 'ZERO'.\n"
+   "For Shane." } ,
+
+ { 18 , APR , 2011 , RWC , "afni" , MICRO , TYPE_NEW_ENV ,
    "Add AFNI_GRAPH_CX2R to allow for graphing complex time series" ,
    NULL } ,
 

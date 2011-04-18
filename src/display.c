@@ -302,9 +302,9 @@ if(PRINT_TRACING){
 
    /*-- May 1996: create new GC for use with text and graphics --*/
 
-   { XGCValues  gcv;
+   { XGCValues gcv;
      int ifont ;
-     XFontStruct * mfinfo = NULL ;
+     XFontStruct *mfinfo = NULL ;
      char * xdef ;
 
      gcv.function = GXcopy ;
@@ -314,7 +314,7 @@ if(PRINT_TRACING){
 
      xdef = XGetDefault(dc->display,"AFNI","gfont") ;
      if( xdef != NULL )
-        mfinfo = XLoadQueryFont(dc->display,xdef) ;
+       mfinfo = XLoadQueryFont(dc->display,xdef) ;
 
      if( mfinfo == NULL ){
         for( ifont=0 ; tfont_hopefuls[ifont] != NULL ; ifont++ ){
@@ -955,6 +955,54 @@ void DC_gray_conbrio( MCW_DC *dc , int dlev )  /* 23 Oct 2003 */
    }
    DC_set_image_colors( dc ) ;
    return ;
+}
+
+/*---------------------------------------------------------------------------*/
+
+int DC_char_height( MCW_DC *dc , char ccc )  /* 18 Apr 2011 */
+{
+   int dret , fasc , fdes ; XCharStruct cst ; char str[2] ;
+
+   if( dc == NULL || ccc == '\0' ) return 0 ;
+   str[0] = ccc ; str[1] = '\0' ;
+
+   cst.ascent = cst.descent = 0 ;
+   XTextExtents( dc->myFontStruct , str , 1 ,
+                 &dret , &fasc , &fdes , &cst ) ;
+
+   return (int)(cst.ascent + cst.descent) ;
+}
+
+/*---------------------------------------------------------------------------*/
+
+int_pair DC_char_adscent( MCW_DC *dc , char ccc )  /* 18 Apr 2011 */
+{
+   int dret , fasc , fdes ; XCharStruct cst ; char str[2] ; int_pair ad={0,0} ;
+
+   if( dc == NULL || ccc == '\0' ) return ad ;
+   str[0] = ccc ; str[1] = '\0' ;
+
+   cst.ascent = cst.descent = 0 ;
+   XTextExtents( dc->myFontStruct , str , 1 ,
+                 &dret , &fasc , &fdes , &cst ) ;
+
+   ad.i = (int)cst.ascent ; ad.j = (int)cst.descent ; return ad ;
+}
+
+/*---------------------------------------------------------------------------*/
+
+int DC_char_width( MCW_DC *dc , char ccc )  /* 18 Apr 2011 */
+{
+   int dret , fasc , fdes ; XCharStruct cst ; char str[2] ;
+
+   if( dc == NULL || ccc == '\0' ) return 0 ;
+   str[0] = ccc ; str[1] = '\0' ;
+
+   cst.width = 0 ;
+   XTextExtents( dc->myFontStruct , str , 1 ,
+                 &dret , &fasc , &fdes , &cst ) ;
+
+   return (int)(cst.width) ;
 }
 
 /*-------------------------------------------------------------------*/
@@ -1724,4 +1772,3 @@ int using_lesstif_is_defined(void)
 #endif
    return 0;
 }
-
