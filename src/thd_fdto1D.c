@@ -16,11 +16,11 @@
   uniform).
 -----------------------------------------------------------------*/
 
-MRI_IMAGE * FD_brick_to_series( int ixyz , FD_brick * br )
+MRI_IMAGE * FD_brick_to_series( int ixyz , FD_brick *br )
 {
-   MRI_IMAGE * im ;  /* output */
+   MRI_IMAGE *im ;  /* output */
    int nv , ival ;
-   char * iar ;      /* brick in the input */
+   char *iar ;      /* brick in the input */
    MRI_TYPE typ ;
    int ix,jy,kz , ind ;
    THD_ivec3 ind_fd , ind_ds ;
@@ -72,7 +72,7 @@ MRI_IMAGE * FD_brick_to_series( int ixyz , FD_brick * br )
          return NULL ;
 
       case MRI_byte:{
-         byte * ar  = MRI_BYTE_PTR(im) , * bar ;
+         byte *ar  = MRI_BYTE_PTR(im) , *bar ;
          for( ival=0 ; ival < nv ; ival++ ){
             bar = (byte *) DSET_ARRAY(br->dset,ival) ;
             if( bar != NULL ) ar[ival] = bar[ind] ;
@@ -81,7 +81,7 @@ MRI_IMAGE * FD_brick_to_series( int ixyz , FD_brick * br )
       break ;
 
       case MRI_short:{
-         short * ar  = MRI_SHORT_PTR(im) , * bar ;
+         short *ar  = MRI_SHORT_PTR(im) , *bar ;
          for( ival=0 ; ival < nv ; ival++ ){
             bar = (short *) DSET_ARRAY(br->dset,ival) ;
             if( bar != NULL ) ar[ival] = bar[ind] ;
@@ -90,7 +90,7 @@ MRI_IMAGE * FD_brick_to_series( int ixyz , FD_brick * br )
       break ;
 
       case MRI_float:{
-         float * ar  = MRI_FLOAT_PTR(im) , * bar ;
+         float *ar  = MRI_FLOAT_PTR(im) , *bar ;
          for( ival=0 ; ival < nv ; ival++ ){
             bar = (float *) DSET_ARRAY(br->dset,ival) ;
             if( bar != NULL ) ar[ival] = bar[ind] ;
@@ -99,7 +99,7 @@ MRI_IMAGE * FD_brick_to_series( int ixyz , FD_brick * br )
       break ;
 
       case MRI_int:{
-         int * ar  = MRI_INT_PTR(im) , * bar ;
+         int *ar  = MRI_INT_PTR(im) , *bar ;
          for( ival=0 ; ival < nv ; ival++ ){
             bar = (int *) DSET_ARRAY(br->dset,ival) ;
             if( bar != NULL ) ar[ival] = bar[ind] ;
@@ -108,7 +108,7 @@ MRI_IMAGE * FD_brick_to_series( int ixyz , FD_brick * br )
       break ;
 
       case MRI_double:{
-         double * ar  = MRI_DOUBLE_PTR(im) , * bar ;
+         double *ar  = MRI_DOUBLE_PTR(im) , *bar ;
          for( ival=0 ; ival < nv ; ival++ ){
             bar = (double *) DSET_ARRAY(br->dset,ival) ;
             if( bar != NULL ) ar[ival] = bar[ind] ;
@@ -117,7 +117,7 @@ MRI_IMAGE * FD_brick_to_series( int ixyz , FD_brick * br )
       break ;
 
       case MRI_complex:{
-         complex * ar  = MRI_COMPLEX_PTR(im) , * bar ;
+         complex *ar  = MRI_COMPLEX_PTR(im) , *bar ;
          for( ival=0 ; ival < nv ; ival++ ){
             bar = (complex *) DSET_ARRAY(br->dset,ival) ;
             if( bar != NULL ) ar[ival] = bar[ind] ;
@@ -148,7 +148,7 @@ MRI_IMAGE * FD_brick_to_series( int ixyz , FD_brick * br )
    }
 
    if( THD_need_brick_factor(br->dset) ){
-      MRI_IMAGE * qim ;
+      MRI_IMAGE *qim ;
       qim = mri_mult_to_float( br->dset->dblk->brick_fac , im ) ;
       mri_free(im) ; im = qim ;
    }
