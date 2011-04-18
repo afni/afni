@@ -253,9 +253,15 @@ int main( int argc , char *argv[] )
      demed = 0 ; WARNING_message("-demed is overriden by -corder") ;
    }
 
-   if( corder < 0 ) corder = DSET_NVALS(inset) / 30 ;
-   if( corder > 0 && 2*corder+3 >= DSET_NVALS(inset) )
+   if( corder < 0 ){
+     corder = DSET_NVALS(inset) / 30 ;
+     if( corder == 0 ){
+       WARNING_message("Fewer than 30 time points ==> -corder converted to -unif") ;
+       unif = demed = 1 ;
+     }
+   } else if( corder > 0 && 2*corder+3 >= DSET_NVALS(inset) ){
      ERROR_exit("-corder %d is too big for this dataset",corder) ;
+   }
 
    DSET_load(inset) ; CHECK_LOAD_ERROR(inset) ;
 
