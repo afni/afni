@@ -118,3 +118,49 @@ MRI_IMAGE *mri_complex_abs( MRI_IMAGE *im )
 
    return newImg ;
 }
+
+/***************************************************************************/
+
+MRI_IMAGE *mri_complex_real( MRI_IMAGE *im )
+{
+   register int ii , npix ;
+   MRI_IMAGE *newImg ;
+   float *nar ; complex *iar ;
+
+   if( im->kind != MRI_complex ){
+      fprintf( stderr , "mri_complex_abs illegal type!\n" ) ;
+      MRI_FATAL_ERROR ;
+   }
+
+   npix = im->nvox ;
+   newImg  = mri_new_conforming( im , MRI_float ) ;
+   MRI_COPY_AUX( newImg , im ) ;
+   iar = MRI_COMPLEX_PTR(im) ; nar = MRI_FLOAT_PTR(newImg) ;
+
+   for( ii=0 ; ii < npix ; ii++ ) nar[ii] = iar[ii].r ;
+
+   return newImg ;
+}
+
+/***************************************************************************/
+
+MRI_IMAGE *mri_complex_imag( MRI_IMAGE *im )
+{
+   register int ii , npix ;
+   MRI_IMAGE *newImg ;
+   float *nar ; complex *iar ;
+
+   if( im->kind != MRI_complex ){
+      fprintf( stderr , "mri_complex_abs illegal type!\n" ) ;
+      MRI_FATAL_ERROR ;
+   }
+
+   npix = im->nvox ;
+   newImg  = mri_new_conforming( im , MRI_float ) ;
+   MRI_COPY_AUX( newImg , im ) ;
+   iar = MRI_COMPLEX_PTR(im) ; nar = MRI_FLOAT_PTR(newImg) ;
+
+   for( ii=0 ; ii < npix ; ii++ ) nar[ii] = iar[ii].i ;
+
+   return newImg ;
+}

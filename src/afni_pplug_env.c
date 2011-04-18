@@ -127,17 +127,20 @@ static void ENV_sesstrail( char * ) ;
 /*-------------------------------------------------------------------------*/
 
 #if 0
-#define NUM_byteorder_list 3
+#define  NUM_byteorder_list 3
 static char *byteorder_list[] = { "This CPU" , "LSB_FIRST" , "MSB_FIRST" } ;
 
 static void ENV_byteorder( char * ) ;
 #endif
 
-#define NUM_yesno_list 2
+#define  NUM_yesno_list 2
 static char *yesno_list[] = { "YES" , "NO" } ;
 
-#define NUM_threshlock_list 3
+#define  NUM_threshlock_list 3
 static char *threshlock_list[] = { "NO" , "VALUE" , "P-VALUE" } ;
+
+#define  NUM_cx2r_list 4
+static char *cx2r_list[] = { "ABS" , "PHASE" , "REAL" , "IMAG" } ;
 
 /*--------- variables that can be edited ----------------------------------*/
 
@@ -393,6 +396,10 @@ PLUGIN_interface * ENV_init(void)
    ENV_add_string( "AFNI_THRESH_LOCK" ,                            /* 06 Feb 2004 */
                    "Lock Threshold slider values together?" ,
                    NUM_threshlock_list , threshlock_list , NULL  ) ;
+
+   ENV_add_string( "AFNI_GRAPH_CX2R" ,                            /* 18 Apr 2011 */
+                   "Graph display of complex time series" ,
+                   NUM_cx2r_list , cx2r_list , NULL  ) ;
 
    ENV_add_yesno( "AFNI_PBAR_LOCK" , "Lock Color Pbars together?" ) ; /* 07 Feb 2004 */
    ENV_add_yesno( "AFNI_RANGE_LOCK", "Lock OLay Ranges together?" ) ; /* 23 Feb 2004 */
