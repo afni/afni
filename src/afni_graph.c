@@ -982,6 +982,47 @@ STATUS("realizing widgets") ;
    RETURN(grapher) ;
 }
 
+/*--------------------------------------------------------------------------*/
+/* Get the float-valued time series for graphing.  [18 Apr 2011]
+*//*------------------------------------------------------------------------*/
+
+MRI_IMAGE * GRA_getseries( MCW_grapher *grapher , int index )
+{
+   MRI_IMAGE *tsim ;
+
+   CALL_getser( grapher , index,graCR_getseries , MRI_IMAGE *,tsim ) ;
+
+   if( tsim == NULL ) return NULL;
+   if( tsim->nx < 1 ){ mri_free(tsim); return NULL; }
+
+   if( tsim->kind == MRI_complex ){
+     MRI_IMAGE *qim ;
+     char *eee = my_getenv("AFNI_GRAPH_CX2R") ;
+     if( eee == NULL ) eee = "A" ;
+     switch( *eee ){
+       default:
+       case 'A':
+       case 'a':  qim = mri_complex_abs(tsim)  ; break ;
+
+       case 'P':
+       case 'p':  qim = mri_complex_phase(tsim); break ;
+
+       case 'r':
+       case 'R':  qim = mri_complex_real(tsim) ; break ;
+
+       case 'i':
+       case 'I':  qim = mri_complex_imag(tsim) ; break ;
+     }
+     mri_free(tsim) ; tsim = qim ;
+
+   } else if( tsim->kind != MRI_float ){
+     MRI_IMAGE *qim = mri_to_float(tsim) ;
+     mri_free(tsim) ; tsim = qim ;
+   }
+
+   return tsim ;
+}
+
 /*----------------------------------
     Exit button action
 ------------------------------------*/
@@ -1696,20 +1737,8 @@ ENTRY("text_graphs") ;
 
          index = ztemp + ytemp * grapher->status->nx + xtemp ;
 
-#if 0
-         tsim  = (MRI_IMAGE *) grapher->getser( index , graCR_getseries ,
-                                                        grapher->getaux ) ;
-#else
-         CALL_getser( grapher , index,graCR_getseries , MRI_IMAGE *,tsim ) ;
-#endif
-
+         tsim = GRA_getseries( grapher , index ) ;
          if( tsim == NULL ) break ;
-         if( tsim->nx < 1 ){ mri_free(tsim); break; }  /* shouldn't happen */
-
-         if( tsim->kind != MRI_float ){
-           MRI_IMAGE *qim = mri_to_float(tsim) ;
-           mri_free(tsim) ; tsim = qim ;
-         }
 
          if( ix == grapher->xc && iy == grapher->yc ){
            mri_free( grapher->cen_tsim ) ;             /* copy time series too */
@@ -1879,12 +1908,7 @@ ENTRY("plot_graphs") ;
 
          /** get the desired time series, using the provided routine **/
 
-#if 0
-         tsim  = (MRI_IMAGE *) grapher->getser( index , graCR_getseries ,
-                                                        grapher->getaux ) ;
-#else
-         CALL_getser( grapher , index,graCR_getseries , MRI_IMAGE *,tsim ) ;
-#endif
+         tsim = GRA_getseries( grapher , index ) ;
 
          /* 08 Nov 1996: allow for return of NULL timeseries */
 
@@ -1895,13 +1919,6 @@ ENTRY("plot_graphs") ;
          }
 
          ntmax = MAX( ntmax , tsim->nx ) ;
-
-         /** convert time series to floats, if need be **/
-
-         if( tsim->kind != MRI_float ){
-           MRI_IMAGE *qim = mri_to_float(tsim) ;
-           mri_free(tsim) ; tsim = qim ;
-         }
 
          /* 22 Oct 1996: transform each point, if ordered */
 
@@ -3574,13 +3591,7 @@ STATUS(str); }
               grapher->ypoint * grapher->status->nx +
               grapher->zpoint * grapher->status->nx * grapher->status->ny ;
 
-#if 0
-         tsim  = (MRI_IMAGE *) grapher->getser( ll , graCR_getseries ,
-                                                     grapher->getaux ) ;
-#else
-         CALL_getser( grapher , ll,graCR_getseries , MRI_IMAGE *,tsim ) ;
-#endif
-
+         tsim = GRA_getseries( grapher , ll ) ;
          if( tsim != NULL ){
            mri_write_1D( wcfname , tsim ) ;  /* 16 Nov 1999: replaces mri_write_ascii */
            mri_free( tsim ) ;
@@ -4823,12 +4834,7 @@ ENTRY("GRA_fim_CB") ;
            grapher->ypoint * grapher->status->nx +
            grapher->zpoint * grapher->status->nx * grapher->status->ny ;
 
-#if 0
-      tsim  = (MRI_IMAGE *) grapher->getser( ll , graCR_getseries ,
-                                                  grapher->getaux ) ;
-#else
-      CALL_getser( grapher , ll,graCR_getseries , MRI_IMAGE *,tsim ) ;
-#endif
+      tsim = GRA_getseries( grapher , ll ) ;
 
       if( tsim != NULL ){
          { GRA_cbs cbs; cbs.reason=graCR_winaver; CALL_sendback(grapher,cbs); }
