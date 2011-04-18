@@ -1380,6 +1380,14 @@ Mike Beauchamp) would be
 Of course, you can always change the global baseline from the Opt->Baseline
 menu.
 
+-------------------------
+Variable: AFNI_GRAPH_CX2R (editable)
+-------------------------
+This variable determines how the AFNI time series graphing window displays
+complex-valued datasets.  The possible values are ABS, PHASE, REAL, and IMAG.
+(Actually, only the first letter matters to the program.)  The default
+method is ABS.
+
 --------------------------
 Variable: AFNI_VALUE_LABEL (editable)
 --------------------------
