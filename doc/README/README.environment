@@ -1408,6 +1408,21 @@ is in the eye of the beholder.  (If you edit this method interactively,
 the graph won't automatically be redrawn -- you'll have to force a graph
 window redraw to see the effects.)
 
+-------------------------
+Variable: AFNI_GRAPH_FONT
+-------------------------
+This variable is the name of a font to use for text overlays in the
+AFNI time series graph viewers.  If this variable is not set, the
+program has a list of fonts to try to load.  If none of those can
+be loaded (something I've never seen happen), text may not display.
+For best results, this should be a fixed width font.  To see a full
+list of all X11 fonts available, use the system command 'xlsfonts'
+(you probably want to pipe this output through 'more').  The first
+default font is currently [Apr 2011] set to
+  -adobe-courier-bold-r-normal--12-120-75-75-m-70-iso8859-1
+The entire list of fonts that will be tried can be found in the
+source code file display.h, in the string array tfont_hopefuls[].
+
 --------------------------
 Variable: AFNI_VALUE_LABEL (editable)
 --------------------------
