@@ -82,7 +82,7 @@ typedef struct {
    int depth ;
 
    int ncolors , nblack,nwhite ;  /* This stuff for PseudoColor */
-   byte * rr , * gg , * bb ;
+   byte *rr , *gg , *bb ;
 
    unsigned long rrmask , ggmask , bbmask ;   /* This stuff for TrueColor */
    int           rrshift, ggshift, bbshift;
@@ -125,8 +125,8 @@ typedef struct {
    int    ncol_ov ;              /* number of overlay colors defined */
    XColor xcol_ov[MAX_COLORS] ;  /* definitions of overlay colors */
    Pixel  pix_ov[MAX_COLORS]  ;  /* Pixels for overlay */
-   char * name_ov[MAX_COLORS] ;  /* names of overlay colors */
-   char * label_ov[MAX_COLORS] ; /* labels for overlay colors */
+   char  *name_ov[MAX_COLORS] ;  /* names of overlay colors */
+   char  *label_ov[MAX_COLORS] ; /* labels for overlay colors */
 
    Pixel  pixov_brightest,pixov_darkest,pixov_reddest,pixov_greenest,pixov_bluest,pixov_yellowest;
    int    ov_brightest   ,   ov_darkest,   ov_reddest,   ov_greenest,   ov_bluest,   ov_yellowest;
@@ -146,17 +146,17 @@ typedef struct {
 
 typedef struct {
       XtAppContext appcontext ;    /* X and Xt stuff */
-      Display *    display ;
-      Screen *     screen ;
+      Display     *display ;
+      Screen      *screen ;
       int          screen_num ;
-      Visual *     visual ;
+      Visual      *visual ;
       Colormap     colormap , default_colormap ;
       GC           myGC , origGC ;
       int          planes ;
       int          depth ;
 
       VisualID      visual_id ;     /* 07 Aug 1998: added visual_* stuff */
-      XVisualInfo * visual_info ;
+      XVisualInfo  *visual_info ;
       unsigned long visual_redmask  , visual_greenmask  , visual_bluemask ;
       int           visual_redshift , visual_greenshift , visual_blueshift ;
       int           visual_class ;
@@ -174,17 +174,17 @@ typedef struct {
       int          pix_im_ready ;         /* 22 Aug 1998 */
       int          byper , bypad ;        /* 23 Aug 1998 */
 
-      MCW_DCOV *   ovc ;                  /* Dec 1997 */
+      MCW_DCOV    *ovc ;                  /* Dec 1997 */
 
       int          xint_im[MAX_COLORS] ;  /* intensity levels for xgry_im */
 
-      XFontStruct * myFontStruct ;
+      XFontStruct  *myFontStruct ;
 
       Widget       parent_widget ;
 
       XtPointer    parent , aux ;
 
-      DC_colordef * cdef ;    /* 11 Feb 1999 */
+      DC_colordef  *cdef ;    /* 11 Feb 1999 */
 
       int does_backingstore ; /* 27 Feb 2001 */
       int does_saveunders ;
@@ -207,16 +207,16 @@ extern MCW_DC *first_dc ;                     /* 26 Jun 2003 */
 #define DC_GRAYBYTE(dc,i)    ((dc)->gray_im[i])
 #endif
 
-/* fonts to try if the defaults fail */
+/* text fonts to try if the defaults fail */
 
-static char * tfont_hopefuls[] = {
-                 "-adobe-courier-bold-r-normal--12-120-75-75-m-70-iso8859-1"   ,
-                 "-adobe-courier-medium-r-normal--12-120-75-75-m-70-iso8859-1" ,
-                 "-misc-fixed-bold-r-normal--13-100-100-100-c-70-iso8859-1"    ,
-                 "-misc-fixed-medium-r-normal--13-100-100-100-c-70-iso8859-1"  ,
-                 "lucidasanstypewriter-bold-10" ,
-                 "lucidasanstypewriter-10"      ,
-                 "7x14bold" , "7x14" , "6x13" , "fixed" ,
+static char *tfont_hopefuls[] = {
+                "-adobe-courier-bold-r-normal--12-120-75-75-m-70-iso8859-1"   ,
+                "-adobe-courier-medium-r-normal--12-120-75-75-m-70-iso8859-1" ,
+                "-misc-fixed-bold-r-normal--13-100-100-100-c-70-iso8859-1"    ,
+                "-misc-fixed-medium-r-normal--13-100-100-100-c-70-iso8859-1"  ,
+                "lucidasanstypewriter-bold-10" ,
+                "lucidasanstypewriter-10"      ,
+                "7x14bold" , "7x14" , "6x13bold" , "6x13" , "fixed" ,
               NULL } ;
 
 /*** Macro for text widths ***/
