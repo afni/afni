@@ -1406,7 +1406,11 @@ Labels are drawn vertically, upwards from their starting point.  Play
 with this feature to see how it works and looks, and recall that beauty
 is in the eye of the beholder.  (If you edit this method interactively,
 the graph won't automatically be redrawn -- you'll have to force a graph
-window redraw to see the effects.)
+window redraw to see the effects.)  You can control the font for this
+text with AFNI_GRAPH_FONT (next).  Note that if you use the Dataset#N
+plugin with this feature, the labels will come from the underlay dataset
+rather than the Dataset#N datasets.  This bug is so recondite and intractable
+that I hope it will not cause too many problems for the adoring AFNI public.
 
 -------------------------
 Variable: AFNI_GRAPH_FONT
