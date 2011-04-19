@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 19 , APR , 2011 , RWC , "afni" , MICRO , TYPE_NEW_ENV ,
+  { 19 , APR , 2011 , RWC , "afni" , MICRO , TYPE_GENERAL ,
+   "Let user select grid spacing=1 from menu" ,
+   "Helpful for Boxes graphs" } ,
+
+ { 19 , APR , 2011 , RWC , "afni" , MICRO , TYPE_NEW_ENV ,
    "AFNI_GRAPH_FONT lets user choose font for graph viewer text" ,
    "9x15bold looks solid on a 100dpi screen, for example." } ,
 

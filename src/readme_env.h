@@ -1407,7 +1407,11 @@ static char * readme_env[] = {
    "with this feature to see how it works and looks, and recall that beauty\n" ,
    "is in the eye of the beholder.  (If you edit this method interactively,\n" ,
    "the graph won't automatically be redrawn -- you'll have to force a graph\n" ,
-   "window redraw to see the effects.)\n" ,
+   "window redraw to see the effects.)  You can control the font for this\n" ,
+   "text with AFNI_GRAPH_FONT (next).  Note that if you use the Dataset#N\n" ,
+   "plugin with this feature, the labels will come from the underlay dataset\n" ,
+   "rather than the Dataset#N datasets.  This bug is so recondite and intractable\n" ,
+   "that I hope it will not cause too many problems for the adoring AFNI public.\n" ,
    "\n" ,
    "-------------------------\n" ,
    "Variable: AFNI_GRAPH_FONT\n" ,
@@ -3211,4 +3215,4 @@ static char * readme_env[] = {
    "behavior, set this variable to YES.\n" ,
    "\n" ,
    NULL } ;
-#define NUM_readme_env 3211
+#define NUM_readme_env 3215
