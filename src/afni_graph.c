@@ -1676,9 +1676,9 @@ static void fd_line( MCW_grapher *grapher , int x1,int y1, int x2,int y2 )
 
 /*-----------------------------------------------*/
 
-#define GRID_MAX 12
+#define GRID_MAX 13
 static int grid_ar[GRID_MAX] =
-   { 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000 } ;
+   { 1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000 } ;
 
 static void auto_grid( MCW_grapher *grapher , int npoints )
 {
@@ -2686,7 +2686,7 @@ STATUS("plotting extra graphs") ;
    12 Jan 1998: modified to allow for gaps between graphs
 --------------------------------------------------------------------------*/
 
-void draw_grids( MCW_grapher * grapher )
+void draw_grids( MCW_grapher *grapher )
 {
    int i , mat=grapher->mat , gx=grapher->gx , gy=grapher->gy ;
    int j, k, g, xo, yo, npoints , m ;
@@ -2706,7 +2706,8 @@ ENTRY("draw_grids") ;
       npoints = NPTS(grapher) ;  /* number time points in 1 sub-graph window */
 
       if( npoints > 1 ){                /* this if: 22 Sep 2000 */
-        ftemp = gx / (npoints-1.0) ;
+        if( DATA_BOXED(grapher) ) ftemp = gx / (float)npoints ;
+        else                      ftemp = gx / (npoints-1.0f) ;
         for( i=0 ; i < mat ; i++ ){
           for( m=0 ; m < mat ; m++ ){
             xo = grapher->xorigin[i][m] ; yo = grapher->yorigin[i][m] ;
@@ -3821,7 +3822,7 @@ STATUS("User pressed Done button: starting timeout") ;
 
    if( w == grapher->opt_grid_choose_pb ){
      MCW_choose_integer( grapher->option_rowcol , "Grid" ,
-                         grid_ar[0] , grid_ar[GRID_MAX-1] , grapher->grid_spacing ,
+                         1 , grid_ar[GRID_MAX-1] , grapher->grid_spacing ,
                          GRA_grid_choose_CB , (XtPointer) grapher ) ;
      EXRETURN ;
    }
