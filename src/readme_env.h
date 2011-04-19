@@ -1409,6 +1409,21 @@ static char * readme_env[] = {
    "the graph won't automatically be redrawn -- you'll have to force a graph\n" ,
    "window redraw to see the effects.)\n" ,
    "\n" ,
+   "-------------------------\n" ,
+   "Variable: AFNI_GRAPH_FONT\n" ,
+   "-------------------------\n" ,
+   "This variable is the name of a font to use for text overlays in the\n" ,
+   "AFNI time series graph viewers.  If this variable is not set, the\n" ,
+   "program has a list of fonts to try to load.  If none of those can\n" ,
+   "be loaded (something I've never seen happen), text may not display.\n" ,
+   "For best results, this should be a fixed width font.  To see a full\n" ,
+   "list of all X11 fonts available, use the system command 'xlsfonts'\n" ,
+   "(you probably want to pipe this output through 'more').  The first\n" ,
+   "default font is currently [Apr 2011] set to\n" ,
+   "  -adobe-courier-bold-r-normal--12-120-75-75-m-70-iso8859-1\n" ,
+   "The entire list of fonts that will be tried can be found in the\n" ,
+   "source code file display.h, in the string array tfont_hopefuls[].\n" ,
+   "\n" ,
    "--------------------------\n" ,
    "Variable: AFNI_VALUE_LABEL (editable)\n" ,
    "--------------------------\n" ,
@@ -3196,4 +3211,4 @@ static char * readme_env[] = {
    "behavior, set this variable to YES.\n" ,
    "\n" ,
    NULL } ;
-#define NUM_readme_env 3196
+#define NUM_readme_env 3211
