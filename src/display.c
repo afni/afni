@@ -305,7 +305,7 @@ if(PRINT_TRACING){
    { XGCValues gcv;
      int ifont ;
      XFontStruct *mfinfo = NULL ;
-     char * xdef ;
+     char *xdef ;
 
      gcv.function = GXcopy ;
      dc->myGC     = XCreateGC( dc->display,
@@ -313,6 +313,7 @@ if(PRINT_TRACING){
                                GCFunction , &gcv ) ;
 
      xdef = XGetDefault(dc->display,"AFNI","gfont") ;
+     if( xdef == NULL ) xdef = getenv("AFNI_GRAPH_FONT") ;
      if( xdef != NULL )
        mfinfo = XLoadQueryFont(dc->display,xdef) ;
 
@@ -322,7 +323,7 @@ if(PRINT_TRACING){
            if( mfinfo != NULL ) break ;
         }
      }
-     if( mfinfo == NULL ){
+     if( mfinfo == NULL ){  /* this should not happen, fondly we do hope */
         fprintf(stderr,
                 "\n*** Cannot load any text fonts in display.c ***\n" ) ;
      } else {
