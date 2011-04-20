@@ -42,6 +42,9 @@ static Widget wtemp ;
      if( sb != NULL ) sb(gr,gr->getaux,&scb) ;                                \
  } while(0)
 
+#undef  BOXOFF
+#define BOXOFF 9  /* BOX vertical offset (pixels) */
+
 /*------------------------------------------------------------*/
 /*! Create a new MCW_grapher window and structure.            */
 
@@ -1312,10 +1315,10 @@ void GRA_redraw_overlay( MCW_grapher *grapher )
 {
    Window   win ;
    Display *dis ;
-   int      ii , xxx , jj ;
+   int      ii , xxx , jj , boff ;
    float    val ;
    char buf[16] , strp[256] ;
-   char * vbuf , *iname , *vname ;
+   char *vbuf , *iname , *vname ;
 
 ENTRY("GRA_redraw_overlay") ;
 
@@ -1332,6 +1335,8 @@ ENTRY("GRA_redraw_overlay") ;
 
    EXRONE(grapher) ;  /* 22 Sep 2000 */
 
+   boff = DATA_BOXED(grapher) ? BOXOFF : 0 ;
+
    /* draw some circles over ignored data points [23 May 2005] */
 
    if( grapher->init_ignore > 0 && !grapher->textgraph ){
@@ -1341,13 +1346,8 @@ ENTRY("GRA_redraw_overlay") ;
      xxx = MIN (xxx , grapher->init_ignore) ;  /* point */
      xxx = MIN (xxx , jj+grapher->nncen) ;     /* to plot */
      for( ii=jj ; ii < xxx ; ii++ )
-#if 0
-       GRA_overlay_circle( grapher , grapher->cen_line[ii-jj].x ,
-                                     grapher->cen_line[ii-jj].y , 1 ) ;
-#else
        GRA_draw_circle( grapher , grapher->cen_line[ii-jj].x ,
-                                  grapher->cen_line[ii-jj].y , 4 ) ;
-#endif
+                                  grapher->cen_line[ii-jj].y-boff , 4 ) ; 
    }
 
    /* 22 July 1996:
@@ -1359,7 +1359,9 @@ ENTRY("GRA_redraw_overlay") ;
 
       DC_fg_color( grapher->dc , IDEAL_COLOR(grapher) ) ;
       GRA_overlay_circle( grapher , grapher->cen_line[ii-jj].x ,
-                                    grapher->cen_line[ii-jj].y , 2 ) ;
+                                    grapher->cen_line[ii-jj].y-boff , 2 ) ;
+      GRA_draw_circle   ( grapher , grapher->cen_line[ii-jj].x ,
+                                    grapher->cen_line[ii-jj].y-boff , 4 ) ;
    }
 
    /* draw text showing value at currently displayed time_index */
@@ -2348,8 +2350,8 @@ STATUS("starting time series graph loop") ;
               xb = (short)(a_line[i].x + tt*delt + 0.499f) ;
               xt = (short)(xb + delt-0.999f) ;
               q_line[0].x = xb ; q_line[0].y = yoff ;
-              q_line[1].x = xb ; q_line[1].y = a_line[i].y ;
-              q_line[2].x = xt ; q_line[2].y = a_line[i].y ;
+              q_line[1].x = xb ; q_line[1].y = a_line[i].y-BOXOFF ;
+              q_line[2].x = xt ; q_line[2].y = a_line[i].y-BOXOFF ;
               q_line[3].x = xt ; q_line[3].y = yoff ;
               XDrawLines( grapher->dc->display ,
                           grapher->fd_pxWind , grapher->dc->myGC ,
@@ -2359,7 +2361,7 @@ STATUS("starting time series graph loop") ;
                 if( ecode == 'M' || ecode == 'Z' )
                   fd_txt_upwards(grapher,xb+labx,aybas-3,lab) ;
                 else 
-                  fd_txt_upwards(grapher,xb+labx,a_line[i].y-3,lab) ;
+                  fd_txt_upwards(grapher,xb+labx,a_line[i].y-3-BOXOFF,lab) ;
               }
             }
           }
