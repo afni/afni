@@ -43,7 +43,12 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 19 , APR , 2011 , RWC , "afni" , MICRO , TYPE_GENERAL ,
+  { 20 , APR , 2011 , RWC , "afni" , MICRO , TYPE_GENERAL ,
+   "Boxed graphs: displace upwards by 9 pixels" ,
+   "So that smallest graph box doesn't have zero height, which looks goofy.\n"
+   "Also, change 'current time point' indicator to be a little bigger." } ,
+
+ { 19 , APR , 2011 , RWC , "afni" , MICRO , TYPE_GENERAL ,
    "Let user select grid spacing=1 from menu" ,
    "Helpful for Boxes graphs" } ,
 
