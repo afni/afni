@@ -1424,6 +1424,9 @@ list of all X11 fonts available, use the system command 'xlsfonts'
 (you probably want to pipe this output through 'more').  The first
 default font is currently [Apr 2011] set to
   -adobe-courier-bold-r-normal--12-120-75-75-m-70-iso8859-1
+For a font that is larger than the default, try 9x15bold or even
+10x20, as in the command
+  afni -DAFNI_GRAPH_FONT=9x15bold
 The entire list of fonts that will be tried can be found in the
 source code file display.h, in the string array tfont_hopefuls[].
 

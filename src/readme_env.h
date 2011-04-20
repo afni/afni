@@ -1425,6 +1425,9 @@ static char * readme_env[] = {
    "(you probably want to pipe this output through 'more').  The first\n" ,
    "default font is currently [Apr 2011] set to\n" ,
    "  -adobe-courier-bold-r-normal--12-120-75-75-m-70-iso8859-1\n" ,
+   "For a font that is larger than the default, try 9x15bold or even\n" ,
+   "10x20, as in the command\n" ,
+   "  afni -DAFNI_GRAPH_FONT=9x15bold\n" ,
    "The entire list of fonts that will be tried can be found in the\n" ,
    "source code file display.h, in the string array tfont_hopefuls[].\n" ,
    "\n" ,
@@ -3215,4 +3218,4 @@ static char * readme_env[] = {
    "behavior, set this variable to YES.\n" ,
    "\n" ,
    NULL } ;
-#define NUM_readme_env 3215
+#define NUM_readme_env 3218
