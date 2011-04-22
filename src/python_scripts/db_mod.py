@@ -868,7 +868,7 @@ def db_mod_volreg(block, proc, user_opts):
            wpieces = UTIL.get_num_warp_pieces(proc.tlrcanat.ppv(),proc.verb)
            if uopt and wpieces == 1:    # warning
               print "** have auto_tlrc anat, consider '-volreg_tlrc_warp'\n" \
-                    "   in place of '-volreg_tlrc_adwarp'"
+                    "   (in place of '-volreg_tlrc_adwarp')"
            elif u2 and wpieces == 12:   # error
               print "** -volreg_tlrc_warp does not work with manual tlrc\n" \
                     "   (consider -volreg_tlrc_adwarp instead)"
@@ -1170,6 +1170,15 @@ def db_cmd_volreg(proc, block):
             "           -dxyz %g -resam Cu\n"                            \
             "end\n\n" % (proc.tlrcanat.pv(), cur_prefix, proc.view, dim)
         proc.view = '+tlrc'  # and set a new current view
+
+        # if extents mask, need to warp it and update to the new proc.view
+        if do_extents:
+           cmd = cmd +                                                      \
+               "# and apply Talairach transformation to the extents mask\n" \
+               "    adwarp -apar %s -dpar %s \\\n"                          \
+               "           -dxyz %g -resam NN\n\n"                          \
+               % (proc.tlrcanat.pv(), proc.mask_extents.pv(), dim)
+           proc.mask_extents.new_view(proc.view)
 
     # used 3dvolreg, so have these labels
     proc.mot_labs = ['roll', 'pitch', 'yaw', 'dS', 'dL', 'dP']
@@ -2463,17 +2472,22 @@ def db_cmd_blur_est(proc, block):
     opt = block.opts.find_opt('-regress_run_clustsim')
     if not opt or OL.opt_is_yes(opt):
         stats_dset = 'stats.$subj%s' % proc.view
+        if block.opts.find_opt('-regress_reml_exec'):
+           reml_dset = 'stats.${subj}_REML%s' % proc.view
+        else: reml_dset = ''
         rv, bstr = make_clustsim_commands(proc, block, blur_file, 
-                                          mask_dset, stats_dset)
+                                          mask_dset, stats_dset, reml_dset)
         if rv: return   # failure (error has been printed)
         cmd = cmd + bstr + '\n'
 
     return cmd
 
-def make_clustsim_commands(proc, block, blur_file, mask_dset, stats_dset):
+def make_clustsim_commands(proc, block, blur_file, mask_dset,
+                           stats_dset, reml_dset):
     if proc.verb > 1:
-        print '-- make_clustsim_commands: blur = %s\n\tmask = %s, stats = %s' \
-              % (blur_file, mask_dset, stats_dset)
+        print '-- make_clustsim_commands: blur = %s\n'  \
+              '   mask = %s, stats = %s, reml = %s'\
+              % (blur_file, mask_dset, stats_dset, reml_dset)
 
     # track which neighbors to go after
     nnvalid = ['1','2','3']
@@ -2515,7 +2529,10 @@ def make_clustsim_commands(proc, block, blur_file, mask_dset, stats_dset):
                 % (nn, cprefix, nn)
 
     # finally, the input
-    cstr += '        %s\n\n' % stats_dset
+    if reml_dset == '': rstr = ''
+    else:               rstr = ' ' + reml_dset
+
+    cstr += '        %s%s\n\n' % (stats_dset, rstr)
 
     return 0, cstr
 
