@@ -233,9 +233,14 @@ g_history = """
     2.46 Mar 07 2011 : make proc script executable
     2.47 Mar 14 2011 : if no mask but have extents, apply in scale
     2.48 Mar 15 2011 : use X.nocensor.1D (just to save 2 spaces)
+    2.49 Apr 22 2011 :
+        - if manual tlrc and -volreg_tlrc_adwarp, also transform extents mask
+          (noted by J Britton)
+        - if -regress_reml_exec, insert 3dClustSim table in stats_REML
+          (noted by R Momenan)
 """
 
-g_version = "version 2.47, Mar 14, 2011"
+g_version = "version 2.49, Apr 22, 2011"
 
 # version of AFNI required for script execution
 g_requires_afni = "4 Nov 2010"

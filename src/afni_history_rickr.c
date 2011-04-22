@@ -49,6 +49,13 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 22, APR, 2011, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
+   "if manual tlrc and -volreg_tlrc_adwarp, also transform extents mask",
+   "Noted by J Britton.\n"
+   "Also, if -regress_reml_exec, insert 3dClustSim table in stats_REML.\n"
+   "Noted by R Momenan."
+ } ,
+
  { 15, APR, 2011, RCR, "Dimon", MINOR, TYPE_ENHANCE,
    "added FROM_IMAGE as default Siemens slice pattern in to3d command",
    NULL
