@@ -64,10 +64,12 @@ static char * g_history[] =
     " 3.2  Apr 15, 2011 [rickr]\n"
     "      - added FROM_IMAGE as the default slice timing pattern for to3d\n"
     "        for the case of Siemens mosaic\n",
+    " 3.3  Apr 25, 2011 [rickr]\n"
+    "      - if Siemens timing: pass TPATTERN explicit to RT plugin\n"
     "----------------------------------------------------------------------\n"
 };
 
-#define DIMON_VERSION "version 3.2 (Apr 15, 2011)"
+#define DIMON_VERSION "version 3.3 (Apr 25, 2011)"
 
 /*----------------------------------------------------------------------
  * Dimon - monitor real-time aquisition of Dicom or I-files

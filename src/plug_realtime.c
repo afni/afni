@@ -162,6 +162,8 @@ typedef struct {
    int   zorder_lock ;            /* 22 Feb 1999: lock zorder value */
    int   tpattern ;               /* 2D slice timing     10 May 2005 [rickr] */
    int   nzseq , zseq[NZMAX] ;    /* slice input order */
+   int   nstimes ;                /* slice times, tpattern = ZORDER_EXP */
+   float stimes[NZMAX];
    int   datum ;                  /* a MRI_type code from mrilib.h */
    int   swap_on_read ;           /* flag: swap bytes?   26 Jun 2003 [rickr] */
 
@@ -1829,6 +1831,7 @@ RT_input * new_RT_input( IOCHAN *ioc_data )
    rtin->dtype  = DTYPE_2DZT ;
    rtin->datum  = MRI_short  ;
    rtin->nzseq  = 0 ;
+   rtin->nstimes= 0 ;                   /* 25 Apr 2011 [rickr] */
 
    rtin->zorder      = ZORDER_ALT ;
    rtin->zorder_lock = 0 ;              /* 22 Feb 1999 */
@@ -2109,6 +2112,7 @@ void RT_check_info( RT_input * rtin , int prt )
                    ( AFNI_GOOD_DTYPE(rtin->datum) )               &&
                    ( rtin->zorder > 0 )                           &&
                    ( rtin->tpattern > 0 )                         &&
+             ( rtin->nstimes == 0 || rtin->nstimes == rtin->nzz ) &&
                    ( rtin->orcxx >= 0 )                           &&
                    ( rtin->orcyy >= 0 )                           &&
                    ( rtin->orczz >= 0 )                           &&
@@ -2131,6 +2135,7 @@ void RT_check_info( RT_input * rtin , int prt )
    if( !(AFNI_GOOD_DTYPE(rtin->datum))               ) EPR("Bad datum") ;
    if( !(rtin->zorder > 0)                           ) EPR("Slice ordering illegal") ;
    if( !(rtin->tpattern > 0)                         ) EPR("Timing pattern illegal") ;
+   if( rtin->nstimes && rtin->nstimes != rtin->nzz   ) EPR("Num slice times != num slices") ;
    if( !(rtin->orcxx >= 0)                           ) EPR("x-orientation illegal") ;
    if( !(rtin->orcyy >= 0)                           ) EPR("y-orientation illegal") ;
    if( !(rtin->orczz >= 0)                           ) EPR("z-orientation illegal") ;
@@ -3151,10 +3156,23 @@ int RT_process_info( int ninfo , char * info , RT_input * rtin )
 
       } else if( STARTER("TPATTERN") ){               /* get timing pattern  */
          if( ! rtin->zorder_lock ){                   /* 10 May 2005 [rickr] */
+           int nord=0 , nb , nq ;
            char str[32] = "\0" ;
-           sscanf( buf , "TPATTERN %31s" , str ) ;
+           sscanf( buf , "TPATTERN %31s%n" , str, &nb ) ;
                 if( strcmp(str,"alt+z") == 0 ) rtin->tpattern = ZORDER_ALT ;
            else if( strcmp(str,"seq+z") == 0 ) rtin->tpattern = ZORDER_SEQ ;
+           else if( strcmp(str,"explicit") == 0 ) {
+              /* extract explicit slice timing           25 Apr 2011 [rickr] */
+              rtin->tpattern = ZORDER_EXP ;
+              do{                                  /* get all numbers */
+                 rtin->stimes[nord] = -1 ; nq = -1 ;
+                 sscanf(buf+nb , "%f%n" , &(rtin->stimes[nord]) , &nq) ;
+                 if( nq < 1 ) break ;              /* failed to get */
+                 nb += nq ; nord++ ;               /* otherwise, increment */
+              } while( nb < nbuf ) ;               /* until end of buffer */
+              rtin->nstimes = nord ;                 /* number found */
+              if( nord < 1 || nord > NZMAX ) BADNEWS ;
+           }
            else
                 BADNEWS ;
          }
@@ -3605,7 +3623,11 @@ void RT_start_dataset( RT_input * rtin )
          float   tsl ;
          int     ii ;
 
-         if( rtin->zorder == ZORDER_ALT || rtin->tpattern == ZORDER_ALT ){
+         /* check for explicit timing (e.g. Siemens)    25 apr 2011 [rickr] */
+         if( rtin->tpattern == ZORDER_EXP && rtin->nstimes == rtin->nzz ){
+            for( ii=0 ; ii < rtin->nzz ; ii++ )
+               tpattern[ii] = rtin->stimes[ii] ;
+         } else if( rtin->zorder==ZORDER_ALT || rtin->tpattern == ZORDER_ALT ){
             /* alternating +z direction */
             tsl = 0.0 ;
             for( ii=0 ; ii < rtin->nzz ; ii+=2 ){
@@ -3614,11 +3636,8 @@ void RT_start_dataset( RT_input * rtin )
             for( ii=1 ; ii < rtin->nzz ; ii+=2 ){
                tpattern[ii] = tsl ; tsl += tframe ;
             }
-         }
          /* make sequential a terminating case     10 May 2005 [rickr] */
-         /* else if( rtin->zorder == ZORDER_SEQ )                      */
-         /* ... more tpatterns may be added above here                 */
-         else {
+         } else {
             tsl = 0.0 ;
             for( ii=0 ; ii < rtin->nzz ; ii++ ){
                tpattern[ii] = tsl ; tsl += tframe ;
@@ -3830,8 +3849,8 @@ void RT_start_dataset( RT_input * rtin )
    /** dataset(s) now created and ready to boogie! **/
    /** popup a message to keep the user occupied.  **/
 
-   { char str[1024] ;
-     char acq[128] , *sli ;
+   { char str[1280] ;
+     char acq[128] , stiming[64]="" , *sli ;
 
      switch( rtin->dtype ){
        case DTYPE_2DZ:  strcpy(acq,"2D+z (1 volume, by slice")        ; break ;
@@ -3862,6 +3881,10 @@ void RT_start_dataset( RT_input * rtin )
        default:           sli = "\0"         ; break ;  /* say what? */
      }
 
+     if( rtin->tpattern == ZORDER_EXP && rtin->nstimes == rtin->nzz )
+        strcpy(stiming, "                   (explicit slice timing)\n");
+     else *stiming = '\0';
+
      sprintf(str," \n"
                  " ** Realtime Header Information **\n"
                  "\n"
@@ -3872,7 +3895,7 @@ void RT_start_dataset( RT_input * rtin )
                  " Grid Offset     : %.1f x %.1f x %.1f (mm)\n"
                  " Datum Type      : %s\n"
                  " Number Channels : %d\n"
-                 " Acquisition Type: %s\n" ,
+                 " Acquisition Type: %s\n%s" ,
              npr ,
              rtin->nxx , rtin->nyy , rtin->nzz ,
              fabs(rtin->dxx) , fabs(rtin->dyy) , fabs(rtin->dzz) ,
@@ -3881,7 +3904,7 @@ void RT_start_dataset( RT_input * rtin )
              rtin->xxorg , rtin->yyorg , rtin->zzorg ,
              MRI_TYPE_name[rtin->datum] ,
              rtin->num_chan ,
-             acq
+             acq , stiming
           ) ;
 
      PLUTO_popup_transient(plint,str);

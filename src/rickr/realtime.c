@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <math.h>
 
-#include "thd_iochan.h"
+#include "mrilib.h"     /* from thd_iochan.h    25 Apr 2011 */
 #include "Imon.h"
 #include "realtime.h"
 
@@ -407,9 +407,20 @@ int ART_send_control_info( ART_comm * ac, vol_t * v, int debug )
         strcpy( tbuf, "ZORDER seq" );   /* back to seq for now  [v3.3 rickr] */
     ART_ADD_TO_BUF( ac->buf, tbuf );
 
-    /* timing pattern, this may also come from image files - rcr */
-    if ( ac->param->opts.sp )
+    /* if mosaic with valid timing, apply it                     25 Apr 2011 */
+    /* -> set tpattern = explicit and pass times                             */
+    if ( v->minfo.is_mosaic &&
+         valid_g_siemens_times(v->minfo.nslices, v->geh.tr, 0) )
     {
+        int off, nchar, ind;
+        off = sprintf( tbuf, "TPATTERN explicit" );
+        for( ind = 0; ind < g_siemens_timing_nused; ind++ ) {
+            nchar = sprintf(tbuf+off, " %.3f", g_siemens_timing_times[ind]);
+            if( nchar < 0 ) break;
+            off += nchar;
+        }
+        ART_ADD_TO_BUF( ac->buf, tbuf );
+    } else if ( ac->param->opts.sp ) {
         sprintf( tbuf, "TPATTERN %s", ac->param->opts.sp );
         ART_ADD_TO_BUF( ac->buf, tbuf );
     }

@@ -49,8 +49,13 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 25, APR, 2011, RCR, "plug_realtime", MINOR, TYPE_ENHANCE,
+   "have Dimon send 'TPATTERN explicit' with slice timing to RT plugin",
+   NULL
+ } ,
+
  { 24, APR, 2011, RCR, "@Align_Centers", MINOR, TYPE_ENHANCE,
-   "allow -base dset to be PATH, AFNI_PLUGINPATH, etc.",
+   "allow -base dset to be in PATH, AFNI_PLUGINPATH, etc.",
    NULL
  } ,
 
