@@ -1,5 +1,6 @@
 #!/bin/tcsh -fe
 
+set retval = 0   # return a status (do we need to goto END?)
 
 PARSE:
    set Narg = $#
@@ -12,7 +13,7 @@ PARSE:
    set mode = 'grid'
    if ("$1" == '') goto HELP
    while ($cnt <= $Narg)
-      set donext = 1;
+      set donext = 1
 
       if ($donext && "$argv[$cnt]" == "-help" || "$argv[$cnt]" == "-h") then
          goto HELP
@@ -22,6 +23,7 @@ PARSE:
          set pLoc = $cnt      
          if ($pLoc == $Narg) then
             echo "Need string after -base"
+            set retval = 1
             goto END
          else
             @ cnt ++
@@ -52,6 +54,7 @@ PARSE:
          set pLoc = $cnt      
          if ($pLoc >= $Narg) then
             echo "Need dset after -dset"
+            set retval = 1
             goto END
          else
             @ cnt ++
@@ -63,6 +66,7 @@ PARSE:
          set pLoc = $cnt      
          if ($pLoc == $Narg) then
             echo "Need dsets after -child"
+            set retval = 1
             goto END
          else
             @ cnt ++
@@ -74,6 +78,7 @@ PARSE:
       endif
       if ($donext == 1) then
          echo "Error: Option or parameter '$argv[$cnt]' not understood"
+            set retval = 1
          goto END
       endif
       @ cnt ++
@@ -81,6 +86,7 @@ PARSE:
 
 if ("$v1i" == "" || "$v2i" == "") then
    echo "Error: Missing input"
+            set retval = 1
    goto END
 endif   
 
@@ -88,7 +94,17 @@ SET_PARAMS:
 set v2_vw = `@GetAfniView $v2i`
 set pth2 = $v2i:h
 if ("$pth2" == "$v2i") then 
+
    set pth2 = .
+
+   # allow for template datasets in path, etc.  24 Apr 2011 [rickr]
+   # We execute with -e, and @FADP may exit with 1 if the dataset is
+   # not found.  So to fail here instead, put it in the background.
+
+   set test_path = `@FindAfniDsetPath $v2i &`
+   if ( $#test_path == 1 && "$test_path" != "./" ) then
+      set pth2 = $test_path
+   endif
 endif
 
 set v2_pref = `@GetAfniPrefix $v2i`
@@ -98,6 +114,7 @@ CHECKS:
 #make sure input exists
 if ( `@CheckForAfniDset $v2` < 2) then
    echo "Error: base brick $v2 not found."
+   set retval = 1
    goto END
 endif
 
@@ -143,6 +160,7 @@ if ($mode == 'grid') then
          echo "Error `basename $0`"
          echo "Dset $v1_pth/${v1_pref}_shft$v1_vw found, cleanup first!"
          echo ""
+         set retval = 1
          goto END
       endif
 
@@ -161,6 +179,7 @@ else
          echo "Error `basename $0`"
          echo "Dset $v1_pth/${v1_pref}_shft$v1_vw found, cleanup first!"
          echo ""
+         set retval = 1
          goto END
       endif
 
@@ -227,6 +246,7 @@ foreach v1foli ( $v1_list )
             echo "Error `basename $0`"
             echo "Child Dset $v1fol_pth/${v1fol_pref}_shft$v1fol_vw found, cleanup first!"
             echo ""
+            set retval = 1
             goto END
          endif
          3dcopy $v1fol  $v1fol_pth/${v1fol_pref}_shft
@@ -311,3 +331,5 @@ goto END
 
  
 END:
+
+exit $retval

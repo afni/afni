@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 24, APR, 2011, RCR, "@Align_Centers", MINOR, TYPE_ENHANCE,
+   "allow -base dset to be PATH, AFNI_PLUGINPATH, etc.",
+   NULL
+ } ,
+
  { 22, APR, 2011, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
    "if manual tlrc and -volreg_tlrc_adwarp, also transform extents mask",
    "Noted by J Britton.\n"
