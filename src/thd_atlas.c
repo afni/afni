@@ -326,6 +326,7 @@ ATLAS_XFORM_LIST *report_xform_chain(char *src, char *dest, int report)
       desti = find_atlas_space_index(dest);
       if(desti<0 && wami_verb()){
          INFO_message("Could not find destination space %s in database", dest);
+         print_space_list(NULL);
       }
       /* check if we're going nowhere */
       if(srci==desti) {
@@ -355,85 +356,6 @@ void report_available_spaces(char *src)
    free_space_list(spl);    
 }
 
-/* read various NIML files for atlas information*/
-int init_global_atlas_from_niml_files()
-{
-   NI_stream space_niml;
-   int valid_space_niml;
-   char *ept = NULL;
-   char suppfilestr[261];
-   ATLAS_SPACE_LIST *asl=get_G_space_list();
-   ATLAS_XFORM_LIST *axl=get_G_xform_list();
-   ATLAS_LIST *al=get_G_atlas_list();
-   ATLAS_TEMPLATE_LIST *atl=get_G_templates_list();
-   
-   if(wami_verb() > 1) 
-      INFO_message("opening AFNI_atlas_spaces.niml");   
-
-   space_niml = NI_stream_open("file:AFNI_atlas_spaces.niml","r");
-
-   if(space_niml==NULL){
-      if (wami_verb()) 
-         WARNING_message("Could not open global AFNI_atlas_spaces.niml\n");
-      return(0);
-   }
-
-   if(wami_verb() > 1) 
-      INFO_message("\nInitializing structures\n"); 
-   if(!init_space_structs(&axl, &al,
-                          &asl, &atl)) {
-      ERROR_message("Could not initialize structures for template spaces");
-      return(0);
-   }
-   
-   /* read atlas info from global atlas file */
-   valid_space_niml = read_space_niml(space_niml, axl,
-          al, asl, atl);
-   ept = my_getenv("AFNI_SUPP_ATLAS");
-   if( ept ) {
-      sprintf(suppfilestr, "file:%s", ept);
-      if(wami_verb() > 1) 
-         INFO_message("opening AFNI_supp_atlas_space.niml");   
-      space_niml = NI_stream_open(suppfilestr,"r");
-      if(space_niml==NULL){
-            fprintf(stderr, "\nCould not open supplemental atlas niml file\n");
-            return(0);
-      }
-      /* read atlas info from supplemental atlas file */
-      /*  adding to existing structures */
-      valid_space_niml = read_space_niml(space_niml, axl,
-             al, asl, atl);
-
-   }
-
-
-   /* read atlas info from local atlas file */
-   ept = my_getenv("AFNI_LOCAL_ATLAS");
-   if( ept ) {
-      sprintf(suppfilestr, "file:%s", ept);
-      if(wami_verb() > 1) 
-         INFO_message("opening AFNI_local_atlas_space.niml");   
-      space_niml = NI_stream_open(suppfilestr,"r");
-      if(space_niml==NULL){
-            fprintf(stderr, "\nCould not open supplemental atlas niml file\n");
-            return(0);
-      }
-      /* read atlas info from local atlas file */
-      /*  adding to existing structures */
-      valid_space_niml = read_space_niml(space_niml, axl,
-             al, asl, atl);
-   }
-
-  
-   /* set up the neighborhood for spaces */
-   /*  how are the spaces related to each other */ 
-   if(make_space_neighborhood(asl, axl)!=0) {
-     return(0);
-   }
-   
-   /* all ok */
-   return(1);
-}
 
 /* initialize space structures for dealing with templates and atlases */
 int   init_space_structs(ATLAS_XFORM_LIST **atlas_xfl,
@@ -1153,8 +1075,8 @@ void print_space_list(ATLAS_SPACE_LIST *xsl)
    
    if(xsl==NULL) {
       if(wami_verb() > 1)
-         INFO_message("NULL Space list pointer\n");
-      return;
+         INFO_message("NULL Space list pointer, showing global list\n");
+      xsl = get_G_space_list();
    }
    INFO_message("Space list pointer %p\n", xsl);
    if(wami_verb() > 1)
