@@ -1821,7 +1821,7 @@ static int whereami_version = 1;    /* 1 --> Uses mid vintage whereami_9yards
                                     */
 
 char *find_atlas_niml_file() {
-   
+   return(NULL);
 }
 
 void set_TT_whereami_version(int atlas_version, int wami_version) {
@@ -1856,6 +1856,7 @@ int init_global_atlas_list () {
       if (wami_verb()) INFO_message("global_atlas_list initialized already");
       RETURN(1);
    }
+
    if (atlas_list_version > 1) {
       if (wami_verb()) INFO_message("Forming list from niml files");
       if (!init_global_atlas_from_niml_files()) {
