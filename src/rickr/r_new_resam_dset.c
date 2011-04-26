@@ -52,6 +52,26 @@ static int valid_resam_inputs( THD_3dim_dataset * , THD_3dim_dataset *,
 static char * this_file = "r_new_resam_dset.c";
 
 /*----------------------------------------------------------------------
+ * moved here from 3dresample.c by ZSS 
+ *----------------------------------------------------------------------
+*/
+int resam_str2mode ( char * modestr )
+{
+    int mode;
+
+    for (mode = FIRST_RESAM_TYPE; mode <= LAST_RESAM_TYPE; mode++ )
+    {
+        if ( ! strncmp( modestr, RESAM_typestr[mode], 2 ) )
+            return mode;
+        else if ( ! strncmp( modestr, RESAM_shortstr[mode], 2 ) )
+            return mode;
+    }
+
+    return FAIL;
+}
+
+
+/*----------------------------------------------------------------------
  * r_new_resam_dset - create a new dataset by resampling an existing one
  *
  * inputs:
@@ -83,7 +103,8 @@ THD_3dim_dataset * r_new_resam_dset
         char               orient [],   /* new orientation code         */
         int                resam,       /* mode to resample with        */
         int              * sublist,     /* list of sub-bricks to resam  */
-        int                get_data     /* do we include data with dset */
+        int                get_data,    /* do we include data with dset */
+        int                killwarpinfo   /* kill default warp field values */
     )
 {
     THD_3dim_dataset * dout;
@@ -193,6 +214,7 @@ THD_3dim_dataset * r_new_resam_dset
     *dout->warp = IDENTITY_WARP;
     ADDTO_KILL( dout->kl, dout->warp );
 
+
     dout->dblk->diskptr->byte_order   = mri_short_order();
     dout->dblk->diskptr->storage_mode = STORAGE_BY_BRICK;
     /* end move */
@@ -205,6 +227,11 @@ THD_3dim_dataset * r_new_resam_dset
 
     if ( sublist ) DSET_delete(dtmp);
 
+    if (killwarpinfo) { /* you want to do this if you'll be writing to disk */
+      ZERO_IDCODE( dout->warp_parent_idcode );
+      dout->warp_parent_name[0] = '\0';
+      dout->warp = NULL;
+    }
     return dout;
 }
 

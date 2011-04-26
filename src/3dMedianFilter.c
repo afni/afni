@@ -9,7 +9,7 @@ int main( int argc , char * argv[] )
    char *prefix = "MedianFilter" ;
    int iarg , verb=0 , do_mask=0 , niter=1,pit ;
    THD_3dim_dataset *inset , *outset ;
-   MRI_IMAGE *imout , *imin ;
+   MRI_IMAGE *imout=NULL, *imin=NULL;
    byte *mask=NULL ;
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){

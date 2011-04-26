@@ -106,7 +106,7 @@ ENTRY("THD_write_nifti") ;
 nifti_image * populate_nifti_image(THD_3dim_dataset *dset, niftiwr_opts_t options)
 {
   int nparam, type0 , ii , jj, val;
-  int nif_x_axnum, nif_y_axnum, nif_z_axnum ;
+  int nif_x_axnum=0, nif_y_axnum=0, nif_z_axnum=0;
   int slast, sfirst ;
   int pattern, tlen ;
   nifti_image *nim ;
@@ -737,17 +737,16 @@ ENTRY("get_slice_timing_pattern");
 /* set NIFTI sform code  based on atlas space */
 static int space_to_NIFTI_code(THD_3dim_dataset *dset)
 {
-    switch(THD_space_code(dset->atlas_space)) {
-        case AFNI_TLRC_SPC:
-            return(NIFTI_XFORM_TALAIRACH);
-        case MNI_SPC:
-            return(NIFTI_XFORM_MNI_152);
-        /* note at present (7/2010) 
-           there is no MNI_ANAT space defined in NIFTI */
-        case MNI_ANAT_SPC:
-            return(NIFTI_XFORM_ALIGNED_ANAT);
-        default:
-            return(NIFTI_XFORM_SCANNER_ANAT);
+    int i;
+    
+    if ((i=is_Dset_Space_Named(dset,"TLRC"))!=0) {
+      if (i<0) return(NIFTI_XFORM_SCANNER_ANAT);
+      else return(NIFTI_XFORM_TALAIRACH);
+    } else if (is_Dset_Space_Named(dset,"MNI") > 0) {
+      return(NIFTI_XFORM_MNI_152);
+    } else if (is_Dset_Space_Named(dset,"MNI_ANAT") > 0) {
+      return(NIFTI_XFORM_ALIGNED_ANAT);
+    } else {  
+      return(NIFTI_XFORM_SCANNER_ANAT);
     }
-
 }

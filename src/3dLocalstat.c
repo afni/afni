@@ -58,16 +58,16 @@ int main( int argc , char *argv[] )
 {
    THD_3dim_dataset *inset=NULL , *outset ;
    int ncode=0 , code[MAX_NCODE] , iarg=1 , ii ;
-   float codeparams[MAX_NCODE][MAX_CODE_PARAMS+1];
+   float codeparams[MAX_NCODE][MAX_CODE_PARAMS+1], redx[3]={0.0, 0.0, 0.0};
    MCW_cluster *nbhd=NULL ;
    byte *mask=NULL ; int mask_nx=0,mask_ny=0,mask_nz=0 , automask=0 ;
    char *prefix="./localstat" ;
    int ntype=0 ; float na=0.0f,nb=0.0f,nc=0.0f ;
    int do_fwhm=0 , verb=1 ;
    int npv = -1;
-   int ipv;
+   int ipv, restore_grid=0, resam_mode=resam_str2mode("Linear");
    int datum = MRI_float;
-
+   
    /*---- for the clueless who wish to become clued-in ----*/
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
@@ -181,6 +181,28 @@ int main( int argc , char *argv[] )
       "               which may be byte, short, or float.\n"
       "               Default is float\n"
       "\n"
+      " -reduce_grid Rx [Ry Rz] = Compute output on a grid that is \n"
+      "                           reduced by a factor of Rx Ry Rz in\n"
+      "                           the X, Y, and Z directions of the \n"
+      "                           input dset. This option speeds up \n"
+      "                           computations at the expense of \n"
+      "                           resolution. You should only use it\n"
+      "                           when the nbhd is quite large with \n"
+      "                           respect to the input's resolution,\n"
+      "                           and the resultant stats are expected\n"
+      "                           to be smooth. \n"
+      "                           You can either set Rx, or Rx Ry and Rz.\n"
+      "                           If you only specify Rx the same value\n"
+      "                           is applied to Ry and Rz.\n"
+      "\n"
+      " -reduce_restore_grid Rx [Ry Rz] = Like reduce_grid, but also resample\n"
+      "                                   output back to input grid.\n"
+      " -grid_rmode RESAM = Interpolant to use when resampling the output with\n"
+      "                     reduce_restore_grid option. The resampling method\n"        "                     string RESAM should come from the set \n"
+      "                     {'NN', 'Li', 'Cu', 'Bk'}.  These stand for\n"
+      "                     'Nearest Neighbor', 'Linear', 'Cubic'\n"
+      "                     and 'Blocky' interpolation, respectively.\n"
+      "                     Default is Linear\n"
       " -quiet      = Stop the highly informative progress reports.\n"
       "\n"
       "Author: RWCox - August 2005.  Instigator: ZSSaad.\n"
@@ -377,6 +399,36 @@ int main( int argc , char *argv[] )
        }
        iarg++ ; continue ;
      }
+     
+     if( strcmp(argv[iarg],"-reduce_grid") == 0 || 
+         strcmp(argv[iarg],"-reduce_restore_grid") == 0 ){
+       if (strcmp(argv[iarg],"-reduce_restore_grid") == 0) restore_grid = 1;
+       
+       if( ++iarg >= argc ) 
+         ERROR_exit( "Need 1 or 3 arguments after '-reduce_grid' "
+                     "or '-reduce_restore_grid'") ;
+
+       redx[0] = (float)strtod(argv[iarg],NULL); redx[2] = redx[1] = redx[0]; 
+       if( iarg+2 < argc && *(argv[iarg+1]) != '-' && *(argv[iarg+2]) != '-') { 
+         redx[1] = (float)strtod(argv[++iarg],NULL);
+         redx[2] = (float)strtod(argv[++iarg],NULL); 
+       }
+       if (redx[0] < 1.0 || redx[1] < 1.0 || redx[2] < 1.0) {
+         ERROR_exit("Bad values for -reduce_grid %f %f %f \n"
+                    "All values must be >= 1.0\n",
+                     redx[0], redx[1], redx[2]);
+       }
+       iarg++ ; continue ;
+     }     
+     
+     if( strcmp(argv[iarg],"-grid_rmode") == 0) {
+        if( ++iarg >= argc ) ERROR_exit("Need argument after '-grid_rmode'") ;
+        if ( ( (resam_mode = resam_str2mode(argv[iarg]) ) < 0 ) ||
+             (  resam_mode > LAST_RESAM_TYPE ) )
+             ERROR_exit("invalid resample mode <%s>\n", argv[iarg] );
+        iarg++ ; continue ;
+     }
+     
 
      ERROR_exit("Unknown option '%s'",argv[iarg]) ;
 
@@ -472,12 +524,21 @@ int main( int argc , char *argv[] )
 
    THD_localstat_verb(verb) ;
    THD_localstat_datum(datum);
-   outset = THD_localstat( inset , mask , nbhd , ncode , code, codeparams ) ;
-
-   DSET_unload(inset) ;
-
+   outset = THD_localstat(inset , mask , nbhd , ncode , code, codeparams, redx);
    if( outset == NULL ) ERROR_exit("Function THD_localstat() fails?!") ;
 
+   if ( restore_grid == 1) {
+      THD_3dim_dataset *tout=NULL;
+      INFO_message("Restoring grid with %d resampling mode", resam_mode);
+      /* resample back to original grid */
+      if (!(tout = r_new_resam_dset( outset, inset, 0.0, 0.0, 0.0,
+                               NULL, resam_mode, NULL, 1, 1))) {
+         ERROR_exit("Failed to reduce output grid");
+      }
+      DSET_delete(outset) ; outset = tout; tout = NULL;  
+   }
+   
+   DSET_unload(inset) ;
    /*---- save resulting dataset ----*/
 
    EDIT_dset_items( outset , ADN_prefix,prefix , ADN_none ) ;

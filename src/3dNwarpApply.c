@@ -367,7 +367,7 @@ int main( int argc , char *argv[] )
      THD_3dim_dataset *qset ;
      qset = r_new_resam_dset( dset_mast , NULL ,
                               dxyz_mast,dxyz_mast,dxyz_mast ,
-                              NULL , RESAM_NN_TYPE , NULL , 0 ) ;
+                              NULL , RESAM_NN_TYPE , NULL , 0 , 0) ;
      if( qset != NULL ){
        dset_mast = qset ;
        THD_daxes_to_mat44(dset_mast->daxes) ;

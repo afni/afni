@@ -217,7 +217,10 @@ set_nspaces(int n)
 void
 set_atlas_nspaces()
 {
-   nspaces = global_atlas_spaces->nspaces;
+   ATLAS_SPACE_LIST *asl=get_G_space_list();
+   
+   if (asl) nspaces = asl->nspaces;
+   else nspaces = 0;
 }
 
 /* accessor function to say how many spaces we are currently dealing with */

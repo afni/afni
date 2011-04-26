@@ -1365,7 +1365,7 @@ int main (int argc,char *argv[])
          EDIT_substitute_brick( Opt->OrigSpatNormedSet , 0 , imout_orig->kind , 
                                  mri_data_pointer(imout_orig) ) ;      
          oset = r_new_resam_dset ( Opt->OrigSpatNormedSet, Opt->iset,	0,	0,	0,	
-                                    NULL, MRI_LINEAR, NULL, 1);
+                                    NULL, MRI_LINEAR, NULL, 1, 1);
          if (!oset) {
             fprintf(stderr,"**ERROR: Failed to reslice!?\n"); exit(1);
          }
@@ -1557,10 +1557,14 @@ int main (int argc,char *argv[])
                code[0] = NSTAT_MEAN; 
                ncode = 1;
                nbhd = MCW_rectmask ( 1.0f, 1.0f, 1.0f , 1.0f, 1.0f, 1.0f  ) ;
-               fatoutset = THD_localstat( outset , NULL , nbhd , 1 , code, NULL ) ;
-               Opt->fatemask = (float *) SUMA_malloc( sizeof(float)*DSET_NVOX(fatoutset));
+               fatoutset = THD_localstat( outset , NULL , nbhd , 1 , code, 
+                                          NULL, NULL) ;
+               Opt->fatemask = 
+                  (float *) SUMA_malloc( sizeof(float)*DSET_NVOX(fatoutset));
                if (!Opt->fatemask) {
-                  fprintf(SUMA_STDERR,"Error %s:\n Failed to allocate for fat edge mask\n", FuncName);
+                  fprintf(SUMA_STDERR,
+                     "Error %s:\n Failed to allocate for fat edge mask\n", 
+                     FuncName);
                   exit(1);
                }
                EDIT_coerce_scale_type( 
@@ -1570,7 +1574,8 @@ int main (int argc,char *argv[])
                      DSET_ARRAY(fatoutset, 0) ,   /* input  */
                      MRI_float               , Opt->fatemask  ) ;/* output */
 
-               if (DSET_NVOX(fatoutset) != DSET_NVOX(outset) || DSET_NVOX(fatoutset) != DSET_NVOX(Opt->in_vol)) {
+               if (DSET_NVOX(fatoutset) != DSET_NVOX(outset) || 
+                   DSET_NVOX(fatoutset) != DSET_NVOX(Opt->in_vol)) {
                   SUMA_S_Err("Bad news in tennis shoes!");
                   exit(1);
                }

@@ -65,6 +65,23 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 25, APR , 2011 , ZSS , "afni-general" , MAJOR , TYPE_MODIFY,
+   "Major reorganization of 'whereami' functionality.",
+   "The code changes affect anything related to atlas datasets and whereami\n"
+   "functionality. The changes were made take advantage of Daniel Glen's new\n"
+   "API to handle atlas, space, and template definitions.\n"
+   "There is now very little reliance on hard coded atlas information in the\n"
+   "source code. Whatever is left is needed to ensure backward compatibility.\n"
+  } ,
+
+ { 8, APR , 2011 , ZSS , "3dLocalstat" , MINOR , TYPE_NEW_OPT,
+   "Added options -reduce* to compute results on reduced grid",
+   "This would help in speeding up the computing of stats over large regions\n"
+   "without paying too high a premium on processor time. \n"
+   "Changes were made in 3dLocalstat.c and mri_nstats.c. \n"
+   "Micro modification in r_new_resam.c's r_new_resam_dset."
+  } ,
+
  { 29, MAR , 2011 , ZSS , "suma" , MINOR , TYPE_BUG_FIX,
    "Fixed bug in default view of flat surfaces.",
    "The problem manifested itself when large rotations were present\n"

@@ -4940,6 +4940,8 @@ extern char * UNIQ_idcode(void) ;            /* 27 Sep 2001 */
 extern void   UNIQ_idcode_fill(char *) ;
 
 /*------------------------------------------------------------------------*/
+#define ATLAS_CMAX    64   /* If you change this parameter,edit constant in 
+                              CA_EZ_Prep.m (MaxLbl* checks) */
 
 typedef enum { UNKNOWN_SPC=0, /*!< Dunno */
                AFNI_TLRC_SPC, /*!< The Classic */
@@ -4950,26 +4952,53 @@ typedef enum { UNKNOWN_SPC=0, /*!< Dunno */
                                     leave for last */
                } AFNI_STD_SPACES;
 
-extern char * TT_whereami( float , float , float, AFNI_STD_SPACES ) ;
-extern char * TT_whereami_old( float , float , float ) ;
-extern int  TT_load_atlas (void);
-extern void TT_purge_atlas(void);
-extern THD_3dim_dataset * TT_retrieve_atlas(void) ;
+typedef struct {
+   /* tdval and tdlev stand for "Talairach Daemon" value and level */
+   /* these are kept for historical purposes  */
+   /* perhaps one day making an unusally boring PBS special */
+   short tdval;         /* Leave this one to be the very first element */
+   char name[ATLAS_CMAX] ;  /* Leave this one to be the second element */  
+   float xx,yy,zz;     /* xx,yy,zz - RAI position of region  - now in float */
+   short tdlev,okey ;          /* tdlev = unknown, gyrus or area code */
+                               /* okey = original value in atlas */
+                               /*  this value was converted for TT daemon */
+                               /*  atlas values because left and right */
+                               /*  ROIs shared the same value */                               
+   char dsetpref[ATLAS_CMAX];  /* This is the  prefix (or the sub-brick 
+                                  label) of a dataset related to this point.
+                                  The only time this is used is for 
+                                  linking an atlas point to the probability
+                                  map volume. */
+} ATLAS_POINT ;
 
+
+extern int atlas_n_points(char *atname);
+extern ATLAS_POINT *atlas_points(char *atname);
+extern char **atlas_reference_string_list(char *atname, int *N_refs);
+extern char *atlas_version_string(char *atname);
+
+extern char * TT_whereami( float , float , float, 
+                           char *, void *) ;
+extern char * TT_whereami_old( float , float , float ) ;
+extern int  TT_load_atlas_old (void);
+extern void TT_purge_atlas(void);
+extern THD_3dim_dataset * TT_retrieve_atlas_old(void) ;
+extern THD_3dim_dataset * TT_retrieve_atlas_dset(char *aname, int szflag);
 extern void TT_setup_popup_func( void (*pf)(char *) ) ; /* 26 May 2006 */
 
-extern THD_3dim_dataset * TT_retrieve_atlas_big(void) ; /* 01 Aug 2001 */
+extern THD_3dim_dataset * TT_retrieve_atlas_big_old(void) ; /* 01 Aug 2001 */
 extern void TT_purge_atlas_big(void);
 
-extern THD_3dim_dataset * TT_retrieve_atlas_either(void); /* 22 Aug 2001 */
+extern THD_3dim_dataset * TT_retrieve_atlas_either_old(void); /* 22 Aug 2001 */
+extern char **atlas_chooser_formatted_labels(char *atname);
 
 #define TT_ATLAS_NZ_SMALL 141 /* 01 Aug 2001 */
 #define TT_ATLAS_NZ_BIG   151
 
-#define TT_retrieve_atlas_nz(nz)                                \
+#define TT_retrieve_atlas_dset_nz(nz)                                \
  ( ((nz)==TT_ATLAS_NZ_SMALL)                                    \
-    ? TT_retrieve_atlas()                                       \
-    : ((nz)==TT_ATLAS_NZ_BIG) ? TT_retrieve_atlas_big() : NULL )
+    ? TT_retrieve_atlas_dset("TT_Daemon",-1)                          \
+    : ((nz)==TT_ATLAS_NZ_BIG) ? TT_retrieve_atlas_dset("TT_Daemon",1) : NULL )
 
 /*------------------------------------------------------------------------*/
 

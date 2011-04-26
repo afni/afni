@@ -448,7 +448,8 @@ typedef enum {  SWP_DONT_CARE,
                 SWP_STEP_DOWN_RIGHT,
                 SWP_TOP_LEFT,
                 SWP_POINTER, /*!< Position centered to the pointer */
-                SWP_POINTER_OFF
+                SWP_POINTER_OFF,
+                SWP_POINTER_LEFT_BOTTOM
              } SUMA_WINDOW_POSITION; /*!< Types of relative window positions */
 
 typedef enum {    SAR_Undefined,

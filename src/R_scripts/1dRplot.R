@@ -353,6 +353,11 @@ read.1dRplot.opts.batch <- function (args=NULL, verb = 0) {
    "             You need to specify -prefix or -save\n",
    "             along with this option to set the prefix."
                      ) ),
+      
+      '-save.size' = apl(n = 2, d = c(2000,2000),  h = paste(
+   "-save.size width height: Save figure size in pixels\n",
+   "                   Default is 2000 2000\n"
+                     ) ),
                      
       '-prefix' = apl(n = 1, d = NA,  h = paste(
    "-prefix PREFIX: Output prefix. See also -save. \n"
@@ -401,12 +406,18 @@ read.1dRplot.opts.batch <- function (args=NULL, verb = 0) {
 
       '-leg.line.type' = apl(n = c(1,Inf), d = NULL, h = paste(
    "-leg.line.type : Line type to use for items in legend.\n",
-   "             Default is taken from column line types.\n"
+   "             Default is taken from column line types.\n",
+   "             If you want no line, set -leg.line.type = 0\n"
                      ) ),
 
       '-leg.line.color' = apl(n = c(1,Inf), d = NULL, h = paste(
    "-leg.line.color : Color to use for items in legend.\n",
    "             Default is taken from column line color.\n"
+                     ) ),
+
+      '-leg.plot.char' = apl(n = c(1,Inf), d = NULL, h = paste(
+   "-leg.plot.char : plot characters to use for items in legend.\n",
+   "             Default is taken from column plot character (-col.plot.char).\n"
                      ) ),
 
       '-leg.position' = apl(n = c(1,Inf), d = NULL, h = paste(
@@ -557,6 +568,7 @@ read.1dRplot.opts.batch <- function (args=NULL, verb = 0) {
              prefix = lop$prefix  <- ops[[i]],
              save = {lop$prefix <- ops[[i]]; lop$nodisp=TRUE;} ,
              save.Rdat = {lop$save.Rdat=TRUE;} ,
+             save.size = lop$save.size <- ops[[i]],
              nozeros = lop$col.nozeros <- TRUE,
              col.nozeros = lop$col.nozeros <- TRUE,
              zeros = lop$col.nozeros <- FALSE,
@@ -590,6 +602,7 @@ read.1dRplot.opts.batch <- function (args=NULL, verb = 0) {
              leg.names = lop$leg.names <- ops[[i]],
              leg.line.type = lop$leg.line.type <- ops[[i]],
              leg.line.color = lop$leg.line.color <- ops[[i]],
+             leg.plot.char = lop$leg.plot.char <- ops[[i]],
              leg.position = lop$leg.position <- ops[[i]],
              leg.fontsize = lop$leg.fontsize <- ops[[i]],
              leg.ncol = lop$leg.ncol <- ops[[i]],
@@ -664,6 +677,8 @@ process.1dRplot.opts <- function (lop, verb = 0) {
             ttl.main = lop$ttl.main, 
             prefix = lop$prefix,
             save.Rdat = lop$save.Rdat, 
+            img.width = lop$save.size[1],
+            img.height = lop$save.size[2],
             nodisp = lop$nodisp,
             oneplot = lop$oneplot,
             col.mean.line = lop$col.mean.line,
@@ -683,6 +698,7 @@ process.1dRplot.opts <- function (lop, verb = 0) {
             leg.names = lop$leg.names,
             leg.line.type = lop$leg.line.type,
             leg.line.color = lop$leg.line.color,
+            leg.plot.char = lop$leg.plot.char,
             leg.position = lop$leg.position,
             leg.fontsize = lop$leg.fontsize,
             leg.ncol = lop$leg.ncol,

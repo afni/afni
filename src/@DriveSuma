@@ -25,7 +25,7 @@ cd $outdir
          -e 'suma -niml' &
         
         set l = `prompt_user -pause \
-'The script will pop up messages informing of the upcoming DriveSuma commands.\n\
+"The script will pop up messages informing of the upcoming DriveSuma commands.\n\
 Those commands will be echoed in the shell from which this script was run.\n\
 After reading and acknowledging the notice for the upcomming command, take\n\
 a look at the shell to get a better understanding of DriveSuma's syntax.\n\
@@ -34,7 +34,7 @@ Note that SUMA will be alive and well during this exercise, \n\
 you can interact with it at any point during this demo.\n\n\
 DriveSuma commands are executed after you acknowledge the info messages.\n\n\
 The next DriveSuma command will load a new surface and label it ICO. \n\n\
-Now that you have read all this, make sure suma is up, then press OK.'`  
+Now that you have read all this, make sure suma is up, then press OK."`  
         if ( $l == '0') goto STEND
         
         DriveSuma -echo_edu   \
