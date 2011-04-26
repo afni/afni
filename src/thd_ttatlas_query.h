@@ -321,6 +321,7 @@ ATLAS_SPACE_LIST *get_G_space_list(void);
 ATLAS_XFORM_LIST *get_G_xform_list(void);
 ATLAS_LIST* get_G_atlas_list(void);
 ATLAS_TEMPLATE_LIST *get_G_templates_list(void);
+char *find_atlas_niml_file();
                  
 /* Transforms for going from one space to another */
 #if 0
