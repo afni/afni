@@ -10922,6 +10922,28 @@ void SUMA_PositionWindowRelative (  Widget New, Widget Ref,
             NewY = root_y - (int)NewH + Dx;
          }
          break;
+         case SWP_POINTER_LEFT_BOTTOM:
+         {
+            Window root, child, wind;
+            int root_x, root_y, win_x, win_y;
+            unsigned int keys_buttons;
+            SUMA_LH("Pointer Query 2");
+            if (!XtIsRealized(New)) {
+               SUMA_LH("Need new wind");
+               if (!XtIsRealized(SUMAg_SVv[0].X->GLXAREA)) {
+                  SUMA_SL_Err("Nothing to work with here!");
+                  SUMA_RETURNe;
+               }
+               wind = XtWindow(SUMAg_SVv[0].X->GLXAREA);
+            } else {
+               wind = XtWindow(New);
+            }
+            XQueryPointer( XtDisplay(New), wind, &root, &child, 
+                           &root_x, &root_y, &win_x, &win_y, &keys_buttons);
+            NewX = root_x - (int)Dx*2;
+            NewY = root_y - (int)NewH + Dx;
+         }
+         break;
             
       default:
          fprintf (SUMA_STDERR, "Error %s: Option not known.\n", FuncName);

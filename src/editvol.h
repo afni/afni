@@ -694,7 +694,9 @@ extern int mri_load_nbhd_indices ( MRI_IMAGE *inim , byte *mask ,
                           int *nind);
 extern MRI_IMAGE * mri_localstat( MRI_IMAGE *, byte *, MCW_cluster *, int ) ;
 extern THD_3dim_dataset * THD_localstat( THD_3dim_dataset *, byte *,
-                                         MCW_cluster *, int, int *, float p[][MAX_CODE_PARAMS+1]) ;
+                                         MCW_cluster *, int, int *, 
+                                         float p[][MAX_CODE_PARAMS+1],
+                                         float *reduce_grid) ;
 extern void THD_localstat_verb(int) ;
 
 extern MRI_IMAGE * mri_localbistat( MRI_IMAGE *, MRI_IMAGE *,

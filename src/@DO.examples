@@ -147,8 +147,13 @@ NIDO:
 #Displayable objects (DO) action
 set spath = `which suma`
 set spath = $spath:h
-cp $spath/demo.fixed.niml.do ./fixed.niml.do
-cp $spath/demo.mobile.niml.do ./mobile.niml.do
+if ( -f $spath/demo.fixed.niml.do) then
+   cp $spath/demo.fixed.niml.do ./fixed.niml.do
+   cp $spath/demo.mobile.niml.do ./mobile.niml.do
+else if ( -f $spath/../demo.fixed.niml.do) then
+   cp $spath/../demo.fixed.niml.do ./fixed.niml.do
+   cp $spath/../demo.mobile.niml.do ./mobile.niml.do
+endif
 if ( ! -f fixed.niml.do || ! -f mobile.niml.do ) then
    echo "could not find demo .do files."
    goto END

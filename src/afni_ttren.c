@@ -9,12 +9,12 @@
 
 typedef struct {
    int  reg_num , av_invert ;
-   MCW_arrowval *reg_av[TTO_COUNT] ;  /* colormenus */
-   char  *reg_label[TTO_COUNT] ;      /* labels for menus */
-   short  reg_tto[TTO_COUNT]   ;      /* index into afni.h TTO_list */
-   short  reg_ttbrik[TTO_COUNT] ;     /* which sub-brick in TTatlas+tlrc */
-   short  reg_ttval[TTO_COUNT]  ;     /* what value in TTatlas+tlrc */
-   short  reg_ttovc[TTO_COUNT]  ;     /* saved value of colormenu */
+   MCW_arrowval **reg_av ;  /* colormenus */
+   char  **reg_label ;      /* labels for menus */
+   short  *reg_tto   ;      /* index into afni.h TTO_list */
+   short  *reg_ttbrik ;     /* which sub-brick in TTatlas+tlrc */
+   short  *reg_ttval  ;     /* what value in TTatlas+tlrc */
+   short  *reg_ttovc  ;     /* saved value of colormenu */
 
    Widget shell , scrollw , workwin ;
    MCW_arrowval *meth_av , *hemi_av ;
@@ -149,6 +149,26 @@ static char helpstring[] =
 ;
 
 /*----------------------------------------------------------------------------*/
+TTRR_controls * New_TTRR_controls(char *atname) 
+{
+   TTRR_controls * ttlc = NULL;
+   int i = 0, tto_count = 0;
+   
+   if (!atname) return(ttlc);
+   if ((tto_count = atlas_n_points(atname)) <= 0) return(ttlc);
+   
+   ttlc = myXtNew(TTRR_controls) ;
+   memset(ttlc, 0, sizeof(TTRR_controls));
+   
+   ttlc->reg_av = (MCW_arrowval **)calloc(tto_count,sizeof(MCW_arrowval *));
+   ttlc->reg_label = (char **)calloc(tto_count,sizeof(char *));
+   ttlc->reg_tto = (short *)calloc(tto_count,sizeof(short));
+   ttlc->reg_ttbrik = (short *)calloc(tto_count,sizeof(short));
+   ttlc->reg_ttval = (short *)calloc(tto_count,sizeof(short));
+   ttlc->reg_ttovc = (short *)calloc(tto_count,sizeof(short));
+   
+   return(ttlc);
+}
 
 static void TTRR_setup_widgets( MCW_DC * dc )
 {
@@ -156,7 +176,8 @@ static void TTRR_setup_widgets( MCW_DC * dc )
    char lbuf[256] , *ept ;
    Widget toprc , bar=NULL , actar , frame , separator , label ;
    int ww,hh,bww , ii ;
-
+   ATLAS_POINT *tto_list=NULL;
+   
 ENTRY("TTRR_setup_widgets") ;
 
    /**** sanity checks ****/
@@ -165,9 +186,14 @@ ENTRY("TTRR_setup_widgets") ;
 
    SHOW_AFNI_PAUSE ;
 
+   if (!(tto_list = atlas_points("TT_Daemon"))) {
+      ERROR_message("No atlas points!");
+      EXRETURN ;
+   }
+   
    /**** create output structure ****/
 
-   ttc = myXtNew(TTRR_controls) ; /* will live forever */
+   ttc = New_TTRR_controls("TT_Daemon"); /* will live forever */
 
    ttc->dc = dc ;
 
@@ -348,23 +374,23 @@ ENTRY("TTRR_setup_widgets") ;
            NULL ) ;
 
    /** compute information about regions **/
-
+   
    ttc->reg_num = 0 ;
-   for( ii=0 ; ii < TTO_COUNT ; ii++ ){
+   for( ii=0 ; ii < atlas_n_points("TT_Daemon") ; ii++ ){
 
-      if( strncmp(TTO_list[ii].name,"Left  ",6) != 0 ) continue ; /* skip */
-      if( TTO_list[ii].tdval == 0 )                    continue ; /* skip */
+      if( strncmp(tto_list[ii].name,"Left  ",6) != 0 ) continue ; /* skip */
+      if( tto_list[ii].tdval == 0 )                    continue ; /* skip */
 
-           if( TTO_list[ii].tdlev == 2 ) strcpy(lbuf,"[G] ") ;
-      else if( TTO_list[ii].tdlev == 4 ) strcpy(lbuf,"[A] ") ;
+           if( tto_list[ii].tdlev == 2 ) strcpy(lbuf,"[G] ") ;
+      else if( tto_list[ii].tdlev == 4 ) strcpy(lbuf,"[A] ") ;
       else                               continue ;               /* skip */
 
-      strcat(lbuf,TTO_list[ii].name+6) ;
+      strcat(lbuf,tto_list[ii].name+6) ;
 
       ttc->reg_label [ttc->reg_num] = strdup(lbuf) ;
       ttc->reg_tto   [ttc->reg_num] = ii ;
-      ttc->reg_ttbrik[ttc->reg_num] = (TTO_list[ii].tdlev==2) ? 0 : 1 ;
-      ttc->reg_ttval [ttc->reg_num] = TTO_list[ii].tdval ;
+      ttc->reg_ttbrik[ttc->reg_num] = (tto_list[ii].tdlev==2) ? 0 : 1 ;
+      ttc->reg_ttval [ttc->reg_num] = tto_list[ii].tdval ;
       ttc->reg_ttovc [ttc->reg_num] = 0 ;
 
       /* only create a few colormenu widgets first,

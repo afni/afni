@@ -238,7 +238,7 @@ int main( int argc , char *argv[] )
    if (OrigSpace) {
       if( verb )
          fprintf(stderr,"++3dSpatNorm: Changing orientation from RAI\n") ;
-      ooset = r_new_resam_dset ( oset, iset, 0, 0, 0, NULL, MRI_NN, NULL, 1);
+      ooset = r_new_resam_dset ( oset, iset, 0, 0, 0, NULL, MRI_NN, NULL, 1, 0);
       if (!ooset) {
          fprintf(stderr,"**ERROR: Failed to reslice!?\n"); exit(1);
       }

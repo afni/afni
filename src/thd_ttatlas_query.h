@@ -6,38 +6,15 @@
 /*----------------- data for Talairach To -------------------*/
 /*----------------- Some of that stuff used -----------------*/
 /*----------------- be in afni.h. ZSS Feb. 06----------------*/
-#define ATLAS_CMAX    64   /* If you change this parameter,edit constant in CA_EZ_Prep.m (MaxLbl* checks) */
 #define TTO_LMAX    (ATLAS_CMAX+16)
 #define TTO_FORMAT  "%s [%3.0f,%3.0f,%3.0f]"
 
-typedef struct {
-   /* tdval and tdlev stand for "Talairach Daemon" value and level */
-   /* these are kept for historical purposes  */
-   /* perhaps one day making an unusally boring PBS special */
-   short tdval;         /* Leave this one to be the very first element */
-   char name[ATLAS_CMAX] ;  /* Leave this one to be the second element */  
-   float xx,yy,zz;     /* xx,yy,zz - RAI position of region  - now in float */
-   short tdlev,okey ;          /* tdlev = unknown, gyrus or area code */
-                               /* okey = original value in atlas */
-                               /*  this value was converted for TT daemon */
-                               /*  atlas values because left and right */
-                               /*  ROIs shared the same value */                               
-   char dsetpref[ATLAS_CMAX];
-} ATLAS_POINT ;
-
-#define TTO_COUNT 241
-
-#define TTO_COUNT_BROD    209
-#define TTO_COUNT_NONBROD 125
 
 #ifdef MAIN
    /* Table moved to thd_ttatlas_query.c, access is no longer
    restricted to when MAIN is defined */
 #else
 #endif
-extern ATLAS_POINT TTO_list[TTO_COUNT] ;
-extern char * TTO_labels[TTO_COUNT] ;
-extern int TTO_labeled ;
 extern int TTO_current ;
 /*-------------------------------------*/
 
@@ -74,10 +51,13 @@ typedef struct {
    int id; /*!< integer identifier in atlas */
    int N_chnks; /*!< Number of chunks in label, as interpreted by afni */
    char **chnks; /*!< label chunks, as interpreted by afni*/
+   char *atlas_name; /*!< Redundant with AFNI_ATLAS's content, but kept
+                          in cases where AFNI_ATLAS_REGION are used 
+                          separately, such as with ROI_String_Decode.  */
 } AFNI_ATLAS_REGION;
 
 typedef struct {
-   char *AtlasLabel;
+   char *atlas_name;
    int N_regions;
    AFNI_ATLAS_REGION **reg;
 } AFNI_ATLAS;
@@ -106,7 +86,8 @@ typedef struct {
 
 typedef struct {
    float x, y, z; /*!< coordinates */
-   AFNI_STD_SPACES space; /*!< type of coordinate space */
+   char space_name[65]; /*!< Name of coordinate space, will supersede space */
+   char orcode[4]; /*!< The signs and labels of x y z axis (4th for nil char)*/ 
 } ATLAS_COORD;
 
 typedef struct {
@@ -116,7 +97,7 @@ typedef struct {
    int level; /*!< a number used to group zones together. This can be equal to the 'within' radius ... */
    char **label;  /*!< labels of the zone. label[0] = "Anterior Cingulate", label[1] = "Brodmann area 25" */
    int   *code;  /*!< Integer code of zone in atlas */
-   int   *atcode; /*!< Integer code of atlas */
+   char  **atname; /*!< Integer code of atlas */
    float *prob; /*!< probability, if applicable, of being of a particular label */
    float *radius;   /*!< distance, search distance for reported label.*/ 
 } ATLAS_ZONE;
@@ -129,26 +110,107 @@ typedef struct {
 
 typedef struct {
    int n_points;
-   THD_3dim_dataset *dset;
    ATLAS_POINT *at_point;
 } ATLAS_POINT_LIST;
 
+#define MAX_ELM(apl2) ((apl2) ? (apl2)->n_points:0)
+
 typedef struct {
-   THD_3dim_dataset *dset; /* This is a copy of static atlas pointers. Do NOT Free! */
-   AFNI_ATLAS_CODES atcode;
+   THD_3dim_dataset *adset; 
    int mxlablen;
-   int mxelm;
    int probkey;
    byte *lrmask;            /* Do not free this one either */
-   int maxindexcode;        /* Highest integral value in dset */
-   ATLAS_POINT *apl;        /* Atlas point list, no free baby*/
-   ATLAS_POINT_LIST *apl2;  /* use new list structure for segmentation */
-   byte duplicateLRentries; /* Are LR labels listed in adh.apl and under the same code?
+   int maxkeyval;        /* Highest integral value in dset */
+   int minkeyval;        /* Lowest integral value in dset */
+   ATLAS_POINT_LIST *apl2;  /* use new list structure for segmentation 
+                              At the moment, apl2 is also filled for
+                              probabilistic atlases because it is needed
+                              to go from sub-brick label to area name. */
+   byte duplicateLRentries; /* Are LR labels listed in adh.apl and 
+                               under the same code?
                                (only case I know of is in TTO_list*/
    byte build_lr;
+   int params_set;
 } ATLAS_DSET_HOLDER;
 
-const char *Atlas_Val_to_Atlas_Name(ATLAS_DSET_HOLDER adh, int tdval);
+typedef struct {
+   char *xform_type, *xform_name, *source, *dest, *coord_order;
+   float dist;   /* distance (cost) of xform between two spaces */
+   int inverse;  /* inverse transformation from dest to src */
+   int prepost;  /* for 2/12 part, evaluate coords pre/post xformation */
+   int nelts;    /* number of data elements */
+   void *xform;  /* data for xformation */
+} ATLAS_XFORM;
+
+typedef struct {
+   char *atlas_dset_name;
+   char *atlas_space;
+   char *atlas_name;
+   char *atlas_description;
+   char *atlas_comment;
+   ATLAS_DSET_HOLDER *adh;
+} ATLAS; /*!< All char * should be initialized when .niml file is loaded,
+               or when ATLAS_LIST * is formed in the old syle.
+              *adh is initialized to zero, then populated if needed
+              by the function Atlas_With_Trimming. The latter should
+              be used almost exclusively to get an atlas */
+
+#define ATL_COMMENT(xa) ( ( (xa) && (xa)->atlas_comment) ?   \
+                           (xa)->atlas_comment : NULL )
+#define ATL_COMMENT_S(xa) ( (ATL_COMMENT(xa)) ? \
+                              (ATL_COMMENT(xa)) : "None" )
+
+#define ATL_DESCRIPTION(xa) ( ( (xa) && (xa)->atlas_description ) ?   \
+                           (xa)->atlas_description : NULL )
+#define ATL_DESCRIPTION_S(xa) ( (ATL_DESCRIPTION(xa)) ? \
+                                 (ATL_DESCRIPTION(xa)) : "None" )
+
+#define ATL_NAME(xa) ( ( (xa) && (xa)->atlas_name) ?   \
+                           (xa)->atlas_name : NULL )
+#define ATL_NAME_S(xa) ( (ATL_NAME(xa)) ? \
+                                 (ATL_NAME(xa)) : "None" )
+                                 
+#define ATL_DSET(xa) ( ( (xa) && (xa)->adh ) ? \
+                        (xa)->adh->adset : NULL )
+
+#define ATL_ADH_SET(xa) ( ( (xa) && (xa)->adh ) ? \
+                           (xa)->adh->params_set : 0 )                            
+typedef struct {
+   char *atlas_space;
+   char *generic_space;
+} ATLAS_SPACE;
+
+typedef struct {
+   char *atlas_template;
+   char *atlas_space;
+} ATLAS_TEMPLATE;
+
+typedef struct {
+   int nxforms;
+   ATLAS_XFORM *xform;
+} ATLAS_XFORM_LIST;
+
+typedef struct {
+   int natlases;
+   ATLAS *atlas;
+} ATLAS_LIST;
+
+typedef struct {
+   int nspaces;
+   ATLAS_SPACE *space;
+} ATLAS_SPACE_LIST;
+
+typedef struct {
+   int ntemplates;
+   ATLAS_TEMPLATE *atlas_template;
+} ATLAS_TEMPLATE_LIST;
+
+typedef struct {
+   int nelts;
+   void *rgblist;
+} ATLAS_LUT;
+
+const char *Atlas_Val_Key_to_Val_Name(ATLAS *atlas, int tdval);
 int Init_Whereami_Max_Find(void);
 void Set_Whereami_Max_Find(int n);
 float Init_Whereami_Max_Rad(void);
@@ -162,56 +224,104 @@ int *z_idoubleqsort (double *x , int nx );
 int *z_idqsort (int *x , int nx );
 void Show_Atlas_Region (AFNI_ATLAS_REGION *aar);
 AFNI_ATLAS_REGION * Free_Atlas_Region (AFNI_ATLAS_REGION *aar);
-AFNI_ATLAS_REGION * Atlas_Chunk_Label(char *lbli, int id);
-AFNI_ATLAS *Build_Atlas (AFNI_ATLAS_CODES ac) ;
+AFNI_ATLAS_REGION * Atlas_Chunk_Label(char *lbli, int id, char *aname);
+AFNI_ATLAS *Build_Atlas (char *aname, ATLAS_LIST *atlas_list) ;
 void Show_Atlas (AFNI_ATLAS *aa);
 AFNI_ATLAS *Free_Atlas(AFNI_ATLAS *aa) ;
-AFNI_ATLAS_REGION *ROI_String_Decode(char *str, AFNI_ATLAS_CODES *ac);
-ATLAS_SEARCH *Find_Atlas_Regions(AFNI_ATLAS *aa, AFNI_ATLAS_REGION *ur , ATLAS_SEARCH *usethissearch);
+AFNI_ATLAS_REGION *ROI_String_Decode(char *str, ATLAS_LIST *atlas_list);
+ATLAS_SEARCH *Find_Atlas_Regions(AFNI_ATLAS *aa, AFNI_ATLAS_REGION *ur , 
+                                 ATLAS_SEARCH *usethissearch);
 ATLAS_SEARCH *Free_Atlas_Search(ATLAS_SEARCH *as);
 char *Report_Found_Regions(AFNI_ATLAS *aa, AFNI_ATLAS_REGION *ur , ATLAS_SEARCH *as, int *nexact);
 char * Clean_Atlas_Label( char *lb);
 char * Clean_Atlas_Label_to_Prefix( char *lb);
-const char *Space_Code_to_Space_Name (AFNI_STD_SPACES cod);
-const char *Atlas_Code_to_Atlas_Name (AFNI_ATLAS_CODES cod);
-const char *Atlas_Code_to_Atlas_Dset_Name (AFNI_ATLAS_CODES cod);
-const char *Atlas_Code_to_Atlas_Description (AFNI_ATLAS_CODES cod);
-AFNI_ATLAS_CODES Atlas_Name_to_Atlas_Code (char *name);
 ATLAS_ZONE *Get_Atlas_Zone(ATLAS_QUERY *aq, int level);
-ATLAS_ZONE *Atlas_Zone(ATLAS_ZONE *zn, int level, char *label, int code, float prob, float within, AFNI_ATLAS_CODES atcode) ;
+ATLAS_ZONE *Atlas_Zone(ATLAS_ZONE *zn, int level, char *label, int code, 
+                       float prob, float within, char *aname) ;
 ATLAS_ZONE *Free_Atlas_Zone(ATLAS_ZONE *zn);
 void Set_Show_Atlas_Mode(int md);
-void Show_Atlas_Zone(ATLAS_ZONE *zn);
-void Show_Atlas_Query(ATLAS_QUERY *aq);
+void Show_Atlas_Zone(ATLAS_ZONE *zn, ATLAS_LIST *atlas_list);
+void Show_Atlas_Query(ATLAS_QUERY *aq, ATLAS_LIST *atlas_list);
 ATLAS_QUERY *Add_To_Atlas_Query(ATLAS_QUERY *aq, ATLAS_ZONE *zn);
 ATLAS_QUERY *Free_Atlas_Query(ATLAS_QUERY *aq);
-int CA_EZ_LR_load_atlas(void);
-int CA_EZ_ML_load_atlas(void);
-int CA_EZ_MPM_load_atlas(void);
-int CA_EZ_PMaps_load_atlas(void);
-THD_3dim_dataset *load_atlas(char *dsetname);
+int CA_EZ_LR_load_atlas_old(void);
+int CA_EZ_ML_load_atlas_old(void);
+int CA_EZ_MPM_load_atlas_old(void);
+int CA_EZ_PMaps_load_atlas_old(void);
+THD_3dim_dataset *load_atlas_dset(char *dsetname);
 void CA_EZ_MPM_purge_atlas(void);
 void CA_EZ_PMaps_purge_atlas(void);
 void CA_EZ_ML_purge_atlas(void);
-char * Atlas_Query_to_String (ATLAS_QUERY *wami, ATLAS_COORD ac, WAMI_SORT_MODES Mode);
-char MNI_Anatomical_Side(ATLAS_COORD ac);
+char * Atlas_Query_to_String (ATLAS_QUERY *wami, ATLAS_COORD ac,
+                              WAMI_SORT_MODES Mode, ATLAS_LIST *atlas_list);
+char * genx_Atlas_Query_to_String (ATLAS_QUERY *wami,
+                              ATLAS_COORD ac, WAMI_SORT_MODES mode,
+                              ATLAS_LIST *atlas_list);
+char MNI_Anatomical_Side(ATLAS_COORD ac, ATLAS_LIST *atlas_list);
 void TT_whereami_set_outmode(WAMI_SORT_MODES md);
+void set_TT_whereami_version(int atlas_list_version, int whereami_version);
 char * Atlas_Prob_String(float p);
 char * Atlas_Code_String(int c);
 byte Same_Chunks(AFNI_ATLAS_REGION *aar1, AFNI_ATLAS_REGION *aar2);
-THD_3dim_dataset *Atlas_Region_Mask(AFNI_ATLAS_CODES ac, AFNI_ATLAS_REGION *aar, int *codes, int n_codes);
+THD_3dim_dataset *Atlas_Region_Mask(AFNI_ATLAS_REGION *aar, 
+                                    int *codes, int n_codes,
+                                    ATLAS_LIST *atlas_list);
 char Atlas_Voxel_Side( THD_3dim_dataset *dset, int k1d, byte *lrmask);
 void TT_whereami_remove_atlas(AFNI_ATLAS_CODES ac);
 void TT_whereami_add_atlas(AFNI_ATLAS_CODES ac);
-THD_3dim_dataset *THD_3dim_from_ROIstring(char *shar);
+THD_3dim_dataset *THD_3dim_G_from_ROIstring(char *shar);
+THD_3dim_dataset *THD_3dim_from_ROIstring(char *shar, ATLAS_LIST *atlas_list);
 void Set_ROI_String_Decode_Verbosity(byte lvl);
 int * UniqueInt (int *y, int ysz, int *kunq, int Sorted );
 short * UniqueShort (short *y, int ysz, int *kunq, int Sorted );
 byte * UniqueByte (byte *y, int ysz, int *kunq, int Sorted );
 
-ATLAS_DSET_HOLDER Atlas_With_Trimming (AFNI_ATLAS_CODES atcode, int LoadLRMask);
-
-
+ATLAS *Atlas_With_Trimming(char *atname, int LoadLRMask, 
+                                       ATLAS_LIST *atlas_list);
+int whereami_in_atlas(  char *aname, 
+                        ATLAS_COORD ac, 
+                        ATLAS_QUERY **wamip);
+char *atlas_key_label(ATLAS *atlas, int key);                                 
+char *prob_atlas_sb_to_label(ATLAS *atlas, int sb, int *key);
+byte is_probabilistic_atlas(ATLAS *atlas);
+byte is_integral_atlas(ATLAS *atlas);
+byte is_atlas_key_labeled(ATLAS *atlas, int key);
+int whereami_3rdBase( ATLAS_COORD aci, ATLAS_QUERY **wamip,
+                      ATLAS_SPACE_LIST *asli, ATLAS_LIST *aali);
+int XYZ_to_AtlasCoord(float x, float y, float z, char *orcode, 
+                              char *spacename, ATLAS_COORD*ac);
+/* change these to stop using the term code */
+char *Atlas_Code_to_Atlas_Description(AFNI_ATLAS_CODES icod);
+char *Atlas_Code_to_Atlas_Name (AFNI_ATLAS_CODES cod);
+int init_global_atlas_list (void);
+ATLAS *get_Atlas_Named(char *atname, ATLAS_LIST *atlas_list);
+char **free_names_list(char **nl, int N_nl);
+int find_in_names_list(char **nl, int N_nl, char *name);
+char **add_to_names_list(char **nl, int *N_nl, char *name);
+int set_adh_old_way(ATLAS_DSET_HOLDER *adh, char *aname);
+int find_coords_in_space(ATLAS_COORD *acl, int N_acl, char *space_name); 
+int transform_atlas_coords(ATLAS_COORD ac, char **out_spaces, 
+                           int N_out_spaces, ATLAS_COORD *acl, char *orcodeout); 
+void set_wami_verb(int lev);
+int wami_verb(void);
+int wami_lh(void);
+int Init_Atlas_Dset_Holder(ATLAS *atlas) ;
+ATLAS_DSET_HOLDER *Free_Atlas_Dset_Holder(ATLAS_DSET_HOLDER *adh);
+int is_small_TT(ATLAS *atlas);
+int is_big_TT(ATLAS *atlas);
+char * TT_whereami_default_spc_name (void);
+int is_Dset_Space_Named(THD_3dim_dataset *dset, char *name);
+char **atlas_reference_string_list(char *atname, int *N_refs);
+char *atlas_version_string(char *atname);
+ATLAS_POINT_LIST *atlas_point_list(char *atname);
+ATLAS_POINT_LIST *atlas_point_list_old_way(char *atname);
+int genx_load_atlas_dset(ATLAS *atlas);
+int purge_atlas(char *atname);
+ATLAS_SPACE_LIST *get_G_space_list(void);
+ATLAS_XFORM_LIST *get_G_xform_list(void);
+ATLAS_LIST* get_G_atlas_list(void);
+ATLAS_TEMPLATE_LIST *get_G_templates_list(void);
+                 
 /* Transforms for going from one space to another */
 #if 0
 static char MNI_N27_to_AFNI_TLRC_HEAD[256] = {"TT_N27+tlrc"}; /*!<  TT_N27+tlrc was obtained by transforming N27 from MNI 
@@ -224,7 +334,7 @@ static char CA_EZ_N27_MPM_TT_PREFIX[256] = {"TT_N27_CA_EZ_MPM"};   /*!< Prefix o
 static char CA_EZ_N27_PMaps_TT_PREFIX[256] = {"TT_N27_CA_EZ_PMaps"};    /*!< Prefix of the Zilles Eickhoff Probability Maps in TT space */
 static char CA_EZ_N27_ML_TT_PREFIX[256] = {"TT_N27_EZ_ML"};  /*!< Prefix of the Zilles Eickhoff Macro Labels in TT space */
 static char CA_EZ_N27_LR_TT_PREFIX[256] = {"TT_N27_EZ_LR"};   /*!< Prefix of the Zilles Eickhoff Left/Right mask dset */
-static char CUSTOM_ATLAS_PREFIX[256] = {""}; /* default prefix of additional custom atlas */
+static char CUSTOM_ATLAS_PREFIX[256] = {"?CUSTOM?"}; /* default prefix of additional custom atlas */
 /* static char CUSTOM_ATLAS_PREFIX[256] = {"TTatlas_2010_master"};*/ /* default prefix of additional custom atlas */
 
 

@@ -10,7 +10,7 @@ for easy script parsing.*/
 
 /* ----------- Macro Labels --------------------- */
 /* ----------- Based on: Macro.mat -------------*/
-ATLAS_POINT ML_EZ_list[ML_EZ_COUNT] = {
+ATLAS_POINT ML_EZ_list_HARD[ML_EZ_COUNT_HARD] = {
    { 1   , "Left Precentral Gyrus.............................", 0.0, 0.0, 0.0, 0, -999, ""},
    { 2   , "RightPrecentral Gyrus.............................", 0.0, 0.0, 0.0, 0, -999, ""},
    { 3   , "Left Superior Frontal Gyrus.......................", 0.0, 0.0, 0.0, 0, -999, ""},
@@ -131,7 +131,7 @@ ATLAS_POINT ML_EZ_list[ML_EZ_COUNT] = {
 
 /* -----------     MPM      --------------------- */
 /* ----------- Based on: AllAreas_v15_MPM.mat --------------*/
-ATLAS_POINT CA_EZ_list[CA_EZ_COUNT] = { 
+ATLAS_POINT CA_EZ_list_HARD[CA_EZ_COUNT_HARD] = { 
    { 100, "Hipp. (CA)..............................", 0.0, 0.0, 0.0, 0, -999, "Hippocampus_CA............." },
    { 105, "OP 1....................................", 0.0, 0.0, 0.0, 0, -999, "SII_OP1...................." },
    { 110, "Area 45.................................", 0.0, 0.0, 0.0, 0, -999, "Broca_45..................." },
@@ -165,7 +165,7 @@ ATLAS_POINT CA_EZ_list[CA_EZ_COUNT] = {
 
 /* ----------- Left Right   --------------------- */
 /* ---- Based on my understanding -------------- */
-ATLAS_POINT LR_EZ_list[LR_EZ_COUNT] = {
+ATLAS_POINT LR_EZ_list_HARD[LR_EZ_COUNT_HARD] = {
    { 0  , "Non-Brain...", 0.0, 0.0, 0.0, 0, -999, "" },
    { 1  , "Right Brain.", 0.0, 0.0, 0.0, 0, -999, "" },
    { 2  , "Left Brain..", 0.0, 0.0, 0.0, 0, -999, "" }
