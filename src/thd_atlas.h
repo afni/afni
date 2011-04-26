@@ -16,72 +16,30 @@
 
 #define MAXINT 65535
 
-typedef struct {
-   char *xform_type, *xform_name, *source, *dest, *coord_order;
-   float dist;   /* distance (cost) of xform between two spaces */
-   int inverse;  /* inverse transformation from dest to src */
-   int prepost;  /* for 2/12 part, evaluate coords pre/post xformation */
-   int nelts;    /* number of data elements */
-   void *xform;  /* data for xformation */
-} ATLAS_XFORM;
-
-typedef struct {
-   char *atlas_dset_name;
-   char *atlas_space;
-   THD_3dim_dataset *atlas_dset;
-} ATLAS;
-
-typedef struct {
-   char *atlas_space;
-   char *generic_space;
-} ATLAS_SPACE;
-
-typedef struct {
-   char *atlas_template;
-   char *atlas_space;
-} ATLAS_TEMPLATE;
-
-typedef struct {
-   int nxforms;
-   ATLAS_XFORM *xform;
-} ATLAS_XFORM_LIST;
-
-typedef struct {
-   int natlases;
-   ATLAS *atlas;
-} ATLAS_LIST;
-
-typedef struct {
-   int nspaces;
-   ATLAS_SPACE *space;
-} ATLAS_SPACE_LIST;
-
-typedef struct {
-   int ntemplates;
-   ATLAS_TEMPLATE *atlas_template;
-} ATLAS_TEMPLATE_LIST;
-
-typedef struct {
-   int nelts;
-   void *rgblist;
-} ATLAS_LUT;
 
 
 
-ATLAS_SPACE_LIST *global_atlas_spaces;
-ATLAS_XFORM_LIST *global_atlas_xfl;
-ATLAS_LIST *global_atlas_alist;
-ATLAS_TEMPLATE_LIST *global_atlas_templates;
 
 void free_atlas_point_list(ATLAS_POINT_LIST *apl);
 void print_atlas_point_list(ATLAS_POINT_LIST *apl);
 ATLAS_POINT_LIST *dset_niml_to_atlas_list(THD_3dim_dataset *dset);
-char *whereami_9yards(ATLAS_COORD ac, ATLAS_QUERY **wamip, ATLAS_LIST *atlas_alist);
-/* AFNI_ATLAS_CODES *atlaslist, int N_atlaslist);*/
+int whereami_9yards( ATLAS_COORD ac, ATLAS_QUERY **wamip, 
+                     ATLAS_LIST *atlas_alist);
 void init_custom_atlas(void);
-
-void atlas_read_all(void);
-ATLAS_XFORM_LIST *report_xform_chain(char *src, char *dest);
+const char *Space_Code_to_Space_Name (AFNI_STD_SPACES cod);
+AFNI_STD_SPACES Space_Name_to_Space_Code(char *nm); 
+const char *Atlas_Code_to_Atlas_Space_Name (AFNI_ATLAS_CODES cod);
+const char *Atlas_Code_to_Atlas_Dset_Name (AFNI_ATLAS_CODES cod);
+AFNI_ATLAS_CODES Atlas_Dset_Name_to_Atlas_Code(char *dset_name);
+char *Atlas_Name(ATLAS *atl);
+int is_Atlas_Named(ATLAS *atl, char *name);
+int is_Coord_Space_Named(ATLAS_COORD ac, char *name);
+int set_Coord_Space_Name(ATLAS_COORD *ac, char *name);
+int init_global_atlas_from_niml_files(void);
+ATLAS_LIST *create_atlas_list(void);
+ATLAS_XFORM_LIST *report_xform_chain(char *src, char *dest, int report);
+int is_known_coord_space(char *space_name);
+void print_atlas_coord (ATLAS_COORD ac);
 
 int   init_space_structs(ATLAS_XFORM_LIST **atlas_xfl,
    ATLAS_LIST **atlas_alist,
@@ -109,9 +67,10 @@ ATLAS_XFORM_LIST *read_space_xforms(NI_stream space_niml);
 ATLAS_XFORM_LIST *calc_xform_list(ATLAS_XFORM_LIST *xfl);
 int find_atlas_space_index(char *spacename);
 void report_available_spaces(char *src);
-ATLAS_SPACE_LIST *find_available_spaces(char *src_space_name);
+ATLAS_SPACE_LIST *find_available_spaces(char *src_space_name, 
+                                        ATLAS_SPACE_LIST *this_list);
 
-void free_atlas_structs(void);
+void free_global_atlas_structs(void);
 
 void free_xform_list(ATLAS_XFORM_LIST *xfl);
 void free_xform(ATLAS_XFORM *xf);
@@ -124,6 +83,7 @@ void free_atlas(ATLAS *xa);
 void print_xform_list(ATLAS_XFORM_LIST *xfl);
 void print_space_list(ATLAS_SPACE_LIST *xsl);
 void print_atlas_list(ATLAS_LIST *xal);
+void print_atlas(ATLAS *xa, int level) ;
 void print_template_list(ATLAS_TEMPLATE_LIST *xtl);
 void print_xform(ATLAS_XFORM *xf);
 void print_all_xforms(ATLAS_XFORM_LIST *xfl);
@@ -180,19 +140,5 @@ static void adjust_atlas_point_list(ATLAS_POINT_LIST *atp, char *match_str,
  */
 static ATLAS_POINT_LIST *AFNI_atlas_list_to_atlas_point_list(
         ATLAS_POINT *afni_at_pts, int npts);
+int genx_load_atlas_dset(ATLAS *atlas);
 
-#if 0
-char * THD_get_space(THD_3dim_dataset *dset);
-int THD_space_code(char *space);
-
-THD_3dim_dataset *
-get_session_dset_id(THD_session *sess, MCW_idcode idcode, int space_index);
-THD_3dim_dataset *
-get_session_dset(THD_session *sess, int index, int space_index);
-int
-set_session_dset(THD_3dim_dataset *dset, THD_session *sess,
-   int index, int space_index);
-void set_nspaces(int n);
-void set_atlas_nspaces(void);
-int get_nspaces(void);
-#endif
