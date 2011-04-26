@@ -116,7 +116,7 @@ int main (int argc,char *argv[])
       case 1:
          /* apply some escape characters     31 Jul 2009 [rickr] */
          esc_str = unescape_unix_str(Opt->in_name);
-         ii = SUMA_PauseForUser(w, esc_str, SWP_POINTER_OFF, &app, 1);
+         ii = SUMA_PauseForUser(w, esc_str, SWP_POINTER_LEFT_BOTTOM, &app, 1);
          fprintf(SUMA_STDOUT,"%d\n", ii);
          break;
       default:

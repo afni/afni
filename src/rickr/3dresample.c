@@ -89,7 +89,6 @@ typedef struct
 
 int disp_opts_data   ( char * info, options_t * opts );
 int init_options     ( options_t * opts, int argc, char * argv [] );
-int resam_str2mode   ( char * mode );
 int sync_master_opts ( options_t * opts );
 int usage            ( char * prog, int level );
 int write_results    ( THD_3dim_dataset * dout, options_t * opts,
@@ -111,7 +110,7 @@ int main( int argc , char * argv[] )
 
     /* actually resample and/or reorient the dataset */
     dout = r_new_resam_dset( opts.dset, opts.mset, opts.dx, opts.dy, opts.dz,
-                             opts.orient, opts.resam, NULL, 1);
+                             opts.orient, opts.resam, NULL, 1, 0);
     if ( dout == NULL )
     {
         fprintf( stderr, "failure to resample dataset, exiting...\n" );
@@ -576,23 +575,6 @@ int usage ( char * progg, int level )
 
     return FAIL;
 }
-
-/*----------------------------------------------------------------------*/
-int resam_str2mode ( char * modestr )
-{
-    int mode;
-
-    for (mode = FIRST_RESAM_TYPE; mode <= LAST_RESAM_TYPE; mode++ )
-    {
-        if ( ! strncmp( modestr, RESAM_typestr[mode], 2 ) )
-            return mode;
-        else if ( ! strncmp( modestr, RESAM_shortstr[mode], 2 ) )
-            return mode;
-    }
-
-    return FAIL;
-}
-
 
 /*----------------------------------------------------------------------*/
 int write_results ( THD_3dim_dataset * dout, options_t * opts,

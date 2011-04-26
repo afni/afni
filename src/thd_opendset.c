@@ -7,7 +7,7 @@
 #include "mrilib.h"
 #include "thd.h"
 
-extern THD_3dim_dataset *THD_3dim_from_ROIstring(char *shar);
+extern THD_3dim_dataset *THD_3dim_G_from_ROIstring(char *shar);
 
 #undef  CHECK_FOR_DATA     /* 06 Jan 2005: message about empty files */
 #define CHECK_FOR_DATA(fn)                                                \
@@ -332,7 +332,7 @@ ENTRY("THD_open_one_dataset") ;
    } else {
       /*-- Nothing worked, see if name is that of an atlas based ROI -- */
       /* fprintf(stderr,"Here's your moment %s\n", pathname); */
-      dset = THD_3dim_from_ROIstring(pathname) ;
+      dset = THD_3dim_G_from_ROIstring(pathname) ;
       THD_patch_brickim(dset) ;  /* 20 Oct 2006 */
       RETURN(dset) ;
    }

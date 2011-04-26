@@ -3615,6 +3615,10 @@ SUMA_Boolean SUMA_DrawTextureNIDOnel( NI_element *nel,
    if (sv->PolyMode != SRM_Fill) {
       /* fill it up */
       glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);   
+   } else {
+      /* If you don't turn offset off, FRAME bound texture (afniman.jpg)
+         won't show ...  ZSS April 2011 */
+      glDisable (GL_POLYGON_OFFSET_FILL);
    }
    
    /* does this have its own coordinates ? */
@@ -3692,6 +3696,8 @@ SUMA_Boolean SUMA_DrawTextureNIDOnel( NI_element *nel,
    
    if (sv->PolyMode != SRM_Fill) {/* set fill mode back */
       SUMA_SET_GL_RENDER_MODE(sv->PolyMode);
+   } else {
+      glEnable (GL_POLYGON_OFFSET_FILL); /* April 2011  */
    }
    
    SUMA_RETURN(YUP);   

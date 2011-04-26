@@ -343,16 +343,58 @@ static void vstep_print(void)
 #endif
 
 /*--------------------------------------------------------------------------*/
+/* 
+   Function to turn ijk 1D index on iset into its equivalent i,j,k on a 
+   different gridset gset 
+   
+   ZSS Gov. Shutdown Imminent 2011
+*/
+int DSET_1Dindex_to_regrid_ijk( THD_3dim_dataset *iset, int ijk, 
+                                 THD_3dim_dataset *gset, 
+                                 int *ii, int *jj, int *kk)
+{
+   THD_fvec3 m_ncoord, m_ndicom; 
+   THD_ivec3 m_nind3;
+     
+   /* turn ijk on oset to RAI */
+   m_nind3.ijk[0] = DSET_index_to_ix(iset,ijk) ;
+   m_nind3.ijk[1] = DSET_index_to_jy(iset,ijk) ;
+   m_nind3.ijk[2] = DSET_index_to_kz(iset,ijk) ;
+   m_ncoord = THD_3dind_to_3dmm(iset,m_nind3);
+   /* setenv OMP_NUM_THREADS 1 when you uncomment debugging lines */
+   /*
+   if (ijk < 10) fprintf(stderr,"LR ijk %d [%d %d %d] [%f %f %f]\n", 
+            ijk, m_nind3.ijk[0], m_nind3.ijk[1], m_nind3.ijk[2],
+            m_ncoord.xyz[0], m_ncoord.xyz[1], m_ncoord.xyz[2]);
+   */
+   m_ndicom = THD_3dmm_to_dicomm(iset,m_ncoord);
+   /* now go back to new grid ijk */
+   m_ncoord = THD_dicomm_to_3dmm(gset, m_ndicom);
+   m_nind3 = THD_3dmm_to_3dind(gset,m_ncoord);
+   *ii = m_nind3.ijk[0]; 
+   *jj = m_nind3.ijk[1]; 
+   *kk = m_nind3.ijk[2]; 
+   /*
+   if (ijk < 10) fprintf(stderr,"HR    [%d %d %d] [%f %f %f]\n", 
+             m_nind3.ijk[0], m_nind3.ijk[1], m_nind3.ijk[2],
+             m_ncoord.xyz[0], m_ncoord.xyz[1], m_ncoord.xyz[2]);
+   */
+   return(1);
+}
+
+
+/*--------------------------------------------------------------------------*/
 
 THD_3dim_dataset * THD_localstat( THD_3dim_dataset *dset , byte *mask ,
                                   MCW_cluster *nbhd , int ncode, int *code,
-                                  float codeparam[][MAX_CODE_PARAMS+1] )
+                                  float codeparam[][MAX_CODE_PARAMS+1], 
+                                  float *redx )
 {
    THD_3dim_dataset *oset ;
-   int iv,cc , nvin,nvout , nx,ny,nz,nxyz , need_nbar=0 , npt ;
+   int iv,cc , nvin,nvout , nxyz_o , need_nbar=0 , npt ;
    float **aar ;
    MRI_IMAGE *dsim ;
-   float dx,dy,dz , fac ;
+   float dx,dy,dz , dx_o,dy_o,dz_o , fac ;
    float *brick=NULL, voxval=0.0;
 #ifndef USE_OMP
    int vstep ;
@@ -363,7 +405,22 @@ ENTRY("THD_localstat") ;
    if( dset == NULL || nbhd == NULL || ncode < 1 || code == NULL ) RETURN(NULL);
    npt = nbhd->num_pt ; if( npt == 0 )                             RETURN(NULL);
 
-   oset  = EDIT_empty_copy( dset ) ;
+   /* check for stupid reduction parameters allowing = 1.0 for testing purposes*/
+   if (redx && redx[0] < 1.0 && redx[1]<1.0 && redx[2] <1.0) redx = NULL;
+   
+   if (!redx) {
+      oset  = EDIT_empty_copy( dset ) ;
+   } else { /* create a new grid */
+      INFO_message("Reducing output grid by %f %f %f",redx[0], redx[1], redx[2]);
+      dx_o = fabs(DSET_DX(dset)*redx[0]);
+      dy_o = fabs(DSET_DY(dset)*redx[1]);
+      dz_o = fabs(DSET_DZ(dset)*redx[2]);
+      if (!(oset = r_new_resam_dset( dset, dset, dx_o, dy_o, dz_o,
+                               NULL, 0, NULL, 0, 1))) {
+         ERROR_message("Failed to reduce output grid");
+         return(NULL);
+      }      
+   }
    nvin  = DSET_NVALS( dset ) ;
    nvout = nvin * ncode ;
    EDIT_dset_items( oset ,
@@ -374,15 +431,14 @@ ENTRY("THD_localstat") ;
                       ADN_prefix    , "localstat" ,
                     ADN_none ) ;
 
-   nx = DSET_NX(dset) ;
-   ny = DSET_NY(dset) ;
-   nz = DSET_NZ(dset) ; nxyz = nx*ny*nz ;
+   nxyz_o = DSET_NX(oset)*DSET_NY(oset)*DSET_NZ(oset) ;
+   
    dx = fabsf(DSET_DX(dset)) ; if( dx <= 0.0f ) dx = 1.0f ;
    dy = fabsf(DSET_DY(dset)) ; if( dy <= 0.0f ) dy = 1.0f ;
    dz = fabsf(DSET_DZ(dset)) ; if( dz <= 0.0f ) dz = 1.0f ;
 
 #ifndef USE_OMP
-   vstep = (verb && nxyz > 9999) ? nxyz/50 : 0 ;
+   vstep = (verb && nxyz_o > 9999) ? nxyz_o/50 : 0 ;
 #endif
 
    aar = (float **)malloc(sizeof(float *)*ncode) ;  /* output array of arrays */
@@ -396,11 +452,11 @@ ENTRY("THD_localstat") ;
    for( iv=0 ; iv < nvin ; iv++ ){
 
 #ifdef USE_OMP
-     if( verb && nxyz > 999 ) INFO_message("Start sub-brick [%d]",iv) ;
+     if( verb && nxyz_o > 999 ) INFO_message("Start sub-brick [%d]",iv) ;
 #endif
 
      for( cc=0 ; cc < ncode ; cc++ ){     /* create output sub-bricks */
-       aar[cc] = (float *)malloc(sizeof(float)*nxyz) ;
+       aar[cc] = (float *)malloc(sizeof(float)*nxyz_o) ;
        if( aar[cc] == NULL )
          ERROR_exit("THD_localstat: out of memory at iv=%d cc=%d",iv,cc);
      }
@@ -418,7 +474,7 @@ ENTRY("THD_localstat") ;
 #endif
 
  AFNI_OMP_START ;
-#pragma omp parallel if( nxyz > 1111 )    /* parallelization: 13 Jul 2009 */
+#pragma omp parallel if( nxyz_o > 1111 )    /* parallelization: 13 Jul 2009 */
  {
    int ijk,kk,jj,ii,cc ;
    MRI_IMAGE *nbim=NULL ;
@@ -429,12 +485,16 @@ ENTRY("THD_localstat") ;
    /* 17 Jul 2009: create workspace for neighborhood data */
 
    nbar = (need_nbar) ? (float *)malloc(sizeof(float)*npt) : NULL ;
-
 #pragma omp for
-     for( ijk=0 ; ijk < nxyz ; ijk++ ){   /* parallelized loop */
-       ii = DSET_index_to_ix(dset,ijk) ;  /* convert ijk to voxel indexes */
-       jj = DSET_index_to_jy(dset,ijk) ;
-       kk = DSET_index_to_kz(dset,ijk) ;
+     for( ijk=0 ; ijk < nxyz_o ; ijk++ ){   /* parallelized loop */
+       if (!redx) { /* no grid change */
+          ii = DSET_index_to_ix(dset,ijk) ;  /* convert ijk to voxel indexes */
+          jj = DSET_index_to_jy(dset,ijk) ;
+          kk = DSET_index_to_kz(dset,ijk) ;
+       } else {
+         /* get ii, jj, kk on original resolution */
+         DSET_1Dindex_to_regrid_ijk(oset, ijk, dset, &ii, &jj, &kk);
+       }
 
 #ifndef USE_OMP
        if( vstep && ijk%vstep==vstep-1 ) vstep_print() ;
@@ -481,7 +541,8 @@ ENTRY("THD_localstat") ;
              }
                 /***
                   fprintf(stderr,"sar=[");
-                  for (pp=0; pp<nbim->nvox; ++pp) fprintf(stderr,"%f,", sfar[pp]);
+                  for (pp=0; pp<nbim->nvox; ++pp) 
+                     fprintf(stderr,"%f,", sfar[pp]);
                   fprintf(stderr,"];\nperc=[");
                   for (pp=0; pp<N_mp; ++pp) fprintf(stderr,"%f,", perc[pp]);
                   fprintf(stderr,"];\n");
@@ -519,7 +580,8 @@ ENTRY("THD_localstat") ;
 
      for( cc=0 ; cc < ncode ; cc++ ) {
        /* EDIT_substitute_brick( oset , iv*ncode+cc , MRI_float , aar[cc] ) ; */
-       EDIT_substscale_brick( oset , iv*ncode+cc , MRI_float , aar[cc], localstat_datum, -1.0);
+       EDIT_substscale_brick( oset , iv*ncode+cc , MRI_float , aar[cc], 
+                              localstat_datum, -1.0);
        if( localstat_datum != MRI_float ) free(aar[cc]) ;  /* 13 Jul 2009 */
      }
 

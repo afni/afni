@@ -1717,12 +1717,8 @@ ENTRY("AFNI_ttatlas_overlay") ;
    STATUS("checking if have Atlas dataset") ;
 
    /* 01 Aug 2001: retrieve atlas based on z-axis size of underlay dataset */
-#if 1
-   dseTT = TT_retrieve_atlas_nz( DSET_NZ(im3d->anat_now) ) ;
+   dseTT = TT_retrieve_atlas_dset_nz( DSET_NZ(im3d->anat_now) ) ;
                                  if( dseTT == NULL )      RETURN(NULL) ;
-#else
-   dseTT = TT_retrieve_atlas() ; if( dseTT == NULL )      RETURN(NULL) ;
-#endif
 
    /* make sure Atlas and current dataset match in size */
 

@@ -92,7 +92,7 @@ GLubyte * SUMA_dset_to_tex3d(THD_3dim_dataset **dsetp, byte col)
       SUMA_LHv("Resampling %s to RAI\n", DSET_HEADNAME(dset));
       /* resample into RAI, assuming that is needed */
       odset = r_new_resam_dset(dset, NULL, 0.0, 0.0, 0.0, 
-                               "RAI", MRI_LINEAR, NULL, 1);
+                               "RAI", MRI_LINEAR, NULL, 1, 1);
       np = SUMA_append_string(DSET_PREFIX(dset), ".RAI");
       EDIT_dset_items(  odset ,
                       ADN_prefix      , np,
