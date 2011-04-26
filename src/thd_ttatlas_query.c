@@ -1819,9 +1819,23 @@ static int whereami_version = 1;    /* 1 --> Uses mid vintage whereami_9yards
                                              function.
                                        2 --> Uses whereami_3rdbase
                                     */
+
+char *find_atlas_niml_file() {
+   
+}
+
 void set_TT_whereami_version(int atlas_version, int wami_version) {
-   atlas_list_version = atlas_version;
-   whereami_version = wami_version;
+   if (atlas_version > 0 && wami_version > 0) {
+      atlas_list_version = atlas_version;
+      whereami_version = wami_version;
+   } else {
+      char *wamifile = find_atlas_niml_file();
+      if (wamifile) {
+         atlas_list_version = 2;
+         whereami_version = 2;
+         free(wamifile);
+      }
+   }
 }
 
 /*! Load the atlas information from existing NIML files. 
