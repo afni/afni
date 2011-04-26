@@ -31,8 +31,8 @@ static ATLAS_TEMPLATE_LIST *global_atlas_templates=NULL;
 ATLAS_SPACE_LIST *get_G_space_list(void) { 
    static int icall = 0;
    if (!icall && !global_atlas_spaces) {
-      init_global_atlas_list();
       ++icall;
+      init_global_atlas_list();
    }
    return(global_atlas_spaces); 
 }
@@ -40,8 +40,8 @@ ATLAS_SPACE_LIST *get_G_space_list(void) {
 ATLAS_XFORM_LIST *get_G_xform_list(void) { 
    static int icall = 0;
    if (!icall && !global_atlas_xfl) {
-      init_global_atlas_list();
       ++icall;
+      init_global_atlas_list();
    }
    return(global_atlas_xfl); 
 }
@@ -49,8 +49,8 @@ ATLAS_XFORM_LIST *get_G_xform_list(void) {
 ATLAS_LIST* get_G_atlas_list(void) {
    static int icall = 0;
    if (!icall && !global_atlas_alist) {
-      init_global_atlas_list();
       ++icall;
+      init_global_atlas_list();
    }
    return(global_atlas_alist); 
 
@@ -59,8 +59,8 @@ ATLAS_LIST* get_G_atlas_list(void) {
 ATLAS_TEMPLATE_LIST *get_G_templates_list(void) { 
    static int icall = 0;
    if (!icall && !global_atlas_templates) {
-      init_global_atlas_list();
       ++icall;
+      init_global_atlas_list();
    }
    return(global_atlas_templates); 
 }
@@ -1127,7 +1127,7 @@ char * genx_Atlas_Query_to_String (ATLAS_QUERY *wami,
       INFO_message("Original Coordinates \n");
       print_atlas_coord(ac);
       for (i=0; i<N_out_spaces; ++i) {
-         INFO_message("Coordinate in %s\n", out_spaces[i]);
+         INFO_message("Coordinate xformed to %s\n", out_spaces[i]);
          print_atlas_coord(acl[i]);
       }
    }
@@ -1396,6 +1396,10 @@ int transform_atlas_coords(ATLAS_COORD ac, char **out_spaces,
          XYZ_to_AtlasCoord(xout, yout, zout, "RAI", 
                            out_spaces[i], &(acl[i]));
       } else {
+         if (wami_verb()) {
+            INFO_message("no route from %s to %s",
+                        ac.space_name, out_spaces[i]);
+         }
          XYZ_to_AtlasCoord(0.0, 0.0, 0.0, "RAI", 
                            "Unkown", &(acl[i]));
       }
@@ -1835,11 +1839,11 @@ int init_global_atlas_list () {
    
    
    if (global_atlas_alist) {
-      if (LocalHead) INFO_message("global_atlas_list initialized already");
+      if (wami_verb()) INFO_message("global_atlas_list initialized already");
       RETURN(1);
    }
    if (atlas_list_version > 1) {
-      if (LocalHead) INFO_message("Forming list from niml files");
+      if (wami_verb()) INFO_message("Forming list from niml files");
       if (!init_global_atlas_from_niml_files()) {
          if (wami_verb())  INFO_message("No niml files");
       }
@@ -1911,6 +1915,82 @@ int init_global_atlas_list () {
    
    if (global_atlas_alist && global_atlas_spaces) RETURN(1);
    else RETURN(0);
+}
+
+/* read various NIML files for atlas information*/
+int init_global_atlas_from_niml_files()
+{
+   NI_stream space_niml;
+   int valid_space_niml;
+   char *ept = NULL;
+   char suppfilestr[261];
+   
+   if(wami_verb() > 1) 
+      INFO_message("opening AFNI_atlas_spaces.niml");   
+
+   space_niml = NI_stream_open("file:AFNI_atlas_spaces.niml","r");
+
+   if(space_niml==NULL){
+      if (wami_verb()) 
+         WARNING_message("Could not open global AFNI_atlas_spaces.niml\n");
+      return(0);
+   }
+
+   if(wami_verb() > 1) 
+      INFO_message("\nInitializing structures\n"); 
+   if(!init_space_structs(&global_atlas_xfl, &global_atlas_alist,
+                          &global_atlas_spaces, &global_atlas_templates)) {
+      ERROR_message("Could not initialize structures for template spaces");
+      return(0);
+   }
+   
+   /* read atlas info from global atlas file */
+   valid_space_niml = read_space_niml(space_niml, global_atlas_xfl,
+          global_atlas_alist, global_atlas_spaces, global_atlas_templates);
+   ept = my_getenv("AFNI_SUPP_ATLAS");
+   if( ept ) {
+      sprintf(suppfilestr, "file:%s", ept);
+      if(wami_verb() > 1) 
+         INFO_message("opening AFNI_supp_atlas_space.niml");   
+      space_niml = NI_stream_open(suppfilestr,"r");
+      if(space_niml==NULL){
+            fprintf(stderr, "\nCould not open supplemental atlas niml file\n");
+            return(0);
+      }
+      /* read atlas info from supplemental atlas file */
+      /*  adding to existing structures */
+      valid_space_niml = read_space_niml(space_niml, global_atlas_xfl,
+             global_atlas_alist, global_atlas_spaces, global_atlas_templates);
+
+   }
+
+
+   /* read atlas info from local atlas file */
+   ept = my_getenv("AFNI_LOCAL_ATLAS");
+   if( ept ) {
+      sprintf(suppfilestr, "file:%s", ept);
+      if(wami_verb() > 1) 
+         INFO_message("opening AFNI_local_atlas_space.niml");   
+      space_niml = NI_stream_open(suppfilestr,"r");
+      if(space_niml==NULL){
+            fprintf(stderr, "\nCould not open supplemental atlas niml file\n");
+            return(0);
+      }
+      /* read atlas info from local atlas file */
+      /*  adding to existing structures */
+      valid_space_niml = read_space_niml(space_niml, global_atlas_xfl,
+             global_atlas_alist, global_atlas_spaces, global_atlas_templates);
+   }
+
+  
+   /* set up the neighborhood for spaces */
+   /*  how are the spaces related to each other */ 
+   if(make_space_neighborhood(global_atlas_spaces, global_atlas_xfl)!=0) {
+     return(0);
+   }
+   
+   /* all ok */
+   return(1);
 }
 
 /* free all the static lists */
@@ -5279,7 +5359,8 @@ int whereami_in_atlas(  char *aname,
                               blab, baf, atlas->adh->probkey, rr_find[ff], 
                               Atlas_Name(atlas));
             if (LocalHead) 
-               INFO_message("Adding zone on %s to wami\n", zn->atname); 
+               INFO_message("Adding zone on %s to wami\n", 
+                               Atlas_Name(atlas)); 
             *wamip = Add_To_Atlas_Query(*wamip, zn);
 
             rff = rr_find[ff] ;  /* save for next time around */
@@ -5740,7 +5821,7 @@ int whereami_9yards(  ATLAS_COORD aci, ATLAS_QUERY **wamip,
                                  is_atlas_key_labeled(atlas,baf));
                zn = Atlas_Zone(  zn, zn->level,
                      blab, baf, (float) atlas->adh->probkey, 
-                     rr_find[ff], atlas->atlas_name);
+                     rr_find[ff], Atlas_Name(atlas));
                
                wami = Add_To_Atlas_Query(wami, zn);
                rff = rr_find[ff] ;  /* save for next time around */
