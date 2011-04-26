@@ -8,10 +8,6 @@
 #define SUMA_noFunc
 #include "suma_suma.h"
 
-#ifdef SOLARIS
-# define strcasestr strstr  /* stupid Solaris */
-#endif
-
 extern int * SUMA_Dijkstra_generic (int N_Node, 
                      float *NodeList, int NodeDim, int dist_metric,
                      int *N_Neighbv, int **FirstNeighb, float **FirstNeighbDist,
@@ -21,19 +17,16 @@ extern int * SUMA_Dijkstra_generic (int N_Node,
                      float *Lfinal, int *N_Path,
                      int verb);
 
-static int debug_niml = 1;
-
 static char *preferred_atlas_name = NULL;
 static int **FirstNeighb=NULL;
 static float **FirstNeighbDist=NULL; 
 static int *N_Neighb;
 
-char *
-THD_get_space(THD_3dim_dataset *dset)
+char * THD_get_space(THD_3dim_dataset *dset)
 {
    char  *eee;
 
-   ENTRY("thd_get_space");
+   ENTRY("THD_get_space");
 
 #ifdef DEBUG_SPACES
    fprintf(stderr,"getting space for dset: %s\n", dset->dblk->diskptr->brick_name); 
@@ -60,24 +53,8 @@ THD_get_space(THD_3dim_dataset *dset)
          /* check environment for default space */
          /* possible values are TLRC, MNI_ANAT, and MNI */
          /* but others are possible */
-         {
-#ifdef DEBUG_SPACES
-         fprintf(stderr,"\n  eee0 \n");
-#endif
-         eee = getenv("AFNI_DEFAULT_STD_SPACE");
-         if (eee) {
-#ifdef DEBUG_SPACES
-            fprintf(stderr,"\n  eee2 %s \n", eee);
-#endif
-            MCW_strncpy(dset->atlas_space, eee, THD_MAX_NAME);
-         }
-         /* no environment variable set, default to TLRC */
-         else {               
-#ifdef DEBUG_SPACES
-            fprintf(stderr,"\n  eee3 \n");
-#endif
-             MCW_strncpy(dset->atlas_space, "TLRC", THD_MAX_NAME);}
-         }
+          MCW_strncpy(dset->atlas_space, 
+                      TT_whereami_default_spc_name(), THD_MAX_NAME);
          break;
    }
 #ifdef DEBUG_SPACES
@@ -92,6 +69,10 @@ int
 THD_space_code(char *space)
 {
    ENTRY("THD_space_code");
+   
+   if (wami_verb()) {
+      WARNING_message("Better not use codes anymore");
+   }
    if (strcmp(space, "TLRC")==0)
       RETURN(AFNI_TLRC_SPC);
    if (strcmp(space, "MNI_ANAT")==0)
@@ -127,39 +108,6 @@ THD_make_space_atr(THD_3dim_dataset *dset)
 }
 
 
-#if 0
-/* return known ATLAS codes from atlas name */
-AFNI_ATLAS_CODES THD_atlas_code(char *atlas_name)
-{
-   ENTRY("THD_atlas_code");
-   /* check if atlas name is valid */
-   if(atlas_name==NULL) RETURN(UNKNOWN_ATLAS);
-
-   /* check for known names */
-   if (strcmp(atlas_name, "TT_Daemon")==0)
-      RETURN(AFNI_TLRC_ATLAS);
-   if (strcmp(atlas_name, "CA_EZ_N27_MPM")==0)
-      RETURN(CA_EZ_N27_MPM_ATLAS);
-   if (strcmp(atlas_name, "CA_EZ_N27_PM")==0)
-      RETURN(CA_EZ_N27_ML_ATLAS);
-   if (strcmp(atlas_name, "CA_EZ_N27_ML")==0)
-      RETURN(CA_EZ_N27_PMAPS_ATLAS);
-   if (strcmp(atlas_name, "CA_EZ_N27_LR")==0)
-      RETURN(CA_EZ_N27_LR_ATLAS);
-
-    RETURN(CUSTOM_ATLAS);   /* if none of the above, non-standard space */
-}
-
-/* set one atlas as the preferred atlas name */
-THD_set_atlas_name(char *atlas_name)
-{
-   if(preferred_atlas_name!=NULL)
-      free(preferred_atlas_name);
-   MCW_strncpy(preferred_atlas_name, atlas_name, THD_MAX_NAME);
-}
-
-#endif
-
 /* atlas dataset structures */
 /* atlas datasets will have NIML element attributes that contain 
    segmentation information via index values and segment labels (ROI labels),
@@ -179,7 +127,7 @@ ATLAS_LUT *read_atlas_lut(THD_3dim_dataset *dset)
    /* get lookup table from dataset */
    lut_atr = THD_find_atr(dset->dblk, "ATLAS_LUT");
    if(lut_atr) {
-      atlasdset_lut = malloc(sizeof(ATLAS_LUT));
+      atlasdset_lut = (ATLAS_LUT *)calloc(1,sizeof(ATLAS_LUT));
       if(atlasdset_lut==NULL) {
          WARNING_message("Could not allocate memory for Atlas LUT\n");
          RETURN(NULL);
@@ -198,7 +146,7 @@ free_atlas_point_list(ATLAS_POINT_LIST *apl)
 {
    if(apl==NULL)
       return;
-   if(debug_niml) {
+   if(wami_verb() > 1) {
       INFO_message("Freeing atlas point list with %d points", apl->n_points);
       print_atlas_point_list(apl);
    }
@@ -239,7 +187,7 @@ dset_niml_to_atlas_list(THD_3dim_dataset *dset)
    ATLAS_POINT *at_pt;
    NI_element *nel=NULL;
    NI_group *ngr=NULL;
-   byte LocalHead = 0;
+   int LocalHead = wami_lh();
 
    float cog[3];
    short okey;
@@ -269,11 +217,10 @@ dset_niml_to_atlas_list(THD_3dim_dataset *dset)
 
    /* get each segmented region - the "atlas point" from 
       a NIML formatted string */ 
-   apl = (ATLAS_POINT_LIST *) malloc(sizeof(ATLAS_POINT_LIST));
+   apl = (ATLAS_POINT_LIST *) calloc(1, sizeof(ATLAS_POINT_LIST));
    /* assume the number of elements in the group is the number of structures */
    apl->n_points = ngr->part_num; 
-   apl->dset = dset; /* mark the dataset as the repository of segmentation */
-   apl->at_point = (ATLAS_POINT *) malloc(apl->n_points*sizeof(ATLAS_POINT));
+   apl->at_point = (ATLAS_POINT *) calloc(apl->n_points,sizeof(ATLAS_POINT));
    if(apl->at_point == NULL) {         WARNING_message("** WARNING: Poorly formatted ATLAS_LABEL_DTABLE\n");
          free(apl);
          RETURN(NULL);
@@ -316,6 +263,20 @@ dset_niml_to_atlas_list(THD_3dim_dataset *dset)
    RETURN(apl); 
 }
 
+ATLAS_XFORM_LIST *identity_xform_chain(char *space_name) 
+{
+   ATLAS_XFORM *xf;
+   ATLAS_XFORM_LIST *xfl=NULL;
+   
+   xf = identity_xform();      /* assign identity matrix */
+   free(xf->source); free(xf->dest);
+   xf->source = nifti_strdup(space_name);
+   xf->dest = nifti_strdup(space_name);
+   xfl = (ATLAS_XFORM_LIST *) calloc(1, sizeof(ATLAS_XFORM));
+   xfl->xform = xf;
+   xfl->nxforms = 1;
+   return(xfl);
+}
 
 
 /* write atlas labels */
@@ -328,7 +289,6 @@ dset_niml_to_atlas_list(THD_3dim_dataset *dset)
 
 
 #if 0
-
 x list available spaces from whereami
 x interface for returning path from one space to another
 x include space names and transforms defined on brainmap.org
@@ -343,40 +303,45 @@ x option to take coordinate transformation - piecewise and combined
 functions to apply transforms to coordinates or volumes (already called in
 whereami)
 #endif
-/* report xform chain to go between src and dest spaces */
-ATLAS_XFORM_LIST *report_xform_chain(char *src, char *dest)
-{
 
+/* report xform chain to go between src and dest spaces */
+ATLAS_XFORM_LIST *report_xform_chain(char *src, char *dest, int report)
+{
    ATLAS_XFORM_LIST  *xfl;
-   ATLAS_XFORM *xf;
    int srci, desti;
+   ATLAS_SPACE_LIST *asl=get_G_space_list();
+   
+   if (!src || !dest) return(NULL);
    
    /* atlas testing */
-   srci = find_atlas_space_index(src);
-   if(srci<0){
-       INFO_message("Could not find source space %s in database", src);
-   }    
-   desti = find_atlas_space_index(dest);
-   if(desti<0){
-       INFO_message("Could not find destination space %s in database", dest);
-   }
-   /* check if we're going nowhere */
-   if(srci==desti) {
-      if(debug_niml)
-         INFO_message("Chain is from and to same space");
-      xf = identity_xform();      /* assign identity matrix */
-      free(xf->source); free(xf->dest);
-      xf->source = nifti_strdup(src);
-      xf->dest = nifti_strdup(src);
-      xfl = (ATLAS_XFORM_LIST *) calloc(1, sizeof(ATLAS_XFORM));
-      xfl->xform = xf;
-      xfl->nxforms = 1;
-   }
-   else {
-     xfl =
-      get_xform_chain(global_atlas_spaces->space+srci,global_atlas_spaces->space+desti);
+   if (!strcmp(src, dest)) {
+      if(wami_verb() > 1)
+         INFO_message("Chain is from and to same space %s", src);
+      xfl = identity_xform_chain(src);
+   } else {
+      srci = find_atlas_space_index(src);
+      if(srci<0 && wami_verb()){
+         INFO_message("Could not find source space %s in database", src);
+      }    
+      desti = find_atlas_space_index(dest);
+      if(desti<0 && wami_verb()){
+         INFO_message("Could not find destination space %s in database", dest);
+      }
+      /* check if we're going nowhere */
+      if(srci==desti) {
+         if(wami_verb() > 1)
+            INFO_message("Chain is from and to same space");
+         xfl = identity_xform_chain(src);
+      } else {
+         if (srci >= 0 && desti >= 0) {
+            xfl = get_xform_chain(asl->space+srci,
+                              asl->space+desti);
+         } else {
+            xfl = NULL;
+         }
+      }
    }   
-   print_xform_list(xfl);
+   if (report) print_xform_list(xfl);
    return(xfl);
 }
 
@@ -385,66 +350,59 @@ void report_available_spaces(char *src)
 {
    ATLAS_SPACE_LIST *spl;
    
-   spl = find_available_spaces(src);
+   spl = find_available_spaces(src, NULL);
    print_space_list(spl);
    free_space_list(spl);    
 }
 
 /* read various NIML files for atlas information*/
-void atlas_read_all()
+int init_global_atlas_from_niml_files()
 {
    NI_stream space_niml;
    int valid_space_niml;
-   char * ept = NULL;
+   char *ept = NULL;
    char suppfilestr[261];
- 
-   ept = my_getenv("AFNI_NIML_DEBUG");
-   if( ept ) debug_niml = atoi(ept);       /* adjust if set */
-
-   if(debug_niml) 
-      INFO_message("\nInitializing structures\n"); 
-   if(!init_space_structs(&global_atlas_xfl, &global_atlas_alist,
-                          &global_atlas_spaces, &global_atlas_templates))
-      ERROR_message("Could not initialize structures for template spaces");
-
-
-/*
-global_atlas_xfl = (ATLAS_XFORM_LIST *) malloc(sizeof(ATLAS_XFORM_LIST));
-global_atlas_xfl->nxforms = 0;
-global_atlas_alist = (ATLAS_LIST *) malloc(sizeof(ATLAS_LIST));
-global_atlas_alist->natlases = 0;
-global_atlas_spaces = (ATLAS_SPACE_LIST *) malloc(sizeof(ATLAS_SPACE_LIST));
-global_atlas_spaces->nspaces = 0;
-global_atlas_templates = (ATLAS_TEMPLATE_LIST *) malloc(sizeof(ATLAS_TEMPLATE_LIST));
-global_atlas_templates->ntemplates = 0;
-*/
-   if(debug_niml) 
+   ATLAS_SPACE_LIST *asl=get_G_space_list();
+   ATLAS_XFORM_LIST *axl=get_G_xform_list();
+   ATLAS_LIST *al=get_G_atlas_list();
+   ATLAS_TEMPLATE_LIST *atl=get_G_templates_list();
+   
+   if(wami_verb() > 1) 
       INFO_message("opening AFNI_atlas_spaces.niml");   
 
    space_niml = NI_stream_open("file:AFNI_atlas_spaces.niml","r");
 
    if(space_niml==NULL){
-         WARNING_message("Could not open global AFNI_atlas_spaces_niml\n");
+      if (wami_verb()) 
+         WARNING_message("Could not open global AFNI_atlas_spaces.niml\n");
+      return(0);
    }
 
+   if(wami_verb() > 1) 
+      INFO_message("\nInitializing structures\n"); 
+   if(!init_space_structs(&axl, &al,
+                          &asl, &atl)) {
+      ERROR_message("Could not initialize structures for template spaces");
+      return(0);
+   }
+   
    /* read atlas info from global atlas file */
-   valid_space_niml = read_space_niml(space_niml, global_atlas_xfl,
-          global_atlas_alist, global_atlas_spaces, global_atlas_templates);
-
+   valid_space_niml = read_space_niml(space_niml, axl,
+          al, asl, atl);
    ept = my_getenv("AFNI_SUPP_ATLAS");
    if( ept ) {
       sprintf(suppfilestr, "file:%s", ept);
-      if(debug_niml) 
+      if(wami_verb() > 1) 
          INFO_message("opening AFNI_supp_atlas_space.niml");   
       space_niml = NI_stream_open(suppfilestr,"r");
       if(space_niml==NULL){
             fprintf(stderr, "\nCould not open supplemental atlas niml file\n");
-            return;
+            return(0);
       }
       /* read atlas info from supplemental atlas file */
       /*  adding to existing structures */
-      valid_space_niml = read_space_niml(space_niml, global_atlas_xfl,
-             global_atlas_alist, global_atlas_spaces, global_atlas_templates);
+      valid_space_niml = read_space_niml(space_niml, axl,
+             al, asl, atl);
 
    }
 
@@ -453,25 +411,28 @@ global_atlas_templates->ntemplates = 0;
    ept = my_getenv("AFNI_LOCAL_ATLAS");
    if( ept ) {
       sprintf(suppfilestr, "file:%s", ept);
-      if(debug_niml) 
+      if(wami_verb() > 1) 
          INFO_message("opening AFNI_local_atlas_space.niml");   
       space_niml = NI_stream_open(suppfilestr,"r");
       if(space_niml==NULL){
             fprintf(stderr, "\nCould not open supplemental atlas niml file\n");
-            return;
+            return(0);
       }
       /* read atlas info from local atlas file */
       /*  adding to existing structures */
-      valid_space_niml = read_space_niml(space_niml, global_atlas_xfl,
-             global_atlas_alist, global_atlas_spaces, global_atlas_templates);
+      valid_space_niml = read_space_niml(space_niml, axl,
+             al, asl, atl);
    }
 
   
    /* set up the neighborhood for spaces */
    /*  how are the spaces related to each other */ 
-   if(make_space_neighborhood(global_atlas_spaces, global_atlas_xfl)!=0)
-     return;
+   if(make_space_neighborhood(asl, axl)!=0) {
+     return(0);
+   }
    
+   /* all ok */
+   return(1);
 }
 
 /* initialize space structures for dealing with templates and atlases */
@@ -480,17 +441,19 @@ int   init_space_structs(ATLAS_XFORM_LIST **atlas_xfl,
    ATLAS_SPACE_LIST **atlas_spaces,
    ATLAS_TEMPLATE_LIST **atlas_templates)
 {
-   *atlas_alist = (ATLAS_LIST *) malloc(sizeof(ATLAS_LIST));
-   *atlas_spaces = (ATLAS_SPACE_LIST *) malloc(sizeof(ATLAS_SPACE_LIST));
-   *atlas_templates = (ATLAS_TEMPLATE_LIST *) malloc(sizeof(ATLAS_TEMPLATE_LIST));
-   *atlas_xfl = (ATLAS_XFORM_LIST *) malloc(sizeof(ATLAS_XFORM_LIST));
+   *atlas_alist = (ATLAS_LIST *) calloc(1,sizeof(ATLAS_LIST));
+   *atlas_spaces = (ATLAS_SPACE_LIST *) calloc(1,sizeof(ATLAS_SPACE_LIST));
+   *atlas_templates = (ATLAS_TEMPLATE_LIST *) 
+                                    calloc(1, sizeof(ATLAS_TEMPLATE_LIST));
+   *atlas_xfl = (ATLAS_XFORM_LIST *) calloc(1, sizeof(ATLAS_XFORM_LIST));
    (*atlas_xfl)->nxforms = 0;
    (*atlas_xfl)->xform = NULL;
    (*atlas_alist)->natlases = 0;
    (*atlas_spaces)->nspaces = 0;
    (*atlas_templates)->ntemplates = 0;
 
-   if(!(*atlas_alist) || !(*atlas_spaces) || !(*atlas_templates) || !(*atlas_xfl)) {
+   if(   !(*atlas_alist) || !(*atlas_spaces) || 
+         !(*atlas_templates) || !(*atlas_xfl)) {
       return(0);
    }
    return(1);      
@@ -508,27 +471,30 @@ int   read_space_niml(NI_stream space_niml, ATLAS_XFORM_LIST *atlas_xfl,
 
    nel = (NI_element *) 1;
    while(nel) {
-      if(debug_niml) 
+      if(wami_verb() > 2) 
          INFO_message("reading elements\n");
       nel = NI_read_element(space_niml, 100);
       if(nel) {
-         if(debug_niml) 
+         if(wami_verb() > 2) 
            INFO_message("nel name %s\n", nel->name);
          if (nel->type == NI_ELEMENT_TYPE) {
             if(strcmp(nel->name, "TEMPLATE_SPACE") == 0) {
                atlas_spaces->nspaces++;
-               if(debug_niml){
-                  INFO_message("Template space\n");
-                  INFO_message("number of spaces now %d\n", atlas_spaces->nspaces);
+               if(wami_verb() > 1){
+                  INFO_message("Template space\n"
+                               "number of spaces now %d\n",
+                                          atlas_spaces->nspaces);
                }
-               if(atlas_spaces->nspaces==1){
-                  if(debug_niml)
+               if(atlas_spaces->nspaces==1) {
+                  if(wami_verb() > 2)
                      INFO_message("initial memory allocation for spaces");
-                  atlas_spaces->space = (ATLAS_SPACE *) malloc(sizeof(ATLAS_SPACE));
+                  atlas_spaces->space = 
+                        (ATLAS_SPACE *) calloc(1, sizeof(ATLAS_SPACE));
+               } else  {             
+                  atlas_spaces->space = 
+                     (ATLAS_SPACE *) realloc( atlas_spaces->space, 
+                                 atlas_spaces->nspaces * sizeof(ATLAS_SPACE));
                }
-               else               
-                  atlas_spaces->space = (ATLAS_SPACE *) realloc(
-                      atlas_spaces->space, atlas_spaces->nspaces * sizeof(ATLAS_SPACE));
                atlas_read_atlas_space(
                     nel, &atlas_spaces->space[atlas_spaces->nspaces-1]);
 
@@ -536,61 +502,67 @@ int   read_space_niml(NI_stream space_niml, ATLAS_XFORM_LIST *atlas_xfl,
             }
             if(strcmp(nel->name, "XFORM") == 0) {
                atlas_xfl->nxforms++;
-               if(debug_niml){
+               if(wami_verb() > 2){
                   INFO_message("space XFORM\n");
                   INFO_message("number of xforms now %d\n", atlas_xfl->nxforms);
                }
                if(atlas_xfl->nxforms==1){
-                  if(debug_niml)
+                  if(wami_verb() > 2)
                      INFO_message("initial memory allocation for xforms");
-                  atlas_xfl->xform = (ATLAS_XFORM *) malloc(sizeof(ATLAS_XFORM));
+                  atlas_xfl->xform = 
+                        (ATLAS_XFORM *) calloc(1, sizeof(ATLAS_XFORM));
                }
                else               
                   atlas_xfl->xform = (ATLAS_XFORM *) realloc(
-                      atlas_xfl->xform, atlas_xfl->nxforms * sizeof(ATLAS_XFORM));
+                      atlas_xfl->xform, 
+                      atlas_xfl->nxforms * sizeof(ATLAS_XFORM));
                atlas_read_xform(nel, &atlas_xfl->xform[atlas_xfl->nxforms-1]);
                found = 1;
             } 
             if(strcmp(nel->name, "atlas_dataset") == 0) {
               atlas_alist->natlases++;
-              if(debug_niml){
-                  INFO_message("Atlas dataset\n");
-                  INFO_message("number of atlases now %d\n", atlas_alist->natlases);
+              if(wami_verb() > 2){
+                  INFO_message("Number of atlases now %d\n", 
+                               atlas_alist->natlases);
                }
                if(atlas_alist->natlases==1){
-                  if(debug_niml)
+                  if(wami_verb() > 2)
                      INFO_message("initial memory allocation for atlases");
-                  atlas_alist->atlas = (ATLAS *) malloc(sizeof(ATLAS));
-               }
-               else               
+                  atlas_alist->atlas = (ATLAS *) calloc(1, sizeof(ATLAS));
+               } else {               
                   atlas_alist->atlas = (ATLAS *) realloc(
                       atlas_alist->atlas, atlas_alist->natlases * sizeof(ATLAS));
-               atlas_read_atlas(nel, &atlas_alist->atlas[atlas_alist->natlases-1]);
+                  memset(&(atlas_alist->atlas[atlas_alist->natlases-1]), 0, 
+                           sizeof(ATLAS));
+               }
+               atlas_read_atlas(nel,
+                                 &atlas_alist->atlas[atlas_alist->natlases-1]);
 
                found = 1;
             }
 
             if(strcmp(nel->name, "template_dataset") == 0) {
-               if(debug_niml) 
+               if(wami_verb() > 2) 
                   INFO_message("template dataset\n");
                atlas_templates->ntemplates++;
-               if(debug_niml){
+               if(wami_verb() > 2){
                   INFO_message("Atlas template\n");
                   INFO_message("number of templates now %d\n", 
                       atlas_templates->ntemplates);
                }
                if(atlas_templates->ntemplates==1){
-                  if(debug_niml)
+                  if(wami_verb() > 2)
                      INFO_message("initial memory allocation for templates");
                   atlas_templates->atlas_template = 
-                      (ATLAS_TEMPLATE *) malloc(sizeof(ATLAS_TEMPLATE));
+                      (ATLAS_TEMPLATE *) calloc(1,sizeof(ATLAS_TEMPLATE));
                }
                else               
                   atlas_templates->atlas_template = (ATLAS_TEMPLATE *) realloc(
                       atlas_templates->atlas_template, 
                       atlas_templates->ntemplates * sizeof(ATLAS_TEMPLATE));
                atlas_read_template(nel,
-                   &atlas_templates->atlas_template[atlas_templates->ntemplates-1]);
+                  &atlas_templates->atlas_template[
+                                 atlas_templates->ntemplates-1]);
                found = 1;
             }
          }      
@@ -604,7 +576,8 @@ int   read_space_niml(NI_stream space_niml, ATLAS_XFORM_LIST *atlas_xfl,
 
 /* compute what spaces are neighbors of the others  */
 /* in preparation for Dijkstra search */
-int make_space_neighborhood(ATLAS_SPACE_LIST *at_spl, ATLAS_XFORM_LIST *atlas_xfl)
+int make_space_neighborhood( ATLAS_SPACE_LIST *at_spl, 
+                             ATLAS_XFORM_LIST *atlas_xfl)
 {
       /* See Ziad's NIH-5 labbook pp 46 for graph */
 
@@ -614,12 +587,19 @@ int make_space_neighborhood(ATLAS_SPACE_LIST *at_spl, ATLAS_XFORM_LIST *atlas_xf
       ATLAS_XFORM *xform;
       
       nspaces = at_spl->nspaces;
-      FirstNeighb = (int **) malloc(nspaces * sizeof(int *));
-      FirstNeighbDist = (float **) malloc(nspaces * sizeof(float *));
-      N_Neighb = (int *) malloc(nspaces * sizeof(int));
+      if(nspaces == 0) {
+         if(wami_verb() > 1)
+            INFO_message("no spaces to compute paths among");
+         FirstNeighb = NULL; FirstNeighbDist = NULL; N_Neighb = NULL;
+         return(-1);
+      }
+      FirstNeighb = (int **) calloc(nspaces , sizeof(int *));
+      FirstNeighbDist = (float **) calloc(nspaces , sizeof(float *));
+      N_Neighb = (int *) calloc(nspaces , sizeof(int));
 
-      if(debug_niml)
-         INFO_message("initial memory allocation for neighbors");
+      if(wami_verb() > 2)
+         INFO_message("initial memory allocation for neighbors: nspaces = %d",
+                      nspaces);
       if((FirstNeighb==NULL) || (FirstNeighbDist==NULL) || 
          (N_Neighb==NULL)) {
           WARNING_message("Could not allocate space for atlas neighborhood.");
@@ -631,14 +611,19 @@ int make_space_neighborhood(ATLAS_SPACE_LIST *at_spl, ATLAS_XFORM_LIST *atlas_xf
          neighbor_i = 0;
          atlas_space = at_spl->space+i;
          for(j=0;j<nspaces;j++) {
-            if(i==j) continue;  /* don't need to match the same space */
             dest_space = at_spl->space+j;
+            if(wami_verb() > 1)
+              INFO_message("Computing path from %s(%d) to %s(%d)", 
+                           atlas_space->atlas_space, i,
+                           dest_space->atlas_space, j);
+
+            if(i==j) continue;  /* don't need to match the same space */
             xform = get_xform_neighbor(
                      atlas_xfl, atlas_space, dest_space, &inv_xf);
             if(xform!=NULL){
                if(neighbor_i==0){
-                  FirstNeighb[i] = (int *) malloc(sizeof(int));
-                  FirstNeighbDist[i] = (float *) malloc(sizeof(float));
+                  FirstNeighb[i] = (int *) calloc(1, sizeof(int));
+                  FirstNeighbDist[i] = (float *) calloc(1, sizeof(float));
                }
                else {
                   FirstNeighb[i] = (int *) realloc(FirstNeighb[i], 
@@ -647,15 +632,17 @@ int make_space_neighborhood(ATLAS_SPACE_LIST *at_spl, ATLAS_XFORM_LIST *atlas_xf
                    (neighbor_i+1)*sizeof(float));
                }
                if((FirstNeighb[i]==NULL) || (FirstNeighbDist[i]==NULL)) {
-                  WARNING_message("Could not allocate space for atlas neighborhood");
+                  WARNING_message("Could not allocate space for "
+                                  "atlas neighborhood");
                   return(-1);
                }
                
                FirstNeighb[i][neighbor_i] = j;
                FirstNeighbDist[i][neighbor_i++] = xform->dist;
-               if(debug_niml){
+               if(wami_verb() > 1){
                   INFO_message("neighbor found for space %d with space %d",i,j);
-                  INFO_message("xform %s with dist %f", xform->xform_name, xform->dist);
+                  INFO_message("xform %s with dist %f", 
+                               xform->xform_name, xform->dist);
                }
             }
          }
@@ -698,21 +685,35 @@ get_xform_neighbor(ATLAS_XFORM_LIST *atlas_xfl, ATLAS_SPACE *at_space,
 
 /* find shortest path to go from one space to a destination space */
 /* return the list of transformations needed to accomplish this */
-ATLAS_XFORM_LIST *
-get_xform_chain(ATLAS_SPACE *at_space, ATLAS_SPACE *dest_space)
+ATLAS_XFORM_LIST * get_xform_chain( ATLAS_SPACE *at_space, 
+                                    ATLAS_SPACE *dest_space)
 {
    int srci, desti;
    int N_n, kk, *nPath;
    float nDistance;
    ATLAS_XFORM_LIST *xfl=NULL;
-
+   ATLAS_SPACE_LIST *asl=get_G_space_list();
+   ATLAS_XFORM_LIST *axl=get_G_xform_list();
+   /* you might want to return identity right here if 
+      at_space->atlas_space == dest_space->atlas_space,
+      even of find_atlas_space can't find them ... */
+      
    /* find index for input spaces */
-   srci = find_atlas_space(global_atlas_spaces, at_space);
-   desti = find_atlas_space(global_atlas_spaces, dest_space);
+   if ((srci  = find_atlas_space(asl, at_space))<0) {
+      ERROR_message("input space %s/%s not in atlas_spaces", 
+               at_space->atlas_space, at_space->generic_space);
+      print_space_list(asl);
+      return(NULL);
+   }
+   if ((desti = find_atlas_space(asl, dest_space))<0) {
+      ERROR_message("destination space %s/%s not in atlas_spaces", 
+               dest_space->atlas_space, dest_space->generic_space);
+      return(NULL);
+   };
 
    /* if src and dest are the same, should return identity right away */    
    if ( !(nPath = SUMA_Dijkstra_generic ( 
-                          global_atlas_spaces->nspaces, 
+                          asl->nspaces, 
                           NULL, -1, 0,
                           N_Neighb, FirstNeighb, FirstNeighbDist,
                           srci, desti, 
@@ -720,9 +721,8 @@ get_xform_chain(ATLAS_SPACE *at_space, ATLAS_SPACE *dest_space)
                           1, 
                           &nDistance, &N_n, 0)) ) {
           return(NULL); /* no path found */
-        } 
-   else {
-      if(debug_niml){
+   } else {
+      if(wami_verb() > 1){
          INFO_message("Number of spaces to traverse %d with distance %.2f ",
                      N_n, nDistance);
          fprintf(stderr, "spaces in chain by index: ");
@@ -732,7 +732,7 @@ get_xform_chain(ATLAS_SPACE *at_space, ATLAS_SPACE *dest_space)
       }
 
       xfl = pathlist_to_xform_list(nPath, N_n,
-                  global_atlas_xfl, global_atlas_spaces);
+                  axl, asl);
       free(nPath); nPath = NULL;
    }
 
@@ -740,8 +740,7 @@ get_xform_chain(ATLAS_SPACE *at_space, ATLAS_SPACE *dest_space)
 }
 
 /* find space index that matches space name */
-int
-find_atlas_space(ATLAS_SPACE_LIST *at_spl, ATLAS_SPACE *at_space)
+int find_atlas_space(ATLAS_SPACE_LIST *at_spl, ATLAS_SPACE *at_space)
 {
    int i;
    ATLAS_SPACE *sp1;
@@ -755,17 +754,22 @@ find_atlas_space(ATLAS_SPACE_LIST *at_spl, ATLAS_SPACE *at_space)
 }
 
 /* find space index in space list that matches string */
-int
-find_atlas_space_index(char *spacename)
+int find_atlas_space_index(char *spacename)
 {
    int i;
    ATLAS_SPACE *sp1;
+   ATLAS_SPACE_LIST *asl=get_G_space_list();
 
-   if((spacename==NULL) || (strcmp(spacename, "")==0))
+   if((spacename==NULL) || (strcmp(spacename, "")==0)
+      || !asl) {
+      if (wami_verb()) {
+         ERROR_message("Null input: spacename = %s, asl = %p",
+               STR_PRINT(spacename), asl);
+      }
       return(-1);
-      
-   for(i=0;i<global_atlas_spaces->nspaces;i++) {
-      sp1 = global_atlas_spaces->space+i;
+   }    
+   for(i=0;i<asl->nspaces;i++) {
+      sp1 = asl->space+i;
       if(strcmp(sp1->atlas_space, spacename)==0)
          return(i);
    }
@@ -774,46 +778,50 @@ find_atlas_space_index(char *spacename)
 
 /* return the atlas_space structure corresponding to the atlas_space name
    in the dataset structure */
-ATLAS_SPACE *
-dset_space(THD_3dim_dataset *dset)
+ATLAS_SPACE * dset_space(THD_3dim_dataset *dset)
 {
    int spacei;
+   ATLAS_SPACE_LIST *asl=get_G_space_list();
    
    spacei = find_atlas_space_index(dset->atlas_space);
    if(spacei==-1)
       return(NULL);
    
-   return(global_atlas_spaces->space+spacei);
+   return(asl->space+spacei);
 }
 
 /* find all available spaces that can be transformed to from some original space */
-ATLAS_SPACE_LIST *
-find_available_spaces(char *src_space_name)
+ATLAS_SPACE_LIST *find_available_spaces(  char *src_space_name, 
+                                          ATLAS_SPACE_LIST *this_spl)
 {
   int i, curr_i, nspaces=0;
   ATLAS_SPACE_LIST *spl;
+  ATLAS_SPACE_LIST *search_list=NULL;
   ATLAS_XFORM_LIST *xfl;
   ATLAS_SPACE *xs, *spl_space, *src_space;
+  
+  if (!this_spl) search_list = get_G_space_list();
+  else search_list = this_spl; 
   
   spl = NULL;
   
   /* find index of current space string in static space list */
   curr_i = find_atlas_space_index(src_space_name);
-  src_space = global_atlas_spaces->space+curr_i;
+  src_space = search_list->space+curr_i;
   
   /* search through all spaces */
-  for(i=0;i<global_atlas_spaces->nspaces;i++){
+  for(i=0;i<search_list->nspaces;i++){
      if(i==curr_i) continue;   /* don't count the current space */
-     xs = global_atlas_spaces->space+i;   /* pointer to indexed space */
+     xs = search_list->space+i;   /* pointer to indexed space */
      xfl = get_xform_chain(src_space, xs);
      if(xfl){   /* found a transformation */
-        if(debug_niml)
+        if(wami_verb() > 1)
             INFO_message("Found an available space: %s", xs->atlas_space);
         free_xform_list(xfl);  /* don't actually need the xform list */
         
         if(spl==NULL) {
-           spl = (ATLAS_SPACE_LIST *) malloc(sizeof(ATLAS_SPACE_LIST));
-           spl->space = (ATLAS_SPACE *) malloc(sizeof(ATLAS_SPACE));
+           spl = (ATLAS_SPACE_LIST *) calloc(1, sizeof(ATLAS_SPACE_LIST));
+           spl->space = (ATLAS_SPACE *) calloc(1, sizeof(ATLAS_SPACE));
            nspaces = 1;
         }
         else {
@@ -830,44 +838,48 @@ find_available_spaces(char *src_space_name)
         spl_space->atlas_space = nifti_strdup(xs->atlas_space); 
         spl_space->generic_space = nifti_strdup(xs->generic_space);
 
-        if((spl_space->atlas_space == NULL) || (spl_space->generic_space == NULL)) {
+        if( (spl_space->atlas_space == NULL) || 
+            (spl_space->generic_space == NULL)) {
            WARNING_message("Could not allocate template space strings");
            return(NULL);
         }
         spl->nspaces = nspaces;
 
-
      }
   }
-  if(spl)
+  if(spl) {
       spl->nspaces = nspaces;
-  else{
-     if(debug_niml)
-         INFO_message("no spaces reachable from source space: %s", src_space_name);   
+      if(wami_verb() > 1)
+         INFO_message("There are %d spaces available", spl->nspaces);
+  } else {
+     if(wami_verb() > 1) {
+         print_space_list(search_list);  
+         INFO_message("no spaces reachable from source space: %s", 
+                      src_space_name);
+      } 
   }
-  if(debug_niml)
-      INFO_message("There are %d spaces available", spl->nspaces);
+
   return(spl);
 }
 
-ATLAS_XFORM_LIST *
-pathlist_to_xform_list(int *nPath, int N_n, ATLAS_XFORM_LIST *atlas_xfl, 
-   ATLAS_SPACE_LIST *at_spl)
+ATLAS_XFORM_LIST * pathlist_to_xform_list(int *nPath, int N_n, 
+                                          ATLAS_XFORM_LIST *atlas_xfl, 
+                                          ATLAS_SPACE_LIST *at_spl)
 {
    int kk, inv_xf;
    ATLAS_XFORM_LIST *xflc = NULL;
    ATLAS_XFORM *a_xform, *xxform;
    ATLAS_SPACE *sp1, *sp2;
 
-   xflc = (ATLAS_XFORM_LIST *) malloc(sizeof(ATLAS_XFORM_LIST));
-   xflc->xform =  (ATLAS_XFORM *)  malloc((N_n-1)*sizeof(ATLAS_XFORM));
+   xflc = (ATLAS_XFORM_LIST *) calloc(1, sizeof(ATLAS_XFORM_LIST));
+   xflc->xform =  (ATLAS_XFORM *)  calloc((N_n-1), sizeof(ATLAS_XFORM));
    xflc->nxforms = N_n-1;
          
    for(kk=0;kk<N_n-1;++kk) {
        sp1 = at_spl->space+nPath[kk]; /* starting space */
        sp2 = at_spl->space+nPath[kk+1];   /* next space */
        a_xform = get_xform_neighbor(atlas_xfl,sp1, sp2, &inv_xf); 
-       if(debug_niml){
+       if(wami_verb() > 1){
          INFO_message("space%d %s to space%d %s using xform %s",
             kk, sp1->atlas_space, kk+1, sp2->atlas_space, a_xform->xform_name);
        }
@@ -882,13 +894,13 @@ pathlist_to_xform_list(int *nPath, int N_n, ATLAS_XFORM_LIST *atlas_xfl,
        if(inv_xf)   /* if inverting xform, take inverse of inverse field */
            xxform->inverse = !(a_xform->inverse);
 
-       if(debug_niml){
+       if(wami_verb() > 1){
           print_xform(xxform);
        }
 
    }
 
-   if(debug_niml){
+   if(wami_verb() > 1){
       INFO_message("Number of xforms in chain is %d", xflc->nxforms);
    }
 
@@ -917,7 +929,7 @@ copy_xform(ATLAS_XFORM *src_xform, ATLAS_XFORM *dest_xform)
    dest_xform->prepost = src_xform->prepost;
    dest_xform->nelts = src_xform->nelts;
    if(dest_xform->nelts==0) return(0);
-   dest_xform->xform = malloc(dest_xform->nelts*sizeof(float));
+   dest_xform->xform = calloc(dest_xform->nelts, sizeof(float));
    if(dest_xform->xform==NULL) return(1);
    memcpy(dest_xform->xform, src_xform->xform, dest_xform->nelts*sizeof(float));
    return(0);
@@ -925,8 +937,7 @@ copy_xform(ATLAS_XFORM *src_xform, ATLAS_XFORM *dest_xform)
 
 /* copy elements of xform structure, allocating space for each element */
 /* dest_xform already exists as a structure, it just needs to be populated */
-ATLAS_XFORM *
-identity_xform()
+ATLAS_XFORM *identity_xform()
 {
    ATLAS_XFORM *dest_xform;
    float *fptr;
@@ -948,25 +959,16 @@ identity_xform()
 
    dest_xform->nelts = 1;
    if(dest_xform->nelts==0) return(dest_xform);
-   dest_xform->xform = malloc(dest_xform->nelts*sizeof(float));
+   dest_xform->xform = calloc(dest_xform->nelts, sizeof(float));
    if(dest_xform->xform==NULL) return(NULL);
    fptr = (float *) dest_xform->xform;
    *fptr  = 1.0;
    return(dest_xform);
 }
 
-/* free all the static lists */
-void free_atlas_structs()
-{
-   free_xform_list(global_atlas_xfl);
-   free_atlas_list(global_atlas_alist);
-   free_space_list(global_atlas_spaces);
-   free_template_list(global_atlas_templates);
-}
 
 /* free list of xforms */
-void
-free_xform_list(ATLAS_XFORM_LIST *xfl)
+void free_xform_list(ATLAS_XFORM_LIST *xfl)
 {
    int i;
    
@@ -980,8 +982,7 @@ free_xform_list(ATLAS_XFORM_LIST *xfl)
 }
 
 /* free an atlas_xform structure */
-void
-free_xform(ATLAS_XFORM *xf)
+void free_xform(ATLAS_XFORM *xf)
 {   
    if(xf==NULL)
       return;
@@ -991,8 +992,7 @@ free_xform(ATLAS_XFORM *xf)
 }    
 
 /* free list of spaces */
-void
-free_space_list(ATLAS_SPACE_LIST *xsl)
+void free_space_list(ATLAS_SPACE_LIST *xsl)
 {
    int i;
    
@@ -1005,8 +1005,7 @@ free_space_list(ATLAS_SPACE_LIST *xsl)
 }
 
 /* free an atlas_space structure */
-void
-free_space(ATLAS_SPACE *xs)
+void free_space(ATLAS_SPACE *xs)
 {   
    if(xs==NULL)
       return;
@@ -1014,8 +1013,7 @@ free_space(ATLAS_SPACE *xs)
 }    
 
 /* free list of spaces */
-void
-free_template_list(ATLAS_TEMPLATE_LIST *xtl)
+void free_template_list(ATLAS_TEMPLATE_LIST *xtl)
 {
    int i;
    
@@ -1030,8 +1028,7 @@ free_template_list(ATLAS_TEMPLATE_LIST *xtl)
 }
 
 /* free an atlas_template structure */
-void
-free_template(ATLAS_TEMPLATE *xt)
+void free_template(ATLAS_TEMPLATE *xt)
 {   
    if(xt==NULL)
       return;
@@ -1039,8 +1036,7 @@ free_template(ATLAS_TEMPLATE *xt)
 } 
 
 /* free list of atlases */
-void
-free_atlas_list(ATLAS_LIST *xal)
+void free_atlas_list(ATLAS_LIST *xal)
 {
    int i;
    
@@ -1053,25 +1049,34 @@ free_atlas_list(ATLAS_LIST *xal)
    free(xal);
 }
 
+/* free an atlas dset holder */
+void free_adh(ATLAS_DSET_HOLDER *adh) {
+   if (adh) free(adh);
+}
+
 /* free an atlas structure */
-void
-free_atlas(ATLAS *xa)
+void free_atlas(ATLAS *xa)
 {   
    if(xa==NULL)
       return;
-   free(xa->atlas_space); free(xa->atlas_dset_name); 
+   if (xa->atlas_space) free(xa->atlas_space); 
+   if (xa->atlas_dset_name) free(xa->atlas_dset_name);
+   if (xa->atlas_description) free(xa->atlas_description); 
+   if (xa->atlas_name) free(xa->atlas_name);
+   if (xa->adh) free_adh(xa->adh);
 } 
 
 /* print list of xforms - short form - as a chain */
-void
-print_xform_list(ATLAS_XFORM_LIST *xfl)
+void print_xform_list(ATLAS_XFORM_LIST *xfl)
 {
    int i;
    ATLAS_XFORM *xf;
    INFO_message("----- Transform list: -------");
    
-   if(xfl==NULL)
+   if(xfl==NULL) {
+      fprintf(stderr,"NULL transform\n");
       return;
+   }
    for(i=0;i<xfl->nxforms;i++) {
       xf = xfl->xform+i;
          fprintf(stderr,"%s ", xf->xform_name);
@@ -1086,8 +1091,7 @@ print_xform_list(ATLAS_XFORM_LIST *xfl)
 }
 
 /* print list of xforms in long form */
-void
-print_all_xforms(ATLAS_XFORM_LIST *xfl)
+void print_all_xforms(ATLAS_XFORM_LIST *xfl)
 {
    int i;
    ATLAS_XFORM *xf;
@@ -1104,8 +1108,7 @@ print_all_xforms(ATLAS_XFORM_LIST *xfl)
 }
 
 /* print the attributes of a transformation including its elements */
-void
-print_xform(ATLAS_XFORM *xf)
+void print_xform(ATLAS_XFORM *xf)
 {
 
    int i;
@@ -1130,8 +1133,7 @@ print_xform(ATLAS_XFORM *xf)
 }
 
 /* print xform data for affine matrix in 4 columns */
-void
-print_affine_xform_data(float *xfptr)
+void print_affine_xform_data(float *xfptr)
 {
    int i, j;
 
@@ -1144,27 +1146,28 @@ print_affine_xform_data(float *xfptr)
 }
 
 /* print list of spaces */
-void
-print_space_list(ATLAS_SPACE_LIST *xsl)
+void print_space_list(ATLAS_SPACE_LIST *xsl)
 {
    int i;
    ATLAS_SPACE *xs;
    
-   if(xsl==NULL)
+   if(xsl==NULL) {
+      if(wami_verb() > 1)
+         INFO_message("NULL Space list pointer\n");
       return;
-   if(debug_niml)
+   }
+   INFO_message("Space list pointer %p\n", xsl);
+   if(wami_verb() > 1)
       INFO_message("Space list has %d spaces\n",xsl->nspaces);
    INFO_message("----- List of available spaces: -------");
    for(i=0;i<xsl->nspaces;i++) {
       xs = xsl->space+i;
       INFO_message("%s", xs->atlas_space);
    }
-   INFO_message("");
 }
 
 /* print list of atlases */
-void
-print_atlas_list(ATLAS_LIST *xal)
+void print_atlas_list(ATLAS_LIST *xal)
 {
    int i;
    ATLAS *xa;
@@ -1176,13 +1179,71 @@ print_atlas_list(ATLAS_LIST *xal)
    }   
    for(i=0;i<xal->natlases;i++) {
       xa = xal->atlas+i;
-      INFO_message("%s", xa->atlas_dset_name);
+      print_atlas(xa, 0);
    }
 }
 
+void print_atlas(ATLAS *xa, int level) 
+{
+   INFO_message("Altas name %s, file %s, in %s space\n"
+                "dset %p, %d sub-bricks \n"
+                "adh %p\n", 
+                xa->atlas_name, xa->atlas_dset_name, xa->atlas_space, 
+             ATL_DSET(xa), ATL_DSET(xa) ? DSET_NVALS(ATL_DSET(xa)):-1,
+                xa->adh);
+   return;
+}
+
+
+/* print table of atlases - name, dset, description, comments */
+void print_atlas_table(ATLAS_LIST *xal)
+{
+   int i;
+   ATLAS *xa;
+   
+   INFO_message("----- Atlas list: -------");
+   if(xal==NULL){
+      INFO_message("** No atlases found **");
+      return;
+   }
+
+   INFO_message("Name             Space    Dataset              Description");
+   INFO_message("__________________________________________________________");
+   for(i=0;i<xal->natlases;i++) {
+      xa = xal->atlas+i;
+      INFO_message("%-16.16s %-8.8s %-20.20s %-33s",
+                   xa->atlas_name, xa->atlas_space,
+                   xa->atlas_dset_name,
+                   ATL_DESCRIPTION_S(xa));
+   }
+
+   INFO_message("\n");
+   for(i=0;i<xal->natlases;i++) {
+      xa = xal->atlas+i;
+      if (ATL_COMMENT(xa)) { 
+         INFO_message("%s: %s", ATL_NAME(xa), ATL_COMMENT_S(xa));
+      }
+   }
+   INFO_message("--------------------------");
+}
+
+void print_atlas_coord (ATLAS_COORD ac) 
+{
+   INFO_message("----- Atlas Coord: -------");
+   INFO_message("%f %f %f (%s), space_name %s%s\n",
+      ac.x, ac.y, ac.z, ac.orcode, ac.space_name,
+      is_known_coord_space(ac.space_name) ? "":"Lost in space");
+}
+
+int is_known_coord_space(char *space_name) {
+   if (!space_name || space_name[0]=='\0' ||
+       !strcmp(space_name,"Unknown")) return(0);
+   if (find_atlas_space_index(space_name) >= 0) return(1);
+   return(0);
+}
+
 /* print list of templates */
-void
-print_template_list(ATLAS_TEMPLATE_LIST *xtl)
+void print_template_list(ATLAS_TEMPLATE_LIST *xtl)
 {
    int i;
    ATLAS_TEMPLATE *xt;
@@ -1205,7 +1266,7 @@ calc_xform_list(ATLAS_XFORM_LIST *xfl)
    char *source, *dest;
    ATLAS_XFORM_LIST *cxfl;
 
-   if(debug_niml)
+   if(wami_verb() > 1)
       printf("calculating xform list\n");   
    if(xfl==NULL)
       return(NULL);
@@ -1230,16 +1291,16 @@ calc_xform_list(ATLAS_XFORM_LIST *xfl)
    cxfl = (ATLAS_XFORM_LIST *)calloc(1,sizeof(ATLAS_XFORM_LIST));
    if(cxfl==NULL)
       ERROR_exit("Could not allocate space for condensed xform list\n");
-   cxfl->xform =  (ATLAS_XFORM *)  malloc((xfl->nxforms)*sizeof(ATLAS_XFORM));
+   cxfl->xform =  (ATLAS_XFORM *)  calloc((xfl->nxforms),sizeof(ATLAS_XFORM));
    if(cxfl->xform==NULL)
       ERROR_exit("Could not allocate space for condensed xform list xforms\n");
 
    cxfl->nxforms = 0;
-   if(debug_niml)
+   if(wami_verb() > 1)
       printf("starting to combine xforms\n");
    /* only one xform, just go home */
    if(xfl->nxforms==1){
-      if(debug_niml)
+      if(wami_verb() > 1)
          printf("only 1 xform\n");
       cxfl->nxforms = 1;
       cc = copy_xform(xfl->xform, cxfl->xform);
@@ -1256,7 +1317,7 @@ calc_xform_list(ATLAS_XFORM_LIST *xfl)
          xf->source = source;
          xf->dest = dest;
          sl1 = strlen(xf->source); sl2 = strlen(xf->dest);
-         xf->xform_name = (char *) malloc((sl1+sl2+3)*sizeof(char));
+         xf->xform_name = (char *) calloc((sl1+sl2+3),sizeof(char));
          sprintf(xf->xform_name, "%s::%s", xf->source, xf->dest);
       }
       return(cxfl);
@@ -1264,7 +1325,7 @@ calc_xform_list(ATLAS_XFORM_LIST *xfl)
    /* do calculations on xforms a pair at a time */
    xf = xfl->xform;
    for(i=0;i<nxf;i++) {
-      if(debug_niml)
+      if(wami_verb() > 1)
          printf("xf %d with xf %d\n", i, i+1);
 
       xf2 = xfl->xform+i+1;
@@ -1279,7 +1340,7 @@ calc_xform_list(ATLAS_XFORM_LIST *xfl)
       else
          source = nifti_strdup(xf->source);
 
-      if(debug_niml)
+      if(wami_verb() > 1)
         INFO_message("Multiplying %s type with %s type in chain\n", xf->xform_type,
           xf2->xform_type);
 
@@ -1291,36 +1352,37 @@ calc_xform_list(ATLAS_XFORM_LIST *xfl)
          xf3->source = source;
          xf3->dest = dest;
          sl1 = strlen(xf3->source); sl2 = strlen(xf3->dest);
-         xf3->xform_name = (char *) malloc((sl1+sl2+3)*sizeof(char));
+         xf3->xform_name = (char *) calloc((sl1+sl2+3),sizeof(char));
          sprintf(xf3->xform_name, "%s::%s", xf3->source, xf3->dest);
 
          if(i==(nxf-1)){
-            if(debug_niml)
+            if(wami_verb() > 1)
                printf(
                  "On last xform, copying last combined xform"
                  " to combined xform list\n");
             cc = copy_xform(xf3, cxfl->xform+(cxfl->nxforms));
             cxfl->nxforms++;
-            if(debug_niml){
+            if(wami_verb() > 1){
                print_xform(xf3);
                xf = xf3;
                print_xform(xf);
               }
             }
          else{
-            if(debug_niml)
+            if(wami_verb() > 1)
                printf("could combine xform %d with %d\n", i, i+1);
             xf = xf3; cc = 0;
 /*            cc = copy_xform(xf3, xf); */ /* use combined xform for next pair */
-            if(debug_niml)
+            if(wami_verb() > 1)
                print_xform(xf);
 
          }
 
       }
       else {
-         if(debug_niml)
-            printf("could not calculate this combination of xforms - adding to chain\n");
+         if(wami_verb() > 1)
+            printf("could not calculate this combination of xforms "
+                   "- adding to chain\n");
          cc = copy_xform(xf, cxfl->xform+(cxfl->nxforms));
          cxfl->nxforms++;
          if((cc==0)&&(i<nxf-1))
@@ -1352,7 +1414,7 @@ calc_xform_list(ATLAS_XFORM_LIST *xfl)
       free(xf->xform_name);
       xf->dest = dest;
       sl1 = strlen(source); sl2 = strlen(dest);
-      xf->xform_name = (char *) malloc((sl1+sl2+3)*sizeof(char));
+      xf->xform_name = (char *) calloc((sl1+sl2+3),sizeof(char));
       sprintf(xf->xform_name, "%s::%s", xf->source, xf->dest);
    }
 #endif
@@ -1370,12 +1432,12 @@ calc_xf(ATLAS_XFORM *xf, ATLAS_XFORM *xf2)
    ATLAS_XFORM *xf3;
    int cc;
 
-/*   if(debug_niml)
+/*   if(wami_verb() > 1)
       INFO_message("Multiplying %s type with %s type\n", xf->xform_type,
       xf2->xform_type);
 */
    
-   xf3 = malloc(sizeof(ATLAS_XFORM));
+   xf3 = calloc(1,sizeof(ATLAS_XFORM));
    if(xf3==NULL)
       return(NULL);
    invert_xform(xf);   /* possibly need to invert transform */
@@ -1400,16 +1462,16 @@ calc_xf(ATLAS_XFORM *xf, ATLAS_XFORM *xf2)
    }
 
 
-   if(debug_niml)
+   if(wami_verb() > 1)
       INFO_message("Multiplying %s type with %s type\n", xf->xform_type,
       xf2->xform_type);
    if(strcmp(xf->xform_type,"Affine")==0){
       if(strcmp(xf2->xform_type,"Affine")==0){
          cc = affine_mult(xf,xf2,xf3);
-         if(debug_niml)
+         if(wami_verb() > 1)
             INFO_message("combining two affine matrices\n");
          if(cc!=0) {
-             if(debug_niml)
+             if(wami_verb() > 1)
                INFO_message("could not combine two affine matrices\n");
 
              return(NULL);
@@ -1691,10 +1753,11 @@ x12piece_12piece_mult(ATLAS_XFORM *xf,
 
 /* apply xform to xyz */
 int
-apply_xform_general(ATLAS_XFORM *xf, float x,float y,float z, \
+apply_xform_general(ATLAS_XFORM *xf, float x,float y,float z, 
                         float *xout, float *yout, float *zout)
 {
    int xgc = 1;
+   /* INFO_message("xform_type:%s", xf->xform_type); */
    if(strcmp(xf->xform_type,"Affine")==0){
       xgc = apply_xform_affine(xf, x, y, z, xout, yout, zout);
    }
@@ -1786,7 +1849,7 @@ apply_xform_affine(ATLAS_XFORM *xf, float x, float y, float z, \
   xform to the coordinate transformed by the first affine xform.
 */
 int
-apply_xform_2piece(ATLAS_XFORM *xf, float x, float y, float z, \
+apply_xform_2piece(ATLAS_XFORM *xf, float x, float y, float z, 
                                     float *xout, float *yout, float *zout)
 {
    float *xfptr;
@@ -1920,115 +1983,6 @@ apply_xform_brett_mni2tt(float x, float y, float z, \
    return(0);
 }
 
-#if 0
-      int N_Neighb_Max = 5; /* max number of neighbors a node can have*/
-      int N_Node = 7;
-      int N_Neighb[7];
-      int N_np=4;
-      int np[4][2];
-
-      int *nPath=NULL, N_n=0;
-      float nDistance=0.0;
-      /* fill number of neighbors for nodes 0 to 6 */
-      ii=0;
-      
-      
-      
-      N_Neighb[ii++] = 4;      
-      N_Neighb[ii++] = 2;
-      N_Neighb[ii++] = 3;
-      N_Neighb[ii++] = 2;
-      N_Neighb[ii++] = 2;
-      N_Neighb[ii++] = 0;
-      N_Neighb[ii++] = 1;
-      
-      /* fill neighborhood (edges) and distances */
-      FirstNeighb = (int **)calloc(N_Node, sizeof(int*));
-      FirstNeighbDist = (float **)calloc(N_Node, sizeof(float*));
-      for (ii=0; ii<7;++ii) {
-         FirstNeighb[ii] = (int *)calloc(N_Neighb_Max, sizeof(int)); 
-         FirstNeighbDist[ii] = (float *)calloc(N_Neighb_Max, sizeof(float)); 
-      }
-      FirstNeighb[0][0]=2;    FirstNeighbDist[0][0]=1.0; /*1st neighb of node 0*/
-      FirstNeighb[0][1]=1;    FirstNeighbDist[0][1]=1.0; /*2nd neighb of node 0*/
-      FirstNeighb[0][2]=4;    FirstNeighbDist[0][2]=5.0; /*3rd neighb of node 0*/
-      FirstNeighb[0][3]=6;    FirstNeighbDist[0][3]=2.0; /* ... */
-
-      FirstNeighb[1][0]=0;    FirstNeighbDist[1][0]=1.0; /*1st neighb of node 1*/
-      FirstNeighb[1][1]=2;    FirstNeighbDist[1][1]=2.0; /*2nd neighb of node 1*/
-      
-      FirstNeighb[2][0]=1;    FirstNeighbDist[2][0]=2.0; 
-      FirstNeighb[2][1]=3;    FirstNeighbDist[2][1]=1.0;
-      FirstNeighb[2][2]=0;    FirstNeighbDist[2][2]=1.0;
-   
-      FirstNeighb[3][0]=4;    FirstNeighbDist[3][0]=2.0;
-      FirstNeighb[3][1]=2;    FirstNeighbDist[3][1]=1.0;
-   
-      FirstNeighb[4][0]=3;    FirstNeighbDist[4][0]=2.0;
-      FirstNeighb[4][1]=0;    FirstNeighbDist[4][1]=5.0;
-      
-      FirstNeighb[5][0]=-1;   /* not necessary, but to emphasize */
-      
-      FirstNeighb[6][0]=0;    FirstNeighbDist[6][0]=2.0;
-      
-      if (!(fpout = fopen(prefix,"w"))) {
-         fprintf(stderr,"** Error: Failed to open %s for writing.\n", prefix);
-         exit(1);
-      }
-      fprintf(fpout, 
-               "#Paths between nodes\n"
-               "#Col. 0: Total number of nodes in path\n"
-               "#    0 for no path\n"
-               "#Col. 1: Distance\n"
-               "#    -1 for no path\n"
-               "#Col. 2: First node\n"
-               "#Col. last: Last node\n");
-      
-      /* Now get the shortest distance between some nodes pairs*/
-      ii=0;
-      np[ii][0] = 0; np[ii][1] = 4; ++ii;  /* from node 0 to node 4 */
-      np[ii][0] = 6; np[ii][1] = 5; ++ii;  /* from node 6 to node 5 */
-      np[ii][0] = 1; np[ii][1] = 2; ++ii;  /* from node 1 to node 2 */
-      np[ii][0] = 3; np[ii][1] = 3; ++ii;  /* from node 1 to node 2 */
-      /* work  the node pairs */
-      fprintf(fout, "#Internodal distance along graph \n");
-      fprintf(fout, "#%-6s %-6s %-6s\n",
-                    "From" , "to", "Dist." );
-      for (ii=0; ii < N_np; ++ii) {
-         if ( !(nPath = SUMA_Dijkstra_generic ( 
-                           7, 
-                           NULL, -1, 0,
-                           N_Neighb, FirstNeighb, FirstNeighbDist,
-                           np[ii][0], np[ii][1], 
-                           NULL, NULL, 
-                           1, 
-                           &nDistance, &N_n, 0)) ) {
-            nDistance = -1.0;
-            if (fpout) fprintf(fpout, "0 -1.0 %d %d\n", np[ii][0], np[ii][1]);
-         } else {
-            if (fpout) {
-               fprintf(fpout, "%d %.2f ", N_n, nDistance);
-               for(kk=0; kk<N_n; ++kk) 
-                  fprintf(fpout, 
-                           "%d ", 
-                           nPath[kk]); 
-               fprintf(fpout, "\n");
-            }
-            free(nPath); nPath = NULL;
-         }
-      
-         fprintf(fout, " %-6d %-6d %-4.2f\n", 
-                       np[ii][0], np[ii][1], nDistance);
-      }
-      
-      fprintf(stderr,"See file %s for full output\n", prefix);
-      
-      if (fpout) fclose(fpout); fpout=NULL;
-      
-    return(0);
-}
-
-#endif
 
 /* read xform from NIML attributes into xform_struct */
 int atlas_read_xform(NI_element *nel, ATLAS_XFORM *atlas_xf)
@@ -2037,7 +1991,7 @@ int atlas_read_xform(NI_element *nel, ATLAS_XFORM *atlas_xf)
    int i;
    char *sptr;
 
-   if(debug_niml) {
+   if(wami_verb() > 2) {
       INFO_message("xform_name %s", NI_get_attribute(nel, "xform_name"));
       INFO_message("xform_type %s", NI_get_attribute(nel, "xform_type"));
       INFO_message("xform source %s", NI_get_attribute(nel, "source"));
@@ -2085,16 +2039,17 @@ int atlas_read_xform(NI_element *nel, ATLAS_XFORM *atlas_xf)
    atlas_xf->nelts = nel->vec_num;
    atlas_xf->inverse = 0;
    
-   atlas_xf->xform = malloc(nel->vec_num * sizeof(float));
+   atlas_xf->xform = calloc(nel->vec_num, sizeof(float));
    if(atlas_xf->xform == NULL) {
       WARNING_message("Could not allocate transformation");
       return(1);
    }
 
   for(i=0;i<nel->vec_num;i++){
-     memcpy((char *)(atlas_xf->xform)+i*sizeof(float), nel->vec[i], sizeof(float));
+     memcpy((char *)(atlas_xf->xform)+i*sizeof(float), 
+            nel->vec[i], sizeof(float));
   }
-  if(debug_niml)
+  if(wami_verb() > 2)
       print_xform(atlas_xf);
    return(0);
 }
@@ -2102,16 +2057,18 @@ int atlas_read_xform(NI_element *nel, ATLAS_XFORM *atlas_xf)
 /* read template info from NIML attributes into template structure */
 int atlas_read_template(NI_element *nel, ATLAS_TEMPLATE *atlas_tpl)
 {
-   if(debug_niml) {
-      INFO_message("atlas_template %s", NI_get_attribute(nel, "template_name"));
-      INFO_message("templ_space %s", NI_get_attribute(nel, "atlas_space"));
+   if(wami_verb() > 2) {
+      INFO_message("template_name %s", NI_get_attribute(nel, "template_name"));
+      INFO_message("templ_space %s", NI_get_attribute(nel, "template_space"));
    }
 
-   atlas_tpl->atlas_template = nifti_strdup(NI_get_attribute(nel, "template_name")); 
-   atlas_tpl->atlas_space = nifti_strdup(NI_get_attribute(nel, "atlas_space"));
+   atlas_tpl->atlas_template = 
+      nifti_strdup(NI_get_attribute(nel, "template_name")); 
+   atlas_tpl->atlas_space = 
+      nifti_strdup(NI_get_attribute(nel, "template_space"));
 
    if((atlas_tpl->atlas_template == NULL) || (atlas_tpl->atlas_space == NULL)) {
-      WARNING_message("Could not allocate template strings");
+      WARNING_message("Could not get template strings");
       return(1);
    }
 
@@ -2121,26 +2078,45 @@ int atlas_read_template(NI_element *nel, ATLAS_TEMPLATE *atlas_tpl)
 /* read atlas info from NIML attributes into atlas structure */
 int atlas_read_atlas(NI_element *nel, ATLAS *atlas)
 {
-   if(debug_niml) {
+   char *s;
+   
+   if (ATL_DSET(atlas) || atlas->adh || atlas->atlas_name) {
+      ERROR_message("Unclean atlas structure.");
+      return(1);
+   }
+   if(wami_verb() > 2) {
       INFO_message("atlas_name %s", NI_get_attribute(nel, "atlas_name"));
-      INFO_message("atlas_space %s", NI_get_attribute(nel, "atlas_space"));
+      INFO_message("atlas_space %s", NI_get_attribute(nel, "template_space"));
    }
 
-   atlas->atlas_dset_name = nifti_strdup(NI_get_attribute(nel, "atlas_name")); 
-   atlas->atlas_space = nifti_strdup(NI_get_attribute(nel, "atlas_space"));
+   /* initialize the atlas fields */
+   atlas->atlas_name = NULL;
+   atlas->atlas_dset_name = NULL;
+   atlas->atlas_comment = NULL;
+   atlas->atlas_description = NULL;
 
+   if ((s=NI_get_attribute(nel, "dset_name")))
+      atlas->atlas_dset_name = nifti_strdup(s); 
+   if ((s=NI_get_attribute(nel, "template_space"))) 
+      atlas->atlas_space = nifti_strdup(s);
+   if ((s=NI_get_attribute(nel,"atlas_name"))) 
+      atlas->atlas_name = nifti_strdup(s);
+   if ((s=NI_get_attribute(nel,"description"))) 
+      atlas->atlas_description = nifti_strdup(s);
    if((atlas->atlas_dset_name == NULL) || (atlas->atlas_space == NULL)) {
-      WARNING_message("Could not allocate atlas strings");
+      WARNING_message("bad atlas nel");
       return(1);
    }
 
+   atlas->adh = NULL;
+   
    return(0);
 }
 
 /* read template space info from NIML attributes into template space structure */
 int atlas_read_atlas_space(NI_element *nel, ATLAS_SPACE *at_space)
 {
-   if(debug_niml) {
+   if(wami_verb() > 2) {
       INFO_message("space_name %s", NI_get_attribute(nel, "space_name"));
       INFO_message("generic_space %s", NI_get_attribute(nel, "generic_space"));
    }
@@ -2164,13 +2140,12 @@ NI_element *NI_find_next_element(NI_stream ns, char *name)
  
    nel = (NI_element *) 1;
    while(nel) {
-fprintf(stderr,"reading elements\n");   
       nel = NI_read_element(ns, 100);
       if(nel) {
-         fprintf(stderr,"nel name %s\n", nel->name);
+         if (wami_verb()>2) fprintf(stderr,"nel name %s\n", nel->name);
          if (nel->type == NI_ELEMENT_TYPE) {
             if(strcmp(name, nel->name) == 0) {
-               fprintf(stderr, "name matches \n");
+               if (wami_verb()>2) fprintf(stderr, "name matches \n");
                return(nel);
             }
          }      
@@ -2180,61 +2155,62 @@ fprintf(stderr,"reading elements\n");
 }
 
 /* convert some of the atlas lists that are hard-coded in AFNI to NIML tables */
-void
-AFNI_atlas_list_to_niml()
+void AFNI_atlas_list_to_niml()
 {
    ATLAS_POINT_LIST *temp_apl;
-
-/*    if(debug_niml)
-      INFO_message("Converting TTO_list to atlas_point_list");
-   temp_apl = AFNI_atlas_list_to_atlas_point_list(TTO_list, TTO_COUNT);
+   
+   INFO_message("This is a debugging function. Not for regular use.");
+   
+/*    if(wami_verb() > 1)
+      INFO_message("Converting TTO_list_HARD to atlas_point_list");
+   temp_apl = AFNI_atlas_list_to_atlas_point_list(TTO_list_HARD, TTO_COUNT_HARD);
    adjust_atlas_point_list(temp_apl, "Left", 200);
 
-   if(debug_niml){
+   if(wami_verb() > 1){
       print_atlas_point_list(temp_apl);
-      INFO_message("NIMLizing TTO_list");
+      INFO_message("NIMLizing TTO_list_HARD");
    }
-   atlas_list_to_niml(temp_apl, "TT_atlas.niml", TTO_COUNT);
-   if(debug_niml)
+   atlas_list_to_niml(temp_apl, "TT_atlas.niml", TTO_COUNT_HARD);
+   if(wami_verb() > 1)
       INFO_message("Freeing the atlas_point_list");
    free_atlas_point_list(temp_apl);
  */
-   if(debug_niml)
-      INFO_message("Converting CA_EZ_list to atlas_point_list");
-   temp_apl = AFNI_atlas_list_to_atlas_point_list(CA_EZ_list, CA_EZ_COUNT);
+   if(wami_verb() > 2)
+      INFO_message("Converting CA_EZ_list_HARD to atlas_point_list");
+   temp_apl = AFNI_atlas_list_to_atlas_point_list(CA_EZ_list_HARD, CA_EZ_COUNT_HARD);
 
-   if(debug_niml){
+   if(wami_verb() > 1){
       print_atlas_point_list(temp_apl);
-      INFO_message("NIMLizing CA_EZ_list");
+      INFO_message("NIMLizing CA_EZ_list_HARD");
    }
-   atlas_list_to_niml(temp_apl, "CA_EZ_atlas.niml", CA_EZ_COUNT);
-   if(debug_niml)
+   atlas_list_to_niml(temp_apl, "CA_EZ_atlas.niml", CA_EZ_COUNT_HARD);
+   if(wami_verb() > 1)
       INFO_message("Freeing the atlas_point_list");
    free_atlas_point_list(temp_apl);
 /* 
-   if(debug_niml)
-      INFO_message("Converting ML_EZ_list to atlas_point_list");
-   temp_apl = AFNI_atlas_list_to_atlas_point_list(ML_EZ_list, ML_EZ_COUNT);
+   if(wami_verb() > 1)
+      INFO_message("Converting ML_EZ_list_HARD to atlas_point_list");
+   temp_apl = AFNI_atlas_list_to_atlas_point_list(ML_EZ_list_HARD, ML_EZ_COUNT_HARD);
 
-   if(debug_niml){
+   if(wami_verb() > 1){
       print_atlas_point_list(temp_apl);
-      INFO_message("NIMLizing ML_EZ_list");
+      INFO_message("NIMLizing ML_EZ_list_HARD");
    }
-   atlas_list_to_niml(temp_apl, "ML_EZ_atlas.niml", ML_EZ_COUNT);
-   if(debug_niml)
+   atlas_list_to_niml(temp_apl, "ML_EZ_atlas.niml", ML_EZ_COUNT_HARD);
+   if(wami_verb() > 1)
       INFO_message("Freeing the atlas_point_list");
    free_atlas_point_list(temp_apl);
 
-   if(debug_niml)
-      INFO_message("Converting LR_EZ_list to atlas_point_list");
-   temp_apl = AFNI_atlas_list_to_atlas_point_list(LR_EZ_list, LR_EZ_COUNT);
+   if(wami_verb() > 1)
+      INFO_message("Converting LR_EZ_list_HARD to atlas_point_list");
+   temp_apl = AFNI_atlas_list_to_atlas_point_list(LR_EZ_list_HARD, LR_EZ_COUNT_HARD);
 
-   if(debug_niml){
+   if(wami_verb() > 1){
       print_atlas_point_list(temp_apl);
-      INFO_message("NIMLizing LR_EZ_list");
+      INFO_message("NIMLizing LR_EZ_list_HARD");
    }
-   atlas_list_to_niml(temp_apl, "LR_EZ_atlas.niml", LR_EZ_COUNT);
-   if(debug_niml)
+   atlas_list_to_niml(temp_apl, "LR_EZ_atlas.niml", LR_EZ_COUNT_HARD);
+   if(wami_verb() > 1)
       INFO_message("Freeing the atlas_point_list");
    free_atlas_point_list(temp_apl);
 
@@ -2246,18 +2222,17 @@ AFNI_atlas_list_to_niml()
    for( kk=strlen(lbuf)-1 ; kk > 0 && lbuf[kk] == ch ; kk-- )    \
       lbuf[kk] = '\0' ;                  /* trim trailing .'s */ \
 }
-static ATLAS_POINT_LIST *
-AFNI_atlas_list_to_atlas_point_list(ATLAS_POINT *afni_at_pts, int npts)
+static ATLAS_POINT_LIST * AFNI_atlas_list_to_atlas_point_list(
+                                 ATLAS_POINT *afni_at_pts, int npts)
 {
   ATLAS_POINT *temp_atp;
   ATLAS_POINT_LIST *apl;
   int i;
 
   ENTRY("AFNI_atlas_list_to_atlas_point_list");
-  apl = (ATLAS_POINT_LIST *) malloc(sizeof(ATLAS_POINT_LIST));
+  apl = (ATLAS_POINT_LIST *) calloc(1,sizeof(ATLAS_POINT_LIST));
   apl->n_points = npts;
-  apl->dset = NULL; /* no dataset associated with the atlas point list yet */
-  apl->at_point = (ATLAS_POINT *) malloc(npts*sizeof(ATLAS_POINT));
+  apl->at_point = (ATLAS_POINT *) calloc(npts,sizeof(ATLAS_POINT));
   for(i=0;i<npts;i++){
      /* copy AFNI point value to new atlas point list structure */
      temp_atp = apl->at_point+i;
@@ -2271,7 +2246,7 @@ AFNI_atlas_list_to_atlas_point_list(ATLAS_POINT *afni_at_pts, int npts)
      TRIM_STRING(temp_atp->name, '.');
      NI_strncpy(temp_atp->dsetpref,afni_at_pts[i].dsetpref,ATLAS_CMAX);
      TRIM_STRING(temp_atp->dsetpref, '.');
-     if(debug_niml){
+     if(wami_verb() > 1){
         INFO_message("atlas_point %d %s\n", afni_at_pts[i].tdval, 
                       afni_at_pts[i].name);
         INFO_message("atlas_point %d %s temp\n", temp_atp->tdval, 
@@ -2296,7 +2271,7 @@ atlas_list_to_niml(ATLAS_POINT_LIST *atp, char *atlas_file, int n_regions)
 
    ENTRY("atlas_list_to_niml");
 
-   if(debug_niml) 
+   if(wami_verb() > 1) 
       INFO_message("opening %s", atlas_file);   
    sprintf(filestr, "file:%s", atlas_file);
    atlas_niml = NI_stream_open(filestr,"w");
@@ -2335,8 +2310,7 @@ atlas_list_to_niml(ATLAS_POINT_LIST *atp, char *atlas_file, int n_regions)
 
 /* adjust the point values in an atlas list by a fixed amount if the name */
 /* of the structure starts with the specified match string - case insensitive*/
-static void
-adjust_atlas_point_list(ATLAS_POINT_LIST *atp, char *match_str, float addval)
+static void adjust_atlas_point_list(ATLAS_POINT_LIST *atp, char *match_str, float addval)
 {
    /* this function was written for adjusting the TT_daemon values to be unique
       previously left and right regions shared the same value */
@@ -2347,7 +2321,7 @@ adjust_atlas_point_list(ATLAS_POINT_LIST *atp, char *match_str, float addval)
 
    for(i=0;i<atp->n_points;i++) {
       at_pt = atp->at_point+i;
-      if((strcasestr(at_pt->name, match_str))){
+      if((strstr(at_pt->name, match_str))){
          at_pt->tdval = at_pt->tdval + addval;
       }
    }
@@ -2477,7 +2451,7 @@ niml_to_atlas_list(ATLAS_POINT_LIST *atp, char *atlas_file)
 
    ENTRY("niml_to_atlas_list");
 
-   if(debug_niml) 
+   if(wami_verb() > 1) 
       INFO_message("opening atlas niml file %s",atlas_file);   
    sprintf(filestr, "file:%s", atlas_file);
    atlas_niml = NI_stream_open(filestr,"r");
@@ -2516,7 +2490,7 @@ niml_to_atlas_list(ATLAS_POINT_LIST *atp, char *atlas_file)
      at_pt->xx = cog[0];
      at_pt->yy = cog[1];
      at_pt->zz = cog[2];
-     if(debug_niml)
+     if(wami_verb() > 1)
         fprintf(stderr,"Decoded:\n"
                     "STRUCT: %s\n"
                     "OKEY: %d\n"
