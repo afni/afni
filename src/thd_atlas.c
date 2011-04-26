@@ -1712,11 +1712,16 @@ apply_xform_chain(ATLAS_XFORM_LIST *xfl, float x, float y, float z,
 {
 
    int i, nxf, xgc;
-   float xxout, yyout, zzout;
+   float xxout=0.0, yyout=0.0, zzout=0.0;
    ATLAS_XFORM * xf;
-        
-   nxf = xfl->nxforms;
    
+   *xout = xxout;
+   *yout = yyout;
+   *zout = zzout;
+
+   if(!xfl || !xfl->xform) return(0);
+       
+   nxf = xfl->nxforms;
    if(nxf==0) return(0);
    
    for(i=0;i<nxf;i++) {
@@ -1787,7 +1792,7 @@ apply_xform_2piece(ATLAS_XFORM *xf, float x, float y, float z,
    0       1.02962 -0.05154   0
    0       0.0595194  1.18892   0 
    */
-   if(xf->xform==NULL) return(1);
+   if(!xf || xf->xform==NULL) return(1);
 
    xfptr = xf->xform;
    /* change input coords to lpi if xform defined that way (RAI input)*/
@@ -1797,7 +1802,11 @@ apply_xform_2piece(ATLAS_XFORM *xf, float x, float y, float z,
 
    /* If this is a pre transformation, check the x,y,z limits. 
       If xyz > limit, use the second transformation */
-   if(xf->prepost==0){
+   if (wami_verb()) {
+ERROR_message( "Daniel, this one is broken, just to be sure you notice this\n"
+           "It put the 0 in the if statement to keep it from getting applied");
+   }
+   if(0 && xf->prepost==0){
       lx = *xfptr++; ly = *xfptr++; lz = *xfptr++;
       if(lx > -9998) {
          if(x>lx)
