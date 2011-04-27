@@ -520,6 +520,7 @@ int powell_newuoa_constrained( int ndim, double *x, double *cost ,
    return ntot ;
 }
 
+#if 0
 /*---------------------------------------------------------------------------*/
 
 static int POW_gcd( int m , int n )    /* Euclid's Greatest Common Denominator */
@@ -641,3 +642,4 @@ int powell_newuoa_nested( int ndim , int nper , int pstep , double *x ,
 
    return qnum ;  /* number of function calls */
 }
+#endif
