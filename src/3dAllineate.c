@@ -1164,7 +1164,8 @@ int main( int argc , char *argv[] )
         "                 cost functional is m*N+a, where N is the number\n"
         "                 of parameters being optimized.  The default values\n"
         "                 are m=2 and a=3.  Larger values will probably slow\n"
-        "                 the program down for no good reason.\n"
+        "                 the program down for no good reason.  The smallest\n"
+        "                 values are 1.\n"
         " -target ttt   = Same as '-source ttt'.  In the earliest versions,\n"
         "                 what I now call the 'source' dataset was called the\n"
         "                 'target' dataset:\n"
@@ -1769,6 +1770,8 @@ int main( int argc , char *argv[] )
        if( ++iarg >= argc-1 ) ERROR_exit("no arguments after '%s' :-(",argv[iarg-1]) ;
        powell_mm = (float)strtod(argv[iarg++],NULL) ;
        powell_aa = (float)strtod(argv[iarg++],NULL) ;
+       if( powell_mm < 1.0f ) powell_mm = 1.0f ;
+       if( powell_aa < 1.0f ) powell_aa = 1.0f ;
        continue ;
      }
 

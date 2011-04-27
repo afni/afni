@@ -43,6 +43,10 @@ static double *sxmin = NULL ;  /* smallest allowed value */
 static double *sxsiz = NULL ;  /* sxmin+sxsize = largest allowed value */
 static double *sx    = NULL ;  /* temp space to store scaled values */
 
+static int      mapx = 0    ;  /* if > 0, number of total parameters */
+static double *mapar = NULL ;  /* array holding all parameters */
+static int    *mapin = NULL ;  /* index array for mapping */
+
 /*---------------------------------------------------------------------------*/
 
 /*! Pointer to user-supplied function that does actual work in calfun_(). */
@@ -63,6 +67,11 @@ int calfun_(integer *n, doublereal *x, doublereal *fun)
 
      val = userfun( (int)(*n) , sx ) ;           /* input = scaled x[] */
 
+   } else if( mapx ){      /* in this case, the parameters given as input */
+     int ii ;              /* are just a subset of all the parameters, so */
+                           /* we must expand the array to the full size.  */
+     for( ii=0 ; ii < *n ; ii++ ) mapar[mapin[ii]] = x[ii] ;
+     val = userfun( mapx , mapar ) ;
    } else {
 
      val = userfun( (int)(*n) , (double *)x ) ;  /* input = unscaled x[] */
@@ -509,4 +518,126 @@ int powell_newuoa_constrained( int ndim, double *x, double *cost ,
    free((void *)x01val); free((void *)x01); free((void *)w) ;
 
    return ntot ;
+}
+
+/*---------------------------------------------------------------------------*/
+
+static int POW_gcd( int m , int n )    /* Euclid's Greatest Common Denominator */
+{
+  while( m > 0 ){
+    if( n > m ){ int t=m; m=n; n=t; } /* swap */
+    m -= n ;
+  }
+  return n ;
+}
+
+/*---------------------------------------------------------------------------*/
+
+static int POW_find_relprime_fixed( int n )  /* find number relatively prime to n */
+{
+   int dj , n5=n/5 ;
+   if( n5 < 2 ) return 1 ;
+   for( dj=3 ; POW_gcd(n,dj) > 1 ; dj++ ) ; /*nada*/
+   return dj ;
+}
+
+/*---------------------------------------------------------------------------*/
+/*! Driver for Powell's general purpose minimization newuoa function:
+    - ndim   = number of variables in function to be minimized
+    - nper   = number to be minimized per round of nesting
+    - pstep  = step in parameter index to use
+    - x      = array [ndim] of variables (input and output)
+    - rstart = size of initial search region around initial value of x
+    - rend   = size of final search region = desired accuracy
+    - maxcall = max number of times to call ufunc
+    - ufunc   = function to minimize: inputs are number of variables (n)
+                and current array of variables (x) at which to evaluate
+
+    Return value is number of function calls to ufunc actually done.
+    If return is negative, something bad happened.
+
+    MJD Powell, "The NEWUOA software for unconstrained optimization without
+    derivatives", Technical report DAMTP 2004/NA08, Cambridge University
+    Numerical Analysis Group -- http://www.damtp.cam.ac.uk/user/na/reports.html
+------------------------------------------------------------------------------*/
+
+int powell_newuoa_nested( int ndim , int nper , int pstep , double *x ,
+                          double rstart , double rend ,
+                          int maxcall , double (*ufunc)(int,double *) )
+{
+   integer n , npt , icode , maxfun ;
+   doublereal rhobeg , rhoend , rfac , *w , *xloc ;
+   int ii , qnum , qloop ;
+
+   /* check inputs */
+
+   if( ndim < 1                         ) return -2 ;
+   if( x == NULL                        ) return -3 ;
+   if( rstart < rend || rstart <= 1.e-4 ) return -4 ;
+   if( ufunc == NULL                    ) return -5 ;
+
+   if( nper < 2 ){
+     if( ndim <= 100 ){
+       nper = ndim ;
+     } else {
+       nper = ndim / 5 ; if( nper > 100 ) nper = 100 ;
+     }
+   }
+   if( nper >= ndim ){
+     icode = powell_newuoa( ndim,x,rstart,rend,maxcall,ufunc ) ;
+     return icode ;
+   }
+   if( pstep <= 0 || pstep >= ndim ){
+     pstep = POW_find_relprime_fixed(ndim) ;
+   } else if( pstep > 1 ){
+     for( ; POW_gcd(pstep,ndim) > 1 ; pstep++ ) ; /*nada*/
+   }
+
+   if( rend    <= 0.0        ) rend    = 1.e-2 * rstart ;
+   if( maxcall <  99+27*ndim ) maxcall = 99+27*ndim ;
+
+   mapx  = ndim ;
+   mapar = (double *)malloc(sizeof(double)*ndim) ;
+   mapin = (int *)   malloc(sizeof(int)   *nper) ;
+   xloc  = (double *)malloc(sizeof(double)*nper) ;
+   for( ii=0 ; ii < ndim ; ii++ ) mapar[ii] = x[ii] ;
+
+   n      = nper ;
+   npt    = (int)(mfac*n+afac) ; if( npt < n+2   ) npt = n+2 ;
+   icode  = (n+1)*(n+2)/2      ; if( npt > icode ) npt = icode ;
+   maxfun = 13*nper+1 ;
+
+   rhobeg = (doublereal)rstart ;
+   rhoend = (doublereal)rend   ;
+
+   icode   = (npt+14)*(npt+n) + 3*n*(n+3)/2 + 6666 ;
+   w       = (doublereal *)malloc(sizeof(doublereal)*icode) ; /* workspace */
+   icode   = 0 ;
+   userfun = ufunc ;
+   scalx   = 0 ;
+
+   qnum = 0 ; mapin[nper-1] = -pstep ;
+   rfac = pow( 0.8 , nper/(double)ndim ) ;
+
+   do{
+
+     mapin[0] = (mapin[nper-1] + pstep) % ndim ;
+     for( ii=1 ; ii < nper ; ii++ ) mapin[ii] = (mapin[ii-1]+pstep) % ndim ;
+     for( ii=0 ; ii < nper ; ii++ ) xloc[ii] = mapar[mapin[ii]] ;
+
+     /* do the local work: best params are put back into xloc[] */
+
+     (void)newuoa_( &n , &npt , (doublereal *)xloc ,
+                    &rhobeg , &rhoend , &maxfun , w , &icode ) ;
+
+     for( ii=0 ; ii < nper ; ii++ ) mapar[mapin[ii]] = xloc[ii] ;
+     qnum += icode ; rhobeg *= rfac ;
+
+   } while( qnum < maxcall ) ;
+
+   for( ii=0 ; ii < ndim ; ii++ ) x[ii] = mapar[ii] ;
+
+   free(w) ; free(xloc) ; free(mapin) ; free(mapar) ;
+
+   return qnum ;  /* number of function calls */
 }

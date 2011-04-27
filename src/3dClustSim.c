@@ -896,13 +896,13 @@ int find_largest_cluster_NN2( byte *mmm , int ithr )
 
        if( im >= 0 ){  CPUT(im,jj,kk) ;
          if( jm >= 0 ) CPUT(im,jm,kk) ;  /* 2NN */
-         if( jp < nx ) CPUT(im,jp,kk) ;  /* 2NN */
+         if( jp < ny ) CPUT(im,jp,kk) ;  /* 2NN */
          if( km >= 0 ) CPUT(im,jj,km) ;  /* 2NN */
          if( kp < nz ) CPUT(im,jj,kp) ;  /* 2NN */
        }
        if( ip < nx ){  CPUT(ip,jj,kk) ;
          if( jm >= 0 ) CPUT(ip,jm,kk) ;  /* 2NN */
-         if( jp < nx ) CPUT(ip,jp,kk) ;  /* 2NN */
+         if( jp < ny ) CPUT(ip,jp,kk) ;  /* 2NN */
          if( km >= 0 ) CPUT(ip,jj,km) ;  /* 2NN */
          if( kp < nz ) CPUT(ip,jj,kp) ;  /* 2NN */
        }
@@ -976,7 +976,7 @@ int find_largest_cluster_NN3( byte *mmm , int ithr )
 
        if( im >= 0 ){  CPUT(im,jj,kk) ;
          if( jm >= 0 ) CPUT(im,jm,kk) ;  /* 2NN */
-         if( jp < nx ) CPUT(im,jp,kk) ;  /* 2NN */
+         if( jp < ny ) CPUT(im,jp,kk) ;  /* 2NN */
          if( km >= 0 ) CPUT(im,jj,km) ;  /* 2NN */
          if( kp < nz ) CPUT(im,jj,kp) ;  /* 2NN */
          if( jm >= 0 && km >= 0 ) CPUT(im,jm,km) ;  /* 3NN */
@@ -986,7 +986,7 @@ int find_largest_cluster_NN3( byte *mmm , int ithr )
        }
        if( ip < nx ){  CPUT(ip,jj,kk) ;
          if( jm >= 0 ) CPUT(ip,jm,kk) ;  /* 2NN */
-         if( jp < nx ) CPUT(ip,jp,kk) ;  /* 2NN */
+         if( jp < ny ) CPUT(ip,jp,kk) ;  /* 2NN */
          if( km >= 0 ) CPUT(ip,jj,km) ;  /* 2NN */
          if( kp < nz ) CPUT(ip,jj,kp) ;  /* 2NN */
          if( jm >= 0 && km >= 0 ) CPUT(ip,jm,km) ;  /* 3NN */

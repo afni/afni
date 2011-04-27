@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 20 , APR , 2011 , RWC , "afni" , MICRO , TYPE_GENERAL ,
+  { 27 , APR , 2011 , RWC , "3dClustSim" , MICRO , TYPE_BUG_FIX ,
+   "Fixed nx!=ny error in NN2 and NN3 clusterization" ,
+   NULL } ,
+
+ { 20 , APR , 2011 , RWC , "afni" , MICRO , TYPE_GENERAL ,
    "Boxed graphs: displace upwards by 9 pixels" ,
    "So that smallest graph box doesn't have zero height, which looks goofy.\n"
    "Also, change 'current time point' indicator to be a little bigger." } ,
