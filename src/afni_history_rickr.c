@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 28, APR, 2011, RCR, "uber_subject.py", MINOR, TYPE_NEW_OPT,
+   "reconcile LUS.py with LS.py in prep for uber_align_test.py",
+   NULL
+ } ,
+
  { 28, APR, 2011, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "added -align_epi_strip_method",
    NULL

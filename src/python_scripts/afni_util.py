@@ -21,13 +21,14 @@ def change_path_basename(orig, prefix, suffix):
     return "%s/%s%s" % (head, prefix, suffix)
 
 # write text to a file
-def write_text_to_file(fname, text, mode='w', wrap=0, wrapstr='\n'):
+def write_text_to_file(fname, text, mode='w', wrap=0, wrapstr='\n', exe=0):
     """write the given text to the given file
           fname   : file name to write (or append) to
           text    : text to write
           mode    : optional write mode 'w' or 'a' [default='w']
           wrap    : optional wrap flag [default=0]
           wrapstr : optional wrap string: if wrap, apply this string
+          exe     : whether to make file executable
 
        return 0 on success, 1 on error
     """
@@ -49,7 +50,9 @@ def write_text_to_file(fname, text, mode='w', wrap=0, wrapstr='\n'):
 
     fp.write(text)
 
-    if fname != 'stdout' and fname != 'stderr': fp.close()
+    if fname != 'stdout' and fname != 'stderr':
+       fp.close()
+       if exe: os.chmod(fname, 0755)
 
     return 0
 
@@ -1474,6 +1477,76 @@ def common_dir(flist):
    """return the directory name that is common to all files"""
    dir, junk = first_last_match_strs(flist)
    return os.path.dirname(dir)
+
+def common_parent_dirs(flists):
+   """return parent directories
+
+      flists = lists of file names (each element should be a list)
+
+      return:
+         top_dir    (common to all parents (files), '' if not used)
+         parent_dir (for each flist, common parent)
+         short_dir  (for each flist, common parent under top_dir)
+         short_name (for each flist, file names under parent dirs)
+
+      if top_dir has at least 2 levels, use it
+   """
+   if type(flists) != list:
+      print '** common_parent_dirs: bad flists type'
+      return None
+   for ind, flist in enumerate(flists):
+      if type(flist) != list:
+         print '** common_parent_dirs: bad flist[%d] type' % ind
+         return None, None, None, None
+
+   # get top_dir and parents
+   all_pars    = []
+   par_dirs    = []
+   short_names = []
+   for flist in flists:
+      # track parent dirs
+      parent = common_dir(flist)
+      if parent.count('/') <= 1: parent = ''
+      par_dirs.append(parent)
+
+      # and make short names
+      plen = len(parent)
+      if plen > 0: start = plen+1
+      else:        start = 0
+      short_names.append([fname[start:] for fname in flist])
+
+   # top is common to all parents
+   top_dir = common_dir(par_dirs)
+   if top_dir.count('/') <= 1:
+       top_dir = ''
+
+   # now get all short dir names, under top dir
+   if top_dir == '': short_dirs = par_dirs
+   else: short_dirs = [child_dir_name(top_dir, pdir) for pdir in par_dirs]
+
+   return top_dir, par_dirs, short_dirs, short_names
+
+def child_dir_name(parent, child):
+   """return the child directory name truncated under the parent"""
+   if parent == '' or child == '': return child
+   plen = len(parent)
+   clen = len(child)
+
+   if child[0:plen] != parent: return child     # not a proper child
+
+   # return everything after separator
+   if clen < plen + 2: return '.'               # trivial as child
+   else:               return child[plen+1:]    # remove parent portion
+
+def is_trivial_dir(dname):
+   """input a string
+      return 1 if dname is empty or '.'
+      else return 0
+   """
+   if dname == None: return 1
+   if dname == '' or dname == '.' or dname == './' : return 1
+
+   return 0
 
 # ----------------------------------------------------------------------
 # mathematical functions:
