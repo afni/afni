@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 28, APR, 2011, RCR, "uber_align_test.py", MAJOR, TYPE_NEW_PROG,
+   "for testing EPI/anat alignment with various align_epi_anat.py options",
+   "This is a command-line version, with a GUI to come soon."
+ } ,
+
  { 28, APR, 2011, RCR, "uber_subject.py", MINOR, TYPE_NEW_OPT,
    "reconcile LUS.py with LS.py in prep for uber_align_test.py",
    NULL
