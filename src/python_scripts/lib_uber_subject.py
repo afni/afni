@@ -114,9 +114,12 @@ g_history = """
            each signal as an attribute (use QtCore.SIGNAL(sig_name))
          - no SaveAs QKeySequence in older version?
     0.20 Apr 11, 2011 : fixed lost warnings for no sid/gid
+    0.21 Apr 19, 2011 : moved set_var_str_from_def to lib_subjects for now
+    0.22 Apr 28, 2011 : mostly prep of library for uber_align.py
+         - moved many functions to lib_subjects or afni_util.py
 """
 
-g_version = '0.20 (April 11, 2011)'
+g_version = '0.22 (April 28, 2011)'
 
 # ----------------------------------------------------------------------
 # global definition of default processing blocks
@@ -299,79 +302,42 @@ class AP_Subject(object):
 
       if self.cvars.verb>0: print '++ writing afni_proc.py command to %s'%name
 
-      # if requiested, make an original copy
-      self.goto_subj_dir()              # if set
+      # if requested, make an original copy
+      self.LV.retdir = SUBJ.goto_proc_dir(self.cvars.subj_dir)
       if self.cvars.copy_scripts == 'yes': # make an orig copy
-         UTIL.write_text_to_file('.orig.%s'%name, self.ap_command)
-      rv = UTIL.write_text_to_file(name, self.ap_command)
-      self.ret_from_subj_dir()  # if set
-         
+         UTIL.write_text_to_file('.orig.%s'%name, self.ap_command, exe=1)
+      rv = UTIL.write_text_to_file(name, self.ap_command, exe=1)
+      self.LV.retdir = SUBJ.ret_from_proc_dir(self.LV.retdir)
+
       return rv
-
-   def goto_subj_dir(self):
-      """if cvars.subj_dir is set
-            - if subj_dir does not exist, create it
-            - set LV.retdir and cd
-         (should be called 'atomically' with ret_from_subj_dir)"""
-      self.LV.retdir = ''  # init to no return
-      # if subj_dir is not worth pondering, bail
-      if not self.cvars.is_non_trivial_dir('subj_dir'): return
-      sdir = self.cvars.subj_dir
-
-      retdir = os.getcwd()
-
-      # if the directory does not yet exist, create it
-      if not os.path.isdir(sdir):
-         try: os.makedirs(sdir)
-         except:
-            print '** failed makedirs(%s)' % sdir
-            return
-
-      # now try to go there
-      try: os.chdir(sdir)
-      except:
-         self.LV.retdir = ''
-         print '** failed to go to subject dir, %s' % sdir
-         return
-
-      self.LV.retdir = retdir   # only set on success
-
-   def ret_from_subj_dir(self):
-      """if cvars.subj_dir and LV.retdir are set, cd to LV.retdir
-         (should be called 'atomically' with goto_subj_dir)"""
-
-      # if subj_dir or retdir are useless, bail
-      if not self.cvars.is_non_trivial_dir('subj_dir'): return
-      if self.LV.retdir == '' or self.LV.retdir == '.': return
-
-      try: os.chdir(self.LV.retdir)
-      except:
-         print '** failed to return to %s from subject dir' % self.LV.retdir
-
-      self.LV.retdir = ''       # either way, nuke old var
 
    def exec_ap_command(self):
       """execute the script rvars.file_ap, if set
          - return status and command output
       """
 
-      self.goto_subj_dir() # ---------- do the work ----------
-
       pfile = self.rvars.val('file_ap')
       ofile = self.rvars.val('output_ap')
+
+      # check if the ap script file is set and exists
       if not pfile:
          return 1, '** no file set as afni_proc.py command'
-      elif not os.path.isfile(pfile):
+      elif not SUBJ.proc_dir_file_exists(self.cvars.subj_dir, pfile):
          return 1, '** afni_proc.py script not found: %s' % pfile
 
+      # make the command
       if ofile: cstr = 'tcsh %s |& tee %s' % (pfile, ofile)
       else:     cstr = 'tcsh %s' % pfile
 
-      if self.cvars.verb > 0:
-         print "++ executing: %s" % cstr
+      # ---------- do the work ----------
+      self.LV.retdir = SUBJ.goto_proc_dir(self.cvars.subj_dir)
+
+      if self.cvars.verb > 0: print "++ executing: %s" % cstr
+
       cmd = BASE.shell_com('tcsh -c "%s"' % cstr, capture=1)
       cmd.run()
-      self.ret_from_subj_dir()
+      self.LV.retdir = SUBJ.ret_from_proc_dir(self.LV.retdir)
+      # ---------- done ----------
 
       # possibly make a backup file
       if self.cvars.copy_scripts == 'yes': self.copy_orig_proc()
@@ -391,20 +357,24 @@ class AP_Subject(object):
          return status and command output
       """
 
-      self.nuke_old_results()   # nuke any old results
-
-      self.goto_subj_dir() # ---------- do the work ----------
-
+      # check if the proc script is set and exists
       pfile = self.rvars.file_proc
       ofile = self.rvars.output_proc
       if not pfile: 
          return 1, '** proc script file not set'
-      elif not os.path.isfile(pfile):
+      elif not SUBJ.proc_dir_file_exists(self.cvars.subj_dir, pfile):
          return 1, '** proc script not found: %s' % pfile
 
-      # execute script
+      # make the command
       if ofile: cstr = 'tcsh -xef %s |& tee %s' % (pfile, ofile)
       else:     cstr = 'tcsh -xef %s' % (pfile)
+
+      self.nuke_old_results()   # nuke any old results
+
+      # ------------------------- do the work -------------------------
+      self.LV.retdir = SUBJ.goto_proc_dir(self.cvars.subj_dir)
+
+      # execute script
       print '++ executing: %s' % cstr
 
       capture = 0       # init as output to terminal
@@ -416,7 +386,8 @@ class AP_Subject(object):
       cmd = BASE.shell_com(cstr, capture=capture)
       cmd.run()
 
-      self.ret_from_subj_dir() # ---------- done ----------
+      self.LV.retdir = SUBJ.ret_from_proc_dir(self.LV.retdir)
+      # ------------------------- done -------------------------
 
       return cmd.status, '\n'.join(cmd.so)
 
@@ -425,13 +396,15 @@ class AP_Subject(object):
 
       if self.rvars.results_dir == '': return
 
-      self.goto_subj_dir()      # ---------- do the work ----------
+      # ------------------------- do the work -------------------------
+      self.LV.retdir = SUBJ.goto_proc_dir(self.cvars.subj_dir)
       
       if os.path.isdir(self.rvars.results_dir):
          print '-- nuking old results: %s' % self.rvars.results_dir
          os.system('rm -fr %s' % self.rvars.results_dir)
 
-      self.ret_from_subj_dir()  # ---------- done ----------
+      self.LV.retdir = SUBJ.ret_from_proc_dir(self.LV.retdir)
+      # ------------------------- done -------------------------
 
 
    def copy_orig_proc(self):
@@ -439,13 +412,15 @@ class AP_Subject(object):
       if self.rvars.file_proc == '': return
       pfile = self.rvars.file_proc
 
-      self.goto_subj_dir()      # if set
+      # ------------------------- do the work -------------------------
+      self.LV.retdir = SUBJ.goto_proc_dir(self.cvars.subj_dir)
       if os.path.isfile(pfile):
          cmd = 'cp -f %s .orig.%s' % (pfile, pfile)
          if self.cvars.verb > 1: print '++ exec: %s' % cmd
          os.system(cmd)
       elif self.cvars.verb > 1: print "** no proc '%s' to copy" % pfile
-      self.ret_from_subj_dir()  # if set
+      self.LV.retdir = SUBJ.ret_from_proc_dir(self.LV.retdir)
+      # ------------------------- done -------------------------
 
    def script_ap_nuke_last_LC(self, cmd):
       """Find last useful character (not in {space, newline, '\\'}).
@@ -1066,33 +1041,21 @@ class AP_Subject(object):
 
       # if we have error messages, return them
       if len(self.errors) > 0:
-         return 1, self.make_message_list_string(self.errors, "errors")
+         return 1, SUBJ.make_message_list_string(self.errors, "errors")
 
       return 0, self.ap_command
 
    def get_ap_warnings(self):
       """return the number of warnings and a warnings string"""
       return len(self.warnings), \
-             self.make_message_list_string(self.warnings, "warnings")
+             SUBJ.make_message_list_string(self.warnings, "warnings")
 
-   def make_message_list_string(self, mlist, title):
-      if len(mlist) == 0: return ''
-      mesg = ''
-      for ind, mm in enumerate(mlist):
-         if ind == 0: mesg += mm
-         else:        mesg += ('\n' + mm)
-      return mesg
-
-   def subj_dir_filename(self, fname):
+   def subj_dir_filename(self, vname):
       """file is either fname or subj_dir/fname (if results is set)
-         fname : results file variable
+         vname : results file variable (must convert to fname)
       """
-      dir = self.cvars.val('subj_dir')
-      fname = self.rvars.val(fname)
-      if fname == None or fname == '': return None
-      # if no directory, just use fname, else append it to directory
-      if dir == None or dir == '' or dir == '.': return fname
-      else:                                      return '%s/%s' % (dir, fname)
+      fname = self.rvars.val(vname)
+      return self.cvars.file_under_dir('subj_dir', fname)
 
 def get_dir_and_glob_form(flist):
    """return the common directory and glob form string of a list"""
@@ -1261,17 +1224,11 @@ def ap_command_from_svars(svars, cvars):
 
    return status, wstr, mesg
 
-def update_vars_from_special(obj, name, vars, check_sort=0):
-   """call one of the updates based on obj"""
-   if   obj == 'svars': update_svars_from_special(name, vars, check_sort)
-   elif obj == 'cvars': update_cvars_from_special(name, vars, check_sort)
-   else: print '** ULIB,UVFS: unknown obj type %s' % obj
-
 def update_cvars_from_special(name, cvars, check_sort=0):
    """nothing special to do here yet"""
    return 0
 
-def set_var_str_from_def(obj, name, vlist, vars, verb=1, spec=0, csort=1):
+def set_vstr_from_def(obj, name, vlist, vars, verb=1, spec=0, csort=1):
    """try to set name = value based on vlist
         (just set as string)
       if name is not known by the defaults, return failure
@@ -1281,129 +1238,18 @@ def set_var_str_from_def(obj, name, vlist, vars, verb=1, spec=0, csort=1):
       return 1 on change, 0 on unchanged, -1 on error
    """
 
-   if   obj == 'svars': defs = g_subj_defs
-   elif obj == 'cvars': defs = g_ctrl_defs
+   if obj == 'svars':
+      defs = g_subj_defs
+      sfunc = update_svars_from_special
+   elif obj == 'cvars':
+      defs = g_ctrl_defs
+      sfunc = update_cvars_from_special
    else:
-      print '** set_var_str_from_def: invalid obj name: %s' % obj
+      print '** set_vstr_from_def: invalid obj name: %s' % obj
       return -1
 
-   if not defs.valid(name):
-      print '** invalid %s variable: %s' % (obj, name)
-      return -1
-
-   dtype = type(defs.val(name))
-   if dtype not in SUBJ.g_valid_atomic_types:
-      print '** unknown %s variable type for %s' % (obj, name)
-      return -1
-
-   # if simple type but have list, fail
-   if dtype != list and len(vlist) > 1:
-      print "** have list for simple type, name='%s', dtype=%s, list=%s" \
-            % (name, dtype, vlist)
-      return -1
-
-   # ----------------------------------------
-   # try to apply the value (list)
-
-   val = None
-
-   # process only simple int, float, str and strlist
-   if defs.has_simple_type(name): val = vlist[0]
-   elif dtype == list: # another easy case
-      val = vlist
-   else:
-      print '** set_var_str_from_def: unprocessed type %s for %s'%(dtype,name)
-      return -1
-
-   # actually set the value
-   rv = vars.set_var(name, val)
-   if verb > 1:
-      if rv: print '++ %s: updating %s to %s %s' % (obj, name, val, type(val))
-      else:  print '++ %s: no update for %s to %s' % (obj, name, val)
-
-   # if no update, we're outta here
-   if rv == 0: return rv
-
-   # ----------------------------------------------------------------------
-   # handle some special cases, such as indices and labels, which might
-   # come with file name lists
-
-   if spec: update_vars_from_special(obj, name, vars, check_sort=csort)
-
-   return rv
-
-def UNUSED_set_var_from_def(obj, name, vlist, vars, verb=1, spec=0, csort=1):
-   """try to set name = value based on vlist
-      if name is not known by the defaults, return failure
-
-      if spec: update_vars_from_special(csort)
-
-      return 1 on change, 0 on unchanged, -1 on error
-   """
-
-   if   obj == 'svars': defs = g_subj_defs
-   elif obj == 'cvars': defs = g_ctrl_defs
-   else:
-      print '** set_var_from_def: invalid obj name: %s' % obj
-      return -1
-
-   if not defs.valid(name):
-      print '** invalid %s variable: %s' % (obj, name)
-      return -1
-
-   dtype = type(defs.val(name))
-   if dtype not in SUBJ.g_valid_atomic_types:
-      print '** unknown %s variable type for %s' % (obj, name)
-      return -1
-
-   # if simple type but have list, fail
-   if dtype != list and len(vlist) > 1:
-      print "** have list for simple type, name='%s', dtype=%s, list=%s" \
-            % (name, dtype, vlist)
-      return -1
-
-   # ----------------------------------------
-   # try to apply the value (list)
-
-   val = None
-
-   # process only simple int, float, str and strlist
-   if dtype == int:
-      try: val = int(vlist[0])
-      except:
-         print "** failed to set %s %s to int value from '%s'" \
-               % (obj, name,vlist[0])
-         return -1
-   elif dtype == float:
-      try: val = float(vlist[0])
-      except:
-         print "** failed to set %s %s to float value from '%s'" \
-               % (obj, name, vlist[0])
-         return -1
-   elif dtype == str: # easy case
-      val = vlist[0]
-   elif dtype == list: # another easy case
-      val = vlist
-   else:
-      print '** set_var_from_def: unprocessed type %s for %s' % (dtype, name)
-      return -1
-
-   # actually set the value
-   rv = vars.set_var(name, val)
-   if verb > 1:
-      if rv: print '++ %s: updating %s to %s %s' % (obj, name, val, type(val))
-      else:  print '++ %s: no update for %s to %s' % (obj, name, val)
-
-   # if no update, we're outta here
-   if rv == 0: return rv
-
-   # ----------------------------------------------------------------------
-   # handle some special cases, such as indices and labels, which might
-   # come with file name lists
-
-   if spec: update_vars_from_special(obj, name, vars, check_sort=csort)
-
-   return rv
+   return SUBJ.set_var_str_from_def(obj, name, vlist, vars, defs=defs,
+                                    verb=verb, csort=csort, spec=sfunc)
 
 def update_svars_from_special(name, svars, check_sort=0):
    """in special cases, a special svar might need updates, and might suggest
@@ -1515,26 +1361,37 @@ helpstr_todo = """
                         todo list:  
 
 - change print statements to LOG statements
-   - optionally store to pass up to GUI
+   - optionally store to pass up to GUI (maybe start applying APSubj.status)
    - GUI could process (display as html?) and clear log
    - maybe register callback function to let GUI know?
 - reconcile 'anat has skull' between align and tlrc options
+- make 3dAutomask default method for EPI in aea?  NO
 - help buttons for expected and extra regress options
 - does tcsh exist?
 - make UberInterface class in uber_subject.py?
 - more verb output
 - group box : choose blocks
-   - alt: fix order, given choices of to do or not?
+   - display 2 methods, method 1 is grayed when 2 is not empty
+   1. list of toggle boxes showing all standard blocks (what about copy_anat?)
+   2. text edit field to simply type list of blocks
 
 - allow stim_file regressors and labels
-- add range error checking for many variables
+- add range error checking for many variables?
   (types are done when converting from str)
 - be able to change font (individual windows?  whole GUI?)
-   - ctrl/shift/+ and ctrl/- to increase and decrease size?
+   - no, that should be controllable through desktop environment
+- think about how to pass subject info back up to uber_proc.py
+   - maybe keep list of AP_Subject instances in UProc
+      - maintain state: INIT_AP, INIT_PROC, TERMINATED, COMPLETE, INSANITY
+- uber_proc.py:
+   - be able to generate looping script for AP commands
+     (process an entire list of INIT_PROC subjects?)
 
 tools (maybe put in uber_proc.py, instead):
    - compute average blur
    - plot regressors of interest (run xmat_tool.py or ExamineXmat?)
+   - test alignment (uber_align_test.py - give 'afni' command to cut-n-paste?)
+   - help to create and play with stimulus timing design (sug by A Barbey)
 ---------------------------------------------------------------------------
 """
 
