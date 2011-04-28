@@ -2,7 +2,7 @@ print("#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 print("          ================== Welcome to 1dSVAR.R ==================          ")
 print("AFNI Structural Vector Auto-Regressive (SVAR) Modeling Package!")
 print("#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-print("Version 0.0.1,  Sept. 29, 2010")
+print("Version 0.0.2,  April. 28, 2011")
 print("Author: Gang Chen (gangchen@mail.nih.gov)")
 print("Website: http://afni.nimh.nih.gov/sscc/gangc/SVAR.html")
 print("SSCC/NIMH, National Institutes of Health, Bethesda MD 20892")
@@ -1122,6 +1122,11 @@ for (ii in 1:nGrp) {  # Fisher tranformation not done since it doesn't seem to m
       pathSEList[[ii]] <- mapply("/", pathList[[ii]], pathTList[[ii]], SIMPLIFY = FALSE)  # calculate stand. error
       zMat[[ii]] <- do.call(rbind, lapply(lapply(pathList[[ii]], as.matrix), c))  # convert to matrix
       zSEMat[[ii]] <- do.call(rbind, lapply(lapply(pathSEList[[ii]], as.matrix), c)) # convert se to matrix
+
+   # force NaNs to be a big number: 1e8
+      zSEMat[[ii]] <- matrix(mapply(function(x) ifelse(is.nan(x), 1e+8, x), zSEMat[[ii]]), nrow=nSubjs[ii], ncol=dim(zMat[[ii]])[2])
+      
+      
       runMeta <- TRUE
 #      print("-----------------") 
 #      DF[[ii]] <- as.integer(readline(sprintf("Degrees of freedom for the t-statistics in group %s? ", ii)))
