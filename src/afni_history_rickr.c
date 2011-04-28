@@ -49,9 +49,14 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 28, APR, 2011, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "added -align_epi_strip_method",
+   NULL
+ } ,
+
  { 25, APR, 2011, RCR, "Imon", MINOR, TYPE_MODIFY,
    "Imon is getting phased out of the distribution (see 'Dimon -use_imon')",
-   NULL
+   "Requires compiling alterations to be put back in (if anyone wants it)."
  } ,
 
  { 25, APR, 2011, RCR, "plug_realtime", MINOR, TYPE_ENHANCE,
