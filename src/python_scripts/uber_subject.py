@@ -55,6 +55,7 @@ Examples:
       uber_subject.py -help_gui
       uber_subject.py -hist
       uber_subject.py -show_valid_opts
+      uber_subject.py -show_default_vars
       uber_subject.py -todo
 
    Non-GUI examples (all have -no_gui):
@@ -80,6 +81,7 @@ def get_valid_opts():
    vopts.add_opt('-help_gui', 0, [], helpstr='show help for GUI')
    vopts.add_opt('-help_install', 0, [], helpstr='show install notes')
    vopts.add_opt('-hist', 0, [], helpstr='show revision history')
+   vopts.add_opt('-show_default_vars',0,[],helpstr='show variable defaults')
    vopts.add_opt('-show_valid_opts',0,[],helpstr='show all valid options')
    vopts.add_opt('-ver', 0, [], helpstr='show module version')
 
@@ -131,6 +133,11 @@ def process_options(valid_opts, argv):
 
    if '-hist' in sys.argv:
       print USUBJ.g_history
+      return 1, None, None, None
+
+   if '-show_default_vars' in sys.argv:
+      USUBJ.g_ctrl_defs.show('default cvars :')
+      USUBJ.g_subj_defs.show('default svars :')
       return 1, None, None, None
 
    if '-show_valid_opts' in sys.argv:
