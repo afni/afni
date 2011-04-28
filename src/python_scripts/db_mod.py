@@ -221,6 +221,13 @@ def db_mod_align(block, proc, user_opts):
     bopt = block.opts.find_opt('-align_epi_ext_dset')
     if bopt: proc.align_ebase = bopt.parlist[0]
 
+    # maybe adjust EPI skull stripping method
+    uopt = user_opts.find_opt('-align_epi_strip_method')
+    bopt = block.opts.find_opt('-align_epi_strip_method')
+    if uopt and not bopt: 
+       block.opts.add_opt('-align_epi_strip_method', 1, uopt.parlist, setpar=1)
+    elif uopt and bopt: bopt.parlist = uopt.parlist
+
     block.valid = 1
 
 # align anat to epi -> anat gets _al suffix to its prefix
@@ -248,6 +255,11 @@ def db_cmd_align(proc, block):
             return     # error message is printed
         basevol = proc.prev_prefix_form(rind+1, view=1)
 
+    # check for EPI skull strip method
+    opt = block.opts.find_opt('-align_epi_strip_method')
+    if opt and opt.parlist: essopt = "       -epi_strip %s \\\n"%opt.parlist[0]
+    else:                   essopt = ""
+
     # add any user-specified options
     opt = block.opts.find_opt('-align_opts_aea')
     if opt and opt.parlist: extra_opts = "       %s \\\n" % \
@@ -258,12 +270,12 @@ def db_cmd_align(proc, block):
     cmd =       '# %s\n'                                        \
                 '# align anatomy to EPI registration base\n'    \
                 % block_header('align')
-    cmd = cmd + 'align_epi_anat.py -anat2epi \\\n'                      \
-                '       -anat %s \\\n'                                  \
-                '       -epi %s \\\n'                                   \
+    cmd = cmd + 'align_epi_anat.py -anat2epi -anat %s \\\n'             \
+                '       -epi %s -epi_base %d \\\n'                      \
                 '%s'                                                    \
-                '       -epi_base %d -volreg off -tshift off\n\n'       \
-                % (proc.anat.pv(), basevol, extra_opts, bind)
+                '%s'                                                    \
+                '       -volreg off -tshift off\n\n'                    \
+                % (proc.anat.pv(), basevol, bind, essopt, extra_opts)
 
     # store alignment matrix file for possible later use
     proc.a2e_mat = "%s_al_mat.aff12.1D" % proc.anat.prefix
@@ -4560,6 +4572,22 @@ g_help_string = """
             Please see "align_epi_anat.py -help" for more information.
             Please see "3dAllineate -help" for more information.
 
+        -align_epi_strip_method METHOD : specify EPI skull strip method in AEA
+
+                e.g. -align_epi_strip_method 3dAutomask
+                default: 3dSkullStrip
+
+            When align_epi_anat.py is used to align the EPI and anatomy, it
+            uses 3dSkullStrip to remove non-brain tissue from the EPI dataset.
+            This option can be used to specify which method to use, one of
+            3dSkullStrip, 3dAutomask or None.
+
+            This option assumes the 'align' processing block is used.
+
+            Please see "align_epi_anat.py -help" for more information.
+            Please see "3dSkullStrip -help" for more information.
+            Please see "3dAutomask -help" for more information.
+
         -volreg_align_e2a       : align EPI to anatomy at volreg step
 
             This option is used to align the EPI data to match the anatomy.
@@ -4653,6 +4681,36 @@ g_help_string = """
             which may be used for multiple 3dvolreg options.
 
             Please see '3dvolreg -help' for more information.
+
+        -volreg_no_extent_mask  : do not create and apply extents mask
+
+                default: apply extents mask
+
+            This option says not to create or apply the extents mask.
+
+            The extents mask:
+
+            When EPI data is transformed to the anatomical grid in either orig
+            or tlrc space (i.e. if -volreg_align_e2a or -volreg_tlrc_warp is
+            applied), then the complete EPI volume will only cover part of the
+            resulting volume space.  Worse than that, the coverage will vary
+            over time, as motion will alter the final transformation (remember
+            that volreg, EPI->anat and ->tlrc transformations are all combined,
+            to prevent multiple resampling steps).  The result is that edge
+            voxels will sometimes have valid data and sometimes not.
+
+            The extents mask is made from an all-1 dataset that is warped with
+            the same per-TR transformations as the EPI data.  The intersection
+            of the result is the extents mask, so that every voxel in the
+            extents mask has data at every time point.  Voxels that are not
+            are missing data from some or all TRs.
+
+            It is called the extents mask because it defines the 'bounding box'
+            of valid EPI data.  It is not quite a tiled box though, as motion
+            changes the location slightly, per TR.
+
+            See also -volreg_align_e2a, -volreg_tlrc_warp.
+            See also the 'extents' mask, in the "MASKING NOTE" section above.
 
         -volreg_regress_per_run : regress motion parameters from each run
 
