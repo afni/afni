@@ -117,6 +117,7 @@ g_history = """
     0.21 Apr 19, 2011 : moved set_var_str_from_def to lib_subjects for now
     0.22 Apr 28, 2011 : mostly prep of library for uber_align.py
          - moved many functions to lib_subjects or afni_util.py
+         - added option -show_default_vars
 """
 
 g_version = '0.22 (April 28, 2011)'
