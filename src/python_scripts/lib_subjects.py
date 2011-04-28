@@ -162,10 +162,21 @@ class VarsObject(object):
       return False
 
    def is_non_trivial_dir(self, atr):
-      """return true of atr is set to non-empty and not a '.'"""
-      if self.is_empty(atr):   return False
-      if self.val(atr) == '.': return False
-      return True
+      return not self.is_trivial_dir(atr)
+
+   def is_trivial_dir(self, atr):
+      """return true of atr is empty or '.'"""
+      if self.is_empty(atr): return True
+      val = self.val(atr)
+      if val == '.' or val == './': return True
+
+      return False
+
+   def file_under_dir(self, dname, fname):
+      """return fname or self.dname/fname (if dname is set and non-trivial)"""
+
+      if self.is_trivial_dir(dname): return fname
+      else:                          return '%s/%s' % (self.val(dname), fname)
 
    def vals_are_equal(self, atr, vobj):
       """direct comparison is okay for any valid atomic type
@@ -268,6 +279,34 @@ class VarsObject(object):
 
       return sstr
 
+def comment_section_string(comment, length=70, cchar='-'):
+   """return a string of the form:
+      # -------------- some comment --------------
+      where the total length is given
+   """
+   clen = len(comment)
+    
+   ndash = (length - clen - 4) / 2      # one '#' and 3 spaces
+
+   # if no space for multiple dashes, don't use any
+   if ndash < 2: return '# %s' % comment
+
+   dstr = cchar * ndash  # make one ------------- string
+
+   return '# %s %s %s\n' % (dstr, comment, dstr)
+
+def make_message_list_string(mlist, title):
+   if len(mlist) == 0: return ''
+   mesg = ''
+   for ind, mm in enumerate(mlist):
+      if ind == 0: mesg += mm
+      else:        mesg += ('\n' + mm)
+   return mesg
+
+# ===========================================================================
+# begin Subject stuff  (class should be rewritten to use VarsObject types)
+# ===========================================================================
+
 def subj_compare(subj0, subj1):
    """compare 2 Subject objects:        used for sorting a list of subjects
          if _sort_key is set, compare by key, then by sid
@@ -285,6 +324,120 @@ def subj_compare(subj0, subj1):
 
    if cval != 0: return subj0._order*cval
    return subj0._order*cmp(subj0.sid, subj1.sid)
+
+def set_var_str_from_def(obj, name, vlist, vars, defs,
+                         verb=1, csort=1, spec=None):
+   """try to set name = value based on vlist
+        (just set as string)
+      if name is not known by the defaults, return failure
+
+      if spec: update_vars_from_special(csort)
+
+      This function will generally be called via a user interface library
+      or in the user interface itself.  Since we are setting variables as
+      string
+
+      return 1 on change, 0 on unchanged, -1 on error
+   """
+
+   if not defs.valid(name):
+      print '** invalid %s variable: %s' % (obj, name)
+      return -1
+
+   dtype = type(defs.val(name))
+   if dtype not in g_valid_atomic_types:
+      print '** SVSFD: unknown %s variable type for %s' % (obj, name)
+      return -1
+
+   # if simple type but have list, fail
+   if dtype != list and len(vlist) > 1:
+      print "** SVSFD: simple variable '%s' %s\n" \
+            "          but have list value: %s" % (name, dtype, vlist)
+      return -1
+
+   # ----------------------------------------
+   # try to apply the value (list)
+
+   val = None
+
+   # process only simple int, float, str and strlist
+   if defs.has_simple_type(name): val = vlist[0]
+   elif dtype == list:            val = vlist
+   else:
+      print '** SVSFD: invalid type %s for %s'%(dtype,name)
+      return -1
+
+   # check that the value can be properly converted (if simple type)
+   if defs.has_simple_type(name):
+      try: vv = dtype(val)
+      except:
+         print '** SVSFD %s.%s, cannot convert value %s to %s' \
+               (obj, name, val, dtype)
+         return -1
+
+   # actually set the value
+   rv = vars.set_var(name, val)
+   if verb > 1:
+      if rv: print '++ %s: updating %s to %s %s' % (obj, name, val, type(val))
+      else:  print '++ %s: no update for %s to %s' % (obj, name, val)
+
+   # if no update, we're outta here
+   if rv == 0: return rv
+
+   # ----------------------------------------------------------------------
+   # handle some special cases, such as indices and labels, which might
+   # come with file name lists
+
+   # this function must be passed, since it will vary per library
+
+   if spec != None: spec(name, vars, check_sort=csort)
+
+   return rv
+
+def goto_proc_dir(dname):
+   """ go to processing directory, returning return_dir
+        - if proc_dir does not exist, create it
+        - cd
+        - return ret_dir
+   """
+   if UTIL.is_trivial_dir(dname): return '' # nowhere to go
+
+   retdir = os.getcwd()                     # so need return directory
+
+   # if the directory does not yet exist, create it
+   if not os.path.isdir(dname):
+      try: os.makedirs(dname)
+      except:
+         print '** failed makedirs(%s)' % dname
+         return ''
+
+   # now try to go there
+   try: os.chdir(dname)
+   except:
+      print '** failed to go to process dir, %s' % dname
+      return ''
+
+   return retdir   # only returned on success
+
+def ret_from_proc_dir(rname):
+   """if retdir is set, cd to retdir
+      (should be called 'atomically' with goto_proc_dir)
+      return '', to use to clear previous return dir"""
+
+   # if retdir is useless, bail
+   if rname == None or rname == '' or rname == '.': return ''
+
+   try: os.chdir(rname)
+   except:
+      print '** failed to return to %s from process dir' % rname
+
+   return ''
+
+def proc_dir_file_exists(dname, fname):
+   if UTIL.is_trivial_dir(dname): pathname = fname
+   else:                          pathname = '%s/%s' % (dname, fname)
+
+   return os.path.isfile(pathname)
    
 class Subject(object):
    """a simple subject object holding an ID, dataset name, and an

@@ -160,7 +160,7 @@ def process_options(valid_opts, argv):
    if val != None and not err: verb = val
    else: verb = 1
 
-   USUBJ.set_var_str_from_def('cvars', 'verb', ['%d'%verb], cvars)
+   USUBJ.set_vstr_from_def('cvars', 'verb', ['%d'%verb], cvars)
 
    use_gui = 1 # assume GUI unless we hear otherwise
 
@@ -200,7 +200,7 @@ def process_options(valid_opts, argv):
          val, err = uopts.get_string_list('', opt=opt)
          if val != None and err: return -1, None, None, None
          # and set it from the form name = [value_list]
-         if USUBJ.set_var_str_from_def('cvars', val[0], val[1:],
+         if USUBJ.set_vstr_from_def('cvars', val[0], val[1:],
                                    cvars, verb=verb, spec=1) < 0:
             errs += 1
             continue
@@ -210,7 +210,7 @@ def process_options(valid_opts, argv):
          val, err = uopts.get_string_list('', opt=opt)
          if val == None or err: return -1, None, None, None
          # and set it from the form name = [value_list]
-         if USUBJ.set_var_str_from_def('svars', val[0], val[1:],
+         if USUBJ.set_vstr_from_def('svars', val[0], val[1:],
                                    svars, verb=verb, spec=1) < 0:
             errs += 1
             continue
@@ -272,7 +272,6 @@ def save_ap_command(svars, cvars, fname):
    subj, cmd = get_ap_command(svars, cvars)
    if subj.write_ap_command(fname=fname):
       print '** failed to write afni_proc.py command to disk'
-      return None
 
 def get_ap_command(svars, cvars):
    """return the subject and command string

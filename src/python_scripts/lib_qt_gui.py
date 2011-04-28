@@ -148,7 +148,6 @@ class TextWindow(QtGui.QMainWindow):
 
         stream = QtCore.QTextStream(fp)
         stream.setCodec("UTF-8")
-        print '-- reading file %s' % self.filename
         self.editor.setPlainText(stream.readAll())
         self.editor.document().setModified(False)
         fp.close()
