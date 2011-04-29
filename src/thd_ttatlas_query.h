@@ -281,7 +281,7 @@ ATLAS *Atlas_With_Trimming(char *atname, int LoadLRMask,
 int whereami_in_atlas(  char *aname, 
                         ATLAS_COORD ac, 
                         ATLAS_QUERY **wamip);
-char *atlas_key_label(ATLAS *atlas, int key);                                 
+char *atlas_key_label(ATLAS *atlas, int key, ATLAS_COORD *ac);
 char *prob_atlas_sb_to_label(ATLAS *atlas, int sb, int *key);
 byte is_probabilistic_atlas(ATLAS *atlas);
 byte is_integral_atlas(ATLAS *atlas);
