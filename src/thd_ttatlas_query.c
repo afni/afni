@@ -5136,7 +5136,7 @@ byte is_probabilistic_atlas(ATLAS *atlas) {
 
 /* return the label associated with a key, 
    see also Atlas_Val_Key_to_Val_Name */
-char *atlas_key_label(ATLAS *atlas, int key) {
+char *atlas_key_label(ATLAS *atlas, int key, ATLAS_COORD *ac) {
    char *klab = NULL;
    int ii;
    if( key != 0 ){            /* find label     */
@@ -5145,11 +5145,11 @@ char *atlas_key_label(ATLAS *atlas, int key) {
       }
       if( ii < MAX_ELM(atlas->adh->apl2) )  {          /* always true? */
          klab = atlas->adh->apl2->at_point[ii].name;
-         /* 
-            if( atcode == AFNI_TLRC_ATLAS) 
-               klab = AddLeftRight( NoLeftRight(atlas->adh->apl2->at_point[ii].name),
-                                 (ac.x<0.0)?'R':'L');
-         */
+         if( !strcmp(Atlas_Name(atlas),"TT_Daemon") && ac) {
+               klab = 
+                  AddLeftRight( NoLeftRight(atlas->adh->apl2->at_point[ii].name),
+                                 (ac->x<0.0)?'R':'L');
+         }
       }
    }
    return(klab);
@@ -5440,7 +5440,7 @@ int whereami_in_atlas(  char *aname,
 
          for( ff=0 ; ff < nfind ; ff++ ){
             baf = b_find[ff] ; blab = NULL ;
-            blab = atlas_key_label(atlas, baf);
+            blab = atlas_key_label(atlas, baf, &ac);
             if( blab == NULL && is_atlas_key_labeled(atlas, baf)) {
                WARNING_message(
                   "No label found for code %d in atlas %s\nContinuing...", 
@@ -5894,7 +5894,7 @@ int whereami_9yards(  ATLAS_COORD aci, ATLAS_QUERY **wamip,
 
             for( ff=0 ; ff < nfind ; ff++ ){
                baf = b_find[ff] ; blab = NULL ;
-               blab = atlas_key_label(atlas, baf);
+               blab = atlas_key_label(atlas, baf, &ac);
 
                if( blab == NULL && 
                    is_atlas_key_labeled(atlas,baf) ) {
