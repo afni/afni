@@ -4806,7 +4806,8 @@ int Init_Atlas_Dset_Holder(ATLAS *atlas)
    atlas->adh->minkeyval = 1000000;     
    atlas->adh->duplicateLRentries = 0; 
                  /* Are LR labels listed in atlas->adh->apl2->at_point and
-                 under the same code? (only case I know of is in TTO_list*/
+                 under the same code? 
+                  (only case I know of is in old  TTO_list ) */
    atlas->adh->apl2 = NULL;
    atlas->adh->build_lr = 0; 
                /* assume we do *not* need to figure out left,right*/
@@ -5145,7 +5146,7 @@ char *atlas_key_label(ATLAS *atlas, int key, ATLAS_COORD *ac) {
       }
       if( ii < MAX_ELM(atlas->adh->apl2) )  {          /* always true? */
          klab = atlas->adh->apl2->at_point[ii].name;
-         if( !strcmp(Atlas_Name(atlas),"TT_Daemon") && ac) {
+         if( atlas->adh->duplicateLRentries && ac ) {
                klab = 
                   AddLeftRight( NoLeftRight(atlas->adh->apl2->at_point[ii].name),
                                  (ac->x<0.0)?'R':'L');
