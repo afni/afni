@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 29, APR, 2011, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
+   "check that processing blocks are unique",
+   NULL
+ } ,
+
  { 28, APR, 2011, RCR, "uber_align_test.py", MAJOR, TYPE_NEW_PROG,
    "for testing EPI/anat alignment with various align_epi_anat.py options",
    "This is a command-line version, with a GUI to come soon."
