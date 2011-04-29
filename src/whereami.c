@@ -148,13 +148,20 @@ int print_atlas_reference(char *atname)
 {
    int i = 0, N_refs=0;
    char **refs=NULL;
-   
-   refs = atlas_reference_string_list(atname, &N_refs);
-   while (i < N_refs) {
-      printf("%s", PrettyRef(refs[i]));
-      ++i;
+   ATLAS *atlas;
+   atlas = Atlas_With_Trimming(atname, 1, NULL);
+   if (atlas && ATL_COMMENT(atlas)) {
+     print_atlas_comment(atlas);
    }
-   if (refs) refs = free_names_list(refs, N_refs);
+   else {
+     refs = atlas_reference_string_list(atname, &N_refs);
+     while (i < N_refs) {
+        printf("%s", PrettyRef(refs[i]));
+        ++i;
+     }
+     if (refs) refs = free_names_list(refs, N_refs);
+   }
+
    return(1);
 }
 
@@ -587,6 +594,12 @@ int main(int argc, char **argv)
                fprintf( stderr,
                         "** Error: Need parameter after -space\n"); return(1);
             }
+            /* use srcspace as is on commandline */
+            srcspace = argv[iarg];
+            if ( strcmp(argv[iarg],"Paxinos_Rat_2007@Elsevier")==0 )
+               srcspace = "paxinos_rat_2007@Elsevier";
+
+#ifdef KILLTHIS
             if (strcmp(argv[iarg],"MNI") == 0 || strcmp(argv[iarg],"mni") == 0) {
                mni = 1; 
             } else if (strcasecmp(argv[iarg],"MNI_ANAT") == 0){
@@ -597,12 +610,14 @@ int main(int argc, char **argv)
             } else if ( strcmp(argv[iarg],"Paxinos_Rat_2007@Elsevier")==0 ) {
                srcspace = "paxinos_rat_2007@Elsevier"; /* Just for testing now,
                                                           debugging only */
-            } else {
+            } 
+            else {
                fprintf(stderr,
                   "** Error: %s is invalid. Must use either MNI or TLRC\n", 
                   argv[iarg]);
                return(1);
             }
+#endif
             ++iarg;
             continue; 
          }
@@ -618,7 +633,7 @@ int main(int argc, char **argv)
                        argv[iarg]);
                return(1);
             } 
-            THD_get_space(space_dset); /* update space if necess*/
+            srcspace = THD_get_space(space_dset); /* update space if necess*/
 
             ++iarg;
             continue; 
@@ -971,7 +986,10 @@ int main(int argc, char **argv)
          print_all_xforms(cxfl);  /* print combined list transforms with data */
       }
       if(xform_xyz) {
+         if(!cxfl)
+            cxfl = calc_xform_list(xfl);
          apply_xform_chain(cxfl, xi, yi, zi, &xout, &yout, &zout);
+               
          printf("Coords in: %f, %f, %f -> Coords out: %f, %f, %f\n", 
                   xi,yi,zi,xout,yout,zout);
       }
@@ -1074,6 +1092,7 @@ int main(int argc, char **argv)
       exit(0);
    } 
 
+#if KILLTHIS
    if (mni == -1) {
       fprintf(stdout,
          "++ Input coordinates space set by default rules to TLRC\n");
@@ -1087,7 +1106,7 @@ int main(int argc, char **argv)
    } else {
       fprintf(stderr,"** Error: Should not happen!\n"); return(1);
    }
-   
+#endif
    
    atlas_alist = get_G_atlas_list(); /* get the whole atlas list */
    if (N_atlas_names == 0) {
@@ -1463,7 +1482,7 @@ int main(int argc, char **argv)
       }
 
       /* coords here are now in RAI */
-      
+#ifdef KILLTHIS      
       if (mni == 1) { /* go from mni to tlrc */
          LOAD_FVEC3( tv , -x, -y, z ) ;  /* next call expects input in MNI, LPI*/
          m = THD_mni_to_tta( tv );  /* m units are in RAI */
@@ -1486,7 +1505,7 @@ int main(int argc, char **argv)
          }
          x = m.xyz[0]; y = m.xyz[1]; z = m.xyz[2];
       }
-      
+#endif      
       #ifdef KILLTHIS /* Remove all old sections framed by #ifdef KILLTHIS
                   in the near future.  ZSS May 2011   */ 
       if (OldMethod) {
@@ -1549,8 +1568,11 @@ int main(int argc, char **argv)
            string = TT_whereami(x,y,z, 
                                 THD_get_space(space_dset), NULL);
          } else {
-           if (LocalHead) INFO_message("Calling tt_whereami with AFNI_TLRC_SPC");
-           string = TT_whereami(x,y,z, "TLRC", NULL);
+           if (!srcspace)
+              srcspace = TT_whereami_default_spc_name();
+           if (LocalHead) INFO_message("Calling tt_whereami with srcspace %s",
+              srcspace);
+           string = TT_whereami(x,y,z, srcspace, NULL);
          }
          if (string) fprintf(stdout,"%s\n", string);
          else fprintf(stdout,"whereami NULL string out.\n");

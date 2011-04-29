@@ -27,6 +27,7 @@ static ATLAS_SPACE_LIST *global_atlas_spaces=NULL;
 static ATLAS_XFORM_LIST *global_atlas_xfl=NULL;
 static ATLAS_LIST *global_atlas_alist=NULL;
 static ATLAS_TEMPLATE_LIST *global_atlas_templates=NULL;
+char *old_space_list[] = {"TLRC","MNI","MNI_ANAT"};
 
 ATLAS_SPACE_LIST *get_G_space_list(void) { 
    static int icall = 0;
@@ -89,12 +90,7 @@ int wami_verb(void) {
       char * ept = NULL;
       if( (ept= my_getenv("AFNI_WAMI_DEBUG")) ) {
          set_wami_verb(atoi(ept));       /* adjust if set */
-      } else if( (ept= my_getenv("AFNI_NIML_DEBUG")) ) {
-         WARNING_message("Daniel, I think we should stop using "
-                         "AFNI_NIML_DEBUG for wami purpose. "
-                         "Kill this section if you agree.");
-         set_wami_verb(atoi(ept)+1);       /* adjust if set */
-      } else {
+      }  else {
          set_wami_verb(0);
       }
    }
@@ -411,7 +407,7 @@ ATLAS_POINT TTO_list_HARD[TTO_COUNT_HARD] = {
       { 67,"Right Cerebellar Lingual................", -4, 45,-13,2, -999, "" }
 } ;
 
-int TTO_current = 0 ;  /* last chosen TTO */
+int atlas_current_structure = 0 ;  /* last chosen atlas structure index */
 
 /*! CA_EZ atlas material is now automatically prepared
 from a downloaded SPM toolbox. See the matlab function
@@ -1367,7 +1363,7 @@ char * genx_Atlas_Query_to_String (ATLAS_QUERY *wami,
 int transform_atlas_coords(ATLAS_COORD ac, char **out_spaces, 
                            int N_out_spaces, ATLAS_COORD *acl, char *orcodeout) 
 {
-   ATLAS_XFORM_LIST *xfl=NULL;
+   ATLAS_XFORM_LIST *xfl=NULL, *cxfl=NULL;
    int i;
    float xout=0.0, yout=0.0, zout=0.0;
    
@@ -1392,16 +1388,21 @@ int transform_atlas_coords(ATLAS_COORD ac, char **out_spaces,
    
    for (i=0; i<N_out_spaces; ++i) {
       if ((xfl = report_xform_chain(ac.space_name, out_spaces[i], 0))) {
-         apply_xform_chain(xfl, ac.x, ac.y, ac.z, &xout, &yout, &zout);
+         cxfl = calc_xform_list(xfl);
+         apply_xform_chain(cxfl, ac.x, ac.y, ac.z, &xout, &yout, &zout);
          XYZ_to_AtlasCoord(xout, yout, zout, "RAI", 
                            out_spaces[i], &(acl[i]));
+         if(xfl)
+           free_xform_list(xfl);
+         if(cxfl)
+           free_xform_list(cxfl);
       } else {
          if (wami_verb()) {
             INFO_message("no route from %s to %s",
                         ac.space_name, out_spaces[i]);
          }
          XYZ_to_AtlasCoord(0.0, 0.0, 0.0, "RAI", 
-                           "Unkown", &(acl[i]));
+                           "Unknown", &(acl[i]));
       }
    }   
    
@@ -1819,9 +1820,12 @@ static int whereami_version = 1;    /* 1 --> Uses mid vintage whereami_9yards
                                              function.
                                        2 --> Uses whereami_3rdbase
                                     */
+NI_stream find_atlas_niml_file()
+{
+   NI_stream space_niml = NULL;
 
-char *find_atlas_niml_file() {
-   return(NULL);
+   space_niml = open_atlas_niml("AFNI_atlas_spaces.niml");
+   return(space_niml);
 }
 
 void set_TT_whereami_version(int atlas_version, int wami_version) {
@@ -1829,11 +1833,11 @@ void set_TT_whereami_version(int atlas_version, int wami_version) {
       atlas_list_version = atlas_version;
       whereami_version = wami_version;
    } else {
-      char *wamifile = find_atlas_niml_file();
-      if (wamifile) {
+      NI_stream ns;
+      if (ns = find_atlas_niml_file()) {
          atlas_list_version = 2;
          whereami_version = 2;
-         free(wamifile);
+         NI_stream_close( ns );
       }
    }
 }
@@ -1915,10 +1919,10 @@ int init_global_atlas_list () {
       space_list->space = 
              (ATLAS_SPACE *) calloc(space_list->nspaces, sizeof(ATLAS_SPACE));
       for(i=0; i<space_list->nspaces; ++i) {
-         space_list->space[i].atlas_space = "TLRC";
-         space_list->space[i].generic_space = "MNI";
-         space_list->space[i].generic_space = "MNI_ANAT";
+         space_list->space[i].atlas_space = nifti_strdup(old_space_list[i]); ;
+         space_list->space[i].generic_space = nifti_strdup(old_space_list[i]);
       }
+
       global_atlas_spaces = space_list; 
    }
    
@@ -1926,11 +1930,67 @@ int init_global_atlas_list () {
       INFO_message(
          "Daniel: Do we also need to initialize-the old way-"
          "global_atlas_templates, and more importantly, global_atlas_xfl ?");
+       /* drg - we don't make use of global_atlas_templates anywhere. Templates
+          may be any dataset now. If we do eventually provide a list somewhere,
+          we might create a list using the old defaults. Not sure about the
+          global_atlas_xfl now. We apparently do something now to transform
+          among old spaces. It seems both these questions ask about a situation
+          in the future where the NIML files have been deleted or can not be
+          found. In that case, what should be the default actions?
+          Populating global_atlas_xfl might allow elimination of 
+          Atlas_Query_to_String, now made mostly obsolete by 
+          genx_Atlas_Query_to_String, but not worth it for now. */
    }
    
    if (global_atlas_alist && global_atlas_spaces) RETURN(1);
    else RETURN(0);
 }
+
+/* open a NIML file somewhere and return the NIML stream for it
+  search first by original path in name, then the AFNI_PLUGINPATH, then path*/
+NI_stream
+open_atlas_niml(char * nimlname)
+{
+   char filestr[261];
+   char *fstr, *epath;
+
+   NI_stream space_niml;
+
+   ENTRY("open_atlas_niml");
+
+   sprintf(filestr, "file:%s", nimlname);
+
+   /* try reading a NIML file wherever it says, i.e. path is complete
+      or current directory */
+   space_niml = NI_stream_open(filestr,"r");
+   if(space_niml)
+      RETURN(space_niml);
+
+
+   /* okay that didn't work, try the AFNI plugin directory */
+                       epath = getenv("AFNI_PLUGINPATH") ;
+   if( epath == NULL ) epath = getenv("AFNI_PLUGIN_PATH") ;
+   if( epath != NULL ) {
+      sprintf(filestr, "file:%s%s", epath,nimlname);
+      space_niml = NI_stream_open(filestr,"r");
+      if(space_niml)
+         RETURN(space_niml);
+   }
+
+   /* still can't find it. Maybe it's in one of the path directories */ 
+   epath = getenv("PATH") ;
+   if( epath == NULL ) RETURN(NULL) ;  /* this is bad-who doesn't have a path?*/
+
+   fstr = THD_find_executable(nimlname);
+   if(fstr) {       
+      sprintf(filestr, "file:%s", fstr);
+      space_niml = NI_stream_open(filestr,"r");
+      if(space_niml)
+         RETURN(space_niml);
+   }
+   RETURN(NULL);
+}
+
 
 /* read various NIML files for atlas information*/
 int init_global_atlas_from_niml_files()
@@ -1938,12 +1998,11 @@ int init_global_atlas_from_niml_files()
    NI_stream space_niml;
    int valid_space_niml;
    char *ept = NULL;
-   char suppfilestr[261];
    
    if(wami_verb() > 1) 
       INFO_message("opening AFNI_atlas_spaces.niml");   
 
-   space_niml = NI_stream_open("file:AFNI_atlas_spaces.niml","r");
+   space_niml = open_atlas_niml("AFNI_atlas_spaces.niml");
 
    if(space_niml==NULL){
       if (wami_verb()) 
@@ -1964,10 +2023,9 @@ int init_global_atlas_from_niml_files()
           global_atlas_alist, global_atlas_spaces, global_atlas_templates);
    ept = my_getenv("AFNI_SUPP_ATLAS");
    if( ept ) {
-      sprintf(suppfilestr, "file:%s", ept);
       if(wami_verb() > 1) 
          INFO_message("opening AFNI_supp_atlas_space.niml");   
-      space_niml = NI_stream_open(suppfilestr,"r");
+      space_niml = open_atlas_niml(ept);
       if(space_niml==NULL){
             fprintf(stderr, "\nCould not open supplemental atlas niml file\n");
             return(0);
@@ -1979,29 +2037,26 @@ int init_global_atlas_from_niml_files()
 
    }
 
-
    /* read atlas info from local atlas file */
    ept = my_getenv("AFNI_LOCAL_ATLAS");
    if( ept ) {
-      sprintf(suppfilestr, "file:%s", ept);
       if(wami_verb() > 1) 
          INFO_message("opening AFNI_local_atlas_space.niml");   
-      space_niml = NI_stream_open(suppfilestr,"r");
+      space_niml = open_atlas_niml(ept);
       if(space_niml==NULL){
-            fprintf(stderr, "\nCould not open supplemental atlas niml file\n");
-            return(0);
+         fprintf(stderr, "\nCould not open local atlas niml file\n");
+         return(0);
       }
       /* read atlas info from local atlas file */
       /*  adding to existing structures */
       valid_space_niml = read_space_niml(space_niml, global_atlas_xfl,
              global_atlas_alist, global_atlas_spaces, global_atlas_templates);
    }
-
   
    /* set up the neighborhood for spaces */
    /*  how are the spaces related to each other */ 
    if(make_space_neighborhood(global_atlas_spaces, global_atlas_xfl)!=0) {
-     return(0);
+      return(0);
    }
    
    /* all ok */
@@ -4509,35 +4564,60 @@ int CA_EZ_PMaps_load_atlas_old(void)
    for alternate locations) */
 THD_3dim_dataset *load_atlas_dset(char *dsetname)
 {
-   char *epath ;
+   char *fstr,*epath ;
    char atpref[256];
    THD_3dim_dataset *dset=NULL;
    int LocalHead = wami_lh();
 
    ENTRY("load_atlas_dset");
-   /* suggested path, if any - if not set, then use afni, plugin or current dir*/
+
+
+   /* maybe the dsetname includes a full path or the dset is in the current
+      directory */
+   dset = get_atlas( NULL, dsetname);
+   if(dset) RETURN(dset);
+
+   /* try environment variable location for TTATLAS */
    epath = getenv("AFNI_TTATLAS_DATASET") ;
    /* try dsetname first */
    if (!dset) {
       if(LocalHead)
          INFO_message("load_atlas: epath %s, name %s", epath, dsetname);
       dset = get_atlas( epath, dsetname ) ;  /* try to open it */
+      if(dset) RETURN(dset);
    }
+
    if (!dset) { /* try the AFNI format with +tlrc in the name */
       snprintf(atpref, 255*sizeof(char), "%s+tlrc", dsetname);
       if(LocalHead)
          INFO_message("load_atlas: epath %s, name %s", epath, atpref);
       dset = get_atlas( epath, atpref ) ;  /* try to open it */
+      if(dset) RETURN(dset);
    }
-   if (!dset) { /* try NIFTI naming */
-      snprintf(atpref, 255*sizeof(char), "%s.nii.gz", dsetname);
-      if(LocalHead)
-         INFO_message("load_atlas: epath %s, name %s", epath, atpref);
-      dset = get_atlas( epath, atpref) ;
+
+   /* okay that didn't work, try the AFNI plugin directory */
+                       epath = getenv("AFNI_PLUGINPATH") ;
+   if( epath == NULL ) epath = getenv("AFNI_PLUGIN_PATH") ;
+   if( epath != NULL ) {
+      dset = get_atlas( epath, dsetname);
+      if(dset) RETURN(dset);
    }
+
+   /* still can't find it. Maybe it's in one of the path directories */ 
+   epath = getenv("PATH") ;
+   if( epath == NULL ) RETURN(NULL) ;  /* this is bad-who doesn't have a path?*/
+
+   /* use function that looks for executables in path */
+   fstr = THD_find_executable(dsetname);
+   if(fstr) {       
+      dset = get_atlas( NULL, fstr);
+      if(dset) RETURN(dset);
+   }
+
    if (!dset) {
       if(LocalHead)
-         INFO_message("load_atlas: no AFNI format found");
+         INFO_message("load_atlas: atlas %s not found in any directory",
+                       dsetname);
    }
    RETURN(dset) ;
 }
@@ -6188,17 +6268,13 @@ char *atlas_version_string(char *atname) {
    return(NULL);
 }
 
+/* only used for no NIML comment */
 char **atlas_reference_string_list(char *atname, int *N_refs) {
    ATLAS *atlas;
    char **slist=NULL;
    int i = 0;
    
    *N_refs = 0;
-   if (wami_verb()) {
-      WARNING_message(
-         "Daniel: I don't know how to get at this in the modern way.\n"
-         "We need to revisit version and reference options...");
-   }
    
    if (1 || !(atlas = Atlas_With_Trimming(atname, 1, NULL))) {
       if (wami_verb()) 

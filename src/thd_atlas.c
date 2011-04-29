@@ -288,22 +288,6 @@ ATLAS_XFORM_LIST *identity_xform_chain(char *space_name)
 /* write transformation for space 1 to space 2 */
 
 
-#if 0
-x list available spaces from whereami
-x interface for returning path from one space to another
-x include space names and transforms defined on brainmap.org
-display network with SUMA using @DO.examples
-x start building transform combinations
-build toy working directory - user directory - supplemental monkey, child,
-x single subject. Regression testing
-affine transformation for EPI 
-  revisit with optimized transformations from Peter Fox
-x whereami can provide reference for xforms used
-x option to take coordinate transformation - piecewise and combined
-functions to apply transforms to coordinates or volumes (already called in
-whereami)
-#endif
-
 /* report xform chain to go between src and dest spaces */
 ATLAS_XFORM_LIST *report_xform_chain(char *src, char *dest, int report)
 {
@@ -580,15 +564,16 @@ ATLAS_XFORM *
 get_xform_neighbor(ATLAS_XFORM_LIST *atlas_xfl, ATLAS_SPACE *at_space, 
    ATLAS_SPACE *dest_space, int *inv_xf)
 {
-    int i;
+    int i, cc;
     char *srcstr, *deststr, *xfsrc, *xfdest;
-    ATLAS_XFORM *xf;
+    ATLAS_XFORM *xf, *xf2 = NULL;
        
     srcstr = at_space->atlas_space;
     deststr = dest_space->atlas_space;
 
     *inv_xf = 0;
-    
+
+    /* check if xform from src to dest space is in list of xforms */    
     for(i=0;i<atlas_xfl->nxforms;i++) {
        xf = atlas_xfl->xform+i;
        xfsrc = xf->source;
@@ -596,12 +581,41 @@ get_xform_neighbor(ATLAS_XFORM_LIST *atlas_xfl, ATLAS_SPACE *at_space,
        if((strcmp(srcstr, xfsrc)==0) && (strcmp(deststr,xfdest)==0)) {
           return(xf);
        }
+    }
+
+    /* if we made it here, then check for dest to src, and mark to invert */
+    for(i=0;i<atlas_xfl->nxforms;i++) {
+       xf = atlas_xfl->xform+i;
+       xfsrc = xf->source;
+       xfdest = xf->dest;
        /* check if inverse direction is available */
        if((strcmp(deststr, xfsrc)==0) && (strcmp(srcstr,xfdest)==0)) {
-          *inv_xf = 1;
-          return(xf);
+          /* is the original xform invertible */
+          xf2 =  (ATLAS_XFORM *)  calloc(1, sizeof(ATLAS_XFORM));
+          if(copy_xform(xf, xf2)!=0){
+             WARNING_message("Could not create copy of xform for path");
+             return(NULL);
+          }
+          xf2->inverse = 1;
+          cc = invert_xform(xf2);
+          free_xform(xf2);
+          free(xf2);
+          if(cc)
+             if(wami_verb() > 1){
+               INFO_message("Can not invert transform in path from %s to %s",
+                  xfsrc, xfdest);
+             }
+          else {
+             if(wami_verb() > 1){
+               INFO_message("Using invertible transform in path from %s to %s",
+                  xfsrc, xfdest);
+             }
+             *inv_xf = 1;
+             return(xf);
+          }
        }
     }
+
     return(NULL);
 }
 
@@ -848,7 +862,7 @@ copy_xform(ATLAS_XFORM *src_xform, ATLAS_XFORM *dest_xform)
       return(1);
    dest_xform->dist = src_xform->dist;
    dest_xform->inverse = src_xform->inverse;
-   dest_xform->prepost = src_xform->prepost;
+   dest_xform->post = src_xform->post;
    dest_xform->nelts = src_xform->nelts;
    if(dest_xform->nelts==0) return(0);
    dest_xform->xform = calloc(dest_xform->nelts, sizeof(float));
@@ -877,7 +891,7 @@ ATLAS_XFORM *identity_xform()
       return(NULL);
    dest_xform->dist = 0.01;
    dest_xform->inverse = 0;
-   dest_xform->prepost = 1;
+   dest_xform->post = 1;
 
    dest_xform->nelts = 1;
    if(dest_xform->nelts==0) return(dest_xform);
@@ -1040,8 +1054,8 @@ void print_xform(ATLAS_XFORM *xf)
    fprintf(stderr, "xform_type: %s\n", xf->xform_type);
    fprintf(stderr, "xform source: %s   dest: %s\n", xf->source, xf->dest);
    fprintf(stderr, "coord order: %s\n", xf->coord_order);
-   fprintf(stderr, "xform dist: %f  inverse: %d   prepost: %d   nelts: %d\n", 
-           xf->dist, xf->inverse, xf->prepost, xf->nelts);
+   fprintf(stderr, "xform dist: %f  inverse: %d   post: %d   nelts: %d\n", 
+           xf->dist, xf->inverse, xf->post, xf->nelts);
    xfptr = (float *) xf->xform;  /* for now use floating point values */
                                /* transformations may require different kinds of
                                        values in the future */
@@ -1105,9 +1119,10 @@ void print_atlas_list(ATLAS_LIST *xal)
    }
 }
 
+/* print a single line entry description of an atlas */
 void print_atlas(ATLAS *xa, int level) 
 {
-   INFO_message("Altas name %s, file %s, in %s space\n"
+   INFO_message("Atlas name %s, file %s, in %s space\n"
                 "dset %p, %d sub-bricks \n"
                 "adh %p\n", 
                 xa->atlas_name, xa->atlas_dset_name, xa->atlas_space, 
@@ -1149,6 +1164,14 @@ void print_atlas_table(ATLAS_LIST *xal)
    INFO_message("--------------------------");
 }
 
+/* print the comment for an atlas  - may span multiple lines with '\n' */
+void print_atlas_comment(ATLAS *xa)
+{
+    if((xa) && ATL_COMMENT(xa))
+       INFO_message("%s", ATL_COMMENT(xa));
+}
+
+/* print info about an atlas coordinate */
 void print_atlas_coord (ATLAS_COORD ac) 
 {
    INFO_message("----- Atlas Coord: -------");
@@ -1193,21 +1216,6 @@ calc_xform_list(ATLAS_XFORM_LIST *xfl)
    if(xfl==NULL)
       return(NULL);
    nxf = (xfl->nxforms) - 1;
-
-#if 0
-   /* assign labels for overall list source and destination spaces, 
-      checking if either first or last xforms is inverted */
-   if(xfl->xform->inverse)
-      source = nifti_strdup(xfl->xform->dest);
-   else
-      source = nifti_strdup(xfl->xform->source);
-
-   xf2 = xfl->xform+nxf;
-   if(xf2->inverse)
-      dest = nifti_strdup(xf2->source);
-   else
-      dest = nifti_strdup(xf2->dest);
-#endif
 
    /* make condensed transformation list structure */
    cxfl = (ATLAS_XFORM_LIST *)calloc(1,sizeof(ATLAS_XFORM_LIST));
@@ -1307,6 +1315,12 @@ calc_xform_list(ATLAS_XFORM_LIST *xfl)
                    "- adding to chain\n");
          cc = copy_xform(xf, cxfl->xform+(cxfl->nxforms));
          cxfl->nxforms++;
+         /* if on last combination, add the last one too */
+         if(i==nxf-1){
+            cc = copy_xform(xf2, cxfl->xform+(cxfl->nxforms));
+            cxfl->nxforms++;
+         }
+
          if((cc==0)&&(i<nxf-1))
              xf = xf2; cc = 0;
              /*copy_xform(xf2, xf); */ /* update start xform for next pair */
@@ -1322,24 +1336,6 @@ calc_xform_list(ATLAS_XFORM_LIST *xfl)
 
    }
 
-#if 0
-   /* copy source name from 1st xform */
-   nxf = cxfl->nxforms;
-   xf = cxfl->xform;
-   free(xf->source);
-   xf->source = source;
-   /* copy dest name from last xform */
-   xf = cxfl->xform+nxf;
-   free(xf->dest); 
-   /* make combination name for 1st xform list that condense down to one */
-   if(nxf==1){
-      free(xf->xform_name);
-      xf->dest = dest;
-      sl1 = strlen(source); sl2 = strlen(dest);
-      xf->xform_name = (char *) calloc((sl1+sl2+3),sizeof(char));
-      sprintf(xf->xform_name, "%s::%s", xf->source, xf->dest);
-   }
-#endif
    
    return(cxfl);
 }
@@ -1464,7 +1460,10 @@ calc_xf(ATLAS_XFORM *xf, ATLAS_XFORM *xf2)
       }
    }
 
-   INFO_message("AFNI doesn't know how to combine these transforms");
+   if(wami_verb())
+      INFO_message("AFNI doesn't know how to combine these transforms\n"
+           "Using the transformations sequentially");
+      
    return(NULL);
 }
 
@@ -1483,6 +1482,9 @@ invert_xform(ATLAS_XFORM *xf)
    }
    if(strcmp(xf->xform_type,"2-piece")==0){
       cc = invert_2piece(xf);
+   }
+   if(strcmp(xf->xform_type,"brett_mni2tt")==0){
+      cc = invert_brett(xf);
    }
 
    xf->inverse = 0; /* should never be an inverse transform here */
@@ -1541,6 +1543,17 @@ invert_2piece(ATLAS_XFORM *xf)
 /*    int cc;
  */   
    return(1);
+}
+
+/* invert a brett transform - do in place */
+/* return error code - 0 for no error */
+int
+invert_brett(ATLAS_XFORM *xf)
+{
+   int cc;
+   xf->inverse = !(xf->inverse);
+   
+   return(0);
 }
 
 /* multiply affine transformations */
@@ -1679,7 +1692,7 @@ apply_xform_general(ATLAS_XFORM *xf, float x,float y,float z,
                         float *xout, float *yout, float *zout)
 {
    int xgc = 1;
-   /* INFO_message("xform_type:%s", xf->xform_type); */
+
    if(strcmp(xf->xform_type,"Affine")==0){
       xgc = apply_xform_affine(xf, x, y, z, xout, yout, zout);
    }
@@ -1692,7 +1705,10 @@ apply_xform_general(ATLAS_XFORM *xf, float x,float y,float z,
    }
 
    if(strcmp(xf->xform_type,"brett_mni2tt")==0){
-      xgc = apply_xform_brett_mni2tt(x, y, z, xout, yout, zout);
+      if(xf->inverse)
+         xgc = apply_xform_brett_tt2mni(x, y, z, xout, yout, zout);
+      else
+         xgc = apply_xform_brett_mni2tt(x, y, z, xout, yout, zout);
    }
    
    if(strcmp(xf->xform_type,"12-piece")==0){
@@ -1718,9 +1734,9 @@ apply_xform_chain(ATLAS_XFORM_LIST *xfl, float x, float y, float z,
    *xout = xxout;
    *yout = yyout;
    *zout = zzout;
-
-   if(!xfl || !xfl->xform) return(0);
-       
+   if(!xfl || !xfl->xform) {
+      return(0);
+   }
    nxf = xfl->nxforms;
    if(nxf==0) return(0);
    
@@ -1774,6 +1790,15 @@ apply_xform_affine(ATLAS_XFORM *xf, float x, float y, float z, \
   before the transformation or it may be defined 'post' transformation.
   If a post transformation, the second xform applies an alternate
   xform to the coordinate transformed by the first affine xform.
+  This diagram shows the various possibilities:
+
+  pre-xform (post=0)
+     any x,y,z < lx,ly,lz, apply 2nd xform
+     else apply 1st xform
+  post-xform (post=1)
+     apply 1st xform to get x',y',z'
+     any x',y',z' < lx,ly,lz, apply 2nd xform to x',y',z'
+
 */
 int
 apply_xform_2piece(ATLAS_XFORM *xf, float x, float y, float z, 
@@ -1782,15 +1807,16 @@ apply_xform_2piece(ATLAS_XFORM *xf, float x, float y, float z,
    float *xfptr;
    float lx,ly,lz;
    int apply_post;
+   int apply_2nd;
    
    /* brett transform - tta to mni
    1.0101  0        0         0
    0       1.02962 -0.05154   0
    0       0.05434  1.08554   0
 
-   1.0101  0        0         0
-   0       1.02962 -0.05154   0
-   0       0.0595194  1.18892   0 
+   1 0 0 0
+   0 1 0 0
+   0 0 1.09523 0
    */
    if(!xf || xf->xform==NULL) return(1);
 
@@ -1800,26 +1826,23 @@ apply_xform_2piece(ATLAS_XFORM *xf, float x, float y, float z,
       x = -x; y =-y;      
    }
 
-   /* If this is a pre transformation, check the x,y,z limits. 
-      If xyz > limit, use the second transformation */
-   if (wami_verb()) {
-ERROR_message( "Daniel, this one is broken, just to be sure you notice this\n"
-           "It put the 0 in the if statement to keep it from getting applied");
-   }
-   if(0 && xf->prepost==0){
-      lx = *xfptr++; ly = *xfptr++; lz = *xfptr++;
+   /* x,y,z limits are the first three elements of the xform data */
+   lx = *xfptr++; ly = *xfptr++; lz = *xfptr++;
+   /* If this is a pre transformation (post=0), check the x,y,z limits. 
+      If any xyz > limit, use the second transformation matrix */
+   if(!xf->post){
+      apply_2nd = 0;
       if(lx > -9998) {
-         if(x>lx)
-            xfptr += 12;
+         if(x<lx) apply_2nd = 1;
       }
       if(ly > -9998) {
-         if(y>ly)
-            xfptr += 12;
+         if(y<ly) apply_2nd = 1;
       }
       if(lz > -9998) {
-         if(z>lz)
-            xfptr += 12;
+         if(z<lz) apply_2nd = 1;
       }
+      if(apply_2nd)
+            xfptr += 12;
    }
 
    *xout = (*xfptr * x) + (*(xfptr+1) * y) + (*(xfptr+2) * z) + *(xfptr+3);
@@ -1828,23 +1851,19 @@ ERROR_message( "Daniel, this one is broken, just to be sure you notice this\n"
    xfptr += 4;
    *zout = (*xfptr * x) + (*(xfptr+1) * y) + (*(xfptr+2) * z) + *(xfptr+3);   
 
-   if(xf->prepost){
-      apply_post = 0;
-      lx = *xfptr++; ly = *xfptr++; lz = *xfptr++;
+   if(xf->post){
+      apply_2nd = 0;
       if(lx > -9998) {
-         if(x>lx)
-            apply_post = 1;
+         if(x<lx) apply_2nd = 1;
        }
       if(ly > -9998) {
-         if(y>ly)
-            apply_post = 1;
+         if(y<ly) apply_2nd = 1;
       }
       if(lz > -9998) {
-         if(z>lz)
-            apply_post = 1;
+         if(z<lz) apply_2nd = 1;
       }
-      if(apply_post) {
-         x = *xout; y = *yout; z = *zout;
+      if(apply_2nd) {
+         x = *xout; y = *yout; z = *zout;  /* if not using a concatenated matrix*/
          xfptr += 4;
          *xout = (*xfptr * x) + (*(xfptr+1) * y) + (*(xfptr+2) * z) + *(xfptr+3);
          xfptr += 4;
@@ -1928,7 +1947,7 @@ int atlas_read_xform(NI_element *nel, ATLAS_XFORM *atlas_xf)
       INFO_message("xform source %s", NI_get_attribute(nel, "source"));
       INFO_message("xform dest   %s", NI_get_attribute(nel, "dest"));
       INFO_message("xform number of elements %d", nel->vec_num);
-      INFO_message("xform prepost %s", NI_get_attribute(nel, "prepost")); 
+      INFO_message("xform post %s", NI_get_attribute(nel, "post")); 
       INFO_message("xform coord_order %s", NI_get_attribute(nel, "coord_order")); 
    }   
    atlas_xf->xform_type = nifti_strdup(NI_get_attribute(nel, "xform_type")); 
@@ -1946,12 +1965,12 @@ int atlas_read_xform(NI_element *nel, ATLAS_XFORM *atlas_xf)
       dist = 1;
    atlas_xf->dist = dist;
 
-   sptr = NI_get_attribute(nel, "prepost");
+   sptr = NI_get_attribute(nel, "post");
    if(sptr){
-       atlas_xf->prepost = atoi(sptr);
+       atlas_xf->post = atoi(sptr);
    }
    else
-       atlas_xf->prepost = 0;   /*assume pre-xform (used for 2 and 12 part xforms */
+       atlas_xf->post = 0; /*assume pre-xform (used for 2 and 12 part xforms */
 
    sptr = NI_get_attribute(nel, "coord_order");    
    if(sptr){
