@@ -238,13 +238,14 @@ g_history = """
           (noted by J Britton)
         - if -regress_reml_exec, insert 3dClustSim table in stats_REML
           (noted by R Momenan)
-    2.50 Apr 28 2011 :
+    2.50 Apr 29 2011 :
         - added -align_epi_strip_method for align_epi_anat.py skull strip
         - added help for -volreg_no_extent_mask
         - no EPI Automask is not a comment, not a warning
+        - check that process blocks are unique (except for 'empty')
 """
 
-g_version = "version 2.50, Apr 28, 2011"
+g_version = "version 2.50, Apr 29, 2011"
 
 # version of AFNI required for script execution
 g_requires_afni = "4 Nov 2010"
@@ -843,6 +844,12 @@ class SubjProcSream:
         # if user has supplied options for blocks that are not used, fail
         if self.opts_include_unused_blocks(blocks, 1): return 1
 
+        # check for unique blocks (except for 'empty')
+        if not self.blocks_are_unique(blocks):
+            print '** blocks must be unique\n'  \
+                  '   (is there overlap between -blocks and -do_block?)\n'
+            return 1
+
         # call db_mod_functions
         for label in blocks:
             rv = self.add_block(label)
@@ -1153,6 +1160,25 @@ class SubjProcSream:
         block = self.find_block(label)
         if block: return self.blocks.index(block)
         return None
+
+    def blocks_are_unique(self, blocks, exclude_list=['empty'], whine=1):
+        """return whether the blocs are unique
+                - ignore blocks in exclude_list
+                - if whine, complain on repeats
+           Process one by one, so we know what to complain about.
+        """
+
+        unique = 1
+        checked = []
+        for block in blocks:
+            if block in exclude_list: continue
+            if block in checked:
+                if whine: print "** warning: block '%s' used multiple times" \
+                                % block
+                unique = 0
+            else: checked.append(block)
+
+        return unique
 
     def opts_include_unused_blocks(self, blocks, whine=1):
         """return whether options refer to blocks that are not being used"""
