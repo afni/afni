@@ -8095,9 +8095,10 @@ STATUS(" -- processing points in this dataset") ;
    }
 
    /*-------------------------------------------------------------------*/
-   /*--- Sep 1995: turn Talairach to button on image popup on or off ---*/
+   /*--- Sep 1995: turn "Go to atlas position" button on 
+         image popup on or off ---*/
 
-STATUS(" -- managing tal_to button, etc") ;
+STATUS(" -- managing Go to atlas position button, etc") ;
 
    if( im3d->vwid->imag->pop_talto_pb != NULL ){
      if( CAN_TALTO(im3d) ){
@@ -8866,7 +8867,8 @@ ENTRY("AFNI_imag_pop_CB") ;
            if( AFNI_yesenv("AFNI_DATASET_BROWSE") ) MCW_set_browse_select(1) ;
            MCW_choose_strlist( seq->wbar ,
                        "Brain Structure (from San Antonio Talairach Daemon)" ,
-                       atlas_n_points("TT_Daemon") , TTO_current , at_labels ,
+                       atlas_n_points("TT_Daemon") , atlas_current_structure ,
+                       at_labels ,
                        AFNI_talto_CB , (XtPointer) im3d ) ;
             for (iii=0; iii<atlas_n_points("TT_Daemon"); ++iii) {
                if (at_labels[iii]) free(at_labels[iii]);
@@ -8947,7 +8949,8 @@ ENTRY("AFNI_imag_pop_CB") ;
           "       15,898 voxels with only a 'area' label\n"
           "      479,886 voxels with both types of labels\n"
           "A list of all the labels (of either type) is presented by the\n"
-          "'Talairach to' control.  In the database, there are\n"
+          "'Go to atlas location' control.\n"
+          "  In the TT_Daemon database,there are\n"
           "           50 'gyral' labels (times 2 for Left and Right)\n"
           "           68 'area' labels\n"
           "          355 distinct combinations of labels\n"
@@ -9059,7 +9062,7 @@ ENTRY("AFNI_talto_CB") ;
        cbs->reason != mcwCR_integer   ){
 
       POPDOWN_strlist_chooser ;
-      BEEPIT ; WARNING_message("Can't 'Talairach To'!?") ;
+      BEEPIT ; WARNING_message("Can't 'Go to Atlas position'!?") ;
       EXRETURN ;
    }
    
@@ -9070,7 +9073,7 @@ ENTRY("AFNI_talto_CB") ;
    
    nn = cbs->ival ;
    if( nn < 0 || nn >= atlas_n_points("TT_Daemon") ) EXRETURN ;
-   TTO_current = nn ;
+   atlas_current_structure = nn ;  /* index for structure in list for atlas */
 
    /* transform point from Dicom to local coords and go there */
 
@@ -9098,7 +9101,7 @@ ENTRY("AFNI_talto_CB") ;
       SAVE_VPT(im3d) ;
       AFNI_set_viewpoint( im3d , ii,jj,kk , REDISPLAY_ALL ) ; /* jump */
    } else {
-      BEEPIT ; WARNING_message("Bad 'Talairach To' coordinates!?") ;
+      BEEPIT ; WARNING_message("Bad 'Go atlas position' coordinates!?") ;
    }
    EXRETURN ;
 }
