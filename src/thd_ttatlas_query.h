@@ -15,7 +15,7 @@
    restricted to when MAIN is defined */
 #else
 #endif
-extern int TTO_current ;
+extern int atlas_current_structure ;
 /*-------------------------------------*/
 
 
@@ -137,7 +137,7 @@ typedef struct {
    char *xform_type, *xform_name, *source, *dest, *coord_order;
    float dist;   /* distance (cost) of xform between two spaces */
    int inverse;  /* inverse transformation from dest to src */
-   int prepost;  /* for 2/12 part, evaluate coords pre/post xformation */
+   int post;  /* for 2/12 part, evaluate coords pre/post xformation */
    int nelts;    /* number of data elements */
    void *xform;  /* data for xformation */
 } ATLAS_XFORM;
@@ -321,8 +321,9 @@ ATLAS_SPACE_LIST *get_G_space_list(void);
 ATLAS_XFORM_LIST *get_G_xform_list(void);
 ATLAS_LIST* get_G_atlas_list(void);
 ATLAS_TEMPLATE_LIST *get_G_templates_list(void);
-char *find_atlas_niml_file();
-                 
+NI_stream find_atlas_niml_file(void);
+NI_stream open_atlas_niml(char * nimlname);
+          
 /* Transforms for going from one space to another */
 #if 0
 static char MNI_N27_to_AFNI_TLRC_HEAD[256] = {"TT_N27+tlrc"}; /*!<  TT_N27+tlrc was obtained by transforming N27 from MNI 

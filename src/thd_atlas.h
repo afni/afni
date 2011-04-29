@@ -84,6 +84,7 @@ void print_xform_list(ATLAS_XFORM_LIST *xfl);
 void print_space_list(ATLAS_SPACE_LIST *xsl);
 void print_atlas_list(ATLAS_LIST *xal);
 void print_atlas(ATLAS *xa, int level) ;
+void print_atlas_comment(ATLAS *xa) ;
 void print_template_list(ATLAS_TEMPLATE_LIST *xtl);
 void print_xform(ATLAS_XFORM *xf);
 void print_all_xforms(ATLAS_XFORM_LIST *xfl);
