@@ -128,7 +128,7 @@ typedef struct {
                               to go from sub-brick label to area name. */
    byte duplicateLRentries; /* Are LR labels listed in adh.apl and 
                                under the same code?
-                               (only case I know of is in TTO_list*/
+                               (only case I know of is in TTO_list) */
    byte build_lr;
    int params_set;
 } ATLAS_DSET_HOLDER;
