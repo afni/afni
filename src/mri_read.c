@@ -238,8 +238,11 @@ int valid_g_siemens_times(int nz, float TR, int verb)
 ENTRY("test_g_siemens_times");
 
    if( nz != g_siemens_timing_nused ) {
-      if(verb)fprintf(stderr,"** ERROR: have %d siemens times but %d slices\n",
-                      g_siemens_timing_nused, nz);
+      if(verb) {
+         fprintf(stderr,"** ERROR: have %d siemens times but %d slices\n",
+                 g_siemens_timing_nused, nz);
+         fprintf(stderr,"   Consider 'dicom_hdr -slice_times' for details.\n");
+      }
       RETURN(0);
    }
 
