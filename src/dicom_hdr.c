@@ -104,7 +104,7 @@ int main(int argc, char **argv)
    }
 
    mri_dicom_header_use_printf(do_printf) ;  /* 02 May 2008 */
-   if( do_stimes_verb ) mri_sst_set_verb(3); /* 15 Apr 2011 */
+   if( do_stimes_verb ) mri_sst_set_verb(2+do_stimes_verb); /* 02 May 2011 */
 
    for( ii=iarg ; ii < argc ; ii++ ){
      if( ii > iarg )
