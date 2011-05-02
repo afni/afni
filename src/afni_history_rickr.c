@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 2, May, 2011, RCR, "Dimon", MINOR, TYPE_BUG_FIX,
+   "added nul-termination and a.b[.d]+ rules for checking Siemens slice times",
+   "Problem noted by D Kravitz and S Lee."
+ } ,
+
  { 29, APR, 2011, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
    "check that processing blocks are unique",
    NULL
