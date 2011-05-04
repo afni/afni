@@ -4151,8 +4151,9 @@ printf("T3D_read_images: input file count = %d; expanded = %d\n",nim,gnim) ;
 
    /* maybe there is siemens slice timing info       13 Apr 2011 [rickr]
     * Do not fully test or apply times until MRILIB_tr has been applied,
-    * but if user wants to populate FROM_IMAGE, check that times exist. */
-   if( time_dep && user_inputs.tpattern[0] == -666 ){
+    * but if user wants to populate FROM_IMAGE, check that times exist.
+    * Also, be sure there is a tpattern to inspect.   4 May 2011 [rickr] */
+   if( time_dep && user_inputs.tpattern && user_inputs.tpattern[0] == -666 ){
       populate_g_siemens_times(user_inputs.tunits);
       if( g_siemens_timing_nused <= 0 )
          ERROR_exit("No timing read for 'FROM_IMAGE' timing pattern\n");
