@@ -49,7 +49,12 @@
 
 afni_history_struct rickr_history[] = {
 
- { 2, May, 2011, RCR, "Dimon", MINOR, TYPE_BUG_FIX,
+ { 4, MAY, 2011, RCR, "to3d", MICRO, TYPE_BUG_FIX,
+   "fixed case of simult tpattern (so time_dep, but ui.tpattern is not set)",
+   "Problem noted by J Ostuni."
+ } ,
+
+ { 2, MAY, 2011, RCR, "Dimon", MINOR, TYPE_BUG_FIX,
    "added nul-termination and a.b[.d]+ rules for checking Siemens slice times",
    "Problem noted by D Kravitz and S Lee."
  } ,
