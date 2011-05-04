@@ -951,6 +951,23 @@ THD_fvec3 THD_tta_to_mnia_N27( THD_fvec3 mv )
    return (mva);
 }
 
+/* drg - we need more robust way to find left/right than hard-coded CA_N27_LR */
+/* We should consider these choices:
+    1. Add field to atlas to xref another atlas: lr_atlas_name
+    2. Add field to atlas to determine coordinate split of left/right: 
+        lr_x_right
+    3. Always load some atlases like the LR, and refer to global atlas list
+        for those
+    4. In addition to left/right, determine I/S,A/P, Rostral/Caudal,...
+    5. Abandon left/right determination from external source and require
+       encoding in the atlas or by coordinate. 
+
+   At the moment, I'm opting for 5. One problem that we have now is the use
+   of a specific atlas on the whereami command line. The LR atlas is not
+   in the atlas list in that case. Note the MNI_Anatomical_Side is now
+   only used for MNI_ANAT coordinates.
+*/
+
 /*! are we on the left or right of Colin? */
 char MNI_Anatomical_Side(ATLAS_COORD ac, ATLAS_LIST *atlas_list)
 {
@@ -1144,6 +1161,7 @@ char * genx_Atlas_Query_to_String (ATLAS_QUERY *wami,
       if(strcmp(acl[i].space_name,"MNI_ANAT")) {
          sprintf(xlab[i],"%4.0f mm [%c]",-acl[i].x,(acl[i].x<0.0)?'R':'L') ;
       } else { 
+/* drg - see notes on MNI_Anatomical_Side at function for discussion */
          sprintf(xlab[i], "%4.0f mm [%c]", 
                  -acl[i].x, TO_UPPER(MNI_Anatomical_Side(acl[it], atlas_list))) ;
       }
@@ -4774,6 +4792,58 @@ ATLAS *get_Atlas_Named(char *atname, ATLAS_LIST *atlas_list)
    RETURN(NULL);
 }
 
+ATLAS_LIST *Atlas_Names_to_List(char **atnames, int natlases)
+{
+   ATLAS *atl = NULL, *atlptr;
+   ATLAS_LIST *atlas_list = NULL, *reduced_list = NULL;
+   char *atname = NULL;
+   int i=0, reduced_n=0;
+   
+   ENTRY("Atlas_Names_to_List");
+   
+   atlas_list = get_G_atlas_list();
+   if(!atlas_list){
+      ERROR_message("Can not find global atlas list");
+      RETURN(NULL);
+   }
+
+   if (!atnames) {
+      ERROR_message("NULL names");
+      RETURN(NULL);
+   }
+
+   for (i=0; i<natlases; ++i) {
+      if(get_Atlas_Named(atnames[i], atlas_list))
+         reduced_n++;
+      else
+         ERROR_message("No atlas named %s found in global atlas list", 
+                        atnames[i]);
+   }
+
+   if(!reduced_n) {
+      ERROR_message("No atlases given were found in global atlas list\n"
+        "Please see whereami help and AFNI_atlas_spaces.niml for information\n"
+        "on how to add atlases to AFNI");
+      RETURN(NULL);
+   }
+   /* initialize the reduced list - may be only one atlas in list */
+   reduced_list = (ATLAS_LIST *) calloc(1, sizeof(ATLAS_LIST));
+   reduced_list->natlases = reduced_n;
+   reduced_list->atlas = (ATLAS *) calloc(
+                            reduced_n, sizeof(ATLAS));
+   for (i=0; i<natlases; ++i) {
+      if(atl = get_Atlas_Named(atnames[i], atlas_list)) {
+         if(wami_verb()){
+            INFO_message("Atlas, %s,matched in reduced list:",Atlas_Name(atl));
+         }
+         atlas_dup_atlas(atl, reduced_list->atlas+i);
+     }
+   }
+
+
+   RETURN(reduced_list);
+}
+
 ATLAS_DSET_HOLDER *Free_Atlas_Dset_Holder(ATLAS_DSET_HOLDER *adh) 
 {
    if (!adh) return(NULL);
@@ -4974,6 +5044,7 @@ int genx_load_atlas_dset(ATLAS *atlas)
             INFO_message("Daniel: You might want to try harder here based on\n "
                    " atlas->atlas_name perhaps, or by allowing for particular\n "
                    " path environment variables as in TT_load_atlas_old\n");
+/* drg - think we try hard enough to load atlases from a variety of places */
          }
          RETURN(0);
       }
@@ -5077,7 +5148,18 @@ int set_adh_old_way(ATLAS_DSET_HOLDER *adh, char *aname)
      adh->maxkeyval = -1; /* not appropriate */
      adh->minkeyval = INT_MAX; /* not appropriate */
      adh->probkey = 0;
-     if (wami_verb()) INFO_message("Daniel, why fill apl2 here? Would we store it in such a dset? Should we just include a reference to the atlas from which we should borrow the list?\n I see why you do it this way, and I think that is fine. But we need to be sure this does not flag such a dset as an ROI type dset in AFNI and messup the colorbar, etc.");
+     if (wami_verb())
+         INFO_message("Daniel, why fill apl2 here?"
+                      " Would we store it in such a dset?"
+                      " Should we just include a reference to the atlas"
+                      " from which we should borrow the list?\n"
+                      " I see why you do it this way, and I think"
+                      " that is fine. But we need to be sure this does"
+                      " not flag such a dset as an ROI type dset in AFNI"
+                      " and messup the colorbar, etc.");
+/* drg - not sure what you want here. We want ROI dsets and atlases to be
+     pretty much the same thing everywhere */
+
      adh->apl2= atlas_point_to_atlas_point_list(apl->at_point, apl->n_points);
                ; /* use cytoarchitectonic list for probability maps*/
      adh->duplicateLRentries = 0;
@@ -5119,6 +5201,11 @@ byte is_integral_atlas(ATLAS *atlas) {
       WARNING_message(
          "Daniel, what is the proper logic here? Check where I am using it ...");
    }
+/* drg - not sure this function is really useful. It seems is_probabilistic()
+   below is good enough for where it's used as equivalent to not probabilisic.
+   I think I had used the existence of the point list as a flag of whether
+   to consider looking for values. Now if the future holds a third or other
+   types of atlases, then we might use this or something more complicated. */
    /* New atlases should have apl2, but not old ones*/
    if (atlas->adh->apl2) return(1);
    return(0);
