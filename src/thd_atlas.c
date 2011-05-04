@@ -1701,7 +1701,10 @@ apply_xform_general(ATLAS_XFORM *xf, float x,float y,float z,
    }
    
    if(strcmp(xf->xform_type,"brett_tt2mni")==0){
-      xgc = apply_xform_brett_tt2mni(x, y, z, xout, yout, zout);
+      if(!xf->inverse)
+         xgc = apply_xform_brett_tt2mni(x, y, z, xout, yout, zout);
+      else
+         xgc = apply_xform_brett_mni2tt(x, y, z, xout, yout, zout);
    }
 
    if(strcmp(xf->xform_type,"brett_mni2tt")==0){
@@ -1710,13 +1713,17 @@ apply_xform_general(ATLAS_XFORM *xf, float x,float y,float z,
       else
          xgc = apply_xform_brett_mni2tt(x, y, z, xout, yout, zout);
    }
-   
+  
    if(strcmp(xf->xform_type,"12-piece")==0){
       xgc = apply_xform_12piece(xf, x, y, z, xout, yout, zout);
    }
    if(strcmp(xf->xform_type,"Identity")==0){
       *xout = x; *yout = y; *zout = z; xgc = 0;
    }
+
+   if(wami_verb() > 2)
+      INFO_message("xform RAI out x y z %f %f %f", *xout,*yout,*zout);
+
    return(xgc);
 }
 
@@ -1928,8 +1935,9 @@ apply_xform_brett_mni2tt(float x, float y, float z, \
                                     float *xout, float *yout, float *zout)
 {
    x = -x; y = -y;                   /* put coords in lpi from RAI first */   
-   THD_3mni_to_3tta(&x, &y, &z);      /* xform mni to tt space - results in RAI order */
+   THD_3mni_to_3tta(&x, &y, &z);  /* xform mni to tt space - results in RAI */
 
+   *xout = x; *yout = y; *zout = z;
    return(0);
 }
 
@@ -2059,6 +2067,22 @@ int atlas_read_atlas(NI_element *nel, ATLAS *atlas)
    }
 
    atlas->adh = NULL;
+   
+   return(0);
+}
+
+/* duplicate atlas info from one atlas structure to another */
+int atlas_dup_atlas(ATLAS *srcatlas, ATLAS *destatlas)
+{
+   char *s;
+   
+   /* initialize the atlas fields */
+   destatlas->atlas_dset_name = srcatlas->atlas_dset_name; 
+   destatlas->atlas_space = srcatlas->atlas_space;
+   destatlas->atlas_name = srcatlas->atlas_name;
+   destatlas->atlas_description = srcatlas->atlas_description;
+   destatlas->atlas_comment = srcatlas->atlas_comment;
+   destatlas->adh = srcatlas->adh;
    
    return(0);
 }
