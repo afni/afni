@@ -142,4 +142,4 @@ static void adjust_atlas_point_list(ATLAS_POINT_LIST *atp, char *match_str,
 static ATLAS_POINT_LIST *AFNI_atlas_list_to_atlas_point_list(
         ATLAS_POINT *afni_at_pts, int npts);
 int genx_load_atlas_dset(ATLAS *atlas);
-
+int atlas_dup_atlas(ATLAS *srcatlas, ATLAS *destatlas);

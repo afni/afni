@@ -174,8 +174,8 @@ void whereami_usage(ATLAS_LIST *atlas_alist)
    /* print help message in three sections */
    printf(  
 "Usage: whereami [x y z [output_format]] [-lpi/-spm] [-atlas ATLAS] \n"
-"   ++ Reports brain areas located at x y z mm in TLRC space according \n"
-"   to atlases present with your AFNI installation.\n"
+"   ++ Reports brain areas located at x y z mm in some template space\n"
+"   ++ according to atlases present with your AFNI installation.\n"
 "   ++ Show the contents of available atlases\n"
 "   ++ Extract ROIs for certain atlas regions using symbolic notation\n"
 "   ++ Report on the overlap of ROIs with Atlas-defined regions.\n"
@@ -217,43 +217,15 @@ void whereami_usage(ATLAS_LIST *atlas_alist)
 " NOTE: The default format for input coordinates' orientation is set by \n"
 "       AFNI_ORIENT environment variable. If it is not set, then the default \n"
 "       is RAI/DICOM\n"
-
-" \n---------------\n"
-" Show atlas NIML database options:\n"
-" -show_atlases          : show all available atlases\n"
-" -show_templates        : show all available templates\n"
-" -show_spaces           : show all available template spaces\n"
-" -show_xforms           : show all available xforms\n"
-" -show_atlas_all        : show all the above\n"
-"\n"
-" -show_available_spaces srcspace : show spaces that are available from\n"
-"             the source space\n"
-" -show_chain srcspace destspace : show the chain of transformations\n"
-"             needed to go from one space to another\n"
-" -calc_chain srcspace destspace : compute the chain of transformations\n"
-"             combining and inverting transformations where possible\n"
-" -xform_xyz  used with calc_chain, takes the x,y,z coordinates and \n"
-"             applies the combined chain of transformations to compute\n"
-"             a new x,y,z coordinate\n"
-
-"Note setting the environment variable AFNI_NIML_DEBUG will show detailed\n"
-" progress as the program reads the Atlas NIML Database and computes \n"
-" transformations. A Dijkstra search is used to find the shortest path \n"
-" between spaces. Each transformation carries with it a distance attribute\n"
-" that is used for this computation\n"
-"---------------\n"
-
 " -space SPC: Space of input coordinates.\n"
-"       SPC can be MNI, MNI_ANAT or TLRC which is the default.\n"
-"       If SPC is either MNI or MNI_ANAT space, the x,y,z coordinates are\n"
-"       transformed to TLRC space prior to whereami query.\n"
+"       SPC can be any template space name. Without a NIML table definition,\n"
+"       the space name is limited to MNI, MNI_ANAT or TLRC (the default).\n"
 " -classic: Classic output format (output_format = 0).\n"
 " -tab: Tab delimited output (output_format = 1). \n"
 "       Useful for spreadsheeting.\n"
 " -atlas ATLAS: Use atlas ATLAS for the query.\n"
 "               You can use this option repeatedly to specify\n"
 "               more than one atlas. Default is all available atlases.\n");
-
   
   printf("               ATLAS is one of:\n");
   print_atlas_table(atlas_alist);
@@ -261,9 +233,9 @@ void whereami_usage(ATLAS_LIST *atlas_alist)
   /* third section for usage help*/
   printf(
 " -dset: Determine the template space to use from this reference dataset\n"
-"        Space can be TLRC, MNI, MNI_ANAT. If the space is known,\n"
-"        and a reference atlas can be found, the regions will be\n"
-"        based on the coordinates from this template space.\n"
+"        Space for human data is usually TLRC, MNI, MNI_ANAT.\n"
+"        If the space is known and a reference atlas can be found, the\n"
+"        regions will be based on the coordinates from this template space.\n"
 " -atlas_sort: Sort results by atlas (default)\n"
 " -zone_sort | -radius_sort: Sort by radius of search\n"
 " -old : Run whereami in the olde (Pre Feb. 06) way.\n"
@@ -315,16 +287,6 @@ void whereami_usage(ATLAS_LIST *atlas_alist)
 "       variable  AFNI_WHEREAMI_NO_WARN\n"            
 " -debug DEBUG: Debug flag\n"
 " -verb VERB: Same as -debug DEBUG\n"
-" -CA_N27_version: Output the version of the Anatomy Toolbox atlases and quit.\n"
-"                  If you get warnings that AFNI's version differs from that \n"
-"                  of the atlas' datasets then you will need to download the \n"
-"                  latest atlas datasets from AFNI's website. You cannot use \n"
-"                  older atlases because the atlas' integer-code to area-label\n"
-"                  map changes from one version to the next.\n"
-"                  To get the version of the atlas' datasets, run 3dNotes \n"
-"                  on the atlases and look for 'Version' in one of the notes\n"
-"                  printed out.\n" 
-" -CA_N27_refrences: Try it.\n"
 "\n"
 "Options for determining the percent overlap of ROIs with Atlas-defined areas:\n"
 "---------------------------------------------------------------------------\n"
@@ -350,9 +312,9 @@ void whereami_usage(ATLAS_LIST *atlas_alist)
 "\n"
 "Note on the reported coordinates of the Focus Point:\n"
 "----------------------------------------------------\n"
-"  Coordinates of the Focus Point are reported in 3 coordinate spaces.\n"
-"The 3 spaces are Talairach (TLRC), MNI, MNI Anatomical (MNI Anat.). \n"
-"All three coordinates are reported in the LPI coordinate order.\n"
+"Coordinates of the Focus Point are reported in available template spaces in\n"
+"LPI coordinate order. The three principal spaces reported are Talairach \n"
+" (TLRC), MNI, MNI Anatomical (MNI_ANAT).\n"
 "  The TLRC coordinates follow the convention specified by the Talairach and \n"
 "     Tournoux Atlas.\n"
 "  The MNI coordinates are derived from the TLRC ones using an approximation \n"
@@ -360,28 +322,16 @@ void whereami_usage(ATLAS_LIST *atlas_alist)
 "  The MNI Anat. coordinates are a shifted version of the MNI coordinates \n"
 "     (see Eickhoff et al. 05).\n"
 "\n"
-"  However because the MNI coordinates reported here are derived from TLRC \n"
-"by an approximate function it is best to derive the MNI Anat. coordinates \n"
-"in a different manner. This option is possible because the MNI Anat. \n"
-"coordinates are defined relative to the single-subject N27 dataset. \n"
-"MNI Anat. coordinates are thus derived via the 12 piece-wise \n"
-"linear transformations used to put the MNI N27 brain in TLRC space.\n" 
-"\n"
-"Installing Atlases:\n"
-"-------------------\n"
-"   Atlases are stored as AFNI datasets, plus perhaps an extra file or two.\n"
-"   These files should be placed in a location that AFNI can find. \n"
-"   Let us refer to this directory as ATLAS_DIR, usually it is the same as\n"
-"   the directory in which AFNI's binaries (such as the program afni) reside.\n"
-"   At a minimum, you need the TTatlas+tlrc dataset present to activate the \n"
-"   AFNI 'whereami' feature. To install it, if you do not have it already, \n"
-"   download TTatlas+tlrc* from this link: \n"
-"   http://afni.nimh.nih.gov/pub/dist/tgz/\n"
-"   and move TTatlas+tlrc* to ATLAS_DIR.\n"
-"   The Anatomy Toolbox atlases are in archives called CA_EZ_v*.tgz with *\n"
-"   indicating a particular version number. Download the archive from:\n"
-"   http://afni.nimh.nih.gov/pub/dist/tgz/, unpack it and move all the \n"
-"   files in the unpacked directory into ATLAS_DIR.\n"
+" For users who do not use the NIML table method of specifying template \n"
+" and transformations, the MNI coordinates reported here are derived from TLRC\n"
+" by an approximate function (the Brett transform). For transformations\n"
+" between MNI_ANAT and TLRC coordinates, the 12 piece-wise linear transformation\n"
+" that was used to transform the MNI_ANAT N27 brain to TLRC space is also\n"
+" used to compute the coordinates in either direction.\n"
+" For users who do use the NIML table method, the transformations among\n"
+" the various Talairach, MNI and MNI_ANAT spaces may be performed a variety\n"
+" of ways. The default method uses the Brett transform for TLRC to MNI, and\n"
+" a simple shift for MNI to MNI_ANAT.\n"
 "\n"
 "How To See Atlas Data In AFNI as datasets:\n"
 "------------------------------------------\n"
@@ -412,13 +362,14 @@ void whereami_usage(ATLAS_LIST *atlas_alist)
 "              ** Can't find anat parent ....  \n"
 "         messages for the Atlas datasets.\n"
 "\n"
-"Convenient Colormaps For Atlas Datasets:\n"
+"Convenient Color maps For Atlas Datasets:\n"
 "----------------------------------------\n"
-"   New colormaps (colorscales) have been added\n"
-"   to AFNI to facilitate integral valued datasets\n"
-"   like ROIs and atlases. Here's what to do:\n"
+"   Color maps (color scales) for atlas dataset should automatically be used\n"
+"   when these datasets are viewed in the overlay. To manually select a\n"
+"   a specific color scale in the AFNI GUI's overlay panel:\n"
 "     o set the color map number chooser to '**' \n"
-"     o right-click on the color map and select 'Choose Colorscale'\n"
+"     o right-click on the color map's color bar and select \n"
+"       'Choose Colorscale'\n"
 "     o pick one of: CytoArch_ROI_256, CytoArch_ROI_256_gap, ROI_32. etc.\n"
 "     o set autorange off and set the range to the number of colors \n"
 "       in the chosen map (256, 32, etc.). \n"
@@ -444,34 +395,83 @@ void whereami_usage(ATLAS_LIST *atlas_alist)
 "   To find a cluster center close to the top of the brain at -12,-26, 76 (LPI),\n"
 "   whereami, assuming the coordinates are in Talairach space, would report:\n"
 "   > whereami -12 -26 76 -lpi\n"
-"   > Focus point (LPI)= \n"
-"   -12 mm [L], -26 mm [P], 76 mm [S] {T-T Atlas}\n\n"
-"   Atlas CA_N27_MPM: Cytoarch. Max. Prob. Maps (N27)\n"
-"   Within 4 mm: Area 6\n"
-"   Within 7 mm: Area 4a\n"
+"     ++ Input coordinates orientation set by user to LPI\n"
+"     ++ Input coordinates space set by default rules to TLRC\n"
+"     +++++++ nearby Atlas structures +++++++\n"
 "\n"
-"   Atlas CA_N27_ML: Macro Labels (N27)\n"
-"   Within 1 mm: Left Paracentral Lobule\n"
-"   Within 6 mm: Left Precentral Gyrus\n"
-"   -AND- Left Postcentral Gyrus\n"
+"     Original input data coordinates in TLRC space\n"
+"\n"
+"     Focus point (LPI)=\n"
+"        -12 mm [L], -26 mm [P],  76 mm [S] {TLRC}\n"
+"        -12 mm [L], -31 mm [P],  81 mm [S] {MNI}\n"
+"        -13 mm [L], -26 mm [P],  89 mm [S] {MNI_ANAT}\n"
+"\n"
+"     Atlas CA_N27_MPM: Cytoarch. Max. Prob. Maps (N27)\n"
+"       Within 4 mm: Area 6\n"
+"       Within 7 mm: Area 4a\n"
+"\n"
+"     Atlas CA_N27_ML: Macro Labels (N27)\n"
+"       Within 1 mm: Left Paracentral Lobule\n"
+"       Within 6 mm: Left Precentral Gyrus\n"
+"          -AND- Left Postcentral Gyrus\n"
 "\n"
 "   To create a mask dataset of both the left and right amygdala, you can do the\n"
-"   following (although masks and datasets can be specified in the same way for\n"
-"   other afni commands, so a mask, very often, is not needed as a separate\n"
-"   dataset):\n"
+"   following :\n"
 "   > whereami -prefix amymask -mask_atlas_region 'TT_Daemon::amygdala'\n\n"
-"Questions Comments:\n"
-"-------------------\n"
-"   Ziad S. Saad   (saadz@mail.nih.gov)\n"
-"   SSCC/NIMH/NIH/DHHS/USA\n"
 "\n"
-"Thanks to Kristina Simonyan for feedback and testing.\n"
+"   Note masks based on atlas regions can be specified \"on the fly\" in \n"
+"   the same way with other afni commands as a dataset name (like 3dcalc,\n"
+"   for instance), so a mask, very often, is not needed as a separate,\n"
+"   explicit dataset on the disk.\n\n"
 "\n" 
 "\n",Init_Whereami_Max_Find(), Init_Whereami_Max_Rad());
+
+printf(
+" \n---------------\n"
+" Atlas NIML tables:\n"
+" Atlas, templates, template spaces and transforms may all now be specified\n"
+" in a text file that follows an XML-like format, NIML. The specifications\n"
+" for the NIML table files will be described more fully elsewhere, but an\n"
+" overview is presented here. By default, and soon to be included with the\n"
+" AFNI distributions, the file AFNI_atlas_spaces.niml contains entries for\n"
+" each of the available atlases, template spaces, templates and \n"
+" transformations. Two other additional files may be specified and changed\n"
+" using the environment variables, AFNI_SUPP_ATLAS and AFNI_LOCAL_ATLAS.\n"
+" It is best to examine the provided NIML table as an example for extending\n"
+" and modifying the various atlas definitions.\n"
+"\n"
+" Show atlas NIML table options:\n"
+" -show_atlases          : show all available atlases\n"
+" -show_templates        : show all available templates\n"
+" -show_spaces           : show all available template spaces\n"
+" -show_xforms           : show all available xforms\n"
+" -show_atlas_all        : show all the above\n"
+"\n"
+" -show_available_spaces srcspace : show spaces that are available from\n"
+"             the source space\n"
+" -show_chain srcspace destspace : show the chain of transformations\n"
+"             needed to go from one space to another\n"
+" -calc_chain srcspace destspace : compute the chain of transformations\n"
+"             combining and inverting transformations where possible\n"
+" -xform_xyz  used with calc_chain, takes the x,y,z coordinates and \n"
+"             applies the combined chain of transformations to compute\n"
+"             a new x,y,z coordinate\n"
+
+"Note setting the environment variable AFNI_WAMI_VERB will show detailed\n"
+" progress throughout the various functions called within whereami.\n"
+" For spaces defined using a NIML table, a Dijkstra search is used to find\n"
+" the shortest path between spaces. Each transformation carries with it a\n"
+" distance attribute that is used for this computation. By modifying this\n"
+" field, the user can control which transformations are preferred.\n"
+"---------------\n"
+);
+
+printf("Thanks to Kristina Simonyan for feedback and testing.\n");
 
    PRINT_COMPILE_DATE ;
    EXRETURN;
 }
+
 
 /*----------------------------------------------------------------------------*/
 
@@ -504,7 +504,7 @@ int main(int argc, char **argv)
    float xout, yout, zout;
    int xform_xyz = 0;
    int atlas_writehard = 0, atlas_readhard = 0, alv=1, wv=1;
-   ATLAS_LIST *atlas_alist=NULL;
+   ATLAS_LIST *atlas_alist=NULL, *atlas_list=NULL, *atlas_rlist=NULL;
    byte b1;
    int LocalHead = wami_lh();
    
@@ -599,25 +599,6 @@ int main(int argc, char **argv)
             if ( strcmp(argv[iarg],"Paxinos_Rat_2007@Elsevier")==0 )
                srcspace = "paxinos_rat_2007@Elsevier";
 
-#ifdef KILLTHIS
-            if (strcmp(argv[iarg],"MNI") == 0 || strcmp(argv[iarg],"mni") == 0) {
-               mni = 1; 
-            } else if (strcasecmp(argv[iarg],"MNI_ANAT") == 0){
-               mni = 2;
-            } else if ( strcmp(argv[iarg],"TLRC") == 0 || 
-                        strcmp(argv[iarg],"tlrc") == 0) {
-               mni = 0; 
-            } else if ( strcmp(argv[iarg],"Paxinos_Rat_2007@Elsevier")==0 ) {
-               srcspace = "paxinos_rat_2007@Elsevier"; /* Just for testing now,
-                                                          debugging only */
-            } 
-            else {
-               fprintf(stderr,
-                  "** Error: %s is invalid. Must use either MNI or TLRC\n", 
-                  argv[iarg]);
-               return(1);
-            }
-#endif
             ++iarg;
             continue; 
          }
@@ -1123,6 +1104,11 @@ int main(int argc, char **argv)
             exit(1);
          }  
       }
+      atlas_rlist = Atlas_Names_to_List(atlas_names, N_atlas_names);
+      if(wami_verb()){
+         INFO_message("reduced list of atlases");
+         print_atlas_list(atlas_rlist);
+      }
    } 
    
    if (!N_atlas_names) {
@@ -1506,51 +1492,6 @@ int main(int argc, char **argv)
          x = m.xyz[0]; y = m.xyz[1]; z = m.xyz[2];
       }
 #endif      
-      #ifdef KILLTHIS /* Remove all old sections framed by #ifdef KILLTHIS
-                  in the near future.  ZSS May 2011   */ 
-      if (OldMethod) {
-        string = TT_whereami_old(x,y,z);
-        if (string == NULL ) {                       /* 30 Apr 2005 [rickr] */
-          fprintf(stderr,
-   "** Error: whereami lookup failure: "
-   "is TTatlas+tlrc/TTatlas.nii.gz available?\n"
-   "   (the TTatlas+tlrc or TTatlas.nii.gz dataset must be in your PATH)\n");
-          return 1;
-        }
-
-         if (output == 1) { 
-            /* ZSS: my  interpretation of the original intent of output == 1 */
-            fstring = strdup(string);
-            /* ignore everything up till Focus point */
-            sfp = strstr(string,"Focus point");
-            if (!sfp) {
-               fprintf(stderr,"** Error: Failed to find 'Focus point' string.\n"
-                              "This is a beuge please inform the authors.\n");
-               return(1);
-            }
-            /* copy all the rest, replacing each new line followed by a 
-               non blank with a tab. */
-            k = 0;
-            while (*sfp != '\0' && sfp < string+strlen(string)) {
-               if (*sfp == '\n') { /* new line encountered */
-                  /* put a tab in copy string */
-                  fstring[k] = '\t'; ++k;
-                  /* skip until next character */
-                  while (!zischar(*sfp) &&  sfp < string+strlen(string)) ++ sfp;
-               }else{
-                  /* add the character */
-                  fstring[k] = *sfp; ++k; ++ sfp;
-               }
-
-            }
-            fstring[k] = '\0';
-            fprintf(stdout,"%s\n", fstring);
-            free(fstring); fstring = NULL;
-         } else {
-            printf("%s\n", string);
-         }
-      } /* end TT_Daemon */
-      #endif
 
       if (!OldMethod) {
          /* the new whereami */
@@ -1563,16 +1504,26 @@ int main(int argc, char **argv)
          }
 
          set_TT_whereami_version(alv,wv);
+         if(!atlas_rlist)
+            atlas_list = atlas_alist;
+         else {
+            atlas_list = atlas_rlist; /* use reduced list */
+            if (wami_verb() >= 2){
+               INFO_message("Calling tt_whereami with this reduced"
+                            " list of atlases");
+               print_atlas_list(atlas_rlist);
+            }
+         }
          if(space_dset) {
            if (LocalHead) INFO_message("Calling tt_whereami with space_dset");
            string = TT_whereami(x,y,z, 
-                                THD_get_space(space_dset), NULL);
+                                THD_get_space(space_dset), atlas_list);
          } else {
            if (!srcspace)
               srcspace = TT_whereami_default_spc_name();
            if (LocalHead) INFO_message("Calling tt_whereami with srcspace %s",
               srcspace);
-           string = TT_whereami(x,y,z, srcspace, NULL);
+           string = TT_whereami(x,y,z, srcspace, atlas_list);
          }
          if (string) fprintf(stdout,"%s\n", string);
          else fprintf(stdout,"whereami NULL string out.\n");
