@@ -3948,14 +3948,13 @@ AFNI_ATLAS_CODES Atlas_Dset_Name_to_Atlas_Code (char *dset_name)
 
 char *Atlas_Code_to_Atlas_Name (AFNI_ATLAS_CODES cod)
 {
-   ENTRY("Atlas_Code_to_Atlas_Name");
    int LocalHead = wami_lh();
-   
+   ENTRY("Atlas_Code_to_Atlas_Name");
+
    if (wami_verb()) 
       WARNING_message("Only for old style loading (no niml)."
                       "Don't allow ATLAS_LIST *");
-   
-   
+
    if (LocalHead) fprintf(stderr,"code in: %d (%d)\n", cod, AFNI_TLRC_ATLAS);
    switch(cod) {
       case UNKNOWN_ATLAS:
