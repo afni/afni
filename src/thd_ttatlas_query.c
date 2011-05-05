@@ -1865,6 +1865,8 @@ void set_TT_whereami_version(int atlas_version, int wami_version) {
 int init_global_atlas_list () {
    ATLAS_LIST *atlas_alist = NULL;
    int  iatlas;
+   /* this list of old atlases is missing "UNKNOWN_ATLAS", first entry
+      so NUMBER_OF_ATLASES is one too many */
    AFNI_ATLAS_CODES TT_whereami_atlas_list[NUMBER_OF_ATLASES] = 
       {  AFNI_TLRC_ATLAS, CA_EZ_N27_MPM_ATLAS, CA_EZ_N27_ML_ATLAS, 
          CA_EZ_N27_PMAPS_ATLAS, CA_EZ_N27_LR_ATLAS, CUSTOM_ATLAS };
@@ -1899,7 +1901,8 @@ int init_global_atlas_list () {
       }
       if (LocalHead) INFO_message("Allocating atlas table");
 
-      atlas_alist->natlases = NUMBER_OF_ATLASES;
+      /* accounting for missing UNKNOWN atlas by subtracting one */
+      atlas_alist->natlases = NUMBER_OF_ATLASES-1; 
       atlas_alist->atlas = (ATLAS *) calloc(
                               atlas_alist->natlases, sizeof(ATLAS));
       for(i=0;i<atlas_alist->natlases;i++) {
@@ -3949,6 +3952,7 @@ AFNI_ATLAS_CODES Atlas_Dset_Name_to_Atlas_Code (char *dset_name)
 char *Atlas_Code_to_Atlas_Name (AFNI_ATLAS_CODES cod)
 {
    int LocalHead = wami_lh();
+
    ENTRY("Atlas_Code_to_Atlas_Name");
 
    if (wami_verb()) 

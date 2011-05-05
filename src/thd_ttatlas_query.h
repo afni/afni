@@ -175,6 +175,14 @@ typedef struct {
 
 #define ATL_ADH_SET(xa) ( ( (xa) && (xa)->adh ) ? \
                            (xa)->adh->params_set : 0 )                            
+
+/* number of atlases in an atlas list */
+#define NUM_ATLASES(atl) ( (atl) ? \
+                           (atl)->natlases : 0)
+
+#define ATLAS_IN_LIST(atl, i) ( (atl) ? \
+                           (atl)->atlas+i : 0)
+
 typedef struct {
    char *atlas_space;
    char *generic_space;
