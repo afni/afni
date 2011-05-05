@@ -1202,12 +1202,149 @@ int main(int argc, char **argv)
    
    /* le bmask business */
    if (bmsk) {
+      compute_overlap(bmsk, cmask, ncmask, dobin, N_atlas_names,
+         atlas_names, atlas_alist);
+   }
+   
+   if(cmask) free(cmask); cmask = NULL;   /* Should not be needed beyond here */
+
+   
+   if (nakedarg < 3 && !coord_file) { /* nothing left to do */
+      return(0);
+   }
+
+   if (coord_file) { /* load the XYZ coordinates from a 1D file */
+      MRI_IMAGE * XYZ_im=NULL;
+      float *XYZv = NULL;
+
+      XYZ_im = mri_read_1D( coord_file ) ;
+      if( XYZ_im == NULL ){
+         fprintf(stderr,"** Error: Can't read XYZ.1D file %s\n",coord_file);
+         return(1) ;
+      }
+      if (XYZ_im->ny != 3) {
+         fprintf(stderr,"** Error: Need three columns as input.\n"
+                        "   Found %d columns\n", XYZ_im->ny);
+         return(1) ;
+      }
+      XYZv = MRI_FLOAT_PTR(XYZ_im) ;
+      coord_list = (float *)calloc(3*XYZ_im->nx, sizeof(float));
+      if (!coord_list) {
+         fprintf(stderr,"** Error: Failed to allocate\n");
+         return(1) ;
+      }
+      /* copy to me own vectors */
+      nxyz = XYZ_im->nx;
+      for (ixyz=0; ixyz<nxyz; ++ixyz) {
+         coord_list[3*ixyz]   = XYZv[ixyz];
+         coord_list[3*ixyz+1] = XYZv[ixyz+XYZ_im->nx];
+         coord_list[3*ixyz+2] = XYZv[ixyz+XYZ_im->nx*2];
+      }
+      mri_free(XYZ_im); XYZ_im = NULL;
+   } else {
+      coord_list = (float *)calloc(3, sizeof(float));
+      coord_list[0] = xi; coord_list[1] = yi; coord_list[2] = zi; 
+      nxyz = 1;
+   }
+   
+   if (!coord_list) {
+      fprintf(stderr,"** Error: No coords!\n");
+      return(1) ;
+   }
+   
+   for (ixyz = 0; ixyz < nxyz; ++ixyz) {
+      x = coord_list[3*ixyz];
+      y = coord_list[3*ixyz+1];
+      z = coord_list[3*ixyz+2];
+      
+      if (!dicom) {
+         /* go from lpi to rai */
+         x = -x;
+         y = -y; 
+      }
+
+      /* coords here are now in RAI - this was old 2010 way */
+#ifdef KILLTHIS      
+      if (mni == 1) { /* go from mni to tlrc */
+         LOAD_FVEC3( tv , -x, -y, z ) ;  /* next call expects input in MNI, LPI*/
+         m = THD_mni_to_tta( tv );  /* m units are in RAI */
+         if (ixyz == 0) {
+            fprintf(stdout,
+   "++ Input coordinates being transformed from MNI  RAI ([%.2f %.2f %.2f]) \n"
+   "                                         to TLRC RAI ([%.2f %.2f %.2f]).\n", 
+                     x, y, z, m.xyz[0],  m.xyz[1], m.xyz[2]);
+         }
+         x = m.xyz[0]; y = m.xyz[1]; z = m.xyz[2];
+      }
+      else if (mni == 2) { /* go from mni_anat to tlrc */
+         LOAD_FVEC3( tv , -x, -y, z ) ;  /* next call expects input in MNI, LPI*/
+         m = THD_mni_to_tta( tv );  /* m units are in RAI */
+         if (ixyz == 0) {
+            fprintf(stdout,
+   "++ Input coordinates being transformed from MNI  RAI ([%.2f %.2f %.2f]) \n"
+   "                                         to TLRC RAI ([%.2f %.2f %.2f]).\n", 
+                                         x, y, z, m.xyz[0],  m.xyz[1], m.xyz[2]);
+         }
+         x = m.xyz[0]; y = m.xyz[1]; z = m.xyz[2];
+      }
+#endif      
+
+      if (!OldMethod) {
+         /* the new whereami */
+         if (atlas_sort) {
+            if (output == 1) TT_whereami_set_outmode (TAB1_WAMI_ATLAS_SORT);
+            else TT_whereami_set_outmode (CLASSIC_WAMI_ATLAS_SORT);
+         } else {
+            if (output == 1) TT_whereami_set_outmode (TAB1_WAMI_ZONE_SORT);
+            else TT_whereami_set_outmode (CLASSIC_WAMI_ZONE_SORT);
+         }
+
+         set_TT_whereami_version(alv,wv);
+         if(!atlas_rlist)
+            atlas_list = atlas_alist;
+         else {
+            atlas_list = atlas_rlist; /* use reduced list */
+            if (wami_verb() >= 2){
+               INFO_message("Calling tt_whereami with this reduced"
+                            " list of atlases");
+               print_atlas_list(atlas_rlist);
+            }
+         }
+         if(space_dset) {
+           if (LocalHead) INFO_message("Calling tt_whereami with space_dset");
+           string = TT_whereami(x,y,z, 
+                                THD_get_space(space_dset), atlas_list);
+         } else {
+           if (!srcspace)
+              srcspace = TT_whereami_default_spc_name();
+           if (LocalHead) INFO_message("Calling tt_whereami with srcspace %s",
+              srcspace);
+           string = TT_whereami(x,y,z, srcspace, atlas_list);
+         }
+         if (string) fprintf(stdout,"%s\n", string);
+         else fprintf(stdout,"whereami NULL string out.\n");
+         if (string) free(string); string = NULL;            
+      }
+   } /* ixyz */   
+   
+   if (coord_list) free(coord_list); coord_list = NULL; 
+   
+   return 0;
+}
+/*----------------------------------------------------------------------------*/
+/* End whereami main */
+/*----------------------------------------------------------------------------*/
+
+int
+compute_overlap(char *bmsk, byte *cmask, int ncmask, int dobin,
+  int N_atlas_names, char **atlas_names, ATLAS_LIST *atlas_alist)
+{
       byte *bmask_vol = NULL, *bba = NULL;
       short *ba = NULL;
       THD_3dim_dataset *mset=NULL, *mset_orig = NULL, *rset = NULL;
       ATLAS *atlas=NULL;
       int isb, nvox_in_mask=0, *count = NULL, dset_kind;
-      int *ics=NULL, *unq=NULL, n_unq=0, iroi=0, nonzero;
+      int *ics=NULL, *unq=NULL, n_unq=0, iroi=0, nonzero, i, k;
       float frac=0.0, sum = 0.0;
       char tmps[20];
       
@@ -1410,133 +1547,4 @@ int main(int argc, char **argv)
       /* done with mset_orig */
       DSET_delete(mset_orig); mset_orig = NULL;
            
-   }
-   
-   if(cmask) free(cmask); cmask = NULL;   /* Should not be needed beyond here */
-
-   
-   if (nakedarg < 3 && !coord_file) { /* nothing left to do */
-      return(0);
-   }
-
-   if (coord_file) { /* load the XYZ coordinates from a 1D file */
-      MRI_IMAGE * XYZ_im=NULL;
-      float *XYZv = NULL;
-
-      XYZ_im = mri_read_1D( coord_file ) ;
-      if( XYZ_im == NULL ){
-         fprintf(stderr,"** Error: Can't read XYZ.1D file %s\n",coord_file);
-         return(1) ;
-      }
-      if (XYZ_im->ny != 3) {
-         fprintf(stderr,"** Error: Need three columns as input.\n"
-                        "   Found %d columns\n", XYZ_im->ny);
-         return(1) ;
-      }
-      XYZv = MRI_FLOAT_PTR(XYZ_im) ;
-      coord_list = (float *)calloc(3*XYZ_im->nx, sizeof(float));
-      if (!coord_list) {
-         fprintf(stderr,"** Error: Failed to allocate\n");
-         return(1) ;
-      }
-      /* copy to me own vectors */
-      nxyz = XYZ_im->nx;
-      for (ixyz=0; ixyz<nxyz; ++ixyz) {
-         coord_list[3*ixyz]   = XYZv[ixyz];
-         coord_list[3*ixyz+1] = XYZv[ixyz+XYZ_im->nx];
-         coord_list[3*ixyz+2] = XYZv[ixyz+XYZ_im->nx*2];
-      }
-      mri_free(XYZ_im); XYZ_im = NULL;
-   } else {
-      coord_list = (float *)calloc(3, sizeof(float));
-      coord_list[0] = xi; coord_list[1] = yi; coord_list[2] = zi; 
-      nxyz = 1;
-   }
-   
-   if (!coord_list) {
-      fprintf(stderr,"** Error: No coords!\n");
-      return(1) ;
-   }
-   
-   for (ixyz = 0; ixyz < nxyz; ++ixyz) {
-      x = coord_list[3*ixyz];
-      y = coord_list[3*ixyz+1];
-      z = coord_list[3*ixyz+2];
-      
-      if (!dicom) {
-         /* go from lpi to rai */
-         x = -x;
-         y = -y; 
-      }
-
-      /* coords here are now in RAI - this was old 2010 way */
-#ifdef KILLTHIS      
-      if (mni == 1) { /* go from mni to tlrc */
-         LOAD_FVEC3( tv , -x, -y, z ) ;  /* next call expects input in MNI, LPI*/
-         m = THD_mni_to_tta( tv );  /* m units are in RAI */
-         if (ixyz == 0) {
-            fprintf(stdout,
-   "++ Input coordinates being transformed from MNI  RAI ([%.2f %.2f %.2f]) \n"
-   "                                         to TLRC RAI ([%.2f %.2f %.2f]).\n", 
-                     x, y, z, m.xyz[0],  m.xyz[1], m.xyz[2]);
-         }
-         x = m.xyz[0]; y = m.xyz[1]; z = m.xyz[2];
-      }
-      else if (mni == 2) { /* go from mni_anat to tlrc */
-         LOAD_FVEC3( tv , -x, -y, z ) ;  /* next call expects input in MNI, LPI*/
-         m = THD_mni_to_tta( tv );  /* m units are in RAI */
-         if (ixyz == 0) {
-            fprintf(stdout,
-   "++ Input coordinates being transformed from MNI  RAI ([%.2f %.2f %.2f]) \n"
-   "                                         to TLRC RAI ([%.2f %.2f %.2f]).\n", 
-                                         x, y, z, m.xyz[0],  m.xyz[1], m.xyz[2]);
-         }
-         x = m.xyz[0]; y = m.xyz[1]; z = m.xyz[2];
-      }
-#endif      
-
-      if (!OldMethod) {
-         /* the new whereami */
-         if (atlas_sort) {
-            if (output == 1) TT_whereami_set_outmode (TAB1_WAMI_ATLAS_SORT);
-            else TT_whereami_set_outmode (CLASSIC_WAMI_ATLAS_SORT);
-         } else {
-            if (output == 1) TT_whereami_set_outmode (TAB1_WAMI_ZONE_SORT);
-            else TT_whereami_set_outmode (CLASSIC_WAMI_ZONE_SORT);
-         }
-
-         set_TT_whereami_version(alv,wv);
-         if(!atlas_rlist)
-            atlas_list = atlas_alist;
-         else {
-            atlas_list = atlas_rlist; /* use reduced list */
-            if (wami_verb() >= 2){
-               INFO_message("Calling tt_whereami with this reduced"
-                            " list of atlases");
-               print_atlas_list(atlas_rlist);
-            }
-         }
-         if(space_dset) {
-           if (LocalHead) INFO_message("Calling tt_whereami with space_dset");
-           string = TT_whereami(x,y,z, 
-                                THD_get_space(space_dset), atlas_list);
-         } else {
-           if (!srcspace)
-              srcspace = TT_whereami_default_spc_name();
-           if (LocalHead) INFO_message("Calling tt_whereami with srcspace %s",
-              srcspace);
-           string = TT_whereami(x,y,z, srcspace, atlas_list);
-         }
-         if (string) fprintf(stdout,"%s\n", string);
-         else fprintf(stdout,"whereami NULL string out.\n");
-         if (string) free(string); string = NULL;            
-      }
-   } /* ixyz */   
-   
-   if (coord_list) free(coord_list); coord_list = NULL; 
-   
-   return 0;
 }
-/*----------------------------------------------------------------------------*/
-/* End whereami main */
-/*----------------------------------------------------------------------------*/
