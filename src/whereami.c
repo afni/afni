@@ -396,7 +396,6 @@ void whereami_usage(ATLAS_LIST *atlas_alist)
 "   whereami, assuming the coordinates are in Talairach space, would report:\n"
 "   > whereami -12 -26 76 -lpi\n"
 "     ++ Input coordinates orientation set by user to LPI\n"
-"     ++ Input coordinates space set by default rules to TLRC\n"
 "     +++++++ nearby Atlas structures +++++++\n"
 "\n"
 "     Original input data coordinates in TLRC space\n"
@@ -1073,22 +1072,6 @@ int main(int argc, char **argv)
       exit(0);
    } 
 
-#if KILLTHIS
-   if (mni == -1) {
-      fprintf(stdout,
-         "++ Input coordinates space set by default rules to TLRC\n");
-      mni = 0;
-   } else if (mni == 0) {
-      fprintf(stdout,"++ Input coordinates space set by user to TLRC\n");
-   } else if (mni == 1) {
-      fprintf(stdout,"++ Input coordinates space set by user to MNI\n");
-   } else if (mni == 2) {
-      fprintf(stdout,"++ Input coordinates space set by user to MNI_ANAT\n");
-   } else {
-      fprintf(stderr,"** Error: Should not happen!\n"); return(1);
-   }
-#endif
-   
    atlas_alist = get_G_atlas_list(); /* get the whole atlas list */
    if (N_atlas_names == 0) {
       /* use all atlases */
@@ -1219,10 +1202,11 @@ int main(int argc, char **argv)
    
    /* le bmask business */
    if (bmsk) {
-      byte *bmask_vol = NULL, *ba = NULL;
+      byte *bmask_vol = NULL, *bba = NULL;
+      short *ba = NULL;
       THD_3dim_dataset *mset=NULL, *mset_orig = NULL, *rset = NULL;
       ATLAS *atlas=NULL;
-      int isb, nvox_in_mask=0, *count = NULL;
+      int isb, nvox_in_mask=0, *count = NULL, dset_kind;
       int *ics=NULL, *unq=NULL, n_unq=0, iroi=0, nonzero;
       float frac=0.0, sum = 0.0;
       char tmps[20];
@@ -1306,19 +1290,18 @@ int main(int argc, char **argv)
                                atlas_names[k]);
                continue;
             }
+            if (is_probabilistic_atlas(atlas)) {
+               /* not appropriate, skip*/
+               continue;
+            }
             if (atlas->adh->maxkeyval < 1) {
-               if (LocalHead) 
+               if (wami_verb()>=2) 
                   fprintf(stderr,
                      "** Warning: Atlas %s not suitable for this application.\n",
                      Atlas_Name(atlas));
                continue;
             }
-            if (atlas->adh->maxkeyval > 255) {
-               fprintf(stderr,
-                     "** Warning: Max index code (%d) higher than expected.\n"
-                     "Not ready to deal with such values yet.\n", 
-                     atlas->adh->maxkeyval);
-            }  
+
             /* resample mask per atlas, use linear interpolation, 
                cut-off at 0.5 */
             rset = r_new_resam_dset (  mset, ATL_DSET(atlas), 0, 0, 0, NULL, 
@@ -1340,22 +1323,36 @@ int main(int argc, char **argv)
                      nvox_in_mask);
             /* for each sub-brick sb */
             for (isb=0; isb< DSET_NVALS(ATL_DSET(atlas)); ++isb) {
-               ba = DSET_BRICK_ARRAY(ATL_DSET(atlas),isb); 
-               if (!ba) { ERROR_message("Unexpected NULL array"); return(1); }
-               /* Create count array for range of integral values in atlas */
-               count = (int *)calloc(atlas->adh->maxkeyval+1, sizeof(int));
-               if (is_probabilistic_atlas(atlas)) {
-                  /* not appropriate, skip*/
-               } else {
+               dset_kind = DSET_BRICK_TYPE(ATL_DSET(atlas),isb);
+               if(dset_kind == MRI_short) {
+                  ba = DSET_BRICK_ARRAY(ATL_DSET(atlas),isb); /* short type */
+                  if (!ba) { 
+                     ERROR_message("Unexpected NULL array");
+                     free(bmask_vol); bmask_vol = NULL;
+                     continue;
+                  }
+                 /* Create count array for range of integral values in atlas */
+                  count = (int *)calloc(atlas->adh->maxkeyval+1, sizeof(int));
                   for (i=0; i<DSET_NVOX(ATL_DSET(atlas)); ++i) {
-                        if (bmask_vol[i] && 
-                            ba[i] >= atlas->adh->minkeyval) ++count[ba[i]]; 
-                     /* Can't use 0 values, even if used in atlas codes */
-                     /* such as for the AC/PC in TT_Daemon! They can't be*/
-                     /* differentiated with this algorithm from non-brain areas*/
+                     if (bmask_vol[i] && 
+                         ba[i] >= atlas->adh->minkeyval) ++count[ba[i]]; 
                   }
                }
-               
+               else {
+                  bba = DSET_BRICK_ARRAY(ATL_DSET(atlas),isb); /* byte array */
+                  if (!bba) { 
+                     ERROR_message("Unexpected NULL array");
+                     free(bmask_vol); bmask_vol = NULL;
+                     continue;
+                  }
+                 /* Create count array for range of integral values in atlas */
+                   count = (int *)calloc(atlas->adh->maxkeyval+1, sizeof(int));
+                   for (i=0; i<DSET_NVOX(ATL_DSET(atlas)); ++i) {
+                      if (bmask_vol[i] && 
+                          bba[i] >= atlas->adh->minkeyval) ++count[bba[i]]; 
+                   }
+               }
+
                /* Now form percentages */
                if (!unq) {
                   fprintf(stdout,
@@ -1377,6 +1374,11 @@ int main(int argc, char **argv)
                sum = 0.0;
                for (i=0; i<=atlas->adh->maxkeyval; ++i) {
                   if (count[i]) {
+                     if(ics[i]==0) continue; /* don't count codes of 0 */
+                     if(strcmp(
+                         STR_PRINT(Atlas_Val_Key_to_Val_Name(atlas, ics[i])),
+                         "NULL")==0)
+                        continue; /* don't count unlabeled codes */
                      frac = (float)count[i]/(float)nvox_in_mask;
                      sum += frac;
                      sprintf(tmps, "%3.1f", frac*100.0); 
@@ -1467,7 +1469,7 @@ int main(int argc, char **argv)
          y = -y; 
       }
 
-      /* coords here are now in RAI */
+      /* coords here are now in RAI - this was old 2010 way */
 #ifdef KILLTHIS      
       if (mni == 1) { /* go from mni to tlrc */
          LOAD_FVEC3( tv , -x, -y, z ) ;  /* next call expects input in MNI, LPI*/
@@ -1538,8 +1540,3 @@ int main(int argc, char **argv)
 /*----------------------------------------------------------------------------*/
 /* End whereami main */
 /*----------------------------------------------------------------------------*/
-
-
-
-
-
