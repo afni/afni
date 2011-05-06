@@ -646,7 +646,8 @@ void CALC_read_opts( int argc , char * argv[] )
          if( CALC_nvox < 0 ){
             CALC_nvox = nxyz ;
          } else if( nxyz != CALC_nvox ){
-            ERROR_exit("dataset %s differs in size from others\n",argv[nopt-1]);
+            ERROR_exit("dataset %s differs in size [%d voxels] from others [%d]\n",
+                       argv[nopt-1] , nxyz , CALC_nvox ) ;
          }
 
          if( !DSET_datum_constant(dset) ){   /* 29 May 2003 */
