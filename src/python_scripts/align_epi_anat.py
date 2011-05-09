@@ -63,7 +63,7 @@ g_help_string = """
         Datasets:
           ANAT_al+orig: A version of the anatomy that is aligned to the EPI
           EPI_al+orig: A version of the EPI dataset aligned to the anatomy
-          EPI_al+tlrc: A version of the EPI dataset aligned to a standard
+          EPI_tlrc_al+tlrc: A version of the EPI dataset aligned to a standard
                        template
         These transformations include slice timing correction and
           time-series registration by default.
@@ -74,12 +74,15 @@ g_help_string = """
                                    (inverse of above)
           EPI_vr_al_mat.aff12.1D: matrix to volume register EPI
           EPI_reg_al_mat.aff12.1D: matrix to volume register and align epi
-                                      to anatomy (combination of the two
-                                      previous matrices)
+                                   to anatomy (combination of the two
+                                   previous matrices)
+          EPI_al_tlrc_mat.aff12.1D: matrix to volume register and align epi
+                                   to anatomy and put into standard space
 
         Motion parameters from optional volume registration:
-          EPI_reg_al_motion.1D: motion parameters from EPI time-series 
-                                registration
+          EPI_tsh_vr_motion.1D: motion parameters from EPI time-series 
+                                registration (tsh included in name if slice
+                                timing correction is also included).
           
     where the uppercase "ANAT" and "EPI" are replaced by the prefix names
     of the input datasets, and the suffix can be changed from "_al" as a user
@@ -548,7 +551,7 @@ g_help_string = """
 ## BEGIN common functions across scripts (loosely of course)
 class RegWrap:
    def __init__(self, label):
-      self.align_version = "1.32" # software version (update for changes)
+      self.align_version = "1.33" # software version (update for changes)
       self.label = label
       self.valid_opts = None
       self.user_opts = None
