@@ -2592,7 +2592,13 @@ static int read_dicom_image( char * pathname, finfo_t * fp, int get_data )
         if ( gD.level > 2 ) disp_obl_info("post mri_read_dicom_get_obliquity ");
     }
 
-    /* process any siemens timing info only once           15 Apr 2011 */
+    /* --------------------------------------------------------------- */
+    /* process any siemens timing info only once           15 Apr 2011
+     *  
+     * Process the times by calling populate_g_siemens_times() after
+     * reading a single DICOM file.  If valid, g_siemens_timing_nused
+     * and g_siemens_timing_times[] will be set.
+     * Use valid_g_siemens_times() to check against nslices and TR.    */
     if( check_timing ) {
         check_timing = 0;
         populate_g_siemens_times(UNITS_SEC_TYPE);

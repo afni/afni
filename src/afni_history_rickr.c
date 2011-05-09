@@ -49,6 +49,13 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 9, MAY, 2011, RCR, "to3d", MICRO, TYPE_ENHANCE,
+   "applied formal parsing for CSA Image Header Info for Siemens slice timing",
+   "Process field (0x0029 1010) as little-endian CSA1 or 2 header, tags\n"
+   "and items.  Get slice times from MosaicRefAcqTimes item.\n"
+   "Thanks to I Souheil for finding NiBabel CSA format description."
+ } ,
+
  { 4, MAY, 2011, RCR, "to3d", MICRO, TYPE_BUG_FIX,
    "fixed case of simult tpattern (so time_dep, but ui.tpattern is not set)",
    "Problem noted by J Ostuni."

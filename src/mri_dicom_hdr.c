@@ -2367,198 +2367,8 @@ DCM_GetObjectSize(DCM_OBJECT ** callerObject, unsigned long *returnlength)
 **	End for
 */
 
-/* -------------------------------------------------------- */
-/* functions to help look in memory dump for slice timing   */
-/*                                     08 Apr 2011 [rickr]  */
-
-/* quick strstr function, but limited by len (not NUL char) */
-static char * findstr(char * instr, char * sstr, int len)
-{
-   char * cptr = instr;
-   int    posn = 0, slen;
-
-   if( !instr || !sstr || len <= 0 ) return NULL;
-
-   slen = strlen(sstr);
-   len -= slen;
-
-   while( posn <= len ){
-      if( *cptr != *sstr ) { cptr++; posn++; continue; }
-      if( ! strncmp(cptr, sstr, slen) ) return cptr;
-      else { cptr++; posn++; }
-   }
-
-   return NULL;
-}
-
-/* return 0 if has form d+.d+z (digits, '.', digits, 0-byte)
- * (require at least 6 digits, total)
- * 
- * return the number of bad float-ish characters processed
- * (so 0 means we have a float)
- *
- * updated from 'looks_like_float'        2 May 2011 [rickr]
- * (look for a.b.* and non-nul-termination)
- */
-static int num_bad_float_chars(char * str)
-{
-   int c = 0;
-   int mindigs = 6;
-
-   if( ! isdigit(str[c++]) ) return 1;  /* must have a leading digit  */
-   while( isdigit(str[c]) ) c++;
-
-   if( str[c] != '.' ) return c;        /* must have a decimal        */
-   c++;
-
-   if( ! isdigit(str[c]) ) return c;    /* must have a trailing digit */
-
-   while( isdigit(str[c]) ) c++;        /* just count length */
-
-   /* look for stupid case of a.b.c - that is not a float       */
-   /* --> skip "a.b.[d.]*"                                      */
-   if( str[c] == '.' ) {
-      c++;
-      while( isdigit(str[c]) || str[c] == '.' ) c++;
-      if (g_MDH_verb > 2) fprintf(stderr,"** skip bad slice time %*s\n",c,str);
-      return c;
-   }
-
-   /* only success case, enough digits and ends in zero byte */
-   if( c > mindigs && str[c] == '\0' ) return 0;
-
-   if( g_MDH_verb > 2 ) {
-      if ( c > mindigs )
-         fprintf(stderr,"** skip bad terminated slice time %*s\n", c-1, str);
-      else
-         fprintf(stderr,"** skip short slice time %*s\n", c-1, str);
-   }
-
-   return c;    /* failure */
-}
-
-static int insert_slice_time(float st)
-{
-   siemens_slice_times_t * ST = & g_siemens_slice_times;  /* global struct */
-
-   if( ST->nused == 0 && g_MDH_verb > 1 )
-      fprintf(stderr,"++ siemens slice times:");
-
-   ST->nused++;
-   if( ST->nused > ST->nalloc ) {
-      ST->nalloc = ST->nused + 4;       /* alloc a few extra */
-      ST->times = (float  *)realloc(ST->times, ST->nalloc*sizeof(float ));
-      if( ! ST->times ) {
-         fprintf(stderr,"** MIST: failed malloc of %d floats\n", ST->nalloc);
-         ST->nused = 0;
-         ST->nalloc = 0;
-         return 1;
-      }
-   }
-
-   if( g_MDH_verb > 1 ) fprintf(stderr," %f", st);
-
-   ST->times[ST->nused-1] = st;
-
-   return 0;
-}
-
-/* - search field '0x0029 1010' for string MosaicRefAcqTimes
- * - from there, find text formatted floats
- * - stop at AutoInlineImageFilterEnabled, if found
- */
-static int check_for_mosaic_slice_times(PRV_ELEMENT_ITEM * elementItem)
-{
-   unsigned el_gr = DCM_TAG_GROUP(elementItem->element.tag);
-   unsigned el_el = DCM_TAG_ELEMENT(elementItem->element.tag);
-   int      el_len = elementItem->element.length;
-   char     start_txt[] = "MosaicRefAcqTimes";
-   char     end_txt[]   = "AutoInlineImageFilterEnabled";
-   siemens_slice_times_t * ST = & g_siemens_slice_times;  /* global struct */
-
-   char * instr, * mstr;    /* input string and Mosaic string addr         */
-   char * s2;               /* second search string, posn of AutoInline... */
-   char * pstr;             /* position pointer, for reading times         */
-   int    rem, rem2 = 0;    /* remainder counts                            */
-   int    off, c, rv, diff; /* offset and counter vars                     */
-   float  stime;            /* any read slice time                         */
-
-
-   /* if this is not the correct element, nothing to do */
-   if( el_gr != 0x0029 || el_el != 0x1010 ) return 0;
-
-   /* we are in the correct field, start by clearing old results */
-   ST->nused = 0;
-
-   /* input string is field text, mstr is resulting MosaicRef text pointer */
-   instr = (char *)elementItem->element.d.ot;
-   mstr = findstr(instr, start_txt, el_len);
-
-   if( ! mstr ) {
-      if( g_MDH_verb > 2 ) fprintf(stderr, "-- CFMST, no Mosaic string\n");
-      return;
-   }
-
-   off = mstr - instr;  /* offset of Mosaic string into field */
-   rem = el_len - off;  /* remaining length of field */
-
-   /* secondary remainder to be until any AutoInline... string */
-   s2 = findstr(mstr, end_txt, rem);
-   if( s2 ) rem2 = s2 - mstr;
-   else     rem2 = 0;
-
-   if( g_MDH_verb > 1 )
-      fprintf(stderr, "== found %s in 0x0029 1010\n"
-              "   off = %d of %d bytes (rem %d, %d)\n",
-              start_txt, off, el_len, rem, rem2);
-
-   if( s2 ) rem = rem2;  /* after verbose, update remaining length */
-
-   if( rem <= 0 ) return;
-
-   /* in verbose mode, print remaining text, converting non-print to '_' */
-   if( g_MDH_verb > 2 ) {
-      fprintf(stderr, "-- remaining (converted) text :\n");
-      for(c=0; c<rem; c++)
-        if( !isprint(mstr[c]) ) fputc('_', stderr);
-        else fputc(mstr[c], stderr);
-      fprintf(stderr, "(end)done\n");
-   }
-
-   /* in really verbose mode, print out raw text */
-   if( g_MDH_verb > 3 ) {
-      unsigned char * ucp = (unsigned char *)mstr;
-      fprintf(stderr, "-- remaining spaced hex or digit or '.' :\n");
-      for(c=0; c<rem; c++)
-        if( isdigit(mstr[c]) || mstr[c]=='.' ) fprintf(stderr," '%c'",mstr[c]);
-        else fprintf(stderr," %02x", ucp[c]);
-      fprintf(stderr, "(end)done\n");
-   }
-
-   /* actually read in the slice times */
-   c = 0;
-   while(c < rem) {
-      rv = num_bad_float_chars(mstr+c);
-      if( rv == 0 ) {   /* 0 bad chars means look like a float string */
-         stime = (float)strtod(mstr+c, &pstr);
-         diff = pstr-mstr-c;
-         if( diff > 0 ) {       /* found one */
-            if( insert_slice_time(stime) ) break;
-         }
-         else break;    /* quit looking */
-         c += diff;
-      }
-      else c += rv;     /* skip the number of bad chars found */
-   }
-
-   if( g_MDH_verb > 1 )
-      fprintf(stderr,"\n++ found %d slice times\n", ST->nused);
-
-   return 0;
-}
-
-/* end slice timing functions                               */
-/* -------------------------------------------------------- */
+/* rcr - maybe do something better with this */
+#include "siemens_dicom_csa.c"
 
 static void dumpOB(unsigned char* c, long vm);
 
@@ -2777,6 +2587,8 @@ STATUS("looping over groupItem") ;
 				       elementItem->element.representation,
 			       elementItem->element.length , MAX(rwc_vm,8));
 
+                    /* moved everything to new siemens_dicom_csa.c
+                     *                          7 May 2011 [rickr] */
                     check_for_mosaic_slice_times(elementItem);
 
 		    break;
@@ -7874,23 +7686,10 @@ void swap_4bytes( size_t n , void *ar )
 static void
 dumpOB(unsigned char* c, long vm)
 {
-  int swap = 1;
   long index = 0;
-  unsigned long * lp;
-  float         * fp;
   RWC_printf("hex OB: (len %d)", vm) ;
 
   while (index < vm) {
-    if(!(index%8) && (vm-index)>=8) {
-        lp = (unsigned long *)c;
-        fp = (float *)c;
-        if(swap) swap_4bytes(2, c);
-        RWC_printf("   longs : %ld %ld\n", *lp, lp[1]);
-        RWC_printf("   float : %f %f\n", *fp, fp[1]);
-        if(swap) swap_4bytes(2, c);
-        RWC_printf("   char  : %c%c%c%c%c%c%c%c\n",
-                   *c, c[1], c[2], c[3], c[4], c[5], c[6], c[7]);
-    }
     RWC_printf("%02x ", *(c++));
     if ((++index) % 8 == 0)
       RWC_printf("\n");
