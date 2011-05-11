@@ -7,19 +7,21 @@ int main( int argc , char * argv[] )
    char *prefix = "DFT" ;
    float   *mag, *real=NULL;
    complex *comp_array;
-   int iarg=1 , doabs=0, ii, jj, kk, ll, nvox, nvals=1, isfloat=0;
+   int iarg=1 , doabs=0, ii, jj, kk, ll, nvox, nvals=1 , isreal=0 ;
    int nx, ny, nz, nfft=0 , detrend=0 , sgn=-1 ;
    float *xtap=NULL , ftap=0.0f ;  /* 27 Nov 2007 */
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
-     printf("Usage: 3dDFT [-prefix ppp] [-abs] [-nfft N] [-detrend] dataset\n"
+     printf("Usage: 3dDFT [options] dataset\n"
             "       where 'dataset' is complex- or float-valued.\n"
             " * Carries out the DFT along the time axis.\n"
             " * To do the DFT along the spatial axes, use program 3dFFT.\n"
-            " * If you want to process short-valued datasets, you'll have\n"
-            "   to convert to floating point format first, as in\n"
-            "     3dcalc -a shortset+orig -prefix floatset -float -expr a\n"
+            " * The input dataset can be complex-valued or float-valued.\n"
+            "   If it is any other data type, it will be converted to floats\n"
+            "   before processing.\n"
             "\n"
+            "OPTIONS:\n"
+            "--------\n"
             " -abs     == output float dataset = abs(DFT)\n"
             "            * Otherwise, the output file is complex-valued.\n"
             "              You can then use 3dcalc to extract the real part, the\n"
@@ -59,7 +61,7 @@ int main( int argc , char * argv[] )
 
    /*-- options --*/
 
-#define GOOD_TYPE(tt) ((tt)==MRI_complex || (tt)==MRI_float )
+#define GOOD_TYPE(tt) ((tt)==MRI_complex || (tt)==MRI_float || (tt)==MRI_short)
 
    while( iarg < argc && argv[iarg][0] == '-' ){
 
@@ -126,7 +128,7 @@ int main( int argc , char * argv[] )
    if( !GOOD_TYPE( DSET_BRICK_TYPE(dset1,0) ) )
      ERROR_exit("ILLEGAL dataset type in %s - must be complex or float\n",argv[iarg]) ;
 
-   isfloat = ( DSET_BRICK_TYPE(dset1,0) == MRI_float ) ;
+   isreal = ( DSET_BRICK_TYPE(dset1,0) != MRI_float ) ;
 
    dbr1 = DSET_BRICK(dset1,0) ;
 
@@ -136,6 +138,8 @@ int main( int argc , char * argv[] )
 
    nvox = dbr1->nvox ;
    nvals = DSET_NVALS(dset1);
+   if( nvals < 4 )
+     ERROR_exit("Only %d time points in dataset! Must have at least 4.",nvals);
 
    /* Calculate size for FFT */
 #if 0
@@ -148,8 +152,8 @@ int main( int argc , char * argv[] )
    } else if( ii > nfft ){
      WARNING_message("Data length = %d ; replacing -nfft=%d with %d",
                      nvals,nfft,ii);
-     nfft = ii ;
    }
+   nfft = ii ;
 
    if( ftap > 0.0f )
      xtap = mri_setup_taper( nvals , ftap ) ;  /* 27 Nov 2007 */
@@ -192,19 +196,19 @@ int main( int argc , char * argv[] )
                             (doabs) ? MRI_float : MRI_complex ,
                             NULL ) ;
 
-   /* Loop through timeseries and do DFT */
+   /* Loop through timeseries and do DFTs */
 
    comp_array = (complex *) calloc( sizeof(complex) , nfft);
    mag        = (float *)   calloc( sizeof(float)   , nfft);
-   if( isfloat ) real = (float *)calloc( sizeof(float),nfft) ;
+   if( isreal ) real = (float *)calloc( sizeof(float),nfft) ;
 
    for( ii=0 ; ii < nvox ; ii++ ){  /* loop over voxels */
 
-     if( !isfloat ){
+     if( !isreal ){
        (void)THD_extract_array( ii , dset1 , 1 , comp_array ) ;
        if( detrend ) THD_linear_detrend_complex( nvals , comp_array ) ;
      } else {
-       (void)THD_extract_array( ii , dset1 , 1 , real );
+       (void)THD_extract_array( ii , dset1 , 0 , real );
        if( detrend ) THD_linear_detrend( nvals , real , NULL,NULL ) ;
        for( jj=0 ; jj < nvals ; jj++ ) {
          comp_array[jj].r = real[jj]; comp_array[jj].i = 0.0f ;
