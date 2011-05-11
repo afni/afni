@@ -93,6 +93,7 @@ class AlignInterface():
       vopts.add_opt('-help', 0, [], helpstr='show this help')
       vopts.add_opt('-help_gui', 0, [], helpstr='show help for GUI')
       vopts.add_opt('-help_todo', 0, [], helpstr='show todo list')
+      vopts.add_opt('-help_howto_program',0,[],helpstr='programming overview')
       vopts.add_opt('-hist', 0, [], helpstr='show revision history')
       vopts.add_opt('-show_default_vars',0,[],helpstr='show variable defaults')
       vopts.add_opt('-show_valid_opts',0,[],helpstr='show all valid options')
@@ -133,6 +134,10 @@ class AlignInterface():
 
       if '-help_gui' in argv:
          print UALIGN.helpstr_gui
+         return 1
+
+      if '-help_howto_program' in argv:
+         print UALIGN.helpstr_create_program
          return 1
 
       if '-help_todo' in argv:
@@ -260,15 +265,12 @@ class AlignInterface():
                '   --> see the output of: uber_subject.py -help_install\n'
          return 1
 
-      print '==== would run GUI if it were ready ===='
-      return 0
-
       # if the above worked, let any GUI import errors show normally
-      import gui_uber_align as GUT
+      import gui_uber_align_test as GUT
 
       app = QtGui.QApplication(self.guiopts)
-      D = GUT.SingleSubjectWindow(ctrl_vars=self.cvars, set_sdir=1)
-      QtGui.QApplication.setStyle(QtGui.QStyleFactory.create(D.gvars.style))
+      D = GUT.MainWindow(cvars=self.cvars, set_pdir=1)
+      QtGui.QApplication.setStyle(QtGui.QStyleFactory.create("cleanlooks"))
       D.show()
       app.exec_()
 

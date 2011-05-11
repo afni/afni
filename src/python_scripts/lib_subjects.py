@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import sys, os
-import copy
+import copy, glob
 import afni_util as UTIL
 
 g_mema_tests = [None, 'paired', 'unpaired']
@@ -273,7 +273,7 @@ class VarsObject(object):
             if atr.find(pattern) >= 0: match = 1
          if match:
             if all and self.get_atomic_type(atr) == None:
-               sstr += "      %-20s : not atomic type...\n" % (atr)
+               sstr += "      %-20s : <not atomic type>\n" % (atr)
             else:
                sstr += "      %-20s : %s\n" % (atr, self.val(atr))
 
@@ -302,6 +302,7 @@ def make_message_list_string(mlist, title):
       if ind == 0: mesg += mm
       else:        mesg += ('\n' + mm)
    return mesg
+
 
 # ===========================================================================
 # begin Subject stuff  (class should be rewritten to use VarsObject types)
@@ -439,6 +440,55 @@ def proc_dir_file_exists(dname, fname):
 
    return os.path.isfile(pathname)
    
+def get_def_tool_path(tool_name, top_dir='tool_results', prefix='tool',
+                                 digits=3):
+   """return something of the form top_dir/prefix.0001.tool_name
+
+      if top_dir exists:
+         look for anything of the form prefix.*, find the lowest index that
+         is not used, and return top_dir/prefix.NEW_INDEX.tname
+      else: return top_dir/prefix.001.tname
+   """
+
+   tname = tool_name            # yeah, shorter, but less descriptive ...
+   tdir = top_dir
+   prefix = 'tool'
+   index = 1                    # default index
+
+   # generate form for name (e.g. tr/t.%03d.t); insert index later
+   form = '%s/%s.%%0%dd.%s' % (tdir, prefix, digits, tname)
+
+   # if tdir does not yet exist, we can start with the default
+   if not os.path.isdir(tdir):
+      return form % index
+
+   # see what is under tdir, and go with default if nothing is found
+   glist = glob.glob('%s/tool.*.*' % tdir)
+   if len(glist) == 0: return form % index
+
+   # if '.' in tdir, nuke tdir from list elements
+   if '.' in tdir: glist = [name.split('/')[1] for name in glist]
+
+   # abuse '.': make a list of integers from field 1 when split over '.'
+   try: ilist = [int(name.split('.')[1]) for name in glist]
+   except:
+      print '** found non-int VAL in %s/%s.VAL.*' % (tdir, prefix)
+      return form % 999
+
+   ilist.sort()
+   nvals = len(ilist)
+
+   # quick check, if ilist[n-1] = n, just go with n+1
+   # (or should we forget this, since non-unique values break logic?)
+   if ilist[-1] <= nvals: return form % (nvals+1)
+
+   # finally!  now find first value > index+1 (else, just use next)
+ 
+   for ind, ival in enumerate(ilist):
+      if ival > ind+1: break
+
+   return form % (ind+1)
+
 class Subject(object):
    """a simple subject object holding an ID, dataset name, and an
       attribute dictionary"""

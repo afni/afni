@@ -397,9 +397,6 @@ class SingleSubjectWindow(QtGui.QMainWindow):
 
    def group_box_tlrc(self):
       """create a group box with a VBox layout:
-            align_giant_move, align_cost,
-            tlrc_ss, tlrc_base, tlrc_ok_maxite
-            (rcr - later: maybe general align_opts_aea, tlrc_opts_at)
       """
 
       gbox = self.get_styled_group_box("extra tlrc options")
@@ -1551,7 +1548,6 @@ class SingleSubjectWindow(QtGui.QMainWindow):
 
       # --------------------------------------------------
       # gltsym table (get labels and GLTs)
-      table = self.gvars.Table_gltsym           # convenience
       nrows = table.rowCount()
       ncols = table.columnCount()
 

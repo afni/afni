@@ -118,9 +118,10 @@ g_history = """
     0.22 Apr 28, 2011 : mostly prep of library for uber_align.py
          - moved many functions to lib_subjects or afni_util.py
          - added option -show_default_vars
+    0.23 May 11, 2011 : small help/todo update
 """
 
-g_version = '0.22 (April 28, 2011)'
+g_version = '0.23 (May 11, 2011)'
 
 # ----------------------------------------------------------------------
 # global definition of default processing blocks
@@ -1387,17 +1388,44 @@ helpstr_todo = """
 - uber_proc.py:
    - be able to generate looping script for AP commands
      (process an entire list of INIT_PROC subjects?)
+      - generate foreach subj loop, and apply $subj wherever appropriate
+        (directories and input file names)
 
 tools (maybe put in uber_proc.py, instead):
    - compute average blur
    - plot regressors of interest (run xmat_tool.py or ExamineXmat?)
    - test alignment (uber_align_test.py - give 'afni' command to cut-n-paste?)
-   - help to create and play with stimulus timing design (sug by A Barbey)
+   - help to create and play with stimulus timing design (sug. by A Barbey)
 ---------------------------------------------------------------------------
 """
 
 helpstr_usubj_gui = """
 ===========================================================================
+==  Until uber_subject.py is fully integrated within the parent program
+==  uber_proc.py, it is recommended to use uber_subject.py mostly to help
+==  write afni_proc.py commands, and to learn about processing and shell
+==  scripting.
+==
+==  At this level there is no control over importing options from other
+==  subjects or verifying that options are consistent across subjects.
+==  Integration under uber_proc.py will include those abilities, and will
+==  provide control for analysis of multiple subjects and groups at once.
+==
+==  From uber_proc.py, one should eventually be able to:
+==
+==     - analyze many subjects/groups using similar processing options
+==     - process all of the data at once (not having to watch one subject
+==       get processed at a time)
+==     - generate and run group analysis scripts for commands like:
+==          3dttest++, 3dMEMA, 3dANOVA2/3, others as interest dictates
+==     - incorporate tools like uber_align_test.py, reporting average blur,
+==         censor counts and fractions, max F-stats, plotting regressors of
+==         interest
+==
+==  Currently, uber_subject.py provides (what we think are) good defaults
+==  for afni_proc.py (and therefore a good sample of how to process data).
+===========================================================================
+
 uber_subject.py GUI             - a graphical interface to afni_proc.py
 
    purposes:
