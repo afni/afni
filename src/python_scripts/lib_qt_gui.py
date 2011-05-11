@@ -11,6 +11,10 @@ g_history = """
      - process local vars in string format, not QString
      - current font is courier bold
 
+  May 11, 2011:
+     - added createAction and addActions
+     - added resize_table_cols
+
 - glt box:
    - write make_gltsym_table -> to self.gvars.Table_gltsym
    - wrte self.gltsym_list_to_table
@@ -278,7 +282,7 @@ def create_button_grid(labels, tips=None, cb=None, rlen=4):
          col = 0
          row += 1
          continue
-      if col == 4: # but keep going
+      if col == rlen: # but keep going
          col = 0
          row += 1
 
@@ -339,6 +343,43 @@ def create_display_label_pair(name, text):
    text_label.setFrameShadow(QtGui.QFrame.Sunken)
 
    return name_label, text_label
+
+def createAction(parent, text, slot=None, shortcut=None, tip=None,
+                 checkable=False, icon=None, signal="triggered()"):
+   """create an action item to add to a menu or tool bar
+
+      possibly: - add a shortcut
+                - set tool tip and status tip
+                - set call-back (slot)
+                - make checkable
+                - set an icon
+   """
+
+   action = QtGui.QAction(text, parent)
+   if shortcut is not None:
+      action.setShortcut(shortcut)
+   if tip is not None:
+      action.setToolTip(tip)
+      action.setStatusTip(tip)
+   if slot is not None:
+      parent.connect(action, QtCore.SIGNAL(signal), slot)
+   if checkable:
+      action.setCheckable(True)
+   if icon is not None:
+      action.setIcon(icon)
+   return action
+
+def addActions(parent, target, actions):
+   """add a list of actions to the target
+
+      if an action is None, add as a separator
+   """
+
+   for action in actions:
+      if action is None:
+         target.addSeparator()
+      else:
+         target.addAction(action)
 
 def valid_as_int(text, name, warn=0, wparent=None, empty_ok=1):
    """the text can be either empty (if empty_ok) or be an int
@@ -477,6 +518,19 @@ def guiError(title, text, parent):
    mbox = QtGui.QMessageBox(QtGui.QMessageBox.Critical,
                             title, text, QtGui.QMessageBox.Ok, parent)
    mbox.show()
+
+def resize_table_cols(table):
+   """resize to column contents, unless it is in strech_cols"""
+
+   ncols = table.columnCount()
+
+   # resize columns to fit data
+   for col in range(ncols):          # to be safe, work on column indices
+      if col in table.stretch_cols:
+        table.horizontalHeader().setResizeMode(col,QtGui.QHeaderView.Stretch)
+      else:
+        table.horizontalHeader().setResizeMode(col,
+                                 QtGui.QHeaderView.ResizeToContents)
 
 class TableWidget(QtGui.QTableWidget):
    """sized widget containing a grid of entries"""

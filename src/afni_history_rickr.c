@@ -49,6 +49,17 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 11, MAY, 2011, RCR, "uber_align_test.py", MAJOR, TYPE_ENHANCE,
+   "added basic graphical interface, still need to add variable fields",
+   "o  also made single cost_list\n"
+   "o  also added -help_howto_program, which might move to a skeleton program"
+ } ,
+
+ { 11, MAY, 2011, RCR, "uber_subject.py", MICRO, TYPE_ENHANCE,
+   "small help/todo update",
+   NULL
+ } ,
+
  { 9, MAY, 2011, RCR, "to3d", MICRO, TYPE_ENHANCE,
    "applied formal parsing for CSA Image Header Info for Siemens slice timing",
    "Process field (0x0029 1010) as little-endian CSA1 or 2 header, tags\n"

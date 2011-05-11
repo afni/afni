@@ -16,14 +16,17 @@ DEF_TOP_DIR  = 'tool_results'     # top subject dir under uber_results
 g_history = """
   uber_align_test.py history
 
-    0.0  April 05, 2011: initial revision
+    0.0  05 Apr, 2011: initial revision
+    0.1  11 May, 2011:
+         - replaced cost/multi_cost/multi_list with just cost_list
+         - added -help_howto_program (maybe move to shell program)
+         - added basic GUI, only anat field so far...
 """
 
-g_version = '0.0 (April 5, 2011)'
+g_version = '0.1 (May 11, 2011)'
 
 # ----------------------------------------------------------------------
 # global definition of default processing blocks
-g_def_multi_list  = ['lpc', 'lpc+ZZ', 'lpc+', 'lpa', 'nmi', 'ls']
 g_tlrc_base_list  = ['TT_N27+tlrc', 'TT_avg152T1+tlrc', 'TT_icbm452+tlrc',
                      'MNI_avg152T1+tlrc']
 g_def_tlrc_base   = 'TT_N27+tlrc'
@@ -52,9 +55,7 @@ g_ctrl_defs.epi_base       = 0          # EPI alignment base index
 
 # options
 g_ctrl_defs.results_dir    = 'align.results' # where processing is done
-g_ctrl_defs.cost           = 'lpc'
-g_ctrl_defs.use_multi      = 'yes'
-g_ctrl_defs.multi_list     = ['lpc+ZZ', 'lpc+', 'lpa', 'nmi', 'ls']
+g_ctrl_defs.cost_list      = ['lpc', 'lpc+ZZ', 'lpc+', 'lpa', 'nmi', 'ls']
 g_ctrl_defs.giant_move     = 'no'
 g_ctrl_defs.align_centers  = 'no'
 g_ctrl_defs.center_base    = 'TT_N27+tlrc'  # must find it
@@ -127,13 +128,11 @@ class AlignTest(object):
       if self.cvars.is_empty('epi'):
          self.errors.append('** unspecified EPI dataset')
 
-      if len(self.cvars.multi_list) < 1 and self.cvars.use_multi == 'yes':
-         self.errors.append('** want -multi_cost, but have no cost list')
+      if len(self.cvars.cost_list) < 1:
+         self.errors.append('** unspecified cost function(s)')
 
-      if len(self.cvars.multi_list) > 1 and \
-            self.cvars.cost in self.cvars.multi_list:
-         self.errors.append("** cost '%s' cannot also be in -multi_cost list" \
-                            % self.cvars.cost)
+      if not UTIL.vals_are_unique(self.cvars.cost_list):
+         self.errors.append('** cost functions are not unique')
 
       return len(self.errors)
 
@@ -188,15 +187,14 @@ class AlignTest(object):
    def script_align_datasets(self):
       """actually run align_epi_anat.py
 
-         only current option is use_multi, everything else is via variables
+         only current option is -mult_cost, everything else is via variables
       """
 
-      if self.cvars.use_multi: mstr = ' -multi_cost $cost_list'
-      else:                    mstr = ''
+      if len(self.cvars.cost_list) > 1: mstr = ' -multi_cost $cost_list'
+      else:                             mstr = ''
 
       cmd = SUBJ.comment_section_string('align data') + '\n'
 
-  # rcr - here
       cmd += \
        '# test alignment, using variables set above\n'          \
        'align_epi_anat.py -anat anat+orig -epi epi+orig '       \
@@ -303,9 +301,9 @@ class AlignTest(object):
 
       # note whether to use multi_cost
       cmd += '# main options\n' \
-             'set cost_main = %s\n' % self.cvars.cost
-      if self.cvars.use_multi == 'yes':
-         cmd += 'set cost_list = ( %s )\n' % ' '.join(self.cvars.multi_list)
+             'set cost_main = %s\n' % self.cvars.cost_list[0]
+      if len(self.cvars.cost_list) > 1:
+         cmd += 'set cost_list = ( %s )\n' % ' '.join(self.cvars.cost_list[1:])
       cmd += '\n'
 
       # possibly add align_opts list variable
@@ -314,8 +312,7 @@ class AlignTest(object):
       return cmd
 
    def make_align_opts_str(self):
-      """if 2 or fewer align options, put on one line, else use one per line"""
-      if self.cvars.use_multi != 'yes':  return ''
+      """any align options, one per line"""
 
       # keep comment separate to get indent length
       cmnt = '# all other align_epi_anat.py options\n' \
@@ -327,7 +324,7 @@ class AlignTest(object):
       # put one option on first line
       cstr += '%s \\\n' % '-tshift off'
 
-      # ---------- here it the main option application ---------
+      # ---------- here is the main option application ---------
 
       # then add each option offset by initial indentation
       cstr += '%s%s \\\n' % (istr, '-volreg off')
@@ -336,7 +333,7 @@ class AlignTest(object):
          cstr += '%s%s \\\n' % (istr, '-giant_move')
 
       if self.cvars.add_edge == 'yes':
-         if self.cvars.use_multi == 'yes':
+         if len(self.cvars.cost_list) > 1:
             self.errors.append(
                '** -AddEdge does not currently work with -multi_cost')
          else:
@@ -385,6 +382,44 @@ class AlignTest(object):
       return len(self.warnings), \
              SUBJ.make_message_list_string(self.warnings, "warnings")
 
+   def proc_dir_filename(self, vname):
+      """file is either fname or proc_dir/fname (if results is set)
+         vname : results file variable (must convert to fname)
+      """
+      fname = self.rvars.val(vname)
+      return self.cvars.file_under_dir('proc_dir', fname)
+
+   def nuke_old_results(self):
+      """if the results directory exists, remove it"""
+
+      if self.cvars.results_dir == '': return
+
+      # ------------------------- do the work -------------------------
+      self.LV.retdir = SUBJ.goto_proc_dir(self.cvars.proc_dir)
+
+      if os.path.isdir(self.cvars.results_dir):
+         print '-- nuking old results: %s' % self.cvars.results_dir
+         os.system('rm -fr %s' % self.cvars.results_dir)
+
+      self.LV.retdir = SUBJ.ret_from_proc_dir(self.LV.retdir)
+      # ------------------------- done -------------------------
+
+
+   def copy_orig_proc(self):
+      """if the proc script exists, copy to .orig.SCRIPTNAME"""
+      if self.rvars.file_proc == '': return
+      pfile = self.rvars.file_proc
+
+      # ------------------------- do the work -------------------------
+      self.LV.retdir = SUBJ.goto_proc_dir(self.cvars.proc_dir)
+      if os.path.isfile(pfile):
+         cmd = 'cp -f %s .orig.%s' % (pfile, pfile)
+         if self.cvars.verb > 1: print '++ exec: %s' % cmd
+         os.system(cmd)
+      elif self.cvars.verb > 1: print "** no proc '%s' to copy" % pfile
+      self.LV.retdir = SUBJ.ret_from_proc_dir(self.LV.retdir)
+      # ------------------------- done -------------------------
+
    def write_script(self, fname=''):
       """write processing script to a file (in the proc_dir)
          - if fname is set, use it, else generate
@@ -429,14 +464,16 @@ helpstr_todo = """
 - test center distance in GUI to suggest align centers
 - show corresponding afni_proc.py options
 - show corresponding uber_subjec.py options?
+- show afni command to look at results (basically point to directory)
 ---------------------------------------------------------------------------
 """
 
 helpstr_gui = """
 ===========================================================================
-uber_subject.py GUI             - a graphical interface for testing alignment
+uber_align_test.py (GUI)      - a graphical interface for testing alignment
 
-   Find good alignment options, possibly to add to afni_proc.py command.
+   Find good alignment options, possibly to add to afni_proc.py command
+   or uber_subject.py GUI options.
 
    purposes:
    required inputs:
@@ -450,3 +487,123 @@ Overview:
 ===========================================================================
 """
 
+helpstr_create_program = """
+===========================================================================
+This is a brief overview about creating a new program/GUI for uber_proc.py.
+
+There are (currently) 3 basic files used, the main program, the library and
+the GUI.  The intention is that one can run the main program to generate or
+execute processing scripts (goal of the GUI) without actually using the GUI.
+Some common GUI routines/classes are in lib_qt_gui.py.
+
+So the purpose of the GUI is to set control variables to pass to the library.
+
+   1. uber_align_test.py: main program
+      - handles just a few options
+         - options for help, version, etc.
+         - options to set control or other vars (for gui or library)
+         - options to execute main processing functions, akin to GUI
+      - should be able to create and execute scripts
+        (to be able to do the main operations of the GUI)
+      - by default, start GUI (unless -no_gui)
+      - give command help (this can be very simple, learning is via GUI)
+
+   2. lib_uber_align.py: main library for program
+      - defines processing class that accepts control vars and generates
+        processing scripts
+      - main inputs:
+         - control variables *as strings*
+           These are converted to local control vars with types, e.g.
+           cvars.merge(new_cvars, typedef=control_vars_w_types).  This
+           allows higher-level interfaces to not worry about the types.
+      - return (internal) data:
+         - processing script
+         - error list (script is garbage if list is not empty)
+         - warning list (to be shown to user, but script may still be good)
+         - return vars struct
+            - suggested script file name and output file name
+      - script is currently created upon init
+      - library should be able to do the main work, so command line and GUI
+        programs do not repeat functionality
+      - examples of additional functions
+         - get_script() - return either error string or script text
+         - get_warnings() - return warnings string
+         - write_script: - go to proc dir, write script (and orig?), return
+
+   3. gui_uber_align_test.py: graphical user interface
+      - defines main GUI class that accepts control vars
+      - init control vars from library defaults, then merge with any passed
+      - purpose is interface to display (string) options to user with useful
+        defaults, allowing them to create and execute processing scripts
+      - hopefully this can be integrated with uber_proc.py
+      - under the main 'uber_results' directory, each tool should write new
+        results under 'tool_results/tool.001.align_test', for example
+        (making 'tool' output, indexed, and with tool name)
+
+
+Writing the main program
+
+   This can generally be short.  Start with a few terminal options (e.g. help,
+   help_gui, hist, ver), add one for setting control or other options (e.g.
+   -cvar), and finally add ability to invoke GUI or create library script.
+
+
+Writing the library
+
+   Define a class that takes some control variables (VarsObject) as input
+   and attempts to create a processing script.  At first, a trivial "script"
+   could simply be returned.
+
+   Then have it merge passed vars with defaults and create the script (doing
+   error checking as it goes).  Any error messages should be added to the error
+   list, and any warnings to to the warnings list.  Errors can be terminal, so
+   returning early should be okay.
+
+   The script should be a simple string.  The error and warnings lists should
+   be lists of strings.  And the return vars struct is another VarsObject.
+
+
+Writing the GUI
+
+   Start by tracing the basic GUI to get a feel for what it is doing.  The
+   main work is just providing interfaces to control the main variables
+   passed to the library.  Smaller things like the menu bar, tool bar, status
+   bar, and menu functionality like creating and processing the script can be
+   traced separately.
+
+   One could start by having the library genrate a very simple script, and
+   then setting up the GUI to deal with it.  Then just add the interfaces for
+   all of the variables.  That will allow starting with a testable platform.
+
+   The current 'todo' list when adding a new variable interface to the GUI:
+
+        - init g_subj_defs in library (with default value or None)
+        - add GUI for it, initialized by cvar
+          (if table, consider 3 functions starting with group_box_gltsym)
+        - call-back update (check and set cvar)
+           - LineVAR in CB_line_text->update_textLine_check: set cvar
+           - if separate button list to update textLine, have callback to
+             both update the textLine and to set cvar
+           - if table, add to update_svars_from_tables()
+              - also, deal with table udpates (e.g. browse, clear, add, help)
+              - processed in CB_gbox_PushB?
+        - add var to apply_cvar_in_gui (for updating GUI from vars)
+        - add to restoration of defaults, if necessary
+          (i.e. button to clear all inputs and reset to defaults)
+        - add GUI help
+        - non-GUI: process in creation of script
+        - add regression testing case
+
+        * adding a table
+           - create table (gvars.Table_gltsym), e.g. write make_gltsym_table
+           - create group box for table (e.g. write group_box_gltsym)
+           - populate table (vars->table, e.g. write self.gltsym_list_to_table)
+           - table->vars noted above (updates_svars_from_tables())
+           - resize with resize_table_cols(table)
+           * when clearing or initializing the table (maybe with buttons),
+             update the vars and call the vars->table function
+           * when processing table edits (maybe only when writing script),
+             call table->vars function
+           * if adding/deleting rows, maybe resize_table_cols()
+===========================================================================
+"""
