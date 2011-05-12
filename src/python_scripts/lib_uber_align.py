@@ -21,9 +21,16 @@ g_history = """
          - replaced cost/multi_cost/multi_list with just cost_list
          - added -help_howto_program (maybe move to shell program)
          - added basic GUI, only anat field so far...
+    0.2  12 May, 2011:
+         - added control vars object
+         - and renamed old cvars (control vars) to uvars (user vars)
+           (proc_dir is currently only cvar)
+         - added EPI line to GUI (so can actually generate basic script)
+         ==> this version will be copied off as uber_skel.py,
+             lib_uber_skel.py and gui_uber_skel.py
 """
 
-g_version = '0.1 (May 11, 2011)'
+g_version = '0.2 (May 12, 2011)'
 
 # ----------------------------------------------------------------------
 # global definition of default processing blocks
@@ -33,48 +40,57 @@ g_def_tlrc_base   = 'TT_N27+tlrc'
 
 
 # ----------------------------------------------------------------------
-# global definitions of control and result defaults
+# global definitions of result, control and user defaults
+# (as well as string versions of control and user defaults)
 
 # ---- resulting values returned after class actions ----
 g_res_defs = SUBJ.VarsObject("uber_align result variables")
-g_res_defs.file_proc     = ''           # file name for process script
-g_res_defs.output_proc   = ''           # output from running proc script
+g_res_defs.file_proc     = ''   # file name for process script
+g_res_defs.output_proc   = ''   # output from running proc script
 
-# ---- control values passed in for class actions ----
+# ---- control variables: process control, not set by user in GUI
+
 g_ctrl_defs = SUBJ.VarsObject("uber_align control defaults")
-g_ctrl_defs.verb           = 1          # verbose level
-g_ctrl_defs.proc_dir       = '.'        # destination for scripts and results
-g_ctrl_defs.copy_scripts   = 'yes'      # do we make .orig copies of scripts?
+g_ctrl_defs.proc_dir     = '.'  # process dir: holds scripts and result dir
 
-# ---- processing vars ------------------------------
+
+# ---- user variables: process control, alignment inputs and options ----
+
+g_user_defs = SUBJ.VarsObject("uber_align user defaults")
+g_user_defs.verb           = 1          # verbose level
+g_user_defs.copy_scripts   = 'yes'      # do we make .orig copies of scripts?
 
 # required inputs
-g_ctrl_defs.anat           = ''         # anatomical volume to align
-g_ctrl_defs.epi            = ''         # EPI dataset
-g_ctrl_defs.epi_base       = 0          # EPI alignment base index
+g_user_defs.anat           = ''         # anatomical volume to align
+g_user_defs.epi            = ''         # EPI dataset
+g_user_defs.epi_base       = 0          # EPI alignment base index
 
 # options
-g_ctrl_defs.results_dir    = 'align.results' # where processing is done
-g_ctrl_defs.cost_list      = ['lpc', 'lpc+ZZ', 'lpc+', 'lpa', 'nmi', 'ls']
-g_ctrl_defs.giant_move     = 'no'
-g_ctrl_defs.align_centers  = 'no'
-g_ctrl_defs.center_base    = 'TT_N27+tlrc'  # must find it
-g_ctrl_defs.aea_opts       = []         # other align_epi_anat.py options
+g_user_defs.results_dir    = 'align.results' # where script puts results
+g_user_defs.cost_list      = ['lpc', 'lpc+ZZ', 'lpc+', 'lpa', 'nmi', 'ls']
+g_user_defs.giant_move     = 'no'
+g_user_defs.align_centers  = 'no'
+g_user_defs.center_base    = 'TT_N27+tlrc'
+g_user_defs.aea_opts       = []         # other align_epi_anat.py options
 
-# later...
-g_ctrl_defs.add_edge       = 'no'
-g_ctrl_defs.anat_has_skull = 'yes'
-g_ctrl_defs.epi_strip_meth = '3dSkullStrip'
+# todo...
+g_user_defs.add_edge       = 'no'
+g_user_defs.anat_has_skull = 'yes'
+g_user_defs.epi_strip_meth = '3dSkullStrip'
 
 
-# string versions of subject variables, to be used by GUI
+# string versions of variables - used by GUI and main
+# (when creating AlignTest object, string versions of vars are passed)
 g_cdef_strs = g_ctrl_defs.copy(as_strings=1)
+g_udef_strs = g_user_defs.copy(as_strings=1)
 
 
+# main class definition
 class AlignTest(object):
    """class for testing anat to EPI alignment
 
         - cvars : control variables
+        - uvars : user variables
         - rvars : return variables
 
         ** input vars might be string types, convert on merge
@@ -82,11 +98,12 @@ class AlignTest(object):
         variables:
            LV            - local variables
            cvars         - control variables
+           uvars         - user variables
            cmd_text      - generated alignment script
            errors            --> array of resulting error messages
            warnings          --> array of resulting warning messages
    """
-   def __init__(self, cvars=None):
+   def __init__(self, cvars=None, uvars=None):
 
       # ------------------------------------------------------------
       # variables
@@ -97,9 +114,11 @@ class AlignTest(object):
       self.LV.istr   = ' '*self.LV.indent
       self.LV.retdir = ''               # return directory (for jumping around)
 
-      # merge passed control variables with defaults
+      # merge passed user variables with defaults
       self.cvars = g_ctrl_defs.copy()
+      self.uvars = g_user_defs.copy()
       self.cvars.merge(cvars, typedef=g_ctrl_defs)
+      self.uvars.merge(uvars, typedef=g_user_defs)
 
       # output variables
       self.rvars = g_res_defs.copy()    # init result vars
@@ -115,23 +134,23 @@ class AlignTest(object):
 
       self.set_directories()            # data dirs: anat, epi
 
-      if self.cvars.verb > 3: self.LV.show('ready to start script')
+      if self.uvars.verb > 3: self.LV.show('ready to start script')
 
       # do the work
       self.create_script()
 
    def check_inputs(self):
       """check for required inputs: anat, epi (check existence?)"""
-      if self.cvars.is_empty('anat'):
+      if self.uvars.is_empty('anat'):
          self.errors.append('** unspecified anatomical dataset')
 
-      if self.cvars.is_empty('epi'):
+      if self.uvars.is_empty('epi'):
          self.errors.append('** unspecified EPI dataset')
 
-      if len(self.cvars.cost_list) < 1:
+      if len(self.uvars.cost_list) < 1:
          self.errors.append('** unspecified cost function(s)')
 
-      if not UTIL.vals_are_unique(self.cvars.cost_list):
+      if not UTIL.vals_are_unique(self.uvars.cost_list):
          self.errors.append('** cost functions are not unique')
 
       return len(self.errors)
@@ -143,21 +162,21 @@ class AlignTest(object):
              else just use anat and epi directly
       """
       top_dir, parent_dirs, short_dirs, short_names =    \
-                UTIL.common_parent_dirs([[self.cvars.anat, self.cvars.epi]])
+                UTIL.common_parent_dirs([[self.uvars.anat, self.uvars.epi]])
 
       self.LV.top_dir     = parent_dirs[0]  # common parent dir
       self.LV.short_names = short_names # if top_dir is used, they are under it
 
-      if self.cvars.verb > 2:
+      if self.uvars.verb > 2:
          print '-- set_dirs: top_dir    = %s\n' \
                '             short_anat = %s\n' \
                '             short_epi  = %s\n' \
-               % (parent_dir, short_names[0][0], short_names[0][1])
+               % (self.LV.top_dir, short_names[0][0], short_names[0][1])
 
       # if top_dir isn't long enough, do not bother with it
       if self.LV.top_dir.count('/') < 2:
          self.LV.top_dir = ''
-         if self.cvars.verb > 2: print '   (top_dir not worth using...)'
+         if self.uvars.verb > 2: print '   (top_dir not worth using...)'
 
    def create_script(self):
       """attempt to generate an alignment script
@@ -174,7 +193,7 @@ class AlignTest(object):
       # do some actual work
       self.align_script += self.script_results_dir()
       self.align_script += self.script_copy_data()
-      if self.cvars.align_centers == 'yes':
+      if self.uvars.align_centers == 'yes':
          self.align_script += self.script_align_centers()
       self.align_script += self.script_align_datasets()
 
@@ -190,7 +209,7 @@ class AlignTest(object):
          only current option is -mult_cost, everything else is via variables
       """
 
-      if len(self.cvars.cost_list) > 1: mstr = ' -multi_cost $cost_list'
+      if len(self.uvars.cost_list) > 1: mstr = ' -multi_cost $cost_list'
       else:                             mstr = ''
 
       cmd = SUBJ.comment_section_string('align data') + '\n'
@@ -211,7 +230,7 @@ class AlignTest(object):
          note: these commands should be fixed, since the dataset names are
       """
 
-      if self.cvars.align_centers != 'yes': return ''
+      if self.uvars.align_centers != 'yes': return ''
 
       cmd = SUBJ.comment_section_string('align centers') + '\n'
 
@@ -230,7 +249,7 @@ class AlignTest(object):
 
       cmd = SUBJ.comment_section_string('copy data') + '\n'
 
-      if self.cvars.is_trivial_dir('results_dir'): rdir = '.'
+      if self.uvars.is_trivial_dir('results_dir'): rdir = '.'
       else:                                        rdir = '$results_dir'
 
       cmd += '# copy dataset to processing directory\n'         \
@@ -254,12 +273,12 @@ class AlignTest(object):
    def script_results_dir(self):
 
       # if no results dir, just put everything here
-      if self.cvars.is_trivial_dir('results_dir'): return ''
+      if self.uvars.is_trivial_dir('results_dir'): return ''
 
       cmd  = SUBJ.comment_section_string('test and create results dir') + '\n'
 
       cmd += '# note directory for results\n'           \
-             'set results_dir = %s\n\n' % self.cvars.results_dir
+             'set results_dir = %s\n\n' % self.uvars.results_dir
 
       cmd += '# make sure it does not yet exist\n'      \
              'if ( -e $results_dir ) then\n'            \
@@ -287,8 +306,8 @@ class AlignTest(object):
 
       # anat and epi might use top_dir
       if self.LV.is_trivial_dir('top_dir'):
-         astr = self.cvars.anat
-         estr = self.cvars.epi
+         astr = self.uvars.anat
+         estr = self.uvars.epi
       else:
          astr = '$top_dir/%s' % self.LV.short_names[0][0]
          estr = '$top_dir/%s' % self.LV.short_names[0][1]
@@ -297,13 +316,13 @@ class AlignTest(object):
              'set in_anat  = %s\n'                                      \
              'set in_epi   = %s\n'                                      \
              'set in_ebase = %d\n\n'                                    \
-             % (astr, estr, self.cvars.epi_base)
+             % (astr, estr, self.uvars.epi_base)
 
       # note whether to use multi_cost
       cmd += '# main options\n' \
-             'set cost_main = %s\n' % self.cvars.cost_list[0]
-      if len(self.cvars.cost_list) > 1:
-         cmd += 'set cost_list = ( %s )\n' % ' '.join(self.cvars.cost_list[1:])
+             'set cost_main = %s\n' % self.uvars.cost_list[0]
+      if len(self.uvars.cost_list) > 1:
+         cmd += 'set cost_list = ( %s )\n' % ' '.join(self.uvars.cost_list[1:])
       cmd += '\n'
 
       # possibly add align_opts list variable
@@ -329,26 +348,26 @@ class AlignTest(object):
       # then add each option offset by initial indentation
       cstr += '%s%s \\\n' % (istr, '-volreg off')
 
-      if self.cvars.giant_move == 'yes':
+      if self.uvars.giant_move == 'yes':
          cstr += '%s%s \\\n' % (istr, '-giant_move')
 
-      if self.cvars.add_edge == 'yes':
-         if len(self.cvars.cost_list) > 1:
+      if self.uvars.add_edge == 'yes':
+         if len(self.uvars.cost_list) > 1:
             self.errors.append(
                '** -AddEdge does not currently work with -multi_cost')
          else:
             cstr += '%s%s \\\n' % (istr, '-AddEdge')
 
-      if len(self.cvars.aea_opts) > 0:
-            cstr += '%s%s \\\n' % (istr, ' '.join(self.cvars.aea_opts))
+      if len(self.uvars.aea_opts) > 0:
+            cstr += '%s%s \\\n' % (istr, ' '.join(self.uvars.aea_opts))
 
       # does the anatomy have a skull?
-      if self.cvars.anat_has_skull != 'yes':
+      if self.uvars.anat_has_skull != 'yes':
          cstr += '%s%s \\\n' % (istr, '-anat_has_skull no')
 
       # -epi_strip method
-      if self.cvars.epi_strip_meth != '3dSkullStrip':
-         cstr += '%s%s \\\n' % (istr,'-epi_strip %s'%self.cvars.epi_strip_meth)
+      if self.uvars.epi_strip_meth != '3dSkullStrip':
+         cstr += '%s%s \\\n' % (istr,'-epi_strip %s'%self.uvars.epi_strip_meth)
 
       # want -save_all, -prep_off?
 
@@ -392,14 +411,14 @@ class AlignTest(object):
    def nuke_old_results(self):
       """if the results directory exists, remove it"""
 
-      if self.cvars.results_dir == '': return
+      if self.uvars.results_dir == '': return
 
       # ------------------------- do the work -------------------------
       self.LV.retdir = SUBJ.goto_proc_dir(self.cvars.proc_dir)
 
-      if os.path.isdir(self.cvars.results_dir):
-         print '-- nuking old results: %s' % self.cvars.results_dir
-         os.system('rm -fr %s' % self.cvars.results_dir)
+      if os.path.isdir(self.uvars.results_dir):
+         print '-- nuking old results: %s' % self.uvars.results_dir
+         os.system('rm -fr %s' % self.uvars.results_dir)
 
       self.LV.retdir = SUBJ.ret_from_proc_dir(self.LV.retdir)
       # ------------------------- done -------------------------
@@ -414,9 +433,9 @@ class AlignTest(object):
       self.LV.retdir = SUBJ.goto_proc_dir(self.cvars.proc_dir)
       if os.path.isfile(pfile):
          cmd = 'cp -f %s .orig.%s' % (pfile, pfile)
-         if self.cvars.verb > 1: print '++ exec: %s' % cmd
+         if self.uvars.verb > 1: print '++ exec: %s' % cmd
          os.system(cmd)
-      elif self.cvars.verb > 1: print "** no proc '%s' to copy" % pfile
+      elif self.uvars.verb > 1: print "** no proc '%s' to copy" % pfile
       self.LV.retdir = SUBJ.ret_from_proc_dir(self.LV.retdir)
       # ------------------------- done -------------------------
 
@@ -438,12 +457,12 @@ class AlignTest(object):
       self.rvars.file_proc = name # store which file we have written to
       self.rvars.output_proc = 'output.%s' % name # file for command output
 
-      if self.cvars.verb > 0: print '++ writing script to %s' % name
+      if self.uvars.verb > 0: print '++ writing script to %s' % name
 
       # if requested, make an original copy
       self.LV.retdir = SUBJ.goto_proc_dir(self.cvars.proc_dir)
 
-      if self.cvars.copy_scripts == 'yes': # make an orig copy
+      if self.uvars.copy_scripts == 'yes': # make an orig copy
          UTIL.write_text_to_file('.orig.%s'%name, self.align_script, exe=1)
       rv = UTIL.write_text_to_file(name, self.align_script, exe=1)
 
@@ -496,12 +515,12 @@ the GUI.  The intention is that one can run the main program to generate or
 execute processing scripts (goal of the GUI) without actually using the GUI.
 Some common GUI routines/classes are in lib_qt_gui.py.
 
-So the purpose of the GUI is to set control variables to pass to the library.
+So the purpose of the GUI is to set user variables to pass to the library.
 
    1. uber_align_test.py: main program
       - handles just a few options
          - options for help, version, etc.
-         - options to set control or other vars (for gui or library)
+         - options to set user or other vars (for gui or library)
          - options to execute main processing functions, akin to GUI
       - should be able to create and execute scripts
         (to be able to do the main operations of the GUI)
@@ -509,12 +528,12 @@ So the purpose of the GUI is to set control variables to pass to the library.
       - give command help (this can be very simple, learning is via GUI)
 
    2. lib_uber_align.py: main library for program
-      - defines processing class that accepts control vars and generates
+      - defines processing class that accepts user vars and generates
         processing scripts
       - main inputs:
-         - control variables *as strings*
-           These are converted to local control vars with types, e.g.
-           cvars.merge(new_cvars, typedef=control_vars_w_types).  This
+         - user variables *as strings*
+           These are converted to local user vars with types, e.g.
+           uvars.merge(new_uvars, typedef=user_vars_w_types).  This
            allows higher-level interfaces to not worry about the types.
       - return (internal) data:
          - processing script
@@ -531,8 +550,8 @@ So the purpose of the GUI is to set control variables to pass to the library.
          - write_script: - go to proc dir, write script (and orig?), return
 
    3. gui_uber_align_test.py: graphical user interface
-      - defines main GUI class that accepts control vars
-      - init control vars from library defaults, then merge with any passed
+      - defines main GUI class that accepts user vars
+      - init user vars from library defaults, then merge with any passed
       - purpose is interface to display (string) options to user with useful
         defaults, allowing them to create and execute processing scripts
       - hopefully this can be integrated with uber_proc.py
@@ -544,13 +563,13 @@ So the purpose of the GUI is to set control variables to pass to the library.
 Writing the main program
 
    This can generally be short.  Start with a few terminal options (e.g. help,
-   help_gui, hist, ver), add one for setting control or other options (e.g.
-   -cvar), and finally add ability to invoke GUI or create library script.
+   help_gui, hist, ver), add one for setting user or other options (e.g.
+   -uvar), and finally add ability to invoke GUI or create library script.
 
 
 Writing the library
 
-   Define a class that takes some control variables (VarsObject) as input
+   Define a class that takes some user variables (VarsObject) as input
    and attempts to create a processing script.  At first, a trivial "script"
    could simply be returned.
 
@@ -578,16 +597,16 @@ Writing the GUI
    The current 'todo' list when adding a new variable interface to the GUI:
 
         - init g_subj_defs in library (with default value or None)
-        - add GUI for it, initialized by cvar
+        - add GUI for it, initialized by uvar
           (if table, consider 3 functions starting with group_box_gltsym)
-        - call-back update (check and set cvar)
-           - LineVAR in CB_line_text->update_textLine_check: set cvar
+        - call-back update (check and set uvar)
+           - LineVAR in CB_line_text->update_textLine_check: set uvar
            - if separate button list to update textLine, have callback to
-             both update the textLine and to set cvar
+             both update the textLine and to set uvar
            - if table, add to update_svars_from_tables()
               - also, deal with table udpates (e.g. browse, clear, add, help)
               - processed in CB_gbox_PushB?
-        - add var to apply_cvar_in_gui (for updating GUI from vars)
+        - add var to apply_uvar_in_gui (for updating GUI from vars)
         - add to restoration of defaults, if necessary
           (i.e. button to clear all inputs and reset to defaults)
         - add GUI help

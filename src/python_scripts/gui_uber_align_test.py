@@ -36,10 +36,11 @@ class MainWindow(QtGui.QMainWindow):
 
          parent         parent Widget, can be None if this is main Widget
          cvars          VarsObject for init of control vars
-         set_pdir       upon GUI exec, set cvars.proc_dir bases on sid
+         uvars          VarsObject for init of user vars
+         set_pdir       upon GUI exec, set uvars.proc_dir bases on sid
    """
 
-   def __init__(self, parent=None, cvars=None, set_pdir=0):
+   def __init__(self, parent=None, cvars=None, uvars=None, set_pdir=0):
       super(MainWindow, self).__init__(parent)
 
       # ------------------------------
@@ -47,15 +48,16 @@ class MainWindow(QtGui.QMainWindow):
       self.atest  = None        # AlignTest class element
       self.gvars  = SUBJ.VarsObject('uber_subject gui vars')
 
-      # init verb and try to update from cvars
+      # init verb and try to update from uvars
       self.verb = 1
-      if cvars != None:     # try to update verb from cvars
-         if cvars.valid('verb'):
-            try: self.verb = int(cvars.verb)
-            except: print '** UAT Main: bad cvars.verb = %s' % cvars.verb
+      if uvars != None:     # try to update verb from uvars
+         if uvars.valid('verb'):
+            try: self.verb = int(uvars.verb)
+            except: print '** UAT Main: bad uvars.verb = %s' % uvars.verb
 
       # initialize the subject variables to defaults, update at the end
-      self.cvars  = UALIGN.g_cdef_strs.copy('control vars')
+      self.cvars  = UALIGN.g_cdef_strs.copy('GUI control vars')
+      self.uvars  = UALIGN.g_udef_strs.copy('GUI user vars')
 
       self.set_pdir = set_pdir
 
@@ -84,7 +86,7 @@ class MainWindow(QtGui.QMainWindow):
       # save this for last to ensure it is all visible
       self.gvars.m2_scroll.setWidget(self.gvars.m2_gbox_inputs)
 
-      self.gvars.Wcentral.setMinimumSize(150, 200)
+      self.gvars.Wcentral.setMinimumSize(350, 400)
       self.gvars.Wcentral.setLayout(mainlayout)
       self.setCentralWidget(self.gvars.Wcentral)
 
@@ -93,7 +95,7 @@ class MainWindow(QtGui.QMainWindow):
       self.gvars.style = g_styles[g_style_index_def]
 
       # widgets are done, so apply pass subject vars
-      self.reset_vars(cvars=cvars, set_pdir=set_pdir)
+      self.reset_vars(cvars=cvars, uvars=uvars, set_pdir=set_pdir)
 
       # status : 0 = must create script, 1 = have script, ready to execute
       #         -1 = script failure?
@@ -101,16 +103,19 @@ class MainWindow(QtGui.QMainWindow):
 
       if self.verb > 1: print '-- finished Single Subject Dialog setup'
 
-   def reset_vars(self, cvars=None, set_pdir=0):
-      """replace old cvars with new"""
+   def reset_vars(self, cvars=None, uvars=None, set_pdir=0):
+      """replace old uvars with new"""
 
       self.set_pdir = set_pdir
 
       del(self.cvars)
+      del(self.uvars)
 
       self.cvars = UALIGN.g_cdef_strs.copy()
+      self.uvars = UALIGN.g_udef_strs.copy()
 
       self.apply_cvars(cvars)
+      self.apply_uvars(uvars)
 
    def make_l2_widgets(self):
       """create 'dataset inputs' box plus a scroll area for the options
@@ -158,12 +163,12 @@ class MainWindow(QtGui.QMainWindow):
                Label(EPI)      QPushB(choose) LineEdit()
                Label(EPI base)                LineEdit()
 
-         for cvars: anat, epi, epi_base
+         for uvars: anat, epi, epi_base
       """
 
       # updating:
-      # Line_anat.finished would set cvars.anat
-      # CB_gbox_PushB callback would fill Line_anat and set cvars.anat
+      # Line_anat.finished would set uvars.anat
+      # CB_gbox_PushB callback would fill Line_anat and set uvars.anat
 
       gbox = self.get_styled_group_box("dataset inputs")
 
@@ -175,7 +180,7 @@ class MainWindow(QtGui.QMainWindow):
       pb = QtGui.QPushButton(gbox)              # pushB
       pb.setText("browse anat")
       line = QtGui.QLineEdit()  # lineEdit
-      line.setText(self.cvars.anat)
+      line.setText(self.uvars.anat)
       layout.addWidget(label, 0, 0)
       layout.addWidget(pb, 0, 1)
       layout.addWidget(line, 0, 2, 1, 3)
@@ -189,6 +194,25 @@ class MainWindow(QtGui.QMainWindow):
       self.gvars.Line_anat = line
 
       # --------------------------------------------------
+      # epi line
+      label = QtGui.QLabel("EPI")               # label
+      pb = QtGui.QPushButton(gbox)              # pushB
+      pb.setText("browse EPI")
+      line = QtGui.QLineEdit()  # lineEdit
+      line.setText(self.uvars.anat)
+      layout.addWidget(label, 1, 0)
+      layout.addWidget(pb, 1, 1)
+      layout.addWidget(line, 1, 2, 1, 3)
+
+      # add callbacks
+      pb.connect(pb, QtCore.SIGNAL("clicked()"), self.CB_gbox_PushB)
+      line.connect(line, QtCore.SIGNAL("editingFinished()"), self.CB_line_text)
+
+      # store what we need in gvars
+      self.gvars.PB_epi = pb           # for sender in CB_gbox_PushB
+      self.gvars.Line_epi = line
+
+      # --------------------------------------------------
       gbox.setLayout(layout)
       self.gvars.gbox_datasets = gbox
 
@@ -197,6 +221,10 @@ class MainWindow(QtGui.QMainWindow):
       obj = self.sender()
       if obj == self.gvars.Line_anat:
          self.update_textLine_check(obj, obj.text(), 'anat', 'anatomical dset',
+                                    QLIB.valid_as_filepath)
+
+      elif obj == self.gvars.Line_epi:
+         self.update_textLine_check(obj, obj.text(), 'epi', 'EPI dataset',
                                     QLIB.valid_as_filepath)
 
       else: print '** CB_line_text: unknown sender'
@@ -214,7 +242,7 @@ class MainWindow(QtGui.QMainWindow):
                 clear and apply buttons
                 label and line text for list
 
-         for controlling cvar: costs
+         for controlling uvar: costs
       """
 
       gbox = self.get_styled_group_box("cost functions")
@@ -264,8 +292,8 @@ class MainWindow(QtGui.QMainWindow):
       """call-back for any check boxes"""
       obj = self.sender()
       if   obj == self.gvars.gbox_anat.checkBox:
-         if obj.isChecked(): self.set_cvar('get_tlrc', 'yes')
-         else:               self.set_cvar('get_tlrc', 'no')
+         if obj.isChecked(): self.set_uvar('get_tlrc', 'yes')
+         else:               self.set_uvar('get_tlrc', 'no')
       else: print "** CB_checkbox: unknown sender"
 
    def update_textLine_check(self, obj, text, attr, button_name, check_func):
@@ -284,26 +312,26 @@ class MainWindow(QtGui.QMainWindow):
       rtext = str(text) # in case of QString
 
       if check_func(rtext, button_name, 1, self, 1):
-         self.set_cvar(attr, rtext)
+         self.set_uvar(attr, rtext)
          if type(obj) == g_LineEdittype: obj.setText(text)
          else: print '** update_textLine_check: not a LineEdit type'
          return 1
       else:
          # error, reset to previous attribute
          # obj.clear()
-         obj.setText(self.cvars.val(attr))
+         obj.setText(self.uvars.val(attr))
          obj.setFocus()
          return 0
 
    def cb_show_script(self):
 
-      if self.update_cvars_from_gui(warn=1): return
+      if self.update_uvars_from_gui(warn=1): return
 
       # if we have a subject directory, make backup scripts
       if self.cvars.is_non_trivial_dir('proc_dir'):
-         self.set_cvar('copy_scripts', 'yes')
+         self.set_uvar('copy_scripts', 'yes')
 
-      self.atest = UALIGN.AlignTest(cvars=self.cvars)
+      self.atest = UALIGN.AlignTest(cvars=self.cvars, uvars=self.uvars)
       nwarn, wstr = self.atest.get_warnings()
       status, mesg = self.atest.get_script()
 
@@ -348,8 +376,6 @@ class MainWindow(QtGui.QMainWindow):
       elif not os.path.isfile(fname):
          self.update_AP_warn_window('** script file not found: %s\n' % fname)
          return
-
-      print '=== rcr: have pdir filename %s' % fname
 
       self.atest.nuke_old_results()    # get rid of any previous results
 
@@ -415,6 +441,13 @@ class MainWindow(QtGui.QMainWindow):
          self.update_textLine_check(self.gvars.Line_anat,
                 fname, 'anat', 'anatomical dset', QLIB.valid_as_filepath)
 
+      elif text == 'browse EPI':
+         fname = QtGui.QFileDialog.getOpenFileName(self,
+                   "load EPI dataset", self.pick_base_dir('epi'),
+                   "datasets (*.HEAD *.nii);;all files (*)")
+         self.update_textLine_check(self.gvars.Line_epi,
+                fname, 'epi', 'EPI dset', QLIB.valid_as_filepath)
+
       else: print "** unexpected button text: %s" % text
 
    def resize_table(self, table, countLabel=None):
@@ -455,8 +488,8 @@ class MainWindow(QtGui.QMainWindow):
 
    def pick_base_dir(self, dtype):
       """return something useful or an empty string"""
-      anat = self.cvars.anat    # for ease of typing
-      epi  = self.cvars.epi
+      anat = self.uvars.anat    # for ease of typing
+      epi  = self.uvars.epi
       if dtype == 'top':     # common dir to all input files
          return UTIL.common_dir([anat, epi])
       elif dtype == 'anat':
@@ -474,7 +507,6 @@ class MainWindow(QtGui.QMainWindow):
 
       # ----------------------------------------------------------------------
       # main process actions
-      # rcr
       act1 = QLIB.createAction(self, "gen: align script",
         slot=self.cb_show_script,
         tip="generate align_epi_anat.py align script",
@@ -537,17 +569,22 @@ class MainWindow(QtGui.QMainWindow):
       # Hidden menu
       self.gvars.MBar_hidden = self.menuBar().addMenu("Hidde&n")
 
-      act1 = QLIB.createAction(self,"view: control vars",
+      act1 = QLIB.createAction(self,"view: user vars",
         slot=self.cb_view,
-        tip="display control option variables")
+        tip="display user option variables")
 
-      act2 = QLIB.createAction(self,"view: GUI vars",
+      act2 = QLIB.createAction(self,"view: ctrl vars",
+        slot=self.cb_view,
+        tip="display control variables")
+
+      act3 = QLIB.createAction(self,"view: GUI vars",
         slot=self.cb_view,
         tip="display GUI variables")
 
-      QLIB.addActions(self, self.gvars.MBar_hidden, [act1, None, act2])
-      self.gvars.act_view_cvars = act1
-      self.gvars.act_view_gvars = act2
+      QLIB.addActions(self, self.gvars.MBar_hidden, [act1, None, act2, act3])
+      self.gvars.act_view_uvars = act1
+      self.gvars.act_view_cvars = act2
+      self.gvars.act_view_gvars = act3
 
       # ----------------------------------------------------------------------
       # Help menu
@@ -664,18 +701,18 @@ class MainWindow(QtGui.QMainWindow):
          self.open_web_site('http://afni.nimh.nih.gov/afni/community/board')
       else: print '** cb_help_browse: invalid sender'
 
-   def update_cvars_from_gui(self, warn=0):
+   def update_uvars_from_gui(self, warn=0):
       """set what we can, if warn, report error
          return 0 on success, 1 on error"""
 
       # rcr - any first variables to require?
-      #if self.cvars.is_empty('sid') or self.cvars.is_empty('gid'):
+      #if self.uvars.is_empty('sid') or self.uvars.is_empty('gid'):
       #   if warn: QLIB.guiError('Error', 
       #                          "** subject and group IDs must be set", self)
       #   return 1
 
       # rcr - maybe process tables
-      # if self.update_cvars_from_tables(): return 1
+      # if self.update_uvars_from_tables(): return 1
 
       if self.set_pdir:
          # proc dir should read: tool_results/tool.0001.align_test
@@ -688,17 +725,17 @@ class MainWindow(QtGui.QMainWindow):
       return 0
 
    def cb_clear_options(self):
-      """set cvars from defaults and redisplay GUI
+      """set uvars from defaults and redisplay GUI
          EXCEPT: keep dataset fields from subject"""
 
-      cvars = SUBJ.VarsObject()
+      uvars = SUBJ.VarsObject()
       for atr in ['anat', 'epi', 'epi_base']:
-         cvars.set_var(atr, self.cvars.val(atr))
+         uvars.set_var(atr, self.uvars.val(atr))
       
-      self.reset_vars(cvars=cvars, set_pdir=self.set_pdir)
+      self.reset_vars(uvars=uvars, set_pdir=self.set_pdir)
 
    def cb_clear_fields(self):
-      """set cvars from defaults and redisplay GUI"""
+      """set uvars from defaults and redisplay GUI"""
       self.reset_vars(set_pdir=self.set_pdir)
 
    def cb_view(self):
@@ -716,8 +753,12 @@ class MainWindow(QtGui.QMainWindow):
          QLIB.static_TextWindow(title='corresp. uber_align_test.py command',
                                 text=sstr, parent=self)
 
+      elif obj == self.gvars.act_view_uvars:
+         sstr = self.uvars.make_show_str('current align test', name=0)
+         QLIB.static_TextWindow(title='user vars', text=sstr, parent=self)
+
       elif obj == self.gvars.act_view_cvars:
-         sstr = self.cvars.make_show_str('current align test', name=0)
+         sstr = self.cvars.make_show_str('control vars', name=0, all=0)
          QLIB.static_TextWindow(title='control vars', text=sstr, parent=self)
 
       elif obj == self.gvars.act_view_gvars:
@@ -728,27 +769,25 @@ class MainWindow(QtGui.QMainWindow):
 
    def make_uber_command(self):
       """generate a script that would invoke the uber_subject.py interface
-         with subject and control vars set (and so fields filled)
+         with control and user vars set (and so fields filled)
 
          Put any key elements in quotes:
             basis functions
             gltsym
       """
 
-      # rcr - make uber_align_test.py command
-
       # first apply subject variables
-      self.update_cvars_from_gui()
+      self.update_uvars_from_gui()
 
       cmd = 'uber_align_test.py'
 
-      # apply each cvar with -cvar option
-      prefix = ' \\\n    -cvar '     # append before next command
-      for atr in self.cvars.attributes():
+      # apply each uvar with -uvar option
+      prefix = ' \\\n    -uvar '     # append before next command
+      for atr in self.uvars.attributes():
          if atr == 'name': continue     # skip
-         if self.cvars.vals_are_equal(atr, UALIGN.g_cdef_strs): continue
+         if self.uvars.vals_are_equal(atr, UALIGN.g_udef_strs): continue
          # show this one
-         val = self.cvars.val(atr)
+         val = self.uvars.val(atr)
          
          # special cases first: stim_basis, gltsym
          #if atr == 'gltsym':            # special case
@@ -757,7 +796,7 @@ class MainWindow(QtGui.QMainWindow):
          #   val = ["'%s'" % v for v in val]
          #   cmd += (prefix + '%s %s' % (atr, ' '.join(val)))
 
-         if self.cvars.has_simple_type(atr):
+         if self.uvars.has_simple_type(atr):
             cmd += (prefix + '%s %s' % (atr, val))
          elif type(val) == list:
             cmd += (prefix + '%s %s' % (atr, ' '.join(val)))
@@ -794,39 +833,63 @@ class MainWindow(QtGui.QMainWindow):
 
       if self.verb > 3 : print "++ set_cvar: update [%s] to '%s'"%(name,newval)
 
+      # even for cvars, since proc_dir is part of script
+      self.gvars.act_exec_script.setEnabled(False)
+
+   def set_uvar(self, name, newval):
+      """if the value has changed (or is not a simple type), update it
+         - use deepcopy (nuke it from orbit, it's the only way to be sure)"""
+
+      if not self.uvars.set_var(name, newval): return
+
+      # so the value has changed...
+
+      if self.verb > 3 : print "++ set_uvar: update [%s] to '%s'"%(name,newval)
+
       self.gvars.act_exec_script.setEnabled(False)
 
    def apply_cvars(self, cvars=None):
-      """apply to the cvars object and to the gui
+      """apply to the cvars object
 
          first init to defaults
          if cvars is passed, make further updates"""
 
       # merge with current vars and apply everything to GUI
       self.cvars.merge(cvars)
-      self.set_cvar('verb', str(self.verb))     # to pass verb along
-      for var in self.cvars.attributes():
-         self.apply_cvar_in_gui(var)
 
-      if self.verb > 2: self.cvars.show("post reset control vars")
+      if self.verb > 2: self.uvars.show("post reset control vars")
 
-   def apply_cvar_in_gui(self, cvar):
-      """this is a single interface to apply any control variable in the GUI
+   def apply_uvars(self, uvars=None):
+      """apply to the uvars object and to the gui
+
+         first init to defaults
+         if uvars is passed, make further updates"""
+
+      # merge with current vars and apply everything to GUI
+      self.uvars.merge(uvars)
+      self.set_uvar('verb', str(self.verb))     # to pass verb along
+      for var in self.uvars.attributes():
+         self.apply_uvar_in_gui(var)
+
+      if self.verb > 2: self.uvars.show("post reset user vars")
+
+   def apply_uvar_in_gui(self, uvar):
+      """this is a single interface to apply any user variable in the GUI
 
          if a variable is not handled in the interface, ignore it
 
          return 1 if processed
       """
 
-      # rcr - work to do
-
       rv = 1
-      if   cvar == 'uber_dir':             rv = 0       # todo
+      if   uvar == 'uber_dir':             rv = 0       # todo
+      elif uvar == 'anat':      self.gvars.Line_anat.setText(self.uvars.anat)
+      elif uvar == 'epi':       self.gvars.Line_epi.setText(self.uvars.epi)
       else:
-         if self.verb > 1: print '** apply_cvar_in_gui: unhandled %s' % cvar
+         if self.verb > 1: print '** apply_uvar_in_gui: unhandled %s' % uvar
          rv = 0
 
-      if rv and self.verb > 2: print '++ apply_cvar_in_gui: process %s' % cvar
+      if rv and self.verb > 2: print '++ apply_uvar_in_gui: process %s' % uvar
 
       return rv
 
