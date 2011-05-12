@@ -49,6 +49,17 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 12, MAY, 2011, RCR, "uber_skel.py", MAJOR, TYPE_NEW_PROG,
+   "A working skeleton for future uber programs.",
+   "This is based on uber_align_test.py, version 0.2."
+ } ,
+
+ { 12, MAY, 2011, RCR, "uber_align_test.py", MINOR, TYPE_ENHANCE,
+   "many small updates",
+   "This set of 3 files was broken off set uber_skel.py, meant to be a\n"
+   "resonable starting point for future uber programs."
+ } ,
+
  { 11, MAY, 2011, RCR, "uber_align_test.py", MAJOR, TYPE_ENHANCE,
    "added basic graphical interface, still need to add variable fields",
    "o  also made single cost_list\n"
