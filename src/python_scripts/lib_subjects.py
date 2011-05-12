@@ -260,22 +260,48 @@ class VarsObject(object):
       print self.make_show_str(mesg, prefix, pattern, name, all=all)
 
    def make_show_str(self, mesg='', prefix=None, pattern=None, name=1, all=0):
+      """if all, put atomic attributes first and instancemethods last"""
+
       if prefix: pstr = ", prefix = '%s'" % prefix
       else:      pstr = ''
 
       sstr = "-- %s values in var '%s'%s\n" % (mesg, self.name, pstr)
-      for atr in self.attributes(getall=all):
+
+      # start with atomic only, though loop is almost identical
+      for atr in self.attributes():
          if not name and atr == 'name': continue
          match = (prefix == None and pattern == None)
          if prefix:
             if atr.startswith(prefix): match = 1
          if pattern:
             if atr.find(pattern) >= 0: match = 1
-         if match:
-            if all and self.get_atomic_type(atr) == None:
-               sstr += "      %-20s : <not atomic type>\n" % (atr)
-            else:
-               sstr += "      %-20s : %s\n" % (atr, self.val(atr))
+         if match: sstr += "      %-20s : %s\n" % (atr, self.val(atr))
+
+      # follow with non-atomic only, if requested (instance methods last)
+      if all:
+         imtype = type(self.make_show_str)
+         # non-instancemethods
+         for atr in self.attributes(getall=all):
+            match = (prefix == None and pattern == None)
+            if prefix:
+               if atr.startswith(prefix): match = 1
+            if pattern:
+               if atr.find(pattern) >= 0: match = 1
+            if match:
+               atype = type(self.val(atr))
+               if self.get_atomic_type(atr) == None and atype != imtype:
+                  sstr += "      %-20s : %s\n" % (atr, atype)
+         # instancemethods
+         for atr in self.attributes(getall=all):
+            match = (prefix == None and pattern == None)
+            if prefix:
+               if atr.startswith(prefix): match = 1
+            if pattern:
+               if atr.find(pattern) >= 0: match = 1
+            if match:
+               atype = type(self.val(atr))
+               if atype == imtype:
+                  sstr += "      %-20s : %s\n" % (atr, atype)
 
       return sstr
 
