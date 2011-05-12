@@ -26,6 +26,7 @@ uber_align_test.py      - generate script to test anat/EPI alignment
 This help describes only the command line options to this program, which
 enables one to:
 
+        - initialize user variables (for GUI or command line)
         - initialize control variables (for GUI or command line)
         - pass PyQt4 options directly to the GUI
         - run without the GUI
@@ -49,34 +50,24 @@ Examples:
    Non-GUI examples (all have -no_gui):
 
       uber_align_test.py -no_gui -print_script            \\
-         -cvar anat FT/FT_anat+orig                       \\
-         -cvar epi  FT/FT_epi_r1+orig
+         -uvar anat FT/FT_anat+orig                       \\
+         -uvar epi  FT/FT_epi_r1+orig
 
       uber_align_test.py -no_gui -save_script align.test  \\
-         -cvar anat FT/FT_anat+orig                       \\
-         -cvar epi  FT/FT_epi_r1+orig                     \\
-         -cvar epi_base 2                                 \\
-         -cvar epi_strip_meth 3dAutomask                  \\
-         -cvar align_centers yes                          \\
-         -cvar giant_move yes                             \\
-         -cvar cost ls                                    \\
-         -cvar multi_list lpc lpc+ lpc+ZZ lpa
+         -uvar anat FT/FT_anat+orig                       \\
+         -uvar epi  FT/FT_epi_r1+orig                     \\
+         -uvar epi_base 2                                 \\
+         -uvar epi_strip_meth 3dAutomask                  \\
+         -uvar align_centers yes                          \\
+         -uvar giant_move yes                             \\
+         -uvar cost ls                                    \\
+         -uvar multi_list lpc lpc+ lpc+ZZ lpa
 
 ----------------------------------------------------------------------
 
 - R Reynolds  Apr, 2011
 ===========================================================================
 """
-
-g_history = """
-  uber_align_test.py history
-
-    0.0  28 Apr 2011: initial revision
-         - command line tool is mostly ready
-         - need to write GUI
-"""
-
-g_version = '0.0 (April 28, 2011)'
 
 class AlignInterface():
    def __init__(self):
@@ -106,7 +97,8 @@ class AlignInterface():
 
       vopts.add_opt('-print_script', 0, [], helpstr='print align test script')
       vopts.add_opt('-save_script', 1, [], helpstr='save align test script')
-      vopts.add_opt('-cvar', -2, [], helpstr='set control variable to value')
+      vopts.add_opt('-cvar', -2, [], helpstr='set control variable')
+      vopts.add_opt('-uvar', -2, [], helpstr='set user variable to value')
 
       vopts.trailers = 0   # do not allow unknown options
 
@@ -145,11 +137,11 @@ class AlignInterface():
          return 1
 
       if '-hist' in argv:
-         print g_history
+         print UALIGN.g_history
          return 1
 
       if '-show_default_vars' in argv:
-         UALIGN.g_ctrl_defs.show('default cvars :')
+         UALIGN.g_user_defs.show('default uvars :')
          return 1
 
       if '-show_valid_opts' in argv:
@@ -157,7 +149,7 @@ class AlignInterface():
          return 1
 
       if '-ver' in argv:
-         print 'uber_align_test.py: version %s' % g_version
+         print 'uber_align_test.py: version %s' % UALIGN.g_version
          return 1
 
       # ------------------------------------------------------------
@@ -168,6 +160,7 @@ class AlignInterface():
 
       # init subject options struct
       self.cvars = SUBJ.VarsObject('control vars from command line')
+      self.uvars = SUBJ.VarsObject('user vars from command line')
       self.guiopts = ['uber_align_test.py']
 
       # first set verbose level
@@ -175,8 +168,8 @@ class AlignInterface():
       if val != None and not err: self.verb = val
       else: self.verb = 1
 
-      SUBJ.set_var_str_from_def('cvars', 'verb', ['%d'%self.verb], self.cvars,
-                                 defs=UALIGN.g_ctrl_defs)
+      SUBJ.set_var_str_from_def('uvars', 'verb', ['%d'%self.verb], self.uvars,
+                                 defs=UALIGN.g_user_defs)
 
       use_gui = 1 # assume GUI unless we hear otherwise
 
@@ -212,6 +205,16 @@ class AlignInterface():
                errs += 1
                continue
 
+         # uvar requires at least 2 parameters, name and value
+         elif opt.name == '-uvar':
+            val, err = uopts.get_string_list('', opt=opt)
+            if val != None and err: return -1
+            # and set it from the form name = [value_list]
+            if SUBJ.set_var_str_from_def('uvars', val[0], val[1:], self.uvars,
+                        UALIGN.g_user_defs, verb=self.verb) < 0:
+               errs += 1
+               continue
+
       if not errs:         # then we can handle any processing options
          if uopts.find_opt('-print_script'): self.print_script()
 
@@ -242,7 +245,7 @@ class AlignInterface():
       """return the AlignTest object and script
          (print warnings and errors to screen)"""
 
-      atest = UALIGN.AlignTest(self.cvars)
+      atest = UALIGN.AlignTest(self.cvars, self.uvars)
 
       nwarn, wstr = atest.get_warnings()
       status, mesg = atest.get_script()
@@ -269,7 +272,7 @@ class AlignInterface():
       import gui_uber_align_test as GUT
 
       app = QtGui.QApplication(self.guiopts)
-      D = GUT.MainWindow(cvars=self.cvars, set_pdir=1)
+      D = GUT.MainWindow(cvars=self.cvars, uvars=self.uvars, set_pdir=1)
       QtGui.QApplication.setStyle(QtGui.QStyleFactory.create("cleanlooks"))
       D.show()
       app.exec_()
