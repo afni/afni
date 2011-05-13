@@ -28,15 +28,19 @@ g_history = """
          - added EPI line to GUI (so can actually generate basic script)
          ==> this version will be copied off as uber_skel.py,
              lib_uber_skel.py and gui_uber_skel.py
+    0.3  13 May, 2011: wrote functioning GUI (help still needs to be written)
 """
 
-g_version = '0.2 (May 12, 2011)'
+g_version = '0.3 (May 13, 2011)'
 
 # ----------------------------------------------------------------------
 # global definition of default processing blocks
 g_tlrc_base_list  = ['TT_N27+tlrc', 'TT_avg152T1+tlrc', 'TT_icbm452+tlrc',
                      'MNI_avg152T1+tlrc']
+g_center_base_list= ['TT_N27+tlrc', 'MNI_avg152T1+tlrc']
 g_def_tlrc_base   = 'TT_N27+tlrc'
+g_def_main_costs  = ['lpc', 'lpc+ZZ', 'lpc+', 'lpa', 'nmi', 'ls']
+g_epi_strip_list  = ['3dSkullStrip', '3dAutomask', 'None']
 
 
 # ----------------------------------------------------------------------
@@ -67,7 +71,7 @@ g_user_defs.epi_base       = 0          # EPI alignment base index
 
 # options
 g_user_defs.results_dir    = 'align.results' # where script puts results
-g_user_defs.cost_list      = ['lpc', 'lpc+ZZ', 'lpc+', 'lpa', 'nmi', 'ls']
+g_user_defs.cost_list      = ['lpc', 'lpc+ZZ', 'lpa', 'nmi']
 g_user_defs.giant_move     = 'no'
 g_user_defs.align_centers  = 'no'
 g_user_defs.center_base    = 'TT_N27+tlrc'
@@ -238,9 +242,8 @@ class AlignTest(object):
              '3drefit -deoblique anat+orig epi+orig\n'                       \
              '\n'                                                            \
              '# align volume centers (we do not trust spatial locations)\n'  \
-             '@Align_Centers -no_cp -base TT_N27+tlrc -dset anat+orig\n'     \
-             '@Align_Centers -no_cp -base TT_N27+tlrc -dset epi+orig\n'      \
-             '\n'
+             '@Align_Centers -no_cp -base $center_base -dset anat+orig\n'    \
+             '@Align_Centers -no_cp -base $center_base -dset epi+orig\n\n'   \
 
       return cmd
 
@@ -312,11 +315,24 @@ class AlignTest(object):
          astr = '$top_dir/%s' % self.LV.short_names[0][0]
          estr = '$top_dir/%s' % self.LV.short_names[0][1]
 
+      # if we are aligning centers, set center_base variable (maybe w/top_dir)
+      if self.uvars.align_centers == 'yes':
+         if self.LV.is_trivial_dir('top_dir'): cstr = self.uvars.center_base
+         else:
+            cdir = UTIL.child_dir_name(self.LV.top_dir, self.uvars.center_base)
+            if cdir == self.uvars.center_base: cstr = cdir
+            else: cstr = '$top_dir/%s' % cdir
+         ccmd = 'set center_base = %s\n' % cstr
+      else: ccmd = ''
+
+      # now set variables for inputs, possibly including center_base
       cmd += '# input dataset options (ebase is EPI index)\n'           \
-             'set in_anat  = %s\n'                                      \
-             'set in_epi   = %s\n'                                      \
-             'set in_ebase = %d\n\n'                                    \
-             % (astr, estr, self.uvars.epi_base)
+             'set in_anat     = %s\n'                                   \
+             'set in_epi      = %s\n'                                   \
+             'set in_ebase    = %d\n'                                   \
+             '%s'                                                       \
+             '\n'                                                       \
+             % (astr, estr, self.uvars.epi_base, ccmd)
 
       # note whether to use multi_cost
       cmd += '# main options\n' \
@@ -479,16 +495,23 @@ helpstr_todo = """
 ---------------------------------------------------------------------------
                         todo list:  
 
-- create GUI
+- lots of GUI help
 - test center distance in GUI to suggest align centers
 - show corresponding afni_proc.py options
 - show corresponding uber_subjec.py options?
 - show afni command to look at results (basically point to directory)
+- warn on any unknown cost functions
+- partial coverage?
 ---------------------------------------------------------------------------
 """
 
 helpstr_gui = """
 ===========================================================================
+==                                                                       ==
+==                      still under destruction                          ==
+==                                                                       ==
+===========================================================================
+
 uber_align_test.py (GUI)      - a graphical interface for testing alignment
 
    Find good alignment options, possibly to add to afni_proc.py command
@@ -607,8 +630,8 @@ Writing the GUI
               - also, deal with table udpates (e.g. browse, clear, add, help)
               - processed in CB_gbox_PushB?
         - add var to apply_uvar_in_gui (for updating GUI from vars)
-        - add to restoration of defaults, if necessary
-          (i.e. button to clear all inputs and reset to defaults)
+        - add var to update_uvars_from_gui
+        - add to restoration of defaults, if necessary (cb_clear_options)
         - add GUI help
         - non-GUI: process in creation of script
         - add regression testing case
