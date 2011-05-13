@@ -10,10 +10,8 @@ g_history = """
      - added open and save actions to TextWindow
      - process local vars in string format, not QString
      - current font is courier bold
-
-  May 11, 2011:
-     - added createAction and addActions
-     - added resize_table_cols
+  May 11, 2011: added createAction, addActions and resize_table_cols
+  May 13, 2011: added make_button, lable, checkbox, line
 
 - glt box:
    - write make_gltsym_table -> to self.gvars.Table_gltsym
@@ -252,6 +250,54 @@ def create_button_list_widget(labels, tips=None, cb=None, dir=0, hstr=0):
    bwidget.setLayout(layout)
 
    return bwidget
+
+def make_button(label, tip=None, cb=None, hstr=0):
+   """create a single button, possibly with a tp, callback and stretch
+      policy"""
+   button = QtGui.QPushButton(label)
+   if cb: button.connect(button, QtCore.SIGNAL('clicked()'), cb)
+
+   policy = button.sizePolicy()
+   policy.setHorizontalPolicy(hstr)
+   button.setSizePolicy(policy)
+
+   if tip != None: button.setStatusTip(tip)
+   _set_button_style(button)
+
+   return button
+
+def make_label(text, tip='', hstr=0):
+   """create a label that does not stretch"""
+   label = QtGui.QLabel(text)
+   policy = label.sizePolicy()
+   policy.setHorizontalPolicy(hstr)
+   label.setSizePolicy(policy)
+   if tip != '': label.setStatusTip(tip)
+   return label
+
+def make_checkbox(text, checked=0, tip=None, cb=None, hstr=0):
+   cbox = QtGui.QCheckBox(text)
+   cbox.setChecked(checked)
+   if tip != None: cbox.setStatusTip(tip)
+   if cb  != None: cbox.connect(cbox, QtCore.SIGNAL('clicked()'), cb)
+
+   policy = cbox.sizePolicy()
+   policy.setHorizontalPolicy(hstr)
+   cbox.setSizePolicy(policy)
+
+   return cbox
+
+def make_line(text='', cb=None, hstr=1):
+
+   line = QtGui.QLineEdit()
+   line.setText(text)
+   if cb != None: line.connect(line, QtCore.SIGNAL("editingFinished()"), cb)
+
+   policy = line.sizePolicy()
+   policy.setHorizontalPolicy(hstr)
+   line.setSizePolicy(policy)
+
+   return line
 
 def create_button_grid(labels, tips=None, cb=None, rlen=4):
    """create a layout of buttons within a QWidget

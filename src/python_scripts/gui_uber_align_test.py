@@ -176,18 +176,15 @@ class MainWindow(QtGui.QMainWindow):
 
       # --------------------------------------------------
       # anat line
-      label = QtGui.QLabel("anat")              # label
-      pb = QtGui.QPushButton(gbox)              # pushB
-      pb.setText("browse anat")
-      line = QtGui.QLineEdit()  # lineEdit
-      line.setText(self.uvars.anat)
+
+      label = QLIB.make_label('anat')
+      pb = QLIB.make_button("browse anat", tip="browse file system for anat",
+                            cb=self.CB_gbox_PushB, hstr=0)
+      line = QLIB.make_line(self.uvars.anat, cb=self.CB_line_text)
+
       layout.addWidget(label, 0, 0)
       layout.addWidget(pb, 0, 1)
-      layout.addWidget(line, 0, 2, 1, 3)
-
-      # add callbacks
-      pb.connect(pb, QtCore.SIGNAL("clicked()"), self.CB_gbox_PushB)
-      line.connect(line, QtCore.SIGNAL("editingFinished()"), self.CB_line_text)
+      layout.addWidget(line, 0, 2, 1, 4)
 
       # store what we need in gvars
       self.gvars.PB_anat = pb           # for sender in CB_gbox_PushB
@@ -195,22 +192,27 @@ class MainWindow(QtGui.QMainWindow):
 
       # --------------------------------------------------
       # epi line
-      label = QtGui.QLabel("EPI")               # label
-      pb = QtGui.QPushButton(gbox)              # pushB
-      pb.setText("browse EPI")
-      line = QtGui.QLineEdit()  # lineEdit
-      line.setText(self.uvars.anat)
+      label = QLIB.make_label('EPI')
+      pb = QLIB.make_button("browse EPI", tip="browse file system for EPI",
+                            cb=self.CB_gbox_PushB, hstr=0)
+      line = QLIB.make_line(self.uvars.epi, cb=self.CB_line_text)
       layout.addWidget(label, 1, 0)
       layout.addWidget(pb, 1, 1)
-      layout.addWidget(line, 1, 2, 1, 3)
-
-      # add callbacks
-      pb.connect(pb, QtCore.SIGNAL("clicked()"), self.CB_gbox_PushB)
-      line.connect(line, QtCore.SIGNAL("editingFinished()"), self.CB_line_text)
+      layout.addWidget(line, 1, 2, 1, 4)
 
       # store what we need in gvars
       self.gvars.PB_epi = pb           # for sender in CB_gbox_PushB
       self.gvars.Line_epi = line
+
+      # --------------------------------------------------
+      # epi base line
+      label = QLIB.make_label('EPI base',
+                 tip='0-based volume index might include pre-steady state TRs')
+      line = QLIB.make_line(self.uvars.epi_base, cb=self.CB_line_text, hstr=0)
+      layout.addWidget(label, 2, 0)
+      layout.addWidget(line, 2, 2, 1, 1)
+
+      self.gvars.Line_epi_base = line
 
       # --------------------------------------------------
       gbox.setLayout(layout)
@@ -227,14 +229,174 @@ class MainWindow(QtGui.QMainWindow):
          self.update_textLine_check(obj, obj.text(), 'epi', 'EPI dataset',
                                     QLIB.valid_as_filepath)
 
+      elif obj == self.gvars.Line_epi_base:
+         self.update_textLine_check(obj, obj.text(), 'epi_base', 'EPI index',
+                                    QLIB.valid_as_int)
+
+      elif obj == self.gvars.Line_cost_list:
+         self.cost_text_to_uvar()
+
+      elif obj == self.gvars.Line_center_base: # no check
+         self.uvars.set_var('center_base', str(obj.text()))
+
+      elif obj == self.gvars.Line_epi_strip_meth: # no check, rcr - in list?
+         self.uvars.set_var('epi_strip_meth', str(obj.text()))
+
+      elif obj == self.gvars.Line_aea_opts: # no check
+         opstr = str(obj.text())
+         self.uvars.set_var('aea_opts', opstr.split())
+
       else: print '** CB_line_text: unknown sender'
 
    def make_l3_group_boxes(self):
       """create anat, EPI, stim, etc. group boxes, and add to m2_vlayout"""
 
       self.gvars.gbox_costs = self.group_box_costs()
+      self.gvars.gbox_align = self.group_box_align()
+      self.gvars.gbox_other = self.group_box_other()
 
       self.gvars.m2_vlayout.addWidget(self.gvars.gbox_costs)
+      self.gvars.m2_vlayout.addWidget(self.gvars.gbox_align)
+      self.gvars.m2_vlayout.addWidget(self.gvars.gbox_other)
+
+   def group_box_other(self):
+      """create a group box for other options
+
+                checkBox(giant move)
+                checkBox(add edge)
+                checkBox(anat has skull)
+                label(EPI strip method) button_list(pick) lineE(method)
+                label(other AEA.py opts)  lineEdit(opts)
+      """
+
+      gbox = self.get_styled_group_box("other alignment options")
+
+      # ------------------------------------------------------------
+      # put frame inside gbox, which we can hide via toggled button
+      glayout = QtGui.QVBoxLayout(gbox)
+      frame = QtGui.QFrame(gbox)
+      frame.setFrameShape(QtGui.QFrame.NoFrame)
+      gbox.frame = frame
+      self.init_gbox_viewable(gbox, True)       # default to viewable
+      # gbox.toggled.connect(self.gbox_toggle_frame)
+      self.connect(gbox, QtCore.SIGNAL('clicked()'), self.gbox_clicked)
+
+      # main layout to hold frame contents
+      layout = QtGui.QGridLayout(frame)
+
+      # ------------------------------------------------------------
+      # fill frame 
+
+      # giant_move check box
+      gbox.checkBox_giant_move = QLIB.make_checkbox('giant move',
+                checked=(self.uvars.val('giant_move') == 'yes'),
+                tip='might alignment be far apart to begin with',
+                cb=self.CB_checkbox)
+
+      # add_edge check box
+      gbox.checkBox_add_edge = QLIB.make_checkbox('add edge',
+                checked=(self.uvars.val('add_edge') == 'yes'),
+                tip='make AddEdge output (can use only one cost function)',
+                cb=self.CB_checkbox)
+
+      # anat_has_skull check box
+      gbox.checkBox_anat_has_skull = QLIB.make_checkbox('anat has skull',
+                checked=(self.uvars.val('anat_has_skull') == 'yes'),
+                tip='uncheck if anat has already been skull-stripped',
+                cb=self.CB_checkbox)
+
+      # EPI strip method, probably pick from list
+      label = QLIB.make_label('EPI strip method:',
+                              tip='AEA.py method for EPI skull-strip')
+      blist = ['E strip: %s' % base for base in UALIGN.g_epi_strip_list]
+      pb = QLIB.create_menu_button(frame, "pick method", blist,
+                                     call_back=self.CB_gbox_PushB)
+      gbox.PB_tbase = pb
+      line = QLIB.make_line(self.uvars.epi_strip_meth,
+                            cb=self.CB_line_text, hstr=0)
+      self.gvars.Line_epi_strip_meth = line
+
+      # add everything to the layout
+      layout.addWidget(gbox.checkBox_giant_move, 0, 0)
+      layout.addWidget(gbox.checkBox_add_edge, 1, 0)
+      layout.addWidget(gbox.checkBox_anat_has_skull, 2, 0)
+
+      layout.addWidget(label, 3, 0)
+      layout.addWidget(gbox.PB_tbase, 3, 1)
+      layout.addWidget(self.gvars.Line_epi_strip_meth, 3, 2)
+
+      label = QLIB.make_label('other AEA opts:',
+                              tip='other options to pass to align_epi_anat.py')
+      line = QLIB.make_line('', cb=self.CB_line_text)
+      self.gvars.Line_aea_opts = line
+      layout.addWidget(label, 4, 0)
+      layout.addWidget(line, 4, 1, 1, 4)
+
+      # ------------------------------------------------------------
+      # finish up
+      frame.setLayout(layout)
+      glayout.addWidget(frame)
+      gbox.setLayout(glayout)
+
+      return gbox
+
+   def group_box_align(self):
+      """create a group box for aligning centers, with:
+                checkBox(align)   button_list(pick)  button(browse dset)
+                label(center dset)  lineEdit(actual filename text)
+      """
+
+      gbox = self.get_styled_group_box("align dataset centers")
+
+      # ------------------------------------------------------------
+      # put frame inside gbox, which we can hide via toggled button
+      glayout = QtGui.QVBoxLayout(gbox)
+      frame = QtGui.QFrame(gbox)
+      frame.setFrameShape(QtGui.QFrame.NoFrame)
+      gbox.frame = frame
+      self.init_gbox_viewable(gbox, True)       # default to viewable
+      # gbox.toggled.connect(self.gbox_toggle_frame)
+      self.connect(gbox, QtCore.SIGNAL('clicked()'), self.gbox_clicked)
+
+      # main layout to hold frame contents
+      layout = QtGui.QGridLayout(frame)
+
+      # ------------------------------------------------------------
+      # fill frame 
+
+      # controlling checkbox
+      gbox.checkBox_align_centers = QLIB.make_checkbox('align centers: Y/N',
+                checked=(self.uvars.val('align_centers') == 'yes'),
+                tip='choose whether to align dataset centers to a base',
+                cb=self.CB_checkbox)
+      layout.addWidget(gbox.checkBox_align_centers, 0, 0)
+
+      # make base textLine first, since other widgets may affect it
+      label = QLIB.make_label('center base:')
+      line = QLIB.make_line(self.uvars.center_base, cb=self.CB_line_text)
+      self.gvars.Line_center_base = line
+      layout.addWidget(label, 2, 0)
+      layout.addWidget(line, 2, 1, 1, 4)
+
+      # chooser for template bases
+      blist = ['A. base: %s' % base for base in UALIGN.g_center_base_list]
+      pb = QLIB.create_menu_button(frame, "template center", blist,
+                                     call_back=self.CB_gbox_PushB)
+      gbox.PB_tbase = pb
+      layout.addWidget(pb, 1, 1)
+
+      pb = QLIB.make_button("browse center",tip="browse file system for center",
+                            cb=self.CB_gbox_PushB, hstr=0)
+      self.gvars.PB_bbase = pb
+      layout.addWidget(pb, 1, 2)
+
+      # ------------------------------------------------------------
+      # finish up
+      frame.setLayout(layout)
+      glayout.addWidget(frame)
+      gbox.setLayout(glayout)
+
+      return gbox
 
    def group_box_costs(self):
       """create a group box with *some* layout:
@@ -247,6 +409,7 @@ class MainWindow(QtGui.QMainWindow):
 
       gbox = self.get_styled_group_box("cost functions")
 
+      # ------------------------------------------------------------
       # put frame inside gbox, which we can hide via toggled button
       glayout = QtGui.QVBoxLayout(gbox)
       frame = QtGui.QFrame(gbox)
@@ -256,14 +419,98 @@ class MainWindow(QtGui.QMainWindow):
       # gbox.toggled.connect(self.gbox_toggle_frame)
       self.connect(gbox, QtCore.SIGNAL('clicked()'), self.gbox_clicked)
 
-      # rcr - do some stuff
-      layout = QtGui.QVBoxLayout(frame) # now a child of frame
-      # layout.addWidget(self.gvars.Line_anat)
+      # main layout to hold frame contents
+      layout = QtGui.QGridLayout(frame)
 
+      # ------------------------------------------------------------
+      # fill frame 
+
+      # make box of cost options
+      self.gvars.gbox_cost_items = self.cost_func_group_box(frame)
+      ncost = len(self.gvars.gbox_cost_items.check_boxes)
+      layout.addWidget(self.gvars.gbox_cost_items, 0, 0, ncost, 1)
+
+      # make cost list label and Line
+      label = QLIB.make_label('costs to apply:',
+                              tip='list of cost functions to try in script')
+      line = QLIB.make_line(' '.join(self.uvars.cost_list),cb=self.CB_line_text)
+      self.gvars.Line_cost_list = line
+      layout.addWidget(label, ncost+1, 0)
+      layout.addWidget(line, ncost+1, 1, 1, 4)
+
+      self.init_cost_options()  # init check boxes and cost line
+
+      # add buttons to clear, reset and apply
+
+      self.gvars.PB_costClear = QLIB.make_button("clear costs",
+             tip="clear checked cost list", cb=self.CB_gbox_PushB, hstr=0)
+      self.gvars.PB_costReset = QLIB.make_button("reset costs",
+             tip="reset checked cost list to defaults",
+             cb=self.CB_gbox_PushB, hstr=0)
+      self.gvars.PB_costApply = QLIB.make_button("apply costs",
+             tip="apply checked costs to list", cb=self.CB_gbox_PushB, hstr=0)
+      layout.addWidget(self.gvars.PB_costClear, 0, 1)
+      layout.addWidget(self.gvars.PB_costReset, 1, 1)
+      layout.addWidget(self.gvars.PB_costApply, 3, 1)
+
+      # ------------------------------------------------------------
+      # finish up
       frame.setLayout(layout)
       glayout.addWidget(frame)
       gbox.setLayout(glayout)
+
       return gbox
+
+   def cost_func_group_box(self, parent):
+      """make a single group box that contains a vertical list of checkboxes,
+         one for each main cost"""
+      gbox = QtGui.QGroupBox()
+      layout = QtGui.QVBoxLayout(gbox)
+
+      gbox.check_boxes = []
+      for cost in UALIGN.g_def_main_costs:
+         cbox = QtGui.QCheckBox(cost)
+         layout.addWidget(cbox)
+         gbox.check_boxes.append(cbox)
+
+      policy = gbox.sizePolicy()
+      policy.setHorizontalPolicy(0)
+      policy.setVerticalPolicy(0)
+      gbox.setSizePolicy(policy)
+
+      gbox.setLayout(layout)
+
+      return gbox
+
+   def init_cost_options(self, cost_defs=None):
+      """check the boxes for any passed costs (if they have checkboxes),
+         then apply the list to gvars.Line_cost_list
+      """
+      if cost_defs == None: cost_defs = self.uvars.val('cost_list')
+      cboxes = self.gvars.gbox_cost_items.check_boxes
+      for cbox in cboxes:
+         cost = str(cbox.text())
+         cbox.setChecked(cost in cost_defs)
+      self.gvars.Line_cost_list.setText(' '.join(cost_defs))
+
+   def apply_checked_costs(self):
+      """make a string of cost functions from the checked boxes in
+         gbox_cost_items and set gvars.Line_cost_list with the text
+         --> then apply the text to user vars
+      """
+      costs = []
+      cboxes = self.gvars.gbox_cost_items.check_boxes
+      for cbox in cboxes:
+         if cbox.isChecked(): costs.append(str(cbox.text()))
+      self.gvars.Line_cost_list.setText(' '.join(costs))
+      self.cost_text_to_uvar()
+
+   def cost_text_to_uvar(self):
+      """apply the text from Line_cost_list to the cost_list user var"""
+      obj = self.gvars.Line_cost_list
+      text = str(obj.text())
+      clist = text.split()
+      self.uvars.set_var('cost_list', clist)
 
    def init_gbox_viewable(self, box, view):
       box.setCheckable(True)
@@ -290,10 +537,21 @@ class MainWindow(QtGui.QMainWindow):
 
    def CB_checkbox(self):
       """call-back for any check boxes"""
+
       obj = self.sender()
-      if   obj == self.gvars.gbox_anat.checkBox:
-         if obj.isChecked(): self.set_uvar('get_tlrc', 'yes')
-         else:               self.set_uvar('get_tlrc', 'no')
+      if obj == self.gvars.gbox_align.checkBox_align_centers:
+         if obj.isChecked(): self.set_uvar('align_centers', 'yes')
+         else:               self.set_uvar('align_centers', 'no')
+      elif obj == self.gvars.gbox_other.checkBox_giant_move:
+         if obj.isChecked(): self.set_uvar('giant_move', 'yes')
+         else:               self.set_uvar('giant_move', 'no')
+      elif obj == self.gvars.gbox_other.checkBox_add_edge:
+         if obj.isChecked(): self.set_uvar('add_edge', 'yes')
+         else:               self.set_uvar('add_edge', 'no')
+      elif obj == self.gvars.gbox_other.checkBox_anat_has_skull:
+         if obj.isChecked(): self.set_uvar('anat_has_skull', 'yes')
+         else:               self.set_uvar('anat_has_skull', 'no')
+
       else: print "** CB_checkbox: unknown sender"
 
    def update_textLine_check(self, obj, text, attr, button_name, check_func):
@@ -447,6 +705,32 @@ class MainWindow(QtGui.QMainWindow):
                    "datasets (*.HEAD *.nii);;all files (*)")
          self.update_textLine_check(self.gvars.Line_epi,
                 fname, 'epi', 'EPI dset', QLIB.valid_as_filepath)
+
+      elif text == 'clear costs':
+         self.init_cost_options([])
+         self.apply_checked_costs()
+      elif text == 'reset costs':
+         self.init_cost_options(UALIGN.g_user_defs.cost_list)
+         self.apply_checked_costs()
+      elif text == 'apply costs':
+         self.apply_checked_costs()
+
+      elif text[0:9] == 'A. base: ':
+         base = text[9:]
+         self.set_uvar('center_base', base)
+         self.gvars.Line_center_base.setText(base)
+
+      elif text[0:9] == 'E strip: ':
+         base = text[9:]
+         self.set_uvar('epi_strip_meth', base)
+         self.gvars.Line_epi_strip_meth.setText(base)
+
+      elif text == 'browse center':
+         fname = QtGui.QFileDialog.getOpenFileName(self,
+                   "load center dataset", self.pick_base_dir('anat'),
+                   "datasets (*.HEAD *.nii);;all files (*)")
+         self.update_textLine_check(self.gvars.Line_center_base,
+                fname, 'center_base', 'center dataset', QLIB.valid_as_filepath)
 
       else: print "** unexpected button text: %s" % text
 
@@ -705,17 +989,16 @@ class MainWindow(QtGui.QMainWindow):
       """set what we can, if warn, report error
          return 0 on success, 1 on error"""
 
-      # rcr - any first variables to require?
-      #if self.uvars.is_empty('sid') or self.uvars.is_empty('gid'):
-      #   if warn: QLIB.guiError('Error', 
-      #                          "** subject and group IDs must be set", self)
-      #   return 1
+      if self.uvars.is_empty('anat') or self.uvars.is_empty('epi'):
+         if warn: QLIB.guiError('Error', 
+                       "** anat and EPI datasets must be specified", self)
+         return 1
 
-      # rcr - maybe process tables
+      # maybe process tables
       # if self.update_uvars_from_tables(): return 1
 
       if self.set_pdir:
-         # proc dir should read: tool_results/tool.0001.align_test
+         # proc dir might read: tool_results/tool.0001.align_test
          pdir =  SUBJ.get_def_tool_path('align_test')
          print '-- setting proc_dir to %s' % pdir
          self.set_cvar('proc_dir', pdir)
@@ -882,9 +1165,33 @@ class MainWindow(QtGui.QMainWindow):
       """
 
       rv = 1
-      if   uvar == 'uber_dir':             rv = 0       # todo
-      elif uvar == 'anat':      self.gvars.Line_anat.setText(self.uvars.anat)
+      if   uvar == 'anat':      self.gvars.Line_anat.setText(self.uvars.anat)
       elif uvar == 'epi':       self.gvars.Line_epi.setText(self.uvars.epi)
+      elif uvar == 'epi_base':
+                self.gvars.Line_epi_base.setText(self.uvars.epi_base)
+
+      elif uvar == 'cost_list': self.init_cost_options(self.uvars.cost_list)
+
+      elif uvar == 'align_centers':
+                check = (self.uvars.align_centers=='yes')
+                self.gvars.gbox_align.checkBox_align_centers.setChecked(check)
+      elif uvar == 'center_base':
+                self.gvars.Line_center_base.setText(self.uvars.center_base)
+
+      elif uvar == 'giant_move':
+                check = (self.uvars.giant_move=='yes')
+                self.gvars.gbox_other.checkBox_giant_move.setChecked(check)
+      elif uvar == 'add_edge':
+                check = (self.uvars.add_edge=='yes')
+                self.gvars.gbox_other.checkBox_add_edge.setChecked(check)
+      elif uvar == 'anat_has_skull':
+                check = (self.uvars.anat_has_skull=='yes')
+                self.gvars.gbox_other.checkBox_anat_has_skull.setChecked(check)
+      elif uvar == 'epi_strip_meth':
+               self.gvars.Line_epi_strip_meth.setText(self.uvars.epi_strip_meth)
+      elif uvar == 'aea_opts':
+                self.gvars.Line_aea_opts.setText(' '.join(self.uvars.aea_opts))
+
       else:
          if self.verb > 1: print '** apply_uvar_in_gui: unhandled %s' % uvar
          rv = 0
@@ -892,6 +1199,7 @@ class MainWindow(QtGui.QMainWindow):
       if rv and self.verb > 2: print '++ apply_uvar_in_gui: process %s' % uvar
 
       return rv
+
 
 # --- post MainWindow class
 
