@@ -148,6 +148,7 @@ typedef struct {
    char *atlas_name;
    char *atlas_description;
    char *atlas_comment;
+   int atlas_found;
    ATLAS_DSET_HOLDER *adh;
 } ATLAS; /*!< All char * should be initialized when .niml file is loaded,
                or when ATLAS_LIST * is formed in the old syle.
@@ -175,6 +176,10 @@ typedef struct {
 
 #define ATL_ADH_SET(xa) ( ( (xa) && (xa)->adh ) ? \
                            (xa)->adh->params_set : 0 )                            
+
+#define ATL_FOUND(xa) ( (xa)  ? \
+                           ((xa)->atlas_found) : 0 )
+
 
 /* number of atlases in an atlas list */
 #define NUM_ATLASES(atl) ( (atl) ? \

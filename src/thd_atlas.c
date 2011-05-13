@@ -2052,6 +2052,7 @@ int atlas_read_atlas(NI_element *nel, ATLAS *atlas)
    atlas->atlas_dset_name = NULL;
    atlas->atlas_comment = NULL;
    atlas->atlas_description = NULL;
+   atlas->atlas_found = 0; /* flag for dataset available, -1 not found, 1 found, 0 init value */
 
    if ((s=NI_get_attribute(nel, "dset_name")))
       atlas->atlas_dset_name = nifti_strdup(s); 
@@ -2082,6 +2083,7 @@ int atlas_dup_atlas(ATLAS *srcatlas, ATLAS *destatlas)
    destatlas->atlas_name = srcatlas->atlas_name;
    destatlas->atlas_description = srcatlas->atlas_description;
    destatlas->atlas_comment = srcatlas->atlas_comment;
+   destatlas->atlas_found = srcatlas->atlas_found;
    destatlas->adh = srcatlas->adh;
    
    return(0);
