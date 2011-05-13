@@ -594,7 +594,7 @@ THD_3dim_dataset * get_atlas(char *epath, char *aname)
    ENTRY("get_atlas");
 /* change to allow full path in dataset name, or current directory,
    and not necessarily separate path*/
-   if( epath != NULL ){ /* A path or dset was specified */
+   if( epath != NULL ){ /* A path was specified, maybe with a name in it*/
       if (aname == NULL) { /* all in epath */
          dset = THD_open_one_dataset( epath ) ;  /* try to open it */
          if(dset!=NULL) {
@@ -624,7 +624,14 @@ THD_3dim_dataset * get_atlas(char *epath, char *aname)
          ERROR_message("No path, no name, no soup for you.\n");
          RETURN(dset);
       }
-      /* a name was given, search for it */
+      /* a name was given, try to open it directly */
+      dset = THD_open_one_dataset( aname ) ;
+      if(dset!=NULL) {
+         DSET_mallocize (dset);
+         DSET_load (dset);	              /* load dataset */
+         RETURN(dset);             /* return the dataset*/
+      }
+
       /*----- get path to search -----*/
 
                           epath = getenv("AFNI_PLUGINPATH") ;
@@ -966,6 +973,10 @@ THD_fvec3 THD_tta_to_mnia_N27( THD_fvec3 mv )
    of a specific atlas on the whereami command line. The LR atlas is not
    in the atlas list in that case. Note the MNI_Anatomical_Side is now
    only used for MNI_ANAT coordinates.
+
+   Potential solution is to add at the space definition whether left/right, I/S
+   ... are implicit (i.e. coordinate based) or explicitly defined in an atlas
+   named something.
 */
 
 /*! are we on the left or right of Colin? */
@@ -974,11 +985,15 @@ char MNI_Anatomical_Side(ATLAS_COORD ac, ATLAS_LIST *atlas_list)
    THD_ivec3 ijk ;
    int  ix,jy,kz , nx,ny,nz,nxy, ii=0, kk=0;
    byte *ba=NULL;
-   static int n_warn = 0;
+   static int n_warn = 0, lr_notfound = 0;
    ATLAS *atlas=NULL;
    int LocalHead = wami_lh();
+   
 
    ENTRY("MNI_Anatomical_Side");
+
+   if(lr_notfound)
+      RETURN('u');   /* tried to find LR atlas before but failed */
 
    /* ONLY TLRC for now, must allow for others in future */
    if (!is_Coord_Space_Named(ac, "TLRC")) {
@@ -988,16 +1003,14 @@ char MNI_Anatomical_Side(ATLAS_COORD ac, ATLAS_LIST *atlas_list)
 
    if (!(atlas = Atlas_With_Trimming("CA_N27_LR", 1, atlas_list))) {
       if (ii == 0 && !n_warn) {
-         WARNING_message("Could not read LR atlas named %s", "CA_N27_LR");
+         INFO_message("Could not read LR atlas named %s\n"
+			 "Relying on x coordinate to guess side", "CA_N27_LR");
          ++n_warn;
+         lr_notfound = 1;
       }
    }
 
    if (!atlas) {
-      if (n_warn < 2) {
-         WARNING_message("Relying on x coordinate to guess side");
-         ++n_warn;
-      }
       if (ac.x<0.0) {
          RETURN('r');
       } else {
@@ -1032,6 +1045,7 @@ char MNI_Anatomical_Side(ATLAS_COORD ac, ATLAS_LIST *atlas_list)
    /* should not get here */
    RETURN('u');
 }
+
 /*! What side are we on ?*/
 char Atlas_Voxel_Side( THD_3dim_dataset *dset, int k1d, byte *lrmask)
 {
@@ -1912,6 +1926,7 @@ int init_global_atlas_list () {
          atlas_alist->atlas[i].atlas_comment = NULL;
          atlas_alist->atlas[i].atlas_description = NULL;
          atlas_alist->atlas[i].adh = NULL;
+         atlas_alist->atlas[i].atlas_found = 0;
       }
 
       if (LocalHead) INFO_message("Using old way to fill atlas table");
@@ -3520,8 +3535,7 @@ THD_3dim_dataset *Atlas_Region_Mask(AFNI_ATLAS_REGION *aar,
               if (fba) {
                  have_brik = 1;
                  for (ii=0; ii< nxyz; ++ii) {
-                    if (fba[ii]>0.0) bmask[ii] = 250.0*fba[ii];
-                                                   /* save as 0-250 */
+                    if (fba[ii]>0.0) bmask[ii] = 1;
                  }
               }
               break;
@@ -4896,10 +4910,11 @@ ATLAS *Atlas_With_Trimming(char *atname, int LoadLRMask,
    
    int ii, pmap;
    int LocalHead = wami_lh();
-   static int n_warn=0;
+   static int n_warn = 0, lr_notfound = 0;
    ATR_int *pmap_atr;
    ATLAS *atlas=NULL;
-   
+   ATLAS *atlas_lr = NULL;   
+
    ENTRY("Atlas_With_Trimming");
    
    if (!atlas_list && !(atlas_list = get_G_atlas_list())) {
@@ -4917,7 +4932,11 @@ ATLAS *Atlas_With_Trimming(char *atname, int LoadLRMask,
    if (!ATL_DSET(atlas)) {
       if (LocalHead) 
          fprintf(stderr,"Loading %s\n", atname);
+      if (ATL_FOUND(atlas)==-1)   /* already tried to load and failed */
+         RETURN(NULL);            /* don't try again */
+
       if (!(genx_load_atlas_dset(atlas))) {
+         atlas->atlas_found = -1; /* could not find atlas, don't try again*/
          if (wami_verb()) {
              if (!n_warn || wami_verb()>1) {
                WARNING_message(  "Could not read atlas dset: %s \n"
@@ -4929,6 +4948,8 @@ ATLAS *Atlas_With_Trimming(char *atname, int LoadLRMask,
          }
          RETURN(NULL);
       }
+      atlas->atlas_found = 1; /* found the atlas okay */
+
    } else {
       if (LocalHead) INFO_message("Reusing dset");
       /* reload, in case it was purged */
@@ -4990,13 +5011,19 @@ ATLAS *Atlas_With_Trimming(char *atname, int LoadLRMask,
          left-right based on LR atlas */
       if (atlas->adh->build_lr && LoadLRMask) {
             /* DO NOT ask Atlas_With_Trimming to load LRMask in next call !! */
-         ATLAS *atlas_lr = Atlas_With_Trimming("CA_N27_LR", 0, atlas_list);
+         atlas_lr = NULL;
+         if(lr_notfound==0)
+            atlas_lr = Atlas_With_Trimming("CA_N27_LR", 0, atlas_list);
          if (!atlas_lr) {
-            ERROR_message("Could not read LR atlas\n"
-                                 "LR decision will be based on coordinates.");
+            lr_notfound = 1;
+            if (wami_verb()) {
+               ERROR_message("Could not read LR atlas\n"
+                             "LR decision will be based on coordinates.");
+            }
          } else {
             atlas->adh->lrmask = DSET_BRICK_ARRAY(ATL_DSET(atlas_lr),0);
             if (!atlas->adh->lrmask) {
+               lr_notfound = 1;
                ERROR_message("Unexpected NULL array.\n"
                              "Proceeding without LR mask");
             }
@@ -5043,12 +5070,6 @@ int genx_load_atlas_dset(ATLAS *atlas)
                    "the atlas_list from those dsets that fail to load.");
          }
          atlas->adh = Free_Atlas_Dset_Holder(atlas->adh);
-         if (wami_verb()) { 
-            INFO_message("Daniel: You might want to try harder here based on\n "
-                   " atlas->atlas_name perhaps, or by allowing for particular\n "
-                   " path environment variables as in TT_load_atlas_old\n");
-/* drg - think we try hard enough to load atlases from a variety of places */
-         }
          RETURN(0);
       }
    } else {
@@ -5319,6 +5340,53 @@ int Atlas_Voxel_Value(ATLAS *atlas, int sb, int ijk)
    
 }
 
+/*! get floating point value at ijk index in sub-brick sb of atlas dataset*/
+float Atlas_Voxel_fValue(ATLAS *atlas, int sb, int ijk) 
+{
+   byte *ba=NULL;
+   short *sa=NULL;
+   float *fa=NULL, sbf=1.0;
+   float fval = 0.0;
+   
+   switch(DSET_BRICK_TYPE(ATL_DSET(atlas), sb)) {
+      case MRI_byte:
+         ba = (byte *)DSET_ARRAY(ATL_DSET(atlas), sb);
+         fval = (float)ba[ijk];
+         break;
+      case MRI_short:
+         sa = (short *)DSET_ARRAY(ATL_DSET(atlas), sb);
+         fval = (float)sa[ijk];
+         break;
+      case MRI_float:
+         fa = (float *)DSET_ARRAY(ATL_DSET(atlas), sb);
+         fval = (float)fa[ijk];
+         break;
+      default:
+         ERROR_message("Bad Atlas dset brick type %d\n",
+                        DSET_BRICK_TYPE(ATL_DSET(atlas), sb)); 
+         return(0.0);
+         break;
+   }
+   sbf = DSET_BRICK_FACTOR(ATL_DSET(atlas), sb); 
+   if ((sbf == 0.0) || (sbf==1.0)) return(fval);
+   
+   fval = fval*sbf;
+
+   return(fval);
+}
+
+/*! for now, always return 250 as factor to scale PMap values
+   old PMap atlases used byte values from 0-250.
+   Dividing by 250 gives scaled values from 0-1.
+   New scale factor from dataset in Atlas_Voxel_fValue should
+   take care of general cases
+*/
+float
+Get_PMap_Factor()
+{
+  return(250.0);
+}
+
 /*!
    \brief Returns a whereami query from just one atlas
    \param atlas ATLAS * 
@@ -5332,13 +5400,15 @@ int whereami_in_atlas(  char *aname,
 {
    int nfind, *b_find=NULL, *rr_find=NULL ;
    int ii, kk, ix,jy,kz , nx,ny,nz,nxy ,sb=0;
-   int aa,bb,cc , ff,baf,rff, ival=-1;
+   int aa,bb,cc , ff,baf,rff;
    char *blab ;
    ATLAS_ZONE *zn = NULL;
    THD_ivec3 ijk ;
    ATLAS *atlas=NULL;
    int LocalHead = wami_lh();
-   
+   float fval = 0;
+   static find_warn = 0;
+
    ENTRY("whereami_in_atlas");
    
    if (!aname) {
@@ -5490,7 +5560,8 @@ int whereami_in_atlas(  char *aname,
                            nfind, b_find[nfind], nfind, rr_find[nfind]);
             nfind++ ;
 
-            if( nfind == MAX_FIND ) {
+            if(( nfind >= MAX_FIND ) && (!find_warn)) {
+              find_warn = 1;
               if (!getenv("AFNI_WHEREAMI_NO_WARN")) {
                INFO_message(
          "Potentially more regions could be found than the %d reported.\n"
@@ -5572,22 +5643,18 @@ int whereami_in_atlas(  char *aname,
             ERROR_message("Unexpected NULL array"); 
             RETURN(0); 
          }
-         ival = Atlas_Voxel_Value(atlas, sb, kk);
+         fval = Atlas_Voxel_fValue(atlas, sb, kk);
          if (LocalHead)  
-            fprintf(stderr,"  ++ Sub-brick %d in %s ival=%d\n", 
-                           sb, atlas->atlas_dset_name, ival);
-         if( ival != 0 ){
+            fprintf(stderr,"  ++ Sub-brick %d in %s fval=%f\n", 
+                           sb, atlas->atlas_dset_name, fval);
+         if( fval != 0.0 ){
+            if(fval>1.0) fval = fval / Get_PMap_Factor(); /* if >1.0, must be old pmap atlases*/
+
             if( atlas->adh->adset->dblk->brick_lab == NULL || 
                 atlas->adh->adset->dblk->brick_lab[sb] == NULL) {
                if (LocalHead)  fprintf(stderr,"  ++ No Label!\n");
-               if (wami_verb()) {
-                  INFO_message("Daniel, this division by 250 is only"
-                              "for the Zilles dsets, this should be"
-                              "handled via a scaling factor in the dset"
-                              "perhaps...Check for it elsewhere.");
-               }
                zn = Atlas_Zone(zn, 0, "No Label", -1, 
-                              (float)ival/250.0, 0, 
+                              fval, 0, 
                               Atlas_Name(atlas));
             } else {
                if( atlas->adh->adset->dblk->brick_lab[sb] && 
@@ -5596,7 +5663,7 @@ int whereami_in_atlas(  char *aname,
                   if (blab) {
                      if (LocalHead) fprintf(stderr," blabing: %s\n", blab);
                      zn = Atlas_Zone(zn, 0, blab, baf , 
-                                    (float)ival/250.0, 0, 
+                                    fval, 0, 
                             Atlas_Name(atlas));
                   } else {
                      if (LocalHead) fprintf(stderr," no blabing:\n");
@@ -5606,7 +5673,7 @@ int whereami_in_atlas(  char *aname,
                   }
                } else {
                   zn = Atlas_Zone(zn, 0, "Empty Label", -1, 
-                                  (float)ival/250.0, 0,
+                                  fval, 0,
                            Atlas_Name(atlas));
                }
             }
@@ -5741,7 +5808,7 @@ int whereami_9yards(  ATLAS_COORD aci, ATLAS_QUERY **wamip,
    ATLAS *atlas=NULL;
    int LocalHead = wami_lh();
    int dset_kind;
-   float fbaf, fbaf_factor;
+   float fbaf;
    static int iwarn = 0;
    
    ENTRY("whereami_9yards");
@@ -6030,31 +6097,7 @@ int whereami_9yards(  ATLAS_COORD aci, ATLAS_QUERY **wamip,
 
          zn = Get_Atlas_Zone(wami, 0);    /* get the zero level zone */
          for (ii=0; ii<DSET_NVALS(ATL_DSET(atlas)); ++ii) {
-            /* make dataset sub-brick integer - 
-               change from previous byte to allow values > 255 */
-            switch(dset_kind) {
-              case MRI_short :
-                 ba = DSET_BRICK_ARRAY(ATL_DSET(atlas),ii); /* short type */
-                 if (!ba) { ERROR_message("Unexpected NULL array"); RETURN(0); }
-                 fbaf = ba[kk];
-                 fbaf_factor = 250.0;
-                 break;
-              case MRI_byte :
-                 bba = DSET_BRICK_ARRAY(ATL_DSET(atlas),ii); /* byte array */
-                 if (!bba) { ERROR_message("Unexpected NULL array"); RETURN(0); }
-                 fbaf = bba[kk];
-                 fbaf_factor = 250.0;
-                 break;
-              case MRI_float :
-                 fba = DSET_BRICK_ARRAY(ATL_DSET(atlas),ii); /* float array */
-                 if (!fba) { ERROR_message("Unexpected NULL array"); RETURN(0); }
-                 fbaf = fba[kk];
-                 fbaf_factor = 1.0;  /* just to use as a floating point prob. */
-                 break;
-              default :
-                 ERROR_message("Unexpected data type for probability maps"); 
-                 RETURN(0);
-            }
+            fbaf = Atlas_Voxel_fValue(atlas, ii, kk);
             if (LocalHead)  fprintf(stderr,
                               "  ++ Sub-brick %d in %s ba[kk]=%d\n",
                               ii, atlas->atlas_dset_name,
@@ -6064,7 +6107,7 @@ int whereami_9yards(  ATLAS_COORD aci, ATLAS_QUERY **wamip,
                    atlas->adh->adset->dblk->brick_lab[ii] == NULL) {
                   if (LocalHead)  fprintf(stderr,"  ++ No Label!\n");
                   zn = Atlas_Zone(zn, 0, "No Label", -1, 
-                        (float)ba[kk]/250.0, 0, Atlas_Name(atlas));
+                        fbaf, 0, Atlas_Name(atlas));
                } else {
                   if( atlas->adh->adset->dblk->brick_lab[ii] && 
                       atlas->adh->adset->dblk->brick_lab[ii][0] != '\0' ){
@@ -6075,7 +6118,7 @@ int whereami_9yards(  ATLAS_COORD aci, ATLAS_QUERY **wamip,
                      if (blab) {
                         if (LocalHead) fprintf(stderr," blabing: %s\n", blab);
                         zn = Atlas_Zone(  zn, 0, blab, baf , 
-                                          (float)fbaf/250.0, 0, 
+                                          fbaf, 0, 
                                           Atlas_Name(atlas));
                      } else {
                         if (LocalHead) fprintf(stderr," no blabing:\n");
@@ -6084,7 +6127,7 @@ int whereami_9yards(  ATLAS_COORD aci, ATLAS_QUERY **wamip,
                      }
                   } else {
                      zn = Atlas_Zone(zn, 0, "Empty Label", -1,
-                             (float)fbaf/fbaf_factor, 0, Atlas_Name(atlas));
+                             fbaf, 0, Atlas_Name(atlas));
                   }
                }
                wami = Add_To_Atlas_Query(wami, zn);
