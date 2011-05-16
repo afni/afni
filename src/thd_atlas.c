@@ -171,7 +171,7 @@ print_atlas_point_list(ATLAS_POINT_LIST *apl)
       ap = apl->at_point+i;
       INFO_message("%d: \"%s\", \"%s\""
                      " %5.1f %5.1f %5.1f\n",
-         ap->tdval, ap->name, ap->dsetpref,
+         ap->tdval, ap->name, ap->sblabel,
          ap->xx, ap->yy, ap->zz);
    }
    INFO_message("");
@@ -245,11 +245,11 @@ dset_niml_to_atlas_list(THD_3dim_dataset *dset)
       /* copy "STRUCT" name - segmentation name */
       NI_strncpy(at_pt->name,temp_str,ATLAS_CMAX);
       /* sub-brick label for probability maps */
-      temp_str = NI_get_attribute(nel, "DSETPREF");
+      temp_str = NI_get_attribute(nel, "SB_LABEL");
       if(temp_str==NULL)
-         NI_strncpy(at_pt->dsetpref,"",ATLAS_CMAX);
+         NI_strncpy(at_pt->sblabel,"",ATLAS_CMAX);
       else
-         NI_strncpy(at_pt->dsetpref,temp_str,ATLAS_CMAX);
+         NI_strncpy(at_pt->sblabel,temp_str,ATLAS_CMAX);
 
       at_pt->tdval = tdval;
       at_pt->okey = okey;
@@ -2220,8 +2220,8 @@ static ATLAS_POINT_LIST * AFNI_atlas_list_to_atlas_point_list(
      temp_atp->zz = afni_at_pts[i].zz;
      NI_strncpy(temp_atp->name,afni_at_pts[i].name,ATLAS_CMAX);
      TRIM_STRING(temp_atp->name, '.');
-     NI_strncpy(temp_atp->dsetpref,afni_at_pts[i].dsetpref,ATLAS_CMAX);
-     TRIM_STRING(temp_atp->dsetpref, '.');
+     NI_strncpy(temp_atp->sblabel,afni_at_pts[i].sblabel,ATLAS_CMAX);
+     TRIM_STRING(temp_atp->sblabel, '.');
      if(wami_verb() > 1){
         INFO_message("atlas_point %d %s\n", afni_at_pts[i].tdval, 
                       afni_at_pts[i].name);
@@ -2337,7 +2337,7 @@ typedef struct {
                                /*  this value was converted for TT daemon */
                                /*  atlas values because left and right */
                                /*  ROIs shared the same value */                               
-   char dsetpref[ATLAS_CMAX];
+   char sblabel[ATLAS_CMAX];
 } ATLAS_POINT ;
 #endif
 
@@ -2376,8 +2376,8 @@ atlas_point_to_niml_element(ATLAS_POINT *at_pt)
    /* associated dataset file that gives the original name of the Analyze file
       suggesting the name of the sub-brick in the atlas where
       it is finally stored */
-   if (strcmp(at_pt->dsetpref,"")!=0)
-     NI_set_attribute(nel, "DSETPREF", at_pt->dsetpref);
+   if (strcmp(at_pt->sblabel,"")!=0)
+     NI_set_attribute(nel, "SB_LABEL", at_pt->sblabel);
    RETURN(nel);
 }
 
@@ -2456,11 +2456,11 @@ niml_to_atlas_list(ATLAS_POINT_LIST *atp, char *atlas_file)
      at_pt = &atp->at_point[count];
      NI_strncpy(at_pt->name,temp_str,ATLAS_CMAX);
 
-     temp_str = NI_get_attribute(nel, "DSETPREF");
+     temp_str = NI_get_attribute(nel, "SB_LABEL");
      if(temp_str==NULL)
-        NI_strncpy(at_pt->dsetpref,"",ATLAS_CMAX);
+        NI_strncpy(at_pt->sblabel,"",ATLAS_CMAX);
      else
-        NI_strncpy(at_pt->dsetpref,temp_str,ATLAS_CMAX);
+        NI_strncpy(at_pt->sblabel,temp_str,ATLAS_CMAX);
 
      at_pt->tdval = okey;
      at_pt->xx = cog[0];
@@ -2471,10 +2471,10 @@ niml_to_atlas_list(ATLAS_POINT_LIST *atp, char *atlas_file)
                     "STRUCT: %s\n"
                     "OKEY: %d\n"
                     "COG: %.3f %.3f %.3f\n"
-                    "DSETPREF: %s\n"
+                    "SB_LABEL: %s\n"
                     , NI_get_attribute(nel, "STRUCT"),
                     okey, cog[0], cog[1], cog[2],
-                    NI_get_attribute(nel, "DSETPREF"));
+                    NI_get_attribute(nel, "SB_LABEL"));
      count++;
    }    
    NI_stream_close(atlas_niml);
