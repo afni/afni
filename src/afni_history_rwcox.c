@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 27 , APR , 2011 , RWC , "3dClustSim" , MICRO , TYPE_BUG_FIX ,
+  { 16 , MAY , 2011 , RWC , "afni" , MICRO , TYPE_MODIFY ,
+   "Make 'Points' display in grapher get bigger with thicker lines" ,
+   "Otherwise, thick lines hide the points.  Done via XFillArc function." } ,
+
+ { 27 , APR , 2011 , RWC , "3dClustSim" , MICRO , TYPE_BUG_FIX ,
    "Fixed nx!=ny error in NN2 and NN3 clusterization" ,
    NULL } ,
 
