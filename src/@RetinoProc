@@ -311,17 +311,28 @@ foreach sd ($sides)
             set p = $p:r
             if ( ! -f {$p}.${sd}.niml.dset ) then
                echo "Mapping $s to surface to create {$p}.${sd}.niml.dset"
-               3dVol2Surf  -spec          ${specs[$sdc]} \
-                           -sv            SVol@Epi+orig   \
-                           -surf_A        ${sd}.smoothwm.asc \
-                           -surf_B        ${sd}.pial.asc  \
-                           -grid_parent   $s \
-                           -map_func      ave   \
-                           -f_index       nodes \
-                           -f_steps       15    \
-                           -oob_value     0     \
-                           -overwrite     \
-                           -out_niml      {$p}.${sd}.niml.dset 
+               if ($MapToWm == 1) then
+                  3dVol2Surf  -spec          ${specs[$sdc]} \
+                              -sv            SVol@Epi+orig   \
+                              -surf_A        ${sd}.smoothwm.asc \
+                              -grid_parent   $s \
+                              -map_func      mask   \
+                              -oob_value     0     \
+                              -overwrite     \
+                              -out_niml      {$p}.${sd}.niml.dset 
+               else
+                  3dVol2Surf  -spec          ${specs[$sdc]} \
+                              -sv            SVol@Epi+orig   \
+                              -surf_A        ${sd}.smoothwm.asc \
+                              -surf_B        ${sd}.pial.asc  \
+                              -grid_parent   $s \
+                              -map_func      ave   \
+                              -f_index       nodes \
+                              -f_steps       15    \
+                              -oob_value     0     \
+                              -overwrite     \
+                              -out_niml      {$p}.${sd}.niml.dset 
+               endif
             else
                echo "Reusing existing {$p}.${sd}.niml.dset "
             endif
@@ -649,6 +660,7 @@ PARSE:
    set u_AVolAtEpi = ''
    set spec_left = 'NADA'
    set spec_right = 'NADA'
+   set MapToWm = 0
    set cnt = 1
    
    if ($Narg < 2) goto HELP
@@ -657,6 +669,11 @@ PARSE:
 
       if ( "$argv[$cnt]" == "-echo") then
          set echo		
+         goto NEXT		
+      endif
+      
+      if ( "$argv[$cnt]" == "-wm") then
+         set MapToWm	= 1	
          goto NEXT		
       endif
       
