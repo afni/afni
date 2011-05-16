@@ -3492,7 +3492,7 @@ THD_3dim_dataset *Atlas_Region_Mask(AFNI_ATLAS_REGION *aar,
 
          if (LocalHead)
             INFO_message("Looking for sub-brick labeled %s\n",
-                Clean_Atlas_Label(atlas->adh->apl2->at_point[fnd].dsetpref));
+                Clean_Atlas_Label(atlas->adh->apl2->at_point[fnd].sblabel));
          fnd2 = -1;
          sb = 0;
          while (sb < DSET_NVALS(ATL_DSET(atlas)) && fnd2 < 0) { 
@@ -3500,7 +3500,7 @@ THD_3dim_dataset *Atlas_Region_Mask(AFNI_ATLAS_REGION *aar,
                But be careful nonetheless */
             if (DSET_BRICK_LAB(ATL_DSET(atlas),sb) && 
              !strcmp(DSET_BRICK_LAB(ATL_DSET(atlas),sb), 
-               Clean_Atlas_Label(atlas->adh->apl2->at_point[fnd].dsetpref)))
+               Clean_Atlas_Label(atlas->adh->apl2->at_point[fnd].sblabel)))
                  fnd2 = sb;
             else ++sb;
          }
@@ -5118,7 +5118,7 @@ ATLAS_POINT_LIST *atlas_point_to_atlas_point_list(ATLAS_POINT * apl, int n_pts)
    apl2->at_point = (ATLAS_POINT *)calloc(n_pts, sizeof(ATLAS_POINT));
    for (i=0; i<n_pts; ++i) {
       NI_strncpy(apl2->at_point[i].name,apl[i].name,ATLAS_CMAX);
-      NI_strncpy(apl2->at_point[i].dsetpref,apl[i].dsetpref,ATLAS_CMAX);
+      NI_strncpy(apl2->at_point[i].sblabel,apl[i].sblabel,ATLAS_CMAX);
       
       apl2->at_point[i].tdval = apl[i].tdval;
       apl2->at_point[i].okey = apl[i].okey;
@@ -5291,14 +5291,14 @@ char *prob_atlas_sb_to_label(ATLAS *atlas, int sb, int *key)
    }
    
    for (i=0; i<atlas->adh->apl2->n_points; ++i) {
-      lab_buf = Clean_Atlas_Label(atlas->adh->apl2->at_point[i].dsetpref);
+      lab_buf = Clean_Atlas_Label(atlas->adh->apl2->at_point[i].sblabel);
       if ( (nlab == strlen(lab_buf)) && 
             !strcmp(lab_buf, atlas->adh->adset->dblk->brick_lab[sb])) {
          *key = atlas->adh->apl2->at_point[i].tdval;
          if (wami_verb()>1) {
             INFO_message(" Matched %s with %s\n", 
                      atlas->adh->adset->dblk->brick_lab[sb], 
-                     atlas->adh->apl2->at_point[i].dsetpref);
+                     atlas->adh->apl2->at_point[i].sblabel);
          }
          break;
       }

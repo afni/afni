@@ -4964,8 +4964,8 @@ typedef struct {
                                /*  this value was converted for TT daemon */
                                /*  atlas values because left and right */
                                /*  ROIs shared the same value */                               
-   char dsetpref[ATLAS_CMAX];  /* This is the  prefix (or the sub-brick 
-                                  label) of a dataset related to this point.
+   char sblabel[ATLAS_CMAX];   /* This is the sub-brick label
+                                  of a dataset related to this point.
                                   The only time this is used is for 
                                   linking an atlas point to the probability
                                   map volume. */
