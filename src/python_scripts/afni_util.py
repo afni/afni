@@ -170,6 +170,20 @@ def show_args_as_command(args, note='command:'):
      "\n----------------------------------------------------------------------"
      )
 
+def exec_tcsh_command(cmd):
+    """execute cmd via: tcsh -c "cmd"
+       return status, output
+
+          if status == 0, output is stdout
+          else            output is stderr+stdout
+    """
+
+    cstr = 'tcsh -c "%s"' % cmd
+    status, so, se = BASE.simple_shell_exec(cstr, capture=1)
+
+    if not status: return status, so
+    else:          return status, se+so
+
 def get_unique_sublist(inlist):
     """return a copy of inlist, but where elements are unique"""
 

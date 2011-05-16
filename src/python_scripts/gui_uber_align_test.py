@@ -207,7 +207,7 @@ class MainWindow(QtGui.QMainWindow):
       # --------------------------------------------------
       # epi base line
       label = QLIB.make_label('EPI base',
-                 tip='0-based volume index might include pre-steady state TRs')
+              tip='0-based EPI volume index might include pre-steady state TRs')
       line = QLIB.make_line(self.uvars.epi_base, cb=self.CB_line_text, hstr=0)
       layout.addWidget(label, 2, 0)
       layout.addWidget(line, 2, 2, 1, 1)
@@ -316,6 +316,11 @@ class MainWindow(QtGui.QMainWindow):
                             cb=self.CB_line_text, hstr=0)
       self.gvars.Line_epi_strip_meth = line
 
+      self.gvars.PB_otherHelp = QLIB.make_button("help: other",
+             tip="display help for this section", cb=self.CB_gbox_PushB, hstr=0)
+      self.gvars.PB_otherHelp.setIcon(self.style().standardIcon(
+                                     QtGui.QStyle.SP_MessageBoxQuestion))
+
       # add everything to the layout
       layout.addWidget(gbox.checkBox_giant_move, 0, 0)
       layout.addWidget(gbox.checkBox_add_edge, 1, 0)
@@ -325,12 +330,14 @@ class MainWindow(QtGui.QMainWindow):
       layout.addWidget(gbox.PB_tbase, 3, 1)
       layout.addWidget(self.gvars.Line_epi_strip_meth, 3, 2)
 
+      layout.addWidget(self.gvars.PB_otherHelp, 0, 2)
+
       label = QLIB.make_label('other AEA opts:',
                               tip='other options to pass to align_epi_anat.py')
       line = QLIB.make_line('', cb=self.CB_line_text)
       self.gvars.Line_aea_opts = line
       layout.addWidget(label, 4, 0)
-      layout.addWidget(line, 4, 1, 1, 4)
+      layout.addWidget(line, 4, 1, 1, 3)
 
       # ------------------------------------------------------------
       # finish up
@@ -364,31 +371,53 @@ class MainWindow(QtGui.QMainWindow):
       # ------------------------------------------------------------
       # fill frame 
 
-      # controlling checkbox
+      lindex = 0
+
+      # --- controlling checkbox
       gbox.checkBox_align_centers = QLIB.make_checkbox('align centers: Y/N',
                 checked=(self.uvars.val('align_centers') == 'yes'),
                 tip='choose whether to align dataset centers to a base',
                 cb=self.CB_checkbox)
-      layout.addWidget(gbox.checkBox_align_centers, 0, 0)
+      layout.addWidget(gbox.checkBox_align_centers, lindex, 0)
 
-      # make base textLine first, since other widgets may affect it
+      lindex += 1
+
+      # --- make base textLine first, since other widgets may affect it
       label = QLIB.make_label('center base:')
       line = QLIB.make_line(self.uvars.center_base, cb=self.CB_line_text)
       self.gvars.Line_center_base = line
-      layout.addWidget(label, 2, 0)
-      layout.addWidget(line, 2, 1, 1, 4)
 
-      # chooser for template bases
+      # --- check centers and help buttons
+      pb = QLIB.make_button("check center dist",
+                            tip="compute distance between volume centers",
+                            cb=self.CB_gbox_PushB, hstr=0)
+      self.gvars.PB_bbase = pb
+      layout.addWidget(pb, lindex, 1)
+
+      self.gvars.PB_Centers = QLIB.make_button("help: align centers",
+             tip="display help for this section", cb=self.CB_gbox_PushB, hstr=0)
+      self.gvars.PB_Centers.setIcon(self.style().standardIcon(
+                                     QtGui.QStyle.SP_MessageBoxQuestion))
+      layout.addWidget(self.gvars.PB_Centers, lindex, 3)
+
+      lindex += 1
+
+      # --- chooser for template bases
       blist = ['A. base: %s' % base for base in UALIGN.g_center_base_list]
       pb = QLIB.create_menu_button(frame, "template center", blist,
                                      call_back=self.CB_gbox_PushB)
       gbox.PB_tbase = pb
-      layout.addWidget(pb, 1, 1)
+      layout.addWidget(pb, lindex, 1)
 
       pb = QLIB.make_button("browse center",tip="browse file system for center",
                             cb=self.CB_gbox_PushB, hstr=0)
       self.gvars.PB_bbase = pb
-      layout.addWidget(pb, 1, 2)
+      layout.addWidget(pb, lindex, 3)
+
+      lindex += 1
+
+      layout.addWidget(label, lindex, 1)
+      layout.addWidget(line, lindex, 1, 1, 4)
 
       # ------------------------------------------------------------
       # finish up
@@ -436,7 +465,7 @@ class MainWindow(QtGui.QMainWindow):
       line = QLIB.make_line(' '.join(self.uvars.cost_list),cb=self.CB_line_text)
       self.gvars.Line_cost_list = line
       layout.addWidget(label, ncost+1, 0)
-      layout.addWidget(line, ncost+1, 1, 1, 4)
+      layout.addWidget(line, ncost+1, 1, 1, 3)
 
       self.init_cost_options()  # init check boxes and cost line
 
@@ -449,9 +478,14 @@ class MainWindow(QtGui.QMainWindow):
              cb=self.CB_gbox_PushB, hstr=0)
       self.gvars.PB_costApply = QLIB.make_button("apply costs",
              tip="apply checked costs to list", cb=self.CB_gbox_PushB, hstr=0)
+      self.gvars.PB_costHelp = QLIB.make_button("help: costs",
+             tip="display help for this section", cb=self.CB_gbox_PushB, hstr=0)
+      self.gvars.PB_costHelp.setIcon(self.style().standardIcon(
+                                     QtGui.QStyle.SP_MessageBoxQuestion))
       layout.addWidget(self.gvars.PB_costClear, 0, 1)
       layout.addWidget(self.gvars.PB_costReset, 1, 1)
       layout.addWidget(self.gvars.PB_costApply, 3, 1)
+      layout.addWidget(self.gvars.PB_costHelp,  0, 3)
 
       # ------------------------------------------------------------
       # finish up
@@ -714,16 +748,28 @@ class MainWindow(QtGui.QMainWindow):
          self.apply_checked_costs()
       elif text == 'apply costs':
          self.apply_checked_costs()
+      elif text == 'help: costs':
+         self.update_help_window(g_help_costs, title='cost functions')
 
       elif text[0:9] == 'A. base: ':
          base = text[9:]
          self.set_uvar('center_base', base)
          self.gvars.Line_center_base.setText(base)
+      elif text == 'help: align centers':
+         self.update_help_window(g_help_align_centers, title='center alignment')
+      elif text == 'check center dist':
+         status, dstr = self.make_center_dist_str()
+         if not status: self.update_help_window(dstr, title='center distance')
+         else:
+            if dstr == '': return
+            else: QLIB.guiWarning('Error', dstr, self)
 
       elif text[0:9] == 'E strip: ':
          base = text[9:]
          self.set_uvar('epi_strip_meth', base)
          self.gvars.Line_epi_strip_meth.setText(base)
+      elif text == 'help: other':
+         self.update_help_window(g_help_other, title='other options')
 
       elif text == 'browse center':
          fname = QtGui.QFileDialog.getOpenFileName(self,
@@ -831,23 +877,28 @@ class MainWindow(QtGui.QMainWindow):
       # View menu - all for static view windows
       self.gvars.MBar_view = self.menuBar().addMenu("&View")
 
-      act1 = QLIB.createAction(self, "resulting align script",
+      act1 = QLIB.createAction(self, "results from align test",
+        slot=self.cb_view,
+        tip="show afni command for viewing alignment results")
+
+      act2 = QLIB.createAction(self, "resulting align script",
         slot=self.cb_view,
         tip="display script created via GUI")
 
-      act2 = QLIB.createAction(self, "output from align script",
+      act3 = QLIB.createAction(self, "output from align script",
         slot=self.cb_view,
         tip="display text output from execution of align script")
 
-      act3 = QLIB.createAction(self,"view: uber_align_test.py command",
+      act4 = QLIB.createAction(self,"view: uber_align_test.py command",
           slot=self.cb_view,
           tip="show command that would populate this interface")
 
-      QLIB.addActions(self, self.gvars.MBar_view, [act1, act2, None, act3])
+      QLIB.addActions(self, self.gvars.MBar_view, [act1, act2, act3, None,act4])
 
-      self.gvars.act_view_script = act1
-      self.gvars.act_view_output = act2
-      self.gvars.act_view_cmd = act3
+      self.gvars.act_view_results = act1
+      self.gvars.act_view_script = act2
+      self.gvars.act_view_output = act3
+      self.gvars.act_view_cmd = act4
 
       # ----------------------------------------------------------------------
       # Hidden menu
@@ -861,14 +912,31 @@ class MainWindow(QtGui.QMainWindow):
         slot=self.cb_view,
         tip="display control variables")
 
-      act3 = QLIB.createAction(self,"view: GUI vars",
+      act3 = QLIB.createAction(self,"view: result vars",
+        slot=self.cb_view,
+        tip="display result variables")
+
+      act4 = QLIB.createAction(self,"view: GUI vars",
         slot=self.cb_view,
         tip="display GUI variables")
 
-      QLIB.addActions(self, self.gvars.MBar_hidden, [act1, None, act2, act3])
       self.gvars.act_view_uvars = act1
       self.gvars.act_view_cvars = act2
-      self.gvars.act_view_gvars = act3
+      self.gvars.act_view_rvars = act3
+      self.gvars.act_view_gvars = act4
+
+      # first add view of user, ctrl and result vars
+      QLIB.addActions(self, self.gvars.MBar_hidden, [act1, act2, act3])
+
+      act5 = QLIB.createAction(self, "shell command window",
+          slot=self.cb_show_command_window,
+          tip="open command window for shell commands")
+
+      act6 = QLIB.createAction(self, "python command window",
+          slot=self.cb_show_py_command_window,
+          tip="open command window for local python commands")
+
+      QLIB.addActions(self, self.gvars.MBar_hidden, [None, act4, act5, act6])
 
       # ----------------------------------------------------------------------
       # Help menu
@@ -882,16 +950,19 @@ class MainWindow(QtGui.QMainWindow):
       self.gvars.Menu_browse = self.gvars.MBar_help.addMenu("&Browse")
       act1 = QLIB.createAction(self,"web: all AFNI programs",
           slot=self.cb_help_browse, tip="browse AFNI program help")
-      act2 = QLIB.createAction(self,"web: afni_proc.py help",
+      act2 = QLIB.createAction(self,"web: align_epi_anat.py help",
+          slot=self.cb_help_browse, tip="browse align_epi_anat.py help")
+      act3 = QLIB.createAction(self,"web: afni_proc.py help",
           slot=self.cb_help_browse, tip="browse afni_proc.py help")
-      act3 = QLIB.createAction(self,"web: AFNI Message Board",
+      act4 = QLIB.createAction(self,"web: AFNI Message Board",
           slot=self.cb_help_browse, tip="browse Message Board")
 
-      QLIB.addActions(self, self.gvars.Menu_browse, [act1, act2, act3])
+      QLIB.addActions(self, self.gvars.Menu_browse, [act1, act2, act3, act4])
 
       self.gvars.act_browse_all_progs = act1
-      self.gvars.act_browse_AP_help   = act2
-      self.gvars.act_browse_MB        = act3
+      self.gvars.act_browse_AEA_help  = act2
+      self.gvars.act_browse_AP_help   = act3
+      self.gvars.act_browse_MB        = act4
 
       actHelpAbout = QLIB.createAction(self,"about uber_align_test.py",
           slot=self.cb_help_about, tip="about uber_align_test.py")
@@ -978,6 +1049,9 @@ class MainWindow(QtGui.QMainWindow):
       if   obj == self.gvars.act_browse_all_progs:
          self.open_web_site('http://afni.nimh.nih.gov/pub/dist/doc'     \
                             '/program_help/index.html')
+      elif obj == self.gvars.act_browse_AEA_help:
+         self.open_web_site('http://afni.nimh.nih.gov/pub/dist/doc'     \
+                            '/program_help/align_epi_anat.py.html')
       elif obj == self.gvars.act_browse_AP_help:
          self.open_web_site('http://afni.nimh.nih.gov/pub/dist/doc'     \
                             '/program_help/afni_proc.py.html')
@@ -985,7 +1059,7 @@ class MainWindow(QtGui.QMainWindow):
          self.open_web_site('http://afni.nimh.nih.gov/afni/community/board')
       else: print '** cb_help_browse: invalid sender'
 
-   def update_uvars_from_gui(self, warn=0):
+   def update_uvars_from_gui(self, warn=0, set_pdir=1, disable_exec=1):
       """set what we can, if warn, report error
          return 0 on success, 1 on error"""
 
@@ -997,13 +1071,13 @@ class MainWindow(QtGui.QMainWindow):
       # maybe process tables
       # if self.update_uvars_from_tables(): return 1
 
-      if self.set_pdir:
+      if self.set_pdir and set_pdir:
          # proc dir might read: tool_results/tool.0001.align_test
          pdir =  SUBJ.get_def_tool_path('align_test')
-         print '-- setting proc_dir to %s' % pdir
-         self.set_cvar('proc_dir', pdir)
+         if self.set_cvar('proc_dir', pdir):
+            print '-- setting proc_dir to %s' % pdir
 
-      self.gvars.act_exec_script.setEnabled(False)
+      if disable_exec: self.gvars.act_exec_script.setEnabled(False)
 
       return 0
 
@@ -1025,7 +1099,10 @@ class MainWindow(QtGui.QMainWindow):
       """create permanent windows with given text"""
       obj = self.sender()
 
-      if obj == self.gvars.act_view_script:
+      if obj == self.gvars.act_view_results:
+         self.show_howto_view_results()
+
+      elif obj == self.gvars.act_view_script:
          self.show_static_file('file_proc', 'align script:')
 
       elif obj == self.gvars.act_view_output:
@@ -1044,11 +1121,77 @@ class MainWindow(QtGui.QMainWindow):
          sstr = self.cvars.make_show_str('control vars', name=0, all=0)
          QLIB.static_TextWindow(title='control vars', text=sstr, parent=self)
 
+      elif obj == self.gvars.act_view_rvars:
+         if self.atest == None:
+            QLIB.guiError('Error','** must first generate processing script',
+                          self)
+         else:
+            sstr = self.atest.rvars.make_show_str('result vars', name=0, all=0)
+            QLIB.static_TextWindow(title='control vars', text=sstr, parent=self)
+
       elif obj == self.gvars.act_view_gvars:
          sstr = self.gvars.make_show_str('GUI vars', name=0, all=1)
          QLIB.static_TextWindow(title='GUI vars', text=sstr, parent=self)
 
       else: print '** unhandled object in cb_view'
+
+   def show_howto_view_results(self):
+      """display (in help window) how to view the processing results"""
+      if self.atest == None or self.status < 1:
+         self.update_warn_window(                                 \
+                "** the alignment script is not ready, so the\n"  \
+                "   processing directory is currently unknown")
+         return
+
+      rdir = self.atest.uvars.val('results_dir')
+      if rdir != None: rdir = self.atest.cvars.file_under_dir('proc_dir', rdir)
+      if UTIL.is_trivial_dir(rdir):
+         self.update_warn_window('** results_dir not set')
+         return
+
+      mesg = "==>  how to view the results (when they are ready)  <==\n\n"  \
+             "From within the %s directory, the current results\n"          \
+             "can be viewed by telling afni where the result dir is\n\n"    \
+             "     afni %s\n" % (UALIGN.DEF_UBER_DIR, rdir)
+
+      self.update_help_window(mesg, 'viewing the current alignment results')
+
+   def make_center_dist_str(self):
+      """return status and a string describing the distance between
+         volume centers
+
+         status = 0 on success, 1 on error
+      """
+      if self.update_uvars_from_gui(set_pdir=0, disable_exec=0): return 1, ''
+
+      cmd = '@Center_Distance -dset %s %s' % (self.uvars.anat, self.uvars.epi)
+      status, output = UTIL.exec_tcsh_command(cmd)
+
+      if status:
+         text = '** ERROR: failure for command:\n\n%s\n\n' % cmd
+         text += '-'*60 + ('\noutput :\n%s' % output)
+         return status, text
+
+      if self.verb > 2:
+         print '-- executed center command:\n      %s' % cmd
+         print '   status = %d' % status
+         print '   output = %s' % output
+
+      # distance should be first line of output, but strip the '\n'
+      output = output.strip()
+      text =  "current distance between volume centers = %s mm\n\n" % output
+
+      text += "It is common for centers to be far apart, since antomical\n"  \
+              "volumes tend to cover more space.  So a better test of\n"     \
+              "whether to align centers is to view the datasets together\n"  \
+              "in afni.  If both datasets are not entirely visible in the\n" \
+              "image windows, then 'align centers' might be a good idea.\n\n"\
+              "To view these datasets together, try the afni command:\n\n"   \
+              "    afni %s %s\n\n" % (self.uvars.anat, self.uvars.epi)
+
+      text += "Consider viewing the anat as Underlay and the EPI as Overlay."
+
+      return status, text
 
    def make_uber_command(self):
       """generate a script that would invoke the uber_subject.py interface
@@ -1060,7 +1203,7 @@ class MainWindow(QtGui.QMainWindow):
       """
 
       # first apply subject variables
-      self.update_uvars_from_gui()
+      if self.update_uvars_from_gui(set_pdir=0, disable_exec=0): return ''
 
       cmd = 'uber_align_test.py'
 
@@ -1108,9 +1251,11 @@ class MainWindow(QtGui.QMainWindow):
 
    def set_cvar(self, name, newval):
       """if the value has changed (or is not a simple type), update it
-         - use deepcopy (nuke it from orbit, it's the only way to be sure)"""
+         - use deepcopy (nuke it from orbit, it's the only way to be sure)
+         return 1 if canged
+      """
 
-      if not self.cvars.set_var(name, newval): return
+      if not self.cvars.set_var(name, newval): return 0
 
       # so the value has changed...
 
@@ -1118,6 +1263,8 @@ class MainWindow(QtGui.QMainWindow):
 
       # even for cvars, since proc_dir is part of script
       self.gvars.act_exec_script.setEnabled(False)
+
+      return 1
 
    def set_uvar(self, name, newval):
       """if the value has changed (or is not a simple type), update it
@@ -1206,6 +1353,130 @@ class MainWindow(QtGui.QMainWindow):
 # ===========================================================================
 # help strings
 
+
+g_help_costs = """
+Specifying a list of cost functions to test:
+
+   goals:
+
+      Fill the 'costs to apply:' box with a list of cost functions to test.
+      They can come from the list of check boxes or can be typed directly.
+
+   description:
+
+      To choose cost functions from the check boxes, check the desired costs
+      and then "apply costs".  The boxes can be cleared with "clear costs" or
+      reset to defaults via "reset costs".
+
+      Checked cost functions will not be applied unless they are in the
+      "costs to apply" box.
+
+      Each chosen cost function will correspond to one "aligned" anatomical
+      dataset output by the script (aligned according to that cost function).
+
+   typical use in processing:
+
+      The script created by this program will use the first given cost function
+      with the '-cost' option to align_epi_anat.py.  All other cost functions
+      will be given using the '-multi_cost' option.
+
+      Once a "good" cost funtion is found (along with any other options),
+      that cost function might be provided to afni_proc.py (or uber_subject.py)
+      for use in single subject analysis.
+
+   output file names:
+
+      For the first cost, the resulting anatomical dataset will simply be
+      anat_al+orig.  For each other cost function (given to AEA.py via the
+      -multi_cost option), there will be a resulting anat_al_COST+orig dataset
+      created.
+"""
+
+g_help_align_centers = """
+Optionally choose whether to align the dataset volume centers to match that of
+another dataset.
+
+This is usually not necessary.
+
+   goals:
+
+      If desired, give the anat and EPI datasets the same volume center as that
+      of another dataset, as specified by 'center base:'.
+
+   description of interface:
+
+      Aligning centers means chaning the coordinates in the dataset headers so
+      that the center of each dataset volume is the same (as the center base).
+
+      To align centers:
+
+        1. check the box labeled 'align centers: Y/N'
+        2. choose a 'center base'
+
+      The center base can be one of the 'template center' datasets, or one
+      chosen from the file system via 'browse center'.
+
+   background:
+
+      When the input anat and EPI datasets are overlayed together in afni, if
+      the brains are not nearly in the same place, or worse, if only one can
+      be viewed at a time, then alignment may not be possible.  Even if it is
+      possible, part of the aligned brain might be chopped off because the
+      datasets do not occupy the same coordinate space.
+
+      Note that such a thing might happen if the proper coordinates are not in
+      one or both of the datasets.  It should not happen if original scanner
+      coordinates are properly used.  So this is usually a symptom of a faulty
+      processing stream.
+
+      In any case, alignment should still be possible, but the datasets should
+      start by occupying approximately the same space.  It is generally a safe
+      idea to make the centers the same as a template, since it is likely the
+      data will be aligned with such a standard template anyway.
+
+      Note that while altering the centers means a shift in space, it does not
+      require any resampling of the data.  It is just an alteration of the
+      coordinates in the header files.
+"""
+
+g_help_other = """
+Choose from a few other options.
+
+   giant move:
+
+      This option is useful if the datasets do not start of reasonably close,
+      such as when the subject makes a large move between the anatomical and
+      EPI sequences, or if the anatomy and EPI datasets are from different
+      days.
+
+   add edge:
+
+      This option is to make colored 'edge detection' datasets after alignment.
+      The purpose is to give users a different view of how well the alignment
+      works.
+
+      Note that only one cost function may be used when 'add edge' is selected.
+
+   anat has skull:
+
+      By default, the anatomical dataset is expected to have a skull, which 
+      will be stripped of during the processing of align_epi_anat.py.  If there
+      is no skull, this option should be turned off.
+
+   EPI strip method:
+
+      Similarly, the EPI volume will be stripped to remove non-brain voxels.
+      The default method is using 3dSkullStrip.
+
+      One can change this to either 3dAutomask (in place of 3dSkullStrip) or
+      None (in the case that no EPI stripping should be performed).
+
+   other AEA opts:
+
+      If the user wishes to add any other options to align_epi_anat.py, they
+      can be listed here.  If some options seem common, please feel free to
+      suggest adding them to the main inteface.
+"""
 
 g_help_eg = """
    goals:

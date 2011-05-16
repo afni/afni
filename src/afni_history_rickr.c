@@ -49,6 +49,25 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 16, MAY, 2011, RCR, "uber_align_test.py", MINOR, TYPE_ENHANCE,
+   "could be used as a release version",
+   " - added 'check center dist' button, to display the current distance\n"
+   " - added menu item to show afni command for viewing results\n"
+   " - added menu items to show python and shell command windows\n"
+   " - added much more help, including main and section buttons\n"
+   " - added browsing of align_epi_anat.py help"
+ } ,
+
+ { 16, MAY, 2011, RCR, "afni_util.py", MICRO, TYPE_ENHANCE,
+   "added exec_tcsh_command function",
+   NULL
+ } ,
+
+ { 16, MAY, 2011, RCR, "@Center_Distance", MICRO, TYPE_ENHANCE,
+   "return something to $status, so we can detect success or failure",
+   NULL
+ } ,
+
  { 13, MAY, 2011, RCR, "uber_align_test.py", MINOR, TYPE_ENHANCE,
    "added working GUI (for options, GUI help still needs ... help)",
    NULL
