@@ -1,5 +1,8 @@
 #!/bin/tcsh -f
 
+# return something useful for $status     16 May 2011 [rickr]
+set retval = 1
+
 PARSE:
    set Narg = $#
    set cnt = 1
@@ -10,6 +13,7 @@ PARSE:
       set donext = 1;
 
       if ($donext && "$argv[$cnt]" == "-help" || "$argv[$cnt]" == "-h") then
+         set retval = 0
          goto HELP
       endif
 
@@ -53,6 +57,8 @@ DEED:
 
    set dist = `ccalc -expr "sqrt( ($c2[1] - $c1[1])*($c2[1] - $c1[1]) + ($c2[2] - $c1[2])*($c2[2] - $c1[2]) + ($c2[3] - $c1[3])*($c2[3] - $c1[3]) ) "`
    echo $dist
+
+   set retval = $status
    
    goto END
 
@@ -66,3 +72,5 @@ HELP:
    goto END
    
 END:
+
+exit $retval

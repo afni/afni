@@ -29,9 +29,15 @@ g_history = """
          ==> this version will be copied off as uber_skel.py,
              lib_uber_skel.py and gui_uber_skel.py
     0.3  13 May, 2011: wrote functioning GUI (help still needs to be written)
+    0.4  16 May, 2011:
+         - added 'check center dist' button, to display the current distance
+         - added menu item to show afni command for viewing results
+         - added menu items to show python and shell command windows
+         - added much more help, including main and section buttons
+         - added browsing of align_epi_anat.py help
 """
 
-g_version = '0.3 (May 13, 2011)'
+g_version = '0.4 (May 16, 2011)'
 
 # ----------------------------------------------------------------------
 # global definition of default processing blocks
@@ -77,7 +83,6 @@ g_user_defs.align_centers  = 'no'
 g_user_defs.center_base    = 'TT_N27+tlrc'
 g_user_defs.aea_opts       = []         # other align_epi_anat.py options
 
-# todo...
 g_user_defs.add_edge       = 'no'
 g_user_defs.anat_has_skull = 'yes'
 g_user_defs.epi_strip_meth = '3dSkullStrip'
@@ -156,6 +161,11 @@ class AlignTest(object):
 
       if not UTIL.vals_are_unique(self.uvars.cost_list):
          self.errors.append('** cost functions are not unique')
+
+      if self.uvars.align_centers == 'yes' and self.uvars.giant_move == 'no':
+         self.warnings.append(                                          \
+              "** 'align centers' without 'giant move' is dangerous,\n" \
+              "   consider adding 'giant move'")
 
       return len(self.errors)
 
@@ -495,11 +505,8 @@ helpstr_todo = """
 ---------------------------------------------------------------------------
                         todo list:  
 
-- lots of GUI help
-- test center distance in GUI to suggest align centers
 - show corresponding afni_proc.py options
 - show corresponding uber_subjec.py options?
-- show afni command to look at results (basically point to directory)
 - warn on any unknown cost functions
 - partial coverage?
 ---------------------------------------------------------------------------
@@ -507,25 +514,170 @@ helpstr_todo = """
 
 helpstr_gui = """
 ===========================================================================
-==                                                                       ==
-==                      still under destruction                          ==
-==                                                                       ==
-===========================================================================
+uber_align_test.py (GUI)      - for testing anat/EPI alignment costs/options
 
-uber_align_test.py (GUI)      - a graphical interface for testing alignment
+   purpose:
 
-   Find good alignment options, possibly to add to afni_proc.py command
-   or uber_subject.py GUI options.
+      o  to easily test various cost functions and options for anat/EPI
+         alignment via align_epi_anat.py
 
-   purposes:
+      --> resulting options would presumably be then given to afni_proc.py
+          (or its GUI uber_subject.py) for use in single subject analysis
+
+         This program creates a script which eventually calls align_epi_anat.py
+         to do the alignment test.  The user should then view the results with
+         afni to determine which options are most appropriate.
+
    required inputs:
+
+      o  anatomical dataset
+      o  EPI dataset (possibly contains pre-steady state TRs)
+
    optional inputs:
+
+      o  EPI sub-brick index (default = 0)
+      o  list of cost functions
+      o  flag: whether to first align dataset centers
+      o  if aligning centers, a 'center base' must be chosen
+      o  flag: whether to include the -giant_move option
+      o  flag: whether to include the -AddEdge option to align_epi_anat.py
+         (if so, only one cost function may be chosen)
+      o  flag: whether the anat data still has the subject skull
+      o  EPI skull-stripping method (3dAutomask, 3dSkullStrip or None)
+      o  any other options to provide to align_epi_anat.py
+
    typical outputs:
+
+      o  anat_al+orig      : anat alignment from first cost function
+      o  anat_al_COST+orig : anat alignment from each other COST function
+
+      Hopefully at least one of these anatomical datasets aligns with the EPI.
+
+   sample path to a main result (aligned anatomy with first cost function):
+
+      tool_results/tool.001.align_test/align.results/anat_al+orig
+
+   output directory structure and files (example):
+
+      tool_results/tool.001.align_test/    - contains all output
+         script.align                      - alignment script
+         output.script.align               - output from script
+         align.results/                    - script processing directory
+            anat_al+orig                   - aligned anat dataset
+            epi+orig                       - EPI volume used for alignment
 
 ---------------------------------------------------------------------------
 Overview:
 
-- R Reynolds  Feb, 2011
+   The goal of using this program is to find options to align_epi_anat.py
+   that help to succeed in actually aligning the anat and EPI data for one
+   subject.  The use of those options is secondary, but might be one of:
+
+        o  alignment is the end result
+        o  want to pass options on to afni_proc.py, to use in single subject
+           analysis stream
+        o  or to uber_subject.py, the GUI for afni_proc.py
+        o  want to find options for using align_epi_anat.py in the future
+
+   When doing single subject analysis (e.g. with afni_proc.py), it is suggested
+   to align the anatomical and EPI datasets.  But finding a good alignment is
+   actually difficult, and might require the user to provide extra options to
+   the alignment program, align_epi_anat.py.  This program is meant to test
+   such options.
+
+   Once alignment succeeds, it is suggested to put those options into the
+   otherwise standard single subject analysis stream.
+
+   ** This interface produces an alignment script.  Reviewing (or even copying,
+      modifying and applying) the resulting script might be very useful.
+
+   Typical steps when using the GUI:
+
+   Step 1. Specify anatomical and EPI datasets for alignment.
+
+           This is enough input to run a test with.  Everything else is an
+           option.
+
+   Step 2. Choose which EPI sub-brick (volume index) to use for alignment.
+
+           Note that volume #0 might be a pre-steady state index.  Likely
+           candidates for the EPI base index are sub-bricks:
+
+            0 : the first TR, whether pre-steady state or not
+            4 : (for example) the first steady-state TR
+           99 : (for example) the last TR
+
+           Keep in mind that when the alignment base is passed to afni_proc.py,
+           that base index will not include any pre-SS TRs that are removed
+           via -tcat_remove_first_trs.
+
+           See "afni_proc.py" -help for more details.
+
+   Step 3. Choose the cost functions to try out.
+
+           Choose as many from the check list as desired, or add additional
+           costs that are not listed.
+
+           See "3dAllineate -HELP" for all available cost functions.  They
+           are not all presented using just -help.
+
+   Step 3. Choose whether to align dataset centers.
+
+           Some datasets do not have a properly defined location in space,
+           and so they are very far apart when overlayed on each other (in
+           afni).  By aligning centers, the middle of each dataset will be
+           set to that of the 'center base' dataset, so they at least start
+           off in somewhat the same location.
+
+        ** When aligning centers, 'giant_move' is highly recommended.
+
+           With this option, @Align_Centers will be run.
+
+           See "@Align_Centers -help" for details.
+
+   Step 4. add any other options
+
+        o  giant_move
+
+           The default search space is up to 6 degrees and 10 mm (in each
+           angular or distance parameter).  Using the -giant move option in
+           align_epi_anat.py increases the search space to 45 degrees and
+           45 mm, and also adds a center of mass adjustment.
+
+           This is to add the -giant_move option to align_epi_anat.py.
+
+           See "align_epi_anat.py -help" for more details.
+
+        o  add edge
+
+           This option can only be used with a single cost function at a time.
+
+           If this option is set, -AddEdge will be added to align_epi_anat.py,
+           which creates addition output to evaluate the end alignment.  An
+           'AddEdge' sub-directory will be created, with edge-enhanced copies
+           of the aligned anat and EPI.
+
+        o  anat has skull
+
+           If the anatomy has already been skull-stripped, this option should
+           be cleared.  Otherwise, align_epi_anat.py will run 3dSkullStrip to
+           remove the non-brain matter in the anatomical dataset.
+
+        o  EPI strip method
+
+           By default, the EPI dataset is also skull-stripped using
+           3dSkullStrip.  This can be changed to either 3dAutomask (which
+           should be a little faster, but is not the default) or None (if
+           the EPI has already been stripped).
+
+        o  other AEA opts
+
+           Use this box to add any other options to pass to align_epi_anat.py.
+
+           See "align_epi_anat.py -help" for details.
+
+
+- R Reynolds  May, 2011
 ===========================================================================
 """
 
