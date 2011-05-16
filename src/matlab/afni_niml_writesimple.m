@@ -126,13 +126,30 @@ if isfield(S,'history')
 end
 
 nodes{4}=make_str_element('COLMS_LABS',S,'labels',defaultlabels,ncols);
-nodes{5}=make_str_element('COLMS_TYPE',S,'types',{'Generic_Float'},ncols);
+nodes{5}=make_str_element('COLMS_TYPE',S,'types',make_default_type(S.data),ncols); % as of May 2011, use make_default_type; see below
 nodes{6}=make_str_element('COLMS_STATSYM',S,'stats',{'none'},ncols);
 nodes{7}=make_str_element('HISTORY_NOTE',S,'history',defaulthistory,ncols);
 
 D.nodes=nodes;
 
 afni_niml_write(D,fn);
+
+% NNO May 2011 bug fixed reported by Ziad Saad
+% http://afni.nimh.nih.gov/afni/community/board/read.php?f=1&i=38222&t=3818
+% 5#reply_38222
+%
+% For now, assume all columns have the same type; consistent with
+% AFNI_NIML_PRINT
+function df=make_default_type(data)
+
+ncols=size(data,2);
+if ~isnumeric(data) || isequal(round(data),data) % handle booleans as int
+    tp='Generic_Int';
+else
+    tp='Generic_Float';
+end
+
+df=repmat({tp},1,ncols);
 
 function elem=make_str_element(Nodefieldname,S,Sfieldname,default,ncols)
 elem=struct();
