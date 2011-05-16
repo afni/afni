@@ -715,16 +715,8 @@ def shell_exec(s,opt="",capture=1):
    
 def shell_exec2(s, capture=0):
 
-   vs = sys.version.split()[0]
-   v = vs.split('.')
-   if len(v) > 1:
-      vs = "%s.%s" % (v[0], v[1])
-   else:
-      vs = v[0]
-
-   v = float(vs)
-
-   if (v < 2.5): #Use old version and pray
+   # moved to python_ver_float()   16 May 2011 [rickr]
+   if (python_ver_float() < 2.5): #Use old version and pray
       #if there is no capture in option: run os.system
       if(not capture):
          os.system("%s"%s)
@@ -758,6 +750,42 @@ def shell_exec2(s, capture=0):
 
    return status, so, se
    
+# basically shell_exec2, but no splitlines()            16 May 2011 [rickr]
+def simple_shell_exec(command, capture=0):
+   """return status, so, se  (without any splitlines)"""
+
+   if (python_ver_float() < 2.5):
+      # abuse old version, re-join split lines
+      status, so, se = shell_exec2(command, capture=capture)
+      return status, '\n'.join(so), '\n'.join(se)
+
+   import subprocess as SP
+
+   if capture:
+      pipe = SP.Popen(command,shell=True, stdout=SP.PIPE, stderr=SP.PIPE,
+                      close_fds=True)
+      so, se = pipe.communicate() # returns after command is done
+      status = pipe.returncode
+   else:
+      pipe = SP.Popen(command,shell=True, executable='/bin/tcsh',
+                      stdout=None, stderr=None, close_fds=True)
+      status = pipe.wait() #Wait till it is over and store returncode
+      so, se = "", ""
+
+   return status, so, se
+
+# we may want this in more than one location            16 May 2011 [rickr]
+def python_ver_float():
+   """return the python version, as a float"""
+   vs = sys.version.split()[0]
+   vlist = vs.split('.')
+   if len(vlist) > 1:
+      vs = "%s.%s" % (vlist[0], vlist[1])
+   else:
+      vs = vlist[0]
+
+   return float(vs)
+
 #generic unique function, from:
 #  http://aspn.activestate.com/ASPN/Cookbook/Python/Recipe/52560/index_txt
 def unique(s):
