@@ -691,11 +691,12 @@ ENTRY("process_NSD_sparse_data");
     rhs = NI_get_attribute(nel, "data_type");
     if( !rhs || 
          (  strcmp(rhs, "Node_Bucket_data") &&
-            strcmp(rhs, "Node_ROI_data")       ) )
+            strcmp(rhs, "Node_ROI_data")   &&
+            strcmp(rhs, "Node_Label_data")    ) )
     {
         if(gni.debug)
           fprintf(stderr,"** SPARSE_DATA without data_type "
-                         "Node_Bucket_data or Node_ROI_data\n");
+                   "Node_Bucket_data or Node_ROI_data or Node_Label_data\n");
         RETURN(1);
     }
 
