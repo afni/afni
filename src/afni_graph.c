@@ -1295,8 +1295,22 @@ void GRA_draw_circle( MCW_grapher *grapher , int xc , int yc , int rad )
    xb = xc-rad ; yb = yc-rad ; ww = 2*rad ;
    XDrawArc( grapher->dc->display , XtWindow(grapher->draw_fd) ,
              grapher->dc->myGC , xb,yb , ww,ww , 0,360*64 ) ;
+   return ;
 }
 
+/*---------------------------------------------------------------------------*/
+
+void GRA_draw_disk( MCW_grapher *grapher , int xc , int yc , int rad )
+{
+   int xb,yb ;
+   unsigned int ww ;
+
+   if( rad < 0 ) rad = 0 ;
+   xb = xc-rad ; yb = yc-rad ; ww = 2*rad ;
+   XFillArc( grapher->dc->display , grapher->fd_pxWind ,
+             grapher->dc->myGC , xb,yb , ww,ww , 0,360*64 ) ;
+   return ;
+}
 
 /*-----------------------------------------------
    redraw stuff that overlays the pixmap
@@ -1356,12 +1370,13 @@ ENTRY("GRA_redraw_overlay") ;
    ii = grapher->time_index ; jj = NBOT(grapher) ;
    if( ii >= jj            &&
        ii <  NTOP(grapher) && ii-jj < grapher->nncen && !grapher->textgraph ){
+      int ww = MAX(4,DATA_THICK(grapher)) ;
 
       DC_fg_color( grapher->dc , IDEAL_COLOR(grapher) ) ;
       GRA_overlay_circle( grapher , grapher->cen_line[ii-jj].x ,
                                     grapher->cen_line[ii-jj].y-boff , 2 ) ;
       GRA_draw_circle   ( grapher , grapher->cen_line[ii-jj].x ,
-                                    grapher->cen_line[ii-jj].y-boff , 4 ) ;
+                                    grapher->cen_line[ii-jj].y-boff , ww ) ;
    }
 
    /* draw text showing value at currently displayed time_index */
@@ -2321,8 +2336,14 @@ STATUS("starting time series graph loop") ;
             DC_fg_color( grapher->dc , ovi[tt%OVI_MAX] ) ;
 
           if( DATA_POINTS(grapher) ){         /* 09 Jan 1998 */
-            for( i=0 ; i < qnum ; i++ )
-              GRA_small_circle( grapher,a_line[i].x,a_line[i].y,DATA_IS_THICK(grapher) );
+            int ww = DATA_THICK(grapher) ;
+            if( ww < 3 ){
+              for( i=0 ; i < qnum ; i++ )
+                GRA_small_circle( grapher,a_line[i].x,a_line[i].y,DATA_IS_THICK(grapher) );
+            } else {
+              for( i=0 ; i < qnum ; i++ )
+                GRA_draw_disk( grapher,a_line[i].x,a_line[i].y,ww+2 );
+            }
           }
           if( DATA_LINES(grapher) ){          /* 01 Aug 1998 */
             XDrawLines( grapher->dc->display ,
