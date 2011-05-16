@@ -8539,7 +8539,7 @@ SUMA_Boolean SUMA_isSameDsetColTypes(SUMA_DSET *dset1, SUMA_DSET *dset2)
          SUMA_RETURN(YUP); 
       }
    }
-   
+    
    /* try AFNI's */
    SUMA_LH("Fetching Type a la afni");
    cnm1 = NI_get_attribute(dset1->dnel, "ni_type");
