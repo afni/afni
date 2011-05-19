@@ -75,7 +75,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            3dThreetoRGB Ifile 3dresample 3dAutobox 3dLRflip 3dANALYZEtoAFNI     \
            dicom_hdr 3dDespike dicom_to_raw file_tool rotcom 1ddot 1dsvd        \
            3dDeconvolve_f 3dAnhist 3dAFNIto3D 3dUniformize 3dWarp nicat         \
-           3dSpatNorm fftest serial_helper 3dDTeig 3dDWItoDT 3dWarpDrive   \
+           3dSpatNorm fftest serial_helper 3dDTeig 3dDWItoDT 3dWarpDrive        \
            nifti_tool 3dAllineate nifti1_test whereami plugout_drive            \
            3dMedianFilter 3dretroicor 3dAFNItoNIML 3dAFNItoRaw im2niml 3dedge3  \
            DTIStudioFibertoSegments Dimon 3dLocalstat 3danisosmooth 3dmaxima    \
@@ -88,6 +88,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            3dLocalPV 3dBandpass 3dSetupGroupInCorr 3dGroupInCorr 3dTcorr1D      \
            3dClustSim 3dRetinoPhase 3dMaskToASCII 3dttest++ 3dDTtoDWI           \
            niccc rbox qdelaunay 3dkmeans 3dXYZcat 3dPolyfit 3dNwarpApply        \
+           1dCorrelate                                                          \
            $(EXTRAS)
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge      \
@@ -119,7 +120,7 @@ PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge  
                   afni_history 3dUpsample 1dUpsample 3dmatmult 3dABoverlap          \
                   3dmaskSVD 3dRank 3dLocalPV 3dTcorr1D 3dClustSim 3dRetinoPhase     \
                   3dMaskToASCII 3dttest++ 3dDTtoDWI niccc 3dXYZcat 3dPolyfit        \
-                  3dNwarpApply                                                      \
+                  3dNwarpApply 1dCorrelate                                          \
                   $(EXTRAS)
 
 # For CYGWIN (look for "exe" to find various places below)
@@ -1371,6 +1372,10 @@ qtest:thd_bstrap_corr.o
 1dcorr:1dcorr.o
 	$(RM) $@
 	$(CC) -o 1dcorr 1dcorr.o $(LFLAGS) $(LLIBS)
+
+1dCorrelate:1dCorrelate.o
+	$(RM) $@
+	$(CC) -o 1dCorrelate 1dCorrelate.o $(LFLAGS) $(LLIBS)
 
 1dsvd:1dsvd.o
 	$(RM) $@
