@@ -1651,9 +1651,27 @@ read.AFNI.matrix <- function (fname,
    }else{
       fnameattr <- 'NONAME'
    }
-   #str(fname)
-   #fname$file
-   brk <- read.table(fname$file, colClasses='character');
+   
+   if (fname$type == 'NIML') {
+      nmout <- sprintf('/tmp/fout.%s.1D.dset', newid.AFNI())
+      if (verb) warn.AFNI("Clumsy handling of NIML files via ConvertDset ...");
+      com <- paste(
+         'ConvertDset -overwrite -o_1D -prefix ', nmout, ' -i', 
+         fname$orig_name);
+      ss <- sys.AFNI(com, echo = FALSE);
+      if (ss$stat == 1) {
+         err.AFNI(paste("Failed to get keys from labeltable",ltfile, ".\n",
+                        "Command ",com,"Failed"));
+         return(NULL);
+      }
+      mm<-read.AFNI.matrix(nmout);
+      sys.AFNI(sprintf('\\rm -f %s',nmout));
+      return(mm);
+   } else {
+      #str(fname)
+      #fname$file
+      brk <- read.table(fname$file, colClasses='character');
+   }
    if ( tolower(brk$V1[1]) == 'name' || 
         tolower(brk$V1[1]) == 'subj' ||
         tolower(brk$V1[1]) == '#file') {

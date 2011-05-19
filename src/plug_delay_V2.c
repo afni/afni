@@ -18,34 +18,9 @@
 #include <stdio.h>
 #include <math.h>
 
-/*	Definitions of prototypes and declaration of support functions 
-	this is taken from the list of include files that I use in the original code*/ 
-
 /*-------------------------------------------------------------------*/
 /* taken from #include "/usr/people/ziad/Programs/C/DSP_in_C/dft.h" */
 /* dft.h - function prototypes and structures for dft and fft functions */
-
-
-
-
-/* COMPLEX STRUCTURE */
-
-typedef struct {
-    float real, imag;
-} COMPLEX;
-
-/* function prototypes for dft and inverse dft functions */
-
-static void fft(COMPLEX *,int);
-static void ifft(COMPLEX *,int);
-static void dft(COMPLEX *,COMPLEX *,int);
-static void idft(COMPLEX *,COMPLEX *,int);
-static void rfft(float *,COMPLEX *,int);
-static void ham(COMPLEX *,int);
-static void han(COMPLEX *,int);
-static void triang(COMPLEX *,int);
-static void black(COMPLEX *,int);
-static void harris(COMPLEX *,int);
 
 #include "plug_delay_V2.h"
 
@@ -240,21 +215,6 @@ static char * yn_strings[] = { "n" , "y" };
 #define YUP  1
 #define NOPE 0
 
-#define ERROR_NOTHINGTODO 	1				/* Nothing to do in hilbertdelay_V2 function */
-#define ERROR_LARGENSEG		2				/* Too many segments specified in hilbertdelay_V2 function */
-#define ERROR_LONGDELAY		3				/* Could not detect zero crossing before half of time course was gone */
-#define ERROR_WRONGUNIT		8				/* Wrong units selected to pass to the delay functions */
-#define ERROR_WARPVALUES	9
-#define ERROR_FSVALUES		10
-#define ERROR_TVALUES		11
-#define ERROR_TaUNITVALUES	12
-#define ERROR_TaWRAPVALUES	13
-#define ERROR_FILEOPEN		15
-#define ERROR_SERIESLENGTH	16
-#define ERROR_OPTIONS		17
-#define ERROR_NULLTIMESERIES 	18
-#define ERROR_OUTCONFLICT 	19
-#define ERROR_BADLENGTH		20
 
 /*----------------- prototypes for internal routines -----------------*/
 
@@ -874,7 +834,8 @@ static void DELAY_tsfuncV2( double T0 , double TR ,
 			
 			if (ud->errcode == 0) /* If there are no errors, proceed */
 				{ /*ud->errcode == 0 inner loop */
-					hunwrap (delu, (float)(1/TR), ud->T, slp, ud->wrp, ud->unt, &del );
+					hunwrap (delu, (float)(1/TR), ud->T, slp, ud->wrp, ud->unt, 
+                        0, 1.0, &del );
 					
 					actv = 1;						/* assume voxel is active */
 	

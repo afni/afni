@@ -1706,6 +1706,8 @@ int SUMA_AddDsetColAttr (  SUMA_DSET *dset, char *col_label,
             attrstr = SUMA_copy_string( 
                         NI_stat_encode(NI_STAT_CORREL, 
                                        pars[0], pars[1], pars[2]));
+         } else {
+            attrstr = SUMA_copy_string("none");
          }
          break;
       
@@ -10602,6 +10604,7 @@ int SUMA_is_RetinoAngle_dset(SUMA_DSET *dset)
    if (strstr(lblcp, "Polar Angle")) i = 1;
    else if (strstr(lblcp, "Eccentricity")) i = 1;
    else if (strncmp(lblcp, "Phz@", 4) == 0) i = 1;  
+   else if (strncmp(lblcp, "Phz_Delay", 5) == 0) i = 1;
    
    SUMA_free(lblcp);
    SUMA_RETURN(i);
@@ -14565,7 +14568,9 @@ int SUMA_AddColAtt_CompString(NI_element *nel, int col,
       cs = (char *)NI_realloc(cs, char,
                   (n0+n1+n2+1)*sizeof(char));
       i = 0; while(sep[i]) { cs[n0++] = sep[i]; ++i; }            
-      i = 0; while(lbl[i]) { cs[n0++] = lbl[i]; ++i; }
+      if (n2) {
+         i = 0; while(lbl[i]) { cs[n0++] = lbl[i]; ++i; }
+      }
       cs[n0] = '\0';
       rc = (char **)(nel->vec[0]);
       rc[0] = cs; 
@@ -14588,11 +14593,14 @@ int SUMA_AddColAtt_CompString(NI_element *nel, int col,
          SUMA_NEL_REPLACE_STRING(nel, 0, 0, ns); 
       }
    } else { /* insert in middle */
+      int n2;
+      if (lbl) n2 = strlen(lbl); else n2 = 0;
       nisa->str = NI_realloc( nisa->str, char*, sizeof(char *)*(nisa->num+1) ) ;
       /* now move all above col to end */
       for (i=nisa->num-1; i >= col; --i) nisa->str[i+1] = nisa->str[i];
-      nisa->str[col] = (char*)NI_malloc(char, (strlen(lbl)+1)*sizeof(char));
-      strcpy( nisa->str[col],  lbl ); 
+      nisa->str[col] = (char*)NI_malloc(char, (n2+1)*sizeof(char));
+      if (lbl) strcpy( nisa->str[col],  lbl ); 
+      else nisa->str[col][0] = '\0';
       ++nisa->num;
       if (LocalHead) 
          fprintf( SUMA_STDERR,
