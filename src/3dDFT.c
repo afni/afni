@@ -128,7 +128,7 @@ int main( int argc , char * argv[] )
    if( !GOOD_TYPE( DSET_BRICK_TYPE(dset1,0) ) )
      ERROR_exit("ILLEGAL dataset type in %s - must be complex or float\n",argv[iarg]) ;
 
-   isreal = ( DSET_BRICK_TYPE(dset1,0) != MRI_float ) ;
+   isreal = ( DSET_BRICK_TYPE(dset1,0) != MRI_complex ) ;  /* real inputs */
 
    dbr1 = DSET_BRICK(dset1,0) ;
 
@@ -204,10 +204,10 @@ int main( int argc , char * argv[] )
 
    for( ii=0 ; ii < nvox ; ii++ ){  /* loop over voxels */
 
-     if( !isreal ){
+     if( !isreal ){  /* complex inputs */
        (void)THD_extract_array( ii , dset1 , 1 , comp_array ) ;
        if( detrend ) THD_linear_detrend_complex( nvals , comp_array ) ;
-     } else {
+     } else {        /* real inputs */
        (void)THD_extract_array( ii , dset1 , 0 , real );
        if( detrend ) THD_linear_detrend( nvals , real , NULL,NULL ) ;
        for( jj=0 ; jj < nvals ; jj++ ) {
