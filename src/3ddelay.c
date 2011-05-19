@@ -37,9 +37,9 @@ static char * yn_strings[] = { "n" , "y" };
 
 /*#define ZDBG*/
 #ifdef ZDBG
-	#define IPOSx 8
-	#define IPOSy 38
-	#define IPOSz 7
+   #define IPOSx 8
+   #define IPOSy 38
+   #define IPOSz 7
 #endif
 
 #define NUM_METHOD_STRINGS (sizeof(method_strings)/sizeof(char *))
@@ -55,15 +55,15 @@ static char * yn_strings[] = { "n" , "y" };
 #define XCOR     1
 #define XCORCOEF 2
 #ifndef NOWAYXCORCOEF
-	#define NOWAYXCORCOEF 0					/* A flag value indicating that something lethal went on */
+   #define NOWAYXCORCOEF 0               /* A flag value indicating that something lethal went on */
 #endif
 
 
-#define NBUCKETS 4				/* Number of values per voxel in Buket data set */
-#define DELINDX 0					/* index of delay value in results vector */
-#define COVINDX 1					/* index of covariance value in results vector */
-#define COFINDX 2					/* index of cross correlation coefficient value in results vector */
-#define VARINDX 3					/* index of FMRI time course variance value in results vector */
+#define NBUCKETS 4            /* Number of values per voxel in Buket data set */
+#define DELINDX 0               /* index of delay value in results vector */
+#define COVINDX 1               /* index of covariance value in results vector */
+#define COFINDX 2               /* index of cross correlation coefficient value in results vector */
+#define VARINDX 3               /* index of FMRI time course variance value in results vector */
 
 static char * DELAY_OUTPUT_TYPE_name[NBUCKETS] =
   { "Delay", "Covariance", "Corr. Coef.", "Variance" } ;
@@ -71,80 +71,82 @@ static char * DELAY_OUTPUT_TYPE_name[NBUCKETS] =
 #define YUP  1
 #define NOPE 0
 
-#define ERROR_NOTHINGTODO 	1				/* Nothing to do in hilbertdelay_V2 function */
-#define ERROR_LARGENSEG		2				/* Too many segments specified in hilbertdelay_V2 function */
-#define ERROR_LONGDELAY		3				/* Could not detect zero crossing before half of time course was gone */
-#define ERROR_WRONGUNIT		8				/* Wrong units selected to pass to the delay functions */
-#define ERROR_WARPVALUES	9
-#define ERROR_FSVALUES		10
-#define ERROR_TVALUES		11
-#define ERROR_TaUNITVALUES	12
-#define ERROR_TaWRAPVALUES	13
-#define ERROR_FILEOPEN		15
-#define ERROR_SERIESLENGTH	16
-#define ERROR_OPTIONS		17
-#define ERROR_NULLTIMESERIES 	18
-#define ERROR_OUTCONFLICT 	19
-#define ERROR_BADLENGTH		20
+#define ERROR_NOTHINGTODO    1            /* Nothing to do in hilbertdelay_V2 function */
+#define ERROR_LARGENSEG      2            /* Too many segments specified in hilbertdelay_V2 function */
+#define ERROR_LONGDELAY      3            /* Could not detect zero crossing before half of time course was gone */
+#define ERROR_WRONGUNIT      8            /* Wrong units selected to pass to the delay functions */
+#define ERROR_WARPVALUES   9
+#define ERROR_FSVALUES      10
+#define ERROR_TVALUES      11
+#define ERROR_TaUNITVALUES   12
+#define ERROR_TaWRAPVALUES   13
+#define ERROR_FILEOPEN      15
+#define ERROR_SERIESLENGTH   16
+#define ERROR_OPTIONS      17
+#define ERROR_NULLTIMESERIES    18
+#define ERROR_OUTCONFLICT    19
+#define ERROR_BADLENGTH      20
 /*---------------------------------------------------------------------------*/
 
 typedef struct DELAY_options
 {
-	float fs;			/* Sampling frequency */
-		  			/* it is only used for the log file in this version*/
-		  			/* the ts_func, gives TR automatically */
-	float T;			/* Stimulus period */
-	float co;			/* Correlation Coefficient Threshold*/
-	int unt;			/* Delay units */
-	int wrp;			/* flag for Polar Wrap */
-	int Navg;			/* number of data sets averaged to obtain the brick (for statistical stuff) */
-	int Nfit;			/* Number of fit parameters (for statistical stuff) */
-	int Nseg;			/* Number of segments */
-	int ignore;		/* number ofpoints to ignore from time courses */
-	int Pover;		/* Percent overlap */
-	int ln;			/* length of FMRI vector */
-	/* int dtrnd; */		/* remove linear trend or just the mean */
-	int biasrem;		/* flag for removing delay bias */
-	int Dsamp;		/* flag for correction of non uniform sampling start time */
-	int errcode;		/* error code number returned from hdelay */
-	int out;			/* flag for writing delays to a file */
-	int outts;		/* flag for writing time series to a file */
-	float *rvec;  /* reference time series */
-	int nxx;
-	int nyy;
-	int nzz;
-	FILE * outwrite;
-	FILE * outwritets;
-	FILE * outlogfile;
+   float fs;         /* Sampling frequency */
+                 /* it is only used for the log file in this version*/
+                 /* the ts_func, gives TR automatically */
+   float T;         /* Stimulus period */
+   float co;         /* Correlation Coefficient Threshold*/
+   int unt;         /* Delay units */
+   int wrp;         /* flag for Polar Wrap */
+   int rev;       /* flat for reversing phase */
+   float scl;     /* multiply phase by scl */
+   int Navg;         /* number of data sets averaged to obtain the brick (for statistical stuff) */
+   int Nfit;         /* Number of fit parameters (for statistical stuff) */
+   int Nseg;         /* Number of segments */
+   int ignore;      /* number ofpoints to ignore from time courses */
+   int Pover;      /* Percent overlap */
+   int ln;         /* length of FMRI vector */
+   /* int dtrnd; */      /* remove linear trend or just the mean */
+   int biasrem;      /* flag for removing delay bias */
+   int Dsamp;      /* flag for correction of non uniform sampling start time */
+   int errcode;      /* error code number returned from hdelay */
+   int out;         /* flag for writing delays to a file */
+   int outts;      /* flag for writing time series to a file */
+   float *rvec;  /* reference time series */
+   int nxx;
+   int nyy;
+   int nzz;
+   FILE * outwrite;
+   FILE * outwritets;
+   FILE * outlogfile;
 
-	int NFirst;              /* first image from input 3d+time dataset to use */
-	int NLast;               /* last image from input 3d+time dataset to use */
-	int N;                   /* number of usable data points from input data */
-	int polort;              /* degree of polynomial for baseline model */
-	int num_ortts;           /* number of ort time series */
-	int num_idealts;         /* number of ideal time series */
-	int q;                   /* number of parameters in the baseline model */
-	int p;                   /* number of parameters in the baseline model
-		      	  plus number of ideals */
+   int NFirst;              /* first image from input 3d+time dataset to use */
+   int NLast;               /* last image from input 3d+time dataset to use */
+   int N;                   /* number of usable data points from input data */
+   int polort;              /* degree of polynomial for baseline model */
+   int num_ortts;           /* number of ort time series */
+   int num_idealts;         /* number of ideal time series */
+   int q;                   /* number of parameters in the baseline model */
+   int p;                   /* number of parameters in the baseline model
+                 plus number of ideals */
 
-	float fim_thr;           /* threshold for internal fim mask */
-	float cdisp;             /* minimum correlation coefficient for display */
+   float fim_thr;           /* threshold for internal fim mask */
+   float cdisp;             /* minimum correlation coefficient for display */
 
-	char * outname; /* Name of ascii output files */
-	char * outnamets; /* Name of ascii output files */
-	char * outnamelog; /* Name of ascii output files */
-	
-	char * input_filename;   /* input 3d+time dataset filename */
-	char * mask_filename;    /* input mask dataset filename */
-	char * input1D_filename; /* input fMRI measurement time series */
+   char * outname; /* Name of ascii output files */
+   char * outnamets; /* Name of ascii output files */
+   char * outnamelog; /* Name of ascii output files */
+   
+   char * input_filename;   /* input 3d+time dataset filename */
+   char * mask_filename;    /* input mask dataset filename */
+   char * input1D_filename; /* input fMRI measurement time series */
 
-	int num_ort_files;                  /* number of ort files */
-	char * ort_filename[MAX_FILES];     /* input ort time series file names */
-	int num_ideal_files;                /* number of ideal files */
-	char * ideal_filename[MAX_FILES];   /* input ideal time series file names */
-	char * bucket_filename;             /* output bucket dataset file name */
+   int num_ort_files;                  /* number of ort files */
+   char * ort_filename[MAX_FILES];     /* input ort time series file names */
+   int num_ideal_files;                /* number of ideal files */
+   char * ideal_filename[MAX_FILES];   /* input ideal time series file names */
+   char * bucket_filename;             /* output bucket dataset file name */
 
-	int output_type[NBUCKETS];   /* output type options */
+   int output_type[NBUCKETS];   /* output type options */
    byte *bmask;
 } DELAY_options;
 
@@ -236,6 +238,8 @@ void display_help_menu()
 "                   You can't use this option unless you specify a \n"
 "                   value for Tstim > 0.\n"
 "[-nophzwrp]        Do not wrap phase (default).\n"
+"[-phzreverse]      Reverse phase such that phase -> (T-phase)\n"
+"[-phzscale SC]     Scale phase: phase -> phase*SC (default no scaling)\n"   
 "\n"
 "[-bias]            Do not correct for the bias in the estimates [1][2]\n"
 "[-nobias | -correct_bias] Do correct for the bias in the estimates\n"
@@ -332,29 +336,6 @@ void display_help_menu()
 /* dft.h - function prototypes and structures for dft and fft functions */
 
 
-
-
-/* COMPLEX STRUCTURE */
-
-typedef struct {
-    float real, imag;
-} COMPLEX;
-
-/* function prototypes for dft and inverse dft functions */
-
-    /* prototypes in plug_delay_V2.h  ZSS Oct 05 04
-    extern void fft(COMPLEX *,int);
-    extern void ifft(COMPLEX *,int);
-    extern void rfft(float *,COMPLEX *,int);
-    */
-    extern void dft(COMPLEX *,COMPLEX *,int);
-    extern void idft(COMPLEX *,COMPLEX *,int);
-    extern void ham(COMPLEX *,int);
-    extern void han(COMPLEX *,int);
-    extern void triang(COMPLEX *,int);
-    extern void black(COMPLEX *,int);
-    extern void harris(COMPLEX *,int);
-
 #include "plug_delay_V2.h"
 
 
@@ -376,7 +357,7 @@ void write_ud ( DELAY_options* ud);
 
 void indexTOxyz ( DELAY_options* ud, int ncall, int *xpos , int *ypos , int *zpos);
 
-void xyzTOindex (struct DELAY_options* option_data, int *ncall, int xpos , int ypos , int zpos);  	
+void xyzTOindex (struct DELAY_options* option_data, int *ncall, int xpos , int ypos , int zpos);     
 
 void error_report ( DELAY_options* ud, int ncall );
 
@@ -405,6 +386,8 @@ void initialize_options
   option_data->T = 0;
   option_data->unt = METH_SECONDS;
   option_data->wrp = 0;
+  option_data->rev = 0;
+  option_data->scl = 1.0;
   option_data->Navg = 1;
   option_data->Nfit = 2;
   option_data->Nseg = 1;
@@ -427,7 +410,7 @@ void initialize_options
   option_data->NLast  = 32767;
   option_data->polort = -1;
 
-	/* Left over from 3dfim+.c remove inthe future, with care !*/
+   /* Left over from 3dfim+.c remove inthe future, with care !*/
   option_data->num_ortts = 0;
   option_data->num_idealts = 0;
   option_data->N      = 0;
@@ -494,284 +477,303 @@ void get_options
 
       if (strcmp(argv[nopt], "-polort") == 0 ||
           strcmp(argv[nopt], "-Nort") == 0)
-		{
-		  nopt++;
-		  if (nopt >= argc)  FIM_error ("need argument after -polort ");
-		  option_data->polort = atoi(argv[nopt]);
-		  nopt++;
-		  continue;
-		}
+      {
+        nopt++;
+        if (nopt >= argc)  FIM_error ("need argument after -polort ");
+        option_data->polort = atoi(argv[nopt]);
+        nopt++;
+        continue;
+      }
 
       /*-----   -input filename   -----*/
       if (strcmp(argv[nopt], "-input") == 0)
-		{
-		  nopt++;
-		  if (nopt >= argc)  FIM_error ("need argument after -input ");
-		  option_data->input_filename = malloc (sizeof(char)*THD_MAX_NAME);
-		  MTEST (option_data->input_filename);
-		  strcpy (option_data->input_filename, argv[nopt]);
-		  nopt++;
-		  continue;
-		}
+      {
+        nopt++;
+        if (nopt >= argc)  FIM_error ("need argument after -input ");
+        option_data->input_filename = malloc (sizeof(char)*THD_MAX_NAME);
+        MTEST (option_data->input_filename);
+        strcpy (option_data->input_filename, argv[nopt]);
+        nopt++;
+        continue;
+      }
 
       /*-----   -mask filename   -----*/
       if (strcmp(argv[nopt], "-mask") == 0)
-		{
-		  nopt++;
-		  if (nopt >= argc)  FIM_error ("need argument after -mask ");
-		  option_data->mask_filename = malloc (sizeof(char)*THD_MAX_NAME);
-		  MTEST (option_data->mask_filename);
-		  strcpy (option_data->mask_filename, argv[nopt]);
-		  nopt++;
-		  continue;
-		}
+      {
+        nopt++;
+        if (nopt >= argc)  FIM_error ("need argument after -mask ");
+        option_data->mask_filename = malloc (sizeof(char)*THD_MAX_NAME);
+        MTEST (option_data->mask_filename);
+        strcpy (option_data->mask_filename, argv[nopt]);
+        nopt++;
+        continue;
+      }
   
 
       /*-----   -nfirst num  -----*/
       if (strcmp(argv[nopt], "-nfirst") == 0)
-		{
-		  nopt++;
-		  if (nopt >= argc)  FIM_error ("need argument after -nfirst ");
-		  sscanf (argv[nopt], "%d", &ival);
-		  if (ival < 0)
-	   	 FIM_error ("illegal argument after -nfirst ");
-		  option_data->NFirst = ival;
-		  nopt++;
-		  continue;
-		}
+      {
+        nopt++;
+        if (nopt >= argc)  FIM_error ("need argument after -nfirst ");
+        sscanf (argv[nopt], "%d", &ival);
+        if (ival < 0)
+          FIM_error ("illegal argument after -nfirst ");
+        option_data->NFirst = ival;
+        nopt++;
+        continue;
+      }
 
 
       /*-----   -nlast num  -----*/
       if (strcmp(argv[nopt], "-nlast") == 0)
-		{
-		  nopt++;
-		  if (nopt >= argc)  FIM_error ("need argument after -nlast ");
-		  sscanf (argv[nopt], "%d", &ival);
-		  if (ival < 0)
-	   	 FIM_error ("illegal argument after -nlast ");
-		  option_data->NLast = ival;
-		  nopt++;
-		  continue;
-		}
+      {
+        nopt++;
+        if (nopt >= argc)  FIM_error ("need argument after -nlast ");
+        sscanf (argv[nopt], "%d", &ival);
+        if (ival < 0)
+          FIM_error ("illegal argument after -nlast ");
+        option_data->NLast = ival;
+        nopt++;
+        continue;
+      }
 
       /*-----   -fs num  -----*/
       if (strcmp(argv[nopt], "-fs") == 0)
-		{
-		  nopt++;
-		  if (nopt >= argc)  FIM_error ("need argument after -fs ");
-		  sscanf (argv[nopt], "%f", &fval);
-		  if (fval < 0)
-	   	 FIM_error ("illegal argument after -fs ");
-		  option_data->fs = fval;
-		  nopt++;
-		  continue;
-		}
+      {
+        nopt++;
+        if (nopt >= argc)  FIM_error ("need argument after -fs ");
+        sscanf (argv[nopt], "%f", &fval);
+        if (fval < 0)
+          FIM_error ("illegal argument after -fs ");
+        option_data->fs = fval;
+        nopt++;
+        continue;
+      }
  
  
 
       /*-----   -T num  -----*/
       if (strcmp(argv[nopt], "-T") == 0)
-		{
-		  nopt++;
-		  if (nopt >= argc)  FIM_error ("need argument after -T ");
-		  sscanf (argv[nopt], "%f", &fval);
-		  if (fval < 0)
-	   	 FIM_error ("illegal argument after -T ");
-		  option_data->T = fval;
-		  nopt++;
-		  continue;
-		}
+      {
+        nopt++;
+        if (nopt >= argc)  FIM_error ("need argument after -T ");
+        sscanf (argv[nopt], "%f", &fval);
+        if (fval < 0)
+          FIM_error ("illegal argument after -T ");
+        option_data->T = fval;
+        nopt++;
+        continue;
+      }
 
       /*-----   -ideal_file rname   -----*/
       if (strcmp(argv[nopt], "-ideal_file") == 0)
-		{
-		  nopt++;
-		  if (nopt >= argc)  FIM_error ("need argument after -ideal_file");
+      {
+        nopt++;
+        if (nopt >= argc)  FIM_error ("need argument after -ideal_file");
 
-		  k = option_data->num_ideal_files;
-		  if (k+1 > MAX_FILES)
-	   	 {
-	      	sprintf (message, "Too many ( > %d ) ideal time series files. ",
-		      	 MAX_FILES);
-	      	FIM_error (message);
-	   	 }
+        k = option_data->num_ideal_files;
+        if (k+1 > MAX_FILES)
+          {
+            sprintf (message, "Too many ( > %d ) ideal time series files. ",
+                MAX_FILES);
+            FIM_error (message);
+          }
 
-		  option_data->ideal_filename[k]
-	   	 = malloc (sizeof(char)*THD_MAX_NAME);
-		  MTEST (option_data->ideal_filename[k]);
-		  strcpy (option_data->ideal_filename[k], argv[nopt]);
-		  option_data->num_ideal_files++;
-		  nopt++;
-		  continue;
-		}
+        option_data->ideal_filename[k]
+          = malloc (sizeof(char)*THD_MAX_NAME);
+        MTEST (option_data->ideal_filename[k]);
+        strcpy (option_data->ideal_filename[k], argv[nopt]);
+        option_data->num_ideal_files++;
+        nopt++;
+        continue;
+      }
  
 
       /*-----   -prefix filename   -----*/
       if (strcmp(argv[nopt], "-prefix") == 0)
-		{
-		  nopt++;
-		  if (nopt >= argc)  FIM_error ("need file prefixname after -bucket ");
-		  option_data->bucket_filename = malloc (sizeof(char)*THD_MAX_NAME);
-		  MTEST (option_data->bucket_filename);
-		  strcpy (option_data->bucket_filename, argv[nopt]);
-		  nopt++;
-		  continue;
-		}
+      {
+        nopt++;
+        if (nopt >= argc)  FIM_error ("need file prefixname after -bucket ");
+        option_data->bucket_filename = malloc (sizeof(char)*THD_MAX_NAME);
+        MTEST (option_data->bucket_filename);
+        strcpy (option_data->bucket_filename, argv[nopt]);
+        nopt++;
+        continue;
+      }
  
-		
+      
       /*-----   -uS  -----*/
       if (strcmp(argv[nopt], "-uS") == 0)
-		{
-		  option_data->unt = METH_SECONDS;
-		  nopt++;
-		  continue;
-		}
+      {
+        option_data->unt = METH_SECONDS;
+        nopt++;
+        continue;
+      }
 
       /*-----   -uR  -----*/
       if (strcmp(argv[nopt], "-uR") == 0)
-		{
-		  option_data->unt = METH_RADIANS;
-		  nopt++;
-		  continue;
-		}
+      {
+        option_data->unt = METH_RADIANS;
+        nopt++;
+        continue;
+      }
 
       /*-----   -uD  -----*/
       if (strcmp(argv[nopt], "-uD") == 0)
-		{
-		  option_data->unt = METH_DEGREES;
-		  nopt++;
-		  continue;
-		}
+      {
+        option_data->unt = METH_DEGREES;
+        nopt++;
+        continue;
+      }
 
       /*-----   -phzwrp  -----*/
       if (strcmp(argv[nopt], "-phzwrp") == 0)
-		{
-		  option_data->wrp = 1;
-		  nopt++;
-		  continue;
-		}
+      {
+        option_data->wrp = 1;
+        nopt++;
+        continue;
+      }
       if (strcmp(argv[nopt], "-nophzwrp") == 0)
-		{
-		  option_data->wrp = 0;
-		  nopt++;
-		  continue;
-		}
-
+      {
+        option_data->wrp = 0;
+        nopt++;
+        continue;
+      }
+      
+      /*-----   -phzreverse  -----*/
+      if (strcmp(argv[nopt], "-phzreverse") == 0)
+      {
+        option_data->rev = 1;
+        nopt++;
+        continue;
+      }
+      
+      if (strcmp(argv[nopt], "-phzscale") == 0)
+      {
+        nopt++;
+        if (nopt >= argc)  FIM_error ("need argument after -phzscale");
+        sscanf (argv[nopt], "%f", &fval);
+        if (fval < 0 || fval > 10)
+          FIM_error ("illegal argument after -phzscale ");
+        option_data->scl = fval;
+        nopt++;
+        continue;
+      }
       /*-----   -bias  -----*/
       if (strcmp(argv[nopt], "-bias") == 0)
-		{
-		  option_data->biasrem = 0;
-		  nopt++;
-		  continue;
-		}
+      {
+        option_data->biasrem = 0;
+        nopt++;
+        continue;
+      }
       if (strcmp(argv[nopt], "-nobias") == 0 ||
           strcmp(argv[nopt], "-No_bias") == 0 ||
           strcmp(argv[nopt], "-correct_bias") == 0)
-		{
-		  option_data->biasrem = 1;
-		  nopt++;
-		  continue;
-		}
+      {
+        option_data->biasrem = 1;
+        nopt++;
+        continue;
+      }
 
        /*-----   -nodsamp  -----*/
       if (strcmp(argv[nopt], "-nodsamp") == 0)
-		{
-		  option_data->Dsamp = 0;
-		  nopt++;
-		  continue;
-		}
+      {
+        option_data->Dsamp = 0;
+        nopt++;
+        continue;
+      }
       if (strcmp(argv[nopt], "-dsamp") == 0)
-		{
-		  option_data->Dsamp = 1;
-		  nopt++;
-		  continue;
-		}
+      {
+        option_data->Dsamp = 1;
+        nopt++;
+        continue;
+      }
        /*-----   -nodtrnd  -----*/
       if (strcmp(argv[nopt], "-nodtrnd") == 0)
-		{
-		  /* option_data->dtrnd = 0; */
+      {
+        /* option_data->dtrnd = 0; */
         option_data->polort = 0;
-		  nopt++;
-		  continue;
-		}
+        nopt++;
+        continue;
+      }
 
        /*-----   -co num -----*/
       if (strcmp(argv[nopt], "-co") == 0)
-		{
-		  nopt++;
-		  if (nopt >= argc)  FIM_error ("need argument after -co");
-		  sscanf (argv[nopt], "%f", &fval);
-		  if (fval < 0)
-	   	 FIM_error ("illegal argument after -co ");
-		  option_data->co = fval;
-		  nopt++;
-		  continue;
-		}
+      {
+        nopt++;
+        if (nopt >= argc)  FIM_error ("need argument after -co");
+        sscanf (argv[nopt], "%f", &fval);
+        if (fval < 0)
+          FIM_error ("illegal argument after -co ");
+        option_data->co = fval;
+        nopt++;
+        continue;
+      }
 
       /*-----   -asc out   -----*/
       if (strcmp(argv[nopt], "-asc") == 0)
-		{
-		  nopt++;
-		  option_data->out = 1;
-		  if (nopt >= argc)  {
-		  	option_data->outname = NULL;
-			 option_data->outnamelog = NULL;
-			
-			continue; }
-		  if (strncmp(argv[nopt], "-", 1) == 0) {
-		  	option_data->outname = NULL;
-			option_data->outnamelog = NULL;
-			continue; }
-		  	
-		  option_data->outname = malloc (sizeof(char)*THD_MAX_NAME);
-		  option_data->outnamelog = malloc (sizeof(char)*(THD_MAX_NAME+4));
-		
-		  MTEST (option_data->outname);
-		  MTEST (option_data->outnamelog);
-		  strcpy (option_data->outname, argv[nopt]);
-		  sprintf (option_data->outnamelog, "%s.log", option_data->outname);
-	
-		  nopt++;
-		  continue;
-		}
+      {
+        nopt++;
+        option_data->out = 1;
+        if (nopt >= argc)  {
+           option_data->outname = NULL;
+          option_data->outnamelog = NULL;
+         
+         continue; }
+        if (strncmp(argv[nopt], "-", 1) == 0) {
+           option_data->outname = NULL;
+         option_data->outnamelog = NULL;
+         continue; }
+           
+        option_data->outname = malloc (sizeof(char)*THD_MAX_NAME);
+        option_data->outnamelog = malloc (sizeof(char)*(THD_MAX_NAME+4));
+      
+        MTEST (option_data->outname);
+        MTEST (option_data->outnamelog);
+        strcpy (option_data->outname, argv[nopt]);
+        sprintf (option_data->outnamelog, "%s.log", option_data->outname);
+   
+        nopt++;
+        continue;
+      }
 
       /*-----   -ascts out   -----*/
       if (strcmp(argv[nopt], "-ascts") == 0)
-		{
-		  nopt++;
-		  option_data->out = 1;
-		  option_data->outts = 1;
-		  if (nopt >= argc)  {
-		  	option_data->outname = NULL;
-			 option_data->outnamelog = NULL;
-			option_data->outnamets = NULL;
-			continue; }
-		  if (strncmp(argv[nopt], "-", 1) == 0) {
-			 option_data->outnamelog = NULL;
-			option_data->outnamets = NULL;
-		  	option_data->outname = NULL;
-			continue; }
-		  	
-		  option_data->outname = malloc (sizeof(char)*THD_MAX_NAME);
-		  option_data->outnamelog = malloc (sizeof(char)*(THD_MAX_NAME+4));
-		  option_data->outnamets = malloc (sizeof(char)*(THD_MAX_NAME+3));
+      {
+        nopt++;
+        option_data->out = 1;
+        option_data->outts = 1;
+        if (nopt >= argc)  {
+           option_data->outname = NULL;
+          option_data->outnamelog = NULL;
+         option_data->outnamets = NULL;
+         continue; }
+        if (strncmp(argv[nopt], "-", 1) == 0) {
+          option_data->outnamelog = NULL;
+         option_data->outnamets = NULL;
+           option_data->outname = NULL;
+         continue; }
+           
+        option_data->outname = malloc (sizeof(char)*THD_MAX_NAME);
+        option_data->outnamelog = malloc (sizeof(char)*(THD_MAX_NAME+4));
+        option_data->outnamets = malloc (sizeof(char)*(THD_MAX_NAME+3));
 
-		  MTEST (option_data->outname);
-		 MTEST (option_data->outnamets);
-		  MTEST (option_data->outnamelog);
-	
-		  strcpy (option_data->outname, argv[nopt]);
-		  sprintf (option_data->outnamets, "%s.ts", option_data->outname);
-		  sprintf (option_data->outnamelog, "%s.log", option_data->outname);
-		
-		  nopt++;
-		  continue;
-		}
+        MTEST (option_data->outname);
+       MTEST (option_data->outnamets);
+        MTEST (option_data->outnamelog);
+   
+        strcpy (option_data->outname, argv[nopt]);
+        sprintf (option_data->outnamets, "%s.ts", option_data->outname);
+        sprintf (option_data->outnamelog, "%s.log", option_data->outname);
+      
+        nopt++;
+        continue;
+      }
 
  
-		
-		
-		/*----- unknown command -----*/
+      
+      
+      /*----- unknown command -----*/
       sprintf(message,"Unrecognized command line option: %s\n", argv[nopt]);
       FIM_error (message);
  
@@ -798,7 +800,7 @@ float * read_one_time_series
   char filename[THD_MAX_NAME];   /* time series file name w/o column index */
   char subv[THD_MAX_NAME];       /* string containing column index */
   MRI_IMAGE * im, * flim;  /* pointers to image structures
-			      -- used to read 1D ASCII */
+               -- used to read 1D ASCII */
   float * far=NULL;             /* pointer to MRI_IMAGE floating point data */
   int nx;                  /* number of time points in time series */
   int ny;                  /* number of columns in time series file */
@@ -858,7 +860,7 @@ MRI_IMAGE * read_time_series
   char filename[THD_MAX_NAME];   /* time series file name w/o column index */
   char subv[THD_MAX_NAME];       /* string containing column index */
   MRI_IMAGE * im, * flim;  /* pointers to image structures
-			      -- used to read 1D ASCII */
+               -- used to read 1D ASCII */
   float * far;             /* pointer to MRI_IMAGE floating point data */
   int nx;                  /* number of time points in time series */
   int ny;                  /* number of columns in time series file */
@@ -911,7 +913,7 @@ void read_input_data
   int num_idealts;         /* number of ideal time series */
   int q;                   /* number of parameters in the baseline model */
   int p;                   /* number of parameters in the baseline model
-			      				plus number of ideals */
+                           plus number of ideals */
   int nref_in=-1  ;
   int nmsk = 0;
   float **ref_in=NULL  ;
@@ -930,13 +932,13 @@ void read_input_data
     {
       /*----- Read the input fMRI 1D time series -----*/
       *fmri_data = read_one_time_series (option_data->input1D_filename,
-					 fmri_length);
+                fmri_length);
       if (*fmri_data == NULL)
-	{
-	  sprintf (message,  "Unable to read time series file: %s",
-		   option_data->input1D_filename);
-	  FIM_error (message);
-	}
+   {
+     sprintf (message,  "Unable to read time series file: %s",
+         option_data->input1D_filename);
+     FIM_error (message);
+   }
       *dset_time = NULL;
     }
 
@@ -945,38 +947,38 @@ void read_input_data
       /*----- Read the input 3d+time dataset -----*/
       *dset_time = THD_open_one_dataset (option_data->input_filename);
       if (!ISVALID_3DIM_DATASET(*dset_time))
-	{
-	  sprintf (message,  "Unable to open data file: %s",
-		   option_data->input_filename);
-	  FIM_error (message);
-	}
+   {
+     sprintf (message,  "Unable to open data file: %s",
+         option_data->input_filename);
+     FIM_error (message);
+   }
       DSET_load(*dset_time); CHECK_LOAD_ERROR(*dset_time);
 
       if (option_data->mask_filename != NULL)
-	{
-	  /*----- Read the input mask dataset -----*/
-	  *mask_dset = THD_open_dataset (option_data->mask_filename);
-	  if (!ISVALID_3DIM_DATASET(*mask_dset))
-	    {
-	      sprintf (message,  "Unable to open mask file: %s",
-		       option_data->mask_filename);
-	      FIM_error (message);
-	    }
-	  DSET_load(*mask_dset); CHECK_LOAD_ERROR(*mask_dset);
+   {
+     /*----- Read the input mask dataset -----*/
+     *mask_dset = THD_open_dataset (option_data->mask_filename);
+     if (!ISVALID_3DIM_DATASET(*mask_dset))
+       {
+         sprintf (message,  "Unable to open mask file: %s",
+             option_data->mask_filename);
+         FIM_error (message);
+       }
+     DSET_load(*mask_dset); CHECK_LOAD_ERROR(*mask_dset);
      nmsk = thd_mask_from_brick(*mask_dset, 0, 0, &(option_data->bmask), 1);
      if (!nmsk) {
          sprintf (message,  "Empty mask from %s nothing to do",
-		       option_data->mask_filename);
-	      FIM_error (message);
+             option_data->mask_filename);
+         FIM_error (message);
      }
      if (DSET_NX(*mask_dset) != DSET_NX(*dset_time) ||
          DSET_NX(*mask_dset) != DSET_NX(*dset_time) ||
          DSET_NX(*mask_dset) != DSET_NX(*dset_time) ) {
          sprintf (message,  "Mask %s and Time series %s dimensions mismatch.",
-		       option_data->mask_filename, option_data->input_filename);
-	      FIM_error (message);
+             option_data->mask_filename, option_data->input_filename);
+         FIM_error (message);
      }
-	}
+   }
  
    {
  
@@ -1012,14 +1014,14 @@ void read_input_data
   for (is = 0;  is < num_ideal_files;  is++)
     {
       ideal_array[is] = read_time_series (option_data->ideal_filename[is],
-					  &(ideal_list[is]));
+                 &(ideal_list[is]));
 
       if (ideal_array[is] == NULL)
-	{
-	  sprintf (message,  "Unable to read ideal time series file: %s",
-		   option_data->ideal_filename[is]);
-	  FIM_error (message);
-	}
+   {
+     sprintf (message,  "Unable to read ideal time series file: %s",
+         option_data->ideal_filename[is]);
+     FIM_error (message);
+   }
     }
 
 
@@ -1028,9 +1030,9 @@ void read_input_data
   for (is = 0;  is < num_ort_files;  is++)
     {
       if (ort_list[is] == NULL)
-	num_ortts += ort_array[is]->ny;
+   num_ortts += ort_array[is]->ny;
       else
-	num_ortts += ort_list[is][0];
+   num_ortts += ort_list[is][0];
     }
   q = polort + 1 + num_ortts;
 
@@ -1038,9 +1040,9 @@ void read_input_data
   for (is = 0;  is < num_ideal_files;  is++)
     {
       if (ideal_list[is] == NULL)
-	num_idealts += ideal_array[is]->ny;
+   num_idealts += ideal_array[is]->ny;
       else
-	num_idealts += ideal_list[is][0];
+   num_idealts += ideal_list[is][0];
     }
   p = q + num_idealts;
 
@@ -1075,27 +1077,27 @@ void check_one_output_file
 
 
   ierror = EDIT_dset_items( new_dset ,
-			    ADN_prefix , filename ,
-			    ADN_label1 , filename ,
-			    ADN_self_name , filename ,
-			    ADN_type , ISHEAD(dset_time) ? HEAD_FUNC_TYPE :
-                               			           GEN_FUNC_TYPE ,
-			    ADN_none ) ;
+             ADN_prefix , filename ,
+             ADN_label1 , filename ,
+             ADN_self_name , filename ,
+             ADN_type , ISHEAD(dset_time) ? HEAD_FUNC_TYPE :
+                                                   GEN_FUNC_TYPE ,
+             ADN_none ) ;
 
   if( ierror > 0 )
     {
       sprintf (message,
-	       "*** %d errors in attempting to create output dataset!\n",
-	       ierror);
+          "*** %d errors in attempting to create output dataset!\n",
+          ierror);
       FIM_error (message);
     }
 
   if( THD_is_file(new_dset->dblk->diskptr->header_name) )
     {
       sprintf (message,
-	       "Output dataset file %s already exists "
-	       " -- cannot continue!\a\n",
-	       new_dset->dblk->diskptr->header_name);
+          "Output dataset file %s already exists "
+          " -- cannot continue!\a\n",
+          new_dset->dblk->diskptr->header_name);
       FIM_error (message);
     }
 
@@ -1150,7 +1152,7 @@ void check_for_valid_inputs
   int NFirst;              /* first image from input 3d+time dataset to use */
   int NLast;               /* last image from input 3d+time dataset to use */
   int N;                   /* number of usable time points */
-	int lncheck;
+   int lncheck;
    byte LocalHead = 0;
  
   /*----- Initialize local variables -----*/
@@ -1182,16 +1184,16 @@ void check_for_valid_inputs
   if (mask_dset != NULL)
     {
       if ( (DSET_NX(dset_time) != DSET_NX(mask_dset))
-	   || (DSET_NY(dset_time) != DSET_NY(mask_dset))
-	   || (DSET_NZ(dset_time) != DSET_NZ(mask_dset)) )
-	{
-	  sprintf (message, "%s and %s have incompatible dimensions",
-		   option_data->input_filename, option_data->mask_filename);
-	  FIM_error (message);
-	}
+      || (DSET_NY(dset_time) != DSET_NY(mask_dset))
+      || (DSET_NZ(dset_time) != DSET_NZ(mask_dset)) )
+   {
+     sprintf (message, "%s and %s have incompatible dimensions",
+         option_data->input_filename, option_data->mask_filename);
+     FIM_error (message);
+   }
 
       if (DSET_NVALS(mask_dset) != 1 )
-	FIM_error ("Must specify 1 sub-brick from mask dataset");
+   FIM_error ("Must specify 1 sub-brick from mask dataset");
     }
 
 
@@ -1202,88 +1204,94 @@ void check_for_valid_inputs
 
   /*----- Read in reference time series -----*/
    option_data->ln = option_data->NLast - option_data->NFirst + 1;
-	option_data->rvec = (float *)    malloc (sizeof(float) * option_data->ln+1);       MTEST (option_data->rvec);
+   option_data->rvec = (float *)    malloc (sizeof(float) * option_data->ln+1);       MTEST (option_data->rvec);
 
   /*------- Load Reference Time Series ------------------*/
 if (LocalHead) fprintf(stderr,"Checking ref\n");
   lncheck = float_file_size (option_data->ideal_filename[0]);
   if (lncheck != nt)
-  	{
-		printf("Error: Reference filename contains %d values.\n %d values were expected.\n", lncheck, nt);
-		exit (1);
-	}
-
-if (LocalHead) fprintf(stderr,"Checking ref2\n");
-	if (Read_part_file_delay (option_data->rvec, option_data->ideal_filename[0], option_data->NFirst,option_data->NLast) <= 0) {
-      printf("Error: Reference filename could not be read or contain too few values.\n");
-		exit (1);
+     {
+      printf("Error: Reference filename contains %d values.\n %d values were expected.\n", lncheck, nt);
+      exit (1);
    }
 
-if (LocalHead) fprintf(stderr,"Bucket names\n");	
-  /* --- decide on the bucket name ----*/
-	if (option_data->bucket_filename == NULL)
-	{
- 		option_data->bucket_filename = malloc (sizeof(char)*THD_MAX_NAME);
-		MTEST (option_data->bucket_filename);
-		sprintf (option_data->bucket_filename, "%s.DEL", DSET_PREFIX (dset_time));
-		/*make sure that prefix is OK*/
-		check_output_files (option_data, dset_time);
-	}
-  	
-  /* --- decide on the output name ----*/
-	/* The log file is created no matter what */
-	if (option_data->outname == NULL)
-		{
-	   	option_data->outnamelog = malloc (sizeof(char)*(THD_MAX_NAME+4));
-			MTEST (option_data->outnamelog);
-			sprintf (option_data->outnamelog, "%s.log", option_data->bucket_filename);
-		}
-	if (option_data->out || option_data->outts)
-	{
-		if (option_data->outname == NULL)
-		{
-			option_data->outname = malloc (sizeof(char)*THD_MAX_NAME);
-			MTEST (option_data->outname);
-			sprintf (option_data->outname, "%s", option_data->bucket_filename);
-		}
-		if (option_data->outts)
-		{
-			option_data->outnamets = malloc (sizeof(char)*(THD_MAX_NAME+3));
-			MTEST (option_data->outnamets);
-			sprintf (option_data->outnamets, "%s.ts", option_data->outname);
-		}
-	}
-	
- /* ------- Open files for writing -------------*/
- 	
-if (LocalHead) fprintf(stderr,"Output files\n");	
-	option_data->outlogfile = fopen (option_data->outnamelog,"w"); /* open log file regardless */
-	
-	if (option_data->out == YUP)									/* open outfile */
-				{					
-					option_data->outwrite = fopen (option_data->outname,"w");
-					
-					if (option_data->outts == YUP)
-						{
-							option_data->outwritets = fopen (option_data->outnamets,"w");
-							
-						}
-					
-					if ((option_data->outwrite == NULL) || (option_data->outlogfile == NULL) ||\
-					    (option_data->outwritets == NULL && option_data->outts == YUP) )
-						{
-							printf ("\nCould not open ascii output files for writing\n");
-							exit (1);
-						}
-	
-				}
-	
-	/* Write out user variables to Logfile */
-	write_ud (option_data);			/* writes user data to a file */
+if (LocalHead) fprintf(stderr,"Checking ref2\n");
+   if (Read_part_file_delay (option_data->rvec, option_data->ideal_filename[0], option_data->NFirst,option_data->NLast) <= 0) {
+      printf("Error: Reference filename could not be read or contain too few values.\n");
+      exit (1);
+   }
 
-	#ifdef ZDBG
- 		show_ud(option_data, 1);
-	#endif
+if (LocalHead) fprintf(stderr,"Bucket names\n");   
+  /* --- decide on the bucket name ----*/
+   if (option_data->bucket_filename == NULL)
+   {
+       option_data->bucket_filename = malloc (sizeof(char)*THD_MAX_NAME);
+      MTEST (option_data->bucket_filename);
+      sprintf (option_data->bucket_filename, "%s.DEL", DSET_PREFIX (dset_time));
+      /*make sure that prefix is OK*/
+      check_output_files (option_data, dset_time);
+   }
+     
+  /* --- decide on the output name ----*/
+   /* The log file is created no matter what */
+   if (option_data->outname == NULL)
+      {
+         option_data->outnamelog = malloc (sizeof(char)*(THD_MAX_NAME+4));
+         MTEST (option_data->outnamelog);
+         sprintf (option_data->outnamelog, "%s.log", option_data->bucket_filename);
+      }
+   if (option_data->out || option_data->outts)
+   {
+      if (option_data->outname == NULL)
+      {
+         option_data->outname = malloc (sizeof(char)*THD_MAX_NAME);
+         MTEST (option_data->outname);
+         sprintf (option_data->outname, "%s", option_data->bucket_filename);
+      }
+      if (option_data->outts)
+      {
+         option_data->outnamets = malloc (sizeof(char)*(THD_MAX_NAME+3));
+         MTEST (option_data->outnamets);
+         sprintf (option_data->outnamets, "%s.ts", option_data->outname);
+      }
+   }
+
+ /* check some options */
+ if (option_data->scl != 1.0 && option_data->wrp) {
+   printf("Error: -phzwrp is not good  with -phzscale not set to 1.0\n");
+   exit (1); 
+ }   
+ 
+ /* ------- Open files for writing -------------*/
+    
+if (LocalHead) fprintf(stderr,"Output files\n");   
+   option_data->outlogfile = fopen (option_data->outnamelog,"w"); /* open log file regardless */
+   
+   if (option_data->out == YUP)                           /* open outfile */
+            {               
+               option_data->outwrite = fopen (option_data->outname,"w");
+               
+               if (option_data->outts == YUP)
+                  {
+                     option_data->outwritets = fopen (option_data->outnamets,"w");
+                     
+                  }
+               
+               if ((option_data->outwrite == NULL) || (option_data->outlogfile == NULL) ||\
+                   (option_data->outwritets == NULL && option_data->outts == YUP) )
+                  {
+                     printf ("\nCould not open ascii output files for writing\n");
+                     exit (1);
+                  }
+   
+            }
+   
+   /* Write out user variables to Logfile */
+   write_ud (option_data);         /* writes user data to a file */
+
+   #ifdef ZDBG
+       show_ud(option_data, 1);
+   #endif
 
 }
 
@@ -1316,12 +1324,12 @@ void allocate_memory
 
   for (ip = 0;  ip < NBUCKETS;  ip++)
     {
-				  (*fim_params_vol)[ip]  = (float *) malloc (sizeof(float) * nxyz);
-				  MTEST((*fim_params_vol)[ip]);
-				  for (ixyz = 0;  ixyz < nxyz;  ixyz++)
-	   			 {
-	      			(*fim_params_vol)[ip][ixyz]  = 0.0;
-	   			 }
+              (*fim_params_vol)[ip]  = (float *) malloc (sizeof(float) * nxyz);
+              MTEST((*fim_params_vol)[ip]);
+              for (ixyz = 0;  ixyz < nxyz;  ixyz++)
+                {
+                  (*fim_params_vol)[ip][ixyz]  = 0.0;
+                }
     }
 
 }
@@ -1365,12 +1373,12 @@ void initialize_program
   /*----- Read input data -----*/
    if (LocalHead) fprintf(stderr,"Reading input\n");
    read_input_data (*option_data, dset_time, mask_dset, fmri_data, fmri_length,
-		   ort_array, ort_list, ideal_array, ideal_list);
+         ort_array, ort_list, ideal_array, ideal_list);
 
 
   /*----- Check for valid inputs -----*/
   check_for_valid_inputs (*option_data, *dset_time, *mask_dset,
-			  *fmri_length, ort_array, ideal_array);
+           *fmri_length, ort_array, ideal_array);
 
 
   /*----- Allocate memory for output volumes -----*/
@@ -1444,7 +1452,7 @@ void save_voxel
   for (ip = 0;  ip < NBUCKETS;  ip++)
     {
       if (fim_params_vol[ip] != NULL)
-	fim_params_vol[ip][iv]  = fim_params[ip];
+   fim_params_vol[ip][iv]  = fim_params[ip];
     }
 
 }
@@ -1477,7 +1485,7 @@ void calculate_results
 
   int q=-1;                      /* number of parameters in the baseline model */
   int p=-1;                      /* number of parameters in the baseline model
-			         plus number of ideals */
+                  plus number of ideals */
   int m=-1;                      /* parameter index */
   int n=-1;                      /* data point index */
 
@@ -1518,20 +1526,19 @@ void calculate_results
    int * good_list = NULL;  /* list of good (usable) time points */
    float ** rarray = NULL;  /* ranked arrays of ideal time series */
    float FimParams[NBUCKETS];  /* output delay parameters */
-   float *  dtr  = NULL ;  /* will be array of detrending coeff */
    float *  fac  = NULL ;  /* array of input brick scaling factors */
-   float * vox_vect = NULL; 			/* voxel time series */
+   float * vox_vect = NULL;          /* voxel time series */
    float *ref_ts=NULL; /*reference time series */
    float slp=0.0, delu=0.0, del=0.0,  xcor=0.0, xcorCoef=0.0,vts=0.0,
-          vrvec=0.0, dtx=0.0, d0fac=0.0 , d1fac=0.0 , x0=0.0,x1=0.0;
+          vrvec=0.0, dtx=0.0 , x0=0.0,x1=0.0;
    int  actv=-1, opt=-1, iposdbg=-1;
-	
+   
    for (i=0;i<NBUCKETS;++i) FimParams[i]=-1.0;
-	
+   
    #ifdef ZDBG
-		xyzTOindex (option_data, &iposdbg, IPOSx,  IPOSy , IPOSz);
-		printf ("Debug for %d: %d, %d, %d\n\n", iposdbg, IPOSx,  IPOSy , IPOSz);
-	#endif
+      xyzTOindex (option_data, &iposdbg, IPOSx,  IPOSy , IPOSz);
+      printf ("Debug for %d: %d, %d, %d\n\n", iposdbg, IPOSx,  IPOSy , IPOSz);
+   #endif
  
 
   /*----- Initialize matrices and vectors -----*/
@@ -1581,9 +1588,9 @@ void calculate_results
 
   /*----- Initialize the independent variable matrix -----*/
   N = init_indep_var_matrix (q, p, NFirst, N, polort,
-			     num_ort_files, num_ideal_files,
-			     ort_array, ort_list, ideal_array, ideal_list,
-			     x_bot, x_ave, x_top, good_list, &xdata);
+              num_ort_files, num_ideal_files,
+              ort_array, ort_list, ideal_array, ideal_list,
+              x_bot, x_ave, x_top, good_list, &xdata);
   option_data->N = N;
 
 
@@ -1591,7 +1598,7 @@ void calculate_results
 
   /*----- Initialization for the regression analysis -----*/
   init_delay (q, p, N, num_idealts, xdata, &x_base,
-			    &xtxinvxt_base, x_ideal, xtxinvxt_ideal, rarray);
+             &xtxinvxt_base, x_ideal, xtxinvxt_ideal, rarray);
 
 
   vector_create (N, &y);
@@ -1606,7 +1613,7 @@ void calculate_results
 
 
    /*--- get scaling factors for input sub-bricks ---*/
-	nuse      = option_data->NLast - option_data->NFirst + 1;
+   nuse      = option_data->NLast - option_data->NFirst + 1;
    fac = (float *) malloc( sizeof(float) * nuse ) ;   /* factors */ MTEST (fac);
  
 
@@ -1618,57 +1625,46 @@ void calculate_results
    }
    if( !use_fac ) FREEUP(fac) ;
 
-   /*--- setup for detrending ---*/
-
-   dtr = (float *) malloc( sizeof(float) * nuse ) ;MTEST (dtr);
- 
-
-   d0fac = 1.0 / nuse ;
-   d1fac = 12.0 / nuse / (nuse*nuse - 1.0) ;
-   for( kk=0 ; kk < nuse ; kk++ )
-      dtr[kk] = kk - 0.5 * (nuse-1) ;  /* linear trend, orthogonal to 1 */
-
-
   /*----- Loop over all voxels -----*/
   for (ixyz = 0;  ixyz < nxyz;  ixyz++)
     {
-		#ifdef ZDBG
-			if (ixyz == iposdbg)
-				{
-					printf ("\nAt voxel, checking for mask\n");
-				}
-		#endif
+      #ifdef ZDBG
+         if (ixyz == iposdbg)
+            {
+               printf ("\nAt voxel, checking for mask\n");
+            }
+      #endif
 
-		indexTOxyz ( option_data , ixyz, &xpos , &ypos , &zpos);
+      indexTOxyz ( option_data , ixyz, &xpos , &ypos , &zpos);
       /*----- Apply mask? -----*/
       if (mask != NULL)
-			{
-			  extract_ts_array (mask, ixyz, mask_val);
-			  if (mask_val[0] == 0.0)  continue;
-			}
-		
-		#ifdef ZDBG
-			if (ixyz == iposdbg)
-				{
-				printf ("Past the mask, extracting TS\n");
-				}
-		#endif
+         {
+           extract_ts_array (mask, ixyz, mask_val);
+           if (mask_val[0] == 0.0)  continue;
+         }
+      
+      #ifdef ZDBG
+         if (ixyz == iposdbg)
+            {
+            printf ("Past the mask, extracting TS\n");
+            }
+      #endif
 
 
      /*----- Extract Y-data for this voxel -----*/
-   	
+      
  
       if (option_data->input1D_filename != NULL)
-			{
-			  for (i = 0;  i < N;  i++)
-	   		 vox_vect[i] = (float)fmri_data[good_list[i]+NFirst];
-			}
+         {
+           for (i = 0;  i < N;  i++)
+             vox_vect[i] = (float)fmri_data[good_list[i]+NFirst];
+         }
       else
-			{
-			  extract_ts_array (dset, ixyz, ts_array);
-			  for (i = 0;  i < N;  i++)
-	   		 vox_vect[i] = (float)ts_array[good_list[i]+NFirst];
-			}
+         {
+           extract_ts_array (dset, ixyz, ts_array);
+           for (i = 0;  i < N;  i++)
+             vox_vect[i] = (float)ts_array[good_list[i]+NFirst];
+         }
       #ifdef ZDBG
          if (ixyz == 34 + 34 * 64 + 6 * (64*64)) {
             fprintf(stderr,"\nigood (nuse=%d, N = %d)\n", nuse, N);
@@ -1680,70 +1676,31 @@ void calculate_results
                fprintf(stderr,"%.3f\t", vox_vect[i]);
             fprintf(stderr,"\n");
          }
-			if (ixyz == iposdbg)
-				{
-					printf ("TS extracted\n");
-				}
-		#endif
+         if (ixyz == iposdbg)
+            {
+               printf ("TS extracted\n");
+            }
+      #endif
 
 
-	
-	opt = 1; /* set to 0 for cleanup */
-	
+   
+   opt = 1; /* set to 0 for cleanup */
+   
       /*** scale? ***/
 
-		#ifdef ZDBG
-		if (ixyz == iposdbg)
-			{
-				printf("Before Scale\n");
-				printf("TS: %f\t%f\t%f\t%f\t%f\n", vox_vect[0], vox_vect[1],  vox_vect[2], vox_vect[3], vox_vect[4]);
-				/*getchar ();*/
-			}
-		#endif
-			
+      #ifdef ZDBG
+      if (ixyz == iposdbg)
+         {
+            printf("Before Scale\n");
+            printf("TS: %f\t%f\t%f\t%f\t%f\n", vox_vect[0], vox_vect[1],  vox_vect[2], vox_vect[3], vox_vect[4]);
+            /*getchar ();*/
+         }
+      #endif
+         
       if( use_fac )
          for( kk=0 ; kk < nuse ; kk++ ) vox_vect[kk] *= fac[kk] ;
  
-
-      #if 0 /* now detrending is done at input, kill this block someday*/
-		   /** compute mean and slope **/
-
-		   #ifdef ZDBG
-		   if (ixyz == iposdbg)
-			   {
-				   printf("Before Detrending\n");
-				   printf("TS: %f\t%f\t%f\t%f\t%f\n", vox_vect[0], vox_vect[1],  vox_vect[2], vox_vect[3], vox_vect[4]);
-				   /*getchar ();*/
-			   }
-		   #endif
-         x0 = x1 = 0.0 ;
-         for( kk=0 ; kk < nuse ; kk++ ){
-            x0 += vox_vect[kk] ; x1 += vox_vect[kk] * dtr[kk] ;
-         }
-
-         x0 *= d0fac ; x1 *= d1fac ;  /* factors to remove mean and trend */
-
-         ts_mean  = x0 ;
-         ts_slope = x1 / tdelta ;
-
-         /** detrend? **/
-
-         if( option_data->dtrnd )
-            for( kk=0 ; kk < nuse ; kk++ ) vox_vect[kk] -= (x0 + x1 * dtr[kk]) ;
-         else
-            for( kk=0 ; kk < nuse ; kk++ ) vox_vect[kk] -= x0;
-
-		   #ifdef ZDBG
-		   if (ixyz == iposdbg)
-			   {
-				   printf("After Detrending (or just zero-meaning)\n");
-				   printf("TS: %f\t%f\t%f\t%f\t%f\n", vox_vect[0], vox_vect[1],  vox_vect[2], vox_vect[3], vox_vect[4]);
-				   /*getchar ();*/
-			   }
-		   #endif
-
-      #endif
-		/* calculate the T0 and Tdelta */
+      /* calculate the T0 and Tdelta */
       /** compute start time of this timeseries **/
 
       iz = ixyz / nxy ;    /* which slice am I in? */
@@ -1756,101 +1713,101 @@ void calculate_results
 
          if( DSET_TIMEUNITS(dset) == UNITS_MSEC_TYPE ) tzero *= 0.001 ;
 
-	  if (option_data->Dsamp == YUP)
-   			dtx = (float) (tzero / tdelta) - option_data->NFirst;
-   		else
-   			dtx = 0.0;
+     if (option_data->Dsamp == YUP)
+            dtx = (float) (tzero / tdelta) - option_data->NFirst;
+         else
+            dtx = 0.0;
       }
-	
-		#ifdef ZDBG
-		if (ixyz == iposdbg)
-			{
-				printf("dtx = %f\n", dtx);
-			}
-		#endif
+   
+      #ifdef ZDBG
+      if (ixyz == iposdbg)
+         {
+            printf("dtx = %f\n", dtx);
+         }
+      #endif
 
- 	option_data->errcode = hilbertdelay_V2 (vox_vect, option_data->rvec,option_data->ln,option_data->Nseg,option_data->Pover,opt,0,dtx,option_data->biasrem,&delu,&slp,&xcor,&xcorCoef,&vts,&vrvec);					/* cleanup time */
-		#ifdef ZDBG
-		if (ixyz == iposdbg)
-			{
-				printf ("%d err code @ixyz = %d\n", option_data->errcode, ixyz);
-			}
-		#endif
-	if (option_data->errcode == 0) /* If there are no errors, proceed */
-		{ /*option_data->errcode == 0 inner loop */
-					hunwrap (delu, (float)(option_data->fs), option_data->T, slp, option_data->wrp, option_data->unt, &del );
-					
-					actv = 1;						/* assume voxel is active */
-	
-					if (xcorCoef < option_data->co) actv = 0;			/* determine if voxel is activated using xcorCoef  */
-	
-					if ((actv == 1) && (option_data->out == YUP)) 		/* if voxel is truly activated, write results to file without modifying return value */
-						{
-							indexTOxyz ( option_data , ixyz, &xpos , &ypos , &zpos);
-							fprintf (option_data->outwrite,"%d\t%d\t%d\t%d\t%f\t%f\t%f\t%f\t%f\n", ixyz , xpos , ypos , zpos ,  delu , del , xcor , xcorCoef , vts);
-							if (option_data->outts == YUP)
-								{
-									writets (option_data, vox_vect);	
-								}
-						}
+    option_data->errcode = hilbertdelay_V2 (vox_vect, option_data->rvec,option_data->ln,option_data->Nseg,option_data->Pover,opt,0,dtx,option_data->biasrem,&delu,&slp,&xcor,&xcorCoef,&vts,&vrvec);               /* cleanup time */
+      #ifdef ZDBG
+      if (ixyz == iposdbg)
+         {
+            printf ("%d err code @ixyz = %d\n", option_data->errcode, ixyz);
+         }
+      #endif
+   if (option_data->errcode == 0) /* If there are no errors, proceed */
+      { /*option_data->errcode == 0 inner loop */
+               hunwrap (delu, (float)(option_data->fs), option_data->T, slp, option_data->wrp, option_data->unt, option_data->rev, option_data->scl, &del );
+               
+               actv = 1;                  /* assume voxel is active */
+   
+               if (xcorCoef < option_data->co) actv = 0;         /* determine if voxel is activated using xcorCoef  */
+   
+               if ((actv == 1) && (option_data->out == YUP))       /* if voxel is truly activated, write results to file without modifying return value */
+                  {
+                     indexTOxyz ( option_data , ixyz, &xpos , &ypos , &zpos);
+                     fprintf (option_data->outwrite,"%d\t%d\t%d\t%d\t%f\t%f\t%f\t%f\t%f\n", ixyz , xpos , ypos , zpos ,  delu , del , xcor , xcorCoef , vts);
+                     if (option_data->outts == YUP)
+                        {
+                           writets (option_data, vox_vect);   
+                        }
+                  }
 
-		}/*option_data->errcode == 0 inner loop */
-			
-	else if (option_data->errcode == ERROR_LONGDELAY)
-				{					
-					error_report ( option_data , ixyz);	
+      }/*option_data->errcode == 0 inner loop */
+         
+   else if (option_data->errcode == ERROR_LONGDELAY)
+            {               
+               error_report ( option_data , ixyz);   
 
-					del = 0.0;								/* Set all the variables to Null and don't set xcorCoef to an impossible value*/
-   				xcorCoef = 0.0;						/*  because the data might still be OK */
-   				xcor = 0.0;
+               del = 0.0;                        /* Set all the variables to Null and don't set xcorCoef to an impossible value*/
+               xcorCoef = 0.0;                  /*  because the data might still be OK */
+               xcor = 0.0;
 
-				}
-			else if (option_data->errcode != 0)
-				{
-					error_report ( option_data , ixyz);	
+            }
+         else if (option_data->errcode != 0)
+            {
+               error_report ( option_data , ixyz);   
 
-					del = 0.0;								/* Set all the variables to Null and set xcorCoef to an impossible value*/
-   				xcorCoef = NOWAYXCORCOEF;						
-   				xcor = 0.0;
-				}	
-	
-	
-		FimParams[DELINDX] = del;
-		FimParams[COVINDX] = xcor;
-		FimParams[COFINDX] = xcorCoef;
-		FimParams[VARINDX] = vts;
-	
-		#ifdef ZDBG
-		if (ixyz == iposdbg)
-			{
-				printf("VI\tX\tY\tZ\tDuff\tDel\tCov\txCorCoef\tVTS\n");
-				printf("%d\t%d\t%d\t%d\t", ixyz, xpos, ypos, zpos);
- 				printf("%f\t%f\t%f\t%f\t%f\n", delu, del, xcor, xcorCoef, vts);
-				printf("TS: %f\t%f\t%f\t%f\t%f\n", vox_vect[0], vox_vect[1],  vox_vect[2], vox_vect[3], vox_vect[4]);
-				printf("%f\t%f\t%f\t%f\t%f\n", dtx, delu, del, xcor, xcorCoef);
-				/*getchar ();*/
-			}
-		#endif
-	
+               del = 0.0;                        /* Set all the variables to Null and set xcorCoef to an impossible value*/
+               xcorCoef = NOWAYXCORCOEF;                  
+               xcor = 0.0;
+            }   
+   
+   
+      FimParams[DELINDX] = del;
+      FimParams[COVINDX] = xcor;
+      FimParams[COFINDX] = xcorCoef;
+      FimParams[VARINDX] = vts;
+   
+      #ifdef ZDBG
+      if (ixyz == iposdbg)
+         {
+            printf("VI\tX\tY\tZ\tDuff\tDel\tCov\txCorCoef\tVTS\n");
+            printf("%d\t%d\t%d\t%d\t", ixyz, xpos, ypos, zpos);
+             printf("%f\t%f\t%f\t%f\t%f\n", delu, del, xcor, xcorCoef, vts);
+            printf("TS: %f\t%f\t%f\t%f\t%f\n", vox_vect[0], vox_vect[1],  vox_vect[2], vox_vect[3], vox_vect[4]);
+            printf("%f\t%f\t%f\t%f\t%f\n", dtx, delu, del, xcor, xcorCoef);
+            /*getchar ();*/
+         }
+      #endif
+   
       /*----- Save results for this voxel -----*/
       if (option_data->input1D_filename == NULL)
-	save_voxel (ixyz, FimParams, fim_params_vol);
+   save_voxel (ixyz, FimParams, fim_params_vol);
  
  
  
     }  /*----- Loop over voxels -----*/
 
 
-   if (option_data->out == YUP)									/* close outfile and outlogfile*/
-				{
-					fclose (option_data->outlogfile);
-					fclose (option_data->outwrite);
-					if (option_data->outts  == YUP) fclose (option_data->outwritets);
-				}
-				else
-				{
-					if (option_data->outlogfile != NULL)	fclose (option_data->outlogfile);		/* close outlogfile */
-				}
+   if (option_data->out == YUP)                           /* close outfile and outlogfile*/
+            {
+               fclose (option_data->outlogfile);
+               fclose (option_data->outwrite);
+               if (option_data->outts  == YUP) fclose (option_data->outwritets);
+            }
+            else
+            {
+               if (option_data->outlogfile != NULL)   fclose (option_data->outlogfile);      /* close outlogfile */
+            }
 
 
   /*----- Dispose of matrices and vectors -----*/
@@ -1871,7 +1828,7 @@ void calculate_results
   free (x_ave);        x_ave = NULL;
   free (x_top);        x_top = NULL;
   free (good_list);    good_list = NULL;
-  free (vox_vect); 		vox_vect = NULL;
+  free (vox_vect);       vox_vect = NULL;
 
   for (is = 0;  is < num_idealts;  is++)
     {
@@ -1909,7 +1866,7 @@ void attach_sub_brick
   bar[ibrick]  = (short *) malloc (sizeof(short) * nxyz);
   MTEST (bar[ibrick]);
   factor = EDIT_coerce_autoscale_new (nxyz, MRI_float, volume,
-				      MRI_short, bar[ibrick]);
+                  MRI_short, bar[ibrick]);
 
   if (factor < EPSILON)  factor = 0.0;
   else factor = 1.0 / factor;
@@ -2012,28 +1969,28 @@ void write_bucket_data
           just make empty sub-bricks, without any data attached. -----*/
   ierror = EDIT_dset_items (new_dset,
                             ADN_prefix,          output_prefix,
-			    ADN_directory_name,  output_session,
-			    ADN_type,            HEAD_FUNC_TYPE,
-			    ADN_func_type,       FUNC_BUCK_TYPE,
-			    ADN_datum_all,       MRI_short , 
+             ADN_directory_name,  output_session,
+             ADN_type,            HEAD_FUNC_TYPE,
+             ADN_func_type,       FUNC_BUCK_TYPE,
+             ADN_datum_all,       MRI_short , 
                             ADN_ntt,             0,               /* no time */
-			    ADN_nvals,           nbricks,
-			    ADN_malloc_type,     DATABLOCK_MEM_MALLOC ,
-			    ADN_none ) ;
+             ADN_nvals,           nbricks,
+             ADN_malloc_type,     DATABLOCK_MEM_MALLOC ,
+             ADN_none ) ;
 
   if( ierror > 0 )
     {
       fprintf(stderr,
-	      "*** %d errors in attempting to create bucket dataset!\n",
-	      ierror);
+         "*** %d errors in attempting to create bucket dataset!\n",
+         ierror);
       exit(1);
     }
 
   if (!THD_ok_overwrite() && THD_is_ondisk(DSET_HEADNAME(new_dset)))
     {
       fprintf(stderr,
-	      "*** Output dataset file %s already exists--cannot continue!\n",
-	      DSET_HEADNAME(new_dset));
+         "*** Output dataset file %s already exists--cannot continue!\n",
+         DSET_HEADNAME(new_dset));
       exit(1);
     }
 
@@ -2045,20 +2002,20 @@ void write_bucket_data
       strcpy (brick_label, DELAY_OUTPUT_TYPE_name[ip]);
 
       if (ip == COFINDX)
-			{
-			  brick_type = FUNC_COR_TYPE;
-			  nsam = option_data->ln;  nort = option_data->polort;
-   		  nfit = option_data->Nfit;
-			}
-		else
-			{
-			  brick_type = FUNC_FIM_TYPE;
-			  nsam = 0; nfit = 0; nort = 0;
-			}
+         {
+           brick_type = FUNC_COR_TYPE;
+           nsam = option_data->ln;  nort = option_data->polort;
+           nfit = option_data->Nfit;
+         }
+      else
+         {
+           brick_type = FUNC_FIM_TYPE;
+           nsam = 0; nfit = 0; nort = 0;
+         }
 
-      volume = fim_params_vol[ip];		
+      volume = fim_params_vol[ip];      
       attach_sub_brick (new_dset, ibrick, volume, nxyz,
-			brick_type, brick_label, nsam, nfit, nort, bar);
+         brick_type, brick_label, nsam, nfit, nort, bar);
 
       ibrick++;
     }
@@ -2116,8 +2073,8 @@ void output_results
   /*----- Write the bucket dataset -----*/
   if (option_data->bucket_filename != NULL)
   {
-	 write_bucket_data (argc, argv, option_data, fim_params_vol);
-	}
+    write_bucket_data (argc, argv, option_data, fim_params_vol);
+   }
 
 }
 
@@ -2126,159 +2083,163 @@ void output_results
 /* ************************************************************ */
 
 void show_ud (struct DELAY_options* option_data,int loc)
-	{
-		printf ("\n\nUser Data Values at location :%d\n",loc);
-		printf ("option_data->rvec= (1st five elements only)");
-		disp_vect (option_data->rvec,5);
-		printf ("Input Data Set: %s\n", option_data->input_filename);
-		printf ("ASCII output file: %s\n", option_data->outname);
-		printf ("ASCII output file (log): %s\n", option_data->outnamelog);
-		printf ("ASCII output file (ts): %s\n", option_data->outnamets);
-		printf ("Mask Data Set: %s\n", option_data->mask_filename);
-		printf ("Reference File Name: %s\n", option_data->ideal_filename[0]);
-		printf ("Number of voxels in X direction: %d\n", option_data->nxx);
-		printf ("Number of voxels in Y direction: %d\n", option_data->nyy);
-		printf ("Number of voxels in Z direction: %d\n", option_data->nzz);
-		printf ("option_data->fs= %f\n",option_data->fs);
-		printf ("option_data->T= %f\n",option_data->T);
-		printf ("option_data->unt= %d\n",option_data->unt);
-		printf ("option_data->wrp= %d\n",option_data->wrp);
-		printf ("option_data->Navg= %d\n",option_data->Navg);
-		printf ("option_data->Nort (polort)= %d\n",option_data->polort);
-		printf ("option_data->Nfit= %d\n",option_data->Nfit);
-		printf ("option_data->Nseg= %d\n",option_data->Nseg);
-		printf ("option_data->Pover= %d\n",option_data->Pover);
-		if (option_data->polort > 1) {
+   {
+      printf ("\n\nUser Data Values at location :%d\n",loc);
+      printf ("option_data->rvec= (1st five elements only)");
+      disp_vect (option_data->rvec,5);
+      printf ("Input Data Set: %s\n", option_data->input_filename);
+      printf ("ASCII output file: %s\n", option_data->outname);
+      printf ("ASCII output file (log): %s\n", option_data->outnamelog);
+      printf ("ASCII output file (ts): %s\n", option_data->outnamets);
+      printf ("Mask Data Set: %s\n", option_data->mask_filename);
+      printf ("Reference File Name: %s\n", option_data->ideal_filename[0]);
+      printf ("Number of voxels in X direction: %d\n", option_data->nxx);
+      printf ("Number of voxels in Y direction: %d\n", option_data->nyy);
+      printf ("Number of voxels in Z direction: %d\n", option_data->nzz);
+      printf ("option_data->fs= %f\n",option_data->fs);
+      printf ("option_data->T= %f\n",option_data->T);
+      printf ("option_data->unt= %d\n",option_data->unt);
+      printf ("option_data->wrp= %d\n",option_data->wrp);
+      printf ("option_data->rev= %d\n",option_data->rev);
+      printf ("option_data->scl= %f\n",option_data->scl);
+      printf ("option_data->Navg= %d\n",option_data->Navg);
+      printf ("option_data->Nort (polort)= %d\n",option_data->polort);
+      printf ("option_data->Nfit= %d\n",option_data->Nfit);
+      printf ("option_data->Nseg= %d\n",option_data->Nseg);
+      printf ("option_data->Pover= %d\n",option_data->Pover);
+      if (option_data->polort > 1) {
          printf ("option_data->dtrnd= 1\n");
       } else {
          printf ("option_data->dtrnd= 0\n");
       }
-		printf ("option_data->biasrem= %d\n",option_data->biasrem);
-		printf ("option_data->Dsamp= %d\n",option_data->Dsamp);
-		printf ("option_data->co= %f\n",option_data->co);
-		printf ("option_data->ln= %d\n",option_data->ln);
-		printf ("option_data->errcode= %d\n",option_data->errcode);
-		printf ("option_data->out= %d\n",option_data->out);
-		printf ("option_data->outts= %d\n",option_data->outts);
-		printf ("Hit enter to continue\a\n\n");
-		getchar ();
-		return;
-	}
+      printf ("option_data->biasrem= %d\n",option_data->biasrem);
+      printf ("option_data->Dsamp= %d\n",option_data->Dsamp);
+      printf ("option_data->co= %f\n",option_data->co);
+      printf ("option_data->ln= %d\n",option_data->ln);
+      printf ("option_data->errcode= %d\n",option_data->errcode);
+      printf ("option_data->out= %d\n",option_data->out);
+      printf ("option_data->outts= %d\n",option_data->outts);
+      printf ("Hit enter to continue\a\n\n");
+      getchar ();
+      return;
+   }
 
 /* ************************************************************ */
 /* function to write user data input to log file        */
 /* ************************************************************ */
 void write_ud (struct DELAY_options* option_data)
-	{
-		fprintf (option_data->outlogfile,"\nLogfile output by Hilbert Delay98 plugin\n");
-		fprintf (option_data->outlogfile,"\n\nUser Data Values \n");
+   {
+      fprintf (option_data->outlogfile,"\nLogfile output by Hilbert Delay98 plugin\n");
+      fprintf (option_data->outlogfile,"\n\nUser Data Values \n");
 
                 /* check for NULL filenames          22 July 2005 [rickr] */
-		fprintf (option_data->outlogfile,"Input Data Set: %s\n",
-			 CHECK_NULL_STR(option_data->input_filename));
-		fprintf (option_data->outlogfile,"Mask Data Set: %s\n",
-			 CHECK_NULL_STR(option_data->mask_filename));
-		fprintf (option_data->outlogfile,"Ascii output file name: %s\n",
-			 CHECK_NULL_STR(option_data->outname));
-		fprintf (option_data->outlogfile,"Reference File Name: %s\n",
-			 CHECK_NULL_STR(option_data->ideal_filename[0]));
+      fprintf (option_data->outlogfile,"Input Data Set: %s\n",
+          CHECK_NULL_STR(option_data->input_filename));
+      fprintf (option_data->outlogfile,"Mask Data Set: %s\n",
+          CHECK_NULL_STR(option_data->mask_filename));
+      fprintf (option_data->outlogfile,"Ascii output file name: %s\n",
+          CHECK_NULL_STR(option_data->outname));
+      fprintf (option_data->outlogfile,"Reference File Name: %s\n",
+          CHECK_NULL_STR(option_data->ideal_filename[0]));
 
-		fprintf (option_data->outlogfile,"Number of voxels in X direction: %d\n", option_data->nxx);
-		fprintf (option_data->outlogfile,"Number of voxels in Y direction: %d\n", option_data->nyy);
-		fprintf (option_data->outlogfile,"Number of voxels in Z direction: %d\n", option_data->nzz);
-		fprintf (option_data->outlogfile,"Sampling Frequency = %f\n",option_data->fs);
-		fprintf (option_data->outlogfile,"Stimulus Period = %f\n",option_data->T);
-		fprintf (option_data->outlogfile,"Delay units = %d\n",option_data->unt);
-		fprintf (option_data->outlogfile,"Delay wrap = %d\n",option_data->wrp);
-		fprintf (option_data->outlogfile,"Number of segments = %d\n",option_data->Nseg);
-		fprintf (option_data->outlogfile,"Length of reference time series = %d\n",option_data->ln);
-		fprintf (option_data->outlogfile,"Number of fit parameters = %d\n",option_data->Nfit);
-		fprintf (option_data->outlogfile,"Number of nuisance parameters (orts)= %d\n",option_data->polort);
-		fprintf (option_data->outlogfile,"Percent overlap = %d\n",option_data->Pover);
-		fprintf (option_data->outlogfile,"Plugin detrending = (Always 0, mandatory detrending is performed)\n");
-		fprintf (option_data->outlogfile,"Bias correction = %d\n",option_data->biasrem);
-		fprintf (option_data->outlogfile,"Acquisition time correction = %d\n",option_data->Dsamp);
-		fprintf (option_data->outlogfile,"Correlation Coefficient Threshold= %f\n",option_data->co);
-		fprintf (option_data->outlogfile,"Flag for Ascii output file  = %d\n",option_data->out);
-		fprintf (option_data->outlogfile,"Flag for Ascii time series file output = %d\n",option_data->outts);
-		fprintf (option_data->outlogfile,"\noption_data->errcode (debugging only)= %d\n\n",option_data->errcode);
-		fprintf (option_data->outlogfile,"\nThe format for the output file is the following:\n");
-		fprintf (option_data->outlogfile,"VI\tX\tY\tZ\tDuff\tDel\tCov\txCorCoef\tVTS\n");
-		fprintf (option_data->outlogfile,"\nError Log <message> <index> <x> <y> <z>\n\n");
-		
-		return;
-	}
+      fprintf (option_data->outlogfile,"Number of voxels in X direction: %d\n", option_data->nxx);
+      fprintf (option_data->outlogfile,"Number of voxels in Y direction: %d\n", option_data->nyy);
+      fprintf (option_data->outlogfile,"Number of voxels in Z direction: %d\n", option_data->nzz);
+      fprintf (option_data->outlogfile,"Sampling Frequency = %f\n",option_data->fs);
+      fprintf (option_data->outlogfile,"Stimulus Period = %f\n",option_data->T);
+      fprintf (option_data->outlogfile,"Delay units = %d\n",option_data->unt);
+      fprintf (option_data->outlogfile,"Delay wrap = %d\n",option_data->wrp);
+      fprintf (option_data->outlogfile,"Delay reverse = %d\n",option_data->rev);
+      fprintf (option_data->outlogfile,"Delay scale = %f\n",option_data->scl);
+      fprintf (option_data->outlogfile,"Number of segments = %d\n",option_data->Nseg);
+      fprintf (option_data->outlogfile,"Length of reference time series = %d\n",option_data->ln);
+      fprintf (option_data->outlogfile,"Number of fit parameters = %d\n",option_data->Nfit);
+      fprintf (option_data->outlogfile,"Number of nuisance parameters (orts)= %d\n",option_data->polort);
+      fprintf (option_data->outlogfile,"Percent overlap = %d\n",option_data->Pover);
+      fprintf (option_data->outlogfile,"Plugin detrending = (Always 0, mandatory detrending is performed)\n");
+      fprintf (option_data->outlogfile,"Bias correction = %d\n",option_data->biasrem);
+      fprintf (option_data->outlogfile,"Acquisition time correction = %d\n",option_data->Dsamp);
+      fprintf (option_data->outlogfile,"Correlation Coefficient Threshold= %f\n",option_data->co);
+      fprintf (option_data->outlogfile,"Flag for Ascii output file  = %d\n",option_data->out);
+      fprintf (option_data->outlogfile,"Flag for Ascii time series file output = %d\n",option_data->outts);
+      fprintf (option_data->outlogfile,"\noption_data->errcode (debugging only)= %d\n\n",option_data->errcode);
+      fprintf (option_data->outlogfile,"\nThe format for the output file is the following:\n");
+      fprintf (option_data->outlogfile,"VI\tX\tY\tZ\tDuff\tDel\tCov\txCorCoef\tVTS\n");
+      fprintf (option_data->outlogfile,"\nError Log <message> <index> <x> <y> <z>\n\n");
+      
+      return;
+   }
 
 /* ************************************************************ */
 /* function to compute x, y, z coordinates from the index       */
 /* ************************************************************ */
 
-void indexTOxyz (struct DELAY_options* option_data, int ncall, int *xpos , int *ypos , int *zpos)  	
-	{
-		*zpos = (int)ncall / (int)(option_data->nxx*option_data->nyy);
-		*ypos = (int)(ncall - *zpos * option_data->nxx * option_data->nyy) / (int)option_data->nxx;
-		*xpos = ncall - ( *ypos * option_data->nxx ) - ( *zpos * option_data->nxx * option_data->nyy ) ;
-		return;
-	}
+void indexTOxyz (struct DELAY_options* option_data, int ncall, int *xpos , int *ypos , int *zpos)     
+   {
+      *zpos = (int)ncall / (int)(option_data->nxx*option_data->nyy);
+      *ypos = (int)(ncall - *zpos * option_data->nxx * option_data->nyy) / (int)option_data->nxx;
+      *xpos = ncall - ( *ypos * option_data->nxx ) - ( *zpos * option_data->nxx * option_data->nyy ) ;
+      return;
+   }
 
-void xyzTOindex (struct DELAY_options* option_data, int *ncall, int xpos , int ypos , int zpos)  	
-	{
-		*ncall = zpos * ( option_data->nxx*option_data->nyy ) + ypos * option_data->nxx + xpos;
-		return;
-	}
-	
+void xyzTOindex (struct DELAY_options* option_data, int *ncall, int xpos , int ypos , int zpos)     
+   {
+      *ncall = zpos * ( option_data->nxx*option_data->nyy ) + ypos * option_data->nxx + xpos;
+      return;
+   }
+   
 /* ************************************************************ */
 /* function to report errors encountered to the logfile         */
-/* Only errors that happen during runtime (while delays are 	 */
-/* computed, are handeled here, the others are handeled  		 */
-/* instantaneously, and need not be logged 							 */
+/* Only errors that happen during runtime (while delays are     */
+/* computed, are handeled here, the others are handeled         */
+/* instantaneously, and need not be logged                       */
 /* ************************************************************ */
 
 void error_report (struct DELAY_options* option_data, int ncall )
-	{
-		int xpos,ypos,zpos;
-		indexTOxyz (option_data, ncall, &xpos , &ypos , &zpos);
+   {
+      int xpos,ypos,zpos;
+      indexTOxyz (option_data, ncall, &xpos , &ypos , &zpos);
 
-		switch (option_data->errcode)
-			{
-				case ERROR_NOTHINGTODO:
-					fprintf (option_data->outlogfile,"Nothing to do hilbertdelay_V2 call ");
-					break;
-				case ERROR_LARGENSEG:
-					fprintf (option_data->outlogfile,"Number of segments Too Large ");
-					break;
-				case ERROR_LONGDELAY:
-					fprintf (option_data->outlogfile,"Could not find zero crossing before maxdel limit ");
-					break;
-				case ERROR_SERIESLENGTH:
-					fprintf (option_data->outlogfile,"Vectors have different length ");
-					break;
-				case ERROR_NULLTIMESERIES:
-					fprintf (option_data->outlogfile,"Null time series vector ");
-					break;
-				default:
-					fprintf (option_data->outlogfile,"De Fault, De Fault (%d), the two sweetest words in the english langage ! ",option_data->errcode);
-					break;
-			}	
-		fprintf (option_data->outlogfile,"%d\t%d\t%d\t%d\t\n", ncall , xpos , ypos , zpos  );
-		return;
-	}
-	
+      switch (option_data->errcode)
+         {
+            case ERROR_NOTHINGTODO:
+               fprintf (option_data->outlogfile,"Nothing to do hilbertdelay_V2 call ");
+               break;
+            case ERROR_LARGENSEG:
+               fprintf (option_data->outlogfile,"Number of segments Too Large ");
+               break;
+            case ERROR_LONGDELAY:
+               fprintf (option_data->outlogfile,"Could not find zero crossing before maxdel limit ");
+               break;
+            case ERROR_SERIESLENGTH:
+               fprintf (option_data->outlogfile,"Vectors have different length ");
+               break;
+            case ERROR_NULLTIMESERIES:
+               fprintf (option_data->outlogfile,"Null time series vector ");
+               break;
+            default:
+               fprintf (option_data->outlogfile,"De Fault, De Fault (%d), the two sweetest words in the english langage ! ",option_data->errcode);
+               break;
+         }   
+      fprintf (option_data->outlogfile,"%d\t%d\t%d\t%d\t\n", ncall , xpos , ypos , zpos  );
+      return;
+   }
+   
 /* *************************************************************** */
 /* function to write the time course into a line in the given file */
 /* *************************************************************** */
 
 void writets (struct DELAY_options * option_data,float * ts)
 
-	{	
-		int i;
-		
-		for (i=0;i<option_data->ln;++i)
-			{
-				fprintf (option_data->outwritets, "%f\t",ts[i]);
-			}
-		fprintf (option_data->outwritets,"\n");
-	}
+   {   
+      int i;
+      
+      for (i=0;i<option_data->ln;++i)
+         {
+            fprintf (option_data->outwritets, "%f\t",ts[i]);
+         }
+      fprintf (option_data->outwritets,"\n");
+   }
 
 /*---------------------------------------------------------------------------*/
 
@@ -2317,15 +2278,15 @@ void terminate_program
   if (*fim_params_vol != NULL)
     {
       for (ip = 0;  ip < NBUCKETS;  ip++)
-	{
-	  if ((*fim_params_vol)[ip] != NULL)
-	    { free ((*fim_params_vol)[ip]);   (*fim_params_vol)[ip] = NULL; }
-	}
+   {
+     if ((*fim_params_vol)[ip] != NULL)
+       { free ((*fim_params_vol)[ip]);   (*fim_params_vol)[ip] = NULL; }
+   }
 
       free (*fim_params_vol);   *fim_params_vol  = NULL;
     }
-	
-		
+   
+      
 
 }
 
@@ -2369,18 +2330,18 @@ int main
   /*----- Program initialization -----*/
   if (LocalHead) fprintf(stderr,"Initializing ...");
   initialize_program (argc, argv, &option_data, &dset_time, &mask_dset,
-		      &fmri_data, &fmri_length,
-		      ort_array, ort_list, ideal_array, ideal_list,
-		      &fim_params_vol);
+            &fmri_data, &fmri_length,
+            ort_array, ort_list, ideal_array, ideal_list,
+            &fim_params_vol);
   if (LocalHead) fprintf(stderr,"\n");
 
 
   /*----- Perform fim analysis -----*/
   if (LocalHead) fprintf(stderr,"Calculating ...");
   calculate_results (option_data, dset_time, mask_dset,
-		     fmri_data, fmri_length,
-		     ort_array, ort_list, ideal_array, ideal_list,
-		     fim_params_vol);
+           fmri_data, fmri_length,
+           ort_array, ort_list, ideal_array, ideal_list,
+           fim_params_vol);
   if (LocalHead) fprintf(stderr,"\n");
 
   /*----- Deallocate memory for input datasets -----*/ 
@@ -2399,7 +2360,7 @@ int main
 
   /*----- Terminate program -----*/
   terminate_program (&option_data,
-		     ort_array, ort_list, ideal_array, ideal_list,
-		     &fim_params_vol);
+           ort_array, ort_list, ideal_array, ideal_list,
+           &fim_params_vol);
 
 }

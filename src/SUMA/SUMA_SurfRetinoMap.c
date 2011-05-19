@@ -106,7 +106,7 @@ SUMA_DSET * SUMA_RetinoMap (SUMA_SurfaceObject *SO,
    static char FuncName[]={"SUMA_RetinoMap"};
    SUMA_DSET *dout=NULL;
    int i=0, i3=0, in=0, neigh3, in3, j;
-   float *pNodeList=NULL, fv[3], **fm=NULL, *vfr=NULL;
+   float *pNodeList=NULL, fv[3], **fm=NULL, *vfr=NULL, *mxxc=NULL, xc1, xc2;
    float Gp[2]={0.0, 0.0}, Ge[2]={0.0, 0.0};
    double Eq[4], proj[3], U[3], d, 
           P2[2][3]={ {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0} } ;
@@ -125,10 +125,18 @@ SUMA_DSET * SUMA_RetinoMap (SUMA_SurfaceObject *SO,
       goto CLEANOUT;
    }
    
+   if (SDSET_VECNUM(dpol) == 3 && SDSET_VECNUM(decc) == 3) {
+      /* have correlations in these datasets at sb # 3 */
+      if (!(mxxc = (float *)SUMA_calloc(SO->N_Node, sizeof(float)))) {
+         SUMA_S_Err("Failed to allocate"); 
+         goto CLEANOUT;
+      }
+   }
+   
    if (!(pNodeList =  (float *)
             SUMA_calloc((SO->FN->N_Neighb_max+1)*SO->NodeDim, sizeof(float))) ||
        !(fm = (float **)SUMA_allocate2D(4,4,sizeof(float))) ||
-       !(vfr = (float *)SUMA_calloc(SO->N_Node, sizeof(float))) ){
+       !(vfr = (float *)SUMA_calloc(SO->N_Node, sizeof(float)))  ){
       SUMA_S_Err("Failed to allocate"); 
       goto CLEANOUT;
    }
@@ -259,6 +267,13 @@ SUMA_DSET * SUMA_RetinoMap (SUMA_SurfaceObject *SO,
       vfr[i] = SUMA_LocalRetinoGrad(SO, i, decc, dpol, pNodeList, 
                                  Ge, Gp, NodeDBG);
       
+      /* get a max correlation from two dsets */
+      if (mxxc) {
+         xc1 = SUMA_GetDsetNodeValInCol2(decc, 2, i, -1);
+         xc2 = SUMA_GetDsetNodeValInCol2(dpol, 2, i, -1);
+         if (xc2 > xc1) mxxc[i] = xc2; else mxxc[i] =xc1;
+      }
+      
       if (i==NodeDBG) { 
          SUMA_S_Notev("Node %d: Ge = [%f %f], Gp = [%f %f], VFR=%f\n",
                         i, Ge[0], Ge[1], Gp[0], Gp[1], vfr[i]);
@@ -306,6 +321,16 @@ SUMA_DSET * SUMA_RetinoMap (SUMA_SurfaceObject *SO,
       SUMA_FreeDset(dout); dout=NULL;
       goto CLEANOUT;
    }
+   if (mxxc) {
+      /* Not sure if we're getting power ratios or correlation coefficients
+         Just use generic term 'Thresh.'*/
+      if (!SUMA_AddDsetNelCol(dout, "Max.Thresh.", 
+            SUMA_NODE_XCORR, mxxc, NULL, 1)) {
+         SUMA_S_Err("Failed to add column");
+         SUMA_FreeDset(dout); dout=NULL;
+         goto CLEANOUT;
+      }
+   }
    
    CLEANOUT:
    SUMA_LH("CLEANUP");
@@ -313,7 +338,8 @@ SUMA_DSET * SUMA_RetinoMap (SUMA_SurfaceObject *SO,
    if (pNodeList) SUMA_free(pNodeList); pNodeList=NULL;
    if (fm) SUMA_free2D((char **)fm, 2); fm = NULL;
    if (vfr) SUMA_free(vfr); vfr = NULL;
-   
+   if (mxxc) SUMA_free(mxxc); mxxc = NULL;
+
    SUMA_LH("ADIOS"); 
    SUMA_RETURN(dout);
 }
@@ -328,22 +354,38 @@ void usage_RetinoMap (SUMA_GENERIC_ARGV_PARSE *ps)
       printf ( "\n"
 "Usage: SurfRetinoMap <SURFACE> <-input POLAR ECCENTRICITY>\n"
 "                 [<-prefix PREFIX>] [<-node_dbg NODE>]\n"
-"       A template code for writing SUMA programs.\n"
+"      \n"
 "  <SURFACE> : Surface on which distances are computed.\n"
 "              (For option's syntax, see \n"
 "              'Specifying input surfaces' section below).\n"
 "  <-input POLAR ECCENTRICITY>: Retinotopic datasets.\n"
 "              POLAR is the polar angle dataset.\n"
 "              ECCENTRICITY is the eccentricity angle dataset.\n"
+"     Those datasets are produced by 3dRetinoPhase.\n"
+"     If the datasets are produced outside of 3dRetinoPhase, note that\n"
+"     The angle data is to be in the [0] sub-brick, and a thresholding\n"
+"     parameter, if any, is to be in the [2] sub-brick.\n"
+"\n"
 "  [<-node_dbg NODE>]: Index of node number for which debugging\n"
 "                    information is output.\n"
 "  [<-prefix PREFIX>]: Prefix for output datasets.\n"
 "                      The program outputs the Visual Field Ratio (VFR),\n"
 "                      the sign of which is used to differentiate between\n"
 "                      adjacent areas. \n"
-"                      Based on paper by Warnking et al. Neuroimage 17, (2002)\n"
-"                      'FMRI Retinotopic Mapping - Step by Step\n"
-" \n"
+"\n"
+"     VFR computations based on paper by Warnking et al. Neuroimage 17, (2002)\n"
+"            'FMRI Retinotopic Mapping - Step by Step\n"
+"\n"
+"A note on the output thresholding sub-brick:\n"
+"  In addition to VFR, you get a maximum threshold\n"
+"     sub-brick which retains the highest threshold at\n"
+"     each node in input datasets. This thresholding \n"
+"     parameter is like a union mask of input data \n"
+"     thresholded at the same level.\n"
+"  The signficance value is not provided on purpose.\n"
+"     I don't know of a good way to compute it, but \n"
+"     it serves its function or wedding out low SNR nodes.\n"
+"\n"                      
 "%s"
 "%s"
                "\n", 

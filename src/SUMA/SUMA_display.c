@@ -8184,50 +8184,9 @@ void SUMA_cb_SelectSwitchColPlane(Widget w, XtPointer data, XtPointer call_data)
       SUMA_RETURNe;
    }
 
-   #if 0
-   if (cbs->reason == XmCR_SINGLE_SELECT) {
-      if (LocalHead) 
-         fprintf (SUMA_STDERR,"%s: Single selection, list widget %s... \n", 
-                  FuncName, LW->Label);
-   } else {
-      if (LocalHead) 
-         fprintf (SUMA_STDERR,"%s: Default selection, list widget %s... \n", 
-                  FuncName, LW->Label);
-      /*double click or enter on that one, close shop after selection */
-      CloseShop = YUP;
-   }
 
-   XmStringGetLtoR (cbs->item, XmFONTLIST_DEFAULT_TAG, &choice);
-   
-   if (LocalHead) 
-      fprintf (SUMA_STDERR,"%s: Selected item: %s {%s} (%d)\n", 
-               FuncName, choice, choice, cbs->item_position);
-   LW->lastitempos = cbs->item_position;   /* store for next opening */
-   
-   /* because of sorting, choice cannot be used as an index 
-      into clist and oplist in ALS */
-   Found = NOPE;
-   ichoice = 0;
-   do {
-      if (LocalHead) 
-         fprintf (SUMA_STDERR,"%s: Comparing:\t>%s<\t>%s<", 
-                  FuncName, LW->ALS->clist[ichoice], choice);
-      if (strncmp(LW->ALS->clist[ichoice], choice, 
-                  strlen(LW->ALS->clist[ichoice])) == 0) Found = YUP; 
-      else ++ichoice;
-   } while (ichoice < LW->ALS->N_clist && !Found);
-   
-   if (!Found) {
-      SUMA_SLP_Err("Choice not found.");
-      SUMA_RETURNe;
-   }
-   
-   XtFree (choice);
-   
-   #else
-   /* the new way */
    ichoice = SUMA_GetListIchoice(cbs, LW, &CloseShop);
-   #endif
+
    /* now retrieve that choice from the SUMA_ASSEMBLE_LIST_STRUCT 
       structure and initialize the drawing window */
    if (LW->ALS) {
@@ -8250,7 +8209,8 @@ void SUMA_cb_SelectSwitchColPlane(Widget w, XtPointer data, XtPointer call_data)
    }
 
    if (CloseShop) {
-      SUMA_cb_CloseSwitchColPlane( w,  (XtPointer)SO->SurfCont->SwitchDsetlst,  call_data);
+      SUMA_cb_CloseSwitchColPlane( w,  
+                        (XtPointer)SO->SurfCont->SwitchDsetlst,  call_data);
    }  
    
    
