@@ -12,9 +12,10 @@ static float_quad Corrboot( int n , float *x , float *y ,
                             float (*cfun)(int,float *,float *) ) ;
 
 #undef  NBOOT
-#undef  NB5
-#define NBOOT 1000  /* must be a integral multiple of 40 */
-#define NB5     25  /* must be 1/40th of the above */
+#define NBOOT 4000  /* must be a integral multiple of 40 */
+
+static int   nboot = NBOOT ;
+static float alpha = 0.05f ;
 
 /*--------------------------------------------------------------------------------*/
 
@@ -35,37 +36,59 @@ int main( int argc , char *argv[] )
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
      printf("Usage: 1dCorrelate [options] 1Dfile 1Dfile ...\n"
-            " - Computes correlation of column pairs.\n"
-            " - Minimum column length is 7.\n"
-            " - At least 2 columns are needed (in 1 or more .1D files).\n"
-            " - Output appears on stdout; redirect as needed.\n"
+            " * Computes correlation coefficient of 1D column pairs.\n"
+            " * Minimum column length is 7.\n"
+            " * At least 2 columns are needed [in 1 or more .1D files].\n"
+            " * Output appears on stdout; redirect as needed.\n"
+            " * There is no allowance made for any serial correlation in the data.\n"
+            " * Only one correlation method can be used in one run of this program.\n"
             "\n"
-            "Options: [actually, only the first letter is needed to choose a method]\n"
-            "-------- [and the case doesn't matter: '-P' and '-p' both = '-pearson']\n"
+            "-------\n"
+            "Options [actually, only the first letter is needed to choose a method]\n"
+            "------- [and the case doesn't matter: '-P' and '-p' both = '-pearson']\n"
             " -pearson  = Pearson correlation              [the default method]\n"
             " -spearman = Spearman (rank) correlation      [more robust vs. outliers]\n"
             " -quadrant = Quadrant (binarized) correlation [most robust, but weaker]\n"
             " -ktaub    = Kendall's tau_b 'correlation'    [popular somewhere, maybe]\n"
             "\n"
-            "* Only one method can be used in one run of this program.\n"
+            " -nboot B  = Set the number of bootstrap replicates to 'B'.\n"
+            "             * The default (and minimum allowed) value of B is %d.\n"
+            "             * A larger number will give more accurate confidence\n"
+            "               intervals, at the cost of more CPU time.\n"
             "\n"
+            " -alpha A  = Set the 2-sided confidence interval width to '100-A' percent.\n"
+            "             * The default value of A is 5, giving the 2.5..97.5%% interval.\n"
+            "             * The smallest allowed A is 1 and the largest is 20.\n"
+            "\n"
+            "-----\n"
+            "Notes\n"
+            "-----\n"
             "* For each pair of columns, the output include the correlation value\n"
             "  as directly calculated, plus the bias-corrected bootstrap value, and\n"
-            "  the 2.5-97.5%% confidence interval (also via bootstrap: %d replicates).\n"
+            "  the desired confidence interval [also via bootstrap].\n"
             "\n"
-            "* The primary purpose of this program is to give an easy way to get the\n"
-            "  bootstrap bias-corrected confidence intervals, since people always\n"
-            "  seem to use the asymptotic normal theory to decide if a correlation\n"
-            "  is 'significant', and this often seems wrong to me.\n"
+            "* The primary purpose of this program is to provide an easy way to get\n"
+            "  the bootstrap bias-corrected confidence intervals, since people always\n"
+            "  seem to use the asymptotic normal theory to decide if a correlation is\n"
+            "  'significant', and this often seems misleading to me [for short columns].\n"
             "\n"
-            "* There is no way to change the width of the confidence interval,\n"
-            "  or the number of bootstrap replicates.  [Unless you beg abjectly.]\n"
+            "-------------\n"
+            "Sample output [2 columns with 64 data points: '1dCorrelate qqq.1D']\n"
+            "-------------\n"
+            "# Pearson correlation [n=64]\n"
+            "# Name       Name        Value   BiasCorr   2.5%%    97.5%%\n"
+            "# ---------  ---------  -------- -------- -------- --------\n"
+            "  qqq.1D[0]  qqq.1D[1]  +0.19523 +0.19255 +0.01738 +0.36059\n"
             "\n"
-            "* There is no allowance made for any serial correlation in the data.\n"
+            "showing that the bias correction of the correlation had\n"
+            "little effect, and also showing that the correlation is\n"
+            "significant at the 5%% level [just barely].\n"
+            "\n"
+            "* If there are N input columns, there will be N*(N-1)/2 output rows.\n"
             "\n"
             "* RWCox -- 19 May 2011\n"
-           , NBOOT 
-           ) ;
+
+           , NBOOT ) ;
      PRINT_COMPILE_DATE ; exit(0) ;
    }
 
@@ -78,6 +101,28 @@ int main( int argc , char *argv[] )
      if( toupper(argv[iarg][1]) == 'S' ){ cormeth = 1 ; iarg++ ; continue ; }
      if( toupper(argv[iarg][1]) == 'Q' ){ cormeth = 2 ; iarg++ ; continue ; }
      if( toupper(argv[iarg][1]) == 'K' ){ cormeth = 3 ; iarg++ ; continue ; }
+
+     if( strcasecmp(argv[iarg],"-nboot") == 0 ){
+       iarg++ ; if( iarg >= argc ) ERROR_exit("Need argument after '-nboot'") ;
+       nboot = (int)strtod(argv[iarg],NULL) ;
+       if( nboot < NBOOT ){
+         WARNING_message("Replacing -nboot %d with %d",nboot,NBOOT) ;
+         nboot = NBOOT ;
+       }
+       iarg++ ; continue ;
+     }
+
+     if( strcasecmp(argv[iarg],"-alpha") == 0 ){
+       iarg++ ; if( iarg >= argc ) ERROR_exit("Need argument after '-alpha'") ;
+       alpha = (float)strtod(argv[iarg],NULL) ;
+       if( alpha < 1.0f || alpha > 20.0f ){
+         WARNING_message("Replacing -alpha %.1f with 5",alpha) ;
+         alpha = 0.05f ;
+       } else {
+         alpha *= 0.01f ;  /* convert from percent to fraction */
+       }
+       iarg++ ; continue ;
+     }
 
      ERROR_exit("Monstrously illegal option '%s'",argv[iarg]) ;
    }
@@ -134,10 +179,12 @@ int main( int argc , char *argv[] )
 
    /* A Bunch of Correlations */
 
-   printf("# %s correlation\n",cor_name[cormeth]) ;
+   srand48((long)time(NULL)+(long)getpid()) ; /* initialize rand48 seed */
+
+   printf("# %s correlation [n=%d]\n",cor_name[cormeth],nx) ;
    sprintf(fmt,"# %%-%ds  %%-%ds",vlen,vlen) ;
    printf(fmt,"Name","Name") ;
-   printf("   Value   BiasCorr   2.5%%    97.5%% \n") ;
+   printf("   Value   BiasCorr  %5.2f%%   %5.2f%% \n",50.0f*alpha,100.0f-50.0f*alpha) ;
    printf("# ") ;
    for( ii=0 ; ii < vlen ; ii++ ) printf("-") ;
    printf("  ") ;
@@ -184,7 +231,7 @@ static float_quad Corrboot( int n , float *x , float *y ,
 
    xar = (float *)malloc(sizeof(float)*nn) ;
    yar = (float *)malloc(sizeof(float)*nn) ;
-   cbb = (float *)malloc(sizeof(float)*NBOOT) ;
+   cbb = (float *)malloc(sizeof(float)*nboot) ;
 
    for( ii=0 ; ii < nn ; ii++ ){ xar[ii] = x[ii] ; yar[ii] = y[ii] ; }
 
@@ -192,14 +239,14 @@ static float_quad Corrboot( int n , float *x , float *y ,
 
    /* compute bootstrap results */
 
-   for( kk=0 ; kk < NBOOT ; kk++ ){
+   for( kk=0 ; kk < nboot ; kk++ ){
      for( ii=0 ; ii < nn ; ii++ ){
        jj = lrand48() % nn ; xar[ii] = x[jj] ; yar[ii] = y[jj] ;
      }
      cbb[kk] = cfun(nn,xar,yar) ;
    }
 
-   bci = THD_bootstrap_confinv( corst , 0.05f , NBOOT , cbb ) ;
+   bci = THD_bootstrap_confinv( corst , alpha , nboot , cbb ) ;
 
    free(cbb) ; free(yar) ; free(xar) ;
 
