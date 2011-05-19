@@ -2934,7 +2934,7 @@ ENTRY("mri_read_1D") ;
      outim = mri_1D_fromstring( dname+3 ) ;
      /** if( outim == NULL ) ERROR_message("read of '1D:' string fails") ; **/
      if( flip ){ inim=mri_transpose(outim); mri_free(outim); outim=inim; }
-     RETURN(outim) ;
+     mri_add_name("1D:...",outim) ; RETURN(outim) ;
    }
 
    /*-- split filename and subvector list --*/
@@ -3458,8 +3458,9 @@ MRI_IMAGE * mri_read_1D_stdin(void)
 ENTRY("mri_read_1D_stdin") ;
 
    if( im_stdin != NULL ){
-INFO_message("copying im_stdin") ;
- inim = mri_copy(im_stdin); RETURN(inim); }
+     ININFO_message("copying im_stdin") ;
+     inim = mri_copy(im_stdin); RETURN(inim);
+   }
 
 INFO_message("reading 1D_stdin") ;
    lbuf = (char * )malloc(sizeof(char )*SIN_NLBUF) ;
@@ -3507,7 +3508,8 @@ INFO_message("reading 1D_stdin") ;
    } else {           /* only 1 row ==> am OK this way */
      inim = flim ;
    }
-   free((void *)val); free((void *)lbuf); im_stdin = mri_copy(inim); RETURN(inim);
+   free((void *)val); free((void *)lbuf);
+   mri_add_name("stdin",inim); im_stdin = mri_copy(inim); RETURN(inim);
 }
 
 /*-----------------------------------------------------------------------------------*/

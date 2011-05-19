@@ -43,7 +43,13 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 16 , MAY , 2011 , RWC , "afni" , MICRO , TYPE_MODIFY ,
+  { 19 , MAY , 2011 , RWC , "1dCorrelate" , MINOR , TYPE_NEW_PROG ,
+   "Compute correlation coefficients of 1D columns" ,
+   "Pearson, Spearman, Quadrant, or Kendall tau_b.\n"
+   "Main goal is to provide the bias-corrected bootstrap estimate of the 95%\n"
+   "confidence interval." } ,
+
+ { 16 , MAY , 2011 , RWC , "afni" , MICRO , TYPE_MODIFY ,
    "Make 'Points' display in grapher get bigger with thicker lines" ,
    "Otherwise, thick lines hide the points.  Done via XFillArc function." } ,
 
