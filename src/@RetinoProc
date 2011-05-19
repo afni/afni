@@ -311,28 +311,19 @@ foreach sd ($sides)
             set p = $p:r
             if ( ! -f {$p}.${sd}.niml.dset ) then
                echo "Mapping $s to surface to create {$p}.${sd}.niml.dset"
-               if ($MapToWm == 1) then
-                  3dVol2Surf  -spec          ${specs[$sdc]} \
-                              -sv            SVol@Epi+orig   \
-                              -surf_A        ${sd}.smoothwm.asc \
-                              -grid_parent   $s \
-                              -map_func      mask   \
-                              -oob_value     0     \
-                              -overwrite     \
-                              -out_niml      {$p}.${sd}.niml.dset 
-               else
-                  3dVol2Surf  -spec          ${specs[$sdc]} \
+               3dVol2Surf     -spec          ${specs[$sdc]} \
                               -sv            SVol@Epi+orig   \
                               -surf_A        ${sd}.smoothwm.asc \
                               -surf_B        ${sd}.pial.asc  \
                               -grid_parent   $s \
                               -map_func      ave   \
                               -f_index       nodes \
-                              -f_steps       15    \
+                              -f_p1_fr       $LayerSpecs[1]  \
+                              -f_pn_fr       $LayerSpecs[2]  \
+                              -f_steps       $LayerSpecs[3]  \
                               -oob_value     0     \
                               -overwrite     \
                               -out_niml      {$p}.${sd}.niml.dset 
-               endif
             else
                echo "Reusing existing {$p}.${sd}.niml.dset "
             endif
@@ -369,18 +360,24 @@ foreach sd ($sides)
    SMOOTH_IF_DESIRED:
       cd $rdir
       foreach tp (1 2 3 4)
+         set dset = $stim_direc[$tp].${sd}.niml.dset
          if ("$stim_direc[$tp]" == "ccw" || "$stim_direc[$tp]" == "clw") then
             set sfwhm = $fwhm_pol
             set class = pol
+            if ( $Nts_pol == 0 && -f $dset ) then
+               set Nts_pol = `3dnvals $dset`
+            endif
          else if ("$stim_direc[$tp]" == "con" || \
                   "$stim_direc[$tp]" == "exp") then
             set sfwhm = $fwhm_ecc
             set class = ecc
+            if ( $Nts_ecc == 0 && -f $dset ) then
+               set Nts_ecc = `3dnvals $dset`
+            endif
          else
             echo "Cannot tell direction of stimulus"
             goto BEND
          endif            
-         set dset = $stim_direc[$tp].${sd}.niml.dset
          if (-f $dset) then
             if (  ! -f $class.sm.SmPar.1D ) then
          echo "Smoothing $dset to $sfwhm mm FWHM and creating $class.sm.SmPar.1D"
@@ -413,14 +410,61 @@ foreach sd ($sides)
             endif
          else
             echo "No user data for $class $stim_direc[$tp]" 
-         endif 
+         endif
       end
       cd $idir
-
+   
+   MAKE_REFS:
+      cd $rdir
+      if ("$pmeth" == "DELAY") then
+         if ( $on_ecc[1] == 0 && $on_pol[1] == 0 ) then
+            echo "Need -on_ecc and/or -on_pol with -delay"
+            goto END
+         endif
+         echo "Creating ideal 0 latency responses for delay estimation."
+         foreach dr (pol ecc)
+            if ($dr == 'pol') then
+               set pre = `ccalc -i $pre_pol/$TR`
+               set on = `ccalc -i $on_pol[1]/$TR`
+               set mul = $nwedges
+               set T = `ccalc -i $period_pol/$mul/$TR`
+               set nblk = `ccalc -i "$on_pol[2]*$mul"`
+               set ref_ts = POL.1D
+               set nvals = $Nts_pol
+            else 
+               set pre = `ccalc -i $pre_ecc/$TR`
+               set on = `ccalc -i $on_ecc[1]/$TR`
+               set mul = $nrings
+               set T = `ccalc -i $period_ecc/$mul/$TR`
+               set nblk = `ccalc -i "$on_ecc[2]*$mul"`
+               set ref_ts = ECC.1D
+               set nvals = $Nts_ecc
+            endif
+            set off = `ccalc -i $T - $on`
+            set kbl = 0
+            if ($on > 0) then
+               set com = "waver -TR $TR -GAM -numout $nvals -inline $pre@0.0   "
+               while ($kbl < $nblk)
+                  set com = "$com $on@1.0 $off@0.0 "
+                  @ kbl ++
+               end
+               echo $com
+               $com > $ref_ts
+            endif
+         end   
+      endif
+      cd $idir
+      
    PHASE:
       cd $rdir
       foreach sss ( '' '.sm')
          POLAR_BLOCK:
+         if ("$pmeth" == "DELAY") then
+            set RetOpt = \
+               '-phase_estimate DELAY -ref_ts POL.1D -ort_adjust $polort'
+         else
+            set RetOpt = '-phase_estimate FFT'
+         endif
          set cls = ()
          if ( -f ccw${sss}.$sd.niml.dset) then
             set cls = ($cls ccw${sss}.$sd.niml.dset) 
@@ -435,9 +479,9 @@ foreach sd ($sides)
          echo "Estimating ${cc} vis. field angle from two directions ${ec}${sss}"
                3dRetinoPhase  -$stim_direc[1] $cls[1]  \
                               -$stim_direc[2] $cls[2]  \
-                              -detrend -Tpol $period_pol \
+                              -Tpol $period_pol \
                               -nwedges $nwedges   \
-                              -pre_stim $pre_pol \
+                              -pre_stim $pre_pol $RetOpt \
                               -prefix ${ec}${sss}.$sd.niml.dset
             else
          echo "Reusing polar field angle ${ec}${sss}.$sd.pol.field.niml.dset"
@@ -449,15 +493,21 @@ foreach sd ($sides)
             if ( ! -f $ec${sss}.$sd.pol$sg.niml.dset) then
                echo "Estimating ${cc} hemodynamic angle from one direction"
                3dRetinoPhase  -$cc $cls[1]  \
-                              -detrend -Tpol $period_pol \
+                              -Tpol $period_pol \
                               -nwedges $nwedges   \
-                              -pre_stim $pre_pol \
+                              -pre_stim $pre_pol $RetOpt \
                               -prefix ${ec}${sss}.$sd.niml.dset
             else
                echo "Reusing ${ec}${sss}.$sd.$cc$sg.niml.dset"
             endif
          endif
          ECC_BLOCK:
+         if ("$pmeth" == "DELAY") then
+            set RetOpt = \
+               '-phase_estimate DELAY -ref_ts ECC.1D -ort_adjust $polort'
+         else
+            set RetOpt = '-phase_estimate FFT'
+         endif
          set cls = ()
          if ( -f exp${sss}.$sd.niml.dset) then
             set cls = ($cls exp${sss}.$sd.niml.dset) 
@@ -472,9 +522,9 @@ foreach sd ($sides)
          echo "Estimating ${cc} vis. field angle from two directions ${ec}${sss}"
                3dRetinoPhase  -$stim_direc[3] $cls[1]  \
                               -$stim_direc[4] $cls[2]  \
-                              -detrend -Tecc $period_ecc \
+                              -Tecc $period_ecc \
                               -nrings $nrings   \
-                              -pre_stim $pre_ecc \
+                              -pre_stim $pre_ecc $RetOpt \
                               -prefix ${ec}${sss}.$sd.niml.dset
             else
      echo "Reusing eccentricity field angle ${ec}${sss}.$sd.ecc.field.niml.dset"
@@ -486,9 +536,9 @@ foreach sd ($sides)
             if ( ! -f $ec${sss}.$sd.ecc$sg.niml.dset) then
                echo "Estimating ${cc} hemodynamic angle from one direction"
                3dRetinoPhase  -$cc $cls[1]  \
-                              -detrend -Tecc $period_ecc \
+                              -Tecc $period_ecc \
                               -nrings $nrings   \
-                              -pre_stim $pre_ecc \
+                              -pre_stim $pre_ecc $RetOpt \
                               -prefix ${ec}${sss}.$sd.niml.dset
             else
                echo "Reusing ${ec}${sss}.$sd.$cc$sg.niml.dset"
@@ -615,6 +665,9 @@ EXAMINE_RESULTS:
       goto END
    endif
    echo "" >> @ShowResult
+   
+   chmod u+x @ShowResult
+   
    cd $idir
 
 goto END
@@ -632,6 +685,8 @@ PARSE:
    set nrings = 1
    set period_pol = ''
    set nwedges = 1
+   set on_ecc = (0 0)
+   set on_pol = (0 0)
    set fwhm_pol = 4
    set fwhm_ecc = 8
    set tshift = 0
@@ -660,7 +715,10 @@ PARSE:
    set u_AVolAtEpi = ''
    set spec_left = 'NADA'
    set spec_right = 'NADA'
-   set MapToWm = 0
+   set LayerSpecs = ( 0.0 0.0 15) 
+   set pmeth = 'FFT'
+   set Nts_ecc = 0
+   set Nts_pol = 0
    set cnt = 1
    
    if ($Narg < 2) goto HELP
@@ -672,10 +730,50 @@ PARSE:
          goto NEXT		
       endif
       
-      if ( "$argv[$cnt]" == "-wm") then
-         set MapToWm	= 1	
+      if ( "$argv[$cnt]" == "-gm") then
+         set LayerSpecs	= ( 0.0 0.0 15)	
          goto NEXT		
       endif
+      
+      if ( "$argv[$cnt]" == "-delay") then
+         set pmeth	= 'DELAY'	
+         goto NEXT		
+      endif
+      
+      if ( "$argv[$cnt]" == "-phase") then
+         set pmeth	= 'FFT'	
+         goto NEXT		
+      endif
+      
+      if ( "$argv[$cnt]" == "-wm") then
+         set LayerSpecs	= ( 0.0 -1.0 1)	
+         goto NEXT		
+      endif
+      
+      if ( "$argv[$cnt]" == "-pial") then
+         set LayerSpecs	= ( 1.0 0.0 1)	
+         goto NEXT		
+      endif
+      
+      if ( "$argv[$cnt]" == "-midlayer") then
+         set LayerSpecs	= ( 0.5 -0.5 1)	
+         goto NEXT		
+      endif
+
+      if ( "$argv[$cnt]" == "-layer") then
+         set pLoc = $cnt		
+		   if ($pLoc == $Narg) then
+				echo "Need fraction after -layer"
+            goto END
+			else
+            @ cnt ++
+            set LayerSpecs[1] = `ccalc "$argv[$cnt]"`
+            set LayerSpecs[2] = `ccalc $LayerSpecs[1] -1.0`
+            set LayerSpecs[3] = 1 
+            goto NEXT	
+         endif	
+      endif
+         
       
       if ( ("$argv[$cnt]" == "-h" || "$argv[$cnt]" == "-help") ) then
          goto HELP
@@ -878,6 +976,38 @@ PARSE:
             goto NEXT	
          endif	
       endif
+
+      if ( "$argv[$cnt]" == "-on") then
+         set pLoc = $cnt		
+		   if ($pLoc == $Narg) then
+				echo "Need 2 numbers  after -on"
+            goto END
+			else
+            @ cnt ++
+            set on_ecc[1] = `printf '%g' $argv[$cnt]` 
+            set on_pol[1] = `printf '%g' $argv[$cnt]`
+            if ($pLoc == $Narg) then
+				   echo "Need 2 numbers  after -on"
+               goto END
+            endif
+            @ cnt ++
+            set on_ecc[2] = `printf '%g' $argv[$cnt]` 
+            set on_pol[2] = `printf '%g' $argv[$cnt]`
+            if (  $on_ecc[1] <= 0 || $on_ecc[2] <= 0 || \
+                  $on_ecc[2] > 50 ) then
+               echo "Something is wrong with -on_ecc $on_ecc[1] $on_ecc[2]"
+               echo "First value should be > 0, second > 0 and < 50 "
+               goto END
+            endif
+            if (  $on_pol[1] <= 0 || $on_pol[2] <= 0 || \
+                  $on_pol[2] > 50 ) then
+               echo "Something is wrong with -on_pol $on_pol[1] $on_pol[2]"
+               echo "First value should be > 0, second > 0 and < 50 "
+               goto END
+            endif
+            goto NEXT	
+         endif	
+      endif
       
       if ( "$argv[$cnt]" == "-period_ecc") then
          set pLoc = $cnt		
@@ -899,6 +1029,54 @@ PARSE:
 			else
             @ cnt ++
             set period_pol = `printf '%g' $argv[$cnt]`
+            goto NEXT	
+         endif	
+      endif
+
+      if ( "$argv[$cnt]" == "-on_ecc") then
+         set pLoc = $cnt		
+		   if ($pLoc == $Narg) then
+				echo "Need 2 numbers  after -on_ecc"
+            goto END
+			else
+            @ cnt ++
+            set on_ecc[1] = `printf '%g' $argv[$cnt]`
+            if ($pLoc == $Narg) then
+				   echo "Need 2 numbers  after -on_ecc"
+               goto END
+            endif
+            @ cnt ++
+            set on_ecc[2] = `printf '%g' $argv[$cnt]`
+            if (  $on_ecc[1] <= 0 || $on_ecc[2] <= 0 || \
+                  $on_ecc[2] > 50 ) then
+               echo "Something is wrong with -on_ecc $on_ecc[1] $on_ecc[2]"
+               echo "First value should be > 0, second > 0 and < 50 "
+               goto END
+            endif
+           goto NEXT	
+         endif	
+      endif
+      
+      if ( "$argv[$cnt]" == "-on_pol") then
+         set pLoc = $cnt		
+		   if ($pLoc == $Narg) then
+				echo "Need 2 numbers  after -on_pol"
+            goto END
+			else
+            @ cnt ++
+            set on_pol[1] = `printf '%g' $argv[$cnt]`
+            if ($pLoc == $Narg) then
+				   echo "Need 2 numbers  after -on_pol"
+               goto END
+            endif
+            @ cnt ++
+            set on_pol[2] = `printf '%g' $argv[$cnt]`
+            if (  $on_pol[1] <= 0 || $on_pol[2] <= 0 || \
+                  $on_pol[2] > 50 ) then
+               echo "Something is wrong with -on_pol $on_pol[1] $on_pol[2]"
+               echo "First value should be > 0, second > 0 and < 50 "
+               goto END
+            endif
             goto NEXT	
          endif	
       endif
@@ -1213,6 +1391,12 @@ echo " 3dRetinoPhase, and SurfRetinMap "
 echo ""
 echo "The Options:"
 echo "==========="
+echo "+++ Latency estimation:"
+echo " -phase : Use phase of fundamental frequency to estimate latency (default)"
+echo " -delay : Use delay relative to reference time series to estimate latency"
+echo "          You should be better off using the -delay option, especially in "
+echo "          noisy situations"
+echo ""
 echo "+++ Stimulus, and Time Series Parameters:"
 echo " -TR TR: TR, in seconds, of retinotopic scans"
 echo " -period_ecc TECC: Period, in seconds, of eccentricity (rings) and"
@@ -1229,6 +1413,10 @@ echo " -pre_ecc PREECC: PREECC and PREPOL are the durations, in sec, before the 
 echo " -pre_pol PREPOL: each of the two stimuli began. The duration is relative"
 echo "                  to the beginning of the retinotopic time series, "
 echo "                  after the pre-steadystate images have been removed."
+echo " -on_ecc ON_ECC N_BLOCKS: Duration of stimulation in seconds per visual "
+echo " -on_pol ON_POL N_BLOCKS: location followed by the number of stimulation"
+echo "                          blocks for both directions."
+echo "                 These two options are only useful if you use -delay."
 echo ""
 echo " -nwedges NWED: Number of wedges in polar stimulus, and number of rings."
 echo " -nrings NRING: in eccentricity stimulus."
@@ -1289,6 +1477,26 @@ echo "         Check for this with AFNI and SUMA using:"
 echo "         suma -spec SPL -sv SVol@Epi & ; afni -niml &"
 echo "   Note this option used to be called -surf_vol_alndepi"
 echo ""
+echo "+++ Volume --> Surface options"
+echo "    Maps by gray matter intersection:"
+echo "   -gm : Map voxels that intersect gray matter as defined by the bounding"
+echo "         smoothed white matter and pial surfaces. (default)"
+echo ""
+echo "    Maps by single surface intersections:"
+echo "   -wm : Map voxels that intersect the smoothed white matter surface only"
+echo "         This seems to give cleaner maps, perhaps by being less encumbered"
+echo "         by pial voxels that may have aliased sampling." 
+echo "   -pial: Map voxels that intersect the pial surface only"
+echo "   -midlayer: Map voxels that intersect the surface lying midway between "
+echo "              smoothed white matter and pial surfaces"
+echo "   -layer FRAC: Map voxels that intersect the surface that is a fraction "
+echo "                FRAC of the cortical thickness away from the smoothed "
+echo "                white matter surface."
+echo "            In other terms:"
+echo "                -wm       ==  -layer 0.0"
+echo "                -pial     ==  -layer 1.0"
+echo "                -midlayer ==  -layer 0.5" 
+echo ""
 echo "+++ Surface-based input: "
 echo "    Surfaces:"
 echo " -spec_left  SPL: SPL, and SPR are the spec files for the left and"  
@@ -1301,7 +1509,8 @@ echo " -lh_clw CLW_1 CLW_2 ...: series that have already been mapped to the "
 echo " -lh_exp EXP_1 EXP_2 ...: surface for each of the four stimulus types. "
 echo " -lh_con CON_1 CON_2 ...: You can have multiple runs of each type. "
 echo "                          The script assumes that nuisance parameters "
-echo "                          have already been regressed out of these time" echo "                          series."
+echo "                          have already been regressed out of these time"
+echo "                          series."
 echo "    For the right hemisphere, replace -lh_ in the option names with -rh_"
 echo "    It makes no sense to use these options along with -ccw, -clw, -exp, "
 echo "    or -con."
@@ -1340,6 +1549,21 @@ echo " and Sergey V. Fogelson from:"
 echo "       afni.nimh.nih.gov/pub/dist/tgz/AfniRetinoDemo.tgz"
 echo "A README file in the archive will point you to sample scripts that "
 echo "illustrate the usage of @RetinoProc."
+echo ""
+echo "References:"
+echo "==========="
+echo "   [1] RW Cox. AFNI: Software for analysis and visualization of functional"
+echo "                     magnetic resonance neuroimages.  "
+echo "                     Computers and Biomedical Research, 29: 162-173, 1996."
+echo "   [2] Saad Z.S., et al.  SUMA: An Interface For Surface-Based Intra- And"
+echo "                      Inter-Subject Analysis With AFNI."
+echo "     Proc. 2004 IEEE International Symposium on Biomed. Imaging, 1510-1513"
+echo "   [3] Saad, Z.S., et al. Analysis and use of FMRI response delays. "
+echo "         Hum Brain Mapp, 2001. 13(2): p. 74-93."
+echo "   [4] Saad, Z.S., et al., Estimation of FMRI Response Delays."
+echo "         Neuroimage, 2003. 18(2): p. 494-504."
+echo "   [5] Warnking et al. FMRI Retinotopic Mapping - Step by Step."
+echo "         Neuroimage 17, (2002)"
 echo ""
 echo "Kvetching:"
 echo "============"

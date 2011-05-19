@@ -5607,7 +5607,7 @@ SUMA_Boolean SUMA_UpdateNodeField(SUMA_SurfaceObject *SO)
       }
    } 
 
-   if (curSO == SO) {
+   if (SUMA_isRelated (SO, curSO, 1)) {
       SUMA_LH( "Updating GUI Node Fields, "
                "whereami is handled in SUMA_UpdateNodeLblField");
       SUMA_UPDATE_ALL_NODE_GUI_FIELDS(SO);

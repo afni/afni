@@ -27,6 +27,27 @@
 #define METH_DEGREES 1
 #define METH_RADIANS 2
 
+#define ERROR_NOTHINGTODO 	1				/* Nothing to do in hilbertdelay_V2 function */
+#define ERROR_LARGENSEG		2				/* Too many segments specified in hilbertdelay_V2 function */
+#define ERROR_LONGDELAY		3				/* Could not detect zero crossing before half of time course was gone */
+#define ERROR_WRONGUNIT		8				/* Wrong units selected to pass to the delay functions */
+#define ERROR_WARPVALUES	9
+#define ERROR_FSVALUES		10
+#define ERROR_TVALUES		11
+#define ERROR_TaUNITVALUES	12
+#define ERROR_TaWRAPVALUES	13
+#define ERROR_FILEOPEN		15
+#define ERROR_SERIESLENGTH	16
+#define ERROR_OPTIONS		17
+#define ERROR_NULLTIMESERIES 	18
+#define ERROR_OUTCONFLICT 	19
+#define ERROR_BADLENGTH		20
+
+typedef struct {
+    float real, imag;
+} COMPLEX;
+   /* taken from #include "/usr/people/ziad/Programs/C/DSP_in_C/dft.h" */
+   /* dft.h - function prototypes and structures for dft and fft functions */
 
 static int Read_file (float *x,char *f_name,int n_points);
 
@@ -73,7 +94,8 @@ static int hilbertdelay_V2 (float *x,float *y,int lng_full,int Nseg,int Pover,\
                        float *del,float *slp,float *xcor,float *xcorCoef,\
                        float *vx, float *vy);
                        
-static void hunwrap (float del, float fs, float T, float slp, int wrp, int unt, float *delu );
+static void hunwrap (float del, float fs, float T, float slp, int wrp, int unt, 
+                     int rev, float scl, float *delu );
 
 static int isarg (int argc, char *argv[], char *probe);
 
@@ -1166,7 +1188,13 @@ static void f_mult (float *x,float *y,float *z,int ln)
 	larger than one 1/2 a segment length*/
 
 /* The difference between 	hilbertdelay_V2 and hilbertdelay is that the parameter negslp is not used anymore in V2 version */
-static int hilbertdelay_V2 (float *x,float *y,int lng_full,int Nseg,int Pover,int opt,int dtrnd, float Dtx, int biasrem, float *del,float *slp,float *xcor,float *xcorCoef, float *vx, float *vy)
+static int hilbertdelay_V2 (float *x,
+                            float *y, int lng_full,
+                            int Nseg, int Pover,
+                            int opt,int dtrnd, 
+                            float Dtx, int biasrem, 
+                            float *del,float *slp, 
+                            float *xcor,float *xcorCoef, float *vx, float *vy)
 	{	
 	 static int i_call=0,olng,m,lng_use,lng,strt,nd,sg,cnt,maxdel = 0;
 	 static COMPLEX   *fftx,*ffty,*Pxy,*fftyc,*fftxc,*Pxx,*Pyy,
@@ -1599,7 +1627,7 @@ else if (opt == 0)
 
 /*-----------------------------------------------------------------------------------*/	
 
-static void hunwrap (float del, float fs, float T, float slp, int wrp, int unt, float *delu )
+static void hunwrap (float del, float fs, float T, float slp, int wrp, int unt, int rev, float scl, float *delu )
 {/*hunwrap*/
 
 	float pi = 3.1416, tmp;
@@ -1637,12 +1665,28 @@ static void hunwrap (float del, float fs, float T, float slp, int wrp, int unt, 
 					del = tmp * T / 360.0;	/* from polar to time */
 				}  
 			
+         if (rev == 1) {
+            del = T - del; /* reverse direction */
+         }
+         if (scl != 1.0) {
+            del = del*scl;
+         }
  			if (wrp == 1)
-								{/* map of (0-pi) to (0-pi) and (pi-2pi) to (pi-0) */
-									tmp = del * 360.0 / T;		/* from time to polar angle */
-									tmp = punwrap (tmp,1);		/* unwrap */
-									del = tmp * T / 360.0;		/* from polar to time */
-								}/* map of (0-pi) to (0-pi) and (pi-2pi) to (pi-0) */
+			   {/* map of (0-pi) to (0-pi) and (pi-2pi) to (pi-0) */
+				   if (scl != 1.0) {
+                  static int iwarn = 0;
+                  if (!iwarn) {
+                     fprintf(stderr,
+                        "\n"
+                        "WARNING: wrap is meaningless with scl != 1.0\n"
+                        "        Check your results.\n");
+                     ++iwarn;
+                  }
+               }
+               tmp = del * 360.0 / T;		/* from time to polar angle */
+				   tmp = punwrap (tmp,1);		/* unwrap */
+				   del = tmp * T / 360.0;		/* from polar to time */
+			   }/* map of (0-pi) to (0-pi) and (pi-2pi) to (pi-0) */
 
  			if (unt == METH_DEGREES) del = del * 360.0 / T;		/* from time to polar angle in degrees*/
 			if (unt == METH_RADIANS) del = del * 2 * pi / T;		/* from time to polar angle in degrees*/	

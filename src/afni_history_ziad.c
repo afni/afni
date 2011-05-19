@@ -65,6 +65,46 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 18, MAY , 2011 , ZSS , "suma" , MICRO , TYPE_BUG_FIX,
+   "Node value now updates when switching dsets while viewing surf patches.\n",
+   NULL,
+  } ,
+
+ { 18, MAY , 2011 , ZSS , "@RetinoProc" , MAJOR , TYPE_NEW_OPT,
+   "Added options for mapping to specific layers, and the use of delay\n",
+   "The options -wm, -pial, etc. allow for tight control of mapping\n"
+   "onto specific layers in the cortex.\n"
+   "Option -delay improves latency estimation compare to using the phase\n"
+   "of the fundamental frequency.\n" 
+  } ,
+
+  { 18, MAY , 2011 , ZSS , "SurfRetinoMap" , MINOR , TYPE_MODIFY,
+   "Added a correlation coefficient with VFR output. \n",
+   NULL,
+  } ,
+
+ { 18, MAY , 2011 , ZSS , "3dRetinoPhase" , MAJOR , TYPE_NEW_OPT,
+   "Added options to 3dRetinoPhase to estimate latency as in 3ddelay \n",
+   "The two options for computing delays, instead of phase, are \n"
+   "-phase_estimate DELAY, and -ref_ts REF_TS . See program's -help for \n"
+   "details.\n"
+   "Also added -ort_adjust which is needed to account for lost DOF in \n"
+   "external detrending when estimating the significance of correlation \n"
+   "coefficients with delay estimation.\n"
+   "The program now output a correlation coefficient with the visual field\n"
+   "angles datasets. \n"
+   "And speaking of correlation coefficients, the significance levels should\n"
+   "be taken with a grain of salt, especially in derived datasets such as \n"
+   "field angle, and VFR in SurfRetinoMap.\n" 
+  } ,
+
+ { 18, MAY , 2011 , ZSS , "3ddelay" , MINOR , TYPE_NEW_OPT,
+   "Added options to 3ddelay to improve its utility for retinotopy analysis",
+   "The new options are -phzreverse and -phzscale. Though useful, you are\n"
+   "better off using 3dRetinoPhase -phase_estimate DELAY option. It is much\n"
+   "more convenient for retinotopy analysis and fits better in @RetinoProc\n"
+  } ,
+
  { 25, APR , 2011 , ZSS , "afni-general" , MAJOR , TYPE_MODIFY,
    "Major reorganization of 'whereami' functionality.",
    "The code changes affect anything related to atlas datasets and whereami\n"
