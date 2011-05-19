@@ -424,44 +424,57 @@ foreach sd ($sides)
          echo "Creating ideal 0 latency responses for delay estimation."
          foreach dr (pol ecc)
             if ($dr == 'pol') then
-               set pre = `ccalc -i $pre_pol/$TR`
-               set on = `ccalc -i $on_pol[1]/$TR`
                set mul = $nwedges
+               set pre = `ccalc -i $pre_pol/$TR`
+               set nblk = `ccalc -i "$on_pol[1]*$mul"`
+               set cco = ()
+               foreach oo ($on_pol[2-])
+                  set cco = ($cco `ccalc -i $oo/$TR`)
+               end
                set T = `ccalc -i $period_pol/$mul/$TR`
-               set nblk = `ccalc -i "$on_pol[2]*$mul"`
-               set ref_ts = POL.1D
+               set ref_ts = POL
                set nvals = $Nts_pol
             else 
-               set pre = `ccalc -i $pre_ecc/$TR`
-               set on = `ccalc -i $on_ecc[1]/$TR`
                set mul = $nrings
+               set pre = `ccalc -i $pre_ecc/$TR`
+               set nblk = `ccalc -i "$on_ecc[1]*$mul"`
+               set cco = ()
+               foreach oo ($on_ecc[2-])
+                  set cco = ($cco `ccalc -i $oo/$TR`)
+               end
                set T = `ccalc -i $period_ecc/$mul/$TR`
-               set nblk = `ccalc -i "$on_ecc[2]*$mul"`
-               set ref_ts = ECC.1D
+               set ref_ts = ECC
                set nvals = $Nts_ecc
             endif
-            set off = `ccalc -i $T - $on`
-            set kbl = 0
-            if ($on > 0) then
-               set com = "waver -TR $TR -GAM -numout $nvals -inline $pre@0.0   "
-               while ($kbl < $nblk)
-                  set com = "$com $on@1.0 $off@0.0 "
-                  @ kbl ++
-               end
-               echo $com
-               $com > $ref_ts
-            endif
+            echo '' > $ref_ts.WAVER.log
+            set onv = (`count -digits 1 $cco`)
+            foreach on ($onv) 
+               set on2 = `printf %02d $on`
+               set off = `ccalc -i $T - $on`
+               set kbl = 0
+               if ($on > 0) then
+                  set com = "waver -TR $TR -GAM -numout $nvals -inline $pre@0.0 "
+                  while ($kbl < $nblk)
+                     set com = "$com $on@1.0 $off@0.0 "
+                     @ kbl ++
+                  end
+                  echo $com >> $ref_ts.WAVER.log
+                  $com > $ref_ts.${on2}.1D
+               endif
+            end
+            1dcat $ref_ts.??.1D > $ref_ts.1D
+            \rm -f ./$ref_ts.??.1D
          end   
       endif
       cd $idir
-      
+
    PHASE:
       cd $rdir
       foreach sss ( '' '.sm')
          POLAR_BLOCK:
          if ("$pmeth" == "DELAY") then
             set RetOpt = \
-               '-phase_estimate DELAY -ref_ts POL.1D -ort_adjust $polort'
+               '-phase_estimate DELAY -multi_ref_ts POL.1D -ort_adjust $polort'
          else
             set RetOpt = '-phase_estimate FFT'
          endif
@@ -504,7 +517,7 @@ foreach sd ($sides)
          ECC_BLOCK:
          if ("$pmeth" == "DELAY") then
             set RetOpt = \
-               '-phase_estimate DELAY -ref_ts ECC.1D -ort_adjust $polort'
+               '-phase_estimate DELAY -multi_ref_ts ECC.1D -ort_adjust $polort'
          else
             set RetOpt = '-phase_estimate FFT'
          endif
@@ -685,8 +698,8 @@ PARSE:
    set nrings = 1
    set period_pol = ''
    set nwedges = 1
-   set on_ecc = (0 0)
-   set on_pol = (0 0)
+   set on_ecc = (0 0 0 0)
+   set on_pol = (0 0 0 0)
    set fwhm_pol = 4
    set fwhm_ecc = 8
    set tshift = 0
@@ -993,16 +1006,16 @@ PARSE:
             @ cnt ++
             set on_ecc[2] = `printf '%g' $argv[$cnt]` 
             set on_pol[2] = `printf '%g' $argv[$cnt]`
-            if (  $on_ecc[1] <= 0 || $on_ecc[2] <= 0 || \
-                  $on_ecc[2] > 50 ) then
+            if (  $on_ecc[2] <= 0 || $on_ecc[1] <= 0 || \
+                  $on_ecc[1] > 50 ) then
                echo "Something is wrong with -on_ecc $on_ecc[1] $on_ecc[2]"
                echo "First value should be > 0, second > 0 and < 50 "
                goto END
             endif
-            if (  $on_pol[1] <= 0 || $on_pol[2] <= 0 || \
-                  $on_pol[2] > 50 ) then
+            if (  $on_pol[2] <= 0 || $on_pol[1] <= 0 || \
+                  $on_pol[1] > 50 ) then
                echo "Something is wrong with -on_pol $on_pol[1] $on_pol[2]"
-               echo "First value should be > 0, second > 0 and < 50 "
+               echo "First value should be > 0 and < 50, other > 0"
                goto END
             endif
             goto NEXT	
@@ -1033,49 +1046,77 @@ PARSE:
          endif	
       endif
 
-      if ( "$argv[$cnt]" == "-on_ecc") then
+      if (  "$argv[$cnt]" == "-on_ecc" || \
+            "$argv[$cnt]" == "-var_on_ecc" ) then
+         set do4 = 0
+         if ("$argv[$cnt]" == "-var_on_ecc" ) set do4  = 1
          set pLoc = $cnt		
 		   if ($pLoc == $Narg) then
-				echo "Need 2 numbers  after -on_ecc"
+				echo "Need 2 numbers  after -on_ecc, 4 after -var_on_ecc"
             goto END
 			else
             @ cnt ++
             set on_ecc[1] = `printf '%g' $argv[$cnt]`
             if ($pLoc == $Narg) then
-				   echo "Need 2 numbers  after -on_ecc"
+				   echo "Need 2 numbers  after -on_ecc, 4 after -var_on_ecc"
                goto END
             endif
             @ cnt ++
             set on_ecc[2] = `printf '%g' $argv[$cnt]`
-            if (  $on_ecc[1] <= 0 || $on_ecc[2] <= 0 || \
-                  $on_ecc[2] > 50 ) then
+            if (  $on_ecc[2] <= 0 || $on_ecc[1] <= 0 || \
+                  $on_ecc[1] > 50 ) then
                echo "Something is wrong with -on_ecc $on_ecc[1] $on_ecc[2]"
-               echo "First value should be > 0, second > 0 and < 50 "
+               echo "First value should be > 0 and < 50, other > 0"
                goto END
             endif
-           goto NEXT	
+            if ($do4 == 1) then
+               @ cnt ++
+               set on_ecc[3] = `printf '%g' $argv[$cnt]`
+               @ cnt ++
+               set on_ecc[4] = `printf '%g' $argv[$cnt]`
+               if (  $on_ecc[3] <= 0 || $on_ecc[4] <= 0 ) then
+                  echo "Something is wrong with -var_on_ecc $on_ecc"
+                  echo "First value should be > 0 and < 50, other > 0"
+                  goto END
+               endif
+            endif
+            goto NEXT	
          endif	
       endif
       
-      if ( "$argv[$cnt]" == "-on_pol") then
+      if ( "$argv[$cnt]" == "-on_pol" || \
+            "$argv[$cnt]" == "-var_on_pol" ) then
+         set do4 = 0
+         if ("$argv[$cnt]" == "-var_on_pol" ) set do4  = 1
          set pLoc = $cnt		
 		   if ($pLoc == $Narg) then
-				echo "Need 2 numbers  after -on_pol"
+				echo "Need 2 numbers  after -on_pol, 4 after -var_on_pol"
             goto END
 			else
             @ cnt ++
             set on_pol[1] = `printf '%g' $argv[$cnt]`
             if ($pLoc == $Narg) then
-				   echo "Need 2 numbers  after -on_pol"
+				   echo "Need 2 numbers  after -on_pol, 4 after -var_on_pol"
                goto END
             endif
             @ cnt ++
             set on_pol[2] = `printf '%g' $argv[$cnt]`
-            if (  $on_pol[1] <= 0 || $on_pol[2] <= 0 || \
-                  $on_pol[2] > 50 ) then
+            if (  $on_pol[2] <= 0 || $on_pol[1] <= 0 || \
+                  $on_pol[1] > 50 ) then
                echo "Something is wrong with -on_pol $on_pol[1] $on_pol[2]"
-               echo "First value should be > 0, second > 0 and < 50 "
+               echo "First value should be > 0 and < 50, other > 0"
                goto END
+            endif
+            if ($do4 == 1) then
+               @ cnt ++
+               set on_pol[3] = `printf '%g' $argv[$cnt]`
+               @ cnt ++
+               set on_pol[4] = `printf '%g' $argv[$cnt]`
+               if (  $on_pol[3] <= 0 || $on_pol[4] <= 0 ) then
+                  echo "Something is wrong with -var_on_pol $on_pol"
+                  echo "First value should be > 0 and < 50, other > 0"
+                  goto END
+               endif
             endif
             goto NEXT	
          endif	
@@ -1343,6 +1384,14 @@ PARSE:
       NEXT:
 		@ cnt ++
 	end
+   
+   #Make on_ecc and on_pol be fully formed  [#block  on_min on_max on_step]
+   if ($on_ecc[3] == 0) set on_ecc[3] = $on_ecc[2]
+   if ($on_ecc[4] == 0) set on_ecc[4] = $TR
+
+   if ($on_pol[3] == 0) set on_pol[3] = $on_pol[2]
+   if ($on_pol[4] == 0) set on_pol[4] = $TR
+
    goto RET_PARSE
 
 SANITY:
@@ -1413,10 +1462,18 @@ echo " -pre_ecc PREECC: PREECC and PREPOL are the durations, in sec, before the 
 echo " -pre_pol PREPOL: each of the two stimuli began. The duration is relative"
 echo "                  to the beginning of the retinotopic time series, "
 echo "                  after the pre-steadystate images have been removed."
-echo " -on_ecc ON_ECC N_BLOCKS: Duration of stimulation in seconds per visual "
-echo " -on_pol ON_POL N_BLOCKS: location followed by the number of stimulation"
-echo "                          blocks for both directions."
-echo "                 These two options are only useful if you use -delay."
+echo " -on_ecc N_BLOCKS ON_ECC : Number of stimulation blocks in both directions"
+echo " -on_pol N_BLOCKS ON_POL : followed by the duration of stimulation in sec."
+echo "                           per visual location."
+echo " -var_on_ecc N_BLOCKS MIN_ON_ECC MAX_ON_ECC STEP_ON_ECC: Use multiple "
+echo " -var_on_pol N_BLOCKS MIN_ON_POL MAX_ON_POL STEP_ON_POL: on durations "
+echo "                           and create multiple reference time series"
+echo "                           for 3dRetinoPhase. See -multi_ref_ts option"
+echo "                           in 3dRetinoPhase. Leave -var_ options alone"
+echo "                           If you don't know what you're doing with it."
+echo "           All ON_ values are in seconds. STEP_* must be multiple of TR."
+echo ""
+echo "           Options -*on* are only useful if you use -delay."
 echo ""
 echo " -nwedges NWED: Number of wedges in polar stimulus, and number of rings."
 echo " -nrings NRING: in eccentricity stimulus."

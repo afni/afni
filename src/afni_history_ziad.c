@@ -65,13 +65,23 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 19, MAY , 2011 , ZSS , "@RetinoProc" , MINOR , TYPE_NEW_OPT,
+   "Added support for multiple reference time series.",
+   "Search for -var* options in @RetinoProc -help.\n" 
+  } ,
+
+ { 19, MAY , 2011 , ZSS , "3dRetinoPhase" , MINOR , TYPE_NEW_OPT,
+   "Added option to use best of multiple reference time series.",
+   "Search for -multi_ref_ts in 3dRetinoPhase -help\n" 
+ } ,
+
  { 18, MAY , 2011 , ZSS , "suma" , MICRO , TYPE_BUG_FIX,
    "Node value now updates when switching dsets while viewing surf patches.\n",
    NULL,
   } ,
 
  { 18, MAY , 2011 , ZSS , "@RetinoProc" , MAJOR , TYPE_NEW_OPT,
-   "Added options for mapping to specific layers, and the use of delay\n",
+   "Added options for mapping to specific layers, and the use of delay",
    "The options -wm, -pial, etc. allow for tight control of mapping\n"
    "onto specific layers in the cortex.\n"
    "Option -delay improves latency estimation compare to using the phase\n"
