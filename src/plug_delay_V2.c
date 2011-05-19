@@ -797,10 +797,12 @@ static void DELAY_tsfuncV2( double T0 , double TR ,
          ncall = 0 ;         /* number of calls */
 			
       } else {  /* the "end notification" */
-			
 			opt = 0;					/* cleanup in hdelay */
-   		status = hilbertdelay_V2 (ts,ud->rvec,ud->ln,ud->Nseg,ud->Pover,opt,ud->dtrnd,dtx,ud->biasrem,&tmp,&slp,&xcor,&tmp2,&vts,&vrvec);					/* cleanup time */
-	
+   		#if 0
+         status = hilbertdelay_V2 (ts,ud->rvec,ud->ln,ud->Nseg,ud->Pover,opt,ud->dtrnd,dtx,ud->biasrem,&tmp,&slp,&xcor,&tmp2,&vts,&vrvec);					/* cleanup time */
+	      #else
+         hilbertdelay_V2reset();
+         #endif
          PLUTO_set_meter( global_plint , 100 ) ; /* set meter to 100% */
 
       }
