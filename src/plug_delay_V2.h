@@ -19,7 +19,7 @@
 #define drem remainder
 #endif
 #ifndef NOWAYXCORCOEF
-	#define NOWAYXCORCOEF 0					/* A flag value indicating that something lethal went on */
+   #define NOWAYXCORCOEF 0               /* A flag value indicating that something lethal went on */
 #endif
 
 /* do not change these three*/
@@ -27,27 +27,30 @@
 #define METH_DEGREES 1
 #define METH_RADIANS 2
 
-#define ERROR_NOTHINGTODO 	1				/* Nothing to do in hilbertdelay_V2 function */
-#define ERROR_LARGENSEG		2				/* Too many segments specified in hilbertdelay_V2 function */
-#define ERROR_LONGDELAY		3				/* Could not detect zero crossing before half of time course was gone */
-#define ERROR_WRONGUNIT		8				/* Wrong units selected to pass to the delay functions */
-#define ERROR_WARPVALUES	9
-#define ERROR_FSVALUES		10
-#define ERROR_TVALUES		11
-#define ERROR_TaUNITVALUES	12
-#define ERROR_TaWRAPVALUES	13
-#define ERROR_FILEOPEN		15
-#define ERROR_SERIESLENGTH	16
-#define ERROR_OPTIONS		17
-#define ERROR_NULLTIMESERIES 	18
-#define ERROR_OUTCONFLICT 	19
-#define ERROR_BADLENGTH		20
+#define ERROR_NOTHINGTODO    1            /* Nothing to do in hilbertdelay_V2 function */
+#define ERROR_LARGENSEG      2            /* Too many segments specified in hilbertdelay_V2 function */
+#define ERROR_LONGDELAY      3            /* Could not detect zero crossing before half of time course was gone */
+#define ERROR_WRONGUNIT      8            /* Wrong units selected to pass to the delay functions */
+#define ERROR_WARPVALUES   9
+#define ERROR_FSVALUES      10
+#define ERROR_TVALUES      11
+#define ERROR_TaUNITVALUES   12
+#define ERROR_TaWRAPVALUES   13
+#define ERROR_FILEOPEN      15
+#define ERROR_SERIESLENGTH   16
+#define ERROR_OPTIONS      17
+#define ERROR_NULLTIMESERIES    18
+#define ERROR_OUTCONFLICT    19
+#define ERROR_BADLENGTH      20
+#define ERROR_QUIT           21
 
 typedef struct {
     float real, imag;
 } COMPLEX;
    /* taken from #include "/usr/people/ziad/Programs/C/DSP_in_C/dft.h" */
    /* dft.h - function prototypes and structures for dft and fft functions */
+int delay_verb(void);
+void set_delay_verb(int);
 
 static int Read_file (float *x,char *f_name,int n_points);
 
@@ -87,8 +90,8 @@ static float punwrap (float p,int opt );
 
 static float Lagrange_interp (float *x,float *y,float xi,int ln);
 
-static void f_mult (float *x,float *y,float *z,int ln);	
-	
+static void f_mult (float *x,float *y,float *z,int ln);   
+   
 static int hilbertdelay_V2 (float *x,float *y,int lng_full,int Nseg,int Pover,\
                        int opt,int dtrnd, float Dtx, int biasrem,\
                        float *del,float *slp,float *xcor,float *xcorCoef,\
@@ -115,6 +118,18 @@ static int write_float (float *x,char *f_name,int n_points);
 /* definition and declaration part to suport the main algorithm */
 /* -----------------------END-----------------------------------*/
 
+#define free_well(a) { if ((a)) free((a)) ;  (a) = NULL; } 
+static int delay_verb_level;
+int delay_verb() {
+   static byte init=0;
+   if (!init) {
+      delay_verb_level = 0; 
+      init=1;
+   }
+   return(delay_verb_level);
+}
+void set_delay_verb(int v) { delay_verb_level = v; };
+
 
 /* -------------------------------------------------------------*/
 /* support functions declaration for main algorithm             */
@@ -135,7 +150,7 @@ static void error_message (char *s1,char *s2,int ext)
    
   }
 
-/*-----------------------------------------------------------------------------------*/	
+/*--------------------------------------------------------------------------*/   
 /**************************************************************************
 
 allocate2D.c - Make matrix of given size (rows x cols) and type
@@ -223,7 +238,7 @@ static char **allocate2D (int rows,int cols,int element_size)
     return(A);
 }
 
-/*-----------------------------------------------------------------------------------*/	
+/*--------------------------------------------------------------------------*/   
 
 /**************************************************************************
 
@@ -256,7 +271,7 @@ static void free2D(char **a,int rows)
         return;
 }
 
-/*-----------------------------------------------------------------------------------*/	
+/*--------------------------------------------------------------------------*/   
 
 static void hanning (float *x,int l,int opt)
         {
@@ -276,7 +291,7 @@ static void hanning (float *x,int l,int opt)
                 return;
         } 
 
-/*-----------------------------------------------------------------------------------*/	
+/*--------------------------------------------------------------------------*/   
 
 static void detrend (float *y,float *yd,int lny,float *a,float *b)
 
@@ -287,11 +302,11 @@ static void detrend (float *y,float *yd,int lny,float *a,float *b)
          
     x = (float *)calloc (lny+1,sizeof(float));
          if (x == NULL)
-				{
-					printf ("\nFatal Error : Failed to Allocate memory\a\n");
-					printf ("Abandon Lab Immediately !\n\n");
-					return;
-				};
+            {
+               printf ("\nFatal Error : Failed to Allocate memory\a\n");
+               printf ("Abandon Lab Immediately !\n\n");
+               return;
+            };
          
          for (i=0;i<lny;++i) /*creating x vector */
                 x[i] = (float)i;
@@ -307,7 +322,7 @@ static void detrend (float *y,float *yd,int lny,float *a,float *b)
           return;
         }
 
-/*-----------------------------------------------------------------------------------*/	
+/*--------------------------------------------------------------------------*/   
 
 static void padd (float *x,float *y,float pad_val,int ix,int lnx,int lny)
         {
@@ -316,12 +331,12 @@ static void padd (float *x,float *y,float pad_val,int ix,int lnx,int lny)
                 
                 tmp = (float *) calloc (lnx+2,sizeof(float));
                 
-            	if (tmp == NULL)
-						{
-							printf ("\nFatal Error : Failed to Allocate memory\a\n");
-							printf ("Abandon Lab Immediately !\n\n");
-							return;
-						};
+               if (tmp == NULL)
+                  {
+                     printf ("\nFatal Error : Failed to Allocate memory\a\n");
+                     printf ("Abandon Lab Immediately !\n\n");
+                     return;
+                  };
 
                 
                 di = lny-lnx;
@@ -358,7 +373,7 @@ static void padd (float *x,float *y,float pad_val,int ix,int lnx,int lny)
                 return;
         }
 
-/*-----------------------------------------------------------------------------------*/	
+/*--------------------------------------------------------------------------*/   
 
 /**************************************************************************
 
@@ -481,7 +496,7 @@ static void fft(COMPLEX *x,int m)
     }
 }
 
-/*-----------------------------------------------------------------------------------*/	
+/*--------------------------------------------------------------------------*/   
 
 
 /**************************************************************************
@@ -690,7 +705,7 @@ static void rfft(float *x,COMPLEX *y,int m)
     }
 }
 
-/*-----------------------------------------------------------------------------------*/	
+/*--------------------------------------------------------------------------*/   
 
 static void float_to_complex (float *x,COMPLEX *xc,int ln)
 
@@ -713,7 +728,7 @@ static void float_to_complex (float *x,COMPLEX *xc,int ln)
                 }
          }
 
-/*-----------------------------------------------------------------------------------*/	
+/*--------------------------------------------------------------------------*/   
 
 static void c_conj (COMPLEX *x,COMPLEX *y,int ln)
         {
@@ -735,7 +750,7 @@ static void c_conj (COMPLEX *x,COMPLEX *y,int ln)
                         }
         }
 
-/*-----------------------------------------------------------------------------------*/	
+/*--------------------------------------------------------------------------*/   
 
 static void c_mult (COMPLEX *x,COMPLEX *y,COMPLEX *z,int ln)
         {
@@ -763,7 +778,7 @@ static void c_mult (COMPLEX *x,COMPLEX *y,COMPLEX *z,int ln)
                         }
         }
 
-/*-----------------------------------------------------------------------------------*/	
+/*--------------------------------------------------------------------------*/   
 
 static void c_padd (COMPLEX *x,COMPLEX *y,COMPLEX pad_val,int ix,int lnx,int lny)
         {
@@ -773,11 +788,11 @@ static void c_padd (COMPLEX *x,COMPLEX *y,COMPLEX pad_val,int ix,int lnx,int lny
                 tmp = (COMPLEX *) calloc (lnx+2,sizeof(COMPLEX));
                 
                 if (tmp == NULL)
-						{
-							printf ("\nFatal Error : Failed to Allocate memory\a\n");
-							printf ("Abandon Lab Immediately !\n\n");
-							return;
-						};
+                  {
+                     printf ("\nFatal Error : Failed to Allocate memory\a\n");
+                     printf ("Abandon Lab Immediately !\n\n");
+                     return;
+                  };
 
                 di = lny-lnx;
                 if (lny < lnx) 
@@ -817,7 +832,7 @@ static void c_padd (COMPLEX *x,COMPLEX *y,COMPLEX pad_val,int ix,int lnx,int lny
                 return;
         }
 
-/*-----------------------------------------------------------------------------------*/	
+/*--------------------------------------------------------------------------*/   
 
 static void c_scale (COMPLEX *x,COMPLEX *y,float scl,int ln)   
         {
@@ -839,7 +854,7 @@ static void c_scale (COMPLEX *x,COMPLEX *y,float scl,int ln)
                         }
         }
 
-/*-----------------------------------------------------------------------------------*/	
+/*--------------------------------------------------------------------------*/   
 
 static void c_get (COMPLEX *x,float *y,int p,int ln)
 
@@ -862,7 +877,7 @@ static void c_get (COMPLEX *x,float *y,int p,int ln)
                         }
         }
 
-/*-----------------------------------------------------------------------------------*/	
+/*--------------------------------------------------------------------------*/   
 
 static void linear_interp (float *x1,float *y1,float *x2,float *y2,float *x,float *y,int ln)
 
@@ -892,7 +907,7 @@ static void linear_interp (float *x1,float *y1,float *x2,float *y2,float *x,floa
                 return;
      }
 
-/*-----------------------------------------------------------------------------------*/	
+/*--------------------------------------------------------------------------*/   
 
 static int equal_strings (char *s1,char *s2)
 
@@ -911,7 +926,7 @@ static int equal_strings (char *s1,char *s2)
  
  }
 
-/*-----------------------------------------------------------------------------------*/	
+/*--------------------------------------------------------------------------*/   
 
 /* Fails miserably with commented .1D files */ 
 static int float_file_size_junk (char *f_name)
@@ -967,7 +982,7 @@ static int float_file_size (char *f_name)
    }
 
 
-/*-----------------------------------------------------------------------------------*/	
+/*--------------------------------------------------------------------------*/   
 
 static int Read_file (float *x,char *f_name,int n_points)
    
@@ -1022,7 +1037,7 @@ static int Read_file (float *x,char *f_name,int n_points)
       return (cnt);                                                          
    }
 
-/*-----------------------------------------------------------------------------------*/	
+/*--------------------------------------------------------------------------*/   
 
 static void linear_reg (float *x,float *y,int size,float *a,float *b,int *err)
 
@@ -1059,7 +1074,7 @@ static void linear_reg (float *x,float *y,int size,float *a,float *b,int *err)
              return ;
         }/* linear_reg */
 
-/*-----------------------------------------------------------------------------------*/	
+/*--------------------------------------------------------------------------*/   
 
 static float punwrap (float p,int opt )
 {/*punwrap*/
@@ -1079,115 +1094,124 @@ static float punwrap (float p,int opt )
  return (alf);
 }/*punwrap*/
 
-/*-----------------------------------------------------------------------------------*/	
+/*--------------------------------------------------------------------------*/   
 
 static float Lagrange_interp (float *x,float *y,float xi,int ln)
  
- 	{
- 		int i,j;
- 		float yi,p;
- 		
- 		yi = 0.0;
- 		
- 		for (i=0;i<ln;++i)
- 		{
- 			p = y[i];
- 			for (j=0;j<ln;++j)
- 				{
- 					if (j != i) 
- 						{
- 							p = p * (xi - x[j]) / (x[i] - x[j]);
- 						}
- 				}
- 			yi=yi+p;
- 		}	
- 		return (yi);
- 	}
+    {
+       int i,j;
+       float yi,p;
+       
+       yi = 0.0;
+       
+       for (i=0;i<ln;++i)
+       {
+          p = y[i];
+          for (j=0;j<ln;++j)
+             {
+                if (j != i) 
+                   {
+                      p = p * (xi - x[j]) / (x[i] - x[j]);
+                   }
+             }
+          yi=yi+p;
+       }   
+       return (yi);
+    }
  
-/*-----------------------------------------------------------------------------------*/	
+/*--------------------------------------------------------------------------*/   
 static int isarg (int argc, char *argv[], char *probe)
 {/*isarg*/
- 	int i=1;
- 		
- 	while (i < argc)
- 		{
- 			if (equal_strings (argv[i],probe) == 1)
- 				{
- 					return (i);
- 				}
- 			++i;
- 		}
- 	
- 	return (0);
- 	
+    int i=1;
+       
+    while (i < argc)
+       {
+          if (equal_strings (argv[i],probe) == 1)
+             {
+                return (i);
+             }
+          ++i;
+       }
+    
+    return (0);
+    
 }/*isarg*/
 
-/*-----------------------------------------------------------------------------------*/	
+/*--------------------------------------------------------------------------*/   
 static float mean_array (float *ar,int size)
-	 
-	{/*Mean_array ()*/
-	 
-	 int i;
-	 float sum,mean;
-	 
-	 sum=0;
-	 
-	 for (i=0;i<size;++i)
-	  {
-		sum=sum+ar[i];
-	  }
-	  
-	  mean=sum/(float)size;
-	  
-	  
-	  return (mean);
-	
-	}/*Mean_array ()*/
+    
+   {/*Mean_array ()*/
+    
+    int i;
+    float sum,mean;
+    
+    sum=0;
+    
+    for (i=0;i<size;++i)
+     {
+      sum=sum+ar[i];
+     }
+     
+     mean=sum/(float)size;
+     
+     
+     return (mean);
+   
+   }/*Mean_array ()*/
 
-/*-----------------------------------------------------------------------------------*/	
+/*--------------------------------------------------------------------------*/   
 static void zeromean (float *x, float *y, int ln )
 {/*zeromean*/
- 	int i;
- 	float meanx;
- 	
- 	meanx = mean_array (x,ln);
- 	
- 	for (i=0;i<ln;++i)
- 		{
- 			y[i] = x[i] - meanx;
- 		}
- 	return;
+    int i;
+    float meanx;
+    
+    meanx = mean_array (x,ln);
+    
+    for (i=0;i<ln;++i)
+       {
+          y[i] = x[i] - meanx;
+       }
+    return;
 }/*zeromean*/
 
-/*-----------------------------------------------------------------------------------*/	
-static void f_mult (float *x,float *y,float *z,int ln)	
-	{
-		int i;
-		if ((ln-1) == 0)
-			{	
-				(*z) = (*y) * (*x);
-				return;
-			}
-		else 
-			{
-				for (i=0;i<ln;++i)
-					{
-						z[i] = y[i] * x[i];
-					}
-				return;
-			}
-	}
+/*--------------------------------------------------------------------------*/   
+static void f_mult (float *x,float *y,float *z,int ln)   
+   {
+      int i;
+      if ((ln-1) == 0)
+         {   
+            (*z) = (*y) * (*x);
+            return;
+         }
+      else 
+         {
+            for (i=0;i<ln;++i)
+               {
+                  z[i] = y[i] * x[i];
+               }
+            return;
+         }
+   }
 
-/*-----------------------------------------------------------------------------------*/	
+/*--------------------------------------------------------------------------*/   
 /* Important :
-	Before you replace this function by a new version, make note of the following
-	changes to the function in here: maxdel is changed from lng /3 to lng /2, 
-	and the funcion returns a 1, 2 or 3 in case of encoutered errors instead of 
-	a regular 1 
-	Also the function does not output any warning messages to the screen if the delay is
-	larger than one 1/2 a segment length*/
+   Before you replace this function by a new version, make note of the following
+   changes to the function in here: maxdel is changed from lng /3 to lng /2, 
+   and the funcion returns a 1, 2 or 3 in case of encoutered errors instead of 
+   a regular 1 
+   Also the function does not output any warning messages to the screen 
+   if the delay is larger than one 1/2 a segment length 
 
-/* The difference between 	hilbertdelay_V2 and hilbertdelay is that the parameter negslp is not used anymore in V2 version */
+   The difference between hilbertdelay_V2 and hilbertdelay is that the 
+      parameter negslp is not used anymore in V2 version 
+   
+*/
+
+static void hilbertdelay_V2reset() {
+   hilbertdelay_V2 (NULL, NULL, 0, 0, 0, 0, 0, 
+                     0.0, 0, NULL, NULL, NULL, NULL, NULL, NULL);
+}
+
 static int hilbertdelay_V2 (float *x,
                             float *y, int lng_full,
                             int Nseg, int Pover,
@@ -1195,485 +1219,460 @@ static int hilbertdelay_V2 (float *x,
                             float Dtx, int biasrem, 
                             float *del,float *slp, 
                             float *xcor,float *xcorCoef, float *vx, float *vy)
-	{	
-	 static int i_call=0,olng,m,lng_use,lng,strt,nd,sg,cnt,maxdel = 0;
-	 static COMPLEX   *fftx,*ffty,*Pxy,*fftyc,*fftxc,*Pxx,*Pyy,
-                     *Rxx,*Ryy,**fftyca,**Pxya,**Rxxa,**Ryya;
-	 static float  *Px,*Py,*Rxy,*HRxy,*xp,*yp,*xcpy,*ycpy,
-                  *tmp_f_vect,*tmp_f_vect2,*ubias,a,
-	 			      var_y,varu_y,stdv_y,stdvu_y,var_x,varu_x,stdv_x,stdvu_x;
-	 
-			  int i,j,k;
-			  char buf[100];
-			  float *mPxy,tmp,sPx,sPy,alfx,betx,alfy,bety,
-						f_i,f_i1,izero=-1.0,reg_pnt,
-						NoWayDelay = -100000.0,
-						NoWayxcorCoef = NOWAYXCORCOEF;
-						
-			  COMPLEX tmp_c;
-			  char cbuf[30];
+{   
+   static int i_call=0, olng = 0, m =0, lng_use =0,
+            lng = 0, strt = 0, nd = 0, sg = 0, cnt = 0,maxdel = 0;
+   static COMPLEX   *fftx=NULL,*ffty=NULL,*Pxy=NULL,
+                  *fftyc=NULL,*fftxc=NULL,*Pxx=NULL,
+                  *Pyy=NULL,*Rxx=NULL,*Ryy=NULL,
+                  **fftyca=NULL,**Pxya=NULL,**Rxxa=NULL,
+                  **Ryya=NULL;
+   static float  *Px=NULL,*Py=NULL,*Rxy=NULL,*HRxy=NULL,
+               *xp=NULL,*yp=NULL,*xcpy=NULL,*ycpy=NULL,
+               *tmp_f_vect=NULL,*tmp_f_vect2=NULL,*ubias=NULL,
+               a=0.0,var_y=0.0,varu_y=0.0,stdv_y=0.0,
+               stdvu_y=0.0,var_x=0.0,varu_x=0.0,stdv_x=0.0,stdvu_x=0.0;
 
-if ((opt == 0) && (i_call == 0)) 
-	{
-		error_message ("hilbertdelay_V2","Nothing to DO !",0);
-		return (1); 
-	}
+   int i,j,k;
+   char buf[100];
+   float *mPxy,tmp,sPx,sPy,alfx,betx,alfy,bety,
+         f_i,f_i1,izero=-1.0,reg_pnt,
+         NoWayDelay = -100000.0,
+         NoWayxcorCoef = NOWAYXCORCOEF;
 
-	
-*del = NoWayDelay;					/* setting the value of delay to an unlikely value ...*/
-*xcorCoef = NoWayxcorCoef;			/* setting the cross correlation coefficient to an unlikely value ...*/
+   COMPLEX tmp_c;
+   char cbuf[30];
 
+   
+   if (opt == 0)  { /* cleanup mode */
+      if (delay_verb() > 1) {
+         fprintf (stderr, "Resetting hilbertdelay_V2 ...\n");
+      }
+      free_well (fftx);                     
+      free_well (fftxc);
+      free_well (ffty);   
+      free_well (fftyc);
+      free_well (Px);
+      free_well (Py);
+      free_well (Pxx);
+      free_well (Pyy);
+      free_well (Pxy);
+      free_well (Rxx);
+      free_well (Ryy);
+      free_well (Rxy);
+      free_well (HRxy);
+      free_well (xp);
+      free_well (yp);
+      free_well (ubias);
+      free_well (xcpy);
+      free_well (ycpy);
+      free_well (tmp_f_vect);
+      free_well (tmp_f_vect2);
+      
+      if (fftyca) free2D ((char **)fftyca,lng+2); fftyca = NULL;
+      if (Pxya) free2D ((char **)Pxya,lng+2); Pxya = NULL;
+      if (Rxxa) free2D ((char **)Rxxa,lng+2); Rxxa = NULL;
+      if (Ryya) free2D ((char **)Ryya,lng+2); Ryya = NULL;
 
-if (opt > 0)							/* Execution mode */
-{/* opt >0 */
+      i_call=0, olng = 0, m =0, lng_use =0,
+      lng = 0, strt = 0, nd = 0, sg = 0, cnt = 0,maxdel = 0;
+      
+      a=0.0,var_y=0.0,varu_y=0.0,stdv_y=0.0,
+      stdvu_y=0.0,var_x=0.0,varu_x=0.0,stdv_x=0.0,stdvu_x=0.0;
+      
+      return (0);                  
+   }
 
-#ifdef DEBUG_ZEO_2		
-	printf ("\nFunction call #%d\n",i_call);
-#endif	
-
-
-/*-----------------------------------------------------------------------------------*/		
-/* Steps that need to be perfromed the first time the function is called 				 */
-/*-----------------------------------------------------------------------------------*/	
-	
-	if (i_call == 0)
-		{/*i_call == 0*/
-			if ((Nseg < 1) || (Nseg >= lng_full/5))
-				{
-					sprintf (buf,"Number of segments (%d) null or too large, or vector length too small (%d) for %d segments ",Nseg,lng_full,Nseg);
-					error_message ("hilbertdelay_V2",buf,0);
-					return (2); 
-				} 
-			
-			lng = (int)((float)lng_full / (float)Nseg);	/* calculating individual segment length */
-			
-			maxdel = lng/2;				/* delays should not exceed one third of the segment length (and that's pushing it !)*/
-			
-			m=0;
-			while ((int)pow((double)2,(double)m) < lng) ++m;	/* find closest power of two to the length of the series */
-			olng = lng;										/* save old length*/
-			lng = (int)pow((double)2,(double)m);	/* set new length as power of two actual padding length will double*/
-																/* in order to correct for circular convolution effects */
-			lng_use = lng;							/* useful length of spectrum after correction for circular convolution effects */
-
-#ifdef DEBUG_ZEO_2
-	printf ("selected m=%d for a padded segment length of %d, old segment length was %d\nVector holds %d segments\n",m,lng,olng,Nseg);	
-#endif
-		
-			fftx = (COMPLEX *) calloc ((2*lng)+2,sizeof(COMPLEX));
-			fftxc = (COMPLEX *) calloc ((2*lng)+2,sizeof(COMPLEX));
-			ffty = (COMPLEX *) calloc ((2*lng)+2,sizeof(COMPLEX));
-			fftyc = (COMPLEX *) calloc ((2*lng)+2,sizeof(COMPLEX));
-			Pxy = (COMPLEX *) calloc ((2*lng)+2,sizeof(COMPLEX));
-			Px = (float *) calloc ((2*lng)+2,sizeof(float));
-			Pxx = (COMPLEX *) calloc ((2*lng)+2,sizeof(COMPLEX));
-			Py = (float *) calloc ((2*lng)+2,sizeof(float));
-			Pyy = (COMPLEX *) calloc ((2*lng)+2,sizeof(COMPLEX));
-			Rxx = (COMPLEX *) calloc ((2*lng)+2,sizeof(COMPLEX));
-			Ryy = (COMPLEX *) calloc ((2*lng)+2,sizeof(COMPLEX));
-			Rxy = (float *) calloc ((2*lng)+2,sizeof(float));
-			HRxy = (float *) calloc ((2*lng)+2,sizeof(float));
-			xcpy = (float *) calloc ((2*olng)+2,sizeof(float));
-			ycpy = (float *) calloc ((2*olng)+2,sizeof(float));
-			xp = (float *) calloc ((2*lng)+2,sizeof(float));
-			yp = (float *) calloc ((2*lng)+2,sizeof(float));
-			ubias = (float *) calloc ((2*lng)+2,sizeof(float));
-			tmp_f_vect = (float *) calloc ((2*lng)+2,sizeof(float));
-			tmp_f_vect2 = (float *) calloc ((2*lng)+2,sizeof(float));
-			fftyca = (COMPLEX **) allocate2D ((2*lng)+2,Nseg,sizeof(COMPLEX));
-			Pxya = (COMPLEX **) allocate2D ((2*lng)+2,Nseg,sizeof(COMPLEX));
-			Ryya = (COMPLEX **) allocate2D ((2*lng)+2,Nseg,sizeof(COMPLEX));
-			Rxxa = (COMPLEX **) allocate2D ((2*lng)+2,Nseg,sizeof(COMPLEX));	
-			
-			if (fftx == NULL ||  fftxc == NULL ||  ffty == NULL ||  fftyc == NULL ||  \
-			    Pxy == NULL ||  Px == NULL ||  Py == NULL ||  xp == NULL ||  yp == NULL ||  \
-				 ubias == NULL ||  tmp_f_vect == NULL ||  Pxx == NULL ||  Pyy == NULL ||  \
-				 Rxx == NULL ||  Ryy == NULL ||  fftyca == NULL ||  Pxya == NULL ||  \
-				 Ryya == NULL ||  Rxxa == NULL ||  tmp_f_vect2 == NULL)
-				{
-					printf ("\nFatal Error : Failed to Allocate memory\a\n");
-					printf ("Abandon Lab Immediately !\n\n");
-					return(2);
-				};
-
-			/* creating a vector to remove the bowtie artifact from the auto and cross correlation curves, and set to zero 
-							their irrelevant values */
-			if (biasrem == 1)
-			{
-				for (i=0;i<(2*lng);++i)
-					{		
-						if (i < olng)
-							{
-								ubias[i] = (float)olng / (float)(olng - i);
-							}
-						else
-							{
-								ubias[i] = 0.0;
-							}
-					}
-			}
-			
-			a = (float)olng; /* Scaling parameter for spectral estimates  */
-			
-			strt = 0;				/* setting up for segments loop */
-			nd = 0;
-			for (sg=0;sg<Nseg;++sg)					/* segments counter */
-			{/* for sg */
-				strt = sg * olng;
-				nd = strt + olng;
-				
-				cnt = 0;
-				for (i=strt;i<nd;++i) 
-					{
-						tmp_f_vect[cnt] = y[i];		/* copying segment number (sg+1) */
-						++cnt;
-					}
-					
-				if (dtrnd == 1)
-					{/*dtrnd == 1*/
-						detrend (tmp_f_vect,ycpy,olng,&alfy,&bety);		/* removing linear trend alf? and bet? are the linear fit coefficients for the reference time course*/
-						padd (ycpy,yp,0.0,olng+1,olng,2*lng);					/* Zero padding of detrended reference time course*/
-					}/*dtrnd == 1*/
-				else
-					{/*dtrnd != 1*/
-						zeromean (tmp_f_vect,ycpy,olng);					/* removing the mean only */
-						padd (ycpy,yp,0.0,olng+1,olng,2*lng);			/* Zero padding of reference time course*/
-					}/*dtrnd != 1*/
-							
-				float_to_complex (yp,ffty,2*lng); 			/* reformatting reference vector into complex vector */
-		
-				fft (ffty,m+1);									/* Radix 2 Butterfly fft computation of reference vector */
-				
-				c_conj (ffty,fftyc,2*lng);							/* Computing the conjugate of ffty */
-				
-				c_mult (ffty,fftyc,Ryy,2*lng);		/* Powerspectrum of y (called Ryy) */
-				
-				for (i=0;i<2*lng;++i) 						/* copying Power spectrum of y and conjugate of fft of individual segment into storage matrix */
-					{
-						fftyca[i][sg].real = fftyc[i].real;
-						fftyca[i][sg].imag = fftyc[i].imag;
-						Ryya[i][sg].real = Ryy[i].real;
-						Ryya[i][sg].imag = Ryy[i].imag;
-					}
-				
-			}/* for sg */
-			
-			for (sg=0;sg<Nseg;++sg)					/* computing sum periodogram of y */
-				{/* for sg */
-					for (i=0;i<2*lng;++i)
-						{/* for i */
-							
-							if (sg == 0) 
-								{
-									Ryy[i].real = Ryya[i][sg].real;
-									Ryy[i].imag = Ryya[i][sg].imag;
-								}
-							else 
-								{/* sg > 0 */
-									Ryy[i].real = Ryy[i].real + Ryya[i][sg].real;
-									Ryy[i].imag = Ryy[i].imag + Ryya[i][sg].imag;
-								}/* sg > 0 */
-							
-						}/* for i */
-						
-				}/* for sg */
-			
-			c_scale (Ryy,Ryy,1.0/((float)Nseg * a),2*lng);					/* scaling periodogram */
-			
-			ifft (Ryy,m+1);													/* calculating autocorrelation of y*/
-		
-		}/*i_call == 0*/
-
-/*-----------------------------------------------------------------------------------*/		
-/* Steps that need to be repeated each time the function is called with a new vector */
-/*-----------------------------------------------------------------------------------*/	
-
-		strt = 0;							/* setting up for segments loop */
-		nd =0;
-		for (sg=0;sg<Nseg;++sg)					/* segments counter */
-			{/* for sg */
-				strt = sg * olng;
-				nd = strt + olng;
-				
-				cnt = 0;
-				for (i=strt;i<nd;++i) 
-					{
-						tmp_f_vect[cnt] = x[i];		/* copying segment number (sg+1) */
-						++cnt;
-					}
-
-				if (dtrnd == 1)
-					{/*dtrnd == 1*/
-						detrend (tmp_f_vect,xcpy,olng,&alfx,&betx);		/* removing linear trend alf? and bet? are the linear fit coefficients*/
-						padd (xcpy,xp,0.0,olng+1,olng,2*lng);					/* Zero padding of detrended time course*/
-					}/*dtrnd == 1*/
-				else
-					{/*dtrnd != 1*/
-					   zeromean (tmp_f_vect,xcpy,olng);							/* removing the mean only*/
-						padd (xcpy,xp,0.0,olng+1,olng,2*lng);			/* Zero padding of time course*/
-					}/*dtrnd != 1*/
-				
-				float_to_complex (xp,fftx,2*lng);					/* reformatting vector into complex vector */
-		
-				fft (fftx,m+1);											/* Radix 2 Butterfly fft computation of vector */
-				
-				c_conj (fftx,fftxc,2*lng);							/* Computing the conjugate of fftx */
-				
-				c_mult (fftx,fftxc,Rxx,2*lng);						/* Powerspectrum of x (called Rxx) */
-				
-#ifdef DEBUG_ZEO_2	
-		write_float (xp,"dbg_xdp.txt",2*lng);
-		write_float (yp,"dbg_ydp.txt",2*lng);
-		printf ("a = %f\n",a);
-#endif
-				
-				for (i=0;i<2*lng;++i)									/* copying fftyc at segment sg from storage array */
-					{
-						fftyc[i].real = fftyca[i][sg].real;
-						fftyc[i].imag = fftyca[i][sg].imag;
-					}
-				
-				c_mult (fftx,fftyc,Pxy,2*lng);					/* Computing the cross power spectrum */
-				
-				for (i=0;i<2*lng;++i)									/* storing the power spectrum and the cross power spectrum at */
-					{														/*different segments */
-						Pxya[i][sg].real = Pxy[i].real;
-						Pxya[i][sg].imag = Pxy[i].imag;
-						Rxxa[i][sg].real = Rxx[i].real;
-						Rxxa[i][sg].imag = Rxx[i].imag;
-					}
-
-			}/* for sg */
-		
-		for (sg=0;sg<Nseg;++sg)								/* calculating the sum of the periodograms */
-			{/* for sg */
-				for (i=0;i<2*lng;++i)
-					{/* for i*/
-						if (sg == 0)
-							{	
-								Pxy[i].real = Pxya[i][sg].real;
-								Pxy[i].imag = Pxya[i][sg].imag;
-								Rxx[i].real = Rxxa[i][sg].real;
-								Rxx[i].imag = Rxxa[i][sg].imag;
-							}
-						else 
-							{	
-								Pxy[i].real = Pxy[i].real + Pxya[i][sg].real;
-								Pxy[i].imag = Pxy[i].imag + Pxya[i][sg].imag;
-								Rxx[i].real = Rxx[i].real + Rxxa[i][sg].real;
-								Rxx[i].imag = Rxx[i].imag + Rxxa[i][sg].imag;
-							}
-					}/* for i */
-			}/* for sg */
-		
-		
-		c_scale (Rxx,Rxx,1.0/((float)Nseg * a),2*lng); /* calculating average Rxx periodogram	*/
-		
-		c_scale (Pxy,Pxy,2.0/((float)Nseg * a),2*lng);	/* calculating average Pxy and scaling it by 2 periodogram	*/
-			
-		tmp_c.real = 0.0;									/*discarding half of the cross power spectrum and padding it back to lng */
-		tmp_c.imag = 0.0;
-		
-		c_padd (Pxy,Pxy,tmp_c,lng_use+1,lng_use,2*lng);
-				
-		ifft (Pxy,m+1);									/* inverse FFT of the scaled power spectrum */
-		
-		ifft (Rxx,m+1);									/*calculating autocorrelation of x*/
-	  
-		c_get (Pxy,Rxy,0,2*lng);					/* seperation of real and imaginary parts, only extract meaningful segment */
-		c_get (Pxy,HRxy,1,2*lng);  
-
-		if (biasrem == 1)
-			{
-				f_mult (ubias,Rxy,Rxy,2*lng);				/* removing bowtie artifact and setting redundant values to zero */
-				f_mult (ubias,HRxy,HRxy,2*lng);
-			}
-		
-#ifdef DEBUG_ZEO_2		
-		write_float (Rxy,"dbg_Rxy.txt",2*lng);
-		write_float (HRxy,"dbg_HRxy.txt",2*lng);
-		write_float (ubias,"dbg_ubias.txt",2*lng);
-#endif		
-		
-		for (i=0;i<lng-1;++i)							/* searching for the Zero crossing	*/
-			{/* for i */
-				if (i > maxdel) 
-					{/* i > maxdel */
-						/*sprintf (buf,"Delay larger than 1/2 segment length (%d)",maxdel);
-						error_message ("hilbertdelay_V2",buf,0);*/
-						return (3);	
-					}/* i > maxdel */
-				
-				if (HRxy[i] == 0.0)
-					{/* HRxy[i] == 0.0 */	
-						
-						if (Rxy[i] > 0.0) 
-										*slp = 1.0;
-								else 
-										*slp = -1.0;
-										
-						izero = (float) i;
-						*xcor = Rxy[i];					/* storing value of max covariance */
-						i=lng;
-					}/* HRxy[i] == 0.0 */
-				else 
-					{/* HRxy[i] != 0.0 */
-						if ((HRxy[i] * HRxy[i+1]) < 0.0)
-							{
-								/* the sign of slp was used to determine the sign of the cross correlation  */
-								/* the sign of slp should be the same as that of Rxy[i] close to izero */
-								/* moreover, I think the use of the sign of Rxy[i] is better since with no */
-								/*subtraction performed, I am less sensitive to high freq. noise */
-								if (Rxy[i] >= 0.0) 
-										*slp = 1.0;
-								else 
-										*slp = -1.0;
-								
-								if ((*slp > 0.0)) 
-									{
-										f_i = (float) (i);
-										f_i1 = (float) (i+1);
-										reg_pnt = 0.0;
-										linear_interp (&HRxy[i],&f_i,&HRxy[i+1],&f_i1,&reg_pnt,&izero,1);
-
-										/* find the peak of the cross correlation curve */
-										k = 0;
-                        		for (j=-3;j<=3;++j)
-                         	 		{
-                            		 if (((i+j) >= 0) && ((i+j) < lng))
-                              	  {
-                              	    tmp_f_vect[k] = (float) (i+j);
-                              	    tmp_f_vect2[k] = Rxy[i+j];
-                              	    ++k;
-                              	  }
-                            		}
-                        		if (k > 1)
-                           		{/* at least a 1st order interpolation must be performed */
-                              	*xcor = Lagrange_interp (tmp_f_vect,tmp_f_vect2,izero,k);
-                           		}
+   
+   *del = NoWayDelay;              /* initialize to an unlikely value ...*/
+   *xcorCoef = NoWayxcorCoef;          
 
 
-										i = lng;
-									}
-							}
-					}/* HRxy[i] != 0.0 */
-			
-			}/* for i */
-		
-				*del = izero + Dtx;		/* delay is in sample units corrected by the sampling time difference*/	
-					
-				if (Rxx[0].real && Ryy[0].real)
-					*xcorCoef = *xcor / sqrt (Rxx[0].real * Ryy[0].real) * *slp; /*correction for sign of cross correlation coefficient (slp = 1.0 or -1.00*/
-				else
-					{	
-						#ifdef DEBUG_ZEO_3		
-							printf ("\nZero Variance...\n");
-						#endif
-					}
-				
-				/* set vx and vy */
-				
-				*vx = Rxx[0].real;
-				*vy = Ryy[0].real;
-				
-		++i_call;
-		return (0);
-		
-}/* opt > 0 */										/* Execution mode */
-else if (opt == 0)
-	{/* opt == 0 */ 
+   /*--------------------------------------------------------------------------*/
+   /* First call, init. and do computations for reference time series          */
+   /*--------------------------------------------------------------------------*/   
+   if (i_call == 0) {/*i_call == 0*/
+      if ((Nseg < 1) || (Nseg >= lng_full/5)) {
+         sprintf (buf,"Number of segments (%d) null or too large,\n"
+                      "or vector length too small (%d) for %d segments ",
+                      Nseg,lng_full,Nseg);
+         error_message ("hilbertdelay_V2",buf,0);
+         return (2); 
+      } 
 
-#ifdef DEBUG_ZEO_3		
-	printf ("\nCleaning Up...\n");
-#endif
+      lng = (int)((float)lng_full / (float)Nseg); /* individ. seg. length */
 
-		free (fftx);								/*Cleaning up used space*/
-		free (fftxc);
-		free (ffty);	
-		free (fftyc);
-		free (Px);
-		free (Py);
-		free (Pxx);
-		free (Pyy);
-		free (Pxy);
-		free (Rxx);
-		free (Ryy);
-		free (Rxy);
-		free (HRxy);
-		free (xp);
-		free (yp);
-		free (ubias);
-		free (xcpy);
-		free (ycpy);
-		free (tmp_f_vect);
-		free (tmp_f_vect2);
-		
-		free2D ((char **)fftyca,lng+2);
-		free2D ((char **)Pxya,lng+2);
-		free2D ((char **)Rxxa,lng+2);
-		free2D ((char **)Ryya,lng+2);
+      maxdel = lng/2;            /* delays should not exceed one third of 
+                              the segment length (and that's pushing it !)*/
 
-		i_call = 0;
-		
-		*del = NoWayDelay;			/* setting variables to out of bound values for safety */
-		*xcorCoef = NoWayxcorCoef;
-		
-		return (0);						
-	}/* opt == 0 */
+      m=0;
+      while ((int)pow((double)2,(double)m) < lng) ++m;   
+            /* find closest power of two to the length of the series */
+      olng = lng;                              /* save old length*/
+      lng = (int)pow((double)2,(double)m);   
+         /* set new length as power of two actual padding length will double
+            in order to correct for circular convolution effects */
+      lng_use = lng;    /* useful length of spectrum after correction for 
+                           circular convolution effects */
 
- return(0) ;
+   if (delay_verb()>1) {
+      fprintf (stderr, "selected m=%d for a padded segment length of %d,\n"
+            "old segment length was %d\n"
+            "Vector holds %d segments\n",m,lng,olng,Nseg);   
+   }
+
+      if (fftx || fftxc || ffty || fftyc || Pxy || Px || Pxx || Py || Pyy ||
+          Rxx || Ryy || Rxy || HRxy || xcpy || ycpy || xp || yp || ubias ||  
+          tmp_f_vect || tmp_f_vect2 || fftyca || Pxya || Ryya || Rxxa ) {
+         sprintf (buf,"Initialization problem!\n");
+         error_message ("hilbertdelay_V2",buf,0);  
+         return (ERROR_QUIT);  
+      }
+       
+      fftx = (COMPLEX *) calloc ((2*lng)+2,sizeof(COMPLEX));
+      fftxc = (COMPLEX *) calloc ((2*lng)+2,sizeof(COMPLEX));
+      ffty = (COMPLEX *) calloc ((2*lng)+2,sizeof(COMPLEX));
+      fftyc = (COMPLEX *) calloc ((2*lng)+2,sizeof(COMPLEX));
+      Pxy = (COMPLEX *) calloc ((2*lng)+2,sizeof(COMPLEX));
+      Px = (float *) calloc ((2*lng)+2,sizeof(float));
+      Pxx = (COMPLEX *) calloc ((2*lng)+2,sizeof(COMPLEX));
+      Py = (float *) calloc ((2*lng)+2,sizeof(float));
+      Pyy = (COMPLEX *) calloc ((2*lng)+2,sizeof(COMPLEX));
+      Rxx = (COMPLEX *) calloc ((2*lng)+2,sizeof(COMPLEX));
+      Ryy = (COMPLEX *) calloc ((2*lng)+2,sizeof(COMPLEX));
+      Rxy = (float *) calloc ((2*lng)+2,sizeof(float));
+      HRxy = (float *) calloc ((2*lng)+2,sizeof(float));
+      xcpy = (float *) calloc ((2*olng)+2,sizeof(float));
+      ycpy = (float *) calloc ((2*olng)+2,sizeof(float));
+      xp = (float *) calloc ((2*lng)+2,sizeof(float));
+      yp = (float *) calloc ((2*lng)+2,sizeof(float));
+      ubias = (float *) calloc ((2*lng)+2,sizeof(float));
+      tmp_f_vect = (float *) calloc ((2*lng)+2,sizeof(float));
+      tmp_f_vect2 = (float *) calloc ((2*lng)+2,sizeof(float));
+      fftyca = (COMPLEX **) allocate2D ((2*lng)+2,Nseg,sizeof(COMPLEX));
+      Pxya = (COMPLEX **) allocate2D ((2*lng)+2,Nseg,sizeof(COMPLEX));
+      Ryya = (COMPLEX **) allocate2D ((2*lng)+2,Nseg,sizeof(COMPLEX));
+      Rxxa = (COMPLEX **) allocate2D ((2*lng)+2,Nseg,sizeof(COMPLEX));   
+
+      if (fftx == NULL ||  fftxc == NULL ||  ffty == NULL ||  fftyc == NULL ||
+          Pxy == NULL ||  Px == NULL ||  Py == NULL ||  xp == NULL ||  
+          yp == NULL ||  ubias == NULL ||  tmp_f_vect == NULL ||  
+          Pxx == NULL ||  Pyy == NULL || Rxx == NULL ||  Ryy == NULL ||  
+          fftyca == NULL ||  Pxya == NULL ||  
+          Ryya == NULL ||  Rxxa == NULL ||  tmp_f_vect2 == NULL) {
+            printf ("\nFatal Error : Failed to Allocate memory\a\n");
+            printf ("Abandon Lab Immediately !\n\n");
+            return(ERROR_QUIT);
+       }
+
+      /* creating a vector to remove the bowtie artifact from the auto 
+         and cross correlation curves, and set to zero  
+         their irrelevant values */
+      if (biasrem == 1) {
+         for (i=0;i<(2*lng);++i) {      
+            if (i < olng) {
+                  ubias[i] = (float)olng / (float)(olng - i);
+            } else {
+                  ubias[i] = 0.0;
+            }
+         }
+      }
+
+      a = (float)olng; /* Scaling parameter for spectral estimates  */
+
+      strt = 0;            /* setting up for segments loop */
+      nd = 0;
+      for (sg=0;sg<Nseg;++sg)               /* segments counter */
+      {/* for sg */
+         strt = sg * olng;
+         nd = strt + olng;
+
+         cnt = 0;
+         for (i=strt;i<nd;++i) {
+            tmp_f_vect[cnt] = y[i];    /* copying segment number (sg+1) */
+            ++cnt;
+         }
+
+         if (dtrnd == 1) {
+            detrend (tmp_f_vect,ycpy,olng,&alfy,&bety);     
+               /* removing linear trend alf? and bet? are the linear fit 
+                  coefficients for the reference time course*/
+               padd (ycpy,yp,0.0,olng+1,olng,2*lng);               
+         } else {/*dtrnd != 1*/
+            zeromean (tmp_f_vect,ycpy,olng); /* removing the mean only */
+            padd (ycpy,yp,0.0,olng+1,olng,2*lng);         
+         }/*dtrnd != 1*/
+
+         float_to_complex (yp,ffty,2*lng);   
+                  /* reformatting reference vector into complex vector */
+
+         fft (ffty,m+1);
+               /* Radix 2 Butterfly fft computation of reference vector */
+
+         c_conj (ffty,fftyc,2*lng);  /* Computing the conjugate of ffty */
+
+         c_mult (ffty,fftyc,Ryy,2*lng); /* Powerspectrum of y (called Ryy) */
+
+         for (i=0;i<2*lng;++i) {    /* copying Power spectrum of y and 
+               conjugate of fft of individual segment into storage matrix */
+            fftyca[i][sg].real = fftyc[i].real;
+            fftyca[i][sg].imag = fftyc[i].imag;
+            Ryya[i][sg].real = Ryy[i].real;
+            Ryya[i][sg].imag = Ryy[i].imag;
+         }
+
+      }/* for sg */
+
+      for (sg=0;sg<Nseg;++sg) {      /* computing sum periodogram of y */
+         for (i=0;i<2*lng;++i) {
+            if (sg == 0)  {
+               Ryy[i].real = Ryya[i][sg].real;
+               Ryy[i].imag = Ryya[i][sg].imag;
+            } else {/* sg > 0 */
+               Ryy[i].real = Ryy[i].real + Ryya[i][sg].real;
+               Ryy[i].imag = Ryy[i].imag + Ryya[i][sg].imag;
+            }/* sg > 0 */
+         }/* for i */
+      }/* for sg */
+
+      c_scale (Ryy,Ryy,1.0/((float)Nseg * a),2*lng); /* scaling periodogram */
+
+      ifft (Ryy,m+1);                     /*  autocorrelation of y*/
+
+   }/*i_call == 0*/
+
+   /*--------------------------------------------------------------------------*/
+   /* Steps for each new time series                                           */
+   /*--------------------------------------------------------------------------*/
+   strt = 0;                     /* setting up for segments loop */
+   nd =0;
+   for (sg=0;sg<Nseg;++sg) {              /* segments counter */
+      strt = sg * olng;
+      nd = strt + olng;
+
+      cnt = 0;
+      for (i=strt;i<nd;++i) 
+         {
+            tmp_f_vect[cnt] = x[i];      /* copying segment number (sg+1) */
+            ++cnt;
+         }
+
+      if (dtrnd == 1) {/*dtrnd == 1*/
+         detrend (tmp_f_vect,xcpy,olng,&alfx,&betx);      
+         padd (xcpy,xp,0.0,olng+1,olng,2*lng); 
+      } else {/*dtrnd != 1*/
+         zeromean (tmp_f_vect,xcpy,olng);                     
+         padd (xcpy,xp,0.0,olng+1,olng,2*lng);         
+      }/*dtrnd != 1*/
+
+      float_to_complex (xp,fftx,2*lng); /* reformatting into complex vector */
+
+      fft (fftx,m+1);             /* Radix 2 Butterfly fft  */
+
+      c_conj (fftx,fftxc,2*lng);       /* Computing the conjugate of fftx */
+
+      c_mult (fftx,fftxc,Rxx,2*lng);   /* Powerspectrum of x (called Rxx) */
+
+      if (delay_verb() > 1) {   
+         write_float (xp,"dbg_xdp.txt",2*lng);
+         write_float (yp,"dbg_ydp.txt",2*lng);
+         fprintf (stderr,"a = %f\n",a);
+      }
+
+      for (i=0;i<2*lng;++i) {   /* fftyc at segment sg from storage array */
+         fftyc[i].real = fftyca[i][sg].real;
+         fftyc[i].imag = fftyca[i][sg].imag;
+      }
+
+      c_mult (fftx,fftyc,Pxy,2*lng);  /* Computing the cross power spectrum */
+
+      for (i=0;i<2*lng;++i) {  /* storing the power spectrum and the cross 
+                                  power spectrum at different segments */
+         Pxya[i][sg].real = Pxy[i].real;
+         Pxya[i][sg].imag = Pxy[i].imag;
+         Rxxa[i][sg].real = Rxx[i].real;
+         Rxxa[i][sg].imag = Rxx[i].imag;
+      }
+
+   }/* for sg */
+
+   for (sg=0;sg<Nseg;++sg) { /* calculating the sum of the periodograms */
+      for (i=0;i<2*lng;++i) {/* for i*/
+         if (sg == 0) {   
+            Pxy[i].real = Pxya[i][sg].real;
+            Pxy[i].imag = Pxya[i][sg].imag;
+            Rxx[i].real = Rxxa[i][sg].real;
+            Rxx[i].imag = Rxxa[i][sg].imag;
+         } else  {   
+            Pxy[i].real = Pxy[i].real + Pxya[i][sg].real;
+            Pxy[i].imag = Pxy[i].imag + Pxya[i][sg].imag;
+            Rxx[i].real = Rxx[i].real + Rxxa[i][sg].real;
+            Rxx[i].imag = Rxx[i].imag + Rxxa[i][sg].imag;
+         }
+      }/* for i */
+   }/* for sg */
+
+
+   c_scale (Rxx,Rxx,1.0/((float)Nseg * a),2*lng); 
+                                 /*  average Rxx periodogram   */
+
+   c_scale (Pxy,Pxy,2.0/((float)Nseg * a),2*lng);   
+                          /*  average Pxy and scaling it by 2 periodogram   */
+
+   tmp_c.real = 0.0;     /*discarding half of the cross power spectrum 
+                           and padding it back to lng */
+   tmp_c.imag = 0.0;
+
+   c_padd (Pxy,Pxy,tmp_c,lng_use+1,lng_use,2*lng);
+
+   ifft (Pxy,m+1);          /* inverse FFT of the scaled power spectrum */
+
+   ifft (Rxx,m+1);          /*calculating autocorrelation of x*/
+
+   c_get (Pxy,Rxy,0,2*lng); /* seperation of real and imaginary parts, 
+                               only extract meaningful segment */
+   c_get (Pxy,HRxy,1,2*lng);  
+
+   if (biasrem == 1) {
+      f_mult (ubias,Rxy,Rxy,2*lng);  /* removing bowtie artifact and 
+                                        setting redundant values to zero */
+      f_mult (ubias,HRxy,HRxy,2*lng);
+   }
+
+   if (delay_verb() > 1) {      
+      write_float (Rxy,"dbg_Rxy.txt",2*lng);
+      write_float (HRxy,"dbg_HRxy.txt",2*lng);
+      write_float (ubias,"dbg_ubias.txt",2*lng);
+   }
+   
+   for (i=0;i<lng-1;++i)  {         /* searching for the Zero crossing   */
+      if (i > maxdel)  {/* i > maxdel */
+         /*sprintf (buf,"Delay larger than 1/2 segment length (%d)",maxdel);
+         error_message ("hilbertdelay_V2",buf,0);*/
+         return (3);   
+      }/* i > maxdel */
+
+      if (HRxy[i] == 0.0) {/* HRxy[i] == 0.0 */   
+
+         if (Rxy[i] > 0.0) 
+                     *slp = 1.0;
+               else 
+                     *slp = -1.0;
+
+         izero = (float) i;
+         *xcor = Rxy[i];               /* storing value of max covariance */
+         i=lng;
+      } else  {/* HRxy[i] != 0.0 */
+         if ((HRxy[i] * HRxy[i+1]) < 0.0) {
+            /* the sign of slp was used to determine the sign of the cross 
+               correlation. The sign of slp should be the same as that of 
+               Rxy[i] close to izero. Moreover, I think the use of the sign of
+               Rxy[i] is better since with no subtraction performed, 
+               I am less sensitive to high freq. noise */
+            if (Rxy[i] >= 0.0)  *slp = 1.0;
+            else  *slp = -1.0;
+
+            if ((*slp > 0.0))  {
+               f_i = (float) (i);
+               f_i1 = (float) (i+1);
+               reg_pnt = 0.0;
+               linear_interp (&HRxy[i],&f_i,&HRxy[i+1],&f_i1,
+                              &reg_pnt,&izero,1);
+
+               /* find the peak of the cross correlation curve */
+               k = 0;
+               for (j=-3;j<=3;++j) {
+                 if (((i+j) >= 0) && ((i+j) < lng)) {
+                   tmp_f_vect[k] = (float) (i+j);
+                   tmp_f_vect2[k] = Rxy[i+j];
+                   ++k;
+                 }
+               }
+               if (k > 1) {/* at least a 1st order interpolation 
+                              must be performed */
+                  *xcor = Lagrange_interp (tmp_f_vect,tmp_f_vect2,izero,k);
+               }
+               i = lng;
+            }
+         }
+      }/* HRxy[i] != 0.0 */
+
+   }/* for i */
+
+   *del = izero + Dtx;   /* delay is in sample units corrected by the 
+                            sampling time difference*/   
+
+   if (Rxx[0].real && Ryy[0].real) {
+      *xcorCoef = *xcor / sqrt (Rxx[0].real * Ryy[0].real) * *slp; 
+            /* correction for sign of cross correlation coefficient 
+               (slp = 1.0 or -1.00*/
+   } else {
+      if (delay_verb() > 2) {      
+         printf ("\nZero Variance...\n");
+      }
+   }
+
+   /* set vx and vy */
+
+   *vx = Rxx[0].real;
+   *vy = Ryy[0].real;
+
+   ++i_call;
+   
+   return (0);
+
 }
 
 
-/*-----------------------------------------------------------------------------------*/	
+/*--------------------------------------------------------------------------*/   
 
 static void hunwrap (float del, float fs, float T, float slp, int wrp, int unt, int rev, float scl, float *delu )
 {/*hunwrap*/
 
-	float pi = 3.1416, tmp;
-	
-	
-	if (fs > 0.0)
-		{	/* delay should be in seconds */
-			del = del / fs;
-		}
-	
-	if (T > 0.0)
-		{/* Period unwrapping possible */
- 			if (slp < 0.0)
- 				{/* Unwrapping required to determine correct delay */
+   float pi = 3.1416, tmp;
+   
+   
+   if (fs > 0.0)
+      {   /* delay should be in seconds */
+         del = del / fs;
+      }
+   
+   if (T > 0.0)
+      {/* Period unwrapping possible */
+          if (slp < 0.0)
+             {/* Unwrapping required to determine correct delay */
 
- 							tmp = del * 360.0 / T;		/* from time to polar angle */
-							tmp = punwrap (tmp,1);		/* unwrap */
-							tmp = tmp + 180.0;			/* augment by pi */
-							del = tmp * T / 360.0;		/* from polar to time */
- 				}
- 			
- 			/* Now for the case where we get negative delays although no wrapping has been
-				done, namely because of the sampling time correction. */
-			
-			if (del < 0.0 || del > T)
-				{
-					tmp = del * 360.0 / T;		/* from time to polar angle */
-					if (del < 0.0)
-						{ tmp = tmp + 360.0; }
-					else 
-						{
-							if (del > T)
-								tmp = tmp - 360.0;
-						}
-					del = tmp * T / 360.0;	/* from polar to time */
-				}  
-			
+                      tmp = del * 360.0 / T;      /* from time to polar angle */
+                     tmp = punwrap (tmp,1);      /* unwrap */
+                     tmp = tmp + 180.0;         /* augment by pi */
+                     del = tmp * T / 360.0;      /* from polar to time */
+             }
+          
+          /* Now for the case where we get negative delays although no wrapping has been
+            done, namely because of the sampling time correction. */
+         
+         if (del < 0.0 || del > T)
+            {
+               tmp = del * 360.0 / T;      /* from time to polar angle */
+               if (del < 0.0)
+                  { tmp = tmp + 360.0; }
+               else 
+                  {
+                     if (del > T)
+                        tmp = tmp - 360.0;
+                  }
+               del = tmp * T / 360.0;   /* from polar to time */
+            }  
+         
          if (rev == 1) {
             del = T - del; /* reverse direction */
          }
          if (scl != 1.0) {
             del = del*scl;
          }
- 			if (wrp == 1)
-			   {/* map of (0-pi) to (0-pi) and (pi-2pi) to (pi-0) */
-				   if (scl != 1.0) {
+          if (wrp == 1)
+            {/* map of (0-pi) to (0-pi) and (pi-2pi) to (pi-0) */
+               if (scl != 1.0) {
                   static int iwarn = 0;
                   if (!iwarn) {
                      fprintf(stderr,
@@ -1683,21 +1682,21 @@ static void hunwrap (float del, float fs, float T, float slp, int wrp, int unt, 
                      ++iwarn;
                   }
                }
-               tmp = del * 360.0 / T;		/* from time to polar angle */
-				   tmp = punwrap (tmp,1);		/* unwrap */
-				   del = tmp * T / 360.0;		/* from polar to time */
-			   }/* map of (0-pi) to (0-pi) and (pi-2pi) to (pi-0) */
+               tmp = del * 360.0 / T;      /* from time to polar angle */
+               tmp = punwrap (tmp,1);      /* unwrap */
+               del = tmp * T / 360.0;      /* from polar to time */
+            }/* map of (0-pi) to (0-pi) and (pi-2pi) to (pi-0) */
 
- 			if (unt == METH_DEGREES) del = del * 360.0 / T;		/* from time to polar angle in degrees*/
-			if (unt == METH_RADIANS) del = del * 2 * pi / T;		/* from time to polar angle in degrees*/	
-	}/* Period unwrapping possible */
-	
-	*delu = del;
-	
-	return;
+          if (unt == METH_DEGREES) del = del * 360.0 / T;      /* from time to polar angle in degrees*/
+         if (unt == METH_RADIANS) del = del * 2 * pi / T;      /* from time to polar angle in degrees*/   
+   }/* Period unwrapping possible */
+   
+   *delu = del;
+   
+   return;
 }/*hunwrap*/
  
-/*-----------------------------------------------------------------------------------*/	
+/*--------------------------------------------------------------------------*/   
 
 static void disp_comp_vect (COMPLEX *v,int l)
         {
@@ -1706,12 +1705,12 @@ static void disp_comp_vect (COMPLEX *v,int l)
                 printf ("\n");
                 
                 if ((l-1) == 0)
-                	{
-                		printf ("V = (%f,%f)\n",(*v).real,(*v).imag);
-                	}
+                   {
+                      printf ("V = (%f,%f)\n",(*v).real,(*v).imag);
+                   }
                 else 
                 {
-                	for (i=0;i<l;++i)
+                   for (i=0;i<l;++i)
                         {
                                 printf ("V[%d] = (%f,%f)\t",i,v[i].real,v[i].imag);
                         }
@@ -1721,7 +1720,7 @@ static void disp_comp_vect (COMPLEX *v,int l)
 
         }
 
-/*-----------------------------------------------------------------------------------*/	
+/*--------------------------------------------------------------------------*/   
 
 static void disp_vect (float *v,int l)
         {
@@ -1744,7 +1743,7 @@ static void disp_vect (float *v,int l)
 
         }
 
-/*-----------------------------------------------------------------------------------*/	
+/*--------------------------------------------------------------------------*/   
 
 static int is_vect_null ( float * v , int npts )
         {/*is_vect_null*/
@@ -1766,11 +1765,11 @@ static int is_vect_null ( float * v , int npts )
         
         }/*is_vect_null*/
  
-/*-----------------------------------------------------------------------------------*/	
+/*--------------------------------------------------------------------------*/   
 
 
 static int write_float (float *x,char *f_name,int n_points)
-	
+   
    
     { /*  */
      int i;
@@ -1779,14 +1778,14 @@ static int write_float (float *x,char *f_name,int n_points)
      
      internal_file = fopen (f_name,"w");
      if (internal_file == NULL) {
-     								printf ("\aCould not open %s \n",f_name);
-     								printf ("Exiting program\n");
-     								exit (0);
-    						   	}
+                             printf ("\aCould not open %s \n",f_name);
+                             printf ("Exiting program\n");
+                             exit (0);
+                            }
    
    for (i=0;i<n_points;++i) fprintf (internal_file,"%f\n",x[i]);  
      fclose (internal_file);
-      return (i);  							     
+      return (i);                            
    }
 
 
