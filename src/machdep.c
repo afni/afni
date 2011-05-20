@@ -38,6 +38,7 @@ void machdep()
 
    seed = AFNI_numenv("AFNI_RANDOM_SEEDVAL") ;
    if( seed != 0) srand48(seed) ;
+   else           srand48((long)time(NULL)+(long)getpid()) ;
 
    be_quiet = AFNI_yesenv("AFNI_QUIET_STARTUP") ;  /* 08 Dec 2010 */
    return ;
