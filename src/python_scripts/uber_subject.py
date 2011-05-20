@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 # basically, a GUI to write an afni_proc.py command
 
@@ -301,21 +301,43 @@ def get_ap_command(svars, cvars):
 
 g_install_str = """
    ------------------------------------------------------------------
-   A. Linux install:
-
-      { should work on: Fedora 10+, Ubuntu 9+ }
+   A1. Linux install: Fedora 9? or 10+:
 
       1. yum install PyQt4
 
-      * Note: if your system libraries are old enough where this step does not
-              simply work (e.g. RHEL 4 and 5, and therefore CentOS 4 and 5),
-              life becomes more difficult.  Hopefully, more details to come...
+   A2. Linux install: Debian/Ubuntu:
 
-   B. OS X 10.6 install (from nokia and riverbank computing):
+      1. apt-get install python-qwt5-qt4
+
+   * Note: if your system libraries are old enough where this step does not
+           simply work (e.g. RHEL/CentOS 4 and 5), life becomes difficult.
+           I am not sure if there is a solution for even version 5.
+
+
+   B1. OS X 10.6 install (via fink):
+
+      1. install pyqt4 for python version 2.7 (might require selfupdate)
+         (might also require making a new link to python under /sw/bin)
+
+            sudo fink selfupdate
+            sudo fink install pyqt4-py27
+            sudo ln -s /sw/bin/python2.7 /sw/bin/python     (if needed)
+
+         Note: for this to apply, /sw/bin needs to be before /usr/bin in
+               the PATH.
+
+      2. update PYTHONPATH to point to new site-packages directory
+         (put this in .cshrc)
+
+            setenv PYTHONPATH /sw/lib/qt4-x11/lib/python2.7/site-packages
+
+
+   ALTERNATIVE OS X METHOD:
+
+   B2. OS X 10.6 install (from nokia and riverbank computing):
 
       { should work on: OS X 10.5, 10.6 }
 
-      1. yum install PyQt4
       0. XCode and python (2.6) should already be installed
 
       1. Qt SDK for mac (large: 1.1 GB download):
