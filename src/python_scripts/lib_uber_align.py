@@ -35,9 +35,10 @@ g_history = """
          - added menu items to show python and shell command windows
          - added much more help, including main and section buttons
          - added browsing of align_epi_anat.py help
+    0.5  19 May, 2011: revert to /usr/bin/env python
 """
 
-g_version = '0.4 (May 16, 2011)'
+g_version = '0.5 (May 19, 2011)'
 
 # ----------------------------------------------------------------------
 # global definition of default processing blocks

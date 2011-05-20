@@ -119,9 +119,12 @@ g_history = """
          - moved many functions to lib_subjects or afni_util.py
          - added option -show_default_vars
     0.23 May 11, 2011 : small help/todo update
+    0.24 May 19, 2011 : revert to /usr/bin/env python
+         - fink use may be ready on the macs (tried: fink install pyqt4-py27)
+
 """
 
-g_version = '0.23 (May 11, 2011)'
+g_version = '0.24 (May 19, 2011)'
 
 # ----------------------------------------------------------------------
 # global definition of default processing blocks
