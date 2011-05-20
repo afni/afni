@@ -49,6 +49,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 20, MAY, 2011, RCR, "uber_subject.py", MINOR, TYPE_MODIFY,
+   "execute via /usr/bin/env python",
+   "Help now suggests fink as primary Mac source for PyQt4."
+ } ,
+
+ { 20, MAY, 2011, RCR, "uber_align_test.py", MINOR, TYPE_MODIFY,
+   "execute via /usr/bin/env python",
+   NULL
+ } ,
+
  { 16, MAY, 2011, RCR, "uber_align_test.py", MINOR, TYPE_ENHANCE,
    "could be used as a release version",
    " - added 'check center dist' button, to display the current distance\n"
