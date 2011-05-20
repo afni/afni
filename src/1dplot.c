@@ -262,11 +262,11 @@ int main( int argc , char *argv[] )
    for( ii=1 ; ii < argc ; ii++ ){
      if( strcasecmp(argv[ii],"-ps")   == 0 ){ skip_x11 = 1; break; }
      if( strcasecmp(argv[ii],"-jpg")  == 0 ){ skip_x11 = 1; break; }
-     if( strcasecmp(argv[ii],"-jpgs")  == 0 ){ skip_x11 = 1; break; }
+     if( strcasecmp(argv[ii],"-jpgs") == 0 ){ skip_x11 = 1; break; }
      if( strcasecmp(argv[ii],"-jpeg") == 0 ){ skip_x11 = 1; break; }
-     if( strcasecmp(argv[ii],"-jpegs")  == 0 ){ skip_x11 = 1; break; }
+     if( strcasecmp(argv[ii],"-jpegs")== 0 ){ skip_x11 = 1; break; }
      if( strcasecmp(argv[ii],"-png")  == 0 ){ skip_x11 = 1; break; }
-     if( strcasecmp(argv[ii],"-pngs")  == 0 ){ skip_x11 = 1; break; }
+     if( strcasecmp(argv[ii],"-pngs") == 0 ){ skip_x11 = 1; break; }
    }
 
    if( !skip_x11 ){
@@ -366,12 +366,12 @@ int main( int argc , char *argv[] )
         iarg++ ; continue ;
      }
 
-     if( strcasecmp(argv[iarg],"-jpegs") == 0 || 
+     if( strcasecmp(argv[iarg],"-jpegs") == 0 ||
          strcasecmp(argv[iarg],"-jpgs") == 0 ){
         int isize; char sss[256]={""} ;
         out_ps = 0 ; imsave = JPEG_MODE ;
-        iarg++ ; 
-        if( iarg+1 >= argc ) 
+        iarg++ ;
+        if( iarg+1 >= argc )
          ERROR_exit("need 2 argument after '%s'",argv[iarg-1]) ;
         isize = (int) strtod(argv[iarg], NULL);
         if (isize < 100 || isize > 9999) {
@@ -380,10 +380,10 @@ int main( int argc , char *argv[] )
         }
         sprintf(sss,"AFNI_1DPLOT_IMSIZE=%d", isize);
         putenv(sss) ;
-        iarg++ ;        
-        imfile = (char *)malloc(strlen(argv[iarg])+8) ; 
+        iarg++ ;
+        imfile = (char *)malloc(strlen(argv[iarg])+8) ;
         strcpy(imfile,argv[iarg]) ;
-        if( !STRING_HAS_SUFFIX(imfile,".jpg") && 
+        if( !STRING_HAS_SUFFIX(imfile,".jpg") &&
             !STRING_HAS_SUFFIX(imfile,".JPG") )
           strcat(imfile,".jpg") ;
         iarg++ ; continue ;
@@ -397,12 +397,12 @@ int main( int argc , char *argv[] )
           strcat(imfile,".png") ;
         iarg++ ; continue ;
      }
-     
+
      if( strcasecmp(argv[iarg],"-pngs") == 0 ){
         int isize; char sss[256]={""} ;
         out_ps = 0 ; imsave = PNG_MODE ;
-        iarg++ ; 
-        if( iarg+1 >= argc ) 
+        iarg++ ;
+        if( iarg+1 >= argc )
          ERROR_exit("need 2 arguments after '%s'",argv[iarg-1]) ;
         isize = (int) strtod(argv[iarg], NULL);
         if (isize < 100 || isize > 9999) {
@@ -412,25 +412,23 @@ int main( int argc , char *argv[] )
         sprintf(sss,"AFNI_1DPLOT_IMSIZE=%d", isize);
         putenv(sss) ;
         iarg++ ;
-        imfile = (char *)malloc(strlen(argv[iarg])+8) ; 
+        imfile = (char *)malloc(strlen(argv[iarg])+8) ;
         strcpy(imfile,argv[iarg]) ;
         if( !STRING_HAS_SUFFIX(imfile,".png") && !STRING_HAS_SUFFIX(imfile,".PNG") )
           strcat(imfile,".png") ;
         iarg++ ; continue ;
      }
-     
-     
 
      if( strcmp(argv[iarg],"-install") == 0 ){
-        install++ ; iarg++ ; continue ;
+       install++ ; iarg++ ; continue ;
      }
 
      if( strcmp(argv[iarg],"-stdin") == 0 ){  /* 01 Aug 2001 */
-        use_stdin++ ; iarg++ ; continue ;
+       use_stdin++ ; iarg++ ; continue ;
      }
 
      if( strcmp(argv[iarg],"-") == 0 ){  /* skip */
-        iarg++ ; continue ;
+       iarg++ ; continue ;
      }
 
      if( strcmp(argv[iarg],"-ynames") == 0 ){
@@ -458,7 +456,7 @@ int main( int argc , char *argv[] )
         wintitle = argv[++iarg] ;
         iarg++ ; continue ;
      }
-     
+
      if( strcmp(argv[iarg],"-title") == 0 ){ /* normally eaten by XtVaAppInitialize */
 #if 0
         WARNING_message(                     /* unless  using -ps! So keep it here, */
@@ -556,7 +554,7 @@ int main( int argc , char *argv[] )
      float *val , fff ;
 
      if (!wintitle) wintitle = "stdin";   /* ZSS Oct 7 09 */
-     
+
      lbuf = (char * )malloc(sizeof(char )*NLBUF) ;
      val  = (float *)malloc(sizeof(float)*NVMAX) ;
 
@@ -616,11 +614,11 @@ int main( int argc , char *argv[] )
      if( iarg >= argc )
        ERROR_exit("No input files on command line?!\n");  /* bad user?! */
 
- 
+
      if( iarg == argc-1 ){                 /* only 1 input file */
-       
+ 
        if (!wintitle) wintitle = argv[iarg];   /* ZSS Oct 7 09 */
-       
+ 
        inim = mri_read_1D( argv[iarg] ) ;
        if( inim == NULL )
          ERROR_exit("Can't read input file '%s'\n",argv[iarg]) ;
@@ -629,11 +627,11 @@ int main( int argc , char *argv[] )
        MRI_IMARR *imar ;                   /* read them & glue into 1 image */
        int iarg_first=iarg, nysum=0, ii,jj,nx=1 ;
        float *far,*iar ;
-       
+
        if (!wintitle) {
          snprintf(autotitle,64*sizeof(char),"%s ...", argv[iarg] );
          wintitle = autotitle;
-       } 
+       }
 
        INIT_IMARR(imar) ;
        for( ; iarg < argc ; iarg++ ){

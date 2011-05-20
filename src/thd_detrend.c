@@ -8,6 +8,19 @@
 
 /*-------------------------------------------------------------------------*/
 
+int THD_is_constant( int npt , float *xx )  /* 20 May 2011 */
+{
+   int ii ; float val ;
+
+   if( npt <= 1 || xx == NULL ) return 1 ;
+   
+   val = xx[0] ;
+   for( ii=1 ; ii < npt ; ii++ ) if( xx[ii] != val ) return 0 ;
+   return 1 ;
+}
+
+/*-------------------------------------------------------------------------*/
+
 void THD_const_detrend( int npt, float *xx, float *xx0 ) /* 24 Aug 2001 */
 {
    int ii ; float xbar ;
