@@ -4391,7 +4391,8 @@ extern void THD_normL1           ( int, float * ) ;  /* 26 Mar 2008 */
 extern void THD_cubic_detrend    ( int, float * ) ;  /* 15 Nov 1999 */
 
 extern void THD_const_detrend    ( int, float *, float * ); /* 24 Aug 2001 */
-void THD_linear_detrend_complex  ( int, complex * ); /* 05 Mar 2007 */
+extern void THD_linear_detrend_complex  ( int, complex * ); /* 05 Mar 2007 */
+extern int  THD_is_constant      ( int , float * );         /* 11 May 2011 */
 
 extern void THD_generic_detrend_LSQ( int, float *, int, int, float **, float *) ;
 extern void THD_generic_detrend_L1 ( int, float *, int, int, float **, float *) ;
