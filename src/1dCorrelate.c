@@ -39,6 +39,7 @@ int main( int argc , char *argv[] )
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
      printf("Usage: 1dCorrelate [options] 1Dfile 1Dfile ...\n"
+            "------\n"
             " * Computes correlation coefficient of 1D column pairs.\n"
             " * Minimum column length is 7.\n"
             " * At least 2 columns are needed [in 1 or more .1D files].\n"
@@ -47,13 +48,16 @@ int main( int argc , char *argv[] )
             " * Only one correlation method can be used in one run of this program.\n"
             "\n"
             "-------\n"
-            "Options [actually, only the first letter is needed to choose a method]\n"
+            "Methods [actually, only the first letter is needed to choose a method]\n"
             "------- [and the case doesn't matter: '-P' and '-p' both = '-pearson']\n"
             " -pearson  = Pearson correlation              [the default method]\n"
             " -spearman = Spearman (rank) correlation      [more robust vs. outliers]\n"
             " -quadrant = Quadrant (binarized) correlation [most robust, but weaker]\n"
             " -ktaub    = Kendall's tau_b 'correlation'    [popular somewhere, maybe]\n"
             "\n"
+            "-------------\n"
+            "Other Options [these cannot be abbreviated!]\n"
+            "-------------\n"
             " -nboot B  = Set the number of bootstrap replicates to 'B'.\n"
             "             * The default (and minimum allowed) value of B is %d.\n"
             "             * A larger number will give more accurate confidence\n"
@@ -67,8 +71,9 @@ int main( int argc , char *argv[] )
             "  *OR*       variable-length block resampling, rather than completely\n"
             " -blk        random resampling as in the usual bootstrap.\n"
             "             * You should NOT do this unless you believe that serial\n"
-            "               correlation is present and significant.\n"
-            "\n"
+            "               correlation (along each column) is present and significant.\n"
+            "             * Block resampling requires at least 20 data points in\n"
+            "               each input column.\n"
             "-----\n"
             "Notes\n"
             "-----\n"
@@ -84,12 +89,12 @@ int main( int argc , char *argv[] )
             "-------------\n"
             "Sample output ['1dCorrelate -alpha 10 A.1D B.1D']\n"
             "-------------\n"
-            "# Pearson correlation [n=12]\n"
+            "# Pearson correlation [n=12 #col=2]\n"
             "# Name      Name       Value   BiasCorr   5.00%%   95.00%%  N: 5.00%% N:95.00%%\n"
             "# --------  --------  -------- -------- -------- -------- -------- --------\n"
             "  A2.1D[0]  B2.1D[0]  +0.57254 +0.57225 -0.03826 +0.86306 +0.10265 +0.83353\n"
             "\n"
-            "* The bias correction of the correlation had little effect.\n"
+            "* Bias correction of the correlation had little effect; this is very common.\n"
             "\n"
             "* The correlation is not significant at this level, since the CI (confidence\n"
             "  interval) includes 0 in its range.\n"
@@ -100,19 +105,19 @@ int main( int argc , char *argv[] )
             "  the theoretical interval.\n"
             "\n"
             "* In this example, the normal theory might indicate that the correlation is\n"
-            "  significant (less than a 5%% chance that the CI goes below 0), but the\n"
-            "  bootstrap CI shows that is not in fact a reasonable statistical result.\n"
+            "  significant (less than a 5%% chance that the CI includes 0), but the\n"
+            "  bootstrap CI shows that is not in fact a reasonable statistical conclusion.\n"
             "\n"
             "* Using the same data with the '-S' option gives the table below, again\n"
             "  indicating that there is no significant correlation between the columns\n"
             "  (note the lack of the 'N:' results for Spearman correlation):\n"
             "\n"
-            "# Spearman correlation [n=12]\n"
+            "# Spearman correlation [n=12 #col=2]\n"
             "# Name      Name       Value   BiasCorr   5.00%%   95.00%%\n"
             "# --------  --------  -------- -------- -------- --------\n"
             "  A2.1D[0]  B2.1D[0]  +0.46154 +0.42756 -0.23063 +0.86078\n"
             "\n"
-            "* RWCox (AKA Zhark the Correlator) -- 19 May 2011\n"
+            "* Written by RWCox (AKA Zhark the Correlator) -- 19 May 2011\n"
 
            , NBOOT ) ;
      PRINT_COMPILE_DATE ; exit(0) ;
@@ -182,6 +187,11 @@ int main( int argc , char *argv[] )
 
    if( nvec < 2 ) ERROR_exit("Must have at least 2 input columns!") ;
 
+   if( nx < 20 && doblk ){
+     doblk = 0 ;
+     WARNING_message("Column length %d < 20 ==> cannot use block resampling",nx) ;
+   }
+
    /* create vectors from 1D files */
 
    tvec = (float **)malloc( sizeof(float *)*nvec ) ;
@@ -211,7 +221,7 @@ int main( int argc , char *argv[] )
 
    srand48((long)time(NULL)+(long)getpid()) ; /* initialize rand48 seed */
 
-   printf("# %s correlation [n=%d]\n",cor_name[cormeth],nx) ;
+   printf("# %s correlation [n=%d #col=%d]\n",cor_name[cormeth],nx,nvec) ;
    sprintf(fmt,"# %%-%ds  %%-%ds",vlen,vlen) ;
    printf(fmt,"Name","Name") ;
    printf("   Value   BiasCorr  %5.2f%%   %5.2f%%",50.0f*alpha,100.0f-50.0f*alpha) ;
@@ -289,7 +299,7 @@ static float_quad Corrboot( int n , float *x , float *y ,
        int jold = lrand48() % nn ;
        xar[0] = x[jold] ; yar[0] = y[jold] ;
        for( ii=1 ; ii < nn ; ii++ ){
-         if( lrand48()%4 == 0 ){     /* 25% chance of random jump */
+         if( lrand48()%8 == 0 ){     /* 12.5% chance of random jump */
            jj = lrand48() % nn ;
          } else {
            jj = jold+1 ; if( jj == nn ) jj = 0 ;
