@@ -11,11 +11,14 @@ static cfun cor_func[NCOR] =
 static float_quad Corrboot( int n , float *x , float *y ,
                             float (*cfun)(int,float *,float *) ) ;
 
+static float_pair PCorrCI( int ndof , float cor , float alpha ) ;
+
 #undef  NBOOT
 #define NBOOT 4000  /* must be a integral multiple of 40 */
 
 static int   nboot = NBOOT ;
 static float alpha = 0.05f ;
+static int   doblk = 0 ;
 
 /*--------------------------------------------------------------------------------*/
 
@@ -27,9 +30,9 @@ int main( int argc , char *argv[] )
    float sum , **tvec ;
    char **vecnam , *tnam ;
    float *far ;
-   int cormeth = 0 ;
+   int cormeth=0 ;
    float (*corfun)(int,float *,float *) = NULL ;
-   float_quad qcor ; float corst , cor025, cor500 , cor975 ;
+   float_quad qcor ; float_pair pci ; float corst , cor025, cor500 , cor975 ;
    char fmt[256] ;
 
    /* help? */
@@ -39,8 +42,8 @@ int main( int argc , char *argv[] )
             " * Computes correlation coefficient of 1D column pairs.\n"
             " * Minimum column length is 7.\n"
             " * At least 2 columns are needed [in 1 or more .1D files].\n"
+            " * If there are N input columns, there will be N*(N-1)/2 output rows.\n"
             " * Output appears on stdout; redirect as needed.\n"
-            " * There is no allowance made for any serial correlation in the data.\n"
             " * Only one correlation method can be used in one run of this program.\n"
             "\n"
             "-------\n"
@@ -60,6 +63,12 @@ int main( int argc , char *argv[] )
             "             * The default value of A is 5, giving the 2.5..97.5%% interval.\n"
             "             * The smallest allowed A is 1 and the largest is 20.\n"
             "\n"
+            " -block    = Attempt to allow for serial correlation in the data by doing\n"
+            "  *OR*       variable-length block resampling, rather than completely\n"
+            " -blk        random resampling as in the usual bootstrap.\n"
+            "             * You should NOT do this unless you believe that serial\n"
+            "               correlation is present and significant.\n"
+            "\n"
             "-----\n"
             "Notes\n"
             "-----\n"
@@ -73,20 +82,37 @@ int main( int argc , char *argv[] )
             "  'significant', and this often seems misleading to me [for short columns].\n"
             "\n"
             "-------------\n"
-            "Sample output [2 columns with 64 data points: '1dCorrelate qqq.1D']\n"
+            "Sample output ['1dCorrelate -alpha 10 A.1D B.1D']\n"
             "-------------\n"
-            "# Pearson correlation [n=64]\n"
-            "# Name       Name        Value   BiasCorr   2.5%%    97.5%%\n"
-            "# ---------  ---------  -------- -------- -------- --------\n"
-            "  qqq.1D[0]  qqq.1D[1]  +0.19523 +0.19255 +0.01738 +0.36059\n"
+            "# Pearson correlation [n=12]\n"
+            "# Name      Name       Value   BiasCorr   5.00%%   95.00%%  N: 5.00%% N:95.00%%\n"
+            "# --------  --------  -------- -------- -------- -------- -------- --------\n"
+            "  A2.1D[0]  B2.1D[0]  +0.57254 +0.57225 -0.03826 +0.86306 +0.10265 +0.83353\n"
             "\n"
-            "showing that the bias correction of the correlation had\n"
-            "little effect, and also showing that the correlation is\n"
-            "significant at the 5%% level [just barely].\n"
+            "* The bias correction of the correlation had little effect.\n"
             "\n"
-            "* If there are N input columns, there will be N*(N-1)/2 output rows.\n"
+            "* The correlation is not significant at this level, since the CI (confidence\n"
+            "  interval) includes 0 in its range.\n"
             "\n"
-            "* RWCox -- 19 May 2011\n"
+            "* For the Pearson method ONLY, the last two columns ('N:', as above) also\n"
+            "  show the widely used asymptotic normal theory confidence interval.  As in\n"
+            "  the example, the bootstrap interval is often (but not always) wider than\n"
+            "  the theoretical interval.\n"
+            "\n"
+            "* In this example, the normal theory might indicate that the correlation is\n"
+            "  significant (less than a 5%% chance that the CI goes below 0), but the\n"
+            "  bootstrap CI shows that is not in fact a reasonable statistical result.\n"
+            "\n"
+            "* Using the same data with the '-S' option gives the table below, again\n"
+            "  indicating that there is no significant correlation between the columns\n"
+            "  (note the lack of the 'N:' results for Spearman correlation):\n"
+            "\n"
+            "# Spearman correlation [n=12]\n"
+            "# Name      Name       Value   BiasCorr   5.00%%   95.00%%\n"
+            "# --------  --------  -------- -------- -------- --------\n"
+            "  A2.1D[0]  B2.1D[0]  +0.46154 +0.42756 -0.23063 +0.86078\n"
+            "\n"
+            "* RWCox (AKA Zhark the Correlator) -- 19 May 2011\n"
 
            , NBOOT ) ;
      PRINT_COMPILE_DATE ; exit(0) ;
@@ -122,6 +148,10 @@ int main( int argc , char *argv[] )
          alpha *= 0.01f ;  /* convert from percent to fraction */
        }
        iarg++ ; continue ;
+     }
+
+     if( strcasecmp(argv[iarg],"-blk") == 0 || strcasecmp(argv[iarg],"-block") == 0 ){
+       doblk = 1 ; iarg++ ; continue ;
      }
 
      ERROR_exit("Monstrously illegal option '%s'",argv[iarg]) ;
@@ -184,7 +214,9 @@ int main( int argc , char *argv[] )
    printf("# %s correlation [n=%d]\n",cor_name[cormeth],nx) ;
    sprintf(fmt,"# %%-%ds  %%-%ds",vlen,vlen) ;
    printf(fmt,"Name","Name") ;
-   printf("   Value   BiasCorr  %5.2f%%   %5.2f%% \n",50.0f*alpha,100.0f-50.0f*alpha) ;
+   printf("   Value   BiasCorr  %5.2f%%   %5.2f%%",50.0f*alpha,100.0f-50.0f*alpha) ;
+   if( cormeth == 0 ) printf("  N:%5.2f%% N:%5.2f%%",50.0f*alpha,100.0f-50.0f*alpha) ;
+   printf("\n") ;
    printf("# ") ;
    for( ii=0 ; ii < vlen ; ii++ ) printf("-") ;
    printf("  ") ;
@@ -194,8 +226,12 @@ int main( int argc , char *argv[] )
    printf(" --------") ;
    printf(" --------") ;
    printf(" --------") ;
+   if( cormeth == 0 ){ printf(" --------") ; printf(" --------") ; }
    printf("\n") ;
-   sprintf(fmt,"  %%-%ds  %%-%ds  %%+8.5f %%+8.5f %%+8.5f %%+8.5f\n",vlen,vlen) ;
+   if( cormeth != 0 )
+     sprintf(fmt,"  %%-%ds  %%-%ds  %%+8.5f %%+8.5f %%+8.5f %%+8.5f\n",vlen,vlen) ;
+   else
+     sprintf(fmt,"  %%-%ds  %%-%ds  %%+8.5f %%+8.5f %%+8.5f %%+8.5f %%+8.5f %%+8.5f\n",vlen,vlen) ;
    for( jj=0 ; jj < nvec ; jj++ ){
      for( kk=jj+1 ; kk < nvec ; kk++ ){
 
@@ -203,7 +239,12 @@ int main( int argc , char *argv[] )
 
        corst = qcor.a ; cor025 = qcor.b ; cor500 = qcor.c ; cor975 = qcor.d ;
 
-       printf(fmt , vecnam[jj] , vecnam[kk] , corst , cor500 , cor025 , cor975 ) ;
+       if( cormeth == 0 ){
+         pci = PCorrCI( nx , corst , alpha ) ;
+         printf(fmt, vecnam[jj], vecnam[kk], corst, cor500, cor025, cor975, pci.a,pci.b ) ;
+       } else {
+         printf(fmt, vecnam[jj], vecnam[kk], corst, cor500, cor025, cor975 ) ;
+       }
      }
    }
 
@@ -240,8 +281,21 @@ static float_quad Corrboot( int n , float *x , float *y ,
    /* compute bootstrap results */
 
    for( kk=0 ; kk < nboot ; kk++ ){
-     for( ii=0 ; ii < nn ; ii++ ){
-       jj = lrand48() % nn ; xar[ii] = x[jj] ; yar[ii] = y[jj] ;
+     if( !doblk ){
+       for( ii=0 ; ii < nn ; ii++ ){
+         jj = lrand48() % nn ; xar[ii] = x[jj] ; yar[ii] = y[jj] ;
+       }
+     } else {
+       int jold = lrand48() % nn ;
+       xar[0] = x[jold] ; yar[0] = y[jold] ;
+       for( ii=1 ; ii < nn ; ii++ ){
+         if( lrand48()%4 == 0 ){     /* 25% chance of random jump */
+           jj = lrand48() % nn ;
+         } else {
+           jj = jold+1 ; if( jj == nn ) jj = 0 ;
+         }
+         xar[ii] = x[jj] ; yar[ii] = y[jj] ; jold = jj ;
+       }
      }
      cbb[kk] = cfun(nn,xar,yar) ;
    }
@@ -254,4 +308,39 @@ static float_quad Corrboot( int n , float *x , float *y ,
 
    res.a = corst ; res.b = bci.a ; res.c = bci.b ; res.d = bci.c ;
    return res ;
+}
+
+/*----------------------------------------------------------------------------*/
+
+#undef  PHI
+#define PHI(x) (1.0-qg(x))       /* CDF of N(0,1) */
+
+#undef  PHINV
+#define PHINV(x) qginv(1.0-(x))  /* inverse CDF of N(0,1) */
+
+#undef  MYatanh
+#define MYatanh(x) ( ((x)<-0.999329f) ? -4.0f                \
+                    :((x)>+0.999329f) ? +4.0f : atanhf(x) )
+
+static INLINE float MYtanh( float x )
+{
+  register float ex , exi ;
+       if( x >  7.0f ) return  1.0f ;  /* 03 Sep: check for stupid inputs */
+  else if( x < -7.0f ) return -1.0f ;
+  ex = exp(x) ; exi = 1.0f/ex ;
+  return (ex-exi)/(ex+exi) ;
+}
+
+static float_pair PCorrCI( int ndof , float cor , float alph )
+{
+   float_pair ci = {-1.0f,1.0f} ;
+   float zc , zb,zt , dz ;
+
+   if( ndof < 3 || cor <= -1.0f || cor >= 1.0f ) return ci ;
+
+   zc = MYatanh(cor) ;
+   dz = qginv(0.5*alph) / sqrt(ndof-3.0) ;
+   ci.a = MYtanh(zc-dz) ;
+   ci.b = MYtanh(zc+dz) ;
+   return ci ;
 }
