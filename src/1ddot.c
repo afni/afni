@@ -15,9 +15,10 @@ int main( int argc , char *argv[] )
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
      printf("Usage: 1ddot [options] 1Dfile 1Dfile ...\n"
-            "- Prints out correlation matrix of the 1D files and\n"
+            "* Prints out correlation matrix of the 1D files and\n"
             "  their inverse correlation matrix.\n"
-            "- Output appears on stdout.\n"
+            "* Output appears on stdout.\n"
+            "* Program 1dCorrelate does something similar-ish.\n"
             "\n"
             "Options:\n"
             " -one  =  Make 1st vector be all 1's.\n"
