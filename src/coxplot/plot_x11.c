@@ -248,6 +248,7 @@ fprintf(stderr,"Changing color to %f %f %f\n",rr,gg,bb) ;
             }
             break ;
 
+            case THCODE_BALL:
             case THCODE_CIRC:{        /* circle */
                int xcor,ycor , xcen,ycen , xrad,yrad ;
                unsigned int ww, hh ;
@@ -257,10 +258,14 @@ fprintf(stderr,"Changing color to %f %f %f\n",rr,gg,bb) ;
                yrad = (int)(       yscal * MEMPLOT_X2(mp,ii)         );
                xcor = xcen - xrad ; ww = 2*xrad ;
                ycor = ycen - yrad ; hh = 2*yrad ;
-               if( ww || hh )
-                 XDrawArc( old_dpy,old_w,old_GC , xcor,ycor,ww,hh , 0,360*64 ) ;
-               else
+               if( ww || hh ){
+                 if( thc == THCODE_CIRC )
+                   XDrawArc( old_dpy,old_w,old_GC , xcor,ycor,ww,hh , 0,360*64 ) ;
+                 else if( thc == THCODE_BALL )
+                   XFillArc( old_dpy,old_w,old_GC , xcor,ycor,ww,hh , 0,360*64 ) ;
+               } else {
                  XDrawPoint( old_dpy,old_w,old_GC , xcor,ycor ) ;
+               }
                skip = 1 ;
             }
             break ;

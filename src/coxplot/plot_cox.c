@@ -255,6 +255,20 @@ void plotcirc_memplot( float x1 , float y1 , float rad ) /* 10 Mar 2002 */
    return ;
 }
 
+void plotball_memplot( float x1 , float y1 , float rad )
+{
+   MEM_plotdata * mp ;
+
+   if( active_plot < 0 || active_plot >= num_plotar ||
+       num_plotar == 0 || plotar == NULL            ||
+       plotar[active_plot] == NULL                    ) return ;
+
+   mp = plotar[active_plot] ;
+
+   ADDTO_MEMPLOT( mp , x1,y1,rad,0.0 , active_color , -THCODE_BALL ) ;
+   return ;
+}
+
 /*----- This routine is called from zzphph.f to draw 1 actual line -----*/
 
 void zzmpli_( float * x1 , float * y1 , float * x2 , float * y2 )
@@ -423,7 +437,7 @@ void flip_memplot( int rot , int mirror , MEM_plotdata *mp )
           x2 = mp->xyline[nn+2] ; y2 = mp->xyline[nn+3] ;
           thc = (int)mp->xyline[nn+5] ; if( thc == -THCODE_OPAC ) continue ;
           mp->xyline[nn  ] = ytop - y1 ;
-          mp->xyline[nn+1] = x1 ;       if( thc == -THCODE_CIRC ) continue ;
+          mp->xyline[nn+1] = x1 ;       if( thc == -THCODE_CIRC || thc == -THCODE_BALL ) continue ;
           mp->xyline[nn+2] = ytop - y2 ;
           mp->xyline[nn+3] = x2 ;
        }
@@ -435,7 +449,7 @@ void flip_memplot( int rot , int mirror , MEM_plotdata *mp )
           x2 = mp->xyline[nn+2] ; y2 = mp->xyline[nn+3] ;
           thc = (int)mp->xyline[nn+5] ;  if( thc == -THCODE_OPAC ) continue ;
           mp->xyline[nn  ] = xtop - x1 ;
-          mp->xyline[nn+1] = ytop - y1 ; if( thc == -THCODE_CIRC ) continue ;
+          mp->xyline[nn+1] = ytop - y1 ; if( thc == -THCODE_CIRC || thc == -THCODE_BALL ) continue ;
           mp->xyline[nn+2] = xtop - x2 ;
           mp->xyline[nn+3] = ytop - y2 ;
        }
@@ -447,7 +461,7 @@ void flip_memplot( int rot , int mirror , MEM_plotdata *mp )
           x2 = mp->xyline[nn+2] ; y2 = mp->xyline[nn+3] ;
           thc = (int)mp->xyline[nn+5] ;  if( thc == -THCODE_OPAC ) continue ;
           mp->xyline[nn  ] = y1 ;
-          mp->xyline[nn+1] = xtop - x1 ; if( thc == -THCODE_CIRC ) continue ;
+          mp->xyline[nn+1] = xtop - x1 ; if( thc == -THCODE_CIRC || thc == -THCODE_BALL ) continue ;
           mp->xyline[nn+2] = y2 ;
           mp->xyline[nn+3] = xtop - x2 ;
        }
@@ -459,7 +473,7 @@ void flip_memplot( int rot , int mirror , MEM_plotdata *mp )
           x2 = mp->xyline[nn+2] ; y2 = mp->xyline[nn+3] ;
           thc = (int)mp->xyline[nn+5] ; if( thc == -THCODE_OPAC ) continue ;
           mp->xyline[nn  ] = xtop - x1 ;
-          mp->xyline[nn+1] = y1 ;       if( thc == -THCODE_CIRC ) continue ;
+          mp->xyline[nn+1] = y1 ;       if( thc == -THCODE_CIRC || thc == -THCODE_BALL ) continue ;
           mp->xyline[nn+2] = xtop - x2 ;
           mp->xyline[nn+3] = y2 ;
        }
@@ -471,7 +485,7 @@ void flip_memplot( int rot , int mirror , MEM_plotdata *mp )
           x2 = mp->xyline[nn+2] ; y2 = mp->xyline[nn+3] ;
           thc = (int)mp->xyline[nn+5] ; if( thc == -THCODE_OPAC ) continue ;
           mp->xyline[nn  ] = y1 ;
-          mp->xyline[nn+1] = x1 ;       if( thc == -THCODE_CIRC ) continue ;
+          mp->xyline[nn+1] = x1 ;       if( thc == -THCODE_CIRC || thc == -THCODE_BALL ) continue ;
           mp->xyline[nn+2] = y2 ;
           mp->xyline[nn+3] = x2 ;
        }
@@ -483,7 +497,7 @@ void flip_memplot( int rot , int mirror , MEM_plotdata *mp )
           x2 = mp->xyline[nn+2] ; y2 = mp->xyline[nn+3] ;
           thc = (int)mp->xyline[nn+5]  ; if( thc == -THCODE_OPAC ) continue ;
           mp->xyline[nn  ] = x1 ;
-          mp->xyline[nn+1] = ytop - y1 ; if( thc == -THCODE_CIRC ) continue ;
+          mp->xyline[nn+1] = ytop - y1 ; if( thc == -THCODE_CIRC || thc == -THCODE_BALL ) continue ;
           mp->xyline[nn+2] = x2 ;
           mp->xyline[nn+3] = ytop - y2 ;
        }
@@ -495,7 +509,7 @@ void flip_memplot( int rot , int mirror , MEM_plotdata *mp )
           x2 = mp->xyline[nn+2] ; y2 = mp->xyline[nn+3] ;
           thc = (int)mp->xyline[nn+5]  ; if( thc == -THCODE_OPAC ) continue ;
           mp->xyline[nn  ] = ytop - y1 ;
-          mp->xyline[nn+1] = xtop - x1 ; if( thc == -THCODE_CIRC ) continue ;
+          mp->xyline[nn+1] = xtop - x1 ; if( thc == -THCODE_CIRC || thc == -THCODE_BALL ) continue ;
           mp->xyline[nn+2] = ytop - y2 ;
           mp->xyline[nn+3] = xtop - x2 ;
        }
@@ -685,6 +699,7 @@ MEM_plotdata * clip_memplot( float xclbot, float yclbot,
            }
          break ;
 
+         case THCODE_BALL:
          case THCODE_CIRC:{        /* circle */
                                    /* +/- 1 radius inside */
            float xx,yy , rr=x2 ;
