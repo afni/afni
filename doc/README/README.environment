@@ -1993,6 +1993,14 @@ when giving the '.png' or '.jpg' from 1dplot-style graphs.  The default
 value is 1024.  Values over 2048 may give odd looking results, and will
 be palpably slower to render.
 
+-----------------------------
+Variable: AFNI_1DPLOT_BOXSIZE
+-----------------------------
+This variable sets the size of the boxes that are plotted with the 1dplot
+'-box' option.  The units are in terms of the width of the entire plot;
+a value of 0.006 is the default.  The largest allowed value is 0.02 and
+the smallest is 0.001.
+
 ---------------------------------
 Variable: AFNI_SIEMENS_INTERLEAVE
 ---------------------------------
