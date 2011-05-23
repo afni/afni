@@ -37,6 +37,22 @@ static int ilab[4] = { 0,2,3,1 } ;  /* whether to plot labels on axes */
 static float THIK = 0.003 ;  /* 27 Mar 2004: changed from a #define */
 
 /*----------------------------------------------------------------------*/
+static float tsbox  = 0.0f ;      /* 23 May 2011 */
+static float noline = 0 ;
+
+void plot_ts_dobox( float a ){ tsbox = a ; }
+void plot_ts_noline( int a ){ noline = a ; }
+
+static void plot_onebox( float xx , float yy ){
+   float x , y ;
+   plotpak_zzphys( xx , yy , &x , &y ) ;
+   plotpak_phline( x+tsbox , y       , x       , y+tsbox ) ;
+   plotpak_phline( x       , y+tsbox , x-tsbox , y       ) ;
+   plotpak_phline( x-tsbox , y       , x       , y-tsbox ) ;
+   plotpak_phline( x       , y-tsbox , x+tsbox , y       ) ;
+}
+
+/*----------------------------------------------------------------------*/
 static int xpush=1 , ypush=1 ;
 
 void plot_ts_xypush( int a , int b ){ xpush=a; ypush=b; }  /* 12 Mar 2003 */
@@ -150,6 +166,8 @@ void plot_ts_setcolors( int ncol , float *rrr , float *ggg , float *bbb )
    }
    return ;
 }
+
+/*-----------------------------------------------------------------------*/
 
 void plot_ts_setthik( float thk )
 {
@@ -383,12 +401,19 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
          set_thick_memplot( THIK ) ;
          set_color_memplot( ccc[jj%NCLR][0] , ccc[jj%NCLR][1] , ccc[jj%NCLR][2] ) ;
 
-         yy = y[jj] ;
-         for( ii=1 ; ii < nx ; ii++ ){
-            if( xx[ii-1] < WAY_BIG && xx[ii] < WAY_BIG &&
-                yy[ii-1] < WAY_BIG && yy[ii] < WAY_BIG   )
+         if( !noline ){
+           yy = y[jj] ;
+           for( ii=1 ; ii < nx ; ii++ ){
+              if( xx[ii-1] < WAY_BIG && xx[ii] < WAY_BIG &&
+                  yy[ii-1] < WAY_BIG && yy[ii] < WAY_BIG   )
+                plotpak_line( xx[ii-1] , yy[ii-1] , xx[ii] , yy[ii] ) ;
+           }
+         }
 
-               plotpak_line( xx[ii-1] , yy[ii-1] , xx[ii] , yy[ii] ) ;
+         if( tsbox > 0.0f ){
+           set_thick_memplot( 0.002f ) ;
+           for( ii=0 ; ii < nx ; ii++ ) plot_onebox( xx[ii] , yy[ii] ) ;
+           set_thick_memplot( THIK ) ;
          }
       }
       set_thick_memplot( 0.002f ) ;
@@ -453,14 +478,20 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
          set_color_memplot( ccc[jj%NCLR][0] , ccc[jj%NCLR][1] , ccc[jj%NCLR][2] ) ;
          set_thick_memplot( THIK ) ;
 
-         yy = y[jj] ;
-         for( ii=1 ; ii < nx ; ii++ ){
-            if( xx[ii-1] < WAY_BIG && xx[ii] < WAY_BIG &&
-                yy[ii-1] < WAY_BIG && yy[ii] < WAY_BIG   )
-
-               plotpak_line( xx[ii-1] , yy[ii-1] , xx[ii] , yy[ii] ) ;
+         if( !noline ){
+           yy = y[jj] ;
+           for( ii=1 ; ii < nx ; ii++ ){
+              if( xx[ii-1] < WAY_BIG && xx[ii] < WAY_BIG &&
+                  yy[ii-1] < WAY_BIG && yy[ii] < WAY_BIG   )
+                plotpak_line( xx[ii-1] , yy[ii-1] , xx[ii] , yy[ii] ) ;
+           }
+           set_thick_memplot( 0.002f ) ;
          }
-         set_thick_memplot( 0.002f ) ;
+
+         if( tsbox > 0.0f ){
+           for( ii=0 ; ii < nx ; ii++ ) plot_onebox( xx[ii] , yy[ii] ) ;
+         }
+
          set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
       }
    }

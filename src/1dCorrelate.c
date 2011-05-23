@@ -61,13 +61,13 @@ int main( int argc , char *argv[] )
             "-------------\n"
             " -nboot B  = Set the number of bootstrap replicates to 'B'.\n"
             "             * The default (and minimum allowed) value of B is %d.\n"
-            "             * A larger number will give more accurate confidence\n"
-            "               intervals, at the cost of more CPU time.\n"
+            "             * A larger number will give somewhat more accurate\n"
+            "               confidence intervals, at the cost of more CPU time.\n"
             "\n"
             " -alpha A  = Set the 2-sided confidence interval width to '100-A' percent.\n"
             "             * The default value of A is 5, giving the 2.5..97.5%% interval.\n"
             "             * The smallest allowed A is 1 (0.5%%..99.5%%) and the largest\n"
-            "               allowed A is 20 (10%%..90%%).\n"
+            "               allowed value of A is 20 (10%%..90%%).\n"
             "\n"
             " -block    = Attempt to allow for serial correlation in the data by doing\n"
             "   *OR*      variable-length block resampling, rather than completely\n"
@@ -84,9 +84,9 @@ int main( int argc , char *argv[] )
             "  the desired confidence interval [also via bootstrap].\n"
             "\n"
             "* The primary purpose of this program is to provide an easy way to get\n"
-            "  the bootstrap bias-corrected confidence intervals, since people always\n"
-            "  seem to use the asymptotic normal theory to decide if a correlation is\n"
-            "  'significant', and this often seems misleading to me [for short columns].\n"
+            "  the bootstrap confidence intervals, since people almos always seem to use\n"
+            "  the asymptotic normal theory to decide if a correlation is 'significant',\n"
+            "  and this often seems misleading to me [especially for short columns].\n"
             "\n"
             "* Bootstrapping confidence intervals for the inverse correlations matrix\n"
             "  (i.e., partial correlations) would be interesting -- anyone out there\n"
@@ -123,7 +123,7 @@ int main( int argc , char *argv[] )
             "# --------  --------  -------- -------- -------- --------\n"
             "  A2.1D[0]  B2.1D[0]  +0.46154 +0.42756 -0.23063 +0.86078\n"
             "\n"
-            "* Written by RWCox (AKA Zhark the Correlator) -- 19 May 2011\n"
+            "*** Written by RWCox (AKA Zhark the Correlator) -- 19 May 2011 ***\n"
 
            , NBOOT ) ;
      PRINT_COMPILE_DATE ; exit(0) ;
@@ -141,7 +141,7 @@ int main( int argc , char *argv[] )
      if( toupper(argv[iarg][1]) == 'Q' ){ cormeth = 2 ; iarg++ ; continue ; }
      if( toupper(argv[iarg][1]) == 'K' ){ cormeth = 3 ; iarg++ ; continue ; }
 
-     if( strcasecmp(argv[iarg],"-nboot") == 0 ){
+     if( strcasecmp(argv[iarg],"-nboot") == 0 || strcasecmp(argv[iarg],"-num") == 0 ){
        iarg++ ; if( iarg >= argc ) ERROR_exit("Need argument after '-nboot'") ;
        nboot = (int)strtod(argv[iarg],NULL) ;
        if( nboot < NBOOT ){
@@ -154,9 +154,12 @@ int main( int argc , char *argv[] )
      if( strcasecmp(argv[iarg],"-alpha") == 0 ){
        iarg++ ; if( iarg >= argc ) ERROR_exit("Need argument after '-alpha'") ;
        alpha = (float)strtod(argv[iarg],NULL) ;
-       if( alpha < 1.0f || alpha > 20.0f ){
-         WARNING_message("Replacing -alpha %.1f with 5",alpha) ;
-         alpha = 0.05f ;
+       if( alpha < 1.0f ){
+         WARNING_message("Replacing -alpha %.1f with 1",alpha) ;
+         alpha = 0.01f ;
+       } else if( alpha > 20.0f ){
+         WARNING_message("Replacing -alpha %.1f with 20",alpha) ;
+         alpha = 0.20f ;
        } else {
          alpha *= 0.01f ;  /* convert from percent to fraction */
        }
