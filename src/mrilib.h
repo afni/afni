@@ -1216,6 +1216,9 @@ extern void mri_drawtext( MRI_IMAGE *im ,
 
 extern void mri_draw_opacity( float ) ;
 
+extern void mri_drawcircle( MRI_IMAGE *im ,
+                            int cx, int cy, int radius, byte r,byte g,byte b, int fill ) ;
+
 /**********************************************************************/
 
 #ifdef  __cplusplus

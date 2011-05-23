@@ -248,6 +248,35 @@ void ppmd_circle( byte *pixels, int cols, int rows,
     } while ( nopointsyet || x != x0 || y != y0 );
 }
 
+/*----------------------------------------------------------------------------*/
+
+/*! Draw a filled circle. */
+
+static
+void rwcx_filledcircle( byte *pixels, int cols, int rows,
+                        int cx, int cy, int radius, byte r,byte g,byte b )
+{
+    register int xa,ya , xq,yq , xx,yy ;
+    register float rq ;
+
+    if( radius < 1 ){
+      if( cx >= 0 && cx < cols && cy >= 0 && cy < rows )
+        ASSPIX(pixels,cx,cy,r,g,b) ;
+      return ;
+    }
+
+    rq = radius * radius + 0.3f ;
+    for( yy=-radius ; yy <= radius ; yy++ ){
+      ya = cy + yy ; if( ya < 0 || ya >= rows ) continue ;
+      yq = yy*yy ;
+      for( xx=-radius ; xx <= radius ; xx++ ){
+        xa = cx + xx ;
+        if( xa < 0 || xa >= cols || yq+xx*xx > rq ) continue ;
+        ASSPIX(pixels,xa,ya,r,g,b) ;
+      }
+    }
+}
+
 /*-------------------------------------------------------------------------------*/
 
 /*		  Stroke character definitions
@@ -672,6 +701,20 @@ void mri_drawfilledrectangle( MRI_IMAGE *im,
 ENTRY("mri_drawfilledrectangle") ;
    if( im == NULL || im->kind != MRI_rgb ) EXRETURN ;
    ppmd_filledrectangle( MRI_RGB_PTR(im), im->nx, im->ny, x,y,width,height, r,g,b ) ;
+   EXRETURN ;
+}
+
+/*----------------------------------------------------------------------------*/
+
+void mri_drawcircle( MRI_IMAGE *im ,
+                     int cx, int cy, int radius, byte r,byte g,byte b , int fill )
+{
+ENTRY("mri_drawcircle") ;
+   if( im == NULL || im->kind != MRI_rgb ) EXRETURN ;
+   if( fill )
+     rwcx_filledcircle( MRI_RGB_PTR(im), im->nx, im->ny, cx,cy,radius,r,g,b ) ;
+   else
+     ppmd_circle( MRI_RGB_PTR(im), im->nx, im->ny, cx,cy,radius,r,g,b ) ;
    EXRETURN ;
 }
 

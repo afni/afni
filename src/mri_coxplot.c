@@ -131,6 +131,19 @@ fprintf(stderr,"Changing color to %f %f %f\n",rr,gg,bb) ;
             }
             break ;
 
+            case THCODE_BALL:
+            case THCODE_CIRC:{
+               int xcor,ycor , xcen,ycen , rad ; float xrad,yrad ;
+               unsigned int ww, hh ;
+               xcen = rint(xoff + xscal * MEMPLOT_X1(mp,ii)         );
+               ycen = rint(yoff + yscal * (1.0 - MEMPLOT_Y1(mp,ii)) );
+               xrad = xscal * MEMPLOT_X2(mp,ii) ;
+               yrad = yscal * MEMPLOT_X2(mp,ii) ; rad = rintf(sqrtf(xrad*yrad)) ;
+               mri_drawcircle( im , xcen,ycen , rad, rrr,ggg,bbb , (thc==THCODE_BALL) ) ;
+               skip = 1 ;
+            }
+            break ;
+
             case THCODE_OPAC:{        /* opacity [22 Jul 2004] */
                mri_draw_opacity( MEMPLOT_X1(mp,ii) ) ;
                skip = 1 ;
