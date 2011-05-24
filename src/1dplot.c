@@ -672,7 +672,8 @@ int main( int argc , char *argv[] )
        for( nysum=ii=0 ; ii < imar->num ; ii++ ){
          inim = IMARR_SUBIM(imar,ii) ; iar = MRI_FLOAT_PTR(inim) ;
          for( jj=0 ; jj < inim->ny ; jj++,nysum++ ){
-           memcpy( far + nx*nysum , iar + jj*inim->nx , sizeof(float)*inim->nx ) ;
+           /* copy only nx floats, not inim->nx    24 May 2011 [rickr] */
+           memcpy( far + nx*nysum , iar + jj*inim->nx , sizeof(float)*nx ) ;
          }
        }
        DESTROY_IMARR(imar) ; inim = flim ;
