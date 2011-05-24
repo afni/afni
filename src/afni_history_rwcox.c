@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 20 , MAY , 2011 , RWC , "1dCorrelate" , MINOR , TYPE_NEW_OPT ,
+  { 24 , MAY , 2011 , RWC , "1dplot" , MICRO , TYPE_NEW_OPT ,
+   "Add -noline and -box options" ,
+   "To plot markers at each point, without or with lines connecting them." } ,
+
+ { 20 , MAY , 2011 , RWC , "1dCorrelate" , MINOR , TYPE_NEW_OPT ,
    "Add normal theory CI for Pearson; Add -block option" ,
    "Pearson correlation (the default) now gets the normal theory confidence\n"
    "interval printed at no extra charge.\n"
