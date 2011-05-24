@@ -7,9 +7,15 @@ This functionality is invoked by passing a command line of the form
   DRIVE_AFNI command arguments ...
 
 to AFNI (once the plugout connection is open, of course).  The commands
-available are described below.  The sample plugout plugout_drive.c can
-be used to test how things work (highly recommended before you start
-writing your own code).
+available are described below.
+
+The sample plugout plugout_drive.c can be used to test how things work
+(highly recommended before you start writing your own code).  For some
+scripting purposes, the plugout_drive program (compiled with the usual
+AFNI binaries) will be all you need.
+
+It is also possible to drive AFNI from Matlab with the TellAfni.m function,
+which uses plugout_drive to do the actual work.
 
 A startup Script (file ".afni.startup_script") can also give a sequence
 of commands to be run immediately after AFNI starts up.  The file consists
@@ -33,10 +39,18 @@ You can also give commands to AFNI on the 'afni' command line, using the
 could be used to create an image file 'sss.jpg' automatically.  The AFNI GUI
 would open up (and so X11 must be running), but no user interaction would
 actually occur -- the image opens and gets saved, and then AFNI just ends.
+
 N.B.: If the 'QUIT' command weren't included above, AFNI would remain open,
 ready for user interaction after the image file was saved.
 
+N.B.: If you are adroit, you could use the virtual X11 server program Xvfb
+to create images as indicated above with no need for an actual X11 display.
+For an example of how this can work, see the AFNI message board:
+ http://afni.nimh.nih.gov/afni/community/board/read.php?f=1&i=20001&t=19993&v=f
+
 ==============================================================================
+Advanced AFNI Programming: Extending the AFNI Driver Functionality
+------------------------------------------------------------------
 A programmer of a plugin can register a command string and a callback function
 to be called when that command string is 'driven' to AFNI.  For example:
 
@@ -64,8 +78,8 @@ plugin could give command names starting with "DTI_".  Or perhaps use your
 institution's name or your initials as a prefix, as in "NIMH_" or "RWC_".
 
 =============================================================================
-COMMANDS (in no coherent order)
--------------------------------
+AFNI COMMANDS (in no coherent order)
+------------------------------------
 
 ADD_OVERLAY_COLOR colordef colorlab
   Adds the color defined by the string "colordef" to the list of overlay
@@ -328,20 +342,22 @@ SET_DICOM_XYZ [c] x y z
 SET_SPM_XYZ   [c] x y z
 SET_IJK       [c] i j k
 SET_INDEX     [c] ijk
-  Set the controller coordinates to the given triple, or singleton for SET_INDEX;   DICOM_XYZ has the coordinates in DICOM (RAI) order, SPM_XYZ has the coordinates
+  Set the controller coordinates to the given triple, or singleton for SET_INDEX;
+  DICOM_XYZ has the coordinates in DICOM (RAI) order, SPM_XYZ has the coordinates
   in SPM (LPI) order, and IJK has voxel indexes instead of spatial coordinates.
   ijk is the array index corresponding to a triplet of voxel indices. It is the
-  same as 'index' displayed in the top left corner of AFNI's controller when 
-  Misc-->Voxel Coords is turned on.
+  same as 'index' displayed in the top left corner of AFNI's controller when
+  Datamode-->Misc-->Voxel Coords is turned on.
 
 GET_DICOM_XYZ [c]
 GET_IJK       [c]
-  Have AFNI print the controller current coordinates.
-   
+  Have AFNI print the controller current coordinates (to stdout).
+
 SET_XHAIRS [c.]code
   Set the crosshairs ('Xhairs') control to the specified value, where
   'code' is one of the following strings:
        OFF  SINGLE  MULTI   LR_AP   LR_IS  AP_IS  LR  AP  IS
+  which correspond to the menu items on the Xhairs button.
 
 READ_NIML_FILE fname
   Reads the NIML-formatted file 'fname' from disk and processes it as if
@@ -355,8 +371,8 @@ INSTACORR command
   crosshair location, or
      SET x y z
   which sets the InstaCorr seed to the given DICOM coordinates.
-  In the nebulous future, other commands will be implemented to allow
-  the driver to setup InstaCorr, etc.
+  In the vast nebulous future, other commands will be implemented to
+  allow the driver to setup InstaCorr, etc.
 
 PURGE_MEMORY [dataset_prefix]
   If no prefix is given, the sub-bricks of all datasets will be purged from
@@ -368,8 +384,9 @@ PURGE_MEMORY [dataset_prefix]
      a '3dcalc()' command line call; or was fetched across the Web).
 
 QUIT
-  AFNI will exit immediately.  Communication with the dead being difficult,
-  this action forestalls all further attempts to send commands to AFNI.
+  AFNI will exit immediately.  Communication with the dead being difficult
+  (with current technology), this action forestalls all further attempts to
+  send commands to AFNI.
 
 SETENV name value
   Set the environment variable "name" to "value" in AFNI; for example
@@ -405,15 +422,14 @@ NOISY_PLUGOUTS
 TRACE {YES | NO}
   Turns debug tracing on or off.  Mostly for AFNI developers.
 
-
 ==============================================================================
 ** GRAPHS **
 ============
 The following commands are used to open graph windows and manipulate them.
 These commands don't actually interact with the rest of AFNI - they are
 really just using AFNI as a graph display server.  [This functionality
-was added per the request of Jerzy Bodurka at the NIH, to provide a way
-to graph physiological signals monitored while the subject is in the
+was added per the request of Jerzy Bodurka, formerly at the NIH, to provide
+a way to graph physiological signals monitored while the subject is in the
 scanner, at the same time the EPI images are being sent to the AFNI
 realtime plugin.]
 
