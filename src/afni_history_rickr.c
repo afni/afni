@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 24, MAY, 2011, RCR, "1dplot", MINOR, TYPE_BUG_FIX,
+   "fixed plotting of varying length time series",
+   NULL
+ } ,
+
  { 20, MAY, 2011, RCR, "uber_subject.py", MINOR, TYPE_MODIFY,
    "execute via /usr/bin/env python",
    "Help now suggests fink as primary Mac source for PyQt4."
