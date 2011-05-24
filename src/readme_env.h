@@ -1994,6 +1994,14 @@ static char * readme_env[] = {
    "value is 1024.  Values over 2048 may give odd looking results, and will\n" ,
    "be palpably slower to render.\n" ,
    "\n" ,
+   "-----------------------------\n" ,
+   "Variable: AFNI_1DPLOT_BOXSIZE\n" ,
+   "-----------------------------\n" ,
+   "This variable sets the size of the boxes that are plotted with the 1dplot\n" ,
+   "'-box' option.  The units are in terms of the width of the entire plot;\n" ,
+   "a value of 0.006 is the default.  The largest allowed value is 0.02 and\n" ,
+   "the smallest is 0.001.\n" ,
+   "\n" ,
    "---------------------------------\n" ,
    "Variable: AFNI_SIEMENS_INTERLEAVE\n" ,
    "---------------------------------\n" ,
@@ -3218,4 +3226,4 @@ static char * readme_env[] = {
    "behavior, set this variable to YES.\n" ,
    "\n" ,
    NULL } ;
-#define NUM_readme_env 3218
+#define NUM_readme_env 3226
