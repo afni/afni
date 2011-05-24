@@ -648,6 +648,7 @@ int main( int argc , char *argv[] )
      } else {                              /* multiple inputs [05 Mar 2003] */
        MRI_IMARR *imar ;                   /* read them & glue into 1 image */
        int iarg_first=iarg, nysum=0, ii,jj,nx=1 ;
+       int constant = 1;                   /* are nx values constant        */
        float *far,*iar ;
 
        if (!wintitle) {
@@ -665,9 +666,17 @@ int main( int argc , char *argv[] )
              flim = mri_transpose(inim); mri_free(inim); inim = flim;
            }
 
+         /* compute nx as the smallest inim->nx, and note consistency */
          if( iarg == iarg_first || inim->nx < nx ) nx = inim->nx ;
+         if( iarg > iarg_first && inim->nx != nx ) constant = 0;
+
          ADDTO_IMARR(imar,inim) ; nysum += inim->ny ;
        }
+
+       /* if nx varied across images, warn the user  24 May 2011 [rickr] */
+       if( ! constant )
+          WARNING_message("plot lengths vary, truncating to %d values", nx);
+
        flim = mri_new( nx,nysum, MRI_float ); far = MRI_FLOAT_PTR(flim);
        for( nysum=ii=0 ; ii < imar->num ; ii++ ){
          inim = IMARR_SUBIM(imar,ii) ; iar = MRI_FLOAT_PTR(inim) ;
