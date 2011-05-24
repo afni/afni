@@ -13222,7 +13222,7 @@ void SUMA_Xform_NewAF2 (void *data)
 void SUMA_cb_XformOpts_Apply (Widget w, XtPointer data, 
                              XtPointer client_data)
 {
-   static char FuncName[]={"SUMA_cb_XformOpts_Save"};
+   static char FuncName[]={"SUMA_cb_XformOpts_Apply"};
    SUMA_XFORM *xf=(SUMA_XFORM*)data;
    NI_element *nelpars=NULL;
    SUMA_Boolean LocalHead = NOPE;
