@@ -578,12 +578,15 @@ void SUMA_dot_product_CB( void *params)
          }
       }
    }
-      
+   
    if (N_ts < 0) { /* try to get ts from a dset, based on where click happened */
       if (!(SO = SUMA_findSOp_inDOv(NI_get_attribute(nelpars,"event.SO_idcode"),
                                     SUMAg_DOv, SUMAg_N_DOv))) {
-         SUMA_S_Errv("Could not find event's SO (%s)\n",
+         SUMA_S_Notev("Could not find event's SO (%s)\n"
+                      "Use Shift+Ctrl+Right Click on the surface "
+                      "to calculate correlation with new changes\n",
                      NI_get_attribute(nelpars,"event.SO_idcode"));
+         /* SUMA_DUMP_TRACE("event.SO_idcode"); */
          SUMA_RETURNe;
       }
       /* find out which overlay was clicked on */
