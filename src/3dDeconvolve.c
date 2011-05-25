@@ -9777,7 +9777,8 @@ ININFO_message("basis_csplin(x=%g,a=%g,dx=%g,flag=%d)=%g  [bot=%g top=%g y=%g]",
 
 static float basis_one( float x, float bot, float top, float junk, void *q )
 {
-   if( x < bot || x > top ) return 0.0f ;
+   float eps=0.0009f ;
+   if( x < bot-eps || x > top+eps ) return 0.0f ;
    return 1.0f ;
 }
 
@@ -9789,8 +9790,9 @@ static float basis_one( float x, float bot, float top, float junk, void *q )
 
 static float basis_cos( float x, float bot, float top, float freq, void *q )
 {
-   if( x < bot || x > top ) return 0.0f ;
-   return (float)cos(freq*(x-bot)) ;
+   float eps=0.0009f ;
+   if( x < bot-eps || x > top+eps ) return 0.0f ;
+   return (float)cosf(freq*(x-bot)) ;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -9802,7 +9804,7 @@ static float basis_cos( float x, float bot, float top, float freq, void *q )
 static float basis_sin( float x, float bot, float top, float freq, void *q )
 {
    if( x <= bot || x >= top ) return 0.0f ;
-   return (float)sin(freq*(x-bot)) ;
+   return (float)sinf(freq*(x-bot)) ;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -10018,7 +10020,7 @@ static float basis_legendre( float x, float bot, float top, float n, void *q )
 
    x = 2.0f*(x-bot)/(top-bot) - 1.0f ;  /* now in range -1..1 */
 
-   if( x < -1.0f || x > 1.0f ) return 0.0f ;
+   if( x < -1.000001f || x > 1.000001f ) return 0.0f ;
 
    xq = x*x ; m = (int)n ; if( m < 0 ) return 0.0f ;
 
@@ -10142,9 +10144,9 @@ static float basis_legendre( float x, float bot, float top, float n, void *q )
 static float basis_expr( float x, float bot, float top, float dtinv, void *q )
 {
    PARSER_code *pc = (PARSER_code *)q ;
-   double atoz[26] , val ;
+   double atoz[26] , val ; float eps=0.0009f ;
 
-   if( x < bot || x > top ) return 0.0f ;
+   if( x < bot-eps || x > top+eps ) return 0.0f ;
    memset(atoz,0,sizeof(double)*26) ;         /* set to 0 [24 Mar 2009] */
    atoz[ITT] = x ;                            /* t = true time from stim */
    atoz[IXX] = (x-bot)*dtinv ;                /* x = scaled to [0,1] */
