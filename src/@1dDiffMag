@@ -13,15 +13,14 @@ if( $Narg == 0 || $fname == "-help" )then
   echo '* Differences are computed down each column.'
   echo '* The result -- a single number -- is on stdout.'
   echo '* But (I hear you say), what IS the result?'
-  echo '* For each column, the biweight-midvariance (-bmv) of the first differences is computed.'
-  echo '* This is a robust standard-deviation-like estimate of the size of the steps in the data.'
-  echo '* The final result is the square-root of the sum of the squares of these BMV values.'
+  echo '* For each column, the standard deviation of the first differences is computed.'
+  echo '* The final result is the square-root of the sum of the squares of these stdev values.'
   exit 0
 endif
 
 set nv = ( `3dnvals -all $fname` )
 
-3dTstat -tdiff -bmv -prefix __junk1.1D ${fname}\' >& /dev/null
+3dTstat -tdiff -stdev -prefix __junk1.1D ${fname}\' >& /dev/null
 
 if( $nv[4] > 1 )then
   3dTstat -sos -prefix __junk2.1D __junk1.1D\'    >& /dev/null
