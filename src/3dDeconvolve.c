@@ -307,8 +307,8 @@
 
 /* 01 Feb 2011 -- minor adjustments */
 
-#define myceil(x)   ceil((x)-0.000005)
-#define myfloor(x) floor((x)+0.000005)
+#define myceil(x)   ceil((x)-0.00005)
+#define myfloor(x) floor((x)+0.00005)
 
 /*---------------------------------------------------------------------------*/
 /*--------- Global variables for multiple process execution - RWCox. --------*/
@@ -4106,7 +4106,7 @@ STATUS("checking for bad param values") ;
       if( qar != NULL ){
         int imin,imax , ibot,itop ;
         float *bv = MRI_FLOAT_PTR(basis_vect[is]) ;
-        float dbot,dtop , fnt=(float)nt , z1 , z2[BASIS_MAX_VDIM] ;
+        float dbot,dtop , fnt=(float)nt , z1 , z2[BASIS_MAX_VDIM] , eps ;
 
 #if 0
 fprintf(stderr,"%s %d: adjusted time indexes follow:\n",be->option,is+1) ;
@@ -4117,6 +4117,7 @@ fprintf(stderr,"\n") ;
         dbot = be->tbot / basis_TR ; /* range of indexes about each stim time */
         dtop = be->ttop / basis_TR ;
         imin = 0 ; imax = nt-1 ;     /* for the case of nbl=1 */
+        eps  = 0.001f * basis_TR ;
 
         for( kk=0 ; kk < ngood ; kk++ ){   /* for the kk-th stim time */
           tt = qar[kk] ; if( tt < 0.0f || tt >= fnt ) continue ;
@@ -4145,6 +4146,10 @@ fprintf(stderr,"\n") ;
           ibot = (int)myceil ( tt + dbot ) ; if( ibot < imin ) ibot = imin ;
           itop = (int)myfloor( tt + dtop ) ; if( itop > imax ) itop = imax ;
 
+#if 0
+INFO_message("stim timedex=%g dbot=%g dtop=%g ibot=%d itop=%d",tt,dbot,dtop,ibot,itop) ;
+#endif
+
           if( vfun > 0 ){ /* set vfun params in basis functions [08 Dec 2008] */
             for( jj=0 ; jj < nf ; jj++ ){
               for( vv=0 ; vv < vfun ; vv++ )
@@ -4154,7 +4159,10 @@ fprintf(stderr,"\n") ;
 
           for( ii=ibot ; ii <= itop ; ii++ ){   /* loop over active interval */
             ss = basis_TR*(ii-tt) ;                         /* shifted time */
-            if( ss < be->tbot || ss > be->ttop ) continue ; /* nugatory */
+#if 0
+ININFO_message("ss=%g tbot=%g ttop=%g ss-ttop=%g",ss,be->tbot,be->ttop,ss-be->ttop) ;
+#endif
+            if( ss+eps < be->tbot || ss-eps > be->ttop ) continue ; /* nugatory */
             if( z1 != 0.0f ){
               for( jj=0 ; jj < nf ; jj++ )
                 bv[ii+jj*nt] +=
@@ -9719,9 +9727,14 @@ float basis_evaluation( basis_expansion *be , float *wt , float x )
 
 static float basis_tent( float x, float bot, float mid, float top, void *q )
 {
-   if( x <= bot || x >= top ) return 0.0f ;
-   if( x <= mid )             return (x-bot)/(mid-bot) ;
-                              return (top-x)/(top-mid) ;
+   float val ;
+        if( x <= bot || x >= top ) val = 0.0f ;
+   else if( x <= mid )             val = (x-bot)/(mid-bot) ;
+   else                            val = (top-x)/(top-mid) ;
+#if 0
+ININFO_message("basis_tent(x=%g,bot=%g,mid=%g,top=%g)=%g",x,bot,mid,top,val) ;
+#endif
+   return val ;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -9741,15 +9754,21 @@ static float hh_csplin( float y )   /* for CSPLIN */
 
 static float basis_csplin( float x, float a, float dx, float flag, void *q )
 {
-   float y=(x-a)/dx , bot=-2.0f , top=2.0f ; int gg=(int)flag ;
+   float y=(x-a)/dx , bot=-2.0f , top=2.0f , val ; int gg=(int)flag ;
    switch(gg){
      case -2: bot =  0.0f ; break ;  /* at left edge */
      case -1: bot = -1.0f ; break ;  /* 1 in from left edge */
      case  1: top =  1.0f ; break ;  /* 1 in from right edge */
      case  2: top =  0.0f ; break ;  /* at right edge */
    }
-   if( y < bot || y > top ) return 0.0f ;
-   return hh_csplin(y) ;
+   bot -= 0.0009f ; top += 0.0009f ;
+   if( y < bot || y > top ) val = 0.0f ;
+   else                     val = hh_csplin(y) ;
+#if 0
+ININFO_message("basis_csplin(x=%g,a=%g,dx=%g,flag=%d)=%g  [bot=%g top=%g y=%g]",
+               x,a,dx,gg,val , bot,top,y ) ;
+#endif
+   return val ;
 }
 
 /*--------------------------------------------------------------------------*/
