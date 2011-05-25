@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 24 , MAY , 2011 , RWC , "1dplot" , MICRO , TYPE_NEW_OPT ,
+  { 25 , MAY , 2011 , RWC , "thd_zzprintf" , MICRO , TYPE_BUG_FIX ,
+   "Patched to avoid string overruns for crazy users" ,
+   NULL } ,
+
+ { 24 , MAY , 2011 , RWC , "1dplot" , MICRO , TYPE_NEW_OPT ,
    "Add -noline and -box options" ,
    "To plot markers at each point, without or with lines connecting them." } ,
 

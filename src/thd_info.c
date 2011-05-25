@@ -17,8 +17,8 @@
 
 #undef  ZMAX
 #undef  SZMAX
-#define ZMAX  8000
-#define SZMAX "%.8000s"   /* same as ZMAX */
+#define ZMAX  32222        /* increased for Ziad (who else is so crazy?) */
+#define SZMAX "%.32222s"   /* same as ZMAX */
 
 char * THD_dataset_info( THD_3dim_dataset *dset , int verbose )
 {
@@ -35,7 +35,7 @@ char * THD_dataset_info( THD_3dim_dataset *dset , int verbose )
    char str[1024], soblq[1024] ;
    int nstr , obliquity;
 
-   char *outbuf = NULL ;
+   char *outbuf = NULL ;  /* output buffer */
 
 ENTRY("THD_dataset_info") ;
 
@@ -187,15 +187,15 @@ ENTRY("THD_dataset_info") ;
    /* are we oblique ? */
    obliquity = -1;
    if(ISVALID_MAT44(dset->daxes->ijk_to_dicom_real)) {
-	   angle = THD_compute_oblique_angle(dset->daxes->ijk_to_dicom_real, 0);
-	   if(angle>0.0) {
-         sprintf (soblq, 
+      angle = THD_compute_oblique_angle(dset->daxes->ijk_to_dicom_real, 0);
+      if(angle>0.0) {
+         sprintf (soblq,
             "Data Axes Tilt:  Oblique (%.3f deg. from plumb)\n"
             "Data Axes Approximate Orientation:",
             angle);
          obliquity = 1;
       } else {
-         sprintf (soblq, 
+         sprintf (soblq,
             "Data Axes Tilt:  Plumb\n"
             "Data Axes Orientation:");
          obliquity = 0;
@@ -205,10 +205,10 @@ ENTRY("THD_dataset_info") ;
           outbuf = THD_zzprintf(outbuf,"Geometry String: \"%s\"\n",gstr) ;
       }
    } else {
-      sprintf (soblq, 
+      sprintf (soblq,
             "Data Axes Tilt:  Unspecified, assumed plumb\n"
             "Data Axes Orientation:");
-   }      
+   }
 
    outbuf = THD_zzprintf(outbuf,
       "%s\n"
@@ -408,8 +408,8 @@ ENTRY("THD_dataset_info") ;
      if( notecount != NULL ){
         num_notes = notecount->in[0] ;
         if( verbose == 0 && num_notes > 5 ) num_notes = 5 ;
-        mmm = (verbose > 0) ? ZMAX : 1200 ;   /* 400 it was! 
-                                          Come on Bob, have a heart! -ZSS */
+        mmm = (verbose > 0) ? ZMAX : 1200 ;   /* 400 it was!
+                                                 Come on Bob, have a heart! -ZSS */
         for (i=1; i<= num_notes; i++) {
            chn = tross_Get_Note( dset , i ) ;
            if( chn != NULL ){
@@ -426,11 +426,18 @@ ENTRY("THD_dataset_info") ;
    RETURN(outbuf) ;
 }
 
-/*-----------------------------------------------------------*/
+/*---------------------------------------------------------------------------*/
+/* Originally written for THD_dataset_info(), now used in other places.
+   * Used to write results into an ever-lengthening string.
+   * On the first call, 'sss' should be NULL.  It will be malloc()-ed and
+     contain the print-formatted results.
+   * On a subsequent call, 'sss' is the return value from the previous call.
+   * When finally done with it, you can free() the result.
+*//*-------------------------------------------------------------------------*/
 
 char * THD_zzprintf( char *sss , char *fmt , ... )
 {
-   static char *sbuf = NULL ;
+   static char *sbuf = NULL ;  /* workspace */
    char *zz ;
    int   nzz , nsbuf ;
    va_list vararg_ptr ;
@@ -439,21 +446,32 @@ ENTRY("THD_zzprintf") ;
 
    va_start( vararg_ptr , fmt ) ;
 
+   /* first time in ==> create workspace */
+
    if( sbuf == NULL ) sbuf = AFMALL(char, ZMAX+90) ;
 
-   sbuf[0] = '\0' ;
-   vsprintf( sbuf , fmt , vararg_ptr ) ;
-   nsbuf = strlen(sbuf) ;
-   if( nsbuf == 0 ) RETURN(sss) ;
+   /* write current stuff into workspace */
 
-   if( sss == NULL ){
-      zz = (char *) malloc( sizeof(char)*(nsbuf+2) ) ;
-      strcpy(zz,sbuf) ;
-   } else {
-      nzz = strlen(sss) + nsbuf + 2 ;
-      zz  = (char *) malloc( sizeof(char) * nzz ) ;
-      strcpy(zz,sss) ; strcat(zz,sbuf) ;
-      free(sss) ;
+   sbuf[0] = '\0' ;
+   vsnprintf( sbuf , sizeof(char)*(ZMAX+89) , fmt , vararg_ptr ) ;
+   nsbuf = strlen(sbuf) ;
+   if( nsbuf == 0 ) RETURN(sss) ;  /* nothing happened */
+   if( nsbuf >= ZMAX ){            /* too much happened */
+     WARNING_message("THD_zzprintf() long string truncation = the ZSS syndrome") ;
+     strcpy(sbuf+ZMAX-4,"...") ;
+     nsbuf = strlen(sbuf) ;
+   }
+
+   /* make new space, copy input string sss, append new stuff, return result */
+
+   if( sss == NULL || *sss == '\0' ){  /* no input string ==> copy new stuff */
+     zz = (char *) malloc( sizeof(char)*(nsbuf+2) ) ;
+     strcpy(zz,sbuf) ;
+   } else {             /* the full Monty: copy old then new */
+     nzz = strlen(sss) + nsbuf + 2 ;
+     zz  = (char *) malloc( sizeof(char) * nzz ) ;
+     strcpy(zz,sss) ; strcat(zz,sbuf) ;
+     free(sss) ;       /* don't need input copy any more */
    }
    RETURN(zz) ;
 }
