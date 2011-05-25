@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 25, MAY, 2011, RCR, "timing_tool.py", MINOR, TYPE_NEW_OPT,
+   "added -global_to_local and -local_to_global for G Chen",
+   NULL
+ } ,
+
  { 24, MAY, 2011, RCR, "1dplot", MINOR, TYPE_BUG_FIX,
    "fixed plotting of varying length time series",
    NULL
