@@ -36,6 +36,7 @@ timing_tool.py    - for manipulating and evaluating stimulus timing files
        o combining multiple timing files into 1 (like '1dcat' + sort)
        o appending additional timing runs (like 'cat')
        o sort times per row (though 3dDeconvolve does not require this)
+       o converting between local and global stim times
 
    A sample stimulus timing file having 3 runs with 4 stimuli per run
    might look something like the following.  Note that the file does not
@@ -183,6 +184,34 @@ examples:
                -tr 1.25 -multi_stim_dur 1 -min_frac 0.5        \\
                -per_run -run_len 370 
 
+   9a. Convert from global stim times to local.
+       This requires knowing the run lengths, say 4 runs of 200 seconds here.
+       The result will have 4 rows, each starting at time 0.
+
+          timing_tool.py -timing stim.1D                       \\
+                -global_to_local local.1D                      \\
+                -run_len 200 200 200
+
+       Note that if stim.1D looks like this ( ** but as a single column ** ): 
+
+                12.3 115 555 654 777 890
+
+       then local.1D will look like this:
+
+                12.3 115
+                *
+                155 254 377 490
+
+       It will complain about the 3 times after the last run ends (no run
+       should have times above 200 sec).
+
+   9b. Convert from local timing back to global.
+
+          timing_tool.py -timing local.1D                       \\
+                -local_to_global global.1D                      \\
+                -run_len 200 200 200
+
+
 --------------------------------------------------------------------------
 Notes:
 
@@ -319,6 +348,36 @@ action options (apply to single timing element, only):
         times to be sorted, though it is more understandable to the user.
 
             Consider '-sort' and '-write_timing'.
+
+   -global_to_local LOCAL_NAME.1D  : convert from global timing to local
+
+        e.g. -global_to_local local_times.1D
+
+        Use this option to convert from global stimulus timing (in a single
+        column format) to local stimulus timing.  Run durations must be given
+        of course, to determine which run each stimulus occurs in.  Each
+        stimulus time will be adjusted to be an offset into the current run,
+        e.g. if each run is 120 s, a stimulus at time 143.6 would occur in run
+        #2 (1-based) at time 23.6 s.
+
+            Consider example 9a and options '-run_len' and '-local_to_global'.
+
+   -local_to_global GLOBAL_NAME.1D : convert from local timing to global
+
+        e.g. -local_to_global global_times.1D
+
+        Use this option to convert from local stimulus timing (one row of times
+        per run) to global stimulus timing (a single column of times across the
+        runs, where time is considered continuous across the runs).
+
+        Run durations must be given of course, to determine which run each
+        stimulus occurs in.  Each stimulus time will be adjusted to be an
+        offset from the beginning of the first run, as if there were no breaks
+        between the runs.
+        e.g. if each run is 120 s, a stimulus in run #2 (1-based) at time
+        23.6 s would be converted to a stimulus at global time 143.6 s.
+
+            Consider example 9b and options '-run_len' and '-global_to_local'.
 
    -partition PART_FILE PREFIX  : partition the stimulus timing file
 
@@ -635,9 +694,10 @@ g_history = """
    1.13 Dec 15, 2010
         - use lib_textdata.py for reading timing files
         - allow empty files as valid (for C Deveney)
+   1.14 May 25, 2011 - added -global_to_local and -local_to_global (for G Chen)
 """
 
-g_version = "timing_tool.py version 1.13, December 15, 2010"
+g_version = "timing_tool.py version 1.14, May 25, 2011"
 
 
 class ATInterface:
@@ -829,6 +889,12 @@ class ATInterface:
 
       self.valid_opts.add_opt('-extend', 1, [], 
                          helpstr='extend the rows lengths from the given file')
+
+      self.valid_opts.add_opt('-global_to_local', 1, [], 
+                         helpstr='convert global times to local and write')
+
+      self.valid_opts.add_opt('-local_to_global', 1, [], 
+                         helpstr='convert local times to global and write')
 
       self.valid_opts.add_opt('-partition', 2, [], 
                          helpstr='partition the events into multiple files')
@@ -1223,6 +1289,25 @@ class ATInterface:
                return 1
             self.timing.show()
 
+         # this is a write option
+         elif opt.name == '-global_to_local':
+            if not self.timing:
+               print "** '%s' requires -timing" % opt.name
+               return 1
+            val, err = uopts.get_string_opt('', opt=opt)
+            if val != None and err: return 1
+            if self.global_to_local(): return 1
+            self.write_timing(val)
+
+         elif opt.name == '-local_to_global':
+            if not self.timing:
+               print "** '%s' requires -timing" % opt.name
+               return 1
+            val, err = uopts.get_string_opt('', opt=opt)
+            if val != None and err: return 1
+            if self.local_to_global(): return 1
+            self.write_timing(val)
+
          elif opt.name == '-write_timing':
             if not self.timing:
                print "** '%s' requires -timing" % opt.name
@@ -1430,6 +1515,34 @@ class ATInterface:
          return 1
 
       TD.write_1D_file(result, fname, self.per_run)
+
+   def global_to_local(self):
+      """convert global times to local, based in run_len array
+         return 0 on success, 1 on any error"""
+
+      if not self.timing:
+         print '** no timing, cannot convert to local'
+         return 1
+
+      if len(self.run_len) < 2 and self.run_len[0] == 0:
+         print '** global_to_local requires -run_len'
+         return 1
+
+      return self.timing.global_to_local(self.run_len)
+
+   def local_to_global(self):
+      """convert local times to global, based in run_len array
+         return 0 on success, 1 on any error"""
+
+      if not self.timing:
+         print '** no timing, cannot convert to global'
+         return 1
+
+      if len(self.run_len) < 2 and self.run_len[0] == 0:
+         print '** local_to_global requires -run_len'
+         return 1
+
+      return self.timing.local_to_global(self.run_len)
 
    def show_isi_stats(self):
       if not self.timing:

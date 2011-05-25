@@ -175,6 +175,115 @@ class AfniTiming:
 
       return 1                          # did not find anything
 
+   def global_to_local(self, run_len):
+      """convert global times to local, based in run_len array
+         return 0 on success, 1 on any error"""
+
+      if not self.ready:
+         print '** global timing not ready'
+         return 1
+
+      if len(run_len) == 0:
+         print '** global_to_local requires -run_len'
+         return 1
+
+      if not self.is_rect():
+         print '** global timing is not rectangular'
+         return 1
+
+      rlen = len(self.data[0])          # note row length
+
+      if rlen > 1:
+         print '** global timing is not a single column'
+         return 1
+
+      if rlen < 1: return 0             # nothing to do
+      if self.nrows < 2: return 0       # nothing to do
+
+      # make just one row and sort
+      self.transpose()
+      self.sort()
+
+      if self.verb > 2:
+         self.show('global_to_local')
+         print '-- run lengths : %s' % run_len
+
+      if self.verb > 4:
+         print '-- global time matrix %s' % self.data
+
+      # now walk through runs and insert times as we go
+      newdata = []
+      endtime = 0.0
+      sind = 0
+      stimes = self.data[0]
+      ntimes = len(stimes)
+      for etime in run_len:
+         starttime = endtime
+         endtime += etime
+         if sind >= ntimes:  # only empty runs left
+            newdata.append([])
+            continue
+         # times are left, decide which go for this run
+         last = sind
+         while last < ntimes and stimes[last] < endtime: last += 1
+         newdata.append([t-starttime for t in stimes[sind:last]])
+         sind = last
+
+      # insert any remaining times at end of last run(and warn user)
+      if sind < ntimes:
+         if self.verb > 0:
+            print '** global to local: %d times after last run' % (ntimes-sind)
+         newdata[-1].extend([t-starttime for t in stimes[sind:]])
+
+      del(self.data)
+      self.data = newdata
+      self.nrows = len(self.data)
+
+      if self.verb > 4:
+         print '-- local time matrix %s' % newdata
+
+      return 0
+
+   def local_to_global(self, run_len):
+      """convert local times to global times, based in run_len array
+         return 0 on success, 1 on any error"""
+
+      if not self.ready:
+         print '** local timing not ready'
+         return 1
+
+      if len(run_len) != self.nrows:
+         print '** local_to_global: have %d run times but %d data rows' \
+               % (len(run_len), self.nrows)
+         return 1
+
+      # make sure it is sorted for this
+      self.sort()
+
+      if self.verb > 2:
+         self.show('local_to_global')
+         print '-- run lengths : %s' % run_len
+
+      if self.verb > 4:
+         print '-- local time matrix %s' % self.data
+
+      # now walk through runs and insert times as we go
+      newdata = []
+      runstart = 0.0
+      for rind, rtime in enumerate(run_len):
+         # each new time is a new row
+         for stime in self.data[rind]: newdata.append([runstart+stime])
+         runstart += rtime      # last one is useless
+
+      del(self.data)
+      self.data = newdata
+      self.nrows = len(self.data)
+
+      if self.verb > 4:
+         print '-- global time matrix %s' % newdata
+
+      return 0
+
    def transpose(self):
       """the tranpose operation requires rectangular data"""
       if not self.ready: return 1
