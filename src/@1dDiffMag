@@ -1,0 +1,34 @@
+#!/bin/tcsh -fe
+
+set Narg = $#
+
+set fname = "-help"
+if( $Narg > 0 )then
+  set fname = $argv[1]
+endif
+
+if( $Narg == 0 || $fname == "-help" )then
+  echo 'Usage: @1dDiffMag file.1D'
+  echo '* Computes a magnitude estimate of the first differences of a 1D file.'
+  echo '* Differences are computed down each column.'
+  echo '* The result -- a single number -- is on stdout.'
+  echo '* But (I hear you say), what IS the result?'
+  echo '* For each column, the biweight-midvariance (-bmv) of the first differences is computed.'
+  echo '* This is a robust standard-deviation-like estimate of the size of the steps in the data.'
+  echo '* The final result is the square-root of the sum of the squares of these BMV values.'
+  exit 0
+endif
+
+set nv = ( `3dnvals -all $fname` )
+
+3dTstat -tdiff -bmv -prefix __junk1.1D ${fname}\' >& /dev/null
+
+if( $nv[4] > 1 )then
+  3dTstat -sos -prefix __junk2.1D __junk1.1D\'    >& /dev/null
+  1deval -a __junk2.1D -expr 'sqrt(a)' 
+else
+  1dcat __junk1.1D
+endif
+/bin/rm -f __junk?.1D
+
+exit 0
