@@ -43,7 +43,15 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 25 , MAY , 2011 , RWC , "3dDeconvolve" , MINOR , TYPE_BUG_FIX ,
+  { 25 , MAY , 2011 , RWC , "@1dDiffMag" , MICRO , TYPE_NEW_PROG ,
+   "Computes magnitude of 1st differences of 1D file" ,
+   NULL } ,
+
+ { 25 , MAY , 2011 , RWC , "3dTstat" , MICRO , TYPE_NEW_OPT ,
+   "Add -tdiff option == statistics on first differences of data" ,
+   NULL } ,
+
+ { 25 , MAY , 2011 , RWC , "3dDeconvolve" , MINOR , TYPE_BUG_FIX ,
    "Fix problem with TENT and CSPLIN" ,
    "For non-integer TR, could miss evaluating the last function in a TENT or\n"
    "CSPLIN series because of roundoff error pushing the evaluation time\n"

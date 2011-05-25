@@ -72,6 +72,8 @@ static char prefix[THD_MAX_PREFIX] = "stat" ;
 static int datum                   = MRI_float ;
 static float basepercent           = 0.5;  /* 50% assumed for duration unless user specified */
 
+static int do_tdiff = 0 ;  /* 25 May 2011 */
+
 static char *meth_names[] = {
    "Mean"          , "Slope"        , "Std Dev"       , "Coef of Var" ,
    "Median"        , "Med Abs Dev"  , "Max"           , "Min"         ,
@@ -84,7 +86,7 @@ static char *meth_names[] = {
 };
 
 static void STATS_tsfunc( double tzero , double tdelta ,
-                         int npts , float ts[] , double ts_mean ,
+                         int npts , float *ts , double ts_mean ,
                          double ts_slope , void *ud , int nbriks, float *val ) ;
 
 static void autocorr( int npts, float ints[], int numVals, float outcoeff[] ) ;
@@ -179,17 +181,22 @@ int main( int argc , char *argv[] )
  " ** If no statistic option is given, then '-mean' is assumed **\n"
  "\n"
  "Other Options:\n"
- " -prefix p = use string 'p' for the prefix of the\n"
+ " -tdiff    = Means to take the first difference of each time\n"
+ "               series before further processing.\n"
+ " -prefix p = Use string 'p' for the prefix of the\n"
  "               output dataset [DEFAULT = 'stat']\n"
  " -datum d  = use data type 'd' for the type of storage\n"
  "               of the output, where 'd' is one of\n"
  "               'byte', 'short', or 'float' [DEFAULT=float]\n"
- " -basepercent nn = percentage of maximum for duration calculation\n"
+ "\n"
+ " -basepercent nn = Percentage of maximum for duration calculation\n"
+ "\n"
  " -mask mset   Means to use the dataset 'mset' as a mask:\n"
  "                 Only voxels with nonzero values in 'mset'\n"
  "                 will be printed from 'dataset'.  Note\n"
  "                 that the mask dataset and the input dataset\n"
  "                 must have the same number of voxels.\n"
+ "\n"
  " -mrange a b  Means to further restrict the voxels from\n"
  "                 'mset' so that only those mask values\n"
  "                 between 'a' and 'b' (inclusive) will\n"
@@ -197,6 +204,7 @@ int main( int argc , char *argv[] )
  "                 all nonzero values from 'mset' are used.\n"
  "                 Note that if a voxel is zero in 'mset', then\n"
  "                 it won't be included, even if a < 0 < b.\n"
+ "\n"
  " -cmask 'opts' Means to execute the options enclosed in single\n"
  "                  quotes as a 3dcalc-like program, and produce\n"
  "                  produce a mask from the resulting 3D brick.\n"
@@ -511,6 +519,12 @@ int main( int argc , char *argv[] )
          nopt++ ; continue ;
       }
 
+      /*-- tdiff --*/
+
+      if( strcasecmp(argv[nopt],"-tdiff") == 0 ){  /* 25 May 2011 */
+        do_tdiff = 1 ; nopt++ ; continue ;
+      }
+
       /*-- datum --*/
 
       if( strcasecmp(argv[nopt],"-datum") == 0 ){
@@ -558,12 +572,17 @@ int main( int argc , char *argv[] )
    if( nopt < argc )
      WARNING_message("Trailing datasets on command line ignored: %s ...",argv[nopt]) ;
 
+   if( DSET_NVALS(old_dset) == 1 ){
+     WARNING_message("Input dataset has 1 sub-brick ==> -tdiff is turned off") ;
+     do_tdiff = 0 ;
+   }
+
    /* no input volumes is bad, 1 volume applies to only certain methods */
    /*                                                2 Nov 2010 [rickr] */
    if( DSET_NVALS(old_dset) == 0 ) {
       ERROR_exit("Time series is of length 0?\n") ;
    }
-   else if( DSET_NVALS(old_dset) == 1 ) {
+   else if( DSET_NVALS(old_dset) == 1 || (do_tdiff && DSET_NVALS(old_dset)==2) ) {
      int methOK, OK = 1;
      /* see if each method is valid for nvals == 1 */
      for( methIndex = 0; methIndex < nmeths; methIndex++ ) {
@@ -575,7 +594,8 @@ int main( int argc , char *argv[] )
             }
         }
         if( ! methOK )
-           ERROR_exit("Can't use dataset with < 2 values per voxel!\n") ;
+           ERROR_exit("Can't use dataset with %d values per voxel!" ,
+                      DSET_NVALS(old_dset) ) ;
      }
      /* tell the library function that this case is okay */
      g_thd_maker_allow_1brick = 1;
@@ -699,13 +719,13 @@ int main( int argc , char *argv[] )
 ***********************************************************************/
 
 static void STATS_tsfunc( double tzero, double tdelta ,
-                          int npts, float ts[],
+                          int npts, float *ts ,
                           double ts_mean, double ts_slope,
                           void *ud, int nbriks, float *val          )
 {
-   static int nvox , ncall ;
+   static int ncall ;
    int meth_index, ii , out_index, nzpts, onset, offset, duration;
-   float* ts_det;
+   float *ts_det, *ts_dif=NULL ;
 
    /** is this a "notification"? **/
 
@@ -713,7 +733,6 @@ static void STATS_tsfunc( double tzero, double tdelta ,
 
       if( npts > 0 ){  /* the "start notification" */
 
-         nvox  = npts ;                       /* keep track of   */
          ncall = 0 ;                          /* number of calls */
 
       } else {  /* the "end notification" */
@@ -724,11 +743,23 @@ static void STATS_tsfunc( double tzero, double tdelta ,
       return ;
    }
 
-   /* KRH make copy and detrend it right here.  Use ts_mean and
-    * ts_slope to detrend */
+   /* RWC: first difference here [25 May 2011] */
+
+   if( do_tdiff ){
+     float tsm , tss ;
+     ts_dif = (float*)calloc(npts, sizeof(float)) ;
+	  for( ii=1 ; ii < npts ; ii++ ) ts_dif[ii-1] = ts[ii]-ts[ii-1] ;
+     get_linear_trend( npts-1 , ts_dif , &tsm , &tss ) ;
+     ts_mean = (double)tsm ; ts_slope = (double)tss ;
+     npts-- ; ts = ts_dif ;
+   }
+
+   /* KRH make copy and detrend it right here.
+      Use ts_mean and ts_slope for detrend-ization. */
 
    ts_det = (float*)calloc(npts, sizeof(float));
    memcpy( ts_det, ts, npts * sizeof(float));
+
    for( ii = 0; ii < npts; ii++)
      ts_det[ii] -=
        (ts_mean - (ts_slope * (npts - 1) * tdelta/2) + ts_slope * tdelta * ii) ;
@@ -1102,7 +1133,7 @@ static void STATS_tsfunc( double tzero, double tdelta ,
     }
    }
 
-   free(ts_det);
+   free(ts_det); if( ts_dif == ts ) free(ts_dif) ;
    ncall++ ; return ;
 }
 
