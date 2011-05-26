@@ -453,7 +453,8 @@ foreach sd ($sides)
                set off = `ccalc -i $T - $on`
                set kbl = 0
                if ($on > 0) then
-                  set com = "waver -TR $TR -GAM -numout $nvals -inline $pre@0.0 "
+                  set com = "waver -TR $TR -GAM -numout $nvals -inline "
+                  if ($pre > 0) set com = "$com $pre@0.0"
                   while ($kbl < $nblk)
                      set com = "$com $on@1.0 $off@0.0 "
                      @ kbl ++
