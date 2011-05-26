@@ -22,8 +22,7 @@ ENTRY("mri_topclip") ;
 float THD_cliplevel( MRI_IMAGE *im , float mfrac )
 {
    MRI_IMAGE *lim ;
-   float fac , sfac=1.0 ;
-   double dsum ;
+   double fac , sfac=1.0 , dsum ;
    int nvox , *hist , ii,npos=0 , ncut,kk,ib , qq,nold ;
    short *sar ;
    byte  *bar ;
@@ -45,8 +44,8 @@ ENTRY("THD_cliplevel") ;
         if( im->kind == MRI_rgb ){
           nhist = 255 ;
         } else {
-          fac = (float)mri_maxabs(im) ; if( fac == 0.0f ) RETURN(0.0f) ;
-          sfac = 32767.0f/fac ; nhist = 32767 ;
+          fac = mri_maxabs(im) ; if( fac < 1.0e-100 ) RETURN(0.0f) ;
+          sfac = 32767.0/fac ; nhist = 32767 ;
         }
         lim = mri_to_short( sfac , im ) ;
       break ;
@@ -63,12 +62,11 @@ ENTRY("THD_cliplevel") ;
 
       case MRI_float:{   /* 20 Dec 2006: do the float->int conversion inline */
         float *far = MRI_FLOAT_PTR(lim) ;
-        fac = (float)mri_max(im) ;
-        if( fac <= 0.0f ){ free(hist); RETURN(0.0f); }
+        fac = mri_max(im) ; if( fac < 1.e-100 ){ free(hist); RETURN(0.0f); }
         sfac = nhist / fac ;
         for( ii=0 ; ii < nvox ; ii++ ){
           if( far[ii] > 0.0f ){
-            kk = (int)(sfac * far[ii]+0.499f) ;
+            kk = (int)(sfac*far[ii]+0.499) ;
             if( kk <= nhist ){
               hist[kk]++ ;
               dsum += ((double)kk) * ((double)(kk)) ; npos++ ;
@@ -113,7 +111,7 @@ ENTRY("THD_cliplevel") ;
         we find a cut level so that it equals mfrac times
         the median of all the values above the cut level. ---*/
 
-   ncut = ii ; qq = 0 ;
+   ncut = ii ; qq = 0 ;  /* qq is iteration count */
    do{
       for( npos=0,ii=ncut; ii < nhist; ii++ ) npos += hist[ii]; /* num >= cut */
       nhalf = npos/2 ;                              /* half the number >= cut */
@@ -122,11 +120,13 @@ ENTRY("THD_cliplevel") ;
       nold = ncut ;
       ncut = mfrac * ii ;                                          /* new cut */
       qq++ ;
-   } while( qq < 66 && ncut != nold ) ;
+   } while( qq < 66 && ncut != nold ) ; /* usually only 2-3 iterations needed */
 
    free(hist) ;
 
-   RETURN( (ncut/sfac) ) ;
+   fac = ncut / sfac ;
+   if( fac > 1.e+38 ) fac = 1.e+38 ;   
+   RETURN( (float)fac ) ;
 }
 
 /*-------------------------------------------------------------------------*/
