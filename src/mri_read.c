@@ -4105,7 +4105,11 @@ ENTRY("mri_read_analyze75") ;
    if( !AFNI_noenv("AFNI_ANALYZE_SCALE") ){
       fac = hdr.dime.funused1 ;
       (void) thd_floatscan( 1 , &fac ) ;
-      if( fac < 0.0 || fac == 1.0 ) fac = 0.0 ;
+           if( fac < 0.0f   || fac == 1.0f   ) fac = 0.0f ;
+      else if( fac < 1.e-8f || fac >  1.e+8f ){
+        WARNING_message("ANALYZE file %s has scale factor (funused1) set to %g",hname,fac) ;
+        ININFO_message ("to ignore this scale factor, setenv AFNI_ANALYZE_SCALE NO") ;
+      }
    }
 
    floatize = (fac != 0.0 || AFNI_yesenv("AFNI_ANALYZE_FLOATIZE")) ; /* 28 Nov 2001 */
