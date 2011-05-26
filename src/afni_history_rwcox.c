@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 26 , MAY , 2011 , RWC , "mri_read" , MICRO , TYPE_MODIFY ,
+  { 26 , MAY , 2011 , RWC , "All" , MICRO , TYPE_GENERAL ,
+   "new AFNI version as of today" ,
+   "Just because -- it's been 7 months." } ,
+
+ { 26 , MAY , 2011 , RWC , "mri_read" , MICRO , TYPE_MODIFY ,
    "Add warning message for ANALYZE scale factors too big or too small" ,
    NULL } ,
 
