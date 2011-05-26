@@ -43,7 +43,17 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 25 , MAY , 2011 , RWC , "@1dDiffMag" , MICRO , TYPE_NEW_PROG ,
+  { 26 , MAY , 2011 , RWC , "thd_cliplevel" , MICRO , TYPE_BUG_FIX ,
+   "Problem with overflow when image has tiny float values" ,
+   "This affects a bunch of programs, including any program that has\n"
+   "automasking.  In the computation of the cliplevel of a float dataset,\n"
+   "the dataset is scaled to shorts for histogram-ization, and that scaling\n"
+   "is computed as 10000/maxval -- but if maxval is very tiny (say 1e-35),\n"
+   "then the scale factor is float overflow -- which doesn't work so well\n"
+   "farther on.  The solution is to compute the scale factor in double\n"
+   "precision.  Or to have less silly users." } ,
+
+ { 25 , MAY , 2011 , RWC , "@1dDiffMag" , MICRO , TYPE_NEW_PROG ,
    "Computes magnitude of 1st differences of 1D file" ,
    NULL } ,
 
