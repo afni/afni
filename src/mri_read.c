@@ -4106,7 +4106,7 @@ ENTRY("mri_read_analyze75") ;
       fac = hdr.dime.funused1 ;
       (void) thd_floatscan( 1 , &fac ) ;
            if( fac < 0.0f   || fac == 1.0f   ) fac = 0.0f ;
-      else if( fac < 1.e-8f || fac >  1.e+8f ){
+      else if( fac < 1.e-6f || fac >  1.e+6f ){
         WARNING_message("ANALYZE file %s has scale factor (funused1) set to %g",hname,fac) ;
         ININFO_message ("to ignore this scale factor, setenv AFNI_ANALYZE_SCALE NO") ;
       }
