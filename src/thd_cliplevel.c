@@ -216,7 +216,7 @@ ENTRY("get_octant_clips") ;
 
    /* compute cliplevel in each octant about the CM */
 
-   val = 0.5f * THD_cliplevel( im,mfrac ) ;
+   val = 0.333f * THD_cliplevel( im,mfrac ) ;
 
    ii = (int)rint(0.01*nx); if( ii < 1 ) ii = 1 ;  /* 1% quadrant overlap */
    jj = (int)rint(0.01*ny); if( jj < 1 ) jj = 1 ;
