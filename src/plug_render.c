@@ -5346,7 +5346,7 @@ void REND_func_widgets(void)
                                             MCW_BB_noframe ,
                                             REND_see_ttatlas_CB , NULL ) ;
 
-     if( TT_retrieve_atlas() == NULL )
+     if( TT_retrieve_atlas_dset("TT_Daemon",0) == NULL )
        XtSetSensitive( wfunc_see_ttatlas_bbox->wrowcol , False ) ;
 
      XtManageChild(wrc) ;                                          /* 24 Jul 2001 */
@@ -6408,10 +6408,11 @@ void REND_overlay_ttatlas(void)
 
    /* 01 Aug 2001: retrieve Atlas dataset depending on size of brick */
 #if 1
-   dseTT = TT_retrieve_atlas_nz(ovim->nz) ;
+   dseTT = TT_retrieve_atlas_dset_nz(ovim->nz) ;
                                  if( dseTT == NULL ) RET("no dataset\n") ;
 #else
-   dseTT = TT_retrieve_atlas() ; if( dseTT == NULL ) RET("no dataset\n") ;
+   dseTT = TT_retrieve_atlas_dset("TT_Daemon",0) ; 
+   if( dseTT == NULL ) RET("no dataset\n") ;
 #endif
 
    if( DSET_NVOX(dseTT) != nvox )                    RET("dataset mismatch\n");
