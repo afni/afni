@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 26 , MAY , 2011 , RWC , "thd_cliplevel" , MICRO , TYPE_BUG_FIX ,
+  { 26 , MAY , 2011 , RWC , "mri_read" , MICRO , TYPE_MODIFY ,
+   "Add warning message for ANALYZE scale factors too big or too small" ,
+   NULL } ,
+
+ { 26 , MAY , 2011 , RWC , "thd_cliplevel" , MICRO , TYPE_BUG_FIX ,
    "Problem with overflow when image has tiny float values" ,
    "This affects a bunch of programs, including any program that has\n"
    "automasking.  In the computation of the cliplevel of a float dataset,\n"
