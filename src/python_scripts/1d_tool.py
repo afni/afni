@@ -204,6 +204,26 @@ examples (very basic for now):
           1d_tool.py -infile data.txt -looks_like_test_all \\
                      -set_run_lengths 64 64 64 -set_tr 2
 
+   14. Split motion parameters across runs, but keep them at the original
+       length so they apply to the same multi-run regression.  Each file will
+       be the same as the original for the run it applies to, but zero across
+       all other runs.
+
+       Note that -split_into_pad_runs takes the output prefix as a parameter.
+
+         1d_tool.py -infile motion.1D                   \\
+                    -set_run_lengths 64 64 64           \\
+                    -split_into_pad_runs mot.padded
+
+       The output files are:
+          mot.padded.r01.1D   mot.padded.r02.1D   mot.padded.r03.1D
+
+       If the run lengths are the same -set_nruns is shorter...
+
+         1d_tool.py -infile motion.1D                   \\
+                    -set_nruns 3                        \\
+                    -split_into_pad_runs mot.padded
+
 ---------------------------------------------------------------------------
 basic informational options:
 
@@ -328,7 +348,7 @@ general options:
    -set_nruns NRUNS             : treat the input data as if it has nruns
                                   (e.g. applies to -derivative and -demean)
 
-        See examples 7a, 10a and b.
+        See examples 7a, 10a and b, and 14.
 
    -set_run_lengths N1 N2 ...   : treat as if data has run lengths N1, N2, etc.
                                   (applies to -derivative, for example)
@@ -336,7 +356,7 @@ general options:
         Notes:  o  option -set_nruns is not allowed with -set_run_lengths
                 o  the sum of run lengths must equal NT
 
-        See examples 7b and 10c.
+        See examples 7b, 10c and 14.
 
    -set_tr TR                   : set the TR (in seconds) for the data
    -show_censor_count           : display the total number of censored TRs
@@ -350,6 +370,27 @@ general options:
    -sort                        : sort data over time (smallest to largest)
                                   - sorts EVERY vector
                                   - consider the -reverse option
+
+   -split_into_pad_runs PREFIX  : split input into one padded file per run
+
+        e.g. -split_into_pad_runs motion.pad
+
+        This option is used for breaking a set of regressors up by run.  The
+        output would be one file per run, where each file is the same as the
+        input for the run it corresponds to, and is padded with 0 across all
+        other runs.
+
+        Assuming the 300 row input dataset spans 3 100-TR runs, then there
+        would be 3 output datasets created, each still be 300 rows:
+
+            motion.pad.r01.1D   : 100 rows as input, 200 rows of 0
+            motion.pad.r02.1D   : 100 rows of 0, 100 rows as input, 100 of 0
+            motion.pad.r03.1D   : 200 rows of 0, 100 rows as input
+
+        This option requires either -set_nruns or -set_run_lengths.
+
+        See example 14.
+
    -transpose                   : transpose the matrix (rows for columns)
    -write FILE                  : write the current 1D data to FILE
    -write_censor FILE           : write as boolean censor.1D
@@ -429,9 +470,10 @@ g_history = """
    0.21 Oct 29, 2010 - added -show_indices_baseline, _motion and _interest
    0.22 Nov  4, 2010 - fixed print vs. return problem in -show_indices
    0.23 Dec 16, 2010 - updates to file type (looks like) errors and warnings
+   0.24 May 27, 2010 - added -split_into_pad_runs (for regress motion per run)
 """
 
-g_version = "1d_tool.py version 0.23, December 16, 2010"
+g_version = "1d_tool.py version 0.24, May 27, 2011"
 
 
 class A1DInterface:
@@ -464,6 +506,7 @@ class A1DInterface:
       self.set_nruns       = 0          # assume input is over N runs
       self.set_run_lengths = []         # assume input has these run lengths
       self.set_tr          = 0          # set the TR of the data
+      self.split_into_pad_runs = ''     # prefix, for splitting into many runs
 
       self.cormat_cutoff   = -1         # if > 0, apply to show_cormat_warns
       self.show_censor_count= 0         # show count of censored TRs
@@ -533,6 +576,17 @@ class A1DInterface:
          print '** no 1D data to write as timing'
          return 1
       return self.adata.write_as_timing(fname, invert=invert)
+
+   def write_split_into_pad_runs(self, prefix):
+      """break input file into one file per run, where each output file has
+         all non-current runs as 0 (so file lengths stay the same)"""
+      if not self.adata:
+         print '** no 1D data to write as timing'
+         return 1
+      if self.set_nruns == 0 and len(self.set_run_lengths) == 0:
+         print '** -split_into_pad_runs requires -set_nruns or -set_run_lengths'
+         return 1
+      return self.adata.split_into_padded_runs(prefix, overwrite=self.overwrite)
 
    def init_options(self):
       self.valid_opts = OL.OptionList('valid opts')
@@ -648,6 +702,9 @@ class A1DInterface:
 
       self.valid_opts.add_opt('-sort', 0, [], 
                       helpstr='sort the data per column (over time)')
+
+      self.valid_opts.add_opt('-split_into_pad_runs', 1, [], 
+                      helpstr='write input as one zero-padded file per run')
 
       self.valid_opts.add_opt('-transpose', 0, [], 
                       helpstr='transpose the data')
@@ -884,6 +941,11 @@ class A1DInterface:
          elif opt.name == '-sort':
             self.sort = 1
 
+         elif opt.name == '-split_into_pad_runs':
+            val, err = uopts.get_string_opt('', opt=opt)
+            if err: return 1
+            self.split_into_pad_runs = val
+
          elif opt.name == '-transpose':
             self.transpose = 1
 
@@ -1055,6 +1117,9 @@ class A1DInterface:
       if self.censor_file:
          if self.adata.bool_negate(): return 1
          if self.write_1D(self.censor_file): return 1
+
+      if self.split_into_pad_runs:
+         if self.write_split_into_pad_runs(self.split_into_pad_runs): return 1
 
       if self.write_file:
          if self.write_1D(self.write_file): return 1
