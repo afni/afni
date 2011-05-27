@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 27, MAY, 2011, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
+   "added -split_into_pad_runs (for regress motion per run)",
+   NULL
+ } ,
+
  { 25, MAY, 2011, RCR, "timing_tool.py", MINOR, TYPE_NEW_OPT,
    "added -global_to_local and -local_to_global for G Chen",
    NULL

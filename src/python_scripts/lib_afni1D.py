@@ -482,7 +482,7 @@ class Afni1D:
 
          return status"""
 
-      if self.verb > 3: print '-- Afni1D write to %s, o=%d'%(fname,overwrite)
+      if self.verb > 2: print '-- Afni1D write to %s, o=%d'%(fname,overwrite)
 
       if not self.ready:
          print "** Afni1D not ready for write to '%s'" % fname
@@ -504,6 +504,47 @@ class Afni1D:
          fp.write('\n')
 
       fp.close()
+
+      return 0
+
+   def split_into_padded_runs(self, prefix, overwrite=0):
+      """write one 1D file per run, where each is the same as the input, but
+         is zero for every non-current run (i.e. only 1 non-zero run each)
+      """
+
+      if self.verb > 1:
+         print '++ splitting into %d padded runs (rows=%d, cols=%d, prefix=%s)'\
+               % (self.nruns, self.nt, self.nvec, prefix)
+
+      # if we don't have multiple runs, there is little to do
+      if self.nruns <= 1:
+         return self.write('%s.r01.1D' % prefix, overwrite=overwrite)
+
+      # store the data (self.mat) separately and start with 0-filled matrix
+      orig_mat = self.mat
+      self.mat = [[0 for row in range(self.nt)] for col in range(self.nvec)]
+
+      # per run: copy orig data, write, zero copied data data (back to all-0)
+      end = 0
+      for rind, rlen in enumerate(self.run_len):
+         start = end
+         end += self.run_len[rind]
+         fname = '%s.r%02d.1D' % (prefix,rind+1)
+         if self.verb>2: print '-- write %s, rows %d..%d' % (fname,start,end-1)
+         # copy orig data
+         for col in range(self.nvec):
+            for row in range(start, end):
+               self.mat[col][row] = orig_mat[col][row]
+         # write
+         if self.write(fname, overwrite=overwrite): return 1
+         # re-zero copied data
+         for col in range(self.nvec):
+            for row in range(start, end):
+               self.mat[col][row] = 0
+
+      # and re-insert matrix
+      del(self.mat)
+      self.mat = orig_mat
 
       return 0
 
