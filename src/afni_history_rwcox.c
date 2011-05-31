@@ -43,7 +43,13 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 26 , MAY , 2011 , RWC , "All" , MICRO , TYPE_GENERAL ,
+  { 31 , MAY , 2011 , RWC , "data loading" , MICRO , TYPE_GENERAL ,
+   "Allow mmap for supra-2GB .BRIK files" ,
+   "Change DBLK_mmapfix macro (3ddata.h) to work for larger files on 64-bit\n"
+   "systems -- with sizeof(size_t) == 8.  Also print an informative message\n"
+   "in thd_loaddblk.c when mmap-ing more than 1GB." } ,
+
+ { 26 , MAY , 2011 , RWC , "All" , MICRO , TYPE_GENERAL ,
    "new AFNI version as of today" ,
    "Just because -- it's been 7 months." } ,
 
