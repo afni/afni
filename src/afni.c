@@ -1465,14 +1465,25 @@ int main( int argc , char *argv[] )
 
    if( argc > 1 && strncmp(argv[1],"-help",2) == 0 ) AFNI_syntax() ;
 
+   { char *eee = getenv("AFNI_FORK") ;    /* 31 May 2011 */
+     if( YESSISH(eee) ){
+       ii = (int)fork();
+       if( ii != 0 ){         /* parent process dies now */
+         AFNI_sleep(2345) ;   /* msec */
+         fprintf(stderr,"++ AFNI is detached from terminal.\n") ;
+         _exit(0) ;
+       }
+     }
+   }
+
    AFNI_prefilter_args( &argc , argv ) ;  /* 11 Dec 2007 */
 
    /*--- Initialize some stuff ---*/
 
-   machdep() ;                      /* RWCox: 20 Apr 2001 */
-   THD_load_datablock_verbose(1) ;  /* 21 Aug 2002 */
+   machdep() ;                     /* RWCox: 20 Apr 2001 */
+   THD_load_datablock_verbose(1) ; /* 21 Aug 2002 */
 
-   signal(SIGINT ,AFNI_sigfunc) ;   /* may be superseded by mainENTRY below */
+   signal(SIGINT ,AFNI_sigfunc) ;  /* may be superseded by mainENTRY below */
    signal(SIGBUS ,AFNI_sigfunc) ;
    signal(SIGSEGV,AFNI_sigfunc) ;
    signal(SIGTERM,AFNI_sigfunc) ;

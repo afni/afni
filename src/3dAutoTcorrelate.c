@@ -478,8 +478,9 @@ int main( int argc , char *argv[] )
 
      cbrik_name = strdup(DSET_BRIKNAME(cset)) ;   /* save name for later use */
      ncbrik = cset->dblk->total_bytes ;
-     ININFO_message("creating output file %s via mmap() [%s bytes]",
-                    cbrik_name , commaized_integer_string(ncbrik) ) ;
+     ININFO_message("creating output file %s via mmap() [%s bytes -- about %s]",
+                    cbrik_name , commaized_integer_string(ncbrik) ,
+                                 approximate_number_string((double)ncbrik) ) ;
      fp = fopen(cbrik_name,"w+") ;
      if( fp == NULL ) ERROR_exit("Can't create output BRIK file :-(") ;
      fseek( fp , ncbrik-1 , SEEK_SET ) ;
