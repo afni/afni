@@ -3392,11 +3392,15 @@ extern void THD_force_ok_overwrite( int ) ; /* 07 Jan 2008 */
 
 /*-------------------------------------------------------------------*/
 #undef  TWOGIG
-#define TWOGIG 2147000000   /* 2 gigabytes, aboot */
+#define TWOGIG 2100000000   /* 2 gigabytes, aboot */
 
-#define DBLK_mmapfix(db)                                                      \
-  do{ if( (db)->malloc_type==DATABLOCK_MEM_MMAP && (db)->total_bytes>TWOGIG ) \
-        (db)->malloc_type = DATABLOCK_MEM_MALLOC ; } while(0)
+/* Modified 31 May 2011 to allow mmap() for big files on a 64-bit system */
+
+#define DBLK_mmapfix(db)                                      \
+  do{ if( (db)->malloc_type == DATABLOCK_MEM_MMAP &&          \
+          (db)->total_bytes >  TWOGIG             &&          \
+          sizeof(size_t)    <  8                     )        \
+       (db)->malloc_type = DATABLOCK_MEM_MALLOC ; } while(0)
 
 /*---------------------------------------------------------------------------*/
 
@@ -4941,7 +4945,7 @@ extern char * UNIQ_idcode(void) ;            /* 27 Sep 2001 */
 extern void   UNIQ_idcode_fill(char *) ;
 
 /*------------------------------------------------------------------------*/
-#define ATLAS_CMAX    64   /* If you change this parameter,edit constant in 
+#define ATLAS_CMAX    64   /* If you change this parameter,edit constant in
                               CA_EZ_Prep.m (MaxLbl* checks) */
 
 typedef enum { UNKNOWN_SPC=0, /*!< Dunno */
@@ -4958,16 +4962,16 @@ typedef struct {
    /* these are kept for historical purposes  */
    /* perhaps one day making an unusally boring PBS special */
    short tdval;         /* Leave this one to be the very first element */
-   char name[ATLAS_CMAX] ;  /* Leave this one to be the second element */  
+   char name[ATLAS_CMAX] ;  /* Leave this one to be the second element */
    float xx,yy,zz;     /* xx,yy,zz - RAI position of region  - now in float */
    short tdlev,okey ;          /* tdlev = unknown, gyrus or area code */
                                /* okey = original value in atlas */
                                /*  this value was converted for TT daemon */
                                /*  atlas values because left and right */
-                               /*  ROIs shared the same value */                               
+                               /*  ROIs shared the same value */
    char sblabel[ATLAS_CMAX];   /* This is the sub-brick label
                                   of a dataset related to this point.
-                                  The only time this is used is for 
+                                  The only time this is used is for
                                   linking an atlas point to the probability
                                   map volume. */
 } ATLAS_POINT ;
@@ -4978,7 +4982,7 @@ extern ATLAS_POINT *atlas_points(char *atname);
 extern char **atlas_reference_string_list(char *atname, int *N_refs);
 extern char *atlas_version_string(char *atname);
 
-extern char * TT_whereami( float , float , float, 
+extern char * TT_whereami( float , float , float,
                            char *, void *) ;
 extern char * TT_whereami_old( float , float , float ) ;
 extern int  TT_load_atlas_old (void);

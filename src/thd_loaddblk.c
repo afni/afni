@@ -387,6 +387,12 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
       ptr = (char *) mmap( 0 , (size_t)blk->total_bytes ,
                                PROT_READ , THD_MMAP_FLAG , fd , 0 ) ;
 
+      if( verbose && blk->total_bytes >= 1000000000ll )
+        fprintf(stderr , "%s: mmap(%s bytes) -- %s\n" ,
+                dkptr->brick_name ,
+                approximate_number_string((double)blk->total_bytes) ,
+                (ptr == (char*)(-1)) ? "FAILED" : "SUCCEEDED" ) ;
+
       /* if that fails, maybe try again (via freeup) */
 
       if( ptr == (char *)(-1) ){
@@ -395,8 +401,9 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
                  dkptr->brick_name ) ;
          perror("*** Unix error message") ;
          if( freeup != NULL ){
-            fprintf(stderr,"*** trying to fix problem\n") ; /* 18 Oct 2001 */
             freeup() ;                          /* AFNI_purge_unused_dsets */
+            fprintf(stderr,"*** purge and retry mmap(%s bytes)",
+                    approximate_number_string((double)blk->total_bytes) ) ;
             ptr = (char *) mmap( 0 , (size_t)blk->total_bytes ,
                                      PROT_READ , THD_MMAP_FLAG , fd , 0 ) ;
             if( ptr == (char *)(-1) ){
