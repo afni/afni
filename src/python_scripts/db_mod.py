@@ -782,6 +782,12 @@ def db_mod_volreg(block, proc, user_opts):
     aopt = user_opts.find_opt('-volreg_align_to')
     baseopt = user_opts.find_opt('-volreg_base_dset')
 
+    # no longer accepted
+    if user_opts.find_opt('-volreg_regress_per_run'):
+        print '** option -volreg_regress_per_run is no longer valid\n' \
+              '   (please use -regress_motion_per_run, instead)'
+        return 1
+
     # check base_dset (do not allow with selector options)
     if baseopt:
         if uopt or aopt:
@@ -842,11 +848,6 @@ def db_mod_volreg(block, proc, user_opts):
     if uopt:
         bopt = block.opts.find_opt('-volreg_opts_vr')
         bopt.parlist = uopt.parlist
-
-    uopt = user_opts.find_opt('-volreg_regress_per_run')
-    bopt = block.opts.find_opt('-volreg_regress_per_run')
-    if uopt and not bopt:
-        block.opts.add_opt('-volreg_regress_per_run', 0, [])
 
     # check for warp to tlrc space, from either auto or manual xform
     uopt = user_opts.find_opt('-volreg_tlrc_adwarp')
@@ -1099,15 +1100,6 @@ def db_cmd_volreg(proc, block):
                '    3dTstat -min -prefix rm.epi.min.r$run rm.epi.1.r$run%s\n' \
                % proc.view
 
-    # if we want to regress motion files per run, create them and add to list
-    if block.opts.find_opt('-volreg_regress_per_run'):
-        cmd = cmd + '\n' +                                                  \
-            "    # pad motion parameters from each run to span all runs \n" \
-            "    1d_tool.py -infile dfile.r$run.1D "                        \
-            "-pad_into_many_runs $run %d \\\n"                              \
-            "               -write dfile.r$run.pad.1D\n" % proc.runs
-        proc.mot_files = ['dfile.r%02d.pad.1D'%(r+1) for r in range(proc.runs)]
-
     # if there is a base_dset option, check for failure in 3dvolreg
     if basevol:
         cmd = cmd + '\n    # if there was an error, exit so user can see'     \
@@ -1116,6 +1108,7 @@ def db_cmd_volreg(proc, block):
     cmd = cmd + "end\n\n"                                                     \
                 "# make a single file of registration params\n"               \
                 "cat dfile.r??.1D > dfile.rall.1D\n\n"
+    proc.mot_default = 'dfile.rall.1D'
 
     # if not censoring motion, make a generic motion file
     if not proc.user_opts.find_opt('-regress_censor_motion'):
@@ -1125,16 +1118,17 @@ def db_cmd_volreg(proc, block):
 
         if proc.reps_vary :     # use -set_run_lengths aot -set_nruns
            cmd = cmd +                                                      \
-               "1d_tool.py -infile dfile.rall.1D \\\n"                      \
+               "1d_tool.py -infile %s \\\n"                                 \
                "           -set_run_lengths %s \\\n"                        \
                "           -derivative  -collapse_cols euclidean_norm \\\n" \
                "           -write motion_${subj}_enorm.1D\n\n"              \
-               % UTIL.int_list_string(proc.reps_all)
+               % (proc.mot_file, UTIL.int_list_string(proc.reps_all))
         else:                   # stick with -set_nruns
            cmd = cmd +                                                      \
-               "1d_tool.py -infile dfile.rall.1D -set_nruns %d \\\n"        \
+               "1d_tool.py -infile %s -set_nruns %d \\\n"                   \
                "           -derivative  -collapse_cols euclidean_norm \\\n" \
-               "           -write motion_${subj}_enorm.1D\n\n" % proc.runs
+               "           -write motion_${subj}_enorm.1D\n\n"              \
+               % (proc.mot_file, proc.runs)
 
     if do_extents:
         proc.mask_extents = BASE.afni_name('mask_epi_extents' + proc.view)
@@ -1827,6 +1821,11 @@ def db_mod_regress(block, proc, user_opts):
         for file in proc.stims_orig:
             proc.stims.append('stimuli/%s' % os.path.basename(file))
 
+    # check for per-run regression of motion parameters
+    uopt = user_opts.find_opt('-regress_motion_per_run')
+    if uopt and not block.opts.find_opt('-regress_motion_per_run'):
+        block.opts.add_opt('-regress_motion_per_run', 0,  [], setpar=1)
+
     # check for censoring of large motion
     uopt = user_opts.find_opt('-regress_censor_motion')
     bopt = block.opts.find_opt('-regress_censor_motion')
@@ -1965,16 +1964,11 @@ def db_mod_regress(block, proc, user_opts):
     uopt = user_opts.find_opt('-regress_motion_file')
     if uopt:
         # make sure we have labels
-        proc.mot_files = uopt.parlist
+        proc.mot_file = uopt.parlist[0]
+        proc.mot_extern = uopt.parlist[0]
         proc.mot_labs = ['roll', 'pitch', 'yaw', 'dS', 'dL', 'dP']
-        # do not allow -volreg_regress_per_run with this
-        blk = proc.find_block('volreg')
-        if blk:
-           vopt = blk.opts.find_opt('-volreg_regress_per_run')
-           if vopt:
-              print '** -volreg_regress_per_run is illegal with' \
-                    ' -regress_motion_file'
-              errs += 1
+        # -volreg_regress_per_run should be okay  20 May 2011
+        # (must still assume TR correspondence)
 
     # maybe the user does not want to convert stim_files to stim_times
     uopt = user_opts.find_opt('-regress_use_stim_files')
@@ -2037,9 +2031,6 @@ def db_cmd_regress(proc, block):
     if opt: normall = '    -basis_normall %s \\\n' % opt.parlist[0]
     else:   normall = ''
 
-    opt = block.opts.find_opt('-regress_no_motion')
-    if opt: proc.mot_labs = []   # then clear any motion labels
-
     opt = block.opts.find_opt('-regress_polort')
     polort = opt.parlist[0]
     if ( polort < 0 ) :
@@ -2054,8 +2045,7 @@ def db_cmd_regress(proc, block):
     #     block.valid = 0
     #    return
 
-    cmd = cmd + "# %s\n" \
-                "# run the regression analysis\n" % block_header('regress')
+    cmd = cmd + "# %s\n" % block_header('regress')
 
     # possibly add a make_stim_times.py command
     # (convert -stim_file to -stim_times)
@@ -2079,18 +2069,22 @@ def db_cmd_regress(proc, block):
                   % (len(basis), len(proc.stims))
             return
 
-    # if the user wants to censor large motion, create a censor.1D file
-    if block.opts.find_opt('-regress_censor_motion'):
-        err, newcmd = db_cmd_regress_censor_motion(proc, block)
+    # ----------------------------------------
+    # deal with motion (demean, deriv, per-run, censor)
+    if block.opts.find_opt('-regress_no_motion'): proc.mot_labs = []
+    else:
+        err, newcmd = db_cmd_regress_motion_stuff(proc, block)
         if err: return
         if newcmd: cmd = cmd + newcmd
 
+    # ----------------------------------------
     # possibly use a mask
     if proc.mask and proc.regmask:
         mask = '    -mask %s%s \\\n' % (proc.mask.prefix, proc.view)
     else:
         mask = ''
 
+    # ----------------------------------------
     # maybe the user has specified global or local times
     # if so, verify the files against exactly that
     if block.opts.find_opt('-regress_global_times'):
@@ -2119,7 +2113,7 @@ def db_cmd_regress(proc, block):
     # and check any extras against 1D only
     if not valid_file_types(proc, proc.extra_stims_orig, 1): return
 
-    nmotion = len(proc.mot_labs) * len(proc.mot_files)
+    nmotion = len(proc.mot_labs) * len(proc.mot_regs)
     total_nstim =  len(proc.stims) + len(proc.extra_stims) + \
                    nmotion + proc.ricor_nreg
     
@@ -2127,7 +2121,8 @@ def db_cmd_regress(proc, block):
     if proc.censor_file: censor_str = '    -censor %s \\\n' % proc.censor_file
     else:                censor_str = ''
 
-    cmd = cmd + '3dDeconvolve -input %s \\\n'           \
+    cmd = cmd + '# run the regression analysis\n'       \
+                '3dDeconvolve -input %s \\\n'           \
                 '%s'                                    \
                 '    -polort %d %s\\\n'                 \
                 '%s%s%s'                                \
@@ -2217,16 +2212,15 @@ def db_cmd_regress(proc, block):
     # write out registration param lines
     if nmotion > 0:
         nlabs = len(proc.mot_labs)
-        nmf = len(proc.mot_files)
-        for findex in range(nmf):
-            mfile = proc.mot_files[findex]
+        nmf = len(proc.mot_regs)
+        for findex, mfile in enumerate(proc.mot_regs):
             for ind in range(nlabs):
                 if nmf > 1: mlab = '%s_%02d' % (proc.mot_labs[ind], findex+1)
                 else:       mlab = '%s'      % (proc.mot_labs[ind])
                 sind = regindex + nlabs*findex + ind
                 cmd = cmd + "    -stim_file %d %s'[%d]' "       \
                         "-stim_base %d -stim_label %d %s \\\n"  \
-                        % (sind, proc.mot_files[findex], ind, sind, sind, mlab)
+                        % (sind, mfile, ind, sind, sind, mlab)
         regindex += nmotion
 
     # write out ricor param lines (put labels afterwards)
@@ -2631,6 +2625,58 @@ def db_cmd_regress_sfiles2times(proc, block):
 
     return cmd
 
+def db_cmd_regress_motion_stuff(proc, block):
+    """prepare motion parameters for regression
+         - create demean and deriv files
+         - set mot_regs (to mot_file and/or mot_deriv)
+         - maybe regress per run
+         - maybe censor based on mot_file
+       return an error code (0=success) and command string
+    """
+
+    if block.opts.find_opt('-regress_no_motion'): return 0, ''
+
+    cmd = ''
+    proc.mot_regs = [proc.mot_file]     # init
+
+    if not block.opts.find_opt('-regress_no_motion_demean'): pass
+    if not block.opts.find_opt('-regress_no_motion_deriv'): pass
+
+    # maybe convert the motion files to motion per run
+    # if so, replace mot_regs with the new versions of them
+    if block.opts.find_opt('-regress_motion_per_run'):
+        pcmd = '# convert motion parameters for per-run regression\n'
+        # make an option for the number of runs
+        if proc.reps_vary:
+           runopt = '-set_run_lengths %s' % UTIL.int_list_string(proc.reps_all)
+        else:
+           runopt = '-set_nruns %d' % proc.runs
+        mfiles = proc.mot_regs
+        proc.mot_regs = []
+        for mfile in mfiles:
+            if   mfile == proc.mot_extern: mtype = 'extern'
+            elif mfile == proc.mot_demean: mtype = 'demean'
+            elif mfile == proc.mot_deriv : mtype = 'deriv'
+            else:                          mtype = 'dfile'
+            # note the output prefix and expected output file list
+            mprefix = 'mot_%s' % mtype
+            outfiles = ['%s.r%02d.1D'%(mprefix,r+1) for r in range(proc.runs)]
+            pcmd += '1d_tool.py -infile %s %s \\\n'          \
+                    '           -split_into_pad_runs %s\n\n' \
+                    % (mfile, runopt, mprefix)
+            proc.mot_regs.extend(outfiles)
+
+        cmd += pcmd     # and add to the current command
+
+    # if the user wants to censor large motion, create a censor.1D file
+    if block.opts.find_opt('-regress_censor_motion'):
+        err, newcmd = db_cmd_regress_censor_motion(proc, block)
+        if err: return 1, ''
+        if newcmd: cmd = cmd + newcmd
+
+    if cmd != '': return 0, '\n' + cmd
+    else: return 0, cmd
+
 def db_cmd_regress_censor_motion(proc, block):
     """return a command to create a censor.1D file
 
@@ -2652,17 +2698,8 @@ def db_cmd_regress_censor_motion(proc, block):
 
     # run lengths may now vary  16 Nov, 2009
 
-    if len(proc.mot_files) == 0: return 0, ''
-    elif len(proc.mot_files) > 1:       # okay if -volreg_regress_per_run
-        vblk = proc.find_block('volreg')
-        opt = None
-        mot_file = ''
-        if vblk: opt = vblk.opts.find_opt('-volreg_regress_per_run')
-        if opt: mot_file = 'dfile.rall.1D'
-        if not mot_file:
-            print '** bad motion files for -regress_censor_motion'
-            return 1, ''
-    else: mot_file = proc.mot_files[0]  # there is only 1
+    # maybe there is no file to use
+    if proc.mot_file == '': return 0, ''
 
     # check for -regress_censor_first_trs
     val, err = block.opts.get_type_opt(int, '-regress_censor_first_trs')
@@ -2678,12 +2715,12 @@ def db_cmd_regress_censor_motion(proc, block):
     else:                       prev_str = ''
 
     if proc.verb > 1:
-        print '-- creating motion censor command, file = %s' % mot_file
+        print '-- creating motion censor command, file = %s' % proc.mot_file
 
     # save string to apply in 3dDeconvolve
     mot_prefix = 'motion_${subj}'
     censor_file = '%s_censor.1D' % mot_prefix
-    cmd = '\n# create censor file %s, for censoring motion \n' \
+    cmd = '# create censor file %s, for censoring motion \n' \
           % censor_file
 
     # if we are already censoring, make a command to combine the results
@@ -2699,10 +2736,10 @@ def db_cmd_regress_censor_motion(proc, block):
     # make command string to create censor file
     if proc.reps_vary :     # use -set_run_lengths aot -set_nruns
         cmd = cmd + '1d_tool.py -infile %s -set_run_lengths %s \\\n' \
-                    % (mot_file, UTIL.int_list_string(proc.reps_all))
+                    % (proc.mot_file, UTIL.int_list_string(proc.reps_all))
     else:
         cmd = cmd + '1d_tool.py -infile %s -set_nruns %d \\\n'       \
-                    % (mot_file, proc.runs)
+                    % (proc.mot_file, proc.runs)
 
     cmd = cmd + '    -set_tr %g -show_censor_count %s\\\n'      \
                 '%s'                                            \
@@ -3206,7 +3243,7 @@ g_help_string = """
                  54 motion    regressors ( 6 per run * 9 runs)
                 117 RETROICOR regressors (13 per run * 9 runs)
 
-           To example #3, add -do_block, -ricor_* and -volreg_regress_per_run.
+           To example #3, add -do_block, -ricor_* and -regress_motion_per_run.
 
                 afni_proc.py -subj_id sb23.e5a.ricor            \\
                         -dsets sb23/epi_r??+orig.HEAD           \\
@@ -3215,7 +3252,7 @@ g_help_string = """
                         -ricor_regs_nfirst 3                    \\
                         -ricor_regs sb23/RICOR/r*.slibase.1D    \\
                         -ricor_regress_method 'per-run'         \\
-                        -volreg_regress_per_run
+                        -regress_motion_per_run
 
            If tshift, blurring and masking are not desired, consider replacing
            the -do_block option with an explicit list of blocks:
@@ -4714,20 +4751,7 @@ g_help_string = """
 
         -volreg_regress_per_run : regress motion parameters from each run
 
-                default: regress motion parameters catenated across runs
-
-            By default, motion parameters from the volreg block are catenated
-            across all runs, providing 6 (assuming 3dvolreg) regressors of no
-            interest in the regression block.
-
-            With -volreg_regress_per_run, the motion parameters from each run
-            are used as separate regressors, providing a total of (6 * nruns)
-            regressors.
-
-            This allows for the magnitudes of the regressors to vary over each
-            run, rather than using a single (best) magnitude over all runs.
-            So more motion-correlated variance can be accounted for, at the
-            cost of the extra degrees of freedom (6*(nruns-1)).
+            === This option has been replaced by -regress_motion_per_run. ===
 
         -volreg_tlrc_adwarp     : warp EPI to +tlrc space at end of volreg step
 
@@ -5154,6 +5178,28 @@ g_help_string = """
             
             See '3dToutcount -help' for more details.
             See also -regress_skip_first_outliers, -regress_censor_motion.
+
+        -regress_motion_per_run : regress motion parameters from each run
+
+                default: regress motion parameters catenated across runs
+
+            By default, motion parameters from the volreg block are catenated
+            across all runs, providing 6 (assuming 3dvolreg) regressors of no
+            interest in the regression block.
+
+            With -regress_motion_per_run, the motion parameters from each run
+            are used as separate regressors, providing a total of (6 * nruns)
+            regressors.
+
+            This allows for the magnitudes of the regressors to vary over each
+            run, rather than using a single (best) magnitude over all runs.
+            So more motion-correlated variance can be accounted for, at the
+            cost of the extra degrees of freedom (6*(nruns-1)).
+
+            This option will apply to all motion regressors, including
+            derivatives (if requested).
+
+            ** This option was previously called -volreg_regress_per_run. **
 
         -regress_skip_first_outliers NSKIP : ignore the first NSKIP TRs
 

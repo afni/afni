@@ -243,9 +243,13 @@ g_history = """
         - added help for -volreg_no_extent_mask
         - no EPI Automask is not a comment, not a warning
         - check that process blocks are unique (except for 'empty')
+    2.51 May 31 2011 :
+        - re-worked motion as prep for more motion options
+        - replaced -volreg_regress_per_run with -regress_motion_per_run
+        - made uniq_list_as_dsets() a warning, not an error (for J Britton)
 """
 
-g_version = "version 2.50, Apr 29, 2011"
+g_version = "version 2.51, May 31, 2011"
 
 # version of AFNI required for script execution
 g_requires_afni = "4 Nov 2010"
@@ -297,8 +301,19 @@ class SubjProcSream:
 
         self.vr_ext_base= None          # name of external volreg base 
         self.vr_ext_pre = 'external_volreg_base' # copied volreg base prefix
+
         self.mot_labs   = []            # labels for motion params
-        self.mot_files  = ['dfile.rall.1D'] # motion parameter file list
+        # motion parameter file (across all runs)
+        self.mot_file   = 'dfile.rall.1D' # either mot_default or mot_extern
+        # for regression, maybe just mot_file, maybe per run, external
+        # or might include demean and/or derivatives
+        self.mot_regs   = []            # motion files to use in regression
+        self.mot_per_run= 0             # motion regression per run
+        self.mot_default= ''            # probably 'dfile.rall.1D', if set
+        self.mot_extern = ''            # from -regress_motion_file
+        self.mot_demean = ''            # from demeaned motion file
+        self.mot_deriv  = ''            # motion derivatives
+
         self.opt_src    = 'cmd'         # option source
         self.subj_id    = 'SUBJ'        # hopefully user will replace this
         self.subj_label = '$subj'       # replace this for execution
@@ -621,6 +636,8 @@ class SubjProcSream:
                         helpstr="do not convert stim_files to timing")
         self.valid_opts.add_opt('-regress_motion_file', -1, [],
                         helpstr="files to apply as motion regressors")
+        self.valid_opts.add_opt('-regress_motion_per_run', 0, [],
+                        helpstr="apply all motion parameters per run")
         self.valid_opts.add_opt('-regress_extra_stim_files', -1, [],
                         helpstr="extra -stim_files to apply")
         self.valid_opts.add_opt('-regress_extra_stim_labels', -1, [],
@@ -878,7 +895,8 @@ class SubjProcSream:
             print 'error: dsets have not been specified (consider -dsets)'
             return 1
 
-        if not uniq_list_as_dsets(self.dsets, 1): return 1
+        # no errors, just warn the user (for J Britton)   25 May 2011
+        uniq_list_as_dsets(self.dsets, 1)
         self.check_block_order()
 
     def add_block_to_list(self, blocks, bname, adj=None, dir=0):
@@ -1209,31 +1227,45 @@ class SubjProcSream:
                 - despike < ricor < tshift/volreg
                 - blur < scale
                 - tshift/volreg/blur/scale < regress
+           return the number of errors
         """
+        errs = 0
         if self.find_block('align'):
             if not self.blocks_ordered('align', 'volreg'):
+                errs += 1
                 print "** warning: 'align' should preceed 'volreg'"
             if not self.blocks_ordered('align', 'tlrc'):
+                errs += 1
                 print "** warning: 'align' should preceed 'tlrc'"
         if self.find_block('ricor'):
             if not self.blocks_ordered('despike', 'ricor', must_exist=1):
+                errs += 1
                 print "** warning: 'despike' should preceed 'ricor'"
             if not self.blocks_ordered('ricor', 'tshift'):
+                errs += 1
                 print "** warning: 'tshift' should preceed 'ricor'"
             if not self.blocks_ordered('ricor', 'volreg'):
+                errs += 1
                 print "** warning: 'volreg' should preceed 'ricor'"
         if self.find_block('blur'):
             if not self.blocks_ordered('blur', 'scale'):
+                errs += 1
                 print "** warning: 'blur' should preceed 'scale'"
         if self.find_block('regress'):
             if not self.blocks_ordered('tshift', 'regress'):
+                errs += 1
                 print "** warning: 'tshift' should preceed 'regress'"
             if not self.blocks_ordered('volreg', 'regress'):
+                errs += 1
                 print "** warning: 'volreg' should preceed 'regress'"
             if not self.blocks_ordered('blur', 'regress'):
+                errs += 1
                 print "** warning: 'blur' should preceed 'regress'"
             if not self.blocks_ordered('scale', 'regress'):
+                errs += 1
                 print "** warning: 'scale' should preceed 'regress'"
+
+        return errs
 
     def blocks_ordered(self, name0, name1, must_exist=0):
         """check that the name0 block comes before the name1 block
@@ -1367,6 +1399,14 @@ class SubjProcSream:
             str = "# copy over the external align_epi_anat.py EPI volume\n" \
                   "3dbucket -prefix %s/%s '%s'\n" %         \
                   (self.od_var, self.align_epre, self.align_ebase)
+            self.fp.write(add_line_wrappers(str))
+            self.fp.write("%s\n" % stat_inc)
+
+        opt = self.user_opts.find_opt('-regress_motion_file')
+        if opt and len(opt.parlist) > 0:
+            str = '# copy external motion file into results dir\n' \
+                  'cp %s %s\n' %                                   \
+                      (' '.join(quotize_list(opt.parlist,'')),self.od_var)
             self.fp.write(add_line_wrappers(str))
             self.fp.write("%s\n" % stat_inc)
 
