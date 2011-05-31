@@ -9,16 +9,16 @@ char * commaized_integer_string( long long val )
    char qval[128] ;
    int qq,ss , qpos , qlen , pval = (val >= 0) ;
    static int k=0;
-   
+
    /* without these three lines, a call like this:
-      sprintf(str,"Hello %s, %s\n", 
+      sprintf(str,"Hello %s, %s\n",
                commaized_integer_string(100),
-               commaized_integer_string(500)); 
+               commaized_integer_string(500));
       would fail to write out both numbers.  ZSS Aug. 2010*/
-   k = k % 5;  
+   k = k % 5;
    sval = svals[k];
    ++k;
-   
+
    sprintf(qval,"%lld",val) ; qlen = strlen(qval) ;
 
    if( AFNI_yesenv("AFNI_DONT_COMMAIZE") ||
@@ -48,7 +48,7 @@ char * approximate_number_string( double val )
    double aval=fabs(val) , tval ;
    int    lv , qv ;
    static int k=0;
-   
+
    k = k % 5;     /* ZSS Aug. 2010 (same fix as commaized_integer_string)*/
    sval = svals[k];
    ++k;
@@ -80,6 +80,19 @@ char * approximate_number_string( double val )
      case 7: strcat(sval+strlen(sval)," sextillion")  ; break ;
      case 8: strcat(sval+strlen(sval)," septillion")  ; break ;
      case 9: strcat(sval+strlen(sval)," octillion")   ; break ;
+     case 10: strcat(sval+strlen(sval)," nonillion")        ; break ;
+     case 11: strcat(sval+strlen(sval)," decillion")        ; break ;
+     case 12: strcat(sval+strlen(sval)," undecillion")      ; break ;
+     case 13: strcat(sval+strlen(sval)," duodecillion")     ; break ;
+     case 14: strcat(sval+strlen(sval)," tredecillion")     ; break ;
+     case 15: strcat(sval+strlen(sval)," quattuordecillion"); break ;
+     case 16: strcat(sval+strlen(sval)," quindecillion")    ; break ;
+     case 17: strcat(sval+strlen(sval)," sexdecillion")     ; break ;
+     case 18: strcat(sval+strlen(sval)," septendecillion")  ; break ;
+     case 19: strcat(sval+strlen(sval)," octodecillion")    ; break ;
+     case 20: strcat(sval+strlen(sval)," novemdecillion")   ; break ;
+     case 21: strcat(sval+strlen(sval)," vigintillion")     ; break ;
+     case 101: strcat(sval+strlen(sval)," centillion")      ; break ;
 
      case -1: strcat(sval+strlen(sval)," thousand-ths")   ; break ;
      case -2: strcat(sval+strlen(sval)," million-ths")    ; break ;
