@@ -49,6 +49,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 27, MAY, 2011, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
+   "re-work of motion, as prep for more motion options",
+   "- replaced -volreg_regress_per_run with -regress_motion_per_run\n"
+   "- made uniq_list_as_dsets() a warning, not an error (for J Britton)"
+ } ,
+
  { 27, MAY, 2011, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
    "added -split_into_pad_runs (for regress motion per run)",
    NULL
