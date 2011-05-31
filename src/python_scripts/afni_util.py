@@ -194,7 +194,7 @@ def get_unique_sublist(inlist):
 
     return newlist
 
-def uniq_list_as_dsets(dsets, showerr=0):
+def uniq_list_as_dsets(dsets, whine=0):
     """given a list of text elements, create a list of afni_name elements,
        and check for unique prefixes"""
 
@@ -209,10 +209,10 @@ def uniq_list_as_dsets(dsets, showerr=0):
                 break
         if not uniq: break
 
-    if not uniq and showerr:
+    if not uniq and whine:
         print                                                               \
           "-----------------------------------------------------------\n"   \
-          "** error: dataset names are not unique\n\n"                      \
+          "** dataset names are not unique\n\n"                             \
           "   (#%d == #%d, '%s' == '%s')\n\n"                               \
           "   note: if using a wildcard, please specify a suffix,\n"        \
           "         otherwise datasets may be listed twice\n"               \
