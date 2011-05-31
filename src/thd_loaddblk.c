@@ -407,11 +407,11 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
             ptr = (char *) mmap( 0 , (size_t)blk->total_bytes ,
                                      PROT_READ , THD_MMAP_FLAG , fd , 0 ) ;
             if( ptr == (char *)(-1) ){
-               fprintf(stderr,"*** cannot fix problem!\n") ;
+               fprintf(stderr,"*** FAILED: cannot fix problem :-(\n") ;
                close(fd) ;
                STATUS("freeup failed") ; RETURN( False );
             } else {
-               fprintf(stderr,"*** was able to fix problem!\n") ;
+               fprintf(stderr,"*** SUCCEEDED: was able to fix problem :-)\n") ;
             }
          } else {       /* no freeup function to try */
             close(fd) ;
