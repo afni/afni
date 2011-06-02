@@ -446,25 +446,29 @@ foreach sd ($sides)
                set ref_ts = ECC
                set nvals = $Nts_ecc
             endif
-            echo '' > $ref_ts.WAVER.log
-            set onv = (`count -digits 1 $cco`)
-            foreach on ($onv) 
-               set on2 = `printf %02d $on`
-               set off = `ccalc -i $T - $on`
-               set kbl = 0
-               if ($on > 0) then
-                  set com = "waver -TR $TR -GAM -numout $nvals -inline "
-                  if ($pre > 0) set com = "$com $pre@0.0"
-                  while ($kbl < $nblk)
-                     set com = "$com $on@1.0 $off@0.0 "
-                     @ kbl ++
-                  end
-                  echo $com >> $ref_ts.WAVER.log
-                  $com > $ref_ts.${on2}.1D
-               endif
-            end
-            1dcat $ref_ts.??.1D > $ref_ts.1D
-            \rm -f ./$ref_ts.??.1D
+            if ($nvals != 0) then
+               echo '' > $ref_ts.WAVER.log
+               set onv = (`count -digits 1 $cco`)
+               foreach on ($onv) 
+                  set on2 = `printf %02d $on`
+                  set off = `ccalc -i $T - $on`
+                  set kbl = 0
+                  if ($on > 0) then
+                     set com = "waver -TR $TR -GAM -numout $nvals -inline "
+                     if ($pre > 0) set com = "$com $pre@0.0"
+                     while ($kbl < $nblk)
+                        set com = "$com $on@1.0 $off@0.0 "
+                        @ kbl ++
+                     end
+                     echo $com >> $ref_ts.WAVER.log
+                     $com > $ref_ts.${on2}.1D
+                  endif
+               end
+               1dcat $ref_ts.??.1D > $ref_ts.1D
+               \rm -f ./$ref_ts.??.1D
+            else
+               echo "No '$dr' timing file"
+            endif
          end   
       endif
       cd $idir
