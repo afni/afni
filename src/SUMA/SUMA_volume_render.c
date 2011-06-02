@@ -195,12 +195,30 @@ SUMA_Boolean SUMA_Colorize_dset(THD_3dim_dataset *dset,
                   DSET_ARRAY(dset, 0) ,   /* input  */
                   MRI_byte               , bytevol  ) ;
       j=0;
+      #if 0
+      /* Playing with color overlay */
+      SUMA_S_Note("TEMPO17");
+      for(i = 0; i < DSET_NVOX(dset); i++) {
+         if (bytevol[i]!=17) {
+            tex3ddata[j] = bytevol[i]; ++j;
+            tex3ddata[j] = bytevol[i]; ++j;
+            tex3ddata[j] = bytevol[i]; ++j;
+            tex3ddata[j] = bytevol[i]/3; ++j;
+         } else {
+            tex3ddata[j] = 255; ++j;
+            tex3ddata[j] = 0; ++j;
+            tex3ddata[j] = 0; ++j;
+            tex3ddata[j] = 255; ++j;
+         }
+      }
+      #else
       for(i = 0; i < DSET_NVOX(dset); i++) {
          tex3ddata[j] = bytevol[i]; ++j;
          tex3ddata[j] = bytevol[i]; ++j;
          tex3ddata[j] = bytevol[i]; ++j;
          tex3ddata[j] = bytevol[i]; ++j;
       }
+      #endif
       if (bytevol) SUMA_free(bytevol); bytevol=NULL;
    } else {
       /* put dset values in temporary floatvol float vector */
@@ -880,9 +898,10 @@ SUMA_Boolean SUMA_DrawVolumeDO(SUMA_VolumeObject *VO, SUMA_SurfaceViewer *sv)
       }
       CHECK_ERROR("OpenGL Error pre setup");
 
-      /* The modelview matrix for drawing the quad vertices should remain the same,
-      the texture matrix will reflect object rotations.
-      IF you do want to see the 'slices', i.e. a stack of axial slices (for RAI dset), rather than volume rendering image, then allo the quads to be drawn
+      /* The modelview matrix for drawing the quad vertices should remain the 
+      same, the texture matrix will reflect object rotations.
+      IF you do want to see the 'slices', i.e. a stack of axial slices (for RAI 
+      dset), rather than volume rendering image, then allo the quads to be drawn
       with the scene's current modelview matrix and keep the texture matrix
       as the identity matrix. 
       This slice rendering could be useful to show
@@ -1086,8 +1105,8 @@ SUMA_Boolean SUMA_DrawVolumeDO(SUMA_VolumeObject *VO, SUMA_SurfaceViewer *sv)
          }
       glEnd();
       #endif
-      glDisable(GL_TEXTURE_3D);
    }
+      glDisable(GL_TEXTURE_3D);
    if (!gl_dt) glDisable(GL_DEPTH_TEST);
    if (!gl_bl) glDisable(GL_BLEND);
    
