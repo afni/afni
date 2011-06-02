@@ -50,6 +50,11 @@
 afni_history_struct rickr_history[] = {
 
  { 2, JUN, 2011, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "compute TSNR datasets (added -compute_tsnr); added -regress_make_cbucket",
+   NULL
+ } ,
+
+ { 2, JUN, 2011, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "de-meaned motion regressors is now the default",
    "- added -regress_apply_mot_types to specify motion types for regression\n"
    "- added -regress_no_motion_demean and -regress_no_motion_deriv\n"
