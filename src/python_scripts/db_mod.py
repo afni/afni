@@ -1970,13 +1970,36 @@ def db_mod_regress(block, proc, user_opts):
         # -volreg_regress_per_run should be okay  20 May 2011
         # (must still assume TR correspondence)
 
+    # maybe the user wants to specify types of motion parameters to use
+    uopt = user_opts.find_opt('-regress_apply_mot_types')
+    if uopt:
+        if user_opts.find_opt('-regress_no_motion_demean') or \
+           user_opts.find_opt('-regress_no_motion_deriv'):
+            print '** cannot use -regress_apply_mot_types with either of\n' \
+                  '   -regress_no_motion_demean or -regress_no_motion_deriv'
+            errs += 1
+        bopt = block.opts.find_opt('-regress_apply_mot_types')
+        if bopt: bopt.parlist = uopt.parlist
+        else: block.opts.add_opt('-regress_apply_mot_types', -1, uopt.parlist,
+                                 setpar=1)
+
+    # no demean or deriv?
+    uopt = user_opts.find_opt('-regress_no_motion_demean')
+    if uopt:
+        if not block.opts.find_opt('-regress_no_motion_demean'):
+           block.opts.add_opt('-regress_no_motion_demean', 0, [])
+    uopt = user_opts.find_opt('-regress_no_motion_deriv')
+    if uopt:
+        if not block.opts.find_opt('-regress_no_motion_deriv'):
+           block.opts.add_opt('-regress_no_motion_deriv', 0, [])
+
     # maybe the user does not want to convert stim_files to stim_times
     uopt = user_opts.find_opt('-regress_use_stim_files')
     if not uopt: uopt = user_opts.find_opt('-regress_no_stim_times')
     bopt = block.opts.find_opt('-regress_no_stim_times')
     if uopt and not bopt:
         if proc.verb > 0: print '-- will use -stim_files in 3dDeconvolve'
-        block.opts.add_opt('-regress_no_stim_times',0,[],setpar=1)
+        block.opts.add_opt('-regress_no_stim_times', 0, [])
 
     # if the user wants to compute the fitts, just pass the option along
     uopt = user_opts.find_opt('-regress_compute_fitts')
@@ -2637,10 +2660,11 @@ def db_cmd_regress_motion_stuff(proc, block):
     if block.opts.find_opt('-regress_no_motion'): return 0, ''
 
     cmd = ''
-    proc.mot_regs = [proc.mot_file]     # init
 
-    if not block.opts.find_opt('-regress_no_motion_demean'): pass
-    if not block.opts.find_opt('-regress_no_motion_deriv'): pass
+    # fill proc.mot_regs, as well as the proc.mot_* file names
+    err, newcmd = db_cmd_regress_mot_types(proc, block)
+    if err: return 1, ''
+    if newcmd: cmd += newcmd
 
     # maybe convert the motion files to motion per run
     # if so, replace mot_regs with the new versions of them
@@ -2676,6 +2700,90 @@ def db_cmd_regress_motion_stuff(proc, block):
 
     if cmd != '': return 0, '\n' + cmd
     else: return 0, cmd
+
+def db_cmd_regress_mot_types(proc, block):
+    """return an error code (0=success) and a command(?)
+
+       Allow use of (basic or demean) and/or deriv motion parameters.
+       Adjust proc.mot_regs based on -regress_apply_mot_types.
+       Unless -regress_no_motion_demean/-regress_no_motion_deriv, both
+         mean and deriv files should be created, independently of 
+         whether they are used as regressors.
+    """
+
+    cmd = ''
+    proc.mot_regs = []
+
+    # note which types to use in regression (cannot be an empty list)
+    bopt = block.opts.find_opt('-regress_apply_mot_types')
+    if bopt:
+       apply_types = bopt.parlist
+       # then must allow computation of demean and deriv
+       if block.opts.find_opt('-regress_no_motion_demean') or \
+          block.opts.find_opt('-regress_no_motion_deriv'):
+          print "** must allow 'demean' and 'deriv' computation when using\n" \
+                "   option -regress_apply_mot_types"
+          return 1, ''
+       print '-- will apply motion types: %s' % ', '.join(apply_types)
+    elif block.opts.find_opt('-regress_no_motion_demean'):
+          apply_types = ['basic']
+    else: apply_types = ['demean'] # now the default
+
+    # note whether to use run lengths or number of runs for demean and deriv
+    if proc.reps_vary :
+       ropt = '-set_run_lengths %s' % UTIL.int_list_string(proc.reps_all)
+    else: ropt = '-set_nruns %d' % proc.runs
+
+    # handle 3 cases of motion parameters: 'basic', 'demean' and 'deriv'
+
+    # 1. update mot_regs for 'basic' case
+    if 'basic' in apply_types: proc.mot_regs.append(proc.mot_file)
+
+    # 2. possibly compute de-meaned motion params
+    if not block.opts.find_opt('-regress_no_motion_demean'):
+       mtype = 'demean'
+       mopt = 'demean'
+       motfile = 'motion_%s.1D' % mtype
+       # if requested for regression, add this file
+       if mtype in apply_types:
+          if 'basic' in apply_types:
+             print "** cannot apply both 'basic' and 'demean' motion params"
+             print "   (would lead to multi-collinearity)"
+             return 1, ''
+          proc.mot_regs.append(motfile)
+          pcmd = '# compute de-meaned motion parameters %s\n' \
+                 % '(for use in regression)'
+       else:
+          pcmd = '# compute de-meaned motion parameters %s\n' \
+                 % '(just to have)'
+
+       pcmd += '1d_tool.py -infile %s %s \\\n' \
+               '           -%s -write %s\n\n'  \
+               % (proc.mot_file, ropt, mopt, motfile)
+       proc.mot_demean = motfile
+       cmd += pcmd
+
+    # 3. possibly compute motion derivatives
+    if not block.opts.find_opt('-regress_no_motion_deriv'):
+       mtype = 'deriv'
+       mopt = 'derivative'
+       motfile = 'motion_%s.1D' % mtype
+       # if requested for regression, add this file
+       if mtype in apply_types:
+          proc.mot_regs.append(motfile)
+          pcmd = '# compute motion parameter derivatives %s\n' \
+                 % '(for use in regression)'
+       else:
+          pcmd = '# compute motion parameter derivatives %s\n' \
+                 % '(just to have)'
+
+       pcmd += '1d_tool.py -infile %s %s \\\n' \
+               '           -%s -demean -write %s\n\n'  \
+               % (proc.mot_file, ropt, mopt, motfile)
+       proc.mot_deriv = motfile
+       cmd += pcmd
+
+    return 0, cmd
 
 def db_cmd_regress_censor_motion(proc, block):
     """return a command to create a censor.1D file
@@ -3345,6 +3453,12 @@ g_help_string = """
            c. Not only censor motion, but censor TRs when more than 10% of the
               automasked brain are outliers.  So add -regress_censor_outliers.
 
+           d. Include both de-meaned and derivatives of motion parameters in
+              the regression.  So add '-regress_apply_mot_types demean deriv'.
+
+           e. Output baseline parameters so we can see the effect of motion.
+              So add -bout under option -regress_opts_3dD.
+
            d. Save on RAM by computing the fitts only after 3dDeconvolve.
               So add -regress_compute_fitts.
 
@@ -3369,10 +3483,12 @@ g_help_string = """
                            'BLOCK(30,1)' 'TENT(0,45,16)' 'BLOCK(30,1)'     \\
                            'BLOCK(30,1)' 'TENT(0,45,16)' 'BLOCK(30,1)'     \\
                            'BLOCK(30,1)' 'TENT(0,45,16)' 'BLOCK(30,1)'     \\
+                        -regress_apply_mot_types demean deriv              \\
                         -regress_censor_motion 1.0                         \\
                         -regress_censor_outliers 0.1                       \\
                         -regress_compute_fitts                             \\
                         -regress_opts_3dD                                  \\
+                            -bout                                          \\
                             -gltsym 'SYM: +eneg -fneg'                     \\
                             -glt_label 1 eneg_vs_fneg                      \\
                             -jobs 4                                        \\
@@ -5049,6 +5165,37 @@ g_help_string = """
             See "MASKING NOTE" and "DEFAULTS" for details.
             See also -blocks, -mask_apply.
 
+        -regress_apply_mot_types TYPE1 ... : specify motion regressors
+
+                e.g. -regress_apply_mot_types basic
+                e.g. -regress_apply_mot_types deriv
+                e.g. -regress_apply_mot_types demean deriv
+                default: demean
+
+            By default, the motion parameters from 3dvolreg are applied in the
+            regression, but after first removing the mean, per run.  This is
+            the application of the 'demean' regressors.
+
+            This option gives the ability to choose a combination of:
+
+                basic:  dfile.rall.1D - the parameters straight from 3dvolreg
+                        (or an external motion file, see -regress_motion_file)
+                demean: 'basic' params with the mean removed, per run
+                deriv:  per-run derivative of 'basic' params (de-meaned)
+
+         ** Note that basic and demean cannot both be used, as they would cause
+            multi-collinearity with the constant drift parameters.
+
+         ** Note also that basic and demean will give the same results, except
+            for the betas of the constant drift parameters (and subject to
+            computational precision).
+
+         ** A small side effect of de-meaning motion parameters is that the 
+            constant drift terms should evaluate to the mean baseline.
+
+            See also -regress_motion_file, -regress_no_motion_demean,
+            -regress_no_motion_deriv, -regress_no_motion.
+
         -regress_basis BASIS    : specify the regression basis function
 
                 e.g. -regress_basis 'BLOCK(4,1)'
@@ -5399,14 +5546,6 @@ g_help_string = """
             '3dTstat -help'.
             See also -regress_basis, -regress_no_ideal_sum.
 
-        -regress_no_ideal_sum      : do not create sum_ideal.1D from regressors
-
-            By default, afni_proc.py will compute a 'sum_ideal.1D' file that
-            is the sum of non-polort and non-motion regressors from the
-            X-matrix.  This option prevents that step.
-
-            See also -regress_make_ideal_sum.
-
         -regress_motion_file FILE.1D  : use FILE.1D for motion parameters
 
                 e.g. -regress_motion_file motion.1D
@@ -5429,6 +5568,14 @@ g_help_string = """
             the 3dDeconvolve command in the output script.
 
             See also -regress_fitts_prefix.
+
+        -regress_no_ideal_sum      : do not create sum_ideal.1D from regressors
+
+            By default, afni_proc.py will compute a 'sum_ideal.1D' file that
+            is the sum of non-polort and non-motion regressors from the
+            X-matrix.  This option prevents that step.
+
+            See also -regress_make_ideal_sum.
 
         -regress_no_ideals      : do not generate ideal response curves
 
@@ -5474,6 +5621,38 @@ g_help_string = """
 
             This option prevents the program from adding the registration
             parameters (from volreg) to the 3dDeconvolve command.
+
+        -regress_no_motion_demean : do not compute de-meaned motion parameters
+
+                default: do compute them
+
+            Even if they are not applied in the regression, the default is to
+            compute de-meaned motion parameters.  These may give the user a
+            better idea of motion regressors, since their scale will not be
+            affected by jumps across run breaks or multi-run drift.
+
+            This option prevents the program from even computing such motion
+            parameters.  The only real reason to not do it is if there is some
+            problem with the command.
+
+        -regress_no_motion_deriv  : do not compute motion parameter derivatives
+
+                default: do compute them
+
+            Even if they are not applied in the regression, the default is to
+            compute motion parameter derivatives (and de-mean them).  These can
+            give the user a different idea about motion regressors, since the
+            derivatives are a better indication of per-TR motion.  Note that
+            the 'enorm' file that is created (and optionally used for motion
+            censoring) is basically made by collapsing (via the Euclidean Norm
+            - the square root of the sum of the squares) these 6 derivative
+            columns into one.
+
+            This option prevents the program from even computing such motion
+            parameters.  The only real reason to not do it is if there is some
+            problem with the command.
+
+                See also -regress_censor_motion.
 
         -regress_opts_3dD OPTS ...   : specify extra options for 3dDeconvolve
 

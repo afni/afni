@@ -49,6 +49,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 2, JUN, 2011, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "de-meaned motion regressors is now the default",
+   "- added -regress_apply_mot_types to specify motion types for regression\n"
+   "- added -regress_no_motion_demean and -regress_no_motion_deriv\n"
+   "- by default, demean and deriv motion parameters are created\n"
+   "- by default, demean motion parameters are applied in the regression\n"
+   "  (replacing the original 'basic' parameters, which should have no\n"
+   "  change in betas of interest, just the constant polort betas)"
+ } ,
+
  { 27, MAY, 2011, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
    "re-work of motion, as prep for more motion options",
    "- replaced -volreg_regress_per_run with -regress_motion_per_run\n"
