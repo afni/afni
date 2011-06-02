@@ -491,49 +491,31 @@ int main (int argc,char *argv[])
    }/* loop accross command ine options */
    
    /* Get your colors straightened out */
-   #if 0
-      /*    ++ Feb 20, Now inside SUMAg_CF */
-      /* Load AFNI default color maps */
-      SAC = SUMA_Get_AFNI_Default_Color_Maps ();
-      if (!SAC) {
-         fprintf (SUMA_STDERR,"Error %s: Failed to obtain AFNI's standard colors.\n", FuncName);
+   if (!SUMAg_CF->scm) {   
+      SUMAg_CF->scm = SUMA_Build_Color_maps();
+      if (!SUMAg_CF->scm) {
+         SUMA_SL_Err("Failed to build color maps.\n");
          exit(1);
-      } else {
-         /* are there database files to read */
-         if (dbfile) {
-            SUMA_LH("Now trying to read db file");
-            if (SUMA_AFNI_Extract_Colors ( dbfile, SAC ) < 0) {
-               fprintf (SUMA_STDERR,"Error %s: Failed to read %s colormap file.\n", FuncName, dbfile);
-               exit(1);
-            }
-         }
       }
-   #else
-      if (!SUMAg_CF->scm) {   
-         SUMAg_CF->scm = SUMA_Build_Color_maps();
-         if (!SUMAg_CF->scm) {
-            SUMA_SL_Err("Failed to build color maps.\n");
-            exit(1);
-         }
+   }
+
+   SAC = SUMAg_CF->scm;
+   /* are there database files to read */
+   if (dbfile) {
+      SUMA_LH("Now trying to read db file");
+      if (SUMA_AFNI_Extract_Colors ( dbfile, SAC ) < 0) {
+         SUMA_S_Errv("Failed to read %s colormap file.\n", dbfile);
+         exit(1);
       }
-      
-      SAC = SUMAg_CF->scm;
-      /* are there database files to read */
-      if (dbfile) {
-         SUMA_LH("Now trying to read db file");
-         if (SUMA_AFNI_Extract_Colors ( dbfile, SAC ) < 0) {
-            fprintf (SUMA_STDERR,"Error %s: Failed to read %s colormap file.\n", FuncName, dbfile);
-            exit(1);
-         }
-      }
-   #endif
+   }
    
-   FromAFNI = NOPE; /* assume colormap is not coming from SAC (the colormap database structure) */
+   FromAFNI = NOPE; /* assume colormap is not coming from SAC
+                       (the colormap database structure) */
    if (CmapFileName) { 
       /* load the color map */
       CM = SUMA_Read_Color_Map_1D (CmapFileName);
       if (CM == NULL) {
-         fprintf (SUMA_STDERR,"Error %s: Could not load colormap.\n", FuncName);
+         SUMA_S_Err("Could not load colormap.\n");
          exit (1); 
       }
       if (frf) {
@@ -551,7 +533,7 @@ int main (int argc,char *argv[])
             /* good, sign it and out you go */   
             CM->Sgn = Sgn;
          } else {
-            fprintf (SUMA_STDERR,"Error %s: Could not get standard colormap.\n", FuncName);
+            SUMA_S_Err("Could not get standard colormap.\n");
             exit (1); 
          }
       } else {
@@ -560,7 +542,7 @@ int main (int argc,char *argv[])
          FromAFNI = YUP;
          imap = SUMA_Find_ColorMap ( MapName, SAC->CMv, SAC->N_maps, -2);
          if (imap < 0) {
-            fprintf (SUMA_STDERR,"Error %s: Could not find colormap %s.\n", FuncName, MapName);
+            SUMA_S_Errv("Could not find colormap %s.\n", MapName);
             exit (1); 
          }
          CM = SAC->CMv[imap];
