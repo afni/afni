@@ -1147,7 +1147,8 @@ def db_cmd_volreg(proc, block):
         else:  # just copy the one
           cmd = cmd +                                                        \
             "# (only 1 run, so just use 3dcopy to keep naming straight)\n"   \
-            "3dcopy rm.epi.min.r01 %s\n\n" % (proc.mask_extents.prefix)
+            "3dcopy rm.epi.min.r01%s %s\n\n"                                 \
+            % (proc.view, proc.mask_extents.prefix)
 
         proc.mask_extents.created = 1  # so this mask 'exists' now
 
@@ -1186,6 +1187,13 @@ def db_cmd_volreg(proc, block):
                % (proc.tlrcanat.pv(), proc.mask_extents.pv(), dim)
            proc.mask_extents.new_view(proc.view)
 
+    # make TSNR dataset from run 1 of volreg output
+    if do_extents: emask = proc.mask_extents.prefix
+    else:          emask = ''
+    tcmd = db_cmd_volreg_tsnr(proc, block, emask)
+    if tcmd == None: return
+    if tcmd != '': cmd += tcmd
+
     # used 3dvolreg, so have these labels
     proc.mot_labs = ['roll', 'pitch', 'yaw', 'dS', 'dL', 'dP']
 
@@ -1193,6 +1201,18 @@ def db_cmd_volreg(proc, block):
     proc.pblabel = block.label  # set 'previous' block label
 
     return cmd
+
+# compute temporal signal to noise before the blur (just run 1?)
+def db_cmd_volreg_tsnr(proc, block, emask=''):
+
+    # signal and error are both first run of previous output
+    signal = proc.prefix_form(block, 1)
+
+    return db_cmd_tsnr(proc,
+           "# --------------------------------------\n" \
+           "# create a TSNR dataset, just from run 1\n",
+           signal, signal, proc.view, mask=emask,
+           name_qual='.vreg.r01',detrend=1)
 
 def db_mod_blur(block, proc, user_opts):
     if len(block.opts.olist) == 0: # init blur option
@@ -1233,7 +1253,6 @@ def db_mod_blur(block, proc, user_opts):
     block.valid = 1
 
 def db_cmd_blur(proc, block):
-    cmd = ''
     opt    = block.opts.find_opt('-blur_filter')
     filter = opt.parlist[0]
     opt    = block.opts.find_opt('-blur_size')
@@ -1284,13 +1303,14 @@ def db_cmd_blur(proc, block):
        cstr = "    3dmerge %s %s -doall -prefix %s" % (filter,str(size),prefix)
        sstr = '            '
 
-    cmd = cmd + "# %s\n"                                \
-                "# blur each volume of each run\n"      \
+    cmd = "# %s\n" % block_header('blur')
+
+    cmd = cmd + "# blur each volume of each run\n"      \
                 "foreach run ( $runs )\n"               \
                 "%s \\\n"                               \
                 "%s"                                    \
                 "%s%s\n"                                \
-                "end\n\n" % (block_header('blur'), cstr, sstr, other_opts, prev)
+                "end\n\n" % (cstr, sstr, other_opts, prev)
 
     proc.bindex += 1            # increment block index
     proc.pblabel = block.label  # set 'previous' block label
@@ -1642,6 +1662,7 @@ def db_mod_regress(block, proc, user_opts):
         block.opts.add_opt('-regress_errts_prefix', 1, [])
         block.opts.add_opt('-regress_fitts_prefix', 1, ['fitts.$subj'],
                                                        setpar=1)
+        block.opts.add_opt('-regress_make_cbucket', 1, ['no'], setpar=1)
 
     errs = 0  # allow errors to accumulate
 
@@ -2031,6 +2052,14 @@ def db_mod_regress(block, proc, user_opts):
                   '   (consider -regress_est_blur_errts (or _epits))'
             errs += 1
 
+    # possibly update cbucket option
+    uopt = user_opts.find_opt('-regress_make_cbucket')
+    bopt = block.opts.find_opt('-regress_make_cbucket')
+    if uopt:
+        if not bopt: block.opts.add_opt('-regress_make_cbucket', 1,
+                                        ['no'],setpar=1)
+        else: bopt.parlist = uopt.parlist
+
     # prepare to return
     if errs > 0:
         block.valid = 0
@@ -2295,8 +2324,6 @@ def db_cmd_regress(proc, block):
         compute_fitts = 1
         fitts = ''  # so nothing in 3dDeconvolve
 
-    # -- fitts and errts setup --
-
     # see if the user has provided other options (like GLTs)
     opt = block.opts.find_opt('-regress_opts_3dD')
     if not opt or not opt.parlist: other_opts = ''
@@ -2313,6 +2340,11 @@ def db_cmd_regress(proc, block):
     if opt.parlist[0] == 'yes': fout_str = '-fout '
     else:                       fout_str = ''
 
+    # do we want a cbucket dataset?
+    opt = block.opts.find_opt('-regress_make_cbucket')
+    if opt.parlist[0] == 'yes': cbuck_str = "    -cbucket all_betas.$subj \\\n"
+    else:                       cbuck_str = ""
+
     # add misc options
     cmd = cmd + iresp
     cmd = cmd + other_opts
@@ -2320,7 +2352,7 @@ def db_cmd_regress(proc, block):
     if proc.censor_file:
         newmat = 'X.nocensor.xmat.1D'
         cmd += "    -x1D_uncensored %s \\\n" % newmat
-    cmd = cmd + fitts + errts + stop_opt
+    cmd = cmd + fitts + errts + stop_opt + cbuck_str
     cmd = cmd + "    -bucket stats.$subj\n\n\n"
 
     # if 3dDeconvolve fails, terminate the script
@@ -2355,6 +2387,13 @@ def db_cmd_regress(proc, block):
     cmd = cmd + "# create an all_runs dataset to match the fitts, errts, etc.\n"
     cmd = cmd + "3dTcat -prefix %s %s\n\n" % \
                 (all_runs, proc.prev_dset_form_wild())
+
+    # if errts and scaling, create tsnr volume as mean/stdev(errts)
+    # (if scaling, mean should be 100)
+    if errts_pre:
+       tcmd = db_cmd_regress_tsnr(proc, block, all_runs, errts_pre)
+       if tcmd == None: return  # error
+       if tcmd != '': cmd += tcmd
 
     # possibly create computed fitts dataset
     if compute_fitts:
@@ -2438,6 +2477,68 @@ def db_cmd_reml_exec(proc, block):
                 "    echo '** 3dREMLfit error, failing...'\n"           \
                 "    exit\n"                                            \
                 "endif\n\n\n"
+
+    return cmd
+
+# compute temporal signal to noise after the regression
+def db_cmd_regress_tsnr(proc, block, all_runs, errts_pre):
+    if not all_runs or not errts_pre: return ''
+
+    if proc.mask: mask_pre = proc.mask.prefix
+    else:         mask_pre = ''
+
+    return db_cmd_tsnr(proc,
+           "# create a temporal signal to noise ratio dataset \n"   \
+           "#    signal: if 'scale' block, mean should be 100\n"    \
+           "#    noise : compute standard deviation of errts\n",
+           all_runs, errts_pre, proc.view, mask=mask_pre)
+
+# compute temporal signal to noise after the regression
+def db_cmd_tsnr(proc, comment, signal, noise, view,
+                        mask='', name_qual='', detrend=0):
+    """return a string for computing temporal signal to noise
+         comment:   leading comment string
+         signal:    prefix for mean dset
+         noise:     prefix for stdev dset
+         view:      dset view
+         mask:      (optional) prefix for mask dset
+         name_qual: (optional) qualifier for name, such as '.r01'
+         detrend:   (optional) if > 0, 
+    """
+    if not signal or not noise or not view:
+        print '** compute TSNR: missing input'
+        return None
+
+    if not proc.comp_tsnr: return ''
+
+    dname = 'TSNR%s%s$subj' % (name_qual, proc.sep_char)
+
+    if mask:
+       cstr = '\\\n       -c %s%s ' % (mask, view)
+       estr = 'c*a/b'
+    else:
+       cstr = ''
+       estr = 'a/b'
+
+    if detrend:
+        polort = UTIL.get_default_polort(proc.tr, proc.reps)
+        detcmd = "3dDetrend -polort %d -prefix rm.noise.det -overwrite %s%s\n"\
+                 % (polort, noise, view)
+        noise = 'rm.noise.det'
+    else: detcmd = ''
+
+    if name_qual == '': suff = '.all'
+    else:               suff = name_qual
+
+    cmd  = "%s"                                                 \
+           "3dTstat -mean -prefix rm.signal%s %s%s\n"           \
+           "%s"                                                 \
+           "3dTstat -stdev -prefix rm.noise%s %s%s\n"           \
+           % (comment, suff, signal, view, detcmd, suff, noise, view)
+
+    cmd += "3dcalc -a rm.signal%s%s -b rm.noise%s%s %s\\\n"     \
+           "       -expr '%s' -prefix %s \n\n"                  \
+           % (suff, view, suff, view, cstr, estr, dname)
 
     return cmd
 
@@ -4150,6 +4251,20 @@ g_help_string = """
             processing block.  It is preferable to run the script using the
             -e option to tcsh (as suggested), but maybe the user does not wish
             to do so.
+
+        -compute_tsnr yes/no    : compute TSNR datasets
+
+                e.g. -compute_tsnr no
+
+            By default, temporal signal to noise (TSNR) datasets are created at
+            end of the volreg and regress blocks.  For the volreg block, the
+            signal and noise datasets are both just the run 01 output.  For the
+            regress block, the signal is all_runs and the noise is errts.
+
+            Note that volreg noise is not currently detrended.  Maybe it should
+            be.
+
+            The formula is average signal / stdev(noise).
 
         -copy_anat ANAT         : copy the ANAT dataset to the results dir
 
