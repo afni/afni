@@ -49,6 +49,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 3, JUN, 2011, RCR, "Makefile", MINOR, TYPE_NEW_OPT,
+   "removed -lpng from Makefile.macosx_10.6_Intel_64",
+   "We added -lpng because we were compiling our own OpenMotif\n"
+   "(configure option?), but fink's version does not need it."
+ } ,
+
  { 2, JUN, 2011, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "compute TSNR datasets (added -compute_tsnr); added -regress_make_cbucket",
    NULL
