@@ -37,8 +37,105 @@ void mri_interp_floatim( MRI_IMAGE *fim ,
 }
 
 /*----------------------------------------------------------------------------*/
+/* interpolate from 1 image to another, preserving type */
+
+void mri_interp( MRI_IMAGE *inim ,
+                 int np , float *ip , float *jp , float *kp ,
+                 int code, void *outar )
+{
+   MRI_IMAGE *fim=inim ; float *far ; register int ii ;
+
+   switch( fim->kind ){
+
+     default:
+       ERROR_message("Illegal input type %d in mri_interp()",(int)fim->kind) ;
+     break ;
+
+     /*--------------------*/
+
+     case MRI_float:
+       mri_interp_floatim( inim , np,ip,jp,kp , code,(float *)outar ) ;
+     break ;
+
+     /*--------------------*/
+
+     case MRI_fvect:{
+       int kk , vd=inim->vdim ; float *oar=(float *)outar ;
+       far = (float *)malloc(sizeof(float)*np) ;
+       for( kk=0 ; kk < vd ; kk++ ){
+         fim = mri_fvect_subimage(inim,kk) ;
+         mri_interp_floatim( inim , np,ip,jp,kp , code,far ) ;
+         for( ii=0 ; ii < np ; ii++ ) oar[ii*vd+kk] = far[ii] ;
+         mri_free(fim) ;
+       }
+       free(far) ;
+     }
+     break ;
+
+     /*--------------------*/
+
+     case MRI_short:{
+       short *sar=(short *)outar ;
+       fim = mri_to_float(inim) ; far = (float *)malloc(sizeof(float)*np) ;
+       mri_interp_floatim( inim , np,ip,jp,kp , code,far ) ;
+       for( ii=0 ; ii < np ;  ii++ ) sar[ii] = SHORTIZE(far[ii]) ;
+       free(far) ; mri_free(fim) ;
+     }
+     break ;
+
+     /*--------------------*/
+
+     case MRI_byte:{
+       byte *bar=(byte *)outar ;
+       fim = mri_to_float(inim) ; far = (float *)malloc(sizeof(float)*np) ;
+       mri_interp_floatim( inim , np,ip,jp,kp , code,far ) ;
+       for( ii=0 ; ii < np ;  ii++ ) bar[ii] = BYTEIZE(far[ii]) ;
+       free(far) ; mri_free(fim) ;
+     }
+     break ;
+
+     /*--------------------*/
+
+     case MRI_complex:{
+       complex *car=(complex *)outar ; MRI_IMARR *imar ; float *gar ;
+       far = (float *)malloc(sizeof(float)*np) ;
+       gar = (float *)malloc(sizeof(float)*np) ;
+       imar = mri_complex_to_pair(inim) ;
+       mri_interp_floatim( IMARR_SUBIM(imar,0) , np,ip,jp,kp , code,far ) ;
+       mri_interp_floatim( IMARR_SUBIM(imar,1) , np,ip,jp,kp , code,gar ) ;
+       for( ii=0 ; ii < np ; ii++ ){ car[ii].r = far[ii]; car[ii].i = gar[ii]; }
+       DESTROY_IMARR(imar) ; free(gar) ; free(far) ;
+     }
+     break ;
+
+     /*--------------------*/
+
+     case MRI_rgb:{
+       MRI_IMARR *imar ; float *gar , *har ; byte *bar=(byte *)outar ;
+       far = (float *)malloc(sizeof(float)*np) ;
+       gar = (float *)malloc(sizeof(float)*np) ;
+       har = (float *)malloc(sizeof(float)*np) ;
+       imar = mri_rgb_to_3float(inim) ;
+       mri_interp_floatim( IMARR_SUBIM(imar,0) , np,ip,jp,kp , code,far ) ;
+       mri_interp_floatim( IMARR_SUBIM(imar,1) , np,ip,jp,kp , code,gar ) ;
+       mri_interp_floatim( IMARR_SUBIM(imar,2) , np,ip,jp,kp , code,har ) ;
+       for( ii=0 ; ii < np ; ii++ ){
+         bar[3*ii  ] = BYTEIZE(far[ii]) ;
+         bar[3*ii+1] = BYTEIZE(gar[ii]) ;
+         bar[3*ii+2] = BYTEIZE(har[ii]) ;
+       }
+       DESTROY_IMARR(imar) ; free(har) ; free(gar) ; free(far) ;
+     }
+     break ;
+
+   }
+
+   return ;
+}
+
+/*----------------------------------------------------------------------------*/
 /* Setup to warp images given
-     bimar    = array of DICOM (x,y,z) deltas
+     bimar    = array of DICOM (x,y,z) deltas == 3D warp displacment function
      cmat_bim = matrix to transform indexes (ib,jb,kb) to DICOM (xb,yb,zb)
      cmat_src = similar matrix for source dataset to be warped from
      cmat_out = similar matrix for output dataset to be warped to
@@ -56,8 +153,10 @@ void mri_interp_floatim( MRI_IMAGE *fim ,
    to an out grid warped image via mri_interp_floatim().
 *//*--------------------------------------------------------------------------*/
 
-MRI_IMARR * mri_setup_nwarp( MRI_IMARR *bimar, mat44 cmat_bim , int incode ,
-                             mat44 cmat_src  , mat44 cmat_out ,
+MRI_IMARR * mri_setup_nwarp( MRI_IMARR *bimar, mat44 cmat_bim ,
+                             int incode      , float wfac     ,
+                             mat44 cmat_src  ,
+                             mat44 cmat_out  ,
                              int nx_out      , int ny_out     , int nz_out  )
 {
    int nx,ny,nz,nxy,nxyz ;
@@ -123,13 +222,14 @@ ENTRY("mri_apply_nwarp") ;
 
  AFNI_OMP_START ;
 #pragma omp parallel if( nxyz > 33333 )
- { int qq,ii,jj,kk ; float xx,yy,zz ;
+ { int qq,ii,jj,kk ; float xx,yy,zz , fac ;
+   fac = (wfac == 0.0f) ? 1.0f : wfac ;
 #pragma omp for
    for( qq=0 ; qq < nxyz ; qq++ ){
      ii = qq % nx ; kk = qq / nxy ; jj = (qq-kk*nxy) / nx ;
-     MAT44_VEC( cmat_out , ii,jj,kk , xx,yy,zz ) ;      /* compute (xo,yo,zo) */
-     xx += xp[qq] ; yy += yp[qq] ; zz += zp[qq] ;        /* add in the deltas */
-     MAT44_VEC( tmat, xx,yy,zz, xp[qq],yp[qq],zp[qq] ) ; /* ==> to (is,js,ks) */
+     MAT44_VEC( cmat_out , ii,jj,kk , xx,yy,zz ) ;         /* compute (xo,yo,zo) */
+     xx += fac*xp[qq]; yy += fac*yp[qq]; zz += fac*zp[qq]; /* add in the deltas */
+     MAT44_VEC( tmat, xx,yy,zz, xp[qq],yp[qq],zp[qq] ) ;   /* ==> to (is,js,ks) */
    }
  }
  AFNI_OMP_END ;
@@ -156,6 +256,7 @@ int main( int argc , char *argv[] )
    THD_3dim_dataset *dset_out ;
    MRI_IMAGE *fim , *wim ; float *ip,*jp,*kp ;
    int nx,ny,nz,nxyz , nvals ;
+   float wfac=1.0f ;
 
    /**----------------------------------------------------------------------*/
    /**----------------- Help the pitifully ignorant user? -----------------**/
@@ -170,6 +271,7 @@ int main( int argc , char *argv[] )
       "OPTIONS:\n"
       "--------\n"
       " -nwarp  www  = 'www' is the name of the 3D warp dataset\n"
+      " -wfac   fff  = Scale the warp by factor 'fff' [default=1.0]\n"
       " -source sss  = 'sss' is the name of the source dataset\n"
       "                ++ That is, the dataset to be warped\n"
       " -master mmm  = 'mmm  is the name of the master dataset\n"
@@ -180,7 +282,7 @@ int main( int argc , char *argv[] )
       "                ++ This lets you resize the grid without\n"
       "                   needing to use '-master'.\n"
       " -interp iii  = 'iii' is the interpolation mode\n"
-      "                ++ Default interpolation mode is 'wsinc5'\n"
+      "                ++ Default interpolation mode is 'wsinc5' (slowest, bestest)\n"
       "                ++ Available modes are the same as in 3dAllineate:\n"
       "                     NN  linear  cubic  quintic  wsinc5\n"
       "                ++ The same interpolation mode is used for the warp\n"
@@ -225,9 +327,18 @@ int main( int argc , char *argv[] )
 
      /*---------------*/
 
+     if( strcasecmp(argv[iarg],"-wfac") == 0 ){
+       if( ++iarg >= argc ) ERROR_exit("no argument after '%s' :-(",argv[iarg-1]) ;
+       wfac = (float)strtod(argv[iarg],NULL) ;
+       if( wfac == 0.0f ) wfac = 1.0f ;
+       iarg++ ; continue ;
+     }
+
+     /*---------------*/
+
      if( strncasecmp(argv[iarg],"-prefix",5) == 0 ){
        if( prefix != NULL ) ERROR_exit("Can't have multiple %s options :-(",argv[iarg]) ;
-       iarg++ ;
+       if( ++iarg >= argc ) ERROR_exit("no argument after '%s' :-(",argv[iarg-1]) ;
        if( !THD_filename_ok(argv[iarg]) )
          ERROR_exit("badly formed filename: '%s' '%s' :-(",argv[iarg-1],argv[iarg]) ;
        if( strcasecmp(argv[iarg],"NULL") == 0 )
@@ -336,7 +447,7 @@ int main( int argc , char *argv[] )
      if( ++iarg < argc ){
        dset_src = THD_open_dataset( argv[iarg] ) ;
        if( dset_src == NULL )
-         ERROR_exit("can't open source dataset '%s' :-(",argv[iarg]);
+         ERROR_exit("Can't open source dataset '%s' :-(",argv[iarg]);
      } else {
        ERROR_exit("No source dataset?  What do you want to warp? :-(") ;
      }
@@ -430,8 +541,8 @@ int main( int argc , char *argv[] )
 
    /* the actual work of setting up the warp */
 
-   im_src = mri_setup_nwarp( imar_nwarp , nwarp_cmat , interp_code ,
-                             src_cmat , mast_cmat , nx , ny , nz    ) ;
+   im_src = mri_setup_nwarp( imar_nwarp, nwarp_cmat, interp_code, wfac ,
+                             src_cmat , mast_cmat , nx , ny , nz        ) ;
 
    ip = MRI_FLOAT_PTR( IMARR_SUBIM(im_src,0) ) ;
    jp = MRI_FLOAT_PTR( IMARR_SUBIM(im_src,1) ) ;
