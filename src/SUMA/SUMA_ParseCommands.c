@@ -3174,7 +3174,6 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_CreateGenericArgParse(char *optflags)
       ps->accept_cmap = 1; else ps->accept_cmap = 0;
    
    ps->check_input_surf = 1;
-   
    SUMA_RETURN(ps);
 }
 
@@ -3974,6 +3973,7 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
 
 			   brk = YUP;
 		   }
+         
          
          if (!brk && strcmp(argv[kar], "-refresh_rate") == 0)
 		   {

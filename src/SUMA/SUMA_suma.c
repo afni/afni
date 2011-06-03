@@ -623,6 +623,46 @@ int main (int argc,char *argv[])
 			brk = YUP;
 		} 
 		
+      if (!brk && strcmp(argv[kar], "-np") == 0)
+		{
+         double val = 0.0;
+         kar ++; 
+			if (kar >= argc)  {
+		  		SUMA_S_Err("need argument after -np \n");
+				exit (1);
+			}
+			if (!SUMAg_CF || !SUMAg_CF->TCP_port) {
+            SUMA_S_Err("Did not expect NULL common fields. -np ignored");
+            brk = YUP;
+         } else {
+            val = (int)strtod( argv[kar] , NULL ) ;
+            if( val >= 1024 && 
+                val <= 65535 ) {
+               int i = 0, k=0;
+               for (i=0; i<SUMA_MAX_STREAMS; ++i) {
+                  if (i!=SUMA_AFNI_STREAM_INDEX  && 
+                      SUMAg_CF->TCP_port[i] == (int)val){
+                     SUMA_S_Errv("On this machine, port %d is already in use \n"
+                                 "by SUMA. Choose any between 1024 and 65535 \n"
+                           "that is also not equal to any of the following:\n",
+                                 (int)val);
+                     for (k=0; k<SUMA_MAX_STREAMS; ++k) {
+                        fprintf(stderr,"   %d",SUMAg_CF->TCP_port[k]);
+                     }
+                     fprintf(stderr,"\n");
+                     exit(1);
+                  }
+               }
+               SUMAg_CF->TCP_port[SUMA_AFNI_STREAM_INDEX] = (int)val;
+            } else {
+               SUMA_S_Errv("-np %s is an illegal value.\n"
+                          " pick a number between 1024 and 65535\n",
+                          argv[kar]);
+               exit (1);
+            }
+         }
+			brk = YUP;
+		}
 
 		if (!brk && !ps->arg_checked[kar]) {
 			if (  !strcmp(argv[kar], "-i") ||
