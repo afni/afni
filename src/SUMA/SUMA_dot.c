@@ -1140,7 +1140,7 @@ SUMA_Boolean SUMA_GICOR_Dsets(SUMA_SurfaceObject *SOv[],
             ov[i]->OptScl->ThreshRange[1] = 0.0;
 
             /* Now add the overlay to SOv[i]->Overlays */
-            if (!SUMA_AddNewPlane (SOv[i], ov[i], SUMAg_DOv, SUMAg_N_DOv, 0)) {
+            if (!SUMA_AddNewPlane (SOv[i], ov[i], SUMAg_DOv, SUMAg_N_DOv, 1)) {
                SUMA_SL_Crit("Failed in SUMA_AddNewPlane");
                SUMA_FreeOverlayPointer(ov[i]);
                SUMA_free(dset_namev[i]); SUMA_free(targetv[i]);
@@ -1237,9 +1237,11 @@ SUMA_Boolean SUMA_GICOR_setup_func( NI_stream nsg , NI_element *nel )
    int nnode_dom[2]={0,0};
    int nnode_mask[2]={0,0};
    SUMA_SurfaceObject *SOv[2]={NULL, NULL};
+   THD_3dim_dataset *tdset=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
+   
    
    /* fetch the giset struct */
    giset = SUMAg_CF->giset; 
@@ -1270,6 +1272,22 @@ SUMA_Boolean SUMA_GICOR_setup_func( NI_stream nsg , NI_element *nel )
       if( atr == NULL )        SUMA_GIQUIT;
    giset->nvec = (int)strtod(atr,NULL) ;       
       if( giset->nvec < 2 )    SUMA_GIQUIT;
+   
+   atr = NI_get_attribute( nel , "geometry_string" ); 
+      if( atr == NULL ) {
+         SUMA_S_Err("No geometry string");
+         SUMA_RETURN(NOPE);
+      }
+      pre = SUMA_copy_string(atr) ;
+      tdset = EDIT_geometry_constructor( pre , "GrpInCorr" ) ;
+      if( tdset == NULL ) {
+         SUMA_S_Errv("Could not construct dset from %s\n", pre);
+         SUMA_GIQUIT ;
+      }
+      giset->nvox = DSET_NVOX(tdset) ;
+      DSET_delete(tdset); tdset=NULL; SUMA_free(pre); pre=NULL;
+      
+   if( giset->nvox < 2 )    SUMA_GIQUIT;
 
    atr = NI_get_attribute( nel , "seedrad" ) ;
    if( atr != NULL ) giset->seedrad = (float)strtod(atr,NULL) ;
@@ -1279,11 +1297,6 @@ SUMA_Boolean SUMA_GICOR_setup_func( NI_stream nsg , NI_element *nel )
 
    /* create output dataset(s), to be filled in from 3dGroupInCorr data later */
                
-   atr = NI_get_attribute( nel , "geometry_string" ); 
-      if( atr == NULL ) {
-         SUMA_S_Err("No geometry string");
-         SUMA_RETURN(NOPE);
-      }
    pre = NI_get_attribute( nel , "target_name" ) ;
    if( pre == NULL || *pre == '\0' ) pre = "GICorrelletto" ;
    
@@ -1302,7 +1315,7 @@ SUMA_Boolean SUMA_GICOR_setup_func( NI_stream nsg , NI_element *nel )
          SUMA_free(s); s = NULL;
       }
    } else {
-      giset->nnode_domain[0] = giset->nvec; 
+      giset->nnode_domain[0] = giset->nvox; 
       giset->nnode_domain[1] = 0; 
    }
                
@@ -1333,7 +1346,6 @@ SUMA_Boolean SUMA_GICOR_setup_func( NI_stream nsg , NI_element *nel )
       SUMA_RETURN(NOPE);
    }
 
-   giset->nvox = giset->nvec ;
 
    /* list of voxels to expect from each 3dGroupInCorr data */
    if( nel->vec_len == 0 || nel->vec_num == 0 || nel->vec == NULL ){  /* all */
@@ -1603,7 +1615,7 @@ int SUMA_AFNI_gicor_setref( SUMA_SurfaceObject *SO, int node )
    /* change node index to proper ijk */
    if (!SUMA_GICOR_Surfaces(giset, SOv)) {
       SUMA_S_Err("Failed to find surfaces for giset");
-      SUMA_RETURN(NOPE);
+      SUMA_RETURN(-1);
    }
    if (SUMA_isRelated(SO, SOv[0],1)) {
       ijk = node;
@@ -1632,7 +1644,7 @@ int SUMA_AFNI_gicor_setref( SUMA_SurfaceObject *SO, int node )
      ii = bsearch_int( ijk , giset->nvec , giset->ivec ) ;
      if( ii < 0 ){
        WARNING_message("GrpInCorr set point not in mask from 3dGroupInCorr") ;
-       SUMA_RETURN(-1) ;
+       SUMA_RETURN(0) ; /* don't return an error */
      }
    }
 
