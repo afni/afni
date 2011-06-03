@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 3, JUN, 2011, RCR, "afni_proc.py", MICRO, TYPE_NEW_OPT,
+   "added -volreg_compute_tsnr/-regress_compute_tsnr",
+   "Volreg TSNR is no longer the default, but regress TSNR is."
+ } ,
+
  { 3, JUN, 2011, RCR, "Makefile", MINOR, TYPE_NEW_OPT,
    "removed -lpng from Makefile.macosx_10.6_Intel_64",
    "We added -lpng because we were compiling our own OpenMotif\n"

@@ -258,11 +258,12 @@ g_history = """
         - added -regress_make_cbucket
         - include view in 3dcopy for single run extents mask
           (so there are no missing view warnigns, done for J Jarcho)
-        - make TSNR datasets by default (added option -compute_tsnr)
-        
+        - make regress TSNR dataset by default (added option -compute_tsnr)
+    2.54 Jun 03 2011: volreg tsnr is not default
+        - added -volreg_compute_tsnr (def no), -regress_compute_tsnr (def yes)
 """
 
-g_version = "version 2.53, June 2, 2011"
+g_version = "version 2.54, June 3, 2011"
 
 # version of AFNI required for script execution
 g_requires_afni = "4 Nov 2010"
@@ -348,7 +349,6 @@ class SubjProcSream:
         self.gen_review = '@epi_review.$subj' # filename for gen_epi_review.py
         self.test_stims = 1             # test stim_files for appropriateness
         self.test_dsets = 1             # test datasets for existence
-        self.comp_tsnr = 1              # compute TSNR datasets, when possible
 
         self.ricor_reg    = None        # ricor reg to apply in regress block
         self.ricor_nreg   = 0           # number of regs in ricor_reg
@@ -453,9 +453,6 @@ class SubjProcSream:
         self.valid_opts.add_opt('-check_setup_errors', 1, [],
                         acplist=['yes','no'],
                         helpstr='terminate on setup errors')
-        self.valid_opts.add_opt('-compute_tsnr', 1, [],
-                        acplist=['yes','no'],
-                        helpstr='compute TSNR datasets (yes/no)')
         self.valid_opts.add_opt('-copy_anat', 1, [],
                         helpstr='anatomy to copy to results directory')
         self.valid_opts.add_opt('-copy_files', -1, [],
@@ -560,6 +557,9 @@ class SubjProcSream:
                         helpstr='external dataset to use as volreg base')
         self.valid_opts.add_opt('-volreg_base_ind', 2, [],
                         helpstr='run/sub-brick indices for volreg')
+        self.valid_opts.add_opt('-volreg_compute_tsnr', 1, [],
+                        acplist=['yes','no'],
+                        helpstr='compute TSNR datasets (yes/no) of volreg run1')
         self.valid_opts.add_opt('-volreg_interp', 1, [],
                         helpstr='interpolation method used in volreg')
         self.valid_opts.add_opt('-volreg_no_extent_mask', 0, [],
@@ -618,6 +618,9 @@ class SubjProcSream:
                         helpstr="one basis function per stimulus class")
         self.valid_opts.add_opt('-regress_basis_normall', 1, [],
                         helpstr="specify magnitude of basis functions")
+        self.valid_opts.add_opt('-regress_compute_tsnr', 1, [],
+                        acplist=['yes','no'],
+                        helpstr='compute TSNR datasets (yes/no) after regress')
         self.valid_opts.add_opt('-regress_make_cbucket', 1, [],
                         acplist=['yes','no'],
                         helpstr="request cbucket dataset of all betas (yes/no)")
@@ -781,11 +784,6 @@ class SubjProcSream:
         opt = opt_list.find_opt('-exit_on_error')
         if opt and opt.parlist[0] == 'no': self.exit_on_error = 0
         else:                              self.exit_on_error = 1
-
-        # by default, perform TSNR computation
-        opt = opt_list.find_opt('-compute_tsnr')
-        if opt and opt.parlist[0] == 'no': self.comp_tsnr = 0
-        else:                              self.comp_tsnr = 1
 
         opt = opt_list.find_opt('-copy_anat')
         if opt != None:
