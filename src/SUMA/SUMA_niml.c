@@ -398,8 +398,9 @@ SUMA_Boolean SUMA_niml_call ( SUMA_CommonFields *cf, int si,
          /* contact afni */
             SUMA_SetWriteCheckWaitMax(cf->ns_to[si]);
             fprintf( SUMA_STDOUT,
-                     "%s: Contacting on %d, maximum wait %.3f sec\n", 
-                     FuncName, si, (float)cf->ns_to[si]/1000.0);
+                     "%s: Contacting on %s (%d), maximum wait %.3f sec\n", 
+                     FuncName, cf->NimlStream_v[si], si, 
+                     (float)cf->ns_to[si]/1000.0);
             fflush(SUMA_STDOUT);
             cf->ns_v[si] =  NI_stream_open( cf->NimlStream_v[si] , "w" ) ;
             if (!cf->ns_v[si]) {

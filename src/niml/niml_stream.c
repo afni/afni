@@ -422,13 +422,15 @@ static int tcp_listen( int port )
 {
    int sd , l , q,qq ;
    struct sockaddr_in sin ;
-
+   char serr[128]={""};
+   
    if( port < 1 ) return -1 ; /* bad input */
 
    /** open a socket **/
 
    sd = socket( AF_INET , SOCK_STREAM , 0 ) ;
-   if( sd == -1 ){ PERROR("tcp_listen(socket)"); return -1; }
+   if( sd == -1 ){ sprintf(serr,"tcp_listen(socket):%d", port);
+                   PERROR(serr); return -1; }
 
    /** set socket options (no delays, large buffers) **/
 
@@ -465,11 +467,13 @@ static int tcp_listen( int port )
    sin.sin_addr.s_addr = INADDR_ANY ;  /* reader reads from anybody */
 
    if( bind(sd , (struct sockaddr *)&sin , sizeof(sin)) == -1 ){
-     PERROR("tcp_listen(bind)"); CLOSEDOWN(sd); return -1;
+     sprintf(serr,"tcp_listen(bind):%d, sd=%d", port, sd);
+     PERROR(serr); CLOSEDOWN(sd); return -1;
    }
 
    if( listen(sd,1) == -1 ){
-     PERROR("tcp_listen(listen)"); CLOSEDOWN(sd); return -1;
+     sprintf(serr,"tcp_listen(listen):%d", port);
+     PERROR(serr); CLOSEDOWN(sd); return -1;
    }
 
    tcp_set_cutoff( sd ) ;
