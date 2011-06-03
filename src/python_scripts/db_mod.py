@@ -4958,6 +4958,7 @@ g_help_string = """
 
         -volreg_opts_vr OPTS ... : specify extra options for 3dvolreg
 
+                e.g. -volreg_opts_vr -twopass
                 e.g. -volreg_opts_vr -noclip -nomaxdisp
 
             This option allows the user to add extra options to the 3dvolreg
