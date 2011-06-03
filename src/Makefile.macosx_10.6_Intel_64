@@ -87,7 +87,9 @@ EXPROGS = gifti_tool $(GSLPROGS)
 
 # for dynamic linking
 
-LLIBS  = -lmri -lf2c $(XLIBS) -lXft -lfontconfig -lpng -liconv -lXmu -lXp -lXpm -lXext -lX11 $(LZLIB) $(LGIFTI) -lm -lc
+# removed -lpng (needed for our OpenMotif compile (which might be a configure
+# option we could take out), not for fink's)               3 Jun 2011 [rickr]
+LLIBS  = -lmri -lf2c $(XLIBS) -lXft -lfontconfig -liconv -lXmu -lXp -lXpm -lXext -lX11 $(LZLIB) $(LGIFTI) -lm -lc
 
 # vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 # For suma
