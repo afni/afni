@@ -24,7 +24,7 @@ THD_3dim_dataset * EDIT_geometry_constructor( char *gstr , char *prefix )
    float a31,a32,a33,a34 ;
    float orgx,orgy,orgz ;
 
-ENTRY("EDIT_empty_constructor") ;
+ENTRY("EDIT_geometry_constructor") ;
 
    if( gstr == NULL || strlen(gstr) < 4 ) RETURN(NULL) ;
    lstr = strdup(gstr) ;
