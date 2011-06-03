@@ -772,6 +772,7 @@ def db_cmd_tshift(proc, block):
 def db_mod_volreg(block, proc, user_opts):
     if len(block.opts.olist) == 0:   # init dset/brick indices to defaults
         block.opts.add_opt('-volreg_base_ind', 2, [0, 2], setpar=1)
+        block.opts.add_opt('-volreg_compute_tsnr', 1, ['no'], setpar=1)
         block.opts.add_opt('-volreg_interp', 1, ['-cubic'], setpar=1)
         block.opts.add_opt('-volreg_opts_vr', -1, [])
         block.opts.add_opt('-volreg_zpad', 1, [1], setpar=1)
@@ -906,6 +907,11 @@ def db_mod_volreg(block, proc, user_opts):
             return 1
         if bopt: bopt.parlist[0] = dxyz
         else: block.opts.add_opt('-volreg_warp_dxyz', 1, [dxyz], setpar=1)
+
+    # check on tsnr
+    uopt = user_opts.find_opt('-volreg_compute_tsnr')
+    bopt = block.opts.find_opt('-volreg_compute_tsnr')
+    if uopt: bopt.parlist = uopt.parlist
 
     block.valid = 1
 
@@ -1187,12 +1193,15 @@ def db_cmd_volreg(proc, block):
                % (proc.tlrcanat.pv(), proc.mask_extents.pv(), dim)
            proc.mask_extents.new_view(proc.view)
 
-    # make TSNR dataset from run 1 of volreg output
     if do_extents: emask = proc.mask_extents.prefix
     else:          emask = ''
-    tcmd = db_cmd_volreg_tsnr(proc, block, emask)
-    if tcmd == None: return
-    if tcmd != '': cmd += tcmd
+
+    # if requested, make TSNR dataset from run 1 of volreg output
+    opt = block.opts.find_opt('-volreg_compute_tsnr')
+    if opt.parlist[0] == 'yes':
+       tcmd = db_cmd_volreg_tsnr(proc, block, emask)
+       if tcmd == None: return
+       if tcmd != '': cmd += tcmd
 
     # used 3dvolreg, so have these labels
     proc.mot_labs = ['roll', 'pitch', 'yaw', 'dS', 'dL', 'dP']
@@ -1643,6 +1652,7 @@ def db_mod_regress(block, proc, user_opts):
     if len(block.opts.olist) == 0: # then init
         block.opts.add_opt('-regress_basis', 1, ['GAM'], setpar=1)
         block.opts.add_opt('-regress_censor_prev', 1, ['yes'], setpar=1)
+        block.opts.add_opt('-regress_compute_tsnr', 1, ['yes'], setpar=1)
         block.opts.add_opt('-regress_cormat_warnings', 1, ['yes'], setpar=1)
         block.opts.add_opt('-regress_fout', 1, ['yes'], setpar=1)
         block.opts.add_opt('-regress_polort', 1, [-1], setpar=1)
@@ -2052,6 +2062,11 @@ def db_mod_regress(block, proc, user_opts):
                   '   (consider -regress_est_blur_errts (or _epits))'
             errs += 1
 
+    # check on tsnr
+    uopt = user_opts.find_opt('-regress_compute_tsnr')
+    bopt = block.opts.find_opt('-regress_compute_tsnr')
+    if uopt: bopt.parlist = uopt.parlist
+
     # possibly update cbucket option
     uopt = user_opts.find_opt('-regress_make_cbucket')
     bopt = block.opts.find_opt('-regress_make_cbucket')
@@ -2388,12 +2403,15 @@ def db_cmd_regress(proc, block):
     cmd = cmd + "3dTcat -prefix %s %s\n\n" % \
                 (all_runs, proc.prev_dset_form_wild())
 
-    # if errts and scaling, create tsnr volume as mean/stdev(errts)
+    # if errts and scaling, maybe create tsnr volume as mean/stdev(errts)
     # (if scaling, mean should be 100)
-    if errts_pre:
-       tcmd = db_cmd_regress_tsnr(proc, block, all_runs, errts_pre)
-       if tcmd == None: return  # error
-       if tcmd != '': cmd += tcmd
+    opt = block.opts.find_opt('-regress_compute_tsnr')
+    if opt.parlist[0] == 'yes':
+       if errts_pre:
+          tcmd = db_cmd_regress_tsnr(proc, block, all_runs, errts_pre)
+          if tcmd == None: return  # error
+          if tcmd != '': cmd += tcmd
+       else: print '-- no errts, will not compute final TSNR'
 
     # possibly create computed fitts dataset
     if compute_fitts:
@@ -2508,8 +2526,6 @@ def db_cmd_tsnr(proc, comment, signal, noise, view,
     if not signal or not noise or not view:
         print '** compute TSNR: missing input'
         return None
-
-    if not proc.comp_tsnr: return ''
 
     dname = 'TSNR%s%s$subj' % (name_qual, proc.sep_char)
 
