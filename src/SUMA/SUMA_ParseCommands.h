@@ -108,6 +108,7 @@ typedef struct {
    char *cmap;
    char *cmapfile;
    char *cmapdb;
+   
 } SUMA_GENERIC_ARGV_PARSE;
 
 typedef struct {
