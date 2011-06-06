@@ -3,6 +3,9 @@
 	-lf2c -lm   (in that order)
 */
 
+#undef  STATIC
+#define STATIC /*static*/
+
 #include "f2c.h"
 
 /* CC      SUBROUTINE NEWUOA (N,NPT,X,RHOBEG,RHOEND,IPRINT,MAXFUN,W) */
@@ -10,13 +13,13 @@
 	doublereal *rhobeg, doublereal *rhoend, integer *maxfun, doublereal *
 	w, integer *icode)
 {
-    static integer ndim, nptm, ibmat, izmat, id, np, iw;
+    STATIC integer ndim=0, nptm=0, ibmat=0, izmat=0, id=0, np=0, iw=0;
     extern /* Subroutine */ int newuob_(integer *, integer *, doublereal *, 
 	    doublereal *, doublereal *, integer *, doublereal *, doublereal *,
 	     doublereal *, doublereal *, doublereal *, doublereal *, 
 	    doublereal *, doublereal *, doublereal *, doublereal *, integer *,
 	     doublereal *, doublereal *, doublereal *, integer *);
-    static integer igq, ihq, ixb, ifv, ipq, ivl, ixn, ixo, ixp;
+    STATIC integer igq=0, ihq=0, ixb=0, ifv=0, ipq=0, ivl=0, ixn=0, ixo=0, ixp=0;
 
 
 /*    This subroutine seeks the least value of a function of many variable
@@ -135,52 +138,52 @@ ion.*/
     double sqrt(doublereal);
 
     /* Local variables */
-    static doublereal fbeg, diff, half, beta;
-    static integer nfmm;
-    static doublereal gisq;
-    static integer knew;
-    static doublereal temp, suma, sumb, fopt, bsum, gqsq;
-    static integer kopt, nptm;
-    static doublereal zero, xipt, xjpt, sumz, f;
-    static integer i__, j, k;
-    static doublereal diffa, diffb, diffc, hdiag, alpha, delta, recip, reciq, 
-	    fsave;
-    static integer ksave, nfsav, itemp;
-    static doublereal dnorm, ratio, dstep, tenth, vquad;
-    static integer ktemp;
-    static doublereal tempq;
-    static integer itest;
-    static doublereal rhosq;
-    static integer ih, nf;
+    STATIC doublereal fbeg=0, diff=0, half=0, beta=0;
+    STATIC integer nfmm=0;
+    STATIC doublereal gisq=0;
+    STATIC integer knew=0;
+    STATIC doublereal temp=0, suma=0, sumb=0, fopt=0, bsum=0, gqsq=0;
+    STATIC integer kopt=0, nptm=0;
+    STATIC doublereal zero=0, xipt=0, xjpt=0, sumz=0, f=0;
+    STATIC integer i__=0, j=0, k=0;
+    STATIC doublereal diffa=0, diffb=0, diffc=0, hdiag=0, alpha=0, delta=0, recip=0, reciq=0, 
+	    fsave=0;
+    STATIC integer ksave=0, nfsav=0, itemp=0;
+    STATIC doublereal dnorm=0, ratio=0, dstep=0, tenth=0, vquad=0;
+    STATIC integer ktemp=0;
+    STATIC doublereal tempq=0;
+    STATIC integer itest=0;
+    STATIC doublereal rhosq=0;
+    STATIC integer ih=0, nf=0;
     extern /* Subroutine */ int biglag_(integer *, integer *, doublereal *, 
 	    doublereal *, doublereal *, doublereal *, integer *, integer *, 
 	    integer *, doublereal *, doublereal *, doublereal *, doublereal *,
 	     doublereal *, doublereal *, doublereal *, doublereal *);
-    static integer nh, ip, jp;
-    static doublereal dx;
+    STATIC integer nh=0, ip=0, jp=0;
+    STATIC doublereal dx=0;
     extern /* Subroutine */ int bigden_(integer *, integer *, doublereal *, 
 	    doublereal *, doublereal *, doublereal *, integer *, integer *, 
 	    integer *, integer *, doublereal *, doublereal *, doublereal *, 
 	    doublereal *, doublereal *, doublereal *, doublereal *);
-    static integer np;
+    STATIC integer np=0;
     extern /* Subroutine */ int calfun_(integer *, doublereal *, doublereal *)
 	    , update_(integer *, integer *, doublereal *, doublereal *, 
 	    integer *, integer *, doublereal *, doublereal *, integer *, 
 	    doublereal *);
-    static doublereal detrat, crvmin;
-    static integer nftest;
-    static doublereal distsq;
+    STATIC doublereal detrat=0, crvmin=0;
+    STATIC integer nftest=0;
+    STATIC doublereal distsq=0;
     extern /* Subroutine */ int trsapp_(integer *, integer *, doublereal *, 
 	    doublereal *, doublereal *, doublereal *, doublereal *, 
 	    doublereal *, doublereal *, doublereal *, doublereal *, 
 	    doublereal *, doublereal *, doublereal *);
-    static doublereal xoptsq;
-    static integer nfm;
-    static doublereal one;
-    static integer idz;
-    static doublereal dsq, rho;
-    static integer ipt, jpt;
-    static doublereal sum;
+    STATIC doublereal xoptsq=0;
+    STATIC integer nfm=0;
+    STATIC doublereal one=0;
+    STATIC integer idz=0;
+    STATIC doublereal dsq=0, rho=0;
+    STATIC integer ipt=0, jpt=0;
+    STATIC doublereal sum=0;
 
 
 /*    The arguments N, NPT, X, RHOBEG, RHOEND, IPRINT and MAXFUN are ident
@@ -1093,22 +1096,22 @@ L530:
 	    doublereal);
 
     /* Local variables */
-    static doublereal qadd, half, qbeg, qred, qmin, temp, qsav, qnew, zero;
-    static integer i__, j;
-    static doublereal ggbeg;
-    static integer k;
-    static doublereal alpha, angle, reduc;
-    static integer iterc;
-    static doublereal ggsav, delsq, tempa, tempb;
-    static integer isave;
-    static doublereal bstep, ratio, twopi, dd, cf, dg, gg;
-    static integer ih;
-    static doublereal ds, sg;
-    static integer iu;
-    static doublereal ss;
-    static integer itersw;
-    static doublereal dhd, dhs, cth, sgk, shs, sth, angtest;
-    static integer itermax;
+    STATIC doublereal qadd=0, half=0, qbeg=0, qred=0, qmin=0, temp=0, qsav=0, qnew=0, zero=0;
+    STATIC integer i__=0, j=0;
+    STATIC doublereal ggbeg=0;
+    STATIC integer k=0;
+    STATIC doublereal alpha=0, angle=0, reduc=0;
+    STATIC integer iterc=0;
+    STATIC doublereal ggsav=0, delsq=0, tempa=0, tempb=0;
+    STATIC integer isave=0;
+    STATIC doublereal bstep=0, ratio=0, twopi=0, dd=0, cf=0, dg=0, gg=0;
+    STATIC integer ih=0;
+    STATIC doublereal ds=0, sg=0;
+    STATIC integer iu=0;
+    STATIC doublereal ss=0;
+    STATIC integer itersw=0;
+    STATIC doublereal dhd=0, dhs=0, cth=0, sgk=0, shs=0, sth=0, angtest=0;
+    STATIC integer itermax=0;
 
 
 /*    N is the number of variables of a quadratic objective function, Q sa
@@ -1446,13 +1449,13 @@ L170:
     double sqrt(doublereal);
 
     /* Local variables */
-    static doublereal temp;
-    static integer nptm;
-    static doublereal zero;
-    static integer i__, j, iflag;
-    static doublereal scala, scalb, alpha, denom, tempa, tempb, tausq;
-    static integer ja, jb, jl, jp;
-    static doublereal one, tau;
+    STATIC doublereal temp=0;
+    STATIC integer nptm=0;
+    STATIC doublereal zero=0;
+    STATIC integer i__=0, j=0, iflag=0;
+    STATIC doublereal scala=0, scalb=0, alpha=0, denom=0, tempa=0, tempb=0, tausq=0;
+    STATIC integer ja=0, jb=0, jl=0, jp=0;
+    STATIC doublereal one=0, tau=0;
 
 
 /*    The arrays BMAT and ZMAT with IDZ are updated, in order to shift the
@@ -1647,22 +1650,23 @@ er.*/
 	    doublereal);
 
     /* Local variables */
-    static doublereal diff, half, temp;
-    static integer ksav;
-    static doublereal step;
-    static integer nptm;
-    static doublereal zero;
-    static integer i__, j, k;
-    static doublereal alpha, angle, denex[9];
-    static integer iterc;
-    static doublereal tempa, tempb, tempc;
-    static integer isave;
-    static doublereal ssden, dtest, quart, xoptd, twopi, xopts, dd;
-    static integer jc;
-    static doublereal ds;
-    static integer ip, iu, nw;
-    static doublereal ss, denold, denmax, densav, dstemp, sumold, sstemp, 
-	    xoptsq, den[9], one, par[9], tau, sum, two;
+    STATIC doublereal diff=0, half=0, temp=0;
+    STATIC integer ksav=0;
+    STATIC doublereal step=0;
+    STATIC integer nptm=0;
+    STATIC doublereal zero=0;
+    STATIC integer i__=0, j=0, k=0;
+    STATIC doublereal alpha=0, angle=0, denex[9]={0,0,0,0,0,0,0,0,0};
+    STATIC integer iterc=0;
+    STATIC doublereal tempa=0, tempb=0, tempc=0;
+    STATIC integer isave=0;
+    STATIC doublereal ssden=0, dtest=0, quart=0, xoptd=0, twopi=0, xopts=0, dd=0;
+    STATIC integer jc=0;
+    STATIC doublereal ds=0;
+    STATIC integer ip=0, iu=0, nw=0;
+    STATIC doublereal ss=0, denold=0, denmax=0, densav=0, dstemp=0, sumold=0, sstemp=0, 
+	    xoptsq=0, den[9]={0,0,0,0,0,0,0,0,0}, one=0,
+       par[9]={0,0,0,0,0,0,0,0,0}, tau=0, sum=0, two=0;
 
 
 /*     N is the number of variables. */
@@ -2178,16 +2182,16 @@ L340:
 	    doublereal);
 
     /* Local variables */
-    static doublereal half, temp, step;
-    static integer nptm;
-    static doublereal zero;
-    static integer i__, j, k;
-    static doublereal angle, scale, denom;
-    static integer iterc, isave;
-    static doublereal delsq, tempa, tempb, twopi, dd, gg;
-    static integer iu;
-    static doublereal sp, ss, taubeg, tauold, cf1, cf2, cf3, cf4, cf5, taumax,
-	     dhd, cth, one, tau, sth, sum;
+    STATIC doublereal half=0, temp=0, step=0;
+    STATIC integer nptm=0;
+    STATIC doublereal zero=0;
+    STATIC integer i__=0, j=0, k=0;
+    STATIC doublereal angle=0, scale=0, denom=0;
+    STATIC integer iterc=0, isave=0;
+    STATIC doublereal delsq=0, tempa=0, tempb=0, twopi=0, dd=0, gg=0;
+    STATIC integer iu=0;
+    STATIC doublereal sp=0, ss=0, taubeg=0, tauold=0, cf1=0, cf2=0, cf3=0, cf4=0, cf5=0, taumax=0,
+	     dhd=0, cth=0, one=0, tau=0, sth=0, sum=0;
 
 
 /*     N is the number of variables. */
