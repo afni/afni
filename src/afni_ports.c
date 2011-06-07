@@ -303,9 +303,14 @@ char *get_port_numbered(int port) {
       if (PL.port_id[ip].port==port) return(PL.port_id[ip].name);
    }
    
-   sprintf(cunegonde,
+   if (port) sprintf(cunegonde,
          "Port numbered %d not in standard list of %d ports.\n",
          port, PL.n_ports);
+   else {
+      /* this happens when sending ns_listen[cc].port on a shm
+         connection. No problem, don't complain */
+      sprintf(cunegonde,"ZERO");
+   }
    return(cunegonde);
 }
 
