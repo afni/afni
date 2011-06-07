@@ -424,8 +424,9 @@ ENTRY("AFNI_niml_workproc") ;
 #ifdef NIML_DEBUG
        STATUS("NI_stream_goodcheck was unhappy") ;
 #endif
-       fprintf(stderr,"++ NIML connection closed from %s\n",
-                NI_stream_name(ns_listen[cc])               ) ;
+       fprintf(stderr,"++ NIML connection closed from %s (%s,%s)\n",
+                NI_stream_name(ns_listen[cc]), ns_listen[cc]->orig_name,
+                get_port_numbered(ns_listen[cc]->port) ) ;
 
        NI_stream_closenow( ns_listen[cc] ) ;
        ns_listen[cc] = NULL ;  /* will be reopened next time */
@@ -453,8 +454,9 @@ ENTRY("AFNI_niml_workproc") ;
      if( ns_flags[cc] & FLAG_WAITING ){
        ns_flags[cc] = FLAG_CONNECTED ;
        NI_stream_setbufsize( ns_listen[cc] , 3*NI_BUFSIZE ) ; /* 02 Jun 2005 */
-       fprintf(stderr,"++ NIML connection opened from %s\n",
-               NI_stream_name(ns_listen[cc])                ) ;
+       fprintf(stderr,"++ NIML connection opened from %s (%s,%s)\n",
+            NI_stream_name(ns_listen[cc]),ns_listen[cc]->orig_name,
+            get_port_numbered(ns_listen[cc]->port) ) ;
      }
 
      /* see if there is any data to be read */
