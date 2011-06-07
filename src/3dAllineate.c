@@ -3821,7 +3821,7 @@ STATUS("zeropad weight dataset") ;
          meth_code == GA_MATCH_LPC_MICHO_SCALAR ||
          meth_code == GA_MATCH_PEARSON_LOCALA     ) ) sm_rad = MAX(2.222f,dxyz_top) ;
 
-   for( kk=0 ; kk < DSET_NVALS(dset_targ) ; kk++ ){
+   for( kk=0 ; kk < DSET_NVALS(dset_targ) ; kk++ ){  /** the sub-brick loop **/
 
      stup.match_code = meth_code ;
 
@@ -4012,10 +4012,13 @@ STATUS("zeropad weight dataset") ;
 
          if( verb > 1 ) ctim = COX_cpu_time() ;
 
+         powell_set_mfac( 1.0f , 3.0f ) ;  /* 07 Jun 2011 */
+
          nrand = 17 + 4*tbest ; nrand = MAX(nrand,31) ;
          mri_genalign_scalar_ransetup( &stup , nrand ) ;  /* the initial search! */
 
-         if( verb > 1 ) ININFO_message("- Coarse startup search net CPU time = %.1f s",COX_cpu_time()-ctim);
+         if( verb > 1 )
+           ININFO_message("- Coarse startup search net CPU time = %.1f s",COX_cpu_time()-ctim);
 
          /* unfreeze those that were temporarily frozen above */
 
@@ -4046,6 +4049,8 @@ STATUS("zeropad weight dataset") ;
 
            if( verb > 1 )
              INFO_message("Start refinement #%d on %d coarse parameter sets",rr+1,tfdone);
+
+           powell_set_mfac( 1.0f , 5.0f+2.0f*rr ) ;  /* 07 Jun 2011 */
 
            stup.smooth_radius_base *= 0.7777 ;  /* less smoothing */
            stup.smooth_radius_targ *= 0.7777 ;
@@ -4118,6 +4123,7 @@ STATUS("zeropad weight dataset") ;
 
          if( verb     ) ININFO_message("- Start coarse optimization with -twobest 0") ;
          if( verb > 1 ) ctim = COX_cpu_time() ;
+         powell_set_mfac( 2.0f , 1.0f ) ;  /* 07 Jun 2011 */
          nfunc = mri_genalign_scalar_optim( &stup , 0.05 , 0.005 , 444 ) ;
          if( verb > 2 ) PAROUT("--(a)") ;
          stup.npt_match = ntask / 7 ;
@@ -4200,8 +4206,11 @@ STATUS("zeropad weight dataset") ;
 
      /*-- choose initial parameters, based on interp_code cost functional --*/
 
+     powell_set_mfac( powell_mm , powell_aa ) ;  /* 07 Jun 2011 */
+
      if( tfdone ){                           /* find best in tfparm array */
        int kb=0 , ib ; float cbest=1.e+33 ;
+
 
        if( verb > 1 )
          INFO_message("Picking best parameter set out of %d cases",tfdone) ;
@@ -4268,7 +4277,7 @@ STATUS("zeropad weight dataset") ;
        PARINI("- Initial fine") ;
      }
 
-     if( powell_mm > 0.0f ) powell_set_mfac( powell_mm , powell_aa ) ;
+     powell_set_mfac( powell_mm , powell_aa ) ;  /* 07 Jun 2011 */
      nfunc = 0 ;
 
      /*-- start with some optimization with linear interp, for speed? --*/
@@ -4335,7 +4344,9 @@ STATUS("zeropad weight dataset") ;
          GA_setup_micho( 0.0 , 0.0 , 0.0 , 0.0 , 0.0 ) ;
          if( verb > 1 ) ININFO_message(" - Set lpc+ parameters back to pure lpc before Final") ;
        }
+       if( powell_mm == 0.0f ) powell_set_mfac( 3.0f , 3.0f ) ;  /* 07 Jun 2011 */
        nfunc = mri_genalign_scalar_optim( &stup , 0.666f*rad, conv_rad,6666 );
+       powell_set_mfac( powell_mm , powell_aa ) ;                /* 07 Jun 2011 */
      }
 
      /*** if( powell_mm > 0.0f ) powell_set_mfac( 0.0f , 0.0f ) ; ***/

@@ -43,7 +43,15 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 6 , JUN , 2011 , RWC , "powell_newuoa.c" , MICRO , TYPE_GENERAL ,
+  { 7 , JUN , 2011 , RWC , "3dAllineate" , MICRO , TYPE_GENERAL ,
+   "modify number of points used for optimization" ,
+   "Powell's NEWUOA algorithm requires specifying number of points kept at\n"
+   "each stage for approximating the objective function.  Modification here\n"
+   "is to change this number as the various steps of registration happen,\n"
+   "using fewer points at the start and more at the final steps.  Speeds\n"
+   "things up a little." } ,
+
+ { 6 , JUN , 2011 , RWC , "powell_newuoa.c" , MICRO , TYPE_GENERAL ,
    "Remove 'static' and initialize all variables to 0." ,
    "Makes tiny differences in 3dAllineate results.  Hmmm." } ,
 
