@@ -4,7 +4,7 @@
 */
 
 #undef  STATIC
-#define STATIC /*static*/
+#define STATIC /*static*/   /*** disable use of static internal variables ***/
 
 #include "f2c.h"
 
