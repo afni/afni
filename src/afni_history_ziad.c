@@ -65,7 +65,7 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
- { 7, JUNE , 2011 , ZSS , "afni-general" , MAJOR , TYPE_NEW_OPT,
+ { 7, JUN , 2011 , ZSS , "afni-general" , MAJOR , TYPE_NEW_OPT,
    "Allow multiple instances of communicating programs per machine.",
    "This was done by generalizing option -np PORT_OFFSET which \n"
    "allows users to use a different set of ports for different AFNI/SUMA/etc.\n"
@@ -74,12 +74,12 @@ afni_history_struct ziad_history[] = {
    "ports should be added to then new init_ports_list() function."  
   } ,
 
- { 7, JUNE , 2011 , ZSS , "afni" , MINOR , TYPE_NEW_OPT,
+ { 7, JUN , 2011 , ZSS , "afni" , MINOR , TYPE_NEW_OPT,
    "-list_ports, -port_number* give port assignment information",
    "See afni -help for details."  
   } ,
 
- { 7, JUNE , 2011 , ZSS , "suma" , MINOR , TYPE_NEW_OPT,
+ { 7, JUN , 2011 , ZSS , "suma" , MINOR , TYPE_NEW_OPT,
    "-np, -list_ports, -port_number* control and report port assignments",
    "See suma -help for details."  
   } ,
