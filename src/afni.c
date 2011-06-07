@@ -233,10 +233,7 @@ void AFNI_syntax(void)
      "   -niml        If present, turns on listening for NIML-formatted\n"
      "                  data from SUMA.  Can also be turned on by setting\n"
      "                  environment variable AFNI_NIML_START to YES.\n"
-     "   -np port     If present, sets the NIML socket port number to 'port'.\n"
-     "                  This must be an integer between 1024 and 65535,\n"
-     "                  and must be the same as the '-np port' number given\n"
-     "                  to SUMA.  [default = 53211]\n"
+     "%s"
      "   -list_ports  List all port assignments and quit\n"
      "   -port_number PORT_NAME: Give port number for PORT_NAME and quit\n"
      "   -port_number_quiet PORT_NAME: Same as -port_number but writes out \n"
@@ -270,7 +267,7 @@ void AFNI_syntax(void)
      " * To change these maximums, you must edit file '3ddata.h' and then\n"
      "    recompile this program.\n"
 
-     , THD_MAX_NUM_SESSION , THD_MAX_SESSION_SIZE
+     , get_np_help() , THD_MAX_NUM_SESSION , THD_MAX_SESSION_SIZE
    ) ;
 
    printf(
@@ -795,7 +792,7 @@ ENTRY("AFNI_parse_args") ;
          narg++ ; continue ;  /* go to next arg */
       }
 
-      #if 0 /* NOW handled in afni_environ */
+      #if 0 /* NOW handled in afni_environ. Delete section later. ZSS June 2011*/
       /*---- -np port [10 Dec 2002] ----*/
 
       if( strcmp(argv[narg],"-np") == 0 ){
@@ -1175,7 +1172,7 @@ ENTRY("AFNI_parse_args") ;
          if (strcmp(argv[narg-1], "-port_number_quiet")) { 
             fprintf(stdout, "\nPort %s: %d\n", argv[narg], pp); 
          } else {
-            fprintf(stdout, "\n%d\n", pp); 
+            fprintf(stdout, "%d\n", pp); 
          }
          if (pp < 1) exit(1);
          else exit(0);

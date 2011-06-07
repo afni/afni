@@ -1173,12 +1173,13 @@ int main( int argc , char *argv[] )
       "         and the mechanics of how you can setup your firewall permissions is\n"
       "         not something about which we can give you advice.\n"
       "\n"
-      " -np port = Connect to AFNI/SUMA using the TCP/IP port number given here,\n"
+/*      " -np port = Connect to AFNI/SUMA using the TCP/IP port number given here,\n"
       "            rather than the default port number [53212 for AFNI, 53224 for\n"
       "            SUMA].  You must give the corresponding option to AFNI to\n"
       "            get proper communication going.  Using '-np' properly is the\n"
       "            only way to have multiple copies of 3dGroupInCorr and AFNI\n"
-      "            talking to each other!\n"
+      "            talking to each other!\n"  ZSS June 2011*/
+      "%s"
 #ifndef DONT_USE_SHM
       "\n"
       " -NOshm = Do NOT reconnect to AFNI using shared memory, rather than TCP/IP,\n"
@@ -1246,7 +1247,7 @@ int main( int argc , char *argv[] )
       "      your GrpInCorr seed in the A image viewers but view the results\n"
       "      you want to see in the B image viewers.  And scrolling around in\n"
       "      the unlocked image viewers can also be annoying.\n"
-     ) ;
+     , get_np_help()) ;
 
      printf(
      "\n"
@@ -1414,6 +1415,8 @@ int main( int argc , char *argv[] )
        nopt++ ; continue ;
      }
 
+#if 0 /* This is now handled in AFNI_prefilter_args(). ZSS, June 2011 
+         Delete soon.                                                */ 
      if( strcasecmp(argv[nopt],"-np") == 0 ){
        if( ++nopt >= argc ) ERROR_exit("GIC: need 1 argument after option '%s'",argv[nopt-1]) ;
        nport = (int)strtod(argv[nopt],NULL) ;
@@ -1423,6 +1426,7 @@ int main( int argc , char *argv[] )
        }
        nopt++ ; continue ;
      }
+#endif
 
      if( strcasecmp(argv[nopt],"-ah") == 0 ){
        if( ++nopt >= argc ) ERROR_exit("GIC: need 1 argument after option '%s'",argv[nopt-1]) ;
@@ -2201,7 +2205,7 @@ int main( int argc , char *argv[] )
          case XYZ_MODE:     /* x y z */
          case IJKPV_MODE:   /* i j k */
          case IJK_MODE:{    /* i j k */
-           int i,j,k ; float x,y,z ; char *cname ;
+           int i,j,k ; float x=0.0,y=0.0,z=0.0 ; char *cname ;
            if( bsar->num < 4 ){
              ERROR_message("GIC: bad batch command line: %s list too short",bname) ;
              goto LoopBack ;
@@ -2619,6 +2623,8 @@ int main( int argc , char *argv[] )
      if( !bmode && do_shm > 0 && strcmp(afnihost,"localhost") == 0 && !shm_active ){
        char nsnew[128] ;
        kk = (nout+nsaar) / 2 ; if( kk < 1 ) kk = 1 ; else if( kk > 3 ) kk = 3 ;
+             /* using nport in nsnew below is no longer necessary, 
+                but it does not hurt. ZSS June 2011               */
        sprintf( nsnew , "shm:GrpInCorr_%d:%dM+4K" , nport , kk ) ;
        INFO_message("GIC: Reconnecting to %s with shared memory channel %s",pname,nsnew) ;
        kk = NI_stream_reopen( GI_stream , nsnew ) ;
