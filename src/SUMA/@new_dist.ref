@@ -230,7 +230,7 @@ if ( $jpega ) then
 endif
 
 if ( $lpng ) then
-  sed  sed 's/-lXft/-lXft -lpng/g'  Makefile > ___mm
+  sed 's/-lXft/-lXft -lpng/g'  Makefile > ___mm
   mv ___mm Makefile
 endif
 

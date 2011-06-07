@@ -2715,11 +2715,19 @@ popdown menus to be 'torn off'.  The default is to enable tear off for most
 menus, but this may cause bad things on some platforms (like program death).
 
 -------------------------------
-Variable: AFNI_PLUGOUT_TCP_BASE
+Variable: AFNI_PLUGOUT_TCP_BASE (BETTER USE AFNI_PORT_OFFSET)
 -------------------------------
 This integer will override the base TCP port used by afni to listen for
 plugouts.  This allows multiple instances of afni on one machine, where
 each can listen for plugouts.  Valid port numbers are 1024..65535.
+
+--------------------------
+Variable: AFNI_PORT_OFFSET 
+--------------------------
+This integer provides an offset for the range of port numbers used by
+AFNI and its ilk. This allows multiple instances of communicating 
+programs on one machine.  Valid port offset numbers are 1024..65000.
+See related option -np in afni -help.
 
 -----------------------------------
 Variable: AFNI_IMAGE_TICK_DIV_IN_MM (editable)
@@ -3223,4 +3231,10 @@ negatives (e.g., as discussed by Storey, Benjamini, and others)
 will NOT be carried out.  As of 26 Mar 2009, this adjustment of
 q-values is the default in AFNI programs.  If you want the old
 behavior, set this variable to YES.
+
+-----------------------------------
+Variable: AFNI_WAMI_DEBUG
+-----------------------------------
+This integer sets the debugging level in whereami routines. 
+Currently used values range from 0 to 3.
 
