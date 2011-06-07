@@ -635,6 +635,7 @@ extern void show_ports_list(void);
 extern int set_user_np(int v);
 extern int get_user_np(void);
 extern char *get_port_numbered(int port);
+extern char *get_np_help();
 
 /** I/O functions **/
 

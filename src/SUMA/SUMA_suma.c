@@ -146,6 +146,7 @@ void SUMA_usage (SUMA_GENERIC_ARGV_PARSE *ps)
 "             cp ~/.sumarc ~/.sumarc-bak ; \\\n"
 "             mv ~/sumarc ~/.sumarc\n" 
 "\n"
+"%s"
 "   [-list_ports]  List all port assignments and quit\n"
 "   [-port_number PORT_NAME]: Give port number for PORT_NAME and quit\n"
 "   [-port_number_quiet PORT_NAME]: Same as -port_number but writes out \n"
@@ -166,7 +167,7 @@ void SUMA_usage (SUMA_GENERIC_ARGV_PARSE *ps)
 "   For more help: http://afni.nimh.nih.gov/ssc/ziad/SUMA/SUMA_doc.htm\n"
 "\n"     
 "   If you can't get help here, please get help somewhere.\n", 
-            sio, sb);
+            sio, sb, get_np_help());
           SUMA_free(sb); SUMA_free(sio);
 			 SUMA_Version(NULL);
 			 printf ("\n" 
@@ -447,7 +448,7 @@ int main (int argc,char *argv[])
          if (strcmp(argv[kar-1], "-port_number_quiet")) { 
             fprintf(stdout, "\nPort %s: %d\n", argv[kar], pp); 
          } else {
-            fprintf(stdout, "\n%d\n", pp); 
+            fprintf(stdout, "%d\n", pp); 
          }
          if (pp < 1) exit(1);
          else exit(0);
