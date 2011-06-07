@@ -290,13 +290,18 @@ int tcp_listen( int port )
    static int nobindmsg;
    int sd , l ;
    struct sockaddr_in sin ;
+   char serr[128]={""}; /*ZSS June 2011*/
 
    if( port < 1 ){ STATUS("tcp_listen: illegal port") ; return -1 ; }
 
    /** open a socket **/
 
    sd = socket( AF_INET , SOCK_STREAM , 0 ) ;
-   if( sd == -1 ){ PERROR("Can't create? tcp_listen[socket]"); return -1; }
+   if( sd == -1 ){ 
+      sprintf(serr,"Can't create? (socket): (Name %s, Port %d)", 
+                  get_port_numbered(port), port);
+      PERROR(serr); return -1; 
+   }
 
    /** set socket options (no delays, large buffers) **/
 
@@ -317,7 +322,9 @@ int tcp_listen( int port )
 
    if( bind(sd , (struct sockaddr *)&sin , sizeof(sin)) == -1 ){
       if (!(nobindmsg % 10000)) { /* slow message printing down! ZSS */
-         PERROR("\nCan't bind? tcp_listen[bind]");
+         sprintf(serr,"\nCan't bind? tcp_listen[bind] (Name %s, Port %d, sd %d)",
+                        get_port_numbered(port), port,sd);
+         PERROR(serr);
          nobindmsg = 0;
       }
       ++nobindmsg;
@@ -325,7 +332,9 @@ int tcp_listen( int port )
    }
 
    if( listen(sd,1) == -1 ){
-      PERROR("Can't listen? tcp_listen[listen]"); CLOSEDOWN(sd); return -1;
+      sprintf(serr,"Can't listen? tcp_listen[listen] (Name %s, Port %d)",
+               get_port_numbered(port), port);
+      PERROR(serr); CLOSEDOWN(sd); return -1;
    }
 
    return sd ;
@@ -401,13 +410,14 @@ int tcp_accept( int sd , char ** hostname , char ** hostaddr )
 
 /*---------------------------------------------------------------
    Convert a string to a key, for IPC operations.
+   Augment sum by port offset value (-np option)
 -----------------------------------------------------------------*/
 
 key_t string_to_key( char * key_string )
 {
-   int ii , sum ;
+   int ii , sum = get_user_np();
 
-   sum = 666 ;
+   sum += 666;
    if( key_string == NULL ) return (key_t) sum ;
 
    for( ii=0 ; key_string[ii] != '\0' ; ii++ )
@@ -694,6 +704,7 @@ fprintf(stderr,"iochan_init: name=%s  mode=%s\n",name,mode) ;
       for( ii=4 ; name[ii] != ':' ; ii++ ) key[ii-4] = name[ii] ;
       key[ii-4] = '\0' ;
 
+      
       /** get size **/
 
       size = strtol( name+ii+1 , &kend , 10 ) ;

@@ -10,8 +10,16 @@
 /*****************************  AFNI STUFF *************************************/
 #include "iochan.h"                     /* I/O to other processes              */
 
-#define AFNI_CONTROL_PORT  7954         /* always send control data to AFNI    */
-#define AFNI_TCP_PORT      7953         /* maybe send image data to AFNI       */
+#if 0          /*  ZSS June 2011. Delete useless code after dust has settled.  */
+   #define AFNI_CONTROL_PORT  7954      /* always send control data to AFNI    */
+   #define AFNI_TCP_PORT      7953      /* maybe send image data to AFNI       */
+   /* 
+   replace these two with: 
+      get_port_named("AFNI_CONTROL_PORT") 
+      and
+      get_port_named("AFNI_TCP_PORT")
+   */
+#endif
 
 #define AFNI_OPEN_CONTROL_MODE   1      /* 1st time thru: open control channel */
 #define AFNI_WAIT_CONTROL_MODE   2      /* waiting for AFNI to open control    */

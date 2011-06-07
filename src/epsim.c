@@ -13,8 +13,14 @@ static char host[128] = "localhost" ;
 static char buf[4096] ;
 static int  nbytes , jj , first=1 ;
 
-#define CONTROL_PORT 7954
-#define TCP_PORT     7955
+#if 0 /*  ZSS June 2011. Delete useless code after dust has settled.  */
+   #define CONTROL_PORT 7954
+   #define TCP_PORT     7955
+   /* replace with:
+      get_port_named("CONTROL_PORT")
+      get_port_named("AFNI_PLUGOUT_TCP_BASE") 
+   */
+#endif
 #define SHM_NAME     "shm:epsim:1M"
 
 static IOCHAN * ioc = NULL ;
@@ -294,7 +300,7 @@ int main( int argc , char * argv[] )
 
    /*** open channel to AFNI ***/
 
-   sprintf( buf , "tcp:%s:%d" , host , CONTROL_PORT ) ;
+   sprintf( buf , "tcp:%s:%d" , host , get_port_named("CONTROL_PORT") ) ;
    ioc = iochan_init( buf , "create" ) ;
    if( ioc == NULL ) FatalError("Cannot open control channel to AFNI") ;
 
@@ -309,7 +315,8 @@ int main( int argc , char * argv[] )
    if( verbose ){ printf("!\n") ; fflush(stdout) ; }
 
    if( use_shm ) strcpy( buf , SHM_NAME ) ;
-   else          sprintf(buf , "tcp:%s:%d" , host , TCP_PORT ) ;
+   else          sprintf(buf , "tcp:%s:%d" , 
+                         host , get_port_named("AFNI_PLUGOUT_TCP_BASE") ) ;
 
    if( use_child ){
       jj = strlen(buf) ;

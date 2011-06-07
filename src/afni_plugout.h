@@ -22,8 +22,14 @@ extern void AFNI_plugout_verb( int ) ; /* 14 Oct 2008 */
 #include <ctype.h>
 #include <unistd.h>
 
-#define NUM_TCP_CONTROL  5     /* 21 Nov 2001: number of TCP/IP control ports */
-#define BASE_TCP_CONTROL 7955  /* control via ports number 7955 .. 7959       */
+#define NUM_TCP_CONTROL  5     /* 21 Nov 2001: number of TCP/IP control ports 
+                                 If you change this number make sure each
+                                 new port has a listing in init_ports_list() */
+
+#if 0       /*  ZSS June 2011. Delete useless code after dust has settled.  */
+   #define BASE_TCP_CONTROL 7955 /* control via ports number 7955 .. 7959    */
+   /* Now replace with get_port_named("AFNI_PLUGOUT_TCP_BASE"); ZSS June 2011 */
+#endif
 
 #define POACKSIZE       4   /* size of all plugout acknowledgment strings */
 

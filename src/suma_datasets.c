@@ -12206,12 +12206,12 @@ static ENV_SPEC envlist[] = {
    {  "Setup the color mixing mode (ORIG, MOD1) ",
       "SUMA_ColorMixingMode",
       "ORIG" },
-   {  "Port for communicating with AFNI\n"
-      " Listening ports are derived from SUMA_AFNI_TCP_PORT\n"
-      " Listening port i\n"
-      " SUMA_AFNI_TCP_PORT + i (i > 0)",
+   {  "** OBSOLETE: Port for communicating with AFNI\n"
+      "              Listening ports are derived from SUMA_AFNI_TCP_PORT\n"
+      "              Listening port i\n"
+      "              SUMA_AFNI_TCP_PORT + i (i > 0)",
       "SUMA_AFNI_TCP_PORT",
-      "53211" },
+      "0" /* used to be 53211 */},
    {  "Warn before closing with the Escape key (YES/NO)",
       "SUMA_WarnBeforeClose",
       "YES" },

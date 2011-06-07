@@ -746,8 +746,14 @@ void GRINCOR_seedvec_ijklist_pvec( MRI_shindss *shd ,
 
 /*-----------------------------------------------------------------------------*/
 
-#define AFNI_NIML_PORT   53212          /* TCP/IP port that AFNI uses */
-#define SUMA_GICORR_PORT 53224          /* TCP/IP port that SUMA uses */
+#if 0    /* ZSS June 2011 */
+  #define AFNI_NIML_PORT   53212          /* TCP/IP port that AFNI uses */
+  #define SUMA_GICORR_PORT 53224          /* TCP/IP port that SUMA uses */
+  /*  Replace               With
+      AFNI_NIML_PORT        get_port_named("AFNI_GroupInCorr_NIML");
+      SUMA_GICORR_PORT      get_port_named("SUMA_GroupInCorr_NIML"); 
+   ZSS. June 2011 */
+#endif
 
 static int nport = 0 ;                  /* 02 Aug 2010 */
 
@@ -1890,7 +1896,10 @@ int main( int argc , char *argv[] )
    /* name of NIML stream (socket) to open */
 
    if( !bmode ){
-     if( nport <= 0 ) nport = (TalkToAfni) ? AFNI_NIML_PORT : SUMA_GICORR_PORT ;
+     if( nport <= 0 ) {
+      nport = (TalkToAfni) ?  get_port_named("AFNI_GroupInCorr_NIML") : 
+                              get_port_named("SUMA_GroupInCorr_NIML") ;
+     }
      sprintf( nsname , "tcp:%s:%d" , afnihost , nport ) ;
 
      /* open the socket (i.e., dial the telephone call) */

@@ -105,7 +105,8 @@ void AFNI_start_io( int nim )
 
    if( AFNI_mode == AFNI_OPEN_CONTROL_MODE ){
 
-      sprintf( AFNI_iochan , "tcp:%s:%d" , AFNI_host , AFNI_CONTROL_PORT ) ;
+      sprintf( AFNI_iochan , "tcp:%s:%d" , 
+               AFNI_host , get_port_named("AFNI_CONTROL_PORT")) ;
 
       if( AFNI_verbose )
          fprintf(stderr,"Opening control channel %s to AFNI.\n",AFNI_iochan) ;
@@ -153,7 +154,8 @@ void AFNI_start_io( int nim )
 
       /** decide name of data channel: it can be TCP/IP or shared memory **/
 
-      if( AFNI_use_tcp ) sprintf(AFNI_iochan,"tcp:%s:%d",AFNI_host,AFNI_TCP_PORT) ;
+      if( AFNI_use_tcp ) sprintf(AFNI_iochan,"tcp:%s:%d",
+                                 AFNI_host,get_port_named("AFNI_TCP_PORT")) ;
       else               strcpy(AFNI_iochan,"shm:eps:8M") ;
 
       strcpy(AFNI_buf,AFNI_iochan) ;     /* tell AFNI where to read data */

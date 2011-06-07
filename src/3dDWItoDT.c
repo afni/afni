@@ -2054,9 +2054,13 @@ matrix_copy (matrix a, matrix * b)
 /*-----------------------------------------------------*/
 /* Stuff for an extra NIML port for non-SUMA programs. */
 
-#ifndef NIML_TCP_FIRST_PORT
-#define NIML_TCP_FIRST_PORT 53212
-#endif
+/* ZSS June 2011
+   #ifndef NIML_TCP_FIRST_PORT
+      #define NIML_TCP_FIRST_PORT 53212
+   #endif
+   Replace with: 
+   get_port_named("AFNI_DEFAULT_LISTEN_NIML");
+*/
 
 /*! open NIML stream */
 static int DWI_Open_NIML_stream()
@@ -2067,7 +2071,7 @@ static int DWI_Open_NIML_stream()
    ENTRY("DWI_Open_NIML_stream");
 
    /* contact afni */
-   tempport = NIML_TCP_FIRST_PORT;
+   tempport = get_port_named("AFNI_DEFAULT_LISTEN_NIML");
    sprintf(streamname, "tcp:localhost:%d",tempport);
    INFO_message("Contacting AFNI");
  

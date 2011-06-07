@@ -2423,9 +2423,16 @@ typedef struct {
 
 /* *** Niml defines */
 
+#if 0 /*ZSS June 2011. Delete useless code after dust has settled.*/
 #define SUMA_TCP_PORT 53211      /*!< AFNI listens to SUMA on this port */
 #define SUMA_MATLAB_LISTEN_PORT 53230  /* MATLAB listens to SUMA on this port */
 #define SUMA_TCP_LISTEN_PORT0 53220 /*!< SUMA's 1st listening port */
+   /* Replace                    With
+      SUMA_TCP_PORT              get_port_named("AFNI_SUMA_NIML")
+      SUMA_MATLAB_LISTEN_PORT    get_port_named("SUMA_MATLAB_NIML")
+      SUMA_TCP_LISTEN_PORT0      get_port_named("SUMA_DEFAULT_LISTEN_NIML")
+   */
+#endif
 #define SUMA_FLAG_WAITING    1   /*!< Waiting for connection flag */
 #define SUMA_FLAG_CONNECTED  2   /*!< Connected flag */
 #define SUMA_FLAG_SKIP       4   /*!< Skip flag */
@@ -2449,7 +2456,9 @@ typedef enum { SUMA_AFNI_STREAM_INDEX = 0,
                      /*!<  Using socket SUMA_TCP_LISTEN_PORT0 + 4*/
                SUMA_MAX_STREAMS 
                      /*!< Maximum number of streams, KEEP AT END */
-            } SUMA_STREAM_INDICES;
+            } SUMA_STREAM_INDICES; /* If you add a new stream,
+                  create a new port number for it in afni_ports.c's 
+                  init_ports_list function */
             
 /* *** Niml defines end */
 
@@ -2636,7 +2645,8 @@ typedef struct {
    int afni_istream; /*!< index of stream used to connect to afni */
    char *suma_host_name;
    char *afni_host_name; 
-   int ElInd[SUMA_N_DSET_TYPES]; /* index of elements of a certain type to be sent to SUMA */
+   int ElInd[SUMA_N_DSET_TYPES]; /* index of elements of a certain type 
+                                    to be sent to SUMA */
    int kth;    /* send kth element to SUMA */
    int Feed2Afni;
 } SUMA_COMM_STRUCT;

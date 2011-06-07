@@ -57,7 +57,8 @@ int ART_start_io( ART_comm * ac, int debug )
 
    if( ac->mode == AFNI_OPEN_CONTROL_MODE ){
 
-      sprintf( ac->ioc_name , "tcp:%s:%d" , ac->host , AFNI_CONTROL_PORT ) ;
+      sprintf( ac->ioc_name , "tcp:%s:%d" , 
+               ac->host , get_port_named("AFNI_CONTROL_PORT") ) ;
 
       if( debug > 1 )
          fprintf(stderr,"Opening control channel %s to AFNI.\n",ac->ioc_name) ;
@@ -111,7 +112,8 @@ int ART_start_io( ART_comm * ac, int debug )
       /* decide name of data channel: it can be TCP/IP or shared memory */
 
       if ( ac->use_tcp )
-         sprintf(ac->ioc_name,"tcp:%s:%d",ac->host,AFNI_TCP_PORT) ;
+         sprintf(ac->ioc_name,"tcp:%s:%d",
+                 ac->host,get_port_named("AFNI_TCP_PORT")) ;
 
       strcpy(ac->buf, ac->ioc_name) ;     /* tell AFNI where to read data */
 
