@@ -540,6 +540,26 @@ void SUMA_cmap_wid_input(Widget w, XtPointer clientData, XtPointer callData)
                }
             }
             break;
+         case XK_w:
+            {
+               char *sss=NULL;
+               SUMA_COLOR_MAP * ColMap = 
+                     SUMA_CmapOfPlane(SO->SurfCont->curColPlane);
+               if (LocalHead) {
+                  if ((sss = SUMA_ColorMapVec_Info(&ColMap, 1, 1))) {
+                     SUMA_LHv("To be written:\n%s\n", sss);
+                     SUMA_free(sss); sss = NULL;
+                  }
+               }
+               if (!SUMA_Write_Color_Map_1D(ColMap, NULL)) {
+                  SUMA_S_Errv("Failed to write colmap %s\n", 
+                           SO->SurfCont->curColPlane->Name);
+               }else {
+                  SUMA_S_Notev("Wrote colormap %s to file.\n",
+                           SO->SurfCont->curColPlane->Name);
+               }
+            }
+            break;
          case XK_Z:
             {
                static SUMA_Boolean BeepedAlready = NOPE;
