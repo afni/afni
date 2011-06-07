@@ -69,7 +69,7 @@ function [nel, comm] = ToyTalk()
   
    global comm ;
   
-   comm = afni_talk_defs(); %reset communication structure. 
+   comm = afni_talk_defs(comm); %reset communication structure. 
    comm.dbg = 1;
    pnet ('closeall');
    
