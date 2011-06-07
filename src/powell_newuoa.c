@@ -5,6 +5,7 @@
 
 #undef  STATIC
 #define STATIC /*static*/   /*** disable use of static internal variables ***/
+                            /*** all local variables instead init to =0   ***/
 
 #include "f2c.h"
 
