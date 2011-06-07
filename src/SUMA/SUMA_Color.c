@@ -1799,6 +1799,7 @@ SUMA_COLOR_MAP *SUMA_Read_Color_Map_1D (char *Name)
    SUMA_RETURN (SM);
 }
 
+
 SUMA_COLOR_MAP *SUMA_Read_Color_Map_NIML (char *Name)
 {
    static char FuncName[]={"SUMA_Read_Color_Map_NIML"};
@@ -1871,6 +1872,84 @@ SUMA_COLOR_MAP *SUMA_Read_Color_Map_NIML (char *Name)
    if (FullName) SUMA_free(FullName); FullName = NULL;
    
    SUMA_RETURN (SM);
+}
+
+SUMA_Boolean SUMA_Write_Color_Map_1D (SUMA_COLOR_MAP* SM, char *Name)
+{
+   static char FuncName[]={"SUMA_Write_Color_Map_1D"};
+   char *nameout=NULL;
+   FILE *fout=NULL;
+   int i, j;
+   
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+
+   if (!SM) {
+      SUMA_S_Err("NULL colmap");
+      SUMA_RETURN(0);
+   }
+   
+   if (SUMA_NeedsLinearizing(SM)) 
+      SM = SUMA_Linearize_Color_Map (SM, -1);
+   
+   if (!Name) Name = SM->Name;
+   nameout = SUMA_Extension(Name, ".1D.cmap", NOPE);
+   
+   if (!(fout = fopen(nameout,"w"))) {
+      SUMA_S_Errv("Failed to open %s for writing\n", nameout);
+      SUMA_free(nameout); 
+      SUMA_RETURN(NOPE);
+   }
+    
+   for (i=SM->N_M[0]-1; i>=0; --i) {
+      for (j=0; j<3; ++j) {
+         fprintf(fout,"%.5f   ", SM->M[i][j]);
+      }
+      fprintf(fout,"\n");
+   }
+   
+   SUMA_free(nameout); nameout = NULL;
+   fclose(fout); fout = NULL;
+   SUMA_RETURN(YUP);
+   
+}
+
+SUMA_Boolean SUMA_Write_Color_Map_NIML (SUMA_COLOR_MAP* SM, char *Name)
+{
+   static char FuncName[]={"SUMA_Write_Color_Map_NIML"};
+   char stmp[129];
+   SUMA_PARSED_NAME *sname=NULL;
+   NI_group *NIcmap=NULL;
+   int suc=0;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+
+   if (!SM) {
+      SUMA_S_Err("NULL colmap");
+      SUMA_RETURN(0);
+   }
+   
+   if (SUMA_NeedsLinearizing(SM)) 
+      SM = SUMA_Linearize_Color_Map (SM, -1);
+   
+   NIcmap =  SUMA_CmapToNICmap (SM);
+   
+   if (!Name) Name = SM->Name;
+   sname = SUMA_ParseFname(Name, NULL);
+   snprintf(stmp, 128*sizeof(char), 
+            "file:%s.niml.cmap", sname->FileName_NoExt); 
+   
+   NEL_WRITE_TX(NIcmap, stmp, suc);
+   if (!suc) {
+      SUMA_S_Errv("Failed to write %s\n", stmp);
+   }
+   SUMA_Free_Parsed_Name(sname); sname = NULL;
+   NI_free_element(NIcmap); NIcmap = NULL;
+   
+   SUMA_RETURN(YUP);
+   
 }
 
 /*! function that turns a non-linear color map into a linear one
