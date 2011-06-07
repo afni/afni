@@ -626,6 +626,15 @@ extern void NI_swap_vector( int, int, void * ) ;
 #undef  NI_set_attribute_int
 #define NI_set_attribute_int(el,nm,vv)  \
  do{ char ib[16]; sprintf(ib,"%d",(vv)); NI_set_attribute((el),(nm),ib); } while(0)
+ 
+ 
+/* port assignment functions from afni_ports.c */
+extern int init_ports_list(int np, int reinit);
+extern int get_port_named(char *name);
+extern void show_ports_list(void);
+extern int set_user_np(int v);
+extern int get_user_np(void);
+extern char *get_port_numbered(int port);
 
 /** I/O functions **/
 

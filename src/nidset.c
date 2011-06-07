@@ -8,7 +8,8 @@ int main( int argc , char *argv[] )
    int ct , ii ;
 
    if( argc < 3 || strcmp(argv[1],"-help") == 0 ){
-     printf("Usage: nidset tcp:host:53212 dataset\n"); exit(0);
+     printf("Usage: nidset tcp:host:%d dataset\n",
+            get_port_named("AFNI_DEFAULT_LISTEN_NIML")); exit(0);
    }
 
    ns = NI_stream_open( argv[1] , "w" ) ;

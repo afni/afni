@@ -429,8 +429,11 @@ static int tcp_listen( int port )
    /** open a socket **/
 
    sd = socket( AF_INET , SOCK_STREAM , 0 ) ;
-   if( sd == -1 ){ sprintf(serr,"tcp_listen(socket):%d", port);
-                   PERROR(serr); return -1; }
+   if( sd == -1 ){ 
+      sprintf(serr,"tcp_listen(socket): (Name %s, Port %d)", 
+               get_port_numbered(port), port);
+      PERROR(serr); return -1; 
+   }
 
    /** set socket options (no delays, large buffers) **/
 
@@ -467,12 +470,14 @@ static int tcp_listen( int port )
    sin.sin_addr.s_addr = INADDR_ANY ;  /* reader reads from anybody */
 
    if( bind(sd , (struct sockaddr *)&sin , sizeof(sin)) == -1 ){
-     sprintf(serr,"tcp_listen(bind):%d, sd=%d", port, sd);
+     sprintf(serr,"tcp_listen(bind) (Name %s, Port %d, sd %d)", 
+               get_port_numbered(port), port, sd);
      PERROR(serr); CLOSEDOWN(sd); return -1;
    }
 
    if( listen(sd,1) == -1 ){
-     sprintf(serr,"tcp_listen(listen):%d", port);
+     sprintf(serr,"tcp_listen(listen) (Name %s, Port %d)", 
+               get_port_numbered(port), port);
      PERROR(serr); CLOSEDOWN(sd); return -1;
    }
 
@@ -731,14 +736,15 @@ int NI_trust_host( char *hostid )
 
 /*---------------------------------------------------------------*/
 /*!  Convert a string to a key, for IPC operations.
+   Augment sum by port offset value (-np option)
 -----------------------------------------------------------------*/
 
 static key_t SHM_string_to_key( char *key_string )
 {
-   int ii , sum ;
+   int ii , sum = get_user_np() ;
    key_t kk ;
 
-   sum = 987654321 ;
+   sum += 987654321 ;
    if( key_string == NULL ) return (key_t) sum ;
 
    for( ii=0 ; key_string[ii] != '\0' ; ii++ )

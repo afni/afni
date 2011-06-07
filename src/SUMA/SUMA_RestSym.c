@@ -794,9 +794,6 @@ void GRINCOR_load_seedvec( MRI_shindss *shd , MCW_cluster *nbhd ,
 
 /*-----------------------------------------------------------------------------*/
 
-#define AFNI_NIML_PORT   53212          /* TCP/IP port that AFNI uses */
-#define SUMA_GICORR_PORT 53224          /* TCP/IP port that SUMA uses */
-
 static int nport = -1 ;                 /* 02 Aug 2010 */
 
 NI_stream GI_stream = (NI_stream)NULL ;

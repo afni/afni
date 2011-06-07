@@ -70,7 +70,9 @@ typedef struct {
       int disable_done ;      /* 21 Aug 2008 [rickr] */
 
       int yes_niml ;          /* 28 Feb 2002 */
-      int port_niml ;         /* 10 Dec 2002 */
+               
+               /* port_niml no longer in use. ZSS June 2011 */
+               /* int port_niml ;         10 Dec 2002 */
 
       char * script_fname ;   /* 21 Jan 2003 */
 } AF_options ;

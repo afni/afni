@@ -356,6 +356,25 @@ int AFNI_prefilter_args( int *argc , char **argv )
        used[ii] = 1;
        continue ;
      }
+     
+     if( strcmp(argv[ii],"-np") == 0 ){   /* ZSS, June 2011 */
+       if( ttt ) fprintf(stderr,"++ argv[%d] is -np\n",ii) ;
+       if (ii+1 >= narg) {
+         fprintf(stderr,
+               "** -np needs an integer NP such that 1024 <= NP <= 65535\n");
+         exit(1);
+       }
+       used[ii] = 1 ; ii++;
+       if (set_user_np(atoi(argv[ii]))<1) {
+         fprintf(stderr,
+            "** -np is not an integer such that 1024 <= NP <= 65535\n"
+            "   -np was ignored\n");
+       } else {
+         fprintf(stderr,"++ -np set to %d\n", get_user_np());
+       }
+       used[ii] = 1;
+       continue ;
+     }
 
      /*** if get to here, argv[ii] is nothing special ***/
 
