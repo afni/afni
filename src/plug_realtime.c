@@ -13,7 +13,10 @@
 # define VMCHECK /* nada */
 #endif
 
-#define TCP_CONTROL "tcp:*:7954"      /* control channel specification */
+#if 0 /*  ZSS June 2011. Delete useless code after dust has settled.  */
+   #define TCP_CONTROL "tcp:*:7954"      /* control channel specification */
+#endif
+
 #define INFO_SIZE  (32*1024)          /* change this ==> change SHM_CHILD below */
 #define SHM_CHILD  "shm:afnibahn:32K" /* for data from the child */
 
@@ -1087,6 +1090,7 @@ char * RT_main( PLUGIN_interface * plint )
 int RT_check_listen(void)
 {
    int jj ;
+   char name[64];
    static int newcon = 1 ;
 
    /** see if we need to start listening **/
@@ -1094,7 +1098,8 @@ int RT_check_listen(void)
    if( ioc_control == NULL ){
       if( verbose )
          fprintf(stderr,"RT: starting to listen for control stream.\n") ;
-      ioc_control = iochan_init( TCP_CONTROL , "accept" ) ;
+      sprintf(name,"tcp:*:%d", get_port_named("AFNI_CONTROL_PORT"));
+      ioc_control = iochan_init( name , "accept" ) ;
       newcon      = 1 ;
       if( ioc_control == NULL ){
          fprintf(stderr,"RT: can't listen for control stream\a\n") ;

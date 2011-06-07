@@ -5,8 +5,9 @@
 
 #include "mrilib.h"
 
-#define AFNI_NIML_PORT 53212            /* TCP/IP port that AFNI uses */
-
+#if 0       /* ZSS June 2011, replaced by get_port_named() */
+   #define AFNI_NIML_PORT 53212            /* TCP/IP port that AFNI uses */
+#endif
 NI_stream NF_stream = (NI_stream)NULL ;
 
 /*=============================================================================*/
@@ -174,7 +175,7 @@ int main( int argc , char *argv[] )
 
    /* name of NIML stream (socket) to open */
 
-   sprintf( nsname , "tcp:%s:%d" , host , AFNI_NIML_PORT ) ;
+   sprintf( nsname , "tcp:%s:%d" , host , get_port_named("AFNI_DEFAULT_LISTEN_NIML"));
 
    /* open the socket (i.e., dial the telephone call) */
 

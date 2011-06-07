@@ -15,6 +15,145 @@ extern int SUMAg_N_SVv;
 
 static int started = 0 ;
 
+int SUMA_init_ports_assignments(SUMA_CommonFields *cf) 
+{
+   static char FuncName[]={"SUMA_init_ports_assignments"};
+   int i;
+   float dsmw = 5*60;
+   char *eee=NULL;
+   
+   SUMA_ENTRY;
+   
+   if (cf->TCP_port[0]) {
+      SUMA_S_Warn("Looks like ports have been initialized. Returning.");
+      SUMA_RETURN(YUP);
+   }
+   
+   eee = getenv("SUMA_DriveSumaMaxWait");
+   if (eee) {
+      dsmw = atof(eee);
+      if (dsmw < 0 || dsmw > 60000) {
+         SUMA_S_Warnv( 
+                "Environment variable SUMA_DriveSumaMaxWait %f is invalid.\n"
+                "value must be between 0 and 60000 seconds.\n"
+                "Using default of %d\n", 
+                dsmw, 5*60);
+         dsmw = (float)5*60;/* wait for 5 minutes */
+      }
+   } else {
+      dsmw = (float)5*60;
+   } 
+    
+   for (i=0; i<SUMA_MAX_STREAMS; ++i) {
+      cf->ns_v[i] = NULL;
+      switch(i) { /* set time out */
+         case SUMA_GICORR_LINE:
+         case SUMA_DRIVESUMA_LINE:
+            cf->ns_to[i] = (int)(dsmw*1000);  
+            break;
+         default:
+            cf->ns_to[i] = SUMA_WRITECHECKWAITMAX;
+            break;
+      }
+      cf->ns_flags_v[i] = 0;
+      cf->Connected_v[i] = NOPE;
+      cf->TrackingId_v[i] = 0;
+      cf->NimlStream_v[i][0] = '\0';
+      cf->HostName_v[i][0] = '\0';
+      cf->TalkMode[i] = NI_BINARY_MODE;   
+      switch(i) { /* set port numbers */
+         case SUMA_AFNI_STREAM_INDEX: /* AFNI listening */
+            #if 0 /*ZSS June 2011. Delete useless code after dust has settled.*/
+            eee = getenv("SUMA_AFNI_TCP_PORT");
+            if (eee) {
+               pb = atoi(eee);
+               if (pb < 1024 ||  pb > 65535) {
+                  fprintf (SUMA_STDERR, 
+                     "Warning %s:\n"
+                     "Environment variable SUMA_AFNI_TCP_PORT %d is invalid.\n"
+                      "port must be between 1025 and 65534.\n"
+                      "Using default of %d\n", 
+                      FuncName, pb, get_port_named("AFNI_SUMA_NIML"));
+                  
+                  cf->TCP_port[i] = get_port_named("AFNI_SUMA_NIML");
+               }
+               cf->TCP_port[i] = pb;
+            } else {
+               cf->TCP_port[i] = get_port_named("AFNI_SUMA_NIML");
+            }
+            #else
+               cf->TCP_port[i] = get_port_named("AFNI_SUMA_NIML");
+            #endif   
+            break;
+         case SUMA_AFNI_STREAM_INDEX2:  /* AFNI listening */
+            #if 0 /*ZSS June 2011. Delete useless code after dust has settled.*/
+            eee = getenv("SUMA_AFNI_TCP_PORT2");
+            if (eee) {
+               pb = atoi(eee);
+               if (pb < 1024 ||  pb > 65535) {
+                  SUMA_S_Warnv(
+                "Environment variable SUMA_AFNI_TCP_PORT2 %d is invalid.\n"
+                "port must be between 1025 and 65534.\n"
+                "Using default of %d\n", 
+                               pb, get_port_named("AFNI_DEFAULT_LISTEN_NIML"));
+                  
+                  cf->TCP_port[i] = get_port_named("AFNI_DEFAULT_LISTEN_NIML");
+               }
+               cf->TCP_port[i] = pb; 
+            } else {
+               cf->TCP_port[i] = get_port_named("AFNI_DEFAULT_LISTEN_NIML");
+            }
+            #else
+               cf->TCP_port[i] = get_port_named("AFNI_DEFAULT_LISTEN_NIML");
+            #endif
+            break;
+         case SUMA_TO_MATLAB_STREAM_INDEX: /*Matlab listening */
+            #if 0 /*ZSS June 2011. Delete useless code after dust has settled.*/
+            eee = getenv("SUMA_MATLAB_LISTEN_PORT");
+            if (eee) {
+               pb = atoi(eee);
+               if (pb < 1024 ||  pb > 65535) {
+                  SUMA_S_Warnv( 
+                "Environment variable SUMA_MATLAB_LISTEN_PORT %d is invalid.\n"
+                "port must be between 1025 and 65534.\n"
+                "Using default of %d\n", 
+                         pb, get_port_named("MATLAB_SUMA_NIML"));
+                  
+                  cf->TCP_port[i] = get_port_named("MATLAB_SUMA_NIML");
+               }
+               cf->TCP_port[i] = pb; 
+            } else {
+               cf->TCP_port[i] = get_port_named("MATLAB_SUMA_NIML");
+            }  
+            #else
+               cf->TCP_port[i] = get_port_named("MATLAB_SUMA_NIML");
+            #endif 
+            break;
+         case SUMA_GENERIC_LISTEN_LINE: /* SUMA listening */
+            cf->TCP_port[i] = get_port_named("SUMA_DEFAULT_LISTEN_NIML");
+            break;
+         case SUMA_GEOMCOMP_LINE:
+            cf->TCP_port[i] = get_port_named("SUMA_GEOMCOMP_NIML");
+            break;
+         case SUMA_BRAINWRAP_LINE:
+            cf->TCP_port[i] = get_port_named("SUMA_BRAINWRAP_NIML");
+            break;
+         case SUMA_DRIVESUMA_LINE:
+            cf->TCP_port[i] = get_port_named("SUMA_DRIVESUMA_NIML");
+            break;
+         case SUMA_GICORR_LINE:
+            cf->TCP_port[i] = get_port_named("SUMA_GroupInCorr_NIML");
+            break;
+         default:
+            SUMA_S_Errv("Bad stream index %d. Ignoring it.\n", i);
+            break;
+      } 
+   }
+   cf->Listening = NOPE;
+   cf->niml_work_on = NOPE;
+   
+   SUMA_RETURN(YUP);   
+}
 
 /*-----------------------------------------------------------------------*/
 /*! NIML workprocess.
@@ -182,14 +321,15 @@ Boolean SUMA_niml_workproc( XtPointer thereiselvis )
      
      /* if here, stream is good;
         see if there is any data to be read */
+     if (!SUMAg_CF->TCP_port[0]) SUMA_init_ports_assignments(SUMAg_CF); 
       
-      if (SUMAg_CF->ns_flags_v[cc] & SUMA_FLAG_WAITING) {
+     if (SUMAg_CF->ns_flags_v[cc] & SUMA_FLAG_WAITING) {
          SUMAg_CF->ns_flags_v[cc] = SUMA_FLAG_CONNECTED;
          SUMA_S_Notev( 
                   "++ NIML connection opened from %s on port %d (%dth stream)\n",
                   NI_stream_name(SUMAg_CF->ns_v[cc]), 
                   SUMAg_CF->TCP_port[cc], cc) ;
-      }
+     }
    #if 0
       /* not good enough, checks socket only, not buffer */
       nn = NI_stream_readcheck( SUMAg_CF->ns , 1 ) ;
@@ -2645,7 +2785,7 @@ SUMA_COMM_STRUCT *SUMA_Create_CommSrtuct(void)
    int i;
    
    SUMA_ENTRY;
-   
+
    cs = (SUMA_COMM_STRUCT *)SUMA_malloc(sizeof(SUMA_COMM_STRUCT));
    if (!cs) {
       SUMA_SL_Crit("Failed to allocate");
@@ -2703,7 +2843,8 @@ SUMA_COMM_STRUCT *SUMA_Free_CommSrtuct(SUMA_COMM_STRUCT *cs)
    
    
 */
-SUMA_Boolean SUMA_Assign_HostName (SUMA_CommonFields *cf, char *HostName, int istream)
+SUMA_Boolean SUMA_Assign_HostName ( SUMA_CommonFields *cf, 
+                                    char *HostName, int istream)
 {
    static char FuncName[]={"SUMA_Assign_HostName"};
    int istart = 0, istop = 0, i = 0;
@@ -2711,6 +2852,8 @@ SUMA_Boolean SUMA_Assign_HostName (SUMA_CommonFields *cf, char *HostName, int is
    
    SUMA_ENTRY;
 
+   if (!cf->TCP_port[0]) SUMA_init_ports_assignments(cf);
+   
    if (istream == -1) {
       istart = 0; istop = SUMA_MAX_STREAMS; 
    } else {
@@ -2720,23 +2863,29 @@ SUMA_Boolean SUMA_Assign_HostName (SUMA_CommonFields *cf, char *HostName, int is
    for (i = istart; i < istop; ++i) {
       if (HostName == NULL)
          if (i == SUMA_AFNI_STREAM_INDEX) {
-            sprintf(cf->HostName_v[i], "localhost"); /*  using localhost will allow the use of Shared Memory.
-                                                         That is only allowed for SUMA<-->AFNI */
+            sprintf(cf->HostName_v[i], "localhost"); 
+               /*  using localhost will allow the use of Shared Memory.
+                   That is only allowed for SUMA<-->AFNI */
          } else {
-            sprintf(cf->HostName_v[i], "127.0.0.1");  /* force TCP for the commoners */
+            sprintf(cf->HostName_v[i], "127.0.0.1");  
+                                       /* force TCP for the commoners */
          }  
       else {   
          if (strlen(HostName) > SUMA_MAX_NAME_LENGTH - 20) {
-            fprintf(SUMA_STDERR,"Error %s: too long a host name (> %d chars).\n", FuncName, SUMA_MAX_NAME_LENGTH - 20);
+            fprintf( SUMA_STDERR,
+                     "Error %s: too long a host name (> %d chars).\n", 
+                     FuncName, SUMA_MAX_NAME_LENGTH - 20);
             SUMA_RETURN (NOPE);
          }
          sprintf(cf->HostName_v[i],"%s", HostName);
       }
 
+      
       sprintf(cf->NimlStream_v[i],"tcp:%s:%d", 
             cf->HostName_v[i], cf->TCP_port[i]);
 
-      if (LocalHead) fprintf(SUMA_STDOUT, "%s: Set HostName %d to %s (stream name: %s)\n", 
+      if (LocalHead) 
+         fprintf(SUMA_STDOUT, "%s: Set HostName %d to %s (stream name: %s)\n", 
                      FuncName, i, cf->HostName_v[i], cf->NimlStream_v[i]);
    }
    

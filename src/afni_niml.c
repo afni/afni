@@ -44,7 +44,9 @@
 
 /*---------------------------------------*/
 /*! Number of streams on which to listen */
-#define NUM_NIML   2                        /* 09 Mar 2005: increased to 2 */
+#define NUM_NIML   3                        /* 09 Mar 2005: increased to 2
+             ZSS June 2011: Increased to 3
+             Modify init_ports_list() when you add more streams */
 
 /*--------------------------------------*/
 /*! Array of streams on which to listen */
@@ -107,17 +109,23 @@ static int g_show_as_popup = 0 ;     /* 04 Jan 2005 [rickr] */
 
 /*-------------------------*/
 
-#ifndef SUMA_TCP_PORT
-#define SUMA_TCP_PORT 53211
-#endif
+/* This define should now be replaced by appropriate get_port_named() 
+   function call. Delete after dust has settled.      ZSS June 2011
+   
+   #ifndef SUMA_TCP_PORT
+   #define SUMA_TCP_PORT 53211
+   #endif
+*/
 
 /*-----------------------------------------------------*/
 /* Stuff for an extra NIML port for non-SUMA programs. */
 
-#ifndef NIML_TCP_FIRST_PORT
-#define NIML_TCP_FIRST_PORT 53212
-#endif
-
+/* This define should now be replaced by appropriate get_port_named() 
+   function call. Delete after dust has settled.         ZSS June 2011
+      #ifndef NIML_TCP_FIRST_PORT
+      #define NIML_TCP_FIRST_PORT 53212
+      #endif
+*/
 /*-----------------------------------------------------*/
 
 #define EPS 0.01  /* threshold for coordinate changes */
@@ -250,18 +258,25 @@ ENTRY("AFNI_init_niml") ;
      ns_flags[cc]  = 0 ;
    }
 
-   /* 10 Dec 2002: allow user to specify NIML port number */
-
-   cc = GLOBAL_argopt.port_niml ;
-   if( cc < 1024 || cc > 65535 ) cc = SUMA_TCP_PORT ;
-   sprintf( ns_name[0] , "tcp:host:%d" , cc ) ;
-
-   /* 09 Mar 2005: add extra ports */
-
-   cc = AFNI_numenv( "AFNI_NIML_FIRST_PORT" ) ;
-   if( cc < 1024 || cc > 65535 ) cc = NIML_TCP_FIRST_PORT ;
-   for( ii=1 ; ii < NUM_NIML ; ii++ )
-     sprintf( ns_name[ii] , "tcp:host:%d" , (cc+ii-1) ) ;
+   for (ii=0; ii < NUM_NIML; ii++) {
+      switch (ii) {
+         case 0:
+            sprintf( ns_name[ii] , "tcp:host:%d" , 
+                        get_port_named("AFNI_SUMA_NIML") ) ;
+            break;
+         case 1:
+            sprintf( ns_name[ii] , "tcp:host:%d" , 
+                        get_port_named("AFNI_DEFAULT_LISTEN_NIML") ) ;
+            break;
+         case 2:
+            sprintf( ns_name[ii] , "tcp:host:%d" , 
+                        get_port_named("AFNI_GroupInCorr_NIML") ) ;
+            break;
+         default:
+            ERROR_message("Not set to deal with stream %d\n", ii);
+            break;
+      }
+   }
 
    /* initialize all receive keys (cf. afni_receive.c) */
 

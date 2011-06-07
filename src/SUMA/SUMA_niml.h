@@ -6,7 +6,7 @@ typedef struct {
    int at_sb;
 } SUMA_SEND_2AFNI;
 
-
+int SUMA_init_ports_assignments(SUMA_CommonFields *cf);
 NI_element * SUMA_makeNI_SurfIXYZ (SUMA_SurfaceObject *SO);
 NI_element * SUMA_makeNI_SurfIJK (SUMA_SurfaceObject *SO);
 NI_element * SUMA_makeNI_SurfINORM (SUMA_SurfaceObject *SO);

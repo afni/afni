@@ -1883,7 +1883,7 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
 {
    static char FuncName[]={"SUMA_Create_CommonFields"};
    SUMA_CommonFields *cf;
-   int i, portn = -1, n, portn2, portn3, kkk;
+   int i, n, pb=-1;
    char *eee=NULL;
    float dsmw=5*60;
    SUMA_Boolean LocalHead = NOPE;
@@ -1924,97 +1924,28 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
    cf->Mem = NULL;
    #endif
    
-   eee = getenv("SUMA_AFNI_TCP_PORT");
-   if (eee) {
-      portn = atoi(eee);
-      if (portn < 1024 ||  portn > 65535) {
-         fprintf (SUMA_STDERR, 
-                  "Warning %s:\n"
-                   "Environment variable SUMA_AFNI_TCP_PORT %d is invalid.\n"
-                   "port must be between 1025 and 65534.\n"
-                   "Using default of %d\n", FuncName, portn, SUMA_TCP_PORT);
-         portn = SUMA_TCP_PORT;
-      } 
-   } else {
-      portn = SUMA_TCP_PORT;
-   }   
    
-   eee = getenv("SUMA_AFNI_TCP_PORT2");
-   if (eee) {
-      portn2 = atoi(eee);
-      if (portn2 < 1024 ||  portn2 > 65535) {
-         SUMA_S_Warnv("Environment variable SUMA_AFNI_TCP_PORT2 %d is invalid.\n"
-                      "port must be between 1025 and 65534.\n"
-                      "Using default of %d\n", portn2, portn+1);
-         portn2 = portn+1;
-      } 
-   } else {
-      portn2 = portn+1;
-   }
-   
-   eee = getenv("SUMA_MATLAB_LISTEN_PORT");
-   if (eee) {
-      portn3 = atoi(eee);
-      if (portn3 < 1024 ||  portn3 > 65535) {
-         SUMA_S_Warnv( 
-                "Environment variable SUMA_MATLAB_LISTEN_PORT %d is invalid.\n"
-                "port must be between 1025 and 65534.\n"
-                "Using default of %d\n", 
-                portn, SUMA_MATLAB_LISTEN_PORT);
-         portn3 = SUMA_MATLAB_LISTEN_PORT;
-      } 
-   } else {
-      portn3 = SUMA_MATLAB_LISTEN_PORT;
-   }   
-      
-   eee = getenv("SUMA_DriveSumaMaxWait");
-   if (eee) {
-      dsmw = atof(eee);
-      if (dsmw < 0 || dsmw > 60000) {
-         SUMA_S_Warnv( 
-                "Environment variable SUMA_DriveSumaMaxWait %f is invalid.\n"
-                "value must be between 0 and 60000 seconds.\n"
-                "Using default of %d\n", 
-                dsmw, 5*60);
-         dsmw = (float)5*60;/* wait for 5 minutes */
-      }
-   } else {
-      dsmw = (float)5*60;
-   } 
-    
-   kkk=0;
+   /* communications initialization happens in 
+      SUMA_init_ports_assignments() it cannot
+      be done here because some parameters
+      are not available yet. 
+      Setup here is to be sure there is no 
+      garbage lying around. */
    for (i=0; i<SUMA_MAX_STREAMS; ++i) {
       cf->ns_v[i] = NULL;
-      switch(i) {
-         case SUMA_GICORR_LINE:
-         case SUMA_DRIVESUMA_LINE:
-            cf->ns_to[i] = (int)(dsmw*1000);  
-            break;
-         default:
-            cf->ns_to[i] = SUMA_WRITECHECKWAITMAX;
-            break;
-      }
+      cf->ns_to[i] = SUMA_WRITECHECKWAITMAX;
       cf->ns_flags_v[i] = 0;
       cf->Connected_v[i] = NOPE;
       cf->TrackingId_v[i] = 0;
       cf->NimlStream_v[i][0] = '\0';
       cf->HostName_v[i][0] = '\0';
       cf->TalkMode[i] = NI_BINARY_MODE;   
-      if (i==SUMA_AFNI_STREAM_INDEX) 
-         cf->TCP_port[SUMA_AFNI_STREAM_INDEX] = portn;           
-            /* AFNI listening */
-      else if (i==SUMA_AFNI_STREAM_INDEX2) 
-         cf->TCP_port[SUMA_AFNI_STREAM_INDEX2] = portn2;     /* AFNI listening */
-      else if (i==SUMA_TO_MATLAB_STREAM_INDEX) 
-         cf->TCP_port[SUMA_TO_MATLAB_STREAM_INDEX] = portn3; /* Matlab listeng */
-      else {
-         cf->TCP_port[i] = SUMA_TCP_LISTEN_PORT0 + kkk;   /* SUMA listening */
-         ++kkk;
-      }
+      cf->TCP_port[i] = 0;
    }
    cf->Listening = NOPE;
    cf->niml_work_on = NOPE;
    
+   /* viewer locking */
    for (i=0; i<SUMA_MAX_SURF_VIEWERS; ++i) {
       cf->Locked[i] = SUMA_I_Lock;
       cf->ViewLocked[i] = NOPE;
