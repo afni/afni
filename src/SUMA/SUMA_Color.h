@@ -109,6 +109,8 @@ SUMA_Boolean SUMA_NeedsLinearizing(SUMA_COLOR_MAP *ColMap);
 SUMA_COLOR_MAP *SUMA_Linearize_Color_Map (SUMA_COLOR_MAP* SM, int N_lin);
 SUMA_COLOR_MAP *SUMA_Read_Color_Map_1D (char *Name);
 SUMA_COLOR_MAP *SUMA_Read_Color_Map_NIML (char *Name);
+SUMA_Boolean SUMA_Write_Color_Map_1D (SUMA_COLOR_MAP* SM, char *Name);
+SUMA_Boolean SUMA_Write_Color_Map_NIML (SUMA_COLOR_MAP* SM, char *Name);
 SUMA_Boolean SUMA_ScaleToMap_alaAFNI ( float *V, int N_V, 
                                        float range, SUMA_COLOR_MAP *ColMap, 
                                        SUMA_SCALE_TO_MAP_OPT *Opt, 
