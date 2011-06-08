@@ -7,6 +7,7 @@
 #include "thd_iochan.h"
 #include "Amalloc.h"
 #include <errno.h>
+#include "niml.h"
 
 static char *error_string=NULL ; /* 21 Nov 2001 */
 
