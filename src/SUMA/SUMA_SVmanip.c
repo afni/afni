@@ -3346,8 +3346,13 @@ void SUMA_UpdateViewerTitle(SUMA_SurfaceViewer *sv)
    SS = SUMA_StringAppend_va(NULL, NULL);
    
    SUMA_LH("Number");
-   if (isv >= 0) SS = SUMA_StringAppend_va(SS, "[%c] SUMA", 65+isv); 
-   else SS = SUMA_StringAppend_va(SS,"[DOH] SUMA"); 
+   if (isv >= 0) {
+      if ((i = get_user_np_bloc())>-1) {
+         SS = SUMA_StringAppend_va(SS, "[%c%d] SUMA", 65+isv, i); 
+      } else {
+         SS = SUMA_StringAppend_va(SS, "[%c] SUMA", 65+isv); 
+      }
+   } else SS = SUMA_StringAppend_va(SS,"[DOH] SUMA"); 
    
    SUMA_LH("Rec");
    if (sv->Record) SS = SUMA_StringAppend_va(SS,":Rec");

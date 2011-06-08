@@ -792,30 +792,6 @@ ENTRY("AFNI_parse_args") ;
          narg++ ; continue ;  /* go to next arg */
       }
 
-      #if 0 /* NOW handled in afni_environ. Delete section later. ZSS June 2011*/
-      /*---- -np port [10 Dec 2002] ----*/
-
-      if( strcmp(argv[narg],"-np") == 0 ){
-         float val ;
-         if( narg+1 >= argc ) ERROR_exit("need an argument after -np!");
-
-         val = strtod( argv[++narg] , NULL ) ;
-         if( val >= 1024 && val <= 65535 ) {
-            if (init_ports_list((int)val, 1) < 1) {
-               fprintf(stderr,
-                "\n** ERROR: -np %s failed!\n"
-                "Sticking with defaults\n", argv[narg]);
-                init_ports_list(0, 1);
-            }
-         } else { fprintf(stderr,
-                "\n** WARNING: -np %s is illegal!\n"
-                "Sticking with defaults\n", argv[narg]);
-            init_ports_list(0,1);
-         }
-         narg++ ; continue ;  /* go to next arg */
-      }
-      #endif
-      
       if( strcmp(argv[narg],"-noniml") == 0 ){
          GLOBAL_argopt.yes_niml-- ;
          if( GLOBAL_argopt.yes_niml < 0 ) GLOBAL_argopt.yes_niml = 0 ;
@@ -1177,7 +1153,7 @@ ENTRY("AFNI_parse_args") ;
          if (pp < 1) exit(1);
          else exit(0);
       }
-      
+            
       /*----- -nomall option -----*/
 
       if( strncmp(argv[narg],"-nomall",5) == 0 ){    /* was handled in main() */
@@ -2318,8 +2294,11 @@ ENTRY("AFNI_startup_timeout_CB") ;
      AFNI_init_niml() ;
      if( MAIN_im3d->vwid->dmode->misc_niml_pb != NULL )
        XtSetSensitive(MAIN_im3d->vwid->dmode->misc_niml_pb,False) ;
-   } else if( get_user_np() > 0 ){  /* 10 Dec 2002 -- ZSS June 2011 */
-     fprintf(stderr,"** WARNING: -np was given, but NIML is turned off.\n") ;
+   } else if( 0 && get_user_np() > 0 ){  /* 10 Dec 2002 -- ZSS June 2011 */
+      /* No need to warn anymore, -np can be set by environment
+        variables too. */
+      fprintf(stderr,
+         "** WARNING: -np was given, but NIML is turned off.\n") ;
    }
 
    if( AFNI_have_niml() && AFNI_have_plugouts() )  /* 02 Feb 2007 */

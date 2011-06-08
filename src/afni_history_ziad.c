@@ -65,6 +65,16 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 8, JUN , 2011 , ZSS , "@FSlabel2dset" , MINOR , TYPE_NEW_PROG,
+   "Script to change FreeSurfer ascii label file to SUMA dset",
+   NULL
+  } ,
+
+ { 8, JUN , 2011 , ZSS , "afni-general" , MINOR , TYPE_NEW_OPT,
+   "Added -npb and modified title bar to reflect bloc of ports",
+   "See afni's help for -npb option."
+  } ,
+
  { 7, JUN , 2011 , ZSS , "afni" , MINOR , TYPE_NEW_OPT,
    "Added 'w' key for writing out colormap to disk.",
    "See suma's help for the colormap.\n"

@@ -2727,7 +2727,17 @@ Variable: AFNI_PORT_OFFSET
 This integer provides an offset for the range of port numbers used by
 AFNI and its ilk. This allows multiple instances of communicating 
 programs on one machine.  Valid port offset numbers are 1024..65000.
-See related option -np in afni -help.
+See related options -np in afni -help. See also AFNI_PORT_BLOC.
+
+--------------------------
+Variable: AFNI_PORT_BLOC 
+--------------------------
+This integer selects a bloc of port numbers to be used by
+AFNI and its ilk. Much like AFNI_PORT_OFFSET, it allows multiple instances 
+of communicating programs on one machine.  However it is easier to use.
+Acceptable integer values range from 0 to a couple of thousands. 
+See related option -npb, -max_port_bloc in afni -help. 
+This environment variable takes precedence over AFNI_PORT_OFFSET.
 
 -----------------------------------
 Variable: AFNI_IMAGE_TICK_DIV_IN_MM (editable)
