@@ -20,48 +20,118 @@ typedef struct {
 
 static PORTS PL;
 
-static int user_np = 0;
+static int user_np = -1;
+static int reinit = 1;
+
+void set_ports_list_reinit (void) { reinit = 1; }
 
 char *get_np_help() {
    static char NP_HELP[] = {
 "   -np PORT_OFFSET: Provide a port offset to allow multiple instances of\n"
 "                    AFNI <--> SUMA, AFNI <--> 3dGroupIncorr, or any other\n"
 "                    programs that communicate together to operate on the same\n"
-"                    machine.\n"
+"                    machine. \n"
+"                    All ports are assigned numbers relative to PORT_OFFSET.\n"
 "         The same PORT_OFFSET value must be used on all programs\n"
 "           that are to talk together. PORT_OFFSET is an integer in\n"
-"              the inclusive range [1025 to 65500]. \n"
-"         For example, say you want to run two instances of AFNI <--> SUMA.\n"
-"         For the first you just do: \n"
-"            suma -niml -spec ... -sv ...  &\n"
-"            afni -niml &\n"
-"         Then for the second instance pick an offset, say 3000 and run\n"
-"            suma -niml -np 3000 -spec ... -sv ...  &\n"
-"            afni -niml -np 3000 &\n"
-"         Each AFNI <--> SUMA instance can now communicate together although\n"
-"           you may drive yourself crazy sorting out which is talking is \n"
-"           which.\n"
-"         If we get enough feedback we'll attempt to visually distinguish  \n"
-"           communicating sets somehow."
-"\n"
+"           the inclusive range [1025 to 65500]. \n"
+"         When you want to use multiple instances of communicating programs, \n"
+"           be sure the PORT_OFFSETS you use differ by about 50 or you may\n"
+"           still have port conflicts. A BETTER approach is to use -npb below.\n"
+"   -npq PORT_OFFSET: Like -np, but more quiet in the face of adversity.\n"
+"   -npb PORT_OFFSET_BLOC: Simliar to -np, except it is easier to use.\n"
+"                          PORT_OFFSET_BLOC is an integer between 0 and\n"
+"                          MAX_BLOC. MAX_BLOC is around 4000 for now, but\n"
+"                          it might decrease as we use up more ports in AFNI.\n"
+"                          You should be safe for the next 10 years if you \n"
+"                          stay under 2000.\n"
+"                          Using this function reduces your chances of causing\n"
+"                          port conflicts.\n"
+"\n" 
 "         See also afni and suma options: -list_ports and -port_number for \n"
 "            information about port number assignments.\n"
 "\n"
 "         You can also provide a port offset with the environment variable\n"
 "            AFNI_PORT_OFFSET. Using -np overrides AFNI_PORT_OFFSET.\n"
 "\n"
-"   -npq PORT_OFFSET: Like -np, but more quiet in the face of adversity.\n"
+"   -max_port_bloc: Print the current value of MAX_BLOC and exit.\n"
+"                   Remember this value can get smaller with future releases.\n"
+"                   Stay under 2000.\n"
+"   -max_port_bloc_quiet: Spit MAX_BLOC value only and exit.\n"
+"   -num_assigned_ports: Print the number of assigned ports used by AFNI \n"
+"                        then quit.\n"
+"   -num_assigned_ports_quiet: Do it quietly.\n"
+"\n"
+"     Port Handling Examples:\n"
+"     -----------------------\n"
+"         Say you want to run three instances of AFNI <--> SUMA.\n"
+"         For the first you just do: \n"
+"            suma -niml -spec ... -sv ...  &\n"
+"            afni -niml &\n"
+"         Then for the second instance pick an offset bloc, say 1 and run\n"
+"            suma -niml -npb 1 -spec ... -sv ...  &\n"
+"            afni -niml -npb 1 &\n"
+"         And for yet another instance:\n"
+"            suma -niml -npb 2 -spec ... -sv ...  &\n"
+"            afni -niml -npb 2 &\n"
+"         etc.\n"
+"\n"
+"         Since you can launch many instances of communicating programs now,\n"
+"            you need to know wich SUMA window, say, is talking to which AFNI.\n"
+"            To sort this out, the titlebars now show the number of the bloc \n"
+"            of ports they are using. When the bloc is set either via \n"
+"            environment variables AFNI_PORT_OFFSET or AFNI_PORT_BLOC, or  \n"
+"            with one of the -np* options, window title bars change from \n"
+"            [A] to [A#] with # being the resultant bloc number.\n"
+"         In the examples above, both AFNI and SUMA windows will show [A2]\n"
+"            when -npb is 2.\n"
+"\n"
    };
    return(NP_HELP);
 }
 
+int set_user_np_bloc(int v) {
+   if (v > get_max_port_bloc()) {
+      ERROR_message(
+         "** Port bloc %d is not an integer between 0 and %d\n",
+         get_max_port_bloc());
+      return(0);
+   }
+   v = 1024+v*get_num_ports();
+   
+   return(set_user_np(v));
+}
+
+int get_user_np_bloc(void) {
+   int ii = (get_user_np()-1024)/get_num_ports();
+   if (ii < 0) return(-1);
+   return(ii);
+}
+
+int get_max_port_bloc(void) {
+   return((65535-1024)/get_num_ports()-1);
+}
+
 int set_user_np(int v) {
+   int  npenv=-1;
    user_np = 0;
    
    if ( v == 0 ) return(0);   /* nothing to do. legit call. */
    
+   if ( v == -1 ) { /* try initializing from environment variables */
+      /* try env */
+      if ((npenv = (int)AFNI_numenv_def("AFNI_PORT_BLOC", -1)) >= 0) {
+         user_np = set_user_np_bloc(npenv);
+      } else if ((npenv = 
+                  (int)AFNI_numenv_def("AFNI_PORT_OFFSET", -1)) >= 1024) {
+         user_np = set_user_np(npenv);
+      }
+      return(user_np);
+   }
+   
    if ( v >= 1024 && v<=65500) {
       user_np = v;
+      reinit = 1;
       return(user_np);
    }else{
       ERROR_message("User -np, or AFNI_PORT_OFFSET environment variable\n"
@@ -74,26 +144,35 @@ int set_user_np(int v) {
 
 int get_user_np(void) {
    static int ncall=0;
-   if (!ncall && !user_np) {
-      /* try env */
-      user_np = set_user_np((int)AFNI_numenv("AFNI_PORT_OFFSET"));
+   int  npenv=-1;
+   if (!ncall && user_np < 0) {
+      user_np = set_user_np(-1); /* init from env. variables */
       ++ncall;
    }
    return(user_np);
 }
 
-/* initialize port assignment given an offset np */
-int init_ports_list(int np, int reinit) {
-   int ip = 0, cc = 0, ptcpbase=0;
-   static int init=0;
+int get_num_ports(void) {
+   return(init_ports_list());
+}
 
-   if (init && !reinit) return(PL.n_ports);
+/* initialize port assignment given an offset np */
+int init_ports_list(void) {
+   int ip = 0, cc = 0, ptcpbase=0, np=0;
+   static int first_call = 1;
+   
+   if (user_np < 0) set_user_np(-1); /* initialize */
+   
+     
+   if (!first_call && !reinit) { /* nothing to do */
+      return(PL.n_ports);
+   }
    
    PL.n_ports = 0;
    
    if ((cc = AFNI_numenv("AFNI_NIML_FIRST_PORT"))) {
       if (cc >= 1025 &&  cc <= 65500) {
-         if (get_user_np()) {
+         if (user_np) {
             WARNING_message(
                "Cannot setenv AFNI_NIML_FIRST_PORT and use -np or \n"
                "AFNI_PORT_OFFSET environment variable.\n"
@@ -108,18 +187,16 @@ int init_ports_list(int np, int reinit) {
    }
    
    
-   if (np == 0) {
-      if (get_user_np()) np = get_user_np();
-      else {
-         np = 53211; /* old default */
-      }
+   if (user_np) np = user_np;
+   else {
+      np = 53211; /* old default */
    }
    
    /* Keep order of ports "AFNI_SUMA_NIML" and "AFNI_DEFAULT_LISTEN_NIML"
       in list below */
    ip = 0;
    if ((cc = AFNI_numenv("SUMA_AFNI_TCP_PORT"))) {
-      if (get_user_np()) { /* -np override */
+      if (user_np) { /* -np override */
          if (cc != 53211) { /* whine only if users changed default */
             WARNING_message(
                "ENV SUMA_AFNI_TCP_PORT superseded by -np option and\n"
@@ -138,7 +215,7 @@ int init_ports_list(int np, int reinit) {
       ++ip;
 
    if ((cc = AFNI_numenv("SUMA_AFNI_TCP_PORT2"))) {
-      if (get_user_np()) { /* -np override */
+      if (user_np) { /* -np override */
          if (cc != 53212) { /* whine only if users changed default */
             WARNING_message(
                "ENV SUMA_AFNI_TCP_PORT2 superseded by -np option and \n"
@@ -174,7 +251,7 @@ int init_ports_list(int np, int reinit) {
       ++ip;
 
    if ((cc = AFNI_numenv("SUMA_MATLAB_LISTEN_PORT"))) {
-      if (get_user_np()) { /* -np override */
+      if (user_np) { /* -np override */
          if (cc != 53230) { /* the old default, don't whine */
             WARNING_message(
                "ENV SUMA_MATLAB_LISTEN_PORT superseded by -np option and\n"
@@ -212,7 +289,7 @@ int init_ports_list(int np, int reinit) {
       if( cc < 1024 || cc > 65535 ){     
          fprintf(stderr,"\nPO: bad AFNI_PLUGOUT_TCP_BASE %d,"
                         " should be in [%d,%d]\n", cc, 1024, 65535);
-         if (!get_user_np()) {
+         if (!user_np) {
             PL.port_id[ip].port = 7955; /* the old BASE_TCP_CONTROL */
          } else {
             PL.port_id[ip].port = np+ip; /* the newer default with -np */
@@ -224,7 +301,7 @@ int init_ports_list(int np, int reinit) {
          PL.port_id[ip].port = cc;
       }
    } else {
-      if (!get_user_np()) {
+      if (!user_np) {
          PL.port_id[ip].port = 7955; /* the old BASE_TCP_CONTROL */
       } else {
          PL.port_id[ip].port = np+ip; /* the newer default with -np */
@@ -267,15 +344,16 @@ int init_ports_list(int np, int reinit) {
    
    PL.n_ports=ip;
    
-   init = 1;
-   
+   reinit = 0;
+   first_call = 0;
    return(ip);
 }
 
 
 int get_port_named(char *name) {
    int ip = 0;
-   init_ports_list(0,0); /* init, no harm if init done already */
+   
+   init_ports_list(); /* init, no harm if init done already */
    
    if (PL.n_ports < 1 || PL.n_ports > 100) {
       ERROR_message("Bad init.\n");
@@ -293,7 +371,7 @@ char *get_port_numbered(int port) {
    int ip = 0;
    static char cunegonde[64];
    
-   init_ports_list(0,0); /* init, no harm if init done already */
+   init_ports_list(); /* init, no harm if init done already */
 
    if (PL.n_ports < 1 || PL.n_ports > 100) {
       ERROR_message("Bad init.\n");
@@ -317,7 +395,7 @@ char *get_port_numbered(int port) {
 void show_ports_list(void) {
    int ip = 0;
    
-   init_ports_list(0,0); /* init, no harm if init done already */
+   init_ports_list(); /* init, no harm if init done already */
    fprintf(stdout,"\n");
    for (ip=0; ip<PL.n_ports; ++ip) {
       fprintf(stdout,"%d: %s has port %d\n", 
