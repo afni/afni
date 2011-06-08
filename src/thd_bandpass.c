@@ -43,7 +43,9 @@ int THD_bandpass_OK( int nx , float dt , float fbot , float ftop , int verb )
    jtop = (int)rint(ftop/df) ;  /* band top index */
    if( jtop >= nfft/2 ) jtop = nfft/2-1 ;
    if( jbot+1 >= jtop ){
-     ERROR_message("bandpass: fbot and ftop too close ==> jbot=%d jtop=%d",jbot,jtop) ;
+     ERROR_message(
+       "bandpass: fbot=%g and ftop=%g too close ==> jbot=%d jtop=%d [nfft=%d dt=%g]",
+       fbot,ftop,jbot,jtop,nfft,dt) ;
      return 0 ;
    }
 
