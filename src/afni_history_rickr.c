@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 8, JUN, 2011, RCR, "make_random_timing.py", MICRO, TYPE_BUG_FIX,
+   "fixed print and added min_rest to durations in test of -tr_locked",
+   NULL
+ } ,
+
  { 3, JUN, 2011, RCR, "afni_proc.py", MICRO, TYPE_NEW_OPT,
    "added -volreg_compute_tsnr/-regress_compute_tsnr",
    "Volreg TSNR is no longer the default, but regress TSNR is."
