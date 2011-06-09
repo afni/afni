@@ -17,7 +17,7 @@ if ( -d ./AFNI_InstaCorrDemo) then
    goto SHOW_COM
 endif
 
-wget afni.nimh.nih.gov:/pub/dist/data/AFNI_InstaCorrDemo.tgz
+wget http://afni.nimh.nih.gov:/pub/dist/data/AFNI_InstaCorrDemo.tgz
 tar xvzf AFNI_InstaCorrDemo.tgz
 cd AFNI_InstaCorrDemo/vol
    tcsh ./@SetupVolGroupInCorr
