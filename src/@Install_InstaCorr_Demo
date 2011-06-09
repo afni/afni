@@ -7,11 +7,15 @@ set sdir = $PWD
 goto PARSE
 RET_PARSE:
 
-if ( -d ./AFNI_InstaCorrDemo) then
+if ( -d ./AFNI_InstaCorrDemo || -f AFNI_InstaCorrDemo.tgz) then
    echo ""
-   echo "Directory AFNI_InstaCorrDemo exists already"
-   echo "If you need to reinstall, remove that directory."
-   echo "Otherwise to run the demos do:"
+   echo "Directory AFNI_InstaCorrDemo or AFNI_InstaCorrDemo.tgz exists already"
+   echo "If you need to reinstall, remove both AFNI_InstaCorrDemo and"
+   echo "AFNI_InstaCorrDemo.tgz with:"
+   echo "\\rm -rf AFNI_InstaCorrDemo.tgz AFNI_InstaCorrDemo"
+   echo "then run `basename $0` $argv[*] again."
+   echo ""
+   echo "Otherwise to just run the demos do:"
    echo ""
    set ret_coms = END
    goto SHOW_COM
