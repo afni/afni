@@ -312,22 +312,22 @@ int init_ports_list(void) {
    sprintf(PL.port_id[ip].listener,"AFNI");
       ++ip;
    
-   PL.port_id[ip].port = ptcpbase+1;
+   PL.port_id[ip].port = ptcpbase+1; /* used to be 7956 */
    sprintf(PL.port_id[ip].name,"AFNI_PLUGOUT_TCP_1");
    sprintf(PL.port_id[ip].listener,"AFNI");
       ++ip;
    
-   PL.port_id[ip].port = ptcpbase+2;
+   PL.port_id[ip].port = ptcpbase+2; /* used to be 7957 */
    sprintf(PL.port_id[ip].name,"AFNI_PLUGOUT_TCP_2");
    sprintf(PL.port_id[ip].listener,"AFNI");
       ++ip;
    
-   PL.port_id[ip].port = ptcpbase+3;
+   PL.port_id[ip].port = ptcpbase+3; /* used to be 7958 */
    sprintf(PL.port_id[ip].name,"AFNI_PLUGOUT_TCP_3");
    sprintf(PL.port_id[ip].listener,"AFNI");
       ++ip;
       
-   PL.port_id[ip].port = ptcpbase+4;
+   PL.port_id[ip].port = ptcpbase+4; /* used to be 7959 */
    sprintf(PL.port_id[ip].name,"AFNI_PLUGOUT_TCP_4");
    sprintf(PL.port_id[ip].listener,"AFNI");
       ++ip;
@@ -342,6 +342,42 @@ int init_ports_list(void) {
    sprintf(PL.port_id[ip].listener,"AFNI");
       ++ip;
    
+   if (!user_np) PL.port_id[ip].port = 8099;  
+   else PL.port_id[ip].port = np+ip;
+   sprintf(PL.port_id[ip].name,"PLUGOUT_DRIVE_PORT");
+   sprintf(PL.port_id[ip].listener,"PLUGOUT_DRIVE");
+      ++ip;
+   
+   if (!user_np) PL.port_id[ip].port = 8077;  
+   else PL.port_id[ip].port = np+ip;
+   sprintf(PL.port_id[ip].name,"PLUGOUT_GRAPH_PORT");
+   sprintf(PL.port_id[ip].listener,"PLUGOUT_GRAPH");
+      ++ip;
+      
+   if (!user_np) PL.port_id[ip].port = 8009;  
+   else PL.port_id[ip].port = np+ip;
+   sprintf(PL.port_id[ip].name,"PLUGOUT_IJK_PORT");
+   sprintf(PL.port_id[ip].listener,"PLUGOUT_IJK");
+      ++ip;
+   
+   if (!user_np) PL.port_id[ip].port = 8019;  
+   else PL.port_id[ip].port = np+ip;
+   sprintf(PL.port_id[ip].name,"PLUGOUT_SURF_PORT");
+   sprintf(PL.port_id[ip].listener,"PLUGOUT_SURF");
+      ++ip;
+         
+   if (!user_np) PL.port_id[ip].port = 8001;  
+   else PL.port_id[ip].port = np+ip;
+   sprintf(PL.port_id[ip].name,"PLUGOUT_TT_PORT");
+   sprintf(PL.port_id[ip].listener,"PLUGOUT_TT");
+      ++ip;
+   
+   if (!user_np) PL.port_id[ip].port = 8005;  
+   else PL.port_id[ip].port = np+ip;
+   sprintf(PL.port_id[ip].name,"PLUGOUT_TTA_PORT");
+   sprintf(PL.port_id[ip].listener,"PLUGOUT_TTA");
+      ++ip;
+    
    PL.n_ports=ip;
    
    reinit = 0;

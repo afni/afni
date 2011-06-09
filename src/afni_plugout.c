@@ -200,11 +200,12 @@ Boolean AFNI_plugout_workproc( XtPointer elvis )
         /** check if the connection is trustworthy **/
         if(po_verbose)
            fprintf(stderr, \
-             "PO: plugout connection from host %s\n",ioc_control[cc]->name) ;
+             "PO: plugout connection from host %s (%s)\n",
+               ioc_control[cc]->name, ioc_conname[cc]) ;
 
         if( !TRUST_host(ioc_control[cc]->name) ){
-          fprintf(stderr,"PO: untrusted host: %s -- connection denied\n" ,
-                  ioc_control[cc]->name) ;
+          fprintf(stderr,"PO: untrusted host: %s(%s) -- connection denied\n" ,
+                  ioc_control[cc]->name, ioc_conname[cc]) ;
           iochan_set_cutoff(ioc_control[cc]) ; IOCHAN_CLOSE(ioc_control[cc]) ;
           continue ; /* skip to next control socket */
         }
