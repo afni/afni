@@ -35,13 +35,15 @@
 
 #include "afni_plugout.h"
 #include "thd_iochan.h"
+#include "niml.h"
 
 /***** Global variable determining on which system AFNI runs.  *****/
 /***** [default is the current system, can be changed by user] *****/
 
 static char afni_host[128] = "localhost" ;
 static char afni_name[128] = "\0" ;
-static int  afni_port      = 8099 ;
+static int  afni_port      = 0 ;  /* Init. before parsing command line  
+                                    ZSS June 2011 */
 static int  afni_verbose   = 0 ;  /* print out debug info? */
 static int  DontWait = 0;
 static int  N_com = 0;
@@ -114,12 +116,15 @@ int afni_io(void)
       char afni_iocname[128] ;           /* will hold name of I/O channel */
 
       /** Note that the control channel is always a
-          TCP/IP channel to port # 7955 on the AFNI host system **/
+          TCP/IP channel to port #get_port_named("AFNI_PLUGOUT_TCP_0") 
+          (used to be #7955) on the AFNI host system **/
 
       if( strcmp(afni_host,".") == 0 )
-         sprintf( afni_iocname , "tcp:%s:7955" , "localhost" ); /* make name */
+         sprintf( afni_iocname , "tcp:%s:%d" , 
+            "localhost", get_port_named("AFNI_PLUGOUT_TCP_0") ); /* make name */
       else
-         sprintf( afni_iocname , "tcp:%s:7955" , afni_host ) ;  /* make name */
+         sprintf( afni_iocname , "tcp:%s:%d" , 
+            afni_host, get_port_named("AFNI_PLUGOUT_TCP_0") ) ;  /* make name */
 
       afni_ioc = iochan_init( afni_iocname , "create" ) ;    /* create it */
       if( afni_ioc == NULL ){
@@ -210,7 +215,8 @@ int afni_io(void)
                afni_name , afni_iocname ) ;
 
       if( afni_verbose )
-         fprintf(stderr,"++ Sending control information to AFNI\n") ;
+         fprintf(stderr,"++ Sending control information to AFNI\n   %s\n",
+                afni_buf) ;
 
       /** note that the ASCII NUL at the end of the buffer is sent **/
 
@@ -337,7 +343,11 @@ int afni_io(void)
 int main( int argc , char *argv[] )
 {
    int narg , ii;
-
+   
+   (void)AFNI_prefilter_args(&argc,argv);
+   
+   afni_port = get_port_named("PLUGOUT_DRIVE_PORT"); /* ZSS June 2011 */
+   
    /***** See if the pitiful user wants help *****/
 
    if( argc == 2 && strncmp(argv[1],"-help",5) == 0 ){
@@ -359,8 +369,9 @@ int main( int argc , char *argv[] )
              "  -v            Verbose mode.\n"
              "\n"
              "  -port pp      Use TCP/IP port number 'pp'.  The default is\n"
-             "                8099, but if two plugouts are running on the\n"
+             "                %d, but if two plugouts are running on the\n"
              "                same computer, they must use different ports.\n"
+             "                For a list of currently used ports use afni -list_ports\n"
              "\n"
              "  -maxwait t    Wait a maximum of 't' seconds for AFNI to connect;\n"
              "                if the connection doesn't happen in that time, exit.\n"
@@ -406,12 +417,15 @@ int main( int argc , char *argv[] )
              "      sleep 2 ; plugout_drive -com 'OPEN_WINDOW axialimage'\n"
              "    endif\n"
              "\n"
-            ) ;
+             "To have different plugout_* programs talking to different\n"
+             "AFNI, use the -np* options below\n"
+             "%s\n"
+            , afni_port, get_np_help()) ;
       exit(0) ;
    }
 
    /***** Process command line options *****/
-
+   
    N_com = 0;
    DontWait = 0;
    narg = 1 ;

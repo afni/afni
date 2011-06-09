@@ -56,13 +56,15 @@
 /***** Header file for communication routines *****/
 
 #include "thd_iochan.h"
+#include "niml.h"
 
 /***** Global variable determining on which system AFNI runs.  *****/
 /***** [default is the current system, can be changed by user] *****/
 
 static char afni_host[128] = "." ;
 static char afni_name[128] = "\0" ;
-static int  afni_port      = 8001 ;
+static int  afni_port      = 0 ;  /* Init. before parsing command line  
+                                    ZSS June 2011 */
 
 static int  afni_verbose = 0 ;  /* print out debug info? */
 static int  afni_do_ijk  = 0 ;  /* do IJK instead of TT? */
@@ -81,6 +83,10 @@ int main( int argc , char * argv[] )
 {
    int narg , ii ;
 
+   (void)AFNI_prefilter_args(&argc,argv);
+
+   afni_port = get_port_named("PLUGOUT_TT_PORT"); /* ZSS June 2011 */
+   
    /***** See if the pitiful user wants help *****/
 
    if( argc == 2 && strncmp(argv[1],"-help",5) == 0 ){
@@ -95,11 +101,16 @@ int main( int argc , char * argv[] )
              "                than Talairach coordinates.\n"
              "  -v          Verbose mode: prints out lots of stuff.\n"
              "  -port pp    Use TCP/IP port number 'pp'.  The default is\n"
-             "                8001, but if two copies of this are running on\n"
+             "                %d, but if two copies of this are running on\n"
              "                the same computer, they must use different ports.\n"
+             "                For a list of currently used ports use afni -list_ports\n"
              "  -name sss   Use the string 'sss' for the name that AFNI assigns\n"
              "                to this plugout.  The default is something stupid.\n"
-            ) ;
+             "\n"
+             "To have different plugout_* programs talking to different\n"
+             "AFNI, use the -np* options below\n"
+             "%s\n"
+            , afni_port, get_np_help()) ;
       exit(0) ;
    }
 
@@ -231,12 +242,15 @@ int afni_io(void)
       char afni_iocname[128] ;           /* will hold name of I/O channel */
 
       /** Note that the control channel is always a
-          TCP/IP channel to port # 7955 on the AFNI host system **/
+          TCP/IP channel to port #get_port_named("AFNI_PLUGOUT_TCP_0") 
+          (used to be #7955) on the AFNI host system **/
 
       if( strcmp(afni_host,".") == 0 )
-         sprintf( afni_iocname , "tcp:%s:7955" , "localhost" ); /* make name */
+         sprintf( afni_iocname , "tcp:%s:%d" , 
+            "localhost", get_port_named("AFNI_PLUGOUT_TCP_0") ); /* make name */
       else
-         sprintf( afni_iocname , "tcp:%s:7955" , afni_host ) ;  /* make name */
+         sprintf( afni_iocname , "tcp:%s:%d" , 
+            afni_host, get_port_named("AFNI_PLUGOUT_TCP_0") ) ;  /* make name */
       afni_ioc = iochan_init( afni_iocname , "create" ) ;    /* create it */
       if( afni_ioc == NULL ){
          fprintf(stderr,
