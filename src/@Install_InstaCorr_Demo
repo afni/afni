@@ -8,20 +8,26 @@ goto PARSE
 RET_PARSE:
 
 if ( -d ./AFNI_InstaCorrDemo || -f AFNI_InstaCorrDemo.tgz) then
-   echo ""
-   echo "Directory AFNI_InstaCorrDemo or AFNI_InstaCorrDemo.tgz exists already"
-   echo "If you need to reinstall, remove both AFNI_InstaCorrDemo and"
-   echo "AFNI_InstaCorrDemo.tgz with:"
-   echo "\\rm -rf AFNI_InstaCorrDemo.tgz AFNI_InstaCorrDemo"
-   echo "then run `basename $0` $argv[*] again."
-   echo ""
-   echo "Otherwise to just run the demos do:"
-   echo ""
-   set ret_coms = END
-   goto SHOW_COM
-endif
+echo ""
+echo "ERROR:"
+echo "   Directory AFNI_InstaCorrDemo or AFNI_InstaCorrDemo.tgz exists already"
+echo "   If you need to reinstall, remove both AFNI_InstaCorrDemo and"
+echo "   AFNI_InstaCorrDemo.tgz with:"
+echo "\\rm -rf AFNI_InstaCorrDemo.tgz AFNI_InstaCorrDemo"
+echo "   then run `basename $0` $argv[*] again."
+echo ""
+echo "Otherwise to just run the demos do:"
+echo ""
+set ret_coms = END
+goto SHOW_COM
+   endif
 
-wget http://afni.nimh.nih.gov:/pub/dist/data/AFNI_InstaCorrDemo.tgz
+which curl
+if ($status) then
+   wget http://afni.nimh.nih.gov/pub/dist/data/AFNI_InstaCorrDemo.tgz
+else
+   curl -O http://afni.nimh.nih.gov/pub/dist/data/AFNI_InstaCorrDemo.tgz
+endif
 tar xvzf AFNI_InstaCorrDemo.tgz
 cd AFNI_InstaCorrDemo/vol
    tcsh ./@SetupVolGroupInCorr
