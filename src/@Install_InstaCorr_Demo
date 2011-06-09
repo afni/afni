@@ -8,9 +8,11 @@ goto PARSE
 RET_PARSE:
 
 if ( -d ./AFNI_InstaCorrDemo) then
+   echo ""
    echo "Directory AFNI_InstaCorrDemo exists already"
    echo "If you need to reinstall, remove that directory."
    echo "Otherwise to run the demos do:"
+   echo ""
    set ret_coms = END
    goto SHOW_COM
 endif
