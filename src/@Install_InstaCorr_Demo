@@ -1,0 +1,97 @@
+#!/bin/tcsh -f
+
+set stat = 0
+set sdir = $PWD
+
+
+goto PARSE
+RET_PARSE:
+
+if ( -d ./AFNI_InstaCorrDemo) then
+   echo "Directory AFNI_InstaCorrDemo exists already"
+   echo "If you need to reinstall, remove that directory."
+   echo "Otherwise to run the demos do:"
+   set ret_coms = END
+   goto SHOW_COM
+endif
+
+wget afni.nimh.nih.gov:/pub/dist/data/AFNI_InstaCorrDemo.tgz
+tar xvzf AFNI_InstaCorrDemo.tgz
+cd AFNI_InstaCorrDemo/vol
+   tcsh ./@SetupVolGroupInCorr
+cd -
+cd AFNI_InstaCorrDemo/srf
+   tcsh ./@SetupSurfGroupInCorr
+   tcsh ./@RunSingleSurfInstaCorr -setup_only
+cd -
+
+if ( ! -d AFNI_InstaCorrDemo/srf ) then
+   echo "Installation Failed"
+   goto BEND
+endif
+set ret_coms = END
+goto SHOW_COM
+
+SHOW_COM:
+   echo "*****************"
+   echo ""
+   echo "For Volume-based 3dGroupInCorr run:"
+   echo "cd $PWD/AFNI_InstaCorrDemo/vol"
+   echo "tcsh ./@RunVolGroupInCorr "
+   echo ""
+   echo "For Surface-based 3dGroupInCorr run:"
+   echo "cd $PWD/AFNI_InstaCorrDemo/srf"
+   echo "tcsh ./@RunSurfGroupInCorr "
+   echo ""
+   echo "For Surface-based Single-Subject InstaCorr run:"
+   echo "cd $PWD/AFNI_InstaCorrDemo/srf"
+   echo "tcsh ./@RunSingleSurfInstaCorr "
+   echo ""
+   echo "*****************"
+goto $ret_coms
+
+goto END
+
+PARSE:
+   set Narg = $#
+   set cnt = 1
+   while ($cnt <= $Narg)
+		set donext = 1;
+      if ($donext && "$argv[$cnt]" == "-echo") then
+         set echo
+         set donext = 0; goto NEXT		
+      endif
+      if ($donext && ("$argv[$cnt]" == "-h" || "$argv[$cnt]" == "-help")) then
+         goto HELP
+         set donext = 0;	 goto NEXT	
+      endif
+      if ($donext == 1) then
+         echo "Error: Option or parameter '$argv[$cnt]' not understood"
+         goto END
+      endif
+      
+      NEXT:
+		@ cnt ++
+	end
+   
+goto RET_PARSE
+
+HELP:
+   echo "Installs and sets up AFNI's InstaCorr demo archive"
+   echo "After setup, all you need to do is run the demo scripts"
+   echo "this way:"
+   set ret_coms = HELP_COM
+   goto SHOW_COM
+   HELP_COM:
+   echo ""
+   echo "It taks a while to download, unpack, and run the setup scripts"
+   echo ""
+   goto END
+
+BEND:
+   echo "Failed"
+   set stat = 1
+   goto END
+   
+END:
+   exit $stat
