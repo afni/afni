@@ -175,7 +175,7 @@ int main( int argc , char * argv[] )
                    "** -fromcx option doesn't allow -ignore or -use!\n") ;
             exit(1) ;
          }
-         jj = csfft_nextup_one35( 2*(nx-1) ) ;
+         jj = csfft_nextup_even( 2*(nx-1) ) ;
          if( jj != 2*(nx-1) ){
             fprintf(stderr,
                     "** -fromcx only works with certain file lengths!\n") ;
@@ -188,7 +188,7 @@ int main( int argc , char * argv[] )
 
    if( cxop != FROMCX ){                     /* real input */
       if( nfft < nxi ) nfft = nxi ;
-      nfft = csfft_nextup_one35(nfft) ;
+      nfft = csfft_nextup_even(nfft) ;
       fprintf(stderr,"++ 1dfft length = %d\n",nfft) ;
       nby2 = nfft/2 ;
 

@@ -97,7 +97,7 @@ int main( int argc , char * argv[] )
           WARNING_message("Illegal -nfft value on command line") ;
           nfft = 0 ;
         } else {
-          ii = csfft_nextup(nfft) ;
+          ii = csfft_nextup_even(nfft) ;
           if( ii > nfft ){
             WARNING_message("Replacing -nfft=%d with next largest legal value=%d",
                             nfft,ii) ;
@@ -142,11 +142,8 @@ int main( int argc , char * argv[] )
      ERROR_exit("Only %d time points in dataset! Must have at least 4.",nvals);
 
    /* Calculate size for FFT */
-#if 0
-   nfft = csfft_nextup_one35(nvals);
-#endif
 
-   ii = csfft_nextup(nvals);
+   ii = csfft_nextup_even(nvals);
    if( nfft <= 2 ){
      INFO_message("Data length = %d ; FFT length = %d",nvals,ii) ;
    } else if( ii > nfft ){

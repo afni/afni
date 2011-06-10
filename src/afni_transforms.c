@@ -288,7 +288,7 @@ void absfft_func( int num , double to,double dt, float *vec )
    if( num < 2 ) return ;
    if( num != numold ){
      numold = num ;
-     ncx    = csfft_nextup(numold) ;
+     ncx    = csfft_nextup_even(numold) ;
      cx     = (complex *)realloc(cx,sizeof(complex)*ncx) ;
    }
 
@@ -783,8 +783,8 @@ void fft2D_absfunc( int nx , int ny , double dx, double dy, float *ar )
 
    if( nx < 5 || ny < 5 ) return ;
 
-   nxup = csfft_nextup_one35(nx) ;  /* get FFT size */
-   nyup = csfft_nextup_one35(ny) ;
+   nxup = csfft_nextup_even(nx) ;  /* get FFT size */
+   nyup = csfft_nextup_even(ny) ;
 
    cxar = (complex *) malloc(sizeof(complex)*nxup*nyup) ;
 
@@ -834,8 +834,8 @@ void fft2D_phasefunc( int nx , int ny , double dx, double dy, float *ar )
 
    if( nx < 5 || ny < 5 ) return ;
 
-   nxup = csfft_nextup_one35(nx) ;  /* get FFT size */
-   nyup = csfft_nextup_one35(ny) ;
+   nxup = csfft_nextup_even(nx) ;  /* get FFT size */
+   nyup = csfft_nextup_even(ny) ;
 
    cxar = (complex *) malloc(sizeof(complex)*nxup*nyup) ;
 

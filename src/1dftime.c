@@ -24,7 +24,7 @@ MRI_IMAGE * ts_to_ftime( int nwin , MRI_IMAGE *tim )
    for( ii=0 ; ii < nw2 ; ii++ ) xar[ii] = xar[nt+nw2+ii] = 0.0 ;
    memcpy( xar+nw2 , tar , sizeof(float)*nt ) ;
 
-   nfft = csfft_nextup_one35( nwin ) ; nfft2 = nfft/2 ;
+   nfft = csfft_nextup_even( nwin ) ; nfft2 = nfft/2 ;
    ftim = mri_new( nt , nfft2 , MRI_float ) ;
    ftar = MRI_FLOAT_PTR(ftim) ;
    cxar = (complex *) malloc( sizeof(complex) * nfft ) ;
