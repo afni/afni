@@ -1148,7 +1148,7 @@ static void autocorr( int npts, float in_ts[], int numVals, float outcoeff[] )
 
   /* Calculate size for FFT, including padding for eliminating overlap  */
   /* from circular convolution */
-  nfft = csfft_nextup_one35(npts * 2 - 1);
+  nfft = csfft_nextup_even(npts * 2 - 1);
 /*  fprintf(stderr,"++ FFT length = %d\n",nfft) ; */
 
   cxar = (complex *) calloc( sizeof(complex) , nfft ) ;
