@@ -301,7 +301,7 @@ char * POWER_main( PLUGIN_interface * plint )
 #if 0
       for( nfft=32 ; nfft < nuse ; nfft *= 2 ) ; /* loop until nfft >= nuse */
 #else
-      nfft = csfft_nextup_one35(nuse) ;
+      nfft = csfft_nextup_even(nuse) ;
 #endif
 
    } else {

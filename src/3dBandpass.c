@@ -62,19 +62,9 @@ int main( int argc , char * argv[] )
        "\n"
        "* The actual FFT length used will be printed, and may be larger\n"
        "   than the input time series length for the sake of efficiency.\n"
-       "  ++ The program will use a power-of-2, possibly multiplied by]\n"
-       "     a single factor of 3 and/or a single factor of 5; e.g.,\n"
-       "     240=16*3*5 would be chosen if there are 239 time points.\n"
-       "  ++ If you use the '-nfft' option, you can choose an FFT length\n"
-       "     that includes factors 3^2, 3^3, 5^2, and 5^3 in addition to\n"
-       "     the automatic selection list (which only allows 3^1 and 5^1).\n"
-       "     ++ Such FFT lengths are slower, and you should know what you\n"
-       "        are doing if you choose this option!\n"
-       "     ++ For example, if the input time series has length 136,\n"
-       "        the default FFT length would be 160 = 32*5, but you\n"
-       "        could legally use '-nfft 144' since 144 = 16*9.\n"
-       "     ++ Why you would want this level of control is between you and\n"
-       "        Cooley and Tukey.\n"
+       "  ++ The program will use a power-of-2, possibly multiplied by\n"
+       "     a power of 3 and/or 5 (up to and including the 3rd power of\n"
+       "     each of these: 3, 9, 27, and 5, 25, 125).\n"
        "\n"
        "* Note that the results of combining 3dDetrend and 3dBandpass will\n"
        "   depend on the order in which you run these programs.  That's why\n"
@@ -304,7 +294,7 @@ int main( int argc , char * argv[] )
    if( ntime < 9 ) ERROR_exit("Input dataset is too short!") ;
 
    if( nfft <= 0 ){
-     nfft = csfft_nextup_one35(ntime) ;
+     nfft = csfft_nextup_even(ntime) ;
      if( verb ) INFO_message("Data length = %d  FFT length = %d",ntime,nfft) ;
      (void)THD_bandpass_set_nfft(nfft) ;
    } else if( nfft < ntime ){

@@ -17,8 +17,8 @@ MRI_IMAGE * mri_fft2D( MRI_IMAGE * im , int mode )
 
    /* compute size of output */
 
-   nx = cxim->nx ; nxup = csfft_nextup_one35(nx) ;
-   ny = cxim->ny ; nyup = csfft_nextup_one35(ny) ;
+   nx = cxim->nx ; nxup = csfft_nextup_even(nx) ;
+   ny = cxim->ny ; nyup = csfft_nextup_even(ny) ;
 
    /* create output array */
 
