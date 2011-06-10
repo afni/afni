@@ -82,11 +82,11 @@ def read_data_file(filename, nlines=-1, marry_ok=0, verb=1):
 
     data, clines = read_married_file(filename, nlines=nlines, verb=verb)
     if data == None:
-       print '** failed to read text data file %s' % filename
+       if verb > 0: print '** failed to read text data file %s' % filename
        return None, None
 
     if married_type(data) and not marry_ok:
-       print "** file %s is in married format" % filename
+       if verb > 0: print "** file %s is in married format" % filename
        return None, None
 
     # return just the initial entries
