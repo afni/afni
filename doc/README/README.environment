@@ -2904,6 +2904,17 @@ will instead be done using the shell directly (via popen and ls).  You should
 only set this variable if you really need it, and understand the issue!
 [For Graham Wideman]
 
+-----------------------------
+Variable: AFNI_GLOB_SELECTORS
+-----------------------------
+If this variable is 'YES', then internal wildcard expansion (in AFNI programs
+that support this capability) will NOT use the '[]' , '{}' , or '<>' selectors.
+Note that '[]' is a standard shell wildcard, so using this variable will
+restrict your wildcard-ing.  On the other hand, it lets you do something like
+  3dTcat -prefix ALL_rest0.nii -relabel -verb 'rest_*.nii[0]'
+which will create a dataset from the #0 sub-brick of every dataset that matches
+the wildcard 'rest_*.nii'.
+
 ----------------------------------
 Variable: AFNI_IGNORE_BRICK_FLTFAC
 ----------------------------------
