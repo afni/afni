@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 15, JUN, 2011, RCR, "gen_group_command.py", MINOR, TYPE_ENHANCE,
+   "if constant dset names, extract SIDs from dir names",
+   "Done for R Momenan."
+ } ,
+
  { 8, JUN, 2011, RCR, "make_random_timing.py", MICRO, TYPE_BUG_FIX,
    "fixed print and added min_rest to durations in test of -tr_locked",
    NULL
