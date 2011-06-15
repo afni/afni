@@ -49,6 +49,7 @@ int main( int argc , char * argv[] )
    int medianit = 0 ;                         /* 06 Jul 2003 */
    int maxit    = 0 ;                         /* 24 Feb 2005 */
    int minit    = 0 ;                         /* 25 Feb 2005 */
+   int sumit    = 0 ;                         /* 15 Jun 2011 */
    float *exar ;                              /* 06 Jul 2003 */
    char *sname = "Average" ;                  /* 06 Jul 2003 */
    int self_mask = 0 ;                        /* 06 Dec 2004 */
@@ -113,6 +114,9 @@ int main( int argc , char * argv[] )
              "  -drange a b  Means to only include voxels from the dataset whose\n"
              "                 values fall in the range 'a' to 'b' (inclusive).\n"
              "                 Otherwise, all voxel values are included.\n"
+             "                   [-dindex and -drange are old options that predate]\n"
+             "                   [the introduction of the sub-brick selector '[]' ]\n"
+             "                   [and the sub-range value selector '<>' to AFNI.  ]\n"
              "\n"
              "  -slices p q  Means to only included voxels from the dataset\n"
              "                 whose slice numbers are in the range 'p' to 'q'\n"
@@ -120,17 +124,19 @@ int main( int argc , char * argv[] )
              "                 NZ-1, where NZ can be determined from the output\n"
              "                 of program 3dinfo.  The default is to include\n"
              "                 data from all slices.\n"
-             "                 [There is no provision for geometrical voxel]\n"
-             "                 [selection except in the slice (z) direction]\n"
+             "                   [There is no provision for geometrical voxel]\n"
+             "                   [selection except in the slice (z) direction]\n"
              "\n"
-             "  -sigma       Means to compute the standard deviation as well\n"
-             "                 as the mean.\n"
+             "  -sigma       Means to compute the standard deviation in addition\n"
+             "                 to the mean.\n"
+             "  -sum         Means to compute the sum instead of the mean.\n"
              "  -median      Means to compute the median instead of the mean.\n"
              "  -max         Means to compute the max instead of the mean.\n"
              "  -min         Means to compute the min instead of the mean.\n"
-             "                 (-sigma is ignored with -median, -max, or -min)\n"
+             "                 [-sigma is ignored with -sum, -median, -max, or -min]\n"
+             "                 [only the last of -sum, -median, -max, or -min works]\n"
              "  -dump        Means to print out all the voxel values that\n"
-             "                 go into the average.\n"
+             "                 go into the result.\n"
              "  -udump       Means to print out all the voxel values that\n"
              "                 go into the average, UNSCALED by any internal\n"
              "                 factors.\n"
@@ -149,6 +155,12 @@ int main( int argc , char * argv[] )
              "\n"
              "The output is printed to stdout (the terminal), and can be\n"
              "saved to a file using the usual redirection operation '>'.\n"
+             "\n"
+             "Or you can do fun stuff like\n"
+             "  3dmaskave -q -mask Mfile+orig timefile+orig | 1dplot -stdin -nopush\n"
+             "to redirect the output of 3dmaskave into 1dplot for graphing.\n"
+             "\n"
+             "-- Author: RWCox\n"
             ) ;
 
       printf("\n" MASTER_SHORTHELP_STRING ) ;
@@ -293,17 +305,22 @@ int main( int argc , char * argv[] )
       }
 
       if( strncmp(argv[narg],"-median",5) == 0 ){
-         medianit = 1 ; maxit = 0 ; minit = 0 ;
+         medianit = 1 ; maxit = 0 ; minit = 0 ; sumit = 0 ;
          narg++ ; continue ;
       }
 
       if( strncmp(argv[narg],"-max",4) == 0 ){  /* 24 Feb 2005 */
-         maxit = 1 ; medianit = 0 ; minit = 0 ;
+         maxit = 1 ; medianit = 0 ; minit = 0 ; sumit = 0 ;
          narg++ ; continue ;
       }
 
+      if( strncmp(argv[narg],"-sum",4) == 0 ){  /* 15 Jun 2011 */
+        sumit = 1 ; maxit = medianit = minit = 0 ;
+        narg++ ; continue ;
+      }
+
       if( strncmp(argv[narg],"-min",4) == 0 ){  /* 25 Feb 2005 */
-         maxit = 0 ; medianit = 0 ; minit = 1 ;
+         maxit = 0 ; medianit = 0 ; minit = 1 ; sumit = 0 ;
          narg++ ; continue ;
       }
 
@@ -313,6 +330,7 @@ int main( int argc , char * argv[] )
    if( medianit ){ sigmait = 0; sname = "Median"; }
    if( maxit    ){ sigmait = 0; sname = "Max"   ; } /* 24 Feb 2005 */
    if( minit    ){ sigmait = 0; sname = "Min"   ; } /* 25 Feb 2005 */
+   if( sumit    ){ sigmait = 0; sname = "Sum"   ; } /* 15 Jun 2011 */
 
    /* should have one more argument */
 
@@ -563,6 +581,7 @@ int main( int argc , char * argv[] )
                  if( medianit ) sum = qmed_float( mc , exar ) ;
             else if( maxit    ) sum = max_float ( mc , exar ) ;
             else if( minit    ) sum = min_float ( mc , exar ) ;
+            else if( sumit    ) sum *= mc ;
             sum = mfac * sum ;
 
             if( dumpit ) printf("+++ %s = %g",sname,sum) ;
@@ -610,6 +629,7 @@ int main( int argc , char * argv[] )
                  if( medianit ) sum = qmed_float( mc , exar ) ;
             else if( maxit    ) sum = max_float ( mc , exar ) ;
             else if( minit    ) sum = min_float ( mc , exar ) ;
+            else if( sumit    ) sum *= mc ;
             sum = mfac * sum ;
 
             if( dumpit ) printf("+++ %s = %g",sname,sum) ;
@@ -657,6 +677,7 @@ int main( int argc , char * argv[] )
                  if( medianit ) sum = qmed_float( mc , exar ) ;
             else if( maxit    ) sum = max_float ( mc , exar ) ;
             else if( minit    ) sum = min_float ( mc , exar ) ;
+            else if( sumit    ) sum *= mc ;
             sum = mfac * sum ;
 
             if( dumpit ) printf("+++ %s = %g",sname,sum) ;
