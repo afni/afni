@@ -222,9 +222,11 @@ g_history = """
    0.1  Oct 25, 2010    - handle some 3dMEMA cases
    0.2  Oct 26, 2010    - MEMA updates
    0.3  Nov 08, 2010    - can generate 3dttest++ commands
+   0.4  Jun 15, 2011    - if constant dset names, extract SIDs from dir names
+                          (done for R Momenan)
 """
 
-g_version = "gen_group_command.py version 0.3, November 8, 2010"
+g_version = "gen_group_command.py version 0.4, June 15, 2011"
 
 
 class CmdInterface:
@@ -469,8 +471,11 @@ class CmdInterface:
       # might deal with subject IDs and attributes later
       for ind, dlist in enumerate(self.dsets):
          slist = SUBJ.SubjectList(dset_l=dlist, verb=self.verb)
-         slist.set_ids_from_dsets(prefix=self.subj_prefix,
-                                  suffix=self.subj_suffix)
+         if slist.status: return 1
+         if slist.set_ids_from_dsets(prefix=self.subj_prefix,
+                                     suffix=self.subj_suffix):
+            print '** cannot set subject IDs from datasets'
+            return 1
          self.slist.append(slist)
          if self.verb > 2: slist.show("slist %d" % ind)
 
