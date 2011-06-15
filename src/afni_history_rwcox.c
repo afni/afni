@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 7 , JUN , 2011 , RWC , "3dAllineate" , MICRO , TYPE_GENERAL ,
+  { 15 , JUN , 2011 , RWC , "3dmaskave" , MICRO , TYPE_NEW_OPT ,
+   "Add -sum option; rearrange -help output a little." ,
+   NULL } ,
+
+ { 7 , JUN , 2011 , RWC , "3dAllineate" , MICRO , TYPE_GENERAL ,
    "modify number of points used for optimization" ,
    "Powell's NEWUOA algorithm requires specifying number of points kept at\n"
    "each stage for approximating the objective function.  Modification here\n"
