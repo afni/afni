@@ -65,14 +65,33 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 16, JUN , 2011 , ZSS , "3dSurfMask" , MAJOR , TYPE_NEW_OPT,
+   "Major improvements for mask creation and voxel distance computations",
+   "Option -fill_method SLOW produces more accurate masks for voxels\n"
+   "inside the closed surface. In addition, the program outputs a dataset\n"
+   "with the shortest distance of each voxel to the surface.\n"
+   "See examples under 3dSurfMask -help."
+  } ,
+
+ { 16, JUN , 2011 , ZSS , "SurfPatch" , MINOR , TYPE_NEW_OPT,
+   "-flip_orientation allows for reversing triangle orientation.",
+   "See new examples under SurfPatch -help"
+  } ,
+
+ { 16, JUN , 2011 , ZSS , "SurfPatch" , MINOR , TYPE_BUG_FIX,
+   "No longer complains about not finding seed in cases where it should.",
+   NULL
+  } ,
+
  { 8, JUN , 2011 , ZSS , "@FSlabel2dset" , MINOR , TYPE_NEW_PROG,
    "Script to change FreeSurfer ascii label file to SUMA dset",
    NULL
   } ,
 
- { 8, JUN , 2011 , ZSS , "afni-general" , MINOR , TYPE_NEW_OPT,
+ { 8, JUN , 2011 , ZSS , "afni-general" , MAJOR , TYPE_NEW_OPT,
    "Added -npb and modified title bar to reflect bloc of ports",
-   "See afni's help for -npb option."
+   "You can have multiple instances of programs talking to each other.\n"
+   "See afni's help for details on the -npb option."
   } ,
 
  { 7, JUN , 2011 , ZSS , "afni" , MINOR , TYPE_NEW_OPT,
