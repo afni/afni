@@ -1382,6 +1382,8 @@ void AFNI_sigfunc_alrm(int sig)
      "I will not say 'do not weep', for not all tears are an evil"   ,
      "Calo anor na ven -- May the sun shine upon your road"          ,
      "Little by little, one travels far"                             ,
+     "Divide By Cucumber Error; Please Reinstall Universe And Reboot",
+     "Out of Cheese Error; Please Install Wensleydale and Try Again" ,
      "May it be a light to you in dark places, when all other lights go out"          ,
      "No in elenath hilar nan had gin -- May the stars shine upon your path"          ,
      "There is a time for departure even when there is no place to go"                ,
