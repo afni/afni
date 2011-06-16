@@ -5012,6 +5012,8 @@ extern float THD_quadrant_corr( int,float *,float *) ;
 extern float THD_pearson_corr ( int,float *,float *) ;
 extern float THD_ktaub_corr   ( int,float *,float *) ;  /* 29 Apr 2010 */
 extern float THD_eta_squared  ( int,float *,float *) ;  /* 25 Jun 2010 */
+extern double THD_eta_squared_masked(int,float *,float *,byte *);/* 16 Jun'11 */
+
 
 extern float THD_pearson_corr_wt(int,float *,float *,float *); /* 13 Sep 2006 */
 

@@ -463,6 +463,45 @@ float THD_eta_squared( int n, float *x , float *y )
    return 1.0 - num/denom ;
 }
 
+/*----------------------------------------------------------------*/
+/*! eta^2 (Cohen, NeuroImage 2008)              16 Jun 2011 [rickr]
+ *
+ *  Same as THD_eta_squared, but allow a mask and return a double.
+ *
+ *  eta^2 = 1 -  SUM[ (a_i - m_i)^2 + (b_i - m_i)^2 ]
+ *               ------------------------------------
+ *               SUM[ (a_i - M  )^2 + (b_i - M  )^2 ]
+ *
+ *  where  o  a_i and b_i are the vector elements
+ *         o  m_i = (a_i + b_i)/2
+ *         o  M = mean across both vectors
+ -----------------------------------------------------------------*/
+double THD_eta_squared_masked( int n, float *x , float *y, byte *mask )
+{
+   double num=0.0f , denom = 0.0f ;
+   float gm=0.0f , lm, vv, ww;
+   int ii, nm ;
+
+   for( ii=0, nm=0 ; ii < n ; ii++ )
+      if( !mask || mask[ii] ) { gm += x[ii] + y[ii] ; nm++ ; }
+
+   if( nm == 0 ) return 0.0 ;          /* bail on empty mask */
+
+   gm /= (2*nm) ;
+
+   for( ii=0 ; ii < n ; ii++ ){
+     if( mask && !mask[ii] ) continue;  /* skip any not in mask */
+
+     lm = 0.5f * ( x[ii] + y[ii] ) ;
+     vv = (x[ii]-lm); ww = (y[ii]-lm); num   += ( vv*vv + ww*ww );
+     vv = (x[ii]-gm); ww = (y[ii]-gm); denom += ( vv*vv + ww*ww );
+   }
+
+   if( num < 0.0 || denom <= 0.0 || num >= denom ) return 0.0 ;
+
+   return 1.0 - num/denom ;
+}
+
 /****************************************************************************/
 /*** Histogram-based measurements of dependence between two float arrays. ***/
 /****************************************************************************/
