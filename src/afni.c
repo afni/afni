@@ -276,6 +276,7 @@ void AFNI_syntax(void)
      "USAGE 2: read in images for 'quick and dirty' viewing\n"
      "-----------------------------------------------------\n"
      "(Most advanced features of AFNI will be disabled.)\n"
+     "(The aiv program can be used now instead of AFNI.)\n"
      "\n"
      "   afni -im [options] im1 im2 im3 ...\n"
      "\n"
@@ -381,6 +382,8 @@ void AFNI_syntax(void)
      "   -nomall      Disables use of the mcw_malloc() library routines.\n"
 #endif
      "   -motif_ver   Show the applied motif version string.\n"
+     "   -goodbye     Print a 'goodbye' message and exit (just for fun).\n"
+     "   -ver         Print the current AFNI version and exit.\n"
      "\n"
      "N.B.: Many of these options, as well as the initial color set up,\n"
      "      can be controlled by appropriate X11 resources.  See the\n"
@@ -527,7 +530,6 @@ void AFNI_parse_args( int in_argc , char *in_argv[] )
 ENTRY("AFNI_parse_args") ;
 
    if( argc > 1 && strcmp(argv[1],"-help")    == 0 ) AFNI_syntax() ;
-   if( argc > 1 && strcmp(argv[1],"-goodbye") == 0 ) AFNI_sigfunc_alrm(0) ;
    
    GLOBAL_argopt.dz       = 1.0 ;          /* set up defaults */
    GLOBAL_argopt.dy       = 1.0 ;
@@ -1389,7 +1391,7 @@ void AFNI_sigfunc_alrm(int sig)
      "Never trust a statistic you haven't faked yourself"            ,
 
      "The Andromeda Galaxy is on a collision course with us -- be ready"              ,
-     "AFNI is very user friendly -- we are just selective about who are friends are"  ,
+     "AFNI is very user friendly -- we are just selective about who our friends are"  ,
      "May it be a light to you in dark places, when all other lights go out"          ,
      "No in elenath hilar nan had gin -- May the stars shine upon your path"          ,
      "There is a time for departure even when there is no place to go"                ,
@@ -1479,7 +1481,10 @@ int main( int argc , char *argv[] )
 
    /*--- help the pitiful user? ---*/
 
-   if( argc > 1 && strncmp(argv[1],"-help",2) == 0 ) AFNI_syntax() ;
+   machdep() ;
+
+   if( argc > 1 && strcmp(argv[1],"-help")    == 0 ) AFNI_syntax() ;
+   if( argc > 1 && strcmp(argv[1],"-goodbye") == 0 ) AFNI_sigfunc_alrm(0) ;
 
    { char *eee = getenv("AFNI_FORK") ;    /* 31 May 2011 */
      if( YESSISH(eee) ){
@@ -1496,7 +1501,6 @@ int main( int argc , char *argv[] )
 
    /*--- Initialize some stuff ---*/
 
-   machdep() ;                     /* RWCox: 20 Apr 2001 */
    THD_load_datablock_verbose(1) ; /* 21 Aug 2002 */
 
    signal(SIGINT ,AFNI_sigfunc) ;  /* may be superseded by mainENTRY below */
