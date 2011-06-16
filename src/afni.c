@@ -526,7 +526,8 @@ void AFNI_parse_args( int in_argc , char *in_argv[] )
 
 ENTRY("AFNI_parse_args") ;
 
-   if( argc > 1 && strncmp(argv[1],"-help",2) == 0 ) AFNI_syntax() ;
+   if( argc > 1 && strcmp(argv[1],"-help")    == 0 ) AFNI_syntax() ;
+   if( argc > 1 && strcmp(argv[1],"-goodbye") == 0 ) AFNI_sigfunc_alrm(0) ;
    
    GLOBAL_argopt.dz       = 1.0 ;          /* set up defaults */
    GLOBAL_argopt.dy       = 1.0 ;
@@ -1384,6 +1385,11 @@ void AFNI_sigfunc_alrm(int sig)
      "Little by little, one travels far"                             ,
      "Divide By Cucumber Error; Please Reinstall Universe And Reboot",
      "Out of Cheese Error; Please Install Wensleydale and Try Again" ,
+     "If at first you don't succeed -- call it version 1.0"          ,
+     "Never trust a statistic you haven't faked yourself"            ,
+
+     "The Andromeda Galaxy is on a collision course with us -- be ready"              ,
+     "AFNI is very user friendly -- we are just selective about who are friends are"  ,
      "May it be a light to you in dark places, when all other lights go out"          ,
      "No in elenath hilar nan had gin -- May the stars shine upon your path"          ,
      "There is a time for departure even when there is no place to go"                ,
