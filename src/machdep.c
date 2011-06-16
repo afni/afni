@@ -24,6 +24,10 @@ int machdep_be_quiet(void){ return be_quiet ; }
 void machdep()
 {
    long seed ;
+   static int first=1 ;
+
+   if( !first ) return ; else first = 0 ;
+
    /*-- force use of mcw_malloc.c functions - 05 Nov 2001 --*/
 
 #ifdef USING_MCW_MALLOC
@@ -36,9 +40,8 @@ void machdep()
    mallopt( M_MMAP_MAX , 1 ) ;
 #endif
 
-   seed = AFNI_numenv("AFNI_RANDOM_SEEDVAL") ;
-   if( seed != 0) srand48(seed) ;
-   else           srand48((long)time(NULL)+(long)getpid()) ;
+   seed = (long)AFNI_numenv("AFNI_RANDOM_SEEDVAL") ;
+   init_rand_seed(seed) ;
 
    be_quiet = AFNI_yesenv("AFNI_QUIET_STARTUP") ;  /* 08 Dec 2010 */
    return ;
@@ -51,17 +54,13 @@ char * GetAfniWebBrowser(void)
    char *awb=NULL;
    awb = getenv("AFNI_WEB_BROWSER") ;
 #ifdef DARWIN
-   if( awb == NULL )
-     awb = strdup("open") ;  /* for Mac OS X */
+   if( awb == NULL ) awb = strdup("open") ;  /* for Mac OS X */
 #endif
-   if( awb == NULL )
-     awb = THD_find_executable( "firefox" ) ;
-   if( awb == NULL )
-     awb = THD_find_executable( "mozilla" ) ;
-   if( awb == NULL )
-     awb = THD_find_executable( "netscape" ) ;
-   if( awb == NULL )
-     awb = THD_find_executable( "opera" ) ;
+   if( awb == NULL ) awb = THD_find_executable( "firefox" )  ;
+   if( awb == NULL ) awb = THD_find_executable( "mozilla" )  ;
+   if( awb == NULL ) awb = THD_find_executable( "netscape" ) ;
+   if( awb == NULL ) awb = THD_find_executable( "opera" )    ;
+   if( awb == NULL ) awb = THD_find_executable( "chrome" )   ;
    return(awb);
 }
 
@@ -79,7 +78,7 @@ void init_rand_seed( long int seed )
   in machdep.h for your machine -- RWCox - 04 Sep 2001
 ---------------------------------------------------------------------*/
 #ifdef USE_RANDOM
-void srand48( long int s ){ srandom((unsigned int) s); }
+void srand48( long int s ){ srandom((unsigned int)s); }
 
 double drand48(void){ return (((double)random())/LONG_MAX); }
 
@@ -167,15 +166,14 @@ double lgamma( double x )
 
 char * Random_Insult(void)
 {
-#define NINSULT 17
-   static char *ins[NINSULT]={ "Stupid"    , "Moronic"   , "Cretinous" ,
-                               "Idiotic"   , "Bozonic"   , "Criminal"  ,
-                               "Repulsive" , "Dumb"      , "Pinheaded" ,
-                               "Fatuous"   , "Asinine"   , "Imbecilic" ,
-                               "Oafish"    , "Doltish"   , "Duncical"  ,
-                               "Witless"   , "Brainless"
+#define NINSULT 18
+   static char *ins[NINSULT]={ "Stupid"    , "Moronic"   , "Cretinous"   ,
+                               "Idiotic"   , "Bozonic"   , "Criminal"    ,
+                               "Repulsive" , "Dumb"      , "Pinheaded"   ,
+                               "Fatuous"   , "Asinine"   , "Imbecilic"   ,
+                               "Oafish"    , "Doltish"   , "Duncical"    ,
+                               "Witless"   , "Brainless" , "Flatbrained"
    } ;
    int ii = (lrand48()>>5) % NINSULT ;
    return ins[ii] ;
 }
-
