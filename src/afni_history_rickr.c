@@ -49,6 +49,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 16, JUN, 2011, RCR, "3ddot", MINOR, TYPE_NEW_OPT,
+   "added -doeta2 via new THD_eta_squared_masked",
+   "Added for Shinchan."
+ } ,
+
+ { 16, JUN, 2011, RCR, "3dAutoTcorrelate", MICRO, TYPE_BUG_FIX,
+   "allowed very small datasets",
+   NULL
+ } ,
+
  { 15, JUN, 2011, RCR, "gen_group_command.py", MINOR, TYPE_ENHANCE,
    "if constant dset names, extract SIDs from dir names",
    "Done for R Momenan."

@@ -9,6 +9,8 @@
 
 double DSET_cor( THD_3dim_dataset *, THD_3dim_dataset *, byte *, int ,
                  double *,double *,double *,double *,double *,int * ) ;
+double DSET_eta2(THD_3dim_dataset *, THD_3dim_dataset *, byte *, int * ) ;
+float * get_float_dset_data_pointer( THD_3dim_dataset * , int , int * ) ;
 
 int main( int argc , char * argv[] )
 {
@@ -45,6 +47,7 @@ int main( int argc , char * argv[] )
              "                 {a,b} so that dset2 is approximately a + b*dset1\n"
              "  -dosums      Return the 5 numbers xbar=<x> ybar=<y>\n"
              "                 <(x-xbar)^2> <(y-ybar)^2> <(x-xbar)(y-ybar)>\n"
+             "  -doeta2      Return eta-squared (Cohen, NeuroImage 2008).\n"
             ) ;
 
       printf("\n" MASTER_SHORTHELP_STRING ) ;
@@ -66,6 +69,9 @@ int main( int argc , char * argv[] )
       }
       if( strncmp(argv[narg],"-dosums",4) == 0 ){
          mode = 3 ; narg++ ; continue ;
+      }
+      if( strncmp(argv[narg],"-doeta2",4) == 0 ){
+         mode = 4 ; narg++ ; continue ;
       }
       if( strncmp(argv[narg],"-mask",5) == 0 ){
          if( mask_dset != NULL ){
@@ -143,9 +149,13 @@ int main( int argc , char * argv[] )
       DSET_delete(mask_dset) ;
    }
 
-   dxy = DSET_cor( xset , yset , mmm , demean, 
-                   &xbar,&ybar,&xxbar,&yybar,&xybar , &nnn ) ;
+   /* mode 4 is special: eta^2                     16 Jun 2011 [rickr] */
+   if ( mode == 4 ) dxy = DSET_eta2( xset , yset , mmm , &nnn ) ;
+   else             dxy = DSET_cor( xset , yset , mmm , demean, 
+                                    &xbar,&ybar,&xxbar,&yybar,&xybar , &nnn ) ;
+
    if( nnn == 0 ) ERROR_exit("Can't compute for some reason!") ;
+   if( nnn == 1 ) fprintf(stderr,"** only 1 masked voxel?\n") ;
    switch( mode ){
      default: printf("%g\n",dxy) ; break ;
 
@@ -161,6 +171,8 @@ int main( int argc , char * argv[] )
 
      case 3:
        printf("%g %g %g %g %g\n",xbar,ybar,xxbar,yybar,xybar) ;
+     case 4:
+       printf("%g\n",dxy);
      break ;
    }
    exit(0) ;
@@ -170,6 +182,39 @@ int main( int argc , char * argv[] )
 
 #undef  ASSIF
 #define ASSIF(p,v) do{ if( (p)!=NULL ) *(p)=(v) ; } while(0)
+
+double DSET_eta2( THD_3dim_dataset *xset, THD_3dim_dataset *yset,
+                  byte *mmm , int *npt )
+{
+   double e2 ;
+   float *fxar , *fyar ;
+   int ii , nxyz , fxar_new,fyar_new , nnn ;
+
+   nxyz = DSET_NVOX(xset) ;
+
+   ASSIF(npt,0) ;
+
+   /* load bricks */
+
+   fxar = get_float_dset_data_pointer(xset, 0, &fxar_new);
+   fyar = get_float_dset_data_pointer(yset, 0, &fyar_new);
+   if ( ! fxar || ! fyar ) ERROR_exit("Cannot get float pointers!") ;
+
+   if( npt ) { /* then count applied voxels (masked or all) */
+      if( mmm ) {
+         for( nnn=ii=0 ; ii < nxyz ; ii++ ) if( mmm[ii] ) nnn++;
+      } else nnn = nxyz ;
+      ASSIF(npt, nnn) ;
+   }
+
+   /* actual work: get eta^2 */
+   e2 = THD_eta_squared_masked(nxyz, fxar, fyar, mmm);
+
+   if( fxar_new ) free(fxar) ;
+   if( fyar_new ) free(fyar) ;
+
+   return e2 ;
+}
 
 double DSET_cor( THD_3dim_dataset *xset,
                  THD_3dim_dataset *yset, byte *mmm , int dm,
@@ -189,35 +234,15 @@ double DSET_cor( THD_3dim_dataset *xset,
 
    /* load bricks */
 
-   DSET_load(xset); CHECK_LOAD_ERROR(xset);
-   ivx   = 0 ;
-   itypx = DSET_BRICK_TYPE(xset,ivx) ;
-   xar   = DSET_ARRAY(xset,ivx) ; if( xar == NULL ) return 0.0 ;
-   if( itypx == MRI_float ){
-     fxar = (float *) xar ; fxar_new = 0 ;
-   } else {
-     fxar = (float *) malloc( sizeof(float) * nxyz ) ; fxar_new = 1 ;
-     EDIT_coerce_type( nxyz , itypx,xar , MRI_float,fxar ) ;
-     PURGE_DSET( xset ) ;
-   }
-
-   DSET_load(yset); CHECK_LOAD_ERROR(yset);
-   ivy   = 0 ;
-   itypy = DSET_BRICK_TYPE(yset,ivy) ;
-   yar   = DSET_ARRAY(yset,ivy) ; if( yar == NULL ) return 0.0 ;
-   if( itypy == MRI_float ){
-     fyar = (float *) yar ; fyar_new = 0 ;
-   } else {
-     fyar = (float *) malloc( sizeof(float) * nxyz ) ; fyar_new = 1 ;
-     EDIT_coerce_type( nxyz , itypy,yar , MRI_float,fyar ) ;
-     PURGE_DSET( yset ) ;
-   }
+   fxar = get_float_dset_data_pointer(xset, 0, &fxar_new);
+   fyar = get_float_dset_data_pointer(yset, 0, &fyar_new);
+   if ( ! fxar || ! fyar ) ERROR_exit("Cannot get float pointers!") ;
 
    /* 29 Feb 2000: remove mean? */
 
    sumxx = sumyy = 0.0 ;
    for( nnn=ii=0 ; ii < nxyz ; ii++ ){
-     if( mmm == NULL || mmm[ii] ){ sumxx += fxar[ii]; sumyy += fyar[ii]; nnn++; }
+     if( mmm == NULL || mmm[ii] ){sumxx += fxar[ii]; sumyy += fyar[ii]; nnn++;}
    }
    if( nnn < 5 ) return 0.0 ;             /* ERROR */
    sumxx /= nnn ; sumyy /= nnn ;
@@ -265,3 +290,31 @@ double DSET_cor( THD_3dim_dataset *xset,
 
    dxy = sumxy / sqrt(dxy) ; return dxy ;
 }
+
+/* return the data pointer (if float) or a pointer to converted data,
+ * with a flag to specify whether conversion to float happened
+ *   - index is the sub-brick to read             16 Jun 2011 [rickr]
+ */
+float * get_float_dset_data_pointer( THD_3dim_dataset * dset,
+                                     int index, int * dnew )
+{
+   int     nxyz, dtype ;
+   void  * dar;
+   float * fdar; 
+
+   nxyz = DSET_NVOX(dset) ;
+
+   DSET_load(dset); CHECK_LOAD_ERROR(dset);
+   dtype = DSET_BRICK_TYPE(dset,index) ;
+   dar   = DSET_ARRAY(dset,index) ; if( dar == NULL ) return NULL ;
+   if( dtype == MRI_float ){
+     fdar = (float *) dar ; ASSIF(dnew, 0) ;
+   } else {
+     fdar = (float *) malloc( sizeof(float) * nxyz ) ; ASSIF(dnew, 1) ;
+     EDIT_coerce_type( nxyz , dtype,dar , MRI_float,fdar ) ;
+     PURGE_DSET( dset ) ;
+   }
+
+   return fdar;
+}
+
