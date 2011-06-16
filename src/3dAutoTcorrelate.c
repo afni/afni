@@ -527,7 +527,8 @@ AFNI_OMP_START ;
 
       ii = imap[kout] ;  /* ii= source voxel (we know that ii is in the mask) */
 
-      if( ithr == 0 ){ vii++ ; if( vii%vstep == vstep/2 ) vstep_print(); }
+      if( ithr == 0 && vstep > 2 ) /* allow small dsets 16 Jun 2011 [rickr] */
+      { vii++ ; if( vii%vstep == vstep/2 ) vstep_print(); }
 
       /* get ref time series from this voxel */
 
