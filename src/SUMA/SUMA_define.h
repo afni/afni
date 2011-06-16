@@ -2854,6 +2854,7 @@ typedef struct {
    int full_list;
    THD_3dim_dataset *mset;
    int exists;
+   int coorder_xyz;
 }  SUMA_FORM_AFNI_DSET_STRUCT;
  
 extern SUMA_SurfaceViewer *SUMAg_cSV; /*!< Global pointer to current Surface Viewer structure*/

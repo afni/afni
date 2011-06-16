@@ -4,7 +4,6 @@ PARSE:
    #exit status
    set estat = 0
    
-   echo "Parsing ..."
    set Narg = $#
    
    set ok_notice = 0
@@ -36,6 +35,7 @@ PARSE:
    set npass = -twopass
    set prexform = ""
    set OneWarp = 0
+   set just_copy_base = ""
    if ("$1" == '') goto HELP
 
    while ($cnt <= $Narg)
@@ -202,6 +202,21 @@ PARSE:
             set donext = 0   
          endif   
       endif
+      if ($donext && "$argv[$cnt]" == "-base_copy") then
+         set pLoc = $cnt      
+         if ($pLoc == $Narg) then
+            echo "Need prefix volume after -base_copy"
+            goto END
+         else
+            @ cnt ++
+            set just_copy_base = "$argv[$cnt]"
+            set donext = 0   
+         endif   
+      endif
+      if ($donext && "$argv[$cnt]" == "-base_list") then
+         set just_copy_base = "LIST"
+         set donext = 0   
+      endif
       if ($donext && "$argv[$cnt]" == "-apar") then
          set pLoc = $cnt      
          if ($pLoc == $Narg) then
@@ -310,13 +325,15 @@ PARSE:
       endif
       @ cnt ++
    end
+   
+   goto SET_REF_PATH
+   SET_REF_PATH_RETURN:
+   
    if ("$anat_in" == "" || "$ref_in" == "") then
       echo "Error: Need both -base and -input parameters"
       goto END
    endif
    
-   goto SET_REF_PATH
-   SET_REF_PATH_RETURN:
    #echo "Template/Apar path is: $ref_path"
    
    set prs_in = `@parse_afni_name "$anat_in"`
@@ -422,6 +439,7 @@ if ( `@CheckForAfniDset ${ref_in}` != 2 ) then
    set estat = 1
    goto END
 endif
+
 set ttt_pref = "`@GetAfniPrefix ${ref_in}`"
 if ("$ttt_pref" == "TT_avg152EPI") then
    echo ""
@@ -1088,12 +1106,12 @@ if ( "$ref_path" == "$ref_in" ) then
    #echo "No Path specified ( $ref_path == $ref_in )" 
    set ref_path = "."
    if ($apar_mode == 1) then
-      goto SET_REF_PATH_RETURN
+      goto END_REF_SEARCH
    endif
    #if not in apar mode, try to set the path
    if ( `@CheckForAfniDset ${ref_in}` == 2 ) then
-      echo "Template dset ${ref_in} found."
-      goto SET_REF_PATH_RETURN
+      if ($verb) echo "Template dset ${ref_in} found."
+      goto END_REF_SEARCH
    endif
    
    set ref_path = `@FindAfniDsetPath $ref_in`
@@ -1110,11 +1128,22 @@ if ( "$ref_path" == "$ref_in" ) then
       set estat = 1
       goto END
    endif
-   echo "Using template from ${ref_path} ..."
+   if ($verb) echo "Using template from ${ref_path} ..."
    set ref_in = ${ref_path}/${ref_in}
 else
    #echo "Path specified (${ref_path}), stay out of this"
 endif
+
+END_REF_SEARCH:
+if ($just_copy_base ==  "LIST" ) then
+   echo "$ref_in"
+   goto END
+else if ($just_copy_base != "" ) then
+   3dcopy $ref_in $just_copy_base
+   goto END
+endif
+echo $just_copy_base
+
 goto SET_REF_PATH_RETURN
 
 HELP:
