@@ -107,7 +107,52 @@ void usage_SUMA_getPatch ()
 "                       SUMA's parameters are optimized to work with objects\n"
 "                       on the order of a brain, not on the order of 1 mm.\n"
 "                       Gain is applied just before writing out patches.\n"
+"     -flip_orientation: Change orientation of triangles before writing\n"
+"                        surfaces.\n"
 "     -verb VERB: Set verbosity level, 1 is the default.\n"
+"\n"
+"   Example 1: Given an ROI, a white matter and a gray matter surface\n"
+"              calculate the volume of cortex enclosed by the roi on\n"
+"              both surfaces.\n"
+"              Assume you have the spec file and surfaces already. You can\n"
+"              get the same files from the SUMA directory in the AFNI \n"
+"              workshop SUMA's archive which you can get with: \n"
+"         curl -O http://afni.nimh.nih.gov/pub/dist/edu/data/SUMA_demo.tgz\n"
+"\n"
+"              Draw an ROI on the surface and save it as: lh.manualroi.1D.roi\n"
+"\n"
+"         To calculate the volume and create a enclosing surface:\n"
+"             SurfPatch   -spec DemoSubj_lh.spec \\\n"
+"                         -sv DemoSubj_SurfVol+orig  \\\n"
+"                         -surf_A lh.smoothwm  \\\n"
+"                         -surf_B lh.pial   \\\n"
+"                         -prefix lh.patch \\\n"
+"                         -input lh.manualroi.1D.roi 0 -1  \\\n"
+"                         -out_type fs   \\\n"
+"                         -vol  \\\n"
+"                         -adjust_contour \\\n"
+"                         -stiched_surface lh.stiched   \\\n"
+"                         -flip_orientation \n"
+"\n"
+"   Example 2: If you want to voxelize the region between the two surfaces\n"
+"              you can run the following on the output.\n"
+"                 3dSurfMask -i lh.stiched.ply -sv DemoSubj_SurfVol+orig. \\\n"
+"                            -prefix lh.closed -fill_method SLOW \\\n"
+"                            -grid_parent DemoSubj_SurfVol+orig.HEAD \n"
+"              3dSurfMask will output a dataset called lh.closed.d+orig which\n"
+"              contains the signed closest distance from each voxel to the \n"
+"              surface. Negative distances are outside the surface.\n"
+"\n"
+"              To examine the results:\n"
+"                 suma -npb 71 -i lh.stiched.ply -sv DemoSubj_SurfVol+orig. &\n"
+"                 afni -npb 71 -niml -yesplugouts & \n"
+"                 DriveSuma -npb 71 -com viewer_cont -key 't' \n"
+"                 plugout_drive  -npb 71  \\\n"
+"                                -com 'SET_OVERLAY lh.closed.d' \\\n"
+"                                -com 'SET_FUNC_RANGE A.3' \\\n"
+"                                -com 'SET_PBAR_NUMBER A.10' \\\n"
+"                                -com 'SET_DICOM_XYZ A. 10 70 22 '\\\n"
+"                                -quit\n"
 "\n"
 "%s"
                "\n",s); SUMA_free(s); s = NULL;
@@ -591,7 +636,8 @@ int main (int argc,char *argv[])
       if (Opt->out_volprefix) {
          if (Opt->oType != SUMA_FT_NOT_SPECIFIED) SOp->FileType = Opt->oType;
          if (Opt->flip) {
-            if (Opt->verb) SUMA_S_Note("Flipping stitched surf's triangles\n");
+            if (Opt->verb > 1) 
+               SUMA_S_Note("Flipping stitched surf's triangles\n");
             SUMA_FlipSOTriangles (SOp);
          }
 
@@ -694,7 +740,7 @@ int main (int argc,char *argv[])
                   SO->NodeList[cnt] *= Opt->coordgain;
             }
             if (Opt->flip) {
-               if (Opt->verb) SUMA_S_Note("Flipping triangles\n");
+               if (Opt->verb > 1) SUMA_S_Note("Flipping triangles\n");
                SUMA_FlipTriangles (SO->FaceSetList, SO->N_FaceSet);
                SUMA_RECOMPUTE_NORMALS(SO);
             }

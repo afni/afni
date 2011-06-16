@@ -540,6 +540,7 @@ if Dist = 0, point on plane, if Dist > 0 point above plane (along normal), if Di
    SUMA_SURF_NORM m_SN;   \
    if (SO->NodeNormList) SUMA_free(SO->NodeNormList); SO->NodeNormList = NULL;   \
    if (SO->FaceNormList) SUMA_free(SO->FaceNormList); SO->FaceNormList = NULL;   \
+   set_surf_norm_quiet(1); \
    m_SN = SUMA_SurfNorm(SO->NodeList,  SO->N_Node, SO->FaceSetList, SO->N_FaceSet );  \
    SO->NodeNormList = m_SN.NodeNormList; \
    SO->FaceNormList = m_SN.FaceNormList; \
