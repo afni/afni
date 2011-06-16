@@ -70,6 +70,8 @@ See Lab-book NIH-2, page 142 for an illustration or this miserable ascii renditi
        |              ## | *
        ------------------     
 ***/
+static int surf_norm_quiet = 0;
+void set_surf_norm_quiet(int v) { surf_norm_quiet=v; }
 SUMA_SURF_NORM SUMA_SurfNorm (float *NodeList, int N_NodeList, int *FaceSetList, int N_FaceSetList )
 {/*SUMA_SurfNorm*/
    static char stmp[200], FuncName[]={"SUMA_SurfNorm"}; 
@@ -209,7 +211,7 @@ SUMA_SURF_NORM SUMA_SurfNorm (float *NodeList, int N_NodeList, int *FaceSetList,
                      RetStrct.NodeNormList[id+2] = 1.0;
             }
          }
-      if (NotMember) {
+      if (NotMember && !surf_norm_quiet) {
          sprintf (stmp, "(IGNORE for surfaces with cuts\n"
                         "%d nodes (%f%% of total) are\n"
                         "not members of any FaceSets.\n"

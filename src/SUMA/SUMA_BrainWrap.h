@@ -10,11 +10,13 @@ int SUMA_Find_IminImax (float *xyz, float *dir, SUMA_GENERIC_PROG_OPTIONS_STRUCT
                         float d1, float d4, int ShishMax);
 int SUMA_SkullMask (SUMA_SurfaceObject *SO, SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, SUMA_COMM_STRUCT *cs);
 int SUMA_StretchToFitLeCerveau (SUMA_SurfaceObject *SO, SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, SUMA_COMM_STRUCT *cs);
-byte *SUMA_FindVoxelsInSurface_SLOW (SUMA_SurfaceObject *SO, SUMA_VOLPAR *VolPar, int *N_inp, int fillhole) ;
+short *SUMA_FindVoxelsInSurface_SLOW (SUMA_SurfaceObject *SO, 
+                        SUMA_VOLPAR *VolPar, int *N_inp) ;
 short *SUMA_SurfGridIntersect (SUMA_SurfaceObject *SO, float *NodeIJKlist, SUMA_VOLPAR *VolPar, int *N_inp, int fillhole, THD_3dim_dataset *fillholeset);
 short *SUMA_FindVoxelsInSurface (SUMA_SurfaceObject *SO, SUMA_VOLPAR *VolPar, int *N_inpnt, int  fillhole, THD_3dim_dataset *fillholeset) ;
 THD_3dim_dataset *SUMA_VoxelToSurfDistances(SUMA_SurfaceObject *SO, 
-                     THD_3dim_dataset *master, byte *mask, short *isin);
+                     THD_3dim_dataset *master, byte *mask, 
+                     short *isin, short inval);
 int SUMA_PushToEdge(SUMA_SurfaceObject *SO, SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, float limtouch, SUMA_COMM_STRUCT *cs, int agressive) ;
 int SUMA_PushToOuterSkull(SUMA_SurfaceObject *SO, SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, float limtouch, SUMA_COMM_STRUCT *cs, int N_itermax) ;
 int SUMA_PushToInnerSkull(SUMA_SurfaceObject *SO, SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, float limtouch, SUMA_COMM_STRUCT *cs) ;

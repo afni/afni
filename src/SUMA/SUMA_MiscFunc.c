@@ -4903,19 +4903,19 @@ int SUMA_Point_To_Triangle_Distance (float *Points, int N_points,
    if (*distp == NULL) {
       dist = (float *)SUMA_calloc(N_points, sizeof(float));
       *distp = dist;
-      memset(dist, -1, N_points*sizeof(float));
-      SUMA_LHv("icall %d, init done, itri=%d, %d points\n", 
-                     icall, itri, N_points);
+      for (in=0; in<N_points; ++in) dist[in]=-1.0;
+      SUMA_LHv("icall %d, init done, itri=%d, %d points, dist=%p\n", 
+                     icall, itri, N_points, dist);
    } else {
-      if (icall < 3) SUMA_LHv("icall %d, reusing, itri=%d\n", 
-                              icall, itri);
       dist = *distp;
+      if (icall < 3) SUMA_LHv("icall %d, reusing, itri=%d, dist=%p\n", 
+                              icall, itri, dist);
    }
    if (closestp) {
       if (*closestp == NULL) {
          closest = (int *)SUMA_calloc(N_points, sizeof(int));
          *closestp = closest;
-         memset(closest, -1, N_points*sizeof(int));
+         for (in=0; in<N_points; ++in) closest[in]=-1;
          SUMA_LHv("icall %d, init closest done\n", icall);
       } else {
          if (icall < 3) SUMA_LHv("icall %d, reusing closest\n", icall);
@@ -5024,6 +5024,15 @@ int SUMA_Point_To_Triangle_Distance (float *Points, int N_points,
    SUMA_RETURN(YUP);
 }
 
+void Bad_Optimizer_Bad_Bad() { 
+   static int icall=0;/* Need to do something stupid, else I get crash on OSX*/
+   if (!icall) {
+      fprintf(stderr,"\n"); 
+      ++icall;
+   }
+   return;
+}
+
 SUMA_Boolean SUMA_Shortest_Point_To_Triangles_Distance(
          float *Points, int N_points, 
          float *NodeList, int *FaceSetList, int N_FaceSet,
@@ -5032,13 +5041,15 @@ SUMA_Boolean SUMA_Shortest_Point_To_Triangles_Distance(
    static char FuncName[]={"SUMA_Shortest_Point_To_Triangles_Distance"};
    float  *P0, *P1, *P2;
    int i=0;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
+   
    for (i=0; i<N_FaceSet; ++i) {
-      P0 = NodeList + 3*FaceSetList[3*i];
+      P0 = NodeList + 3*FaceSetList[3*i  ];
       P1 = NodeList + 3*FaceSetList[3*i+1];
       P2 = NodeList + 3*FaceSetList[3*i+2];
+      Bad_Optimizer_Bad_Bad();
       SUMA_LHv("Tri %d\n"
                "[%f %f %f]\n"
                "[%f %f %f]\n"
@@ -5053,7 +5064,9 @@ SUMA_Boolean SUMA_Shortest_Point_To_Triangles_Distance(
                                            distp, closestp, sgnp)) {
          SUMA_S_Errv("Failed at triangle %d\n", i);
          SUMA_RETURN(NOPE); 
-      }      
+      }
+
+            
    }
    SUMA_RETURN(YUP);        
 }

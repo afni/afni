@@ -1606,12 +1606,15 @@ int SUMA_StretchToFitLeCerveau (
    
    \sa SUMA_FindVoxelsInSurface
 */
-byte *SUMA_FindVoxelsInSurface_SLOW (SUMA_SurfaceObject *SO, SUMA_VOLPAR *VolPar, int *N_inp, int fillhole) 
+short *SUMA_FindVoxelsInSurface_SLOW (SUMA_SurfaceObject *SO, 
+                                     SUMA_VOLPAR *VolPar,
+                                     int *N_inp) 
 {
    static char FuncName[]={"SUMA_FindVoxelsInSurface_SLOW"};
-   byte *isin = NULL, *tmpin = NULL;
+   short *isin = NULL, *tmpin = NULL;
    int i, N_in, j, k , n, khits, dims[2], N_hits, iii, jjj, niii, ncul;
-   float *tmpXYZ=NULL, Center[3], MaxDims[3], MinDims[3], aMaxDims, aMinDims, delta_t;
+   float *tmpXYZ=NULL, Center[3], MaxDims[3], MinDims[3], 
+         aMaxDims, aMinDims, delta_t;
    float hdim[3], t0, t1, t2, SOCenter[3], p0[3], p1[3];
    SUMA_MT_INTERSECT_TRIANGLE *mti = NULL; 
    struct  timeval tti;
@@ -1633,7 +1636,7 @@ byte *SUMA_FindVoxelsInSurface_SLOW (SUMA_SurfaceObject *SO, SUMA_VOLPAR *VolPar
    
    /* copy surface coordinates, we're going to ijk land */
    tmpXYZ = (float *)SUMA_malloc(SO->N_Node * 3 * sizeof(float));
-   isin = (byte *)SUMA_malloc(VolPar->nx*VolPar->ny*VolPar->nz * sizeof(byte));
+   isin = (short *)SUMA_malloc(VolPar->nx*VolPar->ny*VolPar->nz * sizeof(short));
    if (!tmpXYZ || !isin) {
       SUMA_SL_Crit("Faile to allocate");
       SUMA_RETURN(NULL);
@@ -1676,41 +1679,57 @@ byte *SUMA_FindVoxelsInSurface_SLOW (SUMA_SurfaceObject *SO, SUMA_VOLPAR *VolPar
                   }
                }   
             }
-            if (isin[n]) { /* inside bounding box, but is it inside the surface ? */
+            if (isin[n]) { /* inside bounding box, but is it inside  surface ? */
                p0[0] = i; p1[0] = i+1000; p0[1] = p1[1] = j; p0[2] = p1[2] = k; 
                #ifdef Meth1
                   /* works, but slow as a turtle */
-                  mti = SUMA_MT_intersect_triangle(p0, p1, tmpXYZ, SO->N_Node, SO->FaceSetList, SO->N_FaceSet, mti);
-                  if (!(mti->N_poshits % 2)) { /* number of positive direction hits is a multiple of 2 */
-                     isin[n] = 0; --N_in;
-                  } 
+                  mti = SUMA_MT_intersect_triangle(p0, p1, tmpXYZ, SO->N_Node, 
+                                          SO->FaceSetList, SO->N_FaceSet, mti);
+                  if (!(mti->N_poshits % 2)) { 
+                     /* number of positive direction hits is a multiple of 2 */
+                     isin[n] = 1; --N_in; /* 1 marks outside surface but in box*/
+                  } else {
+                     isin[n] = 2; /* very much inside */
+                  }
                #else 
-                  dims[0] = 1; dims[1] = 2; /* rays are along x vector, we will look for intersections with projections on plane y z */
-                  tmpin = SUMA_isinpoly(p0, tmpXYZ, SO->FaceSetList, SO->N_FaceSet, SO->FaceSetDim, dims, &N_hits, tmpin, NULL);
+                  dims[0] = 1; dims[1] = 2; /* rays are along x vector, we will 
+                        look for intersections with projections on plane y z */
+                  tmpin = SUMA_isinpoly(p0, tmpXYZ, SO->FaceSetList, 
+                                        SO->N_FaceSet, SO->FaceSetDim, dims, 
+                                        &N_hits, tmpin, NULL);
                   N_poshits = 0; sgnref = 0;
                   nfound = 0; cnt = 0;
                   while (nfound < N_hits) {
                      if (tmpin[cnt]) {
                         ++nfound; 
-                        /* face centroid x coordinate, this contraption works as long as dims is [1 2] and as long as
-                        the triangles making up the mesh are comparable in size to voxel resolution. Otherwise, it is 
-                        not a particularly pleasing approximation. The proper way would be to do a ray/triangle intersection
-                        for those hit triangles (use SUMA_MT_isIntersect_Triangle and check for differences in signed distance). 
-                        But that ends up like the method above with no speed up to write home about NOT WORTH IT*/
-                        n1 =  SO->FaceSetList[3*cnt]; n2 = SO->FaceSetList[3*cnt+1]; n3 = SO->FaceSetList[3*cnt+2];   \
-                        cx = (tmpXYZ[3*n1]   + tmpXYZ[3*n2]   + tmpXYZ[3*n3]  )/3; \
+               /* face centroid x coordinate, this contraption works as long as 
+               dims is [1 2] and as long as the triangles making up the mesh are 
+               comparable in size to voxel resolution. Otherwise, it is 
+               not a particularly pleasing approximation. The proper way would be                to do a ray/triangle intersection
+               for those hit triangles (use SUMA_MT_isIntersect_Triangle and 
+               check for differences in signed distance). 
+               But that ends up like the method above with no speed up to write 
+               home about NOT WORTH IT*/
+                        n1 =  SO->FaceSetList[3*cnt]; 
+                        n2 = SO->FaceSetList[3*cnt+1]; 
+                        n3 = SO->FaceSetList[3*cnt+2];
+                        cx = (tmpXYZ[3*n1] + tmpXYZ[3*n2] + tmpXYZ[3*n3]  )/3; 
                         sgn = SUMA_SIGN(cx - i);
                         if (nfound == 1) {
                            sgnref = sgn;
                         }
-                        /* fprintf(SUMA_STDERR, "%s: nfound %d: dp %f: Ref %d, sgn %d\n", FuncName, nfound, dp, sgnref, sgn); */
+                        /* fprintf(SUMA_STDERR, 
+                                  "%s: nfound %d: dp %f: Ref %d, sgn %d\n", 
+                                  FuncName, nfound, dp, sgnref, sgn); */
                         if (sgnref == sgn) ++N_poshits;
                      }
                      ++cnt;      
                   }
                   if (N_poshits % 2 == 0) { /* dude's outside */ 
                      isin[n] = 0; --N_in;
-                     /* if (LocalHead) fprintf (SUMA_STDERR,"%d %d %d %d hits\n",i, j, k, N_hits);  */
+                     /* if (LocalHead) 
+                        fprintf (SUMA_STDERR,"%d %d %d %d hits\n",
+                                    i, j, k, N_hits);  */
                   }
                #endif
             }
@@ -2245,14 +2264,17 @@ short *SUMA_FindVoxelsInSurface (
 }
 
 THD_3dim_dataset *SUMA_VoxelToSurfDistances(SUMA_SurfaceObject *SO, 
-                     THD_3dim_dataset *master, byte *mask, short *isin) {
+                     THD_3dim_dataset *master, byte *mask, short *isin,
+                     short inval) {
    static char FuncName[]={"SUMA_VoxelToSurfDistances"};
    int i, j, k, n, nxyz, ijk, *closest=NULL, n_mask, n3;
-   float Dz, Dy, *dist=NULL, *Points=NULL;
+   float *dist=NULL, *Points=NULL;
    byte *sgn=NULL;
+   THD_fvec3 ncoord, ndicom;
+   THD_ivec3 nind3;
    THD_3dim_dataset *dset=NULL;
    SUMA_FORM_AFNI_DSET_STRUCT *OptDs = NULL; 
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
      
    SUMA_ENTRY;
    
@@ -2266,7 +2288,18 @@ THD_3dim_dataset *SUMA_VoxelToSurfDistances(SUMA_SurfaceObject *SO,
    if (isin) {
       mask = (byte *)SUMA_calloc(nxyz, sizeof(byte));
       for (i=0; i<nxyz; ++i) {
-         if (isin[i]>1) {mask[i] = 1; ++n_mask;}
+         if (isin[i]) { mask[i] = 1; ++n_mask;}
+      }
+      if (inval) {
+         sgn = (byte *)SUMA_calloc(n_mask, sizeof(byte));
+         j = 0;
+         for (i=0; i<nxyz; ++i) {
+            if (isin[i]) {
+               if (isin[i]>=inval) sgn[j] = 2;
+               else sgn[j] = 1;
+               ++j;
+            }
+         }
       }
    } else {
       if (!mask) {
@@ -2280,15 +2313,16 @@ THD_3dim_dataset *SUMA_VoxelToSurfDistances(SUMA_SurfaceObject *SO,
    Points = (float *)SUMA_calloc(3*n_mask, sizeof(float));
    n = 0; ijk=0;
    for (k=0; k<DSET_NZ(master); ++k) { 
-      Dz = DSET_ZORG(master)+k*DSET_DZ(master);
       for (j=0; j<DSET_NY(master); ++j ) { 
-         Dy = DSET_YORG(master)+j*DSET_DY(master);
          for (i=0; i<DSET_NX(master); ++i)  { 
             if (!mask || mask[ijk]) {
                n3 = 3*n;
-               Points[n3  ] = DSET_XORG(master)+i*DSET_DX(master);
-               Points[n3+1] = Dy;
-               Points[n3+2] = Dz;
+               nind3.ijk[0] = i; nind3.ijk[1] = j; nind3.ijk[2] = k; 
+               ncoord = THD_3dind_to_3dmm(master, nind3);
+               ndicom = THD_3dmm_to_dicomm(master,ncoord);
+               Points[n3  ] = ndicom.xyz[0];
+               Points[n3+1] = ndicom.xyz[1];
+               Points[n3+2] = ndicom.xyz[2];
                SUMA_LHv("Added [%f %f %f]\n",
                   Points[n3  ], Points[n3+1], Points[n3+2]);
                ++n;
@@ -2299,13 +2333,27 @@ THD_3dim_dataset *SUMA_VoxelToSurfDistances(SUMA_SurfaceObject *SO,
    }
    
    /* get distance of each point to surface */
-   if (!SUMA_Shortest_Point_To_Triangles_Distance(
-         Points, n_mask, 
-         SO->NodeList, SO->FaceSetList, SO->N_FaceSet,
-         SO->FaceNormList, &dist, &closest, &sgn )) {
-      SUMA_S_Err("Failed to get shortys");
-      SUMA_RETURN(NULL);     
+   if (sgn == NULL) { /* Don't have sign yet. 
+      Let SUMA_Shortest_Point_To_Triangles_Distance compute sign 
+      based on dot product with normals. 
+      This computation is not accurate everywhere ... */
+      if (!SUMA_Shortest_Point_To_Triangles_Distance(
+            Points, n_mask, 
+            SO->NodeList, SO->FaceSetList, SO->N_FaceSet,
+            SO->FaceNormList, &dist, &closest, &sgn )) {
+         SUMA_S_Err("Failed to get shortys");
+         SUMA_RETURN(NULL);     
+      }
+   } else {/* have sign already */
+      if (!SUMA_Shortest_Point_To_Triangles_Distance(
+            Points, n_mask, 
+            SO->NodeList, SO->FaceSetList, SO->N_FaceSet,
+            NULL, &dist, &closest, NULL )) {
+         SUMA_S_Err("Failed to get shortys");
+         SUMA_RETURN(NULL);     
+      }
    }
+   
    for (i=0; i<n_mask; ++i) {
       if (sgn[i]==2) dist[i] = sqrt(dist[i]);
       else dist[i] = -sqrt(dist[i]);
@@ -2323,6 +2371,7 @@ THD_3dim_dataset *SUMA_VoxelToSurfDistances(SUMA_SurfaceObject *SO,
    OptDs->datum = MRI_float; /* you have to do the scaling yourself otherwise */
    OptDs->full_list = 0;
    OptDs->do_ijk = 0;
+   OptDs->coorder_xyz = 0;
    OptDs->fval = 0.0;
    OptDs->mset = master;
    dset = SUMA_FormAfnidset (Points, dist, n_mask, OptDs);

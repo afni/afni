@@ -5,6 +5,7 @@ SUMA_SurfaceObject * SUMA_findanySOp_inDOv(SUMA_DO *dov, int N_dov);
 int SUMA_ClosestNodeToVoxels(SUMA_SurfaceObject *SO, SUMA_VOLPAR *vp, int *closest_node, float *closest_dist, byte *vox_mask, int verb);
 float * SUMA_IV_XYZextract (char *IV_filename, int *N_NodeList, int IncludeIndex);
 int *SUMA_IV_FaceSetsextract (char *IV_filename, int *N_FaceSetList);
+void set_surf_norm_quiet(int v);
 SUMA_SURF_NORM SUMA_SurfNorm (float *NodeList, int N_NodeList, int *FaceSetList, int N_FaceSetList );
 int SUMA_SurfNormDir (SUMA_SurfaceObject *SO);
 SUMA_Boolean SUMA_Free_Displayable_Object (SUMA_DO *dov);
