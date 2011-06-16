@@ -240,7 +240,7 @@ TO3D:
 	
 	
 	test -f $BrickPrefix'+orig.HEAD' || goto NOBRIK
-	mv $BrickPrefix'+orig.HEAD'  $BrickPrefix'+orig.BRIK' $aDir
+	mv $BrickPrefix'+orig.HEAD'  $BrickPrefix'+orig.BRIK'* $aDir
 	test -f $OutlierFile && mv $OutlierFile $aDir
 	
 	echo 'Done with To3D. '

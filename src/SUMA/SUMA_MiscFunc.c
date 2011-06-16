@@ -4862,7 +4862,203 @@ SUMA_Boolean SUMA_Point_To_Point_Distance (float *NodeList, int N_points, float 
    SUMA_RETURN (YUP);
 }
 
+#define SUMA_DOT3(a,b) (a[0]*b[0]+a[1]*b[1]+a[2]*b[2])
+/*!
+   Find the shortest distance from a point in 3D space to
+   a triangles
+   \param Points (float *) N_points x 3 vector of coordinates
+   \param N_points (int) number of points in Points
+   \param P0, P1, P2 (float *) XYZ coords of each vertex in the triangle
+   \param itri (int) an integer representing the triangle's ID
+   \param distp (float **) pointer to array which will contain the distance
+                           distance from each point to the triangle <P0, P1, P2>
+                if (*distp == NULL) it is allocated for and initialized and
+                                    *distp[i] contains SD, the shortest distance 
+                                    of point i to the triangle itri. 
+               else *distp[i] = SD if (SD < *distp[i]) 
+                                    otherwise leave distp[i] alone
+   \param closestp (int **) pointer to array wich will contain for each point i
+                                    the index of the triangle itri which
+                                    resulted in the value of *distp[i]
+   \return NOPE on FAILURE, YUP on SUCCESS.
+   This function is meant to be called repeatedly for each new triangle.
+   See SUMA_Shortest_Point_To_Triangles_Distance()         
+*/
+int SUMA_Point_To_Triangle_Distance (float *Points, int N_points, 
+                                     float *P0, float *P1, float *P2, int itri,
+                                     float *tnorm,
+                                     float **distp, int **closestp, byte **sgnp )
+{
+   static char FuncName[]={"SUMA_Point_To_Triangle_Distance"};
+   float *dist=NULL, *P=NULL;
+   double E0[3], E1[3], a, b, c, d, e, f, B[3], BmP[0], nd, 
+         s, t, det, idet, numer, denom, I[3], sd, tmp0, tmp1; 
+   int in=0, reg, in3, *closest=NULL;
+   byte *sgn=NULL;
+   static int icall;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (*distp == NULL) {
+      dist = (float *)SUMA_calloc(N_points, sizeof(float));
+      *distp = dist;
+      memset(dist, -1, N_points*sizeof(float));
+      SUMA_LHv("icall %d, init done, itri=%d, %d points\n", 
+                     icall, itri, N_points);
+   } else {
+      if (icall < 3) SUMA_LHv("icall %d, reusing, itri=%d\n", 
+                              icall, itri);
+      dist = *distp;
+   }
+   if (closestp) {
+      if (*closestp == NULL) {
+         closest = (int *)SUMA_calloc(N_points, sizeof(int));
+         *closestp = closest;
+         memset(closest, -1, N_points*sizeof(int));
+         SUMA_LHv("icall %d, init closest done\n", icall);
+      } else {
+         if (icall < 3) SUMA_LHv("icall %d, reusing closest\n", icall);
+         closest = *closestp;
+      }
+   }
+   if (sgnp) {
+      if (*sgnp == NULL) {
+         sgn = (byte *)SUMA_calloc(N_points, sizeof(byte));
+         *sgnp = sgn;
+      } else {
+         sgn = *sgnp;  
+      }
+   }
+   
+   E0[0] = P1[0]-P0[0]; E0[1] = P1[1]-P0[1]; E0[2] = P1[2]-P0[2]; 
+   E1[0] = P2[0]-P0[0]; E1[1] = P2[1]-P0[1]; E1[2] = P2[2]-P0[2];
+   B[0] = P0[0]; B[1] = P0[1]; B[2] = P0[2];
+   
+   a = SUMA_DOT3(E0, E0); b = SUMA_DOT3(E0, E1); c = SUMA_DOT3(E1, E1);
+   for (in=0; in < N_points; ++in) {
+      in3 = 3*in; P = Points+in3;
+      BmP[0] = B[0]-P[0]; BmP[1] = B[1]-P[1]; BmP[2] = B[2]-P[2]; 
+      d = SUMA_DOT3(E0, BmP); e = SUMA_DOT3(E1, BmP); f = SUMA_DOT3(BmP, BmP);          det = a*c-b*b; s = b*e-c*d; t=b*d-a*e;
+      reg = -1;
+      if (s+t <= det) {
+         if (s < 0) { 
+            if (t < 0) reg = 4; else reg = 3; 
+         } else if (t < 0) { 
+            reg = 5; 
+         } else {
+            reg = 0;
+         }
+      } else {
+         if (s < 0) reg = 2;
+         else if (t < 0) reg = 6;
+         else reg = 1;
+      }
+      switch (reg) {
+         case 0:
+            idet = 1.0/det;
+            s *= idet;
+            t *= idet;
+            break;
+         case 1:
+            numer = c+e-b-d;
+            if (numer <= 0) { 
+               s = 0;
+            } else {
+               denom = a-2*b+c;
+               s = ( numer > denom ? 1 : numer/denom);
+            }
+            t = 1-s;
+            break;
+         case 3:
+         case 5:
+            s = 0;
+            t = ( e >= 0 ? 0 : ( -e >= c ? 1: -e/c ) );
+            break;
+         case 2:
+         case 4:
+         case 6:
+            tmp0 = b+d;
+            tmp1 = c+e;
+            if (tmp1 > tmp0) {
+               numer = tmp1 - tmp0;
+               denom = a- 2*b + c;
+               s = (numer >= denom ? 1:numer/denom);
+               t = 1-s;
+            } else {
+               s = 0;
+               t = (tmp1 <= 0 ? 1 : ( e >= 0 ? 0 : -e/c));
+            }
+            break;
+         default:
+            SUMA_S_Errv("Reg %d not good\n", reg);
+            RETURN(NOPE);
+      }
+      SUMA_FROM_BARYCENTRIC(s, t, P0, P1, P2, I);
+      I[0] = I[0]-P[0]; I[1] = I[1]-P[1]; I[2] = I[2]-P[2];
+      sd = I[0]*I[0]+I[1]*I[1]+I[2]*I[2];
+      if (dist[in] < 0) {
+         dist[in] = (float)sd;
+         if (closest) closest[in] = itri;
+         if (tnorm && sgn) {
+            nd = SUMA_DOT3(I,tnorm); 
+            if (SUMA_SIGN(nd) <0) sgn[in] = 1;
+            else sgn[in] = 2;
+         }         
+      } else if (dist[in] > (float)sd) {
+         dist[in] = (float)sd;
+         if (closest) closest[in] = itri;
+         if (tnorm && sgn) {
+            nd = SUMA_DOT3(I,tnorm); 
+            if (SUMA_SIGN(nd) <0) sgn[in] = 1;
+            else sgn[in] = 2;
+         }      
+      }
+      SUMA_LHv("reg = %d, s=%f, t=%f, P=[%f %f %f], "
+               "I=[%f %f %f] dist2[%d]=%f, sign=%d\n", 
+               reg, s, t, P[0], P[1], P[2], 
+               I[0], I[1], I[2], in, dist[in], 
+               (sgn[in]==2) ? 1:-1); 
+   } /* for each point */
+   ++icall;
+   SUMA_RETURN(YUP);
+}
 
+SUMA_Boolean SUMA_Shortest_Point_To_Triangles_Distance(
+         float *Points, int N_points, 
+         float *NodeList, int *FaceSetList, int N_FaceSet,
+         float *FaceNormList,
+         float **distp, int **closestp, byte **sgnp ) {
+   static char FuncName[]={"SUMA_Shortest_Point_To_Triangles_Distance"};
+   float  *P0, *P1, *P2;
+   int i=0;
+   SUMA_Boolean LocalHead = YUP;
+   
+   SUMA_ENTRY;
+   for (i=0; i<N_FaceSet; ++i) {
+      P0 = NodeList + 3*FaceSetList[3*i];
+      P1 = NodeList + 3*FaceSetList[3*i+1];
+      P2 = NodeList + 3*FaceSetList[3*i+2];
+      SUMA_LHv("Tri %d\n"
+               "[%f %f %f]\n"
+               "[%f %f %f]\n"
+               "[%f %f %f]\n"
+               , i,
+               P0[0], P0[1], P0[2],
+               P1[0], P1[1], P1[2],
+               P2[0], P2[1], P2[2]);
+      if (!SUMA_Point_To_Triangle_Distance(Points, N_points,
+                                           P0, P1, P2, i,
+                                           FaceNormList+3*i,
+                                           distp, closestp, sgnp)) {
+         SUMA_S_Errv("Failed at triangle %d\n", i);
+         SUMA_RETURN(NOPE); 
+      }      
+   }
+   SUMA_RETURN(YUP);        
+}
+
+                                          
 /*! Sorting Functions */
 #define SUMA_Z_QSORT_structs
 

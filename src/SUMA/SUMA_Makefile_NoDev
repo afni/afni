@@ -417,7 +417,9 @@ SurfMesh: SUMA_coarsen.c libgts.a ${SUMAGTSLIB}
 	$(RM) $@
 	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} -o $@ $(AFWARPOBJS) ${AFNI_OBJS} SUMA_3dSurfMask.c ${SUMA_INPATH} ${SUMA_LINK_PATH} 	\
 		${AFNI_3dOBJS} MarchingCubes/debug/MarchingCubes.o			\
-		${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
+		-I../3DEdge/src -l3DEdge -I../avovk \
+		${SUMALIBLIST} -lsegtools ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB} \
+		-lgsl -lgslcblas 
 
 Surf2VolCoord: SUMA_Surf2VolCoord_demo.c
 	$(RM) $@
