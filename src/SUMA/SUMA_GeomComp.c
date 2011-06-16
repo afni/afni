@@ -7149,7 +7149,8 @@ SUMA_Boolean SUMA_Offset_Smooth_dset(
                         1: most normals were pointing outwards
                        -1:  most normals were pointing inwards
 */
-int SUMA_OrientTriangles (float *NodeList, int N_Node, int *FaceSetList, int N_FaceSet, int orient, int Force)
+int SUMA_OrientTriangles (float *NodeList, int N_Node, int *FaceSetList, 
+                          int N_FaceSet, int orient, int Force)
 {
    static char FuncName[]={"SUMA_OrientTriangles"};
    int i, j, ip, negdot, posdot, sgn, NP, ND, n1, n2, n3, flip;
@@ -7248,6 +7249,40 @@ int SUMA_OrientTriangles (float *NodeList, int N_Node, int *FaceSetList, int N_F
    if (norm) SUMA_free(norm); norm = NULL;
    
    SUMA_RETURN(sgn);
+}
+
+SUMA_Boolean SUMA_FlipSOTriangles(SUMA_SurfaceObject *SO) {
+   static char FuncName[]={"SUMA_FlipSOTriangles"};
+   SUMA_ENTRY;
+   if (!SO || !SO->FaceSetList) SUMA_RETURN(NOPE);
+   SUMA_FlipTriangles(SO->FaceSetList, SO->N_FaceSet);
+   SUMA_RECOMPUTE_NORMALS(SO);
+   SUMA_RETURN(YUP);
+}
+
+SUMA_Boolean SUMA_FlipTriangles (int *FaceSetList,int N_FaceSet)
+{
+   static char FuncName[]={"SUMA_FlipTriangles"};
+   int i, ip, NP, n1;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   
+   if (!FaceSetList || !N_FaceSet) {
+      SUMA_SL_Err("Null or no input");
+      SUMA_RETURN(NOPE);
+   }
+
+   NP = 3;
+   for (i=0; i < N_FaceSet; i++) {
+      ip = NP * i;
+      n1 = FaceSetList[ip]; 
+      FaceSetList[ip] = FaceSetList[ip+2]; 
+      FaceSetList[ip+2] = n1;
+   }
+   
+   SUMA_RETURN(YUP);
 }
 
 /* 
@@ -7962,13 +7997,13 @@ double SUMA_Pattie_Volume (SUMA_SurfaceObject *SO1, SUMA_SurfaceObject *SO2,
    SUMA_SurfaceObject *SOc = NULL;
    SUMA_SURF_NORM SN;
    static byte *isNodeInNodes=NULL;
-   static int N_isNodeInNodes=0;
+   static int N_isNodeInNodes=0, inotice=0;
    double nc1[3], nc2[3];
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
-   if (verb > 1) LocalHead = YUP;
+   if (verb > 2) LocalHead = YUP;
    
    if (!SO1 || !SO2 || !Nodes || !N_Node) {
       SUMA_SL_Err("Bad input.");
@@ -8135,12 +8170,16 @@ double SUMA_Pattie_Volume (SUMA_SurfaceObject *SO1, SUMA_SurfaceObject *SO2,
                         N_nc = 3, non-selected node moves along triangle
                         N_nc >3 , non-selected node will end up off of
                                   orginal surface, shrinkage */
-                  if (verb) {
+                  if (verb > 1 || (verb && !inotice)) {
                      SUMA_S_Notev("Contour correction will cause some"
                                   "shrinkage at node %d (becomes %d, and %d) \n"
-                                  "with %d selected neighbors\n",
+                                  "with %d selected neighbors\n"
+                                  "%s",
                                   i, NewIndex[i], (NewIndex[i]+NodesPerPatch),
-                                  N_nc-1);
+                                  N_nc-1, 
+                        (verb < 2) ? 
+                           "Use -verb 2 to see all similar notices.\n":"");
+                     ++inotice;
                   }
                }
                if (adjustment_neighbors) 

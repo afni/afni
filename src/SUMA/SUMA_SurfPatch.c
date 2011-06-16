@@ -107,6 +107,7 @@ void usage_SUMA_getPatch ()
 "                       SUMA's parameters are optimized to work with objects\n"
 "                       on the order of a brain, not on the order of 1 mm.\n"
 "                       Gain is applied just before writing out patches.\n"
+"     -verb VERB: Set verbosity level, 1 is the default.\n"
 "\n"
 "%s"
                "\n",s); SUMA_free(s); s = NULL;
@@ -135,6 +136,8 @@ typedef struct {
    int adjust_contour;
    float coordgain;
    SUMA_Boolean Do_p2s;
+   int verb;
+   int flip;
 } SUMA_GETPATCH_OPTIONS;
 
 /*!
@@ -179,6 +182,8 @@ SUMA_GETPATCH_OPTIONS *SUMA_GetPatch_ParseInput (char *argv[], int argc)
    Opt->FixBowTie = -1;
    Opt->adjust_contour = -1;
    Opt->oType = SUMA_FT_NOT_SPECIFIED;
+   Opt->verb = 1;
+   Opt->flip = 0;
    for (i=0; i<SURFPATCH_MAX_SURF; ++i) { Opt->surf_names[i] = NULL; }
 	brk = NOPE;
    
@@ -198,6 +203,16 @@ SUMA_GETPATCH_OPTIONS *SUMA_GetPatch_ParseInput (char *argv[], int argc)
 				exit (1);
 			}
 			Opt->spec_file = argv[kar];
+			brk = YUP;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-sv") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need argument after -sv \n");
+				exit (1);
+			}
+			Opt->sv_name = argv[kar];
 			brk = YUP;
 		}
       
@@ -241,6 +256,11 @@ SUMA_GETPATCH_OPTIONS *SUMA_GetPatch_ParseInput (char *argv[], int argc)
 			brk = YUP;
 		}
 
+      if (!brk && (strcmp(argv[kar], "-flip_orientation") == 0)) {
+			Opt->flip = 1;
+			brk = YUP;
+		}
+
       if (!brk && (strcmp(argv[kar], "-vol_only") == 0)) {
 			Opt->DoVol = 1;
          Opt->VolOnly = 1;
@@ -279,6 +299,21 @@ SUMA_GETPATCH_OPTIONS *SUMA_GetPatch_ParseInput (char *argv[], int argc)
 				exit (1);
 			}
 			Opt->out_prefix = SUMA_copy_string(argv[kar]);
+			brk = YUP;
+		}
+
+      if (!brk && (strcmp(argv[kar], "-verb") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need argument after -verb \n");
+				exit (1);
+			}
+			Opt->verb = atoi(argv[kar]);
+         if (Opt->verb < 0 || Opt->verb > 10) {
+            SUMA_S_Errv("Something fishy with -verb value of %s\n"
+                        "Need integer from 0 to 2\n", argv[kar]);
+            exit(1);
+         }
 			brk = YUP;
 		}
 
@@ -551,10 +586,15 @@ int main (int argc,char *argv[])
       Vol = SUMA_Pattie_Volume(SO1, SO2, NodePatch, N_NodePatch, 
                                SOp, Opt->minhits, 
                                Opt->FixBowTie, Opt->adjust_contour, 
-                               adj_N, 1);
+                               adj_N, Opt->verb);
       fprintf (SUMA_STDOUT,"Volume = %f\n", fabs(Vol));
       if (Opt->out_volprefix) {
          if (Opt->oType != SUMA_FT_NOT_SPECIFIED) SOp->FileType = Opt->oType;
+         if (Opt->flip) {
+            if (Opt->verb) SUMA_S_Note("Flipping stitched surf's triangles\n");
+            SUMA_FlipSOTriangles (SOp);
+         }
+
          if (!(SUMA_Save_Surface_Object_Wrap ( Opt->out_volprefix, NULL,
                                                SOp, SUMA_PLY, SUMA_ASCII, 
                                                NULL))) {
@@ -641,8 +681,8 @@ int main (int argc,char *argv[])
             SO->N_FaceSet = SOnew->N_FaceSet;
             SO->N_Node = SOnew->N_Node;
             SO->NodeList = SOnew->NodeList;
-         } 
-
+         }
+          
          if (SO->N_FaceSet <= 0) {
             SUMA_S_Warn("The patch is empty.\n"
                         " Non existing surface not written to disk.\n");
@@ -653,6 +693,12 @@ int main (int argc,char *argv[])
                for (cnt=0; cnt < SO->NodeDim*SO->N_Node; ++cnt) 
                   SO->NodeList[cnt] *= Opt->coordgain;
             }
+            if (Opt->flip) {
+               if (Opt->verb) SUMA_S_Note("Flipping triangles\n");
+               SUMA_FlipTriangles (SO->FaceSetList, SO->N_FaceSet);
+               SUMA_RECOMPUTE_NORMALS(SO);
+            }
+
             if (!SUMA_Save_Surface_Object (SO_name, SO, SO->FileType, 
                                            SUMA_ASCII, NULL)) {
                   fprintf (SUMA_STDERR,

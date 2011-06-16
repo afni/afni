@@ -7370,7 +7370,8 @@ SUMA_FORM_AFNI_DSET_STRUCT *SUMA_Free_FormAfniDset_Opt(SUMA_FORM_AFNI_DSET_STRUC
 
    - FUNCTION NOT FULLY TESTED for all options, USE WITH CARE : Feb 08 05
 */
-THD_3dim_dataset *SUMA_FormAfnidset (float *NodeList, float *vals, int N_vals, SUMA_FORM_AFNI_DSET_STRUCT *Opt)
+THD_3dim_dataset *SUMA_FormAfnidset (float *NodeList, float *vals, 
+                           int N_vals, SUMA_FORM_AFNI_DSET_STRUCT *Opt)
 {
    static char FuncName[]={"SUMA_FormAfnidset"};
    THD_coorder cord;
@@ -7389,7 +7390,7 @@ THD_3dim_dataset *SUMA_FormAfnidset (float *NodeList, float *vals, int N_vals, S
    SUMA_ENTRY;
    
    /* check for badiosity */
-   if( Opt->do_ijk == 0 && Opt->master == NULL ) {
+   if( Opt->do_ijk == 0 && (!Opt->master && !Opt->mset) ) {
       SUMA_SL_Err("Can't use mm coords without master.") ;
       SUMA_RETURN(NULL);
    }

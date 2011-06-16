@@ -228,6 +228,8 @@ int SUMA_flip_orient(int xxorient);
 int SUMA_ok_orstring (char *orstr);
 SUMA_Boolean SUMA_orstring_to_orcode (char *orstr, int *orient);
 int SUMA_Subdivide_Mesh(float **NodeListp, int *N_Node, int **FaceSetListp, int *N_FaceSet, float maxarea);
+SUMA_Boolean SUMA_FlipTriangles (int *FaceSetList,int N_FaceSet);
+SUMA_Boolean SUMA_FlipSOTriangles(SUMA_SurfaceObject *SO);
 int SUMA_OrientTriangles (float *NodeList, int N_Node, int *FaceSetList, int N_FaceSet, int orient, int Force);
 SUMA_Boolean SUMA_Offset_Smooth_dset( SUMA_SurfaceObject *SO, 
                                           float FWHM, float OffsetLim, 
