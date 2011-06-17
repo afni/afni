@@ -9169,18 +9169,22 @@ void AFNI_pop_whereami_kill( Three_D_View *im3d )
 
 char * AFNI_ttatlas_query( Three_D_View *im3d )
 {
-   static int have_TT = -1 ;
+   static int have_TT = 1 ;
    THD_3dim_dataset *dset;
-
+   ATLAS_LIST *atlas_alist;
+   
    if( !IM3D_OPEN(im3d) || !CAN_TALTO(im3d) ) return NULL ;
 
-   /*-- make sure we have the TT atlas --*/
+   set_TT_whereami_version(0,0);
 
+#if 0
+   /*-- make sure we have the TT atlas --*/
    have_TT = 0;
    if( TT_retrieve_atlas_dset("TT_Daemon",0)){
       have_TT = 1 ;
    }
    if( !have_TT ) return NULL ;
+#endif
 
    if( have_TT ){
      THD_fvec3 tv ; char *tlab ;
@@ -9200,9 +9204,11 @@ char * AFNI_ttatlas_query( Three_D_View *im3d )
      /* will want to change this for flexibility not to use preset xform */
      dset = im3d->anat_dset[VIEW_TALAIRACH_TYPE];
 
-     tlab = TT_whereami( tv.xyz[0] , tv.xyz[1] , tv.xyz[2],
-                         THD_get_space(dset)  , NULL );
+     atlas_alist = get_G_atlas_list(); /* get the whole atlas list */
 
+     tlab = TT_whereami( tv.xyz[0] , tv.xyz[1] , tv.xyz[2],
+                         THD_get_space(dset)  , env_atlas_list() );
+                         
      return tlab ;
    }
 

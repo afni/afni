@@ -49,6 +49,29 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 10 , JUN, 2011 , DRG , "whereami" , 
+    SUPER , TYPE_GENERAL, 
+    "Generic Atlas Support and new atlases",
+    "Atlases, spaces and transformations are now defined in a NIML file,\n"
+    "AFNI_atlas_spaces.niml. Transformations among spaces for coordinates\n"
+    "are defined in that file for use by whereami and the whereami display\n"
+    "in the AFNI GUI. The flexible naming of the spaces and atlases allows\n"
+    "easy addition of new atlases to AFNI processing.\n"
+    "Two new environment variables control what atlases and spaces are shown\n"
+    "when no atlas is specified, AFNI_ATLAS_LIST and AFNI_TEMPLATE_SPACE_LIST\n"
+    "The list of atlases now defaults to the TT_Daemon and the Eickhoff-\n"
+    "Zilles atlases in MNI_ANAT space.\n\n"
+    "Additionally, the cytoarchitectonic atlases from the Zilles, Eickhoff\n"
+    "group have been updated to the most recent version, 1.8.\n"
+    "***The previous versions, 1.5, are not used in this release by default.\n"
+    "Depending upon differences on how regions or codes are defined and used,\n"
+    "it is possible that processing scripts and results may be affected.\n\n"
+    "With this release, we also introduce three probabilistic atlases\n"
+    "donated by the Desai group generated from a typical AFNI pipeline.\n"
+    "These atlases contain a multitude of regions created using both\n"
+    "@auto_tlrc and FreeSurfer."
+} ,
+
 { 07 , APR, 2011 , DRG , "whereami" , 
     MAJOR , TYPE_NEW_ENV, 
     "Framework changes for generic atlases",

@@ -28,6 +28,9 @@ static ATLAS_XFORM_LIST *global_atlas_xfl=NULL;
 static ATLAS_LIST *global_atlas_alist=NULL;
 static ATLAS_TEMPLATE_LIST *global_atlas_templates=NULL;
 char *old_space_list[] = {"TLRC","MNI","MNI_ANAT"};
+char *min_atlas_list[] = {"TT_Daemon", "CA_ML_18_MNIA", "CA_MPM_18_MNIA",
+   "CA_PM_18_MNIA", "CA_LR_18_MNIA", "CA_GW_18_MNIA"};
+char min_atlas_n = 6;
 
 ATLAS_SPACE_LIST *get_G_space_list(void) { 
    static int icall = 0;
@@ -987,8 +990,6 @@ char MNI_Anatomical_Side(ATLAS_COORD ac, ATLAS_LIST *atlas_list)
    byte *ba=NULL;
    static int n_warn = 0, lr_notfound = 0;
    ATLAS *atlas=NULL;
-   int LocalHead = wami_lh();
-   
 
    ENTRY("MNI_Anatomical_Side");
 
@@ -1135,11 +1136,16 @@ char * genx_Atlas_Query_to_String (ATLAS_QUERY *wami,
       RETURN(rbuf);
    }
    
-   /* the classic three. */
-   out_spaces =  add_to_names_list(out_spaces, &N_out_spaces, "TLRC");
-   out_spaces =  add_to_names_list(out_spaces, &N_out_spaces, "MNI");
-   out_spaces =  add_to_names_list(out_spaces, &N_out_spaces, "MNI_ANAT");
-   
+   /* get output spaces from an env variable*/
+   out_spaces = env_space_list(&N_out_spaces);
+
+   if(!out_spaces) {
+      /* the classic three. */
+      out_spaces =  add_to_names_list(out_spaces, &N_out_spaces, "TLRC");
+      out_spaces =  add_to_names_list(out_spaces, &N_out_spaces, "MNI");
+      out_spaces =  add_to_names_list(out_spaces, &N_out_spaces, "MNI_ANAT");
+   }
+
    if (N_out_spaces > max_spaces) {
       ERROR_message("Too many spaces for fixed allocation variables");
       RETURN(rbuf);
@@ -1159,10 +1165,15 @@ char * genx_Atlas_Query_to_String (ATLAS_QUERY *wami,
       }
    }
 
+   /* find the coordinates that are in TLRC space, just for LR determination */
+   it = find_coords_in_space(acl, N_out_spaces, "TLRC");
+#if 0
    if ((it = find_coords_in_space(acl, N_out_spaces, "TLRC"))<0) {
-      ERROR_message("Need to have TLRC coords for chunk below");
+       ERROR_message("Need to have TLRC coords for chunk below");
       RETURN(rbuf); 
    }
+#endif
+
 
    /* Prep the string toys */
    INIT_SARR(sar) ; ADDTO_SARR(sar,WAMI_HEAD) ;
@@ -1172,12 +1183,14 @@ char * genx_Atlas_Query_to_String (ATLAS_QUERY *wami,
 
    /* form the string */
    for (i=0; i<N_out_spaces; ++i) {
-      if(strcmp(acl[i].space_name,"MNI_ANAT")) {
+      /* the current rendition of this determines L/R from the CA_N27_LR
+         brain in TLRC space based on the mask dataset with values of 0,1,2 */
+      /* drg - see notes on MNI_Anatomical_Side at function for discussion */
+      if(strcmp(acl[i].space_name,"MNI_ANAT") || (it<0)) {
          sprintf(xlab[i],"%4.0f mm [%c]",-acl[i].x,(acl[i].x<0.0)?'R':'L') ;
       } else { 
-/* drg - see notes on MNI_Anatomical_Side at function for discussion */
          sprintf(xlab[i], "%4.0f mm [%c]", 
-                 -acl[i].x, TO_UPPER(MNI_Anatomical_Side(acl[it], atlas_list))) ;
+         -acl[i].x, TO_UPPER(MNI_Anatomical_Side(acl[it], atlas_list))) ;
       }
       sprintf(ylab[i],"%4.0f mm [%c]",-acl[i].y,(acl[i].y<0.0)?'A':'P') ;
       sprintf(zlab[i],"%4.0f mm [%c]", acl[i].z,(acl[i].z<0.0)?'I':'S') ;
@@ -1844,11 +1857,11 @@ int XYZ_to_AtlasCoord(float x, float y, float z, char *orcode,
    return(1);
 }
  
-static int atlas_list_version = 1;  /* 1 --> Old style, hard coded atlases and
+static int atlas_list_version = 2;  /* 1 --> Old style, hard coded atlases and
                                              transforms.
                                        2 --> Use .niml files defining atlases
                                              and transforms */
-static int whereami_version = 1;    /* 1 --> Uses mid vintage whereami_9yards 
+static int whereami_version = 2;    /* 1 --> Uses mid vintage whereami_9yards 
                                              function.
                                        2 --> Uses whereami_3rdbase
                                     */
@@ -1866,7 +1879,7 @@ void set_TT_whereami_version(int atlas_version, int wami_version) {
       whereami_version = wami_version;
    } else {
       NI_stream ns;
-      if (ns = find_atlas_niml_file()) {
+      if ((ns = find_atlas_niml_file())) {
          atlas_list_version = 2;
          whereami_version = 2;
          NI_stream_close( ns );
@@ -1998,6 +2011,9 @@ open_atlas_niml(char * nimlname)
 
    /* try reading a NIML file wherever it says, i.e. path is complete
       or current directory */
+   if(wami_verb() > 1) 
+      INFO_message("trying to open %s in current directory\n",nimlname);   
+
    space_niml = NI_stream_open(filestr,"r");
    if(space_niml)
       RETURN(space_niml);
@@ -2007,7 +2023,13 @@ open_atlas_niml(char * nimlname)
                        epath = getenv("AFNI_PLUGINPATH") ;
    if( epath == NULL ) epath = getenv("AFNI_PLUGIN_PATH") ;
    if( epath != NULL ) {
-      sprintf(filestr, "file:%s%s", epath,nimlname);
+      if(wami_verb() > 1) 
+         INFO_message("trying to open %s in AFNI_PLUGINPATH directory %s\n",
+              nimlname, epath);   
+      if(epath[strlen(epath)-1]!='/')
+         sprintf(filestr, "file:%s/%s", epath,nimlname);
+      else
+         sprintf(filestr, "file:%s%s", epath,nimlname);
       space_niml = NI_stream_open(filestr,"r");
       if(space_niml)
          RETURN(space_niml);
@@ -2016,13 +2038,19 @@ open_atlas_niml(char * nimlname)
    /* still can't find it. Maybe it's in one of the path directories */ 
    epath = getenv("PATH") ;
    if( epath == NULL ) RETURN(NULL) ;  /* this is bad-who doesn't have a path?*/
+   if(wami_verb() > 1) 
+      INFO_message("trying to open %s in path as a regular file\n  %s\n",nimlname, epath);   
 
-   fstr = THD_find_executable(nimlname);
-   if(fstr) {       
+   fstr = THD_find_regular_file(nimlname);
+   if(fstr) {
+      if(wami_verb() > 1)
+         INFO_message("found %s in %s", nimlname, fstr);
       sprintf(filestr, "file:%s", fstr);
       space_niml = NI_stream_open(filestr,"r");
       if(space_niml)
          RETURN(space_niml);
+      if(wami_verb() > 1) 
+         INFO_message("failed to open %s from path as %s\n",nimlname, filestr);   
    }
    RETURN(NULL);
 }
@@ -2114,9 +2142,7 @@ char * TT_whereami(  float xx , float yy , float zz,
 {
    ATLAS_COORD ac;
    ATLAS_QUERY *wami = NULL;
-   char *rbuf = NULL, *strg = NULL ;
-   int k = 1, i;
-   static int first_time = 1;
+   char *rbuf = NULL;
    ATLAS_LIST *atlas_alist=(ATLAS_LIST *)alist;
    ATLAS_SPACE_LIST *asl=get_G_space_list();
    int LocalHead = wami_lh();
@@ -2124,7 +2150,8 @@ char * TT_whereami(  float xx , float yy , float zz,
    ENTRY("TT_whereami") ;
 
    /* initialize the single custom atlas entry */
-   init_custom_atlas();
+   if(whereami_version<2)
+      init_custom_atlas();
 
    if (!atlas_alist) { /* get global */
       atlas_alist = get_G_atlas_list();
@@ -2666,8 +2693,6 @@ int *z_idoubleqsort (double *x , int nx )
 
    /* return */
    RETURN (I);
-
-
 }/*z_idoubleqsort*/
 
 /* return the unique values in y
@@ -4101,8 +4126,9 @@ char *Atlas_Code_to_Atlas_Description (AFNI_ATLAS_CODES cod)
    RETURN("No way Bert.");
 }
 
-
-
+/* initialize custom atlas from environment variable */
+/* this is not used at all with the newer NIML table method of
+   specifying atlases */
 void
 init_custom_atlas()
 {
@@ -4421,6 +4447,9 @@ int Check_Version_Match(THD_3dim_dataset * dset, char *atname)
    RETURN(0); /* not good */
 }
 
+#ifdef KILLTHIS /* Remove all old sections framed by #ifdef KILLTHIS
+                  in the near future.  ZSS May 2011   */ 
+
 static int N_VersionMessage = 0;
 
 static char *VersionMessage(void)
@@ -4434,8 +4463,6 @@ static char *VersionMessage(void)
    RETURN(verr);
 }
 
-#ifdef KILLTHIS /* Remove all old sections framed by #ifdef KILLTHIS
-                  in the near future.  ZSS May 2011   */ 
 int CA_EZ_ML_load_atlas_old(void)
 {
    char *epath ;
@@ -4601,6 +4628,7 @@ THD_3dim_dataset *load_atlas_dset(char *dsetname)
 {
    char *fstr,*epath ;
    char atpref[256];
+   char filestr[256];
    THD_3dim_dataset *dset=NULL;
    int LocalHead = wami_lh();
 
@@ -4634,7 +4662,12 @@ THD_3dim_dataset *load_atlas_dset(char *dsetname)
                        epath = getenv("AFNI_PLUGINPATH") ;
    if( epath == NULL ) epath = getenv("AFNI_PLUGIN_PATH") ;
    if( epath != NULL ) {
-      dset = get_atlas( epath, dsetname);
+      if(epath[strlen(epath)-1]!='/') {
+         sprintf(filestr, "%s/", epath);
+         dset = get_atlas(filestr, dsetname);
+      }
+      else
+          dset = get_atlas( epath, dsetname);
       if(dset) RETURN(dset);
    }
 
@@ -4642,8 +4675,8 @@ THD_3dim_dataset *load_atlas_dset(char *dsetname)
    epath = getenv("PATH") ;
    if( epath == NULL ) RETURN(NULL) ;  /* this is bad-who doesn't have a path?*/
 
-   /* use function that looks for executables in path */
-   fstr = THD_find_executable(dsetname);
+   /* use function that looks for regular files in path */
+   fstr = THD_find_regular_file(dsetname);
    if(fstr) {       
       dset = get_atlas( NULL, fstr);
       if(dset) RETURN(dset);
@@ -4787,7 +4820,6 @@ const char *Atlas_Val_Key_to_Val_Name(ATLAS *atlas, int tdval)
 
 ATLAS *get_Atlas_Named(char *atname, ATLAS_LIST *atlas_list)
 {
-   ATLAS *atl = NULL;
    int i=0;
    
    ENTRY("get_Atlas_Named");
@@ -4811,9 +4843,8 @@ ATLAS *get_Atlas_Named(char *atname, ATLAS_LIST *atlas_list)
 
 ATLAS_LIST *Atlas_Names_to_List(char **atnames, int natlases)
 {
-   ATLAS *atl = NULL, *atlptr;
+   ATLAS *atl = NULL;
    ATLAS_LIST *atlas_list = NULL, *reduced_list = NULL;
-   char *atname = NULL;
    int i=0, reduced_n=0;
    
    ENTRY("Atlas_Names_to_List");
@@ -4849,7 +4880,7 @@ ATLAS_LIST *Atlas_Names_to_List(char **atnames, int natlases)
    reduced_list->atlas = (ATLAS *) calloc(
                             reduced_n, sizeof(ATLAS));
    for (i=0; i<natlases; ++i) {
-      if(atl = get_Atlas_Named(atnames[i], atlas_list)) {
+      if((atl = get_Atlas_Named(atnames[i], atlas_list))) {
          if(wami_verb()){
             INFO_message("Atlas, %s,matched in reduced list:",Atlas_Name(atl));
          }
@@ -4872,8 +4903,6 @@ ATLAS_DSET_HOLDER *Free_Atlas_Dset_Holder(ATLAS_DSET_HOLDER *adh)
 
 int Init_Atlas_Dset_Holder(ATLAS *atlas) 
 {
-   ATLAS_DSET_HOLDER *adh=NULL;
-   
    ENTRY("New_Atlas_Dset_Holder");
    
    if (!atlas) RETURN(0);
@@ -5041,9 +5070,9 @@ ATLAS *Atlas_With_Trimming(char *atname, int LoadLRMask,
 /*! Fills in the ATLAS structure if it needs filling */ 
 int genx_load_atlas_dset(ATLAS *atlas)
 {
-   int ii, pmap;
    int LocalHead = wami_lh();
-   ATR_int *pmap_atr;
+
+   ENTRY("genx_load_atlas_dset");
 
    /* Load the dataset */
    if(ATL_DSET(atlas) == NULL) {
@@ -5133,7 +5162,6 @@ ATLAS_POINT_LIST *atlas_point_to_atlas_point_list(ATLAS_POINT * apl, int n_pts)
 int set_adh_old_way(ATLAS_DSET_HOLDER *adh, char *aname)
 {
    int ii;
-   int LocalHead = wami_lh();
    ATLAS_POINT_LIST *apl=NULL;
    
    ENTRY("set_adh_old_way");
@@ -5172,7 +5200,7 @@ int set_adh_old_way(ATLAS_DSET_HOLDER *adh, char *aname)
      adh->maxkeyval = -1; /* not appropriate */
      adh->minkeyval = INT_MAX; /* not appropriate */
      adh->probkey = 0;
-     if (wami_verb())
+/*     if (wami_verb())
          INFO_message("Daniel, why fill apl2 here?"
                       " Would we store it in such a dset?"
                       " Should we just include a reference to the atlas"
@@ -5180,7 +5208,7 @@ int set_adh_old_way(ATLAS_DSET_HOLDER *adh, char *aname)
                       " I see why you do it this way, and I think"
                       " that is fine. But we need to be sure this does"
                       " not flag such a dset as an ROI type dset in AFNI"
-                      " and messup the colorbar, etc.");
+                      " and messup the colorbar, etc."); */
 /* drg - not sure what you want here. We want ROI dsets and atlases to be
      pretty much the same thing everywhere */
 
@@ -5407,7 +5435,7 @@ int whereami_in_atlas(  char *aname,
    ATLAS *atlas=NULL;
    int LocalHead = wami_lh();
    float fval = 0;
-   static find_warn = 0;
+   static char find_warn = 0, nolabel_warn = 1;
 
    ENTRY("whereami_in_atlas");
    
@@ -5604,9 +5632,13 @@ int whereami_in_atlas(  char *aname,
             baf = b_find[ff] ; blab = NULL ;
             blab = atlas_key_label(atlas, baf, &ac);
             if( blab == NULL && is_atlas_key_labeled(atlas, baf)) {
-               WARNING_message(
-                  "No label found for code %d in atlas %s\nContinuing...", 
+               if(nolabel_warn) {
+                  WARNING_message(
+                  "No label found for code %d in atlas %s\n"
+                  "Similar missing labels will be ignored. Continuing...", 
                                baf, Atlas_Name(atlas));
+                 nolabel_warn = 0;
+               }
                continue ;  /* no labels? */
             }
 
@@ -5712,7 +5744,7 @@ int whereami_3rdBase( ATLAS_COORD aci, ATLAS_QUERY **wamip,
    int LocalHead = wami_lh();
 
    ENTRY("whereami_3rdBase");
-   /* initalized ? */
+   /* initialized ? */
    if (!aali) aali = get_G_atlas_list();
    if (!aali || aali->natlases == 0) {
       ERROR_message("No atlas_alist, or empty one.");
@@ -5724,13 +5756,20 @@ int whereami_3rdBase( ATLAS_COORD aci, ATLAS_QUERY **wamip,
       print_atlas_list(aali); print_space_list(asl); 
    }
    for (ia=0; ia<aali->natlases; ++ia) {
-      xfl = report_xform_chain(aali->atlas[ia].atlas_space, aci.space_name, 0);
+      xfl = report_xform_chain(aci.space_name, aali->atlas[ia].atlas_space, 0);
       if (xfl) {
          ++N_iatl;
          iatl = (int*)realloc(iatl, N_iatl*sizeof(int));
          iatl[N_iatl-1]=ia;
          free_xform_list(xfl); xfl=NULL; 
       }
+      else {
+         if(LocalHead)
+            WARNING_message(
+            "No xform chain from space, %s, to atlas %s in space %s",
+            aci.space_name, aali->atlas[ia].atlas_name, 
+            aali->atlas[ia].atlas_space);
+     }
    }
    if (LocalHead) {
       INFO_message("Have %d reachable atlases\n", N_iatl);
@@ -5798,7 +5837,6 @@ int whereami_9yards(  ATLAS_COORD aci, ATLAS_QUERY **wamip,
    THD_ivec3 ijk ;
    short *ba = NULL ;
    byte *bba = NULL ;
-   float *fba = NULL;
    char *blab ;
    int nfind, *b_find=NULL, *rr_find=NULL ;
    ATLAS_QUERY *wami = NULL;
@@ -6256,6 +6294,65 @@ THD_3dim_dataset *THD_3dim_from_ROIstring(char *shar, ATLAS_LIST *atlas_list)
    RETURN(maskset);
 }
 
+static char *outspace_str = NULL; /* default templace space not set */
+
+/* set up a few accessor functions for default template space manipulation*/ 
+/* set default template space of output */ 
+void set_out_space(char *space_str)
+{
+   if(!outspace_str) {
+      free(outspace_str);
+      outspace_str = NULL;
+   }
+
+   outspace_str = nifti_strdup(space_str);
+}
+
+/* get default template space of output */ 
+char *get_out_space()
+{
+   return(outspace_str);
+}
+
+/* compare space with default template space of output */
+int equivalent_space(char *inspace_str)
+{
+   char *gen_inspace_str, *gen_outspace_str;
+
+   if(!outspace_str)   /* check if the output space has not been set yet */
+      return(1);
+   if(strcmp(inspace_str, outspace_str)==0) /* space matches default - good */
+      return(1);
+   /* now check if the inspace_str or the generic version of the inspace_str
+      matches the generic version of the outspace_str */
+   gen_inspace_str = gen_space_str(inspace_str);
+   if(!gen_inspace_str)
+      return(0);   /* no generic space for input string */
+
+   gen_outspace_str = gen_space_str(outspace_str);
+   if(!gen_outspace_str)
+      return(0);   /* no generic space for output string */
+
+   if(strcmp(gen_inspace_str, gen_outspace_str)==0)
+      return(1);   /* generic space strings match */
+
+   return(0);
+}
+
+char *gen_space_str(char *space_str)
+{
+   int i;
+   ATLAS_SPACE_LIST *asl=get_G_space_list();
+   ATLAS_SPACE *at_space;
+
+   for(i=0;i<asl->nspaces;i++){
+      at_space = asl->space+i;
+      if(strcmp(at_space->atlas_space, space_str)==0)
+         return(at_space->generic_space);
+   }
+   return(NULL);
+}
+
 int find_in_names_list(char **nl, int N_nl, char *name) {
    int i = -1;
    
@@ -6267,7 +6364,6 @@ int find_in_names_list(char **nl, int N_nl, char *name) {
 }
 
 char **add_to_names_list(char **nl, int *N_nl, char *name) {
-   int i;
    
    if (!name) return(nl);
    
@@ -6288,7 +6384,7 @@ char **free_names_list(char **nl, int N_nl) {
    for (i=0; i<N_nl; ++i) {
       if (nl[i]) free(nl[i]);
    }
-   free(nl[i]); 
+/*   free(nl[i]); */
    return(NULL);
 }
 
@@ -6436,7 +6532,6 @@ char **atlas_reference_string_list(char *atname, int *N_refs) {
 char **atlas_chooser_formatted_labels(char *atname) {
    char **at_labels=NULL;
    ATLAS_POINT_LIST *apl=NULL;
-   ATLAS *atlas;
    int ii;
    
    if (!(apl = atlas_point_list(atname))) {
@@ -6455,5 +6550,150 @@ char **atlas_chooser_formatted_labels(char *atname) {
    return(at_labels);
 }
 
-/* End ZSS: Additions for Eickhoff and Zilles Cytoarchitectonic maps */
+/* return the list of atlases set by the environment variable,
+   AFNI_ATLAS_LIST */
+ATLAS_LIST *
+env_atlas_list()
+{
+   char *envlist = NULL;
+   char *atlas_str_ptr;
+   char **atlas_names=NULL;
+   int N_atlas_names = 0;
+   ATLAS_LIST *atlas_rlist = NULL;
+   char atlas_name_str[256], ch;
+   int ai, strind, nch;
 
+
+   envlist= my_getenv("AFNI_ATLAS_LIST");
+   if(envlist==NULL) {
+      atlas_rlist = Atlas_Names_to_List(min_atlas_list, min_atlas_n);
+      return(atlas_rlist);
+   }
+   nch = strlen(envlist);
+   strind = 0; ai =0;
+   atlas_str_ptr = envlist;
+
+   if(wami_verb()){
+      INFO_message("AFNI_ATLAS_LIST set to %s with %d chars", envlist, nch);
+   }
+
+   if(!strcmp(envlist, "ALL")) {
+      if(wami_verb()){
+         INFO_message("AFNI_ATLAS_LIST is ALL atlases");
+      }
+      atlas_rlist = get_G_atlas_list();
+      return(atlas_rlist);
+   }
+
+
+   while(strind<=nch) {
+      ch = *(atlas_str_ptr+strind);
+      /* reached the end of a string with end of string, comma or semicolon */
+      if((ch=='\0')||(ch==',')||(ch==';')||(strind==nch)) {
+         if(ai>0){
+            *(atlas_name_str+ai) = '\0'; /* null terminate the name */
+            /* add the name to the list of atlas names (an array of strings) */
+            /* the name is duplicated into the new list */
+            atlas_names = 
+              add_to_names_list (atlas_names, &N_atlas_names, atlas_name_str);
+            ai = 0; /* reset the offset index for each atlas name */
+            if(wami_verb()){
+               INFO_message("AFNI_ATLAS_LIST name: %s", atlas_name_str);
+            }
+         }
+      }
+      else {
+         *(atlas_name_str+ai) = ch;
+         ai++;
+      }
+      strind++;
+   }
+
+   if (N_atlas_names == 0) {
+      return(NULL);
+   } 
+
+   atlas_rlist = Atlas_Names_to_List(atlas_names, N_atlas_names);
+   if(wami_verb()){
+      INFO_message("reduced list of atlases");
+      print_atlas_list(atlas_rlist);
+   }
+
+   atlas_names = free_names_list(atlas_names, N_atlas_names);
+
+   return(atlas_rlist);
+
+}
+/* return the list of spaces (as a array of strings) set by the 
+   environment variable, AFNI_TEMPLATE_SPACE_LIST */
+char **
+env_space_list(int *nspaces)
+{
+   char *envlist = NULL;
+   char *atlas_str_ptr;
+   char **atlas_space_list=NULL;
+   int N_atlas_spaces = 0;
+   char atlas_name_str[256], ch;
+   int ai, strind, nch, i ;
+   ATLAS_SPACE_LIST *asl;
+
+   *nspaces = 0;
+   envlist= my_getenv("AFNI_TEMPLATE_SPACE_LIST");
+   if(envlist==NULL) return(NULL);
+   
+   nch = strlen(envlist);
+   strind = 0; ai =0;
+   atlas_str_ptr = envlist;
+
+   if(wami_verb()){
+      INFO_message("AFNI_TEMPLATE_SPACE_LIST set to %s with %d chars",
+                   envlist, nch);
+   }
+
+   /* if environment variable is set to "ALL", display in all output spaces */
+   if(!strcmp(envlist, "ALL")) {
+      if(wami_verb()){
+         INFO_message("AFNI_TEMPLATE_SPACE_LIST is ALL template spaces");
+      }
+      asl = get_G_space_list();
+      for(i=0;i<asl->nspaces;i++){
+         atlas_space_list = add_to_names_list( atlas_space_list,
+            &N_atlas_spaces, asl->space[i].atlas_space);
+      }
+      *nspaces = N_atlas_spaces;
+
+      return(atlas_space_list);
+   }
+   
+   while(strind<=nch) {
+      ch = *(atlas_str_ptr+strind);
+      /* reached the end of a string with end of string, comma or semicolon */
+      if((ch=='\0')||(ch==',')||(ch==';')||(strind==nch)) {
+         if(ai>0){
+            *(atlas_name_str+ai) = '\0'; /* null terminate the name */
+            /* add the name to the list of atlas names (an array of strings) */
+            /* the name is duplicated into the new list */
+            atlas_space_list = 
+              add_to_names_list (atlas_space_list, &N_atlas_spaces,
+                                atlas_name_str);
+            ai = 0; /* reset the offset index for each atlas name */
+            if(wami_verb()){
+               INFO_message("AFNI_TEMPLATE_SPACE_LIST name: %s", atlas_name_str);
+            }
+         }
+      }
+      else {
+         *(atlas_name_str+ai) = ch;
+         ai++;
+      }
+      strind++;
+   }
+
+   if (N_atlas_spaces == 0) {
+      return(NULL);
+   } 
+
+   *nspaces = N_atlas_spaces;
+
+   return(atlas_space_list);
+}

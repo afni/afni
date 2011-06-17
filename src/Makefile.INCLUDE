@@ -40,7 +40,8 @@ SOMEAFOBJS = parser_int.o afni_warp.o afni_slice_byte.o afni_slice_short.o \
 
 T3OBJS  = to3d.o
 
-MISC    = AFNI.Xdefaults AFNI.afnirc AFNI.sumarc 3d*.lib gmovie*
+MISC    = AFNI_atlas_spaces.niml AFNI.Xdefaults AFNI.afnirc AFNI.sumarc \
+          3d*.lib gmovie*
 
 ## The following programs are "extras" not really part of the
 ## AFNI package, but included because they are useful.  Some of
@@ -173,7 +174,7 @@ SCRIPTS = @4Daverage @CommandGlobb @GetAfniOrient @DTI_studio_reposition        
           @FS_roi_label @demo_prompt @ScriptCheck @NoPound @Reorder               \
           3dMEMA @DiceMetric @R_funclist @TimeDiff @FullPath @RetinoProc          \
           @ANATICOR @MakeLabelTable @ElectroGrid ExamineXmat 1dRplot              \
-          @2dwarper.Allin @help.AFNI @1dDiffMag @FSlabel2dset                    \
+          @2dwarper.Allin @Shift_Volume  @help.AFNI @1dDiffMag @FSlabel2dset      \
           @Install_InstaCorr_Demo
 
 PY_DIR = python_scripts
@@ -1576,6 +1577,7 @@ install: $(INSTALLDIR) $(INSTALL_PREREQ)
 	if [ -f README.environment ]; then $(CP) README.*    $(INSTALLDIR); fi;
 	if [ -f AFNI.afnirc        ]; then $(CP) AFNI.afnirc $(INSTALLDIR); fi;
 	if [ -f AFNI.sumarc        ]; then $(CP) AFNI.sumarc $(INSTALLDIR); fi;
+	if [ -f AFNI_atlas_spaces.niml ]; then $(CP) AFNI_atlas_spaces.niml $(INSTALLDIR); fi;
 
 install_noplug: $(INSTALLDIR)
 	$(MV) $(PROGRAMS_NOPLUG) $(INSTALLDIR)
