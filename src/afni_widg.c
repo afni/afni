@@ -6841,6 +6841,7 @@ int AFNI_set_dset_pbar(XtPointer *vp_im3d)
       that preserves the last colormap setup for a dset.
       Hmmm, got to discuss this with Bob, Daniel, and Rick */
    } else {
+printf("No label table, so guessing if pbar should be stepped\n");
       /*
       Here one could guess at the moment (See is_integral_dset).
       But that can be
@@ -6850,6 +6851,7 @@ int AFNI_set_dset_pbar(XtPointer *vp_im3d)
       */
       /* use ROI_i256 for now for datasets marked as integer cmaps (even sparse ones) */
       if(im3d->fim_now->int_cmap) {
+printf("Overlay dataset has int_cmap set to non-zero, so use ROI colorscale\n");
          PBAR_set_bigmap( im3d->vwid->func->inten_pbar , "ROI_i256" ) ;
       }
       else {
@@ -6858,6 +6860,7 @@ int AFNI_set_dset_pbar(XtPointer *vp_im3d)
        if( eee == NULL ) eee = getenv("AFNI_COLOR_SCALE_DEFAULT") ;
        if( eee == NULL ) eee = "Spectrum:red_to_blue" ;
 #endif
+printf("overlay int_cmap set to zero, use last continuous colorscale\n");
        AFNI_reset_func_range_cont((XtPointer *)im3d);
       }
       switched = 1;

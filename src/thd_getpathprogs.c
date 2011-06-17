@@ -17,7 +17,7 @@ char * THD_find_executable( char *ename )
 
 ENTRY("THD_find_executable") ;
 
-   if( !einit ){ einit = 1 ; elist = THD_getpathprogs(NULL) ; }
+   if( !einit ){ einit = 1 ; elist = THD_getpathprogs(NULL, 1) ; }
    if( elist == NULL ) RETURN(NULL) ;
 
    etr = THD_trailname( ename , 0 ) ;
@@ -30,10 +30,68 @@ ENTRY("THD_find_executable") ;
    RETURN(NULL) ;
 }
 
+/*----------------------------------------------------------------------------*/
+/*! Find a regular file in the PATH by its name, if it exists.
+    Does not include directories.
+    If not, NULL is returned.  If it exists, a pointer to static storage
+    is returned (i.e., don't free() this pointer!).
+------------------------------------------------------------------------------*/
+
+char * THD_find_regular_file( char *ename )
+{
+   char *fullname , *str ;
+   int id , ii ;
+   char *epath;
+ENTRY("THD_find_regular_file") ;
+   epath = my_getenv( "PATH" ) ;
+   if( epath != NULL ){
+      int epos =0 , ll = strlen(epath) ;
+      char *elocal ;
+      char dirname[THD_MAX_NAME] ;
+
+      /* copy path list into local memory */
+
+      elocal = (char *) malloc( sizeof(char) * (ll+2) ) ;
+      strcpy( elocal , epath ) ; elocal[ll] = ' ' ; elocal[ll+1] = '\0' ;
+      fullname = (char *) malloc( sizeof(char) * THD_MAX_NAME);
+
+      /* replace colons with blanks */
+      for( ii=0 ; ii < ll ; ii++ )
+         if( elocal[ii] == ':' ) elocal[ii] = ' ' ;
+
+      /* extract blank delimited strings,
+         use as directory names to get timeseries files */
+
+      do{
+         ii = sscanf( elocal+epos , "%s%n" , dirname , &id ) ;
+         if( ii < 1 ) break ;  /* no read ==> end of work */
+         epos += id ;          /* epos = char after last one scanned */
+
+         ii = strlen(dirname) ;                         /* make sure name has */
+         if( dirname[ii-1] != '/' ){                    /* a trailing '/' on it */
+            dirname[ii]  = '/' ; dirname[ii+1] = '\0' ;
+         }
+         if( !THD_is_directory(dirname) ) continue ;    /* 25 Feb 2002 */
+
+         sprintf(fullname, "%s%s",dirname,ename);
+         if( THD_is_file(fullname) ) {
+            /* found the file in the current directory */
+            free(elocal) ;
+            RETURN(fullname);
+         }
+
+      } while( epos < ll ) ;  /* scan until 'epos' is after end of epath */
+
+      free(elocal) ; free(fullname);
+   }
+
+   RETURN(NULL) ;
+}
+
 /*===========================================================================*/
 /*! Return a list of all executable files in the PATH and the dlist. */
 
-THD_string_array * THD_getpathprogs( THD_string_array *dlist )
+THD_string_array * THD_getpathprogs( THD_string_array *dlist, char exec_flag )
 {
    int id , ii , ndir ;
    char *epath , *eee ;
@@ -51,11 +109,11 @@ ENTRY("THD_getpathprogs") ;
    INIT_SARR(elist) ;
    INIT_SARR(qlist) ;  /* 04 Feb 2002: list of searched directories */
 
-   /*----- for each input directory, find all executable files -----*/
+   /*----- for each input directory, find all files / executable files -----*/
 
    for( id=0 ; id < ndir ; id++ ){
 
-      tlist = THD_get_all_executables( dlist->ar[id] ) ;
+      tlist = THD_get_all_files( dlist->ar[id], exec_flag ) ;
       if( tlist == NULL ) continue ;
 
       for( ii=0 ; ii < tlist->num ; ii++ )  /* copy names to output array */
@@ -104,7 +162,8 @@ ENTRY("THD_getpathprogs") ;
          if( ii < qlist->num ) continue ;  /* skip this directory */
          ADDTO_SARR(qlist,ename) ;
 
-         tlist = THD_get_all_executables( ename ) ; /* read this directory */
+         /* read this directory */
+         tlist = THD_get_all_files( ename, exec_flag ) ; 
          if( tlist != NULL ){
             for( ii=0 ; ii < tlist->num ; ii++ )    /* move names to output */
                ADDTO_SARR( elist , tlist->ar[ii] ) ;
@@ -123,21 +182,20 @@ ENTRY("THD_getpathprogs") ;
 }
 
 /*--------------------------------------------------*/
-/*! Read all executable filenames from a directory. */
+/*! Read all regular files or executable filenames from a directory. */
 
-THD_string_array * THD_get_all_executables( char *dname )
+THD_string_array * THD_get_all_files( char *dname, char exec_flag )
 {
    int ir , ll , ii ;
    char *fname , *tname ;
    float *far ;
    THD_string_array *outar, *alist, *rlist ;
 
-ENTRY("THD_get_all_executables") ;
+ENTRY("THD_get_all_files") ;
 
    /*----- sanity check and initialize -----*/
 
    if( dname == NULL || strlen(dname) == 0 ) RETURN(NULL) ;
-   INIT_SARR( outar ) ;
 
    /*----- find all regular files -----*/
 
@@ -152,13 +210,20 @@ STATUS("call THD_extract_regular_files") ;
    DESTROY_SARR( alist ) ;
    if( rlist == NULL ) RETURN(NULL) ;
 
+   /* return regular list if not looking for executables */
+   if(!exec_flag) RETURN(rlist);  
+
+   INIT_SARR( outar ) ;
+
    /* 04 Feb 2002: don't include .so libraries, etc. */
 
    for( ir=0 ; ir < rlist->num ; ir++ ){
       fname = rlist->ar[ir] ;
       if( THD_is_executable(fname) &&
           !strstr(fname,".so")     &&
-          !strstr(fname,".la")       ) ADDTO_SARR(outar,fname) ;
+          !strstr(fname,".la")       ) {
+          ADDTO_SARR(outar,fname) ;
+      }
    }
 
    DESTROY_SARR(rlist) ;

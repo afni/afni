@@ -3,7 +3,7 @@
 
 /* access current space of dataset */
 
-#include "mrilib.h"
+#include "afni.h"
 #include "thd_atlas.h"
 #define SUMA_noFunc
 #include "suma_suma.h"
@@ -24,7 +24,6 @@ static int *N_Neighb;
 
 char * THD_get_space(THD_3dim_dataset *dset)
 {
-   char  *eee;
 
    ENTRY("THD_get_space");
 
@@ -425,7 +424,7 @@ int   read_space_niml(NI_stream space_niml, ATLAS_XFORM_LIST *atlas_xfl,
                atlas_read_xform(nel, &atlas_xfl->xform[atlas_xfl->nxforms-1]);
                found = 1;
             } 
-            if(strcmp(nel->name, "atlas_dataset") == 0) {
+            if(strcmp(nel->name, "ATLAS") == 0) {
               atlas_alist->natlases++;
               if(wami_verb() > 2){
                   INFO_message("Number of atlases now %d\n", 
@@ -447,9 +446,7 @@ int   read_space_niml(NI_stream space_niml, ATLAS_XFORM_LIST *atlas_xfl,
                found = 1;
             }
 
-            if(strcmp(nel->name, "template_dataset") == 0) {
-               if(wami_verb() > 2) 
-                  INFO_message("template dataset\n");
+            if(strcmp(nel->name, "TEMPLATE") == 0) {
                atlas_templates->ntemplates++;
                if(wami_verb() > 2){
                   INFO_message("Atlas template\n");
@@ -600,11 +597,12 @@ get_xform_neighbor(ATLAS_XFORM_LIST *atlas_xfl, ATLAS_SPACE *at_space,
           cc = invert_xform(xf2);
           free_xform(xf2);
           free(xf2);
-          if(cc)
+          if(cc) {
              if(wami_verb() > 1){
                INFO_message("Can not invert transform in path from %s to %s",
                   xfsrc, xfdest);
              }
+          }
           else {
              if(wami_verb() > 1){
                INFO_message("Using invertible transform in path from %s to %s",
@@ -1164,11 +1162,48 @@ void print_atlas_table(ATLAS_LIST *xal)
    INFO_message("--------------------------");
 }
 
+
 /* print the comment for an atlas  - may span multiple lines with '\n' */
 void print_atlas_comment(ATLAS *xa)
 {
     if((xa) && ATL_COMMENT(xa))
        INFO_message("%s", ATL_COMMENT(xa));
+}
+
+/* print table of atlases - name, dset, description, comments */
+void print_point_lists(ATLAS_LIST *xal)
+{
+   int i;
+   ATLAS *xa;
+   ATLAS_POINT_LIST *apl;
+
+   INFO_message("----- Atlas point lists: -------");
+   if(xal==NULL){
+      INFO_message("** No atlases found **");
+      return;
+   }
+
+   for(i=0;i<xal->natlases;i++) {
+      xa = xal->atlas+i;
+      INFO_message("Atlas name : %-16.16s, Dataset: %-20.20s",
+                   xa->atlas_name,xa->atlas_dset_name);
+      apl = atlas_point_list(xa->atlas_name);
+      if(apl)
+         print_atlas_point_list(apl);
+      else
+         INFO_message("**** No point list. Atlas needs repair!");
+      INFO_message(
+              "__________________________________________________________");
+   }
+
+   INFO_message("\n");
+   for(i=0;i<xal->natlases;i++) {
+      xa = xal->atlas+i;
+      if (ATL_COMMENT(xa)) { 
+         INFO_message("%s: %s", ATL_NAME(xa), ATL_COMMENT_S(xa));
+      }
+   }
+   INFO_message("--------------------------");
 }
 
 /* print info about an atlas coordinate */
@@ -1474,11 +1509,15 @@ invert_xform(ATLAS_XFORM *xf)
    int cc =1;
 
    if(xf->inverse==0) return(0);
+
+   xf->inverse = 0;
+
    if(strcmp(xf->xform_type,"Affine")==0){
       cc = invert_affine(xf);
    }
+   /* for 12-piece, this just flips inverse setting 0->1*/
    if(strcmp(xf->xform_type,"12-piece")==0){
-      cc = invert_12piece(xf);
+      cc = invert_12piece(xf); 
    }
    if(strcmp(xf->xform_type,"2-piece")==0){
       cc = invert_2piece(xf);
@@ -1487,7 +1526,6 @@ invert_xform(ATLAS_XFORM *xf)
       cc = invert_brett(xf);
    }
 
-   xf->inverse = 0; /* should never be an inverse transform here */
 
    return(cc);
 }
@@ -1525,13 +1563,14 @@ invert_affine(ATLAS_XFORM *xf)
 }
 
 /* invert a 12 piece matrix - do in place */
+/* don't actually invert, just mark for backward vector use */
 /* return error code - 0 for no error */
 int
 invert_12piece(ATLAS_XFORM *xf)
 {
-/*    int cc;
- */   
-   return(1);
+   xf->inverse = !(xf->inverse);
+  
+   return(0);
 }
 
 
@@ -1550,7 +1589,6 @@ invert_2piece(ATLAS_XFORM *xf)
 int
 invert_brett(ATLAS_XFORM *xf)
 {
-   int cc;
    xf->inverse = !(xf->inverse);
    
    return(0);
@@ -1813,7 +1851,6 @@ apply_xform_2piece(ATLAS_XFORM *xf, float x, float y, float z,
 {
    float *xfptr;
    float lx,ly,lz;
-   int apply_post;
    int apply_2nd;
    
    /* brett transform - tta to mni
@@ -1892,15 +1929,68 @@ apply_xform_12piece(ATLAS_XFORM *xf, float x, float y, float z, \
                                     float *xout, float *yout, float *zout)
 {
 /*    float *xfptr;
-   static THD_talairach_12_warp ww;
  */
-
-   return(1);   /* doesn't work yet */
+   THD_talairach_12_warp *ww;
+   int iw, ioff;
+   THD_fvec3 tv, mv, *fvptr;
+   float tx, ty, tz;
+   char *wptr;
+   float *fptr;
 
    if(xf->xform==NULL) return(1);
-/*   LOAD_FVEC3( mv , x,y,z ) ;   
-   tv = AFNI_forward_warp_vector(MNI_N27_to_TLRC_DSET->warp, mv);
-*/   return(0);
+   LOAD_FVEC3( mv , x,y,z ) ;   
+
+   /* load the transform */
+   ww = myXtNew( THD_talairach_12_warp ) ;
+   ww->type = WARP_TALAIRACH_12_TYPE;
+   ww->resam_type = 0;
+
+   for (iw=0; iw < 12; ++iw) {
+      /* 12 piece tranformations stored in 12x30 float blocks */
+      /* each 30 float block is first 3x3 forward, 3x3 backward, 
+         3 vector-forward, 3 vector-backward,
+         bottom xyz corner, top xyz corner */
+#if 0
+
+      fptr = (float *) xf->xform+iw*MAPPING_LINEAR_FSIZE;
+      memcpy(&ww->warp[iw].mfor, fptr, 9*sizeof(float)); fptr += 9;
+      memcpy(&ww->warp[iw].mbac, fptr, 9*sizeof(float)); fptr += 9;
+      memcpy(&ww->warp[iw].bvec, fptr, 3*sizeof(float)); fptr += 3;
+      memcpy(&ww->warp[iw].svec, fptr, 3*sizeof(float)); fptr += 3;
+      memcpy(&ww->warp[iw].bot,  fptr, 3*sizeof(float)); fptr += 3;
+      memcpy(&ww->warp[iw].top,  fptr, 3*sizeof(float));
+#endif
+
+      ww->warp[iw].type = MAPPING_LINEAR_TYPE ;
+
+      ioff = iw * MAPPING_LINEAR_FSIZE ;   /* increments by 12=4x3 */
+      wptr = (char *) xf->xform + iw*MAPPING_LINEAR_FSIZE*sizeof(float);
+      COPY_INTO_STRUCT( ww->warp[iw] ,
+                        MAPPING_LINEAR_FSTART ,
+                        float ,
+                        wptr,
+                        MAPPING_LINEAR_FSIZE ) ;
+
+
+   }
+
+   if (!ww) {
+      ERROR_message("Failed to form built-in warp.");
+      return(1);
+   } else {
+/*THD_fvec3 AFNI_forward_warp_vector( THD_warp * warp , THD_fvec3 old_fv )*/
+      if (! xf->inverse )
+         tv = AFNI_forward_warp_vector((THD_warp *)ww, mv);
+      else
+         tv = AFNI_backward_warp_vector((THD_warp *)ww, mv);
+   }
+
+   UNLOAD_FVEC3(tv, tx, ty, tz);
+   *xout = tx; *yout = ty; *zout =tz;
+
+   free(ww);
+
+   return(0);
 }
 
 /* apply Brett transform to transform from TT to MNI (Talairach to MNI)*/
@@ -2075,8 +2165,6 @@ int atlas_read_atlas(NI_element *nel, ATLAS *atlas)
 /* duplicate atlas info from one atlas structure to another */
 int atlas_dup_atlas(ATLAS *srcatlas, ATLAS *destatlas)
 {
-   char *s;
-   
    /* initialize the atlas fields */
    destatlas->atlas_dset_name = srcatlas->atlas_dset_name; 
    destatlas->atlas_space = srcatlas->atlas_space;

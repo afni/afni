@@ -305,7 +305,8 @@ void whereami_usage(ATLAS_LIST *atlas_alist)
 "              Would set to 0, all voxels in JoeROIs that are not\n"
 "              equal to 2.\n"
 "        Note that this mask should form a single sub-brick,\n"
-"        and must be at the same resolution as BINARY_MASK or ORDERED_MASK.\n"
+"        and must be at the same resolution as the bmask (binary mask) or\n"
+"        the omask (the ordered mask) datasets.\n"
 "        This option follows the style of 3dmaskdump (since the\n"
 "        code for it was, uh, borrowed from there (thanks Bob!, thanks Rick!)).\n"
 "        See '3dmaskdump -help' for more information.\n"
@@ -498,6 +499,8 @@ int main(int argc, char **argv)
    int read_niml_atlas = 0, show_atlas = 0, show_atlas_spaces = 0;
    int show_atlas_templates = 0, show_atlas_xforms = 0;
    int show_xform_chain = 0, calc_xform_chain=0, show_avail_space=0;
+   int show_atlas_point_lists = 0;
+
    char *srcspace=NULL, *destspace=NULL;
    ATLAS_XFORM_LIST *xfl = NULL, *cxfl = NULL;
    float xout, yout, zout;
@@ -522,12 +525,12 @@ int main(int argc, char **argv)
    N_areas = -1;
    OldMethod = 0; /* Leave at 0 */
    coord_file = NULL;
-   alv=1; wv=1;
+   alv=2; wv=2;
    iarg = 1 ; nakedarg = 0; Show_Atlas_Code = 0; shar = NULL;
 
    set_TT_whereami_version(alv,wv);
-   
-   init_custom_atlas();   /* allow for custom atlas in old framework */
+   if(alv<2)
+      init_custom_atlas();   /* allow for custom atlas in old framework */
    xi = 0.0; yi=0.0, zi=0.0;
    while( iarg < argc ){
       arglen = strlen(argv[iarg]);
@@ -593,10 +596,17 @@ int main(int argc, char **argv)
                fprintf( stderr,
                         "** Error: Need parameter after -space\n"); return(1);
             }
+            if (srcspace) {
+               fprintf( stderr,
+               "** Error: Specify space of input (or output mask) with either -space or -dset, not both\n");
+               return(1);
+            }
+
             /* use srcspace as is on commandline */
             srcspace = argv[iarg];
             if ( strcmp(argv[iarg],"Paxinos_Rat_2007@Elsevier")==0 )
                srcspace = "paxinos_rat_2007@Elsevier";
+            set_out_space(srcspace);   /* make output space for mask dset */
 
             ++iarg;
             continue; 
@@ -608,13 +618,19 @@ int main(int argc, char **argv)
                fprintf(stderr,"** Error: Need dset after -dset\n"); 
                return(1);
             }
+            if (srcspace) {
+               fprintf( stderr,
+               "** Error: Specify space of input (or output mask) with either -space or -dset, not both\n");
+               return(1);
+            }
+
             if (!(space_dset = THD_open_dataset (argv[iarg]))) {
                fprintf(stderr,"** Error: Failed to open data set %s.\n",
                        argv[iarg]);
                return(1);
             } 
             srcspace = THD_get_space(space_dset); /* update space if necess*/
-
+            set_out_space(srcspace);   /* make output space for mask dset */
             ++iarg;
             continue; 
          }
@@ -896,6 +912,12 @@ int main(int argc, char **argv)
             show_atlas_xforms = 1;
             continue ;
          }          
+         if(strcmp(argv[iarg],"-show_atlas_point_lists") == 0) {
+            iarg++;
+            read_niml_atlas = 1;
+            show_atlas_point_lists = 1;
+            continue ;
+         }          
          if(strcmp(argv[iarg],"-show_atlas_all") == 0) {
             iarg++;
             read_niml_atlas = 1;
@@ -903,6 +925,7 @@ int main(int argc, char **argv)
             show_atlas_spaces = 1;
             show_atlas_templates = 1;
             show_atlas_xforms = 1;
+            show_atlas_point_lists = 1;
             continue ;
          }          
 
@@ -985,6 +1008,8 @@ int main(int argc, char **argv)
          print_space_list(get_G_space_list());
       if(show_atlas_xforms)
          print_all_xforms(get_G_xform_list());
+      if(show_atlas_point_lists)
+         print_point_lists(get_G_atlas_list());
          
       free_global_atlas_structs(); 
       exit(0);
@@ -1173,6 +1198,10 @@ int main(int argc, char **argv)
                   ERROR_message("Failed to create mask");
                   exit(1);
                } else {
+                  if(!equivalent_space(THD_get_space(maskset))){
+                     ERROR_message("Atlas does not match space requested.");
+                     exit(1);
+                  }
                   tross_Make_History( "whereami" , argc, argv , maskset ) ;
                   if (mskpref) {
                         EDIT_dset_items(  maskset,
@@ -1300,8 +1329,12 @@ int main(int argc, char **argv)
          }
 
          set_TT_whereami_version(alv,wv);
-         if(!atlas_rlist)
-            atlas_list = atlas_alist;
+         if(!atlas_rlist){
+            atlas_list = env_atlas_list();
+            if(!atlas_list) {
+               atlas_list = atlas_alist;
+            }
+         }
          else {
             atlas_list = atlas_rlist; /* use reduced list */
             if (wami_verb() >= 2){

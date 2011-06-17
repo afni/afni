@@ -85,6 +85,7 @@ void print_space_list(ATLAS_SPACE_LIST *xsl);
 void print_atlas_list(ATLAS_LIST *xal);
 void print_atlas(ATLAS *xa, int level) ;
 void print_atlas_comment(ATLAS *xa) ;
+void print_point_lists(ATLAS_LIST *xal);
 void print_template_list(ATLAS_TEMPLATE_LIST *xtl);
 void print_xform(ATLAS_XFORM *xf);
 void print_all_xforms(ATLAS_XFORM_LIST *xfl);
@@ -107,6 +108,7 @@ int invert_xform(ATLAS_XFORM *xf);
 int invert_affine(ATLAS_XFORM *xf);
 int invert_12piece(ATLAS_XFORM *xf);
 int invert_2piece(ATLAS_XFORM *xf);
+int invert_brett(ATLAS_XFORM *xf);
 
 ATLAS_XFORM *identity_xform(void);
 
