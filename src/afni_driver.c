@@ -591,7 +591,7 @@ ENTRY("AFNI_switch_anatomy") ;
 
    if( nuse > 0 &&
        *(cmd+dadd+nuse)!= '\0' &&
-       *(cmd+dadd+nuse+1) != '\0') 
+       *(cmd+dadd+nuse+1) != '\0')
       sscanf( cmd+dadd+nuse+1 , "%d" , &sb ) ;  /* 30 Nov 2005 */
                /* not checking for early string termination
                   before sscanf was causing corruption in some cases.
@@ -2911,16 +2911,16 @@ static int AFNI_drive_set_xhairs( char *cmd )
    im3d = GLOBAL_library.controllers[ic] ;
    if( !IM3D_OPEN(im3d) ) return -1 ;
 
-        if( strstr(cmd,"OFF")    != NULL ) hh = 0 ;
-   else if( strstr(cmd,"SINGLE") != NULL ) hh = 1 ;
-   else if( strstr(cmd,"MULTI")  != NULL ) hh = 2 ;
-   else if( strstr(cmd,"LR_AP")  != NULL ) hh = 3 ;
-   else if( strstr(cmd,"LR_IS")  != NULL ) hh = 4 ;
-   else if( strstr(cmd,"AP_IS")  != NULL ) hh = 5 ;
-   else if( strstr(cmd,"LR")     != NULL ) hh = 6 ;
-   else if( strstr(cmd,"AP")     != NULL ) hh = 7 ;
-   else if( strstr(cmd,"IS")     != NULL ) hh = 8 ;
-   else                                    return -1 ;
+        if( strstr(cmd+dadd,"OFF")    != NULL ) hh = 0 ;
+   else if( strstr(cmd+dadd,"SINGLE") != NULL ) hh = 1 ;
+   else if( strstr(cmd+dadd,"MULTI")  != NULL ) hh = 2 ;
+   else if( strstr(cmd+dadd,"LR_AP")  != NULL ) hh = 3 ;
+   else if( strstr(cmd+dadd,"LR_IS")  != NULL ) hh = 4 ;
+   else if( strstr(cmd+dadd,"AP_IS")  != NULL ) hh = 5 ;
+   else if( strstr(cmd+dadd,"LR")     != NULL ) hh = 6 ;
+   else if( strstr(cmd+dadd,"AP")     != NULL ) hh = 7 ;
+   else if( strstr(cmd+dadd,"IS")     != NULL ) hh = 8 ;
+   else                                         return -1 ;
 
    AV_assign_ival( im3d->vwid->imag->crosshair_av, hh ) ;
    AFNI_crosshair_visible_CB( im3d->vwid->imag->crosshair_av, (XtPointer)im3d );
@@ -2943,21 +2943,30 @@ static int AFNI_trace( char *cmd )
 
 static int AFNI_drive_instacorr( char *cmd )
 {
-   float x,y,z ; int good=0 ;
-   Three_D_View *im3d = GLOBAL_library.controllers[0] ;
+   float x,y,z ; int good=0, ic, dadd=2 ; Three_D_View *im3d ;
 
-   if( strlen(cmd) < 1 || !IM3D_OPEN(im3d) ) return -1 ; /* A only */
+   if( strlen(cmd) < 3 ) return -1;
 
-   if( strncasecmp(cmd,"SET",3) == 0 ){
-     if( cmd[3] != '\0' ) good = sscanf(cmd+3,"%f %f %f",&x,&y,&z) ;
+   ic = AFNI_controller_code_to_index( cmd ) ;
+   if( ic < 0 ){ ic = 0 ; dadd = 0 ; }
+   im3d = GLOBAL_library.controllers[ic] ;
+   if( !IM3D_OPEN(im3d) ) return -1 ;
+
+   if( strncasecmp(cmd+dadd,"SET",3) == 0 ){
+     if( cmd[3] != '\0' ) good = sscanf(cmd+dadd+3,"%f %f %f",&x,&y,&z) ;
      if( good < 3 ) AFNI_icor_setref    (im3d)       ;  /* no x y z */
      else           AFNI_icor_setref_xyz(im3d,x,y,z) ;
-     good = 0 ;
-   } else {
-     good = -1 ;
+     return 0 ;
+   } else if( strncasecmp(cmd+dadd,"INIT",4) == 0 ){
+     NI_str_array *sar ;
+     if( cmd[dadd+4] == '\0' ) return -1 ;
+     sar = NI_decode_string_list(cmd+dadd+4,"$") ;
+     if( sar == NULL ) return -1 ;
+     /* ... */
+     NI_delete_str_array(sar) ;
    }
 
-   return good ;
+   return -1 ;
 }
 
 /*--------------------------------------------------------------------*/

@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 15 , JUN , 2011 , RWC , "3dmaskave" , MICRO , TYPE_NEW_OPT ,
+  { 17 , JUN , 2011 , RWC , "afni" , MICRO , TYPE_MODIFY ,
+   "Button3 (right) click image viewer 'Disp' to raise AFNI controller" ,
+   NULL } ,
+
+ { 15 , JUN , 2011 , RWC , "3dmaskave" , MICRO , TYPE_NEW_OPT ,
    "Add -sum option; rearrange -help output a little." ,
    NULL } ,
 

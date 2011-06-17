@@ -294,6 +294,7 @@ typedef struct {
 #define isqCR_force_redisplay 601 /* 22 Aug 1998 */
 #define isqCR_setindex        602 /* 26 Apr 2007 */
 #define isqCR_deltival        603 /* 23 Feb 2011 */
+#define isqCR_raiseupthedead  604 /* 17 Jun 2011 */
 
 #define COLORMAP_CHANGE(sq)                                          \
   do{ if( ISQ_REALZ((sq)) && (sq)->dc->visual_class == TrueColor ){  \
@@ -846,6 +847,7 @@ extern void ISQ_record_button( MCW_imseq * ) ;
 extern void ISQ_record_CB( Widget,XtPointer,XtPointer ) ;
 extern void ISQ_butsave_EV( Widget, XtPointer, XEvent *, Boolean * ) ;
 extern void ISQ_butcrop_EV( Widget, XtPointer, XEvent *, Boolean * ) ;
+extern void ISQ_butdisp_EV( Widget, XtPointer, XEvent *, Boolean * ) ;
 
 extern void ISQ_record_open( MCW_imseq * ) ;
 extern void ISQ_record_update( MCW_imseq * , int ) ;
