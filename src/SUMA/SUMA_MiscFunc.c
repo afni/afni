@@ -4891,7 +4891,7 @@ int SUMA_Point_To_Triangle_Distance (float *Points, int N_points,
 {
    static char FuncName[]={"SUMA_Point_To_Triangle_Distance"};
    float *dist=NULL, *P=NULL;
-   double E0[3], E1[3], a, b, c, d, e, f, B[3], BmP[0], nd, 
+   double E0[3], E1[3], a, b, c, d, e, f, B[3], BmP[3], nd,
          s, t, det, idet, numer, denom, I[3], sd, tmp0, tmp1; 
    int in=0, reg, in3, *closest=NULL;
    byte *sgn=NULL;
