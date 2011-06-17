@@ -530,7 +530,7 @@ void AFNI_parse_args( int in_argc , char *in_argv[] )
 ENTRY("AFNI_parse_args") ;
 
    if( argc > 1 && strcmp(argv[1],"-help")    == 0 ) AFNI_syntax() ;
-   
+
    GLOBAL_argopt.dz       = 1.0 ;          /* set up defaults */
    GLOBAL_argopt.dy       = 1.0 ;
    GLOBAL_argopt.ignore   = INIT_ignore ;
@@ -1136,27 +1136,27 @@ ENTRY("AFNI_parse_args") ;
 
          narg++ ; continue ;  /* go to next arg */
       }
-      
+
       /* -list_ports list and quit */
       if( strncmp(argv[narg],"-list_ports", 8) == 0) {
          show_ports_list(); exit(0);
       }
-      
+
       /* -port_number and quit */
       if( strncmp(argv[narg],"-port_number", 8) == 0) {
          int pp = 0;
-         if( ++narg >= argc ) 
-            ERROR_exit("need an argument after -port_number!"); 
+         if( ++narg >= argc )
+            ERROR_exit("need an argument after -port_number!");
          pp = get_port_named(argv[narg]);
-         if (strcmp(argv[narg-1], "-port_number_quiet")) { 
-            fprintf(stdout, "\nPort %s: %d\n", argv[narg], pp); 
+         if (strcmp(argv[narg-1], "-port_number_quiet")) {
+            fprintf(stdout, "\nPort %s: %d\n", argv[narg], pp);
          } else {
-            fprintf(stdout, "%d\n", pp); 
+            fprintf(stdout, "%d\n", pp);
          }
          if (pp < 1) exit(1);
          else exit(0);
       }
-            
+
       /*----- -nomall option -----*/
 
       if( strncmp(argv[narg],"-nomall",5) == 0 ){    /* was handled in main() */
@@ -1385,12 +1385,15 @@ void AFNI_sigfunc_alrm(int sig)
      "I will not say 'do not weep', for not all tears are an evil"   ,
      "Calo anor na ven -- May the sun shine upon your road"          ,
      "Little by little, one travels far"                             ,
-     "Divide By Cucumber Error; Please Reinstall Universe And Reboot",
+     "Divide By Cucumber Error; Please Reinstall Universe and Reboot",
      "Out of Cheese Error; Please Install Wensleydale and Try Again" ,
      "If at first you don't succeed -- call it version 1.0"          ,
      "Never trust a statistic you haven't faked yourself"            ,
+     "May your teeth never be replaced by woolen socks"              ,
+     "Hasta la vista and so long for now"                            ,
 
-     "The Andromeda Galaxy is on a collision course with us -- be ready"              ,
+     "May the Dark Side of the Force get lost on the way to your data"                ,
+     "The Andromeda Galaxy is on a collision course with us -- be prepared"           ,
      "AFNI is very user friendly -- we are just selective about who our friends are"  ,
      "May it be a light to you in dark places, when all other lights go out"          ,
      "No in elenath hilar nan had gin -- May the stars shine upon your path"          ,
@@ -1398,11 +1401,11 @@ void AFNI_sigfunc_alrm(int sig)
      "Sometimes you've got to let go to see if there was anything worth holding onto" ,
      "Remember me and smile, for it's better to forget than remember me and cry"      ,
      "So now I say goodbye, but I feel sure we will meet again sometime"              ,
-     "If you're anything like me, you're both smart and incredibly good looking"      ,
+     "If you're anything like me, you're both smart and incredibly good looking"
    } ;
 #undef NTOP
 #ifdef USE_SONNETS
-# define NTOP (NMSG+9)
+# define NTOP (NMSG+3)
 #else
 # define NTOP NMSG
 #endif
@@ -1599,7 +1602,9 @@ int main( int argc , char *argv[] )
    if( argc > 1 ) AFNI_logger("afni",argc,argv) ; /* 14 Aug 2001 */
 #endif
 
+#if 0                                          /* now in machdep() */
    srand48((long)time(NULL)+(long)getpid()) ;  /* initialize random number generator */
+#endif
 
    REPORT_PROGRESS( "\n" ) ;
 
@@ -8134,7 +8139,7 @@ STATUS(" -- processing points in this dataset") ;
    }
 
    /*-------------------------------------------------------------------*/
-   /*--- Sep 1995: turn "Go to atlas position" button on 
+   /*--- Sep 1995: turn "Go to atlas position" button on
          image popup on or off ---*/
 
 STATUS(" -- managing Go to atlas position button, etc") ;
@@ -8912,7 +8917,7 @@ ENTRY("AFNI_imag_pop_CB") ;
             for (iii=0; iii<atlas_n_points("TT_Daemon"); ++iii) {
                if (at_labels[iii]) free(at_labels[iii]);
             }
-            free(at_labels); at_labels=NULL; 
+            free(at_labels); at_labels=NULL;
          }
       }
    }
@@ -9104,12 +9109,12 @@ ENTRY("AFNI_talto_CB") ;
       BEEPIT ; WARNING_message("Can't 'Go to Atlas position'!?") ;
       EXRETURN ;
    }
-   
+
    if (!(tto_list = atlas_points("TT_Daemon"))) {
       BEEPIT ; WARNING_message("Can't get daemon!@!#x!") ;
       EXRETURN ;
    }
-   
+
    nn = cbs->ival ;
    if( nn < 0 || nn >= atlas_n_points("TT_Daemon") ) EXRETURN ;
    atlas_current_structure = nn ;  /* index for structure in list for atlas */
@@ -9197,7 +9202,7 @@ char * AFNI_ttatlas_query( Three_D_View *im3d )
 
      tlab = TT_whereami( tv.xyz[0] , tv.xyz[1] , tv.xyz[2],
                          THD_get_space(dset)  , NULL );
-                         
+
      return tlab ;
    }
 
