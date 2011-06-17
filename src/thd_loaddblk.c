@@ -765,7 +765,9 @@ fprintf(stderr,"VOL[%d]: id=%d\n",ibr,id) ;
    /* 30 July 1999: check float sub-brick for errors? */
    /* 14 Sep  1999: also check complex sub-bricks!    */
 
-   if( floatscan ){
+   if( floatscan  && 
+      (( DBLK_BRICK_TYPE(blk,0) == MRI_float )  ||
+       ( DBLK_BRICK_TYPE(blk,0) == MRI_complex ))){
       int nerr=0 ;
       STATUS("float scanning") ;
       if( verb ) fprintf(stderr,".float scan") ;

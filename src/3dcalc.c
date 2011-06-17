@@ -226,7 +226,8 @@ void CALC_read_opts( int argc , char * argv[] )
    int nopt = 1 ;
    int ids ;
    int ii, kk;
-
+   char *srcspace=NULL;
+      
    for( ids=0 ; ids < 26 ; ids++ ){
       CALC_dset[ids]   = NULL ;
       CALC_type[ids]   = -1 ;
@@ -645,10 +646,24 @@ void CALC_read_opts( int argc , char * argv[] )
          nxyz = dset->daxes->nxx * dset->daxes->nyy * dset->daxes->nzz ;
          if( CALC_nvox < 0 ){
             CALC_nvox = nxyz ;
-         } else if( nxyz != CALC_nvox ){
-            ERROR_exit("dataset %s differs in size [%d voxels] from others [%d]\n",
-                       argv[nopt-1] , nxyz , CALC_nvox ) ;
-         }
+            /* set space for any atlas datasets */
+            srcspace = THD_get_space(dset); /* update default space */
+            set_out_space(srcspace);   /* make output space for mask dset */
+         } 
+         else{
+            if(!equivalent_space(THD_get_space(dset))){
+               WARNING_message(
+          "Template space of dataset %s does not match space of first dataset\n"
+          "Continuing anyway, but be sure the datasets really do match\n",
+                  argv[nopt-1]);
+/*               exit(1);*/
+            }
+            if( nxyz != CALC_nvox ){
+               ERROR_exit(
+                "dataset %s differs in size [%d voxels] from others [%d]\n",
+                argv[nopt-1] , nxyz , CALC_nvox ) ;
+            }
+        }
 
          if( !DSET_datum_constant(dset) ){   /* 29 May 2003 */
            float *far ;

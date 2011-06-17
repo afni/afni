@@ -3804,10 +3804,11 @@ extern int THD_check_for_duplicates( int, char **, int ) ; /* 31 May 2007 */
 
 extern time_t THD_file_mtime( char * ) ; /* 05 Dec 2001 */
 
-extern THD_string_array * THD_get_all_executables( char * ) ;    /* 26 Jun 2001 */
-extern THD_string_array * THD_getpathprogs( THD_string_array * );
+extern THD_string_array * THD_get_all_files( char *, char ) ; /* 08 Jun 2011 */
+extern THD_string_array * THD_getpathprogs( THD_string_array *, char );
 extern int THD_is_executable( char * pathname ) ;
 extern char * THD_find_executable( char * ) ;
+extern char * THD_find_regular_file( char * ) ;
 
 extern int THD_is_dataset( char * , char * , int ) ; /* 17 Mar 2000 */
 extern char * THD_dataset_headname( char * , char * , int ) ;
