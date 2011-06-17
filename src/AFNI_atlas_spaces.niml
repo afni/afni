@@ -1,0 +1,538 @@
+#**********************************************************************
+# AFNI_template_spaces.niml
+# this file describes the kinds of spaces available to AFNI datasets,
+# the transformation for switching among these spaces and locations
+# of atlas datasets that are in a specified space
+# new spaces should be added to this file or to a local directory version
+# for subject-specific datasets
+<TEMPLATE_SPACE
+  space_name="TT_N27"
+  generic_space="TLRC"
+  comment="The TLRC templates made from MNI group templates were "
+></TEMPLATE_SPACE>
+
+<TEMPLATE_SPACE
+  space_name="TT_avg"
+  generic_space="TLRC"
+  comment="The TLRC templates made from MNI group templates were\n"
+  "transformed using a 2 piece transformation for upper\n"
+  "and lower transformations"
+></TEMPLATE_SPACE>
+
+<TEMPLATE_SPACE
+  space_name="TLRC"
+  generic_space="TLRC"
+  comment="This is a generic TLRC space. Assuming transformation by 2-piece"
+></TEMPLATE_SPACE>
+
+<TEMPLATE_SPACE
+  space_name="MNI_152"
+  generic_space="MNI"
+  comment="The TLRC templates made from MNI group templates were\n"
+          "transformed using a 12 piece transformation dividing\n"
+          "the brain into 12 regions selected with manually placed\n"
+          "markers"
+></TEMPLATE_SPACE>
+
+<TEMPLATE_SPACE
+  space_name="MNI"
+  generic_space="MNI"
+  comment="The standard MNI space name used by AFNI pre 04 2011 "
+></TEMPLATE_SPACE>
+
+<TEMPLATE_SPACE
+  space_name="MNI_ANAT"
+  generic_space="MNI"
+  comment="The standard MNI_ANAT space name used by AFNI pre 04 2011 "
+></TEMPLATE_SPACE>
+
+<TEMPLATE_SPACE
+  space_name="MNIa"
+  generic_space="MNIa"
+  comment="The MNI space shifted to have its origin at \n"
+          "transformed using a 12 piece transformation dividing\n"
+          "the brain into 12 regions selected with manually placed\n "
+          "markers"
+></TEMPLATE_SPACE>
+
+<TEMPLATE_SPACE
+  space_name="MNI_SPM2"
+  generic_space="MNI"
+  comment="MNI Space used in SPM2 according to Lancaster, Fox\n"
+          "They created a specific affine transform for this to and from TLRC"
+></TEMPLATE_SPACE>
+
+<TEMPLATE_SPACE
+  space_name="MNI_FSL"
+  generic_space="MNI"
+  comment="MNI Space used in FSL according to Lancaster, Fox\n"
+          "They created a specific affine transform for this to and from TLRC"
+></TEMPLATE_SPACE>
+
+<TEMPLATE_SPACE
+  space_name="MNI_OTHER"
+  generic_space="MNI"
+  comment="MNI Space approximately between FSL,SPM2 according to Lancaster, Fox\n"
+          "They created a specific affine transform for this to and from TLRC"
+></TEMPLATE_SPACE>
+
+ 
+
+#**********Atlas transformations****************
+# *****tlrc type spaces to and from generic TLRC
+# these share the same space but reflect a different
+# history of transformations from MNI space.
+# Here the transformations provide a way of transforming
+# among the various spaces but no change to the x,y,z
+# definition by using an identity transformation.
+# The distance allows for a small cost to including
+# the step in a chain/path/graph of transformations.
+# These distances are used to find the shortest path
+# required to go from one space to another (a la Dijkstra)
+# The default distance for each transformation step is
+# usually 1, but for transformations that are between
+# specific and generic versions of the same space, 
+# the distance is reduced to 0.1.
+
+<XFORM
+  ni_type="1*float"
+  ni_dimen="1"
+  xform_name="TT_N27::TLRC"
+  source="TT_N27"
+  dest="TLRC"
+  distance="0.1"
+  xform_type="Identity" >
+  1
+</XFORM>
+
+<XFORM
+  ni_type="1*float"
+  ni_dimen="1"
+  xform_name="TT_avg::TLRC"
+  source="TT_avg"
+  dest="TLRC"
+  distance="0.1"
+  xform_type="Identity" >
+  1
+</XFORM>
+
+<XFORM
+  ni_type="1*float"
+  ni_dimen="1"
+  xform_name="TLRC::TT_N27"
+  source="TLRC"
+  dest="TT_N27"
+  distance="0.1"
+  xform_type="Identity" >
+  1
+>
+</XFORM>
+
+<XFORM
+  ni_type="1*float"
+  ni_dimen="1"
+  xform_name="TLRC::TT_avg"
+  source="TLRC"
+  dest="TT_avg"
+  distance="0.1"
+  xform_type="Identity" >
+  1
+>
+</XFORM>
+
+
+# *****tlrc type spaces to MNI
+
+<XFORM
+  ni_type="27*float"
+  ni_dimen="1"
+  xform_name="TT_avg::MNI"
+  source="TT_avg"
+  dest="MNI"
+  xform_type="2-piece" >
+   -9999.0 -9999.0 0.0
+   1.0101  0        0         0
+   0       1.02962 -0.05154   0
+   0       0.05434  1.08554   0
+   1 0 0 0
+   0 1 0 0
+   0 0 1.09523 0
+>
+</XFORM>
+
+<XFORM
+  ni_type="1*float"
+  ni_dimen="1"
+  xform_name="TLRC::MNI"
+  source="TLRC"
+  dest="MNI"
+  distance="1.0"
+  xform_type="brett_tt2mni"
+  comment="Brett transform" >
+  1
+</XFORM>
+
+# mni spaces to tlrc
+<XFORM
+  ni_type="12*float"
+  ni_dimen="1"
+  xform_name="MNI_SPM2::TLRC"
+  source="MNI_SPM2"
+  dest="TLRC"
+  comment="Lancaster,Fox 2007"
+  xform_type="Affine" >
+  0.9254 0.0024 -0.0118 -1.0207
+  -0.0048 0.9316 -0.0871 -1.7667
+  0.0152 0.0883  0.8924  4.0926
+>
+</XFORM>
+
+<XFORM
+  ni_type="12*float"
+  ni_dimen="1"
+  xform_name="MNI_FSL::TLRC"
+  source="MNI_FSL"
+  dest="TLRC"
+  comment="Lancaster,Fox 2007"
+  xform_type="Affine" >
+  0.9464 0.0034 -0.0026 -1.0680
+  -0.0083 0.9479 -0.0580 -1.0239
+  0.0053 0.0617  0.9010  3.1883
+>
+</XFORM>
+
+<XFORM
+  ni_type="12*float"
+  ni_dimen="1"
+  xform_name="MNI_OTHER::TLRC"
+  source="MNI_OTHER"
+  dest="TLRC"
+  comment="Lancaster,Fox 2007"
+  xform_type="Affine" >
+  0.9357 0.0029 -0.0072 -1.0423
+  -0.0065 0.9396 -0.0726 -1.3940
+  0.0103 0.0752  0.8967  3.6475
+>
+</XFORM>
+
+<XFORM
+  ni_type="1*float"
+  ni_dimen="1"
+  xform_name="MNI::TLRC"
+  source="MNI"
+  dest="TLRC"
+  distance="1.0"
+  xform_type="brett_mni2tt"
+  comment="Brett transform" >
+  1
+</XFORM>
+
+<XFORM
+  ni_type="360*float"
+  ni_dimen="1"
+  xform_name="MNI::TT_N27"
+  source="MNI"
+  dest="TT_N27"
+  xform_type="12-piece" >
+      0.9444444              0              0             0     0.9976303
+     0.06880209              0    -0.05989829     0.8685252      1.058824
+             -0              0             -0     0.9976304   -0.07902943
+             -0      0.0688021       1.145927             0     -3.405704
+      -4.103033             -0       3.073373      4.936095         -9999
+          -9999              0              0             0        9999.9
+      0.9315069              0              0             0     0.9976303
+     0.06880209              0    -0.05989829     0.8685252      1.073529
+             -0              0             -0     0.9976304   -0.07902943
+             -0      0.0688021       1.145927             0     -3.405704
+      -4.103033             -0       3.073373      4.936095             0
+          -9999              0         9999.9             0        9999.9
+      0.9444444              0              0             0     0.8154033
+     0.05623471              0    -0.05989829     0.8685252      1.058824
+             -0              0             -0      1.220581   -0.07902943
+             -0     0.08417804       1.145927             0     -2.783618
+      -4.103033             -0       3.073372      4.936095         -9999
+              0              0              0            23        9999.9
+      0.9315069              0              0             0     0.8154033
+     0.05623471              0    -0.05989829     0.8685252      1.073529
+             -0              0             -0      1.220582   -0.07902943
+             -0     0.08417805       1.145927             0     -2.783618
+      -4.103033             -0       3.073373      4.936095             0
+              0              0         9999.9            23        9999.9
+      0.9444444              0              0             0     0.9511568
+     0.06559702              0    -0.05989829     0.8685252      1.058824
+             -0              0             -0      1.046375   -0.07902944
+             -0     0.07216377       1.145927             0     0.5821307
+      -4.103033             -0     -0.9333872      4.659767         -9999
+             23              0              0          9999        9999.9
+      0.9315069              0              0             0     0.9511568
+     0.06559702              0    -0.05989829     0.8685252      1.073529
+             -0              0             -0      1.046375   -0.07902943
+             -0     0.07216376       1.145927             0     0.5821307
+      -4.103033             -0     -0.9333871      4.659767             0
+             23              0         9999.9          9999        9999.9
+      0.9444444              0              0             0     0.9976303
+     0.06880209              0    -0.06148272     0.8914994      1.058824
+             -0              0             -0     0.9976304   -0.07699282
+             -0      0.0688021       1.116396             0     -3.405704
+      -4.211566             -0       3.073373      4.936095         -9999
+          -9999          -9999              0             0             0
+      0.9315069              0              0             0     0.9976303
+     0.06880209              0    -0.06148272     0.8914994      1.073529
+             -0              0             -0     0.9976304   -0.07699282
+             -0      0.0688021       1.116396             0     -3.405704
+      -4.211566             -0       3.073373      4.936095             0
+          -9999          -9999         9999.9             0             0
+      0.9444444              0              0             0     0.8154033
+     0.05623471              0    -0.06148272     0.8914994      1.058823
+             -0              0             -0      1.220582   -0.07699282
+             -0     0.08417804       1.116396             0     -2.783618
+      -4.211566             -0       3.073373      4.936095         -9999
+              0          -9999              0            23             0
+      0.9315069              0              0             0     0.8154033
+     0.05623471              0    -0.06148272     0.8914994      1.073529
+             -0              0             -0      1.220582   -0.07699282
+             -0     0.08417805       1.116396             0     -2.783618
+      -4.211566             -0       3.073373      4.936095             0
+              0          -9999         9999.9            23             0
+      0.9444444              0              0             0     0.9511568
+     0.06559702              0    -0.06148272     0.8914994      1.058824
+             -0              0             -0      1.046375   -0.07699282
+             -0     0.07216378       1.116396             0     0.5821307
+      -4.211566             -0     -0.9333872      4.659767         -9999
+             23          -9999              0          9999             0
+      0.9315069              0              0             0     0.9511568
+     0.06559702              0    -0.06148272     0.8914994      1.073529
+             -0              0             -0      1.046375   -0.07699282
+             -0     0.07216377       1.116396             0     0.5821307
+      -4.211566             -0     -0.9333872      4.659767             0
+             23          -9999         9999.9          9999             0
+>
+</XFORM>
+
+# MNI_ANAT transformations
+<XFORM
+  ni_type="12*float"
+  ni_dimen="1"
+  xform_name="MNI_ANAT::MNI"
+  source="MNI_ANAT"
+  dest="MNI"
+  comment="Eickhoff-Zilles"
+  xform_type="Affine" >
+  1 0 0 0
+  0 1 0 -4
+  0 0 1 -5
+>
+</XFORM>
+
+<XFORM
+  ni_type="12*float"
+  ni_dimen="1"
+  xform_name="MNI::MNI_ANAT"
+  source="MNI"
+  dest="MNI_ANAT"
+  comment="Eickhoff-Zilles"
+  xform_type="Affine" >
+  1 0 0 0
+  0 1 0 4
+  0 0 1 5
+>
+</XFORM>
+
+<XFORM
+  ni_type="1*float"
+  ni_dimen="1"
+  xform_name="MNIa::MNI_ANAT"
+  source="MNI"
+  dest="MNI_ANAT"
+  distance="0.1"
+  xform_type="Identity" >
+  1
+>
+</XFORM>
+
+#*******Atlas datasets ************************
+# list of atlas datasets
+# these are not templates. They contain segmentation
+# that associates a position with an anatomical structure
+##atlas_datasets
+
+<ATLAS
+   atlas_name="TT_Daemon"   
+   dset_name="TTatlas_2010_master+tlrc"
+   template_space="TLRC"
+   description="Talairach-Tournoux Atlas"
+   comment="The standard talaraich atlas"
+></ATLAS>
+
+#Cytoarchitectonic atlases transformed to TT_N27 space with 12-piece transform
+<ATLAS
+   atlas_name="CA_N27_ML"   
+   dset_name="TT_caez_ml_18+tlrc.HEAD"
+   template_space="TT_N27"
+   description="Macro Labels (N27)"
+   comment="Eickhoff-Zilles macro labels from N27 in Talairach TT_N27 space"
+></ATLAS>
+
+<ATLAS
+   atlas_name="CA_N27_MPM"   
+   dset_name="TT_caez_mpm_18+tlrc.HEAD"
+   template_space="TT_N27"
+   description="Cytoarch. Max. Prob. Maps"
+   comment="Eickhoff-Zilles maximum probability map on TT_N27 from post-mortem analysis"
+></ATLAS>
+
+<ATLAS
+   atlas_name="CA_N27_PM"   
+   dset_name="TT_caez_pmaps_18+tlrc.HEAD"
+   template_space="TT_N27"
+   description="Cytoarch. Probabilistic Maps"
+   comment="Eickhoff-Zilles probablity maps on TT_N27 from post-mortem analysis"
+></ATLAS>
+
+<ATLAS
+   atlas_name="CA_N27_GW"   
+   dset_name="TT_caez_gw_18+tlrc.HEAD"
+   template_space="TT_N27"
+   description="Cytoarch. Prob. Maps for gray/white matter"
+   comment="Eickhoff-Zilles probablity maps on MNI-152 from post-mortem analysis"
+></ATLAS>
+
+<ATLAS
+   atlas_name="CA_N27_LR"
+   dset_name="TT_caez_lr_18+tlrc.HEAD"
+   template_space="TT_N27"
+   description="Left/Right (N27)"
+   comment="Simple left, right hemisphere segmentation"
+></ATLAS>
+
+#Cytoarchitectonic atlases in original MNI_ANAT space
+<ATLAS
+   atlas_name="CA_ML_18_MNIA"   
+   dset_name="caez_ml_18+tlrc.HEAD"
+   template_space="MNI_ANAT"
+   description="Macro Labels (N27)"
+   comment="Eickhoff-Zilles macro labels from N27"
+></ATLAS>
+
+<ATLAS
+   atlas_name="CA_MPM_18_MNIA"   
+   dset_name="caez_mpm_18+tlrc.HEAD"
+   template_space="MNI_ANAT"
+   description="Cytoarch. Max. Prob. Maps"
+   comment="Eickhoff-Zilles maximum probability map on MNI-152 from post-mortem analysis"
+></ATLAS>
+
+<ATLAS
+   atlas_name="CA_PM_18_MNIA"   
+   dset_name="caez_pmaps_18+tlrc.HEAD"
+   template_space="MNI_ANAT"
+   description="Cytoarch. Probabilistic Maps"
+   comment="Eickhoff-Zilles probablity maps on MNI-152 from post-mortem analysis"
+></ATLAS>
+
+<ATLAS
+   atlas_name="CA_GW_18_MNIA"   
+   dset_name="caez_gw_18+tlrc.HEAD"
+   template_space="MNI_ANAT"
+   description="Cytoarch. Prob. Maps for gray/white matter"
+   comment="Eickhoff-Zilles probablity maps on MNI-152 from post-mortem analysis"
+></ATLAS>
+
+<ATLAS
+   atlas_name="CA_LR_18_MNIA"
+   dset_name="caez_lr_18+tlrc.HEAD"
+   template_space="MNI_ANAT"
+   description="Left/Right (N27)"
+   comment="Simple left, right hemisphere segmentation"
+></ATLAS>
+
+<ATLAS
+   atlas_name="DKD_Desai_PM"
+   dset_name="dkpmap+tlrc"
+   template_space="TT_N27"
+   description="Probability maps of 35 cortical areas (gyri)"
+   comment="Described in Desikan et al., Neuroimage 2006 (31) pp. 968-980."
+></ATLAS>
+
+<ATLAS
+   atlas_name="DD_Desai_PM"
+   dset_name="ddpmap+tlrc"
+   template_space="TT_N27"
+   description="Probability maps of 75 cortical areas"
+   comment=" For each hemisphere,including both gyri and sulci. Destrieux et al., Neuroimage 2010 (53) pp. 1-15."
+></ATLAS>
+
+<ATLAS
+   atlas_name="FS_Desai_PM"
+   dset_name="fs_desai_pmap+tlrc"
+   template_space="TT_N27"
+   description="Contains 40 subcortical areas"
+   comment="15 in left & right hemispheres,10 midline structures parcellated by freesurfer"
+></ATLAS>
+
+
+#*******Template datasets ************************
+# list of template datasets
+# These are not atlases. They do not contain segmentation
+# to associate a position with an anatomical structure.
+# Multiple templates may share a common space. The template
+# definition must contain the name of the file where the
+# template dataset is located and the name of the space it
+# is associated with. Dataset locations may be in the AFNI
+# directory or specified explicitly here where the use of
+# relative directories are allowed (".." and ".") with paths
+# relative to the current working directory.
+#
+
+<TEMPLATE
+   template_name="TT_N27+tlrc"
+   template_space="TT_N27"
+   comment="Colin brain. Single subject, 27 scan mean." 
+></TEMPLATE>
+
+<TEMPLATE
+   template_name="TT_avg152T1+tlrc"
+   template_space="TT_avg"
+   comment="152 subjects T1 scan aligned to Colin brain template"
+></TEMPLATE>
+
+<TEMPLATE
+   template_name="TT_avg152T2+tlrc"
+   template_space="TT_avg"
+   comment="152 subjects T2 scan aligned to Colin brain template"
+></TEMPLATE>
+
+<TEMPLATE
+   template_name="TT_icbm452+tlrc"
+   template_space="TT_avg"
+   comment="452 subjects T1 scan aligned to Colin brain template"
+></TEMPLATE>
+
+<TEMPLATE
+   template_name="TT_EPI+tlrc"
+   template_space="TT_avg"
+   comment="EPI average template"
+></TEMPLATE>
+
+<TEMPLATE
+   template_name="MNI152.nii"
+   template_space="MNI"
+></TEMPLATE>
+
+<TEMPLATE
+   template_name="ICBM452.nii"
+   template_space="MNI_ANAT"
+></TEMPLATE>
+
+<TEMPLATE
+   template_name="MNI_EPI.nii"
+   template_space="MNI"
+></TEMPLATE>
+
+<TEMPLATE
+   template_name="caez_colin27_T1_18+tlrc"
+   template_space="MNI_ANAT"
+></TEMPLATE>
+
+
+#**********************************************
