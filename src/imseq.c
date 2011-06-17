@@ -1087,10 +1087,6 @@ if( PRINT_TRACING ){
                xmPushButtonWidgetClass , newseq->wform ,
                wa , na ) ;
 
-      if( ii == NBUT_DONE )   /* added 3/25/95 */
-         MCW_set_widget_bg( newseq->wbut_bot[ii] ,
-                            MCW_hotcolor(newseq->wbut_bot[ii]) , 0 ) ;
-
       XtAddCallback( newseq->wbut_bot[ii] , XmNactivateCallback ,
                      ISQ_but_bot_def[ii].func_CB , newseq ) ;
 
@@ -1098,6 +1094,9 @@ if( PRINT_TRACING ){
       MCW_register_hint( newseq->wbut_bot[ii] , ISQ_but_bot_hint[ii] ) ;
    }
    SET_SAVE_LABEL(newseq) ;
+
+   MCW_set_widget_bg( newseq->wbut_bot[NBUT_DONE] ,
+                      MCW_hotcolor(newseq->wbut_bot[ii]) , 0 ) ;
 
    /* 27 Jun 2001: popup menu for Save: button */
 
@@ -1109,6 +1108,16 @@ if( PRINT_TRACING ){
                            (XtPointer) newseq , /* client data */
                            XtListTail           /* last in queue */
                           ) ;
+
+   /* 17 Jun 2011: Button3 actions for Disp button */
+
+   XtInsertEventHandler( newseq->wbut_bot[NBUT_DISP] ,
+                         ButtonPressMask ,    /* button presses */
+                         FALSE ,              /* nonmaskable events? */
+                         ISQ_butdisp_EV ,     /* handler */
+                         (XtPointer) newseq , /* client data */
+                         XtListTail           /* last in queue */
+                        ) ;
 
    /* 24 Apr 2001: initialize recording stuff */
 
@@ -2428,6 +2437,34 @@ void ISQ_butcrop_choice_CB( Widget w , XtPointer client_data ,
 }
 
 /*--------------------------------------------------------------------
+  Button 3 action for Disp button  [17 Jun 2011]
+----------------------------------------------------------------------*/
+
+void ISQ_butdisp_EV( Widget w , XtPointer client_data ,
+                     XEvent *ev , Boolean *continue_to_dispatch )
+{
+   MCW_imseq *seq = (MCW_imseq *)client_data ;
+
+   if( !ISQ_REALZ(seq) ) return ;
+   ISQ_timer_stop(seq) ;
+
+   switch( ev->type ){
+     case ButtonPress:{
+       XButtonEvent *event = (XButtonEvent *)ev ;
+       if( event->button == Button3 && seq->status->send_CB != NULL ){
+         ISQ_cbs cbs ;
+         cbs.reason = isqCR_raiseupthedead ; SEND(seq,cbs) ;
+       } else if( event->button == Button2 ){
+         XBell(XtDisplay(w),100) ;
+         MCW_popup_message( w, " \n Don't! \n ", MCW_USER_KILL );
+       }
+     }
+     break ;
+   }
+   return ;
+}
+
+/*--------------------------------------------------------------------
   make Button 3 popup for Crop button
 ----------------------------------------------------------------------*/
 
@@ -2437,7 +2474,6 @@ void ISQ_butcrop_EV( Widget w , XtPointer client_data ,
    MCW_imseq *seq = (MCW_imseq *)client_data ;
 
    if( !ISQ_REALZ(seq) ) return ;
-
    ISQ_timer_stop(seq) ;
 
    switch( ev->type ){
