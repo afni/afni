@@ -4210,6 +4210,14 @@ if(PRINT_TRACING)
 
       default: break ;  /* unimplemented reasons */
 
+      /*** 17 Jun 2011 ***/
+
+      case graCR_raiseupthedead:{
+        if( IM3D_OPEN(im3d) ) XMapRaised( XtDisplay(im3d->vwid->top_shell) ,
+                                          XtWindow(im3d->vwid->top_shell)   ) ;
+      }
+      break ;
+
       /*** Death ***/
 
       case graCR_destroy:{
