@@ -570,7 +570,8 @@ typedef struct {
 #define graCR_setignore   7751
 #define graCR_setindex    7752
 
-#define graCR_destroy     7777
+#define graCR_destroy        7777
+#define graCR_raiseupthedead 7778  /* 17 Jun 2011 */
 
 #define graCR_button2_points 8801  /* Feb 1998 */
 
