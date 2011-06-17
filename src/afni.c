@@ -4177,6 +4177,14 @@ if(PRINT_TRACING)
       }
       break ;
 
+      /*--- raise the controller [17 Jun 2011] ---*/
+
+      case isqCR_raiseupthedead:{
+        if( IM3D_OPEN(im3d) ) XMapRaised( XtDisplay(im3d->vwid->top_shell) ,
+                                          XtWindow(im3d->vwid->top_shell)   ) ;
+      }
+      break ;
+
    }  /* end of switch on reason for call */
 
    EXRETURN ;
