@@ -448,7 +448,7 @@
 
 <ATLAS
    atlas_name="DKD_Desai_PM"
-   dset_name="TT_dkpmap+tlrc"
+   dset_name="TT_desai_dkpmaps+tlrc"
    template_space="TT_N27"
    description="Probability maps of 35 cortical areas (gyri)"
    comment="Described in Desikan et al., Neuroimage 2006 (31) pp. 968-980."
@@ -456,7 +456,7 @@
 
 <ATLAS
    atlas_name="DD_Desai_PM"
-   dset_name="TT_ddpmap+tlrc"
+   dset_name="TT_desai_ddpmaps+tlrc"
    template_space="TT_N27"
    description="Probability maps of 75 cortical areas"
    comment=" For each hemisphere,including both gyri and sulci. Destrieux et al., Neuroimage 2010 (53) pp. 1-15."
@@ -464,7 +464,7 @@
 
 <ATLAS
    atlas_name="FS_Desai_PM"
-   dset_name="TT_fs_desai_pmap+tlrc"
+   dset_name="TT_desai_fspmaps+tlrc"
    template_space="TT_N27"
    description="Contains 40 subcortical areas"
    comment="15 in left & right hemispheres,10 midline structures parcellated by freesurfer"
