@@ -358,7 +358,7 @@
 
 <ATLAS
    atlas_name="TT_Daemon"   
-   dset_name="TTatlas_2010_master+tlrc"
+   dset_name="TTatlas+tlrc"
    template_space="TLRC"
    description="Talairach-Tournoux Atlas"
    comment="The standard talaraich atlas"
@@ -408,7 +408,7 @@
 #Cytoarchitectonic atlases in original MNI_ANAT space
 <ATLAS
    atlas_name="CA_ML_18_MNIA"   
-   dset_name="caez_ml_18+tlrc.HEAD"
+   dset_name="MNIa_caez_ml_18+tlrc.HEAD"
    template_space="MNI_ANAT"
    description="Macro Labels (N27)"
    comment="Eickhoff-Zilles macro labels from N27"
@@ -416,7 +416,7 @@
 
 <ATLAS
    atlas_name="CA_MPM_18_MNIA"   
-   dset_name="caez_mpm_18+tlrc.HEAD"
+   dset_name="MNIa_caez_mpm_18+tlrc.HEAD"
    template_space="MNI_ANAT"
    description="Cytoarch. Max. Prob. Maps"
    comment="Eickhoff-Zilles maximum probability map on MNI-152 from post-mortem analysis"
@@ -424,7 +424,7 @@
 
 <ATLAS
    atlas_name="CA_PM_18_MNIA"   
-   dset_name="caez_pmaps_18+tlrc.HEAD"
+   dset_name="MNIa_caez_pmaps_18+tlrc.HEAD"
    template_space="MNI_ANAT"
    description="Cytoarch. Probabilistic Maps"
    comment="Eickhoff-Zilles probablity maps on MNI-152 from post-mortem analysis"
@@ -432,7 +432,7 @@
 
 <ATLAS
    atlas_name="CA_GW_18_MNIA"   
-   dset_name="caez_gw_18+tlrc.HEAD"
+   dset_name="MNIa_caez_gw_18+tlrc.HEAD"
    template_space="MNI_ANAT"
    description="Cytoarch. Prob. Maps for gray/white matter"
    comment="Eickhoff-Zilles probablity maps on MNI-152 from post-mortem analysis"
@@ -440,7 +440,7 @@
 
 <ATLAS
    atlas_name="CA_LR_18_MNIA"
-   dset_name="caez_lr_18+tlrc.HEAD"
+   dset_name="MNIa_caez_lr_18+tlrc.HEAD"
    template_space="MNI_ANAT"
    description="Left/Right (N27)"
    comment="Simple left, right hemisphere segmentation"
@@ -448,7 +448,7 @@
 
 <ATLAS
    atlas_name="DKD_Desai_PM"
-   dset_name="dkpmap+tlrc"
+   dset_name="TT_dkpmap+tlrc"
    template_space="TT_N27"
    description="Probability maps of 35 cortical areas (gyri)"
    comment="Described in Desikan et al., Neuroimage 2006 (31) pp. 968-980."
@@ -456,7 +456,7 @@
 
 <ATLAS
    atlas_name="DD_Desai_PM"
-   dset_name="ddpmap+tlrc"
+   dset_name="TT_ddpmap+tlrc"
    template_space="TT_N27"
    description="Probability maps of 75 cortical areas"
    comment=" For each hemisphere,including both gyri and sulci. Destrieux et al., Neuroimage 2010 (53) pp. 1-15."
@@ -464,7 +464,7 @@
 
 <ATLAS
    atlas_name="FS_Desai_PM"
-   dset_name="fs_desai_pmap+tlrc"
+   dset_name="TT_fs_desai_pmap+tlrc"
    template_space="TT_N27"
    description="Contains 40 subcortical areas"
    comment="15 in left & right hemispheres,10 midline structures parcellated by freesurfer"
@@ -530,7 +530,7 @@
 ></TEMPLATE>
 
 <TEMPLATE
-   template_name="caez_colin27_T1_18+tlrc"
+   template_name="MNIa_caez_N27+tlrc"
    template_space="MNI_ANAT"
 ></TEMPLATE>
 
