@@ -59,7 +59,7 @@ if ("$rowfile" == "") then
    #rowfile must have a .1D extension
    set rowfile = 2droi.row.1D
    set master = master.$rowfile:r
-   3dRank -overwrite -prefix ___rnk -input $fn_msk 
+   3dRank -overwrite -prefix ___rnk -input $fn_msk >& /dev/null
    set fval = `1dcat ___rnk.rankmap.1D'[1]{0}'`
    if ( $fval == 0 ) then
       1dcat ___rnk.rankmap.1D'[1]{1..$}'\' > $rowfile
