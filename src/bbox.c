@@ -1332,8 +1332,7 @@ ENTRY("refit_MCW_optmenu") ;
         if( maxbut <= 0 ) maxbut = 255 ;
    else if( maxbut < 99 ) maxbut = 99 ;
    if( maxval > minval+maxbut ) {
-      if (!iwarn % 15) {
-         
+      if (!iwarn % 15) {   /* ZSS June 2011 */
          INFO_message(
    "\n"
    "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n"
