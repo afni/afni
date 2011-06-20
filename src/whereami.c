@@ -457,7 +457,7 @@ printf(
 "             applies the combined chain of transformations to compute\n"
 "             a new x,y,z coordinate\n"
 
-"Note setting the environment variable AFNI_WAMI_VERB will show detailed\n"
+"Note setting the environment variable AFNI_WAMI_DEBUG will show detailed\n"
 " progress throughout the various functions called within whereami.\n"
 " For spaces defined using a NIML table, a Dijkstra search is used to find\n"
 " the shortest path between spaces. Each transformation carries with it a\n"
