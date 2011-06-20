@@ -1,5 +1,7 @@
 #! /bin/tcsh -f
 
+set stat = 0
+
 # path of ROI index & Zero+orig Files 
 set init_path = "$PWD"
 
@@ -39,9 +41,18 @@ if ($verb) echo "Resampling mask to epi with NN ..."
 3dresample  -input $fn_msk -master $fn_epi    \
             -prefix msk_resam    -overwrite  \
             -rmode NN    >& /dev/null
-if ($status) goto END
+if ($status) then
+   echo "3dresample failed"
+   goto BEND
+endif
 
-set fn_msk = msk_resam+orig
+set fn_msk = (msk_resam*.HEAD)
+if ($#fn_msk != 1) then
+   echo "Failed to resample or too many msk_resam* files"
+   goto BEND
+endif
+set fn_msk = ($fn_msk:r)
+set fn_view = `@GetAfniView $fn_msk`
 
 MAKE_ROW_FILE:
 if ("$rowfile" == "") then
@@ -53,14 +64,13 @@ if ("$rowfile" == "") then
    if ( $fval == 0 ) then
       1dcat ___rnk.rankmap.1D'[1]{1..$}'\' > $rowfile
    else
-      1dcat ___rnk.rankmap.1D'[1]{1..$}'\' > $rowfile
+      1dcat ___rnk.rankmap.1D'[1]{0..$}'\' > $rowfile
    endif
-   rm -f ___rnk* >& /dev/null
 else 
    if ( ! -f ./${rowfile} ) then
       echo "Rowfile must be in the current directory for now."
       echo " ./${rowfile} not found"
-      goto END
+      goto BEND
    endif
    set master = master.$rowfile:r
 endif
@@ -81,7 +91,10 @@ mkdir 1D
       foreach k (`1dcat ${rowfile}`)
           echo "ROI: "${k}
           3dmaskave -mask ${fn_msk} -mrange ${k} ${k} ${fn_epi} > 1D/ROI_${k}.1D
-          if ($status) goto END
+          if ($status) then
+               echo "3dmaskave failed"
+               goto BEND
+            endif
           1dtranspose 1D/ROI_${k}.1D'[0]' > 1D/temp.1D
           cat 1D/temp.1D >> 1D/TS_ALL.slow.1D
       end
@@ -132,9 +145,15 @@ WORK_1D:
    foreach k (`1dcat ${init_path}/${rowfile}`)
        1deval  -a TS_ALL.corr.1D'['${cc}']' \
          -expr "min(0.5*log((1+a)/max(1-a,0.00001))*sqrt(${N}-3),15)" > temp.zval
-       if ($status) goto END
+       if ($status) then
+         echo "1deval failed"
+         goto BEND
+       endif
        1dtranspose temp.zval >> TS_ALL.zval.1D
-       if ($status) goto END
+       if ($status) then
+          echo "1dtranspose failed"
+          goto BEND
+       endif
        @ cc ++
    end
    rm temp*
@@ -145,8 +164,12 @@ MAKE_BRIK:
 
 
    #### Preparing HJJ's 400W heat generator
-   3dcopy ${init_path}/$master+orig ./temp1  >& /dev/null
-
+   3dcopy ${init_path}/$master+orig ./temp1 >& /dev/null  
+   if ($status) then
+      echo "3dcopy temp failed"
+      goto BEND
+   endif
+   
    set i = 0
    foreach ii (`1dcat ${init_path}/${rowfile}`)
 
@@ -163,8 +186,11 @@ MAKE_BRIK:
             3dcalc   -a temp1+orig  \
                      -b I:'TS_ALL.corr.1D['${i}']' \
                      -expr 'a+b*equals(j,'${i}')*step(i-j)' \
-                     -prefix temp2 >& /dev/null
-            if ($status) goto END
+                     -prefix temp2 -overwrite >& /dev/null 
+            if ($status) then
+               echo "3dcalc 1 failed"
+               goto BEND
+            endif
             rm temp1*
             3dcopy temp2+orig temp1 >& /dev/null
             rm temp2*
@@ -173,8 +199,11 @@ MAKE_BRIK:
             3dcalc   -a temp1+orig  \
                      -b I:'TS_ALL.corr.1D['${i}']' \
                      -expr 'a+b*equals(j,'${i}')*step(i-j+1)' \
-                     -prefix temp2 >& /dev/null
-            if ($status) goto END
+                     -prefix temp2 -overwrite >& /dev/null
+            if ($status) then
+               echo "3dcalc 2 failed"
+               goto BEND
+            endif
             rm temp1*
             3dcopy temp2+orig temp1 >& /dev/null
             rm temp2*
@@ -182,8 +211,11 @@ MAKE_BRIK:
             3dcalc   -a temp1+orig  \
                      -b I:'TS_ALL.corr.1D['${i}']' \
          -expr 'a+b*equals(j,'${i}')*step(i-j+1)+b*equals(j,'${i}')*step(j-i)' \
-                     -prefix temp2 >& /dev/null
-            if ($status) goto END
+                     -prefix temp2 -overwrite >& /dev/null
+            if ($status) then
+               echo "3dcalc 3 failed"
+               goto BEND
+            endif
             rm temp1*
             3dcopy temp2+orig temp1 >& /dev/null
             rm temp2*
@@ -194,7 +226,7 @@ MAKE_BRIK:
       @ i ++
    end
    
-   3drename temp1+orig TS_ALL.corr  >& /dev/null  
+   3drename -overwrite temp1+orig TS_ALL.corr  >& /dev/null  
    
    # Don't forget we're under 1D folder.
    cd ..
@@ -242,6 +274,7 @@ CLEANUP:
       rm ${init_path}/___tmp_sort* >& /dev/null
       rm master.*+orig.????* >& /dev/null
       rm ___tmp_fdrmsk.corr+orig.????* >& /dev/null
+      rm -f ___rnk* >& /dev/null
    endif
 
 DONE:
@@ -290,6 +323,8 @@ HELP:
    echo "              TRI_ND--> Triangular, without diagonal (default)"
    echo ""
    echo "   -dirty: Keep temporary files"
+   echo "   -keep_tmp: Keep temporary files"
+   echo "   -echo: set echo (echo all commands to screen)"
    echo "   -verb: Verbose flag"
    echo ""
    echo "Example:"
@@ -326,7 +361,12 @@ PARSE:
    set DoTri = 1
    set cleanup = 1
    while ($cnt <= $Narg)
-		if ("$argv[$cnt]" == "-prefix") then
+		if ("$argv[$cnt]" == "-echo") then
+         set echo
+         set NxtInd = $cnt
+      endif
+      
+      if ("$argv[$cnt]" == "-prefix") then
          set SubLoc = $cnt		
 		   if ($SubLoc == $Narg) then
 				echo "Need option after -prefix"
@@ -421,7 +461,7 @@ PARSE:
          set DoZval = 1
       endif
       
-      if ("$argv[$cnt]" == "-dirty") then
+      if ("$argv[$cnt]" == "-dirty" || "$argv[$cnt]" == "-keep_tmp") then
          set SufLoc = $cnt		
          set NxtInd = $cnt
 		   
@@ -449,4 +489,12 @@ if ($#others_list != 0) then
 endif
 goto RETURN_PARSE
 
+goto END
+
+BEND:
+   echo "Exit under duress"
+   set stat = 1
+   goto END
+   
 END:
+   exit $stat
