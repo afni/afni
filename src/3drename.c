@@ -16,7 +16,10 @@ int main( int argc , char *argv[] )
    char *old_name , *new_name ;
    char old_prefix[THD_MAX_PREFIX] , new_prefix[THD_MAX_PREFIX] ;
    int ii , old_len , new_len ;
-
+   
+   mainENTRY("3drename") ; machdep() ; AFNI_logger("3drename",argc,argv) ;
+   PRINT_VERSION("3drename") ;
+   
    if( argc != 3 || strcmp(argv[1],"-help") == 0 ){
       printf(
        "Usage 1: 3drename old_prefix new_prefix\n"
@@ -185,7 +188,7 @@ fprintf(stderr,"++ THD_rename_dataset_files: old_headname=%s\n",old_headname) ;
 fprintf(stderr,"++ THD_rename_dataset_files: new_headname=%s\n",new_headname) ;
 #endif
 
-   if( THD_is_file(new_headname) ){
+   if( THD_is_file(new_headname) && !THD_ok_overwrite()){
       fprintf(stderr,"** THD_rename_dataset_files: new header %s already exists!\n",
               new_headname) ;
       return 0 ;
@@ -223,7 +226,7 @@ fprintf(stderr,"++ THD_rename_dataset_files: old_brikname=%s\n",old_brikname) ;
 fprintf(stderr,"++ THD_rename_dataset_files: new_brikname=%s\n",new_brikname) ;
 #endif
 
-      if( THD_is_file(new_brikname) ){
+      if( THD_is_file(new_brikname) && !THD_ok_overwrite()){
          fprintf(stderr,"** THD_rename_dataset_files: new brick %s already exists!\n",
                  new_brikname) ;
          if( old_bname != NULL ) free(old_bname) ;

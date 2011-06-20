@@ -65,6 +65,16 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 20, JUN , 2011 , ZSS , "@ROI_Corr_Mat" , MICRO , TYPE_BUG_FIX,
+   "added support for +tlrc input, more debugging messages, -echo option.",
+   NULL
+  } ,
+
+ { 20, JUN , 2011 , ZSS , "3drename" , MICRO , TYPE_NEW_OPT,
+   "added support for -overwrite",
+   NULL
+  } ,
+
  { 16, JUN , 2011 , ZSS , "3dSurfMask" , MAJOR , TYPE_NEW_OPT,
    "Major improvements for mask creation and voxel distance computations",
    "Option -fill_method SLOW produces more accurate masks for voxels\n"
@@ -72,11 +82,11 @@ afni_history_struct ziad_history[] = {
    "with the shortest distance of each voxel to the surface.\n"
    "See examples under 3dSurfMask -help."
   } ,
-
+ 
  { 16, JUN , 2011 , ZSS , "SurfPatch" , MINOR , TYPE_NEW_OPT,
    "-flip_orientation allows for reversing triangle orientation.",
    "See new examples under SurfPatch -help"
-  } ,
+ } ,
 
  { 16, JUN , 2011 , ZSS , "SurfPatch" , MINOR , TYPE_BUG_FIX,
    "No longer complains about not finding seed in cases where it should.",
