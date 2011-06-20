@@ -20,7 +20,7 @@ extern int * SUMA_Dijkstra_generic (int N_Node,
 static char *preferred_atlas_name = NULL;
 static int **FirstNeighb=NULL;
 static float **FirstNeighbDist=NULL; 
-static int *N_Neighb;
+static int *N_Neighb = NULL;
 
 char * THD_get_space(THD_3dim_dataset *dset)
 {
@@ -645,7 +645,9 @@ ATLAS_XFORM_LIST * get_xform_chain( ATLAS_SPACE *at_space,
       return(NULL);
    };
 
-   /* if src and dest are the same, should return identity right away */    
+   /* if src and dest are the same, should return identity right away */
+   if((N_Neighb==NULL) || (FirstNeighbDist==NULL) ||(&N_Neighb==0)) return (NULL);
+
    if ( !(nPath = SUMA_Dijkstra_generic ( 
                           asl->nspaces, 
                           NULL, -1, 0,
