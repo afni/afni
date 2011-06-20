@@ -1781,8 +1781,71 @@ def variance(data):
     if val < 0.0 : return 0.0
     return val
 
+def r(vA, vB, sample=0):
+    """return Pearson's correlation coefficient
+       if sample, divide by length-1, not length
+
+       for demeaned and unit length vectors, r = dot product / length
+    """
+    length = len(vA)
+    if len(vB) != length:
+        print '** correlation_pearson: vectors have different lengths'
+        return 0.0
+    if length < 2: return 0.0
+    ma = mean(vA)
+    mb = mean(vB)
+    dA = [v-ma for v in vA]
+    dB = [v-mb for v in vB]
+    sA = stdev(dA)
+    sB = stdev(dB)
+    dA = [v/sA for v in dA]
+    dB = [v/sB for v in dB]
+
+    if sample: length -= 1
+
+    return dotprod(dA,dB)/length
+
+def eta2(vA, vB):
+    """return eta^2 (eta squared - Cohen, NeuroImage 2008
+
+                        SUM[ (a_i - m_i)^2 + (b_i - m_i)^2 ]
+         eta^2 =  1  -  ------------------------------------
+                        SUM[ (a_i - M  )^2 + (b_i - M  )^2 ]
+
+         where  a_i and b_i are the vector elements
+                m_i = (a_i + b_i)/2
+                M = mean across both vectors
+
+    """
+
+    length = len(vA)
+    if len(vB) != length:
+        print '** correlation_pearson: vectors have different lengths'
+        return 0.0
+    if length < 1: return 0.0
+
+    ma = mean(vA)
+    mb = mean(vB)
+    gm = 0.5*(ma+mb)
+
+    vmean = [(vA[i]+vB[i])*0.5 for i in range(length)]
+
+    da = [vA[i] - vmean[i] for i in range(length)]
+    db = [vB[i] - vmean[i] for i in range(length)]
+    num = sumsq(da) + sumsq(db)
+
+    da = [vA[i] - gm       for i in range(length)]
+    db = [vB[i] - gm       for i in range(length)]
+    denom = sumsq(da) + sumsq(db)
+
+    if num < 0.0 or denom <= 0.0 or num >= denom:
+        print '** bad eta2: num = %s, denom = %s' % (num, denom)
+        return 0.0
+    return 1.0 - num/denom
+
 def correlation_p(vA, vB):
-    """return the Pearson correlation between the 2 vectors"""
+    """return the Pearson correlation between the 2 vectors
+    """
 
     length = len(vA)
     if len(vB) != length:
@@ -1797,13 +1860,9 @@ def correlation_p(vA, vB):
     dA = [v-ma for v in vA]
     dB = [v-mb for v in vB]
 
-    ssA = 0.0
-    ssB = 0.0
-    sAB = 0.0
-    for ind in range(length):
-        ssA += dA[ind]*dA[ind]
-        ssB += dB[ind]*dB[ind]
-        sAB += dA[ind]*dB[ind]
+    sAB = dotprod(dA, dB)
+    ssA = sumsq(dA)
+    ssB = sumsq(dB)
 
     del(dA); del(dB)
 
