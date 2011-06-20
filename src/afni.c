@@ -1484,32 +1484,8 @@ int main( int argc , char *argv[] )
 
    /*--- help the pitiful user? ---*/
 
-   machdep() ;
-
    if( argc > 1 && strcmp(argv[1],"-help")    == 0 ) AFNI_syntax() ;
    if( argc > 1 && strcmp(argv[1],"-goodbye") == 0 ) AFNI_sigfunc_alrm(0) ;
-
-   { char *eee = getenv("AFNI_FORK") ;    /* 31 May 2011 */
-     if( YESSISH(eee) ){
-       ii = (int)fork();
-       if( ii != 0 ){         /* parent process dies now */
-         AFNI_sleep(2345) ;   /* msec */
-         fprintf(stderr,"++ AFNI is detached from terminal.\n") ;
-         _exit(0) ;
-       }
-     }
-   }
-
-   AFNI_prefilter_args( &argc , argv ) ;  /* 11 Dec 2007 */
-
-   /*--- Initialize some stuff ---*/
-
-   THD_load_datablock_verbose(1) ; /* 21 Aug 2002 */
-
-   signal(SIGINT ,AFNI_sigfunc) ;  /* may be superseded by mainENTRY below */
-   signal(SIGBUS ,AFNI_sigfunc) ;
-   signal(SIGSEGV,AFNI_sigfunc) ;
-   signal(SIGTERM,AFNI_sigfunc) ;
 
    /** Check for -version [15 Aug 2003] **/
 
@@ -1560,6 +1536,31 @@ int main( int argc , char *argv[] )
    /*** if ordered, die right now ***/
 
    if( dienow) exit(0) ;
+
+   /*** otherwise, perhaps become all detached from reality ***/
+
+   { char *eee = getenv("AFNI_FORK") ;    /* 31 May 2011 */
+     if( YESSISH(eee) ){
+       ii = (int)fork();
+       if( ii != 0 ){         /* parent process dies now */
+         AFNI_sleep(2345) ;   /* msec */
+         fprintf(stderr,"++ AFNI is detached from terminal.\n") ;
+         _exit(0) ;
+       }
+     }
+   }
+
+   /*--- Initialize some stuff ---*/
+
+   machdep() ;
+   AFNI_prefilter_args( &argc , argv ) ;  /* 11 Dec 2007 */
+
+   THD_load_datablock_verbose(1) ; /* 21 Aug 2002 */
+
+   signal(SIGINT ,AFNI_sigfunc) ;  /* may be superseded by mainENTRY below */
+   signal(SIGBUS ,AFNI_sigfunc) ;
+   signal(SIGSEGV,AFNI_sigfunc) ;
+   signal(SIGTERM,AFNI_sigfunc) ;
 
 #if 0
 #ifdef USE_TRACING
@@ -9188,7 +9189,7 @@ char * AFNI_ttatlas_query( Three_D_View *im3d )
    static int have_TT = 1 ;
    THD_3dim_dataset *dset;
    ATLAS_LIST *atlas_alist;
-   
+
    if( !IM3D_OPEN(im3d) || !CAN_TALTO(im3d) ) return NULL ;
 
    set_TT_whereami_version(0,0);
@@ -9224,7 +9225,7 @@ char * AFNI_ttatlas_query( Three_D_View *im3d )
 
      tlab = TT_whereami( tv.xyz[0] , tv.xyz[1] , tv.xyz[2],
                          THD_get_space(dset)  , env_atlas_list() );
-                         
+
      return tlab ;
    }
 

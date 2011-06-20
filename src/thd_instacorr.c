@@ -1,5 +1,8 @@
 #include "mrilib.h"
 
+#undef  EM
+#define EM(s) ERROR_message("InstaCorr setup bad: %s",(s))
+
 /*---------------------------------------------------------------------------*/
 /*! Return value is 0 if an error occurs, or number of voxels prepared. */
 
@@ -12,7 +15,8 @@ ENTRY("THD_instacorr_prepare") ;
 
    /*-- check inputs for a reasonable amount of usefulness --*/
 
-   if( iset == NULL || !ISVALID_DSET(iset->dset) ) RETURN(0) ;
+   if( iset == NULL || !ISVALID_DSET(iset->dset) ){ EM("no dataset"); RETURN(0); }
+   if( DSET_NVALS(iset->dset) < 4 )               { EM("nvals < 4") ; RETURN(0); }
 
    /*-- create mask --*/
 
