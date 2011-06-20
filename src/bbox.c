@@ -1305,7 +1305,8 @@ void refit_MCW_optmenu( MCW_arrowval *av ,
    char *butlabel , *blab ;
    XmString xstr ;
    int maxbut ;   /* 23 Aug 2003 */
-
+   static int iwarn=0;
+   
 ENTRY("refit_MCW_optmenu") ;
 
    /** sanity check **/
@@ -1330,8 +1331,31 @@ ENTRY("refit_MCW_optmenu") ;
    maxbut = AFNI_numenv( "AFNI_MAX_OPTMENU" ) ;
         if( maxbut <= 0 ) maxbut = 255 ;
    else if( maxbut < 99 ) maxbut = 99 ;
-   if( maxval > minval+maxbut ) maxval = minval+maxbut ;  /* 23 Mar 2003 */
-
+   if( maxval > minval+maxbut ) {
+      if (!iwarn % 15) {
+         
+         INFO_message(
+   "\n"
+   "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n"
+   "The number of sub-bricks in one of your datasets exceeds \n"
+   "   the current maximum of %d. Some menus like Ulay/Olay/Thr \n"
+   "   will not allow you to select sub-bricks beyond #%d.\n"
+   "To access all sub-bricks from such menus, increase the value of \n"
+   "   environment variable 'AFNI_MAX_OPTMENU'. You can do so for this \n"
+   "   AFNI session via the 'Edit Environment' plugin. For a more lasting \n"
+   "   fix, add the line:\n"
+   "        AFNI_MAX_OPTMENU = XXX \n"
+   "   under the '***ENVIRONMENT' section of your .afnirc file with XXX \n"
+   "   being a suitably large number. \n"
+   "For details, search for 'AFNI_MAX_OPTMENU' in AFNI's README.environment.\n"
+   "\n"
+   "This message is shown intermittently.\n"
+   "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n"
+            , maxbut, maxbut); 
+      }
+      ++iwarn;
+      maxval = minval+maxbut ;  /* 23 Mar 2003 */
+   }
    /** reset some internal parameters **/
 
    av->text_CB   = (text_proc != NULL ) ? (text_proc)
