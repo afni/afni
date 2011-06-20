@@ -2939,7 +2939,8 @@ static int AFNI_trace( char *cmd )
 }
 
 /*--------------------------------------------------------------------*/
-/*! INSTACORR SET [x y z] */
+/*! INSTACORR SET [x y z] or
+              INIT name=value [name=value ...]  */
 
 static int AFNI_drive_instacorr( char *cmd )
 {
@@ -2952,18 +2953,121 @@ static int AFNI_drive_instacorr( char *cmd )
    im3d = GLOBAL_library.controllers[ic] ;
    if( !IM3D_OPEN(im3d) ) return -1 ;
 
+   /** SET the seed location and do the work **/
+
    if( strncasecmp(cmd+dadd,"SET",3) == 0 ){
+
      if( cmd[3] != '\0' ) good = sscanf(cmd+dadd+3,"%f %f %f",&x,&y,&z) ;
      if( good < 3 ) AFNI_icor_setref    (im3d)       ;  /* no x y z */
      else           AFNI_icor_setref_xyz(im3d,x,y,z) ;
      return 0 ;
+
+   /** INITialize **/
+
    } else if( strncasecmp(cmd+dadd,"INIT",4) == 0 ){
-     NI_str_array *sar ;
-     if( cmd[dadd+4] == '\0' ) return -1 ;
-     sar = NI_decode_string_list(cmd+dadd+4,"$") ;
+
+     NI_str_array *sar; ICOR_setup *iset; int ii; char *cpt,*dpt;
+
+     /* skip ahead until we find a blank */
+
+     for( ii=dadd+4 ; cmd[ii] != '\0' && !isspace(cmd[ii]) ; ii++ ) ; /*nada*/
+     if( cmd[ii] == '\0' ) return -1 ;
+
+     /*  break up rest command into set of 'name=value' strings */
+
+     sar = NI_decode_string_list(cmd+ii,";") ;
      if( sar == NULL ) return -1 ;
-     /* ... */
-     NI_delete_str_array(sar) ;
+
+     INIT_ICOR_setup(iset) ;              /* zeroes out everything */
+     if( im3d->iset != NULL ){              /* copy existing setup */
+       iset->dset     = im3d->iset->dset ;
+       iset->automask = im3d->iset->automask ;
+       iset->mset     = (iset->automask) ? NULL : im3d->iset->mset ;
+       iset->ignore   = im3d->iset->ignore ;
+       iset->mindex   = im3d->iset->mindex ;
+       iset->fbot     = im3d->iset->fbot ;
+       iset->ftop     = im3d->iset->ftop ;
+       iset->blur     = im3d->iset->blur ;
+       iset->sblur    = im3d->iset->sblur ;
+       iset->polort   = im3d->iset->polort ;
+       iset->cmeth    = im3d->iset->cmeth ;
+       iset->despike  = im3d->iset->despike ;
+       if( im3d->iset->prefix != NULL ){
+         iset->prefix = strdup(im3d->iset->prefix) ;
+       } else {
+         iset->prefix = (char *)malloc(sizeof(char)*16) ;
+         cpt = AFNI_controller_label(im3d) ;
+         sprintf(iset->prefix,"%c_ICOR",cpt[1]) ;
+       }
+       if( im3d->iset->gortim != NULL )
+         iset->gortim = mri_copy(im3d->iset->gortim) ;
+
+INFO_message("Old setup") ;
+     } else {                              /* set some default params */
+       iset->automask = 1 ;
+       iset->fbot     = 0.01f ;
+       iset->ftop     = 0.10f ;
+       iset->polort   = 2 ;
+       iset->cmeth    = NBISTAT_PEARSON_CORR ;
+INFO_message("New setup") ;
+     }
+
+     /* scan to set params */
+
+     for( ii=0 ; ii < sar->num ; ii++ ){
+       cpt = sar->str[ii]    ; if( *cpt == '\0' ) continue ;           /* bad */
+       dpt = strchr(cpt,'=') ; if(  dpt == NULL ) continue ;        /* badder */
+       *dpt = '\0' ; dpt++   ; if( *dpt == '\0' ) continue ;       /* baddest */
+ININFO_message(" %s = %s",cpt,dpt) ;
+       if( strcasestr(cpt,"dset")       == 0 ||
+           strcasestr(cpt,"dataset")    == 0 ||
+           strcasestr(cpt,"timeseries") == 0   ){                  /* dataset */
+         THD_slist_find ff = PLUTO_dset_finder(dpt) ;
+         iset->dset = ff.dset ;
+if( iset->dset == NULL ) ININFO_message("  failed to find dataset %s",dpt) ;
+       } else if( strcasestr(cpt,"ignore") == 0 ){                  /* ignore */
+         iset->ignore = strtod(dpt,NULL) ;
+         if( iset->ignore < 0 ) iset->ignore = 0 ;
+       } else if( strcasestr(cpt,"blur") == 0 ){                      /* blur */
+         iset->blur = strtod(dpt,NULL) ;
+         if( iset->blur <= 0.0f ) iset->blur = 0.0f ;
+       } else if( strcasestr(cpt,"automask") == 0 ){              /* automask */
+         iset->automask = YESSISH(dpt) ;
+       } else if( strcasestr(cpt,"bandpass") == 0 ){              /* bandpass */
+         sscanf(dpt,"%f,%f",&(iset->fbot),&(iset->ftop)) ;
+       } else if( strcasestr(cpt,"seedrad") == 0 ){                /* seedrad */
+         iset->sblur = strtod(dpt,NULL) ;
+         if( iset->sblur <= 0.0f ) iset->sblur = 0.0f ;
+       } else if( strcasestr(cpt,"method") == 0 ){                  /* method */
+         switch( toupper(*dpt) ){
+           default:  iset->cmeth = NBISTAT_PEARSON_CORR  ; break ;
+           case 'S': iset->cmeth = NBISTAT_SPEARMAN_CORR ; break ;
+           case 'Q': iset->cmeth = NBISTAT_QUADRANT_CORR ; break ;
+           case 'K': iset->cmeth = NBISTAT_KENDALL_TAUB  ; break ;
+           case 'B': iset->cmeth = NBISTAT_BC_PEARSON_M  ; break ;
+           case 'V': iset->cmeth = NBISTAT_BC_PEARSON_V  ; break ;
+           case 'T': iset->cmeth = NBISTAT_TICTACTOE_CORR; break ;
+         }
+       } else {      /* Extraordinary crimes against the People, or the State */
+         WARNING_message("Ignoring unknown INSTACORR INIT: '%s=%s'",cpt,dpt) ;
+       }
+     }
+
+     NI_delete_str_array(sar) ;  /* finished with this now */
+
+     INSTACORR_LABEL_OFF(im3d) ;
+     SHOW_AFNI_PAUSE ;
+     ii = THD_instacorr_prepare( iset ) ;
+     SHOW_AFNI_READY ;
+     if( ii == 0 ){
+       DESTROY_ICOR_setup(iset) ;
+       ERROR_message("Bad INSTACORR%s setup!?",AFNI_controller_label(im3d)) ;
+       return -1 ;
+     }
+     INSTACORR_LABEL_ON(im3d) ;
+     DESTROY_ICOR_setup(im3d->iset) ; im3d->iset = iset ;
+     ENABLE_INSTACORR(im3d) ;
+     return 0 ;
    }
 
    return -1 ;
