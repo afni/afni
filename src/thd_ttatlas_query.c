@@ -29,8 +29,8 @@ static ATLAS_LIST *global_atlas_alist=NULL;
 static ATLAS_TEMPLATE_LIST *global_atlas_templates=NULL;
 char *old_space_list[] = {"TLRC","MNI","MNI_ANAT"};
 char *min_atlas_list[] = {"TT_Daemon", "CA_ML_18_MNIA", "CA_MPM_18_MNIA",
-   "CA_PM_18_MNIA", "CA_LR_18_MNIA", "CA_GW_18_MNIA"};
-char min_atlas_n = 6;
+   "CA_PM_18_MNIA", "CA_LR_18_MNIA", "CA_GW_18_MNIA", "CA_N27_LR"};
+char min_atlas_n = 7;
 
 ATLAS_SPACE_LIST *get_G_space_list(void) { 
    static int icall = 0;
