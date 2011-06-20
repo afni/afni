@@ -8,7 +8,8 @@
 <TEMPLATE_SPACE
   space_name="TT_N27"
   generic_space="TLRC"
-  comment="The TLRC templates made from MNI group templates were "
+  comment="The TLRC templates made from MNI group templates were\n"
+          "transformed using a 12 piece transformation\n"
 ></TEMPLATE_SPACE>
 
 <TEMPLATE_SPACE
@@ -37,18 +38,18 @@
 <TEMPLATE_SPACE
   space_name="MNI"
   generic_space="MNI"
-  comment="The standard MNI space name used by AFNI pre 04 2011 "
+  comment="The standard MNI space"
 ></TEMPLATE_SPACE>
 
 <TEMPLATE_SPACE
   space_name="MNI_ANAT"
-  generic_space="MNI"
-  comment="The standard MNI_ANAT space name used by AFNI pre 04 2011 "
+  generic_space="MNI_ANAT"
+  comment="The standard MNI_ANAT space name - a shifted version of MNI space"
 ></TEMPLATE_SPACE>
 
 <TEMPLATE_SPACE
   space_name="MNIa"
-  generic_space="MNIa"
+  generic_space="MNI_ANAT"
   comment="The MNI space shifted to have its origin at \n"
           "transformed using a 12 piece transformation dividing\n"
           "the brain into 12 regions selected with manually placed\n "
@@ -342,7 +343,7 @@
   ni_type="1*float"
   ni_dimen="1"
   xform_name="MNIa::MNI_ANAT"
-  source="MNI"
+  source="MNIa"
   dest="MNI_ANAT"
   distance="0.1"
   xform_type="Identity" >

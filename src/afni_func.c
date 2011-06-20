@@ -321,7 +321,6 @@ ENTRY("AFNI_thresh_top_CB") ;
 void AFNI_set_thr_pval( Three_D_View *im3d )
 {
    float thresh , pval , zval ;
-   int   dec ;
    char  buf[32] ;
 
 ENTRY("AFNI_set_thr_pval") ;
@@ -857,9 +856,10 @@ void AFNI_make_descendants_old( THD_sessionlist *ssl , int vbase )
 {
    int iss , jdd , kvv , num_made=0 ;
    THD_session *ss, *temp_ss ;
-   THD_3dim_dataset *orig_dset , *new_dset, *temp_dset, *temp_anat_dset ;
+   THD_3dim_dataset *orig_dset , *temp_dset, *temp_anat_dset ;
    THD_slist_find     find ;
-   THD_3dim_dataset *anat_parent_dset , **orig_row ;
+   THD_3dim_dataset *anat_parent_dset;
+/*                  **orig_row ;*/
    int orig_row_key, anat_parent_row_key;
 
 ENTRY("AFNI_make_descendants_old") ;
@@ -2088,17 +2088,11 @@ char * AFNI_controller_label( Three_D_View *im3d )
 {
    static char clabel[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ" ;
    static char str[8] ;
-   int ic, ib;
+   int ic ;
 
    ic = AFNI_controller_index( im3d ) ;
    if( ic < 0 || ic > 26 ) strcpy (str,"    ") ;  /* shouldn't happen */
-   else {
-      if ((ib = get_user_np_bloc())>-1) { /* ZSS June 2011 */
-                           sprintf(str,"[%c%d] ",clabel[ic], ib) ;
-      } else {
-                           sprintf(str,"[%c] ",clabel[ic]) ;
-      }
-   }
+   else                    sprintf(str,"[%c] ",clabel[ic]) ;
    return str ;
 }
 
@@ -2118,18 +2112,16 @@ void AFNI_set_window_titles( Three_D_View *im3d )
    char ttl[THD_MAX_NAME] , nam[THD_MAX_NAME] ;
    char *tnam , *clab ; int ilab ;
    char signum ; /* 08 Aug 2007 */
-   int ninit=0;
 
 ENTRY("AFNI_set_window_titles") ;
 
    if( ! IM3D_OPEN(im3d) ) EXRETURN ;
 
    clab = AFNI_controller_label(im3d) ;
-   ninit = strlen(clab)-1;
    switch( im3d->vinfo->thr_sign ){
-     default: ilab = ninit -1; break ;
-     case 1:  ilab = ninit ; clab[ninit] = '+' ; break ;
-     case 2:  ilab = ninit ; clab[ninit] = '-' ; break ;
+     default: ilab = 2 ; break ;
+     case 1:  ilab = 3 ; clab[3] = '+' ; break ;
+     case 2:  ilab = 3 ; clab[3] = '-' ; break ;
    }
    switch( im3d->vinfo->underlay_type ){  /* 08 May 2008 */
      default:               clab[++ilab] = 'u' ; break ;
@@ -6427,7 +6419,7 @@ static void AFNI_find_poem_files(void)  /* 15 Oct 2003 */
 {
    char *epath , *elocal , *eee ;
    char edir[THD_MAX_NAME] , **ename ;
-   int epos , ll , ii , id , npoem , nx,ny , nep ;
+   int epos , ll , ii , id , npoem , nep ;
    char **fpoem ;
 
 ENTRY("AFNI_find_poem_files") ;
