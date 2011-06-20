@@ -507,7 +507,8 @@ int main( int argc , char * argv[] )
    }
 
    if (!(STRING_HAS_SUFFIX_CASE(prefix,".1D"))) {
-      if (!(STRING_HAS_SUFFIX_CASE(prefix,".jpg"))) {
+      if (!(STRING_HAS_SUFFIX_CASE(prefix,".jpg")) &&
+          !(STRING_HAS_SUFFIX_CASE(prefix,".ppm")) ) {
          sprintf(fnam,"%s.ppm",prefix);
       } else {
          sprintf(fnam,"%s",prefix);
