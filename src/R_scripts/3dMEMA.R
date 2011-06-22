@@ -206,8 +206,7 @@ read.MEMA.opts.interactive <- function (verb = 0) {
    # Hartung-Knapp method with t-test?
    print("-----------------")
    print("The Hartung-Knapp adjustment makes the output t-statistic a little more")
-   print("conservative but may be more robust when the number of subjects is")
-   print("relatively small.")
+   print("robust when the number of subjects is relatively small.")
    lop$KHtest <- 
       as.logical(as.integer(
                   readline("Hartung-Knapp adjustment for the output t-statistic? (0: No; 1: Yes) ")))
@@ -516,7 +515,7 @@ greeting.MEMA <- function ()
           ================== Welcome to 3dMEMA.R ==================          
              AFNI Mixed-Effects Meta-Analysis Modeling Package!
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.1.10, Feb 15, 2011
+Version 0.1.11, Jun 22 , 2011
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MEMA.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -737,12 +736,13 @@ read.MEMA.opts.batch <- function (args=NULL, verb = 0) {
       '-HKtest' = apl(0 , d = NA, h = paste(
    "-HKtest: Perform Hartung-Knapp adjustment for the output t-statistic. \n",
    "         This approach is more robust when the number of subjects\n",
-   "         is small. However it is a little more conservative.\n",
-   "         -no_KHtest is the default with t-statistic output.\n"
+   "         is small, and is generally preferred. -KHtest is the default \n",
+   "         with t-statistic output.\n"
                      ) ),
                       
       '-no_HKtest' = apl(0, d=NA, h = paste(
-   "-no_HKtest: Do not make the Hartung-Knapp adjustment (Default).\n"
+   "-no_HKtest: Do not make the Hartung-Knapp adjustment. -KHtest is \n",
+   "         the default with t-statistic output.\n"
                      ) ),
                      
       '-mask' = apl(1, h = paste(
@@ -864,7 +864,9 @@ read.MEMA.opts.batch <- function (args=NULL, verb = 0) {
       lop$nNodes <- 1
       lop$nNonzero <- -1
       lop$nMaxzero <- -1
-      lop$KHtest <- FALSE
+      #The default for lop$KHtest was FLASE, but now is TRUE. GC Jun 22, 2011 
+      #lop$KHtest <- FALSE
+      lop$KHtest <- TRUE
       lop$maskFN <- NULL
       lop$covFN <- NULL
       lop$lapMod <- 0
@@ -1056,8 +1058,10 @@ read.MEMA.opts.batch <- function (args=NULL, verb = 0) {
             }
          }   
       } else if (lop$centerType == 0) {
-         warning('Covariates will be centered around their respective means',
-                  immediate.=TRUE);
+         #warning('Covariates will be centered around their respective means',
+         #         immediate.=TRUE);
+         # warning seems too strong for users. Changed Jun 22, 2011 - GC 
+         cat('\nCovariates will be centered around their respective means\n')
       }
        
    }
