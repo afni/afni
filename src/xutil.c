@@ -1739,7 +1739,8 @@ ENTRY("RWC_xineramize") ;
          if( xdef != NULL ){
             char *qdef = strdup(xdef) ;
             for( nn=0 ; qdef[nn] != '\0' ; nn++ )
-              if( qdef[nn] == '_' || qdef[nn] == ':' ) qdef[nn] = ' ' ;
+              if( qdef[nn] == '_' || qdef[nn] == ':' ||
+                  qdef[nn] == ';' || qdef[nn] == ','   ) qdef[nn] = ' ' ;
 
             nn = 0 ; sscanf(qdef,"%d%n",&nxsi,&nn) ;  /* number of sub-screens */
             if( nn <= 0 || nxsi <= 1 ){               /* ERROR */

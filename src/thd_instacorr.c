@@ -27,6 +27,7 @@ ENTRY("THD_instacorr_prepare") ;
    /*-- automask? --*/
 
    if( iset->automask ){
+     ININFO_message("Computing automask") ;
      mmm = THD_automask(iset->dset) ;
      if( mmm == NULL ){
        ERROR_message("Can't create automask from '%s'?!",DSET_BRIKNAME(iset->dset)) ;
@@ -50,6 +51,7 @@ ENTRY("THD_instacorr_prepare") ;
                      DSET_BRIKNAME(iset->mset) , DSET_BRIKNAME(iset->dset) ) ;
        RETURN(0) ;
      }
+     ININFO_message("Extracting mask from mask dataset sub-brick #%d",iset->mindex) ;
      mmm = THD_makemask( iset->mset , iset->mindex , 1.0f,-1.0f ) ;
      if( mmm == NULL ){
        ERROR_message("Can't make mask from '%s[%d]'" ,
@@ -126,6 +128,8 @@ ENTRY("THD_instacorr_prepare") ;
 
    if( iset->blur > 0.0f ){
      int nrep ; float fx,fy,fz ;
+     ININFO_message("Starting %.1f mm blur %s" ,
+                    iset->blur , (mmm==NULL) ? "\0" : "(in mask)" ) ;
      mri_blur3D_getfac( iset->blur ,
                         iset->mv->dx , iset->mv->dy , iset->mv->dz ,
                         &nrep , &fx , &fy , &fz ) ;
