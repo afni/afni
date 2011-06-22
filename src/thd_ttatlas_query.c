@@ -5588,9 +5588,8 @@ int whereami_in_atlas(  char *aname,
                            nfind, b_find[nfind], nfind, rr_find[nfind]);
             nfind++ ;
 
-            if(( nfind >= MAX_FIND ) && (!find_warn)) {
-              find_warn = 1;
-              if (!getenv("AFNI_WHEREAMI_NO_WARN")) {
+            if( nfind >= MAX_FIND ) {
+              if (!getenv("AFNI_WHEREAMI_NO_WARN") && (!find_warn)) {
                INFO_message(
          "Potentially more regions could be found than the %d reported.\n"
          "Set the environment variable AFNI_WHEREAMI_MAX_FIND to higher\n"
@@ -5598,6 +5597,7 @@ int whereami_in_atlas(  char *aname,
          "It behooves you to also checkout AFNI_WHEREAMI_MAX_SEARCH_RAD\n"
          "and AFNI_WHEREAMI_NO_WARN. See whereami -help for detail.\n", 
                                  MAX_FIND, MAX_FIND);
+              find_warn = 1;
               }
               break ;  /* don't find TOO much */
             }
