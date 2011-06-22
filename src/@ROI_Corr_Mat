@@ -390,7 +390,7 @@ PARSE:
 			endif
       endif
 		
-      if ("$argv[$cnt]" == "-rowfile") then
+      if ("$argv[$cnt]" == "-rowfile" || "$argv[$cnt]" == "-roisel") then
          set SubLoc = $cnt		
 		   if ($SubLoc == $Narg) then
 				echo "Need option after -rowfile"
