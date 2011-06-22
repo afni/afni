@@ -136,7 +136,7 @@ void usage_SUMA_getPatch ()
 "\n"
 "   Example 2: If you want to voxelize the region between the two surfaces\n"
 "              you can run the following on the output.\n"
-"                 3dSurfMask -i lh.stiched.ply -sv DemoSubj_SurfVol+orig. \\\n"
+"                 3dSurfMask -i lh.stiched.ply \\\n"
 "                            -prefix lh.closed -fill_method SLOW \\\n"
 "                            -grid_parent DemoSubj_SurfVol+orig.HEAD \n"
 "              3dSurfMask will output a dataset called lh.closed.d+orig which\n"
