@@ -1107,8 +1107,8 @@ as.num.vec <- function(ss, addcount=TRUE, sepstr='.', reset=FALSE) {
          lastname <- ll
       } else {
          valnum <- valnum+1
-         if (!is.numeric(vv[1])) { return(NULL); }
-         vv <- as.numeric(vv[1]);
+         wrn <- getOption('warn'); options(warn=-1);
+         vv <- as.numeric(vv[1]); options(warn=wrn);
          if (is.na(vv)) { return(NULL); }
          if (addcount) {
             sfnd <- paste(lastname, sepstr,'[[:digit:]]*$', sep='', collapse='')
