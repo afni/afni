@@ -583,6 +583,9 @@ ENTRY("AFNI_parse_args") ;
      if( lf != NULL ){
        char *eh = NULL , *ff ;
        int ll = strlen(lf) + 8 ;
+       if( !THD_is_file(lf) && lf[0] == '.' ){
+         if( THD_is_file(lf+1) ) lf = lf+1 ;
+       }
        if( !THD_is_file(lf) && lf[0] != '/' ) eh = getenv("HOME") ;
        if( eh != NULL ) ll += strlen(eh) ;
        ff = AFMALL(char, ll) ;
