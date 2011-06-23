@@ -2960,7 +2960,6 @@ static int AFNI_drive_instacorr( char *cmd )
 
      if( cmd[dadd+3] != '\0' ) good = sscanf(cmd+dadd+3,"%f %f %f %c",&x,&y,&z,&cj) ;
      if( good < 3 ){
-ININFO_message("driver: ic=%d xi=%g yj=%g zk=%g", ic , im3d->vinfo->xi, im3d->vinfo->yj, im3d->vinfo->zk ) ;
         AFNI_icor_setref(im3d) ;  /* no x,y,z ==> use current xhair point */
      } else {
         good = AFNI_icor_setref_xyz(im3d,x,y,z) ; /* have x,y,z */
