@@ -1,0 +1,132 @@
+#!/bin/tcsh -f
+
+set stat = 0
+set sdir = $PWD
+
+
+goto PARSE
+RET_PARSE:
+
+
+foreach prog ($proglist)
+   echo "searching for talking $prog..."
+   if ($no_npb == 1) then
+      set pidl = `ps -a |  \grep $prog | \
+                           \sed 's/^[space]*//g' | \
+                           \cut -d ' ' -f 1`   
+      if ($#pidl > 0) then
+         foreach pid ($pidl)
+            echo killing $prog with pid $pid 
+            kill -9 $pid
+            if ($status) echo "Murder of $prog pid $pid failed"
+         end 
+      endif                       
+   else
+      set cc = 1
+      #don't use foreach npb ($npb_vals), it won't work if npb_vals = ('')
+      while ($cc <= $#npb_vals) 
+         set npb = $npb_vals[$cc]
+         set pidl = `ps -a |  \grep $prog | \
+                              \grep "\-npb[[:space:]][[:space:]]*$npb" | \
+                              \sed 's/^[space]*//g' | \
+                              \cut -d ' ' -f 1`
+         if ($#pidl > 0) then
+            foreach pid ($pidl)
+               echo killing $prog with pid $pid 
+               kill -9 $pid
+               if ($status) echo "Murder of $prog pid $pid failed"
+            end 
+         endif
+         @ cc ++                       
+      end
+   endif
+end
+
+goto END
+
+PARSE:
+   set Narg = $#
+   set proglist = (afni 3dGroupInCorr plugout_drive suma DriveSuma)
+   set npb_vals = ('')
+   set no_npb = 0
+   set cnt = 1
+   while ($cnt <= $Narg)
+		set donext = 1;
+      if ($donext && "$argv[$cnt]" == "-echo") then
+         set echo
+         set donext = 0; goto NEXT		
+      endif
+      
+      if ($donext && ("$argv[$cnt]" == "-h" || "$argv[$cnt]" == "-help")) then
+         goto HELP
+         set donext = 0;	 goto NEXT	
+      endif
+      
+      if ($donext && "$argv[$cnt]" == "-no_npb") then
+         set no_npb = 1
+         set donext = 0; goto NEXT		
+      endif
+      
+      if ($donext && "$argv[$cnt]" == "-npb_val") then
+         if ($cnt == $Narg) then
+            echo "Option -npb_val needs an interger"
+            goto BEND
+         endif
+         @ cnt ++
+         set npb_vals = ($npb_vals $argv[$cnt])
+         set donext = 0; goto NEXT		
+      endif
+      
+      if ($donext && "$argv[$cnt]" == "-npb_range") then
+         if ($cnt == $Narg) then
+            echo "Option -npb_range needs 2 interger"
+            goto BEND
+         endif
+         @ cnt ++
+         set npb0 = $argv[$cnt]
+         if ($cnt == $Narg) then
+            echo "Option -npb_range needs 2 interger"
+            goto BEND
+         endif
+         @ cnt ++
+         set npb1 = $argv[$cnt]
+         foreach nn (`count -digits 1 $npb0 $npb1`)
+            set npb_vals = ($npb_vals $nn)
+         end
+         set donext = 0; goto NEXT		
+      endif
+      if ($donext == 1) then
+         echo "Error: Option or parameter '$argv[$cnt]' not understood"
+         goto END
+      endif
+      
+      NEXT:
+		@ cnt ++
+	end
+   
+goto RET_PARSE
+
+HELP:
+   echo "A program to kill AFNI/SUMA talking programs"
+   echo "ps is used to lookfor processes running the programs:"
+   echo "$proglist"
+   echo "that also have the -npb option used in their command line."
+   echo ""
+   echo "Examples:"
+   echo "   `basename $0`"
+   echo ""
+   echo "   `basename $0` -npb_val 3 -npb_val 6"
+   echo ""
+   echo "   `basename $0` -npb_range 5 9"
+   echo ""
+   goto END
+
+BEND:
+   echo "Failed"
+   set stat = 1
+   goto END
+   
+END:
+   exit $stat
+
+
