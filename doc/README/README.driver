@@ -363,16 +363,39 @@ READ_NIML_FILE fname
   Reads the NIML-formatted file 'fname' from disk and processes it as if
   the data in the file had been sent to AFNI through a TCP/IP socket.
 
-INSTACORR command
-  This command is to drive the InstaCorr functionality in AFNI.  The only
-  'command' that is implemented now [20 Oct 2010] is
+INSTACORR [c] command
+  This command is to drive the InstaCorr functionality in AFNI.  The first
+  'command' that is implemented [20 Oct 2010] is
      SET
-  which sets the InstaCorr seed (in controller A) to the current
+  which sets the InstaCorr seed (in controller 'c', default A) to the current
   crosshair location, or
      SET x y z
-  which sets the InstaCorr seed to the given DICOM coordinates.
-  In the vast nebulous future, other commands will be implemented to
-  allow the driver to setup InstaCorr, etc.
+  which sets the InstaCorr seed to the given DICOM coordinates.  If you place
+  the character J after the z coordinate, the crosshairs will also Jump to
+  that new seed location.  Note that SET can be used with individual or group
+  InstaCorr.
+
+  The second 'command' that is implemented [22 Jun 2011] is
+     INIT name=value name=value ...
+  which will initialize the individual InstaCorr setup for controller 'c'.
+  The 'name=value' pairs that follow take the following forms:
+     DSET=prefix           ==> specifies the time series dataset
+     IGNORE=number         ==> how many time points to ignore [default=0]
+     BLUR=number           ==> blurring radius for data [default=0]
+     AUTOMASK=yes/no       ==> whether to use Automask [default=yes]
+     BANDPASS=fbot,ftop    ==> bottom,top frequencies (comma separated) [default=0.01,0.10]
+     SEEDRAD=number        ==> extra blurring seed radius [default=0]
+     METHOD=code           ==> codes: S=Spearman, P=Pearson, etc. [default=P]
+   The 'name' string can be upper or lower case.  The value after the '='
+   (no spaces can be used here!) is interpreted as described above.
+   At a minimum, the 'DSET' must be specified -- or what will be computed?
+   The rest of the specifications are optional and have default values.
+   At this time, none of the other InstaCorr options (e.g., a separate mask
+   dataset) can be controlled in this way.  Also, note that setting things up
+   this way will not set up the interface control widgets in the AFNI GUI,
+   so that if you try to control InstaCorr at the same time via the GUI
+   interface and a plugout, very confusing things will probably happen.
+   And then an elephant will sit on your computer.
 
 PURGE_MEMORY [dataset_prefix]
   If no prefix is given, the sub-bricks of all datasets will be purged from
