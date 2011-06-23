@@ -363,53 +363,66 @@ READ_NIML_FILE fname
   Reads the NIML-formatted file 'fname' from disk and processes it as if
   the data in the file had been sent to AFNI through a TCP/IP socket.
 
-INSTACORR [c] command
-  This command is to drive the InstaCorr functionality in AFNI.  The first
-  'command' that is implemented [20 Oct 2010] is
+INSTACORR [c] order
+  This command is to drive the InstaCorr functionality in AFNI.  As in other
+  commands, the optional '[c]' is a single letter specifying to which AFNI
+  controller the 'order' that follows applies.  If this single letter code
+  is NOT present, the default controller is 'A'.
+  The first INSTACORR 'order' that is implemented [20 Oct 2010] is
      SET
   which sets the InstaCorr seed (in controller 'c', default A) to the current
-  crosshair location, or
+  crosshair location and recomputes the correlation map, or
      SET x y z
-  which sets the InstaCorr seed to the given DICOM coordinates.  If you place
-  the character J after the z coordinate, the crosshairs will also Jump to
-  that new seed location.  Note that SET can be used with individual or group
-  InstaCorr.
+  which sets the InstaCorr seed to the given DICOM coordinates.  For this
+  second form, with 'x y z', if you place the character J after the z value,
+  the crosshairs will also Jump to that new seed location.  Note that SET
+  can be used with individual or group InstaCorr.
 
-  The second 'command' that is implemented [22 Jun 2011] is
+  The second INSTACORR 'order' that is implemented [22 Jun 2011] is
      INIT name=value name=value ...
   which will initialize the individual InstaCorr setup for controller 'c'.
   The 'name=value' pairs that follow take the following forms:
-     DSET=prefix           ==> specifies the time series dataset
-     IGNORE=number         ==> how many time points to ignore [default=0]
-     BLUR=number           ==> blurring radius for data [default=0]
-     AUTOMASK=yes/no       ==> whether to use Automask [default=yes]
-     BANDPASS=fbot,ftop    ==> bottom,top frequencies (comma separated) [default=0.01,0.10]
-     SEEDRAD=number        ==> extra blurring seed radius [default=0]
-     METHOD=code           ==> codes: S=Spearman, P=Pearson, etc. [default=P]
-   The 'name' string can be upper or lower case.  The value after the '='
-   (no spaces can be used here!) is interpreted as described above.
-   At a minimum, the 'DSET' must be specified -- or what will be computed?
-   The rest of the specifications are optional and have default values.
-   At this time, none of the other InstaCorr options (e.g., a separate mask
-   dataset) can be controlled in this way.  Also, note that setting things up
-   this way will not set up the interface control widgets in the AFNI GUI,
-   so that if you try to control InstaCorr at the same time via the GUI
-   interface and a plugout, very confusing things will probably happen.
-   And then an elephant will sit on your computer.
+     DSET=prefix         ==> specifies the time series dataset
+     IGNORE=number       ==> how many time points to ignore [default=0]
+     BLUR=number         ==> blurring radius for data [default=0]
+     AUTOMASK=yes/no     ==> whether to use Automask [default=yes]
+     BANDPASS=fbot,ftop  ==> bottom,top frequencies (comma separated) [default=0.01,0.10]
+     SEEDRAD=number      ==> extra blurring seed radius [default=0]
+     METHOD=code         ==> codes: S=Spearman, P=Pearson, etc. [default=P]
+  The 'name' string can be upper or lower case.  The '=' sign must immediately
+  follow the 'name' with no spaces, and then the 'value' must come right after
+  the '=', again with no spaces.  The 'value' is interpreted as described
+  in the table above.  At a minimum, the 'DSET' must be specified -- or what
+  will be computed?  The rest of the specifications are optional and have
+  default values.  Once you set a value, then another INIT order (to the
+  same controller) will default to leaving that value the same -- for example,
+     INSTACORR INIT DSET=fred ignore=3 blur=4 meth=P
+     INSTACORR SET
+     INSTACORR INIT meth=S
+     INSTACORR SET
+  The second INIT order leaves the dataset, ignore, and blur values at 'fred',
+  '3', and '4' (respectively), and only changes the correlation method for
+  the second SET order.
+  At this time, none of the other InstaCorr options (e.g., a separate mask
+  dataset) can be controlled in this way.  Also, note that setting things up
+  this way will not set up the interface control widgets in the AFNI GUI, so
+  that if you try to control InstaCorr at the same time via the GUI interface
+  and a plugout, very confusing things will probably happen.  And then an
+  extra jumbo-sized elephant will sit on your computer, which you will deserve.
 
 PURGE_MEMORY [dataset_prefix]
   If no prefix is given, the sub-bricks of all datasets will be purged from
   memory, and when re-used, AFNI will re-read them from disk.  If a prefix
   is given, only that dataset (in all coordinate views) will be purged.
   ++ "Locked" datasets will not be purged -- a dataset will be locked
-     into memory if it can't be re-read from disk (e.g., was sent from SUMA;
-     is being drawn upon, nudged, or acquired in realtime; was loaded from
-     a '3dcalc()' command line call; or was fetched across the Web).
+     into memory if it can't easily be re-read from disk (e.g., is from SUMA;
+     is being drawn upon, nudged, or acquired in realtime; is loaded from
+     a '3dcalc()' command line call; or is fetched across the Web).
 
 QUIT
   AFNI will exit immediately.  Communication with the dead being difficult
-  (with current technology), this action forestalls all further attempts to
-  send commands to AFNI.
+  (with existing technology), this action forestalls all further attempts
+  to send commands to AFNI.
 
 SETENV name value
   Set the environment variable "name" to "value" in AFNI; for example
