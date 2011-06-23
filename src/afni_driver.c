@@ -3026,35 +3026,31 @@ static int AFNI_drive_instacorr( char *cmd )
        cpt = sar->str[ii]    ; if( *cpt == '\0' ) continue ;           /* bad */
        dpt = strchr(cpt,'=') ; if(  dpt == NULL ) continue ;        /* badder */
        *dpt = '\0' ; dpt++   ; if( *dpt == '\0' ) continue ;       /* baddest */
-/** ININFO_message(" Equation:: %s = %s",cpt,dpt) ; **/
        if( strcasecmp(cpt,"dset")       == 0 ||
            strcasecmp(cpt,"dataset")    == 0 ||
            strcasecmp(cpt,"timeseries") == 0   ){                  /* dataset */
          THD_slist_find ff ; char *ppt ;
          ppt = strchr(dpt,'+') ; if( ppt != NULL ) *ppt = '\0' ;
-/** ININFO_message("  doing %s 'find' on %s",cpt,dpt) ; **/
          ff = PLUTO_dset_finder(dpt) ; iset->dset = ff.dset ;
          if( iset->dset == NULL )
            ERROR_message("INSTACORR INIT: failed to find dataset %s",dpt) ;
-/** else ININFO_message("  set dataset to %s",DSET_BRIKNAME(iset->dset)) ; **/
        } else if( strcasecmp(cpt,"ignore") == 0 ){                  /* ignore */
          iset->ignore = strtod(dpt,NULL) ;
          if( iset->ignore < 0 ) iset->ignore = 0 ;
-/** ININFO_message("  set ignore = %d",iset->ignore) ; **/
        } else if( strcasecmp(cpt,"blur") == 0 ){                      /* blur */
          iset->blur = strtod(dpt,NULL) ;
          if( iset->blur <= 0.0f ) iset->blur = 0.0f ;
-/** ININFO_message("  set blur = %f",iset->blur) ; **/
        } else if( strcasecmp(cpt,"automask") == 0 ){              /* automask */
          iset->automask = YESSISH(dpt) ;
-/** ININFO_message("  set automask = %d",iset->automask) ; **/
+       } else if( strcasecmp(cpt,"despike") == 0 ){                /* despike */
+         iset->despike = YESSISH(dpt) ;
        } else if( strcasecmp(cpt,"bandpass") == 0 ){              /* bandpass */
          sscanf(dpt,"%f,%f",&(iset->fbot),&(iset->ftop)) ;
-/** ININFO_message("  set bandpass = %f %f",iset->fbot,iset->ftop) ; **/
-       } else if( strcasecmp(cpt,"seedrad") == 0 ){                /* seedrad */
+       } else if( strcasecmp(cpt,"seedrad") == 0 ||
+                  strcasecmp(cpt,"sblur")   == 0 ||
+                  strcasecmp(cpt,"seedblur")== 0   ){              /* seedrad */
          iset->sblur = strtod(dpt,NULL) ;
          if( iset->sblur <= 0.0f ) iset->sblur = 0.0f ;
-/** ININFO_message("  set sblur = %f",iset->sblur) ; **/
        } else if( strcasecmp(cpt,"method") == 0 ||
                   strcasecmp(cpt,"meth")   == 0   ){                /* method */
          switch( toupper(*dpt) ){
@@ -3066,7 +3062,10 @@ static int AFNI_drive_instacorr( char *cmd )
            case 'V': iset->cmeth = NBISTAT_BC_PEARSON_V  ; break ;
            case 'T': iset->cmeth = NBISTAT_TICTACTOE_CORR; break ;
          }
-/** ININFO_message("  set cmeth = %d",iset->cmeth) ; **/
+       } else if( strcasecmp(cpt,"polort") == 0 ){                  /* polort */
+         iset->polort = strtod(dpt,NULL) ;
+              if( iset->polort < -1 ) iset->polort = -1 ;
+         else if( iset->polort > 2 ) iset->polort = 2 ;
        } else {      /* Extraordinary crimes against the People, or the State */
          WARNING_message("Ignoring unknown INSTACORR INIT: '%s=%s'",cpt,dpt) ;
        }
