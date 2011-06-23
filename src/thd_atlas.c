@@ -1122,7 +1122,11 @@ void print_atlas_list(ATLAS_LIST *xal)
 /* print a single line entry description of an atlas */
 void print_atlas(ATLAS *xa, int level) 
 {
-   INFO_message("Atlas name %s, file %s, in %s space\n"
+   if(level==0)
+      INFO_message("Atlas name: %s, file: %s, space: %s\n",
+                xa->atlas_name, xa->atlas_dset_name, xa->atlas_space);
+   else
+      INFO_message("Atlas name: %s, file: %s, space: %s\n"
                 "dset %p, %d sub-bricks \n"
                 "adh %p\n", 
                 xa->atlas_name, xa->atlas_dset_name, xa->atlas_space, 

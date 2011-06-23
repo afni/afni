@@ -49,6 +49,13 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 23 , JUN, 2011 , DRG , "whereami" , 
+    MINOR , TYPE_NEW_ENV, 
+    "Desai MPM atlases",
+    "New maximum probability map atlases derived from the Desai probability\n"
+    "maps just introduced in distribution."
+} ,
+
 { 10 , JUN, 2011 , DRG , "whereami" , 
     SUPER , TYPE_GENERAL, 
     "Generic Atlas Support and new atlases",
