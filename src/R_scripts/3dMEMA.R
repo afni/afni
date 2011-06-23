@@ -515,7 +515,7 @@ greeting.MEMA <- function ()
           ================== Welcome to 3dMEMA.R ==================          
              AFNI Mixed-Effects Meta-Analysis Modeling Package!
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.1.11, Jun 22 , 2011
+Version 0.1.12, Jun 23 , 2011
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MEMA.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -546,7 +546,16 @@ Usage:
  both regression coefficients, or general linear contrasts among them, and the 
  corresponding t-statistics from each subject as input. It\'s required to install 
  R (http://www.r-project.org/), plus \'snow\' package if parallel computing is
- desirable. Version 0.1.10 (Feb 15, 2011). See more details at
+ desirable. Version 0.1.10 (Feb 15, 2011). 
+
+ The basic usage of 3dMEMA is to derive group effects of a condition, contrast,
+ or linear combination (GLT) of multiple conditions. It can be used to analyze
+ data from one, two, or multiple groups. However, if there are more than two
+ groups invovled in the analysis, dummy coding the groups as covariates is
+ required, and extremely caution should be exercised in doing so because different
+ coding strategy may lead to different interpretation. In addition, covariates
+ can be incorporated in the model, but centering and potential interactions with
+ other effects in the model should be considered. See more details at
  
  http://afni.nimh.nih.gov/sscc/gangc/MEMA.html'
    
