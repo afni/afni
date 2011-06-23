@@ -29,10 +29,7 @@
 <TEMPLATE_SPACE
   space_name="MNI_152"
   generic_space="MNI"
-  comment="The TLRC templates made from MNI group templates were\n"
-          "transformed using a 12 piece transformation dividing\n"
-          "the brain into 12 regions selected with manually placed\n"
-          "markers"
+  comment="152-subject based space with templates available for T1,T2,EPI from MNI group"
 ></TEMPLATE_SPACE>
 
 <TEMPLATE_SPACE
@@ -50,10 +47,8 @@
 <TEMPLATE_SPACE
   space_name="MNIa"
   generic_space="MNI_ANAT"
-  comment="The MNI space shifted to have its origin at \n"
-          "transformed using a 12 piece transformation dividing\n"
-          "the brain into 12 regions selected with manually placed\n "
-          "markers"
+  comment="The MNI space shifted to have its origin at AC, the same location\n"
+          "as the origin of the Talairach space"
 ></TEMPLATE_SPACE>
 
 <TEMPLATE_SPACE
@@ -151,13 +146,13 @@
   source="TT_avg"
   dest="MNI"
   xform_type="2-piece" >
-   -9999.0 -9999.0 0.0
+   -9999.0 -9999.0  0.0
    1.0101  0        0         0
    0       1.02962 -0.05154   0
    0       0.05434  1.08554   0
-   1 0 0 0
-   0 1 0 0
-   0 0 1.09523 0
+   1       0        0         0
+   0       1        0         0
+   0       0        1.09523   0
 >
 </XFORM>
 
@@ -471,6 +466,22 @@
    comment="15 in left & right hemispheres,10 midline structures parcellated by freesurfer"
 ></ATLAS>
 
+<ATLAS
+   atlas_name="DD_Desai_MPM"
+   dset_name="TT_desai_dd_mpm+tlrc"
+   template_space="TT_N27"
+   description="Contains the maximum probability maps of Desai DD and FS maps"
+   comment="Smoothed maximum maps masked by unsmoothed maximum map"
+></ATLAS>
+
+<ATLAS
+   atlas_name="DKD_Desai_MPM"
+   dset_name="TT_desai_dk_mpm+tlrc"
+   template_space="TT_N27"
+   description="Contains the maximum probability maps of Desai DKD and FS maps"
+   comment="Smoothed maximum maps masked by unsmoothed maximum map"
+></ATLAS>
+
 
 #*******Template datasets ************************
 # list of template datasets
@@ -488,31 +499,36 @@
 <TEMPLATE
    template_name="TT_N27+tlrc"
    template_space="TT_N27"
-   comment="Colin brain. Single subject, 27 scan mean." 
+   comment="Colin brain. Single subject, 27 scan mean,manually transformed to Talairach" 
 ></TEMPLATE>
 
 <TEMPLATE
    template_name="TT_avg152T1+tlrc"
    template_space="TT_avg"
-   comment="152 subjects T1 scan aligned to Colin brain template"
+   comment="152 subjects T1 scan aligned to Colin brain template.\n"
+           "Brett transformed to TLRC"
 ></TEMPLATE>
 
 <TEMPLATE
    template_name="TT_avg152T2+tlrc"
    template_space="TT_avg"
    comment="152 subjects T2 scan aligned to Colin brain template"
+           "Brett transformed to TLRC"
 ></TEMPLATE>
 
 <TEMPLATE
    template_name="TT_icbm452+tlrc"
    template_space="TT_avg"
-   comment="452 subjects T1 scan aligned to Colin brain template"
+   comment="452 subjects T1 scan aligned to Colin brain template\n"
+           "This dataset was manually transformed to Talairach space from\n"
+           "an Analyze format dataset from the ICBM/LONI site"
 ></TEMPLATE>
 
 <TEMPLATE
    template_name="TT_EPI+tlrc"
    template_space="TT_avg"
    comment="EPI average template"
+           "Brett transformed to TLRC"
 ></TEMPLATE>
 
 <TEMPLATE
@@ -522,7 +538,7 @@
 
 <TEMPLATE
    template_name="ICBM452.nii"
-   template_space="MNI_ANAT"
+   template_space="MNI"
 ></TEMPLATE>
 
 <TEMPLATE
