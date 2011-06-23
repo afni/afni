@@ -484,7 +484,8 @@ ENTRY("AFNI_icor_setref_xyz") ;
        jv.xyz[2] < im3d->iset->dset->daxes->zzmin ||
        jv.xyz[2] > im3d->iset->dset->daxes->zzmax   ){
 
-     WARNING_message("InstaCorr set point outside dataset box") ;
+     WARNING_message("InstaCorr set point (%.1f,%.1f,%.1f) outside dataset box",
+                     xx,yy,zz ) ;
      RETURN(-1) ;
    }
 

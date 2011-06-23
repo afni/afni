@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 17 , JUN , 2011 , RWC , "afni" , MICRO , TYPE_MODIFY ,
+  { 23 , JUN , 2011 , RWC , "afni InstaCorr" , MINOR , TYPE_MODIFY ,
+   "Ability to INIT-ialize InstaCorr from a plugout" ,
+   "Details are in README.driver, under the INSTACORR command section." } ,
+
+ { 17 , JUN , 2011 , RWC , "afni" , MICRO , TYPE_MODIFY ,
    "Button3 (right) click image viewer 'Disp' to raise AFNI controller" ,
    NULL } ,
 
