@@ -2956,10 +2956,11 @@ static int AFNI_drive_instacorr( char *cmd )
    /** SET the seed location and do the work **/
 
    if( strncasecmp(cmd+dadd,"SET",3) == 0 ){
-     float x,y,z ; int good ; char cj='N' ;
+     float x,y,z ; int good=0 ; char cj='N' ;
 
-     if( cmd[3] != '\0' ) good = sscanf(cmd+dadd+3,"%f %f %f %c",&x,&y,&z,&cj) ;
+     if( cmd[dadd+3] != '\0' ) good = sscanf(cmd+dadd+3,"%f %f %f %c",&x,&y,&z,&cj) ;
      if( good < 3 ){
+ININFO_message("driver: ic=%d xi=%g yj=%g zk=%g", ic , im3d->vinfo->xi, im3d->vinfo->yj, im3d->vinfo->zk ) ;
         AFNI_icor_setref(im3d) ;  /* no x,y,z ==> use current xhair point */
      } else {
         good = AFNI_icor_setref_xyz(im3d,x,y,z) ; /* have x,y,z */
@@ -3055,7 +3056,8 @@ static int AFNI_drive_instacorr( char *cmd )
          iset->sblur = strtod(dpt,NULL) ;
          if( iset->sblur <= 0.0f ) iset->sblur = 0.0f ;
 /** ININFO_message("  set sblur = %f",iset->sblur) ; **/
-       } else if( strcasecmp(cpt,"method") == 0 ){                  /* method */
+       } else if( strcasecmp(cpt,"method") == 0 ||
+                  strcasecmp(cpt,"meth")   == 0   ){                /* method */
          switch( toupper(*dpt) ){
            default:  iset->cmeth = NBISTAT_PEARSON_CORR  ; break ;
            case 'S': iset->cmeth = NBISTAT_SPEARMAN_CORR ; break ;
@@ -3088,6 +3090,7 @@ static int AFNI_drive_instacorr( char *cmd )
      }
      DESTROY_ICOR_setup(im3d->iset) ; im3d->iset = iset ;
      SENSITIZE_INSTACORR(im3d,True) ;
+     ININFO_message("INSTACORR INIT completed successfully") ;
      return 0 ;
    }
 
