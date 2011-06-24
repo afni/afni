@@ -2975,7 +2975,7 @@ static int AFNI_drive_instacorr( char *cmd )
 
    } else if( strncasecmp(cmd+dadd,"INIT",4) == 0 ){
 
-     NI_str_array *sar; ICOR_setup *iset; int ii; char *cpt,*dpt;
+     NI_str_array *sar; ICOR_setup *iset; int ii,mm=0; char *cpt,*dpt;
 
      /* skip ahead until we find a blank */
 
@@ -3011,6 +3011,7 @@ static int AFNI_drive_instacorr( char *cmd )
        iset->ftop     = 0.10f ;
        iset->polort   = 2 ;
        iset->cmeth    = NBISTAT_PEARSON_CORR ;
+       mm             = 1 ;
 /** INFO_message("INSTACORR INIT: created new setup") ; **/
      }
 
@@ -3020,37 +3021,45 @@ static int AFNI_drive_instacorr( char *cmd )
        sprintf(iset->prefix,"%c_ICOR",cpt[1]) ;
      }
 
-     /* scan to set params */
+     /* scan to set params [mm = number of 'major' changes] */
 
      for( ii=0 ; ii < sar->num ; ii++ ){
        cpt = sar->str[ii]    ; if( *cpt == '\0' ) continue ;           /* bad */
        dpt = strchr(cpt,'=') ; if(  dpt == NULL ) continue ;        /* badder */
        *dpt = '\0' ; dpt++   ; if( *dpt == '\0' ) continue ;       /* baddest */
+
        if( strcasecmp(cpt,"dset")       == 0 ||
            strcasecmp(cpt,"dataset")    == 0 ||
            strcasecmp(cpt,"timeseries") == 0   ){                  /* dataset */
          THD_slist_find ff ; char *ppt ;
          ppt = strchr(dpt,'+') ; if( ppt != NULL ) *ppt = '\0' ;
-         ff = PLUTO_dset_finder(dpt) ; iset->dset = ff.dset ;
+         ff = PLUTO_dset_finder(dpt) ; iset->dset = ff.dset ; mm++ ;
          if( iset->dset == NULL )
            ERROR_message("INSTACORR INIT: failed to find dataset %s",dpt) ;
+
        } else if( strcasecmp(cpt,"ignore") == 0 ){                  /* ignore */
-         iset->ignore = strtod(dpt,NULL) ;
+         iset->ignore = strtod(dpt,NULL) ; mm++ ;
          if( iset->ignore < 0 ) iset->ignore = 0 ;
+
        } else if( strcasecmp(cpt,"blur") == 0 ){                      /* blur */
-         iset->blur = strtod(dpt,NULL) ;
+         iset->blur = strtod(dpt,NULL) ; mm++ ;
          if( iset->blur <= 0.0f ) iset->blur = 0.0f ;
+
        } else if( strcasecmp(cpt,"automask") == 0 ){              /* automask */
-         iset->automask = YESSISH(dpt) ;
+         iset->automask = YESSISH(dpt) ; mm++ ;
+
        } else if( strcasecmp(cpt,"despike") == 0 ){                /* despike */
-         iset->despike = YESSISH(dpt) ;
+         iset->despike = YESSISH(dpt) ; mm++ ;
+
        } else if( strcasecmp(cpt,"bandpass") == 0 ){              /* bandpass */
          sscanf(dpt,"%f,%f",&(iset->fbot),&(iset->ftop)) ;
+
        } else if( strcasecmp(cpt,"seedrad") == 0 ||
                   strcasecmp(cpt,"sblur")   == 0 ||
                   strcasecmp(cpt,"seedblur")== 0   ){              /* seedrad */
          iset->sblur = strtod(dpt,NULL) ;
          if( iset->sblur <= 0.0f ) iset->sblur = 0.0f ;
+
        } else if( strcasecmp(cpt,"method") == 0 ||
                   strcasecmp(cpt,"meth")   == 0   ){                /* method */
          switch( toupper(*dpt) ){
@@ -3062,35 +3071,48 @@ static int AFNI_drive_instacorr( char *cmd )
            case 'V': iset->cmeth = NBISTAT_BC_PEARSON_V  ; break ;
            case 'T': iset->cmeth = NBISTAT_TICTACTOE_CORR; break ;
          }
+
        } else if( strcasecmp(cpt,"polort") == 0 ){                  /* polort */
-         iset->polort = strtod(dpt,NULL) ;
+         iset->polort = strtod(dpt,NULL) ; mm++ ;
               if( iset->polort < -1 ) iset->polort = -1 ;
-         else if( iset->polort > 2 ) iset->polort = 2 ;
+         else if( iset->polort >  2 ) iset->polort =  2 ;
+
        } else {      /* Extraordinary crimes against the People, or the State */
          WARNING_message("Ignoring unknown INSTACORR INIT: '%s=%s'",cpt,dpt) ;
        }
-     }
+
+     } /* end of loop over 'name=value' strings */
 
      if( !ISVALID_DSET(iset->dset) ){
-       ERROR_message("INSTACORR INIT dataset not initialized -- cannot continue!") ;
+       ERROR_message("INSTACORR INIT dataset not set -- cannot continue :-(") ;
        return -1 ;
      }
 
-     NI_delete_str_array(sar) ;  /* finished with this now */
+     NI_delete_str_array(sar) ;  /* send it to the graveyard of unwanted data */
+
+     if( mm == 0 ){                                /* only minor changes made */
+       im3d->iset->sblur = iset->sblur ;
+       im3d->iset->cmeth = iset->cmeth ;
+       DESTROY_ICOR_setup(iset) ; return 0 ;
+     }
+
+	  /* major changes made ==> re-do complete initialization */
 
      SHOW_AFNI_PAUSE ;
-     ii = THD_instacorr_prepare( iset ) ;
+     ii = THD_instacorr_prepare( iset ) ;      /* all the real work is herein */
      SHOW_AFNI_READY ;
      if( ii == 0 ){
        DESTROY_ICOR_setup(iset) ;
-       ERROR_message("Bad INSTACORR%s setup!?",AFNI_controller_label(im3d)) ;
+       ERROR_message("Bad INSTACORR%s INIT? :-(",AFNI_controller_label(im3d)) ;
        return -1 ;
      }
-     DESTROY_ICOR_setup(im3d->iset) ; im3d->iset = iset ;
+     DESTROY_ICOR_setup(im3d->iset) ; im3d->iset = iset ;     /* ready to go! */
      SENSITIZE_INSTACORR(im3d,True) ;
-     ININFO_message("INSTACORR INIT completed successfully") ;
+     ININFO_message("INSTACORR INIT completed successfully :-)") ;
      return 0 ;
    }
+
+   /* unknown order gets here ==> an elephant sits on the user */
 
    return -1 ;
 }
