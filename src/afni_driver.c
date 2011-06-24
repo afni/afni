@@ -3093,7 +3093,9 @@ static int AFNI_drive_instacorr( char *cmd )
      if( mm == 0 ){                                /* only minor changes made */
        im3d->iset->sblur = iset->sblur ;
        im3d->iset->cmeth = iset->cmeth ;
-       DESTROY_ICOR_setup(iset) ; return 0 ;
+       DESTROY_ICOR_setup(iset) ;
+       ININFO_message("INSTACORR INIT minor change made :-)") ;
+       return 0 ;
      }
 
 	  /* major changes made ==> re-do complete initialization */
