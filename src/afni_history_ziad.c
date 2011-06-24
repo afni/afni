@@ -65,6 +65,13 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 24, JUN , 2011 , ZSS , "afni-general" , MICRO , TYPE_NEW_OPT,
+   "added global option -pif which is used to flag certain commands.",
+   "-pif PROCESS_ID_FLAG is used to flag a particular AFNI command\n"
+   "so that you can identify from the shell that command's process id\n"
+   "by grepping for PROCESS_ID_FLAG on the output of 'ps -a'.\n"
+  } ,
+
  { 20, JUN , 2011 , ZSS , "@ROI_Corr_Mat" , MICRO , TYPE_BUG_FIX,
    "added support for +tlrc input, more debugging messages, -echo option.",
    NULL
