@@ -1,0 +1,560 @@
+#!/usr/bin/env python
+
+# general functions for use by uber_tool*.py
+
+import sys, os
+from time import asctime
+import glob
+
+import afni_base as BASE
+import afni_util as UTIL
+import lib_subjects as SUBJ
+
+DEF_UBER_DIR = 'uber_results'        # top directory for output
+DEF_TOP_DIR  = 'tool_results'     # top subject dir under uber_results
+
+g_history = """
+  slow_surf_clustsim.py history
+
+    0.0  20 Jun, 2011: initial revision
+"""
+
+g_version = '0.0 (June 20, 2011)'
+
+# ----------------------------------------------------------------------
+# global values to apply as defaults
+
+# ----------------------------------------------------------------------
+# global definitions of result, control and user defaults
+# (as well as string versions of control and user defaults)
+
+# ---- resulting values returned after class actions ----
+g_res_defs = SUBJ.VarsObject("slow_surf_clustsim result variables")
+g_res_defs.file_proc     = ''   # file name for process script
+g_res_defs.output_proc   = ''   # output from running proc script
+
+# ---- control variables: process control, not set by user in GUI
+
+g_ctrl_defs = SUBJ.VarsObject("slow_surf_clustsim control defaults")
+g_ctrl_defs.proc_dir     = '.'   # process dir: holds scripts and result dir
+g_ctrl_defs.time_process = 'yes' # run /usr/bin/time on commands?
+                                 # rcr - default to 'no'
+
+# ---- user variables: process control, alignment inputs and options ----
+
+g_user_defs = SUBJ.VarsObject("slow_surf_clustsim user defaults")
+g_user_defs.verb           = 1          # verbose level
+g_user_defs.copy_scripts   = 'yes'      # do we make .orig copies of scripts?
+g_user_defs.results_dir    = 'clust.results' # where script puts results
+
+# required inputs
+g_user_defs.spec_file      = ''
+g_user_defs.surf_vol       = ''
+g_user_defs.vol_mask       = ''
+
+# other inputs
+g_user_defs.niter          = 20         # total number of iterations
+g_user_defs.itersize       = 10         # iteration block size (speed-up)
+
+g_user_defs.pthr_list      = [ 0.1, 0.05, 0.02, 0.01 ]
+g_user_defs.blur           = 4.0
+g_user_defs.rmm            = -1
+
+g_user_defs.surfA          = 'smoothwm'
+g_user_defs.surfB          = 'pial'
+g_user_defs.map_func       = 'ave'
+g_user_defs.nsteps         = 10
+
+
+
+# string versions of variables - used by GUI and main
+# (when creating SurfClust object, string versions of vars are passed)
+g_cdef_strs = g_ctrl_defs.copy(as_strings=1)
+g_udef_strs = g_user_defs.copy(as_strings=1)
+
+
+# main class definition
+class SurfClust(object):
+   """class for creating surf clust script
+
+        - cvars : control variables
+        - uvars : user variables
+        - rvars : return variables
+
+        ** input vars might be string types, convert on merge
+
+        variables:
+           LV            - local variables
+           cvars         - control variables
+           uvars         - user variables
+           cmd_text      - generated alignment script
+           errors            --> array of resulting error messages
+           warnings          --> array of resulting warning messages
+   """
+   def __init__(self, cvars=None, uvars=None):
+
+      # ------------------------------------------------------------
+      # variables
+
+      # LV: variables local to this interface, not passed
+      self.LV = SUBJ.VarsObject("local AP_Subject vars")
+      self.LV.indent  = 8               # default indent for main options
+      self.LV.istr    = ' '*self.LV.indent
+      self.LV.retdir  = ''              # return directory (for jumping around)
+
+      # merge passed user variables with defaults
+      self.cvars = g_ctrl_defs.copy()
+      self.uvars = g_user_defs.copy()
+      self.cvars.merge(cvars, typedef=g_ctrl_defs)
+      self.uvars.merge(uvars, typedef=g_user_defs)
+
+      # output variables
+      self.rvars = g_res_defs.copy()    # init result vars
+      self.script = ''                  # resulting script
+      self.errors = []                  # list of error strings
+      self.warnings = []                # list of warning strings
+      # ------------------------------------------------------------
+
+      # ------------------------------------------------------------
+      # preperatory settings
+
+      if self.check_inputs(): return    # require spec, sv, vol_mask
+      if self.set_directories(): return
+
+      if self.uvars.verb > 3: self.LV.show('ready to start script')
+
+      # do the work
+      self.create_script()
+
+   def check_inputs(self):
+      """check for required inputs: anat, epi (check existence?)"""
+
+      if self.uvars.is_empty('spec_file'):
+         self.errors.append('** unspecified spec_file')
+
+      if self.uvars.is_empty('surf_vol'):
+         self.errors.append('** unspecified surf_vol dataset')
+
+      if self.uvars.is_empty('vol_mask'):
+         self.errors.append('** unspecified vol_mask (result grid) dataset')
+
+      return len(self.errors)
+
+   def set_directories(self):
+      """always use $top_dir with absolute paths to datasets
+      """
+
+      inputs = [self.uvars.surf_vol, self.uvars.vol_mask, self.uvars.spec_file]
+
+      # try converting to absolute paths
+      try: inputs = [ os.path.abspath(fname) for fname in inputs ]
+      except:
+         msg = '** cannot convert inputs to asolute path names:\n   %s' % inputs
+         self.errors.append(msg)
+         return 1
+
+      top_dir, parent_dirs, short_dirs, short_names = \
+                UTIL.common_parent_dirs([inputs])
+
+      self.LV.top_dir     = parent_dirs[0]  # common parent dir
+      self.LV.short_names = short_names # if top_dir is used, they are under it
+
+      if self.uvars.verb > 2:
+         print '-- set_dirs: top_dir         = %s\n' \
+               '             short surf_vol  = %s\n' \
+               '             short vol_mask  = %s\n' \
+               '             short spec_file = %s\n' % (self.LV.top_dir,
+                  short_names[0][0], short_names[0][1], short_names[0][2])
+
+      # if top_dir isn't long enough, do not bother with it
+      if self.LV.top_dir.count('/') < 2:
+         self.LV.top_dir = ''
+         if self.uvars.verb > 2: print '   (top_dir not worth using...)'
+
+      return 0
+
+   def create_script(self):
+      """attempt to generate an alignment script
+            - write script
+            - keep a list of any warnings or errors
+            - 
+            - if there are errors, script might not be filled
+      """
+
+      # script prep, headers and variable assignments
+      self.script  = self.script_init()
+      self.script += self.script_set_vars()
+
+      # do some actual work
+      self.script += self.script_results_dir()
+      self.script += self.script_main_process()
+      self.script += self.script_tabulate_areas()
+
+      # add commands ...
+
+      if len(self.errors) > 0: return   # if any errors so far, give up
+
+      return
+
+   def script_tabulate_areas(self):
+      """for each zthr, for each clust file, extract max area"""
+
+      cmd = SUBJ.comment_section_string('extract cluster counts') + '\n'
+
+      cmd += '# tabulate all results for each z-threshold\n'              \
+             'set maxa_list = ()   # track all max areas\n'               \
+             'set failures = ()    # track cluster failures\n'            \
+             'foreach zthr ( $zthr_list )\n'                              \
+             '   # create empty file for this z-score\n'                  \
+             '   echo -n "" > z.max.area.$zthr\n'                         \
+             '\n'                                                         \
+             '   set file_list = ( clust.out.*.$zthr )\n'                 \
+             '   echo "-- processing $#file_list files for z = $zthr"\n'  \
+             '\n'                                                         \
+             '   # process each file, counting through them\n'            \
+             '   foreach findex ( `count -digits 1 1 $#file_list` )\n'    \
+             '      set file = $file_list[$findex]\n'                     \
+             '\n'                                                         \
+             '      # print pacifier every 100 files\n'                   \
+             '      if ( ! ($findex % 100) ) echo -n .\n'                 \
+             '      if ( ! ($findex % 5000) ) echo ""\n'                  \
+             '\n'                                                         \
+             '      # grab the area field from first (largest) cluster\n' \
+             "      set maxa = `awk '$1 == 1 {print $3}' $file`\n"        \
+             '\n'                                                         \
+             '      # and append it to the max file (if results exist)\n' \
+             '      if ( $maxa != "" ) echo $maxa >> z.max.area.$zthr\n'  \
+             '\n'                                                         \
+             '   end  # file index\n'                                     \
+             '\n'                                                         \
+             '   # grab the max area for this z-score, and add to list\n' \
+             '   # (if the max.area file is not empty for some reason)\n' \
+             '   set nlines = `cat z.max.area.$zthr | wc -l`\n'           \
+             '   if ( $nlines != 0 ) then\n'                              \
+             '      set maxa = `sort -rn z.max.area.$zthr | head -n 1`\n' \
+             '   else\n'                                                  \
+             '      set failures = ( $failures $zthr )\n'                 \
+             '      set maxa = 0\n'                                       \
+             '   endif\n'                                                 \
+             '\n'                                                         \
+             '   set maxa_list = ( $maxa_list $maxa )\n'                  \
+             '\n'                                                         \
+             'end  # zthr\n'                                              \
+             '\n'                                                         \
+             'echo ""\n'                                                  \
+             'echo "z-score thresholds   : $zthr_list"\n'                 \
+             'echo "maximum cluster areas: $maxa_list"\n'                 \
+             '\n'                                                         \
+             'if ( $#failures ) then\n'                                   \
+             '   echo ""\n'                                               \
+             '   echo "** no clusters for z = $failures"\n'               \
+             'endif\n'                                                    \
+             'echo ""\n'                                                  \
+             '\n'
+
+      return cmd
+
+   def script_main_process(self):
+      """setup is done, actually process the data
+
+      """
+
+      cmd = self.script_analysis_prep()
+
+      # prepare contents of foreach loop
+      cmd_3dcalc = self.script_do_3dcalc(indent=3)
+      cmd_v2s    = self.script_do_3dv2s(indent=3)
+      cmd_ss     = self.script_do_surfsmooth(indent=3)
+      cmd_clust  = self.script_do_surfclust(indent=3)
+
+      cmd +=                                                               \
+        '# for each iteration block, process $itersize sets of z-scores\n' \
+        'foreach iter ( `count -digits 3 1 $niter` )\n\n'                  \
+        + cmd_3dcalc + cmd_v2s + cmd_ss + cmd_clust +                      \
+        'end   # of foreach iter loop\n\n'
+
+      return cmd
+
+   def script_do_surfclust(self, indent=0):
+      istr = ' '*indent
+
+      # time_str use is indended
+      if self.LV.time_str: tstr = '      ' + self.LV.time_str
+      else:                tstr = ''
+
+      clist = [ \
+        '# compute cluster sizes (for each iteration and z-score)\n',
+        '@ iminus1 = $itersize - 1   # want 0-based indices\n',
+        'foreach index ( `count -digits 1 0 $iminus1` )\n',
+        '   foreach zthr ( $zthr_list )\n',
+        tstr,
+        '      SurfClust -spec $spec_file -surf_A $surfA           \\\n',
+        '                -input smooth.noise.$iter.gii"[$index]" 0 \\\n',
+        '                -sort_area -rmm $rmm -athresh $zthr       \\\n',
+        '                > clust.out.$iter.$index.$zthr\n',
+        '   end\n',
+        'end\n\n' ]
+
+      return istr + istr.join(clist)
+
+   def script_do_surfsmooth(self, indent=0):
+      istr = ' '*indent
+
+      clist = [ \
+        '# smooth to the given target FWHM\n',
+        self.LV.time_str,
+        'SurfSmooth -spec $spec_file -surf_A $surfA           \\\n',
+        '           -input surf.noise.$iter.niml.dset         \\\n',
+        '           -met HEAT_07 -target_fwhm $blur           \\\n',
+        '           -Niter 10 -output smooth.noise.$iter.gii\n\n' ]
+
+      return istr + istr.join(clist)
+
+   def script_do_3dv2s(self, indent=3):
+      istr = ' '*indent
+
+      clist = [ '# map noise voxels to surface domain\n',
+                self.LV.time_str,
+                '3dVol2Surf -spec $spec_file                       \\\n',
+                '           -surf_A $surfA                         \\\n',
+                '           -surf_B $surfB                         \\\n',
+                '           -sv $surf_vol                          \\\n',
+                '           -grid_parent vol.noise.$iter+orig      \\\n',
+                '           -map_func $map_func                    \\\n',
+                '           -f_steps $nsteps                       \\\n',
+                '           -f_index nodes                         \\\n',
+                '           -oob_value 0                           \\\n',
+                '           -out_niml surf.noise.$iter.niml.dset\n\n' ]
+
+      return istr + istr.join(clist)
+
+   def script_do_3dcalc(self, indent=3):
+      istr = ' '*indent
+
+      clist = [ '# do not include single TR "time series" in 3dcalc\n',
+                'if ( $itersize > 1 ) then\n',
+                '   set bset = "-b dummy.TRs.$itersize.1D"\n',
+                'else\n',
+                '   set bset = ""\n',
+                'endif\n\n',
+                '# generate noise volume (possibly of $itersize TRs)\n',
+                self.LV.time_str,
+                '3dcalc -a $vol_mask $bset -expr "bool(a)*gran(0,1)" \\\n',
+                '       -prefix vol.noise.$iter -datum float\n\n' ]
+
+      return istr + istr.join(clist)
+
+   def script_analysis_prep(self):
+      """return a set of commands to:
+            convert pthr_list to zthr_list
+            create a dummy time series of lenth itersize (if > 1)
+            divide (ceil) niter by itersize (if > 1)
+      """
+
+      cmd  = SUBJ.comment_section_string('prep: make z-scores, etc.') + '\n'
+
+      cmd += '# make zthr_list (convert p-values to z-scores)\n'        \
+             'set zthr_list = ()\n'                                     \
+             'foreach pthr ( $pthr_list )\n'                            \
+             '   # convert from p to z (code for N(0,1) is 5)\n'        \
+             '   set zthr = `ccalc "cdf2stat((1-$pthr),5,0,0,0)"`\n'    \
+             '   set zthr_list = ( $zthr_list $zthr )\n'                \
+             'end\n\n'
+
+      cmd += '# make a dummy time file of length $itersize for 3dcalc\n' \
+             '1deval -num $itersize -expr t > dummy.TRs.$itersize.1D\n\n'
+
+      cmd += '# divide niter by itersize (take ceiling)\n'              \
+             '@ niter = ( $niter + $itersize - 1 ) / $itersize\n\n'
+
+      return cmd
+
+   def script_init(self):
+      cmd = '#!/bin/tcsh -xef\n\n'                             \
+            '# created by slow_surf_clustsim.py: version %s\n' \
+            '# creation date: %s\n\n' % (g_version, asctime())
+
+      return cmd
+
+   def script_results_dir(self):
+
+      # if no results dir, just put everything here
+      if self.uvars.is_trivial_dir('results_dir'): return ''
+
+      cmd  = SUBJ.comment_section_string('test, create and enter results dir')\
+             + '\n'
+
+      cmd += '# note directory for results\n'           \
+             'set results_dir = %s\n\n' % self.uvars.results_dir
+
+      cmd += '# make sure it does not yet exist\n'      \
+             'if ( -e $results_dir ) then\n'            \
+             '    echo "** results dir \'$results_dir\' already exists"\n'  \
+             '    exit\n'                               \
+             'endif\n\n'
+
+      cmd += '# create and enter results directory\n'   \
+             'mkdir $results_dir\n'                     \
+             'cd $results_dir\n\n'
+
+      return cmd
+
+   def script_set_vars(self):
+      """use variables for inputs (anat, epi, epi_base) and for
+         options (cost_main, cost_list, align_opts)
+      """
+
+      U = self.uvars    # for convenience
+
+      # init with a section comment
+      cmd = SUBJ.comment_section_string('set processing variables') + '\n'
+
+      # maybe init with top_dir
+      if not self.LV.is_trivial_dir('top_dir'):
+         cmd += '# top data directory\n' \
+                'set top_dir = %s\n\n' % self.LV.top_dir
+
+      # surf_vol and vol_mask might use top_dir
+      if self.LV.is_trivial_dir('top_dir'):
+         self.LV.svol  = U.surf_vol
+         self.LV.vmask = U.vol_mask
+         self.LV.spec  = U.spec_file
+      else:
+         self.LV.svol  = '$top_dir/%s' % self.LV.short_names[0][0]
+         self.LV.vmask = '$top_dir/%s' % self.LV.short_names[0][1]
+         self.LV.spec  = '$top_dir/%s' % self.LV.short_names[0][2]
+
+      cmd += '# input datasets and surface specification file\n'         \
+             '# (absolute paths are used since inputs are not copied)\n' \
+             'set surf_vol    = %s\n'   \
+             'set vol_mask    = %s\n'   \
+             'set spec_file   = %s\n\n' \
+             % (self.LV.svol, self.LV.vmask, self.LV.spec)
+
+      plist =  [ '%g'%p for p in U.pthr_list ]
+      cmd += '# iterations and blur/clust parameters\n' \
+             'set niter       = %d\n'                   \
+             'set itersize    = %d\n'                   \
+             'set pthr_list   = ( %s )\n\n'             \
+             'set blur        = %g\n'                   \
+             'set rmm         = %g\n\n'                 \
+             % (U.niter, U.itersize, ' '.join(plist), U.blur, U.rmm)
+
+      cmd += '# surface mapping parameters\n'   \
+             'set surfA       = %s\n'           \
+             'set surfB       = %s\n'           \
+             'set map_func    = %s\n'           \
+             'set nsteps      = %d\n\n'         \
+             % (U.surfA, U.surfB, U.map_func, U.nsteps)
+
+      if self.cvars.time_process:
+         cmd += "# prepare to possibly time programs (/usr/bin/time or '')\n" \
+                "set time_str    = /usr/bin/time \n\n"
+         self.LV.time_str = '$time_str \\\n'
+      else: self.LV.time_str = ''
+
+      return cmd
+
+   def get_script(self):
+      """return status, message
+
+                status = number of error messages
+                if 0: message = command
+                else: message = error string
+
+         Requests for warnings must be made separately, since they
+         are not fatal.
+      """
+
+      if len(self.errors) > 0:
+         return 1, SUBJ.make_message_list_string(self.errors, "errors")
+
+      return 0, self.script
+
+   def get_warnings(self):
+      """return the number of warnings and a warnings string"""
+
+      return len(self.warnings), \
+             SUBJ.make_message_list_string(self.warnings, "warnings")
+
+   def proc_dir_filename(self, vname):
+      """file is either fname or proc_dir/fname (if results is set)
+         vname : results file variable (must convert to fname)
+      """
+      fname = self.rvars.val(vname)
+      return self.cvars.file_under_dir('proc_dir', fname)
+
+   def nuke_old_results(self):
+      """if the results directory exists, remove it"""
+
+      if self.uvars.results_dir == '': return
+
+      # ------------------------- do the work -------------------------
+      self.LV.retdir = SUBJ.goto_proc_dir(self.cvars.proc_dir)
+
+      if os.path.isdir(self.uvars.results_dir):
+         print '-- nuking old results: %s' % self.uvars.results_dir
+         os.system('rm -fr %s' % self.uvars.results_dir)
+
+      self.LV.retdir = SUBJ.ret_from_proc_dir(self.LV.retdir)
+      # ------------------------- done -------------------------
+
+
+   def copy_orig_proc(self):
+      """if the proc script exists, copy to .orig.SCRIPTNAME"""
+      if self.rvars.file_proc == '': return
+      pfile = self.rvars.file_proc
+
+      # ------------------------- do the work -------------------------
+      self.LV.retdir = SUBJ.goto_proc_dir(self.cvars.proc_dir)
+      if os.path.isfile(pfile):
+         cmd = 'cp -f %s .orig.%s' % (pfile, pfile)
+         if self.uvars.verb > 1: print '++ exec: %s' % cmd
+         os.system(cmd)
+      elif self.uvars.verb > 1: print "** no proc '%s' to copy" % pfile
+      self.LV.retdir = SUBJ.ret_from_proc_dir(self.LV.retdir)
+      # ------------------------- done -------------------------
+
+   def write_script(self, fname=''):
+      """write processing script to a file (in the proc_dir)
+         - if fname is set, use it, else generate
+         - set rvars.file_proc and output_proc
+      """
+
+      if not self.script:
+         print '** no alignment script to write out'
+         return 1
+      if fname: name = fname
+      else:
+         # if self.svars.sid: name = 'script.align.%s' % self.svars.sid
+         name = 'script.align'
+
+      # store (intended) names for calling tool to execute with
+      self.rvars.file_proc = name # store which file we have written to
+      self.rvars.output_proc = 'output.%s' % name # file for command output
+
+      if self.uvars.verb > 0: print '++ writing script to %s' % name
+
+      # if requested, make an original copy
+      self.LV.retdir = SUBJ.goto_proc_dir(self.cvars.proc_dir)
+
+      if self.uvars.copy_scripts == 'yes': # make an orig copy
+         UTIL.write_text_to_file('.orig.%s'%name, self.script, exe=1)
+      rv = UTIL.write_text_to_file(name, self.script, exe=1)
+
+      self.LV.retdir = SUBJ.ret_from_proc_dir(self.LV.retdir)
+         
+      return rv
+
+
+# ===========================================================================
+# help strings accessed both from command-line and GUI
+# ===========================================================================
+
+helpstr_todo = """
+---------------------------------------------------------------------------
+                        todo list:  
+
+---------------------------------------------------------------------------
+"""
+
