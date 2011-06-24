@@ -10,7 +10,6 @@ if 1 :  # for testing, might add the current dir and ~/abin to the PATH
 # AFNI libraries
 import option_list as OL
 import afni_util as UTIL        # not actually used, but probably will be
-import lib_afni1D
 
 # ----------------------------------------------------------------------
 # globals
@@ -153,26 +152,33 @@ class MyInterface:
 
       return 0
 
+   def execute(self):
+
+      if not self.ready_for_action(): return 1
+
+      if self.verb > 1:
+         print '-- processing...'
+
+   def ready_for_action(self):
+      """perform any final tests before execution"""
+
+      ready = 1
+
+      return ready
+
    def init_from_file(self, fname):
       """load a 1D file, and init the main class elements"""
 
       self.status = 1 # init to failure
-      adata = L1D.Afni1D(fname, name='1d_tool data', verb=self.verb)
-      if not adata.ready:
-         print "** failed to read 1D data from '%s'" % fname
-         return 1
 
-      if self.verb > 1: print "++ read 1D data from file '%s'" % fname
 
-      self.ad = adata
-      self.status = 0
+      self.status = 0 # update to success
 
       return 0
 
    def test(self, verb=3):
       print '------------------------ initial tests -----------------------'
       self.verb = verb
-      # first try AFNI_data4, then regression data
 
       print '------------------------ reset files -----------------------'
 
@@ -187,6 +193,9 @@ def main():
    if not me: return 1
 
    rv = me.process_options()
+   if rv > 0: return 1
+
+   rv = me.execute()
    if rv > 0: return 1
 
    return me.status
