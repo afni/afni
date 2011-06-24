@@ -1395,6 +1395,8 @@ void AFNI_sigfunc_alrm(int sig)
      "May your teeth never be replaced by woolen socks"              ,
      "Hasta la vista and so long for now"                            ,
      "Farewell, and may an elephant never sit on your computer"      ,
+     "So long, and may the bluebird of happiness fly up your nose"   ,
+     "Ta ta, and may an elephant caress you gently with his toes"    ,
 
      "May the Dark Side of the Force get lost on the way to your data"                ,
      "The Andromeda Galaxy is on a collision course with us -- be prepared"           ,
