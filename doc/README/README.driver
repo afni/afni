@@ -382,35 +382,37 @@ INSTACORR [c] order
      INIT name=value name=value ...
   which will initialize the individual InstaCorr setup for controller 'c'.
   The 'name=value' pairs that follow take the following forms:
-     DSET=prefix         ==> specifies the time series dataset
-     IGNORE=number       ==> how many time points to ignore [default=0]
-     BLUR=number         ==> blurring radius for data [default=0]
-     AUTOMASK=yes/no     ==> whether to use Automask [default=yes]
-     DESPIKE=yes/no      ==> whether to use Despike [default=no]
-     BANDPASS=fbot,ftop  ==> bottom,top frequencies (comma separated) [default=0.01,0.10]
-     SEEDRAD=number      ==> extra blurring seed radius [default=0]
-     POLORT=number       ==> polort order, from -1..2 [default=2]
-     METHOD=code         ==> codes: S=Spearman, P=Pearson, etc. [default=P]
+     DSET=prefix        ==> specifies the time series dataset
+     IGNORE=number      ==> how many time points to ignore           [default=0]
+     BLUR=number        ==> blurring radius for data                 [default=0]
+     AUTOMASK=yes/no    ==> whether to use Automask                  [yes]
+     DESPIKE=yes/no     ==> whether to use Despike                   [no]
+     BANDPASS=fbot,ftop ==> bottom,top frequencies (comma separated) [0.01,0.10]
+     SEEDRAD=number     ==> extra blurring seed radius               [0]
+     POLORT=number      ==> polort order, from -1..2                 [2]
+     METHOD=code        ==> codes: S=Spearman, P=Pearson, etc.       [P]
   The 'name' string can be upper or lower case.  The '=' sign must immediately
   follow the 'name' with no spaces, and then the 'value' must come right after
   the '=', again with no spaces.  The 'value' is interpreted as described
   in the table above.  At a minimum, the 'DSET' must be specified -- or what
-  will be computed?  The rest of the specifications are optional and have
-  default values.  Once you set a value, then another INIT order (to the
-  same controller) will default to leaving that value the same -- for example,
-     INSTACORR INIT DSET=fred ignore=3 blur=4 meth=P
+  would be computed?  The rest of the specifications are optional and have
+  default values [shown above].  Once you set a value, then another INIT order
+  (to the same controller) will default to leaving that value the same;
+  for a silly example,
+     SET_THRESHNEW 0
+     INSTACORR INIT DSET=fred ignore=3 blur=4 method=P
      INSTACORR SET 20 30 40 J
-     INSTACORR INIT meth=S
+     INSTACORR INIT method=S
      INSTACORR SET
   The second INIT order leaves the dataset, ignore, and blur values at 'fred',
   '3', and '4' (respectively), and only changes the correlation method for
   the second SET order.
   At this time, none of the other InstaCorr options (e.g., a separate mask
   dataset, or a global orts 1D file) can be controlled in this way.  Also,
-  note that setting things up this way will not set up the interface control
+  note that setting things up this way will NOT set up the interface control
   widgets in the AFNI GUI, so that if you try to control InstaCorr at the same
   time via the GUI interface and a plugout, very confusing things will probably
-  happen.  And then an extra jumbo-sized elephant will sit on your computer.
+  happen.  And then a jumbo-sized elephant will sit on your computer.
 
 PURGE_MEMORY [dataset_prefix]
   If no prefix is given, the sub-bricks of all datasets will be purged from

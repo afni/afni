@@ -1394,6 +1394,7 @@ void AFNI_sigfunc_alrm(int sig)
      "Never trust a statistic you haven't faked yourself"            ,
      "May your teeth never be replaced by woolen socks"              ,
      "Hasta la vista and so long for now"                            ,
+     "Farewell, and may an elephant never sit on your computer"      ,
 
      "May the Dark Side of the Force get lost on the way to your data"                ,
      "The Andromeda Galaxy is on a collision course with us -- be prepared"           ,
@@ -1486,6 +1487,8 @@ int main( int argc , char *argv[] )
    int ii ; int dienow=0 ;
 
    /*--- help the pitiful user? ---*/
+
+   init_rand_seed(0) ;
 
    if( argc > 1 && strcmp(argv[1],"-help")    == 0 ) AFNI_syntax() ;
    if( argc > 1 && strcmp(argv[1],"-goodbye") == 0 ) AFNI_sigfunc_alrm(0) ;
