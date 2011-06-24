@@ -12,7 +12,7 @@ foreach prog ($proglist)
    echo "searching for talking $prog..."
    if ($no_npb == 1) then
       set pidl = `ps -a |  \grep $prog | \
-                           \sed 's/^[space]*//g' | \
+                           \sed 's/^[ \t]*//g' | \
                            \cut -d ' ' -f 1`   
       if ($#pidl > 0) then
          foreach pid ($pidl)
@@ -28,7 +28,7 @@ foreach prog ($proglist)
          set npb = $npb_vals[$cc]
          set pidl = `ps -a |  \grep $prog | \
                               \grep "\-npb[[:space:]][[:space:]]*$npb" | \
-                              \sed 's/^[space]*//g' | \
+                              \sed 's/^[ \t]*//g' | \
                               \cut -d ' ' -f 1`
          if ($#pidl > 0) then
             foreach pid ($pidl)
