@@ -257,6 +257,11 @@ ENTRY("AFNI_driver") ;
 
    clen = strlen(cmd) ;
 
+   /*--- 24 Jun 2011: patch obvious stupidities ---*/
+
+        if( strncmp(cmd,"INSTACORR_SET" ,13) == 0 ) cmd[9] = ' ' ;
+   else if( strncmp(cmd,"INSTACORR_INIT",14) == 0 ) cmd[9] = ' ' ;
+
    /*--- scan dpair list for command ---*/
 
    for( dd=0 ; dpair[dd].nam != NULL ; dd++ ){
