@@ -175,7 +175,7 @@ SCRIPTS = @4Daverage @CommandGlobb @GetAfniOrient @DTI_studio_reposition        
           3dMEMA @DiceMetric @R_funclist @TimeDiff @FullPath @RetinoProc          \
           @ANATICOR @MakeLabelTable @ElectroGrid ExamineXmat 1dRplot              \
           @2dwarper.Allin @Shift_Volume  @help.AFNI @1dDiffMag @FSlabel2dset      \
-          @Install_InstaCorr_Demo
+          @Install_InstaCorr_Demo @Quiet_Talkers 
 
 PY_DIR = python_scripts
 PY_SCRIPTS = afni_base.py @DoPerRoi.py
