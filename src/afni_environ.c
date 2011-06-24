@@ -379,6 +379,7 @@ int AFNI_prefilter_args( int *argc , char **argv )
        used[ii] = 1;
        continue ;
      }
+     
      if( strcmp(argv[ii],"-npb") == 0 ){   /* ZSS, June 2011 */
        if( ttt ) fprintf(stderr,"++ argv[%d] is -npb\n",ii) ;
        if (ii+1 >= narg) {
@@ -393,6 +394,19 @@ int AFNI_prefilter_args( int *argc , char **argv )
                "** -npb is not an integer such that 0 <= NPB <= %d\n"
                "   -npb was ignored\n", get_max_port_bloc());
        } 
+       used[ii] = 1;
+       continue ;
+     }
+
+     if( strcmp(argv[ii],"-pif") == 0 ){   /* ZSS, June 2011 */
+       if( ttt ) fprintf(stderr,"++ argv[%d] is -pif\n",ii) ;
+       if (ii+1 >= narg) {
+         fprintf(stderr,
+               "** -pif needs a string value\n");
+         exit(1);
+       }
+       used[ii] = 1 ; ii++;
+       set_user_pif(atoi(argv[ii]));
        used[ii] = 1;
        continue ;
      }
