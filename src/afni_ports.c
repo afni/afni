@@ -22,6 +22,7 @@ static PORTS PL;
 
 static int user_np = -1;
 static int reinit = 1;
+static char *user_pif = NULL;
 
 void set_ports_list_reinit (void) { reinit = 1; }
 
@@ -88,6 +89,21 @@ char *get_np_help() {
 "\n"
    };
    return(NP_HELP);
+}
+
+int set_user_pif(char *s) {
+   if (user_pif) {
+      free(user_pif); 
+   }
+   user_pif = NULL;
+   if (s) {
+      user_pif = strdup(s);
+   }
+   return(1);
+}
+
+char *get_user_pif(void) {
+   return(user_pif);
 }
 
 int set_user_np_bloc(int v) {
