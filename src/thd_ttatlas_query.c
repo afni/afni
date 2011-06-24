@@ -991,6 +991,7 @@ THD_fvec3 THD_tta_to_mnia_N27( THD_fvec3 mv )
 char MNI_Anatomical_Side(ATLAS_COORD ac, ATLAS_LIST *atlas_list)
 {
    THD_ivec3 ijk ;
+   THD_fvec3 mmxyz ;
    int  ix,jy,kz , nx,ny,nz,nxy, ii=0, kk=0;
    byte *ba=NULL;
    static int n_warn = 0, lr_notfound = 0;
@@ -1024,7 +1025,9 @@ char MNI_Anatomical_Side(ATLAS_COORD ac, ATLAS_LIST *atlas_list)
       }
    } else {
       /* where are we in the ijk grid ? */
-      ijk = THD_3dmm_to_3dind( ATL_DSET(atlas) , TEMP_FVEC3(ac.x,ac.y,ac.z) ) ;
+      mmxyz = THD_dicomm_to_3dmm( ATL_DSET(atlas) , 
+                         TEMP_FVEC3(ac.x,ac.y,ac.z));
+      ijk = THD_3dmm_to_3dind( ATL_DSET(atlas) , mmxyz ) ;
       UNLOAD_IVEC3(ijk,ix,jy,kz) ;                               
 
       nx = DSET_NX(ATL_DSET(atlas)) ;  /* size of atlas dataset axes */
@@ -5437,6 +5440,7 @@ int whereami_in_atlas(  char *aname,
    char *blab ;
    ATLAS_ZONE *zn = NULL;
    THD_ivec3 ijk ;
+   THD_fvec3 mmxyz ;
    ATLAS *atlas=NULL;
    int LocalHead = wami_lh();
    float fval = 0;
@@ -5539,8 +5543,10 @@ int whereami_in_atlas(  char *aname,
          }
 
          /*-- find locations near the given one that are in the Atlas --*/
-         ijk = THD_3dmm_to_3dind( ATL_DSET(atlas) , 
+         mmxyz = THD_dicomm_to_3dmm( ATL_DSET(atlas) , 
                                   TEMP_FVEC3(ac.x,ac.y,ac.z));
+         ijk = THD_3dmm_to_3dind( ATL_DSET(atlas) , 
+                                  mmxyz);
          UNLOAD_IVEC3(ijk,ix,jy,kz) ;                               
 
          nx = DSET_NX(ATL_DSET(atlas)) ;   /* size of atlas dataset axes */
@@ -5666,7 +5672,9 @@ int whereami_in_atlas(  char *aname,
                         atlas->atlas_dset_name);
 
       /*-- find locations near the given one that are in the Atlas --*/
-      ijk = THD_3dmm_to_3dind( ATL_DSET(atlas) , TEMP_FVEC3(ac.x,ac.y,ac.z) ) ; 
+      mmxyz = THD_dicomm_to_3dmm( ATL_DSET(atlas) , 
+                         TEMP_FVEC3(ac.x,ac.y,ac.z));
+      ijk = THD_3dmm_to_3dind( ATL_DSET(atlas) , mmxyz ) ; 
       UNLOAD_IVEC3(ijk,ix,jy,kz) ;                               
 
       nx = DSET_NX(ATL_DSET(atlas)) ;        /* size of atlas dataset axes */
@@ -5847,6 +5855,7 @@ int whereami_9yards(  ATLAS_COORD aci, ATLAS_QUERY **wamip,
    ATLAS_QUERY *wami = NULL;
    ATLAS_ZONE *zn = NULL;
    THD_fvec3 vn3, vo3;
+   THD_fvec3 mmxyz;
    ATLAS_COORD ac;
    ATLAS *atlas=NULL;
    int LocalHead = wami_lh();
@@ -5980,8 +5989,10 @@ int whereami_9yards(  ATLAS_COORD aci, ATLAS_QUERY **wamip,
             }
 
             /*-- find locations near the given one that are in the Atlas --*/
+            mmxyz = THD_dicomm_to_3dmm( ATL_DSET(atlas) , 
+                         TEMP_FVEC3(ac.x,ac.y,ac.z));
             ijk = THD_3dmm_to_3dind( ATL_DSET(atlas) , 
-                                     TEMP_FVEC3(ac.x,ac.y,ac.z) ) ;
+                                     mmxyz ) ;
             UNLOAD_IVEC3(ijk,ix,jy,kz) ;                               
 
             nx = DSET_NX(ATL_DSET(atlas)) ;    /* size of atlas dataset axes */
@@ -6129,8 +6140,10 @@ int whereami_9yards(  ATLAS_COORD aci, ATLAS_QUERY **wamip,
             atlas->atlas_dset_name);
 
          /*-- find locations near the given one that are in the Atlas --*/
+         mmxyz = THD_dicomm_to_3dmm( ATL_DSET(atlas) , 
+                         TEMP_FVEC3(ac.x,ac.y,ac.z));
          ijk = THD_3dmm_to_3dind( ATL_DSET(atlas) , 
-                                  TEMP_FVEC3(ac.x,ac.y,ac.z) ) ; 
+                                  mmxyz ) ; 
          UNLOAD_IVEC3(ijk,ix,jy,kz) ;                               
 
          nx = DSET_NX(ATL_DSET(atlas)) ;   /* size of atlas dataset axes */
