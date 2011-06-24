@@ -6,8 +6,8 @@ static char *cor_name[NCOR] = { "Pearson" , "Spearman" , "Quadrant" , "K-Tau-b" 
 
 /* list of functions to compute correlations [cf. thd_correlate.c] */
 
-typedef float (*cfun)(int,float *,float *) ;
-static cfun cor_func[NCOR] =
+typedef float (*ccfun)(int,float *,float *) ;
+static ccfun cor_func[NCOR] =
  { THD_pearson_corr , THD_spearman_corr , THD_quadrant_corr , THD_ktaub_corr } ;
 
 /* prototype for function to bootstrap the correlations */
