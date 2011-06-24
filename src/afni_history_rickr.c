@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 24, JUN, 2011, RCR, "slow_surf_clustsim.py", MAJOR, TYPE_NEW_PROG,
+   "a temporary program until we do this in C",
+   NULL
+ } ,
+
  { 20, JUN, 2011, RCR, "afni_util.py", MINOR, TYPE_NEW_OPT,
    "added eta2 function (alongside '3ddot -doeta2')",
    NULL
