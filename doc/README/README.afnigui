@@ -1,6 +1,8 @@
 ================================================================================
                              Tips for the AFNI GUI
 ================================================================================
+                   ***** Cursor Shapes and Popup Menus *****
+
 (1) On most systems, the X11 cursor used in AFNI is an orange arrow pointing
     at about '10:30' on the clock face.  However, the arrow becomes yellow
     and points more steeply, to about '11:00', when it is over a location that
@@ -17,7 +19,8 @@
    (f) Over the image viewer intensity bar, just to the right of the image.
    (g) Over the 'Save' button in the image viewer.
    (h) Over the 'crop' button in the image viewer.
-   (i) Over the sub-graphs in the time series dataset graph viewer.
+   (i) Over the sub-graphs in the time series dataset graph viewer
+       (pops up some statistics about the data in the sub-graph).
    (j) Over the coordinate display in the upper left corner of an AFNI
        controller.
    (k) In the 'Render Dataset' plugin, over the 'See Xhairs' and 'Accumulate'
@@ -32,6 +35,8 @@
        the 'Histog' option will plot the histogram from the 'Aux.Dset'.
        ('Histog' is selected from the menu whose initial choice is 'Mean'.)
 --------------------------------------------------------------------------------
+              ***** Hidden Clicks to Activate AFNI Features *****
+
 (2) Other 'special' clicks that aren't obvious:
    (a) Left-clicking on the 'Image' or 'Graph' button for an already open
        AFNI viewer will bring that viewer's window back up to the top of
@@ -60,6 +65,8 @@
        close the splash screen window again via the usual X11 controls on
        the window border, or by left-clicking again in the logo square.
 --------------------------------------------------------------------------------
+               ***** Keyboard Shorcuts: Image Viewer Window *****
+
 (3) The AFNI image viewer has many keyboard shortcuts.  Help for these can be
     found by using 'BHelp' and then clicking on the image sub-window itself.
     The shortcuts are used by putting the mouse cursor over the image sub-window
@@ -90,14 +97,63 @@
       } = raise AFNI statistical threshold slider
       > = PageUp = move forward one slice in image viewer
       < = PageDown = move backward one slice in image viewer
+      # = toggle checkerboard pattern from underlay and overlay datasets
+      3 = turn checkerboard pattern off
     Keyboard arrow keys = move crosshairs (normal operation)
                         = pan zoomed window (when 'pan' is on)
     Shift+arrow keys    = pan cropped region around
     Ctrl+arrow keys     = expand/shrink cropped region
-    Shift+Home          = center cropped region on current crosshairs
+    Home key            = center zoomed window on current crosshair location
+    Shift+Home          = center cropped region on current crosshair location
     Del = undo in the Drawing plugin
      F2 = turn the Drawing pencil on
      F3 = subtract 1 from the Drawing plugin value
      F4 = add 1 to the Drawing plugin value
      F5 = Meltdown!
+     F6 and higher are not (yet) defined.
+--------------------------------------------------------------------------------
+               ***** Keyboard Shorcuts: Graph Viewer Window *****
+
+(4) The AFNI graph viewer also has many keyboard shortcuts.
+      a = autoscale the graphs (this one time)
+      A = autoscale the graphs (every time they are redrawn)
+      b = switch graph baseline mode (between Separate, Common, and Global)
+      B = switch on/off Boxes graphs instead of line graphs
+      g = decrease vertical grid spacing in graphs
+      G = increase vertical grid spacing in graphs
+      h = draw dotted horizontal line at zero level in graphs
+      i = decrease graph 'ignore' level by 1
+      I = increase graph 'ignore' level by 1
+      l = move to last time point
+      L = turn AFNI logo on or off (but why would you want it OFF?!)
+      m = reduce matrix size of sub-graphs by 1
+      M = increase matrix size of sub-graphs by 1
+      q = quit = Opt->Done
+    r/R = 'rebound' up or down in time
+      S = save an image of the graph window to a file
+      t = show text (numbers) instead of graphs
+    v/V = 'video' up or down in time
+      w = write data from central sub-graph to a 1D file
+      z = change slice number by 1 downwards (= keyboard Page Down key)
+      Z = change slice number by 1 upwards   (= keyboard Page Up key)
+      - = scale the graphs down (vertically)
+      + = scale the graphs up
+      1 = move to first time point
+ < or [ = move back in time by 1 point  (= keyboard Left arrow)
+ > or ] = move up in time by 1 point    (= keyboard Right arrow)
+      N = after typing the 'N', type a number, then press Enter;
+          the matrix of sub-graphs will change to the number given immediately
+     F5 = Meltdown!
+--------------------------------------------------------------------------------
+            ***** Keyboard Shortcuts in the Threshold Slider *****
+
+(5) Fine control over the threshold slider is hard with the mouse.  You can
+    move the slider with the following keystrokes, after clicking in the
+    slider's 'thumb' to move the keyboard input focus to this control.
+      Down arrow = reduce slider by 1 in the 4th significant place
+      Up arrow   = increase slider by 1 in the 4th significant place
+      Page Down  = reduce slider by 1 in the 3rd significant place
+      Page Up    = increase slider by 1 in the 3rd significant place
+      Home       = drop slider to 0
+      End        = move slider to top
 --------------------------------------------------------------------------------
