@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 23 , JUN , 2011 , RWC , "afni InstaCorr" , MINOR , TYPE_MODIFY ,
+  { 27 , JUN , 2011 , RWC , "afni" , MICRO , TYPE_MODIFY ,
+   "Add README.afnigui and AFNI Tips button" ,
+   NULL } ,
+
+ { 23 , JUN , 2011 , RWC , "afni InstaCorr" , MINOR , TYPE_MODIFY ,
    "Ability to INIT-ialize InstaCorr from a plugout" ,
    "Details are in README.driver, under the INSTACORR command section." } ,
 
