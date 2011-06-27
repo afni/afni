@@ -1,7 +1,7 @@
 #include "mrilib.h"
 #include "afni.h"
 #include "thd_atlas.h"
-
+#include "cs.h"
 
 #ifdef KILLTHIS /* Remove all old sections framed by #ifdef KILLTHIS
                   in the near future.  ZSS May 2011   */ 
@@ -1128,7 +1128,8 @@ char * genx_Atlas_Query_to_String (ATLAS_QUERY *wami,
    char *rbuf = NULL;
    int max_spaces = 50;
    char  xlab[max_spaces][32], ylab[max_spaces][32] , zlab[max_spaces][32],
-         clab[max_spaces][32], lbuf[1024]  , tmps[1024] ;
+         clab[max_spaces][32], lbuf[1024]  , tmps[1024], pf[10], 
+         x_fstr[10], y_fstr[10], z_fstr[10] ;
    THD_string_array *sar =NULL;
    ATLAS_COORD *acl=NULL;
    int iatlas = -1, N_out_spaces=0, it=0;
@@ -1136,6 +1137,7 @@ char * genx_Atlas_Query_to_String (ATLAS_QUERY *wami,
    ATLAS *atlas=NULL;
    char **out_spaces=NULL; 
    int LocalHead = wami_lh();
+   int dec_places = 1;
 
    ENTRY("genx_Atlas_Query_to_String") ;
 
@@ -1146,7 +1148,7 @@ char * genx_Atlas_Query_to_String (ATLAS_QUERY *wami,
    
    /* get output spaces from an env variable*/
    out_spaces = env_space_list(&N_out_spaces);
-
+   dec_places = env_dec_places();
    if(!out_spaces) {
       /* the classic three. */
       out_spaces =  add_to_names_list(out_spaces, &N_out_spaces, "TLRC");
@@ -1175,13 +1177,6 @@ char * genx_Atlas_Query_to_String (ATLAS_QUERY *wami,
 
    /* find the coordinates that are in TLRC space, just for LR determination */
    it = find_coords_in_space(acl, N_out_spaces, "TLRC");
-#if 0
-   if ((it = find_coords_in_space(acl, N_out_spaces, "TLRC"))<0) {
-       ERROR_message("Need to have TLRC coords for chunk below");
-      RETURN(rbuf); 
-   }
-#endif
-
 
    /* Prep the string toys */
    INIT_SARR(sar) ; ADDTO_SARR(sar,WAMI_HEAD) ;
@@ -1189,19 +1184,29 @@ char * genx_Atlas_Query_to_String (ATLAS_QUERY *wami,
             ac.space_name);
    ADDTO_SARR(sar, lbuf);
 
+   /* output decimal places */
+   sprintf(pf, "%%4.%df",dec_places);
+
    /* form the string */
    for (i=0; i<N_out_spaces; ++i) {
+      /* set precision of x,y,z output */
+      sprintf(x_fstr, "%s", format_value_4print(-acl[i].x, CCALC_CUSTOM, pf));
+      sprintf(y_fstr, "%s", format_value_4print(-acl[i].y, CCALC_CUSTOM, pf));
+      sprintf(z_fstr, "%s", format_value_4print(acl[i].z, CCALC_CUSTOM, pf));
+
       /* the current rendition of this determines L/R from the CA_N27_LR
          brain in TLRC space based on the mask dataset with values of 0,1,2 */
       /* drg - see notes on MNI_Anatomical_Side at function for discussion */
+
       if(strcmp(acl[i].space_name,"MNI_ANAT") || (it<0)) {
-         sprintf(xlab[i],"%4.0f mm [%c]",-acl[i].x,(acl[i].x<0.0)?'R':'L') ;
+         sprintf(xlab[i],"%s mm [%c]", x_fstr, (acl[i].x<0.0)?'R':'L') ;
       } else { 
-         sprintf(xlab[i], "%4.0f mm [%c]", 
-         -acl[i].x, TO_UPPER(MNI_Anatomical_Side(acl[it], atlas_list))) ;
+         sprintf(xlab[i], "%s mm [%c]", x_fstr,
+           TO_UPPER(MNI_Anatomical_Side(acl[it], atlas_list))) ;
       }
-      sprintf(ylab[i],"%4.0f mm [%c]",-acl[i].y,(acl[i].y<0.0)?'A':'P') ;
-      sprintf(zlab[i],"%4.0f mm [%c]", acl[i].z,(acl[i].z<0.0)?'I':'S') ;
+
+      sprintf(ylab[i],"%s mm [%c]",y_fstr,(acl[i].y<0.0)?'A':'P') ;
+      sprintf(zlab[i],"%s mm [%c]",z_fstr,(acl[i].z<0.0)?'I':'S') ;
       sprintf(clab[i],"{%s}", acl[i].space_name);
    }
    free(acl); acl = NULL;
@@ -1213,7 +1218,7 @@ char * genx_Atlas_Query_to_String (ATLAS_QUERY *wami,
             SS('m');
             sprintf(lbuf,"Focus point (LPI)=%c", lsep);
             for (i=0; i<N_out_spaces; ++i) {
-               sprintf(tmps, "   %s,%s,%s %s%c",
+               sprintf(tmps, "   %s, %s, %s %s%c",
                         xlab[i], ylab[i], zlab[i], clab[i], lsep);
                strncat(lbuf, tmps, 1023*sizeof(char));
             }
@@ -1227,7 +1232,7 @@ char * genx_Atlas_Query_to_String (ATLAS_QUERY *wami,
             sprintf(lbuf,"%-36s\t%-12s", "Focus point (LPI)", "Coord.Space");
             ADDTO_SARR(sar,lbuf);
             for (ii=0; ii<3; ++ii) {
-               SS('p');sprintf(tmps,"%s,%s,%s", xlab[ii], ylab[ii], zlab[ii]);
+               SS('p');sprintf(tmps,"%s, %s, %s", xlab[ii], ylab[ii], zlab[ii]);
                SS('q');sprintf(lbuf,"%-36s\t%-12s", tmps, clab[ii]);
                ADDTO_SARR(sar,lbuf);
             }
@@ -6642,6 +6647,7 @@ env_atlas_list()
    return(atlas_rlist);
 
 }
+
 /* return the list of spaces (as a array of strings) set by the 
    environment variable, AFNI_TEMPLATE_SPACE_LIST */
 char **
@@ -6714,4 +6720,21 @@ env_space_list(int *nspaces)
    *nspaces = N_atlas_spaces;
 
    return(atlas_space_list);
+}
+
+
+/* return the list of spaces (as a array of strings) set by the 
+   environment variable, AFNI_TEMPLATE_SPACE_LIST */
+int
+env_dec_places()
+{
+   char *envplaces = NULL;
+   int decplaces = 0, tp;
+
+   envplaces= my_getenv("AFNI_WAMI_DEC_PLACES");
+   if(!envplaces) return(decplaces);
+   tp = atoi(envplaces);
+   if((tp<0)||(tp>10))
+      return(decplaces);
+   decplaces = tp;
 }
