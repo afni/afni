@@ -789,7 +789,7 @@ class XmatInterface:
       if not self.matX: return "please load an X matrix, first"
 
       ncols = self.matX.ncols
-      clist = UTIL.decode_1D_ints(cstr, max=ncols-1)
+      clist = UTIL.decode_1D_ints(cstr, imax=ncols-1)
       if not clist:
          return "invalid column list\n\n--> please use AFNI sub-brick notation"
       elif not self.AM.list2_is_in_list1(range(ncols), clist):

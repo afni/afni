@@ -444,7 +444,7 @@ class Afni1D:
 
       if self.verb > 3: print '-- Afni1D reverse...'
 
-      ilist = UTIL.decode_1D_ints('$..0(-1)',verb=self.verb,max=self.nt-1)
+      ilist = UTIL.decode_1D_ints('$..0(-1)',verb=self.verb,imax=self.nt-1)
       if self.reduce_by_tlist(ilist): return 1
 
       return 0
@@ -1315,11 +1315,11 @@ class Afni1D:
       # apply column and/or row selectors
       if aname.colsel:
          ilist = UTIL.decode_1D_ints(aname.colsel, verb=self.verb,
-                                     max=self.nvec-1)
+                                     imax=self.nvec-1)
          if ilist == None: return 1
          if self.reduce_by_vec_list(ilist): return 1
       if aname.rowsel:
-         ilist = UTIL.decode_1D_ints(aname.rowsel,verb=self.verb,max=self.nt-1)
+         ilist = UTIL.decode_1D_ints(aname.rowsel,verb=self.verb,imax=self.nt-1)
          if ilist == None: return 1
          if self.reduce_by_tlist(ilist): return 1
 
