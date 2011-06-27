@@ -1,0 +1,44 @@
+                    Tips for the AFNI GUI
+=============================================================
+(1) On most systems, the X11 cursor used in AFNI is an orange arrow pointing
+    at about '10:30' on the clock face.  However, the arrow becomes yellow
+    and points more steeply, to about '11:00', when it is over a location that
+    has a hidden Right-Click popup menu.  Some of these are
+   (a) Over the logo square just to the right of the 'done' button in an
+       AFNI controller.
+   (b) Over the labels at the top of the threshold slider and color bar in
+       the 'Define Overlay' control panel.
+   (c) On the label to the left of a drop-down 'option menu'; e.g., 'Xhairs'
+       or 'ULay' (for these menus, the cursor will not change shape).
+   (d) Over the color bar itself, when it is in continuous 'colorscale' mode
+       ('**') -- but not when it is in discrete color panel mode.
+   (e) Over the image viewer main sub-window, which holds the image itself.
+   (f) Over the image viewer intensity bar, just to the right of the image.
+   (g) Over the 'Save' button in the image viewer.
+   (h) Over the 'crop' button in the image viewer.
+   (i) Over the sub-graphs in the time series dataset graph viewer.
+   (j) In the 'Render Dataset' plugin, over the 'See Xhairs' and 'Accumulate'
+       toggle buttons.  The 'Accumulate' popup lets you enter a text label
+       to be drawn in the rendered image viewer -- the actual display of labels
+       (size and location) is controlled from the image viewer intensity bar
+       popup menu -- item (e) above.  Right-Click lets you change the label
+       for newly rendered images, whereas Shift+Right-Click lets you change
+       the label for all previously rendered images as well as new images.
+
+(2) Other 'special' clicks that aren't obvious:
+   (a) Left-clicking on the 'Image' or 'Graph' button for an already open
+       AFNI viewer will bring that viewer's window back up to the top of
+       the X11 window stacking order.
+   (b) Right-clicking on the 'Image' or 'Graph' button for an already open
+       AFNI viewer will bring that viewer's window over to the place where
+       you just clicked -- this is useful for finding lost viewers.
+   (c) Right-clicking on the 'DataDir' button in the AFNI controller will
+       un-hide the obsolescent 'Define Markers' button.
+   (d) Left-clicking on the logo at the lower left of a graph viewer will
+       make the logo and menu buttons disappear -- this is intended to help
+       you make a clean-looking snapshot of the window.  Left-click again
+       in the same region at the lower left to un-hide the logo and buttons.
+   (e) Right-clicking on the graph viewer logo or on the image viewer 'Disp'
+       button (i.e., the things at the lower left of each viewer window) will
+       bring the parent AFNI controller back to the top of the X11 window
+       stacking order.
