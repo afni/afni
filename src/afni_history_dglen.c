@@ -49,6 +49,16 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 27 , JUN, 2011 , DRG , "whereami" , 
+    MINOR , TYPE_NEW_ENV, 
+    "AFNI_WAMI_DEC_PLACES",
+    "Set precision for whereami output\n"
+    "Higher field data and animal atlases require higher precision.\n"
+    "The default value used for focus point among template spaces is\n"
+    "still 0 decimal places (closest mm), but animal data requires three\n"
+    "decimal places. Value may range from 0 to 10.\n"
+} ,
+
 { 23 , JUN, 2011 , DRG , "whereami" , 
     MINOR , TYPE_NEW_ENV, 
     "Desai MPM atlases",
