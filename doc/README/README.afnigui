@@ -1,5 +1,6 @@
-                    Tips for the AFNI GUI
-=============================================================
+================================================================================
+                             Tips for the AFNI GUI
+================================================================================
 (1) On most systems, the X11 cursor used in AFNI is an orange arrow pointing
     at about '10:30' on the clock face.  However, the arrow becomes yellow
     and points more steeply, to about '11:00', when it is over a location that
@@ -17,13 +18,19 @@
    (g) Over the 'Save' button in the image viewer.
    (h) Over the 'crop' button in the image viewer.
    (i) Over the sub-graphs in the time series dataset graph viewer.
-   (j) In the 'Render Dataset' plugin, over the 'See Xhairs' and 'Accumulate'
+   (j) Over the coordinate display in the upper left corner of an AFNI
+       controller.
+   (k) In the 'Render Dataset' plugin, over the 'See Xhairs' and 'Accumulate'
        toggle buttons.  The 'Accumulate' popup lets you enter a text label
        to be drawn in the rendered image viewer -- the actual display of labels
        (size and location) is controlled from the image viewer intensity bar
        popup menu -- item (e) above.  Right-Click lets you change the label
        for newly rendered images, whereas Shift+Right-Click lets you change
        the label for all previously rendered images as well as new images.
+   (l) In the 'Clusters' report panel, right-clicking in the upper part of
+       the window (where the textual summary is), will let you choose how
+       the 'Histog' option will plot the histogram from the 'Aux.Dset'.
+       ('Histog' is selected from the menu whose initial choice is 'Mean'.)
 
 (2) Other 'special' clicks that aren't obvious:
    (a) Left-clicking on the 'Image' or 'Graph' button for an already open
@@ -42,3 +49,13 @@
        button (i.e., the things at the lower left of each viewer window) will
        bring the parent AFNI controller back to the top of the X11 window
        stacking order.
+   (f) In an image viewer window, if you press-and-hold-down the Left mouse
+       button, then drag the cursor vertically and horizontally (while still
+       holding the Left button down), the contrast and brightness of the
+       grayscale underlay changes as you move.
+   (g) To exit AFNI quickly when multiple controllers are open, hold down the
+       Shift key when you press the 'done' button (in any AFNI controller).
+   (h) Left-clicking in the logo square to the right of the AFNI controller
+       'done' button will cause the AFNI splash screen to popup.  You can
+       close the splash screen window again via the usual X11 controls on
+       the window border, or by left-clicking again in the logo square.
