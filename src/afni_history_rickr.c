@@ -49,6 +49,23 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 27, JUN, 2011, RCR, "gen_group_command.py", MINOR, TYPE_NEW_OPT,
+   "added -dset_index0_list/-dset_index1_list options, etc.",
+   "- ttest++ and MEMA commands now apply directories to datasets\n"
+   "- changed Subject.atrs to be VarsObject instance, not dictionary\n"
+ } ,
+
+ { 27, JUN, 2011, RCR, "afni_util.py", MICRO, TYPE_MODIFY,
+   "changed decode_1D_ints to take imax param",
+   "Affects 1d_tool.py, xmat_tool.py and any utilities using lib_afni1D.py.\n"
+   "Also added restrict_by_index_lists()."
+ } ,
+
+ { 27, JUN, 2011, RCR, "thd_table.c", MICRO, TYPE_MODIFY,
+   "output warning hint on single column covariate file",
+   NULL
+ } ,
+
  { 24, JUN, 2011, RCR, "slow_surf_clustsim.py", MAJOR, TYPE_NEW_PROG,
    "a temporary program until we do this in C",
    NULL
