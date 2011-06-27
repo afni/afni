@@ -1,6 +1,6 @@
 static char * readme_afnigui[] = {
    "================================================================================\n" ,
-   "                             Tips for the AFNI GUI\n" ,
+   "                    ----- Usage Tips for the AFNI GUI -----\n" ,
    "================================================================================\n" ,
    "                   ***** Cursor Shapes and Popup Menus *****\n" ,
    "\n" ,
@@ -46,7 +46,7 @@ static char * readme_afnigui[] = {
    "       AFNI viewer will bring that viewer's window over to the place where\n" ,
    "       you just clicked -- this is useful for finding lost viewers.\n" ,
    "   (c) Right-clicking on the 'DataDir' button in the AFNI controller will\n" ,
-   "       un-hide the obsolescent 'Define Markers' button.\n" ,
+   "       un-hide (or re-hide) the obsolescent 'Define Markers' button.\n" ,
    "   (d) Left-clicking on the logo at the lower left of a graph viewer will\n" ,
    "       make the logo and menu buttons disappear -- this is intended to help\n" ,
    "       you make a clean-looking snapshot of the window.  Left-click again\n" ,
