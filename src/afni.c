@@ -5313,6 +5313,8 @@ ENTRY("AFNI_controller_panel_CB") ;
          im3d->vwid->prog->panel_pb_inverted = False ;
       }
 
+      SHIFT_TIPS( im3d , TIPS_TOTAL_SHIFT ) ;
+
    } else {  /** open the view frame (but not its children) **/
 
       XtManageChild(im3d->vwid->view->frame) ;
@@ -5320,6 +5322,9 @@ ENTRY("AFNI_controller_panel_CB") ;
          MCW_invert_widget(im3d->vwid->prog->panel_pb) ;
          im3d->vwid->prog->panel_pb_inverted = True ;
       }
+
+      SHIFT_TIPS( im3d , (im3d->vwid->view->marks_enabled) ? TIPS_MINUS_SHIFT
+                                                           : TIPS_PLUS_SHIFT ) ;
    }
 
    RESET_AFNI_QUIT(im3d) ;
