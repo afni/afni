@@ -5599,6 +5599,21 @@ ENTRY("AFNI_bucket_label_CB") ;
 }
 
 /*---------------------------------------------------------------
+  Callback for the 'AFNI Tips' button [27 Jun 2011]
+-----------------------------------------------------------------*/
+
+void AFNI_tips_CB( Widget w , XtPointer cd , XtPointer cbd )
+{
+#include "readme_afnigui.h"
+   Three_D_View *im3d = (Three_D_View *)cd ;
+   char *inf=NULL ; int ii ;
+   for( ii=0 ; readme_afnigui[ii] != NULL ; ii++ )
+     inf = THD_zzprintf( inf , "%s" , readme_afnigui[ii] ) ;
+   (void) new_MCW_textwin( im3d->vwid->imag->topper , inf , TEXT_READONLY ) ;
+   free(inf) ;
+}
+
+/*---------------------------------------------------------------
   Callback for all actions in the misc menu
 -----------------------------------------------------------------*/
 

@@ -16,15 +16,15 @@ int main( int argc , char * argv[] )
    char buf[NBUF] , buf2[NBUF*2];
    int ll , num=0 , ii , jj ;
 
-   if( argc < 2 ){
+   if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
       fprintf(stderr,"Usage: quotize name < input > output\n"
                      "Turns a text file into a C array of strings\n"
-                     "initialized into an array 'char * name[]'.\n"
+                     "initialized into an array 'char *name[]'.\n"
              ) ;
       exit(0) ;
    }
 
-   printf("static char * %s[] = {\n",argv[1]) ;
+   printf("static char *%s[] = {\n",argv[1]) ;
    while( fgets(buf,NBUF,stdin) != NULL ){
       ll = strlen(buf) ; if( ll == 0 ) break ;
       if( buf[ll-1] == '\n' ) buf[ll-1] = '\0' ;

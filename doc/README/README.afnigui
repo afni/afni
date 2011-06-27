@@ -31,7 +31,7 @@
        the window (where the textual summary is), will let you choose how
        the 'Histog' option will plot the histogram from the 'Aux.Dset'.
        ('Histog' is selected from the menu whose initial choice is 'Mean'.)
-
+--------------------------------------------------------------------------------
 (2) Other 'special' clicks that aren't obvious:
    (a) Left-clicking on the 'Image' or 'Graph' button for an already open
        AFNI viewer will bring that viewer's window back up to the top of
@@ -59,3 +59,45 @@
        'done' button will cause the AFNI splash screen to popup.  You can
        close the splash screen window again via the usual X11 controls on
        the window border, or by left-clicking again in the logo square.
+--------------------------------------------------------------------------------
+(3) The AFNI image viewer has many keyboard shortcuts.  Help for these can be
+    found by using 'BHelp' and then clicking on the image sub-window itself.
+    The shortcuts are used by putting the mouse cursor over the image sub-window
+    and pressing the keyboard key.
+      a = fix window aspect ratio        (= Left-click in intensity bar)
+      c = enter cropping mode            (= clicking the 'crop' button)
+      D = open Disp control panel        (= clicking the 'Disp' button)
+      i = make the image sub-window smaller inside the overall viewer
+      I = make the image sub-window larger
+      l = left-right mirror image        (= '+LR Mirror' on Disp panel)
+      m = toggle 'Min-to-Max' on/off     (= 'Min-to-Max' or '2%-to-98%' on Disp)
+      M = open Montage control panel     (= clicking the 'Mont' button)
+      o = color Overlay on/off           (= 'See Overlay' in AFNI controller)
+      p = toggle panning mode            (= clicking the 'pan' button)
+      q = close window                   (= clicking the 'done' button)
+      r = like 'v', but image 'rebounds' when it reaches end of count
+      R = like 'r', but backwards order
+      s = sharpen underlay image         (= 'Sharpen' on the Disp control panel)
+      S = save image                     (= clicking the 'Save' button)
+      u = toggle background to be from Underlay or Overlay dataset
+      v = automatically change images to make a 'video' (forwards order)
+      V = same as 'v' but backwards order
+      z = zoom out                       (= zoom down-arrow button)
+      Z = zoom in                        (= zoom up-arrow button)
+      [ = time index down by 1
+      ] = time index up by 1
+      { = lower AFNI statistical threshold slider
+      } = raise AFNI statistical threshold slider
+      > = PageUp = move forward one slice in image viewer
+      < = PageDown = move backward one slice in image viewer
+    Keyboard arrow keys = move crosshairs (normal operation)
+                        = pan zoomed window (when 'pan' is on)
+    Shift+arrow keys    = pan cropped region around
+    Ctrl+arrow keys     = expand/shrink cropped region
+    Shift+Home          = center cropped region on current crosshairs
+    Del = undo in the Drawing plugin
+     F2 = turn the Drawing pencil on
+     F3 = subtract 1 from the Drawing plugin value
+     F4 = add 1 to the Drawing plugin value
+     F5 = Meltdown!
+--------------------------------------------------------------------------------
