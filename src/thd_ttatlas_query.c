@@ -6723,8 +6723,8 @@ env_space_list(int *nspaces)
 }
 
 
-/* return the list of spaces (as a array of strings) set by the 
-   environment variable, AFNI_TEMPLATE_SPACE_LIST */
+/* return the number of decimal places to use in wami output.
+   set by the environment variable, AFNI_WAMI_DEC_PLACES */
 int
 env_dec_places()
 {
