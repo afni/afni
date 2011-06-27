@@ -692,10 +692,72 @@ def consec_len(ilist, start):
 
    return length
 
-def decode_1D_ints(istr, verb=1, max=-1):
+def restrict_by_index_lists(dlist, ilist, base=0, nonempty=1, verb=1):
+    """restrict elements of dlist by indices in ilist
+
+        ilist    : can be string or list of strings
+                  (require unique composite list)
+        base     : can be 0 or 1 (0-based or 1-based)
+        nonempty : if set, sub-lists are not allowed to be empty
+        verb     : verbose level, default is to only report errors
+
+       return status, sub-list
+              status = 0 on success, 1 on error
+    """
+
+    # if either object is empty, there is nothing to do
+    if not ilist or not dlist: return 0, []
+
+    if type(ilist) == str: ilist = [ilist]
+
+    if base not in [0,1]:
+        if verb: print '** restrict_by_index_list: bad base = %d' % base
+        return 1, []
+
+    # set imax to correctly imply '$' index
+    if base: imax = len(dlist)          # 1-based
+    else:    imax = len(dlist)-1        # 0-based
+
+    composite = []
+    for ind, istr in enumerate(ilist):
+        if type(istr) != str:
+            print '** RBIL: bad index selector %s' % istr
+            return 1, []
+        curlist = decode_1D_ints(istr, verb=verb, imax=imax)
+        if not curlist and nonempty:
+            if verb: print "** empty index list for istr[%d]='%s'" % (ind,istr)
+            return 1, []
+        composite.extend(curlist)
+        if verb > 3: print '-- index %d, ilist %s' % (ind, curlist)
+
+    if not vals_are_unique(composite):
+        if verb: print '** RBIL: composite index list elements are not unique'
+        return 1, []
+
+    cmin = min(composite)
+    cmax = max(composite)
+    if cmin < 0:
+        if verb: print '** RBIL: cannot choose negative indices'
+        return 1, []
+    elif base and cmin == 0:
+        if verb: print '** RBIL: 1-based index list seems 0-based'
+        return 1, []
+    elif cmax > imax:
+        if verb: print '** RBIL: index value %d exceeds %d-based limit %d' \
+                       % (cmax, base, imax)
+        return 1, []
+
+    # now convert 1-based to 0-based, if needed
+    if base: clist = [v-1 for v in composite]
+    else:    clist = composite
+
+    # the big finish
+    return 0, [dlist[ind] for ind in clist]
+
+def decode_1D_ints(istr, verb=1, imax=-1):
     """Decode a comma-delimited string of ints, ranges and A@B syntax,
        and AFNI-style sub-brick selectors (including A..B(C)).
-       If the A..B format is used, and B=='$', then B gets 'max'.
+       If the A..B format is used, and B=='$', then B gets 'imax'.
        If the list is enclosed in [], <> or ##, strip those characters.
        - return a list of ints"""
 
@@ -711,15 +773,15 @@ def decode_1D_ints(istr, verb=1, max=-1):
             if s.find('@') >= 0:        # then expect "A@B"
                 [N, val] = [n for n in s.split('@')]
                 N = int(N)
-                val = to_int_special(val, '$', max)
+                val = to_int_special(val, '$', imax)
                 ilist.extend([val for i in range(N)])
             elif s.find('..') >= 0:     # then expect "A..B"
                 pos = s.find('..')
                 if s.find('(', pos) > 0:    # look for "A..B(C)"
                    [v1, v2] = [n for n in s.split('..')]
-                   v1 = to_int_special(v1, '$', max)
+                   v1 = to_int_special(v1, '$', imax)
                    [v2, step] = v2.split('(')
-                   v2 = to_int_special(v2, '$', max)
+                   v2 = to_int_special(v2, '$', imax)
                    # have start and end values, get step
                    step, junk = step.split(')')
                    step = int(step)
@@ -731,8 +793,8 @@ def decode_1D_ints(istr, verb=1, max=-1):
                    ilist.extend([i for i in range(v1, v2+inc, step)])
                 else:
                    [v1, v2] = [n for n in s.split('..')]
-                   v1 = to_int_special(v1, '$', max)
-                   v2 = to_int_special(v2, '$', max)
+                   v1 = to_int_special(v1, '$', imax)
+                   v2 = to_int_special(v2, '$', imax)
                    if v1 < v2 : step = 1
                    else:        step = -1
                    ilist.extend([i for i in range(v1, v2+step, step)])

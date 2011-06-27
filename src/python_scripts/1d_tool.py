@@ -1017,13 +1017,13 @@ class A1DInterface:
 
       if self.select_cols:
          ilist=UTIL.decode_1D_ints(self.select_cols, verb=self.verb,
-                                                     max=self.adata.nvec-1)
+                                                     imax=self.adata.nvec-1)
          if ilist == None: return 1
          if self.adata.reduce_by_vec_list(ilist): return 1
 
       if self.select_rows:
          ilist = UTIL.decode_1D_ints(self.select_rows, verb=self.verb,
-                                                       max=self.adata.nt-1)
+                                                       imax=self.adata.nt-1)
          if ilist == None: return 1
          if self.adata.reduce_by_tlist(ilist): return 1
 

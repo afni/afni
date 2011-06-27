@@ -88,7 +88,45 @@ examples (by program)
                                  -options                                   \\
                                     -zskip 0.8 -toz
 
-      5. With covariates, coming sometime within the next decade...  Probably.
+      5. Use covariates to account for a sex difference.  We might encode
+         females as 0 and males as 1 to get an intercept (main effect) that
+         applies to females (if we do not do any centering).  However, we
+         want a main effect for the average between males and females, and
+         therefore have used -1 for males and +1 for females.  Add NONE
+         for centering so that 3dttest++ does not do any.
+
+         Females have subject indices: 0, 1, 2, 3 and 5.
+         Males   have subject indices: 4 and 6 through 9 (the last).
+
+            gen_group_command.py -command 3dttest++             \\
+                                 -write_script cmd.tt++.5       \\
+                                 -prefix tt++.5_covary          \\
+                                 -dsets data/OLSQ*.HEAD         \\
+                                 -subs_betas 'Vrel#0_Coef'      \\
+                                 -options                       \\
+                                    -covariates sex_encode.txt  \\
+                                    -center NONE
+
+
+      6. Use -dset_index0_list to compare female subjects to males.
+         Both subject types are in the same directory (10 subjects total).
+         So the -dsets options will both specify the same list, which will
+         then be paired down via -dset_index0_list to indicate only females
+         and only males.
+
+         Females have subject indices: 0, 1, 2, 3 and 5.
+         Males   have subject indices: 4 and 6 through 9 (the last).
+
+            gen_group_command.py -command 3dttest++             \\
+                                 -write_script cmd.tt++.6       \\
+                                 -prefix tt++.6_F-M             \\
+                                 -dsets data/OLSQ*.HEAD         \\
+                                 -dset_index0_list '0..3,5'     \\
+                                 -dsets data/OLSQ*.HEAD         \\
+                                 -dset_index0_list '4,6..$'     \\
+                                 -set_labels female male        \\
+                                 -subs_betas 'Vrel#0_Coef'
+
 
    See "3dttest++ -help" for details on its options.
 
@@ -145,6 +183,35 @@ examples (by program)
                                     -mask mask+tlrc -max_zeros 0.25         \\
                                     -model_outliers -HKtest -jobs 2
 
+      5. Make a paired test across 2 groups, but restrict the subjects to
+         partial lists of all within a group.  This applies -dset_index0_list
+         (or the sister -dset_index1_list).
+
+            # assume these 9 subjects represent all under the 'data' dir
+            set subjects = ( AA BB CC DD EE FF GG HH II )
+
+         a. Do a simple test on subjects AA, HH, II and FF.  Indices are:
+               0-based: 0, 7, 8, 5 (AA=0, ..., II=8)
+               1-based: 1, 8, 9, 6 (AA=1, ..., II=9)
+
+            gen_group_command.py -command 3dMEMA              \\
+                                 -write_script cmd.mema.5a    \\
+                                 -dsets data/REML*.HEAD       \\
+                                 -dset_index0_list '0,7,8,5'
+
+         b. Do a paired test on those same subjects between betas with labels
+            Arel and Vrel (and corresponding t-stats).
+
+            gen_group_command.py -command 3dMEMA                            \\
+                                 -write_script cmd.mema.5b                  \\
+                                 -dsets data/REML*.HEAD                     \\
+                                 -dset_index0_list '0,7,8,5'                \\
+                                 -dsets data/REML*.HEAD                     \\
+                                 -dset_index0_list '0,7,8,5'                \\
+                                 -subs_betas  'Arel#0_Coef'  'Vrel#0_Coef'  \\
+                                 -subs_tstats 'Arel#0_Tstat' 'Vrel#0_Tstat' \\
+                                 -type paired
+
          See "3dMEMA -help" for details on the extra options.
 
 ------------------------------------------
@@ -162,6 +229,44 @@ required parameters:
                                   (this option can be used more than once)
 
 other options:
+
+   -dset_index0_list values...  : restrict -dsets datasets to this 0-based list
+   -dset_index1_list values...  : restrict -dsets datasets to this 1-based list
+
+        In some cases it is easy to use a wildcard to specify datasets via
+        -dsets, but there may be a grouping of subjects within that list.
+        For example, if both males and females are in the list of datasets
+        provided by -dsets, and if one wants a comparison between those 2
+        groups, then a pair of -dset_index0_list could be specified (1 for
+        each -dset) option to list which are the females and males.
+
+        Consider this example:
+
+             -dsets all/stats.*.HEAD            \\
+             -dset_index0_list '0..5,10..15'    \\
+             -dsets all/stats.*.HEAD            \\
+             -dset_index0_list '6..9,16..$'     \\
+
+        Note that -dsets is used twice, with IDENTICAL lists of datasets.
+        The respective -dset_index0_list options then restrict those lists to
+        0-based index lists, one for females, the other for males.
+
+      * One must be careful to get the indices correct, so check the output
+        command script to be sure the correct subjects are in each group.
+
+        The difference between -dset_index0_list and -dset_index1_list is just
+        that the former is a 0-based list (such as is used by AFNI programs),
+        while the latter is 1-based (such as is used by tcsh).  A 0-based list
+        begins counting at 0 (as in offsets), while a list 1-based starts at 1.
+        Since use of either makes sense, both are provided.
+
+        For example, these options are equivalent:
+
+                -dset_index0_list 0,5..8
+                -dset_index1_list 1,6..9
+
+        The format for these index lists is the same as for AFNI sub-brick
+        selection.
 
    -options OPT1 OPT2 ...       : list of options to pass along to result
 
@@ -224,6 +329,10 @@ g_history = """
    0.3  Nov 08, 2010    - can generate 3dttest++ commands
    0.4  Jun 15, 2011    - if constant dset names, extract SIDs from dir names
                           (done for R Momenan)
+   0.5  Jun 27, 2011
+        - added -dset_index0_list/-dset_index1_list options (for R Momenan)
+        - ttest++ and MEMA commands now apply directories to datasets
+        - changed Subject.atrs to be VarsObject instance, not dictionary
 """
 
 g_version = "gen_group_command.py version 0.4, June 15, 2011"
@@ -257,6 +366,8 @@ class CmdInterface:
       self.options         = []         # other command options
       self.slist           = []         # list of SubjectList elements
       self.dsets           = []         # list of lists of filenames
+      self.index0_list     = []         # 0-based sub-list of 'dsets'
+      self.index1_list     = []         # 1-based sub-list of 'dsets'
 
       # initialize valid_opts
       self.init_options()
@@ -276,6 +387,8 @@ class CmdInterface:
 
       print "options          : %s" % self.options
       print "subject list(s)  : %s" % self.slist
+      print "index0_list      : %s" % self.index0_list
+      print "index1_list      : %s" % self.index1_list
       print "datasets         : %s" % self.dsets        # last
 
       if self.verb > 3:
@@ -307,6 +420,10 @@ class CmdInterface:
                       helpstr='apply 3dttest++ test as set A minus set B')
       self.valid_opts.add_opt('-BminusA', 0, [], 
                       helpstr='apply 3dttest++ test as set B minus set A')
+      self.valid_opts.add_opt('-dset_index0_list', -1, [], 
+                      helpstr='restrict dsets to 0-based index list')
+      self.valid_opts.add_opt('-dset_index1_list', -1, [], 
+                      helpstr='restrict dsets to 1-based index list')
       self.valid_opts.add_opt('-options', -1, [], 
                       helpstr='specify options to pass to the command')
       self.valid_opts.add_opt('-prefix', 1, [], 
@@ -393,6 +510,18 @@ class CmdInterface:
             self.dsets.append(val)      # allow multiple such options
             continue
 
+         if opt.name == '-dset_index0_list':
+            val, err = uopts.get_string_list('', opt=opt)
+            if val == None or err: return 1
+            self.index0_list.append(val)      # allow multiple such options
+            continue
+
+         if opt.name == '-dset_index1_list':
+            val, err = uopts.get_string_list('', opt=opt)
+            if val == None or err: return 1
+            self.index1_list.append(val)      # allow multiple such options
+            continue
+
          if opt.name == '-options':
             val, err = uopts.get_string_list('', opt=opt)
             if val == None or err: return 1
@@ -457,7 +586,56 @@ class CmdInterface:
 
       if self.verb > 2: self.show()
 
+      # process -dset_index_list_0 and _1
+      if self.update_dset_lists(): return 1
+
       return None
+
+   def update_dset_lists(self):
+      """process and -dset_index0_list or -dset_index1_list options
+         (do not allow both)
+      """
+
+      oname0 = '-dset_index0_list'
+      oname1 = '-dset_index1_list'
+
+      uopts = self.user_opts
+
+      # if no list selectors, there is nothing to do
+      if len(self.index0_list) == 0 and len(self.index1_list) == 0: return 0
+
+      # both option types is an error
+      if len(self.index0_list) > 0 and len(self.index1_list) > 0:
+         print '** cannot use both %s and %s' % (oname0, oname1)
+         return 1
+
+      otype = 0
+      oname = oname0
+      olist = self.index0_list
+      nopt  = len(olist)
+
+      if nopt == 0:
+         otype = 1
+         oname = oname1
+         olist = self.index1_list
+         nopt  = len(olist)
+
+      # require one -dset_index option per -dsets option
+      if nopt != len(self.dsets):
+         print '** num -dset_indexX_list opts must match num -dsets opts' \
+               ' (%d != %d)' % (nopt, len(self.dsets))
+         return 1
+
+      new_dsets = []
+      for dind, dlist in enumerate(self.dsets):
+         status, newlist = UTIL.restrict_by_index_lists(dlist, olist[dind],
+                                        otype, nonempty=1, verb=self.verb)
+         if status:
+            print '** bad use of %s' % oname
+            return 1
+         new_dsets.append(newlist)
+
+      self.dsets = new_dsets
 
    def execute(self):
 

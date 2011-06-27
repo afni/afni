@@ -60,6 +60,14 @@ class VarsObject(object):
       if type(val) in g_simple_types: return 1
       else:                           return 0
 
+   def count(self, getall=0):
+      """return the number of attributes
+
+         if getall, count all
+         otherwise count those with basic atomic types
+      """
+      return len(self.attributes(getall=getall))
+
    def attributes(self, getall=0):
       """same as dir(), but return only those with:
             - a name not starting with '_'
@@ -70,8 +78,7 @@ class VarsObject(object):
       retlist = []
       for atr in dlist:
          if atr[0] == '_': continue
-         if not getall:
-            if self.get_atomic_type(atr) == None: continue
+         if self.get_atomic_type(atr) == None and not getall: continue
          retlist.append(atr)
       retlist.sort()
       return retlist
@@ -257,7 +264,9 @@ class VarsObject(object):
       return depth
 
    def show(self, mesg='', prefix=None, pattern=None, name=1, all=0):
-      print self.make_show_str(mesg, prefix, pattern, name, all=all)
+      if all: name=1
+      print self.make_show_str(mesg=mesg, prefix=prefix, pattern=pattern,
+                               name=name, all=all)
 
    def make_show_str(self, mesg='', prefix=None, pattern=None, name=1, all=0):
       """if all, put atomic attributes first and instancemethods last"""
@@ -268,7 +277,7 @@ class VarsObject(object):
       sstr = "-- %s values in var '%s'%s\n" % (mesg, self.name, pstr)
 
       # start with atomic only, though loop is almost identical
-      for atr in self.attributes():
+      for atr in self.attributes(getall=all):
          if not name and atr == 'name': continue
          match = (prefix == None and pattern == None)
          if prefix:
@@ -522,11 +531,11 @@ class Subject(object):
    _sort_key = None             # attribute key used in compare()
    _order    = 1                # 1 for normal, -1 for reverse
 
-   def __init__(self, sid='', dset='', atrs={}):
+   def __init__(self, sid='', dset='', atrs=None):
 
       self.sid   = sid          # subject ID (string)
       self.dset  = dset         # dset name (string: existing filename)
-      self.atrs  = atrs         # attributes (dictionary: group, age, etc.)
+      self.atrs  = None         # attributes (VarsObject instance)
 
       self.ddir  = '.'          # split dset name into directory and file
       self.dfile = ''
@@ -535,13 +544,21 @@ class Subject(object):
       if dir: self.ddir = dir
       self.dfile = file
 
+      # init to empty, and merge if something is passed
+      self.atrs = VarsObject('subject %s' % sid)
+      if atrs != None: self.atrs.merge(atrs)
+
    def show(self):
-      print("Subject %s, dset %s, atrs %s" % (self.sid, self.dset, self.atrs))
+      natr = self.atrs.count()-1  # do not include name
+      print("Subject %s, dset %s, natr = %d" % (self.sid, self.dset, natr))
+      print("   ddir = %s\n   dfile = %s\n" % (self.ddir, self.dfile))
+      if natr > 0:
+         self.atrs.show('  attributes: ')
 
 class SubjectList(object):
    """list of Subject elements, with attributes and command writing functions
 
-        - can pass list of SIDs, dset names, attributes (dictionaries)
+        - can pass list of SIDs, dset names, attributes (VarsObject instances)
         - if any lists are past, the lengths must be equal
 
         - given a list of datasets (and no SIDs), try to extract SIDs
@@ -553,12 +570,14 @@ class SubjectList(object):
    def __init__(self, name='subject list', sid_l=None, dset_l=None, atr_l=None,
                 verb=1):
 
-      self.name      = name     # in case there are multiple lists in use
-      self.subjects  = []       # list of Subject instances
-      self.atrs      = []       # complete list of subject attributes
-      self.disp_atrs = []       # attributes to display, in order
-      self.verb      = verb     # verbose level 
-      self.status    = 0        # non-zero is bad 
+      self.name         = name     # in case there are multiple lists in use
+      self.subjects     = []       # list of Subject instances
+      self.atrl         = []       # list of subject attributes (names only)
+      self.disp_atrs    = []       # attributes to display, in order
+      self.common_dir   = ''       # common parent dir to subject dsets
+      self.common_dname = ''       # variable to apply for common_dir ($ddir)
+      self.verb         = verb     # verbose level 
+      self.status       = 0        # non-zero is bad 
 
       if sid_l == None and dset_l == None and atr_l == None: return
 
@@ -583,19 +602,19 @@ class SubjectList(object):
       # okay, fill the subjects and atrs fields
       sid = ''
       dname = ''
-      atr = {}
+      atr = None
       for ind in range(llen):
          if sid_l  != None: sid  = sid_l[ind]
          if dset_l != None: dset = dset_l[ind]
-         if atr_l  != None: atr  = atr_l[ind]
+         if atr_l  != None: atr = atr_l[ind]
          self.add(Subject(sid=sid, dset=dset, atrs=atr))
 
-   def copy(self, sid_l=[], atr='', atrval=''):
+   def copy(self, sid_l=[], atr='', atrval=None):
       """make a full copy of the SubjectList element
 
          start with a complete copy
          if len(sid_l)>0, remove subjects not in list
-         if atr is not '', remove subjects for which atrs[atr]!=atrval
+         if atr is not '', remove subjects for which atrs.atr!=atrval
       """
       # start with everything and then delete
       olen = len(newSL.subjects)
@@ -614,8 +633,8 @@ class SubjectList(object):
          skeep = []
          snuke = []
          for subj in self.subjects:
-            if subj.atrs[atr] == atrval: skeep.append(subj)
-            else                       : snuke.append(subj)
+            if subj.atrs.val(atr) == atrval: skeep.append(subj)
+            else:                            snuke.append(subj)
          if self.verb>2: print '++ SL copy: nuking %d subjs with atr[%s] != %s'\
                                % (atr, atrval)
          for subj in snuke: del(subj)
@@ -629,8 +648,8 @@ class SubjectList(object):
       else:    mstr = ''
       print("SubjectList: %s%s" % (self.name, mstr))
       print("  nsubj = %d, natrs = %d, ndisp_atrs = %d" % \
-               (len(self.subjects), len(self.atrs), len(self.disp_atrs)))
-      print("  atrs      = %s" % self.atrs)
+               (len(self.subjects), len(self.atrl), len(self.disp_atrs)))
+      print("  atrl      = %s" % self.atrl)
       print("  disp_atrs = %s" % self.disp_atrs)
 
       if len(self.subjects) == 0: return
@@ -640,13 +659,26 @@ class SubjectList(object):
          subj.show()
 
    def add(self, subj):
-      """add the subject to the list and update the atrs list"""
+      """add the subject to the list and update the atrl list"""
 
-      for key in subj.atrs.keys():
-         if not key in self.atrs:
-            self.atrs.append(key)
+      for atr in subj.atrs.attributes():
+         if not atr in self.atrl: self.atrl.append(atr)
+
+      self.atrl.sort()
 
       self.subjects.append(subj)
+
+   def set_common_data_dir(self, cname='data_dir'):
+      """return the directory common to all subject ddir names"""
+      cdir = UTIL.common_dir([s.dset for s in self.subjects])
+      if UTIL.is_trivial_dir(cdir):
+         self.common_dir   = ''
+         self.common_dname = ''
+      else:
+         self.common_dir   = cdir
+         self.common_dname = cname
+         if self.verb > 1:
+            print '++ setting common dir, %s = %s' % (cname, cdir)
 
    def set_ids_from_dsets(self, prefix='', suffix='', hpad=0, tpad=0):
       """use the varying part of the dataset names for subject IDs
@@ -727,9 +759,10 @@ class SubjectList(object):
 
       if prefix == '' or prefix == None: prefix = 'ttest++_result'
       if verb > 1: print '-- make_ttest++_command: have prefix %s' % prefix
+      s2 = subjlist2    # sooooo much typing...
 
       if set_labs == None:
-         if subjlist2 == None: set_labs = ['setA']
+         if s2 == None: set_labs = ['setA']
          else:                 set_labs = ['setA', 'setB']
          if verb > 2: print '-- tt++_cmd: adding default set labels'
       if bsubs == None: bsubs, tsubs = ['0'], ['1']
@@ -740,10 +773,35 @@ class SubjectList(object):
       if len(set_labs) > 1: copt = '%*s%s \\\n' % (indent, '', comp_dir)
       else:                 copt = ''
 
+      # maybe we will use directory variables
+      self.set_common_data_dir()
+      if not UTIL.is_trivial_dir(self.common_dir):
+         if s2 != None:
+            s2.set_common_data_dir()
+            if UTIL.is_trivial_dir(s2.common_dir):
+               # then do not use either
+               self.common_dir = ''
+               self.common_dname = ''
+            # else, use both (if same, default variable is okay)
+            elif self.common_dir != s2.common_dir:
+               # different, so update the names to be different
+               self.common_dname = 'data1'
+               s2.common_dname = 'data2'
+
+      cmd = ''
+      if not UTIL.is_trivial_dir(self.common_dir):
+         cmd += '# apply any data directories with variables\n' \
+               'set %s = %s\n' % (self.common_dname, self.common_dir)
+         if s2 != None:
+            if not UTIL.is_trivial_dir(s2.common_dir) \
+               and s2.common_dir != self.common_dir:
+               cmd += 'set %s = %s\n' % (s2.common_dname, s2.common_dir)
+         cmd += '\n'
+
       # command and first set of subject files
-      cmd = '3dttest++ -prefix %s \\\n'    \
-            '%s'                           \
-            '          -setA %s \\\n%s' %  (prefix, copt, set_labs[0],
+      cmd += '3dttest++ -prefix %s \\\n'    \
+             '%s'                           \
+             '          -setA %s \\\n%s' %  (prefix, copt, set_labs[0],
                                 self.make_ttpp_set_list(bsubs[0], indent+3))
 
       # maybe add second set of subject files
@@ -761,15 +819,15 @@ class SubjectList(object):
             return      # failure
 
          # note subject list and sub-brick labels
-         if subjlist2 != None:
-            S = subjlist2
+         if s2 != None:
+            S = s2
             if verb > 2: print '-- second subject list was passed'
          else:
             S = self
             if verb > 2: print '-- no second subject list, using same list'
          if len(bsubs) > 1: b = bsubs[1]
          else:
-            if S != subjlist2:
+            if S != s2:
                print '** make_tt++_cmd: same subject list in comparison'
             b = bsubs[0]
          cmd += '%*s-setB %s \\\n%s' % \
@@ -812,31 +870,57 @@ class SubjectList(object):
 
       if prefix == '' or prefix == None: prefix = 'mema_result'
       if verb > 1: print '++ make_mema_cmd: have prefix %s' % prefix
+      s2 = subjlist2    # sooooo much typing...
 
       if set_labs == None:
-         if subjlist2 == None: set_labs = ['setA']
+         if s2 == None: set_labs = ['setA']
          else:                 set_labs = ['setA', 'setB']
          if verb > 2: print '++ mema_cmd: adding default set labels'
       if bsubs == None: bsubs, tsubs = ['0'], ['1']
 
+      # maybe we will use directory variables
+      self.set_common_data_dir()
+      if not UTIL.is_trivial_dir(self.common_dir):
+         if s2 != None:
+            s2.set_common_data_dir()
+            if UTIL.is_trivial_dir(s2.common_dir):
+               # then do not use either
+               self.common_dir = ''
+               self.common_dname = ''
+            # else, use both (if same, default variable is okay)
+            elif self.common_dir != s2.common_dir:
+               # different, so update the names to be different
+               self.common_dname = 'data1'
+               s2.common_dname = 'data2'
+
+      cmd = ''
+      if not UTIL.is_trivial_dir(self.common_dir):
+         cmd += '# apply any data directories with variables\n' \
+               'set %s = %s\n' % (self.common_dname, self.common_dir)
+         if s2 != None:
+            if not UTIL.is_trivial_dir(s2.common_dir) \
+               and s2.common_dir != self.common_dir:
+               cmd += 'set %s = %s\n' % (s2.common_dname, s2.common_dir)
+         cmd += '\n'
+
       # command and first set of subject files
-      cmd = '3dMEMA -prefix %s \\\n'    \
-            '       -set %s \\\n%s' %   \
+      cmd += '3dMEMA -prefix %s \\\n'    \
+             '       -set %s \\\n%s' %   \
              (prefix,set_labs[0],self.make_mema_set_list(bsubs[0],tsubs[0],10))
 
       # maybe add second set of subject files
       if len(set_labs) > 1:
          if verb > 2: print '-- mema_cmd: have labels for second subject set'
          # note subject list and sub-brick labels
-         if subjlist2 != None:
-            S = subjlist2
+         if s2 != None:
+            S = s2
             if verb > 2: print '-- second subject list was passed'
          else:
             S = self
             if verb > 2: print '-- no second subject list, using same list'
          if len(bsubs) > 1: b, t = bsubs[1], tsubs[1]
          else:
-            if S != subjlist2:
+            if S != s2:
                print '** make_mema_cmd: same subject list in comparison'
             b, t = bsubs[0], tsubs[0]
          cmd += '%7s-set %s \\\n%s' % \
@@ -869,11 +953,17 @@ class SubjectList(object):
       for subj in self.subjects:
          if len(subj.sid) > ml: ml = len(subj.sid)
 
+      if not UTIL.is_trivial_dir(self.common_dir) and self.common_dname:
+         sdir = self.common_dname
+      else: sdir = ''
+
       sstr = ''
       for subj in self.subjects:
+         if sdir: dset = '$%s/%s' % (sdir, subj.dfile)
+         else:    dset = subj.dset
          sstr += '%*s%s "%s[%s]" \\\n%*s "%s[%s]" \\\n' % \
-                 (indent,    '', subj.sid, subj.dset, bsub,
-                  indent+ml, '',           subj.dset, tsub)
+                 (indent,    '', subj.sid, dset, bsub,
+                  indent+ml, '',           dset, tsub)
       return sstr
 
    def make_ttpp_set_list(self, bsub, indent=0):
@@ -888,9 +978,15 @@ class SubjectList(object):
       for subj in self.subjects:
          if len(subj.sid) > ml: ml = len(subj.sid)
 
+      if not UTIL.is_trivial_dir(self.common_dir) and self.common_dname:
+         sdir = self.common_dname
+      else: sdir = ''
+
       sstr = ''
       for subj in self.subjects:
-         sstr += '%*s%s "%s[%s]" \\\n' % (indent, '', subj.sid, subj.dset, bsub)
+         if sdir: dset = '$%s/%s' % (sdir, subj.dfile)
+         else:    dset = subj.dset
+         sstr += '%*s%s "%s[%s]" \\\n' % (indent, '', subj.sid, dset, bsub)
       return sstr
 
 if __name__ == '__main__':
