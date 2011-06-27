@@ -70,7 +70,7 @@ typedef struct {
       int disable_done ;      /* 21 Aug 2008 [rickr] */
 
       int yes_niml ;          /* 28 Feb 2002 */
-               
+
                /* port_niml no longer in use. ZSS June 2011 */
                /* int port_niml ;         10 Dec 2002 */
 
@@ -900,6 +900,17 @@ typedef struct {
 
       int butx , buty ;        /* 17 May 2005 */
 } AFNI_widget_set ;
+
+#define TIPS_PLUS_SHIFT   2
+#define TIPS_MINUS_SHIFT -60
+#define TIPS_TOTAL_SHIFT -90
+
+#define SHIFT_TIPS(iq,xx)                                                 \
+ do{ if( (iq)->vwid->tips_pb != NULL ){                                   \
+       XtVaSetValues( (iq)->vwid->tips_pb, XmNleftOffset, (xx), NULL ) ;  \
+       XMapRaised( XtDisplay( (iq)->vwid->tips_pb) ,                      \
+                    XtWindow( (iq)->vwid->tips_pb)  ) ;                   \
+     } } while(0)
 
 /** picture controls **/
 
