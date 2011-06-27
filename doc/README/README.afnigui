@@ -1,5 +1,5 @@
 ================================================================================
-                             Tips for the AFNI GUI
+                    ----- Usage Tips for the AFNI GUI -----
 ================================================================================
                    ***** Cursor Shapes and Popup Menus *****
 
@@ -45,7 +45,7 @@
        AFNI viewer will bring that viewer's window over to the place where
        you just clicked -- this is useful for finding lost viewers.
    (c) Right-clicking on the 'DataDir' button in the AFNI controller will
-       un-hide the obsolescent 'Define Markers' button.
+       un-hide (or re-hide) the obsolescent 'Define Markers' button.
    (d) Left-clicking on the logo at the lower left of a graph viewer will
        make the logo and menu buttons disappear -- this is intended to help
        you make a clean-looking snapshot of the window.  Left-click again
