@@ -12367,8 +12367,11 @@ ENTRY("ISQ_handle_keypress") ;
 
      case '3':
      case '#':{
-       int rr = (key == '#') ? RENDER_CHECK_UO : RENDER_CHECK_OU ;
-       if( seq->render_mode == rr ) rr = 0 ;
+       int rr = seq->render_mode ;
+
+            if( key == '3'             ) rr = 0 ;
+       else if( rr  == RENDER_CHECK_OU ) rr = RENDER_CHECK_UO ;
+       else                              rr = RENDER_CHECK_OU ;
        seq->render_mode = rr ;
        ISQ_redisplay( seq , -1 , isqDR_display ) ;
        ISQ_draw_winfo( seq ) ;
