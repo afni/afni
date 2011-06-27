@@ -881,6 +881,7 @@ typedef struct {
 
       Widget picture ;
       int    picture_index ;
+      Widget tips_pb ;                    /* 27 Jun 2011 */
 
       Widget file_dialog , file_sbox ;
       XtCallbackProc file_cb ;
@@ -1484,6 +1485,7 @@ extern void AFNI_quit_CB           ( Widget wcall , XtPointer cd , XtPointer cbs
 extern void AFNI_quit_timeout_CB   ( XtPointer , XtIntervalId * ) ;
 extern void AFNI_startup_timeout_CB( XtPointer , XtIntervalId * ) ;
 extern void AFNI_vcheck_flasher    ( Three_D_View * ) ;
+extern void AFNI_tips_CB           ( Widget , XtPointer , XtPointer ) ;
 
 extern void AFNI_startup_layout_CB  ( XtPointer, XtIntervalId * ) ;    /* 23 Sep 2000 */
 extern void AFNI_save_layout_CB     ( Widget, XtPointer, XtPointer ) ;

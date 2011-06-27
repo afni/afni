@@ -4908,6 +4908,7 @@ STATUS("making prog->rowcol") ;
 
    vwid->picture       = NULL ;  /* default ==> no picture */
    vwid->picture_index = 0 ;
+   vwid->tips_pb       = NULL ;
 
 #ifdef WANT_LOGO_BITMAP
    if( im3d->type == AFNI_3DDATA_VIEW ){
@@ -4931,6 +4932,25 @@ STATUS("making prog->rowcol") ;
                  XmNinitialResourcesPersistent , False ,
              NULL ) ;
       MCW_register_help( vwid->picture , AFNI_abohelp ) ;
+
+      vwid->tips_pb =
+         XtVaCreateManagedWidget(
+            "dialog" , xmPushButtonWidgetClass , vwid->top_form ,
+               LABEL_ARG("AFNI Tips") ,
+               XmNtraversalOn , True  ,
+               XmNleftAttachment   , XmATTACH_WIDGET ,
+               XmNleftWidget       , vwid->picture ,
+               XmNleftOffset       , 2 ,
+               XmNbottomAttachment , XmATTACH_OPPOSITE_WIDGET ,
+               XmNbottomWidget     , vwid->picture ,
+               XmNinitialResourcesPersistent , False ,
+            NULL ) ;
+      MCW_register_help( vwid->tips_pb , "Gives some help about\n"
+                                         "parts of the AFNI GUI\n"
+                                         "that are hard to find"  ) ;
+      MCW_register_hint( vwid->tips_pb , "Tips about AFNI interface" ) ;
+      XtAddCallback( vwid->tips_pb , XmNactivateCallback ,
+                     AFNI_tips_CB , im3d ) ;
    }
 #else
    MCW_register_help( imag->rowcol  , AFNI_abohelp ) ;
