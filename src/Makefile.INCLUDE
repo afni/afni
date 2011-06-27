@@ -246,6 +246,9 @@ license.h:../doc/README/README.copyright
 readme_env.h:../doc/README/README.environment
 	quotize readme_env < ../doc/README/README.environment > readme_env.h
 
+readme_afnigui.h:../doc/README/README.afnigui
+	quotize readme_afnigui < ../doc/README/README.afnigui > readme_afnigui.h
+
 Ifile:Ifile.o
 	$(CC) -o Ifile Ifile.o $(LFLAGS) $(LLIBS)
 
