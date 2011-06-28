@@ -43,7 +43,13 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 27 , JUN , 2011 , RWC , "afni" , MICRO , TYPE_MODIFY ,
+  { 28 , JUN , 2011 , RWC , "3dDeconvolve" , MICRO , TYPE_NEW_ENV ,
+   "Ability to skip the 'centering' done in AM2 regression" ,
+   "By setting environment variable AFNI_3dDeconvolve_rawAM2 to YES, as in\n"
+   "the command\n"
+   " 3dDeconvolve -DAFNI_3dDeconvolve_rawAM2=YES ..." } ,
+
+ { 27 , JUN , 2011 , RWC , "afni" , MICRO , TYPE_MODIFY ,
    "Add README.afnigui and AFNI Tips button" ,
    NULL } ,
 
