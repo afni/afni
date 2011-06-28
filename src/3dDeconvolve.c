@@ -4087,10 +4087,16 @@ STATUS("checking for bad param values") ;
           badlev++ ;
         }
         if( nzb > 0 && vmod > 0 ){
-          for( vv=0 ; vv < vmod ; vv++ ){
-            zbar[vv] /= nzb ; /* average */
-            INFO_message("'%s %d' average amplitude#%d=%g",
-                         be->option, is+1,vv+1,zbar[vv]    ) ;
+          if( AFNI_yesenv("AFNI_3dDeconvolve_rawAM2") ){
+            for( vv=0 ; vv < vmod ; vv ++ ) zbar[vv] = 0.0f ;
+            INFO_message("'%s %d': not centering amplitude parameters",
+                         be->option , is+1 ) ;
+          } else {
+            for( vv=0 ; vv < vmod ; vv++ ){
+              zbar[vv] /= nzb ; /* average */
+              INFO_message("'%s %d' average amplitude#%d=%g",
+                           be->option, is+1,vv+1,zbar[vv]    ) ;
+            }
           }
         }
 
