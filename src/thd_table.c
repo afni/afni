@@ -195,11 +195,14 @@ ENTRY("THD_mixed_table_read") ;
    /* break line into sub-strings */
 
    sar = NI_decode_string_list( lbuf+ibot , ";" ) ;
-   if( sar == NULL ){ fclose(fts); RETURN(NULL); }            /* nuthin? */
+   if( sar == NULL ){ fclose(fts); RETURN(NULL); }             /* got nuthin? */
 
-   nlab = sar->num ; if( nlab <= 1 ){
-     if( nlab == 1 )
-        fprintf(stderr,"** short table line (missing label or data?)\n") ;
+   nlab = sar->num ;         /* number of labels = number of separate strings */
+   if( nlab <= 1 ){
+     if( nlab == 1 )                      /* need to have at least 2 columns! */
+       ERROR_message("short table line (missing label or data?) -- %s",fname) ;
+     else
+       ERROR_message("no valid table line found in file %s",fname) ;
      fclose(fts) ; NI_delete_str_array(sar) ; RETURN(NULL) ;
    }
 
@@ -216,7 +219,7 @@ ENTRY("THD_mixed_table_read") ;
    NI_set_attribute( nel , "Labels" , lbuf ) ;
    NI_delete_str_array(sar) ;
 
-   /* now read lines and process them */
+   /* now read following lines and process them */
 
    while(1){
 
