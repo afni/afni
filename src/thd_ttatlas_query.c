@@ -78,14 +78,10 @@ ATLAS_TEMPLATE_LIST *get_G_templates_list(void) {
 #define MAX_FIND_DEFAULT 9            /* max number to find within WAMIRAD  */
 #define WAMIRAD_DEFAULT  7.5           /* search radius: must not exceed 9.5 */
 
-#if 0
-# define POPUP_MESSAGE(sss)  /*nuthin fer now -- RWC quick fix*/
-#else
-  static void PMESS(char *sss){ return; }
-  static void (*POPUP_MESSAGE)(char *) = PMESS ;
-  void TT_setup_popup_func( void (*pf)(char *) )
-   { POPUP_MESSAGE = (pf==NULL) ? PMESS : pf; return; }
-#endif
+static void PMESS(char *sss){ return; }
+static void (*POPUP_MESSAGE)(char *) = PMESS ;
+void TT_setup_popup_func( void (*pf)(char *) )
+ { POPUP_MESSAGE = (pf==NULL) ? PMESS : pf; return; }
 
 static int wami_verb_val = -100; /* Don't access directly */
 
@@ -863,39 +859,6 @@ THD_fvec3 THD_mni__tta_N27( THD_fvec3 mv, int dir )
    LOAD_FVEC3( tv , tx,ty,tz ) ;
    LOAD_FVEC3( tv2 , tx,ty,tz ) ;
 
-#if 0
-   if (0) { /* Meth. 1, Left here should we allow user 
-               someday to specify a .HEAD with their own transform... */
-      INFO_message("What about the path?\nNeed something fool proof\n");
-      if (!MNI_N27_to_TLRC_DSET) {
-        MNI_N27_to_TLRC_DSET = 
-               THD_open_one_dataset( MNI_N27_to_AFNI_TLRC_HEAD ) ;
-        if (!MNI_N27_to_TLRC_DSET) {
-         ERROR_message( "Failed to open transform dset %s\n"
-                        "No transformation done.", MNI_N27_to_AFNI_TLRC_HEAD ) ;
-         return tv ;
-        }
-      }
-      /* get the warp */
-      if (!MNI_N27_to_TLRC_DSET->warp) {
-         ERROR_message("No Warp Found in %s\nNo transformation done.", 
-                        MNI_N27_to_AFNI_TLRC_HEAD ) ;
-         return tv ;
-      }
-      if (MNI_N27_to_TLRC_DSET->warp->type != WARP_TALAIRACH_12_TYPE) {
-         ERROR_message( "Warp of unexpected type in %s.\n"
-                        "No transformation done.", MNI_N27_to_AFNI_TLRC_HEAD ) ;
-         return tv ;
-      }
-
-      if (dir > 0) tv = AFNI_forward_warp_vector(MNI_N27_to_TLRC_DSET->warp, mv);
-      else tv = AFNI_backward_warp_vector(MNI_N27_to_TLRC_DSET->warp, mv);
-      if (1) {
-         INFO_message("tv(Meth 1): %f %f %f\n", tv.xyz[0], tv.xyz[1], tv.xyz[2]);
-      }
-   }
-#endif
-
    /* Meth 2, xform in code, more fool proof*/
    if (!ww) {
       /* load the transform */
@@ -921,11 +884,6 @@ THD_fvec3 THD_mni__tta_N27( THD_fvec3 mv, int dir )
    } else {
       if (dir > 0) tv2 = AFNI_forward_warp_vector((THD_warp *)ww, mv);
       else tv2 = AFNI_backward_warp_vector((THD_warp *)ww, mv);
-   }
-
-   if (0) {
-      INFO_message("tv2(Meth. 2): %f %f %f\n", 
-                   tv2.xyz[0], tv2.xyz[1], tv2.xyz[2]);
    }
 
    return tv2 ;
@@ -1104,15 +1062,13 @@ char Atlas_Voxel_Side( THD_3dim_dataset *dset, int k1d, byte *lrmask)
    RETURN('u');
 }
 /*----------------------------------------------------------------------
-   Return a multi-line string of TT atlas labels near the given point
+   Return a multi-line string of atlas labels near the given point
    (xx,yy,zz are in Dicom order coordinates).
    If NULL is returned, an error happened.  If no labels are near the
-   given point, then a single line saying "you're lost" is returned.
+   given point, then a null string is returned.
    The string returned is malloc()-ed and should be free()-ed later.
    The string will end with a newline '\n' character.
 ------------------------------------------------------------------------*/
-/* ***tbd need to update this for new atlas structures -
-    will need the space, xform and atlas list */
 
 #if 0
 #undef  SS
@@ -1185,7 +1141,7 @@ char * genx_Atlas_Query_to_String (ATLAS_QUERY *wami,
    ADDTO_SARR(sar, lbuf);
 
    /* output decimal places */
-   sprintf(pf, "%%4.%df",dec_places);
+   sprintf(pf, "%%%d.%df",4+dec_places,dec_places);
 
    /* form the string */
    for (i=0; i<N_out_spaces; ++i) {
@@ -1988,10 +1944,6 @@ int init_global_atlas_list () {
       global_atlas_spaces = space_list; 
    }
    
-   if (wami_verb()) {
-      INFO_message(
-         "Daniel: Do we also need to initialize-the old way-"
-         "global_atlas_templates, and more importantly, global_atlas_xfl ?");
        /* drg - we don't make use of global_atlas_templates anywhere. Templates
           may be any dataset now. If we do eventually provide a list somewhere,
           we might create a list using the old defaults. Not sure about the
@@ -2002,7 +1954,6 @@ int init_global_atlas_list () {
           Populating global_atlas_xfl might allow elimination of 
           Atlas_Query_to_String, now made mostly obsolete by 
           genx_Atlas_Query_to_String, but not worth it for now. */
-   }
    
    if (global_atlas_alist && global_atlas_spaces) RETURN(1);
    else RETURN(0);
@@ -2277,10 +2228,6 @@ ENTRY("TT_whereami_old") ;
 
    dset = (dseTT_big_old != NULL) ? dseTT_big_old : dseTT_old ;
 
-#if 0
-if( dset == dseTT_big_old ) fprintf(stderr,"TT_whereami using dseTT_big\n") ;
-else                    fprintf(stderr,"TT_whereami using dseTT\n") ;
-#endif
 
    DSET_load(dset) ;
    b2 = DSET_BRICK_ARRAY(dset,0) ; if( b2 == NULL ) RETURN(NULL) ;
@@ -5105,12 +5052,6 @@ int genx_load_atlas_dset(ATLAS *atlas)
                           atlas->atlas_dset_name);
          }
          /* For the moment, cleanup and return. */
-         if (wami_verb()) { 
-            INFO_message("Daniel: Note that each time a query is called,\n "
-                   "these functions will attempt to reload all \n"
-                   "missing dsets. For efficiency, one might want to prune\n"
-                   "the atlas_list from those dsets that fail to load.");
-         }
          atlas->adh = Free_Atlas_Dset_Holder(atlas->adh);
          RETURN(0);
       }
@@ -5213,17 +5154,6 @@ int set_adh_old_way(ATLAS_DSET_HOLDER *adh, char *aname)
      adh->maxkeyval = -1; /* not appropriate */
      adh->minkeyval = INT_MAX; /* not appropriate */
      adh->probkey = 0;
-/*     if (wami_verb())
-         INFO_message("Daniel, why fill apl2 here?"
-                      " Would we store it in such a dset?"
-                      " Should we just include a reference to the atlas"
-                      " from which we should borrow the list?\n"
-                      " I see why you do it this way, and I think"
-                      " that is fine. But we need to be sure this does"
-                      " not flag such a dset as an ROI type dset in AFNI"
-                      " and messup the colorbar, etc."); */
-/* drg - not sure what you want here. We want ROI dsets and atlases to be
-     pretty much the same thing everywhere */
 
      adh->apl2= atlas_point_to_atlas_point_list(apl->at_point, apl->n_points);
                ; /* use cytoarchitectonic list for probability maps*/
@@ -5262,10 +5192,6 @@ byte is_atlas_key_labeled(ATLAS *atlas, int key) {
 
 /* return 1 if atlas has integer key labels, 0 otherwise*/
 byte is_integral_atlas(ATLAS *atlas) {
-   if (wami_verb()) {
-      WARNING_message(
-         "Daniel, what is the proper logic here? Check where I am using it ...");
-   }
 /* drg - not sure this function is really useful. It seems is_probabilistic()
    below is good enough for where it's used as equivalent to not probabilisic.
    I think I had used the existence of the point list as a flag of whether
@@ -5279,8 +5205,7 @@ byte is_integral_atlas(ATLAS *atlas) {
 byte is_probabilistic_atlas(ATLAS *atlas) {
    if (wami_verb()) {
       WARNING_message(
-         "Not sure that probkey decision is legitimate (%f, %p)\n"
-         "What should we do here?",
+         "Checking for probabilistic atlas probkey and apl2 pointer (%f, %p)",
                   atlas->adh->probkey, atlas->adh->apl2);
    }
    if (atlas->adh->probkey != 0.0) return(0);
@@ -6497,12 +6422,6 @@ ATLAS_POINT_LIST *atlas_point_list(char *atname)
 
 char *atlas_version_string(char *atname) {
    ATLAS *atlas;
-   
-   if (wami_verb()) {
-      WARNING_message(
-         "Daniel: I don't know how to get at this in the modern way.\n"
-         "We need to revisit version and reference options...");
-   }
       
    if (1 || !(atlas = Atlas_With_Trimming(atname, 1, NULL))) {
       if (wami_verb()) 
@@ -6724,14 +6643,14 @@ env_space_list(int *nspaces)
 
 
 /* return the number of decimal places to use in wami output.
-   set by the environment variable, AFNI_WAMI_DEC_PLACES */
+   set by the environment variable, AFNI_WHEREAMI_DEC_PLACES */
 int
 env_dec_places()
 {
    char *envplaces = NULL;
    int decplaces = 0, tp;
 
-   envplaces= my_getenv("AFNI_WAMI_DEC_PLACES");
+   envplaces= my_getenv("AFNI_WHEREAMI_DEC_PLACES");
    if(!envplaces) return(decplaces);
    tp = atoi(envplaces);
    if((tp<0)||(tp>10))
