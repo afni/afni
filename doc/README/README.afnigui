@@ -1,5 +1,5 @@
 ================================================================================
-                    ----- Usage Tips for the AFNI GUI -----
+                ----===|  Usage Tips for the AFNI GUI  |===----
 ================================================================================
                     ***** AFNI For Absolute Beginners *****
 
@@ -15,24 +15,40 @@
           and restart the program (this is what I always do); or,
        ++ Use the 'DataDir Read' button in the second column of the main AFNI
           controller to navigate to a directory with some datasets.
-      When there is no data, AFNI creates a 'dummy' dataset for you to look
-      at, if you want to play with the image viewers.
+      When there is no data, AFNI creates a 'dummy' dataset for you to look at,
+      if you want to play with the image viewers.
   (c) To open an image viewer, click on one of the 'Image' buttons in the left
       column of the main AFNI controller.
+       ++ Left-click in the image to move the crosshairs around.
+       ++ Click or click-drag in the slider below the image to change slice.
+       ++ The controls to the right of the image let you adjust the image
+          contrast, brightness, zoom factor, etc.
+       ++ The controls to the bottom of the image let you carry out various
+          operations on the image, such as saving to JPEG format, and making
+          a montage (array) of slice images.
   (d) If a dataset has more than one 3D volume in it (usually that means it
       has a time axis, like an FMRI EPI dataset), then you can use the 'Graph'
-      buttons to view graphs of the data time series.
+      buttons to view an array of graphs of the voxel data time series.
+       ++ The crosshairs in the image viewer that corresponds to the graph
+          viewer change to a small box to indicate which voxels are the source
+          of the data in the graph array.
   (e) The viewpoint of multiple image and graph viewers (the focus voxel at the
       crosshairs) is always locked together -- Left-click in one image to move
       the crosshairs, and all other open image and graph viewers will jump, too.
-  (f) At any moment, you can have one Underlay dataset (grayscale) and one
-      Overlay dataset (color).  To choose which datasets are visible, use
+       ++ Moving the time index in a graph viewer (by clicking in the central
+          sub-graph, or by using the 'Index' control in the main AFNI window)
+          will cause all the image and graph viewers to display at the new
+          time index.
+  (f) At any moment, you can have one underlay dataset (grayscale) and one
+      overlay dataset (color).  To choose which datasets are visible, use
       the 'UnderLay' and 'OverLay' button in the second column of the AFNI
       controller.
        ++ To control whether the color overlay is visible, click on the 
           'See OverLay' toggle button.
        ++ To manage how the numbers in the overlay dataset are converted into
           colors, click on 'Define OverLay' to open up a new control panel.
+       ++ The active underlay and overlay dataset names are shown in the title
+          bar of the AFNI controller window.
   (g) Don't be afraid of the software!  The popup hints will help.  The button
       'BHelp' will give you longer help about individual buttons -- click on
       the BHelp button, then click on any AFNI button to get a small text box
@@ -43,7 +59,7 @@
       And don't forget the AFNI message board at
         http://afni.nimh.nih.gov/afni/community/board
 --------------------------------------------------------------------------------
-                   ***** Cursor Shapes and Popup Menus *****
+             ***** Cursor Shapes and Right-Click Popup Menus *****
 
 (2) On most systems, the X11 cursor used in AFNI is an orange arrow pointing
     at about '10:30' on the clock face.  However, the arrow becomes yellow
@@ -99,9 +115,11 @@
    (f) In an image viewer window, if you press-and-hold-down the Left mouse
        button, then drag the cursor vertically and horizontally (while still
        holding the Left button down), the contrast and brightness of the
-       grayscale underlay changes as you move.
+       grayscale underlay changes as you move the mouse.
    (g) To exit AFNI quickly when multiple controllers are open, hold down the
        Shift key when you press the 'done' button (in any AFNI controller).
+       The usual requirement of pressing 'done' twice within 5 second is
+       skipped, and all AFNI controllers exit immediately.
    (h) Left-clicking in the logo square to the right of the AFNI controller
        'done' button will cause the AFNI splash screen to popup.  You can
        close the splash screen window again via the usual X11 controls on
