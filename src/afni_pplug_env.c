@@ -119,6 +119,8 @@ static void ENV_cwd( char * ) ;           /* 22 Feb 2001 */
 static void ENV_redraw_titles( char * );  /* 21 Dec 2004 */
 static void ENV_redisplay( char * );      /* 21 Mar 2005 */
 static void ENV_setjpegquality(char *);   /* 11 May 2006 */
+static void ENV_wami_maxrad(char *vname); /* 27 Jun 2011 */
+static void ENV_wami_maxfind(char *vname); /* 27 Jun 2011 */
 
 #ifdef USE_SESSTRAIL
 static void ENV_sesstrail( char * ) ;
@@ -531,6 +533,17 @@ PLUGIN_interface * ENV_init(void)
    ENV_add_string( "AFNI_ORT_COLORS" ,
                    "Colors for the FIM Ort in AFNI Graph viewer" ,
                    0,NULL , NULL ) ;
+
+   /* 27 Jun 2011 [DRG] */
+   ENV_add_numeric( "AFNI_WHEREAMI_DEC_PLACES" ,
+                    "Number of decimal places for whereami output" ,
+                    0,4,0,0 , NULL ) ;
+   ENV_add_numeric( "AFNI_WHEREAMI_MAX_FIND" ,
+                    "Maximum limit for structures from an atlas for whereami output" ,
+                    1,50,0,9 , ENV_wami_maxfind ) ;
+   ENV_add_string( "AFNI_WHEREAMI_MAX_RAD" ,
+                "Maximum radius for structures from an atlas for whereami output" ,
+                 0, NULL, ENV_wami_maxrad ) ;
 
    /*--------- Sort list of variables [21 Feb 2007]  -----------*/
 
@@ -987,4 +1000,28 @@ static void ENV_setjpegquality(char *vname)
 {
    ISQ_setup_ppmto_filters();
 }
+
+static void ENV_wami_maxrad(char *vname)
+{
+   float maxrad;
+
+   char *str = getenv(vname) ;
+   if(!str) return;
+   maxrad = strtod(str, NULL);
+   if(maxrad<=0.0) return;
+   Set_Whereami_Max_Rad(maxrad);
+}
+
+static void ENV_wami_maxfind(char *vname)
+{
+   int maxfind;
+
+   char *str = getenv(vname) ;
+   if(!str) return;
+   maxfind = atoi(str);
+   if(maxfind<=0) return;
+   Set_Whereami_Max_Find(maxfind);
+}
+
 #endif
+/* endif above is for if plugins are compiled - "#else" near top of file*/
