@@ -72,6 +72,20 @@ int main( int argc , char *argv[] )
 "The loop body renames each file wilma.0001 to wilma.0020 to barney.0001\n"
 "to barney.0020.  Read the man page for csh to get more information.  In\n"
 "particular, the csh built-in command '@' can be useful.\n"
+"\n"
+"Shuffle Example:\n"
+"----------------\n"
+"You can use the 'S' mode to reorder a dataset or 1D file randomly.\n"
+"Suppose you have several 1D files with 60 columns and you want to rearrange\n"
+"each one in the same random way -- interchanging columns to scramble some\n"
+"stimulus amplitude modulation sequences, say:\n"
+"  count -dig 1 0 59 S > randorder.1D\n"
+"  1dcat A.1D\"[`cat randorder.1D`]\" > Areordered.1D\n"
+"  1dcat B.1D\"[`cat randorder.1D`]\" > Breordered.1D\n"
+"  1dcat C.1D\"[`cat randorder.1D`]\" > Creordered.1D\n"
+"Unlike 'R', which can produce duplicates, 'S' will give set of unique numbers.\n"
+"\n"
+"-- Written by RWCox back in the ancient mists of forgotten time --\n\n"
      ) ;
 
      exit(0) ;
@@ -295,6 +309,8 @@ int main( int argc , char *argv[] )
    if( !col ) printf( "\n" ) ;
    exit(0) ;
 }
+
+/*---------------------------------------------------------------------------*/
 
 int ranco( int bot , int top , long int seed)
 {
