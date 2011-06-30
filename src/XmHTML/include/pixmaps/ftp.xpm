@@ -1,0 +1,36 @@
+/* XPM */
+static char *__builtin_w3c_icon_ftp[] = {
+/* width height ncolors chars_per_pixel */
+"20 22 7 1",
+/* colors */
+"  c #000000",
+". c #999999",
+"X c #660000",
+"o c #333333",
+"O c none",
+"+ c #FFFFFF",
+"@ c #FF3333",
+/* pixels */
+"OOOOoooooOOOOOOOOOOO",
+"OOOOo++o+oOOOOOOOOOO",
+"OOOOo++o++oOOOOOOOOO",
+"OOOOo++o+++oOOOOOOOO",
+"OOOOo++o++++oOOOOOOO",
+"OOOOo++ o o o OOOOOO",
+"OOOOo++       OOOOOO",
+"OOOOo++++.... OOOOOO",
+"OOOO@X++++..X@OOOOOO",
+"OOO@@X++++++X@@OOOOO",
+"OO@@@X++++++X@@@OOOO",
+"O@@@@@@@@@@@@@@@@OOO",
+"@@@@@@@@@@@@@@@@@@OO",
+"X@@@@@@@@@@@@@@@@XOO",
+"OX@@@XXXXXXXX@@@XOOO",
+"OOX@@X++++++X@@XOOOO",
+"OOOX@X++++++X@XOOOOO",
+"OOOOXX++++++XXOOOOOO",
+"OOOOo+++++++. OOOOOO",
+"OOOOo+++++++. OOOOOO",
+"OOOOoo......o OOOOOO",
+"OOOOOO        OOOOOO"
+};

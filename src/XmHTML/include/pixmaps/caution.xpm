@@ -1,0 +1,37 @@
+/* XPM */
+static char *__builtin_w3c_icon_caution[] = {
+/* width height ncolors chars_per_pixel */
+"20 22 8 1",
+/* colors */
+"  c #000000",
+". c #999999",
+"X c #660000",
+"o c #333333",
+"O c none",
+"+ c #FFCC99",
+"@ c #FFFFFF",
+"# c #FF3333",
+/* pixels */
+"oooooooooooooOOOOOOO",
+"o@@@@@@@@@@o@oOOOOOO",
+"o@@@@@@@@@@o@@oOOOOO",
+"o@@@@@XXXX@o@@@oOOOO",
+"o@@@@@X###@o@@@@oOOO",
+"o@@@@@X###@ o o o OO",
+"o@@@@@X###@       OO",
+"o@@@@@X###@@..... OO",
+"o@@@@@X###@@@.... OO",
+"o@@@@@X###@@@@@@. OO",
+"o@@@@@X###@@@@@@. OO",
+"o@@@@@+##+@@@@@@. OO",
+"o@@@@@@##@@@@@@@. OO",
+"o@@@@@@##@@@@@@@. OO",
+"o@@@@@@@@@@@@@@@. OO",
+"o@@@@@XXXX@@@@@@. OO",
+"o@@@@@X###@@@@@@. OO",
+"o@@@@@X###@@@@@@. OO",
+"o@@@@@@@@@@@@@@@. OO",
+"o@@@@@@@@@@@@@@@. OO",
+"oo..............o OO",
+"OO                OO"
+};

@@ -1,0 +1,34 @@
+/* XPM */
+static char *__builtin_w3c_icon_folder[] = {
+/* width height ncolors chars_per_pixel */
+"20 22 5 1",
+/* colors */
+"  c #000000",
+". c #996633",
+"X c #333333",
+"o c none",
+"O c #FFCC99",
+/* pixels */
+"oooooooooooooooooooo",
+"oooooooooooooooooooo",
+"oooooooooooooooooooo",
+"oooooooooooooooooooo",
+"oo        oooooooooo",
+"o OOOOOOOO ooooooooo",
+" OOOOOOOOOO      ooo",
+" .OOOOOOOO.OOOOOO oo",
+" O........OOOOOOO. o",
+" OOOOOOOOOOOOOOO..X ",
+" OOOOOOOOOOOOOOOO.X ",
+" OOOOOOOOOOOOOOO..X ",
+" OOOOOOOOOOOOOOOO.X ",
+" OOOOOOOOOOOOOOO..X ",
+" OOOOOOOOOOOOOOOO.X ",
+" OOOOOOOOOOOOOOO..X ",
+" OOOOOOOOOOOOOOOO.X ",
+" OOOOOOOOOOOOOOO..X ",
+" OO.O.O.O.O.O.O.O.X ",
+"o ...............XX ",
+"oo XXXXXXXXXXXXXXX X",
+"ooo               Xo"
+};
