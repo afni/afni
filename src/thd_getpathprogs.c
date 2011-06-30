@@ -33,8 +33,9 @@ ENTRY("THD_find_executable") ;
 /*----------------------------------------------------------------------------*/
 /*! Find a regular file in the PATH by its name, if it exists.
     Does not include directories.
-    If not, NULL is returned.  If it exists, a pointer to static storage
-    is returned (i.e., don't free() this pointer!).
+    If not, NULL is returned.
+    If it exists, a pointer to malloc-ed storage is returned
+    (e.g., free it when you are done).
 ------------------------------------------------------------------------------*/
 
 char * THD_find_regular_file( char *ename )
@@ -163,7 +164,7 @@ ENTRY("THD_getpathprogs") ;
          ADDTO_SARR(qlist,ename) ;
 
          /* read this directory */
-         tlist = THD_get_all_files( ename, exec_flag ) ; 
+         tlist = THD_get_all_files( ename, exec_flag ) ;
          if( tlist != NULL ){
             for( ii=0 ; ii < tlist->num ; ii++ )    /* move names to output */
                ADDTO_SARR( elist , tlist->ar[ii] ) ;
@@ -211,7 +212,7 @@ STATUS("call THD_extract_regular_files") ;
    if( rlist == NULL ) RETURN(NULL) ;
 
    /* return regular list if not looking for executables */
-   if(!exec_flag) RETURN(rlist);  
+   if(!exec_flag) RETURN(rlist);
 
    INIT_SARR( outar ) ;
 
