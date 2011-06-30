@@ -39,11 +39,27 @@ static char *htmlize( char *msg )
    if( strncmp(msg,"<html>",6) == 0 ) return msg ;
 
    if( strncmp(msg,"file:",5) == 0 ){      /* read file */
-     char *qqq = AFNI_suck_file(msg+5) ;
+     char *qqq=AFNI_suck_file(msg+5) ; char *base,*dnam ; int nbas ;
      if( qqq != NULL )
        mmm = qqq ;
      else
        mmm = strdup("<html><body><h1>Dummy</h1><h2>Message</h2></body></html>") ;
+
+     base = strcasestr(mmm,"<base href=>") ;
+     if( base != NULL ){
+       dnam = strdup(msg+5) ; qqq  = THD_trailname(dnam,0) ;
+       if( qqq != NULL && qqq != dnam ){
+         *qqq = '\0' ;
+         nbas = 11 + (base-mmm) ;
+         qqq  = (char *)malloc(strlen(mmm)+strlen(dnam)+64) ;
+         memcpy( qqq , mmm , nbas ) ; qqq[nbas] = '\0' ;
+         strcat( qqq , "\"" ) ; strcat( qqq , dnam ) ; strcat( qqq , "\">" ) ;
+         strcat( qqq , base + 12 ) ;
+         free(mmm) ; mmm = qqq ;
+       }
+       free(dnam) ;
+     }
+
    } else {                                /* add HTML stuff */
      mmm = (char *)malloc(sizeof(char)*(strlen(msg)+64)) ;
      strcpy(mmm,"<html><body>\n") ;
@@ -65,7 +81,7 @@ MCW_htmlwin * new_MCW_htmlwin( Widget wpar , char *msg ,
    Position xroot , yroot ;
    Screen *scr ;
    Arg wa[64] ; int na ; Widget ws ;
-   char *wtype = "AFNI" ;
+   char *wtype = "help" ;
    MCW_htmlwin *hw ;
    char *mymsg ;
 
