@@ -1,0 +1,35 @@
+/* XPM */
+static char *__builtin_w3c_icon_telnet[] = {
+/* width height ncolors chars_per_pixel */
+"20 22 6 1",
+/* colors */
+"  c #000000",
+". c #999999",
+"X c #333333",
+"o c none",
+"O c #FFFFFF",
+"+ c #66CCFF",
+/* pixels */
+"oooooooooooooooooooo",
+"oooooooooooooooooooo",
+"oooooooooooooooooooo",
+"oooo           ooooo",
+"ooo OOOOOOOOOOO oooo",
+"ooo O         O Xooo",
+"ooo O OO+++++XO Xooo",
+"ooo O O++++++XO Xooo",
+"ooo O +++++++XO Xooo",
+"ooo O +++++++XO Xooo",
+"ooo O XXXXXXXXO Xooo",
+"ooo OOOOOOOOOOO Xooo",
+"oXXX           XXXoo",
+"oX...............X o",
+"oX.XXXXXXXXXXXXXXX o",
+"oX...............X o",
+"oX. . .         .X o",
+"oo .OOOOOOOOOOO.  oo",
+"o .OX.X.X.X.X.XO.  o",
+" .OX.X.X.X.X.X.XO. X",
+"                   X",
+"oXXXXXXXXXXXXXXXXXXo"
+};
