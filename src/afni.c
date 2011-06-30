@@ -1268,7 +1268,7 @@ static char *FALLback[] =
       "AFNI*font7*fontList:        7x13=charset1"        ,
       "AFNI*font6*fontList:        6x10=charset1"        ,
       "AFNI*background:            gray20"               ,
-      "AFNI*menu*background:       gray12"               ,
+      "AFNI*menu*background:       gray10"               ,
       "AFNI*borderColor:           gray20"               ,
       "AFNI*foreground:            yellow"               ,
       "AFNI*borderWidth:           0"                    ,
