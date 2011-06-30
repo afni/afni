@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 30, JUN, 2011, RCR, "afni_proc.c", MICRO, TYPE_MODIFY,
+   "renamed aligned anat output (from align_epi_anat.py)",
+   "This should make it clear whether or not the output anat should be used"
+ } ,
+
  { 27, JUN, 2011, RCR, "gen_group_command.py", MINOR, TYPE_NEW_OPT,
    "added -dset_index0_list/-dset_index1_list options, etc.",
    "- ttest++ and MEMA commands now apply directories to datasets\n"

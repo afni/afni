@@ -266,27 +266,35 @@ def db_cmd_align(proc, block):
                             ' '.join(UTIL.quotize_list(opt.parlist, '', 1))
     else:   extra_opts = ''
 
+    # note whether this the aea output is expected to be used
+    opt = proc.find_block_opt('volreg', '-volreg_align_e2a')
+    if opt: # if the option was passed, the output is junk
+        use_output = 0
+        suffix = '_al_junk'
+    else:   # otherwise, we will use it
+        use_output = 1
+        suffix = '_al_keep'
+
     # write commands
     cmd =       '# %s\n'                                        \
                 '# align anatomy to EPI registration base\n'    \
                 % block_header('align')
     cmd = cmd + 'align_epi_anat.py -anat2epi -anat %s \\\n'             \
+                '       -suffix %s \\\n'                                \
                 '       -epi %s -epi_base %d \\\n'                      \
                 '%s'                                                    \
                 '%s'                                                    \
                 '       -volreg off -tshift off\n\n'                    \
-                % (proc.anat.pv(), basevol, bind, essopt, extra_opts)
+                % (proc.anat.pv(), suffix, basevol, bind, essopt, extra_opts)
 
     # store alignment matrix file for possible later use
-    proc.a2e_mat = "%s_al_mat.aff12.1D" % proc.anat.prefix
+    proc.a2e_mat = "%s%s_mat.aff12.1D" % (proc.anat.prefix, suffix)
 
     # update anat and tlrc to aligned one, unless going e2a at volreg
-    opt = None
-    vblock = proc.find_block('volreg')
-    if vblock: opt = vblock.opts.find_opt('-volreg_align_e2a')
-    if not opt:
-        proc.anat.prefix = "%s_al" % proc.anat.prefix
-        if proc.tlrcanat: proc.tlrcanat.prefix = "%s_al" % proc.tlrcanat.prefix
+    if use_output:
+        proc.anat.prefix = "%s%s" % (proc.anat.prefix, suffix)
+        if proc.tlrcanat:
+            proc.tlrcanat.prefix = "%s%s" % (proc.tlrcanat.prefix, suffix)
         proc.tlrc_ss = 0        # default to no skull-strip
 
     # note the alignment in EPIs warp bitmap (2=a2e)
@@ -1541,7 +1549,10 @@ def anat_mask_command(proc, block):
         anat = proc.anat
         ss = 'aligned'
     elif proc.warp_epi & WARP_EPI_ALIGN_E2A:
-        anat = proc.anat.new(proc.anat.prefix+'_al')
+        # here have have a junk anat, but one that was skull stripped, so
+        # invert the stripped anat back to match the orignal anat
+        # (since there is no 'ss' version left over)
+        anat = proc.anat.new(proc.anat.prefix+'_al_junk')
         ss = 'aligned'
     else: # should not happen
         print '** anat_mask_command: invalid warp_epi = %d' % proc.warp_epi
@@ -3864,17 +3875,21 @@ g_help_string = """
            The result of the align block is an 'anat_al' dataset.  This will be
            in alignment with the EPI base (or -align_epi_ext_dset).
 
+           In the default case of anat -> EPI alignment, the aligned anatomy
+           is acutally useful going forward, and is so named 'anat_al_keep'.
+
            Additionally, if the -volreg_align_e2a option is used (thus aligning
-           the EPI to the original anat), then the anat_al dataset is no longer
-           very useful.  At that point the pb*.volreg.* datasets are aligned
-           with the original anat (and possibly in Talairach space, if the
-           -volreg_tlrc_warp or _adwarp option was applied).
+           the EPI to the original anat), then the aligned anat dataset is no
+           longer very useful, and is so named 'anat_al_junk'.  At that point
+           the pb*.volreg.* datasets are aligned with the original anat (and
+           possibly in Talairach space, if the -volreg_tlrc_warp or _adwarp
+           option was applied).
 
          Checking the results:
 
            The pb*.volreg.* volumes should be aligned with the anat.  If
            -volreg_align_e2a was used, it will be with the original anat.
-           If not, then it will be with anat_al.
+           If not, then it will be with anat_al_keep.
 
            So compare the volreg EPI with the appropriate anatomical dataset.
 
