@@ -261,9 +261,12 @@ g_history = """
         - make regress TSNR dataset by default (added option -compute_tsnr)
     2.54 Jun 03 2011: volreg tsnr is not default
         - added -volreg_compute_tsnr (def no), -regress_compute_tsnr (def yes)
+    2.55 Jun 30 2011: rename aligned anat output (from align_epi_anat.py)
+        - OLD_al_keep, if output anat is useful (want anat -> EPI  alignment)
+        - OLD_al_junk, if output anat is not    (want EPI  -> anat alignment)
 """
 
-g_version = "version 2.54, June 3, 2011"
+g_version = "version 2.55, June 30, 2011"
 
 # version of AFNI required for script execution
 g_requires_afni = "4 Nov 2010"
@@ -1204,6 +1207,12 @@ class SubjProcSream:
     def find_block(self, label):
         for block in self.blocks:
             if block.label == label: return block
+        return None
+
+    def find_block_opt(self, label, opt_name):
+        """return any found comompt instance in block.opts"""
+        for block in self.blocks:
+            if block.label == label: return block.opts.find_opt(opt_name)
         return None
 
     def find_block_index(self, label):
