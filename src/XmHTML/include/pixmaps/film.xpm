@@ -1,0 +1,38 @@
+/* XPM */
+static char *__builtin_w3c_icon_film[] = {
+/* width height ncolors chars_per_pixel */
+"20 22 9 1",
+/* colors */
+"  c #000000",
+". c #003366",
+"X c #999999",
+"o c #756646",
+"O c #333333",
+"+ c #CCCCCC",
+"@ c none",
+"# c #FFFFFF",
+"$ c #008D7D",
+/* pixels */
+"                 @@@",
+" ++           ++ O@@",
+" ++ oooooooo# ++ O@@",
+"    oXXXXXXX#    O@@",
+" ++ XXXXXXXX# ++ O@@",
+" ++ oXXXXXXX# ++ O@@",
+"    $XXXXXXX#    O@@",
+" ++ oXXXXXXX# ++ O@@",
+" ++ oXXXXXXX# ++ O@@",
+"    #########    O@@",
+" ++           ++ O@@",
+" ++ oooooooo# ++ O@@",
+"    oXXXXXXX#    O@@",
+" ++ XXXXXXXX# ++ O@@",
+" ++ .XXXXXXX# ++ O@@",
+"    oXXXXXXX#    O@@",
+" ++ XXXXXXXX# ++ O@@",
+" ++ oXXXXXXX# ++ O@@",
+"    #########    O@@",
+" ++           ++ O@@",
+" ++           ++ O@@",
+"@OOOOOOOOOOOOOOOOO@@"
+};

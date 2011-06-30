@@ -1,0 +1,36 @@
+/* XPM */
+static char *__builtin_w3c_icon_compressed_document[] = {
+/* width height ncolors chars_per_pixel */
+"20 22 7 1",
+/* colors */
+"  c #000000",
+". c #999999",
+"X c #660000",
+"o c #333333",
+"O c none",
+"+ c #FFFFFF",
+"@ c #FF3333",
+/* pixels */
+"OOOOoooooOOOOOOOOOOO",
+"OOOOo++o+oOOOOOOOOOO",
+"OOOOo++o++oOOOOOOOOO",
+"OOOOo++o+++oOOOOOOOO",
+"OOOOo++o++++oOOOOOOO",
+"OOOOo++ o o o OOOOOO",
+"OOOOo++       OOOOOO",
+"OOOOo++++.... OOOOOO",
+"X@OOo+++++... OO@XOO",
+"X@@Oo+++++++. O@@XOO",
+"X@@@o+++++++. @@@XOO",
+"X@@@@+++++++.@@@@XOO",
+"X@@@@@++++++@@@@@XOO",
+"X@@@@X++++++X@@@@XOO",
+"X@@@X+++++++.X@@@XOO",
+"X@@Xo+++++++. X@@XOO",
+"X@XOo+++++++. OX@XOO",
+"XXOOo+++++++. OOXXOO",
+"OOOOo+++++++. OOOOOO",
+"OOOOo+++++++. OOOOOO",
+"OOOOoo......o OOOOOO",
+"OOOOOO        OOOOOO"
+};
