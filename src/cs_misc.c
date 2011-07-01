@@ -134,7 +134,8 @@ int strcmp_aboot( char *a , char *b )  /* 12 Mar 2007 */
    free(bb); free(aa); return ii;
 }
 
-/*! function to write a value in nice formatted ways Daniel Glen (put here by ZSS) */
+/*-----------------------------------------------------------------------------*/
+/* function to write a value in nice formatted ways Daniel Glen (moved by ZSS) */
 
 char *format_value_4print(double value, int oform, char *formatstr)
 {
@@ -220,4 +221,51 @@ char *format_value_4print(double value, int oform, char *formatstr)
          break;
    }
    return(sans);
+}
+
+/*----------------------------------------------------------------------------*/
+/* Substitute repl for targ in src.  Return is NULL if nothing was done;
+   otherwise, return value is a new malloc-ed string with the changes made.
+   Not particularly efficient, but seems to work.  [RWCox - 01 Jul 2011]
+*//*--------------------------------------------------------------------------*/
+
+char * string_substitute( char *src , char *targ , char *repl )
+{
+   char *spt , *tpt , **ptarg=NULL , *snew ;
+   int ntarg , ltarg , lrepl , ii ;
+
+   if( src  == NULL || *src  == '\0' ) return NULL ;
+   if( targ == NULL || *targ == '\0' ) return NULL ;
+   if( repl == NULL ) repl = "\0" ;
+
+   /* find and make a list of pointers to all targets inside src */
+
+   spt = src ; ntarg = 0 ; ltarg = strlen(targ) ; lrepl = strlen(repl) ;
+   while(1){
+     tpt = strstr(spt,targ) ; if( tpt == NULL ) break ; /* none left */
+     ntarg++ ;
+     ptarg = (char **)realloc(ptarg,sizeof(char *)*ntarg) ;
+     ptarg[ntarg-1] = tpt ; spt = tpt+ltarg ;
+   }
+   if( ntarg == 0 ) return NULL ;
+
+   /* space for new string */
+
+   snew = (char *)calloc( strlen(src)+ntarg*(lrepl-ltarg+4)+64 , sizeof(char) ) ;
+
+   /* for each target:
+        - copy the string from spt up to the target location
+        - copy the replacement
+        - move spt up to the end of the target
+      when done, copy the string after the end of the last target */
+
+   spt = src ;
+   for( ii=0 ; ii < ntarg ; ii++ ){
+     strncat( snew , spt , sizeof(char)*(ptarg[ii]-spt) ) ;
+     strcat ( snew , repl ) ;
+     spt = ptarg[ii] + ltarg ;
+   }
+   strcat( snew , spt ) ;
+
+   free(ptarg) ; return snew ;
 }
