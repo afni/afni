@@ -394,17 +394,25 @@ PARSE:
          set SubLoc = $cnt		
 		   if ($SubLoc == $Narg) then
 				echo "Need option after -rowfile"
-            goto END
+            goto BEND
 			else
 				@ cnt ++
 				set rowfile = "$argv[$cnt]"
+            if ( ! -f $rowfile ) then
+               if ( -f $rowfile.1D ) then
+                  set rowfile = $rowfile.1D
+               else
+                  echo "Neither $rowfile nor $rowfile.1D exist"
+                  goto BEND
+               endif
+            endif
             if ("${rowfile:r}.1D" != "$rowfile") then
                echo "rowfile must have a .1D extension"
             endif
             set nnn = `3dnvals -all $rowfile`
             if ( $nnn[1] != 1 ) then
                echo "$rowfile must be a one row file"
-               goto END
+               goto BEND
             endif
             set NxtInd = $cnt
 			endif
