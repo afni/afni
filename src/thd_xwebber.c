@@ -56,6 +56,7 @@ static char *htmlize( char *msg )
          strcat( qqq , "\"" ) ; strcat( qqq , dnam ) ; strcat( qqq , "\">" ) ;
          strcat( qqq , base + 12 ) ;
          free(mmm) ; mmm = qqq ;
+         /** INFO_message("xwebber:\n%.222s",mmm) ; **/
        }
        free(dnam) ;
      }
