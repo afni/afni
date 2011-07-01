@@ -2382,7 +2382,7 @@ cjpeg:
           $(MAKE) clean ; $(RM) Makefile )
 
 libXmHTML.a:
-	( cd XmHTML ; make http lib 'CC=$(CC)' ; \
+	( cd XmHTML ; make lib 'CC=$(CC)' 'II=$(IFLAGS)' ; \
 		$(MV) lib/libXmHTML.a .. ; make clean   )
 
 thd_xwebber.o:thd_xwebber.c

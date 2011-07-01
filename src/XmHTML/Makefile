@@ -58,7 +58,7 @@ MAKEDEPEND= gccmakedep
 #                   #
 #####################
 # CC       = cc
-CFLAGS   = -g -Wall -O2
+CFLAGS   = -Wall -O2
 LDFLAGS  = 
 
 # The following flags are *very* usefull if you are getting unresolved
@@ -170,7 +170,7 @@ PLATFORMINC=-I../../include/XmHTML -I/usr/X11R6/include
 # include directories
 # If using dmalloc, add the path where the dmalloc.h include file can be 
 # found. On my system it's in /usr/local/include
-INCLUDES = $(LIBINC) $(PLATFORMINC) $(IMAGEINCLUDES) 
+INCLUDES = $(LIBINC) $(PLATFORMINC) $(IMAGEINCLUDES) $(II)
 
 LIBDIR = -L/usr/X11R6/lib -L../../..
 LIBS   = -lXm -lXpm -lXmu -lXp -lXt -lXext -lX11 -lSM -lICE
