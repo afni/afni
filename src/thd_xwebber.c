@@ -5,15 +5,8 @@
 
 XmImageConfig *_xmimage_cfg = NULL ;
 
-typedef struct {
-   Widget wshell , wtop , wactar , wframe , whtml ;
-   void_func *kill_func ;
-   XtPointer  kill_data ;
-   int shell_width , shell_height ;
-} MCW_htmlwin ;
-
-void MCW_htmlwinkill_CB( Widget , XtPointer , XtPointer ) ;
-void MCW_htmlwin_CB    ( Widget , XtPointer , XtPointer ) ;
+static void MCW_htmlwinkill_CB( Widget , XtPointer , XtPointer ) ;
+static void MCW_htmlwin_CB    ( Widget , XtPointer , XtPointer ) ;
 
 static MCW_action_item HWIN_act[] = {
  { "Quit" , MCW_htmlwin_CB , NULL , NULL , "Close window" , 0 } ,
@@ -25,53 +18,6 @@ static void anchorCB( Widget widget, XtPointer client_data,
                       XmHTMLAnchorCallbackStruct *cbs      )
 {
   cbs->doit = True ; cbs->visited = True ;
-}
-
-/*----------------------------------------------------------------------------*/
-/* Substitute repl for targ in src.  Return is NULL if nothing was done;
-   otherwise, return value is a new malloc-ed string with the changes made.
-   Not particularly efficient, but seems to work.
-*//*--------------------------------------------------------------------------*/
-
-static char * string_substitute( char *src , char *targ , char *repl )
-{
-   char *spt , *tpt , **ptarg=NULL , *snew ;
-   int ntarg , ltarg , lrepl , ii ;
-
-   if( src  == NULL || *src  == '\0' ) return NULL ;
-   if( targ == NULL || *targ == '\0' ) return NULL ;
-   if( repl == NULL ) repl = "\0" ;
-
-   /* find and make a list of pointers to all targets inside src */
-
-   spt = src ; ntarg = 0 ; ltarg = strlen(targ) ; lrepl = strlen(repl) ;
-   while(1){
-     tpt = strstr(spt,targ) ; if( tpt == NULL ) break ; /* none left */
-     ntarg++ ;
-     ptarg = (char **)realloc(ptarg,sizeof(char *)*ntarg) ;
-     ptarg[ntarg-1] = tpt ; spt = tpt+ltarg ;
-   }
-   if( ntarg == 0 ) return NULL ;
-
-   /* space for new string */
-
-   snew = (char *)calloc( strlen(src)+ntarg*(lrepl-ltarg+4)+64 , sizeof(char) ) ;
-
-   /* for each target:
-        - copy the string from spt up to the target location
-        - copy the replacement
-        - move spt up to the end of the target
-      when done, copy the string after the end of the last target */
-
-   spt = src ;
-   for( ii=0 ; ii < ntarg ; ii++ ){
-     strncat( snew , spt , sizeof(char)*(ptarg[ii]-spt) ) ;
-     strcat ( snew , repl ) ;
-     spt = ptarg[ii] + ltarg ;
-   }
-   strcat( snew , spt ) ;
-
-   free(ptarg) ; return snew ;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -138,13 +84,14 @@ MCW_htmlwin * new_MCW_htmlwin( Widget wpar , char *msg ,
    char *wtype = "help" ;
    MCW_htmlwin *hw ;
    char *mymsg ;
+   static Pixel afg=(Pixel)0 , afgv=(Pixel)0 ;
 
 ENTRY("new_MCW_htmlwin") ;
 
    /*-- sanity check --*/
 
    if( wpar == NULL || !XtIsRealized(wpar) || msg == NULL || *msg == '\0' )
-     EXRETURN ;
+     RETURN(NULL) ;
 
    /* set position based on parent and screen geometry */
 
@@ -231,8 +178,13 @@ ENTRY("new_MCW_htmlwin") ;
 
    /* create HTML area */
 
-   swid = WidthOfScreen(XtScreen(wpar))  - 222 ; if( swid > 777 ) swid = 777 ;
-   shi  = HeightOfScreen(XtScreen(wpar)) - 222 ; if( shi  > 888 ) shi  = 888 ;
+   if( afg == (Pixel)0 ){
+     afg  = XmHTMLAllocColor( hw->wtop , "yellow" , WhitePixelOfScreen(XtScreen(hw->wtop)) ) ;
+     afgv = XmHTMLAllocColor( hw->wtop , "#ffbb99", WhitePixelOfScreen(XtScreen(hw->wtop)) ) ;
+   }
+
+   swid = WidthOfScreen(XtScreen(wpar))  - 222 ; if( swid > 799 ) swid = 799 ;
+   shi  = HeightOfScreen(XtScreen(wpar)) - 222 ; if( shi  > 899 ) shi  = 899 ;
 
    mymsg = htmlize(msg) ;
 
@@ -247,6 +199,8 @@ ENTRY("new_MCW_htmlwin") ;
                   XmNfontFamilyFixed   , "adobe-courier-normal-*" ,
                   XmNfontSizeFixedList , "14,10" ,
                   XmNanchorButtons     , False ,
+                  XmNanchorForeground        , afg  ,
+                  XmNanchorVisitedForeground , afgv ,
                 NULL ) ;
    XtAddCallback( hw->whtml, XmNactivateCallback, (XtCallbackProc)anchorCB, NULL ) ;
 
@@ -304,7 +258,7 @@ ENTRY("MCW_htmlwin_alter") ;
 
 /*-------------------------------------------------------------------------*/
 
-void MCW_htmlwin_CB( Widget w , XtPointer client_data , XtPointer call_data )
+static void MCW_htmlwin_CB( Widget w , XtPointer client_data , XtPointer call_data )
 {
    MCW_htmlwin *hw = (MCW_htmlwin *)client_data ;
    char *wname     = XtName(w) ;
@@ -324,7 +278,7 @@ void MCW_htmlwin_CB( Widget w , XtPointer client_data , XtPointer call_data )
 
 /*-------------------------------------------------------------------------*/
 
-void MCW_htmlwinkill_CB( Widget w, XtPointer client_data, XtPointer call_data )
+static void MCW_htmlwinkill_CB( Widget w, XtPointer client_data, XtPointer call_data )
 {
    MCW_htmlwin *hw = (MCW_htmlwin *) client_data ;
 

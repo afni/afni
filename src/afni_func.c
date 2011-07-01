@@ -5603,6 +5603,13 @@ ENTRY("AFNI_bucket_label_CB") ;
 -----------------------------------------------------------------*/
 
 #define USE_HTML
+#ifdef  USE_HTML
+static int tips_open        = 0 ;
+static MCW_htmlwin *tips_hw = NULL ;
+void AFNI_tips_killfun( XtPointer junk ){
+  tips_open = 0 ; tips_hw = NULL ; return ;
+}
+#endif
 
 void AFNI_tips_CB( Widget w , XtPointer cd , XtPointer cbd )
 {
@@ -5610,21 +5617,29 @@ void AFNI_tips_CB( Widget w , XtPointer cd , XtPointer cbd )
    Three_D_View *im3d = (Three_D_View *)cd ;
    char *inf=NULL , *fpt=NULL ; int ii ;
 
+ENTRY("AFNI_tips_CB") ;
+
 #ifdef USE_HTML
-   fpt = THD_find_regular_file("afnigui.html") ;
-   if( fpt != NULL && *fpt != '\0' ){
-     inf = (char *)malloc(sizeof(char)*(strlen(fpt)+16)) ;
-     strcpy(inf,"file:") ; strcat(inf,fpt) ; free(fpt) ;
-     (void) new_MCW_htmlwin( im3d->vwid->imag->topper, inf, NULL,NULL ) ;
-     free(inf) ; return ;
+   if( tips_open && tips_hw != NULL ){
+     XMapRaised( XtDisplay(tips_hw->wshell) , XtWindow(tips_hw->wshell) ) ;
+     EXRETURN ;
+   } else {
+     fpt = THD_find_regular_file("afnigui.html") ;
+     if( fpt != NULL && *fpt != '\0' ){
+       inf = (char *)malloc(sizeof(char)*(strlen(fpt)+16)) ;
+       strcpy(inf,"file:") ; strcat(inf,fpt) ; free(fpt) ;
+       tips_hw = new_MCW_htmlwin( im3d->vwid->imag->topper, inf,
+                                  AFNI_tips_killfun , NULL      ) ;
+       free(inf) ; tips_open = 1 ; EXRETURN ;
+     }
    }
 #endif
 
    for( ii=0 ; readme_afnigui[ii] != NULL ; ii++ ){
      inf = THD_zzprintf( inf , "%s" , readme_afnigui[ii] ) ;
    }
-   (void) new_MCW_textwin( im3d->vwid->imag->topper , inf , TEXT_READONLY ) ;
-   free(inf) ; return ;
+   (void)new_MCW_textwin( im3d->vwid->imag->topper , inf , TEXT_READONLY ) ;
+   free(inf) ; EXRETURN ;
 }
 
 /*---------------------------------------------------------------
