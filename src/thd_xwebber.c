@@ -28,40 +28,89 @@ static void anchorCB( Widget widget, XtPointer client_data,
 }
 
 /*----------------------------------------------------------------------------*/
+/* Substitute repl for targ in src.  Return is NULL if nothing was done;
+   otherwise, return value is a new malloc-ed string with the changes made.
+   Not particularly efficient, but seems to work.
+*//*--------------------------------------------------------------------------*/
 
-static char *htmlize( char *msg )
+static char * string_substitute( char *src , char *targ , char *repl )
+{
+   char *spt , *tpt , **ptarg=NULL , *snew ;
+   int ntarg , ltarg , lrepl , ii ;
+
+   if( src  == NULL || *src  == '\0' ) return NULL ;
+   if( targ == NULL || *targ == '\0' ) return NULL ;
+   if( repl == NULL ) repl = "\0" ;
+
+   /* find and make a list of pointers to all targets inside src */
+
+   spt = src ; ntarg = 0 ; ltarg = strlen(targ) ; lrepl = strlen(repl) ;
+   while(1){
+     tpt = strstr(spt,targ) ; if( tpt == NULL ) break ; /* none left */
+     ntarg++ ;
+     ptarg = (char **)realloc(ptarg,sizeof(char *)*ntarg) ;
+     ptarg[ntarg-1] = tpt ; spt = tpt+ltarg ;
+   }
+   if( ntarg == 0 ) return NULL ;
+
+   /* space for new string */
+
+   snew = (char *)calloc( strlen(src)+ntarg*(lrepl-ltarg+4)+64 , sizeof(char) ) ;
+
+   /* for each target:
+        - copy the string from spt up to the target location
+        - copy the replacement
+        - move spt up to the end of the target
+      when done, copy the string after the end of the last target */
+
+   spt = src ;
+   for( ii=0 ; ii < ntarg ; ii++ ){
+     strncat( snew , spt , sizeof(char)*(ptarg[ii]-spt) ) ;
+     strcat ( snew , repl ) ;
+     spt = ptarg[ii] + ltarg ;
+   }
+   strcat( snew , spt ) ;
+
+   free(ptarg) ; return snew ;
+}
+
+/*----------------------------------------------------------------------------*/
+
+static char * htmlize( char *msg )
 {
    char *mmm=NULL ;
 
-   if( msg == NULL || *msg == '\0'  )
+   if( msg == NULL || *msg == '\0'  ){
      msg = strdup("<html><body><h1>Dummy</h1><h2>Message</h2></body></html>") ;
+     return msg ;
+   }
 
-   if( strncmp(msg,"<html>",6) == 0 ) return msg ;
+   if( strncmp(msg,"<html>",6) == 0 ) return msg ;     /* already HTML format */
 
    if( strncmp(msg,"file:",5) == 0 ){      /* read file */
-     char *qqq=AFNI_suck_file(msg+5) ; char *base,*dnam ; int nbas ;
+     char *qqq=AFNI_suck_file(msg+5) ; char *dnam , *repl , *targ ;
      if( qqq != NULL )
        mmm = qqq ;
      else
-       mmm = strdup("<html><body><h1>Dummy</h1><h2>Message</h2></body></html>") ;
+       mmm = strdup("<html><body><h1>Dummy</h1><h2>Message</h2></body></html>");
 
-     base = strcasestr(mmm,"<base href=>") ;
-     if( base != NULL ){
+     /* edit file to add base directory to all '<img src=' filenames */
+
+     if( strchr(msg+5,'/') != NULL && strstr(mmm,"<img src=") != NULL ){
        dnam = strdup(msg+5) ; qqq  = THD_trailname(dnam,0) ;
        if( qqq != NULL && qqq != dnam ){
-         *qqq = '\0' ;
-         nbas = 11 + (base-mmm) ;
-         qqq  = (char *)malloc(strlen(mmm)+strlen(dnam)+64) ;
-         memcpy( qqq , mmm , nbas ) ; qqq[nbas] = '\0' ;
-         strcat( qqq , "\"" ) ; strcat( qqq , dnam ) ; strcat( qqq , "\">" ) ;
-         strcat( qqq , base + 12 ) ;
-         free(mmm) ; mmm = qqq ;
-         /** INFO_message("xwebber:\n%.222s",mmm) ; **/
+         *qqq = '\0' ;                          /* dnam is now base directory */
+         repl = (char *)malloc(sizeof(char)*(strlen(dnam)+16)) ;
+         targ = "<img src=\"" ;                       /* string to search for */
+         sprintf( repl , "%s%s" , targ , dnam ) ;       /* replacement string */
+         qqq = string_substitute( mmm , targ , repl ) ;        /* do the work */
+         if( qqq != NULL ){ free(mmm) ; mmm = qqq ; }
+         free(repl) ;
        }
        free(dnam) ;
      }
 
-   } else {                                /* add HTML stuff */
+   } else {                                                 /* add HTML stuff */
      mmm = (char *)malloc(sizeof(char)*(strlen(msg)+64)) ;
      strcpy(mmm,"<html><body>\n") ;
      strcat(mmm,msg) ;
@@ -72,6 +121,10 @@ static char *htmlize( char *msg )
 }
 
 /*----------------------------------------------------------------------------*/
+/* Open a window with an XmHTML widget containing msg.
+   If msg starts with "file:", then it indicates a file to read.
+   Otherwise, it is the content of the page directly.
+*//*--------------------------------------------------------------------------*/
 
 MCW_htmlwin * new_MCW_htmlwin( Widget wpar , char *msg ,
                                void_func *kill_func , XtPointer kill_data )
@@ -165,15 +218,15 @@ ENTRY("new_MCW_htmlwin") ;
                   wtype , xmFrameWidgetClass, hw->wtop ,
                   XmNtopAttachment   , XmATTACH_WIDGET ,
                   XmNtopWidget       , hw->wactar ,
-                  XmNtopOffset       , 4 ,
+                  XmNtopOffset       , 5 ,
                   XmNleftAttachment  , XmATTACH_FORM,
-                  XmNleftOffset      , 1 ,
+                  XmNleftOffset      , 2 ,
                   XmNbottomAttachment, XmATTACH_FORM,
-                  XmNbottomOffset    , 1 ,
+                  XmNbottomOffset    , 2 ,
                   XmNrightAttachment , XmATTACH_FORM,
-                  XmNrightOffset     , 1,
+                  XmNrightOffset     , 2,
                   XmNshadowType      , XmSHADOW_IN,
-                  XmNshadowThickness , 4 ,
+                  XmNshadowThickness , 5 ,
                 NULL ) ;
 
    /* create HTML area */
@@ -185,8 +238,8 @@ ENTRY("new_MCW_htmlwin") ;
 
    hw->whtml = XtVaCreateManagedWidget(
                   wtype , xmHTMLWidgetClass , hw->wframe ,
-                  XmNmarginWidth       , 4 ,
-                  XmNmarginHeight      , 4 ,
+                  XmNmarginWidth       , 8 ,
+                  XmNmarginHeight      , 8 ,
                   XmNwidth             , swid ,
                   XmNheight            , shi ,
                   XmNvalue             , mymsg,
