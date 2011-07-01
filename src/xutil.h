@@ -217,6 +217,17 @@ extern void MCW_textwin_setbig( int b ) ; /* 29 Apr 2009 */
 extern void MCW_textwin_alter( MCW_textwin * , char * ) ; /* 10 Jul 2001 */
 extern MCW_textwin * new_MCW_textwin_2001(Widget,char *,int,void_func *,XtPointer);
 
+typedef struct {
+   Widget wshell , wtop , wactar , wframe , whtml ;
+   void_func *kill_func ;
+   XtPointer  kill_data ;
+   int shell_width , shell_height ;
+} MCW_htmlwin ;
+
+extern MCW_htmlwin * new_MCW_htmlwin( Widget wpar , char *msg ,
+                                      void_func *kill_func , XtPointer kill_data ) ;
+extern void MCW_htmlwin_alter( MCW_htmlwin *hw , char *mmm ) ;
+
 extern void RWC_visibilize_widget( Widget ) ;  /* 09 Nov 1999 */
 
 #define RWC_visibilize RWC_visibilize_widget   /* 27 Sep 2000: sometimes I forget */
