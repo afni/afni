@@ -77,7 +77,7 @@ CP = /bin/cp -f
 
 LINT = /usr/bin/lint -a -b -u -v -x $(IFLAGS) $(CCDEFS)
 
-INSTALLDIR = $(HOME)/RTafni/bin/AFNI
+INSTALLDIR = ./NIH.openSUSE.11.4_64
 LIBDIR = $(INSTALLDIR)
 
 #INSTALL_PREREQ = suma
