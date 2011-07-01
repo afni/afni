@@ -124,14 +124,14 @@ COPY_EPI_REF:
       endif
       if ( ! -f $rdir/EpiRef+orig.HEAD) then
          echo "Creating $rdir/EpiRef"
-         3dTcat -prefix $rdir/EpiRef "$u_EpiRef"
+         3dTcat -prefix $rdir/EpiRef "$u_EpiRef" >& /dev/null
       else
          echo "Reusing existing $rdir/EpiRef"
       endif  
    else
       if ( ! -f $rdir/EpiRef+orig.HEAD) then
          echo "Setting $rdir/EpiRef to be 4th subbrick of $FirstEpi"
-         3dTcat -prefix $rdir/EpiRef $rdir/$FirstEpi'[3]'
+         3dTcat -prefix $rdir/EpiRef $rdir/$FirstEpi'[3]' >& /dev/null
       else
          echo "Reusing default $rdir/EpiRef"
       endif
