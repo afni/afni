@@ -168,6 +168,10 @@ class VarsObject(object):
       if val == '' or val == []: return True
       return False
 
+   def is_not_empty(self, atr):
+      """true if not set or is '' or []"""
+      return not self.is_empty(atr)
+
    def is_non_trivial_dir(self, atr):
       return not self.is_trivial_dir(atr)
 

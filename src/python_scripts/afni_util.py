@@ -5,6 +5,7 @@
 import sys, os, math
 import afni_base as BASE
 import lib_textdata as TD
+import glob
 import pdb
 
 # this file contains various afni utilities   17 Nov 2006 [rickr]
@@ -230,7 +231,6 @@ def list_to_datasets(words):
          - they must be valid names of existing datasets
          - return None on error"""
 
-    import glob # local, unless used elsewhere
     if not words or len(words) < 1: return []
     dsets = []
     wlist = []
@@ -336,6 +336,23 @@ def get_typed_dset_attr_list(dset, attr, atype, verb=1):
         result = []
 
     return err, result
+
+def get_last_history_command(dname, substr):
+   """run 3dNotes -ses on 'dname' and return the last line containing 'substr'
+      return one text line, or '' on failure
+   """
+   command = '3dNotes -ses %s' % dname
+   status, output = exec_tcsh_command(command)
+   if status: return ''
+
+   olines = output.splitlines()
+   olen   = len(olines)
+
+   # work backwards
+   for ind in range(olen-1, -1, -1):
+      if olines[ind].find(substr): return olines[ind]
+
+   return ''
 
 def get_truncated_grid_dim(dset, verb=1):
     """return a new (isotropic) grid dimension based on the current grid
@@ -808,13 +825,23 @@ def decode_1D_ints(istr, verb=1, imax=-1):
     return ilist
 
 def to_int_special(cval, spec, sint):
-   """basicall return int(cval), but if cval==spec, return sint
+   """basically return int(cval), but if cval==spec, return sint
 
         cval: int as character string
         spec: special value as string
         sint: special value as int"""
    if cval == spec: return sint
    else:            return int(cval)
+
+def extract_subbrick_selection(sstring):
+   """search sstring for something like: [DIGITS*($|DIGITS)]
+      - do not consider all DIGITS, '..', ',', '(DIGITS)' pieces,
+        just let '*' refer to anything but another '['
+   """
+   import re
+   res = re.search('\[\d+[^\[]*]', sstring)
+   if res == None: return ''
+   return res.group(0)
 
 def strip_list_brackets(istr, verb=1):
    """strip of any [], {}, <> or ## surrounding this string
@@ -1408,8 +1435,6 @@ def glob_form_matches_list(slist, ordered=1):
       else:       slist does not need to be sorted
    """
 
-   import glob
-
    slen = len(slist)
 
    # check trivial cases of lengths 0 and 1
@@ -1474,6 +1499,17 @@ def list_minus_glob_form(slist, hpad=0, tpad=0):
    # and return the list of center strings
    if tlen == 0: return [ s[hlen:]      for s in slist ]
    else:         return [ s[hlen:-tlen] for s in slist ]
+
+def glob_list_minus_pref_suf(pref, suf):
+   """just strip the prefix and suffix from string list elements
+      (for now, assume they are there)
+   """
+   glist = glob.glob('%s*%s' % (pref, suf))
+
+   plen = len(pref)
+   slen = len(suf)
+
+   return [d[plen:-slen] for d in glist]
 
 def parse_as_stim_list(flist):
    """parse filename list as PREFIX.INDEX.LABEL.SUFFIX, where the separators
