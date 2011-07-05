@@ -58,7 +58,7 @@ MAKEDEPEND= gccmakedep
 #                   #
 #####################
 # CC       = cc
-CFLAGS   = -Wall -O2
+CFLAGS   = 
 LDFLAGS  = 
 
 # The following flags are *very* usefull if you are getting unresolved
