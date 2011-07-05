@@ -53,6 +53,9 @@ class Afni1D:
       self.nroi      = 1
       self.GLapplied = 0        # was goodlist applied (1=yes, 2=zero-padded)
 
+      # misc variables (from attributes)
+      self.command   = ''       # from CommandLine
+
       # list variables (from attributes)
       self.labels   = []        # label per vector       (from ColumnLabels)
       self.groups   = []        # integral column groups (from ColumnGroups)
@@ -1384,6 +1387,10 @@ class Afni1D:
                           (len(self.groups), self.nvec)
                if self.verb > verb_level:
                   print "-- label %s: groups %s" % (label,self.groups)
+            elif label == 'CommandLine':
+               self.command = data
+               if self.verb > verb_level:
+                  print "-- label %s: command %s" % (label,self.command)
             elif label == 'RowTR':
                self.tr = float(data)
                if self.verb > verb_level:

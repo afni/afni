@@ -4371,6 +4371,42 @@ g_help_string = """
 
                 tcsh -xef proc.sb23 2>&1 | tee output.proc.sb23
 
+        -gen_epi_review SCRIPT_NAME : specify script for EPI review
+
+                e.g. -gen_epi_review review_orig_EPI.txt
+
+            By default, the proc script calls gen_epi_review.py on the original
+            EPI data (from the tcat step, so only missing pre-SS TRs).  This
+            creates a "drive afni" script that the user can run to quickly scan
+            that EPI data for apparent issues.
+
+            Without this option, the script will be called @epi_review.$subj,
+            where $subj is the subject ID.
+
+            The script starts afni, loads the first EPI run and starts scanning
+            through time (effectively hitting 'v' in the graph window).  The
+            user can press <enter> in the prompting terminal window to go to
+            each successive run.
+
+            Note that the user has full control over afni, aside from a new run
+            being loaded whey they hit <enter>.  Recall that the <space> key
+            (applied in the graph window) can terminate the 'v' (video mode).
+
+            See 'gen_epi_review.py -help' for details.
+            See also 'no_epi_review', to disable this feature.
+
+        -no_epi_review
+
+            This option is used to prevent writing a gen_epi_review.py command
+            in the processing script (i.e. do not create a script to review the
+            EPI data).
+
+            The only clear reason to want this option is if gen_epi_review.py
+            fails for some reason.  It should not hurt to create that little
+            text file (@epi_review.$subj, by default).
+
+            See also '-gen_epi_review'.
+
         -keep_rm_files          : do not have script delete rm.* files at end
 
                 e.g. -keep_rm_files

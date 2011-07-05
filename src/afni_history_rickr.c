@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 5, JUL, 2011, RCR, "afni-general", MINOR, TYPE_ENHANCE,
+   "minor enhancements to 5 python files (prep for gen_ss_review_scripts.py)",
+   NULL
+ } ,
+
  { 30, JUN, 2011, RCR, "afni_proc.c", MICRO, TYPE_MODIFY,
    "renamed aligned anat output (from align_epi_anat.py)",
    "This should make it clear whether or not the output anat should be used"
