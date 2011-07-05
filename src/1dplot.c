@@ -84,6 +84,8 @@ int main( int argc , char *argv[] )
             "              and allow each sub-graph to have a different\n"
             "              y-scale.  -sepscl is meaningless with -one!\n"
             " -noline    = Don't plot the connecting lines (also implies '-box').\n"
+            " -NOLINE    = Same as '-noline', but will not try to plot values outside\n"
+            "              the rectangular box that contains the graph axes.\n"
             " -box       = Plot a small 'box' at each data point, in addition\n"
             "              to the lines connecting the points.\n"
             "             * The box size can be set via the environment variable\n"
@@ -535,6 +537,10 @@ int main( int argc , char *argv[] )
 
      if( strncmp(argv[iarg],"-noline",4) == 0 ){
        noline = 1 ; tsbox = boxsiz ; iarg++ ; continue ;
+     }
+
+     if( strncmp(argv[iarg],"-NOLINE",4) == 0 ){
+       noline = 2 ; tsbox = boxsiz ; iarg++ ; continue ;
      }
 
 #if 0
