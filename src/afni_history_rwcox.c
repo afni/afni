@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 1 , JUL , 2011 , RWC , "afni" , MINOR , TYPE_GENERAL ,
+  { 5 , JUL , 2011 , RWC , "1dplot" , MICRO , TYPE_NEW_OPT ,
+   "add -NOLINE to include clipping of points outside the box" ,
+   NULL } ,
+
+ { 1 , JUL , 2011 , RWC , "afni" , MINOR , TYPE_GENERAL ,
    "Replace text-only AFNI Tips with HTML-based" ,
    "Allows incorporation of images and better formatting.\n"
    "Uses XmHTML widget set, whose source code is also added to AFNI." } ,
