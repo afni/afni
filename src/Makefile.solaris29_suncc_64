@@ -49,7 +49,7 @@ INSTALL_PREREQ = suma
 INSTALLDIR = ./solaris29_suncc_64
 LIBDIR = $(INSTALLDIR)
 
-LLIBS  = -lmri -lf2c -lXm -lXt -lX11 $(LZLIB) $(LGIFTI) -lm $(EXTRA_LIBS)
+LLIBS  = -lmri -lf2c -lXm -lXpm -lXt -lX11 $(LZLIB) $(LGIFTI) -lm $(EXTRA_LIBS)
 
 # vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 # For suma
