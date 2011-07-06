@@ -56,11 +56,11 @@ char * GetAfniWebBrowser(void)
 #ifdef DARWIN
    if( awb == NULL ) awb = strdup("open") ;  /* for Mac OS X */
 #endif
+   if( awb == NULL ) awb = THD_find_executable( "chrome" )   ;
    if( awb == NULL ) awb = THD_find_executable( "firefox" )  ;
    if( awb == NULL ) awb = THD_find_executable( "mozilla" )  ;
    if( awb == NULL ) awb = THD_find_executable( "netscape" ) ;
    if( awb == NULL ) awb = THD_find_executable( "opera" )    ;
-   if( awb == NULL ) awb = THD_find_executable( "chrome" )   ;
    return(awb);
 }
 
