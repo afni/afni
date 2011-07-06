@@ -168,8 +168,9 @@ class AlignInterface():
       if val != None and not err: self.verb = val
       else: self.verb = 1
 
-      SUBJ.set_var_str_from_def('uvars', 'verb', ['%d'%self.verb], self.uvars,
-                                 defs=UALIGN.g_user_defs)
+      # changed from SUBJ.set_var_str_from_def
+      self.uvars.set_var_with_defs('verb', ['%d'%self.verb], UALIGN.g_user_defs,
+                                   oname='uvars')
 
       use_gui = 1 # assume GUI unless we hear otherwise
 
@@ -200,8 +201,8 @@ class AlignInterface():
             val, err = uopts.get_string_list('', opt=opt)
             if val != None and err: return -1
             # and set it from the form name = [value_list]
-            if SUBJ.set_var_str_from_def('cvars', val[0], val[1:], self.cvars,
-                        UALIGN.g_ctrl_defs, verb=self.verb) < 0:
+            if self.cvars.set_var_with_defs(val[0], val[1:], UALIGN.g_ctrl_defs,
+                                            oname='cvars', verb=self.verb) < 0:
                errs += 1
                continue
 
@@ -210,8 +211,8 @@ class AlignInterface():
             val, err = uopts.get_string_list('', opt=opt)
             if val != None and err: return -1
             # and set it from the form name = [value_list]
-            if SUBJ.set_var_str_from_def('uvars', val[0], val[1:], self.uvars,
-                        UALIGN.g_user_defs, verb=self.verb) < 0:
+            if self.uvars.set_var_with_defs(val[0], val[1:], UALIGN.g_user_defs,
+                                            oname='uvars', verb=self.verb) < 0:
                errs += 1
                continue
 
