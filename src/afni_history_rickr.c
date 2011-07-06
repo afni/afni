@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 6, JUL, 2011, RCR, "afni_proc..py", MICRO, TYPE_GENERAL,
+   "suggest use of uber_subject.py in the -ask_me dialog",
+   NULL
+ } ,
+
  { 5, JUL, 2011, RCR, "afni-general", MINOR, TYPE_ENHANCE,
    "minor enhancements to 5 python files (prep for gen_ss_review_scripts.py)",
    NULL
