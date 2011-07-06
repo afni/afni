@@ -33,13 +33,16 @@ To use AFNI, you must have some data stored in a format that the program underst
   <ul>
        <li> AFNI formatted datasets, in .HEAD and .BRIK pairs of files;
        <li> NIfTI-1 formatted datasets, in .nii or .nii.gz files.
+       <li> The AFNI format contains more auxiliary information than the NIfTI-1
+            format; for example, the .HEAD file contains a history of the commands
+            used to create the dataset.
   </ul>
 
   <p><li> When you start AFNI, any datasets in the current directory will be ready
        for viewing.  If there are no datasets to read, AFNI will pop up a
        message.  When this happens, you can do one of 2 things:
   <ul>
-       <li> Quit AFNI -- press the 'done' button twice -- then
+       <li> Quit AFNI -- e.g., press the 'done' button twice -- then
             change directory ('cd') to a directory with some datasets,
           and restart AFNI (this is what I always do); or,
        <li> Use the 'DataDir Read' button -- in the second column of the main AFNI
@@ -60,8 +63,8 @@ To use AFNI, you must have some data stored in a format that the program underst
           a montage (array) of slice images.
   </ul>
 
-  <p><li> If a dataset has more than one 3D volume in it (usually that means it
-      has a time axis, like an FMRI EPI dataset), then you can use the 'Graph'
+  <p><li> If a dataset has more than one 3D volume in it -- usually that means it
+      has a time axis, like an FMRI EPI dataset -- then you can use the 'Graph'
       buttons to view an array of graphs of the voxel data time series.
   <ul>
        <li> The crosshairs in the image viewer that corresponds to the graph
@@ -123,7 +126,7 @@ Normal AFNI cursor =
 <img src="afnigui_cursor1030.jpg" align="bottom" height="32" width="32">
  &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;
 <img src="afnigui_cursor1100.jpg" align="bottom" height="32" width="20">
-= Hidden menu cursor<br>
+&nbsp; = Hidden menu cursor<br>
 </center>
 <p>
 On most systems, the X11 cursor used in AFNI is an orange arrow pointing
@@ -163,7 +166,7 @@ Some of these locations are
        the window (where the textual summary is), will let you choose how
        the 'Histog' option will plot the histogram from the 'Aux.Dset'.
     <ul><li>
-       ('Histog' is selected from the menu whose initial choice is 'Mean'.)
+       'Histog' is selected from the menu whose initial choice is 'Mean'.
      </ul>
 </ul>
 
@@ -174,7 +177,7 @@ Some of these locations are
 </h2></center>
 </a>
 
-Other 'special' clicks that aren't obvious:
+Other 'special' AFNI clicks that aren't obvious:
 <p>
 <ul>
    <li> Left-clicking on the 'Image' or 'Graph' button for an already open
@@ -182,7 +185,7 @@ Other 'special' clicks that aren't obvious:
        the X11 window stacking order.
 <p><li> Right-clicking on the 'Image' or 'Graph' button for an already open
        AFNI viewer will bring that viewer's window over to the place where
-       you just clicked -- this is useful for finding lost viewers.
+       you just clicked -- this is useful for retrieving lost viewers.
 <p><li> Right-clicking on the 'DataDir' button in the AFNI controller will
        un-hide (or re-hide) the obsolescent 'Define Markers' button.
 <p><li> Left-clicking on the logo at the lower left of a graph viewer will
@@ -196,10 +199,14 @@ Other 'special' clicks that aren't obvious:
 <p><li> In an image viewer window, if you press-and-hold-down the Left mouse
        button, then drag the cursor vertically and horizontally (while still
        holding the Left button down), the contrast and brightness of the
-       grayscale underlay changes as you move the mouse.
+       grayscale underlay changes interactively as you move the mouse.
+       <ul><li> When you release the mouse button, the other open image viewers
+                (if any) will have their contrast and brightness settings
+                changed to match the one you just played with.
+       </ul>
 <p><li> To exit AFNI quickly when multiple controllers are open, hold down the
-       Shift key when you press the 'done' button (in any AFNI controller).
-       The usual requirement of pressing 'done' twice within 5 second is
+       Shift key when you press the 'done' button (in the main AFNI controller).
+       The usual requirement of pressing 'done' twice within 5 seconds is
        skipped, and all AFNI controllers exit immediately.
 <p><li> Left-clicking in the logo square to the right of the AFNI controller
        'done' button will cause the AFNI splash screen to popup.  You can
