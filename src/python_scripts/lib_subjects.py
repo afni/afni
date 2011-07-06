@@ -144,6 +144,98 @@ class VarsObject(object):
          if verb > 1:
             print "== merge: setting %s %s = %s" % (atr, dtype, val)
 
+   def set_var_with_defs(self, vname, vlist, defs, as_type=0, oname='',
+                        verb=1, spec=None, csort=1):
+      """try to set vname = value based on vlist
+           (if as_type, convert to type, else leave as string)
+         if vname is not known by the defaults, return failure
+
+         if spec: update_vars_from_special(csort)
+
+         This function will generally be called via a user interface library
+         or in the user interface itself.  Since we are setting variables as
+         strings.
+
+            requred params:
+
+                vname           : name of variable
+                vlist           : value list (set from vlist[0] or vlist)
+                defs            : obj to get var type from
+                
+            optional params:
+
+                as_type         : flag - convert to type in defs (else str)
+                oname           : object name (for messages)
+                verb            : verbose level
+                spec            : function to handle some special cases
+                csort           : flag - tell 'spec' to check sorting
+
+         return 1 on change, 0 on unchanged, -1 on error
+
+         *** this should replace SUBJ.set_var_str_from_def ***
+      """
+
+      # if name is not passed set one (for verbose output)
+      if oname == '':
+         if self.valid(name): oname = self.name
+         else:                oname = '<noname>'
+
+      if not defs.valid(vname):
+         print '** SVWD: invalid %s variable: %s' % (oname, vname)
+         return -1
+
+      dtype = type(defs.val(vname))
+      if dtype not in g_valid_atomic_types:
+         print '** SVWD: unknown %s variable type for %s' % (oname, vname)
+         return -1
+
+      # if simple type but have list, fail
+      if dtype != list and len(vlist) > 1:
+         print "** SVWD: simple variable '%s' %s\n" \
+               "         but have list value: %s" % (vname, dtype, vlist)
+         return -1
+
+      # ----------------------------------------
+      # try to apply the value (list)
+
+      val = None
+
+      # update val,
+      # check that the it can be properly converted (if simple type)
+      if defs.has_simple_type(vname):
+         val = vlist[0]
+         try: vv = dtype(val)
+         except:
+            print '** SVWD %s.%s, cannot convert value %s to %s' \
+                  (oname, vname, val, dtype)
+            return -1
+         # possibly apply the defs type
+         if as_type: val = vv
+      elif dtype == list: val = vlist
+      else: 
+         print '** SVWD: invalid type %s for %s'%(dtype,vname)
+         return -1
+
+      # actually set the value
+      rv = self.set_var(vname, val)
+      if verb > 1:
+         if rv: print '++ %s: updating %s to %s %s' \
+                      % (oname, vname, val, type(val))
+         else:  print '++ %s: no update for %s to %s' % (oname, vname, val)
+
+      # if no update, we're outta here
+      if rv == 0: return rv
+
+      # ----------------------------------------------------------------------
+      # handle some special cases, such as indices and labels, which might
+      # come with file name lists
+
+      # this function must be passed, since it will vary per library
+
+      if spec != None: spec(vname, self, check_sort=csort)
+
+      return rv
+
    def valcopy(self, atr):
       """use deepcopy to copy any value, since it may be a list"""
       if self.get_atomic_type(atr) == None:
@@ -400,20 +492,19 @@ def set_var_str_from_def(obj, name, vlist, vars, defs,
 
    val = None
 
-   # process only simple int, float, str and strlist
-   if defs.has_simple_type(name): val = vlist[0]
-   elif dtype == list:            val = vlist
-   else:
-      print '** SVSFD: invalid type %s for %s'%(dtype,name)
-      return -1
-
-   # check that the value can be properly converted (if simple type)
+   # update val,
+   # check that the it can be properly converted (if simple type)
    if defs.has_simple_type(name):
+      val = vlist[0]
       try: vv = dtype(val)
       except:
          print '** SVSFD %s.%s, cannot convert value %s to %s' \
                (obj, name, val, dtype)
          return -1
+   elif dtype == list: val = vlist
+   else: 
+      print '** SVSFD: invalid type %s for %s'%(dtype,name)
+      return -1
 
    # actually set the value
    rv = vars.set_var(name, val)
