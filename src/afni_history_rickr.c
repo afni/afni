@@ -54,9 +54,9 @@ afni_history_struct rickr_history[] = {
    NULL
  } ,
 
- { 6, JUL, 2011, RCR, "afni_proc..py", MICRO, TYPE_GENERAL,
-   "suggest use of uber_subject.py in the -ask_me dialog",
-   NULL
+ { 6, JUL, 2011, RCR, "afni_proc.py", MICRO, TYPE_GENERAL,
+   "create anat_final dset, as one that is aligned with the stats",
+   "Also, suggest use of uber_subject.py in the -ask_me dialog."
  } ,
 
  { 5, JUL, 2011, RCR, "afni-general", MINOR, TYPE_ENHANCE,

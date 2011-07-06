@@ -264,7 +264,9 @@ g_history = """
     2.55 Jun 30 2011: rename aligned anat output (from align_epi_anat.py)
         - OLD_al_keep, if output anat is useful (want anat -> EPI  alignment)
         - OLD_al_junk, if output anat is not    (want EPI  -> anat alignment)
-    2.56 Jul 06, 2011: suggest uber_subject.py in -ask_me dialog
+    2.56 Jul 06, 2011:
+        - create anat_final dset, to be clear it is aligned with the stats
+        - suggest uber_subject.py in -ask_me dialog
 """
 
 g_version = "version 2.56, July 6, 2011"
