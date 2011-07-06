@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 6, JUL, 2011, RCR, "uber_align_test.py", MICRO, TYPE_MODIFY,
+   "test use of SUBJ.set_var_with_defs",
+   NULL
+ } ,
+
  { 6, JUL, 2011, RCR, "afni_proc..py", MICRO, TYPE_GENERAL,
    "suggest use of uber_subject.py in the -ask_me dialog",
    NULL

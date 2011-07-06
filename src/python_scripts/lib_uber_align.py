@@ -36,9 +36,10 @@ g_history = """
          - added much more help, including main and section buttons
          - added browsing of align_epi_anat.py help
     0.5  19 May, 2011: revert to /usr/bin/env python
+    0.6  06 Jul, 2011: apply set_var_with_defs (mostly to test it out)
 """
 
-g_version = '0.5 (May 19, 2011)'
+g_version = '0.6 (July 6, 2011)'
 
 # ----------------------------------------------------------------------
 # global definition of default processing blocks
