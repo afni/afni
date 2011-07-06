@@ -2475,8 +2475,8 @@ def db_cmd_regress(proc, block):
                (proc.xmat, "indices_interest", opt.parlist[0], proc.xmat)
 
     # make a copy of the "final" anatomy, called "anat_final.$subj"
-    aset = proc.tlrcanat
-    if aset == None: aset = proc.anat
+    if proc.view == '+tlrc': aset = proc.tlrcanat
+    else:                    aset = proc.anat
     if aset != None:
        cmd += "# create an anat_final dataset, aligned with stats\n"    \
               "3dcopy %s anat_final.%s\n\n" % (aset.pv(), proc.subj_label)
