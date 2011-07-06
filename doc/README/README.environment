@@ -185,8 +185,7 @@ change the orientation of the variable display within AFNI.
 Variable: AFNI_PLUGINPATH
 -------------------------
 This variable should be the directory in which AFNI should search
-for plugins.  If there is more than one appropriate directory, they
-can be separated by colons, as in
+for plugins, executable files, atlases, templates and atlas definition files. See the atlas environment variable section below for more details.  If there is more than one appropriate directory, they can be separated by colons, as in
 
    setenv AFNI_PLUGINPATH /directory/one:/directory/two
 
@@ -195,7 +194,7 @@ instead.  This will waste time, since most directories in the PATH
 will not have plugins.  On some systems, using the PATH has been
 known to cause problems when AFNI starts.  I believe this is due to
 bugs in the system library routines (e.g., dlopen) used to manage
-dynamically loaded shared objects.
+dynamically loaded shared objects. Take care to remove any slow or non-existent directories from the PATH because these problems will cause searches to fail or become excessively slow.
 
 ------------------------
 Variable: AFNI_NOPLUGINS
@@ -2627,23 +2626,6 @@ such a setting, but recall the AFNI philosophy: "provide mechanism, not
 policy" -- in other words, if you want to shoot yourself in the foot, go
 right ahead.  This variable is just the safety on the revolver.
 
-------------------------------
-Variable: AFNI_TTATLAS_CAUTION (editable)
-------------------------------
-If this YES/NO variable is set to NO, then the warning about the potential
-errors in the "Where am I?" popup will not appear.  This is purely for
-cosmetic purposes, Ziad.
-
--------------------------------
-Variable: AFNI_TTATLAS_FONTSIZE (editable)
--------------------------------
-If this variable is not set, the default font size is used in the 'Where am I?'
-popup window.
-If this variable is set to 'BIG' or a positive number, then a larger font
-size is used.
-If this variable is set to 'SMALL' or a negative number, then a smaller font
-size is used.
-
 --------------------------
 Variable: AFNI_AUTO_RESCAN
 --------------------------
@@ -3268,3 +3250,87 @@ negatives (e.g., as discussed by Storey, Benjamini, and others)
 will NOT be carried out.  As of 26 Mar 2009, this adjustment of
 q-values is the default in AFNI programs.  If you want the old
 behavior, set this variable to YES.
+
+#####################################################
+##### ATLAS AND WHEREAMI ENVIRONMENT VARIABLES  #####
+#####################################################
+These variables control how AFNI and whereami make use of various atlases and
+template spaces. The variables may also affect how other AFNI programs use atlases as input datasets.
+
+-------------------------
+Variable: AFNI_ATLAS_LIST 
+-------------------------
+This list contains the names of the atlases that should be queried when no specific atlas has been requested. For example, the afni GUI and whereami, by default, do not load all the atlases specified in the AFNI_atlas_spaces.niml file. If this variable is not set, the TT_Daemon atlas and the cytoarchitectonic Eickhoff-Zilles in MNI_ANAT space are loaded. If the variable is set to a list like "TT_Daemon,DD_Desai_PM", then only these two atlases are loaded. The list of atlas names may be separated by commas or semicolons. A special case of "ALL" may be set, and all the available atlases will be loaded.
+
+----------------------------------
+Variable: AFNI_TEMPLATE_SPACE_LIST
+----------------------------------
+This list contains the names of the template spaces that are shown when whereami reports the coordinates among various spaces. By default, the list contain "TLRC,MNI,MNI_ANAT". As for the AFNI_ATLAS_LIST, this list may also be set to "ALL".
+
+----------------------------
+Variable: AFNI_DEFAULT_ATLAS (editable)
+----------------------------
+This variable sets which atlas to use in the AFNI GUI for "Show Atlas Colors", "Go to Atlas location", "Draw Dataset" and "Renderer" functions.
+
+-------------------------
+Variable: AFNI_PLUGINPATH
+-------------------------
+Described above, this variable is used for several purposes. For whereami, this variable sets the directory to load atlases and NIML files if not in the current directory. If this variable does not exist or the referred file does not exist, then the atlas is searched in the user's current PATH setting. If this is set, atlases will be found more quickly than searching all the directories of the entire PATH. Searches of the PATH variable for whereami usage stop at the first occurrence of the searched file, so placing the AFNI directory earlier will dramatically increase the speed that the file is found.
+
+----------------------------------
+Variable: AFNI_WHEREAMI_DEC_PLACES (editable)
+----------------------------------
+Sets precision for whereami output.  Higher field data and animal atlases require higher precision. The default value used for focus point among template spaces is still 0 decimal places (closest mm), but animal data requires three decimal places. Value may range from 0 to 10.
+
+-------------------------
+Variable: AFNI_WAMI_DEBUG
+-------------------------
+This variable controls the output of detailed messages about various tasks involved in loading atlases, transformations and composing query results. By default, this information is not shown.
+
+------------------------------
+Variable: AFNI_TTATLAS_DATASET
+------------------------------
+This variable may also specify the default location of AFNI atlases. This variable is maintained mostly for backward compatibility. By default, this is not set.
+
+-------------------------------
+Variable: AFNI_WHEREAMI_NO_WARN
+-------------------------------
+Turns off warnings about various whereami features - like queries that have reached their limit of returned results. By default, warnings are displayed only the first time a particular message is encountered.
+
+--------------------------------
+Variable: AFNI_WHEREAMI_MAX_FIND (editable)
+--------------------------------
+By default, only the first nine structures are displayed within a particular atlas. You may increase or decrease this to show more or fewer structures in the whereami results.
+
+-------------------------------
+Variable: AFNI_WHEREAMI_MAX_RAD (editable)
+-------------------------------
+By default, whereami searches a radius of 7.5 mm. Set a radius up to 9.5 mm.
+
+--------------------------------
+Variable: AFNI_DEFAULT_STD_SPACE
+--------------------------------
+The default template space is assumed to be TLRC. This is used for coordinate input to whereami, the whereami GUI and for TLRC view datasets without a template space explicitly set in the dataset header.
+
+-------------------------------------------
+Variable: AFNI_SUPP_ATLAS, AFNI_LOCAL_ATLAS
+-------------------------------------------
+These variables allow the addition of more atlas definitions to the global list of atlases, templates, spaces and transformations. The variable should be set to the name of a NIML file with the same format of the AFNI_atlas_spaces.niml file. These can be customized by site (supplemental) or by subject (local) and follow the same search order as the AFNI_atlas_spaces.niml file. In order to be included in default searches, additional atlases or template spaces would also need to be added to AFNI_ATLAS_SPACE_LIST and the AFNI_TEMPLATE_SPACE_LIST unless those are set to "ALL".
+
+------------------------------
+Variable: AFNI_TTATLAS_CAUTION (editable)
+------------------------------
+If this YES/NO variable is set to NO, then the warning about the potential
+errors in the "Where am I?" popup will not appear.  This is purely for
+cosmetic purposes, Ziad.
+
+-------------------------------
+Variable: AFNI_TTATLAS_FONTSIZE (editable)
+-------------------------------
+If this variable is not set, the default font size is used in the 'Where am I?'
+popup window.
+If this variable is set to 'BIG' or a positive number, then a larger font
+size is used.
+If this variable is set to 'SMALL' or a negative number, then a smaller font
+size is used.
+
