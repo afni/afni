@@ -72,12 +72,14 @@ static char * htmlize( char *msg )
 {
    char *mmm=NULL ;
 
+ENTRY("htmlize") ;
+
    if( msg == NULL || *msg == '\0'  ){
      msg = strdup("<html><body><h1>Dummy</h1><h2>Message</h2></body></html>") ;
-     return msg ;
+     RETURN(msg) ;
    }
 
-   if( strncmp(msg,"<html>",6) == 0 ) return msg ;     /* already HTML format */
+   if( strncmp(msg,"<html>",6) == 0 ) RETURN(msg) ;     /* already HTML format */
 
    if( strncmp(msg,"file:",5) == 0 ){      /* read file */
      char *qqq=AFNI_suck_file(msg+5) ; char *dnam , *repl , *targ ;
@@ -109,7 +111,7 @@ static char * htmlize( char *msg )
      strcat(mmm,"\n</body></html>") ;
    }
 
-   return mmm ;
+   RETURN(mmm) ;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -234,6 +236,8 @@ ENTRY("new_MCW_htmlwin") ;
 
    mymsg = htmlize(msg) ;  /* edit the text */
 
+STATUS("create HTML widget") ;
+
    hw->whtml = XtVaCreateManagedWidget(
                   wtype , xmHTMLWidgetClass , hw->wframe ,
                   XmNmarginWidth       , 8 ,
@@ -250,6 +254,8 @@ ENTRY("new_MCW_htmlwin") ;
                 NULL ) ;
    XtAddCallback( hw->whtml, XmNactivateCallback, (XtCallbackProc)anchorCB, NULL ) ;
    XtAddCallback( hw->whtml, XmNarmCallback     , (XtCallbackProc)armCB   , NULL ) ;
+
+STATUS("manage HTML widgets") ;
 
    XtManageChild( hw->wtop ) ;
 
