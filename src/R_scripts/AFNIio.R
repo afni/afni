@@ -2329,8 +2329,12 @@ write.AFNI <- function( filename, brk=NULL, label=NULL,
    err.AFNI("NULL input");
    return(0)
   }
+  #make sure we don't have 3 dims array, need always 4d
+  ddb <- dimBRKarray(brk)
+  dim(brk) <- ddb
+  
   if (is.null(defhead)) { # No default header
-     if (is.null(label)) label <- paste(c(1:dim(brk)[4]),collapse='~');
+     if (is.null(label)) label <- paste(c(1:ddb[4]),collapse='~');
      if (is.null(origin)) origin <- c(0,0,0)
      if (is.null(delta)) delta <- c(4,4,4)
      if (is.null(orient)) orient <- 'RAI'
@@ -2339,7 +2343,7 @@ write.AFNI <- function( filename, brk=NULL, label=NULL,
       if (!is.null(defhead$BRICK_LABS)) {
          label <- gsub("^'", '', defhead$BRICK_LABS);
       } else {
-         label <- paste(c(1:dim(brk)[4]),collapse='~');
+         label <- paste(c(1:ddb[4]),collapse='~');
       }
      }
      if (is.null(origin)) {
@@ -2411,24 +2415,24 @@ write.AFNI <- function( filename, brk=NULL, label=NULL,
   writeChar(AFNIheaderpart("float-attribute","BRICK_STATS",mm),
             conhead,eos=NULL)
   writeChar(AFNIheaderpart("integer-attribute","DATASET_RANK",
-                           c(3,dim(brk)[4],0,0,0,0,0,0)),
+                           c(3,ddb[4],0,0,0,0,0,0)),
             conhead,eos=NULL)  
   writeChar(AFNIheaderpart("integer-attribute","DATASET_DIMENSIONS",
-                           c(dim(brk)[1:3],0,0)),
+                           c(ddb[1:3],0,0)),
             conhead,eos=NULL)  
-  writeChar(AFNIheaderpart("integer-attribute","BRICK_TYPES",rep(1,dim(brk)[4])),
+  writeChar(AFNIheaderpart("integer-attribute","BRICK_TYPES",rep(1,ddb[4])),
             conhead,eos=NULL)  
 
   if (scale) {
      if (verb) {
       note.AFNI("Computing scaling factors");
      }
-     scale_fac <- rep(0,dim(brk)[4])
-     for (k in 1:dim(brk)[4]) {
+     scale_fac <- rep(0,ddb[4])
+     for (k in 1:ddb[4]) {
        scale_fac[k] <- max(abs(mm[2*k-1]),abs(mm[2*k]))/32767
      }
    } else {
-      scale_fac <- rep(0,dim(brk)[4])
+      scale_fac <- rep(0,ddb[4])
    }
   writeChar(AFNIheaderpart("float-attribute","BRICK_FLOAT_FACS",scale_fac),
             conhead,eos=NULL)  
@@ -2448,7 +2452,7 @@ write.AFNI <- function( filename, brk=NULL, label=NULL,
       if (verb) {
          note.AFNI("Applying scaling ")
         }
-      for (k in 1:dim(brk)[4]) {
+      for (k in 1:ddb[4]) {
          brk[,,,k] <- brk[,,,k] / scale_fac[k]
       }
    }
@@ -2464,12 +2468,12 @@ write.AFNI <- function( filename, brk=NULL, label=NULL,
      #Write on sub-brick at a time to reduce memory use. 
      #      as.integer will allocate a new copy
      if (scale) {
-        for (k in 1:dim(brk)[4]) {
+        for (k in 1:ddb[4]) {
          writeBin(as.integer(brk[,,,k] / scale_fac[k]), 
                   conbrik,size=2, endian="big") 
         }
      } else {
-        for (k in 1:dim(brk)[4]) {
+        for (k in 1:ddb[4]) {
          writeBin(as.integer(brk[,,,k]), 
                   conbrik,size=2, endian="big") 
         }
