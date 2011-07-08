@@ -262,7 +262,7 @@ char * string_substitute( char *src , char *targ , char *repl )
    spt = src ;
    for( ii=0 ; ii < ntarg ; ii++ ){
      strncat( snew , spt , sizeof(char)*(ptarg[ii]-spt) ) ;
-     strcat ( snew , repl ) ;
+     if( lrepl > 0 ) strcat ( snew , repl ) ;
      spt = ptarg[ii] + ltarg ;
    }
    strcat( snew , spt ) ;

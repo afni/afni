@@ -76,6 +76,46 @@ ENTRY("anchorCB") ;
 }
 
 /*----------------------------------------------------------------------------*/
+
+#undef  SSUB
+#define SSUB(a,b)                                        \
+ do{ char *qqq = string_substitute( mmm , (a) , (b) ) ;  \
+     if( qqq != NULL ){ free(mmm) ; mmm = qqq ; }        \
+ } while(0)
+
+#undef  NSUB
+#define NSUB(a) SSUB((a),"\0")
+
+#undef  UOSUB
+#undef  UXSUB
+#define UOSUB(a) SSUB((a),"<u>")
+#define UXSUB(a) SSUB((a),"</u>")
+
+static char * unfontize( char *msg )
+{
+   char *mmm , *qqq ;
+
+   if( msg == NULL || *msg == '\0' ) return msg ;
+
+   mmm = strdup(msg) ;
+   NSUB("<small>"); NSUB("</small>");
+   UOSUB("<big>") ; UXSUB("</big>") ;
+   UOSUB("<h1>")  ; UXSUB("</h1>")  ;
+   UOSUB("<h2>")  ; UXSUB("</h2>")  ;
+   UOSUB("<h3>")  ; UXSUB("</h3>")  ;
+   UOSUB("<h4>")  ; UXSUB("</h4>")  ;
+   UOSUB("<h5>")  ; UXSUB("</h5>")  ;
+   UOSUB("<h6>")  ; UXSUB("</h6>")  ;
+   UOSUB("<i>")   ; UXSUB("</i>")   ;
+   UOSUB("<b>")   ; UXSUB("</b>")   ;
+   UOSUB("<em>")  ; UXSUB("</em>")  ;
+   UOSUB("<tt>")  ; UXSUB("</tt>")  ;
+
+   if( strcmp(mmm,msg) == 0 ){ free(mmm) ; mmm = msg ; }
+   return mmm ;
+}
+
+/*----------------------------------------------------------------------------*/
 /* Mangle a message to be good HTML for display */
 
 static char * htmlize( char *msg )
@@ -84,8 +124,8 @@ static char * htmlize( char *msg )
 
 ENTRY("htmlize") ;
 
-   if( msg == NULL || *msg == '\0'  ){
-     msg = strdup("<html><body><h1>Dummy</h1><h2>Message</h2></body></html>") ;
+   if( msg == NULL || *msg == '\0' ){
+     msg = strdup("<html><body><p>Dummy\n<p>Message</body></html>") ;
      RETURN(msg) ;
    }
 
@@ -120,6 +160,12 @@ ENTRY("htmlize") ;
      strcat(mmm,msg) ;
      strcat(mmm,"\n</body></html>") ;
    }
+
+#ifdef SOLARIS
+   { char *qqq = unfontize(mmm) ;
+     if( qqq != mmm ){ free(mmm) ; mmm = qqq ; }
+   }
+#endif
 
    RETURN(mmm) ;
 }
