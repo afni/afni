@@ -1,5 +1,13 @@
 #include "mrilib.h"
 #include "xutil.h"
+
+#ifdef DONT_USE_HTMLWIN  /*-------------------- dummy routines ------------------------------*/
+
+MCW_htmlwin * new_MCW_htmlwin( Widget w, char *m, void_func *kf, XtPointer kd ){ return NULL ; }
+void MCW_htmlwin_alter( MCW_htmlwin *hw, char *mmm ){ return ; }
+
+#else                    /*---------- non-dummy routines --------------------*/
+
 #include "XmHTML/XmHTML.h"
 #include "debugtrace.h"    /* 12 Mar 2001 */
 
@@ -344,3 +352,5 @@ static void MCW_htmlwinkill_CB( Widget w, XtPointer client_data, XtPointer call_
    myXtFree( hw ) ;
    return ;
 }
+
+#endif /* DONT_USE_HTMLWIN */
