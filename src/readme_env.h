@@ -3028,6 +3028,14 @@ static char * readme_env[] = {
    "text window will be used.  You should only need to use this variable\n" ,
    "if the AFNI Tips window crashes on your system.\n" ,
    "\n" ,
+   "-----------------------------\n" ,
+   "Variable: AFNI_UNFONTIZE_HTML\n" ,
+   "-----------------------------\n" ,
+   "If this variable is set to YES, then font-changing HTML tags will be\n" ,
+   "deleted before opening the 'AFNI Tips' HTML window.  Try this first\n" ,
+   "to avoid crashes, before using the previous variable to turn off the\n" ,
+   "HTML tips entirely.\n" ,
+   "\n" ,
    "----------------------------------------------------------------------\n" ,
    "--- variables specific to NIML I/O\n" ,
    "----------------------------------------------------------------------\n" ,
@@ -3351,4 +3359,4 @@ static char * readme_env[] = {
    "size is used.\n" ,
    "\n" ,
    NULL } ;
-#define NUM_readme_env 3351
+#define NUM_readme_env 3359
