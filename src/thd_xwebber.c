@@ -76,6 +76,7 @@ ENTRY("anchorCB") ;
 }
 
 /*----------------------------------------------------------------------------*/
+#ifdef UNFONTIZE_HTMLWIN
 
 #undef  SSUB
 #define SSUB(a,b)                                        \
@@ -110,10 +111,13 @@ static char * unfontize( char *msg )
    UOSUB("<b>")   ; UXSUB("</b>")   ;
    UOSUB("<em>")  ; UXSUB("</em>")  ;
    UOSUB("<tt>")  ; UXSUB("</tt>")  ;
+   SSUB("<font ","<u ") ; UXSUB("</font>") ;
 
    if( strcmp(mmm,msg) == 0 ){ free(mmm) ; mmm = msg ; }
    return mmm ;
 }
+
+#endif /* UNFONTIZE_HTMLWIN */
 
 /*----------------------------------------------------------------------------*/
 /* Mangle a message to be good HTML for display */
@@ -161,7 +165,7 @@ ENTRY("htmlize") ;
      strcat(mmm,"\n</body></html>") ;
    }
 
-#ifdef SOLARIS
+#ifdef UNFONTIZE_HTMLWIN
    { char *qqq = unfontize(mmm) ;
      if( qqq != mmm ){ free(mmm) ; mmm = qqq ; }
    }
