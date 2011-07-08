@@ -111,6 +111,7 @@ static char * unfontize( char *msg )
    UOSUB("<em>")  ; UXSUB("</em>")  ;
    UOSUB("<tt>")  ; UXSUB("</tt>")  ;
    SSUB("<font ","<u ") ; UXSUB("</font>") ;
+   SSUB("&nbsp;",".") ;
 
    if( strcmp(mmm,msg) == 0 ){ free(mmm) ; mmm = msg ; }
    return mmm ;
