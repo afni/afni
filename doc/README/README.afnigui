@@ -1,6 +1,12 @@
 ================================================================================
                 ----===|  Usage Tips for the AFNI GUI  |===----
 ================================================================================
+Tip #1:
+  When the AFNI sunrise logo is displayed in the square to right of the 'done'
+  button, this means that something is happening that might take a long time
+  (e.g., reading a big file).  The AFNI GUI will not respond to clicks or
+  keystrokes during this time.
+--------------------------------------------------------------------------------
                     ***** AFNI For Absolute Beginners *****
 
 (1) To use AFNI, you must have some data stored in a format that the program
@@ -55,9 +61,9 @@
       with more help than the simple popup hints.
   (h) Sample datasets and all the AFNI course materials are in the big file
       CD.tgz (more than 1 Gbyte) at
-        http://afni.nimh.nih.gov/pub/dist/edu/data
+         http://afni.nimh.nih.gov/pub/dist/edu/data
       And don't forget the AFNI message board at
-        http://afni.nimh.nih.gov/afni/community/board
+         http://afni.nimh.nih.gov/afni/community/board
 --------------------------------------------------------------------------------
              ***** Cursor Shapes and Right-Click Popup Menus *****
 
